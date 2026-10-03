@@ -31,7 +31,7 @@ export interface PropContext {
   seed: number;
   /** World position (some props vary with height, e.g. fire escape lanes). */
   pos: V3;
-  /** Stacking props: is the same prop directly above / below (one level away)? */
+  /** Stacking props: is the same prop directly above (one level up) / anywhere below in this column? */
   above: boolean;
   below: boolean;
   /** This instance's value for PropDef.adjust (its default when never adjusted). */
@@ -65,9 +65,9 @@ export interface PropDef {
   hang?: number;
   joint?: JointKind;
   /**
-   * Stacking props whose shape depends on the same prop one level above or
-   * below (ctx.above / ctx.below). They are rebuilt when that neighbor is added
-   * or removed.
+   * Stacking props whose shape depends on the same prop one level above
+   * (ctx.above) or anywhere below in the same column (ctx.below). They are
+   * rebuilt when that changes.
    */
   stacks?: { above?: boolean; below?: boolean };
   adjust?: PropAdjust;

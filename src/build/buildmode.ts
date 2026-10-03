@@ -88,7 +88,7 @@ export class BuildMode {
   update(input: Input, camera: THREE.Camera) {
     this.pickerInput(input);
     const target = this.aim(camera);
-    this.preview(target);
+    this.preview(target, camera.position);
 
     if (input.wasPressed('KeyR')) this.rot = (this.rot + 1) % 4;
     const lv = (input.wasTyped('PageUp') ? 1 : 0) - (input.wasTyped('PageDown') ? 1 : 0);
@@ -195,7 +195,7 @@ export class BuildMode {
     return h ? +h.point.y.toFixed(3) : y + 0.1 >= plane ? plane : null;
   };
 
-  private preview(target: Hit | null) {
+  private preview(target: Hit | null, eye: THREE.Vector3) {
     if (!target) {
       this.ghost.visible = false;
       this.grid.visible = false;
@@ -207,7 +207,8 @@ export class BuildMode {
     const pl = place(spec, target, this.rot, this.floorAt, e.kind === 'prop' ? extentOf(e.def, this.rot) : undefined);
     if (e.kind === 'prop') this.ghost.showProp(e.def, pl.pos, pl.rot, this.level.stackContext(e.def.type, pl.pos, pl.rot));
     else this.ghost.showPickup(pl.pos);
-    this.valid = pl.ok && !this.level.overlaps(this.ghost.colliders);
+    // Like Minecraft, never place into yourself (a held LMB pillar stops at your eyes).
+    this.valid = pl.ok && !this.level.overlaps(this.ghost.colliders) && !this.ghost.colliders.some((c) => c.containsPoint(eye));
     this.ghost.setValid(this.valid);
     this.ghost.visible = true;
     this.placement = { pos: pl.pos, rot: pl.rot };

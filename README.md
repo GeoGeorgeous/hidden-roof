@@ -30,24 +30,31 @@ npm run build      # typecheck + production build into dist/
 | B | Toggle build mode |
 | F3 or \` | Debug and tuning panel (Esc frees the mouse for the sliders) |
 
-**Build mode** (you fly with no collisions; the scene switches to plain daylight without rain)
+**Build mode** (you fly with no collisions; the scene switches to plain daylight without rain). It works like Minecraft Creative: aim at a face and click.
 
 | Input | Action |
 |---|---|
 | WASD, Space, C (Shift for fast) | Fly |
-| Q / E | Choose a prop or pickup to place |
-| F | Place it at the crosshair |
-| LMB | Select a placed object |
-| Arrows, PgUp / PgDn | Move on a 0.25 m grid (Shift: 1 m), relative to where you look |
+| LMB | Place the ghost. Hold it to keep placing wherever the ghost moves (pillars, bridges) |
+| RMB | Delete what you aim at |
+| MMB | Pick the prop or pickup you aim at (with its rotation) |
+| Tab / Shift+Tab, 1-6 | Prop category |
+| Mouse wheel | Prop within the category |
 | R | Rotate 90° |
-| X / Y / Z, then - / = | Choose an axis, then shrink or grow along it (props only, scalable axes only) |
-| V | Duplicate |
-| Del | Delete |
+| PgUp / PgDn | Working level (the build plane) up / down |
+| Ctrl+Z | Undo |
 | [ / ] | Tilt the floodlight under the crosshair (saved per floodlight as `adjust` in the level) |
 | T | Put the spawn point on the floor under the crosshair, facing where you look (the blue figure + arrow shows it while building) |
 | H | Show paintable surfaces (green stripes; everything else dims) |
 | P | Save the level as `level.json` (downloads) |
 | O | Load a level JSON file |
+
+**Placement:**
+- Aim at a top face and the new prop goes on top. Aim at a side face and it goes next to that face, flush against it. Everything snaps to the grid (2 m cells, 4 m levels, 0.5 m for small props).
+- The ghost is green when the prop fits and red when it would overlap something, can't go on that face, or would end up inside you.
+- Building blocks stack: a block with another block below it is one 4 m storey, so pillars and towers go up level by level.
+
+**Levels:** the map sits on top of a skyscraper, so heights are counted in levels, not meters. Level 0 is the main roof (y = 0). Each level is 4 m: level 1 is 4 m up, level -1 is 4 m down. The build HUD shows the level of the ghost (`AIM LEVEL 2`, or `LEVEL 1 +1.2 M` for things standing between floors) and the working level (`PLANE LEVEL n`). Aiming at empty space lands on the build plane, an invisible floor at the working level, so you can start building in mid-air. PgUp / PgDn move the plane, and it also follows the level of whatever you place last.
 
 ## Inventory
 
@@ -78,15 +85,15 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "spawn": { "pos": [0, 0, 5], "yaw": 0 },
-  "props": [{ "type": "hut", "pos": [-8, 0, -6], "rot": 2, "size": [4, 3, 5] }],
+  "props": [{ "type": "building", "pos": [-7, 0, -5], "rot": 0 }, { "type": "slab", "pos": [-7, 4, -5] }],
   "pickups": [{ "kind": "color:red", "pos": [-3, 0, 6] }, { "kind": "cap:fat", "pos": [16, 8, -3] }, { "kind": "marker", "pos": [-8, 3, -5] }]
 }
 ```
 
+- `pos` is in meters relative to level 0, so `y` = level × 4 (8 is level 2, -4 is level -1). Props between floors keep their exact height.
 - `rot` is the number of quarter turns.
-- `size` is optional and defaults to the prop's own default size.
 - Pickup kinds:
   - `color:<white|red>` unlocks a paint color
   - `can:<md|lg>` upgrades the can
@@ -142,6 +149,7 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
 - `MARKER`: `reach`, `radius`, `strength`, and `holdDistance` / `holdScale` for the first-person pose.
 - `VIEWMODEL`: hand sway, walk bob, jump lag and the trigger-press animation.
 - `ATMOS`: the rainy night, including `lightDecay` (light falloff, 2 = physical). `DAYLIGHT` overrides some of its keys while build mode is on.
+- `BUILD`: build mode reach and the hold-to-place repeat timing.
 - `WALL_HAND`: when the free left hand reaches for a wall and lets go.
 - `DRIPS`, `PLAYER_LIGHT`: see above.
 - `LIGHTS`: per light kind: `color`, `offset`, `dir`, `intensity`, `range`, `spread`, `softness`, `glow`, `beam`, `shadows`.
@@ -183,6 +191,6 @@ src/hud.ts               body-cam frame: vignette, REC/clock, crosshair, cap tag
 src/style.css            all UI styling (white + red alert, thin lines, monospace)
 src/settings.ts          pause-menu settings (resolution, volumetrics), saved in localStorage
 src/audio.ts, input.ts, fullscreen.ts
-public/levels/demo.json  demo rooftop using every prop and pickup
+public/levels/demo.json  demo rooftop using every prop and pickup, plus an empty level-0 roof to the north for building
 scripts/smoke.mjs        headless Playwright smoke test
 ```

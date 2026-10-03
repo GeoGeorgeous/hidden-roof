@@ -349,6 +349,10 @@ canvas {
   color: var(--ui);
   margin-top: 6px;
 }
+.build-help .levels {
+  color: var(--ui);
+  margin-bottom: 6px;
+}
 
 /* --- Debug + tuning panel (top-left, under REC) ------------------------- */
 

@@ -14,8 +14,8 @@ const FACADE: Mat = { tex: 'facadeA', tile: 8 };
 
 /**
  * Building block: 2x2 m column from the roof down to the street. Top 4 m are
- * paintable. Stacked on another block it is one 4 m storey, so blocks pile up
- * level by level like Minecraft blocks.
+ * paintable. With another block anywhere below it, it is one 4 m storey, so
+ * blocks pile up level by level like Minecraft blocks.
  */
 export const building: PropDef = {
   type: 'building',

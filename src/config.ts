@@ -11,44 +11,44 @@ export const RENDER = {
 
 /** Rainy night. Colors are hex; everything else is live-tunable in the debug panel. */
 export const ATMOS = {
-  skyZenith: '#06080c',
-  skyHorizon: '#20262f',
-  fogColor: '#1a1f27',
+  skyZenith: '#343c4b',
+  skyHorizon: '#080b11',
+  fogColor: '#0e131a',
   /** Exponential fog density (1/m). */
   fogDensity: 0.009,
   /** Low clouds: everything above this height (relative to the level) fades into them. */
   cloudBase: 35,
   cloudFade: 40,
-  cloudColor: '#1c212a',
-  ambientSky: '#3a4864',
-  ambientGround: '#0b0d12',
-  ambient: 1.9,
-  moonColor: '#a8bcdf',
-  moon: 3,
+  cloudColor: '#080b07',
+  ambientSky: '#7889ab',
+  ambientGround: '#000000',
+  ambient: 1,
+  moonColor: '#777698',
+  moon: 1.4,
   moonDir: [-0.35, 0.85, -0.4] as [number, number, number],
   shadows: true,
   /** Floodlights may also cast shadows (the nearest ones, up to the spot budget). */
-  spotShadows: true,
+  spotShadows: false,
   /** Half-size of the moon shadow area around the player, in meters. */
-  shadowRange: 26,
+  shadowRange: 32,
   /** Multiplier for all light props. */
   practical: 2,
   /** Real lights handed to the nearest light props (others use glow tricks only). */
   lightBudget: 8,
   /** Distance falloff exponent of light props: 2 = physical inverse square, lower reaches further. */
-  lightDecay: 1.5,
+  lightDecay: 2,
   windowGlow: 0.25,
   /** Brightness of emissive surfaces (lamps, neon). */
   emissiveBoost: 1.8,
   /** A little self-light on paint so graffiti reads in the dark. */
   paintGlow: 0,
   /** Wet look on up-facing surfaces: darker + specular. */
-  wetness: 0.75,
+  wetness: 0.15,
   rain: true,
   /** Fraction of the maximum drop count. */
-  rainDensity: 0.6,
+  rainDensity: 0.09,
   rainSpeed: 8,
-  wind: [1.4, 0, 0.7] as [number, number, number],
+  wind: [-3, 0, -2] as [number, number, number],
 };
 
 /** Practical light kinds; every light prop uses one (see kit/lights.ts). */
@@ -81,8 +81,8 @@ export interface LightSpec {
 
 /** Per-kind light settings, live-tunable in the debug panel (Lights). */
 export const LIGHTS: Record<LightKind, LightSpec> = {
-  wallLamp: { color: '#ffb36b', offset: [0, 0, 0], dir: [0, -1, -0.25], intensity: 7, range: 18, spread: 1.2, softness: 0.7, glow: 0.35, glowAllAround: false, beam: 0, shadows: false },
-  floodlight: { color: '#dfe8ff', offset: [0, 0, 0], dir: [0, -0.55, -0.83], intensity: 60, range: 40, spread: 0.55, softness: 0.4, glow: 0.6, glowAllAround: false, beam: 7, shadows: true },
+  wallLamp: { color: '#9b96c0', offset: [0, 0, 0], dir: [0, -1, -0.25], intensity: 13.5, range: 10, spread: 1.33, softness: 1, glow: 0, glowAllAround: false, beam: 0.5, shadows: false },
+  floodlight: { color: '#dfe8ff', offset: [0, 0, 0], dir: [0, -0.55, -0.83], intensity: 60, range: 40, spread: 0.55, softness: 0.4, glow: 0.6, glowAllAround: false, beam: 7, shadows: false },
   neonPink: { color: '#ff3fa4', offset: [0, 0, 0], dir: [1, 0, 0], intensity: 8, range: 10, spread: 1.45, softness: 1, glow: 0, glowAllAround: false, beam: 0, shadows: false },
   neonCyan: { color: '#2fe6ff', offset: [0, 0, 0], dir: [1, 0, 0], intensity: 8, range: 10, spread: 1.45, softness: 1, glow: 0, glowAllAround: false, beam: 0, shadows: false },
   lampPost: { color: '#ffcf8a', offset: [0, 0, 0], dir: [0, -1, 0], intensity: 30, range: 22, spread: 1.15, softness: 0.6, glow: 0.45, glowAllAround: false, beam: 4.5, shadows: true },
@@ -121,7 +121,7 @@ export const DAYLIGHT: Partial<typeof ATMOS> = {
  * pool (the two shadow slots also get shafts). Added in the final pass.
  */
 export const VOLUMETRICS = {
-  enabled: true,
+  enabled: false,
   /** Raymarch resolution divisor relative to the render resolution (2 = half width and height). */
   downscale: 2,
   /** Samples along each ray (max 32). */
@@ -144,7 +144,7 @@ export const GRADE = {
   contrast: 1.05,
   saturation: 0.95,
   /** Warm (+) / cool (-) white balance. */
-  temperature: 0,
+  temperature: 0.25,
   /** Magenta (+) / green (-). */
   tint: 0,
 };
@@ -184,7 +184,7 @@ export const CAP_ORDER: CapId[] = ['skinny', 'standard', 'fat', 'spray'];
 export const CAPS: Record<CapId, CapSpec> = {
   skinny: { name: 'SKINNY', coneAngle: 0.01, rate: 320, strength: 0.8, stampRadius: 0.3, softness: 0.15, hissGain: 0.5, hissTone: 0, crosshair: 8, color: '#7fb4f2' },
   standard: { name: 'STANDARD', coneAngle: 0.04, rate: 450, strength: 0.5, stampRadius: 0.6, softness: 0.35, hissGain: 0.75, hissTone: 0.4, crosshair: 14, color: '#f4f4f4' },
-  fat: { name: 'FAT', coneAngle: 0.075, rate: 800, strength: 0.35, stampRadius: 1.9, softness: 0.6, hissGain: 1, hissTone: 1, crosshair: 22, color: '#f2a04c' },
+  fat: { name: 'FAT', coneAngle: 0.01, rate: 800, strength: 0.35, stampRadius: 1.9, softness: 0, hissGain: 1, hissTone: 1, crosshair: 22, color: '#f2a04c' },
   /** Wide, soft mist for fades and backgrounds: lots of faint, fuzzy dots. */
   spray: { name: 'SPRAY', coneAngle: 0.14, rate: 1100, strength: 0.12, stampRadius: 1.4, softness: 0.9, hissGain: 0.9, hissTone: 0.8, crosshair: 32, color: '#b98cf2' },
 };
@@ -205,7 +205,7 @@ export const CAN_SIZES: Record<CanSize, { drain: number; scale: number }> = {
 
 export const MARKER = {
   /** Max distance from the eye to the surface. */
-  reach: 1.6,
+  reach: 2.3,
   /** Stamp radius in texels (0 = one texel, ~4 cm). */
   radius: 0,
   strength: 0.95,
@@ -241,18 +241,18 @@ export const VIEWMODEL = {
 /** Free left hand: reaches out and rests on a wall when you stand close to one. */
 export const WALL_HAND = {
   /** Start touching within this distance (m), let go beyond `release`. */
-  reach: 0.85,
-  release: 1.05,
+  reach: 1.1,
+  release: 1.3,
   /** How fast the hand moves to the wall and back (1/s). */
   speed: 7,
   /** Only touch walls at least this far (degrees) to the left of straight ahead; facing a wall keeps the hand down. */
-  minSideAngle: 35,
+  minSideAngle: 0,
   /** ...and at most this far (degrees): beyond it the wall is behind you. */
-  maxSideAngle: 140,
+  maxSideAngle: 180,
   /** Re-place the hand when the spot it should be on drifts this far from where it rests (m). */
   slide: 0.3,
   /** Direction of the ray that looks for a wall, camera space (x right, y up, -z forward). */
-  aim: [-0.5, -0.3, -1] as [number, number, number],
+  aim: [0, -0.3, -0.03] as [number, number, number],
   /** Palm on the wall: fingers lean inward this much (rad), and sit this far off the surface (m). */
   fingerLean: 0.3,
   gap: 0.004,
@@ -269,7 +269,7 @@ export const PLAYER_LIGHT = {
   intensity: 0.5,
   /** Meters until it's gone. */
   range: 5,
-  color: '#b8c4d8',
+  color: '#c0cfe8',
   /** Height above the eyes (m): from above it reads as ambient, not as a beam. */
   height: 0.35,
 };
@@ -280,11 +280,11 @@ export const PLAYER_LIGHT = {
  * All baked into the paint texture: no extra objects.
  */
 export const DRIPS = {
-  enabled: true,
+  enabled: false,
   /** Excess paint (in full coats) a texel needs before it may run. */
   excess: 2.5,
   /** Chance that a texel at the limit actually starts a run. */
-  chance: 0.12,
+  chance: 0.03,
   /** Runs moving at the same time, level-wide. */
   maxActive: 40,
   /** Run length range (m). */
@@ -381,21 +381,21 @@ export const AUDIO = {
   masterGain: 0.7,
   hissGain: 0.22,
   /** Distant city rumble. */
-  ambienceGain: 0.05,
+  ambienceGain: 0.145,
   footstepGain: 0.25,
   /** Rain bed at full density; scales with ATMOS.rainDensity, silent without rain. */
-  rainGain: 0.09,
+  rainGain: 0.045,
   /** Brightness of the rain hiss (lowpass Hz). */
   rainTone: 3200,
-  thunderGain: 0.55,
+  thunderGain: 0.47,
   /** AC fan hum at the fan; fades out over `fanRange` meters. */
-  fanGain: 0.12,
+  fanGain: 0.135,
   fanRange: 7,
   uiGain: 1,
   /** Raindrops pinging on metal tops open to the sky: loudness, pings per second per piece, hearing range (m). */
   metalGain: 0.07,
   metalRate: 2.5,
-  metalRange: 8,
+  metalRange: 6,
 };
 
 /** Lightning + thunder, only while it rains. */
@@ -416,18 +416,18 @@ export const THUNDER = {
 
 /** Smoke / warm air from vents, exhausts and AC units: one GPU-animated particle batch. */
 export const SMOKE = {
-  enabled: true,
+  enabled: false,
   /** Particles per emitter (0..48). */
-  perEmitter: 28,
+  perEmitter: 20,
   /** Seconds a puff lives. */
-  life: 4.5,
+  life: 6.9,
   /** Rise over a life (m), and how far wind carries it (multiplies ATMOS.wind). */
-  rise: 2.6,
+  rise: 0.4,
   drift: 0.5,
   /** Puff size at birth and at the end (m). */
-  startSize: 0.25,
-  endSize: 1.1,
-  opacity: 0.22,
+  startSize: 0.02,
+  endSize: 2.1,
+  opacity: 0.05,
   color: '#9aa3ad',
 };
 

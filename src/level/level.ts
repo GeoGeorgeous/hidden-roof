@@ -152,8 +152,9 @@ export class Level {
   /** Stacking neighbors (PropContext.above / below) of a prop at `pos`. */
   stackContext(type: string, pos: V3, rot: number) {
     const def = KIT_BY_TYPE.get(type);
-    const at = (dy: number) => this.findAt(type, [pos[0], pos[1] + dy, pos[2]], rot) !== undefined;
-    return { above: !!def?.stacks?.above && at(V_MODULE), below: !!def?.stacks?.below && at(-V_MODULE) };
+    const above = !!def?.stacks?.above && this.findAt(type, [pos[0], pos[1] + V_MODULE, pos[2]], rot) !== undefined;
+    const below = !!def?.stacks?.below && this.column(type, pos, rot).some((p) => p.pos[1] < pos[1] - 0.01);
+    return { above, below };
   }
 
   private create(data: PropData, build = true): PropInstance | null {
@@ -186,11 +187,20 @@ export class Level {
   private rebuildStack(inst: PropInstance) {
     const s = KIT_BY_TYPE.get(inst.type)?.stacks;
     if (!s) return;
-    const near = (dy: number) => this.findAt(inst.type, [inst.pos[0], inst.pos[1] + dy, inst.pos[2]], inst.rot);
-    const below = s.above ? near(-V_MODULE) : undefined;
-    const above = s.below ? near(V_MODULE) : undefined;
+    const below = s.above ? this.findAt(inst.type, [inst.pos[0], inst.pos[1] - V_MODULE, inst.pos[2]], inst.rot) : undefined;
     if (below) this.build(below);
-    if (above) this.build(above);
+    // Only the lowest prop above can change (it may become the bottom of the column).
+    if (s.below) {
+      const above = this.column(inst.type, inst.pos, inst.rot).filter((p) => p.pos[1] > inst.pos[1] + 0.01);
+      const lowest = above.sort((a, b) => a.pos[1] - b.pos[1])[0];
+      if (lowest) this.build(lowest);
+    }
+  }
+
+  /** Props of this type in the same vertical column (same x, z). */
+  private column(type: string, pos: V3, rot: number) {
+    const anyRot = KIT_BY_TYPE.get(type)?.place === 'cell';
+    return [...this.props.values()].filter((p) => p.type === type && (anyRot || p.rot === rot) && Math.abs(p.pos[0] - pos[0]) < 0.01 && Math.abs(p.pos[2] - pos[2]) < 0.01);
   }
 
   /** Cell props fill the same space whatever their facing, so their rotation doesn't matter. */
