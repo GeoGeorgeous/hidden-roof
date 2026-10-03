@@ -6,6 +6,7 @@ import type { Ladder } from '../player';
 import { addBox, addCylinder, boxSurface, cylinderSurface, SurfaceBuilder, type Axis, type BoxFace, type SurfaceGeometry } from '../surfaces';
 import { M, type BoxPiece, type CylPiece, type Mat, type Piece, type Swing, type V3 } from '../kit/pieces';
 import { LIGHTS, type LightKind } from '../config';
+import type { Track } from '../render/cctv-track';
 
 // Turns a prop's pieces into world-space geometry, colliders and climb volumes.
 // Rotations are multiples of 90°, so every box stays axis-aligned and its
@@ -40,6 +41,10 @@ export interface LightAnchor {
   glows: THREE.Vector3[] | null;
   /** Neon flicker seed (0 = steady). */
   flicker: number;
+  /** CCTV light: turns with its head and only shines while it follows the player (render/cctv-track.ts). */
+  track: Track | null;
+  /** 0..1 strength right now (tracking lights fade with the player's distance); 1 for every other light. */
+  level: number;
 }
 
 /** Apply LIGHTS[kind] (offset, aim, color) to an anchor. */
@@ -132,6 +137,7 @@ export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint =
   const r = ((rot % 4) + 4) % 4;
   const origin = new THREE.Vector3(...pos);
   const at = (v: V3) => rotate(v, r).add(origin);
+  const restFacing = rotate([0, 0, -1], r); // tracking heads face out of the wall at rest
   const out: Expanded = { paint: [], decor: [], colliders: [], ladders: [], lights: [], emitters: [] };
   const decor = (mat: Mat, geo: THREE.BufferGeometry, swing?: Swing) => {
     tintGeometry(geo, mat.tint, mat.emissive, mat.flicker ?? 0);
@@ -140,7 +146,7 @@ export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint =
       const w = rotate(local, r);
       const axis = Math.abs(w.y) > 0.5 ? 0 : Math.abs(w.x) > 0.5 ? 1 : 2;
       if (swing.spin) swingGeometry(geo, at(swing.pivot), -1, swing.dir ?? 1, swing.phase ?? 0, axis);
-      else swingGeometry(geo, at(swing.pivot), swing.amp, (Math.PI * 2) / swing.period, swing.phase ?? 0, axis);
+      else swingGeometry(geo, at(swing.pivot), swing.amp, (Math.PI * 2) / swing.period, swing.phase ?? 0, axis, swing.track && axis === 0 ? [restFacing.x, restFacing.z, swing.track === 'lens' ? 2 : 1] : undefined);
     }
     out.decor.push({ geo, mat });
   };
@@ -200,7 +206,9 @@ export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint =
       g.translate(c.x, c.y + p.h / 2, c.z);
       decor(p.mat, g, p.swing);
     } else if (p.k === 'light') {
-      const a: LightAnchor = { kind: p.kind, base: at(p.pos), rot: r, aim: p.dir ?? null, mirrorX: !!p.mirrorX, pos: new THREE.Vector3(), dir: new THREE.Vector3(), color: new THREE.Color(), glows: p.glows?.map(at) ?? null, flicker: p.flicker ?? 0 };
+      const sw = p.swing?.track ? p.swing : undefined;
+      const track: Track | null = sw ? { pivot: at(sw.pivot), fwd: new THREE.Vector2(restFacing.x, restFacing.z), amp: sw.amp, speed: (Math.PI * 2) / sw.period, phase: sw.phase ?? 0 } : null;
+      const a: LightAnchor = { kind: p.kind, base: at(p.pos), rot: r, aim: p.dir ?? null, mirrorX: !!p.mirrorX, pos: new THREE.Vector3(), dir: new THREE.Vector3(), color: new THREE.Color(), glows: p.glows?.map(at) ?? null, flicker: p.flicker ?? 0, track, level: track ? 0 : 1 };
       syncAnchor(a);
       out.lights.push(a);
     } else if (p.k === 'emitter') {

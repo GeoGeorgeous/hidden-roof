@@ -1,4 +1,4 @@
-import { SKYLINE, ATMOS, AUDIO, CAN_SIZES, CAP_ORDER, CAPS, DAYLIGHT, DRIPS, FANS, FLICKER, GRADE, LIGHTS, PICKUP, SMOKE, THUNDER, PLAYER_LIGHT, VOLUMETRICS, WALL_HAND, MARKER, PAINT, PLAYER, PRESSURE, RENDER, SPRAY, VIEWMODEL } from '../config';
+import { SKYLINE, ATMOS, AUDIO, CAN_SIZES, CAP_ORDER, CAPS, CCTV, DAYLIGHT, DRIPS, FANS, FLICKER, GRADE, LIGHTS, PICKUP, SIRENS, SMOKE, THUNDER, PLAYER_LIGHT, VOLUMETRICS, WALL_HAND, MARKER, PAINT, PLAYER, PRESSURE, RENDER, SPRAY, VIEWMODEL } from '../config';
 
 // Debug panel contents: collapsible sections of live sliders/toggles that write
 // straight into the config objects, plus read-only stats. Each value knows its
@@ -44,6 +44,8 @@ const ROOTS: Record<string, Obj> = {
   PICKUP: PICKUP as unknown as Obj,
   AUDIO: AUDIO as unknown as Obj,
   THUNDER: THUNDER as unknown as Obj,
+  SIRENS: SIRENS as unknown as Obj,
+  CCTV: CCTV as unknown as Obj,
   SMOKE: SMOKE as unknown as Obj,
   FANS: FANS as unknown as Obj,
   FLICKER: FLICKER as unknown as Obj,
@@ -76,6 +78,8 @@ export const live = {
   repaintSkyline: () => {},
   /** Debug: a lightning strike right now. */
   strikeLightning: () => {},
+  /** Debug: a far siren right now. */
+  siren: () => {},
   /** GPU time of a render pass, as text ('n/a' without timer queries). */
   gpu: (_label: string) => 'n/a',
 };
@@ -87,7 +91,7 @@ const c = (label: string, path: string[], onChange?: () => void): Item => ({ kin
 const v3 = (label: string, path: string[], min: number, max: number, step: number, onChange?: () => void): Item[] =>
   ['x', 'y', 'z'].map((a, i) => r(`${label} ${a}`, [...path, String(i)], min, max, step, onChange));
 
-const LIGHT_LABELS: Record<string, string> = { wallLamp: 'WALL LAMP', floodlight: 'FLOODLIGHT', neonPink: 'NEON SIGN (PINK)', neonCyan: 'NEON SIGN (CYAN)', billboardLamp: 'BILLBOARD LAMP', lampPost: 'LAMP POST', stringLights: 'STRING LIGHTS' };
+const LIGHT_LABELS: Record<string, string> = { wallLamp: 'WALL LAMP', floodlight: 'FLOODLIGHT', neonPink: 'NEON SIGN (PINK)', neonCyan: 'NEON SIGN (CYAN)', billboardLamp: 'BILLBOARD LAMP', lampPost: 'LAMP POST', stringLights: 'STRING LIGHTS', cctv: 'CCTV CAMERA' };
 
 function lightItems(): Item[] {
   const fx = () => live.rebuildLights();
@@ -195,9 +199,9 @@ export function sections(extra: Partial<Record<string, Item[]>> = {}): Section[]
         r('let go at (m)', ['WALL_HAND', 'release'], 0.4, 2, 0.05),
         r('speed', ['WALL_HAND', 'speed'], 1, 20, 0.5),
         r('slide after (m)', ['WALL_HAND', 'slide'], 0.05, 1, 0.05),
-        r('min wall angle to the left (°)', ['WALL_HAND', 'minSideAngle'], 0, 90, 1),
-        r('max wall angle to the left (°)', ['WALL_HAND', 'maxSideAngle'], 60, 180, 1),
-        ...v3('wall search ray', ['WALL_HAND', 'aim'], -1.5, 1.5, 0.01),
+        r('look for walls from (° left)', ['WALL_HAND', 'fromAngle'], 0, 90, 1),
+        r('look for walls to (° left)', ['WALL_HAND', 'toAngle'], 30, 180, 1),
+        r('hand below eyes (m)', ['WALL_HAND', 'drop'], 0, 1, 0.01),
         r('finger lean on wall (rad)', ['WALL_HAND', 'fingerLean'], -1, 1, 0.01),
         r('gap to wall (m)', ['WALL_HAND', 'gap'], 0, 0.05, 0.001),
         ...v3('comes in from (position)', ['WALL_HAND', 'restOffset'], -0.8, 0.8, 0.005),
@@ -256,6 +260,8 @@ export function sections(extra: Partial<Record<string, Item[]>> = {}): Section[]
         t('rain', ['ATMOS', 'rain']),
         r('rain density', ['ATMOS', 'rainDensity'], 0, 1, 0.01),
         r('rain speed', ['ATMOS', 'rainSpeed'], 4, 30, 0.5),
+        c('rain color', ['ATMOS', 'rainColor']),
+        r('rain opacity', ['ATMOS', 'rainOpacity'], 0, 4, 0.05),
         ...v3('wind', ['ATMOS', 'wind'], -5, 5, 0.1),
         r('fog density', ['ATMOS', 'fogDensity'], 0, 0.08, 0.001),
         r('cloud base', ['ATMOS', 'cloudBase'], 5, 80, 1),
@@ -317,6 +323,7 @@ export function sections(extra: Partial<Record<string, Item[]>> = {}): Section[]
         r('drops on metal / s per piece', ['AUDIO', 'metalRate'], 0, 10, 0.1),
         r('drops on metal heard within (m)', ['AUDIO', 'metalRange'], 1, 20, 0.5),
         r('thunder', ['AUDIO', 'thunderGain'], 0, 1.5, 0.01),
+        r('far sirens', ['AUDIO', 'sirenGain'], 0, 0.6, 0.005),
         r('city ambience', ['AUDIO', 'ambienceGain'], 0, 0.3, 0.005),
         r('AC fan hum', ['AUDIO', 'fanGain'], 0, 0.5, 0.005),
         r('fan heard within (m)', ['AUDIO', 'fanRange'], 1, 20, 0.5),
@@ -338,6 +345,15 @@ export function sections(extra: Partial<Record<string, Item[]>> = {}): Section[]
         r('flash: sky', ['THUNDER', 'flashSky'], 0, 2, 0.05),
         r('thunder delay min (s)', ['THUNDER', 'minDelay'], 0, 5, 0.1),
         r('thunder delay max (s)', ['THUNDER', 'maxDelay'], 0, 10, 0.1),
+        { kind: 'heading', label: 'FAR SIRENS' },
+        t('sirens', ['SIRENS', 'enabled']),
+        { kind: 'action', label: 'SIREN NOW', run: () => live.siren() },
+        r('min seconds between', ['SIRENS', 'minInterval'], 5, 600, 1),
+        r('max seconds between', ['SIRENS', 'maxInterval'], 5, 900, 1),
+        { kind: 'heading', label: 'CCTV CAMERAS' },
+        r('start following within (m)', ['CCTV', 'followRange'], 1, 30, 0.5),
+        r('follow fully within (m)', ['CCTV', 'lockRange'], 0, 20, 0.5),
+        r('max head turn (rad)', ['CCTV', 'maxTurn'], 0.2, 1.57, 0.01),
         { kind: 'heading', label: 'SMOKE (VENTS, EXHAUSTS, AC)' },
         t('smoke', ['SMOKE', 'enabled']),
         r('puffs per source', ['SMOKE', 'perEmitter'], 0, 48, 1),

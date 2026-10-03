@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import { CAN_SIZES, CAPS, COLORS, PRESSURE, type PaintColor } from '../config';
+import { CAN_SIZES, CAPS, COLORS, PRESSURE } from '../config';
 import type { Audio } from '../audio';
 import type { Input } from '../input';
 import type { Inventory } from '../inventory/inventory';
-import { srgb01 } from '../inventory/items';
+import { rgbOf } from '../inventory/items';
 import type { PaintSystem } from '../painting';
 import { CanModel } from './can-model';
 import { SprayParticles } from './particles';
@@ -27,12 +27,6 @@ export class SprayTool {
   private shakeT = 0;
   private sputterOn = true;
   private sputterTimer = 0;
-  private lastCap = '';
-  private lastColor = '';
-  /** Called with the color when the player switches colors (can in hand). */
-  onColorChange: (color: PaintColor) => void = () => {};
-  /** Called with the cap name when the player switches caps. */
-  onCapChange: (name: string) => void = () => {};
 
   constructor(
     scene: THREE.Scene,
@@ -55,10 +49,6 @@ export class SprayTool {
     }
     const cap = CAPS[inv.cap];
     this.model.setCan(inv.color, inv.size, inv.cap);
-    if (this.lastCap && inv.cap !== this.lastCap) this.onCapChange(cap.name);
-    this.lastCap = inv.cap;
-    if (this.lastColor && inv.color !== this.lastColor) this.onColorChange(inv.color);
-    this.lastColor = inv.color;
 
     if (input.clicked(2) && this.shakeT <= 0) {
       this.shakeT = PRESSURE.shakeDuration;
@@ -109,11 +99,4 @@ export class SprayTool {
     }
     return 1;
   }
-}
-
-const rgbCache = new Map<string, [number, number, number]>();
-export function rgbOf(color: PaintColor) {
-  let c = rgbCache.get(color);
-  if (!c) rgbCache.set(color, (c = srgb01(COLORS[color])));
-  return c;
 }

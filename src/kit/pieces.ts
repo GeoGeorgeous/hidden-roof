@@ -37,6 +37,12 @@ export interface Swing {
   /** Turn continuously (fans) at FANS.speed instead of swinging; amp and period are ignored, `dir` ±1 sets the way round. */
   spin?: boolean;
   dir?: number;
+  /**
+   * Turn toward the player when they come near (CCTV heads, see CCTV in config;
+   * y swings only). 'lens': also light up meanwhile (emissive Mat). Lights added
+   * inside the same `swinging` block turn with it and only shine meanwhile.
+   */
+  track?: 'head' | 'lens';
 }
 
 /**
@@ -118,6 +124,8 @@ export interface LightPiece {
   mirrorX?: boolean;
   /** Fixed glow sprite positions (lens centers); default: one at the emitter. */
   glows?: V3[];
+  /** Set by `swinging`: a tracking light turns with its head (Swing.track). */
+  swing?: Swing;
 }
 export type Piece = BoxPiece | CylPiece | RodPiece | ConePiece | ClimbPiece | LightPiece | EmitterPiece;
 
@@ -190,7 +198,7 @@ export class Parts {
   }
 
   light(l: Omit<LightPiece, 'k'>) {
-    this.list.push({ k: 'light', ...l });
+    this.list.push({ k: 'light', ...l, swing: this.swing });
   }
 
   /** Horizontal railing along an axis-aligned line (x,z) on floor height y. */

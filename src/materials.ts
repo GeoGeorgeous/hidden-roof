@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { ATMOS, FANS, FLICKER, PAINT } from './config';
 import { FLICKER_GLSL } from './render/flicker';
+import { TRACK_GLSL, trackUniforms } from './render/cctv-track';
 import { glowFor, textures, type TexName } from './textures';
 
 export type { TexName } from './textures';
@@ -12,7 +13,8 @@ export type { TexName } from './textures';
 //  - per-vertex emissive (lamps, neon) and window glow masks (skyline)
 //  - low clouds: everything above the cloud base fades into the cloud color
 //  - swinging decor (CCTV heads): rotated around a vertical pivot in the vertex
-//    shader from per-vertex swing attributes, so it stays in the level batches
+//    shader from per-vertex swing attributes, so it stays in the level batches;
+//    CCTV heads also turn to follow a nearby player and light their lens
 //  - build-mode overlay that marks paintable surfaces
 
 const EMPTY_PAINT = new THREE.DataTexture(new Uint8Array(4), 1, 1);
@@ -38,6 +40,8 @@ export const shared = {
   uFlickerHum: { value: FLICKER.neonHum },
   /** Build mode: stripe paintable surfaces, dim everything else. */
   uShowPaintable: { value: 0 },
+  /** CCTV tracking: player position and ranges (render/cctv-track.ts). */
+  ...trackUniforms,
 };
 
 export function syncSharedUniforms(time: number) {
@@ -60,14 +64,19 @@ export function syncSharedUniforms(time: number) {
  * Swing / spin around an axis through the pivot (CCTV heads, AC fans):
  * swing = (amp, speed, phase, axis). amp > 0 swings amp * sin(t * speed + phase);
  * amp < 0 spins continuously at `speed` x uSpin (FANS.speed, rad/s). axis 0 = y, 1 = x, 2 = z.
+ * swingTrack = (rest facing x, z, mode): mode 1 turns toward the player when they
+ * are near (CCTV heads), mode 2 also lights up meanwhile (the lens).
  */
 const SWING_GLSL = /* glsl */ `
 attribute vec3 swingPivot;
 attribute vec4 swing;
+attribute vec3 swingTrack;
 uniform float uTime;
 uniform float uSpin;
+${TRACK_GLSL}
 vec3 swingRot(vec3 v) {
   float a = swing.x > 0.0 ? swing.x * sin(uTime * swing.y + swing.z) : mod(uTime * uSpin * swing.y, 6.2831853) + swing.z;
+  if (swingTrack.z > 0.5) a = trackAngle(a, swingPivot, swingTrack.xy);
   float c = cos(a), s = sin(a);
   if (swing.w > 1.5) return vec3(c * v.x - s * v.y, s * v.x + c * v.y, v.z);
   if (swing.w > 0.5) return vec3(v.x, c * v.y - s * v.z, s * v.y + c * v.z);
@@ -97,6 +106,7 @@ vBaseUv = baseUv * uBaseScale;
 vPaintUv = uv;
 vTint = tint;
 vEmissiveV = flicker > 0.0 ? emissive * neonFlicker(uTime, flicker) : emissive;
+if (swingTrack.z > 1.5) vEmissiveV *= trackWeight(swingPivot, swingTrack.xy);
 vWorldPos = (modelMatrix * vec4(transformed, 1.0)).xyz;
 vWorldN = normalize(mat3(modelMatrix) * objectNormal);
 `;
@@ -243,16 +253,19 @@ export function tintGeometry(g: THREE.BufferGeometry, color: THREE.ColorRepresen
  * zero by default, so moving and still decor merge into the same batches.
  * Paint meshes get them too (always still), plus a zero flicker.
  */
-export function swingGeometry(g: THREE.BufferGeometry, pivot?: THREE.Vector3, amp = 0, speed = 0, phase = 0, axis = 0) {
+export function swingGeometry(g: THREE.BufferGeometry, pivot?: THREE.Vector3, amp = 0, speed = 0, phase = 0, axis = 0, track?: [number, number, number]) {
   const n = g.attributes.position.count;
   const pv = new Float32Array(n * 3);
   const sw = new Float32Array(n * 4);
+  const tr = new Float32Array(n * 3);
   for (let i = 0; i < n; i++) {
     if (pivot) pv.set([pivot.x, pivot.y, pivot.z], i * 3);
     sw.set([amp, speed, phase, axis], i * 4);
+    if (track) tr.set(track, i * 3);
   }
   g.setAttribute('swingPivot', new THREE.BufferAttribute(pv, 3));
   g.setAttribute('swing', new THREE.BufferAttribute(sw, 4));
+  g.setAttribute('swingTrack', new THREE.BufferAttribute(tr, 3));
   if (!g.attributes.flicker) g.setAttribute('flicker', new THREE.BufferAttribute(new Float32Array(n), 1));
   return g;
 }
@@ -262,6 +275,7 @@ export const swingDepthMaterial = new THREE.MeshDepthMaterial();
 swingDepthMaterial.onBeforeCompile = (shader) => {
   shader.uniforms.uTime = shared.uTime;
   shader.uniforms.uSpin = shared.uSpin;
+  Object.assign(shader.uniforms, trackUniforms);
   shader.vertexShader = shader.vertexShader
     .replace('#include <common>', `#include <common>\n${SWING_GLSL}`)
     .replace('#include <begin_vertex>', `#include <begin_vertex>\n${SWING_POSITION}`);

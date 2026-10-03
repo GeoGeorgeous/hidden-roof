@@ -19,6 +19,8 @@ export class Rain {
     uSpeed: { value: ATMOS.rainSpeed },
     uWind: { value: new THREE.Vector3(...ATMOS.wind) },
     uFogDensity: { value: ATMOS.fogDensity },
+    uColor: { value: new THREE.Color(ATMOS.rainColor) },
+    uOpacity: { value: ATMOS.rainOpacity },
     uHeight: { value: null as THREE.Texture | null },
     uHOrigin: { value: new THREE.Vector2() },
     uHSize: { value: new THREE.Vector2(1, 1) },
@@ -51,7 +53,7 @@ export class Rain {
 
   update(time: number, cam: THREE.Vector3) {
     const on = ATMOS.rain;
-    this.drops.visible = on && ATMOS.rainDensity > 0;
+    this.drops.visible = on && ATMOS.rainDensity > 0 && ATMOS.rainOpacity > 0;
     this.drops.geometry.setDrawRange(0, Math.floor(MAX_DROPS * ATMOS.rainDensity) * 2);
     const u = this.uniforms;
     u.uTime.value = time;
@@ -59,6 +61,8 @@ export class Rain {
     u.uSpeed.value = ATMOS.rainSpeed;
     u.uWind.value.set(...ATMOS.wind);
     u.uFogDensity.value = ATMOS.fogDensity;
+    u.uColor.value.set(ATMOS.rainColor); // hex is sRGB; the uniform is linear (drawn into the HDR target)
+    u.uOpacity.value = ATMOS.rainOpacity;
   }
 
   private dropMaterial() {
@@ -75,6 +79,7 @@ export class Rain {
         uniform float uSpeed;
         uniform vec3 uWind;
         uniform float uFogDensity;
+        uniform float uOpacity;
         varying float vAlpha;
         void main() {
           vec3 vel = vec3(uWind.x, -uSpeed, uWind.z);
@@ -85,13 +90,14 @@ export class Rain {
           p -= normalize(vel) * tail * 0.55;
           float hidden = p.y < heightAt(p.xz) ? 0.0 : 1.0;
           vec4 mv = modelViewMatrix * vec4(p, 1.0);
-          vAlpha = hidden * exp(-uFogDensity * 1.5 * length(mv.xyz)) * mix(0.09, 0.02, tail);
+          vAlpha = hidden * exp(-uFogDensity * 1.5 * length(mv.xyz)) * mix(0.09, 0.02, tail) * uOpacity;
           gl_Position = projectionMatrix * mv;
         }`,
       fragmentShader: /* glsl */ `
+        uniform vec3 uColor;
         varying float vAlpha;
         void main() {
-          gl_FragColor = vec4(0.48, 0.55, 0.74, vAlpha); // linear (drawn into the HDR target)
+          gl_FragColor = vec4(uColor, min(vAlpha, 1.0));
         }`,
     });
   }

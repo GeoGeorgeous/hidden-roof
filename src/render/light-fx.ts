@@ -106,6 +106,8 @@ export class LightFX {
     this.glows = this.cones = null;
     for (const a of anchors) syncAnchor(a);
 
+    // Tracking (CCTV) lights move and switch on and off: no baked glow or beam.
+    anchors = anchors.filter((a) => !a.track);
     const glows = anchors.filter((a) => LIGHTS[a.kind].glow > 0).flatMap((a) => (a.glows ?? [a.pos]).map((p) => ({ a, p })));
     if (glows.length) {
       const g = new THREE.BufferGeometry();

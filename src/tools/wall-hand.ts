@@ -3,13 +3,14 @@ import { WALL_HAND } from '../config';
 import { chain, glove, segment, sleeve } from '../spray/hands';
 
 // The free left hand is only shown while it touches a wall: hidden otherwise,
-// it comes in from below the view. When the player stands close to a wall that
-// is off to the left (between WALL_HAND.minSideAngle and maxSideAngle; facing
-// a wall head-on keeps the hand down), it reaches out and rests flat on it;
-// walking away or turning to face the wall pulls it back out of view. A ray from the eye
-// (WALL_HAND.aim, a bit left and down of the view) finds the wall. The hand stays planted
-// where it landed and only slides when that spot drifts too far, like a hand
-// leaning on a wall. Drawn in the view-model pass with the other hand.
+// it comes in from below the view. A fan of level rays from the left shoulder
+// (WALL_HAND.fromAngle..toAngle to the left of where you look) looks for a
+// wall; the hand goes to the most forward ray that reaches one within `reach`
+// (so it lands where you can see it, not out at your side) and rests flat on
+// it. Beyond `release`, or once the wall leaves the fan, it goes back out of
+// view. The hand stays planted where it landed and only slides when that spot
+// drifts too far, like a hand leaning on a wall. Drawn in the view-model pass
+// with the other hand.
 
 const UP = new THREE.Vector3(0, 1, 0);
 
@@ -23,6 +24,10 @@ const touchQuat = new THREE.Quaternion();
 const tilt = new THREE.Quaternion();
 const euler = new THREE.Euler();
 const Z = new THREE.Vector3(0, 0, 1);
+const RAYS = 7;
+const shoulder = new THREE.Vector3();
+const fwd = new THREE.Vector3();
+const left = new THREE.Vector3();
 
 export class WallHand {
   readonly group = new THREE.Group();
@@ -59,17 +64,16 @@ export class WallHand {
 
   /** `sway`: the other hand's sway/bob offsets (camera space), applied while hanging. */
   update(dt: number, camera: THREE.Camera, eye: THREE.Vector3, enabled: boolean, sway?: THREE.Object3D) {
-    const hit = enabled ? this.findWall(camera, eye) : null;
     const W = WALL_HAND;
-    // How far the wall is to the left of straight ahead, as an angle (0 = facing it).
-    const side = hit ? sideAngle(camera, hit.normal) : 0;
+    shoulder.copy(eye).y -= W.drop;
+    const hit = enabled ? this.findWall(camera, this.touching ? W.release : W.reach) : null;
     if (this.touching) {
-      if (!hit || eye.distanceTo(this.anchor) > W.release || side < W.minSideAngle - 10 || side > W.maxSideAngle + 10) this.touching = false;
+      if (!hit || shoulder.distanceTo(this.anchor) > W.release) this.touching = false;
       else if (this.anchor.distanceTo(hit.point) > W.slide) {
         this.anchor.lerp(hit.point, 1 - Math.exp(-W.speed * dt));
         this.normal.lerp(hit.normal, 1 - Math.exp(-W.speed * dt)).normalize();
       }
-    } else if (hit && hit.distance < W.reach && side >= W.minSideAngle && side <= W.maxSideAngle) {
+    } else if (hit) {
       this.touching = true;
       this.anchor.copy(hit.point);
       this.normal.copy(hit.normal);
@@ -102,38 +106,26 @@ export class WallHand {
     this.arm.rotation.x = THREE.MathUtils.lerp(W.restWristBend, W.wallWristBend, k);
   }
 
-  private findWall(camera: THREE.Camera, eye: THREE.Vector3) {
+  /** The most forward wall hit in the fan of level rays from the left shoulder, within `limit`. */
+  private findWall(camera: THREE.Camera, limit: number) {
+    const W = WALL_HAND;
     this.near.length = 0;
-    const reach = WALL_HAND.release + 0.2;
     for (const m of this.solids) {
       const bs = m.geometry.boundingSphere!;
-      if (bs.center.distanceTo(eye) - bs.radius < reach) this.near.push(m);
+      if (bs.center.distanceTo(shoulder) - bs.radius < W.release) this.near.push(m);
     }
     if (!this.near.length) return null;
-    dir.set(...WALL_HAND.aim).normalize().transformDirection(camera.matrixWorld);
-    this.raycaster.set(eye, dir);
-    this.raycaster.far = reach;
-    const hit = this.raycaster.intersectObjects(this.near, false)[0];
-    if (!hit?.face) return null;
-    const n = hit.face.normal; // meshes live at the origin: geometry is in world space
-    if (Math.abs(n.y) > 0.6) return null; // walls only
-    return { point: hit.point, normal: n.clone(), distance: hit.distance };
+    camera.getWorldDirection(fwd).setY(0).normalize();
+    left.set(fwd.z, 0, -fwd.x);
+    this.raycaster.far = limit;
+    for (let i = 0; i < RAYS; i++) {
+      const a = THREE.MathUtils.degToRad(THREE.MathUtils.lerp(W.fromAngle, W.toAngle, i / (RAYS - 1)));
+      dir.copy(fwd).multiplyScalar(Math.cos(a)).addScaledVector(left, Math.sin(a));
+      this.raycaster.set(shoulder, dir);
+      const hit = this.raycaster.intersectObjects(this.near, false)[0];
+      // Meshes live at the origin, so face normals are in world space. Walls only.
+      if (hit?.face && Math.abs(hit.face.normal.y) <= 0.6) return { point: hit.point, normal: hit.face.normal.clone() };
+    }
+    return null;
   }
 }
-
-const fwd = new THREE.Vector3();
-const right = new THREE.Vector3();
-
-/**
- * Angle (degrees) of the wall to the left of the view direction: 0 when facing
- * it head-on, 90 when it runs alongside on the left, negative when it's to the right.
- */
-function sideAngle(camera: THREE.Camera, normal: THREE.Vector3) {
-  camera.getWorldDirection(fwd).setY(0).normalize();
-  right.set(-fwd.z, 0, fwd.x);
-  // The wall normal points back at the player; a wall on the left faces right.
-  const s = right.dot(normal);
-  const f = -fwd.dot(normal);
-  return (Math.atan2(s, Math.max(f, 1e-4)) * 180) / Math.PI;
-}
-

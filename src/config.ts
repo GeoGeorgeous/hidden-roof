@@ -48,11 +48,14 @@ export const ATMOS = {
   /** Fraction of the maximum drop count. */
   rainDensity: 0.09,
   rainSpeed: 8,
+  /** Raindrop color, and how visible the drops are (multiplier, 1 = default). */
+  rainColor: '#b7c4e0',
+  rainOpacity: 1,
   wind: [-3, 0, -2] as [number, number, number],
 };
 
 /** Practical light kinds; every light prop uses one (see kit/lights.ts). */
-export type LightKind = 'wallLamp' | 'floodlight' | 'neonPink' | 'neonCyan' | 'billboardLamp' | 'lampPost' | 'stringLights';
+export type LightKind = 'wallLamp' | 'floodlight' | 'neonPink' | 'neonCyan' | 'billboardLamp' | 'lampPost' | 'stringLights' | 'cctv';
 
 export interface LightSpec {
   /** Light color (lens and sign tubes take it too, after a rebuild). */
@@ -88,6 +91,8 @@ export const LIGHTS: Record<LightKind, LightSpec> = {
   lampPost: { color: '#ffcf8a', offset: [0, 0, 0], dir: [0, -1, 0], intensity: 30, range: 22, spread: 1.15, softness: 0.6, glow: 0.45, glowAllAround: false, beam: 4.5, shadows: true },
   stringLights: { color: '#ffd59a', offset: [0, 0, 0], dir: [0, -1, 0], intensity: 6, range: 10, spread: 1.45, softness: 1, glow: 0.22, glowAllAround: true, beam: 0, shadows: false },
   billboardLamp: { color: '#ffe2b0', offset: [0, 0, 0], dir: [0, -0.8, -0.6], intensity: 25, range: 12, spread: 0.8, softness: 0.5, glow: 0.3, glowAllAround: false, beam: 3.2, shadows: true },
+  // On only while the camera follows the player (see CCTV); turns with the head. Glow and beam are not used.
+  cctv: { color: '#dfe9ff', offset: [0, 0, 0], dir: [0, -0.3, -1], intensity: 6, range: 9, spread: 0.35, softness: 0.7, glow: 0, glowAllAround: false, beam: 0, shadows: false },
 };
 
 /**
@@ -240,19 +245,18 @@ export const VIEWMODEL = {
 
 /** Free left hand: reaches out and rests on a wall when you stand close to one. */
 export const WALL_HAND = {
-  /** Start touching within this distance (m), let go beyond `release`. */
+  /** Start touching a wall closer than this to your shoulder (m), let go beyond `release`. */
   reach: 1.1,
   release: 1.3,
   /** How fast the hand moves to the wall and back (1/s). */
   speed: 7,
-  /** Only touch walls at least this far (degrees) to the left of straight ahead; facing a wall keeps the hand down. */
-  minSideAngle: 0,
-  /** ...and at most this far (degrees): beyond it the wall is behind you. */
-  maxSideAngle: 180,
+  /** Where to look for a wall: degrees to the left of where you look, from (0 = straight ahead) to (90 = your left side). */
+  fromAngle: 15,
+  toAngle: 105,
+  /** Hand height below the eyes (m). */
+  drop: 0.3,
   /** Re-place the hand when the spot it should be on drifts this far from where it rests (m). */
   slide: 0.3,
-  /** Direction of the ray that looks for a wall, camera space (x right, y up, -z forward). */
-  aim: [0, -0.3, -0.03] as [number, number, number],
   /** Palm on the wall: fingers lean inward this much (rad), and sit this far off the surface (m). */
   fingerLean: 0.3,
   gap: 0.004,
@@ -383,6 +387,8 @@ export const AUDIO = {
   /** Distant city rumble. */
   ambienceGain: 0.145,
   footstepGain: 0.25,
+  /** Far-off police / fire sirens (see SIRENS). */
+  sirenGain: 0.12,
   /** Rain bed at full density; scales with ATMOS.rainDensity, silent without rain. */
   rainGain: 0.045,
   /** Brightness of the rain hiss (lowpass Hz). */
@@ -454,4 +460,22 @@ export const BUILD = {
   /** Holding LMB keeps placing: first repeat after this delay, then every interval (s). */
   repeatDelay: 0.3,
   repeatInterval: 0.15,
+};
+
+/** Far-off sirens now and then, for the city vibe (night only). Loudness is AUDIO.sirenGain. */
+export const SIRENS = {
+  enabled: true,
+  /** Seconds between sirens (random in this range). */
+  minInterval: 50,
+  maxInterval: 150,
+};
+
+/** CCTV cameras follow the player when they come near, and switch on their light (LIGHTS.cctv). */
+export const CCTV = {
+  /** Start turning toward the player within this distance (m)... */
+  followRange: 9,
+  /** ...and follow fully within this one. */
+  lockRange: 4,
+  /** How far the head can turn from straight out (rad); beyond it the player is behind the wall. */
+  maxTurn: 1.3,
 };

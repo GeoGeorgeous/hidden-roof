@@ -1,19 +1,27 @@
 import * as THREE from 'three';
 import type { Audio } from '../audio';
+import { CAPS, type PaintColor } from '../config';
 import type { Input } from '../input';
-import { SLOTS, type Inventory } from '../inventory/inventory';
+import { SLOTS, type Inventory, type Tool } from '../inventory/inventory';
 import type { PaintSystem } from '../painting';
 import { SprayTool } from '../spray/spray-tool';
 import { MarkerTool } from './marker';
 import { ViewSway, type Motion } from './view-sway';
 
-// Routes input to the tool in hand: 1 = can, 2 = marker, Q/E = color,
-// mouse wheel = cap.
+// Routes input to the tool in hand: 1 = can, 2 = marker, Q/E = color (both
+// tools), mouse wheel = cap (can only). Owns the UI both tools share: it
+// reports color / cap changes (and which ones apply when switching tools) and
+// where the tags go next to whichever tool is in hand.
 
 export class Tools {
   readonly spray: SprayTool;
   readonly marker: MarkerTool;
   private sway = new ViewSway();
+  /** Called with the color when it changes or another tool comes out. */
+  onColorChange: (color: PaintColor) => void = () => {};
+  /** Called with the cap name when it changes or the can comes out. */
+  onCapChange: (name: string) => void = () => {};
+  private last: { tool: Tool | null; color: string; cap: string } | null = null;
 
   constructor(
     scene: THREE.Scene,
@@ -39,10 +47,29 @@ export class Tools {
       const dc = (input.wasPressed('KeyE') ? 1 : 0) - (input.wasPressed('KeyQ') ? 1 : 0);
       if (dc && inv.cycleColor(dc)) this.audio.click();
       if (input.wasPressed('Digit1') || input.wasPressed('Digit2')) this.audio.click();
-      if (input.wheelSteps !== 0 && inv.cycleCap(Math.sign(input.wheelSteps))) this.audio.click();
+      if (input.wheelSteps !== 0 && inv.tool === 'can' && inv.cycleCap(Math.sign(input.wheelSteps))) this.audio.click();
     }
     const tool = enabled ? inv.tool : null;
+    this.reportChanges(tool);
     this.spray.update(dt, input, camera, eye, tool === 'can' ? inv : null);
     this.marker.update(input, camera, eye, tool === 'marker', inv.color);
+  }
+
+  /** Screen anchor for the color / cap tags next to the tool in hand, or null with no tool. */
+  labelAnchor(out: THREE.Vector3): THREE.Vector3 | null {
+    const tool = this.last?.tool;
+    if (tool === 'can') return this.spray.model.labelAnchor(out);
+    if (tool === 'marker') return this.marker.labelAnchor(out);
+    return null;
+  }
+
+  private reportChanges(tool: Tool | null) {
+    const inv = this.inventory;
+    const prev = this.last;
+    this.last = { tool, color: inv.color, cap: inv.cap };
+    if (!prev || !tool) return;
+    const switched = !!prev.tool && tool !== prev.tool;
+    if (switched || inv.color !== prev.color) this.onColorChange(inv.color);
+    if (tool === 'can' && (switched || inv.cap !== prev.cap)) this.onCapChange(CAPS[inv.cap].name);
   }
 }

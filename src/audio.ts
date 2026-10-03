@@ -1,8 +1,9 @@
 import { ATMOS, AUDIO } from './config';
+import { playSiren } from './sirens';
 
 // All sounds are synthesized: filtered noise for hiss/ambience/steps/rain,
 // short resonant noise bursts for the mixing-ball rattle, a low noise rumble
-// for thunder, and a buzzing hum for nearby AC fans. Gains follow AUDIO live
+// for thunder, a buzzing hum for nearby AC fans, and far sirens (sirens.ts). Gains follow AUDIO live
 // (update() once per frame).
 
 
@@ -148,6 +149,11 @@ export class Audio {
     const hollow = Math.random() < 0.25;
     const f = hollow ? 900 + Math.random() * 700 : 3200 + Math.random() * 3800;
     this.burst(t, hollow ? 0.09 : 0.035 + Math.random() * 0.03, f, hollow ? 9 : 22, g, 'bandpass', p);
+  }
+
+  /** A police or fire siren passing far away. */
+  siren() {
+    if (this.ctx) playSiren(this.ctx, this.master, AUDIO.sirenGain);
   }
 
   /** Rolling thunder; distance 0 = close and sharp, 1 = far and soft. */

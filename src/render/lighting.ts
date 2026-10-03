@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { ATMOS, LIGHTS, THUNDER } from '../config';
 import { neonFlicker } from './flicker';
 import { syncAnchor, type LightAnchor } from '../level/build-prop';
+import { rotateY, trackAngle, trackWeight } from './cctv-track';
 
 // Scene lighting for the rainy night:
 //  - dim cold ambient (hemisphere) + one moon light with a shadow map that
@@ -76,9 +77,13 @@ export class Lighting {
     this.moon.position.copy(c).addScaledVector(new THREE.Vector3(...ATMOS.moonDir).normalize(), 70);
 
     // Nearest light props get the real lights; shadow slots go to shadow-casting kinds first.
-    for (const a of this.anchors) syncAnchor(a); // live LIGHTS offset / aim / color
+    for (const a of this.anchors) {
+      syncAnchor(a); // live LIGHTS offset / aim / color
+      if (a.track) aimTracking(a, time, cam);
+    }
     const budget = Math.min(SPOT_POOL, ATMOS.lightBudget);
     const near = this.anchors
+      .filter((a) => a.level > 0.001)
       .map((a) => ({ a, d: a.pos.distanceTo(cam) - LIGHTS[a.kind].range }))
       .filter((x) => x.d < 40)
       .sort((x, y) => x.d - y.d)
@@ -92,7 +97,7 @@ export class Lighting {
 
     this.spots.forEach((l, i) => {
       const a = slots[i];
-      l.intensity = a ? LIGHTS[a.kind].intensity * ATMOS.practical * (a.flicker ? neonFlicker(time, a.flicker) : 1) : 0;
+      l.intensity = a ? LIGHTS[a.kind].intensity * ATMOS.practical * a.level * (a.flicker ? neonFlicker(time, a.flicker) : 1) : 0;
       if (i < SPOT_SHADOWS) l.shadow.autoUpdate = !!a && ATMOS.spotShadows;
       if (!a) return;
       const spec = LIGHTS[a.kind];
@@ -115,4 +120,15 @@ export class Lighting {
     this.moon.castShadow = ATMOS.shadows;
     this.spots.forEach((l, i) => (l.castShadow = ATMOS.spotShadows && i < SPOT_SHADOWS));
   }
+}
+
+const rel = new THREE.Vector3();
+
+/** CCTV light: turn it with its head (same angle as the shader) and fade it in near the player. */
+function aimTracking(a: LightAnchor, time: number, player: THREE.Vector3) {
+  const t = a.track!;
+  const angle = trackAngle(t, time, player);
+  a.pos.copy(t.pivot).add(rotateY(rel.copy(a.pos).sub(t.pivot), angle));
+  rotateY(a.dir, angle);
+  a.level = trackWeight(t, player);
 }

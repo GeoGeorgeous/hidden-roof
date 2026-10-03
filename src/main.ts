@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import * as config from './config';
 import { ATMOS, AUDIO, CAPS, COLORS, PLAYER, RENDER, THUNDER, VIEWMODEL } from './config';
 import { syncSharedUniforms } from './materials';
+import { syncTrackUniforms } from './render/cctv-track';
 import { Lighting } from './render/lighting';
 import { LightFX } from './render/light-fx';
 import { Rain } from './render/rain';
@@ -11,6 +12,7 @@ import { PostPipeline } from './render/post';
 import { PlayerLight } from './render/player-light';
 import { Smoke } from './render/smoke';
 import { Lightning } from './render/lightning';
+import { Sirens } from './sirens';
 import { PaintDrips } from './paint-drips';
 import { WallHand } from './tools/wall-hand';
 import { GpuTimer } from './debug/gpu-timer';
@@ -73,6 +75,9 @@ const smoke = new Smoke(scene);
 const lightning = new Lightning();
 lightning.onThunder = (d) => audio.thunder(d);
 live.strikeLightning = () => lightning.strike();
+const sirens = new Sirens();
+sirens.onSiren = () => audio.siren();
+live.siren = () => audio.siren();
 level.onChange = () => {
   smoke.rebuild(level.emitters);
   lighting.setAnchors(level.lights);
@@ -150,8 +155,8 @@ hud.onResume = () => input.requestLock();
 hud.onExitFullscreen = () => void exitGameFullscreen();
 hud.setLocked(false);
 hud.setSettings(settings.rows());
-tools.spray.onCapChange = (name) => hud.showCapTag(name);
-tools.spray.onColorChange = (color) => hud.showColorTag(color, COLORS[color]);
+tools.onCapChange = (name) => hud.showCapTag(name);
+tools.onColorChange = (color) => hud.showColorTag(color, COLORS[color]);
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -209,7 +214,9 @@ function frame(time: number) {
   sky.position.copy(eye);
   (scene.fog as THREE.FogExp2).density = ATMOS.fogDensity;
   syncSharedUniforms(time / 1000);
+  syncTrackUniforms(eye);
   if (!paused) lightning.update(dt, ATMOS.rain && !build.active);
+  if (!paused) sirens.update(dt, !build.active);
   lighting.update(eye, time / 1000, lightning.flash);
   (sky.material as THREE.ShaderMaterial).uniforms.uFlash.value = lightning.flash * THUNDER.flashSky;
   playerLight.update(eye, !build.active);
@@ -235,7 +242,8 @@ function frame(time: number) {
   }
   const tool = build.active ? null : inventory.tool;
   hud.setCrosshair(tool === 'can' ? CAPS[inventory.cap].crosshair : tool === 'marker' ? 4 : 6);
-  hud.placeCapTag(tool === 'can' ? toScreen(tools.spray.model.labelAnchor(tagPos)) : null);
+  const anchor = tools.labelAnchor(tagPos);
+  hud.placeToolTags(anchor ? toScreen(anchor) : null);
   level.flush();
   paint.flush();
   hotbar.update(inventory);

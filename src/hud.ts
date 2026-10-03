@@ -1,7 +1,7 @@
 import { isFullscreen } from './fullscreen';
 
 // Body-cam style HUD: vignette, corner brackets, REC indicator with elapsed
-// time, clock, crosshair, the cap tag beside the can, and the start/pause menu.
+// time, clock, crosshair, the cap and color tags beside the tool in hand, and the start/pause menu.
 // The tool readout lives in inventory/hotbar.ts, the debug panel in debug/panel.ts.
 
 const CONTROLS = [
@@ -130,7 +130,7 @@ export class Hud {
     this.crosshair.style.setProperty('--size', `${px}px`);
   }
 
-  /** Shows the cap name for a few seconds; place it with `placeCapTag`. */
+  /** Shows the cap name for a few seconds; place it with `placeToolTags`. */
   showCapTag(name: string) {
     this.capTag.textContent = `CAP · ${name}`;
     this.capTagUntil = performance.now() + CAP_TAG_SECONDS * 1000;
@@ -142,8 +142,8 @@ export class Hud {
     this.colorTagUntil = performance.now() + CAP_TAG_SECONDS * 1000;
   }
 
-  /** Screen position (CSS px) next to the can, or null when the can isn't in hand. Places the cap and color tags. */
-  placeCapTag(at: { x: number; y: number } | null) {
+  /** Screen position (CSS px) next to the tool in hand (can or marker), or null with no tool. Places the cap and color tags. */
+  placeToolTags(at: { x: number; y: number } | null) {
     const now = performance.now();
     const place = (el: HTMLElement, until: number, dy: number) => {
       const show = !!at && now < until;
@@ -151,7 +151,8 @@ export class Hud {
       if (show) el.style.transform = `translate(${Math.round(at.x)}px, ${Math.round(at.y + dy)}px)`;
     };
     place(this.capTag, this.capTagUntil, 0);
-    place(this.colorTag, this.colorTagUntil, COLOR_TAG_OFFSET);
+    // The marker has no cap: its color tag takes the cap tag's place.
+    place(this.colorTag, this.colorTagUntil, this.capTag.hidden ? 0 : COLOR_TAG_OFFSET);
   }
 
   update() {

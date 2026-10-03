@@ -1,7 +1,10 @@
 import type { PropDef } from './def';
-import { M, Parts } from './pieces';
+import { M, Parts, type Mat, type V3 } from './pieces';
 
 // Cables, antennas, signs, billboards, CCTV cameras.
+
+/** Off: dark glass. On (camera following the player): emissive glow. */
+const CCTV_LENS: Mat = { tex: 'flat', tint: '#3a4458', emissive: 6 };
 
 /** Sagging cable from the wall you aim at, straight out for `span` meters. */
 function cable(span: number): PropDef {
@@ -127,7 +130,11 @@ export const billboard: PropDef = {
   },
 };
 
-/** CCTV camera on a wall arm; the head slowly pans left and right. */
+/**
+ * CCTV camera on a wall arm; the head slowly pans left and right. When the
+ * player comes near it turns to follow, and its lens and a small spot
+ * light switch on (CCTV and LIGHTS.cctv in config).
+ */
 export const cctv: PropDef = {
   type: 'cctv',
   label: 'CCTV camera',
@@ -140,11 +147,16 @@ export const cctv: PropDef = {
     p.detail([-0.07, -0.1, -0.03], [0.07, 0.1, 0], M.steel, false);
     p.rod([0, 0, -0.03], [0, 0, -0.29], 0.022, M.steel);
     p.detail([-0.03, -0.04, -0.35], [0.03, 0.03, -0.29], M.steel, false);
-    p.swinging({ pivot: [0, 0, -0.32], amp: 0.75, period: 10, phase: seed * 1.7 }, () => {
+    const pan = { pivot: [0, 0, -0.32] as V3, amp: 0.75, period: 10, phase: seed * 1.7 };
+    p.swinging({ ...pan, track: 'head' }, () => {
       p.detail([-0.065, -0.13, -0.6], [0.065, -0.04, -0.27], M.ac, false);
       p.detail([-0.08, -0.04, -0.63], [0.08, -0.02, -0.26], M.metal, false);
-      p.cyl([0, -0.085, -0.62], 'z', 0.02, 0.036, M.glass, { paint: false, collide: false, seg: 10 });
       p.detail([0.042, -0.06, -0.607], [0.056, -0.047, -0.6], { tex: 'flat', tint: '#ff2a2a', emissive: 1 }, false);
+      p.light({ kind: 'cctv', pos: [0, -0.085, -0.645] });
+    });
+    // Dark glass that lights up while the camera follows the player.
+    p.swinging({ ...pan, track: 'lens' }, () => {
+      p.cyl([0, -0.085, -0.62], 'z', 0.02, 0.036, CCTV_LENS, { paint: false, collide: false, seg: 10 });
     });
     return p.list;
   },
