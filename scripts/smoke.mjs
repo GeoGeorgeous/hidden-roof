@@ -19,7 +19,7 @@ await page.evaluate(() => {
   const g = window.game;
   g.input.locked = true;
   g.hud.setLocked(true);
-  g.hud.toggleDebug();
+  g.debug.toggle();
 });
 let i = 1;
 for (const s of steps) {

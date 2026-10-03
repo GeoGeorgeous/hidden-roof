@@ -1,11 +1,24 @@
+/* Body-cam overlay style: white + one alert color, thin lines, small monospace,
+   no panels. A soft shadow keeps text readable over bright sky. */
+
+:root {
+  --ui: #f4f4f0;
+  --dim: rgba(244, 244, 240, 0.62);
+  --alert: #ff3b30;
+  --line: 1px solid var(--ui);
+  --shadow: 0 0 2px rgba(0, 0, 0, 0.85), 0 0 6px rgba(0, 0, 0, 0.35);
+}
+
 html,
 body {
   margin: 0;
   height: 100%;
   overflow: hidden;
   background: #000;
-  font-family: ui-monospace, 'Courier New', monospace;
-  color: #fff;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--ui);
   user-select: none;
 }
 
@@ -16,76 +29,90 @@ canvas {
   image-rendering: pixelated;
 }
 
+[hidden] {
+  display: none !important;
+}
+
+.dim {
+  color: var(--dim);
+}
+
+/* --- Frame -------------------------------------------------------------- */
+
 .hud {
   position: fixed;
   inset: 0;
   pointer-events: none;
+  text-shadow: var(--shadow);
+}
+
+.vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.28) 80%, rgba(0, 0, 0, 0.62) 100%);
+}
+
+.corner {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  border: 0 solid var(--ui);
+  opacity: 0.8;
+}
+.corner.tl { top: 16px; left: 16px; border-top-width: 1px; border-left-width: 1px; }
+.corner.tr { top: 16px; right: 16px; border-top-width: 1px; border-right-width: 1px; }
+.corner.bl { bottom: 16px; left: 16px; border-bottom-width: 1px; border-left-width: 1px; }
+.corner.br { bottom: 16px; right: 16px; border-bottom-width: 1px; border-right-width: 1px; }
+
+.rec {
+  position: absolute;
+  top: 26px;
+  left: 30px;
+  line-height: 1.6;
+}
+.rec i {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: var(--alert);
+  animation: blink 1.6s steps(2) infinite;
+}
+
+.clock {
+  position: absolute;
+  top: 26px;
+  right: 30px;
 }
 
 .crosshair {
+  --size: 14px;
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 4px;
-  height: 4px;
-  margin: -2px 0 0 -2px;
-  background: #fff;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
+  width: var(--size);
+  height: var(--size);
+  box-sizing: border-box;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--ui);
+  border-radius: 50%;
+  opacity: 0.85;
+  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.9));
+  transition: width 0.12s, height 0.12s;
 }
 
-.can {
+/* Cap name beside the can after switching caps; positioned from JS. */
+.cap-tag {
   position: absolute;
-  left: 20px;
-  bottom: 20px;
-  text-shadow: 2px 2px 0 #000;
-}
-
-.cap {
-  font-size: 18px;
-  font-weight: bold;
-  letter-spacing: 2px;
-  margin-bottom: 6px;
-}
-
-.pressure {
-  position: relative;
-  width: 180px;
-  height: 12px;
-  border: 2px solid #fff;
-  box-shadow: 2px 2px 0 #000;
-  background: rgba(0, 0, 0, 0.4);
-}
-
-.pressure .bar {
-  height: 100%;
-  background: #7fe07a;
-}
-.pressure[data-state='mid'] .bar {
-  background: #f2c94c;
-}
-.pressure[data-state='low'] .bar {
-  background: #eb5757;
-}
-
-.pressure .mark {
-  position: absolute;
+  left: 0;
   top: 0;
-  bottom: 0;
-  width: 2px;
-  margin-left: -1px;
-  background: rgba(255, 255, 255, 0.5);
+  padding: 2px 6px;
+  border-left: var(--line);
+  white-space: nowrap;
 }
 
-.debug {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  margin: 0;
-  padding: 8px 10px;
-  background: rgba(0, 0, 0, 0.6);
-  font-size: 12px;
-  line-height: 1.4;
-}
+/* --- Start / pause screen ---------------------------------------------- */
 
 .overlay {
   position: absolute;
@@ -94,37 +121,365 @@ canvas {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(20, 16, 30, 0.55);
-  text-shadow: 3px 3px 0 #000;
+  gap: 14px;
+  background: rgba(0, 0, 0, 0.45);
 }
-.overlay[hidden] {
+.overlay .title {
+  font-size: 22px;
+  letter-spacing: 0.6em;
+}
+.overlay .menu {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: stretch;
+}
+.overlay button {
+  pointer-events: auto;
+  cursor: pointer;
+  font: inherit;
+  letter-spacing: inherit;
+  color: var(--ui);
+  text-shadow: var(--shadow);
+  background: none;
+  border: var(--line);
+  padding: 6px 18px;
+  text-align: left;
+}
+.overlay button:hover {
+  background: var(--ui);
+  color: #000;
+  text-shadow: none;
+}
+.overlay .settings {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.overlay .setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  color: var(--dim);
+}
+.overlay .setting button {
+  border: none;
+  padding: 2px 4px;
+  min-width: 170px;
+  text-align: right;
+}
+/* Debug panel open: keep the menu, drop the dimming and the controls. */
+.overlay.compact {
+  background: none;
+}
+.overlay.compact table,
+.overlay.compact .title {
   display: none;
 }
-
-.overlay h1 {
-  font-size: 64px;
-  margin: 0 0 4px;
-  letter-spacing: 6px;
-  color: #ec407a;
-}
-
-.overlay p {
-  margin: 0 0 24px;
-  font-size: 18px;
-  animation: blink 1.2s steps(2) infinite;
-}
-
 .overlay td {
-  padding: 2px 12px;
-  font-size: 14px;
+  padding: 1px 10px;
 }
 .overlay td:first-child {
   text-align: right;
-  color: #f2c94c;
+  color: var(--dim);
+}
+.blink {
+  animation: blink 1.6s steps(2) infinite;
 }
 
 @keyframes blink {
   50% {
-    opacity: 0.3;
+    opacity: 0.25;
   }
+}
+
+/* --- Tool readout (bottom-left) ---------------------------------------- */
+
+.readout {
+  position: fixed;
+  left: 30px;
+  bottom: 28px;
+  width: 260px;
+  line-height: 1.7;
+  pointer-events: none;
+  text-shadow: var(--shadow);
+}
+.readout .slots {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 4px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--dim);
+}
+.readout .slots span {
+  color: var(--dim);
+}
+.readout .slots span.on {
+  color: var(--ui);
+  border-bottom: var(--line);
+}
+.readout .rows div {
+  display: flex;
+  align-items: center;
+}
+.readout .rows span,
+.readout .psi span {
+  width: 52px;
+  color: var(--dim);
+}
+.readout .rows em {
+  margin-left: auto;
+  font-style: normal;
+  color: var(--dim);
+}
+.swatch {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 7px;
+  border: var(--line);
+}
+.readout .psi {
+  display: flex;
+  align-items: center;
+}
+.readout .psi .line {
+  flex: 1;
+  height: 5px;
+  border: var(--line);
+  margin-right: 8px;
+}
+.readout .psi .line i {
+  display: block;
+  height: 100%;
+  background: var(--ui);
+}
+.readout .psi b {
+  width: 34px;
+  text-align: right;
+  font-weight: normal;
+}
+.readout .psi.low,
+.readout .psi.low span {
+  color: var(--alert);
+}
+.readout .psi.low .line {
+  border-color: var(--alert);
+}
+.readout .psi.low .line i {
+  background: var(--alert);
+}
+.readout .alert {
+  color: var(--alert);
+  animation: blink 0.8s steps(2) infinite;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 30%;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 0.3s;
+  text-shadow: var(--shadow);
+  pointer-events: none;
+}
+.toast.show {
+  opacity: 1;
+}
+
+/* --- Editor: picker (bottom) + help (top-right) ----------------------- */
+
+.picker {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  text-align: center;
+  pointer-events: none;
+  text-shadow: var(--shadow);
+  line-height: 1.8;
+}
+.picker .name {
+  font-size: 15px;
+  letter-spacing: 0.3em;
+}
+.picker .strip,
+.picker .cats {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  white-space: nowrap;
+}
+.picker .strip span,
+.picker .cats span {
+  color: var(--dim);
+}
+.picker .strip span.on {
+  color: var(--ui);
+}
+.picker .cats {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--dim);
+}
+.picker .cats span.on {
+  color: var(--ui);
+  border-bottom: var(--line);
+}
+
+.build-help {
+  position: fixed;
+  top: 56px;
+  right: 30px;
+  width: 260px;
+  text-align: right;
+  line-height: 1.7;
+  color: var(--dim);
+  pointer-events: none;
+  text-shadow: var(--shadow);
+}
+.build-help .title {
+  color: var(--ui);
+  border-bottom: var(--line);
+  margin-bottom: 4px;
+}
+.build-help .status {
+  color: var(--ui);
+  margin-top: 6px;
+}
+
+/* --- Debug + tuning panel (top-left, under REC) ------------------------- */
+
+.debug-panel {
+  position: fixed;
+  top: 76px;
+  left: 30px;
+  width: 340px;
+  max-height: calc(100vh - 230px);
+  overflow-y: auto;
+  line-height: 1.5;
+  text-shadow: var(--shadow);
+  z-index: 10;
+  scrollbar-width: thin;
+  scrollbar-color: var(--dim) transparent;
+}
+.debug-panel .group {
+  margin-top: 10px;
+  padding-bottom: 2px;
+  color: var(--ui);
+  letter-spacing: 0.2em;
+  border-bottom: var(--line);
+}
+.debug-panel .group + section {
+  border-top: none;
+}
+.debug-panel section {
+  border-top: 1px solid var(--dim);
+  padding: 3px 0 3px 8px;
+}
+.debug-panel .head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.debug-panel .head .title {
+  cursor: pointer;
+  flex: 1;
+}
+.debug-panel .body {
+  padding: 2px 0 4px;
+}
+.debug-panel label {
+  display: grid;
+  grid-template-columns: 136px 1fr 56px;
+  align-items: center;
+  gap: 8px;
+}
+.debug-panel label.readout-row {
+  grid-template-columns: 136px 1fr;
+}
+.debug-panel label.heading {
+  display: block;
+  margin-top: 6px;
+  color: var(--ui);
+  border-bottom: 1px solid var(--dim);
+}
+.debug-panel label.has-hint span {
+  cursor: help;
+  text-decoration: underline dotted rgba(244, 244, 240, 0.35);
+  text-underline-offset: 3px;
+}
+.debug-panel label span {
+  color: var(--dim);
+}
+.debug-panel b {
+  text-align: right;
+  font-weight: normal;
+}
+.debug-panel label.readout-row b {
+  text-align: left;
+}
+.debug-panel input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 12px;
+  background: transparent;
+  cursor: pointer;
+}
+.debug-panel input[type='range']::-webkit-slider-runnable-track {
+  height: 1px;
+  background: var(--ui);
+}
+.debug-panel input[type='range']::-moz-range-track {
+  height: 1px;
+  background: var(--ui);
+}
+.debug-panel input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 3px;
+  height: 11px;
+  margin-top: -5px;
+  background: var(--ui);
+  border: 0;
+}
+.debug-panel input[type='range']::-moz-range-thumb {
+  width: 3px;
+  height: 11px;
+  background: var(--ui);
+  border: 0;
+  border-radius: 0;
+}
+.debug-panel input[type='checkbox'] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  margin: 0;
+  border: var(--line);
+  cursor: pointer;
+}
+.debug-panel input[type='checkbox']:checked {
+  background: var(--ui);
+}
+.debug-panel .row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.debug-panel button {
+  font: inherit;
+  letter-spacing: inherit;
+  color: var(--ui);
+  background: transparent;
+  border: var(--line);
+  padding: 0 8px;
+  cursor: pointer;
+}
+.debug-panel .hint {
+  color: var(--dim);
 }

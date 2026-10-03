@@ -1,126 +1,188 @@
 # taggin'
 
-A small first-person graffiti game in the browser. You're on a rooftop at sunset with one spray can. There are no enemies and no objectives; you just paint.
+A small first-person graffiti game in the browser. You're on New York rooftops at sunset: find colors, caps, can upgrades and a marker, then paint whatever you like. There are no enemies and no objectives. The HUD looks like a body-cam recording overlay.
 
-Built with three.js, TypeScript and Vite. There are no external assets: the geometry, textures and sounds are all generated in code.
+Built with three.js, TypeScript and Vite. There are no external assets: the geometry, textures and sounds are all generated in code. See `AGENTS.md` for the two ground rules (performance first, small files).
 
 ## Run
 
 ```sh
 npm install
-npm run dev        # http://localhost:5173
+npm run dev        # http://localhost:5173  (loads public/levels/demo.json)
 npm run build      # typecheck + production build into dist/
 ```
 
-Click the page to capture the mouse. Esc releases it.
+`?level=name` loads `public/levels/name.json`. Click the page to capture the mouse and go fullscreen. Esc pauses the game and shows the menu (Resume / Exit fullscreen). Press Esc again while paused to leave fullscreen.
 
 ## Controls
 
+**Play**
+
 | Input | Action |
 |---|---|
-| Mouse | Look |
-| WASD | Move |
-| Shift | Run |
-| Space | Jump (on a ladder: jump off) |
-| W / S on a ladder | Climb up / down. W climbs down when you look down. |
-| LMB (hold) | Spray toward the crosshair |
-| Mouse wheel | Switch cap (THIN / FAT) |
-| G | Shake the can (rattle, restores some pressure) |
-| F3 or \` | Debug overlay (fps, paint texture count and memory, uploads, draw calls, particles) |
+| WASD, Shift, Space | Move, run, jump |
+| Move into a ladder | Climb. Let go to slide down, Ctrl to hold on, Space to jump off. Walking away from it walks off. |
+| LMB | Spray with the can, or draw with the marker |
+| 1 / 2 | Can / marker (once found) |
+| Q / E | Cycle through the colors you've collected (can and marker) |
+| Mouse wheel | Cycle through the caps you've collected |
+| RMB | Shake the can (restores pressure) |
+| B | Toggle build mode |
+| F3 or \` | Debug and tuning panel (Esc frees the mouse for the sliders) |
+
+**Build mode** (you fly with no collisions; the scene switches to plain daylight without rain)
+
+| Input | Action |
+|---|---|
+| WASD, Space, C (Shift for fast) | Fly |
+| Q / E | Choose a prop or pickup to place |
+| F | Place it at the crosshair |
+| LMB | Select a placed object |
+| Arrows, PgUp / PgDn | Move on a 0.25 m grid (Shift: 1 m), relative to where you look |
+| R | Rotate 90° |
+| X / Y / Z, then - / = | Choose an axis, then shrink or grow along it (props only, scalable axes only) |
+| V | Duplicate |
+| Del | Delete |
+| [ / ] | Tilt the floodlight under the crosshair (saved per floodlight as `adjust` in the level) |
+| T | Put the spawn point on the floor under the crosshair, facing where you look (the blue figure + arrow shows it while building) |
+| H | Show paintable surfaces (green stripes; everything else dims) |
+| P | Save the level as `level.json` (downloads) |
+| O | Load a level JSON file |
+
+## Inventory
+
+- **Slot 1: the spray can.** There is exactly one can, and its paint never runs out. Its pressure drains while you spray: below 50% the paint thins, below 25% the can sputters and the HUD shows a red alert. Shake with RMB to restore it.
+- **Slot 2: the marker,** once you find it. It draws a thin, solid line at close range in the current color.
+- **Colors** are pickups. Once collected, a color stays available for both the can and the marker. You start with black.
+- **Can size** (sm → md → lg) is a permanent upgrade, not an item. Bigger cans lose pressure more slowly. You start with sm.
+- **Caps** are skinny, standard, fat and spray (a wide, soft mist for fades). You start with the standard cap. The crosshair circle grows with the cap, and the cap's name shows next to the can for a moment after switching.
+- **Pickups** hover, spin and glow so you can spot them from far away. Walk into one to collect it. If it gives you nothing new, it stays on the map.
+
+## Prop kit
+
+**Props:** wall lamp, floodlight, lamp post, string lights, neon blade signs (pink / cyan; two-sided, glyphs vary per sign), building, slab, parapet, stairwell hut, stairs, ladder, platform, fire escape, water tower, vent shaft, duct, AC unit (small / medium / large / wall-mounted), utility box, exhaust pipe, pipe run, antenna, cable, chain-link fence, fence gate, billboard (face and lamps outward; ladder at the back, walkway around to the front catwalk), CCTV camera (the head pans slowly; swinging pieces turn in the vertex shader, so they stay in the level batches).
+
+Each prop is a builder function that returns a list of **pieces** (box, cylinder, rod, cone, climb volume) for a given size (`src/kit/`). The same pieces produce everything else (`src/level/build-prop.ts`):
+
+- **Visuals:** every piece is a full box or a capped cylinder. There are no single-sided planes.
+- **Colliders:** taken directly from the pieces. Rotations are multiples of 90°, so every box stays axis-aligned and its collider matches it exactly. Sloped handrails collide as a chain of small boxes.
+- **Ladders:** their climb volumes come from the ladder pieces.
+- **Paint:** a piece is paintable if it has a flat face at least 0.5 m on each side and 1.2 m² in area. Everything else is decor and is merged into one mesh per prop and material.
+- **Railings:** stairs, platforms, fire escapes and the billboard catwalk always build their own.
+
+**Placement conventions:**
+- A prop's origin is at its bottom, centered, with its front facing −z.
+- Edge and wall props (parapet, fence, gate, ladder, fire escape, utility box) have their back on the placement line, so you put them on a roof edge or a wall face.
+
+## Level JSON
+
+```json
+{
+  "version": 1,
+  "spawn": { "pos": [0, 0, 5], "yaw": 0 },
+  "props": [{ "type": "hut", "pos": [-8, 0, -6], "rot": 2, "size": [4, 3, 5] }],
+  "pickups": [{ "kind": "color:red", "pos": [-3, 0, 6] }, { "kind": "cap:fat", "pos": [16, 8, -3] }, { "kind": "marker", "pos": [-8, 3, -5] }]
+}
+```
+
+- `rot` is the number of quarter turns.
+- `size` is optional and defaults to the prop's own default size.
+- Pickup kinds:
+  - `color:<white|red>` unlocks a paint color
+  - `can:<md|lg>` upgrades the can
+  - `cap:<skinny|standard|fat|spray>` unlocks a cap
+  - `marker`
+- The skyline is regenerated around the level's bounds every time a level loads.
 
 ## How painting works
 
-- Every paintable primitive (box or cylinder) gets one RGBA paint atlas holding all its faces. Each face is laid out at the same texel density, so paint looks the same on a big wall and on a small box.
-- The atlas is created the first time paint hits that surface. Before that the material samples a shared 1×1 empty texture.
-- Each particle raycasts when it is emitted. It flies from the nozzle to the hit point and stamps paint into the atlas when it arrives. Stamps are clipped to the face that was hit, so paint never bleeds onto another face.
-- Each frame, only textures that changed are uploaded, and only the rows that changed (`texture.addUpdateRange`).
-- Base looks (concrete, brick, metal, wood…) are small shared tiling textures. They are mapped in world space at the same density as the paint.
-- The scene renders at reduced resolution and is upscaled with nearest filtering (`RENDER.pixelScale`).
+- Every paintable piece gets one RGBA atlas holding all its faces, at `PAINT.texelsPerMeter` (24).
+- The atlas is created the first time paint hits that piece.
+- **Spray:**
+  - Each particle raycasts once when it's emitted.
+  - It stamps paint into the atlas when it arrives.
+  - Particles are visual only and come from a fixed-size pool.
+- **Marker:** stamps directly under the crosshair, filling the gaps between frames.
+- **Paint runs:** spraying on and on onto paint that's already opaque builds up excess. On vertical faces, a few texels at the limit start a thin run down the face that slows down and ends in a drop. Runs are written into the paint texture like any stamp (`DRIPS` in config; F3 → Painting).
+- **Overpainting:** a surface has a single paint layer, and new paint is composited *over* it. The color always moves toward the new paint by that paint's own amount, so the last color painted always wins. Each 8-bit channel moves by at least one step per coat, so repeated coats reach the exact new color instead of stalling a little short of it.
+- **Uploads:** each frame, only textures that changed are uploaded, and only their dirty rows.
+- **Moving a prop in build mode keeps its paint.** Rotating or resizing it clears its paint.
+- **Demo level fully painted:** 39 textures, 9.1 MB.
 
-When I painted every texel of every surface in Level 1 as a test, it came to 92 textures and about 3.3 MB of paint texture memory.
+## Rendering and lights
+
+- **Frame:** the scene renders into a linear HDR target at the internal (pixelated) resolution. Volumetric light runs next, then the hands and tool are drawn. A final pass adds the volumetric light, applies color grading and converts to sRGB.
+- **Light props** carry an emitter at its default spot on the lens. Per light kind, `LIGHTS` holds the color, source offset, aim, strength, spread, range, edge softness, glow, beam and shadows. All of it is live-tunable in F3 → Lights; lens colors and floodlight heads rebuild to match. The nearest 8 become real spot lights; the first 2 slots cast shadows and only go to floodlights and billboard lamps. Glow sprites only show from the side the lens faces.
+- **Weather and ambience:** rain has a soft sound bed that follows rain density. While it rains, lightning strikes at random (45–150 s apart) and lights the sky, ambient, moon and volumetric fog in quick pulses, with thunder after a distance-based delay. F3 → Sound has every gain; F3 → Lightning, smoke, fans, flicker has the rest, plus a STRIKE NOW button.
+- **Rain on metal:** raindrops ping on the tops of nearby metal pieces (rails, AC units, vents, ducts, the fire escape…) open to the sky, panned toward where they land. Metal under a roof stays quiet (`AUDIO.metal*`).
+- **Smoke:** vent shafts, exhausts and AC units release smoke or warm air: one GPU-animated particle batch for the whole level (`SMOKE`).
+- **AC fans** spin in the vertex shader (like the CCTV heads, so they stay batched), and hum when you're near one (`FANS`, `AUDIO.fanGain`/`fanRange`).
+- **Flicker:** neon tubes and their lights dip together now and then (one hash shared by CPU and shader) (`FLICKER`).
+- **Player glow:** a faint shadowless point light just above the head, so dark corners stay walkable (`PLAYER_LIGHT`). Off in build mode.
+- **Light range is free on the GPU:** three.js shades every pool slot on every lit pixel regardless of range. Cost comes from the pool size and the shadow slots.
+- **Volumetric light:** a low-res raymarch through the fog. It uses the moon shadow map for light shafts, plus the real spot lights (the two shadow slots get shafts too). Off / low / medium / high in the pause menu.
+- **Settings** (pause menu, saved in this browser): resolution (pixel scale) and volumetric quality. Both apply immediately.
+- **GPU cost:** F3 → Performance shows GPU time for the scene, volumetrics and hands + post passes. This needs `EXT_disjoint_timer_query_webgl2` (desktop Chromium); otherwise it shows n/a.
+
+## Tunable constants (`src/config.ts`)
+
+- `RENDER`: `pixelScale`, `fov`, `sprintFovBoost` and `sprintFovEase`.
+- `PAINT`: `texelsPerMeter`, `alphaSteps`, `maxTextureSize`.
+- `CAPS`: one entry per cap.
+  - `coneAngle` (cone spread)
+  - `rate` (particles per second)
+  - `strength` (alpha per particle)
+  - `stampRadius`
+  - `hissGain` and `hissTone`
+  - `crosshair` (circle diameter in px) and `color` (cap color on the can and pickup)
+- `COLORS` and `COLOR_ORDER`: the paint palette and its Q/E order. Add a color here and it becomes a `color:<name>` pickup.
+- `CAN_SIZES`: `drain` (pressure-loss multiplier) and view-model `scale` per size.
+- `SPRAY`: `range`, `falloffStart`, particle speed, size and pool size.
+- `PRESSURE`: drain rate, the thin and sputter thresholds, sputter duty, shake restore and shake duration.
+- `MARKER`: `reach`, `radius`, `strength`, and `holdDistance` / `holdScale` for the first-person pose.
+- `VIEWMODEL`: hand sway, walk bob, jump lag and the trigger-press animation.
+- `ATMOS`: the rainy night, including `lightDecay` (light falloff, 2 = physical). `DAYLIGHT` overrides some of its keys while build mode is on.
+- `WALL_HAND`: when the free left hand reaches for a wall and lets go.
+- `DRIPS`, `PLAYER_LIGHT`: see above.
+- `LIGHTS`: per light kind: `color`, `offset`, `dir`, `intensity`, `range`, `spread`, `softness`, `glow`, `beam`, `shadows`.
+- `VOLUMETRICS`: `enabled`, `downscale`, `steps`, `maxDistance`, `density`, `moon`, `lights`, `anisotropy`.
+- `GRADE`: `exposure`, `contrast`, `saturation`, `temperature`, `tint`.
+- `SKYLINE`: background city windows: `windowScale` (size), `lit`, `randomness` (whole floors vs single windows), `brightnessVariation`, `seed`. All live in F3 → Rendering → Skyline.
+- `PICKUP`: `radius`, `hover`, `spin`, `bob`.
+- `PLAYER`:
+  - `walkSpeed`, `sprintSpeed`
+  - `acceleration`, `friction`, `airControl`
+  - `jumpHeight`, `gravity`
+  - `stepHeight`, `climbSpeed`, `ladderJumpOff`
+  - `eyeHeight`, `height`, `radius`
+  - `mouseSensitivity`, `killY`
+- `AUDIO`: gains.
+
+The F3 panel groups its controls into small collapsible sections (collapse / expand all; open sections are remembered), and every setting has a tooltip. It has a live control for every tunable value above that applies without a restart, including colors and `[x, y, z]` values. Not included: `PAINT.texelsPerMeter`/`maxTextureSize`, `SPRAY` pool and particle size, and `AUDIO`, which are only read at startup. **copy values** puts them on the clipboard as JSON, ready to paste back in as new defaults.
 
 ## Files
 
 ```
-src/config.ts     all tunable constants
-src/main.ts       renderer, game loop, view-model pass
-src/input.ts      keyboard/mouse state, pointer lock
-src/player.ts     FPS controller, AABB collisions, step-up, ladders
-src/surfaces.ts   paintable box/cylinder geometry with per-surface atlas UVs
-src/painting.ts   lazy paint textures, stamping, dirty-row uploads
-src/materials.ts  surface shader (base + paint + light + fog), procedural base textures
-src/spraycan.ts   pressure, caps, can view model, particles
-src/audio.ts      Web Audio synthesis: hiss, rattle, clicks, footsteps, ambience
-src/hud.ts        crosshair, cap/pressure HUD, start overlay, debug overlay
-src/world.ts      level-building helpers (box, cylinder, decor, ladder, walls, sky)
-src/level1.ts     the rooftop layout and skyline
-scripts/smoke.mjs headless Playwright smoke test (screenshots into shots/)
+src/main.ts              wiring + game loop
+src/config.ts            all tunable constants
+src/kit/                 prop kit: pieces + helpers (railings, ladders), prop builders, registry
+src/level/               build-prop (pieces → meshes/colliders), level (instances, JSON)
+src/build/               build mode, its HUD panel, level file I/O
+src/inventory/           pickup kinds, inventory (can, marker, unlocks), tool readout HUD
+src/pickups/             pickup manager + visuals
+src/spray/               spray tool, can + hand view model, particles
+src/tools/               marker, tool routing (hotbar → tool), hand sway/bob
+src/debug/               debug + tuning panel, tunable list, GPU pass timer
+src/render/              lighting pool, light FX, rain, atmosphere presets, post pipeline, volumetrics
+src/painting.ts          lazy paint textures, stamping, dirty-row uploads
+src/surfaces.ts          box / cylinder geometry with per-surface atlas UVs
+src/materials.ts         surface shader, procedural base textures
+src/player.ts            FPS controller, collisions (with broadphase), ladders, fly mode
+src/sky.ts, skyline.ts   sky dome, background city
+src/hud.ts               body-cam frame: vignette, REC/clock, crosshair, cap tag, start/pause menu
+src/style.css            all UI styling (white + red alert, thin lines, monospace)
+src/settings.ts          pause-menu settings (resolution, volumetrics), saved in localStorage
+src/audio.ts, input.ts, fullscreen.ts
+public/levels/demo.json  demo rooftop using every prop and pickup
+scripts/smoke.mjs        headless Playwright smoke test
 ```
-
-## Tunable constants (`src/config.ts`)
-
-**RENDER**
-- `pixelScale` (2.5): internal resolution divisor. Higher values look chunkier and render faster.
-- `fov` (75)
-- `fogNear` / `fogFar` (40 / 260)
-
-**PAINT**
-- `texelsPerMeter` (16): texel density of all paint and base textures.
-- `color` (RGB): the single spray color.
-- `alphaSteps` (5): quantizes paint alpha for the chunky look. 0 turns it off for smooth gradients.
-- `maxTextureSize` (2048): largest allowed atlas side.
-
-**CAPS** (one entry per cap)
-- `coneAngle`: spray cone half-angle in radians. THIN 0.035, FAT 0.12.
-- `rate`: particles per second at full flow. THIN 260, FAT 520.
-- `strength`: alpha added per particle. THIN 0.16, FAT 0.1.
-- `stampRadius`: stamp radius in texels. THIN 0, FAT 1.
-- `hissGain`: hiss loudness for this cap.
-
-**SPRAY**
-- `range` (3.5 m): how far paint reaches.
-- `falloffStart` (1.5 m): paint fades out between this distance and `range`.
-- `particleSpeed` (11 m/s)
-- `particleSize` (0.035 m)
-- `maxParticles` (3000)
-
-**PRESSURE**
-- `drainPerSecond` (0.04): full to empty in about 25 s of spraying.
-- `thinThreshold` (0.5): below this, paint and hiss get weaker.
-- `sputterThreshold` (0.25): below this, the can fires in random bursts.
-- `minSteadyFlow` (0.4): flow at the sputter threshold.
-- `sputterDuty` (0.45): fraction of time the can fires while sputtering.
-- `shakeRestore` (0.3): pressure restored by one shake.
-- `shakeDuration` (0.55 s)
-
-**PLAYER**
-- `eyeHeight` (1.62 m), `height` (1.78 m), `radius` (0.3 m)
-- `walkSpeed` (4.2 m/s), `sprintSpeed` (6.5 m/s)
-- `groundAccel` (14), `airAccel` (3)
-- `jumpSpeed` (6.9): gives a jump of about 1.13 m.
-- `gravity` (21)
-- `stepHeight` (0.42 m)
-- `climbSpeed` (2.6 m/s)
-- `mouseSensitivity` (0.0022)
-- `killY` (-25): fall below this and you respawn.
-
-**AUDIO**
-- `masterGain`, `hissGain`, `ambienceGain`, `footstepGain`
-
-Sky and light colors are in `SKY` in `src/materials.ts`.
-
-## Level 1
-
-The rooftop of a tall building is 24 × 18 m with parapets all around.
-
-- **North-west:** a brick stairwell hut. A ladder on its east wall leads to the upper level on its roof, which has a machine box, a crate, an antenna and a satellite dish.
-- **North:** a catwalk runs from the hut roof along a blank 12.5 × 4 m billboard with lamps.
-- **East:** three AC units on a pad feed an overhead duct that crosses the roof. A tall exhaust column stands next to the ladder.
-- **South-east:** a wooden water tank on a steel stand, plus a large condenser and crates you can climb to reach the tank.
-- **South:** pipe runs along the parapet, a riser, and an overhead pipe.
-- **South-west:** a brick chimney, two skylights and mushroom vents.
-- **Around it:** a non-paintable skyline merged into a few draw calls.
-
-## Smoke test
-
-`npm run dev`, then `npm run smoke`. The script loads the page in headless Chromium, fakes pointer lock, runs the steps in the `STEPS` env var (JSON) and saves screenshots. It needs `npx playwright install chromium`. On a bare Linux/WSL machine Chromium may also need `libnss3`, `libnspr4` and `libasound2`.

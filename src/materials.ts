@@ -1,238 +1,268 @@
 import * as THREE from 'three';
-import { PAINT, RENDER } from './config';
+import { ATMOS, FANS, FLICKER, PAINT } from './config';
+import { FLICKER_GLSL } from './render/flicker';
+import { glowFor, textures, type TexName } from './textures';
 
-// One small unlit-ish shader for everything: tiled base texture (world-aligned,
-// same texel density as paint), paint atlas on top, simple sun + sky lighting, fog.
+export type { TexName } from './textures';
 
-export const SKY = {
-  horizon: new THREE.Color('#f2b38a'),
-  zenith: new THREE.Color('#5a7fc0'),
-  fog: new THREE.Color('#e8b394'),
-  sunDir: new THREE.Vector3(0.45, 0.5, 0.74).normalize(),
-  sunColor: new THREE.Color('#ffe2c0'),
-  ambient: new THREE.Color('#aab4d8'),
-};
+// The one surface material: three's Phong (lights, shadows, fog) with injected
+//  - world-aligned base texture tinted per vertex
+//  - the paint atlas layered on top (single paint layer)
+//  - wet look on up-facing surfaces (darker + specular)
+//  - per-vertex emissive (lamps, neon) and window glow masks (skyline)
+//  - low clouds: everything above the cloud base fades into the cloud color
+//  - swinging decor (CCTV heads): rotated around a vertical pivot in the vertex
+//    shader from per-vertex swing attributes, so it stays in the level batches
+//  - build-mode overlay that marks paintable surfaces
 
 const EMPTY_PAINT = new THREE.DataTexture(new Uint8Array(4), 1, 1);
 EMPTY_PAINT.needsUpdate = true;
+const BLACK = new THREE.DataTexture(new Uint8Array([0, 0, 0, 255]), 1, 1);
+BLACK.needsUpdate = true;
 
-const vertexShader = /* glsl */ `
-attribute vec2 baseUv;
-varying vec2 vUv;
-varying vec2 vBaseUv;
-varying vec3 vNormal;
-varying float vDist;
-uniform float uBaseScale;
-void main() {
-  vUv = uv;
-  vBaseUv = baseUv * uBaseScale;
-  vNormal = normalize(mat3(modelMatrix) * normal);
-  vec4 mv = modelViewMatrix * vec4(position, 1.0);
-  vDist = length(mv.xyz);
-  gl_Position = projectionMatrix * mv;
+/** Uniforms shared by every surface; the debug panel edits ATMOS and these follow. */
+export const shared = {
+  uWet: { value: ATMOS.wetness },
+  uEmissiveBoost: { value: ATMOS.emissiveBoost },
+  uGlowStrength: { value: ATMOS.windowGlow },
+  uPaintGlow: { value: ATMOS.paintGlow },
+  uCloudBase: { value: ATMOS.cloudBase },
+  uCloudFade: { value: ATMOS.cloudFade },
+  uCloudColor: { value: new THREE.Color(ATMOS.cloudColor) },
+  uAlphaSteps: { value: PAINT.alphaSteps },
+  uTime: { value: 0 },
+  uSpin: { value: 0 },
+  uFlickerSpeed: { value: FLICKER.speed },
+  uFlickerRate: { value: FLICKER.neonRate },
+  uFlickerDepth: { value: FLICKER.neonDepth },
+  uFlickerHum: { value: FLICKER.neonHum },
+  /** Build mode: stripe paintable surfaces, dim everything else. */
+  uShowPaintable: { value: 0 },
+};
+
+export function syncSharedUniforms(time: number) {
+  shared.uTime.value = time;
+  shared.uSpin.value = FANS.speed * Math.PI * 2;
+  shared.uFlickerSpeed.value = FLICKER.speed;
+  shared.uFlickerRate.value = FLICKER.neonRate;
+  shared.uFlickerDepth.value = FLICKER.neonDepth;
+  shared.uFlickerHum.value = FLICKER.neonHum;
+  shared.uWet.value = ATMOS.wetness;
+  shared.uEmissiveBoost.value = ATMOS.emissiveBoost;
+  shared.uGlowStrength.value = ATMOS.windowGlow;
+  shared.uPaintGlow.value = ATMOS.paintGlow;
+  shared.uCloudBase.value = ATMOS.cloudBase;
+  shared.uCloudFade.value = ATMOS.cloudFade;
+  shared.uAlphaSteps.value = PAINT.alphaSteps;
+}
+
+/**
+ * Swing / spin around an axis through the pivot (CCTV heads, AC fans):
+ * swing = (amp, speed, phase, axis). amp > 0 swings amp * sin(t * speed + phase);
+ * amp < 0 spins continuously at `speed` x uSpin (FANS.speed, rad/s). axis 0 = y, 1 = x, 2 = z.
+ */
+const SWING_GLSL = /* glsl */ `
+attribute vec3 swingPivot;
+attribute vec4 swing;
+uniform float uTime;
+uniform float uSpin;
+vec3 swingRot(vec3 v) {
+  float a = swing.x > 0.0 ? swing.x * sin(uTime * swing.y + swing.z) : mod(uTime * uSpin * swing.y, 6.2831853) + swing.z;
+  float c = cos(a), s = sin(a);
+  if (swing.w > 1.5) return vec3(c * v.x - s * v.y, s * v.x + c * v.y, v.z);
+  if (swing.w > 0.5) return vec3(v.x, c * v.y - s * v.z, s * v.y + c * v.z);
+  return vec3(c * v.x + s * v.z, v.y, -s * v.x + c * v.z);
 }
 `;
+const SWING_NORMAL = 'objectNormal = swingRot(objectNormal);';
+const SWING_POSITION = 'if (swing.x != 0.0) transformed = swingPivot + swingRot(transformed - swingPivot);';
 
-const fragmentShader = /* glsl */ `
+const VERT_PARS = /* glsl */ `
+attribute vec2 baseUv;
+attribute vec3 tint;
+attribute float emissive;
+attribute float flicker;
+uniform float uBaseScale;
+${SWING_GLSL}
+${FLICKER_GLSL}
+varying vec2 vBaseUv;
+varying vec2 vPaintUv;
+varying vec3 vTint;
+varying float vEmissiveV;
+varying vec3 vWorldPos;
+varying vec3 vWorldN;
+`;
+const VERT_MAIN = /* glsl */ `
+vBaseUv = baseUv * uBaseScale;
+vPaintUv = uv;
+vTint = tint;
+vEmissiveV = flicker > 0.0 ? emissive * neonFlicker(uTime, flicker) : emissive;
+vWorldPos = (modelMatrix * vec4(transformed, 1.0)).xyz;
+vWorldN = normalize(mat3(modelMatrix) * objectNormal);
+`;
+const FRAG_PARS = /* glsl */ `
 uniform sampler2D uBase;
 uniform sampler2D uPaint;
-uniform vec3 uTint;
-uniform vec3 uSunDir;
-uniform vec3 uSunColor;
-uniform vec3 uAmbient;
-uniform vec3 uFogColor;
-uniform float uFogNear;
-uniform float uFogFar;
+uniform sampler2D uGlow;
+uniform float uAlphaTest;
 uniform float uAlphaSteps;
-uniform float uEmissive;
-varying vec2 vUv;
+uniform float uWet;
+uniform float uEmissiveBoost;
+uniform float uGlowStrength;
+uniform float uPaintGlow;
+uniform float uCloudBase;
+uniform float uCloudFade;
+uniform vec3 uCloudColor;
+uniform float uShowPaintable;
+uniform float uPaintable;
 varying vec2 vBaseUv;
-varying vec3 vNormal;
-varying float vDist;
-void main() {
-  vec3 base = texture2D(uBase, vBaseUv).rgb * uTint;
-  vec4 paint = texture2D(uPaint, vUv);
-  float a = paint.a;
-  if (uAlphaSteps > 0.0) a = ceil(a * uAlphaSteps - 0.15) / uAlphaSteps;
-  vec3 col = mix(base, paint.rgb, clamp(a, 0.0, 1.0));
-  vec3 n = normalize(vNormal);
-  float sun = max(dot(n, uSunDir), 0.0);
-  float sky = 0.8 + 0.2 * n.y;
-  vec3 light = uAmbient * sky + uSunColor * sun * 0.9;
-  vec3 lit = mix(col * light, col, uEmissive);
-  float fog = smoothstep(uFogNear, uFogFar, vDist);
-  gl_FragColor = vec4(mix(lit, uFogColor, fog), 1.0);
-  #include <colorspace_fragment>
+varying vec2 vPaintUv;
+varying vec3 vTint;
+varying float vEmissiveV;
+varying vec3 vWorldPos;
+varying vec3 vWorldN;
+`;
+const FRAG_MAP = /* glsl */ `
+vec4 baseTex = texture2D(uBase, vBaseUv);
+if (baseTex.a < uAlphaTest) discard;
+float wet = smoothstep(0.5, 0.9, vWorldN.y) * uWet;
+vec3 baseCol = baseTex.rgb * vTint * mix(1.0, 0.55, wet);
+vec4 paintTex = texture2D(uPaint, vPaintUv);
+float pa = paintTex.a;
+if (uAlphaSteps > 0.0) pa = ceil(pa * uAlphaSteps - 0.15) / uAlphaSteps;
+pa = clamp(pa, 0.0, 1.0);
+diffuseColor.rgb *= mix(baseCol, paintTex.rgb, pa);
+float hiStripe = 0.0;
+if (uShowPaintable > 0.5) {
+  if (uPaintable > 0.5) {
+    hiStripe = step(0.5, fract((vWorldPos.x + vWorldPos.y + vWorldPos.z) * 1.25));
+    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.15, 1.0, 0.55), 0.4 + 0.25 * hiStripe);
+  } else {
+    diffuseColor.rgb *= 0.3;
+  }
 }
+`;
+const FRAG_SPECULAR = /* glsl */ `
+float specularStrength = wet * (1.0 - 0.6 * pa);
+`;
+const FRAG_EMISSIVE = /* glsl */ `
+totalEmissiveRadiance += diffuseColor.rgb * vEmissiveV * uEmissiveBoost;
+totalEmissiveRadiance += texture2D(uGlow, vBaseUv).rgb * uGlowStrength;
+totalEmissiveRadiance += paintTex.rgb * pa * uPaintGlow;
+if (uShowPaintable > 0.5 && uPaintable > 0.5) totalEmissiveRadiance += vec3(0.03, 0.2, 0.1) * (1.0 + hiStripe);
+`;
+const FRAG_FOG = /* glsl */ `
+#include <fog_fragment>
+gl_FragColor.rgb = mix(gl_FragColor.rgb, uCloudColor, smoothstep(uCloudBase, uCloudBase + uCloudFade, vWorldPos.y));
 `;
 
 export interface SurfaceMaterialOptions {
-  base: THREE.Texture;
-  tint?: THREE.ColorRepresentation;
+  tex: TexName;
   /** Meters covered by one repeat of the base texture. */
   tileMeters?: number;
-  emissive?: number;
+  /** Discard texels whose base alpha is below this (chain-link etc). */
+  alphaTest?: number;
 }
 
-export function makeSurfaceMaterial(opts: SurfaceMaterialOptions): THREE.ShaderMaterial {
-  const tile = opts.tileMeters ?? (opts.base.image as HTMLCanvasElement).width / PAINT.texelsPerMeter;
-  return new THREE.ShaderMaterial({
-    vertexShader,
-    fragmentShader,
-    uniforms: {
-      uBase: { value: opts.base },
-      uPaint: { value: EMPTY_PAINT },
-      uBaseScale: { value: 1 / tile },
-      uTint: { value: new THREE.Color(opts.tint ?? '#ffffff') },
-      uSunDir: { value: SKY.sunDir },
-      uSunColor: { value: SKY.sunColor },
-      uAmbient: { value: SKY.ambient },
-      uFogColor: { value: SKY.fog },
-      uFogNear: { value: RENDER.fogNear },
-      uFogFar: { value: RENDER.fogFar },
-      uAlphaSteps: { value: PAINT.alphaSteps },
-      uEmissive: { value: opts.emissive ?? 0 },
-    },
-  });
-}
+export class SurfaceMaterial extends THREE.MeshPhongMaterial {
+  private paintUniform = { value: EMPTY_PAINT as THREE.Texture };
+  private paintableUniform = { value: 0 };
+  private baseScaleUniform = { value: 1 };
 
-// ---------------------------------------------------------------------------
-// Procedural base textures. Small canvases, nearest filtering, repeat wrapping.
-
-type Painter = (ctx: CanvasRenderingContext2D, w: number, h: number, rnd: () => number) => void;
-
-function rng(seed: number) {
-  return () => {
-    seed = (seed * 1664525 + 1013904223) >>> 0;
-    return seed / 4294967296;
-  };
-}
-
-function canvasTexture(w: number, h: number, seed: number, paint: Painter): THREE.Texture {
-  const c = document.createElement('canvas');
-  c.width = w;
-  c.height = h;
-  const ctx = c.getContext('2d')!;
-  paint(ctx, w, h, rng(seed));
-  const t = new THREE.CanvasTexture(c);
-  t.wrapS = t.wrapT = THREE.RepeatWrapping;
-  t.magFilter = THREE.NearestFilter;
-  t.minFilter = THREE.NearestMipmapLinearFilter;
-  t.colorSpace = THREE.SRGBColorSpace;
-  return t;
-}
-
-function noise(ctx: CanvasRenderingContext2D, w: number, h: number, rnd: () => number, base: number, amp: number) {
-  const img = ctx.getImageData(0, 0, w, h);
-  for (let i = 0; i < img.data.length; i += 4) {
-    const n = (rnd() - 0.5) * amp;
-    img.data[i] = Math.max(0, Math.min(255, img.data[i] * base + n));
-    img.data[i + 1] = Math.max(0, Math.min(255, img.data[i + 1] * base + n));
-    img.data[i + 2] = Math.max(0, Math.min(255, img.data[i + 2] * base + n));
+  constructor(opts: SurfaceMaterialOptions) {
+    super({ color: '#ffffff', specular: '#c8d4e8', shininess: 48 });
+    const base = textures()[opts.tex];
+    const tile = opts.tileMeters ?? (base.image as HTMLCanvasElement).width / PAINT.texelsPerMeter;
+    this.baseScaleUniform.value = 1 / tile;
+    const own = {
+      uBase: { value: base },
+      uPaint: this.paintUniform,
+      uGlow: { value: glowFor(opts.tex) ?? BLACK },
+      uBaseScale: this.baseScaleUniform,
+      uAlphaTest: { value: opts.alphaTest ?? 0 },
+      uPaintable: this.paintableUniform,
+    };
+    this.onBeforeCompile = (shader) => {
+      Object.assign(shader.uniforms, shared, own);
+      shader.vertexShader = shader.vertexShader
+        .replace('#include <common>', `#include <common>\n${VERT_PARS}`)
+        .replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>\n${SWING_NORMAL}`)
+        .replace('#include <begin_vertex>', `#include <begin_vertex>\n${SWING_POSITION}\n${VERT_MAIN}`);
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>', `#include <common>\n${FRAG_PARS}`)
+        .replace('#include <map_fragment>', FRAG_MAP)
+        .replace('#include <specularmap_fragment>', FRAG_SPECULAR)
+        .replace('#include <emissivemap_fragment>', FRAG_EMISSIVE)
+        .replace('#include <fog_fragment>', FRAG_FOG);
+    };
   }
-  ctx.putImageData(img, 0, 0);
+
+  /** All surfaces share one program; only uniforms differ. */
+  customProgramCacheKey() {
+    return 'surface-v4';
+  }
+
+  /** Meters covered by one repeat of the base texture (live). */
+  setTileMeters(m: number) {
+    this.baseScaleUniform.value = 1 / Math.max(0.01, m);
+  }
+
+  /** Marks the material of a paintable mesh (for the build-mode overlay). */
+  setPaintable(on: boolean) {
+    this.paintableUniform.value = on ? 1 : 0;
+  }
+
+  setPaint(t: THREE.Texture) {
+    this.paintUniform.value = t;
+  }
 }
 
-function build() {
-  const concrete = canvasTexture(32, 32, 1, (ctx, w, h, rnd) => {
-    ctx.fillStyle = '#c9c2b8';
-    ctx.fillRect(0, 0, w, h);
-    noise(ctx, w, h, rnd, 1, 18);
-    ctx.fillStyle = 'rgba(0,0,0,0.12)';
-    ctx.fillRect(0, h - 1, w, 1); // panel seam every 2 m
-    ctx.fillRect(w - 1, 0, 1, h);
-  });
-
-  const roof = canvasTexture(32, 32, 2, (ctx, w, h, rnd) => {
-    ctx.fillStyle = '#8d8a86';
-    ctx.fillRect(0, 0, w, h);
-    noise(ctx, w, h, rnd, 1, 26);
-    ctx.fillStyle = 'rgba(40,30,30,0.18)';
-    ctx.fillRect(0, h - 1, w, 1);
-    ctx.fillRect(w - 1, 0, 1, h);
-  });
-
-  const brick = canvasTexture(16, 16, 3, (ctx, w, h, rnd) => {
-    ctx.fillStyle = '#c4b6aa';
-    ctx.fillRect(0, 0, w, h);
-    for (let row = 0; row < 4; row++) {
-      const off = row % 2 ? 4 : 0;
-      for (let col = -1; col < 2; col++) {
-        const v = 170 + Math.floor(rnd() * 30);
-        ctx.fillStyle = `rgb(${v + 25},${v - 40},${v - 60})`;
-        ctx.fillRect(col * 8 + off, row * 4, 7, 3);
-      }
-    }
-    noise(ctx, w, h, rnd, 1, 10);
-  });
-
-  const metal = canvasTexture(16, 16, 4, (ctx, w, h, rnd) => {
-    ctx.fillStyle = '#b5bcc0';
-    ctx.fillRect(0, 0, w, h);
-    for (let x = 0; x < w; x += 4) {
-      ctx.fillStyle = 'rgba(0,0,0,0.1)';
-      ctx.fillRect(x, 0, 1, h);
-    }
-    noise(ctx, w, h, rnd, 1, 10);
-  });
-
-  const paper = canvasTexture(32, 32, 5, (ctx, w, h, rnd) => {
-    ctx.fillStyle = '#ece6da';
-    ctx.fillRect(0, 0, w, h);
-    ctx.fillStyle = 'rgba(0,0,0,0.06)';
-    for (let x = 0; x < w; x += 8) ctx.fillRect(x, 0, 1, h);
-    noise(ctx, w, h, rnd, 1, 8);
-  });
-
-  const wood = canvasTexture(16, 32, 7, (ctx, w, h, rnd) => {
-    for (let x = 0; x < w; x += 3) {
-      const v = 120 + Math.floor(rnd() * 40);
-      ctx.fillStyle = `rgb(${v + 30},${v},${v - 40})`;
-      ctx.fillRect(x, 0, 3, h);
-      ctx.fillStyle = 'rgba(0,0,0,0.25)';
-      ctx.fillRect(x, 0, 1, h);
-    }
-    ctx.fillStyle = '#4a4440';
-    ctx.fillRect(0, 6, w, 1); // iron bands
-    ctx.fillRect(0, 22, w, 1);
-    noise(ctx, w, h, rnd, 1, 14);
-  });
-
-  const plain = canvasTexture(8, 8, 6, (ctx, w, h, rnd) => {
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, w, h);
-    noise(ctx, w, h, rnd, 1, 12);
-  });
-
-  // Facade for far buildings: one window cell per 4x4 m (tile 8 m, 16x16 px).
-  const facade = (seed: number, wall: string, lit: number) =>
-    canvasTexture(32, 32, seed, (ctx, w, h, rnd) => {
-      ctx.fillStyle = wall;
-      ctx.fillRect(0, 0, w, h);
-      for (let y = 0; y < h; y += 4) {
-        for (let x = 0; x < w; x += 4) {
-          const on = rnd() < lit;
-          ctx.fillStyle = on ? (rnd() < 0.5 ? '#ffd890' : '#ffe9b8') : rnd() < 0.5 ? '#3a4660' : '#2c3348';
-          ctx.fillRect(x + 1, y + 1, 2, 2);
-        }
-      }
-    });
-
-  return {
-    concrete,
-    roof,
-    brick,
-    metal,
-    paper,
-    plain,
-    wood,
-    facadeA: facade(10, '#8f8a96', 0.25),
-    facadeB: facade(11, '#a69580', 0.18),
-    facadeC: facade(12, '#6f7486', 0.3),
-  };
+export function makeSurfaceMaterial(opts: SurfaceMaterialOptions) {
+  return new SurfaceMaterial(opts);
 }
 
-let cache: ReturnType<typeof build> | null = null;
-export function textures() {
-  return (cache ??= build());
+/** Every geometry drawn with the surface material needs per-vertex tint + emissive. */
+export function tintGeometry(g: THREE.BufferGeometry, color: THREE.ColorRepresentation = '#ffffff', emissive = 0, flickerSeed = 0) {
+  const n = g.attributes.position.count;
+  const c = new THREE.Color(color);
+  const t = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) {
+    t[i * 3] = c.r;
+    t[i * 3 + 1] = c.g;
+    t[i * 3 + 2] = c.b;
+  }
+  g.setAttribute('tint', new THREE.BufferAttribute(t, 3));
+  g.setAttribute('emissive', new THREE.BufferAttribute(new Float32Array(n).fill(emissive), 1));
+  if (!g.attributes.baseUv) g.setAttribute('baseUv', g.attributes.uv.clone());
+  g.setAttribute('flicker', new THREE.BufferAttribute(new Float32Array(n).fill(flickerSeed), 1));
+  return swingGeometry(g);
 }
+
+/**
+ * Per-vertex swing attributes (see SWING_GLSL). Every decor geometry gets them,
+ * zero by default, so moving and still decor merge into the same batches.
+ * Paint meshes get them too (always still), plus a zero flicker.
+ */
+export function swingGeometry(g: THREE.BufferGeometry, pivot?: THREE.Vector3, amp = 0, speed = 0, phase = 0, axis = 0) {
+  const n = g.attributes.position.count;
+  const pv = new Float32Array(n * 3);
+  const sw = new Float32Array(n * 4);
+  for (let i = 0; i < n; i++) {
+    if (pivot) pv.set([pivot.x, pivot.y, pivot.z], i * 3);
+    sw.set([amp, speed, phase, axis], i * 4);
+  }
+  g.setAttribute('swingPivot', new THREE.BufferAttribute(pv, 3));
+  g.setAttribute('swing', new THREE.BufferAttribute(sw, 4));
+  if (!g.attributes.flicker) g.setAttribute('flicker', new THREE.BufferAttribute(new Float32Array(n), 1));
+  return g;
+}
+
+/** Shadow-pass material for decor batches: same swing as the surface shader. */
+export const swingDepthMaterial = new THREE.MeshDepthMaterial();
+swingDepthMaterial.onBeforeCompile = (shader) => {
+  shader.uniforms.uTime = shared.uTime;
+  shader.uniforms.uSpin = shared.uSpin;
+  shader.vertexShader = shader.vertexShader
+    .replace('#include <common>', `#include <common>\n${SWING_GLSL}`)
+    .replace('#include <begin_vertex>', `#include <begin_vertex>\n${SWING_POSITION}`);
+};

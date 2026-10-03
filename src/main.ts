@@ -1,56 +1,163 @@
 import * as THREE from 'three';
-import { PLAYER, RENDER } from './config';
+import * as config from './config';
+import { ATMOS, AUDIO, CAPS, COLORS, PLAYER, RENDER, THUNDER, VIEWMODEL } from './config';
+import { syncSharedUniforms } from './materials';
+import { Lighting } from './render/lighting';
+import { LightFX } from './render/light-fx';
+import { Rain } from './render/rain';
+import { Heightmap } from './render/heightmap';
+import { Atmosphere } from './render/atmosphere';
+import { PostPipeline } from './render/post';
+import { PlayerLight } from './render/player-light';
+import { Smoke } from './render/smoke';
+import { Lightning } from './render/lightning';
+import { PaintDrips } from './paint-drips';
+import { WallHand } from './tools/wall-hand';
+import { GpuTimer } from './debug/gpu-timer';
+import { Settings } from './settings';
 import { Input } from './input';
 import { Player } from './player';
 import { PaintSystem } from './painting';
-import { World } from './world';
-import { buildLevel1 } from './level1';
-import { SprayCan } from './spraycan';
+import { Level, type LevelData } from './level/level';
+import { makeSky } from './sky';
+import { buildSkyline, syncSkylineScale } from './skyline';
+import { repaintFacades } from './textures';
+import { Tools } from './tools/tools';
+import { Inventory } from './inventory/inventory';
+import { Hotbar } from './inventory/hotbar';
+import { Pickups, type PickupData } from './pickups/pickups';
 import { Audio } from './audio';
 import { Hud } from './hud';
+import { BuildMode } from './build/buildmode';
+import { fetchLevel } from './build/io';
+import { DebugPanel } from './debug/panel';
+import { live } from './debug/tuning';
+import { exitGameFullscreen } from './fullscreen';
 
+// Settings first: they may change the pixel scale the renderer starts with.
+const settings = new Settings(() => live.applyPixelScale());
 const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
 renderer.setPixelRatio(1 / RENDER.pixelScale);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.autoClear = false;
 document.body.appendChild(renderer.domElement);
+const gpuTimer = new GpuTimer(renderer.getContext() as WebGL2RenderingContext);
+const post = new PostPipeline(renderer, gpuTimer);
+live.gpu = (label) => gpuTimer.read(label);
 
 const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(ATMOS.fogColor, ATMOS.fogDensity);
 const camera = new THREE.PerspectiveCamera(RENDER.fov, window.innerWidth / window.innerHeight, 0.05, 2000);
 scene.add(camera);
+const sky = makeSky();
+scene.add(sky);
 
 // The can is drawn in a second pass so it never clips into walls.
 const viewScene = new THREE.Scene();
-viewScene.add(new THREE.HemisphereLight('#ffe9d0', '#6a6f90', 2.2));
-const viewSun = new THREE.DirectionalLight('#fff0dd', 1.6);
-viewSun.position.set(-1, 2, 1);
+const viewFill = new THREE.HemisphereLight(VIEWMODEL.fillSky, VIEWMODEL.fillGround, VIEWMODEL.fill);
+viewScene.add(viewFill);
+const viewSun = new THREE.DirectionalLight(VIEWMODEL.rimColor, VIEWMODEL.rim); // warm practical-light rim
+viewSun.position.set(-1, 1, 2);
 viewScene.add(viewSun);
 
 const paint = new PaintSystem();
-const world = new World(scene, paint);
-buildLevel1(world);
+const drips = new PaintDrips(paint);
+const level = new Level(scene, paint);
+const lighting = new Lighting(scene, renderer);
+const lightFx = new LightFX(scene);
+const rain = new Rain(scene);
+const heightmap = new Heightmap();
+const atmosphere = new Atmosphere(scene, sky, lighting);
+const playerLight = new PlayerLight(scene);
+const smoke = new Smoke(scene);
+const lightning = new Lightning();
+lightning.onThunder = (d) => audio.thunder(d);
+live.strikeLightning = () => lightning.strike();
+level.onChange = () => {
+  smoke.rebuild(level.emitters);
+  lighting.setAnchors(level.lights);
+  lightFx.rebuild(level.lights);
+  heightmap.rebuild(level.colliders, level.totalBounds());
+  rain.setHeightmap(heightmap);
+};
+function syncViewSize() {
+  const h = renderer.getDrawingBufferSize(new THREE.Vector2()).y;
+  lightFx.setViewHeight(h, RENDER.fov);
+  smoke.setViewHeight(h, RENDER.fov);
+}
+syncViewSize();
+let skyline = new THREE.Group();
 
 const input = new Input(renderer.domElement);
 const audio = new Audio();
 const hud = new Hud();
-const player = new Player(world.colliders, world.ladders);
-player.setSpawn(world.spawn, world.spawnYaw);
-const can = new SprayCan(scene, paint, world.solids, audio);
-viewScene.add(can.viewModel);
+const player = new Player(level.colliders, level.ladders);
+const inventory = new Inventory();
+const hotbar = new Hotbar();
+const tools = new Tools(scene, viewScene, paint, level.solids, audio, inventory);
+const wallHand = new WallHand(level.solids);
+viewScene.add(wallHand.group);
+const pickups = new Pickups(scene);
+pickups.onCollect = (label) => {
+  audio.pickup();
+  hotbar.toast(`+ ${label}`);
+};
+pickups.onBlocked = (msg) => hotbar.toast(msg);
+const build = new BuildMode(scene, level, pickups, player);
+const debug = new DebugPanel();
+live.rebuildLights = () => lightFx.rebuild(level.lights);
+live.syncSkyline = () => syncSkylineScale();
+live.repaintSkyline = () => repaintFacades();
+// Light props hold no paint, so rebuilding them for a new lens color or aim loses nothing.
+live.rebuildLightProps = () => level.rebuildWhere((def) => def.category === 'lights');
+live.syncAtmosphere = () => atmosphere.syncColors();
+live.applyDaylight = () => atmosphere.reapplyDaylight();
+live.applyPixelScale = () => {
+  renderer.setPixelRatio(1 / RENDER.pixelScale);
+  syncViewSize();
+};
+
+function loadLevel(data: LevelData) {
+  drips.clear();
+  level.load(data);
+  pickups.load(data.pickups as PickupData[] | undefined);
+  inventory.reset();
+  scene.remove(skyline);
+  skyline = buildSkyline(level.totalBounds());
+  scene.add(skyline);
+  player.setSpawn(new THREE.Vector3(...data.spawn.pos), data.spawn.yaw);
+}
+build.onLoad = loadLevel;
+
+const levelName = new URLSearchParams(location.search).get('level') ?? 'demo';
+fetchLevel(levelName)
+  .then(loadLevel)
+  .catch((e) => console.error(e));
 
 let lastStride = 0;
 player.onLand = (speed) => audio.footstep(speed > 6);
 
+// Losing pointer lock (Esc, alt-tab, a file dialog) pauses the game behind the menu.
 input.onLockChange = (locked) => {
-  hud.setLocked(locked);
+  hud.setLocked(locked, debug.visible);
   if (locked) audio.start();
+  else {
+    audio.setHiss(0, 0);
+    audio.setScribble(0);
+  }
 };
+hud.onResume = () => input.requestLock();
+hud.onExitFullscreen = () => void exitGameFullscreen();
 hud.setLocked(false);
+hud.setSettings(settings.rows());
+tools.spray.onCapChange = (name) => hud.showCapTag(name);
+tools.spray.onColorChange = (color) => hud.showColorTag(color, COLORS[color]);
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  syncViewSize();
 });
 
 const eye = new THREE.Vector3();
@@ -59,15 +166,30 @@ let fpsFrames = 0;
 let fpsTime = 0;
 let fps = 0;
 let frameMs = 0;
+let rainTime = 0;
+let fov = RENDER.fov;
+const tagPos = new THREE.Vector3();
 
 function frame(time: number) {
   const t0 = performance.now();
   timer.update(time);
   const dt = Math.min(timer.getDelta(), 1 / 20);
 
-  if (input.wasPressed('F3') || input.wasPressed('Backquote')) hud.toggleDebug();
+  if (input.wasPressed('F3') || input.wasPressed('Backquote')) {
+    debug.toggle();
+    hud.setLocked(input.locked, debug.visible);
+  }
+  if (input.locked && input.wasPressed('KeyB')) {
+    build.setActive(!build.active);
+    atmosphere.setDaylight(build.active);
+    debug.sync();
+    hotbar.visible = !build.active;
+    audio.setHiss(0, 0);
+  }
 
-  if (input.locked) player.update(dt, input);
+  // Paused (pointer not locked): the world keeps rendering but nothing advances.
+  const paused = !input.locked;
+  if (!paused) player.update(dt, input);
   if (player.onGround && player.stride - lastStride > 1.7) {
     lastStride = player.stride;
     audio.footstep();
@@ -76,18 +198,53 @@ function frame(time: number) {
   player.eye(eye);
   camera.position.copy(eye);
   camera.rotation.set(player.pitch, player.yaw, 0, 'YXZ');
+  // FOV widens a little while sprinting.
+  const fovTarget = RENDER.fov + (player.sprinting ? RENDER.sprintFovBoost : 0);
+  fov += (fovTarget - fov) * (1 - Math.exp(-RENDER.sprintFovEase * dt));
+  if (Math.abs(camera.fov - fov) > 0.01) {
+    camera.fov = fov;
+    camera.updateProjectionMatrix();
+  }
   camera.updateMatrixWorld();
-  world.sky.position.copy(eye);
+  sky.position.copy(eye);
+  (scene.fog as THREE.FogExp2).density = ATMOS.fogDensity;
+  syncSharedUniforms(time / 1000);
+  if (!paused) lightning.update(dt, ATMOS.rain && !build.active);
+  lighting.update(eye, time / 1000, lightning.flash);
+  (sky.material as THREE.ShaderMaterial).uniforms.uFlash.value = lightning.flash * THUNDER.flashSky;
+  playerLight.update(eye, !build.active);
+  viewFill.color.set(VIEWMODEL.fillSky);
+  viewFill.groundColor.set(VIEWMODEL.fillGround);
+  viewFill.intensity = VIEWMODEL.fill;
+  viewSun.color.set(VIEWMODEL.rimColor);
+  viewSun.intensity = VIEWMODEL.rim;
+  lightFx.update();
+  if (!paused) rainTime += dt;
+  rain.update(rainTime, eye);
+  smoke.update(rainTime, 0.25 + 0.12 * ATMOS.ambient + lightning.flash * 1.5);
+  audio.setFan(paused ? 0 : fanLevel(eye));
+  if (!paused && ATMOS.rain && !build.active) metalDrops(dt, eye);
+  audio.update();
 
-  can.update(dt, input, camera, eye);
+  if (!paused) {
+    if (build.active) build.update(input, camera);
+    tools.update(dt, input, camera, eye, player, !build.active);
+    wallHand.update(dt, camera, eye, !build.active, tools.spray.model.sway);
+    drips.update(dt);
+    pickups.update(dt, player.position, inventory);
+  }
+  const tool = build.active ? null : inventory.tool;
+  hud.setCrosshair(tool === 'can' ? CAPS[inventory.cap].crosshair : tool === 'marker' ? 4 : 6);
+  hud.placeCapTag(tool === 'can' ? toScreen(tools.spray.model.labelAnchor(tagPos)) : null);
+  level.flush();
   paint.flush();
-  hud.update(can.cap.name, can.pressure);
+  hotbar.update(inventory);
+  hud.update();
 
-  renderer.clear();
-  renderer.render(scene, camera);
-  const calls = renderer.info.render.calls;
-  renderer.clearDepth();
-  renderer.render(viewScene, camera);
+  gpuTimer.enabled = debug.visible;
+  post.render(scene, viewScene, camera, lighting, !build.active);
+  gpuTimer.poll();
+  const { calls, triangles } = post.sceneStats;
 
   input.endFrame();
 
@@ -99,20 +256,58 @@ function frame(time: number) {
     fpsFrames = 0;
     fpsTime = 0;
   }
-  hud.updateDebug({
+  Object.assign(live.stats, {
     fps,
     frameMs,
+    drawCalls: calls,
+    triangles,
     textures: paint.textureCount,
     textureBytes: paint.textureBytes,
     surfaces: paint.surfaces.length,
     uploads: paint.uploadsLastFrame,
     uploadBytes: paint.uploadBytesLastFrame,
-    drawCalls: calls,
-    particles: can.particleCount,
+    particles: tools.spray.particles.count,
+    drips: drips.count,
+    lights: lighting.active,
   });
+  live.player = { position: player.position, velocity: player.velocity, state: player.fly ? 'flying' : player.onLadder ? 'on ladder' : player.crouched ? 'crouched' : player.onGround ? 'grounded' : 'airborne' };
+  debug.update();
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 
+const toDrop = new THREE.Vector3();
+const camRight = new THREE.Vector3();
+/** Raindrops pinging on nearby metal tops that are open to the sky (not under a roof). */
+function metalDrops(dt: number, at: THREE.Vector3) {
+  const range = AUDIO.metalRange;
+  camRight.set(1, 0, 0).applyQuaternion(camera.quaternion);
+  const rate = AUDIO.metalRate * ATMOS.rainDensity * dt;
+  let n = 0;
+  for (const e of level.emitters) {
+    if (e.kind !== 'metal') continue;
+    const d = e.pos.distanceTo(at);
+    if (d > range || Math.random() > rate) continue;
+    if (heightmap.heightAt(e.pos.x, e.pos.z) > e.pos.y + 0.1) continue; // sheltered
+    toDrop.subVectors(e.pos, at).normalize();
+    const k = 1 - d / range;
+    audio.drop(toDrop.dot(camRight) * 0.8, k * k);
+    if (++n >= 4) break;
+  }
+}
+
+/** Loudness of the nearest AC fan from its distance (0 beyond AUDIO.fanRange). */
+function fanLevel(at: THREE.Vector3) {
+  let best = Infinity;
+  for (const e of level.emitters) if (e.kind === 'fan') best = Math.min(best, e.pos.distanceTo(at));
+  const k = 1 - best / AUDIO.fanRange;
+  return k > 0 ? k * k : 0;
+}
+
+function toScreen(p: THREE.Vector3) {
+  p.project(camera);
+  return { x: (p.x * 0.5 + 0.5) * window.innerWidth, y: (0.5 - p.y * 0.5) * window.innerHeight };
+}
+
 // Handy for debugging in the console.
-Object.assign(window, { game: { player, can, paint, world, renderer, input, hud, PLAYER } });
+Object.assign(window, { game: { config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, player, tools, atmosphere, inventory, pickups, paint, level, build, renderer, input, hud, debug, live, PLAYER, loadLevel } });

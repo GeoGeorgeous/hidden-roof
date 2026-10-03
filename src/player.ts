@@ -3,7 +3,7 @@ import { PLAYER } from './config';
 import type { Input } from './input';
 
 // First-person controller: AABB player vs static AABB colliders, axis-separated
-// resolution, step-up for low ledges, ladder volumes that switch off gravity.
+// resolution, step-up for low ledges, Minecraft-style ladder volumes.
 
 export interface Ladder {
   volume: THREE.Box3;
@@ -18,11 +18,25 @@ export class Player {
   pitch = 0;
   onGround = false;
   onLadder = false;
+  /** Running fast enough to count as sprinting (widens the FOV). */
+  sprinting = false;
+  /** The ladder last jumped off: ignored until you land or leave its volume. */
+  private detached: Ladder | null = null;
   /** Distance walked, for footsteps. */
   stride = 0;
   onLand: (speed: number) => void = () => {};
 
+  /** Build mode: free-fly without collisions. */
+  fly = false;
+  crouched = false;
+  /** Current collider height (standing or crouched). */
+  height = PLAYER.height;
+  /** Eye height above the feet, eased between standing and crouched. */
+  private eyeLevel = PLAYER.eyeHeight;
+  /** Camera lag after stepping up/down, decays to 0 (smooth stairs). */
+  private stepOffset = 0;
   private box = new THREE.Box3();
+  private near: THREE.Box3[] = [];
   private spawn = new THREE.Vector3();
   private spawnYaw = 0;
 
@@ -37,15 +51,40 @@ export class Player {
     this.respawn();
   }
 
+  /** Move the spawn point without teleporting (build mode). */
+  setSpawnPoint(p: THREE.Vector3, yaw: number) {
+    this.spawn.copy(p);
+    this.spawnYaw = yaw;
+  }
+
   respawn() {
     this.position.copy(this.spawn);
     this.velocity.set(0, 0, 0);
     this.yaw = this.spawnYaw;
     this.pitch = 0;
+    this.stepOffset = 0;
   }
 
+  /** Camera position: feet + eased eye height + step smoothing. */
   eye(out: THREE.Vector3) {
-    return out.copy(this.position).setY(this.position.y + PLAYER.eyeHeight);
+    return out.copy(this.position).setY(this.position.y + this.eyeLevel + this.stepOffset);
+  }
+
+  /** Ctrl or C to crouch; you can't stand up under a low ceiling. */
+  private updateCrouch(dt: number, input: Input) {
+    const want = input.isDown('ControlLeft') || input.isDown('ControlRight') || input.isDown('KeyC');
+    if (want) {
+      this.crouched = true;
+      this.height = PLAYER.crouchHeight;
+    } else if (this.crouched) {
+      this.height = PLAYER.height;
+      if (this.overlapping()) this.height = PLAYER.crouchHeight;
+      else this.crouched = false;
+    } else {
+      this.height = PLAYER.height;
+    }
+    const target = this.crouched ? PLAYER.crouchEyeHeight : PLAYER.eyeHeight;
+    this.eyeLevel += (target - this.eyeLevel) * (1 - Math.exp(-PLAYER.crouchTransition * dt));
   }
 
   update(dt: number, input: Input) {
@@ -66,31 +105,47 @@ export class Player {
     const wish = new THREE.Vector3(-sin * fwd + cos * side, 0, -cos * fwd - sin * side);
     if (wish.lengthSq() > 1) wish.normalize();
 
+    if (this.fly) {
+      this.flyMove(dt, input, wish);
+      return;
+    }
+
+    this.gatherNearby(dt);
+    this.updateCrouch(dt, input);
     const ladder = this.findLadder();
     this.onLadder = !!ladder;
 
+    const sprint = input.isDown('ShiftLeft') && fwd > 0 && !this.crouched && !ladder;
+    const speed = this.crouched ? PLAYER.crouchSpeed : sprint ? PLAYER.sprintSpeed : PLAYER.walkSpeed;
+    const moving = wish.lengthSq() > 0;
+    // Ground (and ladders): accelerate toward the wished velocity, or brake with friction.
+    // Air: only steer, scaled by air control; momentum is kept otherwise.
+    const grip = this.onGround || !!ladder;
+    const rate = grip ? (moving ? PLAYER.acceleration : PLAYER.friction) : moving ? PLAYER.acceleration * PLAYER.airControl : 0;
+    const k = 1 - Math.exp(-rate * dt);
+    this.velocity.x += (wish.x * speed - this.velocity.x) * k;
+    this.velocity.z += (wish.z * speed - this.velocity.z) * k;
+    this.sprinting = sprint && Math.hypot(this.velocity.x, this.velocity.z) > PLAYER.walkSpeed * 1.05;
+
     if (ladder) {
-      // Climb: W goes up unless looking clearly down. Gravity off.
-      const dir = this.pitch < -0.45 ? -1 : 1;
-      this.velocity.y = fwd * dir * PLAYER.climbSpeed;
-      const speed = PLAYER.walkSpeed * 0.6;
-      this.velocity.x = wish.x * speed;
-      this.velocity.z = wish.z * speed;
-      if (input.wasPressed('Space')) {
-        this.velocity.copy(ladder.normal).multiplyScalar(3.5);
-        this.velocity.y = 4;
-      }
+      // Minecraft-style: moving into the ladder climbs, crouching holds, otherwise
+      // slide down. Walking away from it simply walks off; facing doesn't matter.
+      const into = -(wish.x * ladder.normal.x + wish.z * ladder.normal.z);
+      if (into > 0.3) this.velocity.y = PLAYER.climbSpeed;
+      else if (this.crouched && !this.onGround) this.velocity.y = 0;
+      else this.velocity.y = Math.max(this.velocity.y - PLAYER.gravity * dt, -PLAYER.climbSpeed);
     } else {
-      const speed = input.isDown('ShiftLeft') ? PLAYER.sprintSpeed : PLAYER.walkSpeed;
-      const accel = this.onGround ? PLAYER.groundAccel : PLAYER.airAccel;
-      const k = 1 - Math.exp(-accel * dt);
-      this.velocity.x += (wish.x * speed - this.velocity.x) * k;
-      this.velocity.z += (wish.z * speed - this.velocity.z) * k;
       this.velocity.y -= PLAYER.gravity * dt;
-      if (this.onGround && input.wasPressed('Space')) {
-        this.velocity.y = PLAYER.jumpSpeed;
-        this.onGround = false;
+    }
+    // Jumping always works and always lets go of the ladder.
+    if ((this.onGround || ladder) && input.wasPressed('Space')) {
+      this.velocity.y = Math.sqrt(2 * PLAYER.gravity * PLAYER.jumpHeight);
+      if (ladder && !this.onGround) this.velocity.addScaledVector(ladder.normal, PLAYER.ladderJumpOff);
+      if (ladder) {
+        this.detached = ladder;
+        this.onLadder = false;
       }
+      this.onGround = false;
     }
 
     const wasGround = this.onGround;
@@ -105,6 +160,9 @@ export class Player {
       this.moveAxis(1, (this.velocity.y * dt) / steps, false);
     }
     if (this.onGround && !wasGround && fallSpeed > 2) this.onLand(fallSpeed);
+    // Smooth stairs: while staying grounded, height changes are eased on the camera.
+    if (wasGround && this.onGround) this.stepOffset += before.y - this.position.y;
+    this.stepOffset = Math.max(-0.6, Math.min(0.6, this.stepOffset)) * Math.exp(-PLAYER.stepSmoothing * dt);
     if (this.onGround) {
       const dx = this.position.x - before.x;
       const dz = this.position.z - before.z;
@@ -118,12 +176,44 @@ export class Player {
     const r = PLAYER.radius;
     const p = this.position;
     this.box.min.set(p.x - r, p.y, p.z - r);
-    this.box.max.set(p.x + r, p.y + PLAYER.height, p.z + r);
+    this.box.max.set(p.x + r, p.y + this.height, p.z + r);
+  }
+
+  /** Free-fly for build mode: no gravity, no collisions. Space up, C down. */
+  private flyMove(dt: number, input: Input, wish: THREE.Vector3) {
+    const speed = input.isDown('ShiftLeft') ? 16 : 7;
+    let up = 0;
+    if (input.isDown('Space')) up += 1;
+    if (input.isDown('KeyC')) up -= 1;
+    this.velocity.set(wish.x * speed, up * speed, wish.z * speed);
+    this.position.addScaledVector(this.velocity, dt);
+    this.onGround = false;
+    this.onLadder = false;
+    this.sprinting = false;
+  }
+
+  /** Leaving fly mode inside geometry: pop up until free. */
+  unstick() {
+    this.gatherNearby(0, 60);
+    for (let i = 0; i < 240 && this.overlapping(); i++) this.position.y += 0.25;
+    this.velocity.set(0, 0, 0);
+  }
+
+  /** Broadphase: colliders near the player for this frame's moves. */
+  private gatherNearby(dt: number, reach = 2) {
+    const r = reach + this.velocity.length() * dt;
+    const p = this.position;
+    this.near.length = 0;
+    for (const c of this.colliders) {
+      if (c.max.x < p.x - r || c.min.x > p.x + r || c.max.z < p.z - r || c.min.z > p.z + r) continue;
+      if (c.max.y < p.y - r || c.min.y > p.y + this.height + r) continue;
+      this.near.push(c);
+    }
   }
 
   private overlapping(): THREE.Box3 | null {
     this.updateBox();
-    for (const c of this.colliders) if (this.box.intersectsBox(c) && !touching(this.box, c)) return c;
+    for (const c of this.near) if (this.box.intersectsBox(c) && !touching(this.box, c)) return c;
     return null;
   }
 
@@ -155,7 +245,7 @@ export class Player {
           p.y = c.max.y;
           this.onGround = true;
         } else {
-          p.y = c.min.y - PLAYER.height;
+          p.y = c.min.y - this.height;
         }
         this.velocity.y = 0;
       } else {
@@ -168,7 +258,8 @@ export class Player {
 
   private findLadder(): Ladder | null {
     this.updateBox();
-    for (const l of this.ladders) if (this.box.intersectsBox(l.volume)) return l;
+    if (this.detached && (this.onGround || !this.box.intersectsBox(this.detached.volume))) this.detached = null;
+    for (const l of this.ladders) if (l !== this.detached && this.box.intersectsBox(l.volume)) return l;
     return null;
   }
 }

@@ -2,45 +2,311 @@
 
 export const RENDER = {
   /** Internal resolution divisor. 2 = render at half res and upscale with nearest filtering. */
-  pixelScale: 2.5,
-  fov: 75,
-  fogNear: 40,
-  fogFar: 260,
+  pixelScale: 1,
+  fov: 80,
+  /** Extra FOV (degrees) while sprinting, eased in and out. */
+  sprintFovBoost: 6,
+  sprintFovEase: 8,
+};
+
+/** Rainy night. Colors are hex; everything else is live-tunable in the debug panel. */
+export const ATMOS = {
+  skyZenith: '#06080c',
+  skyHorizon: '#20262f',
+  fogColor: '#1a1f27',
+  /** Exponential fog density (1/m). */
+  fogDensity: 0.009,
+  /** Low clouds: everything above this height (relative to the level) fades into them. */
+  cloudBase: 35,
+  cloudFade: 40,
+  cloudColor: '#1c212a',
+  ambientSky: '#3a4864',
+  ambientGround: '#0b0d12',
+  ambient: 1.9,
+  moonColor: '#a8bcdf',
+  moon: 3,
+  moonDir: [-0.35, 0.85, -0.4] as [number, number, number],
+  shadows: true,
+  /** Floodlights may also cast shadows (the nearest ones, up to the spot budget). */
+  spotShadows: true,
+  /** Half-size of the moon shadow area around the player, in meters. */
+  shadowRange: 26,
+  /** Multiplier for all light props. */
+  practical: 2,
+  /** Real lights handed to the nearest light props (others use glow tricks only). */
+  lightBudget: 8,
+  /** Distance falloff exponent of light props: 2 = physical inverse square, lower reaches further. */
+  lightDecay: 1.5,
+  windowGlow: 0.25,
+  /** Brightness of emissive surfaces (lamps, neon). */
+  emissiveBoost: 1.8,
+  /** A little self-light on paint so graffiti reads in the dark. */
+  paintGlow: 0,
+  /** Wet look on up-facing surfaces: darker + specular. */
+  wetness: 0.75,
+  rain: true,
+  /** Fraction of the maximum drop count. */
+  rainDensity: 0.6,
+  rainSpeed: 8,
+  wind: [1.4, 0, 0.7] as [number, number, number],
+};
+
+/** Practical light kinds; every light prop uses one (see kit/lights.ts). */
+export type LightKind = 'wallLamp' | 'floodlight' | 'neonPink' | 'neonCyan' | 'billboardLamp' | 'lampPost' | 'stringLights';
+
+export interface LightSpec {
+  /** Light color (lens and sign tubes take it too, after a rebuild). */
+  color: string;
+  /** Emitter position relative to its default spot on the lens, prop-local meters (x right, y up, z back toward the wall). */
+  offset: [number, number, number];
+  /** Aim, prop-local (front of the prop is -z); normalized when used. Floodlight heads turn with it. */
+  dir: [number, number, number];
+  /** Candela-like strength; scaled by ATMOS.practical. */
+  intensity: number;
+  /** Meters until the light is fully gone (falloff is ATMOS.lightDecay, faded to 0 at the range). */
+  range: number;
+  /** Cone half-angle in radians (1.5 is nearly a hemisphere). */
+  spread: number;
+  /** Softness of the cone edge, 0 = hard .. 1 = fades from the center. */
+  softness: number;
+  /** Glow sprite size at the lens, meters (0 = none). */
+  glow: number;
+  /** Glows show from every side (bare bulbs) instead of only from the side the lens faces. */
+  glowAllAround: boolean;
+  /** Visible beam length, meters (0 = none). */
+  beam: number;
+  /** May take one of the spot shadow slots when near the camera. */
+  shadows: boolean;
+}
+
+/** Per-kind light settings, live-tunable in the debug panel (Lights). */
+export const LIGHTS: Record<LightKind, LightSpec> = {
+  wallLamp: { color: '#ffb36b', offset: [0, 0, 0], dir: [0, -1, -0.25], intensity: 7, range: 18, spread: 1.2, softness: 0.7, glow: 0.35, glowAllAround: false, beam: 0, shadows: false },
+  floodlight: { color: '#dfe8ff', offset: [0, 0, 0], dir: [0, -0.55, -0.83], intensity: 60, range: 40, spread: 0.55, softness: 0.4, glow: 0.6, glowAllAround: false, beam: 7, shadows: true },
+  neonPink: { color: '#ff3fa4', offset: [0, 0, 0], dir: [1, 0, 0], intensity: 8, range: 10, spread: 1.45, softness: 1, glow: 0, glowAllAround: false, beam: 0, shadows: false },
+  neonCyan: { color: '#2fe6ff', offset: [0, 0, 0], dir: [1, 0, 0], intensity: 8, range: 10, spread: 1.45, softness: 1, glow: 0, glowAllAround: false, beam: 0, shadows: false },
+  lampPost: { color: '#ffcf8a', offset: [0, 0, 0], dir: [0, -1, 0], intensity: 30, range: 22, spread: 1.15, softness: 0.6, glow: 0.45, glowAllAround: false, beam: 4.5, shadows: true },
+  stringLights: { color: '#ffd59a', offset: [0, 0, 0], dir: [0, -1, 0], intensity: 6, range: 10, spread: 1.45, softness: 1, glow: 0.22, glowAllAround: true, beam: 0, shadows: false },
+  billboardLamp: { color: '#ffe2b0', offset: [0, 0, 0], dir: [0, -0.8, -0.6], intensity: 25, range: 12, spread: 0.8, softness: 0.5, glow: 0.3, glowAllAround: false, beam: 3.2, shadows: true },
+};
+
+/**
+ * Build mode lighting: plain daylight so the level is easy to read. These keys
+ * replace ATMOS while building; leaving build mode restores the night values.
+ */
+export const DAYLIGHT: Partial<typeof ATMOS> = {
+  skyZenith: '#5f8fc4',
+  skyHorizon: '#c7d3de',
+  fogColor: '#bcc7d1',
+  fogDensity: 0.003,
+  cloudBase: 400,
+  cloudColor: '#bcc7d1',
+  ambientSky: '#e4ecf5',
+  ambientGround: '#7a7d82',
+  ambient: 1.7,
+  moonColor: '#fff6e8',
+  moon: 2.4,
+  moonDir: [-0.45, 0.8, -0.3],
+  practical: 0.4,
+  windowGlow: 0,
+  emissiveBoost: 0.8,
+  paintGlow: 0,
+  wetness: 0,
+  rain: false,
+};
+
+/**
+ * Volumetric light: a low-res raymarch through the fog after the scene pass.
+ * Moonlight shafts use the moon shadow map, practical lights the real-light
+ * pool (the two shadow slots also get shafts). Added in the final pass.
+ */
+export const VOLUMETRICS = {
+  enabled: true,
+  /** Raymarch resolution divisor relative to the render resolution (2 = half width and height). */
+  downscale: 2,
+  /** Samples along each ray (max 32). */
+  steps: 16,
+  /** Rays stop after this many meters. */
+  maxDistance: 40,
+  /** Scattering density of the air (1/m). */
+  density: 0.035,
+  /** Strength of moon shafts and of light-prop scattering. */
+  moon: 0.06,
+  lights: 0.5,
+  /** Forward scattering (0 = even in all directions, 0.9 = only when looking toward the light). */
+  anisotropy: 0.35,
+};
+
+/** Final color grading, applied in display space. Neutral = 0, 1, 1, 0, 0. */
+export const GRADE = {
+  /** Stops (+1 = twice as bright). */
+  exposure: 0,
+  contrast: 1.05,
+  saturation: 0.95,
+  /** Warm (+) / cool (-) white balance. */
+  temperature: 0,
+  /** Magenta (+) / green (-). */
+  tint: 0,
 };
 
 export const PAINT = {
   /** Texel density of every paintable surface (paint + base textures). */
-  texelsPerMeter: 16,
-  /** Paint color (single fixed color in v1). */
-  color: [236, 64, 122] as [number, number, number],
+  texelsPerMeter: 24,
   /** Alpha is quantized to this many steps in the shader for a chunky look (0 = off). */
-  alphaSteps: 5,
+  alphaSteps: 8,
   /** Hard cap on a single surface atlas side, in texels. */
   maxTextureSize: 2048,
 };
 
 export interface CapSpec {
   name: string;
-  /** Half-angle of the spray cone. */
+  /** Spread: half-angle of the spray cone (horizontal, on screen). */
   coneAngle: number;
   /** Particles per second at full flow. */
   rate: number;
-  /** Alpha deposited per particle at full flow. */
+  /** Opacity each particle adds where it lands (0..1). */
   strength: number;
-  /** Stamp radius in texels (0 = one texel). */
+  /** Size of each particle's dot, in texels (0 = one texel). */
   stampRadius: number;
-  /** Hiss loudness multiplier. */
+  /** Edge softness of each dot: 0 = hard edge, 1 = fades to nothing at the rim. */
+  softness: number;
+  /** Hiss loudness multiplier and tone (0 = bright, 1 = deep). */
   hissGain: number;
+  hissTone: number;
+  /** Crosshair circle diameter on screen, in CSS pixels. */
+  crosshair: number;
+  /** Color of the cap on the can model and pickups. */
+  color: string;
 }
 
-export const CAPS: CapSpec[] = [
-  { name: 'THIN', coneAngle: 0.035, rate: 260, strength: 0.16, stampRadius: 0, hissGain: 0.6 },
-  { name: 'FAT', coneAngle: 0.12, rate: 520, strength: 0.1, stampRadius: 1, hissGain: 1.0 },
-];
+export type CapId = 'skinny' | 'standard' | 'fat' | 'spray';
+export const CAP_ORDER: CapId[] = ['skinny', 'standard', 'fat', 'spray'];
+export const CAPS: Record<CapId, CapSpec> = {
+  skinny: { name: 'SKINNY', coneAngle: 0.01, rate: 320, strength: 0.8, stampRadius: 0.3, softness: 0.15, hissGain: 0.5, hissTone: 0, crosshair: 8, color: '#7fb4f2' },
+  standard: { name: 'STANDARD', coneAngle: 0.04, rate: 450, strength: 0.5, stampRadius: 0.6, softness: 0.35, hissGain: 0.75, hissTone: 0.4, crosshair: 14, color: '#f4f4f4' },
+  fat: { name: 'FAT', coneAngle: 0.075, rate: 800, strength: 0.35, stampRadius: 1.9, softness: 0.6, hissGain: 1, hissTone: 1, crosshair: 22, color: '#f2a04c' },
+  /** Wide, soft mist for fades and backgrounds: lots of faint, fuzzy dots. */
+  spray: { name: 'SPRAY', coneAngle: 0.14, rate: 1100, strength: 0.12, stampRadius: 1.4, softness: 0.9, hissGain: 0.9, hissTone: 0.8, crosshair: 32, color: '#b98cf2' },
+};
+
+/** Paint colors, in Q/E cycling order. Black is always owned. Paint never runs out. */
+export type PaintColor = 'black' | 'white' | 'red' | 'blue' | 'purple';
+export const COLOR_ORDER: PaintColor[] = ['black', 'white', 'red', 'blue', 'purple'];
+export const COLORS: Record<PaintColor, string> = { black: '#1d1d22', white: '#f1efe8', red: '#d42a2a', blue: '#2a6ee0', purple: '#8e3fd6' };
+
+/** Can size is a permanent upgrade (sm -> md -> lg). Bigger cans lose pressure slower. */
+export type CanSize = 'sm' | 'md' | 'lg';
+export const SIZE_ORDER: CanSize[] = ['sm', 'md', 'lg'];
+export const CAN_SIZES: Record<CanSize, { drain: number; scale: number }> = {
+  sm: { drain: 1, scale: 0.85 },
+  md: { drain: 0.6, scale: 1 },
+  lg: { drain: 0.35, scale: 1.15 },
+};
+
+export const MARKER = {
+  /** Max distance from the eye to the surface. */
+  reach: 1.6,
+  /** Stamp radius in texels (0 = one texel, ~4 cm). */
+  radius: 0,
+  strength: 0.95,
+  /** First-person pose: distance in front of the eye, and model scale. */
+  holdDistance: 0.38,
+  holdScale: 1,
+};
+
+/** First-person hands + held tool: sway, bob and the trigger press. */
+export const VIEWMODEL = {
+  /** How far the hands lag behind mouse look (radians per pixel of mouse movement). */
+  swayAmount: 0.0012,
+  /** Max sway angle, radians. */
+  swayMax: 0.08,
+  /** How fast sway settles back (1/s). */
+  swayReturn: 10,
+  /** Walk bob: amplitude in meters at walking speed, and steps per meter. */
+  bobAmount: 0.008,
+  bobFrequency: 0.55,
+  /** Hands dip while rising and lift while falling, per m/s of vertical speed. */
+  fallLag: 0.003,
+  /** How far the index finger pushes the nozzle down (radians of finger rotation at the knuckle). */
+  pressCurl: 0.06,
+  pressSpeed: 25,
+  /** The hands' own lights (they're drawn in a separate pass): cold fill + warm rim. */
+  fillSky: '#5a6a8c',
+  fillGround: '#0d0f14',
+  fill: 1.6,
+  rimColor: '#ffd2a0',
+  rim: 0.9,
+};
+
+/** Free left hand: reaches out and rests on a wall when you stand close to one. */
+export const WALL_HAND = {
+  /** Start touching within this distance (m), let go beyond `release`. */
+  reach: 0.85,
+  release: 1.05,
+  /** How fast the hand moves to the wall and back (1/s). */
+  speed: 7,
+  /** Only touch walls at least this far (degrees) to the left of straight ahead; facing a wall keeps the hand down. */
+  minSideAngle: 35,
+  /** ...and at most this far (degrees): beyond it the wall is behind you. */
+  maxSideAngle: 140,
+  /** Re-place the hand when the spot it should be on drifts this far from where it rests (m). */
+  slide: 0.3,
+  /** Direction of the ray that looks for a wall, camera space (x right, y up, -z forward). */
+  aim: [-0.5, -0.3, -1] as [number, number, number],
+  /** Palm on the wall: fingers lean inward this much (rad), and sit this far off the surface (m). */
+  fingerLean: 0.3,
+  gap: 0.004,
+  /** Where the hand comes from and goes back to, out of view: position (camera space, m) and rotation (rad, x/y/z). */
+  restOffset: [-0.32, -0.55, -0.2] as [number, number, number],
+  restRotation: [-0.9, 0, 0.3] as [number, number, number],
+  /** Wrist bend (rad, negative = back): on the way in / out, and with the palm on a wall. */
+  restWristBend: -0.7,
+  wallWristBend: -0.7,
+};
+
+/** Faint light around the player so dark corners stay walkable. Not a flashlight. */
+export const PLAYER_LIGHT = {
+  intensity: 0.5,
+  /** Meters until it's gone. */
+  range: 5,
+  color: '#b8c4d8',
+  /** Height above the eyes (m): from above it reads as ambient, not as a beam. */
+  height: 0.35,
+};
+
+/**
+ * Paint runs: spraying a lot onto paint that is already opaque builds up excess,
+ * and on vertical faces enough excess starts a thin run down the wall.
+ * All baked into the paint texture: no extra objects.
+ */
+export const DRIPS = {
+  enabled: true,
+  /** Excess paint (in full coats) a texel needs before it may run. */
+  excess: 2.5,
+  /** Chance that a texel at the limit actually starts a run. */
+  chance: 0.12,
+  /** Runs moving at the same time, level-wide. */
+  maxActive: 40,
+  /** Run length range (m). */
+  minLength: 0.06,
+  maxLength: 0.3,
+  /** Starting speed (m/s); runs slow down as they go. */
+  speed: 0.12,
+  /** Opacity the run leaves behind (0..1). */
+  strength: 0.85,
+};
+
+export const PICKUP = {
+  /** Horizontal pickup radius around the player. */
+  radius: 0.9,
+  hover: 0.75,
+  spin: 1.4,
+  bob: 0.08,
+};
 
 export const SPRAY = {
   /** Max distance paint can travel. */
-  range: 3.5,
+  range: 4.6,
   /** Paint strength fades linearly from this distance to `range`. */
   falloffStart: 1.5,
   particleSpeed: 11,
@@ -49,7 +315,7 @@ export const SPRAY = {
 };
 
 export const PRESSURE = {
-  /** Pressure lost per second of spraying (1 = full can). */
+  /** Pressure lost per second of spraying with a small can (1 = full); scaled by CAN_SIZES.drain. */
   drainPerSecond: 0.04,
   /** Below this, paint gets thinner. */
   thinThreshold: 0.5,
@@ -69,21 +335,123 @@ export const PLAYER = {
   height: 1.78,
   radius: 0.3,
   walkSpeed: 4.2,
-  sprintSpeed: 6.5,
-  groundAccel: 14,
-  airAccel: 3,
-  jumpSpeed: 6.9,
-  gravity: 21,
+  sprintSpeed: 7,
+  /** How fast you reach the wished speed (1/s). */
+  acceleration: 8.5,
+  /** How fast you stop on the ground with no input (1/s). */
+  friction: 16,
+  /** Fraction of `acceleration` available in the air. */
+  airControl: 0.1,
+  /** Crouching: collider height, eye height, speed. */
+  crouchHeight: 1.1,
+  crouchEyeHeight: 0.88,
+  crouchSpeed: 2,
+  /** How fast the eye moves between standing and crouched heights (1/s). */
+  crouchTransition: 14,
+  /** How fast the camera catches up after a step up/down (1/s). Higher = snappier. */
+  stepSmoothing: 14,
+  jumpHeight: 1.1,
+  gravity: 19,
   stepHeight: 0.42,
+  /** Ladders (Minecraft-style): push into the ladder to climb, let go to slide down, crouch to hold. */
   climbSpeed: 2.6,
+  /** Push-off speed away from the ladder when jumping off it (it won't grab you again until you land or leave it). */
+  ladderJumpOff: 3.5,
   mouseSensitivity: 0.0022,
   /** Falling below this height respawns the player. */
   killY: -25,
 };
 
+/** Background city windows (F3 → Rendering → Skyline). */
+export const SKYLINE = {
+  /** Meters covered by one window texture repeat (8 x 8 windows): bigger = bigger windows. */
+  windowScale: 32,
+  /** Fraction of windows that are lit. */
+  lit: 0.22,
+  /** 0 = whole floors lit or dark together (regular), 1 = every window on its own (random). */
+  randomness: 0.6,
+  /** Variation in window brightness (0 = all equal). */
+  brightnessVariation: 0.4,
+  /** Change to get a different pattern. */
+  seed: 1,
+};
+
+/** All gains are live (F3 → Sound). */
 export const AUDIO = {
   masterGain: 0.7,
   hissGain: 0.22,
+  /** Distant city rumble. */
   ambienceGain: 0.05,
   footstepGain: 0.25,
+  /** Rain bed at full density; scales with ATMOS.rainDensity, silent without rain. */
+  rainGain: 0.09,
+  /** Brightness of the rain hiss (lowpass Hz). */
+  rainTone: 3200,
+  thunderGain: 0.55,
+  /** AC fan hum at the fan; fades out over `fanRange` meters. */
+  fanGain: 0.12,
+  fanRange: 7,
+  uiGain: 1,
+  /** Raindrops pinging on metal tops open to the sky: loudness, pings per second per piece, hearing range (m). */
+  metalGain: 0.07,
+  metalRate: 2.5,
+  metalRange: 8,
+};
+
+/** Lightning + thunder, only while it rains. */
+export const THUNDER = {
+  enabled: true,
+  /** Seconds between strikes (random in this range). */
+  minInterval: 45,
+  maxInterval: 150,
+  /** Extra ambient / moon intensity at the peak of a flash. */
+  flashAmbient: 5,
+  flashMoon: 6,
+  /** Sky brightening at the peak (0..1). */
+  flashSky: 0.5,
+  /** Delay from flash to thunder, seconds (random in this range: farther strikes are later and softer). */
+  minDelay: 0.5,
+  maxDelay: 3,
+};
+
+/** Smoke / warm air from vents, exhausts and AC units: one GPU-animated particle batch. */
+export const SMOKE = {
+  enabled: true,
+  /** Particles per emitter (0..48). */
+  perEmitter: 28,
+  /** Seconds a puff lives. */
+  life: 4.5,
+  /** Rise over a life (m), and how far wind carries it (multiplies ATMOS.wind). */
+  rise: 2.6,
+  drift: 0.5,
+  /** Puff size at birth and at the end (m). */
+  startSize: 0.25,
+  endSize: 1.1,
+  opacity: 0.22,
+  color: '#9aa3ad',
+};
+
+/** AC fans: revolutions per second. */
+export const FANS = {
+  speed: 3,
+};
+
+/** Gentle flicker of neon tubes (light + tubes in sync). */
+export const FLICKER = {
+  /** Random steps per second. */
+  speed: 12,
+  /** Fraction of steps that dip, and how deep (0..1). */
+  neonRate: 0.035,
+  neonDepth: 0.55,
+  /** Fast hum on top, as a fraction of brightness. */
+  neonHum: 0.04,
+};
+
+/** Build mode (B). */
+export const BUILD = {
+  /** How far the crosshair reaches when aiming at faces (m). */
+  reach: 120,
+  /** Holding LMB keeps placing: first repeat after this delay, then every interval (s). */
+  repeatDelay: 0.3,
+  repeatInterval: 0.15,
 };

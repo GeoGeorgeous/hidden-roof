@@ -11,6 +11,8 @@ export interface Rect {
   y: number;
   w: number;
   h: number;
+  /** Vertical face with texel +y = world up: paint can run down it (see paint-drips.ts). */
+  upright?: boolean;
 }
 
 export interface SurfaceGeometry {
@@ -32,7 +34,13 @@ interface FaceSpec {
   normal: THREE.Vector3;
 }
 
-class Builder {
+/** Collects faces of one or more primitives into one geometry with one paint atlas. */
+export class SurfaceBuilder {
+  /** Per-vertex tint (linear RGB) and emissive applied to the vertices added next. */
+  tint: [number, number, number] = [1, 1, 1];
+  emissive = 0;
+  private tints: number[] = [];
+  private emissives: number[] = [];
   positions: number[] = [];
   normals: number[] = [];
   uvs: number[] = []; // atlas texels for now, normalized at the end
@@ -50,6 +58,8 @@ class Builder {
 
   vertex(p: THREE.Vector3, n: THREE.Vector3, rect: number, u: number, v: number, bu: number, bv: number): number {
     this.positions.push(p.x, p.y, p.z);
+    this.tints.push(...this.tint);
+    this.emissives.push(this.emissive);
     this.normals.push(n.x, n.y, n.z);
     // Store rect index + local fraction; resolved after packing.
     this.uvs.push(rect + u * 0.999, v);
@@ -62,8 +72,9 @@ class Builder {
     this.triRect.push(rect);
   }
 
-  build(): SurfaceGeometry {
-    const { w: atlasW, h: atlasH } = packRects(this.rects);
+  build(pack = true): SurfaceGeometry {
+    // Decor geometry has no paint atlas; give it a dummy one.
+    const { w: atlasW, h: atlasH } = pack ? packRects(this.rects) : stubRects(this.rects);
     // Resolve atlas UVs.
     const uv = new Float32Array(this.uvs.length);
     for (let i = 0; i < this.uvs.length; i += 2) {
@@ -79,6 +90,8 @@ class Builder {
     g.setAttribute('normal', new THREE.Float32BufferAttribute(this.normals, 3));
     g.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
     g.setAttribute('baseUv', new THREE.Float32BufferAttribute(this.baseUvs, 2));
+    g.setAttribute('tint', new THREE.Float32BufferAttribute(this.tints, 3));
+    g.setAttribute('emissive', new THREE.Float32BufferAttribute(this.emissives, 1));
     g.setIndex(this.indices);
     g.computeBoundingBox();
     g.computeBoundingSphere();
@@ -90,6 +103,7 @@ class Builder {
     const uLen = f.uAxis.length();
     const vLen = f.vAxis.length();
     const rect = this.addRect(uLen, vLen);
+    if (f.vAxis.y > 0 && Math.abs(f.normal.y) < 0.01) this.rects[rect].upright = true;
     const uDir = f.uAxis.clone().normalize();
     const vDir = f.vAxis.clone().normalize();
     // World-aligned base coords: project origin onto the face axes.
@@ -140,11 +154,24 @@ function packRects(rects: Rect[]): { w: number; h: number } {
   return { w: width, h: height };
 }
 
+function stubRects(rects: Rect[]) {
+  for (const r of rects) {
+    r.x = 0;
+    r.y = 0;
+  }
+  return { w: Math.max(1, ...rects.map((r) => r.w)), h: Math.max(1, ...rects.map((r) => r.h)) };
+}
+
 export type BoxFace = '+x' | '-x' | '+y' | '-y' | '+z' | '-z';
 
 /** Axis-aligned box from min/max corners. `skip` omits hidden faces (saves texture space). */
-export function boxSurface(min: THREE.Vector3, max: THREE.Vector3, skip: BoxFace[] = []): SurfaceGeometry {
-  const b = new Builder();
+export function boxSurface(min: THREE.Vector3, max: THREE.Vector3, skip: BoxFace[] = [], paintable = true): SurfaceGeometry {
+  const b = new SurfaceBuilder();
+  addBox(b, min, max, skip);
+  return b.build(paintable);
+}
+
+export function addBox(b: SurfaceBuilder, min: THREE.Vector3, max: THREE.Vector3, skip: BoxFace[] = []) {
   const s = new THREE.Vector3().subVectors(max, min);
   const V = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
   const faces: Record<BoxFace, FaceSpec> = {
@@ -158,7 +185,6 @@ export function boxSurface(min: THREE.Vector3, max: THREE.Vector3, skip: BoxFace
   for (const key of Object.keys(faces) as BoxFace[]) {
     if (!skip.includes(key)) b.quad(faces[key]);
   }
-  return b.build();
 }
 
 export type Axis = 'x' | 'y' | 'z';
@@ -174,15 +200,34 @@ export function cylinderSurface(
   radius: number,
   segments = 16,
   caps: [boolean, boolean] = [true, true],
+  /** Radius at the far end; defaults to `radius`. Texel density follows the wider end. */
+  radiusEnd = radius,
+  paintable = true,
 ): SurfaceGeometry {
-  const b = new Builder();
+  const b = new SurfaceBuilder();
+  addCylinder(b, start, axis, length, radius, segments, caps, radiusEnd);
+  return b.build(paintable);
+}
+
+export function addCylinder(
+  b: SurfaceBuilder,
+  start: THREE.Vector3,
+  axis: Axis,
+  length: number,
+  radius: number,
+  segments = 16,
+  caps: [boolean, boolean] = [true, true],
+  radiusEnd = radius,
+) {
   const A = new THREE.Vector3(axis === 'x' ? 1 : 0, axis === 'y' ? 1 : 0, axis === 'z' ? 1 : 0);
   // Two perpendicular axes forming a right-handed frame with A.
   const P = axis === 'y' ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(0, 1, 0);
   const Q = new THREE.Vector3().crossVectors(A, P); // so that P x Q = A
   P.crossVectors(Q, A);
-  const circ = Math.PI * 2 * radius;
-  const side = b.addRect(circ, length);
+  const circ = Math.PI * 2 * Math.max(radius, radiusEnd);
+  const slant = Math.hypot(length, radius - radiusEnd);
+  const side = b.addRect(circ, slant);
+  if (axis === 'y' && radius === radiusEnd) b.rects[side].upright = true;
   const along = start.dot(A);
   const ring: number[][] = [];
   const p = new THREE.Vector3();
@@ -192,9 +237,12 @@ export function cylinderSurface(
     const ang = t * Math.PI * 2;
     n.copy(P).multiplyScalar(Math.cos(ang)).addScaledVector(Q, Math.sin(ang));
     const row: number[] = [];
+    // Tilt the normal outward on tapered cylinders.
+    const sn = n.clone().multiplyScalar(length).addScaledVector(A, radius - radiusEnd).normalize();
     for (let j = 0; j <= 1; j++) {
-      p.copy(start).addScaledVector(n, radius).addScaledVector(A, j * length);
-      row.push(b.vertex(p, n, side, t, j, t * circ, along + j * length));
+      const r = j === 0 ? radius : radiusEnd;
+      p.copy(start).addScaledVector(n, r).addScaledVector(A, j * length);
+      row.push(b.vertex(p, sn, side, t, j, t * Math.PI * 2 * r, along + j * slant));
     }
     ring.push(row);
   }
@@ -207,7 +255,8 @@ export function cylinderSurface(
   // Caps: planar mapped discs.
   for (let c = 0; c < 2; c++) {
     if (!caps[c]) continue;
-    const rect = b.addRect(radius * 2, radius * 2);
+    const cr = c === 0 ? radius : radiusEnd;
+    const rect = b.addRect(cr * 2, cr * 2);
     const sign = c === 0 ? -1 : 1;
     const normal = A.clone().multiplyScalar(sign);
     const center = start.clone().addScaledVector(A, c * length);
@@ -219,10 +268,9 @@ export function cylinderSurface(
       const ang = (i / segments) * Math.PI * 2;
       const cu = Math.cos(ang);
       const cv = Math.sin(ang);
-      p.copy(center).addScaledVector(capU, cu * radius).addScaledVector(capV, cv * radius);
+      p.copy(center).addScaledVector(capU, cu * cr).addScaledVector(capV, cv * cr);
       rim.push(b.vertex(p, normal, rect, 0.5 + cu * 0.5, 0.5 + cv * 0.5, p.dot(capU), p.dot(capV)));
     }
     for (let i = 0; i < segments; i++) b.tri(ci, rim[i], rim[i + 1], rect);
   }
-  return b.build();
 }
