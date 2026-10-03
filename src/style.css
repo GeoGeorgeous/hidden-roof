@@ -1,0 +1,130 @@
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  font-family: ui-monospace, 'Courier New', monospace;
+  color: #fff;
+  user-select: none;
+}
+
+canvas {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  image-rendering: pixelated;
+}
+
+.hud {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+.crosshair {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 4px;
+  height: 4px;
+  margin: -2px 0 0 -2px;
+  background: #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6);
+}
+
+.can {
+  position: absolute;
+  left: 20px;
+  bottom: 20px;
+  text-shadow: 2px 2px 0 #000;
+}
+
+.cap {
+  font-size: 18px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  margin-bottom: 6px;
+}
+
+.pressure {
+  position: relative;
+  width: 180px;
+  height: 12px;
+  border: 2px solid #fff;
+  box-shadow: 2px 2px 0 #000;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.pressure .bar {
+  height: 100%;
+  background: #7fe07a;
+}
+.pressure[data-state='mid'] .bar {
+  background: #f2c94c;
+}
+.pressure[data-state='low'] .bar {
+  background: #eb5757;
+}
+
+.pressure .mark {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.debug {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  margin: 0;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.6);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(20, 16, 30, 0.55);
+  text-shadow: 3px 3px 0 #000;
+}
+.overlay[hidden] {
+  display: none;
+}
+
+.overlay h1 {
+  font-size: 64px;
+  margin: 0 0 4px;
+  letter-spacing: 6px;
+  color: #ec407a;
+}
+
+.overlay p {
+  margin: 0 0 24px;
+  font-size: 18px;
+  animation: blink 1.2s steps(2) infinite;
+}
+
+.overlay td {
+  padding: 2px 12px;
+  font-size: 14px;
+}
+.overlay td:first-child {
+  text-align: right;
+  color: #f2c94c;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.3;
+  }
+}
