@@ -112,8 +112,9 @@ const HINTS: Record<string, string> = {
   'ATMOS.ambientSky': 'Ambient light color from above.',
   'ATMOS.ambientGround': 'Ambient light color from below.',
   // Ink
-  'INK.paper': 'Paper color: lit surfaces and the sky.',
+  'INK.paper': 'Paper color: lit surfaces, and what distance fades into.',
   'INK.ink': 'Ink color: lines, hatching and solid black.',
+  'INK.sky': 'Sky color (the same as the paper by default).',
   'INK.exposure': 'Light multiplier before the tone steps. Higher = more paper, less ink.',
   'INK.paperTone': 'Tones above this are bare paper; below it, hatching starts.',
   'INK.hatchTone': 'Tones below this get cross-hatching.',

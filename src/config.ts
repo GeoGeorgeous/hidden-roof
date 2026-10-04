@@ -169,6 +169,8 @@ export const VOLUMETRICS = {
 export const INK = {
   paper: '#ebe5d6',
   ink: '#141416',
+  /** Sky color (the same as the paper by default). */
+  sky: '#ebe5d6',
   /** Light multiplier before the tone steps (brighter = more paper). */
   exposure: 1.6,
   /** Tone steps (0..1): above `paper` no ink; below `hatch` cross-hatching; below `black` solid ink. */

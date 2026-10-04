@@ -39,6 +39,8 @@ function noiseTexture() {
 export const inkUniforms = {
   uInkNoise: { value: noiseTexture() },
   uPaper: { value: new THREE.Color(INK.paper) },
+  /** Sky dome color (sky.ts). */
+  uSky: { value: new THREE.Color(INK.sky) },
   uInkColor: { value: new THREE.Color(INK.ink) },
   uInkExposure: { value: INK.exposure },
   /** paper, hatch and black tone steps, tone noise. */
@@ -56,6 +58,7 @@ export const inkUniforms = {
 export function syncInkUniforms() {
   const u = inkUniforms;
   u.uPaper.value.set(INK.paper);
+  u.uSky.value.set(INK.sky);
   u.uInkColor.value.set(INK.ink);
   u.uInkExposure.value = INK.exposure;
   u.uTones.value.set(INK.paperTone, INK.hatchTone, INK.blackTone, INK.toneNoise);
