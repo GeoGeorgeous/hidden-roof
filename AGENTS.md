@@ -11,6 +11,8 @@ Guidance for anyone (human or agent) changing this codebase.
 - Upload only textures that changed this frame, and only their dirty rect (`PaintSystem.flush`).
 - Every paintable surface uses the same texel density (`PAINT.texelsPerMeter`). It's a player setting (PAINT DETAIL), so give paint sizes in meters, never in texels.
 - Lamp light is baked too (`src/render/bake`). Never add real lights for lamps that don't move: only moving lights (CCTV) use the small real-light pool.
+- Most of the screen is city, so per-pixel cost is what counts. Keep the surface shader lean, and keep the city on its own material (`src/city/material.ts`): it shades city pixels at a fraction of the cost.
+- Dense detail fades with distance, never into a black mass: thin steel and wires are pen lines (`src/city/lines.ts`) with a range and a feature size; shader patterns (hatching, facade bands, seams) are filtered by their screen footprint.
 
 ## Small files
 
@@ -26,4 +28,4 @@ Guidance for anyone (human or agent) changing this codebase.
 - **Big flat faces are paintable, small details are decor.** Decor is batched in big tiles (`RENDER.batchTile`), so draw calls grow with the level's area, never with its number of props.
 - **Fit the grid:** 2 m horizontal and 4 m vertical modules, with small props snapping to 0.5 m.
   - Edge pieces are 1.7 m long and centered on grid lines. The level generates joint posts where they meet, so never overlap coplanar faces.
-- **Style:** the four neutral grays in `kit/pieces.ts`, flat materials. Color comes only from lights, signs and player paint.
+- **Style:** ink on paper (`src/render/ink`). Materials are the four neutral grays in `kit/pieces.ts`; the ink turns them into paper, hatching or black. The only color in the world is player paint: never add colored materials, lights, glows or sprites (pickups of paint colors are the one exception). Signs get made-up lettering (`Mat.letters`), big walls facade bands (`Mat.facade`).

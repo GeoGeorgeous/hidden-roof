@@ -1,6 +1,6 @@
 # taggin'
 
-A small first-person graffiti game in the browser. You're on New York rooftops at sunset: find colors, caps, can upgrades and a marker, then paint whatever you like. There are no enemies and no objectives. The HUD looks like a body-cam recording overlay.
+A small first-person graffiti game in the browser. You're on the rooftops of a pen-and-ink megacity, high above streets lost in black: find colors, caps, can upgrades and a marker, then paint whatever you like. The world is drawn in ink on paper; the only color anywhere is your paint. There are no enemies and no objectives. The HUD looks like a body-cam recording overlay.
 
 Built with three.js, TypeScript and Vite. There are no external assets: the geometry, textures and sounds are all generated in code. See `AGENTS.md` for the two ground rules (performance first, small files).
 
@@ -67,7 +67,7 @@ npm run build      # typecheck + production build into dist/
 
 ## Prop kit
 
-**Props:** wall lamp, floodlight, lamp post, string lights, neon blade signs (pink / cyan; two-sided, glyphs vary per sign), building, slab, parapet, stairwell hut, stairs, ladder, platform, fire escape, water tower, vent shaft, duct, AC unit (small / medium / large / wall-mounted), utility box, exhaust pipe, pipe run, antenna, cable, chain-link fence, fence gate, billboard (face and lamps outward; ladder at the back, walkway around to the front catwalk), CCTV camera (the head pans slowly; when you come near it turns to follow you and its lens and a small spot light switch on, `CCTV` and `LIGHTS.cctv`; swinging pieces turn in the vertex shader, so they stay in the level batches, and the light is aimed on the CPU with the same math).
+**Props:** wall lamp, floodlight, lamp post, string lights, neon blade signs (pink / cyan; two-sided, glyphs vary per sign), wall sign, shop sign, blade sign, sign tower (lattice frame carrying a panel), lattice mast, utility pole, tanks on a stand, roof debris, building, slab, parapet, stairwell hut, stairs, ladder, platform, fire escape, water tower, vent shaft, duct, AC unit (small / medium / large / wall-mounted), utility box, exhaust pipe, pipe run, antenna, cable, chain-link fence, fence gate, billboard (face and lamps outward; ladder at the back, walkway around to the front catwalk), CCTV camera (the head pans slowly; when you come near it turns to follow you and its lens and a small spot light switch on, `CCTV` and `LIGHTS.cctv`; swinging pieces turn in the vertex shader, so they stay in the level batches, and the light is aimed on the CPU with the same math).
 
 Each prop is a builder function that returns a list of **pieces** (box, cylinder, rod, cone, climb volume) for a given size (`src/kit/`). The same pieces produce everything else (`src/level/build-prop.ts`):
 
@@ -76,6 +76,7 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
 - **Ladders:** their climb volumes come from the ladder pieces.
 - **Paint:** a piece is paintable if it has a flat face at least 0.5 m on each side and 1.2 m² in area. Everything else is decor and is merged into one mesh per prop and material. For drawing, decor is merged again per 32 m tile of the level (`RENDER.batchTile`), together with a shadow-only copy of the tile's paint meshes, so draw calls grow with the level's area, an edit re-merges only the tiles it touched, and tiles out of view (or outside the moon's shadow box) are skipped. Opaque surfaces are drawn front to back, grouped by base texture.
 - **Railings:** stairs, platforms, fire escapes and the billboard catwalk always build their own.
+- **Lettering and facades:** a material can carry sign lettering (`Mat.letters`, a run of made-up glyphs from the atlas in `render/ink/glyphs.ts`; every sign instance picks its own from its seed) or facade bands (`Mat.facade`, `FACADES` presets: ribbon windows, fins, punched windows, slats; the tall facade under a building block uses them). Lettered panels stay paintable: paint covers the lettering.
 
 **Placement conventions:**
 - A prop's origin is at its bottom, centered, with its front facing −z.
@@ -99,7 +100,7 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
   - `can:<md|lg>` upgrades the can
   - `cap:<skinny|standard|fat|spray>` unlocks a cap
   - `marker`
-- The skyline is regenerated around the level's bounds every time a level loads.
+- The city is regenerated around the level's bounds every time a level loads, always the same for the same settings. A level can override any `SKYLINE` value in its own object, e.g. `"skyline": { "seed": 12, "margin": 20 }`.
 
 ## How painting works
 
@@ -121,7 +122,16 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
 
 ## Rendering and lights
 
-- **Frame:** the scene renders into a linear HDR target at the internal (pixelated) resolution. Volumetric light runs next, then the hands and tool are drawn. A final pass adds the volumetric light, applies color grading and converts to sRGB.
+- **Ink look** (`src/render/ink/`, `INK`, F3 → Ink): the world is drawn in ink on paper; only paint keeps its color (no desaturation: nothing else has color to begin with).
+  - Each pixel's tone (light reaching it x its material's gray) picks the ink: paper, hatching, cross-hatching (vertical strokes on walls) or solid black. Hatch lines are laid out in world space by the face's normal (no UVs), with their spacing picked in octaves so it stays about `hatchPx` pixels at any distance, and box-filtered by their screen footprint: no moire, no gray smear far away.
+  - Distance and the low clouds lighten the tone (black → cross-hatching → hatching → paper), so ink never turns gray. Below `voidTop` the city sinks into black, and that never fades: the street is a black void far down.
+  - Facade bands (black slots between pale strips) and grime (rain streaks, stains, buffed patches, wall cracks, panel and floor seams) are drawn in the shader from the world position, filtered the same way. Paint goes over all of it, lit softly and lightly hatched in the dark.
+  - The final pass draws pen outlines from the depth buffer (second differences of 1/z: silhouettes on their near side, creases a little lighter), thinning with distance, with a slight wobble, then paper grain from a precomputed paper texture.
+  - Glows, beams and rain are white or ink; pickups stand on drawn rings (in color only for paint colors); the hands and can are inked (the label shows the paint color); the HUD is ink on paper.
+- **City** (`src/city/`, `SKYLINE`, F3 → Rendering → City): a seeded street grid of blocks split into lots, one tower per lot with setbacks and facade bands. Near the level the roofs are mostly below you, with a few huge towers among them; farther out the city rises into a wall that fades into the paper. Roofs are packed (cores, tanks on lattice legs, AC rows, billboards on frames, masts with guy wires, cranes, railings, pipes down the facades), walls carry blade and shop signs and AC boxes, and wires are strung across the streets and high over the level.
+  - Volumes are merged into 160 m chunks drawn with the city's own lean ink material (no paint, lamps or shadows), after the level, near chunks first.
+  - Thin steel and wires are one-pixel GL lines in ink. Each line has a range and a feature size (a lattice's panel, a railing's height): it fades out beyond its range and when its feature gets a few pixels small, so far lattices keep their outline and lose their bracing instead of turning into a black mass. Line chunks past their range aren't drawn.
+- **Frame:** the scene renders into a linear HDR target (with a float depth texture) at the internal (pixelated) resolution. Volumetric light runs next, then the hands and tool are drawn into the same target with their depth squashed into the front 1% of the range, so they're always in front yet get outlines too. The final pass adds the outlines, the volumetric light, paper grain and grading, and converts to sRGB.
 - **Light props** carry an emitter at its default spot on the lens. Per light kind, `LIGHTS` holds the color, source offset, aim, strength, spread, range, edge softness, glow, beam and shadows. All of it is live-tunable in F3 → Lights; lens colors and floodlight heads rebuild to match. Glow sprites only show from the side the lens faces.
 - **Baked lamp light** (`src/render/bake/`, `LIGHTMAP`): every steady lamp's light is baked, with shadows, so lamps light up at any distance and any number of them costs the same per frame.
   - Paintable surfaces get a light texture each (4 texels per meter by default, half float); decor gets the light in its vertices. The shader adds it exactly like the diffuse light of a real spot light, so the look matches the real lights it replaced. Paint stays in its own texture, so spraying never touches the bake.
@@ -138,7 +148,7 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
 - **Player glow:** a faint shadowless point light just above the head, so dark corners stay walkable (`PLAYER_LIGHT`). Off in build mode.
 - **Lamp count and range are free on the GPU:** baked light is one texture read per pixel however many lamps there are; range only makes bakes longer. Real lights (the CCTV pool, or every near lamp with baking off) cost per pool slot: three.js shades every slot on every lit pixel regardless of range.
 - **Volumetric light:** a low-res raymarch through the fog. It uses the moon shadow map for light shafts, plus the nearest 8 lamps, baked or not (real spot lights in the two shadow slots get shadowed shafts). Off / low / medium / high in the pause menu.
-- **Settings** (pause menu, saved in this browser): resolution (pixel scale), volumetric quality and paint detail. Resolution and volumetrics apply immediately, paint detail when you resume (see How painting works).
+- **Settings** (pause menu, saved in this browser): resolution (pixel scale), volumetric quality, paint detail and city detail (LOW / MEDIUM / HIGH: the city's reach, rooftop clutter and how far thin lines show). Resolution and volumetrics apply immediately, paint and city detail when you resume (see How painting works).
 - **GPU cost:** F3 → Performance shows GPU time for the scene, volumetrics and hands + post passes. This needs `EXT_disjoint_timer_query_webgl2` (desktop Chromium); otherwise it shows n/a.
 
 ## Tunable constants (`src/config.ts`)
@@ -167,8 +177,9 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
 - `LIGHTS`: per light kind: `color`, `offset`, `dir`, `intensity`, `range`, `spread` (at most `LIGHT_SPREAD_MAX`), `softness`, `glow`, `beam`, `shadows` (casts baked shadows).
 - `LIGHTMAP`: baked lamp light: `enabled`, `shadows`, `texelsPerMeter`, `smooth`, `highlights` (wet highlights from the nearest lamps), `budgetMs` (rebake time per frame).
 - `VOLUMETRICS`: `enabled`, `downscale`, `steps`, `maxDistance`, `density`, `moon`, `lights`, `anisotropy`.
-- `GRADE`: `exposure`, `contrast`, `saturation`, `temperature`, `tint`.
-- `SKYLINE`: background city windows: `windowScale` (size), `lit`, `randomness` (whole floors vs single windows), `brightnessVariation`, `seed`. All live in F3 → Rendering → Skyline.
+- `INK`: `paper` and `ink` colors, `exposure`, the tone steps (`paperTone`, `hatchTone`, `blackTone`, `toneNoise`), `hatchPx` / `hatchWidth`, `grime`, the void (`voidTop`, `voidBottom`), paint (`paintLight`, `paintMin`, `paintHatch`) and the final pass (`outline`, `crease`, `outlineFade`, `wobble`, `grain`). All live in F3 → Ink. `ATMOS.fogDensity` is how fast the drawing fades into paper.
+- `GRADE`: `exposure`, `contrast`, `saturation`, `temperature`, `tint` (neutral by default: they would change paint colors).
+- `SKYLINE`: the city: `seed`, `radius`, `block`, `streetMin`/`streetMax`, `margin` (free space round the level), `street` (how far down the street is), `near`, `tallChance`/`tallMin`/`tallMax` (huge towers), `clutterRange`, `lineRange` (live), `litWindows` (live). F3 → Rendering → City, with a rebuild button; a level can override any of them.
 - `PICKUP`: `radius`, `hover`, `spin`, `bob`.
 - `PLAYER`:
   - `walkSpeed`, `sprintSpeed`
@@ -187,7 +198,7 @@ The F3 panel groups its controls into small collapsible sections (collapse / exp
 ```
 src/main.ts              wiring + game loop
 src/config.ts            all tunable constants
-src/kit/                 prop kit: pieces + helpers (railings, ladders), prop builders, registry
+src/kit/                 prop kit: pieces + helpers (railings, ladders), prop builders (signs.ts, steel.ts: lettered signs, lattices), registry
 src/level/               build-prop (pieces → meshes/colliders), level (instances, JSON), decor batch tiles, solids broad phase
 src/build/               build mode, its HUD panel, level file I/O
 src/inventory/           pickup kinds, inventory (can, marker, unlocks), tool readout HUD
@@ -196,19 +207,21 @@ src/spray/               spray tool, can + hand view model, particles
 src/tools/               marker, tool routing (hotbar → tool), hand sway/bob
 src/debug/               debug + tuning panel, tunable list, GPU pass timer
 src/render/              lighting pool, light FX, rain, atmosphere presets, post pipeline, volumetrics
+src/render/ink/          ink look: tones + hatching (tone.ts), facade bands, grime, sign lettering atlas, outline + paper pass
 src/render/bake/         baked lamp light: lightmap layout, shadow grid, lamp math, baker
+src/city/                the city: layout, chunked meshes + lean material, pen lines, rooftop clutter + signs, wires
 src/painting.ts          lazy paint textures, stamping, dirty-rect uploads
 src/paint-mips.ts        smaller paint levels for distant surfaces
 src/paint-resample.ts    moves paint into a new atlas (paint detail change)
 src/surfaces.ts          box / cylinder geometry with per-surface atlas UVs
 src/materials.ts         surface shader, procedural base textures
 src/player.ts            FPS controller, collisions (with broadphase), ladders, fly mode
-src/sky.ts, skyline.ts   sky dome, background city
+src/sky.ts, skyline.ts   paper sky dome, the city around the level (builds src/city)
 src/hud.ts               body-cam frame: vignette, REC/clock, crosshair, cap tag, start/pause menu
-src/style.css            all UI styling (white + red alert, thin lines, monospace)
-src/settings.ts          pause-menu settings (resolution, volumetrics, paint detail), saved in localStorage
+src/style.css            all UI styling (ink on paper + red alert, thin lines, monospace)
+src/settings.ts          pause-menu settings (resolution, volumetrics, paint detail, city detail), saved in localStorage
 src/audio.ts, input.ts, fullscreen.ts
 src/hex-color.ts, lcg.ts small shared helpers: config colors parsed only on change, seeded random
-public/levels/demo.json  demo rooftop using every prop and pickup, plus an empty level-0 roof to the north for building
+public/levels/demo.json  demo rooftop (the original props and every pickup), plus an empty level-0 roof to the north for building
 scripts/smoke.mjs        headless Playwright smoke test
 ```
