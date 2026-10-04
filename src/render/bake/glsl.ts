@@ -13,20 +13,23 @@ export const HIGHLIGHT_MAX = 4;
 /** Flicker values default: one steady slot. */
 const STEADY = new THREE.DataTexture(new Float32Array([1]), 1, 1, THREE.RedFormat, THREE.FloatType);
 STEADY.needsUpdate = true;
-const vectors = <T>(make: () => T) => Array.from({ length: HIGHLIGHT_MAX }, make);
 
 export const bakeUniforms = {
   /** Strength of baked lamp light (ATMOS.practical; 0 while LIGHTMAP is off). */
   uBakedScale: { value: 0 },
   /** Brightness of each neon flicker slot right now; slot 0 is steady (1). */
   uFlickerValues: { value: STEADY as THREE.Texture },
-  /** Wet highlights: lamps in view space (three's spot convention: dir points back at the lamp). */
+  /**
+   * Wet highlights: lamps in view space (three's spot convention: dir points
+   * back at the lamp), packed flat: three hands flat typed arrays straight to
+   * WebGL, where arrays of vectors get copied out on every draw.
+   */
   uHiCount: { value: 0 },
-  uHiPos: { value: vectors(() => new THREE.Vector3()) },
-  uHiDir: { value: vectors(() => new THREE.Vector3()) },
-  uHiColor: { value: vectors(() => new THREE.Vector3()) },
+  uHiPos: { value: new Float32Array(HIGHLIGHT_MAX * 3) },
+  uHiDir: { value: new Float32Array(HIGHLIGHT_MAX * 3) },
+  uHiColor: { value: new Float32Array(HIGHLIGHT_MAX * 3) },
   /** cos outer, cos inner, range, decay. */
-  uHiCone: { value: vectors(() => new THREE.Vector4()) },
+  uHiCone: { value: new Float32Array(HIGHLIGHT_MAX * 4) },
 };
 
 const FLICKER_PARS = /* glsl */ `

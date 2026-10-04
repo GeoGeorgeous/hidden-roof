@@ -33,6 +33,7 @@ const SPOT_SHADOWS = 2;
 export const SCATTER_MAX = 8;
 /** Highlights and scatter fade out over this many meters before the next lamp takes their place. */
 const FADE = 2;
+const hv = new THREE.Vector3();
 
 /** A light the volumetric pass scatters. */
 export interface ScatterLight {
@@ -161,10 +162,10 @@ export class Lighting {
     list.forEach(({ a, w }, i) => {
       const spec = LIGHTS[a.kind];
       const angle = Math.min(spec.spread, 1.55);
-      u.uHiPos.value[i].copy(a.pos).applyMatrix4(view);
-      u.uHiDir.value[i].copy(a.dir).transformDirection(view).negate();
-      u.uHiColor.value[i].set(a.color.r, a.color.g, a.color.b).multiplyScalar(strength(a, time) * w);
-      u.uHiCone.value[i].set(Math.cos(angle), Math.cos(angle * (1 - spec.softness)), spec.range, ATMOS.lightDecay);
+      hv.copy(a.pos).applyMatrix4(view).toArray(u.uHiPos.value, i * 3);
+      hv.copy(a.dir).transformDirection(view).negate().toArray(u.uHiDir.value, i * 3);
+      hv.set(a.color.r, a.color.g, a.color.b).multiplyScalar(strength(a, time) * w).toArray(u.uHiColor.value, i * 3);
+      u.uHiCone.value.set([Math.cos(angle), Math.cos(angle * (1 - spec.softness)), spec.range, ATMOS.lightDecay], i * 4);
     });
   }
 
