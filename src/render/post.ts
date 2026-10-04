@@ -15,6 +15,8 @@ import { Volumetrics } from './volumetrics';
 // Steps 1 and 3 used to go straight to the screen; the target + final pass
 // cost one extra fullscreen pass at internal resolution.
 
+const bufferSize = new THREE.Vector2();
+
 const gradeShader = /* glsl */ `
 uniform sampler2D tColor;
 uniform sampler2D tDepth;
@@ -86,7 +88,7 @@ export class PostPipeline {
   }
 
   private resize() {
-    const s = this.renderer.getDrawingBufferSize(new THREE.Vector2());
+    const s = this.renderer.getDrawingBufferSize(bufferSize);
     if (s.equals(this.size) && this.volDownscale === VOLUMETRICS.downscale) return;
     this.size.copy(s);
     this.volDownscale = VOLUMETRICS.downscale;

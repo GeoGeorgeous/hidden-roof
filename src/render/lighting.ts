@@ -33,7 +33,11 @@ const SPOT_SHADOWS = 2;
 export const SCATTER_MAX = 8;
 /** Highlights and scatter fade out over this many meters before the next lamp takes their place. */
 const FADE = 2;
+/** Lamps whose light ends farther than this from the camera get no real light, highlight or scatter. */
+const NEAR = 40;
 const hv = new THREE.Vector3();
+const center = new THREE.Vector3();
+const moonDir = new THREE.Vector3();
 
 /** A light the volumetric pass scatters. */
 export interface ScatterLight {
@@ -56,6 +60,8 @@ export class Lighting {
   readonly spots: THREE.SpotLight[] = [];
   readonly scatter: ScatterLight[] = Array.from({ length: SCATTER_MAX }, () => ({ pos: new THREE.Vector3(), dir: new THREE.Vector3(0, -1, 0), color: new THREE.Color(0, 0, 0), range: 1, angle: 1, penumbra: 0, shadow: null }));
   private anchors: LightAnchor[] = [];
+  private near: Near[] = [];
+  private nearPool: Near[] = [];
   /** How many real lights are lit right now (for the debug panel). */
   active = 0;
   private shadowState = '';
@@ -102,19 +108,15 @@ export class Lighting {
       Object.assign(s, { left: -r, right: r, top: r, bottom: -r, near: 1, far: 160 });
       s.updateProjectionMatrix();
     }
-    const c = new THREE.Vector3(Math.round(cam.x), Math.round(cam.y), Math.round(cam.z));
+    const c = center.set(Math.round(cam.x), Math.round(cam.y), Math.round(cam.z));
     this.moon.target.position.copy(c);
-    this.moon.position.copy(c).addScaledVector(new THREE.Vector3(...ATMOS.moonDir).normalize(), 70);
+    this.moon.position.copy(c).addScaledVector(moonDir.fromArray(ATMOS.moonDir).normalize(), 70);
 
     for (const a of this.anchors) {
       syncAnchor(a); // live LIGHTS offset / aim / color
       if (a.track) aimTracking(a, time, cam);
     }
-    const near: Near[] = this.anchors
-      .filter((a) => a.level > 0.001)
-      .map((a) => ({ a, d: a.pos.distanceTo(cam) - LIGHTS[a.kind].range }))
-      .filter((x) => x.d < 40)
-      .sort((x, y) => x.d - y.d);
+    const near = this.nearLamps(cam);
     const real = baked ? near.filter((x) => x.a.track).slice(0, MOVING_POOL) : near.slice(0, Math.min(SPOT_POOL, ATMOS.lightBudget));
     this.assign(real.map((x) => x.a), time);
     this.active = real.length;
@@ -125,6 +127,26 @@ export class Lighting {
       bakeUniforms.uHiCount.value = 0;
       this.scatterSpots();
     }
+  }
+
+  /**
+   * Lit lamps whose light reaches within NEAR m of the camera, nearest first.
+   * The list and its entries are reused every frame (it runs for every lamp).
+   */
+  private nearLamps(cam: THREE.Vector3) {
+    const near = this.near;
+    let n = 0;
+    for (const a of this.anchors) {
+      if (a.level <= 0.001) continue;
+      const d = a.pos.distanceTo(cam) - LIGHTS[a.kind].range;
+      if (d >= NEAR) continue;
+      const e = (this.nearPool[n] ??= { a, d });
+      e.a = a;
+      e.d = d;
+      near[n++] = e;
+    }
+    near.length = n;
+    return near.sort(byDistance);
   }
 
   /** Real lights for these lamps; with spot shadows on, shadow slots go to shadow-casting kinds first. */
@@ -230,6 +252,9 @@ export class Lighting {
 function strength(a: LightAnchor, time: number) {
   return LIGHTS[a.kind].intensity * ATMOS.practical * a.level * (a.flicker ? neonFlicker(time, a.flicker) : 1);
 }
+
+/** -1 / 1 rather than x.d - y.d: a comparator returning a fraction allocates on every comparison. */
+const byDistance = (x: Near, y: Near) => (x.d < y.d ? -1 : x.d > y.d ? 1 : 0);
 
 /** The first `k` of a nearest-first list, each fading out as the next one closes in, so swaps never pop. */
 function faded(list: Near[], k: number) {

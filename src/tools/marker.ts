@@ -5,6 +5,7 @@ import type { Input } from '../input';
 import { rgbOf } from '../inventory/items';
 import { glove, segment, sleeve } from '../spray/hands';
 import type { PaintSystem } from '../painting';
+import { setHex } from '../hex-color';
 
 // Marker: draws a thin solid line straight into the surface texture under the
 // crosshair, at close range, in the current color. No particles, no pressure.
@@ -42,7 +43,7 @@ export class MarkerTool {
 
   update(input: Input, camera: THREE.Camera, eye: THREE.Vector3, active: boolean, color: PaintColor) {
     this.model.visible = active;
-    this.bandMat.color.set(COLORS[color]);
+    setHex(this.bandMat.color, COLORS[color]);
     const drawing = active && input.lmb && input.locked;
     this.pose(camera, drawing);
     if (!drawing) {

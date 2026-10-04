@@ -6,6 +6,7 @@ import type { Ladder } from '../player';
 import { addBox, addCylinder, boxSurface, cylinderSurface, SurfaceBuilder, type Axis, type BoxFace, type SurfaceGeometry } from '../surfaces';
 import { M, type BoxPiece, type CylPiece, type Mat, type Piece, type Swing, type V3 } from '../kit/pieces';
 import { LIGHTS, type LightKind } from '../config';
+import { setHex } from '../hex-color';
 import type { Track } from '../render/cctv-track';
 
 // Turns a prop's pieces into world-space geometry, colliders and climb volumes.
@@ -47,14 +48,14 @@ export interface LightAnchor {
   level: number;
 }
 
-/** Apply LIGHTS[kind] (offset, aim, color) to an anchor. */
+/** Apply LIGHTS[kind] (offset, aim, color) to an anchor. Runs for every light every frame, so it allocates nothing. */
 export function syncAnchor(a: LightAnchor) {
   const s = LIGHTS[a.kind];
   const m = a.mirrorX ? -1 : 1;
   const d = a.aim ?? s.dir;
-  a.pos.copy(a.base).add(rotate([s.offset[0] * m, s.offset[1], s.offset[2]], a.rot));
-  a.dir.copy(rotate([d[0] * m, d[1], d[2]], a.rot)).normalize();
-  a.color.set(s.color);
+  turn(a.pos, s.offset[0] * m, s.offset[1], s.offset[2], a.rot).add(a.base);
+  turn(a.dir, d[0] * m, d[1], d[2], a.rot).normalize();
+  setHex(a.color, s.color);
 }
 
 /**
@@ -98,7 +99,12 @@ const COS = [1, 0, -1, 0];
 const SIN = [0, 1, 0, -1];
 
 export function rotate(v: V3, r: number) {
-  return new THREE.Vector3(v[0] * COS[r] + v[2] * SIN[r], v[1], -v[0] * SIN[r] + v[2] * COS[r]);
+  return turn(new THREE.Vector3(), v[0], v[1], v[2], r);
+}
+
+/** (x, y, z) turned `r` quarter turns around Y, into `out`. */
+function turn(out: THREE.Vector3, x: number, y: number, z: number, r: number) {
+  return out.set(x * COS[r] + z * SIN[r], y, -x * SIN[r] + z * COS[r]);
 }
 
 const FACE_DIR: Record<BoxFace, V3> = { '+x': [1, 0, 0], '-x': [-1, 0, 0], '+y': [0, 1, 0], '-y': [0, -1, 0], '+z': [0, 0, 1], '-z': [0, 0, -1] };

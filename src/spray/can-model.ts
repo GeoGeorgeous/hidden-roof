@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { CAN_SIZES, CAPS, COLORS, VIEWMODEL, type CanSize, type CapId, type PaintColor } from '../config';
 import { Hand } from './hands';
+import { setHex } from '../hex-color';
 
 // First-person spray can in a gloved hand (drawn in the view-model pass).
 // group follows the camera -> sway (look lag, walk bob) -> body (rest pose,
@@ -9,6 +10,8 @@ import { Hand } from './hands';
 const REST = new THREE.Vector3(0.2, -0.22, -0.5);
 const CAP_TOP = 0.124;
 const PRESS_DEPTH = 0.004;
+/** Nozzle size per cap (it hints at the cap). */
+const NOZZLE: Record<CapId, number> = { skinny: 0.7, standard: 1, fat: 1.7, spray: 2.2 };
 
 export class CanModel {
   readonly group = new THREE.Group();
@@ -42,14 +45,13 @@ export class CanModel {
   }
 
   setCan(color: PaintColor, size: CanSize, cap: CapId) {
-    this.labelMat.color.set(COLORS[color]);
+    setHex(this.labelMat.color, COLORS[color]);
     const s = CAN_SIZES[size].scale;
     this.can.scale.set(1, s, 1);
     this.capLift = CAP_TOP * (s - 1);
-    // Nozzle shape hints at the cap.
-    const n = { skinny: 0.7, standard: 1, fat: 1.7, spray: 2.2 }[cap];
+    const n = NOZZLE[cap];
     this.nozzle.scale.set(n, n, 1);
-    this.capMat.color.set(CAPS[cap].color);
+    setHex(this.capMat.color, CAPS[cap].color);
   }
 
   /** pressing: trigger held (finger down); flowing: paint is coming out; shake: 0..1 progress or -1. */

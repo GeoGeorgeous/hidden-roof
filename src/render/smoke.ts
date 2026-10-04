@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { ATMOS, SMOKE } from '../config';
 import type { Emitter } from '../level/build-prop';
+import { setHex } from '../hex-color';
 
 // Smoke / warm air from vents, exhausts and AC units: one Points draw for the
 // whole level. Each particle's position is a function of time and its seed
@@ -9,6 +10,8 @@ import type { Emitter } from '../level/build-prop';
 // SMOKE.perEmitter is just the draw range. Rebuilt when the level changes.
 
 const MAX_PER = 48;
+/** SMOKE.color, before lighting. */
+const color = new THREE.Color();
 
 const material = new THREE.ShaderMaterial({
   transparent: true,
@@ -116,11 +119,11 @@ export class Smoke {
     u.uLife.value = Math.max(0.5, S.life);
     u.uRise.value = S.rise;
     u.uDrift.value = S.drift;
-    u.uWind.value.set(...ATMOS.wind);
+    u.uWind.value.fromArray(ATMOS.wind);
     u.uStart.value = S.startSize;
     u.uEnd.value = S.endSize;
     u.uOpacity.value = S.opacity;
-    u.uColor.value.set(S.color).multiplyScalar(light);
+    u.uColor.value.copy(setHex(color, S.color)).multiplyScalar(light);
     u.uFogDensity.value = ATMOS.fogDensity;
   }
 }

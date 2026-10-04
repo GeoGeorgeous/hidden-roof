@@ -7,6 +7,7 @@ import { rgbOf } from '../inventory/items';
 import type { PaintSystem } from '../painting';
 import { CanModel } from './can-model';
 import { SprayParticles } from './particles';
+import { setHex } from '../hex-color';
 
 // Spraying: color, cap and can size come from the inventory. Paint never runs
 // out; pressure drains while spraying (slower for bigger cans) and is restored
@@ -78,7 +79,7 @@ export class SprayTool {
     camera.getWorldDirection(forward);
     right.set(1, 0, 0).applyQuaternion(camera.quaternion);
     up.crossVectors(right, forward);
-    display.set(COLORS[inv.color]);
+    setHex(display, COLORS[inv.color]);
     this.particles.emit({ count, eye, nozzle: this.model.nozzleWorld(nozzle), forward, right, up, cap, flow: this.flow, rgb: rgbOf(inv.color), display });
   }
 

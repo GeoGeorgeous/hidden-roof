@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { ATMOS } from '../config';
 import { HEIGHT_GLSL, type Heightmap } from './heightmap';
+import { setHex } from '../hex-color';
 
 // Rain: one LineSegments draw for all drops.
 // Positions are computed in the vertex shader from a seed + time; drops wrap in
@@ -59,9 +60,9 @@ export class Rain {
     u.uTime.value = time;
     u.uCam.value.copy(cam);
     u.uSpeed.value = ATMOS.rainSpeed;
-    u.uWind.value.set(...ATMOS.wind);
+    u.uWind.value.fromArray(ATMOS.wind);
     u.uFogDensity.value = ATMOS.fogDensity;
-    u.uColor.value.set(ATMOS.rainColor); // hex is sRGB; the uniform is linear (drawn into the HDR target)
+    setHex(u.uColor.value, ATMOS.rainColor); // hex is sRGB; the uniform is linear (drawn into the HDR target)
     u.uOpacity.value = ATMOS.rainOpacity;
   }
 

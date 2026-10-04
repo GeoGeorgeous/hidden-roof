@@ -36,6 +36,7 @@ import { fetchLevel } from './build/io';
 import { DebugPanel } from './debug/panel';
 import { live } from './debug/tuning';
 import { exitGameFullscreen } from './fullscreen';
+import { setHex } from './hex-color';
 
 // Settings first: they may change the pixel scale the renderer starts with,
 // and the paint detail the level is built with.
@@ -232,10 +233,10 @@ function frame(time: number) {
   lighting.update(eye, camera.matrixWorldInverse, time / 1000, lightning.flash);
   (sky.material as THREE.ShaderMaterial).uniforms.uFlash.value = lightning.flash * THUNDER.flashSky;
   playerLight.update(eye, !build.active);
-  viewFill.color.set(VIEWMODEL.fillSky);
-  viewFill.groundColor.set(VIEWMODEL.fillGround);
+  setHex(viewFill.color, VIEWMODEL.fillSky);
+  setHex(viewFill.groundColor, VIEWMODEL.fillGround);
   viewFill.intensity = VIEWMODEL.fill;
-  viewSun.color.set(VIEWMODEL.rimColor);
+  setHex(viewSun.color, VIEWMODEL.rimColor);
   viewSun.intensity = VIEWMODEL.rim;
   lightFx.update();
   if (!paused) rainTime += dt;

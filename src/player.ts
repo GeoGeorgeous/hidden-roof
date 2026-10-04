@@ -11,6 +11,9 @@ export interface Ladder {
   normal: THREE.Vector3;
 }
 
+const wish = new THREE.Vector3();
+const before = new THREE.Vector3();
+
 export class Player {
   readonly position = new THREE.Vector3(); // feet
   readonly velocity = new THREE.Vector3();
@@ -102,7 +105,7 @@ export class Player {
     const sin = Math.sin(this.yaw);
     const cos = Math.cos(this.yaw);
     // Forward is -Z at yaw 0.
-    const wish = new THREE.Vector3(-sin * fwd + cos * side, 0, -cos * fwd - sin * side);
+    wish.set(-sin * fwd + cos * side, 0, -cos * fwd - sin * side);
     if (wish.lengthSq() > 1) wish.normalize();
 
     if (this.fly) {
@@ -150,7 +153,7 @@ export class Player {
 
     const wasGround = this.onGround;
     const fallSpeed = -this.velocity.y;
-    const before = this.position.clone();
+    before.copy(this.position);
     this.onGround = false;
     // Substep to avoid tunneling through thin rails.
     const steps = Math.ceil((this.velocity.length() * dt) / 0.2) || 1;

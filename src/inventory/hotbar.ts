@@ -15,6 +15,8 @@ export class Hotbar {
   private toastEl: HTMLElement;
   private toastTime = 0;
   private version = -1;
+  /** What the pressure readout shows now (null before the first update). */
+  private shown: { can: boolean; low: boolean; pressure: number } | null = null;
 
   constructor() {
     this.root = document.createElement('div');
@@ -66,9 +68,13 @@ export class Hotbar {
       }
       this.rows.innerHTML = tool ? rows.map(([k, v, n]) => `<div><span>${k}</span>${v}<em>${n}</em></div>`).join('') : '<div class="dim">NO TOOL</div>';
     }
+    // The pressure readout is rewritten only when what it shows changed.
     const can = inv.tool === 'can';
-    this.psi.hidden = !can;
     const low = can && inv.pressure < PRESSURE.sputterThreshold;
+    const s = this.shown;
+    if (s && can === s.can && low === s.low && (!can || inv.pressure === s.pressure)) return;
+    this.shown = { can, low, pressure: inv.pressure };
+    this.psi.hidden = !can;
     this.alert.hidden = !low;
     if (can) {
       this.psiFill.style.width = `${inv.pressure * 100}%`;
