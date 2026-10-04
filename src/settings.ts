@@ -34,6 +34,17 @@ const CITY_DETAIL = {
 type CityDetail = keyof typeof CITY_DETAIL;
 const CITY_ORDER = Object.keys(CITY_DETAIL) as CityDetail[];
 
+// Performance cost of each choice for the settings page: 1 none, 2 minimal,
+// 3 medium, 4 high, 5 critical.
+/** Per-pixel work follows the pixel count: 1/1.5 draws 44% of 1/1's pixels, 1/2 25%, 1/3 11%. */
+const RES_COST: Record<number, number> = { 1: 4, 1.5: 3, 2: 3, 2.5: 2, 3: 2, 4: 2 };
+/** Raymarch work = pixels x steps: LOW 1/16 res x 12, MEDIUM 1/4 x 16 (5x LOW), HIGH full x 24 (30x LOW). */
+const VOL_COST: Record<VolPreset, number> = { off: 1, low: 2, medium: 4, high: 5 };
+/** Only stamping and uploading paint scale with it (texels per dot grow with the square), never drawing. */
+const PAINT_COST: Record<PaintDetail, number> = { low: 1, medium: 1, high: 2, ultra: 2 };
+/** City area drawn grows with the radius squared (HIGH about 3x LOW), plus clutter and line range. */
+const CITY_COST: Record<CityDetail, number> = { low: 2, medium: 2, high: 3 };
+
 interface Saved {
   pixelScale?: number;
   volumetrics?: VolPreset;
@@ -85,7 +96,8 @@ export class Settings {
       {
         kind: 'choice',
         label: 'RESOLUTION',
-        desc: 'Renders at a fraction of your screen and scales it up with crisp pixels. 1/1 is sharpest; 1/2 and up run much faster.',
+        desc: 'Renders at a fraction of your screen and scales it up with crisp pixels. Most of the work is per pixel: 1/2 draws a quarter of the pixels of 1/1.',
+        cost: () => RES_COST[RENDER.pixelScale] ?? 1,
         value: () => {
           const w = Math.round(window.innerWidth / RENDER.pixelScale);
           const h = Math.round(window.innerHeight / RENDER.pixelScale);
@@ -100,8 +112,8 @@ export class Settings {
       {
         kind: 'choice',
         label: 'VOLUMETRICS',
-        desc: 'Light shafts and lamp glow in the fog.',
-        note: 'The biggest cost on this page: a light pass through the fog every frame. Turn it down first if the game stutters.',
+        desc: 'Light shafts and lamp glow in the fog: a light pass through the fog every frame. HIGH runs it at full resolution, about 30x the work of LOW. Turn it down first if the game stutters.',
+        cost: () => VOL_COST[this.vol],
         value: () => this.vol.toUpperCase(),
         step: (d) => {
           this.vol = cycle(VOL_ORDER, this.vol, d);
@@ -113,7 +125,8 @@ export class Settings {
         kind: 'choice',
         label: 'PAINT DETAIL',
         desc: 'Size of one paint texel on walls. Applies when you resume.',
-        note: 'ULTRA is recommended: 1 cm texels keep marker lines and fades sharp. It costs memory only for surfaces you actually paint, not speed.',
+        note: 'ULTRA is recommended: 1 cm texels keep marker lines and fades sharp. It costs memory only for surfaces you actually paint, and a little CPU while painting; drawing the game is no slower.',
+        cost: () => PAINT_COST[this.detail],
         // Shown with the size of one paint texel.
         value: () => `${this.detail.toUpperCase()}  ${(100 / PAINT_DETAIL[this.detail]).toFixed(1)} CM`,
         step: (d) => {
@@ -124,20 +137,28 @@ export class Settings {
       {
         kind: 'choice',
         label: 'CITY DETAIL',
-        desc: 'How far the city reaches around the level, and how far rooftop clutter and thin lines show. Applies when you resume.',
+        desc: 'How far the city reaches around the level, and how far rooftop clutter and thin lines show. HIGH draws about 3x the city area of LOW. Applies when you resume.',
+        cost: () => CITY_COST[this.city],
         value: () => this.city.toUpperCase(),
         step: (d) => {
           this.city = cycle(CITY_ORDER, this.city, d);
           this.save();
         },
       },
-      toggle('FULLSCREEN', 'Go fullscreen when the game takes the mouse. Off: play in the browser window.', () => RENDER.fullscreen, (on) => {
-        RENDER.fullscreen = on;
-        if (!on) void exitGameFullscreen();
-      }),
-      toggle('RAIN', 'Rain, its sound, and lightning with thunder.', () => ATMOS.rain, (on) => (ATMOS.rain = on), 'Some performance cost while on: falling rain, raindrops pinging on metal and lightning flashes.'),
-      toggle('SMOKE', 'Smoke from exhaust pipes.', () => SMOKE.enabled, (on) => (SMOKE.enabled = on), 'Small performance cost: one particle batch for every exhaust in the level.'),
-      toggle('MOVING PARTS', 'CCTV cameras pan and follow you, AC fans spin. Off: they stay still.', () => RENDER.propMotion, (on) => (RENDER.propMotion = on), 'Almost no performance cost: the parts turn on the GPU, which does the same work either way.'),
+      toggle(
+        'FULLSCREEN',
+        'Go fullscreen when the game takes the mouse. Off: play in the browser window, which usually has fewer pixels to draw.',
+        () => RENDER.fullscreen,
+        (on) => {
+          RENDER.fullscreen = on;
+          if (!on) void exitGameFullscreen();
+        },
+        2,
+        1,
+      ),
+      toggle('RAIN', 'Rain, its sound, and lightning with thunder: a couple of thousand drops in one draw, raindrops pinging on metal, lightning flashes.', () => ATMOS.rain, (on) => (ATMOS.rain = on), 2, 1),
+      toggle('SMOKE', 'Smoke from exhaust pipes: one small particle batch for every exhaust in the level.', () => SMOKE.enabled, (on) => (SMOKE.enabled = on), 2, 1),
+      toggle('MOVING PARTS', 'CCTV cameras pan and follow you, AC fans spin. Off: they stay still. The GPU does the same work either way.', () => RENDER.propMotion, (on) => (RENDER.propMotion = on), 1, 1),
     ];
   }
 
@@ -182,17 +203,23 @@ function nearest(list: number[], v: number) {
   return list.reduce((a, b) => (Math.abs(b - v) < Math.abs(a - v) ? b : a));
 }
 
-/** A setting row: a choice stepped through with clicks, or a slider. `note` is a callout (performance etc). */
+/**
+ * A setting row: a choice stepped through with clicks, or a slider. `note` is
+ * a callout (recommendations), `cost` the performance cost of its current
+ * value: 1 none, 2 minimal, 3 medium, 4 high, 5 critical.
+ */
+type RowBase = { label: string; desc: string; note?: string; cost?: () => number };
 export type SettingRow =
-  | { kind: 'choice'; label: string; desc: string; note?: string; value: () => string; step: (d: number) => void }
-  | { kind: 'range'; label: string; desc: string; note?: string; min: number; max: number; step: number; get: () => number; set: (v: number) => void; format: (v: number) => string };
+  | (RowBase & { kind: 'choice'; value: () => string; step: (d: number) => void })
+  | (RowBase & { kind: 'range'; min: number; max: number; step: number; get: () => number; set: (v: number) => void; format: (v: number) => string });
 export interface SettingSection {
   title: string;
   rows: SettingRow[];
 }
 
-function toggle(label: string, desc: string, get: () => boolean, set: (on: boolean) => void, note?: string): SettingRow {
-  return { kind: 'choice', label, desc, note, value: () => (get() ? 'ON' : 'OFF'), step: () => set(!get()) };
+/** An ON / OFF choice; `cost` while on, `offCost` while off (performance cost, see SettingRow). */
+function toggle(label: string, desc: string, get: () => boolean, set: (on: boolean) => void, cost?: number, offCost = 1): SettingRow {
+  return { kind: 'choice', label, desc, cost: cost === undefined ? undefined : () => (get() ? cost : offCost), value: () => (get() ? 'ON' : 'OFF'), step: () => set(!get()) };
 }
 
 function gameplayRows(): SettingRow[] {

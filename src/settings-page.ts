@@ -3,7 +3,7 @@ import type { SettingRow, SettingSection } from './settings';
 // The settings page of the pause menu: one tab per section (gameplay,
 // graphics, sound), each row a choice (click for the next value, right-click
 // for the previous) or a slider, with a short description and, for some, a
-// callout (performance, recommendations). Values are read again whenever the
+// callout (recommendations) and a performance cost in dots (1 to 5, green to red). Values are read again whenever the
 // page opens, since the debug panel edits the same settings.
 
 export class SettingsPage {
@@ -53,7 +53,7 @@ export class SettingsPage {
       b.addEventListener('mousedown', (e) => {
         e.preventDefault();
         row.step(e.button === 2 ? -1 : 1);
-        sync();
+        this.sync();
       });
       line.append(b);
       this.syncs.push(sync);
@@ -66,16 +66,31 @@ export class SettingsPage {
       };
       input.addEventListener('input', () => {
         row.set(+input.value);
-        out.textContent = row.format(row.get());
+        this.sync();
       });
       line.append(input, out);
       this.syncs.push(sync);
     }
     el.append(line, Object.assign(div('desc'), { textContent: row.desc }));
+    if (row.cost) {
+      // PERFORMANCE COST •••··: the current value's cost in filled dots (1 none .. 5 critical; green, orange, red), dim ones up to 5.
+      const cost = div('cost');
+      const costOf = row.cost;
+      const sync = () => {
+        const n = costOf();
+        cost.className = `cost ${n >= 5 ? 'high' : n >= 3 ? 'mid' : 'low'}`;
+        cost.title = COST_NAMES[n - 1];
+        cost.innerHTML = `PERFORMANCE COST <b>${'•'.repeat(n)}</b><i>${'•'.repeat(5 - n)}</i>`;
+      };
+      this.syncs.push(sync);
+      el.append(cost);
+    }
     if (row.note) el.append(Object.assign(div('note'), { textContent: row.note }));
     return el;
   }
 }
+
+const COST_NAMES = ['No cost', 'Minimal cost', 'Medium cost', 'High cost', 'Critical cost'];
 
 function div(className: string) {
   return Object.assign(document.createElement('div'), { className });

@@ -286,7 +286,37 @@ canvas {
   color: var(--dim);
   letter-spacing: 0.04em;
 }
-/* Callout: performance and recommendations. */
+/* Performance cost: PERFORMANCE COST •••··, filled dots green / orange / red by cost, the rest dim. */
+.settings-page .cost {
+  display: flex;
+  align-items: center;
+  margin-top: 4px;
+  letter-spacing: 0.08em;
+}
+.settings-page .cost b,
+.settings-page .cost i {
+  font-size: 20px;
+  line-height: 14px;
+  letter-spacing: 0.05em;
+}
+.settings-page .cost b {
+  font-weight: normal;
+  margin-left: 8px;
+}
+.settings-page .cost.low b {
+  color: #4cc46a;
+}
+.settings-page .cost.mid b {
+  color: #f0952e;
+}
+.settings-page .cost.high b {
+  color: var(--alert);
+}
+.settings-page .cost i {
+  font-style: normal;
+  color: rgba(235, 229, 214, 0.25);
+}
+/* Callout: recommendations. */
 .settings-page .note {
   margin-top: 6px;
   padding: 4px 8px;
