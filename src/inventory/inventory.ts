@@ -10,16 +10,14 @@ export const SLOTS: Tool[] = ['can', 'marker', 'ladder', 'roller', 'sponge'];
 
 export class Inventory {
   selected = 0;
-  hasMarker = false;
-  hasLadder = false;
-  hasRoller = false;
-  hasSponge = false;
   colors: PaintColor[] = [];
   caps: CapId[] = [];
   /** Can pressure 0..1: drains while spraying, restored by shaking. */
   pressure = 1;
   /** Bumped on every change so the HUD can skip redundant DOM updates. */
   version = 0;
+  /** Tools found so far (the can is always there). */
+  private found = new Set<Tool>();
   private colorIndex = 0;
   private capIndex = 0;
 
@@ -30,10 +28,7 @@ export class Inventory {
   /** Starting kit: the can, black, standard cap, none of the other tools. */
   reset() {
     this.selected = 0;
-    this.hasMarker = false;
-    this.hasLadder = false;
-    this.hasRoller = false;
-    this.hasSponge = false;
+    this.found.clear();
     this.colors = ['black'];
     this.caps = ['standard'];
     this.pressure = 1;
@@ -58,7 +53,7 @@ export class Inventory {
 
   /** Has this tool been found? (The can is always there.) */
   has(t: Tool) {
-    return t === 'can' || (t === 'marker' && this.hasMarker) || (t === 'ladder' && this.hasLadder) || (t === 'roller' && this.hasRoller) || (t === 'sponge' && this.hasSponge);
+    return t === 'can' || this.found.has(t);
   }
 
   select(i: number) {
@@ -94,30 +89,10 @@ export class Inventory {
     return true;
   }
 
-  giveMarker() {
-    if (this.hasMarker) return false;
-    this.hasMarker = true;
-    this.version++;
-    return true;
-  }
-
-  giveLadder() {
-    if (this.hasLadder) return false;
-    this.hasLadder = true;
-    this.version++;
-    return true;
-  }
-
-  giveRoller() {
-    if (this.hasRoller) return false;
-    this.hasRoller = true;
-    this.version++;
-    return true;
-  }
-
-  giveSponge() {
-    if (this.hasSponge) return false;
-    this.hasSponge = true;
+  /** A tool found (a pickup); false if you already have it. */
+  give(t: Tool) {
+    if (this.has(t)) return false;
+    this.found.add(t);
     this.version++;
     return true;
   }

@@ -1,4 +1,5 @@
 import { CAP_ORDER, CAPS, COLOR_ORDER, COLORS, type CapId, type PaintColor } from '../config';
+import { SLOTS, type Tool } from './inventory';
 
 // Pickup kinds as stored in level JSON:
 //   "color:red"     unlock a paint color (can, marker, roller)
@@ -6,27 +7,22 @@ import { CAP_ORDER, CAPS, COLOR_ORDER, COLORS, type CapId, type PaintColor } fro
 //   "marker"        the marker (slot 2)
 //   "ladder"        the stepladder (slot 3)
 //   "roller"        the paint roller (slot 4)
-//   "sponge"         the sponge (slot 5)
+//   "sponge"        the sponge (slot 5)
+// (A tool's pickup kind is its name in SLOTS.)
 
 export type PickupKind = string;
 
-export type PickupContent = { color: PaintColor } | { cap: CapId } | { marker: true } | { ladder: true } | { roller: true } | { sponge: true };
+export type PickupContent = { color: PaintColor } | { cap: CapId } | { tool: Tool };
 
-export const PICKUP_KINDS: PickupKind[] = [
-  ...COLOR_ORDER.filter((c) => c !== 'black').map((c) => `color:${c}`),
-  ...CAP_ORDER.map((c) => `cap:${c}`),
-  'marker',
-  'ladder',
-  'roller',
-  'sponge',
-];
+/** Tools you find as pickups (the can you always have), and what a pickup calls them. */
+const FOUND_TOOLS: Tool[] = SLOTS.filter((t) => t !== 'can');
+const TOOL_LABEL: Record<Tool, string> = { can: 'spray can', marker: 'marker', ladder: 'stepladder', roller: 'paint roller', sponge: 'sponge' };
+
+export const PICKUP_KINDS: PickupKind[] = [...COLOR_ORDER.filter((c) => c !== 'black').map((c) => `color:${c}`), ...CAP_ORDER.map((c) => `cap:${c}`), ...FOUND_TOOLS];
 
 export function parsePickup(kind: PickupKind): PickupContent | null {
   const [k, a] = kind.split(':');
-  if (k === 'marker') return { marker: true };
-  if (k === 'ladder') return { ladder: true };
-  if (k === 'roller') return { roller: true };
-  if (k === 'sponge') return { sponge: true };
+  if (FOUND_TOOLS.includes(k as Tool) && a === undefined) return { tool: k as Tool };
   if (k === 'color' && COLOR_ORDER.includes(a as PaintColor)) return { color: a as PaintColor };
   if (k === 'cap' && a in CAPS) return { cap: a as CapId };
   return null;
@@ -37,10 +33,7 @@ export function pickupLabel(kind: PickupKind) {
   if (!c) return kind;
   if ('color' in c) return `${c.color} paint`;
   if ('cap' in c) return `${CAPS[c.cap].name.toLowerCase()} cap`;
-  if ('ladder' in c) return 'stepladder';
-  if ('roller' in c) return 'paint roller';
-  if ('sponge' in c) return 'sponge';
-  return 'marker';
+  return TOOL_LABEL[c.tool];
 }
 
 /** Hex color to sRGB 0..1 (what paint textures store). */
