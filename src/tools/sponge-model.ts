@@ -3,6 +3,7 @@ import { HOLD, SPONGE } from '../config';
 import { inkify } from '../render/ink/tone';
 import { glove, segment, sleeve } from '../spray/hands';
 import { spongeShape } from './sponge-shape';
+import { applyHold } from './hold';
 
 // First-person view of the sponge in hand, held like the can: the gloved hand
 // behind it with the fingers over its top and the thumb under it, scouring pad
@@ -67,8 +68,6 @@ export class SpongeModel {
     const r = SPONGE.scrubSize * this.push;
     // Held at HOLD.sponge; pushed to the wall and scrubbing in circles while cleaning.
     const h = HOLD.sponge;
-    this.body.position.set(h.x * h.distance + Math.cos(this.scrubT) * r, h.y * h.distance + Math.sin(this.scrubT) * r, -h.distance - this.push * 0.08);
-    this.body.rotation.set(h.pitch, h.yaw, h.roll);
-    this.body.scale.setScalar(h.scale);
+    applyHold(this.body, h, Math.cos(this.scrubT) * r, Math.sin(this.scrubT) * r, -this.push * 0.08);
   }
 }

@@ -8,6 +8,7 @@ import { glove, segment, sleeve } from '../spray/hands';
 import type { PaintSystem } from '../painting';
 import { StrokeSweep } from './stroke';
 import { setHex } from '../hex-color';
+import { applyHold } from './hold';
 
 // Marker: a pump marker with a hard square nib. It draws a solid line straight
 // into the surface texture under the crosshair, at close range, in the current
@@ -91,9 +92,7 @@ export class MarkerTool {
     // Held like a pen at HOLD.marker; pushed forward (and a little up) while drawing.
     const h = HOLD.marker;
     const d = h.distance;
-    this.tipModel.position.set(h.x * d, (h.y + (drawing ? 0.053 : 0)) * d, -d - (drawing ? 0.04 : 0));
-    this.tipModel.rotation.set(h.pitch, h.yaw, h.roll);
-    this.tipModel.scale.setScalar(h.scale);
+    applyHold(this.tipModel, h, 0, drawing ? 0.053 * d : 0, drawing ? -0.04 : 0);
   }
 }
 

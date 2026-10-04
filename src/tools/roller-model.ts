@@ -3,6 +3,7 @@ import { COLORS, HOLD, ROLLER, type PaintColor } from '../config';
 import { inkify } from '../render/ink/tone';
 import { setHex } from '../hex-color';
 import { glove, segment, sleeve } from '../spray/hands';
+import { applyHold } from './hold';
 
 // First-person view of the paint roller in hand: a wide graffiti roller, its
 // cover soaked in the current paint color (keeps its color, like the can's
@@ -75,9 +76,7 @@ export class RollerModel {
     // Held at HOLD.roller; pushed out to the wall while rolling.
     this.push += ((pressing ? 1 : 0) - this.push) * Math.min(1, dt * 14);
     const h = HOLD.roller;
-    this.body.position.set(h.x * h.distance, h.y * h.distance, -h.distance - this.push * 0.06);
-    this.body.rotation.set(h.pitch, h.yaw, h.roll);
-    this.body.scale.setScalar(h.scale);
+    applyHold(this.body, h, 0, 0, -this.push * 0.06);
   }
 
   /** A point just right of the roller head, for the color tag. */

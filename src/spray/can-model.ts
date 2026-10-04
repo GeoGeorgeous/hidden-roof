@@ -3,6 +3,7 @@ import { CAPS, COLORS, HOLD, VIEWMODEL, type CapId, type PaintColor } from '../c
 import { Hand } from './hands';
 import { setHex } from '../hex-color';
 import { inkify } from '../render/ink/tone';
+import { applyHold } from '../tools/hold';
 
 // First-person spray can in a gloved hand (drawn in the view-model pass).
 // group follows the camera -> sway (look lag, walk bob) -> body (rest pose,
@@ -65,9 +66,9 @@ export class CanModel {
     const j = flowing ? (Math.random() - 0.5) * 0.0015 : 0;
     // Held at HOLD.can, plus shaking, recoil and jitter while spraying.
     const h = HOLD.can;
-    this.body.position.set(h.x * h.distance + j, h.y * h.distance + sh * 0.06 + j, -h.distance + this.recoil * 0.006);
-    this.body.rotation.set(h.pitch + sh * 0.35, h.yaw, h.roll + sh * 0.15);
-    this.body.scale.setScalar(h.scale);
+    applyHold(this.body, h, j, sh * 0.06 + j, this.recoil * 0.006);
+    this.body.rotation.x += sh * 0.35;
+    this.body.rotation.z += sh * 0.15;
 
     const top = this.capLift - this.press * PRESS_DEPTH;
     this.cap.position.y = 0.117 + top;

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { HOLD } from '../config';
 import { inkify } from '../render/ink/tone';
 import { glove, segment, sleeve } from '../spray/hands';
+import { applyHold } from './hold';
 
 // First-person view of the stepladder in hand: the folded A-frame (like the
 // pickup) at the bottom right, both frames showing: the front one with its
@@ -56,8 +57,6 @@ export class LadderModel {
     this.group.quaternion.copy(camera.quaternion);
     // Held at HOLD.ladder (turned so both frames show).
     const h = HOLD.ladder;
-    this.body.position.set(h.x * h.distance, h.y * h.distance, -h.distance);
-    this.body.rotation.set(h.pitch, h.yaw, h.roll);
-    this.body.scale.setScalar(h.scale);
+    applyHold(this.body, h);
   }
 }
