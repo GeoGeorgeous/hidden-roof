@@ -282,7 +282,7 @@ export function sections(): Section[] {
         ...v3('wind', ['ATMOS', 'wind'], -5, 5, 0.1),
         r('fade into paper (1/m)', ['ATMOS', 'fogDensity'], 0, 0.03, 0.0005),
         r('cloud base', ['ATMOS', 'cloudBase'], 5, 80, 1),
-        r('cloud fade', ['ATMOS', 'cloudFade'], 2, 60, 1),
+        r('cloud fade', ['ATMOS', 'cloudFade'], 2, 120, 1),
         r('wetness', ['ATMOS', 'wetness'], 0, 1, 0.01),
         { kind: 'heading', label: 'LIGHT' },
         t('moon shadows', ['ATMOS', 'shadows']),

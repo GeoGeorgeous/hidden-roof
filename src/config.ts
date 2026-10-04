@@ -18,10 +18,10 @@ export const RENDER = {
 /** Rainy night. Colors are hex; everything else is live-tunable in the debug panel. */
 export const ATMOS = {
   /** How fast the drawing fades into paper with distance (1/m). */
-  fogDensity: 0.004,
+  fogDensity: 0.003,
   /** Low clouds: everything above this height (relative to the level) fades into them. */
-  cloudBase: 35,
-  cloudFade: 40,
+  cloudBase: 45,
+  cloudFade: 50,
   ambientSky: '#8a8f99',
   ambientGround: '#000000',
   ambient: 1.1,
@@ -43,7 +43,7 @@ export const ATMOS = {
   emissiveBoost: 1.8,
   /** Wet look on up-facing surfaces: darker + specular. */
   wetness: 0.15,
-  rain: true,
+  rain: false,
   /** Fraction of the maximum drop count. */
   rainDensity: 0.09,
   rainSpeed: 8,
