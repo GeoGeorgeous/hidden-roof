@@ -39,7 +39,6 @@ export const ATMOS = {
   lightBudget: 8,
   /** Distance falloff exponent of light props: 2 = physical inverse square, lower reaches further. */
   lightDecay: 2,
-  windowGlow: 0.25,
   /** Brightness of emissive surfaces (lamps, neon). */
   emissiveBoost: 1.8,
   /** Wet look on up-facing surfaces: darker + specular. */
@@ -134,7 +133,6 @@ export const DAYLIGHT: Partial<typeof ATMOS> = {
   moon: 2.4,
   moonDir: [-0.45, 0.8, -0.3],
   practical: 0.4,
-  windowGlow: 0,
   emissiveBoost: 0.8,
   wetness: 0,
   rain: false,
@@ -439,18 +437,10 @@ export const PLAYER = {
   hardLanding: 6,
 };
 
-/** Background city windows (F3 → Rendering → Skyline). */
+/** Background city (skyline.ts). */
 export const SKYLINE = {
-  /** Meters covered by one window texture repeat (8 x 8 windows): bigger = bigger windows. */
-  windowScale: 32,
-  /** Fraction of windows that are lit. */
-  lit: 0.22,
-  /** 0 = whole floors lit or dark together (regular), 1 = every window on its own (random). */
-  randomness: 0.6,
-  /** Variation in window brightness (0 = all equal). */
-  brightnessVariation: 0.4,
-  /** Change to get a different pattern. */
-  seed: 1,
+  /** Fraction of punched facade windows that are lit (drawn as paper). */
+  litWindows: 0.08,
 };
 
 /** All gains are live (F3 → Sound). */

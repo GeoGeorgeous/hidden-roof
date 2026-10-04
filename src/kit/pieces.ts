@@ -1,6 +1,7 @@
 import type { TexName } from '../materials';
 import type { Axis, BoxFace } from '../surfaces';
 import type { LightKind } from '../config';
+import type { Facade } from '../render/ink/facade';
 
 // A prop is described as a list of pieces in prop-local space (origin at the
 // bottom, front facing -z). Visuals, colliders and climb volumes are all
@@ -18,6 +19,8 @@ export interface Mat {
   tile?: number;
   /** Neon flicker seed (1+): emissive dips with neonFlicker() (render/flicker.ts). */
   flicker?: number;
+  /** Facade bands drawn on its walls (render/ink/facade.ts FACADES). */
+  facade?: Facade;
 }
 
 /**

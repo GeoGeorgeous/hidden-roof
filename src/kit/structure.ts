@@ -1,5 +1,6 @@
 import type { PropDef } from './def';
-import { M, Parts, type Mat } from './pieces';
+import { GRAY, M, Parts, type Mat } from './pieces';
+import { FACADES } from '../render/ink/facade';
 
 // Modular architecture on the 2 m x 4 m grid.
 // Edge pieces (walls, parapets) are 1.7 m long and centered on a grid line;
@@ -10,7 +11,8 @@ export const WALL_H = 3.7; // + 0.3 floor slab = one 4 m module
 const T = 0.15; // half wall thickness
 const L = 0.85; // half length of edge pieces
 
-const FACADE: Mat = { tex: 'facadeA', tile: 8 };
+/** The tall facade under a building's top storey: ribbon windows (drawn in the shader). */
+const FACADE: Mat = { tex: 'flat', tint: GRAY[3], facade: FACADES.ribbon };
 
 /**
  * Building block: 2x2 m column from the roof down to the street. Top 4 m are

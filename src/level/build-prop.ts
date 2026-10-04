@@ -8,6 +8,7 @@ import { M, type BoxPiece, type CylPiece, type Mat, type Piece, type Swing, type
 import { LIGHTS, type LightKind } from '../config';
 import { setHex } from '../hex-color';
 import type { Track } from '../render/cctv-track';
+import type { Facade } from '../render/ink/facade';
 
 // Turns a prop's pieces into world-space geometry, colliders and climb volumes.
 // Rotations are multiples of 90°, so every box stays axis-aligned and its
@@ -139,6 +140,8 @@ export function decorMaterial(m: Mat) {
   return mat;
 }
 
+const NO_FACADE: Facade = [0, 0, 0, 0];
+
 /** Materials that ring when rain hits them. */
 const METALS = new Set<Mat>([M.steel, M.metal, M.galv, M.ac, M.rust]);
 
@@ -154,7 +157,7 @@ export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint =
     if (mat.alpha === undefined) out.occluders.push(...boxes);
   };
   const decor = (mat: Mat, geo: THREE.BufferGeometry, swing?: Swing) => {
-    tintGeometry(geo, mat.tint, mat.emissive, mat.flicker ?? 0);
+    tintGeometry(geo, mat.tint, mat.emissive, mat.flicker ?? 0, mat.facade);
     if (swing) {
       const local: V3 = swing.axis === 'x' ? [1, 0, 0] : swing.axis === 'z' ? [0, 0, 1] : [0, 1, 0];
       const w = rotate(local, r);
@@ -173,6 +176,7 @@ export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint =
     const c = new THREE.Color(mat.tint ?? '#ffffff');
     e.b.tint = [c.r, c.g, c.b];
     e.b.emissive = mat.emissive ?? 0;
+    e.b.facade = mat.facade ?? NO_FACADE;
     return e.b;
   };
   // Raindrop pings: one point per metal piece top, at most one per 1 m cell.

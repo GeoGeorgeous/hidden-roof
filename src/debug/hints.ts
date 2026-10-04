@@ -104,7 +104,6 @@ const HINTS: Record<string, string> = {
   'ATMOS.practical': 'Multiplier for all light props.',
   'ATMOS.lightBudget': 'With baking off: real lights handed to the nearest light props. Others only glow.',
   'ATMOS.emissiveBoost': 'Brightness of glowing surfaces: lamps, neon tubes.',
-  'ATMOS.windowGlow': 'Brightness of the lit windows on the background city.',
   'ATMOS.moonDir': 'Direction toward the moon (sun in daylight); sets shadow direction.',
   'ATMOS.lightDecay': 'Distance falloff of light props: 2 = physically correct, lower reaches farther. Rebakes the lamp light.',
   'ATMOS.moon': 'Moonlight strength.',
@@ -112,11 +111,6 @@ const HINTS: Record<string, string> = {
   'ATMOS.ambient': 'Ambient light strength (sky fill).',
   'ATMOS.ambientSky': 'Ambient light color from above.',
   'ATMOS.ambientGround': 'Ambient light color from below.',
-  'SKYLINE.windowScale': 'Size of the background city windows: meters covered by 8 x 8 windows. Bigger = bigger windows.',
-  'SKYLINE.lit': 'Fraction of background windows that are lit.',
-  'SKYLINE.randomness': '0 = whole floors lit or dark together (regular), 1 = every window on its own (random).',
-  'SKYLINE.brightnessVariation': 'How much lit windows vary in brightness.',
-  'SKYLINE.seed': 'Pick a different window pattern.',
   // Ink
   'INK.paper': 'Paper color: lit surfaces and the sky.',
   'INK.ink': 'Ink color: lines, hatching and solid black.',
@@ -137,6 +131,7 @@ const HINTS: Record<string, string> = {
   'INK.paintLight': 'Paint brightness from the light around it.',
   'INK.paintMin': 'Paint never gets darker than this, so it keeps its color in the dark.',
   'INK.paintHatch': 'Hatching drawn over paint in the dark, so it sits in the drawing.',
+  'SKYLINE.litWindows': 'Fraction of punched facade windows that are lit (drawn as paper).',
   // Volumetrics + grading
   'VOLUMETRICS.enabled': 'Light shafts and glowing fog (also in the pause menu).',
   'VOLUMETRICS.downscale': 'Resolution divisor of the volumetric pass. Higher = faster, softer.',

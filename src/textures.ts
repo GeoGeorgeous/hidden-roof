@@ -1,10 +1,8 @@
 import * as THREE from 'three';
-import { SKYLINE } from './config';
 import { lcg } from './lcg';
 
 // Procedural base textures: tiny canvases, nearest filtering, repeat wrapping.
-// Architecture is flat (clean, Mirror's Edge-like); only the far skyline has
-// detail (night facades with lit windows + a glow mask for them).
+// Architecture is flat; facades get their bands in the shader (render/ink/facade.ts).
 
 type Painter = (ctx: CanvasRenderingContext2D, w: number, h: number, rnd: () => number) => void;
 
@@ -29,71 +27,6 @@ function noise(ctx: CanvasRenderingContext2D, w: number, h: number, rnd: () => n
     for (let c = 0; c < 3; c++) img.data[i + c] = Math.max(0, Math.min(255, img.data[i + c] + n));
   }
   ctx.putImageData(img, 0, 0);
-}
-
-/** Night facade wall colors and how lit each variant is relative to SKYLINE.lit. */
-const FACADES = [
-  { wall: '#262931', lit: 1 },
-  { wall: '#2d2b2a', lit: 0.75 },
-  { wall: '#1f232b', lit: 1.25 },
-];
-const FACADE_PX = 32;
-
-/**
- * Paint a night facade (dark wall, 8 x 8 windows, some lit) and its glow mask
- * onto existing canvases. Lit windows follow SKYLINE: `randomness` mixes whole
- * lit/dark floors (0) with independent windows (1).
- */
-function paintFacade(i: number, base: HTMLCanvasElement, glow: HTMLCanvasElement) {
-  const { wall, lit } = FACADES[i];
-  const r = lcg(10 + i + SKYLINE.seed * 101);
-  const p = Math.min(1, SKYLINE.lit * lit);
-  const cells: { x: number; y: number; color: string | null; k: number }[] = [];
-  for (let y = 0; y < FACADE_PX; y += 4) {
-    const floorOn = r() < p;
-    for (let x = 0; x < FACADE_PX; x += 4) {
-      const own = r() < SKYLINE.randomness;
-      const on = own ? r() < p : floorOn;
-      const color = ['#ffc778', '#ffe1a8', '#bcd2ff', '#ffb86b'][Math.floor(r() * 4)];
-      cells.push({ x, y, color: on ? color : null, k: 1 - SKYLINE.brightnessVariation * r() });
-    }
-  }
-  const b = base.getContext('2d')!;
-  const g = glow.getContext('2d')!;
-  b.globalAlpha = g.globalAlpha = 1;
-  b.fillStyle = wall;
-  b.fillRect(0, 0, FACADE_PX, FACADE_PX);
-  g.fillStyle = '#000';
-  g.fillRect(0, 0, FACADE_PX, FACADE_PX);
-  for (const c of cells) {
-    b.fillStyle = '#101318';
-    b.fillRect(c.x + 1, c.y + 1, 2, 2);
-    if (!c.color) continue;
-    for (const ctx of [b, g]) {
-      ctx.globalAlpha = c.k;
-      ctx.fillStyle = c.color;
-      ctx.fillRect(c.x + 1, c.y + 1, 2, 2);
-      ctx.globalAlpha = 1;
-    }
-  }
-}
-
-function facade(i: number) {
-  const base = canvasTexture(FACADE_PX, FACADE_PX, 0, () => {});
-  const glow = canvasTexture(FACADE_PX, FACADE_PX, 0, () => {});
-  paintFacade(i, base.image as HTMLCanvasElement, glow.image as HTMLCanvasElement);
-  return { base, glow };
-}
-
-/** Redraw the facade textures after SKYLINE changed. */
-export function repaintFacades() {
-  const t = all();
-  (['facadeA', 'facadeB', 'facadeC'] as const).forEach((k, i) => {
-    const base = t.textures[k];
-    const glow = t.glows[k]!;
-    paintFacade(i, base.image as HTMLCanvasElement, glow.image as HTMLCanvasElement);
-    base.needsUpdate = glow.needsUpdate = true;
-  });
 }
 
 function build() {
@@ -134,13 +67,7 @@ function build() {
   chainlink.minFilter = THREE.NearestFilter;
   chainlink.generateMipmaps = false;
 
-  const a = facade(0);
-  const b = facade(1);
-  const c = facade(2);
-  return {
-    textures: { flat, panel, shutter, chainlink, facadeA: a.base, facadeB: b.base, facadeC: c.base },
-    glows: { facadeA: a.glow, facadeB: b.glow, facadeC: c.glow } as Partial<Record<string, THREE.Texture>>,
-  };
+  return { textures: { flat, panel, shutter, chainlink } };
 }
 
 let cache: ReturnType<typeof build> | null = null;
@@ -150,9 +77,4 @@ export type TexName = keyof ReturnType<typeof build>['textures'];
 
 export function textures() {
   return all().textures;
-}
-
-/** Emissive mask for a base texture (lit windows), if it has one. */
-export function glowFor(name: TexName): THREE.Texture | null {
-  return all().glows[name] ?? null;
 }

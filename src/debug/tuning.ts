@@ -86,8 +86,6 @@ export const live = {
   syncAtmosphere: () => {},
   /** Re-apply DAYLIGHT if build mode is showing it. */
   applyDaylight: () => {},
-  syncSkyline: () => {},
-  repaintSkyline: () => {},
   /** Debug: a lightning strike right now. */
   strikeLightning: () => {},
   /** Debug: a far siren right now. */
@@ -144,7 +142,7 @@ function daylightItems(): Item[] {
   const apply = () => live.applyDaylight();
   const ranges: Record<string, [number, number, number]> = {
     fogDensity: [0, 0.05, 0.001], cloudBase: [5, 400, 5], ambient: [0, 4, 0.05], moon: [0, 6, 0.05],
-    practical: [0, 4, 0.05], windowGlow: [0, 3, 0.05], emissiveBoost: [0, 6, 0.1], wetness: [0, 1, 0.01],
+    practical: [0, 4, 0.05], emissiveBoost: [0, 6, 0.1], wetness: [0, 1, 0.01],
   };
   return Object.entries(DAYLIGHT).flatMap(([k, v]): Item[] => {
     if (typeof v === 'string') return [c(k, ['DAYLIGHT', k], apply)];
@@ -288,14 +286,9 @@ export function sections(): Section[] {
         r('light props', ['ATMOS', 'practical'], 0, 4, 0.05),
         r('real light budget (bake off)', ['ATMOS', 'lightBudget'], 0, 8, 1),
         r('emissive boost', ['ATMOS', 'emissiveBoost'], 0, 6, 0.1),
-        r('window glow', ['ATMOS', 'windowGlow'], 0, 3, 0.05),
         ...v3('moon direction', ['ATMOS', 'moonDir'], -1, 1, 0.01, sync),
         { kind: 'heading', label: 'SKYLINE' },
-        r('window scale (m per 8 windows)', ['SKYLINE', 'windowScale'], 4, 128, 1, () => live.syncSkyline()),
-        r('lit windows', ['SKYLINE', 'lit'], 0, 1, 0.01, () => live.repaintSkyline()),
-        r('window randomness', ['SKYLINE', 'randomness'], 0, 1, 0.01, () => live.repaintSkyline()),
-        r('brightness variation', ['SKYLINE', 'brightnessVariation'], 0, 1, 0.01, () => live.repaintSkyline()),
-        r('pattern seed', ['SKYLINE', 'seed'], 1, 50, 1, () => live.repaintSkyline()),
+        r('lit windows', ['SKYLINE', 'litWindows'], 0, 1, 0.01),
       ],
     },
     {

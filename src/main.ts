@@ -23,8 +23,7 @@ import { Player } from './player';
 import { PaintSystem } from './painting';
 import { Level, type LevelData } from './level/level';
 import { makeSky } from './sky';
-import { buildSkyline, disposeSkyline, syncSkylineScale } from './skyline';
-import { repaintFacades } from './textures';
+import { buildSkyline, disposeSkyline } from './skyline';
 import { Tools } from './tools/tools';
 import { Inventory } from './inventory/inventory';
 import { Hotbar } from './inventory/hotbar';
@@ -120,8 +119,6 @@ pickups.onBlocked = (msg) => hotbar.toast(msg);
 const build = new BuildMode(scene, level, pickups, player);
 const debug = new DebugPanel();
 live.rebuildLights = () => lightFx.rebuild(level.lights);
-live.syncSkyline = () => syncSkylineScale();
-live.repaintSkyline = () => repaintFacades();
 // Props with lights (light props, billboards) are rebuilt for a new lens color or aim; their paint carries over.
 live.rebuildLightProps = () => level.rebuildLit();
 live.syncAtmosphere = () => atmosphere.syncColors();

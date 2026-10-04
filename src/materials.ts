@@ -1,10 +1,11 @@
 import * as THREE from 'three';
-import { ATMOS, BASE_TEXTURES, FANS, FLICKER, LIGHTMAP, PAINT } from './config';
+import { ATMOS, BASE_TEXTURES, FANS, FLICKER, LIGHTMAP, PAINT, SKYLINE } from './config';
 import { FLICKER_GLSL } from './render/flicker';
 import { TRACK_GLSL, trackUniforms } from './render/cctv-track';
 import { BAKE_FRAG, BAKE_FRAG_PARS, BAKE_VERT, BAKE_VERT_PARS, bakeUniforms } from './render/bake/glsl';
 import { INK_FRAG, INK_PARS, inkUniforms, syncInkUniforms } from './render/ink/tone';
-import { glowFor, textures, type TexName } from './textures';
+import { textures, type TexName } from './textures';
+import { FACADE_GLSL, type Facade } from './render/ink/facade';
 
 export type { TexName } from './textures';
 
@@ -14,7 +15,7 @@ export type { TexName } from './textures';
 //    hatching or solid ink; distance and low clouds fade it into paper
 //  - the paint atlas layered on top (single paint layer), the only color
 //  - wet look on up-facing surfaces (darker + specular)
-//  - per-vertex emissive (lamps, neon) and window glow masks (skyline)
+//  - per-vertex emissive (lamps, neon) and facade bands (render/ink/facade.ts)
 //  - low clouds: everything above the cloud base fades into paper
 //  - swinging decor (CCTV heads): rotated around a vertical pivot in the vertex
 //    shader from per-vertex swing attributes, so it stays in the level batches;
@@ -32,7 +33,8 @@ BLACK.needsUpdate = true;
 export const shared = {
   uWet: { value: ATMOS.wetness },
   uEmissiveBoost: { value: ATMOS.emissiveBoost },
-  uGlowStrength: { value: ATMOS.windowGlow },
+  /** Fraction of punched facade windows that are lit (paper). */
+  uLitWindows: { value: SKYLINE.litWindows },
   uCloudBase: { value: ATMOS.cloudBase },
   uCloudFade: { value: ATMOS.cloudFade },
   uAlphaSteps: { value: PAINT.alphaSteps },
@@ -61,7 +63,7 @@ export function syncSharedUniforms(time: number) {
   shared.uFlickerHum.value = FLICKER.neonHum;
   shared.uWet.value = ATMOS.wetness;
   shared.uEmissiveBoost.value = ATMOS.emissiveBoost;
-  shared.uGlowStrength.value = ATMOS.windowGlow;
+  shared.uLitWindows.value = SKYLINE.litWindows;
   shared.uCloudBase.value = ATMOS.cloudBase;
   shared.uCloudFade.value = ATMOS.cloudFade;
   shared.uAlphaSteps.value = PAINT.alphaSteps;
@@ -100,6 +102,7 @@ attribute vec2 baseUv;
 attribute vec3 tint;
 attribute float emissive;
 attribute float flicker;
+attribute vec4 facade;
 uniform float uBaseScale;
 ${SWING_GLSL}
 ${FLICKER_GLSL}
@@ -110,11 +113,13 @@ varying vec3 vTint;
 varying float vEmissiveV;
 varying vec3 vWorldPos;
 varying vec3 vWorldN;
+varying vec4 vFacade;
 `;
 const VERT_MAIN = /* glsl */ `
 vBaseUv = baseUv * uBaseScale;
 vPaintUv = uv;
 vTint = tint;
+vFacade = facade;
 vEmissiveV = flicker > 0.0 ? emissive * neonFlicker(uTime, flicker) : emissive;
 if (swingTrack.z > 1.5) vEmissiveV *= trackWeight(swingPivot, swingTrack.xy);
 vWorldPos = (modelMatrix * vec4(transformed, 1.0)).xyz;
@@ -124,18 +129,18 @@ ${BAKE_VERT}
 const FRAG_PARS = /* glsl */ `
 uniform sampler2D uBase;
 uniform sampler2D uPaint;
-uniform sampler2D uGlow;
 uniform float uAlphaTest;
 uniform float uAlphaSteps;
 uniform float uWet;
 uniform float uEmissiveBoost;
-uniform float uGlowStrength;
 uniform float uCloudBase;
 uniform float uCloudFade;
 uniform float uShowPaintable;
 uniform float uPaintable;
 ${BAKE_FRAG_PARS}
 ${INK_PARS}
+${FACADE_GLSL}
+varying vec4 vFacade;
 varying vec2 vBaseUv;
 varying vec2 vPaintUv;
 varying vec3 vTint;
@@ -149,7 +154,7 @@ vec4 baseTex = texture2D(uBase, vBaseUv);
 if (baseTex.a < uAlphaTest) discard;
 #endif
 float wet = smoothstep(0.5, 0.9, vWorldN.y) * uWet;
-vec3 baseCol = baseTex.rgb * vTint * mix(1.0, 0.55, wet);
+vec3 baseCol = mix(baseTex.rgb * vTint, vec3(0.002), facadeInk(vFacade, vWorldPos, vWorldN)) * mix(1.0, 0.55, wet);
 vec4 paintTex = texture2D(uPaint, vPaintUv);
 float pa = paintTex.a;
 if (uAlphaSteps > 0.0) pa = ceil(pa * uAlphaSteps - 0.15) / uAlphaSteps;
@@ -162,7 +167,6 @@ float specularStrength = wet * (1.0 - 0.6 * pa);
 `;
 const FRAG_EMISSIVE = /* glsl */ `
 totalEmissiveRadiance += diffuseColor.rgb * vEmissiveV * uEmissiveBoost;
-totalEmissiveRadiance += texture2D(uGlow, vBaseUv).rgb * uGlowStrength;
 `;
 
 export interface SurfaceMaterialOptions {
@@ -194,7 +198,6 @@ export class SurfaceMaterial extends THREE.MeshPhongMaterial {
     const own = {
       uBase: { value: base },
       uPaint: this.paintUniform,
-      uGlow: { value: glowFor(opts.tex) ?? BLACK },
       uBaseScale: this.baseScaleUniform,
       uAlphaTest: { value: opts.alphaTest ?? 0 },
       uPaintable: this.paintableUniform,
@@ -221,7 +224,7 @@ export class SurfaceMaterial extends THREE.MeshPhongMaterial {
 
   /** All surfaces share one program (alpha-tested ones a second, by their define); only uniforms differ. */
   customProgramCacheKey() {
-    return 'surface-ink-1';
+    return 'surface-ink-2';
   }
 
   /** Meters covered by one repeat of the base texture (live). */
@@ -250,8 +253,8 @@ export function makeSurfaceMaterial(opts: SurfaceMaterialOptions) {
   return new SurfaceMaterial(opts);
 }
 
-/** Every geometry drawn with the surface material needs per-vertex tint + emissive. */
-export function tintGeometry(g: THREE.BufferGeometry, color: THREE.ColorRepresentation = '#ffffff', emissive = 0, flickerSeed = 0) {
+/** Every geometry drawn with the surface material needs per-vertex tint + emissive (and a facade, default plain). */
+export function tintGeometry(g: THREE.BufferGeometry, color: THREE.ColorRepresentation = '#ffffff', emissive = 0, flickerSeed = 0, facade?: Facade) {
   const n = g.attributes.position.count;
   const c = new THREE.Color(color);
   const t = new Float32Array(n * 3);
@@ -264,7 +267,16 @@ export function tintGeometry(g: THREE.BufferGeometry, color: THREE.ColorRepresen
   g.setAttribute('emissive', new THREE.BufferAttribute(new Float32Array(n).fill(emissive), 1));
   if (!g.attributes.baseUv) g.setAttribute('baseUv', g.attributes.uv.clone());
   g.setAttribute('flicker', new THREE.BufferAttribute(new Float32Array(n).fill(flickerSeed), 1));
+  if (facade) setFacade(g, facade);
   return swingGeometry(g);
+}
+
+/** Give every vertex of a geometry the same facade pattern. */
+export function setFacade(g: THREE.BufferGeometry, facade: Facade) {
+  const n = g.attributes.position.count;
+  const f = new Float32Array(n * 4);
+  for (let i = 0; i < n; i++) f.set(facade, i * 4);
+  g.setAttribute('facade', new THREE.BufferAttribute(f, 4));
 }
 
 /** Per-vertex baked lamp light (decor), copied into the batches after a rebake. */
@@ -290,6 +302,7 @@ export function swingGeometry(g: THREE.BufferGeometry, pivot?: THREE.Vector3, am
   g.setAttribute('swing', new THREE.BufferAttribute(sw, 4));
   g.setAttribute('swingTrack', new THREE.BufferAttribute(tr, 3));
   if (!g.attributes.flicker) g.setAttribute('flicker', new THREE.BufferAttribute(new Float32Array(n), 1));
+  if (!g.attributes.facade) g.setAttribute('facade', new THREE.BufferAttribute(new Float32Array(n * 4), 4));
   if (!g.attributes.lightUv) {
     g.setAttribute('lightUv', new THREE.BufferAttribute(new Float32Array(n * 2), 2));
     g.setAttribute('baked', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
