@@ -23,7 +23,7 @@ import { Player } from './player';
 import { PaintSystem } from './painting';
 import { Level, type LevelData } from './level/level';
 import { makeSky } from './sky';
-import { buildSkyline, syncSkylineScale } from './skyline';
+import { buildSkyline, disposeSkyline, syncSkylineScale } from './skyline';
 import { repaintFacades } from './textures';
 import { Tools } from './tools/tools';
 import { Inventory } from './inventory/inventory';
@@ -136,6 +136,7 @@ function loadLevel(data: LevelData) {
   pickups.load(data.pickups as PickupData[] | undefined);
   inventory.reset();
   scene.remove(skyline);
+  disposeSkyline(skyline);
   skyline = buildSkyline(level.totalBounds());
   scene.add(skyline);
   player.setSpawn(new THREE.Vector3(...data.spawn.pos), data.spawn.yaw);

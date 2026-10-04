@@ -73,7 +73,8 @@ export class Pickups {
     if (!p) return;
     p.group.traverse((o) => {
       const m = o as THREE.Mesh;
-      m.geometry?.dispose();
+      // three.js gives every sprite the same geometry: only the halo's material is its own.
+      if (!(o as THREE.Sprite).isSprite) m.geometry?.dispose();
       (m.material as THREE.Material | undefined)?.dispose();
     });
     p.group.removeFromParent();

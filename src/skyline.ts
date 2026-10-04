@@ -34,10 +34,17 @@ function merged(boxes: Box6[], tex: TexName, tint: string, tile: number, skip: B
   return mesh;
 }
 
+/** Free a skyline from buildSkyline: its geometry and materials (the base textures are shared). */
+export function disposeSkyline(group: THREE.Group) {
+  for (const m of group.children as THREE.Mesh[]) {
+    m.geometry.dispose();
+    (m.material as THREE.Material).dispose();
+  }
+}
+
 export function buildSkyline(level: THREE.Box3): THREE.Group {
   const group = new THREE.Group();
-  for (const f of facades) f.dispose();
-  facades.length = 0;
+  facades.length = 0; // the old ones go with their skyline (disposeSkyline)
   const m = 7;
   const clear = (x0: number, z0: number, x1: number, z1: number) =>
     level.isEmpty() || x1 < level.min.x - m || x0 > level.max.x + m || z1 < level.min.z - m || z0 > level.max.z + m;
