@@ -78,14 +78,15 @@ float inkLines(float u, float w, float fw) {
 }
 
 // Parallel lines across world coordinate x (meters), about uHatch.x pixels
-// apart on screen: two octaves of world-space spacing, blended.
-float inkHatch(float x, float w) {
+// apart on screen: two octaves of world-space spacing, blended. j bends
+// the lines a little (in periods): a hand, not a ruler.
+float inkHatch(float x, float w, float j) {
   float px = max(fwidth(x), 1e-6);
   float lg = log2(px * uHatch.x);
   float o = floor(lg);
   float p1 = exp2(o);
-  float a = inkLines(x / p1, w, px / p1);
-  float b = inkLines(x / (2.0 * p1), w, px / (2.0 * p1));
+  float a = inkLines(x / p1 + j, w, px / p1);
+  float b = inkLines(x / (2.0 * p1) + j * 0.5, w, px / (2.0 * p1));
   return mix(a, b, lg - o);
 }
 
@@ -103,14 +104,17 @@ float inkTone(vec3 albedo, float light, vec3 specular, vec3 emissive, vec3 p) {
   return v * (1.0 - inkSink(p));
 }
 
-// The two hatch layers for a face: diagonals on walls and on floors.
+// The two hatch layers for a face: a diagonal, then for cross-hatching
+// vertical strokes on walls (like the drawn facades) and the other diagonal
+// on floors.
 vec2 inkHatches(vec3 p, vec3 n) {
   vec3 an = abs(n);
   float floorFace = step(max(an.x, an.z), an.y);
   float h = an.x > an.z ? p.z : p.x;
   float xa = mix(h + p.y, p.x + p.z, floorFace) * 0.7071;
-  float xb = mix(h - p.y, p.x - p.z, floorFace) * 0.7071;
-  return vec2(inkHatch(xa, uHatch.y), inkHatch(xb, uHatch.y));
+  float xb = mix(h, (p.x - p.z) * 0.7071, floorFace);
+  float j = (inkNoise(p * 0.9) - 0.5) * 0.5;
+  return vec2(inkHatch(xa, uHatch.y, j), inkHatch(xb, uHatch.y, -j));
 }
 
 // Ink coverage (0 = paper, 1 = solid ink) for a tone.
