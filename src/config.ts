@@ -325,43 +325,47 @@ export const ROLLER = {
   drips: 2,
 };
 
-/** Scrub brush (slot 5): scrubs paint off surfaces. Held pose is HOLD.brush. */
-export const BRUSH = {
+/** Sponge (slot 5): scrubs paint off surfaces. Held pose is HOLD.sponge. */
+export const SPONGE = {
   /** Max distance from the eye to the surface: arm's length. */
   reach: 1.6,
   /** Radius of the patch it cleans per stroke step (m). */
   radius: 0.09,
   /** Share of the paint left that each pass takes off (0..1): scrub back and forth to clean. */
-  strength: 0.12,
+  strength: 0.24,
   /** 0 = cleans the whole patch evenly .. 1 = only the middle, fading to the rim. */
   softness: 0.5,
-  /** Crosshair with the brush in hand (px). */
-  crosshair: 24,
+  /** Mouse wheel with the sponge in hand: changes `radius` by radiusStep, within radiusMin..radiusMax (m). */
+  radiusMin: 0.02,
+  radiusMax: 0.3,
+  radiusStep: 0.02,
+  /** Crosshair with the sponge in hand (px): `crosshair` plus `crosshairPerMeter` x the radius, so it follows the wheel. */
+  crosshair: 6,
+  crosshairPerMeter: 200,
   /** How far it scrubs in small circles while cleaning (m), and how fast (turns per s). */
   scrubSize: 0.012,
   scrubSpeed: 5,
   /**
-   * The model (m): a wooden block, bristles under it splaying out past its
-   * edges, and a handle rising from its back. Ink tones: lighter = more paper.
+   * The model (m): a kitchen sponge, a soft block with a darker scouring pad
+   * on its front (the side that goes on the wall) and pores on the soft part.
+   * Ink tones: lighter = more paper.
    */
   model: {
-    blockLength: 0.17,
-    blockWidth: 0.07,
-    blockHeight: 0.025,
-    bristleLength: 0.045,
-    /** Bristle tufts across and along the block, and how far the bristles reach past its edges (fraction). */
-    tuftsAcross: 4,
-    tuftsAlong: 8,
-    splay: 0.2,
-    handleLength: 0.16,
-    handleThickness: 0.022,
-    /** Handle angle up from the block (radians). */
-    handleAngle: 0.5,
-    wood: '#8c8c8c',
-    bristles: '#3a3a40',
+    width: 0.14,
+    height: 0.09,
+    depth: 0.05,
+    /** Scouring pad thickness on the front. */
+    padDepth: 0.014,
+    /** Pores dotted over the soft part's visible faces. */
+    pores: 14,
+    poreSize: 0.006,
+    soft: '#c4c4c4',
+    pad: '#3a3a40',
   },
+  /** Height of the sponge in the hand's frame (m): up where the can's grip is, so the arm matches the can's. */
+  gripHeight: 0.0,
   /** The world pickup: the same model, at this scale, offset (m) and rotation (radians) above its spot. */
-  pickup: { scale: 1.5, offset: [0, 0, 0] as [number, number, number], rotation: [0.5, 0, 0.2] as [number, number, number] },
+  pickup: { scale: 1.6, offset: [0, 0, 0] as [number, number, number], rotation: [0.3, 0.4, 0] as [number, number, number] },
 };
 
 /** First-person hands + held tool: sway, bob and the trigger press. */
@@ -404,12 +408,12 @@ export interface HoldPose {
   yaw: number;
   roll: number;
 }
-export const HOLD: Record<'can' | 'marker' | 'ladder' | 'roller' | 'brush', HoldPose> = {
+export const HOLD: Record<'can' | 'marker' | 'ladder' | 'roller' | 'sponge', HoldPose> = {
   can: { distance: 0.5, x: 0.4, y: -0.44, scale: 1, pitch: -0.12, yaw: 0.25, roll: 0.08 },
   marker: { distance: 0.38, x: 0.421, y: -0.447, scale: 1, pitch: -1.1, yaw: 0.3, roll: 0.25 },
   ladder: { distance: 0.5, x: 0.48, y: -0.54, scale: 1, pitch: 0.15, yaw: -0.75, roll: 0.18 },
   roller: { distance: 0.6, x: 0.42, y: -0.12, scale: 0.75, pitch: -1.0, yaw: 0.25, roll: -0.15 },
-  brush: { distance: 0.5, x: 0.6, y: -0.36, scale: 1.3, pitch: 0, yaw: 0.8, roll: 1.57 },
+  sponge: { distance: 0.5, x: 0.4, y: -0.44, scale: 1, pitch: -0.12, yaw: 0.25, roll: 0.08 },
 };
 
 /** Free left hand: reaches out and rests on a wall when you stand close to one. */

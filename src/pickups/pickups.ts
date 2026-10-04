@@ -141,8 +141,8 @@ export class Pickups {
             ? inv.giveLadder()
             : 'roller' in c
               ? inv.giveRoller()
-              : 'brush' in c
-                ? inv.giveBrush()
+              : 'sponge' in c
+                ? inv.giveSponge()
                 : inv.giveMarker();
     if (!ok) {
       this.onBlocked(`already have ${pickupLabel(p.kind)}`);

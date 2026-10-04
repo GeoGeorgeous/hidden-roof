@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { BRUSH, COLORS, INK, type PaintColor } from '../config';
-import { brushShape } from '../tools/brush-shape';
+import { SPONGE, COLORS, INK, type PaintColor } from '../config';
+import { spongeShape } from '../tools/sponge-shape';
 import type { PickupKind } from '../inventory/items';
 
 // Pickup look, inked: the item hovers and spins, tilted, inside a drawn ring
@@ -71,10 +71,10 @@ export function itemModel(kind: PickupKind): THREE.Group {
       g.add(tread);
     }
     g.scale.setScalar(1.6);
-  } else if (k === 'brush') {
-    // The scrub brush, posed by BRUSH.pickup.
-    const p = BRUSH.pickup;
-    const b = brushShape(basic(BRUSH.model.wood), basic(BRUSH.model.bristles)).group;
+  } else if (k === 'sponge') {
+    // The sponge, posed by SPONGE.pickup.
+    const p = SPONGE.pickup;
+    const b = spongeShape(basic(SPONGE.model.soft), basic(SPONGE.model.pad));
     b.position.set(...p.offset);
     b.rotation.set(...p.rotation);
     b.scale.setScalar(p.scale);

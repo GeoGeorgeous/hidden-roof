@@ -8,13 +8,13 @@ import { SprayTool } from '../spray/spray-tool';
 import { LadderTool } from './ladder-tool';
 import { MarkerTool } from './marker';
 import { RollerTool } from './roller';
-import { BrushTool } from './brush';
+import { SpongeTool } from './sponge';
 import type { Level } from '../level/level';
 import { ViewSway, type Motion } from './view-sway';
 
 // Routes input to the tool in hand: 1 = can, 2 = marker, 3 = stepladder, 4 =
-// roller, 5 = scrub brush, Q/E = color (can, marker, roller), mouse wheel = cap (can), nib size
-// (marker) or turning the ladder. Owns the UI the tools share: it
+// roller, 5 = sponge, Q/E = color (can, marker, roller), mouse wheel = cap (can), nib size
+// (marker), patch size (sponge) or turning the ladder. Owns the UI the tools share: it
 // reports color / cap changes (and which ones apply when switching tools) and
 // where the tags go next to whichever tool is in hand.
 
@@ -23,11 +23,11 @@ export class Tools {
   readonly marker: MarkerTool;
   readonly ladder: LadderTool;
   readonly roller: RollerTool;
-  readonly brush: BrushTool;
+  readonly sponge: SpongeTool;
   private sway = new ViewSway();
   /** Called with the color when it changes or another tool comes out. */
   onColorChange: (color: PaintColor) => void = () => {};
-  /** Called when the mouse wheel changes the marker's nib size. */
+  /** Called when the mouse wheel changes the marker's nib or the sponge's patch size. */
   onNibChange: () => void = () => {};
   /** Called with the cap name when it changes or the can comes out. */
   onCapChange: (name: string) => void = () => {};
@@ -46,8 +46,8 @@ export class Tools {
     this.marker = new MarkerTool(paint, solids, audio);
     this.ladder = new LadderTool(scene, level);
     this.roller = new RollerTool(paint, solids, audio);
-    this.brush = new BrushTool(paint, solids, audio);
-    viewScene.add(this.spray.model.group, this.marker.model, this.ladder.model.group, this.roller.model.group, this.brush.model.group);
+    this.sponge = new SpongeTool(paint, solids, audio);
+    viewScene.add(this.spray.model.group, this.marker.model, this.ladder.model.group, this.roller.model.group, this.sponge.model.group);
   }
 
   /** `enabled` is false in build mode: tools are put away but particles finish flying. */
@@ -60,8 +60,8 @@ export class Tools {
     this.ladder.model.sway.rotation.copy(this.spray.model.sway.rotation);
     this.roller.sway.position.copy(this.spray.model.sway.position);
     this.roller.sway.rotation.copy(this.spray.model.sway.rotation);
-    this.brush.sway.position.copy(this.spray.model.sway.position);
-    this.brush.sway.rotation.copy(this.spray.model.sway.rotation);
+    this.sponge.sway.position.copy(this.spray.model.sway.position);
+    this.sponge.sway.rotation.copy(this.spray.model.sway.rotation);
     if (enabled) {
       SLOTS.forEach((_, i) => input.wasPressed(`Digit${i + 1}`) && inv.select(i));
       const dc = (input.wasPressed('KeyE') ? 1 : 0) - (input.wasPressed('KeyQ') ? 1 : 0);
@@ -69,6 +69,10 @@ export class Tools {
       if (SLOTS.some((_, i) => input.wasPressed(`Digit${i + 1}`))) this.audio.click();
       if (input.wheelSteps !== 0 && inv.tool === 'can' && inv.cycleCap(Math.sign(input.wheelSteps))) this.audio.click();
       if (input.wheelSteps !== 0 && inv.tool === 'marker' && this.marker.resize(-Math.sign(input.wheelSteps))) {
+        this.audio.click();
+        this.onNibChange();
+      }
+      if (input.wheelSteps !== 0 && inv.tool === 'sponge' && this.sponge.resize(-Math.sign(input.wheelSteps))) {
         this.audio.click();
         this.onNibChange();
       }
@@ -80,7 +84,7 @@ export class Tools {
     this.ladder.update(input, camera, motion.position, tool === 'ladder');
     // After the marker: they share the scribble sound, and these only touch it while in hand or just put away.
     this.roller.update(dt, input, camera, eye, tool === 'roller', inv.color);
-    this.brush.update(dt, input, camera, eye, tool === 'brush');
+    this.sponge.update(dt, input, camera, eye, tool === 'sponge');
   }
 
   /** Paused (F3 open, pointer free): keeps posing the tool in hand at rest, so HOLD tuning shows live. */
@@ -90,7 +94,7 @@ export class Tools {
     else if (tool === 'marker') this.marker.pose(camera, false);
     else if (tool === 'ladder') this.ladder.model.update(camera, true);
     else if (tool === 'roller') this.roller.model.update(0, camera, true, this.inventory.color, false, 0);
-    else if (tool === 'brush') this.brush.model.update(0, camera, true, false);
+    else if (tool === 'sponge') this.sponge.model.update(0, camera, true, false);
   }
 
   /** Screen anchor for the color / cap tags next to the tool in hand, or null with no tool. */

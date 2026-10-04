@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import * as config from './config';
-import { ATMOS, AUDIO, BRUSH, CAPS, COLORS, INK, MARKER, PLAYER, PRESSURE, RENDER, SMOKE, THUNDER, VIEWMODEL } from './config';
+import { ATMOS, AUDIO, SPONGE, CAPS, COLORS, INK, MARKER, PLAYER, PRESSURE, RENDER, SMOKE, THUNDER, VIEWMODEL } from './config';
 import { syncSharedUniforms } from './materials';
 import { syncTrackUniforms } from './render/cctv-track';
 import { Lighting } from './render/lighting';
@@ -150,10 +150,10 @@ function rebuildCity() {
   scene.add(skyline);
 }
 live.rebuildCity = rebuildCity;
-live.rebuildBrush = () => {
-  tools.brush.model.build();
-  pickups.restyle('brush');
-  hotbar.refreshIcon('brush');
+live.rebuildSponge = () => {
+  tools.sponge.model.build();
+  pickups.restyle('sponge');
+  hotbar.refreshIcon('sponge');
 };
 live.syncSkyline = syncSkyline;
 build.onLoad = loadLevel;
@@ -183,7 +183,7 @@ hud.setLocked(false);
 hud.setSettings(settings.sections());
 tools.onCapChange = (name) => hud.showCapTag(name);
 tools.onColorChange = (color) => hud.showColorTag(color, COLORS[color]);
-// The wheel changed the marker's nib: the F3 slider follows it.
+// The wheel changed the marker's nib or the sponge's patch: the F3 slider follows it.
 tools.onNibChange = () => debug.visible && debug.sync();
 
 window.addEventListener('resize', () => {
@@ -277,7 +277,7 @@ function frame(time: number) {
     pickups.update(dt, player.position, inventory);
   } else if (!build.active) tools.holdStill(camera);
   const tool = build.active ? null : inventory.tool;
-  hud.setCrosshair(tool === 'can' ? CAPS[inventory.cap].crosshair : tool === 'marker' ? Math.round(MARKER.crosshair + MARKER.radius * MARKER.crosshairPerMeter) : tool === 'roller' ? 10 : tool === 'brush' ? BRUSH.crosshair : 6);
+  hud.setCrosshair(tool === 'can' ? CAPS[inventory.cap].crosshair : tool === 'marker' ? Math.round(MARKER.crosshair + MARKER.radius * MARKER.crosshairPerMeter) : tool === 'roller' ? 10 : tool === 'sponge' ? Math.round(SPONGE.crosshair + SPONGE.radius * SPONGE.crosshairPerMeter) : 6);
   const anchor = tools.labelAnchor(tagPos);
   const pressure = tool === 'can' ? inventory.pressure : null;
   hud.placeToolTags(anchor ? toScreen(anchor) : null, pressure, pressure !== null && pressure < PRESSURE.sputterThreshold);

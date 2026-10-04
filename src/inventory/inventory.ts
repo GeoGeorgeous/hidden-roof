@@ -1,19 +1,19 @@
 import { CAP_ORDER, COLOR_ORDER, type CapId, type PaintColor } from '../config';
 
 // Five slots: 1 = the spray can (always), 2 = the marker, 3 = the stepladder,
-// 4 = the paint roller, 5 = the scrub brush (each once found).
+// 4 = the paint roller, 5 = the sponge (each once found).
 // Colors and caps are permanent unlocks (colors shared by can, marker and roller).
 // Paint never runs out; the can only has pressure.
 
-export type Tool = 'can' | 'marker' | 'ladder' | 'roller' | 'brush';
-export const SLOTS: Tool[] = ['can', 'marker', 'ladder', 'roller', 'brush'];
+export type Tool = 'can' | 'marker' | 'ladder' | 'roller' | 'sponge';
+export const SLOTS: Tool[] = ['can', 'marker', 'ladder', 'roller', 'sponge'];
 
 export class Inventory {
   selected = 0;
   hasMarker = false;
   hasLadder = false;
   hasRoller = false;
-  hasBrush = false;
+  hasSponge = false;
   colors: PaintColor[] = [];
   caps: CapId[] = [];
   /** Can pressure 0..1: drains while spraying, restored by shaking. */
@@ -33,7 +33,7 @@ export class Inventory {
     this.hasMarker = false;
     this.hasLadder = false;
     this.hasRoller = false;
-    this.hasBrush = false;
+    this.hasSponge = false;
     this.colors = ['black'];
     this.caps = ['standard'];
     this.pressure = 1;
@@ -58,7 +58,7 @@ export class Inventory {
 
   /** Has this tool been found? (The can is always there.) */
   has(t: Tool) {
-    return t === 'can' || (t === 'marker' && this.hasMarker) || (t === 'ladder' && this.hasLadder) || (t === 'roller' && this.hasRoller) || (t === 'brush' && this.hasBrush);
+    return t === 'can' || (t === 'marker' && this.hasMarker) || (t === 'ladder' && this.hasLadder) || (t === 'roller' && this.hasRoller) || (t === 'sponge' && this.hasSponge);
   }
 
   select(i: number) {
@@ -115,9 +115,9 @@ export class Inventory {
     return true;
   }
 
-  giveBrush() {
-    if (this.hasBrush) return false;
-    this.hasBrush = true;
+  giveSponge() {
+    if (this.hasSponge) return false;
+    this.hasSponge = true;
     this.version++;
     return true;
   }

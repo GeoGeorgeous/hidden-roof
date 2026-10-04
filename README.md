@@ -1,6 +1,6 @@
 # roof.hidden.haus
 
-A small first-person graffiti game in the browser. You're on the rooftops of a pen-and-ink megacity, high above streets lost in black: find colors, caps, a marker, a stepladder, a paint roller and a scrub brush, then paint whatever you like (and scrub it off again). The world is drawn in ink on paper; the only color anywhere is your paint. There are no enemies and no objectives. The HUD looks like a body-cam recording overlay.
+A small first-person graffiti game in the browser. You're on the rooftops of a pen-and-ink megacity, high above streets lost in black: find colors, caps, a marker, a stepladder, a paint roller and a sponge, then paint whatever you like (and scrub it off again). The world is drawn in ink on paper; the only color anywhere is your paint. There are no enemies and no objectives. The HUD looks like a body-cam recording overlay.
 
 Built with three.js, TypeScript and Vite. There are no external assets: the geometry, textures and sounds are all generated in code. See `AGENTS.md` for the two ground rules (performance first, small files).
 
@@ -22,10 +22,10 @@ npm run build      # typecheck + production build into dist/
 |---|---|
 | WASD, Shift, Space | Move, run, jump |
 | Move into a ladder | Climb. Let go to slide down, Ctrl to hold on, Space to jump off. Walking away from it walks off. |
-| LMB | Spray with the can, draw with the marker, place the stepladder, roll with the roller, or scrub paint off with the brush |
-| 1 – 5 | Can / marker / stepladder / paint roller / scrub brush (once found) |
+| LMB | Spray with the can, draw with the marker, place the stepladder, roll with the roller, or scrub paint off with the sponge |
+| 1 – 5 | Can / marker / stepladder / paint roller / sponge (once found) |
 | Q / E | Cycle through the colors you've collected (can, marker, roller) |
-| Mouse wheel | Can: cycle through your caps. Marker: nib size (the crosshair follows it). Stepladder: turn it. |
+| Mouse wheel | Can: cycle through your caps. Marker: nib size. Sponge: cleaning patch size (the crosshair follows both). Stepladder: turn it. |
 | RMB | Shake the can (restores pressure) |
 | B | Toggle build mode |
 | K | Screenshot: the game view (without the HUD) downloads as a PNG |
@@ -66,7 +66,7 @@ The hotbar at the bottom center is a row of small circles (`HOTBAR.slots`, 5), t
 - **Slot 2: the marker,** once you find it. It's a pump marker with a hard square nib: it draws a solid, hard-edged line at close range in the current color, as wide as the nib going straight and wider on the diagonal. The mouse wheel changes the nib size (`MARKER.radiusMin` .. `radiusMax` in `radiusStep`s), and the crosshair grows with it. Its band shows the color, and switching colors (or tools) shows the same COLOR tag next to whichever tool is in hand.
 - **Slot 3: the stepladder,** once you find it. A small A-frame ladder (1.2 m, like its pickup) that stands on its own: climb it from the front (like any ladder) and stand on its top to reach higher walls. In hand you hold it folded, like the can and the marker. A green preview shows where it would stand: anywhere on the floor (not on the grid), turned to face you, and the mouse wheel turns it a quarter turn at a time; aiming at a wall puts it on the floor in front of it. It's red where it can't stand: its four feet must rest on one flat floor (not over an edge, a gap or a step), nothing may be in its way or in you, and there must be room to stand in front of it and climb. LMB places it. There is only one: placing it again moves it. It isn't saved with the level, and build mode leaves it alone (`STEPLADDER_PLACE` in config).
 - **Slot 4: the paint roller,** once you find it. A wide graffiti roller on a short pole: held to a surface within reach, LMB rolls a solid band of paint as wide as the roller (44 cm), along the roller (the view's right, laid into the surface), with lighter ends. Moving the view rolls it; presses are filled in between frames, so a stroke is one continuous band. Rolling up and down makes the wide stroke; rolling sideways only drags it along its own length, like a real roller. It uses the same paint textures as the can and marker (`PaintSystem.roll`), carries across seams, and starts paint runs easily. The cover shows the current color and spins as it rolls (`ROLLER` in config, F3 → Painting).
-- **Slot 5: the scrub brush,** once you find it. A wooden scrub brush with a handle: held to a surface within arm's reach, LMB scrubs paint off a round patch under the crosshair. Each pass takes a share of the paint left (`BRUSH.strength`), so one pass fades it and scrubbing back and forth cleans it; it works on any paint (can, marker, roller, runs). It uses the paint system's own stamp with no color (`PaintSystem.stamp(..., null)`), skips surfaces that were never painted, and costs no more than spraying. In hand it presses to the wall and scrubs in small circles. Everything about it is in `BRUSH` (F3 → Painting): reach, patch size, strength, the model (block, bristles, handle, tones) and the pickup's size, offset and rotation; changes rebuild the held model, the pickups and the hotbar icon live.
+- **Slot 5: the sponge,** once you find it. A kitchen sponge, a soft block with a dark scouring pad on the front, held like the can (same pose, same arm). Held to a surface within arm's reach, LMB scrubs paint off a round patch under the crosshair. Each pass takes a share of the paint left (`SPONGE.strength`), so one pass fades it and scrubbing back and forth cleans it; it works on any paint (can, marker, roller, runs). The mouse wheel changes the patch size (`SPONGE.radiusMin` .. `radiusMax` in `radiusStep`s), and the crosshair grows with it. It uses the paint system's own stamp with no color (`PaintSystem.stamp(..., null)`), skips surfaces that were never painted, and costs no more than spraying. In hand it presses to the wall and scrubs in small circles. Everything about it is in `SPONGE` (F3 → Painting): reach, patch size and wheel range, strength, the model (size, scouring pad, pores, tones) and the pickup's size, offset and rotation; changes rebuild the held model, the pickups and the hotbar icon live.
 - **Colors** are pickups: black, white, red, orange, yellow, green, blue, purple and pink. Once collected, a color stays available for the can, the marker and the roller. You start with black.
 - **Caps** are skinny, standard, fat and spray (a wide, soft mist for fades). You start with the standard cap. The crosshair circle grows with the cap, and the cap's name shows next to the can for a moment after switching.
 - **Pickups** hover, spin and glow so you can spot them from far away. Walk into one to collect it. If it gives you nothing new, it stays on the map.
@@ -108,7 +108,7 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
   - `marker`
   - `ladder` (the stepladder)
   - `roller` (the paint roller)
-  - `brush` (the scrub brush)
+  - `sponge`
 - The city is regenerated around the level's bounds every time a level loads, always the same for the same settings. A level can override any `SKYLINE` value in its own object, e.g. `"skyline": { "seed": 12, "margin": 20 }`.
 
 ## How painting works
@@ -176,7 +176,7 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
 - `COLORS` and `COLOR_ORDER`: the paint palette and its Q/E order. Add a color here and it becomes a `color:<name>` pickup.
 - `SPRAY`: `range`, `falloffStart`, particle speed, size and pool size.
 - `PRESSURE`: drain rate, the thin and sputter thresholds, sputter duty, shake restore and shake duration.
-- `HOLD`: how each tool is held in first person (`can`, `marker`, `ladder`, `roller`, `brush`; a new tool adds its own): `distance` in front of the eye, `x` / `y` position per meter of distance (so changing the distance keeps it in the same spot on screen), `scale`, and `pitch` / `yaw` / `roll`. Live in F3 → Camera → HELD ….
+- `HOLD`: how each tool is held in first person (`can`, `marker`, `ladder`, `roller`, `sponge`; a new tool adds its own): `distance` in front of the eye, `x` / `y` position per meter of distance (so changing the distance keeps it in the same spot on screen), `scale`, and `pitch` / `yaw` / `roll`. Live in F3 → Camera → HELD ….
 - `MARKER`: `reach`, `radius` (half the square nib's side in meters; 0 = one paint texel), `drips` (how readily it starts paint runs), and `strength`.
 - `VIEWMODEL`: hand sway, walk bob, jump lag and the trigger-press animation.
 - `ATMOS`: the rainy night, including `lightDecay` (light falloff, 2 = physical). `DAYLIGHT` overrides some of its keys while build mode is on.
@@ -211,10 +211,10 @@ src/config.ts            all tunable constants
 src/kit/                 prop kit: pieces + helpers (railings, ladders), prop builders (signs.ts, steel.ts: lettered signs, lattices), registry
 src/level/               build-prop (pieces → meshes/colliders), level (instances, JSON), decor batch tiles, solids broad phase
 src/build/               build mode, its HUD panel, level file I/O
-src/inventory/           pickup kinds, inventory (can, marker, ladder, roller, brush, unlocks), hotbar and its item icons
+src/inventory/           pickup kinds, inventory (can, marker, ladder, roller, sponge, unlocks), hotbar and its item icons
 src/pickups/             pickup manager + visuals
 src/spray/               spray tool, can + hand view model, particles
-src/tools/               marker, stepladder, paint roller, scrub brush, tool routing (hotbar → tool), hand sway/bob
+src/tools/               marker, stepladder, paint roller, sponge, tool routing (hotbar → tool), hand sway/bob
 src/debug/               debug + tuning panel, tunable list, GPU pass timer
 src/render/              lighting pool, light FX, rain, atmosphere presets, post pipeline, volumetrics
 src/render/ink/          ink look: tones + hatching (tone.ts), facade bands, grime, sign lettering atlas, outline + paper pass

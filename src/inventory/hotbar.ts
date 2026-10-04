@@ -4,7 +4,7 @@ import type { Thumbnails } from './thumbnails';
 
 // Hotbar, bottom center: a row of small circles, HOTBAR.slots of them from the
 // start, one per slot key (1 = can, 2 = marker, 3 = ladder, 4 = roller,
-// 5 = brush, any more spare). A tool you have shows its pickup model as a pre-rendered icon
+// 5 = sponge, any more spare). A tool you have shows its pickup model as a pre-rendered icon
 // (thumbnails.ts; the can with the current paint color); a slot you haven't
 // found the tool for yet stays an empty circle, so every tool always sits under
 // its own key. The selected slot has a solid ring, the others a faint one. No
@@ -17,7 +17,7 @@ const ICON: Record<Tool, (inv: Inventory) => string> = {
   marker: () => 'marker',
   ladder: () => 'ladder',
   roller: () => 'roller',
-  brush: () => 'brush',
+  sponge: () => 'sponge',
 };
 
 export class Hotbar {

@@ -1,4 +1,4 @@
-import { SKYLINE, ATMOS, INK, AUDIO, CAP_ORDER, CAPS, CCTV, DAYLIGHT, DRIPS, FANS, FLICKER, GRADE, LIGHT_SPREAD_MAX, LIGHTMAP, LIGHTS, PICKUP, SMOKE, THUNDER, PLAYER_LIGHT, VOLUMETRICS, WALL_HAND, MARKER, PAINT, PLAYER, PRESSURE, RENDER, SPRAY, VIEWMODEL, HOLD, ROLLER, BRUSH } from '../config';
+import { SKYLINE, ATMOS, INK, AUDIO, CAP_ORDER, CAPS, CCTV, DAYLIGHT, DRIPS, FANS, FLICKER, GRADE, LIGHT_SPREAD_MAX, LIGHTMAP, LIGHTS, PICKUP, SMOKE, THUNDER, PLAYER_LIGHT, VOLUMETRICS, WALL_HAND, MARKER, PAINT, PLAYER, PRESSURE, RENDER, SPRAY, VIEWMODEL, HOLD, ROLLER, SPONGE } from '../config';
 
 // Debug panel contents: collapsible sections of live sliders/toggles that write
 // straight into the config objects, plus read-only stats. Each value knows its
@@ -32,7 +32,7 @@ const ROOTS: Record<string, Obj> = {
   SPRAY: SPRAY as unknown as Obj,
   MARKER: MARKER as unknown as Obj,
   ROLLER: ROLLER as unknown as Obj,
-  BRUSH: BRUSH as unknown as Obj,
+  SPONGE: SPONGE as unknown as Obj,
   VIEWMODEL: VIEWMODEL as unknown as Obj,
   HOLD: HOLD as unknown as Obj,
   ATMOS: ATMOS as unknown as Obj,
@@ -89,8 +89,8 @@ export const live = {
   applyDaylight: () => {},
   /** Rebuild the city around the level (SKYLINE changed). */
   rebuildCity: () => {},
-  /** Rebuild the scrub brush's models (held, pickups, hotbar icon) from BRUSH.model / BRUSH.pickup. */
-  rebuildBrush: () => {},
+  /** Rebuild the sponge's models (held, pickups, hotbar icon) from SPONGE.model / SPONGE.pickup. */
+  rebuildSponge: () => {},
   /** Apply live SKYLINE values (line range). */
   syncSkyline: () => {},
   /** Debug: a lightning strike right now. */
@@ -174,7 +174,7 @@ function daylightItems(): Item[] {
 
 export function sections(): Section[] {
   const sync = () => live.syncAtmosphere();
-  const brush = () => live.rebuildBrush();
+  const sponge = () => live.rebuildSponge();
   const p = () => live.player;
   const v2 = (x: number, y: number) => Math.hypot(x, y).toFixed(2);
   return [
@@ -268,31 +268,31 @@ export function sections(): Section[] {
         r('light ends (fraction)', ['ROLLER', 'edge'], 0, 0.5, 0.01),
         r('opacity', ['ROLLER', 'strength'], 0.05, 1, 0.01),
         r('runs (x paint runs per m²)', ['ROLLER', 'drips'], 0, 40, 0.5),
-        { kind: 'heading', label: 'SCRUB BRUSH' },
-        r('reach', ['BRUSH', 'reach'], 0.5, 4, 0.1),
-        r('patch radius (m)', ['BRUSH', 'radius'], 0.01, 0.4, 0.005),
-        r('cleans per pass', ['BRUSH', 'strength'], 0.01, 1, 0.01),
-        r('softness', ['BRUSH', 'softness'], 0, 1, 0.05),
-        r('crosshair (px)', ['BRUSH', 'crosshair'], 0, 60, 1),
-        r('scrub circle (m)', ['BRUSH', 'scrubSize'], 0, 0.05, 0.001),
-        r('scrub speed (turns/s)', ['BRUSH', 'scrubSpeed'], 0, 12, 0.1),
-        { kind: 'heading', label: 'SCRUB BRUSH MODEL' },
-        r('block length (m)', ['BRUSH', 'model', 'blockLength'], 0.05, 0.4, 0.005, brush),
-        r('block width (m)', ['BRUSH', 'model', 'blockWidth'], 0.02, 0.2, 0.005, brush),
-        r('block height (m)', ['BRUSH', 'model', 'blockHeight'], 0.01, 0.1, 0.005, brush),
-        r('bristle length (m)', ['BRUSH', 'model', 'bristleLength'], 0.005, 0.1, 0.005, brush),
-        r('tufts across', ['BRUSH', 'model', 'tuftsAcross'], 1, 8, 1, brush),
-        r('tufts along', ['BRUSH', 'model', 'tuftsAlong'], 1, 16, 1, brush),
-        r('bristles splay', ['BRUSH', 'model', 'splay'], 0, 0.6, 0.01, brush),
-        r('handle length (m)', ['BRUSH', 'model', 'handleLength'], 0, 0.4, 0.005, brush),
-        r('handle thickness (m)', ['BRUSH', 'model', 'handleThickness'], 0.005, 0.06, 0.001, brush),
-        r('handle angle (rad)', ['BRUSH', 'model', 'handleAngle'], 0, 1.5, 0.01, brush),
-        c('wood', ['BRUSH', 'model', 'wood'], brush),
-        c('bristles', ['BRUSH', 'model', 'bristles'], brush),
-        { kind: 'heading', label: 'SCRUB BRUSH PICKUP' },
-        r('size', ['BRUSH', 'pickup', 'scale'], 0.3, 4, 0.05, brush),
-        ...v3('offset (m)', ['BRUSH', 'pickup', 'offset'], -0.5, 0.5, 0.01, brush),
-        ...v3('rotation (rad)', ['BRUSH', 'pickup', 'rotation'], -3.14, 3.14, 0.01, brush),
+        { kind: 'heading', label: 'SPONGE' },
+        r('reach', ['SPONGE', 'reach'], 0.5, 4, 0.1),
+        r('patch radius (m)', ['SPONGE', 'radius'], 0.01, 0.4, 0.005),
+        r('cleans per pass', ['SPONGE', 'strength'], 0.01, 1, 0.01),
+        r('softness', ['SPONGE', 'softness'], 0, 1, 0.05),
+        r('wheel: min radius (m)', ['SPONGE', 'radiusMin'], 0.005, 0.4, 0.005),
+        r('wheel: max radius (m)', ['SPONGE', 'radiusMax'], 0.005, 0.4, 0.005),
+        r('wheel: step (m)', ['SPONGE', 'radiusStep'], 0.001, 0.1, 0.001),
+        r('crosshair (px)', ['SPONGE', 'crosshair'], 0, 60, 1),
+        r('crosshair px per m of radius', ['SPONGE', 'crosshairPerMeter'], 0, 1000, 10),
+        r('scrub circle (m)', ['SPONGE', 'scrubSize'], 0, 0.05, 0.001),
+        r('scrub speed (turns/s)', ['SPONGE', 'scrubSpeed'], 0, 12, 0.1),
+        { kind: 'heading', label: 'SPONGE MODEL' },
+        r('width (m)', ['SPONGE', 'model', 'width'], 0.03, 0.25, 0.005, sponge),
+        r('height (m)', ['SPONGE', 'model', 'height'], 0.02, 0.2, 0.005, sponge),
+        r('depth (m)', ['SPONGE', 'model', 'depth'], 0.01, 0.1, 0.002, sponge),
+        r('scouring pad (m)', ['SPONGE', 'model', 'padDepth'], 0, 0.04, 0.001, sponge),
+        r('pores', ['SPONGE', 'model', 'pores'], 0, 40, 1, sponge),
+        r('pore size (m)', ['SPONGE', 'model', 'poreSize'], 0.001, 0.02, 0.001, sponge),
+        c('soft part', ['SPONGE', 'model', 'soft'], sponge),
+        c('scouring pad', ['SPONGE', 'model', 'pad'], sponge),
+        { kind: 'heading', label: 'SPONGE PICKUP' },
+        r('size', ['SPONGE', 'pickup', 'scale'], 0.3, 4, 0.05, sponge),
+        ...v3('offset (m)', ['SPONGE', 'pickup', 'offset'], -0.5, 0.5, 0.01, sponge),
+        ...v3('rotation (rad)', ['SPONGE', 'pickup', 'rotation'], -3.14, 3.14, 0.01, sponge),
         { kind: 'heading', label: 'PAINT RUNS' },
         t('runs', ['DRIPS', 'enabled']),
         r('excess before a run (coats)', ['DRIPS', 'excess'], 0.5, 10, 0.1),

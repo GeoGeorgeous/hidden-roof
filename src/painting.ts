@@ -135,7 +135,7 @@ export class PaintSystem {
    * the number multiplies how often (DRIPS.perSquareMeter), 0 = never.
    * `square`: a hard square nib instead of a round dot (`radius` is half its
    * side), its sides along the face's axes, like a pump marker's nib.
-   * `color` null scrubs paint off instead (the brush): `amount` of the paint
+   * `color` null scrubs paint off instead (the sponge): `amount` of the paint
    * left goes, so going over it again cleans it; unpainted surfaces are skipped.
    */
   stamp(
