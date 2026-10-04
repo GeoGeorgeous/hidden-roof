@@ -22,6 +22,8 @@ export interface PropInstance {
   rot: number;
   /** Per-instance setting (PropDef.adjust), when changed in build mode. */
   adjust?: number;
+  /** Per-instance text (PropDef.text), when typed in build mode. */
+  text?: string;
 }
 
 /**

@@ -24,11 +24,11 @@ export class Ghost {
   }
 
   /** `stack`: the prop's stacking neighbors there (a block on a block is one storey). */
-  showProp(def: PropDef, pos: V3, rot: number, stack: { above: boolean; below: boolean }) {
-    const key = `${def.type}|${pos.join(',')}|${rot}|${stack.above}|${stack.below}`;
+  showProp(def: PropDef, pos: V3, rot: number, stack: { above: boolean; below: boolean }, text = def.text ?? '') {
+    const key = `${def.type}|${pos.join(',')}|${rot}|${stack.above}|${stack.below}|${text}`;
     if (key === this.key) return;
     this.key = key;
-    const ex = expandPieces(def.build({ seed: 0, pos, ...stack, adjust: def.adjust?.initial() ?? 0 }), pos, rot, false);
+    const ex = expandPieces(def.build({ seed: 0, pos, ...stack, adjust: def.adjust?.initial() ?? 0, text }), pos, rot, false);
     const geos = ex.decor.map((d) => stripToPosition(d.geo));
     this.setGeometry(geos.length ? mergeGeometries(geos) : null);
     this.colliders = ex.colliders;

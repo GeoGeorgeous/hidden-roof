@@ -35,6 +35,8 @@ export interface PropContext {
   below: boolean;
   /** This instance's value for PropDef.adjust (its default when never adjusted). */
   adjust: number;
+  /** This instance's text (PropDef.text), or its default. */
+  text: string;
 }
 
 /** One per-instance setting changed in build mode with [ and ] (e.g. floodlight tilt). */
@@ -70,5 +72,7 @@ export interface PropDef {
    */
   stacks?: { above?: boolean; below?: boolean };
   adjust?: PropAdjust;
+  /** Props that show a text of their own (signs): its default. Typed in build mode (Enter), saved per instance. */
+  text?: string;
   build(ctx: PropContext): Piece[];
 }

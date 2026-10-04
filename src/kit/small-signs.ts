@@ -1,16 +1,14 @@
 import type { PropDef } from './def';
 import { M, Parts, type Mat, type V3 } from './pieces';
-import { wordRect, type Word } from '../render/ink/words';
-import { lcg } from '../lcg';
+import { wordRect } from '../render/ink/words';
 
-// Small wall signs: exit, high voltage, no entry, a name plate. Real words
-// (render/ink/words.ts) and pictograms drawn with ink rods on plates. Plates
+// Small wall signs: exit, high voltage, no entry, a name plate. Their text is
+// their own (PropDef.text: typed in build mode, saved in the level), drawn in
+// real type (render/ink/words.ts); pictograms are ink rods on plates. Plates
 // and lettered faces are paintable, like the big signs.
 
-const PLATES: Word[] = ['ROOF ACCESS', 'STAFF ONLY', 'ELECTRICAL', 'KEEP CLEAR', 'PLANT ROOM', 'FIRE DOOR', 'MAINTENANCE', 'DANGER'];
-
 /** A word on a sign face `h` high: its material and the width that keeps it unstretched (at least `minW`). */
-function word(w: Word, inverted: boolean, h: number, minW = 0) {
+function word(w: string, inverted: boolean, h: number, minW = 0) {
   const { rect, aspect } = wordRect(w, inverted, minW / h);
   const mat: Mat = { tex: 'words', tile: 1, tint: '#ffffff', letters: rect };
   return { mat, width: h * aspect };
@@ -21,7 +19,7 @@ function stroke(p: Parts, z: number, pts: [number, number][], r: number, mat: Ma
   for (let i = 1; i < pts.length; i++) p.rod([pts[i - 1][0], pts[i - 1][1], z] as V3, [pts[i][0], pts[i][1], z] as V3, r, mat);
 }
 
-/** Exit sign: EXIT in paper on ink, an arrow beside it. */
+/** Exit sign: its text (EXIT) in paper on ink. */
 export const signExit: PropDef = {
   type: 'sign_exit',
   label: 'Exit sign',
@@ -29,18 +27,12 @@ export const signExit: PropDef = {
   place: 'mount',
   snap: 0.5,
   hang: 0.11,
-  build() {
+  text: 'EXIT',
+  build({ text }) {
     const h = 0.22;
-    const arrow = 0.18;
-    const t = word('EXIT', true, h);
-    const x0 = -(t.width + arrow) / 2;
-    const x1 = x0 + t.width;
+    const t = word(text, true, h);
     const p = new Parts();
-    p.box([x0, 0, -0.1], [x1, h, 0], t.mat, { paint: true });
-    p.box([x1, 0, -0.1], [x1 + arrow, h, 0], M.dark, { paint: true });
-    const ax = x1 + arrow / 2;
-    stroke(p, -0.105, [[ax - 0.055, h / 2], [ax + 0.05, h / 2]], 0.01, M.paper);
-    stroke(p, -0.105, [[ax, h / 2 + 0.05], [ax + 0.05, h / 2], [ax, h / 2 - 0.05]], 0.01, M.paper);
+    p.box([-t.width / 2, 0, -0.1], [t.width / 2, h, 0], t.mat, { paint: true });
     return p.list;
   },
 };
@@ -53,7 +45,8 @@ export const signVoltage: PropDef = {
   place: 'mount',
   snap: 0.5,
   hang: 0.2,
-  build() {
+  text: 'HIGH VOLTAGE',
+  build({ text }) {
     const w = 0.32;
     const h = 0.4;
     const p = new Parts();
@@ -62,9 +55,8 @@ export const signVoltage: PropDef = {
     stroke(p, -0.032, [[0.035, 0.32], [-0.03, 0.24], [0.03, 0.24], [-0.025, 0.165]], 0.011, M.dark);
     // The word as wide as the plate allows, as high as that leaves it.
     const inner = w - 0.04;
-    const fit = word('HIGH VOLTAGE', false, 1);
-    const th = inner / fit.width;
-    p.box([-inner / 2, 0.04, -0.032], [inner / 2, 0.04 + th, -0.025], word('HIGH VOLTAGE', false, th, inner).mat, { paint: true });
+    const th = Math.min(0.08, inner / word(text, false, 1).width);
+    p.box([-inner / 2, 0.04, -0.032], [inner / 2, 0.04 + th, -0.025], word(text, false, th, inner).mat, { paint: true });
     return p.list;
   },
 };
@@ -96,7 +88,7 @@ export const signNoEntry: PropDef = {
   },
 };
 
-/** Small name plate in a steel frame: ROOF ACCESS, STAFF ONLY, ... (picked per instance). */
+/** Small name plate in a steel frame, as wide as its text. */
 export const signPlate: PropDef = {
   type: 'sign_plate',
   label: 'Name plate',
@@ -104,10 +96,10 @@ export const signPlate: PropDef = {
   place: 'mount',
   snap: 0.5,
   hang: 0.07,
-  build({ seed }) {
-    const rnd = lcg(seed * 131 + 5);
+  text: 'STAFF ONLY',
+  build({ text }) {
     const h = 0.14;
-    const t = word(PLATES[Math.floor(rnd() * PLATES.length)], rnd() < 0.4, h, 0.3);
+    const t = word(text, false, h, 0.3);
     const x = t.width / 2;
     const p = new Parts();
     p.box([-x, 0, -0.025], [x, h, 0], t.mat, { paint: true });

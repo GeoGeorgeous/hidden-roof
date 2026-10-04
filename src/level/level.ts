@@ -1,3 +1,4 @@
+import { MAX_TEXT } from '../render/ink/words';
 import * as THREE from 'three';
 import { KIT_BY_TYPE } from '../kit';
 import type { V3 } from '../kit/pieces';
@@ -19,6 +20,8 @@ export interface PropData {
   rot?: number;
   /** Per-instance setting (PropDef.adjust), e.g. floodlight tilt in degrees. */
   adjust?: number;
+  /** Per-instance text (PropDef.text), e.g. a sign's words. */
+  text?: string;
 }
 
 export interface LevelData {
@@ -92,7 +95,7 @@ export class Level {
   }
 
   toJSON(): LevelData {
-    const props = [...this.props.values()].map(({ type, pos, rot, adjust }) => (adjust === undefined ? { type, pos, rot } : { type, pos, rot, adjust }));
+    const props = [...this.props.values()].map(({ type, pos, rot, adjust, text }) => ({ type, pos, rot, ...(adjust === undefined ? {} : { adjust }), ...(text === undefined ? {} : { text }) }));
     return { version: 2, spawn: this.spawn, props };
   }
 
@@ -105,6 +108,16 @@ export class Level {
     this.build(inst);
     this.refresh();
     return inst.adjust;
+  }
+
+  /** Change a sign's text (PropDef.text) and rebuild it; empty goes back to the default. */
+  setText(id: number, text: string) {
+    const inst = this.props.get(id);
+    if (!inst || KIT_BY_TYPE.get(inst.type)?.text === undefined) return false;
+    inst.text = text.trim().slice(0, MAX_TEXT) || undefined;
+    this.build(inst);
+    this.refresh();
+    return true;
   }
 
   /** Rebuild every prop that carries lights (lens colors and floodlight heads follow LIGHTS); their paint carries over. */
@@ -185,7 +198,7 @@ export class Level {
       console.warn(`unknown prop type "${data.type}"`);
       return null;
     }
-    const inst: PropInstance = { id: this.nextId++, type: data.type, pos: [...data.pos], rot: (((data.rot ?? 0) % 4) + 4) % 4, adjust: data.adjust };
+    const inst: PropInstance = { id: this.nextId++, type: data.type, pos: [...data.pos], rot: (((data.rot ?? 0) % 4) + 4) % 4, adjust: data.adjust, text: data.text };
     this.props.set(inst.id, inst);
     if (build) this.build(inst);
     return inst;
@@ -203,7 +216,7 @@ export class Level {
     const def = KIT_BY_TYPE.get(inst.type)!;
     const seed = Math.abs(Math.round(inst.pos[0] * 7 + inst.pos[2] * 13));
     const adjust = inst.adjust ?? def.adjust?.initial() ?? 0;
-    const ctx = { seed, pos: inst.pos, adjust, ...this.stackContext(inst.type, inst.pos, inst.rot) };
+    const ctx = { seed, pos: inst.pos, adjust, text: inst.text ?? def.text ?? '', ...this.stackContext(inst.type, inst.pos, inst.rot) };
     const b = buildProp(inst.id, def.build(ctx), inst.pos, inst.rot, this.paint);
     this.root.add(b.group);
     this.built.set(inst.id, b);

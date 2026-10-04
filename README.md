@@ -44,6 +44,7 @@ npm run build      # typecheck + production build into dist/
 | PgUp / PgDn | Working level (the build plane) up / down |
 | Ctrl+Z | Undo |
 | [ / ] | Tilt the floodlight under the crosshair (saved per floodlight as `adjust` in the level) |
+| Enter | Type the text of the sign under the crosshair (exit, high voltage, name plate; saved per sign as `text` in the level). Aiming elsewhere, it sets the text for the next signs you place. New signs reuse the last text typed or picked with MMB |
 | T | Put the spawn point on the floor under the crosshair, facing where you look (the blue figure + arrow shows it while building) |
 | H | Show paintable surfaces (green stripes; everything else dims) |
 | P | Save the level as `level.json` (downloads) |
@@ -67,7 +68,7 @@ npm run build      # typecheck + production build into dist/
 
 ## Prop kit
 
-**Props:** wall lamp, floodlight, lamp post, string lights, neon blade signs (pink / cyan; two-sided, glyphs vary per sign), the signs category (wall sign, shop sign, blade sign, small exit / high voltage / no entry / name plate signs with real words from `render/ink/words.ts`, sign tower: a lattice frame carrying a panel, and the billboard below), lattice mast, tanks on a stand, roof debris, building, half block (2 m high, stacks by 2 m), slab, parapet, door (closed or standing open outward, for insides), floor hatch, stairwell hut, stairs, ladder, platform, fire escape, water tower, vent shaft, duct, AC unit (small / medium / large / wall-mounted), utility box, exhaust pipe, modular pipes (straight run, corner, from the floor, from a wall, up into the roof; every piece ends its pipe 1 m from its origin at the same height, so they chain on the 0.5 m grid), drain pipe (stacks storey by storey), antenna, cable, modular floor and wall cables (straight, corner, floor to wall, wall storey; chained like the pipes), chain-link fence, fence gate, billboard (face and lamps outward; ladder at the back, walkway around to the front catwalk), CCTV camera (the head pans slowly; when you come near it turns to follow you and its lens and a small spot light switch on, `CCTV` and `LIGHTS.cctv`; swinging pieces turn in the vertex shader, so they stay in the level batches, and the light is aimed on the CPU with the same math).
+**Props:** wall lamp, floodlight, lamp post, string lights, neon blade signs (pink / cyan; two-sided, glyphs vary per sign), the signs category (wall sign, shop sign, blade sign, small exit / high voltage / no entry / name plate signs whose text you type in build mode (real type, `render/ink/words.ts`), sign tower: a lattice frame carrying a panel, and the billboard below), lattice mast, tanks on a stand, roof debris, building, half block (2 m high, stacks by 2 m), slab, parapet, door (closed or standing open outward, for insides), floor hatch, stairwell hut, stairs, ladder, platform, fire escape, water tower, vent shaft, duct, AC unit (small / medium / large / wall-mounted), utility box, exhaust pipe, modular pipes (straight run, corner, from the floor, from a wall, up into the roof; every piece ends its pipe 1 m from its origin at the same height, so they chain on the 0.5 m grid), drain pipe (stacks storey by storey), antenna, cable, modular floor and wall cables (straight, corner, floor to wall, wall storey; chained like the pipes), chain-link fence, fence gate, billboard (face and lamps outward; ladder at the back, walkway around to the front catwalk), CCTV camera (the head pans slowly; when you come near it turns to follow you and its lens and a small spot light switch on, `CCTV` and `LIGHTS.cctv`; swinging pieces turn in the vertex shader, so they stay in the level batches, and the light is aimed on the CPU with the same math).
 
 Each prop is a builder function that returns a list of **pieces** (box, cylinder, rod, cone, climb volume) for a given size (`src/kit/`). The same pieces produce everything else (`src/level/build-prop.ts`):
 
@@ -95,6 +96,7 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
 
 - `pos` is in meters relative to level 0, so `y` = level × 4 (8 is level 2, -4 is level -1). Props between floors keep their exact height.
 - `rot` is the number of quarter turns.
+- `text` (signs only, optional) is the sign's own text; without it the sign shows its default (EXIT, HIGH VOLTAGE, STAFF ONLY).
 - Pickup kinds:
   - `color:<white|red>` unlocks a paint color
   - `can:<md|lg>` upgrades the can
