@@ -167,38 +167,39 @@ export const VOLUMETRICS = {
  * solid black. Edges get pen outlines in the final pass. Live in F3 -> Ink.
  */
 export const INK = {
-  paper: '#ebe5d6',
-  ink: '#141416',
-  /** Sky color (the same as the paper by default). */
-  sky: '#ebe5d6',
+  paper: '#d5d0c3',
+  ink: '#3a3749',
+  sky: '#262532',
+  /** What the city fades into above the cloud base (ATMOS.cloudBase); the sky color by default. */
+  cloud: '#262532',
   /** Light multiplier before the tone steps (brighter = more paper). */
-  exposure: 1.6,
+  exposure: 2.1,
   /** Tone steps (0..1): above `paper` no ink; below `hatch` cross-hatching; below `black` solid ink. */
-  paperTone: 0.46,
+  paperTone: 0.67,
   hatchTone: 0.27,
-  blackTone: 0.11,
+  blackTone: 0.19,
   /** Hatch line spacing on screen (px) at any distance, and line thickness (fraction of the spacing). */
-  hatchPx: 5,
-  hatchWidth: 0.3,
+  hatchPx: 2,
+  hatchWidth: 0.5,
   /** Ragged tone edges: how far the noise shifts the steps (tone units). */
   toneNoise: 0.05,
   /** Meters below which the city sinks into black (the street far down), and where it is fully black. */
-  voidTop: -42,
-  voidBottom: -88,
+  voidTop: -15,
+  voidBottom: -97,
   /** Paint stays colored: its shading is light x this, never below `paintMin`. Hatching over paint in the dark. */
   paintLight: 1.4,
   paintMin: 0.4,
   paintHatch: 0.3,
   /** Pen outlines from the depth buffer: strength, crease sensitivity, and distance over which they thin out (m). */
-  outline: 1,
+  outline: 0.95,
   crease: 1,
-  outlineFade: 260,
+  outlineFade: 730,
   /** Outlines wobble by up to this many pixels (hand-drawn look). */
-  wobble: 0.6,
+  wobble: 0,
   /** Paper grain strength. */
-  grain: 0.6,
+  grain: 0.3,
   /** Grime on surfaces: rain streaks, stains, buffed patches, cracks, seams (0 = clean). */
-  grime: 1,
+  grime: 0.25,
 };
 
 /** Final color grading, applied in display space. Neutral = 0, 1, 1, 0, 0. */

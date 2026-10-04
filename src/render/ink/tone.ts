@@ -41,6 +41,8 @@ export const inkUniforms = {
   uPaper: { value: new THREE.Color(INK.paper) },
   /** Sky dome color (sky.ts). */
   uSky: { value: new THREE.Color(INK.sky) },
+  /** What things fade into above the cloud base. */
+  uCloudInk: { value: new THREE.Color(INK.cloud) },
   uInkColor: { value: new THREE.Color(INK.ink) },
   uInkExposure: { value: INK.exposure },
   /** paper, hatch and black tone steps, tone noise. */
@@ -59,6 +61,7 @@ export function syncInkUniforms() {
   const u = inkUniforms;
   u.uPaper.value.set(INK.paper);
   u.uSky.value.set(INK.sky);
+  u.uCloudInk.value.set(INK.cloud);
   u.uInkColor.value.set(INK.ink);
   u.uInkExposure.value = INK.exposure;
   u.uTones.value.set(INK.paperTone, INK.hatchTone, INK.blackTone, INK.toneNoise);
@@ -73,6 +76,7 @@ syncInkUniforms();
 export const INK_PARS = /* glsl */ `
 uniform vec3 uPaper;
 uniform vec3 uInkColor;
+uniform vec3 uCloudInk;
 uniform float uInkExposure;
 uniform vec4 uTones;
 uniform vec2 uHatch;
@@ -142,16 +146,19 @@ float inkCover(float v, vec2 hatch, vec3 p) {
   return max(1.0 - (1.0 - a) * (1.0 - b), step(v, uTones.z));
 }
 
-// How much of the drawing survives distance and the low clouds (1 = all, 0 =
-// paper). The void doesn't fade: far down stays black however far away.
-// It fades the tone, not the ink (inkFade): far away black turns into
-// cross-hatching, then hatching, then paper, like a pen drawing gets lighter
-// with distance; ink never turns gray.
-float inkKeep(vec3 p, float cloudBase, float cloudFade) {
+// How much of the drawing survives distance (1 = all, 0 = paper). The void
+// doesn't fade: far down stays black however far away. It fades the tone,
+// not the ink (inkFade): far away black turns into cross-hatching, then
+// hatching, then paper, like a pen drawing gets lighter with distance; ink
+// never turns gray.
+float inkKeep(vec3 p) {
   float d = length(p - cameraPosition);
   float fd = uFade * d;
-  float keep = exp(-fd * fd) * (1.0 - smoothstep(cloudBase, cloudBase + cloudFade, p.y));
-  return mix(keep, 1.0, inkSink(p));
+  return mix(exp(-fd * fd), 1.0, inkSink(p));
+}
+// The low clouds: how far into them a point is (0 = below, 1 = gone in INK.cloud's color).
+float inkCloud(vec3 p, float cloudBase, float cloudFade) {
+  return smoothstep(cloudBase, cloudBase + cloudFade, p.y);
 }
 float inkFade(float tone, float keep) {
   return mix(uTones.x * 1.5 + 0.1, tone, keep);
@@ -169,7 +176,7 @@ export const INK_FRAG = /* glsl */ `
   float light = inkLight(diffuseColor.rgb, reflectedLight.directDiffuse + reflectedLight.indirectDiffuse);
   float tone = inkTone(diffuseColor.rgb, light, reflectedLight.directSpecular, totalEmissiveRadiance, inkP);
   vec2 hatch = inkHatches(inkP, vWorldN);
-  float keep = inkKeep(inkP, uCloudBase, uCloudFade);
+  float keep = inkKeep(inkP);
   vec4 grime = inkGrime(inkP, vWorldN, 1.0 - step(0.5, vFacade.x));
   float dirt = max(max(hatch.y * grime.x, hatch.x * grime.y), max(max(hatch.x, hatch.y) * grime.z * 0.8, grime.w));
   vec3 col = mix(uPaper, uInkColor, max(inkCover(inkFade(tone, keep), hatch, inkP), dirt * smoothstep(0.35, 0.65, keep)));
@@ -178,6 +185,7 @@ export const INK_FRAG = /* glsl */ `
   float paintDark = step(light * uInkExposure * 0.7, uTones.y) * hatch.x * uPaintInk.z;
   vec3 paintCol = mix(paintTex.rgb * pl, uInkColor, paintDark);
   col = mix(col, mix(uPaper, paintCol, 0.4 + 0.6 * keep), pa);
+  col = mix(col, uCloudInk, inkCloud(inkP, uCloudBase, uCloudFade));
   if (uShowPaintable > 0.5) {
     if (uPaintable > 0.5) col = mix(col, vec3(0.15, 1.0, 0.55), 0.3 + 0.2 * hiStripe);
     else col *= 0.45;

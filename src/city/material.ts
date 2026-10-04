@@ -86,8 +86,9 @@ void main() {
   vec2 hatch = inkHatches(vWorldPos, n);
   vec4 grime = inkGrime(vWorldPos, n, 1.0 - step(0.5, vFacade.x));
   float dirt = max(hatch.y * grime.x, grime.w);
-  float keep = inkKeep(vWorldPos, uCloudBase, uCloudFade);
-  gl_FragColor = vec4(mix(uPaper, uInkColor, max(inkCover(inkFade(tone, keep), hatch, vWorldPos), dirt * smoothstep(0.35, 0.65, keep))), 1.0);
+  float keep = inkKeep(vWorldPos);
+  vec3 col = mix(uPaper, uInkColor, max(inkCover(inkFade(tone, keep), hatch, vWorldPos), dirt * smoothstep(0.35, 0.65, keep)));
+  gl_FragColor = vec4(mix(col, uCloudInk, inkCloud(vWorldPos, uCloudBase, uCloudFade)), 1.0);
 }`;
 
 export function cityMaterial(lettering = false) {

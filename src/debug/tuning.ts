@@ -317,6 +317,7 @@ export function sections(): Section[] {
         c('paper', ['INK', 'paper']),
         c('ink', ['INK', 'ink']),
         c('sky', ['INK', 'sky']),
+        c('clouds', ['INK', 'cloud']),
         r('exposure', ['INK', 'exposure'], 0.2, 5, 0.05),
         r('paper above tone', ['INK', 'paperTone'], 0, 1.5, 0.01),
         r('cross-hatch below', ['INK', 'hatchTone'], 0, 1, 0.01),

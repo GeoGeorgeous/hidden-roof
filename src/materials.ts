@@ -13,12 +13,12 @@ export type { TexName } from './textures';
 // The one surface material: three's Phong (lights, shadows) with injected
 //  - world-aligned base texture tinted per vertex
 //  - ink instead of color (render/ink/tone.ts): the lit result becomes paper,
-//    hatching or solid ink; distance and low clouds fade it into paper
+//    hatching or solid ink; distance fades it into paper
 //  - the paint atlas layered on top (single paint layer), the only color
 //  - wet look on up-facing surfaces (darker + specular)
 //  - per-vertex emissive (lamps, neon), facade bands (render/ink/facade.ts)
 //    and grime (render/ink/grime.ts)
-//  - low clouds: everything above the cloud base fades into paper
+//  - low clouds: everything above the cloud base fades into INK.cloud
 //  - swinging decor (CCTV heads): rotated around a vertical pivot in the vertex
 //    shader from per-vertex swing attributes, so it stays in the level batches;
 //    CCTV heads also turn to follow a nearby player and light their lens

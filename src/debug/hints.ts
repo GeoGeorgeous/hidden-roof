@@ -115,7 +115,8 @@ const HINTS: Record<string, string> = {
   // Ink
   'INK.paper': 'Paper color: lit surfaces, and what distance fades into.',
   'INK.ink': 'Ink color: lines, hatching and solid black.',
-  'INK.sky': 'Sky color (the same as the paper by default).',
+  'INK.sky': 'Sky color.',
+  'INK.cloud': 'What the city fades into above the cloud base (Rendering → cloud base / fade). The sky color by default.',
   'INK.exposure': 'Light multiplier before the tone steps. Higher = more paper, less ink.',
   'INK.paperTone': 'Tones above this are bare paper; below it, hatching starts.',
   'INK.hatchTone': 'Tones below this get cross-hatching.',

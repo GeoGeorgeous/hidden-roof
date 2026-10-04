@@ -2,9 +2,8 @@ import * as THREE from 'three';
 import { ATMOS } from './config';
 import { inkUniforms } from './render/ink/tone';
 
-// Sky dome: INK.sky (bare paper by default; the drawing fades into paper
-// with distance), a touch darker straight up, and a faint pale disc where the
-// moon hides behind the clouds. Lightning washes it brighter. Follows the camera.
+// Sky dome: INK.sky, a touch darker straight up, and a faint pale disc where
+// the moon hides behind the clouds. Lightning washes it brighter. Follows the camera.
 
 export function makeSky() {
   const uniforms = {
