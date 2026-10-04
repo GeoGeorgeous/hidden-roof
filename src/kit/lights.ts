@@ -1,14 +1,12 @@
 import { LIGHTS } from '../config';
 import type { PropDef } from './def';
-import { M, Parts, type Mat, type V3 } from './pieces';
+import { lens, M, Parts, type V3 } from './pieces';
 
 // Practical lights. Each carries a light piece at its default spot on the lens;
 // color, aim, offset, strength, spread and range come from LIGHTS in config.ts
 // (lens colors and floodlight heads are built from it too). The nearest few
 // become real lights (budget); all of them show emissive parts + glow sprites
 // + beams.
-
-const lens = (tint: string): Mat => ({ tex: 'flat', tint, emissive: 1 });
 
 /** Warm sodium wall lamp on a short bracket. */
 export const wallLamp: PropDef = {

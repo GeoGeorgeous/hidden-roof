@@ -1,5 +1,6 @@
+import { LIGHTS } from '../config';
 import type { PropDef } from './def';
-import { M, Parts, type Mat, type V3 } from './pieces';
+import { lens, M, Parts, type Mat, type V3 } from './pieces';
 
 // Cables, antennas, signs, billboards, CCTV cameras.
 
@@ -119,7 +120,7 @@ export const billboard: PropDef = {
     p.railing([-hw, 0.12], [-hw, front], deck);
     for (const x of [-w / 3, w / 3]) {
       p.rod([x, b1 + 0.1, 0.07], [x, b1 + 0.3, 0.92], 0.03, M.steel);
-      p.detail([x - 0.2, b1 + 0.18, 0.82], [x + 0.2, b1 + 0.3, 1.07], M.lamp, false);
+      p.detail([x - 0.2, b1 + 0.18, 0.82], [x + 0.2, b1 + 0.3, 1.07], lens(LIGHTS.billboardLamp.color), false);
       // Lamp aimed back down onto the face; it emits from its bottom face.
       p.light({ kind: 'billboardLamp', pos: [x, b1 + 0.175, 0.945] });
     }

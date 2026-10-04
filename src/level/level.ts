@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { KIT_BY_TYPE } from '../kit';
 import type { V3 } from '../kit/pieces';
-import { V_MODULE, type PropDef } from '../kit/def';
+import { V_MODULE } from '../kit/def';
 import type { PaintSystem } from '../painting';
 import type { Ladder } from '../player';
 import { DecorBatches } from './batches';
@@ -107,13 +107,12 @@ export class Level {
     return inst.adjust;
   }
 
-  /** Rebuild every prop whose definition matches (e.g. light props after a light setting changed). */
-  rebuildWhere(match: (def: PropDef) => boolean) {
+  /** Rebuild every prop that carries lights (lens colors and floodlight heads follow LIGHTS); their paint carries over. */
+  rebuildLit() {
     let any = false;
-    for (const inst of this.props.values()) {
-      const def = KIT_BY_TYPE.get(inst.type);
-      if (!def || !match(def)) continue;
-      this.build(inst);
+    for (const [id, b] of this.built) {
+      if (!b.lights.length) continue;
+      this.build(this.props.get(id)!);
       any = true;
     }
     if (any) this.refresh();

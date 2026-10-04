@@ -152,10 +152,12 @@ export const M = {
   glass: { tex: 'flat', tint: '#16181c' },
   dark: { tex: 'flat', tint: '#121316' },
   cable: { tex: 'flat', tint: '#101114' },
-  lamp: { tex: 'flat', tint: '#ffe2b0', emissive: 1 },
   chain: { tex: 'chainlink', alpha: 0.5, tile: 0.4 },
   shutter: { tex: 'shutter', tint: GRAY[2] },
 } satisfies Record<string, Mat>;
+
+/** A light's lens: emissive in the light's color (build it from LIGHTS[kind].color). */
+export const lens = (tint: string): Mat => ({ tex: 'flat', tint, emissive: 1 });
 
 const RAIL_H = 1.1;
 
