@@ -23,6 +23,11 @@ export class Atmosphere {
     return !!this.night;
   }
 
+  /** While daylight is on: the night values it replaced in ATMOS (the F3 panel edits these), else null. */
+  get nightValues(): Partial<Atmos> | null {
+    return this.night;
+  }
+
   setDaylight(on: boolean) {
     if (on === this.daylight) return;
     if (on) {

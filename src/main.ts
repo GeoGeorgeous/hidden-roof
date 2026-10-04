@@ -126,6 +126,7 @@ live.repaintSkyline = () => repaintFacades();
 live.rebuildLightProps = () => level.rebuildWhere((def) => def.category === 'lights');
 live.syncAtmosphere = () => atmosphere.syncColors();
 live.applyDaylight = () => atmosphere.reapplyDaylight();
+live.atmosNight = () => atmosphere.nightValues;
 live.applyPixelScale = () => {
   renderer.setPixelRatio(1 / RENDER.pixelScale);
   syncViewSize();

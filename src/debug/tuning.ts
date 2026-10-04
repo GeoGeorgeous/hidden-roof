@@ -54,12 +54,22 @@ const ROOTS: Record<string, Obj> = {
 };
 
 export function getValue(path: string[]): unknown {
-  return path.reduce<unknown>((o, k) => (o as Obj)[k], ROOTS);
+  return parentOf(path)[path[path.length - 1]];
 }
 
 export function setValue(path: string[], v: unknown) {
-  const parent = path.slice(0, -1).reduce<unknown>((o, k) => (o as Obj)[k], ROOTS) as Obj;
-  parent[path[path.length - 1]] = v;
+  parentOf(path)[path[path.length - 1]] = v;
+}
+
+/**
+ * The object holding a path's value. While build mode shows daylight, ATMOS
+ * holds DAYLIGHT's values for some keys: those read and write the saved night
+ * values instead, so the panel (and its copy) always shows the night look.
+ */
+function parentOf(path: string[]): Obj {
+  const night = path[0] === 'ATMOS' ? live.atmosNight() : null;
+  const root = night && path[1] in night ? night : ROOTS[path[0]];
+  return path.slice(1, -1).reduce<unknown>((o, k) => (o as Obj)[k], root) as Obj;
 }
 
 /** Live values filled in by main (stats) and the player state. */
@@ -83,6 +93,8 @@ export const live = {
   siren: () => {},
   /** GPU time of a render pass, as text ('n/a' without timer queries). */
   gpu: (_label: string) => 'n/a',
+  /** While build mode shows daylight: the night values it replaced in ATMOS (see Atmosphere). */
+  atmosNight: (): Obj | null => null,
 };
 
 const r = (label: string, path: string[], min: number, max: number, step: number, onChange?: () => void): Item => ({ kind: 'range', label, path, min, max, step, onChange });
