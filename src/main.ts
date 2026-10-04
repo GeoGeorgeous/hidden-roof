@@ -188,7 +188,8 @@ const tagPos = new THREE.Vector3();
 function frame(time: number) {
   const t0 = performance.now();
   timer.update(time);
-  const dt = Math.min(timer.getDelta(), 1 / 20);
+  const delta = timer.getDelta();
+  const dt = Math.min(delta, 1 / 20);
 
   if (input.wasPressed('F3') || input.wasPressed('Backquote')) {
     debug.toggle();
@@ -268,7 +269,7 @@ function frame(time: number) {
   input.endFrame();
 
   fpsFrames++;
-  fpsTime += dt;
+  fpsTime += delta; // real time: dt is clamped, which would overstate fps below 20
   frameMs = frameMs * 0.9 + (performance.now() - t0) * 0.1;
   if (fpsTime >= 0.5) {
     fps = fpsFrames / fpsTime;

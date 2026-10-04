@@ -34,10 +34,10 @@ export class GpuTimer {
     this.open = null;
   }
 
-  /** Call once per frame. */
+  /** Call once per frame. Does nothing (no GL calls) while no query is in flight. */
   poll() {
     const gl = this.gl;
-    if (!this.ext) return;
+    if (!this.ext || !this.pending.length) return;
     const disjoint = gl.getParameter(this.ext.GPU_DISJOINT_EXT);
     while (this.pending.length) {
       const { label, q } = this.pending[0];
