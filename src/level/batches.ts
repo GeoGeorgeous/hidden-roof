@@ -11,7 +11,15 @@ import { decorMaterial, matKey, type BuiltProp } from './build-prop';
 // Rebuilt lazily after edits. Baked light (render/bake) lives on the proxies;
 // a rebake copies it into the merged batch in place.
 
-const shadowOnly = new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false });
+// three.js has no shadow-only flag, so the shadow proxy is in the camera pass
+// too. There this material puts every vertex outside the view: nothing is
+// rasterized. The shadow pass draws it with three's own depth material.
+const shadowOnly = new THREE.ShaderMaterial({
+  vertexShader: 'void main() { gl_Position = vec4(0.0, 0.0, 2.0, 1.0); }',
+  fragmentShader: 'void main() { gl_FragColor = vec4(0.0); }',
+  colorWrite: false,
+  depthWrite: false,
+});
 
 export class DecorBatches {
   readonly root = new THREE.Group();
