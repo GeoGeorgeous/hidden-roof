@@ -291,12 +291,35 @@ export const MARKER = {
   reach: 2.3,
   /** Half the side of the square nib, in meters (0 = one paint texel: the thinnest line, 4 cm on LOW paint detail, 1 cm on ULTRA). */
   radius: 0.012,
+  /** Mouse wheel with the marker in hand: changes the nib half-width by radiusStep, within radiusMin..radiusMax (m). */
+  radiusMin: 0,
+  radiusMax: 0.05,
+  radiusStep: 0.004,
   /**
    * Paint runs (with DRIPS on) from the marker, as a multiplier of DRIPS.perSquareMeter:
    * a nib covers little area but pumps a lot of paint into it.
    */
   drips: 8,
   strength: 0.95,
+};
+
+/** Hotbar circles shown from the start (empty until their tool is found); at least one per tool. */
+export const HOTBAR = { slots: 5 };
+
+/** Paint roller (slot 4): a wide graffiti roller on a short pole, rolling solid bands of paint. */
+export const ROLLER = {
+  /** Max distance from the eye to the surface (it's on a short pole). */
+  reach: 2.6,
+  /** Half the stroke's width: half the roller head's length (m). */
+  halfWidth: 0.22,
+  /** Half the depth of each press along the stroke (m); presses overlap as you roll. */
+  halfDepth: 0.03,
+  /** Fraction of each end of the roller that leaves lighter paint. */
+  edge: 0.15,
+  /** Opacity per press: a roller lays it on thick. */
+  strength: 0.85,
+  /** Paint runs (with DRIPS on), as a multiplier of DRIPS.perSquareMeter: a loaded roller runs easily. */
+  drips: 2,
 };
 
 /** First-person hands + held tool: sway, bob and the trigger press. */
@@ -339,10 +362,11 @@ export interface HoldPose {
   yaw: number;
   roll: number;
 }
-export const HOLD: Record<'can' | 'marker' | 'ladder', HoldPose> = {
+export const HOLD: Record<'can' | 'marker' | 'ladder' | 'roller', HoldPose> = {
   can: { distance: 0.5, x: 0.4, y: -0.44, scale: 1, pitch: -0.12, yaw: 0.25, roll: 0.08 },
   marker: { distance: 0.38, x: 0.421, y: -0.447, scale: 1, pitch: -1.1, yaw: 0.3, roll: 0.25 },
   ladder: { distance: 0.5, x: 0.48, y: -0.54, scale: 1, pitch: 0.15, yaw: -0.75, roll: 0.18 },
+  roller: { distance: 0.6, x: 0.42, y: -0.12, scale: 0.75, pitch: -1.0, yaw: 0.25, roll: -0.15 },
 };
 
 /** Free left hand: reaches out and rests on a wall when you stand close to one. */
@@ -513,8 +537,6 @@ export const AUDIO = {
   /** Distant city rumble. */
   ambienceGain: 0.145,
   footstepGain: 0.25,
-  /** Far-off police / fire sirens (see SIRENS). */
-  sirenGain: 0.12,
   /** Rain bed at full density; scales with ATMOS.rainDensity, silent without rain. */
   rainGain: 0.045,
   /** Brightness of the rain hiss (lowpass Hz). */
@@ -603,14 +625,6 @@ export const BUILD = {
   /** Free-fly speed while building (m/s), and with Shift held. */
   flySpeed: 7,
   flySprintSpeed: 16,
-};
-
-/** Far-off sirens now and then, for the city vibe (night only). Loudness is AUDIO.sirenGain. */
-export const SIRENS = {
-  enabled: true,
-  /** Seconds between sirens (random in this range). */
-  minInterval: 50,
-  maxInterval: 150,
 };
 
 /** CCTV cameras follow the player when they come near, and switch on their light (LIGHTS.cctv). */

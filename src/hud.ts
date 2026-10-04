@@ -10,11 +10,11 @@ import type { SettingSection } from './settings';
 const CONTROLS = [
   ['WASD / SHIFT / SPACE', 'move / run / jump'],
   ['MOVE INTO LADDER', 'climb (CTRL holds, SPACE lets go)'],
-  ['LMB', 'spray / draw / place ladder'],
+  ['LMB', 'spray / draw / place ladder / roll'],
   ['RMB', 'shake can'],
-  ['1 / 2 / 3', 'can / marker / ladder'],
+  ['1 / 2 / 3 / 4', 'can / marker / ladder / roller'],
   ['Q / E', 'color'],
-  ['WHEEL', 'cap / turn ladder'],
+  ['WHEEL', 'cap / nib size / turn ladder'],
   ['B', 'build mode'],
   ['K', 'screenshot'],
   ['F3', 'debug + tuning'],
@@ -72,7 +72,7 @@ export class Hud {
       <div class="cap-tag psi-gauge"><span>PSI</span><div class="line"><i></i></div><b></b></div>
       <div class="cap-tag psi-alert" hidden>LOW PRESSURE — SHAKE [RMB]</div>
       <div class="overlay">
-        <div class="title">TAGGIN'</div>
+        <div class="title">roof.hidden.haus</div>
         <div class="status blink">CLICK TO START</div>
         <div class="menu">
           <button class="resume"></button>

@@ -13,7 +13,6 @@ import { PostPipeline } from './render/post';
 import { PlayerLight } from './render/player-light';
 import { Smoke } from './render/smoke';
 import { Lightning } from './render/lightning';
-import { Sirens } from './sirens';
 import { PaintDrips } from './paint-drips';
 import { WallHand } from './tools/wall-hand';
 import { GpuTimer } from './debug/gpu-timer';
@@ -87,9 +86,6 @@ const smoke = new Smoke(scene);
 const lightning = new Lightning();
 lightning.onThunder = (d) => audio.thunder(d);
 live.strikeLightning = () => lightning.strike();
-const sirens = new Sirens();
-sirens.onSiren = () => audio.siren();
-live.siren = () => audio.siren();
 level.onChange = () => {
   baker.sync(level.builtProps);
   smoke.rebuild(level.emitters);
@@ -249,7 +245,6 @@ function frame(time: number) {
   syncSharedUniforms(time / 1000);
   syncTrackUniforms(eye);
   if (!paused) lightning.update(dt, ATMOS.rain && !build.active);
-  if (!paused) sirens.update(dt, !build.active);
   lighting.update(eye, camera.matrixWorldInverse, time / 1000, lightning.flash);
   syncCityLight(lighting);
   (sky.material as THREE.ShaderMaterial).uniforms.uFlash.value = lightning.flash * THUNDER.flashSky;
@@ -273,9 +268,9 @@ function frame(time: number) {
     wallHand.update(dt, camera, eye, !build.active, tools.spray.model.sway);
     drips.update(dt);
     pickups.update(dt, player.position, inventory);
-  }
+  } else if (!build.active) tools.holdStill(camera);
   const tool = build.active ? null : inventory.tool;
-  hud.setCrosshair(tool === 'can' ? CAPS[inventory.cap].crosshair : tool === 'marker' ? 4 : 6);
+  hud.setCrosshair(tool === 'can' ? CAPS[inventory.cap].crosshair : tool === 'marker' ? 4 : tool === 'roller' ? 10 : 6);
   const anchor = tools.labelAnchor(tagPos);
   const pressure = tool === 'can' ? inventory.pressure : null;
   hud.placeToolTags(anchor ? toScreen(anchor) : null, pressure, pressure !== null && pressure < PRESSURE.sputterThreshold);

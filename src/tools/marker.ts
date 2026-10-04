@@ -15,6 +15,7 @@ import { setHex } from '../hex-color';
 // are as wide as the nib going straight and wider on the diagonal, like a held
 // chisel. No particles, no pressure. With paint runs on (DRIPS), going over
 // the same spot again, or holding the nib still, can start a run like the can.
+// The mouse wheel changes the nib size (MARKER.radiusMin..radiusMax).
 // Fast mouse moves are filled by interpolating rays between frames. The band
 // on the barrel shows the current color, like the can's label.
 
@@ -90,13 +91,21 @@ export class MarkerTool {
     this.audio.setScribble(drew ? Math.min(1, 0.15 + angle * 40) : 0);
   }
 
+  /** Mouse wheel: widen (+1) or narrow (-1) the nib by MARKER.radiusStep, within its min..max. False if already at the limit. */
+  resize(dir: number) {
+    const r = Math.min(MARKER.radiusMax, Math.max(MARKER.radiusMin, MARKER.radius + dir * MARKER.radiusStep));
+    const changed = Math.abs(r - MARKER.radius) > 1e-9;
+    MARKER.radius = Math.round(r * 1e6) / 1e6;
+    return changed;
+  }
+
   /** A point just right of the marker, for the color tag (same place as the can's). */
   labelAnchor(out: THREE.Vector3) {
     this.model.updateMatrixWorld();
     return this.tipModel.localToWorld(out.set(0.05, 0.02, 0));
   }
 
-  private pose(camera: THREE.Camera, drawing: boolean) {
+  pose(camera: THREE.Camera, drawing: boolean) {
     this.model.position.copy(camera.position);
     this.model.quaternion.copy(camera.quaternion);
     // Held like a pen at HOLD.marker; pushed forward (and a little up) while drawing.

@@ -4,7 +4,7 @@ import { mipRect, mipSizes, type MipSize } from './paint-mips';
 import { resampleAtlas } from './paint-resample';
 import type { Rect, SurfaceGeometry } from './surfaces';
 import type { SurfaceMaterial } from './materials';
-import { SeamIndex, texelToWorld, worldToTexel } from './paint-seams';
+import { SeamIndex, texelToWorld, worldToTexel, type SeamFace } from './paint-seams';
 
 // Paint lives in one RGBA texture per paintable surface (atlas of its faces).
 // Textures are created on the first hit and uploaded only on frames they change.
@@ -18,6 +18,16 @@ const uploadRegion = new THREE.Box2();
 const uploadAt = new THREE.Vector2();
 const seamPoint = new THREE.Vector3();
 const seamTexel = new THREE.Vector2();
+const NONE: readonly never[] = [];
+/** A roller band's size and paint (see PaintSystem.roll). */
+interface Band {
+  halfLength: number;
+  halfWidth: number;
+  edge: number;
+  amount: number;
+  color: readonly [number, number, number];
+  drip: number;
+}
 /** Mip texels on their way to the GPU (paint-mips.ts). */
 let scratch = new Uint8Array(0);
 
@@ -142,15 +152,99 @@ export class PaintSystem {
     const cx = uv.x * s.geo.atlasW;
     const cy = uv.y * s.geo.atlasH;
     this.dot(s, rect, cx, cy, radius, amount, color, softness, drip, square);
-    // The part of the dot past the face's edge goes onto coplanar faces next to it (other props too).
-    const r = radius * PAINT.texelsPerMeter;
-    if (!rect.face || (cx - r >= rect.x && cx + r <= rect.x + rect.w && cy - r >= rect.y && cy + r <= rect.y + rect.h)) return;
-    texelToWorld(rect, cx, cy, seamPoint);
-    for (const n of this.seams.near(rect, seamPoint, radius)) {
+    for (const n of this.pastEdge(rect, cx, cy, radius)) {
       if (!this.live(n.surface)) continue;
       worldToTexel(n.rect, seamPoint, seamTexel);
       this.dot(n.surface, n.rect, seamTexel.x, seamTexel.y, radius, amount, color, softness, drip, square);
     }
+  }
+
+  /**
+   * Deposit a band of paint at a UV, like a paint roller pressed there:
+   * `halfLength` along `axis` (a world direction, laid into the face's plane),
+   * `halfWidth` across it, both in meters. The last `edge` fraction of each
+   * end gets lighter, the way a roller's ends leave less paint. Faces with no
+   * known plane (cylinders) take the band along their texture's u. Carries
+   * across seams like stamp(); `drip` as in stamp().
+   */
+  roll(
+    s: PaintSurface,
+    uv: { x: number; y: number },
+    faceIndex: number,
+    axis: THREE.Vector3,
+    halfLength: number,
+    halfWidth: number,
+    edge: number,
+    amount: number,
+    color: readonly [number, number, number],
+    drip = 0,
+  ) {
+    if (!this.live(s)) return;
+    const rect = s.geo.rects[s.geo.triToRect[faceIndex]];
+    const cx = uv.x * s.geo.atlasW;
+    const cy = uv.y * s.geo.atlasH;
+    const band = { halfLength, halfWidth, edge, amount, color, drip };
+    this.band(s, rect, cx, cy, axis, band);
+    for (const n of this.pastEdge(rect, cx, cy, Math.hypot(halfLength, halfWidth))) {
+      if (!this.live(n.surface)) continue;
+      worldToTexel(n.rect, seamPoint, seamTexel);
+      this.band(n.surface, n.rect, seamTexel.x, seamTexel.y, axis, band);
+    }
+  }
+
+  /**
+   * Coplanar faces next to `rect` that a stamp reaching `radius` m from texel
+   * (cx, cy) spills onto past the face's edge (other props too); seamPoint is
+   * then the stamp's center in the world.
+   */
+  private pastEdge(rect: Rect, cx: number, cy: number, radius: number): Iterable<SeamFace<PaintSurface>> {
+    const r = radius * PAINT.texelsPerMeter;
+    if (!rect.face || (cx - r >= rect.x && cx + r <= rect.x + rect.w && cy - r >= rect.y && cy + r <= rect.y + rect.h)) return NONE;
+    texelToWorld(rect, cx, cy, seamPoint);
+    return this.seams.near(rect, seamPoint, radius);
+  }
+
+  /** One roller band centered at atlas texel coords (cx, cy), clipped to `rect` (see roll). */
+  private band(s: PaintSurface, rect: Rect, cx: number, cy: number, axis: THREE.Vector3, b: Band) {
+    this.ensureTexture(s);
+    // The axis in texels: texel x runs along the face's u, y along its v, at the same density.
+    let ax = 1;
+    let ay = 0;
+    if (rect.face) {
+      const u = axis.dot(rect.face.uAxis) / rect.face.uAxis.length();
+      const v = axis.dot(rect.face.vAxis) / rect.face.vAxis.length();
+      const len = Math.hypot(u, v);
+      if (len > 1e-3) [ax, ay] = [u / len, v / len];
+    }
+    const w = s.geo.atlasW;
+    const data = s.data!;
+    const L = Math.max(0.5, b.halfLength * PAINT.texelsPerMeter);
+    const T = Math.max(0.5, b.halfWidth * PAINT.texelsPerMeter);
+    const fade = b.edge * L;
+    const ex = Math.abs(ax) * L + Math.abs(ay) * T;
+    const ey = Math.abs(ay) * L + Math.abs(ax) * T;
+    // Clip to the face rect plus its 1-texel padding so paint never bleeds onto another face.
+    const x0 = Math.max(rect.x - 1, Math.floor(cx - ex));
+    const x1 = Math.min(rect.x + rect.w, Math.floor(cx + ex));
+    const y0 = Math.max(rect.y - 1, Math.floor(cy - ey));
+    const y1 = Math.min(rect.y + rect.h, Math.floor(cy + ey));
+    const runs = DRIPS.enabled && rect.upright ? b.drip : 0;
+    let touched = false;
+    for (let y = y0; y <= y1; y++) {
+      for (let x = x0; x <= x1; x++) {
+        const dx = x + 0.5 - cx;
+        const dy = y + 0.5 - cy;
+        const along = Math.abs(dx * ax + dy * ay);
+        if (along > L || Math.abs(dy * ax - dx * ay) > T) continue;
+        const amt = fade > 0 ? b.amount * Math.min(1, (L - along) / fade) : b.amount;
+        if (amt <= 0) continue;
+        const i = (y * w + x) * 4;
+        if (runs && data[i + 3] >= 250) this.addExcess(s, rect, x, y, amt, runs);
+        blend(data, i, amt, b.color);
+        touched = true;
+      }
+    }
+    if (touched) this.markDirty(s, x0, y0, x1, y1);
   }
 
   /** One dot centered at atlas texel coords (cx, cy), clipped to `rect` (see stamp). */

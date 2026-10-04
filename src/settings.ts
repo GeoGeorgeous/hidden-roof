@@ -254,7 +254,6 @@ const SOUNDS: [label: string, key: keyof typeof AUDIO, desc: string][] = [
   ['RAIN', 'rainGain', 'The rain bed (only while it rains).'],
   ['DROPS ON METAL', 'metalGain', 'Raindrops pinging on AC units, rails and vents near you.'],
   ['THUNDER', 'thunderGain', 'Thunder after lightning.'],
-  ['SIRENS', 'sirenGain', 'Police and fire sirens passing far off.'],
   ['CITY', 'ambienceGain', 'The low rumble of the city below.'],
   ['AC FANS', 'fanGain', 'The hum of AC fans when you are close.'],
 ];

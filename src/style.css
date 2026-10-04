@@ -374,6 +374,9 @@ canvas {
   opacity: 0.55;
   transition: opacity 0.15s, transform 0.15s;
 }
+.hotbar i.empty {
+  opacity: 0.35;
+}
 .hotbar i.on {
   border-color: var(--ui);
   background: rgba(235, 229, 214, 0.35);

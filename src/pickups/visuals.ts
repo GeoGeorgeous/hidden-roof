@@ -70,6 +70,25 @@ export function itemModel(kind: PickupKind): THREE.Group {
       g.add(tread);
     }
     g.scale.setScalar(1.6);
+  } else if (k === 'roller') {
+    // A wide graffiti roller: a long fat cover on a bent wire frame and a short pole.
+    const cover = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.2, 14), basic('#e8e8e8'));
+    cover.rotation.z = Math.PI / 2;
+    cover.position.y = 0.09;
+    const wire = (x0: number, y0: number, x1: number, y1: number) => {
+      const len = Math.hypot(x1 - x0, y1 - y0);
+      const m = new THREE.Mesh(new THREE.BoxGeometry(0.006, len, 0.006), basic('#cfcfcf'));
+      m.position.set((x0 + x1) / 2, (y0 + y1) / 2, 0);
+      m.rotation.z = Math.atan2(x0 - x1, y1 - y0);
+      g.add(m);
+    };
+    wire(0.1, 0.09, 0.112, 0.09);
+    wire(0.112, 0.09, 0.112, 0.045);
+    wire(0.112, 0.045, 0, -0.01);
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.13, 10), basic('#1a1a1e'));
+    pole.position.y = -0.075;
+    g.add(cover, pole);
+    g.scale.setScalar(1.4);
   } else {
     const body = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.13, 10), basic('#1a1a1e'));
     const band = new THREE.Mesh(new THREE.CylinderGeometry(0.0115, 0.0115, 0.03, 10), basic('#e8e8e8'));

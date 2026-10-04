@@ -24,7 +24,7 @@ export class CanModel {
   private hand = new Hand();
   /** The label shows the paint color, so it keeps its color; everything else is ink. */
   private labelMat = inkify(new THREE.MeshLambertMaterial(), true);
-  private capMat = inkify(new THREE.MeshLambertMaterial({ color: '#f4f4f4' }));
+  private capMat = inkify(new THREE.MeshLambertMaterial({ color: '#f4f4f4' }), true); // keeps its color, like the label
   private cap: THREE.Mesh;
   private nozzle: THREE.Mesh;
   private tip = new THREE.Object3D();

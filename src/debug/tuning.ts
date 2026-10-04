@@ -1,4 +1,4 @@
-import { SKYLINE, ATMOS, INK, AUDIO, CAP_ORDER, CAPS, CCTV, DAYLIGHT, DRIPS, FANS, FLICKER, GRADE, LIGHT_SPREAD_MAX, LIGHTMAP, LIGHTS, PICKUP, SIRENS, SMOKE, THUNDER, PLAYER_LIGHT, VOLUMETRICS, WALL_HAND, MARKER, PAINT, PLAYER, PRESSURE, RENDER, SPRAY, VIEWMODEL, HOLD } from '../config';
+import { SKYLINE, ATMOS, INK, AUDIO, CAP_ORDER, CAPS, CCTV, DAYLIGHT, DRIPS, FANS, FLICKER, GRADE, LIGHT_SPREAD_MAX, LIGHTMAP, LIGHTS, PICKUP, SMOKE, THUNDER, PLAYER_LIGHT, VOLUMETRICS, WALL_HAND, MARKER, PAINT, PLAYER, PRESSURE, RENDER, SPRAY, VIEWMODEL, HOLD, ROLLER } from '../config';
 
 // Debug panel contents: collapsible sections of live sliders/toggles that write
 // straight into the config objects, plus read-only stats. Each value knows its
@@ -31,6 +31,7 @@ const ROOTS: Record<string, Obj> = {
   PAINT: PAINT as unknown as Obj,
   SPRAY: SPRAY as unknown as Obj,
   MARKER: MARKER as unknown as Obj,
+  ROLLER: ROLLER as unknown as Obj,
   VIEWMODEL: VIEWMODEL as unknown as Obj,
   HOLD: HOLD as unknown as Obj,
   ATMOS: ATMOS as unknown as Obj,
@@ -46,7 +47,6 @@ const ROOTS: Record<string, Obj> = {
   PICKUP: PICKUP as unknown as Obj,
   AUDIO: AUDIO as unknown as Obj,
   THUNDER: THUNDER as unknown as Obj,
-  SIRENS: SIRENS as unknown as Obj,
   CCTV: CCTV as unknown as Obj,
   SMOKE: SMOKE as unknown as Obj,
   FANS: FANS as unknown as Obj,
@@ -92,8 +92,6 @@ export const live = {
   syncSkyline: () => {},
   /** Debug: a lightning strike right now. */
   strikeLightning: () => {},
-  /** Debug: a far siren right now. */
-  siren: () => {},
   /** GPU time of a render pass, as text ('n/a' without timer queries). */
   gpu: (_label: string) => 'n/a',
   /** While build mode shows daylight: the night values it replaced in ATMOS (see Atmosphere). */
@@ -252,8 +250,18 @@ export function sections(): Section[] {
         { kind: 'heading', label: 'MARKER' },
         r('reach', ['MARKER', 'reach'], 0.5, 4, 0.1),
         r('nib half-width (m, 0 = one texel)', ['MARKER', 'radius'], 0, 0.2, 0.001),
+        r('wheel: min half-width (m)', ['MARKER', 'radiusMin'], 0, 0.2, 0.001),
+        r('wheel: max half-width (m)', ['MARKER', 'radiusMax'], 0, 0.2, 0.001),
+        r('wheel: step (m)', ['MARKER', 'radiusStep'], 0.001, 0.05, 0.001),
         r('runs (x paint runs per m²)', ['MARKER', 'drips'], 0, 40, 0.5),
         r('line opacity', ['MARKER', 'strength'], 0.05, 1, 0.01),
+        { kind: 'heading', label: 'ROLLER' },
+        r('reach', ['ROLLER', 'reach'], 0.5, 5, 0.1),
+        r('stroke half-width (m)', ['ROLLER', 'halfWidth'], 0.05, 0.6, 0.01),
+        r('press half-depth (m)', ['ROLLER', 'halfDepth'], 0.005, 0.15, 0.005),
+        r('light ends (fraction)', ['ROLLER', 'edge'], 0, 0.5, 0.01),
+        r('opacity', ['ROLLER', 'strength'], 0.05, 1, 0.01),
+        r('runs (x paint runs per m²)', ['ROLLER', 'drips'], 0, 40, 0.5),
         { kind: 'heading', label: 'PAINT RUNS' },
         t('runs', ['DRIPS', 'enabled']),
         r('excess before a run (coats)', ['DRIPS', 'excess'], 0.5, 10, 0.1),
@@ -384,7 +392,6 @@ export function sections(): Section[] {
         r('drops on metal / s per piece', ['AUDIO', 'metalRate'], 0, 10, 0.1),
         r('drops on metal heard within (m)', ['AUDIO', 'metalRange'], 1, 20, 0.5),
         r('thunder', ['AUDIO', 'thunderGain'], 0, 1.5, 0.01),
-        r('far sirens', ['AUDIO', 'sirenGain'], 0, 0.6, 0.005),
         r('city ambience', ['AUDIO', 'ambienceGain'], 0, 0.3, 0.005),
         r('AC fan hum', ['AUDIO', 'fanGain'], 0, 0.5, 0.005),
         r('fan heard within (m)', ['AUDIO', 'fanRange'], 1, 20, 0.5),
@@ -406,11 +413,6 @@ export function sections(): Section[] {
         r('flash: sky', ['THUNDER', 'flashSky'], 0, 2, 0.05),
         r('thunder delay min (s)', ['THUNDER', 'minDelay'], 0, 5, 0.1),
         r('thunder delay max (s)', ['THUNDER', 'maxDelay'], 0, 10, 0.1),
-        { kind: 'heading', label: 'FAR SIRENS' },
-        t('sirens', ['SIRENS', 'enabled']),
-        { kind: 'action', label: 'SIREN NOW', run: () => live.siren() },
-        r('min seconds between', ['SIRENS', 'minInterval'], 5, 600, 1),
-        r('max seconds between', ['SIRENS', 'maxInterval'], 5, 900, 1),
         { kind: 'heading', label: 'CCTV CAMERAS' },
         r('start following within (m)', ['CCTV', 'followRange'], 1, 30, 0.5),
         r('follow fully within (m)', ['CCTV', 'lockRange'], 0, 20, 0.5),

@@ -1,10 +1,14 @@
+import { HOTBAR } from '../config';
 import { SLOTS, type Inventory, type Tool } from './inventory';
 import type { Thumbnails } from './thumbnails';
 
-// Hotbar, bottom center: one small circle per tool you have (can, marker,
-// ladder), each showing the item's pickup model as a pre-rendered icon
-// (thumbnails.ts; the can with the current paint color). The tool in hand has
-// a solid ring, the others a faint one. No numbers, no labels. Plus toasts.
+// Hotbar, bottom center: a row of small circles, HOTBAR.slots of them from the
+// start, one per slot key (1 = can, 2 = marker, 3 = ladder, 4 = roller, the
+// rest spare). A tool you have shows its pickup model as a pre-rendered icon
+// (thumbnails.ts; the can with the current paint color); a slot you haven't
+// found the tool for yet stays an empty circle, so every tool always sits under
+// its own key. The selected slot has a solid ring, the others a faint one. No
+// numbers, no labels. Plus toasts.
 // Pressure, color and cap stay by the tool in hand (hud.ts).
 
 /** The icon of each tool: its pickup model (the can's label in the current color). */
@@ -12,6 +16,7 @@ const ICON: Record<Tool, (inv: Inventory) => string> = {
   can: (inv) => `color:${inv.color}`,
   marker: () => 'marker',
   ladder: () => 'ladder',
+  roller: () => 'roller',
 };
 
 export class Hotbar {
@@ -45,9 +50,12 @@ export class Hotbar {
     }
     if (inv.version === this.version) return;
     this.version = inv.version;
-    const owned = (t: Tool) => t === 'can' || (t === 'marker' && inv.hasMarker) || (t === 'ladder' && inv.hasLadder);
-    this.root.innerHTML = SLOTS.map((t, i) =>
-      owned(t) ? `<i class="${i === inv.selected ? 'on' : ''}"><img src="${this.icons.get(ICON[t](inv))}" alt=""></i>` : '',
-    ).join('');
+    let html = '';
+    for (let i = 0; i < Math.max(HOTBAR.slots, SLOTS.length); i++) {
+      const t = SLOTS[i] as Tool | undefined;
+      const icon = t && inv.has(t) ? `<img src="${this.icons.get(ICON[t](inv))}" alt="">` : '';
+      html += `<i class="${i === inv.selected ? 'on' : ''}${icon ? '' : ' empty'}">${icon}</i>`;
+    }
+    this.root.innerHTML = html;
   }
 }

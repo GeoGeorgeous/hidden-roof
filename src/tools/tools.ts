@@ -7,11 +7,13 @@ import type { PaintSystem } from '../painting';
 import { SprayTool } from '../spray/spray-tool';
 import { LadderTool } from './ladder-tool';
 import { MarkerTool } from './marker';
+import { RollerTool } from './roller';
 import type { Level } from '../level/level';
 import { ViewSway, type Motion } from './view-sway';
 
-// Routes input to the tool in hand: 1 = can, 2 = marker, 3 = stepladder, Q/E =
-// color (can and marker), mouse wheel = cap (can) or turning the ladder. Owns the UI both tools share: it
+// Routes input to the tool in hand: 1 = can, 2 = marker, 3 = stepladder, 4 =
+// roller, Q/E = color (can, marker, roller), mouse wheel = cap (can), nib size
+// (marker) or turning the ladder. Owns the UI both tools share: it
 // reports color / cap changes (and which ones apply when switching tools) and
 // where the tags go next to whichever tool is in hand.
 
@@ -19,6 +21,7 @@ export class Tools {
   readonly spray: SprayTool;
   readonly marker: MarkerTool;
   readonly ladder: LadderTool;
+  readonly roller: RollerTool;
   private sway = new ViewSway();
   /** Called with the color when it changes or another tool comes out. */
   onColorChange: (color: PaintColor) => void = () => {};
@@ -38,7 +41,8 @@ export class Tools {
     this.spray = new SprayTool(scene, paint, solids, audio);
     this.marker = new MarkerTool(paint, solids, audio);
     this.ladder = new LadderTool(scene, level);
-    viewScene.add(this.spray.model.group, this.marker.model, this.ladder.model.group);
+    this.roller = new RollerTool(paint, solids, audio);
+    viewScene.add(this.spray.model.group, this.marker.model, this.ladder.model.group, this.roller.model.group);
   }
 
   /** `enabled` is false in build mode: tools are put away but particles finish flying. */
@@ -49,18 +53,32 @@ export class Tools {
     this.marker.sway.rotation.copy(this.spray.model.sway.rotation);
     this.ladder.model.sway.position.copy(this.spray.model.sway.position);
     this.ladder.model.sway.rotation.copy(this.spray.model.sway.rotation);
+    this.roller.sway.position.copy(this.spray.model.sway.position);
+    this.roller.sway.rotation.copy(this.spray.model.sway.rotation);
     if (enabled) {
       SLOTS.forEach((_, i) => input.wasPressed(`Digit${i + 1}`) && inv.select(i));
       const dc = (input.wasPressed('KeyE') ? 1 : 0) - (input.wasPressed('KeyQ') ? 1 : 0);
       if (dc && inv.cycleColor(dc)) this.audio.click();
       if (SLOTS.some((_, i) => input.wasPressed(`Digit${i + 1}`))) this.audio.click();
       if (input.wheelSteps !== 0 && inv.tool === 'can' && inv.cycleCap(Math.sign(input.wheelSteps))) this.audio.click();
+      if (input.wheelSteps !== 0 && inv.tool === 'marker' && this.marker.resize(-Math.sign(input.wheelSteps))) this.audio.click();
     }
     const tool = enabled ? inv.tool : null;
     this.reportChanges(tool);
     this.spray.update(dt, input, camera, eye, tool === 'can' ? inv : null);
     this.marker.update(dt, input, camera, eye, tool === 'marker', inv.color);
     this.ladder.update(input, camera, motion.position, tool === 'ladder');
+    // After the marker: both use the scribble sound, and the roller only touches it while in hand or just put away.
+    this.roller.update(dt, input, camera, eye, tool === 'roller', inv.color);
+  }
+
+  /** Paused (F3 open, pointer free): keeps posing the tool in hand at rest, so HOLD tuning shows live. */
+  holdStill(camera: THREE.Camera) {
+    const tool = this.last?.tool;
+    if (tool === 'can') this.spray.model.update(0, camera, false, false, -1);
+    else if (tool === 'marker') this.marker.pose(camera, false);
+    else if (tool === 'ladder') this.ladder.model.update(camera, true);
+    else if (tool === 'roller') this.roller.model.update(0, camera, true, this.inventory.color, false, 0);
   }
 
   /** Screen anchor for the color / cap tags next to the tool in hand, or null with no tool. */
@@ -68,6 +86,7 @@ export class Tools {
     const tool = this.last?.tool;
     if (tool === 'can') return this.spray.model.labelAnchor(out);
     if (tool === 'marker') return this.marker.labelAnchor(out);
+    if (tool === 'roller') return this.roller.model.labelAnchor(out);
     return null;
   }
 

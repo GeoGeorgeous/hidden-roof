@@ -119,7 +119,15 @@ export class Pickups {
   private tryCollect(p: Pickup, inv: Inventory) {
     const c = parsePickup(p.kind)!;
     const ok =
-      'color' in c ? inv.addColor(c.color) : 'cap' in c ? inv.addCap(c.cap) : 'ladder' in c ? inv.giveLadder() : inv.giveMarker();
+      'color' in c
+        ? inv.addColor(c.color)
+        : 'cap' in c
+          ? inv.addCap(c.cap)
+          : 'ladder' in c
+            ? inv.giveLadder()
+            : 'roller' in c
+              ? inv.giveRoller()
+              : inv.giveMarker();
     if (!ok) {
       this.onBlocked(`already have ${pickupLabel(p.kind)}`);
       return;
