@@ -284,7 +284,7 @@ export const MARKER = {
   /** Max distance from the eye to the surface. */
   reach: 2.3,
   /** Line radius in meters (0 = one paint texel: the thinnest line, 4 cm on LOW paint detail, 1 cm on ULTRA). */
-  radius: 0,
+  radius: 0.15,
   strength: 0.95,
   /** First-person pose: distance in front of the eye, and model scale. */
   holdDistance: 0.38,

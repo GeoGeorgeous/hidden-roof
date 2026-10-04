@@ -7,7 +7,9 @@ import { PAINT, RENDER, SKYLINE, VOLUMETRICS } from './config';
 // or the whole city: stepping through the choices costs nothing. config.ts
 // holds the defaults.
 
-const KEY = 'taggin.settings';
+const KEY = 'taggin.settings.v2';
+/** Settings saved before v2: their paint detail and volumetrics are dropped, so the defaults (ULTRA, off) apply once. */
+const OLD_KEY = 'taggin.settings';
 const PIXEL_SCALES = [1, 1.5, 2, 2.5, 3, 4];
 const VOL_PRESETS = {
   off: { enabled: false, downscale: 2, steps: 16 },
@@ -136,7 +138,10 @@ export class Settings {
 
 function load(): Saved {
   try {
-    return JSON.parse(localStorage.getItem(KEY) ?? '{}') as Saved;
+    const saved = localStorage.getItem(KEY);
+    if (saved) return JSON.parse(saved) as Saved;
+    const old = JSON.parse(localStorage.getItem(OLD_KEY) ?? '{}') as Saved;
+    return { pixelScale: old.pixelScale, cityDetail: old.cityDetail };
   } catch {
     return {};
   }

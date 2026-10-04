@@ -106,7 +106,7 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
 
 - Every paintable piece gets one RGBA atlas holding all its faces, at `PAINT.texelsPerMeter`. The **PAINT DETAIL** setting (pause menu) picks it: LOW 24 (4.2 cm texels, the old look), MEDIUM 48, HIGH 72 or ULTRA 96 (1 cm texels, the default). Base textures stay at 24 texels per meter (`BASE_TEXTURES`).
 - The atlas is created the first time paint hits that piece.
-- **Sizes are in meters** (`CAPS.*.stampRadius`, `MARKER.radius`), so every paint detail sprays alike: texels whose centers lie inside a dot get paint. A dot smaller than a texel paints the texel under it, so the marker (radius 0) draws the thinnest line the detail allows: 4 cm on LOW, 1 cm on ULTRA.
+- **Sizes are in meters** (`CAPS.*.stampRadius`, `MARKER.radius`), so every paint detail sprays alike: texels whose centers lie inside a dot get paint. A dot smaller than a texel paints the texel under it, so a marker radius of 0 draws the thinnest line the detail allows: 4 cm on LOW, 1 cm on ULTRA (the default radius is 0.15 m).
 - **Spray:**
   - Each particle raycasts once when it's emitted.
   - It stamps paint into the atlas when it arrives.
