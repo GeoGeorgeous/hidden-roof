@@ -1,0 +1,154 @@
+import * as THREE from 'three';
+import type { Facade } from '../render/ink/facade';
+
+// Merged geometry for the city around the level, in chunks (so the camera
+// culls what's out of view), all drawn with the one surface material. City
+// geometry only stores what it uses (position, normal, tint, facade); the
+// attributes the surface shader also reads (paint and base UVs, swing, baked
+// light...) point at shared all-zero buffers, uploaded once for every chunk.
+
+export type V3 = [number, number, number];
+
+/** Chunk size (m): one draw call per chunk in view. */
+const CHUNK = 160;
+const PLAIN: Facade = [0, 0, 0, 0];
+
+interface Chunk {
+  pos: number[];
+  nrm: number[];
+  tint: number[];
+  fac: number[];
+  idx: number[];
+}
+
+/** Shared zero attributes, grown on demand (old ones stay with the geometries using them). */
+const zeros = new Map<number, THREE.BufferAttribute>();
+function zero(itemSize: number, count: number) {
+  let a = zeros.get(itemSize);
+  if (!a || a.count < count) {
+    a = new THREE.BufferAttribute(new Float32Array(Math.max(count, 65536) * itemSize), itemSize);
+    zeros.set(itemSize, a);
+  }
+  return a;
+}
+const ZERO_ATTRIBUTES: [string, number][] = [
+  ['uv', 2], ['baseUv', 2], ['emissive', 1], ['flicker', 1], ['swingPivot', 3], ['swing', 4], ['swingTrack', 3], ['lightUv', 2], ['baked', 3], ['bakedFlicker', 4],
+];
+
+export class CityMesh {
+  private chunks = new Map<string, Chunk>();
+  private tint = [0.6, 0.6, 0.6];
+  private facade: Facade = PLAIN;
+  private chunk: Chunk = this.at(0, 0);
+
+  /** Gray (sRGB 0..1) and facade of the pieces added next, and the chunk they go to (by a point in it). */
+  set(gray: number, facade: Facade = PLAIN, x?: number, z?: number) {
+    const l = new THREE.Color(gray, gray, gray).convertSRGBToLinear().r;
+    this.tint = [l, l, l];
+    this.facade = facade;
+    if (x !== undefined && z !== undefined) this.chunk = this.at(x, z);
+    return this;
+  }
+
+  private at(x: number, z: number) {
+    const key = `${Math.floor(x / CHUNK)},${Math.floor(z / CHUNK)}`;
+    let c = this.chunks.get(key);
+    if (!c) this.chunks.set(key, (c = { pos: [], nrm: [], tint: [], fac: [], idx: [] }));
+    return c;
+  }
+
+  private quad(a: V3, b: V3, c: V3, d: V3, n: V3) {
+    const ch = this.chunk;
+    const base = ch.pos.length / 3;
+    for (const p of [a, b, c, d]) {
+      ch.pos.push(p[0], p[1], p[2]);
+      ch.nrm.push(n[0], n[1], n[2]);
+      ch.tint.push(...this.tint);
+      ch.fac.push(...this.facade);
+    }
+    // Wind counter-clockwise as seen from the side the normal points to.
+    const cx = (b[1] - a[1]) * (c[2] - a[2]) - (b[2] - a[2]) * (c[1] - a[1]);
+    const cy = (b[2] - a[2]) * (c[0] - a[0]) - (b[0] - a[0]) * (c[2] - a[2]);
+    const cz = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+    if (cx * n[0] + cy * n[1] + cz * n[2] >= 0) ch.idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
+    else ch.idx.push(base, base + 2, base + 1, base, base + 3, base + 2);
+  }
+
+  /** Axis-aligned box; `bottom` false skips the underside (most city boxes sit on something). */
+  box(x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, bottom = false) {
+    this.quad([x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1], [0, 0, 1]);
+    this.quad([x1, y0, z0], [x0, y0, z0], [x0, y1, z0], [x1, y1, z0], [0, 0, -1]);
+    this.quad([x1, y0, z1], [x1, y0, z0], [x1, y1, z0], [x1, y1, z1], [1, 0, 0]);
+    this.quad([x0, y0, z0], [x0, y0, z1], [x0, y1, z1], [x0, y1, z0], [-1, 0, 0]);
+    this.quad([x0, y1, z1], [x1, y1, z1], [x1, y1, z0], [x0, y1, z0], [0, 1, 0]);
+    if (bottom) this.quad([x0, y0, z0], [x1, y0, z0], [x1, y0, z1], [x0, y0, z1], [0, -1, 0]);
+  }
+
+  /** Capped cylinder along y (axis 'y') or lying along x / z, from its base center. */
+  cyl(base: V3, axis: 'x' | 'y' | 'z', len: number, r: number, seg = 10) {
+    const ax = axis === 'x' ? 0 : axis === 'y' ? 1 : 2;
+    const u = ax === 1 ? 0 : 1; // the two axes across the cylinder
+    const v = ax === 2 ? 0 : 2;
+    const pt = (ang: number, t: number): V3 => {
+      const p: V3 = [...base];
+      p[ax] += t * len;
+      p[u] += Math.cos(ang) * r;
+      p[v] += Math.sin(ang) * r;
+      return p;
+    };
+    const nr = (ang: number): V3 => {
+      const n: V3 = [0, 0, 0];
+      n[u] = Math.cos(ang);
+      n[v] = Math.sin(ang);
+      return n;
+    };
+    for (let i = 0; i < seg; i++) {
+      const a0 = (i / seg) * Math.PI * 2;
+      const a1 = ((i + 1) / seg) * Math.PI * 2;
+      const am = (a0 + a1) / 2;
+      // Flat-shaded sides: each facet reads as a crisp drawn plane.
+      this.quad(pt(a0, 0), pt(a1, 0), pt(a1, 1), pt(a0, 1), nr(am));
+    }
+    // Caps as triangle fans folded into quads (center repeated).
+    for (const t of [0, 1]) {
+      const n: V3 = [0, 0, 0];
+      n[ax] = t ? 1 : -1;
+      const c: V3 = [...base];
+      c[ax] += t * len;
+      for (let i = 0; i < seg; i += 2) {
+        const p0 = pt((i / seg) * Math.PI * 2, t);
+        const p1 = pt(((i + 1) / seg) * Math.PI * 2, t);
+        const p2 = pt(((i + 2) / seg) * Math.PI * 2, t);
+        this.quad(c, p0, p1, p2, n);
+      }
+    }
+  }
+
+  /** One mesh per chunk. */
+  build(material: THREE.Material): THREE.Mesh[] {
+    const out: THREE.Mesh[] = [];
+    for (const ch of this.chunks.values()) {
+      if (!ch.idx.length) continue;
+      const n = ch.pos.length / 3;
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(ch.pos, 3));
+      g.setAttribute('normal', new THREE.Float32BufferAttribute(ch.nrm, 3));
+      g.setAttribute('tint', new THREE.Float32BufferAttribute(ch.tint, 3));
+      g.setAttribute('facade', new THREE.Float32BufferAttribute(ch.fac, 4));
+      for (const [name, size] of ZERO_ATTRIBUTES) g.setAttribute(name, zero(size, n));
+      g.setIndex(n > 65535 ? new THREE.Uint32BufferAttribute(ch.idx, 1) : new THREE.Uint16BufferAttribute(ch.idx, 1));
+      g.computeBoundingSphere();
+      const m = new THREE.Mesh(g, material);
+      m.matrixAutoUpdate = false;
+      m.raycast = () => {};
+      out.push(m);
+    }
+    return out;
+  }
+}
+
+/** Free a chunk's own buffers; the shared zero buffers stay. */
+export function disposeCityMesh(m: THREE.Mesh) {
+  for (const [name] of ZERO_ATTRIBUTES) m.geometry.deleteAttribute(name);
+  m.geometry.dispose();
+}

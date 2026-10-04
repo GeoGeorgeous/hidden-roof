@@ -1,82 +1,56 @@
 import * as THREE from 'three';
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { makeSurfaceMaterial, tintGeometry, type TexName } from './materials';
-import { FACADES, type Facade } from './render/ink/facade';
-import { boxSurface, type BoxFace } from './surfaces';
-import { lcg } from './lcg';
+import { SKYLINE } from './config';
+import { makeSurfaceMaterial } from './materials';
+import { layoutCity } from './city/layout';
+import { CityMesh, disposeCityMesh } from './city/mesh';
+import { Lines, setLineRange } from './city/lines';
+import { dressTower } from './city/rooftops';
 
-// Non-paintable city around the level: deterministic random towers, merged
-// into a few draw calls. Buildings overlapping the level's bounds are left out.
+// The non-playable city around the level (src/city): towers in a street grid
+// with barcode facades, packed rooftops, and thin steel drawn as pen lines.
+// Seeded, so the same on every load; a level can override SKYLINE values in
+// its own `skyline` object. Merged into chunks: draw calls grow with the area
+// in view, not with the number of towers.
 
-type Box6 = [number, number, number, number, number, number];
-const STYLES = Object.values(FACADES) as Facade[];
+export type SkylineSettings = Partial<typeof SKYLINE>;
 
-const STREET = -90;
-
-function merged(boxes: Box6[], tex: TexName, tint: string, tile: number, skip: BoxFace[], facades?: Facade[]) {
-  if (!boxes.length) return null;
-  const geos = boxes.map(([x0, y0, z0, x1, y1, z1], i) =>
-    tintGeometry(boxSurface(new THREE.Vector3(x0, y0, z0), new THREE.Vector3(x1, y1, z1), skip, false).geometry, tint, 0, 0, facades?.[i]),
-  );
-  const g = mergeGeometries(geos);
-  for (const s of geos) s.dispose();
-  g.computeBoundingSphere();
-  const mat = makeSurfaceMaterial({ tex, tileMeters: tile });
-  const mesh = new THREE.Mesh(g, mat);
-  mesh.matrixAutoUpdate = false;
-  return mesh;
-}
-
-/** Free a skyline from buildSkyline: its geometry and materials (the base textures are shared). */
+/** Free a skyline from buildSkyline: its geometry and material. */
 export function disposeSkyline(group: THREE.Group) {
-  for (const m of group.children as THREE.Mesh[]) {
-    m.geometry.dispose();
-    (m.material as THREE.Material).dispose();
+  let material: THREE.Material | null = null;
+  for (const o of group.children) {
+    if ((o as THREE.Mesh).isMesh) {
+      disposeCityMesh(o as THREE.Mesh);
+      material = (o as THREE.Mesh).material as THREE.Material;
+    } else (o as THREE.LineSegments).geometry.dispose();
   }
+  material?.dispose();
 }
 
-export function buildSkyline(level: THREE.Box3): THREE.Group {
+/** Live settings that need no rebuild. */
+export function syncSkyline() {
+  setLineRange(SKYLINE.lineRange);
+}
+
+export function buildSkyline(level: THREE.Box3, overrides: SkylineSettings = {}): THREE.Group {
+  const cfg = { ...SKYLINE, ...overrides };
   const group = new THREE.Group();
-  const m = 7;
-  const clear = (x0: number, z0: number, x1: number, z1: number) =>
-    level.isEmpty() || x1 < level.min.x - m || x0 > level.max.x + m || z1 < level.min.z - m || z0 > level.max.z + m;
-  const rnd = lcg(7);
-  const towers: Box6[] = [];
-  const styles: Facade[] = [];
-  const tops: Box6[] = [];
-  for (let gx = -6; gx <= 6; gx++) {
-    for (let gz = -6; gz <= 6; gz++) {
-      if (gx === 0 && gz === 0) continue;
-      const cx = gx * 34 + (rnd() - 0.5) * 8;
-      const cz = gz * 34 + (rnd() - 0.5) * 8;
-      if (Math.hypot(cx, cz) < 26) continue;
-      const sx = 10 + rnd() * 14;
-      const sz = 10 + rnd() * 14;
-      // Closer buildings are mostly lower so you can see over them; a few towers poke up.
-      const tall = rnd() < 0.18;
-      const top = tall ? 10 + rnd() * 45 : -30 + rnd() * 34;
-      const style = STYLES[Math.floor(rnd() * STYLES.length)];
-      const ok = clear(cx - sx / 2, cz - sz / 2, cx + sx / 2, cz + sz / 2);
-      if (ok) {
-        towers.push([cx - sx / 2, STREET, cz - sz / 2, cx + sx / 2, top, cz + sz / 2]);
-        styles.push(style);
-      }
-      if (rnd() < 0.7) {
-        const hx = 2 + rnd() * 4;
-        const hz = 2 + rnd() * 4;
-        const ox = (rnd() - 0.5) * (sx - hx);
-        const oz = (rnd() - 0.5) * (sz - hz);
-        const h = 1.5 + rnd() * 3;
-        if (ok) tops.push([cx + ox - hx / 2, top, cz + oz - hz / 2, cx + ox + hx / 2, top + h, cz + oz + hz / 2]);
-      }
+  const mesh = new CityMesh();
+  const lines = new Lines();
+  for (const tw of layoutCity(level, cfg)) {
+    let y = cfg.street;
+    for (const t of tw.tiers) {
+      mesh.set(tw.gray, tw.facade, (t.x0 + t.x1) / 2, (t.z0 + t.z1) / 2);
+      mesh.box(t.x0, y, t.z0, t.x1, t.top, t.z1);
+      y = t.top;
     }
+    dressTower(tw, mesh, lines);
   }
-  const parts = [
-    merged(towers, 'flat', '#c4c4c4', 1, ['-y', '+y'], styles),
-    merged(towers, 'flat', '#8a8a8a', 1, ['-y', '+x', '-x', '+z', '-z']),
-    merged(tops, 'flat', '#9a9a9a', 1, ['-y']),
-    merged([[-600, STREET - 1, -600, 600, STREET, 600]], 'flat', '#15171c', 16, ['-y']),
-  ];
-  for (const p of parts) if (p) group.add(p);
+  // The street, far down in the void: nothing shows through under the city.
+  mesh.set(0.1, undefined, 0, 0);
+  mesh.box(-2000, cfg.street - 1, -2000, 2000, cfg.street, 2000);
+  const material = makeSurfaceMaterial({ tex: 'flat' });
+  for (const m of mesh.build(material)) group.add(m);
+  for (const l of lines.build()) group.add(l);
+  syncSkyline();
   return group;
 }

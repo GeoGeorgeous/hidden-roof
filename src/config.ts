@@ -181,8 +181,8 @@ export const INK = {
   /** Ragged tone edges: how far the noise shifts the steps (tone units). */
   toneNoise: 0.05,
   /** Meters below which the city sinks into black (the street far down), and where it is fully black. */
-  voidTop: -15,
-  voidBottom: -85,
+  voidTop: -42,
+  voidBottom: -88,
   /** Paint stays colored: its shading is light x this, never below `paintMin`. Hatching over paint in the dark. */
   paintLight: 1.4,
   paintMin: 0.4,
@@ -437,9 +437,34 @@ export const PLAYER = {
   hardLanding: 6,
 };
 
-/** Background city (skyline.ts). */
+/**
+ * The city around the level (src/city): seeded, so it's the same on every
+ * load. A level file can override any of these in its own `skyline` object
+ * (e.g. another seed, a wider margin). F3 -> Rendering -> City rebuilds it.
+ */
 export const SKYLINE = {
-  /** Fraction of punched facade windows that are lit (drawn as paper). */
+  seed: 7,
+  /** City radius around the level (m). */
+  radius: 650,
+  /** City block pitch (m) and street width range (m). */
+  block: 46,
+  streetMin: 8,
+  streetMax: 15,
+  /** Free space kept around the level (m). */
+  margin: 8,
+  /** Street height (m): far below the rooftops. */
+  street: -90,
+  /** Within this distance (m): low roofs to look down on, mixed with huge towers. */
+  near: 170,
+  /** Share of near lots that are huge towers, and their top height range (m). */
+  tallChance: 0.24,
+  tallMin: 30,
+  tallMax: 175,
+  /** Rooftop clutter (tanks, frames, masts, railings) within this distance (m). */
+  clutterRange: 280,
+  /** Multiplier for how far thin lines (lattices, railings, wires) stay visible. Live. */
+  lineRange: 1,
+  /** Fraction of punched facade windows that are lit (drawn as paper). Live. */
   litWindows: 0.08,
 };
 

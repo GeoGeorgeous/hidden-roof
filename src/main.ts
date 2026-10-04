@@ -23,7 +23,8 @@ import { Player } from './player';
 import { PaintSystem } from './painting';
 import { Level, type LevelData } from './level/level';
 import { makeSky } from './sky';
-import { buildSkyline, disposeSkyline } from './skyline';
+import { buildSkyline, disposeSkyline, syncSkyline, type SkylineSettings } from './skyline';
+import { setLinePointScale } from './city/lines';
 import { Tools } from './tools/tools';
 import { Inventory } from './inventory/inventory';
 import { Hotbar } from './inventory/hotbar';
@@ -134,12 +135,21 @@ function loadLevel(data: LevelData) {
   level.load(data);
   pickups.load(data.pickups as PickupData[] | undefined);
   inventory.reset();
-  scene.remove(skyline);
-  disposeSkyline(skyline);
-  skyline = buildSkyline(level.totalBounds());
-  scene.add(skyline);
+  skylineSettings = (data.skyline as SkylineSettings | undefined) ?? {};
+  rebuildCity();
   player.setSpawn(new THREE.Vector3(...data.spawn.pos), data.spawn.yaw);
 }
+
+/** The city around the level, from SKYLINE + the level's own `skyline` overrides. */
+let skylineSettings: SkylineSettings = {};
+function rebuildCity() {
+  scene.remove(skyline);
+  disposeSkyline(skyline);
+  skyline = buildSkyline(level.totalBounds(), skylineSettings);
+  scene.add(skyline);
+}
+live.rebuildCity = rebuildCity;
+live.syncSkyline = syncSkyline;
 build.onLoad = loadLevel;
 
 const levelName = new URLSearchParams(location.search).get('level') ?? 'demo';
@@ -226,6 +236,7 @@ function frame(time: number) {
   const pointScale = viewHeight / (2 * Math.tan((camera.fov * Math.PI) / 360));
   lightFx.setPointScale(pointScale);
   smoke.setPointScale(pointScale);
+  setLinePointScale(pointScale);
   sky.position.copy(eye);
   (scene.fog as THREE.FogExp2).density = ATMOS.fogDensity;
   setHex((scene.fog as THREE.FogExp2).color, INK.paper);

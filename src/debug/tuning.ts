@@ -86,6 +86,10 @@ export const live = {
   syncAtmosphere: () => {},
   /** Re-apply DAYLIGHT if build mode is showing it. */
   applyDaylight: () => {},
+  /** Rebuild the city around the level (SKYLINE changed). */
+  rebuildCity: () => {},
+  /** Apply live SKYLINE values (line range). */
+  syncSkyline: () => {},
   /** Debug: a lightning strike right now. */
   strikeLightning: () => {},
   /** Debug: a far siren right now. */
@@ -287,8 +291,22 @@ export function sections(): Section[] {
         r('real light budget (bake off)', ['ATMOS', 'lightBudget'], 0, 8, 1),
         r('emissive boost', ['ATMOS', 'emissiveBoost'], 0, 6, 0.1),
         ...v3('moon direction', ['ATMOS', 'moonDir'], -1, 1, 0.01, sync),
-        { kind: 'heading', label: 'SKYLINE' },
+        { kind: 'heading', label: 'CITY' },
         r('lit windows', ['SKYLINE', 'litWindows'], 0, 1, 0.01),
+        r('thin lines visible to (x)', ['SKYLINE', 'lineRange'], 0, 3, 0.05, () => live.syncSkyline()),
+        r('seed', ['SKYLINE', 'seed'], 1, 100, 1),
+        r('radius (m)', ['SKYLINE', 'radius'], 100, 1200, 10),
+        r('block pitch (m)', ['SKYLINE', 'block'], 20, 120, 1),
+        r('street min (m)', ['SKYLINE', 'streetMin'], 2, 40, 0.5),
+        r('street max (m)', ['SKYLINE', 'streetMax'], 2, 40, 0.5),
+        r('margin round the level (m)', ['SKYLINE', 'margin'], 0, 60, 1),
+        r('street height (m)', ['SKYLINE', 'street'], -300, -10, 1),
+        r('near ring (m)', ['SKYLINE', 'near'], 0, 600, 5),
+        r('huge tower share', ['SKYLINE', 'tallChance'], 0, 1, 0.01),
+        r('huge tower min top (m)', ['SKYLINE', 'tallMin'], -50, 300, 1),
+        r('huge tower max top (m)', ['SKYLINE', 'tallMax'], -50, 400, 1),
+        r('rooftop clutter range (m)', ['SKYLINE', 'clutterRange'], 0, 800, 10),
+        { kind: 'action', label: 'rebuild city', run: () => live.rebuildCity() },
       ],
     },
     {
