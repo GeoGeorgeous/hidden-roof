@@ -173,8 +173,9 @@ export class Level {
   /** Does any box penetrate a placed prop's colliders (joints excluded)? */
   overlaps(boxes: THREE.Box3[], margin = 0.02) {
     const shrunk = boxes.map((b) => b.clone().expandByScalar(-margin));
+    const all = shrunk.reduce((u, s) => u.union(s), new THREE.Box3());
     for (const b of this.built.values()) {
-      if (!b.bounds.intersectsBox(shrunk.reduce((u, s) => u.union(s), new THREE.Box3()))) continue;
+      if (!b.bounds.intersectsBox(all)) continue;
       for (const c of b.colliders) for (const s of shrunk) if (s.intersectsBox(c)) return true;
     }
     return false;

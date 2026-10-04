@@ -45,7 +45,11 @@ export class BuildMode {
   private history = new History();
   private raycaster = new THREE.Raycaster();
   private down = new THREE.Raycaster();
+  /** Help readout (top right): built once, then only its changing lines are rewritten. */
   private hud: HTMLElement;
+  private aimText = new Text();
+  private planeText = new Text();
+  private statusEl: HTMLElement;
   private status = '';
   private statusTime = 0;
   private valid = false;
@@ -65,8 +69,12 @@ export class BuildMode {
     this.ghost = new Ghost(scene);
     this.grid = new CursorGrid(scene);
     this.spawnMarker = new SpawnMarker(scene, PLAYER.height, PLAYER.radius);
-    this.hud = document.createElement('div');
-    this.hud.className = 'build-help';
+    this.hud = div('build-help');
+    const levels = div('levels');
+    levels.append(this.aimText, document.createElement('br'), this.planeText);
+    this.statusEl = div('status');
+    this.statusEl.hidden = true;
+    this.hud.append(div('title', 'BUILD'), levels, div('', HELP), this.statusEl);
     document.body.appendChild(this.hud);
     this.setActive(false);
   }
@@ -123,9 +131,18 @@ export class BuildMode {
 
     this.picker.render();
     if (this.status && performance.now() - this.statusTime > 2500) this.status = '';
+    this.renderHud();
+  }
+
+  /** Rewrite only the readout lines that changed (plain text, never parsed as HTML). */
+  private renderHud() {
     const at = this.placement ? describeHeight(this.placement.pos[1]) : '—';
-    const levels = `<div class="levels">AIM ${at}<br>PLANE LEVEL ${this.workLevel}</div>`;
-    this.hud.innerHTML = `<div class="title">BUILD</div>${levels}<div>${HELP}</div>${this.status ? `<div class="status">${this.status}</div>` : ''}`;
+    setText(this.aimText, `AIM ${at}`);
+    setText(this.planeText, `PLANE LEVEL ${this.workLevel}`);
+    if (this.statusEl.textContent !== this.status) {
+      this.statusEl.textContent = this.status;
+      this.statusEl.hidden = !this.status;
+    }
   }
 
   /** LMB places; holding it keeps placing wherever the ghost moves (pillars, bridges). */
@@ -247,7 +264,7 @@ export class BuildMode {
     const id = this.level.idOf(o);
     const inst = id !== undefined ? this.level.props.get(id) : undefined;
     if (!inst) return;
-    this.history.push({ op: 'remove', kind: 'prop', id: inst.id, data: { type: inst.type, pos: inst.pos, rot: inst.rot } satisfies PropData });
+    this.history.push({ op: 'remove', kind: 'prop', id: inst.id, data: { type: inst.type, pos: inst.pos, rot: inst.rot, adjust: inst.adjust } satisfies PropData });
     this.level.remove(inst.id);
   }
 
@@ -282,6 +299,14 @@ export class BuildMode {
     this.status = m;
     this.statusTime = performance.now();
   }
+}
+
+function div(className: string, text = '') {
+  return Object.assign(document.createElement('div'), { className, textContent: text });
+}
+
+function setText(node: Text, s: string) {
+  if (node.data !== s) node.data = s;
 }
 
 function axisNormal(n: THREE.Vector3) {
