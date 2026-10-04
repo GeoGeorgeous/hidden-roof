@@ -1,14 +1,15 @@
 import * as THREE from 'three';
+import { inkify } from '../render/ink/tone';
 
 // First-person gloved hand gripping the spray can, built from box segments in
 // the can's local space (can axis = +y, nozzle facing -z, camera behind +z).
 // Middle, ring and pinky fingers wrap the front of the can, the thumb wraps the
 // back, the index finger arches over the cap and pivots at the knuckle to press
-// the nozzle. Neutral grays only (gloves + sleeve).
+// the nozzle. Drawn in ink like the world (pale gloves, dark sleeve).
 
 const CAN_R = 0.033;
-export const glove = new THREE.MeshLambertMaterial({ color: '#75787e' });
-export const sleeve = new THREE.MeshLambertMaterial({ color: '#3c3f44' });
+export const glove = inkify(new THREE.MeshLambertMaterial({ color: '#a4a6aa' }));
+export const sleeve = inkify(new THREE.MeshLambertMaterial({ color: '#3c3f44' }));
 const UP = new THREE.Vector3(0, 1, 0);
 
 /** Point on a circle around the can axis: angle 0 = back (+z), 90° = right (+x), 180° = front. */

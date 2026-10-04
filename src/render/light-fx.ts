@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { ATMOS, LIGHTS } from '../config';
 import { syncAnchor, type LightAnchor } from '../level/build-prop';
 
-// Cheap light tricks for every light prop, in two draw calls total:
+// Cheap light tricks for every light prop, in two draw calls total (white,
+// whatever the light's color: the world is ink, only paint has color):
 //  - glow sprites at the lens: one Points batch, additive, soft round falloff,
 //    bright when you look into the lens and gone when you see it from behind
 //  - beams: one merged additive mesh, fading along the beam
@@ -28,7 +29,8 @@ const glowMaterial = new THREE.ShaderMaterial({
       vec3 toCam = normalize(cameraPosition - (modelMatrix * vec4(position, 1.0)).xyz);
       // facing = 0: a bare bulb, visible from every side.
       float face = dot(facing, facing) < 0.25 ? 1.0 : smoothstep(-0.1, 0.5, dot(toCam, facing));
-      vColor = color * face * exp(-uFogDensity * 0.6 * d);
+      // Ink look: lights are white, never colored.
+      vColor = vec3(dot(color, vec3(0.2126, 0.7152, 0.0722))) * face * exp(-uFogDensity * 0.6 * d);
       gl_PointSize = size * uScale / max(d, 0.1);
       gl_Position = projectionMatrix * mv;
     }`,
@@ -56,7 +58,7 @@ const coneMaterial = new THREE.ShaderMaterial({
     varying vec3 vN;
     varying vec3 vView;
     void main() {
-      vColor = color;
+      vColor = vec3(dot(color, vec3(0.2126, 0.7152, 0.0722)));
       vAlong = along;
       vec4 mv = modelViewMatrix * vec4(position, 1.0);
       vN = normalize(normalMatrix * normal);

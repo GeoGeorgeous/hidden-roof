@@ -1,4 +1,4 @@
-import { SKYLINE, ATMOS, AUDIO, CAN_SIZES, CAP_ORDER, CAPS, CCTV, DAYLIGHT, DRIPS, FANS, FLICKER, GRADE, LIGHT_SPREAD_MAX, LIGHTMAP, LIGHTS, PICKUP, SIRENS, SMOKE, THUNDER, PLAYER_LIGHT, VOLUMETRICS, WALL_HAND, MARKER, PAINT, PLAYER, PRESSURE, RENDER, SPRAY, VIEWMODEL } from '../config';
+import { SKYLINE, ATMOS, INK, AUDIO, CAN_SIZES, CAP_ORDER, CAPS, CCTV, DAYLIGHT, DRIPS, FANS, FLICKER, GRADE, LIGHT_SPREAD_MAX, LIGHTMAP, LIGHTS, PICKUP, SIRENS, SMOKE, THUNDER, PLAYER_LIGHT, VOLUMETRICS, WALL_HAND, MARKER, PAINT, PLAYER, PRESSURE, RENDER, SPRAY, VIEWMODEL } from '../config';
 
 // Debug panel contents: collapsible sections of live sliders/toggles that write
 // straight into the config objects, plus read-only stats. Each value knows its
@@ -34,6 +34,7 @@ const ROOTS: Record<string, Obj> = {
   MARKER: MARKER as unknown as Obj,
   VIEWMODEL: VIEWMODEL as unknown as Obj,
   ATMOS: ATMOS as unknown as Obj,
+  INK: INK as unknown as Obj,
   LIGHTS: LIGHTS as unknown as Obj,
   LIGHTMAP: LIGHTMAP as unknown as Obj,
   VOLUMETRICS: VOLUMETRICS as unknown as Obj,
@@ -143,7 +144,7 @@ function daylightItems(): Item[] {
   const apply = () => live.applyDaylight();
   const ranges: Record<string, [number, number, number]> = {
     fogDensity: [0, 0.05, 0.001], cloudBase: [5, 400, 5], ambient: [0, 4, 0.05], moon: [0, 6, 0.05],
-    practical: [0, 4, 0.05], windowGlow: [0, 3, 0.05], emissiveBoost: [0, 6, 0.1], paintGlow: [0, 0.5, 0.01], wetness: [0, 1, 0.01],
+    practical: [0, 4, 0.05], windowGlow: [0, 3, 0.05], emissiveBoost: [0, 6, 0.1], wetness: [0, 1, 0.01],
   };
   return Object.entries(DAYLIGHT).flatMap(([k, v]): Item[] => {
     if (typeof v === 'string') return [c(k, ['DAYLIGHT', k], apply)];
@@ -276,7 +277,7 @@ export function sections(): Section[] {
         c('rain color', ['ATMOS', 'rainColor']),
         r('rain opacity', ['ATMOS', 'rainOpacity'], 0, 4, 0.05),
         ...v3('wind', ['ATMOS', 'wind'], -5, 5, 0.1),
-        r('fog density', ['ATMOS', 'fogDensity'], 0, 0.08, 0.001),
+        r('fade into paper (1/m)', ['ATMOS', 'fogDensity'], 0, 0.03, 0.0005),
         r('cloud base', ['ATMOS', 'cloudBase'], 5, 80, 1),
         r('cloud fade', ['ATMOS', 'cloudFade'], 2, 60, 1),
         r('wetness', ['ATMOS', 'wetness'], 0, 1, 0.01),
@@ -288,7 +289,6 @@ export function sections(): Section[] {
         r('real light budget (bake off)', ['ATMOS', 'lightBudget'], 0, 8, 1),
         r('emissive boost', ['ATMOS', 'emissiveBoost'], 0, 6, 0.1),
         r('window glow', ['ATMOS', 'windowGlow'], 0, 3, 0.05),
-        r('paint glow', ['ATMOS', 'paintGlow'], 0, 0.5, 0.01),
         ...v3('moon direction', ['ATMOS', 'moonDir'], -1, 1, 0.01, sync),
         { kind: 'heading', label: 'SKYLINE' },
         r('window scale (m per 8 windows)', ['SKYLINE', 'windowScale'], 4, 128, 1, () => live.syncSkyline()),
@@ -296,11 +296,33 @@ export function sections(): Section[] {
         r('window randomness', ['SKYLINE', 'randomness'], 0, 1, 0.01, () => live.repaintSkyline()),
         r('brightness variation', ['SKYLINE', 'brightnessVariation'], 0, 1, 0.01, () => live.repaintSkyline()),
         r('pattern seed', ['SKYLINE', 'seed'], 1, 50, 1, () => live.repaintSkyline()),
-        { kind: 'heading', label: 'COLORS' },
-        c('sky zenith', ['ATMOS', 'skyZenith'], sync),
-        c('sky horizon', ['ATMOS', 'skyHorizon'], sync),
-        c('fog', ['ATMOS', 'fogColor'], sync),
-        c('clouds', ['ATMOS', 'cloudColor'], sync),
+      ],
+    },
+    {
+      id: 'ink',
+      title: 'Ink',
+      items: [
+        c('paper', ['INK', 'paper']),
+        c('ink', ['INK', 'ink']),
+        r('exposure', ['INK', 'exposure'], 0.2, 5, 0.05),
+        r('paper above tone', ['INK', 'paperTone'], 0, 1.5, 0.01),
+        r('cross-hatch below', ['INK', 'hatchTone'], 0, 1, 0.01),
+        r('solid ink below', ['INK', 'blackTone'], 0, 1, 0.01),
+        r('ragged tone edges', ['INK', 'toneNoise'], 0, 0.3, 0.005),
+        r('hatch spacing (px)', ['INK', 'hatchPx'], 2, 16, 0.5),
+        r('hatch line width', ['INK', 'hatchWidth'], 0.05, 0.9, 0.01),
+        r('void starts (m)', ['INK', 'voidTop'], -100, 40, 1),
+        r('void is black at (m)', ['INK', 'voidBottom'], -150, 20, 1),
+        { kind: 'heading', label: 'OUTLINES + PAPER' },
+        r('outlines', ['INK', 'outline'], 0, 2, 0.05),
+        r('crease sensitivity', ['INK', 'crease'], 0, 4, 0.05),
+        r('outlines thin out over (m)', ['INK', 'outlineFade'], 10, 1000, 5),
+        r('wobble (px)', ['INK', 'wobble'], 0, 3, 0.05),
+        r('paper grain', ['INK', 'grain'], 0, 3, 0.05),
+        { kind: 'heading', label: 'PAINT' },
+        r('paint light', ['INK', 'paintLight'], 0.2, 4, 0.05),
+        r('paint darkest', ['INK', 'paintMin'], 0, 1, 0.01),
+        r('hatching over paint', ['INK', 'paintHatch'], 0, 1, 0.01),
       ],
     },
     {

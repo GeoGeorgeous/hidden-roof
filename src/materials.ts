@@ -3,16 +3,19 @@ import { ATMOS, BASE_TEXTURES, FANS, FLICKER, LIGHTMAP, PAINT } from './config';
 import { FLICKER_GLSL } from './render/flicker';
 import { TRACK_GLSL, trackUniforms } from './render/cctv-track';
 import { BAKE_FRAG, BAKE_FRAG_PARS, BAKE_VERT, BAKE_VERT_PARS, bakeUniforms } from './render/bake/glsl';
+import { INK_FRAG, INK_PARS, inkUniforms, syncInkUniforms } from './render/ink/tone';
 import { glowFor, textures, type TexName } from './textures';
 
 export type { TexName } from './textures';
 
-// The one surface material: three's Phong (lights, shadows, fog) with injected
+// The one surface material: three's Phong (lights, shadows) with injected
 //  - world-aligned base texture tinted per vertex
-//  - the paint atlas layered on top (single paint layer)
+//  - ink instead of color (render/ink/tone.ts): the lit result becomes paper,
+//    hatching or solid ink; distance and low clouds fade it into paper
+//  - the paint atlas layered on top (single paint layer), the only color
 //  - wet look on up-facing surfaces (darker + specular)
 //  - per-vertex emissive (lamps, neon) and window glow masks (skyline)
-//  - low clouds: everything above the cloud base fades into the cloud color
+//  - low clouds: everything above the cloud base fades into paper
 //  - swinging decor (CCTV heads): rotated around a vertical pivot in the vertex
 //    shader from per-vertex swing attributes, so it stays in the level batches;
 //    CCTV heads also turn to follow a nearby player and light their lens
@@ -30,10 +33,8 @@ export const shared = {
   uWet: { value: ATMOS.wetness },
   uEmissiveBoost: { value: ATMOS.emissiveBoost },
   uGlowStrength: { value: ATMOS.windowGlow },
-  uPaintGlow: { value: ATMOS.paintGlow },
   uCloudBase: { value: ATMOS.cloudBase },
   uCloudFade: { value: ATMOS.cloudFade },
-  uCloudColor: { value: new THREE.Color(ATMOS.cloudColor) },
   uAlphaSteps: { value: PAINT.alphaSteps },
   uTime: { value: 0 },
   uSpin: { value: 0 },
@@ -47,6 +48,8 @@ export const shared = {
   ...trackUniforms,
   /** Baked lamp light and wet highlights (render/bake/glsl.ts). */
   ...bakeUniforms,
+  /** Paper, ink and tone steps (render/ink/tone.ts). */
+  ...inkUniforms,
 };
 
 export function syncSharedUniforms(time: number) {
@@ -59,11 +62,11 @@ export function syncSharedUniforms(time: number) {
   shared.uWet.value = ATMOS.wetness;
   shared.uEmissiveBoost.value = ATMOS.emissiveBoost;
   shared.uGlowStrength.value = ATMOS.windowGlow;
-  shared.uPaintGlow.value = ATMOS.paintGlow;
   shared.uCloudBase.value = ATMOS.cloudBase;
   shared.uCloudFade.value = ATMOS.cloudFade;
   shared.uAlphaSteps.value = PAINT.alphaSteps;
   shared.uBakedScale.value = LIGHTMAP.enabled ? ATMOS.practical : 0;
+  syncInkUniforms();
 }
 
 /**
@@ -127,13 +130,12 @@ uniform float uAlphaSteps;
 uniform float uWet;
 uniform float uEmissiveBoost;
 uniform float uGlowStrength;
-uniform float uPaintGlow;
 uniform float uCloudBase;
 uniform float uCloudFade;
-uniform vec3 uCloudColor;
 uniform float uShowPaintable;
 uniform float uPaintable;
 ${BAKE_FRAG_PARS}
+${INK_PARS}
 varying vec2 vBaseUv;
 varying vec2 vPaintUv;
 varying vec3 vTint;
@@ -152,16 +154,8 @@ vec4 paintTex = texture2D(uPaint, vPaintUv);
 float pa = paintTex.a;
 if (uAlphaSteps > 0.0) pa = ceil(pa * uAlphaSteps - 0.15) / uAlphaSteps;
 pa = clamp(pa, 0.0, 1.0);
-diffuseColor.rgb *= mix(baseCol, paintTex.rgb, pa);
-float hiStripe = 0.0;
-if (uShowPaintable > 0.5) {
-  if (uPaintable > 0.5) {
-    hiStripe = step(0.5, fract((vWorldPos.x + vWorldPos.y + vWorldPos.z) * 1.25));
-    diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.15, 1.0, 0.55), 0.4 + 0.25 * hiStripe);
-  } else {
-    diffuseColor.rgb *= 0.3;
-  }
-}
+diffuseColor.rgb *= baseCol;
+float hiStripe = step(0.5, fract((vWorldPos.x + vWorldPos.y + vWorldPos.z) * 1.25));
 `;
 const FRAG_SPECULAR = /* glsl */ `
 float specularStrength = wet * (1.0 - 0.6 * pa);
@@ -169,12 +163,6 @@ float specularStrength = wet * (1.0 - 0.6 * pa);
 const FRAG_EMISSIVE = /* glsl */ `
 totalEmissiveRadiance += diffuseColor.rgb * vEmissiveV * uEmissiveBoost;
 totalEmissiveRadiance += texture2D(uGlow, vBaseUv).rgb * uGlowStrength;
-totalEmissiveRadiance += paintTex.rgb * pa * uPaintGlow;
-if (uShowPaintable > 0.5 && uPaintable > 0.5) totalEmissiveRadiance += vec3(0.03, 0.2, 0.1) * (1.0 + hiStripe);
-`;
-const FRAG_FOG = /* glsl */ `
-#include <fog_fragment>
-gl_FragColor.rgb = mix(gl_FragColor.rgb, uCloudColor, smoothstep(uCloudBase, uCloudBase + uCloudFade, vWorldPos.y));
 `;
 
 export interface SurfaceMaterialOptions {
@@ -226,13 +214,14 @@ export class SurfaceMaterial extends THREE.MeshPhongMaterial {
         .replace('#include <specularmap_fragment>', FRAG_SPECULAR)
         .replace('#include <emissivemap_fragment>', FRAG_EMISSIVE)
         .replace('#include <lights_fragment_maps>', `#include <lights_fragment_maps>\n${BAKE_FRAG}`)
-        .replace('#include <fog_fragment>', FRAG_FOG);
+        .replace('#include <opaque_fragment>', INK_FRAG)
+        .replace('#include <fog_fragment>', '');
     };
   }
 
   /** All surfaces share one program (alpha-tested ones a second, by their define); only uniforms differ. */
   customProgramCacheKey() {
-    return 'surface-v5';
+    return 'surface-ink-1';
   }
 
   /** Meters covered by one repeat of the base texture (live). */

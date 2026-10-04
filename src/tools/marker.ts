@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { inkify } from '../render/ink/tone';
 import { COLORS, MARKER, type PaintColor } from '../config';
 import type { Audio } from '../audio';
 import type { Input } from '../input';
@@ -24,14 +25,15 @@ export class MarkerTool {
   private prev: THREE.Vector3 | null = null;
   private raycaster = new THREE.Raycaster();
   private near: THREE.Object3D[] = [];
-  private bandMat = new THREE.MeshLambertMaterial({ color: COLORS.black });
+  /** Shows the paint color, so it keeps its color. */
+  private bandMat = inkify(new THREE.MeshLambertMaterial({ color: COLORS.black }), true);
 
   constructor(
     private paint: PaintSystem,
     private solids: THREE.Mesh[],
     private audio: Audio,
   ) {
-    const black = new THREE.MeshLambertMaterial({ color: '#1a1a1e' });
+    const black = inkify(new THREE.MeshLambertMaterial({ color: '#1a1a1e' }));
     const body = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.13, 10), black);
     const band = new THREE.Mesh(new THREE.CylinderGeometry(0.0115, 0.0115, 0.03, 10), this.bandMat);
     const nib = new THREE.Mesh(new THREE.ConeGeometry(0.006, 0.02, 8), black);

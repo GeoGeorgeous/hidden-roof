@@ -1,12 +1,13 @@
-/* Body-cam overlay style: white + one alert color, thin lines, small monospace,
-   no panels. A soft shadow keeps text readable over bright sky. */
+/* Body-cam overlay style, inked: ink + one alert color, thin lines, small
+   monospace, no panels. A soft paper halo keeps text readable over hatching. */
 
 :root {
-  --ui: #f4f4f0;
-  --dim: rgba(244, 244, 240, 0.62);
-  --alert: #ff3b30;
+  --ui: #141416;
+  --dim: rgba(20, 20, 22, 0.62);
+  --paper: #ebe5d6;
+  --alert: #d4261c;
   --line: 1px solid var(--ui);
-  --shadow: 0 0 2px rgba(0, 0, 0, 0.85), 0 0 6px rgba(0, 0, 0, 0.35);
+  --shadow: 0 0 2px rgba(235, 229, 214, 0.95), 0 0 6px rgba(235, 229, 214, 0.6);
 }
 
 html,
@@ -49,7 +50,7 @@ canvas {
 .vignette {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.28) 80%, rgba(0, 0, 0, 0.62) 100%);
+  background: radial-gradient(ellipse at center, transparent 60%, rgba(20, 20, 22, 0.1) 82%, rgba(20, 20, 22, 0.3) 100%);
 }
 
 .corner {
@@ -98,7 +99,7 @@ canvas {
   border: 1px solid var(--ui);
   border-radius: 50%;
   opacity: 0.85;
-  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.9));
+  filter: drop-shadow(0 0 1px rgba(235, 229, 214, 0.95));
   transition: width 0.12s, height 0.12s;
 }
 
@@ -122,7 +123,7 @@ canvas {
   align-items: center;
   justify-content: center;
   gap: 14px;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(235, 229, 214, 0.55);
 }
 .overlay .title {
   font-size: 22px;
@@ -148,7 +149,7 @@ canvas {
 }
 .overlay button:hover {
   background: var(--ui);
-  color: #000;
+  color: var(--paper);
   text-shadow: none;
 }
 .overlay .settings {

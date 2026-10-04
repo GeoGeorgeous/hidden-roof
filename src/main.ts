@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import * as config from './config';
-import { ATMOS, AUDIO, CAPS, COLORS, PLAYER, RENDER, SMOKE, THUNDER, VIEWMODEL } from './config';
+import { ATMOS, AUDIO, CAPS, COLORS, INK, PLAYER, RENDER, SMOKE, THUNDER, VIEWMODEL } from './config';
 import { syncSharedUniforms } from './materials';
 import { syncTrackUniforms } from './render/cctv-track';
 import { Lighting } from './render/lighting';
@@ -54,7 +54,7 @@ const post = new PostPipeline(renderer, gpuTimer);
 live.gpu = (label) => gpuTimer.read(label);
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(ATMOS.fogColor, ATMOS.fogDensity);
+scene.fog = new THREE.FogExp2(INK.paper, ATMOS.fogDensity);
 const camera = new THREE.PerspectiveCamera(RENDER.fov, window.innerWidth / window.innerHeight, 0.05, 2000);
 scene.add(camera);
 const sky = makeSky();
@@ -77,7 +77,7 @@ baker.onDecorBaked = (geo) => level.pushBaked(geo);
 const lightFx = new LightFX(scene);
 const rain = new Rain(scene);
 const heightmap = new Heightmap();
-const atmosphere = new Atmosphere(scene, sky, lighting);
+const atmosphere = new Atmosphere(sky, lighting);
 const playerLight = new PlayerLight(scene);
 const smoke = new Smoke(scene);
 const lightning = new Lightning();
@@ -231,6 +231,7 @@ function frame(time: number) {
   smoke.setPointScale(pointScale);
   sky.position.copy(eye);
   (scene.fog as THREE.FogExp2).density = ATMOS.fogDensity;
+  setHex((scene.fog as THREE.FogExp2).color, INK.paper);
   syncSharedUniforms(time / 1000);
   syncTrackUniforms(eye);
   if (!paused) lightning.update(dt, ATMOS.rain && !build.active);

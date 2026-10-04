@@ -17,21 +17,17 @@ export const RENDER = {
 
 /** Rainy night. Colors are hex; everything else is live-tunable in the debug panel. */
 export const ATMOS = {
-  skyZenith: '#343c4b',
-  skyHorizon: '#080b11',
-  fogColor: '#0e131a',
-  /** Exponential fog density (1/m). */
-  fogDensity: 0.009,
+  /** How fast the drawing fades into paper with distance (1/m). */
+  fogDensity: 0.004,
   /** Low clouds: everything above this height (relative to the level) fades into them. */
   cloudBase: 35,
   cloudFade: 40,
-  cloudColor: '#080b07',
-  ambientSky: '#7889ab',
+  ambientSky: '#8a8f99',
   ambientGround: '#000000',
-  ambient: 1,
-  moonColor: '#777698',
-  moon: 1.4,
-  moonDir: [-0.35, 0.85, -0.4] as [number, number, number],
+  ambient: 1.1,
+  moonColor: '#e6e4dc',
+  moon: 2.2,
+  moonDir: [-0.55, 0.65, -0.5] as [number, number, number],
   shadows: true,
   /** Real spot lights may cast shadow-map shadows (2 slots, kinds with `shadows`). Only while lamps aren't baked (LIGHTMAP.enabled off). */
   spotShadows: false,
@@ -46,8 +42,6 @@ export const ATMOS = {
   windowGlow: 0.25,
   /** Brightness of emissive surfaces (lamps, neon). */
   emissiveBoost: 1.8,
-  /** A little self-light on paint so graffiti reads in the dark. */
-  paintGlow: 0,
   /** Wet look on up-facing surfaces: darker + specular. */
   wetness: 0.15,
   rain: true,
@@ -55,7 +49,7 @@ export const ATMOS = {
   rainDensity: 0.09,
   rainSpeed: 8,
   /** Raindrop color, and how visible the drops are (multiplier, 1 = default). */
-  rainColor: '#b7c4e0',
+  rainColor: '#26272c',
   rainOpacity: 1,
   wind: [-3, 0, -2] as [number, number, number],
 };
@@ -131,12 +125,8 @@ export const LIGHTMAP = {
  * replace ATMOS while building; leaving build mode restores the night values.
  */
 export const DAYLIGHT: Partial<typeof ATMOS> = {
-  skyZenith: '#5f8fc4',
-  skyHorizon: '#c7d3de',
-  fogColor: '#bcc7d1',
   fogDensity: 0.003,
   cloudBase: 400,
-  cloudColor: '#bcc7d1',
   ambientSky: '#e4ecf5',
   ambientGround: '#7a7d82',
   ambient: 1.7,
@@ -146,7 +136,6 @@ export const DAYLIGHT: Partial<typeof ATMOS> = {
   practical: 0.4,
   windowGlow: 0,
   emissiveBoost: 0.8,
-  paintGlow: 0,
   wetness: 0,
   rain: false,
 };
@@ -173,14 +162,51 @@ export const VOLUMETRICS = {
   anisotropy: 0.35,
 };
 
+/**
+ * The ink look (render/ink): the world is drawn in ink on paper, and only the
+ * player's paint keeps its color. Lit surfaces get a tone (light x material
+ * gray), and the tone picks how much ink: paper, hatching, cross-hatching,
+ * solid black. Edges get pen outlines in the final pass. Live in F3 -> Ink.
+ */
+export const INK = {
+  paper: '#ebe5d6',
+  ink: '#141416',
+  /** Light multiplier before the tone steps (brighter = more paper). */
+  exposure: 1.6,
+  /** Tone steps (0..1): above `paper` no ink; below `hatch` cross-hatching; below `black` solid ink. */
+  paperTone: 0.46,
+  hatchTone: 0.27,
+  blackTone: 0.11,
+  /** Hatch line spacing on screen (px) at any distance, and line thickness (fraction of the spacing). */
+  hatchPx: 5,
+  hatchWidth: 0.3,
+  /** Ragged tone edges: how far the noise shifts the steps (tone units). */
+  toneNoise: 0.05,
+  /** Meters below which the city sinks into black (the street far down), and where it is fully black. */
+  voidTop: -15,
+  voidBottom: -85,
+  /** Paint stays colored: its shading is light x this, never below `paintMin`. Hatching over paint in the dark. */
+  paintLight: 1.4,
+  paintMin: 0.4,
+  paintHatch: 0.45,
+  /** Pen outlines from the depth buffer: strength, crease sensitivity, and distance over which they thin out (m). */
+  outline: 1,
+  crease: 1,
+  outlineFade: 260,
+  /** Outlines wobble by up to this many pixels (hand-drawn look). */
+  wobble: 0.6,
+  /** Paper grain strength. */
+  grain: 0.6,
+};
+
 /** Final color grading, applied in display space. Neutral = 0, 1, 1, 0, 0. */
 export const GRADE = {
   /** Stops (+1 = twice as bright). */
   exposure: 0,
-  contrast: 1.05,
-  saturation: 0.95,
+  contrast: 1,
+  saturation: 1,
   /** Warm (+) / cool (-) white balance. */
-  temperature: 0.25,
+  temperature: 0,
   /** Magenta (+) / green (-). */
   tint: 0,
 };
@@ -279,11 +305,11 @@ export const VIEWMODEL = {
   /** How far the index finger pushes the nozzle down (radians of finger rotation at the knuckle). */
   pressCurl: 0.06,
   pressSpeed: 25,
-  /** The hands' own lights (they're drawn in a separate pass): cold fill + warm rim. */
-  fillSky: '#5a6a8c',
+  /** The hands' own lights (they're drawn in a separate pass): fill + rim; they set the hands' ink tones. */
+  fillSky: '#a0a0a0',
   fillGround: '#0d0f14',
   fill: 1.6,
-  rimColor: '#ffd2a0',
+  rimColor: '#ffffff',
   rim: 0.9,
 };
 

@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { CAN_SIZES, CAPS, COLORS, VIEWMODEL, type CanSize, type CapId, type PaintColor } from '../config';
 import { Hand } from './hands';
 import { setHex } from '../hex-color';
+import { inkify } from '../render/ink/tone';
 
 // First-person spray can in a gloved hand (drawn in the view-model pass).
 // group follows the camera -> sway (look lag, walk bob) -> body (rest pose,
@@ -20,8 +21,9 @@ export class CanModel {
   private body = new THREE.Group();
   private can = new THREE.Group();
   private hand = new Hand();
-  private labelMat = new THREE.MeshLambertMaterial();
-  private capMat = new THREE.MeshLambertMaterial({ color: '#f4f4f4' });
+  /** The label shows the paint color, so it keeps its color; everything else is ink. */
+  private labelMat = inkify(new THREE.MeshLambertMaterial(), true);
+  private capMat = inkify(new THREE.MeshLambertMaterial({ color: '#f4f4f4' }));
   private cap: THREE.Mesh;
   private nozzle: THREE.Mesh;
   private tip = new THREE.Object3D();
@@ -30,10 +32,10 @@ export class CanModel {
   private capLift = 0;
 
   constructor() {
-    const silver = new THREE.MeshLambertMaterial({ color: '#d8d8d8' });
+    const silver = inkify(new THREE.MeshLambertMaterial({ color: '#d8d8d8' }));
     const shell = new THREE.Mesh(new THREE.CylinderGeometry(0.033, 0.033, 0.17, 12), silver);
     const label = new THREE.Mesh(new THREE.CylinderGeometry(0.0335, 0.0335, 0.09, 12), this.labelMat);
-    const shoulder = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.033, 0.025, 12), new THREE.MeshLambertMaterial({ color: '#c0c0c0' }));
+    const shoulder = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.033, 0.025, 12), inkify(new THREE.MeshLambertMaterial({ color: '#c0c0c0' })));
     this.cap = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.009, 0.014, 8), this.capMat);
     this.nozzle = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.006, 0.006), new THREE.MeshBasicMaterial({ color: '#202020' }));
     label.position.y = -0.01;
