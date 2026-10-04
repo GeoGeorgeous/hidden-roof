@@ -5,7 +5,7 @@ import type { GpuTimer } from '../debug/gpu-timer';
 import type { SurfaceMaterial } from '../materials';
 import type { Lighting } from './lighting';
 import { Volumetrics } from './volumetrics';
-import { composeShader, VIEW_DEPTH } from './ink/compose';
+import { composeShader, paperTexture, VIEW_DEPTH } from './ink/compose';
 import { inkUniforms } from './ink/tone';
 
 // Frame pipeline at the internal (pixelated) resolution:
@@ -54,6 +54,7 @@ export class PostPipeline {
         uOutlineFade: { value: 100 },
         uWobble: { value: 0 },
         uGrain: { value: 0 },
+        tPaper: { value: paperTexture() },
         uExposure: { value: 0 },
         uContrast: { value: 1 },
         uSaturation: { value: 1 },

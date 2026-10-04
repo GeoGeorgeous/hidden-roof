@@ -1,0 +1,108 @@
+import * as THREE from 'three';
+import { ATMOS } from '../config';
+import { shared } from '../materials';
+import { INK_PARS, inkUniforms } from '../render/ink/tone';
+import { FACADE_GLSL } from '../render/ink/facade';
+import { GRIME_GLSL } from '../render/ink/grime';
+import { glyphAtlas } from '../render/ink/glyphs';
+import type { Lighting } from '../render/lighting';
+
+// The city's own ink material: the same tones, hatching, facades and grime
+// as the surface material (render/ink), lit the same way by the moon and the
+// sky, but nothing the city never uses: no paint, baked lamps, spot lights,
+// shadows or swinging parts. Towers cover most of the screen, so this is
+// where most pixels are shaded; it costs a fraction of the full surface
+// shader. Signs use it with the glyph atlas (`lettering`).
+
+/** Moon and sky light, in the units the surface shader's inkLight() returns. */
+const light = {
+  uMoonDir: { value: new THREE.Vector3(0, 1, 0) },
+  uMoonLight: { value: 1 },
+  uSkyLight: { value: 0.3 },
+  uGroundLight: { value: 0 },
+};
+
+const lum = (c: THREE.Color) => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+
+/** Per frame, after Lighting.update: follow the moon, sky and lightning. */
+export function syncCityLight(lighting: Lighting) {
+  light.uMoonDir.value.fromArray(ATMOS.moonDir).normalize();
+  light.uMoonLight.value = lum(lighting.moon.color) * lighting.moon.intensity;
+  light.uSkyLight.value = lum(lighting.hemi.color) * lighting.hemi.intensity;
+  light.uGroundLight.value = lum(lighting.hemi.groundColor) * lighting.hemi.intensity;
+}
+
+const vertexShader = /* glsl */ `
+attribute vec3 tint;
+attribute vec4 facade;
+#ifdef LETTERING
+attribute vec2 baseUv;
+varying vec2 vUv;
+#endif
+varying vec3 vWorldPos;
+varying vec3 vWorldN;
+varying vec3 vTint;
+varying vec4 vFacade;
+void main() {
+  vec4 wp = modelMatrix * vec4(position, 1.0);
+  vWorldPos = wp.xyz;
+  vWorldN = normalize(mat3(modelMatrix) * normal);
+  vTint = tint;
+  vFacade = facade;
+#ifdef LETTERING
+  vUv = baseUv;
+#endif
+  gl_Position = projectionMatrix * viewMatrix * wp;
+}`;
+
+const fragmentShader = /* glsl */ `
+#include <common>
+uniform vec3 uMoonDir;
+uniform float uMoonLight;
+uniform float uSkyLight;
+uniform float uGroundLight;
+uniform float uCloudBase;
+uniform float uCloudFade;
+#ifdef LETTERING
+uniform sampler2D uGlyphs;
+varying vec2 vUv;
+#endif
+${INK_PARS}
+${FACADE_GLSL}
+${GRIME_GLSL}
+varying vec3 vWorldPos;
+varying vec3 vWorldN;
+varying vec3 vTint;
+varying vec4 vFacade;
+void main() {
+  vec3 n = normalize(vWorldN);
+  vec3 albedo = vTint;
+#ifdef LETTERING
+  albedo *= texture2D(uGlyphs, vUv).rgb;
+#endif
+  albedo = mix(albedo, vec3(0.002), facadeInk(vFacade, vWorldPos, n));
+  float light = uMoonLight * max(dot(n, uMoonDir), 0.0) + mix(uGroundLight, uSkyLight, 0.5 + 0.5 * n.y);
+  float tone = inkTone(albedo, light, vec3(0.0), vec3(0.0), vWorldPos);
+  vec2 hatch = inkHatches(vWorldPos, n);
+  vec4 grime = inkGrime(vWorldPos, n);
+  float dirt = max(hatch.y * grime.x, grime.w);
+  float keep = inkKeep(vWorldPos, uCloudBase, uCloudFade);
+  gl_FragColor = vec4(mix(uPaper, uInkColor, max(inkCover(tone, hatch, vWorldPos), dirt) * keep), 1.0);
+}`;
+
+export function cityMaterial(lettering = false) {
+  return new THREE.ShaderMaterial({
+    defines: lettering ? { LETTERING: '' } : {},
+    uniforms: {
+      ...inkUniforms,
+      ...light,
+      uCloudBase: shared.uCloudBase,
+      uCloudFade: shared.uCloudFade,
+      uLitWindows: shared.uLitWindows,
+      uGrime: shared.uGrime,
+      uGlyphs: { value: glyphAtlas() },
+    },
+    vertexShader,
+    fragmentShader,
+  });
+}

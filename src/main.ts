@@ -23,8 +23,9 @@ import { Player } from './player';
 import { PaintSystem } from './painting';
 import { Level, type LevelData } from './level/level';
 import { makeSky } from './sky';
-import { buildSkyline, disposeSkyline, syncSkyline, type SkylineSettings } from './skyline';
+import { buildSkyline, disposeSkyline, syncSkyline, updateSkyline, type SkylineSettings } from './skyline';
 import { setLinePointScale } from './city/lines';
+import { syncCityLight } from './city/material';
 import { Tools } from './tools/tools';
 import { Inventory } from './inventory/inventory';
 import { Hotbar } from './inventory/hotbar';
@@ -43,6 +44,7 @@ import { setHex } from './hex-color';
 const settings = new Settings(
   () => live.applyPixelScale(),
   () => level.rebuildAll(),
+  () => live.rebuildCity(),
 );
 const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
 renderer.setPixelRatio(1 / RENDER.pixelScale);
@@ -238,6 +240,7 @@ function frame(time: number) {
   smoke.setPointScale(pointScale);
   setLinePointScale(pointScale);
   sky.position.copy(eye);
+  updateSkyline(skyline, eye);
   (scene.fog as THREE.FogExp2).density = ATMOS.fogDensity;
   setHex((scene.fog as THREE.FogExp2).color, INK.paper);
   syncSharedUniforms(time / 1000);
@@ -245,6 +248,7 @@ function frame(time: number) {
   if (!paused) lightning.update(dt, ATMOS.rain && !build.active);
   if (!paused) sirens.update(dt, !build.active);
   lighting.update(eye, camera.matrixWorldInverse, time / 1000, lightning.flash);
+  syncCityLight(lighting);
   (sky.material as THREE.ShaderMaterial).uniforms.uFlash.value = lightning.flash * THUNDER.flashSky;
   playerLight.update(eye, !build.active);
   setHex(viewFill.color, VIEWMODEL.fillSky);
@@ -349,4 +353,4 @@ function toScreen(p: THREE.Vector3) {
 }
 
 // Handy for debugging in the console.
-Object.assign(window, { game: { config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, pickups, paint, level, build, renderer, input, hud, debug, live, PLAYER, loadLevel } });
+Object.assign(window, { game: { city: () => skyline, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, pickups, paint, level, build, renderer, input, hud, debug, live, PLAYER, loadLevel } });

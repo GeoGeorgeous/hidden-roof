@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { SKYLINE } from './config';
-import { makeSurfaceMaterial } from './materials';
 import { layoutCity } from './city/layout';
-import { CityMesh, disposeCityMesh } from './city/mesh';
-import { Lines, setLineRange } from './city/lines';
+import { CityMesh } from './city/mesh';
+import { cityMaterial } from './city/material';
+import { cullLines, Lines, setLineRange } from './city/lines';
 import { dressTower, wallSigns } from './city/rooftops';
 import { stringWires } from './city/wires';
 import { lcg } from './lcg';
@@ -20,10 +20,9 @@ export type SkylineSettings = Partial<typeof SKYLINE>;
 export function disposeSkyline(group: THREE.Group) {
   const materials = new Set<THREE.Material>();
   for (const o of group.children) {
-    if ((o as THREE.Mesh).isMesh) {
-      disposeCityMesh(o as THREE.Mesh);
-      materials.add((o as THREE.Mesh).material as THREE.Material);
-    } else (o as THREE.LineSegments).geometry.dispose();
+    const m = o as THREE.Mesh | THREE.LineSegments;
+    m.geometry.dispose();
+    if ((o as THREE.Mesh).isMesh) materials.add(m.material as THREE.Material);
   }
   for (const m of materials) m.dispose();
 }
@@ -31,6 +30,11 @@ export function disposeSkyline(group: THREE.Group) {
 /** Live settings that need no rebuild. */
 export function syncSkyline() {
   setLineRange(SKYLINE.lineRange);
+}
+
+/** Per frame: skip line chunks out of range of the eye. */
+export function updateSkyline(group: THREE.Group, eye: THREE.Vector3) {
+  cullLines(group.children, eye);
 }
 
 export function buildSkyline(level: THREE.Box3, overrides: SkylineSettings = {}): THREE.Group {
@@ -54,10 +58,8 @@ export function buildSkyline(level: THREE.Box3, overrides: SkylineSettings = {})
   // The street, far down in the void: nothing shows through under the city.
   mesh.set(0.1, undefined, 0, 0);
   mesh.box(-2000, cfg.street - 1, -2000, 2000, cfg.street, 2000);
-  const material = makeSurfaceMaterial({ tex: 'flat' });
-  for (const m of mesh.build(material)) group.add(m);
-  const lettering = makeSurfaceMaterial({ tex: 'glyphs', tileMeters: 1 });
-  for (const m of signs.build(lettering)) group.add(m);
+  for (const m of mesh.build(cityMaterial())) group.add(m);
+  for (const m of signs.build(cityMaterial(true))) group.add(m);
   for (const l of lines.build()) group.add(l);
   syncSkyline();
   return group;

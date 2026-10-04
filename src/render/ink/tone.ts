@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { ATMOS, INK } from '../../config';
+import { lcg } from '../../lcg';
 
 // The ink look in the surface shader: every lit pixel gets a tone (how much
 // light reaches it x how dark its material is), and the tone picks the ink:
@@ -16,7 +17,27 @@ import { ATMOS, INK } from '../../config';
 
 const LUM = 'vec3(0.2126, 0.7152, 0.0722)';
 
+/**
+ * Value noise for the shader as a small tiling 3D texture: one filtered fetch
+ * per lookup instead of hashing eight lattice corners (the ink shader needs
+ * half a dozen noise values per pixel). One texel per meter at scale 1.
+ */
+const NOISE = 32;
+function noiseTexture() {
+  const data = new Uint8Array(NOISE ** 3);
+  const rnd = lcg(91);
+  for (let i = 0; i < data.length; i++) data[i] = Math.floor(rnd() * 256);
+  const t = new THREE.Data3DTexture(data, NOISE, NOISE, NOISE);
+  t.format = THREE.RedFormat;
+  t.minFilter = t.magFilter = THREE.LinearFilter;
+  t.wrapS = t.wrapT = t.wrapR = THREE.RepeatWrapping;
+  t.unpackAlignment = 1;
+  t.needsUpdate = true;
+  return t;
+}
+
 export const inkUniforms = {
+  uInkNoise: { value: noiseTexture() },
   uPaper: { value: new THREE.Color(INK.paper) },
   uInkColor: { value: new THREE.Color(INK.ink) },
   uInkExposure: { value: INK.exposure },
@@ -56,17 +77,10 @@ uniform vec2 uVoid;
 uniform vec3 uPaintInk;
 uniform float uFade;
 
-float inkHash(vec3 p) {
-  p = fract(p * 0.3183099 + 0.1);
-  p *= 17.0;
-  return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
-}
+uniform highp sampler3D uInkNoise;
+// Value noise in 0..1, one lattice cell per unit (a tiling 3D texture, see noiseTexture).
 float inkNoise(vec3 p) {
-  vec3 i = floor(p);
-  vec3 f = fract(p);
-  f = f * f * (3.0 - 2.0 * f);
-  return mix(mix(mix(inkHash(i), inkHash(i + vec3(1, 0, 0)), f.x), mix(inkHash(i + vec3(0, 1, 0)), inkHash(i + vec3(1, 1, 0)), f.x), f.y),
-             mix(mix(inkHash(i + vec3(0, 0, 1)), inkHash(i + vec3(1, 0, 1)), f.x), mix(inkHash(i + vec3(0, 1, 1)), inkHash(i + vec3(1, 1, 1)), f.x), f.y), f.z);
+  return texture(uInkNoise, (p + 0.5) / ${NOISE}.0).r;
 }
 
 // Lines of width w (fraction of the period) at every integer u, box-filtered

@@ -60,6 +60,19 @@ export function setLineRange(k: number) {
   material.uniforms.uLineFade.value = k;
 }
 
+/**
+ * Skip whole chunks of lines that are all past their range from `eye`: a
+ * faded line still costs its rasterization. Run every frame (a few dozen chunks).
+ */
+export function cullLines(lines: readonly THREE.Object3D[], eye: THREE.Vector3) {
+  const k = material.uniforms.uLineFade.value as number;
+  for (const l of lines) {
+    if (!(l as THREE.LineSegments).isLineSegments) continue;
+    const s = (l as THREE.LineSegments).geometry.boundingSphere!;
+    l.visible = s.center.distanceTo(eye) - s.radius < l.userData.range * k;
+  }
+}
+
 /** Pixels per meter at 1 m from the camera: drawing-buffer height / (2 tan(fov / 2)). */
 export function setLinePointScale(scale: number) {
   material.uniforms.uPxPerM.value = scale;
@@ -68,6 +81,8 @@ export function setLinePointScale(scale: number) {
 interface Chunk {
   pos: number[];
   line: number[];
+  /** Longest range of its lines: beyond that the whole chunk is skipped (cullLines). */
+  range: number;
 }
 
 export class Lines {
@@ -92,7 +107,8 @@ export class Lines {
   seg(a: V3, b: V3) {
     const key = `${Math.floor((a[0] + b[0]) / 2 / CHUNK)},${Math.floor((a[2] + b[2]) / 2 / CHUNK)}`;
     let c = this.chunks.get(key);
-    if (!c) this.chunks.set(key, (c = { pos: [], line: [] }));
+    if (!c) this.chunks.set(key, (c = { pos: [], line: [], range: 0 }));
+    c.range = Math.max(c.range, this.range);
     c.pos.push(a[0], a[1], a[2], b[0], b[1], b[2]);
     c.line.push(this.weight, this.range, this.size, this.weight, this.range, this.size);
   }
@@ -201,6 +217,7 @@ export class Lines {
       const l = new THREE.LineSegments(g, material);
       l.matrixAutoUpdate = false;
       l.raycast = () => {};
+      l.userData.range = c.range;
       out.push(l);
     }
     return out;

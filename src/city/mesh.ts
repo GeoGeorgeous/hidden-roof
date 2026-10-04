@@ -3,7 +3,8 @@ import type { Facade } from '../render/ink/facade';
 import type { UvRect } from '../render/ink/glyphs';
 
 // Merged geometry for the city around the level, in chunks (so the camera
-// culls what's out of view), all drawn with the one surface material. City
+// culls what's out of view and draws near chunks first), all drawn with the
+// one surface material. City
 // geometry only stores what it uses (position, normal, tint, facade, and for
 // signs the lettering UVs: CityMesh(true), drawn with the glyph atlas); the
 // attributes the surface shader also reads (paint and base UVs, swing, baked
@@ -23,22 +24,6 @@ interface Chunk {
   uv: number[];
   idx: number[];
 }
-
-/** Shared zero attributes, grown on demand (old ones stay with the geometries using them). */
-const zeros = new Map<number, THREE.BufferAttribute>();
-const allZeros = new Set<THREE.BufferAttribute>();
-function zero(itemSize: number, count: number) {
-  let a = zeros.get(itemSize);
-  if (!a || a.count < count) {
-    a = new THREE.BufferAttribute(new Float32Array(Math.max(count, 65536) * itemSize), itemSize);
-    zeros.set(itemSize, a);
-    allZeros.add(a);
-  }
-  return a;
-}
-const ZERO_ATTRIBUTES: [string, number][] = [
-  ['uv', 2], ['baseUv', 2], ['emissive', 1], ['flicker', 1], ['swingPivot', 3], ['swing', 4], ['swingTrack', 3], ['lightUv', 2], ['baked', 3], ['bakedFlicker', 4],
-];
 
 export class CityMesh {
   private chunks = new Map<string, Chunk>();
@@ -154,21 +139,23 @@ export class CityMesh {
       g.setAttribute('normal', new THREE.Float32BufferAttribute(ch.nrm, 3));
       g.setAttribute('tint', new THREE.Float32BufferAttribute(ch.tint, 3));
       g.setAttribute('facade', new THREE.Float32BufferAttribute(ch.fac, 4));
-      for (const [name, size] of ZERO_ATTRIBUTES) g.setAttribute(name, zero(size, n));
       if (this.withUv) g.setAttribute('baseUv', new THREE.Float32BufferAttribute(ch.uv, 2));
       g.setIndex(n > 65535 ? new THREE.Uint32BufferAttribute(ch.idx, 1) : new THREE.Uint16BufferAttribute(ch.idx, 1));
+      // Each chunk sits at its own center, so the opaque sort (render/post.ts)
+      // draws near chunks first and the depth test skips the towers behind them.
       g.computeBoundingSphere();
+      const c = g.boundingSphere!.center.clone();
+      g.translate(-c.x, -c.y, -c.z);
       const m = new THREE.Mesh(g, material);
+      m.position.copy(c);
+      m.updateMatrix();
       m.matrixAutoUpdate = false;
+      // After the level (render order sorts before material and depth): the level is
+      // near and hides much of the city, so the city's hidden pixels are skipped.
+      m.renderOrder = 1;
       m.raycast = () => {};
       out.push(m);
     }
     return out;
   }
-}
-
-/** Free a chunk's own buffers; the shared zero buffers stay. */
-export function disposeCityMesh(m: THREE.Mesh) {
-  for (const [name] of ZERO_ATTRIBUTES) if (allZeros.has(m.geometry.attributes[name] as THREE.BufferAttribute)) m.geometry.deleteAttribute(name);
-  m.geometry.dispose();
 }
