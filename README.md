@@ -74,7 +74,7 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
 - **Visuals:** every piece is a full box or a capped cylinder. There are no single-sided planes.
 - **Colliders:** taken directly from the pieces. Rotations are multiples of 90°, so every box stays axis-aligned and its collider matches it exactly. Sloped handrails collide as a chain of small boxes.
 - **Ladders:** their climb volumes come from the ladder pieces.
-- **Paint:** a piece is paintable if it has a flat face at least 0.5 m on each side and 1.2 m² in area. Everything else is decor and is merged into one mesh per prop and material.
+- **Paint:** a piece is paintable if it has a flat face at least 0.5 m on each side and 1.2 m² in area. Everything else is decor and is merged into one mesh per prop and material. For drawing, decor is merged again per 32 m tile of the level (`RENDER.batchTile`), together with a shadow-only copy of the tile's paint meshes, so draw calls grow with the level's area, an edit re-merges only the tiles it touched, and tiles out of view (or outside the moon's shadow box) are skipped. Opaque surfaces are drawn front to back, grouped by base texture.
 - **Railings:** stairs, platforms, fire escapes and the billboard catwalk always build their own.
 
 **Placement conventions:**
@@ -143,7 +143,7 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
 
 ## Tunable constants (`src/config.ts`)
 
-- `RENDER`: `pixelScale`, `fov`, `sprintFovBoost` and `sprintFovEase`.
+- `RENDER`: `pixelScale`, `fov`, `sprintFovBoost` and `sprintFovEase`, and `batchTile` (decor batch tile size).
 - `PAINT`: `texelsPerMeter` (the default paint detail; the pause-menu setting overrides it), `alphaSteps`, `maxTextureSize`, `mipLevels`.
 - `BASE_TEXTURES`: `texelsPerMeter` of the base textures, whatever the paint detail.
 - `CAPS`: one entry per cap.
@@ -160,11 +160,11 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
 - `MARKER`: `reach`, `radius` (meters; 0 = one paint texel), `strength`, and `holdDistance` / `holdScale` for the first-person pose.
 - `VIEWMODEL`: hand sway, walk bob, jump lag and the trigger-press animation.
 - `ATMOS`: the rainy night, including `lightDecay` (light falloff, 2 = physical). `DAYLIGHT` overrides some of its keys while build mode is on.
-- `BUILD`: build mode reach and the hold-to-place repeat timing.
+- `BUILD`: build mode reach, the hold-to-place repeat timing and the free-fly speeds (`flySpeed`, `flySprintSpeed`).
 - `WALL_HAND`: when the free left hand reaches for a wall and lets go: reach / release from the shoulder, the arc to your left it searches (`fromAngle`..`toAngle`), and its height below the eyes.
 - `SIRENS`, `CCTV`: far-siren timing; CCTV follow ranges and how far a head can turn.
 - `DRIPS`, `PLAYER_LIGHT`: see above.
-- `LIGHTS`: per light kind: `color`, `offset`, `dir`, `intensity`, `range`, `spread`, `softness`, `glow`, `beam`, `shadows` (casts baked shadows).
+- `LIGHTS`: per light kind: `color`, `offset`, `dir`, `intensity`, `range`, `spread` (at most `LIGHT_SPREAD_MAX`), `softness`, `glow`, `beam`, `shadows` (casts baked shadows).
 - `LIGHTMAP`: baked lamp light: `enabled`, `shadows`, `texelsPerMeter`, `smooth`, `highlights` (wet highlights from the nearest lamps), `budgetMs` (rebake time per frame).
 - `VOLUMETRICS`: `enabled`, `downscale`, `steps`, `maxDistance`, `density`, `moon`, `lights`, `anisotropy`.
 - `GRADE`: `exposure`, `contrast`, `saturation`, `temperature`, `tint`.
@@ -177,9 +177,10 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
   - `stepHeight`, `climbSpeed`, `ladderJumpOff`
   - `eyeHeight`, `height`, `radius`
   - `mouseSensitivity`, `killY`
+  - `footstepStride`, `hardLanding` (footstep sounds)
 - `AUDIO`: gains.
 
-The F3 panel groups its controls into small collapsible sections (collapse / expand all; open sections are remembered), and every setting has a tooltip. It has a live control for every tunable value above that applies without a restart, including colors and `[x, y, z]` values. Not included: `PAINT.texelsPerMeter` (pause menu → PAINT DETAIL), `maxTextureSize`/`mipLevels`, `BASE_TEXTURES`, `SPRAY` pool and particle size, and `AUDIO`, which are only read at startup or when a texture is made. **copy values** puts them on the clipboard as JSON, ready to paste back in as new defaults.
+The F3 panel groups its controls into small collapsible sections (collapse / expand all; open sections are remembered), and every setting has a tooltip. It has a live control for every tunable value above that applies without a restart, including colors and `[x, y, z]` values. Not included: `RENDER.batchTile`, `BUILD`, `PLAYER.footstepStride`/`hardLanding`, `PAINT.texelsPerMeter` (pause menu → PAINT DETAIL), `maxTextureSize`/`mipLevels`, `BASE_TEXTURES`, `SPRAY` pool and particle size, and `AUDIO`, which are only read at startup or when a texture is made. **copy values** puts them on the clipboard as JSON, ready to paste back in as new defaults.
 
 ## Files
 
@@ -187,7 +188,7 @@ The F3 panel groups its controls into small collapsible sections (collapse / exp
 src/main.ts              wiring + game loop
 src/config.ts            all tunable constants
 src/kit/                 prop kit: pieces + helpers (railings, ladders), prop builders, registry
-src/level/               build-prop (pieces → meshes/colliders), level (instances, JSON)
+src/level/               build-prop (pieces → meshes/colliders), level (instances, JSON), decor batch tiles, solids broad phase
 src/build/               build mode, its HUD panel, level file I/O
 src/inventory/           pickup kinds, inventory (can, marker, unlocks), tool readout HUD
 src/pickups/             pickup manager + visuals
@@ -207,6 +208,7 @@ src/hud.ts               body-cam frame: vignette, REC/clock, crosshair, cap tag
 src/style.css            all UI styling (white + red alert, thin lines, monospace)
 src/settings.ts          pause-menu settings (resolution, volumetrics, paint detail), saved in localStorage
 src/audio.ts, input.ts, fullscreen.ts
+src/hex-color.ts, lcg.ts small shared helpers: config colors parsed only on change, seeded random
 public/levels/demo.json  demo rooftop using every prop and pickup, plus an empty level-0 roof to the north for building
 scripts/smoke.mjs        headless Playwright smoke test
 ```
