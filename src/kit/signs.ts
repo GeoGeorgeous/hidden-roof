@@ -17,7 +17,7 @@ export function lettering(seed: number, count: number, vertical: boolean, latin 
 export const bladeSign: PropDef = {
   type: 'blade_sign',
   label: 'Blade sign',
-  category: 'details',
+  category: 'signs',
   place: 'mount',
   snap: 0.5,
   hang: 2,
@@ -43,7 +43,7 @@ export const bladeSign: PropDef = {
 export const shopSign: PropDef = {
   type: 'shop_sign',
   label: 'Shop sign',
-  category: 'details',
+  category: 'signs',
   place: 'mount',
   snap: 0.5,
   hang: 0.45,

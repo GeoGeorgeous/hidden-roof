@@ -16,7 +16,7 @@ const JOINTS: Record<JointKind, () => Piece[]> = {
   parapet: () => {
     const p = new Parts();
     p.box([-0.15, 0, -0.15], [0.15, 1.02, 0.15], M.concrete, { paint: true });
-    p.detail([-0.2, 1.02, -0.2], [0.2, 1.1, 0.2], M.galv);
+    p.box([-0.2, 1.02, -0.2], [0.2, 1.1, 0.2], M.galv, { paint: true });
     return p.list;
   },
   railing: () => {

@@ -10,18 +10,17 @@ import type { Piece, V3 } from './pieces';
 export const H_MODULE = 2;
 export const V_MODULE = 4;
 
-export type Category = 'structure' | 'access' | 'equipment' | 'details' | 'lights' | 'pickups';
-export const CATEGORIES: Category[] = ['structure', 'access', 'equipment', 'details', 'lights', 'pickups'];
+export type Category = 'structure' | 'access' | 'equipment' | 'details' | 'signs' | 'lights' | 'pickups';
+export const CATEGORIES: Category[] = ['structure', 'access', 'equipment', 'details', 'signs', 'lights', 'pickups'];
 
 /**
  * How a prop snaps:
  * - cell:   fills grid cells (footprint in meters, multiples of 2)
  * - edge:   centered on a grid line, 2 m long (walls, parapets, railings)
- * - vertex: on a grid intersection (corners)
  * - mount:  back on the wall face you aim at, facing out (ladders, signs)
  * - floor:  stands on any surface, 0.5 m snap (equipment, details)
  */
-export type Placement = 'cell' | 'edge' | 'vertex' | 'mount' | 'floor';
+export type Placement = 'cell' | 'edge' | 'mount' | 'floor';
 
 /** Posts generated where edge props meet (see level/joints.ts). */
 export type JointKind = 'wall' | 'parapet' | 'railing';
@@ -59,7 +58,7 @@ export interface PropDef {
   footprint?: [number, number];
   /** Cell props whose origin is their top surface (building block, floor slab). */
   anchorTop?: boolean;
-  /** Mount props: snap the base height to this step (ladder, fire escape: 4). */
+  /** Mount props: snap the base height to this step (ladder, fire escape: 4). Cell props: stack by this step instead of 4 m (half block: 2). */
   vSnap?: number;
   /** Mount props hung at the aim point (signs, cables): base = aim height - hang. */
   hang?: number;

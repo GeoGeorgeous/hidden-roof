@@ -1,7 +1,7 @@
 import type { PropDef } from './def';
 import { M, Parts } from './pieces';
 
-// Stairs, ladders, fire escapes and railings. Every walkable piece has railings.
+// Stairs, ladders, fire escapes, railings and floor hatches. Every walkable piece has railings.
 
 /** Concrete stairs: 2 m wide, rising one 4 m module over 4 m toward the front (-z). */
 export const stairs: PropDef = {
@@ -101,6 +101,23 @@ export const fireescape: PropDef = {
       p.railing([ix, c0], [ix, c1], 4);
     }
     p.rod([ex, 4, -2.6], [ex, 5.6, 0], 0.025, M.steel); // hanger into the wall
+    return p.list;
+  },
+};
+
+/** Maintenance hatch in the floor: a low curb and a steel lid (both paintable), hinges at the back. */
+export const hatch: PropDef = {
+  type: 'hatch',
+  label: 'Floor hatch',
+  category: 'access',
+  place: 'floor',
+  snap: 0.5,
+  build() {
+    const p = new Parts();
+    p.box([-0.55, 0, -0.55], [0.55, 0.22, 0.55], M.concrete, { paint: true, skip: ['+y'] });
+    p.box([-0.65, 0.22, -0.65], [0.65, 0.3, 0.65], M.metal, { paint: true });
+    for (const x of [-0.35, 0.35]) p.detail([x - 0.08, 0.2, 0.65], [x + 0.08, 0.3, 0.7], M.steel, false);
+    p.detail([-0.15, 0.3, -0.52], [0.15, 0.34, -0.46], M.steel, false);
     return p.list;
   },
 };

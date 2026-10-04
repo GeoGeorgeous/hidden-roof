@@ -180,6 +180,13 @@ export const INK_FRAG = /* glsl */ `
   vec4 grime = inkGrime(inkP, vWorldN, 1.0 - step(0.5, vFacade.x));
   float dirt = max(max(hatch.y * grime.x, hatch.x * grime.y), max(max(hatch.x, hatch.y) * grime.z * 0.8, grime.w));
   vec3 col = mix(uPaper, uInkColor, max(inkCover(inkFade(tone, keep), hatch, inkP), dirt * smoothstep(0.35, 0.65, keep)));
+#ifdef LETTERS
+  // Sign lettering skips the light: ink where the glyph atlas is dark, paper
+  // elsewhere, so a sign reads in any light (shadow, night). Fades with distance.
+  float glyph = dot(baseTex.rgb, ${LUM});
+  float gw = max(fwidth(glyph), 1e-3);
+  col = mix(uPaper, uInkColor, max((1.0 - smoothstep(0.5 - gw, 0.5 + gw, glyph)) * smoothstep(0.35, 0.65, keep), inkSink(inkP)));
+#endif
   // Paint: its own color, lit but never black; hatched a little in the dark.
   float pl = clamp(light * uPaintInk.x, uPaintInk.y, 1.0);
   float paintDark = step(light * uInkExposure * 0.7, uTones.y) * hatch.x * uPaintInk.z;

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { lcg } from './lcg';
 import { glyphAtlas } from './render/ink/glyphs';
+import { wordAtlas } from './render/ink/words';
 
 // Procedural base textures: tiny canvases, nearest filtering, repeat wrapping.
 // Architecture is flat; facades get their bands in the shader (render/ink/facade.ts).
@@ -68,7 +69,7 @@ function build() {
   chainlink.minFilter = THREE.NearestFilter;
   chainlink.generateMipmaps = false;
 
-  return { textures: { flat, panel, shutter, chainlink, glyphs: glyphAtlas() } };
+  return { textures: { flat, panel, shutter, chainlink, glyphs: glyphAtlas(), words: wordAtlas() } };
 }
 
 let cache: ReturnType<typeof build> | null = null;

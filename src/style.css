@@ -356,9 +356,14 @@ canvas {
   max-height: calc(100vh - 230px);
   overflow-y: auto;
   line-height: 1.5;
-  /* A sheet of paper behind the text: reads over paper and over black. */
+  /* A dark sheet behind paper-colored text: reads over paper and over black.
+     The ink variables are inverted for everything inside the panel. */
+  --ui: var(--paper);
+  --dim: rgba(235, 229, 214, 0.62);
+  --line: 1px solid var(--ui);
+  color: var(--ui);
   padding: 8px 10px;
-  background: rgba(235, 229, 214, 0.82);
+  background: rgba(14, 14, 16, 0.82);
   backdrop-filter: blur(2px);
   z-index: 10;
   scrollbar-width: thin;

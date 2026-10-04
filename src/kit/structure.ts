@@ -36,6 +36,22 @@ export const building: PropDef = {
   },
 };
 
+/** Half block: a building block's 2 x 2 m footprint, half a storey (2 m) high, standing on the floor. Stacks by 2 m. */
+export const halfBlock: PropDef = {
+  type: 'half_block',
+  label: 'Half block',
+  category: 'structure',
+  place: 'cell',
+  snap: 2,
+  vSnap: 2,
+  build() {
+    const p = new Parts();
+    p.box([-1, 0, -1], [1, 1.7, 1], M.plaster, { paint: true, skip: ['+y'] });
+    p.box([-1, 1.7, -1], [1, 2, 1], M.roof, { paint: true, skip: ['-y'] });
+    return p.list;
+  },
+};
+
 /** Floor slab: 2x2 m, 0.3 m thick, top at the module level. */
 export const slab: PropDef = {
   type: 'slab',
@@ -76,21 +92,7 @@ export const wallLedge: PropDef = {
   build() {
     const p = new Parts();
     p.box([-L, 0, -T], [L, WALL_H, T], M.plaster, { paint: true });
-    p.box([-1, WALL_H - 0.35, -T - 0.35], [1, WALL_H - 0.05, -T], M.concrete);
-    return p.list;
-  },
-};
-
-/** Corner pilaster on a grid intersection. */
-export const corner: PropDef = {
-  type: 'corner',
-  label: 'Corner',
-  category: 'structure',
-  place: 'vertex',
-  snap: 2,
-  build() {
-    const p = new Parts();
-    p.box([-0.22, 0, -0.22], [0.22, WALL_H, 0.22], M.concrete, { paint: true });
+    p.box([-1, WALL_H - 0.35, -T - 0.35], [1, WALL_H - 0.05, -T], M.concrete, { paint: true });
     return p.list;
   },
 };
@@ -105,10 +107,13 @@ export const parapet: PropDef = {
   build() {
     const p = new Parts();
     p.box([-L, 0, -T], [L, 1.02, T], M.concrete, { paint: true });
-    p.detail([-0.8, 1.02, -0.2], [0.8, 1.1, 0.2], M.galv);
+    p.box([-0.8, 1.02, -0.2], [0.8, 1.1, 0.2], M.galv, { paint: true }); // coping
     return p.list;
   },
 };
+
+const DOOR_W = 0.5; // half width
+const DOOR_H = 2.2;
 
 /** Wall with a closed metal door (front side -z). */
 export const door: PropDef = {
@@ -119,22 +124,49 @@ export const door: PropDef = {
   snap: 2,
   joint: 'wall',
   build() {
-    const p = new Parts();
-    const w = 0.5;
-    const h = 2.2;
-    p.box([-L, 0, -T], [-w, WALL_H, T], M.plaster, { paint: true });
-    p.box([w, 0, -T], [L, WALL_H, T], M.plaster, { paint: true });
-    p.box([-w, h, -T], [w, WALL_H, T], M.plaster, { paint: true });
+    const p = doorFrame();
+    const w = DOOR_W;
+    const h = DOOR_H;
     p.box([-w, 0, -0.05], [w, h, 0.05], M.door, { paint: true });
-    for (const z of [-T - 0.04, T]) {
-      p.detail([-w - 0.06, 0, z], [-w, h + 0.06, z + 0.04], M.steel);
-      p.detail([w, 0, z], [w + 0.06, h + 0.06, z + 0.04], M.steel);
-      p.detail([-w, h, z], [w, h + 0.06, z + 0.04], M.steel);
-    }
     p.detail([0.3, 1.0, -0.1], [0.4, 1.05, -0.05], M.steel, false);
     return p.list;
   },
 };
+
+/** Wall with its door standing open outward (toward the front, -z): a way inside. */
+export const doorOpen: PropDef = {
+  type: 'door_open',
+  label: 'Door (open)',
+  category: 'structure',
+  place: 'edge',
+  snap: 2,
+  joint: 'wall',
+  build() {
+    const p = doorFrame();
+    const w = DOOR_W;
+    const leaf = 2 * w - 0.04;
+    // Hinged at the -x jamb, swung 90° out.
+    p.box([-w, 0.02, -T - leaf], [-w + 0.08, DOOR_H - 0.02, -T], M.door, { paint: true });
+    p.detail([-w + 0.08, 1.0, -T - leaf + 0.1], [-w + 0.13, 1.05, -T - leaf + 0.2], M.steel, false);
+    return p.list;
+  },
+};
+
+/** Wall around a door opening, with the steel frame on both faces. */
+function doorFrame() {
+  const p = new Parts();
+  const w = DOOR_W;
+  const h = DOOR_H;
+  p.box([-L, 0, -T], [-w, WALL_H, T], M.plaster, { paint: true });
+  p.box([w, 0, -T], [L, WALL_H, T], M.plaster, { paint: true });
+  p.box([-w, h, -T], [w, WALL_H, T], M.plaster, { paint: true });
+  for (const z of [-T - 0.04, T]) {
+    p.detail([-w - 0.06, 0, z], [-w, h + 0.06, z + 0.04], M.steel);
+    p.detail([w, 0, z], [w + 0.06, h + 0.06, z + 0.04], M.steel);
+    p.detail([-w, h, z], [w, h + 0.06, z + 0.04], M.steel);
+  }
+  return p;
+}
 
 /** Wall with a dark glass window. */
 export const windowWall: PropDef = {

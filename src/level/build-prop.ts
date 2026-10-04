@@ -307,14 +307,26 @@ export function rodGeometry(a: THREE.Vector3, b: THREE.Vector3, r: number) {
   return g;
 }
 
-/** A sloped rod collides as a chain of small boxes along it. */
+/**
+ * A sloped rod collides as a chain of small boxes along it. A mostly vertical
+ * rod ends at its end points, so a post standing on a floor doesn't reach
+ * into it (masts, sign towers and billboards could not be placed on floors).
+ */
 function rodColliders(a: THREE.Vector3, b: THREE.Vector3, r: number) {
   const n = Math.max(1, Math.ceil(a.distanceTo(b) / 0.3));
+  const upright = Math.abs(b.y - a.y) > a.distanceTo(b) * 0.7;
+  const lo = Math.min(a.y, b.y);
+  const hi = Math.max(a.y, b.y);
   const out: THREE.Box3[] = [];
   for (let i = 0; i < n; i++) {
     const p = a.clone().lerp(b, i / n);
     const q = a.clone().lerp(b, (i + 1) / n);
-    out.push(new THREE.Box3().setFromPoints([p, q]).expandByScalar(r));
+    const box = new THREE.Box3().setFromPoints([p, q]).expandByScalar(r);
+    if (upright) {
+      box.min.y = Math.max(box.min.y, lo);
+      box.max.y = Math.min(box.max.y, hi);
+    }
+    out.push(box);
   }
   return out;
 }

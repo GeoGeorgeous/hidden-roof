@@ -38,6 +38,9 @@ const NEAR = 40;
 const hv = new THREE.Vector3();
 const center = new THREE.Vector3();
 const moonDir = new THREE.Vector3();
+const shadowX = new THREE.Vector3();
+const shadowY = new THREE.Vector3();
+const UP = new THREE.Vector3(0, 1, 0);
 
 /** A light the volumetric pass scatters. */
 export interface ScatterLight {
@@ -101,16 +104,27 @@ export class Lighting {
     this.applyShadowToggles(baked);
     this.setPoolSize(baked ? MOVING_POOL : SPOT_POOL);
 
-    // Moon shadow box centered on the player, snapped to 1 m to limit shimmering.
+    // Moon shadow box centered on the player, snapped to whole shadow texels
+    // across the light, so moving never shifts shadows by part of a texel (thin
+    // shadows, like a drain pipe's on its wall, would shimmer and flash the paint).
     const r = ATMOS.shadowRange;
     const s = this.moon.shadow.camera;
     if (s.right !== r) {
       Object.assign(s, { left: -r, right: r, top: r, bottom: -r, near: 1, far: 160 });
       s.updateProjectionMatrix();
     }
-    const c = center.set(Math.round(cam.x), Math.round(cam.y), Math.round(cam.z));
+    moonDir.fromArray(ATMOS.moonDir).normalize();
+    shadowX.crossVectors(UP, moonDir).normalize(); // the shadow camera's axes (lookAt with +y up)
+    shadowY.crossVectors(moonDir, shadowX);
+    const texel = (2 * r) / this.moon.shadow.mapSize.x;
+    const snapT = (v: number) => Math.round(v / texel) * texel;
+    const c = center
+      .copy(shadowX)
+      .multiplyScalar(snapT(cam.dot(shadowX)))
+      .addScaledVector(shadowY, snapT(cam.dot(shadowY)))
+      .addScaledVector(moonDir, cam.dot(moonDir));
     this.moon.target.position.copy(c);
-    this.moon.position.copy(c).addScaledVector(moonDir.fromArray(ATMOS.moonDir).normalize(), 70);
+    this.moon.position.copy(c).addScaledVector(moonDir, 70);
 
     for (const a of this.anchors) {
       syncAnchor(a); // live LIGHTS offset / aim / color

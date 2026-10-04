@@ -1,0 +1,148 @@
+import type { PropDef } from './def';
+import { WALL_H } from './structure';
+import { M, Parts } from './pieces';
+
+// Modular pipes: every piece carries its pipe at the same height and ends it on
+// the 0.5 m grid one meter from its origin, so pieces chain end to end into
+// runs of any shape. Straight runs (2 m, along x), corners, risers out of the
+// floor or a wall, and pipes going up into the roof above. The drain pipe is
+// its own thing: a downpipe on a wall that stacks up storey by storey.
+
+const Y = 0.35; // pipe center height
+const R = 0.1;
+const SEG = 10;
+
+/** Bend: a knuckle where two pipe ends meet. */
+function knuckle(p: Parts, x: number, y: number, z: number) {
+  const k = R + 0.03;
+  p.detail([x - k, y - k, z - k], [x + k, y + k, z + k], M.steel);
+}
+
+/** Low saddle support under the pipe at (x, z), across x or z. */
+function support(p: Parts, x: number, z: number, acrossZ = true) {
+  const [hx, hz] = acrossZ ? [0.04, 0.12] : [0.12, 0.04];
+  p.detail([x - hx, 0, z - hz], [x + hx, Y - R, z + hz], M.steel);
+}
+
+/** 2 m straight pipe along x on small supports; chain them. */
+export const pipe: PropDef = {
+  type: 'pipe',
+  label: 'Pipe run',
+  category: 'equipment',
+  place: 'floor',
+  snap: 0.5,
+  build() {
+    const p = new Parts();
+    p.cyl([-1, Y, 0], 'x', 2, R, M.rust, { seg: SEG });
+    for (const x of [-0.85, 0.85]) support(p, x, 0);
+    return p.list;
+  },
+};
+
+/** Corner: the run comes in along x (from -x) and leaves toward -z. */
+export const pipeCorner: PropDef = {
+  type: 'pipe_corner',
+  label: 'Pipe corner',
+  category: 'equipment',
+  place: 'floor',
+  snap: 0.5,
+  build() {
+    const p = new Parts();
+    p.cyl([-1, Y, 0], 'x', 1, R, M.rust, { seg: SEG });
+    p.cyl([0, Y, -1], 'z', 1, R, M.rust, { seg: SEG });
+    knuckle(p, 0, Y, 0);
+    support(p, 0, 0);
+    return p.list;
+  },
+};
+
+/** Riser: comes up out of the floor and turns toward +x. */
+export const pipeFloor: PropDef = {
+  type: 'pipe_floor',
+  label: 'Pipe from floor',
+  category: 'equipment',
+  place: 'floor',
+  snap: 0.5,
+  build() {
+    const p = new Parts();
+    p.cyl([0, 0, 0], 'y', 0.04, R + 0.08, M.steel, { paint: false, seg: SEG });
+    p.cyl([0, 0, 0], 'y', Y, R, M.rust, { seg: SEG });
+    p.cyl([0, Y, 0], 'x', 1, R, M.rust, { seg: SEG });
+    knuckle(p, 0, Y, 0);
+    return p.list;
+  },
+};
+
+/** Out of the wall you aim at, half a meter out, then along the wall toward +x. */
+export const pipeWall: PropDef = {
+  type: 'pipe_wall',
+  label: 'Pipe from wall',
+  category: 'equipment',
+  place: 'mount',
+  snap: 0.5,
+  build() {
+    const p = new Parts();
+    const z = -0.5;
+    p.cyl([0, Y, -0.04], 'z', 0.04, R + 0.08, M.steel, { paint: false, seg: SEG });
+    p.cyl([0, Y, z], 'z', -z, R, M.rust, { seg: SEG });
+    p.cyl([0, Y, z], 'x', 1, R, M.rust, { seg: SEG });
+    knuckle(p, 0, Y, z);
+    support(p, 0, z);
+    return p.list;
+  },
+};
+
+/** The run comes in along x (from -x) and goes straight up into the roof or slab above. */
+export const pipeUp: PropDef = {
+  type: 'pipe_up',
+  label: 'Pipe into roof',
+  category: 'equipment',
+  place: 'floor',
+  snap: 0.5,
+  build() {
+    const p = new Parts();
+    p.cyl([-1, Y, 0], 'x', 1, R, M.rust, { seg: SEG });
+    p.cyl([0, Y, 0], 'y', WALL_H - Y, R, M.rust, { seg: SEG });
+    knuckle(p, 0, Y, 0);
+    support(p, 0, 0);
+    p.cyl([0, WALL_H - 0.04, 0], 'y', 0.04, R + 0.08, M.steel, { paint: false, seg: SEG });
+    for (const y of [1.4, 2.6]) p.detail([-0.03, y, -R - 0.02], [0.03, y + 0.06, R + 0.02], M.steel, false);
+    return p.list;
+  },
+};
+
+/**
+ * Downpipe on the wall you aim at, one storey (4 m) high. Stacked ones join
+ * into one pipe: only the lowest has the shoe at the bottom, only the top one
+ * the hopper head.
+ */
+export const drainPipe: PropDef = {
+  type: 'drain_pipe',
+  label: 'Drain pipe',
+  category: 'equipment',
+  place: 'mount',
+  snap: 0.5,
+  vSnap: 4,
+  stacks: { above: true, below: true },
+  build({ above, below }) {
+    const p = new Parts();
+    const r = 0.06;
+    const z = -0.12;
+    const y0 = below ? 0 : 0.25;
+    const y1 = above ? 4 : 3.55;
+    p.cyl([0, y0, z], 'y', y1 - y0, r, M.galv, { seg: 8 });
+    // Brackets to the wall.
+    for (const y of [1, 2.8]) p.detail([-r - 0.02, y, z - r - 0.02], [r + 0.02, y + 0.05, 0], M.steel, false);
+    // Shoe: kicks the water out at the bottom.
+    if (!below) {
+      p.detail([-r - 0.01, 0.12, z - r - 0.01], [r + 0.01, 0.25, z + r + 0.01], M.steel, false);
+      p.cyl([0, 0.12, z - 0.3], 'z', 0.3, r, M.galv, { seg: 8, collide: false });
+    }
+    // Hopper head that collects from the gutter.
+    if (!above) {
+      p.detail([-0.16, 3.55, -0.32], [0.16, 3.85, 0], M.galv);
+      p.detail([-0.18, 3.85, -0.34], [0.18, 3.9, 0], M.steel, false);
+    }
+    return p.list;
+  },
+};

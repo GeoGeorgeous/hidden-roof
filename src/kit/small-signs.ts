@@ -1,0 +1,118 @@
+import type { PropDef } from './def';
+import { M, Parts, type Mat, type V3 } from './pieces';
+import { wordRect, type Word } from '../render/ink/words';
+import { lcg } from '../lcg';
+
+// Small wall signs: exit, high voltage, no entry, a name plate. Real words
+// (render/ink/words.ts) and pictograms drawn with ink rods on plates. Plates
+// and lettered faces are paintable, like the big signs.
+
+const PLATES: Word[] = ['ROOF ACCESS', 'STAFF ONLY', 'ELECTRICAL', 'KEEP CLEAR', 'PLANT ROOM', 'FIRE DOOR', 'MAINTENANCE', 'DANGER'];
+
+/** A word on a sign face `h` high: its material and the width that keeps it unstretched (at least `minW`). */
+function word(w: Word, inverted: boolean, h: number, minW = 0) {
+  const { rect, aspect } = wordRect(w, inverted, minW / h);
+  const mat: Mat = { tex: 'words', tile: 1, tint: '#ffffff', letters: rect };
+  return { mat, width: h * aspect };
+}
+
+/** Pen stroke on a sign face at depth z. */
+function stroke(p: Parts, z: number, pts: [number, number][], r: number, mat: Mat) {
+  for (let i = 1; i < pts.length; i++) p.rod([pts[i - 1][0], pts[i - 1][1], z] as V3, [pts[i][0], pts[i][1], z] as V3, r, mat);
+}
+
+/** Exit sign: EXIT in paper on ink, an arrow beside it. */
+export const signExit: PropDef = {
+  type: 'sign_exit',
+  label: 'Exit sign',
+  category: 'signs',
+  place: 'mount',
+  snap: 0.5,
+  hang: 0.11,
+  build() {
+    const h = 0.22;
+    const arrow = 0.18;
+    const t = word('EXIT', true, h);
+    const x0 = -(t.width + arrow) / 2;
+    const x1 = x0 + t.width;
+    const p = new Parts();
+    p.box([x0, 0, -0.1], [x1, h, 0], t.mat, { paint: true });
+    p.box([x1, 0, -0.1], [x1 + arrow, h, 0], M.dark, { paint: true });
+    const ax = x1 + arrow / 2;
+    stroke(p, -0.105, [[ax - 0.055, h / 2], [ax + 0.05, h / 2]], 0.01, M.paper);
+    stroke(p, -0.105, [[ax, h / 2 + 0.05], [ax + 0.05, h / 2], [ax, h / 2 - 0.05]], 0.01, M.paper);
+    return p.list;
+  },
+};
+
+/** High voltage: a bolt in a warning triangle over HIGH VOLTAGE. */
+export const signVoltage: PropDef = {
+  type: 'sign_voltage',
+  label: 'High voltage sign',
+  category: 'signs',
+  place: 'mount',
+  snap: 0.5,
+  hang: 0.2,
+  build() {
+    const w = 0.32;
+    const h = 0.4;
+    const p = new Parts();
+    p.box([-w / 2, 0, -0.025], [w / 2, h, 0], M.paper, { paint: true });
+    stroke(p, -0.032, [[-0.13, 0.14], [0, 0.37], [0.13, 0.14], [-0.13, 0.14]], 0.008, M.dark);
+    stroke(p, -0.032, [[0.035, 0.32], [-0.03, 0.24], [0.03, 0.24], [-0.025, 0.165]], 0.011, M.dark);
+    // The word as wide as the plate allows, as high as that leaves it.
+    const inner = w - 0.04;
+    const fit = word('HIGH VOLTAGE', false, 1);
+    const th = inner / fit.width;
+    p.box([-inner / 2, 0.04, -0.032], [inner / 2, 0.04 + th, -0.025], word('HIGH VOLTAGE', false, th, inner).mat, { paint: true });
+    return p.list;
+  },
+};
+
+/** No entry: a round sign, a person's silhouette crossed out. */
+export const signNoEntry: PropDef = {
+  type: 'sign_no_entry',
+  label: 'No entry sign',
+  category: 'signs',
+  place: 'mount',
+  snap: 0.5,
+  hang: 0.2,
+  build() {
+    const c = 0.2; // center height
+    const p = new Parts();
+    p.cyl([0, c, -0.025], 'z', 0.025, 0.2, M.dark, { paint: true, seg: 24 });
+    p.cyl([0, c, -0.03], 'z', 0.005, 0.165, M.paper, { paint: true, collide: false, seg: 24 });
+    // The person: head, body, arms, legs.
+    const z = -0.034;
+    p.cyl([0, c + 0.085, z - 0.004], 'z', 0.004, 0.026, M.dark, { paint: false, collide: false, seg: 12 });
+    p.detail([-0.028, c - 0.03, z - 0.004], [0.028, c + 0.055, z], M.dark, false);
+    for (const s of [-1, 1]) {
+      stroke(p, z - 0.002, [[s * 0.026, c + 0.045], [s * 0.07, c - 0.015]], 0.01, M.dark);
+      stroke(p, z - 0.002, [[s * 0.014, c - 0.03], [s * 0.035, c - 0.115]], 0.012, M.dark);
+    }
+    // Crossed out.
+    stroke(p, -0.05, [[-0.12, c + 0.12], [0.12, c - 0.12]], 0.014, M.dark);
+    return p.list;
+  },
+};
+
+/** Small name plate in a steel frame: ROOF ACCESS, STAFF ONLY, ... (picked per instance). */
+export const signPlate: PropDef = {
+  type: 'sign_plate',
+  label: 'Name plate',
+  category: 'signs',
+  place: 'mount',
+  snap: 0.5,
+  hang: 0.07,
+  build({ seed }) {
+    const rnd = lcg(seed * 131 + 5);
+    const h = 0.14;
+    const t = word(PLATES[Math.floor(rnd() * PLATES.length)], rnd() < 0.4, h, 0.3);
+    const x = t.width / 2;
+    const p = new Parts();
+    p.box([-x, 0, -0.025], [x, h, 0], t.mat, { paint: true });
+    p.detail([-x - 0.015, -0.015, -0.03], [x + 0.015, 0, 0], M.steel, false);
+    p.detail([-x - 0.015, h, -0.03], [x + 0.015, h + 0.015, 0], M.steel, false);
+    return p.list;
+  },
+};

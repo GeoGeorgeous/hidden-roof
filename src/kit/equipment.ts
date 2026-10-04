@@ -1,7 +1,7 @@
 import type { PropDef } from './def';
 import { M, Parts, type V3 } from './pieces';
 
-// Rooftop equipment: water tank, vents, ducts, AC units, utility boxes, exhausts, pipes.
+// Rooftop equipment: water tank, vents, ducts, AC units, utility boxes, exhausts (pipes: pipes.ts).
 // Free-standing props snap to 0.5 m; the utility box mounts on walls.
 
 /** Water tank on a steel stand. */
@@ -40,8 +40,9 @@ export const ventshaft: PropDef = {
     const [x, y, z] = [1.2, 2.4, 1.2];
     const p = new Parts();
     p.box([-x / 2, 0, -z / 2], [x / 2, y, z / 2], M.galv, { skip: ['+y'] });
-    p.detail([-x / 2 - 0.15, y, -z / 2 - 0.15], [x / 2 + 0.15, y + 0.3, z / 2 + 0.15], M.steel);
-    p.detail([-x / 2 - 0.05, y + 0.3, -z / 2 - 0.05], [x / 2 + 0.05, y + 0.38, z / 2 + 0.05], M.metal);
+    // Hood and its cap are paintable too: same base texture as the shaft, so they join its paint mesh.
+    p.box([-x / 2 - 0.15, y, -z / 2 - 0.15], [x / 2 + 0.15, y + 0.3, z / 2 + 0.15], M.steel, { paint: true });
+    p.box([-x / 2 - 0.05, y + 0.3, -z / 2 - 0.05], [x / 2 + 0.05, y + 0.38, z / 2 + 0.05], M.metal, { paint: true });
     for (let i = 0; i < 3; i++) {
       const ly = y - 0.25 - i * 0.18;
       p.detail([-x / 2 + 0.1, ly, -z / 2 - 0.04], [x / 2 - 0.1, ly + 0.06, -z / 2], M.steel, false);
@@ -157,7 +158,7 @@ export const acLarge: PropDef = {
   snap: 0.5,
   build() {
     const p = new Parts();
-    p.detail([-1.7, 0, -1.2], [1.7, 0.15, 1.2], M.steel);
+    p.box([-1.7, 0, -1.2], [1.7, 0.15, 1.2], M.steel, { paint: true }); // skid, paintable with the body
     p.box([-1.6, 0.15, -1.1], [1.6, 1.8, 1.1], M.ac);
     for (const x of [-0.8, 0.8]) {
       p.cyl([x, 1.8, 0], 'y', 0.08, 0.62, M.steel, { paint: false, seg: 16 });
@@ -186,7 +187,7 @@ export const utilitybox: PropDef = {
   build() {
     const p = new Parts();
     p.box([-0.6, 0, -0.5], [0.6, 1.8, 0], M.green);
-    p.detail([-0.65, 1.8, -0.55], [0.65, 1.86, 0.02], M.steel);
+    p.detail([-0.65, 1.8, -0.55], [0.65, 1.86, 0], M.steel); // ends at the wall: a cap reaching into it made the box unplaceable
     p.detail([-0.01, 0.1, -0.52], [0.01, 1.7, -0.5], M.steel, false);
     for (const x of [-0.1, 0.1]) p.detail([x - 0.02, 0.85, -0.55], [x + 0.02, 1.0, -0.5], M.metal, false);
     p.cyl([0.4, 1.86, -0.15], 'y', 1.2, 0.04, M.steel, { seg: 6, collide: false });
@@ -209,26 +210,6 @@ export const exhaust: PropDef = {
     for (const a of [0, 2.1, 4.2]) p.rod([Math.cos(a) * 0.1, h - 0.02, Math.sin(a) * 0.1], [Math.cos(a) * 0.1, h + 0.14, Math.sin(a) * 0.1], 0.012, M.steel);
     p.cone([0, h + 0.12, 0], 0.3, 0.16, M.steel);
     p.emitter('smoke', [0, h + 0.32, 0], [0, 0.2, 0]);
-    return p.list;
-  },
-};
-
-/** 2 m pipe segment along x on small supports; chain them. */
-export const pipe: PropDef = {
-  type: 'pipe',
-  label: 'Pipe run',
-  category: 'equipment',
-  place: 'floor',
-  snap: 0.5,
-  build() {
-    const l = 2;
-    const p = new Parts();
-    p.cyl([-l / 2, 0.35, 0], 'x', l, 0.1, M.rust, { seg: 10 });
-    const n = Math.max(1, Math.round(l / 2));
-    for (let i = 0; i <= n; i++) {
-      const x = -l / 2 + 0.15 + ((l - 0.3) * i) / n;
-      p.detail([x - 0.04, 0, -0.12], [x + 0.04, 0.25, 0.12], M.steel);
-    }
     return p.list;
   },
 };

@@ -2,7 +2,7 @@ import { CATEGORIES, type Category, type PropDef } from '../kit/def';
 import { kitIn } from '../kit';
 import { PICKUP_KINDS, pickupLabel } from '../inventory/items';
 
-// Hotbar-style prop picker: Tab / Shift+Tab (or 1-6) switch category, the mouse
+// Hotbar-style prop picker: Tab / Shift+Tab (or 1-7) switch category, the mouse
 // wheel picks the prop. The selected prop's name is always on screen.
 
 export type Entry = { kind: 'prop'; def: PropDef; label: string } | { kind: 'pickup'; type: string; label: string };

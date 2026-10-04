@@ -57,7 +57,11 @@ export function place(spec: PlaceSpec, hit: Hit, rot: number, floorAt: FloorAt, 
     case 'cell': {
       const [fw, fd] = spec.footprint ?? [H, H];
       const [w, d] = rot % 2 ? [fd, fw] : [fw, fd];
-      return { pos: [cellCenter(t.x, w), spec.anchorTop ? levelTop : levelBase, cellCenter(t.z, d)], rot, ok: true };
+      let y = spec.anchorTop ? levelTop : levelBase;
+      // Short blocks stack by their own height (half block: 2 m).
+      const vs = spec.vSnap;
+      if (vs && !spec.anchorTop && !hit.plane) y = top ? Math.round(p.y / vs) * vs : bottom ? Math.round(p.y / vs) * vs - vs : Math.floor((p.y + 0.01) / vs) * vs;
+      return { pos: [cellCenter(t.x, w), y, cellCenter(t.z, d)], rot, ok: true };
     }
     case 'edge': {
       const alongX = rot % 2 === 0;
@@ -65,8 +69,6 @@ export function place(spec: PlaceSpec, hit: Hit, rot: number, floorAt: FloorAt, 
       const z = alongX ? snap(t.z, H) : Math.floor(t.z / H) * H + H / 2;
       return { pos: [x, levelBase, z], rot, ok: true };
     }
-    case 'vertex':
-      return { pos: [snap(t.x, H), levelBase, snap(t.z, H)], rot, ok: true };
     case 'mount': {
       // Back on the face, facing out along the normal.
       const r = (((Math.round(Math.atan2(-n.x, -n.z) / (Math.PI / 2)) % 4) + 4) % 4) as number;

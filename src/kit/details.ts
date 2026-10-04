@@ -59,7 +59,7 @@ export const antenna: PropDef = {
 export const sign: PropDef = {
   type: 'sign',
   label: 'Wall sign',
-  category: 'details',
+  category: 'signs',
   place: 'mount',
   snap: 0.5,
   hang: 0.5,
@@ -82,7 +82,7 @@ export const sign: PropDef = {
 export const billboard: PropDef = {
   type: 'billboard',
   label: 'Billboard',
-  category: 'details',
+  category: 'signs',
   place: 'floor',
   snap: 0.5,
   build({ seed }) {

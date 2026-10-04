@@ -198,6 +198,8 @@ export class SurfaceMaterial extends THREE.MeshPhongMaterial {
     // Only alpha-tested materials (chain-link) get a shader with `discard`: in
     // the one every other surface shares, it can slow the GPU's depth test.
     if (opts.alphaTest) this.defines = { BASE_ALPHA_TEST: '' };
+    // Sign lettering (glyph and word atlases) is drawn straight from the texture, not lit (render/ink/tone.ts).
+    if (opts.tex === 'glyphs' || opts.tex === 'words') this.defines = { ...this.defines, LETTERS: '' };
     const base = (this.baseTexture = textures()[opts.tex]);
     const tile = opts.tileMeters ?? (base.image as HTMLCanvasElement).width / BASE_TEXTURES.texelsPerMeter;
     this.baseScaleUniform.value = 1 / tile;
@@ -228,7 +230,7 @@ export class SurfaceMaterial extends THREE.MeshPhongMaterial {
     };
   }
 
-  /** All surfaces share one program (alpha-tested ones a second, by their define); only uniforms differ. */
+  /** All surfaces share one program (alpha-tested ones and lettering their own, by their define); only uniforms differ. */
   customProgramCacheKey() {
     return 'surface-ink-2';
   }

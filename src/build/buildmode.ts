@@ -21,14 +21,14 @@ import { place, type Hit, type PlaceSpec } from './placement';
 // Minecraft-style editor. Aim with the crosshair: the ghost sits on the face
 // under it, snapped to the grid (on a top face it goes on top, on a side face
 // next to it). LMB place (hold to keep placing), RMB delete, R rotate, MMB
-// pick, Ctrl+Z undo, Tab/1-6 category, wheel prop. Aiming at empty space hits
+// pick, Ctrl+Z undo, Tab/1-7 category, wheel prop. Aiming at empty space hits
 // the build plane: the floor of the working level (PgUp / PgDn, and it follows
 // what you place). P save, O load, H shows which surfaces can be painted.
 // [ and ] change the aimed prop's own setting (floodlight tilt). T puts the
 // spawn point on the floor under the crosshair, facing where you look; the
 // spawn marker shows it while building.
 
-const HELP = 'LMB PLACE (HOLD: REPEAT) · RMB DELETE · R ROTATE · MMB PICK · CTRL+Z UNDO · TAB / 1-6 CATEGORY · WHEEL PROP · PGUP / PGDN LEVEL · T SPAWN · [ ] TILT LIGHT · H PAINTABLE · P SAVE · O LOAD · B EXIT';
+const HELP = 'LMB PLACE (HOLD: REPEAT) · RMB DELETE · R ROTATE · MMB PICK · CTRL+Z UNDO · TAB / 1-7 CATEGORY · WHEEL PROP · PGUP / PGDN LEVEL · T SPAWN · [ ] TILT LIGHT · H PAINTABLE · P SAVE · O LOAD · B EXIT';
 const PICKUP_SPEC: PlaceSpec = { place: 'floor', snap: 0.5 };
 
 export class BuildMode {
@@ -186,7 +186,7 @@ export class BuildMode {
 
   private pickerInput(input: Input) {
     if (input.wasPressed('Tab')) this.picker.nextCategory(input.isDown('ShiftLeft') ? -1 : 1);
-    for (let i = 0; i < 6; i++) if (input.wasPressed(`Digit${i + 1}`)) this.picker.setCategory(i);
+    for (let i = 0; i < this.picker.categories.length; i++) if (input.wasPressed(`Digit${i + 1}`)) this.picker.setCategory(i);
     if (input.wheelSteps) this.picker.wheel(Math.sign(input.wheelSteps));
   }
 

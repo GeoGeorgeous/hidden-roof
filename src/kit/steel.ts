@@ -4,7 +4,7 @@ import { lettering } from './signs';
 import { lcg } from '../lcg';
 
 // Steel and clutter for packed rooftops: lattice masts and sign towers with
-// diagonal bracing, tanks on legs, a utility pole, roof debris. Posts and
+// diagonal bracing, tanks on legs, roof debris. Posts and
 // tanks collide; bracing is decor (thin rods).
 
 /** X-braced lattice between four corner posts (square, side `w`), panels `step` high. */
@@ -49,7 +49,7 @@ export const latticeMast: PropDef = {
 export const signTower: PropDef = {
   type: 'sign_tower',
   label: 'Sign tower',
-  category: 'details',
+  category: 'signs',
   place: 'floor',
   snap: 0.5,
   build({ seed }) {
@@ -87,31 +87,6 @@ export const tankPair: PropDef = {
     }
     p.rod([-1.1, legH + 1.8, 0.9], [1.1, legH + 1.8, 0.9], 0.05, M.metal);
     p.ladder(0, 0, -0.95, legH + 0.12, 0.5);
-    return p.list;
-  },
-};
-
-/** Utility pole with crossarms, insulators and a transformer can. */
-export const utilityPole: PropDef = {
-  type: 'utility_pole',
-  label: 'Utility pole',
-  category: 'details',
-  place: 'floor',
-  snap: 0.5,
-  build() {
-    const h = 9;
-    const p = new Parts();
-    p.cyl([0, 0, 0], 'y', h, 0.13, M.steel, { paint: false, seg: 10 });
-    for (const [y, w] of [[h - 0.5, 1.4], [h - 1.4, 1.1]]) {
-      p.detail([-w, y, -0.06], [w, y + 0.1, 0.06], M.steel, false);
-      for (let x = -w + 0.15; x <= w; x += (w * 2 - 0.3) / 3) p.cyl([x, y + 0.1, 0], 'y', 0.18, 0.05, M.paper, { paint: false, collide: false, seg: 8 });
-      p.rod([0, y - 0.6, 0], [w * 0.7, y, 0], 0.02, M.steel);
-      p.rod([0, y - 0.6, 0], [-w * 0.7, y, 0], 0.02, M.steel);
-    }
-    p.cyl([0, h - 3.2, 0.35], 'y', 0.9, 0.3, M.galv, { paint: false, collide: false, seg: 12 });
-    p.rod([0, h - 2.3, 0.35], [0.4, h - 1.3, 0], 0.012, M.cable);
-    // Steps up the pole.
-    for (let y = 1.6; y < h - 2; y += 0.45) p.rod([0, y, 0], [y % 0.9 < 0.45 ? 0.3 : -0.3, y, 0], 0.015, M.steel);
     return p.list;
   },
 };

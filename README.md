@@ -38,7 +38,7 @@ npm run build      # typecheck + production build into dist/
 | LMB | Place the ghost. Hold it to keep placing wherever the ghost moves (pillars, bridges) |
 | RMB | Delete what you aim at |
 | MMB | Pick the prop or pickup you aim at (with its rotation) |
-| Tab / Shift+Tab, 1-6 | Prop category |
+| Tab / Shift+Tab, 1-7 | Prop category |
 | Mouse wheel | Prop within the category |
 | R | Rotate 90° |
 | PgUp / PgDn | Working level (the build plane) up / down |
@@ -67,7 +67,7 @@ npm run build      # typecheck + production build into dist/
 
 ## Prop kit
 
-**Props:** wall lamp, floodlight, lamp post, string lights, neon blade signs (pink / cyan; two-sided, glyphs vary per sign), wall sign, shop sign, blade sign, sign tower (lattice frame carrying a panel), lattice mast, utility pole, tanks on a stand, roof debris, building, slab, parapet, stairwell hut, stairs, ladder, platform, fire escape, water tower, vent shaft, duct, AC unit (small / medium / large / wall-mounted), utility box, exhaust pipe, pipe run, antenna, cable, chain-link fence, fence gate, billboard (face and lamps outward; ladder at the back, walkway around to the front catwalk), CCTV camera (the head pans slowly; when you come near it turns to follow you and its lens and a small spot light switch on, `CCTV` and `LIGHTS.cctv`; swinging pieces turn in the vertex shader, so they stay in the level batches, and the light is aimed on the CPU with the same math).
+**Props:** wall lamp, floodlight, lamp post, string lights, neon blade signs (pink / cyan; two-sided, glyphs vary per sign), the signs category (wall sign, shop sign, blade sign, small exit / high voltage / no entry / name plate signs with real words from `render/ink/words.ts`, sign tower: a lattice frame carrying a panel, and the billboard below), lattice mast, tanks on a stand, roof debris, building, half block (2 m high, stacks by 2 m), slab, parapet, door (closed or standing open outward, for insides), floor hatch, stairwell hut, stairs, ladder, platform, fire escape, water tower, vent shaft, duct, AC unit (small / medium / large / wall-mounted), utility box, exhaust pipe, modular pipes (straight run, corner, from the floor, from a wall, up into the roof; every piece ends its pipe 1 m from its origin at the same height, so they chain on the 0.5 m grid), drain pipe (stacks storey by storey), antenna, cable, modular floor and wall cables (straight, corner, floor to wall, wall storey; chained like the pipes), chain-link fence, fence gate, billboard (face and lamps outward; ladder at the back, walkway around to the front catwalk), CCTV camera (the head pans slowly; when you come near it turns to follow you and its lens and a small spot light switch on, `CCTV` and `LIGHTS.cctv`; swinging pieces turn in the vertex shader, so they stay in the level batches, and the light is aimed on the CPU with the same math).
 
 Each prop is a builder function that returns a list of **pieces** (box, cylinder, rod, cone, climb volume) for a given size (`src/kit/`). The same pieces produce everything else (`src/level/build-prop.ts`):
 
@@ -76,7 +76,7 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
 - **Ladders:** their climb volumes come from the ladder pieces.
 - **Paint:** a piece is paintable if it has a flat face at least 0.5 m on each side and 1.2 m² in area. Everything else is decor and is merged into one mesh per prop and material. For drawing, decor is merged again per 32 m tile of the level (`RENDER.batchTile`), together with a shadow-only copy of the tile's paint meshes, so draw calls grow with the level's area, an edit re-merges only the tiles it touched, and tiles out of view (or outside the moon's shadow box) are skipped. Opaque surfaces are drawn front to back, grouped by base texture.
 - **Railings:** stairs, platforms, fire escapes and the billboard catwalk always build their own.
-- **Lettering and facades:** a material can carry sign lettering (`Mat.letters`, a run of made-up glyphs from the atlas in `render/ink/glyphs.ts`; every sign instance picks its own from its seed) or facade bands (`Mat.facade`, `FACADES` presets: ribbon windows, fins, punched windows, slats; the tall facade under a building block uses them). Lettered panels stay paintable: paint covers the lettering.
+- **Lettering and facades:** a material can carry sign lettering (`Mat.letters`, a run of made-up glyphs from the atlas in `render/ink/glyphs.ts`; every sign instance picks its own from its seed; drawn straight from the atlas, not lit, so it reads in shadow and at night) or facade bands (`Mat.facade`, `FACADES` presets: ribbon windows, fins, punched windows, slats; the tall facade under a building block uses them). Lettered panels stay paintable: paint covers the lettering.
 
 **Placement conventions:**
 - A prop's origin is at its bottom, centered, with its front facing −z.
