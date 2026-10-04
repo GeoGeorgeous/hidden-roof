@@ -2,11 +2,12 @@ import * as THREE from 'three';
 import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
 import { GRADE, VOLUMETRICS } from '../config';
 import type { GpuTimer } from '../debug/gpu-timer';
+import type { SurfaceMaterial } from '../materials';
 import type { Lighting } from './lighting';
 import { Volumetrics } from './volumetrics';
 
 // Frame pipeline at the internal (pixelated) resolution:
-//  1. scene -> linear HDR target with a depth texture
+//  1. scene -> linear HDR target with a depth texture (opaque draws front to back)
 //  2. volumetrics (optional, lower res) read that depth
 //  3. view model (hands + tool) drawn into the same target after a depth clear
 //  4. final pass to the screen: + volumetric light (world pixels only: depth
@@ -81,6 +82,7 @@ export class PostPipeline {
       depthWrite: false,
     });
     this.quad = new FullScreenQuad(this.grade);
+    renderer.setOpaqueSort(frontToBack);
   }
 
   private resize() {
@@ -130,6 +132,25 @@ export class PostPipeline {
     this.timer.end();
   }
 }
+
+/**
+ * Opaque draws grouped by base texture (surfaces with the same one share all
+ * their state but the paint and light maps), each group front to back, so the
+ * depth test rejects hidden pixels before the surface shader runs on them.
+ * three's default sorts by material before depth, and every paint mesh has
+ * its own material, which left the order random in depth.
+ */
+function frontToBack(a: SortItem, b: SortItem) {
+  return (
+    a.groupOrder - b.groupOrder ||
+    a.renderOrder - b.renderOrder ||
+    baseOf(a.material) - baseOf(b.material) ||
+    // -1 / 1 rather than a.z - b.z: returning a fraction allocates on every comparison.
+    (a.z < b.z ? -1 : a.z > b.z ? 1 : a.id - b.id)
+  );
+}
+const baseOf = (m: THREE.Material) => (m as Partial<SurfaceMaterial>).baseTexture?.id ?? 0;
+type SortItem = { groupOrder: number; renderOrder: number; material: THREE.Material; z: number; id: number };
 
 /** Simple white balance: warm/cool on red-blue, tint on green, luminance kept. */
 function whiteBalance(temperature: number, tint: number, out: THREE.Vector3) {

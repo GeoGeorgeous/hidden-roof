@@ -143,7 +143,9 @@ varying vec3 vWorldN;
 `;
 const FRAG_MAP = /* glsl */ `
 vec4 baseTex = texture2D(uBase, vBaseUv);
+#ifdef BASE_ALPHA_TEST
 if (baseTex.a < uAlphaTest) discard;
+#endif
 float wet = smoothstep(0.5, 0.9, vWorldN.y) * uWet;
 vec3 baseCol = baseTex.rgb * vTint * mix(1.0, 0.55, wet);
 vec4 paintTex = texture2D(uPaint, vPaintUv);
@@ -184,6 +186,8 @@ export interface SurfaceMaterialOptions {
 }
 
 export class SurfaceMaterial extends THREE.MeshPhongMaterial {
+  /** The base texture (opaque draws are grouped by it, see render/post.ts). */
+  readonly baseTexture: THREE.Texture;
   private paintUniform = { value: EMPTY_PAINT as THREE.Texture };
   private paintableUniform = { value: 0 };
   private baseScaleUniform = { value: 1 };
@@ -193,7 +197,10 @@ export class SurfaceMaterial extends THREE.MeshPhongMaterial {
 
   constructor(opts: SurfaceMaterialOptions) {
     super({ color: '#ffffff', specular: '#c8d4e8', shininess: 48 });
-    const base = textures()[opts.tex];
+    // Only alpha-tested materials (chain-link) get a shader with `discard`: in
+    // the one every other surface shares, it can slow the GPU's depth test.
+    if (opts.alphaTest) this.defines = { BASE_ALPHA_TEST: '' };
+    const base = (this.baseTexture = textures()[opts.tex]);
     const tile = opts.tileMeters ?? (base.image as HTMLCanvasElement).width / BASE_TEXTURES.texelsPerMeter;
     this.baseScaleUniform.value = 1 / tile;
     const own = {
@@ -223,7 +230,7 @@ export class SurfaceMaterial extends THREE.MeshPhongMaterial {
     };
   }
 
-  /** All surfaces share one program; only uniforms differ. */
+  /** All surfaces share one program (alpha-tested ones a second, by their define); only uniforms differ. */
   customProgramCacheKey() {
     return 'surface-v5';
   }
