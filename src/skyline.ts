@@ -5,9 +5,11 @@ import { layoutCity } from './city/layout';
 import { CityMesh, disposeCityMesh } from './city/mesh';
 import { Lines, setLineRange } from './city/lines';
 import { dressTower } from './city/rooftops';
+import { stringWires } from './city/wires';
+import { lcg } from './lcg';
 
 // The non-playable city around the level (src/city): towers in a street grid
-// with barcode facades, packed rooftops, and thin steel drawn as pen lines.
+// with barcode facades, packed rooftops, thin steel and wires drawn as pen lines.
 // Seeded, so the same on every load; a level can override SKYLINE values in
 // its own `skyline` object. Merged into chunks: draw calls grow with the area
 // in view, not with the number of towers.
@@ -36,7 +38,8 @@ export function buildSkyline(level: THREE.Box3, overrides: SkylineSettings = {})
   const group = new THREE.Group();
   const mesh = new CityMesh();
   const lines = new Lines();
-  for (const tw of layoutCity(level, cfg)) {
+  const towers = layoutCity(level, cfg);
+  for (const tw of towers) {
     let y = cfg.street;
     for (const t of tw.tiers) {
       mesh.set(tw.gray, tw.facade, (t.x0 + t.x1) / 2, (t.z0 + t.z1) / 2);
@@ -45,6 +48,7 @@ export function buildSkyline(level: THREE.Box3, overrides: SkylineSettings = {})
     }
     dressTower(tw, mesh, lines);
   }
+  stringWires(towers, level, lines, lcg(cfg.seed * 31 + 5));
   // The street, far down in the void: nothing shows through under the city.
   mesh.set(0.1, undefined, 0, 0);
   mesh.box(-2000, cfg.street - 1, -2000, 2000, cfg.street, 2000);
