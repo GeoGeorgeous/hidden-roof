@@ -477,7 +477,7 @@ export const SKYLINE = {
   /** Fraction of punched facade windows that are lit (drawn as paper). Live. */
   litWindows: 0.08,
   /** How much the city shows (1 = fully, 0 = gone into the sky color), to focus on the level. Live. */
-  opacity: 1,
+  opacity: 0.75,
 };
 
 /** All gains are live (F3 → Sound). */
