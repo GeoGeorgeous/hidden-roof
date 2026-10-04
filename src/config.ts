@@ -453,7 +453,7 @@ export const PLAYER = {
  * (e.g. another seed, a wider margin). F3 -> Rendering -> City rebuilds it.
  */
 export const SKYLINE = {
-  seed: 7,
+  seed: 23,
   /** City radius around the level (m). */
   radius: 650,
   /** City block pitch (m) and street width range (m). */
@@ -465,11 +465,11 @@ export const SKYLINE = {
   /** Street height (m): far below the rooftops. */
   street: -90,
   /** Within this distance (m): low roofs to look down on, mixed with huge towers. */
-  near: 170,
+  near: 210,
   /** Share of near lots that are huge towers, and their top height range (m). */
   tallChance: 0.24,
   tallMin: 30,
-  tallMax: 175,
+  tallMax: 120,
   /** Rooftop clutter (tanks, frames, masts, railings) within this distance (m). */
   clutterRange: 280,
   /** Multiplier for how far thin lines (lattices, railings, wires) stay visible. Live. */
