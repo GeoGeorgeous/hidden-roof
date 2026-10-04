@@ -59,7 +59,7 @@ npm run build      # typecheck + production build into dist/
 ## Inventory
 
 - **Slot 1: the spray can.** There is exactly one can, and its paint never runs out. Its pressure drains while you spray: below 50% the paint thins, below 25% the can sputters and the HUD shows a red alert. Shake with RMB to restore it.
-- **Slot 2: the marker,** once you find it. It draws a thin, solid line at close range in the current color. Its band shows the color, and switching colors (or tools) shows the same COLOR tag next to whichever tool is in hand.
+- **Slot 2: the marker,** once you find it. It's a pump marker with a hard square nib: it draws a solid, hard-edged line at close range in the current color, as wide as the nib going straight and wider on the diagonal. Its band shows the color, and switching colors (or tools) shows the same COLOR tag next to whichever tool is in hand.
 - **Colors** are pickups. Once collected, a color stays available for both the can and the marker. You start with black.
 - **Can size** (sm → md → lg) is a permanent upgrade, not an item. Bigger cans lose pressure more slowly. You start with sm.
 - **Caps** are skinny, standard, fat and spray (a wide, soft mist for fades). You start with the standard cap. The crosshair circle grows with the cap, and the cap's name shows next to the can for a moment after switching.
@@ -106,13 +106,13 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
 
 - Every paintable piece gets one RGBA atlas holding all its faces, at `PAINT.texelsPerMeter`. The **PAINT DETAIL** setting (pause menu) picks it: LOW 24 (4.2 cm texels, the old look), MEDIUM 48, HIGH 72 or ULTRA 96 (1 cm texels, the default). Base textures stay at 24 texels per meter (`BASE_TEXTURES`).
 - The atlas is created the first time paint hits that piece.
-- **Sizes are in meters** (`CAPS.*.stampRadius`, `MARKER.radius`), so every paint detail sprays alike: texels whose centers lie inside a dot get paint. A dot smaller than a texel paints the texel under it, so a marker radius of 0 draws the thinnest line the detail allows: 4 cm on LOW, 1 cm on ULTRA (the default radius is 0.15 m).
+- **Sizes are in meters** (`CAPS.*.stampRadius`, `MARKER.radius`), so every paint detail sprays alike: texels whose centers lie inside a dot get paint. A dot smaller than a texel paints the texel under it, so a marker radius of 0 draws the thinnest line the detail allows: 4 cm on LOW, 1 cm on ULTRA (the marker's default nib is 0.012 m, a 2.4 cm square).
 - **Spray:**
   - Each particle raycasts once when it's emitted.
   - It stamps paint into the atlas when it arrives.
   - Particles are visual only and come from a fixed-size pool.
 - **Marker:** stamps directly under the crosshair, filling the gaps between frames.
-- **Paint runs:** spraying on and on onto paint that's already opaque builds up excess. On vertical faces, a few texels at the limit start a thin run down the face that slows down and ends in a drop. Runs are written into the paint texture like any stamp (`DRIPS` in config; F3 → Painting). How many start is set per square meter (`DRIPS.perSquareMeter`), so every paint detail runs alike.
+- **Paint runs:** spraying on and on onto paint that's already opaque builds up excess, and so does going over a marker line again or holding the marker still. On vertical faces, a few texels at the limit start a thin run down the face that slows down and ends in a drop. Runs are written into the paint texture like any stamp (`DRIPS` in config; F3 → Painting). How many start is set per square meter (`DRIPS.perSquareMeter`), so every paint detail runs alike.
 - **Overpainting:** a surface has a single paint layer, and new paint is composited *over* it. The color always moves toward the new paint by that paint's own amount, so the last color painted always wins. Each 8-bit channel moves by at least one step per coat, so repeated coats reach the exact new color instead of stalling a little short of it.
 - **Uploads:** each frame, only textures that changed are uploaded: the rect that changed, in one `texSubImage2D` (three's `copyTextureToTexture`), then the same rect of each smaller level.
 - **Distant paint** (`PAINT.mipLevels`): each paint texture has smaller levels (1/2, 1/4, 1/8), so fine paint fades evenly instead of sparkling once a texel gets smaller than a pixel. They're averaged on the CPU straight from the atlas, only where paint changed, with colors weighted by alpha (the GPU's own mipmaps would darken paint edges with the black of unpainted texels). They add a third to the GPU memory of paint; the CPU keeps only the atlas.
@@ -167,7 +167,7 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
 - `CAN_SIZES`: `drain` (pressure-loss multiplier) and view-model `scale` per size.
 - `SPRAY`: `range`, `falloffStart`, particle speed, size and pool size.
 - `PRESSURE`: drain rate, the thin and sputter thresholds, sputter duty, shake restore and shake duration.
-- `MARKER`: `reach`, `radius` (meters; 0 = one paint texel), `strength`, and `holdDistance` / `holdScale` for the first-person pose.
+- `MARKER`: `reach`, `radius` (half the square nib's side in meters; 0 = one paint texel), `drips` (how readily it starts paint runs), `strength`, and `holdDistance` / `holdScale` for the first-person pose.
 - `VIEWMODEL`: hand sway, walk bob, jump lag and the trigger-press animation.
 - `ATMOS`: the rainy night, including `lightDecay` (light falloff, 2 = physical). `DAYLIGHT` overrides some of its keys while build mode is on.
 - `BUILD`: build mode reach, the hold-to-place repeat timing and the free-fly speeds (`flySpeed`, `flySprintSpeed`).

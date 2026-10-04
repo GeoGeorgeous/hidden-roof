@@ -9,13 +9,19 @@ import type { PaintSystem } from '../painting';
 import { solidsNear } from '../level/solids';
 import { setHex } from '../hex-color';
 
-// Marker: draws a thin solid line straight into the surface texture under the
-// crosshair, at close range, in the current color. No particles, no pressure.
+// Marker: a pump marker with a hard square nib. It draws a solid line straight
+// into the surface texture under the crosshair, at close range, in the current
+// color: square stamps with their sides along the surface's axes, so strokes
+// are as wide as the nib going straight and wider on the diagonal, like a held
+// chisel. No particles, no pressure. With paint runs on (DRIPS), going over
+// the same spot again, or holding the nib still, can start a run like the can.
 // Fast mouse moves are filled by interpolating rays between frames. The band
 // on the barrel shows the current color, like the can's label.
 
 const dir = new THREE.Vector3();
 const step = new THREE.Vector3();
+/** Held still, the nib stamps the same spot every frame: let it add to runs this often (per s), whatever the frame rate. */
+const STILL_DRIP_RATE = 30;
 
 export class MarkerTool {
   readonly model = new THREE.Group();
@@ -25,8 +31,10 @@ export class MarkerTool {
   private prev: THREE.Vector3 | null = null;
   private raycaster = new THREE.Raycaster();
   private near: THREE.Object3D[] = [];
-  /** Shows the paint color, so it keeps its color. */
+  private stillClock = 0;
+  /** Show the paint color, so they keep their color: the band and the inked nib. */
   private bandMat = inkify(new THREE.MeshLambertMaterial({ color: COLORS.black }), true);
+  private nibMat = inkify(new THREE.MeshLambertMaterial({ color: COLORS.black }), true);
 
   constructor(
     private paint: PaintSystem,
@@ -36,17 +44,21 @@ export class MarkerTool {
     const black = inkify(new THREE.MeshLambertMaterial({ color: '#1a1a1e' }));
     const body = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.13, 10), black);
     const band = new THREE.Mesh(new THREE.CylinderGeometry(0.0115, 0.0115, 0.03, 10), this.bandMat);
-    const nib = new THREE.Mesh(new THREE.ConeGeometry(0.006, 0.02, 8), black);
+    // Square nib in a collar, the band showing the color.
+    const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.011, 0.012, 10), black);
+    const nib = new THREE.Mesh(new THREE.BoxGeometry(0.009, 0.016, 0.009), this.nibMat);
     band.position.y = 0.02;
-    nib.position.y = 0.075;
-    this.tipModel.add(body, band, nib, penGrip());
+    collar.position.y = 0.071;
+    nib.position.y = 0.083;
+    this.tipModel.add(body, band, collar, nib, penGrip());
     this.sway.add(this.tipModel);
     this.model.add(this.sway);
   }
 
-  update(input: Input, camera: THREE.Camera, eye: THREE.Vector3, active: boolean, color: PaintColor) {
+  update(dt: number, input: Input, camera: THREE.Camera, eye: THREE.Vector3, active: boolean, color: PaintColor) {
     this.model.visible = active;
     setHex(this.bandMat.color, COLORS[color]);
+    setHex(this.nibMat.color, COLORS[color]);
     const drawing = active && input.lmb && input.locked;
     this.pose(camera, drawing);
     if (!drawing) {
@@ -59,6 +71,10 @@ export class MarkerTool {
     const from = this.prev ?? dir;
     const angle = from.angleTo(dir);
     const n = Math.min(32, Math.max(1, Math.ceil(angle / 0.003)));
+    // Moving, every stamp may feed a run (overlap depends on the path, not the frame rate).
+    this.stillClock += dt;
+    const canDrip = angle > 0.0005 || this.stillClock >= 1 / STILL_DRIP_RATE;
+    if (canDrip) this.stillClock = 0;
     let drew = false;
     this.raycaster.far = MARKER.reach;
     for (let k = 1; k <= n; k++) {
@@ -67,7 +83,7 @@ export class MarkerTool {
       const hit = this.near.length ? this.raycaster.intersectObjects(this.near, false)[0] : undefined;
       const surface = hit && this.paint.get(hit.object);
       if (!hit || !surface) continue;
-      this.paint.stamp(surface, hit.uv!, hit.faceIndex!, MARKER.radius, MARKER.strength, rgbOf(color), 0);
+      this.paint.stamp(surface, hit.uv!, hit.faceIndex!, MARKER.radius, MARKER.strength, rgbOf(color), 0, canDrip ? MARKER.drips : 0, true);
       drew = true;
     }
     this.prev = (this.prev ?? new THREE.Vector3()).copy(dir);

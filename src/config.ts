@@ -283,8 +283,13 @@ export const CAN_SIZES: Record<CanSize, { drain: number; scale: number }> = {
 export const MARKER = {
   /** Max distance from the eye to the surface. */
   reach: 2.3,
-  /** Line radius in meters (0 = one paint texel: the thinnest line, 4 cm on LOW paint detail, 1 cm on ULTRA). */
-  radius: 0.15,
+  /** Half the side of the square nib, in meters (0 = one paint texel: the thinnest line, 4 cm on LOW paint detail, 1 cm on ULTRA). */
+  radius: 0.012,
+  /**
+   * Paint runs (with DRIPS on) from the marker, as a multiplier of DRIPS.perSquareMeter:
+   * a nib covers little area but pumps a lot of paint into it.
+   */
+  drips: 8,
   strength: 0.95,
   /** First-person pose: distance in front of the eye, and model scale. */
   holdDistance: 0.38,

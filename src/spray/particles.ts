@@ -116,7 +116,7 @@ export class SprayParticles {
       p.pos.addScaledVector(p.vel, Math.min(dt, p.life));
       p.life -= dt;
       if (p.life <= 0) {
-        if (p.surface) this.paint.stamp(p.surface, p.uv, p.faceIndex, p.radius, p.amount, p.rgb, p.softness, true);
+        if (p.surface) this.paint.stamp(p.surface, p.uv, p.faceIndex, p.radius, p.amount, p.rgb, p.softness, 1);
         p.surface = null;
         this.free.push(p);
         continue;

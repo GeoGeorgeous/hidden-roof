@@ -114,7 +114,10 @@ export class PaintSystem {
    * is the same size at every paint detail; one smaller than a texel paints
    * the texel under it. `amount` 0..1 opacity at the center, `color` sRGB 0..1,
    * `softness` 0 = hard dot .. 1 = fades to nothing at the rim.
-   * `canDrip`: excess paint on opaque texels of vertical faces may start a run.
+   * `drip`: excess paint on opaque texels of vertical faces may start a run;
+   * the number multiplies how often (DRIPS.perSquareMeter), 0 = never.
+   * `square`: a hard square nib instead of a round dot (`radius` is half its
+   * side), its sides along the face's axes, like a pump marker's nib.
    */
   stamp(
     s: PaintSurface,
@@ -124,7 +127,8 @@ export class PaintSystem {
     amount: number,
     color: readonly [number, number, number],
     softness = 0.5,
-    canDrip = false,
+    drip = 0,
+    square = false,
   ) {
     if (!this.live(s)) return;
     this.ensureTexture(s);
@@ -142,7 +146,7 @@ export class PaintSystem {
     const x1 = Math.min(rect.x + rect.w, Math.floor(cx + reach));
     const y0 = Math.max(rect.y - 1, Math.floor(cy - reach));
     const y1 = Math.min(rect.y + rect.h, Math.floor(cy + reach));
-    const drip = canDrip && DRIPS.enabled && rect.upright;
+    const runs = DRIPS.enabled && rect.upright ? drip : 0;
     const r2 = r * r;
     let touched = false;
     for (let y = y0; y <= y1; y++) {
@@ -150,12 +154,12 @@ export class PaintSystem {
         const dx = x + 0.5 - cx;
         const dy = y + 0.5 - cy;
         const d2 = dx * dx + dy * dy;
-        if (dot && d2 > r2) continue;
-        const falloff = dot ? 1 - (d2 / r2) * softness : 1;
+        if (dot && (square ? Math.abs(dx) > r || Math.abs(dy) > r : d2 > r2)) continue;
+        const falloff = dot && !square ? 1 - (d2 / r2) * softness : 1;
         const amt = amount * falloff;
         if (amt <= 0) continue;
         const i = (y * w + x) * 4;
-        if (drip && data[i + 3] >= 250) this.addExcess(s, rect, x, y, amt);
+        if (runs && data[i + 3] >= 250) this.addExcess(s, rect, x, y, amt, runs);
         blend(data, i, amt, color);
         touched = true;
       }
@@ -171,7 +175,7 @@ export class PaintSystem {
     this.markDirty(s, x, y, x, y);
   }
 
-  private addExcess(s: PaintSurface, rect: Rect, x: number, y: number, amt: number) {
+  private addExcess(s: PaintSurface, rect: Rect, x: number, y: number, amt: number, rate: number) {
     const e = (s.excess ??= new Uint16Array(s.geo.atlasW * s.geo.atlasH));
     const k = y * s.geo.atlasW + x;
     const v = e[k] + Math.round(amt * 256);
@@ -180,7 +184,7 @@ export class PaintSystem {
       return;
     }
     e[k] = 0;
-    if (Math.random() >= DRIPS.perSquareMeter / PAINT.texelsPerMeter ** 2) return;
+    if (Math.random() >= (DRIPS.perSquareMeter * rate) / PAINT.texelsPerMeter ** 2) return;
     const i = k * 4;
     const d = s.data!;
     this.onDrip(s, rect, x, y, [d[i] / 255, d[i + 1] / 255, d[i + 2] / 255]);

@@ -52,7 +52,7 @@ export class Tools {
     const tool = enabled ? inv.tool : null;
     this.reportChanges(tool);
     this.spray.update(dt, input, camera, eye, tool === 'can' ? inv : null);
-    this.marker.update(input, camera, eye, tool === 'marker', inv.color);
+    this.marker.update(dt, input, camera, eye, tool === 'marker', inv.color);
   }
 
   /** Screen anchor for the color / cap tags next to the tool in hand, or null with no tool. */
