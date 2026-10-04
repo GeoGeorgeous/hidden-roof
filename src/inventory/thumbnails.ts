@@ -29,6 +29,11 @@ export class Thumbnails {
     return url;
   }
 
+  /** Drop a cached icon, so it's rendered again from the current model next time. */
+  forget(kind: PickupKind) {
+    this.cache.delete(kind);
+  }
+
   private render(kind: PickupKind) {
     const model = itemModel(kind);
     model.rotation.y = 0.5; // a three-quarter view, like the spinning pickup

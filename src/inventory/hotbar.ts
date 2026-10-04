@@ -3,8 +3,8 @@ import { SLOTS, type Inventory, type Tool } from './inventory';
 import type { Thumbnails } from './thumbnails';
 
 // Hotbar, bottom center: a row of small circles, HOTBAR.slots of them from the
-// start, one per slot key (1 = can, 2 = marker, 3 = ladder, 4 = roller, the
-// rest spare). A tool you have shows its pickup model as a pre-rendered icon
+// start, one per slot key (1 = can, 2 = marker, 3 = ladder, 4 = roller,
+// 5 = brush, any more spare). A tool you have shows its pickup model as a pre-rendered icon
 // (thumbnails.ts; the can with the current paint color); a slot you haven't
 // found the tool for yet stays an empty circle, so every tool always sits under
 // its own key. The selected slot has a solid ring, the others a faint one. No
@@ -17,6 +17,7 @@ const ICON: Record<Tool, (inv: Inventory) => string> = {
   marker: () => 'marker',
   ladder: () => 'ladder',
   roller: () => 'roller',
+  brush: () => 'brush',
 };
 
 export class Hotbar {
@@ -41,6 +42,12 @@ export class Hotbar {
     this.toastEl.textContent = msg.toUpperCase();
     this.toastEl.classList.add('show');
     this.toastTime = performance.now();
+  }
+
+  /** Re-render an item's icon (its model changed); shown on the next update. */
+  refreshIcon(kind: string) {
+    this.icons.forget(kind);
+    this.version = -1;
   }
 
   update(inv: Inventory) {

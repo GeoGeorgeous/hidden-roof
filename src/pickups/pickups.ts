@@ -42,6 +42,20 @@ export class Pickups {
     scene.add(this.root);
   }
 
+  /** Rebuild the item model of every pickup of this kind (after its config changed in F3). */
+  restyle(kind: PickupKind) {
+    for (const p of this.list.values()) {
+      if (p.kind !== kind) continue;
+      const item = itemModel(kind);
+      item.position.copy(p.item.position);
+      item.rotation.y = p.item.rotation.y;
+      p.group.remove(p.item);
+      p.item.traverse((o) => (o as THREE.Mesh).geometry?.dispose());
+      p.group.add(item);
+      p.item = item;
+    }
+  }
+
   add(kind: PickupKind, pos: V3): Pickup | null {
     if (!parsePickup(kind)) {
       console.warn(`unknown pickup "${kind}"`);
@@ -127,7 +141,9 @@ export class Pickups {
             ? inv.giveLadder()
             : 'roller' in c
               ? inv.giveRoller()
-              : inv.giveMarker();
+              : 'brush' in c
+                ? inv.giveBrush()
+                : inv.giveMarker();
     if (!ok) {
       this.onBlocked(`already have ${pickupLabel(p.kind)}`);
       return;

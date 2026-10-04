@@ -135,6 +135,8 @@ export class PaintSystem {
    * the number multiplies how often (DRIPS.perSquareMeter), 0 = never.
    * `square`: a hard square nib instead of a round dot (`radius` is half its
    * side), its sides along the face's axes, like a pump marker's nib.
+   * `color` null scrubs paint off instead (the brush): `amount` of the paint
+   * left goes, so going over it again cleans it; unpainted surfaces are skipped.
    */
   stamp(
     s: PaintSurface,
@@ -142,7 +144,7 @@ export class PaintSystem {
     faceIndex: number,
     radius: number,
     amount: number,
-    color: readonly [number, number, number],
+    color: readonly [number, number, number] | null,
     softness = 0.5,
     drip = 0,
     square = false,
@@ -255,11 +257,13 @@ export class PaintSystem {
     cy: number,
     radius: number,
     amount: number,
-    color: readonly [number, number, number],
+    color: readonly [number, number, number] | null,
     softness: number,
     drip: number,
     square: boolean,
   ) {
+    // Nothing to scrub off a surface that was never painted.
+    if (!color && !s.data) return;
     this.ensureTexture(s);
     const w = s.geo.atlasW;
     const data = s.data!;
@@ -285,6 +289,12 @@ export class PaintSystem {
         const amt = amount * falloff;
         if (amt <= 0) continue;
         const i = (y * w + x) * 4;
+        if (!color) {
+          if (data[i + 3] === 0) continue;
+          data[i + 3] = toward(data[i + 3], 0, amt);
+          touched = true;
+          continue;
+        }
         if (runs && data[i + 3] >= 250) this.addExcess(s, rect, x, y, amt, runs);
         blend(data, i, amt, color);
         touched = true;

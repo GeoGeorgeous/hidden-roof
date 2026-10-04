@@ -6,10 +6,11 @@ import { CAP_ORDER, CAPS, COLOR_ORDER, COLORS, type CapId, type PaintColor } fro
 //   "marker"        the marker (slot 2)
 //   "ladder"        the stepladder (slot 3)
 //   "roller"        the paint roller (slot 4)
+//   "brush"         the scrub brush (slot 5)
 
 export type PickupKind = string;
 
-export type PickupContent = { color: PaintColor } | { cap: CapId } | { marker: true } | { ladder: true } | { roller: true };
+export type PickupContent = { color: PaintColor } | { cap: CapId } | { marker: true } | { ladder: true } | { roller: true } | { brush: true };
 
 export const PICKUP_KINDS: PickupKind[] = [
   ...COLOR_ORDER.filter((c) => c !== 'black').map((c) => `color:${c}`),
@@ -17,6 +18,7 @@ export const PICKUP_KINDS: PickupKind[] = [
   'marker',
   'ladder',
   'roller',
+  'brush',
 ];
 
 export function parsePickup(kind: PickupKind): PickupContent | null {
@@ -24,6 +26,7 @@ export function parsePickup(kind: PickupKind): PickupContent | null {
   if (k === 'marker') return { marker: true };
   if (k === 'ladder') return { ladder: true };
   if (k === 'roller') return { roller: true };
+  if (k === 'brush') return { brush: true };
   if (k === 'color' && COLOR_ORDER.includes(a as PaintColor)) return { color: a as PaintColor };
   if (k === 'cap' && a in CAPS) return { cap: a as CapId };
   return null;
@@ -36,6 +39,7 @@ export function pickupLabel(kind: PickupKind) {
   if ('cap' in c) return `${CAPS[c.cap].name.toLowerCase()} cap`;
   if ('ladder' in c) return 'stepladder';
   if ('roller' in c) return 'paint roller';
+  if ('brush' in c) return 'scrub brush';
   return 'marker';
 }
 

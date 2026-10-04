@@ -1,18 +1,19 @@
 import { CAP_ORDER, COLOR_ORDER, type CapId, type PaintColor } from '../config';
 
-// Four slots: 1 = the spray can (always), 2 = the marker, 3 = the stepladder,
-// 4 = the paint roller (each once found).
+// Five slots: 1 = the spray can (always), 2 = the marker, 3 = the stepladder,
+// 4 = the paint roller, 5 = the scrub brush (each once found).
 // Colors and caps are permanent unlocks (colors shared by can, marker and roller).
 // Paint never runs out; the can only has pressure.
 
-export type Tool = 'can' | 'marker' | 'ladder' | 'roller';
-export const SLOTS: Tool[] = ['can', 'marker', 'ladder', 'roller'];
+export type Tool = 'can' | 'marker' | 'ladder' | 'roller' | 'brush';
+export const SLOTS: Tool[] = ['can', 'marker', 'ladder', 'roller', 'brush'];
 
 export class Inventory {
   selected = 0;
   hasMarker = false;
   hasLadder = false;
   hasRoller = false;
+  hasBrush = false;
   colors: PaintColor[] = [];
   caps: CapId[] = [];
   /** Can pressure 0..1: drains while spraying, restored by shaking. */
@@ -26,12 +27,13 @@ export class Inventory {
     this.reset();
   }
 
-  /** Starting kit: the can, black, standard cap, no marker, ladder or roller. */
+  /** Starting kit: the can, black, standard cap, none of the other tools. */
   reset() {
     this.selected = 0;
     this.hasMarker = false;
     this.hasLadder = false;
     this.hasRoller = false;
+    this.hasBrush = false;
     this.colors = ['black'];
     this.caps = ['standard'];
     this.pressure = 1;
@@ -56,7 +58,7 @@ export class Inventory {
 
   /** Has this tool been found? (The can is always there.) */
   has(t: Tool) {
-    return t === 'can' || (t === 'marker' && this.hasMarker) || (t === 'ladder' && this.hasLadder) || (t === 'roller' && this.hasRoller);
+    return t === 'can' || (t === 'marker' && this.hasMarker) || (t === 'ladder' && this.hasLadder) || (t === 'roller' && this.hasRoller) || (t === 'brush' && this.hasBrush);
   }
 
   select(i: number) {
@@ -109,6 +111,13 @@ export class Inventory {
   giveRoller() {
     if (this.hasRoller) return false;
     this.hasRoller = true;
+    this.version++;
+    return true;
+  }
+
+  giveBrush() {
+    if (this.hasBrush) return false;
+    this.hasBrush = true;
     this.version++;
     return true;
   }

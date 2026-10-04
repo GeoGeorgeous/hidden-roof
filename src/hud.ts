@@ -10,9 +10,9 @@ import type { SettingSection } from './settings';
 const CONTROLS = [
   ['WASD / SHIFT / SPACE', 'move / run / jump'],
   ['MOVE INTO LADDER', 'climb (CTRL holds, SPACE lets go)'],
-  ['LMB', 'spray / draw / place ladder / roll'],
+  ['LMB', 'spray / draw / place ladder / roll / scrub'],
   ['RMB', 'shake can'],
-  ['1 / 2 / 3 / 4', 'can / marker / ladder / roller'],
+  ['1 – 5', 'can / marker / ladder / roller / brush'],
   ['Q / E', 'color'],
   ['WHEEL', 'cap / nib size / turn ladder'],
   ['B', 'build mode'],
