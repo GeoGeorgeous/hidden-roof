@@ -4,6 +4,7 @@ import { mipRect, mipSizes, type MipSize } from './paint-mips';
 import { resampleAtlas } from './paint-resample';
 import type { Rect, SurfaceGeometry } from './surfaces';
 import type { SurfaceMaterial } from './materials';
+import { SeamIndex, texelToWorld, worldToTexel } from './paint-seams';
 
 // Paint lives in one RGBA texture per paintable surface (atlas of its faces).
 // Textures are created on the first hit and uploaded only on frames they change.
@@ -15,6 +16,8 @@ import type { SurfaceMaterial } from './materials';
 const uploadSource = new THREE.DataTexture(null, 1, 1);
 const uploadRegion = new THREE.Box2();
 const uploadAt = new THREE.Vector2();
+const seamPoint = new THREE.Vector3();
+const seamTexel = new THREE.Vector2();
 /** Mip texels on their way to the GPU (paint-mips.ts). */
 let scratch = new Uint8Array(0);
 
@@ -36,6 +39,8 @@ export class PaintSystem {
   readonly surfaces: PaintSurface[] = [];
   private bySurfaceMesh = new Map<THREE.Object3D, PaintSurface>();
   private dirty = new Set<PaintSurface>();
+  /** Flat faces by plane, so dots carry across seams onto coplanar neighbors. */
+  private seams = new SeamIndex<PaintSurface>();
   textureCount = 0;
   textureBytes = 0;
   uploadsLastFrame = 0;
@@ -47,6 +52,7 @@ export class PaintSystem {
     const s: PaintSurface = { mesh, material, geo, data: null, mips: [], texture: null, excess: null, dirty: { x0: Infinity, y0: Infinity, x1: -1, y1: -1 } };
     this.surfaces.push(s);
     this.bySurfaceMesh.set(mesh, s);
+    this.seams.add(s, geo.rects);
     mesh.userData.paintable = true;
     return s;
   }
@@ -56,6 +62,7 @@ export class PaintSystem {
     const s = this.bySurfaceMesh.get(mesh);
     if (!s) return null;
     this.bySurfaceMesh.delete(mesh);
+    this.seams.remove(s);
     this.surfaces.splice(this.surfaces.indexOf(s), 1);
     this.dirty.delete(s);
     if (s.texture) {
@@ -131,12 +138,37 @@ export class PaintSystem {
     square = false,
   ) {
     if (!this.live(s)) return;
-    this.ensureTexture(s);
-    const { atlasW: w, rects, triToRect } = s.geo;
-    const rect = rects[triToRect[faceIndex]];
-    const data = s.data!;
+    const rect = s.geo.rects[s.geo.triToRect[faceIndex]];
     const cx = uv.x * s.geo.atlasW;
     const cy = uv.y * s.geo.atlasH;
+    this.dot(s, rect, cx, cy, radius, amount, color, softness, drip, square);
+    // The part of the dot past the face's edge goes onto coplanar faces next to it (other props too).
+    const r = radius * PAINT.texelsPerMeter;
+    if (!rect.face || (cx - r >= rect.x && cx + r <= rect.x + rect.w && cy - r >= rect.y && cy + r <= rect.y + rect.h)) return;
+    texelToWorld(rect, cx, cy, seamPoint);
+    for (const n of this.seams.near(rect, seamPoint, radius)) {
+      if (!this.live(n.surface)) continue;
+      worldToTexel(n.rect, seamPoint, seamTexel);
+      this.dot(n.surface, n.rect, seamTexel.x, seamTexel.y, radius, amount, color, softness, drip, square);
+    }
+  }
+
+  /** One dot centered at atlas texel coords (cx, cy), clipped to `rect` (see stamp). */
+  private dot(
+    s: PaintSurface,
+    rect: Rect,
+    cx: number,
+    cy: number,
+    radius: number,
+    amount: number,
+    color: readonly [number, number, number],
+    softness: number,
+    drip: number,
+    square: boolean,
+  ) {
+    this.ensureTexture(s);
+    const w = s.geo.atlasW;
+    const data = s.data!;
     const r = radius * PAINT.texelsPerMeter;
     // Under half a texel diagonal the dot could miss every texel center.
     const dot = r >= Math.SQRT1_2;

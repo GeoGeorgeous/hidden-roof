@@ -113,6 +113,7 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
   - Each particle raycasts once when it's emitted.
   - It stamps paint into the atlas when it arrives.
   - Particles are visual only and come from a fixed-size pool.
+- **Across seams:** a dot is clipped to the face it hit, and the part past the face's edge goes onto the faces in the same plane next to it, on the same prop or another (wall pieces, joint posts, stacked blocks), so seams don't show in the paint (`paint-seams.ts`: flat faces indexed per plane in 2 m cells; only dots that cross an edge look anything up).
 - **Marker:** stamps directly under the crosshair, filling the gaps between frames.
 - **Paint runs:** spraying on and on onto paint that's already opaque builds up excess, and so does going over a marker line again or holding the marker still. On vertical faces, a few texels at the limit start a thin run down the face that slows down and ends in a drop. Runs are written into the paint texture like any stamp (`DRIPS` in config; F3 → Painting). How many start is set per square meter (`DRIPS.perSquareMeter`), so every paint detail runs alike.
 - **Overpainting:** a surface has a single paint layer, and new paint is composited *over* it. The color always moves toward the new paint by that paint's own amount, so the last color painted always wins. Each 8-bit channel moves by at least one step per coat, so repeated coats reach the exact new color instead of stalling a little short of it.

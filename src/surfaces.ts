@@ -13,6 +13,8 @@ export interface Rect {
   h: number;
   /** Vertical face with texel +y = world up: paint can run down it (see paint-drips.ts). */
   upright?: boolean;
+  /** Flat faces: where the face is in the world, so paint can cross onto coplanar neighbors (paint-seams.ts). */
+  face?: FaceSpec;
 }
 
 export interface SurfaceGeometry {
@@ -28,7 +30,7 @@ export interface SurfaceGeometry {
 
 const PAD = 1;
 
-interface FaceSpec {
+export interface FaceSpec {
   /** World-space corners: origin, +u edge, +v edge (u = right, v = up when facing the face). */
   origin: THREE.Vector3;
   uAxis: THREE.Vector3; // full length vector
@@ -113,6 +115,7 @@ export class SurfaceBuilder {
     const vLen = f.vAxis.length();
     const rect = this.addRect(uLen, vLen);
     if (f.vAxis.y > 0 && Math.abs(f.normal.y) < 0.01) this.rects[rect].upright = true;
+    this.rects[rect].face = { origin: f.origin.clone(), uAxis: f.uAxis.clone(), vAxis: f.vAxis.clone(), normal: f.normal.clone() };
     const uDir = f.uAxis.clone().normalize();
     const vDir = f.vAxis.clone().normalize();
     // World-aligned base coords: project origin onto the face axes.

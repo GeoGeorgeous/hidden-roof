@@ -167,11 +167,11 @@ export const VOLUMETRICS = {
  * solid black. Edges get pen outlines in the final pass. Live in F3 -> Ink.
  */
 export const INK = {
-  paper: '#d2cab6',
+  paper: '#dfe0d6',
   ink: '#3a3749',
-  sky: '#262532',
-  /** What the city fades into above the cloud base (ATMOS.cloudBase); the sky color by default. */
-  cloud: '#262532',
+  sky: '#0c0b0f',
+  /** What the city fades into above the cloud base (ATMOS.cloudBase). */
+  cloud: '#201f29',
   /** Light multiplier before the tone steps (brighter = more paper). */
   exposure: 2.1,
   /** Tone steps (0..1): above `paper` no ink; below `hatch` cross-hatching; below `black` solid ink. */
