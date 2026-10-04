@@ -69,6 +69,7 @@ const HINTS: Record<string, string> = {
   'ROLLER.halfWidth': 'Half the width of the roller\'s stroke (m), the roller head\'s half-length.',
   'ROLLER.halfDepth': 'Half the depth of each press along the stroke (m). Presses overlap as you roll; bigger is cheaper on fast moves but blockier.',
   'ROLLER.edge': 'How much of each end of the roller leaves lighter paint (fraction of the half-width).',
+  'ROLLER.crosshair': 'Crosshair size with the roller in hand (px).',
   'ROLLER.strength': 'Opacity of each press.',
   'ROLLER.drips': 'With paint runs on: how readily the roller starts runs (x the paint runs per m²).',
   'SPONGE.reach': 'Farthest distance the sponge reaches (m): arm\'s length.',

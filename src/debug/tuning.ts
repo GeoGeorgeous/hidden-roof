@@ -267,6 +267,7 @@ export function sections(): Section[] {
         r('press half-depth (m)', ['ROLLER', 'halfDepth'], 0.005, 0.15, 0.005),
         r('light ends (fraction)', ['ROLLER', 'edge'], 0, 0.5, 0.01),
         r('opacity', ['ROLLER', 'strength'], 0.05, 1, 0.01),
+        r('crosshair (px)', ['ROLLER', 'crosshair'], 0, 60, 1),
         r('runs (x paint runs per m²)', ['ROLLER', 'drips'], 0, 40, 0.5),
         { kind: 'heading', label: 'SPONGE' },
         r('reach', ['SPONGE', 'reach'], 0.5, 4, 0.1),

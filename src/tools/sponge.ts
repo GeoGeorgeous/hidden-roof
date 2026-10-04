@@ -11,7 +11,7 @@ import { SpongeModel } from './sponge-model';
 // left off a round patch (PaintSystem.stamp with no color), so one pass fades
 // it and scrubbing back and forth cleans it. Moving the view fills the steps in
 // between frames, like the marker. Works on any paint (can, marker, roller, runs).
-// The mouse wheel changes the patch size (SPONGE.radiusMin..radiusMax).
+// The mouse wheel changes the patch size (SPONGE.radiusMin..radiusMax, see wheel-size.ts).
 
 const dir = new THREE.Vector3();
 const step = new THREE.Vector3();
@@ -31,14 +31,6 @@ export class SpongeTool {
     private solids: THREE.Mesh[],
     private audio: Audio,
   ) {}
-
-  /** Mouse wheel: grow (+1) or shrink (-1) the patch by SPONGE.radiusStep, within its min..max. False if already at the limit. */
-  resize(dir: number) {
-    const r = Math.min(SPONGE.radiusMax, Math.max(SPONGE.radiusMin, SPONGE.radius + dir * SPONGE.radiusStep));
-    const changed = Math.abs(r - SPONGE.radius) > 1e-9;
-    SPONGE.radius = Math.round(r * 1e6) / 1e6;
-    return changed;
-  }
 
   /** The sponge's sway group, for ViewSway. */
   get sway() {

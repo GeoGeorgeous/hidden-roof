@@ -306,6 +306,9 @@ export const MARKER = {
   strength: 0.95,
 };
 
+/** Crosshair (px) with no sized tool in hand: the stepladder, empty hands, build mode. The others set their own. */
+export const CROSSHAIR = { plain: 6 };
+
 /** Hotbar circles shown from the start (empty until their tool is found); at least one per tool. */
 export const HOTBAR = { slots: 5 };
 
@@ -319,6 +322,8 @@ export const ROLLER = {
   halfDepth: 0.03,
   /** Fraction of each end of the roller that leaves lighter paint. */
   edge: 0.15,
+  /** Crosshair with the roller in hand (px). */
+  crosshair: 10,
   /** Opacity per press: a roller lays it on thick. */
   strength: 0.85,
   /** Paint runs (with DRIPS on), as a multiplier of DRIPS.perSquareMeter: a loaded roller runs easily. */

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { Audio } from '../audio';
-import { CAPS, type PaintColor } from '../config';
+import { CAPS, CROSSHAIR, MARKER, ROLLER, SPONGE, type PaintColor } from '../config';
 import type { Input } from '../input';
 import { SLOTS, type Inventory, type Tool } from '../inventory/inventory';
 import type { PaintSystem } from '../painting';
@@ -10,6 +10,10 @@ import { MarkerTool } from './marker';
 import { RollerTool } from './roller';
 import { SpongeTool } from './sponge';
 import type { Level } from '../level/level';
+import { sizedCrosshair, stepSize, type WheelSized } from './wheel-size';
+
+/** Tools the mouse wheel resizes (wheel-size.ts): their config. */
+const SIZED: Partial<Record<Tool, WheelSized>> = { marker: MARKER, sponge: SPONGE };
 import { ViewSway, type Motion } from './view-sway';
 
 // Routes input to the tool in hand: 1 = can, 2 = marker, 3 = stepladder, 4 =
@@ -68,11 +72,8 @@ export class Tools {
       if (dc && inv.cycleColor(dc)) this.audio.click();
       if (SLOTS.some((_, i) => input.wasPressed(`Digit${i + 1}`))) this.audio.click();
       if (input.wheelSteps !== 0 && inv.tool === 'can' && inv.cycleCap(Math.sign(input.wheelSteps))) this.audio.click();
-      if (input.wheelSteps !== 0 && inv.tool === 'marker' && this.marker.resize(-Math.sign(input.wheelSteps))) {
-        this.audio.click();
-        this.onNibChange();
-      }
-      if (input.wheelSteps !== 0 && inv.tool === 'sponge' && this.sponge.resize(-Math.sign(input.wheelSteps))) {
+      const sized = inv.tool && SIZED[inv.tool];
+      if (input.wheelSteps !== 0 && sized && stepSize(sized, -Math.sign(input.wheelSteps))) {
         this.audio.click();
         this.onNibChange();
       }
@@ -95,6 +96,14 @@ export class Tools {
     else if (tool === 'ladder') this.ladder.model.update(camera, true);
     else if (tool === 'roller') this.roller.model.update(0, camera, true, this.inventory.color, false, 0);
     else if (tool === 'sponge') this.sponge.model.update(0, camera, true, false);
+  }
+
+  /** Crosshair size (px) for the tool in hand (null: none, or build mode). */
+  crosshair(tool: Tool | null) {
+    if (tool === 'can') return CAPS[this.inventory.cap].crosshair;
+    if (tool === 'roller') return ROLLER.crosshair;
+    const sized = tool && SIZED[tool];
+    return sized ? sizedCrosshair(sized) : CROSSHAIR.plain;
   }
 
   /** Screen anchor for the color / cap tags next to the tool in hand, or null with no tool. */
