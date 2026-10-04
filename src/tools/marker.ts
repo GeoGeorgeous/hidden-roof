@@ -6,7 +6,7 @@ import type { Input } from '../input';
 import { rgbOf } from '../inventory/items';
 import { glove, segment, sleeve } from '../spray/hands';
 import type { PaintSystem } from '../painting';
-import { solidsNear } from '../level/solids';
+import { StrokeSweep } from './stroke';
 import { setHex } from '../hex-color';
 
 // Marker: a pump marker with a hard square nib. It draws a solid line straight
@@ -19,29 +19,27 @@ import { setHex } from '../hex-color';
 // Fast mouse moves are filled by interpolating rays between frames. The band
 // on the barrel shows the current color, like the can's label.
 
-const dir = new THREE.Vector3();
-const step = new THREE.Vector3();
 /** Held still, the nib stamps the same spot every frame: let it add to runs this often (per s), whatever the frame rate. */
 const STILL_DRIP_RATE = 30;
+/** Rays at most this far apart (radians), so fast moves leave no gaps. */
+const RAY_STEP = 0.003;
 
 export class MarkerTool {
   readonly model = new THREE.Group();
   /** Sway/bob offsets are written here (see tools/view-sway.ts). */
   readonly sway = new THREE.Group();
   private tipModel = new THREE.Group();
-  private prev: THREE.Vector3 | null = null;
-  private raycaster = new THREE.Raycaster();
-  private near: THREE.Object3D[] = [];
-  private stillClock = 0;
+  private stroke: StrokeSweep;
   /** Show the paint color, so they keep their color: the band and the inked nib. */
   private bandMat = inkify(new THREE.MeshLambertMaterial({ color: COLORS.black }), true);
   private nibMat = inkify(new THREE.MeshLambertMaterial({ color: COLORS.black }), true);
 
   constructor(
     private paint: PaintSystem,
-    private solids: THREE.Mesh[],
+    solids: THREE.Mesh[],
     private audio: Audio,
   ) {
+    this.stroke = new StrokeSweep(solids, paint);
     const black = inkify(new THREE.MeshLambertMaterial({ color: '#1a1a1e' }));
     const body = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.13, 10), black);
     const band = new THREE.Mesh(new THREE.CylinderGeometry(0.0115, 0.0115, 0.03, 10), this.bandMat);
@@ -63,32 +61,22 @@ export class MarkerTool {
     const drawing = active && input.lmb && input.locked;
     this.pose(camera, drawing);
     if (!drawing) {
-      this.prev = null;
+      this.stroke.lift();
       this.audio.setScribble(0);
       return;
     }
-    camera.getWorldDirection(dir);
-    solidsNear(this.solids, eye, MARKER.reach, this.near);
-    const from = this.prev ?? dir;
-    const angle = from.angleTo(dir);
-    const n = Math.min(32, Math.max(1, Math.ceil(angle / 0.003)));
-    // Moving, every stamp may feed a run (overlap depends on the path, not the frame rate).
-    this.stillClock += dt;
-    const canDrip = angle > 0.0005 || this.stillClock >= 1 / STILL_DRIP_RATE;
-    if (canDrip) this.stillClock = 0;
+    // Every stamp may feed a run while moving (overlap depends on the path, not the frame rate).
     let drew = false;
-    this.raycaster.far = MARKER.reach;
-    for (let k = 1; k <= n; k++) {
-      step.copy(from).lerp(dir, k / n).normalize();
-      this.raycaster.set(eye, step);
-      const hit = this.near.length ? this.raycaster.intersectObjects(this.near, false)[0] : undefined;
-      const surface = hit && this.paint.get(hit.object);
-      if (!hit || !surface) continue;
-      this.paint.stamp(surface, hit.uv!, hit.faceIndex!, MARKER.radius, MARKER.strength, rgbOf(color), 0, canDrip ? MARKER.drips : 0, true);
+    const { angle } = this.stroke.sweep(dt, camera, eye, this.spec(), (hit, surface, fresh) => {
+      if (!surface) return;
+      this.paint.stamp(surface, hit.uv!, hit.faceIndex!, MARKER.radius, MARKER.strength, rgbOf(color), 0, fresh ? MARKER.drips : 0, true);
       drew = true;
-    }
-    this.prev = (this.prev ?? new THREE.Vector3()).copy(dir);
+    });
     this.audio.setScribble(drew ? Math.min(1, 0.15 + angle * 40) : 0);
+  }
+
+  private spec() {
+    return { reach: MARKER.reach, rayStep: RAY_STEP, maxRays: 32, stillRate: STILL_DRIP_RATE };
   }
 
   /** A point just right of the marker, for the color tag (same place as the can's). */
