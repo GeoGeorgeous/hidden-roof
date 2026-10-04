@@ -1,7 +1,7 @@
 import { CAP_ORDER, CAPS, COLOR_ORDER, COLORS, type CapId, type PaintColor } from '../config';
 
 // Pickup kinds as stored in level JSON:
-//   "color:red"     unlock a paint color (can + marker)
+//   "color:red"     unlock a paint color (can, marker, roller)
 //   "cap:fat"       unlock a cap
 //   "marker"        the marker (slot 2)
 //   "ladder"        the stepladder (slot 3)
@@ -46,7 +46,7 @@ export function srgb01(hex: string): [number, number, number] {
 }
 
 const rgbCache = new Map<string, [number, number, number]>();
-/** A paint color as 0..1 sRGB, the way both tools stamp it. */
+/** A paint color as 0..1 sRGB, the way every tool paints it. */
 export function rgbOf(color: PaintColor) {
   let c = rgbCache.get(color);
   if (!c) rgbCache.set(color, (c = srgb01(COLORS[color])));

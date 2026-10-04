@@ -164,7 +164,7 @@ export class Hud {
   }
 
   /**
-   * Screen position (CSS px) next to the tool in hand (can or marker), or null
+   * Screen position (CSS px) next to the tool in hand (can, marker or roller), or null
    * with no tool. Places the cap and color tags, and above them the PSI gauge
    * (`pressure` 0..1 with the can in hand, else null): it fades in while the
    * pressure changes (spraying, shaking) and out a moment after, but stays up

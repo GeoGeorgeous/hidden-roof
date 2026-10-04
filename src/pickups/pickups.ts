@@ -6,7 +6,7 @@ import { parsePickup, pickupLabel, type PickupKind } from '../inventory/items';
 import { glowColor, halo as makeHalo, itemModel } from './visuals';
 
 // Pickups placed on the map. Walk into one to collect it; if it unlocks nothing
-// new (color/cap already owned, can already that big) it stays. Saved in level
+// new (color/cap already owned, tool already found) it stays. Saved in level
 // JSON as {kind, pos}.
 
 export interface PickupData {

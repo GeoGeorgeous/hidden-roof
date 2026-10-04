@@ -9,7 +9,9 @@ import { exitGameFullscreen } from './fullscreen';
 // paint texture or the whole city: stepping through the choices costs
 // nothing. config.ts holds the defaults.
 
-const KEY = 'taggin.settings.v2';
+const KEY = 'roofhiddenhaus.settings';
+/** Settings saved under the old name (taggin): read once, so nothing resets with the rename. */
+const RENAMED_KEY = 'taggin.settings.v2';
 /** Settings saved before v2: their paint detail and volumetrics are dropped, so the defaults (ULTRA, off) apply once. */
 const OLD_KEY = 'taggin.settings';
 const PIXEL_SCALES = [1, 1.5, 2, 2.5, 3, 4];
@@ -186,7 +188,7 @@ export class Settings {
 
 function load(): Saved {
   try {
-    const saved = localStorage.getItem(KEY);
+    const saved = localStorage.getItem(KEY) ?? localStorage.getItem(RENAMED_KEY);
     if (saved) return JSON.parse(saved) as Saved;
     const old = JSON.parse(localStorage.getItem(OLD_KEY) ?? '{}') as Saved;
     return { pixelScale: old.pixelScale, cityDetail: old.cityDetail };

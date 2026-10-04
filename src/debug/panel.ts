@@ -6,7 +6,7 @@ import { getValue, sections, sectionsJSON, setValue, splitSections, type Item, t
 // expand all; open sections are remembered in this browser. Press Esc to free
 // the mouse and use the sliders; click the game to resume.
 
-const OPEN_KEY = 'taggin.debug.open';
+const OPEN_KEY = 'roofhiddenhaus.debug.open';
 
 export class DebugPanel {
   visible = false;
@@ -221,7 +221,7 @@ function actionButton(label: string, run: () => void) {
 
 function loadOpen(): Set<string> | null {
   try {
-    const v = localStorage.getItem(OPEN_KEY);
+    const v = localStorage.getItem(OPEN_KEY) ?? localStorage.getItem('taggin.debug.open');
     return v ? new Set(JSON.parse(v) as string[]) : null;
   } catch {
     return null;

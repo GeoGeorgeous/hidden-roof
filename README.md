@@ -1,6 +1,6 @@
-# taggin'
+# roof.hidden.haus
 
-A small first-person graffiti game in the browser. You're on the rooftops of a pen-and-ink megacity, high above streets lost in black: find colors, caps and a marker, then paint whatever you like. The world is drawn in ink on paper; the only color anywhere is your paint. There are no enemies and no objectives. The HUD looks like a body-cam recording overlay.
+A small first-person graffiti game in the browser. You're on the rooftops of a pen-and-ink megacity, high above streets lost in black: find colors, caps, a marker, a stepladder and a paint roller, then paint whatever you like. The world is drawn in ink on paper; the only color anywhere is your paint. There are no enemies and no objectives. The HUD looks like a body-cam recording overlay.
 
 Built with three.js, TypeScript and Vite. There are no external assets: the geometry, textures and sounds are all generated in code. See `AGENTS.md` for the two ground rules (performance first, small files).
 
@@ -22,10 +22,10 @@ npm run build      # typecheck + production build into dist/
 |---|---|
 | WASD, Shift, Space | Move, run, jump |
 | Move into a ladder | Climb. Let go to slide down, Ctrl to hold on, Space to jump off. Walking away from it walks off. |
-| LMB | Spray with the can, draw with the marker, or place the stepladder |
-| 1 / 2 / 3 | Can / marker / stepladder (once found) |
-| Q / E | Cycle through the colors you've collected (can and marker) |
-| Mouse wheel | Cycle through the caps you've collected (can only) |
+| LMB | Spray with the can, draw with the marker, place the stepladder, or roll with the roller |
+| 1 / 2 / 3 / 4 | Can / marker / stepladder / paint roller (once found) |
+| Q / E | Cycle through the colors you've collected (can, marker, roller) |
+| Mouse wheel | Can: cycle through your caps. Marker: nib size (the crosshair follows it). Stepladder: turn it. |
 | RMB | Shake the can (restores pressure) |
 | B | Toggle build mode |
 | K | Screenshot: the game view (without the HUD) downloads as a PNG |
@@ -60,12 +60,13 @@ npm run build      # typecheck + production build into dist/
 
 ## Inventory
 
-The hotbar at the bottom center shows the tools you have as small circles, each with the item's pickup model as an icon (rendered once into a small image by the game's renderer and cached; the can's icon shows the current paint color). The tool in hand has a solid ring. Color, cap and pressure show next to the tool in hand.
+The hotbar at the bottom center is a row of small circles (`HOTBAR.slots`, 5), there from the start: one per slot key, so every tool always sits under its own number. A slot whose tool you haven't found is an empty circle; once found, it shows the item's pickup model as an icon (rendered once into a small image by the game's renderer and cached; the can's icon shows the current paint color). The selected slot has a solid ring. Color, cap and pressure show next to the tool in hand. How each tool is held is tunable live in F3 → Camera (`HOLD`), even while the panel pauses the game.
 
 - **Slot 1: the spray can.** There is exactly one can, and its paint never runs out. Its pressure drains while you spray: below 50% the paint thins, below 25% the can sputters. The PSI gauge shows by the can while you spray or shake (it fades in and out with the pressure changing); when low it stays up in red, with a blinking LOW PRESSURE — SHAKE [RMB] above it. Shake with RMB to restore it.
-- **Slot 2: the marker,** once you find it. It's a pump marker with a hard square nib: it draws a solid, hard-edged line at close range in the current color, as wide as the nib going straight and wider on the diagonal. Its band shows the color, and switching colors (or tools) shows the same COLOR tag next to whichever tool is in hand.
-- **Slot 3: the stepladder,** once you find it. A small A-frame ladder (1.2 m, like its pickup) that stands on its own: climb it from the front (like any ladder) and stand on its top to reach higher walls. In hand you hold it folded, like the can and the marker. A green preview shows where it would stand: anywhere on the floor (not on the grid), turned to face you, and the mouse wheel turns it a quarter turn at a time; aiming at a wall puts it on the floor in front of it. It's red where it can't stand: its four feet must rest on one flat floor (not over an edge, a gap or a step), nothing may be in its way or in you, and there must be room to stand in front of it and climb. LMB places it. There is only one: placing it again moves it. It isn't saved with the level (`STEPLADDER_PLACE` in config).
-- **Colors** are pickups: black, white, red, orange, yellow, green, blue, purple and pink. Once collected, a color stays available for both the can and the marker. You start with black.
+- **Slot 2: the marker,** once you find it. It's a pump marker with a hard square nib: it draws a solid, hard-edged line at close range in the current color, as wide as the nib going straight and wider on the diagonal. The mouse wheel changes the nib size (`MARKER.radiusMin` .. `radiusMax` in `radiusStep`s), and the crosshair grows with it. Its band shows the color, and switching colors (or tools) shows the same COLOR tag next to whichever tool is in hand.
+- **Slot 3: the stepladder,** once you find it. A small A-frame ladder (1.2 m, like its pickup) that stands on its own: climb it from the front (like any ladder) and stand on its top to reach higher walls. In hand you hold it folded, like the can and the marker. A green preview shows where it would stand: anywhere on the floor (not on the grid), turned to face you, and the mouse wheel turns it a quarter turn at a time; aiming at a wall puts it on the floor in front of it. It's red where it can't stand: its four feet must rest on one flat floor (not over an edge, a gap or a step), nothing may be in its way or in you, and there must be room to stand in front of it and climb. LMB places it. There is only one: placing it again moves it. It isn't saved with the level, and build mode leaves it alone (`STEPLADDER_PLACE` in config).
+- **Slot 4: the paint roller,** once you find it. A wide graffiti roller on a short pole: held to a surface within reach, LMB rolls a solid band of paint as wide as the roller (44 cm), along the roller (the view's right, laid into the surface), with lighter ends. Moving the view rolls it; presses are filled in between frames, so a stroke is one continuous band. Rolling up and down makes the wide stroke; rolling sideways only drags it along its own length, like a real roller. It uses the same paint textures as the can and marker (`PaintSystem.roll`), carries across seams, and starts paint runs easily. The cover shows the current color and spins as it rolls (`ROLLER` in config, F3 → Painting).
+- **Colors** are pickups: black, white, red, orange, yellow, green, blue, purple and pink. Once collected, a color stays available for the can, the marker and the roller. You start with black.
 - **Caps** are skinny, standard, fat and spray (a wide, soft mist for fades). You start with the standard cap. The crosshair circle grows with the cap, and the cap's name shows next to the can for a moment after switching.
 - **Pickups** hover, spin and glow so you can spot them from far away. Walk into one to collect it. If it gives you nothing new, it stays on the map.
 
@@ -105,6 +106,7 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
   - `cap:<skinny|standard|fat|spray>` unlocks a cap
   - `marker`
   - `ladder` (the stepladder)
+  - `roller` (the paint roller)
 - The city is regenerated around the level's bounds every time a level loads, always the same for the same settings. A level can override any `SKYLINE` value in its own object, e.g. `"skyline": { "seed": 12, "margin": 20 }`.
 
 ## How painting works
@@ -172,7 +174,7 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
 - `COLORS` and `COLOR_ORDER`: the paint palette and its Q/E order. Add a color here and it becomes a `color:<name>` pickup.
 - `SPRAY`: `range`, `falloffStart`, particle speed, size and pool size.
 - `PRESSURE`: drain rate, the thin and sputter thresholds, sputter duty, shake restore and shake duration.
-- `HOLD`: how each tool is held in first person (`can`, `marker`, `ladder`; a new tool adds its own): `distance` in front of the eye, `x` / `y` position per meter of distance (so changing the distance keeps it in the same spot on screen), `scale`, and `pitch` / `yaw` / `roll`. Live in F3 → Player → HELD ….
+- `HOLD`: how each tool is held in first person (`can`, `marker`, `ladder`, `roller`; a new tool adds its own): `distance` in front of the eye, `x` / `y` position per meter of distance (so changing the distance keeps it in the same spot on screen), `scale`, and `pitch` / `yaw` / `roll`. Live in F3 → Camera → HELD ….
 - `MARKER`: `reach`, `radius` (half the square nib's side in meters; 0 = one paint texel), `drips` (how readily it starts paint runs), and `strength`.
 - `VIEWMODEL`: hand sway, walk bob, jump lag and the trigger-press animation.
 - `ATMOS`: the rainy night, including `lightDecay` (light falloff, 2 = physical). `DAYLIGHT` overrides some of its keys while build mode is on.
@@ -207,10 +209,10 @@ src/config.ts            all tunable constants
 src/kit/                 prop kit: pieces + helpers (railings, ladders), prop builders (signs.ts, steel.ts: lettered signs, lattices), registry
 src/level/               build-prop (pieces → meshes/colliders), level (instances, JSON), decor batch tiles, solids broad phase
 src/build/               build mode, its HUD panel, level file I/O
-src/inventory/           pickup kinds, inventory (can, marker, ladder, unlocks), hotbar and its item icons
+src/inventory/           pickup kinds, inventory (can, marker, ladder, roller, unlocks), hotbar and its item icons
 src/pickups/             pickup manager + visuals
 src/spray/               spray tool, can + hand view model, particles
-src/tools/               marker, tool routing (hotbar → tool), hand sway/bob
+src/tools/               marker, stepladder, paint roller, tool routing (hotbar → tool), hand sway/bob
 src/debug/               debug + tuning panel, tunable list, GPU pass timer
 src/render/              lighting pool, light FX, rain, atmosphere presets, post pipeline, volumetrics
 src/render/ink/          ink look: tones + hatching (tone.ts), facade bands, grime, sign lettering atlas, outline + paper pass

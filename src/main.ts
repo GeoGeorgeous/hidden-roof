@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import * as config from './config';
-import { ATMOS, AUDIO, CAPS, COLORS, INK, PLAYER, PRESSURE, RENDER, SMOKE, THUNDER, VIEWMODEL } from './config';
+import { ATMOS, AUDIO, CAPS, COLORS, INK, MARKER, PLAYER, PRESSURE, RENDER, SMOKE, THUNDER, VIEWMODEL } from './config';
 import { syncSharedUniforms } from './materials';
 import { syncTrackUniforms } from './render/cctv-track';
 import { Lighting } from './render/lighting';
@@ -178,6 +178,8 @@ hud.setLocked(false);
 hud.setSettings(settings.sections());
 tools.onCapChange = (name) => hud.showCapTag(name);
 tools.onColorChange = (color) => hud.showColorTag(color, COLORS[color]);
+// The wheel changed the marker's nib: the F3 slider follows it.
+tools.onNibChange = () => debug.visible && debug.sync();
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -270,7 +272,7 @@ function frame(time: number) {
     pickups.update(dt, player.position, inventory);
   } else if (!build.active) tools.holdStill(camera);
   const tool = build.active ? null : inventory.tool;
-  hud.setCrosshair(tool === 'can' ? CAPS[inventory.cap].crosshair : tool === 'marker' ? 4 : tool === 'roller' ? 10 : 6);
+  hud.setCrosshair(tool === 'can' ? CAPS[inventory.cap].crosshair : tool === 'marker' ? Math.round(MARKER.crosshair + MARKER.radius * MARKER.crosshairPerMeter) : tool === 'roller' ? 10 : 6);
   const anchor = tools.labelAnchor(tagPos);
   const pressure = tool === 'can' ? inventory.pressure : null;
   hud.placeToolTags(anchor ? toScreen(anchor) : null, pressure, pressure !== null && pressure < PRESSURE.sputterThreshold);

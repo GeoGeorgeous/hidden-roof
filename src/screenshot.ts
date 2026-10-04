@@ -8,7 +8,7 @@ export function saveScreenshot(canvas: HTMLCanvasElement, onSaved: () => void) {
     if (!blob) return;
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `taggin-${stamp(new Date())}.png`;
+    a.download = `roof-hidden-haus-${stamp(new Date())}.png`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     onSaved();

@@ -114,7 +114,9 @@ export class Lighting {
       s.updateProjectionMatrix();
     }
     moonDir.fromArray(ATMOS.moonDir).normalize();
-    shadowX.crossVectors(UP, moonDir).normalize(); // the shadow camera's axes (lookAt with +y up)
+    shadowX.crossVectors(UP, moonDir); // the shadow camera's axes (lookAt with +y up)
+    if (shadowX.lengthSq() < 1e-8) shadowX.set(1, 0, 0); // moon straight overhead: any level axis will do
+    shadowX.normalize();
     shadowY.crossVectors(moonDir, shadowX);
     const texel = (2 * r) / this.moon.shadow.mapSize.x;
     const snapT = (v: number) => Math.round(v / texel) * texel;

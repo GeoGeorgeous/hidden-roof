@@ -13,7 +13,7 @@ import { ViewSway, type Motion } from './view-sway';
 
 // Routes input to the tool in hand: 1 = can, 2 = marker, 3 = stepladder, 4 =
 // roller, Q/E = color (can, marker, roller), mouse wheel = cap (can), nib size
-// (marker) or turning the ladder. Owns the UI both tools share: it
+// (marker) or turning the ladder. Owns the UI the tools share: it
 // reports color / cap changes (and which ones apply when switching tools) and
 // where the tags go next to whichever tool is in hand.
 
@@ -25,6 +25,8 @@ export class Tools {
   private sway = new ViewSway();
   /** Called with the color when it changes or another tool comes out. */
   onColorChange: (color: PaintColor) => void = () => {};
+  /** Called when the mouse wheel changes the marker's nib size. */
+  onNibChange: () => void = () => {};
   /** Called with the cap name when it changes or the can comes out. */
   onCapChange: (name: string) => void = () => {};
   private last: { tool: Tool | null; color: string; cap: string } | null = null;
@@ -61,7 +63,10 @@ export class Tools {
       if (dc && inv.cycleColor(dc)) this.audio.click();
       if (SLOTS.some((_, i) => input.wasPressed(`Digit${i + 1}`))) this.audio.click();
       if (input.wheelSteps !== 0 && inv.tool === 'can' && inv.cycleCap(Math.sign(input.wheelSteps))) this.audio.click();
-      if (input.wheelSteps !== 0 && inv.tool === 'marker' && this.marker.resize(-Math.sign(input.wheelSteps))) this.audio.click();
+      if (input.wheelSteps !== 0 && inv.tool === 'marker' && this.marker.resize(-Math.sign(input.wheelSteps))) {
+        this.audio.click();
+        this.onNibChange();
+      }
     }
     const tool = enabled ? inv.tool : null;
     this.reportChanges(tool);

@@ -295,6 +295,9 @@ export const MARKER = {
   radiusMin: 0,
   radiusMax: 0.05,
   radiusStep: 0.004,
+  /** Crosshair with the marker in hand (px): `crosshair` plus `crosshairPerMeter` x the nib half-width, so it follows the wheel. */
+  crosshair: 4,
+  crosshairPerMeter: 400,
   /**
    * Paint runs (with DRIPS on) from the marker, as a multiplier of DRIPS.perSquareMeter:
    * a nib covers little area but pumps a lot of paint into it.
@@ -347,7 +350,7 @@ export const VIEWMODEL = {
 };
 
 /**
- * How each tool is held in first person (F3 -> Player -> HELD TOOLS):
+ * How each tool is held in first person (F3 -> Camera -> HELD CAN, HELD MARKER, ...):
  * `distance` in front of the eye (m); `x` right and `y` up per meter of
  * distance, so changing the distance keeps the tool in the same spot on
  * screen; `scale` of the model and hand; `pitch`, `yaw`, `roll` (radians).
@@ -605,7 +608,6 @@ export const FLICKER = {
   neonHum: 0.04,
 };
 
-/** Build mode (B). */
 /** The player's stepladder (a pickup, slot 3; placed with LMB, one at a time). */
 export const STEPLADDER_PLACE = {
   /** How far from the eye the crosshair can place it (m). */
@@ -616,6 +618,7 @@ export const STEPLADDER_PLACE = {
   standStep: 0.45,
 };
 
+/** Build mode (B). */
 export const BUILD = {
   /** How far the crosshair reaches when aiming at faces (m). */
   reach: 120,

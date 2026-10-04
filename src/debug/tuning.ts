@@ -253,6 +253,8 @@ export function sections(): Section[] {
         r('wheel: min half-width (m)', ['MARKER', 'radiusMin'], 0, 0.2, 0.001),
         r('wheel: max half-width (m)', ['MARKER', 'radiusMax'], 0, 0.2, 0.001),
         r('wheel: step (m)', ['MARKER', 'radiusStep'], 0.001, 0.05, 0.001),
+        r('crosshair (px)', ['MARKER', 'crosshair'], 0, 30, 1),
+        r('crosshair px per m of nib', ['MARKER', 'crosshairPerMeter'], 0, 2000, 10),
         r('runs (x paint runs per m²)', ['MARKER', 'drips'], 0, 40, 0.5),
         r('line opacity', ['MARKER', 'strength'], 0.05, 1, 0.01),
         { kind: 'heading', label: 'ROLLER' },

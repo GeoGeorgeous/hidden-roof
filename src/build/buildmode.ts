@@ -285,7 +285,8 @@ export class BuildMode {
     }
     const id = this.level.idOf(o);
     const inst = id !== undefined ? this.level.props.get(id) : undefined;
-    if (!inst) return;
+    // The player's stepladder isn't part of the level: never deleted (or restored by undo) as a prop.
+    if (!inst || inst.runtime) return;
     this.history.push({ op: 'remove', kind: 'prop', id: inst.id, data: { type: inst.type, pos: inst.pos, rot: inst.rot, adjust: inst.adjust, text: inst.text } satisfies PropData });
     this.level.remove(inst.id);
   }
@@ -299,7 +300,7 @@ export class BuildMode {
     }
     const id = this.level.idOf(o);
     const inst = id !== undefined ? this.level.props.get(id) : undefined;
-    if (inst && KIT_BY_TYPE.has(inst.type)) {
+    if (inst && !inst.runtime && KIT_BY_TYPE.has(inst.type)) {
       this.picker.pick('prop', inst.type);
       this.rot = inst.rot;
       if (inst.text !== undefined) this.texts.set(inst.type, inst.text);

@@ -62,6 +62,8 @@ const HINTS: Record<string, string> = {
   'MARKER.radiusMin': 'Smallest nib half-width the mouse wheel goes down to (m).',
   'MARKER.radiusMax': 'Largest nib half-width the mouse wheel goes up to (m).',
   'MARKER.radiusStep': 'How much one mouse wheel notch changes the nib half-width (m).',
+  'MARKER.crosshair': 'Crosshair size with the marker in hand at the thinnest nib (px).',
+  'MARKER.crosshairPerMeter': 'How much the crosshair grows per meter of nib half-width, so it follows the mouse wheel (px per m).',
   'MARKER.drips': 'With paint runs on: how readily the marker starts runs when you go over a line again or hold it still (x the paint runs per m²).',
   'ROLLER.reach': 'Farthest distance the roller reaches (m): it is on a short pole.',
   'ROLLER.halfWidth': 'Half the width of the roller\'s stroke (m), the roller head\'s half-length.',
