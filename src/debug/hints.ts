@@ -136,6 +136,7 @@ const HINTS: Record<string, string> = {
   'INK.paintMin': 'Paint never gets darker than this, so it keeps its color in the dark.',
   'INK.paintHatch': 'Hatching drawn over paint in the dark, so it sits in the drawing.',
   'SKYLINE.litWindows': 'Fraction of punched facade windows that are lit (drawn as paper).',
+  'SKYLINE.opacity': 'How much the city around the level shows: 1 = fully, 0 = faded into the sky color (buildings, lines, wires and outlines). Puts the focus on the level.',
   'SKYLINE.lineRange': 'How far thin lines (lattices, railings, wires) stay visible, as a multiplier. Lower = cleaner distance.',
   'SKYLINE.seed': 'Pick a different city (press rebuild city).',
   'SKYLINE.radius': 'How far the city reaches around the level (m).',

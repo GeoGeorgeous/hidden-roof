@@ -179,7 +179,7 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
 - `VOLUMETRICS`: `enabled`, `downscale`, `steps`, `maxDistance`, `density`, `moon`, `lights`, `anisotropy`.
 - `INK`: `paper`, `ink`, `sky` and `cloud` colors (`cloud`: what the city fades into above `ATMOS.cloudBase`, the sky color by default), `exposure`, the tone steps (`paperTone`, `hatchTone`, `blackTone`, `toneNoise`), `hatchPx` / `hatchWidth`, `grime`, the void (`voidTop`, `voidBottom`), paint (`paintLight`, `paintMin`, `paintHatch`) and the final pass (`outline`, `crease`, `outlineFade`, `wobble`, `grain`). All live in F3 → Ink. `ATMOS.fogDensity` is how fast the drawing fades into paper.
 - `GRADE`: `exposure`, `contrast`, `saturation`, `temperature`, `tint` (neutral by default: they would change paint colors).
-- `SKYLINE`: the city: `seed`, `radius`, `block`, `streetMin`/`streetMax`, `margin` (free space round the level), `street` (how far down the street is), `near`, `tallChance`/`tallMin`/`tallMax` (huge towers), `clutterRange`, `lineRange` (live), `litWindows` (live). F3 → Rendering → City, with a rebuild button; a level can override any of them.
+- `SKYLINE`: the city: `seed`, `radius`, `block`, `streetMin`/`streetMax`, `margin` (free space round the level), `street` (how far down the street is), `near`, `tallChance`/`tallMin`/`tallMax` (huge towers), `clutterRange`, `lineRange` (live), `litWindows` (live), `opacity` (live: fades the whole city into the sky color to focus on the level). F3 → Rendering → City, with a rebuild button; a level can override any of them.
 - `PICKUP`: `radius`, `hover`, `spin`, `bob`.
 - `PLAYER`:
   - `walkSpeed`, `sprintSpeed`

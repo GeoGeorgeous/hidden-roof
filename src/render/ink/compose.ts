@@ -117,7 +117,8 @@ float edge(vec2 uv, out float c) {
 }
 
 void main() {
-  vec3 c = texture2D(tColor, vUv).rgb;
+  vec4 scene = texture2D(tColor, vUv);
+  vec3 c = scene.rgb;
   if (uVolOn > 0.5) {
     float depth = texture2D(tDepth, vUv).r;
     // 4 bilinear taps = a soft 4x4 filter that hides the dither of the raymarch.
@@ -131,7 +132,8 @@ void main() {
   vec2 wob = (vec2(texture2D(tPaper, px / 1100.0).a, texture2D(tPaper, px / 1100.0 + 0.5).a) - 0.5) * 4.0 * uWobble;
   float iz;
   float e = edge(vUv + wob * uTexel, iz);
-  e *= uOutline * exp(-1.0 / (iz * uOutlineFade));
+  // Alpha < 1: the city faded by SKYLINE.opacity; its outlines fade with it.
+  e *= uOutline * exp(-1.0 / (iz * uOutlineFade)) * scene.a;
   c = mix(c, uInkColor, clamp(e, 0.0, 1.0));
 
   c *= exp2(uExposure) * uBalance;

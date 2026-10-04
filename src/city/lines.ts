@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { inkUniforms } from '../render/ink/tone';
 import { shared } from '../materials';
+import { cityUniforms } from './material';
 import type { V3 } from './mesh';
 
 // Pen lines: thin steel (lattice frames, bracing, railings, masts, ladders)
@@ -27,10 +28,12 @@ const material = new THREE.ShaderMaterial({
     uCloudFade: shared.uCloudFade,
     uLineFade: { value: 1 },
     uPxPerM: { value: 300 },
+    ...cityUniforms,
   },
   vertexShader: /* glsl */ `
     attribute vec3 line; // weight, range (m), feature size (m)
     uniform float uPxPerM;
+    uniform float uCityOpacity;
     uniform float uFade;
     uniform vec2 uVoid;
     uniform float uCloudBase;
@@ -42,7 +45,7 @@ const material = new THREE.ShaderMaterial({
       float d = distance(wp.xyz, cameraPosition);
       float range = line.y * uLineFade;
       float px = line.z * uPxPerM / max(d, 0.1);
-      vAlpha = line.x * exp(-uFade * d) * (1.0 - smoothstep(range * 0.4, range, d)) * smoothstep(3.0, 10.0, px)
+      vAlpha = uCityOpacity * line.x * exp(-uFade * d) * (1.0 - smoothstep(range * 0.4, range, d)) * smoothstep(3.0, 10.0, px)
         * (1.0 - smoothstep(uCloudBase, uCloudBase + uCloudFade, wp.y));
       gl_Position = projectionMatrix * viewMatrix * wp;
     }`,

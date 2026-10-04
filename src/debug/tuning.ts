@@ -293,6 +293,7 @@ export function sections(): Section[] {
         r('emissive boost', ['ATMOS', 'emissiveBoost'], 0, 6, 0.1),
         ...v3('moon direction', ['ATMOS', 'moonDir'], -1, 1, 0.01, sync),
         { kind: 'heading', label: 'CITY' },
+        r('city opacity', ['SKYLINE', 'opacity'], 0, 1, 0.01),
         r('lit windows', ['SKYLINE', 'litWindows'], 0, 1, 0.01),
         r('thin lines visible to (x)', ['SKYLINE', 'lineRange'], 0, 3, 0.05, () => live.syncSkyline()),
         r('seed', ['SKYLINE', 'seed'], 1, 100, 1),

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ATMOS } from '../config';
+import { ATMOS, SKYLINE } from '../config';
 import { shared } from '../materials';
 import { INK_PARS, inkUniforms } from '../render/ink/tone';
 import { FACADE_GLSL } from '../render/ink/facade';
@@ -13,6 +13,9 @@ import type { Lighting } from '../render/lighting';
 // shadows or swinging parts. Towers cover most of the screen, so this is
 // where most pixels are shaded; it costs a fraction of the full surface
 // shader. Signs use it with the glyph atlas (`lettering`).
+// SKYLINE.opacity fades the whole city into the sky color, to put the focus
+// on the level: the towers stay solid (no see-through), and the fade goes in
+// the alpha channel so the final pass thins the city's outlines to match.
 
 /** Moon and sky light, in the units the surface shader's inkLight() returns. */
 const light = {
@@ -22,10 +25,17 @@ const light = {
   uGroundLight: { value: 0 },
 };
 
+/** Shared with the city's pen lines (city/lines.ts). */
+export const cityUniforms = {
+  /** SKYLINE.opacity: 1 = drawn in full, 0 = gone into the sky color. */
+  uCityOpacity: { value: 1 },
+};
+
 const lum = (c: THREE.Color) => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
 
-/** Per frame, after Lighting.update: follow the moon, sky and lightning. */
+/** Per frame, after Lighting.update: follow the moon, sky and lightning, and SKYLINE.opacity. */
 export function syncCityLight(lighting: Lighting) {
+  cityUniforms.uCityOpacity.value = SKYLINE.opacity;
   light.uMoonDir.value.fromArray(ATMOS.moonDir).normalize();
   light.uMoonLight.value = lum(lighting.moon.color) * lighting.moon.intensity;
   light.uSkyLight.value = lum(lighting.hemi.color) * lighting.hemi.intensity;
@@ -63,6 +73,8 @@ uniform float uSkyLight;
 uniform float uGroundLight;
 uniform float uCloudBase;
 uniform float uCloudFade;
+uniform float uCityOpacity;
+uniform vec3 uSky;
 #ifdef LETTERING
 uniform sampler2D uGlyphs;
 varying vec2 vUv;
@@ -88,7 +100,9 @@ void main() {
   float dirt = max(hatch.y * grime.x, grime.w);
   float keep = inkKeep(vWorldPos);
   vec3 col = mix(uPaper, uInkColor, max(inkCover(inkFade(tone, keep), hatch, vWorldPos), dirt * smoothstep(0.35, 0.65, keep)));
-  gl_FragColor = vec4(mix(col, uCloudInk, inkCloud(vWorldPos, uCloudBase, uCloudFade)), 1.0);
+  col = mix(col, uCloudInk, inkCloud(vWorldPos, uCloudBase, uCloudFade));
+  // Alpha carries the opacity to the final pass (outline strength); the material doesn't blend.
+  gl_FragColor = vec4(mix(uSky, col, uCityOpacity), uCityOpacity);
 }`;
 
 export function cityMaterial(lettering = false) {
@@ -97,6 +111,7 @@ export function cityMaterial(lettering = false) {
     uniforms: {
       ...inkUniforms,
       ...light,
+      ...cityUniforms,
       uCloudBase: shared.uCloudBase,
       uCloudFade: shared.uCloudFade,
       uLitWindows: shared.uLitWindows,
