@@ -23,7 +23,7 @@ Guidance for anyone (human or agent) changing this codebase.
 - **Colliders come from the visual data.** A prop is a list of pieces (box, cylinder, rod, cone, climb volume), and its meshes, colliders and ladder volumes are all generated from that list. Never add colliders or invisible walls by hand.
 - **No single-sided geometry.** Use full boxes and capped cylinders, so everything is visible from all sides. Skip a face only if another piece of the same prop fully covers it.
 - **Railings everywhere you can walk:** stairs, platforms, landings, catwalks and fire escapes.
-- **Big flat faces are paintable, small details are decor.** Decor is batched level-wide, so draw calls stay flat.
+- **Big flat faces are paintable, small details are decor.** Decor is batched in big tiles (`RENDER.batchTile`), so draw calls grow with the level's area, never with its number of props.
 - **Fit the grid:** 2 m horizontal and 4 m vertical modules, with small props snapping to 0.5 m.
   - Edge pieces are 1.7 m long and centered on grid lines. The level generates joint posts where they meet, so never overlap coplanar faces.
 - **Style:** the four neutral grays in `kit/pieces.ts`, flat materials. Color comes only from lights, signs and player paint.

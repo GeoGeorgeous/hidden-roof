@@ -7,6 +7,12 @@ export const RENDER = {
   /** Extra FOV (degrees) while sprinting, eased in and out. */
   sprintFovBoost: 6,
   sprintFovEase: 8,
+  /**
+   * Decor and shadow batches are merged per tile of this many meters (x, z):
+   * smaller = cheaper edits and finer culling, but more draw calls. Read when
+   * the level changes.
+   */
+  batchTile: 32,
 };
 
 /** Rainy night. Colors are hex; everything else is live-tunable in the debug panel. */
