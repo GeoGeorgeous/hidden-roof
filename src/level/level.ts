@@ -121,11 +121,7 @@ export class Level {
 
   /** Rebuild every prop and joint, keeping their paint (resampled into the new atlases after a paint detail change). */
   rebuildAll() {
-    for (const inst of this.props.values()) {
-      const old = this.built.get(inst.id);
-      this.build(inst);
-      if (old) this.carryPaint(old, this.built.get(inst.id)!);
-    }
+    for (const inst of this.props.values()) this.build(inst, true);
     for (const [key, { joint, b: old }] of this.joints) {
       disposeProp(old, this.paint);
       const b = this.buildJoint(joint);
@@ -200,7 +196,13 @@ export class Level {
     return inst;
   }
 
-  private build(inst: PropInstance) {
+  /**
+   * (Re)build a prop. Its paint carries over to the new build: always with
+   * `resample` (paint detail changed: same faces, new atlas), otherwise when
+   * its paint faces are unchanged, e.g. a building block that gained or lost
+   * its facade because a block was placed or removed under it.
+   */
+  private build(inst: PropInstance, resample = false) {
     const old = this.built.get(inst.id);
     if (old) disposeProp(old, this.paint);
     const def = KIT_BY_TYPE.get(inst.type)!;
@@ -210,6 +212,7 @@ export class Level {
     const b = buildProp(inst.id, def.build(ctx), inst.pos, inst.rot, this.paint);
     this.root.add(b.group);
     this.built.set(inst.id, b);
+    if (old && (resample || samePaintFaces(old, b))) this.carryPaint(old, b);
   }
 
   /**
@@ -280,4 +283,16 @@ export class Level {
   }
 
   private allBuilt: BuiltProp[] = [];
+}
+
+/** The same paint surfaces with the same face sizes, so paint carries over texel for texel. */
+function samePaintFaces(a: BuiltProp, b: BuiltProp) {
+  return (
+    a.paint.length === b.paint.length &&
+    a.paint.every((s, i) => {
+      const ra = s.geo.rects;
+      const rb = b.paint[i].geo.rects;
+      return ra.length === rb.length && ra.every((r, k) => r.w === rb[k].w && r.h === rb[k].h);
+    })
+  );
 }
