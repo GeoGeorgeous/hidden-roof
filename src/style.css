@@ -360,12 +360,15 @@ canvas {
 .debug-panel {
   position: fixed;
   top: 76px;
-  left: 30px;
+  left: 20px;
   width: 340px;
   max-height: calc(100vh - 230px);
   overflow-y: auto;
   line-height: 1.5;
-  text-shadow: var(--shadow);
+  /* A sheet of paper behind the text instead of a halo per letter: reads over paper and over black. */
+  padding: 8px 10px;
+  background: rgba(235, 229, 214, 0.82);
+  backdrop-filter: blur(2px);
   z-index: 10;
   scrollbar-width: thin;
   scrollbar-color: var(--dim) transparent;
