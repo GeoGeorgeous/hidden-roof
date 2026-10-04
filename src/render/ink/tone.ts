@@ -141,10 +141,17 @@ float inkCover(float v, vec2 hatch, vec3 p) {
 
 // How much of the drawing survives distance and the low clouds (1 = all, 0 =
 // paper). The void doesn't fade: far down stays black however far away.
+// It fades the tone, not the ink (inkFade): far away black turns into
+// cross-hatching, then hatching, then paper, like a pen drawing gets lighter
+// with distance; ink never turns gray.
 float inkKeep(vec3 p, float cloudBase, float cloudFade) {
   float d = length(p - cameraPosition);
-  float keep = exp(-uFade * d) * (1.0 - smoothstep(cloudBase, cloudBase + cloudFade, p.y));
+  float fd = uFade * d;
+  float keep = exp(-fd * fd) * (1.0 - smoothstep(cloudBase, cloudBase + cloudFade, p.y));
   return mix(keep, 1.0, inkSink(p));
+}
+float inkFade(float tone, float keep) {
+  return mix(uTones.x * 1.5 + 0.1, tone, keep);
 }
 `;
 
@@ -162,7 +169,7 @@ export const INK_FRAG = /* glsl */ `
   float keep = inkKeep(inkP, uCloudBase, uCloudFade);
   vec4 grime = inkGrime(inkP, vWorldN);
   float dirt = max(max(hatch.y * grime.x, hatch.x * grime.y), max(max(hatch.x, hatch.y) * grime.z * 0.8, grime.w));
-  vec3 col = mix(uPaper, uInkColor, max(inkCover(tone, hatch, inkP), dirt) * keep);
+  vec3 col = mix(uPaper, uInkColor, max(inkCover(inkFade(tone, keep), hatch, inkP), dirt * smoothstep(0.35, 0.65, keep)));
   // Paint: its own color, lit but never black; hatched a little in the dark.
   float pl = clamp(light * uPaintInk.x, uPaintInk.y, 1.0);
   float paintDark = step(light * uInkExposure * 0.7, uTones.y) * hatch.x * uPaintInk.z;

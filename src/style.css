@@ -7,7 +7,7 @@
   --paper: #ebe5d6;
   --alert: #d4261c;
   --line: 1px solid var(--ui);
-  --shadow: 0 0 2px rgba(235, 229, 214, 0.95), 0 0 6px rgba(235, 229, 214, 0.6);
+  --shadow: 0 0 1px rgba(235, 229, 214, 1), 0 0 3px rgba(235, 229, 214, 1), 0 0 7px rgba(235, 229, 214, 0.85);
 }
 
 html,
