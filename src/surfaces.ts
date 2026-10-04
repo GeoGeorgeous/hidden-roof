@@ -41,6 +41,8 @@ export class SurfaceBuilder {
   /** Per-vertex tint (linear RGB) and emissive applied to the vertices added next. */
   tint: [number, number, number] = [1, 1, 1];
   emissive = 0;
+  /** Lettering: quads added next map this glyph atlas rect (u0, v0, u1, v1) instead of world-aligned base UVs. */
+  letters: readonly number[] | null = null;
   /** Facade bands (render/ink/facade.ts) of the vertices added next; plain by default. */
   facade: readonly number[] = [0, 0, 0, 0];
   private tints: number[] = [];
@@ -120,7 +122,9 @@ export class SurfaceBuilder {
     const idx: number[] = [];
     for (const [u, v] of [[0, 0], [1, 0], [1, 1], [0, 1]]) {
       p.copy(f.origin).addScaledVector(f.uAxis, u).addScaledVector(f.vAxis, v);
-      idx.push(this.vertex(p, f.normal, rect, u, v, bu0 + u * uLen, bv0 + v * vLen));
+      const l = this.letters;
+      if (l) idx.push(this.vertex(p, f.normal, rect, u, v, l[0] + u * (l[2] - l[0]), l[1] + v * (l[3] - l[1])));
+      else idx.push(this.vertex(p, f.normal, rect, u, v, bu0 + u * uLen, bv0 + v * vLen));
     }
     this.tri(idx[0], idx[1], idx[2], rect);
     this.tri(idx[0], idx[2], idx[3], rect);
@@ -172,8 +176,9 @@ function stubRects(rects: Rect[]) {
 export type BoxFace = '+x' | '-x' | '+y' | '-y' | '+z' | '-z';
 
 /** Axis-aligned box from min/max corners. `skip` omits hidden faces (saves texture space). */
-export function boxSurface(min: THREE.Vector3, max: THREE.Vector3, skip: BoxFace[] = [], paintable = true): SurfaceGeometry {
+export function boxSurface(min: THREE.Vector3, max: THREE.Vector3, skip: BoxFace[] = [], paintable = true, letters: readonly number[] | null = null): SurfaceGeometry {
   const b = new SurfaceBuilder();
+  b.letters = letters;
   addBox(b, min, max, skip);
   return b.build(paintable);
 }

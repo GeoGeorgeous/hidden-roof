@@ -177,6 +177,7 @@ export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint =
     e.b.tint = [c.r, c.g, c.b];
     e.b.emissive = mat.emissive ?? 0;
     e.b.facade = mat.facade ?? NO_FACADE;
+    e.b.letters = mat.letters ?? null;
     return e.b;
   };
   // Raindrop pings: one point per metal piece top, at most one per 1 m cell.
@@ -193,7 +194,7 @@ export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint =
       const box = new THREE.Box3().setFromPoints([at(p.min), at(p.max)]);
       const skip = (p.skip ?? []).map((f) => rotateFace(f, r));
       if (allowPaint && !p.swing && boxIsPaintable(p)) addBox(painter(p.mat), box.min, box.max, skip);
-      else decor(p.mat, boxSurface(box.min, box.max, skip, false).geometry, p.swing);
+      else decor(p.mat, boxSurface(box.min, box.max, skip, false, p.mat.letters).geometry, p.swing);
       if (p.collide && !p.swing) collide(p.mat, [box]);
       metal(p.mat, new THREE.Vector3((box.min.x + box.max.x) / 2, box.max.y, (box.min.z + box.max.z) / 2));
     } else if (p.k === 'cyl') {

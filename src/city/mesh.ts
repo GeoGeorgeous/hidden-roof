@@ -1,9 +1,11 @@
 import * as THREE from 'three';
 import type { Facade } from '../render/ink/facade';
+import type { UvRect } from '../render/ink/glyphs';
 
 // Merged geometry for the city around the level, in chunks (so the camera
 // culls what's out of view), all drawn with the one surface material. City
-// geometry only stores what it uses (position, normal, tint, facade); the
+// geometry only stores what it uses (position, normal, tint, facade, and for
+// signs the lettering UVs: CityMesh(true), drawn with the glyph atlas); the
 // attributes the surface shader also reads (paint and base UVs, swing, baked
 // light...) point at shared all-zero buffers, uploaded once for every chunk.
 
@@ -18,16 +20,19 @@ interface Chunk {
   nrm: number[];
   tint: number[];
   fac: number[];
+  uv: number[];
   idx: number[];
 }
 
 /** Shared zero attributes, grown on demand (old ones stay with the geometries using them). */
 const zeros = new Map<number, THREE.BufferAttribute>();
+const allZeros = new Set<THREE.BufferAttribute>();
 function zero(itemSize: number, count: number) {
   let a = zeros.get(itemSize);
   if (!a || a.count < count) {
     a = new THREE.BufferAttribute(new Float32Array(Math.max(count, 65536) * itemSize), itemSize);
     zeros.set(itemSize, a);
+    allZeros.add(a);
   }
   return a;
 }
@@ -40,6 +45,16 @@ export class CityMesh {
   private tint = [0.6, 0.6, 0.6];
   private facade: Facade = PLAIN;
   private chunk: Chunk = this.at(0, 0);
+  private rect: UvRect = [0, 0, 0, 0];
+
+  /** With `withUv`, every quad maps the lettering rect set by `letters` (signs). */
+  constructor(private withUv = false) {}
+
+  /** Lettering (glyph atlas rect) for the sign faces added next. */
+  letters(rect: UvRect) {
+    this.rect = rect;
+    return this;
+  }
 
   /** Gray (sRGB 0..1) and facade of the pieces added next, and the chunk they go to (by a point in it). */
   set(gray: number, facade: Facade = PLAIN, x?: number, z?: number) {
@@ -53,7 +68,7 @@ export class CityMesh {
   private at(x: number, z: number) {
     const key = `${Math.floor(x / CHUNK)},${Math.floor(z / CHUNK)}`;
     let c = this.chunks.get(key);
-    if (!c) this.chunks.set(key, (c = { pos: [], nrm: [], tint: [], fac: [], idx: [] }));
+    if (!c) this.chunks.set(key, (c = { pos: [], nrm: [], tint: [], fac: [], uv: [], idx: [] }));
     return c;
   }
 
@@ -65,6 +80,10 @@ export class CityMesh {
       ch.nrm.push(n[0], n[1], n[2]);
       ch.tint.push(...this.tint);
       ch.fac.push(...this.facade);
+    }
+    if (this.withUv) {
+      const [u0, v0, u1, v1] = this.rect;
+      ch.uv.push(u0, v0, u1, v0, u1, v1, u0, v1);
     }
     // Wind counter-clockwise as seen from the side the normal points to.
     const cx = (b[1] - a[1]) * (c[2] - a[2]) - (b[2] - a[2]) * (c[1] - a[1]);
@@ -136,6 +155,7 @@ export class CityMesh {
       g.setAttribute('tint', new THREE.Float32BufferAttribute(ch.tint, 3));
       g.setAttribute('facade', new THREE.Float32BufferAttribute(ch.fac, 4));
       for (const [name, size] of ZERO_ATTRIBUTES) g.setAttribute(name, zero(size, n));
+      if (this.withUv) g.setAttribute('baseUv', new THREE.Float32BufferAttribute(ch.uv, 2));
       g.setIndex(n > 65535 ? new THREE.Uint32BufferAttribute(ch.idx, 1) : new THREE.Uint16BufferAttribute(ch.idx, 1));
       g.computeBoundingSphere();
       const m = new THREE.Mesh(g, material);
@@ -149,6 +169,6 @@ export class CityMesh {
 
 /** Free a chunk's own buffers; the shared zero buffers stay. */
 export function disposeCityMesh(m: THREE.Mesh) {
-  for (const [name] of ZERO_ATTRIBUTES) m.geometry.deleteAttribute(name);
+  for (const [name] of ZERO_ATTRIBUTES) if (allZeros.has(m.geometry.attributes[name] as THREE.BufferAttribute)) m.geometry.deleteAttribute(name);
   m.geometry.dispose();
 }

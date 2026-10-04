@@ -97,7 +97,7 @@ export function stringWires(towers: Tower[], level: THREE.Box3, lines: Lines, rn
   if (!levelBox) return;
   const c = levelBox.getCenter(new THREE.Vector3());
   const tall = boxes.filter((b) => b.max.y > levelTop + 10 && Math.hypot((b.min.x + b.max.x) / 2 - c.x, (b.min.z + b.max.z) / 2 - c.z) < 120);
-  for (let i = 0; i < 40 && tall.length > 1; i++) {
+  for (let i = 0; i < 28 && tall.length > 1; i++) {
     const A = tall[Math.floor(rnd() * tall.length)];
     const B = tall[Math.floor(rnd() * tall.length)];
     if (A === B) continue;

@@ -23,8 +23,9 @@ export interface Tower {
   facade: Facade;
   /** Wall gray (sRGB 0..1). */
   gray: number;
-  /** Horizontal distance from the level's center (m). */
+  /** Horizontal distance from the level's center (m), and the direction to it (x, z). */
   dist: number;
+  toward: [number, number];
   rnd: () => number;
 }
 
@@ -54,8 +55,11 @@ export function layoutCity(level: THREE.Box3, cfg = SKYLINE): Tower[] {
       if (Math.hypot((x0 + x1) / 2 - cx, (z0 + z1) / 2 - cz) > cfg.radius) continue;
       for (const lot of split([x0, z0, x1, z1], rnd, 0)) {
         if (blocked(lot)) continue;
-        const t = tower(lot, Math.hypot((lot[0] + lot[2]) / 2 - cx, (lot[1] + lot[3]) / 2 - cz), rnd, cfg);
-        if (t) towers.push(t);
+        const dx = cx - (lot[0] + lot[2]) / 2;
+        const dz = cz - (lot[1] + lot[3]) / 2;
+        const d = Math.hypot(dx, dz);
+        const t = tower(lot, d, rnd, cfg);
+        if (t) towers.push({ ...t, toward: [dx / (d || 1), dz / (d || 1)] });
       }
     }
   }
@@ -76,7 +80,7 @@ function split(r: Rect, rnd: () => number, depth: number): Rect[] {
   return [...split(a, rnd, depth + 1), ...split(b, rnd, depth + 1)];
 }
 
-function tower(lot: Rect, dist: number, rnd: () => number, cfg: typeof SKYLINE): Tower | null {
+function tower(lot: Rect, dist: number, rnd: () => number, cfg: typeof SKYLINE): Omit<Tower, 'toward'> | null {
   const inset = rnd() * 1.2;
   const r: Rect = [lot[0] + inset, lot[1] + inset, lot[2] - inset, lot[3] - inset];
   if (r[2] - r[0] < 5 || r[3] - r[1] < 5) return null;

@@ -4,7 +4,7 @@ import { makeSurfaceMaterial } from './materials';
 import { layoutCity } from './city/layout';
 import { CityMesh, disposeCityMesh } from './city/mesh';
 import { Lines, setLineRange } from './city/lines';
-import { dressTower } from './city/rooftops';
+import { dressTower, wallSigns } from './city/rooftops';
 import { stringWires } from './city/wires';
 import { lcg } from './lcg';
 
@@ -16,16 +16,16 @@ import { lcg } from './lcg';
 
 export type SkylineSettings = Partial<typeof SKYLINE>;
 
-/** Free a skyline from buildSkyline: its geometry and material. */
+/** Free a skyline from buildSkyline: its geometry and materials. */
 export function disposeSkyline(group: THREE.Group) {
-  let material: THREE.Material | null = null;
+  const materials = new Set<THREE.Material>();
   for (const o of group.children) {
     if ((o as THREE.Mesh).isMesh) {
       disposeCityMesh(o as THREE.Mesh);
-      material = (o as THREE.Mesh).material as THREE.Material;
+      materials.add((o as THREE.Mesh).material as THREE.Material);
     } else (o as THREE.LineSegments).geometry.dispose();
   }
-  material?.dispose();
+  for (const m of materials) m.dispose();
 }
 
 /** Live settings that need no rebuild. */
@@ -37,6 +37,7 @@ export function buildSkyline(level: THREE.Box3, overrides: SkylineSettings = {})
   const cfg = { ...SKYLINE, ...overrides };
   const group = new THREE.Group();
   const mesh = new CityMesh();
+  const signs = new CityMesh(true);
   const lines = new Lines();
   const towers = layoutCity(level, cfg);
   for (const tw of towers) {
@@ -46,7 +47,8 @@ export function buildSkyline(level: THREE.Box3, overrides: SkylineSettings = {})
       mesh.box(t.x0, y, t.z0, t.x1, t.top, t.z1);
       y = t.top;
     }
-    dressTower(tw, mesh, lines);
+    dressTower(tw, mesh, signs, lines);
+    wallSigns(tw, signs, lines);
   }
   stringWires(towers, level, lines, lcg(cfg.seed * 31 + 5));
   // The street, far down in the void: nothing shows through under the city.
@@ -54,6 +56,8 @@ export function buildSkyline(level: THREE.Box3, overrides: SkylineSettings = {})
   mesh.box(-2000, cfg.street - 1, -2000, 2000, cfg.street, 2000);
   const material = makeSurfaceMaterial({ tex: 'flat' });
   for (const m of mesh.build(material)) group.add(m);
+  const lettering = makeSurfaceMaterial({ tex: 'glyphs', tileMeters: 1 });
+  for (const m of signs.build(lettering)) group.add(m);
   for (const l of lines.build()) group.add(l);
   syncSkyline();
   return group;

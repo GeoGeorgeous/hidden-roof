@@ -2,13 +2,15 @@ import { SKYLINE } from '../config';
 import type { CityMesh, V3 } from './mesh';
 import type { Lines } from './lines';
 import type { Tier, Tower } from './layout';
+import { signRect } from '../render/ink/glyphs';
 
 // Rooftop clutter, packed like the roofs of a pen-and-ink megacity: stair
 // cores, water tanks on lattice legs, rows of AC units, billboard frames,
 // lattice masts with guy wires, now and then a crane; railings, ladders and
-// pipe runs dropping down the facades. Volumes go into the city mesh, thin
-// steel into pen lines. Less detail farther away (nothing beyond
-// SKYLINE.clutterRange but the odd core).
+// pipe runs dropping down the facades; signs with made-up lettering on the
+// roofs and hanging off the walls. Volumes go into the city mesh (signs into
+// their own, drawn with the glyph atlas), thin steel into pen lines. Less
+// detail farther away (nothing beyond SKYLINE.clutterRange but the odd core).
 
 type Rect = [number, number, number, number];
 
@@ -24,18 +26,17 @@ class Roof {
     readonly rnd: () => number,
   ) {}
 
-  /** Find a free w x d spot (with a 0.6 m gap), or null. */
-  place(w: number, d: number, edge = false): Rect | null {
+  /** Find a free w x d spot (with a 0.6 m gap), or null; `side` (0..3 = -z, +z, -x, +x) puts it against that roof edge. */
+  place(w: number, d: number, side = -1): Rect | null {
     const { x0, z0, x1, z1 } = this.t;
     if (w > x1 - x0 - 1 || d > z1 - z0 - 1) return null;
     for (let i = 0; i < 10; i++) {
       let x = x0 + 0.5 + this.rnd() * (x1 - x0 - 1 - w);
       let z = z0 + 0.5 + this.rnd() * (z1 - z0 - 1 - d);
-      if (edge) {
-        // Snap to the nearest roof edge (billboards stand at the edge).
-        if (this.rnd() < 0.5) x = this.rnd() < 0.5 ? x0 + 0.5 : x1 - 0.5 - w;
-        else z = this.rnd() < 0.5 ? z0 + 0.5 : z1 - 0.5 - d;
-      }
+      if (side === 0) z = z0 + 0.3;
+      if (side === 1) z = z1 - 0.3 - d;
+      if (side === 2) x = x0 + 0.3;
+      if (side === 3) x = x1 - 0.3 - w;
       const r: Rect = [x, z, x + w, z + d];
       if (this.used.every((u) => r[2] + 0.6 < u[0] || r[0] - 0.6 > u[2] || r[3] + 0.6 < u[1] || r[1] - 0.6 > u[3])) {
         this.used.push(r);
@@ -46,7 +47,7 @@ class Roof {
   }
 }
 
-export function dressTower(tw: Tower, mesh: CityMesh, lines: Lines) {
+export function dressTower(tw: Tower, mesh: CityMesh, signs: CityMesh, lines: Lines) {
   const roof = tw.tiers[tw.tiers.length - 1];
   const rnd = tw.rnd;
   const y = roof.top;
@@ -55,6 +56,7 @@ export function dressTower(tw: Tower, mesh: CityMesh, lines: Lines) {
   const cx = (roof.x0 + roof.x1) / 2;
   const cz = (roof.z0 + roof.z1) / 2;
   mesh.set(0.82, undefined, cx, cz);
+  signs.set(0.85, undefined, cx, cz);
 
   // Stair / lift cores: on nearly every roof, even far away (they shape the silhouette).
   const cores = lod === 0 ? (rnd() < 0.6 ? 1 : 0) : 1 + Math.floor(rnd() * 2);
@@ -139,14 +141,17 @@ export function dressTower(tw: Tower, mesh: CityMesh, lines: Lines) {
     }
   }
 
-  // Billboard on a lattice frame at the roof edge.
-  if (rnd() < 0.45) {
-    const w = 6 + rnd() * 9;
-    const h = 3 + rnd() * 4;
+  // Billboard on a lattice frame at the roof edge, mostly facing the level.
+  if (rnd() < 0.6) {
+    const w = 6 + rnd() * 12;
+    const h = 3 + rnd() * 5;
     const lift = 1.5 + rnd() * 3;
-    const alongX = rnd() < 0.5;
-    const r = R.place(alongX ? w : 1.2, alongX ? 1.2 : w, true);
-    if (r) billboard(r, alongX, y, lift, h, mesh, lines, lod);
+    const [tx, tz] = tw.toward;
+    const facing = Math.abs(tx) > Math.abs(tz) ? (tx < 0 ? 2 : 3) : tz < 0 ? 0 : 1;
+    const side = rnd() < 0.75 ? facing : Math.floor(rnd() * 4);
+    const alongX = side < 2;
+    const r = R.place(alongX ? w : 1.4, alongX ? 1.4 : w, side);
+    if (r) billboard(r, side, y, lift, h, mesh, signs, lines, lod, rnd);
   }
 
   // Lattice mast with guy wires.
@@ -185,24 +190,77 @@ export function dressTower(tw: Tower, mesh: CityMesh, lines: Lines) {
   facadeClutter(tw, mesh, lines);
 }
 
-function billboard(r: Rect, alongX: boolean, y: number, lift: number, h: number, mesh: CityMesh, lines: Lines, lod: number) {
-  // The panel is thin, along the roof edge; the frame stands behind it.
+/** Signs on the walls: tall blade signs sticking out, flat shop signs lower down. */
+export function wallSigns(tw: Tower, signs: CityMesh, lines: Lines) {
+  if (tw.dist > SKYLINE.clutterRange) return;
+  const rnd = tw.rnd;
+  const t = tw.tiers[0];
+  const roofY = tw.tiers[tw.tiers.length - 1].top;
+  const top = Math.min(t.top, roofY) - 2;
+  const count = Math.floor(rnd() * (tw.dist < 150 ? 8 : 4));
+  for (let i = 0; i < count; i++) {
+    const side = Math.floor(rnd() * 4);
+    const alongX = side < 2; // the wall runs along x
+    const out = side % 2 ? 1 : -1;
+    const len = alongX ? t.x1 - t.x0 : t.z1 - t.z0;
+    const s = 0.5 + rnd() * Math.max(0, len - 1);
+    const wx = alongX ? t.x0 + s : out < 0 ? t.x0 : t.x1;
+    const wz = alongX ? (out < 0 ? t.z0 : t.z1) : t.z0 + s;
+    signs.set(0.92, undefined, wx, wz);
+    if (rnd() < 0.65) {
+      // Blade sign: vertical, sticking out of the wall, lettering on both faces.
+      const h = 6 + rnd() * 12;
+      const w = 1.6 + rnd() * 1.6;
+      const y0 = top - h - rnd() * Math.max(0, Math.min(40, top - h + 60));
+      signs.letters(signRect(rnd, h / w, true, rnd() < 0.45));
+      const gap = 0.5;
+      if (alongX) signs.box(wx - 0.18, y0, out < 0 ? wz - gap - w : wz + gap, wx + 0.18, y0 + h, out < 0 ? wz - gap : wz + gap + w, true);
+      else signs.box(out < 0 ? wx - gap - w : wx + gap, y0, wz - 0.18, out < 0 ? wx - gap : wx + gap + w, y0 + h, wz + 0.18, true);
+      // Brackets back to the wall.
+      lines.style(0.9, 200).sized(2);
+      for (const k of [0.15, 0.85]) {
+        const yy = y0 + h * k;
+        if (alongX) lines.seg([wx, yy, wz], [wx, yy, wz + out * (gap + w * 0.3)]);
+        else lines.seg([wx, yy, wz], [wx + out * (gap + w * 0.3), yy, wz]);
+      }
+    } else {
+      // Flat sign on the wall.
+      const w = Math.min(len - 1, 3 + rnd() * 6);
+      const h = 1 + rnd() * 1.2;
+      const y0 = top - 3 - rnd() * 30;
+      const a = Math.max(0.3, s - w / 2);
+      signs.letters(signRect(rnd, (w / h) * 0.8, false, rnd() < 0.5, rnd() < 0.3));
+      if (alongX) signs.box(t.x0 + a, y0, out < 0 ? wz - 0.3 : wz, t.x0 + a + w, y0 + h, out < 0 ? wz : wz + 0.3, true);
+      else signs.box(out < 0 ? wx - 0.3 : wx, y0, t.z0 + a, out < 0 ? wx : wx + 0.3, y0 + h, t.z0 + a + w, true);
+    }
+  }
+}
+
+/** Billboard against roof edge `side` (0..3 = -z, +z, -x, +x): the panel faces out, its frame stands behind it. */
+function billboard(r: Rect, side: number, y: number, lift: number, h: number, mesh: CityMesh, signs: CityMesh, lines: Lines, lod: number, rnd: () => number) {
   const [x0, z0, x1, z1] = r;
-  mesh.set(0.9);
-  if (alongX) mesh.box(x0, y + lift, z0, x1, y + lift + h, z0 + 0.25);
-  else mesh.box(x0, y + lift, z0, x0 + 0.25, y + lift + h, z1);
-  mesh.set(0.3);
-  // Lamps along the top edge.
+  const alongX = side < 2;
   const len = alongX ? x1 - x0 : z1 - z0;
+  // The panel's outer face, and the way into the roof.
+  const outer = side === 0 ? z0 : side === 1 ? z1 : side === 2 ? x0 : x1;
+  const inward = side % 2 ? -1 : 1;
+  const across = (off: number) => outer + inward * off;
+  signs.set(0.95).letters(signRect(rnd, (len / h) * (0.7 + rnd() * 0.5), false, rnd() < 0.4, rnd() < 0.25));
+  const [a, b] = [across(0), across(0.25)].sort((p, q) => p - q);
+  if (alongX) signs.box(x0, y + lift, a, x1, y + lift + h, b);
+  else signs.box(a, y + lift, z0, b, y + lift + h, z1);
+  mesh.set(0.3);
+  // Lamps on arms over the face.
+  const [la, lb] = [across(-0.6), across(0.1)].sort((p, q) => p - q);
   for (let t = 1; t < len; t += 2.5) {
-    if (alongX) mesh.box(x0 + t - 0.1, y + lift + h, z0 - 0.5, x0 + t + 0.1, y + lift + h + 0.12, z0 + 0.2);
-    else mesh.box(x0 - 0.5, y + lift + h, z0 + t - 0.1, x0 + 0.2, y + lift + h + 0.12, z0 + t + 0.1);
+    if (alongX) mesh.box(x0 + t - 0.1, y + lift + h, la, x0 + t + 0.1, y + lift + h + 0.12, lb);
+    else mesh.box(la, y + lift + h, z0 + t - 0.1, lb, y + lift + h + 0.12, z0 + t + 0.1);
   }
   lines.style(1, lod === 2 ? MID_LINES : FAR_LINES * 0.7);
   const n = Math.max(2, Math.round(len / 2));
   const back = 0.9;
   // Front and back frames, each a truss, tied together.
-  const p = (t: number, yy: number, off: number): V3 => (alongX ? [x0 + t * len, yy, z0 + 0.25 + off] : [x0 + 0.25 + off, yy, z0 + t * len]);
+  const p = (t: number, yy: number, off: number): V3 => (alongX ? [x0 + t * len, yy, across(0.25 + off)] : [across(0.25 + off), yy, z0 + t * len]);
   lines.truss(p(0, y, 0), p(0, y + lift + h, 0), p(1, y, 0), p(1, y + lift + h, 0), n * 2);
   lines.truss(p(0, y, back), p(1, y, back), p(0, y + lift, back), p(1, y + lift, back), n);
   lines.sized(2);
