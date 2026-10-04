@@ -167,7 +167,7 @@ export const INK_FRAG = /* glsl */ `
   float tone = inkTone(diffuseColor.rgb, light, reflectedLight.directSpecular, totalEmissiveRadiance, inkP);
   vec2 hatch = inkHatches(inkP, vWorldN);
   float keep = inkKeep(inkP, uCloudBase, uCloudFade);
-  vec4 grime = inkGrime(inkP, vWorldN);
+  vec4 grime = inkGrime(inkP, vWorldN, 1.0 - step(0.5, vFacade.x));
   float dirt = max(max(hatch.y * grime.x, hatch.x * grime.y), max(max(hatch.x, hatch.y) * grime.z * 0.8, grime.w));
   vec3 col = mix(uPaper, uInkColor, max(inkCover(inkFade(tone, keep), hatch, inkP), dirt * smoothstep(0.35, 0.65, keep)));
   // Paint: its own color, lit but never black; hatched a little in the dark.

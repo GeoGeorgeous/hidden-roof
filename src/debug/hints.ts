@@ -121,7 +121,7 @@ const HINTS: Record<string, string> = {
   'INK.toneNoise': 'Ragged, hand-drawn edges between the tone steps.',
   'INK.hatchPx': 'Hatch line spacing on screen, in pixels (the same at any distance).',
   'INK.hatchWidth': 'Hatch line thickness, as a fraction of the spacing.',
-  'INK.grime': 'Grime on surfaces: rain streaks, stains, buffed-over patches, cracks (0 = clean).',
+  'INK.grime': 'Grime on surfaces: rain streaks, stains, buffed-over patches, cracks, panel and floor seams (0 = clean).',
   'INK.voidTop': 'Height (m) below which the city sinks into black.',
   'INK.voidBottom': 'Height (m) where the void is fully black.',
   'INK.outline': 'Strength of the pen outlines on edges and silhouettes.',

@@ -195,7 +195,7 @@ export const INK = {
   wobble: 0.6,
   /** Paper grain strength. */
   grain: 0.6,
-  /** Grime on surfaces: rain streaks, stains, buffed patches, cracks (0 = clean). */
+  /** Grime on surfaces: rain streaks, stains, buffed patches, cracks, seams (0 = clean). */
   grime: 1,
 };
 

@@ -84,7 +84,7 @@ void main() {
   float light = uMoonLight * max(dot(n, uMoonDir), 0.0) + mix(uGroundLight, uSkyLight, 0.5 + 0.5 * n.y);
   float tone = inkTone(albedo, light, vec3(0.0), vec3(0.0), vWorldPos);
   vec2 hatch = inkHatches(vWorldPos, n);
-  vec4 grime = inkGrime(vWorldPos, n);
+  vec4 grime = inkGrime(vWorldPos, n, 1.0 - step(0.5, vFacade.x));
   float dirt = max(hatch.y * grime.x, grime.w);
   float keep = inkKeep(vWorldPos, uCloudBase, uCloudFade);
   gl_FragColor = vec4(mix(uPaper, uInkColor, max(inkCover(inkFade(tone, keep), hatch, vWorldPos), dirt * smoothstep(0.35, 0.65, keep))), 1.0);
