@@ -17,8 +17,8 @@ export class DebugPanel {
   private openers = new Map<string, (open: boolean) => void>();
   private openIds: Set<string>;
 
-  constructor(extra: Parameters<typeof sections>[0] = {}) {
-    this.list = splitSections(sections(extra));
+  constructor() {
+    this.list = splitSections(sections());
     this.openIds = loadOpen() ?? new Set(this.list.filter((s) => s.open).map((s) => s.id));
     this.root = document.createElement('div');
     this.root.className = 'debug-panel';

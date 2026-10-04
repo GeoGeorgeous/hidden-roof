@@ -1,8 +1,8 @@
-const PREVENT = new Set(['Space', 'Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown', 'Backspace', 'Minus', 'Equal', 'KeyP', 'KeyO', 'KeyZ', 'KeyW', 'KeyS', 'KeyD', 'KeyA']);
-
 import { enterGameFullscreen, exitGameFullscreen, isFullscreen } from './fullscreen';
 
 // Keyboard + mouse state with pointer lock. Edge-triggered presses are consumed per frame.
+
+const PREVENT = new Set(['Space', 'Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown', 'Backspace', 'Minus', 'Equal', 'KeyP', 'KeyO', 'KeyZ', 'KeyW', 'KeyS', 'KeyD', 'KeyA']);
 
 export class Input {
   private down = new Set<string>();
@@ -12,8 +12,6 @@ export class Input {
   mouseDY = 0;
   wheelSteps = 0;
   lmb = false;
-  /** LMB went down this frame. */
-  lmbPressed = false;
   /** Mouse buttons (0 left, 1 middle, 2 right) pressed this frame. */
   private clicks = new Set<number>();
   locked = false;
@@ -48,10 +46,7 @@ export class Input {
       }
       e.preventDefault();
       this.clicks.add(e.button);
-      if (e.button === 0) {
-        this.lmb = true;
-        this.lmbPressed = true;
-      }
+      if (e.button === 0) this.lmb = true;
     });
     window.addEventListener('contextmenu', (e) => e.preventDefault());
     window.addEventListener('mouseup', (e) => {
@@ -116,7 +111,6 @@ export class Input {
   endFrame() {
     this.pressed.clear();
     this.typed.clear();
-    this.lmbPressed = false;
     this.clicks.clear();
     this.mouseDX = 0;
     this.mouseDY = 0;

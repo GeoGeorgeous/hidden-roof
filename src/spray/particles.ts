@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { SPRAY, type CapSpec } from '../config';
 import type { PaintSurface, PaintSystem } from '../painting';
+import { solidsNear } from '../level/solids';
 
 // Visual spray particles. Each one raycasts once when emitted, flies from the
 // nozzle to its hit point, and stamps paint into the surface texture on arrival.
@@ -70,11 +71,7 @@ export class SprayParticles {
 
   emit(e: EmitParams) {
     // Broad phase: only solids near the player can be hit.
-    this.candidates.length = 0;
-    for (const m of this.solids) {
-      const bs = m.geometry.boundingSphere!;
-      if (bs.center.distanceTo(e.eye) - bs.radius < SPRAY.range) this.candidates.push(m);
-    }
+    solidsNear(this.solids, e.eye, SPRAY.range, this.candidates);
     const { cap } = e;
     for (let i = 0; i < e.count; i++) {
       const p = this.free.pop();

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ATMOS, LIGHTMAP, LIGHTS, THUNDER } from '../config';
+import { ATMOS, LIGHT_SPREAD_MAX, LIGHTMAP, LIGHTS, THUNDER } from '../config';
 import { neonFlicker } from './flicker';
 import { syncAnchor, type LightAnchor } from '../level/build-prop';
 import { rotateY, trackAngle, trackWeight } from './cctv-track';
@@ -172,7 +172,7 @@ export class Lighting {
       l.color.copy(a.color);
       l.distance = spec.range;
       l.decay = ATMOS.lightDecay;
-      l.angle = Math.min(spec.spread, 1.55);
+      l.angle = Math.min(spec.spread, LIGHT_SPREAD_MAX);
       l.penumbra = spec.softness;
     });
   }
@@ -183,7 +183,7 @@ export class Lighting {
     u.uHiCount.value = list.length;
     list.forEach(({ a, w }, i) => {
       const spec = LIGHTS[a.kind];
-      const angle = Math.min(spec.spread, 1.55);
+      const angle = Math.min(spec.spread, LIGHT_SPREAD_MAX);
       hv.copy(a.pos).applyMatrix4(view).toArray(u.uHiPos.value, i * 3);
       hv.copy(a.dir).transformDirection(view).negate().toArray(u.uHiDir.value, i * 3);
       hv.set(a.color.r, a.color.g, a.color.b).multiplyScalar(strength(a, time) * w).toArray(u.uHiColor.value, i * 3);
@@ -204,7 +204,7 @@ export class Lighting {
       s.dir.copy(e.a.dir);
       s.color.copy(e.a.color).multiplyScalar(strength(e.a, time) * e.w);
       s.range = spec.range;
-      s.angle = Math.min(spec.spread, 1.55);
+      s.angle = Math.min(spec.spread, LIGHT_SPREAD_MAX);
       s.penumbra = spec.softness;
     });
   }

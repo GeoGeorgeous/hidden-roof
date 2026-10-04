@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { SKYLINE } from './config';
+import { lcg } from './lcg';
 
 // Procedural base textures: tiny canvases, nearest filtering, repeat wrapping.
 // Architecture is flat (clean, Mirror's Edge-like); only the far skyline has
@@ -7,19 +8,12 @@ import { SKYLINE } from './config';
 
 type Painter = (ctx: CanvasRenderingContext2D, w: number, h: number, rnd: () => number) => void;
 
-function rng(seed: number) {
-  return () => {
-    seed = (seed * 1664525 + 1013904223) >>> 0;
-    return seed / 4294967296;
-  };
-}
-
 function canvasTexture(w: number, h: number, seed: number, paint: Painter, srgb = true): THREE.Texture {
   const c = document.createElement('canvas');
   c.width = w;
   c.height = h;
   const ctx = c.getContext('2d')!;
-  paint(ctx, w, h, rng(seed));
+  paint(ctx, w, h, lcg(seed));
   const t = new THREE.CanvasTexture(c);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.magFilter = THREE.NearestFilter;
@@ -52,7 +46,7 @@ const FACADE_PX = 32;
  */
 function paintFacade(i: number, base: HTMLCanvasElement, glow: HTMLCanvasElement) {
   const { wall, lit } = FACADES[i];
-  const r = rng(10 + i + SKYLINE.seed * 101);
+  const r = lcg(10 + i + SKYLINE.seed * 101);
   const p = Math.min(1, SKYLINE.lit * lit);
   const cells: { x: number; y: number; color: string | null; k: number }[] = [];
   for (let y = 0; y < FACADE_PX; y += 4) {

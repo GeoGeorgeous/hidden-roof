@@ -109,10 +109,7 @@ export const stringLights: PropDef = {
   build() {
     const p = new Parts();
     const span = 6;
-    const sag = 0.5;
-    const n = 16;
-    const at = (t: number): V3 => [0, -sag * 4 * t * (1 - t), -span * t];
-    for (let i = 0; i < n; i++) p.rod(at(i / n), at((i + 1) / n), 0.012, M.cable);
+    const at = p.sagCable(span, 0.5, 16, 0.012);
     p.detail([-0.06, -0.06, -0.12], [0.06, 0.06, 0], M.steel, false);
     p.cyl([0, 0, -span], 'y', 0.6, 0.03, M.steel, { paint: false, collide: false, seg: 6 });
     // Bulbs hang just under the cable; every bulb glows, one real light in the middle.

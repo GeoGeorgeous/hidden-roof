@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import * as config from './config';
-import { ATMOS, AUDIO, CAPS, COLORS, PLAYER, RENDER, THUNDER, VIEWMODEL } from './config';
+import { ATMOS, AUDIO, CAPS, COLORS, PLAYER, RENDER, SMOKE, THUNDER, VIEWMODEL } from './config';
 import { syncSharedUniforms } from './materials';
 import { syncTrackUniforms } from './render/cctv-track';
 import { Lighting } from './render/lighting';
@@ -150,7 +150,7 @@ fetchLevel(levelName)
   .catch((e) => console.error(e));
 
 let lastStride = 0;
-player.onLand = (speed) => audio.footstep(speed > 6);
+player.onLand = (speed) => audio.footstep(speed > PLAYER.hardLanding);
 
 // Losing pointer lock (Esc, alt-tab, a file dialog) pauses the game behind the menu.
 input.onLockChange = (locked) => {
@@ -208,7 +208,7 @@ function frame(time: number) {
   // Paused (pointer not locked): the world keeps rendering but nothing advances.
   const paused = !input.locked;
   if (!paused) player.update(dt, input);
-  if (player.onGround && player.stride - lastStride > 1.7) {
+  if (player.onGround && player.stride - lastStride > PLAYER.footstepStride) {
     lastStride = player.stride;
     audio.footstep();
   }
@@ -241,7 +241,7 @@ function frame(time: number) {
   lightFx.update();
   if (!paused) rainTime += dt;
   rain.update(rainTime, eye);
-  smoke.update(rainTime, 0.25 + 0.12 * ATMOS.ambient + lightning.flash * 1.5);
+  smoke.update(rainTime, SMOKE.lightBase + SMOKE.lightAmbient * ATMOS.ambient + SMOKE.lightFlash * lightning.flash);
   audio.setFan(paused ? 0 : fanLevel(eye));
   if (!paused && ATMOS.rain && !build.active) metalDrops(dt, eye);
   audio.update();

@@ -64,10 +64,6 @@ export class Pickups {
     return p;
   }
 
-  move(p: Pickup) {
-    p.group.position.set(...p.pos);
-  }
-
   remove(id: number) {
     const p = this.list.get(id);
     if (!p) return;
@@ -98,13 +94,6 @@ export class Pickups {
   setEditing(on: boolean) {
     this.editing = on;
     for (const p of this.list.values()) p.group.visible = on || !p.collected;
-  }
-
-  bounds(id: number) {
-    const p = this.list.get(id);
-    if (!p) return null;
-    const [x, y, z] = p.pos;
-    return new THREE.Box3(new THREE.Vector3(x - 0.4, y, z - 0.4), new THREE.Vector3(x + 0.4, y + 1.2, z + 0.4));
   }
 
   idOf(o: THREE.Object3D): number | undefined {

@@ -1,4 +1,4 @@
-import { ATMOS, LIGHTMAP, LIGHTS } from '../../config';
+import { ATMOS, LIGHT_SPREAD_MAX, LIGHTMAP, LIGHTS } from '../../config';
 import { syncAnchor, type LightAnchor } from '../../level/build-prop';
 import type { Occluders } from './occluders';
 
@@ -31,7 +31,7 @@ export interface Lamp {
 export function makeLamp(a: LightAnchor, owner: number, slot: number): Lamp {
   syncAnchor(a);
   const s = LIGHTS[a.kind];
-  const angle = Math.min(s.spread, 1.55);
+  const angle = Math.min(s.spread, LIGHT_SPREAD_MAX);
   return {
     x: a.pos.x,
     y: a.pos.y,

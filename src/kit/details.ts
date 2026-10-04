@@ -17,10 +17,7 @@ function cable(span: number): PropDef {
     hang: 0,
     build() {
       const p = new Parts();
-      const sag = 0.04 * span + 0.15;
-      const n = 14;
-      const at = (t: number): [number, number, number] => [0, -sag * 4 * t * (1 - t), -span * t];
-      for (let i = 0; i < n; i++) p.rod(at(i / n), at((i + 1) / n), 0.015, M.cable);
+      p.sagCable(span, 0.04 * span + 0.15, 14, 0.015);
       p.detail([-0.06, -0.06, -0.12], [0.06, 0.06, 0], M.steel, false);
       p.detail([-0.06, -0.06, -span], [0.06, 0.06, -span + 0.12], M.steel, false);
       return p.list;

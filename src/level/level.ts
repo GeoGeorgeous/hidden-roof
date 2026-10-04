@@ -151,10 +151,6 @@ export class Level {
     this.batches.pushBaked(geo);
   }
 
-  bounds(id: number) {
-    return this.built.get(id)?.bounds ?? null;
-  }
-
   /** Bounding box of everything except cables (which can span far). */
   totalBounds() {
     const box = new THREE.Box3();

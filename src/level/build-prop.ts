@@ -139,10 +139,10 @@ export function decorMaterial(m: Mat) {
   return mat;
 }
 
-/** World-space geometry for pieces. With allowPaint=false everything is decor (ghost preview). */
 /** Materials that ring when rain hits them. */
 const METALS = new Set<Mat>([M.steel, M.metal, M.galv, M.ac, M.rust]);
 
+/** World-space geometry for pieces. With allowPaint=false everything is decor (ghost preview). */
 export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint = true): Expanded {
   const r = ((rot % 4) + 4) % 4;
   const origin = new THREE.Vector3(...pos);

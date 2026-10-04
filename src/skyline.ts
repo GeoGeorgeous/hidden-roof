@@ -3,6 +3,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { SKYLINE } from './config';
 import { makeSurfaceMaterial, tintGeometry, type SurfaceMaterial, type TexName } from './materials';
 import { boxSurface, type BoxFace } from './surfaces';
+import { lcg } from './lcg';
 
 // Non-paintable city around the level: deterministic random towers, merged
 // into a few draw calls. Buildings overlapping the level's bounds are left out.
@@ -48,8 +49,7 @@ export function buildSkyline(level: THREE.Box3): THREE.Group {
   const m = 7;
   const clear = (x0: number, z0: number, x1: number, z1: number) =>
     level.isEmpty() || x1 < level.min.x - m || x0 > level.max.x + m || z1 < level.min.z - m || z0 > level.max.z + m;
-  let seed = 7;
-  const rnd = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+  const rnd = lcg(7);
   const groups: Record<'facadeA' | 'facadeB' | 'facadeC', Box6[]> = { facadeA: [], facadeB: [], facadeC: [] };
   const tops: Box6[] = [];
   const keys = Object.keys(groups) as (keyof typeof groups)[];

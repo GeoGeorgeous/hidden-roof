@@ -68,7 +68,7 @@ export interface LightSpec {
   intensity: number;
   /** Meters until the light is fully gone (falloff is ATMOS.lightDecay, faded to 0 at the range). */
   range: number;
-  /** Cone half-angle in radians (1.5 is nearly a hemisphere). */
+  /** Cone half-angle in radians (1.5 is nearly a hemisphere), at most LIGHT_SPREAD_MAX. */
   spread: number;
   /** Softness of the cone edge, 0 = hard .. 1 = fades from the center. */
   softness: number;
@@ -81,6 +81,9 @@ export interface LightSpec {
   /** Casts shadows: baked into its light (LIGHTMAP.shadows); with baking off, may take a spot shadow slot when near. */
   shadows: boolean;
 }
+
+/** Widest cone half-angle a light can have (radians): three.js spot lights need less than π/2. */
+export const LIGHT_SPREAD_MAX = 1.55;
 
 /** Per-kind light settings, live-tunable in the debug panel (Lights). */
 export const LIGHTS: Record<LightKind, LightSpec> = {
@@ -399,6 +402,9 @@ export const PLAYER = {
   mouseSensitivity: 0.0022,
   /** Falling below this height respawns the player. */
   killY: -25,
+  /** Meters walked per footstep sound, and the landing speed (m/s) above which a landing sounds hard. */
+  footstepStride: 1.7,
+  hardLanding: 6,
 };
 
 /** Background city windows (F3 → Rendering → Skyline). */
@@ -470,6 +476,10 @@ export const SMOKE = {
   endSize: 2.1,
   opacity: 0.05,
   color: '#9aa3ad',
+  /** How lit the smoke looks: base + ambient x ATMOS.ambient + flash x lightning flash. */
+  lightBase: 0.25,
+  lightAmbient: 0.12,
+  lightFlash: 1.5,
 };
 
 /** AC fans: revolutions per second. */
@@ -495,6 +505,9 @@ export const BUILD = {
   /** Holding LMB keeps placing: first repeat after this delay, then every interval (s). */
   repeatDelay: 0.3,
   repeatInterval: 0.15,
+  /** Free-fly speed while building (m/s), and with Shift held. */
+  flySpeed: 7,
+  flySprintSpeed: 16,
 };
 
 /** Far-off sirens now and then, for the city vibe (night only). Loudness is AUDIO.sirenGain. */

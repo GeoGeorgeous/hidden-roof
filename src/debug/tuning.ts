@@ -1,4 +1,4 @@
-import { SKYLINE, ATMOS, AUDIO, CAN_SIZES, CAP_ORDER, CAPS, CCTV, DAYLIGHT, DRIPS, FANS, FLICKER, GRADE, LIGHTMAP, LIGHTS, PICKUP, SIRENS, SMOKE, THUNDER, PLAYER_LIGHT, VOLUMETRICS, WALL_HAND, MARKER, PAINT, PLAYER, PRESSURE, RENDER, SPRAY, VIEWMODEL } from '../config';
+import { SKYLINE, ATMOS, AUDIO, CAN_SIZES, CAP_ORDER, CAPS, CCTV, DAYLIGHT, DRIPS, FANS, FLICKER, GRADE, LIGHT_SPREAD_MAX, LIGHTMAP, LIGHTS, PICKUP, SIRENS, SMOKE, THUNDER, PLAYER_LIGHT, VOLUMETRICS, WALL_HAND, MARKER, PAINT, PLAYER, PRESSURE, RENDER, SPRAY, VIEWMODEL } from '../config';
 
 // Debug panel contents: collapsible sections of live sliders/toggles that write
 // straight into the config objects, plus read-only stats. Each value knows its
@@ -104,7 +104,7 @@ function lightItems(): Item[] {
     ...v3('aim', ['LIGHTS', k, 'dir'], -1, 1, 0.01, props),
     r('intensity', ['LIGHTS', k, 'intensity'], 0, 200, 0.5),
     r('range (m)', ['LIGHTS', k, 'range'], 1, 80, 0.5, fx),
-    r('spread (rad)', ['LIGHTS', k, 'spread'], 0.1, 1.55, 0.01, fx),
+    r('spread (rad)', ['LIGHTS', k, 'spread'], 0.1, LIGHT_SPREAD_MAX, 0.01, fx),
     r('edge softness', ['LIGHTS', k, 'softness'], 0, 1, 0.05, fx),
     r('glow size', ['LIGHTS', k, 'glow'], 0, 3, 0.05, fx),
     t('glow from all sides', ['LIGHTS', k, 'glowAllAround'], fx),
@@ -142,7 +142,7 @@ function daylightItems(): Item[] {
   });
 }
 
-export function sections(extra: Partial<Record<string, Item[]>> = {}): Section[] {
+export function sections(): Section[] {
   const sync = () => live.syncAtmosphere();
   const p = () => live.player;
   const v2 = (x: number, y: number) => Math.hypot(x, y).toFixed(2);
@@ -289,7 +289,6 @@ export function sections(extra: Partial<Record<string, Item[]>> = {}): Section[]
         c('sky horizon', ['ATMOS', 'skyHorizon'], sync),
         c('fog', ['ATMOS', 'fogColor'], sync),
         c('clouds', ['ATMOS', 'cloudColor'], sync),
-        ...(extra.rendering ?? []),
       ],
     },
     {

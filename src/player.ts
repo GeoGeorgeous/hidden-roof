@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { PLAYER } from './config';
+import { BUILD, PLAYER } from './config';
 import type { Input } from './input';
 
 // First-person controller: AABB player vs static AABB colliders, axis-separated
@@ -184,7 +184,7 @@ export class Player {
 
   /** Free-fly for build mode: no gravity, no collisions. Space up, C down. */
   private flyMove(dt: number, input: Input, wish: THREE.Vector3) {
-    const speed = input.isDown('ShiftLeft') ? 16 : 7;
+    const speed = input.isDown('ShiftLeft') ? BUILD.flySprintSpeed : BUILD.flySpeed;
     let up = 0;
     if (input.isDown('Space')) up += 1;
     if (input.isDown('KeyC')) up -= 1;

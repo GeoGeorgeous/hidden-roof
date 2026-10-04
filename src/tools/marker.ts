@@ -5,6 +5,7 @@ import type { Input } from '../input';
 import { rgbOf } from '../inventory/items';
 import { glove, segment, sleeve } from '../spray/hands';
 import type { PaintSystem } from '../painting';
+import { solidsNear } from '../level/solids';
 import { setHex } from '../hex-color';
 
 // Marker: draws a thin solid line straight into the surface texture under the
@@ -52,11 +53,7 @@ export class MarkerTool {
       return;
     }
     camera.getWorldDirection(dir);
-    this.near.length = 0;
-    for (const m of this.solids) {
-      const bs = m.geometry.boundingSphere!;
-      if (bs.center.distanceTo(eye) - bs.radius < MARKER.reach) this.near.push(m);
-    }
+    solidsNear(this.solids, eye, MARKER.reach, this.near);
     const from = this.prev ?? dir;
     const angle = from.angleTo(dir);
     const n = Math.min(32, Math.max(1, Math.ceil(angle / 0.003)));

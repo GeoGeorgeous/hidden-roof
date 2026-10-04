@@ -221,6 +221,17 @@ export class Parts {
     this.detail([x0, y + 0.5, z0], [x1, y + 0.54, z1], M.steel);
   }
 
+  /**
+   * Cable sagging from the wall (z = 0) straight out along -z for `span` m,
+   * `sag` m low in the middle, in `segments` rods. Returns its curve (t = 0..1)
+   * for hanging things on it.
+   */
+  sagCable(span: number, sag: number, segments: number, r: number) {
+    const at = (t: number): V3 => [0, -sag * 4 * t * (1 - t), -span * t];
+    for (let i = 0; i < segments; i++) this.rod(at(i / segments), at((i + 1) / segments), r, M.cable);
+    return at;
+  }
+
   /** Sloped stair handrail between two points at tread level. */
   stairRail(a: V3, b: V3) {
     for (const p of [a, b]) this.detail([p[0] - 0.03, p[1], p[2] - 0.03], [p[0] + 0.03, p[1] + RAIL_H, p[2] + 0.03], M.steel);

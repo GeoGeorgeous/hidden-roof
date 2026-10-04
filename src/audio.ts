@@ -226,14 +226,6 @@ export class Audio {
     });
   }
 
-  /** Empty can: hollow clink. */
-  clink() {
-    if (!this.ctx) return;
-    const t = this.ctx.currentTime;
-    this.burst(t, 0.12, 2400, 18, 0.5);
-    this.burst(t + 0.09, 0.1, 3100, 18, 0.3);
-  }
-
   private burst(when: number, dur: number, freq: number, q: number, gain: number, type: BiquadFilterType = 'bandpass', out: AudioNode = this.master) {
     const ctx = this.ctx!;
     const src = ctx.createBufferSource();
