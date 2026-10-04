@@ -1,4 +1,4 @@
-import { SKYLINE, ATMOS, INK, AUDIO, CAP_ORDER, CAPS, CCTV, DAYLIGHT, DRIPS, FANS, FLICKER, GRADE, LIGHT_SPREAD_MAX, LIGHTMAP, LIGHTS, PICKUP, SIRENS, SMOKE, THUNDER, PLAYER_LIGHT, VOLUMETRICS, WALL_HAND, MARKER, PAINT, PLAYER, PRESSURE, RENDER, SPRAY, VIEWMODEL } from '../config';
+import { SKYLINE, ATMOS, INK, AUDIO, CAP_ORDER, CAPS, CCTV, DAYLIGHT, DRIPS, FANS, FLICKER, GRADE, LIGHT_SPREAD_MAX, LIGHTMAP, LIGHTS, PICKUP, SIRENS, SMOKE, THUNDER, PLAYER_LIGHT, VOLUMETRICS, WALL_HAND, MARKER, PAINT, PLAYER, PRESSURE, RENDER, SPRAY, VIEWMODEL, HOLD } from '../config';
 
 // Debug panel contents: collapsible sections of live sliders/toggles that write
 // straight into the config objects, plus read-only stats. Each value knows its
@@ -32,6 +32,7 @@ const ROOTS: Record<string, Obj> = {
   SPRAY: SPRAY as unknown as Obj,
   MARKER: MARKER as unknown as Obj,
   VIEWMODEL: VIEWMODEL as unknown as Obj,
+  HOLD: HOLD as unknown as Obj,
   ATMOS: ATMOS as unknown as Obj,
   INK: INK as unknown as Obj,
   LIGHTS: LIGHTS as unknown as Obj,
@@ -140,6 +141,20 @@ function capItems(): Item[] {
   ]);
 }
 
+/** First-person pose of every held tool (HOLD): one heading per tool, same sliders for each. */
+function holdItems(): Item[] {
+  return (Object.keys(HOLD) as (keyof typeof HOLD)[]).flatMap((tool) => [
+    { kind: 'heading', label: `HELD ${tool.toUpperCase()}` } as Item,
+    r('distance (m)', ['HOLD', tool, 'distance'], 0.15, 1.2, 0.01),
+    r('right (per m)', ['HOLD', tool, 'x'], -1, 1, 0.005),
+    r('up (per m)', ['HOLD', tool, 'y'], -1, 0.5, 0.005),
+    r('size', ['HOLD', tool, 'scale'], 0.3, 2.5, 0.05),
+    r('tilt (rad)', ['HOLD', tool, 'pitch'], -3.14, 3.14, 0.01),
+    r('turn (rad)', ['HOLD', tool, 'yaw'], -3.14, 3.14, 0.01),
+    r('lean (rad)', ['HOLD', tool, 'roll'], -3.14, 3.14, 0.01),
+  ]);
+}
+
 /** DAYLIGHT overrides (build mode): numbers as sliders, hex strings as colors. */
 function daylightItems(): Item[] {
   const apply = () => live.applyDaylight();
@@ -209,6 +224,7 @@ export function sections(): Section[] {
         r('jump lag', ['VIEWMODEL', 'fallLag'], 0, 0.01, 0.0005),
         r('trigger press', ['VIEWMODEL', 'pressCurl'], 0, 0.3, 0.01),
         r('trigger speed', ['VIEWMODEL', 'pressSpeed'], 2, 60, 1),
+        ...holdItems(),
         { kind: 'heading', label: 'LEFT HAND ON WALLS' },
         r('reach (m)', ['WALL_HAND', 'reach'], 0.3, 1.5, 0.05),
         r('let go at (m)', ['WALL_HAND', 'release'], 0.4, 2, 0.05),
@@ -238,8 +254,6 @@ export function sections(): Section[] {
         r('nib half-width (m, 0 = one texel)', ['MARKER', 'radius'], 0, 0.2, 0.001),
         r('runs (x paint runs per m²)', ['MARKER', 'drips'], 0, 40, 0.5),
         r('line opacity', ['MARKER', 'strength'], 0.05, 1, 0.01),
-        r('held distance', ['MARKER', 'holdDistance'], 0.15, 0.8, 0.01),
-        r('held size', ['MARKER', 'holdScale'], 0.3, 2.5, 0.05),
         { kind: 'heading', label: 'PAINT RUNS' },
         t('runs', ['DRIPS', 'enabled']),
         r('excess before a run (coats)', ['DRIPS', 'excess'], 0.5, 10, 0.1),

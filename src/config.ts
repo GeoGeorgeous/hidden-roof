@@ -297,9 +297,6 @@ export const MARKER = {
    */
   drips: 8,
   strength: 0.95,
-  /** First-person pose: distance in front of the eye, and model scale. */
-  holdDistance: 0.38,
-  holdScale: 1,
 };
 
 /** First-person hands + held tool: sway, bob and the trigger press. */
@@ -324,6 +321,28 @@ export const VIEWMODEL = {
   fill: 1.6,
   rimColor: '#ffffff',
   rim: 0.9,
+};
+
+/**
+ * How each tool is held in first person (F3 -> Player -> HELD TOOLS):
+ * `distance` in front of the eye (m); `x` right and `y` up per meter of
+ * distance, so changing the distance keeps the tool in the same spot on
+ * screen; `scale` of the model and hand; `pitch`, `yaw`, `roll` (radians).
+ * Animations (shake, recoil, drawing) add to this pose.
+ */
+export interface HoldPose {
+  distance: number;
+  x: number;
+  y: number;
+  scale: number;
+  pitch: number;
+  yaw: number;
+  roll: number;
+}
+export const HOLD: Record<'can' | 'marker' | 'ladder', HoldPose> = {
+  can: { distance: 0.5, x: 0.4, y: -0.44, scale: 1, pitch: -0.12, yaw: 0.25, roll: 0.08 },
+  marker: { distance: 0.38, x: 0.421, y: -0.447, scale: 1, pitch: -1.1, yaw: 0.3, roll: 0.25 },
+  ladder: { distance: 0.5, x: 0.48, y: -0.54, scale: 1, pitch: 0.15, yaw: -0.75, roll: 0.18 },
 };
 
 /** Free left hand: reaches out and rests on a wall when you stand close to one. */

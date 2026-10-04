@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { HOLD } from '../config';
 import { inkify } from '../render/ink/tone';
 import { glove, segment, sleeve } from '../spray/hands';
 
@@ -8,8 +9,6 @@ import { glove, segment, sleeve } from '../spray/hands';
 // apart at the feet. The gloved hand closes around the right rails of both,
 // cuff and sleeve going off screen.
 // Drawn in ink like the can and marker.
-
-const REST = new THREE.Vector3(0.24, -0.27, -0.5);
 
 export class LadderModel {
   readonly group = new THREE.Group();
@@ -46,9 +45,6 @@ export class LadderModel {
       segment(V(0.07, -0.055, 0.01), V(0.09, -0.12, 0.04), 0.044, glove), // cuff
       segment(V(0.09, -0.12, 0.04), V(0.13, -0.38, 0.14), 0.07, sleeve),
     );
-    this.body.position.copy(REST);
-    // Turned so both frames show.
-    this.body.rotation.set(0.15, -0.75, 0.18);
     this.sway.add(this.body);
     this.group.add(this.sway);
   }
@@ -58,5 +54,10 @@ export class LadderModel {
     if (!active) return;
     this.group.position.copy(camera.position);
     this.group.quaternion.copy(camera.quaternion);
+    // Held at HOLD.ladder (turned so both frames show).
+    const h = HOLD.ladder;
+    this.body.position.set(h.x * h.distance, h.y * h.distance, -h.distance);
+    this.body.rotation.set(h.pitch, h.yaw, h.roll);
+    this.body.scale.setScalar(h.scale);
   }
 }

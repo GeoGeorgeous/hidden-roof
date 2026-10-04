@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { inkify } from '../render/ink/tone';
-import { COLORS, MARKER, type PaintColor } from '../config';
+import { COLORS, HOLD, MARKER, type PaintColor } from '../config';
 import type { Audio } from '../audio';
 import type { Input } from '../input';
 import { rgbOf } from '../inventory/items';
@@ -99,12 +99,12 @@ export class MarkerTool {
   private pose(camera: THREE.Camera, drawing: boolean) {
     this.model.position.copy(camera.position);
     this.model.quaternion.copy(camera.quaternion);
-    // Held like a pen; pushed forward while drawing. MARKER.holdDistance slides it
-    // along the line from the eye, so it stays in the same spot on screen.
-    const k = MARKER.holdDistance / 0.38;
-    this.tipModel.position.set(0.16 * k, (-0.17 + (drawing ? 0.02 : 0)) * k, -MARKER.holdDistance - (drawing ? 0.04 : 0));
-    this.tipModel.rotation.set(-1.1, 0.3, 0.25);
-    this.tipModel.scale.setScalar(MARKER.holdScale);
+    // Held like a pen at HOLD.marker; pushed forward (and a little up) while drawing.
+    const h = HOLD.marker;
+    const d = h.distance;
+    this.tipModel.position.set(h.x * d, (h.y + (drawing ? 0.053 : 0)) * d, -d - (drawing ? 0.04 : 0));
+    this.tipModel.rotation.set(h.pitch, h.yaw, h.roll);
+    this.tipModel.scale.setScalar(h.scale);
   }
 }
 

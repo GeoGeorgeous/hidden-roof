@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { CAPS, COLORS, VIEWMODEL, type CapId, type PaintColor } from '../config';
+import { CAPS, COLORS, HOLD, VIEWMODEL, type CapId, type PaintColor } from '../config';
 import { Hand } from './hands';
 import { setHex } from '../hex-color';
 import { inkify } from '../render/ink/tone';
@@ -8,7 +8,6 @@ import { inkify } from '../render/ink/tone';
 // group follows the camera -> sway (look lag, walk bob) -> body (rest pose,
 // shake) -> can + hand. The index finger presses the nozzle while LMB is held.
 
-const REST = new THREE.Vector3(0.2, -0.22, -0.5);
 const CAP_TOP = 0.124;
 /** The can's height relative to its geometry; the cap sits lower to match. */
 const HEIGHT = 0.85;
@@ -64,8 +63,11 @@ export class CanModel {
     this.press += ((pressing ? 1 : 0) - this.press) * Math.min(1, dt * VIEWMODEL.pressSpeed);
     const sh = shake >= 0 ? Math.sin(shake * Math.PI * 8) * Math.sin(shake * Math.PI) : 0;
     const j = flowing ? (Math.random() - 0.5) * 0.0015 : 0;
-    this.body.position.set(REST.x + j, REST.y + sh * 0.06 + j, REST.z + this.recoil * 0.006);
-    this.body.rotation.set(-0.12 + sh * 0.35, 0.25, 0.08 + sh * 0.15);
+    // Held at HOLD.can, plus shaking, recoil and jitter while spraying.
+    const h = HOLD.can;
+    this.body.position.set(h.x * h.distance + j, h.y * h.distance + sh * 0.06 + j, -h.distance + this.recoil * 0.006);
+    this.body.rotation.set(h.pitch + sh * 0.35, h.yaw, h.roll + sh * 0.15);
+    this.body.scale.setScalar(h.scale);
 
     const top = this.capLift - this.press * PRESS_DEPTH;
     this.cap.position.y = 0.117 + top;

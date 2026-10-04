@@ -172,7 +172,8 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
 - `COLORS` and `COLOR_ORDER`: the paint palette and its Q/E order. Add a color here and it becomes a `color:<name>` pickup.
 - `SPRAY`: `range`, `falloffStart`, particle speed, size and pool size.
 - `PRESSURE`: drain rate, the thin and sputter thresholds, sputter duty, shake restore and shake duration.
-- `MARKER`: `reach`, `radius` (half the square nib's side in meters; 0 = one paint texel), `drips` (how readily it starts paint runs), `strength`, and `holdDistance` / `holdScale` for the first-person pose.
+- `HOLD`: how each tool is held in first person (`can`, `marker`, `ladder`; a new tool adds its own): `distance` in front of the eye, `x` / `y` position per meter of distance (so changing the distance keeps it in the same spot on screen), `scale`, and `pitch` / `yaw` / `roll`. Live in F3 → Player → HELD ….
+- `MARKER`: `reach`, `radius` (half the square nib's side in meters; 0 = one paint texel), `drips` (how readily it starts paint runs), and `strength`.
 - `VIEWMODEL`: hand sway, walk bob, jump lag and the trigger-press animation.
 - `ATMOS`: the rainy night, including `lightDecay` (light falloff, 2 = physical). `DAYLIGHT` overrides some of its keys while build mode is on.
 - `BUILD`: build mode reach, the hold-to-place repeat timing and the free-fly speeds (`flySpeed`, `flySprintSpeed`).
