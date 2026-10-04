@@ -110,6 +110,46 @@ canvas {
   white-space: nowrap;
 }
 
+/* PSI gauge above the tags, shown while spraying or shaking: label, a horizontal line, the value. */
+.psi-gauge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.psi-gauge.show {
+  opacity: 1;
+}
+.psi-gauge span {
+  color: var(--dim);
+}
+.psi-gauge .line {
+  width: 64px;
+  height: 5px;
+  border: var(--line);
+}
+.psi-gauge .line i {
+  display: block;
+  height: 100%;
+  background: var(--ui);
+}
+.psi-gauge.low,
+.psi-gauge.low span {
+  color: var(--alert);
+}
+.psi-gauge.low .line {
+  border-color: var(--alert);
+}
+.psi-gauge.low .line i {
+  background: var(--alert);
+}
+.psi-alert {
+  color: var(--alert);
+  border-color: var(--alert);
+  animation: blink 0.8s steps(2) infinite;
+}
+
 /* --- Start / pause screen ---------------------------------------------- */
 
 .overlay {
@@ -218,8 +258,7 @@ canvas {
   display: flex;
   align-items: center;
 }
-.readout .rows span,
-.readout .psi span {
+.readout .rows span {
   width: 52px;
   color: var(--dim);
 }
@@ -234,40 +273,6 @@ canvas {
   height: 8px;
   margin-right: 7px;
   border: var(--line);
-}
-.readout .psi {
-  display: flex;
-  align-items: center;
-}
-.readout .psi .line {
-  flex: 1;
-  height: 5px;
-  border: var(--line);
-  margin-right: 8px;
-}
-.readout .psi .line i {
-  display: block;
-  height: 100%;
-  background: var(--ui);
-}
-.readout .psi b {
-  width: 34px;
-  text-align: right;
-  font-weight: normal;
-}
-.readout .psi.low,
-.readout .psi.low span {
-  color: var(--alert);
-}
-.readout .psi.low .line {
-  border-color: var(--alert);
-}
-.readout .psi.low .line i {
-  background: var(--alert);
-}
-.readout .alert {
-  color: var(--alert);
-  animation: blink 0.8s steps(2) infinite;
 }
 
 .toast {

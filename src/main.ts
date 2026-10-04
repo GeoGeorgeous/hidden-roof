@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import * as config from './config';
-import { ATMOS, AUDIO, CAPS, COLORS, INK, PLAYER, RENDER, SMOKE, THUNDER, VIEWMODEL } from './config';
+import { ATMOS, AUDIO, CAPS, COLORS, INK, PLAYER, PRESSURE, RENDER, SMOKE, THUNDER, VIEWMODEL } from './config';
 import { syncSharedUniforms } from './materials';
 import { syncTrackUniforms } from './render/cctv-track';
 import { Lighting } from './render/lighting';
@@ -274,7 +274,8 @@ function frame(time: number) {
   const tool = build.active ? null : inventory.tool;
   hud.setCrosshair(tool === 'can' ? CAPS[inventory.cap].crosshair : tool === 'marker' ? 4 : 6);
   const anchor = tools.labelAnchor(tagPos);
-  hud.placeToolTags(anchor ? toScreen(anchor) : null);
+  const pressure = tool === 'can' ? inventory.pressure : null;
+  hud.placeToolTags(anchor ? toScreen(anchor) : null, pressure, pressure !== null && pressure < PRESSURE.sputterThreshold);
   level.flush();
   baker.update(time / 1000, eye);
   paint.flush(renderer);

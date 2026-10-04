@@ -2,9 +2,9 @@ import * as THREE from 'three';
 import { CAN_SIZES, COLORS, INK, type CanSize, type PaintColor } from '../config';
 import type { PickupKind } from '../inventory/items';
 
-// Pickup look, inked: the item hovers and spins above a drawn ring on the
-// ground, with a ring around it so it reads from far away. Only paint colors
-// are in color (the ring of a color pickup); everything else is ink.
+// Pickup look, inked: the item hovers and spins, tilted, inside a drawn ring
+// (a solid one and a dashed one inside it), so it reads from far away. Only paint colors are in color (the ring of a color
+// pickup); everything else is ink.
 
 let ringTexture: THREE.Texture | null = null;
 function ring() {
@@ -57,24 +57,19 @@ export function itemModel(kind: PickupKind): THREE.Group {
     const band = new THREE.Mesh(new THREE.CylinderGeometry(0.0115, 0.0115, 0.03, 10), basic('#e8e8e8'));
     band.position.y = 0.02;
     g.add(body, band);
-    g.rotation.z = 0.5;
   }
+  // Every item leans a little, like it was tossed there.
+  g.rotation.z = 0.5;
   g.scale.multiplyScalar(2);
   return g;
 }
 
 const noRaycast = () => {};
 
-export function groundGlow(color: string) {
-  const disc = new THREE.Mesh(
-    new THREE.PlaneGeometry(1.6, 1.6),
-    new THREE.MeshBasicMaterial({ map: ring(), color, transparent: true, opacity: 0.9, depthWrite: false }),
-  );
-  disc.rotation.x = -Math.PI / 2;
-  disc.position.y = 0.03;
-  disc.raycast = noRaycast;
+/** The ring around the item, always facing the camera. */
+export function halo(color: string) {
   const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: ring(), color, transparent: true, opacity: 0.7, depthWrite: false }));
   halo.scale.setScalar(1.3);
   halo.raycast = noRaycast;
-  return { disc, halo };
+  return halo;
 }

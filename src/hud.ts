@@ -1,7 +1,8 @@
 import { isFullscreen } from './fullscreen';
 
 // Body-cam style HUD: vignette, corner brackets, REC indicator with elapsed
-// time, clock, crosshair, the cap and color tags beside the tool in hand, and the start/pause menu.
+// time, clock, crosshair, the PSI gauge, cap and color tags beside the tool in
+// hand, and the start/pause menu.
 // The tool readout lives in inventory/hotbar.ts, the debug panel in debug/panel.ts.
 
 const CONTROLS = [
@@ -19,6 +20,11 @@ const CONTROLS = [
 const CAP_TAG_SECONDS = 2.5;
 /** The color tag sits this many CSS px below the cap tag. */
 const COLOR_TAG_OFFSET = 22;
+/** The PSI gauge sits this many CSS px above the cap tag, the low-pressure alert above it. */
+const GAUGE_OFFSET = -22;
+const ALERT_OFFSET = -44;
+/** The PSI gauge stays up this long after the pressure last changed (spraying, shaking). */
+const GAUGE_SECONDS = 1.2;
 
 export class Hud {
   onResume = () => {};
@@ -34,6 +40,15 @@ export class Hud {
   private capTagUntil = 0;
   private colorTag: HTMLElement;
   private colorTagUntil = 0;
+  private gauge: HTMLElement;
+  private gaugeFill: HTMLElement;
+  private gaugeText: HTMLElement;
+  private alert: HTMLElement;
+  /** What the gauge shows now, so it's rewritten only on change. */
+  private gaugeShown = '';
+  private gaugeUntil = 0;
+  private gaugeOn = false;
+  private lastPressure = -1;
   private crosshairSize = -1;
   private started = false;
   private settingSyncs: (() => void)[] = [];
@@ -51,6 +66,8 @@ export class Hud {
       <div class="crosshair"></div>
       <div class="cap-tag" hidden></div>
       <div class="cap-tag color-tag" hidden></div>
+      <div class="cap-tag psi-gauge"><span>PSI</span><div class="line"><i></i></div><b></b></div>
+      <div class="cap-tag psi-alert" hidden>LOW PRESSURE — SHAKE [RMB]</div>
       <div class="overlay">
         <div class="title">TAGGIN'</div>
         <div class="status blink">CLICK TO START</div>
@@ -70,6 +87,10 @@ export class Hud {
     this.crosshair = root.querySelector('.crosshair')!;
     this.capTag = root.querySelector('.cap-tag')!;
     this.colorTag = root.querySelector('.color-tag')!;
+    this.gauge = root.querySelector('.psi-gauge')!;
+    this.gaugeFill = root.querySelector('.psi-gauge i')!;
+    this.gaugeText = root.querySelector('.psi-gauge b')!;
+    this.alert = root.querySelector('.psi-alert')!;
     // mousedown, like the canvas: the click that starts the game is the same gesture.
     this.resume = root.querySelector('.resume')!;
     this.resume.addEventListener('mousedown', (e) => {
@@ -142,9 +163,33 @@ export class Hud {
     this.colorTagUntil = performance.now() + CAP_TAG_SECONDS * 1000;
   }
 
-  /** Screen position (CSS px) next to the tool in hand (can or marker), or null with no tool. Places the cap and color tags. */
-  placeToolTags(at: { x: number; y: number } | null) {
+  /**
+   * Screen position (CSS px) next to the tool in hand (can or marker), or null
+   * with no tool. Places the cap and color tags, and above them the PSI gauge
+   * (`pressure` 0..1 with the can in hand, else null): it fades in while the
+   * pressure changes (spraying, shaking) and out a moment after, but stays up
+   * while the pressure is low, with the low-pressure alert above it.
+   */
+  placeToolTags(at: { x: number; y: number } | null, pressure: number | null, low: boolean) {
     const now = performance.now();
+    if (pressure !== null && pressure !== this.lastPressure && this.lastPressure >= 0) this.gaugeUntil = now + GAUGE_SECONDS * 1000;
+    this.lastPressure = pressure ?? -1;
+    const on = !!at && pressure !== null && (low || now < this.gaugeUntil);
+    if (on !== this.gaugeOn) this.gauge.classList.toggle('show', (this.gaugeOn = on));
+    if (on) {
+      const shown = `${Math.round(pressure * 100)}|${low}`;
+      if (shown !== this.gaugeShown) {
+        this.gaugeShown = shown;
+        this.gaugeFill.style.width = `${pressure * 100}%`;
+        this.gaugeText.textContent = `${Math.round(pressure * 100)}%`;
+        this.gauge.classList.toggle('low', low);
+      }
+    }
+    // Keeps following the can while it fades out.
+    if (at) this.gauge.style.transform = `translate(${Math.round(at.x)}px, ${Math.round(at.y + GAUGE_OFFSET)}px)`;
+    const alert = !!at && pressure !== null && low;
+    this.alert.hidden = !alert;
+    if (alert) this.alert.style.transform = `translate(${Math.round(at.x)}px, ${Math.round(at.y + ALERT_OFFSET)}px)`;
     const place = (el: HTMLElement, until: number, dy: number) => {
       const show = !!at && now < until;
       el.hidden = !show;

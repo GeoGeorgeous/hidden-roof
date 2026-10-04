@@ -3,7 +3,7 @@ import { PICKUP } from '../config';
 import type { V3 } from '../kit/pieces';
 import type { Inventory } from '../inventory/inventory';
 import { parsePickup, pickupLabel, type PickupKind } from '../inventory/items';
-import { glowColor, groundGlow, itemModel } from './visuals';
+import { glowColor, halo as makeHalo, itemModel } from './visuals';
 
 // Pickups placed on the map. Walk into one to collect it; if it unlocks nothing
 // new (color/cap already owned, can already that big) it stays. Saved in level
@@ -50,14 +50,14 @@ export class Pickups {
     const color = glowColor(kind);
     const group = new THREE.Group();
     const item = itemModel(kind);
-    const { disc, halo } = groundGlow(color);
+    const halo = makeHalo(color);
     // Invisible hit box so build mode can select the pickup.
     const hit = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.2, 0.7), new THREE.MeshBasicMaterial());
     hit.visible = false;
     hit.position.y = 0.6;
     const p: Pickup = { id: this.nextId++, kind, pos: [...pos], group, item, halo, collected: false, inRange: false, phase: Math.random() * 6 };
     hit.userData.pickupId = p.id;
-    group.add(disc, item, halo, hit);
+    group.add(item, halo, hit);
     group.position.set(...p.pos);
     this.root.add(group);
     this.list.set(p.id, p);

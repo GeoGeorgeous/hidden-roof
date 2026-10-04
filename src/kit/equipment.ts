@@ -47,7 +47,6 @@ export const ventshaft: PropDef = {
       const ly = y - 0.25 - i * 0.18;
       p.detail([-x / 2 + 0.1, ly, -z / 2 - 0.04], [x / 2 - 0.1, ly + 0.06, -z / 2], M.steel, false);
     }
-    p.emitter('smoke', [0, y + 0.45, 0], [0, 0.3, 0]);
     return p.list;
   },
 };
@@ -92,7 +91,6 @@ export const acSmall: PropDef = {
     p.box([-0.45, 0.3, -0.22], [0.45, 1.0, 0.22], M.beige, { paint: true });
     p.cyl([0.15, 0.65, -0.25], 'z', 0.03, 0.24, M.dark, { paint: false, seg: 12 });
     fan(p, [0.15, 0.65, -0.262], 'z', 0.2, 0.012);
-    p.emitter('smoke', [0.15, 0.65, -0.32], [0, 0, -0.7]);
     p.emitter('fan', [0.15, 0.65, -0.3]);
     for (let i = 0; i < 4; i++) p.detail([-0.4, 0.4 + i * 0.12, -0.24], [-0.15, 0.44 + i * 0.12, -0.22], M.steel, false);
     return p.list;
@@ -121,7 +119,6 @@ export const acWall: PropDef = {
     p.cyl([0.14, 0.3, -0.64], 'z', 0.02, 0.22, M.dark, { paint: false, collide: false, seg: 12 });
     fan(p, [0.14, 0.3, -0.648], 'z', 0.19, 0.008);
     p.cyl([0.14, 0.3, -0.67], 'z', 0.015, 0.05, M.steel, { paint: false, collide: false, seg: 8 });
-    p.emitter('smoke', [0.14, 0.3, -0.72], [0, 0, -0.6]);
     p.emitter('fan', [0.14, 0.3, -0.7]);
     for (let i = 0; i < 4; i++) p.detail([-0.4, 0.1 + i * 0.12, -0.64], [-0.15, 0.14 + i * 0.12, -0.62], M.steel, false);
     p.rod([0.38, 0, -0.12], [0.38, -0.7, -0.06], 0.012, M.cable);
@@ -142,7 +139,6 @@ export const acMedium: PropDef = {
     p.cyl([0, 1.0, 0], 'y', 0.06, 0.48, M.steel, { paint: false, seg: 16 });
     p.cyl([0, 1.0, 0], 'y', 0.08, 0.12, M.dark, { paint: false, seg: 8 });
     fan(p, [0, 1.072, 0], 'y', 0.44, 0.014);
-    p.emitter('smoke', [0, 1.2, 0], [0, 0.4, 0]);
     p.emitter('fan', [0, 1.1, 0]);
     for (let i = 0; i < 5; i++) p.detail([-0.8, 0.12 + i * 0.16, -0.62], [0.8, 0.16 + i * 0.16, -0.6], M.steel, false);
     return p.list;
@@ -164,7 +160,6 @@ export const acLarge: PropDef = {
       p.cyl([x, 1.8, 0], 'y', 0.08, 0.62, M.steel, { paint: false, seg: 16 });
       p.cyl([x, 1.8, 0], 'y', 0.1, 0.14, M.dark, { paint: false, seg: 8 });
       fan(p, [x, 1.892, 0], 'y', 0.57, 0.016, x > 0 ? 1 : -1);
-      p.emitter('smoke', [x, 2.0, 0], [0, 0.5, 0]);
       p.emitter('fan', [x, 1.9, 0]);
     }
     for (const s of [-1, 1]) {

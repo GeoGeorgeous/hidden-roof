@@ -522,7 +522,7 @@ export const THUNDER = {
 
 /** Smoke / warm air from vents, exhausts and AC units: one GPU-animated particle batch. */
 export const SMOKE = {
-  enabled: false,
+  enabled: true,
   /** Particles per emitter (0..48). */
   perEmitter: 20,
   /** Seconds a puff lives. */

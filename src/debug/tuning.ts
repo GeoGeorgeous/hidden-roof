@@ -404,7 +404,7 @@ export function sections(): Section[] {
         r('start following within (m)', ['CCTV', 'followRange'], 1, 30, 0.5),
         r('follow fully within (m)', ['CCTV', 'lockRange'], 0, 20, 0.5),
         r('max head turn (rad)', ['CCTV', 'maxTurn'], 0.2, 1.57, 0.01),
-        { kind: 'heading', label: 'SMOKE (VENTS, EXHAUSTS, AC)' },
+        { kind: 'heading', label: 'SMOKE (EXHAUST PIPES)' },
         t('smoke', ['SMOKE', 'enabled']),
         r('puffs per source', ['SMOKE', 'perEmitter'], 0, 48, 1),
         r('life (s)', ['SMOKE', 'life'], 0.5, 12, 0.1),

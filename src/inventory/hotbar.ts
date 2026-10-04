@@ -1,22 +1,17 @@
-import { CAP_ORDER, CAPS, COLORS, PRESSURE } from '../config';
+import { CAP_ORDER, CAPS, COLORS } from '../config';
 import { SLOTS, type Inventory } from './inventory';
 
-// Tool readout, bottom-left: slots, color, cap, can size, pressure; plus toasts.
-// Minimal text only; red is reserved for alerts (low pressure).
+// Tool readout, bottom-left: slots, color, cap, can size; plus toasts. The PSI
+// gauge and the low-pressure alert sit beside the can (hud.ts).
+// Minimal text only.
 
 export class Hotbar {
   private root: HTMLElement;
   private slots: HTMLElement;
   private rows: HTMLElement;
-  private psi: HTMLElement;
-  private psiFill: HTMLElement;
-  private psiText: HTMLElement;
-  private alert: HTMLElement;
   private toastEl: HTMLElement;
   private toastTime = 0;
   private version = -1;
-  /** What the pressure readout shows now (null before the first update). */
-  private shown: { can: boolean; low: boolean; pressure: number } | null = null;
 
   constructor() {
     this.root = document.createElement('div');
@@ -24,17 +19,12 @@ export class Hotbar {
     this.root.innerHTML = `
       <div class="slots"></div>
       <div class="rows"></div>
-      <div class="psi"><span>PSI</span><div class="line"><i></i></div><b></b></div>
-      <div class="alert">LOW PRESSURE — SHAKE [RMB]</div>`;
+`;
     this.toastEl = document.createElement('div');
     this.toastEl.className = 'toast';
     document.body.append(this.root, this.toastEl);
     this.slots = this.root.querySelector('.slots')!;
     this.rows = this.root.querySelector('.rows')!;
-    this.psi = this.root.querySelector('.psi')!;
-    this.psiFill = this.root.querySelector('.psi i')!;
-    this.psiText = this.root.querySelector('.psi b')!;
-    this.alert = this.root.querySelector('.alert')!;
   }
 
   set visible(v: boolean) {
@@ -67,19 +57,6 @@ export class Hotbar {
         rows.push(['CAN', inv.size.toUpperCase(), '']);
       }
       this.rows.innerHTML = tool ? rows.map(([k, v, n]) => `<div><span>${k}</span>${v}<em>${n}</em></div>`).join('') : '<div class="dim">NO TOOL</div>';
-    }
-    // The pressure readout is rewritten only when what it shows changed.
-    const can = inv.tool === 'can';
-    const low = can && inv.pressure < PRESSURE.sputterThreshold;
-    const s = this.shown;
-    if (s && can === s.can && low === s.low && (!can || inv.pressure === s.pressure)) return;
-    this.shown = { can, low, pressure: inv.pressure };
-    this.psi.hidden = !can;
-    this.alert.hidden = !low;
-    if (can) {
-      this.psiFill.style.width = `${inv.pressure * 100}%`;
-      this.psiText.textContent = `${Math.round(inv.pressure * 100)}%`;
-      this.psi.classList.toggle('low', low);
     }
   }
 }
