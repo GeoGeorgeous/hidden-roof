@@ -1,4 +1,4 @@
-import { SKYLINE, ATMOS, AUDIO, CAN_SIZES, CAP_ORDER, CAPS, CCTV, DAYLIGHT, DRIPS, FANS, FLICKER, GRADE, LIGHTS, PICKUP, SIRENS, SMOKE, THUNDER, PLAYER_LIGHT, VOLUMETRICS, WALL_HAND, MARKER, PAINT, PLAYER, PRESSURE, RENDER, SPRAY, VIEWMODEL } from '../config';
+import { SKYLINE, ATMOS, AUDIO, CAN_SIZES, CAP_ORDER, CAPS, CCTV, DAYLIGHT, DRIPS, FANS, FLICKER, GRADE, LIGHTMAP, LIGHTS, PICKUP, SIRENS, SMOKE, THUNDER, PLAYER_LIGHT, VOLUMETRICS, WALL_HAND, MARKER, PAINT, PLAYER, PRESSURE, RENDER, SPRAY, VIEWMODEL } from '../config';
 
 // Debug panel contents: collapsible sections of live sliders/toggles that write
 // straight into the config objects, plus read-only stats. Each value knows its
@@ -35,6 +35,7 @@ const ROOTS: Record<string, Obj> = {
   VIEWMODEL: VIEWMODEL as unknown as Obj,
   ATMOS: ATMOS as unknown as Obj,
   LIGHTS: LIGHTS as unknown as Obj,
+  LIGHTMAP: LIGHTMAP as unknown as Obj,
   VOLUMETRICS: VOLUMETRICS as unknown as Obj,
   GRADE: GRADE as unknown as Obj,
   DRIPS: DRIPS as unknown as Obj,
@@ -63,7 +64,7 @@ export function setValue(path: string[], v: unknown) {
 
 /** Live values filled in by main (stats) and the player state. */
 export const live = {
-  stats: { fps: 0, frameMs: 0, lights: 0, drawCalls: 0, triangles: 0, textures: 0, textureBytes: 0, surfaces: 0, uploads: 0, uploadBytes: 0, particles: 0, drips: 0 },
+  stats: { fps: 0, frameMs: 0, lights: 0, drawCalls: 0, triangles: 0, textures: 0, textureBytes: 0, surfaces: 0, uploads: 0, uploadBytes: 0, particles: 0, drips: 0, bakedBytes: 0, bakePending: 0, bakeMs: 0 },
   player: null as null | { position: { x: number; y: number; z: number }; velocity: { x: number; y: number; z: number }; state: string },
   /** Main sets these so sliders can apply side effects. */
   applyPixelScale: () => {},
@@ -108,7 +109,7 @@ function lightItems(): Item[] {
     r('glow size', ['LIGHTS', k, 'glow'], 0, 3, 0.05, fx),
     t('glow from all sides', ['LIGHTS', k, 'glowAllAround'], fx),
     r('beam length', ['LIGHTS', k, 'beam'], 0, 20, 0.5, fx),
-    { kind: 'toggle', label: 'shadows', path: ['LIGHTS', k, 'shadows'] } as Item,
+    t('casts shadows', ['LIGHTS', k, 'shadows']),
   ]);
 }
 
@@ -116,7 +117,7 @@ function capItems(): Item[] {
   return CAP_ORDER.flatMap((c) => [
     { kind: 'heading', label: `CAP · ${CAPS[c].name}` } as Item,
     r('opacity per hit', ['CAPS', c, 'strength'], 0.02, 1, 0.01),
-    r('size (texels)', ['CAPS', c, 'stampRadius'], 0, 5, 0.1),
+    r('dot radius (m)', ['CAPS', c, 'stampRadius'], 0, 0.2, 0.001),
     r('edge softness', ['CAPS', c, 'softness'], 0, 1, 0.05),
     r('particle rate', ['CAPS', c, 'rate'], 50, 2000, 10),
     r('spread', ['CAPS', c, 'coneAngle'], 0.005, 0.3, 0.005),
@@ -220,14 +221,14 @@ export function sections(extra: Partial<Record<string, Item[]>> = {}): Section[]
         r('alpha steps (0 = smooth)', ['PAINT', 'alphaSteps'], 0, 12, 1),
         { kind: 'heading', label: 'MARKER' },
         r('reach', ['MARKER', 'reach'], 0.5, 4, 0.1),
-        r('line radius (texels)', ['MARKER', 'radius'], 0, 3, 0.1),
+        r('line radius (m, 0 = one texel)', ['MARKER', 'radius'], 0, 0.05, 0.001),
         r('line opacity', ['MARKER', 'strength'], 0.05, 1, 0.01),
         r('held distance', ['MARKER', 'holdDistance'], 0.15, 0.8, 0.01),
         r('held size', ['MARKER', 'holdScale'], 0.3, 2.5, 0.05),
         { kind: 'heading', label: 'PAINT RUNS' },
         t('runs', ['DRIPS', 'enabled']),
         r('excess before a run (coats)', ['DRIPS', 'excess'], 0.5, 10, 0.1),
-        r('chance', ['DRIPS', 'chance'], 0, 1, 0.01),
+        r('runs per m² at the limit', ['DRIPS', 'perSquareMeter'], 0, 200, 1),
         r('max at once', ['DRIPS', 'maxActive'], 0, 200, 1),
         r('min length (m)', ['DRIPS', 'minLength'], 0.02, 1, 0.01),
         r('max length (m)', ['DRIPS', 'maxLength'], 0.02, 1.5, 0.01),
@@ -269,10 +270,10 @@ export function sections(extra: Partial<Record<string, Item[]>> = {}): Section[]
         r('wetness', ['ATMOS', 'wetness'], 0, 1, 0.01),
         { kind: 'heading', label: 'LIGHT' },
         t('moon shadows', ['ATMOS', 'shadows']),
-        t('floodlight shadows', ['ATMOS', 'spotShadows']),
+        t('spot light shadows (bake off)', ['ATMOS', 'spotShadows']),
         r('shadow range', ['ATMOS', 'shadowRange'], 8, 60, 1),
         r('light props', ['ATMOS', 'practical'], 0, 4, 0.05),
-        r('real light budget', ['ATMOS', 'lightBudget'], 0, 8, 1),
+        r('real light budget (bake off)', ['ATMOS', 'lightBudget'], 0, 8, 1),
         r('emissive boost', ['ATMOS', 'emissiveBoost'], 0, 6, 0.1),
         r('window glow', ['ATMOS', 'windowGlow'], 0, 3, 0.05),
         r('paint glow', ['ATMOS', 'paintGlow'], 0, 0.5, 0.01),
@@ -383,6 +384,14 @@ export function sections(extra: Partial<Record<string, Item[]>> = {}): Section[]
       title: 'Lights',
       items: [
         r('falloff (2 = physical)', ['ATMOS', 'lightDecay'], 0.5, 2.5, 0.05),
+        { kind: 'heading', label: 'BAKED LIGHT' },
+        t('bake lamp light', ['LIGHTMAP', 'enabled']),
+        t('shadows', ['LIGHTMAP', 'shadows']),
+        r('light texels per meter', ['LIGHTMAP', 'texelsPerMeter'], 1, 16, 1),
+        t('smooth light texels', ['LIGHTMAP', 'smooth']),
+        r('wet highlights (nearest lamps)', ['LIGHTMAP', 'highlights'], 0, 4, 1),
+        r('bake time per frame (ms)', ['LIGHTMAP', 'budgetMs'], 0.5, 16, 0.5),
+        { kind: 'readout', label: 'bake', get: () => (live.stats.bakePending ? `${live.stats.bakePending} parts left` : 'done') },
         { kind: 'heading', label: 'MOONLIGHT' },
         r('intensity', ['ATMOS', 'moon'], 0, 6, 0.05),
         c('color', ['ATMOS', 'moonColor'], sync),
@@ -415,6 +424,7 @@ export function sections(extra: Partial<Record<string, Item[]>> = {}): Section[]
         { kind: 'readout', label: 'gpu: hands + post', get: () => live.gpu('post') },
         { kind: 'readout', label: 'draw calls', get: () => `${live.stats.drawCalls}` },
         { kind: 'readout', label: 'real lights', get: () => `${live.stats.lights}` },
+        { kind: 'readout', label: 'baked light', get: () => `${(live.stats.bakedBytes / 1048576).toFixed(2)} MB, ${live.stats.bakeMs.toFixed(1)} ms` },
         { kind: 'readout', label: 'triangles', get: () => `${live.stats.triangles}` },
         { kind: 'readout', label: 'paint tex', get: () => `${live.stats.textures} / ${live.stats.surfaces} surfaces` },
         { kind: 'readout', label: 'tex memory', get: () => `${(live.stats.textureBytes / 1048576).toFixed(2)} MB` },

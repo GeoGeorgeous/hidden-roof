@@ -119,9 +119,40 @@ export class Level {
     if (any) this.refresh();
   }
 
+  /** Rebuild every prop and joint, keeping their paint (resampled into the new atlases after a paint detail change). */
+  rebuildAll() {
+    for (const inst of this.props.values()) {
+      const old = this.built.get(inst.id);
+      this.build(inst);
+      if (old) this.carryPaint(old, this.built.get(inst.id)!);
+    }
+    for (const [key, { joint, b: old }] of this.joints) {
+      disposeProp(old, this.paint);
+      const b = this.buildJoint(joint);
+      this.carryPaint(old, b);
+      this.joints.set(key, { joint, b });
+    }
+    this.refresh();
+  }
+
+  /** A rebuild of the same pieces yields the same paint surfaces, in the same order. */
+  private carryPaint(old: BuiltProp, fresh: BuiltProp) {
+    fresh.paint.forEach((s, i) => old.paint[i] && this.paint.adopt(s, old.paint[i]));
+  }
+
   /** Draw-ready: merge decor if anything changed. Call once per frame. */
   flush() {
     this.batches.flush(this.allBuilt);
+  }
+
+  /** Every built prop and joint, as of the last change. */
+  get builtProps(): readonly BuiltProp[] {
+    return this.allBuilt;
+  }
+
+  /** A decor proxy got new baked light: copy it into its batch. */
+  pushBaked(geo: THREE.BufferGeometry) {
+    this.batches.pushBaked(geo);
   }
 
   bounds(id: number) {
@@ -221,10 +252,7 @@ export class Level {
       this.joints.delete(key);
     }
     for (const [key, joint] of want) {
-      if (this.joints.has(key)) continue;
-      const b = buildProp(-1, jointPieces(joint.kind), joint.pos, 0, this.paint);
-      this.root.add(b.group);
-      this.joints.set(key, { joint, b });
+      if (!this.joints.has(key)) this.joints.set(key, { joint, b: this.buildJoint(joint) });
     }
     this.colliders.length = 0;
     this.ladders.length = 0;
@@ -242,6 +270,12 @@ export class Level {
     this.batches.markDirty();
     this.allBuilt = all;
     this.onChange();
+  }
+
+  private buildJoint(joint: Joint) {
+    const b = buildProp(-1, jointPieces(joint.kind), joint.pos, 0, this.paint);
+    this.root.add(b.group);
+    return b;
   }
 
   private allBuilt: BuiltProp[] = [];

@@ -22,6 +22,8 @@ export interface SurfaceGeometry {
   rects: Rect[];
   /** Triangle index -> rect index, used to clip paint stamps to one face. */
   triToRect: Uint16Array;
+  /** Per vertex: rect index + 0.999 * u, then v (u, v = 0..1 across the face). Lightmaps lay out their own atlas from it. */
+  faceUv: Float32Array;
 }
 
 const PAD = 1;
@@ -95,7 +97,7 @@ export class SurfaceBuilder {
     g.setIndex(this.indices);
     g.computeBoundingBox();
     g.computeBoundingSphere();
-    return { geometry: g, atlasW, atlasH, rects: this.rects, triToRect: Uint16Array.from(this.triRect) };
+    return { geometry: g, atlasW, atlasH, rects: this.rects, triToRect: Uint16Array.from(this.triRect), faceUv: Float32Array.from(this.uvs) };
   }
 
   /** Flat quad face. Base UVs are world-aligned so base textures line up across objects. */
@@ -120,8 +122,8 @@ export class SurfaceBuilder {
   }
 }
 
-/** Shelf packing. Returns atlas size; writes rect positions in place. */
-function packRects(rects: Rect[]): { w: number; h: number } {
+/** Shelf packing with a 1-texel gutter. Returns atlas size; writes rect positions in place. */
+export function packRects(rects: Rect[]): { w: number; h: number } {
   const order = rects.map((_, i) => i).sort((a, b) => rects[b].h - rects[a].h);
   let area = 0;
   let maxW = 0;

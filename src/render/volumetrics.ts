@@ -1,17 +1,18 @@
 import * as THREE from 'three';
 import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
 import { ATMOS, VOLUMETRICS } from '../config';
-import type { Lighting } from './lighting';
+import { SCATTER_MAX, type Lighting } from './lighting';
 
 // Volumetric light (light shafts) as one low-res fullscreen pass:
 // every pixel marches its view ray through uniform fog up to the scene depth,
 // adding in-scattered moonlight (masked by the moon shadow map, which makes the
-// shafts) and light from the real spot lights (cone + falloff; the two shadow
-// slots also use their shadow maps). Dithered steps, no temporal accumulation,
-// so the image is stable. Cost scales with pixels x steps x (moon + 8 spots).
+// shafts) and light from the nearest lamps (Lighting.scatter: cone + falloff;
+// real spot lights in the two shadow slots also use their shadow maps).
+// Dithered steps, no temporal accumulation, so the image is stable. Cost
+// scales with pixels x steps x (moon + 8 lamps).
 
 const MAX_STEPS = 32;
-const SPOTS = 8;
+const SPOTS = SCATTER_MAX;
 
 const ONE = new THREE.DataTexture(new Float32Array([1, 1, 1, 1]), 1, 1, THREE.RGBAFormat, THREE.FloatType);
 ONE.needsUpdate = true;
@@ -100,7 +101,6 @@ export class Volumetrics {
   readonly target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, depthBuffer: false });
   private material: THREE.ShaderMaterial;
   private quad: FullScreenQuad;
-  private dir = new THREE.Vector3();
 
   constructor() {
     this.target.texture.minFilter = this.target.texture.magFilter = THREE.LinearFilter;
@@ -162,15 +162,14 @@ export class Volumetrics {
     u.uMoonDir.value.subVectors(moon.position, moon.target.position).normalize();
     u.uMoonColor.value.set(moon.color.r, moon.color.g, moon.color.b).multiplyScalar(moon.intensity * V.moon);
 
-    lighting.spots.forEach((l, i) => {
-      u.uLPos.value[i].copy(l.position);
-      u.uLDir.value[i].copy(this.dir.subVectors(l.target.position, l.position).normalize());
-      u.uLColor.value[i].set(l.color.r, l.color.g, l.color.b).multiplyScalar(l.intensity * V.lights);
-      u.uLParams.value[i].set(Math.max(l.distance, 0.01), Math.cos(l.angle), Math.cos(l.angle * (1 - l.penumbra)));
+    lighting.scatter.forEach((l, i) => {
+      u.uLPos.value[i].copy(l.pos);
+      u.uLDir.value[i].copy(l.dir);
+      u.uLColor.value[i].set(l.color.r, l.color.g, l.color.b).multiplyScalar(V.lights);
+      u.uLParams.value[i].set(Math.max(l.range, 0.01), Math.cos(l.angle), Math.cos(l.angle * (1 - l.penumbra)));
       if (i < 2) {
-        const map = l.castShadow && l.intensity > 0 ? l.shadow.map?.depthTexture : null;
-        u[`uSpotShadow${i}`].value = map ?? ONE;
-        u[`uSpotMatrix${i}`].value.copy(l.shadow.matrix);
+        u[`uSpotShadow${i}`].value = l.shadow?.shadow.map?.depthTexture ?? ONE;
+        if (l.shadow) u[`uSpotMatrix${i}`].value.copy(l.shadow.shadow.matrix);
       }
     });
 

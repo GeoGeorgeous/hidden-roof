@@ -103,57 +103,69 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
 
 ## How painting works
 
-- Every paintable piece gets one RGBA atlas holding all its faces, at `PAINT.texelsPerMeter` (24).
+- Every paintable piece gets one RGBA atlas holding all its faces, at `PAINT.texelsPerMeter`. The **PAINT DETAIL** setting (pause menu) picks it: LOW 24 (4.2 cm texels, the old look), MEDIUM 48, HIGH 72 or ULTRA 96 (1 cm texels, the default). Base textures stay at 24 texels per meter (`BASE_TEXTURES`).
 - The atlas is created the first time paint hits that piece.
+- **Sizes are in meters** (`CAPS.*.stampRadius`, `MARKER.radius`), so every paint detail sprays alike: texels whose centers lie inside a dot get paint. A dot smaller than a texel paints the texel under it, so the marker (radius 0) draws the thinnest line the detail allows: 4 cm on LOW, 1 cm on ULTRA.
 - **Spray:**
   - Each particle raycasts once when it's emitted.
   - It stamps paint into the atlas when it arrives.
   - Particles are visual only and come from a fixed-size pool.
 - **Marker:** stamps directly under the crosshair, filling the gaps between frames.
-- **Paint runs:** spraying on and on onto paint that's already opaque builds up excess. On vertical faces, a few texels at the limit start a thin run down the face that slows down and ends in a drop. Runs are written into the paint texture like any stamp (`DRIPS` in config; F3 → Painting).
+- **Paint runs:** spraying on and on onto paint that's already opaque builds up excess. On vertical faces, a few texels at the limit start a thin run down the face that slows down and ends in a drop. Runs are written into the paint texture like any stamp (`DRIPS` in config; F3 → Painting). How many start is set per square meter (`DRIPS.perSquareMeter`), so every paint detail runs alike.
 - **Overpainting:** a surface has a single paint layer, and new paint is composited *over* it. The color always moves toward the new paint by that paint's own amount, so the last color painted always wins. Each 8-bit channel moves by at least one step per coat, so repeated coats reach the exact new color instead of stalling a little short of it.
-- **Uploads:** each frame, only textures that changed are uploaded, and only their dirty rows.
+- **Uploads:** each frame, only textures that changed are uploaded: the rect that changed, in one `texSubImage2D` (three's `copyTextureToTexture`), then the same rect of each smaller level.
+- **Distant paint** (`PAINT.mipLevels`): each paint texture has smaller levels (1/2, 1/4, 1/8), so fine paint fades evenly instead of sparkling once a texel gets smaller than a pixel. They're averaged on the CPU straight from the atlas, only where paint changed, with colors weighted by alpha (the GPU's own mipmaps would darken paint edges with the black of unpainted texels). They add a third to the GPU memory of paint; the CPU keeps only the atlas.
+- **Changing PAINT DETAIL** applies when you resume, since every prop is rebuilt: its paint is resampled into the new atlas (nearest texel when enlarging, averaged when shrinking), in about 0.2 s for the demo level. Going down blurs existing paint to the coarser texels, and going back up keeps it that way; new paint gets the full detail. Stepping through the choices in the menu costs nothing.
 - **Moving a prop in build mode keeps its paint.** Rotating or resizing it clears its paint.
-- **Demo level fully painted:** 39 textures, 9.1 MB.
+- **Paint memory** grows with the square of the detail, and only for surfaces that were hit. If every one of the demo's 407 paintable surfaces were painted: LOW 35 MB of GPU memory (26 MB on the CPU), MEDIUM 132 MB (99), HIGH 292 MB (220), ULTRA 515 MB (387). That's about 1.3 MB per painted surface on ULTRA, 0.1 MB on LOW.
 
 ## Rendering and lights
 
 - **Frame:** the scene renders into a linear HDR target at the internal (pixelated) resolution. Volumetric light runs next, then the hands and tool are drawn. A final pass adds the volumetric light, applies color grading and converts to sRGB.
-- **Light props** carry an emitter at its default spot on the lens. Per light kind, `LIGHTS` holds the color, source offset, aim, strength, spread, range, edge softness, glow, beam and shadows. All of it is live-tunable in F3 → Lights; lens colors and floodlight heads rebuild to match. The nearest 8 become real spot lights; the first 2 slots cast shadows and only go to floodlights and billboard lamps. Glow sprites only show from the side the lens faces.
+- **Light props** carry an emitter at its default spot on the lens. Per light kind, `LIGHTS` holds the color, source offset, aim, strength, spread, range, edge softness, glow, beam and shadows. All of it is live-tunable in F3 → Lights; lens colors and floodlight heads rebuild to match. Glow sprites only show from the side the lens faces.
+- **Baked lamp light** (`src/render/bake/`, `LIGHTMAP`): every steady lamp's light is baked, with shadows, so lamps light up at any distance and any number of them costs the same per frame.
+  - Paintable surfaces get a light texture each (4 texels per meter by default, half float); decor gets the light in its vertices. The shader adds it exactly like the diffuse light of a real spot light, so the look matches the real lights it replaced. Paint stays in its own texture, so spraying never touches the bake.
+  - Shadows come from the level's colliders (see-through pieces like chain-link excluded): every lamp kind with `shadows` casts them, and lamp light no longer passes through walls and roofs.
+  - It rebakes on its own. A build edit rebakes what it relit: everything in range of a lamp that came or went, plus whatever lies in the shadow cone of a prop that came or went. Any light setting rebakes the whole level. Rebakes run a few ms per frame (`budgetMs`), nearest first, and the old light stays up until a surface is redone. A freshly loaded level (or a paint detail change) bakes at once.
+  - What a bake can't do stays real-time: CCTV lights move, so they keep a pool of 2 real spot lights; the nearest 4 lamps add their wet highlights (specular only, wet surfaces only); neon light dips with its tubes through a flicker layer whose brightness the CPU updates each frame.
+  - Demo level: about 2.4 MB of light textures; a full bake takes about 60 ms on a desktop CPU (170 ms the first time).
+  - F3 → Lights → baked light: shadows on/off, texel density, smooth or hard texels, wet highlights, bake time per frame, and a switch back to the old way (the nearest lamps get real spot lights) for comparison.
 - **Weather and ambience:** rain has a soft sound bed that follows rain density. While it rains, lightning strikes at random (45–150 s apart) and lights the sky, ambient, moon and volumetric fog in quick pulses, with thunder after a distance-based delay. Now and then a police or fire siren passes somewhere far off (wail and yelp, or the fire truck's Q siren; muffled, echoing, drifting across the stereo field; `SIRENS`, `AUDIO.sirenGain`). Rain color and opacity are `ATMOS.rainColor` / `rainOpacity`. F3 → Sound has every gain; F3 → Lightning, smoke, fans, flicker has the rest, plus STRIKE NOW and SIREN NOW buttons.
 - **Rain on metal:** raindrops ping on the tops of nearby metal pieces (rails, AC units, vents, ducts, the fire escape…) open to the sky, panned toward where they land. Metal under a roof stays quiet (`AUDIO.metal*`).
 - **Smoke:** vent shafts, exhausts and AC units release smoke or warm air: one GPU-animated particle batch for the whole level (`SMOKE`).
 - **AC fans** spin in the vertex shader (like the CCTV heads, so they stay batched), and hum when you're near one (`FANS`, `AUDIO.fanGain`/`fanRange`).
 - **Flicker:** neon tubes and their lights dip together now and then (one hash shared by CPU and shader) (`FLICKER`).
 - **Player glow:** a faint shadowless point light just above the head, so dark corners stay walkable (`PLAYER_LIGHT`). Off in build mode.
-- **Light range is free on the GPU:** three.js shades every pool slot on every lit pixel regardless of range. Cost comes from the pool size and the shadow slots.
-- **Volumetric light:** a low-res raymarch through the fog. It uses the moon shadow map for light shafts, plus the real spot lights (the two shadow slots get shafts too). Off / low / medium / high in the pause menu.
-- **Settings** (pause menu, saved in this browser): resolution (pixel scale) and volumetric quality. Both apply immediately.
+- **Lamp count and range are free on the GPU:** baked light is one texture read per pixel however many lamps there are; range only makes bakes longer. Real lights (the CCTV pool, or every near lamp with baking off) cost per pool slot: three.js shades every slot on every lit pixel regardless of range.
+- **Volumetric light:** a low-res raymarch through the fog. It uses the moon shadow map for light shafts, plus the nearest 8 lamps, baked or not (real spot lights in the two shadow slots get shadowed shafts). Off / low / medium / high in the pause menu.
+- **Settings** (pause menu, saved in this browser): resolution (pixel scale), volumetric quality and paint detail. Resolution and volumetrics apply immediately, paint detail when you resume (see How painting works).
 - **GPU cost:** F3 → Performance shows GPU time for the scene, volumetrics and hands + post passes. This needs `EXT_disjoint_timer_query_webgl2` (desktop Chromium); otherwise it shows n/a.
 
 ## Tunable constants (`src/config.ts`)
 
 - `RENDER`: `pixelScale`, `fov`, `sprintFovBoost` and `sprintFovEase`.
-- `PAINT`: `texelsPerMeter`, `alphaSteps`, `maxTextureSize`.
+- `PAINT`: `texelsPerMeter` (the default paint detail; the pause-menu setting overrides it), `alphaSteps`, `maxTextureSize`, `mipLevels`.
+- `BASE_TEXTURES`: `texelsPerMeter` of the base textures, whatever the paint detail.
 - `CAPS`: one entry per cap.
   - `coneAngle` (cone spread)
   - `rate` (particles per second)
   - `strength` (alpha per particle)
-  - `stampRadius`
+  - `stampRadius` (dot radius in meters)
   - `hissGain` and `hissTone`
   - `crosshair` (circle diameter in px) and `color` (cap color on the can and pickup)
 - `COLORS` and `COLOR_ORDER`: the paint palette and its Q/E order. Add a color here and it becomes a `color:<name>` pickup.
 - `CAN_SIZES`: `drain` (pressure-loss multiplier) and view-model `scale` per size.
 - `SPRAY`: `range`, `falloffStart`, particle speed, size and pool size.
 - `PRESSURE`: drain rate, the thin and sputter thresholds, sputter duty, shake restore and shake duration.
-- `MARKER`: `reach`, `radius`, `strength`, and `holdDistance` / `holdScale` for the first-person pose.
+- `MARKER`: `reach`, `radius` (meters; 0 = one paint texel), `strength`, and `holdDistance` / `holdScale` for the first-person pose.
 - `VIEWMODEL`: hand sway, walk bob, jump lag and the trigger-press animation.
 - `ATMOS`: the rainy night, including `lightDecay` (light falloff, 2 = physical). `DAYLIGHT` overrides some of its keys while build mode is on.
 - `BUILD`: build mode reach and the hold-to-place repeat timing.
 - `WALL_HAND`: when the free left hand reaches for a wall and lets go: reach / release from the shoulder, the arc to your left it searches (`fromAngle`..`toAngle`), and its height below the eyes.
 - `SIRENS`, `CCTV`: far-siren timing; CCTV follow ranges and how far a head can turn.
 - `DRIPS`, `PLAYER_LIGHT`: see above.
-- `LIGHTS`: per light kind: `color`, `offset`, `dir`, `intensity`, `range`, `spread`, `softness`, `glow`, `beam`, `shadows`.
+- `LIGHTS`: per light kind: `color`, `offset`, `dir`, `intensity`, `range`, `spread`, `softness`, `glow`, `beam`, `shadows` (casts baked shadows).
+- `LIGHTMAP`: baked lamp light: `enabled`, `shadows`, `texelsPerMeter`, `smooth`, `highlights` (wet highlights from the nearest lamps), `budgetMs` (rebake time per frame).
 - `VOLUMETRICS`: `enabled`, `downscale`, `steps`, `maxDistance`, `density`, `moon`, `lights`, `anisotropy`.
 - `GRADE`: `exposure`, `contrast`, `saturation`, `temperature`, `tint`.
 - `SKYLINE`: background city windows: `windowScale` (size), `lit`, `randomness` (whole floors vs single windows), `brightnessVariation`, `seed`. All live in F3 → Rendering → Skyline.
@@ -167,7 +179,7 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
   - `mouseSensitivity`, `killY`
 - `AUDIO`: gains.
 
-The F3 panel groups its controls into small collapsible sections (collapse / expand all; open sections are remembered), and every setting has a tooltip. It has a live control for every tunable value above that applies without a restart, including colors and `[x, y, z]` values. Not included: `PAINT.texelsPerMeter`/`maxTextureSize`, `SPRAY` pool and particle size, and `AUDIO`, which are only read at startup. **copy values** puts them on the clipboard as JSON, ready to paste back in as new defaults.
+The F3 panel groups its controls into small collapsible sections (collapse / expand all; open sections are remembered), and every setting has a tooltip. It has a live control for every tunable value above that applies without a restart, including colors and `[x, y, z]` values. Not included: `PAINT.texelsPerMeter` (pause menu → PAINT DETAIL), `maxTextureSize`/`mipLevels`, `BASE_TEXTURES`, `SPRAY` pool and particle size, and `AUDIO`, which are only read at startup or when a texture is made. **copy values** puts them on the clipboard as JSON, ready to paste back in as new defaults.
 
 ## Files
 
@@ -183,14 +195,17 @@ src/spray/               spray tool, can + hand view model, particles
 src/tools/               marker, tool routing (hotbar → tool), hand sway/bob
 src/debug/               debug + tuning panel, tunable list, GPU pass timer
 src/render/              lighting pool, light FX, rain, atmosphere presets, post pipeline, volumetrics
-src/painting.ts          lazy paint textures, stamping, dirty-row uploads
+src/render/bake/         baked lamp light: lightmap layout, shadow grid, lamp math, baker
+src/painting.ts          lazy paint textures, stamping, dirty-rect uploads
+src/paint-mips.ts        smaller paint levels for distant surfaces
+src/paint-resample.ts    moves paint into a new atlas (paint detail change)
 src/surfaces.ts          box / cylinder geometry with per-surface atlas UVs
 src/materials.ts         surface shader, procedural base textures
 src/player.ts            FPS controller, collisions (with broadphase), ladders, fly mode
 src/sky.ts, skyline.ts   sky dome, background city
 src/hud.ts               body-cam frame: vignette, REC/clock, crosshair, cap tag, start/pause menu
 src/style.css            all UI styling (white + red alert, thin lines, monospace)
-src/settings.ts          pause-menu settings (resolution, volumetrics), saved in localStorage
+src/settings.ts          pause-menu settings (resolution, volumetrics, paint detail), saved in localStorage
 src/audio.ts, input.ts, fullscreen.ts
 public/levels/demo.json  demo rooftop using every prop and pickup, plus an empty level-0 roof to the north for building
 scripts/smoke.mjs        headless Playwright smoke test

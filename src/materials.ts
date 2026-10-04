@@ -1,7 +1,8 @@
 import * as THREE from 'three';
-import { ATMOS, FANS, FLICKER, PAINT } from './config';
+import { ATMOS, BASE_TEXTURES, FANS, FLICKER, LIGHTMAP, PAINT } from './config';
 import { FLICKER_GLSL } from './render/flicker';
 import { TRACK_GLSL, trackUniforms } from './render/cctv-track';
+import { BAKE_FRAG, BAKE_FRAG_PARS, BAKE_VERT, BAKE_VERT_PARS, bakeUniforms } from './render/bake/glsl';
 import { glowFor, textures, type TexName } from './textures';
 
 export type { TexName } from './textures';
@@ -15,6 +16,8 @@ export type { TexName } from './textures';
 //  - swinging decor (CCTV heads): rotated around a vertical pivot in the vertex
 //    shader from per-vertex swing attributes, so it stays in the level batches;
 //    CCTV heads also turn to follow a nearby player and light their lens
+//  - baked lamp light (render/bake): a lightmap on paintable surfaces, light
+//    in the vertices of decor, plus wet highlights from the nearest lamps
 //  - build-mode overlay that marks paintable surfaces
 
 const EMPTY_PAINT = new THREE.DataTexture(new Uint8Array(4), 1, 1);
@@ -42,6 +45,8 @@ export const shared = {
   uShowPaintable: { value: 0 },
   /** CCTV tracking: player position and ranges (render/cctv-track.ts). */
   ...trackUniforms,
+  /** Baked lamp light and wet highlights (render/bake/glsl.ts). */
+  ...bakeUniforms,
 };
 
 export function syncSharedUniforms(time: number) {
@@ -58,6 +63,7 @@ export function syncSharedUniforms(time: number) {
   shared.uCloudBase.value = ATMOS.cloudBase;
   shared.uCloudFade.value = ATMOS.cloudFade;
   shared.uAlphaSteps.value = PAINT.alphaSteps;
+  shared.uBakedScale.value = LIGHTMAP.enabled ? ATMOS.practical : 0;
 }
 
 /**
@@ -94,6 +100,7 @@ attribute float flicker;
 uniform float uBaseScale;
 ${SWING_GLSL}
 ${FLICKER_GLSL}
+${BAKE_VERT_PARS}
 varying vec2 vBaseUv;
 varying vec2 vPaintUv;
 varying vec3 vTint;
@@ -109,6 +116,7 @@ vEmissiveV = flicker > 0.0 ? emissive * neonFlicker(uTime, flicker) : emissive;
 if (swingTrack.z > 1.5) vEmissiveV *= trackWeight(swingPivot, swingTrack.xy);
 vWorldPos = (modelMatrix * vec4(transformed, 1.0)).xyz;
 vWorldN = normalize(mat3(modelMatrix) * objectNormal);
+${BAKE_VERT}
 `;
 const FRAG_PARS = /* glsl */ `
 uniform sampler2D uBase;
@@ -125,6 +133,7 @@ uniform float uCloudFade;
 uniform vec3 uCloudColor;
 uniform float uShowPaintable;
 uniform float uPaintable;
+${BAKE_FRAG_PARS}
 varying vec2 vBaseUv;
 varying vec2 vPaintUv;
 varying vec3 vTint;
@@ -178,11 +187,14 @@ export class SurfaceMaterial extends THREE.MeshPhongMaterial {
   private paintUniform = { value: EMPTY_PAINT as THREE.Texture };
   private paintableUniform = { value: 0 };
   private baseScaleUniform = { value: 1 };
+  private lightUniform = { value: BLACK as THREE.Texture };
+  private lightFlickerUniform = { value: BLACK as THREE.Texture };
+  private lightFlickerOnUniform = { value: 0 };
 
   constructor(opts: SurfaceMaterialOptions) {
     super({ color: '#ffffff', specular: '#c8d4e8', shininess: 48 });
     const base = textures()[opts.tex];
-    const tile = opts.tileMeters ?? (base.image as HTMLCanvasElement).width / PAINT.texelsPerMeter;
+    const tile = opts.tileMeters ?? (base.image as HTMLCanvasElement).width / BASE_TEXTURES.texelsPerMeter;
     this.baseScaleUniform.value = 1 / tile;
     const own = {
       uBase: { value: base },
@@ -191,6 +203,9 @@ export class SurfaceMaterial extends THREE.MeshPhongMaterial {
       uBaseScale: this.baseScaleUniform,
       uAlphaTest: { value: opts.alphaTest ?? 0 },
       uPaintable: this.paintableUniform,
+      uLightmap: this.lightUniform,
+      uLightFlicker: this.lightFlickerUniform,
+      uLightFlickerOn: this.lightFlickerOnUniform,
     };
     this.onBeforeCompile = (shader) => {
       Object.assign(shader.uniforms, shared, own);
@@ -203,13 +218,14 @@ export class SurfaceMaterial extends THREE.MeshPhongMaterial {
         .replace('#include <map_fragment>', FRAG_MAP)
         .replace('#include <specularmap_fragment>', FRAG_SPECULAR)
         .replace('#include <emissivemap_fragment>', FRAG_EMISSIVE)
+        .replace('#include <lights_fragment_maps>', `#include <lights_fragment_maps>\n${BAKE_FRAG}`)
         .replace('#include <fog_fragment>', FRAG_FOG);
     };
   }
 
   /** All surfaces share one program; only uniforms differ. */
   customProgramCacheKey() {
-    return 'surface-v4';
+    return 'surface-v5';
   }
 
   /** Meters covered by one repeat of the base texture (live). */
@@ -224,6 +240,13 @@ export class SurfaceMaterial extends THREE.MeshPhongMaterial {
 
   setPaint(t: THREE.Texture) {
     this.paintUniform.value = t;
+  }
+
+  /** Baked lamp light of a paintable surface (render/bake), and its neon flicker layer; null = none. */
+  setLightmap(light: THREE.Texture | null, flicker: THREE.Texture | null) {
+    this.lightUniform.value = light ?? BLACK;
+    this.lightFlickerUniform.value = flicker ?? BLACK;
+    this.lightFlickerOnUniform.value = flicker ? 1 : 0;
   }
 }
 
@@ -248,10 +271,14 @@ export function tintGeometry(g: THREE.BufferGeometry, color: THREE.ColorRepresen
   return swingGeometry(g);
 }
 
+/** Per-vertex baked lamp light (decor), copied into the batches after a rebake. */
+export const BAKED_ATTRIBUTES = ['baked', 'bakedFlicker'] as const;
+
 /**
  * Per-vertex swing attributes (see SWING_GLSL). Every decor geometry gets them,
  * zero by default, so moving and still decor merge into the same batches.
- * Paint meshes get them too (always still), plus a zero flicker.
+ * Paint meshes get them too (always still), plus a zero flicker. Both also get
+ * the baked-light attributes (render/bake), zero until the first bake.
  */
 export function swingGeometry(g: THREE.BufferGeometry, pivot?: THREE.Vector3, amp = 0, speed = 0, phase = 0, axis = 0, track?: [number, number, number]) {
   const n = g.attributes.position.count;
@@ -267,6 +294,11 @@ export function swingGeometry(g: THREE.BufferGeometry, pivot?: THREE.Vector3, am
   g.setAttribute('swing', new THREE.BufferAttribute(sw, 4));
   g.setAttribute('swingTrack', new THREE.BufferAttribute(tr, 3));
   if (!g.attributes.flicker) g.setAttribute('flicker', new THREE.BufferAttribute(new Float32Array(n), 1));
+  if (!g.attributes.lightUv) {
+    g.setAttribute('lightUv', new THREE.BufferAttribute(new Float32Array(n * 2), 2));
+    g.setAttribute('baked', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+    g.setAttribute('bakedFlicker', new THREE.BufferAttribute(new Float32Array(n * 4), 4));
+  }
   return g;
 }
 

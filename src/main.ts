@@ -4,6 +4,7 @@ import { ATMOS, AUDIO, CAPS, COLORS, PLAYER, RENDER, THUNDER, VIEWMODEL } from '
 import { syncSharedUniforms } from './materials';
 import { syncTrackUniforms } from './render/cctv-track';
 import { Lighting } from './render/lighting';
+import { LightBaker } from './render/bake/baker';
 import { LightFX } from './render/light-fx';
 import { Rain } from './render/rain';
 import { Heightmap } from './render/heightmap';
@@ -36,8 +37,12 @@ import { DebugPanel } from './debug/panel';
 import { live } from './debug/tuning';
 import { exitGameFullscreen } from './fullscreen';
 
-// Settings first: they may change the pixel scale the renderer starts with.
-const settings = new Settings(() => live.applyPixelScale());
+// Settings first: they may change the pixel scale the renderer starts with,
+// and the paint detail the level is built with.
+const settings = new Settings(
+  () => live.applyPixelScale(),
+  () => level.rebuildAll(),
+);
 const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
 renderer.setPixelRatio(1 / RENDER.pixelScale);
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -66,6 +71,8 @@ const paint = new PaintSystem();
 const drips = new PaintDrips(paint);
 const level = new Level(scene, paint);
 const lighting = new Lighting(scene, renderer);
+const baker = new LightBaker();
+baker.onDecorBaked = (geo) => level.pushBaked(geo);
 const lightFx = new LightFX(scene);
 const rain = new Rain(scene);
 const heightmap = new Heightmap();
@@ -79,6 +86,7 @@ const sirens = new Sirens();
 sirens.onSiren = () => audio.siren();
 live.siren = () => audio.siren();
 level.onChange = () => {
+  baker.sync(level.builtProps);
   smoke.rebuild(level.emitters);
   lighting.setAnchors(level.lights);
   lightFx.rebuild(level.lights);
@@ -145,8 +153,10 @@ player.onLand = (speed) => audio.footstep(speed > 6);
 // Losing pointer lock (Esc, alt-tab, a file dialog) pauses the game behind the menu.
 input.onLockChange = (locked) => {
   hud.setLocked(locked, debug.visible);
-  if (locked) audio.start();
-  else {
+  if (locked) {
+    settings.applyPending();
+    audio.start();
+  } else {
     audio.setHiss(0, 0);
     audio.setScribble(0);
   }
@@ -217,7 +227,7 @@ function frame(time: number) {
   syncTrackUniforms(eye);
   if (!paused) lightning.update(dt, ATMOS.rain && !build.active);
   if (!paused) sirens.update(dt, !build.active);
-  lighting.update(eye, time / 1000, lightning.flash);
+  lighting.update(eye, camera.matrixWorldInverse, time / 1000, lightning.flash);
   (sky.material as THREE.ShaderMaterial).uniforms.uFlash.value = lightning.flash * THUNDER.flashSky;
   playerLight.update(eye, !build.active);
   viewFill.color.set(VIEWMODEL.fillSky);
@@ -245,7 +255,8 @@ function frame(time: number) {
   const anchor = tools.labelAnchor(tagPos);
   hud.placeToolTags(anchor ? toScreen(anchor) : null);
   level.flush();
-  paint.flush();
+  baker.update(time / 1000, eye);
+  paint.flush(renderer);
   hotbar.update(inventory);
   hud.update();
 
@@ -277,6 +288,9 @@ function frame(time: number) {
     particles: tools.spray.particles.count,
     drips: drips.count,
     lights: lighting.active,
+    bakedBytes: baker.stats.textureBytes,
+    bakePending: baker.stats.pending,
+    bakeMs: baker.stats.ms,
   });
   live.player = { position: player.position, velocity: player.velocity, state: player.fly ? 'flying' : player.onLadder ? 'on ladder' : player.crouched ? 'crouched' : player.onGround ? 'grounded' : 'airborne' };
   debug.update();
@@ -318,4 +332,4 @@ function toScreen(p: THREE.Vector3) {
 }
 
 // Handy for debugging in the console.
-Object.assign(window, { game: { config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, player, tools, atmosphere, inventory, pickups, paint, level, build, renderer, input, hud, debug, live, PLAYER, loadLevel } });
+Object.assign(window, { game: { config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, pickups, paint, level, build, renderer, input, hud, debug, live, PLAYER, loadLevel } });

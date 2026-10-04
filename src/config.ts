@@ -27,13 +27,13 @@ export const ATMOS = {
   moon: 1.4,
   moonDir: [-0.35, 0.85, -0.4] as [number, number, number],
   shadows: true,
-  /** Floodlights may also cast shadows (the nearest ones, up to the spot budget). */
+  /** Real spot lights may cast shadow-map shadows (2 slots, kinds with `shadows`). Only while lamps aren't baked (LIGHTMAP.enabled off). */
   spotShadows: false,
   /** Half-size of the moon shadow area around the player, in meters. */
   shadowRange: 32,
   /** Multiplier for all light props. */
   practical: 2,
-  /** Real lights handed to the nearest light props (others use glow tricks only). */
+  /** While lamps aren't baked (LIGHTMAP.enabled off): real lights handed to the nearest light props (others use glow tricks only). */
   lightBudget: 8,
   /** Distance falloff exponent of light props: 2 = physical inverse square, lower reaches further. */
   lightDecay: 2,
@@ -78,21 +78,43 @@ export interface LightSpec {
   glowAllAround: boolean;
   /** Visible beam length, meters (0 = none). */
   beam: number;
-  /** May take one of the spot shadow slots when near the camera. */
+  /** Casts shadows: baked into its light (LIGHTMAP.shadows); with baking off, may take a spot shadow slot when near. */
   shadows: boolean;
 }
 
 /** Per-kind light settings, live-tunable in the debug panel (Lights). */
 export const LIGHTS: Record<LightKind, LightSpec> = {
-  wallLamp: { color: '#9b96c0', offset: [0, 0, 0], dir: [0, -1, -0.25], intensity: 13.5, range: 10, spread: 1.33, softness: 1, glow: 0, glowAllAround: false, beam: 0.5, shadows: false },
-  floodlight: { color: '#dfe8ff', offset: [0, 0, 0], dir: [0, -0.55, -0.83], intensity: 60, range: 40, spread: 0.55, softness: 0.4, glow: 0.6, glowAllAround: false, beam: 7, shadows: false },
-  neonPink: { color: '#ff3fa4', offset: [0, 0, 0], dir: [1, 0, 0], intensity: 8, range: 10, spread: 1.45, softness: 1, glow: 0, glowAllAround: false, beam: 0, shadows: false },
-  neonCyan: { color: '#2fe6ff', offset: [0, 0, 0], dir: [1, 0, 0], intensity: 8, range: 10, spread: 1.45, softness: 1, glow: 0, glowAllAround: false, beam: 0, shadows: false },
+  wallLamp: { color: '#9b96c0', offset: [0, 0, 0], dir: [0, -1, -0.25], intensity: 13.5, range: 10, spread: 1.33, softness: 1, glow: 0, glowAllAround: false, beam: 0.5, shadows: true },
+  floodlight: { color: '#dfe8ff', offset: [0, 0, 0], dir: [0, -0.55, -0.83], intensity: 60, range: 40, spread: 0.55, softness: 0.4, glow: 0.6, glowAllAround: false, beam: 7, shadows: true },
+  neonPink: { color: '#ff3fa4', offset: [0, 0, 0], dir: [1, 0, 0], intensity: 8, range: 10, spread: 1.45, softness: 1, glow: 0, glowAllAround: false, beam: 0, shadows: true },
+  neonCyan: { color: '#2fe6ff', offset: [0, 0, 0], dir: [1, 0, 0], intensity: 8, range: 10, spread: 1.45, softness: 1, glow: 0, glowAllAround: false, beam: 0, shadows: true },
   lampPost: { color: '#ffcf8a', offset: [0, 0, 0], dir: [0, -1, 0], intensity: 30, range: 22, spread: 1.15, softness: 0.6, glow: 0.45, glowAllAround: false, beam: 4.5, shadows: true },
-  stringLights: { color: '#ffd59a', offset: [0, 0, 0], dir: [0, -1, 0], intensity: 6, range: 10, spread: 1.45, softness: 1, glow: 0.22, glowAllAround: true, beam: 0, shadows: false },
+  stringLights: { color: '#ffd59a', offset: [0, 0, 0], dir: [0, -1, 0], intensity: 6, range: 10, spread: 1.45, softness: 1, glow: 0.22, glowAllAround: true, beam: 0, shadows: true },
   billboardLamp: { color: '#ffe2b0', offset: [0, 0, 0], dir: [0, -0.8, -0.6], intensity: 25, range: 12, spread: 0.8, softness: 0.5, glow: 0.3, glowAllAround: false, beam: 3.2, shadows: true },
   // On only while the camera follows the player (see CCTV); turns with the head. Glow and beam are not used.
   cctv: { color: '#dfe9ff', offset: [0, 0, 0], dir: [0, -0.3, -1], intensity: 6, range: 9, spread: 0.35, softness: 0.7, glow: 0, glowAllAround: false, beam: 0, shadows: false },
+};
+
+/**
+ * Baked lamp light (render/bake): every steady lamp's light and shadows are
+ * baked into light textures on the paintable surfaces (and into the vertices
+ * of small decor), so any number of lamps costs the same per frame. Rebakes on
+ * its own after build edits and light tweaks. Moving lights (CCTV) stay real
+ * spot lights. Live-tunable in F3 -> Lights -> baked light.
+ */
+export const LIGHTMAP = {
+  /** Off = the old way, for comparison: the nearest lamps get real spot lights (ATMOS.lightBudget). */
+  enabled: true,
+  /** Lamps cast shadows (each kind with LIGHTS[kind].shadows), from the level's colliders. */
+  shadows: true,
+  /** Light texels per meter on paintable surfaces (4 = 25 cm). Decor is lit per vertex. */
+  texelsPerMeter: 4,
+  /** Smooth (bilinear) light texels; off = hard pixels. */
+  smooth: true,
+  /** Wet highlights: the nearest lamps (0..4) also add a real-time specular highlight. */
+  highlights: 4,
+  /** Bake time per frame after edits and tweaks (ms). A freshly loaded level bakes at once. */
+  budgetMs: 3,
 };
 
 /**
@@ -155,13 +177,26 @@ export const GRADE = {
 };
 
 export const PAINT = {
-  /** Texel density of every paintable surface (paint + base textures). */
-  texelsPerMeter: 24,
+  /**
+   * Texel density of every paint texture. The PAINT DETAIL setting (pause menu)
+   * picks it from its choices in settings.ts: 24, 48, 72 or 96 (1 cm texels).
+   */
+  texelsPerMeter: 96,
   /** Alpha is quantized to this many steps in the shader for a chunky look (0 = off). */
   alphaSteps: 8,
   /** Hard cap on a single surface atlas side, in texels. */
   maxTextureSize: 2048,
+  /**
+   * Paint texture levels, the atlas included: each next one is half the size,
+   * for surfaces seen from afar, so fine paint doesn't sparkle (1 = atlas only).
+   * They add a third to the GPU memory of paint (the CPU keeps only the atlas).
+   * Keep it small: a texel of level k averages 2^k x 2^k atlas texels.
+   */
+  mipLevels: 4,
 };
+
+/** Base textures (textures.ts) are pixel art at this density, whatever the paint detail: a 48 px panel spans one 2 m module. */
+export const BASE_TEXTURES = { texelsPerMeter: 24 };
 
 export interface CapSpec {
   name: string;
@@ -171,7 +206,7 @@ export interface CapSpec {
   rate: number;
   /** Opacity each particle adds where it lands (0..1). */
   strength: number;
-  /** Size of each particle's dot, in texels (0 = one texel). */
+  /** Radius of each particle's dot, in meters (the same at every paint detail; a dot smaller than a texel paints one texel). */
   stampRadius: number;
   /** Edge softness of each dot: 0 = hard edge, 1 = fades to nothing at the rim. */
   softness: number;
@@ -187,11 +222,11 @@ export interface CapSpec {
 export type CapId = 'skinny' | 'standard' | 'fat' | 'spray';
 export const CAP_ORDER: CapId[] = ['skinny', 'standard', 'fat', 'spray'];
 export const CAPS: Record<CapId, CapSpec> = {
-  skinny: { name: 'SKINNY', coneAngle: 0.01, rate: 320, strength: 0.8, stampRadius: 0.3, softness: 0.15, hissGain: 0.5, hissTone: 0, crosshair: 8, color: '#7fb4f2' },
-  standard: { name: 'STANDARD', coneAngle: 0.04, rate: 450, strength: 0.5, stampRadius: 0.6, softness: 0.35, hissGain: 0.75, hissTone: 0.4, crosshair: 14, color: '#f4f4f4' },
-  fat: { name: 'FAT', coneAngle: 0.01, rate: 800, strength: 0.35, stampRadius: 1.9, softness: 0, hissGain: 1, hissTone: 1, crosshair: 22, color: '#f2a04c' },
+  skinny: { name: 'SKINNY', coneAngle: 0.01, rate: 320, strength: 0.8, stampRadius: 0.033, softness: 0.15, hissGain: 0.5, hissTone: 0, crosshair: 8, color: '#7fb4f2' },
+  standard: { name: 'STANDARD', coneAngle: 0.04, rate: 450, strength: 0.5, stampRadius: 0.046, softness: 0.35, hissGain: 0.75, hissTone: 0.4, crosshair: 14, color: '#f4f4f4' },
+  fat: { name: 'FAT', coneAngle: 0.01, rate: 800, strength: 0.35, stampRadius: 0.1, softness: 0, hissGain: 1, hissTone: 1, crosshair: 22, color: '#f2a04c' },
   /** Wide, soft mist for fades and backgrounds: lots of faint, fuzzy dots. */
-  spray: { name: 'SPRAY', coneAngle: 0.14, rate: 1100, strength: 0.12, stampRadius: 1.4, softness: 0.9, hissGain: 0.9, hissTone: 0.8, crosshair: 32, color: '#b98cf2' },
+  spray: { name: 'SPRAY', coneAngle: 0.14, rate: 1100, strength: 0.12, stampRadius: 0.079, softness: 0.9, hissGain: 0.9, hissTone: 0.8, crosshair: 32, color: '#b98cf2' },
 };
 
 /** Paint colors, in Q/E cycling order. Black is always owned. Paint never runs out. */
@@ -211,7 +246,7 @@ export const CAN_SIZES: Record<CanSize, { drain: number; scale: number }> = {
 export const MARKER = {
   /** Max distance from the eye to the surface. */
   reach: 2.3,
-  /** Stamp radius in texels (0 = one texel, ~4 cm). */
+  /** Line radius in meters (0 = one paint texel: the thinnest line, 4 cm on LOW paint detail, 1 cm on ULTRA). */
   radius: 0,
   strength: 0.95,
   /** First-person pose: distance in front of the eye, and model scale. */
@@ -287,8 +322,8 @@ export const DRIPS = {
   enabled: false,
   /** Excess paint (in full coats) a texel needs before it may run. */
   excess: 2.5,
-  /** Chance that a texel at the limit actually starts a run. */
-  chance: 0.03,
+  /** Runs started per square meter of paint that reaches the limit (spread over its texels, so every paint detail runs alike). */
+  perSquareMeter: 17,
   /** Runs moving at the same time, level-wide. */
   maxActive: 40,
   /** Run length range (m). */

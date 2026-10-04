@@ -71,6 +71,8 @@ export interface Expanded {
   paint: { geo: SurfaceGeometry; mat: Mat }[];
   decor: { geo: THREE.BufferGeometry; mat: Mat }[];
   colliders: THREE.Box3[];
+  /** Colliders that block light (see-through pieces like chain-link don't). */
+  occluders: THREE.Box3[];
   ladders: Ladder[];
   lights: LightAnchor[];
   emitters: Emitter[];
@@ -82,6 +84,8 @@ export interface BuiltProp {
   /** Decor proxies, merged level-wide for drawing (see level/batches.ts). */
   decor: THREE.Mesh[];
   colliders: THREE.Box3[];
+  /** Colliders that cast baked shadows. */
+  occluders: THREE.Box3[];
   ladders: Ladder[];
   lights: LightAnchor[];
   emitters: Emitter[];
@@ -138,7 +142,11 @@ export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint =
   const origin = new THREE.Vector3(...pos);
   const at = (v: V3) => rotate(v, r).add(origin);
   const restFacing = rotate([0, 0, -1], r); // tracking heads face out of the wall at rest
-  const out: Expanded = { paint: [], decor: [], colliders: [], ladders: [], lights: [], emitters: [] };
+  const out: Expanded = { paint: [], decor: [], colliders: [], occluders: [], ladders: [], lights: [], emitters: [] };
+  const collide = (mat: Mat, boxes: THREE.Box3[]) => {
+    out.colliders.push(...boxes);
+    if (mat.alpha === undefined) out.occluders.push(...boxes);
+  };
   const decor = (mat: Mat, geo: THREE.BufferGeometry, swing?: Swing) => {
     tintGeometry(geo, mat.tint, mat.emissive, mat.flicker ?? 0);
     if (swing) {
@@ -176,7 +184,7 @@ export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint =
       const skip = (p.skip ?? []).map((f) => rotateFace(f, r));
       if (allowPaint && !p.swing && boxIsPaintable(p)) addBox(painter(p.mat), box.min, box.max, skip);
       else decor(p.mat, boxSurface(box.min, box.max, skip, false).geometry, p.swing);
-      if (p.collide && !p.swing) out.colliders.push(box);
+      if (p.collide && !p.swing) collide(p.mat, [box]);
       metal(p.mat, new THREE.Vector3((box.min.x + box.max.x) / 2, box.max.y, (box.min.z + box.max.z) / 2));
     } else if (p.k === 'cyl') {
       const local: V3 = p.axis === 'x' ? [1, 0, 0] : p.axis === 'y' ? [0, 1, 0] : [0, 0, 1];
@@ -192,13 +200,13 @@ export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint =
       const seg = p.seg ?? 16;
       if (allowPaint && !p.swing && cylIsPaintable(p)) addCylinder(painter(p.mat), base, axis, p.len, r1, seg, [true, true], r2);
       else decor(p.mat, cylinderSurface(base, axis, p.len, r1, seg, [true, true], r2, false).geometry, p.swing);
-      if (p.collide && !p.swing) out.colliders.push(...cylinderColliders(base, axis, p.len, Math.max(r1, r2)));
+      if (p.collide && !p.swing) collide(p.mat, cylinderColliders(base, axis, p.len, Math.max(r1, r2)));
       metal(p.mat, axis === 'y' ? base.clone().setY(base.y + p.len) : base.clone().setComponent('xyz'.indexOf(axis), base.getComponent('xyz'.indexOf(axis)) + p.len / 2).setY(base.y + r1));
     } else if (p.k === 'rod') {
       const a = at(p.a);
       const b = at(p.b);
       decor(p.mat, rodGeometry(a, b, p.r), p.swing);
-      if (p.collide && !p.swing) out.colliders.push(...rodColliders(a, b, p.r));
+      if (p.collide && !p.swing) collide(p.mat, rodColliders(a, b, p.r));
       metal(p.mat, a.y > b.y ? a : b);
     } else if (p.k === 'cone') {
       const g = new THREE.ConeGeometry(p.r, p.h, 16, 1, false);
@@ -239,7 +247,7 @@ export function mergeDecor(decor: Expanded['decor']) {
 
 export function buildProp(id: number, pieces: Piece[], pos: V3, rot: number, paint: PaintSystem): BuiltProp {
   const ex = expandPieces(pieces, pos, rot);
-  const out: BuiltProp = { group: new THREE.Group(), decor: [], colliders: ex.colliders, ladders: ex.ladders, lights: ex.lights, emitters: ex.emitters, solids: [], paint: [], bounds: new THREE.Box3() };
+  const out: BuiltProp = { group: new THREE.Group(), decor: [], colliders: ex.colliders, occluders: ex.occluders, ladders: ex.ladders, lights: ex.lights, emitters: ex.emitters, solids: [], paint: [], bounds: new THREE.Box3() };
   const add = (g: THREE.BufferGeometry, m: THREE.Material) => {
     const mesh = new THREE.Mesh(g, m);
     mesh.matrixAutoUpdate = false;
