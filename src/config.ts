@@ -186,7 +186,7 @@ export const INK = {
   /** Paint stays colored: its shading is light x this, never below `paintMin`. Hatching over paint in the dark. */
   paintLight: 1.4,
   paintMin: 0.4,
-  paintHatch: 0.45,
+  paintHatch: 0.3,
   /** Pen outlines from the depth buffer: strength, crease sensitivity, and distance over which they thin out (m). */
   outline: 1,
   crease: 1,
