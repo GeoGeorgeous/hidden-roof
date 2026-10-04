@@ -5,6 +5,8 @@ import { floodlight, lampPost, stringLights, wallLamp } from './lights';
 import { neonCyan, neonPink } from './neon';
 import { acLarge, acMedium, acSmall, acWall, duct, exhaust, pipe, utilitybox, ventshaft, watertower } from './equipment';
 import { building, corner, door, parapet, slab, wall, wallLedge, windowWall } from './structure';
+import { bladeSign, shopSign } from './signs';
+import { debris, latticeMast, signTower, tankPair, utilityPole } from './steel';
 
 /** The prop kit, in picker order. Pickups are added by the editor as their own category. */
 export const KIT: PropDef[] = [
@@ -30,11 +32,18 @@ export const KIT: PropDef[] = [
   exhaust,
   utilitybox,
   watertower,
+  tankPair,
+  debris,
   cable4,
   cable8,
   cable12,
   antenna,
   sign,
+  shopSign,
+  bladeSign,
+  signTower,
+  latticeMast,
+  utilityPole,
   cctv,
   billboard,
   wallLamp,
