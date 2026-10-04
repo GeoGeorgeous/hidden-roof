@@ -1,6 +1,6 @@
 # taggin'
 
-A small first-person graffiti game in the browser. You're on the rooftops of a pen-and-ink megacity, high above streets lost in black: find colors, caps, can upgrades and a marker, then paint whatever you like. The world is drawn in ink on paper; the only color anywhere is your paint. There are no enemies and no objectives. The HUD looks like a body-cam recording overlay.
+A small first-person graffiti game in the browser. You're on the rooftops of a pen-and-ink megacity, high above streets lost in black: find colors, caps and a marker, then paint whatever you like. The world is drawn in ink on paper; the only color anywhere is your paint. There are no enemies and no objectives. The HUD looks like a body-cam recording overlay.
 
 Built with three.js, TypeScript and Vite. There are no external assets: the geometry, textures and sounds are all generated in code. See `AGENTS.md` for the two ground rules (performance first, small files).
 
@@ -22,12 +22,13 @@ npm run build      # typecheck + production build into dist/
 |---|---|
 | WASD, Shift, Space | Move, run, jump |
 | Move into a ladder | Climb. Let go to slide down, Ctrl to hold on, Space to jump off. Walking away from it walks off. |
-| LMB | Spray with the can, or draw with the marker |
-| 1 / 2 | Can / marker (once found) |
+| LMB | Spray with the can, draw with the marker, or place the stepladder |
+| 1 / 2 / 3 | Can / marker / stepladder (once found) |
 | Q / E | Cycle through the colors you've collected (can and marker) |
 | Mouse wheel | Cycle through the caps you've collected (can only) |
 | RMB | Shake the can (restores pressure) |
 | B | Toggle build mode |
+| K | Screenshot: the game view (without the HUD) downloads as a PNG |
 | F3 or \` | Debug and tuning panel (Esc frees the mouse for the sliders) |
 
 **Build mode** (you fly with no collisions; the scene switches to plain daylight without rain). It works like Minecraft Creative: aim at a face and click.
@@ -61,8 +62,8 @@ npm run build      # typecheck + production build into dist/
 
 - **Slot 1: the spray can.** There is exactly one can, and its paint never runs out. Its pressure drains while you spray: below 50% the paint thins, below 25% the can sputters. The PSI gauge shows by the can while you spray or shake (it fades in and out with the pressure changing); when low it stays up in red, with a blinking LOW PRESSURE — SHAKE [RMB] above it. Shake with RMB to restore it.
 - **Slot 2: the marker,** once you find it. It's a pump marker with a hard square nib: it draws a solid, hard-edged line at close range in the current color, as wide as the nib going straight and wider on the diagonal. Its band shows the color, and switching colors (or tools) shows the same COLOR tag next to whichever tool is in hand.
-- **Colors** are pickups. Once collected, a color stays available for both the can and the marker. You start with black.
-- **Can size** (sm → md → lg) is a permanent upgrade, not an item. Bigger cans lose pressure more slowly. You start with sm.
+- **Slot 3: the stepladder,** once you find it. An A-frame ladder that stands on its own: climb it from the front (like any ladder) and stand on its top to reach higher walls and roofs. With it in hand, a green preview shows where it would stand: anywhere on the floor (not on the grid), turned to face you; aiming at a wall puts it on the floor in front of it. It's red where it can't stand: its four feet must rest on one flat floor (not over an edge, a gap or a step), nothing may be in its way or in you, and there must be room to stand in front of it and climb. LMB places it. There is only one: placing it again moves it. It isn't saved with the level (`STEPLADDER_PLACE` in config).
+- **Colors** are pickups: black, white, red, orange, yellow, green, blue, purple and pink. Once collected, a color stays available for both the can and the marker. You start with black.
 - **Caps** are skinny, standard, fat and spray (a wide, soft mist for fades). You start with the standard cap. The crosshair circle grows with the cap, and the cap's name shows next to the can for a moment after switching.
 - **Pickups** hover, spin and glow so you can spot them from far away. Walk into one to collect it. If it gives you nothing new, it stays on the map.
 
@@ -98,10 +99,10 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
 - `rot` is the number of quarter turns.
 - `text` (signs only, optional) is the sign's own text; without it the sign shows its default (EXIT, HIGH VOLTAGE, STAFF ONLY).
 - Pickup kinds:
-  - `color:<white|red>` unlocks a paint color
-  - `can:<md|lg>` upgrades the can
+  - `color:<white|red|orange|yellow|green|blue|purple|pink>` unlocks a paint color
   - `cap:<skinny|standard|fat|spray>` unlocks a cap
   - `marker`
+  - `ladder` (the stepladder)
 - The city is regenerated around the level's bounds every time a level loads, always the same for the same settings. A level can override any `SKYLINE` value in its own object, e.g. `"skyline": { "seed": 12, "margin": 20 }`.
 
 ## How painting works
@@ -167,7 +168,6 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
   - `hissGain` and `hissTone`
   - `crosshair` (circle diameter in px) and `color` (cap color on the can and pickup)
 - `COLORS` and `COLOR_ORDER`: the paint palette and its Q/E order. Add a color here and it becomes a `color:<name>` pickup.
-- `CAN_SIZES`: `drain` (pressure-loss multiplier) and view-model `scale` per size.
 - `SPRAY`: `range`, `falloffStart`, particle speed, size and pool size.
 - `PRESSURE`: drain rate, the thin and sputter thresholds, sputter duty, shake restore and shake duration.
 - `MARKER`: `reach`, `radius` (half the square nib's side in meters; 0 = one paint texel), `drips` (how readily it starts paint runs), `strength`, and `holdDistance` / `holdScale` for the first-person pose.

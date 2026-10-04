@@ -1,7 +1,7 @@
 import { CAP_ORDER, CAPS, COLORS } from '../config';
 import { SLOTS, type Inventory } from './inventory';
 
-// Tool readout, bottom-left: slots, color, cap, can size; plus toasts. The PSI
+// Tool readout, bottom-left: slots, color, cap (or how to place the ladder); plus toasts. The PSI
 // gauge and the low-pressure alert sit beside the can (hud.ts).
 // Minimal text only.
 
@@ -45,16 +45,17 @@ export class Hotbar {
     if (inv.version !== this.version) {
       this.version = inv.version;
       this.slots.innerHTML = SLOTS.map((t, i) => {
-        const name = t === 'can' ? 'CAN' : inv.hasMarker ? 'MARKER' : '------';
+        const name = t === 'can' ? 'CAN' : t === 'marker' ? (inv.hasMarker ? 'MARKER' : '------') : inv.hasLadder ? 'LADDER' : '------';
         return `<span class="${i === inv.selected ? 'on' : ''}">[${i + 1}] ${name}</span>`;
       }).join('');
       const tool = inv.tool;
-      const rows = [
-        ['COLOR', `<i class="swatch" style="background:${COLORS[inv.color]}"></i>${inv.color.toUpperCase()}`, `${inv.colors.indexOf(inv.color) + 1}/${inv.colors.length}`],
-      ];
+      // The ladder has no color: it shows how it's used instead.
+      const rows =
+        tool === 'ladder'
+          ? [['LMB', 'PLACE (MOVES IT)', '']]
+          : [['COLOR', `<i class="swatch" style="background:${COLORS[inv.color]}"></i>${inv.color.toUpperCase()}`, `${inv.colors.indexOf(inv.color) + 1}/${inv.colors.length}`]];
       if (tool === 'can') {
         rows.push(['CAP', CAPS[inv.cap].name, `${inv.caps.length}/${CAP_ORDER.length}`]);
-        rows.push(['CAN', inv.size.toUpperCase(), '']);
       }
       this.rows.innerHTML = tool ? rows.map(([k, v, n]) => `<div><span>${k}</span>${v}<em>${n}</em></div>`).join('') : '<div class="dim">NO TOOL</div>';
     }

@@ -12,11 +12,12 @@ import { SpawnMarker } from './spawn-marker';
 import { BUILD, PLAYER } from '../config';
 import { describeHeight, levelOf, levelY } from '../level/levels';
 import { extentOf } from './extent';
+import { floorBelow } from './floor';
 import { CursorGrid } from './grid';
 import { History, type HistoryEntry } from './history';
 import { downloadLevel, pickLevelFile } from './io';
 import { Picker } from './picker';
-import { place, type Hit, type PlaceSpec } from './placement';
+import { axisNormal, place, type Hit, type PlaceSpec } from './placement';
 import { MAX_TEXT } from '../render/ink/words';
 
 // Minecraft-style editor. Aim with the crosshair: the ghost sits on the face
@@ -47,7 +48,6 @@ export class BuildMode {
   private grid: CursorGrid;
   private history = new History();
   private raycaster = new THREE.Raycaster();
-  private down = new THREE.Raycaster();
   /** Help readout (top right): built once, then only its changing lines are rewritten. */
   private hud: HTMLElement;
   private aimText = new Text();
@@ -229,11 +229,9 @@ export class BuildMode {
   }
 
   private floorAt = (x: number, y: number, z: number) => {
-    this.down.set(new THREE.Vector3(x, y + 0.1, z), new THREE.Vector3(0, -1, 0));
-    this.down.far = 60;
-    const h = this.down.intersectObject(this.level.root, true).find((i) => (i.face?.normal.y ?? 0) > 0.5);
+    const h = floorBelow(this.level.root, x, y, z);
     const plane = levelY(this.workLevel);
-    return h ? +h.point.y.toFixed(3) : y + 0.1 >= plane ? plane : null;
+    return h ?? (y + 0.1 >= plane ? plane : null);
   };
 
   private preview(target: Hit | null, eye: THREE.Vector3) {
@@ -333,12 +331,4 @@ function div(className: string, text = '') {
 
 function setText(node: Text, s: string) {
   if (node.data !== s) node.data = s;
-}
-
-function axisNormal(n: THREE.Vector3) {
-  const a = [Math.abs(n.x), Math.abs(n.y), Math.abs(n.z)];
-  const i = a.indexOf(Math.max(...a));
-  const out = new THREE.Vector3();
-  out.setComponent(i, Math.sign(n.getComponent(i)));
-  return out;
 }

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { CAN_SIZES, CAPS, COLORS, VIEWMODEL, type CanSize, type CapId, type PaintColor } from '../config';
+import { CAPS, COLORS, VIEWMODEL, type CapId, type PaintColor } from '../config';
 import { Hand } from './hands';
 import { setHex } from '../hex-color';
 import { inkify } from '../render/ink/tone';
@@ -10,6 +10,8 @@ import { inkify } from '../render/ink/tone';
 
 const REST = new THREE.Vector3(0.2, -0.22, -0.5);
 const CAP_TOP = 0.124;
+/** The can's height relative to its geometry; the cap sits lower to match. */
+const HEIGHT = 0.85;
 const PRESS_DEPTH = 0.004;
 /** Nozzle size per cap (it hints at the cap). */
 const NOZZLE: Record<CapId, number> = { skinny: 0.7, standard: 1, fat: 1.7, spray: 2.2 };
@@ -29,7 +31,7 @@ export class CanModel {
   private tip = new THREE.Object3D();
   private recoil = 0;
   private press = 0;
-  private capLift = 0;
+  private capLift = CAP_TOP * (HEIGHT - 1);
 
   constructor() {
     const silver = inkify(new THREE.MeshLambertMaterial({ color: '#d8d8d8' }));
@@ -41,16 +43,14 @@ export class CanModel {
     label.position.y = -0.01;
     shoulder.position.y = 0.0975;
     this.can.add(shell, label, shoulder);
+    this.can.scale.set(1, HEIGHT, 1);
     this.body.add(this.can, this.cap, this.nozzle, this.tip, this.hand.group);
     this.sway.add(this.body);
     this.group.add(this.sway);
   }
 
-  setCan(color: PaintColor, size: CanSize, cap: CapId) {
+  setCan(color: PaintColor, cap: CapId) {
     setHex(this.labelMat.color, COLORS[color]);
-    const s = CAN_SIZES[size].scale;
-    this.can.scale.set(1, s, 1);
-    this.capLift = CAP_TOP * (s - 1);
     const n = NOZZLE[cap];
     this.nozzle.scale.set(n, n, 1);
     setHex(this.capMat.color, CAPS[cap].color);

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { CAN_SIZES, COLORS, INK, type CanSize, type PaintColor } from '../config';
+import { COLORS, INK, type PaintColor } from '../config';
 import type { PickupKind } from '../inventory/items';
 
 // Pickup look, inked: the item hovers and spins, tilted, inside a drawn ring
@@ -38,11 +38,11 @@ const basic = (color: string) => new THREE.MeshBasicMaterial({ color });
 export function itemModel(kind: PickupKind): THREE.Group {
   const g = new THREE.Group();
   const [k, a] = kind.split(':');
-  if (k === 'color' || k === 'can') {
-    // Color unlock: a can with that label. Size upgrade: a bare silver can of that size.
-    const h = 0.17 * (k === 'can' ? CAN_SIZES[a as CanSize].scale * 1.2 : 1);
+  if (k === 'color') {
+    // Color unlock: a can with that label.
+    const h = 0.17;
     const body = new THREE.Mesh(new THREE.CylinderGeometry(0.033, 0.033, h, 12), basic('#cfcfcf'));
-    const label = new THREE.Mesh(new THREE.CylinderGeometry(0.034, 0.034, h * 0.55, 12), basic(k === 'color' ? COLORS[a as PaintColor] : '#9aa0a6'));
+    const label = new THREE.Mesh(new THREE.CylinderGeometry(0.034, 0.034, h * 0.55, 12), basic(COLORS[a as PaintColor]));
     const top = new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.03, 0.03, 12), basic('#e8e8e8'));
     top.position.y = h / 2 + 0.015;
     g.add(body, label, top);
@@ -52,6 +52,24 @@ export function itemModel(kind: PickupKind): THREE.Group {
     nozzle.position.set(0, 0.004, 0.018);
     g.add(cap, nozzle);
     g.scale.setScalar(2.2);
+  } else if (k === 'ladder') {
+    // A small stepladder: two leaning frames and a few treads.
+    const frame = (z: number, lean: number) => {
+      for (const x of [-0.05, 0.05]) {
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.2, 0.008), basic('#cfcfcf'));
+        leg.position.set(x, 0, z);
+        leg.rotation.x = lean;
+        g.add(leg);
+      }
+    };
+    frame(-0.025, 0.25);
+    frame(0.025, -0.25);
+    for (const y of [-0.05, 0, 0.05]) {
+      const tread = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.006, 0.014), basic('#9aa0a6'));
+      tread.position.set(0, y, -0.025 + y * 0.26);
+      g.add(tread);
+    }
+    g.scale.setScalar(1.6);
   } else {
     const body = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.13, 10), basic('#1a1a1e'));
     const band = new THREE.Mesh(new THREE.CylinderGeometry(0.0115, 0.0115, 0.03, 10), basic('#e8e8e8'));

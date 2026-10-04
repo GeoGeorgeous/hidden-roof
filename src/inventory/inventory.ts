@@ -1,18 +1,19 @@
-import { CAP_ORDER, COLOR_ORDER, SIZE_ORDER, type CanSize, type CapId, type PaintColor } from '../config';
+import { CAP_ORDER, COLOR_ORDER, type CapId, type PaintColor } from '../config';
 
-// Two slots: 1 = the spray can (always), 2 = the marker (once found).
-// Colors, caps and the can size are permanent unlocks shared by both tools.
+// Three slots: 1 = the spray can (always), 2 = the marker, 3 = the stepladder
+// (each once found).
+// Colors and caps are permanent unlocks (colors shared by both tools).
 // Paint never runs out; the can only has pressure.
 
-export type Tool = 'can' | 'marker';
-export const SLOTS: Tool[] = ['can', 'marker'];
+export type Tool = 'can' | 'marker' | 'ladder';
+export const SLOTS: Tool[] = ['can', 'marker', 'ladder'];
 
 export class Inventory {
   selected = 0;
   hasMarker = false;
+  hasLadder = false;
   colors: PaintColor[] = [];
   caps: CapId[] = [];
-  size: CanSize = 'sm';
   /** Can pressure 0..1: drains while spraying, restored by shaking. */
   pressure = 1;
   /** Bumped on every change so the HUD can skip redundant DOM updates. */
@@ -24,13 +25,13 @@ export class Inventory {
     this.reset();
   }
 
-  /** Starting kit: small can, black, standard cap, no marker. */
+  /** Starting kit: the can, black, standard cap, no marker, no ladder. */
   reset() {
     this.selected = 0;
     this.hasMarker = false;
+    this.hasLadder = false;
     this.colors = ['black'];
     this.caps = ['standard'];
-    this.size = 'sm';
     this.pressure = 1;
     this.colorIndex = 0;
     this.capIndex = 0;
@@ -45,10 +46,10 @@ export class Inventory {
     return this.caps[this.capIndex];
   }
 
-  /** The tool in hand, or null if slot 2 is selected without a marker. */
+  /** The tool in hand, or null if its slot is selected before it was found. */
   get tool(): Tool | null {
     const t = SLOTS[this.selected];
-    return t === 'marker' && !this.hasMarker ? null : t;
+    return (t === 'marker' && !this.hasMarker) || (t === 'ladder' && !this.hasLadder) ? null : t;
   }
 
   select(i: number) {
@@ -84,16 +85,16 @@ export class Inventory {
     return true;
   }
 
-  upgradeSize(s: CanSize) {
-    if (SIZE_ORDER.indexOf(s) <= SIZE_ORDER.indexOf(this.size)) return false;
-    this.size = s;
+  giveMarker() {
+    if (this.hasMarker) return false;
+    this.hasMarker = true;
     this.version++;
     return true;
   }
 
-  giveMarker() {
-    if (this.hasMarker) return false;
-    this.hasMarker = true;
+  giveLadder() {
+    if (this.hasLadder) return false;
+    this.hasLadder = true;
     this.version++;
     return true;
   }

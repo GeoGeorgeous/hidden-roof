@@ -10,12 +10,13 @@ import type { SettingSection } from './settings';
 const CONTROLS = [
   ['WASD / SHIFT / SPACE', 'move / run / jump'],
   ['MOVE INTO LADDER', 'climb (CTRL holds, SPACE lets go)'],
-  ['LMB', 'spray / draw'],
+  ['LMB', 'spray / draw / place ladder'],
   ['RMB', 'shake can'],
-  ['1 / 2', 'can / marker'],
+  ['1 / 2 / 3', 'can / marker / ladder'],
   ['Q / E', 'color'],
   ['WHEEL', 'cap'],
   ['B', 'build mode'],
+  ['K', 'screenshot'],
   ['F3', 'debug + tuning'],
 ];
 

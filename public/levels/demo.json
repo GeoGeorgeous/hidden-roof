@@ -342,4 +342,4 @@
 {"type":"parapet","pos":[14,0,-9],"rot":1},
 {"type":"parapet","pos":[-8,0,-7],"rot":1},
 {"type":"parapet","pos":[14,0,-7],"rot":1}],
-"pickups":[{"kind":"color:red","pos":[-6,4,-3]},{"kind":"color:white","pos":[-6.5,-4,8]},{"kind":"can:md","pos":[4.5,0,0]},{"kind":"can:lg","pos":[4,2.4,3.75]},{"kind":"cap:fat","pos":[12.5,8,-1]},{"kind":"cap:spray","pos":[0,-4,11.3]},{"kind":"cap:skinny","pos":[-7,4,-5.5]},{"kind":"marker","pos":[-3,0,0.5]},{"kind":"color:blue","pos":[10,8,-1.5]},{"kind":"color:purple","pos":[1,-4,7.5]}]}
+"pickups":[{"kind":"color:red","pos":[-6,4,-3]},{"kind":"color:white","pos":[-6.5,-4,8]},{"kind":"color:orange","pos":[4.5,0,0]},{"kind":"color:yellow","pos":[4,2.4,3.75]},{"kind":"color:green","pos":[6,0,-2]},{"kind":"color:pink","pos":[-4,-4,9]},{"kind":"cap:fat","pos":[12.5,8,-1]},{"kind":"cap:spray","pos":[0,-4,11.3]},{"kind":"cap:skinny","pos":[-7,4,-5.5]},{"kind":"marker","pos":[-3,0,0.5]},{"kind":"ladder","pos":[2,0,2]},{"kind":"color:blue","pos":[10,8,-1.5]},{"kind":"color:purple","pos":[1,-4,7.5]}]}

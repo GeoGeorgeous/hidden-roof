@@ -1,4 +1,4 @@
-import { SKYLINE, ATMOS, INK, AUDIO, CAN_SIZES, CAP_ORDER, CAPS, CCTV, DAYLIGHT, DRIPS, FANS, FLICKER, GRADE, LIGHT_SPREAD_MAX, LIGHTMAP, LIGHTS, PICKUP, SIRENS, SMOKE, THUNDER, PLAYER_LIGHT, VOLUMETRICS, WALL_HAND, MARKER, PAINT, PLAYER, PRESSURE, RENDER, SPRAY, VIEWMODEL } from '../config';
+import { SKYLINE, ATMOS, INK, AUDIO, CAP_ORDER, CAPS, CCTV, DAYLIGHT, DRIPS, FANS, FLICKER, GRADE, LIGHT_SPREAD_MAX, LIGHTMAP, LIGHTS, PICKUP, SIRENS, SMOKE, THUNDER, PLAYER_LIGHT, VOLUMETRICS, WALL_HAND, MARKER, PAINT, PLAYER, PRESSURE, RENDER, SPRAY, VIEWMODEL } from '../config';
 
 // Debug panel contents: collapsible sections of live sliders/toggles that write
 // straight into the config objects, plus read-only stats. Each value knows its
@@ -28,7 +28,6 @@ const ROOTS: Record<string, Obj> = {
   RENDER: RENDER as unknown as Obj,
   CAPS: CAPS as unknown as Obj,
   PRESSURE: PRESSURE as unknown as Obj,
-  CAN_SIZES: CAN_SIZES as unknown as Obj,
   PAINT: PAINT as unknown as Obj,
   SPRAY: SPRAY as unknown as Obj,
   MARKER: MARKER as unknown as Obj,
@@ -257,9 +256,7 @@ export function sections(): Section[] {
       id: 'pressure',
       title: 'Pressure',
       items: [
-        r('drain / s (sm can)', ['PRESSURE', 'drainPerSecond'], 0, 0.3, 0.005),
-        r('md can drain x', ['CAN_SIZES', 'md', 'drain'], 0.05, 1, 0.05),
-        r('lg can drain x', ['CAN_SIZES', 'lg', 'drain'], 0.05, 1, 0.05),
+        r('drain / s', ['PRESSURE', 'drainPerSecond'], 0, 0.3, 0.005),
         r('thin below', ['PRESSURE', 'thinThreshold'], 0, 1, 0.01),
         r('sputter below', ['PRESSURE', 'sputterThreshold'], 0, 1, 0.01),
         r('flow at sputter', ['PRESSURE', 'minSteadyFlow'], 0, 1, 0.01),

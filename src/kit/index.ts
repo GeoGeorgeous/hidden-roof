@@ -1,5 +1,5 @@
 import type { Category, PropDef } from './def';
-import { fireescape, hatch, ladder, railing, stairs } from './access';
+import { fireescape, hatch, ladder, railing, stairs, stepladder } from './access';
 import { antenna, billboard, cable12, cable4, cable8, cctv, sign } from './details';
 import { floodlight, lampPost, stringLights, wallLamp } from './lights';
 import { neonCyan, neonPink } from './neon';
@@ -71,7 +71,10 @@ export const KIT: PropDef[] = [
   stringLights,
 ];
 
-export const KIT_BY_TYPE = new Map(KIT.map((d) => [d.type, d]));
+/** Props that aren't in the build picker: the player's stepladder (a pickup, placed while playing). */
+const ITEM_PROPS: PropDef[] = [stepladder];
+
+export const KIT_BY_TYPE = new Map([...KIT, ...ITEM_PROPS].map((d) => [d.type, d]));
 
 export function kitIn(c: Category) {
   return KIT.filter((d) => d.category === c);

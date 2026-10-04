@@ -272,17 +272,18 @@ export const CAPS: Record<CapId, CapSpec> = {
 };
 
 /** Paint colors, in Q/E cycling order. Black is always owned. Paint never runs out. */
-export type PaintColor = 'black' | 'white' | 'red' | 'blue' | 'purple';
-export const COLOR_ORDER: PaintColor[] = ['black', 'white', 'red', 'blue', 'purple'];
-export const COLORS: Record<PaintColor, string> = { black: '#1d1d22', white: '#f1efe8', red: '#d42a2a', blue: '#2a6ee0', purple: '#8e3fd6' };
-
-/** Can size is a permanent upgrade (sm -> md -> lg). Bigger cans lose pressure slower. */
-export type CanSize = 'sm' | 'md' | 'lg';
-export const SIZE_ORDER: CanSize[] = ['sm', 'md', 'lg'];
-export const CAN_SIZES: Record<CanSize, { drain: number; scale: number }> = {
-  sm: { drain: 1, scale: 0.85 },
-  md: { drain: 0.6, scale: 1 },
-  lg: { drain: 0.35, scale: 1.15 },
+export type PaintColor = 'black' | 'white' | 'red' | 'orange' | 'yellow' | 'green' | 'blue' | 'purple' | 'pink';
+export const COLOR_ORDER: PaintColor[] = ['black', 'white', 'red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink'];
+export const COLORS: Record<PaintColor, string> = {
+  black: '#1d1d22',
+  white: '#f1efe8',
+  red: '#d42a2a',
+  orange: '#f26a1b',
+  yellow: '#f5cf1d',
+  green: '#2fb34a',
+  blue: '#2a6ee0',
+  purple: '#8e3fd6',
+  pink: '#f0479a',
 };
 
 export const MARKER = {
@@ -401,7 +402,7 @@ export const SPRAY = {
 };
 
 export const PRESSURE = {
-  /** Pressure lost per second of spraying with a small can (1 = full); scaled by CAN_SIZES.drain. */
+  /** Pressure lost per second of spraying (1 = full). */
   drainPerSecond: 0.04,
   /** Below this, paint gets thinner. */
   thinThreshold: 0.5,
@@ -564,6 +565,16 @@ export const FLICKER = {
 };
 
 /** Build mode (B). */
+/** The player's stepladder (a pickup, slot 3; placed with LMB, one at a time). */
+export const STEPLADDER_PLACE = {
+  /** How far from the eye the crosshair can place it (m). */
+  reach: 4.5,
+  /** Its feet may sit this much above or below each other (m): any more and it would rock. */
+  footTolerance: 0.04,
+  /** The spot in front of it must be floor within this step of its base (m), so you can walk up and climb. */
+  standStep: 0.45,
+};
+
 export const BUILD = {
   /** How far the crosshair reaches when aiming at faces (m). */
   reach: 120,

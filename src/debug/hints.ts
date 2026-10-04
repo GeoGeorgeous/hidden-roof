@@ -79,8 +79,7 @@ const HINTS: Record<string, string> = {
   'CAPS.*.color': 'Color of the cap on the can and the pickup.',
   'CAPS.*.crosshair': 'Crosshair circle diameter for this cap (px).',
   // Pressure
-  'PRESSURE.drainPerSecond': 'Pressure lost per second of spraying with the small can (1 = full can).',
-  'CAN_SIZES.*.drain': 'Pressure-loss multiplier for this can size. Lower = lasts longer.',
+  'PRESSURE.drainPerSecond': 'Pressure lost per second of spraying (1 = full can).',
   'PRESSURE.thinThreshold': 'Below this pressure the paint gets thinner.',
   'PRESSURE.sputterThreshold': 'Below this pressure the can sputters and the HUD warns.',
   'PRESSURE.minSteadyFlow': 'Paint flow at the sputter threshold (flow ramps down to this from the thin threshold).',

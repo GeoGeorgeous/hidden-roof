@@ -99,3 +99,12 @@ export function place(spec: PlaceSpec, hit: Hit, rot: number, floorAt: FloorAt, 
     }
   }
 }
+
+/** The axis-aligned direction closest to a (triangle) normal. */
+export function axisNormal(n: THREE.Vector3) {
+  const a = [Math.abs(n.x), Math.abs(n.y), Math.abs(n.z)];
+  const i = a.indexOf(Math.max(...a));
+  const out = new THREE.Vector3();
+  out.setComponent(i, Math.sign(n.getComponent(i)));
+  return out;
+}

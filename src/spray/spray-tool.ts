@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { CAN_SIZES, CAPS, COLORS, PRESSURE } from '../config';
+import { CAPS, COLORS, PRESSURE } from '../config';
 import type { Audio } from '../audio';
 import type { Input } from '../input';
 import type { Inventory } from '../inventory/inventory';
@@ -9,9 +9,9 @@ import { CanModel } from './can-model';
 import { SprayParticles } from './particles';
 import { setHex } from '../hex-color';
 
-// Spraying: color, cap and can size come from the inventory. Paint never runs
-// out; pressure drains while spraying (slower for bigger cans) and is restored
-// by shaking with the right mouse button.
+// Spraying: color and cap come from the inventory. Paint never runs out;
+// pressure drains while spraying and is restored by shaking with the right
+// mouse button.
 
 const forward = new THREE.Vector3();
 const right = new THREE.Vector3();
@@ -49,7 +49,7 @@ export class SprayTool {
       return;
     }
     const cap = CAPS[inv.cap];
-    this.model.setCan(inv.color, inv.size, inv.cap);
+    this.model.setCan(inv.color, inv.cap);
 
     if (input.clicked(2) && this.shakeT <= 0) {
       this.shakeT = PRESSURE.shakeDuration;
@@ -63,7 +63,7 @@ export class SprayTool {
 
     const spraying = input.lmb && input.locked;
     this.flow = spraying ? this.computeFlow(dt, inv.pressure) : 0;
-    if (spraying) inv.pressure = Math.max(0, inv.pressure - PRESSURE.drainPerSecond * CAN_SIZES[inv.size].drain * dt);
+    if (spraying) inv.pressure = Math.max(0, inv.pressure - PRESSURE.drainPerSecond * dt);
     this.audio.setHiss(this.flow * cap.hissGain, cap.hissTone);
 
     this.model.update(dt, camera, spraying, this.flow > 0, this.shakeT > 0 ? 1 - this.shakeT / PRESSURE.shakeDuration : -1);

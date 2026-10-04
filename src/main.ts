@@ -18,6 +18,7 @@ import { PaintDrips } from './paint-drips';
 import { WallHand } from './tools/wall-hand';
 import { GpuTimer } from './debug/gpu-timer';
 import { Settings } from './settings';
+import { saveScreenshot } from './screenshot';
 import { Input } from './input';
 import { Player } from './player';
 import { PaintSystem } from './painting';
@@ -110,7 +111,8 @@ const hud = new Hud();
 const player = new Player(level.colliders, level.ladders);
 const inventory = new Inventory();
 const hotbar = new Hotbar();
-const tools = new Tools(scene, viewScene, paint, level.solids, audio, inventory);
+const tools = new Tools(scene, viewScene, paint, level.solids, audio, inventory, level);
+tools.ladder.onBlocked = () => hotbar.toast("The ladder can't stand there");
 const wallHand = new WallHand(level.solids);
 viewScene.add(wallHand.group);
 const pickups = new Pickups(scene);
@@ -284,6 +286,8 @@ function frame(time: number) {
 
   gpuTimer.enabled = debug.visible;
   post.render(scene, viewScene, camera, lighting, !build.active);
+  // Same frame as the render: the canvas still holds it (see screenshot.ts).
+  if (input.wasPressed('KeyK')) saveScreenshot(renderer.domElement, () => hotbar.toast('Screenshot saved'));
   gpuTimer.poll();
   const { calls, triangles } = post.sceneStats;
 

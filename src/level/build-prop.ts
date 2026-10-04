@@ -24,6 +24,8 @@ export interface PropInstance {
   adjust?: number;
   /** Per-instance text (PropDef.text), when typed in build mode. */
   text?: string;
+  /** Placed by the player while playing (the stepladder): never saved with the level. */
+  runtime?: boolean;
 }
 
 /**

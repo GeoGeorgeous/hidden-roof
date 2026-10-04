@@ -95,7 +95,8 @@ export class Level {
   }
 
   toJSON(): LevelData {
-    const props = [...this.props.values()].map(({ type, pos, rot, adjust, text }) => ({ type, pos, rot, ...(adjust === undefined ? {} : { adjust }), ...(text === undefined ? {} : { text }) }));
+    // Props the player placed while playing (the stepladder) aren't part of the level file.
+    const props = [...this.props.values()].filter((p) => !p.runtime).map(({ type, pos, rot, adjust, text }) => ({ type, pos, rot, ...(adjust === undefined ? {} : { adjust }), ...(text === undefined ? {} : { text }) }));
     return { version: 2, spawn: this.spawn, props };
   }
 
@@ -174,12 +175,12 @@ export class Level {
     return o.userData.propId;
   }
 
-  /** Does any box penetrate a placed prop's colliders (joints excluded)? */
-  overlaps(boxes: THREE.Box3[], margin = 0.02) {
+  /** Does any box penetrate a placed prop's colliders (joints excluded)? `ignore`: a prop id to leave out. */
+  overlaps(boxes: THREE.Box3[], margin = 0.02, ignore?: number) {
     const shrunk = boxes.map((b) => b.clone().expandByScalar(-margin));
     const all = shrunk.reduce((u, s) => u.union(s), new THREE.Box3());
-    for (const b of this.built.values()) {
-      if (!b.bounds.intersectsBox(all)) continue;
+    for (const [id, b] of this.built) {
+      if (id === ignore || !b.bounds.intersectsBox(all)) continue;
       for (const c of b.colliders) for (const s of shrunk) if (s.intersectsBox(c)) return true;
     }
     return false;
