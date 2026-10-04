@@ -1,5 +1,5 @@
 /* Body-cam overlay style, inked: ink + one alert color, thin lines, small
-   monospace, no panels. A soft paper halo keeps text readable over hatching. */
+   monospace, no panels, no glow. */
 
 :root {
   --ui: #141416;
@@ -7,7 +7,6 @@
   --paper: #ebe5d6;
   --alert: #d4261c;
   --line: 1px solid var(--ui);
-  --shadow: 0 0 1px rgba(235, 229, 214, 1), 0 0 3px rgba(235, 229, 214, 1), 0 0 7px rgba(235, 229, 214, 0.85);
 }
 
 html,
@@ -44,7 +43,6 @@ canvas {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  text-shadow: var(--shadow);
 }
 
 .vignette {
@@ -99,7 +97,6 @@ canvas {
   border: 1px solid var(--ui);
   border-radius: 50%;
   opacity: 0.85;
-  filter: drop-shadow(0 0 1px rgba(235, 229, 214, 0.95));
   transition: width 0.12s, height 0.12s;
 }
 
@@ -141,7 +138,6 @@ canvas {
   font: inherit;
   letter-spacing: inherit;
   color: var(--ui);
-  text-shadow: var(--shadow);
   background: none;
   border: var(--line);
   padding: 6px 18px;
@@ -150,7 +146,6 @@ canvas {
 .overlay button:hover {
   background: var(--ui);
   color: var(--paper);
-  text-shadow: none;
 }
 .overlay .settings {
   display: flex;
@@ -204,7 +199,6 @@ canvas {
   width: 260px;
   line-height: 1.7;
   pointer-events: none;
-  text-shadow: var(--shadow);
 }
 .readout .slots {
   display: flex;
@@ -283,7 +277,6 @@ canvas {
   transform: translateX(-50%);
   opacity: 0;
   transition: opacity 0.3s;
-  text-shadow: var(--shadow);
   pointer-events: none;
 }
 .toast.show {
@@ -299,7 +292,6 @@ canvas {
   transform: translateX(-50%);
   text-align: center;
   pointer-events: none;
-  text-shadow: var(--shadow);
   line-height: 1.8;
 }
 .picker .name {
@@ -339,7 +331,6 @@ canvas {
   line-height: 1.7;
   color: var(--dim);
   pointer-events: none;
-  text-shadow: var(--shadow);
 }
 .build-help .title {
   color: var(--ui);
@@ -365,7 +356,7 @@ canvas {
   max-height: calc(100vh - 230px);
   overflow-y: auto;
   line-height: 1.5;
-  /* A sheet of paper behind the text instead of a halo per letter: reads over paper and over black. */
+  /* A sheet of paper behind the text: reads over paper and over black. */
   padding: 8px 10px;
   background: rgba(235, 229, 214, 0.82);
   backdrop-filter: blur(2px);
