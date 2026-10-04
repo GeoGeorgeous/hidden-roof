@@ -85,18 +85,20 @@ canvas {
   right: 30px;
 }
 
+/* White, inverting what's under it: white over ink and night, dark over paper, the opposite color over paint. */
 .crosshair {
   --size: 14px;
-  position: absolute;
+  position: fixed;
   left: 50%;
   top: 50%;
   width: var(--size);
   height: var(--size);
   box-sizing: border-box;
   transform: translate(-50%, -50%);
-  border: 1px solid var(--ui);
+  border: 1px solid #fff;
   border-radius: 50%;
-  opacity: 0.85;
+  mix-blend-mode: difference;
+  pointer-events: none;
   transition: width 0.12s, height 0.12s;
 }
 

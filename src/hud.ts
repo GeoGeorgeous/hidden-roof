@@ -66,7 +66,6 @@ export class Hud {
       <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
       <div class="rec"><i></i><span class="rec-time">REC 00:00:00</span><div class="dim">CAM 01 · ROOFTOP</div></div>
       <div class="clock"></div>
-      <div class="crosshair"></div>
       <div class="cap-tag" hidden></div>
       <div class="cap-tag color-tag" hidden></div>
       <div class="cap-tag psi-gauge"><span>PSI</span><div class="line"><i></i></div><b></b></div>
@@ -82,12 +81,17 @@ export class Hud {
         <table>${CONTROLS.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table>
       </div>`;
     document.body.appendChild(root);
+    // The crosshair inverts what's under it (style.css), so it's its own layer
+    // over the game view: inside the HUD it could only blend with the HUD.
+    // Before the HUD, so the pause menu still covers it.
+    this.crosshair = document.createElement('div');
+    this.crosshair.className = 'crosshair';
+    document.body.insertBefore(this.crosshair, root);
     this.overlay = root.querySelector('.overlay')!;
     this.status = root.querySelector('.status')!;
     this.exitFs = root.querySelector('.exit-fs')!;
     this.rec = root.querySelector('.rec-time')!;
     this.clock = root.querySelector('.clock')!;
-    this.crosshair = root.querySelector('.crosshair')!;
     this.capTag = root.querySelector('.cap-tag')!;
     this.colorTag = root.querySelector('.color-tag')!;
     this.gauge = root.querySelector('.psi-gauge')!;
