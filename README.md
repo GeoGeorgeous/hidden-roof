@@ -60,9 +60,11 @@ npm run build      # typecheck + production build into dist/
 
 ## Inventory
 
+The hotbar at the bottom center shows the tools you have as small circles, each with the item's pickup model as an icon (rendered once into a small image by the game's renderer and cached; the can's icon shows the current paint color). The tool in hand has a solid ring. Color, cap and pressure show next to the tool in hand.
+
 - **Slot 1: the spray can.** There is exactly one can, and its paint never runs out. Its pressure drains while you spray: below 50% the paint thins, below 25% the can sputters. The PSI gauge shows by the can while you spray or shake (it fades in and out with the pressure changing); when low it stays up in red, with a blinking LOW PRESSURE — SHAKE [RMB] above it. Shake with RMB to restore it.
 - **Slot 2: the marker,** once you find it. It's a pump marker with a hard square nib: it draws a solid, hard-edged line at close range in the current color, as wide as the nib going straight and wider on the diagonal. Its band shows the color, and switching colors (or tools) shows the same COLOR tag next to whichever tool is in hand.
-- **Slot 3: the stepladder,** once you find it. An A-frame ladder that stands on its own: climb it from the front (like any ladder) and stand on its top to reach higher walls and roofs. With it in hand, a green preview shows where it would stand: anywhere on the floor (not on the grid), turned to face you; aiming at a wall puts it on the floor in front of it. It's red where it can't stand: its four feet must rest on one flat floor (not over an edge, a gap or a step), nothing may be in its way or in you, and there must be room to stand in front of it and climb. LMB places it. There is only one: placing it again moves it. It isn't saved with the level (`STEPLADDER_PLACE` in config).
+- **Slot 3: the stepladder,** once you find it. A small A-frame ladder (1.2 m, like its pickup) that stands on its own: climb it from the front (like any ladder) and stand on its top to reach higher walls. In hand you hold it folded, like the can and the marker. A green preview shows where it would stand: anywhere on the floor (not on the grid), turned to face you, and the mouse wheel turns it a quarter turn at a time; aiming at a wall puts it on the floor in front of it. It's red where it can't stand: its four feet must rest on one flat floor (not over an edge, a gap or a step), nothing may be in its way or in you, and there must be room to stand in front of it and climb. LMB places it. There is only one: placing it again moves it. It isn't saved with the level (`STEPLADDER_PLACE` in config).
 - **Colors** are pickups: black, white, red, orange, yellow, green, blue, purple and pink. Once collected, a color stays available for both the can and the marker. You start with black.
 - **Caps** are skinny, standard, fat and spray (a wide, soft mist for fades). You start with the standard cap. The crosshair circle grows with the cap, and the cap's name shows next to the can for a moment after switching.
 - **Pickups** hover, spin and glow so you can spot them from far away. Walk into one to collect it. If it gives you nothing new, it stays on the map.
@@ -204,7 +206,7 @@ src/config.ts            all tunable constants
 src/kit/                 prop kit: pieces + helpers (railings, ladders), prop builders (signs.ts, steel.ts: lettered signs, lattices), registry
 src/level/               build-prop (pieces → meshes/colliders), level (instances, JSON), decor batch tiles, solids broad phase
 src/build/               build mode, its HUD panel, level file I/O
-src/inventory/           pickup kinds, inventory (can, marker, unlocks), tool readout HUD
+src/inventory/           pickup kinds, inventory (can, marker, ladder, unlocks), hotbar and its item icons
 src/pickups/             pickup manager + visuals
 src/spray/               spray tool, can + hand view model, particles
 src/tools/               marker, tool routing (hotbar → tool), hand sway/bob

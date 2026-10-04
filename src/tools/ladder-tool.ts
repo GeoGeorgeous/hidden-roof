@@ -7,6 +7,7 @@ import { axisNormal, place } from '../build/placement';
 import type { Input } from '../input';
 import { KIT_BY_TYPE } from '../kit';
 import { STEPLADDER } from '../kit/access';
+import { LadderModel } from './ladder-model';
 import type { V3 } from '../kit/pieces';
 import { rotate } from '../level/build-prop';
 import type { Level } from '../level/level';
@@ -14,17 +15,20 @@ import type { Level } from '../level/level';
 // Slot 3: the stepladder. Like build mode (same placement, preview and overlap
 // test) but free of the grid: it stands where the crosshair points, on the
 // floor (aiming at a wall puts it on the floor in front of the wall), turned
-// to face you (quarter turns: prop colliders stay axis-aligned). Green when it
+// to face you; the mouse wheel turns it a quarter turn from there (quarter
+// turns: prop colliders stay axis-aligned). Green when it
 // can stand there: all four feet on one flat floor, nothing in its way or in
 // you, and room in front to walk up and climb it. LMB places it; there is only
 // one, so placing it again moves it. It's a level prop while it stands
-// (colliders, climbing), but never saved with the level.
+// (colliders, climbing), but never saved with the level. In hand, the view
+// model shows the folded ladder (ladder-model.ts).
 
 const NO_STACK = { above: false, below: false };
 
 export class LadderTool {
   /** Called when LMB can't place it (shown as a toast). */
   onBlocked: () => void = () => {};
+  readonly model = new LadderModel();
   private ghost: Ghost;
   private ray = new THREE.Raycaster();
   private def = KIT_BY_TYPE.get('stepladder')!;
@@ -32,6 +36,8 @@ export class LadderTool {
   private placedId: number | null = null;
   private target: { pos: V3; rot: number } | null = null;
   private valid = false;
+  /** Quarter turns added with the mouse wheel to "facing you". */
+  private turn = 0;
 
   constructor(
     scene: THREE.Scene,
@@ -43,11 +49,13 @@ export class LadderTool {
 
   /** `player`: feet position; `active`: the ladder is in hand. */
   update(input: Input, camera: THREE.Camera, player: THREE.Vector3, active: boolean) {
+    this.model.update(camera, active);
     if (!active) {
       this.ghost.visible = false;
       this.target = null;
       return;
     }
+    if (input.wheelSteps) this.turn = (this.turn + Math.sign(input.wheelSteps) + 4) % 4;
     this.aim(camera, player);
     if (!input.clicked(0) || !this.target) return;
     if (this.valid) this.put(this.target);
@@ -67,7 +75,7 @@ export class LadderTool {
       this.target = null;
       return;
     }
-    const rot = facing(hit.point, camera.position);
+    const rot = (facing(hit.point, camera.position) + this.turn) % 4;
     const floorAt = (x: number, y: number, z: number) => floorBelow(this.level.root, x, y, z, 6, this.isPlaced);
     const pl = place(this.def, { point: hit.point, normal: axisNormal(hit.face!.normal) }, rot, floorAt, extentOf(this.def, rot));
     this.ghost.showProp(this.def, pl.pos, pl.rot, NO_STACK);

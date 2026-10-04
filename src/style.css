@@ -352,42 +352,39 @@ canvas {
   }
 }
 
-/* --- Tool readout (bottom-left) ---------------------------------------- */
+/* --- Hotbar (bottom center): small circles with item icons ------------ */
 
-.readout {
+.hotbar {
   position: fixed;
-  left: 30px;
-  bottom: 28px;
-  width: 260px;
-  line-height: 1.7;
-  pointer-events: none;
-}
-.readout .slots {
-  display: flex;
-  gap: 14px;
-  margin-bottom: 4px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid var(--dim);
-}
-.readout .slots span {
-  color: var(--dim);
-}
-.readout .slots span.on {
-  color: var(--ui);
-  border-bottom: var(--line);
-}
-.readout .rows div {
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
   display: flex;
   align-items: center;
+  gap: 10px;
+  pointer-events: none;
 }
-.readout .rows span {
-  width: 52px;
-  color: var(--dim);
+.hotbar i {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--dim);
+  opacity: 0.55;
+  transition: opacity 0.15s, transform 0.15s;
 }
-.readout .rows em {
-  margin-left: auto;
-  font-style: normal;
-  color: var(--dim);
+.hotbar i.on {
+  border-color: var(--ui);
+  background: rgba(235, 229, 214, 0.35);
+  opacity: 1;
+  transform: scale(1.12);
+}
+.hotbar img {
+  width: 22px;
+  height: 22px;
+  /* A thin ink edge so light icons read on paper. */
+  filter: drop-shadow(0 0 0.6px var(--ui));
 }
 .swatch {
   display: inline-block;

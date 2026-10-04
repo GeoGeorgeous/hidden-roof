@@ -11,7 +11,7 @@ import type { Level } from '../level/level';
 import { ViewSway, type Motion } from './view-sway';
 
 // Routes input to the tool in hand: 1 = can, 2 = marker, 3 = stepladder, Q/E =
-// color (can and marker), mouse wheel = cap (can only). Owns the UI both tools share: it
+// color (can and marker), mouse wheel = cap (can) or turning the ladder. Owns the UI both tools share: it
 // reports color / cap changes (and which ones apply when switching tools) and
 // where the tags go next to whichever tool is in hand.
 
@@ -38,7 +38,7 @@ export class Tools {
     this.spray = new SprayTool(scene, paint, solids, audio);
     this.marker = new MarkerTool(paint, solids, audio);
     this.ladder = new LadderTool(scene, level);
-    viewScene.add(this.spray.model.group, this.marker.model);
+    viewScene.add(this.spray.model.group, this.marker.model, this.ladder.model.group);
   }
 
   /** `enabled` is false in build mode: tools are put away but particles finish flying. */
@@ -47,6 +47,8 @@ export class Tools {
     this.sway.update(dt, input.mouseDX, input.mouseDY, motion, this.spray.model.sway);
     this.marker.sway.position.copy(this.spray.model.sway.position);
     this.marker.sway.rotation.copy(this.spray.model.sway.rotation);
+    this.ladder.model.sway.position.copy(this.spray.model.sway.position);
+    this.ladder.model.sway.rotation.copy(this.spray.model.sway.rotation);
     if (enabled) {
       SLOTS.forEach((_, i) => input.wasPressed(`Digit${i + 1}`) && inv.select(i));
       const dc = (input.wasPressed('KeyE') ? 1 : 0) - (input.wasPressed('KeyQ') ? 1 : 0);

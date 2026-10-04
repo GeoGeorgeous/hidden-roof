@@ -14,7 +14,7 @@ const CONTROLS = [
   ['RMB', 'shake can'],
   ['1 / 2 / 3', 'can / marker / ladder'],
   ['Q / E', 'color'],
-  ['WHEEL', 'cap'],
+  ['WHEEL', 'cap / turn ladder'],
   ['B', 'build mode'],
   ['K', 'screenshot'],
   ['F3', 'debug + tuning'],

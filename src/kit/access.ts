@@ -123,14 +123,13 @@ export const hatch: PropDef = {
   },
 };
 
-/** Stepladder geometry (prop-local): legs stand `foot` in front and behind, leaning in to the platform (topFront..topBack). */
-export const STEPLADDER = { height: 2, foot: 0.75, topFront: -0.25, topBack: 0.2, halfWidth: 0.3 };
+/** Stepladder geometry (prop-local): legs stand `foot` in front and behind, leaning in to the top cap (topFront..topBack). */
+export const STEPLADDER = { height: 1.2, foot: 0.45, topFront: -0.14, topBack: 0.14, halfWidth: 0.26 };
 
 /**
- * The player's A-frame stepladder (a pickup, placed in play; see
- * tools/ladder-tool.ts): treads up the front (-z), a small platform on top to
- * stand on and reach high walls, the back legs rising into a handrail.
- * Climbed like a wall ladder, from the front.
+ * The player's stepladder (a pickup, placed in play; see tools/ladder-tool.ts):
+ * a small A-frame like the pickup model, two treads up the front (-z) and a top
+ * cap to stand on to reach high walls. Climbed like a wall ladder, from the front.
  */
 export const stepladder: PropDef = {
   type: 'stepladder',
@@ -140,28 +139,25 @@ export const stepladder: PropDef = {
   snap: 0.01,
   build() {
     const { height: h, foot: f, topFront, topBack, halfWidth: w } = STEPLADDER;
-    const top = h - 0.06;
+    const top = h - 0.05;
     const front = (y: number) => -f + ((topFront + f) * y) / top;
     const back = (y: number) => f + ((topBack - f) * y) / top;
     const p = new Parts();
     for (const x of [-w, w]) {
-      p.rod([x, 0, -f], [x, top, topFront], 0.025, M.galv, true);
-      p.rod([x, 0, f], [x, top, topBack], 0.025, M.galv, true);
-      // Back legs carry on up into the handrail.
-      p.rod([x, top, topBack], [x, h + 0.7, topBack - 0.05], 0.022, M.galv, true);
+      p.rod([x, 0, -f], [x, top, topFront], 0.022, M.galv, true);
+      p.rod([x, 0, f], [x, top, topBack], 0.022, M.galv, true);
       // Spreader between front and back, and rubber feet.
-      p.rod([x, 0.7, front(0.7)], [x, 0.7, back(0.7)], 0.012, M.steel);
-      for (const z of [-f, f]) p.detail([x - 0.04, 0, z - 0.05], [x + 0.04, 0.03, z + 0.05], M.dark, false);
+      p.rod([x, 0.5, front(0.5)], [x, 0.5, back(0.5)], 0.01, M.steel);
+      for (const z of [-f, f]) p.detail([x - 0.035, 0, z - 0.045], [x + 0.035, 0.03, z + 0.045], M.dark, false);
     }
-    p.rod([-w, h + 0.7, topBack - 0.05], [w, h + 0.7, topBack - 0.05], 0.022, M.galv, true);
     // Treads (decor: the climb volume does the climbing, so they never snag).
-    for (let y = 0.33; y < top - 0.1; y += 0.33) {
+    for (const y of [0.4, 0.8]) {
       const z = front(y);
       p.detail([-w, y - 0.02, z - 0.06], [w, y + 0.02, z + 0.06], M.metal, false);
     }
-    p.box([-w - 0.02, top, topFront], [w + 0.02, h, topBack], M.metal, { paint: false });
+    p.box([-w - 0.02, top, topFront - 0.02], [w + 0.02, h, topBack + 0.02], M.metal, { paint: false });
     // Climbed from the front, like a wall ladder; the volume reaches over the
-    // platform's edge so you step onto it at the top.
+    // cap's edge so you step onto it at the top.
     p.list.push({ k: 'climb', min: [-w, 0, -f - 0.45], max: [w, h + 0.3, topFront], normal: [0, 0, -1] });
     return p.list;
   },

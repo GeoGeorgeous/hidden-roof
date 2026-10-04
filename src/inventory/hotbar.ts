@@ -1,30 +1,31 @@
-import { CAP_ORDER, CAPS, COLORS } from '../config';
-import { SLOTS, type Inventory } from './inventory';
+import { SLOTS, type Inventory, type Tool } from './inventory';
+import type { Thumbnails } from './thumbnails';
 
-// Tool readout, bottom-left: slots, color, cap (or how to place the ladder); plus toasts. The PSI
-// gauge and the low-pressure alert sit beside the can (hud.ts).
-// Minimal text only.
+// Hotbar, bottom center: one small circle per tool you have (can, marker,
+// ladder), each showing the item's pickup model as a pre-rendered icon
+// (thumbnails.ts; the can with the current paint color). The tool in hand has
+// a solid ring, the others a faint one. No numbers, no labels. Plus toasts.
+// Pressure, color and cap stay by the tool in hand (hud.ts).
+
+/** The icon of each tool: its pickup model (the can's label in the current color). */
+const ICON: Record<Tool, (inv: Inventory) => string> = {
+  can: (inv) => `color:${inv.color}`,
+  marker: () => 'marker',
+  ladder: () => 'ladder',
+};
 
 export class Hotbar {
   private root: HTMLElement;
-  private slots: HTMLElement;
-  private rows: HTMLElement;
   private toastEl: HTMLElement;
   private toastTime = 0;
   private version = -1;
 
-  constructor() {
+  constructor(private icons: Thumbnails) {
     this.root = document.createElement('div');
-    this.root.className = 'readout';
-    this.root.innerHTML = `
-      <div class="slots"></div>
-      <div class="rows"></div>
-`;
+    this.root.className = 'hotbar';
     this.toastEl = document.createElement('div');
     this.toastEl.className = 'toast';
     document.body.append(this.root, this.toastEl);
-    this.slots = this.root.querySelector('.slots')!;
-    this.rows = this.root.querySelector('.rows')!;
   }
 
   set visible(v: boolean) {
@@ -42,22 +43,11 @@ export class Hotbar {
       this.toastEl.classList.remove('show');
       this.toastTime = 0;
     }
-    if (inv.version !== this.version) {
-      this.version = inv.version;
-      this.slots.innerHTML = SLOTS.map((t, i) => {
-        const name = t === 'can' ? 'CAN' : t === 'marker' ? (inv.hasMarker ? 'MARKER' : '------') : inv.hasLadder ? 'LADDER' : '------';
-        return `<span class="${i === inv.selected ? 'on' : ''}">[${i + 1}] ${name}</span>`;
-      }).join('');
-      const tool = inv.tool;
-      // The ladder has no color: it shows how it's used instead.
-      const rows =
-        tool === 'ladder'
-          ? [['LMB', 'PLACE (MOVES IT)', '']]
-          : [['COLOR', `<i class="swatch" style="background:${COLORS[inv.color]}"></i>${inv.color.toUpperCase()}`, `${inv.colors.indexOf(inv.color) + 1}/${inv.colors.length}`]];
-      if (tool === 'can') {
-        rows.push(['CAP', CAPS[inv.cap].name, `${inv.caps.length}/${CAP_ORDER.length}`]);
-      }
-      this.rows.innerHTML = tool ? rows.map(([k, v, n]) => `<div><span>${k}</span>${v}<em>${n}</em></div>`).join('') : '<div class="dim">NO TOOL</div>';
-    }
+    if (inv.version === this.version) return;
+    this.version = inv.version;
+    const owned = (t: Tool) => t === 'can' || (t === 'marker' && inv.hasMarker) || (t === 'ladder' && inv.hasLadder);
+    this.root.innerHTML = SLOTS.map((t, i) =>
+      owned(t) ? `<i class="${i === inv.selected ? 'on' : ''}"><img src="${this.icons.get(ICON[t](inv))}" alt=""></i>` : '',
+    ).join('');
   }
 }
