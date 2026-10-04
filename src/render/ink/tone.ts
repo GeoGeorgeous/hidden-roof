@@ -136,7 +136,8 @@ float inkKeep(vec3 p, float cloudBase, float cloudFade) {
 
 /**
  * Replaces three's opaque_fragment in the surface shader. Needs the surface
- * shader's albedo (diffuseColor), paint (paintTex, pa), lights and varyings.
+ * shader's albedo (diffuseColor), paint (paintTex, pa), grime (ink/grime.ts),
+ * lights and varyings.
  */
 export const INK_FRAG = /* glsl */ `
 {
@@ -145,7 +146,9 @@ export const INK_FRAG = /* glsl */ `
   float tone = inkTone(diffuseColor.rgb, light, reflectedLight.directSpecular, totalEmissiveRadiance, inkP);
   vec2 hatch = inkHatches(inkP, vWorldN);
   float keep = inkKeep(inkP, uCloudBase, uCloudFade);
-  vec3 col = mix(uPaper, uInkColor, inkCover(tone, hatch, inkP) * keep);
+  vec4 grime = inkGrime(inkP, vWorldN);
+  float dirt = max(max(hatch.y * grime.x, hatch.x * grime.y), max(max(hatch.x, hatch.y) * grime.z * 0.8, grime.w));
+  vec3 col = mix(uPaper, uInkColor, max(inkCover(tone, hatch, inkP), dirt) * keep);
   // Paint: its own color, lit but never black; hatched a little in the dark.
   float pl = clamp(light * uPaintInk.x, uPaintInk.y, 1.0);
   float paintDark = step(light * uInkExposure * 0.7, uTones.y) * hatch.x * uPaintInk.z;

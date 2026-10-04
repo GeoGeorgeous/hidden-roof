@@ -322,6 +322,7 @@ export function sections(): Section[] {
         r('ragged tone edges', ['INK', 'toneNoise'], 0, 0.3, 0.005),
         r('hatch spacing (px)', ['INK', 'hatchPx'], 2, 16, 0.5),
         r('hatch line width', ['INK', 'hatchWidth'], 0.05, 0.9, 0.01),
+        r('grime', ['INK', 'grime'], 0, 2, 0.05),
         r('void starts (m)', ['INK', 'voidTop'], -100, 40, 1),
         r('void is black at (m)', ['INK', 'voidBottom'], -150, 20, 1),
         { kind: 'heading', label: 'OUTLINES + PAPER' },

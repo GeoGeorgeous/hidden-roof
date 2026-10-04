@@ -1,11 +1,12 @@
 import * as THREE from 'three';
-import { ATMOS, BASE_TEXTURES, FANS, FLICKER, LIGHTMAP, PAINT, SKYLINE } from './config';
+import { ATMOS, BASE_TEXTURES, FANS, FLICKER, INK, LIGHTMAP, PAINT, SKYLINE } from './config';
 import { FLICKER_GLSL } from './render/flicker';
 import { TRACK_GLSL, trackUniforms } from './render/cctv-track';
 import { BAKE_FRAG, BAKE_FRAG_PARS, BAKE_VERT, BAKE_VERT_PARS, bakeUniforms } from './render/bake/glsl';
 import { INK_FRAG, INK_PARS, inkUniforms, syncInkUniforms } from './render/ink/tone';
 import { textures, type TexName } from './textures';
 import { FACADE_GLSL, type Facade } from './render/ink/facade';
+import { GRIME_GLSL } from './render/ink/grime';
 
 export type { TexName } from './textures';
 
@@ -15,7 +16,8 @@ export type { TexName } from './textures';
 //    hatching or solid ink; distance and low clouds fade it into paper
 //  - the paint atlas layered on top (single paint layer), the only color
 //  - wet look on up-facing surfaces (darker + specular)
-//  - per-vertex emissive (lamps, neon) and facade bands (render/ink/facade.ts)
+//  - per-vertex emissive (lamps, neon), facade bands (render/ink/facade.ts)
+//    and grime (render/ink/grime.ts)
 //  - low clouds: everything above the cloud base fades into paper
 //  - swinging decor (CCTV heads): rotated around a vertical pivot in the vertex
 //    shader from per-vertex swing attributes, so it stays in the level batches;
@@ -35,6 +37,8 @@ export const shared = {
   uEmissiveBoost: { value: ATMOS.emissiveBoost },
   /** Fraction of punched facade windows that are lit (paper). */
   uLitWindows: { value: SKYLINE.litWindows },
+  /** Grime on surfaces (render/ink/grime.ts). */
+  uGrime: { value: INK.grime },
   uCloudBase: { value: ATMOS.cloudBase },
   uCloudFade: { value: ATMOS.cloudFade },
   uAlphaSteps: { value: PAINT.alphaSteps },
@@ -64,6 +68,7 @@ export function syncSharedUniforms(time: number) {
   shared.uWet.value = ATMOS.wetness;
   shared.uEmissiveBoost.value = ATMOS.emissiveBoost;
   shared.uLitWindows.value = SKYLINE.litWindows;
+  shared.uGrime.value = INK.grime;
   shared.uCloudBase.value = ATMOS.cloudBase;
   shared.uCloudFade.value = ATMOS.cloudFade;
   shared.uAlphaSteps.value = PAINT.alphaSteps;
@@ -140,6 +145,7 @@ uniform float uPaintable;
 ${BAKE_FRAG_PARS}
 ${INK_PARS}
 ${FACADE_GLSL}
+${GRIME_GLSL}
 varying vec4 vFacade;
 varying vec2 vBaseUv;
 varying vec2 vPaintUv;
