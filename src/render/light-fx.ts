@@ -86,9 +86,9 @@ export class LightFX {
     scene.add(this.root);
   }
 
-  /** Call with the renderer's drawing-buffer height so sprite sizes match the view. */
-  setViewHeight(px: number, fov: number) {
-    glowMaterial.uniforms.uScale.value = px / (2 * Math.tan((fov * Math.PI) / 360));
+  /** Pixels per meter at 1 m from the camera (sprites are sized by it): drawing-buffer height / (2 tan(fov / 2)). */
+  setPointScale(scale: number) {
+    glowMaterial.uniforms.uScale.value = scale;
   }
 
   update() {

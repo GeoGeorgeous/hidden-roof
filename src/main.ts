@@ -94,10 +94,10 @@ level.onChange = () => {
   heightmap.rebuild(level.colliders, level.totalBounds());
   rain.setHeightmap(heightmap);
 };
+/** Drawing-buffer height: glow and smoke sprites are sized in its pixels. */
+let viewHeight = 1;
 function syncViewSize() {
-  const h = renderer.getDrawingBufferSize(new THREE.Vector2()).y;
-  lightFx.setViewHeight(h, RENDER.fov);
-  smoke.setViewHeight(h, RENDER.fov);
+  viewHeight = renderer.getDrawingBufferSize(new THREE.Vector2()).y;
 }
 syncViewSize();
 let skyline = new THREE.Group();
@@ -225,6 +225,10 @@ function frame(time: number) {
     camera.updateProjectionMatrix();
   }
   camera.updateMatrixWorld();
+  // Sprites follow the camera's FOV (sprinting, F3) like the world around them.
+  const pointScale = viewHeight / (2 * Math.tan((camera.fov * Math.PI) / 360));
+  lightFx.setPointScale(pointScale);
+  smoke.setPointScale(pointScale);
   sky.position.copy(eye);
   (scene.fog as THREE.FogExp2).density = ATMOS.fogDensity;
   syncSharedUniforms(time / 1000);

@@ -71,9 +71,9 @@ export class Smoke {
 
   constructor(private scene: THREE.Scene) {}
 
-  /** Call with the drawing-buffer height so puff sizes match the view. */
-  setViewHeight(px: number, fov: number) {
-    material.uniforms.uScale.value = px / (2 * Math.tan((fov * Math.PI) / 360));
+  /** Pixels per meter at 1 m from the camera (sprites are sized by it): drawing-buffer height / (2 tan(fov / 2)). */
+  setPointScale(scale: number) {
+    material.uniforms.uScale.value = scale;
   }
 
   rebuild(emitters: Emitter[]) {
