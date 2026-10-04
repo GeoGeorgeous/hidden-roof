@@ -1,3 +1,4 @@
+import { RENDER } from './config';
 import { enterGameFullscreen, exitGameFullscreen, isFullscreen } from './fullscreen';
 
 // Keyboard + mouse state with pointer lock. Edge-triggered presses are consumed per frame.
@@ -87,7 +88,7 @@ export class Input {
     } catch {
       // Refused (see above).
     }
-    void enterGameFullscreen();
+    if (RENDER.fullscreen) void enterGameFullscreen();
   }
 
   isDown(code: string) {

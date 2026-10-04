@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { CCTV } from '../config';
+import { CCTV, RENDER } from '../config';
 
 // CCTV heads pan slowly; when the player comes near they turn to follow the player,
 // and the lens and a small spot light switch on. The head turns in the vertex
@@ -12,6 +12,8 @@ uniform vec3 uPlayer;
 uniform float uTrackNear;
 uniform float uTrackFar;
 uniform float uTrackMax;
+/** 1, or 0 with RENDER.propMotion off: swinging and spinning parts stay at rest. */
+uniform float uMotion;
 float trackRel(vec3 pivot, vec2 fwd) {
   vec2 d = uPlayer.xz - pivot.xz;
   float rel = atan(d.x, d.y) - atan(fwd.x, fwd.y);
@@ -34,6 +36,7 @@ export const trackUniforms = {
   uTrackNear: { value: CCTV.lockRange },
   uTrackFar: { value: CCTV.followRange },
   uTrackMax: { value: CCTV.maxTurn },
+  uMotion: { value: 1 },
 };
 
 export function syncTrackUniforms(player: THREE.Vector3) {
@@ -41,6 +44,7 @@ export function syncTrackUniforms(player: THREE.Vector3) {
   trackUniforms.uTrackNear.value = CCTV.lockRange;
   trackUniforms.uTrackFar.value = Math.max(CCTV.followRange, CCTV.lockRange + 0.01);
   trackUniforms.uTrackMax.value = CCTV.maxTurn;
+  trackUniforms.uMotion.value = RENDER.propMotion ? 1 : 0;
 }
 
 /** A tracking head: world pivot, rest facing (xz), and its idle sweep. */
@@ -75,7 +79,7 @@ export function trackAngle(t: Track, time: number, player: THREE.Vector3) {
   const sweep = t.amp * Math.sin(time * t.speed + t.phase);
   const max = trackUniforms.uTrackMax.value;
   const target = Math.min(max, Math.max(-max, rel(t, player)));
-  return THREE.MathUtils.lerp(sweep, target, trackWeight(t, player));
+  return THREE.MathUtils.lerp(sweep, target, trackWeight(t, player)) * trackUniforms.uMotion.value;
 }
 
 /** Rotate v (relative to the pivot) by the swing shader's y rotation. */

@@ -1,4 +1,6 @@
 import { isFullscreen } from './fullscreen';
+import { SettingsPage } from './settings-page';
+import type { SettingSection } from './settings';
 
 // Body-cam style HUD: vignette, corner brackets, REC indicator with elapsed
 // time, clock, crosshair, the PSI gauge, cap and color tags beside the tool in
@@ -51,7 +53,7 @@ export class Hud {
   private lastPressure = -1;
   private crosshairSize = -1;
   private started = false;
-  private settingSyncs: (() => void)[] = [];
+  private settingsPage: SettingsPage | null = null;
   private start = performance.now();
   private lastSecond = -1;
 
@@ -73,9 +75,9 @@ export class Hud {
         <div class="status blink">CLICK TO START</div>
         <div class="menu">
           <button class="resume"></button>
+          <button class="open-settings">&gt; SETTINGS</button>
           <button class="exit-fs">&gt; EXIT FULLSCREEN</button>
         </div>
-        <div class="settings"></div>
         <table>${CONTROLS.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table>
       </div>`;
     document.body.appendChild(root);
@@ -97,6 +99,10 @@ export class Hud {
       e.preventDefault();
       this.onResume();
     });
+    root.querySelector('.open-settings')!.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      this.openSettings(true);
+    });
     this.exitFs.addEventListener('mousedown', (e) => {
       e.preventDefault();
       this.onExitFullscreen();
@@ -110,7 +116,10 @@ export class Hud {
    * pause menu. With the debug panel open the menu stays, but compact and see-through.
    */
   setLocked(locked: boolean, debugOpen = false) {
-    if (locked) this.started = true;
+    if (locked) {
+      this.started = true;
+      this.openSettings(false);
+    }
     this.overlay.hidden = locked;
     this.overlay.classList.toggle('compact', debugOpen);
     this.syncMenu();
@@ -120,28 +129,18 @@ export class Hud {
     this.status.textContent = this.started ? 'PAUSED' : 'CLICK TO START';
     this.resume.textContent = this.started ? '> RESUME' : '> START';
     this.exitFs.hidden = !isFullscreen();
-    for (const s of this.settingSyncs) s();
   }
 
-  /** Settings rows under the menu buttons: click a value for the next one, right-click for the previous. */
-  setSettings(rows: { label: string; value: () => string; step: (d: number) => void }[]) {
-    const box = this.overlay.querySelector('.settings')!;
-    box.innerHTML = '';
-    for (const row of rows) {
-      const el = document.createElement('div');
-      el.className = 'setting';
-      const btn = document.createElement('button');
-      const sync = () => (btn.textContent = `< ${row.value()} >`);
-      btn.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        row.step(e.button === 2 ? -1 : 1);
-        sync();
-      });
-      el.append(Object.assign(document.createElement('span'), { textContent: row.label }), btn);
-      box.append(el);
-      sync();
-      this.settingSyncs.push(sync);
-    }
+  /** The settings page, opened from the pause menu (SETTINGS) and closed with BACK. */
+  setSettings(sections: SettingSection[]) {
+    this.settingsPage?.root.remove();
+    this.settingsPage = new SettingsPage(sections, () => this.openSettings(false));
+    this.overlay.querySelector('.menu')!.after(this.settingsPage.root);
+  }
+
+  private openSettings(open: boolean) {
+    this.overlay.classList.toggle('in-settings', open);
+    if (open) this.settingsPage?.sync();
   }
 
   /** Crosshair circle diameter in CSS pixels. */

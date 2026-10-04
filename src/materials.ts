@@ -93,6 +93,7 @@ ${TRACK_GLSL}
 vec3 swingRot(vec3 v) {
   float a = swing.x > 0.0 ? swing.x * sin(uTime * swing.y + swing.z) : mod(uTime * uSpin * swing.y, 6.2831853) + swing.z;
   if (swingTrack.z > 0.5) a = trackAngle(a, swingPivot, swingTrack.xy);
+  a *= uMotion;
   float c = cos(a), s = sin(a);
   if (swing.w > 1.5) return vec3(c * v.x - s * v.y, s * v.x + c * v.y, v.z);
   if (swing.w > 0.5) return vec3(v.x, c * v.y - s * v.z, s * v.y + c * v.z);

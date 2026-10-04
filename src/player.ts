@@ -13,6 +13,7 @@ export interface Ladder {
 
 const wish = new THREE.Vector3();
 const before = new THREE.Vector3();
+const CROUCH_KEYS = ['ControlLeft', 'ControlRight', 'KeyC'];
 
 export class Player {
   readonly position = new THREE.Vector3(); // feet
@@ -32,6 +33,8 @@ export class Player {
   /** Build mode: free-fly without collisions. */
   fly = false;
   crouched = false;
+  /** Crouch toggled on (PLAYER.crouchToggle). */
+  private crouchOn = false;
   /** Current collider height (standing or crouched). */
   height = PLAYER.height;
   /** Eye height above the feet, eased between standing and crouched. */
@@ -73,9 +76,11 @@ export class Player {
     return out.copy(this.position).setY(this.position.y + this.eyeLevel + this.stepOffset);
   }
 
-  /** Ctrl or C to crouch; you can't stand up under a low ceiling. */
+  /** Ctrl or C to crouch (held, or toggled with PLAYER.crouchToggle); you can't stand up under a low ceiling. */
   private updateCrouch(dt: number, input: Input) {
-    const want = input.isDown('ControlLeft') || input.isDown('ControlRight') || input.isDown('KeyC');
+    if (!PLAYER.crouchToggle) this.crouchOn = false;
+    else if (CROUCH_KEYS.some((k) => input.wasPressed(k))) this.crouchOn = !this.crouchOn;
+    const want = PLAYER.crouchToggle ? this.crouchOn : CROUCH_KEYS.some((k) => input.isDown(k));
     if (want) {
       this.crouched = true;
       this.height = PLAYER.crouchHeight;

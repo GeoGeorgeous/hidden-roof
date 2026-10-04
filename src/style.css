@@ -153,6 +153,10 @@ canvas {
 /* --- Start / pause screen ---------------------------------------------- */
 
 .overlay {
+  /* A dark sheet with paper-colored text: the ink variables are inverted inside. */
+  --ui: var(--paper);
+  --dim: rgba(235, 229, 214, 0.62);
+  --line: 1px solid var(--ui);
   position: absolute;
   inset: 0;
   display: flex;
@@ -160,7 +164,8 @@ canvas {
   align-items: center;
   justify-content: center;
   gap: 14px;
-  background: rgba(235, 229, 214, 0.55);
+  color: var(--ui);
+  background: rgba(14, 14, 16, 0.8);
 }
 .overlay .title {
   font-size: 22px;
@@ -185,29 +190,116 @@ canvas {
 }
 .overlay button:hover {
   background: var(--ui);
-  color: var(--paper);
+  color: #141416;
 }
-.overlay .settings {
-  display: flex;
+/* Settings page: replaces the menu while open. */
+.overlay .settings-page {
+  display: none;
+  pointer-events: auto;
+  width: min(620px, calc(100vw - 32px));
+  max-height: calc(100vh - 120px);
   flex-direction: column;
-  gap: 4px;
+  gap: 10px;
 }
-.overlay .setting {
+.overlay.in-settings .settings-page {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
+}
+.overlay.in-settings .menu,
+.overlay.in-settings .status,
+.overlay.in-settings table {
+  display: none;
+}
+.settings-page .tabs {
+  display: flex;
+  gap: 8px;
+}
+.settings-page .tabs button {
+  padding: 4px 14px;
+  border-color: var(--dim);
   color: var(--dim);
 }
-.overlay .setting button {
+.settings-page .tabs button.on {
+  border-color: var(--ui);
+  color: var(--ui);
+}
+.settings-page .rows {
+  overflow-y: auto;
+  padding-right: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--dim) transparent;
+}
+.settings-page .setting-row {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(235, 229, 214, 0.18);
+}
+.settings-page .line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.settings-page .label {
+  flex: 1;
+}
+.settings-page .line button {
   border: none;
   padding: 2px 4px;
   min-width: 170px;
   text-align: right;
 }
-/* Debug panel open: keep the menu, drop the dimming and the controls. */
+.settings-page input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 180px;
+  height: 12px;
+  background: transparent;
+  cursor: pointer;
+}
+.settings-page input[type='range']::-webkit-slider-runnable-track {
+  height: 1px;
+  background: var(--ui);
+}
+.settings-page input[type='range']::-moz-range-track {
+  height: 1px;
+  background: var(--ui);
+}
+.settings-page input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 3px;
+  height: 11px;
+  margin-top: -5px;
+  background: var(--ui);
+  border: 0;
+}
+.settings-page input[type='range']::-moz-range-thumb {
+  width: 3px;
+  height: 11px;
+  background: var(--ui);
+  border: 0;
+  border-radius: 0;
+}
+.settings-page .value {
+  width: 56px;
+  text-align: right;
+}
+.settings-page .desc {
+  margin-top: 3px;
+  color: var(--dim);
+  letter-spacing: 0.04em;
+}
+/* Callout: performance and recommendations. */
+.settings-page .note {
+  margin-top: 6px;
+  padding: 4px 8px;
+  border-left: var(--line);
+  background: rgba(235, 229, 214, 0.08);
+  letter-spacing: 0.04em;
+}
+.settings-page .back {
+  align-self: flex-start;
+}
+/* Debug panel open: keep the menu, lighter dimming, no controls. */
 .overlay.compact {
-  background: none;
+  background: rgba(14, 14, 16, 0.45);
 }
 .overlay.compact table,
 .overlay.compact .title {

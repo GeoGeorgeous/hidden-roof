@@ -193,7 +193,7 @@ const HINTS: Record<string, string> = {
   'THUNDER.flashSky': 'How much the sky brightens in a flash.',
   'THUNDER.minDelay': 'Shortest delay from flash to thunder (s): the closest strikes.',
   'THUNDER.maxDelay': 'Longest delay from flash to thunder (s): far strikes are later and softer.',
-  'SMOKE.enabled': 'Smoke from vents and exhausts, warm air from AC units.',
+  'SMOKE.enabled': 'Smoke from exhaust pipes.',
   'SMOKE.perEmitter': 'Puffs per source. All smoke is one draw call.',
   'SMOKE.life': 'Seconds a puff lives.',
   'SMOKE.rise': 'How high a puff rises over its life (m).',

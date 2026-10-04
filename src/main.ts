@@ -176,7 +176,7 @@ input.onLockChange = (locked) => {
 hud.onResume = () => input.requestLock();
 hud.onExitFullscreen = () => void exitGameFullscreen();
 hud.setLocked(false);
-hud.setSettings(settings.rows());
+hud.setSettings(settings.sections());
 tools.onCapChange = (name) => hud.showCapTag(name);
 tools.onColorChange = (color) => hud.showColorTag(color, COLORS[color]);
 

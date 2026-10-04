@@ -7,6 +7,10 @@ export const RENDER = {
   /** Extra FOV (degrees) while sprinting, eased in and out. */
   sprintFovBoost: 6,
   sprintFovEase: 8,
+  /** Go fullscreen when the game takes the mouse (off: play in the browser window). */
+  fullscreen: true,
+  /** Moving prop parts: CCTV heads pan and follow, AC fans spin. Off: they stay at rest. */
+  propMotion: true,
   /**
    * Decor and shadow batches are merged per tile of this many meters (x, z):
    * smaller = cheaper edits and finer culling, but more draw calls. Read when
@@ -430,6 +434,8 @@ export const PLAYER = {
   crouchSpeed: 2,
   /** How fast the eye moves between standing and crouched heights (1/s). */
   crouchTransition: 14,
+  /** Crouch key toggles crouching instead of holding it. */
+  crouchToggle: false,
   /** How fast the camera catches up after a step up/down (1/s). Higher = snappier. */
   stepSmoothing: 14,
   jumpHeight: 1.1,

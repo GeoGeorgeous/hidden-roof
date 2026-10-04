@@ -12,7 +12,7 @@ npm run dev        # http://localhost:5173  (loads public/levels/demo.json)
 npm run build      # typecheck + production build into dist/
 ```
 
-`?level=name` loads `public/levels/name.json`. Click the page to capture the mouse and go fullscreen. Esc pauses the game and shows the menu (Resume / Exit fullscreen). Press Esc again while paused to leave fullscreen.
+`?level=name` loads `public/levels/name.json`. Click the page to capture the mouse and go fullscreen. Esc pauses the game and shows the menu (Resume / Settings / Exit fullscreen) on a dark sheet. **Settings** has three tabs, each setting with a short description and, where it matters, a note on its performance cost: Gameplay (field of view, extra FOV while running, crouch hold or toggle), Graphics (resolution, volumetrics, paint detail, city detail, fullscreen on or off, rain, smoke, moving prop parts) and Sound (a volume per sound, 0–200% of its default). Settings write the same config values the debug panel edits. Resolution, volumetrics, paint and city detail are remembered in the browser; the rest reset on reload. Press Esc again while paused to leave fullscreen.
 
 ## Controls
 
