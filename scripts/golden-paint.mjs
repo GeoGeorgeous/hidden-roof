@@ -43,23 +43,18 @@ const RUNS = [
 const GAP = 12; // frames with the button up between runs (particles land, tools swap)
 const SETTLE = 240; // frames at the end for runs to finish dripping
 
-const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+// Frames aren't capped at 60 Hz: the game runs on fixed steps, so faster frames paint the same.
+const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--disable-frame-rate-limit', '--disable-gpu-vsync'] });
 const results = {};
 let failed = 0;
-let ultraOps = null;
-for (const detail of DETAILS) {
-  const t0 = Date.now();
-  const r = await inGame(detail, play, { runs: RUNS.map((x) => ({ ...x, aim: x.aim.toString() })), stand: STAND, faceYaw: FACE_YAW, gap: GAP, settle: SETTLE });
-  results[detail] = { hash: hashOf(r.paint), texelsPerMeter: r.paint.tpm, surfaces: r.paint.surfaces.length, paintedM2: r.paint.paintedM2, meanAlpha: r.paint.meanAlpha, drips: r.drips, perRun: r.perRun };
-  for (const [i, png] of r.pngs.entries()) fs.writeFileSync(`${out}/${detail}-${i}.png`, Buffer.from(png, 'base64'));
-  const back = await inGame(detail, replay, r.ops);
-  const loop = hashOf(back) === results[detail].hash;
-  if (!loop) failed++;
-  if (detail === 'ultra') ultraOps = r.ops;
-  console.log(`${detail.padEnd(6)} ${results[detail].hash}  ${JSON.stringify({ ...results[detail], hash: undefined, perRun: undefined })}  loopback (${r.ops.frames.length} frames, ${r.ops.log.length} ops) ${loop ? 'identical' : `DIFFERS: ${hashOf(back)}`}  ${((Date.now() - t0) / 1000).toFixed(1)} s`);
-}
+let ultraAtLow = null;
+// The details run side by side (a page each): fixed steps keep each one exact.
+const t0 = Date.now();
+const lines = await Promise.all(DETAILS.map(checkDetail));
+for (const line of lines) console.log(line);
+console.log(`${((Date.now() - t0) / 1000).toFixed(1)} s`);
 // ULTRA's ops replayed at LOW: the same strokes at another detail paint about the same area.
-const low = await inGame('low', replay, ultraOps);
+const low = ultraAtLow;
 const ratio = low.paintedM2 / results.ultra.paintedM2;
 if (Math.abs(ratio - 1) > 0.1) failed++;
 console.log(`ULTRA ops at LOW: ${low.paintedM2} m² painted vs ${results.ultra.paintedM2} at ULTRA (${((ratio - 1) * 100).toFixed(1)}%)`);
@@ -77,6 +72,20 @@ if (update || !fs.existsSync(baselinePath)) {
 }
 if (failed) console.log(`golden paint: FAILED (${failed})`);
 process.exitCode = failed ? 1 : 0;
+
+/** Plays the strokes at one detail, then replays its ops into a fresh page (loopback); returns its report line. */
+async function checkDetail(detail) {
+  const r = await inGame(detail, play, { runs: RUNS.map((x) => ({ ...x, aim: x.aim.toString() })), stand: STAND, faceYaw: FACE_YAW, gap: GAP, settle: SETTLE });
+  results[detail] = { hash: hashOf(r.paint), texelsPerMeter: r.paint.tpm, surfaces: r.paint.surfaces.length, paintedM2: r.paint.paintedM2, meanAlpha: r.paint.meanAlpha, drips: r.drips, perRun: r.perRun };
+  for (const [i, png] of r.pngs.entries()) fs.writeFileSync(`${out}/${detail}-${i}.png`, Buffer.from(png, 'base64'));
+  // ULTRA's ops also replay at LOW (below), alongside its own loopback.
+  const [own, low] = await Promise.all([inGame(detail, replay, r.ops), detail === 'ultra' ? inGame('low', replay, r.ops) : null]);
+  if (low) ultraAtLow = low;
+  const back = hashOf(own);
+  const loop = back === results[detail].hash;
+  if (!loop) failed++;
+  return `${detail.padEnd(6)} ${results[detail].hash}  ${JSON.stringify({ ...results[detail], hash: undefined, perRun: undefined })}  loopback (${r.ops.frames.length} frames, ${r.ops.log.length} ops) ${loop ? 'identical' : `DIFFERS: ${back}`}`;
+}
 
 /** Opens the game at a paint detail and runs `fn(arg)` in it; page errors fail the run. */
 async function inGame(detail, fn, arg) {
