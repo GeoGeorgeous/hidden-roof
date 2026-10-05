@@ -37,9 +37,10 @@ const PICKUP_SPEC: PlaceSpec = { place: 'floor', snap: 0.5 };
 
 export class BuildMode {
   active = false;
-  /** Main provides these so saving/loading includes pickups. */
-  getLevelData: () => LevelData;
-  onLoad: (data: LevelData) => void = () => {};
+  /** Main provides these, so saving and loading include what the level file holds besides props (pickups, city overrides). */
+  getLevelData!: () => LevelData;
+  /** A level file was opened (O): its data and name. */
+  onLoad: (data: LevelData, name: string) => void = () => {};
 
   private rot = 0;
   private picker = new Picker();
@@ -70,7 +71,6 @@ export class BuildMode {
     private pickups: Pickups,
     private player: Player,
   ) {
-    this.getLevelData = () => ({ ...level.toJSON(), pickups: pickups.toJSON() });
     this.ghost = new Ghost(scene);
     this.grid = new CursorGrid(scene);
     this.spawnMarker = new SpawnMarker(scene, PLAYER.height, PLAYER.radius);
@@ -126,9 +126,9 @@ export class BuildMode {
     }
     if (input.wasPressed('KeyO')) {
       pickLevelFile()
-        .then((d) => {
+        .then(({ data, name }) => {
           this.history.clear();
-          this.onLoad(d);
+          this.onLoad(data, name);
           this.spawnMarker.set(this.level.spawn.pos, this.level.spawn.yaw);
           this.say('LOADED — CLICK TO RESUME');
         })
@@ -287,7 +287,7 @@ export class BuildMode {
     const inst = id !== undefined ? this.level.props.get(id) : undefined;
     // The player's stepladder isn't part of the level: never deleted (or restored by undo) as a prop.
     if (!inst || inst.runtime) return;
-    this.history.push({ op: 'remove', kind: 'prop', id: inst.id, data: { type: inst.type, pos: inst.pos, rot: inst.rot, adjust: inst.adjust, text: inst.text } satisfies PropData });
+    this.history.push({ op: 'remove', kind: 'prop', id: inst.id, data: { id: inst.id, type: inst.type, pos: inst.pos, rot: inst.rot, adjust: inst.adjust, text: inst.text } satisfies PropData });
     this.level.remove(inst.id);
   }
 

@@ -12,7 +12,7 @@ npm run dev        # http://localhost:5173  (loads public/levels/demo.json)
 npm run build      # typecheck + production build into dist/
 ```
 
-`?level=name` loads `public/levels/name.json`. Click the page to capture the mouse and go fullscreen. Esc pauses the game and shows the menu (Resume / Settings / Exit fullscreen) on a dark sheet. **Settings** has three tabs, each setting with a short description and, where it matters, the performance cost of its current value in dots (1 none, 2 minimal, 3 medium, 4 high, 5 critical; green, orange, red): Gameplay (field of view, extra FOV while running, crouch hold or toggle), Graphics (resolution, volumetrics, paint detail, city detail, fullscreen on or off, rain, smoke, moving prop parts) and Sound (a volume per sound, 0–200% of its default). Settings write the same config values the debug panel edits. Resolution, volumetrics, paint and city detail are remembered in the browser; the rest reset on reload. Press Esc again while paused to leave fullscreen.
+`?level=name` loads `public/levels/name.json`. Click the page to capture the mouse and go fullscreen. Esc pauses the game and shows the menu (Resume / Save paint / Load paint / Settings / Exit fullscreen) on a dark sheet. **Save paint** downloads the paint of the level as a `.rhhpaint` file (paint only, at your paint detail); **Load paint** (also on the title screen) replaces the paint with a saved one, at any paint detail. Paint goes back on every prop that's still there with the same faces: paint on props removed or changed since (in build mode, or by a game update) is skipped, and a save none of whose paint fits (another level) is refused. **Settings** has three tabs, each setting with a short description and, where it matters, the performance cost of its current value in dots (1 none, 2 minimal, 3 medium, 4 high, 5 critical; green, orange, red): Gameplay (field of view, extra FOV while running, crouch hold or toggle), Graphics (resolution, volumetrics, paint detail, city detail, fullscreen on or off, rain, smoke, moving prop parts) and Sound (a volume per sound, 0–200% of its default). Settings write the same config values the debug panel edits. Resolution, volumetrics, paint and city detail are remembered in the browser; the rest reset on reload. Press Esc again while paused to leave fullscreen.
 
 ## Controls
 
@@ -92,14 +92,15 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
 
 ```json
 {
-  "version": 2,
+  "version": 3,
   "spawn": { "pos": [0, 0, 5], "yaw": 0 },
-  "props": [{ "type": "building", "pos": [-7, 0, -5], "rot": 0 }, { "type": "slab", "pos": [-7, 4, -5] }],
+  "props": [{ "id": 1, "type": "building", "pos": [-7, 0, -5], "rot": 0 }, { "id": 2, "type": "slab", "pos": [-7, 4, -5] }],
   "pickups": [{ "kind": "color:red", "pos": [-3, 0, 6] }, { "kind": "cap:fat", "pos": [16, 8, -3] }, { "kind": "marker", "pos": [-8, 3, -5] }]
 }
 ```
 
 - `pos` is in meters relative to level 0, so `y` = level × 4 (8 is level 2, -4 is level -1). Props between floors keep their exact height.
+- `id` is the prop's own number, kept through edits: paint saves find their surfaces by it. Build mode gives new props the next free one and writes them all when it saves. Without ids (version 2 files), props are numbered in file order.
 - `rot` is the number of quarter turns.
 - `text` (signs only, optional) is the sign's own text; without it the sign shows its default (EXIT, HIGH VOLTAGE, STAFF ONLY).
 - Pickup kinds:

@@ -14,6 +14,8 @@ import { PlayerLight } from './render/player-light';
 import { Smoke } from './render/smoke';
 import { Lightning } from './render/lightning';
 import { PaintDrips } from './paint-drips';
+import { PaintOps } from './paint-ops';
+import { paintMenu } from './save/paint-menu';
 import { WallHand } from './tools/wall-hand';
 import { GpuTimer } from './debug/gpu-timer';
 import { Settings } from './settings';
@@ -42,6 +44,7 @@ import { DebugPanel } from './debug/panel';
 import { live } from './debug/tuning';
 import { exitGameFullscreen } from './fullscreen';
 import { setHex } from './hex-color';
+import { seedPaintRandom } from './lcg';
 
 // Settings first: they may change the pixel scale the renderer starts with,
 // and the paint detail the level is built with.
@@ -76,6 +79,7 @@ viewScene.add(viewSun);
 
 const paint = new PaintSystem();
 const drips = new PaintDrips(paint);
+const paintOps = new PaintOps(paint, drips);
 const level = new Level(scene, paint);
 const lighting = new Lighting(scene, renderer);
 const baker = new LightBaker();
@@ -154,15 +158,21 @@ function rebuildCity() {
   scene.add(skyline);
 }
 live.rebuildCity = rebuildCity;
+live.applyToolSizes = () => (inventory.size = { marker: config.MARKER.radius, sponge: config.SPONGE.radius });
 live.rebuildSponge = () => {
   tools.sponge.model.build();
   pickups.restyle('sponge');
   hotbar.refreshIcon('sponge');
 };
 live.syncSkyline = syncSkyline;
-build.onLoad = loadLevel;
+build.onLoad = (data, name) => {
+  levelName = name;
+  loadLevel(data);
+};
+build.getLevelData = () => ({ ...level.toJSON(), pickups: pickups.toJSON(), ...(Object.keys(skylineSettings).length ? { skyline: skylineSettings } : {}) });
 
-const levelName = new URLSearchParams(location.search).get('level') ?? 'demo';
+/** The level's name: from ?level=, or the file opened in build mode. Paint saves are named by it. */
+let levelName = new URLSearchParams(location.search).get('level') ?? 'demo';
 // Signs measure their text when they are built: wait for the sign font first.
 Promise.all([fetchLevel(levelName), jpFontReady()])
   .then(([data]) => loadLevel(data))
@@ -187,10 +197,9 @@ hud.onResume = () => input.requestLock();
 hud.onExitFullscreen = () => void exitGameFullscreen();
 hud.setLocked(false);
 hud.setSettings(settings.sections());
+const paintFile = paintMenu(hud, paint, drips, () => levelName);
 tools.onCapChange = (name) => hud.showCapTag(name);
 tools.onColorChange = (color) => hud.showColorTag(color, COLORS[color]);
-// The wheel changed the marker's nib or the sponge's patch: the F3 slider follows it.
-tools.onNibChange = () => debug.visible && debug.sync();
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -208,12 +217,15 @@ let frameMs = 0;
 let rainTime = 0;
 let fov = RENDER.fov;
 const tagPos = new THREE.Vector3();
+/** Test hook (golden paint test): a fixed dt and a script run at the start of every frame, so paint follows the frame count, not wall time. */
+const fixedStep: { dt: number; script: (() => void) | null } = { dt: 0, script: null };
 
 function frame(time: number) {
   const t0 = performance.now();
   timer.update(time);
   const delta = timer.getDelta();
-  const dt = Math.min(delta, 1 / 20);
+  fixedStep.script?.();
+  const dt = fixedStep.dt || Math.min(delta, 1 / 20);
 
   if (input.wasPressed('F3') || input.wasPressed('Backquote')) {
     debug.toggle();
@@ -294,7 +306,7 @@ function frame(time: number) {
   }
   level.flush();
   baker.update(time / 1000, eye);
-  paint.flush(renderer);
+  paint.gpu.flush(renderer);
   hotbar.update(inventory);
   hud.update();
 
@@ -320,11 +332,11 @@ function frame(time: number) {
     frameMs,
     drawCalls: calls,
     triangles,
-    textures: paint.textureCount,
-    textureBytes: paint.textureBytes,
+    textures: paint.gpu.textureCount,
+    textureBytes: paint.gpu.textureBytes,
     surfaces: paint.surfaces.length,
-    uploads: paint.uploadsLastFrame,
-    uploadBytes: paint.uploadBytesLastFrame,
+    uploads: paint.gpu.uploadsLastFrame,
+    uploadBytes: paint.gpu.uploadBytesLastFrame,
     particles: tools.spray.particles.count,
     drips: drips.count,
     lights: lighting.active,
@@ -333,7 +345,7 @@ function frame(time: number) {
     bakeMs: baker.stats.ms,
   });
   live.player = { position: player.position, velocity: player.velocity, state: player.fly ? 'flying' : player.onLadder ? 'on ladder' : player.crouched ? 'crouched' : player.onGround ? 'grounded' : 'airborne' };
-  hud.setPerf({ fps, frameMs, calls, triangles, textureBytes: paint.textureBytes + baker.stats.textureBytes + staticTextureBytes() });
+  hud.setPerf({ fps, frameMs, calls, triangles, textureBytes: paint.gpu.textureBytes + baker.stats.textureBytes + staticTextureBytes() });
   debug.update();
   requestAnimationFrame(frame);
 }
@@ -373,4 +385,4 @@ function toScreen(p: THREE.Vector3) {
 }
 
 // Handy for debugging in the console.
-Object.assign(window, { game: { city: () => skyline, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, pickups, paint, level, build, renderer, input, hud, debug, live, PLAYER, loadLevel } });
+Object.assign(window, { game: { city: () => skyline, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, pickups, paint, paintOps, paintFile, seedPaintRandom, fixedStep, level, build, renderer, input, hud, debug, live, PLAYER, loadLevel } });

@@ -15,6 +15,12 @@ import { computeJoints, jointPieces, type Joint } from './joints';
 // tools keep their references across edits.
 
 export interface PropData {
+  /**
+   * Its id for good (level format 3): paint names surfaces by it (`p<id>#k`),
+   * so a saved level keeps it through edits. Files without ids (format 2)
+   * number props in file order.
+   */
+  id?: number;
   type: string;
   pos: V3;
   rot?: number;
@@ -25,7 +31,7 @@ export interface PropData {
 }
 
 export interface LevelData {
-  version: 2;
+  version: 2 | 3;
   spawn: { pos: V3; yaw: number };
   props: PropData[];
   /** Owned by other systems (pickups). */
@@ -86,6 +92,7 @@ export class Level {
     this.lettered.clear();
     this.joints.clear();
     this.props.clear();
+    this.nextId = 1;
     this.refresh();
   }
 
@@ -100,8 +107,8 @@ export class Level {
 
   toJSON(): LevelData {
     // Props the player placed while playing (the stepladder) aren't part of the level file.
-    const props = [...this.props.values()].filter((p) => !p.runtime).map(({ type, pos, rot, adjust, text }) => ({ type, pos, rot, ...(adjust === undefined ? {} : { adjust }), ...(text === undefined ? {} : { text }) }));
-    return { version: 2, spawn: this.spawn, props };
+    const props = [...this.props.values()].filter((p) => !p.runtime).map(({ id, type, pos, rot, adjust, text }) => ({ id, type, pos, rot, ...(adjust === undefined ? {} : { adjust }), ...(text === undefined ? {} : { text }) }));
+    return { version: 3, spawn: this.spawn, props };
   }
 
   /** Change a prop's per-instance setting (clamped to its range) and rebuild it. Returns the new value. */
@@ -148,7 +155,7 @@ export class Level {
     for (const inst of this.props.values()) this.build(inst, true);
     for (const [key, { joint, b: old }] of this.joints) {
       disposeProp(old, this.paint);
-      const b = this.buildJoint(joint);
+      const b = this.buildJoint(key, joint);
       this.carryPaint(old, b);
       this.joints.set(key, { joint, b });
     }
@@ -210,7 +217,10 @@ export class Level {
       console.warn(`unknown prop type "${data.type}"`);
       return null;
     }
-    const inst: PropInstance = { id: this.nextId++, type: data.type, pos: [...data.pos], rot: (((data.rot ?? 0) % 4) + 4) % 4, adjust: data.adjust, text: data.text };
+    // Its own id when it has a free one (a format 3 level, undo), else the next.
+    const id = Number.isInteger(data.id) && data.id! > 0 && !this.props.has(data.id!) ? data.id! : this.nextId;
+    this.nextId = Math.max(this.nextId, id + 1);
+    const inst: PropInstance = { id, type: data.type, pos: [...data.pos], rot: (((data.rot ?? 0) % 4) + 4) % 4, adjust: data.adjust, text: data.text };
     this.props.set(inst.id, inst);
     if (build) this.build(inst);
     return inst;
@@ -232,7 +242,7 @@ export class Level {
     const pieces = def.build(ctx);
     if (pieces.some((p) => 'mat' in p && p.mat.letters)) this.lettered.add(inst.id);
     else this.lettered.delete(inst.id);
-    const b = buildProp(inst.id, pieces, inst.pos, inst.rot, this.paint);
+    const b = buildProp(inst.id, `p${inst.id}`, pieces, inst.pos, inst.rot, this.paint);
     this.root.add(b.group);
     this.built.set(inst.id, b);
     if (old && (resample || samePaintFaces(old, b))) this.carryPaint(old, b);
@@ -279,7 +289,7 @@ export class Level {
       this.joints.delete(key);
     }
     for (const [key, joint] of want) {
-      if (!this.joints.has(key)) this.joints.set(key, { joint, b: this.buildJoint(joint) });
+      if (!this.joints.has(key)) this.joints.set(key, { joint, b: this.buildJoint(key, joint) });
     }
     this.colliders.length = 0;
     this.ladders.length = 0;
@@ -299,8 +309,8 @@ export class Level {
     this.onChange();
   }
 
-  private buildJoint(joint: Joint) {
-    const b = buildProp(-1, jointPieces(joint.kind), joint.pos, 0, this.paint);
+  private buildJoint(key: string, joint: Joint) {
+    const b = buildProp(-1, `j${key}`, jointPieces(joint.kind), joint.pos, 0, this.paint);
     this.root.add(b.group);
     return b;
   }

@@ -1,0 +1,90 @@
+{
+  "low": {
+    "hash": "c82a33e8bfda9a0c",
+    "texelsPerMeter": 24,
+    "surfaces": 2,
+    "paintedM2": 1.7795,
+    "meanAlpha": 0.5626,
+    "drips": 270,
+    "perRun": {
+      "can skinny": 0.11,
+      "can standard": 0.2367,
+      "can fat, held for runs": 0.0548,
+      "can spray": 0.3804,
+      "can sputtering": 0.0439,
+      "marker": 0.0639,
+      "marker thinnest": 0.0311,
+      "marker widest, held for runs": 0.0612,
+      "roller on the wall": 0.2292,
+      "roller on the floor": 0.0661,
+      "sponge": -0.1434,
+      "sponge widest": -0.1326
+    }
+  },
+  "medium": {
+    "hash": "25f32d93e07b58c5",
+    "texelsPerMeter": 48,
+    "surfaces": 2,
+    "paintedM2": 1.7365,
+    "meanAlpha": 0.5726,
+    "drips": 226,
+    "perRun": {
+      "can skinny": 0.1026,
+      "can standard": 0.233,
+      "can fat, held for runs": 0.0497,
+      "can spray": 0.3781,
+      "can sputtering": 0.0441,
+      "marker": 0.0291,
+      "marker thinnest": 0.0112,
+      "marker widest, held for runs": 0.0353,
+      "roller on the wall": 0.2785,
+      "roller on the floor": 0.0676,
+      "sponge": -0.1127,
+      "sponge widest": -0.1222
+    }
+  },
+  "high": {
+    "hash": "63f68d7302ae8930",
+    "texelsPerMeter": 72,
+    "surfaces": 2,
+    "paintedM2": 1.7324,
+    "meanAlpha": 0.5725,
+    "drips": 235,
+    "perRun": {
+      "can skinny": 0.1024,
+      "can standard": 0.2295,
+      "can fat, held for runs": 0.0533,
+      "can spray": 0.3752,
+      "can sputtering": 0.0448,
+      "marker": 0.0311,
+      "marker thinnest": 0.0106,
+      "marker widest, held for runs": 0.0383,
+      "roller on the wall": 0.277,
+      "roller on the floor": 0.0673,
+      "sponge": -0.1098,
+      "sponge widest": -0.1279
+    }
+  },
+  "ultra": {
+    "hash": "89628838c2452d1a",
+    "texelsPerMeter": 96,
+    "surfaces": 2,
+    "paintedM2": 1.7211,
+    "meanAlpha": 0.5718,
+    "drips": 231,
+    "perRun": {
+      "can skinny": 0.1004,
+      "can standard": 0.2292,
+      "can fat, held for runs": 0.0506,
+      "can spray": 0.3762,
+      "can sputtering": 0.0447,
+      "marker": 0.0311,
+      "marker thinnest": 0.0058,
+      "marker widest, held for runs": 0.0361,
+      "roller on the wall": 0.2751,
+      "roller on the floor": 0.0669,
+      "sponge": -0.1084,
+      "sponge widest": -0.1238
+    }
+  }
+}

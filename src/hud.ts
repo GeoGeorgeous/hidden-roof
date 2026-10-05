@@ -27,15 +27,21 @@ const COLOR_TAG_OFFSET = 22;
 /** The PSI gauge sits this many CSS px above the cap tag, the low-pressure alert above it. */
 const GAUGE_OFFSET = -22;
 const ALERT_OFFSET = -44;
+/** Menu messages (SAVE / LOAD PAINT) show this long. */
+const NOTICE_SECONDS = 3;
 /** The PSI gauge stays up this long after the pressure last changed (spraying, shaking). */
 const GAUGE_SECONDS = 1.2;
 
 export class Hud {
   onResume = () => {};
   onExitFullscreen = () => {};
+  /** SAVE PAINT / LOAD PAINT in the menu (save/). */
+  onSavePaint = () => {};
+  onLoadPaint = () => {};
   private overlay: HTMLElement;
   private status: HTMLElement;
   private exitFs: HTMLElement;
+  private savePaint: HTMLElement;
   private resume: HTMLElement;
   private rec: HTMLElement;
   private clock: HTMLElement;
@@ -59,6 +65,8 @@ export class Hud {
   private lastPressure = -1;
   private crosshairSize = -1;
   private started = false;
+  /** A message (notice) shows in the menu's status line until this time. */
+  private noticeUntil = 0;
   private settingsPage: SettingsPage | null = null;
   private start = performance.now();
   private lastSecond = -1;
@@ -81,6 +89,8 @@ export class Hud {
         <div class="status blink">CLICK TO START</div>
         <div class="menu">
           <button class="resume"></button>
+          <button class="save-paint">&gt; SAVE PAINT</button>
+          <button class="load-paint">&gt; LOAD PAINT</button>
           <button class="open-settings">&gt; SETTINGS</button>
           <button class="exit-fs">&gt; EXIT FULLSCREEN</button>
         </div>
@@ -122,6 +132,13 @@ export class Hud {
       e.preventDefault();
       this.onExitFullscreen();
     });
+    this.savePaint = root.querySelector('.save-paint')!;
+    this.savePaint.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      this.onSavePaint();
+    });
+    // click, not mousedown: the file picker opens only from a click.
+    root.querySelector('.load-paint')!.addEventListener('click', () => this.onLoadPaint());
     document.addEventListener('fullscreenchange', () => this.syncMenu());
     this.syncMenu();
   }
@@ -142,10 +159,18 @@ export class Hud {
     this.syncMenu();
   }
 
+  /** Shows a message in the menu's status line for `seconds` (the toasts don't show over the menu); Infinity: until the next one. */
+  notice(msg: string, seconds = NOTICE_SECONDS) {
+    this.noticeUntil = performance.now() + seconds * 1000;
+    this.status.textContent = msg.toUpperCase();
+  }
+
   private syncMenu() {
-    this.status.textContent = this.started ? 'PAUSED' : 'CLICK TO START';
+    if (performance.now() >= this.noticeUntil) this.status.textContent = this.started ? 'PAUSED' : 'CLICK TO START';
     this.resume.textContent = this.started ? '> RESUME' : '> START';
     this.exitFs.hidden = !isFullscreen();
+    // Nothing to save on the title screen; LOAD can come first.
+    this.savePaint.hidden = !this.started;
   }
 
   /** The settings page, opened from the pause menu (SETTINGS) and closed with BACK. */
@@ -244,6 +269,10 @@ export class Hud {
   }
 
   update() {
+    if (this.noticeUntil && performance.now() >= this.noticeUntil) {
+      this.noticeUntil = 0;
+      this.syncMenu();
+    }
     const s = Math.floor((performance.now() - this.start) / 1000);
     if (s === this.lastSecond) return;
     this.lastSecond = s;

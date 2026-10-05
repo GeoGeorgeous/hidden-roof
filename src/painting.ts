@@ -1,46 +1,38 @@
 import * as THREE from 'three';
-import { DRIPS, PAINT } from './config';
-import { mipRect, mipSizes, type MipSize } from './paint-mips';
-import { resampleAtlas } from './paint-resample';
-import type { Rect, SurfaceGeometry } from './surfaces';
+import { PAINT } from './config';
+import type { MipSize } from './paint-mips';
+import { resampleAtlas, resampleRect } from './paint-resample';
+import type { FacePoint, Rect, SurfaceGeometry } from './surfaces';
 import type { SurfaceMaterial } from './materials';
 import { SeamIndex, texelToWorld, worldToTexel, type SeamFace } from './paint-seams';
+import { PaintGpu, type DirtyRect } from './paint-gpu';
+import { PaintRaster, type Band } from './paint-raster';
+import type { PaintOp } from './paint-ops';
 
 // Paint lives in one RGBA texture per paintable surface (atlas of its faces).
-// Textures are created on the first hit and uploaded only on frames they change.
+// PaintSystem keeps the surfaces and turns stamps and rolls at face points into
+// raster work (paint-raster.ts, CPU), carried across seams onto coplanar
+// neighbors. Textures are created on the first hit and uploaded only on frames
+// they change (paint-gpu.ts).
 
-/**
- * Hands a surface's CPU paint to copyTextureToTexture, which uploads one
- * sub-rect of it in a single call. Never rendered: it must stay CPU-side.
- */
-const uploadSource = new THREE.DataTexture(null, 1, 1);
-const uploadRegion = new THREE.Box2();
-const uploadAt = new THREE.Vector2();
 const seamPoint = new THREE.Vector3();
 const seamTexel = new THREE.Vector2();
-const hitTexel = new THREE.Vector2();
-
-/** The face rect under `uv` on triangle `faceIndex` of a surface; its atlas texel goes into hitTexel (reused, so strokes allocate nothing). */
-function faceAt(s: PaintSurface, uv: { x: number; y: number }, faceIndex: number): Rect {
-  hitTexel.set(uv.x * s.geo.atlasW, uv.y * s.geo.atlasH);
-  return s.geo.rects[s.geo.triToRect[faceIndex]];
-}
+const atTexel = new THREE.Vector2();
 const NONE: readonly never[] = [];
+
+/** The face rect of a face point; the point's atlas texel coords go into atTexel (reused, so strokes allocate nothing). */
+function faceTexel(s: PaintSurface, at: FacePoint): Rect {
+  const r = s.geo.rects[at.rect];
+  atTexel.set(r.x + at.u * r.w, r.y + at.v * r.h);
+  return r;
+}
+
 /** A paint color: sRGB channels 0..1, the way paint textures store it (inventory/items.ts rgbOf). */
 export type Rgb = readonly [number, number, number];
-/** A roller band's size and paint (see PaintSystem.roll). */
-interface Band {
-  halfLength: number;
-  halfWidth: number;
-  edge: number;
-  amount: number;
-  color: Rgb;
-  drip: number;
-}
-/** Mip texels on their way to the GPU (paint-mips.ts). */
-let scratch = new Uint8Array(0);
 
 export interface PaintSurface {
+  /** Stable name, the same on every client and at every paint detail: `p<prop id>#k` or `j<joint key>#k`, k = index in the prop's paint (level/build-prop.ts). */
+  key: string;
   mesh: THREE.Mesh;
   material: SurfaceMaterial;
   geo: SurfaceGeometry;
@@ -48,29 +40,36 @@ export interface PaintSurface {
   /** Sizes of the texture's smaller levels for distant views (paint-mips.ts); empty until the first hit. */
   mips: MipSize[];
   texture: THREE.DataTexture | null;
-  /** Excess paint per texel on already-opaque paint, in 1/256 coats (created on first excess). */
+  /** Excess paint per texel (paint-raster.ts RasterSurface). */
   excess: Uint16Array | null;
-  /** Dirty texel rect since the last upload (inclusive). */
-  dirty: { x0: number; y0: number; x1: number; y1: number };
+  /** Texel rects changed since the last upload (inclusive, paint-gpu.ts). */
+  dirty: DirtyRect[];
 }
 
 export class PaintSystem {
   readonly surfaces: PaintSurface[] = [];
   private bySurfaceMesh = new Map<THREE.Object3D, PaintSurface>();
-  private dirty = new Set<PaintSurface>();
+  private byKey = new Map<string, PaintSurface>();
   /** Flat faces by plane, so dots carry across seams onto coplanar neighbors. */
   private seams = new SeamIndex<PaintSurface>();
-  textureCount = 0;
-  textureBytes = 0;
-  uploadsLastFrame = 0;
-  uploadBytesLastFrame = 0;
+  /** Textures, uploads and their stats. */
+  readonly gpu = new PaintGpu();
+  /** Bumped when all paint is wiped (clear): paint still in flight from before it (spray particles) is dropped. */
+  epoch = 0;
+  /** While set, every stamp and roll that paints is appended as an op (paint-ops.ts). */
+  log: PaintOp[] | null = null;
   /** Called when heavy paint on a vertical face should start a run (see paint-drips.ts). */
   onDrip: (s: PaintSurface, rect: Rect, x: number, y: number, rgb: Rgb) => void = () => {};
+  private raster = new PaintRaster<PaintSurface>({
+    touched: (s, x0, y0, x1, y1) => this.gpu.markDirty(s, x0, y0, x1, y1),
+    drip: (s, rect, x, y, rgb) => this.onDrip(s, rect, x, y, rgb),
+  });
 
-  register(mesh: THREE.Mesh, material: SurfaceMaterial, geo: SurfaceGeometry): PaintSurface {
-    const s: PaintSurface = { mesh, material, geo, data: null, mips: [], texture: null, excess: null, dirty: { x0: Infinity, y0: Infinity, x1: -1, y1: -1 } };
+  register(key: string, mesh: THREE.Mesh, material: SurfaceMaterial, geo: SurfaceGeometry): PaintSurface {
+    const s: PaintSurface = { key, mesh, material, geo, data: null, mips: [], texture: null, excess: null, dirty: [] };
     this.surfaces.push(s);
     this.bySurfaceMesh.set(mesh, s);
+    this.byKey.set(key, s);
     this.seams.add(s, geo.rects);
     mesh.userData.paintable = true;
     return s;
@@ -81,14 +80,10 @@ export class PaintSystem {
     const s = this.bySurfaceMesh.get(mesh);
     if (!s) return null;
     this.bySurfaceMesh.delete(mesh);
+    if (this.byKey.get(s.key) === s) this.byKey.delete(s.key);
     this.seams.remove(s);
     this.surfaces.splice(this.surfaces.indexOf(s), 1);
-    this.dirty.delete(s);
-    if (s.texture) {
-      s.texture.dispose();
-      this.textureCount--;
-      this.textureBytes -= gpuBytes(s);
-    }
+    this.gpu.dispose(s);
     return s.data;
   }
 
@@ -100,11 +95,55 @@ export class PaintSystem {
     if (!from.data) return;
     this.ensureTexture(s);
     resampleAtlas(from.geo, from.data, s.geo, s.data!);
-    this.markDirty(s, 0, 0, s.geo.atlasW - 1, s.geo.atlasH - 1);
+    this.gpu.markDirty(s, 0, 0, s.geo.atlasW - 1, s.geo.atlasH - 1);
+  }
+
+  /** Wipe all paint (LOAD replaces it), freeing it: textures are created again on the next hit. */
+  clear() {
+    this.epoch++;
+    for (const s of this.surfaces) this.free(s);
+  }
+
+  /** Free a surface's paint if none is left (the sponge cleaned it all off): its memory comes back until the next hit. */
+  freeIfClean(s: PaintSurface) {
+    const d = s.data;
+    if (!d || !this.live(s)) return;
+    for (let i = 3; i < d.length; i += 4) if (d[i]) return;
+    this.free(s);
+  }
+
+  private free(s: PaintSurface) {
+    if (!s.data) return;
+    this.gpu.dispose(s);
+    s.material.setPaint(null);
+    s.data = s.excess = s.texture = null;
+    s.mips = [];
+    s.dirty.length = 0;
+  }
+
+  /**
+   * Paint face `rect` of a surface from a saved one (save/paint-file.ts): `w` x `h`
+   * texels plus its 1-texel ring. Copied as is at the same size, else resampled
+   * like a paint detail change.
+   */
+  putFace(s: PaintSurface, rect: number, crop: Uint8Array, w: number, h: number) {
+    this.ensureTexture(s);
+    const r = s.geo.rects[rect];
+    const atlasW = s.geo.atlasW;
+    if (w === r.w && h === r.h) {
+      const row = (w + 2) * 4;
+      for (let y = 0; y < h + 2; y++) s.data!.set(crop.subarray(y * row, (y + 1) * row), ((r.y - 1 + y) * atlasW + r.x - 1) * 4);
+    } else resampleRect(crop, w + 2, { x: 1, y: 1, w, h }, s.data!, atlasW, r);
+    this.gpu.markDirty(s, r.x - 1, r.y - 1, r.x + r.w, r.y + r.h);
   }
 
   get(mesh: THREE.Object3D): PaintSurface | undefined {
     return this.bySurfaceMesh.get(mesh);
+  }
+
+  /** The live surface with this key (see PaintSurface.key); a rebuilt prop's new surface keeps the key. */
+  find(key: string): PaintSurface | undefined {
+    return this.byKey.get(key);
   }
 
   /** False once the surface was removed or rebuilt (paint still in flight to it is dropped). */
@@ -112,30 +151,15 @@ export class PaintSystem {
     return this.bySurfaceMesh.get(s.mesh) === s;
   }
 
+  /** CPU paint and its texture, on a surface's first hit. */
   private ensureTexture(s: PaintSurface) {
     if (s.texture) return;
-    const { atlasW: w, atlasH: h } = s.geo;
-    s.data = new Uint8Array(w * h * 4);
-    s.mips = mipSizes(w, h, PAINT.mipLevels);
-    const t = new THREE.DataTexture(s.data, w, h, THREE.RGBAFormat);
-    // Smaller levels only tell three their sizes: it allocates them, flush fills them.
-    t.mipmaps = [{ data: s.data, width: w, height: h }, ...s.mips.map((m) => ({ data: new Uint8Array(0), ...m }))];
-    t.magFilter = THREE.NearestFilter;
-    // Nearest level too: blending levels would mix in the black of unpainted texels.
-    t.minFilter = THREE.NearestMipmapNearestFilter;
-    t.generateMipmaps = false;
-    t.colorSpace = THREE.SRGBColorSpace;
-    // Allocate on the GPU (zero-filled) without uploading: flush uploads what gets painted.
-    t.source.dataReady = false;
-    t.needsUpdate = true;
-    s.texture = t;
-    s.material.setPaint(t);
-    this.textureCount++;
-    this.textureBytes += gpuBytes(s);
+    s.data = new Uint8Array(s.geo.atlasW * s.geo.atlasH * 4);
+    this.gpu.create(s);
   }
 
   /**
-   * Deposit paint at a UV on a surface triangle.
+   * Deposit paint at a point on a face (surfaces.ts facePoint).
    * `radius` in meters: texels whose centers lie within it get paint, so a dot
    * is the same size at every paint detail; one smaller than a texel paints
    * the texel under it. `amount` 0..1 opacity at the center, `color` sRGB 0..1,
@@ -149,8 +173,7 @@ export class PaintSystem {
    */
   stamp(
     s: PaintSurface,
-    uv: { x: number; y: number },
-    faceIndex: number,
+    at: FacePoint,
     radius: number,
     amount: number,
     color: Rgb | null,
@@ -159,8 +182,9 @@ export class PaintSystem {
     square = false,
   ) {
     if (!this.live(s)) return;
-    const rect = faceAt(s, uv, faceIndex);
-    const { x: cx, y: cy } = hitTexel;
+    this.log?.push({ kind: 'stamp', key: s.key, rect: at.rect, u: at.u, v: at.v, radius, amount, color, softness, square });
+    const rect = faceTexel(s, at);
+    const { x: cx, y: cy } = atTexel;
     this.dot(s, rect, cx, cy, radius, amount, color, softness, drip, square);
     for (const n of this.pastEdge(rect, cx, cy, radius)) {
       if (!this.live(n.surface)) continue;
@@ -170,7 +194,7 @@ export class PaintSystem {
   }
 
   /**
-   * Deposit a band of paint at a UV, like a paint roller pressed there:
+   * Deposit a band of paint at a point on a face, like a paint roller pressed there:
    * `halfLength` along `axis` (a world direction, laid into the face's plane),
    * `halfWidth` across it, both in meters. The last `edge` fraction of each
    * end gets lighter, the way a roller's ends leave less paint. Faces with no
@@ -179,8 +203,7 @@ export class PaintSystem {
    */
   roll(
     s: PaintSurface,
-    uv: { x: number; y: number },
-    faceIndex: number,
+    at: FacePoint,
     axis: THREE.Vector3,
     halfLength: number,
     halfWidth: number,
@@ -190,8 +213,9 @@ export class PaintSystem {
     drip = 0,
   ) {
     if (!this.live(s)) return;
-    const rect = faceAt(s, uv, faceIndex);
-    const { x: cx, y: cy } = hitTexel;
+    this.log?.push({ kind: 'roll', key: s.key, rect: at.rect, u: at.u, v: at.v, axis: axis.toArray(), halfLength, halfWidth, edge, amount, color });
+    const rect = faceTexel(s, at);
+    const { x: cx, y: cy } = atTexel;
     const band = { halfLength, halfWidth, edge, amount, color, drip };
     this.band(s, rect, cx, cy, axis, band);
     for (const n of this.pastEdge(rect, cx, cy, Math.hypot(halfLength, halfWidth))) {
@@ -213,198 +237,22 @@ export class PaintSystem {
     return this.seams.near(rect, seamPoint, radius);
   }
 
-  /** One roller band centered at atlas texel coords (cx, cy), clipped to `rect` (see roll). */
   private band(s: PaintSurface, rect: Rect, cx: number, cy: number, axis: THREE.Vector3, b: Band) {
     this.ensureTexture(s);
-    // The axis in texels: texel x runs along the face's u, y along its v, at the same density.
-    let ax = 1;
-    let ay = 0;
-    if (rect.face) {
-      const u = axis.dot(rect.face.uAxis) / rect.face.uAxis.length();
-      const v = axis.dot(rect.face.vAxis) / rect.face.vAxis.length();
-      const len = Math.hypot(u, v);
-      if (len > 1e-3) [ax, ay] = [u / len, v / len];
-    }
-    const w = s.geo.atlasW;
-    const data = s.data!;
-    const L = Math.max(0.5, b.halfLength * PAINT.texelsPerMeter);
-    const T = Math.max(0.5, b.halfWidth * PAINT.texelsPerMeter);
-    const fade = b.edge * L;
-    const ex = Math.abs(ax) * L + Math.abs(ay) * T;
-    const ey = Math.abs(ay) * L + Math.abs(ax) * T;
-    // Clip to the face rect plus its 1-texel padding so paint never bleeds onto another face.
-    const x0 = Math.max(rect.x - 1, Math.floor(cx - ex));
-    const x1 = Math.min(rect.x + rect.w, Math.floor(cx + ex));
-    const y0 = Math.max(rect.y - 1, Math.floor(cy - ey));
-    const y1 = Math.min(rect.y + rect.h, Math.floor(cy + ey));
-    const runs = DRIPS.enabled && rect.upright ? b.drip : 0;
-    let touched = false;
-    for (let y = y0; y <= y1; y++) {
-      for (let x = x0; x <= x1; x++) {
-        const dx = x + 0.5 - cx;
-        const dy = y + 0.5 - cy;
-        const along = Math.abs(dx * ax + dy * ay);
-        if (along > L || Math.abs(dy * ax - dx * ay) > T) continue;
-        const amt = fade > 0 ? b.amount * Math.min(1, (L - along) / fade) : b.amount;
-        if (amt <= 0) continue;
-        const i = (y * w + x) * 4;
-        if (runs && data[i + 3] >= 250) this.addExcess(s, rect, x, y, amt, runs);
-        blend(data, i, amt, b.color);
-        touched = true;
-      }
-    }
-    if (touched) this.markDirty(s, x0, y0, x1, y1);
+    this.raster.band(s, rect, cx, cy, axis, b);
   }
 
-  /** One dot centered at atlas texel coords (cx, cy), clipped to `rect` (see stamp). */
-  private dot(
-    s: PaintSurface,
-    rect: Rect,
-    cx: number,
-    cy: number,
-    radius: number,
-    amount: number,
-    color: Rgb | null,
-    softness: number,
-    drip: number,
-    square: boolean,
-  ) {
+  private dot(s: PaintSurface, rect: Rect, cx: number, cy: number, radius: number, amount: number, color: Rgb | null, softness: number, drip: number, square: boolean) {
     // Nothing to scrub off a surface that was never painted.
     if (!color && !s.data) return;
     this.ensureTexture(s);
-    const w = s.geo.atlasW;
-    const data = s.data!;
-    const r = radius * PAINT.texelsPerMeter;
-    // Under half a texel diagonal the dot could miss every texel center.
-    const dot = r >= Math.SQRT1_2;
-    const reach = dot ? r - 0.5 : 0;
-    // Clip to the face rect plus its 1-texel padding so paint never bleeds onto another face.
-    const x0 = Math.max(rect.x - 1, Math.floor(cx - reach));
-    const x1 = Math.min(rect.x + rect.w, Math.floor(cx + reach));
-    const y0 = Math.max(rect.y - 1, Math.floor(cy - reach));
-    const y1 = Math.min(rect.y + rect.h, Math.floor(cy + reach));
-    const runs = DRIPS.enabled && rect.upright ? drip : 0;
-    const r2 = r * r;
-    let touched = false;
-    for (let y = y0; y <= y1; y++) {
-      for (let x = x0; x <= x1; x++) {
-        const dx = x + 0.5 - cx;
-        const dy = y + 0.5 - cy;
-        const d2 = dx * dx + dy * dy;
-        if (dot && (square ? Math.abs(dx) > r || Math.abs(dy) > r : d2 > r2)) continue;
-        const falloff = dot && !square ? 1 - (d2 / r2) * softness : 1;
-        const amt = amount * falloff;
-        if (amt <= 0) continue;
-        const i = (y * w + x) * 4;
-        if (!color) {
-          if (data[i + 3] === 0) continue;
-          data[i + 3] = toward(data[i + 3], 0, amt);
-          touched = true;
-          continue;
-        }
-        if (runs && data[i + 3] >= 250) this.addExcess(s, rect, x, y, amt, runs);
-        blend(data, i, amt, color);
-        touched = true;
-      }
-    }
-    if (touched) this.markDirty(s, x0, y0, x1, y1);
+    this.raster.dot(s, rect, cx, cy, radius, amount, color, softness, drip, square);
   }
 
   /** Paint a single texel (paint runs), clipped to its face rect. */
   dab(s: PaintSurface, rect: Rect, x: number, y: number, amount: number, color: Rgb) {
     if (x < rect.x || y < rect.y || x >= rect.x + rect.w || y >= rect.y + rect.h || !this.live(s)) return;
     this.ensureTexture(s);
-    blend(s.data!, (y * s.geo.atlasW + x) * 4, amount, color);
-    this.markDirty(s, x, y, x, y);
+    this.raster.texel(s, x, y, amount, color);
   }
-
-  private addExcess(s: PaintSurface, rect: Rect, x: number, y: number, amt: number, rate: number) {
-    const e = (s.excess ??= new Uint16Array(s.geo.atlasW * s.geo.atlasH));
-    const k = y * s.geo.atlasW + x;
-    const v = e[k] + Math.round(amt * 256);
-    if (v < DRIPS.excess * 256) {
-      e[k] = v;
-      return;
-    }
-    e[k] = 0;
-    if (Math.random() >= (DRIPS.perSquareMeter * rate) / PAINT.texelsPerMeter ** 2) return;
-    const i = k * 4;
-    const d = s.data!;
-    this.onDrip(s, rect, x, y, [d[i] / 255, d[i + 1] / 255, d[i + 2] / 255]);
-  }
-
-  private markDirty(s: PaintSurface, x0: number, y0: number, x1: number, y1: number) {
-    const d = s.dirty;
-    d.x0 = Math.min(d.x0, x0);
-    d.y0 = Math.min(d.y0, y0);
-    d.x1 = Math.max(d.x1, x1);
-    d.y1 = Math.max(d.y1, y1);
-    this.dirty.add(s);
-  }
-
-  /**
-   * Upload textures that changed this frame: only the rect that changed, in one
-   * call, then the same rect of each smaller level, averaged from the atlas.
-   */
-  flush(renderer: THREE.WebGLRenderer) {
-    this.uploadsLastFrame = this.dirty.size;
-    this.uploadBytesLastFrame = 0;
-    for (const s of this.dirty) {
-      const { atlasW: w, atlasH: h } = s.geo;
-      let { x0, y0, x1, y1 } = s.dirty;
-      uploadSource.image = { data: s.data, width: w, height: h };
-      uploadRegion.min.set(x0, y0);
-      uploadRegion.max.set(x1 + 1, y1 + 1);
-      renderer.copyTextureToTexture(uploadSource, s.texture!, uploadRegion, uploadAt.set(x0, y0));
-      this.uploadBytesLastFrame += (x1 - x0 + 1) * (y1 - y0 + 1) * 4;
-      s.mips.forEach((m, i) => {
-        x0 = Math.min(x0 >> 1, m.width - 1);
-        y0 = Math.min(y0 >> 1, m.height - 1);
-        x1 = Math.min(x1 >> 1, m.width - 1);
-        y1 = Math.min(y1 >> 1, m.height - 1);
-        const rw = x1 - x0 + 1;
-        const rh = y1 - y0 + 1;
-        if (scratch.length < rw * rh * 4) scratch = new Uint8Array(rw * rh * 4);
-        mipRect(s.data!, w, h, i + 1, x0, y0, x1, y1, scratch);
-        uploadSource.image = { data: scratch, width: rw, height: rh };
-        renderer.copyTextureToTexture(uploadSource, s.texture!, null, uploadAt.set(x0, y0), 0, i + 1);
-        this.uploadBytesLastFrame += rw * rh * 4;
-      });
-      s.dirty.x0 = s.dirty.y0 = Infinity;
-      s.dirty.x1 = s.dirty.y1 = -1;
-    }
-    this.dirty.clear();
-  }
-}
-
-/** GPU memory of a surface's paint texture, all levels. */
-function gpuBytes(s: PaintSurface) {
-  return s.mips.reduce((n, m) => n + m.width * m.height * 4, s.geo.atlasW * s.geo.atlasH * 4);
-}
-
-/**
- * One paint layer, new paint composited OVER it: the color always moves toward
- * the new paint by its own amount, even where the layer is already opaque.
- * (Alpha and color are independent: a full-alpha texel still takes new color.)
- */
-function blend(data: Uint8Array, i: number, amt: number, color: Rgb) {
-  const a = data[i + 3] / 255;
-  const na = amt + a * (1 - amt);
-  const k = amt / na;
-  data[i] = toward(data[i], color[0] * 255, k);
-  data[i + 1] = toward(data[i + 1], color[1] * 255, k);
-  data[i + 2] = toward(data[i + 2], color[2] * 255, k);
-  data[i + 3] = toward(data[i + 3], 255, amt);
-}
-
-/**
- * Move an 8-bit channel toward `target` by fraction k, always by at least one
- * step, so repeated light coats converge on the new color instead of stalling
- * a few values short because of rounding.
- */
-function toward(cur: number, target: number, k: number) {
-  const t = Math.round(target);
-  if (cur === t) return cur;
-  const next = Math.round(cur + (t - cur) * k);
-  return t > cur ? Math.min(t, Math.max(cur + 1, next)) : Math.max(t, Math.min(cur - 1, next));
 }

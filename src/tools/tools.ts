@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { Audio } from '../audio';
 import { CAPS, CROSSHAIR, MARKER, ROLLER, SPONGE, type PaintColor } from '../config';
 import type { Input } from '../input';
-import { SLOTS, type Inventory, type Tool } from '../inventory/inventory';
+import { SLOTS, type Inventory, type SizedTool, type Tool } from '../inventory/inventory';
 import type { PaintSystem } from '../painting';
 import { SprayTool } from '../spray/spray-tool';
 import { LadderTool } from './ladder-tool';
@@ -11,10 +11,11 @@ import { RollerTool } from './roller';
 import { SpongeTool } from './sponge';
 import type { Level } from '../level/level';
 import { sizedCrosshair, stepSize, type WheelSized } from './wheel-size';
+import { ViewSway, type Motion } from './view-sway';
 
 /** Tools the mouse wheel resizes (wheel-size.ts): their config. */
-const SIZED: Partial<Record<Tool, WheelSized>> = { marker: MARKER, sponge: SPONGE };
-import { ViewSway, type Motion } from './view-sway';
+const SIZED: Record<SizedTool, WheelSized> = { marker: MARKER, sponge: SPONGE };
+const isSized = (t: Tool | null): t is SizedTool => t !== null && t in SIZED;
 
 // Routes input to the tool in hand: 1 = can, 2 = marker, 3 = stepladder, 4 =
 // roller, 5 = sponge, Q/E = color (can, marker, roller), mouse wheel = cap (can), nib size
@@ -31,8 +32,6 @@ export class Tools {
   private sway = new ViewSway();
   /** Called with the color when it changes or another tool comes out. */
   onColorChange: (color: PaintColor) => void = () => {};
-  /** Called when the mouse wheel changes the marker's nib or the sponge's patch size. */
-  onNibChange: () => void = () => {};
   /** Called with the cap name when it changes or the can comes out. */
   onCapChange: (name: string) => void = () => {};
   private last: { tool: Tool | null; color: string; cap: string } | null = null;
@@ -72,20 +71,21 @@ export class Tools {
       if (dc && inv.cycleColor(dc)) this.audio.click();
       if (SLOTS.some((_, i) => input.wasPressed(`Digit${i + 1}`))) this.audio.click();
       if (input.wheelSteps !== 0 && inv.tool === 'can' && inv.cycleCap(Math.sign(input.wheelSteps))) this.audio.click();
-      const sized = inv.tool && SIZED[inv.tool];
-      if (input.wheelSteps !== 0 && sized && stepSize(sized, -Math.sign(input.wheelSteps))) {
-        this.audio.click();
-        this.onNibChange();
+      const t = inv.tool;
+      if (input.wheelSteps !== 0 && isSized(t)) {
+        const size = stepSize(SIZED[t], inv.size[t], -Math.sign(input.wheelSteps));
+        if (size !== inv.size[t]) this.audio.click();
+        inv.size[t] = size;
       }
     }
     const tool = enabled ? inv.tool : null;
     this.reportChanges(tool);
     this.spray.update(dt, input, camera, eye, tool === 'can' ? inv : null);
-    this.marker.update(dt, input, camera, eye, tool === 'marker', inv.color);
+    this.marker.update(dt, input, camera, eye, tool === 'marker', inv.color, inv.size.marker);
     this.ladder.update(input, camera, motion.position, tool === 'ladder');
     // After the marker: they share the scribble sound, and these only touch it while in hand or just put away.
     this.roller.update(dt, input, camera, eye, tool === 'roller', inv.color);
-    this.sponge.update(dt, input, camera, eye, tool === 'sponge');
+    this.sponge.update(dt, input, camera, eye, tool === 'sponge', inv.size.sponge);
   }
 
   /** Paused (F3 open, pointer free): keeps posing the tool in hand at rest, so HOLD tuning shows live. */
@@ -102,8 +102,7 @@ export class Tools {
   crosshair(tool: Tool | null) {
     if (tool === 'can') return CAPS[this.inventory.cap].crosshair;
     if (tool === 'roller') return ROLLER.crosshair;
-    const sized = tool && SIZED[tool];
-    return sized ? sizedCrosshair(sized) : CROSSHAIR.plain;
+    return isSized(tool) ? sizedCrosshair(SIZED[tool], this.inventory.size[tool]) : CROSSHAIR.plain;
   }
 
   /** Screen anchor for the color / cap tags next to the tool in hand, or null with no tool. */
