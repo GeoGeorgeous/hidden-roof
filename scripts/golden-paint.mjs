@@ -2,6 +2,9 @@
 // with seeded paint randomness and a fixed dt, and compares a hash of every
 // paint atlas with scripts/golden-paint.json. Refactors of the paint path must
 // keep the hashes; PNGs of the most painted faces land in shots/golden for eyeballing.
+// Loopback: the paint ops recorded while playing (paint-ops.ts), replayed frame by
+// frame into a fresh page, must give the same hash at the same detail, and about
+// the same paint when ULTRA's ops are replayed at LOW: the remote-paint path.
 // Usage: node scripts/golden-paint.mjs [--update] [url]   (run `npm run dev` first)
 import { chromium } from 'playwright';
 import { createHash } from 'node:crypto';
@@ -42,24 +45,24 @@ const SETTLE = 240; // frames at the end for runs to finish dripping
 
 const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 const results = {};
+let failed = 0;
+let ultraOps = null;
 for (const detail of DETAILS) {
   const t0 = Date.now();
-  const page = await browser.newPage({ viewport: { width: 320, height: 180 } });
-  const errors = [];
-  page.on('pageerror', (e) => errors.push(e.message));
-  await page.addInitScript((d) => localStorage.setItem('roofhiddenhaus.settings', JSON.stringify({ paintDetail: d, cityDetail: 'low' })), detail);
-  await page.goto(url);
-  await page.waitForFunction(() => window.game?.level?.solids?.length > 0);
-  await page.waitForTimeout(500);
-  const r = await page.evaluate(play, { runs: RUNS.map((x) => ({ ...x, aim: x.aim.toString() })), stand: STAND, faceYaw: FACE_YAW, gap: GAP, settle: SETTLE });
-  if (errors.length) throw new Error(`${detail}: ${errors.join('\n')}`);
-  const h = createHash('sha256');
-  for (const s of r.surfaces.sort((a, b) => (a.key < b.key ? -1 : 1))) h.update(`${s.key}:`).update(Buffer.from(s.data, 'base64'));
-  results[detail] = { hash: h.digest('hex').slice(0, 16), texelsPerMeter: r.tpm, surfaces: r.surfaces.length, paintedM2: round(r.painted / r.tpm ** 2), meanAlpha: round(r.alpha / Math.max(1, r.painted)), drips: r.drips, perRun: r.perRun };
+  const r = await inGame(detail, play, { runs: RUNS.map((x) => ({ ...x, aim: x.aim.toString() })), stand: STAND, faceYaw: FACE_YAW, gap: GAP, settle: SETTLE });
+  results[detail] = { hash: hashOf(r.paint), texelsPerMeter: r.paint.tpm, surfaces: r.paint.surfaces.length, paintedM2: r.paint.paintedM2, meanAlpha: r.paint.meanAlpha, drips: r.drips, perRun: r.perRun };
   for (const [i, png] of r.pngs.entries()) fs.writeFileSync(`${out}/${detail}-${i}.png`, Buffer.from(png, 'base64'));
-  console.log(`${detail.padEnd(6)} ${results[detail].hash}  ${JSON.stringify({ ...results[detail], hash: undefined, perRun: undefined })}  ${((Date.now() - t0) / 1000).toFixed(1)} s`);
-  await page.close();
+  const back = await inGame(detail, replay, r.ops);
+  const loop = hashOf(back) === results[detail].hash;
+  if (!loop) failed++;
+  if (detail === 'ultra') ultraOps = r.ops;
+  console.log(`${detail.padEnd(6)} ${results[detail].hash}  ${JSON.stringify({ ...results[detail], hash: undefined, perRun: undefined })}  loopback (${r.ops.frames.length} frames, ${r.ops.log.length} ops) ${loop ? 'identical' : `DIFFERS: ${hashOf(back)}`}  ${((Date.now() - t0) / 1000).toFixed(1)} s`);
 }
+// ULTRA's ops replayed at LOW: the same strokes at another detail paint about the same area.
+const low = await inGame('low', replay, ultraOps);
+const ratio = low.paintedM2 / results.ultra.paintedM2;
+if (Math.abs(ratio - 1) > 0.1) failed++;
+console.log(`ULTRA ops at LOW: ${low.paintedM2} m² painted vs ${results.ultra.paintedM2} at ULTRA (${((ratio - 1) * 100).toFixed(1)}%)`);
 await browser.close();
 
 if (update || !fs.existsSync(baselinePath)) {
@@ -70,20 +73,95 @@ if (update || !fs.existsSync(baselinePath)) {
   const bad = DETAILS.filter((d) => base[d]?.hash !== results[d].hash);
   for (const d of bad) console.log(`MISMATCH ${d}\n  expected ${JSON.stringify(base[d])}\n  got      ${JSON.stringify(results[d])}`);
   console.log(bad.length ? `golden paint: ${bad.length} of ${DETAILS.length} details differ` : 'golden paint: all details match');
-  process.exitCode = bad.length ? 1 : 0;
+  failed += bad.length;
+}
+if (failed) console.log(`golden paint: FAILED (${failed})`);
+process.exitCode = failed ? 1 : 0;
+
+/** Opens the game at a paint detail and runs `fn(arg)` in it; page errors fail the run. */
+async function inGame(detail, fn, arg) {
+  const page = await browser.newPage({ viewport: { width: 320, height: 180 } });
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.addInitScript((d) => localStorage.setItem('roofhiddenhaus.settings', JSON.stringify({ paintDetail: d, cityDetail: 'low' })), detail);
+  await page.addInitScript(pageHelpers);
+  await page.goto(url);
+  await page.waitForFunction(() => window.game?.level?.solids?.length > 0);
+  await page.waitForTimeout(500);
+  const r = await page.evaluate(fn, arg);
+  await page.close();
+  if (errors.length) throw new Error(`${detail}: ${errors.join('\n')}`);
+  return r;
 }
 
-function round(v) {
-  return Math.round(v * 1e4) / 1e4;
+/** Hash of every painted surface, by key, so the order surfaces were registered in doesn't matter. */
+function hashOf(paint) {
+  const h = createHash('sha256');
+  for (const s of paint.surfaces.sort((a, b) => (a.key < b.key ? -1 : 1))) h.update(`${s.key}:`).update(Buffer.from(s.data, 'base64'));
+  return h.digest('hex').slice(0, 16);
 }
 
-/** Runs in the page: plays every run on fixed steps and returns the painted surfaces. */
+/** Page helpers (init script): the game set up for fixed steps, and the paint read back. */
+function pageHelpers() {
+  const round = (v) => Math.round(v * 1e4) / 1e4;
+  const toB64 = (u8) => {
+    let s = '';
+    for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode(...u8.subarray(i, i + 0x8000));
+    return btoa(s);
+  };
+  window.golden = {
+    round,
+    /** Input locked, no drawing (paint is CPU-side; skipping the draw makes SwiftShader 5x faster), 1/60 s steps. */
+    setUp() {
+      const g = window.game;
+      g.renderer.render = () => {};
+      g.input.locked = true;
+      g.hud.setLocked(true);
+      g.fixedStep.dt = 1 / 60;
+    },
+    /** Every painted surface's paint, and totals. */
+    paint() {
+      const g = window.game;
+      const keys = g.paint.surfaces.map((s) => s.key);
+      if (new Set(keys).size !== keys.length) throw new Error('duplicate paint surface keys');
+      if (!g.paint.surfaces.every((s) => g.paint.find(s.key) === s)) throw new Error('paint.find misses a surface');
+      const tpm = g.config.PAINT.texelsPerMeter;
+      const surfaces = [];
+      let painted = 0;
+      let alpha = 0;
+      for (const s of g.paint.surfaces) {
+        if (!s.data) continue;
+        for (let i = 3; i < s.data.length; i += 4) if (s.data[i]) (painted++, (alpha += s.data[i] / 255));
+        surfaces.push({ key: s.key, data: toB64(s.data) });
+      }
+      return { tpm, surfaces, paintedM2: round(painted / tpm ** 2), meanAlpha: round(alpha / Math.max(1, painted)) };
+    },
+  };
+}
+
+/** Runs in the page: applies recorded ops frame by frame, as they were made, and returns the paint. */
+async function replay(ops) {
+  const g = window.game;
+  window.golden.setUp();
+  await new Promise((done) => {
+    let f = 0;
+    g.fixedStep.script = () => {
+      const end = f + 1 < ops.frames.length ? ops.frames[f + 1] : ops.log.length;
+      for (let i = ops.frames[f]; i < end; i++) g.paintOps.apply(ops.log[i]);
+      if (++f === ops.frames.length) {
+        g.fixedStep.script = null;
+        done();
+      }
+    };
+  });
+  return window.golden.paint();
+}
+
+/** Runs in the page: plays every run on fixed steps and returns the paint and the ops it recorded. */
 async function play({ runs, stand, faceYaw, gap, settle }) {
   const g = window.game;
   const { inventory: inv, player, input, config } = g;
-  g.renderer.render = () => {}; // paint is CPU-side; skipping the draw makes SwiftShader 5x faster
-  input.locked = true;
-  g.hud.setLocked(true);
+  window.golden.setUp();
   config.DRIPS.enabled = true;
   for (const t of ['marker', 'roller', 'sponge']) inv.give(t);
   for (const c of config.COLOR_ORDER) inv.addColor(c);
@@ -97,6 +175,9 @@ async function play({ runs, stand, faceYaw, gap, settle }) {
     onDrip(...a);
   };
   g.seedPaintRandom(1);
+  // Ops as they're made, and where each frame's start in the log (for the loopback replay).
+  g.paint.log = [];
+  const frames = [];
 
   // Coverage in m² of full paint (alpha summed over every texel): how much each run added.
   const coverage = () => {
@@ -105,7 +186,7 @@ async function play({ runs, stand, faceYaw, gap, settle }) {
     return a / 255 / config.PAINT.texelsPerMeter ** 2;
   };
   const perRun = {};
-  const round = (v) => Math.round(v * 1e4) / 1e4;
+  const { round } = window.golden;
   let before = 0;
 
   // The schedule: per frame, [run or null, t], or ['measure', name] after a run's gap.
@@ -122,8 +203,8 @@ async function play({ runs, stand, faceYaw, gap, settle }) {
   let last = null;
   await new Promise((done) => {
     let f = 0;
-    g.fixedStep.dt = 1 / 60;
     g.fixedStep.script = () => {
+      frames.push(g.paint.log.length);
       if (f === steps.length) {
         g.fixedStep.script = null;
         input.lmb = false;
@@ -154,29 +235,13 @@ async function play({ runs, stand, faceYaw, gap, settle }) {
     };
   });
 
-  const surfaces = [];
-  let painted = 0;
-  let alpha = 0;
-  const toB64 = (u8) => {
-    let s = '';
-    for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode(...u8.subarray(i, i + 0x8000));
-    return btoa(s);
-  };
-  // Surfaces are hashed by key (PaintSurface.key), so the order they were registered in doesn't matter.
-  const keys = g.paint.surfaces.map((s) => s.key);
-  if (new Set(keys).size !== keys.length) throw new Error('duplicate paint surface keys');
-  if (!g.paint.surfaces.every((s) => g.paint.find(s.key) === s)) throw new Error('paint.find misses a surface');
-  g.paint.surfaces.forEach((s) => {
-    if (!s.data) return;
-    let n = 0;
-    for (let i = 3; i < s.data.length; i += 4) if (s.data[i]) (n++, (alpha += s.data[i] / 255));
-    painted += n;
-    surfaces.push({ key: s.key, n, data: toB64(s.data), s });
-  });
+  const log = g.paint.log;
+  g.paint.log = null;
+  const paint = window.golden.paint();
   // PNGs of the most painted faces, over paper, at 96 texels/m (atlas row 0 is the face's bottom).
   const tpm = config.PAINT.texelsPerMeter;
   const faces = [];
-  for (const { s } of surfaces)
+  for (const s of g.paint.surfaces.filter((s) => s.data))
     for (const r of s.geo.rects) {
       let n = 0;
       for (let y = r.y; y < r.y + r.h; y++) for (let x = r.x; x < r.x + r.w; x++) if (s.data[(y * s.geo.atlasW + x) * 4 + 3]) n++;
@@ -202,5 +267,5 @@ async function play({ runs, stand, faceYaw, gap, settle }) {
         }
       return c.toDataURL('image/png').split(',')[1];
     });
-  return { tpm, painted, alpha, drips, perRun, surfaces: surfaces.map(({ key, data }) => ({ key, data })), pngs };
+  return { paint, drips, perRun, pngs, ops: { log, frames } };
 }

@@ -12,7 +12,7 @@ npm run golden -- --update  # rewrite the baseline (only when a change is meant 
 
 On this WSL machine Chromium needs `LD_LIBRARY_PATH=$HOME/.local/pwlibs/usr/lib/x86_64-linux-gnu` (missing system libraries, no sudo). `npm run check` needs it too, for the smoke test.
 
-A run takes about two minutes, roughly 28 s per detail in SwiftShader. Face images land in `shots/golden/` (not committed). Copies of the baseline images are in `docs/golden/`.
+A run takes about four minutes in SwiftShader: roughly 28 s per detail to play, and as long again to replay (loopback, below). Face images land in `shots/golden/` (not committed). Copies of the baseline images are in `docs/golden/`.
 
 ## What it does
 
@@ -27,6 +27,7 @@ A run takes about two minutes, roughly 28 s per detail in SwiftShader. Face imag
 
   Runs overlap on purpose, to cover layering, runs on wet paint and the sponge over paint.
 - Hashes every paint atlas (CPU RGBA), keyed by its stable surface key (`PaintSurface.key`), so the order surfaces are registered in doesn't matter. It also checks that keys are unique and that `paint.find` returns each surface. It also records the total painted area, mean alpha, drip triggers and the coverage each run added. Coverage is m² of full-opacity paint; the sponge's is negative.
+- **Loopback.** While playing, every paint op is recorded (`PaintSystem.log`, `src/paint-ops.ts`) along with which frame made it: stamps, rolls, and the runs the painter started. A fresh page at the same detail replays them frame by frame through `PaintOps.apply`. It must give the same hash: that's the remote-paint path, proven without a network. ULTRA's ops are also replayed at LOW, where the painted area must come within 10% of ULTRA's.
 - Rendering is skipped by stubbing `renderer.render`. The paint is all on the CPU, so the hashes are the same either way, and the run is about 5× faster.
 
 ## Baseline
@@ -60,6 +61,8 @@ Coverage added per run, in m² of full paint (negative means removed):
 The wall at ULTRA and at LOW, then the floor (ULTRA), at 96 px/m over paper:
 
 ![wall, ULTRA](golden/wall-ultra.png) ![wall, LOW](golden/wall-low.png) ![floor, ULTRA](golden/floor-ultra.png)
+
+Loopback (since `e7a0bc1`): identical at all four details, about 5,100–5,300 ops over 1,377 frames. ULTRA's ops at LOW paint 1.842 m², 2.3% more than at ULTRA (1.801): LOW draws thin lines and runs a whole 4 cm texel wide.
 
 ## Findings
 
