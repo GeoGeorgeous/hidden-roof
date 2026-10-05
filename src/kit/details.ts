@@ -65,7 +65,7 @@ export const sign: PropDef = {
   hang: 0.5,
   build({ seed }) {
     const p = new Parts();
-    p.box([-1, 0, -0.2], [1, 1, -0.1], panelLettering(seed, 2, 7), { paint: true });
+    p.box([-1, 0, -0.2], [1, 1, -0.1], panelLettering(seed, 2, 1), { paint: true });
     p.detail([-1.03, -0.03, -0.22], [1.03, 0, -0.08], M.steel);
     p.detail([-1.03, 1, -0.22], [1.03, 1.03, -0.08], M.steel);
     for (const x of [-0.7, 0.7]) p.detail([x - 0.03, 0.2, -0.1], [x + 0.03, 0.8, 0], M.steel, false);
@@ -95,7 +95,7 @@ export const billboard: PropDef = {
     const hw = w / 2;
     const front = 1.12; // front catwalk edge
     const side = hw + 1.0; // side walkway edge
-    p.box([-hw, b0, 0], [hw, b1, 0.12], panelLettering(seed, w / bh, 13), { paint: true });
+    p.box([-hw, b0, 0], [hw, b1, 0.12], panelLettering(seed, w, bh), { paint: true });
     p.detail([-hw - 0.05, b1, -0.02], [hw + 0.05, b1 + 0.1, 0.14], M.steel);
     p.detail([-hw - 0.05, b0 - 0.1, -0.02], [hw + 0.05, b0, 0.14], M.steel);
     // Frame behind the board: posts through the rear catwalk, braces under it.

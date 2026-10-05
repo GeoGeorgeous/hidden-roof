@@ -1,3 +1,4 @@
+import { SIGN_TEXT } from '../config';
 import type { PropDef } from './def';
 import { M, Parts, type Mat } from './pieces';
 import { panelRect } from '../render/ink/panel-text';
@@ -16,10 +17,10 @@ function slogan(seed: number, pool: string[]) {
   return { text: pool[Math.floor(rnd() * pool.length)], inverted: rnd() < 0.4 };
 }
 
-/** Lettering for a fixed panel `aspect` (width / height) in shape: a slogan of at most `maxChars` characters, Japanese or English, one line. */
-export function panelLettering(seed: number, aspect: number, maxChars: number): Mat {
-  const s = slogan(seed, fitting([...JAPANESE, ...ENGLISH], maxChars));
-  return { tex: 'panelText', tile: 1, tint: '#ffffff', letters: panelRect(s.text, s.inverted, aspect) };
+/** Lettering for a `w` x `h` m panel: a slogan, Japanese or English, one line, short enough for its characters to stay SIGN_TEXT.minCharWidth wide. */
+export function panelLettering(seed: number, w: number, h: number): Mat {
+  const s = slogan(seed, fitting([...JAPANESE, ...ENGLISH], Math.floor(w / SIGN_TEXT.minCharWidth)));
+  return { tex: 'panelText', tile: 1, tint: '#ffffff', letters: panelRect(s.text, s.inverted, w / h) };
 }
 
 /** Tall sign sticking out of the wall you aim at (lettering on both faces), on two brackets. */
