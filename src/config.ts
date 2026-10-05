@@ -253,7 +253,7 @@ export const HUD = {
   perf: true,
 };
 
-/** Slogans on lettered sign panels (kit/signs.ts panelLettering). */
+/** Slogans on lettered sign panels (kit/lettering.ts panelLettering). */
 export const SIGN_TEXT = {
   /** A panel takes the slogans whose characters stay at least this wide (m) across its width. */
   minCharWidth: 0.28,

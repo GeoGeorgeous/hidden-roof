@@ -1,7 +1,7 @@
 import { LIGHTS } from '../config';
 import type { PropDef } from './def';
 import { lens, M, Parts, type Mat, type V3 } from './pieces';
-import { panelLettering } from './signs';
+import { panelLettering } from './lettering';
 
 // Cables, antennas, signs, billboards, CCTV cameras.
 

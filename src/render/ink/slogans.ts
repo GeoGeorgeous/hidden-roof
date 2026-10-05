@@ -1,6 +1,6 @@
 // The slogans of the world's signs, in clauses (each ends at a 。 or , or .).
 // The city's billboards (city-text.ts) show all of them; the placeable blade
-// and shop signs pick one by their seed (kit/signs.ts).
+// and shop signs pick one by their seed (kit/lettering.ts).
 
 export const JAPANESE = [
   '買え。',

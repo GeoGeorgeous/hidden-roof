@@ -1,27 +1,12 @@
-import { SIGN_TEXT } from '../config';
 import type { PropDef } from './def';
 import { M, Parts, type Mat } from './pieces';
-import { panelRect } from '../render/ink/panel-text';
 import { neonRect } from '../render/ink/neon-text';
 import { ENGLISH, fitting, JAPANESE } from '../render/ink/slogans';
-import { lcg } from '../lcg';
-import { word } from './small-signs';
+import { slogan, word } from './lettering';
 
 // Lettered signs for the ink look: every sign shows a real slogan
-// (render/ink/slogans.ts) picked by its instance's seed. The panels are
-// paintable: paint covers the lettering like graffiti over an ad.
-
-/** A slogan for this seed from `pool` (not empty, see `fitting`), and whether it is drawn paper on ink. */
-function slogan(seed: number, pool: string[]) {
-  const rnd = lcg(seed * 977 + 13);
-  return { text: pool[Math.floor(rnd() * pool.length)], inverted: rnd() < 0.4 };
-}
-
-/** Lettering for a `w` x `h` m panel: a slogan, Japanese or English, one line, short enough for its characters to stay SIGN_TEXT.minCharWidth wide. */
-export function panelLettering(seed: number, w: number, h: number): Mat {
-  const s = slogan(seed, fitting([...JAPANESE, ...ENGLISH], Math.floor(w / SIGN_TEXT.minCharWidth)));
-  return { tex: 'panelText', tile: 1, tint: '#ffffff', letters: panelRect(s.text, s.inverted, w / h) };
-}
+// (render/ink/slogans.ts) picked by its instance's seed (kit/lettering.ts).
+// The panels are paintable: paint covers the lettering like graffiti over an ad.
 
 /** Tall sign sticking out of the wall you aim at (lettering on both faces), on two brackets. */
 export const bladeSign: PropDef = {

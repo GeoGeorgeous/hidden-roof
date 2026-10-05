@@ -1,6 +1,6 @@
 import type { PropDef } from './def';
 import { M, Parts, type V3 } from './pieces';
-import { panelLettering } from './signs';
+import { panelLettering } from './lettering';
 import { lcg } from '../lcg';
 
 // Steel and clutter for packed rooftops: lattice masts and sign towers with

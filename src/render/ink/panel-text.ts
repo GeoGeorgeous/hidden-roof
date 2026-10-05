@@ -3,7 +3,7 @@ import { INK, PAPER, TextAtlas } from './text-atlas';
 import type { UvRect } from './uv-rect';
 
 // Real text for the lettered panels of the wall sign, billboard and sign tower
-// (kit/signs.ts panelLettering), in the bundled font (jp-font.ts). Each text gets
+// (kit/lettering.ts panelLettering), in the bundled font (jp-font.ts). Each text gets
 // a cell the shape of its panel, on one text row (text-atlas.ts): ink on
 // paper or paper on ink, one line, as big as the panel's width or 60% of its
 // height allows, centered. Like all lettering it is drawn straight from the
