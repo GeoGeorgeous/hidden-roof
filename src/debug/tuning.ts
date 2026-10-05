@@ -1,4 +1,4 @@
-import { SKYLINE, ATMOS, INK, AUDIO, CAP_ORDER, CAPS, CCTV, DAYLIGHT, DRIPS, FANS, FLICKER, GRADE, VIGNETTE, LIGHT_SPREAD_MAX, LIGHTMAP, LIGHTS, PICKUP, SMOKE, THUNDER, PLAYER_LIGHT, VOLUMETRICS, WALL_HAND, MARKER, PAINT, PLAYER, PRESSURE, RENDER, SPRAY, VIEWMODEL, HOLD, ROLLER, SPONGE } from '../config';
+import { type LightKind, SKYLINE, ATMOS, INK, AUDIO, CAP_ORDER, CAPS, CCTV, DAYLIGHT, DRIPS, FANS, FLICKER, GRADE, VIGNETTE, LIGHT_SPREAD_MAX, LIGHTMAP, LIGHTS, PICKUP, SMOKE, THUNDER, PLAYER_LIGHT, VOLUMETRICS, WALL_HAND, MARKER, PAINT, PLAYER, PRESSURE, RENDER, SPRAY, VIEWMODEL, HOLD, ROLLER, SPONGE } from '../config';
 
 // Debug panel contents: collapsible sections of live sliders/toggles that write
 // straight into the config objects, plus read-only stats. Each value knows its
@@ -109,13 +109,13 @@ const c = (label: string, path: string[], onChange?: () => void): Item => ({ kin
 const v3 = (label: string, path: string[], min: number, max: number, step: number, onChange?: () => void): Item[] =>
   ['x', 'y', 'z'].map((a, i) => r(`${label} ${a}`, [...path, String(i)], min, max, step, onChange));
 
-const LIGHT_LABELS: Record<string, string> = { wallLamp: 'WALL LAMP', floodlight: 'FLOODLIGHT', neonPink: 'NEON SIGN (PINK)', neonCyan: 'NEON SIGN (CYAN)', neonAmber: 'NEON SIGN (AMBER)', billboardLamp: 'BILLBOARD LAMP', lampPost: 'LAMP POST', stringLights: 'STRING LIGHTS', cctv: 'CCTV CAMERA' };
+const LIGHT_LABELS: Record<LightKind, string> = { wallLamp: 'WALL LAMP', floodlight: 'FLOODLIGHT', neonPink: 'NEON SIGN (PINK)', neonCyan: 'NEON SIGN (CYAN)', neonAmber: 'NEON SIGN (AMBER)', billboardLamp: 'BILLBOARD LAMP', lampPost: 'LAMP POST', stringLights: 'STRING LIGHTS', cctv: 'CCTV CAMERA' };
 
 function lightItems(): Item[] {
   const fx = () => live.rebuildLights();
   const props = () => live.rebuildLightProps();
-  return Object.keys(LIGHTS).flatMap((k) => [
-    { kind: 'heading', label: `LIGHT · ${LIGHT_LABELS[k] ?? k}` } as Item,
+  return (Object.keys(LIGHTS) as LightKind[]).flatMap((k) => [
+    { kind: 'heading', label: `LIGHT · ${LIGHT_LABELS[k]}` } as Item,
     c('color', ['LIGHTS', k, 'color'], props),
     r('color tint (0 = none)', ['LIGHTS', k, 'tint'], 0, 1, 0.05, props),
     ...v3('source offset', ['LIGHTS', k, 'offset'], -1, 1, 0.01, fx),
