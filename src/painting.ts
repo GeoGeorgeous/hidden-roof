@@ -54,6 +54,8 @@ export class PaintSystem {
   private seams = new SeamIndex<PaintSurface>();
   /** Textures, uploads and their stats. */
   readonly gpu = new PaintGpu();
+  /** Bumped when all paint is wiped (clear): paint still in flight from before it (spray particles) is dropped. */
+  epoch = 0;
   /** While set, every stamp and roll that paints is appended as an op (paint-ops.ts). */
   log: PaintOp[] | null = null;
   /** Called when heavy paint on a vertical face should start a run (see paint-drips.ts). */
@@ -98,6 +100,7 @@ export class PaintSystem {
 
   /** Wipe all paint (LOAD replaces it), freeing it: textures are created again on the next hit. */
   clear() {
+    this.epoch++;
     for (const s of this.surfaces) {
       if (!s.data) continue;
       this.gpu.dispose(s);
