@@ -18,6 +18,13 @@ const uploadRegion = new THREE.Box2();
 const uploadAt = new THREE.Vector2();
 const seamPoint = new THREE.Vector3();
 const seamTexel = new THREE.Vector2();
+const hitTexel = new THREE.Vector2();
+
+/** The face rect under `uv` on triangle `faceIndex` of a surface; its atlas texel goes into hitTexel (reused, so strokes allocate nothing). */
+function faceAt(s: PaintSurface, uv: { x: number; y: number }, faceIndex: number): Rect {
+  hitTexel.set(uv.x * s.geo.atlasW, uv.y * s.geo.atlasH);
+  return s.geo.rects[s.geo.triToRect[faceIndex]];
+}
 const NONE: readonly never[] = [];
 /** A roller band's size and paint (see PaintSystem.roll). */
 interface Band {
@@ -150,9 +157,8 @@ export class PaintSystem {
     square = false,
   ) {
     if (!this.live(s)) return;
-    const rect = s.geo.rects[s.geo.triToRect[faceIndex]];
-    const cx = uv.x * s.geo.atlasW;
-    const cy = uv.y * s.geo.atlasH;
+    const rect = faceAt(s, uv, faceIndex);
+    const { x: cx, y: cy } = hitTexel;
     this.dot(s, rect, cx, cy, radius, amount, color, softness, drip, square);
     for (const n of this.pastEdge(rect, cx, cy, radius)) {
       if (!this.live(n.surface)) continue;
@@ -182,9 +188,8 @@ export class PaintSystem {
     drip = 0,
   ) {
     if (!this.live(s)) return;
-    const rect = s.geo.rects[s.geo.triToRect[faceIndex]];
-    const cx = uv.x * s.geo.atlasW;
-    const cy = uv.y * s.geo.atlasH;
+    const rect = faceAt(s, uv, faceIndex);
+    const { x: cx, y: cy } = hitTexel;
     const band = { halfLength, halfWidth, edge, amount, color, drip };
     this.band(s, rect, cx, cy, axis, band);
     for (const n of this.pastEdge(rect, cx, cy, Math.hypot(halfLength, halfWidth))) {

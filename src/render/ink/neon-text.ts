@@ -16,7 +16,7 @@ const CELL_H = 512;
 /** Width of the characters' column (texels of a CELL_H tall cell): a sign face wider than FACE / CELL_H just has margins. */
 const FACE = 108;
 /** Longest text a sign takes. */
-export const NEON_MAX_TEXT = 12;
+const NEON_MAX_TEXT = 12;
 
 let atlas: TextAtlas | null = null;
 

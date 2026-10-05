@@ -266,15 +266,18 @@ canvas {
   background: transparent;
   cursor: pointer;
 }
-.settings-page input[type='range']::-webkit-slider-runnable-track {
+.settings-page input[type='range']::-webkit-slider-runnable-track,
+.debug-panel input[type='range']::-webkit-slider-runnable-track {
   height: 1px;
   background: var(--ui);
 }
-.settings-page input[type='range']::-moz-range-track {
+.settings-page input[type='range']::-moz-range-track,
+.debug-panel input[type='range']::-moz-range-track {
   height: 1px;
   background: var(--ui);
 }
-.settings-page input[type='range']::-webkit-slider-thumb {
+.settings-page input[type='range']::-webkit-slider-thumb,
+.debug-panel input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 3px;
   height: 11px;
@@ -282,7 +285,8 @@ canvas {
   background: var(--ui);
   border: 0;
 }
-.settings-page input[type='range']::-moz-range-thumb {
+.settings-page input[type='range']::-moz-range-thumb,
+.debug-panel input[type='range']::-moz-range-thumb {
   width: 3px;
   height: 11px;
   background: var(--ui);
@@ -571,29 +575,6 @@ canvas {
   height: 12px;
   background: transparent;
   cursor: pointer;
-}
-.debug-panel input[type='range']::-webkit-slider-runnable-track {
-  height: 1px;
-  background: var(--ui);
-}
-.debug-panel input[type='range']::-moz-range-track {
-  height: 1px;
-  background: var(--ui);
-}
-.debug-panel input[type='range']::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 3px;
-  height: 11px;
-  margin-top: -5px;
-  background: var(--ui);
-  border: 0;
-}
-.debug-panel input[type='range']::-moz-range-thumb {
-  width: 3px;
-  height: 11px;
-  background: var(--ui);
-  border: 0;
-  border-radius: 0;
 }
 .debug-panel input[type='checkbox'] {
   -webkit-appearance: none;

@@ -37,7 +37,7 @@ export function pickupLabel(kind: PickupKind) {
 }
 
 /** Hex color to sRGB 0..1 (what paint textures store). */
-export function srgb01(hex: string): [number, number, number] {
+function srgb01(hex: string): [number, number, number] {
   const n = parseInt(hex.slice(1), 16);
   return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
 }

@@ -88,7 +88,7 @@ export interface CylPiece {
   seg?: number;
   swing?: Swing;
 }
-export interface RodPiece {
+interface RodPiece {
   k: 'rod';
   a: V3;
   b: V3;
@@ -97,7 +97,7 @@ export interface RodPiece {
   collide: boolean;
   swing?: Swing;
 }
-export interface ConePiece {
+interface ConePiece {
   k: 'cone';
   base: V3;
   r: number;
@@ -106,7 +106,7 @@ export interface ConePiece {
   swing?: Swing;
 }
 /** Ladder climb volume; `normal` points away from the ladder toward the climber. */
-export interface ClimbPiece {
+interface ClimbPiece {
   k: 'climb';
   min: V3;
   max: V3;

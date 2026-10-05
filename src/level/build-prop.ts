@@ -136,7 +136,7 @@ function cylIsPaintable(p: CylPiece) {
 }
 
 export const matKey = (m: Mat) => `${m.tex}|${m.tile ?? ''}|${m.alpha ?? ''}`;
-export function material(m: Mat) {
+function material(m: Mat) {
   return makeSurfaceMaterial({ tex: m.tex, tileMeters: m.tile, alphaTest: m.alpha });
 }
 const decorMaterials = new Map<string, SurfaceMaterial>();
@@ -249,7 +249,7 @@ export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint =
 }
 
 /** Merge decor geometry per material key. */
-export function mergeDecor(decor: Expanded['decor']) {
+function mergeDecor(decor: Expanded['decor']) {
   const groups = new Map<string, { mat: Mat; geos: THREE.BufferGeometry[] }>();
   for (const d of decor) {
     const k = matKey(d.mat);
@@ -306,7 +306,7 @@ export function disposeProp(b: BuiltProp, paint: PaintSystem) {
   b.group.removeFromParent();
 }
 
-export function rodGeometry(a: THREE.Vector3, b: THREE.Vector3, r: number) {
+function rodGeometry(a: THREE.Vector3, b: THREE.Vector3, r: number) {
   const len = a.distanceTo(b);
   const g = new THREE.CylinderGeometry(r, r, len, 6, 1, false);
   g.translate(0, len / 2, 0);

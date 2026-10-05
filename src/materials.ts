@@ -281,7 +281,7 @@ export function tintGeometry(g: THREE.BufferGeometry, color: THREE.ColorRepresen
 }
 
 /** Give every vertex of a geometry the same facade pattern. */
-export function setFacade(g: THREE.BufferGeometry, facade: Facade) {
+function setFacade(g: THREE.BufferGeometry, facade: Facade) {
   const n = g.attributes.position.count;
   const f = new Float32Array(n * 4);
   for (let i = 0; i < n; i++) f.set(facade, i * 4);

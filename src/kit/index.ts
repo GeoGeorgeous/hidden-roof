@@ -12,7 +12,7 @@ import { signExit, signNoEntry, signPlate, signVoltage } from './small-signs';
 import { debris, latticeMast, signTower, tankPair } from './steel';
 
 /** The prop kit, in picker order. Pickups are added by the editor as their own category. */
-export const KIT: PropDef[] = [
+const KIT: PropDef[] = [
   building,
   halfBlock,
   slab,
