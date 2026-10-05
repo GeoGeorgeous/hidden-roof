@@ -1,4 +1,4 @@
-import { SKYLINE, ATMOS, INK, AUDIO, CAP_ORDER, CAPS, CCTV, DAYLIGHT, DRIPS, FANS, FLICKER, GRADE, LIGHT_SPREAD_MAX, LIGHTMAP, LIGHTS, PICKUP, SMOKE, THUNDER, PLAYER_LIGHT, VOLUMETRICS, WALL_HAND, MARKER, PAINT, PLAYER, PRESSURE, RENDER, SPRAY, VIEWMODEL, HOLD, ROLLER, SPONGE } from '../config';
+import { SKYLINE, ATMOS, INK, AUDIO, CAP_ORDER, CAPS, CCTV, DAYLIGHT, DRIPS, FANS, FLICKER, GRADE, VIGNETTE, LIGHT_SPREAD_MAX, LIGHTMAP, LIGHTS, PICKUP, SMOKE, THUNDER, PLAYER_LIGHT, VOLUMETRICS, WALL_HAND, MARKER, PAINT, PLAYER, PRESSURE, RENDER, SPRAY, VIEWMODEL, HOLD, ROLLER, SPONGE } from '../config';
 
 // Debug panel contents: collapsible sections of live sliders/toggles that write
 // straight into the config objects, plus read-only stats. Each value knows its
@@ -41,6 +41,7 @@ const ROOTS: Record<string, Obj> = {
   LIGHTMAP: LIGHTMAP as unknown as Obj,
   VOLUMETRICS: VOLUMETRICS as unknown as Obj,
   GRADE: GRADE as unknown as Obj,
+  VIGNETTE: VIGNETTE as unknown as Obj,
   DRIPS: DRIPS as unknown as Obj,
   PLAYER_LIGHT: PLAYER_LIGHT as unknown as Obj,
   WALL_HAND: WALL_HAND as unknown as Obj,
@@ -108,7 +109,7 @@ const c = (label: string, path: string[], onChange?: () => void): Item => ({ kin
 const v3 = (label: string, path: string[], min: number, max: number, step: number, onChange?: () => void): Item[] =>
   ['x', 'y', 'z'].map((a, i) => r(`${label} ${a}`, [...path, String(i)], min, max, step, onChange));
 
-const LIGHT_LABELS: Record<string, string> = { wallLamp: 'WALL LAMP', floodlight: 'FLOODLIGHT', neonPink: 'NEON SIGN (PINK)', neonCyan: 'NEON SIGN (CYAN)', billboardLamp: 'BILLBOARD LAMP', lampPost: 'LAMP POST', stringLights: 'STRING LIGHTS', cctv: 'CCTV CAMERA' };
+const LIGHT_LABELS: Record<string, string> = { wallLamp: 'WALL LAMP', floodlight: 'FLOODLIGHT', neonPink: 'NEON SIGN (PINK)', neonCyan: 'NEON SIGN (CYAN)', neonAmber: 'NEON SIGN (AMBER)', billboardLamp: 'BILLBOARD LAMP', lampPost: 'LAMP POST', stringLights: 'STRING LIGHTS', cctv: 'CCTV CAMERA' };
 
 function lightItems(): Item[] {
   const fx = () => live.rebuildLights();
@@ -116,6 +117,7 @@ function lightItems(): Item[] {
   return Object.keys(LIGHTS).flatMap((k) => [
     { kind: 'heading', label: `LIGHT · ${LIGHT_LABELS[k] ?? k}` } as Item,
     c('color', ['LIGHTS', k, 'color'], props),
+    r('color tint (0 = none)', ['LIGHTS', k, 'tint'], 0, 1, 0.05, props),
     ...v3('source offset', ['LIGHTS', k, 'offset'], -1, 1, 0.01, fx),
     ...v3('aim', ['LIGHTS', k, 'dir'], -1, 1, 0.01, props),
     r('intensity', ['LIGHTS', k, 'intensity'], 0, 200, 0.5),
@@ -371,6 +373,7 @@ export function sections(): Section[] {
         c('sky', ['INK', 'sky']),
         c('clouds', ['INK', 'cloud']),
         r('exposure', ['INK', 'exposure'], 0.2, 5, 0.05),
+        r('colored light strength', ['INK', 'tint'], 0, 1, 0.05),
         r('paper above tone', ['INK', 'paperTone'], 0, 1.5, 0.01),
         r('cross-hatch below', ['INK', 'hatchTone'], 0, 1, 0.01),
         r('solid ink below', ['INK', 'blackTone'], 0, 1, 0.01),
@@ -411,6 +414,10 @@ export function sections(): Section[] {
         r('saturation', ['GRADE', 'saturation'], 0, 2, 0.01),
         r('temperature', ['GRADE', 'temperature'], -1, 1, 0.01),
         r('tint', ['GRADE', 'tint'], -1, 1, 0.01),
+        { kind: 'heading', label: 'VIGNETTE' },
+        r('strength', ['VIGNETTE', 'strength'], 0, 1, 0.01),
+        r('starts at (%)', ['VIGNETTE', 'start'], 0, 99, 1),
+        c('color', ['VIGNETTE', 'color']),
       ],
     },
     {

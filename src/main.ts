@@ -35,6 +35,8 @@ import { Audio } from './audio';
 import { Hud } from './hud';
 import { BuildMode } from './build/buildmode';
 import { fetchLevel } from './build/io';
+import { jpFontReady } from './render/ink/jp-font';
+import { staticTextureBytes } from './render/texture-bytes';
 import { DebugPanel } from './debug/panel';
 import { live } from './debug/tuning';
 import { exitGameFullscreen } from './fullscreen';
@@ -159,8 +161,9 @@ live.syncSkyline = syncSkyline;
 build.onLoad = loadLevel;
 
 const levelName = new URLSearchParams(location.search).get('level') ?? 'demo';
-fetchLevel(levelName)
-  .then(loadLevel)
+// Signs measure their text when they are built: wait for the sign font first.
+Promise.all([fetchLevel(levelName), jpFontReady()])
+  .then(([data]) => loadLevel(data))
   .catch((e) => console.error(e));
 
 let lastStride = 0;
@@ -322,6 +325,7 @@ function frame(time: number) {
     bakeMs: baker.stats.ms,
   });
   live.player = { position: player.position, velocity: player.velocity, state: player.fly ? 'flying' : player.onLadder ? 'on ladder' : player.crouched ? 'crouched' : player.onGround ? 'grounded' : 'airborne' };
+  hud.setPerf({ fps, frameMs, calls, triangles, textureBytes: paint.textureBytes + baker.stats.textureBytes + staticTextureBytes() });
   debug.update();
   requestAnimationFrame(frame);
 }

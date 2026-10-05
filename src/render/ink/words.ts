@@ -1,8 +1,9 @@
 import * as THREE from 'three';
-import type { UvRect } from './glyphs';
+import type { UvRect } from './uv-rect';
+import { JP_FAMILY } from './jp-font';
 
 // Real words for small signs (exit, high voltage, name plates), unlike the
-// made-up lettering of the big ones (glyphs.ts). Each sign's own text (typed
+// wide panels of the big ones (panel-text.ts). Each sign's own text (typed
 // in build mode, saved in the level) gets a 64 px row the first time it's
 // used: ink on paper, or paper on ink. Drawn like sign lettering: straight
 // from the texture, not lit (LETTERS in ink/tone.ts).
@@ -13,7 +14,7 @@ const ROWS = 32;
 const INK = '#141416';
 const PAPER = '#f2efe6';
 const SIZE = ROW * 0.72;
-const font = (px: number) => `bold ${px}px Impact, 'Arial Narrow', sans-serif`;
+const font = (px: number) => `bold ${px}px Impact, 'Arial Narrow', ${JP_FAMILY}`;
 /** Space around a word, in rows (fractions of its height). */
 const PAD = 0.35;
 /** Longest text a sign takes. */

@@ -85,6 +85,16 @@ canvas {
   right: 30px;
 }
 
+/* Performance numbers, bottom left, no heading. */
+.perf {
+  position: absolute;
+  left: 30px;
+  bottom: 26px;
+  line-height: 1.6;
+  white-space: pre;
+  font-variant-numeric: tabular-nums;
+}
+
 /* White, inverting what's under it: white over ink and night, dark over paper, the opposite color over paint. */
 .crosshair {
   --size: 14px;

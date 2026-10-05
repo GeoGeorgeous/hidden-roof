@@ -1,12 +1,12 @@
 import * as THREE from 'three';
 import type { Facade } from '../render/ink/facade';
-import type { UvRect } from '../render/ink/glyphs';
+import type { UvRect } from '../render/ink/uv-rect';
 
 // Merged geometry for the city around the level, in chunks (so the camera
 // culls what's out of view and draws near chunks first), all drawn with the
 // one surface material. City
 // geometry only stores what it uses (position, normal, tint, facade, and for
-// signs the lettering UVs: CityMesh(true), drawn with the glyph atlas); the
+// signs the lettering UVs: CityMesh(true), drawn with the city text atlas); the
 // attributes the surface shader also reads (paint and base UVs, swing, baked
 // light...) point at shared all-zero buffers, uploaded once for every chunk.
 
@@ -35,7 +35,7 @@ export class CityMesh {
   /** With `withUv`, every quad maps the lettering rect set by `letters` (signs). */
   constructor(private withUv = false) {}
 
-  /** Lettering (glyph atlas rect) for the sign faces added next. */
+  /** Lettering (city text atlas rect) for the sign faces added next. */
   letters(rect: UvRect) {
     this.rect = rect;
     return this;

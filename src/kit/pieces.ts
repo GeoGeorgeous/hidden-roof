@@ -2,7 +2,7 @@ import type { TexName } from '../materials';
 import type { Axis, BoxFace } from '../surfaces';
 import type { LightKind } from '../config';
 import type { Facade } from '../render/ink/facade';
-import type { UvRect } from '../render/ink/glyphs';
+import type { UvRect } from '../render/ink/uv-rect';
 
 // A prop is described as a list of pieces in prop-local space (origin at the
 // bottom, front facing -z). Visuals, colliders and climb volumes are all
@@ -22,7 +22,7 @@ export interface Mat {
   flicker?: number;
   /** Facade bands drawn on its walls (render/ink/facade.ts FACADES). */
   facade?: Facade;
-  /** Sign lettering: box faces show this glyph atlas rect (render/ink/glyphs.ts signRect; use tex 'glyphs', tile 1). */
+  /** Sign lettering: box faces show this rect of a lettering atlas (tex 'words', 'neon' or 'signs', tile 1; render/ink/*-text.ts, words.ts). */
   letters?: UvRect;
 }
 
@@ -126,6 +126,8 @@ export interface LightPiece {
   dir?: V3;
   /** Neon flicker seed (1+), the same as its tubes' Mat.flicker. */
   flicker?: number;
+  /** Fraction of LIGHTS[kind].intensity this lamp gives (default 1): a long source is several lamps that share one intensity. */
+  share?: number;
   /** Mirror LIGHTS[kind] offset and aim across x (the second face of a two-sided sign). */
   mirrorX?: boolean;
   /** Fixed glow sprite positions (lens centers); default: one at the emitter. */
@@ -184,9 +186,9 @@ export class Parts {
     this.list.push({ k: 'box', min, max, mat, paint: o.paint ?? 'auto', collide: o.collide ?? true, skip: o.skip, swing: this.swing });
   }
 
-  /** Small decor box (never paintable). */
+  /** Decor box: paintable like any box piece unless it is tiny (PAINT.minFaceSide / minFaceArea). */
   detail(min: V3, max: V3, mat: Mat, collide = true) {
-    this.box(min, max, mat, { paint: false, collide });
+    this.box(min, max, mat, { collide });
   }
 
   cyl(base: V3, axis: Axis, len: number, r: number, mat: Mat, o: { r2?: number; paint?: Paint; collide?: boolean; seg?: number } = {}) {

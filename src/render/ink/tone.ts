@@ -53,6 +53,8 @@ export const inkUniforms = {
   uVoid: { value: new THREE.Vector2() },
   /** paint light multiplier, minimum, hatch strength. */
   uPaintInk: { value: new THREE.Vector3() },
+  /** Colored light: strength of the tint (INK.tint). */
+  uInkTint: { value: INK.tint },
   /** Fade into paper per meter (ATMOS.fogDensity). */
   uFade: { value: ATMOS.fogDensity },
 };
@@ -69,6 +71,7 @@ export function syncInkUniforms() {
   u.uVoid.value.set(INK.voidTop, Math.min(INK.voidBottom, INK.voidTop - 1));
   u.uPaintInk.value.set(INK.paintLight, INK.paintMin, INK.paintHatch);
   u.uFade.value = ATMOS.fogDensity;
+  u.uInkTint.value = INK.tint;
 }
 syncInkUniforms();
 
@@ -83,6 +86,7 @@ uniform vec2 uHatch;
 uniform vec2 uVoid;
 uniform vec3 uPaintInk;
 uniform float uFade;
+uniform float uInkTint;
 
 uniform highp sampler3D uInkNoise;
 // Value noise in 0..1, one lattice cell per unit (a tiling 3D texture, see noiseTexture).
@@ -180,12 +184,20 @@ export const INK_FRAG = /* glsl */ `
   vec4 grime = inkGrime(inkP, vWorldN, 1.0 - step(0.5, vFacade.x));
   float dirt = max(max(hatch.y * grime.x, hatch.x * grime.y), max(max(hatch.x, hatch.y) * grime.z * 0.8, grime.w));
   vec3 col = mix(uPaper, uInkColor, max(inkCover(inkFade(tone, keep), hatch, inkP), dirt * smoothstep(0.35, 0.65, keep)));
+  // Colored lamps (LIGHTS[kind].tint): their hue, relative to the light on the surface, tints paper and ink alike.
+  col *= 1.0 + clamp(bakedChroma / max(light, 0.15), -0.8, 0.8) * uInkTint;
 #ifdef LETTERS
-  // Sign lettering skips the light: ink where the glyph atlas is dark, paper
+  // Sign lettering skips the light: ink where the lettering atlas is dark, paper
   // elsewhere, so a sign reads in any light (shadow, night). Fades with distance.
   float glyph = dot(baseTex.rgb, ${LUM});
   float gw = max(fwidth(glyph), 1e-3);
   col = mix(uPaper, uInkColor, max((1.0 - smoothstep(0.5 - gw, 0.5 + gw, glyph)) * smoothstep(0.35, 0.65, keep), inkSink(inkP)));
+  // Neon lettering (emissive, flickering): takes the hue of its lamp (vTint, like the walls it lights), and a dip in the tube turns it off.
+  if (vEmissiveV > 0.0) {
+    float tl = max(dot(vTint, ${LUM}), 0.02);
+    col *= 1.0 + clamp((vTint - tl) / tl, -0.8, 0.8) * uInkTint * 2.0;
+    col = mix(uInkColor, col, smoothstep(0.35, 0.6, vEmissiveV));
+  }
 #endif
   // Paint: its own color, lit but never black; hatched a little in the dark.
   float pl = clamp(light * uPaintInk.x, uPaintInk.y, 1.0);

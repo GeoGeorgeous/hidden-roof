@@ -202,6 +202,9 @@ const HINTS: Record<string, string> = {
   'GRADE.saturation': 'Color saturation. 0 = gray, 1 = neutral.',
   'GRADE.temperature': 'White balance: warm (+) or cool (-).',
   'GRADE.tint': 'White balance: magenta (+) or green (-).',
+  'VIGNETTE.strength': 'How dark the screen edge gets, at the corners. 0 = no vignette.',
+  'VIGNETTE.start': 'Where the darkening starts, as a percentage of the way from the center to the corners. Lower = a wider vignette.',
+  'VIGNETTE.color': 'The color the edge darkens to.',
   // Sound
   'AUDIO.masterGain': 'Overall volume.',
   'AUDIO.rainGain': 'Rain sound at full rain density.',

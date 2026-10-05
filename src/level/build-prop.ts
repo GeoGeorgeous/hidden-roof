@@ -5,7 +5,7 @@ import type { PaintSurface, PaintSystem } from '../painting';
 import type { Ladder } from '../player';
 import { addBox, addCylinder, boxSurface, cylinderSurface, SurfaceBuilder, type Axis, type BoxFace, type SurfaceGeometry } from '../surfaces';
 import { M, type BoxPiece, type CylPiece, type Mat, type Piece, type Swing, type V3 } from '../kit/pieces';
-import { LIGHTS, type LightKind } from '../config';
+import { LIGHTS, PAINT, type LightKind } from '../config';
 import { setHex } from '../hex-color';
 import type { Track } from '../render/cctv-track';
 import type { Facade } from '../render/ink/facade';
@@ -45,6 +45,8 @@ export interface LightAnchor {
   color: THREE.Color;
   /** Fixed glow positions, or null: one glow at `pos`. */
   glows: THREE.Vector3[] | null;
+  /** Fraction of LIGHTS[kind].intensity this lamp gives (1 unless it is one of several along a long source). */
+  share: number;
   /** Neon flicker seed (0 = steady). */
   flicker: number;
   /** CCTV light: turns with its head and only shines while it follows the player (render/cctv-track.ts). */
@@ -124,8 +126,9 @@ function rotateFace(f: BoxFace, r: number): BoxFace {
 function boxIsPaintable(p: BoxPiece) {
   if (p.paint !== 'auto') return p.paint;
   const d = [p.max[0] - p.min[0], p.max[1] - p.min[1], p.max[2] - p.min[2]];
+  if (p.mat.emissive || p.mat.alpha) return false; // glowing tubes and lenses, chain-link
   const pairs = [[d[0], d[1]], [d[0], d[2]], [d[1], d[2]]];
-  return pairs.some(([a, b]) => Math.min(a, b) >= 0.5 && a * b >= 1.2);
+  return pairs.some(([a, b]) => Math.min(a, b) >= PAINT.minFaceSide && a * b >= PAINT.minFaceArea);
 }
 function cylIsPaintable(p: CylPiece) {
   if (p.paint !== 'auto') return p.paint;
@@ -180,6 +183,7 @@ export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint =
     const c = new THREE.Color(mat.tint ?? '#ffffff');
     e.b.tint = [c.r, c.g, c.b];
     e.b.emissive = mat.emissive ?? 0;
+    e.b.flicker = mat.flicker ?? 0;
     e.b.facade = mat.facade ?? NO_FACADE;
     e.b.letters = mat.letters ?? null;
     return e.b;
@@ -231,7 +235,7 @@ export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint =
     } else if (p.k === 'light') {
       const sw = p.swing?.track ? p.swing : undefined;
       const track: Track | null = sw ? { pivot: at(sw.pivot), fwd: new THREE.Vector2(restFacing.x, restFacing.z), amp: sw.amp, speed: (Math.PI * 2) / sw.period, phase: sw.phase ?? 0 } : null;
-      const a: LightAnchor = { kind: p.kind, base: at(p.pos), rot: r, aim: p.dir ?? null, mirrorX: !!p.mirrorX, pos: new THREE.Vector3(), dir: new THREE.Vector3(), color: new THREE.Color(), glows: p.glows?.map(at) ?? null, flicker: p.flicker ?? 0, track, level: track ? 0 : 1 };
+      const a: LightAnchor = { kind: p.kind, base: at(p.pos), rot: r, aim: p.dir ?? null, mirrorX: !!p.mirrorX, pos: new THREE.Vector3(), dir: new THREE.Vector3(), color: new THREE.Color(), glows: p.glows?.map(at) ?? null, share: p.share ?? 1, flicker: p.flicker ?? 0, track, level: track ? 0 : 1 };
       syncAnchor(a);
       out.lights.push(a);
     } else if (p.k === 'emitter') {

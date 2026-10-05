@@ -1,10 +1,11 @@
+import { VIGNETTE } from './config';
 import { isFullscreen } from './fullscreen';
 import { SettingsPage } from './settings-page';
 import type { SettingSection } from './settings';
 
 // Body-cam style HUD: vignette, corner brackets, REC indicator with elapsed
 // time, clock, crosshair, the PSI gauge, cap and color tags beside the tool in
-// hand, and the start/pause menu.
+// hand, performance numbers, and the start/pause menu.
 // The tool readout lives in inventory/hotbar.ts, the debug panel in debug/panel.ts.
 
 const CONTROLS = [
@@ -39,6 +40,11 @@ export class Hud {
   private rec: HTMLElement;
   private clock: HTMLElement;
   private crosshair: HTMLElement;
+  private perf: HTMLElement;
+  private perfShown = '';
+  private perfAt = 0;
+  private vignette: HTMLElement;
+  private vignetteShown = '';
   private capTag: HTMLElement;
   private capTagUntil = 0;
   private colorTag: HTMLElement;
@@ -66,6 +72,7 @@ export class Hud {
       <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
       <div class="rec"><i></i><span class="rec-time">REC 00:00:00</span><div class="dim">CAM 01 · ROOFTOP</div></div>
       <div class="clock"></div>
+      <div class="perf"></div>
       <div class="cap-tag" hidden></div>
       <div class="cap-tag color-tag" hidden></div>
       <div class="cap-tag psi-gauge"><span>PSI</span><div class="line"><i></i></div><b></b></div>
@@ -86,10 +93,13 @@ export class Hud {
     // Before the HUD, so the pause menu still covers it.
     this.crosshair = document.createElement('div');
     this.crosshair.className = 'crosshair';
+    this.crosshair.hidden = true;
     document.body.insertBefore(this.crosshair, root);
     this.overlay = root.querySelector('.overlay')!;
     this.status = root.querySelector('.status')!;
     this.exitFs = root.querySelector('.exit-fs')!;
+    this.vignette = root.querySelector('.vignette')!;
+    this.perf = root.querySelector('.perf')!;
     this.rec = root.querySelector('.rec-time')!;
     this.clock = root.querySelector('.clock')!;
     this.capTag = root.querySelector('.cap-tag')!;
@@ -126,6 +136,8 @@ export class Hud {
       this.openSettings(false);
     }
     this.overlay.hidden = locked;
+    // No cursor while paused (ESC), the pause menu or the debug panel has the mouse.
+    this.crosshair.hidden = !locked;
     this.overlay.classList.toggle('compact', debugOpen);
     this.syncMenu();
   }
@@ -204,7 +216,36 @@ export class Hud {
     place(this.colorTag, this.colorTagUntil, this.capTag.hidden ? 0 : COLOR_TAG_OFFSET);
   }
 
+  /** The performance readout, bottom left: written a few times a second. */
+  setPerf(p: { fps: number; frameMs: number; calls: number; triangles: number; textureBytes: number }) {
+    const now = performance.now();
+    if (now - this.perfAt < 250) return;
+    this.perfAt = now;
+    const mb = p.textureBytes / 1048576;
+    const text = [
+      `fps · ${Math.round(p.fps)} (${p.frameMs.toFixed(1)} ms cpu)`,
+      `draw calls · ${p.calls}`,
+      `triangles · ${p.triangles.toLocaleString('en-US')}`,
+      `tex memory · ${mb < 10 ? mb.toFixed(1) : Math.round(mb)} MB`,
+    ].join('\n');
+    if (text === this.perfShown) return;
+    this.perfShown = text;
+    this.perf.textContent = text;
+  }
+
+  /** The vignette gradient from VIGNETTE (live in F3), rewritten only when it changed. */
+  private syncVignette() {
+    const key = `${VIGNETTE.strength}|${VIGNETTE.start}|${VIGNETTE.color}`;
+    if (key === this.vignetteShown) return;
+    this.vignetteShown = key;
+    const start = Math.min(99, Math.max(0, VIGNETTE.start));
+    const shade = (a: number) => `color-mix(in srgb, ${VIGNETTE.color} ${Math.round(Math.min(1, Math.max(0, a)) * 100)}%, transparent)`;
+    // Like the fixed gradient it replaces: a third of the strength a bit over half way out.
+    this.vignette.style.background = `radial-gradient(ellipse at center, transparent ${start}%, ${shade(VIGNETTE.strength / 3)} ${start + (100 - start) * 0.55}%, ${shade(VIGNETTE.strength)} 100%)`;
+  }
+
   update() {
+    this.syncVignette();
     const s = Math.floor((performance.now() - this.start) / 1000);
     if (s === this.lastSecond) return;
     this.lastSecond = s;

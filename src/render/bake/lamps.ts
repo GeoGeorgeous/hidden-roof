@@ -32,6 +32,9 @@ export function makeLamp(a: LightAnchor, owner: number, slot: number): Lamp {
   syncAnchor(a);
   const s = LIGHTS[a.kind];
   const angle = Math.min(s.spread, LIGHT_SPREAD_MAX);
+  // Only the part of the color that `tint` lets through is hue; the rest is its brightness as a gray.
+  const lum = 0.2126 * a.color.r + 0.7152 * a.color.g + 0.0722 * a.color.b;
+  const t = s.tint;
   return {
     x: a.pos.x,
     y: a.pos.y,
@@ -39,9 +42,9 @@ export function makeLamp(a: LightAnchor, owner: number, slot: number): Lamp {
     dx: a.dir.x,
     dy: a.dir.y,
     dz: a.dir.z,
-    r: a.color.r * s.intensity,
-    g: a.color.g * s.intensity,
-    b: a.color.b * s.intensity,
+    r: (lum + (a.color.r - lum) * t) * s.intensity * a.share,
+    g: (lum + (a.color.g - lum) * t) * s.intensity * a.share,
+    b: (lum + (a.color.b - lum) * t) * s.intensity * a.share,
     range: s.range,
     cosOuter: Math.cos(angle),
     cosInner: Math.cos(angle * (1 - s.softness)),
