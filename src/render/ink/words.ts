@@ -14,7 +14,8 @@ import { INK, PAPER, TextAtlas } from './text-atlas';
 const W = 1024;
 const ROW = 64;
 const SIZE = ROW * 0.72;
-const font = (px: number) => `900 ${px}px Impact, 'Arial Narrow', ${JP_FAMILY}`;
+/** The bundled font only (jp-font.ts): signs look the same on every machine. */
+const font = (px: number) => `900 ${px}px ${JP_FAMILY}`;
 /** Space around a word, in rows (fractions of its height). */
 const PAD = 0.35;
 /** Longest text a sign takes. */
@@ -52,7 +53,7 @@ function rowOf(text: string, inverted: boolean) {
     // Long texts shrink to fit the row.
     const px = Math.min(SIZE, (SIZE * (W - 2 * PAD * ROW)) / Math.max(1, textWidth(text, SIZE)));
     const width = textWidth(text, px);
-    // A wider font than the table's (a fallback) shrinks to fit the width.
+    // A fallback wider than the table (before the bundled font loads, or if it fails) shrinks to fit the width.
     ctx.font = font(px);
     ctx.font = font(px * Math.min(1, width / Math.max(1, ctx.measureText(text).width)));
     ctx.fillStyle = inverted ? PAPER : INK;
