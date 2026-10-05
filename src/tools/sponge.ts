@@ -13,9 +13,6 @@ import { SpongeModel } from './sponge-model';
 // between frames, like the marker. Works on any paint (can, marker, roller, runs).
 // The mouse wheel changes the patch size (SPONGE.radiusMin..radiusMax, see wheel-size.ts).
 
-/** Held still, it keeps scrubbing the same spot this often (per s), whatever the frame rate. */
-const STILL_RATE = 20;
-
 export class SpongeTool {
   readonly model = new SpongeModel();
   private stroke: StrokeSweep;
@@ -43,10 +40,10 @@ export class SpongeTool {
     this.model.update(dt, camera, active, scrubbing);
   }
 
-  /** Scrubs from last frame's aim to this frame's (held still: at STILL_RATE); false if no surface was in reach. */
+  /** Scrubs from last frame's aim to this frame's (held still: at SPONGE.stillRate); false if no surface was in reach. */
   private scrub(dt: number, camera: THREE.Camera, eye: THREE.Vector3) {
     // Steps half a patch apart at full reach.
-    const spec = { reach: SPONGE.reach, rayStep: (SPONGE.radius * 0.5) / SPONGE.reach, maxRays: 24, stillRate: STILL_RATE };
+    const spec = { reach: SPONGE.reach, rayStep: (SPONGE.radius * 0.5) / SPONGE.reach, maxRays: SPONGE.maxRays, stillRate: SPONGE.stillRate };
     return this.stroke.sweep(dt, camera, eye, spec, (hit, surface, fresh) => {
       if (fresh && surface) this.paint.stamp(surface, hit.uv!, hit.faceIndex!, SPONGE.radius, SPONGE.strength, null, SPONGE.softness);
     }).hit;
