@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "smoke": "node scripts/smoke.mjs",
     "golden": "node scripts/golden-paint.mjs",
-    "check": "npm run typecheck && npm run smoke && knip",
+    "test": "node scripts/paint-file.test.mjs",
+    "check": "npm run typecheck && npm test && npm run smoke && knip",
     "audit": "knip; jscpd src"
   },
   "dependencies": {
