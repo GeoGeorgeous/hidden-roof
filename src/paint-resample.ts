@@ -14,7 +14,7 @@ export function resampleAtlas(from: SurfaceGeometry, src: Uint8Array, to: Surfac
 }
 
 /** Does the face (with its 1-texel padding) hold any paint? */
-function painted(src: Uint8Array, w: number, r: Rect) {
+export function painted(src: Uint8Array, w: number, r: Rect) {
   for (let y = r.y - 1; y <= r.y + r.h; y++) {
     for (let i = (y * w + r.x - 1) * 4 + 3, end = (y * w + r.x + r.w) * 4 + 3; i <= end; i += 4) if (src[i]) return true;
   }
