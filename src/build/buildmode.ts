@@ -37,8 +37,8 @@ const PICKUP_SPEC: PlaceSpec = { place: 'floor', snap: 0.5 };
 
 export class BuildMode {
   active = false;
-  /** Main provides these so saving/loading includes pickups. */
-  getLevelData: () => LevelData;
+  /** Main provides these, so saving and loading include what the level file holds besides props (pickups, city overrides). */
+  getLevelData!: () => LevelData;
   onLoad: (data: LevelData) => void = () => {};
 
   private rot = 0;
@@ -70,7 +70,6 @@ export class BuildMode {
     private pickups: Pickups,
     private player: Player,
   ) {
-    this.getLevelData = () => ({ ...level.toJSON(), pickups: pickups.toJSON() });
     this.ghost = new Ghost(scene);
     this.grid = new CursorGrid(scene);
     this.spawnMarker = new SpawnMarker(scene, PLAYER.height, PLAYER.radius);

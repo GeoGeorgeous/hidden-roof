@@ -166,6 +166,7 @@ live.rebuildSponge = () => {
 };
 live.syncSkyline = syncSkyline;
 build.onLoad = loadLevel;
+build.getLevelData = () => ({ ...level.toJSON(), pickups: pickups.toJSON(), ...(Object.keys(skylineSettings).length ? { skyline: skylineSettings } : {}) });
 
 const levelName = new URLSearchParams(location.search).get('level') ?? 'demo';
 // Signs measure their text when they are built: wait for the sign font first.
