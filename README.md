@@ -92,14 +92,15 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
 
 ```json
 {
-  "version": 2,
+  "version": 3,
   "spawn": { "pos": [0, 0, 5], "yaw": 0 },
-  "props": [{ "type": "building", "pos": [-7, 0, -5], "rot": 0 }, { "type": "slab", "pos": [-7, 4, -5] }],
+  "props": [{ "id": 1, "type": "building", "pos": [-7, 0, -5], "rot": 0 }, { "id": 2, "type": "slab", "pos": [-7, 4, -5] }],
   "pickups": [{ "kind": "color:red", "pos": [-3, 0, 6] }, { "kind": "cap:fat", "pos": [16, 8, -3] }, { "kind": "marker", "pos": [-8, 3, -5] }]
 }
 ```
 
 - `pos` is in meters relative to level 0, so `y` = level × 4 (8 is level 2, -4 is level -1). Props between floors keep their exact height.
+- `id` is the prop's own number, kept through edits: paint saves find their surfaces by it. Build mode gives new props the next free one and writes them all when it saves. Without ids (version 2 files), props are numbered in file order.
 - `rot` is the number of quarter turns.
 - `text` (signs only, optional) is the sign's own text; without it the sign shows its default (EXIT, HIGH VOLTAGE, STAFF ONLY).
 - Pickup kinds:

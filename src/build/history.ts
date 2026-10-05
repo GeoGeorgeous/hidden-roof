@@ -1,5 +1,6 @@
 // Undo stack for the editor (Ctrl+Z). Entries record what was added/removed;
-// undoing a removal re-adds it under a new id, so older entries are remapped.
+// undoing a removal re-adds it, under its old id when that's free (props),
+// else a new one, and older entries are remapped.
 
 export interface HistoryEntry {
   op: 'add' | 'remove';
