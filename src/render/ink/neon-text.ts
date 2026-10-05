@@ -1,6 +1,7 @@
 import type { UvRect } from './uv-rect';
 import { JP_FAMILY } from './jp-font';
 import { INK, PAPER, TextAtlas } from './text-atlas';
+import { fillColumn } from './vertical-text';
 
 // Real vertical text for neon blade signs (kit/neon.ts), in a Japanese font
 // that ships with the game (public/fonts/neon-jp.woff2: Noto Sans JP Black,
@@ -17,8 +18,6 @@ const FACE = 108;
 export const NEON_FACE_ASPECT = FACE / CELL_H;
 /** Longest text a sign takes. */
 export const NEON_MAX_TEXT = 12;
-/** Marks that sit at the top right of their cell in vertical writing (in a horizontal font they sit at the bottom left). */
-const MARKS = '。、．，';
 
 let atlas: TextAtlas | null = null;
 
@@ -44,13 +43,7 @@ export function neonRect(text: string, inverted = false, aspect = NEON_FACE_ASPE
     const px = slot * 0.92;
     ctx.font = `900 ${px}px ${JP_FAMILY}`;
     ctx.fillStyle = inverted ? INK : PAPER;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    const top = y + (CELL_H - slot * chars.length) / 2;
-    chars.forEach((ch, k) => {
-      const mark = MARKS.includes(ch);
-      ctx.fillText(ch, x + CELL_W / 2 + (mark ? px * 0.5 : 0), top + slot * (k + 0.52) - (mark ? px * 0.6 : 0));
-    });
+    fillColumn(ctx, chars, x + CELL_W / 2, y + (CELL_H - slot * chars.length) / 2, slot, px);
   });
   const inset = (CELL_W - Math.min(CELL_W, aspect * CELL_H)) / 2;
   return a.uv(c.x + inset, c.y, c.x + c.w - inset, c.y + c.h);

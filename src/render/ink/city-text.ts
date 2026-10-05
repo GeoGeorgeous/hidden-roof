@@ -1,7 +1,8 @@
-import * as THREE from 'three';
 import type { UvRect } from './uv-rect';
 import { JP_FAMILY, onJpFont } from './jp-font';
-import { ENGLISH, JAPANESE as JAPANESE_TEXTS } from './slogans';
+import { ENGLISH, JAPANESE } from './slogans';
+import { canvasUv, INK, letteringTexture, PAPER } from './text-atlas';
+import { fillColumn } from './vertical-text';
 
 // Real slogans for the signs and billboards of the city (city/rooftops.ts), in
 // the bundled Japanese font (jp-font.ts). One texture, drawn once, read by the
@@ -14,17 +15,7 @@ import { ENGLISH, JAPANESE as JAPANESE_TEXTS } from './slogans';
 // text leaves plain margins, narrower cuts it to a run of its characters.
 
 const ROW = 40;
-const W = 1024;
-const INK = '#141416';
-const PAPER = '#f2efe6';
-/** Cells in a column strip (the longest Japanese phrase). */
-const COL_CELLS = 13;
-
-/** Japanese slogans (slogans.ts), one character per cell. */
-const JAPANESE = JAPANESE_TEXTS.map((t) => Array.from(t));
-
 /** English slogans: drawn in the same font, squeezed to LATIN_WIDTH cells per letter. */
-const LATIN = ENGLISH;
 const LATIN_WIDTH = 0.62;
 
 interface Piece {
@@ -32,33 +23,40 @@ interface Piece {
   /** Width in cells (= how wide a sign that shows it whole, without margins, is). */
   aspect: number;
   latin: boolean;
+  /** Its strip among the rows, and (Japanese only, else -1) among the columns. */
+  row: number;
+  column: number;
 }
 
-const PIECES: Piece[] = [
-  ...JAPANESE.map((chars) => ({ chars, aspect: chars.length, latin: false })),
-  ...LATIN.map((t) => ({ chars: [t], aspect: t.length * LATIN_WIDTH, latin: true })),
-];
+/** Japanese slogans, one character per cell, then the English ones. */
+const JP_PIECES: Piece[] = JAPANESE.map((t, i) => {
+  const chars = Array.from(t);
+  return { chars, aspect: chars.length, latin: false, row: i, column: i };
+});
+const PIECES: Piece[] = [...JP_PIECES, ...ENGLISH.map((t, i) => ({ chars: [t], aspect: t.length * LATIN_WIDTH, latin: true, row: JP_PIECES.length + i, column: -1 }))];
 const N = PIECES.length;
-const COLS = JAPANESE.length;
+const COLS = JP_PIECES.length;
+/** Cells in a column strip: the longest Japanese phrase. */
+const COL_CELLS = Math.max(...JP_PIECES.map((p) => p.chars.length));
+/** Wide enough for every column strip, in both variants. */
+const W = Math.max(1024, 2 * COLS * ROW);
 /** Rows (every piece, paper then ink) take the top of the atlas, the columns (every Japanese piece, paper then ink) the bottom. */
 const COLUMNS_Y = 2 * N * ROW;
 const H = COLUMNS_Y + COL_CELLS * ROW;
-/** Characters that sit at the top right of their cell in vertical writing. */
-const MARKS = '。、';
 
-let atlas: THREE.CanvasTexture | null = null;
+let atlas: ReturnType<typeof letteringTexture> | null = null;
 
 function draw(ctx: CanvasRenderingContext2D) {
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
   for (const variant of [0, 1]) {
     const bg = variant ? INK : PAPER;
     const fg = variant ? PAPER : INK;
-    PIECES.forEach((p, i) => {
-      const y = (variant * N + i) * ROW;
+    for (const p of PIECES) {
+      const y = (variant * N + p.row) * ROW;
       ctx.fillStyle = bg;
       ctx.fillRect(0, y, W, ROW);
       ctx.fillStyle = fg;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
       if (p.latin) {
         ctx.font = `900 ${ROW * 0.74}px ${JP_FAMILY}`;
         const sx = Math.min(1.4, Math.max(0.7, (p.aspect * ROW * 0.94) / Math.max(1, ctx.measureText(p.chars[0]).width)));
@@ -72,19 +70,15 @@ function draw(ctx: CanvasRenderingContext2D) {
         const x0 = W / 2 - (p.chars.length * ROW) / 2;
         p.chars.forEach((c, k) => ctx.fillText(c, x0 + (k + 0.5) * ROW, y + ROW * 0.54));
       }
-    });
-    JAPANESE.forEach((chars, j) => {
-      const x = (variant * COLS + j) * ROW;
+    }
+    for (const p of JP_PIECES) {
+      const x = (variant * COLS + p.column) * ROW;
       ctx.fillStyle = bg;
       ctx.fillRect(x, COLUMNS_Y, ROW, COL_CELLS * ROW);
       ctx.fillStyle = fg;
       ctx.font = `900 ${ROW * 0.8}px ${JP_FAMILY}`;
-      const top = COLUMNS_Y + ((COL_CELLS - chars.length) * ROW) / 2;
-      chars.forEach((c, k) => {
-        const mark = MARKS.includes(c);
-        ctx.fillText(c, x + ROW / 2 + (mark ? ROW * 0.4 : 0), top + (k + 0.52) * ROW - (mark ? ROW * 0.45 : 0));
-      });
-    });
+      fillColumn(ctx, p.chars, x + ROW / 2, COLUMNS_Y + ((COL_CELLS - p.chars.length) * ROW) / 2, ROW, ROW * 0.8);
+    }
   }
 }
 
@@ -96,18 +90,15 @@ export function cityTextAtlas() {
   canvas.height = H;
   const ctx = canvas.getContext('2d')!;
   draw(ctx);
-  atlas = new THREE.CanvasTexture(canvas);
-  atlas.colorSpace = THREE.SRGBColorSpace;
-  atlas.anisotropy = 4;
+  const t = (atlas = letteringTexture(canvas));
   onJpFont(() => {
     draw(ctx);
-    atlas!.needsUpdate = true;
+    t.needsUpdate = true;
   });
-  return atlas;
+  return t;
 }
 
-/** [u0, v0, u1, v1] of a canvas rect (canvas rows run down, texture v runs up). */
-const rect = (x0: number, y0: number, x1: number, y1: number): UvRect => [x0 / W, 1 - y1 / H, x1 / W, 1 - y0 / H];
+const rect = (x0: number, y0: number, x1: number, y1: number): UvRect => canvasUv(x0, y0, x1, y1, W, H);
 
 /**
  * Lettering for a sign `aspect` (width / height) in shape: a phrase that fits
@@ -118,37 +109,35 @@ const rect = (x0: number, y0: number, x1: number, y1: number): UvRect => [x0 / W
  */
 export function cityTextRect(a: number, b: number, aspect: number, vertical: boolean, inverted: boolean, latin = false): UvRect {
   const variant = inverted ? 1 : 0;
-  const all = PIECES.map((p, i) => ({ p, i }));
   const wantLatin = latin && !vertical;
-  let fits = all.filter(({ p }) => p.latin === wantLatin && p.aspect <= aspect);
-  if (!fits.length && wantLatin) fits = all.filter(({ p }) => !p.latin && p.aspect <= aspect);
+  let fits = PIECES.filter((p) => p.latin === wantLatin && p.aspect <= aspect);
+  if (!fits.length && wantLatin) fits = PIECES.filter((p) => !p.latin && p.aspect <= aspect);
   if (fits.length) {
     // Prefer the longer phrases that fit: a sign shows a whole sentence, with plain margins only if it must.
-    const close = fits.filter(({ p }) => p.aspect >= aspect * 0.6);
+    const close = fits.filter((p) => p.aspect >= aspect * 0.6);
     const pool = close.length ? close : fits;
-    const { p, i } = pool[Math.floor(a * pool.length)];
+    const p = pool[Math.floor(a * pool.length)];
     if (vertical) {
-      const j = JAPANESE.indexOf(p.chars);
       const cells = Math.min(aspect, COL_CELLS);
       const mid = COLUMNS_Y + (COL_CELLS * ROW) / 2;
-      const x = (variant * COLS + j) * ROW;
+      const x = (variant * COLS + p.column) * ROW;
       return rect(x, mid - (cells * ROW) / 2, x + ROW, mid + (cells * ROW) / 2);
     }
-    const y = (variant * N + i) * ROW;
+    const y = (variant * N + p.row) * ROW;
     const half = (Math.min(aspect, W / ROW) * ROW) / 2;
     return rect(W / 2 - half, y, W / 2 + half, y + ROW);
   }
   // Nothing short enough: a run of characters from one Japanese phrase.
-  const j = Math.floor(a * JAPANESE.length);
-  const chars = JAPANESE[j];
+  const p = JP_PIECES[Math.floor(a * JP_PIECES.length)];
+  const chars = p.chars;
   const count = Math.max(1, Math.min(chars.length, Math.round(aspect)));
   const start = Math.floor(b * (chars.length - count + 1));
   if (vertical) {
-    const x = (variant * COLS + j) * ROW;
+    const x = (variant * COLS + p.column) * ROW;
     const y0 = COLUMNS_Y + ((COL_CELLS - chars.length) * ROW) / 2 + start * ROW;
     return rect(x, y0, x + ROW, y0 + count * ROW);
   }
-  const y = (variant * N + j) * ROW;
+  const y = (variant * N + p.row) * ROW;
   const x0 = W / 2 - (chars.length * ROW) / 2 + start * ROW;
   return rect(x0, y, x0 + count * ROW, y + ROW);
 }
