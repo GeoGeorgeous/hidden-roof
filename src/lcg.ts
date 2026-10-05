@@ -6,7 +6,7 @@ export function lcg(seed: number) {
   };
 }
 
-/** Random source for everything that decides paint (spray, sputter, drips): Math.random in play, seeded in the golden paint test. */
+/** Random source for everything that decides paint (spray, sputter, can jitter, drips): Math.random in play, seeded in the golden paint test. */
 export let paintRandom: () => number = Math.random;
 
 export function seedPaintRandom(seed: number) {
