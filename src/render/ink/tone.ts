@@ -1,6 +1,7 @@
 import * as THREE from 'three';
-import { ATMOS, INK } from '../../config';
+import { ATMOS, INK, INK_TINT } from '../../config';
 import { lcg } from '../../lcg';
+import { LUM_GLSL } from '../light-tint';
 
 // The ink look in the surface shader: every lit pixel gets a tone (how much
 // light reaches it x how dark its material is), and the tone picks the ink:
@@ -15,7 +16,9 @@ import { lcg } from '../../lcg';
 // Then distance (and the low clouds) fade the ink into paper, and the city
 // below INK.voidTop sinks into black. Paint keeps its color (see INK_FRAG).
 
-const LUM = 'vec3(0.2126, 0.7152, 0.0722)';
+const LUM = LUM_GLSL;
+/** A number as a GLSL float literal. */
+const glslFloat = (n: number) => (Number.isInteger(n) ? `${n}.0` : String(n));
 
 /**
  * Value noise for the shader as a small tiling 3D texture: one filtered fetch
@@ -87,6 +90,9 @@ uniform vec2 uVoid;
 uniform vec3 uPaintInk;
 uniform float uFade;
 uniform float uInkTint;
+// Hue of the lamp light on this pixel, for INK.tint: zero unless a chunk
+// before INK_FRAG sets it (the surface shader's bake, render/bake/glsl.ts).
+vec3 inkChroma = vec3(0.0);
 
 uniform highp sampler3D uInkNoise;
 // Value noise in 0..1, one lattice cell per unit (a tiling 3D texture, see noiseTexture).
@@ -185,17 +191,17 @@ export const INK_FRAG = /* glsl */ `
   float dirt = max(max(hatch.y * grime.x, hatch.x * grime.y), max(max(hatch.x, hatch.y) * grime.z * 0.8, grime.w));
   vec3 col = mix(uPaper, uInkColor, max(inkCover(inkFade(tone, keep), hatch, inkP), dirt * smoothstep(0.35, 0.65, keep)));
   // Colored lamps (LIGHTS[kind].tint): their hue, relative to the light on the surface, tints paper and ink alike.
-  col *= 1.0 + clamp(bakedChroma / max(light, 0.15), -0.8, 0.8) * uInkTint;
+  col *= 1.0 + clamp(inkChroma / max(light, ${glslFloat(INK_TINT.minLight)}), -${glslFloat(INK_TINT.max)}, ${glslFloat(INK_TINT.max)}) * uInkTint;
 #ifdef LETTERS
   // Sign lettering skips the light: ink where the lettering atlas is dark, paper
   // elsewhere, so a sign reads in any light (shadow, night). Fades with distance.
-  float glyph = dot(baseTex.rgb, ${LUM});
-  float gw = max(fwidth(glyph), 1e-3);
-  col = mix(uPaper, uInkColor, max((1.0 - smoothstep(0.5 - gw, 0.5 + gw, glyph)) * smoothstep(0.35, 0.65, keep), inkSink(inkP)));
+  float letter = dot(baseTex.rgb, ${LUM});
+  float gw = max(fwidth(letter), 1e-3);
+  col = mix(uPaper, uInkColor, max((1.0 - smoothstep(0.5 - gw, 0.5 + gw, letter)) * smoothstep(0.35, 0.65, keep), inkSink(inkP)));
   // Neon lettering (emissive, flickering): takes the hue of its lamp (vTint, like the walls it lights), and a dip in the tube turns it off.
   if (vEmissiveV > 0.0) {
-    float tl = max(dot(vTint, ${LUM}), 0.02);
-    col *= 1.0 + clamp((vTint - tl) / tl, -0.8, 0.8) * uInkTint * 2.0;
+    float tl = max(dot(vTint, ${LUM}), ${glslFloat(INK_TINT.neonMinLight)});
+    col *= 1.0 + clamp((vTint - tl) / tl, -${glslFloat(INK_TINT.max)}, ${glslFloat(INK_TINT.max)}) * uInkTint * ${glslFloat(INK_TINT.neonBoost)};
     col = mix(uInkColor, col, smoothstep(0.35, 0.6, vEmissiveV));
   }
 #endif

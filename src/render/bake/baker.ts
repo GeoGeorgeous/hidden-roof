@@ -3,7 +3,7 @@ import { ATMOS, LIGHTMAP, LIGHTS, PAINT } from '../../config';
 import type { BuiltProp } from '../../level/build-prop';
 import { neonFlicker } from '../flicker';
 import { bakeUniforms } from './glsl';
-import { makeLamp, type Lamp } from './lamps';
+import { makeLamps, type Lamp } from './lamps';
 import { Occluders } from './occluders';
 import { lampSpheres, reaches, shadowCones, type Reach } from './reach';
 import { bakeDecor, bakeSurface, dropReceiver, filterReceiver, receiverBytes, type Receiver } from './receivers';
@@ -185,7 +185,7 @@ export class LightBaker {
       occluders.push({ owner: o.id, boxes: o.built.occluders });
       for (const a of o.built.lights) {
         if (a.track) continue;
-        this.lamps.push(makeLamp(a, o.id, a.flicker ? this.slotOf(a.flicker) : 0));
+        this.lamps.push(...makeLamps(a, o.id, a.flicker ? this.slotOf(a.flicker) : 0));
         this.bakedKinds.add(a.kind);
       }
     }

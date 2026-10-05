@@ -10,15 +10,19 @@ const waiting: (() => void)[] = [];
 const settled: (() => void)[] = [];
 let state: 'idle' | 'loading' | 'loaded' | 'failed' = 'idle';
 
-/** Run `redraw` once the font is loaded (at once if it already is). */
+/** Run `redraw` once the font is loaded (at once if it already is; never if it failed). */
 export function onJpFont(redraw: () => void) {
-  if (state === 'loaded') return redraw();
-  waiting.push(redraw);
   start();
+  if (state === 'loaded') redraw();
+  else if (state === 'loading') waiting.push(redraw);
 }
 
 function start() {
-  if (state !== 'idle' || typeof FontFace === 'undefined') return;
+  if (state !== 'idle') return;
+  if (typeof FontFace === 'undefined') {
+    state = 'failed';
+    return;
+  }
   state = 'loading';
   new FontFace('NeonJP', `url(${import.meta.env.BASE_URL}fonts/neon-jp.woff2)`, { weight: '900' })
     .load()
@@ -31,6 +35,7 @@ function start() {
     .catch((e) => {
       state = 'failed';
       console.warn('sign font failed to load, signs use a system font', e);
+      waiting.length = 0;
       for (const cb of settled.splice(0)) cb();
     });
 }
@@ -41,7 +46,16 @@ function start() {
  * layout is final.
  */
 export function jpFontReady(timeout = 3000) {
-  if (state === 'loaded' || state === 'failed') return Promise.resolve();
   start();
-  return Promise.race([new Promise<void>((resolve) => settled.push(resolve)), new Promise<void>((resolve) => setTimeout(resolve, timeout))]);
+  if (state !== 'loading') return Promise.resolve();
+  return new Promise<void>((resolve) => {
+    const done = () => {
+      clearTimeout(timer);
+      const i = settled.indexOf(done);
+      if (i >= 0) settled.splice(i, 1);
+      resolve();
+    };
+    const timer = setTimeout(done, timeout);
+    settled.push(done);
+  });
 }

@@ -9,7 +9,7 @@ import { cityTextRect } from '../render/ink/city-text';
 // lattice masts with guy wires, now and then a crane; railings, ladders and
 // pipe runs dropping down the facades; signs with made-up lettering on the
 // roofs and hanging off the walls. Volumes go into the city mesh (signs into
-// their own, drawn with the glyph atlas), thin steel into pen lines. Less
+// their own, drawn with the city text atlas), thin steel into pen lines. Less
 // detail farther away (nothing beyond SKYLINE.clutterRange but the odd core).
 
 type Rect = [number, number, number, number];

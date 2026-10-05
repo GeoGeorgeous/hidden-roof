@@ -156,6 +156,7 @@ const HINTS: Record<string, string> = {
   'INK.sky': 'Sky color.',
   'INK.cloud': 'What the city fades into above the cloud base (Rendering → cloud base / fade). The sky color by default.',
   'INK.exposure': 'Light multiplier before the tone steps. Higher = more paper, less ink.',
+  'INK.tint': 'How strongly colored lamps (LIGHTS tint above 0) tint the walls they light and their neon text. 0 = the pure ink look. Only with baked lamps.',
   'INK.paperTone': 'Tones above this are bare paper; below it, hatching starts.',
   'INK.hatchTone': 'Tones below this get cross-hatching.',
   'INK.blackTone': 'Tones below this are solid ink.',
@@ -205,6 +206,7 @@ const HINTS: Record<string, string> = {
   'VIGNETTE.strength': 'How dark the screen edge gets, at the corners. 0 = no vignette.',
   'VIGNETTE.start': 'Where the darkening starts, as a percentage of the way from the center to the corners. Lower = a wider vignette.',
   'VIGNETTE.color': 'The color the edge darkens to.',
+  'HUD.perf': 'Show fps, draw calls, triangles and texture memory at the bottom left of the screen.',
   // Sound
   'AUDIO.masterGain': 'Overall volume.',
   'AUDIO.rainGain': 'Rain sound at full rain density.',
@@ -255,6 +257,7 @@ const HINTS: Record<string, string> = {
   'PLAYER_LIGHT.height': 'Height of the player glow above the eyes (m). From above it reads as ambient, not a flashlight.',
   'PLAYER_LIGHT.color': 'Player glow color.',
   'LIGHTS.*.color': 'Light color. Lenses and neon tubes follow it.',
+  'LIGHTS.*.tint': 'How much of the light color shows on the walls it lights: 0 = only its brightness, 1 = its full hue. Scaled by "colored light strength" (Ink). Baked lamps only.',
   'LIGHTS.*.offset': 'Moves the real light from its spot on the lens (m; x right, y up, z back toward the wall).',
   'LIGHTS.*.dir': 'Where the light points, relative to the prop (front is -z). Floodlight heads turn with it.',
   'LIGHTS.*.intensity': 'Light strength (scaled by "light props" in Rendering).',

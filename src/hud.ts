@@ -1,4 +1,4 @@
-import { VIGNETTE } from './config';
+import { HUD, VIGNETTE } from './config';
 import { isFullscreen } from './fullscreen';
 import { SettingsPage } from './settings-page';
 import type { SettingSection } from './settings';
@@ -44,7 +44,6 @@ export class Hud {
   private perfShown = '';
   private perfAt = 0;
   private vignette: HTMLElement;
-  private vignetteShown = '';
   private capTag: HTMLElement;
   private capTagUntil = 0;
   private colorTag: HTMLElement;
@@ -100,6 +99,7 @@ export class Hud {
     this.exitFs = root.querySelector('.exit-fs')!;
     this.vignette = root.querySelector('.vignette')!;
     this.perf = root.querySelector('.perf')!;
+    this.syncVignette();
     this.rec = root.querySelector('.rec-time')!;
     this.clock = root.querySelector('.clock')!;
     this.capTag = root.querySelector('.cap-tag')!;
@@ -218,6 +218,8 @@ export class Hud {
 
   /** The performance readout, bottom left: written a few times a second. */
   setPerf(p: { fps: number; frameMs: number; calls: number; triangles: number; textureBytes: number }) {
+    this.perf.hidden = !HUD.perf;
+    if (!HUD.perf) return;
     const now = performance.now();
     if (now - this.perfAt < 250) return;
     this.perfAt = now;
@@ -233,11 +235,8 @@ export class Hud {
     this.perf.textContent = text;
   }
 
-  /** The vignette gradient from VIGNETTE (live in F3), rewritten only when it changed. */
-  private syncVignette() {
-    const key = `${VIGNETTE.strength}|${VIGNETTE.start}|${VIGNETTE.color}`;
-    if (key === this.vignetteShown) return;
-    this.vignetteShown = key;
+  /** The vignette gradient from VIGNETTE: at start, and again when F3 changes it (live.syncVignette). */
+  syncVignette() {
     const start = Math.min(99, Math.max(0, VIGNETTE.start));
     const shade = (a: number) => `color-mix(in srgb, ${VIGNETTE.color} ${Math.round(Math.min(1, Math.max(0, a)) * 100)}%, transparent)`;
     // Like the fixed gradient it replaces: a third of the strength a bit over half way out.
@@ -245,7 +244,6 @@ export class Hud {
   }
 
   update() {
-    this.syncVignette();
     const s = Math.floor((performance.now() - this.start) / 1000);
     if (s === this.lastSecond) return;
     this.lastSecond = s;

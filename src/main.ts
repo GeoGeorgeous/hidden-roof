@@ -36,6 +36,7 @@ import { Hud } from './hud';
 import { BuildMode } from './build/buildmode';
 import { fetchLevel } from './build/io';
 import { jpFontReady } from './render/ink/jp-font';
+import { textAtlasVersion } from './render/ink/text-atlas';
 import { staticTextureBytes } from './render/texture-bytes';
 import { DebugPanel } from './debug/panel';
 import { live } from './debug/tuning';
@@ -126,6 +127,7 @@ live.rebuildLights = () => lightFx.rebuild(level.lights);
 // Props with lights (light props, billboards) are rebuilt for a new lens color or aim; their paint carries over.
 live.rebuildLightProps = () => level.rebuildLit();
 live.syncAtmosphere = () => atmosphere.syncColors();
+live.syncVignette = () => hud.syncVignette();
 live.applyDaylight = () => atmosphere.reapplyDaylight();
 live.atmosNight = () => atmosphere.nightValues;
 live.applyPixelScale = () => {
@@ -167,6 +169,7 @@ Promise.all([fetchLevel(levelName), jpFontReady()])
   .catch((e) => console.error(e));
 
 let lastStride = 0;
+let textAtlasSeen = textAtlasVersion();
 player.onLand = (speed) => audio.footstep(speed > PLAYER.hardLanding);
 
 // Losing pointer lock (Esc, alt-tab, a file dialog) pauses the game behind the menu.
@@ -284,6 +287,11 @@ function frame(time: number) {
   const anchor = tools.labelAnchor(tagPos);
   const pressure = tool === 'can' ? inventory.pressure : null;
   hud.placeToolTags(anchor ? toScreen(anchor) : null, pressure, pressure !== null && pressure < PRESSURE.sputterThreshold);
+  // A lettering atlas grew or started over: the signs ask for their rects again.
+  if (textAtlasVersion() !== textAtlasSeen) {
+    textAtlasSeen = textAtlasVersion();
+    level.rebuildLettered();
+  }
   level.flush();
   baker.update(time / 1000, eye);
   paint.flush(renderer);

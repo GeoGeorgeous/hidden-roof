@@ -1,6 +1,8 @@
-import { ATMOS, LIGHT_SPREAD_MAX, LIGHTMAP, LIGHTS } from '../../config';
+import * as THREE from 'three';
+import { ATMOS, LIGHT_SPREAD_MAX, LIGHTMAP, LIGHTS, NEON_LIGHT_ROWS } from '../../config';
 import { syncAnchor, type LightAnchor } from '../../level/build-prop';
 import type { Occluders } from './occluders';
+import { tinted } from '../light-tint';
 
 // Lamp light at a point, computed the way three.js shades a spot light (cone
 // smoothstep, distance falloff with a smooth cutoff at the range, N·L), so the
@@ -28,13 +30,22 @@ export interface Lamp {
   owner: number;
 }
 
-export function makeLamp(a: LightAnchor, owner: number, slot: number): Lamp {
+/** The baked lamps of an anchor: one, or NEON_LIGHT_ROWS along a line source (LightAnchor.span) sharing its intensity. */
+export function makeLamps(a: LightAnchor, owner: number, slot: number): Lamp[] {
+  const one = makeLamp(a, owner, slot);
+  if (!a.span) return [one];
+  const n = NEON_LIGHT_ROWS;
+  return Array.from({ length: n }, (_, i) => ({ ...one, y: one.y + a.span * ((i + 0.5) / n - 0.5), r: one.r / n, g: one.g / n, b: one.b / n }));
+}
+
+const scratch = new THREE.Color();
+
+function makeLamp(a: LightAnchor, owner: number, slot: number): Lamp {
   syncAnchor(a);
   const s = LIGHTS[a.kind];
   const angle = Math.min(s.spread, LIGHT_SPREAD_MAX);
   // Only the part of the color that `tint` lets through is hue; the rest is its brightness as a gray.
-  const lum = 0.2126 * a.color.r + 0.7152 * a.color.g + 0.0722 * a.color.b;
-  const t = s.tint;
+  const c = tinted(a.color, s.tint, scratch);
   return {
     x: a.pos.x,
     y: a.pos.y,
@@ -42,9 +53,9 @@ export function makeLamp(a: LightAnchor, owner: number, slot: number): Lamp {
     dx: a.dir.x,
     dy: a.dir.y,
     dz: a.dir.z,
-    r: (lum + (a.color.r - lum) * t) * s.intensity * a.share,
-    g: (lum + (a.color.g - lum) * t) * s.intensity * a.share,
-    b: (lum + (a.color.b - lum) * t) * s.intensity * a.share,
+    r: c.r * s.intensity,
+    g: c.g * s.intensity,
+    b: c.b * s.intensity,
     range: s.range,
     cosOuter: Math.cos(angle),
     cosInner: Math.cos(angle * (1 - s.softness)),

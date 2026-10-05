@@ -63,7 +63,7 @@ export type LightKind = 'wallLamp' | 'floodlight' | 'neonPink' | 'neonCyan' | 'n
 export interface LightSpec {
   /** Light color (lens and sign tubes take it too, after a rebuild). */
   color: string;
-  /** How much of `color` shows in the light on walls (INK.tint scales it): 0 = only its brightness (neutral), 1 = its full hue. */
+  /** How much of `color` shows in the light on walls (INK.tint scales it): 0 = only its brightness (neutral), 1 = its full hue. Baked lamps only: with LIGHTMAP.enabled off the walls get no hue. */
   tint: number;
   /** Emitter position relative to its default spot on the lens, prop-local meters (x right, y up, z back toward the wall). */
   offset: [number, number, number];
@@ -90,7 +90,7 @@ export interface LightSpec {
 /** Widest cone half-angle a light can have (radians): three.js spot lights need less than π/2. */
 export const LIGHT_SPREAD_MAX = 1.55;
 
-/** Neon signs are long sources: each face gets this many lamps along its height, sharing the kind's intensity, so the light comes from the whole tube, not one point. */
+/** Line sources (LightPiece.span, the neon signs) are baked as this many lamps along their length, sharing the kind's intensity, so the light comes from the whole tube, not one point. */
 export const NEON_LIGHT_ROWS = 4;
 
 /** Per-kind light settings, live-tunable in the debug panel (Lights). */
@@ -208,10 +208,22 @@ export const INK = {
   wobble: 0,
   /** Paper grain strength. */
   grain: 0.3,
-  /** Colored light on walls and floors: how strongly the lamp kinds with LIGHTS[kind].tint tint what they light (0 = none, the pure ink look). */
+  /** Colored light on walls and floors: how strongly the lamp kinds with LIGHTS[kind].tint tint what they light (0 = none, the pure ink look). Comes from the baked light, so only while LIGHTMAP.enabled is on. */
   tint: 0.35,
   /** Grime on surfaces: rain streaks, stains, buffed patches, cracks, seams (0 = clean). */
   grime: 0.25,
+};
+
+/** Shape of the colored light tint (INK.tint) in the ink shader; built into the shader, not live. */
+export const INK_TINT = {
+  /** The tint is the light's hue relative to its brightness, which grows without bound in the dark: brightness counts as at least this. */
+  minLight: 0.15,
+  /** Largest change of a color channel, ± this fraction. */
+  max: 0.8,
+  /** Neon text takes this many times more of its lamp's hue than the walls it lights. */
+  neonBoost: 2,
+  /** The same floor as minLight for the neon text's own color (its tint's brightness). */
+  neonMinLight: 0.02,
 };
 
 /** Final color grading, applied in display space. Neutral = 0, 1, 1, 0, 0. */
@@ -233,6 +245,18 @@ export const VIGNETTE = {
   /** Where it starts, as a percentage of the way out to the corners. */
   start: 60,
   color: '#141416',
+};
+
+/** What the HUD shows besides the body-cam frame (hud.ts), live in F3. */
+export const HUD = {
+  /** Performance readout, bottom left: fps, draw calls, triangles, texture memory. */
+  perf: true,
+};
+
+/** Slogans on lettered sign panels (kit/lettering.ts panelLettering). */
+export const SIGN_TEXT = {
+  /** A panel takes the slogans whose characters stay at least this wide (m) across its width. */
+  minCharWidth: 0.28,
 };
 
 export const PAINT = {

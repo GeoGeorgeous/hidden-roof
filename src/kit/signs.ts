@@ -1,26 +1,12 @@
 import type { PropDef } from './def';
 import { M, Parts, type Mat } from './pieces';
-import { panelRect } from '../render/ink/panel-text';
 import { neonRect } from '../render/ink/neon-text';
-import { ENGLISH, JAPANESE } from '../render/ink/slogans';
-import { lcg } from '../lcg';
-import { word } from './small-signs';
+import { ENGLISH, fitting, JAPANESE } from '../render/ink/slogans';
+import { slogan, word } from './lettering';
 
 // Lettered signs for the ink look: every sign shows a real slogan
-// (render/ink/slogans.ts) picked by its instance's seed. The panels are
-// paintable: paint covers the lettering like graffiti over an ad.
-
-/** A slogan for this seed from `pool`, and whether it is drawn paper on ink. */
-function slogan(seed: number, pool: string[]) {
-  const rnd = lcg(seed * 977 + 13);
-  return { text: pool[Math.floor(rnd() * pool.length)], inverted: rnd() < 0.4 };
-}
-
-/** Lettering for a fixed panel `aspect` (width / height) in shape: a slogan of at most `maxChars` characters, Japanese or English, one line. */
-export function panelLettering(seed: number, aspect: number, maxChars: number): Mat {
-  const s = slogan(seed, [...JAPANESE, ...ENGLISH].filter((t) => Array.from(t).length <= maxChars));
-  return { tex: 'signs', tile: 1, tint: '#ffffff', letters: panelRect(s.text, s.inverted, aspect) };
-}
+// (render/ink/slogans.ts) picked by its instance's seed (kit/lettering.ts).
+// The panels are paintable: paint covers the lettering like graffiti over an ad.
 
 /** Tall sign sticking out of the wall you aim at (lettering on both faces), on two brackets. */
 export const bladeSign: PropDef = {
@@ -36,8 +22,8 @@ export const bladeSign: PropDef = {
     const gap = 0.3;
     const p = new Parts();
     // A column of Japanese, one character under another.
-    const s = slogan(seed, JAPANESE.filter((t) => Array.from(t).length <= 9));
-    const letters: Mat = { tex: 'neon', tile: 1, tint: '#ffffff', letters: neonRect(s.text, s.inverted, w / h) };
+    const s = slogan(seed, fitting(JAPANESE, 9));
+    const letters: Mat = { tex: 'neonText', tile: 1, tint: '#ffffff', letters: neonRect(s.text, s.inverted, w / h) };
     p.box([-0.1, 0, -gap - w], [0.1, h, -gap], letters, { paint: true });
     // Frame: steel caps top and bottom, an edge strip on the outer side.
     p.detail([-0.12, h, -gap - w - 0.02], [0.12, h + 0.06, -gap + 0.02], M.steel);
@@ -62,7 +48,7 @@ export const shopSign: PropDef = {
   build({ seed }) {
     const h = 0.9;
     // As wide as its slogan, at least 3 m.
-    const s = slogan(seed, [...JAPANESE.filter((t) => Array.from(t).length <= 9), ...ENGLISH.filter((t) => t.length <= 17)]);
+    const s = slogan(seed, [...fitting(JAPANESE, 9), ...fitting(ENGLISH, 17)]);
     const t = word(s.text, s.inverted, h, 3);
     const w = t.width;
     const p = new Parts();

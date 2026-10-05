@@ -1,6 +1,7 @@
 import { Color } from 'three';
-import { LIGHTS, NEON_LIGHT_ROWS, type LightKind } from '../config';
+import { LIGHTS, type LightKind } from '../config';
 import { neonRect } from '../render/ink/neon-text';
+import { tinted } from '../render/light-tint';
 import type { PropDef } from './def';
 import { M, Parts, type Mat } from './pieces';
 
@@ -9,9 +10,9 @@ import { M, Parts, type Mat } from './pieces';
 // sides. Each face has a neon tube outline around a column of real text in
 // paper on ink (render/ink/neon-text.ts), one character under another; the
 // text is the sign's own (PropDef.text: typed in build mode, saved in the
-// level). Tubes, text and light flicker gently, in sync. The light is several
-// lamps down each face (LIGHTS[kind], NEON_LIGHT_ROWS; aim and offset are
-// mirrored for the second face), so it comes from the whole sign.
+// level). Tubes, text and light flicker gently, in sync. Each face lights as
+// one line source along its height (LIGHTS[kind], LightPiece.span; aim and
+// offset are mirrored for the second face), so it comes from the whole sign.
 
 const H = 2.8; // height
 const OUT = 0.2; // gap between wall and sign
@@ -21,13 +22,13 @@ const ZC = -(OUT + W / 2); // sign center along z
 /** Tube outline: distance from the sign's edge and thickness. */
 const EDGE = 0.1;
 const TUBE = 0.03;
+/** The lettered face inside the tube outline: its inset from the sign's edge and its aspect (width / height). */
+const INNER = EDGE + TUBE;
+const FACE_ASPECT = (W - 2 * INNER) / (H - 2 * INNER);
 
 /** The sign's light color as the walls get it: its brightness as a gray plus `tint` of its hue (see LIGHTS[kind].tint). */
 function hue(kind: LightKind) {
-  const c = new Color(LIGHTS[kind].color);
-  const lum = 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
-  const t = LIGHTS[kind].tint;
-  return `#${c.setRGB(lum + (c.r - lum) * t, lum + (c.g - lum) * t, lum + (c.b - lum) * t).getHexString()}`;
+  return `#${tinted(new Color(LIGHTS[kind].color), LIGHTS[kind].tint).getHexString()}`;
 }
 
 const lit = (tint: string, emissive = 1, flicker = 0): Mat => ({ tex: 'flat', tint, emissive, flicker });
@@ -46,7 +47,7 @@ function blade(name: string, kind: LightKind, text: string): PropDef {
       // Tubes, text and the real lights all flicker together.
       const fl = 1 + (seed % 9973);
       const tube = lit(LIGHTS[kind].color, 1, fl);
-      const letters: Mat = { tex: 'neon', tile: 1, tint: hue(kind), emissive: 1, flicker: fl, letters: neonRect(text) };
+      const letters: Mat = { tex: 'neonText', tile: 1, tint: hue(kind), emissive: 1, flicker: fl, letters: neonRect(text, false, FACE_ASPECT) };
       const z0 = -(OUT + W);
       const z1 = -OUT;
       // Arms to the wall, the box itself.
@@ -61,18 +62,14 @@ function blade(name: string, kind: LightKind, text: string): PropDef {
         const tlo = Math.min(xb, xc);
         const thi = Math.max(xb, xc);
         // The lettered face, inside the tube outline: a big flat face, so it takes paint (the body covers its back).
-        const inner = EDGE + TUBE;
-        p.box([lo, inner, z0 + inner], [hi, H - inner, z1 - inner], letters, { paint: true, collide: false, skip: [s > 0 ? '-x' : '+x'] });
+        p.box([lo, INNER, z0 + INNER], [hi, H - INNER, z1 - INNER], letters, { paint: true, collide: false, skip: [s > 0 ? '-x' : '+x'] });
         // Tube outline around it.
         p.detail([tlo, EDGE, z0 + EDGE], [thi, EDGE + TUBE, z1 - EDGE], tube, false);
         p.detail([tlo, H - EDGE - TUBE, z0 + EDGE], [thi, H - EDGE, z1 - EDGE], tube, false);
         p.detail([tlo, EDGE, z0 + EDGE], [thi, H - EDGE, z0 + EDGE + TUBE], tube, false);
         p.detail([tlo, EDGE, z1 - EDGE - TUBE], [thi, H - EDGE, z1 - EDGE], tube, false);
-        // The tube is a tall source: several lamps down its height, one share of the intensity each.
-        for (let i = 0; i < NEON_LIGHT_ROWS; i++) {
-          const y = EDGE + ((H - 2 * EDGE) * (i + 0.5)) / NEON_LIGHT_ROWS;
-          p.light({ kind, pos: [s * (T + 0.04), y, ZC], mirrorX: s < 0, flicker: fl, share: 1 / NEON_LIGHT_ROWS });
-        }
+        // The tube is a tall source: a line along its height.
+        p.light({ kind, pos: [s * (T + 0.04), H / 2, ZC], mirrorX: s < 0, flicker: fl, span: H - 2 * EDGE });
       }
       return p.list;
     },

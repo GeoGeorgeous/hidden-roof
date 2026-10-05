@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { UvRect } from './render/ink/uv-rect';
 import { PAINT } from './config';
 
 // Paintable primitives. Each primitive gets one paint atlas: every face is laid
@@ -45,8 +46,8 @@ export class SurfaceBuilder {
   emissive = 0;
   /** Neon flicker seed (0 = steady) of the vertices added next, see Mat.flicker. */
   flicker = 0;
-  /** Lettering: quads added next map this glyph atlas rect (u0, v0, u1, v1) instead of world-aligned base UVs. */
-  letters: readonly number[] | null = null;
+  /** Lettering: quads added next map this lettering atlas rect (u0, v0, u1, v1) instead of world-aligned base UVs. */
+  letters: Readonly<UvRect> | null = null;
   /** Facade bands (render/ink/facade.ts) of the vertices added next; plain by default. */
   facade: readonly number[] = [0, 0, 0, 0];
   private tints: number[] = [];
@@ -184,7 +185,7 @@ function stubRects(rects: Rect[]) {
 export type BoxFace = '+x' | '-x' | '+y' | '-y' | '+z' | '-z';
 
 /** Axis-aligned box from min/max corners. `skip` omits hidden faces (saves texture space). */
-export function boxSurface(min: THREE.Vector3, max: THREE.Vector3, skip: BoxFace[] = [], paintable = true, letters: readonly number[] | null = null): SurfaceGeometry {
+export function boxSurface(min: THREE.Vector3, max: THREE.Vector3, skip: BoxFace[] = [], paintable = true, letters: Readonly<UvRect> | null = null): SurfaceGeometry {
   const b = new SurfaceBuilder();
   b.letters = letters;
   addBox(b, min, max, skip);
