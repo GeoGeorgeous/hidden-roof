@@ -1,4 +1,4 @@
-import { VIGNETTE } from './config';
+import { HUD, VIGNETTE } from './config';
 import { isFullscreen } from './fullscreen';
 import { SettingsPage } from './settings-page';
 import type { SettingSection } from './settings';
@@ -218,6 +218,8 @@ export class Hud {
 
   /** The performance readout, bottom left: written a few times a second. */
   setPerf(p: { fps: number; frameMs: number; calls: number; triangles: number; textureBytes: number }) {
+    this.perf.hidden = !HUD.perf;
+    if (!HUD.perf) return;
     const now = performance.now();
     if (now - this.perfAt < 250) return;
     this.perfAt = now;

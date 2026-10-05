@@ -206,6 +206,7 @@ const HINTS: Record<string, string> = {
   'VIGNETTE.strength': 'How dark the screen edge gets, at the corners. 0 = no vignette.',
   'VIGNETTE.start': 'Where the darkening starts, as a percentage of the way from the center to the corners. Lower = a wider vignette.',
   'VIGNETTE.color': 'The color the edge darkens to.',
+  'HUD.perf': 'Show fps, draw calls, triangles and texture memory at the bottom left of the screen.',
   // Sound
   'AUDIO.masterGain': 'Overall volume.',
   'AUDIO.rainGain': 'Rain sound at full rain density.',

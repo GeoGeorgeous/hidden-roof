@@ -247,6 +247,12 @@ export const VIGNETTE = {
   color: '#141416',
 };
 
+/** What the HUD shows besides the body-cam frame (hud.ts), live in F3. */
+export const HUD = {
+  /** Performance readout, bottom left: fps, draw calls, triangles, texture memory. */
+  perf: true,
+};
+
 export const PAINT = {
   /**
    * Texel density of every paint texture. The PAINT DETAIL setting (pause menu)

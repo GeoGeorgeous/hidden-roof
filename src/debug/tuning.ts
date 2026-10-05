@@ -1,4 +1,4 @@
-import { type LightKind, SKYLINE, ATMOS, INK, AUDIO, CAP_ORDER, CAPS, CCTV, DAYLIGHT, DRIPS, FANS, FLICKER, GRADE, VIGNETTE, LIGHT_SPREAD_MAX, LIGHTMAP, LIGHTS, PICKUP, SMOKE, THUNDER, PLAYER_LIGHT, VOLUMETRICS, WALL_HAND, MARKER, PAINT, PLAYER, PRESSURE, RENDER, SPRAY, VIEWMODEL, HOLD, ROLLER, SPONGE } from '../config';
+import { type LightKind, SKYLINE, ATMOS, INK, AUDIO, CAP_ORDER, CAPS, CCTV, DAYLIGHT, DRIPS, FANS, FLICKER, GRADE, VIGNETTE, HUD, LIGHT_SPREAD_MAX, LIGHTMAP, LIGHTS, PICKUP, SMOKE, THUNDER, PLAYER_LIGHT, VOLUMETRICS, WALL_HAND, MARKER, PAINT, PLAYER, PRESSURE, RENDER, SPRAY, VIEWMODEL, HOLD, ROLLER, SPONGE } from '../config';
 
 // Debug panel contents: collapsible sections of live sliders/toggles that write
 // straight into the config objects, plus read-only stats. Each value knows its
@@ -42,6 +42,7 @@ const ROOTS: Record<string, Obj> = {
   VOLUMETRICS: VOLUMETRICS as unknown as Obj,
   GRADE: GRADE as unknown as Obj,
   VIGNETTE: VIGNETTE as unknown as Obj,
+  HUD: HUD as unknown as Obj,
   DRIPS: DRIPS as unknown as Obj,
   PLAYER_LIGHT: PLAYER_LIGHT as unknown as Obj,
   WALL_HAND: WALL_HAND as unknown as Obj,
@@ -420,6 +421,8 @@ export function sections(): Section[] {
         r('strength', ['VIGNETTE', 'strength'], 0, 1, 0.01, () => live.syncVignette()),
         r('starts at (%)', ['VIGNETTE', 'start'], 0, 99, 1, () => live.syncVignette()),
         c('color', ['VIGNETTE', 'color'], () => live.syncVignette()),
+        { kind: 'heading', label: 'HUD' },
+        t('performance readout', ['HUD', 'perf']),
       ],
     },
     {
