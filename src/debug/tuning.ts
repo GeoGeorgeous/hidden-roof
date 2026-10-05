@@ -108,7 +108,7 @@ const c = (label: string, path: string[], onChange?: () => void): Item => ({ kin
 const v3 = (label: string, path: string[], min: number, max: number, step: number, onChange?: () => void): Item[] =>
   ['x', 'y', 'z'].map((a, i) => r(`${label} ${a}`, [...path, String(i)], min, max, step, onChange));
 
-const LIGHT_LABELS: Record<string, string> = { wallLamp: 'WALL LAMP', floodlight: 'FLOODLIGHT', neonPink: 'NEON SIGN (PINK)', neonCyan: 'NEON SIGN (CYAN)', billboardLamp: 'BILLBOARD LAMP', lampPost: 'LAMP POST', stringLights: 'STRING LIGHTS', cctv: 'CCTV CAMERA' };
+const LIGHT_LABELS: Record<string, string> = { wallLamp: 'WALL LAMP', floodlight: 'FLOODLIGHT', neonPink: 'NEON SIGN (PINK)', neonCyan: 'NEON SIGN (CYAN)', neonAmber: 'NEON SIGN (AMBER)', billboardLamp: 'BILLBOARD LAMP', lampPost: 'LAMP POST', stringLights: 'STRING LIGHTS', cctv: 'CCTV CAMERA' };
 
 function lightItems(): Item[] {
   const fx = () => live.rebuildLights();
@@ -116,7 +116,7 @@ function lightItems(): Item[] {
   return Object.keys(LIGHTS).flatMap((k) => [
     { kind: 'heading', label: `LIGHT · ${LIGHT_LABELS[k] ?? k}` } as Item,
     c('color', ['LIGHTS', k, 'color'], props),
-    r('color tint (0 = none)', ['LIGHTS', k, 'tint'], 0, 1, 0.05),
+    r('color tint (0 = none)', ['LIGHTS', k, 'tint'], 0, 1, 0.05, props),
     ...v3('source offset', ['LIGHTS', k, 'offset'], -1, 1, 0.01, fx),
     ...v3('aim', ['LIGHTS', k, 'dir'], -1, 1, 0.01, props),
     r('intensity', ['LIGHTS', k, 'intensity'], 0, 200, 0.5),

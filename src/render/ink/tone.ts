@@ -192,8 +192,12 @@ export const INK_FRAG = /* glsl */ `
   float glyph = dot(baseTex.rgb, ${LUM});
   float gw = max(fwidth(glyph), 1e-3);
   col = mix(uPaper, uInkColor, max((1.0 - smoothstep(0.5 - gw, 0.5 + gw, glyph)) * smoothstep(0.35, 0.65, keep), inkSink(inkP)));
-  // Neon lettering (emissive, flickering): a dip in the tube turns the letters off.
-  if (vEmissiveV > 0.0) col = mix(uInkColor, col, smoothstep(0.35, 0.6, vEmissiveV));
+  // Neon lettering (emissive, flickering): takes the hue of its lamp (vTint, like the walls it lights), and a dip in the tube turns it off.
+  if (vEmissiveV > 0.0) {
+    float tl = max(dot(vTint, ${LUM}), 0.02);
+    col *= 1.0 + clamp((vTint - tl) / tl, -0.8, 0.8) * uInkTint * 2.0;
+    col = mix(uInkColor, col, smoothstep(0.35, 0.6, vEmissiveV));
+  }
 #endif
   // Paint: its own color, lit but never black; hatched a little in the dark.
   float pl = clamp(light * uPaintInk.x, uPaintInk.y, 1.0);

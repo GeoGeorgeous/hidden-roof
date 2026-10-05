@@ -58,7 +58,7 @@ export const ATMOS = {
 };
 
 /** Practical light kinds; every light prop uses one (see kit/lights.ts). */
-export type LightKind = 'wallLamp' | 'floodlight' | 'neonPink' | 'neonCyan' | 'billboardLamp' | 'lampPost' | 'stringLights' | 'cctv';
+export type LightKind = 'wallLamp' | 'floodlight' | 'neonPink' | 'neonCyan' | 'neonAmber' | 'billboardLamp' | 'lampPost' | 'stringLights' | 'cctv';
 
 export interface LightSpec {
   /** Light color (lens and sign tubes take it too, after a rebuild). */
@@ -99,6 +99,7 @@ export const LIGHTS: Record<LightKind, LightSpec> = {
   floodlight: { color: '#dfe8ff', tint: 0, offset: [0, 0, 0], dir: [0, -0.55, -0.83], intensity: 60, range: 40, spread: 0.55, softness: 0.4, glow: 0.6, glowAllAround: false, beam: 7, shadows: true },
   neonPink: { color: '#ff3fa4', tint: 1, offset: [0, 0, 0], dir: [1, 0, 0], intensity: 8, range: 10, spread: 1.45, softness: 1, glow: 0, glowAllAround: false, beam: 0, shadows: true },
   neonCyan: { color: '#2fe6ff', tint: 1, offset: [0, 0, 0], dir: [1, 0, 0], intensity: 8, range: 10, spread: 1.45, softness: 1, glow: 0, glowAllAround: false, beam: 0, shadows: true },
+  neonAmber: { color: '#ffa24a', tint: 1, offset: [0, 0, 0], dir: [1, 0, 0], intensity: 8, range: 10, spread: 1.45, softness: 1, glow: 0, glowAllAround: false, beam: 0, shadows: true },
   lampPost: { color: '#ffcf8a', tint: 0, offset: [0, 0, 0], dir: [0, -1, 0], intensity: 30, range: 22, spread: 1.15, softness: 0.6, glow: 0.45, glowAllAround: false, beam: 4.5, shadows: true },
   stringLights: { color: '#ffd59a', tint: 0, offset: [0, 0, 0], dir: [0, -1, 0], intensity: 6, range: 10, spread: 1.45, softness: 1, glow: 0.22, glowAllAround: true, beam: 0, shadows: true },
   billboardLamp: { color: '#ffe2b0', tint: 0, offset: [0, 0, 0], dir: [0, -0.8, -0.6], intensity: 25, range: 12, spread: 0.8, softness: 0.5, glow: 0.3, glowAllAround: false, beam: 3.2, shadows: true },

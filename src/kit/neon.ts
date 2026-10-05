@@ -1,3 +1,4 @@
+import { Color } from 'three';
 import { LIGHTS, NEON_LIGHT_ROWS, type LightKind } from '../config';
 import { neonRect } from '../render/ink/neon-text';
 import type { PropDef } from './def';
@@ -21,6 +22,14 @@ const ZC = -(OUT + W / 2); // sign center along z
 const EDGE = 0.1;
 const TUBE = 0.03;
 
+/** The sign's light color as the walls get it: its brightness as a gray plus `tint` of its hue (see LIGHTS[kind].tint). */
+function hue(kind: LightKind) {
+  const c = new Color(LIGHTS[kind].color);
+  const lum = 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+  const t = LIGHTS[kind].tint;
+  return `#${c.setRGB(lum + (c.r - lum) * t, lum + (c.g - lum) * t, lum + (c.b - lum) * t).getHexString()}`;
+}
+
 const lit = (tint: string, emissive = 1, flicker = 0): Mat => ({ tex: 'flat', tint, emissive, flicker });
 
 function blade(name: string, kind: LightKind, text: string): PropDef {
@@ -37,7 +46,7 @@ function blade(name: string, kind: LightKind, text: string): PropDef {
       // Tubes, text and the real lights all flicker together.
       const fl = 1 + (seed % 9973);
       const tube = lit(LIGHTS[kind].color, 1, fl);
-      const letters: Mat = { tex: 'neon', tile: 1, tint: '#ffffff', emissive: 1, flicker: fl, letters: neonRect(text) };
+      const letters: Mat = { tex: 'neon', tile: 1, tint: hue(kind), emissive: 1, flicker: fl, letters: neonRect(text) };
       const z0 = -(OUT + W);
       const z1 = -OUT;
       // Arms to the wall, the box itself.
@@ -70,8 +79,6 @@ function blade(name: string, kind: LightKind, text: string): PropDef {
   };
 }
 
-/** Buy. Don't think. */
-const SLOGAN = '買え。考えるな。';
-
-export const neonPink = blade('pink', 'neonPink', SLOGAN);
-export const neonCyan = blade('cyan', 'neonCyan', SLOGAN);
+export const neonPink = blade('pink', 'neonPink', '買え。考えるな。'); // Buy. Don't think.
+export const neonCyan = blade('cyan', 'neonCyan', '汚れのない未来へ。'); // Toward a spotless future.
+export const neonAmber = blade('amber', 'neonAmber', '監視は安心です。'); // Surveillance is reassuring.

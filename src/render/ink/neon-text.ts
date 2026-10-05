@@ -3,7 +3,7 @@ import type { UvRect } from './glyphs';
 
 // Real vertical text for neon blade signs (kit/neon.ts), in a Japanese font
 // that ships with the game (public/fonts/neon-jp.woff2: Noto Sans JP Black,
-// SIL OFL, a subset: kana, ASCII and a few kanji). The system may have no CJK
+// SIL OFL, a subset: kana, ASCII and some kanji). The system may have no CJK
 // font at all, so the page can't count on one. Each sign's text gets a tall
 // cell, one character under another, in paper on ink; like the other lettering
 // it is drawn straight from the texture (LETTERS in ink/tone.ts), and the
