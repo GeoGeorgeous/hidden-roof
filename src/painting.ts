@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { DRIPS, PAINT } from './config';
 import { mipRect, mipSizes, type MipSize } from './paint-mips';
 import { resampleAtlas } from './paint-resample';
-import type { Rect, SurfaceGeometry } from './surfaces';
+import type { FacePoint, Rect, SurfaceGeometry } from './surfaces';
 import type { SurfaceMaterial } from './materials';
 import { SeamIndex, texelToWorld, worldToTexel, type SeamFace } from './paint-seams';
 import { paintRandom } from './lcg';
@@ -19,13 +19,6 @@ const uploadRegion = new THREE.Box2();
 const uploadAt = new THREE.Vector2();
 const seamPoint = new THREE.Vector3();
 const seamTexel = new THREE.Vector2();
-const hitTexel = new THREE.Vector2();
-
-/** The face rect under `uv` on triangle `faceIndex` of a surface; its atlas texel goes into hitTexel (reused, so strokes allocate nothing). */
-function faceAt(s: PaintSurface, uv: { x: number; y: number }, faceIndex: number): Rect {
-  hitTexel.set(uv.x * s.geo.atlasW, uv.y * s.geo.atlasH);
-  return s.geo.rects[s.geo.triToRect[faceIndex]];
-}
 const NONE: readonly never[] = [];
 /** A paint color: sRGB channels 0..1, the way paint textures store it (inventory/items.ts rgbOf). */
 export type Rgb = readonly [number, number, number];
@@ -146,7 +139,7 @@ export class PaintSystem {
   }
 
   /**
-   * Deposit paint at a UV on a surface triangle.
+   * Deposit paint at a point on a face (surfaces.ts facePoint).
    * `radius` in meters: texels whose centers lie within it get paint, so a dot
    * is the same size at every paint detail; one smaller than a texel paints
    * the texel under it. `amount` 0..1 opacity at the center, `color` sRGB 0..1,
@@ -160,8 +153,7 @@ export class PaintSystem {
    */
   stamp(
     s: PaintSurface,
-    uv: { x: number; y: number },
-    faceIndex: number,
+    at: FacePoint,
     radius: number,
     amount: number,
     color: Rgb | null,
@@ -170,8 +162,9 @@ export class PaintSystem {
     square = false,
   ) {
     if (!this.live(s)) return;
-    const rect = faceAt(s, uv, faceIndex);
-    const { x: cx, y: cy } = hitTexel;
+    const rect = s.geo.rects[at.rect];
+    const cx = rect.x + at.u * rect.w;
+    const cy = rect.y + at.v * rect.h;
     this.dot(s, rect, cx, cy, radius, amount, color, softness, drip, square);
     for (const n of this.pastEdge(rect, cx, cy, radius)) {
       if (!this.live(n.surface)) continue;
@@ -181,7 +174,7 @@ export class PaintSystem {
   }
 
   /**
-   * Deposit a band of paint at a UV, like a paint roller pressed there:
+   * Deposit a band of paint at a point on a face, like a paint roller pressed there:
    * `halfLength` along `axis` (a world direction, laid into the face's plane),
    * `halfWidth` across it, both in meters. The last `edge` fraction of each
    * end gets lighter, the way a roller's ends leave less paint. Faces with no
@@ -190,8 +183,7 @@ export class PaintSystem {
    */
   roll(
     s: PaintSurface,
-    uv: { x: number; y: number },
-    faceIndex: number,
+    at: FacePoint,
     axis: THREE.Vector3,
     halfLength: number,
     halfWidth: number,
@@ -201,8 +193,9 @@ export class PaintSystem {
     drip = 0,
   ) {
     if (!this.live(s)) return;
-    const rect = faceAt(s, uv, faceIndex);
-    const { x: cx, y: cy } = hitTexel;
+    const rect = s.geo.rects[at.rect];
+    const cx = rect.x + at.u * rect.w;
+    const cy = rect.y + at.v * rect.h;
     const band = { halfLength, halfWidth, edge, amount, color, drip };
     this.band(s, rect, cx, cy, axis, band);
     for (const n of this.pastEdge(rect, cx, cy, Math.hypot(halfLength, halfWidth))) {

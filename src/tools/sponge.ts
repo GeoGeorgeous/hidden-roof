@@ -45,8 +45,8 @@ export class SpongeTool {
   private scrub(dt: number, camera: THREE.Camera, eye: THREE.Vector3, radius: number) {
     // Steps half a patch apart at full reach.
     const spec = { reach: SPONGE.reach, rayStep: (radius * 0.5) / SPONGE.reach, maxRays: SPONGE.maxRays, stillRate: SPONGE.stillRate };
-    return this.stroke.sweep(dt, camera, eye, spec, (hit, surface, fresh) => {
-      if (fresh && surface) this.paint.stamp(surface, hit.uv!, hit.faceIndex!, radius, SPONGE.strength, null, SPONGE.softness);
+    return this.stroke.sweep(dt, camera, eye, spec, (_hit, surface, at, fresh) => {
+      if (fresh && surface) this.paint.stamp(surface, at, radius, SPONGE.strength, null, SPONGE.softness);
     }).hit;
   }
 }

@@ -64,9 +64,9 @@ export class MarkerTool {
     }
     // Every stamp may feed a run while moving (overlap depends on the path, not the frame rate).
     let drew = false;
-    const { angle } = this.stroke.sweep(dt, camera, eye, this.spec(), (hit, surface, fresh) => {
+    const { angle } = this.stroke.sweep(dt, camera, eye, this.spec(), (_hit, surface, at, fresh) => {
       if (!surface) return;
-      this.paint.stamp(surface, hit.uv!, hit.faceIndex!, nib, MARKER.strength, rgbOf(color), 0, fresh ? MARKER.drips : 0, true);
+      this.paint.stamp(surface, at, nib, MARKER.strength, rgbOf(color), 0, fresh ? MARKER.drips : 0, true);
       drew = true;
     });
     this.audio.setScribble(drew ? Math.min(1, 0.15 + angle * 40) : 0);

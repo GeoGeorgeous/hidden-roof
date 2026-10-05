@@ -3,6 +3,7 @@ import { SPRAY, type CapSpec } from '../config';
 import type { PaintSurface, PaintSystem, Rgb } from '../painting';
 import { solidsNear } from '../level/solids';
 import { paintRandom } from '../lcg';
+import { facePoint, type FacePoint } from '../surfaces';
 
 // Visual spray particles. Each one raycasts once when emitted, flies from the
 // nozzle to its hit point, and stamps paint into the surface texture on arrival.
@@ -13,8 +14,7 @@ interface Particle {
   vel: THREE.Vector3;
   life: number;
   surface: PaintSurface | null;
-  uv: THREE.Vector2;
-  faceIndex: number;
+  at: FacePoint;
   amount: number;
   radius: number;
   softness: number;
@@ -62,7 +62,7 @@ export class SprayParticles {
     this.points.frustumCulled = false;
     scene.add(this.points);
     for (let i = 0; i < SPRAY.maxParticles; i++) {
-      this.free.push({ pos: new THREE.Vector3(), vel: new THREE.Vector3(), life: 0, surface: null, uv: new THREE.Vector2(), faceIndex: 0, amount: 0, radius: 0, softness: 0, rgb: [0, 0, 0] });
+      this.free.push({ pos: new THREE.Vector3(), vel: new THREE.Vector3(), life: 0, surface: null, at: { rect: 0, u: 0, v: 0 }, amount: 0, radius: 0, softness: 0, rgb: [0, 0, 0] });
     }
   }
 
@@ -93,8 +93,7 @@ export class SprayParticles {
       p.vel.multiplyScalar(SPRAY.particleSpeed / Math.max(dist, 1e-4));
       p.surface = hit ? (this.paint.get(hit.object) ?? null) : null;
       if (hit && p.surface) {
-        p.uv.copy(hit.uv!);
-        p.faceIndex = hit.faceIndex!;
+        facePoint(p.surface.geo, hit.faceIndex!, hit.uv!, p.at);
         const fall = hit.distance <= SPRAY.falloffStart ? 1 : 1 - (hit.distance - SPRAY.falloffStart) / (SPRAY.range - SPRAY.falloffStart);
         p.amount = cap.strength * Math.max(0.15, e.flow) * fall * (0.6 + paintRandom() * 0.4);
         p.radius = cap.stampRadius;
@@ -117,7 +116,7 @@ export class SprayParticles {
       p.pos.addScaledVector(p.vel, Math.min(dt, p.life));
       p.life -= dt;
       if (p.life <= 0) {
-        if (p.surface) this.paint.stamp(p.surface, p.uv, p.faceIndex, p.radius, p.amount, p.rgb, p.softness, 1);
+        if (p.surface) this.paint.stamp(p.surface, p.at, p.radius, p.amount, p.rgb, p.softness, 1);
         p.surface = null;
         this.free.push(p);
         continue;

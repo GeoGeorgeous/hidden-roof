@@ -29,6 +29,22 @@ export interface SurfaceGeometry {
   faceUv: Float32Array;
 }
 
+/** A point on one face of a surface: its rect index and where on it (u, v = 0..1 across the face). The same at every paint detail, so it can be sent, saved and replayed. */
+export interface FacePoint {
+  rect: number;
+  u: number;
+  v: number;
+}
+
+/** The face point under a raycast hit (atlas `uv` on triangle `faceIndex`), written into `out`. */
+export function facePoint(geo: SurfaceGeometry, faceIndex: number, uv: { x: number; y: number }, out: FacePoint): FacePoint {
+  const r = geo.rects[geo.triToRect[faceIndex]];
+  out.rect = geo.triToRect[faceIndex];
+  out.u = (uv.x * geo.atlasW - r.x) / r.w;
+  out.v = (uv.y * geo.atlasH - r.y) / r.h;
+  return out;
+}
+
 const PAD = 1;
 
 export interface FaceSpec {

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { PaintSurface, PaintSystem } from '../painting';
+import { facePoint, type FacePoint } from '../surfaces';
 import { solidsNear } from '../level/solids';
 
 // The stroke under the crosshair, shared by the tools that work a surface at
@@ -11,6 +12,7 @@ import { solidsNear } from '../level/solids';
 
 const dir = new THREE.Vector3();
 const step = new THREE.Vector3();
+const at: FacePoint = { rect: 0, u: 0, v: 0 };
 /** Under this angle (radians) between frames the aim counts as held still. */
 const STILL_ANGLE = 0.0005;
 
@@ -36,11 +38,12 @@ export class StrokeSweep {
 
   /**
    * Sweeps from last frame's aim to this frame's and calls `each` for every
-   * ray that hits a solid within reach (`surface`: its paint, if paintable).
+   * ray that hits a solid within reach (`surface`: its paint, if paintable;
+   * `at`: the hit on it, valid only with a surface).
    * `fresh`: moving, or held still long enough. Returns the angle swept and
    * whether anything was hit.
    */
-  sweep(dt: number, camera: THREE.Camera, eye: THREE.Vector3, spec: StrokeSpec, each: (hit: THREE.Intersection, surface: PaintSurface | undefined, fresh: boolean) => void) {
+  sweep(dt: number, camera: THREE.Camera, eye: THREE.Vector3, spec: StrokeSpec, each: (hit: THREE.Intersection, surface: PaintSurface | undefined, at: FacePoint, fresh: boolean) => void) {
     camera.getWorldDirection(dir);
     solidsNear(this.solids, eye, spec.reach, this.near);
     const from = this.prev ?? dir;
@@ -57,7 +60,9 @@ export class StrokeSweep {
       const hit = this.near.length ? this.raycaster.intersectObjects(this.near, false)[0] : undefined;
       if (!hit) continue;
       hitAny = true;
-      each(hit, this.paint.get(hit.object), fresh);
+      const surface = this.paint.get(hit.object);
+      if (surface) facePoint(surface.geo, hit.faceIndex!, hit.uv!, at);
+      each(hit, surface, at, fresh);
     }
     this.prev = (this.prev ?? new THREE.Vector3()).copy(dir);
     return { angle, hit: hitAny };

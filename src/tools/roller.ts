@@ -58,9 +58,9 @@ export class RollerTool {
     // Presses no farther apart than their depth at full reach.
     const spec = { reach: ROLLER.reach, rayStep: ROLLER.halfDepth / ROLLER.reach, maxRays: ROLLER.maxRays, stillRate: ROLLER.stillRate };
     let rolled: number | null = null;
-    this.stroke.sweep(dt, camera, eye, spec, (hit, surface, fresh) => {
+    this.stroke.sweep(dt, camera, eye, spec, (hit, surface, at, fresh) => {
       if (!surface) return;
-      this.paint.roll(surface, hit.uv!, hit.faceIndex!, right, ROLLER.halfWidth, ROLLER.halfDepth, ROLLER.edge, ROLLER.strength, rgbOf(color), fresh ? ROLLER.drips : 0);
+      this.paint.roll(surface, at, right, ROLLER.halfWidth, ROLLER.halfDepth, ROLLER.edge, ROLLER.strength, rgbOf(color), fresh ? ROLLER.drips : 0);
       rolled = (rolled ?? 0) + (this.hasLastHit ? hit.point.distanceTo(this.lastHit) : 0);
       this.lastHit.copy(hit.point);
       this.hasLastHit = true;
