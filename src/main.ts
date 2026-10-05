@@ -209,12 +209,15 @@ let frameMs = 0;
 let rainTime = 0;
 let fov = RENDER.fov;
 const tagPos = new THREE.Vector3();
+/** Test hook (golden paint test): a fixed dt and a script run at the start of every frame, so paint follows the frame count, not wall time. */
+const fixedStep: { dt: number; script: (() => void) | null } = { dt: 0, script: null };
 
 function frame(time: number) {
   const t0 = performance.now();
   timer.update(time);
   const delta = timer.getDelta();
-  const dt = Math.min(delta, 1 / 20);
+  fixedStep.script?.();
+  const dt = fixedStep.dt || Math.min(delta, 1 / 20);
 
   if (input.wasPressed('F3') || input.wasPressed('Backquote')) {
     debug.toggle();
@@ -374,4 +377,4 @@ function toScreen(p: THREE.Vector3) {
 }
 
 // Handy for debugging in the console.
-Object.assign(window, { game: { city: () => skyline, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, pickups, paint, seedPaintRandom, level, build, renderer, input, hud, debug, live, PLAYER, loadLevel } });
+Object.assign(window, { game: { city: () => skyline, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, pickups, paint, seedPaintRandom, fixedStep, level, build, renderer, input, hud, debug, live, PLAYER, loadLevel } });
