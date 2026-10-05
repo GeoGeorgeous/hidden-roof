@@ -18,7 +18,7 @@ export const JAPANESE = [
 export const ENGLISH = ['OBEY.', 'ENJOY.', 'COMPLY.', 'STAY HAPPY.', 'BUY MORE.', 'TRUST THE SYSTEM.', 'CHOICE IS A PRIVILEGE.'];
 
 /** Length in characters (not UTF-16 units). */
-export const chars = (t: string) => Array.from(t).length;
+const chars = (t: string) => Array.from(t).length;
 
 /** The slogans of `pool` at most `max` characters long; never empty: the shortest one if none is. */
 export function fitting(pool: readonly string[], max: number): string[] {

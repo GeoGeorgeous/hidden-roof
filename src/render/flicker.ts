@@ -13,7 +13,7 @@ function hash(n: number) {
 }
 
 /** Brightness 0..1 at time t (s) for a light with this seed (1+). */
-export function flicker(t: number, seed: number, rate: number, depth: number) {
+function flicker(t: number, seed: number, rate: number, depth: number) {
   const step = Math.floor(t * FLICKER.speed) % 100000;
   const h = hash(step * 131 + seed * 7919);
   if (h < 1 - rate) return 1;

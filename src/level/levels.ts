@@ -5,7 +5,7 @@ import { V_MODULE } from '../kit/def';
 // (y = 0); level n is n vertical modules (4 m) above it, level -1 is one below.
 // Level JSON still stores meters relative to level 0 (y = level * 4).
 
-export const LEVEL_HEIGHT = V_MODULE;
+const LEVEL_HEIGHT = V_MODULE;
 
 /** World height of a level's floor. */
 export const levelY = (n: number) => n * LEVEL_HEIGHT;

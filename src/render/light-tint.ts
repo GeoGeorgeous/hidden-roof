@@ -4,7 +4,7 @@ import * as THREE from 'three';
 // the walls; the rest of its color is its brightness as a gray.
 
 /** Rec. 709 luminance weights (linear RGB). */
-export const LUM_WEIGHTS = [0.2126, 0.7152, 0.0722] as const;
+const LUM_WEIGHTS = [0.2126, 0.7152, 0.0722] as const;
 /** The same weights as a GLSL vec3. */
 export const LUM_GLSL = `vec3(${LUM_WEIGHTS.join(', ')})`;
 
