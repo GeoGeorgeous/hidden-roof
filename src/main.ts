@@ -297,7 +297,7 @@ function frame(time: number) {
   }
   level.flush();
   baker.update(time / 1000, eye);
-  paint.flush(renderer);
+  paint.gpu.flush(renderer);
   hotbar.update(inventory);
   hud.update();
 
@@ -323,11 +323,11 @@ function frame(time: number) {
     frameMs,
     drawCalls: calls,
     triangles,
-    textures: paint.textureCount,
-    textureBytes: paint.textureBytes,
+    textures: paint.gpu.textureCount,
+    textureBytes: paint.gpu.textureBytes,
     surfaces: paint.surfaces.length,
-    uploads: paint.uploadsLastFrame,
-    uploadBytes: paint.uploadBytesLastFrame,
+    uploads: paint.gpu.uploadsLastFrame,
+    uploadBytes: paint.gpu.uploadBytesLastFrame,
     particles: tools.spray.particles.count,
     drips: drips.count,
     lights: lighting.active,
@@ -336,7 +336,7 @@ function frame(time: number) {
     bakeMs: baker.stats.ms,
   });
   live.player = { position: player.position, velocity: player.velocity, state: player.fly ? 'flying' : player.onLadder ? 'on ladder' : player.crouched ? 'crouched' : player.onGround ? 'grounded' : 'airborne' };
-  hud.setPerf({ fps, frameMs, calls, triangles, textureBytes: paint.textureBytes + baker.stats.textureBytes + staticTextureBytes() });
+  hud.setPerf({ fps, frameMs, calls, triangles, textureBytes: paint.gpu.textureBytes + baker.stats.textureBytes + staticTextureBytes() });
   debug.update();
   requestAnimationFrame(frame);
 }
