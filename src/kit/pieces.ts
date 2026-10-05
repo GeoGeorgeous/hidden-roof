@@ -186,9 +186,9 @@ export class Parts {
     this.list.push({ k: 'box', min, max, mat, paint: o.paint ?? 'auto', collide: o.collide ?? true, skip: o.skip, swing: this.swing });
   }
 
-  /** Small decor box (never paintable). */
+  /** Decor box: paintable like any box piece unless it is tiny (PAINT.minFaceSide / minFaceArea). */
   detail(min: V3, max: V3, mat: Mat, collide = true) {
-    this.box(min, max, mat, { paint: false, collide });
+    this.box(min, max, mat, { collide });
   }
 
   cyl(base: V3, axis: Axis, len: number, r: number, mat: Mat, o: { r2?: number; paint?: Paint; collide?: boolean; seg?: number } = {}) {

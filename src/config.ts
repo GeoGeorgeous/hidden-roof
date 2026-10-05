@@ -232,6 +232,13 @@ export const PAINT = {
    * picks it from its choices in settings.ts: 24, 48, 72 or 96 (1 cm texels).
    */
   texelsPerMeter: 96,
+  /**
+   * A box piece of a prop takes paint when one of its faces is at least this
+   * wide (m) and this big (m²): frames, posts and plates do, bolts and lamp
+   * heads don't. Emissive and chain-link pieces never do.
+   */
+  minFaceSide: 0.06,
+  minFaceArea: 0.12,
   /** Alpha is quantized to this many steps in the shader for a chunky look (0 = off). */
   alphaSteps: 8,
   /** Hard cap on a single surface atlas side, in texels. */

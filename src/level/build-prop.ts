@@ -5,7 +5,7 @@ import type { PaintSurface, PaintSystem } from '../painting';
 import type { Ladder } from '../player';
 import { addBox, addCylinder, boxSurface, cylinderSurface, SurfaceBuilder, type Axis, type BoxFace, type SurfaceGeometry } from '../surfaces';
 import { M, type BoxPiece, type CylPiece, type Mat, type Piece, type Swing, type V3 } from '../kit/pieces';
-import { LIGHTS, type LightKind } from '../config';
+import { LIGHTS, PAINT, type LightKind } from '../config';
 import { setHex } from '../hex-color';
 import type { Track } from '../render/cctv-track';
 import type { Facade } from '../render/ink/facade';
@@ -126,8 +126,9 @@ function rotateFace(f: BoxFace, r: number): BoxFace {
 function boxIsPaintable(p: BoxPiece) {
   if (p.paint !== 'auto') return p.paint;
   const d = [p.max[0] - p.min[0], p.max[1] - p.min[1], p.max[2] - p.min[2]];
+  if (p.mat.emissive || p.mat.alpha) return false; // glowing tubes and lenses, chain-link
   const pairs = [[d[0], d[1]], [d[0], d[2]], [d[1], d[2]]];
-  return pairs.some(([a, b]) => Math.min(a, b) >= 0.5 && a * b >= 1.2);
+  return pairs.some(([a, b]) => Math.min(a, b) >= PAINT.minFaceSide && a * b >= PAINT.minFaceArea);
 }
 function cylIsPaintable(p: CylPiece) {
   if (p.paint !== 'auto') return p.paint;
