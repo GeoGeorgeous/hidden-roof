@@ -155,6 +155,7 @@ function rebuildCity() {
   scene.add(skyline);
 }
 live.rebuildCity = rebuildCity;
+live.applyToolSizes = () => (inventory.size = { marker: config.MARKER.radius, sponge: config.SPONGE.radius });
 live.rebuildSponge = () => {
   tools.sponge.model.build();
   pickups.restyle('sponge');
@@ -190,8 +191,6 @@ hud.setLocked(false);
 hud.setSettings(settings.sections());
 tools.onCapChange = (name) => hud.showCapTag(name);
 tools.onColorChange = (color) => hud.showColorTag(color, COLORS[color]);
-// The wheel changed the marker's nib or the sponge's patch: the F3 slider follows it.
-tools.onNibChange = () => debug.visible && debug.sync();
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;

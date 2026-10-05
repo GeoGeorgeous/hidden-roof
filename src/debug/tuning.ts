@@ -93,6 +93,8 @@ export const live = {
   applyDaylight: () => {},
   /** Rebuild the city around the level (SKYLINE changed). */
   rebuildCity: () => {},
+  /** Give the player the starting nib and patch sizes (MARKER.radius, SPONGE.radius changed). */
+  applyToolSizes: () => {},
   /** Rebuild the sponge's models (held, pickups, hotbar icon) from SPONGE.model / SPONGE.pickup. */
   rebuildSponge: () => {},
   /** Apply live SKYLINE values (line range). */
@@ -258,7 +260,7 @@ export function sections(): Section[] {
         r('alpha steps (0 = smooth)', ['PAINT', 'alphaSteps'], 0, 12, 1),
         { kind: 'heading', label: 'MARKER' },
         r('reach', ['MARKER', 'reach'], 0.5, 4, 0.1),
-        r('nib half-width (m, 0 = one texel)', ['MARKER', 'radius'], 0, 0.2, 0.001),
+        r('starting nib half-width (m, 0 = one texel)', ['MARKER', 'radius'], 0, 0.2, 0.001, () => live.applyToolSizes()),
         r('wheel: min half-width (m)', ['MARKER', 'radiusMin'], 0, 0.2, 0.001),
         r('wheel: max half-width (m)', ['MARKER', 'radiusMax'], 0, 0.2, 0.001),
         r('wheel: step (m)', ['MARKER', 'radiusStep'], 0.001, 0.05, 0.001),
@@ -276,7 +278,7 @@ export function sections(): Section[] {
         r('runs (x paint runs per m²)', ['ROLLER', 'drips'], 0, 40, 0.5),
         { kind: 'heading', label: 'SPONGE' },
         r('reach', ['SPONGE', 'reach'], 0.5, 4, 0.1),
-        r('patch radius (m)', ['SPONGE', 'radius'], 0.01, 0.4, 0.005),
+        r('starting patch radius (m)', ['SPONGE', 'radius'], 0.01, 0.4, 0.005, () => live.applyToolSizes()),
         r('cleans per pass', ['SPONGE', 'strength'], 0.01, 1, 0.01),
         r('softness', ['SPONGE', 'softness'], 0, 1, 0.05),
         r('wheel: min radius (m)', ['SPONGE', 'radiusMin'], 0.005, 0.4, 0.005),

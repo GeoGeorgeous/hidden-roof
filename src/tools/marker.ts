@@ -16,7 +16,7 @@ import { applyHold } from './hold';
 // are as wide as the nib going straight and wider on the diagonal, like a held
 // chisel. No particles, no pressure. With paint runs on (DRIPS), going over
 // the same spot again, or holding the nib still, can start a run like the can.
-// The mouse wheel changes the nib size (MARKER.radiusMin..radiusMax, see wheel-size.ts).
+// The mouse wheel changes the nib size (Inventory.size, MARKER.radiusMin..radiusMax, see wheel-size.ts).
 // Fast mouse moves are filled by interpolating rays between frames. The band
 // on the barrel shows the current color, like the can's label.
 
@@ -50,7 +50,8 @@ export class MarkerTool {
     this.model.add(this.sway);
   }
 
-  update(dt: number, input: Input, camera: THREE.Camera, eye: THREE.Vector3, active: boolean, color: PaintColor) {
+  /** `nib`: half-width of the square nib (m). */
+  update(dt: number, input: Input, camera: THREE.Camera, eye: THREE.Vector3, active: boolean, color: PaintColor, nib: number) {
     this.model.visible = active;
     setHex(this.bandMat.color, COLORS[color]);
     setHex(this.nibMat.color, COLORS[color]);
@@ -65,7 +66,7 @@ export class MarkerTool {
     let drew = false;
     const { angle } = this.stroke.sweep(dt, camera, eye, this.spec(), (hit, surface, fresh) => {
       if (!surface) return;
-      this.paint.stamp(surface, hit.uv!, hit.faceIndex!, MARKER.radius, MARKER.strength, rgbOf(color), 0, fresh ? MARKER.drips : 0, true);
+      this.paint.stamp(surface, hit.uv!, hit.faceIndex!, nib, MARKER.strength, rgbOf(color), 0, fresh ? MARKER.drips : 0, true);
       drew = true;
     });
     this.audio.setScribble(drew ? Math.min(1, 0.15 + angle * 40) : 0);

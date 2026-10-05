@@ -145,8 +145,8 @@ async function play({ runs, stand, faceYaw, gap, settle }) {
         while (run.color && inv.color !== run.color) inv.cycleColor(1);
         while (run.cap && inv.cap !== run.cap) inv.cycleCap(1);
         inv.pressure = run.pressure ?? 1;
-        if (run.nib !== undefined) config.MARKER.radius = run.nib;
-        if (run.sponge !== undefined) config.SPONGE.radius = run.sponge;
+        if (run.nib !== undefined) inv.size.marker = run.nib;
+        if (run.sponge !== undefined) inv.size.sponge = run.sponge;
       }
       const [yaw, pitch] = run.aim(t);
       player.yaw = faceYaw + yaw;
