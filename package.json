@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "smoke": "node scripts/smoke.mjs",
+    "golden": "node scripts/golden-paint.mjs",
     "check": "npm run typecheck && npm run smoke && knip",
     "audit": "knip; jscpd src"
   },
