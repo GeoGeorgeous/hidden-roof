@@ -2,8 +2,8 @@
 // The pause menu's SAVE / LOAD PAINT (one at a time, cancel, broken files,
 // reload), level names, paint saves through level edits and changed props,
 // spray in the air at LOAD, the sponge freeing memory, prop ids for good,
-// per-player tool sizes, city overrides in the level save, and small-sign
-// sizes with another font. Each check prints ok or what went wrong.
+// per-player tool sizes, city overrides in the level save, hotbar icons, and
+// small-sign sizes with another font. Each check prints ok or what went wrong.
 // Usage: node scripts/game.test.mjs [url]   (no url: starts its own server)
 import fs from 'node:fs';
 import os from 'node:os';
@@ -235,6 +235,14 @@ await check('tools: the wheel changes the player\'s nib and patch size, not the 
     return out;
   });
   return r.marker === 0.024 && r.grew && r.min === 0 && r.sponge === 0.11 && r.config.join() === '0.012,0.09' ? null : JSON.stringify(r);
+});
+
+await check('hotbar: icons arrive from the GPU (read back without stalling) and the slots are drawn again', async () => {
+  await page.evaluate(() => { for (const t of ['marker', 'ladder', 'roller', 'sponge']) window.game.inventory.give(t); });
+  const ready = () => page.evaluate(() => [...document.querySelectorAll('.hotbar img')].filter((i) => i.src.startsWith('data:image/png')).length);
+  await page.waitForFunction(() => [...document.querySelectorAll('.hotbar img')].every((i) => i.src.startsWith('data:image/png')), null, { timeout: 10000 }).catch(() => {});
+  const n = await ready();
+  return n === 5 ? null : `${n} of 5 icons arrived`;
 });
 
 if (page.errors.length) {

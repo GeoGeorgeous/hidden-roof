@@ -9,7 +9,7 @@ How the game is tested, and what makes the tests slow or unpredictable: what's f
 | `npm run check` | Type check, `npm test`, smoke test, game tests, knip. Run before and after every change. | ~22 s |
 | `npm test` | Paint save file round trip and rejections (broken, older, newer, oversized), in Node (as a server will run it). | <1 s |
 | `npm run smoke` | Loads the game, renders a few frames, screenshots `shots/00-start.png`. Fails on page errors and console errors. `STEPS` (JSON `[{ js, wait, shot }]`) adds steps and screenshots. | ~10 s |
-| `npm run test:game` | Behavior the golden test doesn't cover: the menu's SAVE / LOAD PAINT, saves through level edits and changed props, spray at LOAD, the sponge freeing memory, prop ids, city overrides, save names, wheel sizes, sign sizes with another font (`scripts/game.test.mjs`). | ~11 s |
+| `npm run test:game` | Behavior the golden test doesn't cover: the menu's SAVE / LOAD PAINT, saves through level edits and changed props, spray at LOAD, the sponge freeing memory, prop ids, city overrides, save names, wheel sizes, hotbar icons, sign sizes with another font (`scripts/game.test.mjs`). | ~11 s |
 | `npm run golden` | Paint at every PAINT DETAIL against a baseline, the loopback replay of paint ops, and saves (`docs/golden-paint.md`). | ~20 s |
 | `npm run bench:save` | Save size and SAVE / LOAD time at LOW and ULTRA, 10% to all faces painted, real and random paint. Needs `npm run golden` first. | ~50 s |
 
@@ -20,7 +20,7 @@ No setup: the browser tests start their own Vite dev server (port 5180, its own 
 | Problem | Effect | Fix |
 |---|---|---|
 | Tests needed `npm run dev` running and `LD_LIBRARY_PATH` set by hand | Failed or hung without them; a long-running dev server served stale copies of edited modules (`file.ts?t=…`) | `test-browser.mjs` starts a fresh server and sets the library path |
-| The smoke test never failed | Console and page errors were printed, exit code 0 | Exits 1 on page errors and console errors; SwiftShader's ReadPixels note is filtered as noise |
+| The smoke test never failed | Console and page errors were printed, exit code 0 | Exits 1 on page errors and console errors; warnings are printed (there are none now: the ReadPixels note came from the hotbar icons, fixed) |
 | Fixed sleeps (smoke 1 s, golden 500 ms) | On a slow or busy machine the game wasn't ready (often no frame drawn at all in the smoke test); on a fast one, time wasted | Wait for the level to be built, then a number of frames (`gameReady`) |
 | The smoke test drew at 1280×720 | A SwiftShader frame takes seconds at that size: 45 s per run | 640×360: 10 s |
 | Paint randomness, frame time and the can jitter | The same strokes painted differently each run | Seeded paint randomness, one stream per purpose; fixed steps (`window.game.fixedStep`); rendering skipped in the golden test |
@@ -41,4 +41,4 @@ No setup: the browser tests start their own Vite dev server (port 5180, its own 
 
 ## Found in passing (game, not tests)
 
-- **Hotbar icons stall the GPU the first time each shows** (`inventory/thumbnails.ts`): an icon is rendered once and read back with `readRenderTargetPixels`, which waits for all queued GPU work. On the demo, light baking is queued, so the golden test spends 1.6 s of its 3.8 s ULTRA play there; in the game it's a brief hitch on a new pickup or paint color (and the "GPU stall due to ReadPixels" note). An asynchronous readback (`readRenderTargetPixelsAsync`) would avoid it.
+- **Hotbar icons stalled the GPU the first time each showed** (`inventory/thumbnails.ts`): an icon was read back with `readRenderTargetPixels`, which waits for all queued GPU work, light baking included: a hitch on a new pickup or paint color, the "GPU stall due to ReadPixels" note, and 1.6 s of the golden test's 3.8 s ULTRA play. **Fixed:** read back asynchronously (`readRenderTargetPixelsAsync`); the icon is blank for a few frames, then the hotbar redraws. Same images.

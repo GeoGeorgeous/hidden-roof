@@ -32,6 +32,8 @@ export class Hotbar {
     this.toastEl = document.createElement('div');
     this.toastEl.className = 'toast';
     document.body.append(this.root, this.toastEl);
+    // An icon arrived from the GPU: draw the slots again.
+    icons.onReady = () => (this.version = -1);
   }
 
   set visible(v: boolean) {

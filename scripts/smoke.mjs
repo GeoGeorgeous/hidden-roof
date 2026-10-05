@@ -8,8 +8,6 @@ import { gameReady, openTestBrowser } from './test-browser.mjs';
 const out = process.argv[3] ?? 'shots';
 fs.mkdirSync(out, { recursive: true });
 const steps = JSON.parse(process.env.STEPS ?? '[]');
-/** SwiftShader's note on reading pixels back: always there, not the game's. */
-const NOISE = /GPU stall due to ReadPixels/;
 
 const test = await openTestBrowser(process.argv[2]);
 // Small: SwiftShader draws every frame on the CPU, and a frame at 1280x720 takes it seconds.
@@ -18,7 +16,7 @@ const errors = [];
 const warnings = [];
 page.on('console', (m) => {
   if (m.type() === 'error') errors.push(`error: ${m.text()}`);
-  else if (m.type() === 'warning' && !NOISE.test(m.text())) warnings.push(`warning: ${m.text()}`);
+  else if (m.type() === 'warning') warnings.push(`warning: ${m.text()}`);
 });
 page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
 await page.goto(test.url);
