@@ -127,6 +127,7 @@ live.rebuildLights = () => lightFx.rebuild(level.lights);
 // Props with lights (light props, billboards) are rebuilt for a new lens color or aim; their paint carries over.
 live.rebuildLightProps = () => level.rebuildLit();
 live.syncAtmosphere = () => atmosphere.syncColors();
+live.syncVignette = () => hud.syncVignette();
 live.applyDaylight = () => atmosphere.reapplyDaylight();
 live.atmosNight = () => atmosphere.nightValues;
 live.applyPixelScale = () => {

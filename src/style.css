@@ -48,7 +48,7 @@ canvas {
 .vignette {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at center, transparent 60%, rgba(20, 20, 22, 0.1) 82%, rgba(20, 20, 22, 0.3) 100%);
+  /* Its gradient comes from VIGNETTE (hud.ts syncVignette). */
 }
 
 .corner {

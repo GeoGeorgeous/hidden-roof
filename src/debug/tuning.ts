@@ -84,6 +84,8 @@ export const live = {
   rebuildLights: () => {},
   /** Rebuild the light props themselves (lens colors, floodlight heads), then their FX. */
   rebuildLightProps: () => {},
+  /** Redraw the HUD vignette (VIGNETTE changed). */
+  syncVignette: () => {},
   /** Push ATMOS colors / moon direction into fog, sky and lights. */
   syncAtmosphere: () => {},
   /** Re-apply DAYLIGHT if build mode is showing it. */
@@ -415,9 +417,9 @@ export function sections(): Section[] {
         r('temperature', ['GRADE', 'temperature'], -1, 1, 0.01),
         r('tint', ['GRADE', 'tint'], -1, 1, 0.01),
         { kind: 'heading', label: 'VIGNETTE' },
-        r('strength', ['VIGNETTE', 'strength'], 0, 1, 0.01),
-        r('starts at (%)', ['VIGNETTE', 'start'], 0, 99, 1),
-        c('color', ['VIGNETTE', 'color']),
+        r('strength', ['VIGNETTE', 'strength'], 0, 1, 0.01, () => live.syncVignette()),
+        r('starts at (%)', ['VIGNETTE', 'start'], 0, 99, 1, () => live.syncVignette()),
+        c('color', ['VIGNETTE', 'color'], () => live.syncVignette()),
       ],
     },
     {
