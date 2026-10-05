@@ -39,7 +39,8 @@ export class BuildMode {
   active = false;
   /** Main provides these, so saving and loading include what the level file holds besides props (pickups, city overrides). */
   getLevelData!: () => LevelData;
-  onLoad: (data: LevelData) => void = () => {};
+  /** A level file was opened (O): its data and name. */
+  onLoad: (data: LevelData, name: string) => void = () => {};
 
   private rot = 0;
   private picker = new Picker();
@@ -125,9 +126,9 @@ export class BuildMode {
     }
     if (input.wasPressed('KeyO')) {
       pickLevelFile()
-        .then((d) => {
+        .then(({ data, name }) => {
           this.history.clear();
-          this.onLoad(d);
+          this.onLoad(data, name);
           this.spawnMarker.set(this.level.spawn.pos, this.level.spawn.yaw);
           this.say('LOADED — CLICK TO RESUME');
         })

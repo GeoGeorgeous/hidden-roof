@@ -165,10 +165,14 @@ live.rebuildSponge = () => {
   hotbar.refreshIcon('sponge');
 };
 live.syncSkyline = syncSkyline;
-build.onLoad = loadLevel;
+build.onLoad = (data, name) => {
+  levelName = name;
+  loadLevel(data);
+};
 build.getLevelData = () => ({ ...level.toJSON(), pickups: pickups.toJSON(), ...(Object.keys(skylineSettings).length ? { skyline: skylineSettings } : {}) });
 
-const levelName = new URLSearchParams(location.search).get('level') ?? 'demo';
+/** The level's name: from ?level=, or the file opened in build mode. Paint saves are named by it. */
+let levelName = new URLSearchParams(location.search).get('level') ?? 'demo';
 // Signs measure their text when they are built: wait for the sign font first.
 Promise.all([fetchLevel(levelName), jpFontReady()])
   .then(([data]) => loadLevel(data))
@@ -193,7 +197,7 @@ hud.onResume = () => input.requestLock();
 hud.onExitFullscreen = () => void exitGameFullscreen();
 hud.setLocked(false);
 hud.setSettings(settings.sections());
-const paintFile = paintMenu(hud, paint, drips, level, levelName);
+const paintFile = paintMenu(hud, paint, drips, level, () => levelName);
 tools.onCapChange = (name) => hud.showCapTag(name);
 tools.onColorChange = (color) => hud.showColorTag(color, COLORS[color]);
 

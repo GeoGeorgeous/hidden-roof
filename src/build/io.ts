@@ -9,10 +9,10 @@ export function downloadLevel(data: LevelData, name = 'level.json') {
   download(new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' }), name);
 }
 
-/** Opens a file picker (releases the mouse). Resolves with the checked level. */
-export async function pickLevelFile(): Promise<LevelData> {
+/** Opens a file picker (releases the mouse). Resolves with the checked level and its name (the file's, without .json). */
+export async function pickLevelFile(): Promise<{ data: LevelData; name: string }> {
   const file = await pickFile('.json,application/json');
-  return checkLevel(JSON.parse(await file.text()));
+  return { data: checkLevel(JSON.parse(await file.text())), name: file.name.replace(/\.json$/i, '') };
 }
 
 export async function fetchLevel(name: string): Promise<LevelData> {
