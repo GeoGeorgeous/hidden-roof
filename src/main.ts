@@ -16,6 +16,7 @@ import { Lightning } from './render/lightning';
 import { PaintDrips } from './paint-drips';
 import { PaintOps } from './paint-ops';
 import { savePaint } from './save/save-paint';
+import { loadPaint } from './save/load-paint';
 import { WallHand } from './tools/wall-hand';
 import { GpuTimer } from './debug/gpu-timer';
 import { Settings } from './settings';
@@ -379,4 +380,4 @@ function toScreen(p: THREE.Vector3) {
 }
 
 // Handy for debugging in the console.
-Object.assign(window, { game: { city: () => skyline, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, pickups, paint, paintOps, savePaint, seedPaintRandom, fixedStep, level, build, renderer, input, hud, debug, live, PLAYER, loadLevel } });
+Object.assign(window, { game: { city: () => skyline, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, pickups, paint, paintOps, savePaint, loadPaint, seedPaintRandom, fixedStep, level, build, renderer, input, hud, debug, live, PLAYER, loadLevel } });

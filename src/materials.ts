@@ -246,8 +246,9 @@ export class SurfaceMaterial extends THREE.MeshPhongMaterial {
     this.paintableUniform.value = on ? 1 : 0;
   }
 
-  setPaint(t: THREE.Texture) {
-    this.paintUniform.value = t;
+  /** The surface's paint texture; null = none (unpainted). */
+  setPaint(t: THREE.Texture | null) {
+    this.paintUniform.value = t ?? EMPTY_PAINT;
   }
 
   /** Baked lamp light of a paintable surface (render/bake), and its neon flicker layer; null = none. */

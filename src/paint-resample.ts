@@ -21,7 +21,8 @@ export function painted(src: Uint8Array, w: number, r: Rect) {
   return false;
 }
 
-function resampleRect(src: Uint8Array, sw: number, a: Rect, dst: Uint8Array, dw: number, b: Rect) {
+/** Resample face `a` of `src` (`sw` texels wide) into face `b` of `dst` (`dw` wide), 1-texel padding included. */
+export function resampleRect(src: Uint8Array, sw: number, a: Rect, dst: Uint8Array, dw: number, b: Rect) {
   const kx = a.w / b.w;
   const ky = a.h / b.h;
   // Padding included (-1 .. size), so face edges keep their paint.

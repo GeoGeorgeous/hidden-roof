@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { PAINT } from './config';
 import type { MipSize } from './paint-mips';
-import { resampleAtlas } from './paint-resample';
+import { resampleAtlas, resampleRect } from './paint-resample';
 import type { FacePoint, Rect, SurfaceGeometry } from './surfaces';
 import type { SurfaceMaterial } from './materials';
 import { SeamIndex, texelToWorld, worldToTexel, type SeamFace } from './paint-seams';
@@ -94,6 +94,34 @@ export class PaintSystem {
     this.ensureTexture(s);
     resampleAtlas(from.geo, from.data, s.geo, s.data!);
     this.gpu.markDirty(s, 0, 0, s.geo.atlasW - 1, s.geo.atlasH - 1);
+  }
+
+  /** Wipe all paint (LOAD replaces it), freeing it: textures are created again on the next hit. */
+  clear() {
+    for (const s of this.surfaces) {
+      if (!s.data) continue;
+      this.gpu.dispose(s);
+      s.material.setPaint(null);
+      s.data = s.excess = s.texture = null;
+      s.mips = [];
+      s.dirty.length = 0;
+    }
+  }
+
+  /**
+   * Paint face `rect` of a surface from a saved one (save/paint-file.ts): `w` x `h`
+   * texels plus its 1-texel ring. Copied as is at the same size, else resampled
+   * like a paint detail change.
+   */
+  putFace(s: PaintSurface, rect: number, crop: Uint8Array, w: number, h: number) {
+    this.ensureTexture(s);
+    const r = s.geo.rects[rect];
+    const atlasW = s.geo.atlasW;
+    if (w === r.w && h === r.h) {
+      const row = (w + 2) * 4;
+      for (let y = 0; y < h + 2; y++) s.data!.set(crop.subarray(y * row, (y + 1) * row), ((r.y - 1 + y) * atlasW + r.x - 1) * 4);
+    } else resampleRect(crop, w + 2, { x: 1, y: 1, w, h }, s.data!, atlasW, r);
+    this.gpu.markDirty(s, r.x - 1, r.y - 1, r.x + r.w, r.y + r.h);
   }
 
   get(mesh: THREE.Object3D): PaintSurface | undefined {
