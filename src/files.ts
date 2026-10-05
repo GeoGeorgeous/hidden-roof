@@ -9,14 +9,16 @@ export function download(blob: Blob, name: string) {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
-/** Opens the file picker (releases the mouse); resolves with the chosen file. */
+/** Opens the file picker (releases the mouse); resolves with the chosen file, rejects if it's closed without one. */
 export function pickFile(accept: string): Promise<File> {
   document.exitPointerLock();
   return new Promise((resolve, reject) => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = accept;
-    input.onchange = () => (input.files?.[0] ? resolve(input.files[0]) : reject(new Error('no file')));
+    const none = () => reject(new Error('NO FILE CHOSEN'));
+    input.onchange = () => (input.files?.[0] ? resolve(input.files[0]) : none());
+    input.oncancel = none;
     input.click();
   });
 }
