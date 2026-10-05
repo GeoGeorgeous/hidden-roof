@@ -1,6 +1,7 @@
 import { Color } from 'three';
 import { LIGHTS, type LightKind } from '../config';
 import { neonRect } from '../render/ink/neon-text';
+import { tinted } from '../render/light-tint';
 import type { PropDef } from './def';
 import { M, Parts, type Mat } from './pieces';
 
@@ -24,10 +25,7 @@ const TUBE = 0.03;
 
 /** The sign's light color as the walls get it: its brightness as a gray plus `tint` of its hue (see LIGHTS[kind].tint). */
 function hue(kind: LightKind) {
-  const c = new Color(LIGHTS[kind].color);
-  const lum = 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
-  const t = LIGHTS[kind].tint;
-  return `#${c.setRGB(lum + (c.r - lum) * t, lum + (c.g - lum) * t, lum + (c.b - lum) * t).getHexString()}`;
+  return `#${tinted(new Color(LIGHTS[kind].color), LIGHTS[kind].tint).getHexString()}`;
 }
 
 const lit = (tint: string, emissive = 1, flicker = 0): Mat => ({ tex: 'flat', tint, emissive, flicker });

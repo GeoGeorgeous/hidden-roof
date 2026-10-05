@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { ATMOS, INK } from '../../config';
 import { lcg } from '../../lcg';
+import { LUM_GLSL } from '../light-tint';
 
 // The ink look in the surface shader: every lit pixel gets a tone (how much
 // light reaches it x how dark its material is), and the tone picks the ink:
@@ -15,7 +16,7 @@ import { lcg } from '../../lcg';
 // Then distance (and the low clouds) fade the ink into paper, and the city
 // below INK.voidTop sinks into black. Paint keeps its color (see INK_FRAG).
 
-const LUM = 'vec3(0.2126, 0.7152, 0.0722)';
+const LUM = LUM_GLSL;
 
 /**
  * Value noise for the shader as a small tiling 3D texture: one filtered fetch
