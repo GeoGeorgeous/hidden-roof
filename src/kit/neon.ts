@@ -1,4 +1,4 @@
-import { LIGHTS, type LightKind } from '../config';
+import { LIGHTS, NEON_LIGHT_ROWS, type LightKind } from '../config';
 import type { PropDef } from './def';
 import { M, Parts, type Mat, type V3 } from './pieces';
 
@@ -126,7 +126,11 @@ function blade(name: string, kind: LightKind, palette: Palette): PropDef {
             }
           }
         });
-        p.light({ kind, pos: [s * (T + 0.04), H / 2, ZC], mirrorX: s < 0, flicker: fl });
+        // The tube is a tall source: several lamps down its height, one share of the intensity each.
+        for (let i = 0; i < NEON_LIGHT_ROWS; i++) {
+          const y = e + ((H - 2 * e) * (i + 0.5)) / NEON_LIGHT_ROWS;
+          p.light({ kind, pos: [s * (T + 0.04), y, ZC], mirrorX: s < 0, flicker: fl, share: 1 / NEON_LIGHT_ROWS });
+        }
       }
       return p.list;
     },

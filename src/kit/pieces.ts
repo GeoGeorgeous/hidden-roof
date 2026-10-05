@@ -126,6 +126,8 @@ export interface LightPiece {
   dir?: V3;
   /** Neon flicker seed (1+), the same as its tubes' Mat.flicker. */
   flicker?: number;
+  /** Fraction of LIGHTS[kind].intensity this lamp gives (default 1): a long source is several lamps that share one intensity. */
+  share?: number;
   /** Mirror LIGHTS[kind] offset and aim across x (the second face of a two-sided sign). */
   mirrorX?: boolean;
   /** Fixed glow sprite positions (lens centers); default: one at the emitter. */

@@ -45,6 +45,8 @@ export interface LightAnchor {
   color: THREE.Color;
   /** Fixed glow positions, or null: one glow at `pos`. */
   glows: THREE.Vector3[] | null;
+  /** Fraction of LIGHTS[kind].intensity this lamp gives (1 unless it is one of several along a long source). */
+  share: number;
   /** Neon flicker seed (0 = steady). */
   flicker: number;
   /** CCTV light: turns with its head and only shines while it follows the player (render/cctv-track.ts). */
@@ -231,7 +233,7 @@ export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint =
     } else if (p.k === 'light') {
       const sw = p.swing?.track ? p.swing : undefined;
       const track: Track | null = sw ? { pivot: at(sw.pivot), fwd: new THREE.Vector2(restFacing.x, restFacing.z), amp: sw.amp, speed: (Math.PI * 2) / sw.period, phase: sw.phase ?? 0 } : null;
-      const a: LightAnchor = { kind: p.kind, base: at(p.pos), rot: r, aim: p.dir ?? null, mirrorX: !!p.mirrorX, pos: new THREE.Vector3(), dir: new THREE.Vector3(), color: new THREE.Color(), glows: p.glows?.map(at) ?? null, flicker: p.flicker ?? 0, track, level: track ? 0 : 1 };
+      const a: LightAnchor = { kind: p.kind, base: at(p.pos), rot: r, aim: p.dir ?? null, mirrorX: !!p.mirrorX, pos: new THREE.Vector3(), dir: new THREE.Vector3(), color: new THREE.Color(), glows: p.glows?.map(at) ?? null, share: p.share ?? 1, flicker: p.flicker ?? 0, track, level: track ? 0 : 1 };
       syncAnchor(a);
       out.lights.push(a);
     } else if (p.k === 'emitter') {

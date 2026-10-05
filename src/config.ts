@@ -90,6 +90,9 @@ export interface LightSpec {
 /** Widest cone half-angle a light can have (radians): three.js spot lights need less than π/2. */
 export const LIGHT_SPREAD_MAX = 1.55;
 
+/** Neon signs are long sources: each face gets this many lamps along its height, sharing the kind's intensity, so the light comes from the whole tube, not one point. */
+export const NEON_LIGHT_ROWS = 4;
+
 /** Per-kind light settings, live-tunable in the debug panel (Lights). */
 export const LIGHTS: Record<LightKind, LightSpec> = {
   wallLamp: { color: '#9b96c0', tint: 0, offset: [0, 0, 0], dir: [0, -1, -0.25], intensity: 13.5, range: 10, spread: 1.33, softness: 1, glow: 0, glowAllAround: false, beam: 0.5, shadows: true },

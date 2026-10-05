@@ -266,7 +266,7 @@ export class Lighting {
 
 /** A lamp's real-light intensity right now. */
 function strength(a: LightAnchor, time: number) {
-  return LIGHTS[a.kind].intensity * ATMOS.practical * a.level * (a.flicker ? neonFlicker(time, a.flicker) : 1);
+  return LIGHTS[a.kind].intensity * a.share * ATMOS.practical * a.level * (a.flicker ? neonFlicker(time, a.flicker) : 1);
 }
 
 /** -1 / 1 rather than x.d - y.d: a comparator returning a fraction allocates on every comparison. */
