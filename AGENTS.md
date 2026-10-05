@@ -17,7 +17,7 @@ Hidden roof: a three.js graffiti game. The world is ink on paper and the only co
 ## Codebase
 
 - Tunable numbers go in `src/config.ts`, not inline.
-- Removing code beats adding it. A cleanup keeps behavior identical: `npm run check` and `npm test` pass before and after.
+- Removing code beats adding it. A cleanup keeps behavior identical: `npm run check` passes before and after.
 - Branch names are `type/short-kebab-name`, with type one of `feat`, `fix`, `refactor`, `perf`, `chore`, `docs`, `test` (e.g. `feat/roller-tool`, `perf/dirty-rect-upload`).
 
 ## Long runs
