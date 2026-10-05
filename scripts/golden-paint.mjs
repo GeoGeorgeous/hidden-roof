@@ -8,13 +8,12 @@
 // Saves (src/save): the paint saved while playing, loaded into the replay page,
 // must give the same hash; ULTRA's save loaded at LOW must equal switching PAINT
 // DETAIL to LOW in game; and a save must be refused once the level is edited.
-// Usage: node scripts/golden-paint.mjs [--update] [url]   (run `npm run dev` first)
-import { chromium } from 'playwright';
+// Usage: node scripts/golden-paint.mjs [--update] [url]   (no url: starts its own server)
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
+import { gameReady, openTestBrowser } from './test-browser.mjs';
 
 const update = process.argv.includes('--update');
-const url = process.argv.slice(2).find((a) => !a.startsWith('--')) ?? 'http://localhost:5173/';
 const baselinePath = new URL('./golden-paint.json', import.meta.url);
 const out = 'shots/golden';
 fs.mkdirSync(out, { recursive: true });
@@ -46,8 +45,8 @@ const RUNS = [
 const GAP = 12; // frames with the button up between runs (particles land, tools swap)
 const SETTLE = 240; // frames at the end for runs to finish dripping
 
-// Frames aren't capped at 60 Hz: the game runs on fixed steps, so faster frames paint the same.
-const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--disable-frame-rate-limit', '--disable-gpu-vsync'] });
+// Frames aren't capped at 60 Hz: pages here don't draw (setUp), and the game runs on fixed steps, so faster frames paint the same.
+const test = await openTestBrowser(process.argv.slice(2).find((a) => !a.startsWith('--')), { uncapped: true });
 const results = {};
 let failed = 0;
 let ultraAtLow = null;
@@ -66,7 +65,7 @@ const refused = ultraAtLow.refused === 'SAVED FOR ANOTHER VERSION OF DEMO' && ha
 failed += (saveAtLow ? 0 : 1) + (refused ? 0 : 1);
 console.log(`ULTRA save at LOW: ${saveAtLow ? 'identical to switching PAINT DETAIL in game' : 'DIFFERS from switching PAINT DETAIL in game'}`);
 console.log(`save after a level edit: ${refused ? `refused (${ultraAtLow.refused}), paint kept` : `NOT REFUSED AS EXPECTED: ${ultraAtLow.refused}`}`);
-await browser.close();
+await test.close();
 
 if (update || !fs.existsSync(baselinePath)) {
   fs.writeFileSync(baselinePath, JSON.stringify(results, null, 2) + '\n');
@@ -98,14 +97,13 @@ async function checkDetail(detail) {
 
 /** Opens the game at a paint detail and runs `fn(arg)` in it; page errors fail the run. */
 async function inGame(detail, fn, arg) {
-  const page = await browser.newPage({ viewport: { width: 320, height: 180 } });
+  const page = await test.browser.newPage({ viewport: { width: 320, height: 180 } });
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.addInitScript((d) => localStorage.setItem('roofhiddenhaus.settings', JSON.stringify({ paintDetail: d, cityDetail: 'low' })), detail);
   await page.addInitScript(pageHelpers);
-  await page.goto(url);
-  await page.waitForFunction(() => window.game?.level?.solids?.length > 0);
-  await page.waitForTimeout(500);
+  await page.goto(test.url);
+  await gameReady(page);
   const r = await page.evaluate(fn, arg);
   await page.close();
   if (errors.length) throw new Error(`${detail}: ${errors.join('\n')}`);

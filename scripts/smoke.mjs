@@ -1,19 +1,29 @@
-// Headless smoke test: loads the game, fakes pointer lock, sprays, screenshots.
-// Usage: node scripts/smoke.mjs [url] [outDir]   (run `npm run dev` first)
-import { chromium } from 'playwright';
+// Headless smoke test: loads the game, fakes pointer lock, opens the debug
+// panel, runs optional STEPS (JSON: [{ js, wait, shot }]) and screenshots.
+// Fails on page errors and console errors; warnings are printed.
+// Usage: node scripts/smoke.mjs [url] [outDir]   (no url: starts its own server)
+import fs from 'node:fs';
+import { gameReady, openTestBrowser } from './test-browser.mjs';
 
-const url = process.argv[2] ?? 'http://localhost:5173/';
 const out = process.argv[3] ?? 'shots';
-await import('node:fs').then((fs) => fs.mkdirSync(out, { recursive: true }));
+fs.mkdirSync(out, { recursive: true });
 const steps = JSON.parse(process.env.STEPS ?? '[]');
+/** SwiftShader's note on reading pixels back: always there, not the game's. */
+const NOISE = /GPU stall due to ReadPixels/;
 
-const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
-const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
+const test = await openTestBrowser(process.argv[2]);
+// Small: SwiftShader draws every frame on the CPU, and a frame at 1280x720 takes it seconds.
+const page = await test.browser.newPage({ viewport: { width: 640, height: 360 } });
 const errors = [];
-page.on('console', (m) => (m.type() === 'error' || m.type() === 'warning') && errors.push(`${m.type()}: ${m.text()}`));
+const warnings = [];
+page.on('console', (m) => {
+  if (m.type() === 'error') errors.push(`error: ${m.text()}`);
+  else if (m.type() === 'warning' && !NOISE.test(m.text())) warnings.push(`warning: ${m.text()}`);
+});
 page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
-await page.goto(url);
-await page.waitForTimeout(1000);
+await page.goto(test.url);
+// A few frames: each one at this size takes SwiftShader a second or more.
+await gameReady(page, 3);
 await page.screenshot({ path: `${out}/00-start.png` });
 await page.evaluate(() => {
   const g = window.game;
@@ -27,5 +37,6 @@ for (const s of steps) {
   await page.waitForTimeout(s.wait ?? 500);
   if (s.shot) await page.screenshot({ path: `${out}/${String(i++).padStart(2, '0')}-${s.shot}.png` });
 }
-console.log(errors.length ? errors.join('\n') : 'no console errors');
-await browser.close();
+console.log([...errors, ...warnings].join('\n') || 'no console errors or warnings');
+await test.close();
+process.exitCode = errors.length ? 1 : 0;
