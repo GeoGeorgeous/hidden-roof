@@ -90,7 +90,7 @@ export interface LightSpec {
 /** Widest cone half-angle a light can have (radians): three.js spot lights need less than π/2. */
 export const LIGHT_SPREAD_MAX = 1.55;
 
-/** Neon signs are long sources: each face gets this many lamps along its height, sharing the kind's intensity, so the light comes from the whole tube, not one point. */
+/** Line sources (LightPiece.span, the neon signs) are baked as this many lamps along their length, sharing the kind's intensity, so the light comes from the whole tube, not one point. */
 export const NEON_LIGHT_ROWS = 4;
 
 /** Per-kind light settings, live-tunable in the debug panel (Lights). */

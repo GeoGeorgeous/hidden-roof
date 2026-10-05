@@ -1,5 +1,5 @@
 import { Color } from 'three';
-import { LIGHTS, NEON_LIGHT_ROWS, type LightKind } from '../config';
+import { LIGHTS, type LightKind } from '../config';
 import { neonRect } from '../render/ink/neon-text';
 import type { PropDef } from './def';
 import { M, Parts, type Mat } from './pieces';
@@ -9,9 +9,9 @@ import { M, Parts, type Mat } from './pieces';
 // sides. Each face has a neon tube outline around a column of real text in
 // paper on ink (render/ink/neon-text.ts), one character under another; the
 // text is the sign's own (PropDef.text: typed in build mode, saved in the
-// level). Tubes, text and light flicker gently, in sync. The light is several
-// lamps down each face (LIGHTS[kind], NEON_LIGHT_ROWS; aim and offset are
-// mirrored for the second face), so it comes from the whole sign.
+// level). Tubes, text and light flicker gently, in sync. Each face lights as
+// one line source along its height (LIGHTS[kind], LightPiece.span; aim and
+// offset are mirrored for the second face), so it comes from the whole sign.
 
 const H = 2.8; // height
 const OUT = 0.2; // gap between wall and sign
@@ -68,11 +68,8 @@ function blade(name: string, kind: LightKind, text: string): PropDef {
         p.detail([tlo, H - EDGE - TUBE, z0 + EDGE], [thi, H - EDGE, z1 - EDGE], tube, false);
         p.detail([tlo, EDGE, z0 + EDGE], [thi, H - EDGE, z0 + EDGE + TUBE], tube, false);
         p.detail([tlo, EDGE, z1 - EDGE - TUBE], [thi, H - EDGE, z1 - EDGE], tube, false);
-        // The tube is a tall source: several lamps down its height, one share of the intensity each.
-        for (let i = 0; i < NEON_LIGHT_ROWS; i++) {
-          const y = EDGE + ((H - 2 * EDGE) * (i + 0.5)) / NEON_LIGHT_ROWS;
-          p.light({ kind, pos: [s * (T + 0.04), y, ZC], mirrorX: s < 0, flicker: fl, share: 1 / NEON_LIGHT_ROWS });
-        }
+        // The tube is a tall source: a line along its height.
+        p.light({ kind, pos: [s * (T + 0.04), H / 2, ZC], mirrorX: s < 0, flicker: fl, span: H - 2 * EDGE });
       }
       return p.list;
     },

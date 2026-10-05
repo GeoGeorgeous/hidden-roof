@@ -1,4 +1,4 @@
-import { ATMOS, LIGHT_SPREAD_MAX, LIGHTMAP, LIGHTS } from '../../config';
+import { ATMOS, LIGHT_SPREAD_MAX, LIGHTMAP, LIGHTS, NEON_LIGHT_ROWS } from '../../config';
 import { syncAnchor, type LightAnchor } from '../../level/build-prop';
 import type { Occluders } from './occluders';
 
@@ -28,7 +28,15 @@ export interface Lamp {
   owner: number;
 }
 
-export function makeLamp(a: LightAnchor, owner: number, slot: number): Lamp {
+/** The baked lamps of an anchor: one, or NEON_LIGHT_ROWS along a line source (LightAnchor.span) sharing its intensity. */
+export function makeLamps(a: LightAnchor, owner: number, slot: number): Lamp[] {
+  const one = makeLamp(a, owner, slot);
+  if (!a.span) return [one];
+  const n = NEON_LIGHT_ROWS;
+  return Array.from({ length: n }, (_, i) => ({ ...one, y: one.y + a.span * ((i + 0.5) / n - 0.5), r: one.r / n, g: one.g / n, b: one.b / n }));
+}
+
+function makeLamp(a: LightAnchor, owner: number, slot: number): Lamp {
   syncAnchor(a);
   const s = LIGHTS[a.kind];
   const angle = Math.min(s.spread, LIGHT_SPREAD_MAX);
@@ -42,9 +50,9 @@ export function makeLamp(a: LightAnchor, owner: number, slot: number): Lamp {
     dx: a.dir.x,
     dy: a.dir.y,
     dz: a.dir.z,
-    r: (lum + (a.color.r - lum) * t) * s.intensity * a.share,
-    g: (lum + (a.color.g - lum) * t) * s.intensity * a.share,
-    b: (lum + (a.color.b - lum) * t) * s.intensity * a.share,
+    r: (lum + (a.color.r - lum) * t) * s.intensity,
+    g: (lum + (a.color.g - lum) * t) * s.intensity,
+    b: (lum + (a.color.b - lum) * t) * s.intensity,
     range: s.range,
     cosOuter: Math.cos(angle),
     cosInner: Math.cos(angle * (1 - s.softness)),
