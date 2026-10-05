@@ -9,13 +9,16 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "smoke": "node scripts/smoke.mjs",
-    "check": "npm run typecheck && npm run smoke"
+    "check": "npm run typecheck && npm run smoke",
+    "audit": "knip; jscpd src"
   },
   "dependencies": {
     "three": "^0.186.1"
   },
   "devDependencies": {
     "@types/three": "^0.186.0",
+    "jscpd": "^5.4.0",
+    "knip": "^6.39.0",
     "playwright": "^1.63.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.2"
