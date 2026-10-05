@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { UvRect } from './glyphs';
+import { JP_FAMILY, onJpFont } from './jp-font';
 
 // Real vertical text for neon blade signs (kit/neon.ts), in a Japanese font
 // that ships with the game (public/fonts/neon-jp.woff2: Noto Sans JP Black,
@@ -18,7 +19,6 @@ const ROWS = 4;
 const INSET = 10;
 const INK = '#141416';
 const PAPER = '#f2efe6';
-const FAMILY = `'NeonJP', 'Noto Sans JP', 'Yu Gothic', Meiryo, sans-serif`;
 /** Longest text a sign takes. */
 export const NEON_MAX_TEXT = 12;
 /** Marks that sit at the top right of their cell in vertical writing (in a horizontal font they sit at the bottom left). */
@@ -41,20 +41,11 @@ export function neonAtlas() {
   atlas = new THREE.CanvasTexture(canvas);
   atlas.colorSpace = THREE.SRGBColorSpace;
   atlas.anisotropy = 4;
-  loadFont();
+  onJpFont(() => {
+    for (const [text, i] of cells) draw(text, i);
+    atlas!.needsUpdate = true;
+  });
   return atlas;
-}
-
-function loadFont() {
-  if (typeof FontFace === 'undefined') return;
-  new FontFace('NeonJP', `url(${import.meta.env.BASE_URL}fonts/neon-jp.woff2)`, { weight: '900' })
-    .load()
-    .then((f) => {
-      document.fonts.add(f);
-      for (const [text, i] of cells) draw(text, i);
-      atlas!.needsUpdate = true;
-    })
-    .catch((e) => console.warn('neon font failed to load, signs use a system font', e));
 }
 
 function draw(text: string, i: number) {
@@ -67,7 +58,7 @@ function draw(text: string, i: number) {
   // One character under another, as big as the sign's width or its height allows.
   const slot = Math.min(face, CELL_H / chars.length);
   const px = slot * 0.92;
-  ctx.font = `900 ${px}px ${FAMILY}`;
+  ctx.font = `900 ${px}px ${JP_FAMILY}`;
   ctx.fillStyle = PAPER;
   const top = y0 + (CELL_H - slot * chars.length) / 2;
   chars.forEach((c, k) => {
