@@ -11,7 +11,8 @@
     "smoke": "node scripts/smoke.mjs",
     "golden": "node scripts/golden-paint.mjs",
     "test": "node scripts/paint-file.test.mjs",
-    "check": "npm run typecheck && npm test && npm run smoke && knip",
+    "test:game": "node scripts/game.test.mjs",
+    "check": "npm run typecheck && npm test && npm run smoke && npm run test:game && knip",
     "audit": "knip; jscpd src"
   },
   "dependencies": {
