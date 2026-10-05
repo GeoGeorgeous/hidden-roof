@@ -32,37 +32,37 @@ A run takes about four minutes in SwiftShader: roughly 28 s per detail to play, 
 
 ## Baseline
 
-Hashes since the surface keys (`7f6dc6a`): the same paint as the phase 0 hashes, now keyed by surface key.
+Hashes since separate random streams per purpose (spray, sputter, drips; see finding 3). The phase 0 baseline (one shared stream) is in git history at `300deb3`.
 
 | Detail | Hash | Painted m² | Mean alpha | Drip triggers |
 |---|---|---|---|---|
-| LOW 24 | `339ceba05760b711` | 1.793 | 0.552 | 272 |
-| MEDIUM 48 | `8d546806fb00cbd6` | 1.764 | 0.565 | 246 |
-| HIGH 72 | `0ea7f0a79bb8c75d` | 1.817 | 0.567 | 212 |
-| ULTRA 96 | `63b9b5cb9c7ea7e8` | 1.801 | 0.548 | 231 |
+| LOW 24 | `c82a33e8bfda9a0c` | 1.780 | 0.563 | 270 |
+| MEDIUM 48 | `25f32d93e07b58c5` | 1.736 | 0.573 | 226 |
+| HIGH 72 | `63f68d7302ae8930` | 1.732 | 0.573 | 235 |
+| ULTRA 96 | `89628838c2452d1a` | 1.721 | 0.572 | 231 |
 
 Coverage added per run, in m² of full paint (negative means removed):
 
 | Run | LOW | MEDIUM | HIGH | ULTRA |
 |---|---|---|---|---|
-| can skinny | 0.107 | 0.102 | 0.102 | 0.103 |
-| can standard | 0.237 | 0.225 | 0.232 | 0.224 |
-| can fat, held for runs | 0.062 | 0.052 | 0.050 | 0.053 |
-| can spray | 0.389 | 0.386 | 0.392 | 0.389 |
-| can sputtering | 0.025 | 0.041 | 0.070 | 0.033 |
-| marker (1.2 cm nib) | 0.073 | 0.031 | 0.029 | 0.032 |
-| marker thinnest (1 texel) | 0.035 | 0.015 | 0.008 | 0.006 |
-| marker widest, held for runs | 0.050 | 0.045 | 0.040 | 0.035 |
-| roller on the wall | 0.233 | 0.267 | 0.277 | 0.276 |
-| roller on the floor | 0.065 | 0.067 | 0.067 | 0.067 |
-| sponge | −0.146 | −0.112 | −0.112 | −0.107 |
-| sponge widest | −0.140 | −0.123 | −0.126 | −0.126 |
+| can skinny | 0.110 | 0.103 | 0.102 | 0.100 |
+| can standard | 0.237 | 0.233 | 0.230 | 0.229 |
+| can fat, held for runs | 0.055 | 0.050 | 0.053 | 0.051 |
+| can spray | 0.380 | 0.378 | 0.375 | 0.376 |
+| can sputtering | 0.044 | 0.044 | 0.045 | 0.045 |
+| marker | 0.064 | 0.029 | 0.031 | 0.031 |
+| marker thinnest | 0.031 | 0.011 | 0.011 | 0.006 |
+| marker widest, held for runs | 0.061 | 0.035 | 0.038 | 0.036 |
+| roller on the wall | 0.229 | 0.279 | 0.277 | 0.275 |
+| roller on the floor | 0.066 | 0.068 | 0.067 | 0.067 |
+| sponge | −0.143 | −0.113 | −0.110 | −0.108 |
+| sponge widest | −0.133 | −0.122 | −0.128 | −0.124 |
 
 The wall at ULTRA and at LOW, then the floor (ULTRA), at 96 px/m over paper:
 
 ![wall, ULTRA](golden/wall-ultra.png) ![wall, LOW](golden/wall-low.png) ![floor, ULTRA](golden/floor-ultra.png)
 
-Loopback (since `e7a0bc1`): identical at all four details, about 5,100–5,300 ops over 1,377 frames. ULTRA's ops at LOW paint 1.842 m², 2.3% more than at ULTRA (1.801): LOW draws thin lines and runs a whole 4 cm texel wide.
+Loopback: identical at all four details, about 5,100–5,200 ops over 1,377 frames. ULTRA's ops at LOW paint 1.759 m², 2.2% more than at ULTRA (1.721): LOW draws thin lines and runs a whole 4 cm texel wide.
 
 ## Findings
 
@@ -74,8 +74,9 @@ Loopback (since `e7a0bc1`): identical at all four details, about 5,100–5,300 o
 
    The cause is that all paint randomness is **one shared stream**. Drip decisions draw one random number per saturated texel, and the number of texels depends on detail. So every later run, the sputter run included, draws different numbers at each detail.
 
-   For future statistical comparisons, separate streams per purpose (spray, sputter, drips) would decouple the tools. This fits phase 1 step 4, when drips become ops decided by the painter.
-4. **At LOW, the sponge removes more and the roller lays less.** The sponge removes about 30% more paint (−0.146 vs −0.107 m²), and the roller on the wall lays about 15% less (0.233 vs 0.276). The likely cause, not verified, is the coarse 4 cm texels: a scrub takes whole texels, and the roller's narrow press bands, between the slats (next point), round to fewer texels. Either way, this is how the game behaves today, not something these changes introduced.
+   **Fixed:** paint randomness is now one stream per purpose: spray (with the can jitter), sputter and drips (`src/lcg.ts`). In the phase 0 baseline (one stream), sputtering varied by 64% between details. Now it varies by 2% (0.044–0.045 m²), and the fat-cap and widest-sponge runs agree more closely too. What still varies comes from the raster's texel size (the marker, LOW's coarse dots) and from drip decisions, which are made per texel.
+
+4. **At LOW, the sponge removes more and the roller lays less.** The sponge removes about 30% more paint (−0.143 vs −0.108 m²), and the roller on the wall lays about 17% less (0.229 vs 0.275). The likely cause, not verified, is the coarse 4 cm texels: a scrub takes whole texels, and the roller's narrow press bands, between the slats (next point), round to fewer texels. Either way, this is how the game behaves today, not something these changes introduced.
 5. **The demo wall has unpaintable slats.** They are 2 cm in front of the wall (part of the `building` prop), about every 12 cm from 0.3 to 0.95 m up. Strokes that cross them leave stripes, as the orange roller shows. It's correct occlusion, not a gap in the roller. The marker runs stay above the slats so their paint is easy to read.
 6. **Vite test gotcha.** After a source file is edited while `npm run dev` runs, the game imports it as `file.ts?t=…`. `import('/src/file.ts')` from a test then loads a second copy with its own state. Use the exact URL from `performance.getEntriesByType('resource')`, or go through `window.game`.
 

@@ -89,8 +89,8 @@ export class SprayTool {
     if (p < PRESSURE.sputterThreshold) {
       this.sputterTimer -= dt;
       if (this.sputterTimer <= 0) {
-        this.sputterOn = paintRandom() < PRESSURE.sputterDuty;
-        this.sputterTimer = 0.03 + paintRandom() * 0.12;
+        this.sputterOn = paintRandom.sputter() < PRESSURE.sputterDuty;
+        this.sputterTimer = 0.03 + paintRandom.sputter() * 0.12;
       }
       const weak = 0.5 + 0.5 * (p / PRESSURE.sputterThreshold);
       return this.sputterOn ? PRESSURE.minSteadyFlow * weak : 0;

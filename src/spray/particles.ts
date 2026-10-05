@@ -79,7 +79,7 @@ export class SprayParticles {
       if (!p) break;
       // Gaussian-ish cone, clamped.
       const r = Math.tan(Math.min(1, Math.abs(gauss()) * 0.5) * cap.coneAngle);
-      const a = paintRandom() * Math.PI * 2;
+      const a = paintRandom.spray() * Math.PI * 2;
       dir.copy(e.forward).addScaledVector(e.right, Math.cos(a) * r).addScaledVector(e.up, Math.sin(a) * r).normalize();
 
       this.raycaster.set(e.eye, dir);
@@ -95,7 +95,7 @@ export class SprayParticles {
       if (hit && p.surface) {
         facePoint(p.surface.geo, hit.faceIndex!, hit.uv!, p.at);
         const fall = hit.distance <= SPRAY.falloffStart ? 1 : 1 - (hit.distance - SPRAY.falloffStart) / (SPRAY.range - SPRAY.falloffStart);
-        p.amount = cap.strength * Math.max(0.15, e.flow) * fall * (0.6 + paintRandom() * 0.4);
+        p.amount = cap.strength * Math.max(0.15, e.flow) * fall * (0.6 + paintRandom.spray() * 0.4);
         p.radius = cap.stampRadius;
         p.softness = cap.softness;
         p.rgb = e.rgb;
@@ -138,5 +138,5 @@ export class SprayParticles {
 }
 
 function gauss() {
-  return Math.sqrt(-2 * Math.log(1 - paintRandom())) * Math.cos(2 * Math.PI * paintRandom());
+  return Math.sqrt(-2 * Math.log(1 - paintRandom.spray())) * Math.cos(2 * Math.PI * paintRandom.spray());
 }

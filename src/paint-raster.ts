@@ -145,7 +145,7 @@ export class PaintRaster<S extends RasterSurface> {
       return;
     }
     e[k] = 0;
-    if (paintRandom() >= (DRIPS.perSquareMeter * rate) / PAINT.texelsPerMeter ** 2) return;
+    if (paintRandom.drips() >= (DRIPS.perSquareMeter * rate) / PAINT.texelsPerMeter ** 2) return;
     const i = k * 4;
     const d = s.data!;
     this.hooks.drip(s, rect, x, y, [d[i] / 255, d[i + 1] / 255, d[i + 2] / 255]);
