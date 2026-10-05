@@ -65,8 +65,6 @@ uniform vec3 uHiColor[${HIGHLIGHT_MAX}];
 uniform vec4 uHiCone[${HIGHLIGHT_MAX}];
 varying vec2 vLightUv;
 varying vec3 vBaked;
-// The hue of the baked light (its color minus its brightness, as irradiance), for the ink to tint with.
-vec3 bakedChroma = vec3(0.0);
 `;
 
 /** Goes right after three's lights (lights_fragment_maps), where `irradiance` and `material` exist. */
@@ -80,7 +78,8 @@ export const BAKE_FRAG = /* glsl */ `
     bakedLight += texture2D(uLightFlicker, vLightUv).rgb * flickerOf(slot);
   }
   irradiance += bakedLight * uBakedScale;
-  bakedChroma = (bakedLight - dot(bakedLight, ${LUM_GLSL})) * uBakedScale;
+  // The hue of the baked light (its color minus its brightness, as irradiance), for the ink to tint with (INK_PARS).
+  inkChroma = (bakedLight - dot(bakedLight, ${LUM_GLSL})) * uBakedScale;
   if (material.specularStrength > 0.0) {
     for (int i = 0; i < ${HIGHLIGHT_MAX}; i++) {
       if (i >= uHiCount) break;

@@ -214,6 +214,18 @@ export const INK = {
   grime: 0.25,
 };
 
+/** Shape of the colored light tint (INK.tint) in the ink shader; built into the shader, not live. */
+export const INK_TINT = {
+  /** The tint is the light's hue relative to its brightness, which grows without bound in the dark: brightness counts as at least this. */
+  minLight: 0.15,
+  /** Largest change of a color channel, ± this fraction. */
+  max: 0.8,
+  /** Neon text takes this many times more of its lamp's hue than the walls it lights. */
+  neonBoost: 2,
+  /** The same floor as minLight for the neon text's own color (its tint's brightness). */
+  neonMinLight: 0.02,
+};
+
 /** Final color grading, applied in display space. Neutral = 0, 1, 1, 0, 0. */
 export const GRADE = {
   /** Stops (+1 = twice as bright). */
