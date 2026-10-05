@@ -11,11 +11,11 @@ import { RollerTool } from './roller';
 import { SpongeTool } from './sponge';
 import type { Level } from '../level/level';
 import { sizedCrosshair, stepSize, type WheelSized } from './wheel-size';
+import { ViewSway, type Motion } from './view-sway';
 
 /** Tools the mouse wheel resizes (wheel-size.ts): their config. */
 const SIZED: Record<SizedTool, WheelSized> = { marker: MARKER, sponge: SPONGE };
-const isSized = (t: Tool | null): t is SizedTool => t === 'marker' || t === 'sponge';
-import { ViewSway, type Motion } from './view-sway';
+const isSized = (t: Tool | null): t is SizedTool => t !== null && t in SIZED;
 
 // Routes input to the tool in hand: 1 = can, 2 = marker, 3 = stepladder, 4 =
 // roller, 5 = sponge, Q/E = color (can, marker, roller), mouse wheel = cap (can), nib size

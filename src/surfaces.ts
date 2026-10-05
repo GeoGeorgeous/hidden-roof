@@ -38,8 +38,9 @@ export interface FacePoint {
 
 /** The face point under a raycast hit (atlas `uv` on triangle `faceIndex`), written into `out`. */
 export function facePoint(geo: SurfaceGeometry, faceIndex: number, uv: { x: number; y: number }, out: FacePoint): FacePoint {
-  const r = geo.rects[geo.triToRect[faceIndex]];
-  out.rect = geo.triToRect[faceIndex];
+  const rect = geo.triToRect[faceIndex];
+  const r = geo.rects[rect];
+  out.rect = rect;
   out.u = (uv.x * geo.atlasW - r.x) / r.w;
   out.v = (uv.y * geo.atlasH - r.y) / r.h;
   return out;

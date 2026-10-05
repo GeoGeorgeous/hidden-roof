@@ -26,8 +26,10 @@ function faceTexel(s: PaintSurface, at: FacePoint): Rect {
   atTexel.set(r.x + at.u * r.w, r.y + at.v * r.h);
   return r;
 }
+
 /** A paint color: sRGB channels 0..1, the way paint textures store it (inventory/items.ts rgbOf). */
 export type Rgb = readonly [number, number, number];
+
 export interface PaintSurface {
   /** Stable name, the same on every client and at every paint detail: `p<prop id>#k` or `j<joint key>#k`, k = index in the prop's paint (level/build-prop.ts). */
   key: string;

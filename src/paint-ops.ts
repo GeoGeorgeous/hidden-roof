@@ -4,9 +4,9 @@ import type { PaintSystem, Rgb } from './painting';
 import type { FacePoint } from './surfaces';
 
 // Paint operations: each stamp and roll the tools make and each run they
-// start, as data. A surface by
-// key and a face point (u, v across the face) are the same on every client
-// and at every paint detail, so a recorded op paints the same spot anywhere.
+// start, as data. A surface by key and a face point (u, v across the face) are
+// the same on every client and at every paint detail, so a recorded op paints
+// the same spot anywhere.
 // PaintSystem.log records the local ones; apply() replays an op from elsewhere
 // (another player, a save, the loopback test).
 
