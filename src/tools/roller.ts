@@ -17,8 +17,6 @@ import { RollerModel } from './roller-model';
 // own length, like a real one. Paint runs come easily (DRIPS).
 
 const right = new THREE.Vector3();
-/** Held still, presses add to runs this often (per s), whatever the frame rate. */
-const STILL_DRIP_RATE = 20;
 
 export class RollerTool {
   readonly model = new RollerModel();
@@ -58,7 +56,7 @@ export class RollerTool {
   private roll(dt: number, camera: THREE.Camera, eye: THREE.Vector3, color: PaintColor) {
     right.set(1, 0, 0).applyQuaternion(camera.quaternion);
     // Presses no farther apart than their depth at full reach.
-    const spec = { reach: ROLLER.reach, rayStep: ROLLER.halfDepth / ROLLER.reach, maxRays: 48, stillRate: STILL_DRIP_RATE };
+    const spec = { reach: ROLLER.reach, rayStep: ROLLER.halfDepth / ROLLER.reach, maxRays: ROLLER.maxRays, stillRate: ROLLER.stillRate };
     let rolled: number | null = null;
     this.stroke.sweep(dt, camera, eye, spec, (hit, surface, fresh) => {
       if (!surface) return;

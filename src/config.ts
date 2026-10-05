@@ -352,6 +352,11 @@ export const MARKER = {
    */
   drips: 8,
   strength: 0.95,
+  /** Held still, the nib stamps the same spot every frame: let it add to runs this often (per s), whatever the frame rate. */
+  stillRate: 30,
+  /** Fast moves are filled with rays at most rayStep apart (radians), at most maxRays per frame, so they leave no gaps. */
+  rayStep: 0.003,
+  maxRays: 32,
 };
 
 /** Crosshair (px) with no sized tool in hand: the stepladder, empty hands, build mode. The others set their own. */
@@ -376,6 +381,10 @@ export const ROLLER = {
   strength: 0.85,
   /** Paint runs (with DRIPS on), as a multiplier of DRIPS.perSquareMeter: a loaded roller runs easily. */
   drips: 2,
+  /** Held still, presses add to runs this often (per s), whatever the frame rate. */
+  stillRate: 20,
+  /** Fast moves are filled with presses at most halfDepth apart at full reach, at most maxRays per frame. */
+  maxRays: 48,
 };
 
 /** Sponge (slot 5): scrubs paint off surfaces. Held pose is HOLD.sponge. */
@@ -398,6 +407,10 @@ export const SPONGE = {
   /** How far it scrubs in small circles while cleaning (m), and how fast (turns per s). */
   scrubSize: 0.012,
   scrubSpeed: 5,
+  /** Held still, it keeps scrubbing the same spot this often (per s), whatever the frame rate. */
+  stillRate: 20,
+  /** Fast moves are filled with steps half a patch apart at full reach, at most maxRays per frame. */
+  maxRays: 24,
   /**
    * The model (m): a kitchen sponge, a soft block with a darker scouring pad
    * on its front (the side that goes on the wall) and pores on the soft part.
