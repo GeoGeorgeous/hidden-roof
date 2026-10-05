@@ -78,6 +78,9 @@ const all = () => (cache ??= build());
 
 export type TexName = keyof ReturnType<typeof build>['textures'];
 
+/** The lettering atlases: drawn straight from the texture, not lit (LETTERS in render/ink/tone.ts). */
+export const LETTER_TEXTURES: ReadonlySet<TexName> = new Set<TexName>(['panelText', 'words', 'neonText']);
+
 export function textures() {
   return all().textures;
 }

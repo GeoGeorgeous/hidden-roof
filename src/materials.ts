@@ -4,7 +4,7 @@ import { FLICKER_GLSL } from './render/flicker';
 import { TRACK_GLSL, trackUniforms } from './render/cctv-track';
 import { BAKE_FRAG, BAKE_FRAG_PARS, BAKE_VERT, BAKE_VERT_PARS, bakeUniforms } from './render/bake/glsl';
 import { INK_FRAG, INK_PARS, inkUniforms, syncInkUniforms } from './render/ink/tone';
-import { textures, type TexName } from './textures';
+import { LETTER_TEXTURES, textures, type TexName } from './textures';
 import { FACADE_GLSL, type Facade } from './render/ink/facade';
 import { GRIME_GLSL } from './render/ink/grime';
 
@@ -200,7 +200,7 @@ export class SurfaceMaterial extends THREE.MeshPhongMaterial {
     // the one every other surface shares, it can slow the GPU's depth test.
     if (opts.alphaTest) this.defines = { BASE_ALPHA_TEST: '' };
     // Sign lettering (the text atlases) is drawn straight from the texture, not lit (render/ink/tone.ts).
-    if (opts.tex === 'panelText' || opts.tex === 'words' || opts.tex === 'neonText') this.defines = { ...this.defines, LETTERS: '' };
+    if (LETTER_TEXTURES.has(opts.tex)) this.defines = { ...this.defines, LETTERS: '' };
     const base = (this.baseTexture = textures()[opts.tex]);
     const tile = opts.tileMeters ?? (base.image as HTMLCanvasElement).width / BASE_TEXTURES.texelsPerMeter;
     this.baseScaleUniform.value = 1 / tile;
