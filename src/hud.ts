@@ -1,3 +1,4 @@
+import { VIGNETTE } from './config';
 import { isFullscreen } from './fullscreen';
 import { SettingsPage } from './settings-page';
 import type { SettingSection } from './settings';
@@ -45,6 +46,8 @@ export class Hud {
   private crosshair: HTMLElement;
   private swatchTag: HTMLElement;
   private perf: HTMLElement;
+  private vignette: HTMLElement;
+  private vignetteShown = '';
   private perfShown = '';
   private perfAt = 0;
   private capTag: HTMLElement;
@@ -106,6 +109,7 @@ export class Hud {
     this.overlay = root.querySelector('.overlay')!;
     this.status = root.querySelector('.status')!;
     this.exitFs = root.querySelector('.exit-fs')!;
+    this.vignette = root.querySelector('.vignette')!;
     this.swatchTag = root.querySelector('.swatch-tag')!;
     this.alert = root.querySelector('.psi-alert')!;
     this.rec = ink.querySelector('.rec-time')!;
@@ -246,7 +250,19 @@ export class Hud {
     this.perf.textContent = text;
   }
 
+  /** The vignette gradient from VIGNETTE (live in F3), rewritten only when it changed. */
+  private syncVignette() {
+    const key = `${VIGNETTE.strength}|${VIGNETTE.start}|${VIGNETTE.color}`;
+    if (key === this.vignetteShown) return;
+    this.vignetteShown = key;
+    const start = Math.min(99, Math.max(0, VIGNETTE.start));
+    const shade = (a: number) => `color-mix(in srgb, ${VIGNETTE.color} ${Math.round(Math.min(1, Math.max(0, a)) * 100)}%, transparent)`;
+    // Like the fixed gradient it replaces: a third of the strength a bit over half way out.
+    this.vignette.style.background = `radial-gradient(ellipse at center, transparent ${start}%, ${shade(VIGNETTE.strength / 3)} ${start + (100 - start) * 0.55}%, ${shade(VIGNETTE.strength)} 100%)`;
+  }
+
   update() {
+    this.syncVignette();
     const s = Math.floor((performance.now() - this.start) / 1000);
     if (s === this.lastSecond) return;
     this.lastSecond = s;

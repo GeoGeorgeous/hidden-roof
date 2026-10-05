@@ -226,6 +226,15 @@ export const GRADE = {
   tint: 0,
 };
 
+/** The dark edge of the screen: a gradient over the view (hud.ts), live in F3. */
+export const VIGNETTE = {
+  /** Darkness at the corners, 0..1 (0 = none). */
+  strength: 0.3,
+  /** Where it starts, as a percentage of the way out to the corners. */
+  start: 60,
+  color: '#141416',
+};
+
 export const PAINT = {
   /**
    * Texel density of every paint texture. The PAINT DETAIL setting (pause menu)
