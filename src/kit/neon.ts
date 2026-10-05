@@ -60,9 +60,9 @@ function blade(name: string, kind: LightKind, text: string): PropDef {
         const hi = Math.max(xa, xb);
         const tlo = Math.min(xb, xc);
         const thi = Math.max(xb, xc);
-        // The lettered face, inside the tube outline.
+        // The lettered face, inside the tube outline: a big flat face, so it takes paint (the body covers its back).
         const inner = EDGE + TUBE;
-        p.detail([lo, inner, z0 + inner], [hi, H - inner, z1 - inner], letters, false);
+        p.box([lo, inner, z0 + inner], [hi, H - inner, z1 - inner], letters, { paint: true, collide: false, skip: [s > 0 ? '-x' : '+x'] });
         // Tube outline around it.
         p.detail([tlo, EDGE, z0 + EDGE], [thi, EDGE + TUBE, z1 - EDGE], tube, false);
         p.detail([tlo, H - EDGE - TUBE, z0 + EDGE], [thi, H - EDGE, z1 - EDGE], tube, false);

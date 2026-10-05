@@ -43,12 +43,15 @@ export class SurfaceBuilder {
   /** Per-vertex tint (linear RGB) and emissive applied to the vertices added next. */
   tint: [number, number, number] = [1, 1, 1];
   emissive = 0;
+  /** Neon flicker seed (0 = steady) of the vertices added next, see Mat.flicker. */
+  flicker = 0;
   /** Lettering: quads added next map this glyph atlas rect (u0, v0, u1, v1) instead of world-aligned base UVs. */
   letters: readonly number[] | null = null;
   /** Facade bands (render/ink/facade.ts) of the vertices added next; plain by default. */
   facade: readonly number[] = [0, 0, 0, 0];
   private tints: number[] = [];
   private emissives: number[] = [];
+  private flickers: number[] = [];
   private facades: number[] = [];
   positions: number[] = [];
   normals: number[] = [];
@@ -69,6 +72,7 @@ export class SurfaceBuilder {
     this.positions.push(p.x, p.y, p.z);
     this.tints.push(...this.tint);
     this.emissives.push(this.emissive);
+    this.flickers.push(this.flicker);
     this.facades.push(...this.facade);
     this.normals.push(n.x, n.y, n.z);
     // Store rect index + local fraction; resolved after packing.
@@ -102,6 +106,7 @@ export class SurfaceBuilder {
     g.setAttribute('baseUv', new THREE.Float32BufferAttribute(this.baseUvs, 2));
     g.setAttribute('tint', new THREE.Float32BufferAttribute(this.tints, 3));
     g.setAttribute('emissive', new THREE.Float32BufferAttribute(this.emissives, 1));
+    g.setAttribute('flicker', new THREE.Float32BufferAttribute(this.flickers, 1));
     g.setAttribute('facade', new THREE.Float32BufferAttribute(this.facades, 4));
     g.setIndex(this.indices);
     g.computeBoundingBox();

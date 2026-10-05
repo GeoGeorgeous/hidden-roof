@@ -182,6 +182,7 @@ export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint =
     const c = new THREE.Color(mat.tint ?? '#ffffff');
     e.b.tint = [c.r, c.g, c.b];
     e.b.emissive = mat.emissive ?? 0;
+    e.b.flicker = mat.flicker ?? 0;
     e.b.facade = mat.facade ?? NO_FACADE;
     e.b.letters = mat.letters ?? null;
     return e.b;
