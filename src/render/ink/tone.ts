@@ -187,7 +187,7 @@ export const INK_FRAG = /* glsl */ `
   // Colored lamps (LIGHTS[kind].tint): their hue, relative to the light on the surface, tints paper and ink alike.
   col *= 1.0 + clamp(bakedChroma / max(light, 0.15), -0.8, 0.8) * uInkTint;
 #ifdef LETTERS
-  // Sign lettering skips the light: ink where the glyph atlas is dark, paper
+  // Sign lettering skips the light: ink where the lettering atlas is dark, paper
   // elsewhere, so a sign reads in any light (shadow, night). Fades with distance.
   float glyph = dot(baseTex.rgb, ${LUM});
   float gw = max(fwidth(glyph), 1e-3);

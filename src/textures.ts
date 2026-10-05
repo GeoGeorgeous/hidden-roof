@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { lcg } from './lcg';
-import { glyphAtlas } from './render/ink/glyphs';
+import { panelAtlas } from './render/ink/panel-text';
 import { wordAtlas } from './render/ink/words';
 import { neonAtlas } from './render/ink/neon-text';
 
@@ -70,7 +70,7 @@ function build() {
   chainlink.minFilter = THREE.NearestFilter;
   chainlink.generateMipmaps = false;
 
-  return { textures: { flat, panel, shutter, chainlink, glyphs: glyphAtlas(), words: wordAtlas(), neon: neonAtlas() } };
+  return { textures: { flat, panel, shutter, chainlink, signs: panelAtlas(), words: wordAtlas(), neon: neonAtlas() } };
 }
 
 let cache: ReturnType<typeof build> | null = null;

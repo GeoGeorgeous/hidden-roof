@@ -1,12 +1,11 @@
 import * as THREE from 'three';
-import type { UvRect } from './glyphs';
+import type { UvRect } from './uv-rect';
 import { JP_FAMILY, onJpFont } from './jp-font';
 import { ENGLISH, JAPANESE as JAPANESE_TEXTS } from './slogans';
 
 // Real slogans for the signs and billboards of the city (city/rooftops.ts), in
 // the bundled Japanese font (jp-font.ts). One texture, drawn once, read by the
-// city shader like the made-up glyph atlas it replaces there: no extra draw call
-// and no per-pixel cost. (The sign props you place keep the made-up lettering.)
+// city shader: no extra draw call and no per-pixel cost.
 //
 // Layout, in square cells of ROW px: every phrase is a strip of its own, ink on
 // paper and paper on ink, centered in a full-width row (horizontal signs) and,
@@ -115,7 +114,7 @@ const rect = (x0: number, y0: number, x1: number, y1: number): UvRect => [x0 / W
  * it, centered with margins, or, if none is short enough, a run of one. Japanese
  * only for `vertical` (a column of characters); `latin` prefers an English
  * slogan. `a` and `b` (0..1) pick which, so a sign's lettering follows from
- * two random draws, like the glyph atlas's signRect.
+ * two random draws (the skyline layout depends on how many it takes).
  */
 export function cityTextRect(a: number, b: number, aspect: number, vertical: boolean, inverted: boolean, latin = false): UvRect {
   const variant = inverted ? 1 : 0;

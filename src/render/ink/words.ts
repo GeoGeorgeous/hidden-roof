@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import type { UvRect } from './glyphs';
+import type { UvRect } from './uv-rect';
 import { JP_FAMILY } from './jp-font';
 
 // Real words for small signs (exit, high voltage, name plates), unlike the
-// made-up lettering of the big ones (glyphs.ts). Each sign's own text (typed
+// wide panels of the big ones (panel-text.ts). Each sign's own text (typed
 // in build mode, saved in the level) gets a 64 px row the first time it's
 // used: ink on paper, or paper on ink. Drawn like sign lettering: straight
 // from the texture, not lit (LETTERS in ink/tone.ts).

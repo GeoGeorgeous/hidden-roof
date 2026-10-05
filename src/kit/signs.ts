@@ -1,26 +1,25 @@
 import type { PropDef } from './def';
 import { M, Parts, type Mat } from './pieces';
-import { signRect } from '../render/ink/glyphs';
+import { panelRect } from '../render/ink/panel-text';
 import { neonRect } from '../render/ink/neon-text';
 import { ENGLISH, JAPANESE } from '../render/ink/slogans';
 import { lcg } from '../lcg';
 import { word } from './small-signs';
 
-// Lettered signs for the ink look: the blade and shop signs show a real slogan
-// (render/ink/slogans.ts), picked by each instance's seed; the other sign props
-// use made-up lettering (render/ink/glyphs.ts) from `lettering`. The panels are
+// Lettered signs for the ink look: every sign shows a real slogan
+// (render/ink/slogans.ts) picked by its instance's seed. The panels are
 // paintable: paint covers the lettering like graffiti over an ad.
-
-/** Lettering material: `count` glyphs, vertical or not, for this instance's seed. */
-export function lettering(seed: number, count: number, vertical: boolean, latin = false): Mat {
-  const rnd = lcg(seed * 977 + 13);
-  return { tex: 'glyphs', tile: 1, tint: '#ffffff', letters: signRect(rnd, count, vertical, rnd() < 0.4, latin && rnd() < 0.5) };
-}
 
 /** A slogan for this seed from `pool`, and whether it is drawn paper on ink. */
 function slogan(seed: number, pool: string[]) {
   const rnd = lcg(seed * 977 + 13);
   return { text: pool[Math.floor(rnd() * pool.length)], inverted: rnd() < 0.4 };
+}
+
+/** Lettering for a fixed panel `aspect` (width / height) in shape: a slogan of at most `maxChars` characters, Japanese or English, one line. */
+export function panelLettering(seed: number, aspect: number, maxChars: number): Mat {
+  const s = slogan(seed, [...JAPANESE, ...ENGLISH].filter((t) => Array.from(t).length <= maxChars));
+  return { tex: 'signs', tile: 1, tint: '#ffffff', letters: panelRect(s.text, s.inverted, aspect) };
 }
 
 /** Tall sign sticking out of the wall you aim at (lettering on both faces), on two brackets. */

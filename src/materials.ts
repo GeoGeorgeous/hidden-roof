@@ -200,7 +200,7 @@ export class SurfaceMaterial extends THREE.MeshPhongMaterial {
     // the one every other surface shares, it can slow the GPU's depth test.
     if (opts.alphaTest) this.defines = { BASE_ALPHA_TEST: '' };
     // Sign lettering (glyph and word atlases) is drawn straight from the texture, not lit (render/ink/tone.ts).
-    if (opts.tex === 'glyphs' || opts.tex === 'words' || opts.tex === 'neon') this.defines = { ...this.defines, LETTERS: '' };
+    if (opts.tex === 'signs' || opts.tex === 'words' || opts.tex === 'neon') this.defines = { ...this.defines, LETTERS: '' };
     const base = (this.baseTexture = textures()[opts.tex]);
     const tile = opts.tileMeters ?? (base.image as HTMLCanvasElement).width / BASE_TEXTURES.texelsPerMeter;
     this.baseScaleUniform.value = 1 / tile;

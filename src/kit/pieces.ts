@@ -2,7 +2,7 @@ import type { TexName } from '../materials';
 import type { Axis, BoxFace } from '../surfaces';
 import type { LightKind } from '../config';
 import type { Facade } from '../render/ink/facade';
-import type { UvRect } from '../render/ink/glyphs';
+import type { UvRect } from '../render/ink/uv-rect';
 
 // A prop is described as a list of pieces in prop-local space (origin at the
 // bottom, front facing -z). Visuals, colliders and climb volumes are all
@@ -22,7 +22,7 @@ export interface Mat {
   flicker?: number;
   /** Facade bands drawn on its walls (render/ink/facade.ts FACADES). */
   facade?: Facade;
-  /** Sign lettering: box faces show this glyph atlas rect (render/ink/glyphs.ts signRect; use tex 'glyphs', tile 1). */
+  /** Sign lettering: box faces show this rect of a lettering atlas (tex 'words', 'neon' or 'signs', tile 1; render/ink/*-text.ts, words.ts). */
   letters?: UvRect;
 }
 

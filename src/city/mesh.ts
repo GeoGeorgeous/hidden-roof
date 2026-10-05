@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { Facade } from '../render/ink/facade';
-import type { UvRect } from '../render/ink/glyphs';
+import type { UvRect } from '../render/ink/uv-rect';
 
 // Merged geometry for the city around the level, in chunks (so the camera
 // culls what's out of view and draws near chunks first), all drawn with the

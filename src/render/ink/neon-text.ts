@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { UvRect } from './glyphs';
+import type { UvRect } from './uv-rect';
 import { JP_FAMILY, onJpFont } from './jp-font';
 
 // Real vertical text for neon blade signs (kit/neon.ts), in a Japanese font
