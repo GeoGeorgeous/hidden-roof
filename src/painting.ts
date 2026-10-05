@@ -26,13 +26,15 @@ function faceAt(s: PaintSurface, uv: { x: number; y: number }, faceIndex: number
   return s.geo.rects[s.geo.triToRect[faceIndex]];
 }
 const NONE: readonly never[] = [];
+/** A paint color: sRGB channels 0..1, the way paint textures store it (inventory/items.ts rgbOf). */
+export type Rgb = readonly [number, number, number];
 /** A roller band's size and paint (see PaintSystem.roll). */
 interface Band {
   halfLength: number;
   halfWidth: number;
   edge: number;
   amount: number;
-  color: readonly [number, number, number];
+  color: Rgb;
   drip: number;
 }
 /** Mip texels on their way to the GPU (paint-mips.ts). */
@@ -63,7 +65,7 @@ export class PaintSystem {
   uploadsLastFrame = 0;
   uploadBytesLastFrame = 0;
   /** Called when heavy paint on a vertical face should start a run (see paint-drips.ts). */
-  onDrip: (s: PaintSurface, rect: Rect, x: number, y: number, rgb: [number, number, number]) => void = () => {};
+  onDrip: (s: PaintSurface, rect: Rect, x: number, y: number, rgb: Rgb) => void = () => {};
 
   register(mesh: THREE.Mesh, material: SurfaceMaterial, geo: SurfaceGeometry): PaintSurface {
     const s: PaintSurface = { mesh, material, geo, data: null, mips: [], texture: null, excess: null, dirty: { x0: Infinity, y0: Infinity, x1: -1, y1: -1 } };
@@ -151,7 +153,7 @@ export class PaintSystem {
     faceIndex: number,
     radius: number,
     amount: number,
-    color: readonly [number, number, number] | null,
+    color: Rgb | null,
     softness = 0.5,
     drip = 0,
     square = false,
@@ -184,7 +186,7 @@ export class PaintSystem {
     halfWidth: number,
     edge: number,
     amount: number,
-    color: readonly [number, number, number],
+    color: Rgb,
     drip = 0,
   ) {
     if (!this.live(s)) return;
@@ -262,7 +264,7 @@ export class PaintSystem {
     cy: number,
     radius: number,
     amount: number,
-    color: readonly [number, number, number] | null,
+    color: Rgb | null,
     softness: number,
     drip: number,
     square: boolean,
@@ -309,7 +311,7 @@ export class PaintSystem {
   }
 
   /** Paint a single texel (paint runs), clipped to its face rect. */
-  dab(s: PaintSurface, rect: Rect, x: number, y: number, amount: number, color: readonly [number, number, number]) {
+  dab(s: PaintSurface, rect: Rect, x: number, y: number, amount: number, color: Rgb) {
     if (x < rect.x || y < rect.y || x >= rect.x + rect.w || y >= rect.y + rect.h || !this.live(s)) return;
     this.ensureTexture(s);
     blend(s.data!, (y * s.geo.atlasW + x) * 4, amount, color);
@@ -385,7 +387,7 @@ function gpuBytes(s: PaintSurface) {
  * the new paint by its own amount, even where the layer is already opaque.
  * (Alpha and color are independent: a full-alpha texel still takes new color.)
  */
-function blend(data: Uint8Array, i: number, amt: number, color: readonly [number, number, number]) {
+function blend(data: Uint8Array, i: number, amt: number, color: Rgb) {
   const a = data[i + 3] / 255;
   const na = amt + a * (1 - amt);
   const k = amt / na;
