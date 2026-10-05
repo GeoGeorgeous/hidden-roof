@@ -16,7 +16,7 @@ export const CATEGORIES: Category[] = ['structure', 'access', 'equipment', 'deta
 /**
  * How a prop snaps:
  * - cell:   fills grid cells (footprint in meters, multiples of 2)
- * - edge:   centered on a grid line, 2 m long (walls, parapets, railings)
+ * - edge:   centered on a grid line, 1.7 m long (walls, parapets, railings)
  * - mount:  back on the wall face you aim at, facing out (ladders, signs)
  * - floor:  stands on any surface, 0.5 m snap (equipment, details)
  */
