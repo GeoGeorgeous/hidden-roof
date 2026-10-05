@@ -1,5 +1,6 @@
 import { CATEGORIES, type Category, type PropDef } from '../kit/def';
 import { kitIn } from '../kit';
+import { inkLayers } from '../ink-layers';
 import { PICKUP_KINDS, pickupLabel } from '../inventory/items';
 
 // Hotbar-style prop picker: Tab / Shift+Tab (or 1-7) switch category, the mouse
@@ -24,6 +25,7 @@ export class Picker {
     this.root.className = 'picker';
     this.root.hidden = true;
     document.body.appendChild(this.root);
+    inkLayers(this.root);
   }
 
   set visible(v: boolean) {

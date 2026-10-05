@@ -1,4 +1,5 @@
-import { VIGNETTE } from './config';
+import { HUD, VIGNETTE } from './config';
+import { inkLayers } from './ink-layers';
 import { isFullscreen } from './fullscreen';
 import { SettingsPage } from './settings-page';
 import type { SettingSection } from './settings';
@@ -106,6 +107,8 @@ export class Hud {
     this.crosshair.hidden = true;
     document.body.insertBefore(this.crosshair, root);
     document.body.insertBefore(ink, root);
+    inkLayers(this.crosshair);
+    inkLayers(ink);
     this.overlay = root.querySelector('.overlay')!;
     this.status = root.querySelector('.status')!;
     this.exitFs = root.querySelector('.exit-fs')!;
@@ -263,6 +266,7 @@ export class Hud {
 
   update() {
     this.syncVignette();
+    document.body.classList.toggle('ink-flat', !HUD.pureBlackWhite);
     const s = Math.floor((performance.now() - this.start) / 1000);
     if (s === this.lastSecond) return;
     this.lastSecond = s;

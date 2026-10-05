@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { KIT_BY_TYPE } from '../kit';
+import { inkLayers } from '../ink-layers';
 import { H_MODULE, V_MODULE } from '../kit/def';
 import type { V3 } from '../kit/pieces';
 import type { Input } from '../input';
@@ -81,6 +82,7 @@ export class BuildMode {
     this.statusEl.hidden = true;
     this.hud.append(div('title', 'BUILD'), levels, div('', HELP), this.statusEl);
     document.body.appendChild(this.hud);
+    inkLayers(this.hud);
     this.setActive(false);
   }
 

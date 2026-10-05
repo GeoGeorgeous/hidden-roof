@@ -1,4 +1,5 @@
 import { HOTBAR } from '../config';
+import { inkLayers } from '../ink-layers';
 import { SLOTS, type Inventory, type Tool } from './inventory';
 import type { Thumbnails } from './thumbnails';
 
@@ -36,6 +37,8 @@ export class Hotbar {
     this.toastEl = document.createElement('div');
     this.toastEl.className = 'toast';
     document.body.append(this.root, this.iconRoot, this.toastEl);
+    inkLayers(this.root);
+    inkLayers(this.toastEl);
   }
 
   set visible(v: boolean) {

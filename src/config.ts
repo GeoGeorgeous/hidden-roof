@@ -235,6 +235,12 @@ export const VIGNETTE = {
   color: '#141416',
 };
 
+/** The HUD's ink (text, lines, crosshair), live in F3. */
+export const HUD = {
+  /** Pure black and white by luma (four blend layers, ink-layers.ts); off = one difference blend (gray on paper). */
+  pureBlackWhite: true,
+};
+
 export const PAINT = {
   /**
    * Texel density of every paint texture. The PAINT DETAIL setting (pause menu)

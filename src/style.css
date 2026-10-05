@@ -37,19 +37,43 @@ canvas {
   color: var(--dim);
 }
 
-/* The ink layers: white, inverting what's under them (like the crosshair), so
-   they read on paper, on ink and on paint. Each is a layer of its own over the
-   game view; the pause menu, the debug panel, the red alert, the REC dot, the
-   paint swatch and the hotbar icons keep their own colors. */
-.hud-ink,
-.hotbar:not(.icons),
-.toast,
-.picker,
-.build-help {
+/* The ink layers: pure black or white, whichever is the opposite of what's under
+   each glyph. ink-layers.ts stacks four copies of each layer; each copy has its
+   own blend mode and color here (flat mode: only the first, one white
+   difference, the plain inversion). Fully opaque on purpose: any alpha leaves
+   gray. The pause menu, the debug panel, the red alert, the REC dot, the paint
+   swatch and the hotbar icons keep their own colors. */
+.ink-l0,
+.ink-l1,
+.ink-l2,
+.ink-l3 {
+  --dim: var(--ui);
+  --line: 1px solid var(--ui);
+  color: var(--ui);
+}
+.ink-l0 {
+  --ui: #808080;
+  mix-blend-mode: color;
+}
+.ink-l1 {
+  --ui: #808080;
+  mix-blend-mode: color-burn;
+}
+.ink-l2 {
+  --ui: #fdfdfd;
+  mix-blend-mode: color-dodge;
+}
+.ink-l3 {
   --ui: #fff;
-  --dim: rgba(255, 255, 255, 0.62);
-  --line: 1px solid #fff;
-  color: #fff;
+  mix-blend-mode: difference;
+}
+body.ink-flat .ink-l1,
+body.ink-flat .ink-l2,
+body.ink-flat .ink-l3 {
+  display: none;
+}
+body.ink-flat .ink-l0 {
+  --ui: #fff;
   mix-blend-mode: difference;
 }
 .hud-ink {
@@ -77,7 +101,6 @@ canvas {
   width: 22px;
   height: 22px;
   border: 0 solid var(--ui);
-  opacity: 0.8;
 }
 .corner.tl { top: 16px; left: 16px; border-top-width: 1px; border-left-width: 1px; }
 .corner.tr { top: 16px; right: 16px; border-top-width: 1px; border-right-width: 1px; }
@@ -112,7 +135,7 @@ canvas {
   right: 30px;
 }
 
-/* White, inverting what's under it: white over ink and night, dark over paper, the opposite color over paint. */
+/* The opposite of what's under it, black or white (an ink layer, above). */
 .crosshair {
   --size: 14px;
   position: fixed;
@@ -122,9 +145,8 @@ canvas {
   height: var(--size);
   box-sizing: border-box;
   transform: translate(-50%, -50%);
-  border: 1px solid #fff;
+  border: 1px solid var(--ui);
   border-radius: 50%;
-  mix-blend-mode: difference;
   pointer-events: none;
   transition: width 0.12s, height 0.12s;
 }
@@ -170,7 +192,6 @@ canvas {
   align-items: center;
   gap: 6px;
   opacity: 0;
-  transition: opacity 0.3s;
 }
 .psi-gauge.show {
   opacity: 1;
@@ -415,16 +436,13 @@ canvas {
   height: 30px;
   border-radius: 50%;
   border: 1px solid var(--dim);
-  opacity: 0.55;
-  transition: opacity 0.15s, transform 0.15s;
+  transition: transform 0.15s;
 }
 .hotbar i.empty {
-  opacity: 0.35;
+  border-style: dashed;
 }
 .hotbar i.on {
-  border-color: var(--ui);
-  background: rgba(255, 255, 255, 0.3);
-  opacity: 1;
+  border-width: 3px;
   transform: scale(1.12);
 }
 /* The icons sit over the rings and keep their own colors. */
@@ -453,7 +471,6 @@ canvas {
   bottom: 30%;
   transform: translateX(-50%);
   opacity: 0;
-  transition: opacity 0.3s;
   pointer-events: none;
 }
 .toast.show {
