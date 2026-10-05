@@ -63,7 +63,7 @@ export type LightKind = 'wallLamp' | 'floodlight' | 'neonPink' | 'neonCyan' | 'n
 export interface LightSpec {
   /** Light color (lens and sign tubes take it too, after a rebuild). */
   color: string;
-  /** How much of `color` shows in the light on walls (INK.tint scales it): 0 = only its brightness (neutral), 1 = its full hue. */
+  /** How much of `color` shows in the light on walls (INK.tint scales it): 0 = only its brightness (neutral), 1 = its full hue. Baked lamps only: with LIGHTMAP.enabled off the walls get no hue. */
   tint: number;
   /** Emitter position relative to its default spot on the lens, prop-local meters (x right, y up, z back toward the wall). */
   offset: [number, number, number];
@@ -208,7 +208,7 @@ export const INK = {
   wobble: 0,
   /** Paper grain strength. */
   grain: 0.3,
-  /** Colored light on walls and floors: how strongly the lamp kinds with LIGHTS[kind].tint tint what they light (0 = none, the pure ink look). */
+  /** Colored light on walls and floors: how strongly the lamp kinds with LIGHTS[kind].tint tint what they light (0 = none, the pure ink look). Comes from the baked light, so only while LIGHTMAP.enabled is on. */
   tint: 0.35,
   /** Grime on surfaces: rain streaks, stains, buffed patches, cracks, seams (0 = clean). */
   grime: 0.25,
