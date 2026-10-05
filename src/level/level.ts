@@ -148,7 +148,7 @@ export class Level {
     for (const inst of this.props.values()) this.build(inst, true);
     for (const [key, { joint, b: old }] of this.joints) {
       disposeProp(old, this.paint);
-      const b = this.buildJoint(joint);
+      const b = this.buildJoint(key, joint);
       this.carryPaint(old, b);
       this.joints.set(key, { joint, b });
     }
@@ -232,7 +232,7 @@ export class Level {
     const pieces = def.build(ctx);
     if (pieces.some((p) => 'mat' in p && p.mat.letters)) this.lettered.add(inst.id);
     else this.lettered.delete(inst.id);
-    const b = buildProp(inst.id, pieces, inst.pos, inst.rot, this.paint);
+    const b = buildProp(inst.id, `p${inst.id}`, pieces, inst.pos, inst.rot, this.paint);
     this.root.add(b.group);
     this.built.set(inst.id, b);
     if (old && (resample || samePaintFaces(old, b))) this.carryPaint(old, b);
@@ -279,7 +279,7 @@ export class Level {
       this.joints.delete(key);
     }
     for (const [key, joint] of want) {
-      if (!this.joints.has(key)) this.joints.set(key, { joint, b: this.buildJoint(joint) });
+      if (!this.joints.has(key)) this.joints.set(key, { joint, b: this.buildJoint(key, joint) });
     }
     this.colliders.length = 0;
     this.ladders.length = 0;
@@ -299,8 +299,8 @@ export class Level {
     this.onChange();
   }
 
-  private buildJoint(joint: Joint) {
-    const b = buildProp(-1, jointPieces(joint.kind), joint.pos, 0, this.paint);
+  private buildJoint(key: string, joint: Joint) {
+    const b = buildProp(-1, `j${key}`, jointPieces(joint.kind), joint.pos, 0, this.paint);
     this.root.add(b.group);
     return b;
   }

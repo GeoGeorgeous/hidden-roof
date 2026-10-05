@@ -264,7 +264,8 @@ function mergeDecor(decor: Expanded['decor']) {
   });
 }
 
-export function buildProp(id: number, pieces: Piece[], pos: V3, rot: number, paint: PaintSystem): BuiltProp {
+/** `owner`: the first part of the prop's paint surface keys (PaintSurface.key). */
+export function buildProp(id: number, owner: string, pieces: Piece[], pos: V3, rot: number, paint: PaintSystem): BuiltProp {
   const ex = expandPieces(pieces, pos, rot);
   const out: BuiltProp = { group: new THREE.Group(), decor: [], colliders: ex.colliders, occluders: ex.occluders, ladders: ex.ladders, lights: ex.lights, emitters: ex.emitters, solids: [], paint: [], bounds: new THREE.Box3() };
   const add = (g: THREE.BufferGeometry, m: THREE.Material) => {
@@ -281,7 +282,7 @@ export function buildProp(id: number, pieces: Piece[], pos: V3, rot: number, pai
     const mesh = add(swingGeometry(geo.geometry), m);
     mesh.castShadow = false; // the level-wide shadow proxy casts for all paint meshes
     out.solids.push(mesh);
-    out.paint.push(paint.register(mesh, m, geo));
+    out.paint.push(paint.register(`${owner}#${out.paint.length}`, mesh, m, geo));
   }
   for (const { geo, mat } of mergeDecor(ex.decor)) {
     const mesh = add(geo, decorMaterial(mat));

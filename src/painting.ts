@@ -42,6 +42,8 @@ interface Band {
 let scratch = new Uint8Array(0);
 
 export interface PaintSurface {
+  /** Stable name, the same on every client and at every paint detail: `p<prop id>#k` or `j<joint key>#k`, k = index in the prop's paint (level/build-prop.ts). */
+  key: string;
   mesh: THREE.Mesh;
   material: SurfaceMaterial;
   geo: SurfaceGeometry;
@@ -58,6 +60,7 @@ export interface PaintSurface {
 export class PaintSystem {
   readonly surfaces: PaintSurface[] = [];
   private bySurfaceMesh = new Map<THREE.Object3D, PaintSurface>();
+  private byKey = new Map<string, PaintSurface>();
   private dirty = new Set<PaintSurface>();
   /** Flat faces by plane, so dots carry across seams onto coplanar neighbors. */
   private seams = new SeamIndex<PaintSurface>();
@@ -68,10 +71,11 @@ export class PaintSystem {
   /** Called when heavy paint on a vertical face should start a run (see paint-drips.ts). */
   onDrip: (s: PaintSurface, rect: Rect, x: number, y: number, rgb: Rgb) => void = () => {};
 
-  register(mesh: THREE.Mesh, material: SurfaceMaterial, geo: SurfaceGeometry): PaintSurface {
-    const s: PaintSurface = { mesh, material, geo, data: null, mips: [], texture: null, excess: null, dirty: { x0: Infinity, y0: Infinity, x1: -1, y1: -1 } };
+  register(key: string, mesh: THREE.Mesh, material: SurfaceMaterial, geo: SurfaceGeometry): PaintSurface {
+    const s: PaintSurface = { key, mesh, material, geo, data: null, mips: [], texture: null, excess: null, dirty: { x0: Infinity, y0: Infinity, x1: -1, y1: -1 } };
     this.surfaces.push(s);
     this.bySurfaceMesh.set(mesh, s);
+    this.byKey.set(key, s);
     this.seams.add(s, geo.rects);
     mesh.userData.paintable = true;
     return s;
@@ -82,6 +86,7 @@ export class PaintSystem {
     const s = this.bySurfaceMesh.get(mesh);
     if (!s) return null;
     this.bySurfaceMesh.delete(mesh);
+    if (this.byKey.get(s.key) === s) this.byKey.delete(s.key);
     this.seams.remove(s);
     this.surfaces.splice(this.surfaces.indexOf(s), 1);
     this.dirty.delete(s);
@@ -106,6 +111,11 @@ export class PaintSystem {
 
   get(mesh: THREE.Object3D): PaintSurface | undefined {
     return this.bySurfaceMesh.get(mesh);
+  }
+
+  /** The live surface with this key (see PaintSurface.key); a rebuilt prop's new surface keeps the key. */
+  find(key: string): PaintSurface | undefined {
+    return this.byKey.get(key);
   }
 
   /** False once the surface was removed or rebuilt (paint still in flight to it is dropped). */
