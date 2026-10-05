@@ -11,7 +11,7 @@ import { INK, PAPER, TextAtlas } from './text-atlas';
 const W = 1024;
 const ROW = 64;
 const SIZE = ROW * 0.72;
-const font = (px: number) => `bold ${px}px Impact, 'Arial Narrow', ${JP_FAMILY}`;
+const font = (px: number) => `900 ${px}px Impact, 'Arial Narrow', ${JP_FAMILY}`;
 /** Space around a word, in rows (fractions of its height). */
 const PAD = 0.35;
 /** Longest text a sign takes. */
