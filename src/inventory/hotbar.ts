@@ -1,5 +1,4 @@
 import { HOTBAR } from '../config';
-import { inkLayers } from '../ink-layers';
 import { SLOTS, type Inventory, type Tool } from './inventory';
 import type { Thumbnails } from './thumbnails';
 
@@ -23,8 +22,6 @@ const ICON: Record<Tool, (inv: Inventory) => string> = {
 
 export class Hotbar {
   private root: HTMLElement;
-  /** The icons, over the rings: they keep their own colors, the rings blend with the view (style.css). */
-  private iconRoot: HTMLElement;
   private toastEl: HTMLElement;
   private toastTime = 0;
   private version = -1;
@@ -32,18 +29,13 @@ export class Hotbar {
   constructor(private icons: Thumbnails) {
     this.root = document.createElement('div');
     this.root.className = 'hotbar';
-    this.iconRoot = document.createElement('div');
-    this.iconRoot.className = 'hotbar icons';
     this.toastEl = document.createElement('div');
     this.toastEl.className = 'toast';
-    document.body.append(this.root, this.iconRoot, this.toastEl);
-    inkLayers(this.root);
-    inkLayers(this.toastEl);
+    document.body.append(this.root, this.toastEl);
   }
 
   set visible(v: boolean) {
     this.root.hidden = !v;
-    this.iconRoot.hidden = !v;
   }
 
   toast(msg: string) {
@@ -66,15 +58,11 @@ export class Hotbar {
     if (inv.version === this.version) return;
     this.version = inv.version;
     let html = '';
-    let iconHtml = '';
     for (let i = 0; i < Math.max(HOTBAR.slots, SLOTS.length); i++) {
       const t = SLOTS[i] as Tool | undefined;
       const icon = t && inv.has(t) ? `<img src="${this.icons.get(ICON[t](inv))}" alt="">` : '';
-      const cls = `${i === inv.selected ? 'on' : ''}${icon ? '' : ' empty'}`;
-      html += `<i class="${cls}"></i>`;
-      iconHtml += `<i class="${cls}">${icon}</i>`;
+      html += `<i class="${i === inv.selected ? 'on' : ''}${icon ? '' : ' empty'}">${icon}</i>`;
     }
     this.root.innerHTML = html;
-    this.iconRoot.innerHTML = iconHtml;
   }
 }
