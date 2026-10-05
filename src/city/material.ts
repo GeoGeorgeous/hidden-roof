@@ -76,7 +76,7 @@ uniform float uCloudFade;
 uniform float uCityOpacity;
 uniform vec3 uSky;
 #ifdef LETTERING
-uniform sampler2D uGlyphs;
+uniform sampler2D uLetters;
 varying vec2 vUv;
 #endif
 ${INK_PARS}
@@ -90,7 +90,7 @@ void main() {
   vec3 n = normalize(vWorldN);
   vec3 albedo = vTint;
 #ifdef LETTERING
-  albedo *= texture2D(uGlyphs, vUv).rgb;
+  albedo *= texture2D(uLetters, vUv).rgb;
 #endif
   albedo = mix(albedo, vec3(0.002), facadeInk(vFacade, vWorldPos, n));
   float light = uMoonLight * max(dot(n, uMoonDir), 0.0) + mix(uGroundLight, uSkyLight, 0.5 + 0.5 * n.y);
@@ -116,7 +116,7 @@ export function cityMaterial(lettering = false) {
       uCloudFade: shared.uCloudFade,
       uLitWindows: shared.uLitWindows,
       uGrime: shared.uGrime,
-      uGlyphs: { value: cityTextAtlas() },
+      uLetters: { value: cityTextAtlas() },
     },
     vertexShader,
     fragmentShader,

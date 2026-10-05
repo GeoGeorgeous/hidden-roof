@@ -19,7 +19,7 @@ function slogan(seed: number, pool: string[]) {
 /** Lettering for a fixed panel `aspect` (width / height) in shape: a slogan of at most `maxChars` characters, Japanese or English, one line. */
 export function panelLettering(seed: number, aspect: number, maxChars: number): Mat {
   const s = slogan(seed, fitting([...JAPANESE, ...ENGLISH], maxChars));
-  return { tex: 'signs', tile: 1, tint: '#ffffff', letters: panelRect(s.text, s.inverted, aspect) };
+  return { tex: 'panelText', tile: 1, tint: '#ffffff', letters: panelRect(s.text, s.inverted, aspect) };
 }
 
 /** Tall sign sticking out of the wall you aim at (lettering on both faces), on two brackets. */
@@ -37,7 +37,7 @@ export const bladeSign: PropDef = {
     const p = new Parts();
     // A column of Japanese, one character under another.
     const s = slogan(seed, fitting(JAPANESE, 9));
-    const letters: Mat = { tex: 'neon', tile: 1, tint: '#ffffff', letters: neonRect(s.text, s.inverted, w / h) };
+    const letters: Mat = { tex: 'neonText', tile: 1, tint: '#ffffff', letters: neonRect(s.text, s.inverted, w / h) };
     p.box([-0.1, 0, -gap - w], [0.1, h, -gap], letters, { paint: true });
     // Frame: steel caps top and bottom, an edge strip on the outer side.
     p.detail([-0.12, h, -gap - w - 0.02], [0.12, h + 0.06, -gap + 0.02], M.steel);

@@ -195,9 +195,9 @@ export const INK_FRAG = /* glsl */ `
 #ifdef LETTERS
   // Sign lettering skips the light: ink where the lettering atlas is dark, paper
   // elsewhere, so a sign reads in any light (shadow, night). Fades with distance.
-  float glyph = dot(baseTex.rgb, ${LUM});
-  float gw = max(fwidth(glyph), 1e-3);
-  col = mix(uPaper, uInkColor, max((1.0 - smoothstep(0.5 - gw, 0.5 + gw, glyph)) * smoothstep(0.35, 0.65, keep), inkSink(inkP)));
+  float letter = dot(baseTex.rgb, ${LUM});
+  float gw = max(fwidth(letter), 1e-3);
+  col = mix(uPaper, uInkColor, max((1.0 - smoothstep(0.5 - gw, 0.5 + gw, letter)) * smoothstep(0.35, 0.65, keep), inkSink(inkP)));
   // Neon lettering (emissive, flickering): takes the hue of its lamp (vTint, like the walls it lights), and a dip in the tube turns it off.
   if (vEmissiveV > 0.0) {
     float tl = max(dot(vTint, ${LUM}), ${glslFloat(INK_TINT.neonMinLight)});

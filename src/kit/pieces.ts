@@ -22,7 +22,7 @@ export interface Mat {
   flicker?: number;
   /** Facade bands drawn on its walls (render/ink/facade.ts FACADES). */
   facade?: Facade;
-  /** Sign lettering: box faces show this rect of a lettering atlas (tex 'words', 'neon' or 'signs', tile 1; render/ink/*-text.ts, words.ts). */
+  /** Sign lettering: box faces show this rect of a lettering atlas (tex 'words', 'panelText' or 'neonText', tile 1: render/ink/words.ts, panel-text.ts, neon-text.ts). */
   letters?: UvRect;
 }
 

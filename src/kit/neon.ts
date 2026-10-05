@@ -47,7 +47,7 @@ function blade(name: string, kind: LightKind, text: string): PropDef {
       // Tubes, text and the real lights all flicker together.
       const fl = 1 + (seed % 9973);
       const tube = lit(LIGHTS[kind].color, 1, fl);
-      const letters: Mat = { tex: 'neon', tile: 1, tint: hue(kind), emissive: 1, flicker: fl, letters: neonRect(text, false, FACE_ASPECT) };
+      const letters: Mat = { tex: 'neonText', tile: 1, tint: hue(kind), emissive: 1, flicker: fl, letters: neonRect(text, false, FACE_ASPECT) };
       const z0 = -(OUT + W);
       const z1 = -OUT;
       // Arms to the wall, the box itself.

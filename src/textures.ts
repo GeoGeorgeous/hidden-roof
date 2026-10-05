@@ -70,7 +70,7 @@ function build() {
   chainlink.minFilter = THREE.NearestFilter;
   chainlink.generateMipmaps = false;
 
-  return { textures: { flat, panel, shutter, chainlink, signs: panelAtlas(), words: wordAtlas(), neon: neonAtlas() } };
+  return { textures: { flat, panel, shutter, chainlink, panelText: panelAtlas(), words: wordAtlas(), neonText: neonAtlas() } };
 }
 
 let cache: ReturnType<typeof build> | null = null;

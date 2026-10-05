@@ -45,7 +45,7 @@ export class SurfaceBuilder {
   emissive = 0;
   /** Neon flicker seed (0 = steady) of the vertices added next, see Mat.flicker. */
   flicker = 0;
-  /** Lettering: quads added next map this glyph atlas rect (u0, v0, u1, v1) instead of world-aligned base UVs. */
+  /** Lettering: quads added next map this lettering atlas rect (u0, v0, u1, v1) instead of world-aligned base UVs. */
   letters: readonly number[] | null = null;
   /** Facade bands (render/ink/facade.ts) of the vertices added next; plain by default. */
   facade: readonly number[] = [0, 0, 0, 0];
