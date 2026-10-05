@@ -5,14 +5,13 @@ Recorded 2026-10-05 on `feat/multiplayer` at `c371829`, before any of the multip
 ## How to run
 
 ```sh
-npm run dev                 # in another terminal
-npm run golden              # compare with scripts/golden-paint.json (exit 1 on a mismatch)
+npm run golden              # compare with scripts/golden-paint.json (exit 1 on a failure)
 npm run golden -- --update  # rewrite the baseline (only when a change is meant to alter paint)
 ```
 
-On this WSL machine Chromium needs `LD_LIBRARY_PATH=$HOME/.local/pwlibs/usr/lib/x86_64-linux-gnu` (missing system libraries, no sudo). `npm run check` needs it too, for the smoke test.
+It starts its own dev server and browser (`scripts/test-browser.mjs`); see `docs/testing.md`.
 
-A run takes under a minute (about 46 s here): the four details run side by side, a page each, and frames aren't capped at 60 Hz. The game runs on fixed steps, so neither changes the paint. A smaller level doesn't help: a level of only the 49 props around the test wall paints exactly the same texels, but isn't faster. Face images land in `shots/golden/` (not committed). Copies of the baseline images are in `docs/golden/`.
+A run takes under a minute (about 46 s here): the four details run side by side, a page each, and frames aren't capped at 60 Hz. The game runs on fixed steps, so neither changes the paint. A smaller level doesn't help: a level of only the 49 props around the test wall paints exactly the same texels, but paints more slowly (see `docs/testing.md`). Face images land in `shots/golden/` (not committed). Copies of the baseline images are in `docs/golden/`.
 
 ## What it does
 
