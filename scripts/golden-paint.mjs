@@ -54,7 +54,7 @@ for (const detail of DETAILS) {
   const r = await page.evaluate(play, { runs: RUNS.map((x) => ({ ...x, aim: x.aim.toString() })), stand: STAND, faceYaw: FACE_YAW, gap: GAP, settle: SETTLE });
   if (errors.length) throw new Error(`${detail}: ${errors.join('\n')}`);
   const h = createHash('sha256');
-  for (const s of r.surfaces) h.update(`${s.index}:`).update(Buffer.from(s.data, 'base64'));
+  for (const s of r.surfaces.sort((a, b) => (a.key < b.key ? -1 : 1))) h.update(`${s.key}:`).update(Buffer.from(s.data, 'base64'));
   results[detail] = { hash: h.digest('hex').slice(0, 16), texelsPerMeter: r.tpm, surfaces: r.surfaces.length, paintedM2: round(r.painted / r.tpm ** 2), meanAlpha: round(r.alpha / Math.max(1, r.painted)), drips: r.drips, perRun: r.perRun };
   for (const [i, png] of r.pngs.entries()) fs.writeFileSync(`${out}/${detail}-${i}.png`, Buffer.from(png, 'base64'));
   console.log(`${detail.padEnd(6)} ${results[detail].hash}  ${JSON.stringify({ ...results[detail], hash: undefined, perRun: undefined })}  ${((Date.now() - t0) / 1000).toFixed(1)} s`);
@@ -162,12 +162,16 @@ async function play({ runs, stand, faceYaw, gap, settle }) {
     for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode(...u8.subarray(i, i + 0x8000));
     return btoa(s);
   };
-  g.paint.surfaces.forEach((s, index) => {
+  // Surfaces are hashed by key (PaintSurface.key), so the order they were registered in doesn't matter.
+  const keys = g.paint.surfaces.map((s) => s.key);
+  if (new Set(keys).size !== keys.length) throw new Error('duplicate paint surface keys');
+  if (!g.paint.surfaces.every((s) => g.paint.find(s.key) === s)) throw new Error('paint.find misses a surface');
+  g.paint.surfaces.forEach((s) => {
     if (!s.data) return;
     let n = 0;
     for (let i = 3; i < s.data.length; i += 4) if (s.data[i]) (n++, (alpha += s.data[i] / 255));
     painted += n;
-    surfaces.push({ index, n, data: toB64(s.data), s });
+    surfaces.push({ key: s.key, n, data: toB64(s.data), s });
   });
   // PNGs of the most painted faces, over paper, at 96 texels/m (atlas row 0 is the face's bottom).
   const tpm = config.PAINT.texelsPerMeter;
@@ -198,5 +202,5 @@ async function play({ runs, stand, faceYaw, gap, settle }) {
         }
       return c.toDataURL('image/png').split(',')[1];
     });
-  return { tpm, painted, alpha, drips, perRun, surfaces: surfaces.map(({ index, data }) => ({ index, data })), pngs };
+  return { tpm, painted, alpha, drips, perRun, surfaces: surfaces.map(({ key, data }) => ({ key, data })), pngs };
 }

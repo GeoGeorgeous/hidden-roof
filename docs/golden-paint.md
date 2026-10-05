@@ -26,17 +26,19 @@ A run takes about two minutes, roughly 28 s per detail in SwiftShader. Face imag
   - the sponge at two sizes.
 
   Runs overlap on purpose, to cover layering, runs on wet paint and the sponge over paint.
-- Hashes every paint atlas (CPU RGBA). It also records the total painted area, mean alpha, drip triggers and the coverage each run added. Coverage is m² of full-opacity paint; the sponge's is negative.
+- Hashes every paint atlas (CPU RGBA), keyed by its stable surface key (`PaintSurface.key`), so the order surfaces are registered in doesn't matter. It also checks that keys are unique and that `paint.find` returns each surface. It also records the total painted area, mean alpha, drip triggers and the coverage each run added. Coverage is m² of full-opacity paint; the sponge's is negative.
 - Rendering is skipped by stubbing `renderer.render`. The paint is all on the CPU, so the hashes are the same either way, and the run is about 5× faster.
 
 ## Baseline
 
+Hashes since the surface keys (`7f6dc6a`): the same paint as the phase 0 hashes, now keyed by surface key.
+
 | Detail | Hash | Painted m² | Mean alpha | Drip triggers |
 |---|---|---|---|---|
-| LOW 24 | `899de1908d94a9e6` | 1.793 | 0.552 | 272 |
-| MEDIUM 48 | `91202d2d6f0d348e` | 1.764 | 0.565 | 246 |
-| HIGH 72 | `9632ebb0a6059034` | 1.817 | 0.567 | 212 |
-| ULTRA 96 | `9485d50637cebda7` | 1.801 | 0.548 | 231 |
+| LOW 24 | `339ceba05760b711` | 1.793 | 0.552 | 272 |
+| MEDIUM 48 | `8d546806fb00cbd6` | 1.764 | 0.565 | 246 |
+| HIGH 72 | `0ea7f0a79bb8c75d` | 1.817 | 0.567 | 212 |
+| ULTRA 96 | `63b9b5cb9c7ea7e8` | 1.801 | 0.548 | 231 |
 
 Coverage added per run, in m² of full paint (negative means removed):
 

@@ -1,6 +1,6 @@
 {
   "low": {
-    "hash": "899de1908d94a9e6",
+    "hash": "339ceba05760b711",
     "texelsPerMeter": 24,
     "surfaces": 2,
     "paintedM2": 1.7934,
@@ -22,7 +22,7 @@
     }
   },
   "medium": {
-    "hash": "91202d2d6f0d348e",
+    "hash": "8d546806fb00cbd6",
     "texelsPerMeter": 48,
     "surfaces": 2,
     "paintedM2": 1.7635,
@@ -44,7 +44,7 @@
     }
   },
   "high": {
-    "hash": "9632ebb0a6059034",
+    "hash": "0ea7f0a79bb8c75d",
     "texelsPerMeter": 72,
     "surfaces": 2,
     "paintedM2": 1.8167,
@@ -66,7 +66,7 @@
     }
   },
   "ultra": {
-    "hash": "9485d50637cebda7",
+    "hash": "63b9b5cb9c7ea7e8",
     "texelsPerMeter": 96,
     "surfaces": 2,
     "paintedM2": 1.8005,
