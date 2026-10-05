@@ -42,6 +42,7 @@ import { DebugPanel } from './debug/panel';
 import { live } from './debug/tuning';
 import { exitGameFullscreen } from './fullscreen';
 import { setHex } from './hex-color';
+import { seedPaintRandom } from './lcg';
 
 // Settings first: they may change the pixel scale the renderer starts with,
 // and the paint detail the level is built with.
@@ -373,4 +374,4 @@ function toScreen(p: THREE.Vector3) {
 }
 
 // Handy for debugging in the console.
-Object.assign(window, { game: { city: () => skyline, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, pickups, paint, level, build, renderer, input, hud, debug, live, PLAYER, loadLevel } });
+Object.assign(window, { game: { city: () => skyline, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, pickups, paint, seedPaintRandom, level, build, renderer, input, hud, debug, live, PLAYER, loadLevel } });

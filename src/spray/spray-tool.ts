@@ -8,6 +8,7 @@ import type { PaintSystem } from '../painting';
 import { CanModel } from './can-model';
 import { SprayParticles } from './particles';
 import { setHex } from '../hex-color';
+import { paintRandom } from '../lcg';
 
 // Spraying: color and cap come from the inventory. Paint never runs out;
 // pressure drains while spraying and is restored by shaking with the right
@@ -88,8 +89,8 @@ export class SprayTool {
     if (p < PRESSURE.sputterThreshold) {
       this.sputterTimer -= dt;
       if (this.sputterTimer <= 0) {
-        this.sputterOn = Math.random() < PRESSURE.sputterDuty;
-        this.sputterTimer = 0.03 + Math.random() * 0.12;
+        this.sputterOn = paintRandom() < PRESSURE.sputterDuty;
+        this.sputterTimer = 0.03 + paintRandom() * 0.12;
       }
       const weak = 0.5 + 0.5 * (p / PRESSURE.sputterThreshold);
       return this.sputterOn ? PRESSURE.minSteadyFlow * weak : 0;

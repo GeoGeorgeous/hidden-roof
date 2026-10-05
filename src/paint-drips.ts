@@ -1,6 +1,7 @@
 import { DRIPS, PAINT } from './config';
 import type { PaintSurface, PaintSystem, Rgb } from './painting';
 import type { Rect } from './surfaces';
+import { paintRandom } from './lcg';
 
 // Paint runs. PaintSystem reports texels on vertical faces that keep getting
 // sprayed after they're already opaque; a few of them start a run: a one-texel
@@ -35,10 +36,10 @@ export class PaintDrips {
     // One run per column at a time, so a hot spot doesn't stack runs.
     if (this.runs.some((r) => r.s === s && r.x === x && Math.abs(r.y - y) < 4)) return;
     const tpm = PAINT.texelsPerMeter;
-    const length = (DRIPS.minLength + Math.random() * (DRIPS.maxLength - DRIPS.minLength)) * tpm;
+    const length = (DRIPS.minLength + paintRandom() * (DRIPS.maxLength - DRIPS.minLength)) * tpm;
     const end = Math.max(rect.y, y - length);
     if (end >= y - 1) return;
-    this.runs.push({ s, rect, x, y: y + 0.5, end, length: y - end, speed: DRIPS.speed * tpm * (0.6 + 0.8 * Math.random()), rgb });
+    this.runs.push({ s, rect, x, y: y + 0.5, end, length: y - end, speed: DRIPS.speed * tpm * (0.6 + 0.8 * paintRandom()), rgb });
   }
 
   update(dt: number) {

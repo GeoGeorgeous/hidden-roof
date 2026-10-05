@@ -5,6 +5,7 @@ import { resampleAtlas } from './paint-resample';
 import type { Rect, SurfaceGeometry } from './surfaces';
 import type { SurfaceMaterial } from './materials';
 import { SeamIndex, texelToWorld, worldToTexel, type SeamFace } from './paint-seams';
+import { paintRandom } from './lcg';
 
 // Paint lives in one RGBA texture per paintable surface (atlas of its faces).
 // Textures are created on the first hit and uploaded only on frames they change.
@@ -327,7 +328,7 @@ export class PaintSystem {
       return;
     }
     e[k] = 0;
-    if (Math.random() >= (DRIPS.perSquareMeter * rate) / PAINT.texelsPerMeter ** 2) return;
+    if (paintRandom() >= (DRIPS.perSquareMeter * rate) / PAINT.texelsPerMeter ** 2) return;
     const i = k * 4;
     const d = s.data!;
     this.onDrip(s, rect, x, y, [d[i] / 255, d[i + 1] / 255, d[i + 2] / 255]);
