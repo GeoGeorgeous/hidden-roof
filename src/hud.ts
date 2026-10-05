@@ -159,9 +159,9 @@ export class Hud {
     this.syncMenu();
   }
 
-  /** Shows a message in the menu's status line for a few seconds (the toasts don't show over the menu). */
-  notice(msg: string) {
-    this.noticeUntil = performance.now() + NOTICE_SECONDS * 1000;
+  /** Shows a message in the menu's status line for `seconds` (the toasts don't show over the menu); Infinity: until the next one. */
+  notice(msg: string, seconds = NOTICE_SECONDS) {
+    this.noticeUntil = performance.now() + seconds * 1000;
     this.status.textContent = msg.toUpperCase();
   }
 
