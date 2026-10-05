@@ -52,8 +52,10 @@ const test = await openTestBrowser(process.argv.slice(2).find((a) => !a.startsWi
 const results = {};
 let failed = 0;
 let ultraAtLow = null;
+/** LOW's save loaded at ULTRA, and the paint each detail switches to in game (what a save must load as there). */
 let lowAtUltra = null;
-/** LOW's play, which ULTRA's replay page waits for (it loads LOW's save). */
+const reference = {};
+/** LOW's play, whose save ULTRA's page loads. */
 let lowPlayed;
 const lowPlay = new Promise((done) => (lowPlayed = done));
 // The details run side by side (a page each): fixed steps keep each one exact.
@@ -66,13 +68,13 @@ const low = ultraAtLow.replayed;
 const ratio = low.paintedM2 / results.ultra.paintedM2;
 if (Math.abs(ratio - 1) > 0.1) failed++;
 console.log(`ULTRA ops at LOW: ${low.paintedM2} m² painted vs ${results.ultra.paintedM2} at ULTRA (${((ratio - 1) * 100).toFixed(1)}%)`);
-const saveAtLow = hashOf(ultraAtLow.loaded) === ultraAtLow.reference;
+const saveAtLow = hashOf(ultraAtLow.loaded) === hashOf(reference.ultra);
 const e = ultraAtLow.edits;
 const unrelated = hashOf(e.afterUnrelated) === hashOf(ultraAtLow.loaded);
 const skipped = e.partial.skipped > 0 && e.partial.faces > 0;
 const refused = e.refused === 'SAVED FOR ANOTHER VERSION OF DEMO' && hashOf(e.kept) === hashOf(e.beforeRefused);
 failed += (saveAtLow ? 0 : 1) + (unrelated ? 0 : 1) + (skipped ? 0 : 1) + (refused ? 0 : 1);
-const saveAtUltra = lowAtUltra.loaded === lowAtUltra.reference;
+const saveAtUltra = hashOf(lowAtUltra) === hashOf(reference.low);
 failed += saveAtUltra ? 0 : 1;
 console.log(`ULTRA save at LOW: ${saveAtLow ? 'identical to switching PAINT DETAIL in game' : 'DIFFERS from switching PAINT DETAIL in game'}`);
 console.log(`LOW save at ULTRA: ${saveAtUltra ? 'identical to switching PAINT DETAIL in game' : 'DIFFERS from switching PAINT DETAIL in game'}`);
@@ -92,18 +94,25 @@ if (update || !fs.existsSync(baselinePath)) {
 if (failed) console.log(`golden paint: FAILED (${failed})`);
 process.exitCode = failed ? 1 : 0;
 
-/** Plays the strokes at one detail, then replays its ops into a fresh page (loopback); returns its report line. */
+/**
+ * Plays the strokes at one detail, then, in the same page with its paint wiped,
+ * replays the ops (loopback) and loads the save; ULTRA's ops also replay in a
+ * LOW page. Returns its report line.
+ */
 async function checkDetail(detail) {
-  const r = await inGame(detail, play, { runs: RUNS.map((x) => ({ ...x, aim: x.aim.toString() })), stand: STAND, faceYaw: FACE_YAW, gap: GAP, settle: SETTLE, referenceAt: { low: 96, ultra: 24 }[detail] });
+  const game = await openGame(detail);
+  const r = await game.run(play, { runs: RUNS.map((x) => ({ ...x, aim: x.aim.toString() })), stand: STAND, faceYaw: FACE_YAW, gap: GAP, settle: SETTLE });
   if (detail === 'low') lowPlayed(r);
   results[detail] = { hash: hashOf(r.paint), texelsPerMeter: r.paint.tpm, surfaces: r.paint.surfaces.length, paintedM2: r.paint.paintedM2, meanAlpha: r.paint.meanAlpha, drips: r.drips, perRun: r.perRun };
   for (const [i, png] of r.pngs.entries()) fs.writeFileSync(`${out}/${detail}-${i}.png`, Buffer.from(png, 'base64'));
-  // ULTRA's ops also replay at LOW (below), alongside its own loopback.
-  // ULTRA's replay page also loads LOW's save.
-  const other = detail === 'ultra' ? (await lowPlay).save : null;
-  const [own, low] = await Promise.all([inGame(detail, replay, { ops: r.ops, save: r.save, other }), detail === 'ultra' ? inGame('low', replay, { ops: r.ops, save: r.save, editLevel: true }) : null]);
-  if (low) ultraAtLow = { ...low, reference: hashOf(r.reference) };
-  if (other) lowAtUltra = { loaded: hashOf(own.other), reference: hashOf((await lowPlay).reference) };
+  fs.writeFileSync(`${out}/${detail}.rhhpaint`, Buffer.from(r.save, 'base64'));
+  const atLow = detail === 'ultra' ? inGame('low', replay, { ops: r.ops, save: r.save, editLevel: true }) : null;
+  const own = await game.run(replay, { ops: r.ops, save: r.save });
+  if (detail === 'ultra') lowAtUltra = await game.run(loadSave, (await lowPlay).save);
+  const to = { low: 96, ultra: 24 }[detail];
+  if (to) reference[detail] = await game.run(switchDetail, { save: r.save, tpm: to });
+  await game.close();
+  if (atLow) ultraAtLow = await atLow;
   const back = hashOf(own.replayed);
   const loop = back === results[detail].hash;
   const loaded = hashOf(own.loaded) === results[detail].hash;
@@ -111,8 +120,8 @@ async function checkDetail(detail) {
   return `${detail.padEnd(6)} ${results[detail].hash}  ${JSON.stringify({ ...results[detail], hash: undefined, perRun: undefined })}  loopback (${r.ops.frames.length} frames, ${r.ops.log.length} ops) ${loop ? 'identical' : `DIFFERS: ${back}`}, save (${(r.saveBytes / 1024).toFixed(1)} KB) ${loaded ? 'loads identical' : 'LOADS DIFFERENT'}`;
 }
 
-/** Opens the game at a paint detail and runs `fn(arg)` in it; page errors fail the run. */
-async function inGame(detail, fn, arg) {
+/** Opens the game at a paint detail: `run(fn, arg)` runs `fn` in it; page errors fail the run. */
+async function openGame(detail) {
   const page = await test.browser.newPage({ viewport: { width: 320, height: 180 } });
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
@@ -120,9 +129,21 @@ async function inGame(detail, fn, arg) {
   await page.addInitScript(pageHelpers);
   await page.goto(test.url);
   await gameReady(page);
-  const r = await page.evaluate(fn, arg);
-  await page.close();
-  if (errors.length) throw new Error(`${detail}: ${errors.join('\n')}`);
+  return {
+    async run(fn, arg) {
+      const r = await page.evaluate(fn, arg);
+      if (errors.length) throw new Error(`${detail}: ${errors.join('\n')}`);
+      return r;
+    },
+    close: () => page.close(),
+  };
+}
+
+/** Opens the game at a paint detail, runs `fn(arg)` in it and closes it. */
+async function inGame(detail, fn, arg) {
+  const game = await openGame(detail);
+  const r = await game.run(fn, arg);
+  await game.close();
   return r;
 }
 
@@ -175,13 +196,15 @@ function pageHelpers() {
 
 /**
  * Runs in the page: applies recorded ops frame by frame, as they were made, and
- * returns the paint; then loads the save over it, then the `other` save if given;
- * with `editLevel`, loads it again after level edits: an unpainted prop removed,
+ * returns the paint; then loads the save over it; with `editLevel`, loads it again after level edits: an unpainted prop removed,
  * then one painted prop, then all of them (paint must be kept when refused).
  */
-async function replay({ ops, save, other, editLevel }) {
+async function replay({ ops, save, editLevel }) {
   const g = window.game;
   window.golden.setUp();
+  // Wiped: the page may have just played (paint, runs and their excess counters go).
+  g.paint.clear();
+  g.drips.clear();
   await new Promise((done) => {
     let f = 0;
     g.fixedStep.script = () => {
@@ -197,10 +220,6 @@ async function replay({ ops, save, other, editLevel }) {
   const bytes = window.golden.fromB64(save);
   await g.paintFile.load(bytes);
   const loaded = window.golden.paint();
-  if (other) {
-    await g.paintFile.load(window.golden.fromB64(other));
-    return { replayed, loaded, other: window.golden.paint() };
-  }
   if (!editLevel) return { replayed, loaded };
   // Props with paint on them, by id (keys p<id>#k).
   const painted = [...new Set(g.paint.surfaces.filter((s) => s.data).map((s) => Number(s.key.match(/^p(\d+)#/)?.[1])))].filter(Boolean);
@@ -216,8 +235,23 @@ async function replay({ ops, save, other, editLevel }) {
   return { replayed, loaded, edits: { afterUnrelated, partial, beforeRefused, refused, kept: window.golden.paint() } };
 }
 
+/** Runs in the page: loads a save and returns the paint. */
+async function loadSave(save) {
+  await window.game.paintFile.load(window.golden.fromB64(save));
+  return window.golden.paint();
+}
+
+/** Runs in the page: loads a save, switches PAINT DETAIL in game (the paint is resampled), and returns the paint. */
+async function switchDetail({ save, tpm }) {
+  const g = window.game;
+  await g.paintFile.load(window.golden.fromB64(save));
+  g.config.PAINT.texelsPerMeter = tpm;
+  g.level.rebuildAll();
+  return window.golden.paint();
+}
+
 /** Runs in the page: plays every run on fixed steps and returns the paint and the ops it recorded. */
-async function play({ runs, stand, faceYaw, gap, settle, referenceAt }) {
+async function play({ runs, stand, faceYaw, gap, settle }) {
   const g = window.game;
   const { inventory: inv, player, input, config } = g;
   window.golden.setUp();
@@ -326,13 +360,6 @@ async function play({ runs, stand, faceYaw, gap, settle, referenceAt }) {
         }
       return c.toDataURL('image/png').split(',')[1];
     });
-  // The save, and with `referenceAt` the paint switched to that detail in game (what the save must load as there).
   const bytes = await g.paintFile.save();
-  let reference = null;
-  if (referenceAt) {
-    config.PAINT.texelsPerMeter = referenceAt;
-    g.level.rebuildAll();
-    reference = window.golden.paint();
-  }
-  return { paint, drips, perRun, pngs, ops: { log, frames }, save: window.golden.toB64(bytes), saveBytes: bytes.length, reference };
+  return { paint, drips, perRun, pngs, ops: { log, frames }, save: window.golden.toB64(bytes), saveBytes: bytes.length };
 }
