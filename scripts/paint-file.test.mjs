@@ -16,18 +16,30 @@ const back = await decodePaintFile(bytes);
 assert.deepEqual(back.body, body);
 assert.deepEqual(back.header, { format: 'rhh-paint', version: 1, ...header });
 
+/** `file` with its JSON header edited by `edit` (a string replace), the paint after it kept. */
+function withHeader(file, edit) {
+  const length = new DataView(file.buffer).getUint32(4, true);
+  const json = new TextEncoder().encode(edit(new TextDecoder().decode(file.subarray(8, 8 + length))));
+  const out = new Uint8Array([...file.subarray(0, 8), ...json, ...file.subarray(8 + length)]);
+  new DataView(out.buffer).setUint32(4, json.length, true);
+  return out;
+}
+
 const rejects = async (b, message) => assert.rejects(decodePaintFile(b), { message });
 await rejects(new TextEncoder().encode('{"level":"x"}'), 'NOT A PAINT FILE');
 await rejects(bytes.slice(0, bytes.length - 6), 'BROKEN PAINT FILE');
-// The same file with its header edited (version 2).
-const length = new DataView(bytes.buffer).getUint32(4, true);
-const json = new TextEncoder().encode(new TextDecoder().decode(bytes.subarray(8, 8 + length)).replace('"version":1', '"version":2'));
-const newer = new Uint8Array([...bytes.subarray(0, 8), ...json, ...bytes.subarray(8 + length)]);
-new DataView(newer.buffer).setUint32(4, json.length, true);
-await rejects(newer, 'SAVED BY A NEWER VERSION');
-const short = await encodePaintFile({ ...header, faces: faces.slice(0, 1) }, body);
-await rejects(short, 'BROKEN PAINT FILE');
-const negative = await encodePaintFile({ ...header, faces: [{ surface: 'p1#0', rect: 0, w: -3, h: -3 }] }, new Uint8Array(4));
-await rejects(negative, 'BROKEN PAINT FILE');
+await rejects(withHeader(bytes, (j) => j.replace('"version":1', '"version":2')), 'SAVED BY A NEWER VERSION');
+await rejects(withHeader(bytes, (j) => j.replace(',"version":1', '')), 'BROKEN PAINT FILE');
+await rejects(await encodePaintFile({ ...header, faces: faces.slice(0, 1) }, body), 'BROKEN PAINT FILE');
+await rejects(await encodePaintFile({ ...header, faces: [{ surface: 'p1#0', rect: 0, w: -3, h: -3 }] }, new Uint8Array(4)), 'BROKEN PAINT FILE');
 
-console.log(`paint file: ok (${body.length} bytes of paint -> ${bytes.length} in the file)`);
+// A small file that inflates far past what its header says (200 MB for one 1x1 face) stops early.
+const tiny = await encodePaintFile({ ...header, faces: [{ surface: 'p1#0', rect: 0, w: 1, h: 1 }] }, new Uint8Array(36));
+const huge = new Uint8Array(await new Response(new Blob([new Uint8Array(200 * 1024 * 1024)]).stream().pipeThrough(new CompressionStream('deflate'))).arrayBuffer());
+const tinyLength = new DataView(tiny.buffer).getUint32(4, true);
+const bomb = new Uint8Array([...tiny.subarray(0, 8 + tinyLength), ...huge]);
+const before = process.memoryUsage().rss;
+await rejects(bomb, 'BROKEN PAINT FILE');
+assert.ok(process.memoryUsage().rss - before < 64 * 1024 * 1024, 'inflating stopped early');
+
+console.log(`paint file: ok (${body.length} bytes of paint -> ${bytes.length} in the file; a ${(bomb.length / 1024).toFixed(0)} KB file inflating to 200 MB is refused)`);

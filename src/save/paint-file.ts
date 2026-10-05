@@ -47,17 +47,19 @@ export async function decodePaintFile(bytes: Uint8Array): Promise<{ header: Pain
   if (bytes.length < 8 || new TextDecoder().decode(bytes.subarray(0, 4)) !== MAGIC) throw new Error('NOT A PAINT FILE');
   const length = new DataView(bytes.buffer, bytes.byteOffset).getUint32(4, true);
   let header: PaintFileHeader;
-  let body: Uint8Array;
   try {
     header = JSON.parse(new TextDecoder().decode(bytes.subarray(8, 8 + length)));
-    body = await pipe(bytes.subarray(8 + length), new DecompressionStream('deflate'));
   } catch {
     throw new Error('BROKEN PAINT FILE');
   }
-  if (header.format !== 'rhh-paint') throw new Error('NOT A PAINT FILE');
+  if (header?.format !== 'rhh-paint') throw new Error('NOT A PAINT FILE');
+  if (!isCount(header.version, 1)) throw new Error('BROKEN PAINT FILE');
   if (header.version > VERSION) throw new Error('SAVED BY A NEWER VERSION');
-  const ok = typeof header.level?.hash === 'string' && header.density > 0 && Array.isArray(header.faces) && header.faces.every(isFace);
-  if (!ok || body.length !== header.faces.reduce((n, f) => n + faceBytes(f), 0)) throw new Error('BROKEN PAINT FILE');
+  if (!(typeof header.level?.hash === 'string' && header.density > 0 && Array.isArray(header.faces) && header.faces.every(isFace))) throw new Error('BROKEN PAINT FILE');
+  // The header says how much paint there is: inflating stops past it (a small broken file can't fill memory).
+  const size = header.faces.reduce((n, f) => n + faceBytes(f), 0);
+  const body = await inflate(bytes.subarray(8 + length), size);
+  if (body?.length !== size) throw new Error('BROKEN PAINT FILE');
   return { header, body };
 }
 
@@ -66,4 +68,24 @@ const isFace = (f: PaintFileFace) => typeof f?.surface === 'string' && isCount(f
 
 async function pipe(bytes: Uint8Array, through: CompressionStream | DecompressionStream) {
   return new Uint8Array(await new Response(new Blob([bytes as BlobPart]).stream().pipeThrough(through)).arrayBuffer());
+}
+
+/** Inflates up to `size` bytes; null if the data is broken or holds more. */
+async function inflate(bytes: Uint8Array, size: number) {
+  const out = new Uint8Array(size);
+  let n = 0;
+  const reader = new Blob([bytes as BlobPart]).stream().pipeThrough(new DecompressionStream('deflate')).getReader();
+  try {
+    for (let r = await reader.read(); !r.done; r = await reader.read()) {
+      if (n + r.value.length > size) {
+        await reader.cancel();
+        return null;
+      }
+      out.set(r.value, n);
+      n += r.value.length;
+    }
+  } catch {
+    return null;
+  }
+  return n === size ? out : null;
 }
