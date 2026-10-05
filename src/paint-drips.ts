@@ -1,6 +1,7 @@
 import { DRIPS, PAINT } from './config';
 import type { PaintSurface, PaintSystem, Rgb } from './painting';
 import type { Rect } from './surfaces';
+import type { DripOp } from './paint-ops';
 import { paintRandom } from './lcg';
 
 // Paint runs. PaintSystem reports texels on vertical faces that keep getting
@@ -8,6 +9,9 @@ import { paintRandom } from './lcg';
 // trickle that moves down the face rect (texel -y = world down on upright
 // rects), slows down, and ends in a slightly heavier drop. Runs only write into
 // the paint texture, so they cost nothing once they stop.
+// Whoever painted decides a run (spawn) and records it as a drip op in meters
+// (paint-ops.ts); the run itself starts from that op (run), the same way on
+// every client and at every paint detail.
 
 interface Run {
   s: PaintSurface;
@@ -31,15 +35,27 @@ export class PaintDrips {
     return this.runs.length;
   }
 
+  /** Heavy paint at texel (x, y) of a face we painted: maybe start a run there. */
   private spawn(s: PaintSurface, rect: Rect, x: number, y: number, rgb: Rgb) {
     if (this.runs.length >= DRIPS.maxActive) return;
     // One run per column at a time, so a hot spot doesn't stack runs.
     if (this.runs.some((r) => r.s === s && r.x === x && Math.abs(r.y - y) < 4)) return;
+    const length = DRIPS.minLength + paintRandom() * (DRIPS.maxLength - DRIPS.minLength);
+    if (Math.max(rect.y, y - length * PAINT.texelsPerMeter) >= y - 1) return;
+    const op: DripOp = { kind: 'drip', key: s.key, rect: s.geo.rects.indexOf(rect), u: (x + 0.5 - rect.x) / rect.w, v: (y + 0.5 - rect.y) / rect.h, length, speed: DRIPS.speed * (0.6 + 0.8 * paintRandom()), rgb };
+    this.paint.log?.push(op);
+    this.run(s, op);
+  }
+
+  /** Start a run (ours or from elsewhere, paint-ops.ts) at this client's paint detail. */
+  run(s: PaintSurface, op: DripOp) {
     const tpm = PAINT.texelsPerMeter;
-    const length = (DRIPS.minLength + paintRandom() * (DRIPS.maxLength - DRIPS.minLength)) * tpm;
-    const end = Math.max(rect.y, y - length);
+    const rect = s.geo.rects[op.rect];
+    const x = rect.x + Math.floor(op.u * rect.w);
+    const y = rect.y + Math.floor(op.v * rect.h);
+    const end = Math.max(rect.y, y - op.length * tpm);
     if (end >= y - 1) return;
-    this.runs.push({ s, rect, x, y: y + 0.5, end, length: y - end, speed: DRIPS.speed * tpm * (0.6 + 0.8 * paintRandom()), rgb });
+    this.runs.push({ s, rect, x, y: y + 0.5, end, length: y - end, speed: op.speed * tpm, rgb: op.rgb });
   }
 
   update(dt: number) {

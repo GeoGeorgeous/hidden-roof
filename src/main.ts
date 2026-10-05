@@ -78,7 +78,7 @@ viewScene.add(viewSun);
 
 const paint = new PaintSystem();
 const drips = new PaintDrips(paint);
-const paintOps = new PaintOps(paint);
+const paintOps = new PaintOps(paint, drips);
 const level = new Level(scene, paint);
 const lighting = new Lighting(scene, renderer);
 const baker = new LightBaker();
