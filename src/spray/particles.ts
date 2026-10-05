@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { SPRAY, type CapSpec } from '../config';
-import type { PaintSurface, PaintSystem } from '../painting';
+import type { PaintSurface, PaintSystem, Rgb } from '../painting';
 import { solidsNear } from '../level/solids';
 
 // Visual spray particles. Each one raycasts once when emitted, flies from the
@@ -17,7 +17,7 @@ interface Particle {
   amount: number;
   radius: number;
   softness: number;
-  rgb: [number, number, number];
+  rgb: Rgb;
 }
 
 export interface EmitParams {
@@ -30,7 +30,7 @@ export interface EmitParams {
   cap: CapSpec;
   flow: number;
   /** sRGB 0..1 for paint, and display color for the points. */
-  rgb: [number, number, number];
+  rgb: Rgb;
   display: THREE.Color;
 }
 

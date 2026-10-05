@@ -5,7 +5,7 @@ import type { PaintSurface, PaintSystem } from '../painting';
 import type { Ladder } from '../player';
 import { addBox, addCylinder, boxSurface, cylinderSurface, SurfaceBuilder, type Axis, type BoxFace, type SurfaceGeometry } from '../surfaces';
 import { M, type BoxPiece, type CylPiece, type Mat, type Piece, type Swing, type V3 } from '../kit/pieces';
-import { LIGHTS, type LightKind } from '../config';
+import { LIGHTS, PAINT, type LightKind } from '../config';
 import { setHex } from '../hex-color';
 import type { Track } from '../render/cctv-track';
 import type { Facade } from '../render/ink/facade';
@@ -45,6 +45,8 @@ export interface LightAnchor {
   color: THREE.Color;
   /** Fixed glow positions, or null: one glow at `pos`. */
   glows: THREE.Vector3[] | null;
+  /** Length (m) of a vertical line source centered on `pos` (0 = a point), see LightPiece.span. */
+  span: number;
   /** Neon flicker seed (0 = steady). */
   flicker: number;
   /** CCTV light: turns with its head and only shines while it follows the player (render/cctv-track.ts). */
@@ -124,8 +126,9 @@ function rotateFace(f: BoxFace, r: number): BoxFace {
 function boxIsPaintable(p: BoxPiece) {
   if (p.paint !== 'auto') return p.paint;
   const d = [p.max[0] - p.min[0], p.max[1] - p.min[1], p.max[2] - p.min[2]];
+  if (p.mat.emissive || p.mat.alpha) return false; // glowing tubes and lenses, chain-link
   const pairs = [[d[0], d[1]], [d[0], d[2]], [d[1], d[2]]];
-  return pairs.some(([a, b]) => Math.min(a, b) >= 0.5 && a * b >= 1.2);
+  return pairs.some(([a, b]) => Math.min(a, b) >= PAINT.minFaceSide && a * b >= PAINT.minFaceArea);
 }
 function cylIsPaintable(p: CylPiece) {
   if (p.paint !== 'auto') return p.paint;
@@ -133,7 +136,7 @@ function cylIsPaintable(p: CylPiece) {
 }
 
 export const matKey = (m: Mat) => `${m.tex}|${m.tile ?? ''}|${m.alpha ?? ''}`;
-export function material(m: Mat) {
+function material(m: Mat) {
   return makeSurfaceMaterial({ tex: m.tex, tileMeters: m.tile, alphaTest: m.alpha });
 }
 const decorMaterials = new Map<string, SurfaceMaterial>();
@@ -180,6 +183,7 @@ export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint =
     const c = new THREE.Color(mat.tint ?? '#ffffff');
     e.b.tint = [c.r, c.g, c.b];
     e.b.emissive = mat.emissive ?? 0;
+    e.b.flicker = mat.flicker ?? 0;
     e.b.facade = mat.facade ?? NO_FACADE;
     e.b.letters = mat.letters ?? null;
     return e.b;
@@ -231,7 +235,7 @@ export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint =
     } else if (p.k === 'light') {
       const sw = p.swing?.track ? p.swing : undefined;
       const track: Track | null = sw ? { pivot: at(sw.pivot), fwd: new THREE.Vector2(restFacing.x, restFacing.z), amp: sw.amp, speed: (Math.PI * 2) / sw.period, phase: sw.phase ?? 0 } : null;
-      const a: LightAnchor = { kind: p.kind, base: at(p.pos), rot: r, aim: p.dir ?? null, mirrorX: !!p.mirrorX, pos: new THREE.Vector3(), dir: new THREE.Vector3(), color: new THREE.Color(), glows: p.glows?.map(at) ?? null, flicker: p.flicker ?? 0, track, level: track ? 0 : 1 };
+      const a: LightAnchor = { kind: p.kind, base: at(p.pos), rot: r, aim: p.dir ?? null, mirrorX: !!p.mirrorX, pos: new THREE.Vector3(), dir: new THREE.Vector3(), color: new THREE.Color(), glows: p.glows?.map(at) ?? null, span: p.span ?? 0, flicker: p.flicker ?? 0, track, level: track ? 0 : 1 };
       syncAnchor(a);
       out.lights.push(a);
     } else if (p.k === 'emitter') {
@@ -245,7 +249,7 @@ export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint =
 }
 
 /** Merge decor geometry per material key. */
-export function mergeDecor(decor: Expanded['decor']) {
+function mergeDecor(decor: Expanded['decor']) {
   const groups = new Map<string, { mat: Mat; geos: THREE.BufferGeometry[] }>();
   for (const d of decor) {
     const k = matKey(d.mat);
@@ -302,7 +306,7 @@ export function disposeProp(b: BuiltProp, paint: PaintSystem) {
   b.group.removeFromParent();
 }
 
-export function rodGeometry(a: THREE.Vector3, b: THREE.Vector3, r: number) {
+function rodGeometry(a: THREE.Vector3, b: THREE.Vector3, r: number) {
   const len = a.distanceTo(b);
   const g = new THREE.CylinderGeometry(r, r, len, 6, 1, false);
   g.translate(0, len / 2, 0);

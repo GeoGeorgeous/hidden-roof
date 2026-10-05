@@ -4,7 +4,7 @@ import { shared } from '../materials';
 import { INK_PARS, inkUniforms } from '../render/ink/tone';
 import { FACADE_GLSL } from '../render/ink/facade';
 import { GRIME_GLSL } from '../render/ink/grime';
-import { glyphAtlas } from '../render/ink/glyphs';
+import { cityTextAtlas } from '../render/ink/city-text';
 import type { Lighting } from '../render/lighting';
 
 // The city's own ink material: the same tones, hatching, facades and grime
@@ -12,7 +12,7 @@ import type { Lighting } from '../render/lighting';
 // sky, but nothing the city never uses: no paint, baked lamps, spot lights,
 // shadows or swinging parts. Towers cover most of the screen, so this is
 // where most pixels are shaded; it costs a fraction of the full surface
-// shader. Signs use it with the glyph atlas (`lettering`).
+// shader. Signs use it with the city text atlas (`lettering`).
 // SKYLINE.opacity fades the whole city into the sky color, to put the focus
 // on the level: the towers stay solid (no see-through), and the fade goes in
 // the alpha channel so the final pass thins the city's outlines to match.
@@ -76,7 +76,7 @@ uniform float uCloudFade;
 uniform float uCityOpacity;
 uniform vec3 uSky;
 #ifdef LETTERING
-uniform sampler2D uGlyphs;
+uniform sampler2D uLetters;
 varying vec2 vUv;
 #endif
 ${INK_PARS}
@@ -90,7 +90,7 @@ void main() {
   vec3 n = normalize(vWorldN);
   vec3 albedo = vTint;
 #ifdef LETTERING
-  albedo *= texture2D(uGlyphs, vUv).rgb;
+  albedo *= texture2D(uLetters, vUv).rgb;
 #endif
   albedo = mix(albedo, vec3(0.002), facadeInk(vFacade, vWorldPos, n));
   float light = uMoonLight * max(dot(n, uMoonDir), 0.0) + mix(uGroundLight, uSkyLight, 0.5 + 0.5 * n.y);
@@ -116,7 +116,7 @@ export function cityMaterial(lettering = false) {
       uCloudFade: shared.uCloudFade,
       uLitWindows: shared.uLitWindows,
       uGrime: shared.uGrime,
-      uGlyphs: { value: glyphAtlas() },
+      uLetters: { value: cityTextAtlas() },
     },
     vertexShader,
     fragmentShader,

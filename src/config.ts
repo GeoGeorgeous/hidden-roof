@@ -30,7 +30,7 @@ export const ATMOS = {
   ambientGround: '#000000',
   ambient: 1.1,
   moonColor: '#e6e4dc',
-  moon: 2.2,
+  moon: 0.45,
   moonDir: [-0.55, 0.65, -0.5] as [number, number, number],
   shadows: true,
   /** Real spot lights may cast shadow-map shadows (2 slots, kinds with `shadows`). Only while lamps aren't baked (LIGHTMAP.enabled off). */
@@ -58,11 +58,13 @@ export const ATMOS = {
 };
 
 /** Practical light kinds; every light prop uses one (see kit/lights.ts). */
-export type LightKind = 'wallLamp' | 'floodlight' | 'neonPink' | 'neonCyan' | 'billboardLamp' | 'lampPost' | 'stringLights' | 'cctv';
+export type LightKind = 'wallLamp' | 'floodlight' | 'neonPink' | 'neonCyan' | 'neonAmber' | 'billboardLamp' | 'lampPost' | 'stringLights' | 'cctv';
 
 export interface LightSpec {
   /** Light color (lens and sign tubes take it too, after a rebuild). */
   color: string;
+  /** How much of `color` shows in the light on walls (INK.tint scales it): 0 = only its brightness (neutral), 1 = its full hue. Baked lamps only: with LIGHTMAP.enabled off the walls get no hue. */
+  tint: number;
   /** Emitter position relative to its default spot on the lens, prop-local meters (x right, y up, z back toward the wall). */
   offset: [number, number, number];
   /** Aim, prop-local (front of the prop is -z); normalized when used. Floodlight heads turn with it. */
@@ -88,17 +90,21 @@ export interface LightSpec {
 /** Widest cone half-angle a light can have (radians): three.js spot lights need less than π/2. */
 export const LIGHT_SPREAD_MAX = 1.55;
 
+/** Line sources (LightPiece.span, the neon signs) are baked as this many lamps along their length, sharing the kind's intensity, so the light comes from the whole tube, not one point. */
+export const NEON_LIGHT_ROWS = 4;
+
 /** Per-kind light settings, live-tunable in the debug panel (Lights). */
 export const LIGHTS: Record<LightKind, LightSpec> = {
-  wallLamp: { color: '#9b96c0', offset: [0, 0, 0], dir: [0, -1, -0.25], intensity: 13.5, range: 10, spread: 1.33, softness: 1, glow: 0, glowAllAround: false, beam: 0.5, shadows: true },
-  floodlight: { color: '#dfe8ff', offset: [0, 0, 0], dir: [0, -0.55, -0.83], intensity: 60, range: 40, spread: 0.55, softness: 0.4, glow: 0.6, glowAllAround: false, beam: 7, shadows: true },
-  neonPink: { color: '#ff3fa4', offset: [0, 0, 0], dir: [1, 0, 0], intensity: 8, range: 10, spread: 1.45, softness: 1, glow: 0, glowAllAround: false, beam: 0, shadows: true },
-  neonCyan: { color: '#2fe6ff', offset: [0, 0, 0], dir: [1, 0, 0], intensity: 8, range: 10, spread: 1.45, softness: 1, glow: 0, glowAllAround: false, beam: 0, shadows: true },
-  lampPost: { color: '#ffcf8a', offset: [0, 0, 0], dir: [0, -1, 0], intensity: 30, range: 22, spread: 1.15, softness: 0.6, glow: 0.45, glowAllAround: false, beam: 4.5, shadows: true },
-  stringLights: { color: '#ffd59a', offset: [0, 0, 0], dir: [0, -1, 0], intensity: 6, range: 10, spread: 1.45, softness: 1, glow: 0.22, glowAllAround: true, beam: 0, shadows: true },
-  billboardLamp: { color: '#ffe2b0', offset: [0, 0, 0], dir: [0, -0.8, -0.6], intensity: 25, range: 12, spread: 0.8, softness: 0.5, glow: 0.3, glowAllAround: false, beam: 3.2, shadows: true },
+  wallLamp: { color: '#9b96c0', tint: 0, offset: [0, 0, 0], dir: [0, -1, -0.25], intensity: 13.5, range: 10, spread: 1.33, softness: 1, glow: 0, glowAllAround: false, beam: 0.5, shadows: true },
+  floodlight: { color: '#dfe8ff', tint: 0, offset: [0, 0, 0], dir: [0, -0.55, -0.83], intensity: 60, range: 40, spread: 0.55, softness: 0.4, glow: 0.6, glowAllAround: false, beam: 7, shadows: true },
+  neonPink: { color: '#ff3fa4', tint: 1, offset: [0, 0, 0], dir: [1, 0, 0], intensity: 8, range: 10, spread: 1.45, softness: 1, glow: 0, glowAllAround: false, beam: 0, shadows: true },
+  neonCyan: { color: '#2fe6ff', tint: 1, offset: [0, 0, 0], dir: [1, 0, 0], intensity: 8, range: 10, spread: 1.45, softness: 1, glow: 0, glowAllAround: false, beam: 0, shadows: true },
+  neonAmber: { color: '#ffa24a', tint: 1, offset: [0, 0, 0], dir: [1, 0, 0], intensity: 8, range: 10, spread: 1.45, softness: 1, glow: 0, glowAllAround: false, beam: 0, shadows: true },
+  lampPost: { color: '#ffcf8a', tint: 0, offset: [0, 0, 0], dir: [0, -1, 0], intensity: 30, range: 22, spread: 1.15, softness: 0.6, glow: 0.45, glowAllAround: false, beam: 4.5, shadows: true },
+  stringLights: { color: '#ffd59a', tint: 0, offset: [0, 0, 0], dir: [0, -1, 0], intensity: 6, range: 10, spread: 1.45, softness: 1, glow: 0.22, glowAllAround: true, beam: 0, shadows: true },
+  billboardLamp: { color: '#ffe2b0', tint: 0, offset: [0, 0, 0], dir: [0, -0.8, -0.6], intensity: 25, range: 12, spread: 0.8, softness: 0.5, glow: 0.3, glowAllAround: false, beam: 3.2, shadows: true },
   // On only while the camera follows the player (see CCTV); turns with the head. Glow and beam are not used.
-  cctv: { color: '#dfe9ff', offset: [0, 0, 0], dir: [0, -0.3, -1], intensity: 6, range: 9, spread: 0.35, softness: 0.7, glow: 0, glowAllAround: false, beam: 0, shadows: false },
+  cctv: { color: '#dfe9ff', tint: 0, offset: [0, 0, 0], dir: [0, -0.3, -1], intensity: 6, range: 9, spread: 0.35, softness: 0.7, glow: 0, glowAllAround: false, beam: 0, shadows: false },
 };
 
 /**
@@ -202,8 +208,22 @@ export const INK = {
   wobble: 0,
   /** Paper grain strength. */
   grain: 0.3,
+  /** Colored light on walls and floors: how strongly the lamp kinds with LIGHTS[kind].tint tint what they light (0 = none, the pure ink look). Comes from the baked light, so only while LIGHTMAP.enabled is on. */
+  tint: 0.35,
   /** Grime on surfaces: rain streaks, stains, buffed patches, cracks, seams (0 = clean). */
   grime: 0.25,
+};
+
+/** Shape of the colored light tint (INK.tint) in the ink shader; built into the shader, not live. */
+export const INK_TINT = {
+  /** The tint is the light's hue relative to its brightness, which grows without bound in the dark: brightness counts as at least this. */
+  minLight: 0.15,
+  /** Largest change of a color channel, ± this fraction. */
+  max: 0.8,
+  /** Neon text takes this many times more of its lamp's hue than the walls it lights. */
+  neonBoost: 2,
+  /** The same floor as minLight for the neon text's own color (its tint's brightness). */
+  neonMinLight: 0.02,
 };
 
 /** Final color grading, applied in display space. Neutral = 0, 1, 1, 0, 0. */
@@ -218,12 +238,40 @@ export const GRADE = {
   tint: 0,
 };
 
+/** The dark edge of the screen: a gradient over the view (hud.ts), live in F3. */
+export const VIGNETTE = {
+  /** Darkness at the corners, 0..1 (0 = none). */
+  strength: 0.3,
+  /** Where it starts, as a percentage of the way out to the corners. */
+  start: 60,
+  color: '#141416',
+};
+
+/** What the HUD shows besides the body-cam frame (hud.ts), live in F3. */
+export const HUD = {
+  /** Performance readout, bottom left: fps, draw calls, triangles, texture memory. */
+  perf: true,
+};
+
+/** Slogans on lettered sign panels (kit/lettering.ts panelLettering). */
+export const SIGN_TEXT = {
+  /** A panel takes the slogans whose characters stay at least this wide (m) across its width. */
+  minCharWidth: 0.28,
+};
+
 export const PAINT = {
   /**
    * Texel density of every paint texture. The PAINT DETAIL setting (pause menu)
    * picks it from its choices in settings.ts: 24, 48, 72 or 96 (1 cm texels).
    */
   texelsPerMeter: 96,
+  /**
+   * A box piece of a prop takes paint when one of its faces is at least this
+   * wide (m) and this big (m²): frames, posts and plates do, bolts and lamp
+   * heads don't. Emissive and chain-link pieces never do.
+   */
+  minFaceSide: 0.06,
+  minFaceArea: 0.12,
   /** Alpha is quantized to this many steps in the shader for a chunky look (0 = off). */
   alphaSteps: 8,
   /** Hard cap on a single surface atlas side, in texels. */
@@ -304,6 +352,11 @@ export const MARKER = {
    */
   drips: 8,
   strength: 0.95,
+  /** Held still, the nib stamps the same spot every frame: let it add to runs this often (per s), whatever the frame rate. */
+  stillRate: 30,
+  /** Fast moves are filled with rays at most rayStep apart (radians), at most maxRays per frame, so they leave no gaps. */
+  rayStep: 0.003,
+  maxRays: 32,
 };
 
 /** Crosshair (px) with no sized tool in hand: the stepladder, empty hands, build mode. The others set their own. */
@@ -328,6 +381,10 @@ export const ROLLER = {
   strength: 0.85,
   /** Paint runs (with DRIPS on), as a multiplier of DRIPS.perSquareMeter: a loaded roller runs easily. */
   drips: 2,
+  /** Held still, presses add to runs this often (per s), whatever the frame rate. */
+  stillRate: 20,
+  /** Fast moves are filled with presses at most halfDepth apart at full reach, at most maxRays per frame. */
+  maxRays: 48,
 };
 
 /** Sponge (slot 5): scrubs paint off surfaces. Held pose is HOLD.sponge. */
@@ -350,6 +407,10 @@ export const SPONGE = {
   /** How far it scrubs in small circles while cleaning (m), and how fast (turns per s). */
   scrubSize: 0.012,
   scrubSpeed: 5,
+  /** Held still, it keeps scrubbing the same spot this often (per s), whatever the frame rate. */
+  stillRate: 20,
+  /** Fast moves are filled with steps half a patch apart at full reach, at most maxRays per frame. */
+  maxRays: 24,
   /**
    * The model (m): a kitchen sponge, a soft block with a darker scouring pad
    * on its front (the side that goes on the wall) and pores on the soft part.

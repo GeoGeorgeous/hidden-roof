@@ -1,5 +1,5 @@
 import { DRIPS, PAINT } from './config';
-import type { PaintSurface, PaintSystem } from './painting';
+import type { PaintSurface, PaintSystem, Rgb } from './painting';
 import type { Rect } from './surfaces';
 
 // Paint runs. PaintSystem reports texels on vertical faces that keep getting
@@ -16,7 +16,7 @@ interface Run {
   end: number;
   length: number;
   speed: number;
-  rgb: [number, number, number];
+  rgb: Rgb;
 }
 
 export class PaintDrips {
@@ -30,7 +30,7 @@ export class PaintDrips {
     return this.runs.length;
   }
 
-  private spawn(s: PaintSurface, rect: Rect, x: number, y: number, rgb: [number, number, number]) {
+  private spawn(s: PaintSurface, rect: Rect, x: number, y: number, rgb: Rgb) {
     if (this.runs.length >= DRIPS.maxActive) return;
     // One run per column at a time, so a hot spot doesn't stack runs.
     if (this.runs.some((r) => r.s === s && r.x === x && Math.abs(r.y - y) < 4)) return;

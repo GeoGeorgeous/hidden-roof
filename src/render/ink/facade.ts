@@ -9,7 +9,7 @@
 /** [style, floor height (m), slot fraction 0..1, column spacing (m)]; style 0 = plain. */
 export type Facade = [number, number, number, number];
 
-export const FACADE_STYLES = {
+const FACADE_STYLES = {
   /** Ribbon windows: a black band per floor, thin pale mullions. */
   ribbon: 1,
   /** Vertical fins: pale strips and black gaps, a pale line per floor. */
@@ -22,13 +22,13 @@ export const FACADE_STYLES = {
 
 /** Ready-made facades. */
 export const FACADES = {
-  ribbon: [1, 3.5, 0.45, 1.6],
-  ribbonTight: [1, 3.2, 0.62, 1.1],
-  fins: [2, 3.6, 0.55, 0.9],
-  finsWide: [2, 4, 0.4, 1.8],
-  grid: [3, 3.4, 0.5, 2.2],
-  gridDense: [3, 3, 0.6, 1.4],
-  slats: [4, 3.6, 0.5, 4],
+  ribbon: [FACADE_STYLES.ribbon, 3.5, 0.45, 1.6],
+  ribbonTight: [FACADE_STYLES.ribbon, 3.2, 0.62, 1.1],
+  fins: [FACADE_STYLES.fins, 3.6, 0.55, 0.9],
+  finsWide: [FACADE_STYLES.fins, 4, 0.4, 1.8],
+  grid: [FACADE_STYLES.grid, 3.4, 0.5, 2.2],
+  gridDense: [FACADE_STYLES.grid, 3, 0.6, 1.4],
+  slats: [FACADE_STYLES.slats, 3.6, 0.5, 4],
 } satisfies Record<string, Facade>;
 
 /** Needs inkLines() from ink/tone.ts. Returns how much of the pixel is black slot (0..1). */

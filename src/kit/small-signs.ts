@@ -1,18 +1,11 @@
 import type { PropDef } from './def';
 import { M, Parts, type Mat, type V3 } from './pieces';
-import { wordRect } from '../render/ink/words';
+import { word } from './lettering';
 
 // Small wall signs: exit, high voltage, no entry, a name plate. Their text is
 // their own (PropDef.text: typed in build mode, saved in the level), drawn in
 // real type (render/ink/words.ts); pictograms are ink rods on plates. Plates
 // and lettered faces are paintable, like the big signs.
-
-/** A word on a sign face `h` high: its material and the width that keeps it unstretched (at least `minW`). */
-function word(w: string, inverted: boolean, h: number, minW = 0) {
-  const { rect, aspect } = wordRect(w, inverted, minW / h);
-  const mat: Mat = { tex: 'words', tile: 1, tint: '#ffffff', letters: rect };
-  return { mat, width: h * aspect };
-}
 
 /** Pen stroke on a sign face at depth z. */
 function stroke(p: Parts, z: number, pts: [number, number][], r: number, mat: Mat) {

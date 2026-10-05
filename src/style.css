@@ -48,7 +48,7 @@ canvas {
 .vignette {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at center, transparent 60%, rgba(20, 20, 22, 0.1) 82%, rgba(20, 20, 22, 0.3) 100%);
+  /* Its gradient comes from VIGNETTE (hud.ts syncVignette). */
 }
 
 .corner {
@@ -83,6 +83,16 @@ canvas {
   position: absolute;
   top: 26px;
   right: 30px;
+}
+
+/* Performance numbers, bottom left, no heading. */
+.perf {
+  position: absolute;
+  left: 30px;
+  bottom: 26px;
+  line-height: 1.6;
+  white-space: pre;
+  font-variant-numeric: tabular-nums;
 }
 
 /* White, inverting what's under it: white over ink and night, dark over paper, the opposite color over paint. */
@@ -256,15 +266,18 @@ canvas {
   background: transparent;
   cursor: pointer;
 }
-.settings-page input[type='range']::-webkit-slider-runnable-track {
+.settings-page input[type='range']::-webkit-slider-runnable-track,
+.debug-panel input[type='range']::-webkit-slider-runnable-track {
   height: 1px;
   background: var(--ui);
 }
-.settings-page input[type='range']::-moz-range-track {
+.settings-page input[type='range']::-moz-range-track,
+.debug-panel input[type='range']::-moz-range-track {
   height: 1px;
   background: var(--ui);
 }
-.settings-page input[type='range']::-webkit-slider-thumb {
+.settings-page input[type='range']::-webkit-slider-thumb,
+.debug-panel input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 3px;
   height: 11px;
@@ -272,7 +285,8 @@ canvas {
   background: var(--ui);
   border: 0;
 }
-.settings-page input[type='range']::-moz-range-thumb {
+.settings-page input[type='range']::-moz-range-thumb,
+.debug-panel input[type='range']::-moz-range-thumb {
   width: 3px;
   height: 11px;
   background: var(--ui);
@@ -561,29 +575,6 @@ canvas {
   height: 12px;
   background: transparent;
   cursor: pointer;
-}
-.debug-panel input[type='range']::-webkit-slider-runnable-track {
-  height: 1px;
-  background: var(--ui);
-}
-.debug-panel input[type='range']::-moz-range-track {
-  height: 1px;
-  background: var(--ui);
-}
-.debug-panel input[type='range']::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 3px;
-  height: 11px;
-  margin-top: -5px;
-  background: var(--ui);
-  border: 0;
-}
-.debug-panel input[type='range']::-moz-range-thumb {
-  width: 3px;
-  height: 11px;
-  background: var(--ui);
-  border: 0;
-  border-radius: 0;
 }
 .debug-panel input[type='checkbox'] {
   -webkit-appearance: none;

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { LUM_GLSL } from '../light-tint';
 
 // Baked lamp light in the surface shader (see baker.ts):
 //  - paintable surfaces read their lightmap, plus a flicker layer where neon reaches them
@@ -77,6 +78,8 @@ export const BAKE_FRAG = /* glsl */ `
     bakedLight += texture2D(uLightFlicker, vLightUv).rgb * flickerOf(slot);
   }
   irradiance += bakedLight * uBakedScale;
+  // The hue of the baked light (its color minus its brightness, as irradiance), for the ink to tint with (INK_PARS).
+  inkChroma = (bakedLight - dot(bakedLight, ${LUM_GLSL})) * uBakedScale;
   if (material.specularStrength > 0.0) {
     for (int i = 0; i < ${HIGHLIGHT_MAX}; i++) {
       if (i >= uHiCount) break;

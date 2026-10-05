@@ -16,16 +16,16 @@ export const CATEGORIES: Category[] = ['structure', 'access', 'equipment', 'deta
 /**
  * How a prop snaps:
  * - cell:   fills grid cells (footprint in meters, multiples of 2)
- * - edge:   centered on a grid line, 2 m long (walls, parapets, railings)
+ * - edge:   centered on a grid line, 1.7 m long (walls, parapets, railings)
  * - mount:  back on the wall face you aim at, facing out (ladders, signs)
  * - floor:  stands on any surface, 0.5 m snap (equipment, details)
  */
-export type Placement = 'cell' | 'edge' | 'mount' | 'floor';
+type Placement = 'cell' | 'edge' | 'mount' | 'floor';
 
 /** Posts generated where edge props meet (see level/joints.ts). */
 export type JointKind = 'wall' | 'parapet' | 'railing';
 
-export interface PropContext {
+interface PropContext {
   /** Stable per-instance number for variations. */
   seed: number;
   /** World position (some props vary with height, e.g. fire escape lanes). */
@@ -40,7 +40,7 @@ export interface PropContext {
 }
 
 /** One per-instance setting changed in build mode with [ and ] (e.g. floodlight tilt). */
-export interface PropAdjust {
+interface PropAdjust {
   label: string;
   min: number;
   max: number;

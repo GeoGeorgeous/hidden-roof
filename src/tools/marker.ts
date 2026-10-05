@@ -20,11 +20,6 @@ import { applyHold } from './hold';
 // Fast mouse moves are filled by interpolating rays between frames. The band
 // on the barrel shows the current color, like the can's label.
 
-/** Held still, the nib stamps the same spot every frame: let it add to runs this often (per s), whatever the frame rate. */
-const STILL_DRIP_RATE = 30;
-/** Rays at most this far apart (radians), so fast moves leave no gaps. */
-const RAY_STEP = 0.003;
-
 export class MarkerTool {
   readonly model = new THREE.Group();
   /** Sway/bob offsets are written here (see tools/view-sway.ts). */
@@ -77,7 +72,7 @@ export class MarkerTool {
   }
 
   private spec() {
-    return { reach: MARKER.reach, rayStep: RAY_STEP, maxRays: 32, stillRate: STILL_DRIP_RATE };
+    return { reach: MARKER.reach, rayStep: MARKER.rayStep, maxRays: MARKER.maxRays, stillRate: MARKER.stillRate };
   }
 
   /** A point just right of the marker, for the color tag (same place as the can's). */

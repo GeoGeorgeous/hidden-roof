@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { lcg } from './lcg';
-import { glyphAtlas } from './render/ink/glyphs';
+import { panelAtlas } from './render/ink/panel-text';
 import { wordAtlas } from './render/ink/words';
+import { neonAtlas } from './render/ink/neon-text';
 
 // Procedural base textures: tiny canvases, nearest filtering, repeat wrapping.
 // Architecture is flat; facades get their bands in the shader (render/ink/facade.ts).
@@ -69,13 +70,16 @@ function build() {
   chainlink.minFilter = THREE.NearestFilter;
   chainlink.generateMipmaps = false;
 
-  return { textures: { flat, panel, shutter, chainlink, glyphs: glyphAtlas(), words: wordAtlas() } };
+  return { textures: { flat, panel, shutter, chainlink, panelText: panelAtlas(), words: wordAtlas(), neonText: neonAtlas() } };
 }
 
 let cache: ReturnType<typeof build> | null = null;
 const all = () => (cache ??= build());
 
 export type TexName = keyof ReturnType<typeof build>['textures'];
+
+/** The lettering atlases: drawn straight from the texture, not lit (LETTERS in render/ink/tone.ts). */
+export const LETTER_TEXTURES: ReadonlySet<TexName> = new Set<TexName>(['panelText', 'words', 'neonText']);
 
 export function textures() {
   return all().textures;

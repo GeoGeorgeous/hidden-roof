@@ -1,6 +1,6 @@
 import type { PropDef } from './def';
 import { M, Parts, type V3 } from './pieces';
-import { lettering } from './signs';
+import { panelLettering } from './lettering';
 import { lcg } from '../lcg';
 
 // Steel and clutter for packed rooftops: lattice masts and sign towers with
@@ -56,7 +56,7 @@ export const signTower: PropDef = {
     const h = 4;
     const p = new Parts();
     lattice(p, 1.6, h, 1.3);
-    p.box([-2, h, -1.0], [2, h + 2, -0.85], lettering(seed, 2.4, false, true), { paint: true });
+    p.box([-2, h, -1.0], [2, h + 2, -0.85], panelLettering(seed, 4, 2), { paint: true });
     p.detail([-2.04, h + 2, -1.02], [2.04, h + 2.05, -0.83], M.steel);
     // Frame behind the panel, braced back onto the lattice top.
     for (const x of [-1.8, -0.6, 0.6, 1.8]) p.rod([x, h, -0.85], [x, h + 2, -0.85], 0.03, M.steel);

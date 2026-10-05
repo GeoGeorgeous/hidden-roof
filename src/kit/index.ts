@@ -2,7 +2,7 @@ import type { Category, PropDef } from './def';
 import { fireescape, hatch, ladder, railing, stairs, stepladder } from './access';
 import { antenna, billboard, cable12, cable4, cable8, cctv, sign } from './details';
 import { floodlight, lampPost, stringLights, wallLamp } from './lights';
-import { neonCyan, neonPink } from './neon';
+import { neonAmber, neonCyan, neonPink } from './neon';
 import { acLarge, acMedium, acSmall, acWall, duct, exhaust, utilitybox, ventshaft, watertower } from './equipment';
 import { cableCorner, cableRun, cableUp, cableWall } from './cable-runs';
 import { drainPipe, pipe, pipeCorner, pipeFloor, pipeUp, pipeWall } from './pipes';
@@ -12,7 +12,7 @@ import { signExit, signNoEntry, signPlate, signVoltage } from './small-signs';
 import { debris, latticeMast, signTower, tankPair } from './steel';
 
 /** The prop kit, in picker order. Pickups are added by the editor as their own category. */
-export const KIT: PropDef[] = [
+const KIT: PropDef[] = [
   building,
   halfBlock,
   slab,
@@ -67,6 +67,7 @@ export const KIT: PropDef[] = [
   floodlight,
   neonPink,
   neonCyan,
+  neonAmber,
   lampPost,
   stringLights,
 ];

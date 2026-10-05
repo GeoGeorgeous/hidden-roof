@@ -35,6 +35,9 @@ import { Audio } from './audio';
 import { Hud } from './hud';
 import { BuildMode } from './build/buildmode';
 import { fetchLevel } from './build/io';
+import { jpFontReady } from './render/ink/jp-font';
+import { textAtlasVersion } from './render/ink/text-atlas';
+import { staticTextureBytes } from './render/texture-bytes';
 import { DebugPanel } from './debug/panel';
 import { live } from './debug/tuning';
 import { exitGameFullscreen } from './fullscreen';
@@ -124,6 +127,7 @@ live.rebuildLights = () => lightFx.rebuild(level.lights);
 // Props with lights (light props, billboards) are rebuilt for a new lens color or aim; their paint carries over.
 live.rebuildLightProps = () => level.rebuildLit();
 live.syncAtmosphere = () => atmosphere.syncColors();
+live.syncVignette = () => hud.syncVignette();
 live.applyDaylight = () => atmosphere.reapplyDaylight();
 live.atmosNight = () => atmosphere.nightValues;
 live.applyPixelScale = () => {
@@ -159,11 +163,13 @@ live.syncSkyline = syncSkyline;
 build.onLoad = loadLevel;
 
 const levelName = new URLSearchParams(location.search).get('level') ?? 'demo';
-fetchLevel(levelName)
-  .then(loadLevel)
+// Signs measure their text when they are built: wait for the sign font first.
+Promise.all([fetchLevel(levelName), jpFontReady()])
+  .then(([data]) => loadLevel(data))
   .catch((e) => console.error(e));
 
 let lastStride = 0;
+let textAtlasSeen = textAtlasVersion();
 player.onLand = (speed) => audio.footstep(speed > PLAYER.hardLanding);
 
 // Losing pointer lock (Esc, alt-tab, a file dialog) pauses the game behind the menu.
@@ -281,6 +287,11 @@ function frame(time: number) {
   const anchor = tools.labelAnchor(tagPos);
   const pressure = tool === 'can' ? inventory.pressure : null;
   hud.placeToolTags(anchor ? toScreen(anchor) : null, pressure, pressure !== null && pressure < PRESSURE.sputterThreshold);
+  // A lettering atlas grew or started over: the signs ask for their rects again.
+  if (textAtlasVersion() !== textAtlasSeen) {
+    textAtlasSeen = textAtlasVersion();
+    level.rebuildLettered();
+  }
   level.flush();
   baker.update(time / 1000, eye);
   paint.flush(renderer);
@@ -322,6 +333,7 @@ function frame(time: number) {
     bakeMs: baker.stats.ms,
   });
   live.player = { position: player.position, velocity: player.velocity, state: player.fly ? 'flying' : player.onLadder ? 'on ladder' : player.crouched ? 'crouched' : player.onGround ? 'grounded' : 'airborne' };
+  hud.setPerf({ fps, frameMs, calls, triangles, textureBytes: paint.textureBytes + baker.stats.textureBytes + staticTextureBytes() });
   debug.update();
   requestAnimationFrame(frame);
 }

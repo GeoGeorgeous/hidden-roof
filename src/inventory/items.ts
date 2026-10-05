@@ -1,5 +1,6 @@
 import { CAP_ORDER, CAPS, COLOR_ORDER, COLORS, type CapId, type PaintColor } from '../config';
 import { SLOTS, type Tool } from './inventory';
+import type { Rgb } from '../painting';
 
 // Pickup kinds as stored in level JSON:
 //   "color:red"     unlock a paint color (can, marker, roller)
@@ -37,12 +38,12 @@ export function pickupLabel(kind: PickupKind) {
 }
 
 /** Hex color to sRGB 0..1 (what paint textures store). */
-export function srgb01(hex: string): [number, number, number] {
+function srgb01(hex: string): Rgb {
   const n = parseInt(hex.slice(1), 16);
   return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
 }
 
-const rgbCache = new Map<string, [number, number, number]>();
+const rgbCache = new Map<string, Rgb>();
 /** A paint color as 0..1 sRGB, the way every tool paints it. */
 export function rgbOf(color: PaintColor) {
   let c = rgbCache.get(color);
