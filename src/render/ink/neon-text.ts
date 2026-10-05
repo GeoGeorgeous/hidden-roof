@@ -13,9 +13,8 @@ import { fillColumn } from './vertical-text';
 
 const CELL_W = 192;
 const CELL_H = 512;
-/** Width of the characters' column: the neon sign's face inside its tubes is 0.54 m x 2.54 m, so its aspect is FACE / CELL_H. A wider sign face (blade signs) just has margins. */
+/** Width of the characters' column (texels of a CELL_H tall cell): a sign face wider than FACE / CELL_H just has margins. */
 const FACE = 108;
-export const NEON_FACE_ASPECT = FACE / CELL_H;
 /** Longest text a sign takes. */
 export const NEON_MAX_TEXT = 12;
 
@@ -30,7 +29,7 @@ export function neonAtlas() {
  * ink on paper. The sign face shows all of it, `aspect` (width / height) wide:
  * the characters stay FACE texels across, so a wider face has margins.
  */
-export function neonRect(text: string, inverted = false, aspect = NEON_FACE_ASPECT): UvRect {
+export function neonRect(text: string, inverted: boolean, aspect: number): UvRect {
   const t = Array.from(text).slice(0, NEON_MAX_TEXT).join('');
   neonAtlas();
   const a = atlas!;

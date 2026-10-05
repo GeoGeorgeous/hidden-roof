@@ -22,6 +22,9 @@ const ZC = -(OUT + W / 2); // sign center along z
 /** Tube outline: distance from the sign's edge and thickness. */
 const EDGE = 0.1;
 const TUBE = 0.03;
+/** The lettered face inside the tube outline: its inset from the sign's edge and its aspect (width / height). */
+const INNER = EDGE + TUBE;
+const FACE_ASPECT = (W - 2 * INNER) / (H - 2 * INNER);
 
 /** The sign's light color as the walls get it: its brightness as a gray plus `tint` of its hue (see LIGHTS[kind].tint). */
 function hue(kind: LightKind) {
@@ -44,7 +47,7 @@ function blade(name: string, kind: LightKind, text: string): PropDef {
       // Tubes, text and the real lights all flicker together.
       const fl = 1 + (seed % 9973);
       const tube = lit(LIGHTS[kind].color, 1, fl);
-      const letters: Mat = { tex: 'neon', tile: 1, tint: hue(kind), emissive: 1, flicker: fl, letters: neonRect(text) };
+      const letters: Mat = { tex: 'neon', tile: 1, tint: hue(kind), emissive: 1, flicker: fl, letters: neonRect(text, false, FACE_ASPECT) };
       const z0 = -(OUT + W);
       const z1 = -OUT;
       // Arms to the wall, the box itself.
@@ -59,8 +62,7 @@ function blade(name: string, kind: LightKind, text: string): PropDef {
         const tlo = Math.min(xb, xc);
         const thi = Math.max(xb, xc);
         // The lettered face, inside the tube outline: a big flat face, so it takes paint (the body covers its back).
-        const inner = EDGE + TUBE;
-        p.box([lo, inner, z0 + inner], [hi, H - inner, z1 - inner], letters, { paint: true, collide: false, skip: [s > 0 ? '-x' : '+x'] });
+        p.box([lo, INNER, z0 + INNER], [hi, H - INNER, z1 - INNER], letters, { paint: true, collide: false, skip: [s > 0 ? '-x' : '+x'] });
         // Tube outline around it.
         p.detail([tlo, EDGE, z0 + EDGE], [thi, EDGE + TUBE, z1 - EDGE], tube, false);
         p.detail([tlo, H - EDGE - TUBE, z0 + EDGE], [thi, H - EDGE, z1 - EDGE], tube, false);
