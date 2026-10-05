@@ -53,6 +53,8 @@ export const inkUniforms = {
   uVoid: { value: new THREE.Vector2() },
   /** paint light multiplier, minimum, hatch strength. */
   uPaintInk: { value: new THREE.Vector3() },
+  /** Colored light: strength of the tint (INK.tint). */
+  uInkTint: { value: INK.tint },
   /** Fade into paper per meter (ATMOS.fogDensity). */
   uFade: { value: ATMOS.fogDensity },
 };
@@ -69,6 +71,7 @@ export function syncInkUniforms() {
   u.uVoid.value.set(INK.voidTop, Math.min(INK.voidBottom, INK.voidTop - 1));
   u.uPaintInk.value.set(INK.paintLight, INK.paintMin, INK.paintHatch);
   u.uFade.value = ATMOS.fogDensity;
+  u.uInkTint.value = INK.tint;
 }
 syncInkUniforms();
 
@@ -83,6 +86,7 @@ uniform vec2 uHatch;
 uniform vec2 uVoid;
 uniform vec3 uPaintInk;
 uniform float uFade;
+uniform float uInkTint;
 
 uniform highp sampler3D uInkNoise;
 // Value noise in 0..1, one lattice cell per unit (a tiling 3D texture, see noiseTexture).
@@ -180,6 +184,8 @@ export const INK_FRAG = /* glsl */ `
   vec4 grime = inkGrime(inkP, vWorldN, 1.0 - step(0.5, vFacade.x));
   float dirt = max(max(hatch.y * grime.x, hatch.x * grime.y), max(max(hatch.x, hatch.y) * grime.z * 0.8, grime.w));
   vec3 col = mix(uPaper, uInkColor, max(inkCover(inkFade(tone, keep), hatch, inkP), dirt * smoothstep(0.35, 0.65, keep)));
+  // Colored lamps (LIGHTS[kind].tint): their hue, relative to the light on the surface, tints paper and ink alike.
+  col *= 1.0 + clamp(bakedChroma / max(light, 0.15), -0.8, 0.8) * uInkTint;
 #ifdef LETTERS
   // Sign lettering skips the light: ink where the glyph atlas is dark, paper
   // elsewhere, so a sign reads in any light (shadow, night). Fades with distance.

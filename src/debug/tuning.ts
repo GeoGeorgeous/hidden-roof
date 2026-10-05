@@ -116,6 +116,7 @@ function lightItems(): Item[] {
   return Object.keys(LIGHTS).flatMap((k) => [
     { kind: 'heading', label: `LIGHT · ${LIGHT_LABELS[k] ?? k}` } as Item,
     c('color', ['LIGHTS', k, 'color'], props),
+    r('color tint (0 = none)', ['LIGHTS', k, 'tint'], 0, 1, 0.05),
     ...v3('source offset', ['LIGHTS', k, 'offset'], -1, 1, 0.01, fx),
     ...v3('aim', ['LIGHTS', k, 'dir'], -1, 1, 0.01, props),
     r('intensity', ['LIGHTS', k, 'intensity'], 0, 200, 0.5),
@@ -371,6 +372,7 @@ export function sections(): Section[] {
         c('sky', ['INK', 'sky']),
         c('clouds', ['INK', 'cloud']),
         r('exposure', ['INK', 'exposure'], 0.2, 5, 0.05),
+        r('colored light strength', ['INK', 'tint'], 0, 1, 0.05),
         r('paper above tone', ['INK', 'paperTone'], 0, 1.5, 0.01),
         r('cross-hatch below', ['INK', 'hatchTone'], 0, 1, 0.01),
         r('solid ink below', ['INK', 'blackTone'], 0, 1, 0.01),

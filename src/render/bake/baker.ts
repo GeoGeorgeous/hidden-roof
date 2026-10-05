@@ -224,6 +224,7 @@ export class LightBaker {
       const s = LIGHTS[k as keyof typeof LIGHTS];
       const baked = this.bakedKinds.has(k);
       this.see(s.color, baked);
+      this.see(s.tint, baked);
       this.see(s.intensity, baked);
       this.see(s.range, baked);
       this.see(s.spread, baked);
