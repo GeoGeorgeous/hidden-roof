@@ -37,6 +37,27 @@ canvas {
   color: var(--dim);
 }
 
+/* The ink layers: white, inverting what's under them (like the crosshair), so
+   they read on paper, on ink and on paint. Each is a layer of its own over the
+   game view; the pause menu, the debug panel, the red alert, the REC dot, the
+   paint swatch and the hotbar icons keep their own colors. */
+.hud-ink,
+.hotbar:not(.icons),
+.toast,
+.picker,
+.build-help {
+  --ui: #fff;
+  --dim: rgba(255, 255, 255, 0.62);
+  --line: 1px solid #fff;
+  color: #fff;
+  mix-blend-mode: difference;
+}
+.hud-ink {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
 /* --- Frame -------------------------------------------------------------- */
 
 .hud {
@@ -69,11 +90,17 @@ canvas {
   left: 30px;
   line-height: 1.6;
 }
-.rec i {
+/* The room for the REC dot, which is in the plain layer (red does not blend). */
+.rec-pad {
   display: inline-block;
+  width: 14px;
+}
+.rec-dot {
+  position: absolute;
+  top: 31px;
+  left: 30px;
   width: 7px;
   height: 7px;
-  margin-right: 7px;
   border-radius: 50%;
   background: var(--alert);
   animation: blink 1.6s steps(2) infinite;
@@ -112,6 +139,31 @@ canvas {
   white-space: nowrap;
 }
 
+/* The color tag leaves room for its swatch, a plain-layer element (its color is the paint's). */
+.color-tag {
+  padding-left: 22px;
+}
+.swatch-tag {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 8px;
+  height: 8px;
+  box-sizing: border-box;
+  border: 1px solid #141416;
+  outline: 1px solid #fff;
+}
+
+/* Performance numbers, bottom left, no heading. */
+.perf {
+  position: absolute;
+  left: 30px;
+  bottom: 26px;
+  line-height: 1.6;
+  white-space: pre;
+  font-variant-numeric: tabular-nums;
+}
+
 /* PSI gauge above the tags, shown while spraying or shaking: label, a horizontal line, the value. */
 .psi-gauge {
   display: flex;
@@ -135,16 +187,6 @@ canvas {
   display: block;
   height: 100%;
   background: var(--ui);
-}
-.psi-gauge.low,
-.psi-gauge.low span {
-  color: var(--alert);
-}
-.psi-gauge.low .line {
-  border-color: var(--alert);
-}
-.psi-gauge.low .line i {
-  background: var(--alert);
 }
 .psi-alert {
   color: var(--alert);
@@ -381,15 +423,21 @@ canvas {
 }
 .hotbar i.on {
   border-color: var(--ui);
-  background: rgba(235, 229, 214, 0.35);
+  background: rgba(255, 255, 255, 0.3);
   opacity: 1;
   transform: scale(1.12);
+}
+/* The icons sit over the rings and keep their own colors. */
+.hotbar.icons i,
+.hotbar.icons i.on {
+  border-color: transparent;
+  background: none;
 }
 .hotbar img {
   width: 22px;
   height: 22px;
   /* A thin ink edge so light icons read on paper. */
-  filter: drop-shadow(0 0 0.6px var(--ui));
+  filter: drop-shadow(0 0 0.6px #141416);
 }
 .swatch {
   display: inline-block;

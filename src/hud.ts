@@ -4,7 +4,11 @@ import type { SettingSection } from './settings';
 
 // Body-cam style HUD: vignette, corner brackets, REC indicator with elapsed
 // time, clock, crosshair, the PSI gauge, cap and color tags beside the tool in
-// hand, and the start/pause menu.
+// hand, performance numbers, and the start/pause menu.
+// Everything drawn as ink (text, lines, brackets, the crosshair) is white and
+// blends by difference with the game view, so it reads on paper, on ink and on
+// paint (style.css); that is the `ink` layer. The red alert, the REC dot, the
+// paint swatch and the pause menu keep their own colors, in the plain layer.
 // The tool readout lives in inventory/hotbar.ts, the debug panel in debug/panel.ts.
 
 const CONTROLS = [
@@ -39,6 +43,10 @@ export class Hud {
   private rec: HTMLElement;
   private clock: HTMLElement;
   private crosshair: HTMLElement;
+  private swatchTag: HTMLElement;
+  private perf: HTMLElement;
+  private perfShown = '';
+  private perfAt = 0;
   private capTag: HTMLElement;
   private capTagUntil = 0;
   private colorTag: HTMLElement;
@@ -63,12 +71,8 @@ export class Hud {
     root.className = 'hud';
     root.innerHTML = `
       <div class="vignette"></div>
-      <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
-      <div class="rec"><i></i><span class="rec-time">REC 00:00:00</span><div class="dim">CAM 01 · ROOFTOP</div></div>
-      <div class="clock"></div>
-      <div class="cap-tag" hidden></div>
-      <div class="cap-tag color-tag" hidden></div>
-      <div class="cap-tag psi-gauge"><span>PSI</span><div class="line"><i></i></div><b></b></div>
+      <i class="rec-dot"></i>
+      <i class="swatch-tag" hidden></i>
       <div class="cap-tag psi-alert" hidden>LOW PRESSURE — SHAKE [RMB]</div>
       <div class="overlay">
         <div class="title">roof.hidden.haus</div>
@@ -80,24 +84,38 @@ export class Hud {
         </div>
         <table>${CONTROLS.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table>
       </div>`;
+    const ink = document.createElement('div');
+    ink.className = 'hud-ink';
+    ink.innerHTML = `
+      <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
+      <div class="rec"><span class="rec-pad"></span><span class="rec-time">REC 00:00:00</span><div class="dim">CAM 01 · ROOFTOP</div></div>
+      <div class="clock"></div>
+      <div class="cap-tag" hidden></div>
+      <div class="cap-tag color-tag" hidden></div>
+      <div class="cap-tag psi-gauge"><span>PSI</span><div class="line"><i></i></div><b></b></div>
+      <div class="perf"></div>`;
     document.body.appendChild(root);
-    // The crosshair inverts what's under it (style.css), so it's its own layer
-    // over the game view: inside the HUD it could only blend with the HUD.
-    // Before the HUD, so the pause menu still covers it.
+    // The crosshair and the ink layer blend with the game view (style.css), so
+    // they are layers of their own over it: inside the HUD they could only blend
+    // with the HUD. Before the HUD, so the pause menu still covers them.
     this.crosshair = document.createElement('div');
     this.crosshair.className = 'crosshair';
+    this.crosshair.hidden = true;
     document.body.insertBefore(this.crosshair, root);
+    document.body.insertBefore(ink, root);
     this.overlay = root.querySelector('.overlay')!;
     this.status = root.querySelector('.status')!;
     this.exitFs = root.querySelector('.exit-fs')!;
-    this.rec = root.querySelector('.rec-time')!;
-    this.clock = root.querySelector('.clock')!;
-    this.capTag = root.querySelector('.cap-tag')!;
-    this.colorTag = root.querySelector('.color-tag')!;
-    this.gauge = root.querySelector('.psi-gauge')!;
-    this.gaugeFill = root.querySelector('.psi-gauge i')!;
-    this.gaugeText = root.querySelector('.psi-gauge b')!;
+    this.swatchTag = root.querySelector('.swatch-tag')!;
     this.alert = root.querySelector('.psi-alert')!;
+    this.rec = ink.querySelector('.rec-time')!;
+    this.clock = ink.querySelector('.clock')!;
+    this.capTag = ink.querySelector('.cap-tag')!;
+    this.colorTag = ink.querySelector('.color-tag')!;
+    this.gauge = ink.querySelector('.psi-gauge')!;
+    this.gaugeFill = ink.querySelector('.psi-gauge i')!;
+    this.gaugeText = ink.querySelector('.psi-gauge b')!;
+    this.perf = ink.querySelector('.perf')!;
     // mousedown, like the canvas: the click that starts the game is the same gesture.
     this.resume = root.querySelector('.resume')!;
     this.resume.addEventListener('mousedown', (e) => {
@@ -126,6 +144,8 @@ export class Hud {
       this.openSettings(false);
     }
     this.overlay.hidden = locked;
+    // No cursor while paused (ESC), the pause menu or the debug panel has the mouse.
+    this.crosshair.hidden = !locked;
     this.overlay.classList.toggle('compact', debugOpen);
     this.syncMenu();
   }
@@ -163,7 +183,8 @@ export class Hud {
 
   /** Shows the paint color (swatch + name) for a few seconds, just below the cap tag. */
   showColorTag(name: string, hex: string) {
-    this.colorTag.innerHTML = `COLOR · <i class="swatch" style="background:${hex}"></i>${name.toUpperCase()}`;
+    this.colorTag.textContent = `COLOR · ${name.toUpperCase()}`;
+    this.swatchTag.style.background = hex;
     this.colorTagUntil = performance.now() + CAP_TAG_SECONDS * 1000;
   }
 
@@ -201,7 +222,28 @@ export class Hud {
     };
     place(this.capTag, this.capTagUntil, 0);
     // The marker has no cap: its color tag takes the cap tag's place.
-    place(this.colorTag, this.colorTagUntil, this.capTag.hidden ? 0 : COLOR_TAG_OFFSET);
+    const colorDy = this.capTag.hidden ? 0 : COLOR_TAG_OFFSET;
+    place(this.colorTag, this.colorTagUntil, colorDy);
+    // The swatch keeps its true color, so it is not part of the blended tag.
+    this.swatchTag.hidden = this.colorTag.hidden;
+    if (at && !this.swatchTag.hidden) this.swatchTag.style.transform = `translate(${Math.round(at.x) + 9}px, ${Math.round(at.y + colorDy) + 7}px)`;
+  }
+
+  /** The performance readout, bottom left: written a few times a second. */
+  setPerf(p: { fps: number; frameMs: number; calls: number; triangles: number; textureBytes: number }) {
+    const now = performance.now();
+    if (now - this.perfAt < 250) return;
+    this.perfAt = now;
+    const mb = p.textureBytes / 1048576;
+    const text = [
+      `fps · ${Math.round(p.fps)} (${p.frameMs.toFixed(1)} ms cpu)`,
+      `draw calls · ${p.calls}`,
+      `triangles · ${p.triangles.toLocaleString('en-US')}`,
+      `tex memory · ${mb < 10 ? mb.toFixed(1) : Math.round(mb)} MB`,
+    ].join('\n');
+    if (text === this.perfShown) return;
+    this.perfShown = text;
+    this.perf.textContent = text;
   }
 
   update() {

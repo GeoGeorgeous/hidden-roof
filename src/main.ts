@@ -36,6 +36,7 @@ import { Hud } from './hud';
 import { BuildMode } from './build/buildmode';
 import { fetchLevel } from './build/io';
 import { jpFontReady } from './render/ink/jp-font';
+import { staticTextureBytes } from './render/texture-bytes';
 import { DebugPanel } from './debug/panel';
 import { live } from './debug/tuning';
 import { exitGameFullscreen } from './fullscreen';
@@ -324,6 +325,7 @@ function frame(time: number) {
     bakeMs: baker.stats.ms,
   });
   live.player = { position: player.position, velocity: player.velocity, state: player.fly ? 'flying' : player.onLadder ? 'on ladder' : player.crouched ? 'crouched' : player.onGround ? 'grounded' : 'airborne' };
+  hud.setPerf({ fps, frameMs, calls, triangles, textureBytes: paint.textureBytes + baker.stats.textureBytes + staticTextureBytes() });
   debug.update();
   requestAnimationFrame(frame);
 }
