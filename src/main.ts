@@ -15,9 +15,7 @@ import { Smoke } from './render/smoke';
 import { Lightning } from './render/lightning';
 import { PaintDrips } from './paint-drips';
 import { PaintOps } from './paint-ops';
-import { savePaint } from './save/save-paint';
-import { loadPaint } from './save/load-paint';
-import { levelHash } from './save/level-hash';
+import { paintMenu } from './save/paint-menu';
 import { WallHand } from './tools/wall-hand';
 import { GpuTimer } from './debug/gpu-timer';
 import { Settings } from './settings';
@@ -194,6 +192,7 @@ hud.onResume = () => input.requestLock();
 hud.onExitFullscreen = () => void exitGameFullscreen();
 hud.setLocked(false);
 hud.setSettings(settings.sections());
+const paintFile = paintMenu(hud, paint, drips, level, levelName);
 tools.onCapChange = (name) => hud.showCapTag(name);
 tools.onColorChange = (color) => hud.showColorTag(color, COLORS[color]);
 
@@ -381,4 +380,4 @@ function toScreen(p: THREE.Vector3) {
 }
 
 // Handy for debugging in the console.
-Object.assign(window, { game: { city: () => skyline, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, pickups, paint, paintOps, savePaint, loadPaint, levelHash, seedPaintRandom, fixedStep, level, build, renderer, input, hud, debug, live, PLAYER, loadLevel } });
+Object.assign(window, { game: { city: () => skyline, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, pickups, paint, paintOps, paintFile, seedPaintRandom, fixedStep, level, build, renderer, input, hud, debug, live, PLAYER, loadLevel } });
