@@ -7,6 +7,7 @@ import type { SurfaceMaterial } from './materials';
 import { SeamIndex, texelToWorld, worldToTexel, type SeamFace } from './paint-seams';
 import { PaintGpu } from './paint-gpu';
 import { PaintRaster, type Band } from './paint-raster';
+import type { PaintOp } from './paint-ops';
 
 // Paint lives in one RGBA texture per paintable surface (atlas of its faces).
 // PaintSystem keeps the surfaces and turns stamps and rolls at face points into
@@ -51,6 +52,8 @@ export class PaintSystem {
   private seams = new SeamIndex<PaintSurface>();
   /** Textures, uploads and their stats. */
   readonly gpu = new PaintGpu();
+  /** While set, every stamp and roll that paints is appended as an op (paint-ops.ts). */
+  log: PaintOp[] | null = null;
   /** Called when heavy paint on a vertical face should start a run (see paint-drips.ts). */
   onDrip: (s: PaintSurface, rect: Rect, x: number, y: number, rgb: Rgb) => void = () => {};
   private raster = new PaintRaster<PaintSurface>({
@@ -136,6 +139,7 @@ export class PaintSystem {
     square = false,
   ) {
     if (!this.live(s)) return;
+    this.log?.push({ kind: 'stamp', key: s.key, rect: at.rect, u: at.u, v: at.v, radius, amount, color, softness, square });
     const rect = faceTexel(s, at);
     const { x: cx, y: cy } = atTexel;
     this.dot(s, rect, cx, cy, radius, amount, color, softness, drip, square);
@@ -166,6 +170,7 @@ export class PaintSystem {
     drip = 0,
   ) {
     if (!this.live(s)) return;
+    this.log?.push({ kind: 'roll', key: s.key, rect: at.rect, u: at.u, v: at.v, axis: axis.toArray(), halfLength, halfWidth, edge, amount, color });
     const rect = faceTexel(s, at);
     const { x: cx, y: cy } = atTexel;
     const band = { halfLength, halfWidth, edge, amount, color, drip };

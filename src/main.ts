@@ -14,6 +14,7 @@ import { PlayerLight } from './render/player-light';
 import { Smoke } from './render/smoke';
 import { Lightning } from './render/lightning';
 import { PaintDrips } from './paint-drips';
+import { PaintOps } from './paint-ops';
 import { WallHand } from './tools/wall-hand';
 import { GpuTimer } from './debug/gpu-timer';
 import { Settings } from './settings';
@@ -77,6 +78,7 @@ viewScene.add(viewSun);
 
 const paint = new PaintSystem();
 const drips = new PaintDrips(paint);
+const paintOps = new PaintOps(paint);
 const level = new Level(scene, paint);
 const lighting = new Lighting(scene, renderer);
 const baker = new LightBaker();
@@ -376,4 +378,4 @@ function toScreen(p: THREE.Vector3) {
 }
 
 // Handy for debugging in the console.
-Object.assign(window, { game: { city: () => skyline, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, pickups, paint, seedPaintRandom, fixedStep, level, build, renderer, input, hud, debug, live, PLAYER, loadLevel } });
+Object.assign(window, { game: { city: () => skyline, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, pickups, paint, paintOps, seedPaintRandom, fixedStep, level, build, renderer, input, hud, debug, live, PLAYER, loadLevel } });
