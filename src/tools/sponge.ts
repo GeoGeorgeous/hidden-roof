@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { Audio } from '../audio';
 import { SPONGE } from '../config';
 import type { Input } from '../input';
-import type { PaintSystem } from '../painting';
+import type { PaintSurface, PaintSystem } from '../painting';
 import { StrokeSweep } from './stroke';
 import { SpongeModel } from './sponge-model';
 
@@ -17,6 +17,8 @@ export class SpongeTool {
   readonly model = new SpongeModel();
   private stroke: StrokeSweep;
   private sounding = false;
+  /** Surfaces this stroke scrubbed: freed when it ends if it cleaned them completely. */
+  private scrubbed = new Set<PaintSurface>();
 
   constructor(
     private paint: PaintSystem,
@@ -35,7 +37,7 @@ export class SpongeTool {
   update(dt: number, input: Input, camera: THREE.Camera, eye: THREE.Vector3, active: boolean, radius: number) {
     const pressed = active && input.lmb && input.locked;
     const scrubbing = pressed && this.scrub(dt, camera, eye, radius);
-    if (!pressed) this.stroke.lift();
+    if (!pressed) this.lift();
     if (scrubbing || this.sounding) this.audio.setScribble(scrubbing ? 0.5 : 0);
     this.sounding = scrubbing;
     this.model.update(dt, camera, active, scrubbing);
@@ -46,7 +48,15 @@ export class SpongeTool {
     // Steps half a patch apart at full reach.
     const spec = { reach: SPONGE.reach, rayStep: (radius * 0.5) / SPONGE.reach, maxRays: SPONGE.maxRays, stillRate: SPONGE.stillRate };
     return this.stroke.sweep(dt, camera, eye, spec, (_hit, surface, at, fresh) => {
-      if (fresh && surface) this.paint.stamp(surface, at, radius, SPONGE.strength, null, SPONGE.softness);
+      if (!fresh || !surface) return;
+      this.paint.stamp(surface, at, radius, SPONGE.strength, null, SPONGE.softness);
+      this.scrubbed.add(surface);
     }).hit;
+  }
+
+  private lift() {
+    this.stroke.lift();
+    for (const s of this.scrubbed) this.paint.freeIfClean(s);
+    this.scrubbed.clear();
   }
 }

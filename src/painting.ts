@@ -101,14 +101,24 @@ export class PaintSystem {
   /** Wipe all paint (LOAD replaces it), freeing it: textures are created again on the next hit. */
   clear() {
     this.epoch++;
-    for (const s of this.surfaces) {
-      if (!s.data) continue;
-      this.gpu.dispose(s);
-      s.material.setPaint(null);
-      s.data = s.excess = s.texture = null;
-      s.mips = [];
-      s.dirty.length = 0;
-    }
+    for (const s of this.surfaces) this.free(s);
+  }
+
+  /** Free a surface's paint if none is left (the sponge cleaned it all off): its memory comes back until the next hit. */
+  freeIfClean(s: PaintSurface) {
+    const d = s.data;
+    if (!d || !this.live(s)) return;
+    for (let i = 3; i < d.length; i += 4) if (d[i]) return;
+    this.free(s);
+  }
+
+  private free(s: PaintSurface) {
+    if (!s.data) return;
+    this.gpu.dispose(s);
+    s.material.setPaint(null);
+    s.data = s.excess = s.texture = null;
+    s.mips = [];
+    s.dirty.length = 0;
   }
 
   /**
