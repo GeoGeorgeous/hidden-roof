@@ -18,6 +18,8 @@ Hidden roof: a three.js graffiti game. The world is ink on paper and the only co
 
 - Tunable numbers go in `src/config.ts`, not inline.
 - Removing code beats adding it. A cleanup keeps behavior identical: `npm run check` passes before and after.
+- Before writing new logic, look for an existing helper and reuse or extend it.
+- Keep source files under ~400 lines (`config.ts` and CSS excepted). Split by responsibility before a file gets there, not after.
 - Branch names are `type/short-kebab-name`, with type one of `feat`, `fix`, `refactor`, `perf`, `chore`, `docs`, `test` (e.g. `feat/roller-tool`, `perf/dirty-rect-upload`).
 
 ## Long runs
