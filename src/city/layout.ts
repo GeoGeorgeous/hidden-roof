@@ -29,7 +29,8 @@ export interface Tower {
   rnd: () => number;
 }
 
-type Rect = [number, number, number, number];
+/** A footprint on the ground: x0, z0, x1, z1 (m). */
+export type Rect = [number, number, number, number];
 const STYLES = Object.values(FACADES) as Facade[];
 
 export function layoutCity(level: THREE.Box3, cfg = SKYLINE): Tower[] {

@@ -1,7 +1,7 @@
 import { SKYLINE } from '../config';
 import type { CityMesh, V3 } from './mesh';
 import type { Lines } from './lines';
-import type { Tier, Tower } from './layout';
+import type { Rect, Tier, Tower } from './layout';
 import { cityTextRect } from '../render/ink/city-text';
 
 // Rooftop clutter, packed like the roofs of a pen-and-ink megacity: stair
@@ -11,8 +11,6 @@ import { cityTextRect } from '../render/ink/city-text';
 // roofs and hanging off the walls. Volumes go into the city mesh (signs into
 // their own, drawn with the city text atlas), thin steel into pen lines. Less
 // detail farther away (nothing beyond SKYLINE.clutterRange but the odd core).
-
-type Rect = [number, number, number, number];
 
 /** Line ranges (m) per kind of steel: small things vanish first. */
 const NEAR_LINES = 140;
