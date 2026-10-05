@@ -6,8 +6,9 @@
 // frame into a fresh page, must give the same hash at the same detail, and about
 // the same paint when ULTRA's ops are replayed at LOW: the remote-paint path.
 // Saves (src/save): the paint saved while playing, loaded into the replay page,
-// must give the same hash; ULTRA's save loaded at LOW must equal switching PAINT
-// DETAIL to LOW in game; and a save must be refused once the level is edited.
+// must give the same hash; ULTRA's save loaded at LOW, and LOW's at ULTRA, must
+// equal switching PAINT DETAIL in game; and a save must be refused once the
+// level is edited.
 // Usage: node scripts/golden-paint.mjs [--update] [url]   (no url: starts its own server)
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
@@ -50,6 +51,10 @@ const test = await openTestBrowser(process.argv.slice(2).find((a) => !a.startsWi
 const results = {};
 let failed = 0;
 let ultraAtLow = null;
+let lowAtUltra = null;
+/** LOW's play, which ULTRA's replay page waits for (it loads LOW's save). */
+let lowPlayed;
+const lowPlay = new Promise((done) => (lowPlayed = done));
 // The details run side by side (a page each): fixed steps keep each one exact.
 const t0 = Date.now();
 const lines = await Promise.all(DETAILS.map(checkDetail));
@@ -63,7 +68,10 @@ console.log(`ULTRA ops at LOW: ${low.paintedM2} m² painted vs ${results.ultra.p
 const saveAtLow = hashOf(ultraAtLow.loaded) === ultraAtLow.reference;
 const refused = ultraAtLow.refused === 'SAVED FOR ANOTHER VERSION OF DEMO' && hashOf(ultraAtLow.kept) === hashOf(ultraAtLow.loaded);
 failed += (saveAtLow ? 0 : 1) + (refused ? 0 : 1);
+const saveAtUltra = lowAtUltra.loaded === lowAtUltra.reference;
+failed += saveAtUltra ? 0 : 1;
 console.log(`ULTRA save at LOW: ${saveAtLow ? 'identical to switching PAINT DETAIL in game' : 'DIFFERS from switching PAINT DETAIL in game'}`);
+console.log(`LOW save at ULTRA: ${saveAtUltra ? 'identical to switching PAINT DETAIL in game' : 'DIFFERS from switching PAINT DETAIL in game'}`);
 console.log(`save after a level edit: ${refused ? `refused (${ultraAtLow.refused}), paint kept` : `NOT REFUSED AS EXPECTED: ${ultraAtLow.refused}`}`);
 await test.close();
 
@@ -82,12 +90,16 @@ process.exitCode = failed ? 1 : 0;
 
 /** Plays the strokes at one detail, then replays its ops into a fresh page (loopback); returns its report line. */
 async function checkDetail(detail) {
-  const r = await inGame(detail, play, { runs: RUNS.map((x) => ({ ...x, aim: x.aim.toString() })), stand: STAND, faceYaw: FACE_YAW, gap: GAP, settle: SETTLE, lowReference: detail === 'ultra' });
+  const r = await inGame(detail, play, { runs: RUNS.map((x) => ({ ...x, aim: x.aim.toString() })), stand: STAND, faceYaw: FACE_YAW, gap: GAP, settle: SETTLE, referenceAt: { low: 96, ultra: 24 }[detail] });
+  if (detail === 'low') lowPlayed(r);
   results[detail] = { hash: hashOf(r.paint), texelsPerMeter: r.paint.tpm, surfaces: r.paint.surfaces.length, paintedM2: r.paint.paintedM2, meanAlpha: r.paint.meanAlpha, drips: r.drips, perRun: r.perRun };
   for (const [i, png] of r.pngs.entries()) fs.writeFileSync(`${out}/${detail}-${i}.png`, Buffer.from(png, 'base64'));
   // ULTRA's ops also replay at LOW (below), alongside its own loopback.
-  const [own, low] = await Promise.all([inGame(detail, replay, { ops: r.ops, save: r.save }), detail === 'ultra' ? inGame('low', replay, { ops: r.ops, save: r.save, editLevel: true }) : null]);
-  if (low) ultraAtLow = { ...low, reference: hashOf(r.lowReference) };
+  // ULTRA's replay page also loads LOW's save.
+  const other = detail === 'ultra' ? (await lowPlay).save : null;
+  const [own, low] = await Promise.all([inGame(detail, replay, { ops: r.ops, save: r.save, other }), detail === 'ultra' ? inGame('low', replay, { ops: r.ops, save: r.save, editLevel: true }) : null]);
+  if (low) ultraAtLow = { ...low, reference: hashOf(r.reference) };
+  if (other) lowAtUltra = { loaded: hashOf(own.other), reference: hashOf((await lowPlay).reference) };
   const back = hashOf(own.replayed);
   const loop = back === results[detail].hash;
   const loaded = hashOf(own.loaded) === results[detail].hash;
@@ -159,10 +171,11 @@ function pageHelpers() {
 
 /**
  * Runs in the page: applies recorded ops frame by frame, as they were made, and
- * returns the paint; then loads the save over it, and with `editLevel` tries it
- * again after removing a prop (must be refused, keeping the paint).
+ * returns the paint; then loads the save over it, then the `other` save if given;
+ * with `editLevel`, tries the save again after removing a prop (must be refused,
+ * keeping the paint).
  */
-async function replay({ ops, save, editLevel }) {
+async function replay({ ops, save, other, editLevel }) {
   const g = window.game;
   window.golden.setUp();
   await new Promise((done) => {
@@ -180,6 +193,10 @@ async function replay({ ops, save, editLevel }) {
   const bytes = window.golden.fromB64(save);
   await g.paintFile.load(bytes);
   const loaded = window.golden.paint();
+  if (other) {
+    await g.paintFile.load(window.golden.fromB64(other));
+    return { replayed, loaded, other: window.golden.paint() };
+  }
   if (!editLevel) return { replayed, loaded };
   g.level.remove([...g.level.props.values()].find((p) => !p.runtime).id);
   let refused = null;
@@ -188,7 +205,7 @@ async function replay({ ops, save, editLevel }) {
 }
 
 /** Runs in the page: plays every run on fixed steps and returns the paint and the ops it recorded. */
-async function play({ runs, stand, faceYaw, gap, settle, lowReference }) {
+async function play({ runs, stand, faceYaw, gap, settle, referenceAt }) {
   const g = window.game;
   const { inventory: inv, player, input, config } = g;
   window.golden.setUp();
@@ -297,13 +314,13 @@ async function play({ runs, stand, faceYaw, gap, settle, lowReference }) {
         }
       return c.toDataURL('image/png').split(',')[1];
     });
-  // The save, and with `lowReference` the paint switched to LOW in game (what the save must load as at LOW).
+  // The save, and with `referenceAt` the paint switched to that detail in game (what the save must load as there).
   const bytes = await g.paintFile.save();
   let reference = null;
-  if (lowReference) {
-    config.PAINT.texelsPerMeter = 24;
+  if (referenceAt) {
+    config.PAINT.texelsPerMeter = referenceAt;
     g.level.rebuildAll();
     reference = window.golden.paint();
   }
-  return { paint, drips, perRun, pngs, ops: { log, frames }, save: window.golden.toB64(bytes), saveBytes: bytes.length, lowReference: reference };
+  return { paint, drips, perRun, pngs, ops: { log, frames }, save: window.golden.toB64(bytes), saveBytes: bytes.length, reference };
 }
