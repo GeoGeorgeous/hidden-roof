@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "smoke": "node scripts/smoke.mjs",
-    "check": "npm run typecheck && npm run smoke",
+    "check": "npm run typecheck && npm run smoke && knip",
     "audit": "knip; jscpd src"
   },
   "dependencies": {
