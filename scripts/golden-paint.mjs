@@ -3,9 +3,9 @@
 // paint atlas with scripts/golden-paint.json. Refactors of the paint path must
 // keep the hashes; PNGs of the most painted faces land in shots/golden for eyeballing.
 // Loopback: the paint ops recorded while playing (paint-ops.ts), replayed frame by
-// frame into a fresh page, must give the same hash at the same detail, and about
+// frame into the same page with its paint wiped, must give the same hash, and about
 // the same paint when ULTRA's ops are replayed at LOW: the remote-paint path.
-// Saves (src/save): the paint saved while playing, loaded into the replay page,
+// Saves (src/save): the paint saved while playing, loaded after the loopback,
 // must give the same hash; ULTRA's save loaded at LOW, and LOW's at ULTRA, must
 // equal switching PAINT DETAIL in game; after level edits, a save must still
 // load (removing an unpainted prop), skip the faces of a removed painted prop,
