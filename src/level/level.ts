@@ -45,6 +45,8 @@ export class Level {
   onChange: () => void = () => {};
 
   private built = new Map<number, BuiltProp>();
+  /** Props whose pieces show lettering (Mat.letters): rebuilt when the text atlases change (rebuildLettered). */
+  private lettered = new Set<number>();
   joints = new Map<string, { joint: Joint; b: BuiltProp }>();
   private batches = new DecorBatches();
   private nextId = 1;
@@ -71,6 +73,7 @@ export class Level {
     const b = this.built.get(id);
     if (b) disposeProp(b, this.paint);
     this.built.delete(id);
+    this.lettered.delete(id);
     this.props.delete(id);
     this.rebuildStack(inst);
     this.refresh();
@@ -80,6 +83,7 @@ export class Level {
     for (const b of this.built.values()) disposeProp(b, this.paint);
     for (const j of this.joints.values()) disposeProp(j.b, this.paint);
     this.built.clear();
+    this.lettered.clear();
     this.joints.clear();
     this.props.clear();
     this.refresh();
@@ -130,6 +134,13 @@ export class Level {
       any = true;
     }
     if (any) this.refresh();
+  }
+
+  /** Rebuild every prop that shows lettering, keeping its paint: a text atlas grew or started over (render/ink/text-atlas.ts), so their rects moved. */
+  rebuildLettered() {
+    if (!this.lettered.size) return;
+    for (const id of this.lettered) this.build(this.props.get(id)!, true);
+    this.refresh();
   }
 
   /** Rebuild every prop and joint, keeping their paint (resampled into the new atlases after a paint detail change). */
@@ -218,7 +229,10 @@ export class Level {
     const seed = Math.abs(Math.round(inst.pos[0] * 7 + inst.pos[2] * 13));
     const adjust = inst.adjust ?? def.adjust?.initial() ?? 0;
     const ctx = { seed, pos: inst.pos, adjust, text: inst.text ?? def.text ?? '', ...this.stackContext(inst.type, inst.pos, inst.rot) };
-    const b = buildProp(inst.id, def.build(ctx), inst.pos, inst.rot, this.paint);
+    const pieces = def.build(ctx);
+    if (pieces.some((p) => 'mat' in p && p.mat.letters)) this.lettered.add(inst.id);
+    else this.lettered.delete(inst.id);
+    const b = buildProp(inst.id, pieces, inst.pos, inst.rot, this.paint);
     this.root.add(b.group);
     this.built.set(inst.id, b);
     if (old && (resample || samePaintFaces(old, b))) this.carryPaint(old, b);
