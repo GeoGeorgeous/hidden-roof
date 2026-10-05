@@ -283,6 +283,13 @@ export const PAINT = {
    * Keep it small: a texel of level k averages 2^k x 2^k atlas texels.
    */
   mipLevels: 4,
+  /**
+   * Changed texels are uploaded in up to this many rects per surface each frame,
+   * merged where they touch: two strokes on faces far apart in one atlas upload
+   * apart, not as the rect spanning both. Past the limit a new rect joins the one
+   * it grows least.
+   */
+  dirtyRects: 8,
 };
 
 /** Base textures (textures.ts) are pixel art at this density, whatever the paint detail: a 48 px panel spans one 2 m module. */

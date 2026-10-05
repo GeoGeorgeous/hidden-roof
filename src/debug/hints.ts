@@ -307,7 +307,7 @@ export const LABEL_HINTS: Record<string, string> = {
   triangles: 'Triangles drawn in the main scene pass.',
   'paint tex': 'Paint textures created so far / paintable surfaces.',
   'tex memory': 'Memory used by paint textures.',
-  uploads: 'Paint textures uploaded to the GPU this frame (only the rect that changed, one call each).',
+  uploads: 'Paint rects uploaded to the GPU this frame (only what changed: a few rects per texture, PAINT.dirtyRects, one call each).',
   particles: 'Spray particles in flight.',
   'paint runs': 'Paint runs moving right now.',
 };

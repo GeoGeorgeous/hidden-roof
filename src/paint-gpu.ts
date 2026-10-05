@@ -5,7 +5,8 @@ import type { PaintSurface } from './painting';
 
 // Paint on the GPU: one texture per painted surface, created with its CPU paint
 // on the first hit, and each frame an upload of only what changed: the dirty
-// rect of the atlas, then the same rect of each smaller level.
+// rects of the atlas (a few per surface, PAINT.dirtyRects), then the same rects
+// of each smaller level.
 
 /**
  * Hands a surface's CPU paint to copyTextureToTexture, which uploads one
@@ -16,6 +17,19 @@ const uploadRegion = new THREE.Box2();
 const uploadAt = new THREE.Vector2();
 /** Mip texels on their way to the GPU (paint-mips.ts). */
 let scratch = new Uint8Array(0);
+
+/** Changed texels, inclusive. */
+export interface DirtyRect {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+}
+
+/** Texels a rect gains by growing to take in another. */
+function growth(r: DirtyRect, x0: number, y0: number, x1: number, y1: number) {
+  return (Math.max(r.x1, x1) - Math.min(r.x0, x0) + 1) * (Math.max(r.y1, y1) - Math.min(r.y0, y0) + 1) - (r.x1 - r.x0 + 1) * (r.y1 - r.y0 + 1);
+}
 
 export class PaintGpu {
   textureCount = 0;
@@ -57,46 +71,64 @@ export class PaintGpu {
 
   /** Texels in this rect (inclusive) changed: upload them on the next flush. */
   markDirty(s: PaintSurface, x0: number, y0: number, x1: number, y1: number) {
-    const d = s.dirty;
-    d.x0 = Math.min(d.x0, x0);
-    d.y0 = Math.min(d.y0, y0);
-    d.x1 = Math.max(d.x1, x1);
-    d.y1 = Math.max(d.y1, y1);
     this.dirty.add(s);
+    const list = s.dirty;
+    // Into a rect it touches; a new rect while there's room; else the one it grows least.
+    let into: DirtyRect | undefined;
+    for (const r of list) {
+      if (x0 <= r.x1 + 1 && x1 >= r.x0 - 1 && y0 <= r.y1 + 1 && y1 >= r.y0 - 1) {
+        into = r;
+        break;
+      }
+    }
+    if (!into && list.length < PAINT.dirtyRects) {
+      list.push({ x0, y0, x1, y1 });
+      return;
+    }
+    into ??= list.reduce((a, b) => (growth(b, x0, y0, x1, y1) < growth(a, x0, y0, x1, y1) ? b : a));
+    into.x0 = Math.min(into.x0, x0);
+    into.y0 = Math.min(into.y0, y0);
+    into.x1 = Math.max(into.x1, x1);
+    into.y1 = Math.max(into.y1, y1);
   }
 
   /**
-   * Upload textures that changed this frame: only the rect that changed, in one
-   * call, then the same rect of each smaller level, averaged from the atlas.
+   * Upload textures that changed this frame: each dirty rect in one call, then
+   * the same rect of each smaller level, averaged from the atlas.
    */
   flush(renderer: THREE.WebGLRenderer) {
-    this.uploadsLastFrame = this.dirty.size;
+    this.uploadsLastFrame = 0;
     this.uploadBytesLastFrame = 0;
     for (const s of this.dirty) {
-      const { atlasW: w, atlasH: h } = s.geo;
-      let { x0, y0, x1, y1 } = s.dirty;
-      uploadSource.image = { data: s.data, width: w, height: h };
-      uploadRegion.min.set(x0, y0);
-      uploadRegion.max.set(x1 + 1, y1 + 1);
-      renderer.copyTextureToTexture(uploadSource, s.texture!, uploadRegion, uploadAt.set(x0, y0));
-      this.uploadBytesLastFrame += (x1 - x0 + 1) * (y1 - y0 + 1) * 4;
-      s.mips.forEach((m, i) => {
-        x0 = Math.min(x0 >> 1, m.width - 1);
-        y0 = Math.min(y0 >> 1, m.height - 1);
-        x1 = Math.min(x1 >> 1, m.width - 1);
-        y1 = Math.min(y1 >> 1, m.height - 1);
-        const rw = x1 - x0 + 1;
-        const rh = y1 - y0 + 1;
-        if (scratch.length < rw * rh * 4) scratch = new Uint8Array(rw * rh * 4);
-        mipRect(s.data!, w, h, i + 1, x0, y0, x1, y1, scratch);
-        uploadSource.image = { data: scratch, width: rw, height: rh };
-        renderer.copyTextureToTexture(uploadSource, s.texture!, null, uploadAt.set(x0, y0), 0, i + 1);
-        this.uploadBytesLastFrame += rw * rh * 4;
-      });
-      s.dirty.x0 = s.dirty.y0 = Infinity;
-      s.dirty.x1 = s.dirty.y1 = -1;
+      for (const r of s.dirty) this.upload(renderer, s, r);
+      this.uploadsLastFrame += s.dirty.length;
+      s.dirty.length = 0;
     }
     this.dirty.clear();
+  }
+
+  /** One dirty rect of a surface, atlas and smaller levels. */
+  private upload(renderer: THREE.WebGLRenderer, s: PaintSurface, r: DirtyRect) {
+    const { atlasW: w, atlasH: h } = s.geo;
+    let { x0, y0, x1, y1 } = r;
+    uploadSource.image = { data: s.data, width: w, height: h };
+    uploadRegion.min.set(x0, y0);
+    uploadRegion.max.set(x1 + 1, y1 + 1);
+    renderer.copyTextureToTexture(uploadSource, s.texture!, uploadRegion, uploadAt.set(x0, y0));
+    this.uploadBytesLastFrame += (x1 - x0 + 1) * (y1 - y0 + 1) * 4;
+    s.mips.forEach((m, i) => {
+      x0 = Math.min(x0 >> 1, m.width - 1);
+      y0 = Math.min(y0 >> 1, m.height - 1);
+      x1 = Math.min(x1 >> 1, m.width - 1);
+      y1 = Math.min(y1 >> 1, m.height - 1);
+      const rw = x1 - x0 + 1;
+      const rh = y1 - y0 + 1;
+      if (scratch.length < rw * rh * 4) scratch = new Uint8Array(rw * rh * 4);
+      mipRect(s.data!, w, h, i + 1, x0, y0, x1, y1, scratch);
+      uploadSource.image = { data: scratch, width: rw, height: rh };
+      renderer.copyTextureToTexture(uploadSource, s.texture!, null, uploadAt.set(x0, y0), 0, i + 1);
+      this.uploadBytesLastFrame += rw * rh * 4;
+    });
   }
 }
 

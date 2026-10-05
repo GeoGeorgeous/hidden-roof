@@ -536,7 +536,7 @@ export function sections(): Section[] {
         { kind: 'readout', label: 'triangles', get: () => `${live.stats.triangles}` },
         { kind: 'readout', label: 'paint tex', get: () => `${live.stats.textures} / ${live.stats.surfaces} surfaces` },
         { kind: 'readout', label: 'tex memory', get: () => `${(live.stats.textureBytes / 1048576).toFixed(2)} MB` },
-        { kind: 'readout', label: 'uploads', get: () => `${live.stats.uploads} tex, ${(live.stats.uploadBytes / 1024).toFixed(1)} KB` },
+        { kind: 'readout', label: 'uploads', get: () => `${live.stats.uploads} rects, ${(live.stats.uploadBytes / 1024).toFixed(1)} KB` },
         { kind: 'readout', label: 'particles', get: () => `${live.stats.particles}` },
         { kind: 'readout', label: 'paint runs', get: () => `${live.stats.drips}` },
       ],

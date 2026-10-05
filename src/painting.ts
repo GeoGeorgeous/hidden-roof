@@ -5,7 +5,7 @@ import { resampleAtlas } from './paint-resample';
 import type { FacePoint, Rect, SurfaceGeometry } from './surfaces';
 import type { SurfaceMaterial } from './materials';
 import { SeamIndex, texelToWorld, worldToTexel, type SeamFace } from './paint-seams';
-import { PaintGpu } from './paint-gpu';
+import { PaintGpu, type DirtyRect } from './paint-gpu';
 import { PaintRaster, type Band } from './paint-raster';
 import type { PaintOp } from './paint-ops';
 
@@ -40,8 +40,8 @@ export interface PaintSurface {
   texture: THREE.DataTexture | null;
   /** Excess paint per texel (paint-raster.ts RasterSurface). */
   excess: Uint16Array | null;
-  /** Dirty texel rect since the last upload (inclusive, paint-gpu.ts). */
-  dirty: { x0: number; y0: number; x1: number; y1: number };
+  /** Texel rects changed since the last upload (inclusive, paint-gpu.ts). */
+  dirty: DirtyRect[];
 }
 
 export class PaintSystem {
@@ -62,7 +62,7 @@ export class PaintSystem {
   });
 
   register(key: string, mesh: THREE.Mesh, material: SurfaceMaterial, geo: SurfaceGeometry): PaintSurface {
-    const s: PaintSurface = { key, mesh, material, geo, data: null, mips: [], texture: null, excess: null, dirty: { x0: Infinity, y0: Infinity, x1: -1, y1: -1 } };
+    const s: PaintSurface = { key, mesh, material, geo, data: null, mips: [], texture: null, excess: null, dirty: [] };
     this.surfaces.push(s);
     this.bySurfaceMesh.set(mesh, s);
     this.byKey.set(key, s);
