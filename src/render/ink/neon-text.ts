@@ -11,12 +11,13 @@ import { JP_FAMILY, onJpFont } from './jp-font';
 // sign's flicker dims it. Cells are drawn on first use, and again when the
 // font arrives (it loads in the background).
 
-const CELL_W = 128;
+const CELL_W = 192;
 const CELL_H = 512;
-const COLS = 8;
+const COLS = 5;
 const ROWS = 4;
-/** Empty texels left and right of the characters: the sign face inside its tubes is 0.54 m x 2.54 m, so its aspect is (CELL_W - 2 INSET) / CELL_H. */
-const INSET = 10;
+/** Width of the characters' column: the neon sign's face inside its tubes is 0.54 m x 2.54 m, so its aspect is FACE / CELL_H. A wider sign face (blade signs) just has margins. */
+const FACE = 108;
+export const NEON_FACE_ASPECT = FACE / CELL_H;
 const INK = '#141416';
 const PAPER = '#f2efe6';
 /** Longest text a sign takes. */
@@ -26,7 +27,7 @@ const MARKS = '。、．，';
 
 let atlas: THREE.CanvasTexture | null = null;
 let ctx: CanvasRenderingContext2D;
-const cells = new Map<string, number>();
+const cells = new Map<string, { i: number; text: string; inverted: boolean }>();
 
 export function neonAtlas() {
   if (atlas) return atlas;
@@ -42,24 +43,24 @@ export function neonAtlas() {
   atlas.colorSpace = THREE.SRGBColorSpace;
   atlas.anisotropy = 4;
   onJpFont(() => {
-    for (const [text, i] of cells) draw(text, i);
+    for (const { text, i, inverted } of cells.values()) draw(text, i, inverted);
     atlas!.needsUpdate = true;
   });
   return atlas;
 }
 
-function draw(text: string, i: number) {
+function draw(text: string, i: number, inverted: boolean) {
   const x0 = (i % COLS) * CELL_W;
   const y0 = Math.floor(i / COLS) * CELL_H;
-  ctx.fillStyle = INK;
+  ctx.fillStyle = inverted ? PAPER : INK;
   ctx.fillRect(x0, y0, CELL_W, CELL_H);
   const chars = Array.from(text);
-  const face = CELL_W - 2 * INSET;
+  const face = FACE;
   // One character under another, as big as the sign's width or its height allows.
   const slot = Math.min(face, CELL_H / chars.length);
   const px = slot * 0.92;
   ctx.font = `900 ${px}px ${JP_FAMILY}`;
-  ctx.fillStyle = PAPER;
+  ctx.fillStyle = inverted ? INK : PAPER;
   const top = y0 + (CELL_H - slot * chars.length) / 2;
   chars.forEach((c, k) => {
     const mark = MARKS.includes(c);
@@ -67,22 +68,28 @@ function draw(text: string, i: number) {
   });
 }
 
-/** Atlas rect of this text's cell (the sign face shows all of it); drawn on first use. */
-export function neonRect(text: string): UvRect {
+/**
+ * Atlas rect of this text's cell, drawn on first use: paper on ink, or (inverted)
+ * ink on paper. The sign face shows all of it, `aspect` (width / height) wide:
+ * the characters stay FACE texels across, so a wider face has margins.
+ */
+export function neonRect(text: string, inverted = false, aspect = NEON_FACE_ASPECT): UvRect {
   const t = Array.from(text).slice(0, NEON_MAX_TEXT).join('');
+  const key = `${inverted ? 1 : 0}|${t}`;
   neonAtlas();
-  let i = cells.get(t);
-  if (i === undefined) {
+  let cell = cells.get(key);
+  if (!cell) {
     if (cells.size >= COLS * ROWS) console.warn(`neon text atlas full (${COLS * ROWS} texts): "${t}" overwrites the last cell`);
-    i = Math.min(cells.size, COLS * ROWS - 1);
-    cells.set(t, i);
-    draw(t, i);
+    cell = { i: Math.min(cells.size, COLS * ROWS - 1), text: t, inverted };
+    cells.set(key, cell);
+    draw(t, cell.i, inverted);
     atlas!.needsUpdate = true;
   }
   const W = CELL_W * COLS;
   const H = CELL_H * ROWS;
-  const x = (i % COLS) * CELL_W;
-  const y = Math.floor(i / COLS) * CELL_H;
+  const x = (cell.i % COLS) * CELL_W;
+  const y = Math.floor(cell.i / COLS) * CELL_H;
+  const inset = (CELL_W - Math.min(CELL_W, aspect * CELL_H)) / 2;
   // Canvas rows run down, texture v runs up.
-  return [(x + INSET) / W, 1 - (y + CELL_H) / H, (x + CELL_W - INSET) / W, 1 - y / H];
+  return [(x + inset) / W, 1 - (y + CELL_H) / H, (x + CELL_W - inset) / W, 1 - y / H];
 }

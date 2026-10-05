@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { UvRect } from './glyphs';
 import { JP_FAMILY, onJpFont } from './jp-font';
+import { ENGLISH, JAPANESE as JAPANESE_TEXTS } from './slogans';
 
 // Real slogans for the signs and billboards of the city (city/rooftops.ts), in
 // the bundled Japanese font (jp-font.ts). One texture, drawn once, read by the
@@ -20,22 +21,11 @@ const PAPER = '#f2efe6';
 /** Cells in a column strip (the longest Japanese phrase). */
 const COL_CELLS = 13;
 
-/** Japanese slogans, in clauses (each ends at a 。 or 、); each draws one character per cell. */
-const JAPANESE = [
-  '買え。',
-  '考えるな。',
-  '買え。考えるな。',
-  'もっと買って、',
-  'もっと幸せ。',
-  '幸せは義務です。',
-  '不満のない社会へ。',
-  '笑顔を忘れずに。',
-  'あなたは幸せです。',
-  '正しい行動を選びましょう。',
-].map((t) => Array.from(t));
+/** Japanese slogans (slogans.ts), one character per cell. */
+const JAPANESE = JAPANESE_TEXTS.map((t) => Array.from(t));
 
-/** Latin slogans: drawn in the same font, squeezed to LATIN_WIDTH cells per letter. */
-const LATIN = ['OBEY.', 'ENJOY.', 'COMPLY.', 'STAY HAPPY.', 'BUY MORE.', 'TRUST THE SYSTEM.', 'CHOICE IS A PRIVILEGE.'];
+/** English slogans: drawn in the same font, squeezed to LATIN_WIDTH cells per letter. */
+const LATIN = ENGLISH;
 const LATIN_WIDTH = 0.62;
 
 interface Piece {

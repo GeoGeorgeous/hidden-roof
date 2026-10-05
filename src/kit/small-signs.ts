@@ -8,7 +8,7 @@ import { wordRect } from '../render/ink/words';
 // and lettered faces are paintable, like the big signs.
 
 /** A word on a sign face `h` high: its material and the width that keeps it unstretched (at least `minW`). */
-function word(w: string, inverted: boolean, h: number, minW = 0) {
+export function word(w: string, inverted: boolean, h: number, minW = 0) {
   const { rect, aspect } = wordRect(w, inverted, minW / h);
   const mat: Mat = { tex: 'words', tile: 1, tint: '#ffffff', letters: rect };
   return { mat, width: h * aspect };

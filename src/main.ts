@@ -35,6 +35,7 @@ import { Audio } from './audio';
 import { Hud } from './hud';
 import { BuildMode } from './build/buildmode';
 import { fetchLevel } from './build/io';
+import { jpFontReady } from './render/ink/jp-font';
 import { DebugPanel } from './debug/panel';
 import { live } from './debug/tuning';
 import { exitGameFullscreen } from './fullscreen';
@@ -159,8 +160,9 @@ live.syncSkyline = syncSkyline;
 build.onLoad = loadLevel;
 
 const levelName = new URLSearchParams(location.search).get('level') ?? 'demo';
-fetchLevel(levelName)
-  .then(loadLevel)
+// Signs measure their text when they are built: wait for the sign font first.
+Promise.all([fetchLevel(levelName), jpFontReady()])
+  .then(([data]) => loadLevel(data))
   .catch((e) => console.error(e));
 
 let lastStride = 0;

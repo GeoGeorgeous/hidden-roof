@@ -7,12 +7,17 @@
 export const JP_FAMILY = `'NeonJP', 'Noto Sans JP', 'Yu Gothic', Meiryo, sans-serif`;
 
 const waiting: (() => void)[] = [];
+const settled: (() => void)[] = [];
 let state: 'idle' | 'loading' | 'loaded' | 'failed' = 'idle';
 
 /** Run `redraw` once the font is loaded (at once if it already is). */
 export function onJpFont(redraw: () => void) {
   if (state === 'loaded') return redraw();
   waiting.push(redraw);
+  start();
+}
+
+function start() {
   if (state !== 'idle' || typeof FontFace === 'undefined') return;
   state = 'loading';
   new FontFace('NeonJP', `url(${import.meta.env.BASE_URL}fonts/neon-jp.woff2)`, { weight: '900' })
@@ -21,9 +26,22 @@ export function onJpFont(redraw: () => void) {
       document.fonts.add(f);
       state = 'loaded';
       for (const cb of waiting.splice(0)) cb();
+      for (const cb of settled.splice(0)) cb();
     })
     .catch((e) => {
       state = 'failed';
       console.warn('sign font failed to load, signs use a system font', e);
+      for (const cb of settled.splice(0)) cb();
     });
+}
+
+/**
+ * Resolves once the font has loaded (or failed, or after `timeout` ms): lettering
+ * that measures its text (small signs, shop signs) is drawn after this, so its
+ * layout is final.
+ */
+export function jpFontReady(timeout = 3000) {
+  if (state === 'loaded' || state === 'failed') return Promise.resolve();
+  start();
+  return Promise.race([new Promise<void>((resolve) => settled.push(resolve)), new Promise<void>((resolve) => setTimeout(resolve, timeout))]);
 }
