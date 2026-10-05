@@ -9,12 +9,13 @@ const faces = [
   { surface: 'jparapet|-4.00|0.00|-6.00#0', rect: 0, w: 1, h: 1 },
 ];
 const body = new Uint8Array(faces.reduce((n, f) => n + faceBytes(f), 0)).map((_, i) => (i * 37) & 255);
-const header = { created: '2026-10-05T12:00:00.000Z', level: { name: 'demo', hash: 'abc123' }, density: 96, faces };
+const surfaces = { 'p12#0': '0123456789abcd', 'jparapet|-4.00|0.00|-6.00#0': 'dcba9876543210' };
+const header = { created: '2026-10-05T12:00:00.000Z', level: { name: 'demo' }, density: 96, surfaces, faces };
 
 const bytes = await encodePaintFile(header, body);
 const back = await decodePaintFile(bytes);
 assert.deepEqual(back.body, body);
-assert.deepEqual(back.header, { format: 'rhh-paint', version: 1, ...header });
+assert.deepEqual(back.header, { format: 'rhh-paint', version: 2, ...header });
 
 /** `file` with its JSON header edited by `edit` (a string replace), the paint after it kept. */
 function withHeader(file, edit) {
@@ -28,13 +29,16 @@ function withHeader(file, edit) {
 const rejects = async (b, message) => assert.rejects(decodePaintFile(b), { message });
 await rejects(new TextEncoder().encode('{"level":"x"}'), 'NOT A PAINT FILE');
 await rejects(bytes.slice(0, bytes.length - 6), 'BROKEN PAINT FILE');
-await rejects(withHeader(bytes, (j) => j.replace('"version":1', '"version":2')), 'SAVED BY A NEWER VERSION');
-await rejects(withHeader(bytes, (j) => j.replace(',"version":1', '')), 'BROKEN PAINT FILE');
+await rejects(withHeader(bytes, (j) => j.replace('"version":2', '"version":3')), 'SAVED BY A NEWER VERSION');
+await rejects(withHeader(bytes, (j) => j.replace('"version":2', '"version":1')), 'SAVED BY AN OLDER VERSION');
+await rejects(withHeader(bytes, (j) => j.replace(',"version":2', '')), 'BROKEN PAINT FILE');
+// A face on a surface the header gives no shape for.
+await rejects(withHeader(bytes, (j) => j.replace('"p12#0":"0123456789abcd",', '')), 'BROKEN PAINT FILE');
 await rejects(await encodePaintFile({ ...header, faces: faces.slice(0, 1) }, body), 'BROKEN PAINT FILE');
-await rejects(await encodePaintFile({ ...header, faces: [{ surface: 'p1#0', rect: 0, w: -3, h: -3 }] }, new Uint8Array(4)), 'BROKEN PAINT FILE');
+await rejects(await encodePaintFile({ ...header, surfaces: { 'p1#0': 'x' }, faces: [{ surface: 'p1#0', rect: 0, w: -3, h: -3 }] }, new Uint8Array(4)), 'BROKEN PAINT FILE');
 
 // A small file that inflates far past what its header says (200 MB for one 1x1 face) stops early.
-const tiny = await encodePaintFile({ ...header, faces: [{ surface: 'p1#0', rect: 0, w: 1, h: 1 }] }, new Uint8Array(36));
+const tiny = await encodePaintFile({ ...header, surfaces: { 'p1#0': 'x' }, faces: [{ surface: 'p1#0', rect: 0, w: 1, h: 1 }] }, new Uint8Array(36));
 const huge = new Uint8Array(await new Response(new Blob([new Uint8Array(200 * 1024 * 1024)]).stream().pipeThrough(new CompressionStream('deflate'))).arrayBuffer());
 const tinyLength = new DataView(tiny.buffer).getUint32(4, true);
 const bomb = new Uint8Array([...tiny.subarray(0, 8 + tinyLength), ...huge]);

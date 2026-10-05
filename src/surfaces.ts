@@ -16,6 +16,8 @@ export interface Rect {
   upright?: boolean;
   /** Flat faces: where the face is in the world, so paint can cross onto coplanar neighbors (paint-seams.ts). */
   face?: FaceSpec;
+  /** The face's size in meters (w, h are texels at the paint detail): the same at every detail. */
+  meters?: [number, number];
 }
 
 export interface SurfaceGeometry {
@@ -82,7 +84,7 @@ export class SurfaceBuilder {
   /** Reserve an atlas rect for a face of the given size in meters. */
   addRect(uMeters: number, vMeters: number): number {
     const d = PAINT.texelsPerMeter;
-    this.rects.push({ x: 0, y: 0, w: Math.max(1, Math.ceil(uMeters * d)), h: Math.max(1, Math.ceil(vMeters * d)) });
+    this.rects.push({ x: 0, y: 0, w: Math.max(1, Math.ceil(uMeters * d)), h: Math.max(1, Math.ceil(vMeters * d)), meters: [uMeters, vMeters] });
     return this.rects.length - 1;
   }
 

@@ -1,9 +1,7 @@
 import type { Hud } from '../hud';
-import type { Level } from '../level/level';
 import type { PaintDrips } from '../paint-drips';
 import type { PaintSystem } from '../painting';
 import { download, pickFile, stamp } from '../files';
-import { levelHash } from './level-hash';
 import { loadPaint } from './load-paint';
 import { savePaint } from './save-paint';
 
@@ -11,8 +9,8 @@ import { savePaint } from './save-paint';
 // download, and a file put back. Returns the two, for tests.
 
 /** `levelName`: the current level's name (it changes when build mode opens another). */
-export function paintMenu(hud: Hud, paint: PaintSystem, drips: PaintDrips, level: Level, levelName: () => string) {
-  const info = () => ({ name: levelName(), hash: levelHash(level) });
+export function paintMenu(hud: Hud, paint: PaintSystem, drips: PaintDrips, levelName: () => string) {
+  const info = () => ({ name: levelName() });
   const file = {
     save: () => savePaint(paint, info()),
     load: (bytes: Uint8Array) => loadPaint(paint, drips, bytes, info()),
@@ -38,8 +36,8 @@ export function paintMenu(hud: Hud, paint: PaintSystem, drips: PaintDrips, level
   hud.onLoadPaint = oneAtATime(async () => {
     const picked = await pickFile('.rhhpaint');
     hud.notice('Loading paint…', Infinity);
-    const { missing } = await file.load(new Uint8Array(await picked.arrayBuffer()));
-    hud.notice(missing ? `Paint loaded (${missing} faces skipped)` : 'Paint loaded');
+    const { skipped } = await file.load(new Uint8Array(await picked.arrayBuffer()));
+    hud.notice(skipped ? `Paint loaded (${skipped} faces skipped: changed since)` : 'Paint loaded');
   });
   return file;
 }

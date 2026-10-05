@@ -197,7 +197,7 @@ hud.onResume = () => input.requestLock();
 hud.onExitFullscreen = () => void exitGameFullscreen();
 hud.setLocked(false);
 hud.setSettings(settings.sections());
-const paintFile = paintMenu(hud, paint, drips, level, () => levelName);
+const paintFile = paintMenu(hud, paint, drips, () => levelName);
 tools.onCapChange = (name) => hud.showCapTag(name);
 tools.onColorChange = (color) => hud.showColorTag(color, COLORS[color]);
 

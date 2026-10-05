@@ -3,18 +3,22 @@ import type { PaintSystem } from '../painting';
 import { painted } from '../paint-resample';
 import type { Rect } from '../surfaces';
 import { encodePaintFile, faceBytes, type PaintFileFace } from './paint-file';
+import { shapeOf } from './shape';
 
 // SAVE: every painted face of every surface, as a paint file (paint-file.ts)
 // for this level, at the paint detail played at. Faces without paint are left
 // out, so a lightly painted level makes a small file.
 
-export async function savePaint(paint: PaintSystem, level: { name: string; hash: string }): Promise<Uint8Array> {
+export async function savePaint(paint: PaintSystem, level: { name: string }): Promise<Uint8Array> {
+  const surfaces: Record<string, string> = {};
   const parts: { face: PaintFileFace; data: Uint8Array; atlasW: number; r: Rect }[] = [];
   for (const s of paint.surfaces) {
     const data = s.data;
     if (!data) continue;
     s.geo.rects.forEach((r, rect) => {
-      if (painted(data, s.geo.atlasW, r)) parts.push({ face: { surface: s.key, rect, w: r.w, h: r.h }, data, atlasW: s.geo.atlasW, r });
+      if (!painted(data, s.geo.atlasW, r)) return;
+      parts.push({ face: { surface: s.key, rect, w: r.w, h: r.h }, data, atlasW: s.geo.atlasW, r });
+      surfaces[s.key] ??= shapeOf(s.geo);
     });
   }
   const faces = parts.map((p) => p.face);
@@ -28,5 +32,5 @@ export async function savePaint(paint: PaintSystem, level: { name: string; hash:
       body.set(data.subarray(i, i + row), o);
     }
   }
-  return encodePaintFile({ created: new Date().toISOString(), level, density: PAINT.texelsPerMeter, faces }, body);
+  return encodePaintFile({ created: new Date().toISOString(), level, density: PAINT.texelsPerMeter, surfaces, faces }, body);
 }

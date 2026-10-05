@@ -3,11 +3,14 @@
 // every painted face, then the paint of those faces, deflated: each face as its
 // own small RGBA image, its rect plus the 1-texel ring around it, in header order.
 // Faces are named by surface key and rect index (painting.ts PaintSurface.key),
-// the same at every paint detail; `density` is the texels per meter they were
-// saved at. The same bytes will be the multiplayer join snapshot.
+// the same at every paint detail, and each painted surface's shape is kept
+// (shape.ts), so a load only puts paint on faces that are still the same;
+// `density` is the texels per meter they were saved at. The same bytes will be
+// the multiplayer join snapshot.
+// Version 2: surface shapes instead of a hash of the whole level (version 1).
 
 const MAGIC = 'RHHP';
-const VERSION = 1;
+const VERSION = 2;
 
 /** A painted face in the file: surface key, rect index, and its size in texels (without the ring). */
 export interface PaintFileFace {
@@ -21,10 +24,12 @@ export interface PaintFileHeader {
   format: 'rhh-paint';
   version: number;
   created: string;
-  /** The level the paint belongs to: its name, and a hash of what its paint surfaces come from (level-hash.ts). */
-  level: { name: string; hash: string };
+  /** The level the paint was saved on (for messages). */
+  level: { name: string };
   /** Texels per meter of the saved faces. */
   density: number;
+  /** Shape of every surface a face is on (shape.ts), by key. */
+  surfaces: Record<string, string>;
   faces: PaintFileFace[];
 }
 
@@ -55,7 +60,9 @@ export async function decodePaintFile(bytes: Uint8Array): Promise<{ header: Pain
   if (header?.format !== 'rhh-paint') throw new Error('NOT A PAINT FILE');
   if (!isCount(header.version, 1)) throw new Error('BROKEN PAINT FILE');
   if (header.version > VERSION) throw new Error('SAVED BY A NEWER VERSION');
-  if (!(typeof header.level?.hash === 'string' && header.density > 0 && Array.isArray(header.faces) && header.faces.every(isFace))) throw new Error('BROKEN PAINT FILE');
+  if (header.version < VERSION) throw new Error('SAVED BY AN OLDER VERSION');
+  const ok = typeof header.level?.name === 'string' && header.density > 0 && typeof header.surfaces === 'object' && Array.isArray(header.faces);
+  if (!ok || !header.faces.every((f) => isFace(f) && typeof header.surfaces[f.surface] === 'string')) throw new Error('BROKEN PAINT FILE');
   // The header says how much paint there is: inflating stops past it (a small broken file can't fill memory).
   const size = header.faces.reduce((n, f) => n + faceBytes(f), 0);
   const body = await inflate(bytes.subarray(8 + length), size);

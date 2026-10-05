@@ -7,8 +7,9 @@
 // the same paint when ULTRA's ops are replayed at LOW: the remote-paint path.
 // Saves (src/save): the paint saved while playing, loaded into the replay page,
 // must give the same hash; ULTRA's save loaded at LOW, and LOW's at ULTRA, must
-// equal switching PAINT DETAIL in game; and a save must be refused once the
-// level is edited.
+// equal switching PAINT DETAIL in game; after level edits, a save must still
+// load (removing an unpainted prop), skip the faces of a removed painted prop,
+// and be refused once none of its paint fits.
 // Usage: node scripts/golden-paint.mjs [--update] [url]   (no url: starts its own server)
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
@@ -66,13 +67,16 @@ const ratio = low.paintedM2 / results.ultra.paintedM2;
 if (Math.abs(ratio - 1) > 0.1) failed++;
 console.log(`ULTRA ops at LOW: ${low.paintedM2} m² painted vs ${results.ultra.paintedM2} at ULTRA (${((ratio - 1) * 100).toFixed(1)}%)`);
 const saveAtLow = hashOf(ultraAtLow.loaded) === ultraAtLow.reference;
-const refused = ultraAtLow.refused === 'SAVED FOR ANOTHER VERSION OF DEMO' && hashOf(ultraAtLow.kept) === hashOf(ultraAtLow.loaded);
-failed += (saveAtLow ? 0 : 1) + (refused ? 0 : 1);
+const e = ultraAtLow.edits;
+const unrelated = hashOf(e.afterUnrelated) === hashOf(ultraAtLow.loaded);
+const skipped = e.partial.skipped > 0 && e.partial.faces > 0;
+const refused = e.refused === 'SAVED FOR ANOTHER VERSION OF DEMO' && hashOf(e.kept) === hashOf(e.beforeRefused);
+failed += (saveAtLow ? 0 : 1) + (unrelated ? 0 : 1) + (skipped ? 0 : 1) + (refused ? 0 : 1);
 const saveAtUltra = lowAtUltra.loaded === lowAtUltra.reference;
 failed += saveAtUltra ? 0 : 1;
 console.log(`ULTRA save at LOW: ${saveAtLow ? 'identical to switching PAINT DETAIL in game' : 'DIFFERS from switching PAINT DETAIL in game'}`);
 console.log(`LOW save at ULTRA: ${saveAtUltra ? 'identical to switching PAINT DETAIL in game' : 'DIFFERS from switching PAINT DETAIL in game'}`);
-console.log(`save after a level edit: ${refused ? `refused (${ultraAtLow.refused}), paint kept` : `NOT REFUSED AS EXPECTED: ${ultraAtLow.refused}`}`);
+console.log(`save after level edits: ${unrelated ? 'an unpainted prop removed: loads the same' : 'an unpainted prop removed: LOADS DIFFERENT'}; ${skipped ? `a painted prop removed: ${e.partial.skipped} faces skipped, ${e.partial.faces} loaded` : `a painted prop removed: NOT SKIPPED (${JSON.stringify(e.partial)})`}; ${refused ? `all painted props removed: refused (${e.refused}), paint kept` : `all painted props removed: NOT REFUSED AS EXPECTED: ${e.refused}`}`);
 await test.close();
 
 if (update || !fs.existsSync(baselinePath)) {
@@ -172,8 +176,8 @@ function pageHelpers() {
 /**
  * Runs in the page: applies recorded ops frame by frame, as they were made, and
  * returns the paint; then loads the save over it, then the `other` save if given;
- * with `editLevel`, tries the save again after removing a prop (must be refused,
- * keeping the paint).
+ * with `editLevel`, loads it again after level edits: an unpainted prop removed,
+ * then one painted prop, then all of them (paint must be kept when refused).
  */
 async function replay({ ops, save, other, editLevel }) {
   const g = window.game;
@@ -198,10 +202,18 @@ async function replay({ ops, save, other, editLevel }) {
     return { replayed, loaded, other: window.golden.paint() };
   }
   if (!editLevel) return { replayed, loaded };
-  g.level.remove([...g.level.props.values()].find((p) => !p.runtime).id);
+  // Props with paint on them, by id (keys p<id>#k).
+  const painted = [...new Set(g.paint.surfaces.filter((s) => s.data).map((s) => Number(s.key.match(/^p(\d+)#/)?.[1])))].filter(Boolean);
+  g.level.remove([...g.level.props.keys()].find((id) => !painted.includes(id)));
+  await g.paintFile.load(bytes);
+  const afterUnrelated = window.golden.paint();
+  g.level.remove(painted[0]);
+  const partial = await g.paintFile.load(bytes);
+  for (const id of painted.slice(1)) g.level.remove(id);
+  const beforeRefused = window.golden.paint();
   let refused = null;
   await g.paintFile.load(bytes).catch((e) => (refused = e.message));
-  return { replayed, loaded, refused, kept: window.golden.paint() };
+  return { replayed, loaded, edits: { afterUnrelated, partial, beforeRefused, refused, kept: window.golden.paint() } };
 }
 
 /** Runs in the page: plays every run on fixed steps and returns the paint and the ops it recorded. */
