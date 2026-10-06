@@ -645,7 +645,7 @@ export const AVATAR = {
     hoodie: '#3c3f44',
     trim: '#2c2e33',
     pocket: '#4a4d53',
-    pants: '#5c5f65',
+    pants: '#3c3f44',
     shoe: '#26282c',
     sole: '#c6c8ca',
     head: '#b4b7bb',

@@ -72,6 +72,8 @@ Second review: the spray arm straight out along the look again, as at first (`AV
 
 Third review: the hoodie and sleeves slimmer (the body looked bulky against the head and legs); spraying is the first version's pose again, the arm straight out along the look with the can standing up in the fist (the IK version turned the can's top forward). IK stays for the roller and the sponge.
 
+Fourth review: the shoulders are plain boxes again, as at first (simpler than the balls); the hood up is a smooth egg shell set back from the face, so the face shows in its opening; a long hoodie down to mid-thigh and pants in the hoodie's gray, for a street look (the legs swing through the hem a little).
+
 ## What was built
 
 | File | What |
@@ -79,7 +81,7 @@ Third review: the hoodie and sleeves slimmer (the body looked bulky against the 
 | `src/avatar/rig.ts` | 38 bones: hips, spine, chest, neck, head; per side shoulder-elbow-wrist, a thumb and four fingers (two segments each), hip-knee-ankle |
 | `src/avatar/parts.ts` | Rigid low-poly boxes, balls and tapered limbs, each on one bone, merged into one skinned geometry with vertex colors |
 | `src/avatar/body.ts` | Head (a low-poly egg with two eyes), neck, gloved hands |
-| `src/avatar/outfit.ts` | Fitted hoodie to just below the waist (rounded shoulders, pocket, drawstrings, cuffs, hood up or down), pants with round hips, sneakers |
+| `src/avatar/outfit.ts` | Fitted long hoodie down to mid-thigh (pocket, drawstrings, cuffs, hood up or down), pants in the hoodie's gray with round hips, sneakers |
 | `src/avatar/pose.ts` | `AvatarState` → bone rotations: leg IK, walk phase from distance, layered arm poses, finger grips |
 | `src/avatar/arm-ik.ts` | Arm IK for the roller and the sponge: the elbow bends out and down |
 | `src/avatar/held.ts` | The tool in the right hand: pickup models at real size, merged; the can's label in paint color; the stepladder folded and carried by its rail |
