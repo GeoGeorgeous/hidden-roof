@@ -12,6 +12,7 @@ import { SpongeTool } from './sponge';
 import type { Level } from '../level/level';
 import { sizedCrosshair, stepSize, type WheelSized } from './wheel-size';
 import { ViewSway, type Motion } from './view-sway';
+import type { AvatarAction } from '../avatar/pose';
 
 /** Tools the mouse wheel resizes (wheel-size.ts): their config. */
 const SIZED: Record<SizedTool, WheelSized> = { marker: MARKER, sponge: SPONGE };
@@ -35,6 +36,8 @@ export class Tools {
   /** Called with the cap name when it changes or the can comes out. */
   onCapChange: (name: string) => void = () => {};
   private last: { tool: Tool | null; color: string; cap: string } | null = null;
+  /** What the tool in hand is doing this frame, as others see it (net/snapshot.ts): pressing LMB with it, or shaking the can. */
+  action: AvatarAction = null;
 
   constructor(
     scene: THREE.Scene,
@@ -86,6 +89,8 @@ export class Tools {
     // After the marker: they share the scribble sound, and these only touch it while in hand or just put away.
     this.roller.update(dt, input, camera, eye, tool === 'roller', inv.color);
     this.sponge.update(dt, input, camera, eye, tool === 'sponge', inv.size.sponge);
+    const pressing = tool !== null && tool !== 'ladder' && input.lmb && input.locked;
+    this.action = tool === 'can' && this.spray.shaking ? 'shake' : !pressing ? null : tool === 'roller' ? 'roll' : tool === 'sponge' ? 'scrub' : 'spray';
   }
 
   /** Paused (F3 open, pointer free): keeps posing the tool in hand at rest, so HOLD tuning shows live. */

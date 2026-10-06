@@ -4,8 +4,8 @@
 // spray in the air at LOAD, the sponge freeing memory, prop ids for good,
 // per-player tool sizes, city overrides in the level save, dev tools only in
 // single player, the world going on while paused in a session, stepladders by
-// owner, the avatar's poses, hotbar icons, and small-sign sizes with another
-// font. Each check prints ok or what went wrong.
+// owner, the avatar's poses, the ghost's playback, hotbar icons, and
+// small-sign sizes with another font. Each check prints ok or what went wrong.
 // Usage: node scripts/game.test.mjs [url]   (no url: starts its own server)
 import fs from 'node:fs';
 import os from 'node:os';
@@ -361,6 +361,65 @@ await check('avatar: one draw call for the body, at most two for a tool; every t
     return { ...out, poses: seen.size };
   });
   return r.meshes <= 3 && !r.problems.length && r.poses > 10 ? null : JSON.stringify(r);
+});
+
+await check('ghost: a recorded walk plays back through a jittery network smoothly, on the recorded path, and repaints the strokes exactly', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { GHOST } = g.config;
+    const frame = () => new Promise((done) => requestAnimationFrame(done));
+    const wait = async (s) => { const end = performance.now() + s * 1000; while (performance.now() < end) await frame(); };
+    const hash = () => g.paint.surfaces.filter((s) => s.data).reduce((h, s) => s.data.reduce((h, v) => (h * 31 + v) >>> 0, h), 7);
+    g.paint.clear();
+    g.player.fly = true;
+    const start = g.player.position.clone();
+    const speed = 3;
+    // Walk 1.5 s along x, painting twice on the way.
+    g.ghost.record();
+    const t0 = performance.now() / 1000;
+    let painted = 0;
+    g.fixedStep.script = () => {
+      const t = performance.now() / 1000 - t0;
+      g.player.position.set(start.x + speed * Math.min(t, 1.5), start.y, start.z);
+      if (painted < 2 && t > 0.4 + painted * 0.6) g.paint.stamp(g.paint.surfaces[painted++], { rect: 0, u: 0.5, v: 0.5 }, 0.1, 1, [1, 0, 0]);
+    };
+    await wait(1.7);
+    g.fixedStep.script = null;
+    g.ghost.stop();
+    const end = hash();
+    Object.assign(GHOST, { latency: 0.1, jitter: 0.06, hiccups: 0 });
+    g.ghost.play();
+    const xs = [];
+    let cleared = false;
+    let repainted = false;
+    const until = performance.now() + 2600;
+    while (performance.now() < until) {
+      await frame();
+      const p = g.ghost.position;
+      if (p) xs.push([p.x - start.x, p.y - start.y, p.z - start.z, performance.now() / 1000]);
+      const h = hash();
+      if (h === 7) cleared = true;
+      if (cleared && h === end) repainted = true;
+    }
+    g.ghost.stop();
+    Object.assign(GHOST, { latency: 0.08, jitter: 0.04 });
+    g.player.fly = false;
+    g.player.position.copy(start);
+    g.paint.clear();
+    // Going back, and the fastest it moved over any 50 ms (against the walk's speed: smooth is about 1).
+    let back = 0;
+    let fastest = 0;
+    let off = 0;
+    for (let i = 1, j = 0; i < xs.length; i++) {
+      back = Math.max(back, xs[i - 1][0] - xs[i][0]);
+      while (xs[i][3] - xs[j][3] > 0.05) j++;
+      if (j > 0) fastest = Math.max(fastest, (xs[i][0] - xs[j - 1][0]) / (xs[i][3] - xs[j - 1][3]) / speed);
+      off = Math.max(off, Math.abs(xs[i][1]), Math.abs(xs[i][2]), xs[i][0] - speed * 1.5 - 0.01, -xs[i][0]);
+    }
+    return { frames: xs.length, reached: xs.length ? xs[xs.length - 1][0] : 0, back, fastest, off, cleared, repainted };
+  });
+  const ok = r.frames > 30 && r.reached > 4.4 && r.back < 0.001 && r.fastest < 1.25 && r.off < 0.01 && r.cleared && r.repainted;
+  return ok ? null : JSON.stringify(r);
 });
 
 await check('hotbar: icons arrive from the GPU (read back without stalling) and the slots are drawn again', async () => {

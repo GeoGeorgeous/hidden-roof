@@ -22,6 +22,8 @@ import type { Lightning } from '../render/lightning';
 import { session } from '../session';
 import { syncSkyline } from '../skyline';
 import { AvatarPreview } from './avatar-preview';
+import { Ghost } from './ghost';
+import type { PaintOps } from '../paint-ops';
 import type { Tools } from '../tools/tools';
 
 // Dev tools: build mode (B), the F3 panel with its live hooks, and window.game
@@ -42,6 +44,7 @@ export interface DevContext {
   player: Player;
   tools: Tools;
   paint: PaintSystem;
+  paintOps: PaintOps;
   drips: PaintDrips;
   atmosphere: Atmosphere;
   lighting: Lighting;
@@ -69,12 +72,18 @@ export class DevTools {
   private build: BuildMode;
   private debug = new DebugPanel();
   private figure: AvatarPreview;
+  private ghost: Ghost;
 
   constructor(private g: DevContext) {
     this.build = new BuildMode(g.scene, g.level, g.pickups, g.player);
     this.build.getLevelData = g.levelData;
     this.build.onLoad = g.openLevel;
     this.figure = new AvatarPreview(g.scene);
+    this.ghost = new Ghost(g);
+    g.tools.ladder.others = () => {
+      const p = this.ghost.position;
+      return p ? [p] : [];
+    };
     Object.assign(live, {
       gpu: (label: string) => g.gpuTimer.read(label),
       strikeLightning: () => g.lightning.strike(),
@@ -99,8 +108,13 @@ export class DevTools {
       avatarCycle: () => this.figure.cycle(),
       avatarRestyle: () => this.figure.restyle(),
       avatarPose: () => this.figure.label,
+      ghostRecord: () => this.ghost.record(),
+      ghostPlay: () => this.ghost.play(),
+      ghostFollow: () => this.ghost.follow(),
+      ghostStop: () => this.ghost.stop(),
+      ghostState: () => this.ghost.label,
     });
-    Object.assign(window, { game: { ...g, build: this.build, debug: this.debug, live } });
+    Object.assign(window, { game: { ...g, build: this.build, debug: this.debug, live, ghost: this.ghost } });
   }
 
   get building() {
@@ -113,13 +127,15 @@ export class DevTools {
 
   /**
    * Start of a frame: F3 / ` toggles the panel, B build mode (in a session both
-   * close and stay closed); the test figure moves even while paused, so you
-   * can watch it with the panel open.
+   * close and stay closed); the test figure and the ghost move even while
+   * paused, so you can watch them with the panel open.
    */
   frame(input: Input, dt: number) {
     this.figure.update(dt);
+    this.ghost.update(dt);
     if (session.multiplayer) {
       this.figure.hide();
+      this.ghost.stop();
       if (this.debug.visible) this.togglePanel(input);
       if (this.build.active) this.setBuilding(false);
       return;

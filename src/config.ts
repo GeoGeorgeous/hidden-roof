@@ -617,6 +617,29 @@ export const PLAYER = {
   hardLanding: 6,
 };
 
+/** Multiplayer: player snapshots and how a remote player is shown from them (src/net). */
+export const NET = {
+  /** Snapshots sent per second. */
+  sendRate: 20,
+  /** A remote player is shown this far behind the newest snapshot (s): two snapshots and some jitter, so there's always one to move toward. */
+  interpDelay: 0.13,
+  /** With no newer snapshot, keep moving the way it went for at most this long (s), then stand. */
+  extrapolate: 0.25,
+  /** How much faster or slower a remote player's time may run while it catches up with a better clock estimate (0.1 = 10%). */
+  clockRate: 0.1,
+};
+
+/** F3 -> Ghost (src/dev/ghost.ts): the network it plays through, and how far behind it follows you. */
+export const GHOST = {
+  /** One-way delay (s), random extra delay up to (s), and the share of packets held up by a hiccup. */
+  latency: 0.08,
+  jitter: 0.04,
+  hiccups: 0,
+  /** How long a hiccup holds up a packet and everything after it (s), as a resend over a reliable link would. */
+  hiccupDelay: 0.3,
+  followDelay: 2,
+};
+
 /**
  * The player figure others see (src/avatar, docs/avatar.md). Joint heights
  * above the feet and lengths in meters, at rest: standing, arms down. Its

@@ -77,6 +77,23 @@ export function playSections(): Section[] {
       ],
     },
     {
+      id: 'ghost',
+      title: 'Ghost',
+      items: [
+        { kind: 'readout', label: 'ghost', get: () => live.ghostState() },
+        { kind: 'action', label: 'RECORD', run: () => live.ghostRecord() },
+        { kind: 'action', label: 'PLAY (LOOP)', run: () => live.ghostPlay() },
+        { kind: 'action', label: 'FOLLOW ME', run: () => live.ghostFollow() },
+        { kind: 'action', label: 'STOP', run: () => live.ghostStop() },
+        r('network delay (s)', ['GHOST', 'latency'], 0, 0.5, 0.01),
+        r('jitter (s)', ['GHOST', 'jitter'], 0, 0.3, 0.01),
+        r('hiccups (share of packets)', ['GHOST', 'hiccups'], 0, 0.2, 0.005),
+        r('follow delay (s)', ['GHOST', 'followDelay'], 0.5, 5, 0.1),
+        r('shown behind the newest snapshot (s)', ['NET', 'interpDelay'], 0, 0.5, 0.01),
+        r('keep going without snapshots for (s)', ['NET', 'extrapolate'], 0, 1, 0.05),
+      ],
+    },
+    {
       id: 'camera',
       title: 'Camera',
       items: [

@@ -1,4 +1,4 @@
-import { AVATAR, SKYLINE, ATMOS, INK, AUDIO, CAPS, CCTV, DAYLIGHT, DRIPS, FANS, FLICKER, GRADE, VIGNETTE, HUD, LIGHTMAP, LIGHTS, PICKUP, SMOKE, THUNDER, PLAYER_LIGHT, VOLUMETRICS, WALL_HAND, MARKER, PAINT, PLAYER, PRESSURE, RENDER, SPRAY, VIEWMODEL, HOLD, ROLLER, SPONGE } from '../config';
+import { AVATAR, GHOST, NET, SKYLINE, ATMOS, INK, AUDIO, CAPS, CCTV, DAYLIGHT, DRIPS, FANS, FLICKER, GRADE, VIGNETTE, HUD, LIGHTMAP, LIGHTS, PICKUP, SMOKE, THUNDER, PLAYER_LIGHT, VOLUMETRICS, WALL_HAND, MARKER, PAINT, PLAYER, PRESSURE, RENDER, SPRAY, VIEWMODEL, HOLD, ROLLER, SPONGE } from '../config';
 
 // What the debug panel's contents are made of: collapsible sections of live
 // sliders/toggles that write straight into the config objects, plus read-only
@@ -58,6 +58,8 @@ const ROOTS: Record<string, Obj> = {
   FLICKER: FLICKER as unknown as Obj,
   SKYLINE: SKYLINE as unknown as Obj,
   AVATAR: AVATAR as unknown as Obj,
+  NET: NET as unknown as Obj,
+  GHOST: GHOST as unknown as Obj,
 };
 
 export function getValue(path: string[]): unknown {
@@ -108,6 +110,12 @@ export const live = {
   avatarCycle: () => {},
   avatarRestyle: () => {},
   avatarPose: () => 'hidden',
+  /** F3 -> Ghost (dev/ghost.ts). */
+  ghostRecord: () => {},
+  ghostPlay: () => {},
+  ghostFollow: () => {},
+  ghostStop: () => {},
+  ghostState: () => 'off',
   /** Debug: a lightning strike right now. */
   strikeLightning: () => {},
   /** GPU time of a render pass, as text ('n/a' without timer queries). */

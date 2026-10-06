@@ -71,6 +71,11 @@ export class SprayTool {
     if (this.flow > 0) this.emit(dt, camera, eye, inv);
   }
 
+  /** Shaking the can (RMB) right now. */
+  get shaking() {
+    return this.shakeT > 0;
+  }
+
   private emit(dt: number, camera: THREE.Camera, eye: THREE.Vector3, inv: Inventory) {
     const cap = CAPS[inv.cap];
     this.carry += cap.rate * this.flow * dt;

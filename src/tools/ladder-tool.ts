@@ -31,6 +31,8 @@ export class LadderTool {
   /** Called when LMB can't place it (shown as a toast). */
   onBlocked: () => void = () => {};
   readonly model = new LadderModel();
+  /** Other players' feet (remote players): it can't stand in them either. */
+  others: () => THREE.Vector3[] = () => [];
   private ghost: Ghost;
   private ray = new THREE.Raycaster();
   private def = KIT_BY_TYPE.get('stepladder')!;
@@ -103,10 +105,12 @@ export class LadderTool {
     }
     // Nothing in its way (the ladder standing now is about to move, so it doesn't count).
     if (this.level.overlaps(this.ghost.colliders, 0.02, this.placedId)) return false;
-    // Not inside the player.
+    // Not inside you or another player.
     const r = PLAYER.radius - 0.02;
-    const you = new THREE.Box3(new THREE.Vector3(player.x - r, player.y + 0.02, player.z - r), new THREE.Vector3(player.x + r, player.y + PLAYER.height, player.z + r));
-    if (this.ghost.colliders.some((c) => c.intersectsBox(you))) return false;
+    for (const p of [player, ...this.others()]) {
+      const box = new THREE.Box3(new THREE.Vector3(p.x - r, p.y + 0.02, p.z - r), new THREE.Vector3(p.x + r, p.y + PLAYER.height, p.z + r));
+      if (this.ghost.colliders.some((c) => c.intersectsBox(box))) return false;
+    }
     // Room to stand in front of it and climb: free space the player's size, on a floor you can step to.
     const space = new THREE.Box3().setFromPoints([at(-w, PLAYER.stepHeight, -f - 0.05), at(w, PLAYER.height, -f - 0.65)]);
     if (this.level.overlaps([space], 0.02, this.placedId)) return false;

@@ -14,7 +14,7 @@ import { FINGERS, SIDES, sign, type Rig, type Side } from './rig';
 // Signs: a bone's +x rotation swings a limb hanging down forward, and tips one
 // pointing up (the body, the head) back.
 
-type AvatarAction = 'spray' | 'shake' | 'roll' | 'scrub' | null;
+export type AvatarAction = 'spray' | 'shake' | 'roll' | 'scrub' | null;
 
 export interface AvatarState {
   /** World velocity (m/s). */
