@@ -103,6 +103,8 @@ syncViewSize();
 let skyline = new THREE.Group();
 
 const input = new Input(renderer.domElement);
+/** Nothing pressed: what the player and tools get while paused in a session. */
+const noInput = new Input();
 const audio = new Audio();
 const hud = new Hud();
 const player = new Player(level.colliders, level.ladders);
@@ -212,9 +214,13 @@ function frame(time: number) {
   dev?.keys(input);
   const building = dev?.building ?? false;
 
-  // Paused (pointer not locked): the world keeps rendering but nothing advances.
+  // Paused (pointer not locked) in single player: the world keeps rendering but
+  // nothing advances. In a session it goes on without you: you stand still, but
+  // you still fall, your spray lands and paint runs, as others see it.
   const paused = !input.locked;
-  if (!paused) player.update(dt, input);
+  const frozen = paused && !session.multiplayer;
+  const yours = paused ? noInput : input;
+  if (!frozen) player.update(dt, yours);
   if (player.onGround && player.stride - lastStride > PLAYER.footstepStride) {
     lastStride = player.stride;
     audio.footstep();
@@ -242,7 +248,7 @@ function frame(time: number) {
   setHex((scene.fog as THREE.FogExp2).color, INK.paper);
   syncSharedUniforms(time / 1000);
   syncTrackUniforms(eye);
-  if (!paused) lightning.update(dt, ATMOS.rain && !building);
+  if (!frozen) lightning.update(dt, ATMOS.rain && !building);
   lighting.update(eye, camera.matrixWorldInverse, time / 1000, lightning.flash);
   syncCityLight(lighting);
   (sky.material as THREE.ShaderMaterial).uniforms.uFlash.value = lightning.flash * THUNDER.flashSky;
@@ -253,16 +259,16 @@ function frame(time: number) {
   setHex(viewSun.color, VIEWMODEL.rimColor);
   viewSun.intensity = VIEWMODEL.rim;
   lightFx.update();
-  if (!paused) rainTime += dt;
+  if (!frozen) rainTime += dt;
   rain.update(rainTime, eye);
   smoke.update(rainTime, SMOKE.lightBase + SMOKE.lightAmbient * ATMOS.ambient + SMOKE.lightFlash * lightning.flash);
-  audio.setFan(paused ? 0 : fanLevel(eye));
-  if (!paused && ATMOS.rain && !building) metalDrops(dt, eye);
+  audio.setFan(frozen ? 0 : fanLevel(eye));
+  if (!frozen && ATMOS.rain && !building) metalDrops(dt, eye);
   audio.update();
 
-  if (!paused) {
+  if (!frozen) {
     if (building) dev!.update(input, camera);
-    tools.update(dt, input, camera, eye, player, !building);
+    tools.update(dt, yours, camera, eye, player, !building);
     wallHand.update(dt, camera, eye, !building, tools.spray.model.sway);
     drips.update(dt);
     pickups.update(dt, player.position, inventory);
