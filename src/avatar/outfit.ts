@@ -3,7 +3,7 @@ import { AVATAR, PLAYER } from '../config';
 import type { Parts } from './parts';
 import { SIDES, sign, type Rig } from './rig';
 
-// What the figure wears, as rigid parts on its bones (no cloth): a loose
+// What the figure wears, as rigid parts on its bones (no cloth): a fitted
 // hoodie down to just below the waist (hood up or down, rounded shoulders, a
 // kangaroo pocket, drawstrings), pants that
 // widen toward the cuff, chunky sneakers. Other outfits can replace these
@@ -21,11 +21,11 @@ export function hoodie(p: Parts, rig: Rig, outfit: Outfit) {
   // Above the hip joints, so the legs swing under it.
   const hem = A.waist - 0.09;
   // Body: a loose box from the hem to the shoulders, hanging from the spine and the chest.
-  p.limb('spine', v(0, hem, 0.005), v(0, A.chest, 0.005), [0.41, 0.3], [0.4, 0.3], C.hoodie);
-  p.limb('chest', v(0, A.chest - 0.01, 0.005), v(0, A.neck, 0), [0.4, 0.3], [0.33, 0.26], C.hoodie);
-  p.box('spine', [0, hem + 0.02, 0.005], [0.415, 0.05, 0.31], C.trim);
-  p.box('spine', [0, hem + 0.11, -0.157], [0.25, 0.12, 0.02], C.pocket);
-  for (const x of [-1, 1]) p.box('chest', [x * 0.045, A.neck - 0.09, -0.137], [0.012, 0.13, 0.012], C.sole);
+  p.limb('spine', v(0, hem, 0.005), v(0, A.chest, 0.005), [0.37, 0.27], [0.365, 0.27], C.hoodie);
+  p.limb('chest', v(0, A.chest - 0.01, 0.005), v(0, A.neck, 0), [0.365, 0.27], [0.31, 0.235], C.hoodie);
+  p.box('spine', [0, hem + 0.02, 0.005], [0.375, 0.05, 0.28], C.trim);
+  p.box('spine', [0, hem + 0.11, -0.141], [0.22, 0.12, 0.02], C.pocket);
+  for (const x of [-1, 1]) p.box('chest', [x * 0.04, A.neck - 0.09, -0.127], [0.012, 0.13, 0.012], C.sole);
   if (outfit.hoodUp) {
     // Around the head, open in front.
     const top = PLAYER.height;
@@ -33,10 +33,10 @@ export function hoodie(p: Parts, rig: Rig, outfit: Outfit) {
     p.box('head', [0, top + 0.022, 0.02], [w + 0.06, 0.045, d + 0.06], C.hoodie);
     p.box('head', [0, top - 0.13, d / 2 + 0.03], [w + 0.06, 0.3, 0.05], C.hoodie);
     for (const x of [-1, 1]) p.box('head', [x * (w / 2 + 0.02), top - 0.12, 0.005], [0.035, 0.27, d + 0.04], C.hoodie);
-    p.box('chest', [0, A.neck + 0.03, 0.05], [0.27, 0.1, 0.2], C.hoodie);
+    p.box('chest', [0, A.neck + 0.03, 0.05], [0.25, 0.1, 0.19], C.hoodie);
   } else {
     // Down: bunched behind the neck.
-    p.box('chest', [0, A.neck + 0.025, 0.1], [0.29, 0.1, 0.13], C.hoodie, [-0.35, 0, 0]);
+    p.box('chest', [0, A.neck + 0.025, 0.09], [0.26, 0.1, 0.12], C.hoodie, [-0.35, 0, 0]);
     p.box('chest', [0, A.neck + 0.01, -0.05], [0.2, 0.045, 0.07], C.trim);
   }
   for (const s of SIDES) {
@@ -44,10 +44,10 @@ export function hoodie(p: Parts, rig: Rig, outfit: Outfit) {
     const elbow = rig.at(`forearm${s}`);
     const wrist = rig.at(`hand${s}`);
     // A round shoulder on the side of the hoodie's body, no higher than its top, so it rounds the corner without a bump.
-    p.ball(`upperArm${s}`, [shoulder.x + sign(s) * 0.008, shoulder.y - 0.05, 0], [0.15, 0.14, 0.165], C.hoodie, [10, 8]);
-    p.limb(`upperArm${s}`, shoulder, elbow, [0.135, 0.135], [0.125, 0.125], C.hoodie);
-    p.box(`forearm${s}`, [elbow.x, elbow.y, 0], [0.125, 0.07, 0.125], C.hoodie);
-    p.limb(`forearm${s}`, elbow, wrist.clone().setY(wrist.y + 0.02), [0.125, 0.125], [0.13, 0.13], C.hoodie);
+    p.ball(`upperArm${s}`, [shoulder.x + sign(s) * 0.008, shoulder.y - 0.05, 0], [0.14, 0.13, 0.15], C.hoodie, [10, 8]);
+    p.limb(`upperArm${s}`, shoulder, elbow, [0.12, 0.12], [0.11, 0.11], C.hoodie);
+    p.box(`forearm${s}`, [elbow.x, elbow.y, 0], [0.11, 0.065, 0.11], C.hoodie);
+    p.limb(`forearm${s}`, elbow, wrist.clone().setY(wrist.y + 0.02), [0.11, 0.11], [0.115, 0.115], C.hoodie);
     p.box(`forearm${s}`, [wrist.x, wrist.y + 0.03, 0], [0.105, 0.05, 0.105], C.trim);
   }
 }

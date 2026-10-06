@@ -96,7 +96,7 @@ export class Pose {
     this.body(lean, s.pitch);
     for (const sd of SIDES) {
       this.leg(sd, this.rig.bone('hips').rotation.x);
-      this.arm(sd);
+      this.arm(sd, s);
       this.hand(dt, sd, s);
     }
     this.reach(s);
@@ -153,8 +153,8 @@ export class Pose {
     r.bone(`foot${sd}`).rotation.x = -(hipsPitch + thigh.rotation.x - knee) - lift * 1.2;
   }
 
-  /** The arm's pose from angles: hanging and swinging, holding, carrying, shaking, climbing. */
-  private arm(sd: Side) {
+  /** The arm's pose from angles: hanging and swinging, holding, carrying, spraying, shaking, climbing. */
+  private arm(sd: Side, s: AvatarState) {
     const k = this.k;
     const sg = sign(sd);
     const swing = -0.45 * Math.sin(this.phase + (sd === 'R' ? 0 : Math.PI)) * k.walk * (1 + 0.5 * k.sprint);
@@ -166,6 +166,8 @@ export class Pose {
       p = mixArm(p, { x: 0.3 + hang, z: sg * 0.12, elbow: 1.25, wrist: -0.2 }, k.hold);
       // Carrying the folded ladder level at the side, by its top rail.
       p = mixArm(p, { x: hang, z: sg * 0.2, elbow: 0.15, wrist: -0.15 }, k.carry);
+      // Spraying: the arm straight out along the look, a little in toward the middle; the can stands up in the fist.
+      p = mixArm(p, { x: Math.PI / 2 + s.pitch - this.tilt, z: -sg * 0.12, elbow: 0.08, wrist: 0 }, k.aim);
       p = mixArm(p, { x: 0.55 + hang, z: -sg * 0.18, elbow: 1.7 + 0.35 * Math.sin(w * 38), wrist: 0.3 * Math.sin(w * 38) }, k.shake);
     }
     const climb = Math.sin(this.climbPhase + (sd === 'R' ? Math.PI : 0));
@@ -177,13 +179,12 @@ export class Pose {
   }
 
   /**
-   * The right arm at work, by IK: the can held out along the look
-   * (AVATAR.sprayReach); the roller pushed up and down; the sponge in small
-   * circles. A bent elbow points out and down.
+   * The right arm at work with the roller (pushed up and down) and the
+   * sponge (small circles), by IK: the elbow bends out and down.
    */
   private reach(s: AvatarState) {
     const k = this.k;
-    const weight = Math.min(1, k.aim + k.roll + k.scrub);
+    const weight = Math.min(1, k.roll + k.scrub);
     if (weight < 0.001) return;
     const cp = Math.cos(s.pitch);
     this.aim.set(-Math.sin(s.yaw) * cp, Math.sin(s.pitch), -Math.cos(s.yaw) * cp);
@@ -191,8 +192,7 @@ export class Pose {
     const w = this.t;
     // From the shoulder: ahead along the look and a little in toward the middle.
     this.rig.bone('upperArmR').getWorldPosition(this.target);
-    const ahead = AVATAR.sprayReach * k.aim + 0.44 * k.roll + 0.46 * k.scrub;
-    this.target.addScaledVector(this.aim, ahead).addScaledVector(this.right, -(AVATAR.sprayIn * k.aim + 0.06 * (k.roll + k.scrub)));
+    this.target.addScaledVector(this.aim, 0.44 * k.roll + 0.46 * k.scrub).addScaledVector(this.right, -0.06 * weight);
     this.target.y += k.roll * 0.12 * Math.sin(w * 5);
     this.target.addScaledVector(this.right, k.scrub * 0.06 * Math.cos(w * 10)).y += k.scrub * 0.06 * Math.sin(w * 10);
     this.pole.copy(this.right).multiplyScalar(0.8).y -= 1;

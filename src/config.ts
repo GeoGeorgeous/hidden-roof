@@ -631,7 +631,7 @@ export const AVATAR = {
   chest: 1.26,
   neck: 1.47,
   shoulder: 1.43,
-  shoulderSide: 0.225,
+  shoulderSide: 0.21,
   upperArm: 0.29,
   forearm: 0.26,
   /** Wrist to the knuckles, and each finger's two segments. */
@@ -661,13 +661,6 @@ export const AVATAR = {
   crouchLean: 0.55,
   /** Crouched and spraying, the body leans this far back instead (rad, negative is back). */
   crouchSprayLean: -0.25,
-  /**
-   * Spraying: how far ahead of the shoulder the hand holds the can (m; the
-   * arm's length, 0.55, holds it straight out; less bends the elbow, out and
-   * down) and how far in toward the middle.
-   */
-  sprayReach: 0.55,
-  sprayIn: 0.03,
   /** Leaning forward when sprinting (rad). */
   sprintLean: 0.22,
   /** How fast poses blend into each other (1/s). */
