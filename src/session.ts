@@ -4,4 +4,6 @@
 
 export const session = {
   multiplayer: new URLSearchParams(location.search).has('session'),
+  /** This player's key: what they own (their stepladder). The server will hand these out. */
+  player: 'local',
 };

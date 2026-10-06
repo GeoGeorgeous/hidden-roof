@@ -3,9 +3,9 @@
 // reload), level names, paint saves through level edits and changed props,
 // spray in the air at LOAD, the sponge freeing memory, prop ids for good,
 // per-player tool sizes, city overrides in the level save, dev tools only in
-// single player, the world going on while paused in a session, hotbar icons,
-// and small-sign sizes with another font. Each check prints ok or what went
-// wrong.
+// single player, the world going on while paused in a session, stepladders by
+// owner, hotbar icons, and small-sign sizes with another font. Each check
+// prints ok or what went wrong.
 // Usage: node scripts/game.test.mjs [url]   (no url: starts its own server)
 import fs from 'node:fs';
 import os from 'node:os';
@@ -237,6 +237,36 @@ await check('tools: the wheel changes the player\'s nib and patch size, not the 
     return out;
   });
   return r.marker === 0.024 && r.grew && r.min === 0 && r.sponge === 0.11 && r.config.join() === '0.012,0.09' ? null : JSON.stringify(r);
+});
+
+await check('ladders: one per player, moved with one rebuild; each owner\'s stays until they take it away; never saved', async () => {
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    const level = g.level;
+    let rebuilds = 0;
+    const onChange = level.onChange;
+    level.onChange = () => (rebuilds++, onChange());
+    const ladder = (x) => ({ type: 'stepladder', pos: [x, 0, 30], rot: 0 });
+    const ladders = () => [...level.props.values()].filter((p) => p.type === 'stepladder').map((p) => `${p.owner}@${p.pos[0]}`).sort().join();
+    const props = level.props.size;
+    level.setRuntime('a', ladder(0));
+    level.setRuntime('a', ladder(2));
+    const moved = rebuilds;
+    level.setRuntime('b', ladder(4));
+    const both = ladders();
+    const saved = level.toJSON().props.length;
+    level.setRuntime('a', null);
+    const left = ladders();
+    level.setRuntime('b', null);
+    // The ladder tool places this player's.
+    g.tools.ladder.put({ pos: [6, 0, 30], rot: 0 });
+    g.tools.ladder.put({ pos: [8, 0, 30], rot: 0 });
+    const yours = ladders();
+    level.setRuntime(g.session.player, null);
+    level.onChange = onChange;
+    return { moved, both, saved: saved - props, left, yours, back: level.props.size - props };
+  });
+  return r.moved === 2 && r.both === 'a@2,b@4' && r.saved === 0 && r.left === 'b@4' && r.yours === 'local@8' && r.back === 0 ? null : JSON.stringify(r);
 });
 
 await check('session: B and F3 open build mode and the panel in single player; a session closes them and the keys do nothing', async () => {
