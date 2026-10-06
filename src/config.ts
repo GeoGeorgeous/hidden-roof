@@ -621,17 +621,27 @@ export const PLAYER = {
 export const NET = {
   /** Snapshots sent per second. */
   sendRate: 20,
-  /** A remote player is shown this far behind the newest snapshot (s): two snapshots and some jitter, so there's always one to move toward. */
+  /**
+   * A remote player is shown at least this far behind their newest snapshot
+   * (s): two snapshots and some jitter, so there's always one to move toward.
+   * On a jittery link it grows to a snapshot interval plus `jitterCover` times
+   * the measured jitter, up to `maxDelay`.
+   */
   interpDelay: 0.13,
-  /** With no newer snapshot, keep moving the way it went for at most this long (s), then stand. */
+  jitterCover: 3,
+  maxDelay: 0.45,
+  /** With no newer snapshot, keep moving the way it went for at most this long (s), then stand (Source uses 0.25). */
   extrapolate: 0.25,
-  /** How much faster or slower a remote player's time may run while it catches up with a better clock estimate (0.1 = 10%). */
+  /** How much faster or slower a remote player's time may run while it catches up with a better clock estimate or delay (0.1 = 10%). */
   clockRate: 0.1,
+  /** A jump in where they're shown (a late snapshot correcting a guess) is smoothed out at this rate (1/s); one longer than `teleport` (m) is not. */
+  smoothing: 12,
+  teleport: 2,
 };
 
 /** F3 -> Ghost (src/dev/ghost.ts): the network it plays through, and how far behind it follows you. */
 export const GHOST = {
-  /** One-way delay (s), random extra delay up to (s), and the share of packets held up by a hiccup. */
+  /** One-way delay (s), random extra delay up to (s), and the share of packets held up by a hiccup (a lost packet resent: TCP holds everything behind it). */
   latency: 0.08,
   jitter: 0.04,
   hiccups: 0,

@@ -59,8 +59,9 @@ export class Ghost {
   private next = 0;
   /** How much of the recording this loop has sent. */
   private sent = { snaps: 0, ops: 0, ladders: 0 };
-  /** Putting the paint back for the next loop. */
+  /** Putting the paint back for the next loop; which loop is current (a stop or a new PLAY makes an older one give up). */
   private loading = false;
+  private loops = 0;
   private ladderId: number | undefined;
   private log: PaintOp[] | null = null;
 
@@ -118,6 +119,8 @@ export class Ghost {
     this.remote = null;
     this.link.clear();
     this.mode = 'off';
+    this.loading = false;
+    this.loops++;
   }
 
   update(dt: number) {
@@ -173,10 +176,12 @@ export class Ghost {
 
   /** Paint back as it was when recording began, then play from the start. */
   private async loop() {
+    const id = ++this.loops;
     this.loading = true;
     const start = await this.rec!.start;
-    if (this.mode !== 'playing') return;
+    if (id !== this.loops || this.mode !== 'playing') return;
     await loadPaint(this.g.paint, this.g.drips, start, NAME);
+    if (id !== this.loops || this.mode !== 'playing') return;
     this.g.level.setRuntime(OWNER, null);
     this.link.clear();
     this.remote?.reset();

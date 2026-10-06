@@ -455,6 +455,52 @@ await check('city: LOW city detail is the middle of HIGH, tower for tower, roof 
   return r.low > 500 && r.high > r.low && r.missing === 0 && r.differ === 0 && r.lowBoxes > 1000 ? null : JSON.stringify(r);
 });
 
+await check('ghost: on a bad link (resent packets) a walk that stops is never shown jumping: guesses past a late snapshot glide back', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { GHOST } = g.config;
+    const frame = () => new Promise((done) => requestAnimationFrame(done));
+    const wait = async (s) => { const end = performance.now() + s * 1000; while (performance.now() < end) await frame(); };
+    g.player.fly = true;
+    const start = g.player.position.clone();
+    // Walk and stop, three times: each stop is where a guess overshoots.
+    g.ghost.record();
+    const t0 = performance.now() / 1000;
+    g.fixedStep.script = () => {
+      const t = performance.now() / 1000 - t0;
+      const walked = Math.min(t % 1, 0.6) + Math.floor(t) * 0.6;
+      g.player.position.set(start.x + 5 * walked, start.y, start.z);
+    };
+    await wait(3);
+    g.fixedStep.script = null;
+    g.ghost.stop();
+    // A packet in five is lost and resent 0.3 s later; everything behind it waits.
+    Object.assign(GHOST, { latency: 0.05, jitter: 0.02, hiccups: 0.2, hiccupDelay: 0.3 });
+    g.ghost.play();
+    const xs = [];
+    const until = performance.now() + 3600;
+    while (performance.now() < until) {
+      await frame();
+      const p = g.ghost.position;
+      if (p) xs.push([p.x - start.x, performance.now() / 1000]);
+    }
+    g.ghost.stop();
+    Object.assign(GHOST, { latency: 0.08, jitter: 0.04, hiccups: 0 });
+    g.player.fly = false;
+    g.player.position.copy(start);
+    let back = 0;
+    let fastest = 0;
+    for (let i = 1; i < xs.length; i++) {
+      const dt = Math.max(xs[i][1] - xs[i - 1][1], 1 / 120);
+      back = Math.max(back, (xs[i - 1][0] - xs[i][0]) / dt);
+      fastest = Math.max(fastest, (xs[i][0] - xs[i - 1][0]) / dt);
+    }
+    return { frames: xs.length, reached: xs.length ? xs[xs.length - 1][0] : 0, back, fastest };
+  });
+  // Walking is 5 m/s; going back (a smoothed correction) and forward stay well within a walk's speed.
+  return r.frames > 30 && r.reached > 8.5 && r.back < 2 && r.fastest < 8 ? null : JSON.stringify(r);
+});
+
 await check('hotbar: icons arrive from the GPU (read back without stalling) and the slots are drawn again', async () => {
   await page.evaluate(() => { for (const t of ['marker', 'ladder', 'roller', 'sponge']) window.game.inventory.give(t); });
   const ready = () => page.evaluate(() => [...document.querySelectorAll('.hotbar img')].filter((i) => i.src.startsWith('data:image/png')).length);

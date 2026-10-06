@@ -50,6 +50,8 @@ export class Pose {
   private phase = 0;
   private climbPhase = 0;
   private t = 0;
+  /** How long it's been off the ground (s): stepping down a stair isn't a jump. */
+  private airTime = 0;
   /** Eased weights of each layer (0..1). */
   private k = { walk: 0, sprint: 0, crouch: 0, air: 0, climb: 0, hold: 0, carry: 0, aim: 0, shake: 0, roll: 0, scrub: 0 };
   private dir = new THREE.Vector2(0, 1);
@@ -78,7 +80,8 @@ export class Pose {
     ease('walk', moving);
     ease('sprint', s.onGround ? clamp((speed - PLAYER.walkSpeed) / (PLAYER.sprintSpeed - PLAYER.walkSpeed), 0, 1) : 0);
     ease('crouch', s.crouched ? 1 : 0);
-    ease('air', !s.onGround && !s.onLadder ? 1 : 0);
+    this.airTime = s.onGround || s.onLadder ? 0 : this.airTime + dt;
+    ease('air', this.airTime > 0.18 || (this.airTime > 0 && s.velocity.y > 1) ? 1 : 0);
     ease('climb', s.onLadder ? 1 : 0);
     ease('hold', s.tool && s.tool !== 'ladder' ? 1 : 0);
     ease('carry', s.tool === 'ladder' ? 1 : 0);

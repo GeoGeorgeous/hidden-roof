@@ -7,9 +7,11 @@ import type { PaintOp, PaintOps } from '../paint-ops';
 import { decodeSnapshot, type Snapshot } from './snapshot';
 
 // Another player, shown from their snapshots (snapshot.ts) by interpolation:
-// the figure is drawn NET.interpDelay behind the newest snapshot, between the
-// two that bracket that moment, so it moves smoothly though snapshots come 20
-// times a second and arrive unevenly. Their paint ops and their stepladder are
+// the figure is drawn a little behind the newest snapshot (NET.interpDelay, or
+// more on a jittery link), between the two that bracket that moment, so it
+// moves smoothly though snapshots come 20 times a second and arrive unevenly.
+// A late snapshot is guessed at for a moment (NET.extrapolate); when the real
+// one comes, the difference is smoothed out instead of jumping. Their paint ops and their stepladder are
 // applied when the figure gets to the time they happened, so the paint shows
 // up with the arm that sprays it. Never simulated here: no physics, no
 // collisions.
@@ -24,12 +26,19 @@ export class RemotePlayer {
   private snaps: Snapshot[] = [];
   private events: Timed[] = [];
   /**
-   * Their clock on ours: local time minus sender time. `target` follows the
-   * least delayed packet; `offset` eases toward it (NET.clockRate), so a
-   * better estimate speeds their time up a little instead of skipping ahead.
+   * How far behind their clock we show them: local time minus sender time,
+   * plus the interpolation delay. `target` follows the least delayed packet,
+   * `jitter` how much later than that packets come on average; `lag` eases
+   * toward both (NET.clockRate), so a change speeds their time up or slows it
+   * a little instead of skipping.
    */
-  private offset: number | null = null;
+  private lag: number | null = null;
   private target = 0;
+  private jitter = 0;
+  /** Where they'd be shown without smoothing, last frame, and what's still being smoothed out (shown minus that). */
+  private truePos = new THREE.Vector3();
+  private error = new THREE.Vector3();
+  private seen = false;
   private state: AvatarState = { velocity: new THREE.Vector3(), yaw: 0, pitch: 0, onGround: true, crouched: false, onLadder: false, tool: null, action: null };
   private pos = new THREE.Vector3();
   /** Their time last shown: it never goes back, even when the link gets slower (it stalls instead). */
@@ -58,9 +67,14 @@ export class RemotePlayer {
     if (last && s.t <= last.t) return;
     // Drifts up slowly, so a link that got slower is followed, not just a faster one.
     const sample = now - s.t;
-    if (this.offset === null) this.offset = this.target = sample;
-    else this.target = Math.min(sample, this.target + 0.002);
+    if (this.lag === null) {
+      this.target = sample;
+      this.lag = sample + NET.interpDelay;
+    } else this.target = Math.min(sample, this.target + 0.002);
+    this.jitter += (sample - this.target - this.jitter) * 0.05;
     this.snaps.push(s);
+    // Not shown for a while (a hidden tab draws no frames): keep only the newest.
+    if (this.snaps.length > 64) this.snaps.shift();
   }
 
   /** A paint op they made at their time `t`. */
@@ -77,15 +91,17 @@ export class RemotePlayer {
   reset() {
     this.snaps.length = 0;
     this.events.length = 0;
-    this.offset = null;
+    this.lag = null;
+    this.jitter = 0;
     this.shown = -Infinity;
   }
 
   update(now: number, dt: number) {
-    if (this.offset === null) return;
+    if (this.lag === null) return;
+    const delay = Math.min(NET.maxDelay, Math.max(NET.interpDelay, 1 / NET.sendRate + NET.jitterCover * this.jitter));
     const ease = NET.clockRate * dt;
-    this.offset += Math.min(ease, Math.max(-ease, this.target - this.offset));
-    const at = Math.max(now - this.offset - NET.interpDelay, this.shown);
+    this.lag += Math.min(ease, Math.max(-ease, this.target + delay - this.lag));
+    const at = Math.max(now - this.lag, this.shown);
     this.shown = at;
     let n = 0;
     for (const e of this.events) {
@@ -123,7 +139,7 @@ export class RemotePlayer {
     st.tool = cur.tool;
     st.action = cur.action;
     if (st.onLadder) this.faceLadder();
-    this.avatar.group.position.copy(this.pos);
+    this.smooth(dt);
     this.avatar.group.visible = true;
     this.avatar.update(dt, st, cur.color);
   }
@@ -131,6 +147,22 @@ export class RemotePlayer {
   dispose() {
     this.avatar.dispose();
     this.level.setRuntime(this.owner, null);
+  }
+
+  /**
+   * Shown where interpolation puts them, unless that jumped (a guess past the
+   * newest snapshot, corrected by the next): then the jump is kept as an error
+   * that fades out, so they glide to the right place. A teleport snaps.
+   */
+  private smooth(dt: number) {
+    const moved = this.truePos.sub(this.pos).negate();
+    const jump = moved.addScaledVector(this.state.velocity, -dt);
+    if (!this.seen || jump.length() > NET.teleport) this.error.set(0, 0, 0);
+    else if (jump.length() > 0.05) this.error.sub(jump);
+    this.seen = true;
+    this.error.multiplyScalar(Math.exp(-NET.smoothing * dt));
+    this.truePos.copy(this.pos);
+    this.avatar.group.position.copy(this.pos).add(this.error);
   }
 
   /** On a ladder they face it, whichever way they look. */
