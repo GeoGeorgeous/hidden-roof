@@ -699,6 +699,8 @@ export const SKYLINE = {
   seed: 23,
   /** City radius around the level (m). */
   radius: 650,
+  /** Towers rise toward the city's edge, reaching full height this far out (m): by distance, not radius, so a smaller city is the middle of a bigger one. */
+  riseTo: 650,
   /** City block pitch (m) and street width range (m). */
   block: 46,
   streetMin: 8,

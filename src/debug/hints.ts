@@ -179,6 +179,7 @@ const HINTS: Record<string, string> = {
   'SKYLINE.lineRange': 'How far thin lines (lattices, railings, wires) stay visible, as a multiplier. Lower = cleaner distance.',
   'SKYLINE.seed': 'Pick a different city (press rebuild city).',
   'SKYLINE.radius': 'How far the city reaches around the level (m).',
+  'SKYLINE.riseTo': 'Towers rise toward the edge of the city, reaching full height this far out (m).',
   'SKYLINE.block': 'City block size, street to street (m).',
   'SKYLINE.streetMin': 'Narrowest street (m).',
   'SKYLINE.streetMax': 'Widest street (m).',

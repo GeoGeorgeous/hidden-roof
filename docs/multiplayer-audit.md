@@ -821,7 +821,7 @@ Single player stays the default and keeps build mode and F3. Multiplayer is ente
 | Ladders by owner, removed with their owner | S–M | `src/level/level.ts`, `src/tools/ladder-tool.ts` |
 | Cube avatar: head, body, arms and legs as ink-gray boxes like the first-person hands; held tool from the pickup models; poses for walk, crouch, jump, climb, paint | M | new `src/avatar/*`, reuse `src/spray/hands.ts`, `src/pickups/visuals.ts` |
 | Snapshot interpolation, tested with a "ghost": record your own play (state + ops) and play it back as a second player | S | new `src/net/remote-player.ts` |
-| City determinism (optional, cosmetic) | S | `src/city/layout.ts`, `src/city/rooftops.ts` |
+| City determinism (optional, cosmetic). Done 2026-10-06: a seed per block, heights by distance (`SKYLINE.riseTo`), clutter range from the city's own settings | S | `src/city/layout.ts`, `src/city/rooftops.ts` |
 
 **Phase 4: server and the MULTIPLAYER menu (M, ~4–5 days).**
 

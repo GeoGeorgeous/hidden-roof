@@ -4,8 +4,8 @@
 // spray in the air at LOAD, the sponge freeing memory, prop ids for good,
 // per-player tool sizes, city overrides in the level save, dev tools only in
 // single player, the world going on while paused in a session, stepladders by
-// owner, the avatar's poses, the ghost's playback, hotbar icons, and
-// small-sign sizes with another font. Each check prints ok or what went wrong.
+// owner, the avatar's poses, the ghost's playback, the same city at every
+// city detail, hotbar icons, and small-sign sizes with another font. Each check prints ok or what went wrong.
 // Usage: node scripts/game.test.mjs [url]   (no url: starts its own server)
 import fs from 'node:fs';
 import os from 'node:os';
@@ -420,6 +420,39 @@ await check('ghost: a recorded walk plays back through a jittery network smoothl
   });
   const ok = r.frames > 30 && r.reached > 4.4 && r.back < 0.001 && r.fastest < 1.25 && r.off < 0.01 && r.cleared && r.repainted;
   return ok ? null : JSON.stringify(r);
+});
+
+await check('city: LOW city detail is the middle of HIGH, tower for tower, roof for roof', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { layoutCity, dressTower, wallSigns } = g.cityParts;
+    const S = g.config.SKYLINE;
+    const bounds = g.level.totalBounds();
+    // LOW and HIGH as in settings.ts (CITY_DETAIL).
+    const details = { low: { ...S, radius: 380, clutterRange: 110 }, high: { ...S } };
+    const key = (t) => JSON.stringify([t.tiers.map((x) => [x.x0, x.z0, x.x1, x.z1, x.top].map((v) => v.toFixed(3))), t.facade, t.gray.toFixed(4)]);
+    // What a tower's dressing builds: every box and cylinder, in order.
+    const dress = (t, cfg) => {
+      const calls = [];
+      const stub = new Proxy({}, { get: (_, k) => (k === 'box' || k === 'cyl' ? (...a) => calls.push(`${k} ${a.map((v) => (typeof v === 'number' ? v.toFixed(3) : v)).join()}`) : () => stub) });
+      dressTower(t, cfg.clutterRange, stub, stub, stub);
+      wallSigns(t, cfg.clutterRange, stub, stub);
+      return calls;
+    };
+    const built = {};
+    for (const [name, cfg] of Object.entries(details)) built[name] = new Map(layoutCity(bounds, cfg).map((t) => [key(t), dress(t, cfg)]));
+    let missing = 0;
+    let differ = 0;
+    let lowBoxes = 0;
+    for (const [k, calls] of built.low) {
+      const high = built.high.get(k);
+      if (!high) missing++;
+      else if (calls.some((c, i) => c !== high[i])) differ++;
+      lowBoxes += calls.length;
+    }
+    return { low: built.low.size, high: built.high.size, missing, differ, lowBoxes };
+  });
+  return r.low > 500 && r.high > r.low && r.missing === 0 && r.differ === 0 && r.lowBoxes > 1000 ? null : JSON.stringify(r);
 });
 
 await check('hotbar: icons arrive from the GPU (read back without stalling) and the slots are drawn again', async () => {

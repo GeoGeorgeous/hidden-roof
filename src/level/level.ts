@@ -200,9 +200,13 @@ export class Level {
   }
 
   /** Bounding box of everything except cables (which can span far). */
+  /** The level's extent, without cables and without what players placed (their stepladders): the city is laid out around it. */
   totalBounds() {
     const box = new THREE.Box3();
-    for (const [id, b] of this.built) if (!this.props.get(id)?.type.startsWith('cable')) box.union(b.bounds);
+    for (const [id, b] of this.built) {
+      const p = this.props.get(id);
+      if (p && !p.type.startsWith('cable') && p.owner === undefined) box.union(b.bounds);
+    }
     return box;
   }
 

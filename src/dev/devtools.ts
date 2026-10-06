@@ -22,6 +22,8 @@ import type { Lightning } from '../render/lightning';
 import { session } from '../session';
 import { syncSkyline } from '../skyline';
 import { AvatarPreview } from './avatar-preview';
+import { layoutCity } from '../city/layout';
+import { dressTower, wallSigns } from '../city/rooftops';
 import { Ghost } from './ghost';
 import type { PaintOps } from '../paint-ops';
 import type { Tools } from '../tools/tools';
@@ -114,7 +116,7 @@ export class DevTools {
       ghostStop: () => this.ghost.stop(),
       ghostState: () => this.ghost.label,
     });
-    Object.assign(window, { game: { ...g, build: this.build, debug: this.debug, live, ghost: this.ghost } });
+    Object.assign(window, { game: { ...g, build: this.build, debug: this.debug, live, ghost: this.ghost, cityParts: { layoutCity, dressTower, wallSigns } } });
   }
 
   get building() {

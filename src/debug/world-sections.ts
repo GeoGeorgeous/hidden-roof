@@ -75,6 +75,7 @@ export function worldSections(): Section[] {
         r('thin lines visible to (x)', ['SKYLINE', 'lineRange'], 0, 3, 0.05, () => live.syncSkyline()),
         r('seed', ['SKYLINE', 'seed'], 1, 100, 1),
         r('radius (m)', ['SKYLINE', 'radius'], 100, 1200, 10),
+        r('full height from (m)', ['SKYLINE', 'riseTo'], 100, 1200, 10),
         r('block pitch (m)', ['SKYLINE', 'block'], 20, 120, 1),
         r('street min (m)', ['SKYLINE', 'streetMin'], 2, 40, 0.5),
         r('street max (m)', ['SKYLINE', 'streetMax'], 2, 40, 0.5),
