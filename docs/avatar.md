@@ -68,6 +68,8 @@ by state: no AI, pathfinding or dialogue.
 
 First review: legs slimmer; a rounder dummy's head instead of the robot's; crouching leans forward (it leaned back: a sign error); the spray arm bent at the elbow, elbow a little out; the hoodie down to just below the waist and roomier, clear of the legs when walking; rounded shoulders.
 
+Second review: the spray arm straight out along the look again, as at first (`AVATAR.sprayReach`, F3 → Avatar: less bends the elbow out and down); crouched and spraying, the body leans a little back (`crouchSprayLean`); the shoulders round the hoodie's corners instead of cutting into it; the eyes sit out past the egg's facets, so both show from every side.
+
 ## What was built
 
 | File | What |
@@ -77,7 +79,7 @@ First review: legs slimmer; a rounder dummy's head instead of the robot's; crouc
 | `src/avatar/body.ts` | Head (a low-poly egg with two eyes), neck, gloved hands |
 | `src/avatar/outfit.ts` | Hoodie to just below the waist (rounded shoulders, pocket, drawstrings, cuffs, hood up or down), pants with round hips, sneakers |
 | `src/avatar/pose.ts` | `AvatarState` → bone rotations: leg IK, walk phase from distance, layered arm poses, finger grips |
-| `src/avatar/arm-ik.ts` | Arm IK for working: the can held up along the look with the elbow bent and a little out; the roller; the sponge |
+| `src/avatar/arm-ik.ts` | Arm IK for working: the can held out along the look (straight, or bent with the elbow out and down); the roller; the sponge |
 | `src/avatar/held.ts` | The tool in the right hand: pickup models at real size, merged; the can's label in paint color; the stepladder folded and carried by its rail |
 | `src/avatar/avatar.ts` | `Avatar`: `group`, `update(dt, state, color)`, `setOutfit`, `dispose` |
 | `src/dev/avatar-preview.ts` | F3 → Avatar: the test figure |

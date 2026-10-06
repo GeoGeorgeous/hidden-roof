@@ -15,6 +15,8 @@ const SHOTS = [
   ['idle-front', 'idle', 0, 1.7, 1.2, true],
   ['idle-three-quarter', 'idle', 35, 2.0, 1.3, true],
   ['idle-back', 'idle', 160, 2.0, 1.3, true],
+  ['shoulders', 'idle', 20, 1.0, 1.5, true, false, 1.35],
+  ['face', 'idle', 15, 0.9, 1.62, true, false, 1.6],
   ['hood-up', 'idle', 25, 1.7, 1.5, true, true],
   ['walk', 'walk', 70, 2.3, 1.2, true],
   ['sprint', 'sprint', 90, 2.5, 1.2, true],

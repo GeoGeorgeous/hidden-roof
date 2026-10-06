@@ -31,7 +31,8 @@ function head(p: Parts, rig: Rig) {
   // Two eyes on the face: where the egg's front is at their height.
   for (const x of [-0.042, 0.042]) {
     const front = (d / 2) * Math.sqrt(1 - (x / (w / 2)) ** 2 - ((eyes - cy) / (h / 2)) ** 2);
-    p.ball('head', [x, eyes, -front + 0.006], [0.034, 0.024, 0.016], C.eyes, [6, 4]);
+    // Out a little past the egg's curve: its flat facets sit inside it.
+    p.ball('head', [x, eyes, -front - 0.005], [0.034, 0.024, 0.016], C.eyes, [6, 4]);
   }
 }
 

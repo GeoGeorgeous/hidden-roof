@@ -91,7 +91,8 @@ export class Pose {
     if (s.onGround) this.phase += ((speed * dt) / step) * Math.PI;
     if (s.onLadder) this.climbPhase += ((Math.abs(s.velocity.y) * dt) / 0.3) * Math.PI;
 
-    const lean = k.crouch * AVATAR.crouchLean + k.sprint * AVATAR.sprintLean;
+    // Crouched and spraying, the body leans back a little instead.
+    const lean = k.crouch * (AVATAR.crouchLean + (AVATAR.crouchSprayLean - AVATAR.crouchLean) * k.aim) + k.sprint * AVATAR.sprintLean;
     this.body(lean, s.pitch);
     for (const sd of SIDES) {
       this.leg(sd, this.rig.bone('hips').rotation.x);
@@ -176,9 +177,9 @@ export class Pose {
   }
 
   /**
-   * The right arm at work, by IK: the can held up in front of the face along
-   * the look, elbow bent and a little out; the roller pushed up and down; the
-   * sponge in small circles.
+   * The right arm at work, by IK: the can held out along the look
+   * (AVATAR.sprayReach); the roller pushed up and down; the sponge in small
+   * circles. A bent elbow points out and down.
    */
   private reach(s: AvatarState) {
     const k = this.k;
@@ -190,8 +191,8 @@ export class Pose {
     const w = this.t;
     // From the shoulder: ahead along the look and a little in toward the middle.
     this.rig.bone('upperArmR').getWorldPosition(this.target);
-    const ahead = 0.5 * k.aim + 0.44 * k.roll + 0.46 * k.scrub;
-    this.target.addScaledVector(this.aim, ahead).addScaledVector(this.right, -0.06);
+    const ahead = AVATAR.sprayReach * k.aim + 0.44 * k.roll + 0.46 * k.scrub;
+    this.target.addScaledVector(this.aim, ahead).addScaledVector(this.right, -(AVATAR.sprayIn * k.aim + 0.06 * (k.roll + k.scrub)));
     this.target.y += k.roll * 0.12 * Math.sin(w * 5);
     this.target.addScaledVector(this.right, k.scrub * 0.06 * Math.cos(w * 10)).y += k.scrub * 0.06 * Math.sin(w * 10);
     this.pole.copy(this.right).multiplyScalar(0.8).y -= 1;

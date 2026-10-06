@@ -659,6 +659,15 @@ export const AVATAR = {
   /** Crouching: how far the hips drop (m) and the body leans forward (rad). */
   crouchDrop: 0.46,
   crouchLean: 0.55,
+  /** Crouched and spraying, the body leans this far back instead (rad, negative is back). */
+  crouchSprayLean: -0.25,
+  /**
+   * Spraying: how far ahead of the shoulder the hand holds the can (m; the
+   * arm's length, 0.55, holds it straight out; less bends the elbow, out and
+   * down) and how far in toward the middle.
+   */
+  sprayReach: 0.55,
+  sprayIn: 0.03,
   /** Leaning forward when sprinting (rad). */
   sprintLean: 0.22,
   /** How fast poses blend into each other (1/s). */

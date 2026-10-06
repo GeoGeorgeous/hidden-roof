@@ -73,6 +73,9 @@ export function playSections(): Section[] {
         { kind: 'action', label: 'NEXT POSE', run: () => live.avatarNext() },
         { kind: 'action', label: 'CYCLE POSES', run: () => live.avatarCycle() },
         t('hood up', ['AVATAR', 'hoodUp'], () => live.avatarRestyle()),
+        r('spray reach (m, 0.55 = straight arm)', ['AVATAR', 'sprayReach'], 0.3, 0.55, 0.01),
+        r('spray hand in toward the middle (m)', ['AVATAR', 'sprayIn'], -0.1, 0.2, 0.01),
+        r('crouched spraying lean (rad, < 0 back)', ['AVATAR', 'crouchSprayLean'], -0.6, 0.6, 0.01),
       ],
     },
     {
