@@ -10,9 +10,10 @@ Built with three.js, TypeScript and Vite. There are no external assets: the geom
 npm install
 npm run dev        # http://localhost:5173  (loads public/levels/demo.json)
 npm run build      # typecheck + production build into dist/
+npm run build:mp   # the same without the dev tools (build mode, F3, window.game), into dist-mp/
 ```
 
-`?level=name` loads `public/levels/name.json`. Click the page to capture the mouse and go fullscreen. Esc pauses the game and shows the menu (Resume / Save paint / Load paint / Settings / Exit fullscreen) on a dark sheet. **Save paint** downloads the paint of the level as a `.rhhpaint` file (paint only, at your paint detail); **Load paint** (also on the title screen) replaces the paint with a saved one, at any paint detail. Paint goes back on every prop that's still there with the same faces: paint on props removed or changed since (in build mode, or by a game update) is skipped, and a save none of whose paint fits (another level) is refused. **Settings** has three tabs, each setting with a short description and, where it matters, the performance cost of its current value in dots (1 none, 2 minimal, 3 medium, 4 high, 5 critical; green, orange, red): Gameplay (field of view, extra FOV while running, crouch hold or toggle), Graphics (resolution, volumetrics, paint detail, city detail, fullscreen on or off, rain, smoke, moving prop parts) and Sound (a volume per sound, 0–200% of its default). Settings write the same config values the debug panel edits. Resolution, volumetrics, paint and city detail are remembered in the browser; the rest reset on reload. Press Esc again while paused to leave fullscreen.
+`?level=name` loads `public/levels/name.json`. `?session` starts an offline multiplayer session, for testing until the MULTIPLAYER menu exists: build mode and F3 are off in a session (`src/session.ts`, `src/dev/devtools.ts`). Click the page to capture the mouse and go fullscreen. Esc pauses the game and shows the menu (Resume / Save paint / Load paint / Settings / Exit fullscreen) on a dark sheet. **Save paint** downloads the paint of the level as a `.rhhpaint` file (paint only, at your paint detail); **Load paint** (also on the title screen) replaces the paint with a saved one, at any paint detail. Paint goes back on every prop that's still there with the same faces: paint on props removed or changed since (in build mode, or by a game update) is skipped, and a save none of whose paint fits (another level) is refused. **Settings** has three tabs, each setting with a short description and, where it matters, the performance cost of its current value in dots (1 none, 2 minimal, 3 medium, 4 high, 5 critical; green, orange, red): Gameplay (field of view, extra FOV while running, crouch hold or toggle), Graphics (resolution, volumetrics, paint detail, city detail, fullscreen on or off, rain, smoke, moving prop parts) and Sound (a volume per sound, 0–200% of its default). Settings write the same config values the debug panel edits. Resolution, volumetrics, paint and city detail are remembered in the browser; the rest reset on reload. Press Esc again while paused to leave fullscreen.
 
 ## Controls
 
@@ -27,9 +28,9 @@ npm run build      # typecheck + production build into dist/
 | Q / E | Cycle through the colors you've collected (can, marker, roller) |
 | Mouse wheel | Can: cycle through your caps. Marker: nib size. Sponge: cleaning patch size (the crosshair follows both). Stepladder: turn it. |
 | RMB | Shake the can (restores pressure) |
-| B | Toggle build mode |
+| B | Toggle build mode (single player only) |
 | K | Screenshot: the game view (without the HUD) downloads as a PNG |
-| F3 or \` | Debug and tuning panel (Esc frees the mouse for the sliders) |
+| F3 or \` | Debug and tuning panel (Esc frees the mouse for the sliders; single player only) |
 
 **Build mode** (you fly with no collisions; the scene switches to plain daylight without rain). It works like Minecraft Creative: aim at a face and click.
 

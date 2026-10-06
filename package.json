@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "build:mp": "tsc --noEmit && vite build --mode multiplayer --outDir dist-mp",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "smoke": "node scripts/smoke.mjs",

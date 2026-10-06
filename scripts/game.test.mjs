@@ -2,8 +2,9 @@
 // The pause menu's SAVE / LOAD PAINT (one at a time, cancel, broken files,
 // reload), level names, paint saves through level edits and changed props,
 // spray in the air at LOAD, the sponge freeing memory, prop ids for good,
-// per-player tool sizes, city overrides in the level save, hotbar icons, and
-// small-sign sizes with another font. Each check prints ok or what went wrong.
+// per-player tool sizes, city overrides in the level save, dev tools only in
+// single player, hotbar icons, and small-sign sizes with another font. Each
+// check prints ok or what went wrong.
 // Usage: node scripts/game.test.mjs [url]   (no url: starts its own server)
 import fs from 'node:fs';
 import os from 'node:os';
@@ -235,6 +236,29 @@ await check('tools: the wheel changes the player\'s nib and patch size, not the 
     return out;
   });
   return r.marker === 0.024 && r.grew && r.min === 0 && r.sponge === 0.11 && r.config.join() === '0.012,0.09' ? null : JSON.stringify(r);
+});
+
+await check('session: B and F3 open build mode and the panel in single player; a session closes them and the keys do nothing', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const frame = () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+    const press = async (code) => (window.dispatchEvent(new KeyboardEvent('keydown', { code })), window.dispatchEvent(new KeyboardEvent('keyup', { code })), frame());
+    const state = () => `${g.build.active ? 'build' : '-'} ${g.debug.visible ? 'panel' : '-'}`;
+    g.input.locked = true;
+    await press('KeyB');
+    await press('F3');
+    const solo = state();
+    g.session.multiplayer = true;
+    await frame();
+    const entered = state();
+    await press('KeyB');
+    await press('F3');
+    const inSession = state();
+    g.session.multiplayer = false;
+    g.input.locked = false;
+    return { solo, entered, inSession };
+  });
+  return r.solo === 'build panel' && r.entered === '- -' && r.inSession === '- -' ? null : JSON.stringify(r);
 });
 
 await check('hotbar: icons arrive from the GPU (read back without stalling) and the slots are drawn again', async () => {
