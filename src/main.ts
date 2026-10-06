@@ -211,7 +211,7 @@ function frame(time: number) {
   fixedStep.script?.();
   const dt = fixedStep.dt || Math.min(delta, 1 / 20);
 
-  dev?.keys(input);
+  dev?.frame(input, dt);
   const building = dev?.building ?? false;
 
   // Paused (pointer not locked) in single player: the world keeps rendering but
@@ -346,5 +346,5 @@ function toScreen(p: THREE.Vector3) {
 
 // Dev tools (build mode, F3, window.game) only in single player; the multiplayer build (npm run build:mp) leaves them out.
 let dev: DevTools | undefined;
-const game = { city: () => skyline, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, hotbar, pickups, paint, paintOps, paintFile, seedPaintRandom, fixedStep, session, level, renderer, input, hud, scene, gpuTimer, PLAYER, loadLevel, applyPixelScale, rebuildCity, levelData, openLevel };
+const game = { city: () => skyline, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, hotbar, pickups, paint, paintOps, paintFile, seedPaintRandom, fixedStep, session, level, renderer, input, hud, scene, viewScene, gpuTimer, PLAYER, loadLevel, applyPixelScale, rebuildCity, levelData, openLevel };
 if (import.meta.env.VITE_MP !== '1') void import('./dev/devtools').then((m) => (dev = new m.DevTools(game)));

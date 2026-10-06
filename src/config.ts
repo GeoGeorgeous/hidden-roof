@@ -618,6 +618,55 @@ export const PLAYER = {
 };
 
 /**
+ * The player figure others see (src/avatar, docs/avatar.md). Joint heights
+ * above the feet and lengths in meters, at rest: standing, arms down. Its
+ * eyes are at PLAYER.eyeHeight and the top of its head at PLAYER.height.
+ */
+export const AVATAR = {
+  ankle: 0.09,
+  hip: 0.92,
+  /** Hip joints are this far either side of the middle. */
+  hipSide: 0.1,
+  waist: 1.06,
+  chest: 1.26,
+  neck: 1.47,
+  shoulder: 1.43,
+  shoulderSide: 0.225,
+  upperArm: 0.29,
+  forearm: 0.26,
+  /** Wrist to the knuckles, and each finger's two segments. */
+  palm: 0.085,
+  finger: [0.045, 0.04] as [number, number],
+  /** Head box: width, height, depth. */
+  head: [0.19, 0.25, 0.21] as [number, number, number],
+  hoodUp: false,
+  /** Gray tones (the ink draws them): the only color on the figure is paint. */
+  colors: {
+    hoodie: '#3c3f44',
+    trim: '#2c2e33',
+    pocket: '#4a4d53',
+    pants: '#5c5f65',
+    shoe: '#26282c',
+    sole: '#c6c8ca',
+    head: '#8d9095',
+    visor: '#16181c',
+    eyes: '#eceeef',
+    glove: '#a4a6aa',
+  },
+  /** Walking: meters per step at walking speed and per extra m/s, foot lift (m). */
+  step: 0.62,
+  stepPerSpeed: 0.07,
+  stepLift: 0.13,
+  /** Crouching: how far the hips drop (m) and the body leans forward (rad). */
+  crouchDrop: 0.46,
+  crouchLean: 0.55,
+  /** Leaning forward when sprinting (rad). */
+  sprintLean: 0.22,
+  /** How fast poses blend into each other (1/s). */
+  blend: 10,
+};
+
+/**
  * The city around the level (src/city): seeded, so it's the same on every
  * load. A level file can override any of these in its own `skyline` object
  * (e.g. another seed, a wider margin). F3 -> Rendering -> City rebuilds it.

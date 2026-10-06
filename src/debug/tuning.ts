@@ -1,4 +1,4 @@
-import { SKYLINE, ATMOS, INK, AUDIO, CAPS, CCTV, DAYLIGHT, DRIPS, FANS, FLICKER, GRADE, VIGNETTE, HUD, LIGHTMAP, LIGHTS, PICKUP, SMOKE, THUNDER, PLAYER_LIGHT, VOLUMETRICS, WALL_HAND, MARKER, PAINT, PLAYER, PRESSURE, RENDER, SPRAY, VIEWMODEL, HOLD, ROLLER, SPONGE } from '../config';
+import { AVATAR, SKYLINE, ATMOS, INK, AUDIO, CAPS, CCTV, DAYLIGHT, DRIPS, FANS, FLICKER, GRADE, VIGNETTE, HUD, LIGHTMAP, LIGHTS, PICKUP, SMOKE, THUNDER, PLAYER_LIGHT, VOLUMETRICS, WALL_HAND, MARKER, PAINT, PLAYER, PRESSURE, RENDER, SPRAY, VIEWMODEL, HOLD, ROLLER, SPONGE } from '../config';
 
 // What the debug panel's contents are made of: collapsible sections of live
 // sliders/toggles that write straight into the config objects, plus read-only
@@ -57,6 +57,7 @@ const ROOTS: Record<string, Obj> = {
   FANS: FANS as unknown as Obj,
   FLICKER: FLICKER as unknown as Obj,
   SKYLINE: SKYLINE as unknown as Obj,
+  AVATAR: AVATAR as unknown as Obj,
 };
 
 export function getValue(path: string[]): unknown {
@@ -101,6 +102,12 @@ export const live = {
   rebuildSponge: () => {},
   /** Apply live SKYLINE values (line range). */
   syncSkyline: () => {},
+  /** F3 -> Avatar: the test figure (dev/avatar-preview.ts). */
+  avatarToggle: () => {},
+  avatarNext: () => {},
+  avatarCycle: () => {},
+  avatarRestyle: () => {},
+  avatarPose: () => 'hidden',
   /** Debug: a lightning strike right now. */
   strikeLightning: () => {},
   /** GPU time of a render pass, as text ('n/a' without timer queries). */

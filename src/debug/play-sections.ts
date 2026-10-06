@@ -65,6 +65,17 @@ export function playSections(): Section[] {
       ],
     },
     {
+      id: 'avatar',
+      title: 'Avatar',
+      items: [
+        { kind: 'readout', label: 'test figure', get: () => live.avatarPose() },
+        { kind: 'action', label: 'SHOW / HIDE TEST FIGURE', run: () => live.avatarToggle() },
+        { kind: 'action', label: 'NEXT POSE', run: () => live.avatarNext() },
+        { kind: 'action', label: 'CYCLE POSES', run: () => live.avatarCycle() },
+        t('hood up', ['AVATAR', 'hoodUp'], () => live.avatarRestyle()),
+      ],
+    },
+    {
       id: 'camera',
       title: 'Camera',
       items: [

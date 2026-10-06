@@ -4,8 +4,8 @@
 // spray in the air at LOAD, the sponge freeing memory, prop ids for good,
 // per-player tool sizes, city overrides in the level save, dev tools only in
 // single player, the world going on while paused in a session, stepladders by
-// owner, hotbar icons, and small-sign sizes with another font. Each check
-// prints ok or what went wrong.
+// owner, the avatar's poses, hotbar icons, and small-sign sizes with another
+// font. Each check prints ok or what went wrong.
 // Usage: node scripts/game.test.mjs [url]   (no url: starts its own server)
 import fs from 'node:fs';
 import os from 'node:os';
@@ -326,6 +326,41 @@ await check('session: paused, the world goes on (you fall, paint runs run) and k
     return { solo, inSession };
   });
   return r.solo === 'still stopped' && r.inSession === 'fell ran' ? null : JSON.stringify(r);
+});
+
+await check('avatar: one draw call for the body, at most two for a tool; every test pose keeps it on its feet and in one piece', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const frames = (n) => new Promise((done) => { const tick = () => (--n ? requestAnimationFrame(tick) : done()); requestAnimationFrame(tick); });
+    g.fixedStep.dt = 0.05;
+    g.live.avatarToggle();
+    let fig = null;
+    g.level.root.parent.traverse((o) => (fig ??= o.isSkinnedMesh ? o : null));
+    const out = { meshes: 0, problems: [] };
+    const y = (name) => { const b = fig.skeleton.bones.find((x) => x.name === name); b.updateWorldMatrix(true, false); return b.matrixWorld.elements[13] - fig.parent.position.y; };
+    const seen = new Set();
+    for (;;) {
+      g.live.avatarNext();
+      const pose = g.live.avatarPose();
+      if (seen.has(pose)) break;
+      seen.add(pose);
+      await frames(12);
+      let meshes = 0;
+      fig.parent.traverse((o) => (meshes += o.isMesh ? 1 : 0));
+      out.meshes = Math.max(out.meshes, meshes);
+      const bad = fig.skeleton.bones.some((b) => ![b.rotation.x, b.rotation.y, b.rotation.z, b.position.y].every(Number.isFinite));
+      if (bad) out.problems.push(`${pose}: not a number`);
+      const feet = Math.min(y('footL'), y('footR'));
+      const grounded = !['jump', 'climb'].includes(pose);
+      if (grounded && Math.abs(feet - g.config.AVATAR.ankle) > 0.03) out.problems.push(`${pose}: ankles at ${feet.toFixed(2)}`);
+      if (pose === 'crouch' && y('head') > 1.25) out.problems.push(`crouch: head at ${y('head').toFixed(2)}`);
+      if (pose === 'spray up' && y('handR') < y('upperArmR')) out.problems.push('spray up: hand below the shoulder');
+    }
+    g.live.avatarToggle();
+    g.fixedStep.dt = 0;
+    return { ...out, poses: seen.size };
+  });
+  return r.meshes <= 3 && !r.problems.length && r.poses > 10 ? null : JSON.stringify(r);
 });
 
 await check('hotbar: icons arrive from the GPU (read back without stalling) and the slots are drawn again', async () => {

@@ -12,6 +12,7 @@
     "smoke": "node scripts/smoke.mjs",
     "golden": "node scripts/golden-paint.mjs",
     "bench:save": "node scripts/save-size.bench.mjs",
+    "shots:avatar": "node scripts/avatar-shots.mjs",
     "test": "node scripts/paint-file.test.mjs",
     "test:game": "node scripts/game.test.mjs",
     "check": "npm run typecheck && npm test && npm run smoke && npm run test:game && knip",

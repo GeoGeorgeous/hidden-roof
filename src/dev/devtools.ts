@@ -21,6 +21,7 @@ import type { Lighting } from '../render/lighting';
 import type { Lightning } from '../render/lightning';
 import { session } from '../session';
 import { syncSkyline } from '../skyline';
+import { AvatarPreview } from './avatar-preview';
 import type { Tools } from '../tools/tools';
 
 // Dev tools: build mode (B), the F3 panel with its live hooks, and window.game
@@ -67,11 +68,13 @@ interface FrameStats {
 export class DevTools {
   private build: BuildMode;
   private debug = new DebugPanel();
+  private figure: AvatarPreview;
 
   constructor(private g: DevContext) {
     this.build = new BuildMode(g.scene, g.level, g.pickups, g.player);
     this.build.getLevelData = g.levelData;
     this.build.onLoad = g.openLevel;
+    this.figure = new AvatarPreview(g.scene);
     Object.assign(live, {
       gpu: (label: string) => g.gpuTimer.read(label),
       strikeLightning: () => g.lightning.strike(),
@@ -91,6 +94,11 @@ export class DevTools {
         g.hotbar.refreshIcon('sponge');
       },
       syncSkyline,
+      avatarToggle: () => this.figure.toggle(g.player.position, g.player.yaw),
+      avatarNext: () => this.figure.next(),
+      avatarCycle: () => this.figure.cycle(),
+      avatarRestyle: () => this.figure.restyle(),
+      avatarPose: () => this.figure.label,
     });
     Object.assign(window, { game: { ...g, build: this.build, debug: this.debug, live } });
   }
@@ -103,9 +111,15 @@ export class DevTools {
     return this.debug.visible;
   }
 
-  /** F3 / ` toggles the panel, B build mode. In a session both close and stay closed. */
-  keys(input: Input) {
+  /**
+   * Start of a frame: F3 / ` toggles the panel, B build mode (in a session both
+   * close and stay closed); the test figure moves even while paused, so you
+   * can watch it with the panel open.
+   */
+  frame(input: Input, dt: number) {
+    this.figure.update(dt);
     if (session.multiplayer) {
+      this.figure.hide();
       if (this.debug.visible) this.togglePanel(input);
       if (this.build.active) this.setBuilding(false);
       return;
