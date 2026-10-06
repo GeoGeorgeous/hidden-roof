@@ -39,6 +39,8 @@ export class RemotePlayer {
   private truePos = new THREE.Vector3();
   private error = new THREE.Vector3();
   private seen = false;
+  /** For F3 -> Ghost: how far behind they're shown (s), measured jitter (s), snapshots waiting, guessing past the newest, the correction still gliding (m). */
+  readonly stats = { delay: 0, jitter: 0, buffered: 0, guessing: false, correction: 0 };
   private state: AvatarState = { velocity: new THREE.Vector3(), yaw: 0, pitch: 0, onGround: true, crouched: false, onLadder: false, tool: null, action: null };
   private pos = new THREE.Vector3();
   /** Their time last shown: it never goes back, even when the link gets slower (it stalls instead). */
@@ -120,6 +122,7 @@ export class RemotePlayer {
       const span = b.t - a.t;
       const late = 1 + NET.extrapolate / span;
       const k = Math.min((at - a.t) / span, late);
+      this.stats.guessing = k > 1;
       this.pos.lerpVectors(a.pos, b.pos, k);
       st.velocity.subVectors(b.pos, a.pos).divideScalar(span);
       if (k >= late) st.velocity.set(0, 0, 0);
@@ -140,6 +143,7 @@ export class RemotePlayer {
     st.action = cur.action;
     if (st.onLadder) this.faceLadder();
     this.smooth(dt);
+    Object.assign(this.stats, { delay: this.lag - this.target, jitter: this.jitter, buffered: s.length, correction: this.error.length() });
     this.avatar.group.visible = true;
     this.avatar.update(dt, st, cur.color);
   }

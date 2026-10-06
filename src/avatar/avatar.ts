@@ -40,9 +40,8 @@ export class Avatar {
     hand.add(this.held.group);
   }
 
-  /** Change what it wears; the body and its pose stay. */
+  /** Change what it wears (or rebuild it in new AVATAR.colors); the body and its pose stay. */
   setOutfit(outfit: Outfit) {
-    if (outfit.hoodUp === this.outfit.hoodUp) return;
     this.outfit = { ...outfit };
     this.mesh.geometry.dispose();
     this.mesh.geometry = buildBody(this.rig, this.outfit);

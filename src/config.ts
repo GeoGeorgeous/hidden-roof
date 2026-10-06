@@ -617,6 +617,21 @@ export const PLAYER = {
   hardLanding: 6,
 };
 
+/** F3 -> Avatar: the test figure (dev/avatar-preview.ts). */
+export const AVATAR_TEST = {
+  /** The pose shown (an index into its list; F3 shows its name). */
+  pose: 0,
+  /** Slow motion: 1 is real time. */
+  timeScale: 1,
+  /** Look pitch added to the pose's (rad, up is positive): sweeps an aimed arm. */
+  pitch: 0,
+  /** Moving poses at this speed (m/s; 0: the pose's own), around a loop on the floor, or on the spot. */
+  speed: 0,
+  onTheSpot: false,
+  /** The loop's radius (m). */
+  loop: 1.6,
+};
+
 /** Multiplayer: player snapshots and how a remote player is shown from them (src/net). */
 export const NET = {
   /** Snapshots sent per second. */

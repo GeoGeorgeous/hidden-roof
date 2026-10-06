@@ -1,5 +1,6 @@
 import { CAP_ORDER, CAPS, HOLD } from '../config';
 import { live, r, t, c, v3, type Item, type Section } from './tuning';
+import { POSE_COUNT } from '../dev/avatar-preview';
 
 // F3 panel contents for playing (tuning.ts has the helpers).
 
@@ -35,6 +36,7 @@ function holdItems(): Item[] {
 export function playSections(): Section[] {
   const sponge = () => live.rebuildSponge();
   const p = () => live.player;
+  const net = () => live.ghostNet();
   const v2 = (x: number, y: number) => Math.hypot(x, y).toFixed(2);
   return [
     {
@@ -70,10 +72,35 @@ export function playSections(): Section[] {
       items: [
         { kind: 'readout', label: 'test figure', get: () => live.avatarPose() },
         { kind: 'action', label: 'SHOW / HIDE TEST FIGURE', run: () => live.avatarToggle() },
+        { kind: 'action', label: 'PREVIOUS POSE', run: () => live.avatarPrevious() },
         { kind: 'action', label: 'NEXT POSE', run: () => live.avatarNext() },
         { kind: 'action', label: 'CYCLE POSES', run: () => live.avatarCycle() },
+        r('pose', ['AVATAR_TEST', 'pose'], 0, POSE_COUNT - 1, 1, () => live.avatarPick()),
+        r('slow motion (1 = normal)', ['AVATAR_TEST', 'timeScale'], 0.05, 1, 0.05),
+        r('look up / down (rad)', ['AVATAR_TEST', 'pitch'], -1.5, 1.5, 0.01),
+        r('walk speed (m/s, 0 = the pose\'s)', ['AVATAR_TEST', 'speed'], 0, 8, 0.1),
+        t('walk on the spot', ['AVATAR_TEST', 'onTheSpot']),
+        r('loop radius (m)', ['AVATAR_TEST', 'loop'], 0.8, 4, 0.1),
         t('hood up', ['AVATAR', 'hoodUp'], () => live.avatarRestyle()),
+        { kind: 'heading', label: 'AVATAR · MOTION' },
+        r('step length (m, walking)', ['AVATAR', 'step'], 0.3, 1.2, 0.01),
+        r('step length per m/s over walking', ['AVATAR', 'stepPerSpeed'], 0, 0.3, 0.005),
+        r('foot lift (m)', ['AVATAR', 'stepLift'], 0, 0.4, 0.005),
+        r('crouch: hips drop (m)', ['AVATAR', 'crouchDrop'], 0, 0.6, 0.01),
+        r('crouch: lean forward (rad)', ['AVATAR', 'crouchLean'], -0.6, 1, 0.01),
         r('crouched spraying lean (rad, < 0 back)', ['AVATAR', 'crouchSprayLean'], -0.6, 0.6, 0.01),
+        r('sprint: lean forward (rad)', ['AVATAR', 'sprintLean'], 0, 0.6, 0.01),
+        r('pose blend speed (1/s)', ['AVATAR', 'blend'], 1, 30, 0.5),
+        { kind: 'heading', label: 'AVATAR · GRAY TONES' },
+        c('hoodie', ['AVATAR', 'colors', 'hoodie'], () => live.avatarRestyle()),
+        c('trim', ['AVATAR', 'colors', 'trim'], () => live.avatarRestyle()),
+        c('pocket', ['AVATAR', 'colors', 'pocket'], () => live.avatarRestyle()),
+        c('pants', ['AVATAR', 'colors', 'pants'], () => live.avatarRestyle()),
+        c('shoe', ['AVATAR', 'colors', 'shoe'], () => live.avatarRestyle()),
+        c('sole', ['AVATAR', 'colors', 'sole'], () => live.avatarRestyle()),
+        c('head', ['AVATAR', 'colors', 'head'], () => live.avatarRestyle()),
+        c('eyes', ['AVATAR', 'colors', 'eyes'], () => live.avatarRestyle()),
+        c('glove', ['AVATAR', 'colors', 'glove'], () => live.avatarRestyle()),
       ],
     },
     {
@@ -81,6 +108,11 @@ export function playSections(): Section[] {
       title: 'Ghost',
       items: [
         { kind: 'readout', label: 'ghost', get: () => live.ghostState() },
+        { kind: 'readout', label: 'shown behind them', get: () => (net() ? `${(net()!.delay * 1000).toFixed(0)} ms` : '-') },
+        { kind: 'readout', label: 'jitter measured', get: () => (net() ? `${(net()!.jitter * 1000).toFixed(0)} ms` : '-') },
+        { kind: 'readout', label: 'snapshots buffered', get: () => (net() ? `${net()!.buffered}` : '-') },
+        { kind: 'readout', label: 'guessing (no new snapshot)', get: () => (net() ? (net()!.guessing ? 'YES' : 'no') : '-') },
+        { kind: 'readout', label: 'correction gliding', get: () => (net() ? `${(net()!.correction * 100).toFixed(0)} cm` : '-') },
         { kind: 'action', label: 'RECORD', run: () => live.ghostRecord() },
         { kind: 'action', label: 'PLAY (LOOP)', run: () => live.ghostPlay() },
         { kind: 'action', label: 'FOLLOW ME', run: () => live.ghostFollow() },

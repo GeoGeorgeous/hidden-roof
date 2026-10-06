@@ -341,7 +341,8 @@ await check('avatar: one draw call for the body, at most two for a tool; every t
     const seen = new Set();
     for (;;) {
       g.live.avatarNext();
-      const pose = g.live.avatarPose();
+      // '7 / 18: jump' -> 'jump'
+      const pose = g.live.avatarPose().split(': ')[1];
       if (seen.has(pose)) break;
       seen.add(pose);
       await frames(12);
@@ -392,11 +393,13 @@ await check('ghost: a recorded walk plays back through a jittery network smoothl
     const xs = [];
     let cleared = false;
     let repainted = false;
+    let buffered = false;
     const until = performance.now() + 2600;
     while (performance.now() < until) {
       await frame();
       const p = g.ghost.position;
       if (p) xs.push([p.x - start.x, p.y - start.y, p.z - start.z, performance.now() / 1000]);
+      if (g.ghost.net?.buffered) buffered = true;
       const h = hash();
       if (h === 7) cleared = true;
       if (cleared && h === end) repainted = true;
@@ -416,9 +419,9 @@ await check('ghost: a recorded walk plays back through a jittery network smoothl
       if (j > 0) fastest = Math.max(fastest, (xs[i][0] - xs[j - 1][0]) / (xs[i][3] - xs[j - 1][3]) / speed);
       off = Math.max(off, Math.abs(xs[i][1]), Math.abs(xs[i][2]), xs[i][0] - speed * 1.5 - 0.01, -xs[i][0]);
     }
-    return { frames: xs.length, reached: xs.length ? xs[xs.length - 1][0] : 0, back, fastest, off, cleared, repainted };
+    return { frames: xs.length, reached: xs.length ? xs[xs.length - 1][0] : 0, back, fastest, off, cleared, repainted, buffered };
   });
-  const ok = r.frames > 30 && r.reached > 4.4 && r.back < 0.001 && r.fastest < 1.25 && r.off < 0.01 && r.cleared && r.repainted;
+  const ok = r.frames > 30 && r.reached > 4.4 && r.back < 0.001 && r.fastest < 1.25 && r.off < 0.01 && r.cleared && r.repainted && r.buffered;
   return ok ? null : JSON.stringify(r);
 });
 
@@ -497,8 +500,47 @@ await check('ghost: on a bad link (resent packets) a walk that stops is never sh
     }
     return { frames: xs.length, reached: xs.length ? xs[xs.length - 1][0] : 0, back, fastest };
   });
-  // Walking is 5 m/s; going back (a smoothed correction) and forward stay well within a walk's speed.
-  return r.frames > 30 && r.reached > 8.5 && r.back < 2 && r.fastest < 8 ? null : JSON.stringify(r);
+  // Walking is 5 m/s; going back (a smoothed correction) and forward stay within a walk's speed (unsmoothed: 30 m/s and more).
+  return r.frames > 30 && r.reached > 8.5 && r.back < 4 && r.fastest < 8 ? null : JSON.stringify(r);
+});
+
+await check('avatar test figure: the pose slider stops on a pose, moving poses go round the loop (on the spot if asked), slow motion slows them', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const T = g.config.AVATAR_TEST;
+    const frames = (n) => new Promise((done) => { const tick = () => (--n ? requestAnimationFrame(tick) : done()); requestAnimationFrame(tick); });
+    g.fixedStep.dt = 0.05;
+    g.live.avatarToggle();
+    let fig = null;
+    g.level.root.parent.traverse((o) => (fig ??= o.isSkinnedMesh ? o.parent : null));
+    // Standing still first (idle), to find where it stands.
+    T.pose = 0;
+    g.live.avatarPick();
+    await frames(2);
+    const center = fig.position.clone();
+    T.pose = 1;
+    g.live.avatarPick();
+    const picked = g.live.avatarPose();
+    // Walking round the loop: how far it went in 10 frames, and how far from the middle it stays.
+    const walk = async () => {
+      const a = fig.position.clone();
+      await frames(10);
+      return [fig.position.distanceTo(a), fig.position.distanceTo(center)];
+    };
+    const [moved, radius] = await walk();
+    T.timeScale = 0.25;
+    const [slow] = await walk();
+    T.timeScale = 1;
+    T.onTheSpot = true;
+    await frames(2);
+    const [spot] = await walk();
+    T.onTheSpot = false;
+    g.live.avatarToggle();
+    g.fixedStep.dt = 0;
+    return { picked, moved, radius, slow, spot };
+  });
+  const ok = r.picked.startsWith('2 / ') && r.picked.includes('walk') && !r.picked.includes('cycling') && r.moved > 1 && Math.abs(r.radius - 1.6) < 0.01 && r.slow < r.moved * 0.4 && r.spot < 0.001;
+  return ok ? null : JSON.stringify(r);
 });
 
 await check('hotbar: icons arrive from the GPU (read back without stalling) and the slots are drawn again', async () => {

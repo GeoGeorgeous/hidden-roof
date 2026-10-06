@@ -1,5 +1,5 @@
 import type * as THREE from 'three';
-import { GHOST, NET } from '../config';
+import { AVATAR, GHOST, NET } from '../config';
 import type { Inventory } from '../inventory/inventory';
 import type { Level, PropData } from '../level/level';
 import type { PaintDrips } from '../paint-drips';
@@ -76,6 +76,11 @@ export class Ghost {
     return `off (${took})`;
   }
 
+  /** Its remote player's network numbers (net/remote-player.ts), while there is one. */
+  get net() {
+    return this.remote?.stats ?? null;
+  }
+
   /** Where the ghost stands, for the stepladder's room check; null when there's none. */
   get position(): THREE.Vector3 | null {
     return this.remote?.avatar.group.visible ? this.remote.position : null;
@@ -121,6 +126,11 @@ export class Ghost {
     this.mode = 'off';
     this.loading = false;
     this.loops++;
+  }
+
+  /** It looks different now (AVATAR.hoodUp or the gray tones changed). */
+  restyle() {
+    this.remote?.avatar.setOutfit({ hoodUp: AVATAR.hoodUp });
   }
 
   update(dt: number) {

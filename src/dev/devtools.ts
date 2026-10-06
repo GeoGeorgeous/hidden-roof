@@ -107,14 +107,20 @@ export class DevTools {
       syncSkyline,
       avatarToggle: () => this.figure.toggle(g.player.position, g.player.yaw),
       avatarNext: () => this.figure.next(),
+      avatarPrevious: () => this.figure.previous(),
+      avatarPick: () => this.figure.pick(),
       avatarCycle: () => this.figure.cycle(),
-      avatarRestyle: () => this.figure.restyle(),
+      avatarRestyle: () => {
+        this.figure.restyle();
+        this.ghost.restyle();
+      },
       avatarPose: () => this.figure.label,
       ghostRecord: () => this.ghost.record(),
       ghostPlay: () => this.ghost.play(),
       ghostFollow: () => this.ghost.follow(),
       ghostStop: () => this.ghost.stop(),
       ghostState: () => this.ghost.label,
+      ghostNet: () => this.ghost.net,
     });
     Object.assign(window, { game: { ...g, build: this.build, debug: this.debug, live, ghost: this.ghost, cityParts: { layoutCity, dressTower, wallSigns } } });
   }

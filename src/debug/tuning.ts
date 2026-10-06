@@ -1,4 +1,4 @@
-import { AVATAR, GHOST, NET, SKYLINE, ATMOS, INK, AUDIO, CAPS, CCTV, DAYLIGHT, DRIPS, FANS, FLICKER, GRADE, VIGNETTE, HUD, LIGHTMAP, LIGHTS, PICKUP, SMOKE, THUNDER, PLAYER_LIGHT, VOLUMETRICS, WALL_HAND, MARKER, PAINT, PLAYER, PRESSURE, RENDER, SPRAY, VIEWMODEL, HOLD, ROLLER, SPONGE } from '../config';
+import { AVATAR, AVATAR_TEST, GHOST, NET, SKYLINE, ATMOS, INK, AUDIO, CAPS, CCTV, DAYLIGHT, DRIPS, FANS, FLICKER, GRADE, VIGNETTE, HUD, LIGHTMAP, LIGHTS, PICKUP, SMOKE, THUNDER, PLAYER_LIGHT, VOLUMETRICS, WALL_HAND, MARKER, PAINT, PLAYER, PRESSURE, RENDER, SPRAY, VIEWMODEL, HOLD, ROLLER, SPONGE } from '../config';
 
 // What the debug panel's contents are made of: collapsible sections of live
 // sliders/toggles that write straight into the config objects, plus read-only
@@ -58,6 +58,7 @@ const ROOTS: Record<string, Obj> = {
   FLICKER: FLICKER as unknown as Obj,
   SKYLINE: SKYLINE as unknown as Obj,
   AVATAR: AVATAR as unknown as Obj,
+  AVATAR_TEST: AVATAR_TEST as unknown as Obj,
   NET: NET as unknown as Obj,
   GHOST: GHOST as unknown as Obj,
 };
@@ -107,6 +108,9 @@ export const live = {
   /** F3 -> Avatar: the test figure (dev/avatar-preview.ts). */
   avatarToggle: () => {},
   avatarNext: () => {},
+  avatarPrevious: () => {},
+  /** AVATAR_TEST.pose was set: show that one. */
+  avatarPick: () => {},
   avatarCycle: () => {},
   avatarRestyle: () => {},
   avatarPose: () => 'hidden',
@@ -116,6 +120,8 @@ export const live = {
   ghostFollow: () => {},
   ghostStop: () => {},
   ghostState: () => 'off',
+  /** The ghost's network as its remote player sees it, or null. */
+  ghostNet: (): null | { delay: number; jitter: number; buffered: number; guessing: boolean; correction: number } => null,
   /** Debug: a lightning strike right now. */
   strikeLightning: () => {},
   /** GPU time of a render pass, as text ('n/a' without timer queries). */
