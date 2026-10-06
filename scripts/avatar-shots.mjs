@@ -19,11 +19,13 @@ const SHOTS = [
   ['walk', 'walk', 70, 2.3, 1.2, true],
   ['sprint', 'sprint', 90, 2.5, 1.2, true],
   ['crouch', 'crouch', 50, 2.0, 1.1, true],
+  ['crouch-side', 'crouch', -90, 1.8, 0.9, true, false, 0.6],
   ['crouch-walk', 'crouch walk', 90, 2.2, 1.0, true],
   ['jump', 'jump', 80, 2.3, 1.3, true],
   ['climb', 'climb', 110, 2.0, 1.4, true],
   ['holding-can', 'holding the can', -40, 1.7, 1.3, true],
   ['spray-ahead', 'spray ahead', -80, 2.2, 1.4, true],
+  ['spray-front', 'spray ahead', -25, 2.0, 1.4, true],
   ['spray-up', 'spray up', -70, 2.4, 1.4, true],
   ['spray-crouched', 'crouched spraying', -70, 2.2, 1.1, true],
   ['shake', 'shake', -30, 1.7, 1.4, true],
@@ -55,8 +57,10 @@ await page.evaluate(() => {
   g.live.avatarToggle();
   g.live.avatarNext();
 });
-
 const frames = (n) => page.evaluate((n) => new Promise((done) => { const tick = () => (--n ? requestAnimationFrame(tick) : done()); requestAnimationFrame(tick); }), n);
+// One frame turns the figure to face you; the shots go around it from there.
+await frames(2);
+
 for (const [file, pose, angle, dist, eye, day, hood, at = 0.95] of shots) {
   await page.evaluate(({ pose, angle, dist, eye, day, hood, at }) => {
     const g = window.game;

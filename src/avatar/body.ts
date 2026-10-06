@@ -4,7 +4,7 @@ import { Parts } from './parts';
 import { FINGERS, SIDES, sign, type Rig, type Side } from './rig';
 import { hoodie, pants, shoes, type Outfit } from './outfit';
 
-// The figure itself: a slightly robotic head (visor and two eyes), the neck
+// The figure itself: a dummy's head (a low-poly egg with two eyes), the neck
 // and gloved hands with fingers, plus what it wears (outfit.ts). One geometry,
 // skinned to the rig (parts.ts).
 
@@ -26,13 +26,12 @@ function head(p: Parts, rig: Rig) {
   const [w, h, d] = AVATAR.head;
   const eyes = PLAYER.eyeHeight;
   p.limb('neck', rig.at('neck'), rig.at('head'), [0.085, 0.085], [0.08, 0.08], C.head);
-  p.box('head', [0, PLAYER.height - h / 2, 0.005], [w, h, d], C.head);
-  // A narrower jaw, the visor plate with two eyes, and a bolt on either side.
-  p.box('head', [0, PLAYER.height - h + 0.03, -0.012], [w * 0.86, 0.07, d * 0.9], C.head);
-  p.box('head', [0, eyes, -d / 2 - 0.004], [w * 0.9, 0.075, 0.02], C.visor);
-  for (const x of [-1, 1]) {
-    p.box('head', [x * 0.042, eyes + 0.002, -d / 2 - 0.014], [0.034, 0.02, 0.012], C.eyes);
-    p.box('head', [x * (w / 2 + 0.008), eyes - 0.015, 0.01], [0.018, 0.05, 0.05], C.trim);
+  const cy = PLAYER.height - h / 2;
+  p.ball('head', [0, cy, 0], [w, h, d], C.head, [10, 8]);
+  // Two eyes on the face: where the egg's front is at their height.
+  for (const x of [-0.042, 0.042]) {
+    const front = (d / 2) * Math.sqrt(1 - (x / (w / 2)) ** 2 - ((eyes - cy) / (h / 2)) ** 2);
+    p.ball('head', [x, eyes, -front + 0.006], [0.034, 0.024, 0.016], C.eyes, [6, 4]);
   }
 }
 

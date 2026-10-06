@@ -1,14 +1,18 @@
 import * as THREE from 'three';
 import { AVATAR, PLAYER } from '../config';
 import type { Tool } from '../inventory/inventory';
+import { reachArm } from './arm-ik';
 import { FINGERS, SIDES, sign, type Rig, type Side } from './rig';
 
 // Poses the figure from its state, the same state multiplayer sends (speed,
 // on the ground, crouched, on a ladder, look pitch, tool, action). Nothing is
 // a canned clip: legs reach for foot targets with two-bone IK, so knees bend
 // the way knees do; the walk phase follows the distance moved, so feet don't
-// slide; arms blend between a few poses. Each part eases toward its target
-// (AVATAR.blend), so changes never snap.
+// slide; arms blend between a few poses, and reach with IK when they work (the
+// can aimed with a bent elbow, the roller, the sponge). Each part eases toward
+// its target (AVATAR.blend), so changes never snap.
+// Signs: a bone's +x rotation swings a limb hanging down forward, and tips one
+// pointing up (the body, the head) back.
 
 type AvatarAction = 'spray' | 'shake' | 'roll' | 'scrub' | null;
 
@@ -51,6 +55,12 @@ export class Pose {
   private dir = new THREE.Vector2(0, 1);
   private local = new THREE.Vector3();
   private curl = { R: [0.35, 0.45], L: [0.35, 0.45], index: [0.35, 0.45] };
+  /** How far the chest is tipped (its x rotation from the root: negative is forward), which arms hanging from it make up for. */
+  private tilt = 0;
+  private aim = new THREE.Vector3();
+  private right = new THREE.Vector3();
+  private target = new THREE.Vector3();
+  private pole = new THREE.Vector3();
 
   constructor(private rig: Rig) {}
 
@@ -84,10 +94,11 @@ export class Pose {
     const lean = k.crouch * AVATAR.crouchLean + k.sprint * AVATAR.sprintLean;
     this.body(lean, s.pitch);
     for (const sd of SIDES) {
-      this.leg(sd, lean * 0.35);
-      this.arm(sd, lean, s);
+      this.leg(sd, this.rig.bone('hips').rotation.x);
+      this.arm(sd);
       this.hand(dt, sd, s);
     }
+    this.reach(s);
   }
 
   private body(lean: number, pitch: number) {
@@ -95,15 +106,20 @@ export class Pose {
     const k = this.k;
     const bob = k.walk * (0.025 + 0.02 * k.sprint) * Math.abs(Math.cos(this.phase));
     r.bone('hips').position.y = AVATAR.hip - k.crouch * AVATAR.crouchDrop - bob - k.climb * 0.05;
-    r.bone('hips').rotation.set(lean * 0.35, 0.08 * k.walk * Math.sin(this.phase), 0);
-    r.bone('spine').rotation.set(lean * 0.3 + pitch * 0.1 * k.aim, -0.1 * k.walk * Math.sin(this.phase), 0);
-    r.bone('chest').rotation.set(lean * 0.35 + pitch * 0.15, 0, 0);
+    // Leaning forward bends the body at the hips and the spine; looking up straightens it a little.
+    const hips = -lean * 0.35;
+    const spine = -lean * 0.3 + pitch * 0.1 * k.aim;
+    const chest = -lean * 0.35 + pitch * 0.15;
+    r.bone('hips').rotation.set(hips, 0.08 * k.walk * Math.sin(this.phase), 0);
+    r.bone('spine').rotation.set(spine, -0.1 * k.walk * Math.sin(this.phase), 0);
+    r.bone('chest').rotation.set(chest, 0, 0);
+    this.tilt = hips + spine + chest;
     // The head looks where the player looks, whatever the body does.
-    r.bone('neck').rotation.set(pitch * 0.2 - lean * 0.4, 0, 0);
-    r.bone('head').rotation.set(pitch * 0.55 - lean * 0.6 - pitch * 0.1 * k.aim, 0, 0);
+    r.bone('neck').rotation.set(pitch * 0.2 + lean * 0.4, 0, 0);
+    r.bone('head').rotation.set(pitch * 0.55 + lean * 0.6 - pitch * 0.1 * k.aim, 0, 0);
   }
 
-  /** Two-bone IK toward the foot's target, below the hip joint. `hipsPitch`: the hips' own forward tip. */
+  /** Two-bone IK toward the foot's target, below the hip joint. `hipsPitch`: the hips' x rotation (negative tips them forward). */
   private leg(sd: Side, hipsPitch: number) {
     const r = this.rig;
     const k = this.k;
@@ -136,29 +152,50 @@ export class Pose {
     r.bone(`foot${sd}`).rotation.x = -(hipsPitch + thigh.rotation.x - knee) - lift * 1.2;
   }
 
-  private arm(sd: Side, lean: number, s: AvatarState) {
+  /** The arm's pose from angles: hanging and swinging, holding, carrying, shaking, climbing. */
+  private arm(sd: Side) {
     const k = this.k;
     const sg = sign(sd);
     const swing = -0.45 * Math.sin(this.phase + (sd === 'R' ? 0 : Math.PI)) * k.walk * (1 + 0.5 * k.sprint);
-    let p: Arm = { x: swing - lean * 0.3, z: sg * (0.13 + 0.35 * k.air), elbow: 0.12 + 0.15 * k.walk + 1.1 * k.sprint, wrist: 0 };
+    // Arms hang straight down whatever the body's lean (-tilt makes up for it).
+    const hang = -this.tilt * 0.85;
+    let p: Arm = { x: swing + hang, z: sg * (0.13 + 0.35 * k.air), elbow: 0.12 + 0.15 * k.walk + 1.1 * k.sprint, wrist: 0 };
     if (sd === 'R') {
-      // What the body already tips forward (hips, spine, chest), which an aimed arm takes off.
-      const tipped = lean + s.pitch * 0.25 * k.aim;
       const w = this.t;
-      p = mixArm(p, { x: 0.3, z: sg * 0.12, elbow: 1.25, wrist: -0.2 }, k.hold);
+      p = mixArm(p, { x: 0.3 + hang, z: sg * 0.12, elbow: 1.25, wrist: -0.2 }, k.hold);
       // Carrying the folded ladder level at the side, by its top rail.
-      p = mixArm(p, { x: 0, z: sg * 0.2, elbow: 0.15, wrist: -0.15 }, k.carry);
-      p = mixArm(p, { x: Math.PI / 2 + s.pitch - tipped, z: -sg * 0.12, elbow: 0.08, wrist: 0 }, k.aim);
-      p = mixArm(p, { x: 0.55, z: -sg * 0.18, elbow: 1.7 + 0.35 * Math.sin(w * 38), wrist: 0.3 * Math.sin(w * 38) }, k.shake);
-      p = mixArm(p, { x: 1.0 + s.pitch * 0.5 - tipped + 0.35 * Math.sin(w * 5), z: -sg * 0.05, elbow: 0.6 - 0.3 * Math.sin(w * 5), wrist: -0.3 }, k.roll);
-      p = mixArm(p, { x: 1.35 + s.pitch * 0.7 - tipped + 0.12 * Math.cos(w * 10), z: sg * (-0.1 + 0.1 * Math.sin(w * 10)), elbow: 0.45, wrist: -0.5 }, k.scrub);
+      p = mixArm(p, { x: hang, z: sg * 0.2, elbow: 0.15, wrist: -0.15 }, k.carry);
+      p = mixArm(p, { x: 0.55 + hang, z: -sg * 0.18, elbow: 1.7 + 0.35 * Math.sin(w * 38), wrist: 0.3 * Math.sin(w * 38) }, k.shake);
     }
     const climb = Math.sin(this.climbPhase + (sd === 'R' ? Math.PI : 0));
-    p = mixArm(p, { x: 2.5 + 0.3 * climb - lean, z: sg * 0.15, elbow: 0.55 - 0.35 * climb, wrist: -0.3 }, k.climb);
+    p = mixArm(p, { x: 2.5 + 0.3 * climb - this.tilt, z: sg * 0.15, elbow: 0.55 - 0.35 * climb, wrist: -0.3 }, k.climb);
     const r = this.rig;
     r.bone(`upperArm${sd}`).rotation.set(p.x, 0, p.z);
     r.bone(`forearm${sd}`).rotation.set(p.elbow, 0, 0);
     r.bone(`hand${sd}`).rotation.set(p.wrist, 0, 0);
+  }
+
+  /**
+   * The right arm at work, by IK: the can held up in front of the face along
+   * the look, elbow bent and a little out; the roller pushed up and down; the
+   * sponge in small circles.
+   */
+  private reach(s: AvatarState) {
+    const k = this.k;
+    const weight = Math.min(1, k.aim + k.roll + k.scrub);
+    if (weight < 0.001) return;
+    const cp = Math.cos(s.pitch);
+    this.aim.set(-Math.sin(s.yaw) * cp, Math.sin(s.pitch), -Math.cos(s.yaw) * cp);
+    this.right.set(Math.cos(s.yaw), 0, -Math.sin(s.yaw));
+    const w = this.t;
+    // From the shoulder: ahead along the look and a little in toward the middle.
+    this.rig.bone('upperArmR').getWorldPosition(this.target);
+    const ahead = 0.5 * k.aim + 0.44 * k.roll + 0.46 * k.scrub;
+    this.target.addScaledVector(this.aim, ahead).addScaledVector(this.right, -0.06);
+    this.target.y += k.roll * 0.12 * Math.sin(w * 5);
+    this.target.addScaledVector(this.right, k.scrub * 0.06 * Math.cos(w * 10)).y += k.scrub * 0.06 * Math.sin(w * 10);
+    this.pole.copy(this.right).multiplyScalar(0.8).y -= 1;
+    reachArm(this.rig, 'R', this.target, this.pole, this.aim, weight);
   }
 
   /** Fingers: relaxed, or gripping the tool in hand (and the ladder's rungs while climbing); the index on the nozzle while spraying. */

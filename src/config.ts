@@ -637,8 +637,8 @@ export const AVATAR = {
   /** Wrist to the knuckles, and each finger's two segments. */
   palm: 0.085,
   finger: [0.045, 0.04] as [number, number],
-  /** Head box: width, height, depth. */
-  head: [0.19, 0.25, 0.21] as [number, number, number],
+  /** Head (an egg): width, height, depth. */
+  head: [0.19, 0.25, 0.215] as [number, number, number],
   hoodUp: false,
   /** Gray tones (the ink draws them): the only color on the figure is paint. */
   colors: {
@@ -648,9 +648,8 @@ export const AVATAR = {
     pants: '#5c5f65',
     shoe: '#26282c',
     sole: '#c6c8ca',
-    head: '#8d9095',
-    visor: '#16181c',
-    eyes: '#eceeef',
+    head: '#b4b7bb',
+    eyes: '#16181c',
     glove: '#a4a6aa',
   },
   /** Walking: meters per step at walking speed and per extra m/s, foot lift (m). */

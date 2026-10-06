@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
-// The figure's geometry: low-poly boxes, each following exactly one bone (skin
+// The figure's geometry: low-poly boxes and balls, each following exactly one bone (skin
 // weight 1), merged into one geometry with vertex colors. One draw call for the
 // whole body, and animating it only turns bones.
 
@@ -18,6 +18,15 @@ export class Parts {
   box(bone: string, c: V3, size: V3, color: string, rot: V3 = [0, 0, 0]) {
     const g = unitBox();
     g.applyMatrix4(m4.compose(new THREE.Vector3(...c), new THREE.Quaternion().setFromEuler(new THREE.Euler(...rot)), new THREE.Vector3(...size)));
+    this.push(bone, g, color);
+  }
+
+  /** A low-poly ellipsoid centered at `c`, sized `size` (a dummy's head, a rounded shoulder). */
+  ball(bone: string, c: V3, size: V3, color: string, [around, up]: [number, number] = [8, 6]) {
+    const g = new THREE.SphereGeometry(0.5, around, up).toNonIndexed();
+    g.deleteAttribute('uv');
+    g.deleteAttribute('normal');
+    g.scale(...size).translate(...c);
     this.push(bone, g, color);
   }
 
