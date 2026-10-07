@@ -508,6 +508,31 @@ body.paused .build-help {
   color: var(--dim);
   transition: transform 0.16s ease-out;
 }
+/* Icon left of the name; the selected entry's variants and keys under its name. */
+.picker .row {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  column-gap: 8px;
+  align-items: center;
+}
+.picker .row > :not(img) {
+  grid-column: 2;
+}
+.picker .row img {
+  grid-column: 1;
+  grid-row: 1 / span 3;
+  width: 28px;
+  height: 28px;
+  opacity: 0.75;
+}
+.picker .row.on {
+  grid-template-columns: 52px 1fr;
+}
+.picker .row.on img {
+  width: 52px;
+  height: 52px;
+  opacity: 1;
+}
 .picker .row b {
   font-weight: normal;
   font-size: 9px;
@@ -527,6 +552,8 @@ body.paused .build-help {
   content: '▸ ';
 }
 .picker .variants span {
+  display: inline-block;
+  white-space: nowrap;
   color: var(--dim);
   margin-right: 10px;
 }

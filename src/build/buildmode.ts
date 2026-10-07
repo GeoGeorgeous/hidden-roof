@@ -18,6 +18,7 @@ import { History, type HistoryEntry } from './history';
 import { downloadLevel, pickLevelFile } from './io';
 import { Picker } from './picker';
 import { PickerView } from './picker-view';
+import { Thumbnails } from '../inventory/thumbnails';
 import { axisNormal, place, type Hit, type PlaceSpec } from './placement';
 import { MAX_TEXT } from '../render/ink/words';
 
@@ -48,7 +49,7 @@ export class BuildMode {
 
   private rot = 0;
   private picker = new Picker();
-  private pickerView = new PickerView(this.picker);
+  private pickerView: PickerView;
   private ghost: Ghost;
   private spawnMarker: SpawnMarker;
   /** The spawn point about to be placed. */
@@ -77,7 +78,9 @@ export class BuildMode {
     private level: Level,
     private pickups: Pickups,
     private player: Player,
+    renderer: THREE.WebGLRenderer,
   ) {
+    this.pickerView = new PickerView(this.picker, new Thumbnails(renderer));
     this.ghost = new Ghost(scene);
     this.grid = new CursorGrid(scene);
     this.spawnMarker = new SpawnMarker(scene, PLAYER.height, PLAYER.radius);

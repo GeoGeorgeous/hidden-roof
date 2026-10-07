@@ -1,5 +1,7 @@
 import { BUILD } from '../config';
-import type { Entry, Picker } from './picker';
+import { itemIcon, type Thumbnails } from '../inventory/thumbnails';
+import type { Choice, Entry, Picker } from './picker';
+import { propIcon } from './prop-icon';
 
 // The picker on the left edge: a wheel of categories fanned out from a hub
 // (the selected one level, two on each side), the selected category's entries
@@ -21,7 +23,12 @@ export class PickerView {
   private cats: HTMLElement[];
   private drawn = -1;
 
-  constructor(private picker: Picker) {
+  constructor(
+    private picker: Picker,
+    private icons: Thumbnails,
+  ) {
+    // An icon arrived from the GPU: draw the column again.
+    icons.onReady = () => (this.drawn = -1);
     const wheel = div('wheel');
     this.cats = picker.categories.map((c) => {
       const el = div('cat');
@@ -54,10 +61,16 @@ export class PickerView {
       el.dataset.d = Math.abs(k) > SIDE ? 'far' : `${Math.abs(k)}`;
     });
     const entries = p.categories[p.category].entries;
-    this.column.innerHTML = `<div class="hint">Q ▲</div>${entries.map((e, i) => row(e, i === p.selected, p.variantOf(e))).join('')}<div class="hint">E ▼</div>`;
+    this.column.innerHTML = `<div class="hint">Q ▲</div>${entries.map((e, i) => row(e, i === p.selected, p.variantOf(e), this.icon(e.variants[p.variantOf(e)].choice))).join('')}<div class="hint">E ▼</div>`;
     // The selected entry's name on the hub line.
     const name = this.column.querySelector<HTMLElement>('.on .name')!;
     this.column.style.transform = `translateY(${-(name.offsetTop + name.offsetHeight / 2)}px)`;
+  }
+
+  /** An entry's icon, as its selected variant looks (none for the spawn point). */
+  private icon(c: Choice) {
+    if (c.kind === 'prop') return this.icons.get(`prop:${c.def.type}:${c.def.variant ?? ''}`, () => propIcon(c.def));
+    return c.kind === 'pickup' ? itemIcon(this.icons, c.type) : null;
   }
 
   /** The shade from BUILD: at start, and again when F3 changes it (live.syncBuildShade). */
@@ -69,9 +82,10 @@ export class PickerView {
   }
 }
 
-function row(e: Entry, on: boolean, variant: number) {
+function row(e: Entry, on: boolean, variant: number, icon: string | null) {
+  const img = `<img src="${icon ?? ''}" alt=""${icon ? '' : ' hidden'}>`;
   const tags = e.settings.length ? ` <b>${e.settings.map((s) => s.name).join(' ')}</b>` : '';
-  if (!on) return `<div class="row"><div class="name">${e.label}${tags}</div></div>`;
+  if (!on) return `<div class="row">${img}<div class="name">${e.label}${tags}</div></div>`;
   const chip = (i: number) => {
     const v = e.variants[i];
     return `<span${i === variant ? ' class="on"' : ''}>${v.swatch ? `<i style="background:${v.swatch}"></i>` : ''}${v.label}</span>`;
@@ -80,7 +94,7 @@ function row(e: Entry, on: boolean, variant: number) {
   const chips = many ? `${chip(variant)}<em>${variant + 1} / ${e.variants.length}</em> ` : e.variants.map((_, i) => chip(i)).join('');
   const variants = e.variants.length > 1 ? `<div class="variants">${chips}<em>TAB</em></div>` : '';
   const keys = e.settings.length ? `<div class="keys">${e.settings.map((s) => `${s.key} ${s.name}`).join(' · ')}</div>` : '';
-  return `<div class="row on"><div class="name">${e.label}</div>${variants}${keys}</div>`;
+  return `<div class="row on">${img}<div class="name">${e.label}</div>${variants}${keys}</div>`;
 }
 
 function div(className: string) {
