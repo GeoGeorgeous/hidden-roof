@@ -211,8 +211,9 @@ const fixedStep: { dt: number; script: (() => void) | null } = { dt: 0, script: 
 let drawnAt = -Infinity;
 
 function frame(time: number) {
-  // Frame rate limit: skip display refreshes until a frame is due; keeping the
-  // remainder makes the average exact on any display rate.
+  // Frame rate limit: skip display refreshes until a frame is due. Frames are
+  // due one interval after the last was due, so the average is exact on any
+  // display rate; after a stall it starts over.
   if (RENDER.maxFps > 0 && !fixedStep.dt) {
     const interval = 1000 / RENDER.maxFps;
     const since = time - drawnAt;
@@ -220,7 +221,7 @@ function frame(time: number) {
       requestAnimationFrame(frame);
       return;
     }
-    drawnAt = since < interval * 2 ? time - (since % interval) : time;
+    drawnAt = since < interval * 2 ? drawnAt + interval : time;
   }
   const t0 = performance.now();
   timer.update(time);
