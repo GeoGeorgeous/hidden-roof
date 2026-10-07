@@ -75,9 +75,6 @@ uniform float uOutlineFade;
 uniform float uGrain;
 uniform sampler2D tPaper;
 uniform float uExposure;
-uniform float uContrast;
-uniform float uSaturation;
-uniform vec3 uBalance;
 varying vec2 vUv;
 
 vec3 toSRGB(vec3 c) {
@@ -132,15 +129,12 @@ void main() {
   e *= uOutline * exp(-1.0 / (iz * uOutlineFade)) * scene.a;
   c = mix(c, uInkColor, clamp(e, 0.0, 1.0));
 
-  c *= exp2(uExposure) * uBalance;
+  c *= exp2(uExposure);
   c = toSRGB(max(c, 0.0));
   // Paper: fine tooth + soft blotches + fibers.
   float tooth = texture2D(tPaper, (floor(px) + 0.5) / 256.0).r - 0.5;
   float blot = texture2D(tPaper, px / 2700.0).g + 0.5 * texture2D(tPaper, px / 640.0 + 0.3).g - 0.75;
   float fiber = texture2D(tPaper, vec2(px.x / 1500.0, px.y / 50.0)).b - 0.5;
   c *= 1.0 + uGrain * (0.035 * tooth + 0.05 * blot + 0.02 * fiber);
-  c = (c - 0.5) * uContrast + 0.5;
-  float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
-  c = mix(vec3(l), c, uSaturation);
   gl_FragColor = vec4(clamp(c, 0.0, 1.0), 1.0);
 }`;

@@ -224,16 +224,10 @@ export const INK_TINT = {
   neonMinLight: 0.02,
 };
 
-/** Final color grading, applied in display space. Neutral = 0, 1, 1, 0, 0. */
+/** The finished image's brightness, in the final pass (render/ink/compose.ts). */
 export const GRADE = {
-  /** Stops (+1 = twice as bright). */
+  /** Stops (+1 = twice as bright): paper and lines alike; INK.exposure decides how much ink. */
   exposure: 0,
-  contrast: 1,
-  saturation: 1,
-  /** Warm (+) / cool (-) white balance. */
-  temperature: 0,
-  /** Magenta (+) / green (-). */
-  tint: 0,
 };
 
 /** The dark edge of the screen: a gradient over the view (hud.ts), live in F3. */
