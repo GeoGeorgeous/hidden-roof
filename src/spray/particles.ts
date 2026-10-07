@@ -82,7 +82,7 @@ export class SprayParticles {
       const p = this.free.pop();
       if (!p) break;
       // Gaussian-ish cone, clamped.
-      const r = Math.tan(Math.min(1, Math.abs(gauss()) * 0.5) * cap.coneAngle);
+      const r = Math.tan(Math.min(1, Math.abs(gauss()) * 0.5) * (cap.spread / 2));
       const a = paintRandom.spray() * Math.PI * 2;
       dir.copy(e.forward).addScaledVector(e.right, Math.cos(a) * r).addScaledVector(e.up, Math.sin(a) * r).normalize();
 

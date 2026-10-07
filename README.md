@@ -171,7 +171,7 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
 - `PAINT`: `texelsPerMeter` (the default paint detail; the pause-menu setting overrides it), `alphaSteps`, `maxTextureSize`, `mipLevels`.
 - `BASE_TEXTURES`: `texelsPerMeter` of the base textures, whatever the paint detail.
 - `CAPS`: one entry per cap.
-  - `coneAngle` (cone spread)
+  - `spread` (the cone's full angle)
   - `rate` (particles per second)
   - `strength` (alpha per particle)
   - `stampRadius` (dot radius in meters)

@@ -325,8 +325,8 @@ export const BASE_TEXTURES = { texelsPerMeter: 24 };
 
 export interface CapSpec {
   name: string;
-  /** Spread: half-angle of the spray cone (horizontal, on screen). */
-  coneAngle: number;
+  /** Spread: the spray cone's full angle (radians, horizontal on screen). */
+  spread: number;
   /** Particles per second at full flow. */
   rate: number;
   /** Opacity each particle adds where it lands (0..1). */
@@ -353,11 +353,11 @@ export interface CapSpec {
 export type CapId = 'skinny' | 'standard' | 'fat' | 'spray';
 export const CAP_ORDER: CapId[] = ['skinny', 'standard', 'fat', 'spray'];
 export const CAPS: Record<CapId, CapSpec> = {
-  skinny: { name: 'SKINNY', coneAngle: 0.01, rate: 320, strength: 0.8, dotSize: 0.066, softness: 0.15, hissGain: 0.5, hissTone: 0, crosshair: 8, drips: 17, drain: 0.04, color: '#7fb4f2', nozzle: 0.004 },
-  standard: { name: 'STANDARD', coneAngle: 0.04, rate: 450, strength: 0.5, dotSize: 0.092, softness: 0.35, hissGain: 0.75, hissTone: 0.4, crosshair: 14, drips: 17, drain: 0.04, color: '#f4f4f4', nozzle: 0.006 },
-  fat: { name: 'FAT', coneAngle: 0.01, rate: 800, strength: 0.35, dotSize: 0.2, softness: 0, hissGain: 1, hissTone: 1, crosshair: 22, drips: 17, drain: 0.04, color: '#f2a04c', nozzle: 0.01 },
+  skinny: { name: 'SKINNY', spread: 0.02, rate: 320, strength: 0.8, dotSize: 0.066, softness: 0.15, hissGain: 0.5, hissTone: 0, crosshair: 8, drips: 17, drain: 0.04, color: '#7fb4f2', nozzle: 0.004 },
+  standard: { name: 'STANDARD', spread: 0.08, rate: 450, strength: 0.5, dotSize: 0.092, softness: 0.35, hissGain: 0.75, hissTone: 0.4, crosshair: 14, drips: 17, drain: 0.04, color: '#f4f4f4', nozzle: 0.006 },
+  fat: { name: 'FAT', spread: 0.02, rate: 800, strength: 0.35, dotSize: 0.2, softness: 0, hissGain: 1, hissTone: 1, crosshair: 22, drips: 17, drain: 0.04, color: '#f2a04c', nozzle: 0.01 },
   /** Wide, soft mist for fades and backgrounds: lots of faint, fuzzy dots. */
-  spray: { name: 'SPRAY', coneAngle: 0.14, rate: 1100, strength: 0.12, dotSize: 0.158, softness: 0.9, hissGain: 0.9, hissTone: 0.8, crosshair: 32, drips: 17, drain: 0.04, color: '#b98cf2', nozzle: 0.013 },
+  spray: { name: 'SPRAY', spread: 0.28, rate: 1100, strength: 0.12, dotSize: 0.158, softness: 0.9, hissGain: 0.9, hissTone: 0.8, crosshair: 32, drips: 17, drain: 0.04, color: '#b98cf2', nozzle: 0.013 },
 };
 
 /** Paint colors, in Q/E cycling order. Black is always owned. Paint never runs out. */
@@ -419,7 +419,7 @@ export const ROLLER = {
   /** Length of each press along the stroke (m); presses overlap as you roll. */
   pressLength: 0.06,
   /** Fraction of each end of the roller that leaves lighter paint. */
-  edge: 0.15,
+  softness: 0.15,
   /** Crosshair with the roller in hand (px): `crosshair` plus `crosshairPerMeter` x the width (0: the same at every width). */
   crosshair: 10,
   crosshairPerMeter: 0,
