@@ -7,7 +7,8 @@ import type { PaintSystem } from '../painting';
 import type { Ladder } from '../player';
 import { DecorBatches } from './batches';
 import { buildProp, disposeProp, type BuiltProp, type Emitter, type LightAnchor, type PropInstance } from './build-prop';
-import { computeJoints, jointPieces, sameFinish, type Joint } from './joints';
+import { computeJoints, jointOwner, jointPieces, sameFinish, type Joint } from './joints';
+import { column, propAt, stackContext } from './stacks';
 import type { Finish } from '../kit/finishes';
 
 // The editable level: prop instances + everything built from them (meshes,
@@ -239,24 +240,10 @@ export class Level {
    */
   targetOf(o: THREE.Object3D, point: THREE.Vector3): number | undefined {
     const key: string | undefined = o.userData.joint;
-    const id = key === undefined ? this.idOf(o) : this.jointOwner(key, point);
+    const joint = key === undefined ? undefined : this.joints.get(key)?.joint;
+    const id = key === undefined ? this.idOf(o) : joint && jointOwner(joint, this.props.values(), point);
     const inst = id === undefined ? undefined : this.props.get(id);
     return inst && inst.owner === undefined ? inst.id : undefined;
-  }
-
-  private jointOwner(key: string, point: THREE.Vector3) {
-    const j = this.joints.get(key)?.joint;
-    if (!j) return undefined;
-    let best: number | undefined;
-    let nearest = Infinity;
-    for (const p of this.props.values()) {
-      if (defOf(p.type, p.variant)?.joint !== j.kind || Math.abs(p.pos[1] - j.pos[1]) > 0.01) continue;
-      const alongX = p.rot % 2 === 0;
-      const ends = [-1, 1].some((s) => Math.abs(p.pos[0] + (alongX ? s : 0) - j.pos[0]) < 0.01 && Math.abs(p.pos[2] + (alongX ? 0 : s) - j.pos[2]) < 0.01);
-      const d = (p.pos[0] - point.x) ** 2 + (p.pos[2] - point.z) ** 2;
-      if (ends && d < nearest) [best, nearest] = [p.id, d];
-    }
-    return best;
   }
 
   /** Does any box penetrate a placed prop's colliders (joints excluded)? `ignore`: a prop id to leave out. */
@@ -272,9 +259,7 @@ export class Level {
 
   /** Stacking neighbors (PropContext.above / below) of a prop (a def resolved by defOf) at `pos`. */
   stackContext(def: PropDef, pos: V3, rot: number) {
-    const above = !!def.stacks?.above && this.findAt(def, [pos[0], pos[1] + (def.vSnap ?? V_MODULE), pos[2]], rot) !== undefined;
-    const below = !!def.stacks?.below && this.column(def, pos, rot).some((p) => p.pos[1] < pos[1] - 0.01);
-    return { above, below };
+    return stackContext(this.props.values(), def, pos, rot);
   }
 
   private create(data: PropData, build = true): PropInstance | null {
@@ -324,11 +309,11 @@ export class Level {
     const def = defOf(inst.type, inst.variant)!;
     const s = def.stacks;
     if (!s) return;
-    const below = s.above ? this.findAt(def, [inst.pos[0], inst.pos[1] - (def.vSnap ?? V_MODULE), inst.pos[2]], inst.rot) : undefined;
+    const below = s.above ? propAt(this.props.values(), def, [inst.pos[0], inst.pos[1] - (def.vSnap ?? V_MODULE), inst.pos[2]], inst.rot) : undefined;
     if (below) this.build(below);
     // Only the lowest prop above can change (it may become the bottom of the column).
     if (s.below) {
-      const above = this.column(def, inst.pos, inst.rot).filter((p) => p.pos[1] > inst.pos[1] + 0.01);
+      const above = column(this.props.values(), def, inst.pos, inst.rot).filter((p) => p.pos[1] > inst.pos[1] + 0.01);
       const lowest = above.sort((a, b) => a.pos[1] - b.pos[1])[0];
       if (lowest) this.build(lowest);
     }
@@ -346,21 +331,6 @@ export class Level {
     if (inst.owner !== undefined) this.runtime.delete(inst.owner);
     this.rebuildStack(inst);
     return true;
-  }
-
-  /** Props of this type and variant in the same vertical column (same x, z). */
-  private column(def: PropDef, pos: V3, rot: number) {
-    const anyRot = def.place === 'cell';
-    return [...this.props.values()].filter((p) => isA(p, def) && (anyRot || p.rot === rot) && Math.abs(p.pos[0] - pos[0]) < 0.01 && Math.abs(p.pos[2] - pos[2]) < 0.01);
-  }
-
-  /** Cell props fill the same space whatever their facing, so their rotation doesn't matter. */
-  private findAt(def: PropDef, pos: V3, rot: number) {
-    const anyRot = def.place === 'cell';
-    for (const p of this.props.values()) {
-      if (isA(p, def) && (anyRot || p.rot === rot) && pos.every((v, i) => Math.abs(v - p.pos[i]) < 0.01)) return p;
-    }
-    return undefined;
   }
 
   /** Update joints, flat arrays and batches after a change. */
@@ -409,9 +379,6 @@ export class Level {
 
   private allBuilt: BuiltProp[] = [];
 }
-
-/** Is a prop of this def's type and variant, or any variant with `stacks.across` (stacking only joins the same prop)? */
-const isA = (p: PropInstance, def: PropDef) => p.type === def.type && (!!def.stacks?.across || p.variant === def.variant);
 
 /** The same paint surfaces with the same face sizes, so paint carries over texel for texel. */
 function samePaintFaces(a: BuiltProp, b: BuiltProp) {

@@ -71,5 +71,22 @@ export function jointPieces(joint: Joint) {
   return JOINTS[joint.kind](joint.finish);
 }
 
+/**
+ * The edge prop a hit on this joint's post goes to (build mode's target): of
+ * the props ending at it, the one whose middle is nearest the hit `point`.
+ */
+export function jointOwner(joint: Joint, props: Iterable<PropInstance>, point: { x: number; z: number }) {
+  let best: number | undefined;
+  let nearest = Infinity;
+  for (const p of props) {
+    if (defOf(p.type, p.variant)?.joint !== joint.kind || Math.abs(p.pos[1] - joint.pos[1]) > 0.01) continue;
+    const alongX = p.rot % 2 === 0;
+    const ends = [-1, 1].some((s) => Math.abs(p.pos[0] + (alongX ? s : 0) - joint.pos[0]) < 0.01 && Math.abs(p.pos[2] + (alongX ? 0 : s) - joint.pos[2]) < 0.01);
+    const d = (p.pos[0] - point.x) ** 2 + (p.pos[2] - point.z) ** 2;
+    if (ends && d < nearest) [best, nearest] = [p.id, d];
+  }
+  return best;
+}
+
 /** Do two joints look the same (the same finish)? */
 export const sameFinish = (a: Joint, b: Joint) => a.finish?.wall === b.finish?.wall;
