@@ -520,13 +520,13 @@ canvas {
   scrollbar-color: var(--dim) transparent;
 }
 .debug-panel .tabs {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 4px;
 }
 .debug-panel .tabs button {
-  flex: 1 1 auto;
-  padding: 0 4px;
+  min-width: 0;
+  padding: 0;
   border-color: var(--dim);
   color: var(--dim);
 }

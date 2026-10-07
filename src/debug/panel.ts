@@ -21,7 +21,7 @@ const CONFIRM_SECONDS = 2;
 const TABS = [
   { id: 'player', title: 'Player', groups: ['movement', 'camera', 'hands', 'held', 'avatar'] },
   { id: 'paint', title: 'Paint', groups: ['painting', 'caps', 'runs', 'pressure', 'quality', 'cursor'] },
-  { id: 'collectables', title: 'Collectables', groups: ['pickups'] },
+  { id: 'collectables', title: 'Items', groups: ['pickups'] },
   { id: 'models', title: 'Models', groups: ['sponge'] },
   { id: 'look', title: 'Look', groups: ['ink', 'lights', 'post'] },
   { id: 'world', title: 'World', groups: ['weather', 'props', 'city', 'sound', 'daylight'] },

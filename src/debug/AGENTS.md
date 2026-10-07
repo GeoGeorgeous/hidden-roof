@@ -2,7 +2,7 @@
 
 ## Structure
 
-- **Tab → group → section → row.** A tab is an area of the game (Player, Paint, Collectables, Models, Look, World, Test). A group is one system or object (Movement, Caps, Pressure). A section is one part of it, started by a heading.
+- **Tab → group → section → row.** A tab is an area of the game (Player, Paint, Items, Models, Look, World, Test). A group is one system or object (Movement, Caps, Pressure). A section is one part of it, started by a heading.
 - **General first.** Settings for the whole group come first, in a section titled General; a group with one section titles it General too.
 - **Every group is listed in exactly one tab** (`TABS` in `panel.ts`). Never rely on the fallback to the last tab.
 - **Group by effect, not by config object.** Put a setting where you'd look for it by what it changes. Concerns that cut across tools (Cursor, Quality, Paint runs, Pressure) get their own group, with one section per tool or cap.
