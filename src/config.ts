@@ -233,7 +233,7 @@ export const INK_PRESETS: Partial<Record<'paper' | 'ink' | 'sky' | 'cloud', stri
   { paper: '#d9d4d1', ink: '#433f52' },
   { paper: '#edf0f5', ink: '#333243' },
   { paper: '#dce1e9', ink: '#262532' },
-  {},
+  { paper: '#edf0f5', ink: '#333243', sky: '#1d2030', cloud: '#262a40' },
 ];
 
 /** Shape of the colored light tint (INK.tint) in the ink shader; built into the shader, not live. */
