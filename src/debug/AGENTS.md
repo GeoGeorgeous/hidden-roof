@@ -38,6 +38,7 @@
 
 ## Code and process
 
+- **Hooks are called through `live`, never passed by reference:** `() => live.rebuildModels()`, not `live.rebuildModels`. The panel is built before dev tools set the hooks, so a reference keeps the empty placeholder.
 - **Tunables live in `config.ts`.** Panel contents go in a `*-sections.ts` file per area (each under 400 lines), with shared helpers for repeated rows.
 - **Renaming a config key** updates tooltips, tests and code in the same commit. Golden paint must still match, unless the change means to alter paint and the commit says so (`npm run golden -- --update`).
 - **Before restructuring a tab,** propose the changes point by point, with options, and let the user decide.

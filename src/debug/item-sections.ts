@@ -25,7 +25,7 @@ function pickupItems(): Item[] {
 
 /** F3 sections for items: pickups, then each tool's model and the caps. */
 export function itemSections(): Section[] {
-  const m = (label: string, path: string[], min: number, max: number, step: number) => r(label, ['MODELS', ...path], min, max, step, live.rebuildModels);
+  const m = (label: string, path: string[], min: number, max: number, step: number) => r(label, ['MODELS', ...path], min, max, step, () => live.rebuildModels());
   return [
     {
       id: 'pickups',
@@ -58,8 +58,8 @@ export function itemSections(): Section[] {
         m('height', ['cap', 'height'], 0.004, 0.03, 0.001),
         ...CAP_ORDER.flatMap((cap) => [
           { kind: 'heading', label: CAPS[cap].name } as Item,
-          c('color', ['CAPS', cap, 'color'], live.rebuildModels),
-          r('nozzle size', ['CAPS', cap, 'nozzle'], 0.002, 0.02, 0.001, live.rebuildModels),
+          c('color', ['CAPS', cap, 'color'], () => live.rebuildModels()),
+          r('nozzle size', ['CAPS', cap, 'nozzle'], 0.002, 0.02, 0.001, () => live.rebuildModels()),
         ]),
       ],
     },

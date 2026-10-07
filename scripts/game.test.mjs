@@ -555,6 +555,45 @@ await check('hotbar: icons arrive from the GPU (read back without stalling) and 
   return n === 5 ? null : `${n} of 5 icons arrived`;
 });
 
+await check('debug panel: hooks run from the rows: a Models slider rebuilds the model, a pause menu row shows its sheet', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const frame = () => new Promise((d) => requestAnimationFrame(() => requestAnimationFrame(d)));
+    const open = g.debug.visible;
+    if (!open) g.debug.toggle();
+    g.hud.setLocked(false, true);
+    const tab = (name) => [...document.querySelectorAll('.debug-panel .tabs button')].find((b) => b.textContent.trim() === name).click();
+    const row = (name) => [...document.querySelectorAll('.debug-panel .page:not([hidden]) label')].filter((l) => l.querySelector('span')?.firstChild?.textContent === name).pop().querySelector('input');
+    const length = () => {
+      let h = 0;
+      // The barrel: the marker's widest cylinder (MODELS.marker.width).
+      g.tools.marker.model.traverse((o) => {
+        const p = o.geometry?.type === 'CylinderGeometry' ? o.geometry.parameters : null;
+        if (p && p.radiusTop === g.config.MODELS.marker.width / 2) h = p.height;
+      });
+      return h;
+    };
+    tab('MODELS');
+    const before = length();
+    const input = row('length');
+    input.value = '0.2';
+    input.dispatchEvent(new Event('input'));
+    await frame();
+    const after = length();
+    input.closest('section').querySelector('.head .reset').click();
+    await frame();
+    tab('UI');
+    const pause = row('opacity');
+    pause.value = '0.3';
+    pause.dispatchEvent(new Event('input'));
+    const compact = document.querySelector('.overlay').classList.contains('compact');
+    pause.closest('section').querySelector('.head .reset').click();
+    if (!open) g.debug.toggle();
+    return { before, after, previewed: !compact };
+  });
+  return r.before === 0.13 && r.after === 0.2 && r.previewed ? null : JSON.stringify(r);
+});
+
 await check('debug panel: every row on every tab has a tooltip', async () => {
   const missing = await page.evaluate(() => {
     const g = window.game;
