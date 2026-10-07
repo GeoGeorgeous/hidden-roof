@@ -50,6 +50,8 @@ export class StrokeSweep {
   sweep(dt: number, camera: THREE.Camera, eye: THREE.Vector3, spec: StrokeSpec, each: (hit: THREE.Intersection, surface: PaintSurface | undefined, at: FacePoint, fresh: boolean) => void) {
     camera.getWorldDirection(dir);
     solidsNear(this.solids, eye, spec.reach, this.near);
+    // A jump farther than the reach (a respawn) starts a new stroke instead of painting a streak to it.
+    if (this.prev && this.prevEye.distanceTo(eye) > spec.reach) this.prev = null;
     const from = this.prev ?? dir;
     const fromEye = this.prev ? this.prevEye : eye;
     const angle = from.angleTo(dir);
