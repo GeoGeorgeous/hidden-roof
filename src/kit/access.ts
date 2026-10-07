@@ -99,8 +99,8 @@ export const fireescape: PropDef = {
   build({ pos, above }) {
     const p = new Parts();
     const odd = (((Math.round(pos[1] / 4) % 2) + 2) % 2) === 1;
-    const outer = [-2.6, -1.3] as const;
-    const inner = [-1.3, 0] as const;
+    const outer = [-1.8, -0.9] as const;
+    const inner = [-0.9, 0] as const;
     const [z0, z1] = odd ? inner : outer;
     const dir = odd ? -1 : 1;
     const n = 16;
@@ -117,16 +117,16 @@ export const fireescape: PropDef = {
     // Landing at the top end, spanning both lanes.
     const la = dir > 0 ? 2 : -3;
     const lb = la + 1;
-    p.box([la, 3.92, -2.6], [lb, 4, 0], M.steel, { paint: false });
-    p.railing([la, -2.6], [lb, -2.6], 4);
+    p.box([la, 3.92, -1.8], [lb, 4, 0], M.steel, { paint: false });
+    p.railing([la, -1.8], [lb, -1.8], 4);
     const ex = dir > 0 ? lb : la;
-    p.railing([ex, -2.6], [ex, 0], 4);
+    p.railing([ex, -1.8], [ex, 0], 4);
     if (!above) {
       const [c0, c1] = odd ? outer : inner;
       const ix = dir > 0 ? la : lb;
       p.railing([ix, c0], [ix, c1], 4);
     }
-    p.rod([ex, 4, -2.6], [ex, 5.6, 0], 0.025, M.steel); // hanger into the wall
+    p.rod([ex, 4, -1.8], [ex, 5.6, 0], 0.025, M.steel); // hanger into the wall
     return p.list;
   },
 };
