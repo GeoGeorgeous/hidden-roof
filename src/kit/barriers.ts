@@ -18,9 +18,10 @@ function simpleRailing() {
 function guardRailing(y: number, toeBoard: boolean) {
   return () => {
     const p = new Parts();
-    for (const h of [1.0, 0.5]) p.cyl([-0.97, y + h, 0], 'x', 1.94, 0.024, M.galv, { paint: false, seg: 8 });
+    // Top rail 1.1 m high, like every railing; knee rail half way.
+    for (const h of [1.076, 0.55]) p.cyl([-0.97, y + h, 0], 'x', 1.94, 0.024, M.galv, { paint: false, seg: 8 });
     p.detail([-0.08, y, -0.08], [0.08, y + 0.02, 0.08], M.steel, false);
-    p.cyl([0, y + 0.02, 0], 'y', 0.98, 0.024, M.galv, { paint: false, seg: 8 });
+    p.cyl([0, y + 0.02, 0], 'y', 1.056, 0.024, M.galv, { paint: false, seg: 8 });
     if (toeBoard) p.box([-0.97, y, -0.012], [0.97, y + 0.15, 0.012], M.metal, { paint: true });
     return p.list;
   };

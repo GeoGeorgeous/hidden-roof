@@ -29,7 +29,7 @@ const JOINTS: Record<JointKind, () => Piece[]> = {
   parapetRail: () => {
     const p = new Parts();
     p.detail([-0.08, 1.1, -0.08], [0.08, 1.12, 0.08], M.steel, false);
-    p.detail([-0.03, 1.12, -0.03], [0.03, 2.1, 0.03], M.steel);
+    p.detail([-0.03, 1.12, -0.03], [0.03, 2.2, 0.03], M.steel);
     return p.list;
   },
   /** Chain-link fence: a round post with a cap. */
