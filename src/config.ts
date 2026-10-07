@@ -230,9 +230,9 @@ export const INK = {
  */
 export const INK_PRESETS: Partial<Record<'paper' | 'ink' | 'sky' | 'cloud', string>>[] = [
   {},
-  { paper: '#d9d4d1', ink: '#433f52', sky: '#0c0b0f', cloud: '#201f29' },
-  {},
-  {},
+  { paper: '#d9d4d1', ink: '#433f52' },
+  { paper: '#edf0f5', ink: '#333243' },
+  { paper: '#dce1e9', ink: '#262532' },
   {},
 ];
 
