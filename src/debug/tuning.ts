@@ -101,8 +101,8 @@ export const live = {
   syncAtmosphere: () => {},
   /** Re-apply DAYLIGHT if build mode is showing it. */
   applyDaylight: () => {},
-  /** Restyle the build picker: its size and shade (BUILD.wheelScale, columnScale, shade*). */
-  syncBuildPicker: () => {},
+  /** Restyle build mode: the picker's size and shade, the target outline, the settings highlight (BUILD.wheelScale, columnScale, shade*, target*, highlight*). */
+  syncBuildLook: () => {},
   /** Rebuild the city around the level (SKYLINE changed). */
   rebuildCity: () => {},
   /** Give the player the starting nib and patch sizes (MARKER, ROLLER or SPONGE.width changed). */

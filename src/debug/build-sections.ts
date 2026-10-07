@@ -1,12 +1,13 @@
 import { live, r, t, c, when, type Section } from './tuning';
 
 // F3 panel contents for build mode (tuning.ts has the helpers): its daylight
-// (DAYLIGHT replaces those ATMOS values while building), editing and the picker.
+// (DAYLIGHT replaces those ATMOS values while building), editing (with the
+// outline of the target and the light over props with settings) and the picker.
 
 /** F3 sections for the Build tab. */
 export function buildSections(): Section[] {
   const apply = () => live.applyDaylight();
-  const shade = () => live.syncBuildPicker();
+  const look = () => live.syncBuildLook();
   const d = (label: string, key: string, min: number, max: number, step: number) => r(label, ['DAYLIGHT', key], min, max, step, apply);
   return [
     {
@@ -40,17 +41,24 @@ export function buildSections(): Section[] {
         r('repeat: interval', ['BUILD', 'repeatInterval'], 0.03, 1, 0.01),
         r('fly: speed', ['BUILD', 'flySpeed'], 1, 30, 0.5),
         r('fly: sprint speed', ['BUILD', 'flySprintSpeed'], 2, 60, 0.5),
+        { kind: 'heading', label: 'TARGET OUTLINE' },
+        c('color', ['BUILD', 'targetColor'], look),
+        r('opacity', ['BUILD', 'targetOpacity'], 0, 1, 0.01, look),
+        { kind: 'heading', label: 'SETTINGS HIGHLIGHT' },
+        c('color', ['BUILD', 'highlightColor'], look),
+        r('opacity', ['BUILD', 'highlightOpacity'], 0, 1, 0.01, look),
       ]),
     },
     {
       id: 'picker',
       title: 'Picker',
       items: when('build', [
-        r('wheel: size', ['BUILD', 'wheelScale'], 0.5, 4, 0.05, shade),
-        r('column: size', ['BUILD', 'columnScale'], 0.5, 3, 0.05, shade),
-        r('shade: width', ['BUILD', 'shadeWidth'], 100, 2000, 10, shade),
-        r('shade: opacity', ['BUILD', 'shadeOpacity'], 0, 1, 0.01, shade),
-        c('shade: color', ['BUILD', 'shadeColor'], shade),
+        r('wheel: size', ['BUILD', 'wheelScale'], 0.5, 4, 0.05, look),
+        r('column: size', ['BUILD', 'columnScale'], 0.5, 3, 0.05, look),
+        { kind: 'heading', label: 'SHADE' },
+        r('width', ['BUILD', 'shadeWidth'], 100, 2000, 10, look),
+        r('opacity', ['BUILD', 'shadeOpacity'], 0, 1, 0.01, look),
+        c('color', ['BUILD', 'shadeColor'], look),
       ]),
     },
   ];
