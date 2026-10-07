@@ -252,8 +252,8 @@ export const VIGNETTE = {
 export const PAUSE_MENU = {
   /** Sheet color and opacity; lighter while the F3 panel is open, so the game shows behind it. */
   color: '#0e0e10',
-  opacity: 0.8,
-  debugOpacity: 0.45,
+  opacity: 0.65,
+  debugOpacity: 0.65,
   /** The list of keys under the menu. */
   controls: true,
 };
