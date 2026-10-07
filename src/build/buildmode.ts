@@ -17,13 +17,15 @@ import { CursorGrid } from './grid';
 import { History, type HistoryEntry } from './history';
 import { downloadLevel, pickLevelFile } from './io';
 import { Picker } from './picker';
+import { PickerView } from './picker-view';
 import { axisNormal, place, type Hit, type PlaceSpec } from './placement';
 import { MAX_TEXT } from '../render/ink/words';
 
 // Minecraft-style editor. Aim with the crosshair: the ghost sits on the face
 // under it, snapped to the grid (on a top face it goes on top, on a side face
 // next to it). LMB place (hold to keep placing), RMB delete, R rotate, MMB
-// pick, Ctrl+Z undo, Tab/1-7 category, wheel prop. Aiming at empty space hits
+// pick, Ctrl+Z undo; the wheel turns the category wheel, E / Q step through
+// its props, Tab / Shift+Tab through a prop's variants. Aiming at empty space hits
 // the build plane: the floor of the working level (PgUp / PgDn, and it follows
 // what you place). P save, O load, H shows which surfaces can be painted.
 // [ and ] change the aimed prop's own setting (floodlight tilt). T puts the
@@ -32,7 +34,7 @@ import { MAX_TEXT } from '../render/ink/words';
 // under the crosshair, else the next ones placed); new signs reuse the last
 // text typed or picked.
 
-const HELP = 'LMB PLACE (HOLD: REPEAT) · RMB DELETE · R ROTATE · MMB PICK · CTRL+Z UNDO · TAB / 1-7 CATEGORY · WHEEL PROP · PGUP / PGDN LEVEL · T SPAWN · ENTER SIGN TEXT · [ ] TILT LIGHT · H PAINTABLE · P SAVE · O LOAD · B EXIT';
+const HELP = 'LMB PLACE (HOLD: REPEAT) · RMB DELETE · R ROTATE · MMB PICK · CTRL+Z UNDO · WHEEL CATEGORY · Q / E PROP · TAB VARIANT · PGUP / PGDN LEVEL · T SPAWN · ENTER SIGN TEXT · [ ] TILT LIGHT · H PAINTABLE · P SAVE · O LOAD · B EXIT';
 const PICKUP_SPEC: PlaceSpec = { place: 'floor', snap: 0.5 };
 
 export class BuildMode {
@@ -44,6 +46,7 @@ export class BuildMode {
 
   private rot = 0;
   private picker = new Picker();
+  private pickerView = new PickerView(this.picker);
   private ghost: Ghost;
   private spawnMarker: SpawnMarker;
   private grid: CursorGrid;
@@ -87,7 +90,7 @@ export class BuildMode {
   setActive(on: boolean) {
     this.active = on;
     this.player.fly = on;
-    this.picker.visible = on;
+    this.pickerView.visible = on;
     this.hud.hidden = !on;
     this.ghost.visible = on;
     this.grid.visible = on;
@@ -135,7 +138,7 @@ export class BuildMode {
         .catch((e) => this.say(`LOAD FAILED: ${e.message ?? e}`));
     }
 
-    this.picker.render();
+    this.pickerView.render();
     if (this.status && performance.now() - this.statusTime > 2500) this.status = '';
     this.renderHud();
   }
@@ -180,7 +183,7 @@ export class BuildMode {
     const inst = id === undefined ? undefined : this.level.props.get(id);
     const def = inst ? defOf(inst.type, inst.variant) : undefined;
     const aimed = def?.text !== undefined ? def : undefined;
-    const e = this.picker.entry;
+    const e = this.picker.choice;
     const sign = aimed ?? (e.kind === 'prop' && e.def.text !== undefined ? e.def : undefined);
     if (!sign) return this.say('AIM AT A SIGN WITH TEXT');
     const current = (aimed ? inst!.text : undefined) ?? this.texts.get(sign.type) ?? sign.text!;
@@ -210,9 +213,10 @@ export class BuildMode {
   }
 
   private pickerInput(input: Input) {
-    if (input.wasPressed('Tab')) this.picker.nextCategory(input.isDown('ShiftLeft') ? -1 : 1);
-    for (let i = 0; i < this.picker.categories.length; i++) if (input.wasPressed(`Digit${i + 1}`)) this.picker.setCategory(i);
     if (input.wheelSteps) this.picker.wheel(Math.sign(input.wheelSteps));
+    const step = (input.wasTyped('KeyE') ? 1 : 0) - (input.wasTyped('KeyQ') ? 1 : 0);
+    if (step) this.picker.step(step);
+    if (input.wasTyped('Tab')) this.picker.variant(input.isDown('ShiftLeft') || input.isDown('ShiftRight') ? -1 : 1);
   }
 
   /** Raycast from the screen center; falls back to the build plane (the working level's floor), from above or below. */
@@ -242,7 +246,7 @@ export class BuildMode {
       this.placement = null;
       return;
     }
-    const e = this.picker.entry;
+    const e = this.picker.choice;
     const spec: PlaceSpec = e.kind === 'prop' ? e.def : PICKUP_SPEC;
     const pl = place(spec, target, this.rot, this.floorAt, e.kind === 'prop' ? extentOf(e.def, this.rot) : undefined);
     if (e.kind === 'prop') this.ghost.showProp(e.def, pl.pos, pl.rot, this.level.stackContext(e.def, pl.pos, pl.rot), this.texts.get(e.def.type));
@@ -261,7 +265,7 @@ export class BuildMode {
   private placeCurrent(repeat: boolean) {
     if (!this.placement) return;
     if (!this.valid) return repeat ? undefined : this.say('BLOCKED');
-    const e = this.picker.entry;
+    const e = this.picker.choice;
     const { pos, rot } = this.placement;
     if (e.kind === 'prop') {
       const inst = this.level.add({ type: e.def.type, variant: e.def.variant, pos, rot, text: this.texts.get(e.def.type) });
@@ -296,17 +300,18 @@ export class BuildMode {
     if (!o) return;
     const pid = this.pickups.idOf(o);
     if (pid !== undefined) {
-      this.picker.pick('pickup', this.pickups.list.get(pid)!.kind);
-      return this.say(`PICKED ${this.picker.entry.label.toUpperCase()}`);
+      const kind = this.pickups.list.get(pid)!.kind;
+      this.picker.pick((c) => c.kind === 'pickup' && c.type === kind);
+      return this.say(`PICKED ${this.picker.label.toUpperCase()}`);
     }
     const id = this.level.idOf(o);
     const inst = id !== undefined ? this.level.props.get(id) : undefined;
     if (inst && inst.owner === undefined && defOf(inst.type, inst.variant)) {
-      this.picker.pick('prop', inst.type);
+      this.picker.pick((c) => c.kind === 'prop' && c.def.type === inst.type && c.def.variant === inst.variant);
       this.rot = inst.rot;
       if (inst.text !== undefined) this.texts.set(inst.type, inst.text);
       else this.texts.delete(inst.type);
-      this.say(`PICKED ${this.picker.entry.label.toUpperCase()}`);
+      this.say(`PICKED ${this.picker.label.toUpperCase()}`);
     }
   }
 

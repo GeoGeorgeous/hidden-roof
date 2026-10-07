@@ -19,7 +19,7 @@ export type PickupContent = { color: PaintColor } | { cap: CapId } | { tool: Too
 const FOUND_TOOLS: Tool[] = SLOTS.filter((t) => t !== 'can');
 const TOOL_LABEL: Record<Tool, string> = { can: 'spray can', marker: 'marker', ladder: 'stepladder', roller: 'paint roller', sponge: 'sponge' };
 
-export const PICKUP_KINDS: PickupKind[] = [...COLOR_ORDER.filter((c) => c !== 'black').map((c) => `color:${c}`), ...CAP_ORDER.map((c) => `cap:${c}`), ...FOUND_TOOLS];
+const PICKUP_KINDS: PickupKind[] = [...COLOR_ORDER.filter((c) => c !== 'black').map((c) => `color:${c}`), ...CAP_ORDER.map((c) => `cap:${c}`), ...FOUND_TOOLS];
 
 export function parsePickup(kind: PickupKind): PickupContent | null {
   const [k, a] = kind.split(':');
@@ -36,6 +36,17 @@ export function pickupLabel(kind: PickupKind) {
   if ('cap' in c) return `${CAPS[c.cap].name.toLowerCase()} cap`;
   return TOOL_LABEL[c.tool];
 }
+
+/** A pickup within its build picker group: the group, its name there and, for paint, its color. */
+function pickupVariant(kind: PickupKind) {
+  const c = parsePickup(kind)!;
+  if ('color' in c) return { group: 'Paint', label: c.color, swatch: COLORS[c.color] };
+  if ('cap' in c) return { group: 'Cap', label: CAPS[c.cap].name.toLowerCase() };
+  return { group: 'Tool', label: TOOL_LABEL[c.tool] };
+}
+
+/** Pickups by what they give, as the build picker shows them: one entry per group, its kinds as variants. */
+export const PICKUP_GROUPS = ['Paint', 'Cap', 'Tool'].map((label) => ({ label, kinds: PICKUP_KINDS.map((kind) => ({ kind, ...pickupVariant(kind) })).filter((k) => k.group === label) }));
 
 /** Hex color to sRGB 0..1 (what paint textures store). */
 function srgb01(hex: string): Rgb {

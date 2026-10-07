@@ -41,9 +41,10 @@ npm run build:mp   # the same without the dev tools (build mode, F3, window.game
 | WASD, Space, C (Shift for fast) | Fly |
 | LMB | Place the ghost. Hold it to keep placing wherever the ghost moves (pillars, bridges) |
 | RMB | Delete what you aim at |
-| MMB | Pick the prop or pickup you aim at (with its rotation) |
-| Tab / Shift+Tab, 1-7 | Prop category |
-| Mouse wheel | Prop within the category |
+| MMB | Pick the prop or pickup you aim at (with its rotation and variant) |
+| Mouse wheel | Turn the category wheel (left edge) |
+| E / Q | Next / previous prop in the category |
+| Tab / Shift+Tab | Next / previous variant of the prop (a color, a length, a size, a piece of a modular run) |
 | R | Rotate 90° |
 | PgUp / PgDn | Working level (the build plane) up / down |
 | Ctrl+Z | Undo |

@@ -429,43 +429,119 @@ canvas {
   opacity: 1;
 }
 
-/* --- Editor: picker (bottom) + help (top-right) ----------------------- */
+/* --- Editor: picker (left edge) + help (top-right) -------------------- */
 
-.picker {
+/* The category wheel: labels fanned out from a hub on the left edge, turned
+   by --k (steps from the selected one, picker-view.ts). The selected label
+   is level and leads a line to the selected entry of the column. */
+/* A dark shade from the left edge behind it, fading out to the right and
+   toward the top and bottom, with paper-colored text on it. */
+.picker-shade {
   position: fixed;
-  left: 50%;
-  bottom: 28px;
-  transform: translateX(-50%);
-  text-align: center;
+  inset: 0 auto 0 0;
+  width: min(760px, 80vw);
   pointer-events: none;
-  line-height: 1.8;
+  background: linear-gradient(to right, rgba(14, 14, 16, 0.86), rgba(14, 14, 16, 0.74) 22%, rgba(14, 14, 16, 0.5) 45%, rgba(14, 14, 16, 0.24) 68%, rgba(14, 14, 16, 0.07) 86%, rgba(14, 14, 16, 0));
+  mask-image: linear-gradient(to bottom, transparent 8%, #000 32%, #000 72%, transparent 94%);
 }
-.picker .name {
-  font-size: 15px;
-  letter-spacing: 0.3em;
+.picker {
+  --ui: var(--paper);
+  --dim: rgba(235, 229, 214, 0.62);
+  --line: 1px solid var(--ui);
+  --turn: 17deg;
+  position: fixed;
+  left: 14px;
+  top: 46%;
+  pointer-events: none;
+  text-transform: uppercase;
 }
-.picker .strip,
-.picker .cats {
+.picker .cat {
+  position: absolute;
+  left: 0;
+  top: -0.85em;
+  line-height: 1.7em;
   display: flex;
-  justify-content: center;
-  gap: 14px;
+  align-items: center;
+  gap: 8px;
   white-space: nowrap;
-}
-.picker .strip span,
-.picker .cats span {
   color: var(--dim);
+  transform-origin: 0 50%;
+  transform: rotate(calc(var(--k) * var(--turn)));
+  transition:
+    transform 0.16s ease-out,
+    opacity 0.16s;
 }
-.picker .strip span.on {
+.picker .cat i {
+  width: 26px;
+  border-top: 1px solid currentColor;
+}
+.picker .cat[data-d='0'] {
+  width: 136px;
   color: var(--ui);
+  font-size: 13px;
+  letter-spacing: 0.18em;
 }
-.picker .cats {
-  margin-top: 4px;
-  padding-top: 4px;
-  border-top: 1px solid var(--dim);
+.picker .cat[data-d='0']::after {
+  content: '';
+  flex: 1;
+  border-top: var(--line);
 }
-.picker .cats span.on {
+.picker .cat[data-d='1'] {
+  opacity: 0.85;
+}
+.picker .cat[data-d='2'] {
+  opacity: 0.45;
+}
+.picker .cat[data-d='far'] {
+  opacity: 0;
+}
+.picker .column {
+  position: absolute;
+  left: 142px;
+  top: 0;
+  width: 380px;
+  line-height: 1.7;
+  color: var(--dim);
+  transition: transform 0.16s ease-out;
+}
+.picker .row b {
+  font-weight: normal;
+  font-size: 9px;
+  border: 1px solid currentColor;
+  padding: 0 3px;
+  margin-left: 4px;
+}
+.picker .row.on {
+  color: var(--ui);
+  margin: 2px 0 4px;
+}
+.picker .row.on .name {
+  font-size: 13px;
+  letter-spacing: 0.18em;
+}
+.picker .row.on .name::before {
+  content: '▸ ';
+}
+.picker .variants span {
+  color: var(--dim);
+  margin-right: 10px;
+}
+.picker .variants span.on {
   color: var(--ui);
   border-bottom: var(--line);
+}
+.picker .variants i {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 4px;
+  border: 1px solid var(--ui);
+}
+.picker em,
+.picker .keys,
+.picker .hint {
+  font-style: normal;
+  color: var(--dim);
 }
 
 .build-help {
