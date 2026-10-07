@@ -1,4 +1,5 @@
-import type { JointKind, PropDef } from '../kit/def';
+import type { JointKind } from '../kit/def';
+import { defOf } from '../kit';
 import { M, Parts, type Piece, type V3 } from '../kit/pieces';
 import { WALL_H } from '../kit/structure';
 import type { PropInstance } from './build-prop';
@@ -33,10 +34,10 @@ export interface Joint {
 }
 
 /** All joints needed by the current edge props. */
-export function computeJoints(props: Iterable<PropInstance>, defs: Map<string, PropDef>): Map<string, Joint> {
+export function computeJoints(props: Iterable<PropInstance>): Map<string, Joint> {
   const out = new Map<string, Joint>();
   for (const inst of props) {
-    const kind = defs.get(inst.type)?.joint;
+    const kind = defOf(inst.type, inst.variant)?.joint;
     if (!kind) continue;
     const alongX = inst.rot % 2 === 0;
     for (const s of [-1, 1]) {

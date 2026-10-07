@@ -4,12 +4,12 @@ import { expandPieces } from '../level/build-prop';
 import type { Extent } from './placement';
 
 // Bounds of a prop around its origin for a given rotation, so a prop placed
-// against a side face can sit flush next to it. Cached per type and rotation.
+// against a side face can sit flush next to it. Cached per type, variant and rotation.
 
 const cache = new Map<string, Extent>();
 
 export function extentOf(def: PropDef, rot: number): Extent {
-  const key = `${def.type}|${rot}`;
+  const key = `${def.type}|${def.variant}|${rot}`;
   let e = cache.get(key);
   if (e) return e;
   const ex = expandPieces(def.build({ seed: 0, pos: [0, 0, 0], above: false, below: false, adjust: def.adjust?.initial() ?? 0, text: def.text ?? '' }), [0, 0, 0], rot, false);

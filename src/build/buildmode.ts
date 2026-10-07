@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { KIT_BY_TYPE } from '../kit';
+import { defOf } from '../kit';
 import { H_MODULE, V_MODULE } from '../kit/def';
 import type { V3 } from '../kit/pieces';
 import type { Input } from '../input';
@@ -168,7 +168,7 @@ export class BuildMode {
   private adjust(object: THREE.Object3D, dir: number) {
     const id = this.level.idOf(object);
     const inst = id === undefined ? undefined : this.level.props.get(id);
-    const a = inst && KIT_BY_TYPE.get(inst.type)?.adjust;
+    const a = inst && defOf(inst.type, inst.variant)?.adjust;
     if (!inst || !a) return;
     const v = this.level.setAdjust(inst.id, (inst.adjust ?? a.initial()) + dir * a.step);
     if (v !== null) this.say(`${a.label} ${v}°`);
@@ -178,17 +178,18 @@ export class BuildMode {
   private editText(object: THREE.Object3D | null) {
     const id = object ? this.level.idOf(object) : undefined;
     const inst = id === undefined ? undefined : this.level.props.get(id);
-    const def = inst ? KIT_BY_TYPE.get(inst.type) : undefined;
+    const def = inst ? defOf(inst.type, inst.variant) : undefined;
+    const aimed = def?.text !== undefined ? def : undefined;
     const e = this.picker.entry;
-    const type = def?.text !== undefined ? def.type : e.kind === 'prop' && e.def.text !== undefined ? e.def.type : null;
-    if (!type) return this.say('AIM AT A SIGN WITH TEXT');
-    const current = (def?.text !== undefined ? inst!.text : undefined) ?? this.texts.get(type) ?? KIT_BY_TYPE.get(type)!.text!;
+    const sign = aimed ?? (e.kind === 'prop' && e.def.text !== undefined ? e.def : undefined);
+    if (!sign) return this.say('AIM AT A SIGN WITH TEXT');
+    const current = (aimed ? inst!.text : undefined) ?? this.texts.get(sign.type) ?? sign.text!;
     const typed = window.prompt('Sign text (empty = default)', current);
     if (typed === null) return;
     const text = typed.trim().slice(0, MAX_TEXT);
-    if (text) this.texts.set(type, text);
-    else this.texts.delete(type);
-    if (def?.text !== undefined) this.level.setText(inst!.id, text);
+    if (text) this.texts.set(sign.type, text);
+    else this.texts.delete(sign.type);
+    if (aimed) this.level.setText(inst!.id, text);
     this.say(`TEXT: ${text || 'DEFAULT'} — CLICK TO RESUME`);
   }
 
@@ -244,7 +245,7 @@ export class BuildMode {
     const e = this.picker.entry;
     const spec: PlaceSpec = e.kind === 'prop' ? e.def : PICKUP_SPEC;
     const pl = place(spec, target, this.rot, this.floorAt, e.kind === 'prop' ? extentOf(e.def, this.rot) : undefined);
-    if (e.kind === 'prop') this.ghost.showProp(e.def, pl.pos, pl.rot, this.level.stackContext(e.def.type, pl.pos, pl.rot), this.texts.get(e.def.type));
+    if (e.kind === 'prop') this.ghost.showProp(e.def, pl.pos, pl.rot, this.level.stackContext(e.def, pl.pos, pl.rot), this.texts.get(e.def.type));
     else this.ghost.showPickup(pl.pos);
     // Like Minecraft, never place into yourself (a held LMB pillar stops at your eyes).
     this.valid = pl.ok && !this.level.overlaps(this.ghost.colliders) && !this.ghost.colliders.some((c) => c.containsPoint(eye));
@@ -287,7 +288,7 @@ export class BuildMode {
     const inst = id !== undefined ? this.level.props.get(id) : undefined;
     // The player's stepladder isn't part of the level: never deleted (or restored by undo) as a prop.
     if (!inst || inst.owner !== undefined) return;
-    this.history.push({ op: 'remove', kind: 'prop', id: inst.id, data: { id: inst.id, type: inst.type, pos: inst.pos, rot: inst.rot, adjust: inst.adjust, text: inst.text } satisfies PropData });
+    this.history.push({ op: 'remove', kind: 'prop', id: inst.id, data: { id: inst.id, type: inst.type, variant: inst.variant, pos: inst.pos, rot: inst.rot, adjust: inst.adjust, text: inst.text } satisfies PropData });
     this.level.remove(inst.id);
   }
 
@@ -300,7 +301,7 @@ export class BuildMode {
     }
     const id = this.level.idOf(o);
     const inst = id !== undefined ? this.level.props.get(id) : undefined;
-    if (inst && inst.owner === undefined && KIT_BY_TYPE.has(inst.type)) {
+    if (inst && inst.owner === undefined && defOf(inst.type, inst.variant)) {
       this.picker.pick('prop', inst.type);
       this.rot = inst.rot;
       if (inst.text !== undefined) this.texts.set(inst.type, inst.text);

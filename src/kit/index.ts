@@ -75,7 +75,36 @@ const KIT: PropDef[] = [
 /** Props that aren't in the build picker: the player's stepladder (a pickup, placed while playing). */
 const ITEM_PROPS: PropDef[] = [stepladder];
 
-export const KIT_BY_TYPE = new Map([...KIT, ...ITEM_PROPS].map((d) => [d.type, d]));
+const KIT_BY_TYPE = new Map([...KIT, ...ITEM_PROPS].map((d) => [d.type, d]));
+
+/** Types of levels saved before variants that are now a variant of another type: old type -> [type, variant]. */
+const RENAMED: Record<string, [string, string]> = {};
+
+/** A saved prop's type and variant as they are named now. */
+export function renamed(type: string, variant?: string): [string, string | undefined] {
+  return RENAMED[type] ?? [type, variant];
+}
+
+const resolved = new Map<string, PropDef>();
+
+/**
+ * The def a prop builds and places with: its type's def with its variant
+ * merged in (the first variant when it has none, or an unknown one).
+ * Undefined for an unknown type.
+ */
+export function defOf(type: string, variant?: string): PropDef | undefined {
+  const key = `${type}|${variant ?? ''}`;
+  let def = resolved.get(key);
+  if (def) return def;
+  const base = KIT_BY_TYPE.get(type);
+  if (!base?.variants) return base;
+  const v = base.variants.find((x) => x.id === variant) ?? base.variants[0];
+  if (variant !== undefined && v.id !== variant) console.warn(`unknown variant "${variant}" of "${type}"`);
+  const { id, label, ...over } = v;
+  def = { ...base, ...over, label: `${base.label} (${label})`, variant: id };
+  resolved.set(key, def);
+  return def;
+}
 
 export function kitIn(c: Category) {
   return KIT.filter((d) => d.category === c);

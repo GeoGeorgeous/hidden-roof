@@ -74,5 +74,20 @@ export interface PropDef {
   adjust?: PropAdjust;
   /** Props that show a text of their own (signs): its default. Typed in build mode (Enter), saved per instance. */
   text?: string;
+  /** Its variants, the first being the default (see Variant). */
+  variants?: Variant[];
+  /** A def resolved by defOf (kit/index.ts): the variant merged into it. */
+  variant?: string;
   build(ctx: PropContext): Piece[];
+}
+
+/**
+ * One look of a prop: a color, a length, a size, a piece of a modular run.
+ * It overrides the prop's fields where it differs (another build, a wall
+ * mount instead of the floor, its own default text). Saved per instance as
+ * its id (PropData.variant).
+ */
+interface Variant extends Partial<Omit<PropDef, 'type' | 'label' | 'category' | 'variants' | 'variant'>> {
+  id: string;
+  label: string;
 }

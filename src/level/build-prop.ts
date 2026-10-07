@@ -17,6 +17,8 @@ import type { Facade } from '../render/ink/facade';
 export interface PropInstance {
   id: number;
   type: string;
+  /** Its variant (PropDef.variants), for props that have them. */
+  variant?: string;
   pos: V3;
   /** Quarter turns around Y (0..3). */
   rot: number;
