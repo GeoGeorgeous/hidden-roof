@@ -6,10 +6,11 @@ import { neon } from './neon';
 import { ac, duct, exhaust, utilitybox, ventshaft, watertower } from './equipment';
 import { cableRun } from './cable-runs';
 import { drainPipe, pipe } from './pipes';
-import { building, parapet, slab, wall } from './structure';
+import { building, parapet, plinth, slab, wall } from './structure';
 import { bladeSign, shopSign } from './signs';
 import { smallSign } from './small-signs';
 import { debris, latticeMast, signTower, tankPair } from './steel';
+import { ledgeOnBrackets, platformOnColumns, scaffolding } from './scaffold';
 
 /** The prop kit, in picker order. Pickups are added by the editor as their own category. */
 const KIT: PropDef[] = [
@@ -17,11 +18,15 @@ const KIT: PropDef[] = [
   slab,
   wall,
   parapet,
+  plinth,
+  scaffolding,
+  platformOnColumns,
+  ledgeOnBrackets,
   stairs,
   ladder,
   fireescape,
-  railing,
   hatch,
+  railing,
   ac,
   ventshaft,
   duct,
