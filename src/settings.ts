@@ -15,6 +15,8 @@ const RENAMED_KEY = 'taggin.settings.v2';
 /** Settings saved before v2: their paint detail and volumetrics are dropped, so the defaults (ULTRA, off) apply once. */
 const OLD_KEY = 'taggin.settings';
 const PIXEL_SCALES = [1, 1.5, 2, 2.5, 3, 4];
+/** Mouse sensitivity is shown as a multiple of config's (1.00x). */
+const BASE_SENSITIVITY = PLAYER.mouseSensitivity;
 const VOL_PRESETS = {
   off: { enabled: false, downscale: 2, steps: 16 },
   low: { enabled: true, downscale: 4, steps: 12 },
@@ -226,6 +228,17 @@ function toggle(label: string, desc: string, get: () => boolean, set: (on: boole
 
 function gameplayRows(): SettingRow[] {
   return [
+    {
+      kind: 'range',
+      label: 'MOUSE SENSITIVITY',
+      desc: 'How far the view turns per mouse movement.',
+      min: 0.25,
+      max: 3,
+      step: 0.05,
+      get: () => PLAYER.mouseSensitivity / BASE_SENSITIVITY,
+      set: (v) => (PLAYER.mouseSensitivity = v * BASE_SENSITIVITY),
+      format: (v) => `${v.toFixed(2)}x`,
+    },
     { kind: 'range', label: 'FIELD OF VIEW', desc: 'How wide you see, in degrees.', min: 60, max: 110, step: 1, get: () => RENDER.fov, set: (v) => (RENDER.fov = v), format: (v) => `${v}°` },
     {
       kind: 'range',
