@@ -2,9 +2,10 @@ import type { SettingRow, SettingSection } from './settings';
 
 // The settings page of the pause menu: one tab per section (gameplay,
 // graphics, sound), each row a choice (< and > step to the previous and next
-// value) or a slider, with, for some, a short description, a
-// callout (recommendations) and a performance cost in dots (1 to 5, green to red). Values are read again whenever the
-// page opens, since the debug panel edits the same settings.
+// value) or a slider, with, for some, a short
+// description, a performance cost (LOW, MEDIUM, HIGH: green to red) and a
+// callout (recommendations). Values are read again whenever the page opens,
+// since the debug panel edits the same settings.
 
 export class SettingsPage {
   readonly root: HTMLElement;
@@ -71,25 +72,11 @@ export class SettingsPage {
     }
     el.append(line);
     if (row.desc) el.append(Object.assign(div('desc'), { textContent: row.desc }));
-    if (row.cost) {
-      // PERFORMANCE COST •••··: the current value's cost in filled dots (1 none .. 5 critical; green, orange, red), dim ones up to 5.
-      const cost = div('cost');
-      const costOf = row.cost;
-      const sync = () => {
-        const n = costOf();
-        cost.className = `cost ${n >= 5 ? 'high' : n >= 3 ? 'mid' : 'low'}`;
-        cost.title = COST_NAMES[n - 1];
-        cost.innerHTML = `PERFORMANCE COST <b>${'•'.repeat(n)}</b><i>${'•'.repeat(5 - n)}</i>`;
-      };
-      this.syncs.push(sync);
-      el.append(cost);
-    }
+    if (row.cost) el.append(Object.assign(div(`cost ${row.cost.toLowerCase()}`), { innerHTML: `PERFORMANCE COST: <b>${row.cost}</b>` }));
     if (row.note) el.append(Object.assign(div('note'), { textContent: row.note }));
     return el;
   }
 }
-
-const COST_NAMES = ['No cost', 'Minimal cost', 'Medium cost', 'High cost', 'Critical cost'];
 
 function div(className: string) {
   return Object.assign(document.createElement('div'), { className });
