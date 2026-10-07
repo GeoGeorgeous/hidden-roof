@@ -223,6 +223,19 @@ export const INK = {
   grime: 0.25,
 };
 
+/**
+ * F3 → Render → Shaders → preset: sets of INK colors to switch between live.
+ * Each lists only the colors it changes; the first is INK as it is. Edits made
+ * in F3 while a set is picked stay with that set until reload (nothing is saved).
+ */
+export const INK_PRESETS: Partial<Record<'paper' | 'ink' | 'sky' | 'cloud', string>>[] = [
+  {},
+  { paper: '#d9d4d1', ink: '#433f52', sky: '#0c0b0f', cloud: '#201f29' },
+  {},
+  {},
+  {},
+];
+
 /** Shape of the colored light tint (INK.tint) in the ink shader; built into the shader, not live. */
 export const INK_TINT = {
   /** The tint is the light's hue relative to its brightness, which grows without bound in the dark: brightness counts as at least this. */

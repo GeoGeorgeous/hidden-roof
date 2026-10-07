@@ -4,7 +4,7 @@ import { hintFor, LABEL_HINTS } from './hints';
 import { getValue, isChanged, setValue, type Item, type When } from './tuning';
 
 // One row of the F3 panel per item: a slider, toggle, color, gray (a color as
-// one shade, on a black-to-white slider), button, readout or heading. A value
+// one shade, on a black-to-white slider), button, choice, readout or heading. A value
 // row is lit while it differs from config.ts, and its tooltip says config.ts's
 // value; a slider marks it with a gray tick.
 
@@ -61,6 +61,26 @@ function control(it: Item, edited: () => void): Row {
   }
   const name = Object.assign(document.createElement('span'), { textContent: it.label });
   const value = document.createElement('b');
+  if (it.kind === 'choice') {
+    el.className = 'choice-row';
+    // Clicking the name would press the first button (a label's control).
+    name.addEventListener('click', (e) => e.preventDefault());
+    const box = Object.assign(document.createElement('div'), { className: 'choice' });
+    const buttons = it.options.map((o, i) => {
+      const b = Object.assign(document.createElement('button'), { textContent: o });
+      b.addEventListener('click', (e) => {
+        e.preventDefault();
+        it.pick(i);
+        edited();
+      });
+      return b;
+    });
+    box.append(...buttons);
+    el.append(name, box);
+    const sync = () => buttons.forEach((b, i) => b.classList.toggle('on', i === it.get()));
+    sync();
+    return { el, sync };
+  }
   if (it.kind === 'readout') {
     el.className = 'readout-row';
     el.append(name, value);

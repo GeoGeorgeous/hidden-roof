@@ -1,4 +1,5 @@
-import { type LightKind, type NeonColor, LIGHT_SPREAD_MAX, LIGHTS, NEON_COLORS } from '../config';
+import { type LightKind, type NeonColor, INK, INK_PRESETS, LIGHT_SPREAD_MAX, LIGHTS, NEON_COLORS } from '../config';
+import { defaultOf } from './defaults';
 import { live, r, t, c, when, type Item, type Section } from './tuning';
 
 // F3 panel contents for rendering (tuning.ts has the helpers): the ink
@@ -41,6 +42,25 @@ function lightItems(): Item[] {
   });
 }
 
+const INK_COLORS = ['paper', 'ink', 'sky', 'cloud'] as const;
+
+/** Buttons for the color sets (INK_PRESETS): picking one keeps the edits of the one it leaves. */
+function inkPresets(): Item {
+  const sets = INK_PRESETS.map((p) => ({ ...p }));
+  let on = 0;
+  return {
+    kind: 'choice',
+    label: 'preset',
+    options: sets.map((_, i) => String(i + 1)),
+    get: () => on,
+    pick(i) {
+      for (const k of INK_COLORS) sets[on][k] = INK[k];
+      on = i;
+      for (const k of INK_COLORS) INK[k] = sets[i][k] ?? String(defaultOf(['INK', k]));
+    },
+  };
+}
+
 /** F3 sections for the Render tab: shaders, lights, light props, post. */
 export function renderSections(): Section[] {
   const sync = () => live.syncAtmosphere();
@@ -50,6 +70,7 @@ export function renderSections(): Section[] {
       id: 'shaders',
       title: 'Shaders',
       items: [
+        inkPresets(),
         c('paper', ['INK', 'paper']),
         c('ink', ['INK', 'ink']),
         c('sky', ['INK', 'sky']),

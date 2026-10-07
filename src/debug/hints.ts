@@ -32,6 +32,7 @@ export const LABEL_HINTS: Record<string, string> = {
   'PLAY (LOOP)': 'Play the recording back as a ghost, over and over, through the fake network below.',
   'FOLLOW ME': 'The ghost copies you live, a few seconds behind (follow: delay), through the fake network.',
   STOP: 'Stop recording, playing or following.',
+  preset: 'Sets of paper, ink, sky and cloud colors to switch between live: 1 is INK in config.ts, the others INK_PRESETS. Edits stay with the picked set until reload; COPY gives its colors.',
   REBUILD: 'Build the city again with the settings above (seed, sizes): a moment\'s work.',
   showing: 'The test figure\'s pose now (number / count, name), or hidden.',
   'SHOW / HIDE': 'Put the test figure in front of you, or take it away.',

@@ -25,6 +25,8 @@ export type Item =
   | { kind: 'gray'; label: string; path: string[]; onChange?: () => void; when?: When }
   | { kind: 'action'; label: string; run: () => void }
   | { kind: 'readout'; label: string; get: () => string }
+  /** One of a few buttons, the picked one lit (`get`); picking can change any value, so the panel re-reads them all. */
+  | { kind: 'choice'; label: string; options: string[]; get: () => number; pick: (i: number) => void }
   /** Starts a section; `disabled` shows it grayed out, untouchable. */
   | { kind: 'heading'; label: string; disabled?: boolean };
 

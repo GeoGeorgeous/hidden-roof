@@ -198,7 +198,7 @@ export class DebugPanel {
       head.append(copyButton('COPY', () => sectionsJSON([s])), reset);
     }
     for (const it of s.items) {
-      const row = itemRow(it, () => this.refresh(), !shared);
+      const row = itemRow(it, it.kind === 'choice' ? () => this.sync() : () => this.refresh(), !shared);
       this.rows.push(row);
       if (row.read) this.readouts.push(row.read);
       body.append(row.el);
