@@ -557,9 +557,9 @@ export const PICKUP = {
 };
 
 export const SPRAY = {
-  /** Max distance paint can travel. */
-  range: 4.6,
-  /** Paint strength fades linearly from this distance to `range`. */
+  /** Max distance from the eye to the surface: how far paint travels. */
+  reach: 4.6,
+  /** Paint strength fades linearly from this distance to `reach`. */
   falloffStart: 1.5,
   particleSpeed: 11,
   particleSize: 0.035,

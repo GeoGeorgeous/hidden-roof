@@ -183,7 +183,7 @@ export function playSections(): Section[] {
       id: 'painting',
       title: 'Painting',
       items: [
-        r('spray range', ['SPRAY', 'range'], 1, 8, 0.1),
+        r('reach (m)', ['SPRAY', 'reach'], 1, 8, 0.1),
         r('full strength up to (m)', ['SPRAY', 'falloffStart'], 0, 8, 0.1),
         r('particle speed', ['SPRAY', 'particleSpeed'], 2, 40, 0.5),
         r('alpha steps (0 = smooth)', ['PAINT', 'alphaSteps'], 0, 12, 1),

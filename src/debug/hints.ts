@@ -54,8 +54,8 @@ const HINTS: Record<string, string> = {
   'WALL_HAND.restWristBend': 'Wrist bend on the way to the wall and back (rad; negative bends back).',
   'WALL_HAND.wallWristBend': 'Wrist bend with the palm on a wall (rad; negative bends back).',
   // Painting
-  'SPRAY.range': 'Farthest distance spray paint reaches (m).',
-  'SPRAY.falloffStart': 'Paint is full strength up to this distance, then fades out toward the range (m).',
+  'SPRAY.reach': 'Farthest distance spray paint reaches (m).',
+  'SPRAY.falloffStart': 'Spray paint lands at full strength up to this distance, then fades linearly to nothing at the reach (m). Only shows when you spray from farther away than this.',
   'SPRAY.particleSpeed': 'Flight speed of the visible spray particles (m/s). Paint lands when they arrive.',
   'PAINT.alphaSteps': 'Paint opacity is shown in this many steps for a chunky look. 0 = smooth.',
   'MARKER.reach': 'Farthest distance the marker draws (m).',

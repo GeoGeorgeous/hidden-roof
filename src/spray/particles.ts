@@ -74,7 +74,7 @@ export class SprayParticles {
 
   emit(e: EmitParams) {
     // Broad phase: only solids near the player can be hit.
-    solidsNear(this.solids, e.eye, SPRAY.range, this.candidates);
+    solidsNear(this.solids, e.eye, SPRAY.reach, this.candidates);
     const { cap } = e;
     for (let i = 0; i < e.count; i++) {
       const p = this.free.pop();
@@ -85,9 +85,9 @@ export class SprayParticles {
       dir.copy(e.forward).addScaledVector(e.right, Math.cos(a) * r).addScaledVector(e.up, Math.sin(a) * r).normalize();
 
       this.raycaster.set(e.eye, dir);
-      this.raycaster.far = SPRAY.range;
+      this.raycaster.far = SPRAY.reach;
       const hit = this.candidates.length ? this.raycaster.intersectObjects(this.candidates, false)[0] : undefined;
-      const end = hit ? hit.point : target.copy(e.eye).addScaledVector(dir, SPRAY.range);
+      const end = hit ? hit.point : target.copy(e.eye).addScaledVector(dir, SPRAY.reach);
       p.pos.copy(e.nozzle);
       p.vel.subVectors(end, e.nozzle);
       const dist = p.vel.length();
@@ -97,7 +97,7 @@ export class SprayParticles {
       if (hit && p.surface) {
         facePoint(p.surface.geo, hit.faceIndex!, hit.uv!, p.at);
         p.epoch = this.paint.epoch;
-        const fall = hit.distance <= SPRAY.falloffStart ? 1 : 1 - (hit.distance - SPRAY.falloffStart) / (SPRAY.range - SPRAY.falloffStart);
+        const fall = hit.distance <= SPRAY.falloffStart ? 1 : 1 - (hit.distance - SPRAY.falloffStart) / (SPRAY.reach - SPRAY.falloffStart);
         p.amount = cap.strength * Math.max(0.15, e.flow) * fall * (0.6 + paintRandom.spray() * 0.4);
         p.radius = cap.stampRadius;
         p.softness = cap.softness;
