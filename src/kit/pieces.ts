@@ -147,7 +147,10 @@ export const GRAY = ['#2a2c30', '#4d5055', '#7d8085', '#b5b7ba'] as const;
 export const M = {
   concrete: { tex: 'flat', tint: GRAY[3] },
   plaster: { tex: 'panel', tint: GRAY[3] },
-  brick: { tex: 'panel', tint: GRAY[2] },
+  /** Finishes (kit/finishes.ts): plaster without the panel seams, brick, roof pavers. */
+  stucco: { tex: 'plaster', tint: GRAY[3] },
+  brick: { tex: 'brick', tile: 0.6, tint: GRAY[3] },
+  pavers: { tex: 'pavers', tile: 2, tint: GRAY[2] },
   roof: { tex: 'panel', tint: GRAY[2] },
   steel: { tex: 'flat', tint: GRAY[0] },
   metal: { tex: 'flat', tint: GRAY[1] },
