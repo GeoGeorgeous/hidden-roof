@@ -1,4 +1,4 @@
-import type { PropDef } from './def';
+import { withVariants, type PropDef, type Variant } from './def';
 import { M, Parts, type V3 } from './pieces';
 
 // Ways across and down: a plank bridge over the gap between two roofs, and a
@@ -14,17 +14,11 @@ function rope(p: Parts, a: V3, b: V3, sag: number, n = 8) {
 /**
  * Plank bridge `adjust` m long (set with [ ]) from the roof you stand on,
  * out over the gap (-z): three boards on battens, the end battens resting on
- * the two roofs, half a meter onto each; a rope handline on one side between
- * two stakes. Place it with its origin on the roof's edge.
+ * the two roofs, half a meter onto each; with `handline`, a rope on one side
+ * between two stakes. Place it with its origin on the roof's edge.
  */
-export const plankBridge: PropDef = {
-  type: 'plank_bridge',
-  label: 'Plank bridge',
-  category: 'access',
-  place: 'floor',
-  snap: 0.5,
-  adjust: { label: 'LENGTH', unit: ' M', min: 2, max: 12, step: 0.5, initial: () => 3 },
-  build({ adjust: len }) {
+function bridge(handline: boolean): Variant['build'] {
+  return ({ adjust: len }) => {
     const p = new Parts();
     const near = 0.5;
     const far = near - len;
@@ -41,13 +35,19 @@ export const plankBridge: PropDef = {
       const z = near - 0.06 - ((len - 0.12) * i) / n;
       p.detail([-0.5, 0, z - 0.06], [0.5, 0.05, z + 0.06], M.wood);
     }
+    if (!handline) return p.list;
     // Handline on the +x side, from stake to stake.
     const top = 1.0;
     for (const z of [near - 0.15, far + 0.15]) p.detail([0.46, 0, z - 0.03], [0.52, top, z + 0.03], M.wood);
     rope(p, [0.49, top - 0.05, near - 0.15], [0.49, top - 0.05, far + 0.15], Math.min(0.25, len * 0.03));
     return p.list;
-  },
-};
+  };
+}
+
+export const plankBridge = withVariants({ type: 'plank_bridge', label: 'Plank bridge', category: 'access', place: 'floor', snap: 0.5, adjust: { label: 'LENGTH', unit: ' M', min: 2, max: 12, step: 0.5, initial: () => 3 } }, [
+  { id: 'handline', label: 'handline', build: bridge(true) },
+  { id: 'bare', label: 'no rail', build: bridge(false) },
+]);
 
 /** I-beam along z from z0 to z1, its top at y, centered on x. */
 function beamZ(p: Parts, x: number, z0: number, z1: number, y: number) {
