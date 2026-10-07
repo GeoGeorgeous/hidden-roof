@@ -58,6 +58,12 @@ export class Ghost {
     this.colliders = [new THREE.Box3(new THREE.Vector3(pos[0] - 0.25, pos[1] + 0.05, pos[2] - 0.25), new THREE.Vector3(pos[0] + 0.25, pos[1] + 1, pos[2] + 0.25))];
   }
 
+  /** Color and opacity, as an overlay or outline (live from F3). */
+  setLook(color: THREE.ColorRepresentation, opacity: number) {
+    this.material.color.set(color);
+    this.material.opacity = opacity;
+  }
+
   setValid(valid: boolean) {
     this.material.color.copy(valid ? GREEN : RED);
   }

@@ -117,9 +117,11 @@ export class BuildMode {
     if (!on) this.player.unstick();
   }
 
-  /** The picker's size or shade changed (F3). */
-  syncPicker() {
+  /** The picker's size or shade, the outline's or the highlight's look changed (F3). */
+  syncLook() {
     this.pickerView.syncStyle();
+    this.outline.setLook(BUILD.targetColor, BUILD.targetOpacity);
+    this.settings.syncLook();
   }
 
   update(input: Input, camera: THREE.Camera) {

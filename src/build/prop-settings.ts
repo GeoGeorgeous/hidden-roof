@@ -42,6 +42,11 @@ export class PropSettings {
     this.show(inst && def && (def.adjust || def.text !== undefined) ? inst : null);
   }
 
+  /** BUILD.highlight* changed (F3). */
+  syncLook() {
+    this.highlight.setLook(BUILD.highlightColor, BUILD.highlightOpacity);
+  }
+
   set visible(v: boolean) {
     if (!v) this.highlight.visible = false;
   }

@@ -75,7 +75,7 @@ export class PickerView {
     return c.kind === 'pickup' ? itemIcon(this.icons, c.type) : null;
   }
 
-  /** Sizes and shade from BUILD: at start, and again when F3 changes them (live.syncBuildPicker). */
+  /** Sizes and shade from BUILD: at start, and again when F3 changes them (live.syncBuildLook). */
   syncStyle() {
     this.root.style.setProperty('--wheel', `${BUILD.wheelScale}`);
     this.drawn = -1; // the column's scale is part of its transform
