@@ -15,7 +15,7 @@
 
 - **Labels are lowercase, 1–3 words, with no units or notes:** those go in the tooltip. Action buttons are UPPERCASE verbs (RECORD, STRIKE NOW).
 - **One vocabulary:** reach (how far it works) · width / size / length (full extents) · opacity (how much paint) · strength (an effect that isn't paint) · softness (a faded edge) · spread (a cone) · density (amount per second) · speed / rate · intensity (a light's brightness) · color · on (an enable toggle). No jargon or internal words in labels: excess, duty, fraction, half-, radius, coats.
-- **Full sizes, never halves or radii,** in labels and, when touched, in config (`width`, `dotSize`, `pressLength`).
+- **Full sizes, never halves or radii,** in labels and, when touched, in config (`width`, `dotSize`, `pressLength`). One exception: a light's cone (`LIGHTS.*.spread`) stays a half-angle, as three.js spot lights and the bake use it; a full angle would add a `/ 2` at every reader.
 - **Patterns:** pairs read `x: min` / `x: max`; a state or context comes first (`crouch: lean`, `wheel: step`); instances are named plainly (`skinny cap`, `marker`).
 
 ## Tooltips
@@ -30,7 +30,7 @@
 - **Each instance holds its own absolute value** (each cap's run frequency), not a global value times per-instance multipliers.
 - **Colors:** what is only an ink tone uses a gray slider; real color (paint, caps, lights, signs) uses the color picker.
 - **Changes apply live** through the row's side-effect hook. A rebuild too slow to run on every drag runs when the slider is let go (`onRelease`), with an action button too.
-- **Say when a change shows** if not at once while dragging: tag the row (`when`: LET GO, BAKE, BUILD, PAUSED) so its tag and tooltip tell you where to look.
+- **Say when a change shows** if not at once while dragging: tag the row (`when`: LET GO, BAKE, BUILD); better still, make it show (the pause menu rows preview their sheet) so its tag and tooltip tell you where to look.
 
 ## Icons
 

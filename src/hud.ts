@@ -28,6 +28,8 @@ const GAUGE_OFFSET = -22;
 const ALERT_OFFSET = -44;
 /** Menu messages (SAVE / LOAD PAINT) show this long. */
 const NOTICE_SECONDS = 3;
+/** previewSheet shows the full pause sheet this long after the last change. */
+const PREVIEW_SECONDS = 1.5;
 
 export class Hud {
   onResume = () => {};
@@ -72,6 +74,9 @@ export class Hud {
   private partsShown = '';
   /** The PAUSE_MENU look last applied (rewritten only on change). */
   private sheet = '';
+  private debugOpen = false;
+  /** The full sheet shows until this time (previewSheet). */
+  private previewUntil = 0;
 
   constructor() {
     const root = document.createElement('div');
@@ -163,8 +168,20 @@ export class Hud {
     this.overlay.hidden = locked;
     // No cursor while paused (ESC), the pause menu or the debug panel has the mouse.
     this.crosshair.hidden = !locked;
-    this.overlay.classList.toggle('compact', debugOpen);
+    this.debugOpen = debugOpen;
+    this.syncCompact();
     this.syncMenu();
+  }
+
+  /** Show the full pause sheet (as without F3) for a moment: F3 is tuning it (PAUSE_MENU). */
+  previewSheet() {
+    this.previewUntil = performance.now() + PREVIEW_SECONDS * 1000;
+    this.syncCompact();
+  }
+
+  /** With F3 open the sheet is compact and lighter, unless it's being previewed. */
+  private syncCompact() {
+    this.overlay.classList.toggle('compact', this.debugOpen && performance.now() >= this.previewUntil);
   }
 
   /** Shows a message in the menu's status line for `seconds` (the toasts don't show over the menu); Infinity: until the next one. */
@@ -291,6 +308,10 @@ export class Hud {
   }
 
   update() {
+    if (this.previewUntil && performance.now() >= this.previewUntil) {
+      this.previewUntil = 0;
+      this.syncCompact();
+    }
     const shown = this.parts.map(([k]) => (HUD[k] ? 1 : 0)).join('');
     if (shown !== this.partsShown) {
       this.partsShown = shown;

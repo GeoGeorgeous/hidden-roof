@@ -50,6 +50,15 @@ export function playSections(): Section[] {
       ],
     },
     {
+      id: 'stepladder',
+      title: 'Stepladder',
+      items: [
+        r('reach', ['STEPLADDER_PLACE', 'reach'], 1, 10, 0.1),
+        r('feet: tolerance', ['STEPLADDER_PLACE', 'footTolerance'], 0, 0.2, 0.005),
+        r('stand: step', ['STEPLADDER_PLACE', 'standStep'], 0, 1, 0.05),
+      ],
+    },
+    {
       id: 'avatar',
       title: 'Avatar',
       items: [

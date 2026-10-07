@@ -12,10 +12,9 @@ type Obj = Record<string, unknown>;
 /**
  * When a value row's change shows, if not at once while dragging (rows.ts tags
  * the row): `release` when the slider is let go, `bake` once the lamp light
- * rebakes (a moment), `build` only in build mode, `paused` only on the pause
- * menu without F3.
+ * rebakes (a moment), `build` only in build mode.
  */
-export type When = 'release' | 'bake' | 'build' | 'paused';
+export type When = 'release' | 'bake' | 'build';
 
 export type Item =
   /** `onRelease`: runs when the slider is let go (and on reset), for work too slow for every tick. */
@@ -96,6 +95,8 @@ export const live = {
   rebuildLightProps: () => {},
   /** Redraw the HUD vignette (VIGNETTE changed). */
   syncVignette: () => {},
+  /** Show the full pause sheet behind the panel for a moment (F3 → UI → Pause menu). */
+  previewPause: () => {},
   /** Push ATMOS colors / moon direction into fog, sky and lights. */
   syncAtmosphere: () => {},
   /** Re-apply DAYLIGHT if build mode is showing it. */

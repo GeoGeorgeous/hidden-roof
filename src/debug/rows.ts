@@ -21,7 +21,6 @@ export const WHEN: Record<When, [tag: string, note: string]> = {
   release: ['LET GO', 'Applies when you let go of the slider.'],
   bake: ['BAKE', 'With baked light on, shows once the lamp light rebakes (a moment).'],
   build: ['BUILD', 'Shows only in build mode (B).'],
-  paused: ['PAUSED', 'Shows only on the pause menu without F3 (close F3 and press ESC).'],
 };
 
 /** When a row's change shows, if not at once. */

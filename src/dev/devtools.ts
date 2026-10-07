@@ -100,6 +100,7 @@ export class DevTools {
       rebuildLightProps: () => g.level.rebuildLit(),
       syncAtmosphere: () => g.atmosphere.syncColors(),
       syncVignette: () => g.hud.syncVignette(),
+      previewPause: () => g.hud.previewSheet(),
       applyDaylight: () => g.atmosphere.reapplyDaylight(),
       atmosNight: () => g.atmosphere.nightValues,
       rebuildCity: g.rebuildCity,

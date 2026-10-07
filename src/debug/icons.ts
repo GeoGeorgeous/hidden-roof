@@ -71,8 +71,8 @@ const ICONS: Record<string, string> = {
   page: '<path d="M2 .5h4l2.5 2.5v6.5H2zM6 .5V3h2.5"/>',
   tones: '<path d="M.5 .5h4v4h-4zM5.5 5.5h4v4h-4z"/><path class="f" d="M5.5.5h4v4h-4z"/>',
 };
-// Sound and build groups that share an icon with another.
-Object.assign(ICONS, { 'weather-sound': ICONS.weather, 'spray-sound': CAN, 'props-sound': ICONS.props, editing: ICONS.build });
+// Groups that share an icon with another.
+Object.assign(ICONS, { stepladder: ICONS.ladder, 'weather-sound': ICONS.weather, 'spray-sound': CAN, 'props-sound': ICONS.props, editing: ICONS.build });
 
 /** Section titles (lower case) to icons; the first match wins, none for "general". */
 const SECTIONS: [RegExp, string][] = [

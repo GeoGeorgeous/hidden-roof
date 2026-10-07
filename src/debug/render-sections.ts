@@ -190,7 +190,9 @@ export function uiSections(): Section[] {
       items: [
         c('color', ['PAUSE_MENU', 'color']),
         r('opacity: with F3', ['PAUSE_MENU', 'debugOpacity'], 0, 1, 0.05),
-        ...when('paused', [r('opacity', ['PAUSE_MENU', 'opacity'], 0, 1, 0.05), t('controls', ['PAUSE_MENU', 'controls'])]),
+        // Seen only without F3: changing them shows that sheet behind the panel for a moment.
+        r('opacity', ['PAUSE_MENU', 'opacity'], 0, 1, 0.05, () => live.previewPause()),
+        t('controls', ['PAUSE_MENU', 'controls'], () => live.previewPause()),
       ],
     },
   ];
