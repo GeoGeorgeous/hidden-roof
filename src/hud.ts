@@ -273,6 +273,7 @@ export class Hud {
   syncVignette() {
     const start = Math.min(99, Math.max(0, VIGNETTE.start));
     const shade = (a: number) => `color-mix(in srgb, ${VIGNETTE.color} ${Math.round(Math.min(1, Math.max(0, a)) * 100)}%, transparent)`;
+    this.vignette.hidden = !VIGNETTE.enabled;
     // Like the fixed gradient it replaces: a third of the strength a bit over half way out.
     this.vignette.style.background = `radial-gradient(ellipse at center, transparent ${start}%, ${shade(VIGNETTE.strength / 3)} ${start + (100 - start) * 0.55}%, ${shade(VIGNETTE.strength)} 100%)`;
   }

@@ -25,7 +25,8 @@ export class Hotbar {
   private toastEl: HTMLElement;
   private toastTime = 0;
   private version = -1;
-  private size = '';
+  /** The HUD slot look last applied (rewritten only on change). */
+  private look = '';
 
   constructor(private icons: Thumbnails) {
     this.root = document.createElement('div');
@@ -54,11 +55,21 @@ export class Hotbar {
   }
 
   update(inv: Inventory) {
-    const size = `${HUD.slotSize}|${HUD.slotGap}`;
-    if (size !== this.size) {
-      this.size = size;
-      this.root.style.setProperty('--slot', `${HUD.slotSize}px`);
-      this.root.style.setProperty('--gap', `${HUD.slotGap}px`);
+    const h = HUD;
+    const look = [h.slotSize, h.slotGap, h.slotRoundness, h.slotBorder, h.slotFill, h.slotFillOpacity, h.selectedBorder, h.selectedFill, h.selectedFillOpacity].join('|');
+    if (look !== this.look) {
+      this.look = look;
+      const mix = (hex: string, a: number) => `color-mix(in srgb, ${hex} ${Math.round(Math.min(1, Math.max(0, a)) * 100)}%, transparent)`;
+      const vars: Record<string, string> = {
+        '--slot': `${h.slotSize}px`,
+        '--gap': `${h.slotGap}px`,
+        '--round': `${h.slotRoundness * 50}%`,
+        '--border': mix(h.slotBorder, 0.62),
+        '--fill': mix(h.slotFill, h.slotFillOpacity),
+        '--on-border': h.selectedBorder,
+        '--on-fill': mix(h.selectedFill, h.selectedFillOpacity),
+      };
+      for (const k in vars) this.root.style.setProperty(k, vars[k]);
     }
     if (this.toastTime && performance.now() - this.toastTime > 2200) {
       this.toastEl.classList.remove('show');

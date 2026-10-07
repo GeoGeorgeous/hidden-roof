@@ -377,7 +377,7 @@ canvas {
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  /* --slot and --gap come from HUD (hotbar.ts). */
+  /* --slot, --gap, --round and the colors come from HUD (hotbar.ts). */
   gap: var(--gap, 10px);
   pointer-events: none;
 }
@@ -386,8 +386,9 @@ canvas {
   place-items: center;
   width: var(--slot, 30px);
   height: var(--slot, 30px);
-  border-radius: 50%;
-  border: 1px solid var(--dim);
+  border-radius: var(--round, 50%);
+  border: 1px solid var(--border, var(--dim));
+  background: var(--fill, none);
   opacity: 0.55;
   transition: opacity 0.15s, transform 0.15s;
 }
@@ -395,8 +396,8 @@ canvas {
   opacity: 0.35;
 }
 .hotbar i.on {
-  border-color: var(--ui);
-  background: rgba(235, 229, 214, 0.35);
+  border-color: var(--on-border, var(--ui));
+  background: var(--on-fill, rgba(235, 229, 214, 0.35));
   opacity: 1;
   transform: scale(1.12);
 }

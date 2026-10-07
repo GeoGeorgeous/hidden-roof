@@ -190,9 +190,10 @@ export const INK = {
   paperTone: 0.67,
   hatchTone: 0.27,
   blackTone: 0.19,
-  /** Hatch line spacing on screen (px) at any distance, and line thickness (fraction of the spacing). */
+  /** Hatch line spacing on screen (px) at any distance, line thickness (fraction of the spacing), and how dark a line is (1 = full ink). */
   hatchPx: 2,
   hatchWidth: 0.5,
+  hatchOpacity: 1,
   /** Ragged tone edges: how far the noise shifts the steps (tone units). */
   toneNoise: 0.05,
   /** Meters below which the city sinks into black (the street far down), and where it is fully black. */
@@ -234,6 +235,7 @@ export const GRADE = {
 
 /** The dark edge of the screen: a gradient over the view (hud.ts), live in F3. */
 export const VIGNETTE = {
+  enabled: true,
   /** Darkness at the corners, 0..1 (0 = none). */
   strength: 0.3,
   /** Where it starts, as a percentage of the way out to the corners. */
@@ -253,9 +255,18 @@ export const HUD = {
   clock: true,
   /** Performance readout, bottom left: fps, draw calls, triangles, texture memory. */
   perf: true,
-  /** Hotbar slot circles: diameter and the gap between them (CSS px). */
+  /** Hotbar slots: size and the gap between them (CSS px), roundness (0 = square, 1 = circle). */
   slotSize: 30,
   slotGap: 10,
+  slotRoundness: 1,
+  /** Slot border and background (the background at `slotFillOpacity`, 0 = none). */
+  slotBorder: '#141416',
+  slotFill: '#ebe5d6',
+  slotFillOpacity: 0,
+  /** The selected slot's border and background. */
+  selectedBorder: '#141416',
+  selectedFill: '#ebe5d6',
+  selectedFillOpacity: 0.35,
 };
 
 /** Slogans on lettered sign panels (kit/lettering.ts panelLettering). */
@@ -517,6 +528,7 @@ export const WALL_HAND = {
 
 /** Faint light around the player so dark corners stay walkable. Not a flashlight. */
 export const PLAYER_LIGHT = {
+  enabled: true,
   intensity: 0.5,
   /** Meters until it's gone. */
   range: 5,
