@@ -7,6 +7,8 @@ export const RENDER = {
   /** Extra FOV (degrees) while sprinting, eased in and out. */
   sprintFovBoost: 6,
   sprintFovEase: 8,
+  /** Frame rate limit (frames per second); 0 = none, as fast as the display refreshes. A player setting (FRAME RATE). */
+  maxFps: 0,
   /** Go fullscreen when the game takes the mouse (off: play in the browser window). */
   fullscreen: true,
   /** Moving prop parts: CCTV heads pan and follow, AC fans spin. Off: they stay at rest. */

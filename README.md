@@ -207,7 +207,7 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
   - `footstepStride`, `hardLanding` (footstep sounds)
 - `AUDIO`: gains.
 
-The F3 panel groups its controls into small collapsible sections (collapse / expand all; open sections are remembered), and every setting has a tooltip. It has a live control for every tunable value above that applies without a restart, including colors and `[x, y, z]` values. Not included: `RENDER.batchTile`, `BUILD`, `PLAYER.footstepStride`/`hardLanding`, `PAINT.texelsPerMeter` (pause menu → PAINT DETAIL), `maxTextureSize`/`mipLevels`, `BASE_TEXTURES`, `SPRAY` pool and particle size, and `AUDIO`, which are only read at startup or when a texture is made. **copy values** puts them on the clipboard as JSON, ready to paste back in as new defaults.
+The F3 panel groups its controls into small collapsible sections (collapse / expand all; open sections are remembered), and every setting has a tooltip. It has a live control for every tunable value above that applies without a restart, including colors and `[x, y, z]` values. Not included: `RENDER.batchTile`, `BUILD`, `PLAYER.footstepStride`/`hardLanding`, `PAINT.texelsPerMeter` (pause menu → PAINT DETAIL), `RENDER.maxFps` (pause menu → FRAME RATE), `maxTextureSize`/`mipLevels`, `BASE_TEXTURES`, `SPRAY` pool and particle size, and `AUDIO`, which are only read at startup or when a texture is made. **copy values** puts them on the clipboard as JSON, ready to paste back in as new defaults.
 
 ## Files
 

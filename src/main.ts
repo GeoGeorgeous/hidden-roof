@@ -207,7 +207,21 @@ const tagPos = new THREE.Vector3();
 /** Test hook (golden paint test): a fixed dt and a script run at the start of every frame, so paint follows the frame count, not wall time. */
 const fixedStep: { dt: number; script: (() => void) | null } = { dt: 0, script: null };
 
+/** When the last frame was drawn (rAF time), for the frame rate limit (RENDER.maxFps). */
+let drawnAt = -Infinity;
+
 function frame(time: number) {
+  // Frame rate limit: skip display refreshes until a frame is due; keeping the
+  // remainder makes the average exact on any display rate.
+  if (RENDER.maxFps > 0 && !fixedStep.dt) {
+    const interval = 1000 / RENDER.maxFps;
+    const since = time - drawnAt;
+    if (since < interval - 0.5) {
+      requestAnimationFrame(frame);
+      return;
+    }
+    drawnAt = since < interval * 2 ? time - (since % interval) : time;
+  }
   const t0 = performance.now();
   timer.update(time);
   const delta = timer.getDelta();
