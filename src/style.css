@@ -467,28 +467,38 @@ body.paused .build-help {
   display: flex;
   align-items: center;
   gap: 8px;
+  width: 136px;
   white-space: nowrap;
   color: var(--dim);
   transform-origin: 0 50%;
   transform: rotate(calc(var(--k) * var(--turn)));
   transition:
     transform 0.16s ease-out,
-    opacity 0.16s;
+    opacity 0.16s,
+    color 0.16s,
+    font-size 0.16s,
+    letter-spacing 0.16s;
+}
+/* The lane to the column: every label has it, only the selected one shows it,
+   so it turns into place with its label instead of jumping. */
+.picker .cat::after {
+  content: '';
+  flex: 1;
+  border-top: var(--line);
+  opacity: 0;
+  transition: opacity 0.16s;
 }
 .picker .cat i {
   width: 26px;
   border-top: 1px solid currentColor;
 }
 .picker .cat[data-d='0'] {
-  width: 136px;
   color: var(--ui);
   font-size: 13px;
   letter-spacing: 0.18em;
 }
 .picker .cat[data-d='0']::after {
-  content: '';
-  flex: 1;
-  border-top: var(--line);
+  opacity: 1;
 }
 .picker .cat[data-d='1'] {
   opacity: 0.85;
