@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { ATMOS, LIGHT_SPREAD_MAX, LIGHTMAP, LIGHTS, THUNDER } from '../config';
 import { moonDirection } from './moon';
-import { neonFlicker } from './flicker';
+import { lampLevel } from './flicker';
 import { syncAnchor, type LightAnchor } from '../level/build-prop';
 import { rotateY, trackAngle, trackWeight } from './cctv-track';
 import { bakeUniforms, HIGHLIGHT_MAX } from './bake/glsl';
@@ -277,7 +277,7 @@ export class Lighting {
 
 /** A lamp's real-light intensity right now. */
 function strength(a: LightAnchor, time: number) {
-  return LIGHTS[a.kind].intensity * ATMOS.practical * a.level * (a.flicker ? neonFlicker(time, a.flicker) : 1);
+  return LIGHTS[a.kind].intensity * ATMOS.practical * a.level * lampLevel(time, a.flicker);
 }
 
 /** -1 / 1 rather than x.d - y.d: a comparator returning a fraction allocates on every comparison. */

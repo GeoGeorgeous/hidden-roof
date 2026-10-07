@@ -66,7 +66,7 @@ export const ATMOS = {
 };
 
 /** Practical light kinds; every light prop uses one (see kit/lights.ts). */
-export type LightKind = 'wallLamp' | 'floodlight' | 'neon' | 'billboardLamp' | 'lampPost' | 'stringLights' | 'cctv';
+export type LightKind = 'wallLamp' | 'floodlight' | 'neon' | 'billboardLamp' | 'lampPost' | 'stringLights' | 'cctv' | 'bulkhead' | 'lightPanel' | 'aviation';
 
 export interface LightSpec {
   /** Light color (the lens takes it too, after a rebuild). Neon signs have one each instead (NEON_COLORS). */
@@ -113,6 +113,11 @@ export const LIGHTS: Record<Exclude<LightKind, 'neon'>, LightSpec> & { neon: Omi
   billboardLamp: { color: '#ffe2b0', tint: 0, dir: [0, -0.8, -0.6], intensity: 25, range: 12, spread: 0.8, softness: 0.5, glow: 0.3, glowAllAround: false, beam: 3.2, shadows: true },
   // On only while the camera follows the player (see CCTV); turns with the head. Glow and beam are not used.
   cctv: { color: '#dfe9ff', tint: 0, dir: [0, -0.3, -1], intensity: 6, range: 9, spread: 0.35, softness: 0.7, glow: 0, glowAllAround: false, beam: 0, shadows: false },
+  // Roof lights (kit/roof-lights.ts): the caged lamp over a roof door, the flat wall panel.
+  bulkhead: { color: '#e9e3d2', tint: 0, dir: [0, -0.7, -0.7], intensity: 9, range: 8, spread: 1.2, softness: 0.8, glow: 0.16, glowAllAround: false, beam: 0, shadows: true },
+  lightPanel: { color: '#eef1ff', tint: 0, dir: [0, -0.25, -1], intensity: 11, range: 9, spread: 1.4, softness: 1, glow: 0.1, glowAllAround: false, beam: 0, shadows: true },
+  // Aviation obstruction light: red, pulsing slowly (FLICKER.pulse*); its dome is the glow.
+  aviation: { color: '#ff2a1a', tint: 1, dir: [0, 1, 0], intensity: 3, range: 5, spread: 1.5, softness: 1, glow: 0, glowAllAround: true, beam: 0, shadows: false },
 };
 
 /**
@@ -881,7 +886,7 @@ export const FANS = {
   speed: 3,
 };
 
-/** Gentle flicker of neon tubes (light + tubes in sync). */
+/** Gentle flicker of neon tubes (light + tubes in sync), and the slow pulse of aviation lights. */
 export const FLICKER = {
   /** Random steps per second. */
   speed: 12,
@@ -890,6 +895,9 @@ export const FLICKER = {
   neonDepth: 0.55,
   /** Fast hum on top, as a fraction of brightness. */
   neonHum: 0.04,
+  /** Aviation lights: pulses per second, and how dark they get between pulses (0..1). */
+  pulseRate: 0.5,
+  pulseDepth: 0.85,
 };
 
 /** The player's stepladder (a pickup, slot 3; placed with LMB, one at a time). */

@@ -2,7 +2,8 @@ import { FLICKER } from '../config';
 
 // Flicker shared by the CPU (real light intensity) and the surface shader
 // (neon tube emissive). Both use the same integer hash, so a sign's tubes and
-// its light dip on exactly the same steps.
+// its light dip on exactly the same steps. A negative flicker value is a slow
+// pulse instead (aviation lights), the same in both too.
 
 /** PCG-style hash of an integer to 0..1 (matches FLICKER_GLSL bit for bit). */
 function hash(n: number) {
@@ -21,13 +22,21 @@ function flicker(t: number, seed: number, rate: number, depth: number) {
   return 1 - depth * (0.4 + 0.6 * hash(step * 17 + seed * 31 + 5));
 }
 
-export const neonFlicker = (t: number, seed: number) => flicker(t, seed, FLICKER.neonRate, FLICKER.neonDepth) * (1 - FLICKER.neonHum * 0.5 + FLICKER.neonHum * 0.5 * Math.sin(t * 50 + seed));
+const neonFlicker = (t: number, seed: number) => flicker(t, seed, FLICKER.neonRate, FLICKER.neonDepth) * (1 - FLICKER.neonHum * 0.5 + FLICKER.neonHum * 0.5 * Math.sin(t * 50 + seed));
+
+/** Slow pulse, brightest at whole multiples of 1 / FLICKER.pulseRate (plus `phase` turns). */
+const lightPulse = (t: number, phase: number) => 1 - FLICKER.pulseDepth * (0.5 - 0.5 * Math.cos((t * FLICKER.pulseRate + phase) * Math.PI * 2));
+
+/** Brightness 0..1 at time t of a lamp with this flicker value (Mat.flicker, LightPiece.flicker): 0 steady, 1+ a neon's flicker seed, below 0 a pulse (-1 - phase). */
+export const lampLevel = (t: number, f: number) => (f > 0 ? neonFlicker(t, f) : f < 0 ? lightPulse(t, -1 - f) : 1);
 
 export const FLICKER_GLSL = /* glsl */ `
 uniform float uFlickerSpeed;
 uniform float uFlickerRate;
 uniform float uFlickerDepth;
 uniform float uFlickerHum;
+uniform float uPulseRate;
+uniform float uPulseDepth;
 float flickerHash(uint n) {
   uint h = n * 747796405u + 2891336453u;
   h = ((h >> ((h >> 28u) + 4u)) ^ h) * 277803737u;
@@ -40,5 +49,10 @@ float neonFlicker(float t, float seed) {
   float f = 1.0;
   if (flickerHash(step * 131u + s * 7919u) >= 1.0 - uFlickerRate) f = 1.0 - uFlickerDepth * (0.4 + 0.6 * flickerHash(step * 17u + s * 31u + 5u));
   return f * (1.0 - uFlickerHum * 0.5 + uFlickerHum * 0.5 * sin(t * 50.0 + seed));
+}
+float lampLevel(float t, float f) {
+  if (f > 0.0) return neonFlicker(t, f);
+  if (f < 0.0) return 1.0 - uPulseDepth * (0.5 - 0.5 * cos((t * uPulseRate - 1.0 - f) * 6.2831853));
+  return 1.0;
 }
 `;

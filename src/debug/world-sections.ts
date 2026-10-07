@@ -62,6 +62,8 @@ export function worldSections(): Section[] {
         r('neon: dip chance', ['FLICKER', 'neonRate'], 0, 0.5, 0.005),
         r('neon: dip depth', ['FLICKER', 'neonDepth'], 0, 1, 0.01),
         r('neon: hum', ['FLICKER', 'neonHum'], 0, 0.3, 0.005),
+        r('pulse: rate', ['FLICKER', 'pulseRate'], 0.05, 3, 0.05),
+        r('pulse: depth', ['FLICKER', 'pulseDepth'], 0, 1, 0.01),
       ],
     },
     {

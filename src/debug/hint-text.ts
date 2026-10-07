@@ -348,6 +348,8 @@ export const HINTS: Record<string, string> = {
   'FLICKER.neonRate': 'Chance per step that a neon sign dips.',
   'FLICKER.neonDepth': 'How dark a neon dip gets.',
   'FLICKER.neonHum': 'Fast, faint brightness hum of the neon tubes.',
+  'FLICKER.pulseRate': 'Aviation lights: pulses per second (dome and light together).',
+  'FLICKER.pulseDepth': 'Aviation lights: how dark they get between pulses. 0 = steady, 1 = off.',
   // Lights
   'VIEWMODEL.fill': 'Fill light on the hands and tools (drawn in their own pass).',
   'VIEWMODEL.fillSky': 'Hand fill color from above.',
