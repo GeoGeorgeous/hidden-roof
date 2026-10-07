@@ -303,8 +303,8 @@ export interface CapSpec {
   rate: number;
   /** Opacity each particle adds where it lands (0..1). */
   strength: number;
-  /** Radius of each particle's dot, in meters (the same at every paint detail; a dot smaller than a texel paints one texel). */
-  stampRadius: number;
+  /** Width of each particle's dot, in meters (the same at every paint detail; a dot smaller than a texel paints one texel). */
+  dotSize: number;
   /** Edge softness of each dot: 0 = hard edge, 1 = fades to nothing at the rim. */
   softness: number;
   /** Hiss loudness multiplier and tone (0 = bright, 1 = deep). */
@@ -323,11 +323,11 @@ export interface CapSpec {
 export type CapId = 'skinny' | 'standard' | 'fat' | 'spray';
 export const CAP_ORDER: CapId[] = ['skinny', 'standard', 'fat', 'spray'];
 export const CAPS: Record<CapId, CapSpec> = {
-  skinny: { name: 'SKINNY', coneAngle: 0.01, rate: 320, strength: 0.8, stampRadius: 0.033, softness: 0.15, hissGain: 0.5, hissTone: 0, crosshair: 8, drips: 1, drain: 1, color: '#7fb4f2' },
-  standard: { name: 'STANDARD', coneAngle: 0.04, rate: 450, strength: 0.5, stampRadius: 0.046, softness: 0.35, hissGain: 0.75, hissTone: 0.4, crosshair: 14, drips: 1, drain: 1, color: '#f4f4f4' },
-  fat: { name: 'FAT', coneAngle: 0.01, rate: 800, strength: 0.35, stampRadius: 0.1, softness: 0, hissGain: 1, hissTone: 1, crosshair: 22, drips: 1, drain: 1, color: '#f2a04c' },
+  skinny: { name: 'SKINNY', coneAngle: 0.01, rate: 320, strength: 0.8, dotSize: 0.066, softness: 0.15, hissGain: 0.5, hissTone: 0, crosshair: 8, drips: 1, drain: 1, color: '#7fb4f2' },
+  standard: { name: 'STANDARD', coneAngle: 0.04, rate: 450, strength: 0.5, dotSize: 0.092, softness: 0.35, hissGain: 0.75, hissTone: 0.4, crosshair: 14, drips: 1, drain: 1, color: '#f4f4f4' },
+  fat: { name: 'FAT', coneAngle: 0.01, rate: 800, strength: 0.35, dotSize: 0.2, softness: 0, hissGain: 1, hissTone: 1, crosshair: 22, drips: 1, drain: 1, color: '#f2a04c' },
   /** Wide, soft mist for fades and backgrounds: lots of faint, fuzzy dots. */
-  spray: { name: 'SPRAY', coneAngle: 0.14, rate: 1100, strength: 0.12, stampRadius: 0.079, softness: 0.9, hissGain: 0.9, hissTone: 0.8, crosshair: 32, drips: 1, drain: 1, color: '#b98cf2' },
+  spray: { name: 'SPRAY', coneAngle: 0.14, rate: 1100, strength: 0.12, dotSize: 0.158, softness: 0.9, hissGain: 0.9, hissTone: 0.8, crosshair: 32, drips: 1, drain: 1, color: '#b98cf2' },
 };
 
 /** Paint colors, in Q/E cycling order. Black is always owned. Paint never runs out. */
@@ -386,8 +386,8 @@ export const ROLLER = {
   widthMin: 0.2,
   widthMax: 0.8,
   widthStep: 0.06,
-  /** Half the depth of each press along the stroke (m); presses overlap as you roll. */
-  halfDepth: 0.03,
+  /** Length of each press along the stroke (m); presses overlap as you roll. */
+  pressLength: 0.06,
   /** Fraction of each end of the roller that leaves lighter paint. */
   edge: 0.15,
   /** Crosshair with the roller in hand (px): `crosshair` plus `crosshairPerMeter` x the width (0: the same at every width). */
@@ -399,7 +399,7 @@ export const ROLLER = {
   drips: 2,
   /** Held still, presses add to runs this often (per s), whatever the frame rate. */
   stillRate: 20,
-  /** Moves are filled with presses at most `spacing` x the press depth apart at full reach, at most maxRays per frame. */
+  /** Moves are filled with presses at most `spacing` x the press length apart at full reach, at most maxRays per frame. */
   spacing: 0.5,
   maxRays: 48,
 };

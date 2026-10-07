@@ -101,7 +101,7 @@ export class SprayParticles {
         p.epoch = this.paint.epoch;
         const fall = hit.distance <= SPRAY.falloffStart ? 1 : 1 - (hit.distance - SPRAY.falloffStart) / (SPRAY.reach - SPRAY.falloffStart);
         p.amount = cap.strength * Math.max(0.15, e.flow) * fall * (0.6 + paintRandom.spray() * 0.4);
-        p.radius = cap.stampRadius;
+        p.radius = cap.dotSize / 2;
         p.softness = cap.softness;
         p.drips = cap.drips;
         p.rgb = e.rgb;

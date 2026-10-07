@@ -50,7 +50,7 @@ export function paintSections(): Section[] {
         { kind: 'heading', label: 'ROLLER' },
         r('reach', ['ROLLER', 'reach'], 0.5, 5, 0.1),
         r('opacity', ['ROLLER', 'strength'], 0.05, 1, 0.01),
-        r('press half-depth (m)', ['ROLLER', 'halfDepth'], 0.005, 0.15, 0.005),
+        r('press half-depth (m)', ['ROLLER', 'pressLength'], 0.01, 0.3, 0.01),
         r('light ends', ['ROLLER', 'edge'], 0, 0.5, 0.01),
         { kind: 'heading', label: 'SPONGE' },
         r('reach', ['SPONGE', 'reach'], 0.5, 4, 0.1),
@@ -65,7 +65,7 @@ export function paintSections(): Section[] {
       title: 'Caps',
       items: perCap((cap) => [
         r('opacity', ['CAPS', cap, 'strength'], 0.02, 1, 0.01),
-        r('dot radius', ['CAPS', cap, 'stampRadius'], 0, 0.2, 0.001),
+        r('dot radius', ['CAPS', cap, 'dotSize'], 0, 0.4, 0.002),
         r('edge softness', ['CAPS', cap, 'softness'], 0, 1, 0.05),
         r('particle rate', ['CAPS', cap, 'rate'], 50, 2000, 10),
         r('spread', ['CAPS', cap, 'coneAngle'], 0.005, 0.3, 0.005),
