@@ -350,13 +350,13 @@ body.paused .toast {
 .overlay td {
   padding: 1px 10px;
 }
-.overlay td:nth-child(odd) {
+.overlay td:first-child {
   text-align: right;
   color: var(--dim);
 }
-/* The second column of keys (the tools). */
-.overlay td:nth-child(3) {
-  padding-left: 40px;
+/* The tools (1 - 5) a little apart from the main keys. */
+.overlay tbody + tbody tr:first-child td {
+  padding-top: 10px;
 }
 .blink {
   animation: blink 1.6s steps(2) infinite;
