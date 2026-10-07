@@ -1,5 +1,5 @@
 import { withVariants, type PropDef, type Variant } from './def';
-import { finishOf } from './finishes';
+import { finishOf, type Finish } from './finishes';
 import { GRAY, M, Parts, type Mat } from './pieces';
 import { FACADES } from '../render/ink/facade';
 
@@ -62,15 +62,17 @@ export const slab: PropDef = {
   },
 };
 
+/** A whole wall section in its finish. */
+function wallBody(finish: Finish | undefined) {
+  const p = new Parts();
+  p.box([-L, 0, -T], [L, WALL_H, T], finishOf(finish, 'wall', M.plaster), { paint: true });
+  return p;
+}
+
 const plainWall: Variant = {
   id: 'plain',
   label: 'plain',
-  build({ finish }) {
-    const face = finishOf(finish, 'wall', M.plaster);
-    const p = new Parts();
-    p.box([-L, 0, -T], [L, WALL_H, T], face, { paint: true });
-    return p.list;
-  },
+  build: ({ finish }) => wallBody(finish).list,
 };
 
 /** Wall with a cornice ledge on its front side. */
@@ -78,9 +80,7 @@ const wallLedge: Variant = {
   id: 'ledge',
   label: 'ledge',
   build({ finish }) {
-    const face = finishOf(finish, 'wall', M.plaster);
-    const p = new Parts();
-    p.box([-L, 0, -T], [L, WALL_H, T], face, { paint: true });
+    const p = wallBody(finish);
     p.box([-1, WALL_H - 0.35, -T - 0.35], [1, WALL_H - 0.05, -T], M.concrete, { paint: true });
     return p.list;
   },
