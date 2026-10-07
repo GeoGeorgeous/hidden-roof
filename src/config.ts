@@ -922,12 +922,12 @@ export const BUILD = {
   flySpeed: 7,
   flySprintSpeed: 16,
   /** The picker on the left edge (build/picker-view.ts): the category wheel's size and the prop column's (1 = 11 px text). */
-  wheelScale: 2.5,
-  columnScale: 1.5,
+  wheelScale: 1.35,
+  columnScale: 1.1,
   /** The dark shade behind the picker, full height on the left edge: its color, its opacity at the edge and how far right it fades out (px). */
   shadeColor: '#0e0e10',
   shadeOpacity: 0.86,
-  shadeWidth: 1100,
+  shadeWidth: 740,
   /** The outline of the prop or pickup under the crosshair: what RMB deletes, MMB picks and the setting keys change. */
   targetColor: '#ff7a6b',
   targetOpacity: 0.8,
