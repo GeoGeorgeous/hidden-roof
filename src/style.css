@@ -674,13 +674,15 @@ body.paused .build-help {
   grid-template-columns: repeat(5, 1fr);
   gap: 4px;
 }
-.debug-panel .tabs button {
+.debug-panel .tabs button,
+.debug-panel .choice button {
   min-width: 0;
   padding: 0;
   border-color: var(--dim);
   color: var(--dim);
 }
-.debug-panel .tabs button.on {
+.debug-panel .tabs button.on,
+.debug-panel .choice button.on {
   border-color: var(--ui);
   color: var(--ui);
 }
@@ -792,8 +794,19 @@ body.paused .build-help {
   align-items: center;
   gap: 8px;
 }
-.debug-panel label.readout-row {
+.debug-panel label.readout-row,
+.debug-panel label.choice-row {
   grid-template-columns: 136px 1fr;
+}
+/* A choice's buttons (preset): equal columns, the picked one lit like a tab, set apart from the rows round them. */
+.debug-panel label.choice-row {
+  margin: 8px 0 16px;
+}
+.debug-panel .choice {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 4px;
 }
 .debug-panel label.heading {
   display: block;

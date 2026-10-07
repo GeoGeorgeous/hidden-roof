@@ -223,6 +223,19 @@ export const INK = {
   grime: 0.25,
 };
 
+/**
+ * F3 → Render → Shaders → preset: sets of INK colors to switch between live.
+ * Each lists only the colors it changes; the first is INK as it is. Edits made
+ * in F3 while a set is picked stay with that set until reload (nothing is saved).
+ */
+export const INK_PRESETS: Partial<Record<'paper' | 'ink' | 'sky' | 'cloud', string>>[] = [
+  {},
+  { paper: '#d9d4d1', ink: '#433f52' },
+  { paper: '#edf0f5', ink: '#333243' },
+  { paper: '#edf0f5', ink: '#333243', sky: '#1d2030', cloud: '#262a40' },
+  { paper: '#dce1e9', ink: '#262532' },
+];
+
 /** Shape of the colored light tint (INK.tint) in the ink shader; built into the shader, not live. */
 export const INK_TINT = {
   /** The tint is the light's hue relative to its brightness, which grows without bound in the dark: brightness counts as at least this. */
@@ -256,7 +269,7 @@ export const PAUSE_MENU = {
   /** Sheet color and opacity; lighter while the F3 panel is open, so the game shows behind it. */
   color: '#0e0e10',
   opacity: 0.65,
-  debugOpacity: 0.65,
+  debugOpacity: 0,
   /** The list of keys under the menu. */
   controls: true,
 };

@@ -12,7 +12,8 @@ import { worldSections } from './world-sections';
 // Debug panel (F3 / `): tabs of groups of small collapsible sections of live
 // tunables and stats. RESET puts config.ts's values back without saving
 // anything (a slider's gray tick marks that value), COPY gives JSON that maps
-// onto config.ts; both per section and for everything. Changed values are lit
+// onto config.ts; both per section and for everything, and every RESET asks
+// SURE? before it does anything. Changed values are lit
 // and their sections and tabs marked. COLLAPSE / EXPAND ALL act on the open
 // tab. The open tab and sections are remembered in this browser. DevTools
 // frees the mouse when the panel opens; Esc goes between game and panel.
@@ -193,12 +194,12 @@ export class DebugPanel {
       const w = whenOf(values[0]);
       shared = !!w && values.length > 1 && values.every((v) => whenOf(v) === w);
       if (shared) head.append(Object.assign(el('span', 'hint'), { textContent: WHEN[w!][0], title: WHEN[w!][1] }));
-      const reset = button('RESET', () => this.reset([s]));
+      const reset = confirmButton('RESET', () => this.reset([s]));
       reset.classList.add('reset');
       head.append(copyButton('COPY', () => sectionsJSON([s])), reset);
     }
     for (const it of s.items) {
-      const row = itemRow(it, () => this.refresh(), !shared);
+      const row = itemRow(it, it.kind === 'choice' ? () => this.sync() : () => this.refresh(), !shared);
       this.rows.push(row);
       if (row.read) this.readouts.push(row.read);
       body.append(row.el);

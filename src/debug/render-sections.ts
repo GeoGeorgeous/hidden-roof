@@ -1,4 +1,5 @@
-import { type LightKind, type NeonColor, LIGHT_SPREAD_MAX, LIGHTS, NEON_COLORS } from '../config';
+import { type LightKind, type NeonColor, INK, INK_PRESETS, LIGHT_SPREAD_MAX, LIGHTS, NEON_COLORS } from '../config';
+import { authoredOf, swapDefault } from './defaults';
 import { live, r, t, c, when, type Item, type Section } from './tuning';
 
 // F3 panel contents for rendering (tuning.ts has the helpers): the ink
@@ -41,6 +42,38 @@ function lightItems(): Item[] {
   });
 }
 
+const INK_COLORS = ['paper', 'ink', 'sky', 'cloud'] as const;
+
+/**
+ * Buttons for the color sets (INK_PRESETS): picking one keeps the edits of the
+ * one it leaves, and makes its own colors what RESET puts back (RESET also
+ * drops the edits of the others). COPY gives them all.
+ */
+function inkPresets(): Item {
+  /** Set i's color k in config.ts. */
+  const authored = (i: number, k: (typeof INK_COLORS)[number]) => INK_PRESETS[i][k] ?? String(authoredOf(['INK', k]));
+  const fresh = () => INK_PRESETS.map((p) => ({ ...p }));
+  let sets = fresh();
+  let on = 0;
+  return {
+    kind: 'choice',
+    label: 'preset',
+    options: sets.map((_, i) => String(i + 1)),
+    get: () => on,
+    pick(i) {
+      for (const k of INK_COLORS) sets[on][k] = INK[k];
+      on = i;
+      for (const k of INK_COLORS) {
+        swapDefault(['INK', k], authored(i, k));
+        INK[k] = sets[i][k] ?? authored(i, k);
+      }
+    },
+    reset: () => (sets = fresh()),
+    // Every set in full: the picked one as it shows now.
+    copy: () => ({ INK_PRESETS: sets.map((p, i) => Object.fromEntries(INK_COLORS.map((k) => [k, i === on ? INK[k] : (p[k] ?? authored(i, k))]))) }),
+  };
+}
+
 /** F3 sections for the Render tab: shaders, lights, light props, post. */
 export function renderSections(): Section[] {
   const sync = () => live.syncAtmosphere();
@@ -50,6 +83,7 @@ export function renderSections(): Section[] {
       id: 'shaders',
       title: 'Shaders',
       items: [
+        inkPresets(),
         c('paper', ['INK', 'paper']),
         c('ink', ['INK', 'ink']),
         c('sky', ['INK', 'sky']),
