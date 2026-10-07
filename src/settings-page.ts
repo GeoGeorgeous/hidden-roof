@@ -2,7 +2,7 @@ import type { SettingRow, SettingSection } from './settings';
 
 // The settings page of the pause menu: one tab per section (gameplay,
 // graphics, sound), each row a choice (< and > step to the previous and next
-// value) or a slider, with, for some, a short
+// value) or a slider with a gray tick at its default, with, for some, a short
 // description, a performance cost (LOW, MEDIUM, HIGH: green to red) and a
 // callout (recommendations). Values are read again whenever the page opens,
 // since the debug panel edits the same settings.
@@ -67,7 +67,7 @@ export class SettingsPage {
         row.set(+input.value);
         this.sync();
       });
-      line.append(input, out);
+      line.append(withDefaultTick(input, row.def, row.min, row.max), out);
       this.syncs.push(sync);
     }
     el.append(line);
@@ -76,6 +76,19 @@ export class SettingsPage {
     if (row.note) el.append(Object.assign(div('note'), { textContent: row.note }));
     return el;
   }
+}
+
+/** The slider over a gray tick at its default (none when that is off the scale); the debug panel's sliders too. */
+export function withDefaultTick(input: HTMLInputElement, d: unknown, min: number, max: number) {
+  const box = document.createElement('span');
+  box.className = 'slider';
+  if (typeof d === 'number' && d >= min && d <= max) {
+    const tick = document.createElement('i');
+    tick.style.setProperty('--at', String((d - min) / (max - min)));
+    box.append(tick);
+  }
+  box.append(input);
+  return box;
 }
 
 function div(className: string) {

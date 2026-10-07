@@ -676,12 +676,14 @@ body.paused .toast {
   color: var(--ui);
 }
 /* The slider over a gray tick at config.ts's value (the 3px thumb covers it there). */
-.debug-panel .slider {
+.debug-panel .slider,
+.settings-page .slider {
   position: relative;
   display: flex;
   align-items: center;
 }
-.debug-panel .slider i {
+.debug-panel .slider i,
+.settings-page .slider i {
   position: absolute;
   left: calc(1px + var(--at) * (100% - 3px));
   top: 50%;
@@ -691,7 +693,8 @@ body.paused .toast {
   background: rgba(235, 229, 214, 0.4);
   pointer-events: none;
 }
-.debug-panel .slider input {
+.debug-panel .slider input,
+.settings-page .slider input {
   position: relative;
 }
 .debug-panel b {

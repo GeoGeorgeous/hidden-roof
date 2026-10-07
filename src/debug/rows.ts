@@ -1,4 +1,5 @@
 import { defaultOf } from './defaults';
+import { withDefaultTick } from '../settings-page';
 import { hintFor, LABEL_HINTS } from './hints';
 import { getValue, isChanged, setValue, type Item, type When } from './tuning';
 
@@ -127,17 +128,4 @@ function control(it: Item, edited: () => void): Row {
 function grayOf(hex: string) {
   const n = parseInt(hex.slice(1), 16);
   return Math.round(((n >> 16) + ((n >> 8) & 255) + (n & 255)) / 3);
-}
-
-/** The slider over a gray tick at config.ts's value (none when that is off the scale). */
-function withDefaultTick(input: HTMLInputElement, d: unknown, min: number, max: number) {
-  const box = document.createElement('span');
-  box.className = 'slider';
-  if (typeof d === 'number' && d >= min && d <= max) {
-    const tick = document.createElement('i');
-    tick.style.setProperty('--at', String((d - min) / (max - min)));
-    box.append(tick);
-  }
-  box.append(input);
-  return box;
 }

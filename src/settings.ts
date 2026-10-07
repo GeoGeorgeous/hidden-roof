@@ -19,6 +19,9 @@ const PIXEL_SCALES = [1, 1.5, 2, 2.5, 3, 4];
 const FRAME_RATES = [0, 30, 60, 90, 120, 144];
 /** Mouse sensitivity is shown as a multiple of config's (1.00x). */
 const BASE_SENSITIVITY = PLAYER.mouseSensitivity;
+/** config's field of view and running boost: their sliders' default ticks. */
+const BASE_FOV = RENDER.fov;
+const BASE_RUN_FOV = RENDER.sprintFovBoost;
 const VOL_PRESETS = {
   off: { enabled: false, downscale: 2, steps: 16 },
   low: { enabled: true, downscale: 4, steps: 12 },
@@ -212,7 +215,8 @@ function nearest(list: number[], v: number) {
 }
 
 /**
- * A setting row: a choice stepped through with < and >, or a slider. `desc` is
+ * A setting row: a choice stepped through with < and >, or a slider (`def`: its
+ * default, marked on it). `desc` is
  * an optional line under it, `note` a callout (recommendations), `cost` how
  * much the setting can change how smoothly the game runs, whatever its value.
  */
@@ -220,7 +224,7 @@ type RowBase = { label: string; desc?: string; note?: string; cost?: Cost };
 type Cost = 'LOW' | 'MEDIUM' | 'HIGH';
 export type SettingRow =
   | (RowBase & { kind: 'choice'; value: () => string; step: (d: number) => void })
-  | (RowBase & { kind: 'range'; min: number; max: number; step: number; get: () => number; set: (v: number) => void; format: (v: number) => string });
+  | (RowBase & { kind: 'range'; min: number; max: number; step: number; def: number; get: () => number; set: (v: number) => void; format: (v: number) => string });
 export interface SettingSection {
   title: string;
   rows: SettingRow[];
@@ -239,11 +243,12 @@ function gameplayRows(): SettingRow[] {
       min: 0.25,
       max: 3,
       step: 0.05,
+      def: 1,
       get: () => PLAYER.mouseSensitivity / BASE_SENSITIVITY,
       set: (v) => (PLAYER.mouseSensitivity = v * BASE_SENSITIVITY),
       format: (v) => `${v.toFixed(2)}x`,
     },
-    { kind: 'range', label: 'FIELD OF VIEW', desc: 'How wide you see, in degrees.', min: 60, max: 110, step: 1, get: () => RENDER.fov, set: (v) => (RENDER.fov = v), format: (v) => `${v}°` },
+    { kind: 'range', label: 'FIELD OF VIEW', desc: 'How wide you see, in degrees.', min: 60, max: 110, step: 1, def: BASE_FOV, get: () => RENDER.fov, set: (v) => (RENDER.fov = v), format: (v) => `${v}°` },
     {
       kind: 'range',
       label: 'RUN FOV',
@@ -251,6 +256,7 @@ function gameplayRows(): SettingRow[] {
       min: 0,
       max: 15,
       step: 1,
+      def: BASE_RUN_FOV,
       get: () => RENDER.sprintFovBoost,
       set: (v) => (RENDER.sprintFovBoost = v),
       format: (v) => (v ? `+${v}°` : 'OFF'),
@@ -285,6 +291,7 @@ function soundRows(): SettingRow[] {
     min: 0,
     max: 200,
     step: 5,
+    def: 100,
     get: () => Math.round((AUDIO[key] / SOUND_DEFAULTS[key]) * 100),
     set: (v: number) => (AUDIO[key] = (SOUND_DEFAULTS[key] * v) / 100),
     format: (v: number) => `${v}%`,
