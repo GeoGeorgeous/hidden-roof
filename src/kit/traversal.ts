@@ -1,4 +1,4 @@
-import { withVariants, type PropDef, type Variant } from './def';
+import { withVariants, type Variant } from './def';
 import { M, Parts, type V3 } from './pieces';
 
 // Ways across and down: a plank bridge over the gap between two roofs, and a
@@ -57,69 +57,69 @@ function beamZ(p: Parts, x: number, z0: number, z1: number, y: number) {
 }
 
 /**
- * Window cleaner's gondola hanging `adjust` m (set with [ ]) below the roof
- * it is placed on. On the roof: two outrigger beams on four legs, reaching
+ * Window cleaner's gondola, its cradle `drop` m below the roof it is placed
+ * on (hanging: set with [ ]; raised: up at the top). On the roof: two outrigger beams on four legs, reaching
  * 1.1 m out over the edge (and over a parapet), counterweights on their back
  * ends, a winch between them. Two cables run from sheaves at the beam tips down
  * to stirrups on the cradle: a 2 m deck with railings, the wall side lower.
  */
-export const gondola: PropDef = {
-  type: 'gondola',
-  label: 'Gondola',
-  category: 'scaffold',
-  place: 'floor',
-  snap: 0.5,
-  adjust: { label: 'DROP', unit: ' M', min: 2, max: 24, step: 1, initial: () => 4 },
-  build({ adjust: drop }) {
-    const p = new Parts();
-    const by = 1.65; // beam top: clear over a parapet
-    const tip = -1.1;
-    const back = 3;
-    const cz = -0.95; // cables and cradle center line
-    for (const x of [-0.85, 0.85]) {
-      beamZ(p, x, tip, back, by);
-      for (const z of [0.6, 2.6]) {
-        p.detail([x - 0.05, 0.03, z - 0.05], [x + 0.05, by - 0.24, z + 0.05], M.steel);
-        p.detail([x - 0.15, 0, z - 0.15], [x + 0.15, 0.03, z + 0.15], M.steel);
-      }
-      // Sheave under the tip.
-      p.cyl([x - 0.04, by - 0.36, cz], 'x', 0.08, 0.1, M.metal, { paint: false, collide: false, seg: 12 });
+function gondolaAt(drop: number) {
+  const p = new Parts();
+  const by = 1.65; // beam top: clear over a parapet
+  const tip = -1.1;
+  const back = 3;
+  const cz = -0.95; // cables and cradle center line
+  for (const x of [-0.85, 0.85]) {
+    beamZ(p, x, tip, back, by);
+    for (const z of [0.6, 2.6]) {
+      p.detail([x - 0.05, 0.03, z - 0.05], [x + 0.05, by - 0.24, z + 0.05], M.steel);
+      p.detail([x - 0.15, 0, z - 0.15], [x + 0.15, 0.03, z + 0.15], M.steel);
     }
-    for (const z of [0.6, 2.6]) p.detail([-0.78, by - 0.2, z - 0.05], [0.78, by - 0.06, z + 0.05], M.steel);
-    p.detail([-0.78, by - 0.2, tip], [0.78, by - 0.06, tip + 0.1], M.steel);
-    // Counterweights on a plate over the back ends.
-    p.detail([-0.95, by, 2.35], [0.95, by + 0.02, 2.95], M.steel, false);
-    for (let i = 0; i < 3; i++) {
-      const skip = [...(i < 2 ? ['+y' as const] : []), ...(i > 0 ? ['-y' as const] : [])];
-      p.box([-0.9, by + 0.02 + i * 0.2, 2.4], [0.9, by + 0.22 + i * 0.2, 2.9], M.concrete, { paint: true, skip });
-    }
-    // Winch on the roof between the beams; its cables run up to the beams and out along them.
-    p.box([-0.45, 0, 1.3], [0.45, 0.35, 1.9], M.metal, { paint: true });
-    p.cyl([-0.4, 0.55, 1.6], 'x', 0.8, 0.18, M.steel, { paint: false, seg: 16 });
-    for (const x of [-0.42, 0.42]) p.detail([x - 0.02, 0.35, 1.5], [x + 0.02, 0.75, 1.7], M.steel, false);
-    for (const s of [-1, 1]) {
-      const x = s * 0.85;
-      p.rod([s * 0.35, 0.72, 1.6], [x, by - 0.3, 0.6], 0.008, M.cable);
-      p.rod([x, by - 0.3, 0.6], [x, by - 0.3, cz + 0.1], 0.008, M.cable);
-    }
-    // Cradle.
-    const d = -drop;
-    const z0 = cz - 0.35;
-    const z1 = cz + 0.35;
-    p.box([-1, d - 0.06, z0], [1, d, z1], M.metal, { paint: true });
-    p.box([-1, d, z0 - 0.02], [1, d + 0.2, z0], M.metal, { paint: true });
-    p.railing([-0.97, z0 + 0.03], [0.97, z0 + 0.03], d);
-    for (const x of [-0.97, 0.97]) p.railing([x, z0 + 0.09], [x, z1 - 0.09], d);
-    // Wall side: a knee-high rail between the ends, so you can climb in.
-    p.detail([-0.94, d + 0.6, z1 - 0.06], [0.94, d + 0.64, z1 - 0.02], M.steel);
-    for (const x of [-0.6, 0.6]) p.cyl([x, d + 0.15, z1], 'z', 0.12, 0.06, M.dark, { paint: false, collide: false, seg: 8 });
-    // Stirrups at the ends hold the cables.
-    for (const s of [-1, 1]) {
-      const x = s * 0.85;
-      p.rod([x, d, z0 + 0.05], [x, d + 1.9, cz], 0.025, M.steel);
-      p.rod([x, d, z1 - 0.05], [x, d + 1.9, cz], 0.025, M.steel);
-      p.rod([x, d + 1.9, cz], [x, by - 0.46, cz], 0.008, M.cable);
-    }
-    return p.list;
-  },
-};
+    // Sheave under the tip.
+    p.cyl([x - 0.04, by - 0.36, cz], 'x', 0.08, 0.1, M.metal, { paint: false, collide: false, seg: 12 });
+  }
+  for (const z of [0.6, 2.6]) p.detail([-0.78, by - 0.2, z - 0.05], [0.78, by - 0.06, z + 0.05], M.steel);
+  p.detail([-0.78, by - 0.2, tip], [0.78, by - 0.06, tip + 0.1], M.steel);
+  // Counterweights on a plate over the back ends.
+  p.detail([-0.95, by, 2.35], [0.95, by + 0.02, 2.95], M.steel, false);
+  for (let i = 0; i < 3; i++) {
+    const skip = [...(i < 2 ? ['+y' as const] : []), ...(i > 0 ? ['-y' as const] : [])];
+    p.box([-0.9, by + 0.02 + i * 0.2, 2.4], [0.9, by + 0.22 + i * 0.2, 2.9], M.concrete, { paint: true, skip });
+  }
+  // Winch on the roof between the beams; its cables run up to the beams and out along them.
+  p.box([-0.45, 0, 1.3], [0.45, 0.35, 1.9], M.metal, { paint: true });
+  p.cyl([-0.4, 0.55, 1.6], 'x', 0.8, 0.18, M.steel, { paint: false, seg: 16 });
+  for (const x of [-0.42, 0.42]) p.detail([x - 0.02, 0.35, 1.5], [x + 0.02, 0.75, 1.7], M.steel, false);
+  for (const s of [-1, 1]) {
+    const x = s * 0.85;
+    p.rod([s * 0.35, 0.72, 1.6], [x, by - 0.3, 0.6], 0.008, M.cable);
+    p.rod([x, by - 0.3, 0.6], [x, by - 0.3, cz + 0.1], 0.008, M.cable);
+  }
+  // Cradle.
+  const d = -drop;
+  const z0 = cz - 0.35;
+  const z1 = cz + 0.35;
+  p.box([-1, d - 0.06, z0], [1, d, z1], M.metal, { paint: true });
+  p.box([-1, d, z0 - 0.02], [1, d + 0.2, z0], M.metal, { paint: true });
+  p.railing([-0.97, z0 + 0.03], [0.97, z0 + 0.03], d);
+  for (const x of [-0.97, 0.97]) p.railing([x, z0 + 0.09], [x, z1 - 0.09], d);
+  // Wall side: a knee-high rail between the ends, so you can climb in.
+  p.detail([-0.94, d + 0.6, z1 - 0.06], [0.94, d + 0.64, z1 - 0.02], M.steel);
+  for (const x of [-0.6, 0.6]) p.cyl([x, d + 0.15, z1], 'z', 0.12, 0.06, M.dark, { paint: false, collide: false, seg: 8 });
+  // Stirrups at the ends hold the cables.
+  for (const s of [-1, 1]) {
+    const x = s * 0.85;
+    p.rod([x, d, z0 + 0.05], [x, d + 1.9, cz], 0.025, M.steel);
+    p.rod([x, d, z1 - 0.05], [x, d + 1.9, cz], 0.025, M.steel);
+    p.rod([x, d + 1.9, cz], [x, by - 0.46, cz], 0.008, M.cable);
+  }
+  return p.list;
+}
+
+/** Raised: the cradle pulled up until its stirrups meet the sheaves, its deck 0.75 m below the roof's edge (step down into it). */
+const RAISED = 0.75;
+
+export const gondola = withVariants({ type: 'gondola', label: 'Gondola', category: 'scaffold', place: 'floor', snap: 0.5 }, [
+  { id: 'hanging', label: 'hanging', adjust: { label: 'DROP', unit: ' M', min: 2, max: 24, step: 1, initial: () => 4 }, build: ({ adjust }) => gondolaAt(adjust) },
+  { id: 'raised', label: 'raised', build: () => gondolaAt(RAISED) },
+]);
