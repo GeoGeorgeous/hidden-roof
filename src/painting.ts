@@ -58,6 +58,8 @@ export class PaintSystem {
   epoch = 0;
   /** While set, every stamp and roll that paints is appended as an op (paint-ops.ts). */
   log: PaintOp[] | null = null;
+  /** Ops made so far (stamps, rolls, runs), logged or not: what saves and the network carry (F3). */
+  opCount = 0;
   /** Called when heavy paint on a vertical face should start a run (see paint-drips.ts). */
   onDrip: (s: PaintSurface, rect: Rect, x: number, y: number, rgb: Rgb) => void = () => {};
   private raster = new PaintRaster<PaintSurface>({
@@ -182,6 +184,7 @@ export class PaintSystem {
     square = false,
   ) {
     if (!this.live(s)) return;
+    this.opCount++;
     this.log?.push({ kind: 'stamp', key: s.key, rect: at.rect, u: at.u, v: at.v, radius, amount, color, softness, square });
     const rect = faceTexel(s, at);
     const { x: cx, y: cy } = atTexel;
@@ -213,6 +216,7 @@ export class PaintSystem {
     drip = 0,
   ) {
     if (!this.live(s)) return;
+    this.opCount++;
     this.log?.push({ kind: 'roll', key: s.key, rect: at.rect, u: at.u, v: at.v, axis: axis.toArray(), halfLength, halfWidth, edge, amount, color });
     const rect = faceTexel(s, at);
     const { x: cx, y: cy } = atTexel;

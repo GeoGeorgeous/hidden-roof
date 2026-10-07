@@ -43,6 +43,7 @@ export class PaintDrips {
     const length = DRIPS.minLength + paintRandom.drips() * (DRIPS.maxLength - DRIPS.minLength);
     if (Math.max(rect.y, y - length * PAINT.texelsPerMeter) >= y - 1) return;
     const op: DripOp = { kind: 'drip', key: s.key, rect: s.geo.rects.indexOf(rect), u: (x + 0.5 - rect.x) / rect.w, v: (y + 0.5 - rect.y) / rect.h, length, speed: DRIPS.speed * (0.6 + 0.8 * paintRandom.drips()), rgb };
+    this.paint.opCount++;
     this.paint.log?.push(op);
     this.run(s, op);
   }

@@ -331,5 +331,6 @@ export const LABEL_HINTS: Record<string, string> = {
   'tex memory': 'Memory used by paint textures.',
   uploads: 'Paint rects uploaded to the GPU this frame (only what changed: a few rects per texture, PAINT.dirtyRects, one call each).',
   particles: 'Spray particles in flight.',
+  'paint ops / s': 'Stamps, roller presses and paint runs made per second (last second). Each one goes into paint saves and, in a session, over the network: tighter stroke spacing makes more.',
   'paint runs': 'Paint runs moving right now.',
 };

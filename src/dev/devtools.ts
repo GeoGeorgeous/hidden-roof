@@ -77,6 +77,8 @@ export class DevTools {
   private ghost: Ghost;
   /** The game had the mouse when the panel opened: closing it goes back. */
   private resumeOnClose = false;
+  /** Paint ops per second: counted over a second at a time. */
+  private opsFrom = { count: 0, time: 0 };
 
   constructor(private g: DevContext) {
     this.build = new BuildMode(g.scene, g.level, g.pickups, g.player);
@@ -182,6 +184,11 @@ export class DevTools {
       bakePending: g.baker.stats.pending,
       bakeMs: g.baker.stats.ms,
     });
+    const now = performance.now();
+    if (now - this.opsFrom.time >= 1000) {
+      live.stats.paintOps = ((g.paint.opCount - this.opsFrom.count) * 1000) / (now - this.opsFrom.time);
+      this.opsFrom = { count: g.paint.opCount, time: now };
+    }
     const p = g.player;
     live.player = { position: p.position, velocity: p.velocity, state: p.fly ? 'flying' : p.onLadder ? 'on ladder' : p.crouched ? 'crouched' : p.onGround ? 'grounded' : 'airborne' };
     this.debug.update();
