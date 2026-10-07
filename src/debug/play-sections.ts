@@ -1,4 +1,4 @@
-import { CAP_ORDER, CAPS, HOLD } from '../config';
+import { CAP_ORDER, CAPS, HOLD, PICKUP } from '../config';
 import { live, r, t, c, gray, v3, type Item, type Section } from './tuning';
 import { POSE_COUNT } from '../dev/avatar-preview';
 
@@ -15,6 +15,17 @@ function capItems(): Item[] {
     { kind: 'color', label: 'cap color', path: ['CAPS', c, 'color'] } as Item,
     r('crosshair (px)', ['CAPS', c, 'crosshair'], 2, 60, 1),
     r('runs (x paint runs per m²)', ['CAPS', c, 'drips'], 0, 40, 0.5),
+  ]);
+}
+
+/** Every kind's world pickup (PICKUP.models): one heading each, same sliders for each. */
+function pickupItems(): Item[] {
+  const label = { can: 'COLOR CAN' } as Record<string, string>;
+  return (Object.keys(PICKUP.models) as (keyof typeof PICKUP.models)[]).flatMap((k) => [
+    { kind: 'heading', label: label[k] ?? k.toUpperCase() } as Item,
+    r('size', ['PICKUP', 'models', k, 'size'], 0.2, 4, 0.05),
+    ...v3('offset (m)', ['PICKUP', 'models', k, 'offset'], -0.5, 0.5, 0.01),
+    ...v3('rotation (rad)', ['PICKUP', 'models', k, 'rotation'], -3.14, 3.14, 0.01),
   ]);
 }
 
@@ -70,6 +81,7 @@ export function playSections(): Section[] {
         r('hover height', ['PICKUP', 'hover'], 0, 2, 0.05),
         r('spin speed', ['PICKUP', 'spin'], 0, 6, 0.1),
         r('bob', ['PICKUP', 'bob'], 0, 0.5, 0.01),
+        ...pickupItems(),
       ],
     },
     {
@@ -231,10 +243,6 @@ export function playSections(): Section[] {
         r('pore size (m)', ['SPONGE', 'model', 'poreSize'], 0.001, 0.02, 0.001, sponge),
         c('soft part', ['SPONGE', 'model', 'soft'], sponge),
         c('scouring pad', ['SPONGE', 'model', 'pad'], sponge),
-        { kind: 'heading', label: 'SPONGE PICKUP' },
-        r('size', ['SPONGE', 'pickup', 'scale'], 0.3, 4, 0.05, sponge),
-        ...v3('offset (m)', ['SPONGE', 'pickup', 'offset'], -0.5, 0.5, 0.01, sponge),
-        ...v3('rotation (rad)', ['SPONGE', 'pickup', 'rotation'], -3.14, 3.14, 0.01, sponge),
         { kind: 'heading', label: 'PAINT RUNS' },
         t('runs', ['DRIPS', 'enabled']),
         r('excess before a run (coats)', ['DRIPS', 'excess'], 0.5, 10, 0.1),

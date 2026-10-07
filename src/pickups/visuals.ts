@@ -72,12 +72,10 @@ export function itemModel(kind: PickupKind): THREE.Group {
     }
     g.scale.setScalar(1.6);
   } else if (k === 'sponge') {
-    // The sponge, posed by SPONGE.pickup.
-    const p = SPONGE.pickup;
+    // The sponge, turned to show its pad.
     const b = spongeShape(basic(SPONGE.model.soft), basic(SPONGE.model.pad));
-    b.position.set(...p.offset);
-    b.rotation.set(...p.rotation);
-    b.scale.setScalar(p.scale);
+    b.rotation.set(0.3, 0.4, 0);
+    b.scale.setScalar(1.6);
     g.add(b);
   } else if (k === 'roller') {
     // A wide graffiti roller: a long fat cover on a bent wire frame and a short pole.

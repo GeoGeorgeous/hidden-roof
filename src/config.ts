@@ -444,8 +444,6 @@ export const SPONGE = {
   },
   /** Height of the sponge in the hand's frame (m): up where the can's grip is, so the arm matches the can's. */
   gripHeight: 0.0,
-  /** The world pickup: the same model, at this scale, offset (m) and rotation (radians) above its spot. */
-  pickup: { scale: 1.6, offset: [0, 0, 0] as [number, number, number], rotation: [0.3, 0.4, 0] as [number, number, number] },
 };
 
 /** First-person hands + held tool: sway, bob and the trigger press. */
@@ -555,12 +553,18 @@ export const DRIPS = {
   strength: 0.85,
 };
 
+type V3 = [number, number, number];
+/** A pickup's pose on top of its model: size multiplier, offset (m) and rotation (radians). */
+const pickupPose = () => ({ size: 1, offset: [0, 0, 0] as V3, rotation: [0, 0, 0] as V3 });
+
 export const PICKUP = {
   /** Horizontal pickup radius around the player. */
   radius: 0.9,
   hover: 0.75,
   spin: 1.4,
   bob: 0.08,
+  /** Each kind's world pickup (not its hotbar icon or the avatar's tool); color unlocks are `can`s. */
+  models: { can: pickupPose(), cap: pickupPose(), marker: pickupPose(), ladder: pickupPose(), roller: pickupPose(), sponge: pickupPose() },
 };
 
 export const SPRAY = {

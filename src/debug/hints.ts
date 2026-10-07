@@ -20,6 +20,9 @@ const HINTS: Record<string, string> = {
   'PICKUP.hover': 'How high pickups float above the ground (m).',
   'PICKUP.spin': 'Pickup spin speed (rad/s).',
   'PICKUP.bob': 'How far pickups bob up and down (m).',
+  'PICKUP.models.*.size': 'Size of this kind of pickup in the world, x its model (not the hotbar icon or the avatar\'s tool).',
+  'PICKUP.models.*.offset': 'Moves this kind of pickup from where it hovers (m).',
+  'PICKUP.models.*.rotation': 'Turns this kind of pickup (radians), before its spin.',
   // Camera
   'PLAYER.eyeHeight': 'Camera height above the feet when standing (m).',
   'PLAYER.crouchEyeHeight': 'Camera height above the feet when crouched (m).',
@@ -96,9 +99,6 @@ const HINTS: Record<string, string> = {
   'SPONGE.model.poreSize': 'Size of a pore (m).',
   'SPONGE.model.soft': 'Soft part color before the ink (lighter = more paper).',
   'SPONGE.model.pad': 'Scouring pad color before the ink (darker = more ink).',
-  'SPONGE.pickup.scale': 'Size of the sponge pickup in the world.',
-  'SPONGE.pickup.offset': 'Sponge pickup offset from its spot (m).',
-  'SPONGE.pickup.rotation': 'Sponge pickup rotation (radians).',
   'MARKER.strength': 'Marker line opacity per stroke.',
   'HOLD.*.distance': 'How far in front of the eye the tool is held (m). Its spot on screen stays put.',
   'HOLD.*.x': 'Right (+) or left (-) of the view center, per meter of distance.',
@@ -292,7 +292,11 @@ export function hintFor(path: string[]): string | undefined {
   }
   const exact = HINTS[keys.join('.')];
   if (exact) return exact;
-  if (keys.length >= 3) return HINTS[[keys[0], '*', ...keys.slice(2)].join('.')];
+  // A name in the middle may be `*` (CAPS.*.strength, PICKUP.models.*.size).
+  for (let i = 1; i < keys.length - 1; i++) {
+    const h = HINTS[[...keys.slice(0, i), '*', ...keys.slice(i + 1)].join('.')];
+    if (h) return h;
+  }
   return undefined;
 }
 
