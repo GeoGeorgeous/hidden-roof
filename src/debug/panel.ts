@@ -1,4 +1,5 @@
 import { icon, sectionIcon } from './icons';
+import { modelSections, paintSections } from './paint-sections';
 import { playSections } from './play-sections';
 import { itemRow, type Row } from './rows';
 import { isChanged, isValue, resetItems, sectionsJSON, splitSections, type Section } from './tuning';
@@ -19,8 +20,9 @@ const CONFIRM_SECONDS = 2;
 /** The groups (authored sections, by id) on each tab; a group not listed goes on the last tab. */
 const TABS = [
   { id: 'player', title: 'Player', groups: ['movement', 'camera', 'hands', 'held', 'avatar'] },
-  { id: 'paint', title: 'Paint', groups: ['painting', 'pressure'] },
+  { id: 'paint', title: 'Paint', groups: ['painting', 'caps', 'runs', 'pressure', 'cursor'] },
   { id: 'collectables', title: 'Collectables', groups: ['pickups'] },
+  { id: 'models', title: 'Models', groups: ['sponge'] },
   { id: 'look', title: 'Look', groups: ['ink', 'lights', 'post'] },
   { id: 'world', title: 'World', groups: ['weather', 'props', 'city', 'sound', 'daylight'] },
   { id: 'test', title: 'Test', groups: ['performance', 'ghost'] },
@@ -52,7 +54,7 @@ export class DebugPanel {
   private openIds: Set<string>;
 
   constructor() {
-    this.list = splitSections([...playSections(), ...worldSections()]);
+    this.list = splitSections([...playSections(), ...paintSections(), ...modelSections(), ...worldSections()]);
     this.openIds = loadOpen() ?? new Set(this.list.filter((s) => s.open).map((s) => s.id));
     this.root = el('div', 'debug-panel');
     this.root.hidden = true;

@@ -4,6 +4,8 @@
 
 const CUBE = '<path d="M5 .5 9 2.8v4.4L5 9.5 1 7.2V2.8zM1 2.8l4 2.3 4-2.3M5 5.1v4.4"/>';
 const HAND = '<path d="M2.5 9.5V4a1 1 0 0 1 2 0V2a1 1 0 0 1 2 0v2.5a1 1 0 0 1 2 0V7a2.5 2.5 0 0 1-2.5 2.5z"/>';
+const CAP = '<path d="M.5 5h2M2.5 3.5h2v3h-2zM5.5 4 9 2M5.5 5h3.5M5.5 6 9 8"/>';
+const CROSSHAIR = '<circle cx="5" cy="5" r="2.5"/><path d="M5 .5v2M5 7.5v2M.5 5h2M7.5 5h2"/>';
 const CAN = '<path d="M2.5 4h4v5.5h-4zM3.5 4V2.5h2V4M7.5 1.5l1.5-.8M7.5 2.8h1.7M7.5 4.1l1.5.8"/>';
 
 const ICONS: Record<string, string> = {
@@ -13,12 +15,15 @@ const ICONS: Record<string, string> = {
   look: '<path d="M.5 5C1.8 2.8 3.3 1.8 5 1.8S8.2 2.8 9.5 5C8.2 7.2 6.7 8.2 5 8.2S1.8 7.2.5 5z"/><circle cx="5" cy="5" r="1.4"/>',
   world: '<circle cx="5" cy="5" r="4.5"/><path d="M.5 5h9M5 .5c-2.4 2.6-2.4 6.4 0 9M5 .5c2.4 2.6 2.4 6.4 0 9"/>',
   collectables: CUBE,
+  models: '<path d="M5 .5 9.5 3 5 5.5.5 3zM.5 5 5 7.5 9.5 5M.5 7 5 9.5 9.5 7"/>',
   test: '<path d="M3.5.5h3M4 .5v3.2L1.2 8.6a.6.6 0 0 0 .5.9h6.6a.6.6 0 0 0 .5-.9L6 3.7V.5M2.6 6.5h4.8"/>',
   // Groups
   movement: '<path d="M1.5 2l3 3-3 3M5.5 2l3 3-3 3"/>',
   camera: '<path d="M.5 2.5h6v5h-6zM6.5 4.3 9.5 3v4L6.5 5.7"/>',
   avatar: '<circle cx="5" cy="1.8" r="1.3"/><path d="M5 3.1v3.2M2.5 4.5h5M5 6.3 3.3 9.5M5 6.3l1.7 3.2"/>',
   pickups: CUBE,
+  caps: CAP,
+  cursor: CROSSHAIR,
   hands: HAND,
   held: CAN,
   painting: CAN,
@@ -42,7 +47,7 @@ const ICONS: Record<string, string> = {
   roller: '<path d="M1.5 1h6.5v2.5H1.5zM8 2.2h1.3v3H5.2v1.3M4.6 6.5h1.2v3H4.6z"/>',
   sponge: '<path d="M.5 3h9v4.5h-9z"/><path class="dot" d="M2.5 4.8h0M4.5 5.8h0M6 4.6h0M7.8 5.6h0"/>',
   runs: '<path d="M.5 1.5h9M2.5 1.5v4M5 1.5V8M7.5 1.5V4"/>',
-  cap: '<path d="M.5 5h2M2.5 3.5h2v3h-2zM5.5 4 9 2M5.5 5h3.5M5.5 6 9 8"/>',
+  cap: CAP,
   lightning: '<path d="M6 .5 2 5.5h3l-1 4 4-5H5z"/>',
   cctv: '<path d="M.8 2.2 7.5 4l-.7 2.5L.5 4.7zM5.6 6.2 5 8.5H2M2 7v2.5"/>',
   smoke: '<path d="M3 9.5C1.5 8 4.5 6.5 3 5S3 2 4.5.5M6.5 9.5C5 8 8 6.5 6.5 5S6.5 2 8 .5"/>',
@@ -52,7 +57,7 @@ const ICONS: Record<string, string> = {
   beams: '<path d="M5 .5 1 9.5M5 .5v9M5 .5l4 9"/>',
   grade: '<circle cx="5" cy="5" r="4.5"/><path class="f" d="M5 .5a4.5 4.5 0 0 1 0 9z"/>',
   vignette: '<path d="M.5 1.5h9v7h-9z"/><circle cx="5" cy="5" r="2"/>',
-  hud: '<circle cx="5" cy="5" r="2.5"/><path d="M5 .5v2M5 7.5v2M.5 5h2M7.5 5h2"/>',
+  hud: CROSSHAIR,
   page: '<path d="M2 .5h4l2.5 2.5v6.5H2zM6 .5V3h2.5"/>',
   tones: '<path d="M.5 .5h4v4h-4zM5.5 5.5h4v4h-4z"/><path class="f" d="M5.5.5h4v4h-4z"/>',
 };
@@ -62,13 +67,15 @@ const SECTIONS: [RegExp, string][] = [
   [/^sponge pickup|^pickups/, 'pickup'],
   [/^sponge/, 'sponge'],
   [/hand/, 'hand'],
-  [/^can$/, 'can'],
+  [/^(color )?can$/, 'can'],
+  [/^cap$/, 'cap'],
   [/^ladder$/, 'ladder'],
   [/^marker/, 'marker'],
   [/^roller/, 'roller'],
   [/^paint runs/, 'runs'],
   [/^paint/, 'paint'],
-  [/^cap ·/, 'cap'],
+  [/^(skinny|standard|fat|spray)$/, 'cap'],
+  [/^amount/, 'runs'],
   [/^lightning/, 'lightning'],
   [/^cctv/, 'cctv'],
   [/^smoke/, 'smoke'],

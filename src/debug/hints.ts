@@ -100,6 +100,7 @@ const HINTS: Record<string, string> = {
   'SPONGE.model.soft': 'Soft part color before the ink (lighter = more paper).',
   'SPONGE.model.pad': 'Scouring pad color before the ink (darker = more ink).',
   'MARKER.strength': 'Marker line opacity per stroke.',
+  'CROSSHAIR.plain': 'Crosshair with no sized tool in hand: the stepladder, empty hands, build mode (px).',
   'HOLD.*.distance': 'How far in front of the eye the tool is held (m). Its spot on screen stays put.',
   'HOLD.*.x': 'Right (+) or left (-) of the view center, per meter of distance.',
   'HOLD.*.y': 'Up (+) or down (-) from the view center, per meter of distance.',

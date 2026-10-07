@@ -1,22 +1,8 @@
-import { CAP_ORDER, CAPS, HOLD, PICKUP } from '../config';
-import { live, r, t, c, gray, v3, type Item, type Section } from './tuning';
+import { HOLD, PICKUP } from '../config';
+import { live, r, t, gray, v3, type Item, type Section } from './tuning';
 import { POSE_COUNT } from '../dev/avatar-preview';
 
 // F3 panel contents for playing (tuning.ts has the helpers).
-
-function capItems(): Item[] {
-  return CAP_ORDER.flatMap((c) => [
-    { kind: 'heading', label: `CAP · ${CAPS[c].name}` } as Item,
-    r('opacity per hit', ['CAPS', c, 'strength'], 0.02, 1, 0.01),
-    r('dot radius (m)', ['CAPS', c, 'stampRadius'], 0, 0.2, 0.001),
-    r('edge softness', ['CAPS', c, 'softness'], 0, 1, 0.05),
-    r('particle rate', ['CAPS', c, 'rate'], 50, 2000, 10),
-    r('spread', ['CAPS', c, 'coneAngle'], 0.005, 0.3, 0.005),
-    { kind: 'color', label: 'cap color', path: ['CAPS', c, 'color'] } as Item,
-    r('crosshair (px)', ['CAPS', c, 'crosshair'], 2, 60, 1),
-    r('runs (x paint runs per m²)', ['CAPS', c, 'drips'], 0, 40, 0.5),
-  ]);
-}
 
 /** Every kind's world pickup (PICKUP.models): one heading each, same sliders for each. */
 function pickupItems(): Item[] {
@@ -44,9 +30,8 @@ function holdItems(): Item[] {
 }
 
 
-/** F3 sections for playing: movement, camera, painting, pressure. */
+/** F3 sections for playing: movement, pickups, camera, hands, held, avatar, ghost. */
 export function playSections(): Section[] {
-  const sponge = () => live.rebuildSponge();
   const p = () => live.player;
   const net = () => live.ghostNet();
   const v2 = (x: number, y: number) => Math.hypot(x, y).toFixed(2);
@@ -191,82 +176,6 @@ export function playSections(): Section[] {
       id: 'held',
       title: 'Held',
       items: holdItems(),
-    },
-    {
-      id: 'painting',
-      title: 'Painting',
-      items: [
-        r('reach (m)', ['SPRAY', 'reach'], 1, 8, 0.1),
-        r('full strength up to (m)', ['SPRAY', 'falloffStart'], 0, 8, 0.1),
-        r('particle speed', ['SPRAY', 'particleSpeed'], 2, 40, 0.5),
-        r('alpha steps (0 = smooth)', ['PAINT', 'alphaSteps'], 0, 12, 1),
-        { kind: 'heading', label: 'MARKER' },
-        r('reach', ['MARKER', 'reach'], 0.5, 4, 0.1),
-        r('starting width (m, 0 = one texel)', ['MARKER', 'width'], 0, 0.4, 0.002, () => live.applyToolSizes()),
-        r('wheel: min width (m)', ['MARKER', 'widthMin'], 0, 0.4, 0.002),
-        r('wheel: max width (m)', ['MARKER', 'widthMax'], 0, 0.4, 0.002),
-        r('wheel: step (m)', ['MARKER', 'widthStep'], 0.002, 0.1, 0.002),
-        r('crosshair (px)', ['MARKER', 'crosshair'], 0, 30, 1),
-        r('crosshair px per m of width', ['MARKER', 'crosshairPerMeter'], 0, 1000, 5),
-        r('runs (x paint runs per m²)', ['MARKER', 'drips'], 0, 40, 0.5),
-        r('line opacity', ['MARKER', 'strength'], 0.05, 1, 0.01),
-        { kind: 'heading', label: 'ROLLER' },
-        r('reach', ['ROLLER', 'reach'], 0.5, 5, 0.1),
-        r('starting width (m)', ['ROLLER', 'width'], 0.1, 1.2, 0.02, () => live.applyToolSizes()),
-        r('wheel: min width (m)', ['ROLLER', 'widthMin'], 0.1, 1.2, 0.02),
-        r('wheel: max width (m)', ['ROLLER', 'widthMax'], 0.1, 1.2, 0.02),
-        r('wheel: step (m)', ['ROLLER', 'widthStep'], 0.01, 0.3, 0.01),
-        r('press half-depth (m)', ['ROLLER', 'halfDepth'], 0.005, 0.15, 0.005),
-        r('light ends (fraction)', ['ROLLER', 'edge'], 0, 0.5, 0.01),
-        r('opacity', ['ROLLER', 'strength'], 0.05, 1, 0.01),
-        r('crosshair (px)', ['ROLLER', 'crosshair'], 0, 60, 1),
-        r('crosshair px per m of width', ['ROLLER', 'crosshairPerMeter'], 0, 200, 5),
-        r('runs (x paint runs per m²)', ['ROLLER', 'drips'], 0, 40, 0.5),
-        { kind: 'heading', label: 'SPONGE' },
-        r('reach', ['SPONGE', 'reach'], 0.5, 4, 0.1),
-        r('starting width (m)', ['SPONGE', 'width'], 0.02, 0.8, 0.01, () => live.applyToolSizes()),
-        r('cleans per pass', ['SPONGE', 'strength'], 0.01, 1, 0.01),
-        r('softness', ['SPONGE', 'softness'], 0, 1, 0.05),
-        r('wheel: min width (m)', ['SPONGE', 'widthMin'], 0.01, 0.8, 0.01),
-        r('wheel: max width (m)', ['SPONGE', 'widthMax'], 0.01, 0.8, 0.01),
-        r('wheel: step (m)', ['SPONGE', 'widthStep'], 0.002, 0.2, 0.002),
-        r('crosshair (px)', ['SPONGE', 'crosshair'], 0, 60, 1),
-        r('crosshair px per m of width', ['SPONGE', 'crosshairPerMeter'], 0, 500, 5),
-        r('scrub circle (m)', ['SPONGE', 'scrubSize'], 0, 0.05, 0.001),
-        r('scrub speed (turns/s)', ['SPONGE', 'scrubSpeed'], 0, 12, 0.1),
-        { kind: 'heading', label: 'SPONGE MODEL' },
-        r('width (m)', ['SPONGE', 'model', 'width'], 0.03, 0.25, 0.005, sponge),
-        r('height (m)', ['SPONGE', 'model', 'height'], 0.02, 0.2, 0.005, sponge),
-        r('depth (m)', ['SPONGE', 'model', 'depth'], 0.01, 0.1, 0.002, sponge),
-        r('scouring pad (m)', ['SPONGE', 'model', 'padDepth'], 0, 0.04, 0.001, sponge),
-        r('pores', ['SPONGE', 'model', 'pores'], 0, 40, 1, sponge),
-        r('pore size (m)', ['SPONGE', 'model', 'poreSize'], 0.001, 0.02, 0.001, sponge),
-        c('soft part', ['SPONGE', 'model', 'soft'], sponge),
-        c('scouring pad', ['SPONGE', 'model', 'pad'], sponge),
-        { kind: 'heading', label: 'PAINT RUNS' },
-        t('runs', ['DRIPS', 'enabled']),
-        r('excess before a run (coats)', ['DRIPS', 'excess'], 0.5, 10, 0.1),
-        r('runs per m² at the limit', ['DRIPS', 'perSquareMeter'], 0, 200, 1),
-        r('max at once', ['DRIPS', 'maxActive'], 0, 200, 1),
-        r('min length (m)', ['DRIPS', 'minLength'], 0.02, 1, 0.01),
-        r('max length (m)', ['DRIPS', 'maxLength'], 0.02, 1.5, 0.01),
-        r('speed (m/s)', ['DRIPS', 'speed'], 0.01, 1, 0.01),
-        r('opacity', ['DRIPS', 'strength'], 0.1, 1, 0.05),
-        ...capItems(),
-      ],
-    },
-    {
-      id: 'pressure',
-      title: 'Pressure',
-      items: [
-        r('drain / s', ['PRESSURE', 'drainPerSecond'], 0, 0.3, 0.005),
-        r('thin below', ['PRESSURE', 'thinThreshold'], 0, 1, 0.01),
-        r('sputter below', ['PRESSURE', 'sputterThreshold'], 0, 1, 0.01),
-        r('flow at sputter', ['PRESSURE', 'minSteadyFlow'], 0, 1, 0.01),
-        r('sputter duty', ['PRESSURE', 'sputterDuty'], 0, 1, 0.01),
-        r('shake restore', ['PRESSURE', 'shakeRestore'], 0, 1, 0.01),
-        r('shake duration', ['PRESSURE', 'shakeDuration'], 0.1, 2, 0.05),
-      ],
     },
   ];
 }
