@@ -1,6 +1,6 @@
 import type { TexName } from '../materials';
 import type { Axis, BoxFace } from '../surfaces';
-import type { LightKind } from '../config';
+import type { LightKind, NeonColor } from '../config';
 import type { Facade } from '../render/ink/facade';
 import type { UvRect } from '../render/ink/uv-rect';
 
@@ -113,9 +113,9 @@ interface ClimbPiece {
   normal: V3;
 }
 /**
- * A light emitter at its default spot on the lens surface. Everything else
- * (color, aim, offset from this spot, strength, spread, range, glow, beam)
- * comes from LIGHTS[kind] in config.ts and is live-tunable (F3 → Lights).
+ * A light emitter on the lens surface. Everything else (color, aim,
+ * strength, spread, range, glow, beam) comes from LIGHTS[kind] in config.ts
+ * and is live-tunable (F3 → Render → Light props).
  * Only the nearest few become real lights (budget).
  */
 export interface LightPiece {
@@ -126,9 +126,11 @@ export interface LightPiece {
   dir?: V3;
   /** Neon flicker seed (1+), the same as its tubes' Mat.flicker. */
   flicker?: number;
+  /** A neon sign's color (NEON_COLORS), for kind 'neon'. */
+  neon?: NeonColor;
   /** Length (m) of a vertical line source centered on `pos`, e.g. a neon tube (default 0: a point). The bake spreads it over NEON_LIGHT_ROWS lamps; real lights and highlights use one at its center. */
   span?: number;
-  /** Mirror LIGHTS[kind] offset and aim across x (the second face of a two-sided sign). */
+  /** Mirror LIGHTS[kind] aim across x (the second face of a two-sided sign). */
   mirrorX?: boolean;
   /** Fixed glow sprite positions (lens centers); default: one at the emitter. */
   glows?: V3[];

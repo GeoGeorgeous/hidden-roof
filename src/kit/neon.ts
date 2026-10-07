@@ -1,5 +1,5 @@
 import { Color } from 'three';
-import { LIGHTS, type LightKind } from '../config';
+import { LIGHTS, NEON_COLORS, type NeonColor } from '../config';
 import { neonRect } from '../render/ink/neon-text';
 import { tinted } from '../render/light-tint';
 import type { PropDef } from './def';
@@ -11,8 +11,9 @@ import { M, Parts, type Mat } from './pieces';
 // paper on ink (render/ink/neon-text.ts), one character under another; the
 // text is the sign's own (PropDef.text: typed in build mode, saved in the
 // level). Tubes, text and light flicker gently, in sync. Each face lights as
-// one line source along its height (LIGHTS[kind], LightPiece.span; aim and
-// offset are mirrored for the second face), so it comes from the whole sign.
+// one line source along its height (LIGHTS.neon in its own color, NEON_COLORS;
+// LightPiece.span; the aim is mirrored for the second face), so it comes from
+// the whole sign.
 
 const H = 2.8; // height
 const OUT = 0.2; // gap between wall and sign
@@ -26,14 +27,14 @@ const TUBE = 0.03;
 const INNER = EDGE + TUBE;
 const FACE_ASPECT = (W - 2 * INNER) / (H - 2 * INNER);
 
-/** The sign's light color as the walls get it: its brightness as a gray plus `tint` of its hue (see LIGHTS[kind].tint). */
-function hue(kind: LightKind) {
-  return `#${tinted(new Color(LIGHTS[kind].color), LIGHTS[kind].tint).getHexString()}`;
+/** The sign's light color as the walls get it: its brightness as a gray plus `tint` of its hue (see LIGHTS.neon.tint). */
+function hue(name: NeonColor) {
+  return `#${tinted(new Color(NEON_COLORS[name]), LIGHTS.neon.tint).getHexString()}`;
 }
 
 const lit = (tint: string, emissive = 1, flicker = 0): Mat => ({ tex: 'flat', tint, emissive, flicker });
 
-function blade(name: string, kind: LightKind, text: string): PropDef {
+function blade(name: NeonColor, text: string): PropDef {
   return {
     type: `neon_${name}`,
     label: `Neon sign (${name})`,
@@ -46,8 +47,8 @@ function blade(name: string, kind: LightKind, text: string): PropDef {
       const p = new Parts();
       // Tubes, text and the real lights all flicker together.
       const fl = 1 + (seed % 9973);
-      const tube = lit(LIGHTS[kind].color, 1, fl);
-      const letters: Mat = { tex: 'neonText', tile: 1, tint: hue(kind), emissive: 1, flicker: fl, letters: neonRect(text, false, FACE_ASPECT) };
+      const tube = lit(NEON_COLORS[name], 1, fl);
+      const letters: Mat = { tex: 'neonText', tile: 1, tint: hue(name), emissive: 1, flicker: fl, letters: neonRect(text, false, FACE_ASPECT) };
       const z0 = -(OUT + W);
       const z1 = -OUT;
       // Arms to the wall, the box itself.
@@ -69,13 +70,13 @@ function blade(name: string, kind: LightKind, text: string): PropDef {
         p.detail([tlo, EDGE, z0 + EDGE], [thi, H - EDGE, z0 + EDGE + TUBE], tube, false);
         p.detail([tlo, EDGE, z1 - EDGE - TUBE], [thi, H - EDGE, z1 - EDGE], tube, false);
         // The tube is a tall source: a line along its height.
-        p.light({ kind, pos: [s * (T + 0.04), H / 2, ZC], mirrorX: s < 0, flicker: fl, span: H - 2 * EDGE });
+        p.light({ kind: 'neon', neon: name, pos: [s * (T + 0.04), H / 2, ZC], mirrorX: s < 0, flicker: fl, span: H - 2 * EDGE });
       }
       return p.list;
     },
   };
 }
 
-export const neonPink = blade('pink', 'neonPink', '買え。考えるな。'); // Buy. Don't think.
-export const neonCyan = blade('cyan', 'neonCyan', '汚れのない未来へ。'); // Toward a spotless future.
-export const neonAmber = blade('amber', 'neonAmber', '監視は安心です。'); // Surveillance is reassuring.
+export const neonPink = blade('pink', '買え。考えるな。'); // Buy. Don't think.
+export const neonCyan = blade('cyan', '汚れのない未来へ。'); // Toward a spotless future.
+export const neonAmber = blade('amber', '監視は安心です。'); // Surveillance is reassuring.

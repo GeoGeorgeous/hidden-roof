@@ -1,19 +1,19 @@
-import { type LightKind, DAYLIGHT, LIGHT_SPREAD_MAX, LIGHTS } from '../config';
+import { type LightKind, type NeonColor, DAYLIGHT, LIGHT_SPREAD_MAX, LIGHTS, NEON_COLORS } from '../config';
 import { live, r, t, c, v3, type Item, type Section } from './tuning';
 
 // F3 panel contents for the world (tuning.ts has the helpers).
 
-const LIGHT_LABELS: Record<LightKind, string> = { wallLamp: 'WALL LAMP', floodlight: 'FLOODLIGHT', neonPink: 'NEON SIGN (PINK)', neonCyan: 'NEON SIGN (CYAN)', neonAmber: 'NEON SIGN (AMBER)', billboardLamp: 'BILLBOARD LAMP', lampPost: 'LAMP POST', stringLights: 'STRING LIGHTS', cctv: 'CCTV CAMERA' };
+const LIGHT_LABELS: Record<LightKind, string> = { wallLamp: 'WALL LAMP', floodlight: 'FLOODLIGHT', neon: 'NEON SIGNS', billboardLamp: 'BILLBOARD LAMP', lampPost: 'LAMP POST', stringLights: 'STRING LIGHTS', cctv: 'CCTV CAMERA' };
 
 function lightItems(): Item[] {
   const fx = () => live.rebuildLights();
   const props = () => live.rebuildLightProps();
   return (Object.keys(LIGHTS) as LightKind[]).flatMap((k) => [
     { kind: 'heading', label: `LIGHT · ${LIGHT_LABELS[k]}` } as Item,
-    c('color', ['LIGHTS', k, 'color'], props),
+    ...(k === 'neon'
+      ? (Object.keys(NEON_COLORS) as NeonColor[]).map((n) => c(`color: ${n}`, ['NEON_COLORS', n], props))
+      : [c('color', ['LIGHTS', k, 'color'], props)]),
     r('color tint (0 = none)', ['LIGHTS', k, 'tint'], 0, 1, 0.05, props),
-    ...v3('source offset', ['LIGHTS', k, 'offset'], -1, 1, 0.01, fx),
-    ...v3('aim', ['LIGHTS', k, 'dir'], -1, 1, 0.01, props),
     r('intensity', ['LIGHTS', k, 'intensity'], 0, 200, 0.5),
     r('range (m)', ['LIGHTS', k, 'range'], 1, 80, 0.5, fx),
     r('spread (rad)', ['LIGHTS', k, 'spread'], 0.1, LIGHT_SPREAD_MAX, 0.01, fx),

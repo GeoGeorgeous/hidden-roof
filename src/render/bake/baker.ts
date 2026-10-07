@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ATMOS, LIGHTMAP, LIGHTS, PAINT } from '../../config';
+import { ATMOS, LIGHTMAP, LIGHTS, NEON_COLORS, PAINT } from '../../config';
 import type { BuiltProp } from '../../level/build-prop';
 import { neonFlicker } from '../flicker';
 import { bakeUniforms } from './glsl';
@@ -218,18 +218,16 @@ export class LightBaker {
     for (const k in LIGHTS) {
       const s = LIGHTS[k as keyof typeof LIGHTS];
       const baked = this.bakedKinds.has(k);
-      this.see(s.color, baked);
+      if ('color' in s) this.see(s.color, baked);
       this.see(s.tint, baked);
       this.see(s.intensity, baked);
       this.see(s.range, baked);
       this.see(s.spread, baked);
       this.see(s.softness, baked);
       this.see(s.shadows, baked);
-      for (let i = 0; i < 3; i++) {
-        this.see(s.offset[i], baked);
-        this.see(s.dir[i], baked);
-      }
+      for (let i = 0; i < 3; i++) this.see(s.dir[i], baked);
     }
+    for (const c of Object.values(NEON_COLORS)) this.see(c, this.bakedKinds.has('neon'));
     this.see(ATMOS.lightDecay, true);
     this.see(LIGHTMAP.shadows, true);
     return this.watchChanged;

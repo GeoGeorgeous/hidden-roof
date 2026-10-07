@@ -5,7 +5,7 @@ import type { PaintSurface, PaintSystem } from '../painting';
 import type { Ladder } from '../player';
 import { addBox, addCylinder, boxSurface, cylinderSurface, SurfaceBuilder, type Axis, type BoxFace, type SurfaceGeometry } from '../surfaces';
 import { M, type BoxPiece, type CylPiece, type Mat, type Piece, type Swing, type V3 } from '../kit/pieces';
-import { LIGHTS, PAINT, type LightKind } from '../config';
+import { LIGHTS, NEON_COLORS, PAINT, type LightKind, type NeonColor } from '../config';
 import { setHex } from '../hex-color';
 import type { Track } from '../render/cctv-track';
 import type { Facade } from '../render/ink/facade';
@@ -34,9 +34,11 @@ export interface PropInstance {
  */
 export interface LightAnchor {
   kind: LightKind;
-  /** Default emitter spot (world) and the prop's quarter turns. */
+  /** Emitter spot (world) and the prop's quarter turns. */
   base: THREE.Vector3;
   rot: number;
+  /** A neon sign's color (NEON_COLORS), or null: LIGHTS[kind].color. */
+  neon: NeonColor | null;
   /** Per-instance aim (prop-local) that overrides LIGHTS[kind].dir, e.g. a tilted floodlight. */
   aim: V3 | null;
   mirrorX: boolean;
@@ -55,14 +57,17 @@ export interface LightAnchor {
   level: number;
 }
 
-/** Apply LIGHTS[kind] (offset, aim, color) to an anchor. Runs for every light every frame, so it allocates nothing. */
+/** Apply LIGHTS[kind] (aim, color) to an anchor. Runs for every light every frame, so it allocates nothing. */
 export function syncAnchor(a: LightAnchor) {
-  const s = LIGHTS[a.kind];
-  const m = a.mirrorX ? -1 : 1;
-  const d = a.aim ?? s.dir;
-  turn(a.pos, s.offset[0] * m, s.offset[1], s.offset[2], a.rot).add(a.base);
-  turn(a.dir, d[0] * m, d[1], d[2], a.rot).normalize();
-  setHex(a.color, s.color);
+  const d = a.aim ?? LIGHTS[a.kind].dir;
+  a.pos.copy(a.base);
+  turn(a.dir, d[0] * (a.mirrorX ? -1 : 1), d[1], d[2], a.rot).normalize();
+  setHex(a.color, lightColor(a.kind, a.neon));
+}
+
+/** A light's color: its kind's, or a neon sign's own. */
+function lightColor(kind: LightKind, neon: NeonColor | null) {
+  return kind === 'neon' ? NEON_COLORS[neon ?? 'pink'] : LIGHTS[kind].color;
 }
 
 /**
@@ -235,7 +240,7 @@ export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint =
     } else if (p.k === 'light') {
       const sw = p.swing?.track ? p.swing : undefined;
       const track: Track | null = sw ? { pivot: at(sw.pivot), fwd: new THREE.Vector2(restFacing.x, restFacing.z), amp: sw.amp, speed: (Math.PI * 2) / sw.period, phase: sw.phase ?? 0 } : null;
-      const a: LightAnchor = { kind: p.kind, base: at(p.pos), rot: r, aim: p.dir ?? null, mirrorX: !!p.mirrorX, pos: new THREE.Vector3(), dir: new THREE.Vector3(), color: new THREE.Color(), glows: p.glows?.map(at) ?? null, span: p.span ?? 0, flicker: p.flicker ?? 0, track, level: track ? 0 : 1 };
+      const a: LightAnchor = { kind: p.kind, base: at(p.pos), rot: r, aim: p.dir ?? null, neon: p.neon ?? null, mirrorX: !!p.mirrorX, pos: new THREE.Vector3(), dir: new THREE.Vector3(), color: new THREE.Color(), glows: p.glows?.map(at) ?? null, span: p.span ?? 0, flicker: p.flicker ?? 0, track, level: track ? 0 : 1 };
       syncAnchor(a);
       out.lights.push(a);
     } else if (p.k === 'emitter') {

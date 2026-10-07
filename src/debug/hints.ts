@@ -297,10 +297,9 @@ const HINTS: Record<string, string> = {
   'PLAYER_LIGHT.range': 'How far the player glow reaches (m).',
   'PLAYER_LIGHT.height': 'Height of the player glow above the eyes (m). From above it reads as ambient, not a flashlight.',
   'PLAYER_LIGHT.color': 'Player glow color.',
-  'LIGHTS.*.color': 'Light color. Lenses and neon tubes follow it.',
+  'LIGHTS.*.color': 'Light color. The lens follows it.',
+  'NEON_COLORS.*': 'This neon sign\'s color: its tubes, text and light. The rest of its light is shared by all neon signs.',
   'LIGHTS.*.tint': 'How much of the light color shows on the walls it lights: 0 = only its brightness, 1 = its full hue. Scaled by "colored light strength" (Ink). Baked lamps only.',
-  'LIGHTS.*.offset': 'Moves the real light from its spot on the lens (m; x right, y up, z back toward the wall).',
-  'LIGHTS.*.dir': 'Where the light points, relative to the prop (front is -z). Floodlight heads turn with it.',
   'LIGHTS.*.intensity': 'Light strength (scaled by "light props" in Rendering).',
   'LIGHTS.*.range': 'Distance where the light fades to nothing (m). Free on the GPU; a longer range only takes longer to bake.',
   'LIGHTS.*.spread': 'Cone half-angle (rad). 1.55 is nearly a hemisphere.',
@@ -325,8 +324,8 @@ export function hintFor(path: string[]): string | undefined {
   }
   const exact = HINTS[keys.join('.')];
   if (exact) return exact;
-  // A name in the middle may be `*` (CAPS.*.strength, PICKUP.models.*.size).
-  for (let i = 1; i < keys.length - 1; i++) {
+  // A name after the first may be `*` (CAPS.*.strength, PICKUP.models.*.size, NEON_COLORS.*).
+  for (let i = 1; i < keys.length; i++) {
     const h = HINTS[[...keys.slice(0, i), '*', ...keys.slice(i + 1)].join('.')];
     if (h) return h;
   }
