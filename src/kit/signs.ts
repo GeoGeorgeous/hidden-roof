@@ -54,7 +54,7 @@ export const roofLetters = withVariants({ type: 'roof_letters', label: 'Roof let
   const n = Math.max(1, Math.ceil((2 * ends) / 1.5));
   for (let i = 0; i <= n; i++) {
     const px = -ends + (2 * ends * i) / n;
-    p.detail([px - 0.04, 0, 0.1], [px + 0.04, y0 + h, 0.18], M.steel);
+    p.detail([px - 0.04, 0.02, 0.1], [px + 0.04, y0 + h, 0.18], M.steel);
     p.detail([px - 0.12, 0, 0.02], [px + 0.12, 0.02, 0.26], M.steel, false);
     p.rod([px, y0 + h - 0.1, 0.18], [px, 0.02, 1.1], 0.025, M.steel);
   }
