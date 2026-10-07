@@ -100,7 +100,7 @@ export class DevTools {
       atmosNight: () => g.atmosphere.nightValues,
       applyPixelScale: g.applyPixelScale,
       rebuildCity: g.rebuildCity,
-      applyToolSizes: () => (g.inventory.size = { marker: MARKER.radius, sponge: SPONGE.radius }),
+      applyToolSizes: () => (g.inventory.size = { marker: MARKER.width, sponge: SPONGE.width }),
       rebuildSponge: () => {
         g.tools.sponge.model.build();
         g.pickups.restyle('sponge');

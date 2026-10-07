@@ -84,11 +84,11 @@ export class Tools {
     const tool = enabled ? inv.tool : null;
     this.reportChanges(tool);
     this.spray.update(dt, input, camera, eye, tool === 'can' ? inv : null);
-    this.marker.update(dt, input, camera, eye, tool === 'marker', inv.color, inv.size.marker);
+    this.marker.update(dt, input, camera, eye, tool === 'marker', inv.color, inv.size.marker / 2);
     this.ladder.update(input, camera, motion.position, tool === 'ladder');
     // After the marker: they share the scribble sound, and these only touch it while in hand or just put away.
     this.roller.update(dt, input, camera, eye, tool === 'roller', inv.color);
-    this.sponge.update(dt, input, camera, eye, tool === 'sponge', inv.size.sponge);
+    this.sponge.update(dt, input, camera, eye, tool === 'sponge', inv.size.sponge / 2);
     const pressing = tool !== null && tool !== 'ladder' && input.lmb && input.locked;
     this.action = tool === 'can' && this.spray.shaking ? 'shake' : !pressing ? null : tool === 'roller' ? 'roll' : tool === 'sponge' ? 'scrub' : 'spray';
   }

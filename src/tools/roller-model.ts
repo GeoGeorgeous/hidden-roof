@@ -8,10 +8,10 @@ import { applyHold } from './hold';
 // First-person view of the paint roller in hand: a wide graffiti roller, its
 // cover soaked in the current paint color (keeps its color, like the can's
 // label), on a bent wire frame with a short pole held in the gloved fist.
-// The cover is as long as the stroke is wide (ROLLER.halfWidth) and spins as
+// The cover is as long as the stroke is wide (ROLLER.width) and spins as
 // it rolls; a dark seam along it shows the turning. Drawn in ink like the can.
 
-/** The cover's radius and the length it's modeled at (scaled to 2 x ROLLER.halfWidth). */
+/** The cover's radius and the length it's modeled at (scaled to ROLLER.width). */
 const RADIUS = 0.04;
 const LENGTH = 0.44;
 
@@ -71,7 +71,7 @@ export class RollerModel {
     setHex(this.coverMat.color, COLORS[color]);
     this.group.position.copy(camera.position);
     this.group.quaternion.copy(camera.quaternion);
-    this.cover.scale.x = (ROLLER.halfWidth * 2) / LENGTH;
+    this.cover.scale.x = ROLLER.width / LENGTH;
     this.cover.rotation.x -= rolled / RADIUS;
     // Held at HOLD.roller; pushed out to the wall while rolling.
     this.push += ((pressing ? 1 : 0) - this.push) * Math.min(1, dt * 14);

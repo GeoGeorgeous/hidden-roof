@@ -11,7 +11,7 @@ import { SpongeModel } from './sponge-model';
 // left off a round patch (PaintSystem.stamp with no color), so one pass fades
 // it and scrubbing back and forth cleans it. Moving the view fills the steps in
 // between frames, like the marker. Works on any paint (can, marker, roller, runs).
-// The mouse wheel changes the patch size (Inventory.size, SPONGE.radiusMin..radiusMax, see wheel-size.ts).
+// The mouse wheel changes the patch size (Inventory.size, SPONGE.widthMin..widthMax, see wheel-size.ts).
 
 export class SpongeTool {
   readonly model = new SpongeModel();

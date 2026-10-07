@@ -16,7 +16,7 @@ import { applyHold } from './hold';
 // are as wide as the nib going straight and wider on the diagonal, like a held
 // chisel. No particles, no pressure. With paint runs on (DRIPS), going over
 // the same spot again, or holding the nib still, can start a run like the can.
-// The mouse wheel changes the nib size (Inventory.size, MARKER.radiusMin..radiusMax, see wheel-size.ts).
+// The mouse wheel changes the nib size (Inventory.size, MARKER.widthMin..widthMax, see wheel-size.ts).
 // Fast mouse moves are filled by interpolating rays between frames. The band
 // on the barrel shows the current color, like the can's label.
 

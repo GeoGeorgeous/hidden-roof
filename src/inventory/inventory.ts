@@ -16,8 +16,8 @@ export class Inventory {
   caps: CapId[] = [];
   /** Can pressure 0..1: drains while spraying, restored by shaking. */
   pressure = 1;
-  /** Marker nib half-width and sponge patch radius (m), set with the mouse wheel; kept across resets. */
-  size: Record<SizedTool, number> = { marker: MARKER.radius, sponge: SPONGE.radius };
+  /** Marker nib and sponge patch widths (m), set with the mouse wheel; kept across resets. */
+  size: Record<SizedTool, number> = { marker: MARKER.width, sponge: SPONGE.width };
   /** Bumped on every change so the HUD can skip redundant DOM updates. */
   version = 0;
   /** Tools found so far (the can is always there). */

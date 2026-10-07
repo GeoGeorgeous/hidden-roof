@@ -346,15 +346,15 @@ export const COLORS: Record<PaintColor, string> = {
 export const MARKER = {
   /** Max distance from the eye to the surface. */
   reach: 2.3,
-  /** Starting half side of the square nib, in meters (0 = one paint texel: the thinnest line, 4 cm on LOW paint detail, 1 cm on ULTRA). Each player's own is Inventory.size. */
-  radius: 0.012,
-  /** Mouse wheel with the marker in hand: changes the player's nib half-width by radiusStep, within radiusMin..radiusMax (m). */
-  radiusMin: 0,
-  radiusMax: 0.05,
-  radiusStep: 0.004,
-  /** Crosshair with the marker in hand (px): `crosshair` plus `crosshairPerMeter` x the nib half-width, so it follows the wheel. */
+  /** Starting width of the square nib, in meters (0 = one paint texel: the thinnest line, 4 cm on LOW paint detail, 1 cm on ULTRA). Each player's own is Inventory.size. */
+  width: 0.024,
+  /** Mouse wheel with the marker in hand: changes the player's nib width by widthStep, within widthMin..widthMax (m). */
+  widthMin: 0,
+  widthMax: 0.1,
+  widthStep: 0.008,
+  /** Crosshair with the marker in hand (px): `crosshair` plus `crosshairPerMeter` x the nib width, so it follows the wheel. */
   crosshair: 4,
-  crosshairPerMeter: 400,
+  crosshairPerMeter: 200,
   /**
    * Paint runs (with DRIPS on) from the marker, as a multiplier of DRIPS.perSquareMeter:
    * a nib covers little area but pumps a lot of paint into it.
@@ -378,8 +378,8 @@ export const HOTBAR = { slots: 5 };
 export const ROLLER = {
   /** Max distance from the eye to the surface (it's on a short pole). */
   reach: 2.6,
-  /** Half the stroke's width: half the roller head's length (m). */
-  halfWidth: 0.22,
+  /** The stroke's width: the roller head's length (m). */
+  width: 0.44,
   /** Half the depth of each press along the stroke (m); presses overlap as you roll. */
   halfDepth: 0.03,
   /** Fraction of each end of the roller that leaves lighter paint. */
@@ -400,19 +400,19 @@ export const ROLLER = {
 export const SPONGE = {
   /** Max distance from the eye to the surface: arm's length. */
   reach: 1.6,
-  /** Starting radius of the patch it cleans per stroke step (m). Each player's own is Inventory.size. */
-  radius: 0.09,
+  /** Starting width of the round patch it cleans per stroke step (m). Each player's own is Inventory.size. */
+  width: 0.18,
   /** Share of the paint left that each pass takes off (0..1): scrub back and forth to clean. */
   strength: 0.24,
   /** 0 = cleans the whole patch evenly .. 1 = only the middle, fading to the rim. */
   softness: 0.5,
-  /** Mouse wheel with the sponge in hand: changes the player's patch radius by radiusStep, within radiusMin..radiusMax (m). */
-  radiusMin: 0.02,
-  radiusMax: 0.3,
-  radiusStep: 0.02,
-  /** Crosshair with the sponge in hand (px): `crosshair` plus `crosshairPerMeter` x the radius, so it follows the wheel. */
+  /** Mouse wheel with the sponge in hand: changes the player's patch width by widthStep, within widthMin..widthMax (m). */
+  widthMin: 0.04,
+  widthMax: 0.6,
+  widthStep: 0.04,
+  /** Crosshair with the sponge in hand (px): `crosshair` plus `crosshairPerMeter` x the patch width, so it follows the wheel. */
   crosshair: 6,
-  crosshairPerMeter: 200,
+  crosshairPerMeter: 100,
   /** How far it scrubs in small circles while cleaning (m), and how fast (turns per s). */
   scrubSize: 0.012,
   scrubSpeed: 5,

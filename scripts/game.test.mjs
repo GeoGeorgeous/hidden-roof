@@ -157,7 +157,7 @@ await check('sponge: a surface cleaned completely gives its memory back', async 
     await frames(40, (f) => (input.lmb = f < 6));
     const sprayed = g.paint.gpu.textureCount;
     inv.select(4);
-    inv.size.sponge = 0.3;
+    inv.size.sponge = 0.6;
     await frames(160, (f) => (input.lmb = f < 150));
     g.fixedStep.dt = 0;
     input.locked = false;
@@ -222,7 +222,7 @@ await check('tools: the wheel changes the player\'s nib and patch size, not the 
     input.locked = true;
     inv.give('marker');
     inv.give('sponge');
-    inv.size = { marker: config.MARKER.radius, sponge: config.SPONGE.radius };
+    inv.size = { marker: config.MARKER.width, sponge: config.SPONGE.width };
     inv.select(1);
     const crosshair = tools.crosshair('marker');
     for (let i = 0; i < 3; i++) await notch(-1);
@@ -232,11 +232,11 @@ await check('tools: the wheel changes the player\'s nib and patch size, not the 
     inv.select(4);
     await notch(-1);
     out.sponge = inv.size.sponge;
-    out.config = [config.MARKER.radius, config.SPONGE.radius];
+    out.config = [config.MARKER.width, config.SPONGE.width];
     input.locked = false;
     return out;
   });
-  return r.marker === 0.024 && r.grew && r.min === 0 && r.sponge === 0.11 && r.config.join() === '0.012,0.09' ? null : JSON.stringify(r);
+  return r.marker === 0.048 && r.grew && r.min === 0 && r.sponge === 0.22 && r.config.join() === '0.024,0.18' ? null : JSON.stringify(r);
 });
 
 await check('ladders: one per player, moved with one rebuild; each owner\'s stays until they take it away; never saved', async () => {
