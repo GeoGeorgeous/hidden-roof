@@ -60,7 +60,9 @@ export const ATMOS = {
   /** Raindrop color, and how visible the drops are (multiplier, 1 = default). */
   rainColor: '#26272c',
   rainOpacity: 1,
-  wind: [-3, 0, -2] as [number, number, number],
+  /** Wind for rain and smoke: speed (m/s) and the heading it blows toward (degrees, 0 = +z, 90 = +x). */
+  windStrength: 3.6,
+  windHeading: 236.3,
 };
 
 /** Practical light kinds; every light prop uses one (see kit/lights.ts). */
@@ -861,7 +863,7 @@ export const SMOKE = {
   perEmitter: 20,
   /** Seconds a puff lives. */
   life: 6.9,
-  /** Rise over a life (m), and how far wind carries it (multiplies ATMOS.wind). */
+  /** Rise over a life (m), and how far wind carries it (multiplies the wind, ATMOS.windStrength). */
   rise: 0.4,
   drift: 0.5,
   /** Puff size at birth and at the end (m). */
