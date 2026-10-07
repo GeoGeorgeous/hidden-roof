@@ -26,8 +26,8 @@ export type Item =
   | { kind: 'action'; label: string; run: () => void }
   | { kind: 'readout'; label: string; get: () => string }
   /** One of a few buttons, the picked one lit (`get`); picking can change any value, so the panel re-reads them all. */
-  /** `copy`: values COPY adds, by config export name (the presets behind it). */
-  | { kind: 'choice'; label: string; options: string[]; get: () => number; pick: (i: number) => void; copy?: () => Obj }
+  /** `copy`: values COPY adds, by config export name (the presets behind it); `reset`: RESET puts those back too. */
+  | { kind: 'choice'; label: string; options: string[]; get: () => number; pick: (i: number) => void; copy?: () => Obj; reset?: () => void }
   /** Starts a section; `disabled` shows it grayed out, untouchable. */
   | { kind: 'heading'; label: string; disabled?: boolean };
 
@@ -48,6 +48,7 @@ export function isChanged(it: Value) {
 export function resetItems(items: Item[]) {
   const effects = new Set<() => void>();
   for (const it of items) {
+    if (it.kind === 'choice') it.reset?.();
     if (!isValue(it) || !isChanged(it)) continue;
     setValue(it.path, defaultOf(it.path));
     if (it.onChange) effects.add(it.onChange);
