@@ -6,22 +6,29 @@ import { expandPieces } from '../level/build-prop';
 
 // Translucent preview of the prop about to be placed: green when valid, red when
 // it overlaps something or can't go on this face. As an overlay, it lights up
-// a placed prop instead (build/prop-settings.ts): drawn over its faces.
+// a placed prop instead (build/prop-settings.ts): drawn over its faces. As an
+// outline, it draws a placed prop's edges over everything (the build target).
 
 export const GREEN = new THREE.Color('#3dff7a');
+/** An outline draws the edges where faces turn more than this (degrees). */
+const OUTLINE_ANGLE = 25;
 export const RED = new THREE.Color('#ff3b30');
 
 export class Ghost {
   readonly root = new THREE.Group();
   /** World-space colliders of the previewed prop (for the overlap test). */
   colliders: THREE.Box3[] = [];
-  private material: THREE.MeshBasicMaterial;
-  private mesh: THREE.Mesh | null = null;
+  private material: THREE.MeshBasicMaterial | THREE.LineBasicMaterial;
+  private mesh: THREE.Mesh | THREE.LineSegments | null = null;
   private key = '';
+  private outline: boolean;
 
-  constructor(scene: THREE.Scene, { color = GREEN as THREE.ColorRepresentation, opacity = 0.4, overlay = false } = {}) {
-    // An overlay is pulled toward the camera, so it isn't lost in the faces it covers.
-    this.material = new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false, polygonOffset: overlay, polygonOffsetFactor: -1, polygonOffsetUnits: -4 });
+  constructor(scene: THREE.Scene, { color = GREEN as THREE.ColorRepresentation, opacity = 0.4, overlay = false, outline = false } = {}) {
+    this.outline = outline;
+    // An overlay is pulled toward the camera, so it isn't lost in the faces it covers; an outline is drawn over everything.
+    this.material = outline
+      ? new THREE.LineBasicMaterial({ color, transparent: true, opacity, depthTest: false, depthWrite: false })
+      : new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false, polygonOffset: overlay, polygonOffsetFactor: -1, polygonOffsetUnits: -4 });
     this.root.renderOrder = 10;
     scene.add(this.root);
   }
@@ -66,8 +73,11 @@ export class Ghost {
       this.mesh = null;
     }
     if (!g) return;
-    this.mesh = new THREE.Mesh(g, this.material);
-    this.mesh.renderOrder = 10;
+    if (this.outline) {
+      this.mesh = new THREE.LineSegments(new THREE.EdgesGeometry(g, OUTLINE_ANGLE), this.material);
+      g.dispose();
+    } else this.mesh = new THREE.Mesh(g, this.material);
+    this.mesh.renderOrder = 11;
     this.root.add(this.mesh);
   }
 }

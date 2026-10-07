@@ -32,10 +32,8 @@ export class PropSettings {
     this.highlight.visible = false;
   }
 
-  /** `aimed`: what the crosshair is on; `selected`: the prop about to be placed, if one is. */
-  update(input: Input, aimed: THREE.Object3D | null, selected: PropDef | null) {
-    const id = aimed ? this.level.idOf(aimed) : undefined;
-    const inst = id === undefined ? undefined : this.level.props.get(id);
+  /** `inst`: the placed prop build mode targets (BuildMode.targetOf); `selected`: the prop about to be placed, if one is. */
+  update(input: Input, inst: PropInstance | undefined, selected: PropDef | null) {
     const def = inst && defOf(inst.type, inst.variant);
     const dir = (input.wasTyped('BracketRight') ? 1 : 0) - (input.wasTyped('BracketLeft') ? 1 : 0);
     if (dir && inst && def?.adjust) this.adjust(inst, def, dir);

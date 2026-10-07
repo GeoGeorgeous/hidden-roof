@@ -232,6 +232,33 @@ export class Level {
     return o.userData.propId;
   }
 
+  /**
+   * The prop build mode works on when a ray hits `o` at `point` (RMB deletes it,
+   * MMB picks it, it's outlined): the prop itself, or for a joint post the edge
+   * prop ending there that is nearest the point. Never a player's stepladder.
+   */
+  targetOf(o: THREE.Object3D, point: THREE.Vector3): number | undefined {
+    const key: string | undefined = o.userData.joint;
+    const id = key === undefined ? this.idOf(o) : this.jointOwner(key, point);
+    const inst = id === undefined ? undefined : this.props.get(id);
+    return inst && inst.owner === undefined ? inst.id : undefined;
+  }
+
+  private jointOwner(key: string, point: THREE.Vector3) {
+    const j = this.joints.get(key)?.joint;
+    if (!j) return undefined;
+    let best: number | undefined;
+    let nearest = Infinity;
+    for (const p of this.props.values()) {
+      if (defOf(p.type, p.variant)?.joint !== j.kind || Math.abs(p.pos[1] - j.pos[1]) > 0.01) continue;
+      const alongX = p.rot % 2 === 0;
+      const ends = [-1, 1].some((s) => Math.abs(p.pos[0] + (alongX ? s : 0) - j.pos[0]) < 0.01 && Math.abs(p.pos[2] + (alongX ? 0 : s) - j.pos[2]) < 0.01);
+      const d = (p.pos[0] - point.x) ** 2 + (p.pos[2] - point.z) ** 2;
+      if (ends && d < nearest) [best, nearest] = [p.id, d];
+    }
+    return best;
+  }
+
   /** Does any box penetrate a placed prop's colliders (joints excluded)? `ignore`: a prop id to leave out. */
   overlaps(boxes: THREE.Box3[], margin = 0.02, ignore?: number) {
     const shrunk = boxes.map((b) => b.clone().expandByScalar(-margin));
@@ -375,6 +402,7 @@ export class Level {
 
   private buildJoint(key: string, joint: Joint) {
     const b = buildProp(-1, `j${key}`, jointPieces(joint), joint.pos, 0, this.paint);
+    for (const o of b.group.children) o.userData.joint = key;
     this.root.add(b.group);
     return b;
   }

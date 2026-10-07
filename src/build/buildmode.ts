@@ -35,6 +35,9 @@ import { axisNormal, place, type Hit, type PlaceSpec } from './placement';
 // building.
 
 const HELP = 'LMB PLACE (HOLD: REPEAT) · RMB DELETE · R ROTATE (ON A WALL: FLIP) · MMB PICK · CTRL+Z UNDO · WHEEL CATEGORY · Q / E PROP · TAB VARIANT · PGUP / PGDN LEVEL · F / G WALL / FLOOR FINISH · V APPLY FINISH · ENTER SIGN TEXT · [ ] SETTING · H PAINTABLE · P SAVE · O LOAD · B EXIT';
+/** What build mode works on under the crosshair: a placed prop or a pickup (by id). */
+type Target = { kind: 'prop' | 'pickup'; id: number };
+
 /** Pickups and the spawn point stand on the floor. */
 const FLOOR_SPEC: PlaceSpec = { place: 'floor', snap: 0.5 };
 
@@ -54,6 +57,8 @@ export class BuildMode {
   private spawnMarker: SpawnMarker;
   /** The spawn point about to be placed. */
   private spawnGhost: SpawnMarker;
+  /** Outline of the target: what RMB deletes. */
+  private outline: Ghost;
   private grid: CursorGrid;
   private history = new History();
   private raycaster = new THREE.Raycaster();
@@ -81,6 +86,7 @@ export class BuildMode {
   ) {
     this.pickerView = new PickerView(this.picker, new Thumbnails(renderer));
     this.ghost = new Ghost(scene);
+    this.outline = new Ghost(scene, { color: BUILD.targetColor, opacity: BUILD.targetOpacity, outline: true });
     this.settings = new PropSettings(scene, level, (m) => this.say(m), (def) => this.picker.finishFor(def));
     this.grid = new CursorGrid(scene);
     this.spawnMarker = new SpawnMarker(scene, PLAYER.height, PLAYER.radius);
@@ -101,6 +107,7 @@ export class BuildMode {
     this.pickerView.visible = on;
     this.hud.hidden = !on;
     this.ghost.visible = on;
+    if (!on) this.outline.visible = false;
     this.settings.visible = on;
     this.grid.visible = on;
     this.spawnMarker.visible = on;
@@ -120,13 +127,16 @@ export class BuildMode {
     this.pickerInput(input);
     const target = this.aim(camera);
     this.preview(target, camera.position);
+    // What RMB deletes, MMB picks and the settings keys change: one target, outlined.
+    const aimed = this.targetOf(target);
+    this.outlineTarget(aimed);
 
     if (input.wasPressed('KeyR')) this.rotate();
     const lv = (input.wasTyped('PageUp') ? 1 : 0) - (input.wasTyped('PageDown') ? 1 : 0);
     if (lv) this.workLevel += lv;
     this.placeInput(input);
-    if (input.clicked(2) && target) this.remove(target.object);
-    if (input.clicked(1) && target) this.pickFrom(target.object);
+    if (input.clicked(2) && aimed) this.remove(aimed);
+    if (input.clicked(1) && aimed) this.pickFrom(aimed);
     if (input.wasPressed('Ctrl+KeyZ')) {
       if (!this.history.undo((e) => this.revert(e))) this.say('NOTHING TO UNDO');
     }
@@ -135,7 +145,7 @@ export class BuildMode {
       this.say(shared.uShowPaintable.value ? 'PAINTABLE SURFACES: STRIPED' : 'PAINTABLE OVERLAY OFF');
     }
     const e = this.picker.choice;
-    this.settings.update(input, target?.object ?? null, e.kind === 'prop' ? e.def : null);
+    this.settings.update(input, aimed?.kind === 'prop' ? this.level.props.get(aimed.id) : undefined, e.kind === 'prop' ? e.def : null);
     if (input.wasPressed('KeyP')) {
       downloadLevel(this.getLevelData());
       this.say('SAVED LEVEL.JSON');
@@ -282,34 +292,47 @@ export class BuildMode {
     this.valid = false; // re-checked next frame against the new prop
   }
 
-  private remove(o: THREE.Object3D | null) {
-    if (!o) return;
-    const pid = this.pickups.idOf(o);
-    const pk = pid !== undefined ? this.pickups.list.get(pid) : undefined;
+  /** The pickup or prop a hit belongs to (Level.targetOf: joint posts belong to the nearest edge prop; stepladders to no one). */
+  private targetOf(hit: (Hit & { object: THREE.Object3D | null }) | null): Target | null {
+    if (!hit?.object) return null;
+    const pid = this.pickups.idOf(hit.object);
+    if (pid !== undefined) return { kind: 'pickup', id: pid };
+    const id = this.level.targetOf(hit.object, hit.point);
+    return id === undefined ? null : { kind: 'prop', id };
+  }
+
+  /** Outline the target, as it is now. */
+  private outlineTarget(t: Target | null) {
+    const inst = t?.kind === 'prop' ? this.level.props.get(t.id) : undefined;
+    const pk = t?.kind === 'pickup' ? this.pickups.list.get(t.id) : undefined;
+    this.outline.visible = !!(inst || pk);
+    if (pk) this.outline.showPickup(pk.pos);
+    if (!inst) return;
+    const def = defOf(inst.type, inst.variant)!;
+    this.outline.showProp(def, inst.pos, inst.rot, { ...this.level.stackContext(def, inst.pos, inst.rot), adjust: inst.adjust, text: inst.text, mirror: inst.mirror });
+  }
+
+  private remove(t: Target) {
+    const pk = t.kind === 'pickup' ? this.pickups.list.get(t.id) : undefined;
     if (pk) {
       this.history.push({ op: 'remove', kind: 'pickup', id: pk.id, data: { kind: pk.kind, pos: pk.pos } satisfies PickupData });
       this.pickups.remove(pk.id);
       return;
     }
-    const id = this.level.idOf(o);
-    const inst = id !== undefined ? this.level.props.get(id) : undefined;
-    // The player's stepladder isn't part of the level: never deleted (or restored by undo) as a prop.
-    if (!inst || inst.owner !== undefined) return;
+    const inst = t.kind === 'prop' ? this.level.props.get(t.id) : undefined;
+    if (!inst) return;
     this.history.push({ op: 'remove', kind: 'prop', id: inst.id, data: { id: inst.id, type: inst.type, variant: inst.variant, pos: inst.pos, rot: inst.rot, adjust: inst.adjust, text: inst.text, finish: inst.finish, mirror: inst.mirror } satisfies PropData });
     this.level.remove(inst.id);
   }
 
-  private pickFrom(o: THREE.Object3D | null) {
-    if (!o) return;
-    const pid = this.pickups.idOf(o);
-    if (pid !== undefined) {
-      const kind = this.pickups.list.get(pid)!.kind;
+  private pickFrom(t: Target) {
+    if (t.kind === 'pickup') {
+      const kind = this.pickups.list.get(t.id)!.kind;
       this.picker.pick((c) => c.kind === 'pickup' && c.type === kind);
       return this.say(`PICKED ${this.picker.label.toUpperCase()}`);
     }
-    const id = this.level.idOf(o);
-    const inst = id !== undefined ? this.level.props.get(id) : undefined;
-    if (inst && inst.owner === undefined && defOf(inst.type, inst.variant)) {
+    const inst = this.level.props.get(t.id);
+    if (inst && defOf(inst.type, inst.variant)) {
       this.picker.pick((c) => c.kind === 'prop' && c.def.type === inst.type && c.def.variant === inst.variant);
       if (defOf(inst.type, inst.variant)?.finishes) this.picker.pickFinish(inst.finish);
       this.rot = inst.rot;
