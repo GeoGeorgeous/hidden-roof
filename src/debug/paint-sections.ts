@@ -1,10 +1,10 @@
 import { CAP_ORDER, CAPS } from '../config';
-import { c, live, r, t, type Item, type Section } from './tuning';
+import { live, r, t, type Item, type Section } from './tuning';
 
 // F3 panel contents for painting (tuning.ts has the helpers): what each tool
 // does (one vocabulary: reach, width, opacity, softness), the caps, paint
 // runs, pressure, quality (smoothness against cost), the cursor (wheel range
-// and crosshair), and the sponge's model.
+// and crosshair).
 
 /** One heading per cap, its own items under each. */
 const perCap = (items: (cap: (typeof CAP_ORDER)[number]) => Item[]): Item[] =>
@@ -69,7 +69,6 @@ export function paintSections(): Section[] {
         r('softness', ['CAPS', cap, 'softness'], 0, 1, 0.05),
         r('spread', ['CAPS', cap, 'coneAngle'], 0.005, 0.3, 0.005),
         r('density', ['CAPS', cap, 'rate'], 50, 2000, 10),
-        c('cap color', ['CAPS', cap, 'color']),
       ]),
     },
     {
@@ -124,27 +123,6 @@ export function paintSections(): Section[] {
         ...cursorItems('MARKER', 0.4, 0.002, 1000),
         ...cursorItems('ROLLER', 1.2, 0.02, 200),
         ...cursorItems('SPONGE', 0.8, 0.01, 500),
-      ],
-    },
-  ];
-}
-
-/** The tools' models (the hand's pose and size are in Held). */
-export function modelSections(): Section[] {
-  const sponge = () => live.rebuildSponge();
-  return [
-    {
-      id: 'sponge',
-      title: 'Sponge',
-      items: [
-        r('width (m)', ['SPONGE', 'model', 'width'], 0.03, 0.25, 0.005, sponge),
-        r('height (m)', ['SPONGE', 'model', 'height'], 0.02, 0.2, 0.005, sponge),
-        r('depth (m)', ['SPONGE', 'model', 'depth'], 0.01, 0.1, 0.002, sponge),
-        r('scouring pad (m)', ['SPONGE', 'model', 'padDepth'], 0, 0.04, 0.001, sponge),
-        r('pores', ['SPONGE', 'model', 'pores'], 0, 40, 1, sponge),
-        r('pore size (m)', ['SPONGE', 'model', 'poreSize'], 0.001, 0.02, 0.001, sponge),
-        c('soft part', ['SPONGE', 'model', 'soft'], sponge),
-        c('scouring pad', ['SPONGE', 'model', 'pad'], sponge),
       ],
     },
   ];

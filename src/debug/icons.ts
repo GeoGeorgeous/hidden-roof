@@ -14,7 +14,7 @@ const ICONS: Record<string, string> = {
   paint: '<path d="M5 .5C3.5 2.5 2 4.3 2 6.3a3 3 0 0 0 6 0C8 4.3 6.5 2.5 5 .5z"/>',
   look: '<path d="M.5 5C1.8 2.8 3.3 1.8 5 1.8S8.2 2.8 9.5 5C8.2 7.2 6.7 8.2 5 8.2S1.8 7.2.5 5z"/><circle cx="5" cy="5" r="1.4"/>',
   world: '<circle cx="5" cy="5" r="4.5"/><path d="M.5 5h9M5 .5c-2.4 2.6-2.4 6.4 0 9M5 .5c2.4 2.6 2.4 6.4 0 9"/>',
-  collectables: CUBE,
+  items: CUBE,
   models: '<path d="M5 .5 9.5 3 5 5.5.5 3zM.5 5 5 7.5 9.5 5M.5 7 5 9.5 9.5 7"/>',
   test: '<path d="M3.5.5h3M4 .5v3.2L1.2 8.6a.6.6 0 0 0 .5.9h6.6a.6.6 0 0 0 .5-.9L6 3.7V.5M2.6 6.5h4.8"/>',
   // Groups
@@ -23,6 +23,7 @@ const ICONS: Record<string, string> = {
   avatar: '<circle cx="5" cy="1.8" r="1.3"/><path d="M5 3.1v3.2M2.5 4.5h5M5 6.3 3.3 9.5M5 6.3l1.7 3.2"/>',
   pickups: CUBE,
   caps: CAP,
+  'cap-models': CAP,
   cursor: CROSSHAIR,
   quality: '<path d="M.5 7.5c2-4 3-4 4.5-1s2.5 3 4.5-3"/><path class="dot" d="M.5 7.5h0M5 6.5h0M9.5 3.5h0"/>',
   hands: HAND,
@@ -40,7 +41,6 @@ const ICONS: Record<string, string> = {
   performance: '<path d="M.5 5.5h2l1.5-4 2 7 1.5-3h2"/>',
   ghost: '<path d="M1.5 9.5v-5a3.5 3.5 0 0 1 7 0v5L7.3 8.4 6.2 9.5 5 8.4 3.8 9.5 2.7 8.4zM3.8 4.5v.6M6.2 4.5v.6"/>',
   // Sections
-  pickup: CUBE,
   hand: HAND,
   can: CAN,
   ladder: '<path d="M2.5.5v9M7.5.5v9M2.5 2.5h5M2.5 5h5M2.5 7.5h5"/>',
@@ -65,10 +65,9 @@ const ICONS: Record<string, string> = {
 
 /** Section titles (lower case) to icons; the first match wins, none for "general". */
 const SECTIONS: [RegExp, string][] = [
-  [/^sponge pickup|^pickups/, 'pickup'],
   [/^sponge/, 'sponge'],
   [/hand/, 'hand'],
-  [/^(color )?can$/, 'can'],
+  [/^can$/, 'can'],
   [/^cap$/, 'cap'],
   [/^ladder$/, 'ladder'],
   [/^marker/, 'marker'],

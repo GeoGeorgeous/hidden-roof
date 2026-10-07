@@ -95,8 +95,8 @@ export const live = {
   rebuildCity: () => {},
   /** Give the player the starting nib and patch sizes (MARKER, ROLLER or SPONGE.width changed). */
   applyToolSizes: () => {},
-  /** Rebuild the sponge's models (held, pickups, hotbar icon) from SPONGE.model / SPONGE.pickup. */
-  rebuildSponge: () => {},
+  /** Rebuild every tool model (first person, pickups, hotbar icons, the figure's tool) from MODELS and CAPS. */
+  rebuildModels: () => {},
   /** Apply live SKYLINE values (line range). */
   syncSkyline: () => {},
   /** F3 -> Avatar: the test figure (dev/avatar-preview.ts). */

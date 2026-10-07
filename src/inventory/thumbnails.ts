@@ -46,10 +46,10 @@ export class Thumbnails {
     return BLANK;
   }
 
-  /** Drop a cached icon, so it's rendered again from the current model next time. */
-  forget(kind: PickupKind) {
-    this.cache.delete(kind);
-    this.pending.delete(kind);
+  /** Drop every cached icon, so each is rendered again from the current models next time. */
+  forgetAll() {
+    this.cache.clear();
+    this.pending.clear();
   }
 
   private async render(kind: PickupKind) {

@@ -316,18 +316,20 @@ export interface CapSpec {
   drips: number;
   /** Pressure lost per second of spraying with this cap (1 = a full can). */
   drain: number;
-  /** Color of the cap on the can model and pickups. */
+  /** Color of the cap on the can, its pickup and hotbar icon. */
   color: string;
+  /** Width of the cap's nozzle (m): it hints at the cap. */
+  nozzle: number;
 }
 
 export type CapId = 'skinny' | 'standard' | 'fat' | 'spray';
 export const CAP_ORDER: CapId[] = ['skinny', 'standard', 'fat', 'spray'];
 export const CAPS: Record<CapId, CapSpec> = {
-  skinny: { name: 'SKINNY', coneAngle: 0.01, rate: 320, strength: 0.8, dotSize: 0.066, softness: 0.15, hissGain: 0.5, hissTone: 0, crosshair: 8, drips: 17, drain: 0.04, color: '#7fb4f2' },
-  standard: { name: 'STANDARD', coneAngle: 0.04, rate: 450, strength: 0.5, dotSize: 0.092, softness: 0.35, hissGain: 0.75, hissTone: 0.4, crosshair: 14, drips: 17, drain: 0.04, color: '#f4f4f4' },
-  fat: { name: 'FAT', coneAngle: 0.01, rate: 800, strength: 0.35, dotSize: 0.2, softness: 0, hissGain: 1, hissTone: 1, crosshair: 22, drips: 17, drain: 0.04, color: '#f2a04c' },
+  skinny: { name: 'SKINNY', coneAngle: 0.01, rate: 320, strength: 0.8, dotSize: 0.066, softness: 0.15, hissGain: 0.5, hissTone: 0, crosshair: 8, drips: 17, drain: 0.04, color: '#7fb4f2', nozzle: 0.004 },
+  standard: { name: 'STANDARD', coneAngle: 0.04, rate: 450, strength: 0.5, dotSize: 0.092, softness: 0.35, hissGain: 0.75, hissTone: 0.4, crosshair: 14, drips: 17, drain: 0.04, color: '#f4f4f4', nozzle: 0.006 },
+  fat: { name: 'FAT', coneAngle: 0.01, rate: 800, strength: 0.35, dotSize: 0.2, softness: 0, hissGain: 1, hissTone: 1, crosshair: 22, drips: 17, drain: 0.04, color: '#f2a04c', nozzle: 0.01 },
   /** Wide, soft mist for fades and backgrounds: lots of faint, fuzzy dots. */
-  spray: { name: 'SPRAY', coneAngle: 0.14, rate: 1100, strength: 0.12, dotSize: 0.158, softness: 0.9, hissGain: 0.9, hissTone: 0.8, crosshair: 32, drips: 17, drain: 0.04, color: '#b98cf2' },
+  spray: { name: 'SPRAY', coneAngle: 0.14, rate: 1100, strength: 0.12, dotSize: 0.158, softness: 0.9, hissGain: 0.9, hissTone: 0.8, crosshair: 32, drips: 17, drain: 0.04, color: '#b98cf2', nozzle: 0.013 },
 };
 
 /** Paint colors, in Q/E cycling order. Black is always owned. Paint never runs out. */
@@ -429,23 +431,6 @@ export const SPONGE = {
   /** Moves are filled with steps at most `spacing` x the patch width apart at full reach, at most maxRays per frame. */
   spacing: 0.25,
   maxRays: 24,
-  /**
-   * The model (m): a kitchen sponge, a soft block with a darker scouring pad
-   * on its front (the side that goes on the wall) and pores on the soft part.
-   * Ink tones: lighter = more paper.
-   */
-  model: {
-    width: 0.14,
-    height: 0.09,
-    depth: 0.05,
-    /** Scouring pad thickness on the front. */
-    padDepth: 0.014,
-    /** Pores dotted over the soft part's visible faces. */
-    pores: 14,
-    poreSize: 0.006,
-    soft: '#c4c4c4',
-    pad: '#3a3a40',
-  },
   /** Height of the sponge in the hand's frame (m): up where the can's grip is, so the arm matches the can's. */
   gripHeight: 0.0,
 };
@@ -557,16 +542,46 @@ export const DRIPS = {
 
 type V3 = [number, number, number];
 /** A pickup's pose on top of its model: size multiplier, offset (m) and rotation (radians). */
-const pickupPose = () => ({ size: 1, offset: [0, 0, 0] as V3, rotation: [0, 0, 0] as V3 });
+const pickupPose = (size = 1) => ({ size, offset: [0, 0, 0] as V3, rotation: [0, 0, 0] as V3 });
 
 export const PICKUP = {
-  /** Horizontal pickup radius around the player. */
-  radius: 0.9,
+  /** Walk within this distance of a pickup to collect it (m). */
+  reach: 0.9,
   hover: 0.75,
   spin: 1.4,
   bob: 0.08,
-  /** Each kind's world pickup (not its hotbar icon or the avatar's tool); color unlocks are `can`s. */
-  models: { can: pickupPose(), cap: pickupPose(), marker: pickupPose(), ladder: pickupPose(), roller: pickupPose(), sponge: pickupPose() },
+  /** The drawn ring around every pickup: size (x the item's hover box) and opacity. */
+  ring: { size: 1.3, opacity: 0.7 },
+  /**
+   * Each kind's world pickup, on top of its tool model (MODELS, shown at twice real
+   * size): not its hotbar icon or the avatar's tool. Color unlocks are `can`s.
+   */
+  models: {
+    can: pickupPose(),
+    cap: pickupPose(4.4),
+    marker: pickupPose(),
+    ladder: pickupPose(0.9),
+    roller: pickupPose(0.6),
+    sponge: pickupPose(1.6),
+  },
+};
+
+/**
+ * Tool models (m), at real size: one shape per tool (tools/shapes.ts), shared by
+ * the first-person view, the pickups, the figure's hand and the hotbar icons.
+ * Each cap's color and nozzle are in CAPS.
+ */
+export const MODELS = {
+  can: { width: 0.066, height: 0.1445, labelHeight: 0.0765 },
+  /** The cap on a can and the cap pickup. */
+  cap: { width: 0.018, height: 0.014 },
+  marker: { width: 0.022, length: 0.13, bandLength: 0.03, nibSize: 0.009 },
+  /** The cover's length is the player's roller width. */
+  roller: { coverThickness: 0.08, frameThickness: 0.008, poleLength: 0.2 },
+  /** The stepladder folded, as carried (the placed one is kit/access.ts). */
+  ladder: { height: 0.36, width: 0.09, treadSpacing: 0.1 },
+  /** A kitchen sponge: a soft block with a darker scouring pad on its front (the side that goes on the wall), pores on the soft part. */
+  sponge: { width: 0.14, height: 0.09, depth: 0.05, padThickness: 0.014, pores: 14, poreSize: 0.006 },
 };
 
 export const SPRAY = {

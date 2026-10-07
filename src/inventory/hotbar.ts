@@ -46,9 +46,9 @@ export class Hotbar {
     this.toastTime = performance.now();
   }
 
-  /** Re-render an item's icon (its model changed); shown on the next update. */
-  refreshIcon(kind: string) {
-    this.icons.forget(kind);
+  /** Re-render every icon (a model changed); shown on the next update. */
+  refreshIcons() {
+    this.icons.forgetAll();
     this.version = -1;
   }
 

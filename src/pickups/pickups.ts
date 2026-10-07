@@ -51,15 +51,17 @@ export class Pickups {
     scene.add(this.root);
   }
 
-  /** Rebuild the item model of every pickup of this kind (after its config changed in F3). */
-  restyle(kind: PickupKind) {
+  /** Rebuild every pickup's item model (after a model changed in F3). */
+  restyle() {
     for (const p of this.list.values()) {
-      if (p.kind !== kind) continue;
       for (const old of [...p.pose.children]) {
-        old.traverse((o) => (o as THREE.Mesh).geometry?.dispose());
+        old.traverse((o) => {
+          (o as THREE.Mesh).geometry?.dispose();
+          ((o as THREE.Mesh).material as THREE.Material | undefined)?.dispose();
+        });
         p.pose.remove(old);
       }
-      p.pose.add(itemModel(kind));
+      p.pose.add(itemModel(p.kind));
     }
   }
 
@@ -136,9 +138,11 @@ export class Pickups {
       p.pose.rotation.set(...m.rotation);
       p.pose.scale.setScalar(m.size);
       p.halo.position.y = PICKUP.hover + bob;
+      p.halo.scale.setScalar(PICKUP.ring.size);
+      p.halo.material.opacity = PICKUP.ring.opacity;
       if (this.editing || p.collected) continue;
       const near =
-        Math.hypot(feet.x - p.pos[0], feet.z - p.pos[2]) < PICKUP.radius && feet.y > p.pos[1] - 1.2 && feet.y < p.pos[1] + 1.2;
+        Math.hypot(feet.x - p.pos[0], feet.z - p.pos[2]) < PICKUP.reach && feet.y > p.pos[1] - 1.2 && feet.y < p.pos[1] + 1.2;
       if (near && !p.inRange) this.tryCollect(p, inv);
       p.inRange = near;
     }

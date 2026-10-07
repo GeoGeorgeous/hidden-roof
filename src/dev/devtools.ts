@@ -20,6 +20,7 @@ import type { LightFX } from '../render/light-fx';
 import type { Lighting } from '../render/lighting';
 import type { Lightning } from '../render/lightning';
 import { session } from '../session';
+import { shapes } from '../tools/shapes';
 import { syncSkyline } from '../skyline';
 import { AvatarPreview } from './avatar-preview';
 import { layoutCity } from '../city/layout';
@@ -103,10 +104,12 @@ export class DevTools {
       applyPixelScale: g.applyPixelScale,
       rebuildCity: g.rebuildCity,
       applyToolSizes: () => (g.inventory.size = { marker: MARKER.width, roller: ROLLER.width, sponge: SPONGE.width }),
-      rebuildSponge: () => {
-        g.tools.sponge.model.build();
-        g.pickups.restyle('sponge');
-        g.hotbar.refreshIcon('sponge');
+      rebuildModels: () => {
+        const t = g.tools;
+        for (const m of [t.spray.model, t.marker, t.ladder.model, t.roller.model, t.sponge.model]) m.build();
+        g.pickups.restyle();
+        g.hotbar.refreshIcons();
+        shapes.version++;
       },
       syncSkyline,
       avatarToggle: () => this.figure.toggle(g.player.position, g.player.yaw),

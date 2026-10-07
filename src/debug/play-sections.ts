@@ -1,19 +1,8 @@
-import { HOLD, PICKUP } from '../config';
+import { HOLD } from '../config';
 import { live, r, t, gray, v3, type Item, type Section } from './tuning';
 import { POSE_COUNT } from '../dev/avatar-preview';
 
 // F3 panel contents for playing (tuning.ts has the helpers).
-
-/** Every kind's world pickup (PICKUP.models): one heading each, same sliders for each. */
-function pickupItems(): Item[] {
-  const label = { can: 'COLOR CAN' } as Record<string, string>;
-  return (Object.keys(PICKUP.models) as (keyof typeof PICKUP.models)[]).flatMap((k) => [
-    { kind: 'heading', label: label[k] ?? k.toUpperCase() } as Item,
-    r('size', ['PICKUP', 'models', k, 'size'], 0.2, 4, 0.05),
-    ...v3('offset (m)', ['PICKUP', 'models', k, 'offset'], -0.5, 0.5, 0.01),
-    ...v3('rotation (rad)', ['PICKUP', 'models', k, 'rotation'], -3.14, 3.14, 0.01),
-  ]);
-}
 
 /** First-person pose of every held tool (HOLD): one heading per tool, same sliders for each. */
 function holdItems(): Item[] {
@@ -32,7 +21,7 @@ function holdItems(): Item[] {
 }
 
 
-/** F3 sections for playing: movement, pickups, camera, hands, held, avatar, ghost. */
+/** F3 sections for playing: movement, camera, hands, held, avatar, ghost. */
 export function playSections(): Section[] {
   const p = () => live.player;
   const net = () => live.ghostNet();
@@ -58,17 +47,6 @@ export function playSections(): Section[] {
         r('step height', ['PLAYER', 'stepHeight'], 0, 0.8, 0.01),
         r('crouch collider', ['PLAYER', 'crouchHeight'], 0.6, 1.7, 0.01),
         r('ladder jump-off push', ['PLAYER', 'ladderJumpOff'], 0, 10, 0.1),
-      ],
-    },
-    {
-      id: 'pickups',
-      title: 'Pickups',
-      items: [
-        r('pickup radius', ['PICKUP', 'radius'], 0.2, 3, 0.05),
-        r('hover height', ['PICKUP', 'hover'], 0, 2, 0.05),
-        r('spin speed', ['PICKUP', 'spin'], 0, 6, 0.1),
-        r('bob', ['PICKUP', 'bob'], 0, 0.5, 0.01),
-        ...pickupItems(),
       ],
     },
     {
