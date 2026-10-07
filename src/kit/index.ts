@@ -1,5 +1,5 @@
 import type { Category, PropDef } from './def';
-import { fireescape, hatch, ladder, railing, stairs, stepladder } from './access';
+import { fireescape, hatch, ladder, stairs, stepladder } from './access';
 import { antenna, billboard, cable, cctv, sign } from './details';
 import { floodlight, lampPost, stringLights, wallLamp } from './lights';
 import { neon } from './neon';
@@ -11,6 +11,8 @@ import { bladeSign, shopSign } from './signs';
 import { smallSign } from './small-signs';
 import { debris, latticeMast, signTower, tankPair } from './steel';
 import { ledgeOnBrackets, platformOnColumns, scaffolding } from './scaffold';
+import { fence, railing, trafficCone } from './barriers';
+import { gondola, plankBridge } from './traversal';
 
 /** The prop kit, in picker order. Pickups are added by the editor as their own category. */
 const KIT: PropDef[] = [
@@ -22,11 +24,15 @@ const KIT: PropDef[] = [
   scaffolding,
   platformOnColumns,
   ledgeOnBrackets,
+  gondola,
   stairs,
   ladder,
   fireescape,
   hatch,
+  plankBridge,
   railing,
+  fence,
+  trafficCone,
   ac,
   ventshaft,
   duct,

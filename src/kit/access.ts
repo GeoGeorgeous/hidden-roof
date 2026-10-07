@@ -1,8 +1,8 @@
-import type { PropDef } from './def';
-import { M, Parts } from './pieces';
+import { withVariants, type PropDef } from './def';
+import { M, Parts, type V3 } from './pieces';
 
-// Stairs, ladders, fire escapes, railings, floor hatches and the player's
-// stepladder. Every walkable piece has railings.
+// Stairs, ladders, fire escapes, floor hatches and the player's stepladder.
+// Every walkable piece has railings (railings themselves: barriers.ts).
 
 /** Concrete stairs: 2 m wide, rising one 4 m module over 4 m toward the front (-z). */
 export const stairs: PropDef = {
@@ -26,37 +26,59 @@ export const stairs: PropDef = {
   },
 };
 
-/** 4 m wall ladder; stack them for taller walls. */
-export const ladder: PropDef = {
-  type: 'ladder',
-  label: 'Ladder',
-  category: 'access',
-  place: 'mount',
-  snap: 0.5,
-  vSnap: 4,
-  build() {
-    const p = new Parts();
-    p.ladder(0, 0, 0, 4, 0.7);
-    return p.list;
-  },
-};
+/** The fire escape ladder's lowest rung hangs this high (m): out of reach from the ground without a jump or a stepladder. */
+const RAISED = 2.4;
+/** Its rails stand this far off the wall, clear of a parapet's coping above, and rise this high over the storey's top (a parapet is 1.1 m). */
+const STANDOFF = 0.32;
+const OVER = 1.2;
 
-/** Railing segment on a grid line; posts come from the joints. */
-export const railing: PropDef = {
-  type: 'railing',
-  label: 'Railing',
-  category: 'access',
-  place: 'edge',
-  snap: 2,
-  joint: 'railing',
-  build() {
-    const p = new Parts();
-    p.detail([-0.97, 1.05, -0.03], [0.97, 1.1, 0.03], M.steel);
-    p.detail([-0.97, 0.5, -0.02], [0.97, 0.54, 0.02], M.steel);
-    p.detail([-0.03, 0, -0.03], [0.03, 1.05, 0.03], M.steel);
-    return p.list;
+/**
+ * One storey (4 m) of fire escape ladder on wall brackets; stack them up a
+ * facade. The lowest one starts RAISED off the floor; the top one rises OVER
+ * the roof's edge and bends over it in two grab handles down onto the roof.
+ */
+function fireEscapeLadder({ above, below }: { above: boolean; below: boolean }) {
+  const p = new Parts();
+  const w = 0.6;
+  const z0 = -STANDOFF - 0.06;
+  const z1 = -STANDOFF;
+  const y0 = below ? 0 : RAISED;
+  const y1 = above ? 4 : 4 + OVER;
+  for (const s of [-1, 1]) {
+    const x = (s * w) / 2;
+    // Over the roof's edge the rails are decor: a storey stacked on top takes their place.
+    p.detail([x - 0.03, y0, z0], [x + 0.03, 4, z1], M.steel);
+    if (y1 > 4) p.detail([x - 0.03, 4, z0], [x + 0.03, y1, z1], M.steel, false);
+    for (let y = y0 + 0.3; y < Math.min(y1, 4) - 0.2; y += 1.6) p.detail([x - 0.025, y, z1], [x + 0.025, y + 0.05, 0], M.steel, false);
+    if (!above) {
+      // Goose-neck handle: up, over the parapet, down onto the roof.
+      const pts: V3[] = [
+        [x, y1, (z0 + z1) / 2],
+        [x, y1 + 0.2, -0.12],
+        [x, y1 + 0.2, 0.35],
+        [x, 4.05, 0.55],
+      ];
+      for (let i = 1; i < pts.length; i++) p.rod(pts[i - 1], pts[i], 0.022, M.steel);
+    }
+  }
+  for (let y = y0 + 0.25; y < y1 - 0.1; y += 0.3) p.detail([-w / 2, y - 0.02, z0 + 0.01], [w / 2, y + 0.02, z1 - 0.01], M.steel, y < 4);
+  p.list.push({ k: 'climb', min: [-w / 2, y0, z0 - 0.45], max: [w / 2, y1 + 0.3, z0], normal: [0, 0, -1] });
+  return p.list;
+}
+
+/** Wall ladders, a storey (4 m) each; stack them for taller walls. The fire escape kind hangs out of reach at the bottom and has grab handles over the roof's edge. */
+export const ladder = withVariants({ type: 'ladder', label: 'Ladder', category: 'access', place: 'mount', snap: 0.5, vSnap: 4 }, [
+  {
+    id: 'wall',
+    label: 'wall',
+    build() {
+      const p = new Parts();
+      p.ladder(0, 0, 0, 4, 0.7);
+      return p.list;
+    },
   },
-};
+  { id: 'fire_escape', label: 'fire escape', stacks: { above: true, below: true }, build: fireEscapeLadder },
+]);
 
 /**
  * One floor (4 m) of fire escape against a wall. Stack pieces to go higher:
