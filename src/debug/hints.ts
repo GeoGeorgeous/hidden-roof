@@ -312,7 +312,6 @@ const HINTS: Record<string, string> = {
   'LIGHTMAP.enabled': 'Bake every lamp into light textures, with shadows: any number of lamps costs the same, at any distance. Off = the old real-light pool, for comparison.',
   'LIGHTMAP.shadows': 'Baked lamps cast shadows from walls, parapets, rails and props. Rebakes in a moment.',
   'LIGHTMAP.texelsPerMeter': 'Detail of baked light on paintable surfaces: 4 = 25 cm light texels. Higher = sharper shadows, longer bakes.',
-  'LIGHTMAP.smooth': 'Blend between light texels. Off = hard, pixelated light and shadow edges.',
   'LIGHTMAP.highlights': 'The nearest lamps also add a moving wet highlight (real-time, wet surfaces only). 0 = none, cheapest.',
   'LIGHTMAP.budgetMs': 'Time per frame spent rebaking after an edit or a light tweak. Higher = faster updates, lower fps meanwhile.',
 };

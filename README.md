@@ -153,7 +153,7 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
   - It rebakes on its own. A build edit rebakes what it relit: everything in range of a lamp that came or went, plus whatever lies in the shadow cone of a prop that came or went. Any light setting rebakes the whole level. Rebakes run a few ms per frame (`budgetMs`), nearest first, and the old light stays up until a surface is redone. A freshly loaded level (or a paint detail change) bakes at once.
   - What a bake can't do stays real-time: CCTV lights move, so they keep a pool of 2 real spot lights; the nearest 4 lamps add their wet highlights (specular only, wet surfaces only); neon light dips with its tubes through a flicker layer whose brightness the CPU updates each frame.
   - Demo level: about 2.4 MB of light textures; a full bake takes about 60 ms on a desktop CPU (170 ms the first time).
-  - F3 → Lights → baked light: shadows on/off, texel density, smooth or hard texels, wet highlights, bake time per frame, and a switch back to the old way (the nearest lamps get real spot lights) for comparison.
+  - F3 → Render → Light props → baked light: shadows on/off, texel density, wet highlights, bake time per frame, and a switch back to the old way (the nearest lamps get real spot lights) for comparison.
 - **Weather and ambience:** rain has a soft sound bed that follows rain density. While it rains, lightning strikes at random (45–150 s apart) and lights the sky, ambient, moon and volumetric fog in quick pulses, with thunder after a distance-based delay. Rain color and opacity are `ATMOS.rainColor` / `rainOpacity`. F3 → Sound has every gain; F3 → Lightning, smoke, fans, flicker has the rest, plus a STRIKE NOW button.
 - **Rain on metal:** raindrops ping on the tops of nearby metal pieces (rails, AC units, vents, ducts, the fire escape…) open to the sky, panned toward where they land. Metal under a roof stays quiet (`AUDIO.metal*`).
 - **Smoke:** exhaust pipes release smoke (on by default): one GPU-animated particle batch for the whole level (`SMOKE`).
@@ -191,7 +191,7 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
 - `CCTV`: CCTV follow ranges and how far a head can turn.
 - `DRIPS`, `PLAYER_LIGHT`: see above.
 - `LIGHTS`: per light kind: `color`, `offset`, `dir`, `intensity`, `range`, `spread` (at most `LIGHT_SPREAD_MAX`), `softness`, `glow`, `beam`, `shadows` (casts baked shadows).
-- `LIGHTMAP`: baked lamp light: `enabled`, `shadows`, `texelsPerMeter`, `smooth`, `highlights` (wet highlights from the nearest lamps), `budgetMs` (rebake time per frame).
+- `LIGHTMAP`: baked lamp light: `enabled`, `shadows`, `texelsPerMeter`, `highlights` (wet highlights from the nearest lamps), `budgetMs` (rebake time per frame).
 - `VOLUMETRICS`: `enabled`, `downscale`, `steps`, `maxDistance`, `density`, `moon`, `lights`, `anisotropy`.
 - `INK`: `paper`, `ink`, `sky` and `cloud` colors (`cloud`: what the city fades into above `ATMOS.cloudBase`, the sky color by default), `exposure`, the tone steps (`paperTone`, `hatchTone`, `blackTone`, `toneNoise`), `hatchPx` / `hatchWidth`, `grime`, the void (`voidTop`, `voidBottom`), paint (`paintLight`, `paintMin`, `paintHatch`) and the final pass (`outline`, `crease`, `outlineFade`, `grain`). All live in F3 → Ink. `ATMOS.fogDensity` is how fast the drawing fades into paper.
 - `GRADE`: `exposure`, the finished image's brightness in stops (0 by default).

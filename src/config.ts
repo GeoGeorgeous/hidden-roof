@@ -121,8 +121,6 @@ export const LIGHTMAP = {
   shadows: true,
   /** Light texels per meter on paintable surfaces (4 = 25 cm). Decor is lit per vertex. */
   texelsPerMeter: 4,
-  /** Smooth (bilinear) light texels; off = hard pixels. */
-  smooth: true,
   /** Wet highlights: the nearest lamps (0..4) also add a real-time specular highlight. */
   highlights: 4,
   /** Bake time per frame after edits and tweaks (ms). A freshly loaded level bakes at once. */

@@ -214,7 +214,6 @@ export function worldSections(): Section[] {
         t('bake lamp light', ['LIGHTMAP', 'enabled']),
         t('shadows', ['LIGHTMAP', 'shadows']),
         r('light texels per meter', ['LIGHTMAP', 'texelsPerMeter'], 1, 16, 1),
-        t('smooth light texels', ['LIGHTMAP', 'smooth']),
         r('wet highlights (nearest lamps)', ['LIGHTMAP', 'highlights'], 0, 4, 1),
         r('bake time per frame (ms)', ['LIGHTMAP', 'budgetMs'], 0.5, 16, 0.5),
         { kind: 'readout', label: 'bake', get: () => (live.stats.bakePending ? `${live.stats.bakePending} parts left` : 'done') },
