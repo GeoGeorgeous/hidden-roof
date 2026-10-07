@@ -116,7 +116,7 @@ export const LIGHTS: Record<Exclude<LightKind, 'neon'>, LightSpec> & { neon: Omi
  * baked into light textures on the paintable surfaces (and into the vertices
  * of small decor), so any number of lamps costs the same per frame. Rebakes on
  * its own after build edits and light tweaks. Moving lights (CCTV) stay real
- * spot lights. Live-tunable in F3 -> Lights -> baked light.
+ * spot lights. Live-tunable in F3 -> Render -> Light props -> baked light.
  */
 export const LIGHTMAP = {
   /** Off = the old way, for comparison: the nearest lamps get real spot lights (ATMOS.lightBudget). */
@@ -176,7 +176,7 @@ export const VOLUMETRICS = {
  * The ink look (render/ink): the world is drawn in ink on paper, and only the
  * player's paint keeps its color. Lit surfaces get a tone (light x material
  * gray), and the tone picks how much ink: paper, hatching, cross-hatching,
- * solid black. Edges get pen outlines in the final pass. Live in F3 -> Ink.
+ * solid black. Edges get pen outlines in the final pass. Live in F3 -> Render -> Shaders.
  */
 export const INK = {
   paper: '#dfe0d6',
@@ -751,7 +751,7 @@ export const AVATAR = {
 /**
  * The city around the level (src/city): seeded, so it's the same on every
  * load. A level file can override any of these in its own `skyline` object
- * (e.g. another seed, a wider margin). F3 -> Rendering -> City rebuilds it.
+ * (e.g. another seed, a wider margin). F3 -> World -> City rebuilds it.
  */
 export const SKYLINE = {
   seed: 23,

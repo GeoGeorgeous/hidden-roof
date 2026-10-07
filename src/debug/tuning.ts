@@ -81,7 +81,6 @@ export const live = {
   stats: { fps: 0, frameMs: 0, lights: 0, drawCalls: 0, triangles: 0, textures: 0, textureBytes: 0, surfaces: 0, uploads: 0, uploadBytes: 0, particles: 0, drips: 0, bakedBytes: 0, bakePending: 0, bakeMs: 0, paintOps: 0 },
   player: null as null | { position: { x: number; y: number; z: number }; velocity: { x: number; y: number; z: number }; state: string },
   /** Main sets these so sliders can apply side effects. */
-  applyPixelScale: () => {},
   rebuildLights: () => {},
   /** Rebuild the light props themselves (lens colors, floodlight heads), then their FX. */
   rebuildLightProps: () => {},

@@ -1,6 +1,7 @@
 import { icon, sectionIcon } from './icons';
 import { paintSections } from './paint-sections';
 import { itemSections } from './item-sections';
+import { renderSections, uiSections } from './render-sections';
 import { playSections } from './play-sections';
 import { itemRow, type Row } from './rows';
 import { isChanged, isValue, resetItems, sectionsJSON, splitSections, type Section } from './tuning';
@@ -22,10 +23,11 @@ const CONFIRM_SECONDS = 2;
 const TABS = [
   { id: 'player', title: 'Player', groups: ['movement', 'camera', 'hands', 'held', 'avatar'] },
   { id: 'paint', title: 'Paint', groups: ['painting', 'caps', 'runs', 'pressure', 'quality', 'cursor'] },
+  { id: 'render', title: 'Render', groups: ['shaders', 'lighting', 'light-props', 'post'] },
+  { id: 'world', title: 'World', groups: ['weather', 'props', 'city', 'sound', 'daylight'] },
+  { id: 'ui', title: 'UI', groups: ['hud'] },
   { id: 'items', title: 'Items', groups: ['pickups'] },
   { id: 'models', title: 'Models', groups: ['can', 'cap-models', 'marker', 'ladder', 'roller', 'sponge'] },
-  { id: 'look', title: 'Look', groups: ['ink', 'lights', 'post'] },
-  { id: 'world', title: 'World', groups: ['weather', 'props', 'city', 'sound', 'daylight'] },
   { id: 'test', title: 'Test', groups: ['performance', 'ghost'] },
 ];
 
@@ -55,7 +57,7 @@ export class DebugPanel {
   private openIds: Set<string>;
 
   constructor() {
-    this.list = splitSections([...playSections(), ...paintSections(), ...itemSections(), ...worldSections()]);
+    this.list = splitSections([...playSections(), ...paintSections(), ...renderSections(), ...worldSections(), ...uiSections(), ...itemSections()]);
     this.openIds = loadOpen() ?? new Set(this.list.filter((s) => s.open).map((s) => s.id));
     this.root = el('div', 'debug-panel');
     this.root.hidden = true;

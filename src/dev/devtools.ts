@@ -55,7 +55,6 @@ export interface DevContext {
   lightning: Lightning;
   baker: LightBaker;
   gpuTimer: GpuTimer;
-  applyPixelScale(): void;
   rebuildCity(): void;
   /** The level as a file: props, pickups, city overrides. */
   levelData(): LevelData;
@@ -101,7 +100,6 @@ export class DevTools {
       syncVignette: () => g.hud.syncVignette(),
       applyDaylight: () => g.atmosphere.reapplyDaylight(),
       atmosNight: () => g.atmosphere.nightValues,
-      applyPixelScale: g.applyPixelScale,
       rebuildCity: g.rebuildCity,
       applyToolSizes: () => (g.inventory.size = { marker: MARKER.width, roller: ROLLER.width, sponge: SPONGE.width }),
       rebuildModels: () => {

@@ -1,29 +1,7 @@
-import { type LightKind, type NeonColor, DAYLIGHT, LIGHT_SPREAD_MAX, LIGHTS, NEON_COLORS } from '../config';
+import { DAYLIGHT } from '../config';
 import { live, r, t, c, v3, type Item, type Section } from './tuning';
 
 // F3 panel contents for the world (tuning.ts has the helpers).
-
-const LIGHT_LABELS: Record<LightKind, string> = { wallLamp: 'WALL LAMP', floodlight: 'FLOODLIGHT', neon: 'NEON SIGNS', billboardLamp: 'BILLBOARD LAMP', lampPost: 'LAMP POST', stringLights: 'STRING LIGHTS', cctv: 'CCTV CAMERA' };
-
-function lightItems(): Item[] {
-  const fx = () => live.rebuildLights();
-  const props = () => live.rebuildLightProps();
-  return (Object.keys(LIGHTS) as LightKind[]).flatMap((k) => [
-    { kind: 'heading', label: `LIGHT · ${LIGHT_LABELS[k]}` } as Item,
-    ...(k === 'neon'
-      ? (Object.keys(NEON_COLORS) as NeonColor[]).map((n) => c(`color: ${n}`, ['NEON_COLORS', n], props))
-      : [c('color', ['LIGHTS', k, 'color'], props)]),
-    r('color tint (0 = none)', ['LIGHTS', k, 'tint'], 0, 1, 0.05, props),
-    r('intensity', ['LIGHTS', k, 'intensity'], 0, 200, 0.5),
-    r('range (m)', ['LIGHTS', k, 'range'], 1, 80, 0.5, fx),
-    r('spread (rad)', ['LIGHTS', k, 'spread'], 0.1, LIGHT_SPREAD_MAX, 0.01, fx),
-    r('edge softness', ['LIGHTS', k, 'softness'], 0, 1, 0.05, fx),
-    r('glow size', ['LIGHTS', k, 'glow'], 0, 3, 0.05, fx),
-    t('glow from all sides', ['LIGHTS', k, 'glowAllAround'], fx),
-    r('beam length', ['LIGHTS', k, 'beam'], 0, 20, 0.5, fx),
-    t('casts shadows', ['LIGHTS', k, 'shadows']),
-  ]);
-}
 
 /** DAYLIGHT overrides (build mode): numbers as sliders, hex strings as colors. */
 function daylightItems(): Item[] {
@@ -41,71 +19,9 @@ function daylightItems(): Item[] {
   });
 }
 
-/** F3 sections for the world: ink, screen + post, weather, props, city, sound, daylight, lights, performance. */
+/** F3 sections for the world: weather, props, city, sound, daylight, and performance (Test). */
 export function worldSections(): Section[] {
-  const sync = () => live.syncAtmosphere();
   return [
-    {
-      id: 'ink',
-      title: 'Ink',
-      items: [
-        c('paper', ['INK', 'paper']),
-        c('ink', ['INK', 'ink']),
-        c('sky', ['INK', 'sky']),
-        c('clouds', ['INK', 'cloud']),
-        r('exposure', ['INK', 'exposure'], 0.2, 5, 0.05),
-        r('colored light strength', ['INK', 'tint'], 0, 1, 0.05),
-        r('paper above tone', ['INK', 'paperTone'], 0, 1.5, 0.01),
-        r('cross-hatch below', ['INK', 'hatchTone'], 0, 1, 0.01),
-        r('solid ink below', ['INK', 'blackTone'], 0, 1, 0.01),
-        r('ragged tone edges', ['INK', 'toneNoise'], 0, 0.3, 0.005),
-        r('hatch spacing (px)', ['INK', 'hatchPx'], 2, 16, 0.5),
-        r('hatch line width', ['INK', 'hatchWidth'], 0.05, 0.9, 0.01),
-        r('grime', ['INK', 'grime'], 0, 2, 0.05),
-        r('void starts (m)', ['INK', 'voidTop'], -100, 40, 1),
-        r('void is black at (m)', ['INK', 'voidBottom'], -150, 20, 1),
-        { kind: 'heading', label: 'OUTLINES + PAPER' },
-        r('outlines', ['INK', 'outline'], 0, 2, 0.05),
-        r('crease sensitivity', ['INK', 'crease'], 0, 4, 0.05),
-        r('outlines thin out over (m)', ['INK', 'outlineFade'], 10, 1000, 5),
-        r('paper grain', ['INK', 'grain'], 0, 3, 0.05),
-        { kind: 'heading', label: 'PAINT' },
-        r('opacity steps', ['PAINT', 'alphaSteps'], 0, 12, 1),
-        r('paint light', ['INK', 'paintLight'], 0.2, 4, 0.05),
-        r('paint darkest', ['INK', 'paintMin'], 0, 1, 0.01),
-        r('hatching over paint', ['INK', 'paintHatch'], 0, 1, 0.01),
-      ],
-    },
-    {
-      id: 'post',
-      title: 'Screen + post',
-      items: [
-        r('pixel scale', ['RENDER', 'pixelScale'], 1, 5, 0.25, () => live.applyPixelScale()),
-        { kind: 'heading', label: 'VOLUMETRICS' },
-        t('volumetric light', ['VOLUMETRICS', 'enabled']),
-        r('resolution divisor', ['VOLUMETRICS', 'downscale'], 1, 8, 1),
-        r('steps', ['VOLUMETRICS', 'steps'], 4, 32, 1),
-        r('max distance', ['VOLUMETRICS', 'maxDistance'], 5, 120, 1),
-        r('density', ['VOLUMETRICS', 'density'], 0, 0.2, 0.001),
-        r('moon shafts', ['VOLUMETRICS', 'moon'], 0, 3, 0.05),
-        r('light scatter', ['VOLUMETRICS', 'lights'], 0, 5, 0.05),
-        r('forward scatter', ['VOLUMETRICS', 'anisotropy'], 0, 0.9, 0.01),
-        { kind: 'heading', label: 'COLOR GRADING' },
-        r('exposure (stops)', ['GRADE', 'exposure'], -3, 3, 0.05),
-        { kind: 'heading', label: 'VIGNETTE' },
-        r('strength', ['VIGNETTE', 'strength'], 0, 1, 0.01, () => live.syncVignette()),
-        r('starts at (%)', ['VIGNETTE', 'start'], 0, 99, 1, () => live.syncVignette()),
-        c('color', ['VIGNETTE', 'color'], () => live.syncVignette()),
-        { kind: 'heading', label: 'HUD' },
-        t('performance readout', ['HUD', 'perf']),
-        t('frame', ['HUD', 'frame']),
-        t('rec', ['HUD', 'rec']),
-        t('camera label', ['HUD', 'cam']),
-        t('clock', ['HUD', 'clock']),
-        r('hotbar: size', ['HUD', 'slotSize'], 16, 60, 1),
-        r('hotbar: gap', ['HUD', 'slotGap'], 0, 40, 1),
-      ],
-    },
     {
       id: 'city',
       title: 'City',
@@ -204,47 +120,6 @@ export function worldSections(): Section[] {
       id: 'daylight',
       title: 'Build-mode daylight',
       items: daylightItems(),
-    },
-    {
-      id: 'lights',
-      title: 'Lights',
-      items: [
-        r('falloff (2 = physical)', ['ATMOS', 'lightDecay'], 0.5, 2.5, 0.05),
-        t('moon shadows', ['ATMOS', 'shadows']),
-        t('spot light shadows (bake off)', ['ATMOS', 'spotShadows']),
-        r('shadow range', ['ATMOS', 'shadowRange'], 8, 60, 1),
-        r('shadow detail', ['ATMOS', 'shadowDetail'], 512, 4096, 512),
-        r('light props', ['ATMOS', 'practical'], 0, 4, 0.05),
-        r('real light budget (bake off)', ['ATMOS', 'lightBudget'], 0, 8, 1),
-        r('emissive boost', ['ATMOS', 'emissiveBoost'], 0, 6, 0.1),
-        { kind: 'heading', label: 'BAKED LIGHT' },
-        t('bake lamp light', ['LIGHTMAP', 'enabled']),
-        t('shadows', ['LIGHTMAP', 'shadows']),
-        r('light texels per meter', ['LIGHTMAP', 'texelsPerMeter'], 1, 16, 1),
-        r('wet highlights (nearest lamps)', ['LIGHTMAP', 'highlights'], 0, 4, 1),
-        r('bake time per frame (ms)', ['LIGHTMAP', 'budgetMs'], 0.5, 16, 0.5),
-        { kind: 'readout', label: 'bake', get: () => (live.stats.bakePending ? `${live.stats.bakePending} parts left` : 'done') },
-        { kind: 'heading', label: 'MOONLIGHT' },
-        r('intensity', ['ATMOS', 'moon'], 0, 6, 0.05),
-        c('color', ['ATMOS', 'moonColor'], sync),
-        ...v3('moon direction', ['ATMOS', 'moonDir'], -1, 1, 0.01, sync),
-        { kind: 'heading', label: 'AMBIENT' },
-        r('intensity', ['ATMOS', 'ambient'], 0, 4, 0.05),
-        c('sky color', ['ATMOS', 'ambientSky'], sync),
-        c('ground color', ['ATMOS', 'ambientGround'], sync),
-        { kind: 'heading', label: 'HANDS (VIEW MODEL)' },
-        r('fill', ['VIEWMODEL', 'fill'], 0, 4, 0.05),
-        c('fill from above', ['VIEWMODEL', 'fillSky']),
-        c('fill from below', ['VIEWMODEL', 'fillGround']),
-        r('rim', ['VIEWMODEL', 'rim'], 0, 4, 0.05),
-        c('rim color', ['VIEWMODEL', 'rimColor']),
-        { kind: 'heading', label: 'PLAYER GLOW' },
-        r('intensity', ['PLAYER_LIGHT', 'intensity'], 0, 4, 0.05),
-        r('range (m)', ['PLAYER_LIGHT', 'range'], 1, 15, 0.5),
-        r('height above eyes', ['PLAYER_LIGHT', 'height'], 0, 1.5, 0.05),
-        c('color', ['PLAYER_LIGHT', 'color']),
-        ...lightItems(),
-      ],
     },
     {
       id: 'performance',
