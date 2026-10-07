@@ -2,7 +2,7 @@ import type { SettingRow, SettingSection } from './settings';
 
 // The settings page of the pause menu: one tab per section (gameplay,
 // graphics, sound), each row a choice (click for the next value, right-click
-// for the previous) or a slider, with a short description and, for some, a
+// for the previous) or a slider, with, for some, a short description, a
 // callout (recommendations) and a performance cost in dots (1 to 5, green to red). Values are read again whenever the
 // page opens, since the debug panel edits the same settings.
 
@@ -71,7 +71,8 @@ export class SettingsPage {
       line.append(input, out);
       this.syncs.push(sync);
     }
-    el.append(line, Object.assign(div('desc'), { textContent: row.desc }));
+    el.append(line);
+    if (row.desc) el.append(Object.assign(div('desc'), { textContent: row.desc }));
     if (row.cost) {
       // PERFORMANCE COST •••··: the current value's cost in filled dots (1 none .. 5 critical; green, orange, red), dim ones up to 5.
       const cost = div('cost');

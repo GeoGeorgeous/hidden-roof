@@ -104,7 +104,6 @@ export class Settings {
       {
         kind: 'choice',
         label: 'RESOLUTION',
-        desc: 'Renders at a fraction of your screen and scales it up with crisp pixels. Most of the work is per pixel: 1/2 draws a quarter of the pixels of 1/1.',
         cost: () => RES_COST[RENDER.pixelScale] ?? 1,
         value: () => {
           const w = Math.round(window.innerWidth / RENDER.pixelScale);
@@ -120,7 +119,6 @@ export class Settings {
       {
         kind: 'choice',
         label: 'FRAME RATE',
-        desc: 'Limits how many frames a second the game draws. Lower saves battery and keeps a laptop cool; MAX follows your display.',
         value: () => (RENDER.maxFps ? `${RENDER.maxFps} FPS` : 'MAX'),
         step: (d) => {
           RENDER.maxFps = cycle(FRAME_RATES, nearest(FRAME_RATES, RENDER.maxFps), d);
@@ -130,7 +128,7 @@ export class Settings {
       {
         kind: 'choice',
         label: 'VOLUMETRICS',
-        desc: 'Light shafts and lamp glow in the fog: a light pass through the fog every frame. HIGH runs it at full resolution, about 30x the work of LOW. Turn it down first if the game stutters.',
+        desc: 'Light shafts and lamp glow in the fog. The heaviest setting: lower it first if the game stutters.',
         cost: () => VOL_COST[this.vol],
         value: () => this.vol.toUpperCase(),
         step: (d) => {
@@ -142,7 +140,7 @@ export class Settings {
       {
         kind: 'choice',
         label: 'PAINT DETAIL',
-        desc: 'Size of one paint texel on walls. Applies when you resume.',
+        desc: 'Size of one paint texel on walls.',
         note: 'ULTRA is recommended: 1 cm texels keep marker lines and fades sharp. It costs memory only for surfaces you actually paint, and a little CPU while painting; drawing the game is no slower.',
         cost: () => PAINT_COST[this.detail],
         // Shown with the size of one paint texel.
@@ -155,7 +153,7 @@ export class Settings {
       {
         kind: 'choice',
         label: 'CITY DETAIL',
-        desc: 'How far the city reaches around the level, and how far rooftop clutter and thin lines show. Lower trims the distant city, which the haze mostly hides, so it looks nearly the same: it saves GPU work and memory (HIGH draws about 3x the city of LOW). Applies when you resume.',
+        desc: 'How far the city stretches around the roofs. Lower trims distant blocks the haze mostly hides.',
         cost: () => CITY_COST[this.city],
         value: () => this.city.toUpperCase(),
         step: (d) => {
@@ -164,8 +162,7 @@ export class Settings {
         },
       },
       toggle(
-        'FULLSCREEN',
-        'Go fullscreen when the game takes the mouse. Off: play in the browser window, which usually has fewer pixels to draw.',
+        'FORCED FULLSCREEN',
         () => RENDER.fullscreen,
         (on) => {
           RENDER.fullscreen = on;
@@ -174,9 +171,9 @@ export class Settings {
         2,
         1,
       ),
-      toggle('RAIN', 'Rain, its sound, and lightning with thunder: a couple of thousand drops in one draw, raindrops pinging on metal, lightning flashes.', () => ATMOS.rain, (on) => (ATMOS.rain = on), 2, 1),
-      toggle('SMOKE', 'Smoke from exhaust pipes: one small particle batch for every exhaust in the level.', () => SMOKE.enabled, (on) => (SMOKE.enabled = on), 2, 1),
-      toggle('MOVING PARTS', 'CCTV cameras pan and follow you, AC fans spin. Off: they stay still. The GPU does the same work either way.', () => RENDER.propMotion, (on) => (RENDER.propMotion = on), 1, 1),
+      toggle('RAIN', () => ATMOS.rain, (on) => (ATMOS.rain = on), 2, 1),
+      toggle('SMOKE', () => SMOKE.enabled, (on) => (SMOKE.enabled = on), 2, 1),
+      toggle('MOVING PARTS', () => RENDER.propMotion, (on) => (RENDER.propMotion = on), 1, 1),
     ];
   }
 
@@ -222,11 +219,11 @@ function nearest(list: number[], v: number) {
 }
 
 /**
- * A setting row: a choice stepped through with clicks, or a slider. `note` is
- * a callout (recommendations), `cost` the performance cost of its current
- * value: 1 none, 2 minimal, 3 medium, 4 high, 5 critical.
+ * A setting row: a choice stepped through with < and >, or a slider. `desc` is
+ * an optional line under it, `note` a callout (recommendations), `cost` the
+ * performance cost of its current value: 1 none, 2 minimal, 3 medium, 4 high, 5 critical.
  */
-type RowBase = { label: string; desc: string; note?: string; cost?: () => number };
+type RowBase = { label: string; desc?: string; note?: string; cost?: () => number };
 export type SettingRow =
   | (RowBase & { kind: 'choice'; value: () => string; step: (d: number) => void })
   | (RowBase & { kind: 'range'; min: number; max: number; step: number; get: () => number; set: (v: number) => void; format: (v: number) => string });
@@ -236,16 +233,15 @@ export interface SettingSection {
 }
 
 /** An ON / OFF choice; `cost` while on, `offCost` while off (performance cost, see SettingRow). */
-function toggle(label: string, desc: string, get: () => boolean, set: (on: boolean) => void, cost?: number, offCost = 1): SettingRow {
-  return { kind: 'choice', label, desc, cost: cost === undefined ? undefined : () => (get() ? cost : offCost), value: () => (get() ? 'ON' : 'OFF'), step: () => set(!get()) };
+function toggle(label: string, get: () => boolean, set: (on: boolean) => void, cost?: number, offCost = 1): SettingRow {
+  return { kind: 'choice', label, cost: cost === undefined ? undefined : () => (get() ? cost : offCost), value: () => (get() ? 'ON' : 'OFF'), step: () => set(!get()) };
 }
 
 function gameplayRows(): SettingRow[] {
   return [
     {
       kind: 'range',
-      label: 'MOUSE SENSITIVITY',
-      desc: 'How far the view turns per mouse movement.',
+      label: 'SENSITIVITY',
       min: 0.25,
       max: 3,
       step: 0.05,
@@ -268,7 +264,6 @@ function gameplayRows(): SettingRow[] {
     {
       kind: 'choice',
       label: 'CROUCH',
-      desc: 'HOLD: crouch while Ctrl or C is held. TOGGLE: press once to crouch, again to stand.',
       value: () => (PLAYER.crouchToggle ? 'TOGGLE' : 'HOLD'),
       step: () => (PLAYER.crouchToggle = !PLAYER.crouchToggle),
     },
