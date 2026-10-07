@@ -143,11 +143,10 @@ const HINTS: Record<string, string> = {
   'CAPS.*.rate': 'Density: dots per second at full pressure. More = faster coverage.',
   'CAPS.*.coneAngle': 'Spray cone half-angle (rad). Wider = bigger, softer spray.',
   'CAPS.*.color': 'Color of the cap on the can and the pickup.',
-  'CAPS.*.drain': 'How fast this cap empties the can\'s pressure (x drain / s). Higher for caps that let out more paint.',
+  'CAPS.*.drain': 'Pressure this cap uses up per second of spraying (1 = a full can). Higher for caps that let out more paint.',
   'CAPS.*.drips': 'With paint runs on: how readily this cap starts runs (runs per m² of paint that reaches the build-up limit).',
   'CAPS.*.crosshair': 'Crosshair circle diameter for this cap (px).',
   // Pressure
-  'PRESSURE.drainPerSecond': 'Pressure lost per second of spraying (1 = full can), times the cap\'s drain.',
   'PRESSURE.thinThreshold': 'Below this pressure the paint gets thinner.',
   'PRESSURE.sputterThreshold': 'Below this pressure the can sputters and the HUD warns.',
   'PRESSURE.minSteadyFlow': 'Paint flow at the sputter threshold (flow ramps down to this from the thin threshold).',

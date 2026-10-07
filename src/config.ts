@@ -314,7 +314,7 @@ export interface CapSpec {
   crosshair: number;
   /** Paint runs (with DRIPS on), per m² of paint reaching DRIPS.excess. */
   drips: number;
-  /** Pressure drain while spraying, as a multiplier of PRESSURE.drainPerSecond. */
+  /** Pressure lost per second of spraying with this cap (1 = a full can). */
   drain: number;
   /** Color of the cap on the can model and pickups. */
   color: string;
@@ -323,11 +323,11 @@ export interface CapSpec {
 export type CapId = 'skinny' | 'standard' | 'fat' | 'spray';
 export const CAP_ORDER: CapId[] = ['skinny', 'standard', 'fat', 'spray'];
 export const CAPS: Record<CapId, CapSpec> = {
-  skinny: { name: 'SKINNY', coneAngle: 0.01, rate: 320, strength: 0.8, dotSize: 0.066, softness: 0.15, hissGain: 0.5, hissTone: 0, crosshair: 8, drips: 17, drain: 1, color: '#7fb4f2' },
-  standard: { name: 'STANDARD', coneAngle: 0.04, rate: 450, strength: 0.5, dotSize: 0.092, softness: 0.35, hissGain: 0.75, hissTone: 0.4, crosshair: 14, drips: 17, drain: 1, color: '#f4f4f4' },
-  fat: { name: 'FAT', coneAngle: 0.01, rate: 800, strength: 0.35, dotSize: 0.2, softness: 0, hissGain: 1, hissTone: 1, crosshair: 22, drips: 17, drain: 1, color: '#f2a04c' },
+  skinny: { name: 'SKINNY', coneAngle: 0.01, rate: 320, strength: 0.8, dotSize: 0.066, softness: 0.15, hissGain: 0.5, hissTone: 0, crosshair: 8, drips: 17, drain: 0.04, color: '#7fb4f2' },
+  standard: { name: 'STANDARD', coneAngle: 0.04, rate: 450, strength: 0.5, dotSize: 0.092, softness: 0.35, hissGain: 0.75, hissTone: 0.4, crosshair: 14, drips: 17, drain: 0.04, color: '#f4f4f4' },
+  fat: { name: 'FAT', coneAngle: 0.01, rate: 800, strength: 0.35, dotSize: 0.2, softness: 0, hissGain: 1, hissTone: 1, crosshair: 22, drips: 17, drain: 0.04, color: '#f2a04c' },
   /** Wide, soft mist for fades and backgrounds: lots of faint, fuzzy dots. */
-  spray: { name: 'SPRAY', coneAngle: 0.14, rate: 1100, strength: 0.12, dotSize: 0.158, softness: 0.9, hissGain: 0.9, hissTone: 0.8, crosshair: 32, drips: 17, drain: 1, color: '#b98cf2' },
+  spray: { name: 'SPRAY', coneAngle: 0.14, rate: 1100, strength: 0.12, dotSize: 0.158, softness: 0.9, hissGain: 0.9, hissTone: 0.8, crosshair: 32, drips: 17, drain: 0.04, color: '#b98cf2' },
 };
 
 /** Paint colors, in Q/E cycling order. Black is always owned. Paint never runs out. */
@@ -580,8 +580,6 @@ export const SPRAY = {
 };
 
 export const PRESSURE = {
-  /** Pressure lost per second of spraying (1 = full), x the cap's `drain`. */
-  drainPerSecond: 0.04,
   /** Below this, paint gets thinner. */
   thinThreshold: 0.5,
   /** Below this, the can sputters. */
