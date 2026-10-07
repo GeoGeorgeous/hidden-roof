@@ -1,10 +1,12 @@
 import { CATEGORIES, type Category, type PropDef } from '../kit/def';
 import { defOf, kitIn } from '../kit';
 import { PICKUP_GROUPS, type PickupKind } from '../inventory/items';
+import { FINISHES, type Finish, type FinishKind } from '../kit/finishes';
 
 // What build mode places next: the mouse wheel turns the category wheel,
 // E / Q step to the next / previous entry in it, Tab / Shift+Tab to its next /
-// previous variant. Every category and entry remembers its selection.
+// previous variant, F / G through the wall / floor finishes of the pieces that
+// take them. Every category and entry remembers its selection.
 
 /** What a click places: a prop (resolved to its variant), a pickup kind, or the level's one spawn point (moved there). */
 export type Choice = { kind: 'prop'; def: PropDef } | { kind: 'pickup'; type: PickupKind } | { kind: 'spawn' };
@@ -27,6 +29,8 @@ export interface Entry {
   /** One or more. */
   variants: Variant[];
   settings: Setting[];
+  /** Finishes its pieces take (PropDef.finishes). */
+  finishes: FinishKind[];
 }
 
 function propEntry(base: PropDef): Entry {
@@ -35,12 +39,12 @@ function propEntry(base: PropDef): Entry {
   const adjust = defs.find((d) => d.def.adjust)?.def.adjust;
   if (adjust) settings.push({ key: '[ ]', name: adjust.label });
   if (defs.some((d) => d.def.text !== undefined)) settings.push({ key: 'ENTER', name: 'TEXT' });
-  return { label: base.label, variants: defs.map(({ label, def }) => ({ label, choice: { kind: 'prop', def } })), settings };
+  return { label: base.label, variants: defs.map(({ label, def }) => ({ label, choice: { kind: 'prop', def } })), settings, finishes: base.finishes ?? [] };
 }
 
 function entriesFor(c: Category): Entry[] {
-  if (c === 'level') return [{ label: 'Spawn point', variants: [{ label: 'spawn point', choice: { kind: 'spawn' } }], settings: [] }];
-  if (c === 'pickups') return PICKUP_GROUPS.map((g) => ({ label: g.label, variants: g.kinds.map((k) => ({ label: k.label, swatch: k.swatch, choice: { kind: 'pickup', type: k.kind } })), settings: [] }));
+  if (c === 'level') return [{ label: 'Spawn point', variants: [{ label: 'spawn point', choice: { kind: 'spawn' } }], settings: [], finishes: [] }];
+  if (c === 'pickups') return PICKUP_GROUPS.map((g) => ({ label: g.label, variants: g.kinds.map((k) => ({ label: k.label, swatch: k.swatch, choice: { kind: 'pickup', type: k.kind } })), settings: [], finishes: [] }));
   return kitIn(c).map(propEntry);
 }
 
@@ -49,6 +53,8 @@ export class Picker {
   private cat = 0;
   private index = this.categories.map(() => 0);
   private variants = new Map<Entry, number>();
+  /** The finishes the next pieces get (none: their own look). */
+  finish: Finish = {};
   /** Bumped on every change, so the view redraws only then. */
   version = 0;
 
@@ -95,6 +101,25 @@ export class Picker {
   variant(dir: number) {
     const e = this.entry;
     this.variants.set(e, wrap(this.variantOf(e) + dir, e.variants.length));
+    this.version++;
+  }
+
+  /** F / G: the next / previous wall or floor finish, round to none (each piece's own look). */
+  cycleFinish(kind: FinishKind, dir: number) {
+    const ids = [undefined, ...Object.keys(FINISHES[kind])];
+    this.finish = { ...this.finish, [kind]: ids[wrap(ids.indexOf(this.finish[kind]) + dir, ids.length)] };
+    this.version++;
+  }
+
+  /** The current finishes, of the kinds `def` takes; undefined when it takes none of them. */
+  finishFor(def: PropDef): Finish | undefined {
+    const f = Object.fromEntries((def.finishes ?? []).filter((k) => this.finish[k]).map((k) => [k, this.finish[k]]));
+    return Object.keys(f).length ? f : undefined;
+  }
+
+  /** Take a placed piece's finishes as the current ones (middle-click pick). */
+  pickFinish(f: Finish | undefined) {
+    this.finish = { ...f };
     this.version++;
   }
 

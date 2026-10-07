@@ -7,7 +7,8 @@ import type { PaintSystem } from '../painting';
 import type { Ladder } from '../player';
 import { DecorBatches } from './batches';
 import { buildProp, disposeProp, type BuiltProp, type Emitter, type LightAnchor, type PropInstance } from './build-prop';
-import { computeJoints, jointPieces, type Joint } from './joints';
+import { computeJoints, jointPieces, sameFinish, type Joint } from './joints';
+import type { Finish } from '../kit/finishes';
 
 // The editable level: prop instances + everything built from them (meshes,
 // colliders, ladders), auto joints between edge props, and decor batches.
@@ -30,6 +31,8 @@ export interface PropData {
   adjust?: number;
   /** Per-instance text (PropDef.text), e.g. a sign's words. */
   text?: string;
+  /** Wall and floor finishes (PropDef.finishes), when not its own look. */
+  finish?: Finish;
 }
 
 export interface LevelData {
@@ -127,7 +130,7 @@ export class Level {
 
   toJSON(): LevelData {
     // Props the player placed while playing (the stepladder) aren't part of the level file. Default variants go unsaved.
-    const props = [...this.props.values()].filter((p) => p.owner === undefined).map(({ id, type, variant, pos, rot, adjust, text }) => ({ id, type, ...(variant === defOf(type)!.variant ? {} : { variant }), pos, rot, ...(adjust === undefined ? {} : { adjust }), ...(text === undefined ? {} : { text }) }));
+    const props = [...this.props.values()].filter((p) => p.owner === undefined).map(({ id, type, variant, pos, rot, adjust, text, finish }) => ({ id, type, ...(variant === defOf(type)!.variant ? {} : { variant }), pos, rot, ...(adjust === undefined ? {} : { adjust }), ...(text === undefined ? {} : { text }), ...(finish && Object.keys(finish).length ? { finish } : {}) }));
     return { version: 4, spawn: this.spawn, props };
   }
 
@@ -148,6 +151,16 @@ export class Level {
     if (!inst || defOf(inst.type, inst.variant)?.text === undefined) return false;
     inst.text = text.trim().slice(0, MAX_TEXT) || undefined;
     this.build(inst);
+    this.refresh();
+    return true;
+  }
+
+  /** Change a prop's wall and floor finishes (PropDef.finishes; none: its own look) and rebuild it, keeping its paint. */
+  setFinish(id: number, finish: Finish | undefined) {
+    const inst = this.props.get(id);
+    if (!inst) return false;
+    inst.finish = finish;
+    this.build(inst, true);
     this.refresh();
     return true;
   }
@@ -246,7 +259,7 @@ export class Level {
     // Its own id when it has a free one (a format 3 level, undo), else the next.
     const id = Number.isInteger(data.id) && data.id! > 0 && !this.props.has(data.id!) ? data.id! : this.nextId;
     this.nextId = Math.max(this.nextId, id + 1);
-    const inst: PropInstance = { id, type, variant: def.variant, pos: [...data.pos], rot: (((data.rot ?? 0) % 4) + 4) % 4, adjust: data.adjust, text: data.text };
+    const inst: PropInstance = { id, type, variant: def.variant, pos: [...data.pos], rot: (((data.rot ?? 0) % 4) + 4) % 4, adjust: data.adjust, text: data.text, finish: data.finish };
     this.props.set(inst.id, inst);
     if (build) this.build(inst);
     return inst;
@@ -264,7 +277,7 @@ export class Level {
     const def = defOf(inst.type, inst.variant)!;
     const seed = Math.abs(Math.round(inst.pos[0] * 7 + inst.pos[2] * 13));
     const adjust = inst.adjust ?? def.adjust?.initial() ?? 0;
-    const ctx = { seed, pos: inst.pos, adjust, text: inst.text ?? def.text ?? '', ...this.stackContext(def, inst.pos, inst.rot) };
+    const ctx = { seed, pos: inst.pos, adjust, text: inst.text ?? def.text ?? '', finish: inst.finish, ...this.stackContext(def, inst.pos, inst.rot) };
     const pieces = def.build(ctx);
     if (pieces.some((p) => 'mat' in p && p.mat.letters)) this.lettered.add(inst.id);
     else this.lettered.delete(inst.id);
@@ -330,7 +343,15 @@ export class Level {
       this.joints.delete(key);
     }
     for (const [key, joint] of want) {
-      if (!this.joints.has(key)) this.joints.set(key, { joint, b: this.buildJoint(key, joint) });
+      const old = this.joints.get(key);
+      if (old && sameFinish(old.joint, joint)) continue;
+      // New, or its finish changed: (re)built, its paint carried over.
+      const b = this.buildJoint(key, joint);
+      if (old) {
+        this.carryPaint(old.b, b);
+        disposeProp(old.b, this.paint);
+      }
+      this.joints.set(key, { joint, b });
     }
     this.colliders.length = 0;
     this.ladders.length = 0;
@@ -351,7 +372,7 @@ export class Level {
   }
 
   private buildJoint(key: string, joint: Joint) {
-    const b = buildProp(-1, `j${key}`, jointPieces(joint.kind), joint.pos, 0, this.paint);
+    const b = buildProp(-1, `j${key}`, jointPieces(joint), joint.pos, 0, this.paint);
     this.root.add(b.group);
     return b;
   }

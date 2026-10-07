@@ -568,6 +568,9 @@ body.paused .build-help {
   margin-right: 4px;
   border: 1px solid var(--ui);
 }
+.picker .keys span {
+  color: var(--ui);
+}
 .picker em,
 .picker .keys,
 .picker .hint {

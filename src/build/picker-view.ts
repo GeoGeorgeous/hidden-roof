@@ -1,6 +1,7 @@
 import { BUILD } from '../config';
 import { itemIcon, type Thumbnails } from '../inventory/thumbnails';
 import type { Choice, Entry, Picker } from './picker';
+import type { Finish } from '../kit/finishes';
 import { propIcon } from './prop-icon';
 
 // The picker on the left edge: a wheel of categories fanned out from a hub
@@ -61,7 +62,7 @@ export class PickerView {
       el.dataset.d = Math.abs(k) > SIDE ? 'far' : `${Math.abs(k)}`;
     });
     const entries = p.categories[p.category].entries;
-    this.column.innerHTML = `<div class="hint">Q ▲</div>${entries.map((e, i) => row(e, i === p.selected, p.variantOf(e), this.icon(e.variants[p.variantOf(e)].choice))).join('')}<div class="hint">E ▼</div>`;
+    this.column.innerHTML = `<div class="hint">Q ▲</div>${entries.map((e, i) => row(e, i === p.selected, p.variantOf(e), this.icon(e.variants[p.variantOf(e)].choice), p.finish)).join('')}<div class="hint">E ▼</div>`;
     // The selected entry's name on the hub line.
     const name = this.column.querySelector<HTMLElement>('.on .name')!;
     this.column.style.transform = `translateY(${-(name.offsetTop + name.offsetHeight / 2)}px)`;
@@ -82,7 +83,7 @@ export class PickerView {
   }
 }
 
-function row(e: Entry, on: boolean, variant: number, icon: string | null) {
+function row(e: Entry, on: boolean, variant: number, icon: string | null, finish: Finish) {
   const img = `<img src="${icon ?? ''}" alt=""${icon ? '' : ' hidden'}>`;
   const tags = e.settings.length ? ` <b>${e.settings.map((s) => s.name).join(' ')}</b>` : '';
   if (!on) return `<div class="row">${img}<div class="name">${e.label}${tags}</div></div>`;
@@ -94,7 +95,9 @@ function row(e: Entry, on: boolean, variant: number, icon: string | null) {
   const chips = many ? `${chip(variant)}<em>${variant + 1} / ${e.variants.length}</em> ` : e.variants.map((_, i) => chip(i)).join('');
   const variants = e.variants.length > 1 ? `<div class="variants">${chips}<em>TAB</em></div>` : '';
   const keys = e.settings.length ? `<div class="keys">${e.settings.map((s) => `${s.key} ${s.name}`).join(' · ')}</div>` : '';
-  return `<div class="row on">${img}<div class="name">${e.label}</div>${variants}${keys}</div>`;
+  const key = { wall: 'F', floor: 'G' } as const;
+  const finishes = e.finishes.length ? `<div class="keys">${e.finishes.map((k) => `${key[k]} ${k}: <span>${finish[k] ?? 'own'}</span>`).join(' · ')} · V APPLY</div>` : '';
+  return `<div class="row on">${img}<div class="name">${e.label}</div>${variants}${keys}${finishes}</div>`;
 }
 
 function div(className: string) {

@@ -34,7 +34,7 @@ import { axisNormal, place, type Hit, type PlaceSpec } from './placement';
 // spawn there, facing where you look; the spawn marker shows it while
 // building.
 
-const HELP = 'LMB PLACE (HOLD: REPEAT) · RMB DELETE · R ROTATE · MMB PICK · CTRL+Z UNDO · WHEEL CATEGORY · Q / E PROP · TAB VARIANT · PGUP / PGDN LEVEL · ENTER SIGN TEXT · [ ] TILT LIGHT · H PAINTABLE · P SAVE · O LOAD · B EXIT';
+const HELP = 'LMB PLACE (HOLD: REPEAT) · RMB DELETE · R ROTATE · MMB PICK · CTRL+Z UNDO · WHEEL CATEGORY · Q / E PROP · TAB VARIANT · PGUP / PGDN LEVEL · F / G WALL / FLOOR FINISH · V APPLY FINISH · ENTER SIGN TEXT · [ ] SETTING · H PAINTABLE · P SAVE · O LOAD · B EXIT';
 /** Pickups and the spawn point stand on the floor. */
 const FLOOR_SPEC: PlaceSpec = { place: 'floor', snap: 0.5 };
 
@@ -79,7 +79,7 @@ export class BuildMode {
   ) {
     this.pickerView = new PickerView(this.picker, new Thumbnails(renderer));
     this.ghost = new Ghost(scene);
-    this.settings = new PropSettings(scene, level, (m) => this.say(m));
+    this.settings = new PropSettings(scene, level, (m) => this.say(m), (def) => this.picker.finishFor(def));
     this.grid = new CursorGrid(scene);
     this.spawnMarker = new SpawnMarker(scene, PLAYER.height, PLAYER.radius);
     this.spawnGhost = new SpawnMarker(scene, PLAYER.height, PLAYER.radius);
@@ -188,7 +188,10 @@ export class BuildMode {
     if (input.wheelSteps) this.picker.wheel(Math.sign(input.wheelSteps));
     const step = (input.wasTyped('KeyE') ? 1 : 0) - (input.wasTyped('KeyQ') ? 1 : 0);
     if (step) this.picker.step(step);
-    if (input.wasTyped('Tab')) this.picker.variant(input.isDown('ShiftLeft') || input.isDown('ShiftRight') ? -1 : 1);
+    const back = input.isDown('ShiftLeft') || input.isDown('ShiftRight') ? -1 : 1;
+    if (input.wasTyped('Tab')) this.picker.variant(back);
+    if (input.wasTyped('KeyF')) this.picker.cycleFinish('wall', back);
+    if (input.wasTyped('KeyG')) this.picker.cycleFinish('floor', back);
   }
 
   /** Raycast from the screen center; falls back to the build plane (the working level's floor), from above or below. */
@@ -253,7 +256,7 @@ export class BuildMode {
       this.setSpawn({ pos, yaw: +this.player.yaw.toFixed(3) });
       this.say('SPAWN SET');
     } else if (e.kind === 'prop') {
-      const inst = this.level.add({ type: e.def.type, variant: e.def.variant, pos, rot, text: this.settings.texts.get(e.def.type) });
+      const inst = this.level.add({ type: e.def.type, variant: e.def.variant, pos, rot, text: this.settings.texts.get(e.def.type), finish: this.picker.finishFor(e.def) });
       if (inst) this.history.push({ op: 'add', kind: 'prop', id: inst.id, data: null });
     } else {
       const p = this.pickups.add(e.type, pos);
@@ -277,7 +280,7 @@ export class BuildMode {
     const inst = id !== undefined ? this.level.props.get(id) : undefined;
     // The player's stepladder isn't part of the level: never deleted (or restored by undo) as a prop.
     if (!inst || inst.owner !== undefined) return;
-    this.history.push({ op: 'remove', kind: 'prop', id: inst.id, data: { id: inst.id, type: inst.type, variant: inst.variant, pos: inst.pos, rot: inst.rot, adjust: inst.adjust, text: inst.text } satisfies PropData });
+    this.history.push({ op: 'remove', kind: 'prop', id: inst.id, data: { id: inst.id, type: inst.type, variant: inst.variant, pos: inst.pos, rot: inst.rot, adjust: inst.adjust, text: inst.text, finish: inst.finish } satisfies PropData });
     this.level.remove(inst.id);
   }
 
@@ -293,6 +296,7 @@ export class BuildMode {
     const inst = id !== undefined ? this.level.props.get(id) : undefined;
     if (inst && inst.owner === undefined && defOf(inst.type, inst.variant)) {
       this.picker.pick((c) => c.kind === 'prop' && c.def.type === inst.type && c.def.variant === inst.variant);
+      if (defOf(inst.type, inst.variant)?.finishes) this.picker.pickFinish(inst.finish);
       this.rot = inst.rot;
       if (inst.text !== undefined) this.settings.texts.set(inst.type, inst.text);
       else this.settings.texts.delete(inst.type);

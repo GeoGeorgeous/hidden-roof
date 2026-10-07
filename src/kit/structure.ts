@@ -1,4 +1,5 @@
 import { withVariants, type PropDef, type Variant } from './def';
+import { finishOf } from './finishes';
 import { GRAY, M, Parts, type Mat } from './pieces';
 import { FACADES } from '../render/ink/facade';
 
@@ -24,10 +25,10 @@ const fullBlock: Variant = {
   label: 'full',
   anchorTop: true,
   stacks: { below: true },
-  build({ below }) {
+  build({ below, finish }) {
     const p = new Parts();
-    p.box([-1, -0.3, -1], [1, 0, 1], M.roof, { paint: true, skip: ['-y'] });
-    p.box([-1, -4, -1], [1, -0.3, 1], M.plaster, { paint: true, skip: ['+y', '-y'] });
+    p.box([-1, -0.3, -1], [1, 0, 1], finishOf(finish, 'floor', M.roof), { paint: true, skip: ['-y'] });
+    p.box([-1, -4, -1], [1, -0.3, 1], finishOf(finish, 'wall', M.plaster), { paint: true, skip: ['+y', '-y'] });
     if (!below) p.box([-1, -100, -1], [1, -4, 1], FACADE, { paint: false, skip: ['+y'] });
     return p.list;
   },
@@ -38,10 +39,10 @@ const halfBlock: Variant = {
   id: 'half',
   label: 'half',
   vSnap: 2,
-  build() {
+  build({ finish }) {
     const p = new Parts();
-    p.box([-1, 0, -1], [1, 1.7, 1], M.plaster, { paint: true, skip: ['+y'] });
-    p.box([-1, 1.7, -1], [1, 2, 1], M.roof, { paint: true, skip: ['-y'] });
+    p.box([-1, 0, -1], [1, 1.7, 1], finishOf(finish, 'wall', M.plaster), { paint: true, skip: ['+y'] });
+    p.box([-1, 1.7, -1], [1, 2, 1], finishOf(finish, 'floor', M.roof), { paint: true, skip: ['-y'] });
     return p.list;
   },
 };
@@ -54,9 +55,10 @@ export const slab: PropDef = {
   place: 'cell',
   snap: 2,
   anchorTop: true,
-  build() {
+  finishes: ['floor'],
+  build({ finish }) {
     const p = new Parts();
-    p.box([-1, -0.3, -1], [1, 0, 1], M.roof, { paint: true });
+    p.box([-1, -0.3, -1], [1, 0, 1], finishOf(finish, 'floor', M.roof), { paint: true });
     return p.list;
   },
 };
@@ -64,9 +66,10 @@ export const slab: PropDef = {
 const plainWall: Variant = {
   id: 'plain',
   label: 'plain',
-  build() {
+  build({ finish }) {
+    const face = finishOf(finish, 'wall', M.plaster);
     const p = new Parts();
-    p.box([-L, 0, -T], [L, WALL_H, T], M.plaster, { paint: true });
+    p.box([-L, 0, -T], [L, WALL_H, T], face, { paint: true });
     return p.list;
   },
 };
@@ -75,9 +78,10 @@ const plainWall: Variant = {
 const wallLedge: Variant = {
   id: 'ledge',
   label: 'ledge',
-  build() {
+  build({ finish }) {
+    const face = finishOf(finish, 'wall', M.plaster);
     const p = new Parts();
-    p.box([-L, 0, -T], [L, WALL_H, T], M.plaster, { paint: true });
+    p.box([-L, 0, -T], [L, WALL_H, T], face, { paint: true });
     p.box([-1, WALL_H - 0.35, -T - 0.35], [1, WALL_H - 0.05, -T], M.concrete, { paint: true });
     return p.list;
   },
@@ -90,9 +94,10 @@ export const parapet: PropDef = {
   place: 'edge',
   snap: 2,
   joint: 'parapet',
-  build() {
+  finishes: ['wall'],
+  build({ finish }) {
     const p = new Parts();
-    p.box([-L, 0, -T], [L, 1.02, T], M.concrete, { paint: true });
+    p.box([-L, 0, -T], [L, 1.02, T], finishOf(finish, 'wall', M.concrete), { paint: true });
     p.box([-0.8, 1.02, -0.2], [0.8, 1.1, 0.2], M.galv, { paint: true }); // coping
     return p.list;
   },
@@ -105,8 +110,8 @@ const DOOR_H = 2.2;
 const door: Variant = {
   id: 'door',
   label: 'door',
-  build() {
-    const p = doorFrame();
+  build({ finish }) {
+    const p = doorFrame(finishOf(finish, 'wall', M.plaster));
     const w = DOOR_W;
     const h = DOOR_H;
     p.box([-w, 0, -0.05], [w, h, 0.05], M.door, { paint: true });
@@ -119,8 +124,8 @@ const door: Variant = {
 const doorOpen: Variant = {
   id: 'open',
   label: 'open door',
-  build() {
-    const p = doorFrame();
+  build({ finish }) {
+    const p = doorFrame(finishOf(finish, 'wall', M.plaster));
     const w = DOOR_W;
     const leaf = 2 * w - 0.04;
     // Hinged at the -x jamb, swung 90° out.
@@ -130,14 +135,14 @@ const doorOpen: Variant = {
   },
 };
 
-/** Wall around a door opening, with the steel frame on both faces. */
-function doorFrame() {
+/** Wall (`face`) around a door opening, with the steel frame on both faces. */
+function doorFrame(face: Mat) {
   const p = new Parts();
   const w = DOOR_W;
   const h = DOOR_H;
-  p.box([-L, 0, -T], [-w, WALL_H, T], M.plaster, { paint: true });
-  p.box([w, 0, -T], [L, WALL_H, T], M.plaster, { paint: true });
-  p.box([-w, h, -T], [w, WALL_H, T], M.plaster, { paint: true });
+  p.box([-L, 0, -T], [-w, WALL_H, T], face, { paint: true });
+  p.box([w, 0, -T], [L, WALL_H, T], face, { paint: true });
+  p.box([-w, h, -T], [w, WALL_H, T], face, { paint: true });
   for (const z of [-T - 0.04, T]) {
     p.detail([-w - 0.06, 0, z], [-w, h + 0.06, z + 0.04], M.steel);
     p.detail([w, 0, z], [w + 0.06, h + 0.06, z + 0.04], M.steel);
@@ -150,15 +155,16 @@ function doorFrame() {
 const windowWall: Variant = {
   id: 'window',
   label: 'window',
-  build() {
+  build({ finish }) {
+    const face = finishOf(finish, 'wall', M.plaster);
     const p = new Parts();
     const w = 0.6;
     const y0 = 1.0;
     const y1 = 2.4;
-    p.box([-L, 0, -T], [-w, WALL_H, T], M.plaster, { paint: true });
-    p.box([w, 0, -T], [L, WALL_H, T], M.plaster, { paint: true });
-    p.box([-w, 0, -T], [w, y0, T], M.plaster, { paint: true });
-    p.box([-w, y1, -T], [w, WALL_H, T], M.plaster, { paint: true });
+    p.box([-L, 0, -T], [-w, WALL_H, T], face, { paint: true });
+    p.box([w, 0, -T], [L, WALL_H, T], face, { paint: true });
+    p.box([-w, 0, -T], [w, y0, T], face, { paint: true });
+    p.box([-w, y1, -T], [w, WALL_H, T], face, { paint: true });
     p.detail([-w, y0, -0.02], [w, y1, 0.02], M.glass);
     p.detail([-0.02, y0, -0.04], [0.02, y1, 0.04], M.steel);
     p.detail([-w - 0.05, y0 - 0.04, -T - 0.08], [w + 0.05, y0 + 0.03, T + 0.08], M.concrete); // sill (not coplanar with the wall)
@@ -167,10 +173,10 @@ const windowWall: Variant = {
 };
 
 /** Building blocks: a full storey down to the street, or a half one. */
-export const building = withVariants({ type: 'building', label: 'Block', category: 'structure', place: 'cell', snap: 2 }, [fullBlock, halfBlock]);
+export const building = withVariants({ type: 'building', label: 'Block', category: 'structure', place: 'cell', snap: 2, finishes: ['wall', 'floor'] }, [fullBlock, halfBlock]);
 
 /** Walls: plain, with a ledge, a window or a door. */
-export const wall = withVariants({ type: 'wall', label: 'Wall', category: 'structure', place: 'edge', snap: 2, joint: 'wall' }, [plainWall, wallLedge, windowWall, door, doorOpen]);
+export const wall = withVariants({ type: 'wall', label: 'Wall', category: 'structure', place: 'edge', snap: 2, joint: 'wall', finishes: ['wall'] }, [plainWall, wallLedge, windowWall, door, doorOpen]);
 
 /** Plinth body (`mat`) `w` x `d` m and `h` high, with an optional cap 4 cm over its edges. */
 function plinthBlock(w: number, d: number, h: number, mat: Mat, cap = 0) {

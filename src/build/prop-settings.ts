@@ -7,12 +7,14 @@ import type { Level } from '../level/level';
 import type { PropInstance } from '../level/build-prop';
 import { MAX_TEXT } from '../render/ink/words';
 import { Ghost } from './ghost';
+import type { Finish } from '../kit/finishes';
 
 // Build mode's per-instance prop settings: [ and ] change the aimed prop's own
 // setting (floodlight tilt), Enter types a sign's text (the sign under the
 // crosshair, else the next ones of the selected type placed; new signs reuse
-// the last text typed or picked). A placed prop with settings lights up under
-// the crosshair, so it's plain that it has some.
+// the last text typed or picked), V gives the aimed piece the current wall and
+// floor finishes. A placed prop with settings lights up under the crosshair,
+// so it's plain that it has some.
 
 export class PropSettings {
   /** Text for the next signs placed, per prop type (last typed or picked). */
@@ -23,6 +25,8 @@ export class PropSettings {
     scene: THREE.Scene,
     private level: Level,
     private say: (m: string) => void,
+    /** The current finishes (build/picker.ts), of the kinds a prop takes. */
+    private finishFor: (def: PropDef) => Finish | undefined,
   ) {
     this.highlight = new Ghost(scene, { color: BUILD.highlightColor, opacity: BUILD.highlightOpacity, overlay: true });
     this.highlight.visible = false;
@@ -36,6 +40,7 @@ export class PropSettings {
     const dir = (input.wasTyped('BracketRight') ? 1 : 0) - (input.wasTyped('BracketLeft') ? 1 : 0);
     if (dir && inst && def?.adjust) this.adjust(inst, def, dir);
     if (input.wasPressed('Enter') || input.wasPressed('NumpadEnter')) this.editText(inst && def?.text !== undefined ? inst : null, selected);
+    if (input.wasPressed('KeyV')) this.applyFinish(inst, def);
     this.show(inst && def && (def.adjust || def.text !== undefined) ? inst : null);
   }
 
@@ -61,6 +66,14 @@ export class PropSettings {
     else this.texts.delete(sign.type);
     if (aimed) this.level.setText(aimed.id, text);
     this.say(`TEXT: ${text || 'DEFAULT'} — CLICK TO RESUME`);
+  }
+
+  /** V: the current finishes onto the aimed piece (its own look where none is chosen). */
+  private applyFinish(inst: PropInstance | undefined, def: PropDef | undefined) {
+    if (!inst || !def?.finishes) return this.say('AIM AT A WALL, BLOCK, PARAPET OR SLAB');
+    const f = this.finishFor(def);
+    this.level.setFinish(inst.id, f);
+    this.say(`FINISH: ${def.finishes.map((k) => `${k} ${f?.[k] ?? 'own'}`).join(' · ').toUpperCase()}`);
   }
 
   /** Light up a placed prop with settings, as it is now (its tilt, its text). */
