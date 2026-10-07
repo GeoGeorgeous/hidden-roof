@@ -50,6 +50,8 @@ export const shared = {
   uFlickerHum: { value: FLICKER.neonHum },
   uPulseRate: { value: FLICKER.pulseRate },
   uPulseDepth: { value: FLICKER.pulseDepth },
+  uBrokenRate: { value: FLICKER.brokenRate },
+  uBrokenDepth: { value: FLICKER.brokenDepth },
   /** Build mode: stripe paintable surfaces, dim everything else. */
   uShowPaintable: { value: 0 },
   /** CCTV tracking: player position and ranges (render/cctv-track.ts). */
@@ -69,6 +71,8 @@ export function syncSharedUniforms(time: number) {
   shared.uFlickerHum.value = FLICKER.neonHum;
   shared.uPulseRate.value = FLICKER.pulseRate;
   shared.uPulseDepth.value = FLICKER.pulseDepth;
+  shared.uBrokenRate.value = FLICKER.brokenRate;
+  shared.uBrokenDepth.value = FLICKER.brokenDepth;
   shared.uWet.value = ATMOS.wetness;
   shared.uEmissiveBoost.value = ATMOS.emissiveBoost;
   shared.uLitWindows.value = SKYLINE.litWindows;

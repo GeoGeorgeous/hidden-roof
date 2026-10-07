@@ -884,7 +884,7 @@ export const FANS = {
   speed: 3,
 };
 
-/** Gentle flicker of neon tubes (light + tubes in sync), and the slow pulse of aviation lights. */
+/** Gentle flicker of neon tubes (light + tubes in sync), the slow pulse of aviation lights, broken lamps. */
 export const FLICKER = {
   /** Random steps per second. */
   speed: 12,
@@ -896,6 +896,9 @@ export const FLICKER = {
   /** Aviation lights: pulses per second, and how dark they get between pulses (0..1). */
   pulseRate: 0.5,
   pulseDepth: 0.85,
+  /** Broken lamps (the flickering wall lamp): fraction of steps that dip, and how deep. */
+  brokenRate: 0.3,
+  brokenDepth: 0.95,
 };
 
 /** The player's stepladder (a pickup, slot 3; placed with LMB, one at a time). */
