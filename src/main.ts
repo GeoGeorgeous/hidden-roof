@@ -18,6 +18,7 @@ import { PaintOps } from './paint-ops';
 import { paintMenu } from './save/paint-menu';
 import { WallHand } from './tools/wall-hand';
 import { GpuTimer } from './debug/gpu-timer';
+import { captureDefaults } from './debug/defaults';
 import { Settings } from './settings';
 import { saveScreenshot } from './screenshot';
 import { Input } from './input';
@@ -45,6 +46,8 @@ import { exitGameFullscreen } from './fullscreen';
 import { setHex } from './hex-color';
 import { seedPaintRandom } from './lcg';
 
+// F3's defaults before anything changes config (single player: the panel isn't in the multiplayer build).
+if (import.meta.env.VITE_MP !== '1') captureDefaults();
 // Settings first: they may change the pixel scale the renderer starts with,
 // and the paint detail the level is built with.
 const settings = new Settings(applyPixelScale, () => level.rebuildAll(), rebuildCity);

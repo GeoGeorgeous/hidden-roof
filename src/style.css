@@ -497,7 +497,8 @@ canvas {
   left: 20px;
   width: 340px;
   max-height: calc(100vh - 230px);
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   line-height: 1.5;
   /* A dark sheet behind paper-colored text: reads over paper and over black.
      The ink variables are inverted for everything inside the panel. */
@@ -509,8 +510,72 @@ canvas {
   background: rgba(14, 14, 16, 0.82);
   backdrop-filter: blur(2px);
   z-index: 10;
+}
+/* Buttons and tabs stay; the open tab scrolls. */
+.debug-panel .pages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--dim) transparent;
+}
+.debug-panel .tabs {
+  display: flex;
+  gap: 4px;
+}
+.debug-panel .tabs button {
+  flex: 1;
+  padding: 0 4px;
+  border-color: var(--dim);
+  color: var(--dim);
+}
+.debug-panel .tabs button.on {
+  border-color: var(--ui);
+  color: var(--ui);
+}
+.debug-panel .head.changed .title::after {
+  content: '•';
+  margin-left: 4px;
+}
+.debug-panel .tabs button {
+  position: relative;
+  white-space: nowrap;
+}
+.debug-panel .tabs button.changed::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 4px;
+  height: 4px;
+  background: var(--ui);
+}
+.debug-panel > .hint {
+  margin: 4px 0 2px;
+}
+.debug-panel .icon {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 5px;
+  vertical-align: -1px;
+}
+.debug-panel .icon svg {
+  display: block;
+  width: 10px;
+  height: 10px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.debug-panel .icon .f {
+  fill: currentColor;
+  stroke: none;
+}
+.debug-panel .icon .dot {
+  stroke-width: 1.4;
 }
 .debug-panel .group {
   margin-top: 10px;
@@ -531,9 +596,20 @@ canvas {
   align-items: center;
   justify-content: space-between;
 }
+.debug-panel .head {
+  gap: 4px;
+}
 .debug-panel .head .title {
   cursor: pointer;
   flex: 1;
+}
+.debug-panel .head .arrow {
+  display: inline-block;
+  width: 1.2em;
+}
+/* Nothing to reset in this section. */
+.debug-panel .head:not(.changed) .reset {
+  opacity: 0.35;
 }
 .debug-panel .body {
   padding: 2px 0 4px;
@@ -553,13 +629,36 @@ canvas {
   color: var(--ui);
   border-bottom: 1px solid var(--dim);
 }
-.debug-panel label.has-hint span {
+.debug-panel label.has-hint > span:first-child {
   cursor: help;
   text-decoration: underline dotted rgba(244, 244, 240, 0.35);
   text-underline-offset: 3px;
 }
-.debug-panel label span {
+.debug-panel label > span:first-child {
   color: var(--dim);
+}
+/* Differs from config.ts. */
+.debug-panel label.changed > span:first-child {
+  color: var(--ui);
+}
+/* The slider over a gray tick at config.ts's value (the 3px thumb covers it there). */
+.debug-panel .slider {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.debug-panel .slider i {
+  position: absolute;
+  left: calc(1px + var(--at) * (100% - 3px));
+  top: 50%;
+  width: 1px;
+  height: 7px;
+  margin-top: -3.5px;
+  background: rgba(235, 229, 214, 0.4);
+  pointer-events: none;
+}
+.debug-panel .slider input {
+  position: relative;
 }
 .debug-panel b {
   text-align: right;
@@ -606,4 +705,14 @@ canvas {
 }
 .debug-panel .hint {
   color: var(--dim);
+}
+/* RESET ALL, COLLAPSE ALL, EXPAND ALL, COPY ALL: one line. */
+.debug-panel > .row {
+  flex-wrap: nowrap;
+  gap: 4px;
+  white-space: nowrap;
+}
+.debug-panel > .row button {
+  flex: 1;
+  padding: 0 2px;
 }
