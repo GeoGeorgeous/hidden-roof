@@ -79,6 +79,8 @@ export class DevTools {
   private resumeOnClose = false;
   /** Paint ops per second: counted over a second at a time. */
   private opsFrom = { count: 0, time: 0 };
+  /** A model changed in F3 since the last frame. */
+  private modelsChanged = false;
 
   constructor(private g: DevContext) {
     this.build = new BuildMode(g.scene, g.level, g.pickups, g.player);
@@ -102,13 +104,8 @@ export class DevTools {
       atmosNight: () => g.atmosphere.nightValues,
       rebuildCity: g.rebuildCity,
       applyToolSizes: () => (g.inventory.size = { marker: MARKER.width, roller: ROLLER.width, sponge: SPONGE.width }),
-      rebuildModels: () => {
-        const t = g.tools;
-        for (const m of [t.spray.model, t.marker, t.ladder.model, t.roller.model, t.sponge.model]) m.build();
-        g.pickups.restyle();
-        g.hotbar.refreshIcons();
-        shapes.version++;
-      },
+      // Once per frame however many slider ticks came in (rebuildModelsNow).
+      rebuildModels: () => (this.modelsChanged = true),
       syncSkyline,
       avatarToggle: () => this.figure.toggle(g.player.position, g.player.yaw),
       avatarNext: () => this.figure.next(),
@@ -145,6 +142,7 @@ export class DevTools {
    * paused, so you can watch them with the panel open.
    */
   frame(input: Input, dt: number) {
+    if (this.modelsChanged) this.rebuildModelsNow();
     this.figure.update(dt);
     this.ghost.update(dt);
     if (session.multiplayer) {
@@ -200,6 +198,17 @@ export class DevTools {
    * to the panel again (Input.escapeResumes). Closing with the key (`byKey`)
    * goes back to the game if that's where the panel was opened.
    */
+  /** Rebuild every tool model (first person, pickups, hotbar icons, the figure's tool) from MODELS and CAPS. */
+  private rebuildModelsNow() {
+    this.modelsChanged = false;
+    const g = this.g;
+    const t = g.tools;
+    for (const m of [t.spray.model, t.marker, t.ladder.model, t.roller.model, t.sponge.model]) m.build();
+    g.pickups.restyle();
+    g.hotbar.refreshIcons();
+    shapes.version++;
+  }
+
   private setPanel(open: boolean, input: Input, byKey = false) {
     if (open === this.debug.visible) return;
     this.debug.toggle();
