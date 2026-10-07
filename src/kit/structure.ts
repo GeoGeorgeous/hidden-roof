@@ -178,11 +178,11 @@ export const building = withVariants({ type: 'building', label: 'Block', categor
 /** Walls: plain, with a ledge, a window or a door. */
 export const wall = withVariants({ type: 'wall', label: 'Wall', category: 'structure', place: 'edge', snap: 2, joint: 'wall', finishes: ['wall'] }, [plainWall, wallLedge, windowWall, door, doorOpen]);
 
-/** Plinth body (`mat`) `w` x `d` m and `h` high, with an optional cap 4 cm over its edges. */
-function plinthBlock(w: number, d: number, h: number, mat: Mat, cap = 0) {
-  return () => {
+/** Plinth body (`mat`, or its wall finish) `w` x `d` m and `h` high, with an optional cap 4 cm over its edges. */
+function plinthBlock(w: number, d: number, h: number, mat: Mat, cap = 0): Variant['build'] {
+  return ({ finish }) => {
     const p = new Parts();
-    p.box([-w / 2, 0, -d / 2], [w / 2, h - cap, d / 2], mat, { paint: true, skip: cap ? ['+y'] : [] });
+    p.box([-w / 2, 0, -d / 2], [w / 2, h - cap, d / 2], finishOf(finish, 'wall', mat), { paint: true, skip: cap ? ['+y'] : [] });
     if (cap) p.box([-w / 2 - 0.04, h - cap, -d / 2 - 0.04], [w / 2 + 0.04, h, d / 2 + 0.04], M.concrete, { paint: true });
     return p.list;
   };
@@ -190,9 +190,10 @@ function plinthBlock(w: number, d: number, h: number, mat: Mat, cap = 0) {
 
 /**
  * Squat supports for tanks, AC units and platforms. The pad is a step (under
- * the player's step height), the others a jump; all are paintable.
+ * the player's step height), the others a jump; all are paintable and take a
+ * wall finish (F) like walls.
  */
-export const plinth = withVariants({ type: 'plinth', label: 'Plinth', category: 'structure', place: 'floor', snap: 0.5 }, [
+export const plinth = withVariants({ type: 'plinth', label: 'Plinth', category: 'structure', place: 'floor', snap: 0.5, finishes: ['wall'] }, [
   { id: 'pad', label: 'pad', build: plinthBlock(2, 2, 0.3, M.concrete) },
   { id: 'block', label: 'block', build: plinthBlock(1, 1, 0.6, M.concrete) },
   { id: 'beam', label: 'beam', build: plinthBlock(2, 0.5, 0.45, M.concrete) },
