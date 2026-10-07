@@ -15,6 +15,7 @@ const CONTROLS = [
   ['RMB', 'shake can'],
   ['Q / E', 'color'],
   ['MOUSE WHEEL', 'cap • tool width • turn ladder'],
+  ['K', 'screenshot'],
 ];
 const TOOLS = [
   ['1', 'can'],
