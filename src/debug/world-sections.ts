@@ -71,6 +71,7 @@ export function worldSections(): Section[] {
         r('wobble (px)', ['INK', 'wobble'], 0, 3, 0.05),
         r('paper grain', ['INK', 'grain'], 0, 3, 0.05),
         { kind: 'heading', label: 'PAINT' },
+        r('opacity steps', ['PAINT', 'alphaSteps'], 0, 12, 1),
         r('paint light', ['INK', 'paintLight'], 0.2, 4, 0.05),
         r('paint darkest', ['INK', 'paintMin'], 0, 1, 0.01),
         r('hatching over paint', ['INK', 'paintHatch'], 0, 1, 0.01),

@@ -26,6 +26,8 @@ function holdItems(): Item[] {
     r('tilt', ['HOLD', tool, 'pitch'], -3.14, 3.14, 0.01),
     r('turn', ['HOLD', tool, 'yaw'], -3.14, 3.14, 0.01),
     r('lean', ['HOLD', tool, 'roll'], -3.14, 3.14, 0.01),
+    // The sponge's hand scrubs in small circles while cleaning (only how it looks).
+    ...(tool === 'sponge' ? [r('scrub size', ['SPONGE', 'scrubSize'], 0, 0.05, 0.001), r('scrub speed', ['SPONGE', 'scrubSpeed'], 0, 12, 0.1)] : []),
   ]);
 }
 
