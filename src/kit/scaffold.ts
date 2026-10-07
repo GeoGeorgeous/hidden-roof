@@ -60,7 +60,7 @@ function bay(ends: 0 | 1 | 2, ladder: boolean) {
       p.box([-POST, LIFT - 0.05, bands[i] + 0.005], [x1, LIFT, bands[i + 1] - 0.005], M.wood, { paint: true });
     }
     // Ladder up through the hatch, its back on the rear ledger; grab rails above it only on the top bay.
-    if (ladder) p.ladder(0.575, 0, POST, LIFT, 0.5, !above);
+    if (ladder) p.ladder(0.55, 0, POST, LIFT, 0.5, !above);
     if (!above) {
       for (const x of [-GUARD, GUARD]) for (const z of [-GUARD, GUARD]) p.detail([x - 0.025, LIFT, z - 0.025], [x + 0.025, LIFT + 1.05, z + 0.025], M.steel);
       guardSide(p, 'x', -GUARD);
