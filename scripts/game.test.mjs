@@ -572,7 +572,7 @@ await check('hotbar: icons arrive from the GPU (read back without stalling) and 
   return n === 5 ? null : `${n} of 5 icons arrived`;
 });
 
-await check('debug panel: hooks run from the rows: a Models slider rebuilds the model, a pause menu row shows its sheet', async () => {
+await check('debug panel: hooks run from the rows: a Models slider rebuilds the model, a pause menu row shows its sheet; a section RESET asks SURE? first', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
     const frame = () => new Promise((d) => requestAnimationFrame(() => requestAnimationFrame(d)));
@@ -597,18 +597,26 @@ await check('debug panel: hooks run from the rows: a Models slider rebuilds the 
     input.dispatchEvent(new Event('input'));
     await frame();
     const after = length();
-    input.closest('section').querySelector('.head .reset').click();
+    // RESET asks SURE? first, as RESET ALL: the second click resets.
+    const reset = input.closest('section').querySelector('.head .reset');
+    reset.click();
     await frame();
+    const asked = reset.textContent === 'SURE?' && length() === 0.2;
+    reset.click();
+    await frame();
+    const restored = length() === before;
     tab('UI');
     const pause = row('opacity');
     pause.value = '0.3';
     pause.dispatchEvent(new Event('input'));
     const compact = document.querySelector('.overlay').classList.contains('compact');
-    pause.closest('section').querySelector('.head .reset').click();
+    const pauseReset = pause.closest('section').querySelector('.head .reset');
+    pauseReset.click();
+    pauseReset.click();
     if (!open) g.debug.toggle();
-    return { before, after, previewed: !compact };
+    return { before, after, asked, restored, previewed: !compact };
   });
-  return r.before === 0.13 && r.after === 0.2 && r.previewed ? null : JSON.stringify(r);
+  return r.before === 0.13 && r.after === 0.2 && r.asked && r.restored && r.previewed ? null : JSON.stringify(r);
 });
 
 await check('debug panel: every row on every tab has a tooltip', async () => {
