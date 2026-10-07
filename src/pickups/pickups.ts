@@ -142,7 +142,7 @@ export class Pickups {
       p.halo.material.opacity = PICKUP.ring.opacity;
       if (this.editing || p.collected) continue;
       const near =
-        Math.hypot(feet.x - p.pos[0], feet.z - p.pos[2]) < PICKUP.reach && feet.y > p.pos[1] - 1.2 && feet.y < p.pos[1] + 1.2;
+        Math.hypot(feet.x - p.pos[0], feet.z - p.pos[2]) < PICKUP.reach && Math.abs(feet.y - p.pos[1]) < PICKUP.reachHeight;
       if (near && !p.inRange) this.tryCollect(p, inv);
       p.inRange = near;
     }

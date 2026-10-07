@@ -32,6 +32,7 @@ export function itemSections(): Section[] {
       title: 'Pickups',
       items: [
         r('reach', ['PICKUP', 'reach'], 0.2, 3, 0.05),
+        r('reach: height', ['PICKUP', 'reachHeight'], 0.2, 4, 0.05),
         r('hover height', ['PICKUP', 'hover'], 0, 2, 0.05),
         r('spin speed', ['PICKUP', 'spin'], 0, 6, 0.1),
         r('bob height', ['PICKUP', 'bob'], 0, 0.5, 0.01),

@@ -183,7 +183,7 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
 - `HOLD`: how each tool is held in first person (`can`, `marker`, `ladder`, `roller`, `sponge`; a new tool adds its own): `distance` in front of the eye, `x` / `y` position per meter of distance (so changing the distance keeps it in the same spot on screen), `scale`, and `pitch` / `yaw` / `roll`. Live in F3 → Player → Held.
 - `MARKER`: `reach`, `radius` (half the square nib's side in meters; 0 = one paint texel), `drips` (how readily it starts paint runs), and `strength`.
 - `MODELS`: every tool's model at real size (`tools/shapes.ts`), one shape shared by the first-person view, the pickups, the figure's hand and the hotbar icons. Live in F3 → Models.
-- `PICKUP`: collect reach, hover, spin, bob, the ring, and each kind's size, offset and rotation on top of its model. Live in F3 → Items.
+- `PICKUP`: collect reach (and `reachHeight` above or below), hover, spin, bob, the ring, and each kind's size, offset and rotation on top of its model. Live in F3 → Items.
 - `VIEWMODEL`: hand sway, walk bob, jump lag and the trigger-press animation.
 - `ATMOS`: the rainy night, including `lightDecay` (light falloff, 2 = physical). `DAYLIGHT` overrides some of its keys while build mode is on.
 - `BUILD`: build mode reach, the hold-to-place repeat timing and the free-fly speeds (`flySpeed`, `flySprintSpeed`).
@@ -196,7 +196,7 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
 - `INK`: `paper`, `ink`, `sky` and `cloud` colors (`cloud`: what the city fades into above `ATMOS.cloudBase`, the sky color by default), `exposure`, the tone steps (`paperTone`, `hatchTone`, `blackTone`, `toneNoise`), `hatchPx` / `hatchWidth`, `grime`, the void (`voidTop`, `voidBottom`), paint (`paintLight`, `paintMin`, `paintHatch`) and the final pass (`outline`, `crease`, `outlineFade`, `grain`). All live in F3 → Render → Shaders. `ATMOS.fogDensity` is how fast the drawing fades into paper.
 - `GRADE`: `exposure`, the finished image's brightness in stops (0 by default).
 - `PAUSE_MENU`: the pause sheet's color, opacity (and with F3 open), and the key list. Live in F3 → UI.
-- `HUD`: which HUD parts show (`frame`, `rec`, `cam`, `clock`, `perf`, `perfGpu` for GPU time) and the hotbar's look (`slotSize`, `slotGap`, `slotRoundness`, border and background colors, and the selected slot's). Live in F3 → UI.
+- `HUD`: which HUD parts show (`frame`, `rec`, `cam`, `clock`, `perf`, `perfGpu` for GPU time), how long tags, the PSI gauge and messages show (`tagTime`, `gaugeTime`, `toastTime`), and the hotbar's look (`slotSize`, `slotGap`, `slotRoundness`, `iconSize`, border and background colors, and the selected slot's). Live in F3 → UI.
 - `SKYLINE`: the city: `seed`, `radius`, `block`, `streetMin`/`streetMax`, `margin` (free space round the level), `street` (how far down the street is), `near`, `tallChance`/`tallMin`/`tallMax` (huge towers), `clutterRange`, `lineRange` (live), `litWindows` (live), `opacity` (live: fades the whole city into the sky color to focus on the level). F3 → World → City, with a rebuild button; a level can override any of them.
 - `PICKUP`: `radius`, `hover`, `spin`, `bob`.
 - `PLAYER`:

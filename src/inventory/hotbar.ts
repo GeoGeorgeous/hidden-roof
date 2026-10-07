@@ -56,7 +56,7 @@ export class Hotbar {
 
   update(inv: Inventory) {
     const h = HUD;
-    const look = [h.slotSize, h.slotGap, h.slotRoundness, h.slotBorder, h.slotFill, h.slotFillOpacity, h.selectedBorder, h.selectedFill, h.selectedFillOpacity].join('|');
+    const look = [h.slotSize, h.slotGap, h.slotRoundness, h.iconSize, h.slotBorder, h.slotFill, h.slotFillOpacity, h.selectedBorder, h.selectedFill, h.selectedFillOpacity].join('|');
     if (look !== this.look) {
       this.look = look;
       const mix = (hex: string, a: number) => `color-mix(in srgb, ${hex} ${Math.round(Math.min(1, Math.max(0, a)) * 100)}%, transparent)`;
@@ -64,6 +64,7 @@ export class Hotbar {
         '--slot': `${h.slotSize}px`,
         '--gap': `${h.slotGap}px`,
         '--round': `${h.slotRoundness * 50}%`,
+        '--icon': `${h.iconSize * 100}%`,
         '--border': mix(h.slotBorder, 0.62),
         '--fill': mix(h.slotFill, h.slotFillOpacity),
         '--on-border': h.selectedBorder,
@@ -71,7 +72,7 @@ export class Hotbar {
       };
       for (const k in vars) this.root.style.setProperty(k, vars[k]);
     }
-    if (this.toastTime && performance.now() - this.toastTime > 2200) {
+    if (this.toastTime && performance.now() - this.toastTime > HUD.toastTime * 1000) {
       this.toastEl.classList.remove('show');
       this.toastTime = 0;
     }

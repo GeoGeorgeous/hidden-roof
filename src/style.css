@@ -403,8 +403,8 @@ canvas {
   transform: scale(1.12);
 }
 .hotbar img {
-  width: calc(var(--slot, 30px) * 0.73);
-  height: calc(var(--slot, 30px) * 0.73);
+  width: var(--icon, 73%);
+  height: var(--icon, 73%);
   /* A thin ink edge so light icons read on paper. */
   filter: drop-shadow(0 0 0.6px var(--ui));
 }

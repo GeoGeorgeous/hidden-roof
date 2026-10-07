@@ -21,7 +21,6 @@ const CONTROLS = [
   ['F3', 'debug + tuning'],
 ];
 
-const CAP_TAG_SECONDS = 2.5;
 /** The color tag sits this many CSS px below the cap tag. */
 const COLOR_TAG_OFFSET = 22;
 /** The PSI gauge sits this many CSS px above the cap tag, the low-pressure alert above it. */
@@ -29,8 +28,6 @@ const GAUGE_OFFSET = -22;
 const ALERT_OFFSET = -44;
 /** Menu messages (SAVE / LOAD PAINT) show this long. */
 const NOTICE_SECONDS = 3;
-/** The PSI gauge stays up this long after the pressure last changed (spraying, shaking). */
-const GAUGE_SECONDS = 1.2;
 
 export class Hud {
   onResume = () => {};
@@ -206,13 +203,13 @@ export class Hud {
   /** Shows the cap name for a few seconds; place it with `placeToolTags`. */
   showCapTag(name: string) {
     this.capTag.textContent = `CAP · ${name}`;
-    this.capTagUntil = performance.now() + CAP_TAG_SECONDS * 1000;
+    this.capTagUntil = performance.now() + HUD.tagTime * 1000;
   }
 
   /** Shows the paint color (swatch + name) for a few seconds, just below the cap tag. */
   showColorTag(name: string, hex: string) {
     this.colorTag.innerHTML = `COLOR · <i class="swatch" style="background:${hex}"></i>${name.toUpperCase()}`;
-    this.colorTagUntil = performance.now() + CAP_TAG_SECONDS * 1000;
+    this.colorTagUntil = performance.now() + HUD.tagTime * 1000;
   }
 
   /**
@@ -224,7 +221,7 @@ export class Hud {
    */
   placeToolTags(at: { x: number; y: number } | null, pressure: number | null, low: boolean) {
     const now = performance.now();
-    if (pressure !== null && pressure !== this.lastPressure && this.lastPressure >= 0) this.gaugeUntil = now + GAUGE_SECONDS * 1000;
+    if (pressure !== null && pressure !== this.lastPressure && this.lastPressure >= 0) this.gaugeUntil = now + HUD.gaugeTime * 1000;
     this.lastPressure = pressure ?? -1;
     const on = !!at && pressure !== null && (low || now < this.gaugeUntil);
     if (on !== this.gaugeOn) this.gauge.classList.toggle('show', (this.gaugeOn = on));

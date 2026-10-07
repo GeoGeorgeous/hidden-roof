@@ -270,10 +270,15 @@ export const HUD = {
   perf: true,
   /** GPU time per frame in it too (timer queries: desktop Chromium; a few queries a frame while shown). */
   perfGpu: false,
-  /** Hotbar slots: size and the gap between them (CSS px), roundness (0 = square, 1 = circle). */
+  /** How long the cap and color tags show after a change, the PSI gauge after the pressure last changed, and a hotbar message (s). */
+  tagTime: 2.5,
+  gaugeTime: 1.2,
+  toastTime: 2.2,
+  /** Hotbar slots: size and the gap between them (CSS px), roundness (0 = square, 1 = circle), icon size (share of the slot). */
   slotSize: 30,
   slotGap: 10,
   slotRoundness: 1,
+  iconSize: 0.73,
   /** Slot border and background (the background at `slotFillOpacity`, 0 = none). */
   slotBorder: '#141416',
   slotFill: '#ebe5d6',
@@ -577,8 +582,9 @@ type V3 = [number, number, number];
 const pickupPose = (size = 1) => ({ size, offset: [0, 0, 0] as V3, rotation: [0, 0, 0] as V3 });
 
 export const PICKUP = {
-  /** Walk within this distance of a pickup to collect it (m). */
+  /** Walk within this distance of a pickup to collect it (m), with your feet within reachHeight above or below it. */
   reach: 0.9,
+  reachHeight: 1.2,
   hover: 0.75,
   spin: 1.4,
   bob: 0.08,
