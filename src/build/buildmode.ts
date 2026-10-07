@@ -8,6 +8,7 @@ import type { Level, LevelData, PropData } from '../level/level';
 import type { PickupData, Pickups } from '../pickups/pickups';
 import type { Player } from '../player';
 import { Ghost, GREEN, RED } from './ghost';
+import { PropSettings } from './prop-settings';
 import { SpawnMarker } from './spawn-marker';
 import { BUILD, PLAYER } from '../config';
 import { describeHeight, levelOf, levelY } from '../level/levels';
@@ -20,7 +21,6 @@ import { Picker } from './picker';
 import { PickerView } from './picker-view';
 import { Thumbnails } from '../inventory/thumbnails';
 import { axisNormal, place, type Hit, type PlaceSpec } from './placement';
-import { MAX_TEXT } from '../render/ink/words';
 
 // Minecraft-style editor. Aim with the crosshair: the ghost sits on the face
 // under it, snapped to the grid (on a top face it goes on top, on a side face
@@ -29,12 +29,10 @@ import { MAX_TEXT } from '../render/ink/words';
 // its props, Tab / Shift+Tab through a prop's variants. Aiming at empty space hits
 // the build plane: the floor of the working level (PgUp / PgDn, and it follows
 // what you place). P save, O load, H shows which surfaces can be painted.
-// [ and ] change the aimed prop's own setting (floodlight tilt). The spawn
+// [ and ] and Enter change a placed prop's settings (prop-settings.ts). The spawn
 // point is an entry of the picker (LEVEL): placing it moves the level's one
 // spawn there, facing where you look; the spawn marker shows it while
-// building. Enter types a sign's text (the sign
-// under the crosshair, else the next ones placed); new signs reuse the last
-// text typed or picked.
+// building.
 
 const HELP = 'LMB PLACE (HOLD: REPEAT) · RMB DELETE · R ROTATE · MMB PICK · CTRL+Z UNDO · WHEEL CATEGORY · Q / E PROP · TAB VARIANT · PGUP / PGDN LEVEL · ENTER SIGN TEXT · [ ] TILT LIGHT · H PAINTABLE · P SAVE · O LOAD · B EXIT';
 /** Pickups and the spawn point stand on the floor. */
@@ -68,8 +66,7 @@ export class BuildMode {
   private placement: { pos: V3; rot: number } | null = null;
   /** Level whose floor is the build plane (where aiming at empty space lands). */
   private workLevel = 0;
-  /** Text for the next signs placed, per prop type (last typed or picked). */
-  private texts = new Map<string, string>();
+  private settings: PropSettings;
   /** Holding LMB: time of the next repeat placement (ms), or 0 when not holding. */
   private nextRepeat = 0;
 
@@ -82,6 +79,7 @@ export class BuildMode {
   ) {
     this.pickerView = new PickerView(this.picker, new Thumbnails(renderer));
     this.ghost = new Ghost(scene);
+    this.settings = new PropSettings(scene, level, (m) => this.say(m));
     this.grid = new CursorGrid(scene);
     this.spawnMarker = new SpawnMarker(scene, PLAYER.height, PLAYER.radius);
     this.spawnGhost = new SpawnMarker(scene, PLAYER.height, PLAYER.radius);
@@ -101,6 +99,7 @@ export class BuildMode {
     this.pickerView.visible = on;
     this.hud.hidden = !on;
     this.ghost.visible = on;
+    this.settings.visible = on;
     this.grid.visible = on;
     this.spawnMarker.visible = on;
     if (!on) this.spawnGhost.visible = false;
@@ -133,9 +132,8 @@ export class BuildMode {
       shared.uShowPaintable.value = shared.uShowPaintable.value ? 0 : 1;
       this.say(shared.uShowPaintable.value ? 'PAINTABLE SURFACES: STRIPED' : 'PAINTABLE OVERLAY OFF');
     }
-    const adj = (input.wasTyped('BracketRight') ? 1 : 0) - (input.wasTyped('BracketLeft') ? 1 : 0);
-    if (adj && target?.object) this.adjust(target.object, adj);
-    if (input.wasPressed('Enter') || input.wasPressed('NumpadEnter')) this.editText(target?.object ?? null);
+    const e = this.picker.choice;
+    this.settings.update(input, target?.object ?? null, e.kind === 'prop' ? e.def : null);
     if (input.wasPressed('KeyP')) {
       downloadLevel(this.getLevelData());
       this.say('SAVED LEVEL.JSON');
@@ -178,35 +176,6 @@ export class BuildMode {
       this.placeCurrent(true);
       this.nextRepeat = now + BUILD.repeatInterval * 1000;
     }
-  }
-
-  /** [ / ] on a prop with a per-instance setting (floodlight tilt). */
-  private adjust(object: THREE.Object3D, dir: number) {
-    const id = this.level.idOf(object);
-    const inst = id === undefined ? undefined : this.level.props.get(id);
-    const a = inst && defOf(inst.type, inst.variant)?.adjust;
-    if (!inst || !a) return;
-    const v = this.level.setAdjust(inst.id, (inst.adjust ?? a.initial()) + dir * a.step);
-    if (v !== null) this.say(`${a.label} ${v}°`);
-  }
-
-  /** Type a text for the sign under the crosshair, or for the next signs of the selected type. */
-  private editText(object: THREE.Object3D | null) {
-    const id = object ? this.level.idOf(object) : undefined;
-    const inst = id === undefined ? undefined : this.level.props.get(id);
-    const def = inst ? defOf(inst.type, inst.variant) : undefined;
-    const aimed = def?.text !== undefined ? def : undefined;
-    const e = this.picker.choice;
-    const sign = aimed ?? (e.kind === 'prop' && e.def.text !== undefined ? e.def : undefined);
-    if (!sign) return this.say('AIM AT A SIGN WITH TEXT');
-    const current = (aimed ? inst!.text : undefined) ?? this.texts.get(sign.type) ?? sign.text!;
-    const typed = window.prompt('Sign text (empty = default)', current);
-    if (typed === null) return;
-    const text = typed.trim().slice(0, MAX_TEXT);
-    if (text) this.texts.set(sign.type, text);
-    else this.texts.delete(sign.type);
-    if (aimed) this.level.setText(inst!.id, text);
-    this.say(`TEXT: ${text || 'DEFAULT'} — CLICK TO RESUME`);
   }
 
   private setSpawn(spawn: { pos: V3; yaw: number }) {
@@ -261,7 +230,7 @@ export class BuildMode {
       this.valid = pl.ok && !this.level.overlaps([new THREE.Box3(new THREE.Vector3(x - r, y + 0.05, z - r), new THREE.Vector3(x + r, y + PLAYER.height, z + r))]);
       this.spawnGhost.setColor(this.valid ? GREEN : RED);
     } else {
-      if (e.kind === 'prop') this.ghost.showProp(e.def, pl.pos, pl.rot, this.level.stackContext(e.def, pl.pos, pl.rot), this.texts.get(e.def.type));
+      if (e.kind === 'prop') this.ghost.showProp(e.def, pl.pos, pl.rot, { ...this.level.stackContext(e.def, pl.pos, pl.rot), text: this.settings.texts.get(e.def.type) });
       else this.ghost.showPickup(pl.pos);
       // Like Minecraft, never place into yourself (a held LMB pillar stops at your eyes).
       this.valid = pl.ok && !this.level.overlaps(this.ghost.colliders) && !this.ghost.colliders.some((c) => c.containsPoint(eye));
@@ -284,7 +253,7 @@ export class BuildMode {
       this.setSpawn({ pos, yaw: +this.player.yaw.toFixed(3) });
       this.say('SPAWN SET');
     } else if (e.kind === 'prop') {
-      const inst = this.level.add({ type: e.def.type, variant: e.def.variant, pos, rot, text: this.texts.get(e.def.type) });
+      const inst = this.level.add({ type: e.def.type, variant: e.def.variant, pos, rot, text: this.settings.texts.get(e.def.type) });
       if (inst) this.history.push({ op: 'add', kind: 'prop', id: inst.id, data: null });
     } else {
       const p = this.pickups.add(e.type, pos);
@@ -325,8 +294,8 @@ export class BuildMode {
     if (inst && inst.owner === undefined && defOf(inst.type, inst.variant)) {
       this.picker.pick((c) => c.kind === 'prop' && c.def.type === inst.type && c.def.variant === inst.variant);
       this.rot = inst.rot;
-      if (inst.text !== undefined) this.texts.set(inst.type, inst.text);
-      else this.texts.delete(inst.type);
+      if (inst.text !== undefined) this.settings.texts.set(inst.type, inst.text);
+      else this.settings.texts.delete(inst.type);
       this.say(`PICKED ${this.picker.label.toUpperCase()}`);
     }
   }

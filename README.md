@@ -48,7 +48,7 @@ npm run build:mp   # the same without the dev tools (build mode, F3, window.game
 | R | Rotate 90° |
 | PgUp / PgDn | Working level (the build plane) up / down |
 | Ctrl+Z | Undo |
-| [ / ] | Tilt the floodlight under the crosshair (saved per floodlight as `adjust` in the level) |
+| [ / ] | Tilt the floodlight under the crosshair (saved per floodlight as `adjust` in the level). Props with settings (tilt, sign text) light up yellow under the crosshair, and carry a TILT / TEXT badge in the picker |
 | Enter | Type the text of the sign under the crosshair (exit, high voltage, name plate; saved per sign as `text` in the level). Aiming elsewhere, it sets the text for the next signs you place. New signs reuse the last text typed or picked with MMB |
 | H | Show paintable surfaces (green stripes; everything else dims) |
 | P | Save the level as `level.json` (downloads) |

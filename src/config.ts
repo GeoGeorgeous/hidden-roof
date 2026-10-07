@@ -916,6 +916,9 @@ export const BUILD = {
   shadeColor: '#0e0e10',
   shadeOpacity: 0.86,
   shadeWidth: 760,
+  /** The light over a placed prop with settings (floodlight tilt, sign text) while the crosshair is on it (build/prop-settings.ts). */
+  highlightColor: '#ffd23f',
+  highlightOpacity: 0.35,
 };
 
 /** CCTV cameras follow the player when they come near, and switch on their light (LIGHTS.cctv). */
