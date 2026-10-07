@@ -1,5 +1,5 @@
 import { LIGHTS } from '../config';
-import type { PropDef } from './def';
+import { withVariants, type PropDef, type Variant } from './def';
 import { lens, M, Parts, type Mat, type V3 } from './pieces';
 import { panelLettering } from './lettering';
 
@@ -9,14 +9,10 @@ import { panelLettering } from './lettering';
 const CCTV_LENS: Mat = { tex: 'flat', tint: '#3a4458', emissive: 6 };
 
 /** Sagging cable from the wall you aim at, straight out for `span` meters. */
-function cable(span: number): PropDef {
+function span(span: number): Variant {
   return {
-    type: `cable_${span}`,
-    label: `Cable ${span} m`,
-    category: 'details',
-    place: 'mount',
-    snap: 0.5,
-    hang: 0,
+    id: `${span}`,
+    label: `${span} m`,
     build() {
       const p = new Parts();
       p.sagCable(span, 0.04 * span + 0.15, 14, 0.015);
@@ -26,15 +22,13 @@ function cable(span: number): PropDef {
     },
   };
 }
-export const cable4 = cable(4);
-export const cable8 = cable(8);
-export const cable12 = cable(12);
+export const cable = withVariants({ type: 'cable', label: 'Cable', category: 'cables', place: 'mount', snap: 0.5, hang: 0 }, [span(4), span(8), span(12)]);
 
 /** Antenna mast with crossbars and guy wires. */
 export const antenna: PropDef = {
   type: 'antenna',
   label: 'Antenna',
-  category: 'details',
+  category: 'rooftop',
   place: 'floor',
   snap: 0.5,
   build() {
@@ -137,7 +131,7 @@ export const billboard: PropDef = {
 export const cctv: PropDef = {
   type: 'cctv',
   label: 'CCTV camera',
-  category: 'details',
+  category: 'rooftop',
   place: 'mount',
   snap: 0.5,
   hang: 0,

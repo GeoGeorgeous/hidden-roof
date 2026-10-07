@@ -264,7 +264,7 @@ export class BuildMode {
     const e = this.picker.entry;
     const { pos, rot } = this.placement;
     if (e.kind === 'prop') {
-      const inst = this.level.add({ type: e.def.type, pos, rot, text: this.texts.get(e.def.type) });
+      const inst = this.level.add({ type: e.def.type, variant: e.def.variant, pos, rot, text: this.texts.get(e.def.type) });
       if (inst) this.history.push({ op: 'add', kind: 'prop', id: inst.id, data: null });
     } else {
       const p = this.pickups.add(e.type, pos);

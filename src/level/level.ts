@@ -125,8 +125,8 @@ export class Level {
   }
 
   toJSON(): LevelData {
-    // Props the player placed while playing (the stepladder) aren't part of the level file.
-    const props = [...this.props.values()].filter((p) => p.owner === undefined).map(({ id, type, variant, pos, rot, adjust, text }) => ({ id, type, ...(variant === undefined ? {} : { variant }), pos, rot, ...(adjust === undefined ? {} : { adjust }), ...(text === undefined ? {} : { text }) }));
+    // Props the player placed while playing (the stepladder) aren't part of the level file. Default variants go unsaved.
+    const props = [...this.props.values()].filter((p) => p.owner === undefined).map(({ id, type, variant, pos, rot, adjust, text }) => ({ id, type, ...(variant === defOf(type)!.variant ? {} : { variant }), pos, rot, ...(adjust === undefined ? {} : { adjust }), ...(text === undefined ? {} : { text }) }));
     return { version: 3, spawn: this.spawn, props };
   }
 

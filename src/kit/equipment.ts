@@ -1,4 +1,4 @@
-import type { PropDef } from './def';
+import { withVariants, type PropDef, type Variant } from './def';
 import { M, Parts, type V3 } from './pieces';
 
 // Rooftop equipment: water tank, vents, ducts, AC units, utility boxes, exhausts (pipes: pipes.ts).
@@ -8,7 +8,7 @@ import { M, Parts, type V3 } from './pieces';
 export const watertower: PropDef = {
   type: 'watertower',
   label: 'Water tank',
-  category: 'equipment',
+  category: 'rooftop',
   place: 'floor',
   snap: 0.5,
   build() {
@@ -33,7 +33,7 @@ export const watertower: PropDef = {
 export const ventshaft: PropDef = {
   type: 'ventshaft',
   label: 'Vent shaft',
-  category: 'equipment',
+  category: 'hvac',
   place: 'floor',
   snap: 0.5,
   build() {
@@ -55,7 +55,7 @@ export const ventshaft: PropDef = {
 export const duct: PropDef = {
   type: 'duct',
   label: 'Duct',
-  category: 'equipment',
+  category: 'hvac',
   place: 'floor',
   snap: 0.5,
   build() {
@@ -79,12 +79,9 @@ export const duct: PropDef = {
 };
 
 /** Small window-style AC unit on a stand. */
-export const acSmall: PropDef = {
-  type: 'ac_small',
-  label: 'AC unit (small)',
-  category: 'equipment',
-  place: 'floor',
-  snap: 0.5,
+const acSmall: Variant = {
+  id: 'small',
+  label: 'small',
   build() {
     const p = new Parts();
     for (const x of [-0.35, 0.35]) p.detail([x - 0.04, 0, -0.2], [x + 0.04, 0.3, 0.2], M.steel);
@@ -101,12 +98,10 @@ export const acSmall: PropDef = {
  * Wall-mounted AC unit on two brackets, placed on the wall you aim at (centered
  * on the aim height). Solid and flat on top, so it works as a parkour step.
  */
-export const acWall: PropDef = {
-  type: 'ac_wall',
-  label: 'AC unit (wall)',
-  category: 'equipment',
+const acWall: Variant = {
+  id: 'wall',
+  label: 'wall',
   place: 'mount',
-  snap: 0.5,
   hang: 0.3,
   build() {
     const p = new Parts();
@@ -127,12 +122,9 @@ export const acWall: PropDef = {
 };
 
 /** Medium condenser with a top fan. Jumpable (1 m). */
-export const acMedium: PropDef = {
-  type: 'ac_medium',
-  label: 'AC unit (medium)',
-  category: 'equipment',
-  place: 'floor',
-  snap: 0.5,
+const acMedium: Variant = {
+  id: 'medium',
+  label: 'medium',
   build() {
     const p = new Parts();
     p.box([-0.9, 0, -0.6], [0.9, 1.0, 0.6], M.ac);
@@ -146,12 +138,9 @@ export const acMedium: PropDef = {
 };
 
 /** Large condenser on a skid with two fans. */
-export const acLarge: PropDef = {
-  type: 'ac_large',
-  label: 'AC unit (large)',
-  category: 'equipment',
-  place: 'floor',
-  snap: 0.5,
+const acLarge: Variant = {
+  id: 'large',
+  label: 'large',
   build() {
     const p = new Parts();
     p.box([-1.7, 0, -1.2], [1.7, 0.15, 1.2], M.steel, { paint: true }); // skid, paintable with the body
@@ -176,7 +165,7 @@ export const acLarge: PropDef = {
 export const utilitybox: PropDef = {
   type: 'utilitybox',
   label: 'Utility box',
-  category: 'equipment',
+  category: 'rooftop',
   place: 'mount',
   snap: 0.5,
   build() {
@@ -194,7 +183,7 @@ export const utilitybox: PropDef = {
 export const exhaust: PropDef = {
   type: 'exhaust',
   label: 'Exhaust pipe',
-  category: 'equipment',
+  category: 'hvac',
   place: 'floor',
   snap: 0.5,
   build() {
@@ -226,3 +215,5 @@ function fan(p: Parts, c: V3, axis: 'y' | 'z', r: number, t: number, dir = 1) {
   });
 }
 
+/** AC units: small, medium and large ones stand on the floor, the wall one mounts on the wall you aim at. */
+export const ac = withVariants({ type: 'ac', label: 'AC unit', category: 'hvac', place: 'floor', snap: 0.5 }, [acSmall, acMedium, acLarge, acWall]);

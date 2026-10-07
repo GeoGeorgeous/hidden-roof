@@ -30,7 +30,7 @@ function lattice(p: Parts, w: number, h: number, step: number, top = w) {
 export const latticeMast: PropDef = {
   type: 'lattice_mast',
   label: 'Lattice mast',
-  category: 'details',
+  category: 'rooftop',
   place: 'floor',
   snap: 0.5,
   build() {
@@ -71,7 +71,7 @@ export const signTower: PropDef = {
 export const tankPair: PropDef = {
   type: 'tank_pair',
   label: 'Tanks on stand',
-  category: 'equipment',
+  category: 'rooftop',
   place: 'floor',
   snap: 0.5,
   build() {
@@ -95,7 +95,7 @@ export const tankPair: PropDef = {
 export const debris: PropDef = {
   type: 'debris',
   label: 'Roof debris',
-  category: 'equipment',
+  category: 'rooftop',
   place: 'floor',
   snap: 0.5,
   build({ seed }) {

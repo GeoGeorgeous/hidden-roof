@@ -1,5 +1,5 @@
 import { CATEGORIES, type Category, type PropDef } from '../kit/def';
-import { kitIn } from '../kit';
+import { defOf, kitIn } from '../kit';
 import { PICKUP_KINDS, pickupLabel } from '../inventory/items';
 
 // Hotbar-style prop picker: Tab / Shift+Tab (or 1-7) switch category, the mouse
@@ -9,7 +9,7 @@ export type Entry = { kind: 'prop'; def: PropDef; label: string } | { kind: 'pic
 
 function entriesFor(c: Category): Entry[] {
   if (c === 'pickups') return PICKUP_KINDS.map((k) => ({ kind: 'pickup', type: k, label: pickupLabel(k) }));
-  return kitIn(c).map((d) => ({ kind: 'prop', def: d, label: d.label }));
+  return kitIn(c).map((d) => ({ kind: 'prop', def: defOf(d.type)!, label: d.label }));
 }
 
 export class Picker {

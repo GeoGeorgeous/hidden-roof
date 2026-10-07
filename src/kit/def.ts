@@ -10,8 +10,8 @@ import type { Piece, V3 } from './pieces';
 export const H_MODULE = 2;
 export const V_MODULE = 4;
 
-export type Category = 'structure' | 'access' | 'equipment' | 'details' | 'signs' | 'lights' | 'pickups';
-export const CATEGORIES: Category[] = ['structure', 'access', 'equipment', 'details', 'signs', 'lights', 'pickups'];
+export type Category = 'structure' | 'access' | 'hvac' | 'pipes' | 'cables' | 'rooftop' | 'signs' | 'neon' | 'lights' | 'pickups';
+export const CATEGORIES: Category[] = ['structure', 'access', 'hvac', 'pipes', 'cables', 'rooftop', 'signs', 'neon', 'lights', 'pickups'];
 
 /**
  * How a prop snaps:
@@ -87,7 +87,12 @@ export interface PropDef {
  * mount instead of the floor, its own default text). Saved per instance as
  * its id (PropData.variant).
  */
-interface Variant extends Partial<Omit<PropDef, 'type' | 'label' | 'category' | 'variants' | 'variant'>> {
+export interface Variant extends Partial<Omit<PropDef, 'type' | 'label' | 'category' | 'variants' | 'variant' | 'build'>>, Pick<PropDef, 'build'> {
   id: string;
   label: string;
+}
+
+/** A prop made of variants: the fields they share, and each variant's own. */
+export function withVariants(shared: Omit<PropDef, 'variants' | 'variant' | 'build'>, variants: Variant[]): PropDef {
+  return { ...shared, variants, build: variants[0].build };
 }
