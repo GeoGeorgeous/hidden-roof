@@ -50,8 +50,6 @@ export class BuildMode {
   onLoad: (data: LevelData, name: string) => void = () => {};
 
   private rot = 0;
-  /** Wall pieces face out of the wall they go on, so R flips them left to right instead (PropData.mirror). */
-  private flip = false;
   private picker = new Picker();
   private pickerView: PickerView;
   private ghost: Ghost;
@@ -182,13 +180,13 @@ export class BuildMode {
   private rotate() {
     const e = this.picker.choice;
     if (e.kind !== 'prop' || e.def.place !== 'mount') return void (this.rot = (this.rot + 1) % 4);
-    this.flip = !this.flip;
-    this.say(this.flip ? 'FLIPPED' : 'NOT FLIPPED');
+    this.picker.setFlip(!this.picker.flip);
+    this.say(this.picker.flip ? 'FLIPPED' : 'NOT FLIPPED');
   }
 
   /** Whether the next `def` placed is flipped: only wall pieces are. */
   private flipped(def: PropDef) {
-    return def.place === 'mount' && this.flip;
+    return def.place === 'mount' && this.picker.flip;
   }
 
   /** LMB places; holding it keeps placing wherever the ghost moves (pillars, bridges). */
@@ -345,7 +343,7 @@ export class BuildMode {
       this.picker.pick((c) => c.kind === 'prop' && c.def.type === inst.type && c.def.variant === inst.variant);
       if (defOf(inst.type, inst.variant)?.finishes) this.picker.pickFinish(inst.finish);
       this.rot = inst.rot;
-      this.flip = !!inst.mirror;
+      this.picker.setFlip(!!inst.mirror);
       if (inst.text !== undefined) this.settings.texts.set(inst.type, inst.text);
       else this.settings.texts.delete(inst.type);
       this.say(`PICKED ${this.picker.label.toUpperCase()}`);

@@ -5,7 +5,8 @@ import { FINISHES, type Finish, type FinishKind } from '../kit/finishes';
 
 // What build mode places next: the mouse wheel turns the category wheel,
 // E / Q step to the next / previous entry in it, Tab / Shift+Tab to its next /
-// previous variant, F through the wall finishes of the pieces that take them. Every category and entry remembers its selection.
+// previous variant, F through the wall finishes of the pieces that take them,
+// R flips wall pieces. Every category and entry remembers its selection.
 
 /** What a click places: a prop (resolved to its variant), a pickup kind, or the level's one spawn point (moved there). */
 export type Choice = { kind: 'prop'; def: PropDef } | { kind: 'pickup'; type: PickupKind } | { kind: 'spawn' };
@@ -54,6 +55,8 @@ export class Picker {
   private variants = new Map<Entry, number>();
   /** The finishes the next pieces get (none: their own look). */
   finish: Finish = {};
+  /** Wall pieces face out of the wall they go on, so R flips the next ones left to right instead (PropData.mirror). */
+  flip = false;
   /** Bumped on every change, so the view redraws only then. */
   version = 0;
 
@@ -114,6 +117,11 @@ export class Picker {
   finishFor(def: PropDef): Finish | undefined {
     const f = Object.fromEntries((def.finishes ?? []).filter((k) => this.finish[k]).map((k) => [k, this.finish[k]]));
     return Object.keys(f).length ? f : undefined;
+  }
+
+  setFlip(on: boolean) {
+    this.flip = on;
+    this.version++;
   }
 
   /** Take a placed piece's finishes as the current ones (middle-click pick). */
