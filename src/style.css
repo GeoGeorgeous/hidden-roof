@@ -728,14 +728,17 @@ canvas {
 .debug-panel .hint {
   color: var(--dim);
 }
-/* RESET ALL, COLLAPSE ALL, EXPAND ALL, COPY ALL: one line. */
+/* RESET ALL, COLLAPSE ALL, EXPAND ALL, COPY ALL: four equal columns. */
 .debug-panel > .row {
-  flex-wrap: nowrap;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 4px;
   margin-bottom: 12px;
   white-space: nowrap;
 }
 .debug-panel > .row button {
-  flex: 1;
-  padding: 0 2px;
+  min-width: 0;
+  padding: 0;
+  /* Tighter than the panel's text, so COLLAPSE ALL fits its column. */
+  letter-spacing: 0.02em;
 }
