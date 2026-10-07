@@ -14,6 +14,7 @@ function capItems(): Item[] {
     r('spread', ['CAPS', c, 'coneAngle'], 0.005, 0.3, 0.005),
     { kind: 'color', label: 'cap color', path: ['CAPS', c, 'color'] } as Item,
     r('crosshair (px)', ['CAPS', c, 'crosshair'], 2, 60, 1),
+    r('runs (x paint runs per m²)', ['CAPS', c, 'drips'], 0, 40, 0.5),
   ]);
 }
 

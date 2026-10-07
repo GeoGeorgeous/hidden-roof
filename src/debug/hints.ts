@@ -117,6 +117,7 @@ const HINTS: Record<string, string> = {
   'CAPS.*.rate': 'Particles per second at full pressure. More = faster coverage.',
   'CAPS.*.coneAngle': 'Spray cone half-angle (rad). Wider = bigger, softer spray.',
   'CAPS.*.color': 'Color of the cap on the can and the pickup.',
+  'CAPS.*.drips': 'With paint runs on: how readily this cap starts runs (x the paint runs per m²).',
   'CAPS.*.crosshair': 'Crosshair circle diameter for this cap (px).',
   // Pressure
   'PRESSURE.drainPerSecond': 'Pressure lost per second of spraying (1 = full can).',

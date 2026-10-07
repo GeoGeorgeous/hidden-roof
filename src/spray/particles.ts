@@ -20,6 +20,8 @@ interface Particle {
   amount: number;
   radius: number;
   softness: number;
+  /** Paint runs it may start, x DRIPS.perSquareMeter (its cap's). */
+  drips: number;
   rgb: Rgb;
 }
 
@@ -64,7 +66,7 @@ export class SprayParticles {
     this.points.frustumCulled = false;
     scene.add(this.points);
     for (let i = 0; i < SPRAY.maxParticles; i++) {
-      this.free.push({ pos: new THREE.Vector3(), vel: new THREE.Vector3(), life: 0, surface: null, epoch: 0, at: { rect: 0, u: 0, v: 0 }, amount: 0, radius: 0, softness: 0, rgb: [0, 0, 0] });
+      this.free.push({ pos: new THREE.Vector3(), vel: new THREE.Vector3(), life: 0, surface: null, epoch: 0, at: { rect: 0, u: 0, v: 0 }, amount: 0, radius: 0, softness: 0, drips: 0, rgb: [0, 0, 0] });
     }
   }
 
@@ -101,6 +103,7 @@ export class SprayParticles {
         p.amount = cap.strength * Math.max(0.15, e.flow) * fall * (0.6 + paintRandom.spray() * 0.4);
         p.radius = cap.stampRadius;
         p.softness = cap.softness;
+        p.drips = cap.drips;
         p.rgb = e.rgb;
       }
       const k = this.live.length * 3;
@@ -119,7 +122,7 @@ export class SprayParticles {
       p.pos.addScaledVector(p.vel, Math.min(dt, p.life));
       p.life -= dt;
       if (p.life <= 0) {
-        if (p.surface && p.epoch === this.paint.epoch) this.paint.stamp(p.surface, p.at, p.radius, p.amount, p.rgb, p.softness, 1);
+        if (p.surface && p.epoch === this.paint.epoch) this.paint.stamp(p.surface, p.at, p.radius, p.amount, p.rgb, p.softness, p.drips);
         p.surface = null;
         this.free.push(p);
         continue;
