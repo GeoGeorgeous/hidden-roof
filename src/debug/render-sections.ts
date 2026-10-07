@@ -20,11 +20,13 @@ function lightItems(): Item[] {
   const fx = () => live.rebuildLights();
   const props = () => live.rebuildLightProps();
   return (Object.keys(LIGHTS) as LightKind[]).flatMap((k) => {
+    // The CCTV light is a real light (it moves), with no glow or beam: only the steady lamps bake, glow and tint.
+    const cctv = k === 'cctv';
     const light: Item[] = [
       ...(k === 'neon'
         ? (Object.keys(NEON_COLORS) as NeonColor[]).map((n) => c(`color: ${n}`, ['NEON_COLORS', n], props))
         : [c('color', ['LIGHTS', k, 'color'], props)]),
-      r('tint', ['LIGHTS', k, 'tint'], 0, 1, 0.05, props),
+      ...(cctv ? [] : [r('tint', ['LIGHTS', k, 'tint'], 0, 1, 0.05, props)]),
       r('intensity', ['LIGHTS', k, 'intensity'], 0, 200, 0.5),
       r('reach', ['LIGHTS', k, 'range'], 1, 80, 0.5, fx),
       r('spread', ['LIGHTS', k, 'spread'], 0.1, LIGHT_SPREAD_MAX, 0.01, fx),
@@ -32,10 +34,8 @@ function lightItems(): Item[] {
     ];
     return [
       { kind: 'heading', label: LIGHT_LABELS[k] } as Item,
-      // The CCTV light is a real light (it moves): only the steady lamps bake.
-      ...(k === 'cctv' ? light : when('bake', light)),
-      r('glow size', ['LIGHTS', k, 'glow'], 0, 3, 0.05, fx),
-      r('beam length', ['LIGHTS', k, 'beam'], 0, 20, 0.5, fx),
+      ...(cctv ? light : when('bake', light)),
+      ...(cctv ? [] : [r('glow size', ['LIGHTS', k, 'glow'], 0, 3, 0.05, fx), r('beam length', ['LIGHTS', k, 'beam'], 0, 20, 0.5, fx)]),
     ];
   });
 }
