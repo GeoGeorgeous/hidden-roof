@@ -1,6 +1,13 @@
 /* Body-cam overlay style, inked: ink + one alert color, thin lines, small
    monospace, no panels, no glow. */
 
+/* The pause menu title's graffiti font (public/fonts/README.txt). */
+@font-face {
+  font-family: 'Sedgwick Ave Display';
+  src: url('/fonts/sedgwick-ave-display.woff2') format('woff2');
+  font-display: block;
+}
+
 :root {
   --ui: #141416;
   --dim: rgba(20, 20, 22, 0.62);
@@ -181,8 +188,10 @@ canvas {
   background: var(--sheet, rgba(14, 14, 16, 0.65));
 }
 .overlay .title {
-  font-size: 22px;
-  letter-spacing: 0.6em;
+  font-family: 'Sedgwick Ave Display', cursive;
+  font-size: 56px;
+  line-height: 1;
+  letter-spacing: 0.02em;
 }
 .overlay .menu {
   display: flex;
