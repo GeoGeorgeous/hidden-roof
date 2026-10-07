@@ -7,7 +7,7 @@ import { ac, duct, exhaust, utilitybox, ventshaft, watertower } from './equipmen
 import { cableRun } from './cable-runs';
 import { drainPipe, pipe } from './pipes';
 import { building, parapet, plinth, slab, wall } from './structure';
-import { bladeSign, shopSign } from './signs';
+import { bladeSign, roofLetters } from './signs';
 import { smallSign } from './small-signs';
 import { debris, latticeMast, signTower, tankPair } from './steel';
 import { ledgeOnBrackets, platformOnColumns, scaffolding } from './scaffold';
@@ -55,7 +55,7 @@ const KIT: PropDef[] = [
   debris,
   skylight,
   sign,
-  shopSign,
+  roofLetters,
   bladeSign,
   smallSign,
   billboard,
