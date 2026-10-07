@@ -38,9 +38,10 @@ export class RollerTool {
     return this.model.sway;
   }
 
-  update(dt: number, input: Input, camera: THREE.Camera, eye: THREE.Vector3, active: boolean, color: PaintColor) {
-    const rolled = active && input.lmb && input.locked ? this.roll(dt, camera, eye, color) : this.lift();
-    this.model.update(dt, camera, active, color, rolled !== null, rolled ?? 0);
+  /** `width`: the player's roller width (m). */
+  update(dt: number, input: Input, camera: THREE.Camera, eye: THREE.Vector3, active: boolean, color: PaintColor, width: number) {
+    const rolled = active && input.lmb && input.locked ? this.roll(dt, camera, eye, color, width) : this.lift();
+    this.model.update(dt, camera, active, color, width, rolled !== null, rolled ?? 0);
   }
 
   /** LMB up: off the wall. */
@@ -53,14 +54,14 @@ export class RollerTool {
   }
 
   /** Rolls from last frame's aim to this frame's; returns meters rolled, or null if nothing was in reach. */
-  private roll(dt: number, camera: THREE.Camera, eye: THREE.Vector3, color: PaintColor) {
+  private roll(dt: number, camera: THREE.Camera, eye: THREE.Vector3, color: PaintColor, width: number) {
     right.set(1, 0, 0).applyQuaternion(camera.quaternion);
     // Presses no farther apart than their depth at full reach.
     const spec = { reach: ROLLER.reach, rayStep: ROLLER.halfDepth / ROLLER.reach, maxRays: ROLLER.maxRays, stillRate: ROLLER.stillRate };
     let rolled: number | null = null;
     this.stroke.sweep(dt, camera, eye, spec, (hit, surface, at, fresh) => {
       if (!surface) return;
-      this.paint.roll(surface, at, right, ROLLER.width / 2, ROLLER.halfDepth, ROLLER.edge, ROLLER.strength, rgbOf(color), fresh ? ROLLER.drips : 0);
+      this.paint.roll(surface, at, right, width / 2, ROLLER.halfDepth, ROLLER.edge, ROLLER.strength, rgbOf(color), fresh ? ROLLER.drips : 0);
       rolled = (rolled ?? 0) + (this.hasLastHit ? hit.point.distanceTo(this.lastHit) : 0);
       this.lastHit.copy(hit.point);
       this.hasLastHit = true;

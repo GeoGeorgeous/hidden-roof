@@ -1,4 +1,4 @@
-import { CAP_ORDER, COLOR_ORDER, MARKER, SPONGE, type CapId, type PaintColor } from '../config';
+import { CAP_ORDER, COLOR_ORDER, MARKER, ROLLER, SPONGE, type CapId, type PaintColor } from '../config';
 
 // Five slots: 1 = the spray can (always), 2 = the marker, 3 = the stepladder,
 // 4 = the paint roller, 5 = the sponge (each once found).
@@ -8,7 +8,7 @@ import { CAP_ORDER, COLOR_ORDER, MARKER, SPONGE, type CapId, type PaintColor } f
 export type Tool = 'can' | 'marker' | 'ladder' | 'roller' | 'sponge';
 export const SLOTS: Tool[] = ['can', 'marker', 'ladder', 'roller', 'sponge'];
 /** Tools the mouse wheel resizes (tools/wheel-size.ts). */
-export type SizedTool = 'marker' | 'sponge';
+export type SizedTool = 'marker' | 'roller' | 'sponge';
 
 export class Inventory {
   selected = 0;
@@ -16,8 +16,8 @@ export class Inventory {
   caps: CapId[] = [];
   /** Can pressure 0..1: drains while spraying, restored by shaking. */
   pressure = 1;
-  /** Marker nib and sponge patch widths (m), set with the mouse wheel; kept across resets. */
-  size: Record<SizedTool, number> = { marker: MARKER.width, sponge: SPONGE.width };
+  /** Marker nib, roller and sponge patch widths (m), set with the mouse wheel; kept across resets. */
+  size: Record<SizedTool, number> = { marker: MARKER.width, roller: ROLLER.width, sponge: SPONGE.width };
   /** Bumped on every change so the HUD can skip redundant DOM updates. */
   version = 0;
   /** Tools found so far (the can is always there). */

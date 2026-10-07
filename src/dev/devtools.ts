@@ -3,7 +3,7 @@ import { BuildMode } from '../build/buildmode';
 import { DebugPanel } from '../debug/panel';
 import { live } from '../debug/tuning';
 import type { GpuTimer } from '../debug/gpu-timer';
-import { MARKER, SPONGE } from '../config';
+import { MARKER, ROLLER, SPONGE } from '../config';
 import type { Input } from '../input';
 import type { Hud } from '../hud';
 import type { Audio } from '../audio';
@@ -100,7 +100,7 @@ export class DevTools {
       atmosNight: () => g.atmosphere.nightValues,
       applyPixelScale: g.applyPixelScale,
       rebuildCity: g.rebuildCity,
-      applyToolSizes: () => (g.inventory.size = { marker: MARKER.width, sponge: SPONGE.width }),
+      applyToolSizes: () => (g.inventory.size = { marker: MARKER.width, roller: ROLLER.width, sponge: SPONGE.width }),
       rebuildSponge: () => {
         g.tools.sponge.model.build();
         g.pickups.restyle('sponge');

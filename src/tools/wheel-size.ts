@@ -1,4 +1,4 @@
-// Tools whose size the mouse wheel changes (marker nib, sponge patch): their
+// Tools whose width the mouse wheel changes (marker nib, roller, sponge patch): their
 // config holds the starting width and the wheel's range, each player holds
 // their current width (Inventory.size), and the crosshair grows with it.
 

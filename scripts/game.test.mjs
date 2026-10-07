@@ -214,7 +214,7 @@ await check('levels: saves are named after the level opened in build mode, and s
   return r.demo === 'demo' && r.roof === 'my-roof' && r.refused === 'SAVED FOR DEMO' ? null : JSON.stringify(r);
 });
 
-await check('tools: the wheel changes the player\'s nib and patch size, not the config', async () => {
+await check('tools: the wheel changes the player\'s nib, roller and patch width, not the config', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
     const { inventory: inv, input, tools, config } = g;
@@ -222,7 +222,8 @@ await check('tools: the wheel changes the player\'s nib and patch size, not the 
     input.locked = true;
     inv.give('marker');
     inv.give('sponge');
-    inv.size = { marker: config.MARKER.width, sponge: config.SPONGE.width };
+    inv.give('roller');
+    inv.size = { marker: config.MARKER.width, roller: config.ROLLER.width, sponge: config.SPONGE.width };
     inv.select(1);
     const crosshair = tools.crosshair('marker');
     for (let i = 0; i < 3; i++) await notch(-1);
@@ -232,11 +233,14 @@ await check('tools: the wheel changes the player\'s nib and patch size, not the 
     inv.select(4);
     await notch(-1);
     out.sponge = inv.size.sponge;
+    inv.select(3);
+    await notch(-1);
+    out.roller = inv.size.roller;
     out.config = [config.MARKER.width, config.SPONGE.width];
     input.locked = false;
     return out;
   });
-  return r.marker === 0.048 && r.grew && r.min === 0 && r.sponge === 0.22 && r.config.join() === '0.024,0.18' ? null : JSON.stringify(r);
+  return r.marker === 0.048 && r.grew && r.min === 0 && r.sponge === 0.22 && r.roller === 0.5 && r.config.join() === '0.024,0.18' ? null : JSON.stringify(r);
 });
 
 await check('ladders: one per player, moved with one rebuild; each owner\'s stays until they take it away; never saved', async () => {

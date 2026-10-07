@@ -15,7 +15,7 @@ const CONTROLS = [
   ['RMB', 'shake can'],
   ['1 – 5', 'can / marker / ladder / roller / sponge'],
   ['Q / E', 'color'],
-  ['WHEEL', 'cap / nib or sponge size / turn ladder'],
+  ['WHEEL', 'cap / tool width / turn ladder'],
   ['B', 'build mode'],
   ['K', 'screenshot'],
   ['F3', 'debug + tuning'],

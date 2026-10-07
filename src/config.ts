@@ -378,14 +378,19 @@ export const HOTBAR = { slots: 5 };
 export const ROLLER = {
   /** Max distance from the eye to the surface (it's on a short pole). */
   reach: 2.6,
-  /** The stroke's width: the roller head's length (m). */
+  /** Starting width of the stroke: the roller head's length (m). Each player's own is Inventory.size. */
   width: 0.44,
+  /** Mouse wheel with the roller in hand: changes the player's roller width by widthStep, within widthMin..widthMax (m). */
+  widthMin: 0.2,
+  widthMax: 0.8,
+  widthStep: 0.06,
   /** Half the depth of each press along the stroke (m); presses overlap as you roll. */
   halfDepth: 0.03,
   /** Fraction of each end of the roller that leaves lighter paint. */
   edge: 0.15,
-  /** Crosshair with the roller in hand (px). */
+  /** Crosshair with the roller in hand (px): `crosshair` plus `crosshairPerMeter` x the width (0: the same at every width). */
   crosshair: 10,
+  crosshairPerMeter: 0,
   /** Opacity per press: a roller lays it on thick. */
   strength: 0.85,
   /** Paint runs (with DRIPS on), as a multiplier of DRIPS.perSquareMeter: a loaded roller runs easily. */

@@ -93,7 +93,7 @@ export const live = {
   applyDaylight: () => {},
   /** Rebuild the city around the level (SKYLINE changed). */
   rebuildCity: () => {},
-  /** Give the player the starting nib and patch sizes (MARKER.width, SPONGE.width changed). */
+  /** Give the player the starting nib and patch sizes (MARKER, ROLLER or SPONGE.width changed). */
   applyToolSizes: () => {},
   /** Rebuild the sponge's models (held, pickups, hotbar icon) from SPONGE.model / SPONGE.pickup. */
   rebuildSponge: () => {},

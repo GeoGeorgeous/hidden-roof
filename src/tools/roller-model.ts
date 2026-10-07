@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { COLORS, HOLD, ROLLER, type PaintColor } from '../config';
+import { COLORS, HOLD, type PaintColor } from '../config';
 import { inkify } from '../render/ink/tone';
 import { setHex } from '../hex-color';
 import { glove, segment, sleeve } from '../spray/hands';
@@ -8,10 +8,10 @@ import { applyHold } from './hold';
 // First-person view of the paint roller in hand: a wide graffiti roller, its
 // cover soaked in the current paint color (keeps its color, like the can's
 // label), on a bent wire frame with a short pole held in the gloved fist.
-// The cover is as long as the stroke is wide (ROLLER.width) and spins as
+// The cover is as long as the stroke is wide (the player's roller width) and spins as
 // it rolls; a dark seam along it shows the turning. Drawn in ink like the can.
 
-/** The cover's radius and the length it's modeled at (scaled to ROLLER.width). */
+/** The cover's radius and the length it's modeled at (scaled to the roller width). */
 const RADIUS = 0.04;
 const LENGTH = 0.44;
 
@@ -64,14 +64,14 @@ export class RollerModel {
     this.group.add(this.sway);
   }
 
-  /** `rolled`: meters rolled since last frame (spins the cover); `pressing`: on a wall. */
-  update(dt: number, camera: THREE.Camera, active: boolean, color: PaintColor, pressing: boolean, rolled: number) {
+  /** `width`: the stroke's (m); `rolled`: meters rolled since last frame (spins the cover); `pressing`: on a wall. */
+  update(dt: number, camera: THREE.Camera, active: boolean, color: PaintColor, width: number, pressing: boolean, rolled: number) {
     this.group.visible = active;
     if (!active) return;
     setHex(this.coverMat.color, COLORS[color]);
     this.group.position.copy(camera.position);
     this.group.quaternion.copy(camera.quaternion);
-    this.cover.scale.x = ROLLER.width / LENGTH;
+    this.cover.scale.x = width / LENGTH;
     this.cover.rotation.x -= rolled / RADIUS;
     // Held at HOLD.roller; pushed out to the wall while rolling.
     this.push += ((pressing ? 1 : 0) - this.push) * Math.min(1, dt * 14);

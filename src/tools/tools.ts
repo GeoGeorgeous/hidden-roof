@@ -15,12 +15,12 @@ import { ViewSway, type Motion } from './view-sway';
 import type { AvatarAction } from '../avatar/pose';
 
 /** Tools the mouse wheel resizes (wheel-size.ts): their config. */
-const SIZED: Record<SizedTool, WheelSized> = { marker: MARKER, sponge: SPONGE };
+const SIZED: Record<SizedTool, WheelSized> = { marker: MARKER, roller: ROLLER, sponge: SPONGE };
 const isSized = (t: Tool | null): t is SizedTool => t !== null && t in SIZED;
 
 // Routes input to the tool in hand: 1 = can, 2 = marker, 3 = stepladder, 4 =
-// roller, 5 = sponge, Q/E = color (can, marker, roller), mouse wheel = cap (can), nib size
-// (marker), patch size (sponge) or turning the ladder. Owns the UI the tools share: it
+// roller, 5 = sponge, Q/E = color (can, marker, roller), mouse wheel = cap (can), width
+// (marker, roller, sponge) or turning the ladder. Owns the UI the tools share: it
 // reports color / cap changes (and which ones apply when switching tools) and
 // where the tags go next to whichever tool is in hand.
 
@@ -87,7 +87,7 @@ export class Tools {
     this.marker.update(dt, input, camera, eye, tool === 'marker', inv.color, inv.size.marker / 2);
     this.ladder.update(input, camera, motion.position, tool === 'ladder');
     // After the marker: they share the scribble sound, and these only touch it while in hand or just put away.
-    this.roller.update(dt, input, camera, eye, tool === 'roller', inv.color);
+    this.roller.update(dt, input, camera, eye, tool === 'roller', inv.color, inv.size.roller);
     this.sponge.update(dt, input, camera, eye, tool === 'sponge', inv.size.sponge / 2);
     const pressing = tool !== null && tool !== 'ladder' && input.lmb && input.locked;
     this.action = tool === 'can' && this.spray.shaking ? 'shake' : !pressing ? null : tool === 'roller' ? 'roll' : tool === 'sponge' ? 'scrub' : 'spray';
@@ -99,14 +99,13 @@ export class Tools {
     if (tool === 'can') this.spray.model.update(0, camera, false, false, -1);
     else if (tool === 'marker') this.marker.pose(camera, false);
     else if (tool === 'ladder') this.ladder.model.update(camera, true);
-    else if (tool === 'roller') this.roller.model.update(0, camera, true, this.inventory.color, false, 0);
+    else if (tool === 'roller') this.roller.model.update(0, camera, true, this.inventory.color, this.inventory.size.roller, false, 0);
     else if (tool === 'sponge') this.sponge.model.update(0, camera, true, false);
   }
 
   /** Crosshair size (px) for the tool in hand (null: none, or build mode). */
   crosshair(tool: Tool | null) {
     if (tool === 'can') return CAPS[this.inventory.cap].crosshair;
-    if (tool === 'roller') return ROLLER.crosshair;
     return isSized(tool) ? sizedCrosshair(SIZED[tool], this.inventory.size[tool]) : CROSSHAIR.plain;
   }
 
