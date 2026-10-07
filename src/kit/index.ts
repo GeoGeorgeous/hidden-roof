@@ -101,6 +101,15 @@ const RENAMED: Record<string, [string, string]> = {
   neon_amber: ['neon', 'amber'],
 };
 
+/** Props whose default variant changed after format 3: the variant a format 3 file meant when it named none. */
+const FORMAT3_DEFAULTS: Record<string, string> = { stairs: 'compact' };
+
+/** A prop from a level file of this format, with the variant it meant. */
+export function upgraded<T extends { type: string; variant?: string }>(p: T, version: number): T {
+  const v = version < 4 && p.variant === undefined ? FORMAT3_DEFAULTS[p.type] : undefined;
+  return v ? { ...p, variant: v } : p;
+}
+
 /** A saved prop's type and variant as they are named now. */
 export function renamed(type: string, variant?: string): [string, string | undefined] {
   return RENAMED[type] ?? [type, variant];

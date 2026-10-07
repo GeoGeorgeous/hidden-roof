@@ -1,6 +1,6 @@
 import { MAX_TEXT } from '../render/ink/words';
 import * as THREE from 'three';
-import { defOf, renamed } from '../kit';
+import { defOf, renamed, upgraded } from '../kit';
 import type { V3 } from '../kit/pieces';
 import { V_MODULE, type PropDef } from '../kit/def';
 import type { PaintSystem } from '../painting';
@@ -33,7 +33,8 @@ export interface PropData {
 }
 
 export interface LevelData {
-  version: 2 | 3;
+  /** 4: props keep their default variant even when it changes later (format 3 files: see kit/index.ts upgraded). */
+  version: 2 | 3 | 4;
   spawn: { pos: V3; yaw: number };
   props: PropData[];
   /** Owned by other systems (pickups). */
@@ -119,7 +120,7 @@ export class Level {
     this.clear();
     this.spawn = { pos: [...data.spawn.pos], yaw: data.spawn.yaw };
     // Create all instances first so stacking props see their neighbors when built.
-    for (const p of data.props) this.create(p, false);
+    for (const p of data.props) this.create(upgraded(p, data.version), false);
     for (const inst of this.props.values()) this.build(inst);
     this.refresh();
   }
@@ -127,7 +128,7 @@ export class Level {
   toJSON(): LevelData {
     // Props the player placed while playing (the stepladder) aren't part of the level file. Default variants go unsaved.
     const props = [...this.props.values()].filter((p) => p.owner === undefined).map(({ id, type, variant, pos, rot, adjust, text }) => ({ id, type, ...(variant === defOf(type)!.variant ? {} : { variant }), pos, rot, ...(adjust === undefined ? {} : { adjust }), ...(text === undefined ? {} : { text }) }));
-    return { version: 3, spawn: this.spawn, props };
+    return { version: 4, spawn: this.spawn, props };
   }
 
   /** Change a prop's per-instance setting (clamped to its range) and rebuild it. Returns the new value. */

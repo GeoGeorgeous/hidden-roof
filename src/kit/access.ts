@@ -4,27 +4,28 @@ import { M, Parts, type V3 } from './pieces';
 // Stairs, ladders, fire escapes, floor hatches and the player's stepladder.
 // Every walkable piece has railings (railings themselves: barriers.ts).
 
-/** Concrete stairs: 2 m wide, rising one 4 m module over 4 m toward the front (-z). */
-export const stairs: PropDef = {
-  type: 'stairs',
-  label: 'Stairs',
-  category: 'access',
-  place: 'cell',
-  snap: 2,
-  footprint: [2, 4],
-  build() {
+/** Concrete stairs 2 m wide, rising one 4 m module in `n` steps over `run` m toward the front (-z). */
+function concreteStairs(n: number, run: number) {
+  return () => {
     const p = new Parts();
-    const n = 16;
-    const step = 4 / n;
+    const rise = 4 / n;
+    const tread = run / n;
+    const back = run / 2;
     // One column per step, all paintable (sides, treads, risers). The floor face
     // is never seen and each column's back is covered by the taller next one.
     for (let i = 0; i < n; i++) {
-      p.box([-1, 0, 2 - step * (i + 1)], [1, step * (i + 1), 2 - step * i], M.concrete, { paint: true, skip: i < n - 1 ? ['-z', '-y'] : ['-y'] });
+      p.box([-1, 0, back - tread * (i + 1)], [1, rise * (i + 1), back - tread * i], M.concrete, { paint: true, skip: i < n - 1 ? ['-z', '-y'] : ['-y'] });
     }
-    for (const x of [-0.94, 0.94]) p.stairRail([x, step, 2 - step / 2], [x, 4, -2 + step / 2]);
+    for (const x of [-0.94, 0.94]) p.stairRail([x, rise, back - tread / 2], [x, 4, -back + tread / 2]);
     return p.list;
-  },
-};
+  };
+}
+
+/** Concrete stairs up one storey: a real flight (22 steps of 18 cm on 27 cm treads, 2 x 6 m), or a compact steep one (45°, 2 x 4 m). */
+export const stairs = withVariants({ type: 'stairs', label: 'Stairs', category: 'access', place: 'cell', snap: 2 }, [
+  { id: 'straight', label: 'straight', footprint: [2, 6], build: concreteStairs(22, 6) },
+  { id: 'compact', label: 'compact', footprint: [2, 4], build: concreteStairs(16, 4) },
+]);
 
 /** The fire escape ladder's lowest rung hangs this high (m): out of reach from the ground without a jump or a stepladder. */
 const RAISED = 2.4;

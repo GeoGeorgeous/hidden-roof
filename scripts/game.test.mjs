@@ -1,7 +1,8 @@
 // Game tests in the browser: behavior the golden paint test doesn't cover.
 // The pause menu's SAVE / LOAD PAINT (one at a time, cancel, broken files,
 // reload), level names, paint saves through level edits and changed props,
-// spray in the air at LOAD, the sponge freeing memory, prop ids for good,
+// stairs from older level files, spray in the air at LOAD, the sponge
+// freeing memory, prop ids for good,
 // per-player tool sizes, city overrides in the level save, dev tools only in
 // single player, the world going on while paused in a session, stepladders by
 // owner, the avatar's poses, the ghost's playback, the same city at every
@@ -174,7 +175,7 @@ await check('levels: props keep their ids through edits, reloads and undo; versi
     g.level.remove(5);
     const saved = g.build.getLevelData();
     g.loadLevel(saved);
-    out.kept = !g.level.props.has(5) && g.level.props.has(6) && saved.version === 3;
+    out.kept = !g.level.props.has(5) && g.level.props.has(6) && saved.version === 4;
     out.next = g.level.add({ type: 'slab', pos: [0, 12, 0], rot: 0 }).id;
     const p = g.level.props.get(10);
     const data = { id: p.id, type: p.type, pos: p.pos, rot: p.rot };
@@ -185,6 +186,22 @@ await check('levels: props keep their ids through edits, reloads and undo; versi
     return out;
   });
   return r.first === 1 && r.kept && r.next === r.count + 1 && r.undone === 10 && r.v2.join() === '1,6' ? null : JSON.stringify(r);
+});
+
+await check('levels: stairs in format 3 files stay compact (the old stairs); format 4 saves keep either kind', async () => {
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    const kinds = () => [...g.level.props.values()].filter((p) => p.type === 'stairs').map((p) => p.variant).join();
+    const saved = g.build.getLevelData();
+    g.loadLevel({ ...saved, version: 3, props: saved.props.map(({ variant, ...p }) => (p.type === 'stairs' ? p : { ...p, variant })) });
+    const out = { v3: kinds() };
+    g.loadLevel({ ...g.build.getLevelData(), props: [...g.build.getLevelData().props, { type: 'stairs', pos: [0, 40, 0], rot: 0 }] });
+    out.added = kinds();
+    g.loadLevel(g.build.getLevelData());
+    out.reloaded = kinds();
+    return out;
+  });
+  return r.v3 === 'compact,compact' && r.added === 'compact,compact,straight' && r.reloaded === r.added ? null : JSON.stringify(r);
 });
 
 await check("levels: the level save keeps the level's city overrides", async () => {
