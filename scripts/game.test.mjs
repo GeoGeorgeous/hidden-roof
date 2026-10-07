@@ -555,6 +555,23 @@ await check('hotbar: icons arrive from the GPU (read back without stalling) and 
   return n === 5 ? null : `${n} of 5 icons arrived`;
 });
 
+await check('debug panel: every row on every tab has a tooltip', async () => {
+  const missing = await page.evaluate(() => {
+    const g = window.game;
+    const open = g.debug.visible;
+    if (!open) g.debug.toggle();
+    const out = [];
+    for (const tab of document.querySelectorAll('.debug-panel .tabs button')) {
+      tab.click();
+      const rows = document.querySelectorAll('.debug-panel .page:not([hidden]) label:not(.heading):not(.has-hint)');
+      for (const row of rows) out.push(`${tab.textContent.trim()}: ${row.querySelector('span')?.textContent ?? row.textContent.trim()}`);
+    }
+    if (!open) g.debug.toggle();
+    return out;
+  });
+  return missing.length ? `no tooltip: ${missing.join(', ')}` : null;
+});
+
 if (page.errors.length) {
   failed++;
   console.log(`FAIL  page errors: ${page.errors.join('; ')}`);
