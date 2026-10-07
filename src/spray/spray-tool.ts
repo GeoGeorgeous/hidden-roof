@@ -64,7 +64,7 @@ export class SprayTool {
 
     const spraying = input.lmb && input.locked;
     this.flow = spraying ? this.computeFlow(dt, inv.pressure) : 0;
-    if (spraying) inv.pressure = Math.max(0, inv.pressure - PRESSURE.drainPerSecond * dt);
+    if (spraying) inv.pressure = Math.max(0, inv.pressure - PRESSURE.drainPerSecond * cap.drain * dt);
     this.audio.setHiss(this.flow * cap.hissGain, cap.hissTone);
 
     this.model.update(dt, camera, spraying, this.flow > 0, this.shakeT > 0 ? 1 - this.shakeT / PRESSURE.shakeDuration : -1);

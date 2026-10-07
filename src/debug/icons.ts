@@ -76,6 +76,8 @@ const SECTIONS: [RegExp, string][] = [
   [/^paint/, 'paint'],
   [/^(skinny|standard|fat|spray)$/, 'cap'],
   [/^amount/, 'runs'],
+  [/^drain/, 'pressure'],
+  [/^sputter/, 'painting'],
   [/^lightning/, 'lightning'],
   [/^cctv/, 'cctv'],
   [/^smoke/, 'smoke'],

@@ -85,6 +85,9 @@ export function paintSections(): Section[] {
       title: 'Pressure',
       items: [
         r('drain / s', ['PRESSURE', 'drainPerSecond'], 0, 0.3, 0.005),
+        { kind: 'heading', label: 'DRAIN PER CAP (X DRAIN / S)' },
+        ...CAP_ORDER.map((cap) => r(`${CAPS[cap].name.toLowerCase()} cap`, ['CAPS', cap, 'drain'], 0, 5, 0.05)),
+        { kind: 'heading', label: 'SPUTTER + SHAKE' },
         r('thin below', ['PRESSURE', 'thinThreshold'], 0, 1, 0.01),
         r('sputter below', ['PRESSURE', 'sputterThreshold'], 0, 1, 0.01),
         r('flow at sputter', ['PRESSURE', 'minSteadyFlow'], 0, 1, 0.01),
