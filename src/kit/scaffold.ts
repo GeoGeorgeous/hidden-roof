@@ -175,7 +175,8 @@ function ledge(ends: boolean): Variant['build'] {
       p.rod([x, -0.7, -0.03], [x, -0.16, -d + 0.12], 0.025, M.steel);
     }
     p.railing([-0.97, -d + 0.04], [0.97, -d + 0.04], 0);
-    if (ends) for (const x of [-0.97, 0.97]) p.railing([x, -d + 0.04], [x, -0.08], 0);
+    // The end railings start past the outer one's corner posts.
+    if (ends) for (const x of [-0.97, 0.97]) p.railing([x, -d + 0.1], [x, -0.08], 0);
     return p.list;
   };
 }
