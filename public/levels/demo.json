@@ -130,7 +130,7 @@
 {"id":130,"type":"parapet","pos":[-1,-4,12],"rot":0},
 {"id":131,"type":"parapet","pos":[1,-4,12],"rot":0},
 {"id":132,"type":"watertower","pos":[-3,-4,9],"rot":0},
-{"id":133,"type":"sign","pos":[0,-2.5,6],"rot":2},
+{"id":133,"type":"sign","variant":"ENJOY.","pos":[0,-2.5,6],"rot":2},
 {"id":134,"type":"antenna","pos":[0.5,-4,10.5],"rot":0},
 {"id":135,"type":"exhaust","pos":[-6.5,-4,10.5],"rot":0},
 {"id":136,"type":"cable","pos":[0.5,-1,6],"rot":2},
