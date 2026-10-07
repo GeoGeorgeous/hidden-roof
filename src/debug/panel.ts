@@ -18,8 +18,9 @@ const CONFIRM_SECONDS = 2;
 
 /** The groups (authored sections, by id) on each tab; a group not listed goes on the last tab. */
 const TABS = [
-  { id: 'player', title: 'Player', groups: ['movement', 'camera', 'avatar'] },
+  { id: 'player', title: 'Player', groups: ['movement', 'camera', 'hands', 'held', 'avatar'] },
   { id: 'paint', title: 'Paint', groups: ['painting', 'pressure'] },
+  { id: 'collectables', title: 'Collectables', groups: ['pickups'] },
   { id: 'look', title: 'Look', groups: ['ink', 'lights', 'post'] },
   { id: 'world', title: 'World', groups: ['weather', 'props', 'city', 'sound', 'daylight'] },
   { id: 'test', title: 'Test', groups: ['performance', 'ghost'] },
@@ -172,7 +173,11 @@ export class DebugPanel {
     render();
     title.append(arrow, icon(sectionIcon(s.title)), s.title.toUpperCase());
     head.append(title);
-    if (s.items.some(isValue)) {
+    if (s.disabled) {
+      box.classList.add('disabled');
+      body.inert = true;
+      head.append(Object.assign(el('span', 'hint'), { textContent: 'DISABLED' }));
+    } else if (s.items.some(isValue)) {
       const reset = button('RESET', () => this.reset([s]));
       reset.classList.add('reset');
       head.append(copyButton('COPY', () => sectionsJSON([s])), reset);

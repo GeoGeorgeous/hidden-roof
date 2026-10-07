@@ -520,11 +520,11 @@ canvas {
   scrollbar-color: var(--dim) transparent;
 }
 .debug-panel .tabs {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 4px;
 }
 .debug-panel .tabs button {
-  flex: 1;
   padding: 0 4px;
   border-color: var(--dim);
   color: var(--dim);
@@ -606,6 +606,27 @@ canvas {
 .debug-panel .head .arrow {
   display: inline-block;
   width: 1.2em;
+}
+/* Shown but untouchable (a heading with `disabled`). */
+.debug-panel section.disabled .title,
+.debug-panel section.disabled .body {
+  opacity: 0.4;
+}
+/* A color as one shade: the track runs black to white. */
+.debug-panel .slider.gray input::-webkit-slider-runnable-track {
+  height: 3px;
+  background: linear-gradient(to right, #000, #fff);
+}
+.debug-panel .slider.gray input::-moz-range-track {
+  height: 3px;
+  background: linear-gradient(to right, #000, #fff);
+}
+.debug-panel .slider.gray input::-webkit-slider-thumb {
+  margin-top: -4px;
+  box-shadow: 0 0 0 1px #0e0e10;
+}
+.debug-panel .slider.gray input::-moz-range-thumb {
+  box-shadow: 0 0 0 1px #0e0e10;
 }
 /* Nothing to reset in this section. */
 .debug-panel .head:not(.changed) .reset {

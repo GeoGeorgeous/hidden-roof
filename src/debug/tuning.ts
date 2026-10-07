@@ -13,9 +13,12 @@ export type Item =
   | { kind: 'range'; label: string; path: string[]; min: number; max: number; step: number; onChange?: () => void }
   | { kind: 'toggle'; label: string; path: string[]; onChange?: () => void }
   | { kind: 'color'; label: string; path: string[]; onChange?: () => void }
+  /** A hex color edited as one shade of gray. */
+  | { kind: 'gray'; label: string; path: string[]; onChange?: () => void }
   | { kind: 'action'; label: string; run: () => void }
   | { kind: 'readout'; label: string; get: () => string }
-  | { kind: 'heading'; label: string };
+  /** Starts a section; `disabled` shows it grayed out, untouchable. */
+  | { kind: 'heading'; label: string; disabled?: boolean };
 
 /** An item that edits a config value. */
 type Value = Extract<Item, { path: string[] }>;
@@ -47,6 +50,7 @@ export interface Section {
   /** Group label shown above a run of sections (set by splitSections). */
   group?: string;
   open?: boolean;
+  disabled?: boolean;
   items: Item[];
 }
 
@@ -123,20 +127,20 @@ export const live = {
 export const r = (label: string, path: string[], min: number, max: number, step: number, onChange?: () => void): Item => ({ kind: 'range', label, path, min, max, step, onChange });
 export const t = (label: string, path: string[], onChange?: () => void): Item => ({ kind: 'toggle', label, path, onChange });
 export const c = (label: string, path: string[], onChange?: () => void): Item => ({ kind: 'color', label, path, onChange });
+export const gray = (label: string, path: string[], onChange?: () => void): Item => ({ kind: 'gray', label, path, onChange });
 /** Three sliders for a [x, y, z] array value. */
 export const v3 = (label: string, path: string[], min: number, max: number, step: number, onChange?: () => void): Item[] =>
   ['x', 'y', 'z'].map((a, i) => r(`${label} ${a}`, [...path, String(i)], min, max, step, onChange));
 
 /**
  * Every authored section becomes a group; its items are split at headings into
- * one collapsible section per heading (items before the first heading keep the
- * title "general"), so each part can be opened on its own.
+ * one collapsible section per heading (items before the first heading, or all
+ * of them, are titled "general"), so each part can be opened on its own.
  */
 export function splitSections(list: Section[]): Section[] {
   const out: Section[] = [];
   for (const s of list) {
-    const split = s.items.some((it) => it.kind === 'heading');
-    let cur: Section = { id: `${s.id}:general`, title: split ? 'general' : s.title, group: s.title, open: s.open, items: [] };
+    let cur: Section = { id: `${s.id}:general`, title: 'general', group: s.title, open: s.open, items: [] };
     const flush = () => {
       if (cur.items.length) out.push(cur);
     };
@@ -144,7 +148,7 @@ export function splitSections(list: Section[]): Section[] {
       if (it.kind === 'heading') {
         flush();
         const slug = it.label.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-        cur = { id: `${s.id}:${slug}`, title: it.label.toLowerCase(), group: s.title, items: [] };
+        cur = { id: `${s.id}:${slug}`, title: it.label.toLowerCase(), group: s.title, disabled: it.disabled, items: [] };
       } else cur.items.push(it);
     }
     flush();

@@ -2,9 +2,10 @@ import { defaultOf } from './defaults';
 import { hintFor, LABEL_HINTS } from './hints';
 import { getValue, isChanged, setValue, type Item } from './tuning';
 
-// One row of the F3 panel per item: a slider, toggle, color, button, readout
-// or heading. A value row is lit while it differs from config.ts, and its
-// tooltip says config.ts's value; a slider marks it with a gray tick.
+// One row of the F3 panel per item: a slider, toggle, color, gray (a color as
+// one shade, on a black-to-white slider), button, readout or heading. A value
+// row is lit while it differs from config.ts, and its tooltip says config.ts's
+// value; a slider marks it with a gray tick.
 
 export interface Row {
   el: HTMLElement;
@@ -61,6 +62,18 @@ function control(it: Item, edited: () => void): Row {
       value.textContent = input.value;
     };
     read = () => input.value;
+  } else if (it.kind === 'gray') {
+    input.type = 'range';
+    Object.assign(input, { min: '0', max: '255', step: '1' });
+    show = () => {
+      const hex = String(getValue(it.path));
+      input.value = String(grayOf(hex));
+      value.textContent = hex;
+    };
+    read = () => `#${Number(input.value).toString(16).padStart(2, '0').repeat(3)}`;
+    const d = defaultOf(it.path);
+    control = withDefaultTick(input, typeof d === 'string' ? grayOf(d) : undefined, 0, 255);
+    control.classList.add('gray');
   } else if (it.kind === 'toggle') {
     input.type = 'checkbox';
     show = () => {
@@ -93,6 +106,12 @@ function control(it: Item, edited: () => void): Row {
   sync();
   el.append(name, control, value);
   return { el, sync };
+}
+
+/** A hex color's gray level, 0..255 (the mean of its channels). */
+function grayOf(hex: string) {
+  const n = parseInt(hex.slice(1), 16);
+  return Math.round(((n >> 16) + ((n >> 8) & 255) + (n & 255)) / 3);
 }
 
 /** The slider over a gray tick at config.ts's value (none when that is off the scale). */

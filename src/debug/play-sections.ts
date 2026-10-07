@@ -1,5 +1,5 @@
 import { CAP_ORDER, CAPS, HOLD } from '../config';
-import { live, r, t, c, v3, type Item, type Section } from './tuning';
+import { live, r, t, c, gray, v3, type Item, type Section } from './tuning';
 import { POSE_COUNT } from '../dev/avatar-preview';
 
 // F3 panel contents for playing (tuning.ts has the helpers).
@@ -20,14 +20,14 @@ function capItems(): Item[] {
 /** First-person pose of every held tool (HOLD): one heading per tool, same sliders for each. */
 function holdItems(): Item[] {
   return (Object.keys(HOLD) as (keyof typeof HOLD)[]).flatMap((tool) => [
-    { kind: 'heading', label: `HELD ${tool.toUpperCase()}` } as Item,
+    { kind: 'heading', label: tool.toUpperCase() } as Item,
     r('distance (m)', ['HOLD', tool, 'distance'], 0.15, 1.2, 0.01),
     r('right (per m)', ['HOLD', tool, 'x'], -1, 1, 0.005),
     r('up (per m)', ['HOLD', tool, 'y'], -1, 0.5, 0.005),
     r('size', ['HOLD', tool, 'scale'], 0.3, 2.5, 0.05),
-    r('tilt (rad)', ['HOLD', tool, 'pitch'], -3.14, 3.14, 0.01),
-    r('turn (rad)', ['HOLD', tool, 'yaw'], -3.14, 3.14, 0.01),
-    r('lean (rad)', ['HOLD', tool, 'roll'], -3.14, 3.14, 0.01),
+    r('tilt', ['HOLD', tool, 'pitch'], -3.14, 3.14, 0.01),
+    r('turn', ['HOLD', tool, 'yaw'], -3.14, 3.14, 0.01),
+    r('lean', ['HOLD', tool, 'roll'], -3.14, 3.14, 0.01),
   ]);
 }
 
@@ -59,7 +59,12 @@ export function playSections(): Section[] {
         r('step height', ['PLAYER', 'stepHeight'], 0, 0.8, 0.01),
         r('crouch collider', ['PLAYER', 'crouchHeight'], 0.6, 1.7, 0.01),
         r('ladder jump-off push', ['PLAYER', 'ladderJumpOff'], 0, 10, 0.1),
-        { kind: 'heading', label: 'PICKUPS' },
+      ],
+    },
+    {
+      id: 'pickups',
+      title: 'Pickups',
+      items: [
         r('pickup radius', ['PICKUP', 'radius'], 0.2, 3, 0.05),
         r('hover height', ['PICKUP', 'hover'], 0, 2, 0.05),
         r('spin speed', ['PICKUP', 'spin'], 0, 6, 0.1),
@@ -92,15 +97,15 @@ export function playSections(): Section[] {
         r('sprint: lean forward (rad)', ['AVATAR', 'sprintLean'], 0, 0.6, 0.01),
         r('pose blend speed (1/s)', ['AVATAR', 'blend'], 1, 30, 0.5),
         { kind: 'heading', label: 'AVATAR · GRAY TONES' },
-        c('hoodie', ['AVATAR', 'colors', 'hoodie'], () => live.avatarRestyle()),
-        c('trim', ['AVATAR', 'colors', 'trim'], () => live.avatarRestyle()),
-        c('pocket', ['AVATAR', 'colors', 'pocket'], () => live.avatarRestyle()),
-        c('pants', ['AVATAR', 'colors', 'pants'], () => live.avatarRestyle()),
-        c('shoe', ['AVATAR', 'colors', 'shoe'], () => live.avatarRestyle()),
-        c('sole', ['AVATAR', 'colors', 'sole'], () => live.avatarRestyle()),
-        c('head', ['AVATAR', 'colors', 'head'], () => live.avatarRestyle()),
-        c('eyes', ['AVATAR', 'colors', 'eyes'], () => live.avatarRestyle()),
-        c('glove', ['AVATAR', 'colors', 'glove'], () => live.avatarRestyle()),
+        gray('hoodie', ['AVATAR', 'colors', 'hoodie'], () => live.avatarRestyle()),
+        gray('trim', ['AVATAR', 'colors', 'trim'], () => live.avatarRestyle()),
+        gray('pocket', ['AVATAR', 'colors', 'pocket'], () => live.avatarRestyle()),
+        gray('pants', ['AVATAR', 'colors', 'pants'], () => live.avatarRestyle()),
+        gray('shoe', ['AVATAR', 'colors', 'shoe'], () => live.avatarRestyle()),
+        gray('sole', ['AVATAR', 'colors', 'sole'], () => live.avatarRestyle()),
+        gray('head', ['AVATAR', 'colors', 'head'], () => live.avatarRestyle()),
+        gray('eyes', ['AVATAR', 'colors', 'eyes'], () => live.avatarRestyle()),
+        gray('glove', ['AVATAR', 'colors', 'glove'], () => live.avatarRestyle()),
       ],
     },
     {
@@ -137,17 +142,23 @@ export function playSections(): Section[] {
         r('FOV', ['RENDER', 'fov'], 50, 110, 1),
         r('sprint FOV boost', ['RENDER', 'sprintFovBoost'], 0, 20, 0.5),
         r('sprint FOV ease', ['RENDER', 'sprintFovEase'], 1, 30, 0.5),
-        { kind: 'heading', label: 'HANDS' },
+      ],
+    },
+    {
+      id: 'hands',
+      title: 'Hands',
+      items: [
         r('look sway', ['VIEWMODEL', 'swayAmount'], 0, 0.004, 0.0001),
         r('max sway', ['VIEWMODEL', 'swayMax'], 0, 0.3, 0.01),
         r('sway return', ['VIEWMODEL', 'swayReturn'], 1, 30, 0.5),
         r('walk bob', ['VIEWMODEL', 'bobAmount'], 0, 0.03, 0.001),
         r('bob frequency', ['VIEWMODEL', 'bobFrequency'], 0.1, 1.5, 0.05),
         r('jump lag', ['VIEWMODEL', 'fallLag'], 0, 0.01, 0.0005),
+        r('jump lag max (m)', ['VIEWMODEL', 'fallLagMax'], 0, 0.15, 0.005),
         r('trigger press', ['VIEWMODEL', 'pressCurl'], 0, 0.3, 0.01),
         r('trigger speed', ['VIEWMODEL', 'pressSpeed'], 2, 60, 1),
-        ...holdItems(),
-        { kind: 'heading', label: 'LEFT HAND ON WALLS' },
+        // To be reworked: shown, not editable.
+        { kind: 'heading', label: 'LEFT HAND ON WALLS', disabled: true },
         r('reach (m)', ['WALL_HAND', 'reach'], 0.3, 1.5, 0.05),
         r('let go at (m)', ['WALL_HAND', 'release'], 0.4, 2, 0.05),
         r('speed', ['WALL_HAND', 'speed'], 1, 20, 0.5),
@@ -162,6 +173,11 @@ export function playSections(): Section[] {
         r('wrist bend coming in (rad)', ['WALL_HAND', 'restWristBend'], -1.5, 1.5, 0.01),
         r('wrist bend on wall (rad)', ['WALL_HAND', 'wallWristBend'], -1.5, 1.5, 0.01),
       ],
+    },
+    {
+      id: 'held',
+      title: 'Held',
+      items: holdItems(),
     },
     {
       id: 'painting',
