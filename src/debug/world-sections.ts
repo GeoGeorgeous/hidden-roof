@@ -1,93 +1,40 @@
-import { DAYLIGHT } from '../config';
-import { live, r, t, c, v3, type Item, type Section } from './tuning';
+import { live, r, t, gray, type Item, type Section } from './tuning';
 
-// F3 panel contents for the world (tuning.ts has the helpers).
+// F3 panel contents for the world (tuning.ts has the helpers): weather, props
+// and the city; and Test → Performance.
 
-/** DAYLIGHT overrides (build mode): numbers as sliders, hex strings as colors. */
-function daylightItems(): Item[] {
-  const apply = () => live.applyDaylight();
-  const ranges: Record<string, [number, number, number]> = {
-    fogDensity: [0, 0.05, 0.001], cloudBase: [5, 400, 5], ambient: [0, 4, 0.05], moon: [0, 6, 0.05],
-    practical: [0, 4, 0.05], emissiveBoost: [0, 6, 0.1], wetness: [0, 1, 0.01], moonHeight: [0, 90, 0.1], moonHeading: [0, 360, 0.1],
-  };
-  return Object.entries(DAYLIGHT).flatMap(([k, v]): Item[] => {
-    if (typeof v === 'string') return [c(k, ['DAYLIGHT', k], apply)];
-    if (typeof v === 'boolean') return [t(k, ['DAYLIGHT', k], apply)];
-    if (Array.isArray(v)) return v3(k, ['DAYLIGHT', k], -1, 1, 0.01, apply);
-    const [min, max, step] = ranges[k] ?? [0, 10, 0.01];
-    return [r(k, ['DAYLIGHT', k], min, max, step, apply)];
-  });
+/** City layout rows (SKYLINE): each rebuilds the city when the slider is let go (a moment's work, too slow per tick). */
+function layout(rows: [label: string, key: string, min: number, max: number, step: number][]): Item[] {
+  return rows.map(([label, key, min, max, step]) => ({ ...r(label, ['SKYLINE', key], min, max, step), onRelease: () => live.rebuildCity() }));
 }
 
-/** F3 sections for the world: weather, props, city, sound, daylight, and performance (Test). */
+/** F3 sections for the world: weather, props, city, and performance (Test). */
 export function worldSections(): Section[] {
   return [
-    {
-      id: 'city',
-      title: 'City',
-      items: [
-        r('city opacity', ['SKYLINE', 'opacity'], 0, 1, 0.01),
-        r('lit windows', ['SKYLINE', 'litWindows'], 0, 1, 0.01),
-        r('thin lines visible to (x)', ['SKYLINE', 'lineRange'], 0, 3, 0.05, () => live.syncSkyline()),
-        r('seed', ['SKYLINE', 'seed'], 1, 100, 1),
-        r('radius (m)', ['SKYLINE', 'radius'], 100, 1200, 10),
-        r('full height from (m)', ['SKYLINE', 'riseTo'], 100, 1200, 10),
-        r('block pitch (m)', ['SKYLINE', 'block'], 20, 120, 1),
-        r('street min (m)', ['SKYLINE', 'streetMin'], 2, 40, 0.5),
-        r('street max (m)', ['SKYLINE', 'streetMax'], 2, 40, 0.5),
-        r('margin round the level (m)', ['SKYLINE', 'margin'], 0, 60, 1),
-        r('street height (m)', ['SKYLINE', 'street'], -300, -10, 1),
-        r('near ring (m)', ['SKYLINE', 'near'], 0, 600, 5),
-        r('huge tower share', ['SKYLINE', 'tallChance'], 0, 1, 0.01),
-        r('huge tower min top (m)', ['SKYLINE', 'tallMin'], -50, 300, 1),
-        r('huge tower max top (m)', ['SKYLINE', 'tallMax'], -50, 400, 1),
-        r('rooftop clutter range (m)', ['SKYLINE', 'clutterRange'], 0, 800, 10),
-        { kind: 'action', label: 'rebuild city', run: () => live.rebuildCity() },
-      ],
-    },
-    {
-      id: 'sound',
-      title: 'Sound',
-      items: [
-        r('master', ['AUDIO', 'masterGain'], 0, 1.5, 0.01),
-        r('rain', ['AUDIO', 'rainGain'], 0, 0.5, 0.005),
-        r('rain brightness (Hz)', ['AUDIO', 'rainTone'], 500, 9000, 50),
-        r('drops on metal', ['AUDIO', 'metalGain'], 0, 0.4, 0.005),
-        r('drops on metal / s per piece', ['AUDIO', 'metalRate'], 0, 10, 0.1),
-        r('drops on metal heard within (m)', ['AUDIO', 'metalRange'], 1, 20, 0.5),
-        r('thunder', ['AUDIO', 'thunderGain'], 0, 1.5, 0.01),
-        r('city ambience', ['AUDIO', 'ambienceGain'], 0, 0.3, 0.005),
-        r('AC fan hum', ['AUDIO', 'fanGain'], 0, 0.5, 0.005),
-        r('fan heard within (m)', ['AUDIO', 'fanRange'], 1, 20, 0.5),
-        r('spray hiss', ['AUDIO', 'hissGain'], 0, 0.8, 0.01),
-        r('footsteps', ['AUDIO', 'footstepGain'], 0, 1, 0.01),
-      ],
-    },
     {
       id: 'weather',
       title: 'Weather',
       items: [
-        t('rain', ['ATMOS', 'rain']),
-        r('rain density', ['ATMOS', 'rainDensity'], 0, 1, 0.01),
-        r('rain speed', ['ATMOS', 'rainSpeed'], 4, 30, 0.5),
-        c('rain color', ['ATMOS', 'rainColor']),
-        r('rain opacity', ['ATMOS', 'rainOpacity'], 0, 4, 0.05),
+        r('haze', ['ATMOS', 'fogDensity'], 0, 0.03, 0.0005),
+        r('clouds: base', ['ATMOS', 'cloudBase'], 5, 80, 1),
+        r('clouds: fade', ['ATMOS', 'cloudFade'], 2, 120, 1),
+        r('wetness', ['ATMOS', 'wetness'], 0, 1, 0.01),
         r('wind: strength', ['ATMOS', 'windStrength'], 0, 10, 0.1),
         r('wind: heading', ['ATMOS', 'windHeading'], 0, 360, 0.1),
-        r('fade into paper (1/m)', ['ATMOS', 'fogDensity'], 0, 0.03, 0.0005),
-        r('cloud base', ['ATMOS', 'cloudBase'], 5, 80, 1),
-        r('cloud fade', ['ATMOS', 'cloudFade'], 2, 120, 1),
-        r('wetness', ['ATMOS', 'wetness'], 0, 1, 0.01),
+        { kind: 'heading', label: 'RAIN' },
+        t('on', ['ATMOS', 'rain']),
+        r('density', ['ATMOS', 'rainDensity'], 0, 1, 0.01),
+        r('speed', ['ATMOS', 'rainSpeed'], 4, 30, 0.5),
+        gray('color', ['ATMOS', 'rainColor']),
+        r('opacity', ['ATMOS', 'rainOpacity'], 0, 4, 0.05),
         { kind: 'heading', label: 'LIGHTNING' },
-        t('lightning + thunder', ['THUNDER', 'enabled']),
+        t('on', ['THUNDER', 'enabled']),
         { kind: 'action', label: 'STRIKE NOW', run: () => live.strikeLightning() },
-        r('min seconds between', ['THUNDER', 'minInterval'], 5, 300, 1),
-        r('max seconds between', ['THUNDER', 'maxInterval'], 5, 600, 1),
+        r('interval: min', ['THUNDER', 'minInterval'], 5, 300, 1),
+        r('interval: max', ['THUNDER', 'maxInterval'], 5, 600, 1),
         r('flash: ambient', ['THUNDER', 'flashAmbient'], 0, 20, 0.5),
         r('flash: moon', ['THUNDER', 'flashMoon'], 0, 20, 0.5),
         r('flash: sky', ['THUNDER', 'flashSky'], 0, 2, 0.05),
-        r('thunder delay min (s)', ['THUNDER', 'minDelay'], 0, 5, 0.1),
-        r('thunder delay max (s)', ['THUNDER', 'maxDelay'], 0, 10, 0.1),
       ],
     },
     {
@@ -95,32 +42,53 @@ export function worldSections(): Section[] {
       title: 'Props',
       items: [
         { kind: 'heading', label: 'CCTV CAMERAS' },
-        r('start following within (m)', ['CCTV', 'followRange'], 1, 30, 0.5),
-        r('follow fully within (m)', ['CCTV', 'lockRange'], 0, 20, 0.5),
-        r('max head turn (rad)', ['CCTV', 'maxTurn'], 0.2, 1.57, 0.01),
-        { kind: 'heading', label: 'SMOKE (EXHAUST PIPES)' },
-        t('smoke', ['SMOKE', 'enabled']),
-        r('puffs per source', ['SMOKE', 'perEmitter'], 0, 48, 1),
-        r('life (s)', ['SMOKE', 'life'], 0.5, 12, 0.1),
-        r('rise (m)', ['SMOKE', 'rise'], 0, 8, 0.1),
-        r('wind drift', ['SMOKE', 'drift'], 0, 3, 0.05),
-        r('start size (m)', ['SMOKE', 'startSize'], 0.02, 1, 0.01),
-        r('end size (m)', ['SMOKE', 'endSize'], 0.1, 4, 0.05),
+        r('follow: from', ['CCTV', 'followRange'], 1, 30, 0.5),
+        r('follow: full', ['CCTV', 'lockRange'], 0, 20, 0.5),
+        r('max turn', ['CCTV', 'maxTurn'], 0.2, 1.57, 0.01),
+        { kind: 'heading', label: 'SMOKE' },
+        t('on', ['SMOKE', 'enabled']),
+        r('puffs', ['SMOKE', 'perEmitter'], 0, 48, 1),
+        r('life', ['SMOKE', 'life'], 0.5, 12, 0.1),
+        r('rise', ['SMOKE', 'rise'], 0, 8, 0.1),
+        r('drift', ['SMOKE', 'drift'], 0, 3, 0.05),
+        r('size: start', ['SMOKE', 'startSize'], 0.005, 1, 0.005),
+        r('size: end', ['SMOKE', 'endSize'], 0.1, 4, 0.05),
         r('opacity', ['SMOKE', 'opacity'], 0, 1, 0.01),
-        c('color', ['SMOKE', 'color']),
+        gray('color', ['SMOKE', 'color']),
         { kind: 'heading', label: 'AC FANS' },
-        r('revolutions / s', ['FANS', 'speed'], 0, 15, 0.1),
+        r('speed', ['FANS', 'speed'], 0, 15, 0.1),
         { kind: 'heading', label: 'FLICKER' },
-        r('steps / s', ['FLICKER', 'speed'], 1, 40, 1),
+        r('speed', ['FLICKER', 'speed'], 1, 40, 1),
         r('neon: dip chance', ['FLICKER', 'neonRate'], 0, 0.5, 0.005),
         r('neon: dip depth', ['FLICKER', 'neonDepth'], 0, 1, 0.01),
         r('neon: hum', ['FLICKER', 'neonHum'], 0, 0.3, 0.005),
       ],
     },
     {
-      id: 'daylight',
-      title: 'Build-mode daylight',
-      items: daylightItems(),
+      id: 'city',
+      title: 'City',
+      items: [
+        r('opacity', ['SKYLINE', 'opacity'], 0, 1, 0.01),
+        r('lit windows', ['SKYLINE', 'litWindows'], 0, 1, 0.01),
+        r('line range', ['SKYLINE', 'lineRange'], 0, 3, 0.05, () => live.syncSkyline()),
+        { kind: 'heading', label: 'LAYOUT' },
+        { kind: 'action', label: 'REBUILD', run: () => live.rebuildCity() },
+        ...layout([
+          ['seed', 'seed', 1, 100, 1],
+          ['reach', 'radius', 100, 1200, 10],
+          ['full height at', 'riseTo', 100, 1200, 10],
+          ['margin', 'margin', 0, 60, 1],
+          ['block size', 'block', 20, 120, 1],
+          ['street: min', 'streetMin', 2, 40, 0.5],
+          ['street: max', 'streetMax', 2, 40, 0.5],
+          ['street level', 'street', -300, -10, 1],
+          ['near: reach', 'near', 0, 600, 5],
+          ['towers: share', 'tallChance', 0, 1, 0.01],
+          ['towers: min top', 'tallMin', -50, 300, 1],
+          ['towers: max top', 'tallMax', -50, 400, 1],
+          ['clutter: reach', 'clutterRange', 0, 800, 10],
+        ]),
+      ],
     },
     {
       id: 'performance',

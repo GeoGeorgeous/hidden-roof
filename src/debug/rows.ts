@@ -92,6 +92,7 @@ function control(it: Item, edited: () => void): Row {
     };
     read = () => Number(input.value);
     control = withDefaultTick(input, defaultOf(it.path), it.min, it.max);
+    if (it.onRelease) input.addEventListener('change', it.onRelease);
   }
   const sync = () => {
     show();

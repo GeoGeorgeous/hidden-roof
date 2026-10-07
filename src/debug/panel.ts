@@ -2,6 +2,8 @@ import { icon, sectionIcon } from './icons';
 import { paintSections } from './paint-sections';
 import { itemSections } from './item-sections';
 import { renderSections, uiSections } from './render-sections';
+import { soundSections } from './sound-sections';
+import { buildSections } from './build-sections';
 import { playSections } from './play-sections';
 import { itemRow, type Row } from './rows';
 import { isChanged, isValue, resetItems, sectionsJSON, splitSections, type Section } from './tuning';
@@ -24,8 +26,10 @@ const TABS = [
   { id: 'player', title: 'Player', groups: ['movement', 'camera', 'hands', 'held', 'avatar'] },
   { id: 'paint', title: 'Paint', groups: ['painting', 'caps', 'runs', 'pressure', 'quality', 'cursor'] },
   { id: 'render', title: 'Render', groups: ['shaders', 'lighting', 'light-props', 'post'] },
-  { id: 'world', title: 'World', groups: ['weather', 'props', 'city', 'sound', 'daylight'] },
+  { id: 'world', title: 'World', groups: ['weather', 'props', 'city'] },
+  { id: 'sound', title: 'Sound', groups: ['mix', 'weather-sound', 'spray-sound', 'props-sound'] },
   { id: 'ui', title: 'UI', groups: ['hud', 'pause'] },
+  { id: 'build', title: 'Build', groups: ['daylight', 'editing'] },
   { id: 'items', title: 'Items', groups: ['pickups'] },
   { id: 'models', title: 'Models', groups: ['can', 'cap-models', 'marker', 'ladder', 'roller', 'sponge'] },
   { id: 'test', title: 'Test', groups: ['performance', 'avatar-test', 'ghost'] },
@@ -57,7 +61,7 @@ export class DebugPanel {
   private openIds: Set<string>;
 
   constructor() {
-    this.list = splitSections([...playSections(), ...paintSections(), ...renderSections(), ...worldSections(), ...uiSections(), ...itemSections()]);
+    this.list = splitSections([...playSections(), ...paintSections(), ...renderSections(), ...worldSections(), ...soundSections(), ...uiSections(), ...buildSections(), ...itemSections()]);
     this.openIds = loadOpen() ?? new Set(this.list.filter((s) => s.open).map((s) => s.id));
     this.root = el('div', 'debug-panel');
     this.root.hidden = true;

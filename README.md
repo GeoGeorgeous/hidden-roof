@@ -197,7 +197,7 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
 - `GRADE`: `exposure`, the finished image's brightness in stops (0 by default).
 - `PAUSE_MENU`: the pause sheet's color, opacity (and with F3 open), and the key list. Live in F3 → UI.
 - `HUD`: which HUD parts show (`frame`, `rec`, `cam`, `clock`, `perf`, `perfGpu` for GPU time), how long tags, the PSI gauge and messages show (`tagTime`, `gaugeTime`, `toastTime`), and the hotbar's look (`slotSize`, `slotGap`, `slotRoundness`, `iconSize`, border and background colors, and the selected slot's). Live in F3 → UI.
-- `SKYLINE`: the city: `seed`, `radius`, `block`, `streetMin`/`streetMax`, `margin` (free space round the level), `street` (how far down the street is), `near`, `tallChance`/`tallMin`/`tallMax` (huge towers), `clutterRange`, `lineRange` (live), `litWindows` (live), `opacity` (live: fades the whole city into the sky color to focus on the level). F3 → World → City, with a rebuild button; a level can override any of them.
+- `SKYLINE`: the city: `seed`, `radius`, `block`, `streetMin`/`streetMax`, `margin` (free space round the level), `street` (how far down the street is), `near`, `tallChance`/`tallMin`/`tallMax` (huge towers), `clutterRange`, `lineRange` (live), `litWindows` (live), `opacity` (live: fades the whole city into the sky color to focus on the level). F3 → World → City: the layout rebuilds the city when you let go of a slider; a level can override any of them.
 - `PICKUP`: `radius`, `hover`, `spin`, `bob`.
 - `PLAYER`:
   - `walkSpeed`, `sprintSpeed`
@@ -207,9 +207,9 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
   - `eyeHeight`, `height`, `radius`
   - `mouseSensitivity`, `killY`
   - `footstepStride`, `hardLanding` (footstep sounds)
-- `AUDIO`: gains.
+- `AUDIO`: volumes and tones, live in F3 → Sound (with each cap's hiss, `CAPS.*.hissGain` / `hissTone`).
 
-The F3 panel groups its controls into small collapsible sections (collapse / expand all; open sections are remembered), and every setting has a tooltip. It has a live control for every tunable value above that applies without a restart, including colors and `[x, y, z]` values. Not included: `RENDER.batchTile`, `BUILD`, `PLAYER.footstepStride`/`hardLanding`, `PAINT.texelsPerMeter` (pause menu → PAINT DETAIL), `RENDER.maxFps` (pause menu → FRAME RATE), `maxTextureSize`/`mipLevels`, `BASE_TEXTURES`, `SPRAY` pool and particle size, and `AUDIO`, which are only read at startup or when a texture is made. **copy values** puts them on the clipboard as JSON, ready to paste back in as new defaults.
+The F3 panel groups its controls into small collapsible sections (collapse / expand all; open sections are remembered), and every setting has a tooltip. It has a live control for every tunable value above that applies without a restart, including colors and `[x, y, z]` values. Not included: `RENDER.batchTile`, `PLAYER.footstepStride`/`hardLanding`, `PAINT.texelsPerMeter` (pause menu → PAINT DETAIL), `RENDER.maxFps` (pause menu → FRAME RATE), `maxTextureSize`/`mipLevels`, `BASE_TEXTURES`, and the `SPRAY` pool and particle size, which are only read at startup or when a texture is made. **copy values** puts them on the clipboard as JSON, ready to paste back in as new defaults.
 
 ## Files
 

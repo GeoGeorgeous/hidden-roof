@@ -44,6 +44,8 @@ const ICONS: Record<string, string> = {
   props: '<circle cx="5" cy="5" r="4.5"/><path d="M5 5V1.8M5 5l2.8 1.6M5 5 2.2 6.6"/>',
   city: '<path d="M.5 9.5h9M1.5 9.5v-5h3v5M4.5 9.5v-8h4v8M6 3.5h1.2M6 5.5h1.2M6 7.5h1.2"/>',
   sound: '<path d="M.5 3.5h2l3-2.5v8l-3-2.5h-2zM7.2 3.6a2 2 0 0 1 0 2.8M8.6 2.2a4 4 0 0 1 0 5.6"/>',
+  build: '<path d="M1 9 5.5 4.5M4.5 1.5l4 4-1.5 1.5-4-4z"/>',
+  mix: '<path d="M2 .5v9M5 .5v9M8 .5v9"/><path d="M1 6h2M4 3h2M7 7h2"/>',
   daylight: '<circle cx="5" cy="5" r="2"/><path d="M5 .5v1.2M5 8.3v1.2M.5 5h1.2M8.3 5h1.2M1.8 1.8l.9.9M7.3 7.3l.9.9M1.8 8.2l.9-.9M7.3 2.7l.9-.9"/>',
   performance: '<path d="M.5 5.5h2l1.5-4 2 7 1.5-3h2"/>',
   ghost: '<path d="M1.5 9.5v-5a3.5 3.5 0 0 1 7 0v5L7.3 8.4 6.2 9.5 5 8.4 3.8 9.5 2.7 8.4zM3.8 4.5v.6M6.2 4.5v.6"/>',
@@ -68,6 +70,8 @@ const ICONS: Record<string, string> = {
   page: '<path d="M2 .5h4l2.5 2.5v6.5H2zM6 .5V3h2.5"/>',
   tones: '<path d="M.5 .5h4v4h-4zM5.5 5.5h4v4h-4z"/><path class="f" d="M5.5.5h4v4h-4z"/>',
 };
+// Sound and build groups that share an icon with another.
+Object.assign(ICONS, { 'weather-sound': ICONS.weather, 'spray-sound': CAN, 'props-sound': ICONS.props, editing: ICONS.build });
 
 /** Section titles (lower case) to icons; the first match wins, none for "general". */
 const SECTIONS: [RegExp, string][] = [
@@ -85,7 +89,9 @@ const SECTIONS: [RegExp, string][] = [
   [/^drain/, 'pressure'],
   [/^sputter/, 'painting'],
   [/^shake/, 'pressure'],
-  [/^lightning/, 'lightning'],
+  [/^lightning|^thunder/, 'lightning'],
+  [/^rain|^drops/, 'weather'],
+  [/^sun/, 'daylight'],
   [/^cctv/, 'cctv'],
   [/^smoke/, 'smoke'],
   [/fans/, 'props'],

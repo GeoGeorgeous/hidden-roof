@@ -10,7 +10,8 @@ import { defaultOf } from './defaults';
 type Obj = Record<string, unknown>;
 
 export type Item =
-  | { kind: 'range'; label: string; path: string[]; min: number; max: number; step: number; onChange?: () => void }
+  /** `onRelease`: runs when the slider is let go (and on reset), for work too slow for every tick. */
+  | { kind: 'range'; label: string; path: string[]; min: number; max: number; step: number; onChange?: () => void; onRelease?: () => void }
   | { kind: 'toggle'; label: string; path: string[]; onChange?: () => void }
   | { kind: 'color'; label: string; path: string[]; onChange?: () => void }
   /** A hex color edited as one shade of gray. */
@@ -40,6 +41,7 @@ export function resetItems(items: Item[]) {
     if (!isValue(it) || !isChanged(it)) continue;
     setValue(it.path, defaultOf(it.path));
     if (it.onChange) effects.add(it.onChange);
+    if (it.kind === 'range' && it.onRelease) effects.add(it.onRelease);
   }
   for (const f of effects) f();
 }

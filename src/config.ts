@@ -833,7 +833,6 @@ export const AUDIO = {
   /** AC fan hum at the fan; fades out over `fanRange` meters. */
   fanGain: 0.135,
   fanRange: 7,
-  uiGain: 1,
   /** Raindrops pinging on metal tops open to the sky: loudness, pings per second per piece, hearing range (m). */
   metalGain: 0.07,
   metalRate: 2.5,
