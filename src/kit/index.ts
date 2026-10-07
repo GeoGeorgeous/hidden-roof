@@ -13,6 +13,8 @@ import { debris, latticeMast, signTower, tankPair } from './steel';
 import { ledgeOnBrackets, platformOnColumns, scaffolding } from './scaffold';
 import { fence, railing, trafficCone } from './barriers';
 import { gondola, plankBridge } from './traversal';
+import { wallDuct } from './wall-ducts';
+import { aviationLight, roofLight } from './roof-lights';
 
 /** The prop kit, in picker order. Pickups are added by the editor as their own category. */
 const KIT: PropDef[] = [
@@ -37,6 +39,7 @@ const KIT: PropDef[] = [
   ventshaft,
   duct,
   exhaust,
+  wallDuct,
   pipe,
   drainPipe,
   cable,
@@ -59,6 +62,8 @@ const KIT: PropDef[] = [
   floodlight,
   lampPost,
   stringLights,
+  roofLight,
+  aviationLight,
 ];
 
 /** Props that aren't in the build picker: the player's stepladder (a pickup, placed while playing). */

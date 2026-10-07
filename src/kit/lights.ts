@@ -28,7 +28,7 @@ export const wallLamp: PropDef = {
 };
 
 /** Downward tilt (degrees) of LIGHTS.floodlight.dir: the default for floodlights never tilted by hand. */
-function floodTilt() {
+export function floodTilt() {
   const [x, y, z] = LIGHTS.floodlight.dir;
   return (Math.atan2(-y, Math.hypot(x, z)) * 180) / Math.PI;
 }
