@@ -355,9 +355,13 @@ canvas {
 .overlay td {
   padding: 1px 10px;
 }
-.overlay td:first-child {
+.overlay td:nth-child(odd) {
   text-align: right;
   color: var(--dim);
+}
+/* The second column of keys (the tools). */
+.overlay td:nth-child(3) {
+  padding-left: 40px;
 }
 .blink {
   animation: blink 1.6s steps(2) infinite;
