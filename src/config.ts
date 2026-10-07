@@ -100,8 +100,8 @@ export const LIGHT_SPREAD_MAX = 1.55;
 export const NEON_LIGHT_ROWS = 4;
 
 /** The neon signs' colors: each sign's tubes, text and light (the rest of its light is LIGHTS.neon). */
-export type NeonColor = 'pink' | 'cyan' | 'amber';
-export const NEON_COLORS: Record<NeonColor, string> = { pink: '#ff3fa4', cyan: '#2fe6ff', amber: '#ffa24a' };
+export type NeonColor = 'pink' | 'cyan' | 'amber' | 'lime' | 'violet' | 'red';
+export const NEON_COLORS: Record<NeonColor, string> = { pink: '#ff3fa4', cyan: '#2fe6ff', amber: '#ffa24a', lime: '#a8ff3e', violet: '#a46bff', red: '#ff3b30' };
 
 /** Per-kind light settings, live-tunable in the debug panel (Render → Light props). */
 export const LIGHTS: Record<Exclude<LightKind, 'neon'>, LightSpec> & { neon: Omit<LightSpec, 'color'> } = {
