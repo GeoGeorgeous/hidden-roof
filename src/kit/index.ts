@@ -15,6 +15,7 @@ import { fence, railing, trafficCone } from './barriers';
 import { gondola, plankBridge } from './traversal';
 import { wallDuct } from './wall-ducts';
 import { aviationLight, roofLight } from './roof-lights';
+import { skylight, steelStair } from './roof-access';
 
 /** The prop kit, in picker order. Pickups are added by the editor as their own category. */
 const KIT: PropDef[] = [
@@ -28,6 +29,7 @@ const KIT: PropDef[] = [
   ledgeOnBrackets,
   gondola,
   stairs,
+  steelStair,
   ladder,
   fireescape,
   hatch,
@@ -51,6 +53,7 @@ const KIT: PropDef[] = [
   latticeMast,
   cctv,
   debris,
+  skylight,
   sign,
   shopSign,
   bladeSign,
