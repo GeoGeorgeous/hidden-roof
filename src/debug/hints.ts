@@ -249,6 +249,12 @@ const HINTS: Record<string, string> = {
   'VIGNETTE.start': 'Where the darkening starts, as a percentage of the way from the center to the corners. Lower = a wider vignette.',
   'VIGNETTE.color': 'The color the edge darkens to.',
   'HUD.perf': 'Show fps, draw calls, triangles and texture memory at the bottom left of the screen.',
+  'HUD.frame': 'The body-cam corner brackets.',
+  'HUD.rec': 'The blinking REC dot and the time since the game started, top left.',
+  'HUD.cam': 'The camera label under REC (CAM 01 · ROOFTOP).',
+  'HUD.clock': 'Date and time, top right.',
+  'HUD.slotSize': 'Diameter of each hotbar circle (CSS px); the icons scale with it.',
+  'HUD.slotGap': 'Space between hotbar circles (CSS px).',
   // Sound
   'AUDIO.masterGain': 'Overall volume.',
   'AUDIO.rainGain': 'Rain sound at full rain density.',

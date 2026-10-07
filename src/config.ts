@@ -241,10 +241,21 @@ export const VIGNETTE = {
   color: '#141416',
 };
 
-/** What the HUD shows besides the body-cam frame (hud.ts), live in F3. */
+/** What the HUD shows (hud.ts) and the hotbar's size (inventory/hotbar.ts), live in F3 → UI. */
 export const HUD = {
+  /** Body-cam corner brackets. */
+  frame: true,
+  /** REC dot and elapsed time, top left. */
+  rec: true,
+  /** Camera label under it (CAM 01 · ROOFTOP). */
+  cam: true,
+  /** Date and time, top right. */
+  clock: true,
   /** Performance readout, bottom left: fps, draw calls, triangles, texture memory. */
   perf: true,
+  /** Hotbar slot circles: diameter and the gap between them (CSS px). */
+  slotSize: 30,
+  slotGap: 10,
 };
 
 /** Slogans on lettered sign panels (kit/lettering.ts panelLettering). */

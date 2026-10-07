@@ -1,4 +1,4 @@
-import { HOTBAR } from '../config';
+import { HOTBAR, HUD } from '../config';
 import { SLOTS, type Inventory, type Tool } from './inventory';
 import type { Thumbnails } from './thumbnails';
 
@@ -25,6 +25,7 @@ export class Hotbar {
   private toastEl: HTMLElement;
   private toastTime = 0;
   private version = -1;
+  private size = '';
 
   constructor(private icons: Thumbnails) {
     this.root = document.createElement('div');
@@ -53,6 +54,12 @@ export class Hotbar {
   }
 
   update(inv: Inventory) {
+    const size = `${HUD.slotSize}|${HUD.slotGap}`;
+    if (size !== this.size) {
+      this.size = size;
+      this.root.style.setProperty('--slot', `${HUD.slotSize}px`);
+      this.root.style.setProperty('--gap', `${HUD.slotGap}px`);
+    }
     if (this.toastTime && performance.now() - this.toastTime > 2200) {
       this.toastEl.classList.remove('show');
       this.toastTime = 0;

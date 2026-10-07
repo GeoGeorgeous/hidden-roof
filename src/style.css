@@ -377,14 +377,15 @@ canvas {
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 10px;
+  /* --slot and --gap come from HUD (hotbar.ts). */
+  gap: var(--gap, 10px);
   pointer-events: none;
 }
 .hotbar i {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: var(--slot, 30px);
+  height: var(--slot, 30px);
   border-radius: 50%;
   border: 1px solid var(--dim);
   opacity: 0.55;
@@ -400,8 +401,8 @@ canvas {
   transform: scale(1.12);
 }
 .hotbar img {
-  width: 22px;
-  height: 22px;
+  width: calc(var(--slot, 30px) * 0.73);
+  height: calc(var(--slot, 30px) * 0.73);
   /* A thin ink edge so light icons read on paper. */
   filter: drop-shadow(0 0 0.6px var(--ui));
 }

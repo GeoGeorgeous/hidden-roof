@@ -98,6 +98,12 @@ export function worldSections(): Section[] {
         c('color', ['VIGNETTE', 'color'], () => live.syncVignette()),
         { kind: 'heading', label: 'HUD' },
         t('performance readout', ['HUD', 'perf']),
+        t('frame', ['HUD', 'frame']),
+        t('rec', ['HUD', 'rec']),
+        t('camera label', ['HUD', 'cam']),
+        t('clock', ['HUD', 'clock']),
+        r('hotbar: size', ['HUD', 'slotSize'], 16, 60, 1),
+        r('hotbar: gap', ['HUD', 'slotGap'], 0, 40, 1),
       ],
     },
     {

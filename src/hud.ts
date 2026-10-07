@@ -70,6 +70,9 @@ export class Hud {
   private settingsPage: SettingsPage | null = null;
   private start = performance.now();
   private lastSecond = -1;
+  /** The parts HUD switches on and off, and which were shown last (rewritten only on change). */
+  private parts: [keyof typeof HUD, HTMLElement[]][];
+  private partsShown = '';
 
   constructor() {
     const root = document.createElement('div');
@@ -77,7 +80,7 @@ export class Hud {
     root.innerHTML = `
       <div class="vignette"></div>
       <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
-      <div class="rec"><i></i><span class="rec-time">REC 00:00:00</span><div class="dim">CAM 01 · ROOFTOP</div></div>
+      <div class="rec"><div class="rec-line"><i></i><span class="rec-time">REC 00:00:00</span></div><div class="dim">CAM 01 · ROOFTOP</div></div>
       <div class="clock"></div>
       <div class="perf"></div>
       <div class="cap-tag" hidden></div>
@@ -112,6 +115,12 @@ export class Hud {
     this.syncVignette();
     this.rec = root.querySelector('.rec-time')!;
     this.clock = root.querySelector('.clock')!;
+    this.parts = [
+      ['frame', [...root.querySelectorAll<HTMLElement>('.corner')]],
+      ['rec', [root.querySelector('.rec-line')!]],
+      ['cam', [root.querySelector('.rec .dim')!]],
+      ['clock', [this.clock]],
+    ];
     this.capTag = root.querySelector('.cap-tag')!;
     this.colorTag = root.querySelector('.color-tag')!;
     this.gauge = root.querySelector('.psi-gauge')!;
@@ -269,6 +278,11 @@ export class Hud {
   }
 
   update() {
+    const shown = this.parts.map(([k]) => (HUD[k] ? 1 : 0)).join('');
+    if (shown !== this.partsShown) {
+      this.partsShown = shown;
+      for (const [k, els] of this.parts) for (const el of els) el.hidden = !HUD[k];
+    }
     if (this.noticeUntil && performance.now() >= this.noticeUntil) {
       this.noticeUntil = 0;
       this.syncMenu();
