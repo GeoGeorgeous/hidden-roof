@@ -1,10 +1,11 @@
 import type { SettingRow, SettingSection } from './settings';
 
 // The settings page of the pause menu: one tab per section (gameplay,
-// graphics, sound), each row a choice (click for the next value, right-click
-// for the previous) or a slider, with a short description and, for some, a
-// callout (recommendations) and a performance cost in dots (1 to 5, green to red). Values are read again whenever the
-// page opens, since the debug panel edits the same settings.
+// graphics, sound), each row a choice (< and > step to the previous and next
+// value) or a slider with a gray tick at its default, with, for some, a short
+// description, a performance cost (LOW, MEDIUM, HIGH: green to red) and a
+// callout (recommendations). Values are read again whenever the page opens,
+// since the debug panel edits the same settings.
 
 export class SettingsPage {
   readonly root: HTMLElement;
@@ -48,15 +49,13 @@ export class SettingsPage {
     const line = div('line');
     line.append(Object.assign(div('label'), { textContent: row.label }));
     if (row.kind === 'choice') {
-      const b = document.createElement('button');
-      const sync = () => (b.textContent = `< ${row.value()} >`);
-      b.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        row.step(e.button === 2 ? -1 : 1);
+      const value = div('choice');
+      const step = (d: number) => {
+        row.step(d);
         this.sync();
-      });
-      line.append(b);
-      this.syncs.push(sync);
+      };
+      line.append(button('<', () => step(-1)), value, button('>', () => step(1)));
+      this.syncs.push(() => (value.textContent = row.value()));
     } else {
       const input = Object.assign(document.createElement('input'), { type: 'range', min: `${row.min}`, max: `${row.max}`, step: `${row.step}` });
       const out = div('value');
@@ -68,29 +67,29 @@ export class SettingsPage {
         row.set(+input.value);
         this.sync();
       });
-      line.append(input, out);
+      line.append(withDefaultTick(input, row.def, row.min, row.max), out);
       this.syncs.push(sync);
     }
-    el.append(line, Object.assign(div('desc'), { textContent: row.desc }));
-    if (row.cost) {
-      // PERFORMANCE COST •••··: the current value's cost in filled dots (1 none .. 5 critical; green, orange, red), dim ones up to 5.
-      const cost = div('cost');
-      const costOf = row.cost;
-      const sync = () => {
-        const n = costOf();
-        cost.className = `cost ${n >= 5 ? 'high' : n >= 3 ? 'mid' : 'low'}`;
-        cost.title = COST_NAMES[n - 1];
-        cost.innerHTML = `PERFORMANCE COST <b>${'•'.repeat(n)}</b><i>${'•'.repeat(5 - n)}</i>`;
-      };
-      this.syncs.push(sync);
-      el.append(cost);
-    }
+    el.append(line);
+    if (row.desc) el.append(Object.assign(div('desc'), { textContent: row.desc }));
+    if (row.cost) el.append(Object.assign(div(`cost ${row.cost.toLowerCase()}`), { innerHTML: `PERFORMANCE COST: <b>${row.cost}</b>` }));
     if (row.note) el.append(Object.assign(div('note'), { textContent: row.note }));
     return el;
   }
 }
 
-const COST_NAMES = ['No cost', 'Minimal cost', 'Medium cost', 'High cost', 'Critical cost'];
+/** The slider over a gray tick at its default (none when that is off the scale); the debug panel's sliders too. */
+export function withDefaultTick(input: HTMLInputElement, d: unknown, min: number, max: number) {
+  const box = document.createElement('span');
+  box.className = 'slider';
+  if (typeof d === 'number' && d >= min && d <= max) {
+    const tick = document.createElement('i');
+    tick.style.setProperty('--at', String((d - min) / (max - min)));
+    box.append(tick);
+  }
+  box.append(input);
+  return box;
+}
 
 function div(className: string) {
   return Object.assign(document.createElement('div'), { className });

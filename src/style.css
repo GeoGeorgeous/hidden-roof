@@ -1,6 +1,13 @@
 /* Body-cam overlay style, inked: ink + one alert color, thin lines, small
    monospace, no panels, no glow. */
 
+/* The pause menu title's graffiti font (public/fonts/README.txt). */
+@font-face {
+  font-family: 'Sedgwick Ave Display';
+  src: url('/fonts/sedgwick-ave-display.woff2') format('woff2');
+  font-display: block;
+}
+
 :root {
   --ui: #141416;
   --dim: rgba(20, 20, 22, 0.62);
@@ -178,11 +185,22 @@ canvas {
   gap: 14px;
   color: var(--ui);
   /* --sheet and --sheet-debug come from PAUSE_MENU (hud.ts). */
-  background: var(--sheet, rgba(14, 14, 16, 0.8));
+  background: var(--sheet, rgba(14, 14, 16, 0.65));
 }
 .overlay .title {
-  font-size: 22px;
-  letter-spacing: 0.6em;
+  font-family: 'Sedgwick Ave Display', cursive;
+  font-size: 56px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+/* The tag under it (THE GAME): small, gray, a bit askew, to the right. */
+.overlay .title span {
+  display: block;
+  margin: 0 -10px 0 0;
+  font-size: 15px;
+  text-align: right;
+  color: var(--dim);
+  transform: rotate(-6deg);
 }
 .overlay .menu {
   display: flex;
@@ -255,9 +273,12 @@ canvas {
 }
 .settings-page .line button {
   border: none;
-  padding: 2px 4px;
-  min-width: 170px;
-  text-align: right;
+  padding: 2px 6px;
+}
+/* A choice's value, between its < and > buttons: as wide overall as a slider and its value. */
+.settings-page .choice {
+  width: 186px;
+  text-align: center;
 }
 .settings-page input[type='range'] {
   -webkit-appearance: none;
@@ -303,35 +324,21 @@ canvas {
   color: var(--dim);
   letter-spacing: 0.04em;
 }
-/* Performance cost: PERFORMANCE COST •••··, filled dots green / orange / red by cost, the rest dim. */
+/* PERFORMANCE COST: LOW / MEDIUM / HIGH, in green / orange / red. */
 .settings-page .cost {
-  display: flex;
-  align-items: center;
   margin-top: 4px;
-  letter-spacing: 0.08em;
-}
-.settings-page .cost b,
-.settings-page .cost i {
-  font-size: 20px;
-  line-height: 14px;
-  letter-spacing: 0.05em;
 }
 .settings-page .cost b {
   font-weight: normal;
-  margin-left: 8px;
 }
 .settings-page .cost.low b {
   color: #4cc46a;
 }
-.settings-page .cost.mid b {
+.settings-page .cost.medium b {
   color: #f0952e;
 }
 .settings-page .cost.high b {
   color: var(--alert);
-}
-.settings-page .cost i {
-  font-style: normal;
-  color: rgba(235, 229, 214, 0.25);
 }
 /* Callout: recommendations. */
 .settings-page .note {
@@ -344,9 +351,16 @@ canvas {
 .settings-page .back {
   align-self: flex-start;
 }
+/* Full pause sheet (not compact): no in-game UI behind it (hud.ts); display: none, so
+   it isn't laid out or animated (the REC blink) while paused. */
+body.paused .hud > :not(.overlay, .vignette),
+body.paused .hotbar,
+body.paused .toast {
+  display: none;
+}
 /* Debug panel open: keep the menu, lighter dimming, no controls. */
 .overlay.compact {
-  background: var(--sheet-debug, rgba(14, 14, 16, 0.45));
+  background: var(--sheet-debug, rgba(14, 14, 16, 0.65));
 }
 .overlay.compact table,
 .overlay.compact .title {
@@ -358,6 +372,10 @@ canvas {
 .overlay td:first-child {
   text-align: right;
   color: var(--dim);
+}
+/* The tools (1 - 5) a little apart from the main keys. */
+.overlay tbody + tbody tr:first-child td {
+  padding-top: 10px;
 }
 .blink {
   animation: blink 1.6s steps(2) infinite;
@@ -677,12 +695,14 @@ canvas {
   color: var(--ui);
 }
 /* The slider over a gray tick at config.ts's value (the 3px thumb covers it there). */
-.debug-panel .slider {
+.debug-panel .slider,
+.settings-page .slider {
   position: relative;
   display: flex;
   align-items: center;
 }
-.debug-panel .slider i {
+.debug-panel .slider i,
+.settings-page .slider i {
   position: absolute;
   left: calc(1px + var(--at) * (100% - 3px));
   top: 50%;
@@ -692,7 +712,8 @@ canvas {
   background: rgba(235, 229, 214, 0.4);
   pointer-events: none;
 }
-.debug-panel .slider input {
+.debug-panel .slider input,
+.settings-page .slider input {
   position: relative;
 }
 .debug-panel b {

@@ -8,17 +8,21 @@ import type { SettingSection } from './settings';
 // hand, performance numbers, and the start/pause menu.
 // The tool readout lives in inventory/hotbar.ts, the debug panel in debug/panel.ts.
 
+/** The key list under the pause menu: the main keys, then the tools a little apart (style.css). */
 const CONTROLS = [
-  ['WASD / SHIFT / SPACE', 'move / run / jump'],
-  ['MOVE INTO LADDER', 'climb (CTRL holds, SPACE lets go)'],
-  ['LMB', 'spray / draw / place ladder / roll / scrub'],
+  ['WASD • SHIFT • SPACE', 'move • run • jump'],
+  ['LMB', 'draw'],
   ['RMB', 'shake can'],
-  ['1 – 5', 'can / marker / ladder / roller / sponge'],
   ['Q / E', 'color'],
-  ['WHEEL', 'cap / tool width / turn ladder'],
-  ['B', 'build mode'],
+  ['MOUSE WHEEL', 'cap • tool width • turn ladder'],
   ['K', 'screenshot'],
-  ['F3', 'debug + tuning'],
+];
+const TOOLS = [
+  ['1', 'can'],
+  ['2', 'marker'],
+  ['3', 'ladder'],
+  ['4', 'roller'],
+  ['5', 'sponge'],
 ];
 
 /** The color tag sits this many CSS px below the cap tag. */
@@ -92,7 +96,7 @@ export class Hud {
       <div class="cap-tag psi-gauge"><span>PSI</span><div class="line"><i></i></div><b></b></div>
       <div class="cap-tag psi-alert" hidden>LOW PRESSURE — SHAKE [RMB]</div>
       <div class="overlay">
-        <div class="title">roof.hidden.haus</div>
+        <div class="title">Hidden Roof<span>The game</span></div>
         <div class="status blink">CLICK TO START</div>
         <div class="menu">
           <button class="resume"></button>
@@ -101,7 +105,7 @@ export class Hud {
           <button class="open-settings">&gt; SETTINGS</button>
           <button class="exit-fs">&gt; EXIT FULLSCREEN</button>
         </div>
-        <table>${CONTROLS.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</table>
+        <table>${[CONTROLS, TOOLS].map((keys) => `<tbody>${keys.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</tbody>`).join('')}</table>
       </div>`;
     document.body.appendChild(root);
     // The crosshair inverts what's under it (style.css), so it's its own layer
@@ -179,9 +183,12 @@ export class Hud {
     this.syncCompact();
   }
 
-  /** With F3 open the sheet is compact and lighter, unless it's being previewed. */
+  /** With F3 open the sheet is compact and lighter, unless it's being previewed. Paused without F3: no in-game UI. */
   private syncCompact() {
-    this.overlay.classList.toggle('compact', this.debugOpen && performance.now() >= this.previewUntil);
+    const compact = this.debugOpen && performance.now() >= this.previewUntil;
+    this.overlay.classList.toggle('compact', compact);
+    // The full sheet hides the in-game UI (style.css); with F3 it stays, to tune it.
+    document.body.classList.toggle('paused', !this.overlay.hidden && !compact);
   }
 
   /** Shows a message in the menu's status line for `seconds` (the toasts don't show over the menu); Infinity: until the next one. */
