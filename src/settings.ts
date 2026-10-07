@@ -216,9 +216,9 @@ function nearest(list: number[], v: number) {
 
 /**
  * A setting row: a choice stepped through with < and >, or a slider (`def`: its
- * default, marked on it). `desc` is
- * an optional line under it, `note` a callout (recommendations), `cost` how
- * much the setting can change how smoothly the game runs, whatever its value.
+ * default, marked on it). `desc` is an optional line under it, `note` a callout
+ * (recommendations), `cost` how much the setting can change how smoothly the
+ * game runs, whatever its value.
  */
 type RowBase = { label: string; desc?: string; note?: string; cost?: Cost };
 type Cost = 'LOW' | 'MEDIUM' | 'HIGH';
