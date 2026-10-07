@@ -14,7 +14,7 @@
 ## Naming
 
 - **Labels are lowercase, 1–3 words, with no units or notes:** those go in the tooltip. Action buttons are UPPERCASE verbs (RECORD, STRIKE NOW).
-- **One vocabulary:** reach (how far it works) · width / size / length (full extents) · opacity (how much paint) · strength (an effect that isn't paint) · softness (a faded edge) · spread (a cone) · density (amount per second) · speed / rate · color · on (an enable toggle). No jargon or internal words in labels: excess, duty, fraction, half-, radius, coats.
+- **One vocabulary:** reach (how far it works) · width / size / length (full extents) · opacity (how much paint) · strength (an effect that isn't paint) · softness (a faded edge) · spread (a cone) · density (amount per second) · speed / rate · intensity (a light's brightness) · color · on (an enable toggle). No jargon or internal words in labels: excess, duty, fraction, half-, radius, coats.
 - **Full sizes, never halves or radii,** in labels and, when touched, in config (`width`, `dotSize`, `pressLength`).
 - **Patterns:** pairs read `x: min` / `x: max`; a state or context comes first (`crouch: lean`, `wheel: step`); instances are named plainly (`skinny cap`, `marker`).
 

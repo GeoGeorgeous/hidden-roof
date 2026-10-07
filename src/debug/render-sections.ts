@@ -54,7 +54,7 @@ export function renderSections(): Section[] {
         r('solid: below', ['INK', 'blackTone'], 0, 1, 0.01),
         r('tone noise', ['INK', 'toneNoise'], 0, 0.3, 0.005),
         { kind: 'heading', label: 'HATCHING' },
-        r('spacing', ['INK', 'hatchPx'], 2, 16, 0.5),
+        r('spacing', ['INK', 'hatchPx'], 1, 16, 0.5),
         r('width', ['INK', 'hatchWidth'], 0.05, 0.9, 0.01),
         r('opacity', ['INK', 'hatchOpacity'], 0, 1, 0.05),
         { kind: 'heading', label: 'OUTLINES' },

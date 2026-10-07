@@ -83,6 +83,7 @@ const SECTIONS: [RegExp, string][] = [
   [/^frequency/, 'runs'],
   [/^drain/, 'pressure'],
   [/^sputter/, 'painting'],
+  [/^shake/, 'pressure'],
   [/^lightning/, 'lightning'],
   [/^cctv/, 'cctv'],
   [/^smoke/, 'smoke'],
