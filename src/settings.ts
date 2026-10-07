@@ -251,7 +251,7 @@ function gameplayRows(): SettingRow[] {
     { kind: 'range', label: 'FIELD OF VIEW', desc: 'How wide you see, in degrees.', min: 60, max: 110, step: 1, def: BASE_FOV, get: () => RENDER.fov, set: (v) => (RENDER.fov = v), format: (v) => `${v}°` },
     {
       kind: 'range',
-      label: 'RUN FOV',
+      label: 'FIELD OF VIEW: RUNNING',
       desc: 'Extra field of view while running, for a sense of speed. 0 turns it off.',
       min: 0,
       max: 15,
