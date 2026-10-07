@@ -161,6 +161,32 @@ const acLarge: Variant = {
   },
 };
 
+/**
+ * Large air handler with a duct collar on top at the back: set against a wall
+ * (its back, z = 1.5, flush with it) a vertical wall duct (wall-ducts.ts)
+ * stands on the collar, 2.2 m up, and climbs the wall from there.
+ */
+const acDucted: Variant = {
+  id: 'ducted',
+  label: 'ducted',
+  build() {
+    const p = new Parts();
+    p.box([-1.7, 0, -0.9], [1.7, 0.15, 1.5], M.steel, { paint: true });
+    p.box([-1.6, 0.15, -0.8], [1.6, 1.8, 1.4], M.ac);
+    // Louvers on both ends and the front, a fan heard inside.
+    for (let i = 0; i < 9; i++) {
+      const y = 0.3 + i * 0.15;
+      for (const s of [-1, 1]) p.detail([s * 1.6 - 0.02, y, -0.6], [s * 1.6 + 0.02, y + 0.05, 1.2], M.steel, false);
+      p.detail([-1.4, y, -0.82], [1.4, y + 0.05, -0.8], M.steel, false);
+    }
+    p.emitter('fan', [0, 1, -0.9]);
+    // The collar, as wide and as far off the wall as the wall ducts.
+    p.box([-0.3, 1.8, 0.6], [0.3, 2.2, 1.4], M.galv, { paint: true, skip: ['-y', '+y'] });
+    p.detail([-0.33, 2.16, 0.57], [0.33, 2.2, 1.43], M.steel);
+    return p.list;
+  },
+};
+
 /** Electrical cabinet. Edge prop: back on z = 0. */
 export const utilitybox: PropDef = {
   type: 'utilitybox',
@@ -215,5 +241,5 @@ function fan(p: Parts, c: V3, axis: 'y' | 'z', r: number, t: number, dir = 1) {
   });
 }
 
-/** AC units: small, medium and large ones stand on the floor, the wall one mounts on the wall you aim at. */
-export const ac = withVariants({ type: 'ac', label: 'AC unit', category: 'hvac', place: 'floor', snap: 0.5 }, [acSmall, acMedium, acLarge, acWall]);
+/** AC units: small, medium, large and ducted ones stand on the floor, the wall one mounts on the wall you aim at. */
+export const ac = withVariants({ type: 'ac', label: 'AC unit', category: 'hvac', place: 'floor', snap: 0.5 }, [acSmall, acMedium, acLarge, acDucted, acWall]);

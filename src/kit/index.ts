@@ -13,7 +13,7 @@ import { debris, latticeMast, signTower, tankPair } from './steel';
 import { ledgeOnBrackets, platformOnColumns, scaffolding } from './scaffold';
 import { fence, railing, trafficCone } from './barriers';
 import { gondola, plankBridge } from './traversal';
-import { wallDuct } from './wall-ducts';
+import { verticalDuct, wallDuct } from './wall-ducts';
 import { aviationLight, roofLight } from './roof-lights';
 import { skylight, steelStair } from './roof-access';
 
@@ -40,8 +40,9 @@ const KIT: PropDef[] = [
   ac,
   ventshaft,
   duct,
-  exhaust,
   wallDuct,
+  verticalDuct,
+  exhaust,
   pipe,
   drainPipe,
   cable,
