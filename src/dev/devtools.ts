@@ -103,7 +103,7 @@ export class DevTools {
       syncVignette: () => g.hud.syncVignette(),
       previewPause: () => g.hud.previewSheet(),
       applyDaylight: () => g.atmosphere.reapplyDaylight(),
-      syncBuildShade: () => this.build.syncShade(),
+      syncBuildPicker: () => this.build.syncPicker(),
       atmosNight: () => g.atmosphere.nightValues,
       rebuildCity: g.rebuildCity,
       applyToolSizes: () => (g.inventory.size = { marker: MARKER.width, roller: ROLLER.width, sponge: SPONGE.width }),

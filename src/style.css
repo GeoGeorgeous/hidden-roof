@@ -499,10 +499,19 @@ body.paused .build-help {
 .picker .cat[data-d='far'] {
   opacity: 0;
 }
+.picker .wheel {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: scale(var(--wheel, 1));
+  transform-origin: 0 0;
+}
 .picker .column {
   position: absolute;
-  left: 142px;
+  /* Past the selected label's line at its size (picker-view.ts sets --wheel). */
+  left: calc(142px * var(--wheel, 1));
   top: 0;
+  transform-origin: 0 0;
   width: 380px;
   line-height: 1.7;
   color: var(--dim);

@@ -109,9 +109,9 @@ export class BuildMode {
     if (!on) this.player.unstick();
   }
 
-  /** BUILD.shade* changed (F3). */
-  syncShade() {
-    this.pickerView.syncShade();
+  /** The picker's size or shade changed (F3). */
+  syncPicker() {
+    this.pickerView.syncStyle();
   }
 
   update(input: Input, camera: THREE.Camera) {

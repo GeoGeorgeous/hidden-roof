@@ -319,6 +319,8 @@ export const HINTS: Record<string, string> = {
   'BUILD.repeatInterval': 'Then one more every this long (s).',
   'BUILD.flySpeed': 'Free-fly speed while building (m/s).',
   'BUILD.flySprintSpeed': 'Free-fly speed with Shift held (m/s).',
+  'BUILD.wheelScale': 'Size of the category wheel on the left edge (1 = the small one it started as).',
+  'BUILD.columnScale': 'Size of the column of props beside the wheel, icons and all.',
   'BUILD.shadeWidth': 'How far right the dark shade behind the picker reaches before it has faded out (px; at most 80% of the screen).',
   'BUILD.shadeOpacity': 'How dark the shade behind the picker is at the left edge; it fades out to the right. 0 = none.',
   'BUILD.shadeColor': 'Color of the shade behind the picker.',
