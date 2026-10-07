@@ -351,11 +351,12 @@ canvas {
 .settings-page .back {
   align-self: flex-start;
 }
-/* Full pause sheet (not compact): no in-game UI behind it (hud.ts). */
+/* Full pause sheet (not compact): no in-game UI behind it (hud.ts); display: none, so
+   it isn't laid out or animated (the REC blink) while paused. */
 body.paused .hud > :not(.overlay, .vignette),
 body.paused .hotbar,
 body.paused .toast {
-  visibility: hidden;
+  display: none;
 }
 /* Debug panel open: keep the menu, lighter dimming, no controls. */
 .overlay.compact {
