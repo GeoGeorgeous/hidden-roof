@@ -37,6 +37,8 @@ export const ATMOS = {
   spotShadows: false,
   /** Half-size of the moon shadow area around the player, in meters. */
   shadowRange: 32,
+  /** Moon shadow map size (px per side): sharper shadows over the same range, more GPU memory and fill. */
+  shadowDetail: 2048,
   /** Multiplier for all light props. */
   practical: 2,
   /** While lamps aren't baked (LIGHTMAP.enabled off): real lights handed to the nearest light props (others use glow tricks only). */

@@ -207,6 +207,7 @@ export function worldSections(): Section[] {
         t('moon shadows', ['ATMOS', 'shadows']),
         t('spot light shadows (bake off)', ['ATMOS', 'spotShadows']),
         r('shadow range', ['ATMOS', 'shadowRange'], 8, 60, 1),
+        r('shadow detail', ['ATMOS', 'shadowDetail'], 512, 4096, 512),
         r('light props', ['ATMOS', 'practical'], 0, 4, 0.05),
         r('real light budget (bake off)', ['ATMOS', 'lightBudget'], 0, 8, 1),
         r('emissive boost', ['ATMOS', 'emissiveBoost'], 0, 6, 0.1),

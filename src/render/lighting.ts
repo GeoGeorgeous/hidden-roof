@@ -78,7 +78,6 @@ export class Lighting {
     renderer.shadowMap.type = THREE.BasicShadowMap; // crisp, cheap, fits the pixel look
     this.hemi = new THREE.HemisphereLight(ATMOS.ambientSky, ATMOS.ambientGround, ATMOS.ambient);
     this.moon = new THREE.DirectionalLight(ATMOS.moonColor, ATMOS.moon);
-    this.moon.shadow.mapSize.set(2048, 2048);
     this.moon.shadow.bias = -0.0008;
     this.moon.shadow.normalBias = 0.04;
     scene.add(this.hemi, this.moon, this.moon.target);
@@ -90,6 +89,16 @@ export class Lighting {
       this.spots.push(l);
       scene.add(l, l.target);
     }
+  }
+
+  /** A new moon shadow map size (ATMOS.shadowDetail): three.js makes the map again at the next render. */
+  private applyShadowDetail() {
+    const size = ATMOS.shadowDetail;
+    const sh = this.moon.shadow;
+    if (sh.mapSize.x === size) return;
+    sh.mapSize.set(size, size);
+    sh.map?.dispose();
+    sh.map = null;
   }
 
   setAnchors(list: LightAnchor[]) {
@@ -108,6 +117,7 @@ export class Lighting {
     // across the light, so moving never shifts shadows by part of a texel (thin
     // shadows, like a drain pipe's on its wall, would shimmer and flash the paint).
     const r = ATMOS.shadowRange;
+    this.applyShadowDetail();
     const s = this.moon.shadow.camera;
     if (s.right !== r) {
       Object.assign(s, { left: -r, right: r, top: r, bottom: -r, near: 1, far: 160 });

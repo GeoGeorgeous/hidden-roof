@@ -184,6 +184,7 @@ const HINTS: Record<string, string> = {
   'ATMOS.wetness': 'Wet look on up-facing surfaces: darker with highlights.',
   'ATMOS.shadows': 'Moonlight shadows around the player.',
   'ATMOS.spotShadows': 'With baking off: the nearest lamps of kinds that cast shadows get real shadow maps (2 slots).',
+  'ATMOS.shadowDetail': 'Moon shadow map size (px per side). Higher = sharper moon shadows over the same range; costs GPU memory and time.',
   'ATMOS.shadowRange': 'Size of the moon shadow area around the player (m). Bigger = blurrier shadows.',
   'ATMOS.practical': 'Multiplier for all light props.',
   'ATMOS.lightBudget': 'With baking off: real lights handed to the nearest light props. Others only glow.',
