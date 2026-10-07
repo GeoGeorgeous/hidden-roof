@@ -344,6 +344,12 @@ canvas {
 .settings-page .back {
   align-self: flex-start;
 }
+/* Full pause sheet (not compact): no in-game UI behind it (hud.ts). */
+body.paused .hud > :not(.overlay, .vignette),
+body.paused .hotbar,
+body.paused .toast {
+  visibility: hidden;
+}
 /* Debug panel open: keep the menu, lighter dimming, no controls. */
 .overlay.compact {
   background: var(--sheet-debug, rgba(14, 14, 16, 0.45));
