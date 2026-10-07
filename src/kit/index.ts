@@ -1,7 +1,7 @@
 import type { Category, PropDef } from './def';
 import { fireescape, hatch, ladder, stairs, stepladder } from './access';
 import { antenna, billboard, cable, cctv, sign } from './details';
-import { floodlight, lampPost, stringLights, wallLamp } from './lights';
+import { floodlight, wallLamp } from './lights';
 import { neon } from './neon';
 import { ac, duct, exhaust, utilitybox, ventshaft, watertower } from './equipment';
 import { cableRun } from './cable-runs';
@@ -63,8 +63,6 @@ const KIT: PropDef[] = [
   neon,
   wallLamp,
   floodlight,
-  lampPost,
-  stringLights,
   roofLight,
   aviationLight,
 ];

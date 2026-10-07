@@ -66,7 +66,7 @@ export const ATMOS = {
 };
 
 /** Practical light kinds; every light prop uses one (see kit/lights.ts). */
-export type LightKind = 'wallLamp' | 'floodlight' | 'neon' | 'billboardLamp' | 'lampPost' | 'stringLights' | 'cctv' | 'bulkhead' | 'lightPanel' | 'aviation';
+export type LightKind = 'wallLamp' | 'floodlight' | 'neon' | 'billboardLamp' | 'cctv' | 'bulkhead' | 'lightPanel' | 'aviation';
 
 export interface LightSpec {
   /** Light color (the lens takes it too, after a rebuild). Neon signs have one each instead (NEON_COLORS). */
@@ -108,8 +108,6 @@ export const LIGHTS: Record<Exclude<LightKind, 'neon'>, LightSpec> & { neon: Omi
   wallLamp: { color: '#9b96c0', tint: 0, dir: [0, -1, -0.25], intensity: 13.5, range: 10, spread: 1.33, softness: 1, glow: 0, glowAllAround: false, beam: 0.5, shadows: true },
   floodlight: { color: '#dfe8ff', tint: 0, dir: [0, -0.55, -0.83], intensity: 60, range: 40, spread: 0.55, softness: 0.4, glow: 0.6, glowAllAround: false, beam: 7, shadows: true },
   neon: { tint: 1, dir: [1, 0, 0], intensity: 8, range: 10, spread: 1.45, softness: 1, glow: 0, glowAllAround: false, beam: 0, shadows: true },
-  lampPost: { color: '#ffcf8a', tint: 0, dir: [0, -1, 0], intensity: 30, range: 22, spread: 1.15, softness: 0.6, glow: 0.45, glowAllAround: false, beam: 4.5, shadows: true },
-  stringLights: { color: '#ffd59a', tint: 0, dir: [0, -1, 0], intensity: 6, range: 10, spread: 1.45, softness: 1, glow: 0.22, glowAllAround: true, beam: 0, shadows: true },
   billboardLamp: { color: '#ffe2b0', tint: 0, dir: [0, -0.8, -0.6], intensity: 25, range: 12, spread: 0.8, softness: 0.5, glow: 0.3, glowAllAround: false, beam: 3.2, shadows: true },
   // On only while the camera follows the player (see CCTV); turns with the head. Glow and beam are not used.
   cctv: { color: '#dfe9ff', tint: 0, dir: [0, -0.3, -1], intensity: 6, range: 9, spread: 0.35, softness: 0.7, glow: 0, glowAllAround: false, beam: 0, shadows: false },
