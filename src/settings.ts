@@ -155,7 +155,7 @@ export class Settings {
       {
         kind: 'choice',
         label: 'CITY DETAIL',
-        desc: 'How far the city reaches around the level, and how far rooftop clutter and thin lines show. HIGH draws about 3x the city area of LOW. Applies when you resume.',
+        desc: 'How far the city reaches around the level, and how far rooftop clutter and thin lines show. Lower trims the distant city, which the haze mostly hides, so it looks nearly the same: it saves GPU work and memory (HIGH draws about 3x the city of LOW). Applies when you resume.',
         cost: () => CITY_COST[this.city],
         value: () => this.city.toUpperCase(),
         step: (d) => {
