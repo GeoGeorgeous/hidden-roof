@@ -2,7 +2,7 @@ import { Color } from 'three';
 import { LIGHTS, NEON_COLORS, type NeonColor } from '../config';
 import { neonRect } from '../render/ink/neon-text';
 import { tinted } from '../render/light-tint';
-import type { PropDef } from './def';
+import { withVariants, type Variant } from './def';
 import { M, Parts, type Mat } from './pieces';
 
 // Neon blade signs, like the vertical signs on Asian high streets: a tall,
@@ -34,14 +34,10 @@ function hue(name: NeonColor) {
 
 const lit = (tint: string, emissive = 1, flicker = 0): Mat => ({ tex: 'flat', tint, emissive, flicker });
 
-function blade(name: NeonColor, text: string): PropDef {
+function blade(name: NeonColor, text: string): Variant {
   return {
-    type: `neon_${name}`,
-    label: `Neon sign (${name})`,
-    category: 'lights',
-    place: 'mount',
-    snap: 0.5,
-    hang: H / 2,
+    id: name,
+    label: name,
     text,
     build({ seed, text }) {
       const p = new Parts();
@@ -77,6 +73,8 @@ function blade(name: NeonColor, text: string): PropDef {
   };
 }
 
-export const neonPink = blade('pink', '買え。考えるな。'); // Buy. Don't think.
-export const neonCyan = blade('cyan', '汚れのない未来へ。'); // Toward a spotless future.
-export const neonAmber = blade('amber', '監視は安心です。'); // Surveillance is reassuring.
+export const neon = withVariants({ type: 'neon', label: 'Neon sign', category: 'neon', place: 'mount', snap: 0.5, hang: H / 2 }, [
+  blade('pink', '買え。考えるな。'), // Buy. Don't think.
+  blade('cyan', '汚れのない未来へ。'), // Toward a spotless future.
+  blade('amber', '監視は安心です。'), // Surveillance is reassuring.
+]);

@@ -5,30 +5,35 @@ import type { V3 } from '../kit/pieces';
 import { expandPieces } from '../level/build-prop';
 
 // Translucent preview of the prop about to be placed: green when valid, red when
-// it overlaps something or can't go on this face.
+// it overlaps something or can't go on this face. As an overlay, it lights up
+// a placed prop instead (build/prop-settings.ts): drawn over its faces.
 
-const GREEN = new THREE.Color('#3dff7a');
-const RED = new THREE.Color('#ff3b30');
+export const GREEN = new THREE.Color('#3dff7a');
+export const RED = new THREE.Color('#ff3b30');
 
 export class Ghost {
   readonly root = new THREE.Group();
   /** World-space colliders of the previewed prop (for the overlap test). */
   colliders: THREE.Box3[] = [];
-  private material = new THREE.MeshBasicMaterial({ color: GREEN, transparent: true, opacity: 0.4, depthWrite: false });
+  private material: THREE.MeshBasicMaterial;
   private mesh: THREE.Mesh | null = null;
   private key = '';
 
-  constructor(scene: THREE.Scene) {
+  constructor(scene: THREE.Scene, { color = GREEN as THREE.ColorRepresentation, opacity = 0.4, overlay = false } = {}) {
+    // An overlay is pulled toward the camera, so it isn't lost in the faces it covers.
+    this.material = new THREE.MeshBasicMaterial({ color, transparent: true, opacity, depthWrite: false, polygonOffset: overlay, polygonOffsetFactor: -1, polygonOffsetUnits: -4 });
     this.root.renderOrder = 10;
     scene.add(this.root);
   }
 
-  /** `stack`: the prop's stacking neighbors there (a block on a block is one storey). */
-  showProp(def: PropDef, pos: V3, rot: number, stack: { above: boolean; below: boolean }, text = def.text ?? '') {
-    const key = `${def.type}|${pos.join(',')}|${rot}|${stack.above}|${stack.below}|${text}`;
+  /** `ctx`: the prop's stacking neighbors there (a block on a block is one storey), and its setting and text when not the defaults. */
+  showProp(def: PropDef, pos: V3, rot: number, ctx: { above: boolean; below: boolean; adjust?: number; text?: string }) {
+    const adjust = ctx.adjust ?? def.adjust?.initial() ?? 0;
+    const text = ctx.text ?? def.text ?? '';
+    const key = `${def.type}|${def.variant}|${pos.join(',')}|${rot}|${ctx.above}|${ctx.below}|${adjust}|${text}`;
     if (key === this.key) return;
     this.key = key;
-    const ex = expandPieces(def.build({ seed: 0, pos, ...stack, adjust: def.adjust?.initial() ?? 0, text }), pos, rot, false);
+    const ex = expandPieces(def.build({ seed: 0, pos, above: ctx.above, below: ctx.below, adjust, text }), pos, rot, false);
     const geos = ex.decor.map((d) => stripToPosition(d.geo));
     this.setGeometry(geos.length ? mergeGeometries(geos) : null);
     this.colliders = ex.colliders;

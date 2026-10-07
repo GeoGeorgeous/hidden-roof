@@ -29,7 +29,7 @@ const TABS = [
   { id: 'world', title: 'World', groups: ['weather', 'props', 'city'] },
   { id: 'sound', title: 'Sound', groups: ['mix', 'weather-sound', 'spray-sound', 'props-sound'] },
   { id: 'ui', title: 'UI', groups: ['hud', 'pause'] },
-  { id: 'build', title: 'Build', groups: ['daylight', 'editing'] },
+  { id: 'build', title: 'Build', groups: ['daylight', 'editing', 'picker'] },
   { id: 'items', title: 'Items', groups: ['pickups'] },
   { id: 'models', title: 'Models', groups: ['can', 'cap-models', 'marker', 'ladder', 'roller', 'sponge'] },
   { id: 'test', title: 'Test', groups: ['performance', 'avatar-test', 'ghost'] },

@@ -1,8 +1,8 @@
 import { MAX_TEXT } from '../render/ink/words';
 import * as THREE from 'three';
-import { KIT_BY_TYPE } from '../kit';
+import { defOf, renamed } from '../kit';
 import type { V3 } from '../kit/pieces';
-import { V_MODULE } from '../kit/def';
+import { V_MODULE, type PropDef } from '../kit/def';
 import type { PaintSystem } from '../painting';
 import type { Ladder } from '../player';
 import { DecorBatches } from './batches';
@@ -22,6 +22,8 @@ export interface PropData {
    */
   id?: number;
   type: string;
+  /** Its variant (PropDef.variants), for props that have them. */
+  variant?: string;
   pos: V3;
   rot?: number;
   /** Per-instance setting (PropDef.adjust), e.g. floodlight tilt in degrees. */
@@ -123,15 +125,15 @@ export class Level {
   }
 
   toJSON(): LevelData {
-    // Props the player placed while playing (the stepladder) aren't part of the level file.
-    const props = [...this.props.values()].filter((p) => p.owner === undefined).map(({ id, type, pos, rot, adjust, text }) => ({ id, type, pos, rot, ...(adjust === undefined ? {} : { adjust }), ...(text === undefined ? {} : { text }) }));
+    // Props the player placed while playing (the stepladder) aren't part of the level file. Default variants go unsaved.
+    const props = [...this.props.values()].filter((p) => p.owner === undefined).map(({ id, type, variant, pos, rot, adjust, text }) => ({ id, type, ...(variant === defOf(type)!.variant ? {} : { variant }), pos, rot, ...(adjust === undefined ? {} : { adjust }), ...(text === undefined ? {} : { text }) }));
     return { version: 3, spawn: this.spawn, props };
   }
 
   /** Change a prop's per-instance setting (clamped to its range) and rebuild it. Returns the new value. */
   setAdjust(id: number, value: number) {
     const inst = this.props.get(id);
-    const a = inst && KIT_BY_TYPE.get(inst.type)?.adjust;
+    const a = inst && defOf(inst.type, inst.variant)?.adjust;
     if (!inst || !a) return null;
     inst.adjust = Math.min(a.max, Math.max(a.min, +value.toFixed(3)));
     this.build(inst);
@@ -142,7 +144,7 @@ export class Level {
   /** Change a sign's text (PropDef.text) and rebuild it; empty goes back to the default. */
   setText(id: number, text: string) {
     const inst = this.props.get(id);
-    if (!inst || KIT_BY_TYPE.get(inst.type)?.text === undefined) return false;
+    if (!inst || defOf(inst.type, inst.variant)?.text === undefined) return false;
     inst.text = text.trim().slice(0, MAX_TEXT) || undefined;
     this.build(inst);
     this.refresh();
@@ -225,23 +227,25 @@ export class Level {
     return false;
   }
 
-  /** Stacking neighbors (PropContext.above / below) of a prop at `pos`. */
-  stackContext(type: string, pos: V3, rot: number) {
-    const def = KIT_BY_TYPE.get(type);
-    const above = !!def?.stacks?.above && this.findAt(type, [pos[0], pos[1] + V_MODULE, pos[2]], rot) !== undefined;
-    const below = !!def?.stacks?.below && this.column(type, pos, rot).some((p) => p.pos[1] < pos[1] - 0.01);
+  /** Stacking neighbors (PropContext.above / below) of a prop (a def resolved by defOf) at `pos`. */
+  stackContext(def: PropDef, pos: V3, rot: number) {
+    const above = !!def.stacks?.above && this.findAt(def, [pos[0], pos[1] + V_MODULE, pos[2]], rot) !== undefined;
+    const below = !!def.stacks?.below && this.column(def, pos, rot).some((p) => p.pos[1] < pos[1] - 0.01);
     return { above, below };
   }
 
   private create(data: PropData, build = true): PropInstance | null {
-    if (!KIT_BY_TYPE.has(data.type)) {
+    // Levels saved before variants name some props by their old types.
+    const [type, variant] = renamed(data.type, data.variant);
+    const def = defOf(type, variant);
+    if (!def) {
       console.warn(`unknown prop type "${data.type}"`);
       return null;
     }
     // Its own id when it has a free one (a format 3 level, undo), else the next.
     const id = Number.isInteger(data.id) && data.id! > 0 && !this.props.has(data.id!) ? data.id! : this.nextId;
     this.nextId = Math.max(this.nextId, id + 1);
-    const inst: PropInstance = { id, type: data.type, pos: [...data.pos], rot: (((data.rot ?? 0) % 4) + 4) % 4, adjust: data.adjust, text: data.text };
+    const inst: PropInstance = { id, type, variant: def.variant, pos: [...data.pos], rot: (((data.rot ?? 0) % 4) + 4) % 4, adjust: data.adjust, text: data.text };
     this.props.set(inst.id, inst);
     if (build) this.build(inst);
     return inst;
@@ -256,10 +260,10 @@ export class Level {
   private build(inst: PropInstance, resample = false) {
     const old = this.built.get(inst.id);
     if (old) disposeProp(old, this.paint);
-    const def = KIT_BY_TYPE.get(inst.type)!;
+    const def = defOf(inst.type, inst.variant)!;
     const seed = Math.abs(Math.round(inst.pos[0] * 7 + inst.pos[2] * 13));
     const adjust = inst.adjust ?? def.adjust?.initial() ?? 0;
-    const ctx = { seed, pos: inst.pos, adjust, text: inst.text ?? def.text ?? '', ...this.stackContext(inst.type, inst.pos, inst.rot) };
+    const ctx = { seed, pos: inst.pos, adjust, text: inst.text ?? def.text ?? '', ...this.stackContext(def, inst.pos, inst.rot) };
     const pieces = def.build(ctx);
     if (pieces.some((p) => 'mat' in p && p.mat.letters)) this.lettered.add(inst.id);
     else this.lettered.delete(inst.id);
@@ -274,13 +278,14 @@ export class Level {
    * (building block): rebuild the neighbors whose shape changes.
    */
   private rebuildStack(inst: PropInstance) {
-    const s = KIT_BY_TYPE.get(inst.type)?.stacks;
+    const def = defOf(inst.type, inst.variant)!;
+    const s = def.stacks;
     if (!s) return;
-    const below = s.above ? this.findAt(inst.type, [inst.pos[0], inst.pos[1] - V_MODULE, inst.pos[2]], inst.rot) : undefined;
+    const below = s.above ? this.findAt(def, [inst.pos[0], inst.pos[1] - V_MODULE, inst.pos[2]], inst.rot) : undefined;
     if (below) this.build(below);
     // Only the lowest prop above can change (it may become the bottom of the column).
     if (s.below) {
-      const above = this.column(inst.type, inst.pos, inst.rot).filter((p) => p.pos[1] > inst.pos[1] + 0.01);
+      const above = this.column(def, inst.pos, inst.rot).filter((p) => p.pos[1] > inst.pos[1] + 0.01);
       const lowest = above.sort((a, b) => a.pos[1] - b.pos[1])[0];
       if (lowest) this.build(lowest);
     }
@@ -300,24 +305,24 @@ export class Level {
     return true;
   }
 
-  /** Props of this type in the same vertical column (same x, z). */
-  private column(type: string, pos: V3, rot: number) {
-    const anyRot = KIT_BY_TYPE.get(type)?.place === 'cell';
-    return [...this.props.values()].filter((p) => p.type === type && (anyRot || p.rot === rot) && Math.abs(p.pos[0] - pos[0]) < 0.01 && Math.abs(p.pos[2] - pos[2]) < 0.01);
+  /** Props of this type and variant in the same vertical column (same x, z). */
+  private column(def: PropDef, pos: V3, rot: number) {
+    const anyRot = def.place === 'cell';
+    return [...this.props.values()].filter((p) => isA(p, def) && (anyRot || p.rot === rot) && Math.abs(p.pos[0] - pos[0]) < 0.01 && Math.abs(p.pos[2] - pos[2]) < 0.01);
   }
 
   /** Cell props fill the same space whatever their facing, so their rotation doesn't matter. */
-  private findAt(type: string, pos: V3, rot: number) {
-    const anyRot = KIT_BY_TYPE.get(type)?.place === 'cell';
+  private findAt(def: PropDef, pos: V3, rot: number) {
+    const anyRot = def.place === 'cell';
     for (const p of this.props.values()) {
-      if (p.type === type && (anyRot || p.rot === rot) && pos.every((v, i) => Math.abs(v - p.pos[i]) < 0.01)) return p;
+      if (isA(p, def) && (anyRot || p.rot === rot) && pos.every((v, i) => Math.abs(v - p.pos[i]) < 0.01)) return p;
     }
     return undefined;
   }
 
   /** Update joints, flat arrays and batches after a change. */
   private refresh() {
-    const want = computeJoints(this.props.values(), KIT_BY_TYPE);
+    const want = computeJoints(this.props.values());
     for (const [key, j] of this.joints) {
       if (want.has(key)) continue;
       disposeProp(j.b, this.paint);
@@ -352,6 +357,9 @@ export class Level {
 
   private allBuilt: BuiltProp[] = [];
 }
+
+/** Is a prop of this def's type and variant (stacking only joins the same prop)? */
+const isA = (p: PropInstance, def: PropDef) => p.type === def.type && p.variant === def.variant;
 
 /** The same paint surfaces with the same face sizes, so paint carries over texel for texel. */
 function samePaintFaces(a: BuiltProp, b: BuiltProp) {

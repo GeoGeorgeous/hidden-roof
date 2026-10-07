@@ -2,10 +2,11 @@ import * as THREE from 'three';
 import type { PickupKind } from './items';
 import { itemModel } from '../pickups/visuals';
 
-// Hotbar icons: each item's pickup model (pickups/visuals.ts), rendered once
-// by the game's own renderer into a small offscreen target and cached as an
-// image. No extra renderer, no render loop: an icon costs one tiny render the
-// first time it's shown (the can once per paint color, since its label shows it).
+// Icons for the hotbar (each item's pickup model, pickups/visuals.ts) and the
+// build picker (props, build/prop-icon.ts): a model rendered once by the
+// game's own renderer into a small offscreen target and cached as an image.
+// No extra renderer, no render loop: an icon costs one tiny render the first
+// time it's shown (the can once per paint color, since its label shows it).
 // Its pixels are read back without waiting for the GPU (a synchronous read
 // stalls until all queued work, light baking included, is done): until they
 // arrive the icon is blank, then onReady asks for a redraw.
@@ -15,33 +16,32 @@ const SIZE = 96;
 const BLANK = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
 
 export class Thumbnails {
-  private cache = new Map<PickupKind, string>();
-  /** Icons on their way back from the GPU; forget() drops one, so a stale result is ignored. */
-  private pending = new Map<PickupKind, Promise<void>>();
+  private cache = new Map<string, string>();
+  /** Icons on their way back from the GPU; forgetAll() drops them, so a stale result is ignored. */
+  private pending = new Map<string, Promise<void>>();
   private target = new THREE.WebGLRenderTarget(SIZE, SIZE);
   private scene = new THREE.Scene();
   private camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
   private canvas = Object.assign(document.createElement('canvas'), { width: SIZE, height: SIZE });
-  /** An icon arrived: draw the hotbar again. */
+  /** An icon arrived: draw again. */
   onReady = () => {};
 
   constructor(private renderer: THREE.WebGLRenderer) {
     this.target.texture.colorSpace = THREE.SRGBColorSpace;
-    this.camera.position.set(0, 0, 5);
   }
 
-  /** Image URL of an item's icon, e.g. 'marker', 'ladder', or 'color:red' for the can with a red label; blank until it's ready. */
-  get(kind: PickupKind) {
-    const url = this.cache.get(kind);
+  /** Image URL of the icon named `key` (e.g. 'marker', or 'color:red' for the can with a red label), drawn from `model` the first time; blank until it's ready. */
+  get(key: string, model: () => THREE.Object3D) {
+    const url = this.cache.get(key);
     if (url) return url;
-    if (!this.pending.has(kind)) {
-      const job = this.render(kind).then((done) => {
-        if (this.pending.get(kind) !== job) return;
-        this.pending.delete(kind);
-        this.cache.set(kind, done);
+    if (!this.pending.has(key)) {
+      const job = this.render(model()).then((done) => {
+        if (this.pending.get(key) !== job) return;
+        this.pending.delete(key);
+        this.cache.set(key, done);
         this.onReady();
       });
-      this.pending.set(kind, job);
+      this.pending.set(key, job);
     }
     return BLANK;
   }
@@ -52,15 +52,14 @@ export class Thumbnails {
     this.pending.clear();
   }
 
-  private async render(kind: PickupKind) {
-    const model = itemModel(kind);
-    model.rotation.y = 0.5; // a three-quarter view, like the spinning pickup
+  private async render(model: THREE.Object3D) {
     this.scene.add(model);
-    // Fit the model, keeping its proportions.
+    // Fit the model, keeping its proportions, all of its depth in view.
     const box = new THREE.Box3().setFromObject(model);
     const c = box.getCenter(new THREE.Vector3());
     const half = Math.max(box.max.x - box.min.x, box.max.y - box.min.y) * 0.56;
-    Object.assign(this.camera, { left: c.x - half, right: c.x + half, top: c.y + half, bottom: c.y - half });
+    Object.assign(this.camera, { left: c.x - half, right: c.x + half, top: c.y + half, bottom: c.y - half, far: box.max.z - box.min.z + 2 });
+    this.camera.position.z = box.max.z + 1;
     this.camera.updateProjectionMatrix();
 
     const r = this.renderer;
@@ -89,4 +88,13 @@ export class Thumbnails {
     ctx.putImageData(img, 0, 0);
     return this.canvas.toDataURL();
   }
+}
+
+/** An item's icon (hotbar, build picker): its pickup model at a three-quarter view, like the spinning pickup. */
+export function itemIcon(icons: Thumbnails, kind: PickupKind) {
+  return icons.get(kind, () => {
+    const model = itemModel(kind);
+    model.rotation.y = 0.5;
+    return model;
+  });
 }

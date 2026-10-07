@@ -1,6 +1,6 @@
 import { HOTBAR, HUD } from '../config';
 import { SLOTS, type Inventory, type Tool } from './inventory';
-import type { Thumbnails } from './thumbnails';
+import { itemIcon, type Thumbnails } from './thumbnails';
 
 // Hotbar, bottom center: a row of small circles, HOTBAR.slots of them from the
 // start, one per slot key (1 = can, 2 = marker, 3 = ladder, 4 = roller,
@@ -81,7 +81,7 @@ export class Hotbar {
     let html = '';
     for (let i = 0; i < Math.max(HOTBAR.slots, SLOTS.length); i++) {
       const t = SLOTS[i] as Tool | undefined;
-      const icon = t && inv.has(t) ? `<img src="${this.icons.get(ICON[t](inv))}" alt="">` : '';
+      const icon = t && inv.has(t) ? `<img src="${itemIcon(this.icons, ICON[t](inv))}" alt="">` : '';
       html += `<i class="${i === inv.selected ? 'on' : ''}${icon ? '' : ' empty'}">${icon}</i>`;
     }
     this.root.innerHTML = html;

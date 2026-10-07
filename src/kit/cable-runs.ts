@@ -1,4 +1,4 @@
-import type { PropDef } from './def';
+import { withVariants, type Variant } from './def';
 import { M, Parts, type V3 } from './pieces';
 
 // Modular cable runs: a bundle of three cables lying on the floor or clipped
@@ -33,12 +33,9 @@ function wallClip(p: Parts, y: number) {
 }
 
 /** 2 m of cable bundle on the floor, along x. */
-export const cableRun: PropDef = {
-  type: 'cable_run',
-  label: 'Floor cable',
-  category: 'details',
-  place: 'floor',
-  snap: 0.5,
+const cableFloor: Variant = {
+  id: 'floor',
+  label: 'floor',
   build() {
     const p = new Parts();
     bundle(p, (d) => [[-1, Y, d], [1, Y, d]]);
@@ -48,12 +45,9 @@ export const cableRun: PropDef = {
 };
 
 /** Floor corner: comes in along x (from -x) and leaves toward -z, cut at 45°. */
-export const cableCorner: PropDef = {
-  type: 'cable_corner',
-  label: 'Floor cable corner',
-  category: 'details',
-  place: 'floor',
-  snap: 0.5,
+const cableCorner: Variant = {
+  id: 'corner',
+  label: 'corner',
   build() {
     const p = new Parts();
     const c = 0.3; // chamfer
@@ -66,12 +60,10 @@ export const cableCorner: PropDef = {
 };
 
 /** From the floor up the wall you aim at: 1 m along the floor toward you, then up one storey. */
-export const cableUp: PropDef = {
-  type: 'cable_up',
-  label: 'Cable floor to wall',
-  category: 'details',
+const cableUp: Variant = {
+  id: 'up',
+  label: 'floor to wall',
   place: 'mount',
-  snap: 0.5,
   vSnap: 4,
   build() {
     const p = new Parts();
@@ -83,12 +75,10 @@ export const cableUp: PropDef = {
 };
 
 /** One storey of cable bundle up the wall you aim at; stacks with itself and sits on a floor-to-wall piece. */
-export const cableWall: PropDef = {
-  type: 'cable_wall',
-  label: 'Wall cable',
-  category: 'details',
+const cableWall: Variant = {
+  id: 'wall',
+  label: 'wall',
   place: 'mount',
-  snap: 0.5,
   vSnap: 4,
   build() {
     const p = new Parts();
@@ -97,3 +87,6 @@ export const cableWall: PropDef = {
     return p.list;
   },
 };
+
+/** The modular cable run pieces. */
+export const cableRun = withVariants({ type: 'cable_run', label: 'Cable run', category: 'cables', place: 'floor', snap: 0.5 }, [cableFloor, cableCorner, cableUp, cableWall]);

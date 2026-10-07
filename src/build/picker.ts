@@ -1,77 +1,116 @@
 import { CATEGORIES, type Category, type PropDef } from '../kit/def';
-import { kitIn } from '../kit';
-import { PICKUP_KINDS, pickupLabel } from '../inventory/items';
+import { defOf, kitIn } from '../kit';
+import { PICKUP_GROUPS, type PickupKind } from '../inventory/items';
 
-// Hotbar-style prop picker: Tab / Shift+Tab (or 1-7) switch category, the mouse
-// wheel picks the prop. The selected prop's name is always on screen.
+// What build mode places next: the mouse wheel turns the category wheel,
+// E / Q step to the next / previous entry in it, Tab / Shift+Tab to its next /
+// previous variant. Every category and entry remembers its selection.
 
-export type Entry = { kind: 'prop'; def: PropDef; label: string } | { kind: 'pickup'; type: string; label: string };
+/** What a click places: a prop (resolved to its variant), a pickup kind, or the level's one spawn point (moved there). */
+export type Choice = { kind: 'prop'; def: PropDef } | { kind: 'pickup'; type: PickupKind } | { kind: 'spawn' };
+
+interface Variant {
+  label: string;
+  choice: Choice;
+  /** A paint pickup's color, shown on its chip. */
+  swatch?: string;
+}
+
+/** A per-instance setting of a prop: the key that changes a placed one, and what it changes. */
+interface Setting {
+  key: string;
+  name: string;
+}
+
+export interface Entry {
+  label: string;
+  /** One or more. */
+  variants: Variant[];
+  settings: Setting[];
+}
+
+function propEntry(base: PropDef): Entry {
+  const defs = base.variants ? base.variants.map((v) => ({ label: v.label, def: defOf(base.type, v.id)! })) : [{ label: base.label, def: base }];
+  const settings: Setting[] = [];
+  if (base.adjust) settings.push({ key: '[ ]', name: base.adjust.label });
+  if (defs.some((d) => d.def.text !== undefined)) settings.push({ key: 'ENTER', name: 'TEXT' });
+  return { label: base.label, variants: defs.map(({ label, def }) => ({ label, choice: { kind: 'prop', def } })), settings };
+}
 
 function entriesFor(c: Category): Entry[] {
-  if (c === 'pickups') return PICKUP_KINDS.map((k) => ({ kind: 'pickup', type: k, label: pickupLabel(k) }));
-  return kitIn(c).map((d) => ({ kind: 'prop', def: d, label: d.label }));
+  if (c === 'level') return [{ label: 'Spawn point', variants: [{ label: 'spawn point', choice: { kind: 'spawn' } }], settings: [] }];
+  if (c === 'pickups') return PICKUP_GROUPS.map((g) => ({ label: g.label, variants: g.kinds.map((k) => ({ label: k.label, swatch: k.swatch, choice: { kind: 'pickup', type: k.kind } })), settings: [] }));
+  return kitIn(c).map(propEntry);
 }
 
 export class Picker {
-  readonly categories = CATEGORIES.map((c) => ({ id: c, entries: entriesFor(c) })).filter((c) => c.entries.length);
+  readonly categories = CATEGORIES.map((id) => ({ id, entries: entriesFor(id) })).filter((c) => c.entries.length);
   private cat = 0;
   private index = this.categories.map(() => 0);
-  private root: HTMLElement;
-  private dirty = true;
+  private variants = new Map<Entry, number>();
+  /** Bumped on every change, so the view redraws only then. */
+  version = 0;
 
-  constructor() {
-    this.root = document.createElement('div');
-    this.root.className = 'picker';
-    this.root.hidden = true;
-    document.body.appendChild(this.root);
+  get category() {
+    return this.cat;
   }
 
-  set visible(v: boolean) {
-    this.root.hidden = !v;
+  /** The selected entry of the selected category. */
+  get selected() {
+    return this.index[this.cat];
   }
 
   get entry(): Entry {
     return this.categories[this.cat].entries[this.index[this.cat]];
   }
 
-  setCategory(i: number) {
-    if (i < 0 || i >= this.categories.length) return;
-    this.cat = i;
-    this.dirty = true;
+  variantOf(e: Entry) {
+    return this.variants.get(e) ?? 0;
   }
 
-  nextCategory(dir: number) {
-    this.setCategory((this.cat + dir + this.categories.length) % this.categories.length);
+  get choice(): Choice {
+    return this.entry.variants[this.variantOf(this.entry)].choice;
   }
 
+  /** The selection's name: the entry's, and its variant's when it has several. */
+  get label() {
+    const e = this.entry;
+    return e.variants.length > 1 ? `${e.label} (${e.variants[this.variantOf(e)].label})` : e.label;
+  }
+
+  /** Mouse wheel: the next / previous category, round the wheel. */
   wheel(dir: number) {
-    const n = this.categories[this.cat].entries.length;
-    this.index[this.cat] = (this.index[this.cat] + dir + n) % n;
-    this.dirty = true;
+    this.cat = wrap(this.cat + dir, this.categories.length);
+    this.version++;
   }
 
-  /** Select the entry for a prop type or pickup kind (middle-click pick). */
-  pick(kind: 'prop' | 'pickup', type: string) {
+  /** E / Q: the next / previous entry in the category. */
+  step(dir: number) {
+    this.index[this.cat] = wrap(this.index[this.cat] + dir, this.categories[this.cat].entries.length);
+    this.version++;
+  }
+
+  /** Tab / Shift+Tab: the next / previous variant of the entry. */
+  variant(dir: number) {
+    const e = this.entry;
+    this.variants.set(e, wrap(this.variantOf(e) + dir, e.variants.length));
+    this.version++;
+  }
+
+  /** Select the entry and variant whose choice matches (middle-click pick). */
+  pick(match: (c: Choice) => boolean) {
     this.categories.forEach((c, ci) =>
-      c.entries.forEach((e, ei) => {
-        const t = e.kind === 'prop' ? e.def.type : e.type;
-        if (e.kind === kind && t === type) {
+      c.entries.forEach((e, ei) =>
+        e.variants.forEach((v, vi) => {
+          if (!match(v.choice)) return;
           this.cat = ci;
           this.index[ci] = ei;
-          this.dirty = true;
-        }
-      }),
+          this.variants.set(e, vi);
+          this.version++;
+        }),
+      ),
     );
   }
-
-  render() {
-    if (!this.dirty) return;
-    this.dirty = false;
-    const c = this.categories[this.cat];
-    const i = this.index[this.cat];
-    this.root.innerHTML = `
-      <div class="name">${this.entry.label.toUpperCase()}</div>
-      <div class="strip">${c.entries.map((e, k) => `<span class="${k === i ? 'on' : ''}">${e.label}</span>`).join('')}</div>
-      <div class="cats">${this.categories.map((x, k) => `<span class="${k === this.cat ? 'on' : ''}">[${k + 1}] ${x.id.toUpperCase()}</span>`).join('')}</div>`;
-  }
 }
+
+const wrap = (i: number, n: number) => ((i % n) + n) % n;

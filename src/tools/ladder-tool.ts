@@ -5,7 +5,7 @@ import { floorBelow } from '../build/floor';
 import { Ghost } from '../build/ghost';
 import { axisNormal, place } from '../build/placement';
 import type { Input } from '../input';
-import { KIT_BY_TYPE } from '../kit';
+import { defOf } from '../kit';
 import { STEPLADDER } from '../kit/access';
 import { LadderModel } from './ladder-model';
 import type { V3 } from '../kit/pieces';
@@ -35,7 +35,7 @@ export class LadderTool {
   others: () => THREE.Vector3[] = () => [];
   private ghost: Ghost;
   private ray = new THREE.Raycaster();
-  private def = KIT_BY_TYPE.get('stepladder')!;
+  private def = defOf('stepladder')!;
   private target: { pos: V3; rot: number } | null = null;
   private valid = false;
   /** Quarter turns added with the mouse wheel to "facing you". */

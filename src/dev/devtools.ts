@@ -37,6 +37,7 @@ import type { Tools } from '../tools/tools';
 /** What the dev tools reach into. Main passes all of window.game, which holds more. */
 export interface DevContext {
   scene: THREE.Scene;
+  renderer: THREE.WebGLRenderer;
   input: Input;
   hud: Hud;
   audio: Audio;
@@ -83,7 +84,7 @@ export class DevTools {
   private modelsChanged = false;
 
   constructor(private g: DevContext) {
-    this.build = new BuildMode(g.scene, g.level, g.pickups, g.player);
+    this.build = new BuildMode(g.scene, g.level, g.pickups, g.player, g.renderer);
     this.build.getLevelData = g.levelData;
     this.build.onLoad = g.openLevel;
     this.figure = new AvatarPreview(g.scene);
@@ -102,6 +103,7 @@ export class DevTools {
       syncVignette: () => g.hud.syncVignette(),
       previewPause: () => g.hud.previewSheet(),
       applyDaylight: () => g.atmosphere.reapplyDaylight(),
+      syncBuildShade: () => this.build.syncShade(),
       atmosNight: () => g.atmosphere.nightValues,
       rebuildCity: g.rebuildCity,
       applyToolSizes: () => (g.inventory.size = { marker: MARKER.width, roller: ROLLER.width, sponge: SPONGE.width }),

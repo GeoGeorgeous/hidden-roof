@@ -1,4 +1,4 @@
-import type { PropDef } from './def';
+import { withVariants, type PropDef, type Variant } from './def';
 import { GRAY, M, Parts, type Mat } from './pieces';
 import { FACADES } from '../render/ink/facade';
 
@@ -19,12 +19,9 @@ const FACADE: Mat = { tex: 'flat', tint: GRAY[3], facade: FACADES.ribbon };
  * paintable. With another block anywhere below it, it is one 4 m storey, so
  * blocks pile up level by level like Minecraft blocks.
  */
-export const building: PropDef = {
-  type: 'building',
-  label: 'Building block',
-  category: 'structure',
-  place: 'cell',
-  snap: 2,
+const fullBlock: Variant = {
+  id: 'full',
+  label: 'full',
   anchorTop: true,
   stacks: { below: true },
   build({ below }) {
@@ -37,12 +34,9 @@ export const building: PropDef = {
 };
 
 /** Half block: a building block's 2 x 2 m footprint, half a storey (2 m) high, standing on the floor. Stacks by 2 m. */
-export const halfBlock: PropDef = {
-  type: 'half_block',
-  label: 'Half block',
-  category: 'structure',
-  place: 'cell',
-  snap: 2,
+const halfBlock: Variant = {
+  id: 'half',
+  label: 'half',
   vSnap: 2,
   build() {
     const p = new Parts();
@@ -67,13 +61,9 @@ export const slab: PropDef = {
   },
 };
 
-export const wall: PropDef = {
-  type: 'wall',
-  label: 'Wall',
-  category: 'structure',
-  place: 'edge',
-  snap: 2,
-  joint: 'wall',
+const plainWall: Variant = {
+  id: 'plain',
+  label: 'plain',
   build() {
     const p = new Parts();
     p.box([-L, 0, -T], [L, WALL_H, T], M.plaster, { paint: true });
@@ -82,13 +72,9 @@ export const wall: PropDef = {
 };
 
 /** Wall with a cornice ledge on its front side. */
-export const wallLedge: PropDef = {
-  type: 'wall_ledge',
-  label: 'Wall with ledge',
-  category: 'structure',
-  place: 'edge',
-  snap: 2,
-  joint: 'wall',
+const wallLedge: Variant = {
+  id: 'ledge',
+  label: 'ledge',
   build() {
     const p = new Parts();
     p.box([-L, 0, -T], [L, WALL_H, T], M.plaster, { paint: true });
@@ -116,13 +102,9 @@ const DOOR_W = 0.5; // half width
 const DOOR_H = 2.2;
 
 /** Wall with a closed metal door (front side -z). */
-export const door: PropDef = {
-  type: 'door',
-  label: 'Door',
-  category: 'structure',
-  place: 'edge',
-  snap: 2,
-  joint: 'wall',
+const door: Variant = {
+  id: 'door',
+  label: 'door',
   build() {
     const p = doorFrame();
     const w = DOOR_W;
@@ -134,13 +116,9 @@ export const door: PropDef = {
 };
 
 /** Wall with its door standing open outward (toward the front, -z): a way inside. */
-export const doorOpen: PropDef = {
-  type: 'door_open',
-  label: 'Door (open)',
-  category: 'structure',
-  place: 'edge',
-  snap: 2,
-  joint: 'wall',
+const doorOpen: Variant = {
+  id: 'open',
+  label: 'open door',
   build() {
     const p = doorFrame();
     const w = DOOR_W;
@@ -169,13 +147,9 @@ function doorFrame() {
 }
 
 /** Wall with a dark glass window. */
-export const windowWall: PropDef = {
-  type: 'window',
-  label: 'Window',
-  category: 'structure',
-  place: 'edge',
-  snap: 2,
-  joint: 'wall',
+const windowWall: Variant = {
+  id: 'window',
+  label: 'window',
   build() {
     const p = new Parts();
     const w = 0.6;
@@ -191,3 +165,9 @@ export const windowWall: PropDef = {
     return p.list;
   },
 };
+
+/** Building blocks: a full storey down to the street, or a half one. */
+export const building = withVariants({ type: 'building', label: 'Block', category: 'structure', place: 'cell', snap: 2 }, [fullBlock, halfBlock]);
+
+/** Walls: plain, with a ledge, a window or a door. */
+export const wall = withVariants({ type: 'wall', label: 'Wall', category: 'structure', place: 'edge', snap: 2, joint: 'wall' }, [plainWall, wallLedge, windowWall, door, doorOpen]);

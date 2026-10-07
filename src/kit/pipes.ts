@@ -1,4 +1,4 @@
-import type { PropDef } from './def';
+import { withVariants, type PropDef, type Variant } from './def';
 import { WALL_H } from './structure';
 import { M, Parts } from './pieces';
 
@@ -25,12 +25,9 @@ function support(p: Parts, x: number, z: number, acrossZ = true) {
 }
 
 /** 2 m straight pipe along x on small supports; chain them. */
-export const pipe: PropDef = {
-  type: 'pipe',
-  label: 'Pipe run',
-  category: 'equipment',
-  place: 'floor',
-  snap: 0.5,
+const pipeRun: Variant = {
+  id: 'run',
+  label: 'run',
   build() {
     const p = new Parts();
     p.cyl([-1, Y, 0], 'x', 2, R, M.rust, { seg: SEG });
@@ -40,12 +37,9 @@ export const pipe: PropDef = {
 };
 
 /** Corner: the run comes in along x (from -x) and leaves toward -z. */
-export const pipeCorner: PropDef = {
-  type: 'pipe_corner',
-  label: 'Pipe corner',
-  category: 'equipment',
-  place: 'floor',
-  snap: 0.5,
+const pipeCorner: Variant = {
+  id: 'corner',
+  label: 'corner',
   build() {
     const p = new Parts();
     p.cyl([-1, Y, 0], 'x', 1, R, M.rust, { seg: SEG });
@@ -57,12 +51,9 @@ export const pipeCorner: PropDef = {
 };
 
 /** Riser: comes up out of the floor and turns toward +x. */
-export const pipeFloor: PropDef = {
-  type: 'pipe_floor',
-  label: 'Pipe from floor',
-  category: 'equipment',
-  place: 'floor',
-  snap: 0.5,
+const pipeFloor: Variant = {
+  id: 'floor',
+  label: 'from floor',
   build() {
     const p = new Parts();
     p.cyl([0, 0, 0], 'y', 0.04, R + 0.08, M.steel, { paint: false, seg: SEG });
@@ -74,12 +65,10 @@ export const pipeFloor: PropDef = {
 };
 
 /** Out of the wall you aim at, half a meter out, then along the wall toward +x. */
-export const pipeWall: PropDef = {
-  type: 'pipe_wall',
-  label: 'Pipe from wall',
-  category: 'equipment',
+const pipeWall: Variant = {
+  id: 'wall',
+  label: 'from wall',
   place: 'mount',
-  snap: 0.5,
   build() {
     const p = new Parts();
     const z = -0.5;
@@ -93,12 +82,9 @@ export const pipeWall: PropDef = {
 };
 
 /** The run comes in along x (from -x) and goes straight up into the roof or slab above. */
-export const pipeUp: PropDef = {
-  type: 'pipe_up',
-  label: 'Pipe into roof',
-  category: 'equipment',
-  place: 'floor',
-  snap: 0.5,
+const pipeUp: Variant = {
+  id: 'up',
+  label: 'into roof',
   build() {
     const p = new Parts();
     p.cyl([-1, Y, 0], 'x', 1, R, M.rust, { seg: SEG });
@@ -119,7 +105,7 @@ export const pipeUp: PropDef = {
 export const drainPipe: PropDef = {
   type: 'drain_pipe',
   label: 'Drain pipe',
-  category: 'equipment',
+  category: 'pipes',
   place: 'mount',
   snap: 0.5,
   vSnap: 4,
@@ -146,3 +132,6 @@ export const drainPipe: PropDef = {
     return p.list;
   },
 };
+
+/** The modular pipe pieces. */
+export const pipe = withVariants({ type: 'pipe', label: 'Pipe', category: 'pipes', place: 'floor', snap: 0.5 }, [pipeRun, pipeCorner, pipeFloor, pipeWall, pipeUp]);
