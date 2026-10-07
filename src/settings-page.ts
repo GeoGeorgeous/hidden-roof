@@ -1,8 +1,8 @@
 import type { SettingRow, SettingSection } from './settings';
 
 // The settings page of the pause menu: one tab per section (gameplay,
-// graphics, sound), each row a choice (click for the next value, right-click
-// for the previous) or a slider, with, for some, a short description, a
+// graphics, sound), each row a choice (< and > step to the previous and next
+// value) or a slider, with, for some, a short description, a
 // callout (recommendations) and a performance cost in dots (1 to 5, green to red). Values are read again whenever the
 // page opens, since the debug panel edits the same settings.
 
@@ -48,15 +48,13 @@ export class SettingsPage {
     const line = div('line');
     line.append(Object.assign(div('label'), { textContent: row.label }));
     if (row.kind === 'choice') {
-      const b = document.createElement('button');
-      const sync = () => (b.textContent = `< ${row.value()} >`);
-      b.addEventListener('mousedown', (e) => {
-        e.preventDefault();
-        row.step(e.button === 2 ? -1 : 1);
+      const value = div('choice');
+      const step = (d: number) => {
+        row.step(d);
         this.sync();
-      });
-      line.append(b);
-      this.syncs.push(sync);
+      };
+      line.append(button('<', () => step(-1)), value, button('>', () => step(1)));
+      this.syncs.push(() => (value.textContent = row.value()));
     } else {
       const input = Object.assign(document.createElement('input'), { type: 'range', min: `${row.min}`, max: `${row.max}`, step: `${row.step}` });
       const out = div('value');

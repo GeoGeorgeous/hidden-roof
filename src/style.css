@@ -255,9 +255,12 @@ canvas {
 }
 .settings-page .line button {
   border: none;
-  padding: 2px 4px;
-  min-width: 170px;
-  text-align: right;
+  padding: 2px 6px;
+}
+/* A choice's value, between its < and > buttons: as wide overall as a slider and its value. */
+.settings-page .choice {
+  width: 186px;
+  text-align: center;
 }
 .settings-page input[type='range'] {
   -webkit-appearance: none;
