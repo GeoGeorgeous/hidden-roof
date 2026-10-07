@@ -193,7 +193,7 @@ canvas {
   line-height: 1;
   letter-spacing: 0.02em;
 }
-/* The signature under it: small, gray, a bit askew, to the right. */
+/* The tag under it (THE GAME): small, gray, a bit askew, to the right. */
 .overlay .title span {
   display: block;
   margin: 0 -10px 0 0;
