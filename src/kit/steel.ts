@@ -1,6 +1,6 @@
-import type { PropDef } from './def';
+import { withVariants, type PropDef } from './def';
 import { M, Parts, type V3 } from './pieces';
-import { panelLettering } from './lettering';
+import { panelLettering, panelSlogans, sloganVariants } from './lettering';
 import { lcg } from '../lcg';
 
 // Steel and clutter for packed rooftops: lattice masts and sign towers with
@@ -30,7 +30,7 @@ function lattice(p: Parts, w: number, h: number, step: number, top = w) {
 export const latticeMast: PropDef = {
   type: 'lattice_mast',
   label: 'Lattice mast',
-  category: 'details',
+  category: 'rooftop',
   place: 'floor',
   snap: 0.5,
   build() {
@@ -46,32 +46,25 @@ export const latticeMast: PropDef = {
 };
 
 /** Sign tower: a lattice frame carrying a lettered 4 x 2 m panel (paintable) facing -z. */
-export const signTower: PropDef = {
-  type: 'sign_tower',
-  label: 'Sign tower',
-  category: 'signs',
-  place: 'floor',
-  snap: 0.5,
-  build({ seed }) {
-    const h = 4;
-    const p = new Parts();
-    lattice(p, 1.6, h, 1.3);
-    p.box([-2, h, -1.0], [2, h + 2, -0.85], panelLettering(seed, 4, 2), { paint: true });
-    p.detail([-2.04, h + 2, -1.02], [2.04, h + 2.05, -0.83], M.steel);
-    // Frame behind the panel, braced back onto the lattice top.
-    for (const x of [-1.8, -0.6, 0.6, 1.8]) p.rod([x, h, -0.85], [x, h + 2, -0.85], 0.03, M.steel);
-    p.rod([-1.8, h + 0.2, -0.85], [1.8, h + 1.8, -0.85], 0.02, M.steel);
-    p.rod([-1.8, h + 1.8, -0.85], [1.8, h + 0.2, -0.85], 0.02, M.steel);
-    for (const x of [-0.8, 0.8]) p.rod([x, h, 0.8], [x, h + 1.6, -0.85], 0.025, M.steel);
-    return p.list;
-  },
-};
+export const signTower = withVariants({ type: 'sign_tower', label: 'Sign tower', category: 'signs', place: 'floor', snap: 0.5 }, sloganVariants(panelSlogans(4), (s) => {
+  const h = 4;
+  const p = new Parts();
+  lattice(p, 1.6, h, 1.3);
+  p.box([-2, h, -1.0], [2, h + 2, -0.85], panelLettering(s, 4, 2), { paint: true });
+  p.detail([-2.04, h + 2, -1.02], [2.04, h + 2.05, -0.83], M.steel);
+  // Frame behind the panel, braced back onto the lattice top.
+  for (const x of [-1.8, -0.6, 0.6, 1.8]) p.rod([x, h, -0.85], [x, h + 2, -0.85], 0.03, M.steel);
+  p.rod([-1.8, h + 0.2, -0.85], [1.8, h + 1.8, -0.85], 0.02, M.steel);
+  p.rod([-1.8, h + 1.8, -0.85], [1.8, h + 0.2, -0.85], 0.02, M.steel);
+  for (const x of [-0.8, 0.8]) p.rod([x, h, 0.8], [x, h + 1.6, -0.85], 0.025, M.steel);
+  return p.list;
+}));
 
 /** Two tanks on a lattice stand, side by side along x. */
 export const tankPair: PropDef = {
   type: 'tank_pair',
   label: 'Tanks on stand',
-  category: 'equipment',
+  category: 'rooftop',
   place: 'floor',
   snap: 0.5,
   build() {
@@ -91,29 +84,30 @@ export const tankPair: PropDef = {
   },
 };
 
-/** Low roof debris: crates, bags and buckets, different for every instance. */
-export const debris: PropDef = {
-  type: 'debris',
-  label: 'Roof debris',
-  category: 'equipment',
-  place: 'floor',
-  snap: 0.5,
-  build({ seed }) {
-    const rnd = lcg(seed * 31 + 7);
-    const p = new Parts();
-    for (let i = 0, n = 3 + Math.floor(rnd() * 4); i < n; i++) {
-      const x = (rnd() - 0.5) * 1.6;
-      const z = (rnd() - 0.5) * 1.6;
-      const k = rnd();
-      if (k < 0.4) {
-        const s = 0.2 + rnd() * 0.2;
-        p.detail([x - s, 0, z - s * 0.8], [x + s, s * 1.4, z + s * 0.8], rnd() < 0.5 ? M.wood : M.beige, false);
-      } else if (k < 0.75) {
-        p.cyl([x, 0, z], 'y', 0.3 + rnd() * 0.15, 0.15 + rnd() * 0.06, rnd() < 0.5 ? M.metal : M.galv, { paint: false, collide: false, seg: 8 });
-      } else {
-        p.detail([x - 0.3, 0, z - 0.22], [x + 0.3, 0.25, z + 0.22], M.dark, false);
-      }
+/** A pile of roof debris: crates, buckets and dark slabs, laid out by `seed` (one fixed seed per variant). */
+function pile(seed: number) {
+  const rnd = lcg(seed * 31 + 7);
+  const p = new Parts();
+  for (let i = 0, n = 3 + Math.floor(rnd() * 4); i < n; i++) {
+    const x = (rnd() - 0.5) * 1.6;
+    const z = (rnd() - 0.5) * 1.6;
+    const k = rnd();
+    if (k < 0.4) {
+      const s = 0.2 + rnd() * 0.2;
+      p.detail([x - s, 0, z - s * 0.8], [x + s, s * 1.4, z + s * 0.8], rnd() < 0.5 ? M.wood : M.beige, false);
+    } else if (k < 0.75) {
+      p.cyl([x, 0, z], 'y', 0.3 + rnd() * 0.15, 0.15 + rnd() * 0.06, rnd() < 0.5 ? M.metal : M.galv, { paint: false, collide: false, seg: 8 });
+    } else {
+      p.detail([x - 0.3, 0, z - 0.22], [x + 0.3, 0.25, z + 0.22], M.dark, false);
     }
-    return p.list;
-  },
-};
+  }
+  return p.list;
+}
+
+/** Roof debris: a few piles to choose from, each laid out so no two crates or slabs overlap (their faces would flicker). */
+export const debris = withVariants({ type: 'debris', label: 'Roof debris', category: 'rooftop', place: 'floor', snap: 0.5 }, [
+  { id: 'crates', label: 'crates', build: () => pile(82) },
+  { id: 'buckets', label: 'buckets', build: () => pile(11) },
+  { id: 'mixed', label: 'mixed', build: () => pile(6) },
+  { id: 'scrap', label: 'scrap', build: () => pile(46) },
+]);

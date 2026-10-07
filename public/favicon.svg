@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- The top of a spray can, inked like the game: ink lines on paper, a hatched shade, a black cap.
+       Light tabs get ink on paper, dark tabs the same inverted. Lines sit on whole pixels at 16 px. -->
+  <style>
+    .paper { fill: #ebe5d6; }
+    .ink { fill: #141416; }
+    .line { fill: none; stroke: #141416; stroke-width: 2; }
+    .hatch { stroke: #141416; stroke-width: 1.4; }
+    @media (prefers-color-scheme: dark) {
+      .paper { fill: #141416; }
+      .ink { fill: #ebe5d6; }
+      .line, .hatch { stroke: #ebe5d6; }
+    }
+  </style>
+  <clipPath id="shade"><rect x="19" y="18" width="5" height="14" /></clipPath>
+  <path class="paper" d="M7 33V17C7 13 10 11 13 11H19C22 11 25 13 25 17V33Z" />
+  <path class="hatch" clip-path="url(#shade)" d="M10 36L30 16M10 40L30 20M10 32L30 12M10 28L30 8M10 44L30 24" />
+  <path class="line" d="M7 33V17C7 13 10 11 13 11H19C22 11 25 13 25 17V33M7 17H25" />
+  <rect class="ink" x="14" y="8" width="4" height="3" />
+  <rect class="ink" x="12" y="2" width="8" height="7" rx="2" />
+  <rect class="paper" x="13" y="4" width="2" height="2" />
+</svg>

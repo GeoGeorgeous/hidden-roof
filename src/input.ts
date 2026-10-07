@@ -17,13 +17,18 @@ export class Input {
   private clicks = new Set<number>();
   locked = false;
   onLockChange: (locked: boolean) => void = () => {};
+  /** While paused: true when Esc should go back to the game (a panel holds the mouse, as F3 does). */
+  escapeResumes: () => boolean = () => false;
 
-  constructor(private element: HTMLElement) {
+  /** Without an element nothing ever reaches it: the player's input while paused in a session. */
+  constructor(private element?: HTMLElement) {
+    if (!element) return;
     window.addEventListener('keydown', (e) => {
       if (PREVENT.has(e.code) && this.locked) e.preventDefault();
       if (this.locked && (e.ctrlKey || e.metaKey)) e.preventDefault();
       // With keyboard lock the browser no longer releases the mouse on Esc; do it ourselves.
       if (e.code === 'Escape' && this.locked) document.exitPointerLock();
+      else if (e.code === 'Escape' && !e.repeat && this.escapeResumes()) this.requestLock();
       // Already paused: a second Esc leaves fullscreen, as it would without the keyboard lock.
       else if (e.code === 'Escape' && !e.repeat && isFullscreen()) void exitGameFullscreen();
       if (e.code === 'F3') e.preventDefault();
@@ -83,7 +88,7 @@ export class Input {
    */
   requestLock() {
     try {
-      const p = this.element.requestPointerLock() as unknown as Promise<void> | undefined;
+      const p = this.element?.requestPointerLock() as unknown as Promise<void> | undefined;
       p?.catch?.(() => {});
     } catch {
       // Refused (see above).

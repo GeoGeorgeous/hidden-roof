@@ -4,7 +4,7 @@ import { exitGameFullscreen } from './fullscreen';
 // Player settings, on the settings page of the pause menu (settings-page.ts):
 // gameplay, graphics and sound. They write the same config values the debug
 // panel (F3) edits, so both stay in step. Resolution, volumetrics, paint and
-// city detail are remembered in this browser; the rest reset on reload.
+// city detail and the frame rate are remembered in this browser; the rest reset on reload.
 // Paint and city detail apply when the game resumes, since they rebuild every
 // paint texture or the whole city: stepping through the choices costs
 // nothing. config.ts holds the defaults.
@@ -15,6 +15,13 @@ const RENAMED_KEY = 'taggin.settings.v2';
 /** Settings saved before v2: their paint detail and volumetrics are dropped, so the defaults (ULTRA, off) apply once. */
 const OLD_KEY = 'taggin.settings';
 const PIXEL_SCALES = [1, 1.5, 2, 2.5, 3, 4];
+/** FRAME RATE choices (fps); 0 = no limit. */
+const FRAME_RATES = [0, 30, 60, 90, 120, 144];
+/** Mouse sensitivity is shown as a multiple of config's (1.00x). */
+const BASE_SENSITIVITY = PLAYER.mouseSensitivity;
+/** config's field of view and running boost: their sliders' default ticks. */
+const BASE_FOV = RENDER.fov;
+const BASE_RUN_FOV = RENDER.sprintFovBoost;
 const VOL_PRESETS = {
   off: { enabled: false, downscale: 2, steps: 16 },
   low: { enabled: true, downscale: 4, steps: 12 },
@@ -36,19 +43,9 @@ const CITY_DETAIL = {
 type CityDetail = keyof typeof CITY_DETAIL;
 const CITY_ORDER = Object.keys(CITY_DETAIL) as CityDetail[];
 
-// Performance cost of each choice for the settings page: 1 none, 2 minimal,
-// 3 medium, 4 high, 5 critical.
-/** Per-pixel work follows the pixel count: 1/1.5 draws 44% of 1/1's pixels, 1/2 25%, 1/3 11%. */
-const RES_COST: Record<number, number> = { 1: 4, 1.5: 3, 2: 3, 2.5: 2, 3: 2, 4: 2 };
-/** Raymarch work = pixels x steps: LOW 1/16 res x 12, MEDIUM 1/4 x 16 (5x LOW), HIGH full x 24 (30x LOW). */
-const VOL_COST: Record<VolPreset, number> = { off: 1, low: 2, medium: 4, high: 5 };
-/** Only stamping and uploading paint scale with it (texels per dot grow with the square), never drawing. */
-const PAINT_COST: Record<PaintDetail, number> = { low: 1, medium: 1, high: 2, ultra: 2 };
-/** City area drawn grows with the radius squared (HIGH about 3x LOW), plus clutter and line range. */
-const CITY_COST: Record<CityDetail, number> = { low: 2, medium: 2, high: 3 };
-
 interface Saved {
   pixelScale?: number;
+  maxFps?: number;
   volumetrics?: VolPreset;
   paintDetail?: PaintDetail;
   cityDetail?: CityDetail;
@@ -73,6 +70,7 @@ export class Settings {
   ) {
     const s = load();
     if (s.pixelScale && PIXEL_SCALES.includes(s.pixelScale)) RENDER.pixelScale = s.pixelScale;
+    if (s.maxFps !== undefined && FRAME_RATES.includes(s.maxFps)) RENDER.maxFps = s.maxFps;
     this.vol = s.volumetrics && s.volumetrics in VOL_PRESETS ? s.volumetrics : VOLUMETRICS.enabled ? 'medium' : 'off';
     Object.assign(VOLUMETRICS, VOL_PRESETS[this.vol]);
     // Unsaved: the choice nearest to config's PAINT.texelsPerMeter.
@@ -98,8 +96,8 @@ export class Settings {
       {
         kind: 'choice',
         label: 'RESOLUTION',
-        desc: 'Renders at a fraction of your screen and scales it up with crisp pixels. Most of the work is per pixel: 1/2 draws a quarter of the pixels of 1/1.',
-        cost: () => RES_COST[RENDER.pixelScale] ?? 1,
+        // Per-pixel work follows the pixel count: 1/2 draws a quarter of 1/1's pixels.
+        cost: 'HIGH',
         value: () => {
           const w = Math.round(window.innerWidth / RENDER.pixelScale);
           const h = Math.round(window.innerHeight / RENDER.pixelScale);
@@ -113,9 +111,20 @@ export class Settings {
       },
       {
         kind: 'choice',
+        label: 'FRAME RATE',
+        cost: 'LOW',
+        value: () => (RENDER.maxFps ? `${RENDER.maxFps} FPS` : 'MAX'),
+        step: (d) => {
+          RENDER.maxFps = cycle(FRAME_RATES, nearest(FRAME_RATES, RENDER.maxFps), d);
+          this.save();
+        },
+      },
+      {
+        kind: 'choice',
         label: 'VOLUMETRICS',
-        desc: 'Light shafts and lamp glow in the fog: a light pass through the fog every frame. HIGH runs it at full resolution, about 30x the work of LOW. Turn it down first if the game stutters.',
-        cost: () => VOL_COST[this.vol],
+        desc: 'Light shafts and lamp glow in the fog. The heaviest setting: lower it first if the game stutters.',
+        // Raymarch work = pixels x steps: HIGH is about 30x LOW.
+        cost: 'HIGH',
         value: () => this.vol.toUpperCase(),
         step: (d) => {
           this.vol = cycle(VOL_ORDER, this.vol, d);
@@ -126,9 +135,10 @@ export class Settings {
       {
         kind: 'choice',
         label: 'PAINT DETAIL',
-        desc: 'Size of one paint texel on walls. Applies when you resume.',
+        desc: 'Size of one paint texel on walls.',
         note: 'ULTRA is recommended: 1 cm texels keep marker lines and fades sharp. It costs memory only for surfaces you actually paint, and a little CPU while painting; drawing the game is no slower.',
-        cost: () => PAINT_COST[this.detail],
+        // Stamping and uploading paint grow with the square (ULTRA 16x LOW), and paint memory; drawing doesn't.
+        cost: 'MEDIUM',
         // Shown with the size of one paint texel.
         value: () => `${this.detail.toUpperCase()}  ${(100 / PAINT_DETAIL[this.detail]).toFixed(1)} CM`,
         step: (d) => {
@@ -139,8 +149,9 @@ export class Settings {
       {
         kind: 'choice',
         label: 'CITY DETAIL',
-        desc: 'How far the city reaches around the level, and how far rooftop clutter and thin lines show. HIGH draws about 3x the city area of LOW. Applies when you resume.',
-        cost: () => CITY_COST[this.city],
+        desc: 'How far the city stretches around the roofs. Lower trims distant blocks the haze mostly hides.',
+        // The city drawn grows with the radius squared: HIGH about 3x LOW.
+        cost: 'MEDIUM',
         value: () => this.city.toUpperCase(),
         step: (d) => {
           this.city = cycle(CITY_ORDER, this.city, d);
@@ -148,19 +159,17 @@ export class Settings {
         },
       },
       toggle(
-        'FULLSCREEN',
-        'Go fullscreen when the game takes the mouse. Off: play in the browser window, which usually has fewer pixels to draw.',
+        'FORCED FULLSCREEN',
         () => RENDER.fullscreen,
         (on) => {
           RENDER.fullscreen = on;
           if (!on) void exitGameFullscreen();
         },
-        2,
-        1,
+        'LOW',
       ),
-      toggle('RAIN', 'Rain, its sound, and lightning with thunder: a couple of thousand drops in one draw, raindrops pinging on metal, lightning flashes.', () => ATMOS.rain, (on) => (ATMOS.rain = on), 2, 1),
-      toggle('SMOKE', 'Smoke from exhaust pipes: one small particle batch for every exhaust in the level.', () => SMOKE.enabled, (on) => (SMOKE.enabled = on), 2, 1),
-      toggle('MOVING PARTS', 'CCTV cameras pan and follow you, AC fans spin. Off: they stay still. The GPU does the same work either way.', () => RENDER.propMotion, (on) => (RENDER.propMotion = on), 1, 1),
+      toggle('RAIN', () => ATMOS.rain, (on) => (ATMOS.rain = on), 'LOW'),
+      toggle('SMOKE', () => SMOKE.enabled, (on) => (SMOKE.enabled = on), 'LOW'),
+      toggle('MOVING PARTS', () => RENDER.propMotion, (on) => (RENDER.propMotion = on), 'LOW'),
     ];
   }
 
@@ -179,7 +188,7 @@ export class Settings {
 
   private save() {
     try {
-      localStorage.setItem(KEY, JSON.stringify({ pixelScale: RENDER.pixelScale, volumetrics: this.vol, paintDetail: this.detail, cityDetail: this.city } satisfies Saved));
+      localStorage.setItem(KEY, JSON.stringify({ pixelScale: RENDER.pixelScale, maxFps: RENDER.maxFps, volumetrics: this.vol, paintDetail: this.detail, cityDetail: this.city } satisfies Saved));
     } catch {
       // Storage unavailable (private mode): settings last for this session only.
     }
@@ -206,34 +215,48 @@ function nearest(list: number[], v: number) {
 }
 
 /**
- * A setting row: a choice stepped through with clicks, or a slider. `note` is
- * a callout (recommendations), `cost` the performance cost of its current
- * value: 1 none, 2 minimal, 3 medium, 4 high, 5 critical.
+ * A setting row: a choice stepped through with < and >, or a slider (`def`: its
+ * default, marked on it). `desc` is an optional line under it, `note` a callout
+ * (recommendations), `cost` how much the setting can change how smoothly the
+ * game runs, whatever its value.
  */
-type RowBase = { label: string; desc: string; note?: string; cost?: () => number };
+type RowBase = { label: string; desc?: string; note?: string; cost?: Cost };
+type Cost = 'LOW' | 'MEDIUM' | 'HIGH';
 export type SettingRow =
   | (RowBase & { kind: 'choice'; value: () => string; step: (d: number) => void })
-  | (RowBase & { kind: 'range'; min: number; max: number; step: number; get: () => number; set: (v: number) => void; format: (v: number) => string });
+  | (RowBase & { kind: 'range'; min: number; max: number; step: number; def: number; get: () => number; set: (v: number) => void; format: (v: number) => string });
 export interface SettingSection {
   title: string;
   rows: SettingRow[];
 }
 
-/** An ON / OFF choice; `cost` while on, `offCost` while off (performance cost, see SettingRow). */
-function toggle(label: string, desc: string, get: () => boolean, set: (on: boolean) => void, cost?: number, offCost = 1): SettingRow {
-  return { kind: 'choice', label, desc, cost: cost === undefined ? undefined : () => (get() ? cost : offCost), value: () => (get() ? 'ON' : 'OFF'), step: () => set(!get()) };
+/** An ON / OFF choice. */
+function toggle(label: string, get: () => boolean, set: (on: boolean) => void, cost?: Cost): SettingRow {
+  return { kind: 'choice', label, cost, value: () => (get() ? 'ON' : 'OFF'), step: () => set(!get()) };
 }
 
 function gameplayRows(): SettingRow[] {
   return [
-    { kind: 'range', label: 'FIELD OF VIEW', desc: 'How wide you see, in degrees.', min: 60, max: 110, step: 1, get: () => RENDER.fov, set: (v) => (RENDER.fov = v), format: (v) => `${v}°` },
     {
       kind: 'range',
-      label: 'RUN FOV',
+      label: 'SENSITIVITY',
+      min: 0.25,
+      max: 3,
+      step: 0.05,
+      def: 1,
+      get: () => PLAYER.mouseSensitivity / BASE_SENSITIVITY,
+      set: (v) => (PLAYER.mouseSensitivity = v * BASE_SENSITIVITY),
+      format: (v) => `${v.toFixed(2)}x`,
+    },
+    { kind: 'range', label: 'FIELD OF VIEW', desc: 'How wide you see, in degrees.', min: 60, max: 110, step: 1, def: BASE_FOV, get: () => RENDER.fov, set: (v) => (RENDER.fov = v), format: (v) => `${v}°` },
+    {
+      kind: 'range',
+      label: 'FIELD OF VIEW: RUNNING',
       desc: 'Extra field of view while running, for a sense of speed. 0 turns it off.',
       min: 0,
       max: 15,
       step: 1,
+      def: BASE_RUN_FOV,
       get: () => RENDER.sprintFovBoost,
       set: (v) => (RENDER.sprintFovBoost = v),
       format: (v) => (v ? `+${v}°` : 'OFF'),
@@ -241,7 +264,6 @@ function gameplayRows(): SettingRow[] {
     {
       kind: 'choice',
       label: 'CROUCH',
-      desc: 'HOLD: crouch while Ctrl or C is held. TOGGLE: press once to crouch, again to stand.',
       value: () => (PLAYER.crouchToggle ? 'TOGGLE' : 'HOLD'),
       step: () => (PLAYER.crouchToggle = !PLAYER.crouchToggle),
     },
@@ -269,6 +291,7 @@ function soundRows(): SettingRow[] {
     min: 0,
     max: 200,
     step: 5,
+    def: 100,
     get: () => Math.round((AUDIO[key] / SOUND_DEFAULTS[key]) * 100),
     set: (v: number) => (AUDIO[key] = (SOUND_DEFAULTS[key] * v) / 100),
     format: (v: number) => `${v}%`,

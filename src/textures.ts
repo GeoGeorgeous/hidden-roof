@@ -6,6 +6,9 @@ import { neonAtlas } from './render/ink/neon-text';
 
 // Procedural base textures: tiny canvases, nearest filtering, repeat wrapping.
 // Architecture is flat; facades get their bands in the shader (render/ink/facade.ts).
+// Grays only, like a height map: joints darker, faces lighter, so the ink
+// draws them as lines and lets the faces stay paper. Brick is the wall finish
+// (kit/finishes.ts).
 
 type Painter = (ctx: CanvasRenderingContext2D, w: number, h: number, rnd: () => number) => void;
 
@@ -48,6 +51,20 @@ function build() {
     ctx.fillRect(0, h - 1, w, 1);
     ctx.fillRect(w - 1, 0, 1, h);
   });
+  // Brick in running bond: 0.3 x 0.1 m bricks (24 x 8 px; the material tiles every 0.6 m), each a little lighter or darker, in darker mortar.
+  const brick = canvasTexture(48, 48, 23, (ctx, w, h, rnd) => {
+    ctx.fillStyle = '#9a9a9a';
+    ctx.fillRect(0, 0, w, h);
+    for (let row = 0; row < h / 8; row++) {
+      for (let col = 0; col < w / 24; col++) {
+        const v = Math.round(222 + rnd() * 33);
+        ctx.fillStyle = `rgb(${v},${v},${v})`;
+        // A brick of an offset row that runs off the right edge comes back on the left.
+        for (const dx of [0, -w]) ctx.fillRect(col * 24 + (row % 2) * 12 + 1 + dx, row * 8 + 1, 23, 7);
+      }
+    }
+    noise(ctx, w, h, rnd, 6);
+  });
   const shutter = canvasTexture(16, 16, 8, (ctx, w, h, rnd) => {
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, w, h);
@@ -70,7 +87,7 @@ function build() {
   chainlink.minFilter = THREE.NearestFilter;
   chainlink.generateMipmaps = false;
 
-  return { textures: { flat, panel, shutter, chainlink, panelText: panelAtlas(), words: wordAtlas(), neonText: neonAtlas() } };
+  return { textures: { flat, panel, brick, shutter, chainlink, panelText: panelAtlas(), words: wordAtlas(), neonText: neonAtlas() } };
 }
 
 let cache: ReturnType<typeof build> | null = null;

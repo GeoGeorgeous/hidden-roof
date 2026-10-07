@@ -1,6 +1,6 @@
-import type { PropDef } from './def';
+import { withVariants, type PropDef, type Variant } from './def';
 import { WALL_H } from './structure';
-import { M, Parts } from './pieces';
+import { M, Parts, type V3 } from './pieces';
 
 // Modular pipes: every piece carries its pipe at the same height and ends it on
 // the 0.5 m grid one meter from its origin, so pieces chain end to end into
@@ -25,12 +25,9 @@ function support(p: Parts, x: number, z: number, acrossZ = true) {
 }
 
 /** 2 m straight pipe along x on small supports; chain them. */
-export const pipe: PropDef = {
-  type: 'pipe',
-  label: 'Pipe run',
-  category: 'equipment',
-  place: 'floor',
-  snap: 0.5,
+const pipeRun: Variant = {
+  id: 'run',
+  label: 'run',
   build() {
     const p = new Parts();
     p.cyl([-1, Y, 0], 'x', 2, R, M.rust, { seg: SEG });
@@ -40,12 +37,9 @@ export const pipe: PropDef = {
 };
 
 /** Corner: the run comes in along x (from -x) and leaves toward -z. */
-export const pipeCorner: PropDef = {
-  type: 'pipe_corner',
-  label: 'Pipe corner',
-  category: 'equipment',
-  place: 'floor',
-  snap: 0.5,
+const pipeCorner: Variant = {
+  id: 'corner',
+  label: 'corner',
   build() {
     const p = new Parts();
     p.cyl([-1, Y, 0], 'x', 1, R, M.rust, { seg: SEG });
@@ -57,12 +51,9 @@ export const pipeCorner: PropDef = {
 };
 
 /** Riser: comes up out of the floor and turns toward +x. */
-export const pipeFloor: PropDef = {
-  type: 'pipe_floor',
-  label: 'Pipe from floor',
-  category: 'equipment',
-  place: 'floor',
-  snap: 0.5,
+const pipeFloor: Variant = {
+  id: 'floor',
+  label: 'from floor',
   build() {
     const p = new Parts();
     p.cyl([0, 0, 0], 'y', 0.04, R + 0.08, M.steel, { paint: false, seg: SEG });
@@ -73,16 +64,29 @@ export const pipeFloor: PropDef = {
   },
 };
 
-/** Out of the wall you aim at, half a meter out, then along the wall toward +x. */
-export const pipeWall: PropDef = {
-  type: 'pipe_wall',
-  label: 'Pipe from wall',
-  category: 'equipment',
+/**
+ * How far a pipe comes out of the wall at `pos` (facing `rot`) before it turns:
+ * about half a meter, so its bend lands on the 0.5 m grid the floor pieces snap
+ * to, whether the wall's face is on a grid line (a block) or 0.15 m off it (a
+ * wall piece).
+ */
+function outToGrid(pos: V3, rot = 0) {
+  // Out is -z turned `rot` quarter turns (level/build-prop.ts rotate): world x and z per meter out.
+  const s = [0, -1, 0, 1][rot];
+  const t = [-1, 0, 1, 0][rot];
+  const [a, d] = s ? [pos[0], s] : [pos[2], t];
+  const end = d > 0 ? Math.ceil((a + 0.35) / 0.5 - 1e-6) * 0.5 : Math.floor((a - 0.35) / 0.5 + 1e-6) * 0.5;
+  return +Math.abs(end - a).toFixed(3);
+}
+
+/** Out of the wall you aim at, about half a meter out (to the floor grid), then along the wall toward +x (R flips it toward -x). */
+const pipeWall: Variant = {
+  id: 'wall',
+  label: 'from wall',
   place: 'mount',
-  snap: 0.5,
-  build() {
+  build({ pos, rot }) {
     const p = new Parts();
-    const z = -0.5;
+    const z = -outToGrid(pos, rot);
     p.cyl([0, Y, -0.04], 'z', 0.04, R + 0.08, M.steel, { paint: false, seg: SEG });
     p.cyl([0, Y, z], 'z', -z, R, M.rust, { seg: SEG });
     p.cyl([0, Y, z], 'x', 1, R, M.rust, { seg: SEG });
@@ -93,12 +97,9 @@ export const pipeWall: PropDef = {
 };
 
 /** The run comes in along x (from -x) and goes straight up into the roof or slab above. */
-export const pipeUp: PropDef = {
-  type: 'pipe_up',
-  label: 'Pipe into roof',
-  category: 'equipment',
-  place: 'floor',
-  snap: 0.5,
+const pipeUp: Variant = {
+  id: 'up',
+  label: 'into roof',
   build() {
     const p = new Parts();
     p.cyl([-1, Y, 0], 'x', 1, R, M.rust, { seg: SEG });
@@ -119,7 +120,7 @@ export const pipeUp: PropDef = {
 export const drainPipe: PropDef = {
   type: 'drain_pipe',
   label: 'Drain pipe',
-  category: 'equipment',
+  category: 'pipes',
   place: 'mount',
   snap: 0.5,
   vSnap: 4,
@@ -146,3 +147,6 @@ export const drainPipe: PropDef = {
     return p.list;
   },
 };
+
+/** The modular pipe pieces. */
+export const pipe = withVariants({ type: 'pipe', label: 'Pipe', category: 'pipes', place: 'floor', snap: 0.5 }, [pipeRun, pipeCorner, pipeFloor, pipeWall, pipeUp]);

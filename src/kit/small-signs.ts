@@ -1,4 +1,4 @@
-import type { PropDef } from './def';
+import { withVariants, type Variant } from './def';
 import { M, Parts, type Mat, type V3 } from './pieces';
 import { word } from './lettering';
 
@@ -13,12 +13,9 @@ function stroke(p: Parts, z: number, pts: [number, number][], r: number, mat: Ma
 }
 
 /** Exit sign: its text (EXIT) in paper on ink. */
-export const signExit: PropDef = {
-  type: 'sign_exit',
-  label: 'Exit sign',
-  category: 'signs',
-  place: 'mount',
-  snap: 0.5,
+const signExit: Variant = {
+  id: 'exit',
+  label: 'exit',
   hang: 0.11,
   text: 'EXIT',
   build({ text }) {
@@ -31,12 +28,9 @@ export const signExit: PropDef = {
 };
 
 /** High voltage: a bolt in a warning triangle over HIGH VOLTAGE. */
-export const signVoltage: PropDef = {
-  type: 'sign_voltage',
-  label: 'High voltage sign',
-  category: 'signs',
-  place: 'mount',
-  snap: 0.5,
+const signVoltage: Variant = {
+  id: 'voltage',
+  label: 'high voltage',
   hang: 0.2,
   text: 'HIGH VOLTAGE',
   build({ text }) {
@@ -55,12 +49,9 @@ export const signVoltage: PropDef = {
 };
 
 /** No entry: a round sign, a person's silhouette crossed out. */
-export const signNoEntry: PropDef = {
-  type: 'sign_no_entry',
-  label: 'No entry sign',
-  category: 'signs',
-  place: 'mount',
-  snap: 0.5,
+const signNoEntry: Variant = {
+  id: 'no_entry',
+  label: 'no entry',
   hang: 0.2,
   build() {
     const c = 0.2; // center height
@@ -82,12 +73,9 @@ export const signNoEntry: PropDef = {
 };
 
 /** Small name plate in a steel frame, as wide as its text. */
-export const signPlate: PropDef = {
-  type: 'sign_plate',
-  label: 'Name plate',
-  category: 'signs',
-  place: 'mount',
-  snap: 0.5,
+const signPlate: Variant = {
+  id: 'plate',
+  label: 'name plate',
   hang: 0.07,
   text: 'STAFF ONLY',
   build({ text }) {
@@ -101,3 +89,6 @@ export const signPlate: PropDef = {
     return p.list;
   },
 };
+
+/** Small wall signs, each with its own text or pictogram. */
+export const smallSign = withVariants({ type: 'small_sign', label: 'Small sign', category: 'signs', place: 'mount', snap: 0.5 }, [signExit, signVoltage, signNoEntry, signPlate]);

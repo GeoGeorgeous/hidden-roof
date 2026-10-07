@@ -821,7 +821,7 @@ Single player stays the default and keeps build mode and F3. Multiplayer is ente
 | Ladders by owner, removed with their owner | S–M | `src/level/level.ts`, `src/tools/ladder-tool.ts` |
 | Cube avatar: head, body, arms and legs as ink-gray boxes like the first-person hands; held tool from the pickup models; poses for walk, crouch, jump, climb, paint | M | new `src/avatar/*`, reuse `src/spray/hands.ts`, `src/pickups/visuals.ts` |
 | Snapshot interpolation, tested with a "ghost": record your own play (state + ops) and play it back as a second player | S | new `src/net/remote-player.ts` |
-| City determinism (optional, cosmetic) | S | `src/city/layout.ts`, `src/city/rooftops.ts` |
+| City determinism (optional, cosmetic). Done 2026-10-06: a seed per block, heights by distance (`SKYLINE.riseTo`), clutter range from the city's own settings | S | `src/city/layout.ts`, `src/city/rooftops.ts` |
 
 **Phase 4: server and the MULTIPLAYER menu (M, ~4–5 days).**
 
@@ -843,6 +843,35 @@ Single player stays the default and keeps build mode and F3. Multiplayer is ente
 **How to start:** phase 0. It costs a day, changes nothing you can see, and from then on every step proves the paint still looks exactly the same.
 
 ---
+
+## 7a. Status after phases 0–3 (2026-10-06)
+
+Phases 0–3 are done on `feat/multiplayer`: every step in section 7 through phase 3, each with a test (`npm run check`, `npm run golden`). Same paint as before every refactor (golden hashes at all four details).
+
+**Reviewed and fixed at the end of phase 3:**
+
+- A remote player's interpolation delay adapts to measured jitter (`NET.jitterCover`, up to `maxDelay`), the usual "jitter buffer" sizing, instead of a fixed 0.13 s.
+- A guess past a late snapshot (extrapolation, at most 0.25 s, as Source does) used to snap back when the real snapshot came; the difference now fades out (`NET.smoothing`), a teleport still snaps. Tested with resent packets (`GHOST.hiccups`).
+- Snapshots received while no frames are drawn (a hidden tab) are capped at the newest 64.
+- The avatar's in-air pose waits 0.18 s (or a jump up): stepping down a stair no longer flashes the jump pose.
+- A ghost PLAY pressed during a loop restart no longer runs two loops.
+
+**Carried into phase 4 (not bugs today; they need the server or the menu):**
+
+| # | Item | Why it matters | Plan |
+|---|---|---|---|
+| 1 | Paint order differs per client | Each client applies its own ops at once and others' a moment later, so where two players' strokes overlap, blending order differs (alpha blending isn't commutative): tiny differences in overlaps | The server's order is canonical; it hands a joiner its paint. Optionally compare per-face hashes now and then and pull faces that differ |
+| 2 | Hidden tab | No frames, so no snapshots go out: others see you stand (extrapolation stops) | Fine; on return, queued paint ops apply at once |
+| 3 | `session.player` is `'local'` | Owner keys must be unique per player | The server hands out player ids in `Welcome` |
+| 4 | `LadderTool.others` is only wired to the ghost | A ladder could be placed inside a real remote player | Point it at the remote players' positions |
+| 5 | SAVE / LOAD PAINT in a session | LOAD would replace only this client's paint | The session menu: SAVE, LEAVE, the code (section 7) |
+| 6 | PAINT DETAIL and F3-free config in a session | 6.2 and section 8.1 | Lock PAINT DETAIL in a session; freeze session config from `Welcome` |
+| 7 | Snapshot time is float32 seconds | 2 ms steps after 8 hours | Fine; or session-relative time from the server |
+| 8 | TCP head-of-line blocking | WebSocket: one lost packet holds the ones behind it (the ghost's hiccups model it) | Smoothing and the adaptive delay hide it for two players; WebTransport datagrams (Chrome) would remove it if needed |
+| 9 | Headless world build for the server | Section 1, blocker 9 | Phase 4: pieces → paint faces in Node |
+| 10 | Paint memory at full ULTRA | Section 1, blocker 8 | Log paint memory per session (decision 9) |
+
+**Research behind the network choices** (2026-10-06): snapshot interpolation renders remote players slightly in the past between two snapshots ([Valve: Source multiplayer networking](https://developer.valvesoftware.com/wiki/Source_Multiplayer_Networking): 100 ms, extrapolation for at most 0.25 s); size the buffer to two snapshot intervals plus measured jitter and adapt it ([Unity Netcode: interpolation](https://docs.unity3d.com/Packages/com.unity.netcode@1.8/manual/interpolation.html), [bugnet: buffer too small stutter](https://bugnet.io/blog/how-to-fix-snapshot-interpolation-buffer-too-small-stutter)); over TCP one lost packet stalls the rest ([WebTransport for games](https://minhvo.is-a.dev/blogs/webtransport-low-latency-communication-for-games-and-media)); a walk cycle phased by distance keeps feet from sliding ([Vulkan tutorial: procedural animation](https://docs.vulkan.org/tutorial/latest/Advanced_glTF/Procedural_Animation_IK/07_conclusion.html)); collaborative canvases converge through a central order or CRDTs ([techinterview: collaborative whiteboard](https://techinterview.org/system-design-collaborative-whiteboard/)); background tabs stop rAF but not WebSockets ([Chrome: background tabs](https://developer.chrome.com/blog/background_tabs)).
 
 ## 8. Still open
 

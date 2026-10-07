@@ -1,13 +1,15 @@
 import { MAX_TEXT } from '../render/ink/words';
 import * as THREE from 'three';
-import { KIT_BY_TYPE } from '../kit';
-import type { V3 } from '../kit/pieces';
-import { V_MODULE } from '../kit/def';
+import { defOf, renamed, upgraded } from '../kit';
+import { mirrored, type V3 } from '../kit/pieces';
+import { V_MODULE, type PropDef } from '../kit/def';
 import type { PaintSystem } from '../painting';
 import type { Ladder } from '../player';
 import { DecorBatches } from './batches';
 import { buildProp, disposeProp, type BuiltProp, type Emitter, type LightAnchor, type PropInstance } from './build-prop';
-import { computeJoints, jointPieces, type Joint } from './joints';
+import { computeJoints, jointOwner, jointPieces, sameFinish, type Joint } from './joints';
+import { column, propAt, stackContext } from './stacks';
+import type { Finish } from '../kit/finishes';
 
 // The editable level: prop instances + everything built from them (meshes,
 // colliders, ladders), auto joints between edge props, and decor batches.
@@ -15,17 +17,30 @@ import { computeJoints, jointPieces, type Joint } from './joints';
 // tools keep their references across edits.
 
 export interface PropData {
+  /**
+   * Its id for good (level format 3): paint names surfaces by it (`p<id>#k`),
+   * so a saved level keeps it through edits. Files without ids (format 2)
+   * number props in file order.
+   */
+  id?: number;
   type: string;
+  /** Its variant (PropDef.variants), for props that have them. */
+  variant?: string;
   pos: V3;
   rot?: number;
   /** Per-instance setting (PropDef.adjust), e.g. floodlight tilt in degrees. */
   adjust?: number;
   /** Per-instance text (PropDef.text), e.g. a sign's words. */
   text?: string;
+  /** Its wall finish (PropDef.finishes), when not its own look. */
+  finish?: Finish;
+  /** Mirrored left to right (a wall piece flipped with R in build mode). */
+  mirror?: boolean;
 }
 
 export interface LevelData {
-  version: 2;
+  /** 4: props keep their default variant even when it changes later (format 3 files: see kit/index.ts upgraded). */
+  version: 2 | 3 | 4;
   spawn: { pos: V3; yaw: number };
   props: PropData[];
   /** Owned by other systems (pickups). */
@@ -50,6 +65,8 @@ export class Level {
   joints = new Map<string, { joint: Joint; b: BuiltProp }>();
   private batches = new DecorBatches();
   private nextId = 1;
+  /** Props placed while playing, one per owner (a player's stepladder): owner -> prop id. */
+  private runtime = new Map<string, number>();
 
   constructor(
     scene: THREE.Scene,
@@ -68,15 +85,29 @@ export class Level {
   }
 
   remove(id: number) {
-    const inst = this.props.get(id);
-    if (!inst) return;
-    const b = this.built.get(id);
-    if (b) disposeProp(b, this.paint);
-    this.built.delete(id);
-    this.lettered.delete(id);
-    this.props.delete(id);
-    this.rebuildStack(inst);
+    if (this.drop(id)) this.refresh();
+  }
+
+  /**
+   * Put an owner's prop (a player's stepladder) here, or take it away (null).
+   * Their previous one goes, and the level is refreshed once. Never saved; it
+   * must not be paintable, since its id differs from client to client.
+   */
+  setRuntime(owner: string, data: PropData | null): PropInstance | null {
+    const old = this.runtime.get(owner);
+    if (old !== undefined) this.drop(old);
+    const inst = data && this.create({ ...data, id: undefined });
+    if (inst) {
+      inst.owner = owner;
+      this.runtime.set(owner, inst.id);
+    }
     this.refresh();
+    return inst;
+  }
+
+  /** The id of an owner's runtime prop, if one stands. */
+  runtimeOf(owner: string) {
+    return this.runtime.get(owner);
   }
 
   clear() {
@@ -86,6 +117,8 @@ export class Level {
     this.lettered.clear();
     this.joints.clear();
     this.props.clear();
+    this.runtime.clear();
+    this.nextId = 1;
     this.refresh();
   }
 
@@ -93,21 +126,21 @@ export class Level {
     this.clear();
     this.spawn = { pos: [...data.spawn.pos], yaw: data.spawn.yaw };
     // Create all instances first so stacking props see their neighbors when built.
-    for (const p of data.props) this.create(p, false);
+    for (const p of data.props) this.create(upgraded(p, data.version), false);
     for (const inst of this.props.values()) this.build(inst);
     this.refresh();
   }
 
   toJSON(): LevelData {
-    // Props the player placed while playing (the stepladder) aren't part of the level file.
-    const props = [...this.props.values()].filter((p) => !p.runtime).map(({ type, pos, rot, adjust, text }) => ({ type, pos, rot, ...(adjust === undefined ? {} : { adjust }), ...(text === undefined ? {} : { text }) }));
-    return { version: 2, spawn: this.spawn, props };
+    // Props the player placed while playing (the stepladder) aren't part of the level file. Default variants go unsaved.
+    const props = [...this.props.values()].filter((p) => p.owner === undefined).map(({ id, type, variant, pos, rot, adjust, text, finish, mirror }) => ({ id, type, ...(variant === defOf(type)!.variant ? {} : { variant }), pos, rot, ...(mirror ? { mirror } : {}), ...(adjust === undefined ? {} : { adjust }), ...(text === undefined ? {} : { text }), ...(finish && Object.keys(finish).length ? { finish } : {}) }));
+    return { version: 4, spawn: this.spawn, props };
   }
 
   /** Change a prop's per-instance setting (clamped to its range) and rebuild it. Returns the new value. */
   setAdjust(id: number, value: number) {
     const inst = this.props.get(id);
-    const a = inst && KIT_BY_TYPE.get(inst.type)?.adjust;
+    const a = inst && defOf(inst.type, inst.variant)?.adjust;
     if (!inst || !a) return null;
     inst.adjust = Math.min(a.max, Math.max(a.min, +value.toFixed(3)));
     this.build(inst);
@@ -118,9 +151,19 @@ export class Level {
   /** Change a sign's text (PropDef.text) and rebuild it; empty goes back to the default. */
   setText(id: number, text: string) {
     const inst = this.props.get(id);
-    if (!inst || KIT_BY_TYPE.get(inst.type)?.text === undefined) return false;
+    if (!inst || defOf(inst.type, inst.variant)?.text === undefined) return false;
     inst.text = text.trim().slice(0, MAX_TEXT) || undefined;
     this.build(inst);
+    this.refresh();
+    return true;
+  }
+
+  /** Change a prop's wall finish (PropDef.finishes; none: its own look) and rebuild it, keeping its paint. */
+  setFinish(id: number, finish: Finish | undefined) {
+    const inst = this.props.get(id);
+    if (!inst) return false;
+    inst.finish = finish;
+    this.build(inst, true);
     this.refresh();
     return true;
   }
@@ -148,7 +191,7 @@ export class Level {
     for (const inst of this.props.values()) this.build(inst, true);
     for (const [key, { joint, b: old }] of this.joints) {
       disposeProp(old, this.paint);
-      const b = this.buildJoint(joint);
+      const b = this.buildJoint(key, joint);
       this.carryPaint(old, b);
       this.joints.set(key, { joint, b });
     }
@@ -176,14 +219,31 @@ export class Level {
   }
 
   /** Bounding box of everything except cables (which can span far). */
+  /** The level's extent, without cables and without what players placed (their stepladders): the city is laid out around it. */
   totalBounds() {
     const box = new THREE.Box3();
-    for (const [id, b] of this.built) if (!this.props.get(id)?.type.startsWith('cable')) box.union(b.bounds);
+    for (const [id, b] of this.built) {
+      const p = this.props.get(id);
+      if (p && !p.type.startsWith('cable') && p.owner === undefined) box.union(b.bounds);
+    }
     return box;
   }
 
   idOf(o: THREE.Object3D): number | undefined {
     return o.userData.propId;
+  }
+
+  /**
+   * The prop build mode works on when a ray hits `o` at `point` (RMB deletes it,
+   * MMB picks it, it's outlined): the prop itself, or for a joint post the edge
+   * prop ending there that is nearest the point. Never a player's stepladder.
+   */
+  targetOf(o: THREE.Object3D, point: THREE.Vector3): number | undefined {
+    const key: string | undefined = o.userData.joint;
+    const joint = key === undefined ? undefined : this.joints.get(key)?.joint;
+    const id = key === undefined ? this.idOf(o) : joint && jointOwner(joint, this.props.values(), point);
+    const inst = id === undefined ? undefined : this.props.get(id);
+    return inst && inst.owner === undefined ? inst.id : undefined;
   }
 
   /** Does any box penetrate a placed prop's colliders (joints excluded)? `ignore`: a prop id to leave out. */
@@ -197,20 +257,23 @@ export class Level {
     return false;
   }
 
-  /** Stacking neighbors (PropContext.above / below) of a prop at `pos`. */
-  stackContext(type: string, pos: V3, rot: number) {
-    const def = KIT_BY_TYPE.get(type);
-    const above = !!def?.stacks?.above && this.findAt(type, [pos[0], pos[1] + V_MODULE, pos[2]], rot) !== undefined;
-    const below = !!def?.stacks?.below && this.column(type, pos, rot).some((p) => p.pos[1] < pos[1] - 0.01);
-    return { above, below };
+  /** Stacking neighbors (PropContext.above / below) of a prop (a def resolved by defOf) at `pos`. */
+  stackContext(def: PropDef, pos: V3, rot: number) {
+    return stackContext(this.props.values(), def, pos, rot);
   }
 
   private create(data: PropData, build = true): PropInstance | null {
-    if (!KIT_BY_TYPE.has(data.type)) {
+    // Levels saved before variants name some props by their old types.
+    const [type, variant] = renamed(data.type, data.variant);
+    const def = defOf(type, variant);
+    if (!def) {
       console.warn(`unknown prop type "${data.type}"`);
       return null;
     }
-    const inst: PropInstance = { id: this.nextId++, type: data.type, pos: [...data.pos], rot: (((data.rot ?? 0) % 4) + 4) % 4, adjust: data.adjust, text: data.text };
+    // Its own id when it has a free one (a format 3 level, undo), else the next.
+    const id = Number.isInteger(data.id) && data.id! > 0 && !this.props.has(data.id!) ? data.id! : this.nextId;
+    this.nextId = Math.max(this.nextId, id + 1);
+    const inst: PropInstance = { id, type, variant: def.variant, pos: [...data.pos], rot: (((data.rot ?? 0) % 4) + 4) % 4, adjust: data.adjust, text: data.text, finish: data.finish, mirror: data.mirror || undefined };
     this.props.set(inst.id, inst);
     if (build) this.build(inst);
     return inst;
@@ -225,14 +288,14 @@ export class Level {
   private build(inst: PropInstance, resample = false) {
     const old = this.built.get(inst.id);
     if (old) disposeProp(old, this.paint);
-    const def = KIT_BY_TYPE.get(inst.type)!;
+    const def = defOf(inst.type, inst.variant)!;
     const seed = Math.abs(Math.round(inst.pos[0] * 7 + inst.pos[2] * 13));
     const adjust = inst.adjust ?? def.adjust?.initial() ?? 0;
-    const ctx = { seed, pos: inst.pos, adjust, text: inst.text ?? def.text ?? '', ...this.stackContext(inst.type, inst.pos, inst.rot) };
-    const pieces = def.build(ctx);
+    const ctx = { seed, pos: inst.pos, rot: inst.rot, adjust, text: inst.text ?? def.text ?? '', finish: inst.finish, ...this.stackContext(def, inst.pos, inst.rot) };
+    const pieces = inst.mirror ? mirrored(def.build(ctx)) : def.build(ctx);
     if (pieces.some((p) => 'mat' in p && p.mat.letters)) this.lettered.add(inst.id);
     else this.lettered.delete(inst.id);
-    const b = buildProp(inst.id, pieces, inst.pos, inst.rot, this.paint);
+    const b = buildProp(inst.id, `p${inst.id}`, pieces, inst.pos, inst.rot, this.paint);
     this.root.add(b.group);
     this.built.set(inst.id, b);
     if (old && (resample || samePaintFaces(old, b))) this.carryPaint(old, b);
@@ -243,43 +306,51 @@ export class Level {
    * (building block): rebuild the neighbors whose shape changes.
    */
   private rebuildStack(inst: PropInstance) {
-    const s = KIT_BY_TYPE.get(inst.type)?.stacks;
+    const def = defOf(inst.type, inst.variant)!;
+    const s = def.stacks;
     if (!s) return;
-    const below = s.above ? this.findAt(inst.type, [inst.pos[0], inst.pos[1] - V_MODULE, inst.pos[2]], inst.rot) : undefined;
+    const below = s.above ? propAt(this.props.values(), def, [inst.pos[0], inst.pos[1] - (def.vSnap ?? V_MODULE), inst.pos[2]], inst.rot) : undefined;
     if (below) this.build(below);
     // Only the lowest prop above can change (it may become the bottom of the column).
     if (s.below) {
-      const above = this.column(inst.type, inst.pos, inst.rot).filter((p) => p.pos[1] > inst.pos[1] + 0.01);
+      const above = column(this.props.values(), def, inst.pos, inst.rot).filter((p) => p.pos[1] > inst.pos[1] + 0.01);
       const lowest = above.sort((a, b) => a.pos[1] - b.pos[1])[0];
       if (lowest) this.build(lowest);
     }
   }
 
-  /** Props of this type in the same vertical column (same x, z). */
-  private column(type: string, pos: V3, rot: number) {
-    const anyRot = KIT_BY_TYPE.get(type)?.place === 'cell';
-    return [...this.props.values()].filter((p) => p.type === type && (anyRot || p.rot === rot) && Math.abs(p.pos[0] - pos[0]) < 0.01 && Math.abs(p.pos[2] - pos[2]) < 0.01);
-  }
-
-  /** Cell props fill the same space whatever their facing, so their rotation doesn't matter. */
-  private findAt(type: string, pos: V3, rot: number) {
-    const anyRot = KIT_BY_TYPE.get(type)?.place === 'cell';
-    for (const p of this.props.values()) {
-      if (p.type === type && (anyRot || p.rot === rot) && pos.every((v, i) => Math.abs(v - p.pos[i]) < 0.01)) return p;
-    }
-    return undefined;
+  /** Take a prop out without refreshing; false if there's none with this id. */
+  private drop(id: number) {
+    const inst = this.props.get(id);
+    if (!inst) return false;
+    const b = this.built.get(id);
+    if (b) disposeProp(b, this.paint);
+    this.built.delete(id);
+    this.lettered.delete(id);
+    this.props.delete(id);
+    if (inst.owner !== undefined) this.runtime.delete(inst.owner);
+    this.rebuildStack(inst);
+    return true;
   }
 
   /** Update joints, flat arrays and batches after a change. */
   private refresh() {
-    const want = computeJoints(this.props.values(), KIT_BY_TYPE);
+    const want = computeJoints(this.props.values());
     for (const [key, j] of this.joints) {
       if (want.has(key)) continue;
       disposeProp(j.b, this.paint);
       this.joints.delete(key);
     }
     for (const [key, joint] of want) {
-      if (!this.joints.has(key)) this.joints.set(key, { joint, b: this.buildJoint(joint) });
+      const old = this.joints.get(key);
+      if (old && sameFinish(old.joint, joint)) continue;
+      // New, or its finish changed: (re)built, its paint carried over.
+      const b = this.buildJoint(key, joint);
+      if (old) {
+        this.carryPaint(old.b, b);
+        disposeProp(old.b, this.paint);
+      }
+      this.joints.set(key, { joint, b });
     }
     this.colliders.length = 0;
     this.ladders.length = 0;
@@ -299,8 +370,9 @@ export class Level {
     this.onChange();
   }
 
-  private buildJoint(joint: Joint) {
-    const b = buildProp(-1, jointPieces(joint.kind), joint.pos, 0, this.paint);
+  private buildJoint(key: string, joint: Joint) {
+    const b = buildProp(-1, `j${key}`, jointPieces(joint), joint.pos, 0, this.paint);
+    for (const o of b.group.children) o.userData.joint = key;
     this.root.add(b.group);
     return b;
   }

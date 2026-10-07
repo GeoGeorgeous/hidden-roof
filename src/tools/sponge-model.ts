@@ -1,8 +1,7 @@
 import * as THREE from 'three';
-import { HOLD, SPONGE } from '../config';
-import { inkify } from '../render/ink/tone';
+import { HOLD, MODELS, SPONGE } from '../config';
 import { glove, segment, sleeve } from '../spray/hands';
-import { spongeShape } from './sponge-shape';
+import { disposeShape, inkLook, spongeShape } from './shapes';
 import { applyHold } from './hold';
 
 // First-person view of the sponge in hand, held like the can: the gloved hand
@@ -27,14 +26,11 @@ export class SpongeModel {
     this.group.add(this.sway);
   }
 
-  /** (Re)build from SPONGE.model, e.g. after tuning it in F3. */
+  /** (Re)build from MODELS.sponge, e.g. after tuning it in F3. */
   build() {
-    if (this.shape) {
-      this.body.remove(this.shape);
-      this.shape.traverse((o) => (o as THREE.Mesh).geometry?.dispose());
-    }
-    const m = SPONGE.model;
-    const s = spongeShape(inkify(new THREE.MeshLambertMaterial({ color: m.soft })), inkify(new THREE.MeshLambertMaterial({ color: m.pad })));
+    if (this.shape) disposeShape(this.shape);
+    const m = MODELS.sponge;
+    const s = spongeShape(inkLook(glove));
     const V = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
     const w = m.width / 2;
     const h = m.height / 2;

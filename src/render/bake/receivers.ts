@@ -118,16 +118,6 @@ export function receiverBytes(r: Receiver) {
   return size(r.light) + size(r.flicker);
 }
 
-/** Set the light texel filter (LIGHTMAP.smooth) of a receiver's textures. */
-export function filterReceiver(r: Receiver) {
-  if (r.kind !== 'surface') return;
-  for (const t of [r.light, r.flicker]) {
-    if (!t) continue;
-    t.minFilter = t.magFilter = filter();
-    t.needsUpdate = true;
-  }
-}
-
 function clearSurface(r: SurfaceReceiver) {
   dropReceiver(r);
   r.surface.material.setLightmap(null, null);
@@ -149,10 +139,8 @@ function copyFill(data: Uint16Array, fill: Int32Array) {
   for (let i = 0; i < fill.length; i += 2) data.copyWithin(fill[i] * 4, fill[i + 1] * 4, fill[i + 1] * 4 + 4);
 }
 
-const filter = () => (LIGHTMAP.smooth ? THREE.LinearFilter : THREE.NearestFilter);
-
 function lightTexture(w: number, h: number) {
   const t = new THREE.DataTexture(new Uint16Array(w * h * 4), w, h, THREE.RGBAFormat, THREE.HalfFloatType);
-  t.minFilter = t.magFilter = filter();
+  t.minFilter = t.magFilter = THREE.LinearFilter;
   return t;
 }

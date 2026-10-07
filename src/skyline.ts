@@ -51,8 +51,8 @@ export function buildSkyline(level: THREE.Box3, overrides: SkylineSettings = {})
       mesh.box(t.x0, y, t.z0, t.x1, t.top, t.z1);
       y = t.top;
     }
-    dressTower(tw, mesh, signs, lines);
-    wallSigns(tw, signs, lines);
+    dressTower(tw, cfg.clutterRange, mesh, signs, lines);
+    wallSigns(tw, cfg.clutterRange, signs, lines);
   }
   stringWires(towers, level, lines, lcg(cfg.seed * 31 + 5));
   // The street, far down in the void: nothing shows through under the city.

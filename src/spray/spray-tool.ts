@@ -8,6 +8,7 @@ import type { PaintSystem } from '../painting';
 import { CanModel } from './can-model';
 import { SprayParticles } from './particles';
 import { setHex } from '../hex-color';
+import { paintRandom } from '../lcg';
 
 // Spraying: color and cap come from the inventory. Paint never runs out;
 // pressure drains while spraying and is restored by shaking with the right
@@ -63,11 +64,16 @@ export class SprayTool {
 
     const spraying = input.lmb && input.locked;
     this.flow = spraying ? this.computeFlow(dt, inv.pressure) : 0;
-    if (spraying) inv.pressure = Math.max(0, inv.pressure - PRESSURE.drainPerSecond * dt);
+    if (spraying) inv.pressure = Math.max(0, inv.pressure - cap.drain * dt);
     this.audio.setHiss(this.flow * cap.hissGain, cap.hissTone);
 
     this.model.update(dt, camera, spraying, this.flow > 0, this.shakeT > 0 ? 1 - this.shakeT / PRESSURE.shakeDuration : -1);
     if (this.flow > 0) this.emit(dt, camera, eye, inv);
+  }
+
+  /** Shaking the can (RMB) right now. */
+  get shaking() {
+    return this.shakeT > 0;
   }
 
   private emit(dt: number, camera: THREE.Camera, eye: THREE.Vector3, inv: Inventory) {
@@ -88,8 +94,8 @@ export class SprayTool {
     if (p < PRESSURE.sputterThreshold) {
       this.sputterTimer -= dt;
       if (this.sputterTimer <= 0) {
-        this.sputterOn = Math.random() < PRESSURE.sputterDuty;
-        this.sputterTimer = 0.03 + Math.random() * 0.12;
+        this.sputterOn = paintRandom.sputter() < PRESSURE.sputterDuty;
+        this.sputterTimer = 0.03 + paintRandom.sputter() * 0.12;
       }
       const weak = 0.5 + 0.5 * (p / PRESSURE.sputterThreshold);
       return this.sputterOn ? PRESSURE.minSteadyFlow * weak : 0;

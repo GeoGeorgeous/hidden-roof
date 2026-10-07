@@ -20,12 +20,21 @@ export interface Pickup {
   /** Ground point; the item hovers above it. */
   pos: V3;
   group: THREE.Group;
+  /** Bobs and spins; holds `pose`, which holds the model. */
   item: THREE.Group;
+  /** PICKUP.models for this kind. */
+  pose: THREE.Group;
   halo: THREE.Sprite;
   collected: boolean;
   /** Player was in range last frame (avoids repeating "full" messages). */
   inRange: boolean;
   phase: number;
+}
+
+/** A kind's entry in PICKUP.models: color unlocks are cans, caps share one, tools have their own. */
+function modelOf(kind: PickupKind): keyof typeof PICKUP.models {
+  const k = kind.split(':')[0];
+  return k === 'color' ? 'can' : (k as keyof typeof PICKUP.models);
 }
 
 export class Pickups {
@@ -42,17 +51,17 @@ export class Pickups {
     scene.add(this.root);
   }
 
-  /** Rebuild the item model of every pickup of this kind (after its config changed in F3). */
-  restyle(kind: PickupKind) {
+  /** Rebuild every pickup's item model (after a model changed in F3). */
+  restyle() {
     for (const p of this.list.values()) {
-      if (p.kind !== kind) continue;
-      const item = itemModel(kind);
-      item.position.copy(p.item.position);
-      item.rotation.y = p.item.rotation.y;
-      p.group.remove(p.item);
-      p.item.traverse((o) => (o as THREE.Mesh).geometry?.dispose());
-      p.group.add(item);
-      p.item = item;
+      for (const old of [...p.pose.children]) {
+        old.traverse((o) => {
+          (o as THREE.Mesh).geometry?.dispose();
+          ((o as THREE.Mesh).material as THREE.Material | undefined)?.dispose();
+        });
+        p.pose.remove(old);
+      }
+      p.pose.add(itemModel(p.kind));
     }
   }
 
@@ -63,13 +72,16 @@ export class Pickups {
     }
     const color = glowColor(kind);
     const group = new THREE.Group();
-    const item = itemModel(kind);
+    const item = new THREE.Group();
+    const pose = new THREE.Group();
+    pose.add(itemModel(kind));
+    item.add(pose);
     const halo = makeHalo(color);
     // Invisible hit box so build mode can select the pickup.
     const hit = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.2, 0.7), new THREE.MeshBasicMaterial());
     hit.visible = false;
     hit.position.y = 0.6;
-    const p: Pickup = { id: this.nextId++, kind, pos: [...pos], group, item, halo, collected: false, inRange: false, phase: Math.random() * 6 };
+    const p: Pickup = { id: this.nextId++, kind, pos: [...pos], group, item, pose, halo, collected: false, inRange: false, phase: Math.random() * 6 };
     hit.userData.pickupId = p.id;
     group.add(item, halo, hit);
     group.position.set(...p.pos);
@@ -121,10 +133,16 @@ export class Pickups {
       const bob = Math.sin(this.time * 2 + p.phase) * PICKUP.bob;
       p.item.position.y = PICKUP.hover + bob;
       p.item.rotation.y = this.time * PICKUP.spin + p.phase;
+      const m = PICKUP.models[modelOf(p.kind)];
+      p.pose.position.set(...m.offset);
+      p.pose.rotation.set(...m.rotation);
+      p.pose.scale.setScalar(m.size);
       p.halo.position.y = PICKUP.hover + bob;
+      p.halo.scale.setScalar(PICKUP.ring.size);
+      p.halo.material.opacity = PICKUP.ring.opacity;
       if (this.editing || p.collected) continue;
       const near =
-        Math.hypot(feet.x - p.pos[0], feet.z - p.pos[2]) < PICKUP.radius && feet.y > p.pos[1] - 1.2 && feet.y < p.pos[1] + 1.2;
+        Math.hypot(feet.x - p.pos[0], feet.z - p.pos[2]) < PICKUP.reach && Math.abs(feet.y - p.pos[1]) < PICKUP.reachHeight;
       if (near && !p.inRange) this.tryCollect(p, inv);
       p.inRange = near;
     }

@@ -16,6 +16,8 @@ export interface Rect {
   upright?: boolean;
   /** Flat faces: where the face is in the world, so paint can cross onto coplanar neighbors (paint-seams.ts). */
   face?: FaceSpec;
+  /** The face's size in meters (w, h are texels at the paint detail): the same at every detail. */
+  meters?: [number, number];
 }
 
 export interface SurfaceGeometry {
@@ -27,6 +29,23 @@ export interface SurfaceGeometry {
   triToRect: Uint16Array;
   /** Per vertex: rect index + 0.999 * u, then v (u, v = 0..1 across the face). Lightmaps lay out their own atlas from it. */
   faceUv: Float32Array;
+}
+
+/** A point on one face of a surface: its rect index and where on it (u, v = 0..1 across the face). The same at every paint detail, so it can be sent, saved and replayed. */
+export interface FacePoint {
+  rect: number;
+  u: number;
+  v: number;
+}
+
+/** The face point under a raycast hit (atlas `uv` on triangle `faceIndex`), written into `out`. */
+export function facePoint(geo: SurfaceGeometry, faceIndex: number, uv: { x: number; y: number }, out: FacePoint): FacePoint {
+  const rect = geo.triToRect[faceIndex];
+  const r = geo.rects[rect];
+  out.rect = rect;
+  out.u = (uv.x * geo.atlasW - r.x) / r.w;
+  out.v = (uv.y * geo.atlasH - r.y) / r.h;
+  return out;
 }
 
 const PAD = 1;
@@ -65,7 +84,7 @@ export class SurfaceBuilder {
   /** Reserve an atlas rect for a face of the given size in meters. */
   addRect(uMeters: number, vMeters: number): number {
     const d = PAINT.texelsPerMeter;
-    this.rects.push({ x: 0, y: 0, w: Math.max(1, Math.ceil(uMeters * d)), h: Math.max(1, Math.ceil(vMeters * d)) });
+    this.rects.push({ x: 0, y: 0, w: Math.max(1, Math.ceil(uMeters * d)), h: Math.max(1, Math.ceil(vMeters * d)), meters: [uMeters, vMeters] });
     return this.rects.length - 1;
   }
 

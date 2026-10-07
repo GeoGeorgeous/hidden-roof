@@ -1,81 +1,142 @@
 import type { Category, PropDef } from './def';
-import { fireescape, hatch, ladder, railing, stairs, stepladder } from './access';
-import { antenna, billboard, cable12, cable4, cable8, cctv, sign } from './details';
-import { floodlight, lampPost, stringLights, wallLamp } from './lights';
-import { neonAmber, neonCyan, neonPink } from './neon';
-import { acLarge, acMedium, acSmall, acWall, duct, exhaust, utilitybox, ventshaft, watertower } from './equipment';
-import { cableCorner, cableRun, cableUp, cableWall } from './cable-runs';
-import { drainPipe, pipe, pipeCorner, pipeFloor, pipeUp, pipeWall } from './pipes';
-import { building, door, doorOpen, halfBlock, parapet, slab, wall, wallLedge, windowWall } from './structure';
-import { bladeSign, shopSign } from './signs';
-import { signExit, signNoEntry, signPlate, signVoltage } from './small-signs';
+import { fireescape, hatch, ladder, stairs, stepladder } from './access';
+import { antenna, billboard, cable, cctv, sign } from './details';
+import { floodlight, wallLamp } from './lights';
+import { neon } from './neon';
+import { ac, duct, exhaust, utilitybox, ventshaft, watertower } from './equipment';
+import { cableRun } from './cable-runs';
+import { drainPipe, pipe } from './pipes';
+import { building, parapet, plinth, slab, wall } from './structure';
+import { bladeSign, roofLetters } from './signs';
+import { smallSign } from './small-signs';
 import { debris, latticeMast, signTower, tankPair } from './steel';
+import { ledgeOnBrackets, platformOnColumns, scaffolding } from './scaffold';
+import { fence, railing, trafficCone } from './barriers';
+import { gondola, plankBridge } from './traversal';
+import { verticalDuct, wallDuct } from './wall-ducts';
+import { aviationLight, roofLight } from './roof-lights';
+import { skylight, steelStair } from './roof-access';
 
 /** The prop kit, in picker order. Pickups are added by the editor as their own category. */
 const KIT: PropDef[] = [
   building,
-  halfBlock,
   slab,
   wall,
-  wallLedge,
   parapet,
-  door,
-  doorOpen,
-  windowWall,
+  plinth,
+  scaffolding,
+  platformOnColumns,
+  ledgeOnBrackets,
+  gondola,
   stairs,
+  steelStair,
   ladder,
   fireescape,
-  railing,
   hatch,
-  acSmall,
-  acMedium,
-  acLarge,
-  acWall,
+  plankBridge,
+  railing,
+  fence,
+  trafficCone,
+  ac,
   ventshaft,
   duct,
-  pipe,
-  pipeCorner,
-  pipeFloor,
-  pipeWall,
-  pipeUp,
-  drainPipe,
+  wallDuct,
+  verticalDuct,
   exhaust,
-  utilitybox,
+  pipe,
+  drainPipe,
+  cable,
+  cableRun,
   watertower,
   tankPair,
-  debris,
-  cable4,
-  cable8,
-  cable12,
-  cableRun,
-  cableCorner,
-  cableUp,
-  cableWall,
+  utilitybox,
   antenna,
   latticeMast,
   cctv,
+  debris,
+  skylight,
   sign,
-  shopSign,
+  roofLetters,
   bladeSign,
-  signExit,
-  signVoltage,
-  signNoEntry,
-  signPlate,
-  signTower,
+  smallSign,
   billboard,
+  signTower,
+  neon,
   wallLamp,
   floodlight,
-  neonPink,
-  neonCyan,
-  neonAmber,
-  lampPost,
-  stringLights,
+  roofLight,
+  aviationLight,
 ];
 
 /** Props that aren't in the build picker: the player's stepladder (a pickup, placed while playing). */
 const ITEM_PROPS: PropDef[] = [stepladder];
 
-export const KIT_BY_TYPE = new Map([...KIT, ...ITEM_PROPS].map((d) => [d.type, d]));
+const KIT_BY_TYPE = new Map([...KIT, ...ITEM_PROPS].map((d) => [d.type, d]));
+
+/** Types of levels saved before variants that are now a variant of another type: old type -> [type, variant]. */
+const RENAMED: Record<string, [string, string]> = {
+  half_block: ['building', 'half'],
+  wall_ledge: ['wall', 'ledge'],
+  window: ['wall', 'window'],
+  door: ['wall', 'door'],
+  door_open: ['wall', 'open'],
+  ac_small: ['ac', 'small'],
+  ac_medium: ['ac', 'medium'],
+  ac_large: ['ac', 'large'],
+  ac_wall: ['ac', 'wall'],
+  pipe_corner: ['pipe', 'corner'],
+  pipe_floor: ['pipe', 'floor'],
+  pipe_wall: ['pipe', 'wall'],
+  pipe_up: ['pipe', 'up'],
+  cable_4: ['cable', '4'],
+  cable_8: ['cable', '8'],
+  cable_12: ['cable', '12'],
+  cable_corner: ['cable_run', 'corner'],
+  cable_up: ['cable_run', 'up'],
+  cable_wall: ['cable_run', 'wall'],
+  sign_exit: ['small_sign', 'exit'],
+  sign_voltage: ['small_sign', 'voltage'],
+  sign_no_entry: ['small_sign', 'no_entry'],
+  sign_plate: ['small_sign', 'plate'],
+  neon_pink: ['neon', 'pink'],
+  neon_cyan: ['neon', 'cyan'],
+  neon_amber: ['neon', 'amber'],
+};
+
+/** Props whose default variant changed after format 3: the variant a format 3 file meant when it named none. */
+const FORMAT3_DEFAULTS: Record<string, string> = { stairs: 'compact' };
+
+/** A prop from a level file of this format, with the variant it meant. */
+export function upgraded<T extends { type: string; variant?: string }>(p: T, version: number): T {
+  const v = version < 4 && p.variant === undefined ? FORMAT3_DEFAULTS[p.type] : undefined;
+  return v ? { ...p, variant: v } : p;
+}
+
+/** A saved prop's type and variant as they are named now. */
+export function renamed(type: string, variant?: string): [string, string | undefined] {
+  return RENAMED[type] ?? [type, variant];
+}
+
+const resolved = new Map<string, PropDef>();
+
+/**
+ * The def a prop builds and places with: its type's def with its variant
+ * merged in (the first variant when it has none, or an unknown one).
+ * Undefined for an unknown type.
+ */
+export function defOf(type: string, variant?: string): PropDef | undefined {
+  const key = `${type}|${variant ?? ''}`;
+  let def = resolved.get(key);
+  if (def) return def;
+  const base = KIT_BY_TYPE.get(type);
+  if (!base?.variants) return base;
+  const v = base.variants.find((x) => x.id === variant) ?? base.variants[0];
+  if (variant !== undefined && v.id !== variant) console.warn(`unknown variant "${variant}" of "${type}"`);
+  const { id, label, ...over } = v;
+  def = { ...base, ...over, label: `${base.label} (${label})`, variant: id };
+  resolved.set(key, def);
+  return def;
+}
 
 export function kitIn(c: Category) {
   return KIT.filter((d) => d.category === c);

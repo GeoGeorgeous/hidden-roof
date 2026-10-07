@@ -6,10 +6,16 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "build:mp": "tsc --noEmit && vite build --mode multiplayer --outDir dist-mp",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "smoke": "node scripts/smoke.mjs",
-    "check": "npm run typecheck && npm run smoke && knip",
+    "golden": "node scripts/golden-paint.mjs",
+    "bench:save": "node scripts/save-size.bench.mjs",
+    "shots:avatar": "node scripts/avatar-shots.mjs",
+    "test": "node scripts/paint-file.test.mjs",
+    "test:game": "node scripts/game.test.mjs",
+    "check": "npm run typecheck && npm test && npm run smoke && npm run test:game && knip",
     "audit": "knip; jscpd src"
   },
   "dependencies": {

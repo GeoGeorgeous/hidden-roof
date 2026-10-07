@@ -9,6 +9,7 @@ import type { PaintSystem } from '../painting';
 import { StrokeSweep } from './stroke';
 import { setHex } from '../hex-color';
 import { applyHold } from './hold';
+import { disposeShape, inkLook, markerShape } from './shapes';
 
 // Marker: a pump marker with a hard square nib. It draws a solid line straight
 // into the surface texture under the crosshair, at close range, in the current
@@ -16,7 +17,7 @@ import { applyHold } from './hold';
 // are as wide as the nib going straight and wider on the diagonal, like a held
 // chisel. No particles, no pressure. With paint runs on (DRIPS), going over
 // the same spot again, or holding the nib still, can start a run like the can.
-// The mouse wheel changes the nib size (MARKER.radiusMin..radiusMax, see wheel-size.ts).
+// The mouse wheel changes the nib size (Inventory.size, MARKER.widthMin..widthMax, see wheel-size.ts).
 // Fast mouse moves are filled by interpolating rays between frames. The band
 // on the barrel shows the current color, like the can's label.
 
@@ -26,9 +27,9 @@ export class MarkerTool {
   readonly sway = new THREE.Group();
   private tipModel = new THREE.Group();
   private stroke: StrokeSweep;
-  /** Show the paint color, so they keep their color: the band and the inked nib. */
-  private bandMat = inkify(new THREE.MeshLambertMaterial({ color: COLORS.black }), true);
-  private nibMat = inkify(new THREE.MeshLambertMaterial({ color: COLORS.black }), true);
+  /** The band and the inked nib show the paint color, so they keep it. */
+  private look = inkLook(inkify(new THREE.MeshLambertMaterial({ color: COLORS.black }), true));
+  private shape: THREE.Group | null = null;
 
   constructor(
     private paint: PaintSystem,
@@ -36,24 +37,23 @@ export class MarkerTool {
     private audio: Audio,
   ) {
     this.stroke = new StrokeSweep(solids, paint);
-    const black = inkify(new THREE.MeshLambertMaterial({ color: '#1a1a1e' }));
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.13, 10), black);
-    const band = new THREE.Mesh(new THREE.CylinderGeometry(0.0115, 0.0115, 0.03, 10), this.bandMat);
-    // Square nib in a collar, the band showing the color.
-    const collar = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.011, 0.012, 10), black);
-    const nib = new THREE.Mesh(new THREE.BoxGeometry(0.009, 0.016, 0.009), this.nibMat);
-    band.position.y = 0.02;
-    collar.position.y = 0.071;
-    nib.position.y = 0.083;
-    this.tipModel.add(body, band, collar, nib, penGrip());
+    this.tipModel.add(penGrip());
     this.sway.add(this.tipModel);
     this.model.add(this.sway);
+    this.build();
   }
 
-  update(dt: number, input: Input, camera: THREE.Camera, eye: THREE.Vector3, active: boolean, color: PaintColor) {
+  /** (Re)build the marker from MODELS, e.g. after tuning it in F3. */
+  build() {
+    if (this.shape) disposeShape(this.shape);
+    this.shape = markerShape(this.look);
+    this.tipModel.add(this.shape);
+  }
+
+  /** `nib`: half-width of the square nib (m). */
+  update(dt: number, input: Input, camera: THREE.Camera, eye: THREE.Vector3, active: boolean, color: PaintColor, nib: number) {
     this.model.visible = active;
-    setHex(this.bandMat.color, COLORS[color]);
-    setHex(this.nibMat.color, COLORS[color]);
+    setHex((this.look.paint as THREE.MeshLambertMaterial).color, COLORS[color]);
     const drawing = active && input.lmb && input.locked;
     this.pose(camera, drawing);
     if (!drawing) {
@@ -63,16 +63,17 @@ export class MarkerTool {
     }
     // Every stamp may feed a run while moving (overlap depends on the path, not the frame rate).
     let drew = false;
-    const { angle } = this.stroke.sweep(dt, camera, eye, this.spec(), (hit, surface, fresh) => {
+    const { angle } = this.stroke.sweep(dt, camera, eye, this.spec(nib), (_hit, surface, at, fresh) => {
       if (!surface) return;
-      this.paint.stamp(surface, hit.uv!, hit.faceIndex!, MARKER.radius, MARKER.strength, rgbOf(color), 0, fresh ? MARKER.drips : 0, true);
+      this.paint.stamp(surface, at, nib, MARKER.strength, rgbOf(color), 0, fresh ? MARKER.drips : 0, true);
       drew = true;
     });
     this.audio.setScribble(drew ? Math.min(1, 0.15 + angle * 40) : 0);
   }
 
-  private spec() {
-    return { reach: MARKER.reach, rayStep: MARKER.rayStep, maxRays: MARKER.maxRays, stillRate: MARKER.stillRate };
+  /** `nib`: half-width (m). */
+  private spec(nib: number) {
+    return { reach: MARKER.reach, spacing: MARKER.spacing * nib * 2, maxRays: MARKER.maxRays, stillRate: MARKER.stillRate };
   }
 
   /** A point just right of the marker, for the color tag (same place as the can's). */

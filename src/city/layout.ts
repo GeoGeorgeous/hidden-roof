@@ -7,6 +7,9 @@ import { lcg } from '../lcg';
 // each block split into lots, one tower per lot. Near the level the roofs are
 // mostly low (you look down into the canyons) with a few huge towers among
 // them; farther out the city rises into a wall that fades into the paper.
+// Each block draws from its own seeded stream, so a block is the same whatever
+// the radius: a smaller city (CITY DETAIL) is the inner part of a bigger one,
+// and every player sees the same towers.
 
 export interface Tier {
   x0: number;
@@ -34,7 +37,6 @@ export type Rect = [number, number, number, number];
 const STYLES = Object.values(FACADES) as Facade[];
 
 export function layoutCity(level: THREE.Box3, cfg = SKYLINE): Tower[] {
-  const rnd = lcg(cfg.seed * 7919 + 1);
   const cx = level.isEmpty() ? 0 : (level.min.x + level.max.x) / 2;
   const cz = level.isEmpty() ? 0 : (level.min.z + level.max.z) / 2;
   const m = cfg.margin;
@@ -54,6 +56,7 @@ export function layoutCity(level: THREE.Box3, cfg = SKYLINE): Tower[] {
       const z0 = cz + bz * cfg.block + street(bz, 1) / 2;
       const z1 = cz + (bz + 1) * cfg.block - street(bz + 1, 1) / 2;
       if (Math.hypot((x0 + x1) / 2 - cx, (z0 + z1) / 2 - cz) > cfg.radius) continue;
+      const rnd = lcg(blockSeed(cfg.seed, bx, bz));
       for (const lot of split([x0, z0, x1, z1], rnd, 0)) {
         if (blocked(lot)) continue;
         const dx = cx - (lot[0] + lot[2]) / 2;
@@ -65,6 +68,11 @@ export function layoutCity(level: THREE.Box3, cfg = SKYLINE): Tower[] {
     }
   }
   return towers;
+}
+
+/** A block's own seed, from the city's seed and the block's place in the grid. */
+function blockSeed(seed: number, bx: number, bz: number) {
+  return (Math.imul(seed, 7919) ^ Math.imul(bx, 73856093) ^ Math.imul(bz, 19349663)) >>> 0;
 }
 
 /** Split a block into lots: sometimes touching (one dense mass), sometimes with an alley. */
@@ -85,7 +93,7 @@ function tower(lot: Rect, dist: number, rnd: () => number, cfg: typeof SKYLINE):
   const inset = rnd() * 1.2;
   const r: Rect = [lot[0] + inset, lot[1] + inset, lot[2] - inset, lot[3] - inset];
   if (r[2] - r[0] < 5 || r[3] - r[1] < 5) return null;
-  const far = Math.min(1, dist / cfg.radius);
+  const far = Math.min(1, dist / cfg.riseTo);
   let top: number;
   if (rnd() < cfg.tallChance * (dist < cfg.near ? 1 : 0.6)) {
     top = cfg.tallMin + (cfg.tallMax - cfg.tallMin) * Math.pow(rnd(), 1.5);

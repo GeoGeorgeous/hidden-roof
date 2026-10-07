@@ -51,6 +51,12 @@ export class GpuTimer {
     }
   }
 
+  /** Total smoothed ms of these passes, or null before any result (or without timer queries). */
+  total(labels: string[]) {
+    const known = labels.filter((l) => this.ms[l] !== undefined);
+    return known.length ? known.reduce((sum, l) => sum + this.ms[l], 0) : null;
+  }
+
   read(label: string) {
     if (!this.supported) return 'n/a';
     const v = this.ms[label];

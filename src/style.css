@@ -1,6 +1,13 @@
 /* Body-cam overlay style, inked: ink + one alert color, thin lines, small
    monospace, no panels, no glow. */
 
+/* The pause menu title's graffiti font (public/fonts/README.txt). */
+@font-face {
+  font-family: 'Sedgwick Ave Display';
+  src: url('/fonts/sedgwick-ave-display.woff2') format('woff2');
+  font-display: block;
+}
+
 :root {
   --ui: #141416;
   --dim: rgba(20, 20, 22, 0.62);
@@ -177,11 +184,23 @@ canvas {
   justify-content: center;
   gap: 14px;
   color: var(--ui);
-  background: rgba(14, 14, 16, 0.8);
+  /* --sheet and --sheet-debug come from PAUSE_MENU (hud.ts). */
+  background: var(--sheet, rgba(14, 14, 16, 0.65));
 }
 .overlay .title {
-  font-size: 22px;
-  letter-spacing: 0.6em;
+  font-family: 'Sedgwick Ave Display', cursive;
+  font-size: 56px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+/* The tag under it (THE GAME): small, gray, a bit askew, to the right. */
+.overlay .title span {
+  display: block;
+  margin: 0 -10px 0 0;
+  font-size: 15px;
+  text-align: right;
+  color: var(--dim);
+  transform: rotate(-6deg);
 }
 .overlay .menu {
   display: flex;
@@ -254,9 +273,12 @@ canvas {
 }
 .settings-page .line button {
   border: none;
-  padding: 2px 4px;
-  min-width: 170px;
-  text-align: right;
+  padding: 2px 6px;
+}
+/* A choice's value, between its < and > buttons: as wide overall as a slider and its value. */
+.settings-page .choice {
+  width: 186px;
+  text-align: center;
 }
 .settings-page input[type='range'] {
   -webkit-appearance: none;
@@ -302,35 +324,21 @@ canvas {
   color: var(--dim);
   letter-spacing: 0.04em;
 }
-/* Performance cost: PERFORMANCE COST •••··, filled dots green / orange / red by cost, the rest dim. */
+/* PERFORMANCE COST: LOW / MEDIUM / HIGH, in green / orange / red. */
 .settings-page .cost {
-  display: flex;
-  align-items: center;
   margin-top: 4px;
-  letter-spacing: 0.08em;
-}
-.settings-page .cost b,
-.settings-page .cost i {
-  font-size: 20px;
-  line-height: 14px;
-  letter-spacing: 0.05em;
 }
 .settings-page .cost b {
   font-weight: normal;
-  margin-left: 8px;
 }
 .settings-page .cost.low b {
   color: #4cc46a;
 }
-.settings-page .cost.mid b {
+.settings-page .cost.medium b {
   color: #f0952e;
 }
 .settings-page .cost.high b {
   color: var(--alert);
-}
-.settings-page .cost i {
-  font-style: normal;
-  color: rgba(235, 229, 214, 0.25);
 }
 /* Callout: recommendations. */
 .settings-page .note {
@@ -343,9 +351,16 @@ canvas {
 .settings-page .back {
   align-self: flex-start;
 }
+/* Full pause sheet (not compact): no in-game UI behind it (hud.ts); display: none, so
+   it isn't laid out or animated (the REC blink) while paused. */
+body.paused .hud > :not(.overlay, .vignette),
+body.paused .hotbar,
+body.paused .toast {
+  display: none;
+}
 /* Debug panel open: keep the menu, lighter dimming, no controls. */
 .overlay.compact {
-  background: rgba(14, 14, 16, 0.45);
+  background: var(--sheet-debug, rgba(14, 14, 16, 0.65));
 }
 .overlay.compact table,
 .overlay.compact .title {
@@ -357,6 +372,10 @@ canvas {
 .overlay td:first-child {
   text-align: right;
   color: var(--dim);
+}
+/* The tools (1 - 5) a little apart from the main keys. */
+.overlay tbody + tbody tr:first-child td {
+  padding-top: 10px;
 }
 .blink {
   animation: blink 1.6s steps(2) infinite;
@@ -377,16 +396,18 @@ canvas {
   transform: translateX(-50%);
   display: flex;
   align-items: center;
-  gap: 10px;
+  /* --slot, --gap, --round and the colors come from HUD (hotbar.ts). */
+  gap: var(--gap, 10px);
   pointer-events: none;
 }
 .hotbar i {
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  border: 1px solid var(--dim);
+  width: var(--slot, 30px);
+  height: var(--slot, 30px);
+  border-radius: var(--round, 50%);
+  border: 1px solid var(--border, var(--dim));
+  background: var(--fill, none);
   opacity: 0.55;
   transition: opacity 0.15s, transform 0.15s;
 }
@@ -394,14 +415,14 @@ canvas {
   opacity: 0.35;
 }
 .hotbar i.on {
-  border-color: var(--ui);
-  background: rgba(235, 229, 214, 0.35);
+  border-color: var(--on-border, var(--ui));
+  background: var(--on-fill, rgba(235, 229, 214, 0.35));
   opacity: 1;
   transform: scale(1.12);
 }
 .hotbar img {
-  width: 22px;
-  height: 22px;
+  width: var(--icon, 73%);
+  height: var(--icon, 73%);
   /* A thin ink edge so light icons read on paper. */
   filter: drop-shadow(0 0 0.6px var(--ui));
 }
@@ -426,43 +447,172 @@ canvas {
   opacity: 1;
 }
 
-/* --- Editor: picker (bottom) + help (top-right) ----------------------- */
+/* --- Editor: picker (left edge) + help (top-right) -------------------- */
 
-.picker {
+/* The category wheel: labels fanned out from a hub on the left edge, turned
+   by --k (steps from the selected one, picker-view.ts). The selected label
+   is level and leads a line to the selected entry of the column. */
+/* A dark shade down the whole left edge behind it, fading out to the right
+   (BUILD.shade*, picker-view.ts), with paper-colored text on it. */
+.picker-shade {
   position: fixed;
-  left: 50%;
-  bottom: 28px;
-  transform: translateX(-50%);
-  text-align: center;
+  inset: 0 auto 0 0;
+  max-width: 80vw;
   pointer-events: none;
-  line-height: 1.8;
 }
-.picker .name {
-  font-size: 15px;
-  letter-spacing: 0.3em;
+/* The full pause sheet (hud.ts) hides build mode's UI; with F3 open it stays, to tune it. */
+body.paused .picker,
+body.paused .picker-shade,
+body.paused .build-help {
+  display: none;
 }
-.picker .strip,
-.picker .cats {
+.picker {
+  --ui: var(--paper);
+  --dim: rgba(235, 229, 214, 0.62);
+  --line: 1px solid var(--ui);
+  --turn: 17deg;
+  position: fixed;
+  left: 14px;
+  top: 46%;
+  pointer-events: none;
+  text-transform: uppercase;
+}
+.picker .cat {
+  position: absolute;
+  left: 0;
+  top: -0.85em;
+  line-height: 1.7em;
   display: flex;
-  justify-content: center;
-  gap: 14px;
+  align-items: center;
+  gap: 8px;
+  width: 136px;
   white-space: nowrap;
-}
-.picker .strip span,
-.picker .cats span {
   color: var(--dim);
+  transform-origin: 0 50%;
+  transform: rotate(calc(var(--k) * var(--turn)));
+  transition:
+    transform 0.16s ease-out,
+    opacity 0.16s,
+    color 0.16s,
+    font-size 0.16s,
+    letter-spacing 0.16s;
 }
-.picker .strip span.on {
+/* The lane to the column: every label has it, only the selected one shows it,
+   so it turns into place with its label instead of jumping. */
+.picker .cat::after {
+  content: '';
+  flex: 1;
+  border-top: var(--line);
+  opacity: 0;
+  transition: opacity 0.16s;
+}
+.picker .cat i {
+  width: 26px;
+  border-top: 1px solid currentColor;
+}
+.picker .cat[data-d='0'] {
   color: var(--ui);
+  font-size: 13px;
+  letter-spacing: 0.18em;
 }
-.picker .cats {
-  margin-top: 4px;
-  padding-top: 4px;
-  border-top: 1px solid var(--dim);
+.picker .cat[data-d='0']::after {
+  opacity: 1;
 }
-.picker .cats span.on {
+.picker .cat[data-d='1'] {
+  opacity: 0.85;
+}
+.picker .cat[data-d='2'] {
+  opacity: 0.45;
+}
+.picker .cat[data-d='far'] {
+  opacity: 0;
+}
+.picker .wheel {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: scale(var(--wheel, 1));
+  transform-origin: 0 0;
+}
+.picker .column {
+  position: absolute;
+  /* Past the selected label's line at its size (picker-view.ts sets --wheel). */
+  left: calc(142px * var(--wheel, 1));
+  top: 0;
+  transform-origin: 0 0;
+  width: 380px;
+  line-height: 1.7;
+  color: var(--dim);
+  transition: transform 0.16s ease-out;
+}
+/* Icon left of the name; the selected entry's variants and keys under its name. */
+.picker .row {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  column-gap: 8px;
+  align-items: center;
+}
+.picker .row > :not(img) {
+  grid-column: 2;
+}
+.picker .row img {
+  grid-column: 1;
+  grid-row: 1 / span 3;
+  width: 28px;
+  height: 28px;
+  opacity: 0.75;
+}
+.picker .row.on {
+  grid-template-columns: 52px 1fr;
+}
+.picker .row.on img {
+  width: 52px;
+  height: 52px;
+  opacity: 1;
+}
+.picker .row b {
+  font-weight: normal;
+  font-size: 9px;
+  border: 1px solid currentColor;
+  padding: 0 3px;
+  margin-left: 4px;
+}
+.picker .row.on {
+  color: var(--ui);
+  margin: 2px 0 4px;
+}
+.picker .row.on .name {
+  font-size: 13px;
+  letter-spacing: 0.18em;
+}
+.picker .row.on .name::before {
+  content: '▸ ';
+}
+.picker .variants span {
+  display: inline-block;
+  white-space: nowrap;
+  color: var(--dim);
+  margin-right: 10px;
+}
+.picker .variants span.on {
   color: var(--ui);
   border-bottom: var(--line);
+}
+.picker .variants i {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 4px;
+  border: 1px solid var(--ui);
+}
+.picker .keys span {
+  color: var(--ui);
+}
+.picker em,
+.picker .keys,
+.picker .hint {
+  font-style: normal;
+  color: var(--dim);
 }
 
 .build-help {
@@ -495,9 +645,10 @@ canvas {
   position: fixed;
   top: 76px;
   left: 20px;
-  width: 340px;
+  width: 374px;
   max-height: calc(100vh - 230px);
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   line-height: 1.5;
   /* A dark sheet behind paper-colored text: reads over paper and over black.
      The ink variables are inverted for everything inside the panel. */
@@ -509,8 +660,75 @@ canvas {
   background: rgba(14, 14, 16, 0.82);
   backdrop-filter: blur(2px);
   z-index: 10;
+}
+/* Buttons and tabs stay; the open tab scrolls. */
+.debug-panel .pages {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   scrollbar-width: thin;
   scrollbar-color: var(--dim) transparent;
+}
+.debug-panel .tabs {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+}
+.debug-panel .tabs button,
+.debug-panel .choice button {
+  min-width: 0;
+  padding: 0;
+  border-color: var(--dim);
+  color: var(--dim);
+}
+.debug-panel .tabs button.on,
+.debug-panel .choice button.on {
+  border-color: var(--ui);
+  color: var(--ui);
+}
+.debug-panel .head.changed .title::after {
+  content: '•';
+  margin-left: 4px;
+}
+.debug-panel .tabs button {
+  position: relative;
+  white-space: nowrap;
+}
+.debug-panel .tabs button.changed::after {
+  content: '';
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 4px;
+  height: 4px;
+  background: var(--ui);
+}
+.debug-panel > .hint {
+  margin: 4px 0 2px;
+}
+.debug-panel .icon {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: 5px;
+  vertical-align: -1px;
+}
+.debug-panel .icon svg {
+  display: block;
+  width: 10px;
+  height: 10px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.debug-panel .icon .f {
+  fill: currentColor;
+  stroke: none;
+}
+.debug-panel .icon .dot {
+  stroke-width: 1.4;
 }
 .debug-panel .group {
   margin-top: 10px;
@@ -531,9 +749,41 @@ canvas {
   align-items: center;
   justify-content: space-between;
 }
+.debug-panel .head {
+  gap: 4px;
+}
 .debug-panel .head .title {
   cursor: pointer;
   flex: 1;
+}
+.debug-panel .head .arrow {
+  display: inline-block;
+  width: 1.2em;
+}
+/* Shown but untouchable (a heading with `disabled`). */
+.debug-panel section.disabled .title,
+.debug-panel section.disabled .body {
+  opacity: 0.4;
+}
+/* A color as one shade: the track runs black to white. */
+.debug-panel .slider.gray input::-webkit-slider-runnable-track {
+  height: 3px;
+  background: linear-gradient(to right, #000, #fff);
+}
+.debug-panel .slider.gray input::-moz-range-track {
+  height: 3px;
+  background: linear-gradient(to right, #000, #fff);
+}
+.debug-panel .slider.gray input::-webkit-slider-thumb {
+  margin-top: -4px;
+  box-shadow: 0 0 0 1px #0e0e10;
+}
+.debug-panel .slider.gray input::-moz-range-thumb {
+  box-shadow: 0 0 0 1px #0e0e10;
+}
+/* Nothing to reset in this section. */
+.debug-panel .head:not(.changed) .reset {
+  opacity: 0.35;
 }
 .debug-panel .body {
   padding: 2px 0 4px;
@@ -544,8 +794,19 @@ canvas {
   align-items: center;
   gap: 8px;
 }
-.debug-panel label.readout-row {
+.debug-panel label.readout-row,
+.debug-panel label.choice-row {
   grid-template-columns: 136px 1fr;
+}
+/* A choice's buttons (preset): equal columns, the picked one lit like a tab, set apart from the rows round them. */
+.debug-panel label.choice-row {
+  margin: 8px 0 16px;
+}
+.debug-panel .choice {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 4px;
 }
 .debug-panel label.heading {
   display: block;
@@ -553,13 +814,49 @@ canvas {
   color: var(--ui);
   border-bottom: 1px solid var(--dim);
 }
-.debug-panel label.has-hint span {
+.debug-panel label.has-hint > span:first-child {
   cursor: help;
   text-decoration: underline dotted rgba(244, 244, 240, 0.35);
   text-underline-offset: 3px;
 }
-.debug-panel label span {
+.debug-panel label > span:first-child {
   color: var(--dim);
+}
+/* When a change shows, if not at once (rows.ts): LET GO, BAKE, BUILD, PAUSED. */
+.debug-panel label .when {
+  margin-left: 5px;
+  font-style: normal;
+  font-size: 8px;
+  letter-spacing: 0.04em;
+  color: var(--dim);
+  opacity: 0.75;
+  vertical-align: 1px;
+}
+/* Differs from config.ts. */
+.debug-panel label.changed > span:first-child {
+  color: var(--ui);
+}
+/* The slider over a gray tick at config.ts's value (the 3px thumb covers it there). */
+.debug-panel .slider,
+.settings-page .slider {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.debug-panel .slider i,
+.settings-page .slider i {
+  position: absolute;
+  left: calc(1px + var(--at) * (100% - 3px));
+  top: 50%;
+  width: 1px;
+  height: 7px;
+  margin-top: -3.5px;
+  background: rgba(235, 229, 214, 0.4);
+  pointer-events: none;
+}
+.debug-panel .slider input,
+.settings-page .slider input {
+  position: relative;
 }
 .debug-panel b {
   text-align: right;
@@ -606,4 +903,18 @@ canvas {
 }
 .debug-panel .hint {
   color: var(--dim);
+}
+/* RESET ALL, COLLAPSE ALL, EXPAND ALL, COPY ALL: four equal columns. */
+.debug-panel > .row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  margin-bottom: 12px;
+  white-space: nowrap;
+}
+.debug-panel > .row button {
+  min-width: 0;
+  padding: 0;
+  /* Tighter than the panel's text, so COLLAPSE ALL fits its column. */
+  letter-spacing: 0.02em;
 }

@@ -52,13 +52,9 @@ export class PostPipeline {
         uOutline: { value: 1 },
         uCrease: { value: 1 },
         uOutlineFade: { value: 100 },
-        uWobble: { value: 0 },
         uGrain: { value: 0 },
         tPaper: { value: paperTexture() },
         uExposure: { value: 0 },
-        uContrast: { value: 1 },
-        uSaturation: { value: 1 },
-        uBalance: { value: new THREE.Vector3(1, 1, 1) },
       },
       vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
       fragmentShader: composeShader,
@@ -112,12 +108,8 @@ export class PostPipeline {
     u.uOutline.value = INK.outline;
     u.uCrease.value = INK.crease;
     u.uOutlineFade.value = INK.outlineFade;
-    u.uWobble.value = INK.wobble;
     u.uGrain.value = INK.grain;
     u.uExposure.value = GRADE.exposure;
-    u.uContrast.value = GRADE.contrast;
-    u.uSaturation.value = GRADE.saturation;
-    whiteBalance(GRADE.temperature, GRADE.tint, u.uBalance.value);
     r.setRenderTarget(null);
     this.quad.render(r);
     this.timer.end();
@@ -158,9 +150,3 @@ function squashed(camera: THREE.PerspectiveCamera, out: THREE.PerspectiveCamera)
   return out;
 }
 
-/** Simple white balance: warm/cool on red-blue, tint on green, luminance kept. */
-function whiteBalance(temperature: number, tint: number, out: THREE.Vector3) {
-  out.set(1 + 0.25 * temperature, 1 - 0.2 * tint, 1 - 0.25 * temperature);
-  const l = 0.2126 * out.x + 0.7152 * out.y + 0.0722 * out.z;
-  return out.multiplyScalar(1 / l);
-}

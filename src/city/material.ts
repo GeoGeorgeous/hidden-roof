@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { ATMOS, SKYLINE } from '../config';
+import { SKYLINE } from '../config';
+import { moonDirection } from '../render/moon';
 import { shared } from '../materials';
 import { INK_PARS, inkUniforms } from '../render/ink/tone';
 import { FACADE_GLSL } from '../render/ink/facade';
@@ -36,7 +37,7 @@ const lum = (c: THREE.Color) => 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
 /** Per frame, after Lighting.update: follow the moon, sky and lightning, and SKYLINE.opacity. */
 export function syncCityLight(lighting: Lighting) {
   cityUniforms.uCityOpacity.value = SKYLINE.opacity;
-  light.uMoonDir.value.fromArray(ATMOS.moonDir).normalize();
+  moonDirection(light.uMoonDir.value);
   light.uMoonLight.value = lum(lighting.moon.color) * lighting.moon.intensity;
   light.uSkyLight.value = lum(lighting.hemi.color) * lighting.hemi.intensity;
   light.uGroundLight.value = lum(lighting.hemi.groundColor) * lighting.hemi.intensity;
