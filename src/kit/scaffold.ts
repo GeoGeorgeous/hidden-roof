@@ -33,11 +33,11 @@ function guardSide(p: Parts, along: 'x' | 'z', at: number) {
 /**
  * One scaffolding bay: four standards on base plates and sole boards (the
  * lowest bay), ledgers and a plank deck at the top with a hatch the ladder
- * inside climbs through, diagonal braces on the long faces. The top bay has a
- * guardrail on its long sides and on `ends` of its ends (0: a run, joined
- * side by side; 1: the -x end; 2: both).
+ * inside climbs through (or, without a ladder, a whole deck), diagonal braces
+ * on the long faces. The top bay has a guardrail on its long sides and on
+ * `ends` of its ends (0: a run, joined side by side; 1: the -x end; 2: both).
  */
-function bay(ends: 0 | 1 | 2) {
+function bay(ends: 0 | 1 | 2, ladder: boolean) {
   return ({ above, below }: { above: boolean; below: boolean }) => {
     const p = new Parts();
     const y0 = below ? 0 : 0.05;
@@ -53,14 +53,14 @@ function bay(ends: 0 | 1 | 2) {
     // Braces on the long faces, one each way.
     p.rod([-POST, y0, -POST], [POST, ly, -POST], TUBE, M.galv);
     p.rod([POST, y0, POST], [-POST, ly, POST], TUBE, M.galv);
-    // Deck: four planks along x; the two at the back leave the ladder's hatch (x > 0.2).
+    // Deck: four planks along x; with a ladder, the two at the back leave its hatch (x > 0.2).
     const bands = [-POST, -0.48, -0.005, 0.475, POST];
     for (let i = 0; i < 4; i++) {
-      const x1 = i < 2 ? POST : 0.2;
+      const x1 = i < 2 || !ladder ? POST : 0.2;
       p.box([-POST, LIFT - 0.05, bands[i] + 0.005], [x1, LIFT, bands[i + 1] - 0.005], M.wood, { paint: true });
     }
     // Ladder up through the hatch, its back on the rear ledger; grab rails above it only on the top bay.
-    p.ladder(0.575, 0, POST, LIFT, 0.5, !above);
+    if (ladder) p.ladder(0.575, 0, POST, LIFT, 0.5, !above);
     if (!above) {
       for (const x of [-GUARD, GUARD]) for (const z of [-GUARD, GUARD]) p.detail([x - 0.025, LIFT, z - 0.025], [x + 0.025, LIFT + 1.05, z + 0.025], M.steel);
       guardSide(p, 'x', -GUARD);
@@ -72,11 +72,14 @@ function bay(ends: 0 | 1 | 2) {
   };
 }
 
-/** Modular scaffolding: 2 x 2 m bays, 2 m high, stacked and joined side by side. */
+/** Modular scaffolding: 2 x 2 m bays, 2 m high, stacked and joined side by side; bays can leave out the ladder. */
 export const scaffolding = withVariants({ type: 'scaffolding', label: 'Scaffolding', category: 'scaffold', place: 'cell', snap: 2, vSnap: LIFT, stacks: { above: true, below: true, across: true } }, [
-  { id: 'single', label: 'railed ends', build: bay(2) },
-  { id: 'end', label: 'one end', build: bay(1) },
-  { id: 'run', label: 'open ends', build: bay(0) },
+  { id: 'single', label: 'railed ends', build: bay(2, true) },
+  { id: 'end', label: 'one end', build: bay(1, true) },
+  { id: 'run', label: 'open ends', build: bay(0, true) },
+  { id: 'single_deck', label: 'railed ends, no ladder', build: bay(2, false) },
+  { id: 'end_deck', label: 'one end, no ladder', build: bay(1, false) },
+  { id: 'run_deck', label: 'open ends, no ladder', build: bay(0, false) },
 ]);
 
 /** I-beam along x from x0 to x1 under a deck whose underside is at y: web and bottom flange (the deck is its top flange). */
