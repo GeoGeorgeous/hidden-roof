@@ -8,7 +8,7 @@ function daylightItems(): Item[] {
   const apply = () => live.applyDaylight();
   const ranges: Record<string, [number, number, number]> = {
     fogDensity: [0, 0.05, 0.001], cloudBase: [5, 400, 5], ambient: [0, 4, 0.05], moon: [0, 6, 0.05],
-    practical: [0, 4, 0.05], emissiveBoost: [0, 6, 0.1], wetness: [0, 1, 0.01],
+    practical: [0, 4, 0.05], emissiveBoost: [0, 6, 0.1], wetness: [0, 1, 0.01], moonHeight: [0, 90, 0.1], moonHeading: [0, 360, 0.1],
   };
   return Object.entries(DAYLIGHT).flatMap(([k, v]): Item[] => {
     if (typeof v === 'string') return [c(k, ['DAYLIGHT', k], apply)];

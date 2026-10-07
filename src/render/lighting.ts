@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { ATMOS, LIGHT_SPREAD_MAX, LIGHTMAP, LIGHTS, THUNDER } from '../config';
+import { moonDirection } from './moon';
 import { neonFlicker } from './flicker';
 import { syncAnchor, type LightAnchor } from '../level/build-prop';
 import { rotateY, trackAngle, trackWeight } from './cctv-track';
@@ -123,7 +124,7 @@ export class Lighting {
       Object.assign(s, { left: -r, right: r, top: r, bottom: -r, near: 1, far: 160 });
       s.updateProjectionMatrix();
     }
-    moonDir.fromArray(ATMOS.moonDir).normalize();
+    moonDirection(moonDir);
     shadowX.crossVectors(UP, moonDir); // the shadow camera's axes (lookAt with +y up)
     if (shadowX.lengthSq() < 1e-8) shadowX.set(1, 0, 0); // moon straight overhead: any level axis will do
     shadowX.normalize();

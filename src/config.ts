@@ -33,7 +33,9 @@ export const ATMOS = {
   ambient: 1.1,
   moonColor: '#e6e4dc',
   moon: 0.45,
-  moonDir: [-0.55, 0.65, -0.5] as [number, number, number],
+  /** Toward the moon (degrees): height above the horizon, and heading round from +z toward +x. Sets the shadows' direction. */
+  moonHeight: 41.2,
+  moonHeading: 227.7,
   shadows: true,
   /** Real spot lights may cast shadow-map shadows (2 slots, kinds with `shadows`). Only while lamps aren't baked (LIGHTMAP.enabled off). */
   spotShadows: false,
@@ -143,7 +145,8 @@ export const DAYLIGHT: Partial<typeof ATMOS> = {
   ambient: 1.7,
   moonColor: '#fff6e8',
   moon: 2.4,
-  moonDir: [-0.45, 0.8, -0.3],
+  moonHeight: 55.9,
+  moonHeading: 236.3,
   practical: 0.4,
   emissiveBoost: 0.8,
   wetness: 0,

@@ -1,5 +1,5 @@
 import { type LightKind, type NeonColor, LIGHT_SPREAD_MAX, LIGHTS, NEON_COLORS } from '../config';
-import { live, r, t, c, v3, type Item, type Section } from './tuning';
+import { live, r, t, c, type Item, type Section } from './tuning';
 
 // F3 panel contents for rendering (tuning.ts has the helpers): the ink
 // shaders, the scene's light, the light props, the final pass, and the HUD
@@ -85,7 +85,8 @@ export function renderSections(): Section[] {
         { kind: 'heading', label: 'MOONLIGHT' },
         r('intensity', ['ATMOS', 'moon'], 0, 6, 0.05),
         c('color', ['ATMOS', 'moonColor'], sync),
-        ...v3('direction', ['ATMOS', 'moonDir'], -1, 1, 0.01, sync),
+        r('height', ['ATMOS', 'moonHeight'], 0, 90, 0.1, sync),
+        r('heading', ['ATMOS', 'moonHeading'], 0, 360, 0.1, sync),
         { kind: 'heading', label: 'AMBIENT' },
         r('intensity', ['ATMOS', 'ambient'], 0, 4, 0.05),
         c('sky color', ['ATMOS', 'ambientSky'], sync),
