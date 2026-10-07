@@ -9,13 +9,21 @@ import { defaultOf } from './defaults';
 
 type Obj = Record<string, unknown>;
 
+/**
+ * When a value row's change shows, if not at once while dragging (rows.ts tags
+ * the row): `release` when the slider is let go, `bake` once the lamp light
+ * rebakes (a moment), `build` only in build mode, `paused` only on the pause
+ * menu without F3.
+ */
+export type When = 'release' | 'bake' | 'build' | 'paused';
+
 export type Item =
   /** `onRelease`: runs when the slider is let go (and on reset), for work too slow for every tick. */
-  | { kind: 'range'; label: string; path: string[]; min: number; max: number; step: number; onChange?: () => void; onRelease?: () => void }
-  | { kind: 'toggle'; label: string; path: string[]; onChange?: () => void }
-  | { kind: 'color'; label: string; path: string[]; onChange?: () => void }
+  | { kind: 'range'; label: string; path: string[]; min: number; max: number; step: number; onChange?: () => void; onRelease?: () => void; when?: When }
+  | { kind: 'toggle'; label: string; path: string[]; onChange?: () => void; when?: When }
+  | { kind: 'color'; label: string; path: string[]; onChange?: () => void; when?: When }
   /** A hex color edited as one shade of gray. */
-  | { kind: 'gray'; label: string; path: string[]; onChange?: () => void }
+  | { kind: 'gray'; label: string; path: string[]; onChange?: () => void; when?: When }
   | { kind: 'action'; label: string; run: () => void }
   | { kind: 'readout'; label: string; get: () => string }
   /** Starts a section; `disabled` shows it grayed out, untouchable. */
@@ -129,6 +137,8 @@ export const r = (label: string, path: string[], min: number, max: number, step:
 export const t = (label: string, path: string[], onChange?: () => void): Item => ({ kind: 'toggle', label, path, onChange });
 export const c = (label: string, path: string[], onChange?: () => void): Item => ({ kind: 'color', label, path, onChange });
 export const gray = (label: string, path: string[], onChange?: () => void): Item => ({ kind: 'gray', label, path, onChange });
+/** These items, tagged with when their change shows (When). */
+export const when = (w: When, items: Item[]): Item[] => items.map((it) => ('path' in it ? { ...it, when: w } : it));
 /** Three sliders for a [x, y, z] array value. */
 export const v3 = (label: string, path: string[], min: number, max: number, step: number, onChange?: () => void): Item[] =>
   ['x', 'y', 'z'].map((a, i) => r(`${label} ${a}`, [...path, String(i)], min, max, step, onChange));

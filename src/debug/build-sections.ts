@@ -1,4 +1,4 @@
-import { live, r, t, c, type Section } from './tuning';
+import { live, r, t, c, when, type Section } from './tuning';
 
 // F3 panel contents for build mode (tuning.ts has the helpers): its daylight
 // (DAYLIGHT replaces those ATMOS values while building) and editing.
@@ -11,7 +11,7 @@ export function buildSections(): Section[] {
     {
       id: 'daylight',
       title: 'Daylight',
-      items: [
+      items: when('build', [
         d('haze', 'fogDensity', 0, 0.05, 0.0005),
         d('clouds: base', 'cloudBase', 5, 600, 5),
         d('wetness', 'wetness', 0, 1, 0.01),
@@ -28,18 +28,18 @@ export function buildSections(): Section[] {
         { kind: 'heading', label: 'LIGHT PROPS' },
         d('brightness', 'practical', 0, 4, 0.05),
         d('glow brightness', 'emissiveBoost', 0, 6, 0.1),
-      ],
+      ]),
     },
     {
       id: 'editing',
       title: 'Editing',
-      items: [
+      items: when('build', [
         r('reach', ['BUILD', 'reach'], 10, 300, 5),
         r('repeat: delay', ['BUILD', 'repeatDelay'], 0.05, 1, 0.05),
         r('repeat: interval', ['BUILD', 'repeatInterval'], 0.03, 1, 0.01),
         r('fly: speed', ['BUILD', 'flySpeed'], 1, 30, 0.5),
         r('fly: sprint speed', ['BUILD', 'flySprintSpeed'], 2, 60, 0.5),
-      ],
+      ]),
     },
   ];
 }

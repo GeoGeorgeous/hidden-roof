@@ -1,5 +1,5 @@
 import { type LightKind, type NeonColor, LIGHT_SPREAD_MAX, LIGHTS, NEON_COLORS } from '../config';
-import { live, r, t, c, type Item, type Section } from './tuning';
+import { live, r, t, c, when, type Item, type Section } from './tuning';
 
 // F3 panel contents for rendering (tuning.ts has the helpers): the ink
 // shaders, the scene's light, the light props, the final pass, and the HUD
@@ -19,19 +19,25 @@ const LIGHT_LABELS: Record<LightKind, string> = {
 function lightItems(): Item[] {
   const fx = () => live.rebuildLights();
   const props = () => live.rebuildLightProps();
-  return (Object.keys(LIGHTS) as LightKind[]).flatMap((k) => [
-    { kind: 'heading', label: LIGHT_LABELS[k] } as Item,
-    ...(k === 'neon'
-      ? (Object.keys(NEON_COLORS) as NeonColor[]).map((n) => c(`color: ${n}`, ['NEON_COLORS', n], props))
-      : [c('color', ['LIGHTS', k, 'color'], props)]),
-    r('tint', ['LIGHTS', k, 'tint'], 0, 1, 0.05, props),
-    r('intensity', ['LIGHTS', k, 'intensity'], 0, 200, 0.5),
-    r('reach', ['LIGHTS', k, 'range'], 1, 80, 0.5, fx),
-    r('spread', ['LIGHTS', k, 'spread'], 0.1, LIGHT_SPREAD_MAX, 0.01, fx),
-    r('softness', ['LIGHTS', k, 'softness'], 0, 1, 0.05, fx),
-    r('glow size', ['LIGHTS', k, 'glow'], 0, 3, 0.05, fx),
-    r('beam length', ['LIGHTS', k, 'beam'], 0, 20, 0.5, fx),
-  ]);
+  return (Object.keys(LIGHTS) as LightKind[]).flatMap((k) => {
+    const light: Item[] = [
+      ...(k === 'neon'
+        ? (Object.keys(NEON_COLORS) as NeonColor[]).map((n) => c(`color: ${n}`, ['NEON_COLORS', n], props))
+        : [c('color', ['LIGHTS', k, 'color'], props)]),
+      r('tint', ['LIGHTS', k, 'tint'], 0, 1, 0.05, props),
+      r('intensity', ['LIGHTS', k, 'intensity'], 0, 200, 0.5),
+      r('reach', ['LIGHTS', k, 'range'], 1, 80, 0.5, fx),
+      r('spread', ['LIGHTS', k, 'spread'], 0.1, LIGHT_SPREAD_MAX, 0.01, fx),
+      r('softness', ['LIGHTS', k, 'softness'], 0, 1, 0.05, fx),
+    ];
+    return [
+      { kind: 'heading', label: LIGHT_LABELS[k] } as Item,
+      // The CCTV light is a real light (it moves): only the steady lamps bake.
+      ...(k === 'cctv' ? light : when('bake', light)),
+      r('glow size', ['LIGHTS', k, 'glow'], 0, 3, 0.05, fx),
+      r('beam length', ['LIGHTS', k, 'beam'], 0, 20, 0.5, fx),
+    ];
+  });
 }
 
 /** F3 sections for the Render tab: shaders, lights, light props, post. */
@@ -110,13 +116,12 @@ export function renderSections(): Section[] {
       title: 'Light props',
       items: [
         r('brightness', ['ATMOS', 'practical'], 0, 4, 0.05),
-        r('falloff', ['ATMOS', 'lightDecay'], 0.5, 2.5, 0.05),
+        ...when('bake', [r('falloff', ['ATMOS', 'lightDecay'], 0.5, 2.5, 0.05)]),
         r('glow brightness', ['ATMOS', 'emissiveBoost'], 0, 6, 0.1),
         { kind: 'heading', label: 'BAKED LIGHT' },
         { kind: 'readout', label: 'bake', get: () => (live.stats.bakePending ? `${live.stats.bakePending} parts left` : 'done') },
         t('on', ['LIGHTMAP', 'enabled']),
-        t('shadows', ['LIGHTMAP', 'shadows']),
-        r('detail', ['LIGHTMAP', 'texelsPerMeter'], 1, 16, 1),
+        ...when('bake', [t('shadows', ['LIGHTMAP', 'shadows']), r('detail', ['LIGHTMAP', 'texelsPerMeter'], 1, 16, 1)]),
         r('wet highlights', ['LIGHTMAP', 'highlights'], 0, 4, 1),
         r('bake time', ['LIGHTMAP', 'budgetMs'], 0.5, 16, 0.5),
         { kind: 'heading', label: 'REAL LIGHTS' },
@@ -172,10 +177,10 @@ export function uiSections(): Section[] {
         r('roundness', ['HUD', 'slotRoundness'], 0, 1, 0.05),
         r('icon size', ['HUD', 'iconSize'], 0.3, 1.2, 0.01),
         c('border', ['HUD', 'slotBorder']),
-        c('background', ['HUD', 'slotFill']),
-        r('background: opacity', ['HUD', 'slotFillOpacity'], 0, 1, 0.05),
+        c('fill', ['HUD', 'slotFill']),
+        r('fill: opacity', ['HUD', 'slotFillOpacity'], 0, 1, 0.05),
         c('selected: border', ['HUD', 'selectedBorder']),
-        c('selected: background', ['HUD', 'selectedFill']),
+        c('selected: fill', ['HUD', 'selectedFill']),
         r('selected: opacity', ['HUD', 'selectedFillOpacity'], 0, 1, 0.05),
       ],
     },
@@ -184,9 +189,8 @@ export function uiSections(): Section[] {
       title: 'Pause menu',
       items: [
         c('color', ['PAUSE_MENU', 'color']),
-        r('opacity', ['PAUSE_MENU', 'opacity'], 0, 1, 0.05),
-        r('debug: opacity', ['PAUSE_MENU', 'debugOpacity'], 0, 1, 0.05),
-        t('controls', ['PAUSE_MENU', 'controls']),
+        r('opacity: with F3', ['PAUSE_MENU', 'debugOpacity'], 0, 1, 0.05),
+        ...when('paused', [r('opacity', ['PAUSE_MENU', 'opacity'], 0, 1, 0.05), t('controls', ['PAUSE_MENU', 'controls'])]),
       ],
     },
   ];

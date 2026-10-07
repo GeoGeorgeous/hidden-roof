@@ -5,7 +5,7 @@ import { renderSections, uiSections } from './render-sections';
 import { soundSections } from './sound-sections';
 import { buildSections } from './build-sections';
 import { playSections } from './play-sections';
-import { itemRow, type Row } from './rows';
+import { itemRow, whenOf, WHEN, type Row } from './rows';
 import { isChanged, isValue, resetItems, sectionsJSON, splitSections, type Section } from './tuning';
 import { worldSections } from './world-sections';
 
@@ -182,17 +182,23 @@ export class DebugPanel {
     render();
     title.append(arrow, icon(sectionIcon(s.title)), s.title.toUpperCase());
     head.append(title);
+    let shared = false;
     if (s.disabled) {
       box.classList.add('disabled');
       body.inert = true;
       head.append(Object.assign(el('span', 'hint'), { textContent: 'DISABLED' }));
     } else if (s.items.some(isValue)) {
+      // Every row's change shows the same way (not at once): say it once, on the head.
+      const values = s.items.filter(isValue);
+      const w = whenOf(values[0]);
+      shared = !!w && values.length > 1 && values.every((v) => whenOf(v) === w);
+      if (shared) head.append(Object.assign(el('span', 'hint'), { textContent: WHEN[w!][0], title: WHEN[w!][1] }));
       const reset = button('RESET', () => this.reset([s]));
       reset.classList.add('reset');
       head.append(copyButton('COPY', () => sectionsJSON([s])), reset);
     }
     for (const it of s.items) {
-      const row = itemRow(it, () => this.refresh());
+      const row = itemRow(it, () => this.refresh(), !shared);
       this.rows.push(row);
       if (row.read) this.readouts.push(row.read);
       body.append(row.el);

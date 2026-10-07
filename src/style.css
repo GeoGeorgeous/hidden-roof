@@ -662,6 +662,16 @@ canvas {
 .debug-panel label > span:first-child {
   color: var(--dim);
 }
+/* When a change shows, if not at once (rows.ts): LET GO, BAKE, BUILD, PAUSED. */
+.debug-panel label .when {
+  margin-left: 5px;
+  font-style: normal;
+  font-size: 8px;
+  letter-spacing: 0.04em;
+  color: var(--dim);
+  opacity: 0.75;
+  vertical-align: 1px;
+}
 /* Differs from config.ts. */
 .debug-panel label.changed > span:first-child {
   color: var(--ui);

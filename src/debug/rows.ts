@@ -1,6 +1,6 @@
 import { defaultOf } from './defaults';
 import { hintFor, LABEL_HINTS } from './hints';
-import { getValue, isChanged, setValue, type Item } from './tuning';
+import { getValue, isChanged, setValue, type Item, type When } from './tuning';
 
 // One row of the F3 panel per item: a slider, toggle, color, gray (a color as
 // one shade, on a black-to-white slider), button, readout or heading. A value
@@ -16,10 +16,25 @@ export interface Row {
 }
 
 /** `edited` runs after the player changed the value. */
-export function itemRow(it: Item, edited: () => void): Row {
+/** Row tags and tooltip lines for values whose change doesn't show at once (tuning.ts When). */
+export const WHEN: Record<When, [tag: string, note: string]> = {
+  release: ['LET GO', 'Applies when you let go of the slider.'],
+  bake: ['BAKE', 'With baked light on, shows once the lamp light rebakes (a moment).'],
+  build: ['BUILD', 'Shows only in build mode (B).'],
+  paused: ['PAUSED', 'Shows only on the pause menu without F3 (close F3 and press ESC).'],
+};
+
+/** When a row's change shows, if not at once. */
+export const whenOf = (it: Item): When | undefined => ('path' in it ? (it.when ?? (it.kind === 'range' && it.onRelease ? 'release' : undefined)) : undefined);
+
+/** `tag`: show the When tag on the row (off when its section shows it once for all). */
+export function itemRow(it: Item, edited: () => void, tag = true): Row {
   const row = control(it, edited);
-  const hint = 'path' in it ? hintFor(it.path) : LABEL_HINTS[it.label];
-  if (hint) row.el.classList.add('has-hint');
+  const w = whenOf(it);
+  if (w && tag) row.el.querySelector('span')!.append(Object.assign(document.createElement('em'), { className: 'when', textContent: WHEN[w][0] }));
+  const own = 'path' in it ? hintFor(it.path) : LABEL_HINTS[it.label];
+  if (own) row.el.classList.add('has-hint');
+  const hint = [own, w && WHEN[w][1]].filter(Boolean).join(' ');
   const d = 'path' in it ? defaultOf(it.path) : undefined;
   const tip = [hint, d === undefined ? '' : `config.ts: ${typeof d === 'boolean' ? (d ? 'ON' : 'OFF') : d}`].filter(Boolean).join('\n');
   if (tip) row.el.title = tip;

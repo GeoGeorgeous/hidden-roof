@@ -29,7 +29,8 @@
 - **Ranges:** the default is inside the range and ideally not at either end; min and max are what's sensible to try; the step matches the precision that matters.
 - **Each instance holds its own absolute value** (each cap's run frequency), not a global value times per-instance multipliers.
 - **Colors:** what is only an ink tone uses a gray slider; real color (paint, caps, lights, signs) uses the color picker.
-- **Changes apply live** through the row's side-effect hook. A rebuild too slow to run on every drag gets an action button instead.
+- **Changes apply live** through the row's side-effect hook. A rebuild too slow to run on every drag runs when the slider is let go (`onRelease`), with an action button too.
+- **Say when a change shows** if not at once while dragging: tag the row (`when`: LET GO, BAKE, BUILD, PAUSED) so its tag and tooltip tell you where to look.
 
 ## Icons
 
