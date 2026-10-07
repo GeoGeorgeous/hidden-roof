@@ -157,7 +157,7 @@ await check('sponge: a surface cleaned completely gives its memory back', async 
     await frames(40, (f) => (input.lmb = f < 6));
     const sprayed = g.paint.gpu.textureCount;
     inv.select(4);
-    inv.size.sponge = 0.3;
+    inv.size.sponge = 0.6;
     await frames(160, (f) => (input.lmb = f < 150));
     g.fixedStep.dt = 0;
     input.locked = false;
@@ -214,7 +214,7 @@ await check('levels: saves are named after the level opened in build mode, and s
   return r.demo === 'demo' && r.roof === 'my-roof' && r.refused === 'SAVED FOR DEMO' ? null : JSON.stringify(r);
 });
 
-await check('tools: the wheel changes the player\'s nib and patch size, not the config', async () => {
+await check('tools: the wheel changes the player\'s nib, roller and patch width, not the config', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
     const { inventory: inv, input, tools, config } = g;
@@ -222,7 +222,8 @@ await check('tools: the wheel changes the player\'s nib and patch size, not the 
     input.locked = true;
     inv.give('marker');
     inv.give('sponge');
-    inv.size = { marker: config.MARKER.radius, sponge: config.SPONGE.radius };
+    inv.give('roller');
+    inv.size = { marker: config.MARKER.width, roller: config.ROLLER.width, sponge: config.SPONGE.width };
     inv.select(1);
     const crosshair = tools.crosshair('marker');
     for (let i = 0; i < 3; i++) await notch(-1);
@@ -232,11 +233,14 @@ await check('tools: the wheel changes the player\'s nib and patch size, not the 
     inv.select(4);
     await notch(-1);
     out.sponge = inv.size.sponge;
-    out.config = [config.MARKER.radius, config.SPONGE.radius];
+    inv.select(3);
+    await notch(-1);
+    out.roller = inv.size.roller;
+    out.config = [config.MARKER.width, config.SPONGE.width];
     input.locked = false;
     return out;
   });
-  return r.marker === 0.024 && r.grew && r.min === 0 && r.sponge === 0.11 && r.config.join() === '0.012,0.09' ? null : JSON.stringify(r);
+  return r.marker === 0.048 && r.grew && r.min === 0 && r.sponge === 0.22 && r.roller === 0.5 && r.config.join() === '0.024,0.18' ? null : JSON.stringify(r);
 });
 
 await check('ladders: one per player, moved with one rebuild; each owner\'s stays until they take it away; never saved', async () => {
@@ -549,6 +553,62 @@ await check('hotbar: icons arrive from the GPU (read back without stalling) and 
   await page.waitForFunction(() => [...document.querySelectorAll('.hotbar img')].every((i) => i.src.startsWith('data:image/png')), null, { timeout: 10000 }).catch(() => {});
   const n = await ready();
   return n === 5 ? null : `${n} of 5 icons arrived`;
+});
+
+await check('debug panel: hooks run from the rows: a Models slider rebuilds the model, a pause menu row shows its sheet', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const frame = () => new Promise((d) => requestAnimationFrame(() => requestAnimationFrame(d)));
+    const open = g.debug.visible;
+    if (!open) g.debug.toggle();
+    g.hud.setLocked(false, true);
+    const tab = (name) => [...document.querySelectorAll('.debug-panel .tabs button')].find((b) => b.textContent.trim() === name).click();
+    const row = (name) => [...document.querySelectorAll('.debug-panel .page:not([hidden]) label')].filter((l) => l.querySelector('span')?.firstChild?.textContent === name).pop().querySelector('input');
+    const length = () => {
+      let h = 0;
+      // The barrel: the marker's widest cylinder (MODELS.marker.width).
+      g.tools.marker.model.traverse((o) => {
+        const p = o.geometry?.type === 'CylinderGeometry' ? o.geometry.parameters : null;
+        if (p && p.radiusTop === g.config.MODELS.marker.width / 2) h = p.height;
+      });
+      return h;
+    };
+    tab('MODELS');
+    const before = length();
+    const input = row('length');
+    input.value = '0.2';
+    input.dispatchEvent(new Event('input'));
+    await frame();
+    const after = length();
+    input.closest('section').querySelector('.head .reset').click();
+    await frame();
+    tab('UI');
+    const pause = row('opacity');
+    pause.value = '0.3';
+    pause.dispatchEvent(new Event('input'));
+    const compact = document.querySelector('.overlay').classList.contains('compact');
+    pause.closest('section').querySelector('.head .reset').click();
+    if (!open) g.debug.toggle();
+    return { before, after, previewed: !compact };
+  });
+  return r.before === 0.13 && r.after === 0.2 && r.previewed ? null : JSON.stringify(r);
+});
+
+await check('debug panel: every row on every tab has a tooltip', async () => {
+  const missing = await page.evaluate(() => {
+    const g = window.game;
+    const open = g.debug.visible;
+    if (!open) g.debug.toggle();
+    const out = [];
+    for (const tab of document.querySelectorAll('.debug-panel .tabs button')) {
+      tab.click();
+      const rows = document.querySelectorAll('.debug-panel .page:not([hidden]) label:not(.heading):not(.has-hint)');
+      for (const row of rows) out.push(`${tab.textContent.trim()}: ${row.querySelector('span')?.textContent ?? row.textContent.trim()}`);
+    }
+    if (!open) g.debug.toggle();
+    return out;
+  });
+  return missing.length ? `no tooltip: ${missing.join(', ')}` : null;
 });
 
 if (page.errors.length) {

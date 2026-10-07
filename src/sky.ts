@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ATMOS } from './config';
+import { moonDirection } from './render/moon';
 import { inkUniforms } from './render/ink/tone';
 
 // Sky dome: INK.sky, a touch darker straight up, and a faint pale disc where
@@ -8,7 +8,7 @@ import { inkUniforms } from './render/ink/tone';
 export function makeSky() {
   const uniforms = {
     uSky: inkUniforms.uSky,
-    uMoonDir: { value: new THREE.Vector3(...ATMOS.moonDir).normalize() },
+    uMoonDir: { value: moonDirection(new THREE.Vector3()) },
     /** Lightning: 0..1, set every frame by main. */
     uFlash: { value: 0 },
   };

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { ATMOS, DAYLIGHT } from '../config';
+import { moonDirection } from './moon';
 import type { Lighting } from './lighting';
 
 // Two lighting presets: the rainy night (ATMOS as configured / tuned) and plain
@@ -49,7 +50,7 @@ export class Atmosphere {
   /** Push ATMOS colors and the moon direction to sky and lights. */
   syncColors() {
     const u = (this.sky.material as THREE.ShaderMaterial).uniforms;
-    u.uMoonDir.value.set(...ATMOS.moonDir).normalize();
+    moonDirection(u.uMoonDir.value);
     this.lighting.hemi.color.set(ATMOS.ambientSky);
     this.lighting.hemi.groundColor.set(ATMOS.ambientGround);
     this.lighting.moon.color.set(ATMOS.moonColor);

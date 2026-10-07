@@ -51,7 +51,7 @@ export const inkUniforms = {
   /** paper, hatch and black tone steps, tone noise. */
   uTones: { value: new THREE.Vector4() },
   /** hatch spacing (px), line width (fraction of the spacing). */
-  uHatch: { value: new THREE.Vector2() },
+  uHatch: { value: new THREE.Vector3() },
   /** void top and bottom heights. */
   uVoid: { value: new THREE.Vector2() },
   /** paint light multiplier, minimum, hatch strength. */
@@ -70,7 +70,7 @@ export function syncInkUniforms() {
   u.uInkColor.value.set(INK.ink);
   u.uInkExposure.value = INK.exposure;
   u.uTones.value.set(INK.paperTone, INK.hatchTone, INK.blackTone, INK.toneNoise);
-  u.uHatch.value.set(INK.hatchPx, INK.hatchWidth);
+  u.uHatch.value.set(INK.hatchPx, INK.hatchWidth, INK.hatchOpacity);
   u.uVoid.value.set(INK.voidTop, Math.min(INK.voidBottom, INK.voidTop - 1));
   u.uPaintInk.value.set(INK.paintLight, INK.paintMin, INK.paintHatch);
   u.uFade.value = ATMOS.fogDensity;
@@ -85,7 +85,7 @@ uniform vec3 uInkColor;
 uniform vec3 uCloudInk;
 uniform float uInkExposure;
 uniform vec4 uTones;
-uniform vec2 uHatch;
+uniform vec3 uHatch;
 uniform vec2 uVoid;
 uniform vec3 uPaintInk;
 uniform float uFade;
@@ -151,8 +151,9 @@ vec2 inkHatches(vec3 p, vec3 n) {
 // Ink coverage (0 = paper, 1 = solid ink) for a tone.
 float inkCover(float v, vec2 hatch, vec3 p) {
   v += (inkNoise(p * 1.7) - 0.5) * 2.0 * uTones.w;
-  float a = hatch.x * step(v, uTones.x);
-  float b = hatch.y * step(v, uTones.y);
+  // Hatch lines are ink at uHatch.z (INK.hatchOpacity); solid ink stays solid.
+  float a = hatch.x * uHatch.z * step(v, uTones.x);
+  float b = hatch.y * uHatch.z * step(v, uTones.y);
   return max(1.0 - (1.0 - a) * (1.0 - b), step(v, uTones.z));
 }
 

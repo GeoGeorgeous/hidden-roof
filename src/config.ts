@@ -7,6 +7,8 @@ export const RENDER = {
   /** Extra FOV (degrees) while sprinting, eased in and out. */
   sprintFovBoost: 6,
   sprintFovEase: 8,
+  /** Frame rate limit (frames per second); 0 = none, as fast as the display refreshes. A player setting (FRAME RATE). */
+  maxFps: 0,
   /** Go fullscreen when the game takes the mouse (off: play in the browser window). */
   fullscreen: true,
   /** Moving prop parts: CCTV heads pan and follow, AC fans spin. Off: they stay at rest. */
@@ -31,12 +33,16 @@ export const ATMOS = {
   ambient: 1.1,
   moonColor: '#e6e4dc',
   moon: 0.45,
-  moonDir: [-0.55, 0.65, -0.5] as [number, number, number],
+  /** Toward the moon (degrees): height above the horizon, and heading round from +z toward +x. Sets the shadows' direction. */
+  moonHeight: 41.2,
+  moonHeading: 227.7,
   shadows: true,
   /** Real spot lights may cast shadow-map shadows (2 slots, kinds with `shadows`). Only while lamps aren't baked (LIGHTMAP.enabled off). */
   spotShadows: false,
   /** Half-size of the moon shadow area around the player, in meters. */
   shadowRange: 32,
+  /** Moon shadow map size (px per side): sharper shadows over the same range, more GPU memory and fill. */
+  shadowDetail: 2048,
   /** Multiplier for all light props. */
   practical: 2,
   /** While lamps aren't baked (LIGHTMAP.enabled off): real lights handed to the nearest light props (others use glow tricks only). */
@@ -54,19 +60,19 @@ export const ATMOS = {
   /** Raindrop color, and how visible the drops are (multiplier, 1 = default). */
   rainColor: '#26272c',
   rainOpacity: 1,
-  wind: [-3, 0, -2] as [number, number, number],
+  /** Wind for rain and smoke: speed (m/s) and the heading it blows toward (degrees, 0 = +z, 90 = +x). */
+  windStrength: 3.6,
+  windHeading: 236.3,
 };
 
 /** Practical light kinds; every light prop uses one (see kit/lights.ts). */
-export type LightKind = 'wallLamp' | 'floodlight' | 'neonPink' | 'neonCyan' | 'neonAmber' | 'billboardLamp' | 'lampPost' | 'stringLights' | 'cctv';
+export type LightKind = 'wallLamp' | 'floodlight' | 'neon' | 'billboardLamp' | 'lampPost' | 'stringLights' | 'cctv';
 
 export interface LightSpec {
-  /** Light color (lens and sign tubes take it too, after a rebuild). */
+  /** Light color (the lens takes it too, after a rebuild). Neon signs have one each instead (NEON_COLORS). */
   color: string;
   /** How much of `color` shows in the light on walls (INK.tint scales it): 0 = only its brightness (neutral), 1 = its full hue. Baked lamps only: with LIGHTMAP.enabled off the walls get no hue. */
   tint: number;
-  /** Emitter position relative to its default spot on the lens, prop-local meters (x right, y up, z back toward the wall). */
-  offset: [number, number, number];
   /** Aim, prop-local (front of the prop is -z); normalized when used. Floodlight heads turn with it. */
   dir: [number, number, number];
   /** Candela-like strength; scaled by ATMOS.practical. */
@@ -93,18 +99,20 @@ export const LIGHT_SPREAD_MAX = 1.55;
 /** Line sources (LightPiece.span, the neon signs) are baked as this many lamps along their length, sharing the kind's intensity, so the light comes from the whole tube, not one point. */
 export const NEON_LIGHT_ROWS = 4;
 
-/** Per-kind light settings, live-tunable in the debug panel (Lights). */
-export const LIGHTS: Record<LightKind, LightSpec> = {
-  wallLamp: { color: '#9b96c0', tint: 0, offset: [0, 0, 0], dir: [0, -1, -0.25], intensity: 13.5, range: 10, spread: 1.33, softness: 1, glow: 0, glowAllAround: false, beam: 0.5, shadows: true },
-  floodlight: { color: '#dfe8ff', tint: 0, offset: [0, 0, 0], dir: [0, -0.55, -0.83], intensity: 60, range: 40, spread: 0.55, softness: 0.4, glow: 0.6, glowAllAround: false, beam: 7, shadows: true },
-  neonPink: { color: '#ff3fa4', tint: 1, offset: [0, 0, 0], dir: [1, 0, 0], intensity: 8, range: 10, spread: 1.45, softness: 1, glow: 0, glowAllAround: false, beam: 0, shadows: true },
-  neonCyan: { color: '#2fe6ff', tint: 1, offset: [0, 0, 0], dir: [1, 0, 0], intensity: 8, range: 10, spread: 1.45, softness: 1, glow: 0, glowAllAround: false, beam: 0, shadows: true },
-  neonAmber: { color: '#ffa24a', tint: 1, offset: [0, 0, 0], dir: [1, 0, 0], intensity: 8, range: 10, spread: 1.45, softness: 1, glow: 0, glowAllAround: false, beam: 0, shadows: true },
-  lampPost: { color: '#ffcf8a', tint: 0, offset: [0, 0, 0], dir: [0, -1, 0], intensity: 30, range: 22, spread: 1.15, softness: 0.6, glow: 0.45, glowAllAround: false, beam: 4.5, shadows: true },
-  stringLights: { color: '#ffd59a', tint: 0, offset: [0, 0, 0], dir: [0, -1, 0], intensity: 6, range: 10, spread: 1.45, softness: 1, glow: 0.22, glowAllAround: true, beam: 0, shadows: true },
-  billboardLamp: { color: '#ffe2b0', tint: 0, offset: [0, 0, 0], dir: [0, -0.8, -0.6], intensity: 25, range: 12, spread: 0.8, softness: 0.5, glow: 0.3, glowAllAround: false, beam: 3.2, shadows: true },
+/** The neon signs' colors: each sign's tubes, text and light (the rest of its light is LIGHTS.neon). */
+export type NeonColor = 'pink' | 'cyan' | 'amber';
+export const NEON_COLORS: Record<NeonColor, string> = { pink: '#ff3fa4', cyan: '#2fe6ff', amber: '#ffa24a' };
+
+/** Per-kind light settings, live-tunable in the debug panel (Render → Light props). */
+export const LIGHTS: Record<Exclude<LightKind, 'neon'>, LightSpec> & { neon: Omit<LightSpec, 'color'> } = {
+  wallLamp: { color: '#9b96c0', tint: 0, dir: [0, -1, -0.25], intensity: 13.5, range: 10, spread: 1.33, softness: 1, glow: 0, glowAllAround: false, beam: 0.5, shadows: true },
+  floodlight: { color: '#dfe8ff', tint: 0, dir: [0, -0.55, -0.83], intensity: 60, range: 40, spread: 0.55, softness: 0.4, glow: 0.6, glowAllAround: false, beam: 7, shadows: true },
+  neon: { tint: 1, dir: [1, 0, 0], intensity: 8, range: 10, spread: 1.45, softness: 1, glow: 0, glowAllAround: false, beam: 0, shadows: true },
+  lampPost: { color: '#ffcf8a', tint: 0, dir: [0, -1, 0], intensity: 30, range: 22, spread: 1.15, softness: 0.6, glow: 0.45, glowAllAround: false, beam: 4.5, shadows: true },
+  stringLights: { color: '#ffd59a', tint: 0, dir: [0, -1, 0], intensity: 6, range: 10, spread: 1.45, softness: 1, glow: 0.22, glowAllAround: true, beam: 0, shadows: true },
+  billboardLamp: { color: '#ffe2b0', tint: 0, dir: [0, -0.8, -0.6], intensity: 25, range: 12, spread: 0.8, softness: 0.5, glow: 0.3, glowAllAround: false, beam: 3.2, shadows: true },
   // On only while the camera follows the player (see CCTV); turns with the head. Glow and beam are not used.
-  cctv: { color: '#dfe9ff', tint: 0, offset: [0, 0, 0], dir: [0, -0.3, -1], intensity: 6, range: 9, spread: 0.35, softness: 0.7, glow: 0, glowAllAround: false, beam: 0, shadows: false },
+  cctv: { color: '#dfe9ff', tint: 0, dir: [0, -0.3, -1], intensity: 6, range: 9, spread: 0.35, softness: 0.7, glow: 0, glowAllAround: false, beam: 0, shadows: false },
 };
 
 /**
@@ -112,7 +120,7 @@ export const LIGHTS: Record<LightKind, LightSpec> = {
  * baked into light textures on the paintable surfaces (and into the vertices
  * of small decor), so any number of lamps costs the same per frame. Rebakes on
  * its own after build edits and light tweaks. Moving lights (CCTV) stay real
- * spot lights. Live-tunable in F3 -> Lights -> baked light.
+ * spot lights. Live-tunable in F3 -> Render -> Light props -> baked light.
  */
 export const LIGHTMAP = {
   /** Off = the old way, for comparison: the nearest lamps get real spot lights (ATMOS.lightBudget). */
@@ -121,8 +129,6 @@ export const LIGHTMAP = {
   shadows: true,
   /** Light texels per meter on paintable surfaces (4 = 25 cm). Decor is lit per vertex. */
   texelsPerMeter: 4,
-  /** Smooth (bilinear) light texels; off = hard pixels. */
-  smooth: true,
   /** Wet highlights: the nearest lamps (0..4) also add a real-time specular highlight. */
   highlights: 4,
   /** Bake time per frame after edits and tweaks (ms). A freshly loaded level bakes at once. */
@@ -141,7 +147,8 @@ export const DAYLIGHT: Partial<typeof ATMOS> = {
   ambient: 1.7,
   moonColor: '#fff6e8',
   moon: 2.4,
-  moonDir: [-0.45, 0.8, -0.3],
+  moonHeight: 55.9,
+  moonHeading: 236.3,
   practical: 0.4,
   emissiveBoost: 0.8,
   wetness: 0,
@@ -174,7 +181,7 @@ export const VOLUMETRICS = {
  * The ink look (render/ink): the world is drawn in ink on paper, and only the
  * player's paint keeps its color. Lit surfaces get a tone (light x material
  * gray), and the tone picks how much ink: paper, hatching, cross-hatching,
- * solid black. Edges get pen outlines in the final pass. Live in F3 -> Ink.
+ * solid black. Edges get pen outlines in the final pass. Live in F3 -> Render -> Shaders.
  */
 export const INK = {
   paper: '#dfe0d6',
@@ -188,9 +195,10 @@ export const INK = {
   paperTone: 0.67,
   hatchTone: 0.27,
   blackTone: 0.19,
-  /** Hatch line spacing on screen (px) at any distance, and line thickness (fraction of the spacing). */
+  /** Hatch line spacing on screen (px) at any distance, line thickness (fraction of the spacing), and how dark a line is (1 = full ink). */
   hatchPx: 2,
   hatchWidth: 0.5,
+  hatchOpacity: 1,
   /** Ragged tone edges: how far the noise shifts the steps (tone units). */
   toneNoise: 0.05,
   /** Meters below which the city sinks into black (the street far down), and where it is fully black. */
@@ -204,8 +212,6 @@ export const INK = {
   outline: 0.95,
   crease: 1,
   outlineFade: 730,
-  /** Outlines wobble by up to this many pixels (hand-drawn look). */
-  wobble: 0,
   /** Paper grain strength. */
   grain: 0.3,
   /** Colored light on walls and floors: how strongly the lamp kinds with LIGHTS[kind].tint tint what they light (0 = none, the pure ink look). Comes from the baked light, so only while LIGHTMAP.enabled is on. */
@@ -226,20 +232,15 @@ export const INK_TINT = {
   neonMinLight: 0.02,
 };
 
-/** Final color grading, applied in display space. Neutral = 0, 1, 1, 0, 0. */
+/** The finished image's brightness, in the final pass (render/ink/compose.ts). */
 export const GRADE = {
-  /** Stops (+1 = twice as bright). */
+  /** Stops (+1 = twice as bright): paper and lines alike; INK.exposure decides how much ink. */
   exposure: 0,
-  contrast: 1,
-  saturation: 1,
-  /** Warm (+) / cool (-) white balance. */
-  temperature: 0,
-  /** Magenta (+) / green (-). */
-  tint: 0,
 };
 
 /** The dark edge of the screen: a gradient over the view (hud.ts), live in F3. */
 export const VIGNETTE = {
+  enabled: true,
   /** Darkness at the corners, 0..1 (0 = none). */
   strength: 0.3,
   /** Where it starts, as a percentage of the way out to the corners. */
@@ -247,10 +248,47 @@ export const VIGNETTE = {
   color: '#141416',
 };
 
-/** What the HUD shows besides the body-cam frame (hud.ts), live in F3. */
+/** The pause menu (ESC): the sheet over the game and what it shows, live in F3 → UI. */
+export const PAUSE_MENU = {
+  /** Sheet color and opacity; lighter while the F3 panel is open, so the game shows behind it. */
+  color: '#0e0e10',
+  opacity: 0.8,
+  debugOpacity: 0.45,
+  /** The list of keys under the menu. */
+  controls: true,
+};
+
+/** What the HUD shows (hud.ts) and the hotbar's size (inventory/hotbar.ts), live in F3 → UI. */
 export const HUD = {
+  /** Body-cam corner brackets. */
+  frame: true,
+  /** REC dot and elapsed time, top left. */
+  rec: true,
+  /** Camera label under it (CAM 01 · ROOFTOP). */
+  cam: true,
+  /** Date and time, top right. */
+  clock: true,
   /** Performance readout, bottom left: fps, draw calls, triangles, texture memory. */
   perf: true,
+  /** GPU time per frame in it too (timer queries: desktop Chromium; a few queries a frame while shown). */
+  perfGpu: false,
+  /** How long the cap and color tags show after a change, the PSI gauge after the pressure last changed, and a hotbar message (s). */
+  tagTime: 2.5,
+  gaugeTime: 1.2,
+  toastTime: 2.2,
+  /** Hotbar slots: size and the gap between them (CSS px), roundness (0 = square, 1 = circle), icon size (share of the slot). */
+  slotSize: 30,
+  slotGap: 10,
+  slotRoundness: 1,
+  iconSize: 0.73,
+  /** Slot border and background (the background at `slotFillOpacity`, 0 = none). */
+  slotBorder: '#141416',
+  slotFill: '#ebe5d6',
+  slotFillOpacity: 0,
+  /** The selected slot's border and background. */
+  selectedBorder: '#141416',
+  selectedFill: '#ebe5d6',
+  selectedFillOpacity: 0.35,
 };
 
 /** Slogans on lettered sign panels (kit/lettering.ts panelLettering). */
@@ -297,14 +335,14 @@ export const BASE_TEXTURES = { texelsPerMeter: 24 };
 
 export interface CapSpec {
   name: string;
-  /** Spread: half-angle of the spray cone (horizontal, on screen). */
-  coneAngle: number;
+  /** Spread: the spray cone's full angle (radians, horizontal on screen). */
+  spread: number;
   /** Particles per second at full flow. */
   rate: number;
   /** Opacity each particle adds where it lands (0..1). */
   strength: number;
-  /** Radius of each particle's dot, in meters (the same at every paint detail; a dot smaller than a texel paints one texel). */
-  stampRadius: number;
+  /** Width of each particle's dot, in meters (the same at every paint detail; a dot smaller than a texel paints one texel). */
+  dotSize: number;
   /** Edge softness of each dot: 0 = hard edge, 1 = fades to nothing at the rim. */
   softness: number;
   /** Hiss loudness multiplier and tone (0 = bright, 1 = deep). */
@@ -312,18 +350,24 @@ export interface CapSpec {
   hissTone: number;
   /** Crosshair circle diameter on screen, in CSS pixels. */
   crosshair: number;
-  /** Color of the cap on the can model and pickups. */
+  /** Paint runs (with DRIPS on), per m² of paint reaching DRIPS.excess. */
+  drips: number;
+  /** Pressure lost per second of spraying with this cap (1 = a full can). */
+  drain: number;
+  /** Color of the cap on the can, its pickup and hotbar icon. */
   color: string;
+  /** Width of the cap's nozzle (m): it hints at the cap. */
+  nozzle: number;
 }
 
 export type CapId = 'skinny' | 'standard' | 'fat' | 'spray';
 export const CAP_ORDER: CapId[] = ['skinny', 'standard', 'fat', 'spray'];
 export const CAPS: Record<CapId, CapSpec> = {
-  skinny: { name: 'SKINNY', coneAngle: 0.01, rate: 320, strength: 0.8, stampRadius: 0.033, softness: 0.15, hissGain: 0.5, hissTone: 0, crosshair: 8, color: '#7fb4f2' },
-  standard: { name: 'STANDARD', coneAngle: 0.04, rate: 450, strength: 0.5, stampRadius: 0.046, softness: 0.35, hissGain: 0.75, hissTone: 0.4, crosshair: 14, color: '#f4f4f4' },
-  fat: { name: 'FAT', coneAngle: 0.01, rate: 800, strength: 0.35, stampRadius: 0.1, softness: 0, hissGain: 1, hissTone: 1, crosshair: 22, color: '#f2a04c' },
+  skinny: { name: 'SKINNY', spread: 0.02, rate: 320, strength: 0.8, dotSize: 0.066, softness: 0.15, hissGain: 0.5, hissTone: 0, crosshair: 8, drips: 17, drain: 0.04, color: '#7fb4f2', nozzle: 0.004 },
+  standard: { name: 'STANDARD', spread: 0.08, rate: 450, strength: 0.5, dotSize: 0.092, softness: 0.35, hissGain: 0.75, hissTone: 0.4, crosshair: 14, drips: 17, drain: 0.04, color: '#f4f4f4', nozzle: 0.006 },
+  fat: { name: 'FAT', spread: 0.02, rate: 800, strength: 0.35, dotSize: 0.2, softness: 0, hissGain: 1, hissTone: 1, crosshair: 22, drips: 17, drain: 0.04, color: '#f2a04c', nozzle: 0.01 },
   /** Wide, soft mist for fades and backgrounds: lots of faint, fuzzy dots. */
-  spray: { name: 'SPRAY', coneAngle: 0.14, rate: 1100, strength: 0.12, stampRadius: 0.079, softness: 0.9, hissGain: 0.9, hissTone: 0.8, crosshair: 32, color: '#b98cf2' },
+  spray: { name: 'SPRAY', spread: 0.28, rate: 1100, strength: 0.12, dotSize: 0.158, softness: 0.9, hissGain: 0.9, hissTone: 0.8, crosshair: 32, drips: 17, drain: 0.04, color: '#b98cf2', nozzle: 0.013 },
 };
 
 /** Paint colors, in Q/E cycling order. Black is always owned. Paint never runs out. */
@@ -344,25 +388,25 @@ export const COLORS: Record<PaintColor, string> = {
 export const MARKER = {
   /** Max distance from the eye to the surface. */
   reach: 2.3,
-  /** Starting half side of the square nib, in meters (0 = one paint texel: the thinnest line, 4 cm on LOW paint detail, 1 cm on ULTRA). Each player's own is Inventory.size. */
-  radius: 0.012,
-  /** Mouse wheel with the marker in hand: changes the player's nib half-width by radiusStep, within radiusMin..radiusMax (m). */
-  radiusMin: 0,
-  radiusMax: 0.05,
-  radiusStep: 0.004,
-  /** Crosshair with the marker in hand (px): `crosshair` plus `crosshairPerMeter` x the nib half-width, so it follows the wheel. */
+  /** Starting width of the square nib, in meters (0 = one paint texel: the thinnest line, 4 cm on LOW paint detail, 1 cm on ULTRA). Each player's own is Inventory.size. */
+  width: 0.024,
+  /** Mouse wheel with the marker in hand: changes the player's nib width by widthStep, within widthMin..widthMax (m). */
+  widthMin: 0,
+  widthMax: 0.1,
+  widthStep: 0.008,
+  /** Crosshair with the marker in hand (px): `crosshair` plus `crosshairPerMeter` x the nib width, so it follows the wheel. */
   crosshair: 4,
-  crosshairPerMeter: 400,
+  crosshairPerMeter: 200,
   /**
-   * Paint runs (with DRIPS on) from the marker, as a multiplier of DRIPS.perSquareMeter:
+   * Paint runs (with DRIPS on) from the marker, per m² of paint reaching DRIPS.excess:
    * a nib covers little area but pumps a lot of paint into it.
    */
-  drips: 8,
+  drips: 136,
   strength: 0.95,
   /** Held still, the nib stamps the same spot every frame: let it add to runs this often (per s), whatever the frame rate. */
   stillRate: 30,
-  /** Fast moves are filled with rays at most rayStep apart (radians), at most maxRays per frame, so they leave no gaps. */
-  rayStep: 0.003,
+  /** Moves are filled with stamps at most `spacing` x the nib width apart (at least half a texel), at most maxRays per frame, so they leave no gaps. */
+  spacing: 0.3,
   maxRays: 32,
 };
 
@@ -376,21 +420,27 @@ export const HOTBAR = { slots: 5 };
 export const ROLLER = {
   /** Max distance from the eye to the surface (it's on a short pole). */
   reach: 2.6,
-  /** Half the stroke's width: half the roller head's length (m). */
-  halfWidth: 0.22,
-  /** Half the depth of each press along the stroke (m); presses overlap as you roll. */
-  halfDepth: 0.03,
+  /** Starting width of the stroke: the roller head's length (m). Each player's own is Inventory.size. */
+  width: 0.44,
+  /** Mouse wheel with the roller in hand: changes the player's roller width by widthStep, within widthMin..widthMax (m). */
+  widthMin: 0.2,
+  widthMax: 0.8,
+  widthStep: 0.06,
+  /** Length of each press along the stroke (m); presses overlap as you roll. */
+  pressLength: 0.06,
   /** Fraction of each end of the roller that leaves lighter paint. */
-  edge: 0.15,
-  /** Crosshair with the roller in hand (px). */
+  softness: 0.15,
+  /** Crosshair with the roller in hand (px): `crosshair` plus `crosshairPerMeter` x the width (0: the same at every width). */
   crosshair: 10,
+  crosshairPerMeter: 0,
   /** Opacity per press: a roller lays it on thick. */
   strength: 0.85,
-  /** Paint runs (with DRIPS on), as a multiplier of DRIPS.perSquareMeter: a loaded roller runs easily. */
-  drips: 2,
+  /** Paint runs (with DRIPS on), per m² of paint reaching DRIPS.excess: a loaded roller runs easily. */
+  drips: 34,
   /** Held still, presses add to runs this often (per s), whatever the frame rate. */
   stillRate: 20,
-  /** Fast moves are filled with presses at most halfDepth apart at full reach, at most maxRays per frame. */
+  /** Moves are filled with presses at most `spacing` x the press length apart at full reach, at most maxRays per frame. */
+  spacing: 0.5,
   maxRays: 48,
 };
 
@@ -398,47 +448,29 @@ export const ROLLER = {
 export const SPONGE = {
   /** Max distance from the eye to the surface: arm's length. */
   reach: 1.6,
-  /** Starting radius of the patch it cleans per stroke step (m). Each player's own is Inventory.size. */
-  radius: 0.09,
+  /** Starting width of the round patch it cleans per stroke step (m). Each player's own is Inventory.size. */
+  width: 0.18,
   /** Share of the paint left that each pass takes off (0..1): scrub back and forth to clean. */
   strength: 0.24,
   /** 0 = cleans the whole patch evenly .. 1 = only the middle, fading to the rim. */
   softness: 0.5,
-  /** Mouse wheel with the sponge in hand: changes the player's patch radius by radiusStep, within radiusMin..radiusMax (m). */
-  radiusMin: 0.02,
-  radiusMax: 0.3,
-  radiusStep: 0.02,
-  /** Crosshair with the sponge in hand (px): `crosshair` plus `crosshairPerMeter` x the radius, so it follows the wheel. */
+  /** Mouse wheel with the sponge in hand: changes the player's patch width by widthStep, within widthMin..widthMax (m). */
+  widthMin: 0.04,
+  widthMax: 0.6,
+  widthStep: 0.04,
+  /** Crosshair with the sponge in hand (px): `crosshair` plus `crosshairPerMeter` x the patch width, so it follows the wheel. */
   crosshair: 6,
-  crosshairPerMeter: 200,
+  crosshairPerMeter: 100,
   /** How far it scrubs in small circles while cleaning (m), and how fast (turns per s). */
   scrubSize: 0.012,
   scrubSpeed: 5,
   /** Held still, it keeps scrubbing the same spot this often (per s), whatever the frame rate. */
   stillRate: 20,
-  /** Fast moves are filled with steps half a patch apart at full reach, at most maxRays per frame. */
+  /** Moves are filled with steps at most `spacing` x the patch width apart at full reach, at most maxRays per frame. */
+  spacing: 0.25,
   maxRays: 24,
-  /**
-   * The model (m): a kitchen sponge, a soft block with a darker scouring pad
-   * on its front (the side that goes on the wall) and pores on the soft part.
-   * Ink tones: lighter = more paper.
-   */
-  model: {
-    width: 0.14,
-    height: 0.09,
-    depth: 0.05,
-    /** Scouring pad thickness on the front. */
-    padDepth: 0.014,
-    /** Pores dotted over the soft part's visible faces. */
-    pores: 14,
-    poreSize: 0.006,
-    soft: '#c4c4c4',
-    pad: '#3a3a40',
-  },
   /** Height of the sponge in the hand's frame (m): up where the can's grip is, so the arm matches the can's. */
   gripHeight: 0.0,
-  /** The world pickup: the same model, at this scale, offset (m) and rotation (radians) above its spot. */
-  pickup: { scale: 1.6, offset: [0, 0, 0] as [number, number, number], rotation: [0.3, 0.4, 0] as [number, number, number] },
 };
 
 /** First-person hands + held tool: sway, bob and the trigger press. */
@@ -454,6 +486,8 @@ export const VIEWMODEL = {
   bobFrequency: 0.55,
   /** Hands dip while rising and lift while falling, per m/s of vertical speed. */
   fallLag: 0.003,
+  /** The most the hands dip or lift (m): past it a stronger fallLag changes nothing. */
+  fallLagMax: 0.03,
   /** How far the index finger pushes the nozzle down (radians of finger rotation at the knuckle). */
   pressCurl: 0.06,
   pressSpeed: 25,
@@ -516,6 +550,7 @@ export const WALL_HAND = {
 
 /** Faint light around the player so dark corners stay walkable. Not a flashlight. */
 export const PLAYER_LIGHT = {
+  enabled: true,
   intensity: 0.5,
   /** Meters until it's gone. */
   range: 5,
@@ -531,10 +566,8 @@ export const PLAYER_LIGHT = {
  */
 export const DRIPS = {
   enabled: false,
-  /** Excess paint (in full coats) a texel needs before it may run. */
+  /** Excess paint (in full coats) a texel needs before it may run. How often it then runs is each cap's and tool's `drips` (per m², spread over its texels, so every paint detail runs alike). */
   excess: 2.5,
-  /** Runs started per square meter of paint that reaches the limit (spread over its texels, so every paint detail runs alike). */
-  perSquareMeter: 17,
   /** Runs moving at the same time, level-wide. */
   maxActive: 40,
   /** Run length range (m). */
@@ -546,18 +579,55 @@ export const DRIPS = {
   strength: 0.85,
 };
 
+type V3 = [number, number, number];
+/** A pickup's pose on top of its model: size multiplier, offset (m) and rotation (radians). */
+const pickupPose = (size = 1) => ({ size, offset: [0, 0, 0] as V3, rotation: [0, 0, 0] as V3 });
+
 export const PICKUP = {
-  /** Horizontal pickup radius around the player. */
-  radius: 0.9,
+  /** Walk within this distance of a pickup to collect it (m), with your feet within reachHeight above or below it. */
+  reach: 0.9,
+  reachHeight: 1.2,
   hover: 0.75,
   spin: 1.4,
   bob: 0.08,
+  /** The drawn ring around every pickup: size (x the item's hover box) and opacity. */
+  ring: { size: 1.3, opacity: 0.7 },
+  /**
+   * Each kind's world pickup, on top of its tool model (MODELS, shown at twice real
+   * size): not its hotbar icon or the avatar's tool. Color unlocks are `can`s.
+   */
+  models: {
+    can: pickupPose(),
+    cap: pickupPose(4.4),
+    marker: pickupPose(),
+    ladder: pickupPose(0.9),
+    roller: pickupPose(0.6),
+    sponge: pickupPose(1.6),
+  },
+};
+
+/**
+ * Tool models (m), at real size: one shape per tool (tools/shapes.ts), shared by
+ * the first-person view, the pickups, the figure's hand and the hotbar icons.
+ * Each cap's color and nozzle are in CAPS.
+ */
+export const MODELS = {
+  can: { width: 0.066, height: 0.1445, labelHeight: 0.0765 },
+  /** The cap on a can and the cap pickup. */
+  cap: { width: 0.018, height: 0.014 },
+  marker: { width: 0.022, length: 0.13, bandLength: 0.03, nibSize: 0.009 },
+  /** The cover's length is the player's roller width. */
+  roller: { coverThickness: 0.08, frameThickness: 0.008, poleLength: 0.2 },
+  /** The stepladder folded, as carried (the placed one is kit/access.ts). */
+  ladder: { height: 0.36, width: 0.09, treadSpacing: 0.1 },
+  /** A kitchen sponge: a soft block with a darker scouring pad on its front (the side that goes on the wall), pores on the soft part. */
+  sponge: { width: 0.14, height: 0.09, depth: 0.05, padThickness: 0.014, pores: 14, poreSize: 0.006 },
 };
 
 export const SPRAY = {
-  /** Max distance paint can travel. */
-  range: 4.6,
-  /** Paint strength fades linearly from this distance to `range`. */
+  /** Max distance from the eye to the surface: how far paint travels. */
+  reach: 4.6,
+  /** Paint strength fades linearly from this distance to `reach`. */
   falloffStart: 1.5,
   particleSpeed: 11,
   particleSize: 0.035,
@@ -565,8 +635,6 @@ export const SPRAY = {
 };
 
 export const PRESSURE = {
-  /** Pressure lost per second of spraying (1 = full). */
-  drainPerSecond: 0.04,
   /** Below this, paint gets thinner. */
   thinThreshold: 0.5,
   /** Below this, the can sputters. */
@@ -628,8 +696,8 @@ export const AVATAR_TEST = {
   /** Moving poses at this speed (m/s; 0: the pose's own), around a loop on the floor, or on the spot. */
   speed: 0,
   onTheSpot: false,
-  /** The loop's radius (m). */
-  loop: 1.6,
+  /** The loop's width across (m). */
+  loopSize: 3.2,
 };
 
 /** Multiplayer: player snapshots and how a remote player is shown from them (src/net). */
@@ -718,7 +786,7 @@ export const AVATAR = {
 /**
  * The city around the level (src/city): seeded, so it's the same on every
  * load. A level file can override any of these in its own `skyline` object
- * (e.g. another seed, a wider margin). F3 -> Rendering -> City rebuilds it.
+ * (e.g. another seed, a wider margin). F3 -> World -> City rebuilds it.
  */
 export const SKYLINE = {
   seed: 23,
@@ -765,7 +833,6 @@ export const AUDIO = {
   /** AC fan hum at the fan; fades out over `fanRange` meters. */
   fanGain: 0.135,
   fanRange: 7,
-  uiGain: 1,
   /** Raindrops pinging on metal tops open to the sky: loudness, pings per second per piece, hearing range (m). */
   metalGain: 0.07,
   metalRate: 2.5,
@@ -795,7 +862,7 @@ export const SMOKE = {
   perEmitter: 20,
   /** Seconds a puff lives. */
   life: 6.9,
-  /** Rise over a life (m), and how far wind carries it (multiplies ATMOS.wind). */
+  /** Rise over a life (m), and how far wind carries it (multiplies the wind, ATMOS.windStrength). */
   rise: 0.4,
   drift: 0.5,
   /** Puff size at birth and at the end (m). */

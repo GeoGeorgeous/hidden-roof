@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import * as config from './config';
-import { ATMOS, AUDIO, COLORS, INK, PLAYER, PRESSURE, RENDER, SMOKE, THUNDER, VIEWMODEL } from './config';
+import { ATMOS, AUDIO, COLORS, HUD, INK, PLAYER, PRESSURE, RENDER, SMOKE, THUNDER, VIEWMODEL, VOLUMETRICS } from './config';
 import { syncSharedUniforms } from './materials';
 import { syncTrackUniforms } from './render/cctv-track';
 import { Lighting } from './render/lighting';
@@ -18,6 +18,7 @@ import { PaintOps } from './paint-ops';
 import { paintMenu } from './save/paint-menu';
 import { WallHand } from './tools/wall-hand';
 import { GpuTimer } from './debug/gpu-timer';
+import { captureDefaults } from './debug/defaults';
 import { Settings } from './settings';
 import { saveScreenshot } from './screenshot';
 import { Input } from './input';
@@ -45,6 +46,8 @@ import { exitGameFullscreen } from './fullscreen';
 import { setHex } from './hex-color';
 import { seedPaintRandom } from './lcg';
 
+// F3's defaults before anything changes config (single player: the panel isn't in the multiplayer build).
+if (import.meta.env.VITE_MP !== '1') captureDefaults();
 // Settings first: they may change the pixel scale the renderer starts with,
 // and the paint detail the level is built with.
 const settings = new Settings(applyPixelScale, () => level.rebuildAll(), rebuildCity);
@@ -204,7 +207,22 @@ const tagPos = new THREE.Vector3();
 /** Test hook (golden paint test): a fixed dt and a script run at the start of every frame, so paint follows the frame count, not wall time. */
 const fixedStep: { dt: number; script: (() => void) | null } = { dt: 0, script: null };
 
+/** When the last frame was drawn (rAF time), for the frame rate limit (RENDER.maxFps). */
+let drawnAt = -Infinity;
+
 function frame(time: number) {
+  // Frame rate limit: skip display refreshes until a frame is due. Frames are
+  // due one interval after the last was due, so the average is exact on any
+  // display rate; after a stall it starts over.
+  if (RENDER.maxFps > 0 && !fixedStep.dt) {
+    const interval = 1000 / RENDER.maxFps;
+    const since = time - drawnAt;
+    if (since < interval - 0.5) {
+      requestAnimationFrame(frame);
+      return;
+    }
+    drawnAt = since < interval * 2 ? drawnAt + interval : time;
+  }
   const t0 = performance.now();
   timer.update(time);
   const delta = timer.getDelta();
@@ -305,7 +323,10 @@ function frame(time: number) {
     fpsFrames = 0;
     fpsTime = 0;
   }
-  hud.setPerf({ fps, frameMs, calls, triangles, textureBytes: paint.gpu.textureBytes + baker.stats.textureBytes + staticTextureBytes() });
+  // The HUD's GPU line keeps the timer running with the panel closed.
+  if (HUD.perf && HUD.perfGpu) gpuTimer.enabled = true;
+  const gpu = !HUD.perfGpu ? undefined : gpuTimer.supported ? gpuTimer.total(VOLUMETRICS.enabled ? ['scene', 'volumetrics', 'post'] : ['scene', 'post']) : null;
+  hud.setPerf({ fps, frameMs, gpu, calls, triangles, textureBytes: paint.gpu.textureBytes + baker.stats.textureBytes + staticTextureBytes() });
   dev?.report({ fps, frameMs, calls, triangles });
   requestAnimationFrame(frame);
 }
@@ -346,5 +367,5 @@ function toScreen(p: THREE.Vector3) {
 
 // Dev tools (build mode, F3, window.game) only in single player; the multiplayer build (npm run build:mp) leaves them out.
 let dev: DevTools | undefined;
-const game = { city: () => skyline, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, hotbar, pickups, paint, paintOps, paintFile, seedPaintRandom, fixedStep, session, level, renderer, input, hud, scene, viewScene, gpuTimer, PLAYER, loadLevel, applyPixelScale, rebuildCity, levelData, openLevel };
+const game = { city: () => skyline, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, hotbar, pickups, paint, paintOps, paintFile, seedPaintRandom, fixedStep, session, level, renderer, input, hud, scene, viewScene, gpuTimer, PLAYER, loadLevel, rebuildCity, levelData, openLevel };
 if (import.meta.env.VITE_MP !== '1') void import('./dev/devtools').then((m) => (dev = new m.DevTools(game)));

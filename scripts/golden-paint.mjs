@@ -36,13 +36,13 @@ const RUNS = [
   { name: 'can fat, held for runs', slot: 0, cap: 'fat', color: 'yellow', frames: 150, aim: () => [0.25, -0.55] },
   { name: 'can spray', slot: 0, cap: 'spray', color: 'blue', frames: 90, aim: (t) => [-0.6 + 1.2 * t, -0.75] },
   { name: 'can sputtering', slot: 0, cap: 'standard', color: 'green', pressure: 0.15, frames: 90, aim: (t) => [-0.5 + t, -0.05] },
-  { name: 'marker', slot: 1, color: 'black', nib: 0.012, frames: 90, aim: (t) => [0.6 - 1.2 * t, -0.3 + 0.15 * Math.sin(t * 9)] },
-  { name: 'marker thinnest', slot: 1, color: 'white', nib: 0, frames: 60, aim: (t) => [-0.4 + 0.8 * t, -0.35] },
-  { name: 'marker widest, held for runs', slot: 1, color: 'pink', nib: 0.05, frames: 90, aim: (t) => [-0.5 + 0.5 * Math.min(1, 2 * t), -0.2] },
+  { name: 'marker', slot: 1, color: 'black', width: 0.024, frames: 90, aim: (t) => [0.6 - 1.2 * t, -0.3 + 0.15 * Math.sin(t * 9)] },
+  { name: 'marker thinnest', slot: 1, color: 'white', width: 0, frames: 60, aim: (t) => [-0.4 + 0.8 * t, -0.35] },
+  { name: 'marker widest, held for runs', slot: 1, color: 'pink', width: 0.1, frames: 90, aim: (t) => [-0.5 + 0.5 * Math.min(1, 2 * t), -0.2] },
   { name: 'roller on the wall', slot: 3, color: 'orange', frames: 60, aim: (t) => [-0.45, -0.9 + 0.8 * t] },
   { name: 'roller on the floor', slot: 3, color: 'purple', frames: 40, aim: (t) => [-0.3 + 0.6 * t, -1.2] },
-  { name: 'sponge', slot: 4, sponge: 0.09, frames: 90, aim: (t) => [0.4 - 0.5 * t, -0.45 + 0.1 * Math.sin(t * 20)] },
-  { name: 'sponge widest', slot: 4, sponge: 0.3, frames: 40, aim: (t) => [0.25, -0.55 + 0.2 * t] },
+  { name: 'sponge', slot: 4, width: 0.18, frames: 90, aim: (t) => [0.4 - 0.5 * t, -0.45 + 0.1 * Math.sin(t * 20)] },
+  { name: 'sponge widest', slot: 4, width: 0.6, frames: 40, aim: (t) => [0.25, -0.55 + 0.2 * t] },
 ];
 const GAP = 12; // frames with the button up between runs (particles land, tools swap)
 const SETTLE = 240; // frames at the end for runs to finish dripping
@@ -319,8 +319,7 @@ async function play({ runs, stand, faceYaw, gap, settle }) {
         while (run.color && inv.color !== run.color) inv.cycleColor(1);
         while (run.cap && inv.cap !== run.cap) inv.cycleCap(1);
         inv.pressure = run.pressure ?? 1;
-        if (run.nib !== undefined) inv.size.marker = run.nib;
-        if (run.sponge !== undefined) inv.size.sponge = run.sponge;
+        if (run.width !== undefined) inv.size[inv.tool] = run.width;
       }
       const [yaw, pitch] = run.aim(t);
       player.yaw = faceYaw + yaw;

@@ -3,7 +3,7 @@ import { BuildMode } from '../build/buildmode';
 import { DebugPanel } from '../debug/panel';
 import { live } from '../debug/tuning';
 import type { GpuTimer } from '../debug/gpu-timer';
-import { MARKER, SPONGE } from '../config';
+import { MARKER, ROLLER, SPONGE } from '../config';
 import type { Input } from '../input';
 import type { Hud } from '../hud';
 import type { Audio } from '../audio';
@@ -20,6 +20,7 @@ import type { LightFX } from '../render/light-fx';
 import type { Lighting } from '../render/lighting';
 import type { Lightning } from '../render/lightning';
 import { session } from '../session';
+import { shapes } from '../tools/shapes';
 import { syncSkyline } from '../skyline';
 import { AvatarPreview } from './avatar-preview';
 import { layoutCity } from '../city/layout';
@@ -54,7 +55,6 @@ export interface DevContext {
   lightning: Lightning;
   baker: LightBaker;
   gpuTimer: GpuTimer;
-  applyPixelScale(): void;
   rebuildCity(): void;
   /** The level as a file: props, pickups, city overrides. */
   levelData(): LevelData;
@@ -75,6 +75,12 @@ export class DevTools {
   private debug = new DebugPanel();
   private figure: AvatarPreview;
   private ghost: Ghost;
+  /** The game had the mouse when the panel opened: closing it goes back. */
+  private resumeOnClose = false;
+  /** Paint ops per second: counted over a second at a time. */
+  private opsFrom = { count: 0, time: 0 };
+  /** A model changed in F3 since the last frame. */
+  private modelsChanged = false;
 
   constructor(private g: DevContext) {
     this.build = new BuildMode(g.scene, g.level, g.pickups, g.player);
@@ -94,16 +100,13 @@ export class DevTools {
       rebuildLightProps: () => g.level.rebuildLit(),
       syncAtmosphere: () => g.atmosphere.syncColors(),
       syncVignette: () => g.hud.syncVignette(),
+      previewPause: () => g.hud.previewSheet(),
       applyDaylight: () => g.atmosphere.reapplyDaylight(),
       atmosNight: () => g.atmosphere.nightValues,
-      applyPixelScale: g.applyPixelScale,
       rebuildCity: g.rebuildCity,
-      applyToolSizes: () => (g.inventory.size = { marker: MARKER.radius, sponge: SPONGE.radius }),
-      rebuildSponge: () => {
-        g.tools.sponge.model.build();
-        g.pickups.restyle('sponge');
-        g.hotbar.refreshIcon('sponge');
-      },
+      applyToolSizes: () => (g.inventory.size = { marker: MARKER.width, roller: ROLLER.width, sponge: SPONGE.width }),
+      // Once per frame however many slider ticks came in (rebuildModelsNow).
+      rebuildModels: () => (this.modelsChanged = true),
       syncSkyline,
       avatarToggle: () => this.figure.toggle(g.player.position, g.player.yaw),
       avatarNext: () => this.figure.next(),
@@ -122,6 +125,7 @@ export class DevTools {
       ghostState: () => this.ghost.label,
       ghostNet: () => this.ghost.net,
     });
+    g.input.escapeResumes = () => this.debug.visible;
     Object.assign(window, { game: { ...g, build: this.build, debug: this.debug, live, ghost: this.ghost, cityParts: { layoutCity, dressTower, wallSigns } } });
   }
 
@@ -134,21 +138,22 @@ export class DevTools {
   }
 
   /**
-   * Start of a frame: F3 / ` toggles the panel, B build mode (in a session both
+   * Start of a frame: F3 / ` opens and closes the panel, B build mode (in a session both
    * close and stay closed); the test figure and the ghost move even while
    * paused, so you can watch them with the panel open.
    */
   frame(input: Input, dt: number) {
+    if (this.modelsChanged) this.rebuildModelsNow();
     this.figure.update(dt);
     this.ghost.update(dt);
     if (session.multiplayer) {
       this.figure.hide();
       this.ghost.stop();
-      if (this.debug.visible) this.togglePanel(input);
+      if (this.debug.visible) this.setPanel(false, input);
       if (this.build.active) this.setBuilding(false);
       return;
     }
-    if (input.wasPressed('F3') || input.wasPressed('Backquote')) this.togglePanel(input);
+    if (input.wasPressed('F3') || input.wasPressed('Backquote')) this.setPanel(!this.debug.visible, input, true);
     if (input.locked && input.wasPressed('KeyB')) this.setBuilding(!this.build.active);
   }
 
@@ -179,13 +184,39 @@ export class DevTools {
       bakePending: g.baker.stats.pending,
       bakeMs: g.baker.stats.ms,
     });
+    const now = performance.now();
+    if (now - this.opsFrom.time >= 1000) {
+      live.stats.paintOps = ((g.paint.opCount - this.opsFrom.count) * 1000) / (now - this.opsFrom.time);
+      this.opsFrom = { count: g.paint.opCount, time: now };
+    }
     const p = g.player;
     live.player = { position: p.position, velocity: p.velocity, state: p.fly ? 'flying' : p.onLadder ? 'on ladder' : p.crouched ? 'crouched' : p.onGround ? 'grounded' : 'airborne' };
     this.debug.update();
   }
 
-  private togglePanel(input: Input) {
+  /**
+   * Opening frees the mouse for the panel; Esc then goes back to the game and
+   * to the panel again (Input.escapeResumes). Closing with the key (`byKey`)
+   * goes back to the game if that's where the panel was opened.
+   */
+  /** Rebuild every tool model (first person, pickups, hotbar icons, the figure's tool) from MODELS and CAPS. */
+  private rebuildModelsNow() {
+    this.modelsChanged = false;
+    const g = this.g;
+    const t = g.tools;
+    for (const m of [t.spray.model, t.marker, t.ladder.model, t.roller.model, t.sponge.model]) m.build();
+    g.pickups.restyle();
+    g.hotbar.refreshIcons();
+    shapes.version++;
+  }
+
+  private setPanel(open: boolean, input: Input, byKey = false) {
+    if (open === this.debug.visible) return;
     this.debug.toggle();
+    if (open) {
+      this.resumeOnClose = input.locked;
+      if (input.locked) document.exitPointerLock();
+    } else if (byKey && this.resumeOnClose && !input.locked) input.requestLock();
     this.g.hud.setLocked(input.locked, this.debug.visible);
   }
 

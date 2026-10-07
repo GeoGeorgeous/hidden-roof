@@ -4,7 +4,7 @@ import { exitGameFullscreen } from './fullscreen';
 // Player settings, on the settings page of the pause menu (settings-page.ts):
 // gameplay, graphics and sound. They write the same config values the debug
 // panel (F3) edits, so both stay in step. Resolution, volumetrics, paint and
-// city detail are remembered in this browser; the rest reset on reload.
+// city detail and the frame rate are remembered in this browser; the rest reset on reload.
 // Paint and city detail apply when the game resumes, since they rebuild every
 // paint texture or the whole city: stepping through the choices costs
 // nothing. config.ts holds the defaults.
@@ -15,6 +15,10 @@ const RENAMED_KEY = 'taggin.settings.v2';
 /** Settings saved before v2: their paint detail and volumetrics are dropped, so the defaults (ULTRA, off) apply once. */
 const OLD_KEY = 'taggin.settings';
 const PIXEL_SCALES = [1, 1.5, 2, 2.5, 3, 4];
+/** FRAME RATE choices (fps); 0 = no limit. */
+const FRAME_RATES = [0, 30, 60, 90, 120, 144];
+/** Mouse sensitivity is shown as a multiple of config's (1.00x). */
+const BASE_SENSITIVITY = PLAYER.mouseSensitivity;
 const VOL_PRESETS = {
   off: { enabled: false, downscale: 2, steps: 16 },
   low: { enabled: true, downscale: 4, steps: 12 },
@@ -49,6 +53,7 @@ const CITY_COST: Record<CityDetail, number> = { low: 2, medium: 2, high: 3 };
 
 interface Saved {
   pixelScale?: number;
+  maxFps?: number;
   volumetrics?: VolPreset;
   paintDetail?: PaintDetail;
   cityDetail?: CityDetail;
@@ -73,6 +78,7 @@ export class Settings {
   ) {
     const s = load();
     if (s.pixelScale && PIXEL_SCALES.includes(s.pixelScale)) RENDER.pixelScale = s.pixelScale;
+    if (s.maxFps !== undefined && FRAME_RATES.includes(s.maxFps)) RENDER.maxFps = s.maxFps;
     this.vol = s.volumetrics && s.volumetrics in VOL_PRESETS ? s.volumetrics : VOLUMETRICS.enabled ? 'medium' : 'off';
     Object.assign(VOLUMETRICS, VOL_PRESETS[this.vol]);
     // Unsaved: the choice nearest to config's PAINT.texelsPerMeter.
@@ -113,6 +119,16 @@ export class Settings {
       },
       {
         kind: 'choice',
+        label: 'FRAME RATE',
+        desc: 'Limits how many frames a second the game draws. Lower saves battery and keeps a laptop cool; MAX follows your display.',
+        value: () => (RENDER.maxFps ? `${RENDER.maxFps} FPS` : 'MAX'),
+        step: (d) => {
+          RENDER.maxFps = cycle(FRAME_RATES, nearest(FRAME_RATES, RENDER.maxFps), d);
+          this.save();
+        },
+      },
+      {
+        kind: 'choice',
         label: 'VOLUMETRICS',
         desc: 'Light shafts and lamp glow in the fog: a light pass through the fog every frame. HIGH runs it at full resolution, about 30x the work of LOW. Turn it down first if the game stutters.',
         cost: () => VOL_COST[this.vol],
@@ -139,7 +155,7 @@ export class Settings {
       {
         kind: 'choice',
         label: 'CITY DETAIL',
-        desc: 'How far the city reaches around the level, and how far rooftop clutter and thin lines show. HIGH draws about 3x the city area of LOW. Applies when you resume.',
+        desc: 'How far the city reaches around the level, and how far rooftop clutter and thin lines show. Lower trims the distant city, which the haze mostly hides, so it looks nearly the same: it saves GPU work and memory (HIGH draws about 3x the city of LOW). Applies when you resume.',
         cost: () => CITY_COST[this.city],
         value: () => this.city.toUpperCase(),
         step: (d) => {
@@ -179,7 +195,7 @@ export class Settings {
 
   private save() {
     try {
-      localStorage.setItem(KEY, JSON.stringify({ pixelScale: RENDER.pixelScale, volumetrics: this.vol, paintDetail: this.detail, cityDetail: this.city } satisfies Saved));
+      localStorage.setItem(KEY, JSON.stringify({ pixelScale: RENDER.pixelScale, maxFps: RENDER.maxFps, volumetrics: this.vol, paintDetail: this.detail, cityDetail: this.city } satisfies Saved));
     } catch {
       // Storage unavailable (private mode): settings last for this session only.
     }
@@ -226,6 +242,17 @@ function toggle(label: string, desc: string, get: () => boolean, set: (on: boole
 
 function gameplayRows(): SettingRow[] {
   return [
+    {
+      kind: 'range',
+      label: 'MOUSE SENSITIVITY',
+      desc: 'How far the view turns per mouse movement.',
+      min: 0.25,
+      max: 3,
+      step: 0.05,
+      get: () => PLAYER.mouseSensitivity / BASE_SENSITIVITY,
+      set: (v) => (PLAYER.mouseSensitivity = v * BASE_SENSITIVITY),
+      format: (v) => `${v.toFixed(2)}x`,
+    },
     { kind: 'range', label: 'FIELD OF VIEW', desc: 'How wide you see, in degrees.', min: 60, max: 110, step: 1, get: () => RENDER.fov, set: (v) => (RENDER.fov = v), format: (v) => `${v}°` },
     {
       kind: 'range',

@@ -1,4 +1,4 @@
-import { HOTBAR } from '../config';
+import { HOTBAR, HUD } from '../config';
 import { SLOTS, type Inventory, type Tool } from './inventory';
 import type { Thumbnails } from './thumbnails';
 
@@ -25,6 +25,8 @@ export class Hotbar {
   private toastEl: HTMLElement;
   private toastTime = 0;
   private version = -1;
+  /** The HUD slot look last applied (rewritten only on change). */
+  private look = '';
 
   constructor(private icons: Thumbnails) {
     this.root = document.createElement('div');
@@ -46,14 +48,31 @@ export class Hotbar {
     this.toastTime = performance.now();
   }
 
-  /** Re-render an item's icon (its model changed); shown on the next update. */
-  refreshIcon(kind: string) {
-    this.icons.forget(kind);
+  /** Re-render every icon (a model changed); shown on the next update. */
+  refreshIcons() {
+    this.icons.forgetAll();
     this.version = -1;
   }
 
   update(inv: Inventory) {
-    if (this.toastTime && performance.now() - this.toastTime > 2200) {
+    const h = HUD;
+    const look = [h.slotSize, h.slotGap, h.slotRoundness, h.iconSize, h.slotBorder, h.slotFill, h.slotFillOpacity, h.selectedBorder, h.selectedFill, h.selectedFillOpacity].join('|');
+    if (look !== this.look) {
+      this.look = look;
+      const mix = (hex: string, a: number) => `color-mix(in srgb, ${hex} ${Math.round(Math.min(1, Math.max(0, a)) * 100)}%, transparent)`;
+      const vars: Record<string, string> = {
+        '--slot': `${h.slotSize}px`,
+        '--gap': `${h.slotGap}px`,
+        '--round': `${h.slotRoundness * 50}%`,
+        '--icon': `${h.iconSize * 100}%`,
+        '--border': mix(h.slotBorder, 0.62),
+        '--fill': mix(h.slotFill, h.slotFillOpacity),
+        '--on-border': h.selectedBorder,
+        '--on-fill': mix(h.selectedFill, h.selectedFillOpacity),
+      };
+      for (const k in vars) this.root.style.setProperty(k, vars[k]);
+    }
+    if (this.toastTime && performance.now() - this.toastTime > HUD.toastTime * 1000) {
       this.toastEl.classList.remove('show');
       this.toastTime = 0;
     }

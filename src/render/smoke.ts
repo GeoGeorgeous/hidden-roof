@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { ATMOS, SMOKE } from '../config';
 import type { Emitter } from '../level/build-prop';
 import { setHex } from '../hex-color';
+import { windVector } from './wind';
 
 // Smoke / warm air from vents, exhausts and AC units: one Points draw for the
 // whole level. Each particle's position is a function of time and its seed
@@ -119,7 +120,7 @@ export class Smoke {
     u.uLife.value = Math.max(0.5, S.life);
     u.uRise.value = S.rise;
     u.uDrift.value = S.drift;
-    u.uWind.value.fromArray(ATMOS.wind);
+    windVector(u.uWind.value);
     u.uStart.value = S.startSize;
     u.uEnd.value = S.endSize;
     u.uOpacity.value = S.opacity;

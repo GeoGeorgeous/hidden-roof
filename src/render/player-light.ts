@@ -15,10 +15,10 @@ export class PlayerLight {
     scene.add(this.light);
   }
 
-  /** `on` is false in build mode (daylight). */
+  /** `on` is false in build mode (daylight); PLAYER_LIGHT.enabled switches it off too. */
   update(eye: THREE.Vector3, on: boolean) {
     const l = this.light;
-    l.intensity = on ? PLAYER_LIGHT.intensity : 0;
+    l.intensity = on && PLAYER_LIGHT.enabled ? PLAYER_LIGHT.intensity : 0;
     setHex(l.color, PLAYER_LIGHT.color);
     l.distance = PLAYER_LIGHT.range;
     l.decay = ATMOS.lightDecay;

@@ -1,18 +1,18 @@
-// Tools whose size the mouse wheel changes (marker nib, sponge patch): their
-// config holds the starting size (`radius`) and the wheel's range, each player
-// holds their current size (Inventory.size), and the crosshair grows with it.
+// Tools whose width the mouse wheel changes (marker nib, roller, sponge patch): their
+// config holds the starting width and the wheel's range, each player holds
+// their current width (Inventory.size), and the crosshair grows with it.
 
 export interface WheelSized {
-  radiusMin: number;
-  radiusMax: number;
-  radiusStep: number;
+  widthMin: number;
+  widthMax: number;
+  widthStep: number;
   crosshair: number;
   crosshairPerMeter: number;
 }
 
-/** One wheel notch: `size` grown (+1) or shrunk (-1) by radiusStep, within min..max. */
+/** One wheel notch: `size` grown (+1) or shrunk (-1) by widthStep, within min..max. */
 export function stepSize(cfg: WheelSized, size: number, dir: number) {
-  const r = Math.min(cfg.radiusMax, Math.max(cfg.radiusMin, size + dir * cfg.radiusStep));
+  const r = Math.min(cfg.widthMax, Math.max(cfg.widthMin, size + dir * cfg.widthStep));
   return Math.round(r * 1e6) / 1e6;
 }
 

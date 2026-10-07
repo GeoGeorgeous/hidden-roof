@@ -1,12 +1,12 @@
 import * as THREE from 'three';
-import { ATMOS, LIGHTMAP, LIGHTS, PAINT } from '../../config';
+import { ATMOS, LIGHTMAP, LIGHTS, NEON_COLORS, PAINT } from '../../config';
 import type { BuiltProp } from '../../level/build-prop';
 import { neonFlicker } from '../flicker';
 import { bakeUniforms } from './glsl';
 import { makeLamps, type Lamp } from './lamps';
 import { Occluders } from './occluders';
 import { lampSpheres, reaches, shadowCones, type Reach } from './reach';
-import { bakeDecor, bakeSurface, dropReceiver, filterReceiver, receiverBytes, type Receiver } from './receivers';
+import { bakeDecor, bakeSurface, dropReceiver, receiverBytes, type Receiver } from './receivers';
 
 // Bakes the light of every steady lamp into the level (receivers.ts), with
 // shadows from the colliders. Moving lights (CCTV) stay real spot lights
@@ -54,7 +54,6 @@ export class LightBaker {
   /** Light kinds with a steady lamp in the level: only their settings rebake. */
   private bakedKinds = new Set<string>();
   private density = LIGHTMAP.texelsPerMeter;
-  private smooth = LIGHTMAP.smooth;
   private at = new THREE.Vector3();
 
   constructor() {
@@ -102,10 +101,6 @@ export class LightBaker {
   /** Call once per frame, after the level flushed its batches. */
   update(time: number, eye: THREE.Vector3) {
     this.updateFlicker(time);
-    if (this.smooth !== LIGHTMAP.smooth) {
-      this.smooth = LIGHTMAP.smooth;
-      this.forEachReceiver(filterReceiver);
-    }
     if (!LIGHTMAP.enabled) return;
     if (this.settingsChanged()) this.rebakeAll();
     if (this.density !== LIGHTMAP.texelsPerMeter) {
@@ -223,18 +218,16 @@ export class LightBaker {
     for (const k in LIGHTS) {
       const s = LIGHTS[k as keyof typeof LIGHTS];
       const baked = this.bakedKinds.has(k);
-      this.see(s.color, baked);
+      if ('color' in s) this.see(s.color, baked);
       this.see(s.tint, baked);
       this.see(s.intensity, baked);
       this.see(s.range, baked);
       this.see(s.spread, baked);
       this.see(s.softness, baked);
       this.see(s.shadows, baked);
-      for (let i = 0; i < 3; i++) {
-        this.see(s.offset[i], baked);
-        this.see(s.dir[i], baked);
-      }
+      for (let i = 0; i < 3; i++) this.see(s.dir[i], baked);
     }
+    for (const c of Object.values(NEON_COLORS)) this.see(c, this.bakedKinds.has('neon'));
     this.see(ATMOS.lightDecay, true);
     this.see(LIGHTMAP.shadows, true);
     return this.watchChanged;

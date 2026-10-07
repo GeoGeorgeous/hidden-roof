@@ -5,14 +5,12 @@ import type { Tool } from '../inventory/inventory';
 import { STEPLADDER } from '../kit/access';
 import { itemModel } from '../pickups/visuals';
 import { inkify } from '../render/ink/tone';
+import { shapes } from '../tools/shapes';
 
 // The tool in the figure's hand: the pickup model (pickups/visuals.ts) at its
-// real size, inked like the figure and merged into one mesh, plus the can's
+// real size (centered in the fist; the ladder is the real folded stepladder), inked like the figure and merged into one mesh, plus the can's
 // label in its paint color (the one color on a figure). Rebuilt only when the
 // tool or the color changes.
-
-/** Size against the pickup model at real size (the pickup's roller is small). */
-const SIZE: Partial<Record<Tool, number>> = { roller: 1.5 };
 
 export class Held {
   /** Sits in the hand's grip: its -z runs through the fist, its y out of the thumb side. */
@@ -22,16 +20,17 @@ export class Held {
   constructor(private ink: THREE.Material) {}
 
   set(tool: Tool | null, color: PaintColor) {
-    const key = tool === 'can' ? `color:${color}` : (tool ?? '');
+    const kind = tool === 'can' ? `color:${color}` : (tool ?? '');
+    const key = `${kind}#${shapes.version}`;
     if (key === this.key) return;
     this.key = key;
     this.dispose();
     if (!tool) return;
-    const model = tool === 'ladder' ? foldedLadder() : itemModel(key);
+    const model = tool === 'ladder' ? foldedLadder() : itemModel(kind);
     if (tool !== 'ladder') {
       // The pickup leans and is shown at twice its size.
       model.rotation.set(0, 0, 0);
-      model.scale.multiplyScalar(0.5 * (SIZE[tool] ?? 1));
+      model.scale.setScalar(1);
     }
     model.updateMatrixWorld(true);
     const ink: THREE.BufferGeometry[] = [];

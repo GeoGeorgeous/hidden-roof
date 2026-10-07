@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { ATMOS } from '../config';
 import { HEIGHT_GLSL, type Heightmap } from './heightmap';
 import { setHex } from '../hex-color';
+import { windVector } from './wind';
 
 // Rain: one LineSegments draw for all drops.
 // Positions are computed in the vertex shader from a seed + time; drops wrap in
@@ -18,7 +19,7 @@ export class Rain {
     uTime: { value: 0 },
     uCam: { value: new THREE.Vector3() },
     uSpeed: { value: ATMOS.rainSpeed },
-    uWind: { value: new THREE.Vector3(...ATMOS.wind) },
+    uWind: { value: windVector(new THREE.Vector3()) },
     uFogDensity: { value: ATMOS.fogDensity },
     uColor: { value: new THREE.Color(ATMOS.rainColor) },
     uOpacity: { value: ATMOS.rainOpacity },
@@ -60,7 +61,7 @@ export class Rain {
     u.uTime.value = time;
     u.uCam.value.copy(cam);
     u.uSpeed.value = ATMOS.rainSpeed;
-    u.uWind.value.fromArray(ATMOS.wind);
+    windVector(u.uWind.value);
     u.uFogDensity.value = ATMOS.fogDensity;
     setHex(u.uColor.value, ATMOS.rainColor); // hex is sRGB; the uniform is linear (drawn into the HDR target)
     u.uOpacity.value = ATMOS.rainOpacity;
