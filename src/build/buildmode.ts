@@ -17,7 +17,8 @@ import { floorBelow } from './floor';
 import { CursorGrid } from './grid';
 import { History, type HistoryEntry } from './history';
 import { downloadLevel, pickLevelFile } from './io';
-import { Picker } from './picker';
+import { Picker, type Choice } from './picker';
+import { propAt } from '../level/stacks';
 import { PickerView } from './picker-view';
 import { Thumbnails } from '../inventory/thumbnails';
 import { axisNormal, place, type Hit, type PlaceSpec } from './placement';
@@ -259,14 +260,23 @@ export class BuildMode {
     } else {
       if (e.kind === 'prop') this.ghost.showProp(e.def, pl.pos, pl.rot, { ...this.level.stackContext(e.def, pl.pos, pl.rot), text: this.settings.texts.get(e.def.type), mirror: this.flipped(e.def) });
       else this.ghost.showPickup(pl.pos);
-      // Like Minecraft, never place into yourself (a held LMB pillar stops at your eyes).
-      this.valid = pl.ok && !this.level.overlaps(this.ghost.colliders) && !this.ghost.colliders.some((c) => c.containsPoint(eye));
+      // Like Minecraft, never place into yourself (a held LMB pillar stops at your eyes), nor onto a copy of itself.
+      this.valid = pl.ok && !this.level.overlaps(this.ghost.colliders) && !this.ghost.colliders.some((c) => c.containsPoint(eye)) && !this.occupied(e, pl.pos, pl.rot);
       this.ghost.setValid(this.valid);
     }
     this.placement = { pos: pl.pos, rot: pl.rot };
     const module = spec.snap >= H_MODULE;
     this.grid.visible = true;
     this.grid.update(target.point, target.normal, module ? H_MODULE : spec.snap, module ? V_MODULE : spec.snap);
+  }
+
+  /**
+   * Is a copy of `e` already standing at `pos`? Props without colliders (lamps,
+   * cables) and pickups never overlap anything, so a held LMB would pile them up.
+   */
+  private occupied(e: Choice, pos: V3, rot: number) {
+    if (e.kind === 'prop') return propAt(this.level.props.values(), e.def, pos, rot) !== undefined;
+    return e.kind === 'pickup' && [...this.pickups.list.values()].some((p) => p.pos.every((v, i) => Math.abs(v - pos[i]) < 0.01));
   }
 
   /** Repeats (LMB held) skip quietly when the ghost is blocked, e.g. still on the block just placed. The spawn point never repeats. */
