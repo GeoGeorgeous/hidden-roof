@@ -167,7 +167,7 @@ export class PaintSystem {
    * the texel under it. `amount` 0..1 opacity at the center, `color` sRGB 0..1,
    * `softness` 0 = hard dot .. 1 = fades to nothing at the rim.
    * `drip`: excess paint on opaque texels of vertical faces may start a run;
-   * the number multiplies how often (DRIPS.perSquareMeter), 0 = never.
+   * the number is how often (runs per m² of paint reaching DRIPS.excess), 0 = never.
    * `square`: a hard square nib instead of a round dot (`radius` is half its
    * side), its sides along the face's axes, like a pump marker's nib.
    * `color` null scrubs paint off instead (the sponge): `amount` of the paint

@@ -20,7 +20,7 @@ interface Particle {
   amount: number;
   radius: number;
   softness: number;
-  /** Paint runs it may start, x DRIPS.perSquareMeter (its cap's). */
+  /** Paint runs it may start, per m² (its cap's). */
   drips: number;
   rgb: Rgb;
 }

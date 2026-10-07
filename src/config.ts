@@ -312,7 +312,7 @@ export interface CapSpec {
   hissTone: number;
   /** Crosshair circle diameter on screen, in CSS pixels. */
   crosshair: number;
-  /** Paint runs (with DRIPS on), as a multiplier of DRIPS.perSquareMeter. */
+  /** Paint runs (with DRIPS on), per m² of paint reaching DRIPS.excess. */
   drips: number;
   /** Pressure drain while spraying, as a multiplier of PRESSURE.drainPerSecond. */
   drain: number;
@@ -323,11 +323,11 @@ export interface CapSpec {
 export type CapId = 'skinny' | 'standard' | 'fat' | 'spray';
 export const CAP_ORDER: CapId[] = ['skinny', 'standard', 'fat', 'spray'];
 export const CAPS: Record<CapId, CapSpec> = {
-  skinny: { name: 'SKINNY', coneAngle: 0.01, rate: 320, strength: 0.8, dotSize: 0.066, softness: 0.15, hissGain: 0.5, hissTone: 0, crosshair: 8, drips: 1, drain: 1, color: '#7fb4f2' },
-  standard: { name: 'STANDARD', coneAngle: 0.04, rate: 450, strength: 0.5, dotSize: 0.092, softness: 0.35, hissGain: 0.75, hissTone: 0.4, crosshair: 14, drips: 1, drain: 1, color: '#f4f4f4' },
-  fat: { name: 'FAT', coneAngle: 0.01, rate: 800, strength: 0.35, dotSize: 0.2, softness: 0, hissGain: 1, hissTone: 1, crosshair: 22, drips: 1, drain: 1, color: '#f2a04c' },
+  skinny: { name: 'SKINNY', coneAngle: 0.01, rate: 320, strength: 0.8, dotSize: 0.066, softness: 0.15, hissGain: 0.5, hissTone: 0, crosshair: 8, drips: 17, drain: 1, color: '#7fb4f2' },
+  standard: { name: 'STANDARD', coneAngle: 0.04, rate: 450, strength: 0.5, dotSize: 0.092, softness: 0.35, hissGain: 0.75, hissTone: 0.4, crosshair: 14, drips: 17, drain: 1, color: '#f4f4f4' },
+  fat: { name: 'FAT', coneAngle: 0.01, rate: 800, strength: 0.35, dotSize: 0.2, softness: 0, hissGain: 1, hissTone: 1, crosshair: 22, drips: 17, drain: 1, color: '#f2a04c' },
   /** Wide, soft mist for fades and backgrounds: lots of faint, fuzzy dots. */
-  spray: { name: 'SPRAY', coneAngle: 0.14, rate: 1100, strength: 0.12, dotSize: 0.158, softness: 0.9, hissGain: 0.9, hissTone: 0.8, crosshair: 32, drips: 1, drain: 1, color: '#b98cf2' },
+  spray: { name: 'SPRAY', coneAngle: 0.14, rate: 1100, strength: 0.12, dotSize: 0.158, softness: 0.9, hissGain: 0.9, hissTone: 0.8, crosshair: 32, drips: 17, drain: 1, color: '#b98cf2' },
 };
 
 /** Paint colors, in Q/E cycling order. Black is always owned. Paint never runs out. */
@@ -358,10 +358,10 @@ export const MARKER = {
   crosshair: 4,
   crosshairPerMeter: 200,
   /**
-   * Paint runs (with DRIPS on) from the marker, as a multiplier of DRIPS.perSquareMeter:
+   * Paint runs (with DRIPS on) from the marker, per m² of paint reaching DRIPS.excess:
    * a nib covers little area but pumps a lot of paint into it.
    */
-  drips: 8,
+  drips: 136,
   strength: 0.95,
   /** Held still, the nib stamps the same spot every frame: let it add to runs this often (per s), whatever the frame rate. */
   stillRate: 30,
@@ -395,8 +395,8 @@ export const ROLLER = {
   crosshairPerMeter: 0,
   /** Opacity per press: a roller lays it on thick. */
   strength: 0.85,
-  /** Paint runs (with DRIPS on), as a multiplier of DRIPS.perSquareMeter: a loaded roller runs easily. */
-  drips: 2,
+  /** Paint runs (with DRIPS on), per m² of paint reaching DRIPS.excess: a loaded roller runs easily. */
+  drips: 34,
   /** Held still, presses add to runs this often (per s), whatever the frame rate. */
   stillRate: 20,
   /** Moves are filled with presses at most `spacing` x the press length apart at full reach, at most maxRays per frame. */
@@ -542,10 +542,8 @@ export const PLAYER_LIGHT = {
  */
 export const DRIPS = {
   enabled: false,
-  /** Excess paint (in full coats) a texel needs before it may run. */
+  /** Excess paint (in full coats) a texel needs before it may run. How often it then runs is each cap's and tool's `drips` (per m², spread over its texels, so every paint detail runs alike). */
   excess: 2.5,
-  /** Runs started per square meter of paint that reaches the limit (spread over its texels, so every paint detail runs alike). */
-  perSquareMeter: 17,
   /** Runs moving at the same time, level-wide. */
   maxActive: 40,
   /** Run length range (m). */
