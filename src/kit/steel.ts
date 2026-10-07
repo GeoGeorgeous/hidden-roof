@@ -104,10 +104,10 @@ function pile(seed: number) {
   return p.list;
 }
 
-/** Roof debris: a few piles to choose from. */
+/** Roof debris: a few piles to choose from, each laid out so no two crates or slabs overlap (their faces would flicker). */
 export const debris = withVariants({ type: 'debris', label: 'Roof debris', category: 'rooftop', place: 'floor', snap: 0.5 }, [
-  { id: 'crates', label: 'crates', build: () => pile(3) },
+  { id: 'crates', label: 'crates', build: () => pile(82) },
   { id: 'buckets', label: 'buckets', build: () => pile(11) },
-  { id: 'mixed', label: 'mixed', build: () => pile(22) },
-  { id: 'scrap', label: 'scrap', build: () => pile(23) },
+  { id: 'mixed', label: 'mixed', build: () => pile(6) },
+  { id: 'scrap', label: 'scrap', build: () => pile(46) },
 ]);
