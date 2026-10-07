@@ -1,6 +1,7 @@
 import { BUILD } from '../config';
 import { itemIcon, type Thumbnails } from '../inventory/thumbnails';
 import type { Choice, Entry, Picker } from './picker';
+import type { Finish } from '../kit/finishes';
 import { propIcon } from './prop-icon';
 
 // The picker on the left edge: a wheel of categories fanned out from a hub
@@ -39,7 +40,7 @@ export class PickerView {
     this.root.append(wheel, this.column);
     this.root.hidden = this.shade.hidden = true;
     document.body.append(this.shade, this.root);
-    this.syncShade();
+    this.syncStyle();
   }
 
   set visible(v: boolean) {
@@ -61,10 +62,11 @@ export class PickerView {
       el.dataset.d = Math.abs(k) > SIDE ? 'far' : `${Math.abs(k)}`;
     });
     const entries = p.categories[p.category].entries;
-    this.column.innerHTML = `<div class="hint">Q ▲</div>${entries.map((e, i) => row(e, i === p.selected, p.variantOf(e), this.icon(e.variants[p.variantOf(e)].choice))).join('')}<div class="hint">E ▼</div>`;
+    this.column.innerHTML = `<div class="hint">Q ▲</div>${entries.map((e, i) => row(e, i === p.selected, p.variantOf(e), this.icon(e.variants[p.variantOf(e)].choice), p.finish, p.flip)).join('')}<div class="hint">E ▼</div>`;
     // The selected entry's name on the hub line.
     const name = this.column.querySelector<HTMLElement>('.on .name')!;
-    this.column.style.transform = `translateY(${-(name.offsetTop + name.offsetHeight / 2)}px)`;
+    const s = BUILD.columnScale;
+    this.column.style.transform = `translateY(${-(name.offsetTop + name.offsetHeight / 2) * s}px) scale(${s})`;
   }
 
   /** An entry's icon, as its selected variant looks (none for the spawn point). */
@@ -73,8 +75,10 @@ export class PickerView {
     return c.kind === 'pickup' ? itemIcon(this.icons, c.type) : null;
   }
 
-  /** The shade from BUILD: at start, and again when F3 changes it (live.syncBuildShade). */
-  syncShade() {
+  /** Sizes and shade from BUILD: at start, and again when F3 changes them (live.syncBuildPicker). */
+  syncStyle() {
+    this.root.style.setProperty('--wheel', `${BUILD.wheelScale}`);
+    this.drawn = -1; // the column's scale is part of its transform
     const { shadeColor: color, shadeOpacity: opacity, shadeWidth: width } = BUILD;
     const mix = (a: number) => `color-mix(in srgb, ${color} ${Math.round(Math.min(1, Math.max(0, a * opacity)) * 100)}%, transparent)`;
     this.shade.style.width = `${width}px`;
@@ -82,7 +86,7 @@ export class PickerView {
   }
 }
 
-function row(e: Entry, on: boolean, variant: number, icon: string | null) {
+function row(e: Entry, on: boolean, variant: number, icon: string | null, finish: Finish, flip: boolean) {
   const img = `<img src="${icon ?? ''}" alt=""${icon ? '' : ' hidden'}>`;
   const tags = e.settings.length ? ` <b>${e.settings.map((s) => s.name).join(' ')}</b>` : '';
   if (!on) return `<div class="row">${img}<div class="name">${e.label}${tags}</div></div>`;
@@ -94,7 +98,10 @@ function row(e: Entry, on: boolean, variant: number, icon: string | null) {
   const chips = many ? `${chip(variant)}<em>${variant + 1} / ${e.variants.length}</em> ` : e.variants.map((_, i) => chip(i)).join('');
   const variants = e.variants.length > 1 ? `<div class="variants">${chips}<em>TAB</em></div>` : '';
   const keys = e.settings.length ? `<div class="keys">${e.settings.map((s) => `${s.key} ${s.name}`).join(' · ')}</div>` : '';
-  return `<div class="row on">${img}<div class="name">${e.label}</div>${variants}${keys}</div>`;
+  const finishes = e.finishes.length ? `<div class="keys">${e.finishes.map((k) => `F ${k}: <span>${finish[k] ?? 'own'}</span>`).join(' · ')} · V APPLY</div>` : '';
+  const choice = e.variants[variant].choice;
+  const flipped = choice.kind === 'prop' && choice.def.place === 'mount' ? `<div class="keys">R FLIP: <span>${flip ? 'on' : 'off'}</span></div>` : '';
+  return `<div class="row on">${img}<div class="name">${e.label}</div>${variants}${keys}${finishes}${flipped}</div>`;
 }
 
 function div(className: string) {

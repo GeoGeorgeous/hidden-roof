@@ -66,7 +66,7 @@ export const ATMOS = {
 };
 
 /** Practical light kinds; every light prop uses one (see kit/lights.ts). */
-export type LightKind = 'wallLamp' | 'floodlight' | 'neon' | 'billboardLamp' | 'lampPost' | 'stringLights' | 'cctv';
+export type LightKind = 'wallLamp' | 'floodlight' | 'neon' | 'billboardLamp' | 'cctv' | 'bulkhead' | 'lightPanel' | 'aviation';
 
 export interface LightSpec {
   /** Light color (the lens takes it too, after a rebuild). Neon signs have one each instead (NEON_COLORS). */
@@ -100,19 +100,22 @@ export const LIGHT_SPREAD_MAX = 1.55;
 export const NEON_LIGHT_ROWS = 4;
 
 /** The neon signs' colors: each sign's tubes, text and light (the rest of its light is LIGHTS.neon). */
-export type NeonColor = 'pink' | 'cyan' | 'amber';
-export const NEON_COLORS: Record<NeonColor, string> = { pink: '#ff3fa4', cyan: '#2fe6ff', amber: '#ffa24a' };
+export type NeonColor = 'pink' | 'cyan' | 'amber' | 'lime' | 'violet' | 'red';
+export const NEON_COLORS: Record<NeonColor, string> = { pink: '#ff3fa4', cyan: '#2fe6ff', amber: '#ffa24a', lime: '#a8ff3e', violet: '#a46bff', red: '#ff3b30' };
 
 /** Per-kind light settings, live-tunable in the debug panel (Render → Light props). */
 export const LIGHTS: Record<Exclude<LightKind, 'neon'>, LightSpec> & { neon: Omit<LightSpec, 'color'> } = {
   wallLamp: { color: '#9b96c0', tint: 0, dir: [0, -1, -0.25], intensity: 13.5, range: 10, spread: 1.33, softness: 1, glow: 0, glowAllAround: false, beam: 0.5, shadows: true },
   floodlight: { color: '#dfe8ff', tint: 0, dir: [0, -0.55, -0.83], intensity: 60, range: 40, spread: 0.55, softness: 0.4, glow: 0.6, glowAllAround: false, beam: 7, shadows: true },
   neon: { tint: 1, dir: [1, 0, 0], intensity: 8, range: 10, spread: 1.45, softness: 1, glow: 0, glowAllAround: false, beam: 0, shadows: true },
-  lampPost: { color: '#ffcf8a', tint: 0, dir: [0, -1, 0], intensity: 30, range: 22, spread: 1.15, softness: 0.6, glow: 0.45, glowAllAround: false, beam: 4.5, shadows: true },
-  stringLights: { color: '#ffd59a', tint: 0, dir: [0, -1, 0], intensity: 6, range: 10, spread: 1.45, softness: 1, glow: 0.22, glowAllAround: true, beam: 0, shadows: true },
   billboardLamp: { color: '#ffe2b0', tint: 0, dir: [0, -0.8, -0.6], intensity: 25, range: 12, spread: 0.8, softness: 0.5, glow: 0.3, glowAllAround: false, beam: 3.2, shadows: true },
   // On only while the camera follows the player (see CCTV); turns with the head. Glow and beam are not used.
   cctv: { color: '#dfe9ff', tint: 0, dir: [0, -0.3, -1], intensity: 6, range: 9, spread: 0.35, softness: 0.7, glow: 0, glowAllAround: false, beam: 0, shadows: false },
+  // Roof lights (kit/roof-lights.ts): the caged lamp over a roof door, the flat wall panel.
+  bulkhead: { color: '#e9e3d2', tint: 0, dir: [0, -0.7, -0.7], intensity: 9, range: 8, spread: 1.2, softness: 0.8, glow: 0.16, glowAllAround: false, beam: 0, shadows: true },
+  lightPanel: { color: '#eef1ff', tint: 0, dir: [0, -0.25, -1], intensity: 11, range: 9, spread: 1.4, softness: 1, glow: 0.1, glowAllAround: false, beam: 0, shadows: true },
+  // Aviation obstruction light: red, pulsing slowly (FLICKER.pulse*); its dome is the glow.
+  aviation: { color: '#ff2a1a', tint: 1, dir: [0, 1, 0], intensity: 3, range: 5, spread: 1.5, softness: 1, glow: 0, glowAllAround: true, beam: 0, shadows: false },
 };
 
 /**
@@ -881,7 +884,7 @@ export const FANS = {
   speed: 3,
 };
 
-/** Gentle flicker of neon tubes (light + tubes in sync). */
+/** Gentle flicker of neon tubes (light + tubes in sync), the slow pulse of aviation lights, broken lamps. */
 export const FLICKER = {
   /** Random steps per second. */
   speed: 12,
@@ -890,6 +893,12 @@ export const FLICKER = {
   neonDepth: 0.55,
   /** Fast hum on top, as a fraction of brightness. */
   neonHum: 0.04,
+  /** Aviation lights: pulses per second, and how dark they get between pulses (0..1). */
+  pulseRate: 0.5,
+  pulseDepth: 0.85,
+  /** Broken lamps (the flickering wall lamp): fraction of steps that dip, and how deep. */
+  brokenRate: 0.3,
+  brokenDepth: 0.95,
 };
 
 /** The player's stepladder (a pickup, slot 3; placed with LMB, one at a time). */
@@ -912,10 +921,16 @@ export const BUILD = {
   /** Free-fly speed while building (m/s), and with Shift held. */
   flySpeed: 7,
   flySprintSpeed: 16,
-  /** The dark shade behind the picker, full height on the left edge (build/picker-view.ts): its color, its opacity at the edge and how far right it fades out (px). */
+  /** The picker on the left edge (build/picker-view.ts): the category wheel's size and the prop column's (1 = 11 px text). */
+  wheelScale: 1.35,
+  columnScale: 1.1,
+  /** The dark shade behind the picker, full height on the left edge: its color, its opacity at the edge and how far right it fades out (px). */
   shadeColor: '#0e0e10',
   shadeOpacity: 0.86,
-  shadeWidth: 760,
+  shadeWidth: 740,
+  /** The outline of the prop or pickup under the crosshair: what RMB deletes, MMB picks and the setting keys change. */
+  targetColor: '#ff7a6b',
+  targetOpacity: 0.8,
   /** The light over a placed prop with settings (floodlight tilt, sign text) while the crosshair is on it (build/prop-settings.ts). */
   highlightColor: '#ffd23f',
   highlightOpacity: 0.35,

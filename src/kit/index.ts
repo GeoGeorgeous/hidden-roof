@@ -1,15 +1,21 @@
 import type { Category, PropDef } from './def';
-import { fireescape, hatch, ladder, railing, stairs, stepladder } from './access';
+import { fireescape, hatch, ladder, stairs, stepladder } from './access';
 import { antenna, billboard, cable, cctv, sign } from './details';
-import { floodlight, lampPost, stringLights, wallLamp } from './lights';
+import { floodlight, wallLamp } from './lights';
 import { neon } from './neon';
 import { ac, duct, exhaust, utilitybox, ventshaft, watertower } from './equipment';
 import { cableRun } from './cable-runs';
 import { drainPipe, pipe } from './pipes';
-import { building, parapet, slab, wall } from './structure';
-import { bladeSign, shopSign } from './signs';
+import { building, parapet, plinth, slab, wall } from './structure';
+import { bladeSign, roofLetters } from './signs';
 import { smallSign } from './small-signs';
 import { debris, latticeMast, signTower, tankPair } from './steel';
+import { ledgeOnBrackets, platformOnColumns, scaffolding } from './scaffold';
+import { fence, railing, trafficCone } from './barriers';
+import { gondola, plankBridge } from './traversal';
+import { verticalDuct, wallDuct } from './wall-ducts';
+import { aviationLight, roofLight } from './roof-lights';
+import { skylight, steelStair } from './roof-access';
 
 /** The prop kit, in picker order. Pickups are added by the editor as their own category. */
 const KIT: PropDef[] = [
@@ -17,14 +23,25 @@ const KIT: PropDef[] = [
   slab,
   wall,
   parapet,
+  plinth,
+  scaffolding,
+  platformOnColumns,
+  ledgeOnBrackets,
+  gondola,
   stairs,
+  steelStair,
   ladder,
   fireescape,
-  railing,
   hatch,
+  plankBridge,
+  railing,
+  fence,
+  trafficCone,
   ac,
   ventshaft,
   duct,
+  wallDuct,
+  verticalDuct,
   exhaust,
   pipe,
   drainPipe,
@@ -37,8 +54,9 @@ const KIT: PropDef[] = [
   latticeMast,
   cctv,
   debris,
+  skylight,
   sign,
-  shopSign,
+  roofLetters,
   bladeSign,
   smallSign,
   billboard,
@@ -46,8 +64,8 @@ const KIT: PropDef[] = [
   neon,
   wallLamp,
   floodlight,
-  lampPost,
-  stringLights,
+  roofLight,
+  aviationLight,
 ];
 
 /** Props that aren't in the build picker: the player's stepladder (a pickup, placed while playing). */
@@ -84,6 +102,15 @@ const RENAMED: Record<string, [string, string]> = {
   neon_cyan: ['neon', 'cyan'],
   neon_amber: ['neon', 'amber'],
 };
+
+/** Props whose default variant changed after format 3: the variant a format 3 file meant when it named none. */
+const FORMAT3_DEFAULTS: Record<string, string> = { stairs: 'compact' };
+
+/** A prop from a level file of this format, with the variant it meant. */
+export function upgraded<T extends { type: string; variant?: string }>(p: T, version: number): T {
+  const v = version < 4 && p.variant === undefined ? FORMAT3_DEFAULTS[p.type] : undefined;
+  return v ? { ...p, variant: v } : p;
+}
 
 /** A saved prop's type and variant as they are named now. */
 export function renamed(type: string, variant?: string): [string, string | undefined] {

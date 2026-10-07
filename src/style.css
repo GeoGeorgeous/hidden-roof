@@ -485,28 +485,38 @@ body.paused .build-help {
   display: flex;
   align-items: center;
   gap: 8px;
+  width: 136px;
   white-space: nowrap;
   color: var(--dim);
   transform-origin: 0 50%;
   transform: rotate(calc(var(--k) * var(--turn)));
   transition:
     transform 0.16s ease-out,
-    opacity 0.16s;
+    opacity 0.16s,
+    color 0.16s,
+    font-size 0.16s,
+    letter-spacing 0.16s;
+}
+/* The lane to the column: every label has it, only the selected one shows it,
+   so it turns into place with its label instead of jumping. */
+.picker .cat::after {
+  content: '';
+  flex: 1;
+  border-top: var(--line);
+  opacity: 0;
+  transition: opacity 0.16s;
 }
 .picker .cat i {
   width: 26px;
   border-top: 1px solid currentColor;
 }
 .picker .cat[data-d='0'] {
-  width: 136px;
   color: var(--ui);
   font-size: 13px;
   letter-spacing: 0.18em;
 }
 .picker .cat[data-d='0']::after {
-  content: '';
-  flex: 1;
-  border-top: var(--line);
+  opacity: 1;
 }
 .picker .cat[data-d='1'] {
   opacity: 0.85;
@@ -517,10 +527,19 @@ body.paused .build-help {
 .picker .cat[data-d='far'] {
   opacity: 0;
 }
+.picker .wheel {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: scale(var(--wheel, 1));
+  transform-origin: 0 0;
+}
 .picker .column {
   position: absolute;
-  left: 142px;
+  /* Past the selected label's line at its size (picker-view.ts sets --wheel). */
+  left: calc(142px * var(--wheel, 1));
   top: 0;
+  transform-origin: 0 0;
   width: 380px;
   line-height: 1.7;
   color: var(--dim);
@@ -585,6 +604,9 @@ body.paused .build-help {
   height: 7px;
   margin-right: 4px;
   border: 1px solid var(--ui);
+}
+.picker .keys span {
+  color: var(--ui);
 }
 .picker em,
 .picker .keys,

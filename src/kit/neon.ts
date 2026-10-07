@@ -77,4 +77,7 @@ export const neon = withVariants({ type: 'neon', label: 'Neon sign', category: '
   blade('pink', '買え。考えるな。'), // Buy. Don't think.
   blade('cyan', '汚れのない未来へ。'), // Toward a spotless future.
   blade('amber', '監視は安心です。'), // Surveillance is reassuring.
+  blade('lime', '笑顔を忘れずに。'), // Don't forget to smile.
+  blade('violet', 'あなたは幸せです。'), // You are happy.
+  blade('red', '不満のない社会へ。'), // Toward a society without complaints.
 ]);

@@ -24,7 +24,7 @@ export async function fetchLevel(name: string): Promise<LevelData> {
 const isNum = (v: unknown) => typeof v === 'number' && Number.isFinite(v);
 const isV3 = (v: unknown) => Array.isArray(v) && v.length === 3 && v.every(isNum);
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
-const isProp = (p: unknown) => isObj(p) && (p.id === undefined || (Number.isInteger(p.id) && (p.id as number) > 0)) && typeof p.type === 'string' && (p.variant === undefined || typeof p.variant === 'string') && isV3(p.pos) && (p.rot === undefined || isNum(p.rot)) && (p.adjust === undefined || isNum(p.adjust)) && (p.text === undefined || typeof p.text === 'string');
+const isProp = (p: unknown) => isObj(p) && (p.id === undefined || (Number.isInteger(p.id) && (p.id as number) > 0)) && typeof p.type === 'string' && (p.variant === undefined || typeof p.variant === 'string') && isV3(p.pos) && (p.rot === undefined || isNum(p.rot)) && (p.adjust === undefined || isNum(p.adjust)) && (p.text === undefined || typeof p.text === 'string') && (p.mirror === undefined || typeof p.mirror === 'boolean') && (p.finish === undefined || (isObj(p.finish) && Object.values(p.finish).every((v) => typeof v === 'string')));
 const isPickup = (p: unknown) => isObj(p) && typeof p.kind === 'string' && isV3(p.pos);
 
 /** `data` as a level, or an error naming what's wrong with it. Unknown prop types still load (they're skipped with a warning). */

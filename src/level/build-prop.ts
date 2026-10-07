@@ -9,6 +9,7 @@ import { LIGHTS, NEON_COLORS, PAINT, type LightKind, type NeonColor } from '../c
 import { setHex } from '../hex-color';
 import type { Track } from '../render/cctv-track';
 import type { Facade } from '../render/ink/facade';
+import type { Finish } from '../kit/finishes';
 
 // Turns a prop's pieces into world-space geometry, colliders and climb volumes.
 // Rotations are multiples of 90°, so every box stays axis-aligned and its
@@ -26,6 +27,10 @@ export interface PropInstance {
   adjust?: number;
   /** Per-instance text (PropDef.text), when typed in build mode. */
   text?: string;
+  /** Its wall finish (PropDef.finishes), when chosen in build mode. */
+  finish?: Finish;
+  /** Mirrored left to right (PropData.mirror). */
+  mirror?: boolean;
   /** The player who placed it while playing (their stepladder, Level.setRuntime): never saved with the level. */
   owner?: string;
 }

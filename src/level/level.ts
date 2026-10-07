@@ -1,13 +1,15 @@
 import { MAX_TEXT } from '../render/ink/words';
 import * as THREE from 'three';
-import { defOf, renamed } from '../kit';
-import type { V3 } from '../kit/pieces';
+import { defOf, renamed, upgraded } from '../kit';
+import { mirrored, type V3 } from '../kit/pieces';
 import { V_MODULE, type PropDef } from '../kit/def';
 import type { PaintSystem } from '../painting';
 import type { Ladder } from '../player';
 import { DecorBatches } from './batches';
 import { buildProp, disposeProp, type BuiltProp, type Emitter, type LightAnchor, type PropInstance } from './build-prop';
-import { computeJoints, jointPieces, type Joint } from './joints';
+import { computeJoints, jointOwner, jointPieces, sameFinish, type Joint } from './joints';
+import { column, propAt, stackContext } from './stacks';
+import type { Finish } from '../kit/finishes';
 
 // The editable level: prop instances + everything built from them (meshes,
 // colliders, ladders), auto joints between edge props, and decor batches.
@@ -30,10 +32,15 @@ export interface PropData {
   adjust?: number;
   /** Per-instance text (PropDef.text), e.g. a sign's words. */
   text?: string;
+  /** Its wall finish (PropDef.finishes), when not its own look. */
+  finish?: Finish;
+  /** Mirrored left to right (a wall piece flipped with R in build mode). */
+  mirror?: boolean;
 }
 
 export interface LevelData {
-  version: 2 | 3;
+  /** 4: props keep their default variant even when it changes later (format 3 files: see kit/index.ts upgraded). */
+  version: 2 | 3 | 4;
   spawn: { pos: V3; yaw: number };
   props: PropData[];
   /** Owned by other systems (pickups). */
@@ -119,15 +126,15 @@ export class Level {
     this.clear();
     this.spawn = { pos: [...data.spawn.pos], yaw: data.spawn.yaw };
     // Create all instances first so stacking props see their neighbors when built.
-    for (const p of data.props) this.create(p, false);
+    for (const p of data.props) this.create(upgraded(p, data.version), false);
     for (const inst of this.props.values()) this.build(inst);
     this.refresh();
   }
 
   toJSON(): LevelData {
     // Props the player placed while playing (the stepladder) aren't part of the level file. Default variants go unsaved.
-    const props = [...this.props.values()].filter((p) => p.owner === undefined).map(({ id, type, variant, pos, rot, adjust, text }) => ({ id, type, ...(variant === defOf(type)!.variant ? {} : { variant }), pos, rot, ...(adjust === undefined ? {} : { adjust }), ...(text === undefined ? {} : { text }) }));
-    return { version: 3, spawn: this.spawn, props };
+    const props = [...this.props.values()].filter((p) => p.owner === undefined).map(({ id, type, variant, pos, rot, adjust, text, finish, mirror }) => ({ id, type, ...(variant === defOf(type)!.variant ? {} : { variant }), pos, rot, ...(mirror ? { mirror } : {}), ...(adjust === undefined ? {} : { adjust }), ...(text === undefined ? {} : { text }), ...(finish && Object.keys(finish).length ? { finish } : {}) }));
+    return { version: 4, spawn: this.spawn, props };
   }
 
   /** Change a prop's per-instance setting (clamped to its range) and rebuild it. Returns the new value. */
@@ -147,6 +154,16 @@ export class Level {
     if (!inst || defOf(inst.type, inst.variant)?.text === undefined) return false;
     inst.text = text.trim().slice(0, MAX_TEXT) || undefined;
     this.build(inst);
+    this.refresh();
+    return true;
+  }
+
+  /** Change a prop's wall finish (PropDef.finishes; none: its own look) and rebuild it, keeping its paint. */
+  setFinish(id: number, finish: Finish | undefined) {
+    const inst = this.props.get(id);
+    if (!inst) return false;
+    inst.finish = finish;
+    this.build(inst, true);
     this.refresh();
     return true;
   }
@@ -216,6 +233,19 @@ export class Level {
     return o.userData.propId;
   }
 
+  /**
+   * The prop build mode works on when a ray hits `o` at `point` (RMB deletes it,
+   * MMB picks it, it's outlined): the prop itself, or for a joint post the edge
+   * prop ending there that is nearest the point. Never a player's stepladder.
+   */
+  targetOf(o: THREE.Object3D, point: THREE.Vector3): number | undefined {
+    const key: string | undefined = o.userData.joint;
+    const joint = key === undefined ? undefined : this.joints.get(key)?.joint;
+    const id = key === undefined ? this.idOf(o) : joint && jointOwner(joint, this.props.values(), point);
+    const inst = id === undefined ? undefined : this.props.get(id);
+    return inst && inst.owner === undefined ? inst.id : undefined;
+  }
+
   /** Does any box penetrate a placed prop's colliders (joints excluded)? `ignore`: a prop id to leave out. */
   overlaps(boxes: THREE.Box3[], margin = 0.02, ignore?: number) {
     const shrunk = boxes.map((b) => b.clone().expandByScalar(-margin));
@@ -229,9 +259,7 @@ export class Level {
 
   /** Stacking neighbors (PropContext.above / below) of a prop (a def resolved by defOf) at `pos`. */
   stackContext(def: PropDef, pos: V3, rot: number) {
-    const above = !!def.stacks?.above && this.findAt(def, [pos[0], pos[1] + V_MODULE, pos[2]], rot) !== undefined;
-    const below = !!def.stacks?.below && this.column(def, pos, rot).some((p) => p.pos[1] < pos[1] - 0.01);
-    return { above, below };
+    return stackContext(this.props.values(), def, pos, rot);
   }
 
   private create(data: PropData, build = true): PropInstance | null {
@@ -245,7 +273,7 @@ export class Level {
     // Its own id when it has a free one (a format 3 level, undo), else the next.
     const id = Number.isInteger(data.id) && data.id! > 0 && !this.props.has(data.id!) ? data.id! : this.nextId;
     this.nextId = Math.max(this.nextId, id + 1);
-    const inst: PropInstance = { id, type, variant: def.variant, pos: [...data.pos], rot: (((data.rot ?? 0) % 4) + 4) % 4, adjust: data.adjust, text: data.text };
+    const inst: PropInstance = { id, type, variant: def.variant, pos: [...data.pos], rot: (((data.rot ?? 0) % 4) + 4) % 4, adjust: data.adjust, text: data.text, finish: data.finish, mirror: data.mirror || undefined };
     this.props.set(inst.id, inst);
     if (build) this.build(inst);
     return inst;
@@ -263,8 +291,8 @@ export class Level {
     const def = defOf(inst.type, inst.variant)!;
     const seed = Math.abs(Math.round(inst.pos[0] * 7 + inst.pos[2] * 13));
     const adjust = inst.adjust ?? def.adjust?.initial() ?? 0;
-    const ctx = { seed, pos: inst.pos, adjust, text: inst.text ?? def.text ?? '', ...this.stackContext(def, inst.pos, inst.rot) };
-    const pieces = def.build(ctx);
+    const ctx = { seed, pos: inst.pos, rot: inst.rot, adjust, text: inst.text ?? def.text ?? '', finish: inst.finish, ...this.stackContext(def, inst.pos, inst.rot) };
+    const pieces = inst.mirror ? mirrored(def.build(ctx)) : def.build(ctx);
     if (pieces.some((p) => 'mat' in p && p.mat.letters)) this.lettered.add(inst.id);
     else this.lettered.delete(inst.id);
     const b = buildProp(inst.id, `p${inst.id}`, pieces, inst.pos, inst.rot, this.paint);
@@ -281,11 +309,11 @@ export class Level {
     const def = defOf(inst.type, inst.variant)!;
     const s = def.stacks;
     if (!s) return;
-    const below = s.above ? this.findAt(def, [inst.pos[0], inst.pos[1] - V_MODULE, inst.pos[2]], inst.rot) : undefined;
+    const below = s.above ? propAt(this.props.values(), def, [inst.pos[0], inst.pos[1] - (def.vSnap ?? V_MODULE), inst.pos[2]], inst.rot) : undefined;
     if (below) this.build(below);
     // Only the lowest prop above can change (it may become the bottom of the column).
     if (s.below) {
-      const above = this.column(def, inst.pos, inst.rot).filter((p) => p.pos[1] > inst.pos[1] + 0.01);
+      const above = column(this.props.values(), def, inst.pos, inst.rot).filter((p) => p.pos[1] > inst.pos[1] + 0.01);
       const lowest = above.sort((a, b) => a.pos[1] - b.pos[1])[0];
       if (lowest) this.build(lowest);
     }
@@ -305,21 +333,6 @@ export class Level {
     return true;
   }
 
-  /** Props of this type and variant in the same vertical column (same x, z). */
-  private column(def: PropDef, pos: V3, rot: number) {
-    const anyRot = def.place === 'cell';
-    return [...this.props.values()].filter((p) => isA(p, def) && (anyRot || p.rot === rot) && Math.abs(p.pos[0] - pos[0]) < 0.01 && Math.abs(p.pos[2] - pos[2]) < 0.01);
-  }
-
-  /** Cell props fill the same space whatever their facing, so their rotation doesn't matter. */
-  private findAt(def: PropDef, pos: V3, rot: number) {
-    const anyRot = def.place === 'cell';
-    for (const p of this.props.values()) {
-      if (isA(p, def) && (anyRot || p.rot === rot) && pos.every((v, i) => Math.abs(v - p.pos[i]) < 0.01)) return p;
-    }
-    return undefined;
-  }
-
   /** Update joints, flat arrays and batches after a change. */
   private refresh() {
     const want = computeJoints(this.props.values());
@@ -329,7 +342,15 @@ export class Level {
       this.joints.delete(key);
     }
     for (const [key, joint] of want) {
-      if (!this.joints.has(key)) this.joints.set(key, { joint, b: this.buildJoint(key, joint) });
+      const old = this.joints.get(key);
+      if (old && sameFinish(old.joint, joint)) continue;
+      // New, or its finish changed: (re)built, its paint carried over.
+      const b = this.buildJoint(key, joint);
+      if (old) {
+        this.carryPaint(old.b, b);
+        disposeProp(old.b, this.paint);
+      }
+      this.joints.set(key, { joint, b });
     }
     this.colliders.length = 0;
     this.ladders.length = 0;
@@ -350,16 +371,14 @@ export class Level {
   }
 
   private buildJoint(key: string, joint: Joint) {
-    const b = buildProp(-1, `j${key}`, jointPieces(joint.kind), joint.pos, 0, this.paint);
+    const b = buildProp(-1, `j${key}`, jointPieces(joint), joint.pos, 0, this.paint);
+    for (const o of b.group.children) o.userData.joint = key;
     this.root.add(b.group);
     return b;
   }
 
   private allBuilt: BuiltProp[] = [];
 }
-
-/** Is a prop of this def's type and variant (stacking only joins the same prop)? */
-const isA = (p: PropInstance, def: PropDef) => p.type === def.type && p.variant === def.variant;
 
 /** The same paint surfaces with the same face sizes, so paint carries over texel for texel. */
 function samePaintFaces(a: BuiltProp, b: BuiltProp) {

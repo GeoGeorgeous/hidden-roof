@@ -6,7 +6,7 @@ import { live, r, t, c, when, type Section } from './tuning';
 /** F3 sections for the Build tab. */
 export function buildSections(): Section[] {
   const apply = () => live.applyDaylight();
-  const shade = () => live.syncBuildShade();
+  const shade = () => live.syncBuildPicker();
   const d = (label: string, key: string, min: number, max: number, step: number) => r(label, ['DAYLIGHT', key], min, max, step, apply);
   return [
     {
@@ -46,7 +46,9 @@ export function buildSections(): Section[] {
       id: 'picker',
       title: 'Picker',
       items: when('build', [
-        r('shade: width', ['BUILD', 'shadeWidth'], 100, 1600, 10, shade),
+        r('wheel: size', ['BUILD', 'wheelScale'], 0.5, 4, 0.05, shade),
+        r('column: size', ['BUILD', 'columnScale'], 0.5, 3, 0.05, shade),
+        r('shade: width', ['BUILD', 'shadeWidth'], 100, 2000, 10, shade),
         r('shade: opacity', ['BUILD', 'shadeOpacity'], 0, 1, 0.01, shade),
         c('shade: color', ['BUILD', 'shadeColor'], shade),
       ]),

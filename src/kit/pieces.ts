@@ -147,7 +147,8 @@ export const GRAY = ['#2a2c30', '#4d5055', '#7d8085', '#b5b7ba'] as const;
 export const M = {
   concrete: { tex: 'flat', tint: GRAY[3] },
   plaster: { tex: 'panel', tint: GRAY[3] },
-  brick: { tex: 'panel', tint: GRAY[2] },
+  /** The brick wall finish (kit/finishes.ts). */
+  brick: { tex: 'brick', tile: 0.6, tint: GRAY[3] },
   roof: { tex: 'panel', tint: GRAY[2] },
   steel: { tex: 'flat', tint: GRAY[0] },
   metal: { tex: 'flat', tint: GRAY[1] },
@@ -176,6 +177,16 @@ export class Parts {
   readonly list: Piece[] = [];
   /** Set by `swinging`: attached to every box/cyl/rod/cone added meanwhile. */
   private swing: Swing | undefined;
+  /** Railing and stair rail posts placed so far (x, y, z): railings meeting at a corner, or at a stair rail's end, share one. */
+  private posts: V3[] = [];
+
+  /** A railing post at (x, y, z) unless one already stands within 7 cm: true when it was added. */
+  private post(x: number, y: number, z: number) {
+    if (this.posts.some((p) => Math.abs(p[1] - y) < 0.01 && Math.hypot(p[0] - x, p[2] - z) < 0.07)) return false;
+    this.posts.push([x, y, z]);
+    this.detail([x - 0.03, y, z - 0.03], [x + 0.03, y + RAIL_H, z + 0.03], M.steel);
+    return true;
+  }
 
   /** Pieces added inside `add` swing together (see Swing). */
   swinging(swing: Swing, add: () => void) {
@@ -213,7 +224,13 @@ export class Parts {
     this.list.push({ k: 'light', ...l, swing: this.swing });
   }
 
-  /** Horizontal railing along an axis-aligned line (x,z) on floor height y. */
+  /**
+   * Horizontal railing along an axis-aligned line (x,z) on floor height y:
+   * posts at most 1.5 m apart, a top rail just under their tops and a knee
+   * rail, both running between the end posts and thinner than them, so no
+   * faces of theirs lie on top of each other. A post this prop already has
+   * there (a corner, a stair rail's end) is shared.
+   */
   railing(a: [number, number], b: [number, number], y: number) {
     const [ax, az] = a;
     const [bx, bz] = b;
@@ -223,14 +240,15 @@ export class Parts {
     for (let i = 0; i <= n; i++) {
       const x = ax + ((bx - ax) * i) / n;
       const z = az + ((bz - az) * i) / n;
-      this.detail([x - 0.03, y, z - 0.03], [x + 0.03, y + RAIL_H, z + 0.03], M.steel);
+      this.post(x, y, z);
     }
-    const x0 = Math.min(ax, bx) - 0.03;
-    const x1 = Math.max(ax, bx) + 0.03;
-    const z0 = Math.min(az, bz) - 0.03;
-    const z1 = Math.max(az, bz) + 0.03;
-    this.detail([x0, y + RAIL_H - 0.05, z0], [x1, y + RAIL_H, z1], M.steel);
-    this.detail([x0, y + 0.5, z0], [x1, y + 0.54, z1], M.steel);
+    const alongX = Math.abs(bx - ax) >= Math.abs(bz - az);
+    const rail = (y0: number, y1: number, half: number) => {
+      if (alongX) this.detail([Math.min(ax, bx) + 0.03, y0, az - half], [Math.max(ax, bx) - 0.03, y1, az + half], M.steel);
+      else this.detail([ax - half, y0, Math.min(az, bz) + 0.03], [ax + half, y1, Math.max(az, bz) - 0.03], M.steel);
+    };
+    rail(y + RAIL_H - 0.06, y + RAIL_H - 0.01, 0.025);
+    rail(y + 0.5, y + 0.54, 0.02);
   }
 
   /**
@@ -246,7 +264,7 @@ export class Parts {
 
   /** Sloped stair handrail between two points at tread level. */
   stairRail(a: V3, b: V3) {
-    for (const p of [a, b]) this.detail([p[0] - 0.03, p[1], p[2] - 0.03], [p[0] + 0.03, p[1] + RAIL_H, p[2] + 0.03], M.steel);
+    for (const p of [a, b]) this.post(p[0], p[1], p[2]);
     const up = (p: V3, h: number): V3 => [p[0], p[1] + h, p[2]];
     this.rod(up(a, RAIL_H), up(b, RAIL_H), 0.03, M.steel, true);
     this.rod(up(a, 0.55), up(b, 0.55), 0.02, M.steel, true);
@@ -254,16 +272,16 @@ export class Parts {
 
   /**
    * Ladder whose back touches a wall plane at z = wallZ, climbable from the -z side.
-   * Rails and rungs collide up to `height`; the handrails above are decor.
+   * Rails and rungs collide up to `height`; the handrails above (`top`) are decor.
    */
-  ladder(x: number, y: number, wallZ: number, height: number, width = 0.7) {
+  ladder(x: number, y: number, wallZ: number, height: number, width = 0.7, top = true) {
     // Stand off 0.18 m so overhangs and copings above don't catch the climber's head.
     const z0 = wallZ - 0.18;
     const z1 = wallZ - 0.12;
     for (const s of [-1, 1]) {
       const rx = x + (s * width) / 2;
       this.detail([rx - 0.03, y, z0], [rx + 0.03, y + height, z1], M.steel);
-      this.detail([rx - 0.03, y + height, z0], [rx + 0.03, y + height + 0.9, z1], M.steel, false);
+      if (top) this.detail([rx - 0.03, y + height, z0], [rx + 0.03, y + height + 0.9, z1], M.steel, false);
       for (const by of [0.4, height - 0.3]) this.detail([rx - 0.02, y + by, z1], [rx + 0.02, y + by + 0.05, wallZ], M.steel, false);
     }
     for (let ry = 0.3; ry < height - 0.1; ry += 0.3) {
@@ -271,4 +289,32 @@ export class Parts {
     }
     this.list.push({ k: 'climb', min: [x - width / 2, y, z0 - 0.45], max: [x + width / 2, y + height + 0.3, z0], normal: [0, 0, -1] });
   }
+}
+
+const flipV = (v: V3): V3 => [-v[0], v[1], v[2]];
+const flipSwing = (s: Swing | undefined): Swing | undefined => s && { ...s, pivot: flipV(s.pivot), dir: -(s.dir ?? 1), phase: -(s.phase ?? 0) };
+const FLIP_FACE = { '+x': '-x', '-x': '+x' } as Partial<Record<BoxFace, BoxFace>>;
+
+/** Pieces mirrored left to right (x to -x): a wall piece flipped in build mode (PropData.mirror). */
+export function mirrored(pieces: Piece[]): Piece[] {
+  return pieces.map((p): Piece => {
+    switch (p.k) {
+      case 'box':
+        return { ...p, min: [-p.max[0], p.min[1], p.min[2]], max: [-p.min[0], p.max[1], p.max[2]], skip: p.skip?.map((f) => FLIP_FACE[f] ?? f), swing: flipSwing(p.swing) };
+      case 'cyl':
+        // Along x it runs the other way: start at its far end, with its radii swapped.
+        return p.axis === 'x' ? { ...p, base: [-(p.base[0] + p.len), p.base[1], p.base[2]], r: p.r2 ?? p.r, r2: p.r, swing: flipSwing(p.swing) } : { ...p, base: flipV(p.base), swing: flipSwing(p.swing) };
+      case 'rod':
+        return { ...p, a: flipV(p.a), b: flipV(p.b), swing: flipSwing(p.swing) };
+      case 'cone':
+        return { ...p, base: flipV(p.base), swing: flipSwing(p.swing) };
+      case 'climb':
+        return { ...p, min: [-p.max[0], p.min[1], p.min[2]], max: [-p.min[0], p.max[1], p.max[2]], normal: flipV(p.normal) };
+      case 'light':
+        // mirrorX flips its aim (its own dir or LIGHTS[kind].dir) across x.
+        return { ...p, pos: flipV(p.pos), mirrorX: !p.mirrorX, glows: p.glows?.map(flipV), swing: flipSwing(p.swing) };
+      case 'emitter':
+        return { ...p, pos: flipV(p.pos), dir: p.dir && flipV(p.dir) };
+    }
+  });
 }

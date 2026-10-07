@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { ATMOS, LIGHTMAP, LIGHTS, NEON_COLORS, PAINT } from '../../config';
 import type { BuiltProp } from '../../level/build-prop';
-import { neonFlicker } from '../flicker';
+import { lampLevel } from '../flicker';
 import { bakeUniforms } from './glsl';
 import { makeLamps, type Lamp } from './lamps';
 import { Occluders } from './occluders';
@@ -204,10 +204,10 @@ export class LightBaker {
     return slot;
   }
 
-  /** Each neon slot's brightness right now (same hash as the tubes, so light and tubes dip together). */
+  /** Each flicker slot's brightness right now (as the shader computes it, so light and tubes dip or pulse together). */
   private updateFlicker(time: number) {
     if (!this.seeds.size) return;
-    for (const [seed, slot] of this.seeds) this.flickerValues[slot] = neonFlicker(time, seed);
+    for (const [seed, slot] of this.seeds) this.flickerValues[slot] = lampLevel(time, seed);
     this.flickerTexture.needsUpdate = true;
   }
 

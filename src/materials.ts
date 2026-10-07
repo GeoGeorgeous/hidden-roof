@@ -48,6 +48,10 @@ export const shared = {
   uFlickerRate: { value: FLICKER.neonRate },
   uFlickerDepth: { value: FLICKER.neonDepth },
   uFlickerHum: { value: FLICKER.neonHum },
+  uPulseRate: { value: FLICKER.pulseRate },
+  uPulseDepth: { value: FLICKER.pulseDepth },
+  uBrokenRate: { value: FLICKER.brokenRate },
+  uBrokenDepth: { value: FLICKER.brokenDepth },
   /** Build mode: stripe paintable surfaces, dim everything else. */
   uShowPaintable: { value: 0 },
   /** CCTV tracking: player position and ranges (render/cctv-track.ts). */
@@ -65,6 +69,10 @@ export function syncSharedUniforms(time: number) {
   shared.uFlickerRate.value = FLICKER.neonRate;
   shared.uFlickerDepth.value = FLICKER.neonDepth;
   shared.uFlickerHum.value = FLICKER.neonHum;
+  shared.uPulseRate.value = FLICKER.pulseRate;
+  shared.uPulseDepth.value = FLICKER.pulseDepth;
+  shared.uBrokenRate.value = FLICKER.brokenRate;
+  shared.uBrokenDepth.value = FLICKER.brokenDepth;
   shared.uWet.value = ATMOS.wetness;
   shared.uEmissiveBoost.value = ATMOS.emissiveBoost;
   shared.uLitWindows.value = SKYLINE.litWindows;
@@ -126,7 +134,7 @@ vBaseUv = baseUv * uBaseScale;
 vPaintUv = uv;
 vTint = tint;
 vFacade = facade;
-vEmissiveV = flicker > 0.0 ? emissive * neonFlicker(uTime, flicker) : emissive;
+vEmissiveV = flicker != 0.0 ? emissive * lampLevel(uTime, flicker) : emissive;
 if (swingTrack.z > 1.5) vEmissiveV *= trackWeight(swingPivot, swingTrack.xy);
 vWorldPos = (modelMatrix * vec4(transformed, 1.0)).xyz;
 vWorldN = normalize(mat3(modelMatrix) * objectNormal);

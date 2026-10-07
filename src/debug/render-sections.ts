@@ -10,9 +10,10 @@ const LIGHT_LABELS: Record<LightKind, string> = {
   floodlight: 'FLOODLIGHT',
   neon: 'NEON SIGNS',
   billboardLamp: 'BILLBOARD LAMP',
-  lampPost: 'LAMP POST',
-  stringLights: 'STRING LIGHTS',
   cctv: 'CCTV CAMERA',
+  bulkhead: 'BULKHEAD LAMP',
+  lightPanel: 'LIGHT PANEL',
+  aviation: 'AVIATION LIGHT',
 };
 
 /** One section per light kind, the same rows for each; neon signs have a color each. */
