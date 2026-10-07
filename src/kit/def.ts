@@ -10,8 +10,8 @@ import type { Piece, V3 } from './pieces';
 export const H_MODULE = 2;
 export const V_MODULE = 4;
 
-export type Category = 'structure' | 'access' | 'hvac' | 'pipes' | 'cables' | 'rooftop' | 'signs' | 'neon' | 'lights' | 'pickups';
-export const CATEGORIES: Category[] = ['structure', 'access', 'hvac', 'pipes', 'cables', 'rooftop', 'signs', 'neon', 'lights', 'pickups'];
+export type Category = 'structure' | 'access' | 'hvac' | 'pipes' | 'cables' | 'rooftop' | 'signs' | 'neon' | 'lights' | 'level' | 'pickups';
+export const CATEGORIES: Category[] = ['structure', 'access', 'hvac', 'pipes', 'cables', 'rooftop', 'signs', 'neon', 'lights', 'level', 'pickups'];
 
 /**
  * How a prop snaps:

@@ -7,8 +7,8 @@ import { expandPieces } from '../level/build-prop';
 // Translucent preview of the prop about to be placed: green when valid, red when
 // it overlaps something or can't go on this face.
 
-const GREEN = new THREE.Color('#3dff7a');
-const RED = new THREE.Color('#ff3b30');
+export const GREEN = new THREE.Color('#3dff7a');
+export const RED = new THREE.Color('#ff3b30');
 
 export class Ghost {
   readonly root = new THREE.Group();

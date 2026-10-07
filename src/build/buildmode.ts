@@ -7,7 +7,7 @@ import { shared } from '../materials';
 import type { Level, LevelData, PropData } from '../level/level';
 import type { PickupData, Pickups } from '../pickups/pickups';
 import type { Player } from '../player';
-import { Ghost } from './ghost';
+import { Ghost, GREEN, RED } from './ghost';
 import { SpawnMarker } from './spawn-marker';
 import { BUILD, PLAYER } from '../config';
 import { describeHeight, levelOf, levelY } from '../level/levels';
@@ -28,14 +28,16 @@ import { MAX_TEXT } from '../render/ink/words';
 // its props, Tab / Shift+Tab through a prop's variants. Aiming at empty space hits
 // the build plane: the floor of the working level (PgUp / PgDn, and it follows
 // what you place). P save, O load, H shows which surfaces can be painted.
-// [ and ] change the aimed prop's own setting (floodlight tilt). T puts the
-// spawn point on the floor under the crosshair, facing where you look; the
-// spawn marker shows it while building. Enter types a sign's text (the sign
+// [ and ] change the aimed prop's own setting (floodlight tilt). The spawn
+// point is an entry of the picker (LEVEL): placing it moves the level's one
+// spawn there, facing where you look; the spawn marker shows it while
+// building. Enter types a sign's text (the sign
 // under the crosshair, else the next ones placed); new signs reuse the last
 // text typed or picked.
 
-const HELP = 'LMB PLACE (HOLD: REPEAT) · RMB DELETE · R ROTATE · MMB PICK · CTRL+Z UNDO · WHEEL CATEGORY · Q / E PROP · TAB VARIANT · PGUP / PGDN LEVEL · T SPAWN · ENTER SIGN TEXT · [ ] TILT LIGHT · H PAINTABLE · P SAVE · O LOAD · B EXIT';
-const PICKUP_SPEC: PlaceSpec = { place: 'floor', snap: 0.5 };
+const HELP = 'LMB PLACE (HOLD: REPEAT) · RMB DELETE · R ROTATE · MMB PICK · CTRL+Z UNDO · WHEEL CATEGORY · Q / E PROP · TAB VARIANT · PGUP / PGDN LEVEL · ENTER SIGN TEXT · [ ] TILT LIGHT · H PAINTABLE · P SAVE · O LOAD · B EXIT';
+/** Pickups and the spawn point stand on the floor. */
+const FLOOR_SPEC: PlaceSpec = { place: 'floor', snap: 0.5 };
 
 export class BuildMode {
   active = false;
@@ -49,6 +51,8 @@ export class BuildMode {
   private pickerView = new PickerView(this.picker);
   private ghost: Ghost;
   private spawnMarker: SpawnMarker;
+  /** The spawn point about to be placed. */
+  private spawnGhost: SpawnMarker;
   private grid: CursorGrid;
   private history = new History();
   private raycaster = new THREE.Raycaster();
@@ -77,6 +81,7 @@ export class BuildMode {
     this.ghost = new Ghost(scene);
     this.grid = new CursorGrid(scene);
     this.spawnMarker = new SpawnMarker(scene, PLAYER.height, PLAYER.radius);
+    this.spawnGhost = new SpawnMarker(scene, PLAYER.height, PLAYER.radius);
     this.hud = div('build-help');
     const levels = div('levels');
     levels.append(this.aimText, document.createElement('br'), this.planeText);
@@ -95,6 +100,7 @@ export class BuildMode {
     this.ghost.visible = on;
     this.grid.visible = on;
     this.spawnMarker.visible = on;
+    if (!on) this.spawnGhost.visible = false;
     if (on) this.spawnMarker.set(this.level.spawn.pos, this.level.spawn.yaw);
     this.pickups.setEditing(on);
     if (!on) shared.uShowPaintable.value = 0;
@@ -119,7 +125,6 @@ export class BuildMode {
       shared.uShowPaintable.value = shared.uShowPaintable.value ? 0 : 1;
       this.say(shared.uShowPaintable.value ? 'PAINTABLE SURFACES: STRIPED' : 'PAINTABLE OVERLAY OFF');
     }
-    if (input.wasPressed('KeyT')) this.setSpawn(target);
     const adj = (input.wasTyped('BracketRight') ? 1 : 0) - (input.wasTyped('BracketLeft') ? 1 : 0);
     if (adj && target?.object) this.adjust(target.object, adj);
     if (input.wasPressed('Enter') || input.wasPressed('NumpadEnter')) this.editText(target?.object ?? null);
@@ -196,20 +201,10 @@ export class BuildMode {
     this.say(`TEXT: ${text || 'DEFAULT'} — CLICK TO RESUME`);
   }
 
-  /** Spawn on the floor under the crosshair (or below you), facing your view direction. */
-  private setSpawn(target: Hit | null) {
-    const at = target && target.normal.y > 0.5 ? target.point : this.player.position;
-    const floor = this.floorAt(at.x, at.y + 0.05, at.z);
-    if (floor === null) {
-      this.say('NO FLOOR THERE');
-      return;
-    }
-    const pos: V3 = [+at.x.toFixed(2), floor, +at.z.toFixed(2)];
-    const yaw = +this.player.yaw.toFixed(3);
-    this.level.spawn = { pos, yaw };
-    this.player.setSpawnPoint(new THREE.Vector3(...pos), yaw);
-    this.spawnMarker.set(pos, yaw);
-    this.say('SPAWN SET');
+  private setSpawn(spawn: { pos: V3; yaw: number }) {
+    this.level.spawn = spawn;
+    this.player.setSpawnPoint(new THREE.Vector3(...spawn.pos), spawn.yaw);
+    this.spawnMarker.set(spawn.pos, spawn.yaw);
   }
 
   private pickerInput(input: Input) {
@@ -240,34 +235,47 @@ export class BuildMode {
   };
 
   private preview(target: Hit | null, eye: THREE.Vector3) {
+    const e = this.picker.choice;
+    this.ghost.visible = !!target && e.kind !== 'spawn';
+    this.spawnGhost.visible = !!target && e.kind === 'spawn';
     if (!target) {
-      this.ghost.visible = false;
       this.grid.visible = false;
       this.placement = null;
       return;
     }
-    const e = this.picker.choice;
-    const spec: PlaceSpec = e.kind === 'prop' ? e.def : PICKUP_SPEC;
+    const spec: PlaceSpec = e.kind === 'prop' ? e.def : FLOOR_SPEC;
     const pl = place(spec, target, this.rot, this.floorAt, e.kind === 'prop' ? extentOf(e.def, this.rot) : undefined);
-    if (e.kind === 'prop') this.ghost.showProp(e.def, pl.pos, pl.rot, this.level.stackContext(e.def, pl.pos, pl.rot), this.texts.get(e.def.type));
-    else this.ghost.showPickup(pl.pos);
-    // Like Minecraft, never place into yourself (a held LMB pillar stops at your eyes).
-    this.valid = pl.ok && !this.level.overlaps(this.ghost.colliders) && !this.ghost.colliders.some((c) => c.containsPoint(eye));
-    this.ghost.setValid(this.valid);
-    this.ghost.visible = true;
+    if (e.kind === 'spawn') {
+      // Room to stand there, facing where you look.
+      const [x, y, z] = pl.pos;
+      const r = PLAYER.radius;
+      this.spawnGhost.set(pl.pos, this.player.yaw);
+      this.valid = pl.ok && !this.level.overlaps([new THREE.Box3(new THREE.Vector3(x - r, y + 0.05, z - r), new THREE.Vector3(x + r, y + PLAYER.height, z + r))]);
+      this.spawnGhost.setColor(this.valid ? GREEN : RED);
+    } else {
+      if (e.kind === 'prop') this.ghost.showProp(e.def, pl.pos, pl.rot, this.level.stackContext(e.def, pl.pos, pl.rot), this.texts.get(e.def.type));
+      else this.ghost.showPickup(pl.pos);
+      // Like Minecraft, never place into yourself (a held LMB pillar stops at your eyes).
+      this.valid = pl.ok && !this.level.overlaps(this.ghost.colliders) && !this.ghost.colliders.some((c) => c.containsPoint(eye));
+      this.ghost.setValid(this.valid);
+    }
     this.placement = { pos: pl.pos, rot: pl.rot };
     const module = spec.snap >= H_MODULE;
     this.grid.visible = true;
     this.grid.update(target.point, target.normal, module ? H_MODULE : spec.snap, module ? V_MODULE : spec.snap);
   }
 
-  /** Repeats (LMB held) skip quietly when the ghost is blocked, e.g. still on the block just placed. */
+  /** Repeats (LMB held) skip quietly when the ghost is blocked, e.g. still on the block just placed. The spawn point never repeats. */
   private placeCurrent(repeat: boolean) {
-    if (!this.placement) return;
-    if (!this.valid) return repeat ? undefined : this.say('BLOCKED');
     const e = this.picker.choice;
+    if (!this.placement || (repeat && e.kind === 'spawn')) return;
+    if (!this.valid) return repeat ? undefined : this.say('BLOCKED');
     const { pos, rot } = this.placement;
-    if (e.kind === 'prop') {
+    if (e.kind === 'spawn') {
+      this.history.push({ op: 'move', kind: 'spawn', id: 0, data: this.level.spawn });
+      this.setSpawn({ pos, yaw: +this.player.yaw.toFixed(3) });
+      this.say('SPAWN SET');
+    } else if (e.kind === 'prop') {
       const inst = this.level.add({ type: e.def.type, variant: e.def.variant, pos, rot, text: this.texts.get(e.def.type) });
       if (inst) this.history.push({ op: 'add', kind: 'prop', id: inst.id, data: null });
     } else {
@@ -316,6 +324,10 @@ export class BuildMode {
   }
 
   private revert(e: HistoryEntry): number | undefined {
+    if (e.op === 'move') {
+      this.setSpawn(e.data as { pos: V3; yaw: number });
+      return undefined;
+    }
     if (e.op === 'add') {
       if (e.kind === 'prop') this.level.remove(e.id);
       else this.pickups.remove(e.id);

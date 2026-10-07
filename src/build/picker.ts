@@ -6,8 +6,8 @@ import { PICKUP_GROUPS, type PickupKind } from '../inventory/items';
 // E / Q step to the next / previous entry in it, Tab / Shift+Tab to its next /
 // previous variant. Every category and entry remembers its selection.
 
-/** What a click places: a prop (resolved to its variant) or a pickup kind. */
-export type Choice = { kind: 'prop'; def: PropDef } | { kind: 'pickup'; type: PickupKind };
+/** What a click places: a prop (resolved to its variant), a pickup kind, or the level's one spawn point (moved there). */
+export type Choice = { kind: 'prop'; def: PropDef } | { kind: 'pickup'; type: PickupKind } | { kind: 'spawn' };
 
 interface Variant {
   label: string;
@@ -38,6 +38,7 @@ function propEntry(base: PropDef): Entry {
 }
 
 function entriesFor(c: Category): Entry[] {
+  if (c === 'level') return [{ label: 'Spawn point', variants: [{ label: 'spawn point', choice: { kind: 'spawn' } }], settings: [] }];
   if (c === 'pickups') return PICKUP_GROUPS.map((g) => ({ label: g.label, variants: g.kinds.map((k) => ({ label: k.label, swatch: k.swatch, choice: { kind: 'pickup', type: k.kind } })), settings: [] }));
   return kitIn(c).map(propEntry);
 }

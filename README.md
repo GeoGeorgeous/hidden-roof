@@ -44,19 +44,19 @@ npm run build:mp   # the same without the dev tools (build mode, F3, window.game
 | MMB | Pick the prop or pickup you aim at (with its rotation and variant) |
 | Mouse wheel | Turn the category wheel (left edge) |
 | E / Q | Next / previous prop in the category |
-| Tab / Shift+Tab | Next / previous variant of the prop (a color, a length, a size, a piece of a modular run) |
+| Tab / Shift+Tab | Next / previous variant of the prop (a color, a length, a size, a piece of a modular run, a slogan) |
 | R | Rotate 90° |
 | PgUp / PgDn | Working level (the build plane) up / down |
 | Ctrl+Z | Undo |
 | [ / ] | Tilt the floodlight under the crosshair (saved per floodlight as `adjust` in the level) |
 | Enter | Type the text of the sign under the crosshair (exit, high voltage, name plate; saved per sign as `text` in the level). Aiming elsewhere, it sets the text for the next signs you place. New signs reuse the last text typed or picked with MMB |
-| T | Put the spawn point on the floor under the crosshair, facing where you look (the blue figure + arrow shows it while building) |
 | H | Show paintable surfaces (green stripes; everything else dims) |
 | P | Save the level as `level.json` (downloads) |
 | O | Load a level JSON file |
 
 **Placement:**
 - Aim at a top face and the new prop goes on top. Aim at a side face and it goes next to that face, flush against it. Everything snaps to the grid (2 m cells, 4 m levels, 0.5 m for small props).
+- The spawn point is the LEVEL category's entry: placing it moves the level's one spawn there, facing where you look (Ctrl+Z puts it back). Its ghost is a player-sized figure, red where you wouldn't fit; the blue figure shows the current spawn while building.
 - The ghost is green when the prop fits and red when it would overlap something, can't go on that face, or would end up inside you.
 - Building blocks stack: a block with another block below it is one 4 m storey, so pillars and towers go up level by level.
 
