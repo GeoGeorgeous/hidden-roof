@@ -798,7 +798,10 @@ body.paused .build-help {
 .debug-panel label.choice-row {
   grid-template-columns: 136px 1fr;
 }
-/* A choice's buttons (preset): equal columns, the picked one lit like a tab. */
+/* A choice's buttons (preset): equal columns, the picked one lit like a tab, set apart from the rows round them. */
+.debug-panel label.choice-row {
+  margin: 4px 0 8px;
+}
 .debug-panel .choice {
   display: grid;
   grid-auto-flow: column;
