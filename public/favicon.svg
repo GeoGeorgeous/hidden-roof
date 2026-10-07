@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- The top of a spray can: ink on light tabs, paper on dark ones; the cap in paint red, its nozzle on the left. -->
+  <style>
+    .ink { fill: #141416; }
+    @media (prefers-color-scheme: dark) { .ink { fill: #ebe5d6; } }
+  </style>
+  <rect class="ink" x="6" y="28.5" width="20" height="3.5" />
+  <path class="ink" d="M6 27.3C6 23.5 9.5 21.3 13 21.3H19C22.5 21.3 26 23.5 26 27.3Z" />
+  <rect class="ink" x="12.5" y="18" width="7" height="4" rx="1" />
+  <rect x="10" y="3" width="12" height="16" rx="3" fill="#d4261c" />
+  <rect x="18.5" y="5.5" width="1.6" height="11" rx="0.8" fill="#fff" opacity="0.35" />
+  <ellipse cx="11.4" cy="8.5" rx="1.1" ry="1.8" fill="#141416" />
+</svg>
