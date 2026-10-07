@@ -72,9 +72,11 @@ export const ladder = withVariants({ type: 'ladder', label: 'Ladder', category: 
   {
     id: 'wall',
     label: 'wall',
-    build() {
+    // The grab rails over the top only on the top one: a ladder stacked on it takes their place.
+    stacks: { above: true },
+    build({ above }) {
       const p = new Parts();
-      p.ladder(0, 0, 0, 4, 0.7);
+      p.ladder(0, 0, 0, 4, 0.7, !above);
       return p.list;
     },
   },
