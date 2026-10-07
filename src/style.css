@@ -495,7 +495,7 @@ canvas {
   position: fixed;
   top: 76px;
   left: 20px;
-  width: 340px;
+  width: 374px;
   max-height: calc(100vh - 230px);
   display: flex;
   flex-direction: column;
@@ -710,6 +710,7 @@ canvas {
 .debug-panel > .row {
   flex-wrap: nowrap;
   gap: 4px;
+  margin-bottom: 12px;
   white-space: nowrap;
 }
 .debug-panel > .row button {
