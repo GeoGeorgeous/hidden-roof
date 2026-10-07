@@ -229,7 +229,7 @@ export class Level {
 
   /** Stacking neighbors (PropContext.above / below) of a prop (a def resolved by defOf) at `pos`. */
   stackContext(def: PropDef, pos: V3, rot: number) {
-    const above = !!def.stacks?.above && this.findAt(def, [pos[0], pos[1] + V_MODULE, pos[2]], rot) !== undefined;
+    const above = !!def.stacks?.above && this.findAt(def, [pos[0], pos[1] + (def.vSnap ?? V_MODULE), pos[2]], rot) !== undefined;
     const below = !!def.stacks?.below && this.column(def, pos, rot).some((p) => p.pos[1] < pos[1] - 0.01);
     return { above, below };
   }
@@ -281,7 +281,7 @@ export class Level {
     const def = defOf(inst.type, inst.variant)!;
     const s = def.stacks;
     if (!s) return;
-    const below = s.above ? this.findAt(def, [inst.pos[0], inst.pos[1] - V_MODULE, inst.pos[2]], inst.rot) : undefined;
+    const below = s.above ? this.findAt(def, [inst.pos[0], inst.pos[1] - (def.vSnap ?? V_MODULE), inst.pos[2]], inst.rot) : undefined;
     if (below) this.build(below);
     // Only the lowest prop above can change (it may become the bottom of the column).
     if (s.below) {
@@ -358,8 +358,8 @@ export class Level {
   private allBuilt: BuiltProp[] = [];
 }
 
-/** Is a prop of this def's type and variant (stacking only joins the same prop)? */
-const isA = (p: PropInstance, def: PropDef) => p.type === def.type && p.variant === def.variant;
+/** Is a prop of this def's type and variant, or any variant with `stacks.across` (stacking only joins the same prop)? */
+const isA = (p: PropInstance, def: PropDef) => p.type === def.type && (!!def.stacks?.across || p.variant === def.variant);
 
 /** The same paint surfaces with the same face sizes, so paint carries over texel for texel. */
 function samePaintFaces(a: BuiltProp, b: BuiltProp) {

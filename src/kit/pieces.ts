@@ -254,16 +254,16 @@ export class Parts {
 
   /**
    * Ladder whose back touches a wall plane at z = wallZ, climbable from the -z side.
-   * Rails and rungs collide up to `height`; the handrails above are decor.
+   * Rails and rungs collide up to `height`; the handrails above (`top`) are decor.
    */
-  ladder(x: number, y: number, wallZ: number, height: number, width = 0.7) {
+  ladder(x: number, y: number, wallZ: number, height: number, width = 0.7, top = true) {
     // Stand off 0.18 m so overhangs and copings above don't catch the climber's head.
     const z0 = wallZ - 0.18;
     const z1 = wallZ - 0.12;
     for (const s of [-1, 1]) {
       const rx = x + (s * width) / 2;
       this.detail([rx - 0.03, y, z0], [rx + 0.03, y + height, z1], M.steel);
-      this.detail([rx - 0.03, y + height, z0], [rx + 0.03, y + height + 0.9, z1], M.steel, false);
+      if (top) this.detail([rx - 0.03, y + height, z0], [rx + 0.03, y + height + 0.9, z1], M.steel, false);
       for (const by of [0.4, height - 0.3]) this.detail([rx - 0.02, y + by, z1], [rx + 0.02, y + by + 0.05, wallZ], M.steel, false);
     }
     for (let ry = 0.3; ry < height - 0.1; ry += 0.3) {

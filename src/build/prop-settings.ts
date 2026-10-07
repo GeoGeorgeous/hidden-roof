@@ -46,7 +46,7 @@ export class PropSettings {
   private adjust(inst: PropInstance, def: PropDef, dir: number) {
     const a = def.adjust!;
     const v = this.level.setAdjust(inst.id, (inst.adjust ?? a.initial()) + dir * a.step);
-    if (v !== null) this.say(`${a.label} ${v}°`);
+    if (v !== null) this.say(`${a.label} ${v}${a.unit ?? '°'}`);
   }
 
   /** Type a text for the aimed sign, or for the next signs of the selected type. */

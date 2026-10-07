@@ -5,7 +5,7 @@ import { WALL_H } from '../kit/structure';
 import type { PropInstance } from './build-prop';
 
 // Joint posts at grid intersections where edge props (walls, parapets,
-// railings) end. Derived from the placed props, never placed by hand, so runs
+// railings, fences) end. Derived from the placed props, never placed by hand, so runs
 // and corners always close cleanly. Like Minecraft fences connecting.
 
 const JOINTS: Record<JointKind, () => Piece[]> = {
@@ -23,6 +23,20 @@ const JOINTS: Record<JointKind, () => Piece[]> = {
   railing: () => {
     const p = new Parts();
     p.detail([-0.03, 0, -0.03], [0.03, 1.1, 0.03], M.steel);
+    return p.list;
+  },
+  /** Railing on a parapet: a post bolted onto the coping (1.1 m). */
+  parapetRail: () => {
+    const p = new Parts();
+    p.detail([-0.08, 1.1, -0.08], [0.08, 1.12, 0.08], M.steel, false);
+    p.detail([-0.03, 1.12, -0.03], [0.03, 2.1, 0.03], M.steel);
+    return p.list;
+  },
+  /** Chain-link fence: a round post with a cap. */
+  fence: () => {
+    const p = new Parts();
+    p.cyl([0, 0, 0], 'y', 2, 0.04, M.galv, { paint: false, seg: 8 });
+    p.cyl([0, 2, 0], 'y', 0.05, 0.05, M.galv, { paint: false, collide: false, seg: 8 });
     return p.list;
   },
 };

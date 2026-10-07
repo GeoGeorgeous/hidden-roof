@@ -32,7 +32,8 @@ export interface Entry {
 function propEntry(base: PropDef): Entry {
   const defs = base.variants ? base.variants.map((v) => ({ label: v.label, def: defOf(base.type, v.id)! })) : [{ label: base.label, def: base }];
   const settings: Setting[] = [];
-  if (base.adjust) settings.push({ key: '[ ]', name: base.adjust.label });
+  const adjust = defs.find((d) => d.def.adjust)?.def.adjust;
+  if (adjust) settings.push({ key: '[ ]', name: adjust.label });
   if (defs.some((d) => d.def.text !== undefined)) settings.push({ key: 'ENTER', name: 'TEXT' });
   return { label: base.label, variants: defs.map(({ label, def }) => ({ label, choice: { kind: 'prop', def } })), settings };
 }

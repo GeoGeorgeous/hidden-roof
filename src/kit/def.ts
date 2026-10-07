@@ -10,8 +10,8 @@ import type { Piece, V3 } from './pieces';
 export const H_MODULE = 2;
 export const V_MODULE = 4;
 
-export type Category = 'structure' | 'access' | 'hvac' | 'pipes' | 'cables' | 'rooftop' | 'signs' | 'neon' | 'lights' | 'level' | 'pickups';
-export const CATEGORIES: Category[] = ['structure', 'access', 'hvac', 'pipes', 'cables', 'rooftop', 'signs', 'neon', 'lights', 'level', 'pickups'];
+export type Category = 'structure' | 'scaffold' | 'access' | 'barriers' | 'hvac' | 'pipes' | 'cables' | 'rooftop' | 'signs' | 'neon' | 'lights' | 'level' | 'pickups';
+export const CATEGORIES: Category[] = ['structure', 'scaffold', 'access', 'barriers', 'hvac', 'pipes', 'cables', 'rooftop', 'signs', 'neon', 'lights', 'level', 'pickups'];
 
 /**
  * How a prop snaps:
@@ -23,7 +23,7 @@ export const CATEGORIES: Category[] = ['structure', 'access', 'hvac', 'pipes', '
 type Placement = 'cell' | 'edge' | 'mount' | 'floor';
 
 /** Posts generated where edge props meet (see level/joints.ts). */
-export type JointKind = 'wall' | 'parapet' | 'railing';
+export type JointKind = 'wall' | 'parapet' | 'railing' | 'parapetRail' | 'fence';
 
 interface PropContext {
   /** Stable per-instance number for variations. */
@@ -39,9 +39,11 @@ interface PropContext {
   text: string;
 }
 
-/** One per-instance setting changed in build mode with [ and ] (e.g. floodlight tilt). */
+/** One per-instance setting changed in build mode with [ and ] (e.g. floodlight tilt, platform height). */
 interface PropAdjust {
   label: string;
+  /** Shown after the value: '°' (default) or ' M'. */
+  unit?: string;
   min: number;
   max: number;
   step: number;
@@ -67,10 +69,11 @@ export interface PropDef {
   joint?: JointKind;
   /**
    * Stacking props whose shape depends on the same prop one level above
-   * (ctx.above) or anywhere below in the same column (ctx.below). They are
-   * rebuilt when that changes.
+   * (ctx.above: vSnap higher, else 4 m) or anywhere below in the same column
+   * (ctx.below). They are rebuilt when that changes. Only the same variant
+   * counts, unless `across` (scaffolding bays with railings on other ends).
    */
-  stacks?: { above?: boolean; below?: boolean };
+  stacks?: { above?: boolean; below?: boolean; across?: boolean };
   adjust?: PropAdjust;
   /** Props that show a text of their own (signs): its default. Typed in build mode (Enter), saved per instance. */
   text?: string;
