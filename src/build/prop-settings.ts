@@ -81,6 +81,6 @@ export class PropSettings {
     this.highlight.visible = !!inst;
     if (!inst) return;
     const def = defOf(inst.type, inst.variant)!;
-    this.highlight.showProp(def, inst.pos, inst.rot, { ...this.level.stackContext(def, inst.pos, inst.rot), adjust: inst.adjust, text: inst.text });
+    this.highlight.showProp(def, inst.pos, inst.rot, { ...this.level.stackContext(def, inst.pos, inst.rot), adjust: inst.adjust, text: inst.text, mirror: inst.mirror });
   }
 }

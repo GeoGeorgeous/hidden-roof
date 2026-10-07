@@ -275,3 +275,31 @@ export class Parts {
     this.list.push({ k: 'climb', min: [x - width / 2, y, z0 - 0.45], max: [x + width / 2, y + height + 0.3, z0], normal: [0, 0, -1] });
   }
 }
+
+const flipV = (v: V3): V3 => [-v[0], v[1], v[2]];
+const flipSwing = (s: Swing | undefined): Swing | undefined => s && { ...s, pivot: flipV(s.pivot), dir: -(s.dir ?? 1), phase: -(s.phase ?? 0) };
+const FLIP_FACE = { '+x': '-x', '-x': '+x' } as Partial<Record<BoxFace, BoxFace>>;
+
+/** Pieces mirrored left to right (x to -x): a wall piece flipped in build mode (PropData.mirror). */
+export function mirrored(pieces: Piece[]): Piece[] {
+  return pieces.map((p): Piece => {
+    switch (p.k) {
+      case 'box':
+        return { ...p, min: [-p.max[0], p.min[1], p.min[2]], max: [-p.min[0], p.max[1], p.max[2]], skip: p.skip?.map((f) => FLIP_FACE[f] ?? f), swing: flipSwing(p.swing) };
+      case 'cyl':
+        // Along x it runs the other way: start at its far end, with its radii swapped.
+        return p.axis === 'x' ? { ...p, base: [-(p.base[0] + p.len), p.base[1], p.base[2]], r: p.r2 ?? p.r, r2: p.r, swing: flipSwing(p.swing) } : { ...p, base: flipV(p.base), swing: flipSwing(p.swing) };
+      case 'rod':
+        return { ...p, a: flipV(p.a), b: flipV(p.b), swing: flipSwing(p.swing) };
+      case 'cone':
+        return { ...p, base: flipV(p.base), swing: flipSwing(p.swing) };
+      case 'climb':
+        return { ...p, min: [-p.max[0], p.min[1], p.min[2]], max: [-p.min[0], p.max[1], p.max[2]], normal: flipV(p.normal) };
+      case 'light':
+        // mirrorX flips its aim (its own dir or LIGHTS[kind].dir) across x.
+        return { ...p, pos: flipV(p.pos), mirrorX: !p.mirrorX, glows: p.glows?.map(flipV), swing: flipSwing(p.swing) };
+      case 'emitter':
+        return { ...p, pos: flipV(p.pos), dir: p.dir && flipV(p.dir) };
+    }
+  });
+}

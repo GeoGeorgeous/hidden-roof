@@ -29,6 +29,8 @@ export interface PropInstance {
   text?: string;
   /** Wall and floor finishes (PropDef.finishes), when chosen in build mode. */
   finish?: Finish;
+  /** Mirrored left to right (PropData.mirror). */
+  mirror?: boolean;
   /** The player who placed it while playing (their stepladder, Level.setRuntime): never saved with the level. */
   owner?: string;
 }

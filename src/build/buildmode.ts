@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { defOf } from '../kit';
-import { H_MODULE, V_MODULE } from '../kit/def';
+import { H_MODULE, V_MODULE, type PropDef } from '../kit/def';
 import type { V3 } from '../kit/pieces';
 import type { Input } from '../input';
 import { shared } from '../materials';
@@ -34,7 +34,7 @@ import { axisNormal, place, type Hit, type PlaceSpec } from './placement';
 // spawn there, facing where you look; the spawn marker shows it while
 // building.
 
-const HELP = 'LMB PLACE (HOLD: REPEAT) · RMB DELETE · R ROTATE · MMB PICK · CTRL+Z UNDO · WHEEL CATEGORY · Q / E PROP · TAB VARIANT · PGUP / PGDN LEVEL · F / G WALL / FLOOR FINISH · V APPLY FINISH · ENTER SIGN TEXT · [ ] SETTING · H PAINTABLE · P SAVE · O LOAD · B EXIT';
+const HELP = 'LMB PLACE (HOLD: REPEAT) · RMB DELETE · R ROTATE (ON A WALL: FLIP) · MMB PICK · CTRL+Z UNDO · WHEEL CATEGORY · Q / E PROP · TAB VARIANT · PGUP / PGDN LEVEL · F / G WALL / FLOOR FINISH · V APPLY FINISH · ENTER SIGN TEXT · [ ] SETTING · H PAINTABLE · P SAVE · O LOAD · B EXIT';
 /** Pickups and the spawn point stand on the floor. */
 const FLOOR_SPEC: PlaceSpec = { place: 'floor', snap: 0.5 };
 
@@ -46,6 +46,8 @@ export class BuildMode {
   onLoad: (data: LevelData, name: string) => void = () => {};
 
   private rot = 0;
+  /** Wall pieces face out of the wall they go on, so R flips them left to right instead (PropData.mirror). */
+  private flip = false;
   private picker = new Picker();
   private pickerView: PickerView;
   private ghost: Ghost;
@@ -119,7 +121,7 @@ export class BuildMode {
     const target = this.aim(camera);
     this.preview(target, camera.position);
 
-    if (input.wasPressed('KeyR')) this.rot = (this.rot + 1) % 4;
+    if (input.wasPressed('KeyR')) this.rotate();
     const lv = (input.wasTyped('PageUp') ? 1 : 0) - (input.wasTyped('PageDown') ? 1 : 0);
     if (lv) this.workLevel += lv;
     this.placeInput(input);
@@ -163,6 +165,19 @@ export class BuildMode {
       this.statusEl.textContent = this.status;
       this.statusEl.hidden = !this.status;
     }
+  }
+
+  /** R: a quarter turn, or for a wall piece (which faces out of its wall) a flip left to right. */
+  private rotate() {
+    const e = this.picker.choice;
+    if (e.kind !== 'prop' || e.def.place !== 'mount') return void (this.rot = (this.rot + 1) % 4);
+    this.flip = !this.flip;
+    this.say(this.flip ? 'FLIPPED' : 'NOT FLIPPED');
+  }
+
+  /** Whether the next `def` placed is flipped: only wall pieces are. */
+  private flipped(def: PropDef) {
+    return def.place === 'mount' && this.flip;
   }
 
   /** LMB places; holding it keeps placing wherever the ghost moves (pillars, bridges). */
@@ -233,7 +248,7 @@ export class BuildMode {
       this.valid = pl.ok && !this.level.overlaps([new THREE.Box3(new THREE.Vector3(x - r, y + 0.05, z - r), new THREE.Vector3(x + r, y + PLAYER.height, z + r))]);
       this.spawnGhost.setColor(this.valid ? GREEN : RED);
     } else {
-      if (e.kind === 'prop') this.ghost.showProp(e.def, pl.pos, pl.rot, { ...this.level.stackContext(e.def, pl.pos, pl.rot), text: this.settings.texts.get(e.def.type) });
+      if (e.kind === 'prop') this.ghost.showProp(e.def, pl.pos, pl.rot, { ...this.level.stackContext(e.def, pl.pos, pl.rot), text: this.settings.texts.get(e.def.type), mirror: this.flipped(e.def) });
       else this.ghost.showPickup(pl.pos);
       // Like Minecraft, never place into yourself (a held LMB pillar stops at your eyes).
       this.valid = pl.ok && !this.level.overlaps(this.ghost.colliders) && !this.ghost.colliders.some((c) => c.containsPoint(eye));
@@ -256,7 +271,7 @@ export class BuildMode {
       this.setSpawn({ pos, yaw: +this.player.yaw.toFixed(3) });
       this.say('SPAWN SET');
     } else if (e.kind === 'prop') {
-      const inst = this.level.add({ type: e.def.type, variant: e.def.variant, pos, rot, text: this.settings.texts.get(e.def.type), finish: this.picker.finishFor(e.def) });
+      const inst = this.level.add({ type: e.def.type, variant: e.def.variant, pos, rot, mirror: this.flipped(e.def) || undefined, text: this.settings.texts.get(e.def.type), finish: this.picker.finishFor(e.def) });
       if (inst) this.history.push({ op: 'add', kind: 'prop', id: inst.id, data: null });
     } else {
       const p = this.pickups.add(e.type, pos);
@@ -280,7 +295,7 @@ export class BuildMode {
     const inst = id !== undefined ? this.level.props.get(id) : undefined;
     // The player's stepladder isn't part of the level: never deleted (or restored by undo) as a prop.
     if (!inst || inst.owner !== undefined) return;
-    this.history.push({ op: 'remove', kind: 'prop', id: inst.id, data: { id: inst.id, type: inst.type, variant: inst.variant, pos: inst.pos, rot: inst.rot, adjust: inst.adjust, text: inst.text, finish: inst.finish } satisfies PropData });
+    this.history.push({ op: 'remove', kind: 'prop', id: inst.id, data: { id: inst.id, type: inst.type, variant: inst.variant, pos: inst.pos, rot: inst.rot, adjust: inst.adjust, text: inst.text, finish: inst.finish, mirror: inst.mirror } satisfies PropData });
     this.level.remove(inst.id);
   }
 
@@ -298,6 +313,7 @@ export class BuildMode {
       this.picker.pick((c) => c.kind === 'prop' && c.def.type === inst.type && c.def.variant === inst.variant);
       if (defOf(inst.type, inst.variant)?.finishes) this.picker.pickFinish(inst.finish);
       this.rot = inst.rot;
+      this.flip = !!inst.mirror;
       if (inst.text !== undefined) this.settings.texts.set(inst.type, inst.text);
       else this.settings.texts.delete(inst.type);
       this.say(`PICKED ${this.picker.label.toUpperCase()}`);

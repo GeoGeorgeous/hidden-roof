@@ -1,7 +1,7 @@
 import { MAX_TEXT } from '../render/ink/words';
 import * as THREE from 'three';
 import { defOf, renamed, upgraded } from '../kit';
-import type { V3 } from '../kit/pieces';
+import { mirrored, type V3 } from '../kit/pieces';
 import { V_MODULE, type PropDef } from '../kit/def';
 import type { PaintSystem } from '../painting';
 import type { Ladder } from '../player';
@@ -33,6 +33,8 @@ export interface PropData {
   text?: string;
   /** Wall and floor finishes (PropDef.finishes), when not its own look. */
   finish?: Finish;
+  /** Mirrored left to right (a wall piece flipped with R in build mode). */
+  mirror?: boolean;
 }
 
 export interface LevelData {
@@ -130,7 +132,7 @@ export class Level {
 
   toJSON(): LevelData {
     // Props the player placed while playing (the stepladder) aren't part of the level file. Default variants go unsaved.
-    const props = [...this.props.values()].filter((p) => p.owner === undefined).map(({ id, type, variant, pos, rot, adjust, text, finish }) => ({ id, type, ...(variant === defOf(type)!.variant ? {} : { variant }), pos, rot, ...(adjust === undefined ? {} : { adjust }), ...(text === undefined ? {} : { text }), ...(finish && Object.keys(finish).length ? { finish } : {}) }));
+    const props = [...this.props.values()].filter((p) => p.owner === undefined).map(({ id, type, variant, pos, rot, adjust, text, finish, mirror }) => ({ id, type, ...(variant === defOf(type)!.variant ? {} : { variant }), pos, rot, ...(mirror ? { mirror } : {}), ...(adjust === undefined ? {} : { adjust }), ...(text === undefined ? {} : { text }), ...(finish && Object.keys(finish).length ? { finish } : {}) }));
     return { version: 4, spawn: this.spawn, props };
   }
 
@@ -259,7 +261,7 @@ export class Level {
     // Its own id when it has a free one (a format 3 level, undo), else the next.
     const id = Number.isInteger(data.id) && data.id! > 0 && !this.props.has(data.id!) ? data.id! : this.nextId;
     this.nextId = Math.max(this.nextId, id + 1);
-    const inst: PropInstance = { id, type, variant: def.variant, pos: [...data.pos], rot: (((data.rot ?? 0) % 4) + 4) % 4, adjust: data.adjust, text: data.text, finish: data.finish };
+    const inst: PropInstance = { id, type, variant: def.variant, pos: [...data.pos], rot: (((data.rot ?? 0) % 4) + 4) % 4, adjust: data.adjust, text: data.text, finish: data.finish, mirror: data.mirror || undefined };
     this.props.set(inst.id, inst);
     if (build) this.build(inst);
     return inst;
@@ -277,8 +279,8 @@ export class Level {
     const def = defOf(inst.type, inst.variant)!;
     const seed = Math.abs(Math.round(inst.pos[0] * 7 + inst.pos[2] * 13));
     const adjust = inst.adjust ?? def.adjust?.initial() ?? 0;
-    const ctx = { seed, pos: inst.pos, adjust, text: inst.text ?? def.text ?? '', finish: inst.finish, ...this.stackContext(def, inst.pos, inst.rot) };
-    const pieces = def.build(ctx);
+    const ctx = { seed, pos: inst.pos, rot: inst.rot, adjust, text: inst.text ?? def.text ?? '', finish: inst.finish, ...this.stackContext(def, inst.pos, inst.rot) };
+    const pieces = inst.mirror ? mirrored(def.build(ctx)) : def.build(ctx);
     if (pieces.some((p) => 'mat' in p && p.mat.letters)) this.lettered.add(inst.id);
     else this.lettered.delete(inst.id);
     const b = buildProp(inst.id, `p${inst.id}`, pieces, inst.pos, inst.rot, this.paint);

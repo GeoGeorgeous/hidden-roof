@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { PropDef } from '../kit/def';
-import type { V3 } from '../kit/pieces';
+import { mirrored, type V3 } from '../kit/pieces';
 import { expandPieces } from '../level/build-prop';
 
 // Translucent preview of the prop about to be placed: green when valid, red when
@@ -26,14 +26,15 @@ export class Ghost {
     scene.add(this.root);
   }
 
-  /** `ctx`: the prop's stacking neighbors there (a block on a block is one storey), and its setting and text when not the defaults. */
-  showProp(def: PropDef, pos: V3, rot: number, ctx: { above: boolean; below: boolean; adjust?: number; text?: string }) {
+  /** `ctx`: the prop's stacking neighbors there (a block on a block is one storey), its setting and text when not the defaults, whether it is flipped. */
+  showProp(def: PropDef, pos: V3, rot: number, ctx: { above: boolean; below: boolean; adjust?: number; text?: string; mirror?: boolean }) {
     const adjust = ctx.adjust ?? def.adjust?.initial() ?? 0;
     const text = ctx.text ?? def.text ?? '';
-    const key = `${def.type}|${def.variant}|${pos.join(',')}|${rot}|${ctx.above}|${ctx.below}|${adjust}|${text}`;
+    const key = `${def.type}|${def.variant}|${pos.join(',')}|${rot}|${ctx.above}|${ctx.below}|${adjust}|${text}|${!!ctx.mirror}`;
     if (key === this.key) return;
     this.key = key;
-    const ex = expandPieces(def.build({ seed: 0, pos, above: ctx.above, below: ctx.below, adjust, text }), pos, rot, false);
+    const pieces = def.build({ seed: 0, pos, rot, above: ctx.above, below: ctx.below, adjust, text });
+    const ex = expandPieces(ctx.mirror ? mirrored(pieces) : pieces, pos, rot, false);
     const geos = ex.decor.map((d) => stripToPosition(d.geo));
     this.setGeometry(geos.length ? mergeGeometries(geos) : null);
     this.colliders = ex.colliders;

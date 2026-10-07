@@ -31,6 +31,8 @@ interface PropContext {
   seed: number;
   /** World position (some props vary with height, e.g. fire escape lanes). */
   pos: V3;
+  /** Quarter turns (with pos: where its pieces end up in the world, e.g. a pipe reaching the floor grid). */
+  rot?: number;
   /** Stacking props: is the same prop directly above (one level up) / anywhere below in this column? */
   above: boolean;
   below: boolean;
