@@ -31,7 +31,7 @@ export interface PropData {
   adjust?: number;
   /** Per-instance text (PropDef.text), e.g. a sign's words. */
   text?: string;
-  /** Wall and floor finishes (PropDef.finishes), when not its own look. */
+  /** Its wall finish (PropDef.finishes), when not its own look. */
   finish?: Finish;
   /** Mirrored left to right (a wall piece flipped with R in build mode). */
   mirror?: boolean;
@@ -157,7 +157,7 @@ export class Level {
     return true;
   }
 
-  /** Change a prop's wall and floor finishes (PropDef.finishes; none: its own look) and rebuild it, keeping its paint. */
+  /** Change a prop's wall finish (PropDef.finishes; none: its own look) and rebuild it, keeping its paint. */
   setFinish(id: number, finish: Finish | undefined) {
     const inst = this.props.get(id);
     if (!inst) return false;

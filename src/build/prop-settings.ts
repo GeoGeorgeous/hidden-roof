@@ -12,8 +12,8 @@ import type { Finish } from '../kit/finishes';
 // Build mode's per-instance prop settings: [ and ] change the aimed prop's own
 // setting (floodlight tilt), Enter types a sign's text (the sign under the
 // crosshair, else the next ones of the selected type placed; new signs reuse
-// the last text typed or picked), V gives the aimed piece the current wall and
-// floor finishes. A placed prop with settings lights up under the crosshair,
+// the last text typed or picked), V gives the aimed piece the current wall
+// finish. A placed prop with settings lights up under the crosshair,
 // so it's plain that it has some.
 
 export class PropSettings {
@@ -68,7 +68,7 @@ export class PropSettings {
 
   /** V: the current finishes onto the aimed piece (its own look where none is chosen). */
   private applyFinish(inst: PropInstance | undefined, def: PropDef | undefined) {
-    if (!inst || !def?.finishes) return this.say('AIM AT A WALL, BLOCK, PARAPET OR SLAB');
+    if (!inst || !def?.finishes) return this.say('AIM AT A WALL, BLOCK, PARAPET OR PLINTH');
     const f = this.finishFor(def);
     this.level.setFinish(inst.id, f);
     this.say(`FINISH: ${def.finishes.map((k) => `${k} ${f?.[k] ?? 'own'}`).join(' · ').toUpperCase()}`);

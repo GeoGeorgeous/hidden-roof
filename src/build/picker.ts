@@ -5,8 +5,7 @@ import { FINISHES, type Finish, type FinishKind } from '../kit/finishes';
 
 // What build mode places next: the mouse wheel turns the category wheel,
 // E / Q step to the next / previous entry in it, Tab / Shift+Tab to its next /
-// previous variant, F / G through the wall / floor finishes of the pieces that
-// take them. Every category and entry remembers its selection.
+// previous variant, F through the wall finishes of the pieces that take them. Every category and entry remembers its selection.
 
 /** What a click places: a prop (resolved to its variant), a pickup kind, or the level's one spawn point (moved there). */
 export type Choice = { kind: 'prop'; def: PropDef } | { kind: 'pickup'; type: PickupKind } | { kind: 'spawn' };
@@ -104,7 +103,7 @@ export class Picker {
     this.version++;
   }
 
-  /** F / G: the next / previous wall or floor finish, round to none (each piece's own look). */
+  /** F: the next / previous wall finish, round to none (each piece's own look). */
   cycleFinish(kind: FinishKind, dir: number) {
     const ids = [undefined, ...Object.keys(FINISHES[kind])];
     this.finish = { ...this.finish, [kind]: ids[wrap(ids.indexOf(this.finish[kind]) + dir, ids.length)] };

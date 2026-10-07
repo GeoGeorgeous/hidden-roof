@@ -98,8 +98,7 @@ function row(e: Entry, on: boolean, variant: number, icon: string | null, finish
   const chips = many ? `${chip(variant)}<em>${variant + 1} / ${e.variants.length}</em> ` : e.variants.map((_, i) => chip(i)).join('');
   const variants = e.variants.length > 1 ? `<div class="variants">${chips}<em>TAB</em></div>` : '';
   const keys = e.settings.length ? `<div class="keys">${e.settings.map((s) => `${s.key} ${s.name}`).join(' · ')}</div>` : '';
-  const key = { wall: 'F', floor: 'G' } as const;
-  const finishes = e.finishes.length ? `<div class="keys">${e.finishes.map((k) => `${key[k]} ${k}: <span>${finish[k] ?? 'own'}</span>`).join(' · ')} · V APPLY</div>` : '';
+  const finishes = e.finishes.length ? `<div class="keys">${e.finishes.map((k) => `F ${k}: <span>${finish[k] ?? 'own'}</span>`).join(' · ')} · V APPLY</div>` : '';
   return `<div class="row on">${img}<div class="name">${e.label}</div>${variants}${keys}${finishes}</div>`;
 }
 

@@ -27,7 +27,7 @@ export interface PropInstance {
   adjust?: number;
   /** Per-instance text (PropDef.text), when typed in build mode. */
   text?: string;
-  /** Wall and floor finishes (PropDef.finishes), when chosen in build mode. */
+  /** Its wall finish (PropDef.finishes), when chosen in build mode. */
   finish?: Finish;
   /** Mirrored left to right (PropData.mirror). */
   mirror?: boolean;

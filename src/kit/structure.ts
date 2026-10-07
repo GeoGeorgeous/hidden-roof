@@ -27,7 +27,7 @@ const fullBlock: Variant = {
   stacks: { below: true },
   build({ below, finish }) {
     const p = new Parts();
-    p.box([-1, -0.3, -1], [1, 0, 1], finishOf(finish, 'floor', M.roof), { paint: true, skip: ['-y'] });
+    p.box([-1, -0.3, -1], [1, 0, 1], M.roof, { paint: true, skip: ['-y'] });
     p.box([-1, -4, -1], [1, -0.3, 1], finishOf(finish, 'wall', M.plaster), { paint: true, skip: ['+y', '-y'] });
     if (!below) p.box([-1, -100, -1], [1, -4, 1], FACADE, { paint: false, skip: ['+y'] });
     return p.list;
@@ -42,7 +42,7 @@ const halfBlock: Variant = {
   build({ finish }) {
     const p = new Parts();
     p.box([-1, 0, -1], [1, 1.7, 1], finishOf(finish, 'wall', M.plaster), { paint: true, skip: ['+y'] });
-    p.box([-1, 1.7, -1], [1, 2, 1], finishOf(finish, 'floor', M.roof), { paint: true, skip: ['-y'] });
+    p.box([-1, 1.7, -1], [1, 2, 1], M.roof, { paint: true, skip: ['-y'] });
     return p.list;
   },
 };
@@ -55,10 +55,9 @@ export const slab: PropDef = {
   place: 'cell',
   snap: 2,
   anchorTop: true,
-  finishes: ['floor'],
-  build({ finish }) {
+  build() {
     const p = new Parts();
-    p.box([-1, -0.3, -1], [1, 0, 1], finishOf(finish, 'floor', M.roof), { paint: true });
+    p.box([-1, -0.3, -1], [1, 0, 1], M.roof, { paint: true });
     return p.list;
   },
 };
@@ -173,7 +172,7 @@ const windowWall: Variant = {
 };
 
 /** Building blocks: a full storey down to the street, or a half one. */
-export const building = withVariants({ type: 'building', label: 'Block', category: 'structure', place: 'cell', snap: 2, finishes: ['wall', 'floor'] }, [fullBlock, halfBlock]);
+export const building = withVariants({ type: 'building', label: 'Block', category: 'structure', place: 'cell', snap: 2, finishes: ['wall'] }, [fullBlock, halfBlock]);
 
 /** Walls: plain, with a ledge, a window or a door. */
 export const wall = withVariants({ type: 'wall', label: 'Wall', category: 'structure', place: 'edge', snap: 2, joint: 'wall', finishes: ['wall'] }, [plainWall, wallLedge, windowWall, door, doorOpen]);

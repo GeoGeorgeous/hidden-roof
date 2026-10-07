@@ -40,7 +40,7 @@ interface PropContext {
   adjust: number;
   /** This instance's text (PropDef.text), or its default. */
   text: string;
-  /** This instance's wall and floor finishes (PropDef.finishes); none: its own look. */
+  /** This instance's wall finish (PropDef.finishes); none: its own look. */
   finish?: Finish;
 }
 
@@ -82,7 +82,7 @@ export interface PropDef {
   adjust?: PropAdjust;
   /** Props that show a text of their own (signs): its default. Typed in build mode (Enter), saved per instance. */
   text?: string;
-  /** Surfaces whose finish can be chosen (kit/finishes.ts): its walls, its floor. */
+  /** Surfaces whose finish can be chosen (kit/finishes.ts): its walls. */
   finishes?: FinishKind[];
   /** Its variants, the first being the default (see Variant). */
   variants?: Variant[];

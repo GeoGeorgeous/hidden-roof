@@ -1,19 +1,17 @@
 import { M, type Mat } from './pieces';
 
-// Wall and floor finishes of the structure pieces (blocks, walls, parapets,
-// slabs), each its own base texture (textures.ts): chosen in build mode (F,
-// G), saved per piece (PropData.finish). A piece without one keeps its own look.
+// Wall finishes of the structure pieces (blocks, walls, parapets, plinths):
+// their own look, or brick (textures.ts). Chosen in build mode (F), saved per
+// piece (PropData.finish). A piece without one keeps its own look.
 
-export type FinishKind = 'wall' | 'floor';
+export type FinishKind = 'wall';
 
 export interface Finish {
   wall?: string;
-  floor?: string;
 }
 
 export const FINISHES: Record<FinishKind, Record<string, Mat>> = {
-  wall: { panel: M.plaster, plaster: M.stucco, brick: M.brick },
-  floor: { panel: M.roof, pavers: M.pavers },
+  wall: { brick: M.brick },
 };
 
 /** The material of a piece's `kind` surfaces: its finish, else its own (`own`). */

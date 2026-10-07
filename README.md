@@ -45,8 +45,8 @@ npm run build:mp   # the same without the dev tools (build mode, F3, window.game
 | Mouse wheel | Turn the category wheel (left edge) |
 | E / Q | Next / previous prop in the category |
 | Tab / Shift+Tab | Next / previous variant of the prop (a color, a length, a size, a piece of a modular run, a slogan) |
-| F / G (Shift: back) | Wall / floor finish for the pieces you place next: panels, plaster, brick for walls; panels, pavers for floors; or each piece's own look |
-| V | Give the block, wall, parapet or slab under the crosshair the current finishes (its paint stays) |
+| F | Wall finish for the pieces you place next: brick, or each piece's own look |
+| V | Give the block, wall, parapet or plinth under the crosshair the current finish (its paint stays) |
 | R | Rotate 90°; a wall piece (pipe from a wall, duct elbows, anything on a wall) flips left to right instead (saved as `mirror`) |
 | PgUp / PgDn | Working level (the build plane) up / down |
 | Ctrl+Z | Undo |
@@ -61,7 +61,7 @@ npm run build:mp   # the same without the dev tools (build mode, F3, window.game
 - The spawn point is the LEVEL category's entry: placing it moves the level's one spawn there, facing where you look (Ctrl+Z puts it back). Its ghost is a player-sized figure, red where you wouldn't fit; the blue figure shows the current spawn while building.
 - The ghost is green when the prop fits and red when it would overlap something, can't go on that face, or would end up inside you.
 - Building blocks stack: a block with another block below it is one 4 m storey, so pillars and towers go up level by level.
-- Finishes (`kit/finishes.ts`, textures in `textures.ts`): walls of blocks, walls and parapets take panels, plaster or brick; floors of blocks and slabs take panels or roof pavers. They are grays like everything else: darker joints and cracks the ink draws as lines. Saved per piece as `finish`; joint posts take the finish of the first piece they were made for.
+- Finishes (`kit/finishes.ts`, the brick texture in `textures.ts`): blocks, walls, parapets and plinths keep their own look or take brick, gray like everything else: darker joints the ink draws as lines. Saved per piece as `finish`; joint posts take the finish of the first piece they were made for.
 
 **Levels:** the map sits on top of a skyscraper, so heights are counted in levels, not meters. Level 0 is the main roof (y = 0). Each level is 4 m: level 1 is 4 m up, level -1 is 4 m down. The build HUD shows the level of the ghost (`AIM LEVEL 2`, or `LEVEL 1 +1.2 M` for things standing between floors) and the working level (`PLANE LEVEL n`). Aiming at empty space lands on the build plane, an invisible floor at the working level, so you can start building in mid-air. PgUp / PgDn move the plane, and it also follows the level of whatever you place last.
 

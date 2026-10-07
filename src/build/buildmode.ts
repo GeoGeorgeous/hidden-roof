@@ -34,7 +34,7 @@ import { axisNormal, place, type Hit, type PlaceSpec } from './placement';
 // spawn there, facing where you look; the spawn marker shows it while
 // building.
 
-const HELP = 'LMB PLACE (HOLD: REPEAT) · RMB DELETE · R ROTATE (ON A WALL: FLIP) · MMB PICK · CTRL+Z UNDO · WHEEL CATEGORY · Q / E PROP · TAB VARIANT · PGUP / PGDN LEVEL · F / G WALL / FLOOR FINISH · V APPLY FINISH · ENTER SIGN TEXT · [ ] SETTING · H PAINTABLE · P SAVE · O LOAD · B EXIT';
+const HELP = 'LMB PLACE (HOLD: REPEAT) · RMB DELETE · R ROTATE (ON A WALL: FLIP) · MMB PICK · CTRL+Z UNDO · WHEEL CATEGORY · Q / E PROP · TAB VARIANT · PGUP / PGDN LEVEL · F WALL: OWN / BRICK · V APPLY FINISH · ENTER SIGN TEXT · [ ] SETTING · H PAINTABLE · P SAVE · O LOAD · B EXIT';
 /** What build mode works on under the crosshair: a placed prop or a pickup (by id). */
 type Target = { kind: 'prop' | 'pickup'; id: number };
 
@@ -216,7 +216,6 @@ export class BuildMode {
     const back = input.isDown('ShiftLeft') || input.isDown('ShiftRight') ? -1 : 1;
     if (input.wasTyped('Tab')) this.picker.variant(back);
     if (input.wasTyped('KeyF')) this.picker.cycleFinish('wall', back);
-    if (input.wasTyped('KeyG')) this.picker.cycleFinish('floor', back);
   }
 
   /** Raycast from the screen center; falls back to the build plane (the working level's floor), from above or below. */
