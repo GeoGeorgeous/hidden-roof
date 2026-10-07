@@ -75,6 +75,8 @@ export class DevTools {
   private debug = new DebugPanel();
   private figure: AvatarPreview;
   private ghost: Ghost;
+  /** The game had the mouse when the panel opened: closing it goes back. */
+  private resumeOnClose = false;
 
   constructor(private g: DevContext) {
     this.build = new BuildMode(g.scene, g.level, g.pickups, g.player);
@@ -122,6 +124,7 @@ export class DevTools {
       ghostState: () => this.ghost.label,
       ghostNet: () => this.ghost.net,
     });
+    g.input.escapeResumes = () => this.debug.visible;
     Object.assign(window, { game: { ...g, build: this.build, debug: this.debug, live, ghost: this.ghost, cityParts: { layoutCity, dressTower, wallSigns } } });
   }
 
@@ -134,7 +137,7 @@ export class DevTools {
   }
 
   /**
-   * Start of a frame: F3 / ` toggles the panel, B build mode (in a session both
+   * Start of a frame: F3 / ` opens and closes the panel, B build mode (in a session both
    * close and stay closed); the test figure and the ghost move even while
    * paused, so you can watch them with the panel open.
    */
@@ -144,11 +147,11 @@ export class DevTools {
     if (session.multiplayer) {
       this.figure.hide();
       this.ghost.stop();
-      if (this.debug.visible) this.togglePanel(input);
+      if (this.debug.visible) this.setPanel(false, input);
       if (this.build.active) this.setBuilding(false);
       return;
     }
-    if (input.wasPressed('F3') || input.wasPressed('Backquote')) this.togglePanel(input);
+    if (input.wasPressed('F3') || input.wasPressed('Backquote')) this.setPanel(!this.debug.visible, input, true);
     if (input.locked && input.wasPressed('KeyB')) this.setBuilding(!this.build.active);
   }
 
@@ -184,8 +187,18 @@ export class DevTools {
     this.debug.update();
   }
 
-  private togglePanel(input: Input) {
+  /**
+   * Opening frees the mouse for the panel; Esc then goes back to the game and
+   * to the panel again (Input.escapeResumes). Closing with the key (`byKey`)
+   * goes back to the game if that's where the panel was opened.
+   */
+  private setPanel(open: boolean, input: Input, byKey = false) {
+    if (open === this.debug.visible) return;
     this.debug.toggle();
+    if (open) {
+      this.resumeOnClose = input.locked;
+      if (input.locked) document.exitPointerLock();
+    } else if (byKey && this.resumeOnClose && !input.locked) input.requestLock();
     this.g.hud.setLocked(input.locked, this.debug.visible);
   }
 
