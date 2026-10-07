@@ -36,6 +36,7 @@ const ICONS: Record<string, string> = {
   shaders: '<path d="M5 .5 8 5 5 9.5 2 5zM5 5.4v4"/><circle cx="5" cy="4.6" r=".8"/>',
   lighting: MOON,
   hud: FRAME,
+  pause: '<path d="M.5 .5h9v9h-9zM3.8 3v4M6.2 3v4"/>',
   'light-props': '<path d="M3.6 7.2C3.4 5.8 1.8 5.3 1.8 3.4a3.2 3.2 0 0 1 6.4 0c0 1.9-1.6 2.4-1.8 3.8zM3.8 9.3h2.4"/>',
   post: '<path d="M.5 1.5h9v6h-9zM3 9.5h4M5 7.5v2"/>',
   weather: '<path d="M2.7 6.3a1.9 1.9 0 0 1-.2-3.8 2.8 2.8 0 0 1 5.3.6 1.6 1.6 0 0 1-.2 3.2zM3 8l-.5 1.5M5.5 8 5 9.5M8 8l-.5 1.5"/>',

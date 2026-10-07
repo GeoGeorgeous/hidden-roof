@@ -195,7 +195,8 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
 - `VOLUMETRICS`: `enabled`, `downscale`, `steps`, `maxDistance`, `density`, `moon`, `lights`, `anisotropy`.
 - `INK`: `paper`, `ink`, `sky` and `cloud` colors (`cloud`: what the city fades into above `ATMOS.cloudBase`, the sky color by default), `exposure`, the tone steps (`paperTone`, `hatchTone`, `blackTone`, `toneNoise`), `hatchPx` / `hatchWidth`, `grime`, the void (`voidTop`, `voidBottom`), paint (`paintLight`, `paintMin`, `paintHatch`) and the final pass (`outline`, `crease`, `outlineFade`, `grain`). All live in F3 → Render → Shaders. `ATMOS.fogDensity` is how fast the drawing fades into paper.
 - `GRADE`: `exposure`, the finished image's brightness in stops (0 by default).
-- `HUD`: which HUD parts show (`frame`, `rec`, `cam`, `clock`, `perf`) and the hotbar's look (`slotSize`, `slotGap`, `slotRoundness`, border and background colors, and the selected slot's). Live in F3 → UI.
+- `PAUSE_MENU`: the pause sheet's color, opacity (and with F3 open), and the key list. Live in F3 → UI.
+- `HUD`: which HUD parts show (`frame`, `rec`, `cam`, `clock`, `perf`, `perfGpu` for GPU time) and the hotbar's look (`slotSize`, `slotGap`, `slotRoundness`, border and background colors, and the selected slot's). Live in F3 → UI.
 - `SKYLINE`: the city: `seed`, `radius`, `block`, `streetMin`/`streetMax`, `margin` (free space round the level), `street` (how far down the street is), `near`, `tallChance`/`tallMin`/`tallMax` (huge towers), `clutterRange`, `lineRange` (live), `litWindows` (live), `opacity` (live: fades the whole city into the sky color to focus on the level). F3 → World → City, with a rebuild button; a level can override any of them.
 - `PICKUP`: `radius`, `hover`, `spin`, `bob`.
 - `PLAYER`:

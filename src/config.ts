@@ -243,6 +243,16 @@ export const VIGNETTE = {
   color: '#141416',
 };
 
+/** The pause menu (ESC): the sheet over the game and what it shows, live in F3 → UI. */
+export const PAUSE_MENU = {
+  /** Sheet color and opacity; lighter while the F3 panel is open, so the game shows behind it. */
+  color: '#0e0e10',
+  opacity: 0.8,
+  debugOpacity: 0.45,
+  /** The list of keys under the menu. */
+  controls: true,
+};
+
 /** What the HUD shows (hud.ts) and the hotbar's size (inventory/hotbar.ts), live in F3 → UI. */
 export const HUD = {
   /** Body-cam corner brackets. */
@@ -255,6 +265,8 @@ export const HUD = {
   clock: true,
   /** Performance readout, bottom left: fps, draw calls, triangles, texture memory. */
   perf: true,
+  /** GPU time per frame in it too (timer queries: desktop Chromium; a few queries a frame while shown). */
+  perfGpu: false,
   /** Hotbar slots: size and the gap between them (CSS px), roundness (0 = square, 1 = circle). */
   slotSize: 30,
   slotGap: 10,

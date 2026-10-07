@@ -148,7 +148,7 @@ export function renderSections(): Section[] {
   ];
 }
 
-/** F3 sections for the UI tab: what the HUD shows, and the hotbar. */
+/** F3 sections for the UI tab: what the HUD shows, the hotbar, and the pause menu. */
 export function uiSections(): Section[] {
   return [
     {
@@ -160,6 +160,7 @@ export function uiSections(): Section[] {
         t('camera label', ['HUD', 'cam']),
         t('clock', ['HUD', 'clock']),
         t('performance', ['HUD', 'perf']),
+        t('performance: gpu', ['HUD', 'perfGpu']),
         { kind: 'heading', label: 'HOTBAR' },
         r('size', ['HUD', 'slotSize'], 16, 60, 1),
         r('gap', ['HUD', 'slotGap'], 0, 40, 1),
@@ -170,6 +171,16 @@ export function uiSections(): Section[] {
         c('selected: border', ['HUD', 'selectedBorder']),
         c('selected: background', ['HUD', 'selectedFill']),
         r('selected: opacity', ['HUD', 'selectedFillOpacity'], 0, 1, 0.05),
+      ],
+    },
+    {
+      id: 'pause',
+      title: 'Pause menu',
+      items: [
+        c('color', ['PAUSE_MENU', 'color']),
+        r('opacity', ['PAUSE_MENU', 'opacity'], 0, 1, 0.05),
+        r('debug: opacity', ['PAUSE_MENU', 'debugOpacity'], 0, 1, 0.05),
+        t('controls', ['PAUSE_MENU', 'controls']),
       ],
     },
   ];

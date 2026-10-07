@@ -1,4 +1,4 @@
-import { HUD, VIGNETTE } from './config';
+import { HUD, PAUSE_MENU, VIGNETTE } from './config';
 import { isFullscreen } from './fullscreen';
 import { SettingsPage } from './settings-page';
 import type { SettingSection } from './settings';
@@ -73,6 +73,8 @@ export class Hud {
   /** The parts HUD switches on and off, and which were shown last (rewritten only on change). */
   private parts: [keyof typeof HUD, HTMLElement[]][];
   private partsShown = '';
+  /** The PAUSE_MENU look last applied (rewritten only on change). */
+  private sheet = '';
 
   constructor() {
     const root = document.createElement('div');
@@ -250,8 +252,8 @@ export class Hud {
     place(this.colorTag, this.colorTagUntil, this.capTag.hidden ? 0 : COLOR_TAG_OFFSET);
   }
 
-  /** The performance readout, bottom left: written a few times a second. */
-  setPerf(p: { fps: number; frameMs: number; calls: number; triangles: number; textureBytes: number }) {
+  /** The performance readout, bottom left: written a few times a second. `gpu`: ms per frame, null = not measurable, undefined = not shown. */
+  setPerf(p: { fps: number; frameMs: number; gpu?: number | null; calls: number; triangles: number; textureBytes: number }) {
     this.perf.hidden = !HUD.perf;
     if (!HUD.perf) return;
     const now = performance.now();
@@ -260,6 +262,7 @@ export class Hud {
     const mb = p.textureBytes / 1048576;
     const text = [
       `fps · ${Math.round(p.fps)} (${p.frameMs.toFixed(1)} ms cpu)`,
+      ...(p.gpu === undefined ? [] : [`gpu · ${p.gpu === null ? 'n/a' : `${p.gpu.toFixed(1)} ms`}`]),
       `draw calls · ${p.calls}`,
       `triangles · ${p.triangles.toLocaleString('en-US')}`,
       `tex memory · ${mb < 10 ? mb.toFixed(1) : Math.round(mb)} MB`,
@@ -267,6 +270,18 @@ export class Hud {
     if (text === this.perfShown) return;
     this.perfShown = text;
     this.perf.textContent = text;
+  }
+
+  /** The pause menu's sheet and key list from PAUSE_MENU. */
+  private syncSheet() {
+    const m = PAUSE_MENU;
+    const sheet = `${m.color}|${m.opacity}|${m.debugOpacity}|${m.controls}`;
+    if (sheet === this.sheet) return;
+    this.sheet = sheet;
+    const mix = (a: number) => `color-mix(in srgb, ${m.color} ${Math.round(Math.min(1, Math.max(0, a)) * 100)}%, transparent)`;
+    this.overlay.style.setProperty('--sheet', mix(m.opacity));
+    this.overlay.style.setProperty('--sheet-debug', mix(m.debugOpacity));
+    this.overlay.querySelector('table')!.hidden = !m.controls;
   }
 
   /** The vignette gradient from VIGNETTE: at start, and again when F3 changes it (live.syncVignette). */
@@ -284,6 +299,7 @@ export class Hud {
       this.partsShown = shown;
       for (const [k, els] of this.parts) for (const el of els) el.hidden = !HUD[k];
     }
+    this.syncSheet();
     if (this.noticeUntil && performance.now() >= this.noticeUntil) {
       this.noticeUntil = 0;
       this.syncMenu();
