@@ -68,7 +68,6 @@ export function worldSections(): Section[] {
         r('outlines', ['INK', 'outline'], 0, 2, 0.05),
         r('crease sensitivity', ['INK', 'crease'], 0, 4, 0.05),
         r('outlines thin out over (m)', ['INK', 'outlineFade'], 10, 1000, 5),
-        r('wobble (px)', ['INK', 'wobble'], 0, 3, 0.05),
         r('paper grain', ['INK', 'grain'], 0, 3, 0.05),
         { kind: 'heading', label: 'PAINT' },
         r('opacity steps', ['PAINT', 'alphaSteps'], 0, 12, 1),

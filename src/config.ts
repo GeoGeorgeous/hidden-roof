@@ -204,8 +204,6 @@ export const INK = {
   outline: 0.95,
   crease: 1,
   outlineFade: 730,
-  /** Outlines wobble by up to this many pixels (hand-drawn look). */
-  wobble: 0,
   /** Paper grain strength. */
   grain: 0.3,
   /** Colored light on walls and floors: how strongly the lamp kinds with LIGHTS[kind].tint tint what they light (0 = none, the pure ink look). Comes from the baked light, so only while LIGHTMAP.enabled is on. */

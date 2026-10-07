@@ -214,7 +214,6 @@ const HINTS: Record<string, string> = {
   'INK.outline': 'Strength of the pen outlines on edges and silhouettes.',
   'INK.crease': 'How readily bends between faces get a line (higher = more lines).',
   'INK.outlineFade': 'Outlines thin out over this distance (m), so far detail does not turn black.',
-  'INK.wobble': 'Outlines wobble by up to this many pixels: a hand-drawn look.',
   'INK.grain': 'Paper grain strength.',
   'INK.paintLight': 'Paint brightness from the light around it.',
   'INK.paintMin': 'Paint never gets darker than this, so it keeps its color in the dark.',

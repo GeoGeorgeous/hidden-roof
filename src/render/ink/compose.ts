@@ -18,8 +18,8 @@ export const VIEW_DEPTH = 0.01;
 
 /**
  * Paper, precomputed (the final pass reads it instead of hashing noise per
- * pixel): R fine tooth, G soft blotches, B fibers, A slow wobble field.
- * Tiles every 256 px; G and A are smooth, so stretched lookups don't show it.
+ * pixel): R fine tooth, G soft blotches, B fibers.
+ * Tiles every 256 px; G is smooth, so stretched lookups don't show it.
  */
 export function paperTexture() {
   const N = 256;
@@ -42,7 +42,6 @@ export function paperTexture() {
     };
   };
   const blot = smooth(32, 3);
-  const wobble = smooth(16, 11);
   const data = new Uint8Array(N * N * 4);
   for (let y = 0; y < N; y++) {
     for (let x = 0; x < N; x++) {
@@ -50,7 +49,7 @@ export function paperTexture() {
       data[i] = white[y * N + x] * 255;
       data[i + 1] = blot(x, y) * 255;
       data[i + 2] = white[(x * 7 + y * 131) % (N * N)] * 255;
-      data[i + 3] = wobble(x, y) * 255;
+      data[i + 3] = 255;
     }
   }
   const t = new THREE.DataTexture(data, N, N);
@@ -73,7 +72,6 @@ uniform vec3 uInkColor;
 uniform float uOutline;
 uniform float uCrease;
 uniform float uOutlineFade;
-uniform float uWobble;
 uniform float uGrain;
 uniform sampler2D tPaper;
 uniform float uExposure;
@@ -127,11 +125,9 @@ void main() {
              + texture2D(tVol, vUv + vec2(-o.x, o.y)).rgb + texture2D(tVol, vUv + vec2(o.x, o.y)).rgb;
     c += vol * 0.25 * step(${VIEW_DEPTH}, depth);
   }
-  // Wobbly pen: sample the edges a little off, along a slow noise field.
   vec2 px = vUv / uTexel;
-  vec2 wob = (vec2(texture2D(tPaper, px / 1100.0).a, texture2D(tPaper, px / 1100.0 + 0.5).a) - 0.5) * 4.0 * uWobble;
   float iz;
-  float e = edge(vUv + wob * uTexel, iz);
+  float e = edge(vUv, iz);
   // Alpha < 1: the city faded by SKYLINE.opacity; its outlines fade with it.
   e *= uOutline * exp(-1.0 / (iz * uOutlineFade)) * scene.a;
   c = mix(c, uInkColor, clamp(e, 0.0, 1.0));

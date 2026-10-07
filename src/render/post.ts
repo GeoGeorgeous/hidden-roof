@@ -52,7 +52,6 @@ export class PostPipeline {
         uOutline: { value: 1 },
         uCrease: { value: 1 },
         uOutlineFade: { value: 100 },
-        uWobble: { value: 0 },
         uGrain: { value: 0 },
         tPaper: { value: paperTexture() },
         uExposure: { value: 0 },
@@ -112,7 +111,6 @@ export class PostPipeline {
     u.uOutline.value = INK.outline;
     u.uCrease.value = INK.crease;
     u.uOutlineFade.value = INK.outlineFade;
-    u.uWobble.value = INK.wobble;
     u.uGrain.value = INK.grain;
     u.uExposure.value = GRADE.exposure;
     u.uContrast.value = GRADE.contrast;
