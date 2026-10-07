@@ -912,6 +912,10 @@ export const BUILD = {
   /** Free-fly speed while building (m/s), and with Shift held. */
   flySpeed: 7,
   flySprintSpeed: 16,
+  /** The dark shade behind the picker, full height on the left edge (build/picker-view.ts): its color, its opacity at the edge and how far right it fades out (px). */
+  shadeColor: '#0e0e10',
+  shadeOpacity: 0.86,
+  shadeWidth: 760,
 };
 
 /** CCTV cameras follow the player when they come near, and switch on their light (LIGHTS.cctv). */

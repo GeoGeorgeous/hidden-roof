@@ -1,11 +1,12 @@
 import { live, r, t, c, when, type Section } from './tuning';
 
 // F3 panel contents for build mode (tuning.ts has the helpers): its daylight
-// (DAYLIGHT replaces those ATMOS values while building) and editing.
+// (DAYLIGHT replaces those ATMOS values while building), editing and the picker.
 
 /** F3 sections for the Build tab. */
 export function buildSections(): Section[] {
   const apply = () => live.applyDaylight();
+  const shade = () => live.syncBuildShade();
   const d = (label: string, key: string, min: number, max: number, step: number) => r(label, ['DAYLIGHT', key], min, max, step, apply);
   return [
     {
@@ -39,6 +40,15 @@ export function buildSections(): Section[] {
         r('repeat: interval', ['BUILD', 'repeatInterval'], 0.03, 1, 0.01),
         r('fly: speed', ['BUILD', 'flySpeed'], 1, 30, 0.5),
         r('fly: sprint speed', ['BUILD', 'flySprintSpeed'], 2, 60, 0.5),
+      ]),
+    },
+    {
+      id: 'picker',
+      title: 'Picker',
+      items: when('build', [
+        r('shade: width', ['BUILD', 'shadeWidth'], 100, 1600, 10, shade),
+        r('shade: opacity', ['BUILD', 'shadeOpacity'], 0, 1, 0.01, shade),
+        c('shade: color', ['BUILD', 'shadeColor'], shade),
       ]),
     },
   ];

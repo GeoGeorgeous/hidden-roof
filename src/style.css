@@ -434,15 +434,19 @@ canvas {
 /* The category wheel: labels fanned out from a hub on the left edge, turned
    by --k (steps from the selected one, picker-view.ts). The selected label
    is level and leads a line to the selected entry of the column. */
-/* A dark shade from the left edge behind it, fading out to the right and
-   toward the top and bottom, with paper-colored text on it. */
+/* A dark shade down the whole left edge behind it, fading out to the right
+   (BUILD.shade*, picker-view.ts), with paper-colored text on it. */
 .picker-shade {
   position: fixed;
   inset: 0 auto 0 0;
-  width: min(760px, 80vw);
+  max-width: 80vw;
   pointer-events: none;
-  background: linear-gradient(to right, rgba(14, 14, 16, 0.86), rgba(14, 14, 16, 0.74) 22%, rgba(14, 14, 16, 0.5) 45%, rgba(14, 14, 16, 0.24) 68%, rgba(14, 14, 16, 0.07) 86%, rgba(14, 14, 16, 0));
-  mask-image: linear-gradient(to bottom, transparent 8%, #000 32%, #000 72%, transparent 94%);
+}
+/* The full pause sheet (hud.ts) hides build mode's UI; with F3 open it stays, to tune it. */
+body.paused .picker,
+body.paused .picker-shade,
+body.paused .build-help {
+  display: none;
 }
 .picker {
   --ui: var(--paper);

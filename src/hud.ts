@@ -179,9 +179,12 @@ export class Hud {
     this.syncCompact();
   }
 
-  /** With F3 open the sheet is compact and lighter, unless it's being previewed. */
+  /** With F3 open the sheet is compact and lighter, unless it's being previewed. Paused without F3: no in-game UI. */
   private syncCompact() {
-    this.overlay.classList.toggle('compact', this.debugOpen && performance.now() >= this.previewUntil);
+    const compact = this.debugOpen && performance.now() >= this.previewUntil;
+    this.overlay.classList.toggle('compact', compact);
+    // The full sheet hides the in-game UI (style.css); with F3 it stays, to tune it.
+    document.body.classList.toggle('paused', !this.overlay.hidden && !compact);
   }
 
   /** Shows a message in the menu's status line for `seconds` (the toasts don't show over the menu); Infinity: until the next one. */

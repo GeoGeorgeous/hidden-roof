@@ -1,3 +1,4 @@
+import { BUILD } from '../config';
 import type { Entry, Picker } from './picker';
 
 // The picker on the left edge: a wheel of categories fanned out from a hub
@@ -10,6 +11,8 @@ import type { Entry, Picker } from './picker';
 const SIDE = 2;
 /** Variants whose names together are longer show only the selected one and a count (sign slogans). */
 const CHIPS_MAX_CHARS = 48;
+/** The shade's opacity across its width, as a share of BUILD.shadeOpacity: eased, so it has no visible edge. */
+const SHADE_STOPS: [number, number][] = [[0, 1], [22, 0.86], [45, 0.58], [68, 0.28], [86, 0.08], [100, 0]];
 
 export class PickerView {
   private root = div('picker');
@@ -29,6 +32,7 @@ export class PickerView {
     this.root.append(wheel, this.column);
     this.root.hidden = this.shade.hidden = true;
     document.body.append(this.shade, this.root);
+    this.syncShade();
   }
 
   set visible(v: boolean) {
@@ -38,7 +42,9 @@ export class PickerView {
 
   render() {
     const p = this.picker;
-    if (p.version === this.drawn || this.root.hidden) return;
+    // Under the pause sheet it isn't laid out (style.css), so it can't be measured: drawn once it shows.
+    const paused = document.body.classList.contains('paused');
+    if (p.version === this.drawn || this.root.hidden || paused) return;
     this.drawn = p.version;
     const n = this.cats.length;
     const half = Math.floor(n / 2);
@@ -52,6 +58,14 @@ export class PickerView {
     // The selected entry's name on the hub line.
     const name = this.column.querySelector<HTMLElement>('.on .name')!;
     this.column.style.transform = `translateY(${-(name.offsetTop + name.offsetHeight / 2)}px)`;
+  }
+
+  /** The shade from BUILD: at start, and again when F3 changes it (live.syncBuildShade). */
+  syncShade() {
+    const { shadeColor: color, shadeOpacity: opacity, shadeWidth: width } = BUILD;
+    const mix = (a: number) => `color-mix(in srgb, ${color} ${Math.round(Math.min(1, Math.max(0, a * opacity)) * 100)}%, transparent)`;
+    this.shade.style.width = `${width}px`;
+    this.shade.style.background = `linear-gradient(to right, ${SHADE_STOPS.map(([at, a]) => `${mix(a)} ${at}%`).join(', ')})`;
   }
 }
 

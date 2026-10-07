@@ -107,6 +107,11 @@ export class BuildMode {
     if (!on) this.player.unstick();
   }
 
+  /** BUILD.shade* changed (F3). */
+  syncShade() {
+    this.pickerView.syncShade();
+  }
+
   update(input: Input, camera: THREE.Camera) {
     this.pickerInput(input);
     const target = this.aim(camera);
