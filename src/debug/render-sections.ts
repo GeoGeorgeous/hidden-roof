@@ -44,7 +44,7 @@ function lightItems(): Item[] {
 
 const INK_COLORS = ['paper', 'ink', 'sky', 'cloud'] as const;
 
-/** Buttons for the color sets (INK_PRESETS): picking one keeps the edits of the one it leaves. */
+/** Buttons for the color sets (INK_PRESETS): picking one keeps the edits of the one it leaves; COPY gives them all. */
 function inkPresets(): Item {
   const sets = INK_PRESETS.map((p) => ({ ...p }));
   let on = 0;
@@ -58,6 +58,8 @@ function inkPresets(): Item {
       on = i;
       for (const k of INK_COLORS) INK[k] = sets[i][k] ?? String(defaultOf(['INK', k]));
     },
+    // Every set in full: the picked one as it shows now.
+    copy: () => ({ INK_PRESETS: sets.map((p, i) => Object.fromEntries(INK_COLORS.map((k) => [k, i === on ? INK[k] : (p[k] ?? defaultOf(['INK', k]))]))) }),
   };
 }
 
