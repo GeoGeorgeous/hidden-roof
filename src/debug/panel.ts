@@ -20,7 +20,7 @@ const CONFIRM_SECONDS = 2;
 /** The groups (authored sections, by id) on each tab; a group not listed goes on the last tab. */
 const TABS = [
   { id: 'player', title: 'Player', groups: ['movement', 'camera', 'hands', 'held', 'avatar'] },
-  { id: 'paint', title: 'Paint', groups: ['painting', 'caps', 'runs', 'pressure', 'cursor'] },
+  { id: 'paint', title: 'Paint', groups: ['painting', 'caps', 'runs', 'pressure', 'stroke', 'cursor'] },
   { id: 'collectables', title: 'Collectables', groups: ['pickups'] },
   { id: 'models', title: 'Models', groups: ['sponge'] },
   { id: 'look', title: 'Look', groups: ['ink', 'lights', 'post'] },

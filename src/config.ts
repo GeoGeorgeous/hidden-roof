@@ -365,8 +365,8 @@ export const MARKER = {
   strength: 0.95,
   /** Held still, the nib stamps the same spot every frame: let it add to runs this often (per s), whatever the frame rate. */
   stillRate: 30,
-  /** Fast moves are filled with rays at most rayStep apart (radians), at most maxRays per frame, so they leave no gaps. */
-  rayStep: 0.003,
+  /** Moves are filled with stamps at most `spacing` x the nib width apart (at least half a texel), at most maxRays per frame, so they leave no gaps. */
+  spacing: 0.3,
   maxRays: 32,
 };
 
@@ -399,7 +399,8 @@ export const ROLLER = {
   drips: 2,
   /** Held still, presses add to runs this often (per s), whatever the frame rate. */
   stillRate: 20,
-  /** Fast moves are filled with presses at most halfDepth apart at full reach, at most maxRays per frame. */
+  /** Moves are filled with presses at most `spacing` x the press depth apart at full reach, at most maxRays per frame. */
+  spacing: 0.5,
   maxRays: 48,
 };
 
@@ -425,7 +426,8 @@ export const SPONGE = {
   scrubSpeed: 5,
   /** Held still, it keeps scrubbing the same spot this often (per s), whatever the frame rate. */
   stillRate: 20,
-  /** Fast moves are filled with steps half a patch apart at full reach, at most maxRays per frame. */
+  /** Moves are filled with steps at most `spacing` x the patch width apart at full reach, at most maxRays per frame. */
+  spacing: 0.25,
   maxRays: 24,
   /**
    * The model (m): a kitchen sponge, a soft block with a darker scouring pad

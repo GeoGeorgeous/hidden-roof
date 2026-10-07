@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { PAINT } from '../config';
 import type { PaintSurface, PaintSystem } from '../painting';
 import { facePoint, type FacePoint } from '../surfaces';
 import { solidsNear } from '../level/solids';
@@ -20,8 +21,8 @@ const STILL_MOVE = 0.001;
 
 export interface StrokeSpec {
   reach: number;
-  /** Most angle between two rays (radians), and most rays per frame. */
-  rayStep: number;
+  /** Most distance between two stamps on a surface at full reach (m; never under half a paint texel, so no texel is skipped), and most stamps per frame. */
+  spacing: number;
   maxRays: number;
   /** Held still: how often per second a frame is `fresh`. */
   stillRate: number;
@@ -56,8 +57,9 @@ export class StrokeSweep {
     this.stillClock += dt;
     const fresh = angle > STILL_ANGLE || moved > STILL_MOVE || this.stillClock >= 1 / spec.stillRate;
     if (fresh) this.stillClock = 0;
-    // An eye move counts like the turn that moves the aim as far at full reach.
-    const n = Math.min(spec.maxRays, Math.max(1, Math.ceil((angle + moved / spec.reach) / spec.rayStep)));
+    // How far the aim moved on a surface at full reach: the turn plus the eye's move.
+    const gap = Math.max(spec.spacing, 0.5 / PAINT.texelsPerMeter);
+    const n = Math.min(spec.maxRays, Math.max(1, Math.ceil((angle * spec.reach + moved) / gap)));
     this.raycaster.far = spec.reach;
     let hitAny = false;
     for (let k = 1; k <= n; k++) {

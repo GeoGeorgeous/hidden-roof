@@ -2,8 +2,8 @@ import { CAP_ORDER, CAPS } from '../config';
 import { c, live, r, t, type Item, type Section } from './tuning';
 
 // F3 panel contents for painting (tuning.ts has the helpers): what each tool
-// does, the caps, paint runs, pressure, the cursor (each tool's width and
-// crosshair), and the sponge's model.
+// does, the caps, paint runs, pressure, how strokes are stamped, the cursor
+// (each tool's width and crosshair), and the sponge's model.
 
 /** One heading per cap, its own items under each. */
 const perCap = (items: (cap: (typeof CAP_ORDER)[number]) => Item[]): Item[] =>
@@ -20,6 +20,16 @@ function cursorItems(tool: 'MARKER' | 'ROLLER' | 'SPONGE', max: number, step: nu
     r('wheel: step (m)', [tool, 'widthStep'], step, max / 4, step),
     r('crosshair (px)', [tool, 'crosshair'], 0, 60, 1),
     r('crosshair px per m of width', [tool, 'crosshairPerMeter'], 0, perMeter, 5),
+  ];
+}
+
+/** How a tool's stamps fill a move (tools/stroke.ts), the same rows for each. */
+function strokeItems(tool: 'MARKER' | 'ROLLER' | 'SPONGE', of: string): Item[] {
+  return [
+    { kind: 'heading', label: tool },
+    r(`spacing (x ${of})`, [tool, 'spacing'], 0.05, 2, 0.05),
+    r('max stamps per frame', [tool, 'maxRays'], 1, 128, 1),
+    r('held still: stamps per s', [tool, 'stillRate'], 1, 60, 1),
   ];
 }
 
@@ -94,6 +104,15 @@ export function paintSections(): Section[] {
         r('sputter duty', ['PRESSURE', 'sputterDuty'], 0, 1, 0.01),
         r('shake restore', ['PRESSURE', 'shakeRestore'], 0, 1, 0.01),
         r('shake duration', ['PRESSURE', 'shakeDuration'], 0.1, 2, 0.05),
+      ],
+    },
+    {
+      id: 'stroke',
+      title: 'Stroke',
+      items: [
+        ...strokeItems('MARKER', 'nib width'),
+        ...strokeItems('ROLLER', 'press depth'),
+        ...strokeItems('SPONGE', 'patch width'),
       ],
     },
     {

@@ -24,6 +24,7 @@ const ICONS: Record<string, string> = {
   pickups: CUBE,
   caps: CAP,
   cursor: CROSSHAIR,
+  stroke: '<path d="M.5 7.5c2-4 3-4 4.5-1s2.5 3 4.5-3"/><path class="dot" d="M.5 7.5h0M5 6.5h0M9.5 3.5h0"/>',
   hands: HAND,
   held: CAN,
   painting: CAN,

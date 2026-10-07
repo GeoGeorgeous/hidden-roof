@@ -56,8 +56,7 @@ export class RollerTool {
   /** Rolls from last frame's aim to this frame's; returns meters rolled, or null if nothing was in reach. */
   private roll(dt: number, camera: THREE.Camera, eye: THREE.Vector3, color: PaintColor, width: number) {
     right.set(1, 0, 0).applyQuaternion(camera.quaternion);
-    // Presses no farther apart than their depth at full reach.
-    const spec = { reach: ROLLER.reach, rayStep: ROLLER.halfDepth / ROLLER.reach, maxRays: ROLLER.maxRays, stillRate: ROLLER.stillRate };
+    const spec = { reach: ROLLER.reach, spacing: ROLLER.spacing * ROLLER.halfDepth * 2, maxRays: ROLLER.maxRays, stillRate: ROLLER.stillRate };
     let rolled: number | null = null;
     this.stroke.sweep(dt, camera, eye, spec, (hit, surface, at, fresh) => {
       if (!surface) return;
