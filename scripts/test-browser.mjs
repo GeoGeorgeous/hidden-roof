@@ -23,6 +23,18 @@ export async function openTestBrowser(url, { uncapped = false } = {}) {
   const env = fs.existsSync(libs) ? { ...process.env, LD_LIBRARY_PATH: [libs, process.env.LD_LIBRARY_PATH].filter(Boolean).join(':') } : undefined;
   const args = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', ...(uncapped ? ['--disable-frame-rate-limit', '--disable-gpu-vsync'] : [])];
   const browser = await chromium.launch({ env, args });
+  if (uncapped) {
+    // Uncapped or not, Chrome holds frames to about 60 a second while nothing
+    // on screen changes (the paused game draws nothing): a blinking pixel in a
+    // corner keeps them coming. The HUD's REC light did it until the pause
+    // sheet hid the HUD.
+    const newPage = browser.newPage.bind(browser);
+    browser.newPage = async (options) => {
+      const page = await newPage(options);
+      await page.addInitScript(keepFramesComing);
+      return page;
+    };
+  }
   return {
     browser,
     url,
@@ -31,6 +43,15 @@ export async function openTestBrowser(url, { uncapped = false } = {}) {
       await server?.close();
     },
   };
+}
+
+function keepFramesComing() {
+  addEventListener('DOMContentLoaded', () => {
+    const style = document.createElement('style');
+    style.textContent = '@keyframes keep-frames { 50% { opacity: 0.5 } } .keep-frames { position: fixed; left: 0; top: 0; width: 1px; height: 1px; background: #000; z-index: 2147483647; animation: keep-frames 1s steps(2) infinite }';
+    document.head.append(style);
+    document.body.append(Object.assign(document.createElement('i'), { className: 'keep-frames' }));
+  });
 }
 
 /** Waits until the level is built, then `frames` frames (text atlases settle in the first ones). */
