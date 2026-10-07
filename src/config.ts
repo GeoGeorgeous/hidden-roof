@@ -454,6 +454,8 @@ export const VIEWMODEL = {
   bobFrequency: 0.55,
   /** Hands dip while rising and lift while falling, per m/s of vertical speed. */
   fallLag: 0.003,
+  /** The most the hands dip or lift (m): past it a stronger fallLag changes nothing. */
+  fallLagMax: 0.03,
   /** How far the index finger pushes the nozzle down (radians of finger rotation at the knuckle). */
   pressCurl: 0.06,
   pressSpeed: 25,

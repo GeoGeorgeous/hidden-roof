@@ -35,7 +35,8 @@ const HINTS: Record<string, string> = {
   'VIEWMODEL.swayReturn': 'How fast the hands settle back after looking around.',
   'VIEWMODEL.bobAmount': 'Hand bob while walking, in meters at walking speed.',
   'VIEWMODEL.bobFrequency': 'Bob steps per meter walked.',
-  'VIEWMODEL.fallLag': 'Hands dip while rising and lift while falling, per m/s of vertical speed.',
+  'VIEWMODEL.fallLag': 'Hands dip while rising and lift while falling, per m/s of vertical speed. Capped by jump lag max: a jump takes off at about 6.5 m/s, so past ~0.005 only the cap shows.',
+  'VIEWMODEL.fallLagMax': 'The most the hands dip or lift with jump lag (m).',
   'VIEWMODEL.pressCurl': 'How far the index finger curls when pressing the nozzle (rad).',
   'VIEWMODEL.pressSpeed': 'How fast the finger presses and releases.',
   // Left hand

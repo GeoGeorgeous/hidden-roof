@@ -31,7 +31,7 @@ export class ViewSway {
     this.lift += (-motion.velocity.y * v.fallLag - this.lift) * ease;
 
     const a = v.bobAmount * this.bob;
-    target.position.set(Math.sin(this.phase) * a, -Math.abs(Math.cos(this.phase)) * a + Math.max(-0.03, Math.min(0.03, this.lift)), 0);
+    target.position.set(Math.sin(this.phase) * a, -Math.abs(Math.cos(this.phase)) * a + Math.max(-v.fallLagMax, Math.min(v.fallLagMax, this.lift)), 0);
     target.rotation.set(this.pitch * 0.5, this.yaw, this.yaw * 0.5 + Math.sin(this.phase) * a * 2);
   }
 }
