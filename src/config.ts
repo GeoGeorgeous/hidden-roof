@@ -685,8 +685,8 @@ export const AVATAR_TEST = {
   /** Moving poses at this speed (m/s; 0: the pose's own), around a loop on the floor, or on the spot. */
   speed: 0,
   onTheSpot: false,
-  /** The loop's radius (m). */
-  loop: 1.6,
+  /** The loop's width across (m). */
+  loopSize: 3.2,
 };
 
 /** Multiplayer: player snapshots and how a remote player is shown from them (src/net). */

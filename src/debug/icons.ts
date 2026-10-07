@@ -23,6 +23,7 @@ const ICONS: Record<string, string> = {
   // Groups
   movement: '<path d="M1.5 2l3 3-3 3M5.5 2l3 3-3 3"/>',
   camera: '<path d="M.5 2.5h6v5h-6zM6.5 4.3 9.5 3v4L6.5 5.7"/>',
+  'avatar-test': '<circle cx="5" cy="1.8" r="1.3"/><path d="M5 3.1v3.2M2.5 4.5h5M5 6.3 3.3 9.5M5 6.3l1.7 3.2"/>',
   avatar: '<circle cx="5" cy="1.8" r="1.3"/><path d="M5 3.1v3.2M2.5 4.5h5M5 6.3 3.3 9.5M5 6.3l1.7 3.2"/>',
   pickups: CUBE,
   caps: CAP,

@@ -124,7 +124,7 @@ export class AvatarPreview {
     // Which way it goes: round the loop on the floor (so you can see if its feet slide), or on the spot facing you.
     let travel = this.facing;
     if (speed && !AVATAR_TEST.onTheSpot) {
-      const R = AVATAR_TEST.loop;
+      const R = AVATAR_TEST.loopSize / 2;
       this.around += (speed / R) * dt;
       g.position.set(this.center.x + Math.sin(this.around) * R, this.center.y, this.center.z + Math.cos(this.around) * R);
       travel = Math.atan2(-Math.cos(this.around), Math.sin(this.around));

@@ -28,7 +28,7 @@ const TABS = [
   { id: 'ui', title: 'UI', groups: ['hud', 'pause'] },
   { id: 'items', title: 'Items', groups: ['pickups'] },
   { id: 'models', title: 'Models', groups: ['can', 'cap-models', 'marker', 'ladder', 'roller', 'sponge'] },
-  { id: 'test', title: 'Test', groups: ['performance', 'ghost'] },
+  { id: 'test', title: 'Test', groups: ['performance', 'avatar-test', 'ghost'] },
 ];
 
 interface Part {
