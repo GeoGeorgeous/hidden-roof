@@ -1,5 +1,7 @@
 import { hintFor, LABEL_HINTS } from './hints';
-import { getValue, sections, sectionsJSON, setValue, splitSections, type Item, type Section } from './tuning';
+import { playSections } from './play-sections';
+import { getValue, sectionsJSON, setValue, splitSections, type Item, type Section } from './tuning';
+import { worldSections } from './world-sections';
 
 // Debug panel (F3 / `): groups of small collapsible sections of live tunables
 // and stats. Each section has its own "copy", plus "copy all"; collapse all /
@@ -18,7 +20,7 @@ export class DebugPanel {
   private openIds: Set<string>;
 
   constructor() {
-    this.list = splitSections(sections());
+    this.list = splitSections([...playSections(), ...worldSections()]);
     this.openIds = loadOpen() ?? new Set(this.list.filter((s) => s.open).map((s) => s.id));
     this.root = document.createElement('div');
     this.root.className = 'debug-panel';

@@ -25,7 +25,7 @@ import { Player } from './player';
 import { PaintSystem } from './painting';
 import { Level, type LevelData } from './level/level';
 import { makeSky } from './sky';
-import { buildSkyline, disposeSkyline, syncSkyline, updateSkyline, type SkylineSettings } from './skyline';
+import { buildSkyline, disposeSkyline, updateSkyline, type SkylineSettings } from './skyline';
 import { setLinePointScale } from './city/lines';
 import { syncCityLight } from './city/material';
 import { Tools } from './tools/tools';
@@ -35,24 +35,19 @@ import { Thumbnails } from './inventory/thumbnails';
 import { Pickups, type PickupData } from './pickups/pickups';
 import { Audio } from './audio';
 import { Hud } from './hud';
-import { BuildMode } from './build/buildmode';
 import { fetchLevel } from './build/io';
 import { jpFontReady } from './render/ink/jp-font';
 import { textAtlasVersion } from './render/ink/text-atlas';
 import { staticTextureBytes } from './render/texture-bytes';
-import { DebugPanel } from './debug/panel';
-import { live } from './debug/tuning';
+import type { DevTools } from './dev/devtools';
+import { session } from './session';
 import { exitGameFullscreen } from './fullscreen';
 import { setHex } from './hex-color';
 import { seedPaintRandom } from './lcg';
 
 // Settings first: they may change the pixel scale the renderer starts with,
 // and the paint detail the level is built with.
-const settings = new Settings(
-  () => live.applyPixelScale(),
-  () => level.rebuildAll(),
-  () => live.rebuildCity(),
-);
+const settings = new Settings(applyPixelScale, () => level.rebuildAll(), rebuildCity);
 const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
 renderer.setPixelRatio(1 / RENDER.pixelScale);
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -60,7 +55,6 @@ renderer.autoClear = false;
 document.body.appendChild(renderer.domElement);
 const gpuTimer = new GpuTimer(renderer.getContext() as WebGL2RenderingContext);
 const post = new PostPipeline(renderer, gpuTimer);
-live.gpu = (label) => gpuTimer.read(label);
 
 const scene = new THREE.Scene();
 scene.fog = new THREE.FogExp2(INK.paper, ATMOS.fogDensity);
@@ -92,7 +86,6 @@ const playerLight = new PlayerLight(scene);
 const smoke = new Smoke(scene);
 const lightning = new Lightning();
 lightning.onThunder = (d) => audio.thunder(d);
-live.strikeLightning = () => lightning.strike();
 level.onChange = () => {
   baker.sync(level.builtProps);
   smoke.rebuild(level.emitters);
@@ -110,6 +103,8 @@ syncViewSize();
 let skyline = new THREE.Group();
 
 const input = new Input(renderer.domElement);
+/** Nothing pressed: what the player and tools get while paused in a session. */
+const noInput = new Input();
 const audio = new Audio();
 const hud = new Hud();
 const player = new Player(level.colliders, level.ladders);
@@ -125,19 +120,10 @@ pickups.onCollect = (label) => {
   hotbar.toast(`+ ${label}`);
 };
 pickups.onBlocked = (msg) => hotbar.toast(msg);
-const build = new BuildMode(scene, level, pickups, player);
-const debug = new DebugPanel();
-live.rebuildLights = () => lightFx.rebuild(level.lights);
-// Props with lights (light props, billboards) are rebuilt for a new lens color or aim; their paint carries over.
-live.rebuildLightProps = () => level.rebuildLit();
-live.syncAtmosphere = () => atmosphere.syncColors();
-live.syncVignette = () => hud.syncVignette();
-live.applyDaylight = () => atmosphere.reapplyDaylight();
-live.atmosNight = () => atmosphere.nightValues;
-live.applyPixelScale = () => {
+function applyPixelScale() {
   renderer.setPixelRatio(1 / RENDER.pixelScale);
   syncViewSize();
-};
+}
 
 function loadLevel(data: LevelData) {
   drips.clear();
@@ -157,19 +143,17 @@ function rebuildCity() {
   skyline = buildSkyline(level.totalBounds(), skylineSettings);
   scene.add(skyline);
 }
-live.rebuildCity = rebuildCity;
-live.applyToolSizes = () => (inventory.size = { marker: config.MARKER.radius, sponge: config.SPONGE.radius });
-live.rebuildSponge = () => {
-  tools.sponge.model.build();
-  pickups.restyle('sponge');
-  hotbar.refreshIcon('sponge');
-};
-live.syncSkyline = syncSkyline;
-build.onLoad = (data, name) => {
+
+/** The level as a file: props, pickups and the city overrides. */
+function levelData(): LevelData {
+  return { ...level.toJSON(), pickups: pickups.toJSON(), ...(Object.keys(skylineSettings).length ? { skyline: skylineSettings } : {}) };
+}
+
+/** A level file opened in build mode. */
+function openLevel(data: LevelData, name: string) {
   levelName = name;
   loadLevel(data);
-};
-build.getLevelData = () => ({ ...level.toJSON(), pickups: pickups.toJSON(), ...(Object.keys(skylineSettings).length ? { skyline: skylineSettings } : {}) });
+}
 
 /** The level's name: from ?level=, or the file opened in build mode. Paint saves are named by it. */
 let levelName = new URLSearchParams(location.search).get('level') ?? 'demo';
@@ -184,7 +168,7 @@ player.onLand = (speed) => audio.footstep(speed > PLAYER.hardLanding);
 
 // Losing pointer lock (Esc, alt-tab, a file dialog) pauses the game behind the menu.
 input.onLockChange = (locked) => {
-  hud.setLocked(locked, debug.visible);
+  hud.setLocked(locked, dev?.panelOpen);
   if (locked) {
     settings.applyPending();
     audio.start();
@@ -227,21 +211,16 @@ function frame(time: number) {
   fixedStep.script?.();
   const dt = fixedStep.dt || Math.min(delta, 1 / 20);
 
-  if (input.wasPressed('F3') || input.wasPressed('Backquote')) {
-    debug.toggle();
-    hud.setLocked(input.locked, debug.visible);
-  }
-  if (input.locked && input.wasPressed('KeyB')) {
-    build.setActive(!build.active);
-    atmosphere.setDaylight(build.active);
-    debug.sync();
-    hotbar.visible = !build.active;
-    audio.setHiss(0, 0);
-  }
+  dev?.frame(input, dt);
+  const building = dev?.building ?? false;
 
-  // Paused (pointer not locked): the world keeps rendering but nothing advances.
+  // Paused (pointer not locked) in single player: the world keeps rendering but
+  // nothing advances. In a session it goes on without you: you stand still, but
+  // you still fall, your spray lands and paint runs, as others see it.
   const paused = !input.locked;
-  if (!paused) player.update(dt, input);
+  const frozen = paused && !session.multiplayer;
+  const yours = paused ? noInput : input;
+  if (!frozen) player.update(dt, yours);
   if (player.onGround && player.stride - lastStride > PLAYER.footstepStride) {
     lastStride = player.stride;
     audio.footstep();
@@ -269,32 +248,32 @@ function frame(time: number) {
   setHex((scene.fog as THREE.FogExp2).color, INK.paper);
   syncSharedUniforms(time / 1000);
   syncTrackUniforms(eye);
-  if (!paused) lightning.update(dt, ATMOS.rain && !build.active);
+  if (!frozen) lightning.update(dt, ATMOS.rain && !building);
   lighting.update(eye, camera.matrixWorldInverse, time / 1000, lightning.flash);
   syncCityLight(lighting);
   (sky.material as THREE.ShaderMaterial).uniforms.uFlash.value = lightning.flash * THUNDER.flashSky;
-  playerLight.update(eye, !build.active);
+  playerLight.update(eye, !building);
   setHex(viewFill.color, VIEWMODEL.fillSky);
   setHex(viewFill.groundColor, VIEWMODEL.fillGround);
   viewFill.intensity = VIEWMODEL.fill;
   setHex(viewSun.color, VIEWMODEL.rimColor);
   viewSun.intensity = VIEWMODEL.rim;
   lightFx.update();
-  if (!paused) rainTime += dt;
+  if (!frozen) rainTime += dt;
   rain.update(rainTime, eye);
   smoke.update(rainTime, SMOKE.lightBase + SMOKE.lightAmbient * ATMOS.ambient + SMOKE.lightFlash * lightning.flash);
-  audio.setFan(paused ? 0 : fanLevel(eye));
-  if (!paused && ATMOS.rain && !build.active) metalDrops(dt, eye);
+  audio.setFan(frozen ? 0 : fanLevel(eye));
+  if (!frozen && ATMOS.rain && !building) metalDrops(dt, eye);
   audio.update();
 
-  if (!paused) {
-    if (build.active) build.update(input, camera);
-    tools.update(dt, input, camera, eye, player, !build.active);
-    wallHand.update(dt, camera, eye, !build.active, tools.spray.model.sway);
+  if (!frozen) {
+    if (building) dev!.update(input, camera);
+    tools.update(dt, yours, camera, eye, player, !building);
+    wallHand.update(dt, camera, eye, !building, tools.spray.model.sway);
     drips.update(dt);
     pickups.update(dt, player.position, inventory);
-  } else if (!build.active) tools.holdStill(camera);
-  const tool = build.active ? null : inventory.tool;
+  } else if (!building) tools.holdStill(camera);
+  const tool = building ? null : inventory.tool;
   hud.setCrosshair(tools.crosshair(tool));
   const anchor = tools.labelAnchor(tagPos);
   const pressure = tool === 'can' ? inventory.pressure : null;
@@ -310,8 +289,7 @@ function frame(time: number) {
   hotbar.update(inventory);
   hud.update();
 
-  gpuTimer.enabled = debug.visible;
-  post.render(scene, viewScene, camera, lighting, !build.active);
+  post.render(scene, viewScene, camera, lighting, !building);
   // Same frame as the render: the canvas still holds it (see screenshot.ts).
   if (input.wasPressed('KeyK')) saveScreenshot(renderer.domElement, () => hotbar.toast('Screenshot saved'));
   gpuTimer.poll();
@@ -327,26 +305,8 @@ function frame(time: number) {
     fpsFrames = 0;
     fpsTime = 0;
   }
-  Object.assign(live.stats, {
-    fps,
-    frameMs,
-    drawCalls: calls,
-    triangles,
-    textures: paint.gpu.textureCount,
-    textureBytes: paint.gpu.textureBytes,
-    surfaces: paint.surfaces.length,
-    uploads: paint.gpu.uploadsLastFrame,
-    uploadBytes: paint.gpu.uploadBytesLastFrame,
-    particles: tools.spray.particles.count,
-    drips: drips.count,
-    lights: lighting.active,
-    bakedBytes: baker.stats.textureBytes,
-    bakePending: baker.stats.pending,
-    bakeMs: baker.stats.ms,
-  });
-  live.player = { position: player.position, velocity: player.velocity, state: player.fly ? 'flying' : player.onLadder ? 'on ladder' : player.crouched ? 'crouched' : player.onGround ? 'grounded' : 'airborne' };
   hud.setPerf({ fps, frameMs, calls, triangles, textureBytes: paint.gpu.textureBytes + baker.stats.textureBytes + staticTextureBytes() });
-  debug.update();
+  dev?.report({ fps, frameMs, calls, triangles });
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
@@ -384,5 +344,7 @@ function toScreen(p: THREE.Vector3) {
   return { x: (p.x * 0.5 + 0.5) * window.innerWidth, y: (0.5 - p.y * 0.5) * window.innerHeight };
 }
 
-// Handy for debugging in the console.
-Object.assign(window, { game: { city: () => skyline, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, pickups, paint, paintOps, paintFile, seedPaintRandom, fixedStep, level, build, renderer, input, hud, debug, live, PLAYER, loadLevel } });
+// Dev tools (build mode, F3, window.game) only in single player; the multiplayer build (npm run build:mp) leaves them out.
+let dev: DevTools | undefined;
+const game = { city: () => skyline, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, hotbar, pickups, paint, paintOps, paintFile, seedPaintRandom, fixedStep, session, level, renderer, input, hud, scene, viewScene, gpuTimer, PLAYER, loadLevel, applyPixelScale, rebuildCity, levelData, openLevel };
+if (import.meta.env.VITE_MP !== '1') void import('./dev/devtools').then((m) => (dev = new m.DevTools(game)));

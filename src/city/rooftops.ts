@@ -1,4 +1,3 @@
-import { SKYLINE } from '../config';
 import type { CityMesh, V3 } from './mesh';
 import type { Lines } from './lines';
 import type { Rect, Tier, Tower } from './layout';
@@ -11,6 +10,9 @@ import { cityTextRect } from '../render/ink/city-text';
 // roofs and hanging off the walls. Volumes go into the city mesh (signs into
 // their own, drawn with the city text atlas), thin steel into pen lines. Less
 // detail farther away (nothing beyond SKYLINE.clutterRange but the odd core).
+// That only stops a tower's dressing early (a far core draws what a near one
+// draws first), so a tower looks the same at every CITY DETAIL as far as both
+// build it.
 
 /** Line ranges (m) per kind of steel: small things vanish first. */
 const NEAR_LINES = 140;
@@ -45,11 +47,12 @@ class Roof {
   }
 }
 
-export function dressTower(tw: Tower, mesh: CityMesh, signs: CityMesh, lines: Lines) {
+/** `clutterRange`: SKYLINE.clutterRange (or the level's own). */
+export function dressTower(tw: Tower, clutterRange: number, mesh: CityMesh, signs: CityMesh, lines: Lines) {
   const roof = tw.tiers[tw.tiers.length - 1];
   const rnd = tw.rnd;
   const y = roof.top;
-  const lod = tw.dist < 130 ? 2 : tw.dist < SKYLINE.clutterRange ? 1 : 0;
+  const lod = tw.dist < 130 ? 2 : tw.dist < clutterRange ? 1 : 0;
   const R = new Roof(roof, rnd);
   const cx = (roof.x0 + roof.x1) / 2;
   const cz = (roof.z0 + roof.z1) / 2;
@@ -189,8 +192,8 @@ export function dressTower(tw: Tower, mesh: CityMesh, signs: CityMesh, lines: Li
 }
 
 /** Signs on the walls: tall blade signs sticking out, flat shop signs lower down. */
-export function wallSigns(tw: Tower, signs: CityMesh, lines: Lines) {
-  if (tw.dist > SKYLINE.clutterRange) return;
+export function wallSigns(tw: Tower, clutterRange: number, signs: CityMesh, lines: Lines) {
+  if (tw.dist > clutterRange) return;
   const rnd = tw.rnd;
   const t = tw.tiers[0];
   const roofY = tw.tiers[tw.tiers.length - 1].top;

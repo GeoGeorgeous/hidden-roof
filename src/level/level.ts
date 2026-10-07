@@ -56,6 +56,8 @@ export class Level {
   joints = new Map<string, { joint: Joint; b: BuiltProp }>();
   private batches = new DecorBatches();
   private nextId = 1;
+  /** Props placed while playing, one per owner (a player's stepladder): owner -> prop id. */
+  private runtime = new Map<string, number>();
 
   constructor(
     scene: THREE.Scene,
@@ -74,15 +76,29 @@ export class Level {
   }
 
   remove(id: number) {
-    const inst = this.props.get(id);
-    if (!inst) return;
-    const b = this.built.get(id);
-    if (b) disposeProp(b, this.paint);
-    this.built.delete(id);
-    this.lettered.delete(id);
-    this.props.delete(id);
-    this.rebuildStack(inst);
+    if (this.drop(id)) this.refresh();
+  }
+
+  /**
+   * Put an owner's prop (a player's stepladder) here, or take it away (null).
+   * Their previous one goes, and the level is refreshed once. Never saved; it
+   * must not be paintable, since its id differs from client to client.
+   */
+  setRuntime(owner: string, data: PropData | null): PropInstance | null {
+    const old = this.runtime.get(owner);
+    if (old !== undefined) this.drop(old);
+    const inst = data && this.create({ ...data, id: undefined });
+    if (inst) {
+      inst.owner = owner;
+      this.runtime.set(owner, inst.id);
+    }
     this.refresh();
+    return inst;
+  }
+
+  /** The id of an owner's runtime prop, if one stands. */
+  runtimeOf(owner: string) {
+    return this.runtime.get(owner);
   }
 
   clear() {
@@ -92,6 +108,7 @@ export class Level {
     this.lettered.clear();
     this.joints.clear();
     this.props.clear();
+    this.runtime.clear();
     this.nextId = 1;
     this.refresh();
   }
@@ -107,7 +124,7 @@ export class Level {
 
   toJSON(): LevelData {
     // Props the player placed while playing (the stepladder) aren't part of the level file.
-    const props = [...this.props.values()].filter((p) => !p.runtime).map(({ id, type, pos, rot, adjust, text }) => ({ id, type, pos, rot, ...(adjust === undefined ? {} : { adjust }), ...(text === undefined ? {} : { text }) }));
+    const props = [...this.props.values()].filter((p) => p.owner === undefined).map(({ id, type, pos, rot, adjust, text }) => ({ id, type, pos, rot, ...(adjust === undefined ? {} : { adjust }), ...(text === undefined ? {} : { text }) }));
     return { version: 3, spawn: this.spawn, props };
   }
 
@@ -183,9 +200,13 @@ export class Level {
   }
 
   /** Bounding box of everything except cables (which can span far). */
+  /** The level's extent, without cables and without what players placed (their stepladders): the city is laid out around it. */
   totalBounds() {
     const box = new THREE.Box3();
-    for (const [id, b] of this.built) if (!this.props.get(id)?.type.startsWith('cable')) box.union(b.bounds);
+    for (const [id, b] of this.built) {
+      const p = this.props.get(id);
+      if (p && !p.type.startsWith('cable') && p.owner === undefined) box.union(b.bounds);
+    }
     return box;
   }
 
@@ -263,6 +284,20 @@ export class Level {
       const lowest = above.sort((a, b) => a.pos[1] - b.pos[1])[0];
       if (lowest) this.build(lowest);
     }
+  }
+
+  /** Take a prop out without refreshing; false if there's none with this id. */
+  private drop(id: number) {
+    const inst = this.props.get(id);
+    if (!inst) return false;
+    const b = this.built.get(id);
+    if (b) disposeProp(b, this.paint);
+    this.built.delete(id);
+    this.lettered.delete(id);
+    this.props.delete(id);
+    if (inst.owner !== undefined) this.runtime.delete(inst.owner);
+    this.rebuildStack(inst);
+    return true;
   }
 
   /** Props of this type in the same vertical column (same x, z). */

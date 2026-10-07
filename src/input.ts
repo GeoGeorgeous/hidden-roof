@@ -18,7 +18,9 @@ export class Input {
   locked = false;
   onLockChange: (locked: boolean) => void = () => {};
 
-  constructor(private element: HTMLElement) {
+  /** Without an element nothing ever reaches it: the player's input while paused in a session. */
+  constructor(private element?: HTMLElement) {
+    if (!element) return;
     window.addEventListener('keydown', (e) => {
       if (PREVENT.has(e.code) && this.locked) e.preventDefault();
       if (this.locked && (e.ctrlKey || e.metaKey)) e.preventDefault();
@@ -83,7 +85,7 @@ export class Input {
    */
   requestLock() {
     try {
-      const p = this.element.requestPointerLock() as unknown as Promise<void> | undefined;
+      const p = this.element?.requestPointerLock() as unknown as Promise<void> | undefined;
       p?.catch?.(() => {});
     } catch {
       // Refused (see above).

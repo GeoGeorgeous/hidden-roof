@@ -2,8 +2,10 @@
 // The pause menu's SAVE / LOAD PAINT (one at a time, cancel, broken files,
 // reload), level names, paint saves through level edits and changed props,
 // spray in the air at LOAD, the sponge freeing memory, prop ids for good,
-// per-player tool sizes, city overrides in the level save, hotbar icons, and
-// small-sign sizes with another font. Each check prints ok or what went wrong.
+// per-player tool sizes, city overrides in the level save, dev tools only in
+// single player, the world going on while paused in a session, stepladders by
+// owner, the avatar's poses, the ghost's playback, the same city at every
+// city detail, hotbar icons, and small-sign sizes with another font. Each check prints ok or what went wrong.
 // Usage: node scripts/game.test.mjs [url]   (no url: starts its own server)
 import fs from 'node:fs';
 import os from 'node:os';
@@ -235,6 +237,310 @@ await check('tools: the wheel changes the player\'s nib and patch size, not the 
     return out;
   });
   return r.marker === 0.024 && r.grew && r.min === 0 && r.sponge === 0.11 && r.config.join() === '0.012,0.09' ? null : JSON.stringify(r);
+});
+
+await check('ladders: one per player, moved with one rebuild; each owner\'s stays until they take it away; never saved', async () => {
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    const level = g.level;
+    let rebuilds = 0;
+    const onChange = level.onChange;
+    level.onChange = () => (rebuilds++, onChange());
+    const ladder = (x) => ({ type: 'stepladder', pos: [x, 0, 30], rot: 0 });
+    const ladders = () => [...level.props.values()].filter((p) => p.type === 'stepladder').map((p) => `${p.owner}@${p.pos[0]}`).sort().join();
+    const props = level.props.size;
+    level.setRuntime('a', ladder(0));
+    level.setRuntime('a', ladder(2));
+    const moved = rebuilds;
+    level.setRuntime('b', ladder(4));
+    const both = ladders();
+    const saved = level.toJSON().props.length;
+    level.setRuntime('a', null);
+    const left = ladders();
+    level.setRuntime('b', null);
+    // The ladder tool places this player's.
+    g.tools.ladder.put({ pos: [6, 0, 30], rot: 0 });
+    g.tools.ladder.put({ pos: [8, 0, 30], rot: 0 });
+    const yours = ladders();
+    level.setRuntime(g.session.player, null);
+    level.onChange = onChange;
+    return { moved, both, saved: saved - props, left, yours, back: level.props.size - props };
+  });
+  return r.moved === 2 && r.both === 'a@2,b@4' && r.saved === 0 && r.left === 'b@4' && r.yours === 'local@8' && r.back === 0 ? null : JSON.stringify(r);
+});
+
+await check('session: B and F3 open build mode and the panel in single player; a session closes them and the keys do nothing', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const frame = () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+    const press = async (code) => (window.dispatchEvent(new KeyboardEvent('keydown', { code })), window.dispatchEvent(new KeyboardEvent('keyup', { code })), frame());
+    const state = () => `${g.build.active ? 'build' : '-'} ${g.debug.visible ? 'panel' : '-'}`;
+    g.input.locked = true;
+    await press('KeyB');
+    await press('F3');
+    const solo = state();
+    g.session.multiplayer = true;
+    await frame();
+    const entered = state();
+    await press('KeyB');
+    await press('F3');
+    const inSession = state();
+    g.session.multiplayer = false;
+    g.input.locked = false;
+    return { solo, entered, inSession };
+  });
+  return r.solo === 'build panel' && r.entered === '- -' && r.inSession === '- -' ? null : JSON.stringify(r);
+});
+
+await check('session: paused, the world goes on (you fall, paint runs run) and keys don\'t move you; paused in single player, it stops', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const frames = (n) => new Promise((done) => { const tick = () => (--n ? requestAnimationFrame(tick) : done()); requestAnimationFrame(tick); });
+    const tpm = g.config.PAINT.texelsPerMeter;
+    // A paint run down a tall face, slow enough to last.
+    const s = g.paint.surfaces.find((x) => x.geo.rects.some((r) => r.h > 1.5 * tpm));
+    const rect = s.geo.rects.findIndex((r) => r.h > 1.5 * tpm);
+    g.paintOps.apply({ kind: 'drip', key: s.key, rect, u: 0.5, v: 0.95, length: 1, speed: 0.2, rgb: [1, 0, 0] });
+    const ink = () => (s.data ?? []).reduce((n, v, i) => (i % 4 === 3 ? n + v : n), 0);
+    const step = async () => {
+      g.player.position.y += 2;
+      g.player.velocity.set(0, 0, 0);
+      const [x, y, z, a] = [g.player.position.x, g.player.position.y, g.player.position.z, ink()];
+      // Keys pressed behind the menu don't move you.
+      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyW' }));
+      await frames(6);
+      window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyW' }));
+      const walked = g.player.position.x !== x || g.player.position.z !== z;
+      return `${g.player.position.y < y ? 'fell' : 'still'} ${ink() > a ? 'ran' : 'stopped'}${walked ? ' walked' : ''}`;
+    };
+    // Frames here run uncapped: give each one a real step.
+    g.fixedStep.dt = 0.05;
+    g.input.locked = false;
+    const solo = await step();
+    g.session.multiplayer = true;
+    const inSession = await step();
+    g.session.multiplayer = false;
+    g.fixedStep.dt = 0;
+    g.drips.clear();
+    g.paint.clear();
+    return { solo, inSession };
+  });
+  return r.solo === 'still stopped' && r.inSession === 'fell ran' ? null : JSON.stringify(r);
+});
+
+await check('avatar: one draw call for the body, at most two for a tool; every test pose keeps it on its feet and in one piece', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const frames = (n) => new Promise((done) => { const tick = () => (--n ? requestAnimationFrame(tick) : done()); requestAnimationFrame(tick); });
+    g.fixedStep.dt = 0.05;
+    g.live.avatarToggle();
+    let fig = null;
+    g.level.root.parent.traverse((o) => (fig ??= o.isSkinnedMesh ? o : null));
+    const out = { meshes: 0, problems: [] };
+    const y = (name) => { const b = fig.skeleton.bones.find((x) => x.name === name); b.updateWorldMatrix(true, false); return b.matrixWorld.elements[13] - fig.parent.position.y; };
+    const seen = new Set();
+    for (;;) {
+      g.live.avatarNext();
+      // '7 / 18: jump' -> 'jump'
+      const pose = g.live.avatarPose().split(': ')[1];
+      if (seen.has(pose)) break;
+      seen.add(pose);
+      await frames(12);
+      let meshes = 0;
+      fig.parent.traverse((o) => (meshes += o.isMesh ? 1 : 0));
+      out.meshes = Math.max(out.meshes, meshes);
+      const bad = fig.skeleton.bones.some((b) => ![b.rotation.x, b.rotation.y, b.rotation.z, b.position.y].every(Number.isFinite));
+      if (bad) out.problems.push(`${pose}: not a number`);
+      const feet = Math.min(y('footL'), y('footR'));
+      const grounded = !['jump', 'climb'].includes(pose);
+      if (grounded && Math.abs(feet - g.config.AVATAR.ankle) > 0.03) out.problems.push(`${pose}: ankles at ${feet.toFixed(2)}`);
+      if (pose === 'crouch' && y('head') > 1.25) out.problems.push(`crouch: head at ${y('head').toFixed(2)}`);
+      if (pose === 'spray up' && y('handR') < y('upperArmR')) out.problems.push('spray up: hand below the shoulder');
+    }
+    g.live.avatarToggle();
+    g.fixedStep.dt = 0;
+    return { ...out, poses: seen.size };
+  });
+  return r.meshes <= 3 && !r.problems.length && r.poses > 10 ? null : JSON.stringify(r);
+});
+
+await check('ghost: a recorded walk plays back through a jittery network smoothly, on the recorded path, and repaints the strokes exactly', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { GHOST } = g.config;
+    const frame = () => new Promise((done) => requestAnimationFrame(done));
+    const wait = async (s) => { const end = performance.now() + s * 1000; while (performance.now() < end) await frame(); };
+    const hash = () => g.paint.surfaces.filter((s) => s.data).reduce((h, s) => s.data.reduce((h, v) => (h * 31 + v) >>> 0, h), 7);
+    g.paint.clear();
+    g.player.fly = true;
+    const start = g.player.position.clone();
+    const speed = 3;
+    // Walk 1.5 s along x, painting twice on the way.
+    g.ghost.record();
+    const t0 = performance.now() / 1000;
+    let painted = 0;
+    g.fixedStep.script = () => {
+      const t = performance.now() / 1000 - t0;
+      g.player.position.set(start.x + speed * Math.min(t, 1.5), start.y, start.z);
+      if (painted < 2 && t > 0.4 + painted * 0.6) g.paint.stamp(g.paint.surfaces[painted++], { rect: 0, u: 0.5, v: 0.5 }, 0.1, 1, [1, 0, 0]);
+    };
+    await wait(1.7);
+    g.fixedStep.script = null;
+    g.ghost.stop();
+    const end = hash();
+    Object.assign(GHOST, { latency: 0.1, jitter: 0.06, hiccups: 0 });
+    g.ghost.play();
+    const xs = [];
+    let cleared = false;
+    let repainted = false;
+    let buffered = false;
+    const until = performance.now() + 2600;
+    while (performance.now() < until) {
+      await frame();
+      const p = g.ghost.position;
+      if (p) xs.push([p.x - start.x, p.y - start.y, p.z - start.z, performance.now() / 1000]);
+      if (g.ghost.net?.buffered) buffered = true;
+      const h = hash();
+      if (h === 7) cleared = true;
+      if (cleared && h === end) repainted = true;
+    }
+    g.ghost.stop();
+    Object.assign(GHOST, { latency: 0.08, jitter: 0.04 });
+    g.player.fly = false;
+    g.player.position.copy(start);
+    g.paint.clear();
+    // Going back, and the fastest it moved over any 50 ms (against the walk's speed: smooth is about 1).
+    let back = 0;
+    let fastest = 0;
+    let off = 0;
+    for (let i = 1, j = 0; i < xs.length; i++) {
+      back = Math.max(back, xs[i - 1][0] - xs[i][0]);
+      while (xs[i][3] - xs[j][3] > 0.05) j++;
+      if (j > 0) fastest = Math.max(fastest, (xs[i][0] - xs[j - 1][0]) / (xs[i][3] - xs[j - 1][3]) / speed);
+      off = Math.max(off, Math.abs(xs[i][1]), Math.abs(xs[i][2]), xs[i][0] - speed * 1.5 - 0.01, -xs[i][0]);
+    }
+    return { frames: xs.length, reached: xs.length ? xs[xs.length - 1][0] : 0, back, fastest, off, cleared, repainted, buffered };
+  });
+  const ok = r.frames > 30 && r.reached > 4.4 && r.back < 0.001 && r.fastest < 1.25 && r.off < 0.01 && r.cleared && r.repainted && r.buffered;
+  return ok ? null : JSON.stringify(r);
+});
+
+await check('city: LOW city detail is the middle of HIGH, tower for tower, roof for roof', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { layoutCity, dressTower, wallSigns } = g.cityParts;
+    const S = g.config.SKYLINE;
+    const bounds = g.level.totalBounds();
+    // LOW and HIGH as in settings.ts (CITY_DETAIL).
+    const details = { low: { ...S, radius: 380, clutterRange: 110 }, high: { ...S } };
+    const key = (t) => JSON.stringify([t.tiers.map((x) => [x.x0, x.z0, x.x1, x.z1, x.top].map((v) => v.toFixed(3))), t.facade, t.gray.toFixed(4)]);
+    // What a tower's dressing builds: every box and cylinder, in order.
+    const dress = (t, cfg) => {
+      const calls = [];
+      const stub = new Proxy({}, { get: (_, k) => (k === 'box' || k === 'cyl' ? (...a) => calls.push(`${k} ${a.map((v) => (typeof v === 'number' ? v.toFixed(3) : v)).join()}`) : () => stub) });
+      dressTower(t, cfg.clutterRange, stub, stub, stub);
+      wallSigns(t, cfg.clutterRange, stub, stub);
+      return calls;
+    };
+    const built = {};
+    for (const [name, cfg] of Object.entries(details)) built[name] = new Map(layoutCity(bounds, cfg).map((t) => [key(t), dress(t, cfg)]));
+    let missing = 0;
+    let differ = 0;
+    let lowBoxes = 0;
+    for (const [k, calls] of built.low) {
+      const high = built.high.get(k);
+      if (!high) missing++;
+      else if (calls.some((c, i) => c !== high[i])) differ++;
+      lowBoxes += calls.length;
+    }
+    return { low: built.low.size, high: built.high.size, missing, differ, lowBoxes };
+  });
+  return r.low > 500 && r.high > r.low && r.missing === 0 && r.differ === 0 && r.lowBoxes > 1000 ? null : JSON.stringify(r);
+});
+
+await check('ghost: on a bad link (resent packets) a walk that stops is never shown jumping: guesses past a late snapshot glide back', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { GHOST } = g.config;
+    const frame = () => new Promise((done) => requestAnimationFrame(done));
+    const wait = async (s) => { const end = performance.now() + s * 1000; while (performance.now() < end) await frame(); };
+    g.player.fly = true;
+    const start = g.player.position.clone();
+    // Walk and stop, three times: each stop is where a guess overshoots.
+    g.ghost.record();
+    const t0 = performance.now() / 1000;
+    g.fixedStep.script = () => {
+      const t = performance.now() / 1000 - t0;
+      const walked = Math.min(t % 1, 0.6) + Math.floor(t) * 0.6;
+      g.player.position.set(start.x + 5 * walked, start.y, start.z);
+    };
+    await wait(3);
+    g.fixedStep.script = null;
+    g.ghost.stop();
+    // A packet in five is lost and resent 0.3 s later; everything behind it waits.
+    Object.assign(GHOST, { latency: 0.05, jitter: 0.02, hiccups: 0.2, hiccupDelay: 0.3 });
+    g.ghost.play();
+    const xs = [];
+    const until = performance.now() + 3600;
+    while (performance.now() < until) {
+      await frame();
+      const p = g.ghost.position;
+      if (p) xs.push([p.x - start.x, performance.now() / 1000]);
+    }
+    g.ghost.stop();
+    Object.assign(GHOST, { latency: 0.08, jitter: 0.04, hiccups: 0 });
+    g.player.fly = false;
+    g.player.position.copy(start);
+    let back = 0;
+    let fastest = 0;
+    for (let i = 1; i < xs.length; i++) {
+      const dt = Math.max(xs[i][1] - xs[i - 1][1], 1 / 120);
+      back = Math.max(back, (xs[i - 1][0] - xs[i][0]) / dt);
+      fastest = Math.max(fastest, (xs[i][0] - xs[i - 1][0]) / dt);
+    }
+    return { frames: xs.length, reached: xs.length ? xs[xs.length - 1][0] : 0, back, fastest };
+  });
+  // Walking is 5 m/s; going back (a smoothed correction) and forward stay within a walk's speed (unsmoothed: 30 m/s and more).
+  return r.frames > 30 && r.reached > 8.5 && r.back < 4 && r.fastest < 8 ? null : JSON.stringify(r);
+});
+
+await check('avatar test figure: the pose slider stops on a pose, moving poses go round the loop (on the spot if asked), slow motion slows them', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const T = g.config.AVATAR_TEST;
+    const frames = (n) => new Promise((done) => { const tick = () => (--n ? requestAnimationFrame(tick) : done()); requestAnimationFrame(tick); });
+    g.fixedStep.dt = 0.05;
+    g.live.avatarToggle();
+    let fig = null;
+    g.level.root.parent.traverse((o) => (fig ??= o.isSkinnedMesh ? o.parent : null));
+    // Standing still first (idle), to find where it stands.
+    T.pose = 0;
+    g.live.avatarPick();
+    await frames(2);
+    const center = fig.position.clone();
+    T.pose = 1;
+    g.live.avatarPick();
+    const picked = g.live.avatarPose();
+    // Walking round the loop: how far it went in 10 frames, and how far from the middle it stays.
+    const walk = async () => {
+      const a = fig.position.clone();
+      await frames(10);
+      return [fig.position.distanceTo(a), fig.position.distanceTo(center)];
+    };
+    const [moved, radius] = await walk();
+    T.timeScale = 0.25;
+    const [slow] = await walk();
+    T.timeScale = 1;
+    T.onTheSpot = true;
+    await frames(2);
+    const [spot] = await walk();
+    T.onTheSpot = false;
+    g.live.avatarToggle();
+    g.fixedStep.dt = 0;
+    return { picked, moved, radius, slow, spot };
+  });
+  const ok = r.picked.startsWith('2 / ') && r.picked.includes('walk') && !r.picked.includes('cycling') && r.moved > 1 && Math.abs(r.radius - 1.6) < 0.01 && r.slow < r.moved * 0.4 && r.spot < 0.001;
+  return ok ? null : JSON.stringify(r);
 });
 
 await check('hotbar: icons arrive from the GPU (read back without stalling) and the slots are drawn again', async () => {

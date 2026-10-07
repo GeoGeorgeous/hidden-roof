@@ -617,6 +617,104 @@ export const PLAYER = {
   hardLanding: 6,
 };
 
+/** F3 -> Avatar: the test figure (dev/avatar-preview.ts). */
+export const AVATAR_TEST = {
+  /** The pose shown (an index into its list; F3 shows its name). */
+  pose: 0,
+  /** Slow motion: 1 is real time. */
+  timeScale: 1,
+  /** Look pitch added to the pose's (rad, up is positive): sweeps an aimed arm. */
+  pitch: 0,
+  /** Moving poses at this speed (m/s; 0: the pose's own), around a loop on the floor, or on the spot. */
+  speed: 0,
+  onTheSpot: false,
+  /** The loop's radius (m). */
+  loop: 1.6,
+};
+
+/** Multiplayer: player snapshots and how a remote player is shown from them (src/net). */
+export const NET = {
+  /** Snapshots sent per second. */
+  sendRate: 20,
+  /**
+   * A remote player is shown at least this far behind their newest snapshot
+   * (s): two snapshots and some jitter, so there's always one to move toward.
+   * On a jittery link it grows to a snapshot interval plus `jitterCover` times
+   * the measured jitter, up to `maxDelay`.
+   */
+  interpDelay: 0.13,
+  jitterCover: 3,
+  maxDelay: 0.45,
+  /** With no newer snapshot, keep moving the way it went for at most this long (s), then stand (Source uses 0.25). */
+  extrapolate: 0.25,
+  /** How much faster or slower a remote player's time may run while it catches up with a better clock estimate or delay (0.1 = 10%). */
+  clockRate: 0.1,
+  /** A jump in where they're shown (a late snapshot correcting a guess) is smoothed out at this rate (1/s); one longer than `teleport` (m) is not. */
+  smoothing: 12,
+  teleport: 2,
+};
+
+/** F3 -> Ghost (src/dev/ghost.ts): the network it plays through, and how far behind it follows you. */
+export const GHOST = {
+  /** One-way delay (s), random extra delay up to (s), and the share of packets held up by a hiccup (a lost packet resent: TCP holds everything behind it). */
+  latency: 0.08,
+  jitter: 0.04,
+  hiccups: 0,
+  /** How long a hiccup holds up a packet and everything after it (s), as a resend over a reliable link would. */
+  hiccupDelay: 0.3,
+  followDelay: 2,
+};
+
+/**
+ * The player figure others see (src/avatar, docs/avatar.md). Joint heights
+ * above the feet and lengths in meters, at rest: standing, arms down. Its
+ * eyes are at PLAYER.eyeHeight and the top of its head at PLAYER.height.
+ */
+export const AVATAR = {
+  ankle: 0.09,
+  hip: 0.92,
+  /** Hip joints are this far either side of the middle. */
+  hipSide: 0.1,
+  waist: 1.06,
+  chest: 1.26,
+  neck: 1.47,
+  shoulder: 1.43,
+  shoulderSide: 0.21,
+  upperArm: 0.29,
+  forearm: 0.26,
+  /** Wrist to the knuckles, and each finger's two segments. */
+  palm: 0.085,
+  finger: [0.045, 0.04] as [number, number],
+  /** Head (an egg): width, height, depth. */
+  head: [0.19, 0.25, 0.215] as [number, number, number],
+  hoodUp: false,
+  /** Gray tones (the ink draws them): the only color on the figure is paint. */
+  colors: {
+    hoodie: '#3c3f44',
+    trim: '#2c2e33',
+    pocket: '#4a4d53',
+    pants: '#3c3f44',
+    shoe: '#26282c',
+    sole: '#c6c8ca',
+    head: '#b4b7bb',
+    eyes: '#16181c',
+    glove: '#a4a6aa',
+  },
+  /** Walking: meters per step at walking speed and per extra m/s, foot lift (m). */
+  step: 0.62,
+  stepPerSpeed: 0.07,
+  stepLift: 0.13,
+  /** Crouching: how far the hips drop (m) and the body leans forward (rad). */
+  crouchDrop: 0.46,
+  crouchLean: 0.55,
+  /** Crouched and spraying, the body leans this far back instead (rad, negative is back). */
+  crouchSprayLean: -0.25,
+  /** Leaning forward when sprinting (rad). */
+  sprintLean: 0.22,
+  /** How fast poses blend into each other (1/s). */
+  blend: 10,
+};
+
 /**
  * The city around the level (src/city): seeded, so it's the same on every
  * load. A level file can override any of these in its own `skyline` object
@@ -626,6 +724,8 @@ export const SKYLINE = {
   seed: 23,
   /** City radius around the level (m). */
   radius: 650,
+  /** Towers rise toward the city's edge, reaching full height this far out (m): by distance, not radius, so a smaller city is the middle of a bigger one. */
+  riseTo: 650,
   /** City block pitch (m) and street width range (m). */
   block: 46,
   streetMin: 8,
