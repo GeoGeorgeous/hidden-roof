@@ -32,3 +32,4 @@ End every run with: Blocked on me, Changed, Found.
 - Props, colliders, grid, paintable faces: `src/kit/AGENTS.md`
 - Ink style, materials, color, signs: `src/render/ink/AGENTS.md`
 - Debug panel (F3): tabs, naming, tooltips, values: `src/debug/AGENTS.md`
+- Deploy, the VPS, the multiplayer server's hosting: `docs/deploy.md`
