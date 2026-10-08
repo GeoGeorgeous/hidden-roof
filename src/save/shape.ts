@@ -9,6 +9,15 @@ export function shapeOf(geo: SurfaceGeometry): string {
   return hash53(geo.rects.map((r) => (r.meters ?? [r.w, r.h]).map((m) => Math.round(m * 1000)).join('x')).join(','));
 }
 
+/**
+ * A level's paint surfaces, keys and shapes, hashed: the same at every paint
+ * detail. The game and the multiplayer server compare theirs, so they never
+ * paint a level they build differently (net/protocol.ts).
+ */
+export function surfaceTable(surfaces: Iterable<{ key: string; geo: SurfaceGeometry }>): string {
+  return hash53([...surfaces].map((s) => `${s.key}=${shapeOf(s.geo)}`).sort().join(';'));
+}
+
 /** cyrb53: a fast 53-bit string hash, as 14 hex digits. */
 function hash53(s: string) {
   let h1 = 0xdeadbeef;

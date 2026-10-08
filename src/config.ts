@@ -738,6 +738,21 @@ export const NET = {
   teleport: 2,
 };
 
+/** The multiplayer server (server/, docs/deploy.md). */
+export const SERVER = {
+  port: 3000,
+  /** Players in one session (docs/multiplayer-audit.md, decision 1). */
+  maxPlayers: 2,
+  /** A dropped player can come back as themselves for this long (s); then their stepladder goes, and a session with no one left closes. */
+  rejoinWindow: 60,
+  /** The server pings every game this often (s), so a game notices a dead link. */
+  ping: 2,
+  /** Paint runs move this many times a second on the server. */
+  dripRate: 30,
+  /** The largest message (bytes): a paint save HOST uploads is ~30 MB for a heavily painted ULTRA level. */
+  maxPayload: 64 * 2 ** 20,
+};
+
 /** F3 -> Ghost (src/dev/ghost.ts): the network it plays through, and how far behind it follows you. */
 export const GHOST = {
   /** One-way delay (s), random extra delay up to (s), and the share of packets held up by a hiccup (a lost packet resent: TCP holds everything behind it). */

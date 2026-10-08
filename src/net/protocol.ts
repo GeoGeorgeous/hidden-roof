@@ -14,15 +14,15 @@ import type { PaintOp } from '../paint-ops';
 export const PROTOCOL = 1;
 const NAME_MAX = 16;
 /** Session codes: this many letters from CODE_LETTERS (no I or O, which read as 1 and 0). */
-const CODE_LENGTH = 5;
-const CODE_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+export const CODE_LENGTH = 5;
+export const CODE_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 /** The PAINT DETAILs a host may pick (texels per meter, settings.ts). */
 const DETAILS = [24, 48, 72, 96];
 /** Player snapshot size (net/snapshot.ts). */
 export const SNAPSHOT_BYTES = 23;
 
 /** Why the server turned a player away: the game says it in its own words. */
-type Rejection = 'version' | 'no-session' | 'full' | 'bad-save';
+export type Rejection = 'version' | 'no-session' | 'full' | 'bad-save';
 
 /** Game -> server. */
 export type ToServer =
@@ -60,7 +60,7 @@ export type ToClient =
 
 type Message = { type: string; bytes?: Uint8Array };
 
-export function encode(msg: ToServer | ToClient): Uint8Array {
+export function encode(msg: ToServer | ToClient): Uint8Array<ArrayBuffer> {
   const { bytes, ...rest } = msg as Message;
   const json = new TextEncoder().encode(JSON.stringify(rest));
   const out = new Uint8Array(4 + json.length + (bytes?.length ?? 0));

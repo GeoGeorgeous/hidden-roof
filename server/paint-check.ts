@@ -10,7 +10,7 @@ import { sessionPaint } from './world';
 // atlases, face rects), then replays the ops the golden test recorded
 // (shots/golden/<detail>.ops.json) frame by frame, as its loopback does, and
 // compares the hash of the paint.
-// Usage: node dist-server/paint-check.js <level.json> <ops.json>...
+// Usage: node dist-server/check/paint-check.js <level.json> <ops.json>...
 
 type Table = [key: string, atlasW: number, atlasH: number, rects: number[][]][];
 

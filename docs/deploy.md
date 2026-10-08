@@ -6,7 +6,7 @@ Context for the agent that deploys and runs the game on the VPS. Read it before 
 
 ## 1. Status *(changes)*
 
-- **Now:** single player only, as static files. The multiplayer server is being written on `feat/multiplayer` (phase 4 in `docs/multiplayer-audit.md`, section 7). Until it reaches `main`, there's no Dockerfile, no server code and no `ws` dependency there.
+- **Now:** single player only, as static files. The multiplayer server is being written on `feat/multiplayer` (phase 4 in `docs/multiplayer-audit.md`, section 7). There it runs and is tested (`npm run test:server`), but has no Dockerfile yet. Until it reaches `main`, `main` has no server.
 - **Order:** deploy single player first, then add the multiplayer server.
 - **Repo:** a GitHub repo is being created on 2026-10-08. Deploys come from `main`. Branch flow: topic branches → `dev` → `next` → `main`.
 
@@ -70,11 +70,12 @@ Add the `/ws` handle only once the server exists. Add a CSP (`default-src 'self'
 The design is in `docs/multiplayer-audit.md` (sections 0, 4, 5, 6.4, 7, 8).
 
 - One Node.js process (Node 24) with the `ws` library. TypeScript that shares modules with the client. Not Deno, Bun or Go.
-- **Bundled** (`vite build --ssr` or esbuild) in a two-stage Dockerfile: `src/` uses extensionless imports, which plain Node can't resolve.
+- **Bundled:** `npm run build:server` → `dist-server/server/main.js`, one file with everything in it (`vite.config.ts`: `ssr.noExternal`), so the runtime image needs no `node_modules`. `src/` uses extensionless imports, which plain Node can't resolve, hence the bundle. Run it with `node dist-server/server/main.js`; `PORT` overrides 3000. Locally, `npm run server` builds and starts it, and `npm run dev` proxies `/ws` to it.
+- Planned: a two-stage Dockerfile (build stage `npm ci` + `npm run build:server`, runtime stage `node:24-slim` with only `main.js`).
 - Compose service `roof` on the compose network, built from `<apps>/roof/repo`, listening on 3000. **No `ports:`**: Caddy reaches it by name, and published ports would bypass the firewall.
   - `restart: unless-stopped`, `mem_limit: 1536m`.
   - Logging: json-file with `max-size: 10m` and `max-file: "3"`.
-  - Healthcheck on `/healthz` (the server must implement it). The slim image has no curl: `node -e "fetch('http://localhost:3000/healthz').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"`.
+  - Healthcheck on `/healthz` (answers `ok, <n> sessions`). The slim image has no curl: `node -e "fetch('http://localhost:3000/healthz').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"`.
 - **State in RAM only:** no database, no disk, no accounts. **Restarting `roof` ends every live session** (accepted). Caddy reloads don't, thanks to `stream_close_delay`.
 - Single instance: no sticky sessions, no shared store.
 - Sessions:

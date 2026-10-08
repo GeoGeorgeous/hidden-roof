@@ -85,8 +85,8 @@ console.log(`save after level edits: ${unrelated ? 'an unpainted prop removed: l
 await test.close();
 
 // The server's paint, in Node, from the ops recorded at each detail.
-execFileSync('npx', ['vite', 'build', '--ssr', 'server/paint-check.ts', '--outDir', 'dist-server', '--logLevel', 'warn'], { stdio: 'inherit' });
-const server = spawnSync(process.execPath, ['dist-server/paint-check.js', 'public/levels/demo.json', ...DETAILS.map((d) => `${out}/${d}.ops.json`)], { stdio: 'inherit' });
+execFileSync('npx', ['vite', 'build', '--ssr', 'server/paint-check.ts', '--outDir', 'dist-server/check', '--logLevel', 'warn'], { stdio: 'inherit' });
+const server = spawnSync(process.execPath, ['dist-server/check/paint-check.js', 'public/levels/demo.json', ...DETAILS.map((d) => `${out}/${d}.ops.json`)], { stdio: 'inherit' });
 if (server.status !== 0) failed++;
 
 if (update || !fs.existsSync(baselinePath)) {

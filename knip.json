@@ -1,4 +1,4 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "entry": ["server/paint-check.ts"]
+  "entry": ["server/main.ts", "server/paint-check.ts", "server/server-test.ts"]
 }
