@@ -1,7 +1,8 @@
 // Multiplayer in two browser pages (two players, as a normal and an incognito
-// window would be) against a local server (dist-server/server/main.js): HOST,
-// JOIN by code at the host's PAINT DETAIL, paint and the stepladder reaching the
-// other player, a reload coming back into the session, LEAVE.
+// window would be) against a local server (dist-server/server/main.js): HOST and
+// JOIN through the pause menu's MULTIPLAYER page, both at the host's PAINT
+// DETAIL, paint and the stepladder reaching the other player, a reload coming
+// back into the session, LEAVE SESSION.
 // Usage: npm run test:mp (builds the server first)
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
@@ -44,11 +45,24 @@ const paintHash = (page) =>
 try {
   const a = await open('ultra');
   const b = await open('low');
-  await a.evaluate(() => window.game.net.host('A', 48));
+  // A hosts at MEDIUM (its own is ULTRA), B joins with the code shown in A's menu.
+  const press = (page, text) => page.locator('.overlay button:visible', { hasText: text }).first().click();
+  await press(a, 'MULTIPLAYER');
+  await press(a, 'HOST A SESSION');
+  await a.fill('.mp-page input >> nth=0', 'A');
+  for (let i = 0; i < 2; i++) await press(a, '<');
+  await press(a, '> HOST');
   await status(a, 'in');
-  const code = await a.evaluate(() => window.game.net.status.code);
-  await b.evaluate((code) => window.game.net.join('B', code), code);
+  const code = (await a.textContent('.overlay .status')).match(/SESSION · ([A-Z]+)/)[1];
+  assert.equal(code, await a.evaluate(() => window.game.net.status.code));
+  await press(b, 'MULTIPLAYER');
+  await press(b, 'JOIN A SESSION');
+  await b.fill('.mp-page input >> nth=0', 'B');
+  await b.fill('.mp-page input >> nth=1', code.toLowerCase());
+  await press(b, '> JOIN');
   await status(b, 'in');
+  assert.ok(await b.isVisible('.overlay button:has-text("LEAVE SESSION")'));
+  assert.ok(!(await b.isVisible('.overlay button:has-text("LOAD PAINT")')));
   // Both play at the host's PAINT DETAIL, whatever their own.
   assert.deepEqual(await Promise.all([a, b].map((p) => p.evaluate(() => window.game.config.PAINT.texelsPerMeter))), [48, 48]);
   assert.deepEqual(await b.evaluate(() => [...window.game.net.names.values()]), ['A']);
@@ -74,7 +88,7 @@ try {
   assert.equal(await paintHash(b), painted, 'the paint comes back after a reload');
 
   // LEAVE: A hears B has gone, B plays alone at its own detail again.
-  await b.evaluate(() => window.game.net.leave());
+  await press(b, 'LEAVE SESSION');
   await a.waitForFunction(() => window.game.net.names.size === 0, null, { timeout: 5000 });
   assert.equal(await b.evaluate(() => window.game.session.multiplayer), false);
   for (const p of [a, b]) assert.deepEqual(p.errors, []);

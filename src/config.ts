@@ -736,6 +736,8 @@ export const NET = {
   /** A jump in where they're shown (a late snapshot correcting a guess) is smoothed out at this rate (1/s); one longer than `teleport` (m) is not. */
   smoothing: 12,
   teleport: 2,
+  /** A player's name tag hangs this high over their feet (m). */
+  nameplateHeight: 2.1,
 };
 
 /** The multiplayer server (server/, docs/deploy.md). */

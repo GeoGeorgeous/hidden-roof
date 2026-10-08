@@ -24,7 +24,6 @@ Context for the agent that deploys and runs the game on the VPS. Read it before 
 - `npm run build:mp` → `dist-mp/` is the same game without the dev tools (`VITE_MP=1` from `.env.multiplayer`; in `src/main.ts`, it only skips the dev tools import and the F3 defaults). **Deploy this one, single player included.**
 - Planned: rework the build scripts so the production build without the dev tools isn't tied to the multiplayer name. Check `package.json` for the current script and output directory.
 - Building needs Node `^20.19 || >=22.12` (locally Node 24) and the devDependencies (`tsc`, `vite`): use `npm ci`, without `--omit=dev`. `dist*/` are gitignored.
-- `?session` turns on an offline multiplayer test mode in every build. It's harmless.
 
 ## 4. The host
 

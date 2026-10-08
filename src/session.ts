@@ -1,9 +1,8 @@
-// Single player, or a multiplayer session. Build mode and the F3 panel exist
-// only in single player (src/dev/devtools.ts). Until the MULTIPLAYER menu
-// exists, ?session starts an offline session, for testing.
+// Single player, or a multiplayer session (net/multiplayer.ts sets it). Build
+// mode and the F3 panel exist only in single player (src/dev/devtools.ts).
 
 export const session = {
-  multiplayer: new URLSearchParams(location.search).has('session'),
-  /** This player's key: what they own (their stepladder). The server will hand these out. */
+  multiplayer: false,
+  /** This player's key: what they own (their stepladder); in a session, from the id the server gave them. */
   player: 'local',
 };

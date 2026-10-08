@@ -838,7 +838,7 @@ Single player stays the default and keeps build mode and F3. Multiplayer is ente
 - **Client:**
   - **MULTIPLAYER → HOST:** name, PAINT DETAIL (locked for the session), "Upload a save?" (file / use my current paint / start clean), then shows the code.
   - **MULTIPLAYER → JOIN:** name, code, a loading screen until the full snapshot is in, then spawn.
-  - In a session the ESC menu shows the code, SAVE, LEAVE. `?session` (the offline test mode from phase 3) goes.
+  - In a session the ESC menu shows the code, SAVE, LEAVE. `?session` (the offline test mode from phase 3) goes. Done 2026-10-08, with steps 2–7: `src/net/protocol.ts`, `server/`, `src/net/multiplayer.ts`, `src/net/net-menu.ts`; paint ops go as JSON (exact numbers, so every client paints the same texels; ~6.5 KB/s compressed while painting nonstop) instead of section 4's packed binary.
   - Reconnects on its own; the reconnect token is kept in `sessionStorage`, so a reload within 60 s rejoins as the same player, and each tab is its own player.
   - Remote paint is played at its timestamps; the remote avatar has a nameplate.
   - Closes the items carried over in 7a (#3 player ids, #4 ladder `others`, #5 session menu, #6 locked detail and session config, #10 memory log).

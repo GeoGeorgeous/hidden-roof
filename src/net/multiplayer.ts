@@ -11,6 +11,7 @@ import { surfaceTable } from '../save/shape';
 import { session } from '../session';
 import type { Tools } from '../tools/tools';
 import { decode, encode, PROTOCOL, type Rejection, type ToClient, type ToServer } from './protocol';
+import { Nameplates } from './nameplates';
 import { RemotePlayer } from './remote-player';
 import { capture, encodeSnapshot } from './snapshot';
 
@@ -24,6 +25,7 @@ import { capture, encodeSnapshot } from './snapshot';
 
 export interface MultiplayerContext {
   scene: THREE.Scene;
+  camera: THREE.Camera;
   level: Level;
   paint: PaintSystem;
   paintOps: PaintOps;
@@ -51,7 +53,10 @@ export class Multiplayer {
   onStatus: (s: NetStatus) => void = () => {};
   /** The session's paint as a file (SAVE). */
   onSave: (bytes: Uint8Array, levelName: string) => void = () => {};
+  /** Someone joined or left the session. */
+  onPlayer: (name: string, joined: boolean) => void = () => {};
   readonly names = new Map<number, string>();
+  private nameplates = new Nameplates();
   private ws: WebSocket | null = null;
   private remotes = new Map<number, RemotePlayer>();
   /** Who we are, once welcomed, and how to come back. */
@@ -110,6 +115,7 @@ export class Multiplayer {
   update(dt: number) {
     const t = now();
     for (const r of this.remotes.values()) r.update(t, dt);
+    this.nameplates.update(this.g.camera, [...this.remotes].filter(([, r]) => r.avatar.group.visible).map(([id, r]) => ({ id, name: this.names.get(id) ?? '', feet: r.position })));
     if (!this.joined || this.ws?.readyState !== WebSocket.OPEN) return;
     if (t - this.lastHeard > SERVER.ping * 3) return this.ws.close();
     const at = t - this.t0;
@@ -177,8 +183,14 @@ export class Multiplayer {
       const r = this.remotes.get(m.id);
       m.ops.forEach((op, i) => r?.receiveOp(m.t[i], op));
     } else if (m.type === 'ladder') this.remotes.get(m.id)?.receiveLadder(m.t, m.data);
-    else if (m.type === 'joined') this.addRemote(m.id, m.name);
-    else if (m.type === 'left') this.removeRemote(m.id);
+    else if (m.type === 'joined') {
+      this.addRemote(m.id, m.name);
+      this.onPlayer(m.name, true);
+    } else if (m.type === 'left') {
+      const name = this.names.get(m.id);
+      this.removeRemote(m.id);
+      if (name !== undefined) this.onPlayer(name, false);
+    }
     else if (m.type === 'save') this.onSave(m.bytes, this.joined.levelName);
   }
 
