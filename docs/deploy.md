@@ -6,7 +6,7 @@ Context for the agent that deploys and runs the game on the VPS. Read it before 
 
 ## 1. Status *(changes)*
 
-- **Now:** single player only, as static files. The multiplayer server isn't written yet (phase 4 in `docs/multiplayer-audit.md`, section 7). There's no Dockerfile, no server code and no `ws` dependency.
+- **Now:** single player only, as static files. The multiplayer server is being written on `feat/multiplayer` (phase 4 in `docs/multiplayer-audit.md`, section 7). Until it reaches `main`, there's no Dockerfile, no server code and no `ws` dependency there.
 - **Order:** deploy single player first, then add the multiplayer server.
 - **Repo:** a GitHub repo is being created on 2026-10-08. Deploys come from `main`. Branch flow: topic branches → `dev` → `next` → `main`.
 
@@ -33,9 +33,15 @@ The host's details (machine, other services, firewall, paths) are kept out of th
 ## 5. Layout (agreed)
 
 - One origin, `roof.hidden.haus`: static files at `/`, the WebSocket at `/ws`. No CORS.
-- Static files go in **`<apps>/roof-www`**, mounted into Caddy as `/srv/roof:ro`. Never put them in `Caddy's data directory` (certificates) or in a repo clone's `dist*/`, where a local build would overwrite prod.
-- Update the static files in place: `rsync -a --delete-delay --delay-updates dist-mp/ <apps>/roof-www/`. Never swap the directory with `mv`, because the bind mount keeps the old inode.
-- **Build off the host:** in GitHub Actions (then rsync the output) or in a throwaway `node:24-slim` container. Planned flow: push to `main` → Actions builds → deploy over SSH with the repo's own deploy key.
+- **Static files via Caddy, the server apart** (decided 2026-10-08):
+  - `<apps>/roof/repo`: a git clone of this repo. The server image is built from it.
+  - `<apps>/roof/www`: the `build:mp` output, mounted into Caddy as `/srv/roof:ro`.
+  - Why: a client-only deploy leaves the server image unchanged, so `roof` isn't recreated and live sessions survive. The game also loads while the server is down.
+- Never put the static files in `Caddy's data directory` (certificates) or serve them from the clone's `dist*/`, where a local build would overwrite prod.
+- Update the static files in place: `rsync -a --delete-delay --delay-updates dist-mp/ <apps>/roof/www/`. Never swap the directory with `mv`, because the bind mount keeps the old inode.
+- **Build the client off the host** (there's no Node on it): in GitHub Actions (then rsync the output) or in a throwaway `node:24-slim` container. Planned flow: push to `main` → Actions builds → deploy over SSH with the repo's own deploy key.
+- **The server is started by hand** (not automated, by choice): in `<apps>/roof/repo`, `git pull`, then `docker compose up -d --build roof` from `<apps>`.
+- **Client and server versions can differ** after deploys at different times. The client sends a protocol version and its surface-table hash when it connects; on a mismatch the server rejects it and the client asks for a page reload (`docs/multiplayer-audit.md`, section 4, Versions). When a deploy bumps the protocol, restart `roof` and deploy the client together: live sessions end, and old tabs are told to reload.
 - Caddy site block. Two `header` lines with and without a matcher would let the unmatched one run last and overwrite the `/assets` header, so both get matchers:
 
 ```
@@ -65,7 +71,7 @@ The design is in `docs/multiplayer-audit.md` (sections 0, 4, 5, 6.4, 7, 8).
 
 - One Node.js process (Node 24) with the `ws` library. TypeScript that shares modules with the client. Not Deno, Bun or Go.
 - **Bundled** (`vite build --ssr` or esbuild) in a two-stage Dockerfile: `src/` uses extensionless imports, which plain Node can't resolve.
-- Compose service `roof` on the compose network, listening on 3000. **No `ports:`**: Caddy reaches it by name, and published ports would bypass the firewall.
+- Compose service `roof` on the compose network, built from `<apps>/roof/repo`, listening on 3000. **No `ports:`**: Caddy reaches it by name, and published ports would bypass the firewall.
   - `restart: unless-stopped`, `mem_limit: 1536m`.
   - Logging: json-file with `max-size: 10m` and `max-file: "3"`.
   - Healthcheck on `/healthz` (the server must implement it). The slim image has no curl: `node -e "fetch('http://localhost:3000/healthz').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"`.
@@ -74,10 +80,10 @@ The design is in `docs/multiplayer-audit.md` (sections 0, 4, 5, 6.4, 7, 8).
 - Sessions:
   - 2 players, usually one session at a time.
   - Binary frames at 20 Hz, a ping every 2 s, ~7 KB/s per painter.
-  - The host picks PAINT DETAIL and it's locked for the session.
+  - The host picks PAINT DETAIL (LOW to ULTRA) and it's locked for the session; the server keeps the paint at that detail.
   - Players give a name on HOST and JOIN.
   - A dropped player has 60 s to reconnect, then their ladder goes. A session with no one left closes.
-- Sizes: a save uploaded on HOST and the join snapshot are single messages of up to ~30 MB. Set `ws` `maxPayload` explicitly (the default is 100 MiB). Paint is `Uint8Array`, so it sits outside the V8 heap and needs no `--max-old-space-size`. The worst case is ~372 MB per fully painted session at the highest detail (simulated).
+- Sizes: a save uploaded on HOST and the join snapshot are single messages of up to ~30 MB. Set `ws` `maxPayload` explicitly (the default is 100 MiB). Paint is `Uint8Array`, so it sits outside the V8 heap and needs no `--max-old-space-size`. The worst case is ~372 MB per fully painted session at ULTRA (simulated); LOW is 1/16 of that.
 - The client must reconnect on its own: a Caddy restart or a player's network drop still closes the socket.
 
 ## 7. After a deploy
