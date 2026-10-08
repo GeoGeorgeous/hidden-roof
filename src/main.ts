@@ -232,9 +232,12 @@ function frame(time: number) {
   dev?.frame(input, dt);
   const building = dev?.building ?? false;
 
-  // Paused (pointer not locked) in single player: the world keeps rendering but
-  // nothing advances. In a session it goes on without you: you stand still, but
-  // you still fall, your spray lands and paint runs, as others see it.
+  // Paused (pointer not locked) in single player the game stops: you, your tools,
+  // paint in flight, drips, pickups and lightning. The surroundings go on (fans,
+  // lamps, CCTV, rain, smoke), and all sound is turned down (AUDIO.pausedGain;
+  // not with F3 open, to tune it). In a session the game goes on without you:
+  // you stand still, but you still fall, your spray lands and paint runs, as
+  // others see it.
   const paused = !input.locked;
   const frozen = paused && !session.multiplayer;
   const yours = paused ? noInput : input;
@@ -277,12 +280,12 @@ function frame(time: number) {
   setHex(viewSun.color, VIEWMODEL.rimColor);
   viewSun.intensity = VIEWMODEL.rim;
   lightFx.update();
-  if (!frozen) rainTime += dt;
+  rainTime += dt;
   rain.update(rainTime, eye);
   smoke.update(rainTime, SMOKE.lightBase + SMOKE.lightAmbient * ATMOS.ambient + SMOKE.lightFlash * lightning.flash);
-  audio.setFan(frozen ? 0 : fanLevel(eye));
-  if (!frozen && ATMOS.rain && !building) metalDrops(dt, eye);
-  audio.update();
+  audio.setFan(fanLevel(eye));
+  if (ATMOS.rain && !building) metalDrops(dt, eye);
+  audio.update(paused && !dev?.panelOpen);
 
   if (!frozen) {
     if (building) dev!.update(input, camera);

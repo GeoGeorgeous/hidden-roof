@@ -837,6 +837,8 @@ export const SKYLINE = {
 /** All gains are live (F3 → Sound). */
 export const AUDIO = {
   masterGain: 0.7,
+  /** Share of masterGain while paused (the pause menu is up). */
+  pausedGain: 0.3,
   hissGain: 0.22,
   /** Distant city rumble. */
   ambienceGain: 0.145,

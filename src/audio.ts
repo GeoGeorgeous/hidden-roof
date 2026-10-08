@@ -117,11 +117,11 @@ export class Audio {
     this.fanGain.connect(this.master);
   }
 
-  /** Once per frame: apply AUDIO gains and the rain level. */
-  update() {
+  /** Once per frame: apply AUDIO gains and the rain level; `paused` turns everything down. */
+  update(paused: boolean) {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
-    this.master.gain.setTargetAtTime(AUDIO.masterGain, t, 0.05);
+    this.master.gain.setTargetAtTime(AUDIO.masterGain * (paused ? AUDIO.pausedGain : 1), t, 0.1);
     this.ambGain.gain.setTargetAtTime(AUDIO.ambienceGain, t, 0.05);
     this.lfoGain.gain.setTargetAtTime(AUDIO.ambienceGain * 0.5, t, 0.05);
     const rain = ATMOS.rain ? AUDIO.rainGain * (0.35 + 0.65 * ATMOS.rainDensity) : 0;
