@@ -1,10 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { PAINT, SERVER } from '../src/config';
 import type { LevelData, PropData } from '../src/level/level';
-import { cleanName, encode, type ToClient, type ToServer } from '../src/net/protocol';
+import { cleanName, closeCode, encode, NAME_MAX, type ToClient, type ToServer } from '../src/net/protocol';
 import { loadPaint } from '../src/save/load-paint';
 import { savePaint } from '../src/save/save-paint';
 import { surfaceTable } from '../src/save/shape';
+import { log, who } from './log';
 import { sessionPaint } from './world';
 
 // One live session: its level, PAINT DETAIL and paint, and its players. It
@@ -17,7 +18,7 @@ import { sessionPaint } from './world';
 /** A player's socket. */
 export interface Link {
   send(frame: Uint8Array): void;
-  close(): void;
+  close(code?: number, reason?: string): void;
 }
 
 export interface Player {
@@ -69,34 +70,39 @@ export class Session {
   }
 
   /**
-   * A new player on `link`, or with the token of one still here, that player
-   * again (a reconnect). Null when the session is full. Their welcome carries
+   * A player on `link`: with the token of one still here, that player again (a
+   * reconnect, `back`); without, one who dropped under the same name (a new
+   * tab, `takeover`: their stepladder and slot); else a new one, numbered if
+   * the name is taken. Null when the session is full. Their welcome carries
    * the paint as it is now; what happens meanwhile reaches them after it.
    */
-  async admit(link: Link, name: string, token?: string): Promise<Player | null> {
-    let p = token ? [...this.players.values()].find((q) => q.token === token) : undefined;
+  async admit(link: Link, name: string, token?: string): Promise<{ p: Player; how: 'new' | 'back' | 'takeover' } | null> {
+    const all = [...this.players.values()];
+    name = cleanName(name);
+    let p = token ? all.find((q) => q.token === token) : undefined;
+    const how = p ? 'back' : (p = all.find((q) => !q.link && q.name === name)) ? 'takeover' : 'new';
     if (p) {
       if (p.expires) clearTimeout(p.expires);
       p.expires = null;
       // Still there on another link (a duplicated tab carries the token along): that one goes, told why, so it doesn't come back.
       p.link?.send(encode({ type: 'rejected', reason: 'replaced' }));
-      p.link?.close();
+      p.link?.close(closeCode('replaced'), 'replaced');
       p.link = link;
     } else {
       if (this.players.size >= SERVER.maxPlayers) return null;
-      p = { id: this.nextId++, name: cleanName(name), token: randomUUID(), link, held: null, ladder: null, expires: null };
+      p = { id: this.nextId++, name: uniqueName(name, all), token: randomUUID(), link, held: null, ladder: null, expires: null };
       this.broadcast({ type: 'joined', id: p.id, name: p.name }, p);
       this.players.set(p.id, p);
     }
     p.held = [];
     const bytes = await this.save();
-    if (p.link !== link) return p;
+    if (p.link !== link) return { p, how };
     const others = [...this.players.values()].filter((q) => q !== p);
     const ladders = [...this.players.values()].filter((q) => q.ladder).map((q) => ({ id: q.id, data: q.ladder! }));
     link.send(encode({ type: 'welcome', code: this.code, you: p.id, token: p.token, levelName: this.levelName, level: this.level, detail: this.detail, table: this.table, players: others.map(({ id, name }) => ({ id, name })), ladders, bytes }));
     for (const f of p.held) link.send(f);
     p.held = null;
-    return p;
+    return { p, how };
   }
 
   receive(p: Player, m: ToServer) {
@@ -114,7 +120,7 @@ export class Session {
       this.broadcast({ type: 'ladder', id: p.id, t: m.t, data: m.data }, p);
     } else if (m.type === 'save') void this.save().then((bytes) => this.send(p, { type: 'save', bytes }));
     else if (m.type === 'ping') this.send(p, { type: 'pong', t: m.t });
-    else if (m.type === 'leave') this.remove(p);
+    else if (m.type === 'leave') this.remove(p, 'left');
   }
 
   /** Their link closed: they have SERVER.rejoinWindow to come back. */
@@ -122,7 +128,7 @@ export class Session {
     if (p.link !== link) return;
     p.link = null;
     p.held = null;
-    p.expires = setTimeout(() => this.remove(p), SERVER.rejoinWindow * 1000);
+    p.expires = setTimeout(() => this.remove(p, `didn't come back in ${SERVER.rejoinWindow} s`), SERVER.rejoinWindow * 1000);
   }
 
   /** Paint runs move on (`dt` s). */
@@ -134,11 +140,14 @@ export class Session {
     this.broadcast({ type: 'ping' });
   }
 
-  private remove(p: Player) {
+  private remove(p: Player, why: string) {
     if (this.players.get(p.id) !== p) return;
     if (p.expires) clearTimeout(p.expires);
     this.players.delete(p.id);
-    p.link?.close();
+    log(this.code, who(p), `out: ${why} (${this.players.size} players)`);
+    const link = p.link;
+    p.link = null;
+    link?.close(1000, why);
     this.broadcast({ type: 'left', id: p.id });
     if (!this.players.size) this.onEmpty();
   }
@@ -167,4 +176,15 @@ export class Session {
 function deliver(p: Player, f: Uint8Array) {
   if (p.held) p.held.push(f);
   else p.link?.send(f);
+}
+
+/** `name`, or with the lowest number free when another player has it: "geo (2)". */
+function uniqueName(name: string, players: Player[]) {
+  const taken = new Set(players.map((p) => p.name));
+  if (!taken.has(name)) return name;
+  for (let n = 2; ; n++) {
+    const tag = ` (${n})`;
+    const s = Array.from(name).slice(0, NAME_MAX - tag.length).join('') + tag;
+    if (!taken.has(s)) return s;
+  }
 }

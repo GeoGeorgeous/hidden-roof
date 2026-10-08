@@ -11,6 +11,7 @@ import { surfaceTable } from '../save/shape';
 import { session } from '../session';
 import type { Tools } from '../tools/tools';
 import { decode, encode, PROTOCOL, type Rejection, type ToClient, type ToServer } from './protocol';
+import { diagnose, NetLog } from './diagnostics';
 import { Nameplates } from './nameplates';
 import { RemotePlayer } from './remote-player';
 import { capture, encodeSnapshot } from './snapshot';
@@ -41,8 +42,11 @@ export interface MultiplayerContext {
   lockDetail(tpm: number | null): void;
 }
 
-/** What the player sees of the link: shown on the menus. */
-export type NetStatus = { state: 'off' } | { state: 'connecting' } | { state: 'in'; code: string } | { state: 'reconnecting'; code: string } | { state: 'failed'; reason: Rejection | 'unreachable' | 'ended' };
+/** Why the game isn't in a session: the server said so (Rejection), it never answered, or diagnose's guess at why it can't be reached. */
+type Failure = Rejection | 'timeout' | Awaited<ReturnType<typeof diagnose>>['reason'];
+
+/** What the player sees of the link, shown on the menus; `detail`: what was seen (a close code, an HTTP status, tries), for reports. */
+export type NetStatus = { state: 'off' } | { state: 'connecting' } | { state: 'in'; code: string } | { state: 'reconnecting'; code: string; detail: string } | { state: 'failed'; reason: Failure; detail?: string };
 
 const KEY = 'roofhiddenhaus.session';
 const now = () => performance.now() / 1000;
@@ -56,6 +60,8 @@ export class Multiplayer {
   /** Someone joined or left the session. */
   onPlayer: (name: string, joined: boolean) => void = () => {};
   readonly names = new Map<number, string>();
+  /** What happened to the link (COPY NETWORK LOG). */
+  readonly log = new NetLog();
   private nameplates = new Nameplates();
   private ws: WebSocket | null = null;
   private remotes = new Map<number, RemotePlayer>();
@@ -69,7 +75,7 @@ export class Multiplayer {
   private ops: PaintOp[] = [];
   private opTimes: number[] = [];
   private ladderId: number | undefined;
-  private retry: { until: number; wait: number } | null = null;
+  private retry: { until: number; wait: number; tries: number } | null = null;
   /** For the HUD: the last round trip (s), bytes each way since `since`, and their rates (bytes/s). */
   private net = { ping: null as number | null, nextPing: 0, up: 0, down: 0, since: 0, upRate: 0, downRate: 0 };
   /** The name we go by in the session. */
@@ -109,6 +115,7 @@ export class Multiplayer {
   }
 
   leave() {
+    this.log.add('LEAVE SESSION');
     this.send({ type: 'leave' });
     this.end({ state: 'off' });
   }
@@ -119,7 +126,10 @@ export class Multiplayer {
     for (const r of this.remotes.values()) r.update(t, dt);
     this.nameplates.update(this.g.camera, [...this.remotes].filter(([, r]) => r.avatar.group.visible).map(([id, r]) => ({ id, name: this.names.get(id) ?? '', feet: r.position })));
     if (!this.joined || this.ws?.readyState !== WebSocket.OPEN) return;
-    if (t - this.lastHeard > SERVER.ping * 3) return this.ws.close();
+    if (t - this.lastHeard > SERVER.ping * 3) {
+      this.log.add(`nothing from the server for ${SERVER.ping * 3} s: closing to reconnect`);
+      return this.ws.close();
+    }
     this.measure(t);
     const at = t - this.t0;
     const log = this.g.paint.log!;
@@ -143,34 +153,64 @@ export class Multiplayer {
   private connect(hello: Extract<ToServer, { type: 'host' | 'join' }>) {
     this.ws?.close();
     this.name = hello.name;
-    const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
+    const url = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
+    this.log.add(`connecting to ${url}: ${hello.type === 'host' ? `HOST at ${hello.detail} texels/m${hello.bytes ? ` with ${(hello.bytes.length / 1024).toFixed(0)} KB of paint` : ''}` : `JOIN ${hello.code}${hello.token ? ' (coming back)' : ''}`}`);
+    const ws = new WebSocket(url);
     ws.binaryType = 'arraybuffer';
     this.ws = ws;
     if (!this.joined) this.setStatus({ state: 'connecting' });
-    ws.onopen = () => ws.send(encode(hello));
+    const started = now();
+    /** No welcome or rejection in NET.connectTimeout: give up on this socket. */
+    let answered = false;
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      if (answered || this.ws !== ws) return;
+      this.log.add(`no answer in ${NET.connectTimeout} s (socket ${['connecting', 'open', 'closing', 'closed'][ws.readyState]})`);
+      timedOut = true;
+      ws.close();
+    }, NET.connectTimeout * 1000);
+    ws.onopen = () => {
+      this.log.add(`open after ${Math.round((now() - started) * 1000)} ms`);
+      ws.send(encode(hello));
+    };
     ws.onmessage = (e) => {
       if (this.ws !== ws) return;
       this.lastHeard = now();
       this.net.down += (e.data as ArrayBuffer).byteLength;
       const m = decode(new Uint8Array(e.data as ArrayBuffer)) as ToClient | null;
+      if (m?.type === 'welcome' || m?.type === 'rejected') answered = true;
       // What this game can't take (a welcome it can't load) ends the session for it.
       if (m) this.queue = this.queue.then(() => this.receive(m)).catch((err) => (console.error(err), this.send({ type: 'leave' }), this.end({ state: 'failed', reason: 'version' })));
     };
-    ws.onclose = () => {
+    ws.onclose = (e) => {
+      clearTimeout(timer);
       if (this.ws !== ws) return;
+      this.log.add(`closed: ${e.code}${e.reason ? ` ${e.reason}` : ''}${e.wasClean ? '' : ', not clean'}, after ${(now() - started).toFixed(1)} s`);
       this.ws = null;
-      this.dropped();
+      if (timedOut && !this.joined) return this.end({ state: 'failed', reason: 'timeout', detail: `NO ANSWER IN ${NET.connectTimeout} S` });
+      this.dropped(e.code);
     };
   }
 
-  /** The link closed: try again with our token while the server keeps us; never welcomed: give up. */
-  private dropped() {
+  /**
+   * The link closed (WebSocket close code `code`): while the server keeps us,
+   * try again with our token; never welcomed, give up. Either way, ask the
+   * server over HTTP what's wrong (diagnostics.ts), for the message.
+   */
+  private dropped(code: number) {
     const j = this.joined;
-    if (!j) return this.setStatus({ state: 'failed', reason: 'unreachable' });
-    if (this.status.state !== 'reconnecting') this.retry = { until: now() + SERVER.rejoinWindow, wait: 1 };
+    const why = diagnose().then((d) => (this.log.add(`asked the server over HTTP: ${d.reason} (${d.detail})`), d));
+    if (!j) {
+      void why.then((d) => !this.ws && !this.joined && this.end({ state: 'failed', reason: d.reason, detail: `${d.detail} · WS ${code}` }));
+      return;
+    }
+    if (this.status.state !== 'reconnecting') this.retry = { until: now() + SERVER.rejoinWindow, wait: 1, tries: 0 };
     const r = this.retry!;
-    if (now() > r.until) return this.end({ state: 'failed', reason: 'ended' });
-    this.setStatus({ state: 'reconnecting', code: j.code });
+    if (now() > r.until) return this.end({ state: 'failed', reason: 'ended', detail: `NO WAY BACK IN ${SERVER.rejoinWindow} S` });
+    r.tries++;
+    this.setStatus({ state: 'reconnecting', code: j.code, detail: `WS ${code} · TRY ${r.tries}` });
+    void why.then((d) => this.status.state === 'reconnecting' && this.joined === j && this.setStatus({ state: 'reconnecting', code: j.code, detail: `${d.detail} · WS ${code} · TRY ${r.tries}` }));
+    this.log.add(`trying again in ${r.wait} s (try ${r.tries})`);
     setTimeout(() => this.joined === j && !this.ws && this.connect({ type: 'join', protocol: PROTOCOL, name: j.name, code: j.code, token: j.token }), r.wait * 1000);
     r.wait = Math.min(r.wait * 2, 8);
   }
@@ -178,6 +218,7 @@ export class Multiplayer {
   private async receive(m: ToClient) {
     if (m.type === 'welcome') return this.welcome(m);
     if (m.type === 'rejected') {
+      this.log.add(`turned away by the server: ${m.reason}`);
       // A session that's gone (the server restarted) while we were coming back: it ended.
       const ended = this.joined && m.reason === 'no-session';
       return this.end({ state: 'failed', reason: ended ? 'ended' : m.reason });
@@ -214,6 +255,7 @@ export class Multiplayer {
     // The session's paint replaces ours; what we painted while the link was down is gone with it.
     await loadPaint(g.paint, g.drips, w.bytes, { name: w.levelName });
     const name = this.name;
+    this.log.add(`in session ${w.code} as #${w.you}, at ${w.detail} texels/m, with ${w.players.length} others, ${(w.bytes.length / 1024).toFixed(0)} KB of paint`);
     this.joined = { code: w.code, token: w.token, name, you: w.you, levelName: w.levelName };
     try {
       sessionStorage.setItem(KEY, JSON.stringify({ code: w.code, token: w.token, name }));
@@ -302,6 +344,7 @@ export class Multiplayer {
   }
 
   private setStatus(s: NetStatus) {
+    if (s.state === 'failed' || s.state === 'off') this.log.add(`status: ${s.state}${s.state === 'failed' ? ` ${s.reason}${s.detail ? ` (${s.detail})` : ''}` : ''}`);
     this.status = s;
     this.onStatus(s);
   }

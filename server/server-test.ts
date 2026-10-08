@@ -4,7 +4,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import { PAINT } from '../src/config';
 import { levelPaintFaces } from '../src/level/prop-pieces';
-import { decode, encode, PROTOCOL, type ToClient, type ToServer } from '../src/net/protocol';
+import { closeCode, decode, encode, HELLO, PROTOCOL, type ToClient, type ToServer } from '../src/net/protocol';
 import { decodePaintFile, encodePaintFile } from '../src/save/paint-file';
 import { surfaceTable } from '../src/save/shape';
 
@@ -64,6 +64,8 @@ const host = { type: 'host' as const, protocol: PROTOCOL, table, name: 'A', leve
 
 try {
   assert.equal((await fetch(`http://localhost:${PORT}/healthz`)).status, 200);
+  // A plain GET at /ws: what the game asks when it can't connect (net/diagnostics.ts).
+  assert.equal(await (await fetch(`http://localhost:${PORT}/ws`)).text(), HELLO);
 
   // Turned away: an older game, a game that builds the level differently, an unknown code, a broken save.
   for (const [m, reason] of [
@@ -75,6 +77,8 @@ try {
     const g = await game();
     g.send(m as ToServer);
     assert.equal((await g.next('rejected')).reason, reason);
+    // The socket closes with the reason's own code, for the logs.
+    assert.equal(await g.closed, closeCode(reason));
   }
 
   // HOST, then JOIN by its code; the host hears who joined.
@@ -134,9 +138,26 @@ try {
   assert.deepEqual(await a.next('left', 8000), { type: 'left', id: 2 });
   a.send({ type: 'leave' });
   await a.closed;
+  // Its code now says the session has ended (an unknown code says there's none, above).
   const late = await game();
   late.send({ type: 'join', protocol: PROTOCOL, name: 'B', code: wa.code });
-  assert.equal((await late.next('rejected')).reason, 'no-session');
+  assert.equal((await late.next('rejected')).reason, 'ended');
+
+  // The same name twice gets a number. The host drops and comes back from a new tab (no token) while the other is
+  // still in a full session: under the same name it takes its own place back, not "full".
+  const geo = await game();
+  geo.send({ ...host, name: 'geo' });
+  const wg = await geo.next('welcome');
+  const twin = await game();
+  twin.send({ type: 'join', protocol: PROTOCOL, name: 'geo', code: wg.code });
+  await twin.next('welcome');
+  assert.equal((await geo.next('joined')).name, 'geo (2)');
+  geo.ws.close();
+  await geo.closed;
+  const newTab = await game();
+  newTab.send({ type: 'join', protocol: PROTOCOL, name: 'geo', code: wg.code });
+  assert.equal((await newTab.next('welcome')).you, wg.you);
+  await twin.none('joined');
 
   // HOST from a save: the paint is there for the next player.
   const h = await game();
@@ -178,4 +199,7 @@ try {
 } finally {
   server.kill();
 }
-assert.match(log.join(''), /hosted: demo at 48 texels\/m/);
+const lines = log.join('');
+assert.match(lines, /[A-Z]{5} hosted by \S+: demo at 48 texels\/m/);
+// A player who left isn't also logged as dropped.
+assert.doesNotMatch(lines, /"A" #1 out: left[^]*"A" #1 dropped/);

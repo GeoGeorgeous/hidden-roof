@@ -6,6 +6,7 @@
 // Usage: npm run test:mp (builds the server first)
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import net from 'node:net';
 import { gameReady, openTestBrowser } from './test-browser.mjs';
 
 const PORT = 3997;
@@ -101,6 +102,28 @@ try {
   await a.waitForFunction(() => window.game.net.status.state === 'failed' && window.game.net.status.reason === 'ended', null, { timeout: 15000 });
   assert.equal(await a.evaluate(() => window.game.session.multiplayer), false);
   assert.match(await a.textContent('.overlay .status'), /THE SESSION HAS ENDED/);
+
+  // No server: the game asks over HTTP why it can't connect, and says the server is down.
+  server.kill();
+  const failed = async () => {
+    await a.waitForFunction(() => window.game.net.status.state === 'failed', null, { timeout: 15000 });
+    return a.evaluate(() => window.game.net.status);
+  };
+  await a.evaluate(() => window.game.net.host('A', 48));
+  const down = await failed();
+  assert.equal(down.reason, 'server-down', JSON.stringify(down));
+  assert.match(await a.textContent('.overlay .status'), /THE GAME SERVER IS DOWN \(HTTP 5\d\d · WS \d+\)/);
+  // A server that takes the connection and never answers: the game gives up after NET.connectTimeout.
+  const held = new Set();
+  const silent = net.createServer((socket) => held.add(socket)).listen(PORT);
+  await a.evaluate(() => ((window.game.config.NET.connectTimeout = 1), window.game.net.host('A', 48)));
+  assert.equal((await failed()).reason, 'timeout');
+  // Its connections too, or they'd keep this process running.
+  for (const socket of held) socket.destroy();
+  silent.close();
+  // All of it is in the network log the menu copies.
+  const log = await a.evaluate(() => window.game.net.log.text());
+  for (const seen of ['connecting to ws://', 'in session', 'closed: ', 'asked the server over HTTP: server-down', 'no answer in 1 s', 'status: failed timeout']) assert.ok(log.includes(seen), `the log has "${seen}"`);
   for (const p of [a, b]) assert.deepEqual(p.errors, []);
   console.log('multiplayer: ok');
 } finally {

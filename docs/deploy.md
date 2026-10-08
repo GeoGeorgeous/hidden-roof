@@ -89,7 +89,10 @@ The design is in `docs/multiplayer-audit.md` (sections 0, 4, 5, 6.4, 7, 8). The 
 ```
 
 - **Deploy it by hand** (not automated, by choice), from the same commit as the client: `git pull` in `<apps>/roof/repo`, then `docker compose up -d --build roof` from `<apps>`. Then add the `/ws` handle to the Caddy block (section 5) and reload Caddy, the first time.
-- `/healthz` answers `ok, <n> sessions`. The log has a line per session hosted (its detail and paint memory), player joined, and session closed.
+- `/healthz` answers `ok, <n> sessions` (for Docker). A plain GET at `/ws` answers `roof server · protocol <n>`: a game that can't open its WebSocket asks there to tell "server down" (Caddy's 502) from "socket blocked" and from another version, so the `/ws` handle must pass plain requests too (it does).
+- **The log** (`docker compose logs -t roof`): one line per event, the session's code first (`-----` before there is one): server start; host (IP, level, detail, paint memory, session count); a player in (`new`, `back` with their token, or `takeover` by name from a new tab) or turned away (the reason); dropped (WebSocket close code); out (left, or didn't come back in 60 s); session closed; bad message; server error (with the stack). IPs come from Caddy's `X-Forwarded-For`.
+- **Close codes:** a turned-away socket closes with 4001–4008 (`closeCode` in `src/net/protocol.ts`: version, no-session, ended, full, bad-save, bad-level, busy, replaced); 1008 a bad message, 1011 a server error.
+- Players report problems with COPY NETWORK LOG (menu): their side of it, with close codes, timings and what `/ws` answered.
 - **State in RAM only:** no database, no disk, no accounts. **Restarting `roof` ends every live session** (accepted); the games then say the session has ended. Caddy reloads don't, thanks to `stream_close_delay`.
 - Single instance: no sticky sessions, no shared store.
 - Sessions:
@@ -98,7 +101,7 @@ The design is in `docs/multiplayer-audit.md` (sections 0, 4, 5, 6.4, 7, 8). The 
   - The host picks PAINT DETAIL (LOW to ULTRA) and it's locked for the session; the server keeps the paint at that detail.
   - Players give a name on HOST and JOIN.
   - A dropped player has 60 s to reconnect (the game retries on its own, and a reload goes back in), then their ladder goes. A session with no one left closes.
-- Sizes: a save uploaded on HOST and the join snapshot are single messages of up to ~30 MB; `maxPayload` is 64 MiB. Paint is `Uint8Array`, outside the V8 heap, so no `--max-old-space-size`. Measured in Node for the demo level fully painted: 28 MB at LOW, 104 MEDIUM, 230 HIGH, 405 ULTRA. A session costs ~15–25 MB before any paint (the level's geometry); past 1 GB in use (`SERVER.hostMemory`) the server takes no new sessions ("the server is full").
+- Sizes: a save uploaded on HOST and the join snapshot are single messages of up to ~30 MB; `maxPayload` is 64 MiB. Paint is `Uint8Array`, outside the V8 heap, so no `--max-old-space-size`. Measured in Node for the demo level fully painted: 28 MB at LOW, 104 MEDIUM, 230 HIGH, 405 ULTRA. A session costs ~15–25 MB before any paint (the level's geometry); past 1 GB of live data (JS heap and paint buffers, `SERVER.hostMemory`; not RSS, which stays up after sessions end) the server takes no new sessions ("the server is full"). A stopped or restarted process gives all of it back.
 - Hardened against bad input: a message it can't handle closes that player's link, never the process; a paint file whose header claims more paint than the level can hold is refused before anything is allocated; a level is checked prop by prop (at most 5000).
 
 ## 7. After a deploy

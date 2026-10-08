@@ -59,6 +59,8 @@ export class Hud {
   onLoadPaint = () => {};
   /** MULTIPLAYER (opens its page, net/net-menu.ts) and LEAVE SESSION. */
   onLeave = () => {};
+  /** COPY NETWORK LOG, in a session (net/net-menu.ts). */
+  onCopyNetLog = () => {};
   private overlay: HTMLElement;
   private status: HTMLElement;
   private exitFs: HTMLElement;
@@ -66,6 +68,7 @@ export class Hud {
   private loadPaint: HTMLElement;
   private multiplayer: HTMLElement;
   private leave: HTMLElement;
+  private netLog: HTMLElement;
   /** The multiplayer session's code while in one. */
   private session: string | null = null;
   private resume: HTMLElement;
@@ -127,6 +130,7 @@ export class Hud {
           <button class="load-paint">&gt; LOAD PAINT</button>
           <button class="multiplayer">&gt; MULTIPLAYER</button>
           <button class="leave">&gt; LEAVE SESSION</button>
+          <button class="net-log">&gt; COPY NETWORK LOG</button>
           <button class="open-settings">&gt; SETTINGS</button>
           <button class="exit-fs">&gt; EXIT FULLSCREEN</button>
         </div>
@@ -192,6 +196,8 @@ export class Hud {
       e.preventDefault();
       this.onLeave();
     });
+    this.netLog = root.querySelector('.net-log')!;
+    this.netLog.addEventListener('click', () => this.onCopyNetLog());
     document.addEventListener('fullscreenchange', () => this.syncMenu());
     this.syncMenu();
   }
@@ -242,7 +248,7 @@ export class Hud {
     // Nothing to save on the title screen; LOAD can come first. In a session, the server's paint is everyone's: no LOAD.
     this.savePaint.hidden = !this.started && !this.session;
     this.loadPaint.hidden = this.multiplayer.hidden = !!this.session;
-    this.leave.hidden = !this.session;
+    this.leave.hidden = this.netLog.hidden = !this.session;
   }
 
   /** In a multiplayer session (its code) or not (null): the menu offers LEAVE SESSION instead of LOAD and MULTIPLAYER. */

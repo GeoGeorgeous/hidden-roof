@@ -738,6 +738,10 @@ export const NET = {
   teleport: 2,
   /** A player's name tag hangs this high over their feet (m). */
   nameplateHeight: 2.1,
+  /** HOST or JOIN with no answer from the server for this long (s) gives up (a reconnect tries again). */
+  connectTimeout: 15,
+  /** Network log entries kept for COPY NETWORK LOG (net/diagnostics.ts). */
+  logLines: 80,
 };
 
 /** The multiplayer server (server/, docs/deploy.md). */
@@ -753,8 +757,10 @@ export const SERVER = {
   dripRate: 30,
   /** The largest message (bytes): a paint save HOST uploads is ~30 MB for a heavily painted ULTRA level. */
   maxPayload: 64 * 2 ** 20,
-  /** No new session once the server uses this much memory (MB); its container may use 1536 (docs/deploy.md). */
+  /** No new session once the server's live data (JS objects and paint) takes this much memory (MB); its container may use 1536 (docs/deploy.md). */
   hostMemory: 1024,
+  /** Codes of ended sessions are remembered this long (s): joining one says it has ended, not that there's no such code. */
+  endedMemory: 3600,
 };
 
 /** F3 -> Ghost (src/dev/ghost.ts): the network it plays through, and how far behind it follows you. */

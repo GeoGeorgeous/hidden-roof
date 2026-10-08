@@ -1,5 +1,5 @@
 import { PAINT } from '../config';
-import { pickFile } from '../files';
+import { download, pickFile, stamp } from '../files';
 import type { Hud } from '../hud';
 import type { Hotbar } from '../inventory/hotbar';
 import { savePaint } from '../save/save-paint';
@@ -31,8 +31,12 @@ const STATUS: Record<string, string> = {
   'bad-level': "THIS LEVEL CAN'T BE HOSTED",
   busy: 'THE SERVER IS FULL: TRY AGAIN LATER',
   replaced: 'THIS SESSION WAS OPENED IN ANOTHER TAB',
-  unreachable: "CAN'T REACH THE SERVER",
   ended: 'THE SESSION HAS ENDED',
+  timeout: "THE SERVER DIDN'T ANSWER",
+  offline: "CAN'T REACH THE SITE: CHECK YOUR CONNECTION",
+  'server-down': 'THE GAME SERVER IS DOWN',
+  'no-server': 'NO GAME SERVER AT THIS ADDRESS',
+  blocked: 'THE SERVER IS UP BUT THE CONNECTION FAILED (A PROXY, FIREWALL OR EXTENSION?)',
 };
 
 export function multiplayerMenu(hud: Hud, hotbar: Hotbar, ctx: MultiplayerContext, levelName: () => string) {
@@ -71,7 +75,16 @@ export function multiplayerMenu(hud: Hud, hotbar: Hotbar, ctx: MultiplayerContex
     rows.replaceChildren(...els);
     say('');
   };
-  const choose = () => show(row('', button('> HOST A SESSION', host), button('> JOIN A SESSION', join), button('< BACK', () => hud.openPage(null))));
+  const choose = () => show(row('', button('> HOST A SESSION', host), button('> JOIN A SESSION', join), button('< BACK', () => hud.openPage(null))), row('', button('> COPY NETWORK LOG', copyLog)));
+  /** The network log to the clipboard, for a report; a file where the clipboard is out of reach. */
+  const copyLog = () => {
+    const text = net.log.text();
+    const done = (how: string) => (say(how), hud.notice(how));
+    navigator.clipboard.writeText(text).then(
+      () => done('NETWORK LOG COPIED'),
+      () => (download(new Blob([text], { type: 'text/plain' }), `roof-network-${stamp(new Date())}.txt`), done('NETWORK LOG SAVED AS A FILE')),
+    );
+  };
   const host = () => {
     detail = PAINT.texelsPerMeter;
     const detailRow = choice('PAINT DETAIL', () => `${DETAILS.find(([, t]) => t === detail)![0].toUpperCase()}  ${(100 / detail).toFixed(1)} CM`, (d) => (detail = cycle(DETAILS.map(([, t]) => t), detail, d)), 'Everyone in the session paints at this detail.');
@@ -103,13 +116,17 @@ export function multiplayerMenu(hud: Hud, hotbar: Hotbar, ctx: MultiplayerContex
 
   net.onStatus = (s: NetStatus) => {
     hud.setSession(s.state === 'in' || s.state === 'reconnecting' ? s.code : null);
-    const text = s.state === 'failed' ? STATUS[s.reason] : STATUS[s.state];
+    const known = s.state === 'failed' ? STATUS[s.reason] : STATUS[s.state];
+    // What was seen (a close code, an HTTP status, tries) goes along, for reports.
+    const detail = s.state === 'failed' || s.state === 'reconnecting' ? s.detail : undefined;
+    const text = known && detail ? `${known} (${detail})` : known;
     say(text ?? '');
     if (text) hud.notice(text, s.state === 'connecting' || s.state === 'reconnecting' ? Infinity : undefined);
     else if (s.state === 'in') hud.notice(`SESSION · ${s.code}`, 0);
   };
   net.onPlayer = (who, joined) => hotbar.toast(`${who} ${joined ? 'joined' : 'left'}`);
   hud.onLeave = () => net.leave();
+  hud.onCopyNetLog = copyLog;
   // SAVE PAINT in a session downloads the session's paint, from the server.
   const local = hud.onSavePaint;
   hud.onSavePaint = () => (net.inSession ? net.requestSave() : local());
