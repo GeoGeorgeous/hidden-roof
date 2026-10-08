@@ -875,8 +875,8 @@ Phases 0–3 are done on `feat/multiplayer`: every step in section 7 through pha
 
 ## 8. Still open
 
-Everything asked so far is answered in section 0. These have suggested defaults and can be settled when their phase starts:
+Everything asked so far is answered in section 0. These three were settled on 2026-10-08:
 
-1. **PAINT DETAIL during a session.** Lock it, so a change applies when you leave (6.6)? Suggested: yes.
-2. **Reconnects.** How long should a dropped player's ladder (and an empty session) wait for them to come back? Suggested: 60 s.
-3. **Names.** Ask for a name on HOST and JOIN and show it as a nameplate? Suggested: yes, remembered in this browser.
+1. **PAINT DETAIL during a session.** Decided 2026-10-08: the host picks PAINT DETAIL on HOST, and it's locked for the session. This goes further than 6.6 (lock only); whether the server's paint follows the host's pick instead of a fixed 96 (decision 2) is settled in phase 4.
+2. **Reconnects.** Decided 2026-10-08: a dropped player has 60 s to come back. After that their ladder is removed, and a session with no one connected is closed. A session with someone still connected continues (decision 16).
+3. **Names.** Decided 2026-10-08: yes, a name is asked on HOST and JOIN and shown as a nameplate.
