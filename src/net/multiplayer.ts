@@ -1,0 +1,260 @@
+import type * as THREE from 'three';
+import { NET, SERVER } from '../config';
+import type { Inventory } from '../inventory/inventory';
+import type { Level, LevelData } from '../level/level';
+import type { PaintDrips } from '../paint-drips';
+import type { PaintOp, PaintOps } from '../paint-ops';
+import type { PaintSystem } from '../painting';
+import type { Player } from '../player';
+import { loadPaint } from '../save/load-paint';
+import { surfaceTable } from '../save/shape';
+import { session } from '../session';
+import type { Tools } from '../tools/tools';
+import { decode, encode, PROTOCOL, type Rejection, type ToClient, type ToServer } from './protocol';
+import { RemotePlayer } from './remote-player';
+import { capture, encodeSnapshot } from './snapshot';
+
+// This game in a multiplayer session (server/, protocol.ts): HOST or JOIN,
+// then NET.sendRate times a second this player's snapshot and the paint ops
+// they made since, and their stepladder when it moves; the others come in as
+// remote players. The welcome brings the session's level, PAINT DETAIL and
+// paint. A dropped link is retried with the player's token for as long as the
+// server keeps them (SERVER.rejoinWindow); the token is kept in sessionStorage,
+// so a reload comes back too, and each tab is its own player.
+
+export interface MultiplayerContext {
+  scene: THREE.Scene;
+  level: Level;
+  paint: PaintSystem;
+  paintOps: PaintOps;
+  drips: PaintDrips;
+  player: Player;
+  inventory: Inventory;
+  tools: Tools;
+  /** The level as a file, and its name (what HOST starts the session on). */
+  levelData(): { data: LevelData; name: string };
+  /** Play this level (the session's), from its spawn, with the starting kit. */
+  openLevel(data: LevelData, name: string): void;
+  /** Hold PAINT DETAIL at the session's (texels per meter), or give it back (null). */
+  lockDetail(tpm: number | null): void;
+}
+
+/** What the player sees of the link: shown on the menus. */
+export type NetStatus = { state: 'off' } | { state: 'connecting' } | { state: 'in'; code: string } | { state: 'reconnecting'; code: string } | { state: 'failed'; reason: Rejection | 'unreachable' | 'ended' };
+
+const KEY = 'roofhiddenhaus.session';
+const now = () => performance.now() / 1000;
+const ownerOf = (id: number) => `player${id}`;
+
+export class Multiplayer {
+  status: NetStatus = { state: 'off' };
+  onStatus: (s: NetStatus) => void = () => {};
+  /** The session's paint as a file (SAVE). */
+  onSave: (bytes: Uint8Array, levelName: string) => void = () => {};
+  readonly names = new Map<number, string>();
+  private ws: WebSocket | null = null;
+  private remotes = new Map<number, RemotePlayer>();
+  /** Who we are, once welcomed, and how to come back. */
+  private joined: { code: string; token: string; name: string; you: number; levelName: string } | null = null;
+  /** Messages are handled one at a time, in order (a welcome loads paint before what follows it). */
+  private queue = Promise.resolve();
+  private t0 = 0;
+  private nextSend = 0;
+  private lastHeard = 0;
+  private ops: PaintOp[] = [];
+  private opTimes: number[] = [];
+  private ladderId: number | undefined;
+  private retry: { until: number; wait: number } | null = null;
+  /** The name we go by in the session. */
+  private name = '';
+
+  constructor(private g: MultiplayerContext) {
+    g.tools.ladder.others = () => [...this.remotes.values()].filter((r) => r.avatar.group.visible).map((r) => r.position);
+  }
+
+  get inSession() {
+    return this.joined !== null;
+  }
+
+  /** Start a session on this level at this PAINT DETAIL, from a paint save or clean. */
+  host(name: string, detail: number, save?: Uint8Array) {
+    const { data, name: levelName } = this.g.levelData();
+    this.connect({ type: 'host', protocol: PROTOCOL, table: surfaceTable(this.g.paint.surfaces), name, levelName, level: data, detail, bytes: save });
+  }
+
+  join(name: string, code: string) {
+    this.connect({ type: 'join', protocol: PROTOCOL, name, code });
+  }
+
+  /** Back into the session this tab was in before a reload, if the server may still have it. */
+  resume() {
+    try {
+      const s = JSON.parse(sessionStorage.getItem(KEY) ?? 'null');
+      if (s?.code && s.token) this.connect({ type: 'join', protocol: PROTOCOL, name: s.name, code: s.code, token: s.token });
+    } catch {
+      // No storage (private mode): a reload starts single player.
+    }
+  }
+
+  /** SAVE: the server sends the session's paint (onSave). */
+  requestSave() {
+    this.send({ type: 'save' });
+  }
+
+  leave() {
+    this.send({ type: 'leave' });
+    this.end({ state: 'off' });
+  }
+
+  /** Once a frame: send this player's state and paint, show the others. */
+  update(dt: number) {
+    const t = now();
+    for (const r of this.remotes.values()) r.update(t, dt);
+    if (!this.joined || this.ws?.readyState !== WebSocket.OPEN) return;
+    if (t - this.lastHeard > SERVER.ping * 3) return this.ws.close();
+    const at = t - this.t0;
+    const log = this.g.paint.log!;
+    for (const op of log) this.ops.push(op), this.opTimes.push(at);
+    log.length = 0;
+    const id = this.g.level.runtimeOf(session.player);
+    if (id !== this.ladderId) {
+      this.ladderId = id;
+      const p = id === undefined ? undefined : this.g.level.props.get(id);
+      this.send({ type: 'ladder', t: at, data: p ? { type: p.type, pos: [...p.pos], rot: p.rot } : null });
+    }
+    if (t < this.nextSend) return;
+    this.nextSend = Math.max(this.nextSend + 1 / NET.sendRate, t);
+    this.send({ type: 'state', bytes: encodeSnapshot(capture(at, this.g.player, this.g.inventory, this.g.tools)) });
+    if (!this.ops.length) return;
+    this.send({ type: 'ops', t: this.opTimes, ops: this.ops });
+    this.ops = [];
+    this.opTimes = [];
+  }
+
+  private connect(hello: Extract<ToServer, { type: 'host' | 'join' }>) {
+    this.ws?.close();
+    this.name = hello.name;
+    const ws = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
+    ws.binaryType = 'arraybuffer';
+    this.ws = ws;
+    if (!this.joined) this.setStatus({ state: 'connecting' });
+    ws.onopen = () => ws.send(encode(hello));
+    ws.onmessage = (e) => {
+      if (this.ws !== ws) return;
+      this.lastHeard = now();
+      const m = decode(new Uint8Array(e.data as ArrayBuffer)) as ToClient | null;
+      if (m) this.queue = this.queue.then(() => this.receive(m)).catch((err) => console.error(err));
+    };
+    ws.onclose = () => {
+      if (this.ws !== ws) return;
+      this.ws = null;
+      this.dropped();
+    };
+  }
+
+  /** The link closed: try again with our token while the server keeps us; never welcomed: give up. */
+  private dropped() {
+    const j = this.joined;
+    if (!j) return this.setStatus({ state: 'failed', reason: 'unreachable' });
+    if (this.status.state !== 'reconnecting') this.retry = { until: now() + SERVER.rejoinWindow, wait: 1 };
+    const r = this.retry!;
+    if (now() > r.until) return this.end({ state: 'failed', reason: 'ended' });
+    this.setStatus({ state: 'reconnecting', code: j.code });
+    setTimeout(() => this.joined === j && !this.ws && this.connect({ type: 'join', protocol: PROTOCOL, name: j.name, code: j.code, token: j.token }), r.wait * 1000);
+    r.wait = Math.min(r.wait * 2, 8);
+  }
+
+  private async receive(m: ToClient) {
+    if (m.type === 'welcome') return this.welcome(m);
+    if (m.type === 'rejected') {
+      // A session that's gone (the server restarted) while we were coming back: it ended.
+      const ended = this.joined && m.reason === 'no-session';
+      return this.end({ state: 'failed', reason: ended ? 'ended' : m.reason });
+    }
+    if (!this.joined) return;
+    if (m.type === 'state') this.remotes.get(m.id)?.receive(m.bytes, now());
+    else if (m.type === 'ops') {
+      const r = this.remotes.get(m.id);
+      m.ops.forEach((op, i) => r?.receiveOp(m.t[i], op));
+    } else if (m.type === 'ladder') this.remotes.get(m.id)?.receiveLadder(m.t, m.data);
+    else if (m.type === 'joined') this.addRemote(m.id, m.name);
+    else if (m.type === 'left') this.removeRemote(m.id);
+    else if (m.type === 'save') this.onSave(m.bytes, this.joined.levelName);
+  }
+
+  private async welcome(w: Extract<ToClient, { type: 'welcome' }>) {
+    const g = this.g;
+    if (this.joined?.code !== w.code) {
+      g.lockDetail(w.detail);
+      g.openLevel(w.level, w.levelName);
+      if (surfaceTable(g.paint.surfaces) !== w.table) {
+        this.send({ type: 'leave' });
+        return this.end({ state: 'failed', reason: 'version' });
+      }
+      this.t0 = now();
+    }
+    // The session's paint replaces ours; what we painted while the link was down is gone with it.
+    await loadPaint(g.paint, g.drips, w.bytes, { name: w.levelName });
+    const name = this.name;
+    this.joined = { code: w.code, token: w.token, name, you: w.you, levelName: w.levelName };
+    try {
+      sessionStorage.setItem(KEY, JSON.stringify({ code: w.code, token: w.token, name }));
+    } catch {
+      // No storage: a reload won't come back.
+    }
+    session.multiplayer = true;
+    session.player = ownerOf(w.you);
+    for (const id of [...this.remotes.keys()]) this.removeRemote(id);
+    for (const p of w.players) this.addRemote(p.id, p.name);
+    for (const l of w.ladders) g.level.setRuntime(ownerOf(l.id), l.data);
+    g.paint.log = [];
+    this.ops = [];
+    this.opTimes = [];
+    this.ladderId = g.level.runtimeOf(session.player);
+    this.nextSend = 0;
+    this.setStatus({ state: 'in', code: w.code });
+  }
+
+  private addRemote(id: number, name: string) {
+    this.names.set(id, name);
+    this.remotes.set(id, new RemotePlayer(this.g.scene, this.g.level, this.g.paintOps, ownerOf(id)));
+  }
+
+  private removeRemote(id: number) {
+    this.remotes.get(id)?.dispose();
+    this.remotes.delete(id);
+    this.names.delete(id);
+    this.g.level.setRuntime(ownerOf(id), null);
+  }
+
+  /** Out of the session: single player again, keeping the paint (SAVE PAINT still has it). */
+  private end(status: NetStatus) {
+    const ws = this.ws;
+    this.ws = null;
+    ws?.close();
+    if (this.joined) {
+      for (const id of [...this.remotes.keys()]) this.removeRemote(id);
+      this.g.level.setRuntime(session.player, null);
+      this.g.paint.log = null;
+      this.g.lockDetail(null);
+      session.multiplayer = false;
+      session.player = 'local';
+      this.joined = null;
+    }
+    try {
+      sessionStorage.removeItem(KEY);
+    } catch {
+      // No storage.
+    }
+    this.setStatus(status);
+  }
+
+  private send(m: ToServer) {
+    if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(encode(m));
+  }
+
+  private setStatus(s: NetStatus) {
+    this.status = s;
+    this.onStatus(s);
+  }
+}

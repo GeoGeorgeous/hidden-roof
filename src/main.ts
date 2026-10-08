@@ -42,6 +42,8 @@ import { textAtlasVersion } from './render/ink/text-atlas';
 import { staticTextureBytes } from './render/texture-bytes';
 import type { DevTools } from './dev/devtools';
 import { session } from './session';
+import { Multiplayer } from './net/multiplayer';
+import { download, stamp } from './files';
 import { exitGameFullscreen } from './fullscreen';
 import { setHex } from './hex-color';
 import { seedPaintRandom } from './lcg';
@@ -115,6 +117,8 @@ const inventory = new Inventory();
 const hotbar = new Hotbar(new Thumbnails(renderer));
 const tools = new Tools(scene, viewScene, paint, level.solids, audio, inventory, level);
 tools.ladder.onBlocked = () => hotbar.toast("The ladder can't stand there");
+const net = new Multiplayer({ scene, level, paint, paintOps, drips, player, inventory, tools, levelData: () => ({ data: levelData(), name: levelName }), openLevel, lockDetail: (tpm) => settings.lockPaintDetail(tpm) });
+net.onSave = (bytes, name) => download(new Blob([bytes as BlobPart]), `${name}-${stamp(new Date())}.rhhpaint`);
 const wallHand = new WallHand(level.solids);
 viewScene.add(wallHand.group);
 const pickups = new Pickups(scene);
@@ -162,7 +166,11 @@ function openLevel(data: LevelData, name: string) {
 let levelName = new URLSearchParams(location.search).get('level') ?? 'demo';
 // Signs measure their text when they are built: wait for the sign font first.
 Promise.all([fetchLevel(levelName), jpFontReady()])
-  .then(([data]) => loadLevel(data))
+  .then(([data]) => {
+    loadLevel(data);
+    // A reload in a session goes back into it (multiplayer.ts).
+    net.resume();
+  })
   .catch((e) => console.error(e));
 
 let lastStride = 0;
@@ -294,6 +302,7 @@ function frame(time: number) {
     drips.update(dt);
     pickups.update(dt, player.position, inventory);
   } else if (!building) tools.holdStill(camera);
+  net.update(dt);
   const tool = building ? null : inventory.tool;
   hud.setCrosshair(tools.crosshair(tool));
   const anchor = tools.labelAnchor(tagPos);
@@ -370,5 +379,5 @@ function toScreen(p: THREE.Vector3) {
 
 // Dev tools (build mode, F3, window.game) only in single player; the multiplayer build (npm run build:mp) leaves them out.
 let dev: DevTools | undefined;
-const game = { city: () => skyline, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, hotbar, pickups, paint, paintOps, paintFile, seedPaintRandom, fixedStep, session, level, renderer, input, hud, scene, viewScene, gpuTimer, PLAYER, loadLevel, rebuildCity, levelData, openLevel };
+const game = { city: () => skyline, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, hotbar, pickups, paint, paintOps, net, paintFile, seedPaintRandom, fixedStep, session, level, renderer, input, hud, scene, viewScene, gpuTimer, PLAYER, loadLevel, rebuildCity, levelData, openLevel };
 if (import.meta.env.VITE_MP !== '1') void import('./dev/devtools').then((m) => (dev = new m.DevTools(game)));

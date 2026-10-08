@@ -57,6 +57,8 @@ export class Settings {
   private city: CityDetail;
   /** The city detail the current city was built with. */
   private builtCity: CityDetail;
+  /** In a multiplayer session: the host's PAINT DETAIL, which holds whatever is picked here. */
+  private locked: PaintDetail | null = null;
 
   /**
    * `applyResolution` resizes the renderer after the pixel scale changed,
@@ -140,8 +142,12 @@ export class Settings {
         // Stamping and uploading paint grow with the square (ULTRA 16x LOW), and paint memory; drawing doesn't.
         cost: 'MEDIUM',
         // Shown with the size of one paint texel.
-        value: () => `${this.detail.toUpperCase()}  ${(100 / PAINT_DETAIL[this.detail]).toFixed(1)} CM`,
+        value: () => {
+          const d = this.locked ?? this.detail;
+          return `${d.toUpperCase()}  ${(100 / PAINT_DETAIL[d]).toFixed(1)} CM${this.locked ? '  (HOST)' : ''}`;
+        },
         step: (d) => {
+          if (this.locked) return;
           this.detail = cycle(DETAIL_ORDER, this.detail, d);
           this.save();
         },
@@ -180,10 +186,20 @@ export class Settings {
       Object.assign(SKYLINE, CITY_DETAIL[this.city]);
       this.applyCityDetail();
     }
-    const tpm = PAINT_DETAIL[this.detail];
+    const tpm = PAINT_DETAIL[this.locked ?? this.detail];
     if (tpm === PAINT.texelsPerMeter) return;
     PAINT.texelsPerMeter = tpm;
     this.applyPaintDetail();
+  }
+
+  /**
+   * Hold PAINT DETAIL at a multiplayer session's (texels per meter): set at
+   * once, for the session's level to be built with. Null: back to this
+   * player's own, applied when the game resumes.
+   */
+  lockPaintDetail(tpm: number | null) {
+    this.locked = tpm === null ? null : DETAIL_ORDER.find((k) => PAINT_DETAIL[k] === tpm)!;
+    if (this.locked) PAINT.texelsPerMeter = tpm!;
   }
 
   private save() {

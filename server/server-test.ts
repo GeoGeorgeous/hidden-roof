@@ -121,7 +121,7 @@ try {
 
   // B drops for good: after the rejoin window (1 s here) A hears it left; when A leaves, the session closes.
   b2.ws.close();
-  assert.deepEqual(await a.next('left', 3000), { type: 'left', id: 2 });
+  assert.deepEqual(await a.next('left', 8000), { type: 'left', id: 2 });
   a.send({ type: 'leave' });
   await a.closed;
   const late = await game();

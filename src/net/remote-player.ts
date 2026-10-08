@@ -66,7 +66,9 @@ export class RemotePlayer {
   receive(bytes: Uint8Array, now: number) {
     const s = decodeSnapshot(bytes);
     const last = this.snaps[this.snaps.length - 1];
-    if (last && s.t <= last.t) return;
+    // Their clock started over (they reloaded the page and came back): follow the new one.
+    if (last && s.t < last.t - 1) this.reset();
+    else if (last && s.t <= last.t) return;
     // Drifts up slowly, so a link that got slower is followed, not just a faster one.
     const sample = now - s.t;
     if (this.lag === null) {

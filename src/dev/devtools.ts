@@ -89,9 +89,11 @@ export class DevTools {
     this.build.onLoad = g.openLevel;
     this.figure = new AvatarPreview(g.scene);
     this.ghost = new Ghost(g);
+    // The ghost, besides the players of a session (net/multiplayer.ts).
+    const players = g.tools.ladder.others;
     g.tools.ladder.others = () => {
       const p = this.ghost.position;
-      return p ? [p] : [];
+      return p ? [...players(), p] : players();
     };
     Object.assign(live, {
       gpu: (label: string) => g.gpuTimer.read(label),
