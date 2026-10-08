@@ -21,7 +21,8 @@ const server = http.createServer((req, res) => {
 const wss = new WebSocketServer({ server, path: '/ws', maxPayload: SERVER.maxPayload, perMessageDeflate: true });
 
 wss.on('connection', (ws) => {
-  const link: Link = { send: (f) => ws.readyState === ws.OPEN && ws.send(f), close: () => ws.close() };
+  // Paint files (welcome, SAVE) are compressed already: only smaller frames go through the socket's compression.
+  const link: Link = { send: (f) => ws.readyState === ws.OPEN && ws.send(f, { compress: f.length < 65536 }), close: () => ws.close() };
   let alive = true;
   ws.on('pong', () => (alive = true));
   const beat = setInterval(() => {
@@ -36,16 +37,22 @@ wss.on('connection', (ws) => {
     ws.close();
   };
   ws.on('message', async (data: Buffer) => {
-    const m = checkToServer(decode(new Uint8Array(data.buffer, data.byteOffset, data.byteLength)));
-    if (!m) return ws.close(1008, 'bad message');
-    if (at === 'waiting') return;
-    if (at) return at.session.receive(at.player, m);
-    if (m.type !== 'host' && m.type !== 'join') return;
-    at = 'waiting';
-    const r = await enter(m, link);
-    if (typeof r === 'string') return reject(r);
-    at = r;
-    if (ws.readyState !== ws.OPEN) r.session.dropped(r.player, link);
+    // A message the server can't handle closes that one link, never the server and everyone's sessions.
+    try {
+      const m = checkToServer(decode(new Uint8Array(data.buffer, data.byteOffset, data.byteLength)));
+      if (!m) return ws.close(1008, 'bad message');
+      if (at === 'waiting') return;
+      if (at) return at.session.receive(at.player, m);
+      if (m.type !== 'host' && m.type !== 'join') return;
+      at = 'waiting';
+      const r = await enter(m, link);
+      if (typeof r === 'string') return reject(r);
+      at = r;
+      if (ws.readyState !== ws.OPEN) r.session.dropped(r.player, link);
+    } catch (e) {
+      console.error(e);
+      ws.close(1011, 'server error');
+    }
   });
   ws.on('close', () => {
     clearInterval(beat);
@@ -58,11 +65,18 @@ async function enter(m: Extract<ToServer, { type: 'host' | 'join' }>, link: Link
   if (m.protocol !== PROTOCOL) return 'version';
   let session: Session;
   if (m.type === 'host') {
+    // Each session costs ~15-25 MB before any paint (measured on the demo level), and its paint more.
+    if (process.memoryUsage().rss > SERVER.hostMemory * 2 ** 20) return 'busy';
     const code = newCode();
-    session = new Session(code, m.levelName, m.level, m.detail, () => {
-      sessions.delete(code);
-      console.log(`${code} closed`);
-    });
+    try {
+      session = new Session(code, m.levelName, m.level, m.detail, () => {
+        sessions.delete(code);
+        console.log(`${code} closed`);
+      });
+    } catch (e) {
+      console.error(e);
+      return 'bad-level';
+    }
     if (session.table !== m.table) return 'version';
     if (m.bytes)
       try {
@@ -92,6 +106,7 @@ function newCode() {
 }
 
 setInterval(() => sessions.forEach((s) => s.tick(1 / SERVER.dripRate)), 1000 / SERVER.dripRate);
+process.on('unhandledRejection', (e) => console.error(e));
 setInterval(() => sessions.forEach((s) => s.ping()), SERVER.ping * 1000);
 // In a container this is PID 1, which has no default signal handlers.
 for (const sig of ['SIGTERM', 'SIGINT']) process.on(sig, () => process.exit(0));

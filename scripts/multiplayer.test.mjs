@@ -2,14 +2,15 @@
 // window would be) against a local server (dist-server/server/main.js): HOST and
 // JOIN through the pause menu's MULTIPLAYER page, both at the host's PAINT
 // DETAIL, paint and the stepladder reaching the other player, a reload coming
-// back into the session, LEAVE SESSION.
+// back into the session, LEAVE SESSION, and a server restart ending the session.
 // Usage: npm run test:mp (builds the server first)
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { gameReady, openTestBrowser } from './test-browser.mjs';
 
 const PORT = 3997;
-const server = spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(PORT) }, stdio: ['ignore', 'ignore', 'inherit'] });
+const startServer = () => spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(PORT) }, stdio: ['ignore', 'ignore', 'inherit'] });
+let server = startServer();
 process.env.WS_TARGET = `ws://localhost:${PORT}`;
 const test = await openTestBrowser();
 
@@ -93,6 +94,13 @@ try {
   await press(b, 'LEAVE SESSION');
   await a.waitForFunction(() => window.game.net.names.size === 0, null, { timeout: 5000 });
   assert.equal(await b.evaluate(() => window.game.session.multiplayer), false);
+
+  // The server restarts (a deploy): A's game reconnects, finds its session gone, and says the session has ended.
+  server.kill();
+  server = startServer();
+  await a.waitForFunction(() => window.game.net.status.state === 'failed' && window.game.net.status.reason === 'ended', null, { timeout: 15000 });
+  assert.equal(await a.evaluate(() => window.game.session.multiplayer), false);
+  assert.match(await a.textContent('.overlay .status'), /THE SESSION HAS ENDED/);
   for (const p of [a, b]) assert.deepEqual(p.errors, []);
   console.log('multiplayer: ok');
 } finally {

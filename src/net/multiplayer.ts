@@ -153,7 +153,8 @@ export class Multiplayer {
       this.lastHeard = now();
       this.net.down += (e.data as ArrayBuffer).byteLength;
       const m = decode(new Uint8Array(e.data as ArrayBuffer)) as ToClient | null;
-      if (m) this.queue = this.queue.then(() => this.receive(m)).catch((err) => console.error(err));
+      // What this game can't take (a welcome it can't load) ends the session for it.
+      if (m) this.queue = this.queue.then(() => this.receive(m)).catch((err) => (console.error(err), this.send({ type: 'leave' }), this.end({ state: 'failed', reason: 'version' })));
     };
     ws.onclose = () => {
       if (this.ws !== ws) return;

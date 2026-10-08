@@ -20,9 +20,16 @@ export const CODE_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 const DETAILS = [24, 48, 72, 96];
 /** Player snapshot size (net/snapshot.ts). */
 export const SNAPSHOT_BYTES = 23;
+/** Most props a hosted level may have (the demo has 344): each costs the server building it. */
+const MAX_PROPS = 5000;
 
-/** Why the server turned a player away: the game says it in its own words. */
-export type Rejection = 'version' | 'no-session' | 'full' | 'bad-save';
+/**
+ * Why the server turned a player away (the game says it in its own words):
+ * another version, no session with that code, a full session, a paint file or
+ * level it can't use, the server too full for another session, or the same
+ * player come in from another tab (a duplicated tab carries the token along).
+ */
+export type Rejection = 'version' | 'no-session' | 'full' | 'bad-save' | 'bad-level' | 'busy' | 'replaced';
 
 /** Game -> server. */
 export type ToServer =
@@ -130,7 +137,19 @@ const isName = (x: unknown) => typeof x === 'string' && cleanName(x).length > 0;
 const isCode = (x: unknown) => typeof x === 'string' && x.length === CODE_LENGTH && [...x].every((c) => CODE_LETTERS.includes(c));
 const isV3 = (x: unknown) => Array.isArray(x) && x.length === 3 && x.every(isNum);
 const isRgb = (x: unknown) => isV3(x) && (x as number[]).every((c) => c >= 0 && c <= 1);
-const isLevel = (x: unknown) => isObject(x) && Array.isArray(x.props) && isObject(x.spawn);
+const isLevel = (x: unknown) => isObject(x) && isObject(x.spawn) && Array.isArray(x.props) && x.props.length <= MAX_PROPS && x.props.every(isProp);
+/** A level's prop as Level.load reads it (level.ts PropData). */
+const isProp = (x: unknown) =>
+  isObject(x) &&
+  typeof x.type === 'string' &&
+  isV3(x.pos) &&
+  (x.id === undefined || isInt(x.id)) &&
+  (x.rot === undefined || isInt(x.rot)) &&
+  (x.variant === undefined || typeof x.variant === 'string') &&
+  (x.adjust === undefined || isNum(x.adjust)) &&
+  (x.text === undefined || typeof x.text === 'string') &&
+  (x.finish === undefined || isObject(x.finish)) &&
+  (x.mirror === undefined || typeof x.mirror === 'boolean');
 /** Only a stepladder: a player places nothing else while playing. */
 const isLadder = (x: unknown) => isObject(x) && x.type === 'stepladder' && isV3(x.pos) && (x.rot === undefined || isInt(x.rot));
 
@@ -142,7 +161,8 @@ function isOp(x: unknown): x is PaintOp {
     case 'roll':
       return isV3(x.axis) && isNum(x.halfLength) && isNum(x.halfWidth) && isNum(x.edge) && isNum(x.amount) && isRgb(x.color);
     case 'drip':
-      return isNum(x.length) && isNum(x.speed) && isRgb(x.rgb);
+      // A run with no length or speed would never end.
+      return isNum(x.length) && x.length > 0 && isNum(x.speed) && x.speed > 0 && isRgb(x.rgb);
   }
   return false;
 }

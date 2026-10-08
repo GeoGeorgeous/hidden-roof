@@ -28,6 +28,9 @@ const STATUS: Record<string, string> = {
   'no-session': 'NO SESSION WITH THAT CODE',
   full: 'THAT SESSION IS FULL',
   'bad-save': "THAT PAINT FILE DOESN'T FIT THIS LEVEL",
+  'bad-level': "THIS LEVEL CAN'T BE HOSTED",
+  busy: 'THE SERVER IS FULL: TRY AGAIN LATER',
+  replaced: 'THIS SESSION WAS OPENED IN ANOTHER TAB',
   unreachable: "CAN'T REACH THE SERVER",
   ended: 'THE SESSION HAS ENDED',
 };

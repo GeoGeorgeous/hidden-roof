@@ -48,7 +48,7 @@ export async function encodePaintFile(header: Omit<PaintFileHeader, 'format' | '
 }
 
 /** The header and the paint of a save; throws an Error with a message for the player if the file is no good. */
-export async function decodePaintFile(bytes: Uint8Array): Promise<{ header: PaintFileHeader; body: Uint8Array }> {
+export async function decodePaintFile(bytes: Uint8Array, maxBytes = Infinity): Promise<{ header: PaintFileHeader; body: Uint8Array }> {
   if (bytes.length < 8 || new TextDecoder().decode(bytes.subarray(0, 4)) !== MAGIC) throw new Error('NOT A PAINT FILE');
   const length = new DataView(bytes.buffer, bytes.byteOffset).getUint32(4, true);
   let header: PaintFileHeader;
@@ -65,6 +65,8 @@ export async function decodePaintFile(bytes: Uint8Array): Promise<{ header: Pain
   if (!ok || !header.faces.every((f) => isFace(f) && typeof header.surfaces[f.surface] === 'string')) throw new Error('BROKEN PAINT FILE');
   // The header says how much paint there is: inflating stops past it (a small broken file can't fill memory).
   const size = header.faces.reduce((n, f) => n + faceBytes(f), 0);
+  // A header may claim more than memory holds (the server takes files from anyone).
+  if (size > maxBytes) throw new Error('BROKEN PAINT FILE');
   const body = await inflate(bytes.subarray(8 + length), size);
   if (body?.length !== size) throw new Error('BROKEN PAINT FILE');
   return { header, body };

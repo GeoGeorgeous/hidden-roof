@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import { PAINT } from '../src/config';
 import { levelPaintFaces } from '../src/level/prop-pieces';
 import { decode, encode, PROTOCOL, type ToClient, type ToServer } from '../src/net/protocol';
-import { decodePaintFile } from '../src/save/paint-file';
+import { decodePaintFile, encodePaintFile } from '../src/save/paint-file';
 import { surfaceTable } from '../src/save/shape';
 
 // The server (dist-server/server/main.js) against games speaking the protocol:
@@ -121,8 +121,16 @@ try {
   await a.none('joined');
   await a.none('left');
 
+  // The same player again from another tab (a duplicated tab carries the token): the old tab is told, and goes.
+  const b3 = await game();
+  b3.send({ type: 'join', protocol: PROTOCOL, name: 'B', code: wa.code, token: wb.token });
+  assert.equal((await b3.next('welcome')).you, 2);
+  assert.equal((await b2.next('rejected')).reason, 'replaced');
+  await b2.closed;
+  await a.none('left');
+
   // B drops for good: after the rejoin window (1 s here) A hears it left; when A leaves, the session closes.
-  b2.ws.close();
+  b3.ws.close();
   assert.deepEqual(await a.next('left', 8000), { type: 'left', id: 2 });
   a.send({ type: 'leave' });
   await a.closed;
@@ -135,6 +143,32 @@ try {
   h.send({ ...host, bytes: save });
   const wh = await h.next('welcome');
   assert.deepEqual((await decodePaintFile(wh.bytes)).header.faces, header.faces);
+
+  // A paint file whose header claims gigabytes is turned down, and the server goes on.
+  const bomb = await encodePaintFile({ created: '', level: { name: 'demo' }, density: 48, surfaces: { [stamp.key]: 'x' }, faces: [{ surface: stamp.key, rect: 0, w: 60000, h: 60000 }] }, new Uint8Array(0));
+  const g = await game();
+  g.send({ ...host, bytes: bomb });
+  assert.equal((await g.next('rejected')).reason, 'bad-save');
+  assert.equal((await fetch(`http://localhost:${PORT}/healthz`)).status, 200);
+
+  // Sessions at different PAINT DETAILs side by side (PAINT.texelsPerMeter is global on the server): one's paint
+  // never depends on the other's. The same stamps, interleaved with another session's, paint what they paint alone.
+  const [s48, s96, alone] = await Promise.all([game(), game(), game()]);
+  s48.send(host);
+  s96.send({ ...host, detail: 96 });
+  alone.send(host);
+  await Promise.all([s48, s96, alone].map((x) => x.next('welcome')));
+  const other = { ...stamp, u: 0.3, color: [0, 0, 1] as const };
+  for (const op of [stamp, other]) {
+    s48.send({ type: 'ops', t: [1], ops: [op] });
+    s96.send({ type: 'ops', t: [1], ops: [op] });
+    alone.send({ type: 'ops', t: [1], ops: [op] });
+  }
+  const saved = async (x: Game) => (x.send({ type: 'save' }), decodePaintFile((await x.next('save')).bytes));
+  const [p48, p96, pAlone] = await Promise.all([s48, s96, alone].map(saved));
+  assert.deepEqual([p48.header.density, p96.header.density], [48, 96]);
+  assert.deepEqual(p48.body, pAlone.body);
+  assert.ok(p96.body.length > p48.body.length * 3);
 
   // Pings keep coming; a message that isn't one closes the socket.
   await h.next('ping', 3000);

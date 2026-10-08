@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { PAINT, SERVER } from '../src/config';
 import type { LevelData, PropData } from '../src/level/level';
-import { encode, type ToClient, type ToServer } from '../src/net/protocol';
+import { cleanName, encode, type ToClient, type ToServer } from '../src/net/protocol';
 import { loadPaint } from '../src/save/load-paint';
 import { savePaint } from '../src/save/save-paint';
 import { surfaceTable } from '../src/save/shape';
@@ -52,7 +52,9 @@ export class Session {
 
   /** Start from a paint save (HOST). Throws with a message if it's no good or doesn't fit the level. */
   async load(save: Uint8Array) {
-    await loadPaint(this.world.paint, this.world.drips, save, { name: this.levelName });
+    // At most this level all painted, at the highest detail (a save may be made at any), with each face's ring.
+    const most = this.memory.full * 2 ** 20 * (96 / this.detail) ** 2 * 1.25;
+    await loadPaint(this.world.paint, this.world.drips, save, { name: this.levelName }, most);
   }
 
   /** Paint memory in MB now, and with every surface painted. */
@@ -76,12 +78,14 @@ export class Session {
     if (p) {
       if (p.expires) clearTimeout(p.expires);
       p.expires = null;
+      // Still there on another link (a duplicated tab carries the token along): that one goes, told why, so it doesn't come back.
+      p.link?.send(encode({ type: 'rejected', reason: 'replaced' }));
       p.link?.close();
       p.link = link;
     } else {
       if (this.players.size >= SERVER.maxPlayers) return null;
-      p = { id: this.nextId++, name, token: randomUUID(), link, held: null, ladder: null, expires: null };
-      this.broadcast({ type: 'joined', id: p.id, name }, p);
+      p = { id: this.nextId++, name: cleanName(name), token: randomUUID(), link, held: null, ladder: null, expires: null };
+      this.broadcast({ type: 'joined', id: p.id, name: p.name }, p);
       this.players.set(p.id, p);
     }
     p.held = [];

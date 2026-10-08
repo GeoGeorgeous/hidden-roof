@@ -15,9 +15,9 @@ export interface LoadedPaint {
   skipped: number;
 }
 
-/** Throws an Error with a message for the player if the file is no good or none of it fits this level. */
-export async function loadPaint(paint: PaintSystem, drips: PaintDrips, bytes: Uint8Array, level: { name: string }): Promise<LoadedPaint> {
-  const { header, body } = await decodePaintFile(bytes);
+/** Throws an Error with a message for the player if the file is no good or none of it fits this level; `maxBytes`: the most paint it may hold. */
+export async function loadPaint(paint: PaintSystem, drips: PaintDrips, bytes: Uint8Array, level: { name: string }, maxBytes?: number): Promise<LoadedPaint> {
+  const { header, body } = await decodePaintFile(bytes, maxBytes);
   const fits = new Map<string, PaintSurface | null>();
   const fit = (key: string) => {
     if (!fits.has(key)) {
@@ -26,7 +26,10 @@ export async function loadPaint(paint: PaintSystem, drips: PaintDrips, bytes: Ui
     }
     return fits.get(key)!;
   };
-  const targets = header.faces.map((f) => fit(f.surface));
+  const targets = header.faces.map((f) => {
+    const s = fit(f.surface);
+    return s && f.rect < s.geo.rects.length ? s : null;
+  });
   const faces = targets.filter(Boolean).length;
   if (header.faces.length && !faces) {
     const name = header.level.name.toUpperCase();

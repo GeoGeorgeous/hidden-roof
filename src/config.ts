@@ -753,6 +753,8 @@ export const SERVER = {
   dripRate: 30,
   /** The largest message (bytes): a paint save HOST uploads is ~30 MB for a heavily painted ULTRA level. */
   maxPayload: 64 * 2 ** 20,
+  /** No new session once the server uses this much memory (MB); its container may use 1536 (docs/deploy.md). */
+  hostMemory: 1024,
 };
 
 /** F3 -> Ghost (src/dev/ghost.ts): the network it plays through, and how far behind it follows you. */
