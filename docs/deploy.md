@@ -6,7 +6,7 @@ Context for the agent that deploys and runs the game on the VPS. Read it before 
 
 ## 1. Status *(changes)*
 
-- **Now:** single player only, as static files. The multiplayer server is being written on `feat/multiplayer` (phase 4 in `docs/multiplayer-audit.md`, section 7). There it runs and is tested (`npm run test:server`), but has no Dockerfile yet. Until it reaches `main`, `main` has no server.
+- **Now:** single player only, as static files. The multiplayer server is being written on `feat/multiplayer` (phase 4 in `docs/multiplayer-audit.md`, section 7). There it runs and is tested (`npm run test:server`, `npm run test:mp`), with a `Dockerfile`. Until it reaches `main`, `main` has no server.
 - **Order:** deploy single player first, then add the multiplayer server.
 - **Repo:** a GitHub repo is being created on 2026-10-08. Deploys come from `main`. Branch flow: topic branches → `dev` → `next` → `main`.
 
@@ -64,27 +64,41 @@ roof.hidden.haus {
 
 Add the `/ws` handle only once the server exists. Add a CSP (`default-src 'self'`) only after testing the game with it in a browser.
 
-## 6. The multiplayer server *(planned; changes as it's built)*
+## 6. The multiplayer server *(changes)*
 
-The design is in `docs/multiplayer-audit.md` (sections 0, 4, 5, 6.4, 7, 8).
+The design is in `docs/multiplayer-audit.md` (sections 0, 4, 5, 6.4, 7, 8). The code: `server/` (`main.ts`, `session.ts`), messages in `src/net/protocol.ts`.
 
-- One Node.js process (Node 24) with the `ws` library. TypeScript that shares modules with the client. Not Deno, Bun or Go.
-- **Bundled:** `npm run build:server` → `dist-server/server/main.js`, one file with everything in it (`vite.config.ts`: `ssr.noExternal`), so the runtime image needs no `node_modules`. `src/` uses extensionless imports, which plain Node can't resolve, hence the bundle. Run it with `node dist-server/server/main.js`; `PORT` overrides 3000. Locally, `npm run server` builds and starts it, and `npm run dev` proxies `/ws` to it.
-- Planned: a two-stage Dockerfile (build stage `npm ci` + `npm run build:server`, runtime stage `node:24-slim` with only `main.js`).
-- Compose service `roof` on the compose network, built from `<apps>/roof/repo`, listening on 3000. **No `ports:`**: Caddy reaches it by name, and published ports would bypass the firewall.
-  - `restart: unless-stopped`, `mem_limit: 1536m`.
-  - Logging: json-file with `max-size: 10m` and `max-file: "3"`.
-  - Healthcheck on `/healthz` (answers `ok, <n> sessions`). The slim image has no curl: `node -e "fetch('http://localhost:3000/healthz').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"`.
-- **State in RAM only:** no database, no disk, no accounts. **Restarting `roof` ends every live session** (accepted). Caddy reloads don't, thanks to `stream_close_delay`.
+- One Node.js process (Node 24) with the `ws` library, TypeScript that shares modules with the client.
+- **Bundled:** `npm run build:server` → `dist-server/server/main.js`, one file with everything in it (`vite.config.ts`: `ssr.noExternal`). `src/` uses extensionless imports, which plain Node can't resolve, hence the bundle. `PORT` overrides 3000. Locally, `npm run server` builds and starts it, and `npm run dev` proxies `/ws` to it.
+- **Image:** the repo's `Dockerfile`, two stages: `npm ci` + `npm run build:server`, then `node:24-slim` with only `main.js`, as user `node`. No `node_modules` at runtime.
+- **Compose service** in `the host's compose file`. **No `ports:`**: Caddy reaches it by name on the compose network, and published ports would bypass the firewall.
+
+```yaml
+  roof:
+    build: ./roof/repo
+    restart: unless-stopped
+    mem_limit: 1536m
+    logging:
+      driver: json-file
+      options: { max-size: 10m, max-file: "3" }
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/healthz').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+```
+
+- **Deploy it by hand** (not automated, by choice), from the same commit as the client: `git pull` in `<apps>/roof/repo`, then `docker compose up -d --build roof` from `<apps>`. Then add the `/ws` handle to the Caddy block (section 5) and reload Caddy, the first time.
+- `/healthz` answers `ok, <n> sessions`. The log has a line per session hosted (its detail and paint memory), player joined, and session closed.
+- **State in RAM only:** no database, no disk, no accounts. **Restarting `roof` ends every live session** (accepted); the games then say the session has ended. Caddy reloads don't, thanks to `stream_close_delay`.
 - Single instance: no sticky sessions, no shared store.
 - Sessions:
-  - 2 players, usually one session at a time.
-  - Binary frames at 20 Hz, a ping every 2 s, ~7 KB/s per painter.
+  - 2 players (`SERVER.maxPlayers` in `src/config.ts`), usually one session at a time.
+  - Binary frames: player state 20 times a second, paint ops as compressed JSON (~6.5 KB/s while painting nonstop), a ping every 2 s.
   - The host picks PAINT DETAIL (LOW to ULTRA) and it's locked for the session; the server keeps the paint at that detail.
   - Players give a name on HOST and JOIN.
-  - A dropped player has 60 s to reconnect, then their ladder goes. A session with no one left closes.
-- Sizes: a save uploaded on HOST and the join snapshot are single messages of up to ~30 MB. Set `ws` `maxPayload` explicitly (the default is 100 MiB). Paint is `Uint8Array`, so it sits outside the V8 heap and needs no `--max-old-space-size`. The worst case is ~372 MB per fully painted session at ULTRA (simulated); LOW is 1/16 of that.
-- The client must reconnect on its own: a Caddy restart or a player's network drop still closes the socket.
+  - A dropped player has 60 s to reconnect (the game retries on its own, and a reload goes back in), then their ladder goes. A session with no one left closes.
+- Sizes: a save uploaded on HOST and the join snapshot are single messages of up to ~30 MB; `maxPayload` is 64 MiB. Paint is `Uint8Array`, outside the V8 heap, so no `--max-old-space-size`. Measured in Node for the demo level fully painted: 28 MB at LOW, 104 MEDIUM, 230 HIGH, 405 ULTRA.
 
 ## 7. After a deploy
 
@@ -93,4 +107,4 @@ The design is in `docs/multiplayer-audit.md` (sections 0, 4, 5, 6.4, 7, 8).
 - `curl -I https://roof.hidden.haus/levels/nope.json` → 404, not `index.html`.
 - In a browser: no 404s, `demo.json` and both fonts load, the console is clean, the game starts.
 - `scripts/smoke.mjs <url>` uses `window.game` and F3, so it only works against `npm run build` output, not the production build.
-- Once `/ws` exists: the WebSocket upgrades (101), and `docker compose ps roof` is healthy.
+- Once `/ws` exists: `docker compose ps roof` is healthy, and in two browser windows HOST shows a code that JOIN accepts.
