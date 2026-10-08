@@ -1,10 +1,12 @@
 import { NET } from '../config';
+import type { Multiplayer } from './multiplayer';
 import { HELLO, PROTOCOL } from './protocol';
 
 // For finding out what went wrong with the multiplayer link: a log of what
 // happened (also in the console as [net]) that the player can copy from the
 // menu, and, when the server can't be reached, a guess at why, from asking it
 // over plain HTTP at the same address (server/main.ts answers HELLO there).
+// Also the link's lines in the HUD's performance readout.
 
 export class NetLog {
   private lines: string[] = [];
@@ -42,4 +44,19 @@ export async function diagnose(): Promise<{ reason: 'offline' | 'server-down' | 
   if (text === HELLO) return { reason: 'blocked', detail: 'SERVER UP' };
   if (theirs) return { reason: 'version', detail: `SERVER PROTOCOL ${theirs}, OURS ${PROTOCOL}` };
   return { reason: res.status >= 500 ? 'server-down' : 'no-server', detail: `HTTP ${res.status}` };
+}
+
+export type NetStats = Multiplayer['stats'];
+
+/** In a multiplayer session: ping, traffic, and how far behind each other player is shown. */
+export function netLines(n: NetStats): string[] {
+  if (!n) return [];
+  if (n.reconnecting) return ['net · reconnecting…'];
+  const kb = (b: number) => (b / 1024).toFixed(1);
+  const ms = (s: number) => Math.round(s * 1000);
+  return [
+    `ping · ${n.ping === null ? '…' : `${ms(n.ping)} ms`}`,
+    `net · up ${kb(n.up)} · down ${kb(n.down)} KB/s`,
+    ...n.players.map((p) => `${p.name} · ${ms(p.delay)} ms behind · jitter ${ms(p.jitter)} ms`),
+  ];
 }
