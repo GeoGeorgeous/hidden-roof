@@ -2,6 +2,22 @@ import { HUD, PAUSE_MENU, VIGNETTE } from './config';
 import { isFullscreen } from './fullscreen';
 import { SettingsPage } from './settings-page';
 import type { SettingSection } from './settings';
+import type { Multiplayer } from './net/multiplayer';
+
+type NetStats = Multiplayer['stats'];
+
+/** In a multiplayer session: ping, traffic, and how far behind each other player is shown. */
+function netLines(n: NetStats): string[] {
+  if (!n) return [];
+  if (n.reconnecting) return ['net · reconnecting…'];
+  const kb = (b: number) => (b / 1024).toFixed(1);
+  const ms = (s: number) => Math.round(s * 1000);
+  return [
+    `ping · ${n.ping === null ? '…' : `${ms(n.ping)} ms`}`,
+    `net · up ${kb(n.up)} · down ${kb(n.down)} KB/s`,
+    ...n.players.map((p) => `${p.name} · ${ms(p.delay)} ms behind · jitter ${ms(p.jitter)} ms`),
+  ];
+}
 
 // Body-cam style HUD: vignette, corner brackets, REC indicator with elapsed
 // time, clock, crosshair, the PSI gauge, cap and color tags beside the tool in
@@ -316,7 +332,7 @@ export class Hud {
   }
 
   /** The performance readout, bottom left: written a few times a second. `gpu`: ms per frame, null = not measurable, undefined = not shown. */
-  setPerf(p: { fps: number; frameMs: number; gpu?: number | null; calls: number; triangles: number; textureBytes: number }) {
+  setPerf(p: { fps: number; frameMs: number; gpu?: number | null; calls: number; triangles: number; textureBytes: number; net: NetStats | null }) {
     this.perf.hidden = !HUD.perf;
     if (!HUD.perf) return;
     const now = performance.now();
@@ -329,6 +345,7 @@ export class Hud {
       `draw calls · ${p.calls}`,
       `triangles · ${p.triangles.toLocaleString('en-US')}`,
       `tex memory · ${mb < 10 ? mb.toFixed(1) : Math.round(mb)} MB`,
+      ...netLines(p.net),
     ].join('\n');
     if (text === this.perfShown) return;
     this.perfShown = text;

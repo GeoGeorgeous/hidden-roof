@@ -23,6 +23,7 @@ const sent = [
   { type: 'ladder', t: 2, data: { type: 'stepladder', pos: [1, 0, 2], rot: 3 } },
   { type: 'ladder', t: 2.5, data: null },
   { type: 'save' },
+  { type: 'ping', t: 12.5 },
   { type: 'leave' },
 ];
 // Every message comes back as sent: paint ops to the last bit of every number, which keeps everyone's paint identical.
@@ -69,6 +70,7 @@ refused({ type: 'ops', t: [1], ops: [{ ...drip, rgb: [2, 0, 0] }] });
 refused({ type: 'ops', t: [null], ops: [stamp] });
 refused({ type: 'ladder', t: 1, data: { type: 'building', pos: [0, 0, 0] } });
 refused({ type: 'ladder', t: 1 });
+refused({ type: 'ping' });
 // Non-finite numbers don't survive JSON (they become null), so they're refused too.
 refused({ type: 'ops', t: [1], ops: [{ ...stamp, u: NaN }] });
 

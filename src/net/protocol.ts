@@ -38,6 +38,8 @@ export type ToServer =
   | { type: 'ladder'; t: number; data: PropData | null }
   /** The session's paint as a paint file, please (SAVE). */
   | { type: 'save' }
+  /** Answered with a pong carrying the same `t`: the round trip, for the HUD. */
+  | { type: 'ping'; t: number }
   | { type: 'leave' };
 
 /** Server -> game. */
@@ -56,7 +58,8 @@ export type ToClient =
   | { type: 'ladder'; id: number; t: number; data: PropData | null }
   | { type: 'save'; bytes: Uint8Array }
   /** Sent every few seconds, so a client notices a dead link. */
-  | { type: 'ping' };
+  | { type: 'ping' }
+  | { type: 'pong'; t: number };
 
 type Message = { type: string; bytes?: Uint8Array };
 
@@ -106,6 +109,8 @@ export function checkToServer(m: Message | null): ToServer | null {
       return Array.isArray(v.t) && Array.isArray(v.ops) && v.t.length === v.ops.length && v.t.every(isNum) && v.ops.every(isOp) ? (m as ToServer) : null;
     case 'ladder':
       return isNum(v.t) && (v.data === null || isLadder(v.data)) ? (m as ToServer) : null;
+    case 'ping':
+      return isNum(v.t) ? (m as ToServer) : null;
     case 'save':
     case 'leave':
       return m as ToServer;

@@ -338,7 +338,7 @@ function frame(time: number) {
   // The HUD's GPU line keeps the timer running with the panel closed.
   if (HUD.perf && HUD.perfGpu) gpuTimer.enabled = true;
   const gpu = !HUD.perfGpu ? undefined : gpuTimer.supported ? gpuTimer.total(VOLUMETRICS.enabled ? ['scene', 'volumetrics', 'post'] : ['scene', 'post']) : null;
-  hud.setPerf({ fps, frameMs, gpu, calls, triangles, textureBytes: paint.gpu.textureBytes + baker.stats.textureBytes + staticTextureBytes() });
+  hud.setPerf({ fps, frameMs, gpu, calls, triangles, textureBytes: paint.gpu.textureBytes + baker.stats.textureBytes + staticTextureBytes(), net: net.stats });
   dev?.report({ fps, frameMs, calls, triangles });
   requestAnimationFrame(frame);
 }

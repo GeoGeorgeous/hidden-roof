@@ -109,6 +109,7 @@ export class Session {
       p.ladder = m.data;
       this.broadcast({ type: 'ladder', id: p.id, t: m.t, data: m.data }, p);
     } else if (m.type === 'save') void this.save().then((bytes) => this.send(p, { type: 'save', bytes }));
+    else if (m.type === 'ping') this.send(p, { type: 'pong', t: m.t });
     else if (m.type === 'leave') this.remove(p);
   }
 

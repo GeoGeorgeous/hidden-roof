@@ -101,6 +101,8 @@ try {
   a.send({ type: 'ladder', t: 3, data: ladder });
   assert.deepEqual(await b.next('ladder'), { type: 'ladder', id: 1, t: 3, data: ladder });
   await a.none('state');
+  a.send({ type: 'ping', t: 7.25 });
+  assert.deepEqual(await a.next('pong'), { type: 'pong', t: 7.25 });
 
   // SAVE: the session's paint, with the stamp in it.
   b.send({ type: 'save' });

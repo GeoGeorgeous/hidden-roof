@@ -70,6 +70,8 @@ export class Multiplayer {
   private opTimes: number[] = [];
   private ladderId: number | undefined;
   private retry: { until: number; wait: number } | null = null;
+  /** For the HUD: the last round trip (s), bytes each way since `since`, and their rates (bytes/s). */
+  private net = { ping: null as number | null, nextPing: 0, up: 0, down: 0, since: 0, upRate: 0, downRate: 0 };
   /** The name we go by in the session. */
   private name = '';
 
@@ -118,6 +120,7 @@ export class Multiplayer {
     this.nameplates.update(this.g.camera, [...this.remotes].filter(([, r]) => r.avatar.group.visible).map(([id, r]) => ({ id, name: this.names.get(id) ?? '', feet: r.position })));
     if (!this.joined || this.ws?.readyState !== WebSocket.OPEN) return;
     if (t - this.lastHeard > SERVER.ping * 3) return this.ws.close();
+    this.measure(t);
     const at = t - this.t0;
     const log = this.g.paint.log!;
     for (const op of log) this.ops.push(op), this.opTimes.push(at);
@@ -148,6 +151,7 @@ export class Multiplayer {
     ws.onmessage = (e) => {
       if (this.ws !== ws) return;
       this.lastHeard = now();
+      this.net.down += (e.data as ArrayBuffer).byteLength;
       const m = decode(new Uint8Array(e.data as ArrayBuffer)) as ToClient | null;
       if (m) this.queue = this.queue.then(() => this.receive(m)).catch((err) => console.error(err));
     };
@@ -192,6 +196,7 @@ export class Multiplayer {
       if (name !== undefined) this.onPlayer(name, false);
     }
     else if (m.type === 'save') this.onSave(m.bytes, this.joined.levelName);
+    else if (m.type === 'pong') this.net.ping = now() - m.t;
   }
 
   private async welcome(w: Extract<ToClient, { type: 'welcome' }>) {
@@ -224,6 +229,7 @@ export class Multiplayer {
     this.opTimes = [];
     this.ladderId = g.level.runtimeOf(session.player);
     this.nextSend = 0;
+    Object.assign(this.net, { ping: null, nextPing: 0, up: 0, down: 0, since: now() });
     this.setStatus({ state: 'in', code: w.code });
   }
 
@@ -261,8 +267,37 @@ export class Multiplayer {
     this.setStatus(status);
   }
 
+  /**
+   * The link for the HUD's performance lines, in a session: round trip to the
+   * server, traffic each way, and for each other player how far behind they're
+   * shown and the jitter of their snapshots (remote-player.ts).
+   */
+  get stats() {
+    if (!this.joined) return null;
+    const n = this.net;
+    const players = [...this.remotes].map(([id, r]) => ({ name: this.names.get(id) ?? '', delay: r.stats.delay, jitter: r.stats.jitter }));
+    return { reconnecting: this.status.state === 'reconnecting', ping: n.ping, up: n.upRate, down: n.downRate, players };
+  }
+
+  /** A ping now and then; traffic rates each second. */
+  private measure(t: number) {
+    const n = this.net;
+    if (t >= n.nextPing) {
+      n.nextPing = t + SERVER.ping;
+      this.send({ type: 'ping', t });
+    }
+    if (t - n.since < 1) return;
+    n.upRate = n.up / (t - n.since);
+    n.downRate = n.down / (t - n.since);
+    n.up = n.down = 0;
+    n.since = t;
+  }
+
   private send(m: ToServer) {
-    if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(encode(m));
+    if (this.ws?.readyState !== WebSocket.OPEN) return;
+    const f = encode(m);
+    this.net.up += f.length;
+    this.ws.send(f);
   }
 
   private setStatus(s: NetStatus) {

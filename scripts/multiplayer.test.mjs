@@ -67,6 +67,8 @@ try {
   assert.deepEqual(await Promise.all([a, b].map((p) => p.evaluate(() => window.game.config.PAINT.texelsPerMeter))), [48, 48]);
   assert.deepEqual(await b.evaluate(() => [...window.game.net.names.values()]), ['A']);
   await a.waitForFunction(() => window.game.net.names.size === 1);
+  // The HUD's network lines: a ping, and how far behind B is shown.
+  await a.waitForFunction(() => window.game.net.stats?.ping !== null && window.game.net.stats.players[0]?.delay > 0, null, { timeout: 10000 });
 
   // A paints and places its stepladder: B gets the very same paint, and the ladder.
   await a.evaluate(() => {
