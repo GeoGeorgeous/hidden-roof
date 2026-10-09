@@ -1,6 +1,7 @@
 // Headless smoke test: loads the game, fakes pointer lock, opens the debug
 // panel, runs optional STEPS (JSON: [{ js, wait, shot }]) and screenshots.
-// Fails on page errors and console errors; warnings are printed.
+// Fails on page errors and console errors; warnings are printed. It plays the
+// level the game opens with (LEVELS.start), the one players get.
 // Usage: node scripts/smoke.mjs [url] [outDir]   (no url: starts its own server)
 import fs from 'node:fs';
 import { gameReady, openTestBrowser } from './test-browser.mjs';
@@ -9,7 +10,7 @@ const out = process.argv[3] ?? 'shots';
 fs.mkdirSync(out, { recursive: true });
 const steps = JSON.parse(process.env.STEPS ?? '[]');
 
-const test = await openTestBrowser(process.argv[2]);
+const test = await openTestBrowser(process.argv[2], { level: null });
 // Small: SwiftShader draws every frame on the CPU, and a frame at 1280x720 takes it seconds.
 const page = await test.browser.newPage({ viewport: { width: 640, height: 360 } });
 const errors = [];

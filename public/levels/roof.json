@@ -1,0 +1,13765 @@
+{
+ "version": 4,
+ "spawn": {
+  "pos": [
+   1,
+   0,
+   1.5
+  ],
+  "yaw": -0.3
+ },
+ "props": [
+  {
+   "id": 1,
+   "type": "building",
+   "pos": [
+    -7,
+    0,
+    -5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2,
+   "type": "building",
+   "pos": [
+    -7,
+    0,
+    -3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 3,
+   "type": "building",
+   "pos": [
+    -7,
+    0,
+    -1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 4,
+   "type": "building",
+   "pos": [
+    -7,
+    0,
+    1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 5,
+   "type": "building",
+   "pos": [
+    -7,
+    0,
+    3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 6,
+   "type": "building",
+   "pos": [
+    -7,
+    0,
+    5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 7,
+   "type": "building",
+   "pos": [
+    -5,
+    0,
+    -5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 8,
+   "type": "building",
+   "pos": [
+    -5,
+    0,
+    -3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 9,
+   "type": "building",
+   "pos": [
+    -5,
+    0,
+    -1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 10,
+   "type": "building",
+   "pos": [
+    -5,
+    0,
+    1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 11,
+   "type": "building",
+   "pos": [
+    -5,
+    0,
+    3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 12,
+   "type": "building",
+   "pos": [
+    -5,
+    0,
+    5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 13,
+   "type": "building",
+   "pos": [
+    -3,
+    0,
+    -5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 14,
+   "type": "building",
+   "pos": [
+    -3,
+    0,
+    -3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 15,
+   "type": "building",
+   "pos": [
+    -3,
+    0,
+    -1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 16,
+   "type": "building",
+   "pos": [
+    -3,
+    0,
+    1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 17,
+   "type": "building",
+   "pos": [
+    -3,
+    0,
+    3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 18,
+   "type": "building",
+   "pos": [
+    -3,
+    0,
+    5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 19,
+   "type": "building",
+   "pos": [
+    -1,
+    0,
+    -5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 20,
+   "type": "building",
+   "pos": [
+    -1,
+    0,
+    -3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 21,
+   "type": "building",
+   "pos": [
+    -1,
+    0,
+    -1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 22,
+   "type": "building",
+   "pos": [
+    -1,
+    0,
+    1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 23,
+   "type": "building",
+   "pos": [
+    -1,
+    0,
+    3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 24,
+   "type": "building",
+   "pos": [
+    -1,
+    0,
+    5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 25,
+   "type": "building",
+   "pos": [
+    1,
+    0,
+    -5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 26,
+   "type": "building",
+   "pos": [
+    1,
+    0,
+    -3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 27,
+   "type": "building",
+   "pos": [
+    1,
+    0,
+    -1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 28,
+   "type": "building",
+   "pos": [
+    1,
+    0,
+    1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 29,
+   "type": "building",
+   "pos": [
+    1,
+    0,
+    3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 30,
+   "type": "building",
+   "pos": [
+    1,
+    0,
+    5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 31,
+   "type": "building",
+   "pos": [
+    3,
+    0,
+    -5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 32,
+   "type": "building",
+   "pos": [
+    3,
+    0,
+    -3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 33,
+   "type": "building",
+   "pos": [
+    3,
+    0,
+    -1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 34,
+   "type": "building",
+   "pos": [
+    3,
+    0,
+    1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 35,
+   "type": "building",
+   "pos": [
+    3,
+    0,
+    3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 37,
+   "type": "building",
+   "pos": [
+    5,
+    0,
+    -5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 38,
+   "type": "building",
+   "pos": [
+    5,
+    0,
+    -3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 39,
+   "type": "building",
+   "pos": [
+    5,
+    0,
+    -1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 40,
+   "type": "building",
+   "pos": [
+    5,
+    0,
+    1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 41,
+   "type": "building",
+   "pos": [
+    5,
+    0,
+    3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 43,
+   "type": "building",
+   "pos": [
+    7,
+    0,
+    -5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 44,
+   "type": "building",
+   "pos": [
+    7,
+    0,
+    -3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 45,
+   "type": "building",
+   "pos": [
+    7,
+    0,
+    -1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 46,
+   "type": "building",
+   "pos": [
+    7,
+    0,
+    1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 47,
+   "type": "building",
+   "pos": [
+    7,
+    0,
+    3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 56,
+   "type": "building",
+   "pos": [
+    -7,
+    -4,
+    7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 57,
+   "type": "building",
+   "pos": [
+    -7,
+    -4,
+    9
+   ],
+   "rot": 0
+  },
+  {
+   "id": 59,
+   "type": "building",
+   "pos": [
+    -5,
+    -4,
+    7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 60,
+   "type": "building",
+   "pos": [
+    -5,
+    -4,
+    9
+   ],
+   "rot": 0
+  },
+  {
+   "id": 62,
+   "type": "building",
+   "pos": [
+    -3,
+    -4,
+    7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 63,
+   "type": "building",
+   "pos": [
+    -3,
+    -4,
+    9
+   ],
+   "rot": 0
+  },
+  {
+   "id": 65,
+   "type": "building",
+   "pos": [
+    -1,
+    -4,
+    7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 66,
+   "type": "building",
+   "pos": [
+    -1,
+    -4,
+    9
+   ],
+   "rot": 0
+  },
+  {
+   "id": 68,
+   "type": "building",
+   "pos": [
+    1,
+    -4,
+    7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 69,
+   "type": "building",
+   "pos": [
+    1,
+    -4,
+    9
+   ],
+   "rot": 0
+  },
+  {
+   "id": 73,
+   "type": "parapet",
+   "pos": [
+    5,
+    0,
+    -6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 75,
+   "type": "parapet",
+   "pos": [
+    -8,
+    0,
+    -1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 76,
+   "type": "parapet",
+   "pos": [
+    -8,
+    0,
+    1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 77,
+   "type": "parapet",
+   "pos": [
+    -8,
+    0,
+    3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 78,
+   "type": "parapet",
+   "pos": [
+    -8,
+    0,
+    5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 79,
+   "type": "parapet",
+   "pos": [
+    -7,
+    0,
+    6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 80,
+   "type": "parapet",
+   "pos": [
+    -3,
+    0,
+    6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 81,
+   "type": "parapet",
+   "pos": [
+    -1,
+    0,
+    6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 82,
+   "type": "parapet",
+   "pos": [
+    1,
+    0,
+    6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 83,
+   "type": "parapet",
+   "pos": [
+    3,
+    0,
+    6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 84,
+   "type": "parapet",
+   "pos": [
+    5,
+    0,
+    6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 85,
+   "type": "parapet",
+   "pos": [
+    7,
+    0,
+    6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 87,
+   "type": "wall",
+   "variant": "ledge",
+   "pos": [
+    -7,
+    0,
+    -6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 88,
+   "type": "wall",
+   "variant": "ledge",
+   "pos": [
+    -5,
+    0,
+    -6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 89,
+   "type": "wall",
+   "pos": [
+    -8,
+    0,
+    -5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 90,
+   "type": "wall",
+   "pos": [
+    -8,
+    0,
+    -3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 91,
+   "type": "wall",
+   "variant": "window",
+   "pos": [
+    -7,
+    0,
+    -2
+   ],
+   "rot": 2
+  },
+  {
+   "id": 92,
+   "type": "wall",
+   "variant": "door",
+   "pos": [
+    -5,
+    0,
+    -2
+   ],
+   "rot": 2
+  },
+  {
+   "id": 93,
+   "type": "wall",
+   "variant": "window",
+   "pos": [
+    -4,
+    0,
+    -5
+   ],
+   "rot": 3
+  },
+  {
+   "id": 94,
+   "type": "wall",
+   "pos": [
+    -4,
+    0,
+    -3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 95,
+   "type": "slab",
+   "pos": [
+    -7,
+    4,
+    -5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 96,
+   "type": "slab",
+   "pos": [
+    -7,
+    4,
+    -3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 97,
+   "type": "slab",
+   "pos": [
+    -5,
+    4,
+    -5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 98,
+   "type": "slab",
+   "pos": [
+    -5,
+    4,
+    -3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 99,
+   "type": "railing",
+   "pos": [
+    -7,
+    4,
+    -6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 100,
+   "type": "railing",
+   "pos": [
+    -7,
+    4,
+    -2
+   ],
+   "rot": 0
+  },
+  {
+   "id": 101,
+   "type": "railing",
+   "pos": [
+    -5,
+    4,
+    -6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 102,
+   "type": "railing",
+   "pos": [
+    -5,
+    4,
+    -2
+   ],
+   "rot": 0
+  },
+  {
+   "id": 103,
+   "type": "railing",
+   "pos": [
+    -8,
+    4,
+    -5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 104,
+   "type": "railing",
+   "pos": [
+    -8,
+    4,
+    -3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 105,
+   "type": "railing",
+   "pos": [
+    -4,
+    4,
+    -5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 106,
+   "type": "stairs",
+   "variant": "compact",
+   "pos": [
+    -2,
+    0,
+    -3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 120,
+   "type": "ladder",
+   "pos": [
+    -5,
+    -4,
+    6
+   ],
+   "rot": 2
+  },
+  {
+   "id": 145,
+   "type": "cctv",
+   "pos": [
+    -3.5,
+    2.5,
+    -1.85
+   ],
+   "rot": 2
+  },
+  {
+   "id": 146,
+   "type": "ac",
+   "variant": "wall",
+   "pos": [
+    -2.5,
+    1.2,
+    -1.85
+   ],
+   "rot": 2
+  },
+  {
+   "id": 200,
+   "type": "wall_lamp",
+   "pos": [
+    -5,
+    2.8,
+    -1.85
+   ],
+   "rot": 2
+  },
+  {
+   "id": 243,
+   "type": "building",
+   "pos": [
+    -7,
+    0,
+    -19
+   ],
+   "rot": 0
+  },
+  {
+   "id": 244,
+   "type": "building",
+   "pos": [
+    -7,
+    0,
+    -17
+   ],
+   "rot": 0
+  },
+  {
+   "id": 245,
+   "type": "building",
+   "pos": [
+    -7,
+    0,
+    -15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 246,
+   "type": "building",
+   "pos": [
+    -7,
+    0,
+    -13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 247,
+   "type": "building",
+   "pos": [
+    -7,
+    0,
+    -11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 248,
+   "type": "building",
+   "pos": [
+    -7,
+    0,
+    -9
+   ],
+   "rot": 0
+  },
+  {
+   "id": 249,
+   "type": "building",
+   "pos": [
+    -7,
+    0,
+    -7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 250,
+   "type": "building",
+   "pos": [
+    -5,
+    0,
+    -19
+   ],
+   "rot": 0
+  },
+  {
+   "id": 251,
+   "type": "building",
+   "pos": [
+    -5,
+    0,
+    -17
+   ],
+   "rot": 0
+  },
+  {
+   "id": 252,
+   "type": "building",
+   "pos": [
+    -5,
+    0,
+    -15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 253,
+   "type": "building",
+   "pos": [
+    -5,
+    0,
+    -13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 254,
+   "type": "building",
+   "pos": [
+    -5,
+    0,
+    -11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 255,
+   "type": "building",
+   "pos": [
+    -5,
+    0,
+    -9
+   ],
+   "rot": 0
+  },
+  {
+   "id": 256,
+   "type": "building",
+   "pos": [
+    -5,
+    0,
+    -7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 257,
+   "type": "building",
+   "pos": [
+    -3,
+    0,
+    -19
+   ],
+   "rot": 0
+  },
+  {
+   "id": 258,
+   "type": "building",
+   "pos": [
+    -3,
+    0,
+    -17
+   ],
+   "rot": 0
+  },
+  {
+   "id": 259,
+   "type": "building",
+   "pos": [
+    -3,
+    0,
+    -15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 260,
+   "type": "building",
+   "pos": [
+    -3,
+    0,
+    -13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 261,
+   "type": "building",
+   "pos": [
+    -3,
+    0,
+    -11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 262,
+   "type": "building",
+   "pos": [
+    -3,
+    0,
+    -9
+   ],
+   "rot": 0
+  },
+  {
+   "id": 263,
+   "type": "building",
+   "pos": [
+    -3,
+    0,
+    -7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 264,
+   "type": "building",
+   "pos": [
+    -1,
+    0,
+    -19
+   ],
+   "rot": 0
+  },
+  {
+   "id": 265,
+   "type": "building",
+   "pos": [
+    -1,
+    0,
+    -17
+   ],
+   "rot": 0
+  },
+  {
+   "id": 266,
+   "type": "building",
+   "pos": [
+    -1,
+    0,
+    -15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 267,
+   "type": "building",
+   "pos": [
+    -1,
+    0,
+    -13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 268,
+   "type": "building",
+   "pos": [
+    -1,
+    0,
+    -11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 269,
+   "type": "building",
+   "pos": [
+    -1,
+    0,
+    -9
+   ],
+   "rot": 0
+  },
+  {
+   "id": 270,
+   "type": "building",
+   "pos": [
+    -1,
+    0,
+    -7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 271,
+   "type": "building",
+   "pos": [
+    1,
+    0,
+    -19
+   ],
+   "rot": 0
+  },
+  {
+   "id": 272,
+   "type": "building",
+   "pos": [
+    1,
+    0,
+    -17
+   ],
+   "rot": 0
+  },
+  {
+   "id": 273,
+   "type": "building",
+   "pos": [
+    1,
+    0,
+    -15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 274,
+   "type": "building",
+   "pos": [
+    1,
+    0,
+    -13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 275,
+   "type": "building",
+   "pos": [
+    1,
+    0,
+    -11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 276,
+   "type": "building",
+   "pos": [
+    1,
+    0,
+    -9
+   ],
+   "rot": 0
+  },
+  {
+   "id": 277,
+   "type": "building",
+   "pos": [
+    1,
+    0,
+    -7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 278,
+   "type": "building",
+   "pos": [
+    3,
+    0,
+    -19
+   ],
+   "rot": 0
+  },
+  {
+   "id": 279,
+   "type": "building",
+   "pos": [
+    3,
+    0,
+    -17
+   ],
+   "rot": 0
+  },
+  {
+   "id": 280,
+   "type": "building",
+   "pos": [
+    3,
+    0,
+    -15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 281,
+   "type": "building",
+   "pos": [
+    3,
+    0,
+    -13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 282,
+   "type": "building",
+   "pos": [
+    3,
+    0,
+    -11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 283,
+   "type": "building",
+   "pos": [
+    3,
+    0,
+    -9
+   ],
+   "rot": 0
+  },
+  {
+   "id": 284,
+   "type": "building",
+   "pos": [
+    3,
+    0,
+    -7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 285,
+   "type": "building",
+   "pos": [
+    5,
+    0,
+    -19
+   ],
+   "rot": 0
+  },
+  {
+   "id": 286,
+   "type": "building",
+   "pos": [
+    5,
+    0,
+    -17
+   ],
+   "rot": 0
+  },
+  {
+   "id": 287,
+   "type": "building",
+   "pos": [
+    5,
+    0,
+    -15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 288,
+   "type": "building",
+   "pos": [
+    5,
+    0,
+    -13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 289,
+   "type": "building",
+   "pos": [
+    5,
+    0,
+    -11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 290,
+   "type": "building",
+   "pos": [
+    5,
+    0,
+    -9
+   ],
+   "rot": 0
+  },
+  {
+   "id": 291,
+   "type": "building",
+   "pos": [
+    5,
+    0,
+    -7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 292,
+   "type": "building",
+   "pos": [
+    7,
+    0,
+    -19
+   ],
+   "rot": 0
+  },
+  {
+   "id": 293,
+   "type": "building",
+   "pos": [
+    7,
+    0,
+    -17
+   ],
+   "rot": 0
+  },
+  {
+   "id": 294,
+   "type": "building",
+   "pos": [
+    7,
+    0,
+    -15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 295,
+   "type": "building",
+   "pos": [
+    7,
+    0,
+    -13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 296,
+   "type": "building",
+   "pos": [
+    7,
+    0,
+    -11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 297,
+   "type": "building",
+   "pos": [
+    7,
+    0,
+    -9
+   ],
+   "rot": 0
+  },
+  {
+   "id": 298,
+   "type": "building",
+   "pos": [
+    7,
+    0,
+    -7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 299,
+   "type": "building",
+   "pos": [
+    9,
+    0,
+    -19
+   ],
+   "rot": 0
+  },
+  {
+   "id": 300,
+   "type": "building",
+   "pos": [
+    9,
+    0,
+    -17
+   ],
+   "rot": 0
+  },
+  {
+   "id": 301,
+   "type": "building",
+   "pos": [
+    9,
+    0,
+    -15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 302,
+   "type": "building",
+   "pos": [
+    9,
+    0,
+    -13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 303,
+   "type": "building",
+   "pos": [
+    9,
+    0,
+    -11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 304,
+   "type": "building",
+   "pos": [
+    9,
+    0,
+    -9
+   ],
+   "rot": 0
+  },
+  {
+   "id": 305,
+   "type": "building",
+   "pos": [
+    9,
+    0,
+    -7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 306,
+   "type": "building",
+   "pos": [
+    11,
+    0,
+    -19
+   ],
+   "rot": 0
+  },
+  {
+   "id": 307,
+   "type": "building",
+   "pos": [
+    11,
+    0,
+    -17
+   ],
+   "rot": 0
+  },
+  {
+   "id": 308,
+   "type": "building",
+   "pos": [
+    11,
+    0,
+    -15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 309,
+   "type": "building",
+   "pos": [
+    11,
+    0,
+    -13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 310,
+   "type": "building",
+   "pos": [
+    11,
+    0,
+    -11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 311,
+   "type": "building",
+   "pos": [
+    11,
+    0,
+    -9
+   ],
+   "rot": 0
+  },
+  {
+   "id": 312,
+   "type": "building",
+   "pos": [
+    11,
+    0,
+    -7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 331,
+   "type": "parapet",
+   "pos": [
+    -8,
+    0,
+    -19
+   ],
+   "rot": 1
+  },
+  {
+   "id": 333,
+   "type": "parapet",
+   "pos": [
+    -8,
+    0,
+    -17
+   ],
+   "rot": 1
+  },
+  {
+   "id": 335,
+   "type": "parapet",
+   "pos": [
+    -8,
+    0,
+    -15
+   ],
+   "rot": 1
+  },
+  {
+   "id": 337,
+   "type": "parapet",
+   "pos": [
+    -8,
+    0,
+    -13
+   ],
+   "rot": 1
+  },
+  {
+   "id": 339,
+   "type": "parapet",
+   "pos": [
+    -8,
+    0,
+    -11
+   ],
+   "rot": 1
+  },
+  {
+   "id": 341,
+   "type": "parapet",
+   "pos": [
+    -8,
+    0,
+    -9
+   ],
+   "rot": 1
+  },
+  {
+   "id": 343,
+   "type": "parapet",
+   "pos": [
+    -8,
+    0,
+    -7
+   ],
+   "rot": 1
+  },
+  {
+   "id": 345,
+   "type": "building",
+   "pos": [
+    9,
+    0,
+    -5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 346,
+   "type": "building",
+   "pos": [
+    11,
+    0,
+    -5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 349,
+   "type": "building",
+   "pos": [
+    11,
+    0,
+    -3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 350,
+   "type": "building",
+   "pos": [
+    9,
+    0,
+    -3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 351,
+   "type": "building",
+   "pos": [
+    9,
+    0,
+    -1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 352,
+   "type": "building",
+   "pos": [
+    11,
+    0,
+    -1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 355,
+   "type": "building",
+   "pos": [
+    11,
+    0,
+    1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 356,
+   "type": "building",
+   "pos": [
+    9,
+    0,
+    1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 357,
+   "type": "building",
+   "pos": [
+    9,
+    0,
+    3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 358,
+   "type": "building",
+   "pos": [
+    11,
+    0,
+    3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 382,
+   "type": "building",
+   "pos": [
+    3,
+    -8,
+    7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 383,
+   "type": "building",
+   "pos": [
+    3,
+    -8,
+    9
+   ],
+   "rot": 0
+  },
+  {
+   "id": 384,
+   "type": "building",
+   "pos": [
+    3,
+    -8,
+    11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 385,
+   "type": "building",
+   "pos": [
+    5,
+    -8,
+    7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 386,
+   "type": "building",
+   "pos": [
+    7,
+    -8,
+    7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 387,
+   "type": "building",
+   "pos": [
+    9,
+    -8,
+    7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 388,
+   "type": "building",
+   "pos": [
+    11,
+    -8,
+    7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 389,
+   "type": "building",
+   "pos": [
+    13,
+    -8,
+    7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 390,
+   "type": "building",
+   "pos": [
+    13,
+    -8,
+    9
+   ],
+   "rot": 0
+  },
+  {
+   "id": 391,
+   "type": "building",
+   "pos": [
+    11,
+    -8,
+    9
+   ],
+   "rot": 0
+  },
+  {
+   "id": 392,
+   "type": "building",
+   "pos": [
+    9,
+    -8,
+    9
+   ],
+   "rot": 0
+  },
+  {
+   "id": 393,
+   "type": "building",
+   "pos": [
+    7,
+    -8,
+    9
+   ],
+   "rot": 0
+  },
+  {
+   "id": 394,
+   "type": "building",
+   "pos": [
+    5,
+    -8,
+    9
+   ],
+   "rot": 0
+  },
+  {
+   "id": 395,
+   "type": "building",
+   "pos": [
+    5,
+    -8,
+    11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 396,
+   "type": "building",
+   "pos": [
+    7,
+    -8,
+    11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 397,
+   "type": "building",
+   "pos": [
+    9,
+    -8,
+    11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 398,
+   "type": "building",
+   "pos": [
+    11,
+    -8,
+    11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 399,
+   "type": "building",
+   "pos": [
+    13,
+    -8,
+    11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 400,
+   "type": "building",
+   "pos": [
+    3,
+    -8,
+    5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 401,
+   "type": "building",
+   "pos": [
+    5,
+    -8,
+    5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 402,
+   "type": "building",
+   "pos": [
+    7,
+    -8,
+    5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 403,
+   "type": "building",
+   "pos": [
+    9,
+    -8,
+    5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 405,
+   "type": "building",
+   "pos": [
+    11,
+    -8,
+    5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 406,
+   "type": "building",
+   "pos": [
+    13,
+    -8,
+    5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 407,
+   "type": "building",
+   "pos": [
+    3,
+    -4,
+    5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 408,
+   "type": "building",
+   "pos": [
+    3,
+    0,
+    5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 409,
+   "type": "building",
+   "pos": [
+    5,
+    -4,
+    5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 410,
+   "type": "building",
+   "pos": [
+    5,
+    0,
+    5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 411,
+   "type": "building",
+   "pos": [
+    7,
+    -4,
+    5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 412,
+   "type": "building",
+   "pos": [
+    7,
+    0,
+    5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 413,
+   "type": "building",
+   "pos": [
+    9,
+    -4,
+    5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 414,
+   "type": "building",
+   "pos": [
+    9,
+    0,
+    5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 415,
+   "type": "building",
+   "pos": [
+    11,
+    -4,
+    5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 416,
+   "type": "building",
+   "pos": [
+    11,
+    0,
+    5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 417,
+   "type": "building",
+   "pos": [
+    13,
+    -4,
+    5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 418,
+   "type": "building",
+   "pos": [
+    13,
+    0,
+    5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 422,
+   "type": "building",
+   "pos": [
+    1,
+    -8,
+    11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 423,
+   "type": "building",
+   "pos": [
+    -1,
+    -8,
+    11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 424,
+   "type": "building",
+   "pos": [
+    -3,
+    -8,
+    11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 426,
+   "type": "building",
+   "pos": [
+    -7,
+    -8,
+    11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 427,
+   "type": "building",
+   "pos": [
+    -7,
+    -4,
+    11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 430,
+   "type": "building",
+   "pos": [
+    -1,
+    -4,
+    11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 460,
+   "type": "building",
+   "pos": [
+    -7,
+    0,
+    -21
+   ],
+   "rot": 0
+  },
+  {
+   "id": 461,
+   "type": "building",
+   "pos": [
+    -5,
+    0,
+    -21
+   ],
+   "rot": 0
+  },
+  {
+   "id": 462,
+   "type": "building",
+   "pos": [
+    -3,
+    0,
+    -21
+   ],
+   "rot": 0
+  },
+  {
+   "id": 463,
+   "type": "building",
+   "pos": [
+    -1,
+    0,
+    -21
+   ],
+   "rot": 0
+  },
+  {
+   "id": 464,
+   "type": "building",
+   "pos": [
+    1,
+    0,
+    -21
+   ],
+   "rot": 0
+  },
+  {
+   "id": 465,
+   "type": "building",
+   "pos": [
+    3,
+    0,
+    -21
+   ],
+   "rot": 0
+  },
+  {
+   "id": 466,
+   "type": "building",
+   "pos": [
+    5,
+    0,
+    -21
+   ],
+   "rot": 0
+  },
+  {
+   "id": 467,
+   "type": "building",
+   "pos": [
+    7,
+    0,
+    -21
+   ],
+   "rot": 0
+  },
+  {
+   "id": 468,
+   "type": "building",
+   "pos": [
+    9,
+    0,
+    -21
+   ],
+   "rot": 0
+  },
+  {
+   "id": 469,
+   "type": "building",
+   "pos": [
+    11,
+    0,
+    -21
+   ],
+   "rot": 0
+  },
+  {
+   "id": 472,
+   "type": "building",
+   "pos": [
+    11,
+    0,
+    -23
+   ],
+   "rot": 0
+  },
+  {
+   "id": 473,
+   "type": "building",
+   "pos": [
+    9,
+    0,
+    -23
+   ],
+   "rot": 0
+  },
+  {
+   "id": 474,
+   "type": "building",
+   "pos": [
+    7,
+    0,
+    -23
+   ],
+   "rot": 0
+  },
+  {
+   "id": 475,
+   "type": "building",
+   "pos": [
+    5,
+    0,
+    -23
+   ],
+   "rot": 0
+  },
+  {
+   "id": 476,
+   "type": "building",
+   "pos": [
+    3,
+    0,
+    -23
+   ],
+   "rot": 0
+  },
+  {
+   "id": 477,
+   "type": "building",
+   "pos": [
+    1,
+    0,
+    -23
+   ],
+   "rot": 0
+  },
+  {
+   "id": 478,
+   "type": "building",
+   "pos": [
+    -1,
+    0,
+    -23
+   ],
+   "rot": 0
+  },
+  {
+   "id": 479,
+   "type": "building",
+   "pos": [
+    -3,
+    0,
+    -23
+   ],
+   "rot": 0
+  },
+  {
+   "id": 480,
+   "type": "building",
+   "pos": [
+    -5,
+    0,
+    -23
+   ],
+   "rot": 0
+  },
+  {
+   "id": 481,
+   "type": "building",
+   "pos": [
+    -7,
+    0,
+    -23
+   ],
+   "rot": 0
+  },
+  {
+   "id": 482,
+   "type": "building",
+   "pos": [
+    -7,
+    0,
+    -25
+   ],
+   "rot": 0
+  },
+  {
+   "id": 483,
+   "type": "building",
+   "pos": [
+    -7,
+    0,
+    -27
+   ],
+   "rot": 0
+  },
+  {
+   "id": 484,
+   "type": "building",
+   "pos": [
+    -7,
+    0,
+    -29
+   ],
+   "rot": 0
+  },
+  {
+   "id": 485,
+   "type": "building",
+   "pos": [
+    -7,
+    0,
+    -31
+   ],
+   "rot": 0
+  },
+  {
+   "id": 486,
+   "type": "building",
+   "pos": [
+    -7,
+    0,
+    -33
+   ],
+   "rot": 0
+  },
+  {
+   "id": 487,
+   "type": "building",
+   "pos": [
+    -7,
+    0,
+    -35
+   ],
+   "rot": 0
+  },
+  {
+   "id": 488,
+   "type": "building",
+   "pos": [
+    -7,
+    0,
+    -37
+   ],
+   "rot": 0
+  },
+  {
+   "id": 489,
+   "type": "building",
+   "pos": [
+    -7,
+    0,
+    -39
+   ],
+   "rot": 0
+  },
+  {
+   "id": 490,
+   "type": "building",
+   "pos": [
+    -5,
+    0,
+    -39
+   ],
+   "rot": 0
+  },
+  {
+   "id": 491,
+   "type": "building",
+   "pos": [
+    -5,
+    0,
+    -37
+   ],
+   "rot": 0
+  },
+  {
+   "id": 492,
+   "type": "building",
+   "pos": [
+    -5,
+    0,
+    -35
+   ],
+   "rot": 0
+  },
+  {
+   "id": 493,
+   "type": "building",
+   "pos": [
+    -5,
+    0,
+    -33
+   ],
+   "rot": 0
+  },
+  {
+   "id": 494,
+   "type": "building",
+   "pos": [
+    -5,
+    0,
+    -31
+   ],
+   "rot": 0
+  },
+  {
+   "id": 495,
+   "type": "building",
+   "pos": [
+    -5,
+    0,
+    -29
+   ],
+   "rot": 0
+  },
+  {
+   "id": 496,
+   "type": "building",
+   "pos": [
+    -5,
+    0,
+    -27
+   ],
+   "rot": 0
+  },
+  {
+   "id": 497,
+   "type": "building",
+   "pos": [
+    -5,
+    0,
+    -25
+   ],
+   "rot": 0
+  },
+  {
+   "id": 498,
+   "type": "building",
+   "pos": [
+    -3,
+    0,
+    -25
+   ],
+   "rot": 0
+  },
+  {
+   "id": 499,
+   "type": "building",
+   "pos": [
+    -3,
+    0,
+    -27
+   ],
+   "rot": 0
+  },
+  {
+   "id": 500,
+   "type": "building",
+   "pos": [
+    -3,
+    0,
+    -29
+   ],
+   "rot": 0
+  },
+  {
+   "id": 501,
+   "type": "building",
+   "pos": [
+    -3,
+    0,
+    -31
+   ],
+   "rot": 0
+  },
+  {
+   "id": 502,
+   "type": "building",
+   "pos": [
+    -3,
+    0,
+    -33
+   ],
+   "rot": 0
+  },
+  {
+   "id": 503,
+   "type": "building",
+   "pos": [
+    -3,
+    0,
+    -35
+   ],
+   "rot": 0
+  },
+  {
+   "id": 504,
+   "type": "building",
+   "pos": [
+    -3,
+    0,
+    -37
+   ],
+   "rot": 0
+  },
+  {
+   "id": 505,
+   "type": "building",
+   "pos": [
+    -3,
+    0,
+    -39
+   ],
+   "rot": 0
+  },
+  {
+   "id": 506,
+   "type": "building",
+   "pos": [
+    -1,
+    0,
+    -39
+   ],
+   "rot": 0
+  },
+  {
+   "id": 507,
+   "type": "building",
+   "pos": [
+    -1,
+    0,
+    -37
+   ],
+   "rot": 0
+  },
+  {
+   "id": 508,
+   "type": "building",
+   "pos": [
+    -1,
+    0,
+    -35
+   ],
+   "rot": 0
+  },
+  {
+   "id": 509,
+   "type": "building",
+   "pos": [
+    -1,
+    0,
+    -33
+   ],
+   "rot": 0
+  },
+  {
+   "id": 510,
+   "type": "building",
+   "pos": [
+    -1,
+    0,
+    -29
+   ],
+   "rot": 0
+  },
+  {
+   "id": 511,
+   "type": "building",
+   "pos": [
+    -1,
+    0,
+    -27
+   ],
+   "rot": 0
+  },
+  {
+   "id": 512,
+   "type": "building",
+   "pos": [
+    -1,
+    0,
+    -25
+   ],
+   "rot": 0
+  },
+  {
+   "id": 513,
+   "type": "building",
+   "pos": [
+    1,
+    0,
+    -25
+   ],
+   "rot": 0
+  },
+  {
+   "id": 514,
+   "type": "building",
+   "pos": [
+    1,
+    0,
+    -27
+   ],
+   "rot": 0
+  },
+  {
+   "id": 515,
+   "type": "building",
+   "pos": [
+    1,
+    0,
+    -29
+   ],
+   "rot": 0
+  },
+  {
+   "id": 516,
+   "type": "building",
+   "pos": [
+    -1,
+    0,
+    -31
+   ],
+   "rot": 0
+  },
+  {
+   "id": 517,
+   "type": "building",
+   "pos": [
+    1,
+    0,
+    -31
+   ],
+   "rot": 0
+  },
+  {
+   "id": 518,
+   "type": "building",
+   "pos": [
+    1,
+    0,
+    -33
+   ],
+   "rot": 0
+  },
+  {
+   "id": 519,
+   "type": "building",
+   "pos": [
+    1,
+    0,
+    -35
+   ],
+   "rot": 0
+  },
+  {
+   "id": 520,
+   "type": "building",
+   "pos": [
+    1,
+    0,
+    -37
+   ],
+   "rot": 0
+  },
+  {
+   "id": 521,
+   "type": "building",
+   "pos": [
+    1,
+    0,
+    -39
+   ],
+   "rot": 0
+  },
+  {
+   "id": 522,
+   "type": "building",
+   "pos": [
+    3,
+    0,
+    -39
+   ],
+   "rot": 0
+  },
+  {
+   "id": 523,
+   "type": "building",
+   "pos": [
+    3,
+    0,
+    -37
+   ],
+   "rot": 0
+  },
+  {
+   "id": 524,
+   "type": "building",
+   "pos": [
+    3,
+    0,
+    -35
+   ],
+   "rot": 0
+  },
+  {
+   "id": 525,
+   "type": "building",
+   "pos": [
+    3,
+    0,
+    -33
+   ],
+   "rot": 0
+  },
+  {
+   "id": 526,
+   "type": "building",
+   "pos": [
+    3,
+    0,
+    -31
+   ],
+   "rot": 0
+  },
+  {
+   "id": 527,
+   "type": "building",
+   "pos": [
+    3,
+    0,
+    -29
+   ],
+   "rot": 0
+  },
+  {
+   "id": 528,
+   "type": "building",
+   "pos": [
+    3,
+    0,
+    -27
+   ],
+   "rot": 0
+  },
+  {
+   "id": 529,
+   "type": "building",
+   "pos": [
+    3,
+    0,
+    -25
+   ],
+   "rot": 0
+  },
+  {
+   "id": 530,
+   "type": "building",
+   "pos": [
+    5,
+    0,
+    -25
+   ],
+   "rot": 0
+  },
+  {
+   "id": 531,
+   "type": "building",
+   "pos": [
+    5,
+    0,
+    -27
+   ],
+   "rot": 0
+  },
+  {
+   "id": 532,
+   "type": "building",
+   "pos": [
+    5,
+    0,
+    -29
+   ],
+   "rot": 0
+  },
+  {
+   "id": 533,
+   "type": "building",
+   "pos": [
+    5,
+    0,
+    -31
+   ],
+   "rot": 0
+  },
+  {
+   "id": 534,
+   "type": "building",
+   "pos": [
+    5,
+    0,
+    -33
+   ],
+   "rot": 0
+  },
+  {
+   "id": 535,
+   "type": "building",
+   "pos": [
+    5,
+    0,
+    -35
+   ],
+   "rot": 0
+  },
+  {
+   "id": 536,
+   "type": "building",
+   "pos": [
+    5,
+    0,
+    -37
+   ],
+   "rot": 0
+  },
+  {
+   "id": 537,
+   "type": "building",
+   "pos": [
+    5,
+    0,
+    -39
+   ],
+   "rot": 0
+  },
+  {
+   "id": 538,
+   "type": "building",
+   "pos": [
+    7,
+    0,
+    -39
+   ],
+   "rot": 0
+  },
+  {
+   "id": 539,
+   "type": "building",
+   "pos": [
+    7,
+    0,
+    -37
+   ],
+   "rot": 0
+  },
+  {
+   "id": 540,
+   "type": "building",
+   "pos": [
+    7,
+    0,
+    -35
+   ],
+   "rot": 0
+  },
+  {
+   "id": 541,
+   "type": "building",
+   "pos": [
+    7,
+    0,
+    -33
+   ],
+   "rot": 0
+  },
+  {
+   "id": 542,
+   "type": "building",
+   "pos": [
+    7,
+    0,
+    -31
+   ],
+   "rot": 0
+  },
+  {
+   "id": 543,
+   "type": "building",
+   "pos": [
+    7,
+    0,
+    -29
+   ],
+   "rot": 0
+  },
+  {
+   "id": 544,
+   "type": "building",
+   "pos": [
+    7,
+    0,
+    -27
+   ],
+   "rot": 0
+  },
+  {
+   "id": 545,
+   "type": "building",
+   "pos": [
+    7,
+    0,
+    -25
+   ],
+   "rot": 0
+  },
+  {
+   "id": 546,
+   "type": "building",
+   "pos": [
+    9,
+    0,
+    -25
+   ],
+   "rot": 0
+  },
+  {
+   "id": 547,
+   "type": "building",
+   "pos": [
+    9,
+    0,
+    -27
+   ],
+   "rot": 0
+  },
+  {
+   "id": 548,
+   "type": "building",
+   "pos": [
+    9,
+    0,
+    -29
+   ],
+   "rot": 0
+  },
+  {
+   "id": 549,
+   "type": "building",
+   "pos": [
+    9,
+    0,
+    -31
+   ],
+   "rot": 0
+  },
+  {
+   "id": 550,
+   "type": "building",
+   "pos": [
+    9,
+    0,
+    -33
+   ],
+   "rot": 0
+  },
+  {
+   "id": 551,
+   "type": "building",
+   "pos": [
+    9,
+    0,
+    -35
+   ],
+   "rot": 0
+  },
+  {
+   "id": 552,
+   "type": "building",
+   "pos": [
+    9,
+    0,
+    -37
+   ],
+   "rot": 0
+  },
+  {
+   "id": 553,
+   "type": "building",
+   "pos": [
+    9,
+    0,
+    -39
+   ],
+   "rot": 0
+  },
+  {
+   "id": 554,
+   "type": "building",
+   "pos": [
+    11,
+    0,
+    -39
+   ],
+   "rot": 0
+  },
+  {
+   "id": 555,
+   "type": "building",
+   "pos": [
+    11,
+    0,
+    -37
+   ],
+   "rot": 0
+  },
+  {
+   "id": 556,
+   "type": "building",
+   "pos": [
+    11,
+    0,
+    -35
+   ],
+   "rot": 0
+  },
+  {
+   "id": 557,
+   "type": "building",
+   "pos": [
+    11,
+    0,
+    -31
+   ],
+   "rot": 0
+  },
+  {
+   "id": 558,
+   "type": "building",
+   "pos": [
+    11,
+    0,
+    -29
+   ],
+   "rot": 0
+  },
+  {
+   "id": 559,
+   "type": "building",
+   "pos": [
+    11,
+    0,
+    -27
+   ],
+   "rot": 0
+  },
+  {
+   "id": 560,
+   "type": "building",
+   "pos": [
+    11,
+    0,
+    -25
+   ],
+   "rot": 0
+  },
+  {
+   "id": 566,
+   "type": "building",
+   "pos": [
+    11,
+    0,
+    -33
+   ],
+   "rot": 0
+  },
+  {
+   "id": 571,
+   "type": "building",
+   "pos": [
+    11,
+    4,
+    -25
+   ],
+   "rot": 0
+  },
+  {
+   "id": 572,
+   "type": "building",
+   "pos": [
+    9,
+    4,
+    -25
+   ],
+   "rot": 0
+  },
+  {
+   "id": 573,
+   "type": "building",
+   "pos": [
+    7,
+    4,
+    -25
+   ],
+   "rot": 0
+  },
+  {
+   "id": 574,
+   "type": "building",
+   "pos": [
+    5,
+    4,
+    -25
+   ],
+   "rot": 0
+  },
+  {
+   "id": 575,
+   "type": "building",
+   "pos": [
+    3,
+    4,
+    -25
+   ],
+   "rot": 0
+  },
+  {
+   "id": 576,
+   "type": "building",
+   "pos": [
+    1,
+    4,
+    -25
+   ],
+   "rot": 0
+  },
+  {
+   "id": 577,
+   "type": "building",
+   "pos": [
+    -1,
+    4,
+    -25
+   ],
+   "rot": 0
+  },
+  {
+   "id": 578,
+   "type": "building",
+   "pos": [
+    -1,
+    4,
+    -27
+   ],
+   "rot": 0
+  },
+  {
+   "id": 579,
+   "type": "building",
+   "pos": [
+    -5,
+    4,
+    -25
+   ],
+   "rot": 0
+  },
+  {
+   "id": 580,
+   "type": "building",
+   "pos": [
+    -7,
+    4,
+    -25
+   ],
+   "rot": 0
+  },
+  {
+   "id": 581,
+   "type": "building",
+   "pos": [
+    -7,
+    4,
+    -27
+   ],
+   "rot": 0
+  },
+  {
+   "id": 582,
+   "type": "building",
+   "pos": [
+    -7,
+    4,
+    -29
+   ],
+   "rot": 0
+  },
+  {
+   "id": 583,
+   "type": "building",
+   "pos": [
+    -5,
+    4,
+    -27
+   ],
+   "rot": 0
+  },
+  {
+   "id": 584,
+   "type": "building",
+   "pos": [
+    -3,
+    4,
+    -25
+   ],
+   "rot": 0
+  },
+  {
+   "id": 585,
+   "type": "building",
+   "pos": [
+    -3,
+    4,
+    -27
+   ],
+   "rot": 0
+  },
+  {
+   "id": 586,
+   "type": "building",
+   "pos": [
+    -3,
+    4,
+    -29
+   ],
+   "rot": 0
+  },
+  {
+   "id": 587,
+   "type": "building",
+   "pos": [
+    -3,
+    4,
+    -31
+   ],
+   "rot": 0
+  },
+  {
+   "id": 588,
+   "type": "building",
+   "pos": [
+    -3,
+    4,
+    -33
+   ],
+   "rot": 0
+  },
+  {
+   "id": 589,
+   "type": "building",
+   "pos": [
+    -3,
+    4,
+    -35
+   ],
+   "rot": 0
+  },
+  {
+   "id": 590,
+   "type": "building",
+   "pos": [
+    -3,
+    4,
+    -37
+   ],
+   "rot": 0
+  },
+  {
+   "id": 591,
+   "type": "building",
+   "pos": [
+    -3,
+    4,
+    -39
+   ],
+   "rot": 0
+  },
+  {
+   "id": 592,
+   "type": "building",
+   "pos": [
+    -5,
+    4,
+    -29
+   ],
+   "rot": 0
+  },
+  {
+   "id": 593,
+   "type": "building",
+   "pos": [
+    -5,
+    4,
+    -31
+   ],
+   "rot": 0
+  },
+  {
+   "id": 594,
+   "type": "building",
+   "pos": [
+    -5,
+    4,
+    -33
+   ],
+   "rot": 0
+  },
+  {
+   "id": 595,
+   "type": "building",
+   "pos": [
+    -5,
+    4,
+    -35
+   ],
+   "rot": 0
+  },
+  {
+   "id": 596,
+   "type": "building",
+   "pos": [
+    -5,
+    4,
+    -37
+   ],
+   "rot": 0
+  },
+  {
+   "id": 597,
+   "type": "building",
+   "pos": [
+    -5,
+    4,
+    -39
+   ],
+   "rot": 0
+  },
+  {
+   "id": 598,
+   "type": "building",
+   "pos": [
+    -7,
+    4,
+    -31
+   ],
+   "rot": 0
+  },
+  {
+   "id": 599,
+   "type": "building",
+   "pos": [
+    -7,
+    4,
+    -33
+   ],
+   "rot": 0
+  },
+  {
+   "id": 600,
+   "type": "building",
+   "pos": [
+    -7,
+    4,
+    -35
+   ],
+   "rot": 0
+  },
+  {
+   "id": 601,
+   "type": "building",
+   "pos": [
+    -7,
+    4,
+    -37
+   ],
+   "rot": 0
+  },
+  {
+   "id": 602,
+   "type": "building",
+   "pos": [
+    -7,
+    4,
+    -39
+   ],
+   "rot": 0
+  },
+  {
+   "id": 603,
+   "type": "building",
+   "pos": [
+    -5,
+    8,
+    -37
+   ],
+   "rot": 0
+  },
+  {
+   "id": 604,
+   "type": "building",
+   "pos": [
+    -3,
+    8,
+    -37
+   ],
+   "rot": 0
+  },
+  {
+   "id": 605,
+   "type": "building",
+   "pos": [
+    -1,
+    4,
+    -37
+   ],
+   "rot": 0
+  },
+  {
+   "id": 606,
+   "type": "building",
+   "pos": [
+    -1,
+    8,
+    -37
+   ],
+   "rot": 0
+  },
+  {
+   "id": 607,
+   "type": "building",
+   "pos": [
+    -1,
+    4,
+    -39
+   ],
+   "rot": 0
+  },
+  {
+   "id": 608,
+   "type": "building",
+   "pos": [
+    1,
+    4,
+    -39
+   ],
+   "rot": 0
+  },
+  {
+   "id": 609,
+   "type": "building",
+   "pos": [
+    3,
+    4,
+    -39
+   ],
+   "rot": 0
+  },
+  {
+   "id": 610,
+   "type": "building",
+   "pos": [
+    3,
+    4,
+    -27
+   ],
+   "rot": 0
+  },
+  {
+   "id": 611,
+   "type": "building",
+   "pos": [
+    3,
+    4,
+    -29
+   ],
+   "rot": 0
+  },
+  {
+   "id": 612,
+   "type": "building",
+   "pos": [
+    3,
+    4,
+    -31
+   ],
+   "rot": 0
+  },
+  {
+   "id": 613,
+   "type": "building",
+   "pos": [
+    3,
+    4,
+    -33
+   ],
+   "rot": 0
+  },
+  {
+   "id": 614,
+   "type": "building",
+   "pos": [
+    3,
+    4,
+    -35
+   ],
+   "rot": 0
+  },
+  {
+   "id": 615,
+   "type": "building",
+   "pos": [
+    3,
+    4,
+    -37
+   ],
+   "rot": 0
+  },
+  {
+   "id": 616,
+   "type": "building",
+   "pos": [
+    1,
+    4,
+    -27
+   ],
+   "rot": 0
+  },
+  {
+   "id": 617,
+   "type": "building",
+   "pos": [
+    -1,
+    4,
+    -29
+   ],
+   "rot": 0
+  },
+  {
+   "id": 618,
+   "type": "building",
+   "pos": [
+    1,
+    4,
+    -29
+   ],
+   "rot": 0
+  },
+  {
+   "id": 619,
+   "type": "building",
+   "pos": [
+    1,
+    4,
+    -31
+   ],
+   "rot": 0
+  },
+  {
+   "id": 620,
+   "type": "building",
+   "pos": [
+    -1,
+    4,
+    -31
+   ],
+   "rot": 0
+  },
+  {
+   "id": 621,
+   "type": "building",
+   "pos": [
+    -1,
+    4,
+    -33
+   ],
+   "rot": 0
+  },
+  {
+   "id": 622,
+   "type": "building",
+   "pos": [
+    1,
+    4,
+    -33
+   ],
+   "rot": 0
+  },
+  {
+   "id": 623,
+   "type": "building",
+   "pos": [
+    -1,
+    4,
+    -35
+   ],
+   "rot": 0
+  },
+  {
+   "id": 624,
+   "type": "building",
+   "pos": [
+    1,
+    4,
+    -35
+   ],
+   "rot": 0
+  },
+  {
+   "id": 625,
+   "type": "building",
+   "pos": [
+    1,
+    4,
+    -37
+   ],
+   "rot": 0
+  },
+  {
+   "id": 627,
+   "type": "building",
+   "pos": [
+    -5,
+    8,
+    -35
+   ],
+   "rot": 0
+  },
+  {
+   "id": 628,
+   "type": "building",
+   "pos": [
+    -5,
+    8,
+    -33
+   ],
+   "rot": 0
+  },
+  {
+   "id": 629,
+   "type": "building",
+   "pos": [
+    -5,
+    8,
+    -31
+   ],
+   "rot": 0
+  },
+  {
+   "id": 631,
+   "type": "building",
+   "pos": [
+    -1,
+    8,
+    -31
+   ],
+   "rot": 0
+  },
+  {
+   "id": 632,
+   "type": "building",
+   "pos": [
+    -1,
+    8,
+    -33
+   ],
+   "rot": 0
+  },
+  {
+   "id": 633,
+   "type": "building",
+   "pos": [
+    -3,
+    8,
+    -33
+   ],
+   "rot": 0
+  },
+  {
+   "id": 634,
+   "type": "building",
+   "pos": [
+    -3,
+    8,
+    -35
+   ],
+   "rot": 0
+  },
+  {
+   "id": 635,
+   "type": "building",
+   "pos": [
+    -1,
+    8,
+    -35
+   ],
+   "rot": 0
+  },
+  {
+   "id": 636,
+   "type": "building",
+   "pos": [
+    5,
+    4,
+    -27
+   ],
+   "rot": 0
+  },
+  {
+   "id": 637,
+   "type": "building",
+   "pos": [
+    5,
+    4,
+    -29
+   ],
+   "rot": 0
+  },
+  {
+   "id": 638,
+   "type": "building",
+   "pos": [
+    5,
+    4,
+    -31
+   ],
+   "rot": 0
+  },
+  {
+   "id": 639,
+   "type": "building",
+   "pos": [
+    5,
+    4,
+    -33
+   ],
+   "rot": 0
+  },
+  {
+   "id": 640,
+   "type": "building",
+   "pos": [
+    5,
+    4,
+    -35
+   ],
+   "rot": 0
+  },
+  {
+   "id": 641,
+   "type": "building",
+   "pos": [
+    5,
+    4,
+    -37
+   ],
+   "rot": 0
+  },
+  {
+   "id": 642,
+   "type": "building",
+   "pos": [
+    5,
+    4,
+    -39
+   ],
+   "rot": 0
+  },
+  {
+   "id": 643,
+   "type": "building",
+   "pos": [
+    7,
+    4,
+    -39
+   ],
+   "rot": 0
+  },
+  {
+   "id": 644,
+   "type": "building",
+   "pos": [
+    7,
+    4,
+    -37
+   ],
+   "rot": 0
+  },
+  {
+   "id": 645,
+   "type": "building",
+   "pos": [
+    7,
+    4,
+    -35
+   ],
+   "rot": 0
+  },
+  {
+   "id": 646,
+   "type": "building",
+   "pos": [
+    7,
+    4,
+    -33
+   ],
+   "rot": 0
+  },
+  {
+   "id": 647,
+   "type": "building",
+   "pos": [
+    7,
+    4,
+    -31
+   ],
+   "rot": 0
+  },
+  {
+   "id": 648,
+   "type": "building",
+   "pos": [
+    7,
+    4,
+    -29
+   ],
+   "rot": 0
+  },
+  {
+   "id": 649,
+   "type": "building",
+   "pos": [
+    7,
+    4,
+    -27
+   ],
+   "rot": 0
+  },
+  {
+   "id": 650,
+   "type": "building",
+   "pos": [
+    9,
+    4,
+    -27
+   ],
+   "rot": 0
+  },
+  {
+   "id": 651,
+   "type": "building",
+   "pos": [
+    9,
+    4,
+    -29
+   ],
+   "rot": 0
+  },
+  {
+   "id": 652,
+   "type": "building",
+   "pos": [
+    9,
+    4,
+    -31
+   ],
+   "rot": 0
+  },
+  {
+   "id": 653,
+   "type": "building",
+   "pos": [
+    9,
+    4,
+    -33
+   ],
+   "rot": 0
+  },
+  {
+   "id": 654,
+   "type": "building",
+   "pos": [
+    9,
+    4,
+    -35
+   ],
+   "rot": 0
+  },
+  {
+   "id": 655,
+   "type": "building",
+   "pos": [
+    9,
+    4,
+    -37
+   ],
+   "rot": 0
+  },
+  {
+   "id": 656,
+   "type": "building",
+   "pos": [
+    9,
+    4,
+    -39
+   ],
+   "rot": 0
+  },
+  {
+   "id": 657,
+   "type": "building",
+   "pos": [
+    11,
+    4,
+    -39
+   ],
+   "rot": 0
+  },
+  {
+   "id": 658,
+   "type": "building",
+   "pos": [
+    11,
+    4,
+    -37
+   ],
+   "rot": 0
+  },
+  {
+   "id": 659,
+   "type": "building",
+   "pos": [
+    11,
+    4,
+    -35
+   ],
+   "rot": 0
+  },
+  {
+   "id": 660,
+   "type": "building",
+   "pos": [
+    11,
+    4,
+    -33
+   ],
+   "rot": 0
+  },
+  {
+   "id": 661,
+   "type": "building",
+   "pos": [
+    11,
+    4,
+    -31
+   ],
+   "rot": 0
+  },
+  {
+   "id": 662,
+   "type": "building",
+   "pos": [
+    11,
+    4,
+    -29
+   ],
+   "rot": 0
+  },
+  {
+   "id": 663,
+   "type": "building",
+   "pos": [
+    11,
+    4,
+    -27
+   ],
+   "rot": 0
+  },
+  {
+   "id": 672,
+   "type": "parapet",
+   "pos": [
+    -8,
+    0,
+    -23
+   ],
+   "rot": 1
+  },
+  {
+   "id": 714,
+   "type": "building",
+   "pos": [
+    13,
+    -8,
+    -25
+   ],
+   "rot": 0
+  },
+  {
+   "id": 715,
+   "type": "building",
+   "pos": [
+    13,
+    -8,
+    -27
+   ],
+   "rot": 0
+  },
+  {
+   "id": 716,
+   "type": "building",
+   "pos": [
+    13,
+    -8,
+    -29
+   ],
+   "rot": 0
+  },
+  {
+   "id": 717,
+   "type": "building",
+   "pos": [
+    13,
+    -8,
+    -31
+   ],
+   "rot": 0
+  },
+  {
+   "id": 718,
+   "type": "building",
+   "pos": [
+    13,
+    -8,
+    -33
+   ],
+   "rot": 0
+  },
+  {
+   "id": 719,
+   "type": "building",
+   "pos": [
+    13,
+    -8,
+    -35
+   ],
+   "rot": 0
+  },
+  {
+   "id": 720,
+   "type": "building",
+   "pos": [
+    13,
+    -8,
+    -37
+   ],
+   "rot": 0
+  },
+  {
+   "id": 721,
+   "type": "building",
+   "pos": [
+    13,
+    -8,
+    -39
+   ],
+   "rot": 0
+  },
+  {
+   "id": 722,
+   "type": "building",
+   "pos": [
+    13,
+    -4,
+    -39
+   ],
+   "rot": 0
+  },
+  {
+   "id": 723,
+   "type": "building",
+   "pos": [
+    13,
+    0,
+    -39
+   ],
+   "rot": 0
+  },
+  {
+   "id": 724,
+   "type": "building",
+   "pos": [
+    13,
+    4,
+    -39
+   ],
+   "rot": 0
+  },
+  {
+   "id": 725,
+   "type": "building",
+   "pos": [
+    13,
+    -4,
+    -37
+   ],
+   "rot": 0
+  },
+  {
+   "id": 726,
+   "type": "building",
+   "pos": [
+    13,
+    -4,
+    -33
+   ],
+   "rot": 0
+  },
+  {
+   "id": 727,
+   "type": "building",
+   "pos": [
+    13,
+    -4,
+    -25
+   ],
+   "rot": 0
+  },
+  {
+   "id": 728,
+   "type": "building",
+   "pos": [
+    13,
+    -4,
+    -29
+   ],
+   "rot": 0
+  },
+  {
+   "id": 730,
+   "type": "building",
+   "pos": [
+    13,
+    -4,
+    -31
+   ],
+   "rot": 0
+  },
+  {
+   "id": 731,
+   "type": "building",
+   "pos": [
+    13,
+    -4,
+    -27
+   ],
+   "rot": 0
+  },
+  {
+   "id": 732,
+   "type": "building",
+   "pos": [
+    13,
+    0,
+    -25
+   ],
+   "rot": 0
+  },
+  {
+   "id": 733,
+   "type": "building",
+   "pos": [
+    13,
+    0,
+    -27
+   ],
+   "rot": 0
+  },
+  {
+   "id": 734,
+   "type": "building",
+   "pos": [
+    13,
+    0,
+    -29
+   ],
+   "rot": 0
+  },
+  {
+   "id": 735,
+   "type": "building",
+   "pos": [
+    13,
+    0,
+    -31
+   ],
+   "rot": 0
+  },
+  {
+   "id": 736,
+   "type": "building",
+   "pos": [
+    13,
+    0,
+    -33
+   ],
+   "rot": 0
+  },
+  {
+   "id": 737,
+   "type": "building",
+   "pos": [
+    13,
+    -4,
+    -35
+   ],
+   "rot": 0
+  },
+  {
+   "id": 738,
+   "type": "building",
+   "pos": [
+    13,
+    0,
+    -35
+   ],
+   "rot": 0
+  },
+  {
+   "id": 739,
+   "type": "building",
+   "pos": [
+    13,
+    0,
+    -37
+   ],
+   "rot": 0
+  },
+  {
+   "id": 741,
+   "type": "building",
+   "variant": "half",
+   "pos": [
+    -1,
+    4,
+    -39
+   ],
+   "rot": 0
+  },
+  {
+   "id": 742,
+   "type": "building",
+   "variant": "half",
+   "pos": [
+    -3,
+    4,
+    -39
+   ],
+   "rot": 0
+  },
+  {
+   "id": 743,
+   "type": "building",
+   "variant": "half",
+   "pos": [
+    -5,
+    4,
+    -39
+   ],
+   "rot": 0
+  },
+  {
+   "id": 744,
+   "type": "building",
+   "variant": "half",
+   "pos": [
+    -7,
+    4,
+    -39
+   ],
+   "rot": 0
+  },
+  {
+   "id": 745,
+   "type": "building",
+   "variant": "half",
+   "pos": [
+    -7,
+    4,
+    -37
+   ],
+   "rot": 0
+  },
+  {
+   "id": 746,
+   "type": "building",
+   "variant": "half",
+   "pos": [
+    -7,
+    4,
+    -35
+   ],
+   "rot": 0
+  },
+  {
+   "id": 747,
+   "type": "building",
+   "variant": "half",
+   "pos": [
+    -7,
+    4,
+    -33
+   ],
+   "rot": 0
+  },
+  {
+   "id": 748,
+   "type": "building",
+   "variant": "half",
+   "pos": [
+    -7,
+    4,
+    -31
+   ],
+   "rot": 0
+  },
+  {
+   "id": 754,
+   "type": "building",
+   "pos": [
+    15,
+    -8,
+    5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 755,
+   "type": "building",
+   "pos": [
+    15,
+    -8,
+    3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 756,
+   "type": "building",
+   "pos": [
+    15,
+    -8,
+    1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 757,
+   "type": "building",
+   "pos": [
+    15,
+    -8,
+    -1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 758,
+   "type": "building",
+   "pos": [
+    17,
+    -8,
+    -1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 759,
+   "type": "building",
+   "pos": [
+    17,
+    -8,
+    1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 760,
+   "type": "building",
+   "pos": [
+    17,
+    -8,
+    3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 763,
+   "type": "building",
+   "pos": [
+    19,
+    -8,
+    5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 764,
+   "type": "building",
+   "pos": [
+    19,
+    -8,
+    3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 765,
+   "type": "building",
+   "pos": [
+    19,
+    -8,
+    1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 767,
+   "type": "building",
+   "pos": [
+    21,
+    -8,
+    -1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 768,
+   "type": "building",
+   "pos": [
+    21,
+    -8,
+    1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 769,
+   "type": "building",
+   "pos": [
+    21,
+    -8,
+    3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 770,
+   "type": "building",
+   "pos": [
+    21,
+    -8,
+    5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 771,
+   "type": "building",
+   "pos": [
+    23,
+    -8,
+    5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 772,
+   "type": "building",
+   "pos": [
+    23,
+    -8,
+    3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 773,
+   "type": "building",
+   "pos": [
+    23,
+    -8,
+    1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 774,
+   "type": "building",
+   "pos": [
+    23,
+    -8,
+    -1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 775,
+   "type": "building",
+   "pos": [
+    15,
+    -12,
+    7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 776,
+   "type": "building",
+   "pos": [
+    15,
+    -12,
+    9
+   ],
+   "rot": 0
+  },
+  {
+   "id": 777,
+   "type": "building",
+   "pos": [
+    17,
+    -12,
+    7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 778,
+   "type": "building",
+   "pos": [
+    17,
+    -12,
+    9
+   ],
+   "rot": 0
+  },
+  {
+   "id": 779,
+   "type": "building",
+   "pos": [
+    15,
+    -12,
+    11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 780,
+   "type": "building",
+   "pos": [
+    17,
+    -12,
+    11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 781,
+   "type": "building",
+   "pos": [
+    15,
+    -12,
+    13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 782,
+   "type": "building",
+   "pos": [
+    17,
+    -12,
+    13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 783,
+   "type": "building",
+   "pos": [
+    19,
+    -12,
+    7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 784,
+   "type": "building",
+   "pos": [
+    21,
+    -12,
+    7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 785,
+   "type": "building",
+   "pos": [
+    23,
+    -12,
+    7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 786,
+   "type": "building",
+   "pos": [
+    23,
+    -12,
+    9
+   ],
+   "rot": 0
+  },
+  {
+   "id": 787,
+   "type": "building",
+   "pos": [
+    21,
+    -12,
+    9
+   ],
+   "rot": 0
+  },
+  {
+   "id": 788,
+   "type": "building",
+   "pos": [
+    19,
+    -12,
+    9
+   ],
+   "rot": 0
+  },
+  {
+   "id": 789,
+   "type": "building",
+   "pos": [
+    19,
+    -12,
+    11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 790,
+   "type": "building",
+   "pos": [
+    21,
+    -12,
+    11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 791,
+   "type": "building",
+   "pos": [
+    23,
+    -12,
+    11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 792,
+   "type": "building",
+   "pos": [
+    23,
+    -12,
+    13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 793,
+   "type": "building",
+   "pos": [
+    21,
+    -12,
+    13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 794,
+   "type": "building",
+   "pos": [
+    19,
+    -12,
+    13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 795,
+   "type": "building",
+   "pos": [
+    15,
+    -12,
+    15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 796,
+   "type": "building",
+   "pos": [
+    17,
+    -12,
+    15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 797,
+   "type": "building",
+   "pos": [
+    19,
+    -12,
+    15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 798,
+   "type": "building",
+   "pos": [
+    21,
+    -12,
+    15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 799,
+   "type": "building",
+   "pos": [
+    23,
+    -12,
+    15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 800,
+   "type": "building",
+   "pos": [
+    3,
+    -8,
+    13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 801,
+   "type": "building",
+   "pos": [
+    5,
+    -8,
+    13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 802,
+   "type": "building",
+   "pos": [
+    3,
+    -8,
+    15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 803,
+   "type": "building",
+   "pos": [
+    5,
+    -8,
+    15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 804,
+   "type": "building",
+   "pos": [
+    3,
+    -4,
+    13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 805,
+   "type": "building",
+   "pos": [
+    5,
+    -4,
+    13
+   ],
+   "rot": 0,
+   "finish": {
+    "wall": "brick"
+   }
+  },
+  {
+   "id": 806,
+   "type": "building",
+   "pos": [
+    3,
+    -4,
+    15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 807,
+   "type": "building",
+   "pos": [
+    5,
+    -4,
+    15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 808,
+   "type": "building",
+   "pos": [
+    7,
+    -8,
+    13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 809,
+   "type": "building",
+   "pos": [
+    9,
+    -8,
+    13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 810,
+   "type": "building",
+   "pos": [
+    11,
+    -8,
+    13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 811,
+   "type": "building",
+   "pos": [
+    13,
+    -8,
+    13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 812,
+   "type": "building",
+   "pos": [
+    13,
+    -8,
+    15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 813,
+   "type": "building",
+   "pos": [
+    11,
+    -8,
+    15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 814,
+   "type": "building",
+   "pos": [
+    9,
+    -8,
+    15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 815,
+   "type": "building",
+   "pos": [
+    7,
+    -8,
+    15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 816,
+   "type": "building",
+   "pos": [
+    7,
+    -4,
+    13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 817,
+   "type": "building",
+   "pos": [
+    9,
+    -4,
+    13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 818,
+   "type": "building",
+   "pos": [
+    11,
+    -4,
+    13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 819,
+   "type": "building",
+   "pos": [
+    13,
+    -4,
+    13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 820,
+   "type": "building",
+   "pos": [
+    13,
+    -4,
+    15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 821,
+   "type": "building",
+   "pos": [
+    11,
+    -4,
+    15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 822,
+   "type": "building",
+   "pos": [
+    9,
+    -4,
+    15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 823,
+   "type": "building",
+   "pos": [
+    7,
+    -4,
+    15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 824,
+   "type": "building",
+   "pos": [
+    1,
+    -12,
+    13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 825,
+   "type": "building",
+   "pos": [
+    -1,
+    -12,
+    13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 826,
+   "type": "building",
+   "pos": [
+    -3,
+    -12,
+    13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 827,
+   "type": "building",
+   "pos": [
+    -5,
+    -12,
+    13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 828,
+   "type": "building",
+   "pos": [
+    -7,
+    -12,
+    13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 829,
+   "type": "building",
+   "pos": [
+    -7,
+    -12,
+    15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 830,
+   "type": "building",
+   "pos": [
+    -5,
+    -12,
+    15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 831,
+   "type": "building",
+   "pos": [
+    -3,
+    -12,
+    15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 832,
+   "type": "building",
+   "pos": [
+    -1,
+    -12,
+    15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 833,
+   "type": "building",
+   "pos": [
+    1,
+    -12,
+    15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 834,
+   "type": "building",
+   "pos": [
+    1,
+    -12,
+    17
+   ],
+   "rot": 0
+  },
+  {
+   "id": 835,
+   "type": "building",
+   "pos": [
+    -1,
+    -12,
+    17
+   ],
+   "rot": 0
+  },
+  {
+   "id": 836,
+   "type": "building",
+   "pos": [
+    -3,
+    -12,
+    17
+   ],
+   "rot": 0
+  },
+  {
+   "id": 837,
+   "type": "building",
+   "pos": [
+    -5,
+    -12,
+    17
+   ],
+   "rot": 0
+  },
+  {
+   "id": 838,
+   "type": "building",
+   "pos": [
+    -7,
+    -12,
+    17
+   ],
+   "rot": 0
+  },
+  {
+   "id": 839,
+   "type": "building",
+   "pos": [
+    -7,
+    -12,
+    19
+   ],
+   "rot": 0
+  },
+  {
+   "id": 840,
+   "type": "building",
+   "pos": [
+    -5,
+    -12,
+    19
+   ],
+   "rot": 0
+  },
+  {
+   "id": 841,
+   "type": "building",
+   "pos": [
+    -3,
+    -12,
+    19
+   ],
+   "rot": 0
+  },
+  {
+   "id": 842,
+   "type": "building",
+   "pos": [
+    -1,
+    -12,
+    19
+   ],
+   "rot": 0
+  },
+  {
+   "id": 843,
+   "type": "building",
+   "pos": [
+    1,
+    -12,
+    19
+   ],
+   "rot": 0
+  },
+  {
+   "id": 844,
+   "type": "building",
+   "pos": [
+    1,
+    -12,
+    21
+   ],
+   "rot": 0
+  },
+  {
+   "id": 845,
+   "type": "building",
+   "pos": [
+    -1,
+    -12,
+    21
+   ],
+   "rot": 0
+  },
+  {
+   "id": 846,
+   "type": "building",
+   "pos": [
+    -3,
+    -12,
+    21
+   ],
+   "rot": 0
+  },
+  {
+   "id": 847,
+   "type": "building",
+   "pos": [
+    -5,
+    -12,
+    21
+   ],
+   "rot": 0
+  },
+  {
+   "id": 848,
+   "type": "building",
+   "pos": [
+    -7,
+    -12,
+    21
+   ],
+   "rot": 0
+  },
+  {
+   "id": 900,
+   "type": "building",
+   "pos": [
+    13,
+    -8,
+    3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 901,
+   "type": "building",
+   "pos": [
+    13,
+    -8,
+    1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 902,
+   "type": "building",
+   "pos": [
+    13,
+    -8,
+    -1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 903,
+   "type": "building",
+   "pos": [
+    13,
+    -8,
+    -3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 904,
+   "type": "building",
+   "pos": [
+    13,
+    -8,
+    -5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 905,
+   "type": "building",
+   "pos": [
+    13,
+    -8,
+    -7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 906,
+   "type": "building",
+   "pos": [
+    13,
+    -4,
+    3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 907,
+   "type": "building",
+   "pos": [
+    13,
+    -4,
+    1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 908,
+   "type": "building",
+   "pos": [
+    13,
+    -4,
+    -1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 909,
+   "type": "building",
+   "pos": [
+    13,
+    -4,
+    -3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 910,
+   "type": "building",
+   "pos": [
+    13,
+    -4,
+    -5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 911,
+   "type": "building",
+   "pos": [
+    13,
+    -4,
+    -7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 912,
+   "type": "building",
+   "pos": [
+    13,
+    0,
+    3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 913,
+   "type": "building",
+   "pos": [
+    13,
+    0,
+    1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 914,
+   "type": "building",
+   "pos": [
+    13,
+    0,
+    -3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 915,
+   "type": "building",
+   "pos": [
+    13,
+    0,
+    -5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 916,
+   "type": "building",
+   "pos": [
+    13,
+    0,
+    -7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 917,
+   "type": "building",
+   "pos": [
+    13,
+    0,
+    -1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 926,
+   "type": "building",
+   "pos": [
+    13,
+    -8,
+    -9
+   ],
+   "rot": 0
+  },
+  {
+   "id": 927,
+   "type": "building",
+   "pos": [
+    13,
+    -8,
+    -11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 928,
+   "type": "building",
+   "pos": [
+    13,
+    -8,
+    -13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 929,
+   "type": "building",
+   "pos": [
+    13,
+    -8,
+    -15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 930,
+   "type": "building",
+   "pos": [
+    13,
+    -8,
+    -17
+   ],
+   "rot": 0
+  },
+  {
+   "id": 931,
+   "type": "building",
+   "pos": [
+    13,
+    -8,
+    -19
+   ],
+   "rot": 0
+  },
+  {
+   "id": 932,
+   "type": "building",
+   "pos": [
+    13,
+    -8,
+    -21
+   ],
+   "rot": 0
+  },
+  {
+   "id": 933,
+   "type": "building",
+   "pos": [
+    13,
+    -8,
+    -23
+   ],
+   "rot": 0
+  },
+  {
+   "id": 934,
+   "type": "building",
+   "pos": [
+    13,
+    -4,
+    -23
+   ],
+   "rot": 0
+  },
+  {
+   "id": 935,
+   "type": "building",
+   "pos": [
+    13,
+    -4,
+    -19
+   ],
+   "rot": 0
+  },
+  {
+   "id": 936,
+   "type": "building",
+   "pos": [
+    13,
+    -4,
+    -17
+   ],
+   "rot": 0
+  },
+  {
+   "id": 937,
+   "type": "building",
+   "pos": [
+    13,
+    -4,
+    -15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 938,
+   "type": "building",
+   "pos": [
+    13,
+    -4,
+    -13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 939,
+   "type": "building",
+   "pos": [
+    13,
+    -4,
+    -11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 940,
+   "type": "building",
+   "pos": [
+    13,
+    -4,
+    -9
+   ],
+   "rot": 0
+  },
+  {
+   "id": 941,
+   "type": "building",
+   "pos": [
+    13,
+    0,
+    -9
+   ],
+   "rot": 0
+  },
+  {
+   "id": 942,
+   "type": "building",
+   "pos": [
+    13,
+    0,
+    -11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 943,
+   "type": "building",
+   "pos": [
+    13,
+    0,
+    -13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 944,
+   "type": "building",
+   "pos": [
+    13,
+    0,
+    -15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 945,
+   "type": "building",
+   "pos": [
+    13,
+    0,
+    -17
+   ],
+   "rot": 0
+  },
+  {
+   "id": 946,
+   "type": "building",
+   "pos": [
+    13,
+    0,
+    -19
+   ],
+   "rot": 0
+  },
+  {
+   "id": 947,
+   "type": "building",
+   "pos": [
+    13,
+    0,
+    -21
+   ],
+   "rot": 0
+  },
+  {
+   "id": 948,
+   "type": "building",
+   "pos": [
+    13,
+    -4,
+    -21
+   ],
+   "rot": 0
+  },
+  {
+   "id": 949,
+   "type": "building",
+   "pos": [
+    13,
+    0,
+    -23
+   ],
+   "rot": 0
+  },
+  {
+   "id": 950,
+   "type": "building",
+   "pos": [
+    -9,
+    -4,
+    -7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 951,
+   "type": "building",
+   "pos": [
+    -9,
+    -4,
+    -9
+   ],
+   "rot": 0
+  },
+  {
+   "id": 952,
+   "type": "building",
+   "pos": [
+    -9,
+    -4,
+    -11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 953,
+   "type": "building",
+   "pos": [
+    -9,
+    -4,
+    -13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 954,
+   "type": "building",
+   "pos": [
+    -9,
+    -4,
+    -15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 955,
+   "type": "building",
+   "pos": [
+    -9,
+    -4,
+    -17
+   ],
+   "rot": 0
+  },
+  {
+   "id": 956,
+   "type": "building",
+   "pos": [
+    -9,
+    -4,
+    -19
+   ],
+   "rot": 0
+  },
+  {
+   "id": 957,
+   "type": "building",
+   "pos": [
+    -9,
+    -4,
+    -23
+   ],
+   "rot": 0
+  },
+  {
+   "id": 958,
+   "type": "building",
+   "pos": [
+    -9,
+    -4,
+    -21
+   ],
+   "rot": 0
+  },
+  {
+   "id": 959,
+   "type": "building",
+   "pos": [
+    -11,
+    -4,
+    -23
+   ],
+   "rot": 0
+  },
+  {
+   "id": 960,
+   "type": "building",
+   "pos": [
+    -11,
+    -4,
+    -21
+   ],
+   "rot": 0
+  },
+  {
+   "id": 961,
+   "type": "building",
+   "pos": [
+    -11,
+    -4,
+    -19
+   ],
+   "rot": 0
+  },
+  {
+   "id": 962,
+   "type": "building",
+   "pos": [
+    -11,
+    -4,
+    -17
+   ],
+   "rot": 0
+  },
+  {
+   "id": 963,
+   "type": "building",
+   "pos": [
+    -11,
+    -4,
+    -15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 964,
+   "type": "building",
+   "pos": [
+    -11,
+    -4,
+    -13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 966,
+   "type": "building",
+   "pos": [
+    -11,
+    -4,
+    -9
+   ],
+   "rot": 0
+  },
+  {
+   "id": 968,
+   "type": "building",
+   "pos": [
+    -11,
+    -4,
+    -7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 969,
+   "type": "building",
+   "pos": [
+    -11,
+    -4,
+    -11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 970,
+   "type": "building",
+   "pos": [
+    -13,
+    -4,
+    -7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 971,
+   "type": "building",
+   "pos": [
+    -13,
+    -4,
+    -11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 972,
+   "type": "building",
+   "pos": [
+    -13,
+    -4,
+    -13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 973,
+   "type": "building",
+   "pos": [
+    -13,
+    -4,
+    -17
+   ],
+   "rot": 0
+  },
+  {
+   "id": 974,
+   "type": "building",
+   "pos": [
+    -13,
+    -4,
+    -19
+   ],
+   "rot": 0
+  },
+  {
+   "id": 975,
+   "type": "building",
+   "pos": [
+    -13,
+    -4,
+    -21
+   ],
+   "rot": 0
+  },
+  {
+   "id": 976,
+   "type": "building",
+   "pos": [
+    -13,
+    -4,
+    -23
+   ],
+   "rot": 0
+  },
+  {
+   "id": 977,
+   "type": "building",
+   "pos": [
+    -15,
+    -4,
+    -23
+   ],
+   "rot": 0
+  },
+  {
+   "id": 978,
+   "type": "building",
+   "pos": [
+    -15,
+    -4,
+    -21
+   ],
+   "rot": 0
+  },
+  {
+   "id": 979,
+   "type": "building",
+   "pos": [
+    -15,
+    -4,
+    -19
+   ],
+   "rot": 0
+  },
+  {
+   "id": 980,
+   "type": "building",
+   "pos": [
+    -15,
+    -4,
+    -17
+   ],
+   "rot": 0
+  },
+  {
+   "id": 981,
+   "type": "building",
+   "pos": [
+    -13,
+    -4,
+    -15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 982,
+   "type": "building",
+   "pos": [
+    -15,
+    -4,
+    -15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 983,
+   "type": "building",
+   "pos": [
+    -15,
+    -4,
+    -13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 984,
+   "type": "building",
+   "pos": [
+    -15,
+    -4,
+    -11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 985,
+   "type": "building",
+   "pos": [
+    -13,
+    -4,
+    -9
+   ],
+   "rot": 0
+  },
+  {
+   "id": 986,
+   "type": "building",
+   "pos": [
+    -15,
+    -4,
+    -9
+   ],
+   "rot": 0
+  },
+  {
+   "id": 987,
+   "type": "building",
+   "pos": [
+    -15,
+    -4,
+    -7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 988,
+   "type": "building",
+   "pos": [
+    -17,
+    -4,
+    -7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 989,
+   "type": "building",
+   "pos": [
+    -17,
+    -4,
+    -9
+   ],
+   "rot": 0
+  },
+  {
+   "id": 990,
+   "type": "building",
+   "pos": [
+    -17,
+    -4,
+    -11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 991,
+   "type": "building",
+   "pos": [
+    -17,
+    -4,
+    -13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 992,
+   "type": "building",
+   "pos": [
+    -17,
+    -4,
+    -15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 993,
+   "type": "building",
+   "pos": [
+    -17,
+    -4,
+    -17
+   ],
+   "rot": 0
+  },
+  {
+   "id": 994,
+   "type": "building",
+   "pos": [
+    -17,
+    -4,
+    -19
+   ],
+   "rot": 0
+  },
+  {
+   "id": 995,
+   "type": "building",
+   "pos": [
+    -17,
+    -4,
+    -21
+   ],
+   "rot": 0
+  },
+  {
+   "id": 996,
+   "type": "building",
+   "pos": [
+    -17,
+    -4,
+    -23
+   ],
+   "rot": 0
+  },
+  {
+   "id": 997,
+   "type": "building",
+   "pos": [
+    -19,
+    -4,
+    -23
+   ],
+   "rot": 0
+  },
+  {
+   "id": 998,
+   "type": "building",
+   "pos": [
+    -19,
+    -4,
+    -21
+   ],
+   "rot": 0
+  },
+  {
+   "id": 999,
+   "type": "building",
+   "pos": [
+    -19,
+    -4,
+    -19
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1000,
+   "type": "building",
+   "pos": [
+    -19,
+    -4,
+    -17
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1001,
+   "type": "building",
+   "pos": [
+    -19,
+    -4,
+    -15
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1002,
+   "type": "building",
+   "pos": [
+    -19,
+    -4,
+    -13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1003,
+   "type": "building",
+   "pos": [
+    -19,
+    -4,
+    -11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1004,
+   "type": "building",
+   "pos": [
+    -19,
+    -4,
+    -9
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1005,
+   "type": "building",
+   "pos": [
+    -19,
+    -4,
+    -7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1007,
+   "type": "steel_stair",
+   "pos": [
+    -11,
+    -4,
+    -21
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1009,
+   "type": "lattice_mast",
+   "pos": [
+    -7,
+    6,
+    -31.5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1101,
+   "type": "slab",
+   "pos": [
+    11,
+    4,
+    3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1102,
+   "type": "slab",
+   "pos": [
+    11,
+    4,
+    1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1103,
+   "type": "slab",
+   "pos": [
+    11,
+    4,
+    -1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1104,
+   "type": "slab",
+   "pos": [
+    11,
+    4,
+    -3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1146,
+   "type": "slab",
+   "pos": [
+    11,
+    4,
+    -7
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1147,
+   "type": "slab",
+   "pos": [
+    13,
+    4,
+    -7
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1149,
+   "type": "slab",
+   "pos": [
+    9,
+    4,
+    -7
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1151,
+   "type": "building",
+   "pos": [
+    11,
+    4,
+    -5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1152,
+   "type": "building",
+   "pos": [
+    13,
+    4,
+    -5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1179,
+   "type": "railing",
+   "pos": [
+    8,
+    4,
+    3
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1180,
+   "type": "railing",
+   "pos": [
+    8,
+    4,
+    5
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1184,
+   "type": "railing",
+   "pos": [
+    8,
+    4,
+    -7
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1185,
+   "type": "railing",
+   "pos": [
+    11,
+    4,
+    -8
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1186,
+   "type": "railing",
+   "pos": [
+    13,
+    4,
+    -8
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1194,
+   "type": "building",
+   "pos": [
+    13,
+    4,
+    3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1195,
+   "type": "building",
+   "pos": [
+    13,
+    4,
+    1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1196,
+   "type": "building",
+   "pos": [
+    13,
+    4,
+    -1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1197,
+   "type": "building",
+   "pos": [
+    13,
+    4,
+    -3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1203,
+   "type": "slab",
+   "pos": [
+    15,
+    4,
+    -7
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1204,
+   "type": "slab",
+   "pos": [
+    15,
+    4,
+    -5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1205,
+   "type": "slab",
+   "pos": [
+    15,
+    4,
+    -3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1206,
+   "type": "slab",
+   "pos": [
+    15,
+    4,
+    -1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1209,
+   "type": "slab",
+   "pos": [
+    15,
+    4,
+    5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1212,
+   "type": "railing",
+   "pos": [
+    16,
+    4,
+    5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1215,
+   "type": "railing",
+   "pos": [
+    16,
+    4,
+    -1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1216,
+   "type": "railing",
+   "pos": [
+    16,
+    4,
+    -3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1218,
+   "type": "railing",
+   "pos": [
+    16,
+    4,
+    -5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1219,
+   "type": "railing",
+   "pos": [
+    16,
+    4,
+    -7
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1220,
+   "type": "railing",
+   "pos": [
+    15,
+    4,
+    -8
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1221,
+   "type": "building",
+   "pos": [
+    11,
+    4,
+    -11
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1222,
+   "type": "building",
+   "pos": [
+    13,
+    4,
+    -11
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1224,
+   "type": "building",
+   "pos": [
+    9,
+    4,
+    -11
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1225,
+   "type": "building",
+   "pos": [
+    13,
+    4,
+    -13
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1226,
+   "type": "building",
+   "pos": [
+    11,
+    4,
+    -13
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1227,
+   "type": "building",
+   "pos": [
+    9,
+    4,
+    -13
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1228,
+   "type": "building",
+   "pos": [
+    13,
+    4,
+    -15
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1229,
+   "type": "building",
+   "pos": [
+    11,
+    4,
+    -15
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1230,
+   "type": "building",
+   "pos": [
+    9,
+    4,
+    -15
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1231,
+   "type": "building",
+   "pos": [
+    13,
+    4,
+    -17
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1232,
+   "type": "building",
+   "pos": [
+    11,
+    4,
+    -17
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1233,
+   "type": "building",
+   "pos": [
+    9,
+    4,
+    -17
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1234,
+   "type": "building",
+   "pos": [
+    7,
+    4,
+    -11
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1235,
+   "type": "building",
+   "pos": [
+    5,
+    4,
+    -11
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1236,
+   "type": "building",
+   "pos": [
+    7,
+    4,
+    -13
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1238,
+   "type": "building",
+   "pos": [
+    7,
+    4,
+    -15
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1239,
+   "type": "building",
+   "pos": [
+    5,
+    4,
+    -15
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1240,
+   "type": "building",
+   "pos": [
+    7,
+    4,
+    -17
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1241,
+   "type": "building",
+   "pos": [
+    5,
+    4,
+    -17
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1242,
+   "type": "building",
+   "pos": [
+    7,
+    4,
+    -19
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1243,
+   "type": "building",
+   "pos": [
+    5,
+    4,
+    -19
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1245,
+   "type": "building",
+   "pos": [
+    11,
+    4,
+    -19
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1246,
+   "type": "building",
+   "pos": [
+    13,
+    4,
+    -19
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1263,
+   "type": "building",
+   "pos": [
+    15,
+    4,
+    3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1264,
+   "type": "building",
+   "pos": [
+    15,
+    4,
+    1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1265,
+   "type": "building",
+   "pos": [
+    15,
+    0,
+    3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1266,
+   "type": "building",
+   "pos": [
+    15,
+    0,
+    1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1267,
+   "type": "building",
+   "pos": [
+    15,
+    -4,
+    1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1268,
+   "type": "building",
+   "pos": [
+    15,
+    -4,
+    3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1278,
+   "type": "plank_bridge",
+   "variant": "bare",
+   "pos": [
+    9,
+    4,
+    -8
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1282,
+   "type": "slab",
+   "pos": [
+    9,
+    8,
+    -5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1283,
+   "type": "slab",
+   "pos": [
+    9,
+    8,
+    -3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1284,
+   "type": "slab",
+   "pos": [
+    9,
+    8,
+    -1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1285,
+   "type": "wall",
+   "variant": "door",
+   "pos": [
+    10,
+    4,
+    1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1286,
+   "type": "slab",
+   "pos": [
+    9,
+    8,
+    1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1287,
+   "type": "slab",
+   "pos": [
+    9,
+    8,
+    3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1288,
+   "type": "slab",
+   "pos": [
+    9,
+    8,
+    5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1289,
+   "type": "slab",
+   "pos": [
+    11,
+    8,
+    5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1290,
+   "type": "slab",
+   "pos": [
+    13,
+    8,
+    5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1291,
+   "type": "slab",
+   "pos": [
+    15,
+    8,
+    5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1292,
+   "type": "slab",
+   "pos": [
+    9,
+    8,
+    -7
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1293,
+   "type": "slab",
+   "pos": [
+    11,
+    8,
+    -7
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1294,
+   "type": "slab",
+   "pos": [
+    13,
+    8,
+    -7
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1295,
+   "type": "slab",
+   "pos": [
+    15,
+    8,
+    -7
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1296,
+   "type": "slab",
+   "pos": [
+    15,
+    8,
+    -5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1297,
+   "type": "slab",
+   "pos": [
+    15,
+    8,
+    -3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1298,
+   "type": "slab",
+   "pos": [
+    15,
+    8,
+    -1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1299,
+   "type": "slab",
+   "pos": [
+    9,
+    12,
+    3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1300,
+   "type": "slab",
+   "pos": [
+    9,
+    12,
+    1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1301,
+   "type": "slab",
+   "pos": [
+    9,
+    12,
+    -1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1302,
+   "type": "slab",
+   "pos": [
+    9,
+    12,
+    -3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1303,
+   "type": "slab",
+   "pos": [
+    9,
+    12,
+    -5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1311,
+   "type": "wall",
+   "variant": "open",
+   "pos": [
+    14,
+    4,
+    -1
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1312,
+   "type": "wall",
+   "variant": "window",
+   "pos": [
+    10,
+    4,
+    -1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1313,
+   "type": "wall",
+   "pos": [
+    10,
+    4,
+    -3
+   ],
+   "rot": 1,
+   "finish": {
+    "wall": "brick"
+   }
+  },
+  {
+   "id": 1314,
+   "type": "wall",
+   "pos": [
+    10,
+    4,
+    -5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1315,
+   "type": "wall",
+   "pos": [
+    11,
+    4,
+    -6
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1316,
+   "type": "wall",
+   "pos": [
+    13,
+    4,
+    -6
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1317,
+   "type": "wall",
+   "pos": [
+    14,
+    4,
+    -5
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1318,
+   "type": "wall",
+   "pos": [
+    14,
+    4,
+    -3
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1319,
+   "type": "wall",
+   "pos": [
+    10,
+    4,
+    3
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1320,
+   "type": "wall",
+   "pos": [
+    11,
+    4,
+    4
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1321,
+   "type": "wall",
+   "pos": [
+    13,
+    4,
+    4
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1322,
+   "type": "wall",
+   "pos": [
+    15,
+    4,
+    4
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1323,
+   "type": "wall",
+   "pos": [
+    16,
+    4,
+    3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1324,
+   "type": "wall",
+   "pos": [
+    16,
+    4,
+    1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1325,
+   "type": "slab",
+   "pos": [
+    15,
+    8,
+    1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1328,
+   "type": "slab",
+   "pos": [
+    15,
+    8,
+    3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1330,
+   "type": "wall",
+   "pos": [
+    14,
+    8,
+    -3
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1331,
+   "type": "wall",
+   "pos": [
+    14,
+    8,
+    -1
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1332,
+   "type": "wall",
+   "pos": [
+    14,
+    8,
+    -5
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1335,
+   "type": "wall",
+   "pos": [
+    10,
+    8,
+    -5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1336,
+   "type": "wall",
+   "pos": [
+    10,
+    8,
+    -3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1337,
+   "type": "wall",
+   "pos": [
+    10,
+    8,
+    -1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1341,
+   "type": "wall",
+   "pos": [
+    13,
+    8,
+    4
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1343,
+   "type": "wall",
+   "pos": [
+    16,
+    8,
+    3
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1344,
+   "type": "wall",
+   "pos": [
+    15,
+    4,
+    0
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1345,
+   "type": "wall",
+   "pos": [
+    14,
+    8,
+    1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1347,
+   "type": "wall",
+   "variant": "open",
+   "pos": [
+    15,
+    8,
+    2
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1349,
+   "type": "slab",
+   "pos": [
+    13,
+    8,
+    -1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1352,
+   "type": "slab",
+   "pos": [
+    11,
+    8,
+    -1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1353,
+   "type": "slab",
+   "pos": [
+    13,
+    8,
+    -3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1354,
+   "type": "slab",
+   "pos": [
+    11,
+    8,
+    -3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1355,
+   "type": "slab",
+   "pos": [
+    11,
+    8,
+    -5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1356,
+   "type": "slab",
+   "pos": [
+    13,
+    8,
+    -5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1358,
+   "type": "wall",
+   "variant": "window",
+   "pos": [
+    11,
+    8,
+    -6
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1359,
+   "type": "wall",
+   "variant": "window",
+   "pos": [
+    13,
+    8,
+    -6
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1360,
+   "type": "slab",
+   "pos": [
+    11,
+    12,
+    3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1361,
+   "type": "slab",
+   "pos": [
+    13,
+    12,
+    3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1362,
+   "type": "slab",
+   "pos": [
+    15,
+    12,
+    3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1363,
+   "type": "slab",
+   "pos": [
+    11,
+    12,
+    1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1364,
+   "type": "slab",
+   "pos": [
+    13,
+    12,
+    1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1365,
+   "type": "slab",
+   "pos": [
+    11,
+    12,
+    -1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1366,
+   "type": "slab",
+   "pos": [
+    13,
+    12,
+    -1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1367,
+   "type": "slab",
+   "pos": [
+    11,
+    12,
+    -3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1368,
+   "type": "slab",
+   "pos": [
+    11,
+    12,
+    -5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1369,
+   "type": "slab",
+   "pos": [
+    13,
+    12,
+    -5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1370,
+   "type": "slab",
+   "pos": [
+    13,
+    12,
+    -3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1371,
+   "type": "wall",
+   "pos": [
+    11,
+    8,
+    4
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1372,
+   "type": "slab",
+   "pos": [
+    15,
+    12,
+    1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1373,
+   "type": "slab",
+   "pos": [
+    15,
+    12,
+    -1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1374,
+   "type": "slab",
+   "pos": [
+    15,
+    12,
+    -3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1375,
+   "type": "slab",
+   "pos": [
+    15,
+    12,
+    -5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1376,
+   "type": "railing",
+   "pos": [
+    16,
+    8,
+    1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1377,
+   "type": "railing",
+   "pos": [
+    16,
+    8,
+    -1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1378,
+   "type": "railing",
+   "pos": [
+    16,
+    8,
+    -3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1379,
+   "type": "railing",
+   "pos": [
+    16,
+    8,
+    -5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1380,
+   "type": "railing",
+   "pos": [
+    16,
+    8,
+    -7
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1381,
+   "type": "railing",
+   "pos": [
+    15,
+    8,
+    -8
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1382,
+   "type": "railing",
+   "pos": [
+    13,
+    8,
+    -8
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1383,
+   "type": "railing",
+   "pos": [
+    11,
+    8,
+    -8
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1384,
+   "type": "railing",
+   "pos": [
+    9,
+    8,
+    -8
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1385,
+   "type": "railing",
+   "pos": [
+    16,
+    8,
+    5
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1386,
+   "type": "railing",
+   "pos": [
+    15,
+    8,
+    6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1387,
+   "type": "railing",
+   "pos": [
+    13,
+    8,
+    6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1388,
+   "type": "railing",
+   "pos": [
+    11,
+    8,
+    6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1389,
+   "type": "railing",
+   "pos": [
+    9,
+    8,
+    6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1391,
+   "type": "roof_letters",
+   "pos": [
+    15.5,
+    12,
+    -3.5
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1392,
+   "type": "roof_letters",
+   "pos": [
+    15.5,
+    12,
+    1.5
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1396,
+   "type": "roof_letters",
+   "variant": "もっと幸せ。",
+   "pos": [
+    8.5,
+    12,
+    -1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1405,
+   "type": "wall_lamp",
+   "pos": [
+    9.850000381469727,
+    11.3,
+    -1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1406,
+   "type": "wall_lamp",
+   "pos": [
+    9.850000381469727,
+    11.3,
+    -5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1407,
+   "type": "wall_lamp",
+   "pos": [
+    9.850000381469727,
+    11.3,
+    3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1408,
+   "type": "wall_lamp",
+   "pos": [
+    9.850000381469727,
+    7.3,
+    -5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1412,
+   "type": "railing",
+   "pos": [
+    8,
+    8,
+    -7
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1413,
+   "type": "railing",
+   "pos": [
+    8,
+    8,
+    -5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1414,
+   "type": "railing",
+   "pos": [
+    8,
+    8,
+    -3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1415,
+   "type": "railing",
+   "pos": [
+    8,
+    8,
+    -1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1416,
+   "type": "railing",
+   "pos": [
+    8,
+    8,
+    1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1417,
+   "type": "railing",
+   "pos": [
+    8,
+    8,
+    3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1418,
+   "type": "railing",
+   "pos": [
+    8,
+    8,
+    5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1420,
+   "type": "ac",
+   "variant": "ducted",
+   "pos": [
+    5.5,
+    4,
+    -18
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1443,
+   "type": "wall_lamp",
+   "pos": [
+    9.850000381469727,
+    7.3,
+    3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1453,
+   "type": "ledge",
+   "pos": [
+    15,
+    4,
+    6.000000000000001
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1454,
+   "type": "railing",
+   "pos": [
+    11,
+    4,
+    6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1455,
+   "type": "railing",
+   "pos": [
+    13,
+    4,
+    6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1456,
+   "type": "wall_lamp",
+   "pos": [
+    11,
+    7.3,
+    4.150000095367432
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1457,
+   "type": "wall_lamp",
+   "pos": [
+    15,
+    7.3,
+    4.150000095367432
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1458,
+   "type": "wall_lamp",
+   "pos": [
+    13,
+    7.3,
+    4.150000095367432
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1459,
+   "type": "wall_lamp",
+   "pos": [
+    11,
+    11.3,
+    4.150000095367431
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1460,
+   "type": "wall_lamp",
+   "pos": [
+    13,
+    11.3,
+    4.1500000953674325
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1461,
+   "type": "wall_lamp",
+   "pos": [
+    15,
+    11.3,
+    4.150000095367432
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1501,
+   "type": "parapet",
+   "pos": [
+    7,
+    0,
+    -6
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1507,
+   "type": "wall",
+   "variant": "ledge",
+   "pos": [
+    8,
+    0,
+    -5
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1508,
+   "type": "wall",
+   "variant": "ledge",
+   "pos": [
+    8,
+    0,
+    -3
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1509,
+   "type": "slab",
+   "pos": [
+    9,
+    4,
+    -3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1515,
+   "type": "railing",
+   "pos": [
+    8,
+    4,
+    -5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1516,
+   "type": "railing",
+   "pos": [
+    8,
+    4,
+    -3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1522,
+   "type": "slab",
+   "pos": [
+    9,
+    4,
+    -1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1523,
+   "type": "slab",
+   "pos": [
+    9,
+    4,
+    1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1524,
+   "type": "slab",
+   "pos": [
+    9,
+    4,
+    3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1528,
+   "type": "wall_duct",
+   "pos": [
+    7.849999904632567,
+    2.2,
+    5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1529,
+   "type": "wall_duct",
+   "variant": "drop",
+   "pos": [
+    7.8499999046325675,
+    2.2,
+    3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1533,
+   "type": "wall_lamp",
+   "pos": [
+    8,
+    3.8,
+    -5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1535,
+   "type": "ac",
+   "variant": "ducted",
+   "pos": [
+    5.5,
+    0,
+    3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1536,
+   "type": "ac",
+   "variant": "wall",
+   "pos": [
+    7.8499999046325675,
+    2.7,
+    -1.5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1537,
+   "type": "ac",
+   "variant": "wall",
+   "pos": [
+    7.849999904632568,
+    1.7,
+    -1.5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1538,
+   "type": "ac",
+   "variant": "wall",
+   "pos": [
+    7.8499999046325675,
+    0.7,
+    -1.5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1539,
+   "type": "ac",
+   "pos": [
+    7.5,
+    0,
+    -5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1540,
+   "type": "ac",
+   "pos": [
+    7.5,
+    0,
+    -4
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1541,
+   "type": "ac",
+   "pos": [
+    7.5,
+    0,
+    -3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1544,
+   "type": "ac",
+   "variant": "wall",
+   "pos": [
+    7.849999904632568,
+    1.2,
+    -4
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1545,
+   "type": "ac",
+   "variant": "wall",
+   "pos": [
+    7.849999904632568,
+    2.2,
+    -5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1547,
+   "type": "ac",
+   "variant": "wall",
+   "pos": [
+    7.849999904632569,
+    2.2,
+    -4
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1550,
+   "type": "ventshaft",
+   "pos": [
+    2.5,
+    0,
+    4.5
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1553,
+   "type": "ventshaft",
+   "pos": [
+    0.5,
+    0,
+    4.5
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1555,
+   "type": "ac",
+   "pos": [
+    -1.5,
+    0,
+    4.5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1558,
+   "type": "wall",
+   "variant": "ledge",
+   "pos": [
+    8,
+    0,
+    5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1559,
+   "type": "wall",
+   "variant": "ledge",
+   "pos": [
+    8,
+    0,
+    3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1561,
+   "type": "wall",
+   "variant": "ledge",
+   "pos": [
+    11,
+    0,
+    6
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1562,
+   "type": "wall",
+   "variant": "ledge",
+   "pos": [
+    13,
+    0,
+    6
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1563,
+   "type": "slab",
+   "pos": [
+    11,
+    4,
+    5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1564,
+   "type": "slab",
+   "pos": [
+    13,
+    4,
+    5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1568,
+   "type": "ac",
+   "variant": "wall",
+   "pos": [
+    9.850000381469727,
+    10.7,
+    -4
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1569,
+   "type": "ac",
+   "pos": [
+    9.5,
+    4,
+    -5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1570,
+   "type": "exhaust",
+   "pos": [
+    11,
+    12,
+    3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1571,
+   "type": "exhaust",
+   "pos": [
+    11,
+    12,
+    2
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1572,
+   "type": "lattice_mast",
+   "pos": [
+    11.5,
+    12,
+    -4.5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1573,
+   "type": "antenna",
+   "pos": [
+    13.5,
+    12,
+    2.5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1574,
+   "type": "cctv",
+   "pos": [
+    9.850000381469727,
+    7,
+    3.5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1585,
+   "type": "skylight",
+   "variant": "long",
+   "pos": [
+    6,
+    4,
+    -11.5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1586,
+   "type": "skylight",
+   "variant": "long",
+   "pos": [
+    6,
+    4,
+    -13
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1587,
+   "type": "skylight",
+   "variant": "long",
+   "pos": [
+    6,
+    4,
+    -14.5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1596,
+   "type": "slab",
+   "pos": [
+    9,
+    4,
+    -5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1600,
+   "type": "slab",
+   "pos": [
+    9,
+    4,
+    5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1603,
+   "type": "wall",
+   "variant": "window",
+   "pos": [
+    9,
+    0,
+    6
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1607,
+   "type": "ledge",
+   "variant": "run",
+   "pos": [
+    11,
+    1,
+    6.150000095367432
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1608,
+   "type": "ledge",
+   "variant": "run",
+   "pos": [
+    13,
+    1,
+    6.150000095367432
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1612,
+   "type": "billboard",
+   "variant": "不満のない社会へ。",
+   "pos": [
+    12,
+    4,
+    -13
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1614,
+   "type": "neon",
+   "variant": "amber",
+   "pos": [
+    12,
+    9.1,
+    -6.150000095367432
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1626,
+   "type": "roof_light",
+   "variant": "panel",
+   "pos": [
+    -3.5,
+    0.5,
+    5.849999904632568
+   ],
+   "rot": 0,
+   "mirror": true
+  },
+  {
+   "id": 1650,
+   "type": "roof_light",
+   "variant": "panel",
+   "pos": [
+    7,
+    0.5,
+    5.849999904632568
+   ],
+   "rot": 0,
+   "mirror": true
+  },
+  {
+   "id": 1518,
+   "type": "wall",
+   "variant": "ledge",
+   "pos": [
+    8,
+    0,
+    -1
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1654,
+   "type": "wall_lamp",
+   "pos": [
+    9.850000381469727,
+    7.3,
+    -1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1656,
+   "type": "roof_light",
+   "pos": [
+    -3.849999904632569,
+    0.5,
+    -5
+   ],
+   "rot": 3,
+   "mirror": true
+  },
+  {
+   "id": 1659,
+   "type": "roof_light",
+   "pos": [
+    2.5,
+    0.5,
+    3.9000000953674316
+   ],
+   "rot": 0,
+   "mirror": true
+  },
+  {
+   "id": 1660,
+   "type": "roof_light",
+   "pos": [
+    0.5,
+    0.5,
+    3.9000000953674316
+   ],
+   "rot": 0,
+   "mirror": true
+  },
+  {
+   "id": 1664,
+   "type": "roof_light",
+   "variant": "panel",
+   "pos": [
+    4.5,
+    0.5,
+    -5.849999904632568
+   ],
+   "rot": 2,
+   "mirror": true
+  },
+  {
+   "id": 1672,
+   "type": "roof_light",
+   "pos": [
+    12,
+    3,
+    6.150000095367432
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1681,
+   "type": "ladder",
+   "pos": [
+    12,
+    8,
+    4.1500000953674325
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1695,
+   "type": "pipe",
+   "variant": "floor",
+   "pos": [
+    -7.5,
+    0,
+    -1
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1696,
+   "type": "pipe",
+   "pos": [
+    -7.5,
+    0,
+    1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1697,
+   "type": "pipe",
+   "pos": [
+    -7.5,
+    0,
+    3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1698,
+   "type": "pipe",
+   "variant": "floor",
+   "pos": [
+    -7.5,
+    0,
+    5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1711,
+   "type": "wall_lamp",
+   "pos": [
+    -7.849999904632568,
+    0.8,
+    -1
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1712,
+   "type": "wall_lamp",
+   "pos": [
+    -7.849999904632568,
+    0.8,
+    5
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1713,
+   "type": "wall_lamp",
+   "pos": [
+    -7.849999904632568,
+    0.8,
+    2
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1714,
+   "type": "railing",
+   "variant": "parapet",
+   "pos": [
+    -8,
+    0,
+    -1
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1715,
+   "type": "railing",
+   "variant": "parapet",
+   "pos": [
+    -8,
+    0,
+    1
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1716,
+   "type": "railing",
+   "variant": "parapet",
+   "pos": [
+    -8,
+    0,
+    3
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1717,
+   "type": "railing",
+   "variant": "parapet",
+   "pos": [
+    -8,
+    0,
+    5
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1718,
+   "type": "railing",
+   "variant": "parapet",
+   "pos": [
+    -7,
+    0,
+    6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1724,
+   "type": "antenna",
+   "pos": [
+    -5.5,
+    4,
+    -5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1728,
+   "type": "small_sign",
+   "pos": [
+    -5,
+    2.39,
+    -1.8500000238418577
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1732,
+   "type": "scaffolding",
+   "pos": [
+    -1,
+    -4,
+    7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1736,
+   "type": "hatch",
+   "pos": [
+    15,
+    4,
+    3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1737,
+   "type": "hatch",
+   "pos": [
+    15,
+    4,
+    1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1738,
+   "type": "plank_bridge",
+   "variant": "bare",
+   "pos": [
+    11,
+    8,
+    0
+   ],
+   "rot": 2,
+   "adjust": 4.5
+  },
+  {
+   "id": 1739,
+   "type": "wall_lamp",
+   "variant": "broken",
+   "pos": [
+    13.850000381469727,
+    6.8,
+    -1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1748,
+   "type": "wall",
+   "variant": "door",
+   "pos": [
+    8,
+    0,
+    1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1753,
+   "type": "roof_light",
+   "pos": [
+    -6,
+    -3.5,
+    6
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1754,
+   "type": "roof_light",
+   "pos": [
+    -0.5,
+    -3.5,
+    6
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1759,
+   "type": "wall_lamp",
+   "pos": [
+    8,
+    3.8,
+    -1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1760,
+   "type": "wall_lamp",
+   "pos": [
+    7.849999904632568,
+    2.8,
+    1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1761,
+   "type": "roof_light",
+   "pos": [
+    13.850000381469727,
+    4.5,
+    -3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1762,
+   "type": "roof_light",
+   "pos": [
+    13.850000381469727,
+    4.5,
+    -5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1763,
+   "type": "roof_light",
+   "pos": [
+    15.850000381469727,
+    4.5,
+    1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1764,
+   "type": "roof_light",
+   "pos": [
+    15.850000381469727,
+    4.5,
+    3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1765,
+   "type": "roof_light",
+   "pos": [
+    10.149999618530273,
+    8.5,
+    -5
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1766,
+   "type": "roof_light",
+   "pos": [
+    10.149999618530273,
+    8.5,
+    -3
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1767,
+   "type": "roof_light",
+   "pos": [
+    10.149999618530273,
+    8.5,
+    -1
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1768,
+   "type": "roof_light",
+   "pos": [
+    11,
+    8.5,
+    3.849999904632569
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1769,
+   "type": "roof_light",
+   "pos": [
+    15.850000381469727,
+    8.5,
+    3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1770,
+   "type": "plank_bridge",
+   "variant": "bare",
+   "pos": [
+    14,
+    8,
+    3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1773,
+   "type": "wall",
+   "pos": [
+    10,
+    8,
+    3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1774,
+   "type": "wall",
+   "pos": [
+    10,
+    8,
+    1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1775,
+   "type": "wall",
+   "variant": "window",
+   "pos": [
+    15,
+    8,
+    4
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1799,
+   "type": "ac",
+   "variant": "ducted",
+   "pos": [
+    11,
+    -8,
+    7.5
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1800,
+   "type": "wall_duct",
+   "variant": "drop",
+   "pos": [
+    11,
+    -4.3,
+    6.000000000000002
+   ],
+   "rot": 2,
+   "mirror": true
+  },
+  {
+   "id": 1801,
+   "type": "wall_duct",
+   "pos": [
+    9,
+    -4.3,
+    6
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1802,
+   "type": "wall_duct",
+   "pos": [
+    7,
+    -4.3,
+    6.000000000000001
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1803,
+   "type": "wall_duct",
+   "pos": [
+    5,
+    -4.3,
+    6
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1805,
+   "type": "wall_duct",
+   "variant": "drop",
+   "pos": [
+    3,
+    -4.3,
+    6
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1806,
+   "type": "wall_duct_vertical",
+   "pos": [
+    3,
+    -7.8,
+    6.000000000000001
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1821,
+   "type": "drain_pipe",
+   "pos": [
+    10,
+    8,
+    4.1500000953674325
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1822,
+   "type": "drain_pipe",
+   "pos": [
+    10,
+    8,
+    -6.1500000953674325
+   ],
+   "rot": 0,
+   "mirror": true
+  },
+  {
+   "id": 1823,
+   "type": "wall",
+   "variant": "ledge",
+   "pos": [
+    14,
+    0,
+    5
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1832,
+   "type": "parapet",
+   "pos": [
+    2,
+    -4,
+    11
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1834,
+   "type": "parapet",
+   "pos": [
+    2,
+    -4,
+    7
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1843,
+   "type": "wall_duct",
+   "variant": "round_run",
+   "pos": [
+    -7.999999999999999,
+    -4.8,
+    9
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1844,
+   "type": "wall_duct",
+   "variant": "round_run",
+   "pos": [
+    -7.999999999999999,
+    -4.8,
+    7
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1845,
+   "type": "wall_duct",
+   "variant": "round_run",
+   "pos": [
+    -8.000000000000002,
+    -4.8,
+    5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1846,
+   "type": "wall_duct",
+   "variant": "round_run",
+   "pos": [
+    -8,
+    -4.8,
+    3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1847,
+   "type": "wall_duct",
+   "variant": "round_run",
+   "pos": [
+    -8,
+    -4.8,
+    1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1848,
+   "type": "wall_duct",
+   "variant": "round_run",
+   "pos": [
+    -8,
+    -4.8,
+    -1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1851,
+   "type": "wall_duct",
+   "variant": "round_elbow",
+   "pos": [
+    -8.000000000000002,
+    -4.8,
+    -3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1853,
+   "type": "wall_duct_vertical",
+   "variant": "round",
+   "pos": [
+    -8,
+    -2.8,
+    -3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1857,
+   "type": "utilitybox",
+   "pos": [
+    -7,
+    -4,
+    6
+   ],
+   "rot": 2,
+   "mirror": true
+  },
+  {
+   "id": 1858,
+   "type": "roof_light",
+   "variant": "flood",
+   "pos": [
+    -8.5,
+    -1,
+    -2.703957177136155
+   ],
+   "rot": 2,
+   "mirror": true,
+   "adjust": 28.53
+  },
+  {
+   "id": 1863,
+   "type": "wall_duct",
+   "variant": "drop",
+   "pos": [
+    -7.999999999999998,
+    -4.8,
+    11
+   ],
+   "rot": 1,
+   "mirror": true
+  },
+  {
+   "id": 1864,
+   "type": "wall_duct_vertical",
+   "pos": [
+    -8,
+    -8.3,
+    11
+   ],
+   "rot": 1,
+   "mirror": true
+  },
+  {
+   "id": 1865,
+   "type": "wall_duct_vertical",
+   "pos": [
+    -8,
+    -10.3,
+    11
+   ],
+   "rot": 1,
+   "mirror": true
+  },
+  {
+   "id": 1866,
+   "type": "wall_duct_vertical",
+   "pos": [
+    -8,
+    -12.3,
+    11
+   ],
+   "rot": 1,
+   "mirror": true
+  },
+  {
+   "id": 1880,
+   "type": "parapet",
+   "pos": [
+    2,
+    -4,
+    13
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1881,
+   "type": "parapet",
+   "pos": [
+    2,
+    -4,
+    15
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1889,
+   "type": "gondola",
+   "variant": "raised",
+   "pos": [
+    3.5,
+    -4,
+    15.5
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1890,
+   "type": "gondola",
+   "pos": [
+    5.5,
+    -4,
+    15.5
+   ],
+   "rot": 2,
+   "adjust": 8
+  },
+  {
+   "id": 1891,
+   "type": "gondola",
+   "pos": [
+    7.5,
+    -4,
+    15.5
+   ],
+   "rot": 2,
+   "adjust": 3
+  },
+  {
+   "id": 1892,
+   "type": "scaffolding",
+   "variant": "end_deck",
+   "pos": [
+    13,
+    -8,
+    11
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1893,
+   "type": "scaffolding",
+   "variant": "end_deck",
+   "pos": [
+    3,
+    -8,
+    11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1894,
+   "type": "scaffolding",
+   "variant": "run_deck",
+   "pos": [
+    11,
+    -8,
+    11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1895,
+   "type": "scaffolding",
+   "variant": "run_deck",
+   "pos": [
+    9,
+    -8,
+    11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1896,
+   "type": "scaffolding",
+   "variant": "run_deck",
+   "pos": [
+    5,
+    -8,
+    11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1897,
+   "type": "scaffolding",
+   "variant": "run",
+   "pos": [
+    7,
+    -8,
+    11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1898,
+   "type": "scaffolding",
+   "variant": "run",
+   "pos": [
+    7,
+    -6,
+    11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1899,
+   "type": "scaffolding",
+   "variant": "end_deck",
+   "pos": [
+    9,
+    -6,
+    11
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1900,
+   "type": "scaffolding",
+   "variant": "end_deck",
+   "pos": [
+    5,
+    -6,
+    11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1901,
+   "type": "wall_lamp",
+   "pos": [
+    -7,
+    0.3,
+    6.150000095367433
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1902,
+   "type": "wall_lamp",
+   "pos": [
+    -3,
+    0.3,
+    6.150000095367432
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1904,
+   "type": "wall_lamp",
+   "pos": [
+    1,
+    0.3,
+    6.150000095367431
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1905,
+   "type": "wall_lamp",
+   "pos": [
+    5,
+    0.3,
+    6.150000095367432
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1906,
+   "type": "wall_lamp",
+   "pos": [
+    9,
+    0.3,
+    6.150000095367432
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1907,
+   "type": "roof_light",
+   "pos": [
+    4,
+    -7.5,
+    5.999999999999999
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1908,
+   "type": "roof_light",
+   "pos": [
+    8.5,
+    -7.5,
+    5.999999999999999
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1909,
+   "type": "roof_light",
+   "pos": [
+    3,
+    -7.5,
+    12
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1910,
+   "type": "roof_light",
+   "pos": [
+    5,
+    -7.5,
+    12
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1912,
+   "type": "roof_light",
+   "pos": [
+    7,
+    -7.5,
+    12
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1913,
+   "type": "roof_light",
+   "pos": [
+    9,
+    -7.5,
+    12
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1914,
+   "type": "roof_light",
+   "pos": [
+    11,
+    -7.5,
+    12
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1915,
+   "type": "roof_light",
+   "pos": [
+    13,
+    -7.5,
+    12
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1916,
+   "type": "roof_light",
+   "pos": [
+    9,
+    -5.5,
+    12
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1917,
+   "type": "roof_light",
+   "pos": [
+    7,
+    -5.5,
+    12
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1918,
+   "type": "ac",
+   "variant": "wall",
+   "pos": [
+    13,
+    -1.3,
+    5.999999999999999
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1919,
+   "type": "ac",
+   "variant": "wall",
+   "pos": [
+    13,
+    -2.8,
+    6
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1932,
+   "type": "ladder",
+   "variant": "fire_escape",
+   "pos": [
+    7.849999904632568,
+    0,
+    -0.5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1933,
+   "type": "building",
+   "pos": [
+    -5,
+    -8,
+    11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1935,
+   "type": "building",
+   "pos": [
+    -3,
+    -4,
+    11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1936,
+   "type": "fireescape",
+   "pos": [
+    -4.5,
+    -8,
+    11.999999999999998
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1937,
+   "type": "building",
+   "pos": [
+    -1,
+    -8,
+    13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1938,
+   "type": "building",
+   "pos": [
+    1,
+    -8,
+    13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1939,
+   "type": "fireescape",
+   "pos": [
+    -1.5,
+    -12,
+    14
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1940,
+   "type": "building",
+   "pos": [
+    -3,
+    -8,
+    13
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1941,
+   "type": "wall_lamp",
+   "pos": [
+    -7,
+    -4.7,
+    12
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1942,
+   "type": "wall_lamp",
+   "pos": [
+    1,
+    -4.7,
+    12
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1945,
+   "type": "railing",
+   "pos": [
+    -3,
+    -4,
+    12
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1946,
+   "type": "railing",
+   "pos": [
+    -5,
+    -4,
+    12
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1953,
+   "type": "ledge",
+   "pos": [
+    -1,
+    -4,
+    12
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1954,
+   "type": "railing",
+   "pos": [
+    1,
+    -4,
+    12
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1955,
+   "type": "railing",
+   "pos": [
+    -8,
+    -4,
+    11
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1956,
+   "type": "ledge",
+   "variant": "run",
+   "pos": [
+    -8,
+    -4,
+    9
+   ],
+   "rot": 1,
+   "mirror": true
+  },
+  {
+   "id": 1957,
+   "type": "railing",
+   "pos": [
+    -8,
+    -4,
+    7
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1960,
+   "type": "traffic_cone",
+   "pos": [
+    -8.5,
+    -4.2,
+    10.5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1961,
+   "type": "ventshaft",
+   "pos": [
+    -5,
+    -12,
+    13
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1963,
+   "type": "ventshaft",
+   "pos": [
+    -7,
+    -12,
+    13
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1964,
+   "type": "cable_run",
+   "variant": "corner",
+   "pos": [
+    -7,
+    -4,
+    7
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1971,
+   "type": "building",
+   "pos": [
+    -5,
+    -4,
+    11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1974,
+   "type": "cable_run",
+   "variant": "up",
+   "pos": [
+    -4,
+    -4,
+    6
+   ],
+   "rot": 2,
+   "mirror": true
+  },
+  {
+   "id": 1975,
+   "type": "cable_run",
+   "pos": [
+    -4,
+    -4,
+    8
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1978,
+   "type": "cable_run",
+   "variant": "corner",
+   "pos": [
+    -4,
+    -4,
+    10
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1979,
+   "type": "cable_run",
+   "pos": [
+    -2,
+    -4,
+    10
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1980,
+   "type": "cable_run",
+   "pos": [
+    0,
+    -4,
+    10
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1981,
+   "type": "cable_run",
+   "variant": "corner",
+   "pos": [
+    1.5,
+    -4,
+    10
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1982,
+   "type": "cable_run",
+   "variant": "corner",
+   "pos": [
+    1.5,
+    -4,
+    12
+   ],
+   "rot": 3
+  },
+  {
+   "id": 1983,
+   "type": "cable_run",
+   "pos": [
+    -5,
+    -4,
+    7
+   ],
+   "rot": 0
+  },
+  {
+   "id": 1984,
+   "type": "railing",
+   "variant": "parapet",
+   "pos": [
+    2,
+    -4,
+    15
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1985,
+   "type": "railing",
+   "variant": "parapet",
+   "pos": [
+    2,
+    -4,
+    13
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1987,
+   "type": "fence",
+   "pos": [
+    -9,
+    -4,
+    -6
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1988,
+   "type": "fence",
+   "pos": [
+    -11,
+    -4,
+    -6
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1989,
+   "type": "fence",
+   "pos": [
+    -13,
+    -4,
+    -6
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1990,
+   "type": "fence",
+   "pos": [
+    -15,
+    -4,
+    -6
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1991,
+   "type": "fence",
+   "pos": [
+    -17,
+    -4,
+    -6
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1992,
+   "type": "fence",
+   "pos": [
+    -19,
+    -4,
+    -6
+   ],
+   "rot": 2
+  },
+  {
+   "id": 1993,
+   "type": "utilitybox",
+   "pos": [
+    2,
+    -8,
+    13
+   ],
+   "rot": 1
+  },
+  {
+   "id": 1994,
+   "type": "cctv",
+   "pos": [
+    -6,
+    -0.5,
+    6
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2000,
+   "type": "building",
+   "pos": [
+    1,
+    -4,
+    11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2002,
+   "type": "debris",
+   "variant": "buckets",
+   "pos": [
+    -1,
+    -4,
+    7.5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2004,
+   "type": "billboard",
+   "pos": [
+    -3.5,
+    -12,
+    21
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2005,
+   "type": "blade_sign",
+   "pos": [
+    -8,
+    -8.5,
+    11.5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2007,
+   "type": "blade_sign",
+   "variant": "あなたは幸せです。",
+   "pos": [
+    -8,
+    -13,
+    11.5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2008,
+   "type": "fence",
+   "pos": [
+    -8,
+    -12,
+    13
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2009,
+   "type": "fence",
+   "pos": [
+    -8,
+    -12,
+    15
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2010,
+   "type": "fence",
+   "pos": [
+    -8,
+    -12,
+    17
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2011,
+   "type": "fence",
+   "pos": [
+    -8,
+    -12,
+    19
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2012,
+   "type": "fence",
+   "pos": [
+    -8,
+    -12,
+    21
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2013,
+   "type": "fence",
+   "pos": [
+    -7,
+    -12,
+    22
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2014,
+   "type": "fence",
+   "pos": [
+    -5,
+    -12,
+    22
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2015,
+   "type": "fence",
+   "pos": [
+    -3,
+    -12,
+    22
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2016,
+   "type": "fence",
+   "pos": [
+    -1,
+    -12,
+    22
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2017,
+   "type": "fence",
+   "pos": [
+    1,
+    -12,
+    22
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2018,
+   "type": "fence",
+   "pos": [
+    2,
+    -12,
+    21
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2019,
+   "type": "fence",
+   "pos": [
+    2,
+    -12,
+    19
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2020,
+   "type": "fence",
+   "pos": [
+    2,
+    -12,
+    17
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2026,
+   "type": "wall_duct",
+   "pos": [
+    -5,
+    -8.8,
+    12
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2027,
+   "type": "wall_duct",
+   "pos": [
+    -7,
+    -8.8,
+    12
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2029,
+   "type": "drain_pipe",
+   "pos": [
+    1.5,
+    -12,
+    14
+   ],
+   "rot": 2,
+   "mirror": true
+  },
+  {
+   "id": 2033,
+   "type": "roof_letters",
+   "pos": [
+    -3.5,
+    -4,
+    11.5
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2038,
+   "type": "roof_light",
+   "pos": [
+    -2,
+    -11.5,
+    14
+   ],
+   "rot": 2,
+   "mirror": true
+  },
+  {
+   "id": 2039,
+   "type": "roof_light",
+   "pos": [
+    0.5,
+    -11.5,
+    14
+   ],
+   "rot": 2,
+   "mirror": true
+  },
+  {
+   "id": 2040,
+   "type": "roof_light",
+   "pos": [
+    -6,
+    -11.5,
+    12
+   ],
+   "rot": 2,
+   "mirror": true
+  },
+  {
+   "id": 2041,
+   "type": "roof_light",
+   "variant": "flood",
+   "pos": [
+    3.5,
+    -6.5,
+    16
+   ],
+   "rot": 2,
+   "mirror": true,
+   "adjust": 80
+  },
+  {
+   "id": 2042,
+   "type": "aviation_light",
+   "pos": [
+    -8.5,
+    -4.2,
+    11
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2044,
+   "type": "sign",
+   "variant": "COMPLY.",
+   "pos": [
+    1.9999999999999991,
+    -5.5,
+    14.5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2045,
+   "type": "sign",
+   "variant": "もっと買って、",
+   "pos": [
+    5.5,
+    -10.5,
+    16
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2050,
+   "type": "cctv",
+   "pos": [
+    3.5,
+    -6,
+    16
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2056,
+   "type": "parapet",
+   "pos": [
+    11,
+    -4,
+    12
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2057,
+   "type": "parapet",
+   "pos": [
+    13,
+    -4,
+    12
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2058,
+   "type": "parapet",
+   "pos": [
+    14,
+    -4,
+    13
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2059,
+   "type": "parapet",
+   "pos": [
+    14,
+    -4,
+    15
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2060,
+   "type": "parapet",
+   "pos": [
+    13,
+    -4,
+    16
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2061,
+   "type": "parapet",
+   "pos": [
+    11,
+    -4,
+    16
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2062,
+   "type": "sign_tower",
+   "variant": "不満のない社会へ。",
+   "pos": [
+    12,
+    -4,
+    14
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2063,
+   "type": "parapet",
+   "pos": [
+    10,
+    -4,
+    15
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2064,
+   "type": "parapet",
+   "pos": [
+    10,
+    -4,
+    13
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2065,
+   "type": "stairs",
+   "pos": [
+    5,
+    -8,
+    9
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2066,
+   "type": "duct",
+   "pos": [
+    0.5,
+    -4,
+    11
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2067,
+   "type": "floodlight",
+   "pos": [
+    9.5,
+    -4,
+    15.5
+   ],
+   "rot": 1,
+   "adjust": 23.53
+  },
+  {
+   "id": 2070,
+   "type": "roof_light",
+   "variant": "panel",
+   "pos": [
+    11,
+    -3.5,
+    12.149999618530273
+   ],
+   "rot": 2,
+   "mirror": true
+  },
+  {
+   "id": 2071,
+   "type": "roof_light",
+   "variant": "panel",
+   "pos": [
+    13,
+    -3.5,
+    12.149999618530273
+   ],
+   "rot": 2,
+   "mirror": true
+  },
+  {
+   "id": 2075,
+   "type": "fence",
+   "pos": [
+    15,
+    -12,
+    16
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2076,
+   "type": "fence",
+   "pos": [
+    17,
+    -12,
+    16
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2077,
+   "type": "fence",
+   "pos": [
+    19,
+    -12,
+    16
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2078,
+   "type": "fence",
+   "pos": [
+    21,
+    -12,
+    16
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2080,
+   "type": "fence",
+   "pos": [
+    23,
+    -12,
+    16
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2081,
+   "type": "fence",
+   "pos": [
+    24,
+    -12,
+    7
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2082,
+   "type": "fence",
+   "pos": [
+    24,
+    -12,
+    9
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2083,
+   "type": "fence",
+   "pos": [
+    24,
+    -12,
+    11
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2084,
+   "type": "fence",
+   "pos": [
+    24,
+    -12,
+    13
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2085,
+   "type": "fence",
+   "pos": [
+    24,
+    -12,
+    15
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2086,
+   "type": "stairs",
+   "variant": "compact",
+   "pos": [
+    16,
+    -12,
+    9
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2089,
+   "type": "steel_stair",
+   "variant": "half",
+   "pos": [
+    3,
+    0,
+    -6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2090,
+   "type": "steel_stair",
+   "variant": "half",
+   "pos": [
+    3,
+    0,
+    -10
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2091,
+   "type": "parapet",
+   "pos": [
+    3,
+    0,
+    -6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2092,
+   "type": "parapet",
+   "pos": [
+    1,
+    0,
+    -6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2093,
+   "type": "parapet",
+   "pos": [
+    -1,
+    0,
+    -6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2094,
+   "type": "parapet",
+   "pos": [
+    -3,
+    0,
+    -6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2095,
+   "type": "hatch",
+   "pos": [
+    13,
+    -8,
+    11
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2096,
+   "type": "ladder",
+   "variant": "fire_escape",
+   "pos": [
+    14,
+    -8,
+    15
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2098,
+   "type": "ladder",
+   "variant": "fire_escape",
+   "pos": [
+    21,
+    -12,
+    6
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2103,
+   "type": "ac",
+   "variant": "large",
+   "pos": [
+    22,
+    -12,
+    13.5
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2105,
+   "type": "wall_duct_vertical",
+   "pos": [
+    14,
+    -9.8,
+    13.5
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2106,
+   "type": "ac",
+   "variant": "ducted",
+   "pos": [
+    15.5,
+    -12,
+    13.5
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2107,
+   "type": "wall_duct_vertical",
+   "pos": [
+    13.999999999999998,
+    -7.8,
+    13.5
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2110,
+   "type": "roof_light",
+   "variant": "flood",
+   "pos": [
+    14.149999618530273,
+    -3.5,
+    12.5
+   ],
+   "rot": 3,
+   "mirror": true
+  },
+  {
+   "id": 2112,
+   "type": "wall_duct",
+   "variant": "drop",
+   "pos": [
+    14.000000000000002,
+    -10.3,
+    7
+   ],
+   "rot": 3,
+   "mirror": true
+  },
+  {
+   "id": 2116,
+   "type": "duct",
+   "pos": [
+    22.5,
+    -12,
+    6.5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2117,
+   "type": "duct",
+   "pos": [
+    20,
+    -12,
+    6.5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2118,
+   "type": "wall_duct",
+   "variant": "drop",
+   "pos": [
+    14,
+    -6.3,
+    5
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2119,
+   "type": "roof_light",
+   "pos": [
+    14,
+    -11.5,
+    11
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2121,
+   "type": "wall_lamp",
+   "pos": [
+    14,
+    -8.7,
+    11
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2122,
+   "type": "wall_lamp",
+   "pos": [
+    14,
+    -8.7,
+    7
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2123,
+   "type": "parapet",
+   "pos": [
+    15,
+    -8,
+    6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2124,
+   "type": "parapet",
+   "pos": [
+    17,
+    -8,
+    6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2125,
+   "type": "parapet",
+   "pos": [
+    19,
+    -8,
+    6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2126,
+   "type": "parapet",
+   "pos": [
+    23,
+    -8,
+    6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2127,
+   "type": "parapet",
+   "pos": [
+    21,
+    -8,
+    6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2129,
+   "type": "ac",
+   "variant": "medium",
+   "pos": [
+    19.5,
+    -12,
+    14
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2130,
+   "type": "pipe",
+   "variant": "floor",
+   "pos": [
+    14.5,
+    -12,
+    10.5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2131,
+   "type": "pipe",
+   "variant": "wall",
+   "pos": [
+    16.5,
+    -12,
+    10
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2133,
+   "type": "pipe",
+   "variant": "floor",
+   "pos": [
+    19.5,
+    -12,
+    12
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2134,
+   "type": "blade_sign",
+   "variant": "幸せは義務です。",
+   "pos": [
+    24,
+    -12.5,
+    6
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2135,
+   "type": "parapet",
+   "pos": [
+    24,
+    -8,
+    5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2136,
+   "type": "parapet",
+   "pos": [
+    24,
+    -8,
+    3
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2137,
+   "type": "parapet",
+   "pos": [
+    24,
+    -8,
+    1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2138,
+   "type": "parapet",
+   "pos": [
+    24,
+    -8,
+    -1
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2141,
+   "type": "hatch",
+   "pos": [
+    1,
+    -4,
+    7
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2142,
+   "type": "building",
+   "pos": [
+    17,
+    -12,
+    5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2144,
+   "type": "slab",
+   "pos": [
+    17,
+    -8,
+    5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2145,
+   "type": "wall",
+   "variant": "door",
+   "pos": [
+    17,
+    -12,
+    6
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2146,
+   "type": "wall_lamp",
+   "pos": [
+    17,
+    -8.7,
+    6.150000095367432
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2147,
+   "type": "wall_lamp",
+   "pos": [
+    23,
+    -8.7,
+    6
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2148,
+   "type": "wall_lamp",
+   "pos": [
+    19.5,
+    -8.7,
+    6
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2159,
+   "type": "neon",
+   "variant": "cyan",
+   "pos": [
+    11.5,
+    -3.4,
+    6
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2160,
+   "type": "neon",
+   "variant": "violet",
+   "pos": [
+    2,
+    -9.9,
+    16
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2161,
+   "type": "wall_duct",
+   "pos": [
+    -7.999999999999999,
+    -12.8,
+    13
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2162,
+   "type": "wall_duct",
+   "pos": [
+    -8,
+    -12.8,
+    15
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2163,
+   "type": "wall_duct",
+   "pos": [
+    -7.999999999999999,
+    -12.8,
+    17
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2164,
+   "type": "wall_duct",
+   "pos": [
+    -7.999999999999999,
+    -12.8,
+    19
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2165,
+   "type": "wall_duct",
+   "pos": [
+    15.999999999999998,
+    -0.8,
+    2
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2166,
+   "type": "ac",
+   "pos": [
+    13.5,
+    -8,
+    6.5
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2167,
+   "type": "ac",
+   "pos": [
+    -0.5,
+    -12,
+    14.5
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2168,
+   "type": "ac",
+   "variant": "wall",
+   "pos": [
+    14,
+    -4.8,
+    5
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2169,
+   "type": "ac",
+   "variant": "wall",
+   "pos": [
+    15.999999999999998,
+    -1.8,
+    2
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2170,
+   "type": "roof_light",
+   "pos": [
+    14,
+    -11.5,
+    15.5
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2171,
+   "type": "roof_light",
+   "pos": [
+    14,
+    -5.5,
+    5
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2172,
+   "type": "roof_light",
+   "pos": [
+    14,
+    -7.5,
+    -1
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2173,
+   "type": "roof_light",
+   "pos": [
+    16,
+    -7.5,
+    3
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2174,
+   "type": "roof_light",
+   "pos": [
+    16,
+    -7.5,
+    1
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2175,
+   "type": "aviation_light",
+   "pos": [
+    24,
+    -6.9,
+    6
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2176,
+   "type": "aviation_light",
+   "pos": [
+    14,
+    -2.9,
+    16
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2187,
+   "type": "skylight",
+   "pos": [
+    17.5,
+    -8,
+    3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2188,
+   "type": "skylight",
+   "pos": [
+    17.5,
+    -8,
+    1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2189,
+   "type": "skylight",
+   "pos": [
+    20,
+    -8,
+    3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2190,
+   "type": "skylight",
+   "pos": [
+    20,
+    -8,
+    1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2191,
+   "type": "skylight",
+   "pos": [
+    22.5,
+    -8,
+    3
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2192,
+   "type": "skylight",
+   "pos": [
+    22.5,
+    -8,
+    1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2193,
+   "type": "watertower",
+   "pos": [
+    -11,
+    -4,
+    -8.5
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2194,
+   "type": "tank_pair",
+   "pos": [
+    12,
+    4,
+    -18.5
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2199,
+   "type": "ac",
+   "variant": "ducted",
+   "pos": [
+    -5.5,
+    0,
+    -22.5
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2200,
+   "type": "ac",
+   "variant": "ducted",
+   "pos": [
+    -2,
+    0,
+    -22.5
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2203,
+   "type": "ventshaft",
+   "pos": [
+    -5,
+    4,
+    -27
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2205,
+   "type": "ventshaft",
+   "pos": [
+    -1,
+    0,
+    -5
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2206,
+   "type": "ac",
+   "variant": "wall",
+   "pos": [
+    -1,
+    2.7,
+    -24
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2207,
+   "type": "ac",
+   "variant": "wall",
+   "pos": [
+    -3,
+    1.7,
+    -3.999999999999999
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2208,
+   "type": "roof_letters",
+   "variant": "もっと幸せ。",
+   "pos": [
+    -19,
+    -4,
+    -11.5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2215,
+   "type": "fence",
+   "pos": [
+    -9,
+    -4,
+    -24
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2216,
+   "type": "fence",
+   "pos": [
+    -11,
+    -4,
+    -24
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2217,
+   "type": "fence",
+   "pos": [
+    -13,
+    -4,
+    -24
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2218,
+   "type": "fence",
+   "pos": [
+    -15,
+    -4,
+    -24
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2219,
+   "type": "fence",
+   "pos": [
+    -17,
+    -4,
+    -24
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2220,
+   "type": "fence",
+   "pos": [
+    -19,
+    -4,
+    -24
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2221,
+   "type": "fence",
+   "pos": [
+    -20,
+    -4,
+    -23
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2222,
+   "type": "fence",
+   "pos": [
+    -20,
+    -4,
+    -21
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2223,
+   "type": "fence",
+   "pos": [
+    -20,
+    -4,
+    -19
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2224,
+   "type": "fence",
+   "pos": [
+    -20,
+    -4,
+    -17
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2225,
+   "type": "fence",
+   "pos": [
+    -20,
+    -4,
+    -15
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2226,
+   "type": "fence",
+   "pos": [
+    -20,
+    -4,
+    -13
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2227,
+   "type": "fence",
+   "pos": [
+    -20,
+    -4,
+    -11
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2228,
+   "type": "fence",
+   "pos": [
+    -20,
+    -4,
+    -9
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2229,
+   "type": "fence",
+   "pos": [
+    -20,
+    -4,
+    -7
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2230,
+   "type": "railing",
+   "variant": "parapet",
+   "pos": [
+    7,
+    0,
+    -6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2231,
+   "type": "railing",
+   "variant": "parapet",
+   "pos": [
+    5,
+    0,
+    -6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2232,
+   "type": "railing",
+   "variant": "parapet",
+   "pos": [
+    1,
+    0,
+    -6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2233,
+   "type": "railing",
+   "variant": "parapet",
+   "pos": [
+    -1,
+    0,
+    -6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2234,
+   "type": "railing",
+   "variant": "parapet",
+   "pos": [
+    -3,
+    0,
+    -6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2235,
+   "type": "railing",
+   "pos": [
+    4,
+    4,
+    -11
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2236,
+   "type": "railing",
+   "pos": [
+    4,
+    4,
+    -13
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2240,
+   "type": "railing",
+   "pos": [
+    5,
+    4,
+    -20
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2241,
+   "type": "railing",
+   "pos": [
+    11,
+    4,
+    -20
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2242,
+   "type": "railing",
+   "pos": [
+    13,
+    4,
+    -20
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2243,
+   "type": "railing",
+   "pos": [
+    14,
+    4,
+    -19
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2244,
+   "type": "railing",
+   "pos": [
+    14,
+    4,
+    -17
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2245,
+   "type": "railing",
+   "pos": [
+    14,
+    4,
+    -15
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2246,
+   "type": "railing",
+   "pos": [
+    14,
+    4,
+    -13
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2247,
+   "type": "railing",
+   "pos": [
+    14,
+    4,
+    -11
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2248,
+   "type": "railing",
+   "pos": [
+    13,
+    4,
+    -10
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2249,
+   "type": "railing",
+   "pos": [
+    11,
+    4,
+    -10
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2250,
+   "type": "railing",
+   "pos": [
+    7,
+    4,
+    -10
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2251,
+   "type": "railing",
+   "pos": [
+    5,
+    4,
+    -10
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2252,
+   "type": "plank_bridge",
+   "variant": "bare",
+   "pos": [
+    8,
+    4,
+    -24.5
+   ],
+   "rot": 2,
+   "adjust": 5.5
+  },
+  {
+   "id": 2253,
+   "type": "railing",
+   "pos": [
+    5,
+    4,
+    -24
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2255,
+   "type": "railing",
+   "pos": [
+    11,
+    4,
+    -24
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2256,
+   "type": "building",
+   "pos": [
+    9,
+    4,
+    -19
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2260,
+   "type": "cable",
+   "pos": [
+    13.5,
+    3.5,
+    -6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2261,
+   "type": "cable",
+   "pos": [
+    13,
+    3.5,
+    -6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2262,
+   "type": "cable_run",
+   "pos": [
+    3,
+    0,
+    -10.5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2263,
+   "type": "cable_run",
+   "pos": [
+    1,
+    0,
+    -10.5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2264,
+   "type": "cable_run",
+   "pos": [
+    -1,
+    0,
+    -10.5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2265,
+   "type": "cable_run",
+   "pos": [
+    -3,
+    0,
+    -10.5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2266,
+   "type": "cable_run",
+   "pos": [
+    -5,
+    0,
+    -10.5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2267,
+   "type": "cable_run",
+   "pos": [
+    -7,
+    0,
+    -10.5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2272,
+   "type": "ledge",
+   "pos": [
+    14,
+    0,
+    -7
+   ],
+   "rot": 3,
+   "mirror": true
+  },
+  {
+   "id": 2273,
+   "type": "ledge",
+   "pos": [
+    14,
+    0,
+    -9
+   ],
+   "rot": 3,
+   "mirror": true
+  },
+  {
+   "id": 2275,
+   "type": "ladder",
+   "variant": "fire_escape",
+   "pos": [
+    14,
+    0,
+    -12
+   ],
+   "rot": 3,
+   "mirror": true
+  },
+  {
+   "id": 2283,
+   "type": "wall_lamp",
+   "pos": [
+    16,
+    -2.2,
+    2
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2284,
+   "type": "wall_lamp",
+   "pos": [
+    14,
+    -1.2,
+    5
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2285,
+   "type": "roof_light",
+   "variant": "flood",
+   "pos": [
+    15,
+    3,
+    -8.881784197001252e-16
+   ],
+   "rot": 0,
+   "adjust": 43.53
+  },
+  {
+   "id": 2295,
+   "type": "wall_duct",
+   "variant": "elbow",
+   "pos": [
+    14,
+    -11.3,
+    -3
+   ],
+   "rot": 3,
+   "mirror": true
+  },
+  {
+   "id": 2297,
+   "type": "wall_duct",
+   "variant": "drop",
+   "pos": [
+    14,
+    -7.8,
+    -3
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2298,
+   "type": "wall_duct",
+   "pos": [
+    14,
+    -7.8,
+    -5
+   ],
+   "rot": 3,
+   "mirror": true
+  },
+  {
+   "id": 2299,
+   "type": "wall_duct",
+   "pos": [
+    14,
+    -7.8,
+    -7
+   ],
+   "rot": 3,
+   "mirror": true
+  },
+  {
+   "id": 2300,
+   "type": "wall_duct",
+   "pos": [
+    14.000000000000002,
+    -7.8,
+    -9
+   ],
+   "rot": 3,
+   "mirror": true
+  },
+  {
+   "id": 2301,
+   "type": "wall_duct",
+   "variant": "elbow",
+   "pos": [
+    14,
+    -7.8,
+    -13
+   ],
+   "rot": 3,
+   "mirror": true
+  },
+  {
+   "id": 2302,
+   "type": "wall_duct",
+   "pos": [
+    14,
+    -7.8,
+    -11
+   ],
+   "rot": 3,
+   "mirror": true
+  },
+  {
+   "id": 2305,
+   "type": "wall_duct_vertical",
+   "pos": [
+    14,
+    -5.8,
+    -13
+   ],
+   "rot": 3,
+   "mirror": true
+  },
+  {
+   "id": 2306,
+   "type": "wall_duct_vertical",
+   "pos": [
+    14,
+    -3.8,
+    -13
+   ],
+   "rot": 3,
+   "mirror": true
+  },
+  {
+   "id": 2307,
+   "type": "wall_duct",
+   "pos": [
+    14,
+    -1.8,
+    -13
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2308,
+   "type": "wall_duct",
+   "pos": [
+    14,
+    -1.8,
+    -11
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2309,
+   "type": "wall_duct",
+   "pos": [
+    14,
+    -1.8,
+    -15
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2310,
+   "type": "wall_duct",
+   "pos": [
+    13.999999999999998,
+    -1.8,
+    -17
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2311,
+   "type": "wall_duct",
+   "variant": "elbow",
+   "pos": [
+    14,
+    -1.8,
+    -19
+   ],
+   "rot": 3,
+   "mirror": true
+  },
+  {
+   "id": 2312,
+   "type": "wall_duct",
+   "pos": [
+    14,
+    -1.8,
+    -9
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2313,
+   "type": "wall_duct",
+   "pos": [
+    14,
+    -1.8,
+    -7
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2314,
+   "type": "wall_duct",
+   "pos": [
+    14,
+    -1.8,
+    -5
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2315,
+   "type": "wall_duct",
+   "pos": [
+    14,
+    -1.8,
+    -3
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2316,
+   "type": "wall_duct",
+   "pos": [
+    14,
+    -1.8,
+    -1
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2317,
+   "type": "wall_lamp",
+   "pos": [
+    14,
+    -2.2,
+    -1
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2318,
+   "type": "wall_lamp",
+   "pos": [
+    14,
+    -2.2,
+    -5
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2319,
+   "type": "wall_lamp",
+   "pos": [
+    14,
+    -2.2,
+    -9
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2320,
+   "type": "wall_lamp",
+   "pos": [
+    14,
+    -2.2,
+    -15
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2321,
+   "type": "wall_lamp",
+   "pos": [
+    14,
+    -2.2,
+    -18
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2322,
+   "type": "wall_lamp",
+   "pos": [
+    14,
+    -8.2,
+    -5
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2323,
+   "type": "wall_lamp",
+   "pos": [
+    14,
+    -8.2,
+    -9
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2324,
+   "type": "wall_lamp",
+   "pos": [
+    14,
+    -8.2,
+    -12
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2325,
+   "type": "wall_lamp",
+   "pos": [
+    15.999999999999998,
+    3.3,
+    2
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2326,
+   "type": "wall_lamp",
+   "pos": [
+    16.149999618530273,
+    7.3,
+    2
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2327,
+   "type": "roof_light",
+   "variant": "panel",
+   "pos": [
+    21,
+    -7.5,
+    5.849999904632568
+   ],
+   "rot": 0,
+   "mirror": true
+  },
+  {
+   "id": 2328,
+   "type": "roof_light",
+   "variant": "panel",
+   "pos": [
+    15.5,
+    -7.5,
+    5.849999904632568
+   ],
+   "rot": 0,
+   "mirror": true
+  },
+  {
+   "id": 2329,
+   "type": "roof_light",
+   "variant": "panel",
+   "pos": [
+    23.850000381469727,
+    -7.5,
+    -1
+   ],
+   "rot": 1,
+   "mirror": true
+  },
+  {
+   "id": 2330,
+   "type": "slab",
+   "pos": [
+    3,
+    4,
+    -19
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2331,
+   "type": "slab",
+   "pos": [
+    3,
+    4,
+    -17
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2332,
+   "type": "slab",
+   "pos": [
+    3,
+    4,
+    -15
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2335,
+   "type": "wall_lamp",
+   "pos": [
+    4,
+    3.3,
+    -19
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2336,
+   "type": "wall_lamp",
+   "pos": [
+    4,
+    3.3,
+    -15
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2337,
+   "type": "wall_lamp",
+   "pos": [
+    4,
+    3.3,
+    -11
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2341,
+   "type": "wall_lamp",
+   "pos": [
+    5,
+    3.8,
+    -24
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2342,
+   "type": "wall_lamp",
+   "pos": [
+    1,
+    3.8,
+    -24
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2343,
+   "type": "wall_lamp",
+   "pos": [
+    -3,
+    3.8,
+    -24
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2344,
+   "type": "wall_lamp",
+   "pos": [
+    -7,
+    3.8,
+    -24
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2345,
+   "type": "wall_lamp",
+   "pos": [
+    8,
+    3.8,
+    -24
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2346,
+   "type": "wall_lamp",
+   "pos": [
+    11,
+    3.8,
+    -24
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2347,
+   "type": "wall_lamp",
+   "pos": [
+    12,
+    3.8,
+    -25
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2348,
+   "type": "wall_lamp",
+   "pos": [
+    11.999999999999998,
+    3.8,
+    -29
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2349,
+   "type": "wall_lamp",
+   "pos": [
+    12,
+    3.8,
+    -33
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2350,
+   "type": "wall_lamp",
+   "pos": [
+    12,
+    3.8,
+    -37
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2351,
+   "type": "railing",
+   "variant": "guard",
+   "pos": [
+    23,
+    -8,
+    -2
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2352,
+   "type": "railing",
+   "variant": "guard",
+   "pos": [
+    21,
+    -8,
+    -2
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2353,
+   "type": "railing",
+   "variant": "guard",
+   "pos": [
+    19,
+    -8,
+    -2
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2354,
+   "type": "railing",
+   "variant": "guard",
+   "pos": [
+    17,
+    -8,
+    -2
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2355,
+   "type": "railing",
+   "variant": "guard",
+   "pos": [
+    15,
+    -8,
+    -2
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2356,
+   "type": "building",
+   "pos": [
+    19,
+    -8,
+    -1
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2357,
+   "type": "railing",
+   "variant": "guard",
+   "pos": [
+    14,
+    0,
+    -21
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2358,
+   "type": "railing",
+   "variant": "guard",
+   "pos": [
+    14,
+    0,
+    -23
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2359,
+   "type": "railing",
+   "variant": "guard",
+   "pos": [
+    14,
+    0,
+    -25
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2360,
+   "type": "railing",
+   "variant": "guard",
+   "pos": [
+    14,
+    0,
+    -27
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2361,
+   "type": "railing",
+   "variant": "guard",
+   "pos": [
+    14,
+    0,
+    -29
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2362,
+   "type": "railing",
+   "variant": "guard",
+   "pos": [
+    14,
+    0,
+    -31
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2363,
+   "type": "railing",
+   "variant": "guard",
+   "pos": [
+    14,
+    0,
+    -33
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2364,
+   "type": "railing",
+   "variant": "guard",
+   "pos": [
+    14,
+    0,
+    -35
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2365,
+   "type": "railing",
+   "variant": "guard",
+   "pos": [
+    14,
+    0,
+    -37
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2366,
+   "type": "slab",
+   "pos": [
+    13,
+    4,
+    -25
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2367,
+   "type": "slab",
+   "pos": [
+    13,
+    4,
+    -27
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2368,
+   "type": "slab",
+   "pos": [
+    13,
+    4,
+    -29
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2369,
+   "type": "slab",
+   "pos": [
+    13,
+    4,
+    -31
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2370,
+   "type": "slab",
+   "pos": [
+    13,
+    4,
+    -33
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2371,
+   "type": "slab",
+   "pos": [
+    13,
+    4,
+    -35
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2372,
+   "type": "slab",
+   "pos": [
+    13,
+    4,
+    -37
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2373,
+   "type": "railing",
+   "pos": [
+    13,
+    4,
+    -24
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2374,
+   "type": "railing",
+   "pos": [
+    14,
+    4,
+    -25
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2375,
+   "type": "railing",
+   "pos": [
+    14,
+    4,
+    -27
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2376,
+   "type": "railing",
+   "pos": [
+    14,
+    4,
+    -29
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2377,
+   "type": "railing",
+   "pos": [
+    14,
+    4,
+    -31
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2378,
+   "type": "railing",
+   "pos": [
+    14,
+    4,
+    -33
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2379,
+   "type": "railing",
+   "pos": [
+    14,
+    4,
+    -35
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2380,
+   "type": "railing",
+   "pos": [
+    14,
+    4,
+    -37
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2381,
+   "type": "railing",
+   "pos": [
+    14,
+    4,
+    -39
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2382,
+   "type": "railing",
+   "pos": [
+    13,
+    4,
+    -40
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2383,
+   "type": "railing",
+   "pos": [
+    11,
+    4,
+    -40
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2384,
+   "type": "railing",
+   "pos": [
+    9,
+    4,
+    -40
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2385,
+   "type": "railing",
+   "pos": [
+    7,
+    4,
+    -40
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2386,
+   "type": "railing",
+   "pos": [
+    5,
+    4,
+    -40
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2387,
+   "type": "railing",
+   "pos": [
+    3,
+    4,
+    -40
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2388,
+   "type": "railing",
+   "pos": [
+    1,
+    4,
+    -40
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2389,
+   "type": "wall_duct",
+   "variant": "round_run",
+   "pos": [
+    14,
+    -0.8,
+    5
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2390,
+   "type": "wall_duct",
+   "variant": "round_run",
+   "pos": [
+    14,
+    -0.3,
+    -21
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2391,
+   "type": "wall_duct",
+   "variant": "round_run",
+   "pos": [
+    13.999999999999996,
+    -0.3,
+    -23
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2392,
+   "type": "wall_duct",
+   "variant": "round_run",
+   "pos": [
+    14.000000000000002,
+    -0.3,
+    -25
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2393,
+   "type": "wall_duct",
+   "variant": "round_run",
+   "pos": [
+    13.999999999999998,
+    -0.3,
+    -27
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2394,
+   "type": "wall_duct",
+   "variant": "round_run",
+   "pos": [
+    14.000000000000002,
+    -0.3,
+    -29
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2395,
+   "type": "wall_duct",
+   "variant": "round_run",
+   "pos": [
+    13.999999999999998,
+    -0.3,
+    -31
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2396,
+   "type": "wall_duct",
+   "variant": "round_run",
+   "pos": [
+    13.999999999999998,
+    -0.3,
+    -33
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2397,
+   "type": "wall_duct",
+   "variant": "round_run",
+   "pos": [
+    13.999999999999998,
+    -0.3,
+    -35
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2398,
+   "type": "wall_duct",
+   "variant": "round_run",
+   "pos": [
+    14,
+    -0.3,
+    -37
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2399,
+   "type": "billboard",
+   "variant": "ENJOY.",
+   "pos": [
+    9.5,
+    4,
+    -37.5
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2403,
+   "type": "blade_sign",
+   "variant": "考えるな。",
+   "pos": [
+    14,
+    -6.5,
+    -14
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2404,
+   "type": "blade_sign",
+   "variant": "笑顔を忘れずに。",
+   "pos": [
+    13.999999999999998,
+    -0.5,
+    -39
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2405,
+   "type": "blade_sign",
+   "variant": "あなたは幸せです。",
+   "pos": [
+    14,
+    -5,
+    -39
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2406,
+   "type": "blade_sign",
+   "pos": [
+    14.000000000000002,
+    -9.5,
+    -39
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2407,
+   "type": "blade_sign",
+   "variant": "不満のない社会へ。",
+   "pos": [
+    14,
+    -11.5,
+    16
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2410,
+   "type": "blade_sign",
+   "variant": "考えるな。",
+   "pos": [
+    14,
+    -7,
+    16
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2413,
+   "type": "ledge",
+   "pos": [
+    1.9999999999999996,
+    4,
+    -19
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2414,
+   "type": "railing",
+   "pos": [
+    3,
+    4,
+    -14
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2415,
+   "type": "railing",
+   "pos": [
+    2,
+    4,
+    -15
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2416,
+   "type": "railing",
+   "pos": [
+    2,
+    4,
+    -17
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2417,
+   "type": "railing",
+   "pos": [
+    3,
+    4,
+    -20
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2420,
+   "type": "tank_pair",
+   "pos": [
+    -7,
+    0,
+    -13
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2421,
+   "type": "steel_stair",
+   "variant": "half",
+   "pos": [
+    2,
+    4,
+    -39
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2422,
+   "type": "fireescape",
+   "pos": [
+    8.881784197001252e-16,
+    4,
+    -32
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2423,
+   "type": "wall",
+   "variant": "door",
+   "pos": [
+    4,
+    0,
+    -13
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2424,
+   "type": "slab",
+   "pos": [
+    5,
+    4,
+    -13
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2425,
+   "type": "wall",
+   "variant": "door",
+   "pos": [
+    -3,
+    4,
+    -30
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2426,
+   "type": "slab",
+   "pos": [
+    -3,
+    8,
+    -31
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2427,
+   "type": "wall_lamp",
+   "pos": [
+    -3,
+    6.8,
+    -29.850000381469727
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2428,
+   "type": "wall_lamp",
+   "pos": [
+    -5,
+    7.8,
+    -30
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2429,
+   "type": "wall_lamp",
+   "pos": [
+    -1,
+    7.8,
+    -30
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2430,
+   "type": "wall_lamp",
+   "pos": [
+    0,
+    7.8,
+    -37
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2431,
+   "type": "wall_lamp",
+   "pos": [
+    0,
+    7.8,
+    -31
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2432,
+   "type": "neon",
+   "variant": "lime",
+   "pos": [
+    -8,
+    3.1,
+    -30.5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2433,
+   "type": "aviation_light",
+   "pos": [
+    -3,
+    8,
+    -31
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2434,
+   "type": "ac",
+   "variant": "medium",
+   "pos": [
+    -1,
+    0,
+    -15.5
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2435,
+   "type": "ac",
+   "variant": "medium",
+   "pos": [
+    -1,
+    0,
+    -14
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2436,
+   "type": "ac",
+   "variant": "medium",
+   "pos": [
+    -1,
+    0,
+    -12.5
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2437,
+   "type": "ac",
+   "variant": "medium",
+   "pos": [
+    -1,
+    0,
+    -11
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2438,
+   "type": "ac",
+   "variant": "medium",
+   "pos": [
+    -3,
+    0,
+    -12.5
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2441,
+   "type": "ventshaft",
+   "pos": [
+    11.5,
+    4,
+    -32.5
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2444,
+   "type": "cable",
+   "pos": [
+    8.5,
+    4,
+    -20
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2446,
+   "type": "blade_sign",
+   "variant": "あなたは幸せです。",
+   "pos": [
+    14,
+    -0.5,
+    -19.5
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2447,
+   "type": "wall_lamp",
+   "pos": [
+    14,
+    3.8,
+    -15
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2448,
+   "type": "wall_lamp",
+   "pos": [
+    14,
+    3.8,
+    -19.5
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2449,
+   "type": "wall_lamp",
+   "pos": [
+    14,
+    3.8,
+    -11
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2450,
+   "type": "wall_lamp",
+   "pos": [
+    12,
+    3.3,
+    -26
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2451,
+   "type": "wall_lamp",
+   "pos": [
+    12,
+    3.3,
+    -37
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2452,
+   "type": "wall_lamp",
+   "pos": [
+    12,
+    3.3,
+    -33
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2453,
+   "type": "wall_lamp",
+   "pos": [
+    12,
+    3.3,
+    -29
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2454,
+   "type": "wall_lamp",
+   "pos": [
+    10,
+    3.8,
+    -20
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2455,
+   "type": "wall_lamp",
+   "pos": [
+    13,
+    3.8,
+    -20
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2456,
+   "type": "wall_lamp",
+   "pos": [
+    8,
+    3.8,
+    -20
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2457,
+   "type": "wall_lamp",
+   "pos": [
+    5,
+    3.8,
+    -20
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2459,
+   "type": "roof_light",
+   "variant": "panel",
+   "pos": [
+    -7.849999904632568,
+    0.5,
+    -7
+   ],
+   "rot": 3,
+   "mirror": true
+  },
+  {
+   "id": 2460,
+   "type": "roof_light",
+   "variant": "panel",
+   "pos": [
+    -7.8499999046325675,
+    0.5,
+    -12
+   ],
+   "rot": 3,
+   "mirror": true
+  },
+  {
+   "id": 2461,
+   "type": "roof_light",
+   "variant": "panel",
+   "pos": [
+    -7.8499999046325675,
+    0.5,
+    -19.5
+   ],
+   "rot": 3,
+   "mirror": true
+  },
+  {
+   "id": 2462,
+   "type": "roof_light",
+   "variant": "panel",
+   "pos": [
+    -7.849999904632568,
+    0.5,
+    -14
+   ],
+   "rot": 3,
+   "mirror": true
+  },
+  {
+   "id": 2463,
+   "type": "roof_light",
+   "variant": "panel",
+   "pos": [
+    -8,
+    -3.5,
+    -23
+   ],
+   "rot": 1,
+   "mirror": true
+  },
+  {
+   "id": 2466,
+   "type": "roof_light",
+   "variant": "panel",
+   "pos": [
+    -8,
+    -3.5,
+    -19
+   ],
+   "rot": 1,
+   "mirror": true
+  },
+  {
+   "id": 2468,
+   "type": "roof_light",
+   "variant": "panel",
+   "pos": [
+    -7.999999999999999,
+    -3.5,
+    -15
+   ],
+   "rot": 1,
+   "mirror": true
+  },
+  {
+   "id": 2470,
+   "type": "roof_light",
+   "variant": "panel",
+   "pos": [
+    -7.999999999999999,
+    -3.5,
+    -11
+   ],
+   "rot": 1,
+   "mirror": true
+  },
+  {
+   "id": 2472,
+   "type": "roof_light",
+   "variant": "panel",
+   "pos": [
+    -8,
+    -3.5,
+    -7
+   ],
+   "rot": 1,
+   "mirror": true
+  },
+  {
+   "id": 2473,
+   "type": "ac",
+   "variant": "wall",
+   "pos": [
+    -1,
+    6.7,
+    -30
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2474,
+   "type": "ac",
+   "pos": [
+    -7,
+    4,
+    -29.5
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2475,
+   "type": "ac",
+   "pos": [
+    -7,
+    5,
+    -29.5
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2476,
+   "type": "ac",
+   "pos": [
+    -8.5,
+    -4,
+    -17.5
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2477,
+   "type": "ac",
+   "variant": "wall",
+   "pos": [
+    -8.149999618530273,
+    0.2,
+    -12.5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2478,
+   "type": "ac",
+   "variant": "wall",
+   "pos": [
+    -8.149999618530273,
+    0.2,
+    -13.5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2479,
+   "type": "wall_duct",
+   "pos": [
+    -7.999999999999999,
+    0.2,
+    -25.5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2480,
+   "type": "wall_duct",
+   "pos": [
+    -8,
+    0.2,
+    -27.5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2481,
+   "type": "wall_duct",
+   "pos": [
+    -8,
+    0.2,
+    -29.5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2483,
+   "type": "wall_duct",
+   "variant": "drop",
+   "pos": [
+    -7.999999999999998,
+    0.2,
+    -31.5
+   ],
+   "rot": 1
+  }
+ ],
+ "pickups": [
+  {
+   "kind": "color:red",
+   "pos": [
+    -6,
+    4,
+    -3
+   ]
+  },
+  {
+   "kind": "cap:skinny",
+   "pos": [
+    -7,
+    4,
+    -5.5
+   ]
+  },
+  {
+   "kind": "marker",
+   "pos": [
+    -3,
+    0,
+    0.5
+   ]
+  },
+  {
+   "kind": "ladder",
+   "pos": [
+    2,
+    0,
+    2
+   ]
+  },
+  {
+   "kind": "roller",
+   "pos": [
+    -1,
+    0,
+    2
+   ]
+  },
+  {
+   "kind": "color:purple",
+   "pos": [
+    9,
+    8,
+    5
+   ]
+  },
+  {
+   "kind": "color:pink",
+   "pos": [
+    11,
+    13.714,
+    2
+   ]
+  },
+  {
+   "kind": "cap:fat",
+   "pos": [
+    -0.5,
+    -2,
+    6.5
+   ]
+  },
+  {
+   "kind": "color:green",
+   "pos": [
+    -8.5,
+    -4.22,
+    -2
+   ]
+  },
+  {
+   "kind": "color:pink",
+   "pos": [
+    1,
+    -12,
+    15
+   ]
+  },
+  {
+   "kind": "color:yellow",
+   "pos": [
+    -7,
+    -8.2,
+    13
+   ]
+  }
+ ]
+}
