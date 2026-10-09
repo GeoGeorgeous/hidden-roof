@@ -45,5 +45,7 @@ const bomb = new Uint8Array([...tiny.subarray(0, 8 + tinyLength), ...huge]);
 const before = process.memoryUsage().rss;
 await rejects(bomb, 'BROKEN PAINT FILE');
 assert.ok(process.memoryUsage().rss - before < 64 * 1024 * 1024, 'inflating stopped early');
+// A header claiming more paint than the reader allows (the server's limit) is refused before anything is allocated.
+await assert.rejects(decodePaintFile(await encodePaintFile({ ...header, faces: [{ surface: 'p12#0', rect: 0, w: 60000, h: 60000 }] }, new Uint8Array(0)), 2 ** 30), { message: 'BROKEN PAINT FILE' });
 
 console.log(`paint file: ok (${body.length} bytes of paint -> ${bytes.length} in the file; a ${(bomb.length / 1024).toFixed(0)} KB file inflating to 200 MB is refused)`);

@@ -10,7 +10,10 @@
 // equal switching PAINT DETAIL in game; after level edits, a save must still
 // load (removing an unpainted prop), skip the faces of a removed painted prop,
 // and be refused once none of its paint fits.
+// Server: in Node, the level must build the same paint surfaces and the recorded
+// ops paint the same hashes (server/paint-check.ts).
 // Usage: node scripts/golden-paint.mjs [--update] [url]   (no url: starts its own server)
+import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import { gameReady, openTestBrowser } from './test-browser.mjs';
@@ -81,6 +84,11 @@ console.log(`LOW save at ULTRA: ${saveAtUltra ? 'identical to switching PAINT DE
 console.log(`save after level edits: ${unrelated ? 'an unpainted prop removed: loads the same' : 'an unpainted prop removed: LOADS DIFFERENT'}; ${skipped ? `a painted prop removed: ${e.partial.skipped} faces skipped, ${e.partial.faces} loaded` : `a painted prop removed: NOT SKIPPED (${JSON.stringify(e.partial)})`}; ${refused ? `all painted props removed: refused (${e.refused}), paint kept` : `all painted props removed: NOT REFUSED AS EXPECTED: ${e.refused}`}`);
 await test.close();
 
+// The server's paint, in Node, from the ops recorded at each detail.
+execFileSync('npx', ['vite', 'build', '--ssr', 'server/paint-check.ts', '--outDir', 'dist-server/check', '--logLevel', 'warn'], { stdio: 'inherit' });
+const server = spawnSync(process.execPath, ['dist-server/check/paint-check.js', 'public/levels/demo.json', ...DETAILS.map((d) => `${out}/${d}.ops.json`)], { stdio: 'inherit' });
+if (server.status !== 0) failed++;
+
 if (update || !fs.existsSync(baselinePath)) {
   fs.writeFileSync(baselinePath, JSON.stringify(results, null, 2) + '\n');
   console.log(`baseline written: ${baselinePath.pathname}`);
@@ -106,6 +114,8 @@ async function checkDetail(detail) {
   results[detail] = { hash: hashOf(r.paint), texelsPerMeter: r.paint.tpm, surfaces: r.paint.surfaces.length, paintedM2: r.paint.paintedM2, meanAlpha: r.paint.meanAlpha, drips: r.drips, perRun: r.perRun };
   for (const [i, png] of r.pngs.entries()) fs.writeFileSync(`${out}/${detail}-${i}.png`, Buffer.from(png, 'base64'));
   fs.writeFileSync(`${out}/${detail}.rhhpaint`, Buffer.from(r.save, 'base64'));
+  // The ops, for the server's paint check (scripts/server-paint.test.mjs).
+  fs.writeFileSync(`${out}/${detail}.ops.json`, JSON.stringify({ hash: results[detail].hash, table: r.table, ...r.ops }));
   const atLow = detail === 'ultra' ? inGame('low', replay, { ops: r.ops, save: r.save, editLevel: true }) : null;
   const own = await game.run(replay, { ops: r.ops, save: r.save });
   if (detail === 'ultra') lowAtUltra = await game.run(loadSave, (await lowPlay).save);
@@ -360,5 +370,7 @@ async function play({ runs, stand, faceYaw, gap, settle }) {
       return c.toDataURL('image/png').split(',')[1];
     });
   const bytes = await g.paintFile.save();
-  return { paint, drips, perRun, pngs, ops: { log, frames }, save: window.golden.toB64(bytes), saveBytes: bytes.length };
+  // Every paint surface's atlas and face rects: the server must build the same.
+  const table = g.paint.surfaces.map((s) => [s.key, s.geo.atlasW, s.geo.atlasH, s.geo.rects.map((r) => [r.x, r.y, r.w, r.h])]);
+  return { paint, drips, perRun, pngs, table, ops: { log, frames }, save: window.golden.toB64(bytes), saveBytes: bytes.length };
 }

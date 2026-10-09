@@ -1,13 +1,14 @@
 import { MAX_TEXT } from '../render/ink/words';
 import * as THREE from 'three';
-import { defOf, renamed, upgraded } from '../kit';
-import { mirrored, type V3 } from '../kit/pieces';
+import { defOf, upgraded } from '../kit';
+import type { V3 } from '../kit/pieces';
 import { V_MODULE, type PropDef } from '../kit/def';
 import type { PaintSystem } from '../painting';
 import type { Ladder } from '../player';
 import { DecorBatches } from './batches';
 import { buildProp, disposeProp, type BuiltProp, type Emitter, type LightAnchor, type PropInstance } from './build-prop';
 import { computeJoints, jointOwner, jointPieces, sameFinish, type Joint } from './joints';
+import { instanceOf, propPieces } from './prop-pieces';
 import { column, propAt, stackContext } from './stacks';
 import type { Finish } from '../kit/finishes';
 
@@ -263,17 +264,9 @@ export class Level {
   }
 
   private create(data: PropData, build = true): PropInstance | null {
-    // Levels saved before variants name some props by their old types.
-    const [type, variant] = renamed(data.type, data.variant);
-    const def = defOf(type, variant);
-    if (!def) {
-      console.warn(`unknown prop type "${data.type}"`);
-      return null;
-    }
-    // Its own id when it has a free one (a format 3 level, undo), else the next.
-    const id = Number.isInteger(data.id) && data.id! > 0 && !this.props.has(data.id!) ? data.id! : this.nextId;
-    this.nextId = Math.max(this.nextId, id + 1);
-    const inst: PropInstance = { id, type, variant: def.variant, pos: [...data.pos], rot: (((data.rot ?? 0) % 4) + 4) % 4, adjust: data.adjust, text: data.text, finish: data.finish, mirror: data.mirror || undefined };
+    const inst = instanceOf(data, this.nextId, (id) => this.props.has(id));
+    if (!inst) return null;
+    this.nextId = Math.max(this.nextId, inst.id + 1);
     this.props.set(inst.id, inst);
     if (build) this.build(inst);
     return inst;
@@ -288,11 +281,7 @@ export class Level {
   private build(inst: PropInstance, resample = false) {
     const old = this.built.get(inst.id);
     if (old) disposeProp(old, this.paint);
-    const def = defOf(inst.type, inst.variant)!;
-    const seed = Math.abs(Math.round(inst.pos[0] * 7 + inst.pos[2] * 13));
-    const adjust = inst.adjust ?? def.adjust?.initial() ?? 0;
-    const ctx = { seed, pos: inst.pos, rot: inst.rot, adjust, text: inst.text ?? def.text ?? '', finish: inst.finish, ...this.stackContext(def, inst.pos, inst.rot) };
-    const pieces = inst.mirror ? mirrored(def.build(ctx)) : def.build(ctx);
+    const pieces = propPieces(inst, this.props.values());
     if (pieces.some((p) => 'mat' in p && p.mat.letters)) this.lettered.add(inst.id);
     else this.lettered.delete(inst.id);
     const b = buildProp(inst.id, `p${inst.id}`, pieces, inst.pos, inst.rot, this.paint);

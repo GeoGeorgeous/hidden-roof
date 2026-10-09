@@ -91,11 +91,11 @@ export function withDefaultTick(input: HTMLInputElement, d: unknown, min: number
   return box;
 }
 
-function div(className: string) {
+export function div(className: string) {
   return Object.assign(document.createElement('div'), { className });
 }
 
-function button(text: string, onClick: () => void) {
+export function button(text: string, onClick: () => void) {
   const b = Object.assign(document.createElement('button'), { textContent: text });
   b.addEventListener('mousedown', (e) => {
     e.preventDefault();

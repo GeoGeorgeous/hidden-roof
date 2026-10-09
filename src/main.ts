@@ -42,6 +42,8 @@ import { textAtlasVersion } from './render/ink/text-atlas';
 import { staticTextureBytes } from './render/texture-bytes';
 import type { DevTools } from './dev/devtools';
 import { session } from './session';
+import { multiplayerMenu } from './net/net-menu';
+import { download, stamp } from './files';
 import { exitGameFullscreen } from './fullscreen';
 import { setHex } from './hex-color';
 import { seedPaintRandom } from './lcg';
@@ -162,7 +164,11 @@ function openLevel(data: LevelData, name: string) {
 let levelName = new URLSearchParams(location.search).get('level') ?? 'demo';
 // Signs measure their text when they are built: wait for the sign font first.
 Promise.all([fetchLevel(levelName), jpFontReady()])
-  .then(([data]) => loadLevel(data))
+  .then(([data]) => {
+    loadLevel(data);
+    // A reload in a session goes back into it (multiplayer.ts).
+    net.resume();
+  })
   .catch((e) => console.error(e));
 
 let lastStride = 0;
@@ -185,6 +191,8 @@ hud.onExitFullscreen = () => void exitGameFullscreen();
 hud.setLocked(false);
 hud.setSettings(settings.sections());
 const paintFile = paintMenu(hud, paint, drips, () => levelName);
+const net = multiplayerMenu(hud, hotbar, { scene, camera, level, paint, paintOps, drips, player, inventory, tools, levelData: () => ({ data: levelData(), name: levelName }), openLevel, lockDetail: (tpm) => settings.lockPaintDetail(tpm) }, () => levelName);
+net.onSave = (bytes, name) => download(new Blob([bytes as BlobPart]), `${name}-${stamp(new Date())}.rhhpaint`);
 tools.onCapChange = (name) => hud.showCapTag(name);
 tools.onColorChange = (color) => hud.showColorTag(color, COLORS[color]);
 
@@ -232,9 +240,12 @@ function frame(time: number) {
   dev?.frame(input, dt);
   const building = dev?.building ?? false;
 
-  // Paused (pointer not locked) in single player: the world keeps rendering but
-  // nothing advances. In a session it goes on without you: you stand still, but
-  // you still fall, your spray lands and paint runs, as others see it.
+  // Paused (pointer not locked) in single player the game stops: you, your tools,
+  // paint in flight, drips, pickups and lightning. The surroundings go on (fans,
+  // lamps, CCTV, rain, smoke), and all sound is turned down (AUDIO.pausedGain;
+  // not with F3 open, to tune it). In a session the game goes on without you:
+  // you stand still, but you still fall, your spray lands and paint runs, as
+  // others see it.
   const paused = !input.locked;
   const frozen = paused && !session.multiplayer;
   const yours = paused ? noInput : input;
@@ -277,12 +288,12 @@ function frame(time: number) {
   setHex(viewSun.color, VIEWMODEL.rimColor);
   viewSun.intensity = VIEWMODEL.rim;
   lightFx.update();
-  if (!frozen) rainTime += dt;
+  rainTime += dt;
   rain.update(rainTime, eye);
   smoke.update(rainTime, SMOKE.lightBase + SMOKE.lightAmbient * ATMOS.ambient + SMOKE.lightFlash * lightning.flash);
-  audio.setFan(frozen ? 0 : fanLevel(eye));
-  if (!frozen && ATMOS.rain && !building) metalDrops(dt, eye);
-  audio.update();
+  audio.setFan(fanLevel(eye));
+  if (ATMOS.rain && !building) metalDrops(dt, eye);
+  audio.update(paused && !dev?.panelOpen);
 
   if (!frozen) {
     if (building) dev!.update(input, camera);
@@ -291,6 +302,7 @@ function frame(time: number) {
     drips.update(dt);
     pickups.update(dt, player.position, inventory);
   } else if (!building) tools.holdStill(camera);
+  net.update(dt);
   const tool = building ? null : inventory.tool;
   hud.setCrosshair(tools.crosshair(tool));
   const anchor = tools.labelAnchor(tagPos);
@@ -326,7 +338,7 @@ function frame(time: number) {
   // The HUD's GPU line keeps the timer running with the panel closed.
   if (HUD.perf && HUD.perfGpu) gpuTimer.enabled = true;
   const gpu = !HUD.perfGpu ? undefined : gpuTimer.supported ? gpuTimer.total(VOLUMETRICS.enabled ? ['scene', 'volumetrics', 'post'] : ['scene', 'post']) : null;
-  hud.setPerf({ fps, frameMs, gpu, calls, triangles, textureBytes: paint.gpu.textureBytes + baker.stats.textureBytes + staticTextureBytes() });
+  hud.setPerf({ fps, frameMs, gpu, calls, triangles, textureBytes: paint.gpu.textureBytes + baker.stats.textureBytes + staticTextureBytes(), net: net.stats });
   dev?.report({ fps, frameMs, calls, triangles });
   requestAnimationFrame(frame);
 }
@@ -367,5 +379,5 @@ function toScreen(p: THREE.Vector3) {
 
 // Dev tools (build mode, F3, window.game) only in single player; the multiplayer build (npm run build:mp) leaves them out.
 let dev: DevTools | undefined;
-const game = { city: () => skyline, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, hotbar, pickups, paint, paintOps, paintFile, seedPaintRandom, fixedStep, session, level, renderer, input, hud, scene, viewScene, gpuTimer, PLAYER, loadLevel, rebuildCity, levelData, openLevel };
+const game = { city: () => skyline, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, hotbar, pickups, paint, paintOps, net, paintFile, seedPaintRandom, fixedStep, session, level, renderer, input, hud, scene, viewScene, gpuTimer, PLAYER, loadLevel, rebuildCity, levelData, openLevel };
 if (import.meta.env.VITE_MP !== '1') void import('./dev/devtools').then((m) => (dev = new m.DevTools(game)));

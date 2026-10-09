@@ -2,6 +2,7 @@ import { HUD, PAUSE_MENU, VIGNETTE } from './config';
 import { isFullscreen } from './fullscreen';
 import { SettingsPage } from './settings-page';
 import type { SettingSection } from './settings';
+import { netLines, type NetStats } from './net/diagnostics';
 
 // Body-cam style HUD: vignette, corner brackets, REC indicator with elapsed
 // time, clock, crosshair, the PSI gauge, cap and color tags beside the tool in
@@ -41,10 +42,20 @@ export class Hud {
   /** SAVE PAINT / LOAD PAINT in the menu (save/). */
   onSavePaint = () => {};
   onLoadPaint = () => {};
+  /** MULTIPLAYER (opens its page, net/net-menu.ts) and LEAVE SESSION. */
+  onLeave = () => {};
+  /** COPY NETWORK LOG, in a session (net/net-menu.ts). */
+  onCopyNetLog = () => {};
   private overlay: HTMLElement;
   private status: HTMLElement;
   private exitFs: HTMLElement;
   private savePaint: HTMLElement;
+  private loadPaint: HTMLElement;
+  private multiplayer: HTMLElement;
+  private leave: HTMLElement;
+  private netLog: HTMLElement;
+  /** The multiplayer session's code while in one. */
+  private session: string | null = null;
   private resume: HTMLElement;
   private rec: HTMLElement;
   private clock: HTMLElement;
@@ -102,6 +113,9 @@ export class Hud {
           <button class="resume"></button>
           <button class="save-paint">&gt; SAVE PAINT</button>
           <button class="load-paint">&gt; LOAD PAINT</button>
+          <button class="multiplayer">&gt; MULTIPLAYER</button>
+          <button class="leave">&gt; LEAVE SESSION</button>
+          <button class="net-log">&gt; COPY NETWORK LOG</button>
           <button class="open-settings">&gt; SETTINGS</button>
           <button class="exit-fs">&gt; EXIT FULLSCREEN</button>
         </div>
@@ -143,7 +157,7 @@ export class Hud {
     });
     root.querySelector('.open-settings')!.addEventListener('mousedown', (e) => {
       e.preventDefault();
-      this.openSettings(true);
+      this.openPage('in-settings');
     });
     this.exitFs.addEventListener('mousedown', (e) => {
       e.preventDefault();
@@ -155,7 +169,20 @@ export class Hud {
       this.onSavePaint();
     });
     // click, not mousedown: the file picker opens only from a click.
-    root.querySelector('.load-paint')!.addEventListener('click', () => this.onLoadPaint());
+    this.loadPaint = root.querySelector('.load-paint')!;
+    this.loadPaint.addEventListener('click', () => this.onLoadPaint());
+    this.multiplayer = root.querySelector('.multiplayer')!;
+    this.multiplayer.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      this.openPage('in-mp');
+    });
+    this.leave = root.querySelector('.leave')!;
+    this.leave.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      this.onLeave();
+    });
+    this.netLog = root.querySelector('.net-log')!;
+    this.netLog.addEventListener('click', () => this.onCopyNetLog());
     document.addEventListener('fullscreenchange', () => this.syncMenu());
     this.syncMenu();
   }
@@ -167,7 +194,7 @@ export class Hud {
   setLocked(locked: boolean, debugOpen = false) {
     if (locked) {
       this.started = true;
-      this.openSettings(false);
+      this.openPage(null);
     }
     this.overlay.hidden = locked;
     // No cursor while paused (ESC), the pause menu or the debug panel has the mouse.
@@ -198,23 +225,45 @@ export class Hud {
   }
 
   private syncMenu() {
-    if (performance.now() >= this.noticeUntil) this.status.textContent = this.started ? 'PAUSED' : 'CLICK TO START';
+    if (performance.now() >= this.noticeUntil) this.status.textContent = this.session ? `SESSION · ${this.session}` : this.started ? 'PAUSED' : 'CLICK TO START';
+    // The session's code stays put, to be read out and shared.
+    this.status.classList.toggle('blink', !this.session);
     this.resume.textContent = this.started ? '> RESUME' : '> START';
     this.exitFs.hidden = !isFullscreen();
-    // Nothing to save on the title screen; LOAD can come first.
-    this.savePaint.hidden = !this.started;
+    // Nothing to save on the title screen; LOAD can come first. In a session, the server's paint is everyone's: no LOAD.
+    this.savePaint.hidden = !this.started && !this.session;
+    this.loadPaint.hidden = this.multiplayer.hidden = !!this.session;
+    this.leave.hidden = this.netLog.hidden = !this.session;
+  }
+
+  /** In a multiplayer session (its code) or not (null): the menu offers LEAVE SESSION instead of LOAD and MULTIPLAYER. */
+  setSession(code: string | null) {
+    this.session = code;
+    if (code) this.openPage(null);
+    this.syncMenu();
   }
 
   /** The settings page, opened from the pause menu (SETTINGS) and closed with BACK. */
   setSettings(sections: SettingSection[]) {
     this.settingsPage?.root.remove();
-    this.settingsPage = new SettingsPage(sections, () => this.openSettings(false));
+    this.settingsPage = new SettingsPage(sections, () => this.openPage(null));
     this.overlay.querySelector('.menu')!.after(this.settingsPage.root);
   }
 
-  private openSettings(open: boolean) {
-    this.overlay.classList.toggle('in-settings', open);
-    if (open) this.settingsPage?.sync();
+  /** The MULTIPLAYER page (net/net-menu.ts), opened from the pause menu; `onOpen` readies it. */
+  setMultiplayer(page: HTMLElement, onOpen: () => void) {
+    this.overlay.querySelector('.menu')!.after(page);
+    this.onMultiplayerOpen = onOpen;
+  }
+
+  private onMultiplayerOpen = () => {};
+
+  /** Settings or the multiplayer page in place of the menu, or the menu (null). */
+  openPage(page: 'in-settings' | 'in-mp' | null) {
+    this.overlay.classList.toggle('in-settings', page === 'in-settings');
+    this.overlay.classList.toggle('in-mp', page === 'in-mp');
+    if (page === 'in-settings') this.settingsPage?.sync();
+    if (page === 'in-mp') this.onMultiplayerOpen();
   }
 
   /** Crosshair circle diameter in CSS pixels. */
@@ -274,7 +323,7 @@ export class Hud {
   }
 
   /** The performance readout, bottom left: written a few times a second. `gpu`: ms per frame, null = not measurable, undefined = not shown. */
-  setPerf(p: { fps: number; frameMs: number; gpu?: number | null; calls: number; triangles: number; textureBytes: number }) {
+  setPerf(p: { fps: number; frameMs: number; gpu?: number | null; calls: number; triangles: number; textureBytes: number; net: NetStats | null }) {
     this.perf.hidden = !HUD.perf;
     if (!HUD.perf) return;
     const now = performance.now();
@@ -287,6 +336,7 @@ export class Hud {
       `draw calls · ${p.calls}`,
       `triangles · ${p.triangles.toLocaleString('en-US')}`,
       `tex memory · ${mb < 10 ? mb.toFixed(1) : Math.round(mb)} MB`,
+      ...netLines(p.net),
     ].join('\n');
     if (text === this.perfShown) return;
     this.perfShown = text;
