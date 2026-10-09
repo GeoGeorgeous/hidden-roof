@@ -176,6 +176,25 @@ const METALS = new Set<Mat>([M.steel, M.metal, M.galv, M.ac, M.rust]);
 
 const BOX_FACES: BoxFace[] = ['+x', '-x', '+y', '-y', '+z', '-z'];
 
+/**
+ * A box piece's world box as materials and the faces each leaves out: a
+ * lettered box shows its lettering on its face(s) (BoxPiece.letterFace, or
+ * both across its thinnest side) and is plain steel elsewhere, so no text
+ * runs round its edges; any other box is one part.
+ */
+function boxParts(p: BoxPiece, box: THREE.Box3, r: number): [Mat, BoxFace[]][] {
+  const skip = (p.skip ?? []).map((f) => rotateFace(f, r));
+  if (!p.mat.letters) return [[p.mat, skip]];
+  const s = box.getSize(new THREE.Vector3());
+  const thin = s.x <= s.y && s.x <= s.z ? 'x' : s.y <= s.z ? 'y' : 'z';
+  const lettered: BoxFace[] = p.letterFace ? [rotateFace(p.letterFace, r)] : [`+${thin}`, `-${thin}`];
+  const parts: [Mat, BoxFace[]][] = [
+    [p.mat, [...skip, ...BOX_FACES.filter((f) => !lettered.includes(f))]],
+    [M.steel, [...skip, ...lettered]],
+  ];
+  return parts.filter(([, faces]) => new Set(faces).size < 6);
+}
+
 /** World boxes of a prop's opaque, still box pieces: what can cover a face (level/cover.ts). Rods and cylinders don't: their colliders are boxes round them, wider than they look. */
 export function solidBoxes(pieces: Piece[], pos: V3, rot: number): THREE.Box3[] {
   const r = ((rot % 4) + 4) % 4;
@@ -235,12 +254,14 @@ export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint =
   for (const p of pieces) {
     if (p.k === 'box') {
       const box = new THREE.Box3().setFromPoints([at(p.min), at(p.max)]);
-      const skip = (p.skip ?? []).map((f) => rotateFace(f, r));
-      if (allowPaint && !p.swing && boxIsPaintable(p)) {
-        const covered = cover ? BOX_FACES.filter((f) => !skip.includes(f) && cover.covered(box, f)) : [];
-        if (covered.length) decor(p.mat, boxSurface(box.min, box.max, BOX_FACES.filter((f) => !covered.includes(f)), false, p.mat.letters).geometry);
-        if (skip.length + covered.length < 6) addBox(painter(p.mat), box.min, box.max, [...skip, ...covered]);
-      } else decor(p.mat, boxSurface(box.min, box.max, skip, false, p.mat.letters).geometry, p.swing);
+      const paint = allowPaint && !p.swing && boxIsPaintable(p);
+      for (const [mat, skip] of boxParts(p, box, r)) {
+        if (paint) {
+          const covered = cover ? BOX_FACES.filter((f) => !skip.includes(f) && cover.covered(box, f)) : [];
+          if (covered.length) decor(mat, boxSurface(box.min, box.max, BOX_FACES.filter((f) => !covered.includes(f)), false, mat.letters).geometry);
+          if (skip.length + covered.length < 6) addBox(painter(mat), box.min, box.max, [...skip, ...covered]);
+        } else decor(mat, boxSurface(box.min, box.max, skip, false, mat.letters).geometry, p.swing);
+      }
       if (p.collide && !p.swing) collide(p.mat, [box]);
       metal(p.mat, new THREE.Vector3((box.min.x + box.max.x) / 2, box.max.y, (box.min.z + box.max.z) / 2));
     } else if (p.k === 'cyl') {
@@ -354,8 +375,12 @@ function rodGeometry(a: THREE.Vector3, b: THREE.Vector3, r: number) {
  * A sloped rod collides as a chain of small boxes along it. A mostly vertical
  * rod ends at its end points, so a post standing on a floor doesn't reach
  * into it (masts, sign towers and billboards could not be placed on floors).
+ * One that leans less than 1 in 10 (a tapering mast's corner post) is one box
+ * round it: as a chain, each box would stand a centimeter out from the one
+ * above, ledges to jump up one by one.
  */
 function rodColliders(a: THREE.Vector3, b: THREE.Vector3, r: number) {
+  if (Math.hypot(b.x - a.x, b.z - a.z) < Math.abs(b.y - a.y) * 0.1) return [new THREE.Box3().setFromPoints([a, b]).expandByVector(new THREE.Vector3(r, 0, r))];
   const n = Math.max(1, Math.ceil(a.distanceTo(b) / 0.3));
   const upright = Math.abs(b.y - a.y) > a.distanceTo(b) * 0.7;
   const lo = Math.min(a.y, b.y);

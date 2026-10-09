@@ -42,11 +42,12 @@ export const roofLetters = withVariants({ type: 'roof_letters', label: 'Roof let
   const letters = chars.map((c) => word(c, s.inverted, h));
   const w = letters.reduce((sum, l) => sum + l.width, 0) + gap * (chars.length - 1);
   const p = new Parts();
-  let x = -w / 2;
+  // Read from the front (-z), left to right is +x to -x.
+  let x = w / 2;
   for (const l of letters) {
-    p.box([x, y0, -0.12], [x + l.width, y0 + h, -0.1], l.mat, { paint: true });
-    p.detail([x + 0.03, y0 + 0.03, -0.1], [x + l.width - 0.03, y0 + h - 0.03, 0.04], M.dark);
-    x += l.width + gap;
+    p.box([x - l.width, y0, -0.12], [x, y0 + h, -0.1], l.mat, { paint: true, letterFace: '-z' });
+    p.detail([x - l.width + 0.03, y0 + 0.03, -0.1], [x - 0.03, y0 + h - 0.03, 0.04], M.dark);
+    x -= l.width + gap;
   }
   // Frame behind the letters: two rails, posts every ~1.5 m on base plates, braces back to the roof.
   const ends = w / 2 + 0.1;

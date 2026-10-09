@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { Facade } from '../render/ink/facade';
 import type { UvRect } from '../render/ink/uv-rect';
+import { CITY_PLAIN } from '../render/ink/city-text';
 
 // Merged geometry for the city around the level, in chunks (so the camera
 // culls what's out of view and draws near chunks first), all drawn with the
@@ -11,6 +12,7 @@ import type { UvRect } from '../render/ink/uv-rect';
 // light...) point at shared all-zero buffers, uploaded once for every chunk.
 
 export type V3 = [number, number, number];
+export type Face = '+x' | '-x' | '+y' | '-y' | '+z' | '-z';
 
 /** Chunk size (m): one draw call per chunk in view. */
 const CHUNK = 160;
@@ -31,14 +33,21 @@ export class CityMesh {
   private facade: Facade = PLAIN;
   private chunk: Chunk = this.at(0, 0);
   private rect: UvRect = [0, 0, 0, 0];
+  private lettered: readonly Face[] | null = null;
 
   /** With `withUv`, every quad maps the lettering rect set by `letters` (signs). */
   constructor(private withUv = false) {}
 
-  /** Lettering (city text atlas rect) for the sign faces added next. */
-  letters(rect: UvRect) {
+  /** Lettering (city text atlas rect) for the sign faces added next: on a box's `faces` only (its other faces plain ink), or on all. */
+  letters(rect: UvRect, faces: readonly Face[] | null = null) {
     this.rect = rect;
+    this.lettered = faces;
     return this;
+  }
+
+  /** What a box's face `f` shows. */
+  private uv(f: Face) {
+    return !this.lettered || this.lettered.includes(f) ? this.rect : CITY_PLAIN;
   }
 
   /** Gray (sRGB 0..1) and facade of the pieces added next, and the chunk they go to (by a point in it). */
@@ -57,7 +66,7 @@ export class CityMesh {
     return c;
   }
 
-  private quad(a: V3, b: V3, c: V3, d: V3, n: V3) {
+  private quad(a: V3, b: V3, c: V3, d: V3, n: V3, uv = this.rect) {
     const ch = this.chunk;
     const base = ch.pos.length / 3;
     for (const p of [a, b, c, d]) {
@@ -67,7 +76,7 @@ export class CityMesh {
       ch.fac.push(...this.facade);
     }
     if (this.withUv) {
-      const [u0, v0, u1, v1] = this.rect;
+      const [u0, v0, u1, v1] = uv;
       ch.uv.push(u0, v0, u1, v0, u1, v1, u0, v1);
     }
     // Wind counter-clockwise as seen from the side the normal points to.
@@ -80,12 +89,12 @@ export class CityMesh {
 
   /** Axis-aligned box; `bottom` false skips the underside (most city boxes sit on something). */
   box(x0: number, y0: number, z0: number, x1: number, y1: number, z1: number, bottom = false) {
-    this.quad([x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1], [0, 0, 1]);
-    this.quad([x1, y0, z0], [x0, y0, z0], [x0, y1, z0], [x1, y1, z0], [0, 0, -1]);
-    this.quad([x1, y0, z1], [x1, y0, z0], [x1, y1, z0], [x1, y1, z1], [1, 0, 0]);
-    this.quad([x0, y0, z0], [x0, y0, z1], [x0, y1, z1], [x0, y1, z0], [-1, 0, 0]);
-    this.quad([x0, y1, z1], [x1, y1, z1], [x1, y1, z0], [x0, y1, z0], [0, 1, 0]);
-    if (bottom) this.quad([x0, y0, z0], [x1, y0, z0], [x1, y0, z1], [x0, y0, z1], [0, -1, 0]);
+    this.quad([x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1], [0, 0, 1], this.uv('+z'));
+    this.quad([x1, y0, z0], [x0, y0, z0], [x0, y1, z0], [x1, y1, z0], [0, 0, -1], this.uv('-z'));
+    this.quad([x1, y0, z1], [x1, y0, z0], [x1, y1, z0], [x1, y1, z1], [1, 0, 0], this.uv('+x'));
+    this.quad([x0, y0, z0], [x0, y0, z1], [x0, y1, z1], [x0, y1, z0], [-1, 0, 0], this.uv('-x'));
+    this.quad([x0, y1, z1], [x1, y1, z1], [x1, y1, z0], [x0, y1, z0], [0, 1, 0], this.uv('+y'));
+    if (bottom) this.quad([x0, y0, z0], [x1, y0, z0], [x1, y0, z1], [x0, y0, z1], [0, -1, 0], this.uv('-y'));
   }
 
   /** Capped cylinder along y (axis 'y') or lying along x / z, from its base center. */

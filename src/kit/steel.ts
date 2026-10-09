@@ -45,12 +45,12 @@ export const latticeMast: PropDef = {
   },
 };
 
-/** Sign tower: a lattice frame carrying a lettered 4 x 2 m panel (paintable) facing -z. */
+/** Sign tower: a lattice frame carrying a lettered 4 x 2 m panel (paintable) facing -z, plain at the back. */
 export const signTower = withVariants({ type: 'sign_tower', label: 'Sign tower', category: 'signs', place: 'floor', snap: 0.5 }, sloganVariants(panelSlogans(4), (s) => {
   const h = 4;
   const p = new Parts();
   lattice(p, 1.6, h, 1.3);
-  p.box([-2, h, -1.0], [2, h + 2, -0.85], panelLettering(s, 4, 2), { paint: true });
+  p.box([-2, h, -1.0], [2, h + 2, -0.85], panelLettering(s, 4, 2), { paint: true, letterFace: '-z' });
   p.detail([-2.04, h + 2, -1.02], [2.04, h + 2.05, -0.83], M.steel);
   // Frame behind the panel, braced back onto the lattice top.
   for (const x of [-1.8, -0.6, 0.6, 1.8]) p.rod([x, h, -0.85], [x, h + 2, -0.85], 0.03, M.steel);

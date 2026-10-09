@@ -73,7 +73,10 @@ export interface BoxPiece {
   paint: Paint;
   collide: boolean;
   /** Only for faces fully covered by another piece of the same prop. */
-  skip?: BoxFace[];  swing?: Swing;
+  skip?: BoxFace[];
+  /** A lettered box (Mat.letters) shows its lettering on this face only; by default on both faces across its thinnest side. Its other faces are plain. */
+  letterFace?: BoxFace;
+  swing?: Swing;
 }
 export interface CylPiece {
   k: 'cyl';
@@ -195,8 +198,8 @@ export class Parts {
     this.swing = undefined;
   }
 
-  box(min: V3, max: V3, mat: Mat, o: { paint?: Paint; collide?: boolean; skip?: BoxFace[] } = {}) {
-    this.list.push({ k: 'box', min, max, mat, paint: o.paint ?? 'auto', collide: o.collide ?? true, skip: o.skip, swing: this.swing });
+  box(min: V3, max: V3, mat: Mat, o: { paint?: Paint; collide?: boolean; skip?: BoxFace[]; letterFace?: BoxFace } = {}) {
+    this.list.push({ k: 'box', min, max, mat, paint: o.paint ?? 'auto', collide: o.collide ?? true, skip: o.skip, letterFace: o.letterFace, swing: this.swing });
   }
 
   /** Decor box: paintable like any box piece unless it is tiny (PAINT.minFaceSide / minFaceArea). */
@@ -300,7 +303,7 @@ export function mirrored(pieces: Piece[]): Piece[] {
   return pieces.map((p): Piece => {
     switch (p.k) {
       case 'box':
-        return { ...p, min: [-p.max[0], p.min[1], p.min[2]], max: [-p.min[0], p.max[1], p.max[2]], skip: p.skip?.map((f) => FLIP_FACE[f] ?? f), swing: flipSwing(p.swing) };
+        return { ...p, min: [-p.max[0], p.min[1], p.min[2]], max: [-p.min[0], p.max[1], p.max[2]], skip: p.skip?.map((f) => FLIP_FACE[f] ?? f), letterFace: p.letterFace && (FLIP_FACE[p.letterFace] ?? p.letterFace), swing: flipSwing(p.swing) };
       case 'cyl':
         // Along x it runs the other way: start at its far end, with its radii swapped.
         return p.axis === 'x' ? { ...p, base: [-(p.base[0] + p.len), p.base[1], p.base[2]], r: p.r2 ?? p.r, r2: p.r, swing: flipSwing(p.swing) } : { ...p, base: flipV(p.base), swing: flipSwing(p.swing) };

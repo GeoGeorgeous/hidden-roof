@@ -8,6 +8,8 @@ import { M, Parts, type V3 } from './pieces';
 const RISE = 0.2;
 const TREAD = 0.24;
 const HW = 0.5; // half width
+/** Every railing stands this far out, the stair rails and the landing's alike, so they line up where they meet. */
+const RAIL_X = HW + 0.04;
 
 /** A flight of `n` treads from (z0, y0) going up toward `dir` (-1: -z, 1: +z): treads, stringers, handrails. */
 function flight(p: Parts, z0: number, y0: number, n: number, dir: number) {
@@ -17,7 +19,7 @@ function flight(p: Parts, z0: number, y0: number, n: number, dir: number) {
     p.box([-HW, y - 0.04, Math.min(z, z + dir * TREAD)], [HW, y, Math.max(z, z + dir * TREAD)], M.metal);
   }
   const top: V3 = [0, y0 + RISE * n, z0 + dir * TREAD * n];
-  for (const x of [-HW - 0.04, HW + 0.04]) {
+  for (const x of [-RAIL_X, RAIL_X]) {
     p.rod([x, y0, z0], [x, top[1] - 0.05, top[2]], 0.05, M.steel);
     p.detail([x - 0.08, 0, z0 - 0.08], [x + 0.08, 0.02, z0 + 0.08], M.steel, false);
     p.stairRail([x, y0 + RISE, z0 + (dir * TREAD) / 2], [x, top[1], top[2] - (dir * TREAD) / 2]);
@@ -32,7 +34,7 @@ function landing(p: Parts, z0: number, z1: number, h: number, zPost: number) {
     p.detail([x - 0.04, 0.02, zPost - 0.04], [x + 0.04, h - 0.05, zPost + 0.04], M.steel);
     p.detail([x - 0.1, 0, zPost - 0.1], [x + 0.1, 0.02, zPost + 0.1], M.steel, false);
   }
-  for (const x of [-HW - 0.01, HW + 0.01]) p.railing([x, a + 0.06], [x, b - 0.06], h);
+  for (const x of [-RAIL_X, RAIL_X]) p.railing([x, a + 0.06], [x, b - 0.06], h);
 }
 
 /** Up a whole storey (4 m) toward the front, onto a landing at the front edge: step off it onto the next roof. */
@@ -62,7 +64,7 @@ const crossover: Variant['build'] = () => {
   flight(p, -0.35 - run, 0, n, 1);
   p.box([-HW - 0.04, 1.15, -0.35], [HW + 0.04, 1.2, 0.35], M.metal);
   for (const z of [-0.3, 0.3]) for (const x of [-HW + 0.04, HW - 0.04]) p.detail([x - 0.04, 0.02, z - 0.04], [x + 0.04, 1.15, z + 0.04], M.steel);
-  for (const x of [-HW - 0.01, HW + 0.01]) p.railing([x, -0.29], [x, 0.29], 1.2);
+  for (const x of [-RAIL_X, RAIL_X]) p.railing([x, -0.29], [x, 0.29], 1.2);
   return p.list;
 };
 
