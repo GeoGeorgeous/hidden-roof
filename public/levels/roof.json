@@ -2,11 +2,11 @@
  "version": 4,
  "spawn": {
   "pos": [
-   1,
+   -5.5,
    0,
-   1.5
+   -1
   ],
-  "yaw": -0.3
+  "yaw": 16.926
  },
  "props": [
   {
@@ -8100,27 +8100,6 @@
    "rot": 2
   },
   {
-   "id": 1501,
-   "type": "parapet",
-   "pos": [
-    7,
-    0,
-    -6
-   ],
-   "rot": 2
-  },
-  {
-   "id": 1507,
-   "type": "wall",
-   "variant": "ledge",
-   "pos": [
-    8,
-    0,
-    -5
-   ],
-   "rot": 3
-  },
-  {
    "id": 1508,
    "type": "wall",
    "variant": "ledge",
@@ -8213,16 +8192,6 @@
    "rot": 1
   },
   {
-   "id": 1533,
-   "type": "wall_lamp",
-   "pos": [
-    8,
-    3.8,
-    -5
-   ],
-   "rot": 1
-  },
-  {
    "id": 1535,
    "type": "ac",
    "variant": "ducted",
@@ -8267,65 +8236,12 @@
    "rot": 1
   },
   {
-   "id": 1539,
-   "type": "ac",
-   "pos": [
-    7.5,
-    0,
-    -5
-   ],
-   "rot": 1
-  },
-  {
-   "id": 1540,
-   "type": "ac",
-   "pos": [
-    7.5,
-    0,
-    -4
-   ],
-   "rot": 1
-  },
-  {
    "id": 1541,
    "type": "ac",
    "pos": [
     7.5,
     0,
     -3
-   ],
-   "rot": 1
-  },
-  {
-   "id": 1544,
-   "type": "ac",
-   "variant": "wall",
-   "pos": [
-    7.849999904632568,
-    1.2,
-    -4
-   ],
-   "rot": 1
-  },
-  {
-   "id": 1545,
-   "type": "ac",
-   "variant": "wall",
-   "pos": [
-    7.849999904632568,
-    2.2,
-    -5
-   ],
-   "rot": 1
-  },
-  {
-   "id": 1547,
-   "type": "ac",
-   "variant": "wall",
-   "pos": [
-    7.849999904632569,
-    2.2,
-    -4
    ],
    "rot": 1
   },
@@ -9049,17 +8965,6 @@
    "pos": [
     15.850000381469727,
     8.5,
-    3
-   ],
-   "rot": 1
-  },
-  {
-   "id": 1770,
-   "type": "plank_bridge",
-   "variant": "bare",
-   "pos": [
-    14,
-    8,
     3
    ],
    "rot": 1
@@ -10124,17 +10029,6 @@
    "rot": 0
   },
   {
-   "id": 2002,
-   "type": "debris",
-   "variant": "buckets",
-   "pos": [
-    -1,
-    -4,
-    7.5
-   ],
-   "rot": 0
-  },
-  {
    "id": 2004,
    "type": "billboard",
    "pos": [
@@ -11048,16 +10942,6 @@
    "rot": 1
   },
   {
-   "id": 2141,
-   "type": "hatch",
-   "pos": [
-    1,
-    -4,
-    7
-   ],
-   "rot": 2
-  },
-  {
    "id": 2142,
    "type": "building",
    "pos": [
@@ -11606,17 +11490,6 @@
     -7
    ],
    "rot": 3
-  },
-  {
-   "id": 2230,
-   "type": "railing",
-   "variant": "parapet",
-   "pos": [
-    7,
-    0,
-    -6
-   ],
-   "rot": 0
   },
   {
    "id": 2231,
@@ -12994,17 +12867,6 @@
    "rot": 3
   },
   {
-   "id": 2399,
-   "type": "billboard",
-   "variant": "ENJOY.",
-   "pos": [
-    9.5,
-    4,
-    -37.5
-   ],
-   "rot": 0
-  },
-  {
    "id": 2403,
    "type": "blade_sign",
    "variant": "考えるな。",
@@ -13670,6 +13532,470 @@
     -31.5
    ],
    "rot": 1
+  },
+  {
+   "id": 2484,
+   "type": "wall",
+   "variant": "open",
+   "pos": [
+    9,
+    0,
+    -6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2485,
+   "type": "wall",
+   "variant": "ledge",
+   "pos": [
+    8,
+    0,
+    -5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2486,
+   "type": "parapet",
+   "pos": [
+    7,
+    0,
+    -6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2487,
+   "type": "railing",
+   "variant": "parapet",
+   "pos": [
+    7,
+    0,
+    -6
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2488,
+   "type": "ac",
+   "pos": [
+    7.5,
+    0,
+    -4.5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2489,
+   "type": "ac",
+   "pos": [
+    7.5,
+    1,
+    -4.5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2492,
+   "type": "ac",
+   "variant": "wall",
+   "pos": [
+    7.849999904632568,
+    2.2,
+    -4.5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2494,
+   "type": "small_sign",
+   "pos": [
+    9,
+    2.39,
+    -5.849999904632568
+   ],
+   "rot": 2,
+   "mirror": true,
+   "text": "ROOF"
+  },
+  {
+   "id": 2495,
+   "type": "wall_lamp",
+   "pos": [
+    9,
+    2.3,
+    -6.150000095367432
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2496,
+   "type": "cctv",
+   "pos": [
+    13.5,
+    3,
+    -10
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2497,
+   "type": "roof_light",
+   "pos": [
+    13.850000381469727,
+    0.5,
+    5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2498,
+   "type": "roof_light",
+   "pos": [
+    8.149999618530273,
+    2.5,
+    1
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2499,
+   "type": "roof_light",
+   "variant": "panel",
+   "pos": [
+    7,
+    0.5,
+    -6.150000095367432
+   ],
+   "rot": 0,
+   "mirror": true
+  },
+  {
+   "id": 2502,
+   "type": "plank_bridge",
+   "variant": "bare",
+   "pos": [
+    13.5,
+    8.1,
+    2.5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2503,
+   "type": "ladder",
+   "pos": [
+    12,
+    4,
+    3.8499999046325684
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2504,
+   "type": "railing",
+   "pos": [
+    0,
+    8,
+    -33
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2505,
+   "type": "railing",
+   "pos": [
+    0,
+    8,
+    -31
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2506,
+   "type": "railing",
+   "pos": [
+    -1,
+    8,
+    -30
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2507,
+   "type": "railing",
+   "pos": [
+    -3,
+    8,
+    -30
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2508,
+   "type": "railing",
+   "pos": [
+    -5,
+    8,
+    -30
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2510,
+   "type": "railing",
+   "pos": [
+    -6,
+    8,
+    -33
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2511,
+   "type": "railing",
+   "pos": [
+    -6,
+    8,
+    -31
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2512,
+   "type": "railing",
+   "pos": [
+    -6,
+    8,
+    -35
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2513,
+   "type": "railing",
+   "pos": [
+    -6,
+    8,
+    -37
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2514,
+   "type": "railing",
+   "pos": [
+    -5,
+    8,
+    -38
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2515,
+   "type": "railing",
+   "pos": [
+    -3,
+    8,
+    -38
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2516,
+   "type": "railing",
+   "pos": [
+    -1,
+    8,
+    -38
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2517,
+   "type": "railing",
+   "pos": [
+    0,
+    8,
+    -37
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2518,
+   "type": "railing",
+   "pos": [
+    -8,
+    4,
+    -29
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2519,
+   "type": "railing",
+   "pos": [
+    -8,
+    4,
+    -27
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2520,
+   "type": "railing",
+   "pos": [
+    -8,
+    4,
+    -25
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2521,
+   "type": "railing",
+   "pos": [
+    -7,
+    4,
+    -24
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2522,
+   "type": "railing",
+   "pos": [
+    -5,
+    4,
+    -24
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2523,
+   "type": "railing",
+   "pos": [
+    3,
+    4,
+    -24
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2524,
+   "type": "railing",
+   "pos": [
+    1,
+    4,
+    -24
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2525,
+   "type": "fence",
+   "pos": [
+    1,
+    4,
+    -34
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2526,
+   "type": "fence",
+   "pos": [
+    3,
+    4,
+    -34
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2527,
+   "type": "fence",
+   "pos": [
+    5,
+    4,
+    -34
+   ],
+   "rot": 0
+  },
+  {
+   "id": 2528,
+   "type": "duct",
+   "pos": [
+    0.5,
+    4,
+    -35.5
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2532,
+   "type": "aviation_light",
+   "pos": [
+    13,
+    12,
+    -4
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2533,
+   "type": "billboard",
+   "variant": "ENJOY.",
+   "pos": [
+    10,
+    4,
+    -38.5
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2534,
+   "type": "roof_letters",
+   "variant": "考えるな。",
+   "pos": [
+    -5.5,
+    8,
+    -34
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2535,
+   "type": "ac",
+   "variant": "wall",
+   "pos": [
+    -8,
+    0.7,
+    -33
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2536,
+   "type": "ac",
+   "variant": "wall",
+   "pos": [
+    -8,
+    1.7,
+    -33
+   ],
+   "rot": 1
+  },
+  {
+   "id": 2538,
+   "type": "ladder",
+   "variant": "fire_escape",
+   "pos": [
+    9.5,
+    0,
+    -20
+   ],
+   "rot": 0
   }
  ],
  "pickups": [
@@ -13687,30 +14013,6 @@
     -7,
     4,
     -5.5
-   ]
-  },
-  {
-   "kind": "marker",
-   "pos": [
-    -3,
-    0,
-    0.5
-   ]
-  },
-  {
-   "kind": "ladder",
-   "pos": [
-    2,
-    0,
-    2
-   ]
-  },
-  {
-   "kind": "roller",
-   "pos": [
-    -1,
-    0,
-    2
    ]
   },
   {
@@ -13746,19 +14048,107 @@
    ]
   },
   {
-   "kind": "color:pink",
-   "pos": [
-    1,
-    -12,
-    15
-   ]
-  },
-  {
    "kind": "color:yellow",
    "pos": [
     -7,
     -8.2,
     13
+   ]
+  },
+  {
+   "kind": "marker",
+   "pos": [
+    -2.5,
+    0,
+    4.5
+   ]
+  },
+  {
+   "kind": "ladder",
+   "pos": [
+    -1,
+    8,
+    -35
+   ]
+  },
+  {
+   "kind": "roller",
+   "pos": [
+    0,
+    -9.6,
+    20.5
+   ]
+  },
+  {
+   "kind": "sponge",
+   "pos": [
+    5.5,
+    -12,
+    16.5
+   ]
+  },
+  {
+   "kind": "cap:spray",
+   "pos": [
+    -7,
+    4.715,
+    -14
+   ]
+  },
+  {
+   "kind": "color:white",
+   "pos": [
+    15,
+    4.3,
+    1
+   ]
+  },
+  {
+   "kind": "color:orange",
+   "pos": [
+    12,
+    8,
+    -7
+   ]
+  },
+  {
+   "kind": "color:lime",
+   "pos": [
+    -8.5,
+    0.8,
+    -31
+   ]
+  },
+  {
+   "kind": "color:teal",
+   "pos": [
+    -11,
+    4.436,
+    -8.5
+   ]
+  },
+  {
+   "kind": "color:cyan",
+   "pos": [
+    15,
+    -8,
+    -1
+   ]
+  },
+  {
+   "kind": "color:blue",
+   "pos": [
+    13,
+    0,
+    -37
+   ]
+  },
+  {
+   "kind": "color:brown",
+   "pos": [
+    11.5,
+    4,
+    -34
    ]
   }
  ]
