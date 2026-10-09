@@ -5,7 +5,7 @@ import type { PaintSurface, PaintSystem } from '../painting';
 import type { Ladder } from '../player';
 import { addBox, addCylinder, boxSurface, cylinderSurface, SurfaceBuilder, type Axis, type BoxFace, type SurfaceGeometry } from '../surfaces';
 import { M, type BoxPiece, type CylPiece, type Mat, type Piece, type Swing, type V3 } from '../kit/pieces';
-import { LIGHTS, NEON_COLORS, PAINT, type LightKind, type NeonColor } from '../config';
+import { LIGHTS, NEON_COLORS, PAINT, RENDER, type LightKind, type NeonColor } from '../config';
 import { setHex } from '../hex-color';
 import type { Track } from '../render/cctv-track';
 import type { Facade } from '../render/ink/facade';
@@ -152,6 +152,15 @@ export const matKey = (m: Mat) => `${m.tex}|${m.tile ?? ''}|${m.alpha ?? ''}`;
 function material(m: Mat) {
   return makeSurfaceMaterial({ tex: m.tex, tileMeters: m.tile, alphaTest: m.alpha });
 }
+/** What paint surfaces' own meshes carry: they're never drawn (level/batches.ts), only hit by rays (front faces). */
+const PROXY = new THREE.MeshBasicMaterial();
+
+/** The level tile (RENDER.batchTile m square columns) a box's center is in: batches merge per tile, and paint pages are shared per tile. */
+export function tileKey(bounds: THREE.Box3) {
+  const t = RENDER.batchTile;
+  return `${Math.floor((bounds.min.x + bounds.max.x) / 2 / t)},${Math.floor((bounds.min.z + bounds.max.z) / 2 / t)}`;
+}
+
 const decorMaterials = new Map<string, SurfaceMaterial>();
 export function decorMaterial(m: Mat) {
   const k = matKey(m);
@@ -306,12 +315,12 @@ export function buildProp(id: number, owner: string, pieces: Piece[], pos: V3, r
     return mesh;
   };
   for (const { geo, mat } of ex.paint) {
-    const m = material(mat);
-    m.setPaintable(true);
-    const mesh = add(swingGeometry(geo.geometry), m);
-    mesh.castShadow = false; // the level-wide shadow proxy casts for all paint meshes
+    const mesh = add(swingGeometry(geo.geometry), PROXY);
+    mesh.visible = false; // drawn merged with its tile's surfaces (level/batches.ts)
+    mesh.castShadow = false;
+    mesh.userData.mat = mat;
     out.solids.push(mesh);
-    out.paint.push(paint.register(`${owner}#${out.paint.length}`, mesh, m, geo));
+    out.paint.push(paint.register(`${owner}#${out.paint.length}`, mesh, geo, tileKey(geo.geometry.boundingBox!)));
   }
   for (const { geo, mat } of mergeDecor(ex.decor)) {
     const mesh = add(geo, decorMaterial(mat));
@@ -328,11 +337,7 @@ export function buildProp(id: number, owner: string, pieces: Piece[], pos: V3, r
 
 export function disposeProp(b: BuiltProp, paint: PaintSystem) {
   for (const s of b.paint) paint.unregister(s.mesh);
-  for (const o of b.group.children) {
-    const m = o as THREE.Mesh;
-    m.geometry.dispose();
-    if (!b.decor.includes(m)) (m.material as THREE.Material).dispose();
-  }
+  for (const o of b.group.children) (o as THREE.Mesh).geometry.dispose();
   b.group.removeFromParent();
 }
 

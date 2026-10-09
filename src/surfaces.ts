@@ -49,6 +49,8 @@ export function facePoint(geo: SurfaceGeometry, faceIndex: number, uv: { x: numb
 }
 
 const PAD = 1;
+/** Paint atlases are laid out in cells the size of a texel of their smallest level (PAINT.mipLevels), so distant paint never mixes faces. */
+const PAINT_CELL = 2 ** (PAINT.mipLevels - 1);
 
 export interface FaceSpec {
   /** World-space corners: origin, +u edge, +v edge (u = right, v = up when facing the face). */
@@ -108,7 +110,7 @@ export class SurfaceBuilder {
 
   build(pack = true): SurfaceGeometry {
     // Decor geometry has no paint atlas; give it a dummy one.
-    const { w: atlasW, h: atlasH } = pack ? packRects(this.rects) : stubRects(this.rects);
+    const { w: atlasW, h: atlasH } = pack ? packRects(this.rects, PAINT_CELL) : stubRects(this.rects);
     // Resolve atlas UVs.
     const uv = new Float32Array(this.uvs.length);
     for (let i = 0; i < this.uvs.length; i += 2) {
@@ -159,23 +161,29 @@ export class SurfaceBuilder {
   }
 }
 
-/** Shelf packing with a 1-texel gutter. Returns atlas size; writes rect positions in place. */
-export function packRects(rects: Rect[]): { w: number; h: number } {
+/**
+ * Shelf packing with a 1-texel gutter. Returns atlas size; writes rect positions in place.
+ * `align`: each rect and its gutter take whole cells of align x align texels,
+ * and the atlas is a whole number of cells, so a smaller level whose texels
+ * are that size (paint-mips.ts) never mixes two faces.
+ */
+export function packRects(rects: Rect[], align = 1): { w: number; h: number } {
+  const up = (n: number) => Math.ceil(n / align) * align;
   const order = rects.map((_, i) => i).sort((a, b) => rects[b].h - rects[a].h);
   let area = 0;
   let maxW = 0;
   for (const r of rects) {
-    area += (r.w + PAD * 2) * (r.h + PAD * 2);
-    maxW = Math.max(maxW, r.w + PAD * 2);
+    area += up(r.w + PAD * 2) * up(r.h + PAD * 2);
+    maxW = Math.max(maxW, up(r.w + PAD * 2));
   }
-  const width = Math.min(PAINT.maxTextureSize, Math.max(maxW, Math.ceil(Math.sqrt(area) * 1.15)));
+  const width = up(Math.min(PAINT.maxTextureSize, Math.max(maxW, Math.ceil(Math.sqrt(area) * 1.15))));
   let x = 0;
   let y = 0;
   let shelfH = 0;
   for (const i of order) {
     const r = rects[i];
-    const w = r.w + PAD * 2;
-    const h = r.h + PAD * 2;
+    const w = up(r.w + PAD * 2);
+    const h = up(r.h + PAD * 2);
     if (x + w > width) {
       x = 0;
       y += shelfH;
@@ -186,7 +194,7 @@ export function packRects(rects: Rect[]): { w: number; h: number } {
     x += w;
     shelfH = Math.max(shelfH, h);
   }
-  const height = y + shelfH;
+  const height = up(y + shelfH);
   if (height > PAINT.maxTextureSize || width > PAINT.maxTextureSize) {
     console.warn(`paint atlas ${width}x${height} exceeds max texture size`);
   }

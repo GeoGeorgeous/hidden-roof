@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import type { LevelData } from '../src/level/level';
 import { levelPaintFaces } from '../src/level/prop-pieces';
-import type { SurfaceMaterial } from '../src/materials';
 import { PaintDrips } from '../src/paint-drips';
 import { PaintOps } from '../src/paint-ops';
 import { PaintSystem } from '../src/painting';
@@ -11,11 +10,9 @@ import { PaintSystem } from '../src/painting';
 // at the session's PAINT DETAIL. Nothing is drawn: textures exist but never
 // reach a GPU.
 
-const noMaterial = { setPaint() {} } as unknown as SurfaceMaterial;
-
 export function sessionPaint(level: LevelData) {
   const paint = new PaintSystem();
-  for (const { key, geo } of levelPaintFaces(level)) paint.register(key, new THREE.Mesh(), noMaterial, geo);
+  for (const { key, geo } of levelPaintFaces(level)) paint.register(key, new THREE.Mesh(), geo, '');
   const drips = new PaintDrips(paint);
   return { paint, drips, ops: new PaintOps(paint, drips) };
 }

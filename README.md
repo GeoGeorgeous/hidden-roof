@@ -38,7 +38,7 @@ three.js, typescript and vite, with no asset files: geometry, textures and sound
 }
 ```
 
-**painting** · paint is baked into textures, as in bombing!!. each surface gets its own on the first hit, at the same density everywhere (up to 1 cm a texel). spray particles are only for show: each one stamps paint where it lands, and only the changed part of a texture is uploaded. paint runs, crosses the seams between props, and comes off with the sponge.
+**painting** · paint is baked into textures, as in bombing!!, at the same density everywhere (up to 1 cm a texel), and many surfaces share one texture, so a painted roof draws as fast as a clean one. spray particles are only for show: each one stamps paint where it lands, and only the changed part of a texture is uploaded. paint runs, crosses the seams between props, and comes off with the sponge.
 
 **rendering** · ink on paper. each pixel's tone picks paper, hatching, cross-hatching or black, with hatch lines laid out in the world and filtered by their size on screen, so nothing turns to gray mush in the distance. pen outlines come from the depth buffer. paint is the only color.
 

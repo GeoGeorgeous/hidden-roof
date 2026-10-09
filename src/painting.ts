@@ -3,17 +3,19 @@ import { PAINT } from './config';
 import type { MipSize } from './paint-mips';
 import { painted, resampleRect } from './paint-resample';
 import type { FacePoint, Rect, SurfaceGeometry } from './surfaces';
-import type { SurfaceMaterial } from './materials';
 import { SeamIndex, texelToWorld, worldToTexel, type SeamFace } from './paint-seams';
-import { PaintGpu, type DirtyRect } from './paint-gpu';
+import { PaintGpu, type DirtyRect, type PaintPage } from './paint-gpu';
+import type { PageSlot } from './page-packer';
+import type { LightSlot } from './render/bake/light-pages';
 import { PaintRaster, type Band } from './paint-raster';
 import type { PaintOp } from './paint-ops';
 
-// Paint lives in one RGBA texture per paintable surface (atlas of its faces).
+// Paint lives in one RGBA atlas of its faces per paintable surface, on the
+// CPU; on the GPU each surface has a block of a shared page (paint-gpu.ts).
 // PaintSystem keeps the surfaces and turns stamps and rolls at face points into
 // raster work (paint-raster.ts, CPU), carried across seams onto coplanar
-// neighbors. Textures are created on the first hit and uploaded only on frames
-// they change (paint-gpu.ts).
+// neighbors. Paint is created on the first hit and uploaded only on frames it
+// changes.
 
 const seamPoint = new THREE.Vector3();
 const seamTexel = new THREE.Vector2();
@@ -33,12 +35,17 @@ export type Rgb = readonly [number, number, number];
 export interface PaintSurface {
   /** Stable name, the same on every client and at every paint detail: `p<prop id>#k` or `j<joint key>#k`, k = index in the prop's paint (level/build-prop.ts). */
   key: string;
+  /** Never drawn (the level draws its surfaces merged, level/batches.ts): what tools' rays hit. */
   mesh: THREE.Mesh;
-  material: SurfaceMaterial;
   geo: SurfaceGeometry;
+  /** Its block on a paint page. */
+  slot: PageSlot<PaintPage> | null;
+  /** Its block on a light page (render/bake), once the baker took the surface in. */
+  light: LightSlot | null;
   data: Uint8Array | null;
   /** Sizes of the texture's smaller levels for distant views (paint-mips.ts); empty until the first hit. */
   mips: MipSize[];
+  /** Its page's texture, while it holds paint. */
   texture: THREE.DataTexture | null;
   /** Excess paint per texel (paint-raster.ts RasterSurface). */
   excess: Uint16Array | null;
@@ -67,8 +74,10 @@ export class PaintSystem {
     drip: (s, rect, x, y, rgb) => this.onDrip(s, rect, x, y, rgb),
   });
 
-  register(key: string, mesh: THREE.Mesh, material: SurfaceMaterial, geo: SurfaceGeometry): PaintSurface {
-    const s: PaintSurface = { key, mesh, material, geo, data: null, mips: [], texture: null, excess: null, dirty: [] };
+  /** `group`: where it stands (a level tile): surfaces drawn together share paint pages. */
+  register(key: string, mesh: THREE.Mesh, geo: SurfaceGeometry, group: string): PaintSurface {
+    const s: PaintSurface = { key, mesh, geo, slot: null, light: null, data: null, mips: [], texture: null, excess: null, dirty: [] };
+    this.gpu.place(s, group);
     this.surfaces.push(s);
     this.bySurfaceMesh.set(mesh, s);
     this.byKey.set(key, s);
@@ -85,7 +94,7 @@ export class PaintSystem {
     if (this.byKey.get(s.key) === s) this.byKey.delete(s.key);
     this.seams.remove(s);
     this.surfaces.splice(this.surfaces.indexOf(s), 1);
-    this.gpu.dispose(s);
+    this.gpu.release(s);
     return s.data;
   }
 
@@ -134,8 +143,7 @@ export class PaintSystem {
   private free(s: PaintSurface) {
     if (!s.data) return;
     this.gpu.dispose(s);
-    s.material.setPaint(null);
-    s.data = s.excess = s.texture = null;
+    s.data = s.excess = null;
     s.mips = [];
     s.dirty.length = 0;
   }

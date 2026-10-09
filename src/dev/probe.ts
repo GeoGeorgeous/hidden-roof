@@ -33,9 +33,9 @@ const hide = (...objects: THREE.Object3D[]) => {
 const STEPS: Step[] = [
   { name: 'baseline', apply: () => () => {} },
   { name: 'no city', apply: (w) => hide(w.city()) },
-  // The level in two halves: its paintable surfaces (a mesh and a draw call each), and the rest of its props (merged per tile).
-  { name: 'no prop surfaces', apply: (w) => hide(w.level.root) },
-  { name: 'no prop details', apply: (w) => hide(w.level['batches'].root) },
+  // The level in two halves, both merged per tile: its paintable surfaces, and the rest of its props.
+  { name: 'no prop surfaces', apply: (w) => hide(w.level.merged.surfaces) },
+  { name: 'no prop details', apply: (w) => hide(w.level.merged.decor) },
   { name: 'no glows or beams', apply: (w) => hide(w.lightFx.root) },
   { name: 'no moon shadows', apply: () => (ATMOS.shadows ? set(ATMOS, 'shadows', false) : null) },
   { name: 'no wet highlights', apply: () => (LIGHTMAP.highlights ? set(LIGHTMAP, 'highlights', 0) : null) },

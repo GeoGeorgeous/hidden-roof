@@ -124,6 +124,7 @@ export class Level {
   clear() {
     for (const b of this.built.values()) disposeProp(b, this.paint);
     for (const j of this.joints.values()) disposeProp(j.b, this.paint);
+    this.paint.gpu.clear(); // every surface went: their pages go too
     this.built.clear();
     this.cover = new CoverIndex();
     this.touched = [];
@@ -222,6 +223,16 @@ export class Level {
   /** Every built prop and joint, as of the last change. */
   get builtProps(): readonly BuiltProp[] {
     return this.allBuilt;
+  }
+
+  /** Merge every tile again (the surfaces' light blocks moved). */
+  remerge() {
+    this.batches.remergeAll();
+  }
+
+  /** The merged level: paintable surfaces and decor (the profiler's probe hides each). */
+  get merged() {
+    return { surfaces: this.batches.surfaces, decor: this.batches.decor };
   }
 
   /** A decor proxy got new baked light: copy it into its batch. */

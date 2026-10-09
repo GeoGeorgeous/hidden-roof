@@ -136,6 +136,8 @@ export const LIGHTMAP = {
   highlights: 4,
   /** Bake time per frame after edits and tweaks (ms). A freshly loaded level bakes at once. */
   budgetMs: 3,
+  /** Surfaces' light lives on shared pages this many texels square (render/bake/light-pages.ts). */
+  pageSize: 1024,
 };
 
 /**
@@ -343,6 +345,12 @@ export const PAINT = {
    * Keep it small: a texel of level k averages 2^k x 2^k atlas texels.
    */
   mipLevels: 4,
+  /**
+   * Paint lives on shared pages this many texels square (paint-gpu.ts), each
+   * made on the first hit on one of its surfaces: fewer, bigger pages mean
+   * fewer draw calls but more memory at once.
+   */
+  pageSize: 2048,
   /**
    * Changed texels are uploaded in up to this many rects per surface each frame,
    * merged where they touch: two strokes on faces far apart in one atlas upload

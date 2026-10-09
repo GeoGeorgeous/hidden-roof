@@ -1,50 +1,6 @@
 {
-  "high": {
-    "hash": "fbbe60c69e413375",
-    "texelsPerMeter": 72,
-    "surfaces": 2,
-    "paintedM2": 1.7311,
-    "meanAlpha": 0.5716,
-    "drips": 182,
-    "perRun": {
-      "can skinny": 0.1024,
-      "can standard": 0.2295,
-      "can fat, held for runs": 0.0533,
-      "can spray": 0.3752,
-      "can sputtering": 0.0448,
-      "marker": 0.0312,
-      "marker thinnest": 0.0103,
-      "marker widest, held for runs": 0.0337,
-      "roller on the wall": 0.2812,
-      "roller on the floor": 0.0669,
-      "sponge": -0.1115,
-      "sponge widest": -0.1277
-    }
-  },
-  "ultra": {
-    "hash": "188e09738fd08826",
-    "texelsPerMeter": 96,
-    "surfaces": 2,
-    "paintedM2": 1.7223,
-    "meanAlpha": 0.5718,
-    "drips": 169,
-    "perRun": {
-      "can skinny": 0.1004,
-      "can standard": 0.2292,
-      "can fat, held for runs": 0.0506,
-      "can spray": 0.3762,
-      "can sputtering": 0.0447,
-      "marker": 0.0312,
-      "marker thinnest": 0.0062,
-      "marker widest, held for runs": 0.0297,
-      "roller on the wall": 0.2826,
-      "roller on the floor": 0.0673,
-      "sponge": -0.1091,
-      "sponge widest": -0.1241
-    }
-  },
   "low": {
-    "hash": "d9951fab3763cd75",
+    "hash": "418b300991e95544",
     "texelsPerMeter": 24,
     "surfaces": 2,
     "paintedM2": 1.7656,
@@ -66,7 +22,7 @@
     }
   },
   "medium": {
-    "hash": "e74170c6de7f668f",
+    "hash": "ba7582e1d911208d",
     "texelsPerMeter": 48,
     "surfaces": 2,
     "paintedM2": 1.7292,
@@ -85,6 +41,50 @@
       "roller on the floor": 0.0664,
       "sponge": -0.1109,
       "sponge widest": -0.1208
+    }
+  },
+  "ultra": {
+    "hash": "a1b7b5ebbe8319a8",
+    "texelsPerMeter": 96,
+    "surfaces": 2,
+    "paintedM2": 1.7223,
+    "meanAlpha": 0.5718,
+    "drips": 169,
+    "perRun": {
+      "can skinny": 0.1004,
+      "can standard": 0.2292,
+      "can fat, held for runs": 0.0506,
+      "can spray": 0.3762,
+      "can sputtering": 0.0447,
+      "marker": 0.0312,
+      "marker thinnest": 0.0062,
+      "marker widest, held for runs": 0.0297,
+      "roller on the wall": 0.2826,
+      "roller on the floor": 0.0673,
+      "sponge": -0.1091,
+      "sponge widest": -0.1241
+    }
+  },
+  "high": {
+    "hash": "7d959d7120d21497",
+    "texelsPerMeter": 72,
+    "surfaces": 2,
+    "paintedM2": 1.7311,
+    "meanAlpha": 0.5716,
+    "drips": 182,
+    "perRun": {
+      "can skinny": 0.1024,
+      "can standard": 0.2295,
+      "can fat, held for runs": 0.0533,
+      "can spray": 0.3752,
+      "can sputtering": 0.0448,
+      "marker": 0.0312,
+      "marker thinnest": 0.0103,
+      "marker widest, held for runs": 0.0337,
+      "roller on the wall": 0.2812,
+      "roller on the floor": 0.0669,
+      "sponge": -0.1115,
+      "sponge widest": -0.1277
     }
   }
 }

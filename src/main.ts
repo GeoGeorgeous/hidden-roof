@@ -85,6 +85,7 @@ const level = new Level(scene, paint);
 const lighting = new Lighting(scene, renderer);
 const baker = new LightBaker();
 baker.onDecorBaked = (geo) => level.pushBaked(geo);
+baker.onRelayout = () => level.remerge();
 const lightFx = new LightFX(scene);
 const rain = new Rain(scene);
 const heightmap = new Heightmap();
