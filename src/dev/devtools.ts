@@ -31,7 +31,7 @@ import type { Tools } from '../tools/tools';
 
 // Dev tools: build mode (B), the F3 panel with its live hooks, and window.game
 // for the console and the tests. Single player only: main loads this module
-// only in the normal build (npm run build:mp leaves it out), and in a session
+// only with the dev tools (the player build, npm run build, leaves it out), and in a session
 // the keys do nothing and both are closed.
 
 /** What the dev tools reach into. Main passes all of window.game, which holds more. */

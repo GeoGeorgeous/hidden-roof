@@ -9,8 +9,8 @@ Built with three.js, TypeScript and Vite. There are no external assets: the geom
 ```sh
 npm install
 npm run dev        # http://localhost:5173  (loads public/levels/demo.json)
-npm run build      # typecheck + production build into dist/
-npm run build:mp   # the same without the dev tools (build mode, F3, window.game), into dist-mp/
+npm run build      # typecheck + the player build into dist/ (no dev tools: build mode, F3, window.game)
+npm run build:dev  # the same with the dev tools, into dist-dev/
 ```
 
 `?level=name` loads `public/levels/name.json`. Click the page to capture the mouse and go fullscreen. Esc pauses the game and shows the menu (Resume / Save paint / Load paint / Multiplayer / Settings / Exit fullscreen) on a dark sheet. **Save paint** downloads the paint of the level as a `.rhhpaint` file (paint only, at your paint detail); **Load paint** (also on the title screen) replaces the paint with a saved one, at any paint detail. Paint goes back on every prop that's still there with the same faces: paint on props removed or changed since (in build mode, or by a game update) is skipped, and a save none of whose paint fits (another level) is refused. **Settings** has three tabs: choices step with < and >, sliders mark their default with a gray tick, some settings have a short description, and each graphics setting shows how much it can affect smoothness (PERFORMANCE COST: LOW, MEDIUM or HIGH; green, orange, red). Gameplay (sensitivity, field of view, field of view while running, crouch hold or toggle), Graphics (resolution, frame rate, volumetrics, paint detail, city detail, forced fullscreen, rain, smoke, moving prop parts) and Sound (a volume per sound, 0–200% of its default). Settings write the same config values the debug panel edits. Resolution, volumetrics, paint and city detail are remembered in the browser; the rest reset on reload. Press Esc again while paused to leave fullscreen.

@@ -19,8 +19,10 @@ function version(): string {
 // built as one file with everything in it (vite build --ssr), so its image
 // needs no node_modules, nor the game's public files; in dev, /ws goes to a
 // server started with npm run server (WS_TARGET: another one, for tests).
-export default defineConfig(({ isSsrBuild }) => ({
-  define: { __VERSION__: JSON.stringify(version()) },
+// The dev tools (src/dev: build mode, F3, window.game) are in the dev server and
+// npm run build:dev; npm run build, the player build, leaves them out.
+export default defineConfig(({ mode, isSsrBuild }) => ({
+  define: { __VERSION__: JSON.stringify(version()), __DEV_TOOLS__: JSON.stringify(mode !== 'production') },
   ssr: { noExternal: true },
   build: { copyPublicDir: !isSsrBuild },
   server: { proxy: { '/ws': { target: process.env.WS_TARGET ?? 'ws://localhost:3000', ws: true } } },

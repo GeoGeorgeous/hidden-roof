@@ -1,17 +1,15 @@
 # Dependencies and build output
 node_modules
 dist
-dist-mp
-dist-server
+dist-*
 shots
 .vite
 *.tsbuildinfo
 vite.config.*.timestamp-*
 
-# Secrets: never commit. .env.multiplayer holds only VITE_MP=1 and the build needs it.
+# Secrets: never commit.
 .env
 .env.*
-!.env.multiplayer
 !.env.example
 SECRET_*
 *.pem

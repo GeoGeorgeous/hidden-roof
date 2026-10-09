@@ -1,6 +1,5 @@
 .git
 node_modules
 dist
-dist-mp
-dist-server
+dist-*
 shots
