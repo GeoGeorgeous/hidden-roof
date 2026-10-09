@@ -375,8 +375,12 @@ function rodGeometry(a: THREE.Vector3, b: THREE.Vector3, r: number) {
  * A sloped rod collides as a chain of small boxes along it. A mostly vertical
  * rod ends at its end points, so a post standing on a floor doesn't reach
  * into it (masts, sign towers and billboards could not be placed on floors).
+ * One that leans less than 1 in 10 (a tapering mast's corner post) is one box
+ * round it: as a chain, each box would stand a centimeter out from the one
+ * above, ledges to jump up one by one.
  */
 function rodColliders(a: THREE.Vector3, b: THREE.Vector3, r: number) {
+  if (Math.hypot(b.x - a.x, b.z - a.z) < Math.abs(b.y - a.y) * 0.1) return [new THREE.Box3().setFromPoints([a, b]).expandByVector(new THREE.Vector3(r, 0, r))];
   const n = Math.max(1, Math.ceil(a.distanceTo(b) / 0.3));
   const upright = Math.abs(b.y - a.y) > a.distanceTo(b) * 0.7;
   const lo = Math.min(a.y, b.y);
