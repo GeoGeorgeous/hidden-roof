@@ -649,7 +649,7 @@ export const PICKUP = {
    * (`floor`, m), pulsing by `pulse` of `strength` at `pulseRate` (rad/s).
    * `cover`: how much it tints what's behind it (paper) besides adding light (the dark).
    */
-  glow: { size: 1.6, floor: 2.2, strength: 1, cover: 0.6, pulse: 0.25, pulseRate: 3 },
+  glow: { size: 1.45, floor: 1.25, strength: 1, cover: 0.35, pulse: 0.35, pulseRate: 3.5 },
   /**
    * Each kind's world pickup, on top of its tool model (MODELS, shown at twice real
    * size): not its hotbar icon or the avatar's tool. Color unlocks are `can`s.
