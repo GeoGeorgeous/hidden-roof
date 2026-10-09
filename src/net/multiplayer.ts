@@ -69,6 +69,8 @@ export class Multiplayer {
   private joined: { code: string; token: string; name: string; you: number; levelName: string } | null = null;
   /** Messages are handled one at a time, in order (a welcome loads paint before what follows it). */
   private queue = Promise.resolve();
+  /** This socket's welcome has come: it sends, and a silence on it means it's dead. */
+  private live = false;
   private t0 = 0;
   private nextSend = 0;
   private lastHeard = 0;
@@ -125,7 +127,7 @@ export class Multiplayer {
     const t = now();
     for (const r of this.remotes.values()) r.update(t, dt);
     this.nameplates.update(this.g.camera, [...this.remotes].filter(([, r]) => r.avatar.group.visible).map(([id, r]) => ({ id, name: this.names.get(id) ?? '', feet: r.position })));
-    if (!this.joined || this.ws?.readyState !== WebSocket.OPEN) return;
+    if (!this.joined || !this.live || this.ws?.readyState !== WebSocket.OPEN) return;
     if (t - this.lastHeard > SERVER.ping * 3) {
       this.log.add(`nothing from the server for ${SERVER.ping * 3} s: closing to reconnect`);
       return this.ws.close();
@@ -158,6 +160,7 @@ export class Multiplayer {
     const ws = new WebSocket(url);
     ws.binaryType = 'arraybuffer';
     this.ws = ws;
+    this.live = false;
     if (!this.joined) this.setStatus({ state: 'connecting' });
     const started = now();
     /** No welcome or rejection in NET.connectTimeout: give up on this socket. */
@@ -273,6 +276,8 @@ export class Multiplayer {
     this.ladderId = g.level.runtimeOf(session.player);
     this.nextSend = 0;
     Object.assign(this.net, { ping: null, nextPing: 0, up: 0, down: 0, since: now() });
+    this.live = true;
+    this.lastHeard = now();
     this.setStatus({ state: 'in', code: w.code });
   }
 

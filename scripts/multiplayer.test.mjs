@@ -2,7 +2,8 @@
 // window would be) against a local server (dist-server/server/main.js): HOST and
 // JOIN through the pause menu's MULTIPLAYER page, both at the host's PAINT
 // DETAIL, paint and the stepladder reaching the other player, a reload coming
-// back into the session, LEAVE SESSION, and a server restart ending the session.
+// back into the session, one that heard nothing for a while reconnecting, LEAVE
+// SESSION, and a server restart ending the session.
 // Usage: npm run test:mp (builds the server first)
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
@@ -90,6 +91,13 @@ try {
   await status(b, 'in');
   assert.equal(await b.evaluate(() => window.game.session.player), 'player2');
   assert.equal(await paintHash(b), painted, 'the paint comes back after a reload');
+
+  // B hears nothing for a while (a big download ahead of everything else used to do that): it closes the link and
+  // comes back in, though the last thing it heard is now long ago.
+  await b.evaluate(() => (window.game.net.lastHeard = -1e9));
+  await status(b, 'reconnecting');
+  await status(b, 'in');
+  assert.equal(await paintHash(b), painted, 'the paint comes back after a reconnect');
 
   // LEAVE: A hears B has gone, B plays alone at its own detail again.
   await press(b, 'LEAVE SESSION');
