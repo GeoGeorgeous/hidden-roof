@@ -3,7 +3,7 @@ import { PICKUP } from '../config';
 import type { V3 } from '../kit/pieces';
 import type { Inventory } from '../inventory/inventory';
 import { parsePickup, pickupLabel, type PickupKind } from '../inventory/items';
-import { glowColor, halo as makeHalo, itemModel } from './visuals';
+import { glow as makeGlow, glowColor, halo as makeHalo, itemModel, setGlow, type Glow } from './visuals';
 
 // Pickups placed on the map. Walk into one to collect it; if it unlocks nothing
 // new (color/cap already owned, tool already found) it stays. Saved in level
@@ -25,6 +25,8 @@ export interface Pickup {
   /** PICKUP.models for this kind. */
   pose: THREE.Group;
   halo: THREE.Sprite;
+  /** A color pickup's glow; null for the rest. */
+  glow: Glow | null;
   collected: boolean;
   /** Player was in range last frame (avoids repeating "full" messages). */
   inRange: boolean;
@@ -77,13 +79,15 @@ export class Pickups {
     pose.add(itemModel(kind));
     item.add(pose);
     const halo = makeHalo(color);
+    const glow = kind.startsWith('color:') ? makeGlow(color) : null;
     // Invisible hit box so build mode can select the pickup.
     const hit = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.2, 0.7), new THREE.MeshBasicMaterial());
     hit.visible = false;
     hit.position.y = 0.6;
-    const p: Pickup = { id: this.nextId++, kind, pos: [...pos], group, item, pose, halo, collected: false, inRange: false, phase: Math.random() * 6 };
+    const p: Pickup = { id: this.nextId++, kind, pos: [...pos], group, item, pose, halo, glow, collected: false, inRange: false, phase: Math.random() * 6 };
     hit.userData.pickupId = p.id;
     group.add(item, halo, hit);
+    if (glow) group.add(glow.light, glow.floor);
     group.position.set(...p.pos);
     this.root.add(group);
     this.list.set(p.id, p);
@@ -92,7 +96,7 @@ export class Pickups {
     return p;
   }
 
-  /** Hover, spin, the model's pose and the ring, at the current time (PICKUP is live in F3 → Items). */
+  /** Hover, spin, the model's pose, the ring and the glow, at the current time (PICKUP is live in F3 → Items). */
   private place(p: Pickup) {
     const bob = Math.sin(this.time * 2 + p.phase) * PICKUP.bob;
     p.item.position.y = PICKUP.hover + bob;
@@ -104,6 +108,13 @@ export class Pickups {
     p.halo.position.y = PICKUP.hover + bob;
     p.halo.scale.setScalar(PICKUP.ring.size);
     p.halo.material.opacity = PICKUP.ring.opacity;
+    if (!p.glow) return;
+    const g = PICKUP.glow;
+    p.glow.light.position.y = PICKUP.hover + bob;
+    p.glow.light.scale.setScalar(g.size);
+    p.glow.floor.position.y = 0.01;
+    p.glow.floor.scale.setScalar(g.floor);
+    setGlow(p.glow, g.strength * (1 + g.pulse * Math.sin(this.time * g.pulseRate + p.phase)));
   }
 
   remove(id: number) {

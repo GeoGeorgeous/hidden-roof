@@ -4,7 +4,7 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import { PAINT, SERVER } from '../src/config';
 import { levelPaintFaces } from '../src/level/prop-pieces';
-import { closeCode, decode, encode, HELLO, PROTOCOL, type ToClient, type ToServer } from '../src/net/protocol';
+import { closeCode, decode, encode, HELLO, PROTOCOL, SNAPSHOT_BYTES, type ToClient, type ToServer } from '../src/net/protocol';
 import { decodePaintFile, encodePaintFile } from '../src/save/paint-file';
 import { surfaceTable } from '../src/save/shape';
 
@@ -99,7 +99,7 @@ try {
   assert.equal((await c.next('rejected')).reason, 'full');
 
   // Relayed to the other player only: state, paint ops (one on a surface the level doesn't have is dropped), the stepladder.
-  const snap = new Uint8Array(23).map((_, i) => i);
+  const snap = new Uint8Array(SNAPSHOT_BYTES).map((_, i) => i);
   a.send({ type: 'state', bytes: snap });
   assert.deepEqual((await b.next('state')).bytes, snap);
   a.send({ type: 'ops', t: [1, 2], ops: [stamp, { ...stamp, key: 'p99999#0' }] });

@@ -7,7 +7,7 @@ import { VERSION } from './version';
 
 // Body-cam style HUD: vignette, corner brackets, REC indicator with elapsed
 // time, clock, crosshair, the PSI gauge, cap and color tags beside the tool in
-// hand, performance numbers, and the start/pause menu.
+// hand, performance numbers, and the start/pause menu (with the credits at its foot).
 // The tool readout lives in inventory/hotbar.ts, the debug panel in debug/panel.ts.
 
 /** The key list under the pause menu: the main keys, then the tools a little apart (style.css). */
@@ -26,6 +26,11 @@ const TOOLS = [
   ['4', 'roller'],
   ['5', 'sponge'],
 ];
+
+/** Where the credit line's name leads (the game's source). */
+const REPO = 'https://github.com/GeoGeorgeous/hidden-roof';
+/** A cup in the menu's thin line style, for BUY ME A COFFEE. */
+const COFFEE_ICON = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 6.5h9v4a3.5 3.5 0 0 1-3.5 3.5H6a3.5 3.5 0 0 1-3.5-3.5z"/><path d="M11.5 7.5h.8a2 2 0 0 1 0 4h-1"/><path d="M5.5 1.8c-.7.8.7 1.5 0 2.4M8.5 1.8c-.7.8.7 1.5 0 2.4"/></svg>`;
 
 /** The color tag sits this many CSS px below the cap tag. */
 const COLOR_TAG_OFFSET = 22;
@@ -121,6 +126,10 @@ export class Hud {
           <button class="exit-fs">&gt; EXIT FULLSCREEN</button>
         </div>
         <table>${[CONTROLS, TOOLS].map((keys) => `<tbody>${keys.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</tbody>`).join('')}</table>
+        <div class="credits">
+          <button class="coffee">${COFFEE_ICON}BUY ME A COFFEE</button>
+          <div>built by <a href="${REPO}" target="_blank" rel="noopener">GeoGeorgeous</a></div>
+        </div>
         <div class="version">${VERSION}</div>
       </div>`;
     document.body.appendChild(root);

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { COLORS, type PaintColor } from '../config';
+import type { CapId, PaintColor } from '../config';
 import type { Tool } from '../inventory/inventory';
 import { STEPLADDER } from '../kit/access';
 import { itemModel } from '../pickups/visuals';
@@ -9,33 +9,42 @@ import { shapes } from '../tools/shapes';
 
 // The tool in the figure's hand: the pickup model (pickups/visuals.ts) at its
 // real size (centered in the fist; the ladder is the real folded stepladder), inked like the figure and merged into one mesh, plus the can's
-// label in its paint color (the one color on a figure). Rebuilt only when the
-// tool or the color changes.
+// label in its paint color and its cap in the cap's (the only color on a
+// figure). Rebuilt only when the tool, the color or the cap changes.
+
+let keptMaterial: THREE.Material | null = null;
+/** For the parts that keep their color, on every figure: only darkened by the light. */
+const keptInk = () => (keptMaterial ??= inkify(new THREE.MeshLambertMaterial({ vertexColors: true }), true));
 
 export class Held {
   /** Sits in the hand's grip: its -z runs through the fist, its y out of the thumb side. */
   readonly group = new THREE.Group();
+  /** Where paint leaves the can in hand, in `group` (the cap's tip). */
+  readonly nozzle = new THREE.Vector3();
   private key = '';
 
   constructor(private ink: THREE.Material) {}
 
-  set(tool: Tool | null, color: PaintColor) {
+  set(tool: Tool | null, color: PaintColor, cap: CapId) {
     const kind = tool === 'can' ? `color:${color}` : (tool ?? '');
-    const key = `${kind}#${shapes.version}`;
+    const key = `${kind}:${tool === 'can' ? cap : ''}#${shapes.version}`;
     if (key === this.key) return;
     this.key = key;
     this.dispose();
     if (!tool) return;
-    const model = tool === 'ladder' ? foldedLadder() : itemModel(kind);
+    const model = tool === 'ladder' ? foldedLadder() : itemModel(kind, cap);
     if (tool !== 'ladder') {
       // The pickup leans and is shown at twice its size.
       model.rotation.set(0, 0, 0);
       model.scale.setScalar(1);
     }
     model.updateMatrixWorld(true);
+    // Held in the fist: the model's up (the can's top, the roller's frame) points through it.
+    const turn = new THREE.Matrix4().makeRotationX(-Math.PI / 2);
+    const tip = model.getObjectByName('tip');
+    if (tip) this.nozzle.setFromMatrixPosition(tip.matrixWorld).applyMatrix4(turn);
     const ink: THREE.BufferGeometry[] = [];
-    const paint: THREE.BufferGeometry[] = [];
-    const label = tool === 'can' ? new THREE.Color(COLORS[color]) : null;
+    const kept: THREE.BufferGeometry[] = [];
     model.traverse((o) => {
       const m = o as THREE.Mesh;
       if (!m.isMesh) return;
@@ -44,30 +53,24 @@ export class Held {
       g.deleteAttribute('uv');
       const n = g.getAttribute('position').count;
       g.setAttribute('color', new THREE.Float32BufferAttribute(Array.from({ length: n }, () => [c.r, c.g, c.b]).flat(), 3));
-      (label && c.equals(label) ? paint : ink).push(g);
+      ((m.material as THREE.Material).userData.keep ? kept : ink).push(g);
       m.geometry.dispose();
       (m.material as THREE.Material).dispose();
     });
-    // Held in the fist: the model's up (the can's top, the roller's frame) points through it.
-    const turn = new THREE.Matrix4().makeRotationX(-Math.PI / 2);
     if (ink.length) this.group.add(this.mesh(ink, this.ink, turn));
-    if (paint.length) this.group.add(this.mesh(paint, inkify(new THREE.MeshLambertMaterial({ color: label!, vertexColors: false }), true), turn));
+    if (kept.length) this.group.add(this.mesh(kept, keptInk(), turn));
   }
 
   private mesh(geos: THREE.BufferGeometry[], material: THREE.Material, turn: THREE.Matrix4) {
     const g = mergeGeometries(geos)!.applyMatrix4(turn);
     for (const p of geos) p.dispose();
-    const m = new THREE.Mesh(g, material);
-    m.userData.own = material !== this.ink;
-    return m;
+    return new THREE.Mesh(g, material);
   }
 
   private dispose() {
     for (const o of [...this.group.children]) {
-      const m = o as THREE.Mesh;
-      m.geometry.dispose();
-      if (m.userData.own) (m.material as THREE.Material).dispose();
-      this.group.remove(m);
+      (o as THREE.Mesh).geometry.dispose();
+      this.group.remove(o);
     }
   }
 }

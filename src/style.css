@@ -212,6 +212,38 @@ canvas {
   right: 30px;
   color: var(--dim);
 }
+/* The credits at the very bottom, on the menu only: the title's auto margin
+   and theirs share the free space, so the menu stays centered above them. */
+.overlay:not(.in-settings, .in-mp, .compact) > .title,
+.overlay > .credits {
+  margin-top: auto;
+}
+.overlay.in-settings > .credits,
+.overlay.in-mp > .credits,
+.overlay.compact > .credits {
+  display: none;
+}
+.overlay .credits {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 26px;
+  color: var(--dim);
+}
+.overlay .credits a {
+  pointer-events: auto;
+  color: var(--ui);
+}
+.overlay .coffee {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.overlay .coffee svg {
+  width: 14px;
+  height: 14px;
+}
 .overlay .menu {
   display: flex;
   flex-direction: column;

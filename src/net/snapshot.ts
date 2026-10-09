@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { COLOR_ORDER, type PaintColor } from '../config';
+import { CAP_ORDER, COLOR_ORDER, type CapId, type PaintColor } from '../config';
 import type { AvatarAction } from '../avatar/pose';
 import { SLOTS, type Inventory, type Tool } from '../inventory/inventory';
 import type { Player } from '../player';
@@ -8,7 +8,8 @@ import { SNAPSHOT_BYTES } from './protocol';
 
 // What a player sends about themselves, NET.sendRate times a second
 // (docs/multiplayer-audit.md 2.3): where their feet are, where they look, a few
-// state flags, the tool in hand and what it's doing, the paint color. 23 bytes.
+// state flags, the tool in hand and what it's doing, the paint color and cap,
+// how much paint comes out of the can (for the spray others see). 25 bytes.
 // Velocity, footsteps and the eased crouch are derived on the other side;
 // paint goes separately, as paint ops.
 
@@ -24,6 +25,9 @@ export interface Snapshot {
   tool: Tool | null;
   action: AvatarAction;
   color: PaintColor;
+  cap: CapId;
+  /** The can's flow (SprayTool.flow): 0 when nothing comes out (another tool, not spraying, no pressure). */
+  flow: number;
 }
 
 const ACTIONS: AvatarAction[] = [null, 'spray', 'shake', 'roll', 'scrub'];
@@ -31,7 +35,7 @@ const TAU = Math.PI * 2;
 
 /** This player now. */
 export function capture(t: number, player: Player, inventory: Inventory, tools: Tools): Snapshot {
-  return { t, pos: player.position.clone(), yaw: player.yaw, pitch: player.pitch, onGround: player.onGround, onLadder: player.onLadder, crouched: player.crouched, tool: inventory.tool, action: tools.action, color: inventory.color };
+  return { t, pos: player.position.clone(), yaw: player.yaw, pitch: player.pitch, onGround: player.onGround, onLadder: player.onLadder, crouched: player.crouched, tool: inventory.tool, action: tools.action, color: inventory.color, cap: inventory.cap, flow: tools.spray.flow };
 }
 
 export function encodeSnapshot(s: Snapshot) {
@@ -47,6 +51,8 @@ export function encodeSnapshot(s: Snapshot) {
   b[20] = (s.onGround ? 1 : 0) | (s.onLadder ? 2 : 0) | (s.crouched ? 4 : 0);
   b[21] = (s.tool ? SLOTS.indexOf(s.tool) + 1 : 0) | (ACTIONS.indexOf(s.action) << 3);
   b[22] = COLOR_ORDER.indexOf(s.color);
+  b[23] = CAP_ORDER.indexOf(s.cap);
+  b[24] = Math.round(Math.min(1, Math.max(0, s.flow)) * 255);
   return b;
 }
 
@@ -64,5 +70,7 @@ export function decodeSnapshot(b: Uint8Array): Snapshot {
     tool: tool ? SLOTS[tool - 1] : null,
     action: ACTIONS[b[21] >> 3] ?? null,
     color: COLOR_ORDER[b[22]] ?? 'black',
+    cap: CAP_ORDER[b[23]] ?? 'standard',
+    flow: b[24] / 255,
   };
 }

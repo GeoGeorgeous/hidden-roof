@@ -7,6 +7,7 @@ import { facePoint, type FacePoint } from '../surfaces';
 
 // Visual spray particles. Each one raycasts once when emitted, flies from the
 // nozzle to its hit point, and stamps paint into the surface texture on arrival.
+// Other players' particles (show) only fly: their paint comes as paint ops.
 // Particles never persist: the pool is fixed size.
 
 interface Particle {
@@ -39,8 +40,20 @@ export interface EmitParams {
   display: THREE.Color;
 }
 
+/** Another player's spray, to be seen only; `dt`: the frame it came out over. */
+export type ShowParams = Omit<EmitParams, 'flow' | 'rgb'> & { dt: number };
+
 const dir = new THREE.Vector3();
 const target = new THREE.Vector3();
+const ray = new THREE.Ray();
+const wall = new THREE.Plane();
+
+/** A particle's direction into `dir`: in the cap's cone around the aim, Gaussian-ish, clamped. */
+function aim(e: Pick<EmitParams, 'forward' | 'right' | 'up' | 'cap'>, random: () => number) {
+  const r = Math.tan(Math.min(1, Math.abs(gauss(random)) * 0.5) * (e.cap.spread / 2));
+  const a = random() * Math.PI * 2;
+  return dir.copy(e.forward).addScaledVector(e.right, Math.cos(a) * r).addScaledVector(e.up, Math.sin(a) * r).normalize();
+}
 
 export class SprayParticles {
   private live: Particle[] = [];
@@ -81,20 +94,8 @@ export class SprayParticles {
     for (let i = 0; i < e.count; i++) {
       const p = this.free.pop();
       if (!p) break;
-      // Gaussian-ish cone, clamped.
-      const r = Math.tan(Math.min(1, Math.abs(gauss()) * 0.5) * (cap.spread / 2));
-      const a = paintRandom.spray() * Math.PI * 2;
-      dir.copy(e.forward).addScaledVector(e.right, Math.cos(a) * r).addScaledVector(e.up, Math.sin(a) * r).normalize();
-
-      this.raycaster.set(e.eye, dir);
-      this.raycaster.far = SPRAY.reach;
-      const hit = this.candidates.length ? this.raycaster.intersectObjects(this.candidates, false)[0] : undefined;
-      const end = hit ? hit.point : target.copy(e.eye).addScaledVector(dir, SPRAY.reach);
-      p.pos.copy(e.nozzle);
-      p.vel.subVectors(end, e.nozzle);
-      const dist = p.vel.length();
-      p.life = dist / SPRAY.particleSpeed;
-      p.vel.multiplyScalar(SPRAY.particleSpeed / Math.max(dist, 1e-4));
+      const hit = this.cast(e.eye, aim(e, paintRandom.spray));
+      this.launch(p, e, hit ? hit.point : target.copy(e.eye).addScaledVector(dir, SPRAY.reach));
       p.surface = hit ? (this.paint.get(hit.object) ?? null) : null;
       if (hit && p.surface) {
         facePoint(p.surface.geo, hit.faceIndex!, hit.uv!, p.at);
@@ -106,12 +107,52 @@ export class SprayParticles {
         p.drips = cap.drips;
         p.rgb = e.rgb;
       }
-      const k = this.live.length * 3;
-      this.colors[k] = e.display.r;
-      this.colors[k + 1] = e.display.g;
-      this.colors[k + 2] = e.display.b;
-      this.live.push(p);
     }
+  }
+
+  /**
+   * Another player's spray, only to be seen: one ray along their aim finds the
+   * wall, and each particle flies to where its own ray meets that wall's plane
+   * (or SPRAY.reach), with no ray of its own and no draw from the paint's
+   * random streams. Each is already on its way for part of the frame, so the
+   * frame's batch reads as a stream, not a clump.
+   */
+  show(e: ShowParams) {
+    solidsNear(this.solids, e.eye, SPRAY.reach, this.candidates);
+    const hit = this.cast(e.eye, e.forward);
+    // Level meshes sit at the origin: the face normal is in world space.
+    if (hit?.face) wall.setFromNormalAndCoplanarPoint(hit.face.normal, hit.point);
+    for (let i = 0; i < e.count; i++) {
+      const p = this.free.pop();
+      if (!p) break;
+      ray.set(e.eye, aim(e, Math.random));
+      const onWall = hit?.face && ray.intersectPlane(wall, target) && target.distanceTo(e.eye) < SPRAY.reach;
+      this.launch(p, e, onWall ? target : ray.at(SPRAY.reach, target));
+      const early = Math.min(Math.random() * e.dt, p.life);
+      p.pos.addScaledVector(p.vel, early);
+      p.life -= early;
+    }
+  }
+
+  /** The first of the candidates (solidsNear) hit within SPRAY.reach. */
+  private cast(from: THREE.Vector3, along: THREE.Vector3) {
+    this.raycaster.set(from, along);
+    this.raycaster.far = SPRAY.reach;
+    return this.candidates.length ? this.raycaster.intersectObjects(this.candidates, false)[0] : undefined;
+  }
+
+  /** Sends `p` from the nozzle to `end`, in the display color. */
+  private launch(p: Particle, e: Pick<EmitParams, 'nozzle' | 'display'>, end: THREE.Vector3) {
+    p.pos.copy(e.nozzle);
+    p.vel.subVectors(end, e.nozzle);
+    const dist = p.vel.length();
+    p.life = dist / SPRAY.particleSpeed;
+    p.vel.multiplyScalar(SPRAY.particleSpeed / Math.max(dist, 1e-4));
+    const k = this.live.length * 3;
+    this.colors[k] = e.display.r;
+    this.colors[k + 1] = e.display.g;
+    this.colors[k + 2] = e.display.b;
+    this.live.push(p);
   }
 
   update(dt: number) {
@@ -137,12 +178,14 @@ export class SprayParticles {
     }
     list.length = n;
     const g = this.points.geometry;
+    // Nothing in flight: no draw call.
+    this.points.visible = n > 0;
     g.setDrawRange(0, n);
     g.attributes.position.needsUpdate = true;
     g.attributes.color.needsUpdate = true;
   }
 }
 
-function gauss() {
-  return Math.sqrt(-2 * Math.log(1 - paintRandom.spray())) * Math.cos(2 * Math.PI * paintRandom.spray());
+function gauss(random: () => number) {
+  return Math.sqrt(-2 * Math.log(1 - random())) * Math.cos(2 * Math.PI * random());
 }

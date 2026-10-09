@@ -643,6 +643,13 @@ export const PICKUP = {
   /** The drawn ring around every pickup: size (x the item's hover box) and opacity. */
   ring: { size: 1.3, opacity: 0.7 },
   /**
+   * A color pickup glows in its paint color, as pickups do in GTA: a soft light
+   * around the item (`size`, m) and a pool of it on the floor under it
+   * (`floor`, m), pulsing by `pulse` of `strength` at `pulseRate` (rad/s).
+   * `cover`: how much it tints what's behind it (paper) besides adding light (the dark).
+   */
+  glow: { size: 1.6, floor: 2.2, strength: 1, cover: 0.6, pulse: 0.25, pulseRate: 3 },
+  /**
    * Each kind's world pickup, on top of its tool model (MODELS, shown at twice real
    * size): not its hotbar icon or the avatar's tool. Color unlocks are `can`s.
    */

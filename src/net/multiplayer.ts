@@ -278,7 +278,7 @@ export class Multiplayer {
 
   private addRemote(id: number, name: string) {
     this.names.set(id, name);
-    this.remotes.set(id, new RemotePlayer(this.g.scene, this.g.level, this.g.paintOps, ownerOf(id)));
+    this.remotes.set(id, new RemotePlayer(this.g.scene, this.g.level, this.g.paintOps, ownerOf(id), this.g.tools.spray.others));
   }
 
   private removeRemote(id: number) {
