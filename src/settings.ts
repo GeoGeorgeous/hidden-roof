@@ -1,9 +1,10 @@
-import { ATMOS, AUDIO, HUD, PAINT, PLAYER, RENDER, SKYLINE, SMOKE, VOLUMETRICS } from './config';
+import { ATMOS, AUDIO, HUD, INK_STYLES, PAINT, PLAYER, RENDER, SKYLINE, SMOKE, VOLUMETRICS } from './config';
 import { exitGameFullscreen } from './fullscreen';
+import { DEFAULT_STYLE, inkStyle, setInkStyle } from './render/ink/styles';
 
 // Player settings, on the settings page of the pause menu (settings-page.ts):
 // gameplay, graphics and sound. They write the same config values the debug
-// panel (F3) edits, so both stay in step. Resolution, volumetrics, paint and
+// panel (F3) edits, so both stay in step. Style, resolution, volumetrics, paint and
 // city detail and the frame rate are remembered in this browser; the rest reset on reload.
 // Paint and city detail apply when the game resumes, since they rebuild every
 // paint texture or the whole city: stepping through the choices costs
@@ -44,6 +45,8 @@ type CityDetail = keyof typeof CITY_DETAIL;
 const CITY_ORDER = Object.keys(CITY_DETAIL) as CityDetail[];
 
 interface Saved {
+  /** INK_STYLES name. */
+  style?: string;
   pixelScale?: number;
   maxFps?: number;
   volumetrics?: VolPreset;
@@ -71,6 +74,8 @@ export class Settings {
     private applyCityDetail: () => void,
   ) {
     const s = load();
+    const style = INK_STYLES.findIndex((t) => t.name === s.style);
+    if (style >= 0) setInkStyle(style);
     if (s.pixelScale && PIXEL_SCALES.includes(s.pixelScale)) RENDER.pixelScale = s.pixelScale;
     if (s.maxFps !== undefined && FRAME_RATES.includes(s.maxFps)) RENDER.maxFps = s.maxFps;
     this.vol = s.volumetrics && s.volumetrics in VOL_PRESETS ? s.volumetrics : VOLUMETRICS.enabled ? 'medium' : 'off';
@@ -95,6 +100,18 @@ export class Settings {
 
   private graphicsRows(): SettingRow[] {
     return [
+      {
+        kind: 'choice',
+        label: 'STYLE',
+        desc: 'The colors of paper, ink and sky.',
+        // An F3-only preset shows as such; stepping goes on from the default style.
+        value: () => INK_STYLES[inkStyle()]?.name ?? 'F3 PRESET',
+        step: (d) => {
+          const i = inkStyle() < INK_STYLES.length ? inkStyle() : DEFAULT_STYLE;
+          setInkStyle((i + d + INK_STYLES.length) % INK_STYLES.length);
+          this.save();
+        },
+      },
       {
         kind: 'choice',
         label: 'RESOLUTION',
@@ -205,7 +222,7 @@ export class Settings {
 
   private save() {
     try {
-      localStorage.setItem(KEY, JSON.stringify({ pixelScale: RENDER.pixelScale, maxFps: RENDER.maxFps, volumetrics: this.vol, paintDetail: this.detail, cityDetail: this.city } satisfies Saved));
+      localStorage.setItem(KEY, JSON.stringify({ style: INK_STYLES[inkStyle()]?.name, pixelScale: RENDER.pixelScale, maxFps: RENDER.maxFps, volumetrics: this.vol, paintDetail: this.detail, cityDetail: this.city } satisfies Saved));
     } catch {
       // Storage unavailable (private mode): settings last for this session only.
     }

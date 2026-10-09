@@ -13,6 +13,7 @@ export class Input {
   mouseDY = 0;
   wheelSteps = 0;
   lmb = false;
+  rmb = false;
   /** Mouse buttons (0 left, 1 middle, 2 right) pressed this frame. */
   private clicks = new Set<number>();
   locked = false;
@@ -48,7 +49,7 @@ export class Input {
     });
     window.addEventListener('blur', () => {
       this.down.clear();
-      this.lmb = false;
+      this.lmb = this.rmb = false;
     });
     element.addEventListener('mousedown', (e) => {
       if (!this.locked) {
@@ -58,10 +59,12 @@ export class Input {
       e.preventDefault();
       this.clicks.add(e.button);
       if (e.button === 0) this.lmb = true;
+      if (e.button === 2) this.rmb = true;
     });
     window.addEventListener('contextmenu', (e) => e.preventDefault());
     window.addEventListener('mouseup', (e) => {
       if (e.button === 0) this.lmb = false;
+      if (e.button === 2) this.rmb = false;
     });
     window.addEventListener('mousemove', (e) => {
       if (!this.locked) return;
@@ -79,7 +82,7 @@ export class Input {
     document.addEventListener('pointerlockchange', () => {
       this.locked = document.pointerLockElement === this.element;
       if (!this.locked) {
-        this.lmb = false;
+        this.lmb = this.rmb = false;
         this.down.clear();
       }
       this.onLockChange(this.locked);

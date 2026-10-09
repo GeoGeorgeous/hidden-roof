@@ -12,9 +12,9 @@ import { VERSION } from './version';
 
 /** The key list under the pause menu: the main keys, then the tools a little apart (style.css). */
 const CONTROLS = [
-  ['WASD • SHIFT • SPACE', 'move • run • jump'],
+  ['WASD • SHIFT / W W • SPACE', 'move • run • jump / climb'],
   ['LMB', 'draw'],
-  ['RMB', 'shake can'],
+  ['RMB (HOLD)', 'shake can'],
   ['Q / E', 'color'],
   ['MOUSE WHEEL', 'cap • tool width • turn ladder'],
   ['K', 'screenshot'],
@@ -106,9 +106,9 @@ export class Hud {
       <div class="cap-tag" hidden></div>
       <div class="cap-tag color-tag" hidden></div>
       <div class="cap-tag psi-gauge"><span>PSI</span><div class="line"><i></i></div><b></b></div>
-      <div class="cap-tag psi-alert" hidden>LOW PRESSURE — SHAKE [RMB]</div>
+      <div class="cap-tag psi-alert" hidden>LOW PRESSURE — HOLD [RMB] TO SHAKE</div>
       <div class="overlay">
-        <div class="title">Hidden Roof<span>The game</span></div>
+        <div class="title">Hidden Roof</div>
         <div class="status blink">CLICK TO START</div>
         <div class="menu">
           <button class="resume"></button>
@@ -348,15 +348,16 @@ export class Hud {
     this.perf.textContent = text;
   }
 
-  /** The pause menu's sheet and key list from PAUSE_MENU. */
+  /** The pause menu's sheet, size and key list from PAUSE_MENU. */
   private syncSheet() {
     const m = PAUSE_MENU;
-    const sheet = `${m.color}|${m.opacity}|${m.debugOpacity}|${m.controls}`;
+    const sheet = `${m.color}|${m.opacity}|${m.debugOpacity}|${m.controls}|${m.scale}`;
     if (sheet === this.sheet) return;
     this.sheet = sheet;
     const mix = (a: number) => `color-mix(in srgb, ${m.color} ${Math.round(Math.min(1, Math.max(0, a)) * 100)}%, transparent)`;
     this.overlay.style.setProperty('--sheet', mix(m.opacity));
     this.overlay.style.setProperty('--sheet-debug', mix(m.debugOpacity));
+    this.overlay.style.setProperty('--menu-scale', String(m.scale));
     this.overlay.querySelector('table')!.hidden = !m.controls;
   }
 

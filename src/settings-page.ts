@@ -3,9 +3,12 @@ import type { SettingRow, SettingSection } from './settings';
 // The settings page of the pause menu: one tab per section (gameplay,
 // graphics, sound), each row a choice (< and > step to the previous and next
 // value) or a slider with a gray tick at its default, with, for some, a short
-// description, a performance cost (LOW, MEDIUM, HIGH: green to red) and a
-// callout (recommendations). Values are read again whenever the page opens,
+// description, a performance cost (LOW, MEDIUM, HIGH: one to three dots after
+// its name) and a callout (recommendations). Values are read again whenever the page opens,
 // since the debug panel edits the same settings.
+
+/** Performance cost after a setting's name: one dot (LOW) to three (HIGH). */
+const COST_DOTS = { LOW: '●○○', MEDIUM: '●●○', HIGH: '●●●' };
 
 export class SettingsPage {
   readonly root: HTMLElement;
@@ -47,7 +50,9 @@ export class SettingsPage {
   private rowEl(row: SettingRow) {
     const el = div('setting-row');
     const line = div('line');
-    line.append(Object.assign(div('label'), { textContent: row.label }));
+    const label = Object.assign(div('label'), { textContent: row.label });
+    if (row.cost) label.append(Object.assign(document.createElement('span'), { className: 'cost', title: `PERFORMANCE COST: ${row.cost}`, textContent: COST_DOTS[row.cost] }));
+    line.append(label);
     if (row.kind === 'choice') {
       const value = div('choice');
       const step = (d: number) => {
@@ -72,7 +77,6 @@ export class SettingsPage {
     }
     el.append(line);
     if (row.desc) el.append(Object.assign(div('desc'), { textContent: row.desc }));
-    if (row.cost) el.append(Object.assign(div(`cost ${row.cost.toLowerCase()}`), { innerHTML: `PERFORMANCE COST: <b>${row.cost}</b>` }));
     if (row.note) el.append(Object.assign(div('note'), { textContent: row.note }));
     return el;
   }

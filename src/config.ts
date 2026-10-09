@@ -71,7 +71,7 @@ export type LightKind = 'wallLamp' | 'floodlight' | 'neon' | 'billboardLamp' | '
 export interface LightSpec {
   /** Light color (the lens takes it too, after a rebuild). Neon signs have one each instead (NEON_COLORS). */
   color: string;
-  /** How much of `color` shows in the light on walls (INK.tint scales it): 0 = only its brightness (neutral), 1 = its full hue. Baked lamps only: with LIGHTMAP.enabled off the walls get no hue. */
+  /** How much of `color` shows in the light on walls (INK.tint scales it): 0 = only its brightness (neutral), 1 = its full hue, above 1 = deeper than its own hue (walls near it take the color, down to INK_TINT.deep). Baked lamps only: with LIGHTMAP.enabled off the walls get no hue. Also how colored its glow is (above 0: tinted, at 1 and up: fully). */
   tint: number;
   /** Aim, prop-local (front of the prop is -z); normalized when used. Floodlight heads turn with it. */
   dir: [number, number, number];
@@ -114,8 +114,9 @@ export const LIGHTS: Record<Exclude<LightKind, 'neon'>, LightSpec> & { neon: Omi
   // Roof lights (kit/roof-lights.ts): the caged lamp over a roof door, the flat wall panel.
   bulkhead: { color: '#e9e3d2', tint: 0, dir: [0, -0.7, -0.7], intensity: 9, range: 8, spread: 1.2, softness: 0.8, glow: 0.16, glowAllAround: false, beam: 0, shadows: true },
   lightPanel: { color: '#eef1ff', tint: 0, dir: [0, -0.25, -1], intensity: 11, range: 9, spread: 1.4, softness: 1, glow: 0.1, glowAllAround: false, beam: 0, shadows: true },
-  // Aviation obstruction light: red, pulsing slowly (FLICKER.pulse*); its dome is the glow.
-  aviation: { color: '#ff2a1a', tint: 1, dir: [0, 1, 0], intensity: 3, range: 5, spread: 1.5, softness: 1, glow: 0, glowAllAround: true, beam: 0, shadows: false },
+  // Aviation obstruction light: red, pulsing slowly (FLICKER.pulse*); its dome is the glow. Lights all around:
+  // this cone down onto the roof, and the prop adds the same cone up (kit/roof-lights.ts).
+  aviation: { color: '#ff2a1a', tint: 3, dir: [0, -1, 0], intensity: 7, range: 6, spread: 1.55, softness: 0.6, glow: 2.4, glowAllAround: true, beam: 0, shadows: false },
 };
 
 /**
@@ -224,26 +225,36 @@ export const INK = {
 };
 
 /**
- * F3 → Render → Shaders → preset: sets of INK colors to switch between live.
- * Each lists only the colors it changes; the first is INK as it is. Edits made
- * in F3 while a set is picked stay with that set until reload (nothing is saved).
+ * GRAPHICS → STYLE (and F3 → Render → Shaders → preset, as `short`): the ink
+ * look's color sets, picked into INK (render/ink/styles.ts). INK's colors are
+ * the default set's (NEW MANGA).
  */
-export const INK_PRESETS: Partial<Record<'paper' | 'ink' | 'sky' | 'cloud', string>>[] = [
-  {},
+export const INK_STYLES = [
+  { name: 'NEW MANGA', short: 'NM', paper: '#eff1f6', ink: '#333243', sky: '#171926', cloud: '#1d2030' },
+  // The look from 2026-10-04 to 2026-10-09.
+  { name: 'OLD MANGA', short: 'OM', paper: '#dfe0d6', ink: '#3a3749', sky: '#0c0b0f', cloud: '#201f29' },
+  // The first ink look (2026-10-04): warm paper, near-black ink, a paper sky.
+  { name: 'RETRO LIGHT', short: 'RL', paper: '#ebe5d6', ink: '#141416', sky: '#ebe5d6', cloud: '#ebe5d6' },
+];
+
+/** F3 → Render → Shaders → preset only: more color sets, after INK_STYLES, numbered from 1. */
+export const INK_PRESETS = [
   { paper: '#d9d4d1', ink: '#433f52', sky: '#0c0b0f', cloud: '#201f29' },
   { paper: '#edf0f5', ink: '#333243', sky: '#0c0b0f', cloud: '#201f29' },
   { paper: '#edf0f5', ink: '#333243', sky: '#1d2030', cloud: '#262a40' },
   { paper: '#dce1e9', ink: '#262532', sky: '#0c0b0f', cloud: '#201f29' },
-  // The look the game started with before 2026-10-09.
-  { paper: '#dfe0d6', ink: '#3a3749', sky: '#0c0b0f', cloud: '#201f29' },
 ];
 
 /** Shape of the colored light tint (INK.tint) in the ink shader; built into the shader, not live. */
 export const INK_TINT = {
   /** The tint is the light's hue relative to its brightness, which grows without bound in the dark: brightness counts as at least this. */
   minLight: 0.15,
-  /** Largest change of a color channel, ± this fraction. */
+  /** Largest change of a color channel, ± this fraction, before INK.tint. */
   max: 0.8,
+  /** Largest darkening of a color channel by a lamp with tint above 1 (aviation): past `max`, so paper near it turns its color. */
+  deep: 3,
+  /** Colored glow sprites (lamp kinds with tint): how much they cover what is behind them with their color (0..1), so they show over paper too. */
+  glowCover: 0.5,
   /** Neon text takes this many times more of its lamp's hue than the walls it lights. */
   neonBoost: 2,
   /** The same floor as minLight for the neon text's own color (its tint's brightness). */
@@ -274,6 +285,8 @@ export const PAUSE_MENU = {
   debugOpacity: 0,
   /** The list of keys under the menu. */
   controls: true,
+  /** Size of everything on the sheet (1 = as styled in style.css). */
+  scale: 1.05,
 };
 
 /** What the HUD shows (hud.ts) and the hotbar's size (inventory/hotbar.ts), live in F3 → UI. */
@@ -389,18 +402,23 @@ export const CAPS: Record<CapId, CapSpec> = {
 };
 
 /** Paint colors, in Q/E cycling order. Black is always owned. Paint never runs out. */
-export type PaintColor = 'black' | 'white' | 'red' | 'orange' | 'yellow' | 'green' | 'blue' | 'purple' | 'pink';
-export const COLOR_ORDER: PaintColor[] = ['black', 'white', 'red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink'];
+export type PaintColor = 'black' | 'white' | 'red' | 'orange' | 'yellow' | 'lime' | 'green' | 'teal' | 'cyan' | 'blue' | 'purple' | 'pink' | 'brown';
+/** Q / E order. Black is everyone's from the start; each other color is a pickup. */
+export const COLOR_ORDER: PaintColor[] = ['black', 'white', 'red', 'orange', 'yellow', 'lime', 'green', 'teal', 'cyan', 'blue', 'purple', 'pink', 'brown'];
 export const COLORS: Record<PaintColor, string> = {
   black: '#1d1d22',
   white: '#f1efe8',
   red: '#d42a2a',
   orange: '#f26a1b',
   yellow: '#f5cf1d',
+  lime: '#9ed22c',
   green: '#2fb34a',
+  teal: '#16a497',
+  cyan: '#36c2ea',
   blue: '#2a6ee0',
   purple: '#8e3fd6',
   pink: '#f0479a',
+  brown: '#8b5a2f',
 };
 
 export const MARKER = {
@@ -661,8 +679,10 @@ export const PRESSURE = {
   minSteadyFlow: 0.4,
   /** Fraction of time the can actually fires while sputtering. */
   sputterDuty: 0.45,
-  /** Pressure restored by one shake (clamped to 1). */
-  shakeRestore: 0.3,
+  /** Shaking the can (hold RMB): pressure restored at once on the press, then per second while held (clamped to 1). */
+  shakeTap: 0.03,
+  shakeRate: 0.5,
+  /** One shake's motion and rattle (s), repeated while RMB is held. */
   shakeDuration: 0.55,
 };
 
@@ -672,6 +692,8 @@ export const PLAYER = {
   radius: 0.3,
   walkSpeed: 4.2,
   sprintSpeed: 7,
+  /** Double-tapping W within this time (s) also sprints, until W is let go (as in Minecraft). */
+  sprintDoubleTap: 0.3,
   /** How fast you reach the wished speed (1/s). */
   acceleration: 8.5,
   /** How fast you stop on the ground with no input (1/s). */
@@ -691,10 +713,8 @@ export const PLAYER = {
   jumpHeight: 1.1,
   gravity: 19,
   stepHeight: 0.42,
-  /** Ladders (Minecraft-style): push into the ladder to climb, let go to slide down, crouch to hold. */
+  /** Ladders (Minecraft-style): hold Space or push into the ladder to climb, let go to slide down, crouch to hold. */
   climbSpeed: 2.6,
-  /** Push-off speed away from the ladder when jumping off it (it won't grab you again until you land or leave it). */
-  ladderJumpOff: 3.5,
   mouseSensitivity: 0.0022,
   /** Falling below this height respawns the player. */
   killY: -25,

@@ -19,7 +19,7 @@ export function defaultOf(path: string[]): unknown {
 }
 
 /** A config path's value in config.ts itself. */
-export function authoredOf(path: string[]): unknown {
+function authoredOf(path: string[]): unknown {
   return path.reduce<unknown>((o, k) => (o as Record<string, unknown> | undefined)?.[k], authored);
 }
 

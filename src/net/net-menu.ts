@@ -76,7 +76,13 @@ export function multiplayerMenu(hud: Hud, hotbar: Hotbar, ctx: MultiplayerContex
     rows.replaceChildren(...els);
     say('');
   };
-  const choose = () => show(row('', button('> HOST A SESSION', host), button('> JOIN A SESSION', join), button('< BACK', () => hud.openPage(null))), row('', button('> COPY NETWORK LOG', copyLog)));
+  const choose = () => show(menu(button('> HOST A SESSION', host), button('> JOIN A SESSION', join), button('> COPY NETWORK LOG', copyLog), button('< BACK', () => hud.openPage(null))));
+  /** NAME, with what it is for. */
+  const nameRow = () => {
+    const el = row('NAME', nameInput);
+    el.append(Object.assign(div('desc'), { textContent: 'Your name as a player: everyone in the session sees it over you. Not the name of the session.' }));
+    return el;
+  };
   /** The network log to the clipboard, for a report; a file where the clipboard is out of reach. */
   const copyLog = () => {
     const text = net.log.text();
@@ -102,7 +108,7 @@ export function multiplayerMenu(hud: Hud, hotbar: Hotbar, ctx: MultiplayerContex
         say((e as Error).message);
       }
     });
-    show(row('NAME', nameInput), detailRow, startRow, row('', go, button('< BACK', choose)));
+    show(nameRow(), detailRow, startRow, menu(go, button('< BACK', choose)));
   };
   const join = () => {
     const go = button('> JOIN', () => {
@@ -111,7 +117,7 @@ export function multiplayerMenu(hud: Hud, hotbar: Hotbar, ctx: MultiplayerContex
       if (who && [...code].every((c) => CODE_LETTERS.includes(c)) && code.length === CODE_LENGTH) net.join(who, code);
       else if (who) say(`THE CODE IS ${CODE_LENGTH} LETTERS`);
     });
-    show(row('NAME', nameInput), row('CODE', codeInput), row('', go, button('< BACK', choose)));
+    show(nameRow(), row('CODE', codeInput), menu(go, button('< BACK', choose)));
   };
   hud.setMultiplayer(root, choose);
 
@@ -137,10 +143,15 @@ export function multiplayerMenu(hud: Hud, hotbar: Hotbar, ctx: MultiplayerContex
 function row(label: string, ...els: HTMLElement[]) {
   const el = div('setting-row');
   const line = div('line');
-  if (label) line.append(Object.assign(div('label'), { textContent: label }));
-  else line.classList.add('actions');
-  line.append(...els);
+  line.append(Object.assign(div('label'), { textContent: label }), ...els);
   el.append(line);
+  return el;
+}
+
+/** Buttons stacked as in the pause menu. */
+function menu(...buttons: HTMLElement[]) {
+  const el = div('menu');
+  el.append(...buttons);
   return el;
 }
 

@@ -11,7 +11,7 @@ import type { PaintOp } from '../paint-ops';
 // through checkToServer.
 
 /** Bumped when a message changes or anything the server runs for a session does (paint, drips, face keys, the save format): docs/multiplayer-audit.md, section 4. */
-export const PROTOCOL = 2;
+export const PROTOCOL = 3;
 export const NAME_MAX = 16;
 /** Session codes: this many letters from CODE_LETTERS (no I or O, which read as 1 and 0). */
 export const CODE_LENGTH = 5;
