@@ -87,7 +87,23 @@ export class Pickups {
     group.position.set(...p.pos);
     this.root.add(group);
     this.list.set(p.id, p);
+    // Placed now too: before the game first runs (the start screen), update doesn't.
+    this.place(p);
     return p;
+  }
+
+  /** Hover, spin, the model's pose and the ring, at the current time (PICKUP is live in F3 → Items). */
+  private place(p: Pickup) {
+    const bob = Math.sin(this.time * 2 + p.phase) * PICKUP.bob;
+    p.item.position.y = PICKUP.hover + bob;
+    p.item.rotation.y = this.time * PICKUP.spin + p.phase;
+    const m = PICKUP.models[modelOf(p.kind)];
+    p.pose.position.set(...m.offset);
+    p.pose.rotation.set(...m.rotation);
+    p.pose.scale.setScalar(m.size);
+    p.halo.position.y = PICKUP.hover + bob;
+    p.halo.scale.setScalar(PICKUP.ring.size);
+    p.halo.material.opacity = PICKUP.ring.opacity;
   }
 
   remove(id: number) {
@@ -130,16 +146,7 @@ export class Pickups {
     this.time += dt;
     for (const p of this.list.values()) {
       if (!p.group.visible) continue;
-      const bob = Math.sin(this.time * 2 + p.phase) * PICKUP.bob;
-      p.item.position.y = PICKUP.hover + bob;
-      p.item.rotation.y = this.time * PICKUP.spin + p.phase;
-      const m = PICKUP.models[modelOf(p.kind)];
-      p.pose.position.set(...m.offset);
-      p.pose.rotation.set(...m.rotation);
-      p.pose.scale.setScalar(m.size);
-      p.halo.position.y = PICKUP.hover + bob;
-      p.halo.scale.setScalar(PICKUP.ring.size);
-      p.halo.material.opacity = PICKUP.ring.opacity;
+      this.place(p);
       if (this.editing || p.collected) continue;
       const near =
         Math.hypot(feet.x - p.pos[0], feet.z - p.pos[2]) < PICKUP.reach && Math.abs(feet.y - p.pos[1]) < PICKUP.reachHeight;
