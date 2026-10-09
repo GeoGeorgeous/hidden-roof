@@ -22,7 +22,7 @@ const signExit: Variant = {
     const h = 0.22;
     const t = word(text, true, h);
     const p = new Parts();
-    p.box([-t.width / 2, 0, -0.1], [t.width / 2, h, 0], t.mat, { paint: true });
+    p.box([-t.width / 2, 0, -0.1], [t.width / 2, h, 0], t.mat, { paint: true, letterFace: '-z' });
     return p.list;
   },
 };
@@ -43,7 +43,7 @@ const signVoltage: Variant = {
     // The word as wide as the plate allows, as high as that leaves it.
     const inner = w - 0.04;
     const th = Math.min(0.08, inner / word(text, false, 1).width);
-    p.box([-inner / 2, 0.04, -0.032], [inner / 2, 0.04 + th, -0.025], word(text, false, th, inner).mat, { paint: true });
+    p.box([-inner / 2, 0.04, -0.032], [inner / 2, 0.04 + th, -0.025], word(text, false, th, inner).mat, { paint: true, letterFace: '-z' });
     return p.list;
   },
 };
@@ -83,7 +83,7 @@ const signPlate: Variant = {
     const t = word(text, false, h, 0.3);
     const x = t.width / 2;
     const p = new Parts();
-    p.box([-x, 0, -0.025], [x, h, 0], t.mat, { paint: true });
+    p.box([-x, 0, -0.025], [x, h, 0], t.mat, { paint: true, letterFace: '-z' });
     p.detail([-x - 0.015, -0.015, -0.03], [x + 0.015, 0, 0], M.steel, false);
     p.detail([-x - 0.015, h, -0.03], [x + 0.015, h + 0.015, 0], M.steel, false);
     return p.list;
