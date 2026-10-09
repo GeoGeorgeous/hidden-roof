@@ -389,21 +389,11 @@ canvas {
   color: var(--dim);
   letter-spacing: 0.04em;
 }
-/* PERFORMANCE COST: LOW / MEDIUM / HIGH, in green / orange / red. */
-.settings-page .cost {
-  margin-top: 4px;
-}
-.settings-page .cost b {
-  font-weight: normal;
-}
-.settings-page .cost.low b {
-  color: #4cc46a;
-}
-.settings-page .cost.medium b {
-  color: #f0952e;
-}
-.settings-page .cost.high b {
-  color: var(--alert);
+/* Performance cost after the name: ●○○ LOW to ●●● HIGH. */
+.settings-page .label .cost {
+  margin-left: 10px;
+  color: var(--dim);
+  letter-spacing: 0.15em;
 }
 /* Callout: recommendations. */
 .settings-page .note {
