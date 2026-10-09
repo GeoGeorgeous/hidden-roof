@@ -131,7 +131,7 @@ try {
   silent.close();
   // All of it is in the network log the menu copies.
   const log = await a.evaluate(() => window.game.net.log.text());
-  for (const seen of ['connecting to ws://', 'in session', 'closed: ', 'asked the server over HTTP: server-down', 'no answer in 1 s', 'status: failed timeout']) assert.ok(log.includes(seen), `the log has "${seen}"`);
+  for (const seen of ['connecting to ws://', 'in session', 'closed: ', 'asked the server over HTTP: server-down', 'nothing from the server in 1 s', 'status: failed timeout']) assert.ok(log.includes(seen), `the log has "${seen}"`);
   for (const p of [a, b]) assert.deepEqual(p.errors, []);
   console.log('multiplayer: ok');
 } finally {

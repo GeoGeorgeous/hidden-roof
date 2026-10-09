@@ -2,7 +2,9 @@
 // will read and write it: round trip, and the errors a player sees.
 // Usage: node scripts/paint-file.test.mjs
 import assert from 'node:assert/strict';
-import { decodePaintFile, encodePaintFile, faceBytes } from '../src/save/paint-file.ts';
+import { decodePaintFile, encodePaintFile as encodePieces, faceBytes, joinBytes } from '../src/save/paint-file.ts';
+
+const encodePaintFile = async (header, body) => joinBytes(await encodePieces(header, [body]));
 
 const faces = [
   { surface: 'p12#0', rect: 3, w: 5, h: 4 },

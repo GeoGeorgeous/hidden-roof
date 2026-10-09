@@ -11,7 +11,7 @@ import type { PaintOp } from '../paint-ops';
 // through checkToServer.
 
 /** Bumped when a message changes or anything the server runs for a session does (paint, drips, face keys, the save format): docs/multiplayer-audit.md, section 4. */
-export const PROTOCOL = 3;
+export const PROTOCOL = 4;
 export const NAME_MAX = 16;
 /** Session codes: this many letters from CODE_LETTERS (no I or O, which read as 1 and 0). */
 export const CODE_LENGTH = 5;
@@ -61,16 +61,19 @@ export type ToClient =
   /**
    * In the session (also after a reconnect): its level, PAINT DETAIL and
    * surfaceTable (the client checks its own against it), the players and
-   * their stepladders, and its paint as a paint file (`bytes`).
+   * their stepladders; its paint as a paint file follows in `parts` parts.
    */
-  | { type: 'welcome'; code: string; you: number; token: string; levelName: string; level: LevelData; detail: number; table: string; players: { id: number; name: string }[]; ladders: { id: number; data: PropData }[]; bytes: Uint8Array }
+  | { type: 'welcome'; code: string; you: number; token: string; levelName: string; level: LevelData; detail: number; table: string; players: { id: number; name: string }[]; ladders: { id: number; data: PropData }[]; parts: number }
   | { type: 'rejected'; reason: Rejection }
   | { type: 'joined'; id: number; name: string }
   | { type: 'left'; id: number }
   | { type: 'state'; id: number; bytes: Uint8Array }
   | { type: 'ops'; id: number; t: number[]; ops: PaintOp[] }
   | { type: 'ladder'; id: number; t: number; data: PropData | null }
-  | { type: 'save'; bytes: Uint8Array }
+  /** The session's paint as a paint file in `parts` parts that follow (SAVE); none: the server can't make one now. */
+  | { type: 'save'; parts: number }
+  /** A piece of the paint file a welcome or a save announced (partFrames). */
+  | { type: 'part'; bytes: Uint8Array }
   /** Sent every few seconds, so a client notices a dead link. */
   | { type: 'ping' }
   | { type: 'pong'; t: number };
@@ -85,6 +88,32 @@ export function encode(msg: ToServer | ToClient): Uint8Array<ArrayBuffer> {
   out.set(json, 4);
   if (bytes) out.set(bytes, 4 + json.length);
   return out;
+}
+
+/**
+ * A paint file (in pieces) as 'part' frames of about `size` bytes: in one
+ * frame a big file is one long silence for the game while it downloads, and
+ * frames made once can go to every player who wants the file.
+ */
+export function partFrames(pieces: Uint8Array[], size: number): Uint8Array[] {
+  const head = encode({ type: 'part', bytes: new Uint8Array(0) });
+  const frames: Uint8Array[] = [];
+  let left = pieces.reduce((n, p) => n + p.length, 0);
+  let frame = new Uint8Array(0);
+  let o = 0;
+  for (let piece of pieces)
+    while (piece.length) {
+      if (o === frame.length) {
+        frame = new Uint8Array(head.length + Math.min(size, left));
+        frame.set(head);
+        frames.push(frame);
+        o = head.length;
+      }
+      const n = Math.min(piece.length, frame.length - o);
+      frame.set(piece.subarray(0, n), o);
+      [o, left, piece] = [o + n, left - n, piece.subarray(n)];
+    }
+  return frames;
 }
 
 /** A message as sent, or null if it isn't one; its fields still need checking if the sender isn't trusted. */

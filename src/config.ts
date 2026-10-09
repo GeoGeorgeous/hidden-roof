@@ -774,7 +774,7 @@ export const NET = {
   teleport: 2,
   /** A player's name tag hangs this high over their feet (m). */
   nameplateHeight: 2.1,
-  /** HOST or JOIN with no answer from the server for this long (s) gives up (a reconnect tries again). */
+  /** HOST or JOIN that hears nothing from the server for this long (s) before its welcome, its upload aside, gives up (a reconnect tries again). */
   connectTimeout: 15,
   /** Network log entries kept for COPY NETWORK LOG (net/diagnostics.ts). */
   logLines: 80,
@@ -793,8 +793,18 @@ export const SERVER = {
   dripRate: 30,
   /** The largest message (bytes): a paint save HOST uploads is ~30 MB for a heavily painted ULTRA level. */
   maxPayload: 64 * 2 ** 20,
-  /** No new session once the server's live data (JS objects and paint) takes this much memory (MB); its container may use 1536 (docs/deploy.md). */
+  /** No new session once the server's live data (JS objects and paint) takes this much memory (MB); its container may use 1536 (docs/deploy.md). HOST_MEMORY overrides it. */
   hostMemory: 1024,
+  /** No new paint file (a welcome, SAVE) past this much (MB): the player is told the server is busy. SNAPSHOT_MEMORY overrides it. */
+  snapshotMemory: 1280,
+  /** A paint file is read this many bytes of paint at a time as it's deflated (server/session.ts). */
+  snapshotChunk: 2 ** 20,
+  /** A paint file made is kept this long (s) for others who join or come back (they get the paint ops since with it). */
+  snapshotKeep: 15,
+  /** A paint file travels in parts of this many bytes, so a slow link still hears from the server every few seconds (net/multiplayer.ts). */
+  partBytes: 256 * 2 ** 10,
+  /** While sessions are live the server logs its memory this often (s). */
+  statsEvery: 300,
   /** Codes of ended sessions are remembered this long (s): joining one says it has ended, not that there's no such code. */
   endedMemory: 3600,
   /** Open links from one address (Caddy's X-Forwarded-For): two players behind one router, a reconnect and a second tab each, fit. */

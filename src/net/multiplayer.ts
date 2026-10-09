@@ -7,6 +7,7 @@ import type { PaintOp, PaintOps } from '../paint-ops';
 import type { PaintSystem } from '../painting';
 import type { Player } from '../player';
 import { loadPaint } from '../save/load-paint';
+import { joinBytes } from '../save/paint-file';
 import { surfaceTable } from '../save/shape';
 import { session } from '../session';
 import type { Tools } from '../tools/tools';
@@ -55,8 +56,8 @@ const ownerOf = (id: number) => `player${id}`;
 export class Multiplayer {
   status: NetStatus = { state: 'off' };
   onStatus: (s: NetStatus) => void = () => {};
-  /** The session's paint as a file (SAVE). */
-  onSave: (bytes: Uint8Array, levelName: string) => void = () => {};
+  /** The session's paint as a file (SAVE); null: the server couldn't make one. */
+  onSave: (bytes: Uint8Array | null, levelName: string) => void = () => {};
   /** Someone joined or left the session. */
   onPlayer: (name: string, joined: boolean) => void = () => {};
   readonly names = new Map<number, string>();
@@ -163,30 +164,48 @@ export class Multiplayer {
     this.live = false;
     if (!this.joined) this.setStatus({ state: 'connecting' });
     const started = now();
-    /** No welcome or rejection in NET.connectTimeout: give up on this socket. */
-    let answered = false;
+    /**
+     * Nothing from the server in NET.connectTimeout before the welcome (it
+     * pings while the paint file is made), not counting the hello's upload:
+     * give up on this socket.
+     */
+    let heard = started;
     let timedOut = false;
-    const timer = setTimeout(() => {
-      if (answered || this.ws !== ws) return;
-      this.log.add(`no answer in ${NET.connectTimeout} s (socket ${['connecting', 'open', 'closing', 'closed'][ws.readyState]})`);
+    const timer = setInterval(() => {
+      if (this.ws !== ws || this.live) return clearInterval(timer);
+      if (ws.bufferedAmount) heard = now();
+      if (now() - heard < NET.connectTimeout) return;
+      this.log.add(`nothing from the server in ${NET.connectTimeout} s (socket ${['connecting', 'open', 'closing', 'closed'][ws.readyState]})`);
       timedOut = true;
+      clearInterval(timer);
       ws.close();
-    }, NET.connectTimeout * 1000);
+    }, 1000);
     ws.onopen = () => {
       this.log.add(`open after ${Math.round((now() - started) * 1000)} ms`);
       ws.send(encode(hello));
     };
+    // What this game can't take (a welcome it can't load) ends the session for it.
+    const handle = (m: ToClient, file?: Uint8Array) => (this.queue = this.queue.then(() => this.receive(m, file)).catch((err) => (console.error(err), this.send({ type: 'leave' }), this.end({ state: 'failed', reason: 'version' }))));
+    /** A welcome or save whose paint file is still coming, in parts. */
+    let waiting: { m: Extract<ToClient, { type: 'welcome' | 'save' }>; parts: Uint8Array[] } | null = null;
     ws.onmessage = (e) => {
       if (this.ws !== ws) return;
-      this.lastHeard = now();
+      this.lastHeard = heard = now();
       this.net.down += (e.data as ArrayBuffer).byteLength;
       const m = decode(new Uint8Array(e.data as ArrayBuffer)) as ToClient | null;
-      if (m?.type === 'welcome' || m?.type === 'rejected') answered = true;
-      // What this game can't take (a welcome it can't load) ends the session for it.
-      if (m) this.queue = this.queue.then(() => this.receive(m)).catch((err) => (console.error(err), this.send({ type: 'leave' }), this.end({ state: 'failed', reason: 'version' })));
+      if (m?.type === 'part') {
+        if (!waiting) return;
+        waiting.parts.push(m.bytes);
+        if (waiting.parts.length < waiting.m.parts) return;
+        handle(waiting.m, joinBytes(waiting.parts));
+        waiting = null;
+      } else if ((m?.type === 'welcome' || m?.type === 'save') && m.parts) {
+        if (m.type === 'welcome') this.log.add(`welcome: the paint comes in ${m.parts} parts`);
+        waiting = { m, parts: [] };
+      } else if (m) handle(m);
     };
     ws.onclose = (e) => {
-      clearTimeout(timer);
+      clearInterval(timer);
       if (this.ws !== ws) return;
       this.log.add(`closed: ${e.code}${e.reason ? ` ${e.reason}` : ''}${e.wasClean ? '' : ', not clean'}, after ${(now() - started).toFixed(1)} s`);
       this.ws = null;
@@ -218,8 +237,9 @@ export class Multiplayer {
     r.wait = Math.min(r.wait * 2, 8);
   }
 
-  private async receive(m: ToClient) {
-    if (m.type === 'welcome') return this.welcome(m);
+  /** `file`: the paint file of a welcome or a save. */
+  private async receive(m: ToClient, file?: Uint8Array) {
+    if (m.type === 'welcome') return this.welcome(m, file!);
     if (m.type === 'rejected') {
       this.log.add(`turned away by the server: ${m.reason}`);
       // A session that's gone (the server restarted) while we were coming back: it ended.
@@ -240,11 +260,11 @@ export class Multiplayer {
       this.removeRemote(m.id);
       if (name !== undefined) this.onPlayer(name, false);
     }
-    else if (m.type === 'save') this.onSave(m.bytes, this.joined.levelName);
+    else if (m.type === 'save') this.onSave(file ?? null, this.joined.levelName);
     else if (m.type === 'pong') this.net.ping = now() - m.t;
   }
 
-  private async welcome(w: Extract<ToClient, { type: 'welcome' }>) {
+  private async welcome(w: Extract<ToClient, { type: 'welcome' }>, file: Uint8Array) {
     const g = this.g;
     if (this.joined?.code !== w.code) {
       g.lockDetail(w.detail);
@@ -256,9 +276,9 @@ export class Multiplayer {
       this.t0 = now();
     }
     // The session's paint replaces ours; what we painted while the link was down is gone with it.
-    await loadPaint(g.paint, g.drips, w.bytes, { name: w.levelName });
+    await loadPaint(g.paint, g.drips, file, { name: w.levelName });
     const name = this.name;
-    this.log.add(`in session ${w.code} as #${w.you}, at ${w.detail} texels/m, with ${w.players.length} others, ${(w.bytes.length / 1024).toFixed(0)} KB of paint`);
+    this.log.add(`in session ${w.code} as #${w.you}, at ${w.detail} texels/m, with ${w.players.length} others, ${(file.length / 1024).toFixed(0)} KB of paint`);
     this.joined = { code: w.code, token: w.token, name, you: w.you, levelName: w.levelName };
     try {
       sessionStorage.setItem(KEY, JSON.stringify({ code: w.code, token: w.token, name }));

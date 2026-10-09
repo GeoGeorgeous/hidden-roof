@@ -3,7 +3,7 @@
 // turns down.
 // Usage: node scripts/protocol.test.mjs
 import assert from 'node:assert/strict';
-import { checkToServer, cleanName, decode, encode, PROTOCOL } from '../src/net/protocol.ts';
+import { checkToServer, cleanName, decode, encode, partFrames, PROTOCOL } from '../src/net/protocol.ts';
 
 const level = { version: 4, spawn: { pos: [0, 0, 0], yaw: 0 }, props: [{ id: 1, type: 'slab', pos: [0, 0, 0] }] };
 const stamp = { kind: 'stamp', key: 'p12#0', rect: 3, u: 0.1 + 0.2, v: 1 / 3, radius: 0.0125, amount: 0.35, color: [1, 0.2, 0.1], softness: 0.5, square: false };
@@ -35,9 +35,12 @@ for (const m of sent) {
   assert.deepEqual(rest, Object.fromEntries(Object.entries(json).filter(([, v]) => v !== undefined)));
   assert.deepEqual(got, bytes);
 }
-const welcome = { type: 'welcome', code: 'ABCDE', you: 2, token: 't', levelName: 'demo', level, detail: 48, table: 'x', players: [{ id: 1, name: 'geo' }], ladders: [], bytes: save };
-const { bytes: paint, ...w } = decode(encode(welcome));
-assert.deepEqual({ ...w, bytes: paint }, welcome);
+const welcome = { type: 'welcome', code: 'ABCDE', you: 2, token: 't', levelName: 'demo', level, detail: 48, table: 'x', players: [{ id: 1, name: 'geo' }], ladders: [], parts: 3 };
+assert.deepEqual(decode(encode(welcome)), welcome);
+// A paint file in pieces goes as parts of at most the size asked, and comes back whole.
+const parts = partFrames([save.subarray(0, 10), save.subarray(10, 700), save.subarray(700)], 400).map(decode);
+assert.deepEqual([parts.map((p) => p.type), parts.map((p) => p.bytes.length)], [['part', 'part', 'part'], [400, 400, 200]]);
+assert.deepEqual(new Uint8Array(parts.flatMap((p) => [...p.bytes])), save);
 
 // Not messages.
 for (const frame of [new Uint8Array(0), new Uint8Array([9, 0, 0, 0, 1]), encode({ type: 'save' }).subarray(0, 8)]) assert.equal(decode(frame), null);

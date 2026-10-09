@@ -136,7 +136,12 @@ export function multiplayerMenu(hud: Hud, hotbar: Hotbar, ctx: MultiplayerContex
   hud.onCopyNetLog = copyLog;
   // SAVE PAINT in a session downloads the session's paint, from the server.
   const local = hud.onSavePaint;
-  hud.onSavePaint = () => (net.inSession ? net.requestSave() : local());
+  hud.onSavePaint = () => (net.inSession ? (hud.notice('Saving paint…', Infinity), net.requestSave()) : local());
+  net.onSave = (bytes, name) => {
+    if (!bytes) return hud.notice('THE SERVER IS BUSY: SAVE AGAIN LATER');
+    download(new Blob([bytes as BlobPart]), `${name}-${stamp(new Date())}.rhhpaint`);
+    hud.notice('Paint saved');
+  };
   return net;
 }
 

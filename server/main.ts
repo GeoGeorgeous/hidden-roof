@@ -4,8 +4,9 @@ import http from 'node:http';
 import { WebSocketServer } from 'ws';
 import { SERVER } from '../src/config';
 import { checkToServer, closeCode, CODE_LENGTH, CODE_LETTERS, decode, encode, HELLO, PROTOCOL, type Rejection, type ToServer } from '../src/net/protocol';
-import { log, who } from './log';
+import { liveMemory, log, who } from './log';
 import { Session, type Link, type Player } from './session';
+import { waiting } from './snapshot';
 
 // The multiplayer server: WebSocket sessions at /ws (net/protocol.ts), on
 // SERVER.port (or PORT). A plain GET at /ws answers HELLO (the game asks it
@@ -22,6 +23,9 @@ const hosts = new Map<string, string>();
 // Tests come back (and give up on a silent link) sooner than players.
 SERVER.rejoinWindow = Number(process.env.REJOIN_WINDOW) || SERVER.rejoinWindow;
 SERVER.helloTimeout = Number(process.env.HELLO_TIMEOUT) || SERVER.helloTimeout;
+// Memory limits follow the container's (docs/deploy.md).
+SERVER.hostMemory = Number(process.env.HOST_MEMORY) || SERVER.hostMemory;
+SERVER.snapshotMemory = Number(process.env.SNAPSHOT_MEMORY) || SERVER.snapshotMemory;
 
 const server = http.createServer((req, res) => {
   const path = req.url?.split('?')[0];
@@ -35,7 +39,15 @@ wss.on('connection', (ws, req) => {
   // Behind Caddy the socket's address is Caddy's; it passes the player's on.
   const ip = String(req.headers['x-forwarded-for'] ?? req.socket.remoteAddress).split(',')[0].trim();
   // Paint files (welcome, SAVE) are compressed already: only smaller frames go through the socket's compression.
-  const link: Link = { send: (f) => ws.readyState === ws.OPEN && ws.send(f, { compress: f.length < 65536 }), close: (code, reason) => ws.close(code, reason) };
+  const link: Link = {
+    send: (f) => ws.readyState === ws.OPEN && ws.send(f, { compress: f.length < 65536 }),
+    close: (code, reason) => ws.close(code, reason),
+    get open() {
+      return ws.readyState === ws.OPEN;
+    },
+    ip,
+    since: Date.now(),
+  };
   const reject = (reason: Rejection, m?: ToServer) => {
     log(m?.type === 'join' ? m.code : '-----', `${m?.type ?? 'link'} from ${ip} turned away: ${reason}`);
     link.send(encode({ type: 'rejected', reason }));
@@ -95,16 +107,14 @@ async function enter(m: Extract<ToServer, { type: 'host' | 'join' }>, link: Link
   let session: Session;
   if (m.type === 'host') {
     if ([...hosts.values()].filter((h) => h === ip).length >= SERVER.sessionsPerIp) return 'too-many';
-    // What's alive (JS objects, paint): the process's own size (rss) stays up after sessions end, until the OS asks for it back.
-    const mem = process.memoryUsage();
-    if (mem.heapUsed + mem.arrayBuffers > SERVER.hostMemory * 2 ** 20) return 'busy';
+    if (liveMemory() > SERVER.hostMemory) return 'busy';
     const code = newCode();
     try {
       session = new Session(code, m.levelName, m.level, m.detail, () => {
         sessions.delete(code);
         hosts.delete(code);
         ended.set(code, Date.now());
-        log(code, 'closed: no one left');
+        log(code, `closed: no one left, ${session.summary}`);
       });
     } catch (e) {
       log('-----', `host from ${ip}: the level doesn't build`, e);
@@ -128,8 +138,12 @@ async function enter(m: Extract<ToServer, { type: 'host' | 'join' }>, link: Link
     session = found;
   }
   const r = await session.admit(link, m.name, m.type === 'join' ? m.token : undefined);
-  if (!r) return 'full';
-  log(session.code, who(r.p), `in from ${ip} (${r.how}, ${session.players.size} players)`);
+  if (typeof r === 'string') {
+    // A session turned down with its host has no one to close it.
+    if (m.type === 'host') session.close();
+    return r;
+  }
+  log(session.code, who(r.p), `in from ${ip} (${r.how}, ${session.players.size} players${r.note})`);
   return { session, player: r.p };
 }
 
@@ -145,6 +159,11 @@ setInterval(() => {
   sessions.forEach((s) => s.ping());
   for (const [code, at] of ended) if (Date.now() - at > SERVER.endedMemory * 1000) ended.delete(code);
 }, SERVER.ping * 1000);
+setInterval(() => {
+  if (!sessions.size) return;
+  const players = [...sessions.values()].reduce((n, s) => n + s.players.size, 0);
+  log('-----', `memory: ${liveMemory().toFixed(0)} MB live, ${(process.memoryUsage.rss() / 2 ** 20).toFixed(0)} MB rss; ${sessions.size} sessions, ${players} players, ${waiting()} paint files in line`);
+}, SERVER.statsEvery * 1000);
 process.on('unhandledRejection', (e) => log('-----', 'unhandled', e));
 // In a container this is PID 1, which has no default signal handlers.
 for (const sig of ['SIGTERM', 'SIGINT']) process.on(sig, () => process.exit(0));
