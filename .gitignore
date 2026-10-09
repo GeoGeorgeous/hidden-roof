@@ -1,3 +1,36 @@
+# Dependencies and build output
 node_modules
 dist
+dist-mp
+dist-server
 shots
+.vite
+*.tsbuildinfo
+vite.config.*.timestamp-*
+
+# Secrets: never commit. .env.multiplayer holds only VITE_MP=1 and the build needs it.
+.env
+.env.*
+!.env.multiplayer
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+
+# Logs, caches, OS and editor files
+*.log
+npm-debug.log*
+.npm
+.eslintcache
+.cache
+coverage
+.DS_Store
+Thumbs.db
+.idea
+*.swp
+
+# Local agent settings
+.claude/settings.local.json
