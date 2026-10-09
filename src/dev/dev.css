@@ -489,3 +489,19 @@ body.paused .build-help {
   /* Tighter than the panel's text, so COLLAPSE ALL fits its column. */
   letter-spacing: 0.02em;
 }
+
+/* Profiling mode (dev/profiler.ts): what it's doing, top center. */
+.profiling {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  padding: 3px 8px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--paper);
+  background: color-mix(in srgb, var(--ui) 80%, transparent);
+  pointer-events: none;
+  white-space: nowrap;
+}

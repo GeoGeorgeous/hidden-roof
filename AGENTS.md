@@ -4,10 +4,11 @@ Hidden roof: a three.js graffiti game. The world is ink on paper and the only co
 
 ## Performance first
 
-- Paint is baked into per-surface textures, as in Bombing!!.
+- Paint is baked into textures, as in Bombing!!: each surface's atlas on the CPU, a block of a shared page on the GPU (`src/paint-gpu.ts`).
 - Never add meshes, decals or other objects per stroke or per particle. Spray particles are visual only.
 - Painting the whole level must cost the same per frame as painting nothing. No per-paint draw calls, no growing scene graph.
-- Create paint textures lazily, on a surface's first hit.
+- Create paint lazily, on a surface's first hit (a page on the first hit on any of its surfaces).
+- Paintable surfaces are drawn merged per tile with their pages (`src/level/batches.ts`): never give a surface or a prop a draw call of its own.
 - Upload only textures that changed this frame, and only their dirty rect (`PaintGpu.flush`, `src/paint-gpu.ts`).
 - Every paintable surface uses the same texel density (`PAINT.texelsPerMeter`). It's a player setting (PAINT DETAIL), so give paint sizes in meters, never in texels.
 - Lamp light is baked too (`src/render/bake`). Only moving lights (CCTV) use the small real-light pool.

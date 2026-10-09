@@ -199,6 +199,87 @@ await check('levels: props keep their ids through edits, reloads and undo; versi
   return r.first === 1 && r.kept && r.next === r.count + 1 && r.undone === 10 && r.v2.join() === '1,6' ? null : JSON.stringify(r);
 });
 
+await check('levels: faces pressed against another prop are decor and come back when it goes; paint stays on the rest; colliders stay', async () => {
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    const saved = g.build.getLevelData();
+    const a = { id: 1, type: 'building', pos: [0, 0, 0], rot: 0 };
+    const b = { id: 2, type: 'building', pos: [2, 0, 0], rot: 0 };
+    // Faces on the plane x = 1, where the two blocks touch; and a's west face (x = -1), painted.
+    const faces = () => g.paint.surfaces.flatMap((s) => s.geo.rects.map((r, i) => ({ s, r, i }))).filter((f) => f.r.face);
+    const at = (x, nx) => faces().filter((f) => Math.abs(f.r.face.origin.x - x) < 0.01 && f.r.face.normal.x === nx);
+    const west = () => at(-1, -1)[0];
+    const paintAt = (f) => f.s.data?.[((f.r.y + (f.r.h >> 1)) * f.s.geo.atlasW + f.r.x + (f.r.w >> 1)) * 4 + 3] ?? 0;
+    g.loadLevel({ version: 4, spawn: saved.spawn, props: [a] });
+    const out = { alone: at(1, 1).length, colliders: [g.level.colliders.length] };
+    const w = west();
+    g.paint.stamp(w.s, { rect: w.i, u: 0.5, v: 0.5 }, 0.3, 1, [1, 0, 0]);
+    g.level.add(b);
+    out.together = at(1, 1).length + at(1, -1).length;
+    out.colliders.push(g.level.colliders.length);
+    out.paintKept = paintAt(west());
+    g.level.remove(2);
+    out.back = at(1, 1).length;
+    out.paintAfter = paintAt(west());
+    g.loadLevel(saved);
+    return out;
+  });
+  return r.alone > 0 && r.together === 0 && r.back === r.alone && r.colliders.join() === '3,6' && r.paintKept > 0 && r.paintAfter > 0 ? null : JSON.stringify(r);
+});
+
+await check('paint pages: each surface has its own block of a page, on whole 8-texel cells, and no cell holds two faces', async () => {
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    const cell = 2 ** (g.config.PAINT.mipLevels - 1);
+    const out = { surfaces: g.paint.surfaces.length, misaligned: 0, outside: 0, overlaps: 0, sharedCells: 0 };
+    const taken = new Map();
+    for (const s of g.paint.surfaces) {
+      const b = s.slot;
+      if (b.x % cell || b.y % cell || b.w % cell || b.h % cell || b.w < s.geo.atlasW || b.h < s.geo.atlasH) out.misaligned++;
+      if (b.x + b.w > b.page.size || b.y + b.h > b.page.size) out.outside++;
+      for (const o of taken.get(b.page) ?? []) if (b.x < o.x + o.w && o.x < b.x + b.w && b.y < o.y + o.h && o.y < b.y + b.h) out.overlaps++;
+      taken.set(b.page, [...(taken.get(b.page) ?? []), b]);
+      // Each face with its 1-texel ring, in cells of the smallest level: no cell shared.
+      const cells = new Set();
+      for (const f of s.geo.rects) {
+        const mine = new Set();
+        for (let cy = Math.floor((f.y - 1) / cell); cy <= Math.floor((f.y + f.h) / cell); cy++)
+          for (let cx = Math.floor((f.x - 1) / cell); cx <= Math.floor((f.x + f.w) / cell); cx++) mine.add(`${cx},${cy}`);
+        for (const c of mine) cells.has(c) ? out.sharedCells++ : cells.add(c);
+      }
+    }
+    return out;
+  });
+  return r.surfaces > 0 && !r.misaligned && !r.outside && !r.overlaps && !r.sharedCells ? null : JSON.stringify(r);
+});
+
+await check('paint pages: a painted level draws in as many calls as a clean one; cleaned off, its pages go', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const frames = (n) => new Promise((done) => { let f = 0; const step = () => (++f >= n ? done() : requestAnimationFrame(step)); requestAnimationFrame(step); });
+    const calls = async () => {
+      g.debug.toggle();
+      await frames(4);
+      const n = g.live.stats.drawCalls;
+      g.debug.toggle();
+      return n;
+    };
+    g.paint.clear();
+    await frames(2);
+    const out = { clean: await calls(), meshes: g.level.merged.surfaces.children.length };
+    for (const s of g.paint.surfaces) g.paint.stamp(s, { rect: 0, u: 0.5, v: 0.5 }, 0.3, 1, [1, 0, 0]);
+    await frames(2);
+    out.painted = await calls();
+    out.meshesPainted = g.level.merged.surfaces.children.length;
+    out.pages = g.paint.gpu.textureCount;
+    g.paint.clear();
+    await frames(2);
+    out.pagesAfter = g.paint.gpu.textureCount;
+    return out;
+  });
+  return r.clean > 0 && r.painted === r.clean && r.meshesPainted === r.meshes && r.pages > 0 && r.pagesAfter === 0 ? null : JSON.stringify(r);
+});
+
 await check('levels: stairs in format 3 files stay compact (the old stairs); format 4 saves keep either kind', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;

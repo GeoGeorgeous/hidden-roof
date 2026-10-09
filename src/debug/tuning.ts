@@ -132,6 +132,10 @@ export const live = {
   ghostState: () => 'off',
   /** The ghost's network as its remote player sees it, or null. */
   ghostNet: (): null | { delay: number; jitter: number; buffered: number; guessing: boolean; correction: number } => null,
+  /** F3 -> Test -> Performance: profiling mode (dev/profiler.ts). */
+  profileToggle: () => {},
+  profileProbe: () => {},
+  profileState: () => 'off',
   /** Debug: a lightning strike right now. */
   strikeLightning: () => {},
   /** GPU time of a render pass, as text ('n/a' without timer queries). */

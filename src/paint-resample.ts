@@ -1,17 +1,9 @@
-import type { Rect, SurfaceGeometry } from './surfaces';
+import type { Rect } from './surfaces';
 
-// Moves paint between two atlases of the same faces laid out at different
-// texel densities (after a paint detail change), face by face: the nearest
-// texel when enlarging, the average when shrinking. Colors are averaged
-// weighted by alpha, so unpainted texels don't darken the edges of the paint.
-
-/** Resample `src` (laid out as `from`) into `dst` (laid out as `to`). Faces match by index. */
-export function resampleAtlas(from: SurfaceGeometry, src: Uint8Array, to: SurfaceGeometry, dst: Uint8Array) {
-  const n = Math.min(from.rects.length, to.rects.length);
-  for (let i = 0; i < n; i++) {
-    if (painted(src, from.atlasW, from.rects[i])) resampleRect(src, from.atlasW, from.rects[i], dst, to.atlasW, to.rects[i]);
-  }
-}
+// Moves paint from a face of one atlas to a face of another, maybe at another
+// texel density (after a paint detail change): the nearest texel when
+// enlarging, the average when shrinking. Colors are averaged weighted by
+// alpha, so unpainted texels don't darken the edges of the paint.
 
 /** Does the face (with its 1-texel padding) hold any paint? */
 export function painted(src: Uint8Array, w: number, r: Rect) {

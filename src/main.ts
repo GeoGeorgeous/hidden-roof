@@ -85,6 +85,7 @@ const level = new Level(scene, paint);
 const lighting = new Lighting(scene, renderer);
 const baker = new LightBaker();
 baker.onDecorBaked = (geo) => level.pushBaked(geo);
+baker.onRelayout = () => level.remerge();
 const lightFx = new LightFX(scene);
 const rain = new Rain(scene);
 const heightmap = new Heightmap();
@@ -268,6 +269,7 @@ function frame(time: number) {
     camera.updateProjectionMatrix();
   }
   camera.updateMatrixWorld();
+  dev?.lap('player');
   // Sprites follow the camera's FOV (sprinting, F3) like the world around them.
   const pointScale = viewHeight / (2 * Math.tan((camera.fov * Math.PI) / 360));
   lightFx.setPointScale(pointScale);
@@ -282,6 +284,7 @@ function frame(time: number) {
   if (!frozen) lightning.update(dt, ATMOS.rain && !building);
   lighting.update(eye, camera.matrixWorldInverse, time / 1000, lightning.flash);
   syncCityLight(lighting);
+  dev?.lap('lights');
   (sky.material as THREE.ShaderMaterial).uniforms.uFlash.value = lightning.flash * THUNDER.flashSky;
   playerLight.update(eye, !building);
   setHex(viewFill.color, VIEWMODEL.fillSky);
@@ -296,6 +299,7 @@ function frame(time: number) {
   audio.setFan(fanLevel(eye));
   if (ATMOS.rain && !building) metalDrops(dt, eye);
   audio.update(paused && !dev?.panelOpen);
+  dev?.lap('world');
 
   if (!frozen) {
     if (building) dev!.update(input, camera);
@@ -315,13 +319,18 @@ function frame(time: number) {
     textAtlasSeen = textAtlasVersion();
     level.rebuildLettered();
   }
+  dev?.lap('tools');
   level.flush();
+  dev?.lap('level');
   baker.update(time / 1000, eye);
+  dev?.lap('bake');
   paint.gpu.flush(renderer);
   hotbar.update(inventory);
   hud.update();
+  dev?.lap('paint + hud');
 
   post.render(scene, viewScene, camera, lighting, !building);
+  dev?.lap('render');
   // Same frame as the render: the canvas still holds it (see screenshot.ts).
   if (input.wasPressed('KeyK')) saveScreenshot(renderer.domElement, () => hotbar.toast('Screenshot saved'));
   gpuTimer.poll();
@@ -341,7 +350,7 @@ function frame(time: number) {
   if (HUD.perf && HUD.perfGpu) gpuTimer.enabled = true;
   const gpu = !HUD.perfGpu ? undefined : gpuTimer.supported ? gpuTimer.total(VOLUMETRICS.enabled ? ['scene', 'volumetrics', 'post'] : ['scene', 'post']) : null;
   hud.setPerf({ fps, frameMs, gpu, calls, triangles, textureBytes: paint.gpu.textureBytes + baker.stats.textureBytes + staticTextureBytes(), net: net.stats });
-  dev?.report({ fps, frameMs, calls, triangles });
+  dev?.report({ fps, frameMs, calls, triangles, interval: delta * 1000 });
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);

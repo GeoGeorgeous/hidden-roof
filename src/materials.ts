@@ -212,17 +212,10 @@ export class SurfaceMaterial extends THREE.MeshPhongMaterial {
     const base = (this.baseTexture = textures()[opts.tex]);
     const tile = opts.tileMeters ?? (base.image as HTMLCanvasElement).width / BASE_TEXTURES.texelsPerMeter;
     this.baseScaleUniform.value = 1 / tile;
-    const own = {
-      uBase: { value: base },
-      uPaint: this.paintUniform,
-      uBaseScale: this.baseScaleUniform,
-      uAlphaTest: { value: opts.alphaTest ?? 0 },
-      uPaintable: this.paintableUniform,
-      uLightmap: this.lightUniform,
-      uLightFlicker: this.lightFlickerUniform,
-      uLightFlickerOn: this.lightFlickerOnUniform,
-    };
+    const alphaTest = { value: opts.alphaTest ?? 0 };
     this.onBeforeCompile = (shader) => {
+      // Read here, not at construction: bindPages may have swapped them for a page's shared ones.
+      const own = { uBase: { value: base }, uPaint: this.paintUniform, uBaseScale: this.baseScaleUniform, uAlphaTest: alphaTest, uPaintable: this.paintableUniform, uLightmap: this.lightUniform, uLightFlicker: this.lightFlickerUniform, uLightFlickerOn: this.lightFlickerOnUniform };
       Object.assign(shader.uniforms, shared, own);
       shader.vertexShader = shader.vertexShader
         .replace('#include <common>', `#include <common>\n${VERT_PARS}`)
@@ -254,16 +247,18 @@ export class SurfaceMaterial extends THREE.MeshPhongMaterial {
     this.paintableUniform.value = on ? 1 : 0;
   }
 
-  /** The surface's paint texture; null = none (unpainted). */
-  setPaint(t: THREE.Texture | null) {
-    this.paintUniform.value = t ?? EMPTY_PAINT;
-  }
-
-  /** Baked lamp light of a paintable surface (render/bake), and its neon flicker layer; null = none. */
-  setLightmap(light: THREE.Texture | null, flicker: THREE.Texture | null) {
-    this.lightUniform.value = light ?? BLACK;
-    this.lightFlickerUniform.value = flicker ?? BLACK;
-    this.lightFlickerOnUniform.value = flicker ? 1 : 0;
+  /**
+   * Draw paintable surfaces from shared pages: a paint page's texture and a
+   * light page's (and its flicker layer). The pages own these uniforms, so a
+   * page's new texture reaches every material drawing from it. Call before
+   * the first draw.
+   */
+  bindPages(paint: { value: THREE.Texture }, light: { light: { value: THREE.Texture }; flicker: { value: THREE.Texture }; flickerOn: { value: number } } | null) {
+    this.paintUniform = paint;
+    if (!light) return;
+    this.lightUniform = light.light;
+    this.lightFlickerUniform = light.flicker;
+    this.lightFlickerOnUniform = light.flickerOn;
   }
 }
 

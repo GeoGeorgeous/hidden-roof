@@ -137,6 +137,8 @@ export const LIGHTMAP = {
   highlights: 4,
   /** Bake time per frame after edits and tweaks (ms). A freshly loaded level bakes at once. */
   budgetMs: 3,
+  /** Surfaces' light lives on shared pages this many texels square (render/bake/light-pages.ts). */
+  pageSize: 1024,
 };
 
 /**
@@ -341,6 +343,12 @@ export const PAINT = {
    */
   minFaceSide: 0.06,
   minFaceArea: 0.12,
+  /**
+   * A paintable face pressed against an opaque box piece of a prop (level/cover.ts) is
+   * covered, and drawn as decor: checked at points this far apart (m), this far in front of it (m).
+   */
+  coverStep: 0.25,
+  coverGap: 0.02,
   /** Alpha is quantized to this many steps in the shader for a chunky look (0 = off). */
   alphaSteps: 8,
   /** Hard cap on a single surface atlas side, in texels. */
@@ -352,6 +360,12 @@ export const PAINT = {
    * Keep it small: a texel of level k averages 2^k x 2^k atlas texels.
    */
   mipLevels: 4,
+  /**
+   * Paint lives on shared pages this many texels square (paint-gpu.ts), each
+   * made on the first hit on one of its surfaces: fewer, bigger pages mean
+   * fewer draw calls but more memory at once.
+   */
+  pageSize: 2048,
   /**
    * Changed texels are uploaded in up to this many rects per surface each frame,
    * merged where they touch: two strokes on faces far apart in one atlas upload
@@ -800,6 +814,29 @@ export const GHOST = {
   /** How long a hiccup holds up a packet and everything after it (s), as a resend over a reliable link would. */
   hiccupDelay: 0.3,
   followDelay: 2,
+};
+
+/** Profiling mode (src/dev/profiler.ts, F8) and its probe (src/dev/probe.ts, F9). */
+export const PROFILE = {
+  /** The slowest frames the report keeps whole, with where their CPU time went. */
+  worstFrames: 20,
+  /** Each probe step: time for the change to settle (shader compiles, smoothed GPU timers), then time measured (s). */
+  probeSettle: 1.5,
+  probeMeasure: 3,
+  /** And at least this many frames for each (settling, then measured). */
+  probeSettleFrames: 10,
+  /** Spikes (src/dev/spikes.ts): the seconds kept from before one, and recorded after it. */
+  spikeBefore: 5,
+  spikeAfter: 1,
+  /** A slow frame: longer than this many times the last second's, and than this (ms). */
+  hitchFactor: 3,
+  hitchMinMs: 80,
+  /** A camera jump: the view turned further than this in one frame (degrees). A fast flick at 30 fps turns about 30. */
+  jumpDegrees: 45,
+  /** A mouse spike: one mouse event moved further than this (px; a hard flick is under 150). */
+  mouseSpikePx: 300,
+  /** Spikes kept in a report; the rest are only counted. */
+  maxSpikes: 40,
 };
 
 /**

@@ -6,7 +6,9 @@ import { bakeUniforms } from './glsl';
 import { makeLamps, type Lamp } from './lamps';
 import { Occluders } from './occluders';
 import { lampSpheres, reaches, shadowCones, type Reach } from './reach';
-import { bakeDecor, bakeSurface, dropReceiver, receiverBytes, type Receiver } from './receivers';
+import { layoutLightmap } from './layout';
+import { LightPages } from './light-pages';
+import { bakeDecor, bakeSurface, dropReceiver, type Receiver, type SurfaceReceiver } from './receivers';
 
 // Bakes the light of every steady lamp into the level (receivers.ts), with
 // shadows from the colliders. Moving lights (CCTV) stay real spot lights
@@ -31,6 +33,10 @@ const SLOT_MAX = 2047;
 export class LightBaker {
   /** Called with a decor proxy geometry whose baked light changed. */
   onDecorBaked: (geo: THREE.BufferGeometry) => void = () => {};
+  /** Called when every surface got a new light block (LIGHTMAP.texelsPerMeter changed): the level merges its surfaces again. */
+  onRelayout: () => void = () => {};
+  /** Surfaces' light atlases, blocks of shared pages. */
+  private pages = new LightPages();
   readonly stats = { textureBytes: 0, pending: 0, ms: 0 };
   private owners = new Map<BuiltProp, Owner>();
   private nextId = 1;
@@ -66,24 +72,39 @@ export class LightBaker {
     const current = new Set(built);
     const changed: THREE.Box3[] = [];
     const reach: Reach = { spheres: [], cones: [] };
+    // A prop rebuilt as it was (a neighbor of an edit, its covered faces redone)
+    // casts and lights as before: only its own surfaces are baked again.
+    const gone = new Map<string, BuiltProp>();
+    const same = new Set<BuiltProp>();
     let any = false;
+    for (const [b] of this.owners) if (!current.has(b)) gone.set(shapeKey(b), b);
+    for (const b of built) {
+      if (this.owners.has(b)) continue;
+      const was = gone.get(shapeKey(b));
+      if (was) same.add(was).add(b);
+    }
     for (const [b, o] of this.owners) {
       if (current.has(b)) continue;
       any = true;
-      changed.push(...b.occluders);
-      lampSpheres(b, reach);
+      if (!same.has(b)) {
+        changed.push(...b.occluders);
+        lampSpheres(b, reach);
+      }
       for (const r of o.receivers) {
         this.pending.delete(r);
-        dropReceiver(r);
+        dropReceiver(r, this.pages);
       }
       this.owners.delete(b);
     }
+    if (!this.owners.size) this.pages.clear(); // a new level comes
     let added = 0;
     for (const b of built) {
       if (this.owners.has(b)) continue;
       this.register(b);
-      changed.push(...b.occluders);
-      lampSpheres(b, reach);
+      if (!same.has(b)) {
+        changed.push(...b.occluders);
+        lampSpheres(b, reach);
+      }
       added++;
     }
     if (!any && !added) return;
@@ -105,9 +126,9 @@ export class LightBaker {
     if (this.settingsChanged()) this.rebakeAll();
     if (this.density !== LIGHTMAP.texelsPerMeter) {
       this.density = LIGHTMAP.texelsPerMeter;
-      this.forEachReceiver((r) => {
-        if (r.kind === 'surface') r.layout = null;
-      });
+      this.forEachReceiver((r) => r.kind === 'surface' && dropReceiver(r, this.pages));
+      this.forEachReceiver((r) => r.kind === 'surface' && this.layOut(r));
+      this.onRelayout();
       this.rebakeAll();
     }
     this.work(this.all ? null : eye, this.all ? Infinity : LIGHTMAP.budgetMs);
@@ -130,7 +151,9 @@ export class LightBaker {
     for (const surface of b.paint) {
       const g = surface.geo.geometry;
       if (!g.boundingBox) g.computeBoundingBox();
-      o.receivers.push({ kind: 'surface', owner: o.id, bounds: g.boundingBox!, surface, paintDensity: PAINT.texelsPerMeter, layout: null, light: null, flicker: null });
+      const r = { kind: 'surface', owner: o.id, bounds: g.boundingBox!, surface } as SurfaceReceiver;
+      this.layOut(r);
+      o.receivers.push(r);
     }
     for (const proxy of b.decor) {
       proxy.geometry.computeBoundingBox();
@@ -138,6 +161,13 @@ export class LightBaker {
     }
     for (const r of o.receivers) this.queue(r);
     this.owners.set(b, o);
+  }
+
+  /** A surface's light atlas at the current density, and its block (also on the surface, for the level's merged meshes). */
+  private layOut(r: SurfaceReceiver) {
+    r.layout = layoutLightmap(r.surface.geo, PAINT.texelsPerMeter, this.density);
+    // One set of pages for the whole level: light is small, and every surface sharing them keeps the level's draws few.
+    r.slot = r.surface.light = this.pages.place(r.layout.w, r.layout.h, '');
   }
 
   /** Bake pending receivers, nearest to `eye` first, for up to `budget` ms. */
@@ -158,16 +188,14 @@ export class LightBaker {
       const r = this.order[this.cursor++];
       if (!this.pending.delete(r)) continue;
       const lamps = this.lamps.filter((l) => r.bounds.distanceToPoint(this.at.set(l.x, l.y, l.z)) < l.range);
-      if (r.kind === 'surface') bakeSurface(r, lamps, this.occluders);
+      if (r.kind === 'surface') bakeSurface(r, lamps, this.occluders, this.pages);
       else if (bakeDecor(r, lamps, this.occluders)) this.onDecorBaked(r.geo);
       if (performance.now() - t0 > budget) break;
     }
     if (!this.pending.size) this.order = null;
     this.stats.ms = performance.now() - t0;
     this.stats.pending = this.pending.size;
-    let bytes = 0;
-    this.forEachReceiver((r) => (bytes += receiverBytes(r)));
-    this.stats.textureBytes = bytes;
+    this.stats.textureBytes = this.pages.bytes;
   }
 
   /** Lamps and occluders from the current level. */
@@ -251,4 +279,12 @@ function flickerTexture(data: Float32Array) {
   const t = new THREE.DataTexture(data, data.length, 1, THREE.RedFormat, THREE.FloatType);
   t.needsUpdate = true;
   return t;
+}
+
+/** What a prop casts and lights with: its occluders and its lamps, to the mm. */
+function shapeKey(b: BuiltProp) {
+  const mm = (n: number) => Math.round(n * 1000);
+  const boxes = b.occluders.map((o) => [o.min.x, o.min.y, o.min.z, o.max.x, o.max.y, o.max.z].map(mm).join(','));
+  const lamps = b.lights.map((a) => `${a.kind}@${[a.base.x, a.base.y, a.base.z].map(mm).join(',')}`);
+  return `${boxes.join(';')}|${lamps.join(';')}`;
 }

@@ -1,19 +1,25 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { RENDER } from '../config';
 import type { Mat } from '../kit/pieces';
-import { BAKED_ATTRIBUTES, swingDepthMaterial } from '../materials';
-import { decorMaterial, matKey, type BuiltProp } from './build-prop';
+import { BAKED_ATTRIBUTES, makeSurfaceMaterial, swingDepthMaterial, type SurfaceMaterial } from '../materials';
+import type { PaintPage } from '../paint-gpu';
+import type { PaintSurface } from '../painting';
+import type { LightPage } from '../render/bake/light-pages';
+import { decorMaterial, matKey, tileKey, type BuiltProp } from './build-prop';
 
-// All non-paintable decor of the level, merged into one mesh per material
-// per tile (RENDER.batchTile m square columns), so draw calls grow with the
-// level's area, not with its number of props. Each tile also gets one shadow
-// proxy: its paint meshes' geometry merged into a mesh that only casts
-// shadows, so shadow passes cost a handful of draws instead of one per paint
-// mesh. Tiles let three skip what's out of view (camera or moon shadow), and
-// an edit re-merges only the tiles whose props changed.
-// Baked light (render/bake) lives on the decor proxies; a rebake copies it
-// into the merged batch in place.
+// The level, merged per tile (RENDER.batchTile m square columns), so draw
+// calls grow with the level's area, not with its number of props:
+//  - decor: one mesh per material
+//  - paintable surfaces: one mesh per material, paint page and light page
+//    (paint-gpu.ts, render/bake/light-pages.ts), their uvs moved onto the
+//    pages; each surface's own mesh stays, never drawn, for rays
+//  - one shadow proxy: the surfaces' geometry merged into a mesh that only
+//    casts shadows, so shadow passes cost a handful of draws
+// Tiles let three skip what's out of view (camera or moon shadow), and an
+// edit re-merges only the tiles whose props changed. Baked light (render/bake)
+// lives on the decor proxies; a rebake copies it into the merged batch in
+// place. Surfaces' light and paint live on the pages, so painting and
+// baking never re-merge anything.
 
 // three.js has no shadow-only flag, so a shadow proxy is in the camera pass
 // too. There this material puts every vertex outside the view: nothing is
@@ -35,13 +41,26 @@ interface Tile {
 
 export class DecorBatches {
   readonly root = new THREE.Group();
+  /** The merged paintable surfaces (and their shadow proxies), and the merged decor. */
+  readonly surfaces = new THREE.Group();
+  readonly decor = new THREE.Group();
   private dirty = false;
   private tiles = new Map<string, Tile>();
   private tileOf = new Map<BuiltProp, Tile>();
   /** Where each proxy geometry's vertices start in its merged batch. */
   private ranges = new Map<THREE.BufferGeometry, { batch: THREE.BufferGeometry; start: number }>();
 
+  constructor() {
+    this.root.add(this.surfaces, this.decor);
+  }
+
   markDirty() {
+    this.dirty = true;
+  }
+
+  /** Merge every tile again (surfaces moved to other light blocks). */
+  remergeAll() {
+    for (const tile of this.tiles.values()) tile.dirty = true;
     this.dirty = true;
   }
 
@@ -95,7 +114,7 @@ export class DecorBatches {
   private clear(tile: Tile) {
     for (const m of tile.meshes) {
       m.geometry.dispose();
-      this.root.remove(m);
+      m.removeFromParent();
     }
     for (const g of tile.merged) this.ranges.delete(g);
     tile.meshes = [];
@@ -105,6 +124,7 @@ export class DecorBatches {
   private merge(tile: Tile) {
     const groups = new Map<string, { mat: Mat; geos: THREE.BufferGeometry[] }>();
     const paintGeos: THREE.BufferGeometry[] = [];
+    const surfaces = new Map<string, { mat: Mat; list: PaintSurface[] }>();
     for (const b of tile.props) {
       for (const proxy of b.decor) {
         const mat = proxy.userData.mat as Mat;
@@ -112,7 +132,13 @@ export class DecorBatches {
         if (!groups.has(k)) groups.set(k, { mat, geos: [] });
         groups.get(k)!.geos.push(proxy.geometry);
       }
-      for (const s of b.paint) paintGeos.push(positionsOnly(s.mesh.geometry));
+      for (const s of b.paint) {
+        paintGeos.push(positionsOnly(s.mesh.geometry));
+        const mat = s.mesh.userData.mat as Mat;
+        const k = `${matKey(mat)}|${s.slot!.page.index}|${s.light?.page.index}`;
+        if (!surfaces.has(k)) surfaces.set(k, { mat, list: [] });
+        surfaces.get(k)!.list.push(s);
+      }
     }
     if (paintGeos.length) {
       const g = mergeGeometries(paintGeos);
@@ -122,7 +148,18 @@ export class DecorBatches {
       proxy.castShadow = true;
       proxy.matrixAutoUpdate = false;
       proxy.raycast = () => {};
-      this.add(tile, proxy);
+      this.add(tile, proxy, this.surfaces);
+    }
+    for (const { mat, list } of surfaces.values()) {
+      const geos = list.map(onPages);
+      const g = mergeGeometries(geos);
+      for (const p of geos) p.dispose();
+      g.computeBoundingSphere();
+      const mesh = new THREE.Mesh(g, surfaceMaterial(mat, list[0].slot!.page, list[0].light?.page));
+      mesh.matrixAutoUpdate = false;
+      mesh.receiveShadow = true; // the shadow proxy casts
+      mesh.raycast = () => {}; // each surface's own mesh takes the rays
+      this.add(tile, mesh, this.surfaces);
     }
     for (const { mat, geos } of groups.values()) {
       const g = mergeGeometries(geos);
@@ -138,20 +175,54 @@ export class DecorBatches {
       mesh.castShadow = mesh.receiveShadow = true;
       mesh.customDepthMaterial = swingDepthMaterial; // swinging parts cast moving shadows
       mesh.raycast = () => {}; // proxies handle raycasts
-      this.add(tile, mesh);
+      this.add(tile, mesh, this.decor);
     }
   }
 
-  private add(tile: Tile, mesh: THREE.Mesh) {
+  private add(tile: Tile, mesh: THREE.Mesh, into: THREE.Group) {
     tile.meshes.push(mesh);
-    this.root.add(mesh);
+    into.add(mesh);
   }
 }
 
-/** The tile a prop belongs to: the column its bounds' center is in. */
-function tileKey(bounds: THREE.Box3) {
-  const t = RENDER.batchTile;
-  return `${Math.floor((bounds.min.x + bounds.max.x) / 2 / t)},${Math.floor((bounds.min.z + bounds.max.z) / 2 / t)}`;
+/**
+ * A surface's geometry for merging: its paint and light uvs moved from its
+ * own atlases onto its blocks of the pages (the other attributes shared).
+ */
+function onPages(s: PaintSurface) {
+  const src = s.mesh.geometry;
+  const out = new THREE.BufferGeometry();
+  for (const [name, a] of Object.entries(src.attributes)) out.setAttribute(name, a);
+  out.setIndex(src.index);
+  const move = (name: string, x: number, y: number, w: number, h: number, size: number) => {
+    const from = src.attributes[name].array;
+    const to = new Float32Array(from.length);
+    for (let i = 0; i < from.length; i += 2) {
+      to[i] = (x + from[i] * w) / size;
+      to[i + 1] = (y + from[i + 1] * h) / size;
+    }
+    out.setAttribute(name, new THREE.BufferAttribute(to, 2));
+  };
+  const p = s.slot!;
+  move('uv', p.x, p.y, s.geo.atlasW, s.geo.atlasH, p.page.size);
+  if (s.light) move('lightUv', s.light.x, s.light.y, s.light.w, s.light.h, s.light.page.size);
+  return out;
+}
+
+/** One material per base material, paint page and light page: the pages' textures are shared uniforms. */
+const surfaceMaterials = new WeakMap<PaintPage, Map<LightPage | undefined, Map<string, SurfaceMaterial>>>();
+function surfaceMaterial(mat: Mat, paint: PaintPage, light: LightPage | undefined) {
+  const byLight = surfaceMaterials.get(paint) ?? surfaceMaterials.set(paint, new Map()).get(paint)!;
+  const byMat = byLight.get(light) ?? byLight.set(light, new Map()).get(light)!;
+  const k = matKey(mat);
+  let m = byMat.get(k);
+  if (!m) {
+    m = makeSurfaceMaterial({ tex: mat.tex, tileMeters: mat.tile, alphaTest: mat.alpha });
+    m.setPaintable(true);
+    m.bindPages(paint.uniform, light?.uniforms ?? null);
+    byMat.set(k, m);
+  }
+  return m;
 }
 
 function positionsOnly(g: THREE.BufferGeometry) {

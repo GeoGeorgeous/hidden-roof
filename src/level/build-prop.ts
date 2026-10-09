@@ -5,11 +5,12 @@ import type { PaintSurface, PaintSystem } from '../painting';
 import type { Ladder } from '../player';
 import { addBox, addCylinder, boxSurface, cylinderSurface, SurfaceBuilder, type Axis, type BoxFace, type SurfaceGeometry } from '../surfaces';
 import { M, type BoxPiece, type CylPiece, type Mat, type Piece, type Swing, type V3 } from '../kit/pieces';
-import { LIGHTS, NEON_COLORS, PAINT, type LightKind, type NeonColor } from '../config';
+import { LIGHTS, NEON_COLORS, PAINT, RENDER, type LightKind, type NeonColor } from '../config';
 import { setHex } from '../hex-color';
 import type { Track } from '../render/cctv-track';
 import type { Facade } from '../render/ink/facade';
 import type { Finish } from '../kit/finishes';
+import type { CoverIndex } from './cover';
 
 // Turns a prop's pieces into world-space geometry, colliders and climb volumes.
 // Rotations are multiples of 90°, so every box stays axis-aligned and its
@@ -151,6 +152,15 @@ export const matKey = (m: Mat) => `${m.tex}|${m.tile ?? ''}|${m.alpha ?? ''}`;
 function material(m: Mat) {
   return makeSurfaceMaterial({ tex: m.tex, tileMeters: m.tile, alphaTest: m.alpha });
 }
+/** What paint surfaces' own meshes carry: they're never drawn (level/batches.ts), only hit by rays (front faces). */
+const PROXY = new THREE.MeshBasicMaterial();
+
+/** The level tile (RENDER.batchTile m square columns) a box's center is in: batches merge per tile, and paint pages are shared per tile. */
+export function tileKey(bounds: THREE.Box3) {
+  const t = RENDER.batchTile;
+  return `${Math.floor((bounds.min.x + bounds.max.x) / 2 / t)},${Math.floor((bounds.min.z + bounds.max.z) / 2 / t)}`;
+}
+
 const decorMaterials = new Map<string, SurfaceMaterial>();
 export function decorMaterial(m: Mat) {
   const k = matKey(m);
@@ -164,8 +174,21 @@ const NO_FACADE: Facade = [0, 0, 0, 0];
 /** Materials that ring when rain hits them. */
 const METALS = new Set<Mat>([M.steel, M.metal, M.galv, M.ac, M.rust]);
 
-/** World-space geometry for pieces. With allowPaint=false everything is decor (ghost preview). */
-export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint = true): Expanded {
+const BOX_FACES: BoxFace[] = ['+x', '-x', '+y', '-y', '+z', '-z'];
+
+/** World boxes of a prop's opaque, still box pieces: what can cover a face (level/cover.ts). Rods and cylinders don't: their colliders are boxes round them, wider than they look. */
+export function solidBoxes(pieces: Piece[], pos: V3, rot: number): THREE.Box3[] {
+  const r = ((rot % 4) + 4) % 4;
+  const origin = new THREE.Vector3(...pos);
+  return pieces.filter((p): p is BoxPiece => p.k === 'box' && !p.swing && p.mat.alpha === undefined).map((p) => new THREE.Box3().setFromPoints([rotate(p.min, r).add(origin), rotate(p.max, r).add(origin)]));
+}
+
+/**
+ * World-space geometry for pieces. With allowPaint=false everything is decor
+ * (ghost preview). With `cover`, paintable box faces pressed against a solid
+ * box (level/cover.ts) are decor too.
+ */
+export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint = true, cover: CoverIndex | null = null): Expanded {
   const r = ((rot % 4) + 4) % 4;
   const origin = new THREE.Vector3(...pos);
   const at = (v: V3) => rotate(v, r).add(origin);
@@ -213,8 +236,11 @@ export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint =
     if (p.k === 'box') {
       const box = new THREE.Box3().setFromPoints([at(p.min), at(p.max)]);
       const skip = (p.skip ?? []).map((f) => rotateFace(f, r));
-      if (allowPaint && !p.swing && boxIsPaintable(p)) addBox(painter(p.mat), box.min, box.max, skip);
-      else decor(p.mat, boxSurface(box.min, box.max, skip, false, p.mat.letters).geometry, p.swing);
+      if (allowPaint && !p.swing && boxIsPaintable(p)) {
+        const covered = cover ? BOX_FACES.filter((f) => !skip.includes(f) && cover.covered(box, f)) : [];
+        if (covered.length) decor(p.mat, boxSurface(box.min, box.max, BOX_FACES.filter((f) => !covered.includes(f)), false, p.mat.letters).geometry);
+        if (skip.length + covered.length < 6) addBox(painter(p.mat), box.min, box.max, [...skip, ...covered]);
+      } else decor(p.mat, boxSurface(box.min, box.max, skip, false, p.mat.letters).geometry, p.swing);
       if (p.collide && !p.swing) collide(p.mat, [box]);
       metal(p.mat, new THREE.Vector3((box.min.x + box.max.x) / 2, box.max.y, (box.min.z + box.max.z) / 2));
     } else if (p.k === 'cyl') {
@@ -276,9 +302,9 @@ function mergeDecor(decor: Expanded['decor']) {
   });
 }
 
-/** `owner`: the first part of the prop's paint surface keys (PaintSurface.key). */
-export function buildProp(id: number, owner: string, pieces: Piece[], pos: V3, rot: number, paint: PaintSystem): BuiltProp {
-  const ex = expandPieces(pieces, pos, rot);
+/** `owner`: the first part of the prop's paint surface keys (PaintSurface.key); `cover`: the level's solid boxes (covered faces are decor). */
+export function buildProp(id: number, owner: string, pieces: Piece[], pos: V3, rot: number, paint: PaintSystem, cover: CoverIndex | null = null): BuiltProp {
+  const ex = expandPieces(pieces, pos, rot, true, cover);
   const out: BuiltProp = { group: new THREE.Group(), decor: [], colliders: ex.colliders, occluders: ex.occluders, ladders: ex.ladders, lights: ex.lights, emitters: ex.emitters, solids: [], paint: [], bounds: new THREE.Box3() };
   const add = (g: THREE.BufferGeometry, m: THREE.Material) => {
     const mesh = new THREE.Mesh(g, m);
@@ -289,12 +315,12 @@ export function buildProp(id: number, owner: string, pieces: Piece[], pos: V3, r
     return mesh;
   };
   for (const { geo, mat } of ex.paint) {
-    const m = material(mat);
-    m.setPaintable(true);
-    const mesh = add(swingGeometry(geo.geometry), m);
-    mesh.castShadow = false; // the level-wide shadow proxy casts for all paint meshes
+    const mesh = add(swingGeometry(geo.geometry), PROXY);
+    mesh.visible = false; // drawn merged with its tile's surfaces (level/batches.ts)
+    mesh.castShadow = false;
+    mesh.userData.mat = mat;
     out.solids.push(mesh);
-    out.paint.push(paint.register(`${owner}#${out.paint.length}`, mesh, m, geo));
+    out.paint.push(paint.register(`${owner}#${out.paint.length}`, mesh, geo, tileKey(geo.geometry.boundingBox!)));
   }
   for (const { geo, mat } of mergeDecor(ex.decor)) {
     const mesh = add(geo, decorMaterial(mat));
@@ -311,11 +337,7 @@ export function buildProp(id: number, owner: string, pieces: Piece[], pos: V3, r
 
 export function disposeProp(b: BuiltProp, paint: PaintSystem) {
   for (const s of b.paint) paint.unregister(s.mesh);
-  for (const o of b.group.children) {
-    const m = o as THREE.Mesh;
-    m.geometry.dispose();
-    if (!b.decor.includes(m)) (m.material as THREE.Material).dispose();
-  }
+  for (const o of b.group.children) (o as THREE.Mesh).geometry.dispose();
   b.group.removeFromParent();
 }
 

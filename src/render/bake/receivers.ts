@@ -1,13 +1,14 @@
 import * as THREE from 'three';
-import { LIGHTMAP } from '../../config';
 import type { PaintSurface } from '../../painting';
-import { layoutLightmap, type LightLayout } from './layout';
+import { lightTexels, type LightLayout } from './layout';
 import { lightAt, type Lamp } from './lamps';
+import type { LightPages, LightSlot } from './light-pages';
 import type { Occluders } from './occluders';
 
-// What baked light lands on: paintable surfaces get a lightmap texture each
-// (half float, linear light), plus a flicker layer while neon light reaches
-// them (alpha = the flicker slot); decor proxies get it in their vertices.
+// What baked light lands on: paintable surfaces get a light atlas each, a
+// block of a shared page (light-pages.ts: half float, linear light, plus a
+// flicker layer where neon light reaches, alpha = the flicker slot); decor
+// proxies get it in their vertices.
 
 export interface SurfaceReceiver {
   kind: 'surface';
@@ -15,11 +16,9 @@ export interface SurfaceReceiver {
   owner: number;
   bounds: THREE.Box3;
   surface: PaintSurface;
-  /** Paint texels per meter the surface was built with (its atlas rects are in those). */
-  paintDensity: number;
-  layout: LightLayout | null;
-  light: THREE.DataTexture | null;
-  flicker: THREE.DataTexture | null;
+  layout: LightLayout;
+  /** Its block on a light page (also PaintSurface.light). */
+  slot: LightSlot;
 }
 
 export interface DecorReceiver {
@@ -36,16 +35,12 @@ export type Receiver = SurfaceReceiver | DecorReceiver;
 const out = new Float32Array(7);
 const toHalf = THREE.DataUtils.toHalfFloat;
 
-/** Bake a surface's lightmap from the lamps that can reach it. */
-export function bakeSurface(r: SurfaceReceiver, lamps: Lamp[], occluders: Occluders) {
-  if (!lamps.length) return clearSurface(r);
-  r.layout ??= layoutLightmap(r.surface.geo, r.paintDensity, LIGHTMAP.texelsPerMeter);
-  const { w, h, points, pixels, fill } = r.layout;
-  if (r.light?.image.width !== w || r.light.image.height !== h) {
-    r.light?.dispose();
-    r.light = lightTexture(w, h);
-  }
-  const light = r.light.image.data as Uint16Array;
+/** Bake a surface's lightmap from the lamps that can reach it, into its block. */
+export function bakeSurface(r: SurfaceReceiver, lamps: Lamp[], occluders: Occluders, pages: LightPages) {
+  if (!lamps.length) return pages.write(r.slot, null, null);
+  const { w, h } = r.layout;
+  const { points, pixels, fill } = (r.layout.texels ??= lightTexels(r.surface.geo, r.layout));
+  const light = (lightScratch = room(lightScratch, w * h * 4));
   let flicker: Uint16Array | null = null;
   for (let i = 0; i < pixels.length; i++) {
     const p = i * 6;
@@ -55,22 +50,24 @@ export function bakeSurface(r: SurfaceReceiver, lamps: Lamp[], occluders: Occlud
     light[o + 1] = toHalf(out[1]);
     light[o + 2] = toHalf(out[2]);
     if (!out[6]) continue;
-    flicker ??= flickerLayer(r, w, h);
+    flicker ??= flickerScratch = room(flickerScratch, w * h * 4);
     flicker[o] = toHalf(out[3]);
     flicker[o + 1] = toHalf(out[4]);
     flicker[o + 2] = toHalf(out[5]);
     flicker[o + 3] = toHalf(out[6]);
   }
   copyFill(light, fill);
-  r.light.needsUpdate = true;
-  if (flicker) {
-    copyFill(flicker, fill);
-    r.flicker!.needsUpdate = true;
-  } else if (r.flicker) {
-    r.flicker.dispose();
-    r.flicker = null;
-  }
-  r.surface.material.setLightmap(r.light, r.flicker);
+  if (flicker) copyFill(flicker, fill);
+  pages.write(r.slot, light, flicker, w, h);
+}
+
+let lightScratch: Uint16Array = new Uint16Array(0);
+let flickerScratch: Uint16Array = new Uint16Array(0);
+/** A scratch block of at least `n` values, zeroed. */
+function room(a: Uint16Array, n: number): Uint16Array {
+  if (a.length < n) a = new Uint16Array(n);
+  a.fill(0, 0, n);
+  return a;
 }
 
 /** Bake light into a decor proxy's vertices. Returns whether they changed. */
@@ -102,45 +99,12 @@ export function bakeDecor(r: DecorReceiver, lamps: Lamp[], occluders: Occluders)
   return true;
 }
 
-/** Free a receiver's textures (its prop was removed or rebuilt). */
-export function dropReceiver(r: Receiver) {
-  if (r.kind === 'surface') {
-    r.light?.dispose();
-    r.flicker?.dispose();
-    r.light = r.flicker = null;
-  }
-}
-
-/** Bytes of GPU texture memory a receiver holds. */
-export function receiverBytes(r: Receiver) {
-  if (r.kind !== 'surface') return 0;
-  const size = (t: THREE.DataTexture | null) => (t ? t.image.width * t.image.height * 8 : 0);
-  return size(r.light) + size(r.flicker);
-}
-
-function clearSurface(r: SurfaceReceiver) {
-  dropReceiver(r);
-  r.surface.material.setLightmap(null, null);
-}
-
-/** The surface's flicker layer, cleared, at the lightmap's size. */
-function flickerLayer(r: SurfaceReceiver, w: number, h: number) {
-  if (r.flicker?.image.width !== w || r.flicker.image.height !== h) {
-    r.flicker?.dispose();
-    r.flicker = lightTexture(w, h);
-  }
-  const data = r.flicker.image.data as Uint16Array;
-  data.fill(0);
-  return data;
+/** Give a surface's block back (its prop was removed or rebuilt). */
+export function dropReceiver(r: Receiver, pages: LightPages) {
+  if (r.kind === 'surface') pages.release(r.slot);
 }
 
 /** Gutter and uncovered texels copy their nearest covered texel (see layout.ts). */
 function copyFill(data: Uint16Array, fill: Int32Array) {
   for (let i = 0; i < fill.length; i += 2) data.copyWithin(fill[i] * 4, fill[i + 1] * 4, fill[i + 1] * 4 + 4);
-}
-
-function lightTexture(w: number, h: number) {
-  const t = new THREE.DataTexture(new Uint16Array(w * h * 4), w, h, THREE.RGBAFormat, THREE.HalfFloatType);
-  t.minFilter = t.magFilter = THREE.LinearFilter;
-  return t;
 }
