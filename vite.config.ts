@@ -27,6 +27,10 @@ const releaseLevels = {
   },
 };
 
+// The Content Security Policy roof.hidden.haus sends (docs/deploy.md). data: for
+// the hotbar's blank icon (inventory/thumbnails.ts), blob: for downloads and screenshots.
+const CSP = "default-src 'self'; img-src 'self' data: blob:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'";
+
 // The game builds with Vite's defaults. The multiplayer server (server/) is
 // built as one file with everything in it (vite build --ssr), so its image
 // needs no node_modules, nor the game's public files; in dev, /ws goes to a
@@ -39,4 +43,6 @@ export default defineConfig(({ mode, isSsrBuild }) => ({
   ssr: { noExternal: true },
   build: { copyPublicDir: !isSsrBuild },
   server: { proxy: { '/ws': { target: process.env.WS_TARGET ?? 'ws://localhost:3000', ws: true } } },
+  // vite preview serves the player build as production does (docs/deploy.md, the Caddy block).
+  preview: { headers: { 'Content-Security-Policy': CSP }, proxy: { '/ws': { target: process.env.WS_TARGET ?? 'ws://localhost:3000', ws: true } } },
 }));

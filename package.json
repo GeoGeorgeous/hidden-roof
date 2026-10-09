@@ -18,8 +18,9 @@
     "test": "node scripts/paint-file.test.mjs && node scripts/protocol.test.mjs",
     "test:game": "node scripts/game.test.mjs",
     "test:mp": "npm run build:server -- --logLevel warn && node scripts/multiplayer.test.mjs",
+    "test:csp": "npm run build:dev -- --logLevel warn && npm run build:server -- --logLevel warn && node scripts/csp.test.mjs",
     "test:server": "npm run build:server -- --logLevel warn && vite build --ssr server/server-test.ts --outDir dist-server/test --logLevel warn && node dist-server/test/server-test.js",
-    "check": "npm run typecheck && npm test && npm run smoke && npm run test:game && npm run test:server && node scripts/multiplayer.test.mjs && knip",
+    "check": "npm run typecheck && npm test && npm run smoke && npm run test:game && npm run test:server && node scripts/multiplayer.test.mjs && npm run test:csp && knip",
     "audit": "knip; jscpd src"
   },
   "dependencies": {

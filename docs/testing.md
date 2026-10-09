@@ -6,10 +6,11 @@ How the game is tested, and what makes the tests slow or unpredictable: what's f
 
 | Command | What | Time |
 |---|---|---|
-| `npm run check` | Type check, `npm test`, smoke test, game tests, knip. Run before and after every change. | ~22 s |
+| `npm run check` | Type check, `npm test`, smoke test, game tests, server and multiplayer tests, the CSP test, knip. Run before and after every change. | ~22 s |
 | `npm test` | Paint save file round trip and rejections (broken, older, newer, oversized), in Node (as a server will run it). | <1 s |
 | `npm run smoke` | Loads the game, renders a few frames, screenshots `shots/00-start.png`. Fails on page errors and console errors. `STEPS` (JSON `[{ js, wait, shot }]`) adds steps and screenshots. | ~10 s |
 | `npm run test:game` | Behavior the golden test doesn't cover: the menu's SAVE / LOAD PAINT, saves through level edits and changed props, spray at LOAD, the sponge freeing memory, prop ids, city overrides, save names, wheel sizes, hotbar icons, sign sizes with another font (`scripts/game.test.mjs`). | ~11 s |
+| `npm run test:csp` | The game under the site's Content Security Policy (`CSP` in `vite.config.ts`, served by `vite preview`): start screen, color tag, spraying, a download, SETTINGS, HOST against a local server. Fails on any violation or console error. Part of `npm run check`. | ~20 s |
 | `npm run golden` | Paint at every PAINT DETAIL against a baseline, the loopback replay of paint ops, and saves (`docs/golden-paint.md`). | ~20 s |
 | `npm run bench:save` | Save size and SAVE / LOAD time at LOW and ULTRA, 10% to all faces painted, real and random paint. Needs `npm run golden` first. | ~50 s |
 
