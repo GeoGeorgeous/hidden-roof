@@ -1,26 +1,55 @@
 import * as THREE from 'three';
-import { ATMOS, LIGHTS } from '../config';
+import { ATMOS, INK, INK_TINT, LIGHTS } from '../config';
 import { syncAnchor, type LightAnchor } from '../level/build-prop';
+import { shared } from '../materials';
+import { glslFloat } from './ink/tone';
+import { FLICKER_GLSL } from './flicker';
 
 // Cheap light tricks for every light prop, in two draw calls total (white,
-// whatever the light's color: the world is ink, only paint has color):
+// whatever the light's color: the world is ink, only paint has color; except
+// the glows of lamp kinds with a tint, as their light on walls):
 //  - glow sprites at the lens: one Points batch, additive, soft round falloff,
-//    bright when you look into the lens and gone when you see it from behind
+//    bright when you look into the lens and gone when you see it from behind;
+//    colored ones also cover what's behind them a little with their color (a
+//    haze that shows over paper) and pulse or flicker with their lamp
 //  - beams: one merged additive mesh, fading along the beam
 // Rebuilt only when the level or a light setting changes.
 
 const glowMaterial = new THREE.ShaderMaterial({
   transparent: true,
   depthWrite: false,
-  blending: THREE.AdditiveBlending,
-  uniforms: { uScale: { value: 300 }, uStrength: { value: 1 }, uFogDensity: { value: ATMOS.fogDensity } },
+  // Premultiplied: white glows (alpha 0) add, colored ones also cover by their alpha.
+  blending: THREE.CustomBlending,
+  blendSrc: THREE.OneFactor,
+  blendDst: THREE.OneMinusSrcAlphaFactor,
+  uniforms: {
+    uScale: { value: 300 },
+    uStrength: { value: 1 },
+    uFogDensity: { value: ATMOS.fogDensity },
+    uInkTint: { value: INK.tint },
+    uTime: shared.uTime,
+    uFlickerSpeed: shared.uFlickerSpeed,
+    uFlickerRate: shared.uFlickerRate,
+    uFlickerDepth: shared.uFlickerDepth,
+    uFlickerHum: shared.uFlickerHum,
+    uPulseRate: shared.uPulseRate,
+    uPulseDepth: shared.uPulseDepth,
+    uBrokenRate: shared.uBrokenRate,
+    uBrokenDepth: shared.uBrokenDepth,
+  },
   vertexShader: /* glsl */ `
     attribute float size;
     attribute vec3 color;
     attribute vec3 facing;
+    attribute float hue;
+    attribute float flicker;
     uniform float uScale;
     uniform float uFogDensity;
+    uniform float uInkTint;
+    uniform float uTime;
     varying vec3 vColor;
+    varying float vCover;
+    ${FLICKER_GLSL}
     void main() {
       vec4 mv = modelViewMatrix * vec4(position, 1.0);
       float d = length(mv.xyz);
@@ -29,18 +58,22 @@ const glowMaterial = new THREE.ShaderMaterial({
       vec3 toCam = normalize(cameraPosition - (modelMatrix * vec4(position, 1.0)).xyz);
       // facing = 0: a bare bulb, visible from every side.
       float face = dot(facing, facing) < 0.25 ? 1.0 : smoothstep(-0.1, 0.5, dot(toCam, facing));
-      // Ink look: lights are white, never colored.
-      vColor = vec3(dot(color, vec3(0.2126, 0.7152, 0.0722))) * face * exp(-uFogDensity * 0.6 * d);
+      // Ink look: lights are white, except kinds with a tint (switched off with INK.tint).
+      float h = uInkTint > 0.0 ? hue : 0.0;
+      float k = face * exp(-uFogDensity * 0.6 * d) * (flicker != 0.0 ? lampLevel(uTime, flicker) : 1.0);
+      vColor = mix(vec3(dot(color, vec3(0.2126, 0.7152, 0.0722))), color, h) * k;
+      vCover = h * ${glslFloat(INK_TINT.glowCover)} * k;
       gl_PointSize = size * uScale / max(d, 0.1);
       gl_Position = projectionMatrix * mv;
     }`,
   fragmentShader: /* glsl */ `
     uniform float uStrength;
     varying vec3 vColor;
+    varying float vCover;
     void main() {
       float r = length(gl_PointCoord - 0.5) * 2.0;
       float a = pow(max(1.0 - r, 0.0), 2.2);
-      gl_FragColor = vec4(vColor * a * uStrength, 1.0);
+      gl_FragColor = vec4(vColor * a * uStrength, min(vCover * a * uStrength, 1.0));
     }`,
 });
 
@@ -96,6 +129,7 @@ export class LightFX {
   update() {
     glowMaterial.uniforms.uStrength.value = ATMOS.practical;
     glowMaterial.uniforms.uFogDensity.value = ATMOS.fogDensity;
+    glowMaterial.uniforms.uInkTint.value = INK.tint;
     coneMaterial.uniforms.uStrength.value = ATMOS.practical;
   }
 
@@ -117,6 +151,8 @@ export class LightFX {
       g.setAttribute('color', new THREE.Float32BufferAttribute(glows.flatMap(({ a }) => a.color.toArray()), 3));
       g.setAttribute('facing', new THREE.Float32BufferAttribute(glows.flatMap(({ a }) => (LIGHTS[a.kind].glowAllAround ? [0, 0, 0] : a.dir.toArray())), 3));
       g.setAttribute('size', new THREE.Float32BufferAttribute(glows.map(({ a }) => LIGHTS[a.kind].glow), 1));
+      g.setAttribute('hue', new THREE.Float32BufferAttribute(glows.map(({ a }) => Math.min(LIGHTS[a.kind].tint, 1)), 1));
+      g.setAttribute('flicker', new THREE.Float32BufferAttribute(glows.map(({ a }) => a.flicker), 1));
       this.glows = new THREE.Points(g, glowMaterial);
       this.glows.frustumCulled = false;
       this.root.add(this.glows);

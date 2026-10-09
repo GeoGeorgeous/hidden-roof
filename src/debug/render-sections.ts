@@ -1,5 +1,6 @@
-import { type LightKind, type NeonColor, INK, INK_PRESETS, LIGHT_SPREAD_MAX, LIGHTS, NEON_COLORS } from '../config';
-import { authoredOf, swapDefault } from './defaults';
+import { type LightKind, type NeonColor, INK, INK_PRESETS, INK_STYLES, LIGHT_SPREAD_MAX, LIGHTS, NEON_COLORS } from '../config';
+import { INK_COLORS, INK_SETS, inkStyle, setInkStyle } from '../render/ink/styles';
+import { swapDefault } from './defaults';
 import { live, r, t, c, when, type Item, type Section } from './tuning';
 
 // F3 panel contents for rendering (tuning.ts has the helpers): the ink
@@ -28,7 +29,7 @@ function lightItems(): Item[] {
       ...(k === 'neon'
         ? (Object.keys(NEON_COLORS) as NeonColor[]).map((n) => c(`color: ${n}`, ['NEON_COLORS', n], props))
         : [c('color', ['LIGHTS', k, 'color'], props)]),
-      ...(cctv ? [] : [r('tint', ['LIGHTS', k, 'tint'], 0, 1, 0.05, props)]),
+      ...(cctv ? [] : [r('tint', ['LIGHTS', k, 'tint'], 0, 4, 0.05, props)]),
       r('intensity', ['LIGHTS', k, 'intensity'], 0, 200, 0.5),
       r('reach', ['LIGHTS', k, 'range'], 1, 80, 0.5, fx),
       r('spread', ['LIGHTS', k, 'spread'], 0.1, LIGHT_SPREAD_MAX, 0.01, fx),
@@ -42,35 +43,33 @@ function lightItems(): Item[] {
   });
 }
 
-const INK_COLORS = ['paper', 'ink', 'sky', 'cloud'] as const;
-
 /**
- * Buttons for the color sets (INK_PRESETS): picking one keeps the edits of the
- * one it leaves, and makes its own colors what RESET puts back (RESET also
- * drops the edits of the others). COPY gives them all.
+ * Buttons for the color sets (INK_STYLES, as in GRAPHICS → STYLE, then INK_PRESETS):
+ * picking one keeps the edits of the one it leaves, and makes its own colors
+ * what RESET puts back (RESET also drops the edits of the others). COPY gives them all.
  */
 function inkPresets(): Item {
-  /** Set i's color k in config.ts. */
-  const authored = (i: number, k: (typeof INK_COLORS)[number]) => INK_PRESETS[i][k] ?? String(authoredOf(['INK', k]));
-  const fresh = () => INK_PRESETS.map((p) => ({ ...p }));
+  const fresh = () => INK_SETS.map((s) => ({ ...s }));
   let sets = fresh();
-  let on = 0;
   return {
     kind: 'choice',
     label: 'preset',
-    options: sets.map((_, i) => String(i + 1)),
-    get: () => on,
+    options: [...INK_STYLES.map((s) => s.short), ...INK_PRESETS.map((_, i) => String(i + 1))],
+    get: inkStyle,
     pick(i) {
-      for (const k of INK_COLORS) sets[on][k] = INK[k];
-      on = i;
+      for (const k of INK_COLORS) sets[inkStyle()][k] = INK[k];
+      setInkStyle(i);
       for (const k of INK_COLORS) {
-        swapDefault(['INK', k], authored(i, k));
-        INK[k] = sets[i][k] ?? authored(i, k);
+        swapDefault(['INK', k], INK_SETS[i][k]);
+        INK[k] = sets[i][k];
       }
     },
     reset: () => (sets = fresh()),
     // Every set in full: the picked one as it shows now.
-    copy: () => ({ INK_PRESETS: sets.map((p, i) => Object.fromEntries(INK_COLORS.map((k) => [k, i === on ? INK[k] : (p[k] ?? authored(i, k))]))) }),
+    copy: () => {
+      const all = sets.map((p, i) => (i === inkStyle() ? { ...p, ...Object.fromEntries(INK_COLORS.map((k) => [k, INK[k]])) } : p));
+      return { INK_STYLES: all.slice(0, INK_STYLES.length), INK_PRESETS: all.slice(INK_STYLES.length) };
+    },
   };
 }
 
@@ -228,6 +227,7 @@ export function uiSections(): Section[] {
         // Seen only without F3: changing them shows that sheet behind the panel for a moment.
         r('opacity', ['PAUSE_MENU', 'opacity'], 0, 1, 0.05, () => live.previewPause()),
         t('controls', ['PAUSE_MENU', 'controls'], () => live.previewPause()),
+        r('size', ['PAUSE_MENU', 'scale'], 0.8, 2, 0.05, () => live.previewPause()),
       ],
     },
   ];

@@ -18,7 +18,7 @@ import { LUM_GLSL } from '../light-tint';
 
 const LUM = LUM_GLSL;
 /** A number as a GLSL float literal. */
-const glslFloat = (n: number) => (Number.isInteger(n) ? `${n}.0` : String(n));
+export const glslFloat = (n: number) => (Number.isInteger(n) ? `${n}.0` : String(n));
 
 /**
  * Value noise for the shader as a small tiling 3D texture: one filtered fetch
@@ -192,7 +192,8 @@ export const INK_FRAG = /* glsl */ `
   float dirt = max(max(hatch.y * grime.x, hatch.x * grime.y), max(max(hatch.x, hatch.y) * grime.z * 0.8, grime.w));
   vec3 col = mix(uPaper, uInkColor, max(inkCover(inkFade(tone, keep), hatch, inkP), dirt * smoothstep(0.35, 0.65, keep)));
   // Colored lamps (LIGHTS[kind].tint): their hue, relative to the light on the surface, tints paper and ink alike.
-  col *= 1.0 + clamp(inkChroma / max(light, ${glslFloat(INK_TINT.minLight)}), -${glslFloat(INK_TINT.max)}, ${glslFloat(INK_TINT.max)}) * uInkTint;
+  // Lamps with tint above 1 darken the other channels past INK_TINT.max, down to INK_TINT.deep: paper takes their color.
+  col *= max(1.0 + clamp(inkChroma / max(light, ${glslFloat(INK_TINT.minLight)}), -${glslFloat(INK_TINT.deep)}, ${glslFloat(INK_TINT.max)}) * uInkTint, 0.0);
 #ifdef LETTERS
   // Sign lettering skips the light: ink where the lettering atlas is dark, paper
   // elsewhere, so a sign reads in any light (shadow, night). Fades with distance.

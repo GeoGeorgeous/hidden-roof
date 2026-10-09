@@ -215,7 +215,7 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
   - `walkSpeed`, `sprintSpeed`
   - `acceleration`, `friction`, `airControl`
   - `jumpHeight`, `gravity`
-  - `stepHeight`, `climbSpeed`, `ladderJumpOff`
+  - `stepHeight`, `climbSpeed`
   - `eyeHeight`, `height`, `radius`
   - `mouseSensitivity`, `killY`
   - `footstepStride`, `hardLanding` (footstep sounds)

@@ -37,6 +37,7 @@ export function playSections(): Section[] {
         { kind: 'readout', label: 'state', get: () => p()?.state ?? '-' },
         r('walk speed', ['PLAYER', 'walkSpeed'], 1, 12, 0.1),
         r('sprint: speed', ['PLAYER', 'sprintSpeed'], 1, 16, 0.1),
+        r('sprint: double tap', ['PLAYER', 'sprintDoubleTap'], 0.1, 0.6, 0.01),
         r('crouch: speed', ['PLAYER', 'crouchSpeed'], 0.5, 6, 0.1),
         r('acceleration', ['PLAYER', 'acceleration'], 1, 40, 0.5),
         r('friction', ['PLAYER', 'friction'], 1, 40, 0.5),
@@ -46,7 +47,6 @@ export function playSections(): Section[] {
         r('ladder: climb speed', ['PLAYER', 'climbSpeed'], 0.5, 6, 0.1),
         r('step height', ['PLAYER', 'stepHeight'], 0, 0.8, 0.01),
         r('crouch: height', ['PLAYER', 'crouchHeight'], 0.6, 1.7, 0.01),
-        r('ladder: jump-off', ['PLAYER', 'ladderJumpOff'], 0, 10, 0.1),
       ],
     },
     {
