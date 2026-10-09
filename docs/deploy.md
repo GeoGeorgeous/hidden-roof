@@ -16,15 +16,15 @@ Context for the agent that deploys and runs the game on the VPS. Read it before 
 - three.js + TypeScript + Vite, with a small `vite.config.ts` (the version, the server bundle, the dev `/ws` proxy; `base: '/'`). It is purely static: no API, no env secrets, no external services or CDNs, and no WASM, Workers or SharedArrayBuffer, so no COOP/COEP headers.
 - Everything is generated in code: no models, texture files or audio. The server only serves the JS/CSS bundle, two `woff2` fonts, `levels/*.json` and `favicon.svg`. The build is about 1 MB, of which the JS is ~860 KB (~250 KB gzipped).
 - **Paths are absolute** (`/assets`, `/fonts`, `/favicon.svg`), so the game must be served from the root of its domain.
-- `?level=name` fetches `/levels/name.json`. A missing level must be a real 404. **No SPA fallback**: an `index.html` served in its place breaks JSON parsing.
+- `?level=name` fetches `/levels/name.json`. Without it the game opens `LEVELS.start`, and the player build ships only the levels in `LEVELS.release` (`src/config.ts`). A missing level must be a real 404. **No SPA fallback**: an `index.html` served in its place breaks JSON parsing.
 - Settings are kept in `localStorage`, per origin. Changing the domain or the scheme resets them.
 
 ## 3. Builds *(changes)*
 
-- `npm run build` → `dist/` **includes the dev tools**: build mode (B), the F3 panel and `window.game`. Don't deploy it.
-- `npm run build:mp` → `dist-mp/` is the same game without the dev tools (`VITE_MP=1` from `.env.multiplayer`; in `src/main.ts`, it only skips the dev tools import and the F3 defaults). **Deploy this one, single player included.**
-- Planned: rework the build scripts so the production build without the dev tools isn't tied to the multiplayer name. Check `package.json` for the current script and output directory.
-- Building needs Node `^20.19 || >=22.12` (locally Node 24) and the devDependencies (`tsc`, `vite`): use `npm ci`, without `--omit=dev`. `dist*/` are gitignored.
+- `npm run build` → `dist/` is the player build, single player and multiplayer: **deploy this one.** It leaves out the dev tools (build mode, the F3 panel, `window.game`: `__DEV_TOOLS__` in `vite.config.ts`, false only in production mode).
+- `npm run build:dev` → `dist-dev/` is the same with the dev tools. Never deploy it.
+- `v1.0.0` predates this: there the player build is `npm run build:mp` → `dist-mp/`, and `npm run build` includes the dev tools. Check `package.json` of the tag you deploy.
+- Building needs Node `^20.19 || >=22.12` (locally Node 24) and the devDependencies (`tsc`, `vite`): use `npm ci`, without `--omit=dev`. `dist/` and `dist-*/` are gitignored.
 
 ## 4. The host
 
@@ -35,10 +35,10 @@ The host's details (machine, other services, firewall, paths) are kept out of th
 - One origin, `roof.hidden.haus`: static files at `/`, the WebSocket at `/ws`. No CORS.
 - **Static files via Caddy, the server apart** (decided 2026-10-08):
   - `<apps>/roof/repo`: a git clone of this repo. The server image is built from it.
-  - `<apps>/roof/www`: the `build:mp` output, mounted into Caddy as `/srv/roof:ro`.
+  - `<apps>/roof/www`: the player build (`npm run build`, `dist/`), mounted into Caddy as `/srv/roof:ro`.
   - Why: a client-only deploy leaves the server image unchanged, so `roof` isn't recreated and live sessions survive. The game also loads while the server is down.
 - Never put the static files in `Caddy's data directory` (certificates) or serve them from the clone's `dist*/`, where a local build would overwrite prod.
-- Update the static files in place: `rsync -a --delete-delay --delay-updates dist-mp/ <apps>/roof/www/`. Never swap the directory with `mv`, because the bind mount keeps the old inode.
+- Update the static files in place: `rsync -a --delete-delay --delay-updates dist/ <apps>/roof/www/`. Never swap the directory with `mv`, because the bind mount keeps the old inode.
 - **Build the client off the host** (there's no Node on it): in GitHub Actions (then rsync the output) or in a throwaway `node:24-slim` container. Planned flow: push to `main` → Actions builds → deploy over SSH with the repo's own deploy key.
 - **The server is started by hand** (not automated, by choice): in `<apps>/roof/repo`, `git pull`, then `docker compose up -d --build roof` from `<apps>`.
 - **Client and server versions can differ** after deploys at different times. The client sends a protocol version and its surface-table hash when it connects; on a mismatch the server rejects it and the client asks for a page reload (`docs/multiplayer-audit.md`, section 4, Versions). When a deploy bumps the protocol, restart `roof` and deploy the client together: live sessions end, and old tabs are told to reload.
@@ -111,5 +111,5 @@ The design is in `docs/multiplayer-audit.md` (sections 0, 4, 5, 6.4, 7, 8). The 
 - `curl -I` on a file under `/assets/` → `immutable`. With `-H 'Accept-Encoding: gzip'` → `content-encoding` is set.
 - `curl -I https://roof.hidden.haus/levels/nope.json` → 404, not `index.html`.
 - In a browser: no 404s, `demo.json` and both fonts load, the console is clean, the game starts.
-- `scripts/smoke.mjs <url>` uses `window.game` and F3, so it only works against `npm run build` output, not the production build.
+- `scripts/smoke.mjs <url>` uses `window.game` and F3, so it only works against the dev server or `npm run build:dev` output, not the player build.
 - Once `/ws` exists: `docker compose ps roof` is healthy, and in two browser windows HOST shows a code that JOIN accepts.

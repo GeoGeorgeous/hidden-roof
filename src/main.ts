@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import * as config from './config';
-import { ATMOS, AUDIO, COLORS, HUD, INK, PLAYER, PRESSURE, RENDER, SMOKE, THUNDER, VIEWMODEL, VOLUMETRICS } from './config';
+import { ATMOS, AUDIO, COLORS, HUD, INK, LEVELS, PLAYER, PRESSURE, RENDER, SMOKE, THUNDER, VIEWMODEL, VOLUMETRICS } from './config';
 import { syncSharedUniforms } from './materials';
 import { syncTrackUniforms } from './render/cctv-track';
 import { Lighting } from './render/lighting';
@@ -48,8 +48,10 @@ import { exitGameFullscreen } from './fullscreen';
 import { setHex } from './hex-color';
 import { seedPaintRandom } from './lcg';
 
-// F3's defaults before anything changes config (single player: the panel isn't in the multiplayer build).
-if (import.meta.env.VITE_MP !== '1') captureDefaults();
+// F3's defaults before anything changes config (the panel isn't in the player build).
+if (__DEV_TOOLS__) captureDefaults();
+// Players start without the performance lines; SETTINGS → GRAPHICS turns them on.
+else HUD.perf = false;
 // Settings first: they may change the pixel scale the renderer starts with,
 // and the paint detail the level is built with.
 const settings = new Settings(applyPixelScale, () => level.rebuildAll(), rebuildCity);
@@ -161,7 +163,7 @@ function openLevel(data: LevelData, name: string) {
 }
 
 /** The level's name: from ?level=, or the file opened in build mode. Paint saves are named by it. */
-let levelName = new URLSearchParams(location.search).get('level') ?? 'demo';
+let levelName = new URLSearchParams(location.search).get('level') ?? LEVELS.start;
 // Signs measure their text when they are built: wait for the sign font first.
 Promise.all([fetchLevel(levelName), jpFontReady()])
   .then(([data]) => {
@@ -377,7 +379,7 @@ function toScreen(p: THREE.Vector3) {
   return { x: (p.x * 0.5 + 0.5) * window.innerWidth, y: (0.5 - p.y * 0.5) * window.innerHeight };
 }
 
-// Dev tools (build mode, F3, window.game) only in single player; the multiplayer build (npm run build:mp) leaves them out.
+// Dev tools (build mode, F3, window.game): single player only, and not in the player build (npm run build).
 let dev: DevTools | undefined;
 const game = { city: () => skyline, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, hotbar, pickups, paint, paintOps, net, paintFile, seedPaintRandom, fixedStep, session, level, renderer, input, hud, scene, viewScene, gpuTimer, PLAYER, loadLevel, rebuildCity, levelData, openLevel };
-if (import.meta.env.VITE_MP !== '1') void import('./dev/devtools').then((m) => (dev = new m.DevTools(game)));
+if (__DEV_TOOLS__) void import('./dev/devtools').then((m) => (dev = new m.DevTools(game)));
