@@ -1,12 +1,14 @@
 import * as THREE from 'three';
-import { COLORS, INK, ROLLER, type CapId, type PaintColor } from '../config';
+import { COLORS, INK, PICKUP, ROLLER, type CapId, type PaintColor } from '../config';
 import { canShape, capSeat, capShape, ladderShape, markerShape, rollerShape, spongeShape } from '../tools/shapes';
 import type { PickupKind } from '../inventory/items';
 
 // Pickup look, inked: the item hovers and spins, tilted, inside a drawn ring
 // (a solid one and a dashed one inside it), so it reads from far away. Only
-// paint and caps are in color (a color pickup's label and ring, a cap); the
-// rest is ink, and so is every other ring.
+// paint and caps are in color (a color pickup's label, ring and glow, a cap);
+// the rest is ink, and so is every other ring.
+
+const noRaycast = () => {};
 
 let ringTexture: THREE.Texture | null = null;
 function ring() {
@@ -27,6 +29,57 @@ function ring() {
   ctx.stroke();
   ringTexture = new THREE.CanvasTexture(c);
   return ringTexture;
+}
+
+let glowTexture: THREE.DataTexture | null = null;
+/** A soft round falloff, the same in color and alpha (glowMaterial makes the rest). */
+function glowMap() {
+  if (glowTexture) return glowTexture;
+  const n = 64;
+  const data = new Uint8Array(n * n * 4);
+  for (let y = 0; y < n; y++)
+    for (let x = 0; x < n; x++) {
+      const r = Math.hypot(x + 0.5 - n / 2, y + 0.5 - n / 2) / (n / 2);
+      const i = (y * n + x) * 4;
+      data.fill(Math.round(Math.max(0, 1 - r * r) ** 2 * 255), i, i + 4);
+    }
+  glowTexture = new THREE.DataTexture(data, n, n);
+  glowTexture.magFilter = THREE.LinearFilter;
+  glowTexture.minFilter = THREE.LinearMipmapLinearFilter;
+  glowTexture.generateMipmaps = true;
+  glowTexture.needsUpdate = true;
+  return glowTexture;
+}
+
+/**
+ * Premultiplied, like a colored lamp's glow (render/light-fx.ts): its color
+ * adds light, its opacity covers what's behind, so it shows in the dark and on
+ * paper alike. Unfogged: the edge of the quad would turn paper-colored.
+ */
+function glowMaterial<M extends THREE.SpriteMaterial | THREE.MeshBasicMaterial>(m: M): M {
+  return Object.assign(m, { map: glowMap(), transparent: true, depthWrite: false, fog: false, blending: THREE.CustomBlending, blendSrc: THREE.OneFactor, blendDst: THREE.OneMinusSrcAlphaFactor });
+}
+
+/** A color pickup's glow: `light` around the item, `floor` on the ground under it, both in `color` (setGlow). */
+export interface Glow {
+  light: THREE.Sprite;
+  floor: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
+  color: THREE.Color;
+}
+
+export function glow(color: string): Glow {
+  const light = new THREE.Sprite(glowMaterial(new THREE.SpriteMaterial()));
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), glowMaterial(new THREE.MeshBasicMaterial({ polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -4 })));
+  light.raycast = floor.raycast = noRaycast;
+  return { light, floor, color: new THREE.Color(color) };
+}
+
+/** The glow at `k` (its strength and pulse) of its color. */
+export function setGlow(g: Glow, k: number) {
+  for (const m of [g.light.material, g.floor.material]) {
+    m.color.copy(g.color).multiplyScalar(k);
+    m.opacity = k * PICKUP.glow.cover;
+  }
 }
 
 export function glowColor(kind: PickupKind) {
@@ -68,8 +121,6 @@ export function itemModel(kind: PickupKind): THREE.Group {
   g.scale.setScalar(2);
   return g;
 }
-
-const noRaycast = () => {};
 
 /** The ring around the item, always facing the camera. */
 export function halo(color: string) {
