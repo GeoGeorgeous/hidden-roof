@@ -2,7 +2,7 @@ import './headless';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
-import { PAINT } from '../src/config';
+import { PAINT, SERVER } from '../src/config';
 import { levelPaintFaces } from '../src/level/prop-pieces';
 import { closeCode, decode, encode, HELLO, PROTOCOL, type ToClient, type ToServer } from '../src/net/protocol';
 import { decodePaintFile, encodePaintFile } from '../src/save/paint-file';
@@ -10,7 +10,7 @@ import { surfaceTable } from '../src/save/shape';
 
 // The server (dist-server/server/main.js) against games speaking the protocol:
 // HOST and JOIN, what's turned away, relaying, SAVE, a reconnect, a player who
-// doesn't come back, and HOST from a save. npm run test:server builds both.
+// doesn't come back, HOST from a save, and the limits per address. npm run test:server builds both.
 
 const PORT = 3999;
 const level = JSON.parse(fs.readFileSync('public/levels/demo.json', 'utf8'));
@@ -19,17 +19,20 @@ const faces = levelPaintFaces(level);
 const table = surfaceTable(faces);
 const stamp = { kind: 'stamp' as const, key: faces[0].key, rect: 0, u: 0.5, v: 0.5, radius: 0.2, amount: 1, color: [1, 0, 0] as const, softness: 0, square: false };
 
-const server = spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(PORT), REJOIN_WINDOW: '1' }, stdio: ['ignore', 'pipe', 'inherit'] });
+const server = spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(PORT), REJOIN_WINDOW: '1', HELLO_TIMEOUT: '2' }, stdio: ['ignore', 'pipe', 'inherit'] });
 const log: string[] = [];
 await new Promise<void>((ready) => server.stdout!.on('data', (d: Buffer) => (log.push(d.toString()), ready())));
 
-/** A game: what it got so far, and the next message of a type. */
+let games = 0;
+/** A game: what it got so far, and the next message of a type. Each comes from its own address (as Caddy passes it on), unless given one. */
 class Game {
-  ws = new WebSocket(`ws://localhost:${PORT}/ws`);
+  ws: WebSocket;
   got: ToClient[] = [];
   closed: Promise<number>;
   private waiters: (() => void)[] = [];
-  constructor() {
+  constructor(ip = `10.0.0.${++games}`) {
+    // Node's WebSocket takes headers (undici); the DOM type doesn't know.
+    this.ws = new WebSocket(`ws://localhost:${PORT}/ws`, { headers: { 'x-forwarded-for': ip } } as unknown as string[]);
     this.ws.binaryType = 'arraybuffer';
     this.ws.onmessage = (e) => {
       this.got.push(decode(new Uint8Array(e.data as ArrayBuffer)) as ToClient);
@@ -59,7 +62,7 @@ class Game {
     assert.ok(!this.got.some((m) => m.type === type), `unexpected ${type}`);
   }
 }
-const game = () => new Game().open();
+const game = (ip?: string) => new Game(ip).open();
 const host = { type: 'host' as const, protocol: PROTOCOL, table, name: 'A', levelName: 'demo', level, detail: 48 };
 
 try {
@@ -190,6 +193,23 @@ try {
   assert.deepEqual([p48.header.density, p96.header.density], [48, 96]);
   assert.deepEqual(p48.body, pAlone.body);
   assert.ok(p96.body.length > p48.body.length * 3);
+
+  // Limits per address: links (the next one is turned away, another address isn't), hosted sessions, silent links.
+  const crowd = await Promise.all(Array.from({ length: SERVER.linksPerIp }, () => game('10.9.9.9')));
+  const extra = await game('10.9.9.9');
+  assert.equal((await extra.next('rejected')).reason, 'too-many');
+  assert.equal(await extra.closed, closeCode('too-many'));
+  const neighbor = await game('10.9.9.10');
+  neighbor.send(host);
+  await neighbor.next('welcome');
+  crowd.forEach((x) => x.ws.close());
+  await Promise.all(crowd.map((x) => x.closed));
+  const hosts = await Promise.all(Array.from({ length: SERVER.sessionsPerIp + 1 }, () => game('10.8.8.8')));
+  for (const x of hosts.slice(0, -1)) (x.send(host), await x.next('welcome'));
+  hosts.at(-1)!.send(host);
+  assert.equal((await hosts.at(-1)!.next('rejected')).reason, 'too-many');
+  const silent = await game();
+  assert.equal(await silent.closed, 1008);
 
   // Pings keep coming; a message that isn't one closes the socket.
   await h.next('ping', 3000);

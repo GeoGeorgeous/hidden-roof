@@ -761,6 +761,12 @@ export const SERVER = {
   hostMemory: 1024,
   /** Codes of ended sessions are remembered this long (s): joining one says it has ended, not that there's no such code. */
   endedMemory: 3600,
+  /** Open links from one address (Caddy's X-Forwarded-For): two players behind one router, a reconnect and a second tab each, fit. */
+  linksPerIp: 6,
+  /** Live sessions hosted from one address. */
+  sessionsPerIp: 2,
+  /** A link that hasn't sent HOST or JOIN by then is closed (s), so idle links hold no slot. */
+  helloTimeout: 20,
 };
 
 /** F3 -> Ghost (src/dev/ghost.ts): the network it plays through, and how far behind it follows you. */

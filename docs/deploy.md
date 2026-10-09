@@ -103,6 +103,7 @@ The design is in `docs/multiplayer-audit.md` (sections 0, 4, 5, 6.4, 7, 8). The 
   - Players give a name on HOST and JOIN.
   - A dropped player has 60 s to reconnect (the game retries on its own, and a reload goes back in), then their ladder goes. A session with no one left closes.
 - Sizes: a save uploaded on HOST and the join snapshot are single messages of up to ~30 MB; `maxPayload` is 64 MiB. Paint is `Uint8Array`, outside the V8 heap, so no `--max-old-space-size`. Measured in Node for the demo level fully painted: 28 MB at LOW, 104 MEDIUM, 230 HIGH, 405 ULTRA. A session costs ~15–25 MB before any paint (the level's geometry); past 1 GB of live data (JS heap and paint buffers, `SERVER.hostMemory`; not RSS, which stays up after sessions end) the server takes no new sessions ("the server is full"). A stopped or restarted process gives all of it back.
+- **Limits per address** (Caddy's `X-Forwarded-For`; `SERVER` in `src/config.ts`): 6 open links, 2 hosted sessions, and a link must send HOST or JOIN within 20 s. Past a limit the game says TOO MANY CONNECTIONS FROM YOUR NETWORK (close code 4009, `too-many` in the log). A message can still be up to `maxPayload`, so one address can hold about 6 × 64 MiB in flight; the container's memory limit keeps that inside `roof`.
 - Hardened against bad input: a message it can't handle closes that player's link, never the process; a paint file whose header claims more paint than the level can hold is refused before anything is allocated; a level is checked prop by prop (at most 5000).
 
 ## 7. After a deploy
