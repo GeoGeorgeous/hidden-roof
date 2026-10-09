@@ -41,6 +41,11 @@ export class Input {
       this.down.add(e.code);
     });
     window.addEventListener('keyup', (e) => this.down.delete(e.code));
+    // Without the keyboard lock (windowed, refused, not Chromium) the browser keeps Ctrl+W:
+    // crouch + forward would close the tab. While playing, ask before leaving instead.
+    window.addEventListener('beforeunload', (e) => {
+      if (this.locked) e.preventDefault();
+    });
     window.addEventListener('blur', () => {
       this.down.clear();
       this.lmb = false;
