@@ -246,22 +246,18 @@ canvas {
 .overlay.in-settings .settings-page {
   display: flex;
 }
-.overlay.in-settings .menu,
-.overlay.in-settings .status,
-.overlay.in-settings table,
-.overlay.in-mp .menu,
-.overlay.in-mp .status,
-.overlay.in-mp table,
-.overlay.in-settings .mp-page {
+.overlay.in-settings > .menu,
+.overlay.in-settings > .status,
+.overlay.in-settings > table,
+.overlay.in-mp > .menu,
+.overlay.in-mp > .status,
+.overlay.in-mp > table,
+.overlay.in-settings > .mp-page {
   display: none;
 }
 /* The multiplayer page (net/net-menu.ts) is built like the settings page. */
 .overlay.in-mp .mp-page {
   display: flex;
-}
-.mp-page .actions {
-  display: flex;
-  gap: 8px;
 }
 .mp-page input[type='text'] {
   pointer-events: auto;
@@ -276,9 +272,10 @@ canvas {
   text-align: center;
   outline: none;
 }
-.mp-page .actions button {
-  border: var(--line);
-  padding: 6px 18px;
+/* Its buttons stacked as in the pause menu (.menu), under the rows. */
+.mp-page .menu {
+  width: fit-content;
+  margin-top: 10px;
 }
 .mp-page .mp-status {
   min-height: 1.4em;
