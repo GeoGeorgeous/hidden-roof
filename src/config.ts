@@ -230,8 +230,6 @@ export const INK = {
  * the default set's (NEW MANGA).
  */
 export const INK_STYLES = [
-  // The first ink look (2026-10-04): warm paper, near-black ink, a paper sky.
-  { name: 'ORIGINAL', short: 'OR', paper: '#ebe5d6', ink: '#141416', sky: '#ebe5d6', cloud: '#ebe5d6' },
   // The look from 2026-10-04 to 2026-10-09.
   { name: 'OLD MANGA', short: 'OM', paper: '#dfe0d6', ink: '#3a3749', sky: '#0c0b0f', cloud: '#201f29' },
   { name: 'NEW MANGA', short: 'NM', paper: '#eff1f6', ink: '#333243', sky: '#171926', cloud: '#1d2030' },
@@ -282,7 +280,7 @@ export const PAUSE_MENU = {
   /** The list of keys under the menu. */
   controls: true,
   /** Size of everything on the sheet (1 = as styled in style.css). */
-  scale: 1.15,
+  scale: 1.05,
 };
 
 /** What the HUD shows (hud.ts) and the hotbar's size (inventory/hotbar.ts), live in F3 → UI. */
