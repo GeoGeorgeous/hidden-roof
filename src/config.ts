@@ -384,18 +384,23 @@ export const CAPS: Record<CapId, CapSpec> = {
 };
 
 /** Paint colors, in Q/E cycling order. Black is always owned. Paint never runs out. */
-export type PaintColor = 'black' | 'white' | 'red' | 'orange' | 'yellow' | 'green' | 'blue' | 'purple' | 'pink';
-export const COLOR_ORDER: PaintColor[] = ['black', 'white', 'red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink'];
+export type PaintColor = 'black' | 'white' | 'red' | 'orange' | 'yellow' | 'lime' | 'green' | 'teal' | 'cyan' | 'blue' | 'purple' | 'pink' | 'brown';
+/** Q / E order. Black is everyone's from the start; each other color is a pickup. */
+export const COLOR_ORDER: PaintColor[] = ['black', 'white', 'red', 'orange', 'yellow', 'lime', 'green', 'teal', 'cyan', 'blue', 'purple', 'pink', 'brown'];
 export const COLORS: Record<PaintColor, string> = {
   black: '#1d1d22',
   white: '#f1efe8',
   red: '#d42a2a',
   orange: '#f26a1b',
   yellow: '#f5cf1d',
+  lime: '#9ed22c',
   green: '#2fb34a',
+  teal: '#16a497',
+  cyan: '#36c2ea',
   blue: '#2a6ee0',
   purple: '#8e3fd6',
   pink: '#f0479a',
+  brown: '#8b5a2f',
 };
 
 export const MARKER = {
