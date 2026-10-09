@@ -16,8 +16,12 @@ import { Session, type Link, type Player } from './session';
 const sessions = new Map<string, Session>();
 /** Codes of sessions that ended, and when: joining one says it has ended rather than that there's no such code. */
 const ended = new Map<string, number>();
-// Tests come back sooner than players.
+/** Open links per address, and the address each live session was hosted from: SERVER.linksPerIp, sessionsPerIp. */
+const links = new Map<string, number>();
+const hosts = new Map<string, string>();
+// Tests come back (and give up on a silent link) sooner than players.
 SERVER.rejoinWindow = Number(process.env.REJOIN_WINDOW) || SERVER.rejoinWindow;
+SERVER.helloTimeout = Number(process.env.HELLO_TIMEOUT) || SERVER.helloTimeout;
 
 const server = http.createServer((req, res) => {
   const path = req.url?.split('?')[0];
@@ -32,6 +36,14 @@ wss.on('connection', (ws, req) => {
   const ip = String(req.headers['x-forwarded-for'] ?? req.socket.remoteAddress).split(',')[0].trim();
   // Paint files (welcome, SAVE) are compressed already: only smaller frames go through the socket's compression.
   const link: Link = { send: (f) => ws.readyState === ws.OPEN && ws.send(f, { compress: f.length < 65536 }), close: (code, reason) => ws.close(code, reason) };
+  const reject = (reason: Rejection, m?: ToServer) => {
+    log(m?.type === 'join' ? m.code : '-----', `${m?.type ?? 'link'} from ${ip} turned away: ${reason}`);
+    link.send(encode({ type: 'rejected', reason }));
+    ws.close(closeCode(reason), reason);
+  };
+  links.set(ip, (links.get(ip) ?? 0) + 1);
+  ws.on('close', () => (links.get(ip)! > 1 ? links.set(ip, links.get(ip)! - 1) : links.delete(ip)));
+  if (links.get(ip)! > SERVER.linksPerIp) return reject('too-many');
   let alive = true;
   ws.on('pong', () => (alive = true));
   const beat = setInterval(() => {
@@ -41,11 +53,11 @@ wss.on('connection', (ws, req) => {
   }, 10_000);
   /** Their session and who they are in it, once welcomed; 'waiting' while a host or join is under way. */
   let at: { session: Session; player: Player } | 'waiting' | null = null;
-  const reject = (reason: Rejection, m: ToServer) => {
-    log(m.type === 'join' ? m.code : '-----', `${m.type} from ${ip} turned away: ${reason}`);
-    link.send(encode({ type: 'rejected', reason }));
-    ws.close(closeCode(reason), reason);
-  };
+  const hello = setTimeout(() => {
+    if (at) return;
+    log('-----', `link from ${ip}: no HOST or JOIN in ${SERVER.helloTimeout} s: closed`);
+    ws.close(1008, 'no host or join');
+  }, SERVER.helloTimeout * 1000);
   ws.on('message', async (data: Buffer) => {
     // A message the server can't handle closes that one link, never the server and everyone's sessions.
     try {
@@ -69,6 +81,7 @@ wss.on('connection', (ws, req) => {
   });
   ws.on('close', (code, reason) => {
     clearInterval(beat);
+    clearTimeout(hello);
     if (!at || at === 'waiting' || at.player.link !== link) return;
     log(at.session.code, who(at.player), `dropped (${code}${reason.length ? ` ${reason}` : ''}): ${SERVER.rejoinWindow} s to come back`);
     at.session.dropped(at.player, link);
@@ -80,6 +93,7 @@ async function enter(m: Extract<ToServer, { type: 'host' | 'join' }>, link: Link
   if (m.protocol !== PROTOCOL) return 'version';
   let session: Session;
   if (m.type === 'host') {
+    if ([...hosts.values()].filter((h) => h === ip).length >= SERVER.sessionsPerIp) return 'too-many';
     // What's alive (JS objects, paint): the process's own size (rss) stays up after sessions end, until the OS asks for it back.
     const mem = process.memoryUsage();
     if (mem.heapUsed + mem.arrayBuffers > SERVER.hostMemory * 2 ** 20) return 'busy';
@@ -87,6 +101,7 @@ async function enter(m: Extract<ToServer, { type: 'host' | 'join' }>, link: Link
     try {
       session = new Session(code, m.levelName, m.level, m.detail, () => {
         sessions.delete(code);
+        hosts.delete(code);
         ended.set(code, Date.now());
         log(code, 'closed: no one left');
       });
@@ -103,6 +118,7 @@ async function enter(m: Extract<ToServer, { type: 'host' | 'join' }>, link: Link
         return 'bad-save';
       }
     sessions.set(code, session);
+    hosts.set(code, ip);
     const mb = session.memory;
     log(code, `hosted by ${ip}: ${m.levelName} at ${m.detail} texels/m, ${mb.now.toFixed(0)} MB of paint (${mb.full.toFixed(0)} MB if all painted), ${sessions.size} sessions`);
   } else {

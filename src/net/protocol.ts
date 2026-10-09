@@ -11,7 +11,7 @@ import type { PaintOp } from '../paint-ops';
 // through checkToServer.
 
 /** Bumped when a message changes or anything the server runs for a session does (paint, drips, face keys, the save format): docs/multiplayer-audit.md, section 4. */
-export const PROTOCOL = 1;
+export const PROTOCOL = 2;
 export const NAME_MAX = 16;
 /** Session codes: this many letters from CODE_LETTERS (no I or O, which read as 1 and 0). */
 export const CODE_LENGTH = 5;
@@ -28,10 +28,11 @@ const MAX_PROPS = 5000;
  * another version, no session with that code, one that has ended (the server
  * remembers codes for SERVER.endedMemory), a full session, a paint file or
  * level it can't use, the server too full for another session, or the same
- * player come in from another tab (a duplicated tab carries the token along).
+ * player come in from another tab (a duplicated tab carries the token along),
+ * or too many links or sessions from one address (SERVER.linksPerIp, sessionsPerIp).
  * The socket then closes with closeCode(reason), for the logs.
  */
-const REJECTIONS = ['version', 'no-session', 'ended', 'full', 'bad-save', 'bad-level', 'busy', 'replaced'] as const;
+const REJECTIONS = ['version', 'no-session', 'ended', 'full', 'bad-save', 'bad-level', 'busy', 'replaced', 'too-many'] as const;
 export type Rejection = (typeof REJECTIONS)[number];
 export const closeCode = (r: Rejection) => 4001 + REJECTIONS.indexOf(r);
 /** What the server answers a plain GET at /ws (no WebSocket): the game asks when it can't connect (net/diagnostics.ts). */
