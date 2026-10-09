@@ -780,6 +780,17 @@ export const GHOST = {
   followDelay: 2,
 };
 
+/** Profiling mode (src/dev/profiler.ts, F8) and its probe (src/dev/probe.ts, F9). */
+export const PROFILE = {
+  /** The slowest frames the report keeps whole, with where their CPU time went. */
+  worstFrames: 20,
+  /** Each probe step: time for the change to settle (shader compiles, smoothed GPU timers), then time measured (s). */
+  probeSettle: 1.5,
+  probeMeasure: 3,
+  /** And at least this many frames for each (settling, then measured). */
+  probeSettleFrames: 10,
+};
+
 /**
  * The player figure others see (src/avatar, docs/avatar.md). Joint heights
  * above the feet and lengths in meters, at rest: standing, arms down. Its

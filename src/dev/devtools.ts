@@ -27,6 +27,7 @@ import { AvatarPreview } from './avatar-preview';
 import { layoutCity } from '../city/layout';
 import { dressTower, wallSigns } from '../city/rooftops';
 import { Ghost } from './ghost';
+import { Profiler, type ProfiledFrame } from './profiler';
 import type { PaintOps } from '../paint-ops';
 import type { Tools } from '../tools/tools';
 
@@ -57,6 +58,8 @@ export interface DevContext {
   lightning: Lightning;
   baker: LightBaker;
   gpuTimer: GpuTimer;
+  /** The generated city around the level. */
+  city(): THREE.Object3D;
   rebuildCity(): void;
   /** The level as a file: props, pickups, city overrides. */
   levelData(): LevelData;
@@ -64,12 +67,14 @@ export interface DevContext {
   openLevel(data: LevelData, name: string): void;
 }
 
-/** The frame's numbers, for the panel's readouts. */
+/** The frame's numbers, for the panel's readouts and the profiler. */
 interface FrameStats {
   fps: number;
   frameMs: number;
   calls: number;
   triangles: number;
+  /** Real time since the last frame (ms). */
+  interval: number;
 }
 
 export class DevTools {
@@ -77,6 +82,7 @@ export class DevTools {
   private debug = new DebugPanel();
   private figure: AvatarPreview;
   private ghost: Ghost;
+  private profiler: Profiler;
   /** The game had the mouse when the panel opened: closing it goes back. */
   private resumeOnClose = false;
   /** Paint ops per second: counted over a second at a time. */
@@ -90,6 +96,7 @@ export class DevTools {
     this.build.onLoad = g.openLevel;
     this.figure = new AvatarPreview(g.scene);
     this.ghost = new Ghost(g);
+    this.profiler = new Profiler(g);
     // The ghost, besides the players of a session (net/multiplayer.ts).
     const players = g.tools.ladder.others;
     g.tools.ladder.others = () => {
@@ -129,9 +136,12 @@ export class DevTools {
       ghostStop: () => this.ghost.stop(),
       ghostState: () => this.ghost.label,
       ghostNet: () => this.ghost.net,
+      profileToggle: () => this.profiler.toggle(),
+      profileProbe: () => this.profiler.runProbe(),
+      profileState: () => (this.profiler.recording ? 'RECORDING' : 'off'),
     });
     g.input.escapeResumes = () => this.debug.visible;
-    Object.assign(window, { game: { ...g, build: this.build, debug: this.debug, live, ghost: this.ghost, cityParts: { layoutCity, dressTower, wallSigns } } });
+    Object.assign(window, { game: { ...g, build: this.build, debug: this.debug, live, ghost: this.ghost, profiler: this.profiler, cityParts: { layoutCity, dressTower, wallSigns } } });
   }
 
   get building() {
@@ -148,6 +158,10 @@ export class DevTools {
    * paused, so you can watch them with the panel open.
    */
   frame(input: Input, dt: number) {
+    this.profiler.begin();
+    // Profiling works in a session too: F8 records, F9 probes.
+    if (input.wasPressed('F8')) this.profiler.toggle();
+    if (input.wasPressed('F9')) this.profiler.runProbe();
     if (this.modelsChanged) this.rebuildModelsNow();
     this.figure.update(dt);
     this.ghost.update(dt);
@@ -167,10 +181,17 @@ export class DevTools {
     this.build.update(input, camera);
   }
 
-  /** End of frame: the panel's readouts (only while it's open). */
-  report({ fps, frameMs, calls, triangles }: FrameStats) {
+  /** The frame's CPU time since the last mark goes to `name` (profiling mode). */
+  lap(name: string) {
+    this.profiler.lap(name);
+  }
+
+  /** End of frame: the profiler, and the panel's readouts (only while it's open). */
+  report({ fps, frameMs, calls, triangles, interval }: FrameStats) {
     const g = this.g;
-    g.gpuTimer.enabled = this.debug.visible;
+    const state: ProfiledFrame['state'] = this.build.active ? 'build' : g.input.locked ? 'play' : 'paused';
+    this.profiler.frame({ interval, calls, triangles, state });
+    g.gpuTimer.enabled = this.debug.visible || this.profiler.recording;
     if (!this.debug.visible) return;
     Object.assign(live.stats, {
       fps,

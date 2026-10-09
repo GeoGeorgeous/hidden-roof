@@ -113,6 +113,9 @@ export function worldSections(): Section[] {
         { kind: 'readout', label: 'uploads', get: () => `${live.stats.uploads} rects, ${(live.stats.uploadBytes / 1024).toFixed(1)} KB` },
         { kind: 'readout', label: 'particles', get: () => `${live.stats.particles}` },
         { kind: 'readout', label: 'paint runs', get: () => `${live.stats.drips}` },
+        { kind: 'readout', label: 'profiling', get: () => live.profileState() },
+        { kind: 'action', label: 'PROFILE', run: () => live.profileToggle() },
+        { kind: 'action', label: 'PROBE', run: () => live.profileProbe() },
       ],
     },
   ];
