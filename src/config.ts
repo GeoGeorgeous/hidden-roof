@@ -648,14 +648,14 @@ export const PICKUP = {
    * Paint's is in its color at `opacity`; a cap's and a tool's are solid, in
    * their shade of ink (`cap`, `tool`).
    */
-  ring: { size: 1.3, opacity: 0.7, minSize: 0.025, cap: '#666666', tool: '#666666' },
+  ring: { size: 1, opacity: 0.7, minSize: 0.025, cap: '#3d3d3d', tool: '#3d3d3d' },
   /**
    * Every pickup glows, as pickups do in GTA: paint in its color, the rest
    * white. A soft light around the item (`size`, m) and a pool of it on the
    * floor under it (`floor`, m), pulsing by `pulse` of `strength` at `pulseRate` (rad/s).
    * `cover`: how much it tints what's behind it (paper) besides adding light (the dark).
    */
-  glow: { size: 1.45, floor: 1.25, strength: 1, cover: 0.35, pulse: 0.35, pulseRate: 3.5 },
+  glow: { size: 1.45, floor: 1.25, strength: 0.45, cover: 0.35, pulse: 0.35, pulseRate: 3.5 },
   /**
    * Each pickup's tag by its ring, manga-style (pickups/labels.ts), in
    * outlined letters with katakana under them: NEW TOOL on the left, the name
@@ -663,17 +663,17 @@ export const PICKUP = {
    * `reach` (m) while in sight (checked `sightRate` times a second).
    */
   label: {
-    reach: 12,
+    reach: 4,
     sightRate: 4,
     /** Paint's name: centered, `up` (x the ring's size) from its middle. */
-    color: { up: 0.5 },
+    color: { up: 0.43 },
     /** A cap's and a tool's: `at` (x the ring's size: out from its middle, up) where the name starts and NEW … ends, mirrored; `tilt` (degrees), along the ring's upper edges. */
-    cap: { at: [0.06, 0.27] as [number, number], tilt: 0 },
-    tool: { at: [0.17, 0.43] as [number, number], tilt: 45 },
+    cap: { at: [0.1, 0.29] as [number, number], tilt: 0 },
+    tool: { at: [0.1, 0.43] as [number, number], tilt: 45 },
     /** The four lines, each a size and outline (px; size 0 = none): NEW TOOL and its katakana, the name and its katakana; NEW TOOL and the name in `font` (katakana is always in the gothic). */
-    caption: { font: 'gothic' as TagFont, size: 14, outline: 4 },
-    captionKana: { size: 9, outline: 2 },
-    name: { font: 'gothic' as TagFont, size: 22, outline: 5 },
+    caption: { font: 'gothic' as TagFont, size: 12, outline: 4 },
+    captionKana: { size: 10, outline: 2 },
+    name: { font: 'gothic' as TagFont, size: 20, outline: 5 },
     nameKana: { size: 11, outline: 2.5 },
   },
   /**
@@ -683,10 +683,10 @@ export const PICKUP = {
   models: {
     can: pickupPose(),
     cap: pickupPose(4.4),
-    marker: pickupPose(),
-    ladder: pickupPose(0.9),
-    roller: pickupPose(0.6),
-    sponge: pickupPose(1.6),
+    marker: pickupPose(1.8),
+    ladder: pickupPose(1.05),
+    roller: pickupPose(0.55),
+    sponge: pickupPose(1.35),
   },
 };
 
