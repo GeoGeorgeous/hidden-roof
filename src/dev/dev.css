@@ -162,6 +162,26 @@ body.paused .build-help {
 .picker .keys span {
   color: var(--ui);
 }
+/* Pickup entries: how many of each kind are on the map (none: dimmed). */
+.picker .placed span {
+  display: inline-block;
+  white-space: nowrap;
+  margin-right: 8px;
+}
+.picker small {
+  font-size: inherit;
+  color: var(--ui);
+}
+.picker small.none {
+  color: var(--dim);
+}
+.picker .placed i {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 3px;
+  border: 1px solid var(--ui);
+}
 .picker em,
 .picker .keys,
 .picker .hint {

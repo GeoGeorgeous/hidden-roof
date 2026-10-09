@@ -8,7 +8,8 @@ import { propIcon } from './prop-icon';
 // (the selected one level, two on each side), the selected category's entries
 // beside it with the selected one on the hub line, its variants (Tab) and the
 // keys that change a placed one. Labels are fixed elements turned by CSS, so
-// a turn of the wheel animates; nothing is redrawn until the selection changes.
+// a turn of the wheel animates; nothing is redrawn until the selection changes
+// or a pickup is placed or removed (pickup entries show how many of each kind are on the map).
 
 /** Categories shown on each side of the selected one. */
 const SIDE = 2;
@@ -22,14 +23,17 @@ export class PickerView {
   private shade = div('picker-shade');
   private column = div('column');
   private cats: HTMLElement[];
-  private drawn = -1;
+  /** What the column was drawn for: the picker's version and the pickup counts ('' draws it again). */
+  private drawn = '';
 
   constructor(
     private picker: Picker,
     private icons: Thumbnails,
+    /** The pickups placed on the map. */
+    private placed: () => Iterable<{ kind: string }>,
   ) {
     // An icon arrived from the GPU: draw the column again.
-    icons.onReady = () => (this.drawn = -1);
+    icons.onReady = () => (this.drawn = '');
     const wheel = div('wheel');
     this.cats = picker.categories.map((c) => {
       const el = div('cat');
@@ -45,15 +49,19 @@ export class PickerView {
 
   set visible(v: boolean) {
     this.root.hidden = this.shade.hidden = !v;
-    this.drawn = -1;
+    this.drawn = '';
   }
 
   render() {
     const p = this.picker;
     // Under the pause sheet it isn't laid out (style.css), so it can't be measured: drawn once it shows.
     const paused = document.body.classList.contains('paused');
-    if (p.version === this.drawn || this.root.hidden || paused) return;
-    this.drawn = p.version;
+    if (this.root.hidden || paused) return;
+    const counts = new Map<string, number>();
+    for (const { kind } of this.placed()) counts.set(kind, (counts.get(kind) ?? 0) + 1);
+    const drawn = `${p.version}|${[...counts].join()}`;
+    if (drawn === this.drawn) return;
+    this.drawn = drawn;
     const n = this.cats.length;
     const half = Math.floor(n / 2);
     this.cats.forEach((el, i) => {
@@ -62,7 +70,7 @@ export class PickerView {
       el.dataset.d = Math.abs(k) > SIDE ? 'far' : `${Math.abs(k)}`;
     });
     const entries = p.categories[p.category].entries;
-    this.column.innerHTML = `<div class="hint">Q ▲</div>${entries.map((e, i) => row(e, i === p.selected, p.variantOf(e), this.icon(e.variants[p.variantOf(e)].choice), p.finish, p.flip)).join('')}<div class="hint">E ▼</div>`;
+    this.column.innerHTML = `<div class="hint">Q ▲</div>${entries.map((e, i) => row(e, i === p.selected, p.variantOf(e), this.icon(e.variants[p.variantOf(e)].choice), p.finish, p.flip, counts)).join('')}<div class="hint">E ▼</div>`;
     // The selected entry's name on the hub line.
     const name = this.column.querySelector<HTMLElement>('.on .name')!;
     const s = BUILD.columnScale;
@@ -78,7 +86,7 @@ export class PickerView {
   /** Sizes and shade from BUILD: at start, and again when F3 changes them (live.syncBuildLook). */
   syncStyle() {
     this.root.style.setProperty('--wheel', `${BUILD.wheelScale}`);
-    this.drawn = -1; // the column's scale is part of its transform
+    this.drawn = ''; // the column's scale is part of its transform
     const { shadeColor: color, shadeOpacity: opacity, shadeWidth: width } = BUILD;
     const mix = (a: number) => `color-mix(in srgb, ${color} ${Math.round(Math.min(1, Math.max(0, a * opacity)) * 100)}%, transparent)`;
     this.shade.style.width = `${width}px`;
@@ -86,13 +94,13 @@ export class PickerView {
   }
 }
 
-function row(e: Entry, on: boolean, variant: number, icon: string | null, finish: Finish, flip: boolean) {
+function row(e: Entry, on: boolean, variant: number, icon: string | null, finish: Finish, flip: boolean, counts: Map<string, number>) {
   const img = `<img src="${icon ?? ''}" alt=""${icon ? '' : ' hidden'}>`;
   const tags = e.settings.length ? ` <b>${e.settings.map((s) => s.name).join(' ')}</b>` : '';
-  if (!on) return `<div class="row">${img}<div class="name">${e.label}${tags}</div></div>`;
+  if (!on) return `<div class="row">${img}<div class="name">${e.label}${tags}</div>${placedLine(e, counts)}</div>`;
   const chip = (i: number) => {
     const v = e.variants[i];
-    return `<span${i === variant ? ' class="on"' : ''}>${v.swatch ? `<i style="background:${v.swatch}"></i>` : ''}${v.label}</span>`;
+    return `<span${i === variant ? ' class="on"' : ''}>${v.swatch ? `<i style="background:${v.swatch}"></i>` : ''}${v.label}${placedCount(v.choice, counts)}</span>`;
   };
   const many = e.variants.reduce((n, v) => n + v.label.length + 1, 0) > CHIPS_MAX_CHARS;
   const chips = many ? `${chip(variant)}<em>${variant + 1} / ${e.variants.length}</em> ` : e.variants.map((_, i) => chip(i)).join('');
@@ -102,6 +110,19 @@ function row(e: Entry, on: boolean, variant: number, icon: string | null, finish
   const choice = e.variants[variant].choice;
   const flipped = choice.kind === 'prop' && choice.def.place === 'mount' ? `<div class="keys">R FLIP: <span>${flip ? 'on' : 'off'}</span></div>` : '';
   return `<div class="row on">${img}<div class="name">${e.label}</div>${variants}${keys}${finishes}${flipped}</div>`;
+}
+
+/** A pickup kind's count on the map, after its name (none for props). */
+function placedCount(c: Choice, counts: Map<string, number>) {
+  if (c.kind !== 'pickup') return '';
+  const n = counts.get(c.type) ?? 0;
+  return ` <small${n ? '' : ' class="none"'}>×${n}</small>`;
+}
+
+/** An unselected pickup entry: each of its kinds (a paint's swatch, a cap's or tool's name) and its count on the map. */
+function placedLine(e: Entry, counts: Map<string, number>) {
+  if (e.variants[0].choice.kind !== 'pickup') return '';
+  return `<div class="placed">${e.variants.map((v) => `<span>${v.swatch ? `<i style="background:${v.swatch}"></i>` : v.label}${placedCount(v.choice, counts)}</span>`).join('')}</div>`;
 }
 
 function div(className: string) {
