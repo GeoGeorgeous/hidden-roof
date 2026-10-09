@@ -728,6 +728,8 @@ export const PLAYER = {
   jumpHeight: 1.1,
   gravity: 19,
   stepHeight: 0.42,
+  /** Something in the way by no more than this across your move (m: a railing post a few mm proud of its rails, a corner just clipped) is slipped past sideways, not stopped at. */
+  cornerSlip: 0.03,
   /** Ladders (Minecraft-style): hold Space or push into the ladder to climb, let go to slide down, crouch to hold. */
   climbSpeed: 2.6,
   mouseSensitivity: 0.0022,

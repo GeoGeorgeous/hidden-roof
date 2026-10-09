@@ -245,6 +245,7 @@ export class Player {
       }
       p.y = oldY;
     }
+    if (axis !== 1 && this.slipPast(hit, axis === 0 ? 2 : 0)) return;
 
     // Push out against the movement direction, using the deepest overlapping box.
     const r = PLAYER.radius;
@@ -265,6 +266,20 @@ export class Player {
         this.velocity.setComponent(axis, 0);
       }
     }
+  }
+
+  /** Barely in the way across the move (PLAYER.cornerSlip along `other`): step aside past `hit` if that's free. */
+  private slipPast(hit: THREE.Box3, other: 0 | 2) {
+    this.updateBox();
+    const plus = hit.max.getComponent(other) - this.box.min.getComponent(other);
+    const minus = this.box.max.getComponent(other) - hit.min.getComponent(other);
+    const shift = plus < minus ? plus : -minus;
+    if (Math.abs(shift) > PLAYER.cornerSlip) return false;
+    const p = this.position;
+    p.setComponent(other, p.getComponent(other) + shift);
+    if (!this.overlapping()) return true;
+    p.setComponent(other, p.getComponent(other) - shift);
+    return false;
   }
 
   private findLadder(): Ladder | null {
