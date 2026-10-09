@@ -6,8 +6,9 @@ import type { PaintOp } from '../paint-ops';
 // WebSocket. Each is one binary frame: a u32 (little-endian) length, that many
 // bytes of JSON, then the message's `bytes`, if any (a player snapshot, a paint
 // file). Paint ops travel as JSON, so their numbers arrive exactly and every
-// client paints the very same texels; the socket compresses them
-// (permessage-deflate). Only type imports here: Node runs this file as is
+// client paints the very same texels. Nothing is compressed by the socket:
+// full-precision numbers barely shrink, and the server would deflate every op
+// once per player (with 20 painting, more than a core). Only type imports here: Node runs this file as is
 // (scripts/protocol.test.mjs), and the server reads untrusted messages
 // through checkToServer.
 

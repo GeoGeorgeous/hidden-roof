@@ -33,14 +33,14 @@ const server = http.createServer((req, res) => {
   // No caching: the game asks to learn whether the server is up now.
   res.writeHead(body ? 200 : 404, { 'content-type': 'text/plain', 'cache-control': 'no-store' }).end(body ?? '');
 });
-const wss = new WebSocketServer({ server, path: '/ws', maxPayload: SERVER.maxPayload, perMessageDeflate: true });
+// No compression (protocol.ts).
+const wss = new WebSocketServer({ server, path: '/ws', maxPayload: SERVER.maxPayload, perMessageDeflate: false });
 
 wss.on('connection', (ws, req) => {
   // Behind Caddy the socket's address is Caddy's; it passes the player's on.
   const ip = String(req.headers['x-forwarded-for'] ?? req.socket.remoteAddress).split(',')[0].trim();
-  // Paint files (welcome, SAVE) are compressed already: only smaller frames go through the socket's compression.
   const link: Link = {
-    send: (f) => ws.readyState === ws.OPEN && ws.send(f, { compress: f.length < 65536 }),
+    send: (f) => ws.readyState === ws.OPEN && ws.send(f),
     close: (code, reason) => ws.close(code, reason),
     get open() {
       return ws.readyState === ws.OPEN;
