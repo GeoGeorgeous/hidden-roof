@@ -736,6 +736,31 @@ export const NET = {
   /** A jump in where they're shown (a late snapshot correcting a guess) is smoothed out at this rate (1/s); one longer than `teleport` (m) is not. */
   smoothing: 12,
   teleport: 2,
+  /** A player's name tag hangs this high over their feet (m). */
+  nameplateHeight: 2.1,
+  /** HOST or JOIN with no answer from the server for this long (s) gives up (a reconnect tries again). */
+  connectTimeout: 15,
+  /** Network log entries kept for COPY NETWORK LOG (net/diagnostics.ts). */
+  logLines: 80,
+};
+
+/** The multiplayer server (server/, docs/deploy.md). */
+export const SERVER = {
+  port: 3000,
+  /** Players in one session (docs/multiplayer-audit.md, decision 1). */
+  maxPlayers: 2,
+  /** A dropped player can come back as themselves for this long (s); then their stepladder goes, and a session with no one left closes. */
+  rejoinWindow: 60,
+  /** The server pings every game this often (s), so a game notices a dead link. */
+  ping: 2,
+  /** Paint runs move this many times a second on the server. */
+  dripRate: 30,
+  /** The largest message (bytes): a paint save HOST uploads is ~30 MB for a heavily painted ULTRA level. */
+  maxPayload: 64 * 2 ** 20,
+  /** No new session once the server's live data (JS objects and paint) takes this much memory (MB); its container may use 1536 (docs/deploy.md). */
+  hostMemory: 1024,
+  /** Codes of ended sessions are remembered this long (s): joining one says it has ended, not that there's no such code. */
+  endedMemory: 3600,
 };
 
 /** F3 -> Ghost (src/dev/ghost.ts): the network it plays through, and how far behind it follows you. */
@@ -837,6 +862,8 @@ export const SKYLINE = {
 /** All gains are live (F3 → Sound). */
 export const AUDIO = {
   masterGain: 0.7,
+  /** Share of masterGain while paused (the pause menu is up). */
+  pausedGain: 0.3,
   hissGain: 0.22,
   /** Distant city rumble. */
   ambienceGain: 0.145,

@@ -17,10 +17,10 @@ Read-only review, 2026-10-04. No source files were changed. Line numbers refer t
 | # | Topic | Decision | What it changes in this report |
 |---|---|---|---|
 | 1 | Session size | 2 players max to start | No interest management; bandwidth is trivial (~7 KB/s each way worst case) |
-| 2 | Canonical paint detail | ULTRA (96 texels/m) | The server keeps paint at 96; saves are at 96 |
+| 2 | Canonical paint detail | ~~ULTRA (96 texels/m)~~ Replaced 2026-10-08: the host picks the session's PAINT DETAIL (LOW 24, MEDIUM 48, HIGH 72 or ULTRA 96, as in settings), locked for everyone | The server keeps paint at the session's detail; join snapshots and SAVE in a session are at that detail. Where sections 2–6 say the server or its saves are at 96, read "the session's detail" |
 | 3 | Pickups | Personal | Client-side and trusted: no pickup messages at all (6.3) |
 | 4 | Griefing | Anyone can paint or erase anything | No ownership, undo or kick |
-| 5 | Hosting | Your VPS | One small Node server (WebSocket over TLS) |
+| 5 | Hosting | Your VPS | One small Node server (WebSocket over TLS), started by hand on the VPS; static files served by Caddy apart from it (`docs/deploy.md`) |
 | 6 | Ownership and saves | Simplest possible: anyone hosts or joins, usually one session at a time. The server keeps a session's paint only while it's live. Players save locally, and a host can upload a save when starting. | No accounts, no database, no write-ahead log, no object storage (6.4) |
 | 7 | Build mode in multiplayer | Never | Dev gate (6.2) |
 | 8 | Ladders when the owner leaves | They vanish | Server removes them on disconnect; never saved |
@@ -435,10 +435,10 @@ Binary frames over a WebSocket. Little-endian. `R` = reliable and ordered (TCP);
 
 | Message | Direction | Rate | Size | Fields |
 |---|---|---|---|---|
-| `Host` | client → server | once | level JSON (~16 KB raw) + optional paint save (6.4) | protocol u16, client build hash, name, level JSON, session config, optional save. The server answers `Hosted {code}` (e.g. 5 letters). |
-| `Join` | client → server | once | ~40 B | protocol u16, client build hash, name, code |
+| `Host` | client → server | once | level JSON (~16 KB raw) + optional paint save (6.4) | protocol u16, surface-table hash, name, level JSON, session config (PAINT DETAIL), optional save. The server answers `Hosted {code}` (e.g. 5 letters). |
+| `Join` | client → server | once | ~40 B | protocol u16, surface-table hash, name, code, reconnect token (if rejoining) |
 | `Welcome` | server → client | once | ~4–8 KB gzip | playerId u8, level JSON, session config, surface-table hash, current players, ladders |
-| `JoinSnapshot` | server → client | once, before the joiner enters (decision 13) | 0.1–30 MB typical (6.4) | Same format as the paint save: detail 96 + face chunks `{surface u16, rect u16, w u16, h u16, codec u8, bytes}` + the op sequence number it is current to |
+| `JoinSnapshot` | server → client | once, before the joiner enters (decision 13) | 0.1–30 MB typical (6.4) | Same format as the paint save: the session's detail + face chunks `{surface u16, rect u16, w u16, h u16, codec u8, bytes}` + the op sequence number it is current to |
 | `SaveRequest` / `Save` | client ↔ server | on SAVE | same as the snapshot | The current session paint as a downloadable save |
 | `PlayerState` | client → server | 20 Hz | ~24 B | 2.3 table |
 | `WorldSnapshot` | server → client | 20 Hz | 6 + 25·N B (N=8: ~206 B, ~4 KB/s) | serverTick u32, count u8, `{playerId u8, PlayerState}` × N |
@@ -455,6 +455,10 @@ Binary frames over a WebSocket. Little-endian. `R` = reliable and ordered (TCP);
 - **Coordinates.** `fu` and `fv` are fractions of the face size quantized to u16. The largest face is 2048 texels at ULTRA, about 21 m (`src/config.ts:230`), so that's sub-millimeter resolution. Every client converts them to its own texels.
 - **Server checks.** With two trusted players (decision 4), the server only checks that each op is well-formed (surface key exists, face index in range). Reach, rate and strength checks can wait until sessions open up.
 - **No pickup messages.** Pickups are personal and client-side (decision 3).
+- **Versions** (2026-10-08). Client and server are deployed separately (`docs/deploy.md`), so an open tab can be older or newer than the server. `Host` and `Join` carry:
+  - `protocol`: one number in shared code, bumped when a message changes *or* anything the server runs for the session changes (paint raster, drips, face keys, the save format);
+  - the surface-table hash of the level, as this client builds it: catches a kit or geometry change the bump forgot.
+  On a mismatch the server answers `Rejected {reason}` and the client shows "A new version is out: reload the page" instead of reconnecting.
 
 ---
 
@@ -482,7 +486,7 @@ Binary frames over a WebSocket. Little-endian. `R` = reliable and ordered (TCP);
 - It's cooperative with no combat, so movement can be client-authoritative. The local player keeps its zero-latency controller (`src/player.ts:98-181`) with no rollback. That's common in co-op games; Valve-style prediction and lag compensation exist for combat, which this game doesn't have.
 - The hard shared state is paint, which needs one order (2.2) and durable storage (6.4). Both want an always-on owner, not a player's tab.
 - The server is the same TypeScript as the client, so the kit, the face keys and the raster can't drift apart.
-- Transport: WebSocket over TLS (`wss://`, behind Caddy or nginx on the VPS, since the page is served over HTTPS). Interest management isn't needed for 2 players on a ~30 × 30 m level (demo bounds x −8..18, z −20..12).
+- Transport: WebSocket over TLS (`wss://`, behind Caddy on the VPS, since the page is served over HTTPS). Interest management isn't needed for 2 players on a ~30 × 30 m level (demo bounds x −8..18, z −20..12).
 
 ---
 
@@ -787,7 +791,6 @@ Single player stays the default and keeps build mode and F3. Multiplayer is ente
 
 **Phase 0: safety net (S, ~1 day).** Do this first; nothing visible changes.
 
-- Switch to `prep_multiplayer`.
 - Pass a random function into the paint path.
 - Write the golden paint test with baseline hashes at all four details (6.5).
 
@@ -823,20 +826,32 @@ Single player stays the default and keeps build mode and F3. Multiplayer is ente
 | Snapshot interpolation, tested with a "ghost": record your own play (state + ops) and play it back as a second player | S | new `src/net/remote-player.ts` |
 | City determinism (optional, cosmetic). Done 2026-10-06: a seed per block, heights by distance (`SKYLINE.riseTo`), clutter range from the city's own settings | S | `src/city/layout.ts`, `src/city/rooftops.ts` |
 
-**Phase 4: server and the MULTIPLAYER menu (M, ~4–5 days).**
+**Phase 4: server and the MULTIPLAYER menu (M, ~4–5 days).** Planned in detail on 2026-10-08, on `feat/multiplayer`.
 
-- **Server** (Node, `ws`, on your VPS behind Caddy or nginx for `wss://`):
+- **Server** (Node 24, `ws`, on the VPS behind Caddy for `wss://`, started by hand; `docs/deploy.md`):
   - session codes; op ordering;
-  - in-memory paint at 96 through the same `paint-raster.ts` and pieces → faces in Node;
+  - in-memory paint at the session's detail (decision 2) through the same `paint-raster.ts` and pieces → faces in Node;
   - join snapshot, SAVE download;
-  - removes a player's ladder when they disconnect;
-  - the session ends when the last player leaves.
+  - names; a dropped player has 60 s to come back with their reconnect token, then their ladder goes; a session with no one left closes (section 8);
+  - protocol and surface-table checks on `Host` / `Join` (section 4, Versions);
+  - `/healthz`, an explicit `maxPayload`, paint memory logged per session (decision 9).
 - **Client:**
-  - **MULTIPLAYER → HOST:** "Upload a save?" (file / use my current paint / start clean), then shows the code.
-  - **MULTIPLAYER → JOIN:** enter the code, see a loading screen until the full snapshot is in, then spawn.
-  - In a session the ESC menu shows the code, SAVE, LEAVE.
+  - **MULTIPLAYER → HOST:** name, PAINT DETAIL (locked for the session), "Upload a save?" (file / use my current paint / start clean), then shows the code.
+  - **MULTIPLAYER → JOIN:** name, code, a loading screen until the full snapshot is in, then spawn.
+  - In a session the ESC menu shows the code, SAVE, LEAVE. `?session` (the offline test mode from phase 3) goes. Done 2026-10-08, with steps 2–7: `src/net/protocol.ts`, `server/`, `src/net/multiplayer.ts`, `src/net/net-menu.ts`; paint ops go as JSON (exact numbers, so every client paints the same texels; ~6.5 KB/s compressed while painting nonstop) instead of section 4's packed binary.
+  - Reconnects on its own; the reconnect token is kept in `sessionStorage`, so a reload within 60 s rejoins as the same player, and each tab is its own player.
   - Remote paint is played at its timestamps; the remote avatar has a nameplate.
-- **Test:** two Chrome windows against a local server, then the VPS.
+  - Closes the items carried over in 7a (#3 player ids, #4 ladder `others`, #5 session menu, #6 locked detail and session config, #10 memory log).
+- **Steps:**
+  1. **Probe.** Done 2026-10-08: in Node the demo level builds the browser's 415 paint surfaces (same keys, atlases, face rects) in ~50 ms, and the golden ops paint identical hashes at all four details (`server/paint-check.ts`, run by `npm run golden`). Fully painted: 28 MB at LOW, 104 MEDIUM, 230 HIGH, 405 ULTRA. Section 5's server-held paint stands; the host-held fallback isn't needed.
+  2. `src/net/protocol.ts`: the section 4 messages, with a Node test like `paint-file.test`.
+  3. `server/`: sessions, relay, reconnects, `/healthz`; scripts `server` (watch) and `build:server`.
+  4. Client network layer in place of the ghost's `SimLink`; Vite proxies `/ws` to the local server, so dev and prod use the same URL.
+  5. MULTIPLAYER menu, session ESC menu.
+  6. Join snapshot and SAVE from the server.
+  7. A Playwright test with two pages against a local server (paint converges), in `npm run check`.
+  8. Dockerfile, compose service, `docs/deploy.md`.
+- **Test:** two Chrome windows side by side (e.g. a normal and an incognito one) against a local server, then the VPS. Windows, not tabs in one window: a background tab draws no frames, so it sends no state (7a #2).
 
 **Total:** roughly 13–17 working days.
 
@@ -868,15 +883,15 @@ Phases 0–3 are done on `feat/multiplayer`: every step in section 7 through pha
 | 6 | PAINT DETAIL and F3-free config in a session | 6.2 and section 8.1 | Lock PAINT DETAIL in a session; freeze session config from `Welcome` |
 | 7 | Snapshot time is float32 seconds | 2 ms steps after 8 hours | Fine; or session-relative time from the server |
 | 8 | TCP head-of-line blocking | WebSocket: one lost packet holds the ones behind it (the ghost's hiccups model it) | Smoothing and the adaptive delay hide it for two players; WebTransport datagrams (Chrome) would remove it if needed |
-| 9 | Headless world build for the server | Section 1, blocker 9 | Phase 4: pieces → paint faces in Node |
+| 9 | Headless world build for the server | Section 1, blocker 9 | Done 2026-10-08 (phase 4 probe): `levelPaintFaces` + `server/world.ts`; `npm run golden` checks the Node paint against the browser at every detail |
 | 10 | Paint memory at full ULTRA | Section 1, blocker 8 | Log paint memory per session (decision 9) |
 
 **Research behind the network choices** (2026-10-06): snapshot interpolation renders remote players slightly in the past between two snapshots ([Valve: Source multiplayer networking](https://developer.valvesoftware.com/wiki/Source_Multiplayer_Networking): 100 ms, extrapolation for at most 0.25 s); size the buffer to two snapshot intervals plus measured jitter and adapt it ([Unity Netcode: interpolation](https://docs.unity3d.com/Packages/com.unity.netcode@1.8/manual/interpolation.html), [bugnet: buffer too small stutter](https://bugnet.io/blog/how-to-fix-snapshot-interpolation-buffer-too-small-stutter)); over TCP one lost packet stalls the rest ([WebTransport for games](https://minhvo.is-a.dev/blogs/webtransport-low-latency-communication-for-games-and-media)); a walk cycle phased by distance keeps feet from sliding ([Vulkan tutorial: procedural animation](https://docs.vulkan.org/tutorial/latest/Advanced_glTF/Procedural_Animation_IK/07_conclusion.html)); collaborative canvases converge through a central order or CRDTs ([techinterview: collaborative whiteboard](https://techinterview.org/system-design-collaborative-whiteboard/)); background tabs stop rAF but not WebSockets ([Chrome: background tabs](https://developer.chrome.com/blog/background_tabs)).
 
 ## 8. Still open
 
-Everything asked so far is answered in section 0. These have suggested defaults and can be settled when their phase starts:
+Everything asked so far is answered in section 0. These three were settled on 2026-10-08:
 
-1. **PAINT DETAIL during a session.** Lock it, so a change applies when you leave (6.6)? Suggested: yes.
-2. **Reconnects.** How long should a dropped player's ladder (and an empty session) wait for them to come back? Suggested: 60 s.
-3. **Names.** Ask for a name on HOST and JOIN and show it as a nameplate? Suggested: yes, remembered in this browser.
+1. **PAINT DETAIL during a session.** Decided 2026-10-08: the host picks PAINT DETAIL on HOST (one of the settings' four), and it's locked for the session. The server's paint follows it (decision 2, replaced). This goes further than 6.6 (lock only).
+2. **Reconnects.** Decided 2026-10-08: a dropped player has 60 s to come back. After that their ladder is removed, and a session with no one connected is closed. A session with someone still connected continues (decision 16).
+3. **Names.** Decided 2026-10-08: yes, a name is asked on HOST and JOIN and shown as a nameplate.

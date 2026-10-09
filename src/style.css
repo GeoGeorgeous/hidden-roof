@@ -129,6 +129,12 @@ canvas {
   white-space: nowrap;
 }
 
+/* Names over the other players' heads (net/nameplates.ts). */
+.nameplate {
+  border-left: none;
+  border-bottom: var(--line);
+}
+
 /* PSI gauge above the tags, shown while spraying or shaking: label, a horizontal line, the value. */
 .psi-gauge {
   display: flex;
@@ -237,8 +243,41 @@ canvas {
 }
 .overlay.in-settings .menu,
 .overlay.in-settings .status,
-.overlay.in-settings table {
+.overlay.in-settings table,
+.overlay.in-mp .menu,
+.overlay.in-mp .status,
+.overlay.in-mp table,
+.overlay.in-settings .mp-page {
   display: none;
+}
+/* The multiplayer page (net/net-menu.ts) is built like the settings page. */
+.overlay.in-mp .mp-page {
+  display: flex;
+}
+.mp-page .actions {
+  display: flex;
+  gap: 8px;
+}
+.mp-page input[type='text'] {
+  pointer-events: auto;
+  width: 186px;
+  font: inherit;
+  letter-spacing: inherit;
+  color: var(--ui);
+  background: none;
+  border: none;
+  border-bottom: var(--line);
+  padding: 2px 4px;
+  text-align: center;
+  outline: none;
+}
+.mp-page .actions button {
+  border: var(--line);
+  padding: 6px 18px;
+}
+.mp-page .mp-status {
+  min-height: 1.4em;
+  color: var(--dim);
 }
 .settings-page .tabs {
   display: flex;

@@ -4,6 +4,7 @@ import type { AvatarAction } from '../avatar/pose';
 import { SLOTS, type Inventory, type Tool } from '../inventory/inventory';
 import type { Player } from '../player';
 import type { Tools } from '../tools/tools';
+import { SNAPSHOT_BYTES } from './protocol';
 
 // What a player sends about themselves, NET.sendRate times a second
 // (docs/multiplayer-audit.md 2.3): where their feet are, where they look, a few
@@ -25,7 +26,6 @@ export interface Snapshot {
   color: PaintColor;
 }
 
-const SNAPSHOT_BYTES = 23;
 const ACTIONS: AvatarAction[] = [null, 'spray', 'shake', 'roll', 'scrub'];
 const TAU = Math.PI * 2;
 
