@@ -22,6 +22,13 @@ Hidden roof: a three.js graffiti game. The world is ink on paper and the only co
 - Keep source files under ~400 lines (`config.ts` and CSS excepted). Split by responsibility before a file gets there, not after.
 - Branch names are `type/short-kebab-name`, with type one of `feat`, `fix`, `refactor`, `perf`, `chore`, `docs`, `test` (e.g. `feat/roller-tool`, `perf/dirty-rect-upload`).
 
+## Releases
+
+- Branch flow: topic branches → `dev` → `next` (tested) → `main` (deployed). Only a release moves `main`.
+- When asked to merge or promote `next` into `main`, first ask me: patch, minor, major, or no release (and say what's new since the last tag, `git log --oneline $(git describe --tags --abbrev=0)..next`). Never pick the bump yourself.
+- Release, on a clean `next` with `npm run check` passing: `npm version <bump>` (bumps, commits, tags `vX.Y.Z`), `git push origin next:main --follow-tags` (fast-forward, never a PR or merge commit), then merge `next` back into `dev` and push.
+- The game shows its build's `git describe` (`src/version.ts`), so `dev` and `next` need no bumps.
+
 ## Long runs
 
 When a step doesn't need my input, keep going. Stop and ask only when you can't continue without me, or before deleting data, force-pushing, or changing anything outside this repository.
