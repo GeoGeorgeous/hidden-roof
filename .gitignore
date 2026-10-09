@@ -13,6 +13,7 @@ vite.config.*.timestamp-*
 .env.*
 !.env.multiplayer
 !.env.example
+SECRET_*
 *.pem
 *.key
 *.p12
