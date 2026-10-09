@@ -54,6 +54,12 @@ export class Avatar {
     this.pose.update(dt, state);
   }
 
+  /** Where paint leaves the can in its hand (world), as posed by the last update. */
+  nozzle(out: THREE.Vector3) {
+    this.held.group.updateWorldMatrix(true, false);
+    return this.held.group.localToWorld(out.copy(this.held.nozzle));
+  }
+
   dispose() {
     this.mesh.geometry.dispose();
     this.held.set(null, 'black', 'standard');

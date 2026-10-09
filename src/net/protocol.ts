@@ -19,7 +19,7 @@ export const CODE_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 /** The PAINT DETAILs a host may pick (texels per meter, settings.ts). */
 const DETAILS = [24, 48, 72, 96];
 /** Player snapshot size (net/snapshot.ts). */
-export const SNAPSHOT_BYTES = 24;
+export const SNAPSHOT_BYTES = 25;
 /** Most props a hosted level may have (the roof has 1340): each costs the server building it. */
 const MAX_PROPS = 5000;
 

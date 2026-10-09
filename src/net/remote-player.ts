@@ -1,6 +1,8 @@
 import * as THREE from 'three';
-import { NET } from '../config';
+import { CAPS, COLORS, NET, PLAYER } from '../config';
 import { Avatar } from '../avatar/avatar';
+import { setHex } from '../hex-color';
+import type { SprayParticles } from '../spray/particles';
 import type { AvatarState } from '../avatar/pose';
 import type { Level, PropData } from '../level/level';
 import type { PaintOp, PaintOps } from '../paint-ops';
@@ -13,13 +15,21 @@ import { decodeSnapshot, type Snapshot } from './snapshot';
 // A late snapshot is guessed at for a moment (NET.extrapolate); when the real
 // one comes, the difference is smoothed out instead of jumping. Their paint ops and their stepladder are
 // applied when the figure gets to the time they happened, so the paint shows
-// up with the arm that sprays it. Never simulated here: no physics, no
+// up with the arm that sprays it, and their can's spray flies from the
+// figure's hand (particles only). Never simulated here: no physics, no
 // collisions.
 
 interface Timed {
   t: number;
   run: () => void;
 }
+
+const eye = new THREE.Vector3();
+const nozzle = new THREE.Vector3();
+const forward = new THREE.Vector3();
+const right = new THREE.Vector3();
+const up = new THREE.Vector3();
+const display = new THREE.Color();
 
 export class RemotePlayer {
   readonly avatar = new Avatar();
@@ -45,6 +55,8 @@ export class RemotePlayer {
   private pos = new THREE.Vector3();
   /** Their time last shown: it never goes back, even when the link gets slower (it stalls instead). */
   private shown = -Infinity;
+  /** Spray particles owed to the next frame (a fraction of one). */
+  private carry = 0;
 
   constructor(
     scene: THREE.Scene,
@@ -52,6 +64,8 @@ export class RemotePlayer {
     private ops: PaintOps,
     /** Their key: what they own (their stepladder). */
     readonly owner: string,
+    /** Where their can's spray goes (SprayTool.others). */
+    private particles: SprayParticles,
   ) {
     this.avatar.group.visible = false;
     scene.add(this.avatar.group);
@@ -148,6 +162,24 @@ export class RemotePlayer {
     Object.assign(this.stats, { delay: this.lag - this.target, jitter: this.jitter, buffered: s.length, correction: this.error.length() });
     this.avatar.group.visible = true;
     this.avatar.update(dt, st, cur.color, cur.cap);
+    if (st.tool === 'can' && st.action === 'spray' && cur.flow > 0) this.spray(dt, cur);
+  }
+
+  /** Their can's spray, from its nozzle along their look, as much as comes out of it (SprayTool.emit). */
+  private spray(dt: number, s: Snapshot) {
+    const cap = CAPS[s.cap];
+    this.carry += cap.rate * s.flow * dt;
+    const count = Math.floor(this.carry);
+    this.carry -= count;
+    if (!count) return;
+    const st = this.state;
+    const cp = Math.cos(st.pitch);
+    forward.set(-Math.sin(st.yaw) * cp, Math.sin(st.pitch), -Math.cos(st.yaw) * cp);
+    right.set(Math.cos(st.yaw), 0, -Math.sin(st.yaw));
+    up.crossVectors(right, forward);
+    eye.copy(this.position).y += st.crouched ? PLAYER.crouchEyeHeight : PLAYER.eyeHeight;
+    setHex(display, COLORS[s.color]);
+    this.particles.show({ count, eye, nozzle: this.avatar.nozzle(nozzle), forward, right, up, cap, display, dt });
   }
 
   dispose() {

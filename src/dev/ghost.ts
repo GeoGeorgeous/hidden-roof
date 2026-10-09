@@ -104,7 +104,7 @@ export class Ghost {
     if (!this.rec?.snaps.length) return;
     this.stop();
     this.mode = 'playing';
-    this.remote = new RemotePlayer(this.g.scene, this.g.level, this.g.paintOps, OWNER);
+    this.remote = new RemotePlayer(this.g.scene, this.g.level, this.g.paintOps, OWNER, this.g.tools.spray.others);
     void this.loop();
   }
 
@@ -112,7 +112,7 @@ export class Ghost {
     this.stop();
     this.mode = 'following';
     this.next = 0;
-    this.remote = new RemotePlayer(this.g.scene, this.g.level, this.g.paintOps, OWNER);
+    this.remote = new RemotePlayer(this.g.scene, this.g.level, this.g.paintOps, OWNER, this.g.tools.spray.others);
   }
 
   stop() {

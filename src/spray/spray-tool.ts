@@ -25,6 +25,8 @@ export class SprayTool {
   flow = 0;
   readonly model = new CanModel();
   readonly particles: SprayParticles;
+  /** Other players' spray (net/remote-player.ts): seen only, their paint comes as paint ops. */
+  readonly others: SprayParticles;
   private carry = 0;
   /** Time into the current shake (s); -1 = not shaking. */
   private shakeT = -1;
@@ -38,12 +40,14 @@ export class SprayTool {
     private audio: Audio,
   ) {
     this.particles = new SprayParticles(scene, paint, solids);
+    this.others = new SprayParticles(scene, paint, solids);
   }
 
   /** `inv` is null when the can is put away (particles still finish flying). */
   update(dt: number, input: Input, camera: THREE.Camera, eye: THREE.Vector3, inv: Inventory | null) {
     this.model.group.visible = !!inv;
     this.particles.update(dt);
+    this.others.update(dt);
     if (!inv) {
       this.flow = 0;
       this.shakeT = -1;

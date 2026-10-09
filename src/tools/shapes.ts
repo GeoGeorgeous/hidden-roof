@@ -75,6 +75,8 @@ export function capShape(cap: CapId, look: Look) {
   const nozzle = mesh(new THREE.BoxGeometry(n, n, 0.006), look.tone('#202020'), height / 2 + 0.002);
   nozzle.position.z = -width / 2;
   const tip = new THREE.Object3D();
+  // Named, so a figure's can finds it in the pickup model (avatar/held.ts).
+  tip.name = 'tip';
   tip.position.set(0, nozzle.position.y, -width / 2 - 0.003);
   group.add(mesh(new THREE.CylinderGeometry(width / 2, width / 2, height, 8), look.color(CAPS[cap].color), height / 2), nozzle, tip);
   return { group, tip };

@@ -19,6 +19,8 @@ const keptInk = () => (keptMaterial ??= inkify(new THREE.MeshLambertMaterial({ v
 export class Held {
   /** Sits in the hand's grip: its -z runs through the fist, its y out of the thumb side. */
   readonly group = new THREE.Group();
+  /** Where paint leaves the can in hand, in `group` (the cap's tip). */
+  readonly nozzle = new THREE.Vector3();
   private key = '';
 
   constructor(private ink: THREE.Material) {}
@@ -37,6 +39,10 @@ export class Held {
       model.scale.setScalar(1);
     }
     model.updateMatrixWorld(true);
+    // Held in the fist: the model's up (the can's top, the roller's frame) points through it.
+    const turn = new THREE.Matrix4().makeRotationX(-Math.PI / 2);
+    const tip = model.getObjectByName('tip');
+    if (tip) this.nozzle.setFromMatrixPosition(tip.matrixWorld).applyMatrix4(turn);
     const ink: THREE.BufferGeometry[] = [];
     const kept: THREE.BufferGeometry[] = [];
     model.traverse((o) => {
@@ -51,8 +57,6 @@ export class Held {
       m.geometry.dispose();
       (m.material as THREE.Material).dispose();
     });
-    // Held in the fist: the model's up (the can's top, the roller's frame) points through it.
-    const turn = new THREE.Matrix4().makeRotationX(-Math.PI / 2);
     if (ink.length) this.group.add(this.mesh(ink, this.ink, turn));
     if (kept.length) this.group.add(this.mesh(kept, keptInk(), turn));
   }
