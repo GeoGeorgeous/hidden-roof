@@ -71,7 +71,7 @@ export type LightKind = 'wallLamp' | 'floodlight' | 'neon' | 'billboardLamp' | '
 export interface LightSpec {
   /** Light color (the lens takes it too, after a rebuild). Neon signs have one each instead (NEON_COLORS). */
   color: string;
-  /** How much of `color` shows in the light on walls (INK.tint scales it): 0 = only its brightness (neutral), 1 = its full hue. Baked lamps only: with LIGHTMAP.enabled off the walls get no hue. */
+  /** How much of `color` shows in the light on walls (INK.tint scales it): 0 = only its brightness (neutral), 1 = its full hue, above 1 = deeper than its own hue (walls near it take the color, down to INK_TINT.deep). Baked lamps only: with LIGHTMAP.enabled off the walls get no hue. Also how colored its glow is (above 0: tinted, at 1 and up: fully). */
   tint: number;
   /** Aim, prop-local (front of the prop is -z); normalized when used. Floodlight heads turn with it. */
   dir: [number, number, number];
@@ -116,7 +116,7 @@ export const LIGHTS: Record<Exclude<LightKind, 'neon'>, LightSpec> & { neon: Omi
   lightPanel: { color: '#eef1ff', tint: 0, dir: [0, -0.25, -1], intensity: 11, range: 9, spread: 1.4, softness: 1, glow: 0.1, glowAllAround: false, beam: 0, shadows: true },
   // Aviation obstruction light: red, pulsing slowly (FLICKER.pulse*); its dome is the glow. Lights all around:
   // this cone down onto the roof, and the prop adds the same cone up (kit/roof-lights.ts).
-  aviation: { color: '#ff2a1a', tint: 1, dir: [0, -1, 0], intensity: 7, range: 6, spread: 1.55, softness: 0.6, glow: 0, glowAllAround: true, beam: 0, shadows: false },
+  aviation: { color: '#ff2a1a', tint: 3, dir: [0, -1, 0], intensity: 7, range: 6, spread: 1.55, softness: 0.6, glow: 2.4, glowAllAround: true, beam: 0, shadows: false },
 };
 
 /**
@@ -249,8 +249,12 @@ export const INK_PRESETS = [
 export const INK_TINT = {
   /** The tint is the light's hue relative to its brightness, which grows without bound in the dark: brightness counts as at least this. */
   minLight: 0.15,
-  /** Largest change of a color channel, ± this fraction. */
+  /** Largest change of a color channel, ± this fraction, before INK.tint. */
   max: 0.8,
+  /** Largest darkening of a color channel by a lamp with tint above 1 (aviation): past `max`, so paper near it turns its color. */
+  deep: 3,
+  /** Colored glow sprites (lamp kinds with tint): how much they cover what is behind them with their color (0..1), so they show over paper too. */
+  glowCover: 0.5,
   /** Neon text takes this many times more of its lamp's hue than the walls it lights. */
   neonBoost: 2,
   /** The same floor as minLight for the neon text's own color (its tint's brightness). */

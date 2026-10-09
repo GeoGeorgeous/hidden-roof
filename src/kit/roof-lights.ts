@@ -77,7 +77,7 @@ export const aviationLight: PropDef = {
     p.cone([0, 0.43, 0], 0.07, 0.06, dome);
     // Two cones, down (LIGHTS.aviation.dir) and up, light all around it, as the bare bulb does.
     p.light({ kind: 'aviation', pos: [0, 0.42, 0], flicker: -1 });
-    p.light({ kind: 'aviation', pos: [0, 0.42, 0], dir: [0, 1, 0], flicker: -1 });
+    p.light({ kind: 'aviation', pos: [0, 0.42, 0], dir: [0, 1, 0], flicker: -1, glows: [] });
     return p.list;
   },
 };
