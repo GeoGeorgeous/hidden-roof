@@ -114,8 +114,9 @@ export const LIGHTS: Record<Exclude<LightKind, 'neon'>, LightSpec> & { neon: Omi
   // Roof lights (kit/roof-lights.ts): the caged lamp over a roof door, the flat wall panel.
   bulkhead: { color: '#e9e3d2', tint: 0, dir: [0, -0.7, -0.7], intensity: 9, range: 8, spread: 1.2, softness: 0.8, glow: 0.16, glowAllAround: false, beam: 0, shadows: true },
   lightPanel: { color: '#eef1ff', tint: 0, dir: [0, -0.25, -1], intensity: 11, range: 9, spread: 1.4, softness: 1, glow: 0.1, glowAllAround: false, beam: 0, shadows: true },
-  // Aviation obstruction light: red, pulsing slowly (FLICKER.pulse*); its dome is the glow.
-  aviation: { color: '#ff2a1a', tint: 1, dir: [0, 1, 0], intensity: 3, range: 5, spread: 1.5, softness: 1, glow: 0, glowAllAround: true, beam: 0, shadows: false },
+  // Aviation obstruction light: red, pulsing slowly (FLICKER.pulse*); its dome is the glow. Lights all around:
+  // this cone down onto the roof, and the prop adds the same cone up (kit/roof-lights.ts).
+  aviation: { color: '#ff2a1a', tint: 1, dir: [0, -1, 0], intensity: 7, range: 6, spread: 1.55, softness: 0.6, glow: 0, glowAllAround: true, beam: 0, shadows: false },
 };
 
 /**
