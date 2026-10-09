@@ -224,18 +224,12 @@ export const INK = {
 };
 
 /**
- * F3 → Render → Shaders → preset: sets of INK colors to switch between live.
- * Each lists only the colors it changes; the first is INK as it is. Edits made
- * in F3 while a set is picked stay with that set until reload (nothing is saved).
+ * GRAPHICS → STYLE (and F3 → Render → Shaders → preset): the ink look's color
+ * sets, picked into INK (render/ink/styles.ts). INK's colors are the default set's.
  */
-export const INK_PRESETS: Partial<Record<'paper' | 'ink' | 'sky' | 'cloud', string>>[] = [
-  {},
-  { paper: '#d9d4d1', ink: '#433f52', sky: '#0c0b0f', cloud: '#201f29' },
-  { paper: '#edf0f5', ink: '#333243', sky: '#0c0b0f', cloud: '#201f29' },
-  { paper: '#edf0f5', ink: '#333243', sky: '#1d2030', cloud: '#262a40' },
-  { paper: '#dce1e9', ink: '#262532', sky: '#0c0b0f', cloud: '#201f29' },
-  // The look the game started with before 2026-10-09.
-  { paper: '#dfe0d6', ink: '#3a3749', sky: '#0c0b0f', cloud: '#201f29' },
+export const INK_STYLES = [
+  { name: 'ORIGINAL', paper: '#dfe0d6', ink: '#3a3749', sky: '#0c0b0f', cloud: '#201f29' },
+  { name: 'NEW MANGA', paper: '#eff1f6', ink: '#333243', sky: '#171926', cloud: '#1d2030' },
 ];
 
 /** Shape of the colored light tint (INK.tint) in the ink shader; built into the shader, not live. */
