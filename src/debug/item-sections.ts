@@ -1,6 +1,6 @@
 import { CAP_ORDER, CAPS, PICKUP, TAG_FONTS, type TagFont } from '../config';
 import { defaultOf } from './defaults';
-import { c, getValue, live, r, setValue, type Item, type Section } from './tuning';
+import { c, getValue, gray, live, r, setValue, type Item, type Section } from './tuning';
 
 // F3 panel contents for items (tuning.ts has the helpers): the pickups in the
 // world, and the tool models they, the first-person view, the figure's hand
@@ -37,22 +37,22 @@ function fontRow(label: string, path: string[]): Item {
   };
 }
 
-/** Pickups' tags (PICKUP.label): reach and fonts, then where they sit on each ring shape, the same rows for each. */
+/** Pickups' tags (PICKUP.label): reach, each line's size and outline (and font, but katakana's), then where they sit on each ring shape. */
 function tagItems(): Item[] {
-  const shapes = { color: 'paint', cap: 'cap', tool: 'tool' } as const;
+  const lines = { caption: 'caption', captionKana: 'caption japanese', name: 'name', nameKana: 'name japanese' } as const;
   return [
     { kind: 'heading', label: 'TAGS' },
     r('reach', ['PICKUP', 'label', 'reach'], 0, 40, 0.5),
-    fontRow('caption: font', ['PICKUP', 'label', 'caption', 'font']),
-    r('caption: size', ['PICKUP', 'label', 'caption', 'size'], 6, 24, 1),
-    fontRow('name: font', ['PICKUP', 'label', 'name', 'font']),
-    r('name: size', ['PICKUP', 'label', 'name', 'size'], 8, 48, 1),
-    r('name: outline', ['PICKUP', 'label', 'name', 'outline'], 0, 12, 0.5),
-    r('kana: size', ['PICKUP', 'label', 'name', 'kana'], 0, 32, 1),
-    ...(Object.keys(shapes) as (keyof typeof shapes)[]).flatMap((k) => [
-      r(`${shapes[k]}: out`, ['PICKUP', 'label', 'place', k, 'at', '0'], -0.2, 1, 0.01),
-      r(`${shapes[k]}: up`, ['PICKUP', 'label', 'place', k, 'at', '1'], -0.5, 1, 0.01),
-      r(`${shapes[k]}: tilt`, ['PICKUP', 'label', 'place', k, 'tilt'], -90, 90, 1),
+    ...(Object.keys(lines) as (keyof typeof lines)[]).flatMap((k) => [
+      ...('font' in PICKUP.label[k] ? [fontRow(`${lines[k]}: font`, ['PICKUP', 'label', k, 'font'])] : []),
+      r(`${lines[k]}: size`, ['PICKUP', 'label', k, 'size'], 0, 48, 1),
+      r(`${lines[k]}: outline`, ['PICKUP', 'label', k, 'outline'], 0, 12, 0.5),
+    ]),
+    r('paint: up', ['PICKUP', 'label', 'color', 'up'], -0.5, 1.5, 0.01),
+    ...(['cap', 'tool'] as const).flatMap((k) => [
+      r(`${k}: out`, ['PICKUP', 'label', k, 'at', '0'], -0.2, 1, 0.01),
+      r(`${k}: up`, ['PICKUP', 'label', k, 'at', '1'], -0.5, 1, 0.01),
+      r(`${k}: tilt`, ['PICKUP', 'label', k, 'tilt'], -90, 90, 1),
     ]),
   ];
 }
@@ -72,6 +72,8 @@ export function itemSections(): Section[] {
         r('bob height', ['PICKUP', 'bob'], 0, 0.5, 0.01),
         r('ring: size', ['PICKUP', 'ring', 'size'], 0.3, 3, 0.05),
         r('ring: opacity', ['PICKUP', 'ring', 'opacity'], 0, 1, 0.05),
+        gray('ring: cap color', ['PICKUP', 'ring', 'cap']),
+        gray('ring: tool color', ['PICKUP', 'ring', 'tool']),
         r('ring: min size', ['PICKUP', 'ring', 'minSize'], 0, 0.1, 0.005),
         r('glow: size', ['PICKUP', 'glow', 'size'], 0, 4, 0.05),
         r('glow: floor size', ['PICKUP', 'glow', 'floor'], 0, 5, 0.05),

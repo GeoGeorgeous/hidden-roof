@@ -643,10 +643,12 @@ export const PICKUP = {
   bob: 0.08,
   /**
    * The drawn ring around every pickup, its shape by kind (pickups/visuals.ts):
-   * size (x the item's hover box) and opacity. Never smaller on screen than
-   * `minSize` of its height, so its shape reads from far away (0 = it shrinks with distance).
+   * size (x the item's hover box), never smaller on screen than `minSize` of
+   * its height, so its shape reads from far away (0 = it shrinks with distance).
+   * Paint's is in its color at `opacity`; a cap's and a tool's are solid, in
+   * their shade of ink (`cap`, `tool`).
    */
-  ring: { size: 1.3, opacity: 0.7, minSize: 0.025 },
+  ring: { size: 1.3, opacity: 0.7, minSize: 0.025, cap: '#666666', tool: '#666666' },
   /**
    * Every pickup glows, as pickups do in GTA: paint in its color, the rest
    * white. A soft light around the item (`size`, m) and a pool of it on the
@@ -655,24 +657,24 @@ export const PICKUP = {
    */
   glow: { size: 1.45, floor: 1.25, strength: 1, cover: 0.35, pulse: 0.35, pulseRate: 3.5 },
   /**
-   * Each pickup's tag by its ring, manga-style (pickups/labels.ts): NEW TOOL
-   * in a caption box on the left, the name in outlined letters on the right,
-   * its katakana under it. Shown within `reach` (m) while in sight (checked
-   * `sightRate` times a second).
+   * Each pickup's tag by its ring, manga-style (pickups/labels.ts), in
+   * outlined letters with katakana under them: NEW TOOL on the left, the name
+   * on the right; paint only its name, centered over the ring. Shown within
+   * `reach` (m) while in sight (checked `sightRate` times a second).
    */
   label: {
     reach: 12,
     sightRate: 4,
-    /** Per ring shape: `at` (x the ring's size: out from its middle, up) where the name starts and the caption ends, mirrored; `tilt` (degrees), along the ring's upper edges. */
-    place: {
-      color: { at: [0.33, 0.33] as [number, number], tilt: 45 },
-      cap: { at: [0.06, 0.27] as [number, number], tilt: 0 },
-      tool: { at: [0.17, 0.43] as [number, number], tilt: 45 },
-    },
-    /** NEW TOOL: font and size (px). */
-    caption: { font: 'mono' as TagFont, size: 10 },
-    /** The name: font, size and outline (px); `kana`: its katakana's size (px, 0 = none). */
-    name: { font: 'gothic' as TagFont, size: 22, outline: 5, kana: 11 },
+    /** Paint's name: centered, `up` (x the ring's size) from its middle. */
+    color: { up: 0.5 },
+    /** A cap's and a tool's: `at` (x the ring's size: out from its middle, up) where the name starts and NEW … ends, mirrored; `tilt` (degrees), along the ring's upper edges. */
+    cap: { at: [0.06, 0.27] as [number, number], tilt: 0 },
+    tool: { at: [0.17, 0.43] as [number, number], tilt: 45 },
+    /** The four lines, each a size and outline (px; size 0 = none): NEW TOOL and its katakana, the name and its katakana; NEW TOOL and the name in `font` (katakana is always in the gothic). */
+    caption: { font: 'gothic' as TagFont, size: 14, outline: 4 },
+    captionKana: { size: 9, outline: 2 },
+    name: { font: 'gothic' as TagFont, size: 22, outline: 5 },
+    nameKana: { size: 11, outline: 2.5 },
   },
   /**
    * Each kind's world pickup, on top of its tool model (MODELS, shown at twice real

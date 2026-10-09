@@ -1,19 +1,21 @@
 import * as THREE from 'three';
 import { COLORS, PICKUP, type TagFont } from '../config';
-import { parsePickup, pickupVariant } from '../inventory/items';
+import { parsePickup } from '../inventory/items';
 import { solidsNear } from '../level/solids';
 import { JP_FAMILY } from '../render/ink/jp-font';
 import type { Pickup } from './pickups';
 
 // Each pickup's tag by its ring, in the HUD, manga-style (style.css
-// .pickup-tag): NEW TOOL in a caption box along the ring's upper left edge,
-// the name in outlined letters along its upper right one, with its katakana
-// (NEW while it would give you something; paint's name in its color). Shown
-// within PICKUP.label.reach while the pickup is in sight: through walls,
-// tags would give hidden pickups away.
+// .pickup-tag): outlined letters with katakana under them, NEW TOOL along the
+// ring's upper left edge and the name along its upper right one (NEW while it
+// would give you something); paint only its name, in its color, centered over
+// the ring. Shown within PICKUP.label.reach while the pickup is in sight:
+// through walls, tags would give hidden pickups away.
 
-/** Each build picker group's word on a tag: the in-hand tags' words. */
-const WORD: Record<string, string> = { Paint: 'COLOR', Cap: 'CAP', Tool: 'TOOL' };
+/** A cap's or a tool's word on its tag, and in katakana. */
+const WORD = { cap: ['CAP', 'キャップ'], tool: ['TOOL', 'ツール'] } as const;
+/** The tag's lines (style.css .l-caption…), by their PICKUP.label key. */
+const LINES = ['caption', 'captionKana', 'name', 'nameKana'] as const;
 /** Each thing's name in katakana, by its id (red, fat, marker). */
 const KANA: Record<string, string> = {
   white: 'ホワイト',
@@ -47,12 +49,11 @@ const FADE = 300;
 
 interface Tag {
   el: HTMLElement;
-  caption: HTMLElement;
-  /** Where its texts sit (PICKUP.label.place). */
-  shape: keyof typeof PICKUP.label.place;
-  /** Its kind's word (TOOL), and what the caption says now (NEW TOOL). */
-  word: string;
-  text: string;
+  /** Its NEW TOOL and katakana lines; null for paint, which has none. */
+  caption: [HTMLElement, HTMLElement] | null;
+  shape: 'color' | 'cap' | 'tool';
+  /** Whether the caption says NEW now. */
+  isNew: boolean | null;
   /** Nothing between the camera and the pickup at the last sight check. */
   seen: boolean;
   shown: boolean;
@@ -80,14 +81,12 @@ export class PickupLabels {
     private solids: readonly THREE.Mesh[],
   ) {
     this.root.className = 'pickup-tags';
-    // Katakana in the gothic, whatever the name's font: the system may have no Japanese font.
-    this.root.style.setProperty('--kana-font', FAMILIES.gothic);
     document.querySelector('.hud')!.append(this.root);
   }
 
   /** Shows, hides and places every pickup's tag; `isNew`: it would give you something. */
   update(dt: number, pickups: Iterable<Pickup>, isNew: (p: Pickup) => boolean) {
-    const { reach, sightRate, place } = PICKUP.label;
+    const { reach, sightRate } = PICKUP.label;
     this.setFonts();
     this.sightClock += dt;
     const sight = this.sightClock >= 1 / sightRate;
@@ -107,8 +106,12 @@ export class PickupLabels {
       if (close && sight) tag.seen = this.inSight(center, far);
       const shown = close && tag.seen;
       if (shown) {
-        const text = isNew(p) ? `NEW ${tag.word}` : tag.word;
-        if (tag.text !== text) tag.caption.textContent = tag.text = text;
+        if (tag.caption && tag.shape !== 'color' && tag.isNew !== isNew(p)) {
+          tag.isNew = isNew(p);
+          const [word, kana] = WORD[tag.shape];
+          tag.caption[0].textContent = tag.isNew ? `NEW ${word}` : word;
+          tag.caption[1].textContent = tag.isNew ? `ニュー${kana}` : kana;
+        }
         tag.until = now + FADE;
       }
       if (shown !== tag.shown) tag.el.classList.toggle('show', (tag.shown = shown));
@@ -117,13 +120,16 @@ export class PickupLabels {
       tag.el.hidden = depth <= 0;
       if (tag.el.hidden) continue;
       center.project(this.camera);
-      const { at, tilt } = place[tag.shape];
       const s = tag.el.style;
       s.transform = `translate(${Math.round((center.x * 0.5 + 0.5) * window.innerWidth)}px, ${Math.round((0.5 - center.y * 0.5) * window.innerHeight)}px)`;
       s.setProperty('--ring', `${((size * scale) / depth).toFixed(1)}px`);
-      s.setProperty('--ax', String(at[0]));
-      s.setProperty('--ay', String(at[1]));
-      s.setProperty('--tilt', `${tilt}deg`);
+      if (tag.shape === 'color') s.setProperty('--ay', String(PICKUP.label.color.up));
+      else {
+        const { at, tilt } = PICKUP.label[tag.shape];
+        s.setProperty('--ax', String(at[0]));
+        s.setProperty('--ay', String(at[1]));
+        s.setProperty('--tilt', `${tilt}deg`);
+      }
     }
   }
 
@@ -135,33 +141,41 @@ export class PickupLabels {
   private make(p: Pickup) {
     const c = parsePickup(p.kind)!;
     const id = p.kind.split(':').pop()!;
-    const el = Object.assign(document.createElement('div'), { className: 'pickup-tag' });
-    const caption = Object.assign(document.createElement('div'), { className: 'tag-caption' });
-    const name = Object.assign(document.createElement('div'), { className: 'tag-name', textContent: id.toUpperCase() });
+    const shape = 'color' in c ? 'color' : 'cap' in c ? 'cap' : 'tool';
+    const el = Object.assign(document.createElement('div'), { className: `pickup-tag ${shape}` });
+    const line = (key: (typeof LINES)[number], text = '') => Object.assign(document.createElement('span'), { className: `l-${key}`, textContent: text });
+    const name = Object.assign(document.createElement('div'), { className: 'tag-name' });
+    name.append(line('name', id.toUpperCase()), line('nameKana', KANA[id]));
     // Paint's name in its color, through the DOM, not a style attribute: a CSP without 'unsafe-inline' allows it.
     if ('color' in c) name.style.color = COLORS[c.color];
-    if (KANA[id]) name.append(document.createElement('br'), Object.assign(document.createElement('span'), { className: 'tag-kana', textContent: KANA[id] }));
-    el.append(caption, name);
+    let caption: Tag['caption'] = null;
+    if (shape !== 'color') {
+      caption = [line('caption'), line('captionKana')];
+      el.append(Object.assign(document.createElement('div'), { className: 'tag-caption' }));
+      el.firstElementChild!.append(...caption);
+    }
+    el.append(name);
     this.root.append(el);
-    const tag: Tag = { el, caption, shape: 'color' in c ? 'color' : 'cap' in c ? 'cap' : 'tool', word: WORD[pickupVariant(p.kind).group], text: '', seen: false, shown: false, until: 0 };
+    const tag: Tag = { el, caption, shape, isNew: null, seen: false, shown: false, until: 0 };
     this.tags.set(p.id, tag);
     return tag;
   }
 
-  /** The texts' fonts and sizes, on the root for every tag (written when they change, in F3). */
+  /** Each line's font, size and outline, on the root for every tag (written when they change, in F3). */
   private setFonts() {
-    const { caption, name } = PICKUP.label;
-    const key = `${caption.font}|${caption.size}|${name.font}|${name.size}|${name.outline}|${name.kana}`;
+    const key = LINES.map((k) => Object.values(PICKUP.label[k]).join()).join('|');
     if (key === this.fonts) return;
     this.fonts = key;
     const s = this.root.style;
-    s.setProperty('--caption-font', FAMILIES[caption.font]);
-    s.setProperty('--caption-size', `${caption.size}px`);
-    s.setProperty('--name-font', FAMILIES[name.font]);
-    s.setProperty('--name-size', `${name.size}px`);
-    s.setProperty('--outline', `${name.outline}px`);
-    s.setProperty('--kana-size', `${name.kana}px`);
-    this.root.classList.toggle('no-kana', name.kana <= 0);
+    for (const k of LINES) {
+      const line = PICKUP.label[k];
+      const { size, outline } = line;
+      const font = 'font' in line ? line.font : 'gothic';
+      // Katakana from the gothic, whatever the font: the others have none, and the system may have no Japanese font.
+      s.setProperty(`--${k}-font`, font === 'gothic' ? JP_FAMILY : `${FAMILIES[font]}, ${JP_FAMILY}`);
+      s.setProperty(`--${k}-size`, `${size}px`);
+      s.setProperty(`--${k}-outline`, `${outline}px`);
+    }
   }
 
   /** Nothing solid between the camera and `at`, `far` from it. */

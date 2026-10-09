@@ -4,7 +4,7 @@ import type { V3 } from '../kit/pieces';
 import type { Inventory } from '../inventory/inventory';
 import { parsePickup, pickupLabel, type PickupKind } from '../inventory/items';
 import { PickupLabels } from './labels';
-import { glow as makeGlow, halo as makeHalo, itemModel, setGlow, type Glow } from './visuals';
+import { glow as makeGlow, halo as makeHalo, itemModel, setGlow, setRing, type Glow } from './visuals';
 
 // Pickups placed on the map. Walk into one to collect it; if it unlocks nothing
 // new (color/cap already owned, tool already found) it stays. Saved in level
@@ -118,7 +118,7 @@ export class Pickups {
     p.halo.scale.setScalar(size);
     // Grown past its size it grows upward, so the floor in front doesn't cut off its bottom.
     p.halo.center.y = PICKUP.ring.size / 2 / size;
-    p.halo.material.opacity = PICKUP.ring.opacity;
+    setRing(p.halo, p.kind);
     const g = PICKUP.glow;
     p.glow.light.position.y = PICKUP.hover + bob;
     p.glow.light.scale.setScalar(g.size);
