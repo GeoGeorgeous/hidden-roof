@@ -25,6 +25,8 @@ Hidden roof: a three.js graffiti game. The world is ink on paper and the only co
 ## Releases
 
 - Branch flow: topic branches → `dev` → `next` (tested) → `main` (deployed). Only a release moves `main`.
+- New work (features, fixes, docs) branches from `dev` and merges back into `dev`. `next` and `main` move only by promotion.
+- Push merges into `dev` and `next` right away. Topic branches stay local unless I ask.
 - When asked to merge or promote `next` into `main`, first ask me: patch, minor, major, or no release (and say what's new since the last tag, `git log --oneline $(git describe --tags --abbrev=0)..next`). Never pick the bump yourself.
 - Release, on a clean `next` with `npm run check` passing: `npm version <bump>` (bumps, commits, tags `vX.Y.Z`), `git push origin next:main --follow-tags` (fast-forward, never a PR or merge commit), then merge `next` back into `dev` and push.
 - The game shows its build's `git describe` (`src/version.ts`), so `dev` and `next` need no bumps.
