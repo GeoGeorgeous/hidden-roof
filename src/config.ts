@@ -789,6 +789,18 @@ export const PROFILE = {
   probeMeasure: 3,
   /** And at least this many frames for each (settling, then measured). */
   probeSettleFrames: 10,
+  /** Spikes (src/dev/spikes.ts): the seconds kept from before one, and recorded after it. */
+  spikeBefore: 5,
+  spikeAfter: 1,
+  /** A slow frame: longer than this many times the last second's, and than this (ms). */
+  hitchFactor: 3,
+  hitchMinMs: 80,
+  /** A camera jump: the view turned further than this in one frame (degrees). A fast flick at 30 fps turns about 30. */
+  jumpDegrees: 45,
+  /** A mouse spike: one mouse event moved further than this (px; a hard flick is under 150). */
+  mouseSpikePx: 300,
+  /** Spikes kept in a report; the rest are only counted. */
+  maxSpikes: 40,
 };
 
 /**

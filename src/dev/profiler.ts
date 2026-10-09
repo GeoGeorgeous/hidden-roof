@@ -8,13 +8,17 @@ import type { LightBaker } from '../render/bake/baker';
 import type { Lighting } from '../render/lighting';
 import { VERSION } from '../version';
 import { Probe, type ProbeResult } from './probe';
+import { SpikeCatcher } from './spikes';
 
-// Profiling mode (F8, or F3 → Test → Performance): play as usual while it
-// records each second: frame times, where the CPU time went (laps that main
-// marks through the frame), GPU time per pass where the browser can time it,
-// draw calls, lights, and where you stood. Stopping downloads it all as JSON,
-// a summary first. The probe (F9) adds what each system costs from where you
-// stand (probe.ts). Recording costs a few clock reads a frame.
+// Profiling mode (F8, F3 → Test → Performance, or ?profile in the address to
+// start with the game): play as usual while it records each second: frame
+// times, where the CPU time went (laps that main marks through the frame), GPU
+// time per pass where the browser can time it, draw calls, lights, and where
+// you stood. Spikes (slow frames, camera jumps, mouse spikes, or F2 when you
+// saw one) keep the seconds around them frame by frame (spikes.ts). Stopping
+// downloads it all as JSON, a summary first. The probe (F9) adds what each
+// system costs from where you stand (probe.ts). Recording costs a few clock
+// reads and one small object a frame.
 
 export interface ProfilerWorld {
   scene: THREE.Scene;
@@ -24,6 +28,7 @@ export interface ProfilerWorld {
   baker: LightBaker;
   player: Player;
   gpuTimer: GpuTimer;
+  lightFx: { root: THREE.Object3D };
   city(): THREE.Object3D;
 }
 
@@ -61,6 +66,9 @@ interface Second {
 
 export class Profiler {
   private probe: Probe;
+  private spikes = new SpikeCatcher();
+  /** The last full second's frame time (ms), what a slow frame is measured against. */
+  private typicalMs = 0;
   private on = false;
   private started = 0;
   private last = 0;
@@ -98,6 +106,8 @@ export class Profiler {
     this.probes = [];
     this.bucket = newBucket();
     this.longTasks = 0;
+    this.typicalMs = 0;
+    this.spikes.start(this.started);
     this.context = { ...this.environment(), at_start: this.census() };
     try {
       this.observer = new PerformanceObserver((l) => (this.longTasks += l.getEntries().length));
@@ -111,6 +121,7 @@ export class Profiler {
   stop() {
     this.probe.cancel();
     this.on = false;
+    this.spikes.stop();
     this.observer?.disconnect();
     this.badge.hidden = true;
     const report = this.report();
@@ -123,6 +134,12 @@ export class Profiler {
     if (!this.on) this.start();
     if (this.probe.running) this.probe.cancel();
     else this.probe.start();
+  }
+
+  /** F2: you saw something (a jerk, a stall): the seconds before go in the report (recording starts if it wasn't). */
+  mark() {
+    if (!this.on) this.start();
+    this.spikes.mark();
   }
 
   /** Start of a frame's CPU time. */
@@ -162,10 +179,15 @@ export class Profiler {
     this.keepWorst(t, f, cpu);
     const gpuTotal = gpu ? gpu.reduce((a, v) => a + v, 0) : null;
     if (this.probe.frame(now, f.interval, cpu, gpuTotal, f.calls)) this.saveProbe(t);
+    const p = this.w.player;
+    const deg = THREE.MathUtils.radToDeg;
+    const typical = this.typicalMs || f.interval;
+    this.spikes.frame({ t: round(t), ms: round(f.interval), cpuMs: round(cpu), laps: rounded(this.laps), gpuMs: gpuTotal === null ? null : round(gpuTotal), calls: f.calls, state: f.state, pos: this.pos(), yaw: round(deg(p.yaw)), pitch: round(deg(p.pitch)) }, typical);
     for (const k in this.laps) this.laps[k] = 0;
     if (t - b.t >= 1) this.closeSecond(t);
     this.badge.hidden = false;
-    this.badge.textContent = `● PROFILING ${clock(t)} · F8 STOP · F9 ${this.probe.running ? `PROBE: ${this.probe.label} · STAND STILL` : 'PROBE'}`;
+    const spikes = this.spikes.spikes.length + this.spikes.dropped;
+    this.badge.textContent = `● PROFILING ${clock(t)} · ${spikes} SPIKE${spikes === 1 ? '' : 'S'} · F2 MARK · F8 STOP · F9 ${this.probe.running ? `PROBE: ${this.probe.label} · STAND STILL` : 'PROBE'}`;
   }
 
   private keepWorst(t: number, f: ProfiledFrame, cpu: number) {
@@ -200,6 +222,7 @@ export class Profiler {
       yaw: Math.round(THREE.MathUtils.radToDeg(p.yaw)),
     });
     this.longTasks = 0;
+    this.typicalMs = b.interval / n;
     this.bucket = newBucket(t);
   }
 
@@ -288,11 +311,26 @@ export class Profiler {
         calls: avg((s) => s.calls),
         triangles: Math.round(avg((s) => s.triangles)),
       },
+      verdict: verdict(avg((s) => s.frameMs), avg((s) => s.cpuMs), this.w.gpuTimer.supported ? avg((s) => PASSES.reduce((a, p) => a + (s.gpu?.[p] ?? 0), 0)) : null),
+      spikes: { kept: this.spikes.spikes.length, notKept: this.spikes.dropped, byReason: countBy(this.spikes.spikes.flatMap((s) => s.reasons.map((r) => r.why.split(':')[0]))) },
       slowestSeconds: [...playing].sort((a, b) => a.fps - b.fps).slice(0, 5).map(({ t, fps, cpuMs, calls, pos, yaw }) => ({ t, fps, cpuMs, calls, pos, yaw })),
     };
-    return { summary, context: { ...(this.context as ReturnType<Profiler['environment']>), at_end: this.census() }, probes: this.probes, worstFrames: this.worst, seconds: this.seconds };
+    return { summary, context: { ...(this.context as ReturnType<Profiler['environment']>), at_end: this.census() }, probes: this.probes, spikes: this.spikes.spikes, browserEvents: this.spikes.events, worstFrames: this.worst, seconds: this.seconds };
   }
 }
+
+/** Which side holds the frame up, from the averages while playing. */
+function verdict(frameMs: number, cpuMs: number, gpuMs: number | null) {
+  if (!frameMs) return 'no frames while playing';
+  const cpu = `CPU ${cpuMs.toFixed(1)} of ${frameMs.toFixed(1)} ms a frame`;
+  if (gpuMs === null) return `${cpu}; GPU not measurable here: ${cpuMs > frameMs * 0.7 ? 'CPU-bound' : 'the rest is the GPU or waiting for the display; see the probes'}`;
+  const gpu = `GPU ${gpuMs.toFixed(1)} ms`;
+  if (gpuMs > frameMs * 0.7 && gpuMs > cpuMs) return `${cpu}, ${gpu}: GPU-bound`;
+  if (cpuMs > frameMs * 0.7) return `${cpu}, ${gpu}: CPU-bound`;
+  return `${cpu}, ${gpu}: neither busy all frame (waiting for the display, or a frame rate limit)`;
+}
+
+const countBy = (list: string[]) => list.reduce<Record<string, number>>((o, k) => ((o[k] = (o[k] ?? 0) + 1), o), {});
 
 function newBucket(t = 0) {
   return { t, frames: 0, interval: 0, worst: 0, cpu: 0, calls: 0, triangles: 0, state: '', laps: {} as Record<string, number>, gpu: PASSES.map(() => 0) };

@@ -97,6 +97,7 @@ export class DevTools {
     this.figure = new AvatarPreview(g.scene);
     this.ghost = new Ghost(g);
     this.profiler = new Profiler(g);
+    if (new URLSearchParams(location.search).has('profile')) this.profiler.start();
     // The ghost, besides the players of a session (net/multiplayer.ts).
     const players = g.tools.ladder.others;
     g.tools.ladder.others = () => {
@@ -159,9 +160,10 @@ export class DevTools {
    */
   frame(input: Input, dt: number) {
     this.profiler.begin();
-    // Profiling works in a session too: F8 records, F9 probes.
+    // Profiling works in a session too: F8 records, F9 probes, F2 marks a spike.
     if (input.wasPressed('F8')) this.profiler.toggle();
     if (input.wasPressed('F9')) this.profiler.runProbe();
+    if (input.wasPressed('F2')) this.profiler.mark();
     if (this.modelsChanged) this.rebuildModelsNow();
     this.figure.update(dt);
     this.ghost.update(dt);
