@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import * as config from './config';
-import { ATMOS, AUDIO, COLORS, HUD, INK, PLAYER, PRESSURE, RENDER, SMOKE, THUNDER, VIEWMODEL, VOLUMETRICS } from './config';
+import { ATMOS, AUDIO, COLORS, HUD, INK, LEVELS, PLAYER, PRESSURE, RENDER, SMOKE, THUNDER, VIEWMODEL, VOLUMETRICS } from './config';
 import { syncSharedUniforms } from './materials';
 import { syncTrackUniforms } from './render/cctv-track';
 import { Lighting } from './render/lighting';
@@ -163,7 +163,7 @@ function openLevel(data: LevelData, name: string) {
 }
 
 /** The level's name: from ?level=, or the file opened in build mode. Paint saves are named by it. */
-let levelName = new URLSearchParams(location.search).get('level') ?? 'demo';
+let levelName = new URLSearchParams(location.search).get('level') ?? LEVELS.start;
 // Signs measure their text when they are built: wait for the sign font first.
 Promise.all([fetchLevel(levelName), jpFontReady()])
   .then(([data]) => {

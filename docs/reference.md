@@ -110,6 +110,7 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
 }
 ```
 
+- Levels live in `public/levels/`. The game opens `LEVELS.start` without `?level=`; the player build (`npm run build`) ships only `LEVELS.release` (`src/config.ts`), and the dev server serves them all.
 - `pos` is in meters relative to level 0, so `y` = level × 4 (8 is level 2, -4 is level -1). Props between floors keep their exact height.
 - `id` is the prop's own number, kept through edits: paint saves find their surfaces by it. Build mode gives new props the next free one and writes them all when it saves. Without ids (version 2 files), props are numbered in file order.
 - `rot` is the number of quarter turns.

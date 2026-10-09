@@ -16,7 +16,7 @@ Context for the agent that deploys and runs the game on the VPS. Read it before 
 - three.js + TypeScript + Vite, with a small `vite.config.ts` (the version, the server bundle, the dev `/ws` proxy; `base: '/'`). It is purely static: no API, no env secrets, no external services or CDNs, and no WASM, Workers or SharedArrayBuffer, so no COOP/COEP headers.
 - Everything is generated in code: no models, texture files or audio. The server only serves the JS/CSS bundle, two `woff2` fonts, `levels/*.json` and `favicon.svg`. The build is about 1 MB, of which the JS is ~860 KB (~250 KB gzipped).
 - **Paths are absolute** (`/assets`, `/fonts`, `/favicon.svg`), so the game must be served from the root of its domain.
-- `?level=name` fetches `/levels/name.json`. A missing level must be a real 404. **No SPA fallback**: an `index.html` served in its place breaks JSON parsing.
+- `?level=name` fetches `/levels/name.json`. Without it the game opens `LEVELS.start`, and the player build ships only the levels in `LEVELS.release` (`src/config.ts`). A missing level must be a real 404. **No SPA fallback**: an `index.html` served in its place breaks JSON parsing.
 - Settings are kept in `localStorage`, per origin. Changing the domain or the scheme resets them.
 
 ## 3. Builds *(changes)*

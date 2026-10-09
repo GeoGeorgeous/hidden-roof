@@ -951,6 +951,14 @@ export const STEPLADDER_PLACE = {
   standStep: 0.45,
 };
 
+/** Levels (public/levels/<name>.json). */
+export const LEVELS = {
+  /** The level the game opens without ?level=. */
+  start: 'demo',
+  /** The levels the player build ships (npm run build, vite.config.ts); the rest stay for the dev server and the tests. */
+  release: ['demo'],
+};
+
 /** Build mode (B). */
 export const BUILD = {
   /** How far the crosshair reaches when aiming at faces (m). */
