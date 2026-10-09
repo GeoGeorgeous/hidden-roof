@@ -208,6 +208,13 @@ canvas {
   color: var(--dim);
   transform: rotate(-6deg);
 }
+/* The build's version (version.ts), bottom right: for bug reports. */
+.overlay .version {
+  position: absolute;
+  bottom: 26px;
+  right: 30px;
+  color: var(--dim);
+}
 .overlay .menu {
   display: flex;
   flex-direction: column;
