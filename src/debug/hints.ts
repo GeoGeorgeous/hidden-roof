@@ -32,7 +32,7 @@ export const LABEL_HINTS: Record<string, string> = {
   'PLAY (LOOP)': 'Play the recording back as a ghost, over and over, through the fake network below.',
   'FOLLOW ME': 'The ghost copies you live, a few seconds behind (follow: delay), through the fake network.',
   STOP: 'Stop recording, playing or following.',
-  preset: 'Sets of paper, ink, sky and cloud colors to switch between live (INK_STYLES, the pause menu\'s GRAPHICS → STYLE). Edits stay with the picked set until reload; COPY gives every set as it shows (INK_STYLES).',
+  preset: 'Sets of paper, ink, sky and cloud colors to switch between live: OR, OM and NM are the pause menu\'s GRAPHICS → STYLE (ORIGINAL, OLD MANGA, NEW MANGA; INK_STYLES), 1–4 F3 only (INK_PRESETS). Edits stay with the picked set until reload; COPY gives every set as it shows.',
   REBUILD: 'Build the city again with the settings above (seed, sizes): a moment\'s work.',
   showing: 'The test figure\'s pose now (number / count, name), or hidden.',
   'SHOW / HIDE': 'Put the test figure in front of you, or take it away.',

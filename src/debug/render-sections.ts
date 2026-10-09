@@ -1,5 +1,5 @@
-import { type LightKind, type NeonColor, INK, INK_STYLES, LIGHT_SPREAD_MAX, LIGHTS, NEON_COLORS } from '../config';
-import { INK_COLORS, inkStyle, setInkStyle } from '../render/ink/styles';
+import { type LightKind, type NeonColor, INK, INK_PRESETS, INK_STYLES, LIGHT_SPREAD_MAX, LIGHTS, NEON_COLORS } from '../config';
+import { INK_COLORS, INK_SETS, inkStyle, setInkStyle } from '../render/ink/styles';
 import { swapDefault } from './defaults';
 import { live, r, t, c, when, type Item, type Section } from './tuning';
 
@@ -44,29 +44,32 @@ function lightItems(): Item[] {
 }
 
 /**
- * Buttons for the color sets (INK_STYLES, the same as GRAPHICS → STYLE):
+ * Buttons for the color sets (INK_STYLES, as in GRAPHICS → STYLE, then INK_PRESETS):
  * picking one keeps the edits of the one it leaves, and makes its own colors
  * what RESET puts back (RESET also drops the edits of the others). COPY gives them all.
  */
 function inkPresets(): Item {
-  const fresh = () => INK_STYLES.map((s) => ({ ...s }));
+  const fresh = () => INK_SETS.map((s) => ({ ...s }));
   let sets = fresh();
   return {
     kind: 'choice',
     label: 'preset',
-    options: INK_STYLES.map((s) => s.name),
+    options: [...INK_STYLES.map((s) => s.short), ...INK_PRESETS.map((_, i) => String(i + 1))],
     get: inkStyle,
     pick(i) {
       for (const k of INK_COLORS) sets[inkStyle()][k] = INK[k];
       setInkStyle(i);
       for (const k of INK_COLORS) {
-        swapDefault(['INK', k], INK_STYLES[i][k]);
+        swapDefault(['INK', k], INK_SETS[i][k]);
         INK[k] = sets[i][k];
       }
     },
     reset: () => (sets = fresh()),
     // Every set in full: the picked one as it shows now.
-    copy: () => ({ INK_STYLES: sets.map((p, i) => (i === inkStyle() ? { ...p, ...Object.fromEntries(INK_COLORS.map((k) => [k, INK[k]])) } : p)) }),
+    copy: () => {
+      const all = sets.map((p, i) => (i === inkStyle() ? { ...p, ...Object.fromEntries(INK_COLORS.map((k) => [k, INK[k]])) } : p));
+      return { INK_STYLES: all.slice(0, INK_STYLES.length), INK_PRESETS: all.slice(INK_STYLES.length) };
+    },
   };
 }
 

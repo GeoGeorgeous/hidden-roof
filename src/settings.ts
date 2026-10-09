@@ -1,6 +1,6 @@
 import { ATMOS, AUDIO, HUD, INK_STYLES, PAINT, PLAYER, RENDER, SKYLINE, SMOKE, VOLUMETRICS } from './config';
 import { exitGameFullscreen } from './fullscreen';
-import { inkStyle, setInkStyle } from './render/ink/styles';
+import { DEFAULT_STYLE, inkStyle, setInkStyle } from './render/ink/styles';
 
 // Player settings, on the settings page of the pause menu (settings-page.ts):
 // gameplay, graphics and sound. They write the same config values the debug
@@ -104,9 +104,11 @@ export class Settings {
         kind: 'choice',
         label: 'STYLE',
         desc: 'The colors of paper, ink and sky.',
-        value: () => INK_STYLES[inkStyle()].name,
+        // An F3-only preset shows as such; stepping goes on from the default style.
+        value: () => INK_STYLES[inkStyle()]?.name ?? 'F3 PRESET',
         step: (d) => {
-          setInkStyle((inkStyle() + d + INK_STYLES.length) % INK_STYLES.length);
+          const i = inkStyle() < INK_STYLES.length ? inkStyle() : DEFAULT_STYLE;
+          setInkStyle((i + d + INK_STYLES.length) % INK_STYLES.length);
           this.save();
         },
       },
@@ -220,7 +222,7 @@ export class Settings {
 
   private save() {
     try {
-      localStorage.setItem(KEY, JSON.stringify({ style: INK_STYLES[inkStyle()].name, pixelScale: RENDER.pixelScale, maxFps: RENDER.maxFps, volumetrics: this.vol, paintDetail: this.detail, cityDetail: this.city } satisfies Saved));
+      localStorage.setItem(KEY, JSON.stringify({ style: INK_STYLES[inkStyle()]?.name, pixelScale: RENDER.pixelScale, maxFps: RENDER.maxFps, volumetrics: this.vol, paintDetail: this.detail, cityDetail: this.city } satisfies Saved));
     } catch {
       // Storage unavailable (private mode): settings last for this session only.
     }
