@@ -2,18 +2,19 @@ import type * as THREE from 'three';
 import { NET, SERVER } from '../config';
 import type { Inventory } from '../inventory/inventory';
 import type { Level, LevelData } from '../level/level';
+import type { Pickups } from '../pickups/pickups';
 import type { PaintDrips } from '../paint-drips';
 import type { PaintOp, PaintOps } from '../paint-ops';
 import type { PaintSystem } from '../painting';
 import type { Player } from '../player';
 import { loadPaint } from '../save/load-paint';
+import { joinBytes } from '../save/paint-file';
 import { surfaceTable } from '../save/shape';
 import { session } from '../session';
 import type { Tools } from '../tools/tools';
 import { decode, encode, PROTOCOL, type Rejection, type ToClient, type ToServer } from './protocol';
-import { diagnose, NetLog } from './diagnostics';
-import { Nameplates } from './nameplates';
-import { RemotePlayer } from './remote-player';
+import { diagnose, NetLog, Traffic } from './diagnostics';
+import { ownerOf, Remotes } from './remotes';
 import { capture, encodeSnapshot } from './snapshot';
 
 // This game in a multiplayer session (server/, protocol.ts): HOST or JOIN,
@@ -22,7 +23,8 @@ import { capture, encodeSnapshot } from './snapshot';
 // remote players. The welcome brings the session's level, PAINT DETAIL and
 // paint. A dropped link is retried with the player's token for as long as the
 // server keeps them (SERVER.rejoinWindow); the token is kept in sessionStorage,
-// so a reload comes back too, and each tab is its own player.
+// so a reload comes back too, and each tab is its own player. The server
+// keeps what the player carries, and hears when the game is hidden.
 
 export interface MultiplayerContext {
   scene: THREE.Scene;
@@ -33,6 +35,7 @@ export interface MultiplayerContext {
   drips: PaintDrips;
   player: Player;
   inventory: Inventory;
+  pickups: Pickups;
   tools: Tools;
   /** The level as a file, and its name (what HOST starts the session on). */
   levelData(): { data: LevelData; name: string };
@@ -50,39 +53,49 @@ export type NetStatus = { state: 'off' } | { state: 'connecting' } | { state: 'i
 
 const KEY = 'roofhiddenhaus.session';
 const now = () => performance.now() / 1000;
-const ownerOf = (id: number) => `player${id}`;
+const percent = (done: number, all: number) => `${Math.floor((100 * done) / Math.max(all, 1))}%`;
 
 export class Multiplayer {
   status: NetStatus = { state: 'off' };
   onStatus: (s: NetStatus) => void = () => {};
-  /** The session's paint as a file (SAVE). */
-  onSave: (bytes: Uint8Array, levelName: string) => void = () => {};
+  /** The session's paint as a file (SAVE); null: the server couldn't make one. */
+  onSave: (bytes: Uint8Array | null, levelName: string) => void = () => {};
   /** Someone joined or left the session. */
   onPlayer: (name: string, joined: boolean) => void = () => {};
-  readonly names = new Map<number, string>();
+  /** What's under way, for the player to watch (UPLOADING PAINT 40%…); null when it's done. */
+  onProgress: (text: string | null) => void = () => {};
   /** What happened to the link (COPY NETWORK LOG). */
   readonly log = new NetLog();
-  private nameplates = new Nameplates();
   private ws: WebSocket | null = null;
-  private remotes = new Map<number, RemotePlayer>();
+  private remotes: Remotes;
   /** Who we are, once welcomed, and how to come back. */
   private joined: { code: string; token: string; name: string; you: number; levelName: string } | null = null;
   /** Messages are handled one at a time, in order (a welcome loads paint before what follows it). */
   private queue = Promise.resolve();
+  /** This socket's welcome has come: it sends, and a silence on it means it's dead. */
+  private live = false;
   private t0 = 0;
   private nextSend = 0;
   private lastHeard = 0;
   private ops: PaintOp[] = [];
   private opTimes: number[] = [];
   private ladderId: number | undefined;
+  /** The inventory's version last sent. */
+  private carried = -1;
   private retry: { until: number; wait: number; tries: number } | null = null;
-  /** For the HUD: the last round trip (s), bytes each way since `since`, and their rates (bytes/s). */
-  private net = { ping: null as number | null, nextPing: 0, up: 0, down: 0, since: 0, upRate: 0, downRate: 0 };
+  private net = new Traffic();
   /** The name we go by in the session. */
   private name = '';
 
   constructor(private g: MultiplayerContext) {
-    g.tools.ladder.others = () => [...this.remotes.values()].filter((r) => r.avatar.group.visible).map((r) => r.position);
+    this.remotes = new Remotes(g, this.log);
+    g.tools.ladder.others = () => this.remotes.shown;
+    document.addEventListener('visibilitychange', () => this.live && this.send({ type: 'away', away: document.hidden }));
+  }
+
+  /** The other players' names, by id. */
+  get names() {
+    return this.remotes.names;
   }
 
   get inSession() {
@@ -111,6 +124,7 @@ export class Multiplayer {
 
   /** SAVE: the server sends the session's paint (onSave). */
   requestSave() {
+    this.onProgress('SAVING PAINT…');
     this.send({ type: 'save' });
   }
 
@@ -123,14 +137,13 @@ export class Multiplayer {
   /** Once a frame: send this player's state and paint, show the others. */
   update(dt: number) {
     const t = now();
-    for (const r of this.remotes.values()) r.update(t, dt);
-    this.nameplates.update(this.g.camera, [...this.remotes].filter(([, r]) => r.avatar.group.visible).map(([id, r]) => ({ id, name: this.names.get(id) ?? '', feet: r.position })));
-    if (!this.joined || this.ws?.readyState !== WebSocket.OPEN) return;
+    this.remotes.update(this.g.camera, t, dt);
+    if (!this.joined || !this.live || this.ws?.readyState !== WebSocket.OPEN) return;
     if (t - this.lastHeard > SERVER.ping * 3) {
       this.log.add(`nothing from the server for ${SERVER.ping * 3} s: closing to reconnect`);
       return this.ws.close();
     }
-    this.measure(t);
+    if (this.net.measure(t)) this.send({ type: 'ping', t });
     const at = t - this.t0;
     const log = this.g.paint.log!;
     for (const op of log) this.ops.push(op), this.opTimes.push(at);
@@ -140,6 +153,10 @@ export class Multiplayer {
       this.ladderId = id;
       const p = id === undefined ? undefined : this.g.level.props.get(id);
       this.send({ type: 'ladder', t: at, data: p ? { type: p.type, pos: [...p.pos], rot: p.rot } : null });
+    }
+    if (this.g.inventory.version !== this.carried) {
+      this.carried = this.g.inventory.version;
+      this.send({ type: 'inventory', data: this.g.inventory.toJSON() });
     }
     if (t < this.nextSend) return;
     this.nextSend = Math.max(this.nextSend + 1 / NET.sendRate, t);
@@ -153,37 +170,74 @@ export class Multiplayer {
   private connect(hello: Extract<ToServer, { type: 'host' | 'join' }>) {
     this.ws?.close();
     this.name = hello.name;
-    const url = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
+    // HOST goes where the server takes big messages (a save), a few at a time.
+    const url = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws${hello.type === 'host' ? '?host' : ''}`;
     this.log.add(`connecting to ${url}: ${hello.type === 'host' ? `HOST at ${hello.detail} texels/m${hello.bytes ? ` with ${(hello.bytes.length / 1024).toFixed(0)} KB of paint` : ''}` : `JOIN ${hello.code}${hello.token ? ' (coming back)' : ''}`}`);
     const ws = new WebSocket(url);
     ws.binaryType = 'arraybuffer';
     this.ws = ws;
+    this.live = false;
     if (!this.joined) this.setStatus({ state: 'connecting' });
     const started = now();
-    /** No welcome or rejection in NET.connectTimeout: give up on this socket. */
-    let answered = false;
+    /**
+     * Nothing from the server in NET.connectTimeout before the welcome (it
+     * pings while the paint file is made), not counting the hello's upload:
+     * give up on this socket.
+     */
+    let heard = started;
     let timedOut = false;
-    const timer = setTimeout(() => {
-      if (answered || this.ws !== ws) return;
-      this.log.add(`no answer in ${NET.connectTimeout} s (socket ${['connecting', 'open', 'closing', 'closed'][ws.readyState]})`);
+    const frame = encode(hello);
+    /** A HOST's save: the server sends no paint back, it's this. */
+    const save = hello.type === 'host' ? hello.bytes : undefined;
+    /** What the server is doing once the hello is up. */
+    const next = hello.type === 'join' ? (hello.token ? 'GOING BACK IN…' : 'JOINING SESSION…') : save ? 'CREATING SESSION FROM THE SAVE…' : 'CREATING SESSION…';
+    let uploading = false;
+    const timer = setInterval(() => {
+      if (this.ws !== ws || this.live) return clearInterval(timer);
+      if (uploading && ws.bufferedAmount) {
+        heard = now();
+        this.onProgress(`UPLOADING PAINT ${percent(frame.length - ws.bufferedAmount, frame.length)}`);
+      } else if (uploading) {
+        uploading = false;
+        this.onProgress(next);
+      }
+      if (now() - heard < NET.connectTimeout) return;
+      this.log.add(`nothing from the server in ${NET.connectTimeout} s (socket ${['connecting', 'open', 'closing', 'closed'][ws.readyState]})`);
       timedOut = true;
+      clearInterval(timer);
       ws.close();
-    }, NET.connectTimeout * 1000);
+    }, 250);
     ws.onopen = () => {
       this.log.add(`open after ${Math.round((now() - started) * 1000)} ms`);
-      ws.send(encode(hello));
+      ws.send(frame);
+      // Only a save is worth a percentage (the rest goes in a blink).
+      uploading = !!save && ws.bufferedAmount > 0;
+      this.onProgress(uploading ? 'UPLOADING PAINT 0%' : next);
     };
+    // What this game can't take (a welcome it can't load) ends the session for it.
+    const handle = (m: ToClient, arrived: number, file?: Uint8Array) => (this.queue = this.queue.then(() => this.receive(m, arrived, file)).catch((err) => (console.error(err), this.send({ type: 'leave' }), this.end({ state: 'failed', reason: 'version' }))));
+    /** A welcome or save whose paint file is still coming, in parts. */
+    let waiting: { m: Extract<ToClient, { type: 'welcome' | 'save' }>; parts: Uint8Array[] } | null = null;
     ws.onmessage = (e) => {
       if (this.ws !== ws) return;
-      this.lastHeard = now();
+      const t = (this.lastHeard = heard = now());
+      uploading = false;
       this.net.down += (e.data as ArrayBuffer).byteLength;
       const m = decode(new Uint8Array(e.data as ArrayBuffer)) as ToClient | null;
-      if (m?.type === 'welcome' || m?.type === 'rejected') answered = true;
-      // What this game can't take (a welcome it can't load) ends the session for it.
-      if (m) this.queue = this.queue.then(() => this.receive(m)).catch((err) => (console.error(err), this.send({ type: 'leave' }), this.end({ state: 'failed', reason: 'version' })));
+      if (m?.type === 'part') {
+        if (!waiting) return;
+        waiting.parts.push(m.bytes);
+        this.onProgress(`${waiting.m.type === 'save' ? 'SAVING' : 'DOWNLOADING'} PAINT ${percent(waiting.parts.length, waiting.m.parts)}`);
+        if (waiting.parts.length < waiting.m.parts) return;
+        handle(waiting.m, t, joinBytes(waiting.parts));
+        waiting = null;
+      } else if ((m?.type === 'welcome' || m?.type === 'save') && m.parts) {
+        if (m.type === 'welcome') this.log.add(`welcome: the paint comes in ${m.parts} parts`);
+        waiting = { m, parts: [] };
+      } else if (m) handle(m, t, m.type === 'welcome' ? save : undefined);
     };
     ws.onclose = (e) => {
-      clearTimeout(timer);
+      clearInterval(timer);
       if (this.ws !== ws) return;
       this.log.add(`closed: ${e.code}${e.reason ? ` ${e.reason}` : ''}${e.wasClean ? '' : ', not clean'}, after ${(now() - started).toFixed(1)} s`);
       this.ws = null;
@@ -215,8 +269,9 @@ export class Multiplayer {
     r.wait = Math.min(r.wait * 2, 8);
   }
 
-  private async receive(m: ToClient) {
-    if (m.type === 'welcome') return this.welcome(m);
+  /** `arrived`: when it came (local s); `file`: the paint file of a welcome or a save. */
+  private async receive(m: ToClient, arrived: number, file?: Uint8Array) {
+    if (m.type === 'welcome') return this.welcome(m, file!);
     if (m.type === 'rejected') {
       this.log.add(`turned away by the server: ${m.reason}`);
       // A session that's gone (the server restarted) while we were coming back: it ended.
@@ -224,24 +279,29 @@ export class Multiplayer {
       return this.end({ state: 'failed', reason: ended ? 'ended' : m.reason });
     }
     if (!this.joined) return;
-    if (m.type === 'state') this.remotes.get(m.id)?.receive(m.bytes, now());
+    if (m.type === 'state') this.remotes.get(m.id)?.receive(m.bytes, arrived);
     else if (m.type === 'ops') {
       const r = this.remotes.get(m.id);
       m.ops.forEach((op, i) => r?.receiveOp(m.t[i], op));
     } else if (m.type === 'ladder') this.remotes.get(m.id)?.receiveLadder(m.t, m.data);
+    else if (m.type === 'paint') m.ops.forEach((op) => this.g.paintOps.apply(op));
     else if (m.type === 'joined') {
-      this.addRemote(m.id, m.name);
+      this.remotes.add(m.id, m.name, 'here', arrived);
       this.onPlayer(m.name, true);
-    } else if (m.type === 'left') {
+    } else if (m.type === 'presence') this.remotes.presence(m.id, m.state);
+    else if (m.type === 'left') {
       const name = this.names.get(m.id);
-      this.removeRemote(m.id);
+      this.remotes.remove(m.id, true);
       if (name !== undefined) this.onPlayer(name, false);
     }
-    else if (m.type === 'save') this.onSave(m.bytes, this.joined.levelName);
+    else if (m.type === 'save') {
+      this.onProgress(null);
+      this.onSave(file ?? null, this.joined.levelName);
+    }
     else if (m.type === 'pong') this.net.ping = now() - m.t;
   }
 
-  private async welcome(w: Extract<ToClient, { type: 'welcome' }>) {
+  private async welcome(w: Extract<ToClient, { type: 'welcome' }>, file: Uint8Array) {
     const g = this.g;
     if (this.joined?.code !== w.code) {
       g.lockDetail(w.detail);
@@ -251,11 +311,17 @@ export class Multiplayer {
         return this.end({ state: 'failed', reason: 'version' });
       }
       this.t0 = now();
+      // Back in this session from a new page: what we carried here before (a reconnect keeps its own).
+      if (w.inventory) {
+        g.inventory.restore(w.inventory);
+        g.pickups.collectOwned(g.inventory);
+      }
     }
+    this.onProgress('LOADING PAINT…');
     // The session's paint replaces ours; what we painted while the link was down is gone with it.
-    await loadPaint(g.paint, g.drips, w.bytes, { name: w.levelName });
+    await loadPaint(g.paint, g.drips, file, { name: w.levelName });
     const name = this.name;
-    this.log.add(`in session ${w.code} as #${w.you}, at ${w.detail} texels/m, with ${w.players.length} others, ${(w.bytes.length / 1024).toFixed(0)} KB of paint`);
+    this.log.add(`in session ${w.code} as #${w.you}, at ${w.detail} texels/m, with ${w.players.length} others, ${(file.length / 1024).toFixed(0)} KB of paint`);
     this.joined = { code: w.code, token: w.token, name, you: w.you, levelName: w.levelName };
     try {
       sessionStorage.setItem(KEY, JSON.stringify({ code: w.code, token: w.token, name }));
@@ -264,28 +330,21 @@ export class Multiplayer {
     }
     session.multiplayer = true;
     session.player = ownerOf(w.you);
-    for (const id of [...this.remotes.keys()]) this.removeRemote(id);
-    for (const p of w.players) this.addRemote(p.id, p.name);
+    this.remotes.clear();
+    for (const p of w.players) this.remotes.add(p.id, p.name, p.state, now());
     for (const l of w.ladders) g.level.setRuntime(ownerOf(l.id), l.data);
     g.paint.log = [];
     this.ops = [];
     this.opTimes = [];
     this.ladderId = g.level.runtimeOf(session.player);
     this.nextSend = 0;
-    Object.assign(this.net, { ping: null, nextPing: 0, up: 0, down: 0, since: now() });
+    this.net = new Traffic();
+    this.live = true;
+    this.lastHeard = now();
+    this.carried = -1;
+    if (document.hidden) this.send({ type: 'away', away: true });
+    this.onProgress(null);
     this.setStatus({ state: 'in', code: w.code });
-  }
-
-  private addRemote(id: number, name: string) {
-    this.names.set(id, name);
-    this.remotes.set(id, new RemotePlayer(this.g.scene, this.g.level, this.g.paintOps, ownerOf(id), this.g.tools.spray.others));
-  }
-
-  private removeRemote(id: number) {
-    this.remotes.get(id)?.dispose();
-    this.remotes.delete(id);
-    this.names.delete(id);
-    this.g.level.setRuntime(ownerOf(id), null);
   }
 
   /** Out of the session: single player again, keeping the paint (SAVE PAINT still has it). */
@@ -293,8 +352,9 @@ export class Multiplayer {
     const ws = this.ws;
     this.ws = null;
     ws?.close();
+    this.onProgress(null);
     if (this.joined) {
-      for (const id of [...this.remotes.keys()]) this.removeRemote(id);
+      this.remotes.clear();
       this.g.level.setRuntime(session.player, null);
       this.g.paint.log = null;
       this.g.lockDetail(null);
@@ -318,22 +378,7 @@ export class Multiplayer {
   get stats() {
     if (!this.joined) return null;
     const n = this.net;
-    const players = [...this.remotes].map(([id, r]) => ({ name: this.names.get(id) ?? '', delay: r.stats.delay, jitter: r.stats.jitter }));
-    return { reconnecting: this.status.state === 'reconnecting', ping: n.ping, up: n.upRate, down: n.downRate, players };
-  }
-
-  /** A ping now and then; traffic rates each second. */
-  private measure(t: number) {
-    const n = this.net;
-    if (t >= n.nextPing) {
-      n.nextPing = t + SERVER.ping;
-      this.send({ type: 'ping', t });
-    }
-    if (t - n.since < 1) return;
-    n.upRate = n.up / (t - n.since);
-    n.downRate = n.down / (t - n.since);
-    n.up = n.down = 0;
-    n.since = t;
+    return { reconnecting: this.status.state === 'reconnecting', ping: n.ping, up: n.upRate, down: n.downRate, players: this.remotes.stats };
   }
 
   private send(m: ToServer) {

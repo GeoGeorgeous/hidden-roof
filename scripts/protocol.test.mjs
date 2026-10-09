@@ -3,7 +3,7 @@
 // turns down.
 // Usage: node scripts/protocol.test.mjs
 import assert from 'node:assert/strict';
-import { checkToServer, cleanName, decode, encode, PROTOCOL, SNAPSHOT_BYTES } from '../src/net/protocol.ts';
+import { checkToServer, cleanName, decode, encode, partFrames, PROTOCOL, SNAPSHOT_BYTES } from '../src/net/protocol.ts';
 
 const level = { version: 4, spawn: { pos: [0, 0, 0], yaw: 0 }, props: [{ id: 1, type: 'slab', pos: [0, 0, 0] }] };
 const stamp = { kind: 'stamp', key: 'p12#0', rect: 3, u: 0.1 + 0.2, v: 1 / 3, radius: 0.0125, amount: 0.35, color: [1, 0.2, 0.1], softness: 0.5, square: false };
@@ -23,6 +23,8 @@ const sent = [
   { type: 'ladder', t: 2, data: { type: 'stepladder', pos: [1, 0, 2], rot: 3 } },
   { type: 'ladder', t: 2.5, data: null },
   { type: 'save' },
+  { type: 'inventory', data: { tools: ['marker', 'ladder'], colors: ['black', 'red'], caps: ['standard'], selected: 2, color: 'red', cap: 'standard' } },
+  { type: 'away', away: true },
   { type: 'ping', t: 12.5 },
   { type: 'leave' },
 ];
@@ -35,9 +37,12 @@ for (const m of sent) {
   assert.deepEqual(rest, Object.fromEntries(Object.entries(json).filter(([, v]) => v !== undefined)));
   assert.deepEqual(got, bytes);
 }
-const welcome = { type: 'welcome', code: 'ABCDE', you: 2, token: 't', levelName: 'demo', level, detail: 48, table: 'x', players: [{ id: 1, name: 'geo' }], ladders: [], bytes: save };
-const { bytes: paint, ...w } = decode(encode(welcome));
-assert.deepEqual({ ...w, bytes: paint }, welcome);
+const welcome = { type: 'welcome', code: 'ABCDE', you: 2, token: 't', levelName: 'demo', level, detail: 48, table: 'x', players: [{ id: 1, name: 'geo', state: 'away' }], ladders: [], inventory: null, parts: 3 };
+assert.deepEqual(decode(encode(welcome)), welcome);
+// A paint file in pieces goes as parts of at most the size asked, and comes back whole.
+const parts = partFrames([save.subarray(0, 10), save.subarray(10, 700), save.subarray(700)], 400).map(decode);
+assert.deepEqual([parts.map((p) => p.type), parts.map((p) => p.bytes.length)], [['part', 'part', 'part'], [400, 400, 200]]);
+assert.deepEqual(new Uint8Array(parts.flatMap((p) => [...p.bytes])), save);
 
 // Not messages.
 for (const frame of [new Uint8Array(0), new Uint8Array([9, 0, 0, 0, 1]), encode({ type: 'save' }).subarray(0, 8)]) assert.equal(decode(frame), null);
@@ -77,6 +82,9 @@ refused({ type: 'ops', t: [null], ops: [stamp] });
 refused({ type: 'ladder', t: 1, data: { type: 'building', pos: [0, 0, 0] } });
 refused({ type: 'ladder', t: 1 });
 refused({ type: 'ping' });
+refused({ type: 'away' });
+refused({ type: 'inventory', data: { tools: [], colors: [], caps: [], selected: -1, color: 'red', cap: 'x' } });
+refused({ type: 'inventory', data: { tools: Array(33).fill('x'), colors: [], caps: [], selected: 0, color: 'red', cap: 'x' } });
 // Non-finite numbers don't survive JSON (they become null), so they're refused too.
 refused({ type: 'ops', t: [1], ops: [{ ...stamp, u: NaN }] });
 

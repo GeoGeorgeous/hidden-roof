@@ -784,7 +784,11 @@ export const NET = {
   teleport: 2,
   /** A player's name tag hangs this high over their feet (m). */
   nameplateHeight: 2.1,
-  /** HOST or JOIN with no answer from the server for this long (s) gives up (a reconnect tries again). */
+  /** No snapshot from a player for this long (s): they're shown as gone (NO SIGNAL) until the server says more. */
+  silentAfter: 3,
+  /** The HUD's network lines name this many other players, then say how many more. */
+  hudPlayers: 4,
+  /** HOST or JOIN that hears nothing from the server for this long (s) before its welcome, its upload aside, gives up (a reconnect tries again). */
   connectTimeout: 15,
   /** Network log entries kept for COPY NETWORK LOG (net/diagnostics.ts). */
   logLines: 80,
@@ -794,21 +798,36 @@ export const NET = {
 export const SERVER = {
   port: 3000,
   /** Players in one session (docs/multiplayer-audit.md, decision 1). */
-  maxPlayers: 2,
+  maxPlayers: 20,
   /** A dropped player can come back as themselves for this long (s); then their stepladder goes, and a session with no one left closes. */
   rejoinWindow: 60,
   /** The server pings every game this often (s), so a game notices a dead link. */
   ping: 2,
   /** Paint runs move this many times a second on the server. */
   dripRate: 30,
-  /** The largest message (bytes): a paint save HOST uploads is ~30 MB for a heavily painted ULTRA level. */
+  /** The largest message on a HOST link (/ws?host, bytes): the paint save it uploads is ~30 MB for a heavily painted ULTRA level. */
   maxPayload: 64 * 2 ** 20,
-  /** No new session once the server's live data (JS objects and paint) takes this much memory (MB); its container may use 1536 (docs/deploy.md). */
+  /** The largest message on any other link (bytes): JOIN, state, a frame's paint ops are KBs. */
+  maxMessage: 2 ** 20,
+  /** No new session once the server's live data (JS objects and paint) takes this much memory (MB); its container may use 1536 (docs/deploy.md). HOST_MEMORY overrides it. */
   hostMemory: 1024,
+  /** No new paint file (a welcome, SAVE) past this much (MB): the player is told the server is busy. SNAPSHOT_MEMORY overrides it. */
+  snapshotMemory: 1280,
+  /** A paint file is read this many bytes of paint at a time as it's deflated (server/session.ts). */
+  snapshotChunk: 2 ** 20,
+  /** A paint file made is kept this long (s) for others who join or come back (they get the paint ops since with it). */
+  snapshotKeep: 15,
+  /** A paint file travels in parts of this many bytes, so a slow link still hears from the server every few seconds (net/multiplayer.ts). */
+  partBytes: 256 * 2 ** 10,
+  /** While sessions are live the server logs its memory this often (s). */
+  statsEvery: 300,
   /** Codes of ended sessions are remembered this long (s): joining one says it has ended, not that there's no such code. */
   endedMemory: 3600,
-  /** Open links from one address (Caddy's X-Forwarded-For): two players behind one router, a reconnect and a second tab each, fit. */
-  linksPerIp: 6,
+  /** Open links from one address (Caddy's X-Forwarded-For): a whole session behind one router (a LAN party), with reconnects to spare. */
+  linksPerIp: 24,
+  /** HOST links open at once (each may upload up to maxPayload): from one address, and in all. */
+  uploadsPerIp: 2,
+  uploads: 8,
   /** Live sessions hosted from one address. */
   sessionsPerIp: 2,
   /** A link that hasn't sent HOST or JOIN by then is closed (s), so idle links hold no slot. */
@@ -872,6 +891,8 @@ export const AVATAR = {
   /** Head (an egg): width, height, depth. */
   head: [0.19, 0.25, 0.215] as [number, number, number],
   hoodUp: false,
+  /** A player whose link is gone is drawn with their grays times this: lighter, less ink. */
+  faded: 2.2,
   /** Gray tones (the ink draws them): the only color on the figure is paint. */
   colors: {
     hoodie: '#3c3f44',

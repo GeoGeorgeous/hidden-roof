@@ -36,14 +36,40 @@ export interface PaintFileHeader {
 /** Bytes of one face's paint in the body: its rect plus the 1-texel ring around it, RGBA. */
 export const faceBytes = (f: PaintFileFace) => (f.w + 2) * (f.h + 2) * 4;
 
-export async function encodePaintFile(header: Omit<PaintFileHeader, 'format' | 'version'>, body: Uint8Array): Promise<Uint8Array> {
+/**
+ * A paint file as pieces: the magic and header, then the paint deflated as
+ * `body` yields it (a piece at a time, when the deflater wants more), so the
+ * paint can be read as it goes instead of copied whole first (server/session.ts).
+ */
+export async function encodePaintFile(header: Omit<PaintFileHeader, 'format' | 'version'>, body: Iterable<Uint8Array>): Promise<Uint8Array[]> {
   const json = new TextEncoder().encode(JSON.stringify({ ...header, format: 'rhh-paint', version: VERSION }));
-  const packed = await pipe(body, new CompressionStream('deflate'));
-  const out = new Uint8Array(8 + json.length + packed.length);
-  out.set(new TextEncoder().encode(MAGIC));
-  new DataView(out.buffer).setUint32(4, json.length, true);
-  out.set(json, 8);
-  out.set(packed, 8 + json.length);
+  const head = new Uint8Array(8 + json.length);
+  head.set(new TextEncoder().encode(MAGIC));
+  new DataView(head.buffer).setUint32(4, json.length, true);
+  head.set(json, 8);
+  const deflate = new CompressionStream('deflate');
+  const packed = readAll(deflate.readable.getReader());
+  const writer = deflate.writable.getWriter();
+  for (const piece of body) {
+    await writer.ready;
+    // Errors come out of close().
+    writer.write(piece as BufferSource).catch(() => {});
+  }
+  await writer.close();
+  return [head, ...(await packed)];
+}
+
+async function readAll(reader: ReadableStreamDefaultReader<Uint8Array>) {
+  const chunks: Uint8Array[] = [];
+  for (let r = await reader.read(); !r.done; r = await reader.read()) chunks.push(r.value);
+  return chunks;
+}
+
+/** Pieces as one array. */
+export function joinBytes(pieces: Uint8Array[]) {
+  const out = new Uint8Array(pieces.reduce((n, p) => n + p.length, 0));
+  let o = 0;
+  for (const p of pieces) out.set(p, (o += p.length) - p.length);
   return out;
 }
 
@@ -74,10 +100,6 @@ export async function decodePaintFile(bytes: Uint8Array, maxBytes = Infinity): P
 
 const isCount = (v: unknown, min: number) => Number.isInteger(v) && (v as number) >= min;
 const isFace = (f: PaintFileFace) => typeof f?.surface === 'string' && isCount(f.rect, 0) && isCount(f.w, 1) && isCount(f.h, 1);
-
-async function pipe(bytes: Uint8Array, through: CompressionStream | DecompressionStream) {
-  return new Uint8Array(await new Response(new Blob([bytes as BlobPart]).stream().pipeThrough(through)).arrayBuffer());
-}
 
 /** Inflates up to `size` bytes; null if the data is broken or holds more. */
 async function inflate(bytes: Uint8Array, size: number) {

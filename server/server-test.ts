@@ -4,13 +4,15 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import { PAINT, SERVER } from '../src/config';
 import { levelPaintFaces } from '../src/level/prop-pieces';
+import type { InventoryData } from '../src/inventory/inventory';
 import { closeCode, decode, encode, HELLO, PROTOCOL, SNAPSHOT_BYTES, type ToClient, type ToServer } from '../src/net/protocol';
-import { decodePaintFile, encodePaintFile } from '../src/save/paint-file';
+import { decodePaintFile, encodePaintFile, joinBytes } from '../src/save/paint-file';
 import { surfaceTable } from '../src/save/shape';
 
 // The server (dist-server/server/main.js) against games speaking the protocol:
 // HOST and JOIN, what's turned away, relaying, SAVE, a reconnect, a player who
-// doesn't come back, HOST from a save, and the limits per address. npm run test:server builds both.
+// doesn't come back, who's away or dropped, what a player carries, HOST from a save, a full session joining at once,
+// message sizes, and the limits per address. npm run test:server builds both.
 
 const PORT = 3999;
 const level = JSON.parse(fs.readFileSync('public/levels/demo.json', 'utf8'));
@@ -20,22 +22,36 @@ const table = surfaceTable(faces);
 const stamp = { kind: 'stamp' as const, key: faces[0].key, rect: 0, u: 0.5, v: 0.5, radius: 0.2, amount: 1, color: [1, 0, 0] as const, softness: 0, square: false };
 
 const server = spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(PORT), REJOIN_WINDOW: '1', HELLO_TIMEOUT: '2' }, stdio: ['ignore', 'pipe', 'inherit'] });
+if (process.env.SERVER_LOG) server.stdout!.pipe(process.stderr);
 const log: string[] = [];
 await new Promise<void>((ready) => server.stdout!.on('data', (d: Buffer) => (log.push(d.toString()), ready())));
 
+/** A message as a game takes it: a welcome or a save with its paint file. */
+type Got = ToClient & { file?: Uint8Array };
 let games = 0;
+/** The session whose paint file two players shared. */
+let shared = '';
 /** A game: what it got so far, and the next message of a type. Each comes from its own address (as Caddy passes it on), unless given one. */
 class Game {
   ws: WebSocket;
-  got: ToClient[] = [];
+  got: Got[] = [];
   closed: Promise<number>;
   private waiters: (() => void)[] = [];
-  constructor(ip = `10.0.0.${++games}`) {
+  constructor(ip = `10.0.${games >> 8}.${++games & 255}`, path = '/ws') {
     // Node's WebSocket takes headers (undici); the DOM type doesn't know.
-    this.ws = new WebSocket(`ws://localhost:${PORT}/ws`, { headers: { 'x-forwarded-for': ip } } as unknown as string[]);
+    this.ws = new WebSocket(`ws://localhost:${PORT}${path}`, { headers: { 'x-forwarded-for': ip } } as unknown as string[]);
     this.ws.binaryType = 'arraybuffer';
+    // A welcome or a save comes once its paint file's parts have (`file`).
+    let waiting: { m: Got; parts: Uint8Array[] } | null = null;
     this.ws.onmessage = (e) => {
-      this.got.push(decode(new Uint8Array(e.data as ArrayBuffer)) as ToClient);
+      const m = decode(new Uint8Array(e.data as ArrayBuffer)) as Got;
+      if (m.type === 'part') {
+        waiting!.parts.push(m.bytes);
+        if (waiting!.parts.length < (waiting!.m as { parts: number }).parts) return;
+        this.got.push({ ...waiting!.m, file: joinBytes(waiting!.parts) });
+        waiting = null;
+      } else if ((m.type === 'welcome' || m.type === 'save') && m.parts) waiting = { m, parts: [] };
+      else this.got.push(m);
       this.waiters.splice(0).forEach((w) => w());
     };
     this.closed = new Promise((done) => (this.ws.onclose = (e) => done(e.code)));
@@ -47,11 +63,11 @@ class Game {
   send(m: ToServer) {
     this.ws.send(encode(m));
   }
-  async next<T extends ToClient['type']>(type: T, ms = 2000): Promise<Extract<ToClient, { type: T }>> {
+  async next<T extends ToClient['type']>(type: T, ms = 2000): Promise<Extract<Got, { type: T }>> {
     const end = Date.now() + ms;
     for (;;) {
       const i = this.got.findIndex((m) => m.type === type);
-      if (i >= 0) return this.got.splice(i, 1)[0] as Extract<ToClient, { type: T }>;
+      if (i >= 0) return this.got.splice(i, 1)[0] as Extract<Got, { type: T }>;
       if (Date.now() > end) throw new Error(`no ${type} (got ${this.got.map((m) => m.type)})`);
       await new Promise<void>((w) => (this.waiters.push(w), setTimeout(w, 50)));
     }
@@ -62,7 +78,7 @@ class Game {
     assert.ok(!this.got.some((m) => m.type === type), `unexpected ${type}`);
   }
 }
-const game = (ip?: string) => new Game(ip).open();
+const game = (ip?: string, path?: string) => new Game(ip, path).open();
 const host = { type: 'host' as const, protocol: PROTOCOL, table, name: 'A', levelName: 'demo', level, detail: 48 };
 
 try {
@@ -92,11 +108,19 @@ try {
   const b = await game();
   b.send({ type: 'join', protocol: PROTOCOL, name: 'B', code: wa.code });
   const wb = await b.next('welcome');
-  assert.deepEqual([wb.you, wb.players, wb.levelName], [2, [{ id: 1, name: 'A' }], 'demo']);
+  assert.deepEqual([wb.you, wb.players, wb.levelName, wb.inventory], [2, [{ id: 1, name: 'A', state: 'here' }], 'demo', null]);
   assert.deepEqual(await a.next('joined'), { type: 'joined', id: 2, name: 'B' });
+  // The rest of a full session joins all at once; one more is turned away; they go again.
+  const rest = await Promise.all(Array.from({ length: SERVER.maxPlayers - 2 }, () => game()));
+  rest.forEach((x, i) => x.send({ type: 'join', protocol: PROTOCOL, name: `C${i}`, code: wa.code }));
+  const ids = new Set<number>();
+  for (const x of rest) ids.add((await x.next('welcome', 5000)).you);
+  assert.equal(ids.size, rest.length);
   const c = await game();
   c.send({ type: 'join', protocol: PROTOCOL, name: 'C', code: wa.code });
   assert.equal((await c.next('rejected')).reason, 'full');
+  for (const x of rest) x.send({ type: 'leave' });
+  for (let i = 0; i < rest.length; i++) (await a.next('joined'), await a.next('left'), await b.next('joined'), await b.next('left'));
 
   // Relayed to the other player only: state, paint ops (one on a surface the level doesn't have is dropped), the stepladder.
   const snap = new Uint8Array(SNAPSHOT_BYTES).map((_, i) => i);
@@ -113,18 +137,26 @@ try {
 
   // SAVE: the session's paint, with the stamp in it.
   b.send({ type: 'save' });
-  const save = (await b.next('save')).bytes;
+  const save = (await b.next('save')).file!;
   const { header } = await decodePaintFile(save);
   assert.deepEqual([header.density, [...new Set(header.faces.map((f) => f.surface))]], [48, [stamp.key]]);
 
-  // B drops and comes back with its token: the same player, the paint and A's ladder in its welcome; A hears nothing.
+  // B's game is hidden (minimized): A hears it's away.
+  b.send({ type: 'away', away: true });
+  assert.deepEqual(await a.next('presence'), { type: 'presence', id: 2, state: 'away' });
+  // B carries something, drops and comes back with its token: the same player, the paint, A's ladder and what B
+  // carried in its welcome; A hears B dropped and is back, never that B left or joined.
+  const carried = { tools: ['marker'], colors: ['black', 'red'], caps: ['standard'], selected: 1, color: 'red', cap: 'standard' } as InventoryData;
+  b.send({ type: 'inventory', data: carried });
   b.ws.close();
   await b.closed;
+  assert.deepEqual(await a.next('presence'), { type: 'presence', id: 2, state: 'dropped' });
   const b2 = await game();
   b2.send({ type: 'join', protocol: PROTOCOL, name: 'B', code: wa.code, token: wb.token });
   const back = await b2.next('welcome');
-  assert.deepEqual([back.you, back.ladders], [2, [{ id: 1, data: ladder }]]);
-  assert.deepEqual((await decodePaintFile(back.bytes)).header.faces, header.faces);
+  assert.deepEqual([back.you, back.ladders, back.inventory], [2, [{ id: 1, data: ladder }], carried]);
+  assert.deepEqual((await decodePaintFile(back.file!)).header.faces, header.faces);
+  assert.deepEqual(await a.next('presence'), { type: 'presence', id: 2, state: 'here' });
   await a.none('joined');
   await a.none('left');
 
@@ -161,17 +193,44 @@ try {
   newTab.send({ type: 'join', protocol: PROTOCOL, name: 'geo', code: wg.code });
   assert.equal((await newTab.next('welcome')).you, wg.you);
   await twin.none('joined');
+  // One who left and comes in again later under the same name gets back what they carried.
+  twin.send({ type: 'inventory', data: carried });
+  twin.send({ type: 'leave' });
+  await twin.closed;
+  const again = await game();
+  again.send({ type: 'join', protocol: PROTOCOL, name: 'geo (2)', code: wg.code });
+  assert.deepEqual((await again.next('welcome')).inventory, carried);
 
-  // HOST from a save: the paint is there for the next player.
+  // HOST from a save: the host isn't sent its own save back; the paint is there for the next player.
   const h = await game();
   h.send({ ...host, bytes: save });
   const wh = await h.next('welcome');
-  assert.deepEqual((await decodePaintFile(wh.bytes)).header.faces, header.faces);
+  assert.equal(wh.parts, 0);
+  const hj = await game();
+  hj.send({ type: 'join', protocol: PROTOCOL, name: 'J', code: wh.code });
+  assert.deepEqual((await decodePaintFile((await hj.next('welcome')).file!)).header.faces, header.faces);
+
+  // Who joins soon after a paint file was made shares it, and gets what was painted since right after it, to paint
+  // at once (not when a figure gets there: the painter may be gone); a SAVE
+  // then needs a new one, with that paint in it.
+  const x = await game();
+  x.send(host);
+  const wx = await x.next('welcome');
+  x.send({ type: 'ops', t: [1], ops: [stamp] });
+  x.send({ type: 'ping', t: 1 });
+  await x.next('pong');
+  const y = await game();
+  y.send({ type: 'join', protocol: PROTOCOL, name: 'Y', code: wx.code });
+  assert.deepEqual((await decodePaintFile((await y.next('welcome')).file!)).header.faces, []);
+  assert.deepEqual((await y.next('paint')).ops, [stamp]);
+  x.send({ type: 'save' });
+  assert.deepEqual([...new Set((await decodePaintFile((await x.next('save')).file!)).header.faces.map((f) => f.surface))], [stamp.key]);
+  shared = wx.code;
 
   // A paint file whose header claims gigabytes is turned down, and the server goes on.
-  const bomb = await encodePaintFile({ created: '', level: { name: 'demo' }, density: 48, surfaces: { [stamp.key]: 'x' }, faces: [{ surface: stamp.key, rect: 0, w: 60000, h: 60000 }] }, new Uint8Array(0));
+  const bomb = await encodePaintFile({ created: '', level: { name: 'demo' }, density: 48, surfaces: { [stamp.key]: 'x' }, faces: [{ surface: stamp.key, rect: 0, w: 60000, h: 60000 }] }, []);
   const g = await game();
-  g.send({ ...host, bytes: bomb });
+  g.send({ ...host, bytes: joinBytes(bomb) });
   assert.equal((await g.next('rejected')).reason, 'bad-save');
   assert.equal((await fetch(`http://localhost:${PORT}/healthz`)).status, 200);
 
@@ -188,7 +247,7 @@ try {
     s96.send({ type: 'ops', t: [1], ops: [op] });
     alone.send({ type: 'ops', t: [1], ops: [op] });
   }
-  const saved = async (x: Game) => (x.send({ type: 'save' }), decodePaintFile((await x.next('save')).bytes));
+  const saved = async (x: Game) => (x.send({ type: 'save' }), decodePaintFile((await x.next('save')).file!));
   const [p48, p96, pAlone] = await Promise.all([s48, s96, alone].map(saved));
   assert.deepEqual([p48.header.density, p96.header.density], [48, 96]);
   assert.deepEqual(p48.body, pAlone.body);
@@ -211,6 +270,18 @@ try {
   const silent = await game();
   assert.equal(await silent.closed, 1008);
 
+  // Only /ws?host takes a message past SERVER.maxMessage (a save), from a few links per address.
+  const tooBig = await game();
+  tooBig.ws.send(new Uint8Array(SERVER.maxMessage + 1));
+  assert.equal(await tooBig.closed, 1009);
+  const uploaders = [];
+  for (let i = 0; i < SERVER.uploadsPerIp; i++) uploaders.push(await game('10.7.7.7', '/ws?host'));
+  const oneMore = await game('10.7.7.7', '/ws?host');
+  assert.equal((await oneMore.next('rejected')).reason, 'too-many');
+  uploaders[0].send({ ...host, bytes: new Uint8Array(SERVER.maxMessage + 1) });
+  assert.equal((await uploaders[0].next('rejected')).reason, 'bad-save');
+  uploaders.forEach((x) => x.ws.close());
+
   // Pings keep coming; a message that isn't one closes the socket.
   await h.next('ping', 3000);
   h.ws.send(new Uint8Array([1, 2, 3]));
@@ -221,5 +292,7 @@ try {
 }
 const lines = log.join('');
 assert.match(lines, /[A-Z]{5} hosted by \S+: demo at 48 texels\/m/);
+assert.match(lines, new RegExp(`${shared} "Y" #2 in from \\S+ \\(new, 2 players; paint file shared \\(2\\)\\)`));
+assert.match(lines, /paint file: [\d.]+ MB of paint, [\d.]+ MB packed, in [\d.]+ s \(0 more in line\)/);
 // A player who left isn't also logged as dropped.
 assert.doesNotMatch(lines, /"A" #1 out: left[^]*"A" #1 dropped/);

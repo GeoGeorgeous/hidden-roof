@@ -6,6 +6,7 @@ import type { SprayParticles } from '../spray/particles';
 import type { AvatarState } from '../avatar/pose';
 import type { Level, PropData } from '../level/level';
 import type { PaintOp, PaintOps } from '../paint-ops';
+import type { Presence } from './protocol';
 import { decodeSnapshot, type Snapshot } from './snapshot';
 
 // Another player, shown from their snapshots (snapshot.ts) by interpolation:
@@ -17,7 +18,8 @@ import { decodeSnapshot, type Snapshot } from './snapshot';
 // applied when the figure gets to the time they happened, so the paint shows
 // up with the arm that sprays it, and their can's spray flies from the
 // figure's hand (particles only). Never simulated here: no physics, no
-// collisions.
+// collisions. Away (their game hidden) they stand head down; dropped, or
+// silent for NET.silentAfter, they slump, drawn faded.
 
 interface Timed {
   t: number;
@@ -31,8 +33,16 @@ const right = new THREE.Vector3();
 const up = new THREE.Vector3();
 const display = new THREE.Color();
 
+/** How they're shown: here, away, dropped (the server says), or silent (no snapshots of late). */
+export type Look = Presence | 'silent';
+
 export class RemotePlayer {
   readonly avatar = new Avatar();
+  /** What the server last said of them. */
+  presence: Presence = 'here';
+  look: Look = 'here';
+  /** When their newest snapshot arrived (local s). */
+  private heard = -Infinity;
   private snaps: Snapshot[] = [];
   private events: Timed[] = [];
   /**
@@ -76,8 +86,9 @@ export class RemotePlayer {
     return this.avatar.group.position;
   }
 
-  /** A snapshot arrived at local time `now` (s). */
+  /** A snapshot arrived at local time `now` (s): when it came, not when it's read (it may have waited behind a welcome's paint). */
   receive(bytes: Uint8Array, now: number) {
+    this.heard = now;
     const s = decodeSnapshot(bytes);
     const last = this.snaps[this.snaps.length - 1];
     // Their clock started over (they reloaded the page and came back): follow the new one.
@@ -119,6 +130,9 @@ export class RemotePlayer {
     const delay = Math.min(NET.maxDelay, Math.max(NET.interpDelay, 1 / NET.sendRate + NET.jitterCover * this.jitter));
     const ease = NET.clockRate * dt;
     this.lag += Math.min(ease, Math.max(-ease, this.target + delay - this.lag));
+    const s = this.snaps;
+    // Far behind every snapshot kept (they piled up while this game was busy or hidden): catch up at once, not over a minute.
+    if (s.length && now - this.lag < s[0].t - NET.maxDelay) this.lag = Math.min(this.lag, this.target + delay);
     const at = Math.max(now - this.lag, this.shown);
     this.shown = at;
     let n = 0;
@@ -127,7 +141,6 @@ export class RemotePlayer {
       else this.events[n++] = e;
     }
     this.events.length = n;
-    const s = this.snaps;
     while (s.length > 2 && s[1].t <= at) s.shift();
     if (!s.length || s[0].t > at) return;
     const a = s[0];
@@ -157,6 +170,13 @@ export class RemotePlayer {
     st.onLadder = cur.onLadder;
     st.tool = cur.tool;
     st.action = cur.action;
+    this.look = this.presence === 'here' && now - this.heard > NET.silentAfter ? 'silent' : this.presence;
+    if (this.look !== 'here') {
+      // Head down, empty-handed; gone, slumped and faded.
+      Object.assign(st, { pitch: -1.2, tool: null, action: null, crouched: this.look !== 'away' || st.crouched });
+      st.velocity.set(0, 0, 0);
+    }
+    this.avatar.setFaded(this.look === 'dropped' || this.look === 'silent');
     if (st.onLadder) this.faceLadder();
     this.smooth(dt);
     Object.assign(this.stats, { delay: this.lag - this.target, jitter: this.jitter, buffered: s.length, correction: this.error.length() });
@@ -180,6 +200,11 @@ export class RemotePlayer {
     eye.copy(this.position).y += st.crouched ? PLAYER.crouchEyeHeight : PLAYER.eyeHeight;
     setHex(display, COLORS[s.color]);
     this.particles.show({ count, eye, nozzle: this.avatar.nozzle(nozzle), forward, right, up, cap, display, dt });
+  }
+
+  /** Everything they did that waits for their figure, done now. */
+  finish() {
+    for (const e of this.events.splice(0)) e.run();
   }
 
   dispose() {

@@ -43,7 +43,6 @@ import { staticTextureBytes } from './render/texture-bytes';
 import type { DevTools } from './dev/devtools';
 import { session } from './session';
 import { multiplayerMenu } from './net/net-menu';
-import { download, stamp } from './files';
 import { exitGameFullscreen } from './fullscreen';
 import { setHex } from './hex-color';
 import { seedPaintRandom } from './lcg';
@@ -194,8 +193,7 @@ hud.onExitFullscreen = () => void exitGameFullscreen();
 hud.setLocked(false);
 hud.setSettings(settings.sections());
 const paintFile = paintMenu(hud, paint, drips, () => levelName);
-const net = multiplayerMenu(hud, hotbar, { scene, camera, level, paint, paintOps, drips, player, inventory, tools, levelData: () => ({ data: levelData(), name: levelName }), openLevel, lockDetail: (tpm) => settings.lockPaintDetail(tpm) }, () => levelName);
-net.onSave = (bytes, name) => download(new Blob([bytes as BlobPart]), `${name}-${stamp(new Date())}.rhhpaint`);
+const net = multiplayerMenu(hud, hotbar, { scene, camera, level, paint, paintOps, drips, player, inventory, pickups, tools, levelData: () => ({ data: levelData(), name: levelName }), openLevel, lockDetail: (tpm) => settings.lockPaintDetail(tpm) }, () => levelName);
 tools.onCapChange = (name) => hud.showCapTag(name);
 tools.onColorChange = (color) => hud.showColorTag(color, COLORS[color]);
 

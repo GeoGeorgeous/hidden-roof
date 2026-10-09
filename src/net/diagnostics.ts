@@ -1,4 +1,4 @@
-import { NET } from '../config';
+import { NET, SERVER } from '../config';
 import type { Multiplayer } from './multiplayer';
 import { HELLO, PROTOCOL } from './protocol';
 import { VERSION } from '../version';
@@ -47,6 +47,30 @@ export async function diagnose(): Promise<{ reason: 'offline' | 'server-down' | 
   return { reason: res.status >= 500 ? 'server-down' : 'no-server', detail: `HTTP ${res.status}` };
 }
 
+/** For the HUD: the last round trip (s), bytes each way since `since`, and their rates (bytes/s). */
+export class Traffic {
+  ping: number | null = null;
+  up = 0;
+  down = 0;
+  upRate = 0;
+  downRate = 0;
+  private nextPing = 0;
+  private since = performance.now() / 1000;
+
+  /** Rates each second, at time `t` (s); true when it's time to send a ping. */
+  measure(t: number) {
+    const ping = t >= this.nextPing;
+    if (ping) this.nextPing = t + SERVER.ping;
+    if (t - this.since >= 1) {
+      this.upRate = this.up / (t - this.since);
+      this.downRate = this.down / (t - this.since);
+      this.up = this.down = 0;
+      this.since = t;
+    }
+    return ping;
+  }
+}
+
 export type NetStats = Multiplayer['stats'];
 
 /** In a multiplayer session: ping, traffic, and how far behind each other player is shown. */
@@ -58,6 +82,7 @@ export function netLines(n: NetStats): string[] {
   return [
     `ping · ${n.ping === null ? '…' : `${ms(n.ping)} ms`}`,
     `net · up ${kb(n.up)} · down ${kb(n.down)} KB/s`,
-    ...n.players.map((p) => `${p.name} · ${ms(p.delay)} ms behind · jitter ${ms(p.jitter)} ms`),
+    ...n.players.slice(0, NET.hudPlayers).map((p) => `${p.name} · ${ms(p.delay)} ms behind · jitter ${ms(p.jitter)} ms`),
+    ...(n.players.length > NET.hudPlayers ? [`+ ${n.players.length - NET.hudPlayers} more`] : []),
   ];
 }

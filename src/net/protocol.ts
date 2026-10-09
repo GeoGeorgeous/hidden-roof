@@ -1,3 +1,4 @@
+import type { InventoryData } from '../inventory/inventory';
 import type { LevelData, PropData } from '../level/level';
 import type { PaintOp } from '../paint-ops';
 
@@ -5,8 +6,9 @@ import type { PaintOp } from '../paint-ops';
 // WebSocket. Each is one binary frame: a u32 (little-endian) length, that many
 // bytes of JSON, then the message's `bytes`, if any (a player snapshot, a paint
 // file). Paint ops travel as JSON, so their numbers arrive exactly and every
-// client paints the very same texels; the socket compresses them
-// (permessage-deflate). Only type imports here: Node runs this file as is
+// client paints the very same texels. Nothing is compressed by the socket:
+// full-precision numbers barely shrink, and the server would deflate every op
+// once per player (with 20 painting, more than a core). Only type imports here: Node runs this file as is
 // (scripts/protocol.test.mjs), and the server reads untrusted messages
 // through checkToServer.
 
@@ -38,6 +40,9 @@ export const closeCode = (r: Rejection) => 4001 + REJECTIONS.indexOf(r);
 /** What the server answers a plain GET at /ws (no WebSocket): the game asks when it can't connect (net/diagnostics.ts). */
 export const HELLO = `roof server · protocol ${PROTOCOL}`;
 
+/** A player as the others see them: playing, away (their game is hidden: minimized, another tab), or dropped (their link is gone; they may come back). */
+export type Presence = 'here' | 'away' | 'dropped';
+
 /** Game -> server. */
 export type ToServer =
   /** Start a session on this level, at this PAINT DETAIL, from a paint save (`bytes`) or clean. `table`: this client's surfaceTable of the level. */
@@ -52,6 +57,10 @@ export type ToServer =
   | { type: 'ladder'; t: number; data: PropData | null }
   /** The session's paint as a paint file, please (SAVE). */
   | { type: 'save' }
+  /** What they carry, whenever it changes: given back when they come back. */
+  | { type: 'inventory'; data: InventoryData }
+  /** Their game is hidden (minimized, another tab) or shown again. */
+  | { type: 'away'; away: boolean }
   /** Answered with a pong carrying the same `t`: the round trip, for the HUD. */
   | { type: 'ping'; t: number }
   | { type: 'leave' };
@@ -61,16 +70,24 @@ export type ToClient =
   /**
    * In the session (also after a reconnect): its level, PAINT DETAIL and
    * surfaceTable (the client checks its own against it), the players and
-   * their stepladders, and its paint as a paint file (`bytes`).
+   * their stepladders, what this player carried when here before (null: the
+   * starting kit); its paint as a paint file follows in `parts` parts (none:
+   * it's the save this host sent).
    */
-  | { type: 'welcome'; code: string; you: number; token: string; levelName: string; level: LevelData; detail: number; table: string; players: { id: number; name: string }[]; ladders: { id: number; data: PropData }[]; bytes: Uint8Array }
+  | { type: 'welcome'; code: string; you: number; token: string; levelName: string; level: LevelData; detail: number; table: string; players: { id: number; name: string; state: Presence }[]; ladders: { id: number; data: PropData }[]; inventory: InventoryData | null; parts: number }
   | { type: 'rejected'; reason: Rejection }
   | { type: 'joined'; id: number; name: string }
   | { type: 'left'; id: number }
+  | { type: 'presence'; id: number; state: Presence }
   | { type: 'state'; id: number; bytes: Uint8Array }
   | { type: 'ops'; id: number; t: number[]; ops: PaintOp[] }
+  /** Ops painted since the paint file of this welcome was read: painted at once, after it. */
+  | { type: 'paint'; ops: PaintOp[] }
   | { type: 'ladder'; id: number; t: number; data: PropData | null }
-  | { type: 'save'; bytes: Uint8Array }
+  /** The session's paint as a paint file in `parts` parts that follow (SAVE); none: the server can't make one now. */
+  | { type: 'save'; parts: number }
+  /** A piece of the paint file a welcome or a save announced (partFrames). */
+  | { type: 'part'; bytes: Uint8Array }
   /** Sent every few seconds, so a client notices a dead link. */
   | { type: 'ping' }
   | { type: 'pong'; t: number };
@@ -85,6 +102,32 @@ export function encode(msg: ToServer | ToClient): Uint8Array<ArrayBuffer> {
   out.set(json, 4);
   if (bytes) out.set(bytes, 4 + json.length);
   return out;
+}
+
+/**
+ * A paint file (in pieces) as 'part' frames of about `size` bytes: in one
+ * frame a big file is one long silence for the game while it downloads, and
+ * frames made once can go to every player who wants the file.
+ */
+export function partFrames(pieces: Uint8Array[], size: number): Uint8Array[] {
+  const head = encode({ type: 'part', bytes: new Uint8Array(0) });
+  const frames: Uint8Array[] = [];
+  let left = pieces.reduce((n, p) => n + p.length, 0);
+  let frame = new Uint8Array(0);
+  let o = 0;
+  for (let piece of pieces)
+    while (piece.length) {
+      if (o === frame.length) {
+        frame = new Uint8Array(head.length + Math.min(size, left));
+        frame.set(head);
+        frames.push(frame);
+        o = head.length;
+      }
+      const n = Math.min(piece.length, frame.length - o);
+      frame.set(piece.subarray(0, n), o);
+      [o, left, piece] = [o + n, left - n, piece.subarray(n)];
+    }
+  return frames;
 }
 
 /** A message as sent, or null if it isn't one; its fields still need checking if the sender isn't trusted. */
@@ -125,6 +168,10 @@ export function checkToServer(m: Message | null): ToServer | null {
       return isNum(v.t) && (v.data === null || isLadder(v.data)) ? (m as ToServer) : null;
     case 'ping':
       return isNum(v.t) ? (m as ToServer) : null;
+    case 'inventory':
+      return isInventory(v.data) ? (m as ToServer) : null;
+    case 'away':
+      return typeof v.away === 'boolean' ? (m as ToServer) : null;
     case 'save':
     case 'leave':
       return m as ToServer;
@@ -157,6 +204,9 @@ const isProp = (x: unknown) =>
   (x.text === undefined || typeof x.text === 'string') &&
   (x.finish === undefined || isObject(x.finish)) &&
   (x.mirror === undefined || typeof x.mirror === 'boolean');
+/** Shape and size only: the game takes from it what it knows (Inventory.restore). */
+const isWords = (x: unknown) => Array.isArray(x) && x.length <= 32 && x.every((w) => typeof w === 'string' && w.length <= 32);
+const isInventory = (x: unknown) => isObject(x) && isWords(x.tools) && isWords(x.colors) && isWords(x.caps) && isInt(x.selected) && isWords([x.color, x.cap]);
 /** Only a stepladder: a player places nothing else while playing. */
 const isLadder = (x: unknown) => isObject(x) && x.type === 'stepladder' && isV3(x.pos) && (x.rot === undefined || isInt(x.rot));
 
