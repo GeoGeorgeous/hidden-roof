@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { ATMOS, LIGHTMAP, LIGHTS, NEON_COLORS, PAINT } from '../../config';
-import { tileKey, type BuiltProp } from '../../level/build-prop';
+import type { BuiltProp } from '../../level/build-prop';
 import { lampLevel } from '../flicker';
 import { bakeUniforms } from './glsl';
 import { makeLamps, type Lamp } from './lamps';
@@ -72,12 +72,24 @@ export class LightBaker {
     const current = new Set(built);
     const changed: THREE.Box3[] = [];
     const reach: Reach = { spheres: [], cones: [] };
+    // A prop rebuilt as it was (a neighbor of an edit, its covered faces redone)
+    // casts and lights as before: only its own surfaces are baked again.
+    const gone = new Map<string, BuiltProp>();
+    const same = new Set<BuiltProp>();
     let any = false;
+    for (const [b] of this.owners) if (!current.has(b)) gone.set(shapeKey(b), b);
+    for (const b of built) {
+      if (this.owners.has(b)) continue;
+      const was = gone.get(shapeKey(b));
+      if (was) same.add(was).add(b);
+    }
     for (const [b, o] of this.owners) {
       if (current.has(b)) continue;
       any = true;
-      changed.push(...b.occluders);
-      lampSpheres(b, reach);
+      if (!same.has(b)) {
+        changed.push(...b.occluders);
+        lampSpheres(b, reach);
+      }
       for (const r of o.receivers) {
         this.pending.delete(r);
         dropReceiver(r, this.pages);
@@ -89,8 +101,10 @@ export class LightBaker {
     for (const b of built) {
       if (this.owners.has(b)) continue;
       this.register(b);
-      changed.push(...b.occluders);
-      lampSpheres(b, reach);
+      if (!same.has(b)) {
+        changed.push(...b.occluders);
+        lampSpheres(b, reach);
+      }
       added++;
     }
     if (!any && !added) return;
@@ -152,7 +166,8 @@ export class LightBaker {
   /** A surface's light atlas at the current density, and its block (also on the surface, for the level's merged meshes). */
   private layOut(r: SurfaceReceiver) {
     r.layout = layoutLightmap(r.surface.geo, PAINT.texelsPerMeter, this.density);
-    r.slot = r.surface.light = this.pages.place(r.layout.w, r.layout.h, tileKey(r.bounds));
+    // One set of pages for the whole level: light is small, and every surface sharing them keeps the level's draws few.
+    r.slot = r.surface.light = this.pages.place(r.layout.w, r.layout.h, '');
   }
 
   /** Bake pending receivers, nearest to `eye` first, for up to `budget` ms. */
@@ -264,4 +279,12 @@ function flickerTexture(data: Float32Array) {
   const t = new THREE.DataTexture(data, data.length, 1, THREE.RedFormat, THREE.FloatType);
   t.needsUpdate = true;
   return t;
+}
+
+/** What a prop casts and lights with: its occluders and its lamps, to the mm. */
+function shapeKey(b: BuiltProp) {
+  const mm = (n: number) => Math.round(n * 1000);
+  const boxes = b.occluders.map((o) => [o.min.x, o.min.y, o.min.z, o.max.x, o.max.y, o.max.z].map(mm).join(','));
+  const lamps = b.lights.map((a) => `${a.kind}@${[a.base.x, a.base.y, a.base.z].map(mm).join(',')}`);
+  return `${boxes.join(';')}|${lamps.join(';')}`;
 }

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { PaintSurface } from '../../painting';
-import type { LightLayout } from './layout';
+import { lightTexels, type LightLayout } from './layout';
 import { lightAt, type Lamp } from './lamps';
 import type { LightPages, LightSlot } from './light-pages';
 import type { Occluders } from './occluders';
@@ -38,7 +38,8 @@ const toHalf = THREE.DataUtils.toHalfFloat;
 /** Bake a surface's lightmap from the lamps that can reach it, into its block. */
 export function bakeSurface(r: SurfaceReceiver, lamps: Lamp[], occluders: Occluders, pages: LightPages) {
   if (!lamps.length) return pages.write(r.slot, null, null);
-  const { w, h, points, pixels, fill } = r.layout;
+  const { w, h } = r.layout;
+  const { points, pixels, fill } = (r.layout.texels ??= lightTexels(r.surface.geo, r.layout));
   const light = (lightScratch = room(lightScratch, w * h * 4));
   let flicker: Uint16Array | null = null;
   for (let i = 0; i < pixels.length; i++) {

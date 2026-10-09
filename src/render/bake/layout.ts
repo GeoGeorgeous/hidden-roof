@@ -3,14 +3,24 @@ import { packRects, type Rect, type SurfaceGeometry } from '../../surfaces';
 
 // Lightmap layout of one paintable surface. Every face of its paint atlas gets
 // a rect at LIGHTMAP.texelsPerMeter (much coarser than paint), packed into the
-// surface's own light atlas with a 1-texel gutter. Sets the geometry's
-// `lightUv` and lists, per covered texel, the world point and normal the bake
-// lights. Gutter texels and texels no triangle covers (round caps) copy their
-// nearest covered neighbor, so bilinear filtering never pulls black into a face.
+// surface's own light atlas with a 1-texel gutter, and the geometry gets its
+// `lightUv` (layoutLightmap: cheap, when the surface comes, so the level can
+// merge it). Its texels are worked out on its first bake (lightTexels): per
+// covered texel, the world point and normal the bake lights. Gutter texels and
+// texels no triangle covers (round caps) copy their nearest covered neighbor,
+// so bilinear filtering never pulls black into a face.
 
 export interface LightLayout {
   w: number;
   h: number;
+  rects: Rect[];
+  /** Per vertex: its place in light texels. */
+  tex: Float32Array;
+  /** Made on the first bake (lightTexels). */
+  texels: LightTexels | null;
+}
+
+export interface LightTexels {
   /** Per covered texel: world position xyz, then normal xyz. */
   points: Float32Array;
   /** Per covered texel: its pixel (y * w + x). */
@@ -41,7 +51,12 @@ export function layoutLightmap(geo: SurfaceGeometry, paintDensity: number, densi
     uv[i * 2 + 1] = tex[i * 2 + 1] / h;
   }
   g.setAttribute('lightUv', new THREE.BufferAttribute(uv, 2));
+  return { w, h, rects, tex, texels: null };
+}
 
+/** A layout's texels: what each covered one lights, and how the rest are filled. */
+export function lightTexels(geo: SurfaceGeometry, { w, h, rects, tex }: LightLayout): LightTexels {
+  const g = geo.geometry;
   // Rasterize: a texel whose center lies in a triangle takes its interpolated point and normal.
   const P = g.attributes.position.array;
   const N = g.attributes.normal.array;
@@ -129,5 +144,5 @@ export function layoutLightmap(geo: SurfaceGeometry, paintDensity: number, densi
       }
     }
   }
-  return { w, h, points: Float32Array.from(points), pixels: Int32Array.from(pixels), fill: Int32Array.from(fill) };
+  return { points: Float32Array.from(points), pixels: Int32Array.from(pixels), fill: Int32Array.from(fill) };
 }
