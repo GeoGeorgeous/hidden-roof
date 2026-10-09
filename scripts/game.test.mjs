@@ -1,5 +1,5 @@
 // Game tests in the browser: behavior the golden paint test doesn't cover.
-// The pause menu's SAVE / LOAD PAINT (one at a time, cancel, broken files,
+// Pickups placed before the game first runs, the pause menu's SAVE / LOAD PAINT (one at a time, cancel, broken files,
 // reload), level names, paint saves through level edits and changed props,
 // stairs from older level files, spray in the air at LOAD, the sponge
 // freeing memory, prop ids for good,
@@ -53,6 +53,17 @@ const paintedKeys = (page) => page.evaluate(() => window.game.paint.surfaces.fil
 const page = await openPage();
 // Started and paused: the menu shows SAVE PAINT.
 await page.evaluate(() => (window.game.hud.setLocked(true), window.game.hud.setLocked(false)));
+
+await check('pickups: on the start screen, before the game first runs, they already hover in their rings', async () => {
+  const r = await page.evaluate(() => {
+    const { pickups, config } = window.game;
+    const { hover, bob } = config.PICKUP;
+    const off = (y) => Math.abs(y - hover) > bob + 1e-6;
+    const all = [...pickups.list.values()];
+    return { count: all.length, sunk: all.filter((p) => off(p.item.position.y) || off(p.halo.position.y)).map((p) => p.kind) };
+  });
+  return r.count && !r.sunk.length ? null : JSON.stringify(r);
+});
 
 await check('menu: SAVE PAINT downloads one file, even clicked three times at once', async () => {
   await dot(page);
