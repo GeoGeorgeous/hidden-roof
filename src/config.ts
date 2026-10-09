@@ -230,9 +230,11 @@ export const INK = {
  * the default set's (NEW MANGA).
  */
 export const INK_STYLES = [
+  { name: 'NEW MANGA', short: 'NM', paper: '#eff1f6', ink: '#333243', sky: '#171926', cloud: '#1d2030' },
   // The look from 2026-10-04 to 2026-10-09.
   { name: 'OLD MANGA', short: 'OM', paper: '#dfe0d6', ink: '#3a3749', sky: '#0c0b0f', cloud: '#201f29' },
-  { name: 'NEW MANGA', short: 'NM', paper: '#eff1f6', ink: '#333243', sky: '#171926', cloud: '#1d2030' },
+  // The first ink look (2026-10-04): warm paper, near-black ink, a paper sky.
+  { name: 'RETRO LIGHT', short: 'RL', paper: '#ebe5d6', ink: '#141416', sky: '#ebe5d6', cloud: '#ebe5d6' },
 ];
 
 /** F3 → Render → Shaders → preset only: more color sets, after INK_STYLES, numbered from 1. */
