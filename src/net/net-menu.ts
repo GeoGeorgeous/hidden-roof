@@ -77,7 +77,12 @@ export function multiplayerMenu(hud: Hud, hotbar: Hotbar, ctx: MultiplayerContex
     say('');
   };
   const choose = () => show(menu(button('> HOST A SESSION', host), button('> JOIN A SESSION', join), button('> COPY NETWORK LOG', copyLog), button('< BACK', () => hud.openPage(null))));
-  const nameRow = () => row('NAME', nameInput);
+  /** NAME, with what it is for. */
+  const nameRow = () => {
+    const el = row('NAME', nameInput);
+    el.append(Object.assign(div('desc'), { textContent: 'Your name as a player: everyone in the session sees it over you. Not the name of the session.' }));
+    return el;
+  };
   /** The network log to the clipboard, for a report; a file where the clipboard is out of reach. */
   const copyLog = () => {
     const text = net.log.text();
