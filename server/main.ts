@@ -67,7 +67,8 @@ wss.on('connection', (ws, req) => {
         return ws.close(1008, 'bad message');
       }
       if (at === 'waiting') return;
-      if (at) return at.session.receive(at.player, m);
+      // A link replaced by another (a reconnect, another tab) is no longer theirs.
+      if (at) return at.player.link === link ? at.session.receive(at.player, m) : undefined;
       if (m.type !== 'host' && m.type !== 'join') return;
       at = 'waiting';
       const r = await enter(m, link, ip);
