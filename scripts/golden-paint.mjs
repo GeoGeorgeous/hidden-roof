@@ -231,14 +231,30 @@ async function replay({ ops, save, editLevel }) {
   await g.paintFile.load(bytes);
   const loaded = window.golden.paint();
   if (!editLevel) return { replayed, loaded };
-  // Props with paint on them, by id (keys p<id>#k).
-  const painted = [...new Set(g.paint.surfaces.filter((s) => s.data).map((s) => Number(s.key.match(/^p(\d+)#/)?.[1])))].filter(Boolean);
-  g.level.remove([...g.level.props.keys()].find((id) => !painted.includes(id)));
+  // Props with paint on them, by id (keys p<id>#k). Removing a prop uncovers
+  // faces of the props it touches (level/cover.ts), which then no longer fit
+  // the save: the props removed here touch no painted prop that should still fit.
+  const painted = [...new Set(g.paint.surfaces.filter((s) => s.data?.some((v, i) => i % 4 === 3 && v)).map((s) => Number(s.key.match(/^p(\d+)#/)?.[1])))].filter(Boolean);
+  const bounds = (id) => g.level['built'].get(id).bounds.clone().expandByScalar(0.05);
+  const touches = (id, others) => others.some((o) => o !== id && bounds(id).intersectsBox(bounds(o)));
+  g.level.remove([...g.level.props.keys()].find((id) => !painted.includes(id) && !touches(id, painted)));
   await g.paintFile.load(bytes);
   const afterUnrelated = window.golden.paint();
-  g.level.remove(painted[0]);
-  const partial = await g.paintFile.load(bytes);
-  for (const id of painted.slice(1)) g.level.remove(id);
+  // A painted prop whose going changes no other painted prop (the wall standing
+  // on the floor: without the floor its bottom face shows, so it no longer fits).
+  let partial = { faces: 0, skipped: 0 };
+  let first;
+  for (const id of painted) {
+    const { owner, ...data } = g.level.props.get(id);
+    g.level.remove(id);
+    const r = await g.paintFile.load(bytes).catch(() => null);
+    if (r?.faces && r.skipped) {
+      [partial, first] = [r, id];
+      break;
+    }
+    g.level.add(data);
+  }
+  for (const id of painted.filter((id) => id !== first)) g.level.remove(id);
   const beforeRefused = window.golden.paint();
   let refused = null;
   await g.paintFile.load(bytes).catch((e) => (refused = e.message));

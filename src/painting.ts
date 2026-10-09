@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { PAINT } from './config';
 import type { MipSize } from './paint-mips';
-import { resampleAtlas, resampleRect } from './paint-resample';
+import { painted, resampleRect } from './paint-resample';
 import type { FacePoint, Rect, SurfaceGeometry } from './surfaces';
 import type { SurfaceMaterial } from './materials';
 import { SeamIndex, texelToWorld, worldToTexel, type SeamFace } from './paint-seams';
@@ -90,13 +90,30 @@ export class PaintSystem {
   }
 
   /**
-   * Give a rebuilt surface the paint of the one it replaces. Same faces, but the
-   * atlas may differ (another paint detail): the paint is resampled face by face.
+   * A rebuilt prop's paint carries over face by face: a face of `fresh` takes
+   * the paint of the face of `old` in the same place, resampled after a paint
+   * detail change. A face that became covered (level/cover.ts) loses its paint;
+   * one that was uncovered starts clean.
    */
-  adopt(s: PaintSurface, from: Pick<PaintSurface, 'geo' | 'data'>) {
-    if (!from.data) return;
+  carry(old: readonly PaintSurface[], fresh: readonly PaintSurface[]) {
+    const from = new Map<string, { s: PaintSurface; a: number }>();
+    for (const s of old) if (s.data) s.geo.rects.forEach((r, a) => from.set(faceKey(s, r, a), { s, a }));
+    if (!from.size) return;
+    for (const s of fresh) {
+      const faces = s.geo.rects.flatMap((r, b) => {
+        const f = from.get(faceKey(s, r, b));
+        return f ? [{ from: f.s, a: f.a, b }] : [];
+      });
+      if (faces.length) this.adopt(s, faces);
+    }
+  }
+
+  /** Face `b` of `s` takes face `a` of `from`, resampled when the atlas differs. */
+  private adopt(s: PaintSurface, faces: { from: PaintSurface; a: number; b: number }[]) {
+    const live = faces.filter(({ from, a }) => from.data && painted(from.data, from.geo.atlasW, from.geo.rects[a]));
+    if (!live.length) return;
     this.ensureTexture(s);
-    resampleAtlas(from.geo, from.data, s.geo, s.data!);
+    for (const { from, a, b } of live) resampleRect(from.data!, from.geo.atlasW, from.geo.rects[a], s.data!, s.geo.atlasW, s.geo.rects[b]);
     this.gpu.markDirty(s, 0, 0, s.geo.atlasW - 1, s.geo.atlasH - 1);
   }
 
@@ -259,4 +276,11 @@ export class PaintSystem {
     this.ensureTexture(s);
     this.raster.texel(s, x, y, amount, color);
   }
+}
+
+/** Where a face is, to match it across rebuilds: a flat face by its corners (to the mm), a curved one by its place in its surface. */
+function faceKey(s: PaintSurface, r: Rect, i: number) {
+  const f = r.face;
+  if (!f) return `${s.key.slice(s.key.indexOf('#'))}:${i}`;
+  return [f.origin, f.uAxis, f.vAxis].flatMap((v) => [v.x, v.y, v.z]).map((n) => Math.round(n * 1000)).join(',');
 }

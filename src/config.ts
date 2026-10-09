@@ -326,6 +326,12 @@ export const PAINT = {
    */
   minFaceSide: 0.06,
   minFaceArea: 0.12,
+  /**
+   * A paintable face pressed against an opaque box piece of a prop (level/cover.ts) is
+   * covered, and drawn as decor: checked at points this far apart (m), this far in front of it (m).
+   */
+  coverStep: 0.25,
+  coverGap: 0.02,
   /** Alpha is quantized to this many steps in the shader for a chunky look (0 = off). */
   alphaSteps: 8,
   /** Hard cap on a single surface atlas side, in texels. */

@@ -1,7 +1,8 @@
 import { defOf, renamed, upgraded } from '../kit';
 import { mirrored, type Piece } from '../kit/pieces';
 import type { SurfaceGeometry } from '../surfaces';
-import { expandPieces, type PropInstance } from './build-prop';
+import { expandPieces, solidBoxes, type PropInstance } from './build-prop';
+import { CoverIndex } from './cover';
 import { computeJoints, jointPieces } from './joints';
 import type { LevelData, PropData } from './level';
 import { stackContext } from './stacks';
@@ -43,9 +44,13 @@ export function levelPaintFaces(data: LevelData): { key: string; geo: SurfaceGeo
     next = Math.max(next, inst.id + 1);
   }
   const out: { key: string; geo: SurfaceGeometry }[] = [];
+  // As Level.load: every solid box listed first, so covered faces are decor here too.
+  const pieces = new Map([...props.values()].map((inst) => [inst.id, propPieces(inst, props.values())]));
+  const cover = new CoverIndex();
+  for (const inst of props.values()) cover.set(inst.id, solidBoxes(pieces.get(inst.id)!, inst.pos, inst.rot));
   const add = (owner: string, pieces: Piece[], pos: PropInstance['pos'], rot: number) =>
-    expandPieces(pieces, pos, rot).paint.forEach(({ geo }, k) => out.push({ key: `${owner}#${k}`, geo }));
-  for (const inst of props.values()) add(`p${inst.id}`, propPieces(inst, props.values()), inst.pos, inst.rot);
+    expandPieces(pieces, pos, rot, true, cover).paint.forEach(({ geo }, k) => out.push({ key: `${owner}#${k}`, geo }));
+  for (const inst of props.values()) add(`p${inst.id}`, pieces.get(inst.id)!, inst.pos, inst.rot);
   for (const [key, joint] of computeJoints(props.values())) add(`j${key}`, jointPieces(joint), joint.pos, 0);
   return out;
 }

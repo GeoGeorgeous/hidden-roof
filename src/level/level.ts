@@ -4,9 +4,12 @@ import { defOf, upgraded } from '../kit';
 import type { V3 } from '../kit/pieces';
 import { V_MODULE, type PropDef } from '../kit/def';
 import type { PaintSystem } from '../painting';
+import { PAINT } from '../config';
 import type { Ladder } from '../player';
 import { DecorBatches } from './batches';
-import { buildProp, disposeProp, type BuiltProp, type Emitter, type LightAnchor, type PropInstance } from './build-prop';
+import { buildProp, disposeProp, solidBoxes, type BuiltProp, type Emitter, type LightAnchor, type PropInstance } from './build-prop';
+import { CoverIndex } from './cover';
+import type { Piece } from '../kit/pieces';
 import { computeJoints, jointOwner, jointPieces, sameFinish, type Joint } from './joints';
 import { instanceOf, propPieces } from './prop-pieces';
 import { column, propAt, stackContext } from './stacks';
@@ -14,6 +17,8 @@ import type { Finish } from '../kit/finishes';
 
 // The editable level: prop instances + everything built from them (meshes,
 // colliders, ladders), auto joints between edge props, and decor batches.
+// Faces pressed against another prop are decor (level/cover.ts): when a prop
+// comes, goes or changes shape, the props and joints it touches are rebuilt.
 // The collider/ladder/solid arrays are mutated in place so the player and the
 // tools keep their references across edits.
 
@@ -65,6 +70,10 @@ export class Level {
   private lettered = new Set<number>();
   joints = new Map<string, { joint: Joint; b: BuiltProp }>();
   private batches = new DecorBatches();
+  /** The level's solid boxes, by prop: what covers faces. */
+  private cover = new CoverIndex();
+  /** Solid boxes that came or went since the last refresh: the props and joints they touch are rebuilt then. */
+  private touched: THREE.Box3[] = [];
   private nextId = 1;
   /** Props placed while playing, one per owner (a player's stepladder): owner -> prop id. */
   private runtime = new Map<string, number>();
@@ -97,10 +106,11 @@ export class Level {
   setRuntime(owner: string, data: PropData | null): PropInstance | null {
     const old = this.runtime.get(owner);
     if (old !== undefined) this.drop(old);
-    const inst = data && this.create({ ...data, id: undefined });
+    const inst = data && this.create({ ...data, id: undefined }, false);
     if (inst) {
       inst.owner = owner;
       this.runtime.set(owner, inst.id);
+      this.build(inst);
     }
     this.refresh();
     return inst;
@@ -115,6 +125,8 @@ export class Level {
     for (const b of this.built.values()) disposeProp(b, this.paint);
     for (const j of this.joints.values()) disposeProp(j.b, this.paint);
     this.built.clear();
+    this.cover = new CoverIndex();
+    this.touched = [];
     this.lettered.clear();
     this.joints.clear();
     this.props.clear();
@@ -126,9 +138,12 @@ export class Level {
   load(data: LevelData) {
     this.clear();
     this.spawn = { pos: [...data.spawn.pos], yaw: data.spawn.yaw };
-    // Create all instances first so stacking props see their neighbors when built.
+    // Create all instances first so stacking props see their neighbors when
+    // built, and list every solid box first so each prop sees what covers it.
     for (const p of data.props) this.create(upgraded(p, data.version), false);
-    for (const inst of this.props.values()) this.build(inst);
+    const pieces = new Map([...this.props.values()].map((inst) => [inst.id, propPieces(inst, this.props.values())]));
+    for (const inst of this.props.values()) this.cover.set(inst.id, solidBoxes(pieces.get(inst.id)!, inst.pos, inst.rot));
+    for (const inst of this.props.values()) this.build(inst, pieces.get(inst.id));
     this.refresh();
   }
 
@@ -164,7 +179,7 @@ export class Level {
     const inst = this.props.get(id);
     if (!inst) return false;
     inst.finish = finish;
-    this.build(inst, true);
+    this.build(inst);
     this.refresh();
     return true;
   }
@@ -183,25 +198,20 @@ export class Level {
   /** Rebuild every prop that shows lettering, keeping its paint: a text atlas grew or started over (render/ink/text-atlas.ts), so their rects moved. */
   rebuildLettered() {
     if (!this.lettered.size) return;
-    for (const id of this.lettered) this.build(this.props.get(id)!, true);
+    for (const id of this.lettered) this.build(this.props.get(id)!);
     this.refresh();
   }
 
   /** Rebuild every prop and joint, keeping their paint (resampled into the new atlases after a paint detail change). */
   rebuildAll() {
-    for (const inst of this.props.values()) this.build(inst, true);
+    for (const inst of this.props.values()) this.build(inst);
     for (const [key, { joint, b: old }] of this.joints) {
       disposeProp(old, this.paint);
       const b = this.buildJoint(key, joint);
-      this.carryPaint(old, b);
+      this.paint.carry(old.paint, b.paint);
       this.joints.set(key, { joint, b });
     }
     this.refresh();
-  }
-
-  /** A rebuild of the same pieces yields the same paint surfaces, in the same order. */
-  private carryPaint(old: BuiltProp, fresh: BuiltProp) {
-    fresh.paint.forEach((s, i) => old.paint[i] && this.paint.adopt(s, old.paint[i]));
   }
 
   /** Draw-ready: merge decor if anything changed. Call once per frame. */
@@ -273,21 +283,24 @@ export class Level {
   }
 
   /**
-   * (Re)build a prop. Its paint carries over to the new build: always with
-   * `resample` (paint detail changed: same faces, new atlas), otherwise when
-   * its paint faces are unchanged, e.g. a building block that gained or lost
-   * its facade because a block was placed or removed under it.
+   * (Re)build a prop, its paint carried over face by face. Its solid boxes go
+   * into the cover index (not for a player's stepladder: it differs from client
+   * to client); when they changed, what they touch is rebuilt on refresh.
    */
-  private build(inst: PropInstance, resample = false) {
+  private build(inst: PropInstance, pieces: Piece[] = propPieces(inst, this.props.values())) {
     const old = this.built.get(inst.id);
     if (old) disposeProp(old, this.paint);
-    const pieces = propPieces(inst, this.props.values());
     if (pieces.some((p) => 'mat' in p && p.mat.letters)) this.lettered.add(inst.id);
     else this.lettered.delete(inst.id);
-    const b = buildProp(inst.id, `p${inst.id}`, pieces, inst.pos, inst.rot, this.paint);
+    if (inst.owner === undefined) {
+      const was = [...this.cover.boxesOf(inst.id)];
+      const boxes = solidBoxes(pieces, inst.pos, inst.rot);
+      if (this.cover.set(inst.id, boxes)) this.touched.push(...was, ...boxes);
+    }
+    const b = buildProp(inst.id, `p${inst.id}`, pieces, inst.pos, inst.rot, this.paint, this.cover);
     this.root.add(b.group);
     this.built.set(inst.id, b);
-    if (old && (resample || samePaintFaces(old, b))) this.carryPaint(old, b);
+    if (old) this.paint.carry(old.paint, b.paint);
   }
 
   /**
@@ -314,6 +327,8 @@ export class Level {
     if (!inst) return false;
     const b = this.built.get(id);
     if (b) disposeProp(b, this.paint);
+    this.touched.push(...this.cover.boxesOf(id));
+    this.cover.delete(id);
     this.built.delete(id);
     this.lettered.delete(id);
     this.props.delete(id);
@@ -324,6 +339,11 @@ export class Level {
 
   /** Update joints, flat arrays and batches after a change. */
   private refresh() {
+    // What touches a box that came or went is rebuilt: its covered faces may have changed.
+    const near = this.touched.map((b) => b.clone().expandByScalar(PAINT.coverGap * 2));
+    this.touched = [];
+    const touches = (b: BuiltProp) => near.some((n) => n.intersectsBox(b.bounds));
+    if (near.length) for (const [id, b] of this.built) if (touches(b)) this.build(this.props.get(id)!);
     const want = computeJoints(this.props.values());
     for (const [key, j] of this.joints) {
       if (want.has(key)) continue;
@@ -332,11 +352,11 @@ export class Level {
     }
     for (const [key, joint] of want) {
       const old = this.joints.get(key);
-      if (old && sameFinish(old.joint, joint)) continue;
-      // New, or its finish changed: (re)built, its paint carried over.
+      if (old && sameFinish(old.joint, joint) && !touches(old.b)) continue;
+      // New, its finish changed, or what covers it: (re)built, its paint carried over.
       const b = this.buildJoint(key, joint);
       if (old) {
-        this.carryPaint(old.b, b);
+        this.paint.carry(old.b.paint, b.paint);
         disposeProp(old.b, this.paint);
       }
       this.joints.set(key, { joint, b });
@@ -360,23 +380,11 @@ export class Level {
   }
 
   private buildJoint(key: string, joint: Joint) {
-    const b = buildProp(-1, `j${key}`, jointPieces(joint), joint.pos, 0, this.paint);
+    const b = buildProp(-1, `j${key}`, jointPieces(joint), joint.pos, 0, this.paint, this.cover);
     for (const o of b.group.children) o.userData.joint = key;
     this.root.add(b.group);
     return b;
   }
 
   private allBuilt: BuiltProp[] = [];
-}
-
-/** The same paint surfaces with the same face sizes, so paint carries over texel for texel. */
-function samePaintFaces(a: BuiltProp, b: BuiltProp) {
-  return (
-    a.paint.length === b.paint.length &&
-    a.paint.every((s, i) => {
-      const ra = s.geo.rects;
-      const rb = b.paint[i].geo.rects;
-      return ra.length === rb.length && ra.every((r, k) => r.w === rb[k].w && r.h === rb[k].h);
-    })
-  );
 }

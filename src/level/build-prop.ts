@@ -10,6 +10,7 @@ import { setHex } from '../hex-color';
 import type { Track } from '../render/cctv-track';
 import type { Facade } from '../render/ink/facade';
 import type { Finish } from '../kit/finishes';
+import type { CoverIndex } from './cover';
 
 // Turns a prop's pieces into world-space geometry, colliders and climb volumes.
 // Rotations are multiples of 90°, so every box stays axis-aligned and its
@@ -164,8 +165,21 @@ const NO_FACADE: Facade = [0, 0, 0, 0];
 /** Materials that ring when rain hits them. */
 const METALS = new Set<Mat>([M.steel, M.metal, M.galv, M.ac, M.rust]);
 
-/** World-space geometry for pieces. With allowPaint=false everything is decor (ghost preview). */
-export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint = true): Expanded {
+const BOX_FACES: BoxFace[] = ['+x', '-x', '+y', '-y', '+z', '-z'];
+
+/** World boxes of a prop's opaque, still box pieces: what can cover a face (level/cover.ts). Rods and cylinders don't: their colliders are boxes round them, wider than they look. */
+export function solidBoxes(pieces: Piece[], pos: V3, rot: number): THREE.Box3[] {
+  const r = ((rot % 4) + 4) % 4;
+  const origin = new THREE.Vector3(...pos);
+  return pieces.filter((p): p is BoxPiece => p.k === 'box' && !p.swing && p.mat.alpha === undefined).map((p) => new THREE.Box3().setFromPoints([rotate(p.min, r).add(origin), rotate(p.max, r).add(origin)]));
+}
+
+/**
+ * World-space geometry for pieces. With allowPaint=false everything is decor
+ * (ghost preview). With `cover`, paintable box faces pressed against a solid
+ * box (level/cover.ts) are decor too.
+ */
+export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint = true, cover: CoverIndex | null = null): Expanded {
   const r = ((rot % 4) + 4) % 4;
   const origin = new THREE.Vector3(...pos);
   const at = (v: V3) => rotate(v, r).add(origin);
@@ -213,8 +227,11 @@ export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint =
     if (p.k === 'box') {
       const box = new THREE.Box3().setFromPoints([at(p.min), at(p.max)]);
       const skip = (p.skip ?? []).map((f) => rotateFace(f, r));
-      if (allowPaint && !p.swing && boxIsPaintable(p)) addBox(painter(p.mat), box.min, box.max, skip);
-      else decor(p.mat, boxSurface(box.min, box.max, skip, false, p.mat.letters).geometry, p.swing);
+      if (allowPaint && !p.swing && boxIsPaintable(p)) {
+        const covered = cover ? BOX_FACES.filter((f) => !skip.includes(f) && cover.covered(box, f)) : [];
+        if (covered.length) decor(p.mat, boxSurface(box.min, box.max, BOX_FACES.filter((f) => !covered.includes(f)), false, p.mat.letters).geometry);
+        if (skip.length + covered.length < 6) addBox(painter(p.mat), box.min, box.max, [...skip, ...covered]);
+      } else decor(p.mat, boxSurface(box.min, box.max, skip, false, p.mat.letters).geometry, p.swing);
       if (p.collide && !p.swing) collide(p.mat, [box]);
       metal(p.mat, new THREE.Vector3((box.min.x + box.max.x) / 2, box.max.y, (box.min.z + box.max.z) / 2));
     } else if (p.k === 'cyl') {
@@ -276,9 +293,9 @@ function mergeDecor(decor: Expanded['decor']) {
   });
 }
 
-/** `owner`: the first part of the prop's paint surface keys (PaintSurface.key). */
-export function buildProp(id: number, owner: string, pieces: Piece[], pos: V3, rot: number, paint: PaintSystem): BuiltProp {
-  const ex = expandPieces(pieces, pos, rot);
+/** `owner`: the first part of the prop's paint surface keys (PaintSurface.key); `cover`: the level's solid boxes (covered faces are decor). */
+export function buildProp(id: number, owner: string, pieces: Piece[], pos: V3, rot: number, paint: PaintSystem, cover: CoverIndex | null = null): BuiltProp {
+  const ex = expandPieces(pieces, pos, rot, true, cover);
   const out: BuiltProp = { group: new THREE.Group(), decor: [], colliders: ex.colliders, occluders: ex.occluders, ladders: ex.ladders, lights: ex.lights, emitters: ex.emitters, solids: [], paint: [], bounds: new THREE.Box3() };
   const add = (g: THREE.BufferGeometry, m: THREE.Material) => {
     const mesh = new THREE.Mesh(g, m);

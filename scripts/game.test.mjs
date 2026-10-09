@@ -199,6 +199,34 @@ await check('levels: props keep their ids through edits, reloads and undo; versi
   return r.first === 1 && r.kept && r.next === r.count + 1 && r.undone === 10 && r.v2.join() === '1,6' ? null : JSON.stringify(r);
 });
 
+await check('levels: faces pressed against another prop are decor and come back when it goes; paint stays on the rest; colliders stay', async () => {
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    const saved = g.build.getLevelData();
+    const a = { id: 1, type: 'building', pos: [0, 0, 0], rot: 0 };
+    const b = { id: 2, type: 'building', pos: [2, 0, 0], rot: 0 };
+    // Faces on the plane x = 1, where the two blocks touch; and a's west face (x = -1), painted.
+    const faces = () => g.paint.surfaces.flatMap((s) => s.geo.rects.map((r, i) => ({ s, r, i }))).filter((f) => f.r.face);
+    const at = (x, nx) => faces().filter((f) => Math.abs(f.r.face.origin.x - x) < 0.01 && f.r.face.normal.x === nx);
+    const west = () => at(-1, -1)[0];
+    const paintAt = (f) => f.s.data?.[((f.r.y + (f.r.h >> 1)) * f.s.geo.atlasW + f.r.x + (f.r.w >> 1)) * 4 + 3] ?? 0;
+    g.loadLevel({ version: 4, spawn: saved.spawn, props: [a] });
+    const out = { alone: at(1, 1).length, colliders: [g.level.colliders.length] };
+    const w = west();
+    g.paint.stamp(w.s, { rect: w.i, u: 0.5, v: 0.5 }, 0.3, 1, [1, 0, 0]);
+    g.level.add(b);
+    out.together = at(1, 1).length + at(1, -1).length;
+    out.colliders.push(g.level.colliders.length);
+    out.paintKept = paintAt(west());
+    g.level.remove(2);
+    out.back = at(1, 1).length;
+    out.paintAfter = paintAt(west());
+    g.loadLevel(saved);
+    return out;
+  });
+  return r.alone > 0 && r.together === 0 && r.back === r.alone && r.colliders.join() === '3,6' && r.paintKept > 0 && r.paintAfter > 0 ? null : JSON.stringify(r);
+});
+
 await check('levels: stairs in format 3 files stay compact (the old stairs); format 4 saves keep either kind', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
