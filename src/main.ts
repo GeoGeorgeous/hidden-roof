@@ -305,7 +305,11 @@ function frame(time: number) {
     wallHand.update(dt, camera, eye, !building, tools.spray.model.sway);
     drips.update(dt);
     pickups.update(dt, player.position, inventory);
-  } else if (!building) tools.holdStill(camera);
+  } else {
+    if (!building) tools.holdStill(camera);
+    // Tuned live in F3 → Items → Pickups, which pauses the game.
+    if (dev?.panelOpen) pickups.update(dt, player.position, inventory);
+  }
   net.update(dt);
   const tool = building ? null : inventory.tool;
   hud.setCrosshair(tools.crosshair(tool));
