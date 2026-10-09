@@ -283,7 +283,10 @@ export class Hud {
 
   /** Shows the paint color (swatch + name) for a few seconds, just below the cap tag. */
   showColorTag(name: string, hex: string) {
-    this.colorTag.innerHTML = `COLOR · <i class="swatch" style="background:${hex}"></i>${name.toUpperCase()}`;
+    // The swatch's color through the DOM, not a style attribute: a CSP without 'unsafe-inline' allows it.
+    const swatch = Object.assign(document.createElement('i'), { className: 'swatch' });
+    swatch.style.background = hex;
+    this.colorTag.replaceChildren('COLOR · ', swatch, name.toUpperCase());
     this.colorTagUntil = performance.now() + HUD.tagTime * 1000;
   }
 
