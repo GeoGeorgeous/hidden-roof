@@ -83,7 +83,7 @@ export class BuildMode {
     private player: Player,
     renderer: THREE.WebGLRenderer,
   ) {
-    this.pickerView = new PickerView(this.picker, new Thumbnails(renderer));
+    this.pickerView = new PickerView(this.picker, new Thumbnails(renderer), () => pickups.list.values());
     this.ghost = new Ghost(scene);
     this.outline = new Ghost(scene, { color: BUILD.targetColor, opacity: BUILD.targetOpacity, outline: true });
     this.settings = new PropSettings(scene, level, (m) => this.say(m), (def) => this.picker.finishFor(def));
