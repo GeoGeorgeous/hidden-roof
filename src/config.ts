@@ -269,6 +269,8 @@ export const PAUSE_MENU = {
   debugOpacity: 0,
   /** The list of keys under the menu. */
   controls: true,
+  /** Size of everything on the sheet (1 = as styled in style.css). */
+  scale: 1.3,
 };
 
 /** What the HUD shows (hud.ts) and the hotbar's size (inventory/hotbar.ts), live in F3 → UI. */

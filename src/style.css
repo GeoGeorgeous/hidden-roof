@@ -187,7 +187,9 @@ canvas {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  /* Safe: in a window too small for it, the sheet scrolls instead of cutting off its top. */
+  justify-content: safe center;
+  overflow-y: auto;
   gap: 14px;
   color: var(--ui);
   /* --sheet and --sheet-debug come from PAUSE_MENU (hud.ts). */
@@ -207,6 +209,10 @@ canvas {
   text-align: right;
   color: var(--dim);
   transform: rotate(-6deg);
+}
+/* Everything but the version at PAUSE_MENU.scale (--menu-scale, hud.ts). */
+.overlay > :not(.version) {
+  zoom: var(--menu-scale, 1);
 }
 /* The build's version (version.ts), bottom right: for bug reports. */
 .overlay .version {
@@ -240,8 +246,9 @@ canvas {
 .overlay .settings-page {
   display: none;
   pointer-events: auto;
-  width: min(620px, calc(100vw - 32px));
-  max-height: calc(100vh - 120px);
+  /* Zoomed by --menu-scale, viewport units too: divided back to fit the screen. */
+  width: min(620px, calc((100vw - 32px) / var(--menu-scale, 1)));
+  max-height: calc((100vh - 120px) / var(--menu-scale, 1));
   flex-direction: column;
   gap: 10px;
 }

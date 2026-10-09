@@ -284,6 +284,7 @@ export const HINTS: Record<string, string> = {
   'PAUSE_MENU.color': 'Color of the sheet over the game while paused (ESC).',
   'PAUSE_MENU.opacity': 'How much the pause sheet hides the game while paused without F3. 1 = solid. Changing it shows that sheet behind the panel for a moment.',
   'PAUSE_MENU.debugOpacity': 'The pause sheet\'s opacity while the F3 panel is open (lighter, so you see what you tune).',
+  'PAUSE_MENU.scale': 'Size of the pause menu and its settings and multiplayer pages: 1 = as styled in style.css, higher = bigger.',
   'PAUSE_MENU.controls': 'The list of keys under the pause menu (without F3). Changing it shows that sheet behind the panel for a moment.',
   'HUD.frame': 'The body-cam corner brackets.',
   'HUD.rec': 'The blinking REC dot and the time since the game started, top left.',

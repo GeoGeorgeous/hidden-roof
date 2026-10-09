@@ -348,15 +348,16 @@ export class Hud {
     this.perf.textContent = text;
   }
 
-  /** The pause menu's sheet and key list from PAUSE_MENU. */
+  /** The pause menu's sheet, size and key list from PAUSE_MENU. */
   private syncSheet() {
     const m = PAUSE_MENU;
-    const sheet = `${m.color}|${m.opacity}|${m.debugOpacity}|${m.controls}`;
+    const sheet = `${m.color}|${m.opacity}|${m.debugOpacity}|${m.controls}|${m.scale}`;
     if (sheet === this.sheet) return;
     this.sheet = sheet;
     const mix = (a: number) => `color-mix(in srgb, ${m.color} ${Math.round(Math.min(1, Math.max(0, a)) * 100)}%, transparent)`;
     this.overlay.style.setProperty('--sheet', mix(m.opacity));
     this.overlay.style.setProperty('--sheet-debug', mix(m.debugOpacity));
+    this.overlay.style.setProperty('--menu-scale', String(m.scale));
     this.overlay.querySelector('table')!.hidden = !m.controls;
   }
 

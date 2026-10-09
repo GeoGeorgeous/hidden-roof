@@ -224,6 +224,7 @@ export function uiSections(): Section[] {
         // Seen only without F3: changing them shows that sheet behind the panel for a moment.
         r('opacity', ['PAUSE_MENU', 'opacity'], 0, 1, 0.05, () => live.previewPause()),
         t('controls', ['PAUSE_MENU', 'controls'], () => live.previewPause()),
+        r('size', ['PAUSE_MENU', 'scale'], 0.8, 2, 0.05, () => live.previewPause()),
       ],
     },
   ];
