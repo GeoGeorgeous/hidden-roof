@@ -55,6 +55,8 @@ wss.on('connection', (ws, req) => {
   };
   links.set(ip, (links.get(ip) ?? 0) + 1);
   ws.on('close', () => (links.get(ip)! > 1 ? links.set(ip, links.get(ip)! - 1) : links.delete(ip)));
+  // A message past the size limit and other socket errors close that link (ws does): unhandled, they'd end the process.
+  ws.on('error', (e) => log('-----', `link from ${ip}: ${e.message}`));
   if (links.get(ip)! > SERVER.linksPerIp) return reject('too-many');
   let alive = true;
   ws.on('pong', () => (alive = true));
