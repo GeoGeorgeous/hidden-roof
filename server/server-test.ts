@@ -11,7 +11,8 @@ import { surfaceTable } from '../src/save/shape';
 
 // The server (dist-server/server/main.js) against games speaking the protocol:
 // HOST and JOIN, what's turned away, relaying, SAVE, a reconnect, a player who
-// doesn't come back, who's away or dropped, what a player carries, HOST from a save, and the limits per address. npm run test:server builds both.
+// doesn't come back, who's away or dropped, what a player carries, HOST from a save, a full session joining at once,
+// message sizes, and the limits per address. npm run test:server builds both.
 
 const PORT = 3999;
 const level = JSON.parse(fs.readFileSync('public/levels/demo.json', 'utf8'));
@@ -36,9 +37,9 @@ class Game {
   got: Got[] = [];
   closed: Promise<number>;
   private waiters: (() => void)[] = [];
-  constructor(ip = `10.0.0.${++games}`) {
+  constructor(ip = `10.0.${games >> 8}.${++games & 255}`, path = '/ws') {
     // Node's WebSocket takes headers (undici); the DOM type doesn't know.
-    this.ws = new WebSocket(`ws://localhost:${PORT}/ws`, { headers: { 'x-forwarded-for': ip } } as unknown as string[]);
+    this.ws = new WebSocket(`ws://localhost:${PORT}${path}`, { headers: { 'x-forwarded-for': ip } } as unknown as string[]);
     this.ws.binaryType = 'arraybuffer';
     // A welcome or a save comes once its paint file's parts have (`file`).
     let waiting: { m: Got; parts: Uint8Array[] } | null = null;
@@ -77,7 +78,7 @@ class Game {
     assert.ok(!this.got.some((m) => m.type === type), `unexpected ${type}`);
   }
 }
-const game = (ip?: string) => new Game(ip).open();
+const game = (ip?: string, path?: string) => new Game(ip, path).open();
 const host = { type: 'host' as const, protocol: PROTOCOL, table, name: 'A', levelName: 'demo', level, detail: 48 };
 
 try {
@@ -109,9 +110,17 @@ try {
   const wb = await b.next('welcome');
   assert.deepEqual([wb.you, wb.players, wb.levelName, wb.inventory], [2, [{ id: 1, name: 'A', state: 'here' }], 'demo', null]);
   assert.deepEqual(await a.next('joined'), { type: 'joined', id: 2, name: 'B' });
+  // The rest of a full session joins all at once; one more is turned away; they go again.
+  const rest = await Promise.all(Array.from({ length: SERVER.maxPlayers - 2 }, () => game()));
+  rest.forEach((x, i) => x.send({ type: 'join', protocol: PROTOCOL, name: `C${i}`, code: wa.code }));
+  const ids = new Set<number>();
+  for (const x of rest) ids.add((await x.next('welcome', 5000)).you);
+  assert.equal(ids.size, rest.length);
   const c = await game();
   c.send({ type: 'join', protocol: PROTOCOL, name: 'C', code: wa.code });
   assert.equal((await c.next('rejected')).reason, 'full');
+  for (const x of rest) x.send({ type: 'leave' });
+  for (let i = 0; i < rest.length; i++) (await a.next('joined'), await a.next('left'), await b.next('joined'), await b.next('left'));
 
   // Relayed to the other player only: state, paint ops (one on a surface the level doesn't have is dropped), the stepladder.
   const snap = new Uint8Array(23).map((_, i) => i);
@@ -260,6 +269,18 @@ try {
   assert.equal((await hosts.at(-1)!.next('rejected')).reason, 'too-many');
   const silent = await game();
   assert.equal(await silent.closed, 1008);
+
+  // Only /ws?host takes a message past SERVER.maxMessage (a save), from a few links per address.
+  const tooBig = await game();
+  tooBig.ws.send(new Uint8Array(SERVER.maxMessage + 1));
+  assert.equal(await tooBig.closed, 1009);
+  const uploaders = [];
+  for (let i = 0; i < SERVER.uploadsPerIp; i++) uploaders.push(await game('10.7.7.7', '/ws?host'));
+  const oneMore = await game('10.7.7.7', '/ws?host');
+  assert.equal((await oneMore.next('rejected')).reason, 'too-many');
+  uploaders[0].send({ ...host, bytes: new Uint8Array(SERVER.maxMessage + 1) });
+  assert.equal((await uploaders[0].next('rejected')).reason, 'bad-save');
+  uploaders.forEach((x) => x.ws.close());
 
   // Pings keep coming; a message that isn't one closes the socket.
   await h.next('ping', 3000);

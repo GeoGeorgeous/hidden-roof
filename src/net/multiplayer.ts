@@ -170,7 +170,8 @@ export class Multiplayer {
   private connect(hello: Extract<ToServer, { type: 'host' | 'join' }>) {
     this.ws?.close();
     this.name = hello.name;
-    const url = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
+    // HOST goes where the server takes big messages (a save), a few at a time.
+    const url = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws${hello.type === 'host' ? '?host' : ''}`;
     this.log.add(`connecting to ${url}: ${hello.type === 'host' ? `HOST at ${hello.detail} texels/m${hello.bytes ? ` with ${(hello.bytes.length / 1024).toFixed(0)} KB of paint` : ''}` : `JOIN ${hello.code}${hello.token ? ' (coming back)' : ''}`}`);
     const ws = new WebSocket(url);
     ws.binaryType = 'arraybuffer';

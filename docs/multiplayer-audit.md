@@ -16,7 +16,7 @@ Read-only review, 2026-10-04. No source files were changed. Line numbers refer t
 
 | # | Topic | Decision | What it changes in this report |
 |---|---|---|---|
-| 1 | Session size | 2 players max to start | No interest management; bandwidth is trivial (~7 KB/s each way worst case) |
+| 1 | Session size | ~~2 players max to start~~ 20 since 2026-10-10 (load-tested: docs/deploy.md section 6) | No interest management; each player receives everyone's state and ops (~170 KB/s with 19 others spraying nonstop) |
 | 2 | Canonical paint detail | ~~ULTRA (96 texels/m)~~ Replaced 2026-10-08: the host picks the session's PAINT DETAIL (LOW 24, MEDIUM 48, HIGH 72 or ULTRA 96, as in settings), locked for everyone | The server keeps paint at the session's detail; join snapshots and SAVE in a session are at that detail. Where sections 2–6 say the server or its saves are at 96, read "the session's detail" |
 | 3 | Pickups | Personal | Client-side and trusted: no pickup messages at all (6.3) |
 | 4 | Griefing | Anyone can paint or erase anything | No ownership, undo or kick |

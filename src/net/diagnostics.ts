@@ -82,6 +82,7 @@ export function netLines(n: NetStats): string[] {
   return [
     `ping · ${n.ping === null ? '…' : `${ms(n.ping)} ms`}`,
     `net · up ${kb(n.up)} · down ${kb(n.down)} KB/s`,
-    ...n.players.map((p) => `${p.name} · ${ms(p.delay)} ms behind · jitter ${ms(p.jitter)} ms`),
+    ...n.players.slice(0, NET.hudPlayers).map((p) => `${p.name} · ${ms(p.delay)} ms behind · jitter ${ms(p.jitter)} ms`),
+    ...(n.players.length > NET.hudPlayers ? [`+ ${n.players.length - NET.hudPlayers} more`] : []),
   ];
 }
