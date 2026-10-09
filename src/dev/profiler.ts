@@ -60,6 +60,8 @@ interface Second {
   bakePending: number;
   longTasks: number;
   heapMB: number | null;
+  /** What the GPU holds (three.js's count): geometries, textures, shader programs. */
+  gpuMemory: [number, number, number];
   pos: number[];
   yaw: number;
 }
@@ -218,6 +220,7 @@ export class Profiler {
       bakePending: this.w.baker.stats.pending,
       longTasks: this.observer ? this.longTasks : -1,
       heapMB: heap ? Math.round(heap.usedJSHeapSize / 1048576) : null,
+      gpuMemory: [this.w.renderer.info.memory.geometries, this.w.renderer.info.memory.textures, this.w.renderer.info.programs?.length ?? 0],
       pos: this.pos(),
       yaw: Math.round(THREE.MathUtils.radToDeg(p.yaw)),
     });

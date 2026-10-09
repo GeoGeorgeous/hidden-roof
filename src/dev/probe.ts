@@ -68,7 +68,7 @@ export interface ProbeResult {
   gpuMs: number | null;
   fps: number;
   calls: number;
-  /** Frame time saved against the baseline, ms. */
+  /** The frame's cost saved against the baseline (ms): the busier of CPU and GPU, since the frame time itself stops at the display's rate. */
   saved: number;
 }
 
@@ -78,6 +78,7 @@ export class Probe {
   private undo: (() => void) | null = null;
   private since = 0;
   private settled = 0;
+  private baseCost = 0;
   private sum = { intervals: [] as number[], cpu: 0, gpu: 0, gpuFrames: 0, calls: 0 };
 
   constructor(private w: ProbeWorld) {}
@@ -118,16 +119,18 @@ export class Probe {
     if (t < PROFILE.probeSettle + PROFILE.probeMeasure || s.intervals.length < PROFILE.probeSettleFrames) return false;
     const n = s.intervals.length;
     const frame = s.intervals.sort((a, b) => a - b)[n >> 1];
-    const base = this.results[0]?.frameMs ?? frame;
+    const cpu = s.cpu / n;
+    const cost = Math.max(cpu, s.gpuFrames ? s.gpu / s.gpuFrames : 0);
+    this.baseCost = this.results.length ? this.baseCost : cost;
     this.results.push({
       step: STEPS[this.i].name,
       frames: n,
       frameMs: round(frame),
-      cpuMs: round(s.cpu / n),
+      cpuMs: round(cpu),
       gpuMs: s.gpuFrames ? round(s.gpu / s.gpuFrames) : null,
       fps: round(1000 / frame),
       calls: Math.round(s.calls / n),
-      saved: round(base - frame),
+      saved: round(this.baseCost - cost),
     });
     this.next(now);
     return !this.running;
