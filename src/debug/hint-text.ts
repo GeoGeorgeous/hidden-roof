@@ -189,8 +189,9 @@ export const HINTS: Record<string, string> = {
   'PRESSURE.sputterThreshold': 'Below this pressure the can sputters and the HUD warns.',
   'PRESSURE.minSteadyFlow': 'Paint flow when sputtering starts: flow ramps down to this from "thinning from" to "from".',
   'PRESSURE.sputterDuty': 'Fraction of the time a sputtering can actually sprays.',
-  'PRESSURE.shakeRestore': 'Pressure restored by one shake (RMB).',
-  'PRESSURE.shakeDuration': 'Length of one shake (s).',
+  'PRESSURE.shakeTap': 'Pressure restored at once when RMB is pressed (1 = a full can).',
+  'PRESSURE.shakeRate': 'Pressure restored per second while RMB is held.',
+  'PRESSURE.shakeDuration': 'Length of one shake (s): its motion and rattle, repeated while RMB is held.',
   // Rendering
   'RENDER.pixelScale': 'Render resolution divisor: 2 = half resolution, upscaled with chunky pixels. Higher = faster.',
   'ATMOS.rain': 'Falling rain (also its sound, lightning and drops on metal).',

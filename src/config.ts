@@ -656,8 +656,10 @@ export const PRESSURE = {
   minSteadyFlow: 0.4,
   /** Fraction of time the can actually fires while sputtering. */
   sputterDuty: 0.45,
-  /** Pressure restored by one shake (clamped to 1). */
-  shakeRestore: 0.3,
+  /** Shaking the can (hold RMB): pressure restored at once on the press, then per second while held (clamped to 1). */
+  shakeTap: 0.03,
+  shakeRate: 0.5,
+  /** One shake's motion and rattle (s), repeated while RMB is held. */
   shakeDuration: 0.55,
 };
 

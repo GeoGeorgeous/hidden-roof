@@ -11,8 +11,8 @@ import { setHex } from '../hex-color';
 import { paintRandom } from '../lcg';
 
 // Spraying: color and cap come from the inventory. Paint never runs out;
-// pressure drains while spraying and is restored by shaking with the right
-// mouse button.
+// pressure drains while spraying and is restored by shaking: hold the right
+// mouse button (a press alone gives back only a little).
 
 const forward = new THREE.Vector3();
 const right = new THREE.Vector3();
@@ -26,7 +26,8 @@ export class SprayTool {
   readonly model = new CanModel();
   readonly particles: SprayParticles;
   private carry = 0;
-  private shakeT = 0;
+  /** Time into the current shake (s); -1 = not shaking. */
+  private shakeT = -1;
   private sputterOn = true;
   private sputterTimer = 0;
 
@@ -45,21 +46,27 @@ export class SprayTool {
     this.particles.update(dt);
     if (!inv) {
       this.flow = 0;
-      this.shakeT = 0;
+      this.shakeT = -1;
       this.audio.setHiss(0, 0);
       return;
     }
     const cap = CAPS[inv.cap];
     this.model.setCan(inv.color, inv.cap);
 
-    if (input.clicked(2) && this.shakeT <= 0) {
-      this.shakeT = PRESSURE.shakeDuration;
+    const holding = input.rmb && input.locked;
+    if (holding && this.shakeT < 0) {
+      this.shakeT = 0;
+      inv.pressure = Math.min(1, inv.pressure + PRESSURE.shakeTap);
       this.audio.rattle();
     }
-    if (this.shakeT > 0) {
-      const prev = this.shakeT;
-      this.shakeT = Math.max(0, this.shakeT - dt);
-      inv.pressure = Math.min(1, inv.pressure + (PRESSURE.shakeRestore * (prev - this.shakeT)) / PRESSURE.shakeDuration);
+    if (this.shakeT >= 0) {
+      if (holding) inv.pressure = Math.min(1, inv.pressure + PRESSURE.shakeRate * dt);
+      this.shakeT += dt;
+      // A shake ends its motion after RMB is let go; held, the next one starts.
+      if (this.shakeT >= PRESSURE.shakeDuration) {
+        this.shakeT = holding ? this.shakeT - PRESSURE.shakeDuration : -1;
+        if (holding) this.audio.rattle();
+      }
     }
 
     const spraying = input.lmb && input.locked;
@@ -67,13 +74,13 @@ export class SprayTool {
     if (spraying) inv.pressure = Math.max(0, inv.pressure - cap.drain * dt);
     this.audio.setHiss(this.flow * cap.hissGain, cap.hissTone);
 
-    this.model.update(dt, camera, spraying, this.flow > 0, this.shakeT > 0 ? 1 - this.shakeT / PRESSURE.shakeDuration : -1);
+    this.model.update(dt, camera, spraying, this.flow > 0, this.shakeT >= 0 ? this.shakeT / PRESSURE.shakeDuration : -1);
     if (this.flow > 0) this.emit(dt, camera, eye, inv);
   }
 
   /** Shaking the can (RMB) right now. */
   get shaking() {
-    return this.shakeT > 0;
+    return this.shakeT >= 0;
   }
 
   private emit(dt: number, camera: THREE.Camera, eye: THREE.Vector3, inv: Inventory) {

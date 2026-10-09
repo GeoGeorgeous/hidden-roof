@@ -14,7 +14,7 @@ import { VERSION } from './version';
 const CONTROLS = [
   ['WASD • SHIFT • SPACE', 'move • run • jump / climb'],
   ['LMB', 'draw'],
-  ['RMB', 'shake can'],
+  ['RMB (HOLD)', 'shake can'],
   ['Q / E', 'color'],
   ['MOUSE WHEEL', 'cap • tool width • turn ladder'],
   ['K', 'screenshot'],
@@ -106,7 +106,7 @@ export class Hud {
       <div class="cap-tag" hidden></div>
       <div class="cap-tag color-tag" hidden></div>
       <div class="cap-tag psi-gauge"><span>PSI</span><div class="line"><i></i></div><b></b></div>
-      <div class="cap-tag psi-alert" hidden>LOW PRESSURE — SHAKE [RMB]</div>
+      <div class="cap-tag psi-alert" hidden>LOW PRESSURE — HOLD [RMB] TO SHAKE</div>
       <div class="overlay">
         <div class="title">Hidden Roof<span>The game</span></div>
         <div class="status blink">CLICK TO START</div>
