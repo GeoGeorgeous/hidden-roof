@@ -37,6 +37,7 @@ import { Pickups, type PickupData } from './pickups/pickups';
 import { Audio } from './audio';
 import { Hud } from './hud';
 import { fetchLevel } from './build/io';
+import { fetchLevelPaint, putLevelPaint, type LevelPaint } from './save/level-paint';
 import { jpFontReady } from './render/ink/jp-font';
 import { textAtlasVersion } from './render/ink/text-atlas';
 import { staticTextureBytes } from './render/texture-bytes';
@@ -132,9 +133,11 @@ function applyPixelScale() {
   syncViewSize();
 }
 
-function loadLevel(data: LevelData) {
+/** `own`: the level's own paint (save/level-paint.ts), when it's a fresh game. */
+function loadLevel(data: LevelData, own: LevelPaint | null = null) {
   drips.clear();
   level.load(data);
+  if (own) putLevelPaint(paint, drips, own);
   pickups.load(data.pickups as PickupData[] | undefined);
   inventory.reset();
   skylineSettings = (data.skyline as SkylineSettings | undefined) ?? {};
@@ -164,10 +167,12 @@ function openLevel(data: LevelData, name: string) {
 
 /** The level's name: from ?level=, or the file opened in build mode. Paint saves are named by it. */
 let levelName = new URLSearchParams(location.search).get('level') ?? LEVELS.start;
+/** The start level's own paint: what a session started FRESH LEVEL begins with. */
+let shipped: LevelPaint | null = null;
 // Signs measure their text when they are built: wait for the sign font first.
-Promise.all([fetchLevel(levelName), jpFontReady()])
-  .then(([data]) => {
-    loadLevel(data);
+Promise.all([fetchLevel(levelName), fetchLevelPaint(levelName), jpFontReady()])
+  .then(([data, own]) => {
+    loadLevel(data, (shipped = own));
     // A reload in a session goes back into it (multiplayer.ts).
     net.resume();
   })
@@ -193,7 +198,7 @@ hud.onExitFullscreen = () => void exitGameFullscreen();
 hud.setLocked(false);
 hud.setSettings(settings.sections());
 const paintFile = paintMenu(hud, paint, drips, () => levelName);
-const net = multiplayerMenu(hud, hotbar, { scene, camera, level, paint, paintOps, drips, player, inventory, pickups, tools, levelData: () => ({ data: levelData(), name: levelName }), openLevel, lockDetail: (tpm) => settings.lockPaintDetail(tpm) }, () => levelName);
+const net = multiplayerMenu(hud, hotbar, { scene, camera, level, paint, paintOps, drips, player, inventory, pickups, tools, levelData: () => ({ data: levelData(), name: levelName }), levelPaint: () => (shipped?.name === levelName ? shipped.bytes : null), openLevel, lockDetail: (tpm) => settings.lockPaintDetail(tpm) }, () => levelName);
 tools.onCapChange = (name) => hud.showCapTag(name);
 tools.onColorChange = (color) => hud.showColorTag(color, COLORS[color]);
 
@@ -392,5 +397,5 @@ function toScreen(p: THREE.Vector3) {
 
 // Dev tools (build mode, F3, window.game): single player only, and not in the player build (npm run build).
 let dev: DevTools | undefined;
-const game = { city: () => skyline, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, hotbar, pickups, paint, paintOps, net, paintFile, seedPaintRandom, fixedStep, session, level, renderer, input, hud, scene, viewScene, gpuTimer, PLAYER, loadLevel, rebuildCity, levelData, openLevel };
+const game = { city: () => skyline, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, hotbar, pickups, paint, paintOps, net, paintFile, seedPaintRandom, fixedStep, session, level, renderer, input, hud, scene, viewScene, gpuTimer, PLAYER, loadLevel, rebuildCity, levelData, levelName: () => levelName, openLevel };
 if (__DEV_TOOLS__) void import('./dev/devtools').then((m) => (dev = new m.DevTools(game)));

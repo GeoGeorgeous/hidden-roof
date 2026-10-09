@@ -2,14 +2,15 @@ import { CATEGORIES, type Category, type PropDef } from '../kit/def';
 import { defOf, kitIn } from '../kit';
 import { PICKUP_GROUPS, type PickupKind } from '../inventory/items';
 import { FINISHES, type Finish, type FinishKind } from '../kit/finishes';
+import { COLOR_ORDER, COLORS, HINT, type PaintColor } from '../config';
 
 // What build mode places next: the mouse wheel turns the category wheel,
 // E / Q step to the next / previous entry in it, Tab / Shift+Tab to its next /
 // previous variant, F through the wall finishes of the pieces that take them,
 // R flips wall pieces. Every category and entry remembers its selection.
 
-/** What a click places: a prop (resolved to its variant), a pickup kind, or the level's one spawn point (moved there). */
-export type Choice = { kind: 'prop'; def: PropDef } | { kind: 'pickup'; type: PickupKind } | { kind: 'spawn' };
+/** What a click places: a prop (resolved to its variant), a pickup kind, the level's one spawn point (moved there), or a hint painted in a color (paint-editor.ts). */
+export type Choice = { kind: 'prop'; def: PropDef } | { kind: 'pickup'; type: PickupKind } | { kind: 'spawn' } | { kind: 'hint'; color: PaintColor };
 
 interface Variant {
   label: string;
@@ -43,7 +44,11 @@ function propEntry(base: PropDef): Entry {
 }
 
 function entriesFor(c: Category): Entry[] {
-  if (c === 'level') return [{ label: 'Spawn point', variants: [{ label: 'spawn point', choice: { kind: 'spawn' } }], settings: [], finishes: [] }];
+  if (c === 'level') {
+    const colors = [HINT.color, ...COLOR_ORDER.filter((k) => k !== HINT.color)];
+    const hint: Entry = { label: 'Hint', variants: colors.map((color) => ({ label: color, swatch: COLORS[color], choice: { kind: 'hint', color } })), settings: [{ key: 'ENTER', name: 'TEXT' }, { key: '[ ]', name: 'SIZE' }], finishes: [] };
+    return [{ label: 'Spawn point', variants: [{ label: 'spawn point', choice: { kind: 'spawn' } }], settings: [], finishes: [] }, hint];
+  }
   if (c === 'pickups') return PICKUP_GROUPS.map((g) => ({ label: g.label, variants: g.kinds.map((k) => ({ label: k.label, swatch: k.swatch, choice: { kind: 'pickup', type: k.kind } })), settings: [], finishes: [] }));
   return kitIn(c).map(propEntry);
 }

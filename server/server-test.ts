@@ -9,11 +9,14 @@ import type { InventoryData } from '../src/inventory/inventory';
 import { closeCode, decode, encode, HELLO, PROTOCOL, SNAPSHOT_BYTES, type ToClient, type ToServer } from '../src/net/protocol';
 import { decodePaintFile, encodePaintFile, joinBytes } from '../src/save/paint-file';
 import { surfaceTable } from '../src/save/shape';
+import { loadPaint } from '../src/save/load-paint';
+import { sessionPaint } from './world';
 
 // The server (dist-server/server/main.js) against games speaking the protocol:
 // HOST and JOIN, what's turned away, relaying, SAVE, a reconnect, a player who
 // doesn't come back, who's away or dropped, what a player carries, HOST from a save, a full session joining at once,
-// message sizes, and the limits per address. npm run test:server builds both.
+// message sizes, and the limits per address. Then that each level's own paint
+// fits its level. npm run test:server builds both.
 
 // A free port: other agents may be testing on this machine at the same time.
 const PORT = await new Promise<number>((done) => {
@@ -303,3 +306,12 @@ assert.match(lines, new RegExp(`${shared} "Y" #2 in from \\S+ \\(new, 2 players;
 assert.match(lines, /paint file: [\d.]+ MB of paint, [\d.]+ MB packed, in [\d.]+ s \(0 more in line\)/);
 // A player who left isn't also logged as dropped.
 assert.doesNotMatch(lines, /"A" #1 out: left[^]*"A" #1 dropped/);
+
+// Each level's own paint (src/save/level-paint.ts) fits it face for face: a face that doesn't is on a prop changed since (save the level again in build mode).
+for (const file of fs.readdirSync('public/levels').filter((f) => f.endsWith('.rhhpaint'))) {
+  const name = file.slice(0, -'.rhhpaint'.length);
+  const { paint, drips } = sessionPaint(JSON.parse(fs.readFileSync(`public/levels/${name}.json`, 'utf8')));
+  const { faces, skipped } = await loadPaint(paint, drips, fs.readFileSync(`public/levels/${file}`), { name });
+  assert.ok(faces > 0 && !skipped, `level paint of ${name}: ${skipped} of ${faces + skipped} faces don't fit the level`);
+  console.log(`level paint of ${name}: ok (${faces} faces)`);
+}

@@ -17,13 +17,13 @@ function version(): string {
   }
 }
 
-// The player build ships only the release levels (LEVELS.release in config.ts).
+// The player build ships only the release levels (LEVELS.release in config.ts), each with its own paint if it has some (src/save/level-paint.ts).
 const releaseLevels = {
   name: 'release-levels',
   apply: (_: unknown, env: { mode: string; isSsrBuild?: boolean }) => env.mode === 'production' && !env.isSsrBuild,
   writeBundle(options: { dir?: string }) {
     const dir = `${options.dir}/levels`;
-    for (const file of readdirSync(dir)) if (!LEVELS.release.includes(file.replace(/\.json$/, ''))) rmSync(`${dir}/${file}`);
+    for (const file of readdirSync(dir)) if (!LEVELS.release.includes(file.replace(/\.(json|rhhpaint)$/, ''))) rmSync(`${dir}/${file}`);
   },
 };
 

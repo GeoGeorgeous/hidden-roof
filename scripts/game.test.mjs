@@ -6,7 +6,7 @@
 // per-player tool sizes, city overrides in the level save, dev tools only in
 // single player, the world going on while paused in a session, stepladders by
 // owner, the avatar's poses, the ghost's playback, the same city at every
-// city detail, hotbar icons, and small-sign sizes with another font. Each check prints ok or what went wrong.
+// city detail, hotbar icons, hints painted in build mode, a level's own paint, and small-sign sizes with another font. Each check prints ok or what went wrong.
 // Usage: node scripts/game.test.mjs [url]   (no url: starts its own server)
 import fs from 'node:fs';
 import os from 'node:os';
@@ -295,6 +295,73 @@ await check('paint pages: a painted level draws in as many calls as a clean one;
     return out;
   });
   return r.clean > 0 && r.painted === r.clean && r.meshesPainted === r.meshes && r.pages > 0 && r.pagesAfter === 0 ? null : JSON.stringify(r);
+});
+
+/** Paint a hint on the wall the demo's spawn faces (build mode's Hint entry, build/paint-editor.ts); the game's camera aims. */
+const paintHint = (page) =>
+  page.evaluate(async () => {
+    const g = window.game;
+    g.player.yaw = -Math.PI / 2;
+    g.player.pitch = 0.1;
+    await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+    const editor = g.build.paintEdit;
+    editor.text = '<k>RMB</k> Shake your can to release pressure';
+    editor.size = 0.3;
+    editor.stamp('black', g.scene.children.find((o) => o.isPerspectiveCamera));
+  });
+
+await check('hints: painted as paint, across wall pieces; H boxes every painted face over the walls; X wipes a face; wiped clean, the memory comes back', async () => {
+  await page.evaluate(() => window.game.paint.clear());
+  await paintHint(page);
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    const editor = g.build.paintEdit;
+    const painted = () => g.paint.surfaces.filter((s) => s.data);
+    // Painted faces, and how much of the box around the paint is paint (letters, not a block).
+    let faces = 0;
+    let lit = 0;
+    let all = 0;
+    for (const s of painted()) {
+      s.geo.rects.forEach((r) => {
+        let n = 0;
+        for (let y = r.y; y < r.y + r.h; y++) for (let x = r.x; x < r.x + r.w; x++) n += s.data[(y * s.geo.atlasW + x) * 4 + 3] > 0 ? 1 : 0;
+        if (n) (faces++, (lit += n), (all += r.w * r.h));
+      });
+    }
+    const out = { surfaces: painted().length, faces, lit };
+    editor.cycleView();
+    editor.cycleView();
+    out.boxes = editor.spots.count;
+    out.overWalls = editor.spots.lines.material.depthTest === false && editor.spots.lines.visible;
+    editor.wipe(editor.aim(g.scene.children.find((o) => o.isPerspectiveCamera)));
+    out.wiped = painted().length;
+    for (const s of painted()) s.geo.rects.forEach((_, i) => g.paint.wipe(s, i));
+    out.pages = g.paint.gpu.textureCount;
+    editor.visible = false;
+    out.spotsAfter = editor.spots.lines.visible;
+    return out;
+  });
+  const ok = r.surfaces > 1 && r.lit > 0 && r.boxes === r.faces && r.overWalls && r.wiped === r.surfaces - 1 && r.pages === 0 && !r.spotsAfter;
+  return ok ? null : JSON.stringify(r);
+});
+
+await check("level paint: a level's own paint file goes on the walls as it loads, and a session hosted FRESH LEVEL starts from it; a level without one starts clean", async () => {
+  // Pages of their own: earlier checks edited this one's level.
+  const first = await openPage();
+  await paintHint(first);
+  const bytes = await first.evaluate(async () => Array.from(await window.game.paintFile.save()));
+  const keys = await paintedKeys(first);
+  const clean = await first.evaluate(() => window.game.net.g.levelPaint());
+  await first.close();
+  const own = await test.browser.newPage({ viewport: { width: 320, height: 180 } });
+  own.errors = [];
+  own.on('pageerror', (e) => own.errors.push(e.message));
+  await own.route('**/levels/demo.rhhpaint', (route) => route.fulfill({ body: Buffer.from(bytes), contentType: 'application/octet-stream' }));
+  await own.goto(test.url);
+  await ready(own);
+  const r = { keys: await paintedKeys(own), fresh: await own.evaluate(() => window.game.net.g.levelPaint()?.length), errors: own.errors };
+  await own.close();
+  return keys && r.keys === keys && r.fresh === bytes.length && clean === null && !r.errors.length ? null : JSON.stringify({ ...r, clean, want: keys });
 });
 
 await check('levels: stairs in format 3 files stay compact (the old stairs); format 4 saves keep either kind', async () => {

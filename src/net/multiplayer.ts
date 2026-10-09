@@ -39,6 +39,8 @@ export interface MultiplayerContext {
   tools: Tools;
   /** The level as a file, and its name (what HOST starts the session on). */
   levelData(): { data: LevelData; name: string };
+  /** The level's own paint file (save/level-paint.ts), if it has one: what FRESH LEVEL starts from. */
+  levelPaint(): Uint8Array | null;
   /** Play this level (the session's), from its spawn, with the starting kit. */
   openLevel(data: LevelData, name: string): void;
   /** Hold PAINT DETAIL at the session's (texels per meter), or give it back (null). */

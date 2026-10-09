@@ -2,7 +2,8 @@ import { live, r, t, c, when, type Section } from './tuning';
 
 // F3 panel contents for build mode (tuning.ts has the helpers): its daylight
 // (DAYLIGHT replaces those ATMOS values while building), editing (with the
-// outline of the target and the light over props with settings) and the picker.
+// outline of the target, the light over props with settings and the boxes
+// around painted faces) and the picker.
 
 /** F3 sections for the Build tab. */
 export function buildSections(): Section[] {
@@ -47,6 +48,9 @@ export function buildSections(): Section[] {
         { kind: 'heading', label: 'SETTINGS HIGHLIGHT' },
         c('color', ['BUILD', 'highlightColor'], look),
         r('opacity', ['BUILD', 'highlightOpacity'], 0, 1, 0.01, look),
+        { kind: 'heading', label: 'PAINTED FACES' },
+        c('color', ['BUILD', 'spotColor'], look),
+        r('opacity', ['BUILD', 'spotOpacity'], 0, 1, 0.01, look),
       ]),
     },
     {

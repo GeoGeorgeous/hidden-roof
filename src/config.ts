@@ -1108,6 +1108,42 @@ export const BUILD = {
   /** The light over a placed prop with settings (floodlight tilt, sign text) while the crosshair is on it (build/prop-settings.ts). */
   highlightColor: '#ffd23f',
   highlightOpacity: 0.35,
+  /** Painted spots (H, its second press): a box around the paint on each painted face, drawn over everything (build/painted-spots.ts): what P saves as the level's paint. */
+  spotColor: '#ff3bd4',
+  spotOpacity: 0.9,
+};
+
+/**
+ * Hints: lines of text painted onto walls in build mode as the level's own
+ * paint (build/paint-editor.ts, save/level-paint.ts), `<k>KEY</k>` drawn as a key
+ * cap. Sizes in ems are the letter size's.
+ */
+export const HINT = {
+  /** The title's graffiti font (public/fonts). */
+  font: 'Sedgwick Ave Display',
+  /** Letter size (the font's em) of new hints, its range and its step ([ ]), in meters. At PAINT DETAIL LOW (4 cm texels) letters under about 0.5 m blur. */
+  size: 0.4,
+  minSize: 0.1,
+  maxSize: 1.2,
+  sizeStep: 0.05,
+  /** The color of new hints (Tab changes it). */
+  color: 'white' as PaintColor,
+  /** How far away hints are painted, and faces wiped (m). */
+  reach: 30,
+  /** Key caps: label size, box height, room either side of the label, line width, corner rounding and the gap after, in ems. */
+  keyLabel: 0.72,
+  keyHeight: 1.05,
+  keyPad: 0.22,
+  keyLine: 0.08,
+  keyRound: 0.2,
+  keyGap: 0.2,
+  /** Overspray: a soft haze around the letters, how far it reaches (ems) and how strong it is (0..1). */
+  overspray: 0.08,
+  oversprayStrength: 0.45,
+  /** Image pixels per paint texel: hints are drawn finer, then averaged into texels. */
+  supersample: 2,
+  /** Hints are best made at this PAINT DETAIL (ULTRA, texels per meter): lower ones blur their letters, and P says so. */
+  detail: 96,
 };
 
 /** CCTV cameras follow the player when they come near, and switch on their light (LIGHTS.cctv). */

@@ -9,6 +9,7 @@ import type { PageSlot } from './page-packer';
 import type { LightSlot } from './render/bake/light-pages';
 import { PaintRaster, type Band } from './paint-raster';
 import type { PaintOp } from './paint-ops';
+import { imageOnFace, type PaintImage } from './paint-image';
 
 // Paint lives in one RGBA atlas of its faces per paintable surface, on the
 // CPU; on the GPU each surface has a block of a shared page (paint-gpu.ts).
@@ -276,6 +277,42 @@ export class PaintSystem {
     if (!color && !s.data) return;
     this.ensureTexture(s);
     this.raster.dot(s, rect, cx, cy, radius, amount, color, softness, drip, square);
+  }
+
+  /**
+   * Paint an image onto a flat face, centered on a face point, its x along
+   * world direction `right` and its y along `up` (unit vectors in the face's
+   * plane): build mode's hints (build/paint-editor.ts). Each texel takes the
+   * image's average over it. Carries across seams like stamp(); never logged,
+   * since level paint is made in build mode, alone. False on a curved face.
+   */
+  imprint(s: PaintSurface, at: FacePoint, img: PaintImage, right: THREE.Vector3, up: THREE.Vector3, color: Rgb) {
+    const hit = faceTexel(s, at);
+    if (!this.live(s) || !hit.face) return false;
+    const center = texelToWorld(hit, atTexel.x, atTexel.y, new THREE.Vector3());
+    for (const { surface, rect } of [{ surface: s, rect: hit }, ...this.seams.near(hit, center, Math.hypot(img.width, img.height) / 2)]) {
+      if (!this.live(surface)) continue;
+      const { x0, y0, x1, y1, alpha } = imageOnFace(img, rect, center, right, up);
+      const fresh = !surface.data;
+      this.ensureTexture(surface);
+      // A neighbor the image only came near takes no paint, nor memory.
+      if (!this.raster.image(surface, rect, x0, y0, x1, y1, alpha, color) && fresh) this.free(surface);
+    }
+    return true;
+  }
+
+  /** Wipe one face's paint and its ring (build mode's X): the surface's memory comes back once none is left. */
+  wipe(s: PaintSurface, rect: number) {
+    const d = s.data;
+    if (!d) return;
+    const r = s.geo.rects[rect];
+    const w = s.geo.atlasW;
+    for (let y = r.y - 1; y <= r.y + r.h; y++) {
+      d.fill(0, (y * w + r.x - 1) * 4, (y * w + r.x + r.w + 1) * 4);
+      s.excess?.fill(0, y * w + r.x - 1, y * w + r.x + r.w + 1);
+    }
+    this.gpu.markDirty(s, r.x - 1, r.y - 1, r.x + r.w, r.y + r.h);
+    this.freeIfClean(s);
   }
 
   /** Paint a single texel (paint runs), clipped to its face rect. */

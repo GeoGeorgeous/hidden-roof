@@ -342,6 +342,8 @@ export const HINTS: Record<string, string> = {
   'BUILD.targetOpacity': 'How strong that outline is. 0 = none.',
   'BUILD.highlightColor': 'Light over a placed prop with settings (floodlight tilt, sign text) while the crosshair is on it.',
   'BUILD.highlightOpacity': 'How strong that light is. 0 = none.',
+  'BUILD.spotColor': 'Boxes around the paint on each painted face, drawn over everything, when H is pressed twice: what P saves as the level\'s own paint (its hints).',
+  'BUILD.spotOpacity': 'How strong those boxes are. 0 = none.',
   'BUILD.wheelScale': 'Size of the category wheel on the left edge (1 = the small one it started as).',
   'BUILD.columnScale': 'Size of the column of props beside the wheel, icons and all.',
   'BUILD.shadeWidth': 'How far right the dark shade behind the picker reaches before it has faded out (px; at most 80% of the screen).',
