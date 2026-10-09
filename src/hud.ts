@@ -128,7 +128,7 @@ export class Hud {
         <table>${[CONTROLS, TOOLS].map((keys) => `<tbody>${keys.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</tbody>`).join('')}</table>
         <div class="credits">
           <button class="coffee">${COFFEE_ICON}BUY ME A COFFEE</button>
-          <div>build by <a href="${REPO}" target="_blank" rel="noopener">GeoGeorgous</a></div>
+          <div>built by <a href="${REPO}" target="_blank" rel="noopener">GeoGeorgeous</a></div>
         </div>
         <div class="version">${VERSION}</div>
       </div>`;
