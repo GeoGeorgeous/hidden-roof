@@ -6,14 +6,15 @@ Context for the agent that deploys and runs the game on the VPS. Read it before 
 
 ## 1. Status *(changes)*
 
-- **Now:** single player only, as static files. The multiplayer server is being written on `feat/multiplayer` (phase 4 in `docs/multiplayer-audit.md`, section 7). There it runs and is tested (`npm run test:server`, `npm run test:mp`), with a `Dockerfile`. Until it reaches `main`, `main` has no server.
-- **Order:** deploy single player first, then add the multiplayer server.
-- **Repo:** a GitHub repo is being created on 2026-10-08. Deploys come from `main`. Branch flow: topic branches → `dev` → `next` → `main`.
+- **Now:** `v1.0.0` is released (tag `v1.0.0` on `main`): the game and the multiplayer server (`server/`, `Dockerfile`), with `npm run check` passing. Nothing is deployed yet.
+- **First deploy:** the static files first and check them (section 7), then the server and the `/ws` handle. The game loads and plays single player while the server is down.
+- **Repo:** public, `https://github.com/GeoGeorgeous/hidden-roof.git`. Clone it over HTTPS: reading needs no key, so the host holds no GitHub credentials. Deploy releases only: a `vX.Y.Z` tag, checked out by tag, never a branch tip. Branches and releases: `AGENTS.md`, Releases.
+- **Version:** the game shows its build's `git describe` in the pause menu (`src/version.ts`). Built without git (`node:24-slim` has none; `.dockerignore` drops `.git`), it shows `package.json`'s version, which matches the tag on a release commit.
 
 ## 2. The game (stable)
 
-- three.js + TypeScript + Vite, with no `vite.config` (defaults, `base: '/'`). It is purely static: no API, no env secrets, no external services or CDNs, and no WASM, Workers or SharedArrayBuffer, so no COOP/COEP headers.
-- Everything is generated in code: no models, texture files or audio. The server only serves the JS/CSS bundle, two `woff2` fonts, `levels/*.json` and `favicon.svg`. The build is about 1 MB, of which the JS is ~830 KB (~230 KB gzipped).
+- three.js + TypeScript + Vite, with a small `vite.config.ts` (the version, the server bundle, the dev `/ws` proxy; `base: '/'`). It is purely static: no API, no env secrets, no external services or CDNs, and no WASM, Workers or SharedArrayBuffer, so no COOP/COEP headers.
+- Everything is generated in code: no models, texture files or audio. The server only serves the JS/CSS bundle, two `woff2` fonts, `levels/*.json` and `favicon.svg`. The build is about 1 MB, of which the JS is ~860 KB (~250 KB gzipped).
 - **Paths are absolute** (`/assets`, `/fonts`, `/favicon.svg`), so the game must be served from the root of its domain.
 - `?level=name` fetches `/levels/name.json`. A missing level must be a real 404. **No SPA fallback**: an `index.html` served in its place breaks JSON parsing.
 - Settings are kept in `localStorage`, per origin. Changing the domain or the scheme resets them.
