@@ -108,7 +108,7 @@ export class Hud {
       <div class="cap-tag psi-gauge"><span>PSI</span><div class="line"><i></i></div><b></b></div>
       <div class="cap-tag psi-alert" hidden>LOW PRESSURE — HOLD [RMB] TO SHAKE</div>
       <div class="overlay">
-        <div class="title">Hidden Roof<span>The game</span></div>
+        <div class="title">Hidden Roof</div>
         <div class="status blink">CLICK TO START</div>
         <div class="menu">
           <button class="resume"></button>

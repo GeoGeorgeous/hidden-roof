@@ -201,15 +201,6 @@ canvas {
   line-height: 1;
   letter-spacing: 0.02em;
 }
-/* The tag under it (THE GAME): small, gray, a bit askew, to the right. */
-.overlay .title span {
-  display: block;
-  margin: 0 -10px 0 0;
-  font-size: 15px;
-  text-align: right;
-  color: var(--dim);
-  transform: rotate(-6deg);
-}
 /* Everything but the version at PAUSE_MENU.scale (--menu-scale, hud.ts). */
 .overlay > :not(.version) {
   zoom: var(--menu-scale, 1);
