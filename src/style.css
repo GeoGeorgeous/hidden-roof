@@ -129,6 +129,73 @@ canvas {
   white-space: nowrap;
 }
 
+/*
+ * Pickups' tags by their rings (pickups/labels.ts), manga-style, faded in and
+ * out: outlined letters with katakana under them, NEW TOOL ending at the ring's
+ * upper left, the name starting at its upper right; paint's name centered over
+ * it. Placed at the ring's middle; --ring (its height on screen), --ax, --ay
+ * (x it) and --tilt per tag, each line's font, size and outline on .pickup-tags.
+ */
+.pickup-tag {
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.pickup-tag.show {
+  opacity: 1;
+}
+.pickup-tag > div {
+  position: absolute;
+  bottom: calc(var(--ring) * var(--ay));
+  white-space: nowrap;
+  line-height: 1;
+  color: #fff;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  paint-order: stroke fill;
+}
+.pickup-tag > div > span {
+  display: block;
+}
+.tag-caption {
+  right: calc(var(--ring) * var(--ax));
+  transform-origin: 100% 100%;
+  transform: rotate(calc(-1 * var(--tilt)));
+  text-align: right;
+}
+.tag-name {
+  left: calc(var(--ring) * var(--ax));
+  transform-origin: 0 100%;
+  transform: rotate(var(--tilt));
+}
+.pickup-tag.color .tag-name {
+  left: 0;
+  transform: translateX(-50%);
+  text-align: center;
+}
+.l-caption {
+  font-family: var(--caption-font);
+  font-size: var(--caption-size);
+  -webkit-text-stroke: var(--caption-outline) var(--ui);
+}
+.l-captionKana {
+  font-family: var(--captionKana-font);
+  font-size: var(--captionKana-size);
+  -webkit-text-stroke: var(--captionKana-outline) var(--ui);
+}
+.l-name {
+  font-family: var(--name-font);
+  font-size: var(--name-size);
+  -webkit-text-stroke: var(--name-outline) var(--ui);
+}
+.l-nameKana {
+  font-family: var(--nameKana-font);
+  font-size: var(--nameKana-size);
+  -webkit-text-stroke: var(--nameKana-outline) var(--ui);
+}
+
 /* Names over the other players' heads (net/nameplates.ts): white on a black box, readable over anything. */
 .nameplate {
   position: absolute;

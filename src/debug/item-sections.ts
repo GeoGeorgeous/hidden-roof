@@ -1,5 +1,6 @@
-import { CAP_ORDER, CAPS, PICKUP } from '../config';
-import { c, live, r, type Item, type Section } from './tuning';
+import { CAP_ORDER, CAPS, PICKUP, TAG_FONTS, type TagFont } from '../config';
+import { defaultOf } from './defaults';
+import { c, getValue, gray, live, r, setValue, t, type Item, type Section } from './tuning';
 
 // F3 panel contents for items (tuning.ts has the helpers): the pickups in the
 // world, and the tool models they, the first-person view, the figure's hand
@@ -23,6 +24,41 @@ function pickupItems(): Item[] {
   });
 }
 
+/** A tag font (TAG_FONTS) by name, as buttons: COPY and RESET take it like any value. */
+function fontRow(label: string, path: string[]): Item {
+  return {
+    kind: 'choice',
+    label,
+    options: TAG_FONTS.map((f) => f.toUpperCase()),
+    get: () => TAG_FONTS.indexOf(getValue(path) as TagFont),
+    pick: (i) => setValue(path, TAG_FONTS[i]),
+    copy: () => path.reduceRight<unknown>((v, k) => ({ [k]: v }), getValue(path)) as Record<string, unknown>,
+    reset: () => setValue(path, defaultOf(path)),
+  };
+}
+
+/** Pickups' tags (PICKUP.label): reach, each line's size and outline (and font, but katakana's), then where they sit on each ring shape. */
+function tagItems(): Item[] {
+  const lines = { caption: 'caption', captionKana: 'caption japanese', name: 'name', nameKana: 'name japanese' } as const;
+  return [
+    { kind: 'heading', label: 'TAGS' },
+    r('reach', ['PICKUP', 'label', 'reach'], 0, 40, 0.5),
+    ...(Object.keys(lines) as (keyof typeof lines)[]).flatMap((k) => [
+      ...('font' in PICKUP.label[k] ? [fontRow(`${lines[k]}: font`, ['PICKUP', 'label', k, 'font'])] : []),
+      r(`${lines[k]}: size`, ['PICKUP', 'label', k, 'size'], 0, 48, 1),
+      r(`${lines[k]}: outline`, ['PICKUP', 'label', k, 'outline'], 0, 12, 0.5),
+    ]),
+    t('paint: on', ['PICKUP', 'label', 'color', 'on']),
+    r('paint: up', ['PICKUP', 'label', 'color', 'up'], -0.5, 1.5, 0.01),
+    ...(['cap', 'tool'] as const).flatMap((k) => [
+      t(`${k}: on`, ['PICKUP', 'label', k, 'on']),
+      r(`${k}: out`, ['PICKUP', 'label', k, 'at', '0'], -0.2, 1, 0.01),
+      r(`${k}: up`, ['PICKUP', 'label', k, 'at', '1'], -0.5, 1, 0.01),
+      r(`${k}: tilt`, ['PICKUP', 'label', k, 'tilt'], -90, 90, 1),
+    ]),
+  ];
+}
+
 /** F3 sections for items: pickups, then each tool's model and the caps. */
 export function itemSections(): Section[] {
   const m = (label: string, path: string[], min: number, max: number, step: number) => r(label, ['MODELS', ...path], min, max, step, () => live.rebuildModels());
@@ -38,12 +74,17 @@ export function itemSections(): Section[] {
         r('bob height', ['PICKUP', 'bob'], 0, 0.5, 0.01),
         r('ring: size', ['PICKUP', 'ring', 'size'], 0.3, 3, 0.05),
         r('ring: opacity', ['PICKUP', 'ring', 'opacity'], 0, 1, 0.05),
+        r('ring: paint color', ['PICKUP', 'ring', 'paint'], 0, 1, 0.05),
+        gray('ring: cap color', ['PICKUP', 'ring', 'cap']),
+        gray('ring: tool color', ['PICKUP', 'ring', 'tool']),
+        r('ring: min size', ['PICKUP', 'ring', 'minSize'], 0, 0.1, 0.005),
         r('glow: size', ['PICKUP', 'glow', 'size'], 0, 4, 0.05),
         r('glow: floor size', ['PICKUP', 'glow', 'floor'], 0, 5, 0.05),
         r('glow: strength', ['PICKUP', 'glow', 'strength'], 0, 2, 0.05),
         r('glow: cover', ['PICKUP', 'glow', 'cover'], 0, 1, 0.05),
         r('glow: pulse', ['PICKUP', 'glow', 'pulse'], 0, 1, 0.05),
         r('glow: pulse rate', ['PICKUP', 'glow', 'pulseRate'], 0, 10, 0.1),
+        ...tagItems(),
         ...pickupItems(),
       ],
     },

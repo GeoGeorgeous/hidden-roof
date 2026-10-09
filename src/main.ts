@@ -121,7 +121,7 @@ const tools = new Tools(scene, viewScene, paint, level.solids, audio, inventory,
 tools.ladder.onBlocked = () => hotbar.toast("The ladder can't stand there");
 const wallHand = new WallHand(level.solids);
 viewScene.add(wallHand.group);
-const pickups = new Pickups(scene);
+const pickups = new Pickups(scene, camera, level.solids);
 pickups.onCollect = (label) => {
   audio.pickup();
   hotbar.toast(`+ ${label}`);
@@ -305,7 +305,11 @@ function frame(time: number) {
     wallHand.update(dt, camera, eye, !building, tools.spray.model.sway);
     drips.update(dt);
     pickups.update(dt, player.position, inventory);
-  } else if (!building) tools.holdStill(camera);
+  } else {
+    if (!building) tools.holdStill(camera);
+    // Tuned live in F3 → Items → Pickups, which pauses the game.
+    if (dev?.panelOpen) pickups.update(dt, player.position, inventory);
+  }
   net.update(dt);
   const tool = building ? null : inventory.tool;
   hud.setCrosshair(tools.crosshair(tool));

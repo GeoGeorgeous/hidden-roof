@@ -1,34 +1,72 @@
 import * as THREE from 'three';
 import { COLORS, INK, PICKUP, ROLLER, type CapId, type PaintColor } from '../config';
 import { canShape, capSeat, capShape, ladderShape, markerShape, rollerShape, spongeShape } from '../tools/shapes';
-import type { PickupKind } from '../inventory/items';
+import { parsePickup, type PickupKind } from '../inventory/items';
 
 // Pickup look, inked: the item hovers and spins, tilted, inside a drawn ring
-// (a solid one and a dashed one inside it), so it reads from far away. Only
-// paint and caps are in color (a color pickup's label, ring and glow, a cap);
-// the rest is ink, and so is every other ring.
+// (a solid one and a dashed one inside it), and glows. The ring's shape says
+// what kind of pickup it is: paint a circle, in its color and glowing in it; a
+// cap a triangle pointing down (the fan out of a nozzle) and a tool a rounded
+// diamond, both solid in a shade of ink over a white glow. Only paint is in color.
 
 const noRaycast = () => {};
 
-let ringTexture: THREE.Texture | null = null;
-function ring() {
-  if (ringTexture) return ringTexture;
+type Kind = 'color' | 'cap' | 'tool';
+function kindOf(kind: PickupKind): Kind {
+  const c = parsePickup(kind)!;
+  return 'color' in c ? 'color' : 'cap' in c ? 'cap' : 'tool';
+}
+
+/** Each kind's ring on a 256 px canvas, its center at C: the outline `inset` px inside the solid one. */
+const C = 128;
+const OUTLINES: Record<Kind, (ctx: CanvasRenderingContext2D, inset: number) => void> = {
+  color: (ctx, inset) => ctx.arc(C, C, 104 - inset, 0, Math.PI * 2),
+  // Centered on its middle, where the item is; the point down.
+  cap: (ctx, inset) => {
+    for (let i = 0; i < 3; i++) {
+      const a = Math.PI / 2 + (i * 2 * Math.PI) / 3;
+      ctx.lineTo(C + Math.cos(a) * (118 - 2 * inset), C + Math.sin(a) * (118 - 2 * inset));
+    }
+    ctx.closePath();
+  },
+  tool: (ctx, inset) => {
+    const r = 118 - inset * Math.SQRT2;
+    const corners = [[C, C - r], [C + r, C], [C, C + r], [C - r, C]];
+    ctx.moveTo(C - r / 2, C - r / 2);
+    corners.forEach(([x, y], i) => ctx.arcTo(x, y, ...(corners[(i + 1) % 4] as [number, number]), 26 - inset / 2));
+    ctx.closePath();
+  },
+};
+
+const rings = new Map<Kind, THREE.Texture>();
+/** A kind's ring, in white: the sprite tints it. */
+function ring(kind: Kind) {
+  let t = rings.get(kind);
+  if (t) return t;
   const c = document.createElement('canvas');
-  c.width = c.height = 128;
+  c.width = c.height = 2 * C;
   const ctx = c.getContext('2d')!;
   ctx.strokeStyle = '#ffffff';
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = 12;
+  ctx.beginPath();
+  OUTLINES[kind](ctx, 0);
+  ctx.stroke();
+  // A dashed inner one, like a pen going round twice.
   ctx.lineWidth = 6;
+  ctx.setLineDash([20, 16]);
   ctx.beginPath();
-  ctx.arc(64, 64, 52, 0, Math.PI * 2);
+  OUTLINES[kind](ctx, 24);
   ctx.stroke();
-  // A dashed inner ring, like a pen going round twice.
-  ctx.lineWidth = 3;
-  ctx.setLineDash([10, 8]);
-  ctx.beginPath();
-  ctx.arc(64, 64, 40, 0, Math.PI * 2);
-  ctx.stroke();
-  ringTexture = new THREE.CanvasTexture(c);
-  return ringTexture;
+  t = new THREE.CanvasTexture(c);
+  rings.set(kind, t);
+  return t;
+}
+
+/** A pickup's glow color: paint's own, the rest white. */
+function glowColor(kind: PickupKind) {
+  const c = parsePickup(kind)!;
+  return 'color' in c ? COLORS[c.color] : INK.paper;
 }
 
 let glowTexture: THREE.DataTexture | null = null;
@@ -60,18 +98,18 @@ function glowMaterial<M extends THREE.SpriteMaterial | THREE.MeshBasicMaterial>(
   return Object.assign(m, { map: glowMap(), transparent: true, depthWrite: false, fog: false, blending: THREE.CustomBlending, blendSrc: THREE.OneFactor, blendDst: THREE.OneMinusSrcAlphaFactor });
 }
 
-/** A color pickup's glow: `light` around the item, `floor` on the ground under it, both in `color` (setGlow). */
+/** A pickup's glow: `light` around the item, `floor` on the ground under it, both in `color` (setGlow). */
 export interface Glow {
   light: THREE.Sprite;
   floor: THREE.Mesh<THREE.BufferGeometry, THREE.MeshBasicMaterial>;
   color: THREE.Color;
 }
 
-export function glow(color: string): Glow {
+export function glow(kind: PickupKind): Glow {
   const light = new THREE.Sprite(glowMaterial(new THREE.SpriteMaterial()));
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2), glowMaterial(new THREE.MeshBasicMaterial({ polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -4 })));
   light.raycast = floor.raycast = noRaycast;
-  return { light, floor, color: new THREE.Color(color) };
+  return { light, floor, color: new THREE.Color(glowColor(kind)) };
 }
 
 /** The glow at `k` (its strength and pulse) of its color. */
@@ -80,11 +118,6 @@ export function setGlow(g: Glow, k: number) {
     m.color.copy(g.color).multiplyScalar(k);
     m.opacity = k * PICKUP.glow.cover;
   }
-}
-
-export function glowColor(kind: PickupKind) {
-  const [k, a] = kind.split(':');
-  return k === 'color' ? COLORS[a as PaintColor] : INK.ink;
 }
 
 const basic = (color: string) => new THREE.MeshBasicMaterial({ color });
@@ -124,9 +157,22 @@ export function itemModel(kind: PickupKind, cap: CapId = 'standard'): THREE.Grou
   return g;
 }
 
-/** The ring around the item, always facing the camera. */
-export function halo(color: string) {
-  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: ring(), color, transparent: true, depthWrite: false }));
+/** The ring around the item, always facing the camera, in its kind's shape (setRing colors it). Make it after the glow, so it draws over it. */
+export function halo(kind: PickupKind) {
+  const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: ring(kindOf(kind)), transparent: true, depthWrite: false }));
   halo.raycast = noRaycast;
   return halo;
+}
+
+/** The ring's color now (live in F3): paint's own (toward black by PICKUP.ring.paint) at ring.opacity, a cap's or a tool's solid in its shade of ink. */
+export function setRing(halo: THREE.Sprite, kind: PickupKind) {
+  const c = parsePickup(kind)!;
+  const { opacity, paint, cap, tool } = PICKUP.ring;
+  const hex = 'color' in c ? COLORS[c.color] : 'cap' in c ? cap : tool;
+  const k = 'color' in c ? paint : 1;
+  if (halo.userData.color !== hex + k) {
+    halo.userData.color = hex + k;
+    halo.material.color.set(hex).multiplyScalar(k);
+  }
+  halo.material.opacity = 'color' in c ? opacity : 1;
 }
