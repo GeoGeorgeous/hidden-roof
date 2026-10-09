@@ -349,7 +349,7 @@ await check('tools: the wheel changes the player\'s nib, roller and patch width,
     input.locked = false;
     return out;
   });
-  return r.marker === 0.048 && r.grew && r.min === 0 && r.sponge === 0.22 && r.roller === 0.5 && r.config.join() === '0.024,0.18' ? null : JSON.stringify(r);
+  return r.marker === 0.056 && r.grew && r.min === 0 && r.sponge === 0.22 && r.roller === 0.5 && r.config.join() === '0.032,0.18' ? null : JSON.stringify(r);
 });
 
 await check('ladders: one per player, moved with one rebuild; each owner\'s stays until they take it away; never saved', async () => {
