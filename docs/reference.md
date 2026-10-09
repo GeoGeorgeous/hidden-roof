@@ -8,7 +8,7 @@ Built with three.js, TypeScript and Vite. There are no external assets: the geom
 
 ```sh
 npm install
-npm run dev        # http://localhost:5173  (loads public/levels/demo.json)
+npm run dev        # http://localhost:5173  (loads public/levels/roof.json; ?level=demo for the demo)
 npm run build      # typecheck + the player build into dist/ (no dev tools: build mode, F3, window.game)
 npm run build:dev  # the same with the dev tools, into dist-dev/
 ```
@@ -249,6 +249,7 @@ src/style.css            all UI styling (ink on paper + red alert, thin lines, m
 src/settings.ts          pause-menu settings (resolution, volumetrics, paint detail, city detail), saved in localStorage
 src/audio.ts, input.ts, fullscreen.ts
 src/hex-color.ts, lcg.ts small shared helpers: config colors parsed only on change, seeded random
-public/levels/demo.json  demo rooftop (the original props and every pickup), plus an empty level-0 roof to the north for building
+public/levels/roof.json  the level the game opens with (LEVELS in config.ts), the only one the player build ships
+public/levels/demo.json  demo rooftop (the original props and every pickup), plus an empty level-0 roof to the north for building; the browser tests play it
 scripts/smoke.mjs        headless Playwright smoke test
 ```

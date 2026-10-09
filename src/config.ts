@@ -960,9 +960,9 @@ export const STEPLADDER_PLACE = {
 /** Levels (public/levels/<name>.json). */
 export const LEVELS = {
   /** The level the game opens without ?level=. */
-  start: 'demo',
+  start: 'roof',
   /** The levels the player build ships (npm run build, vite.config.ts); the rest stay for the dev server and the tests. */
-  release: ['demo'],
+  release: ['roof'],
 };
 
 /** Build mode (B). */

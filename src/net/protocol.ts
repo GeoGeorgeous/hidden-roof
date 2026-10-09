@@ -20,7 +20,7 @@ export const CODE_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 const DETAILS = [24, 48, 72, 96];
 /** Player snapshot size (net/snapshot.ts). */
 export const SNAPSHOT_BYTES = 23;
-/** Most props a hosted level may have (the demo has 344): each costs the server building it. */
+/** Most props a hosted level may have (the roof has 1340): each costs the server building it. */
 const MAX_PROPS = 5000;
 
 /**
