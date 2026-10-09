@@ -187,11 +187,11 @@ export const VOLUMETRICS = {
  * solid black. Edges get pen outlines in the final pass. Live in F3 -> Render -> Shaders.
  */
 export const INK = {
-  paper: '#dfe0d6',
-  ink: '#3a3749',
-  sky: '#0c0b0f',
+  paper: '#eff1f6',
+  ink: '#333243',
+  sky: '#171926',
   /** What the city fades into above the cloud base (ATMOS.cloudBase). */
-  cloud: '#201f29',
+  cloud: '#1d2030',
   /** Light multiplier before the tone steps (brighter = more paper). */
   exposure: 2.1,
   /** Tone steps (0..1): above `paper` no ink; below `hatch` cross-hatching; below `black` solid ink. */
@@ -230,10 +230,12 @@ export const INK = {
  */
 export const INK_PRESETS: Partial<Record<'paper' | 'ink' | 'sky' | 'cloud', string>>[] = [
   {},
-  { paper: '#d9d4d1', ink: '#433f52' },
-  { paper: '#edf0f5', ink: '#333243' },
+  { paper: '#d9d4d1', ink: '#433f52', sky: '#0c0b0f', cloud: '#201f29' },
+  { paper: '#edf0f5', ink: '#333243', sky: '#0c0b0f', cloud: '#201f29' },
   { paper: '#edf0f5', ink: '#333243', sky: '#1d2030', cloud: '#262a40' },
-  { paper: '#dce1e9', ink: '#262532' },
+  { paper: '#dce1e9', ink: '#262532', sky: '#0c0b0f', cloud: '#201f29' },
+  // The look the game started with before 2026-10-09.
+  { paper: '#dfe0d6', ink: '#3a3749', sky: '#0c0b0f', cloud: '#201f29' },
 ];
 
 /** Shape of the colored light tint (INK.tint) in the ink shader; built into the shader, not live. */
@@ -379,11 +381,11 @@ export interface CapSpec {
 export type CapId = 'skinny' | 'standard' | 'fat' | 'spray';
 export const CAP_ORDER: CapId[] = ['skinny', 'standard', 'fat', 'spray'];
 export const CAPS: Record<CapId, CapSpec> = {
-  skinny: { name: 'SKINNY', spread: 0.02, rate: 320, strength: 0.8, dotSize: 0.066, softness: 0.15, hissGain: 0.5, hissTone: 0, crosshair: 8, drips: 17, drain: 0.04, color: '#7fb4f2', nozzle: 0.004 },
-  standard: { name: 'STANDARD', spread: 0.08, rate: 450, strength: 0.5, dotSize: 0.092, softness: 0.35, hissGain: 0.75, hissTone: 0.4, crosshair: 14, drips: 17, drain: 0.04, color: '#f4f4f4', nozzle: 0.006 },
-  fat: { name: 'FAT', spread: 0.02, rate: 800, strength: 0.35, dotSize: 0.2, softness: 0, hissGain: 1, hissTone: 1, crosshair: 22, drips: 17, drain: 0.04, color: '#f2a04c', nozzle: 0.01 },
+  skinny: { name: 'SKINNY', spread: 0.01, rate: 1900, strength: 0.9, dotSize: 0.036, softness: 0.15, hissGain: 0.5, hissTone: 0, crosshair: 10, drips: 4, drain: 0.015, color: '#7fb4f2', nozzle: 0.004 },
+  standard: { name: 'STANDARD', spread: 0.03, rate: 1760, strength: 0.75, dotSize: 0.05, softness: 0.35, hissGain: 0.75, hissTone: 0.4, crosshair: 18, drips: 6, drain: 0.03, color: '#f4f4f4', nozzle: 0.006 },
+  fat: { name: 'FAT', spread: 0.04, rate: 650, strength: 0.8, dotSize: 0.12, softness: 0.15, hissGain: 1, hissTone: 1, crosshair: 24, drips: 10, drain: 0.06, color: '#f2a04c', nozzle: 0.01 },
   /** Wide, soft mist for fades and backgrounds: lots of faint, fuzzy dots. */
-  spray: { name: 'SPRAY', spread: 0.28, rate: 1100, strength: 0.12, dotSize: 0.158, softness: 0.9, hissGain: 0.9, hissTone: 0.8, crosshair: 32, drips: 17, drain: 0.04, color: '#b98cf2', nozzle: 0.013 },
+  spray: { name: 'SPRAY', spread: 0.1, rate: 1100, strength: 0.12, dotSize: 0.158, softness: 0.55, hissGain: 0.9, hissTone: 0.8, crosshair: 32, drips: 50, drain: 0.1, color: '#b98cf2', nozzle: 0.013 },
 };
 
 /** Paint colors, in Q/E cycling order. Black is always owned. Paint never runs out. */
@@ -403,9 +405,9 @@ export const COLORS: Record<PaintColor, string> = {
 
 export const MARKER = {
   /** Max distance from the eye to the surface. */
-  reach: 2.3,
+  reach: 4,
   /** Starting width of the square nib, in meters (0 = one paint texel: the thinnest line, 4 cm on LOW paint detail, 1 cm on ULTRA). Each player's own is Inventory.size. */
-  width: 0.024,
+  width: 0.032,
   /** Mouse wheel with the marker in hand: changes the player's nib width by widthStep, within widthMin..widthMax (m). */
   widthMin: 0,
   widthMax: 0.1,
@@ -417,7 +419,7 @@ export const MARKER = {
    * Paint runs (with DRIPS on) from the marker, per m² of paint reaching DRIPS.excess:
    * a nib covers little area but pumps a lot of paint into it.
    */
-  drips: 136,
+  drips: 50,
   strength: 0.95,
   /** Held still, the nib stamps the same spot every frame: let it add to runs this often (per s), whatever the frame rate. */
   stillRate: 30,
@@ -435,7 +437,7 @@ export const HOTBAR = { slots: 5 };
 /** Paint roller (slot 4): a wide graffiti roller on a short pole, rolling solid bands of paint. */
 export const ROLLER = {
   /** Max distance from the eye to the surface (it's on a short pole). */
-  reach: 2.6,
+  reach: 5,
   /** Starting width of the stroke: the roller head's length (m). Each player's own is Inventory.size. */
   width: 0.44,
   /** Mouse wheel with the roller in hand: changes the player's roller width by widthStep, within widthMin..widthMax (m). */
@@ -452,7 +454,7 @@ export const ROLLER = {
   /** Opacity per press: a roller lays it on thick. */
   strength: 0.85,
   /** Paint runs (with DRIPS on), per m² of paint reaching DRIPS.excess: a loaded roller runs easily. */
-  drips: 34,
+  drips: 70,
   /** Held still, presses add to runs this often (per s), whatever the frame rate. */
   stillRate: 20,
   /** Moves are filled with presses at most `spacing` x the press length apart at full reach, at most maxRays per frame. */
@@ -581,16 +583,16 @@ export const PLAYER_LIGHT = {
  * All baked into the paint texture: no extra objects.
  */
 export const DRIPS = {
-  enabled: false,
+  enabled: true,
   /** Excess paint (in full coats) a texel needs before it may run. How often it then runs is each cap's and tool's `drips` (per m², spread over its texels, so every paint detail runs alike). */
-  excess: 2.5,
+  excess: 6,
   /** Runs moving at the same time, level-wide. */
-  maxActive: 40,
+  maxActive: 65,
   /** Run length range (m). */
   minLength: 0.06,
-  maxLength: 0.3,
+  maxLength: 0.5,
   /** Starting speed (m/s); runs slow down as they go. */
-  speed: 0.12,
+  speed: 0.25,
   /** Opacity the run leaves behind (0..1). */
   strength: 0.85,
 };
@@ -644,8 +646,8 @@ export const SPRAY = {
   /** Max distance from the eye to the surface: how far paint travels. */
   reach: 4.6,
   /** Paint strength fades linearly from this distance to `reach`. */
-  falloffStart: 1.5,
-  particleSpeed: 11,
+  falloffStart: 1,
+  particleSpeed: 26,
   particleSize: 0.035,
   maxParticles: 3000,
 };
