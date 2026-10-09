@@ -227,12 +227,22 @@ canvas {
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 10px;
   margin-bottom: 26px;
   color: var(--dim);
 }
 .overlay .credits a {
   pointer-events: auto;
   color: var(--ui);
+}
+.overlay .coffee {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.overlay .coffee svg {
+  width: 14px;
+  height: 14px;
 }
 .overlay .menu {
   display: flex;
