@@ -19,7 +19,6 @@ export const HINTS: Record<string, string> = {
   'STEPLADDER_PLACE.reach': 'How far from your eye the stepladder can be placed (m).',
   'STEPLADDER_PLACE.footTolerance': 'Its four feet may sit this much above or below each other (m); more and it would rock, so it can\'t stand there.',
   'STEPLADDER_PLACE.standStep': 'The spot in front of it must be floor within this step of its base (m), so you can walk up and climb.',
-  'PLAYER.ladderJumpOff': 'How hard Space pushes you away from a ladder (m/s).',
   'PICKUP.reach': 'Walk within this distance of a pickup to collect it (m).',
   'PICKUP.reachHeight': 'How far above or below a pickup your feet may be and still collect it (m).',
   'PICKUP.hover': 'How high pickups float above the ground (m).',

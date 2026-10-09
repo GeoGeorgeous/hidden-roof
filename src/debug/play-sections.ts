@@ -46,7 +46,6 @@ export function playSections(): Section[] {
         r('ladder: climb speed', ['PLAYER', 'climbSpeed'], 0.5, 6, 0.1),
         r('step height', ['PLAYER', 'stepHeight'], 0, 0.8, 0.01),
         r('crouch: height', ['PLAYER', 'crouchHeight'], 0.6, 1.7, 0.01),
-        r('ladder: jump-off', ['PLAYER', 'ladderJumpOff'], 0, 10, 0.1),
       ],
     },
     {

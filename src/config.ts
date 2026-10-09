@@ -686,10 +686,8 @@ export const PLAYER = {
   jumpHeight: 1.1,
   gravity: 19,
   stepHeight: 0.42,
-  /** Ladders (Minecraft-style): push into the ladder to climb, let go to slide down, crouch to hold. */
+  /** Ladders (Minecraft-style): hold Space or push into the ladder to climb, let go to slide down, crouch to hold. */
   climbSpeed: 2.6,
-  /** Push-off speed away from the ladder when jumping off it (it won't grab you again until you land or leave it). */
-  ladderJumpOff: 3.5,
   mouseSensitivity: 0.0022,
   /** Falling below this height respawns the player. */
   killY: -25,

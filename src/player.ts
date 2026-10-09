@@ -24,8 +24,6 @@ export class Player {
   onLadder = false;
   /** Running fast enough to count as sprinting (widens the FOV). */
   sprinting = false;
-  /** The ladder last jumped off: ignored until you land or leave its volume. */
-  private detached: Ladder | null = null;
   /** Distance walked, for footsteps. */
   stride = 0;
   onLand: (speed: number) => void = () => {};
@@ -136,23 +134,18 @@ export class Player {
     this.sprinting = sprint && Math.hypot(this.velocity.x, this.velocity.z) > PLAYER.walkSpeed * 1.05;
 
     if (ladder) {
-      // Minecraft-style: moving into the ladder climbs, crouching holds, otherwise
-      // slide down. Walking away from it simply walks off; facing doesn't matter.
+      // Minecraft-style: holding Space or moving into the ladder climbs, crouching
+      // holds, otherwise slide down. Walking away from it simply walks off; facing doesn't matter.
       const into = -(wish.x * ladder.normal.x + wish.z * ladder.normal.z);
-      if (into > 0.3) this.velocity.y = PLAYER.climbSpeed;
+      if (input.isDown('Space') || into > 0.3) this.velocity.y = PLAYER.climbSpeed;
       else if (this.crouched && !this.onGround) this.velocity.y = 0;
       else this.velocity.y = Math.max(this.velocity.y - PLAYER.gravity * dt, -PLAYER.climbSpeed);
     } else {
       this.velocity.y -= PLAYER.gravity * dt;
     }
-    // Jumping always works and always lets go of the ladder.
-    if ((this.onGround || ladder) && input.wasPressed('Space')) {
+    // Jump off the ground; on a ladder Space climbs instead.
+    if (this.onGround && !ladder && input.wasPressed('Space')) {
       this.velocity.y = Math.sqrt(2 * PLAYER.gravity * PLAYER.jumpHeight);
-      if (ladder && !this.onGround) this.velocity.addScaledVector(ladder.normal, PLAYER.ladderJumpOff);
-      if (ladder) {
-        this.detached = ladder;
-        this.onLadder = false;
-      }
       this.onGround = false;
     }
 
@@ -266,8 +259,7 @@ export class Player {
 
   private findLadder(): Ladder | null {
     this.updateBox();
-    if (this.detached && (this.onGround || !this.box.intersectsBox(this.detached.volume))) this.detached = null;
-    for (const l of this.ladders) if (l !== this.detached && this.box.intersectsBox(l.volume)) return l;
+    for (const l of this.ladders) if (this.box.intersectsBox(l.volume)) return l;
     return null;
   }
 }

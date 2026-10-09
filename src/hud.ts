@@ -12,7 +12,7 @@ import { VERSION } from './version';
 
 /** The key list under the pause menu: the main keys, then the tools a little apart (style.css). */
 const CONTROLS = [
-  ['WASD • SHIFT • SPACE', 'move • run • jump'],
+  ['WASD • SHIFT • SPACE', 'move • run • jump / climb'],
   ['LMB', 'draw'],
   ['RMB', 'shake can'],
   ['Q / E', 'color'],
