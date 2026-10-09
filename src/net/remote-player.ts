@@ -147,7 +147,7 @@ export class RemotePlayer {
     this.smooth(dt);
     Object.assign(this.stats, { delay: this.lag - this.target, jitter: this.jitter, buffered: s.length, correction: this.error.length() });
     this.avatar.group.visible = true;
-    this.avatar.update(dt, st, cur.color);
+    this.avatar.update(dt, st, cur.color, cur.cap);
   }
 
   dispose() {

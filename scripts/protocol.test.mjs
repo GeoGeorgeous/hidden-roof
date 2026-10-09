@@ -3,13 +3,13 @@
 // turns down.
 // Usage: node scripts/protocol.test.mjs
 import assert from 'node:assert/strict';
-import { checkToServer, cleanName, decode, encode, PROTOCOL } from '../src/net/protocol.ts';
+import { checkToServer, cleanName, decode, encode, PROTOCOL, SNAPSHOT_BYTES } from '../src/net/protocol.ts';
 
 const level = { version: 4, spawn: { pos: [0, 0, 0], yaw: 0 }, props: [{ id: 1, type: 'slab', pos: [0, 0, 0] }] };
 const stamp = { kind: 'stamp', key: 'p12#0', rect: 3, u: 0.1 + 0.2, v: 1 / 3, radius: 0.0125, amount: 0.35, color: [1, 0.2, 0.1], softness: 0.5, square: false };
 const roll = { kind: 'roll', key: 'jwall|2.00|0.00|4.00#0', rect: 0, u: 0.5, v: 0.25, axis: [0.6, 0, -0.8], halfLength: 0.11, halfWidth: 0.02, edge: 0.2, amount: 0.9, color: [0, 0, 1] };
 const drip = { kind: 'drip', key: 'p3#1', rect: 2, u: 0.51, v: 0.97, length: 0.4, speed: 0.07, rgb: [1, 1, 0] };
-const snap = new Uint8Array(23).map((_, i) => i * 11);
+const snap = new Uint8Array(SNAPSHOT_BYTES).map((_, i) => i * 11);
 const save = new Uint8Array(1000).map((_, i) => (i * 7) & 255);
 
 const host = { type: 'host', protocol: PROTOCOL, table: '00a1b2c3d4e5f6', name: 'geo', levelName: 'demo', level, detail: 96, bytes: save };

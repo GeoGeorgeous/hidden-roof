@@ -88,23 +88,25 @@ export function glowColor(kind: PickupKind) {
 }
 
 const basic = (color: string) => new THREE.MeshBasicMaterial({ color });
+/** A part a figure's tool keeps in color (held.ts): the can's label, its cap. */
+const kept = (color: string) => Object.assign(basic(color), { userData: { keep: true } });
 /** A tool's paint part (marker band, roller cover) on a pickup: no paint yet. */
 const PAPER = '#e8e8e8';
 
 /**
  * The spinning item itself: its tool model (tools/shapes.ts) at twice real
  * size, centered and leaning, in flat colors. A color unlock is a can with
- * that label and a standard cap; a cap shows its own color.
+ * that label and `cap` (a figure's can, held.ts: theirs); a cap shows its own color.
  */
-export function itemModel(kind: PickupKind): THREE.Group {
+export function itemModel(kind: PickupKind, cap: CapId = 'standard'): THREE.Group {
   const [k, a] = kind.split(':');
-  const look = { tone: basic, color: basic, paint: basic(k === 'color' ? COLORS[a as PaintColor] : PAPER) };
+  const look = { tone: basic, color: kept, paint: k === 'color' ? kept(COLORS[a as PaintColor]) : basic(PAPER) };
   let shape: THREE.Object3D;
   if (k === 'color') {
     shape = canShape(look);
-    const cap = capShape('standard', look).group;
-    cap.position.y = capSeat();
-    shape.add(cap);
+    const top = capShape(cap, look).group;
+    top.position.y = capSeat();
+    shape.add(top);
   } else if (k === 'cap') shape = capShape(a as CapId, look).group;
   else if (k === 'ladder') shape = ladderShape(look);
   else if (k === 'roller') shape = rollerShape(look, ROLLER.width).group;

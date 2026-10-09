@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { AVATAR, type PaintColor } from '../config';
+import { AVATAR, type CapId, type PaintColor } from '../config';
 import { inkify } from '../render/ink/tone';
 import { buildBody } from './body';
 import { Held } from './held';
@@ -47,16 +47,16 @@ export class Avatar {
     this.mesh.geometry = buildBody(this.rig, this.outfit);
   }
 
-  /** Pose it for this frame. `color`: the paint color, shown on the can's label. */
-  update(dt: number, state: AvatarState, color: PaintColor) {
+  /** Pose it for this frame. `color`: the paint color, shown on the can's label; `cap`: the can's cap. */
+  update(dt: number, state: AvatarState, color: PaintColor, cap: CapId = 'standard') {
     this.group.rotation.y = state.yaw;
-    this.held.set(state.tool, color);
+    this.held.set(state.tool, color, cap);
     this.pose.update(dt, state);
   }
 
   dispose() {
     this.mesh.geometry.dispose();
-    this.held.set(null, 'black');
+    this.held.set(null, 'black', 'standard');
     this.group.removeFromParent();
   }
 }
