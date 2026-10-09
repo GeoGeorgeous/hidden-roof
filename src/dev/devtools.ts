@@ -1,3 +1,4 @@
+import './dev.css';
 import type * as THREE from 'three';
 import { BuildMode } from '../build/buildmode';
 import { DebugPanel } from '../debug/panel';
