@@ -1,6 +1,7 @@
 import { NET } from '../config';
 import type { Multiplayer } from './multiplayer';
 import { HELLO, PROTOCOL } from './protocol';
+import { VERSION } from '../version';
 
 // For finding out what went wrong with the multiplayer link: a log of what
 // happened (also in the console as [net]) that the player can copy from the
@@ -19,7 +20,7 @@ export class NetLog {
 
   /** The log with what's needed to read it: where, which protocol, which browser. */
   text() {
-    return [`roof network log · ${location.host} · protocol ${PROTOCOL} · ${new Date().toISOString()}`, navigator.userAgent, '', ...this.lines].join('\n');
+    return [`roof network log · ${location.host} · ${VERSION} · protocol ${PROTOCOL} · ${new Date().toISOString()}`, navigator.userAgent, '', ...this.lines].join('\n');
   }
 }
 

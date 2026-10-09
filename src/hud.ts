@@ -3,6 +3,7 @@ import { isFullscreen } from './fullscreen';
 import { SettingsPage } from './settings-page';
 import type { SettingSection } from './settings';
 import { netLines, type NetStats } from './net/diagnostics';
+import { VERSION } from './version';
 
 // Body-cam style HUD: vignette, corner brackets, REC indicator with elapsed
 // time, clock, crosshair, the PSI gauge, cap and color tags beside the tool in
@@ -120,6 +121,7 @@ export class Hud {
           <button class="exit-fs">&gt; EXIT FULLSCREEN</button>
         </div>
         <table>${[CONTROLS, TOOLS].map((keys) => `<tbody>${keys.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</tbody>`).join('')}</table>
+        <div class="version">${VERSION}</div>
       </div>`;
     document.body.appendChild(root);
     // The crosshair inverts what's under it (style.css), so it's its own layer
