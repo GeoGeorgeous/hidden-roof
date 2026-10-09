@@ -102,6 +102,7 @@ export function multiplayerMenu(hud: Hud, hotbar: Hotbar, ctx: MultiplayerContex
       const who = named();
       if (!who) return;
       try {
+        if (start === 'mine') say('PACKING PAINT…');
         const save = start === 'mine' ? await savePaint(ctx.paint, { name: levelName() }) : start === 'file' ? new Uint8Array(await (await pickFile('.rhhpaint')).arrayBuffer()) : undefined;
         net.host(who, detail, save);
       } catch (e) {
@@ -136,7 +137,9 @@ export function multiplayerMenu(hud: Hud, hotbar: Hotbar, ctx: MultiplayerContex
   hud.onCopyNetLog = copyLog;
   // SAVE PAINT in a session downloads the session's paint, from the server.
   const local = hud.onSavePaint;
-  hud.onSavePaint = () => (net.inSession ? (hud.notice('Saving paint…', Infinity), net.requestSave()) : local());
+  hud.onSavePaint = () => (net.inSession ? net.requestSave() : local());
+  // Each step of HOST, JOIN or SAVE as it goes, with how far along an upload or download is.
+  net.onProgress = (text) => text && (say(text), hud.notice(text, Infinity));
   net.onSave = (bytes, name) => {
     if (!bytes) return hud.notice('THE SERVER IS BUSY: SAVE AGAIN LATER');
     download(new Blob([bytes as BlobPart]), `${name}-${stamp(new Date())}.rhhpaint`);

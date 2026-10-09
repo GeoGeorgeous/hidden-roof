@@ -774,6 +774,8 @@ export const NET = {
   teleport: 2,
   /** A player's name tag hangs this high over their feet (m). */
   nameplateHeight: 2.1,
+  /** No snapshot from a player for this long (s): they're shown as gone (NO SIGNAL) until the server says more. */
+  silentAfter: 3,
   /** HOST or JOIN that hears nothing from the server for this long (s) before its welcome, its upload aside, gives up (a reconnect tries again). */
   connectTimeout: 15,
   /** Network log entries kept for COPY NETWORK LOG (net/diagnostics.ts). */
@@ -872,6 +874,8 @@ export const AVATAR = {
   /** Head (an egg): width, height, depth. */
   head: [0.19, 0.25, 0.215] as [number, number, number],
   hoodUp: false,
+  /** A player whose link is gone is drawn with their grays times this: lighter, less ink. */
+  faded: 2.2,
   /** Gray tones (the ink draws them): the only color on the figure is paint. */
   colors: {
     hoodie: '#3c3f44',

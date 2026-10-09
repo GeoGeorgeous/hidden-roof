@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { PAINT, SERVER } from '../src/config';
+import type { InventoryData } from '../src/inventory/inventory';
 import type { LevelData, PropData } from '../src/level/level';
-import { cleanName, closeCode, encode, NAME_MAX, partFrames, type Rejection, type ToClient, type ToServer } from '../src/net/protocol';
+import { cleanName, closeCode, encode, NAME_MAX, partFrames, type Presence, type Rejection, type ToClient, type ToServer } from '../src/net/protocol';
 import { loadPaint } from '../src/save/load-paint';
 import { streamPaint } from '../src/save/save-paint';
 import { surfaceTable } from '../src/save/shape';
@@ -36,6 +37,10 @@ export interface Player {
   live: boolean;
   /** A SAVE of theirs is under way. */
   saving: boolean;
+  /** Their game is hidden (minimized, another tab). */
+  away: boolean;
+  /** What they carry, as they last said (null: the starting kit). */
+  inventory: InventoryData | null;
   ladder: PropData | null;
   expires: ReturnType<typeof setTimeout> | null;
   /** Their last link that closed: from where, how long it lived, when (ms), for the log. */
@@ -56,6 +61,10 @@ export class Session {
   private next: Snapshot | null = null;
   /** Paint changes held back while a paint file reads the paint (null: none is), in order. */
   private frozen: (() => void)[] | null = null;
+  /** The save HOST sent, as its paint file: the host has its paint already. */
+  private seed: Snapshot | null = null;
+  /** What players gone carried, by name: one who comes back later under it gets it back. */
+  private carried = new Map<string, InventoryData>();
 
   constructor(
     readonly code: string,
@@ -75,7 +84,7 @@ export class Session {
     const most = this.memory.full * 2 ** 20 * (96 / this.detail) ** 2 * 1.25;
     await loadPaint(this.world.paint, this.world.drips, save, { name: this.levelName }, most);
     // The save is the paint now, as the players load it (the same faces fit, resampled the same way): the host's welcome.
-    this.keep(new Snapshot(partFrames([save], SERVER.partBytes)));
+    this.keep((this.seed = new Snapshot(partFrames([save], SERVER.partBytes))));
   }
 
   /** Paint memory in MB now, and with every surface painted. */
@@ -116,8 +125,10 @@ export class Session {
       p.link?.send(encode({ type: 'rejected', reason: 'replaced' }));
       p.link?.close(closeCode('replaced'), 'replaced');
       p.link = link;
+      p.away = false;
     } else {
-      p = { id: this.nextId++, name: uniqueName(name, all), token: randomUUID(), link, live: false, saving: false, ladder: null, expires: null, was: null };
+      const unique = uniqueName(name, all);
+      p = { id: this.nextId++, name: unique, token: randomUUID(), link, live: false, saving: false, away: false, inventory: this.carried.get(unique) ?? null, ladder: null, expires: null, was: null };
       this.broadcast({ type: 'joined', id: p.id, name: p.name }, p);
       this.players.set(p.id, p);
     }
@@ -131,12 +142,17 @@ export class Session {
       throw e;
     }
     if (!frames || p.link !== link) return { p, how, note };
+    // The host from a save: that save is its paint.
+    const own = snap === this.seed;
+    this.seed = null;
     const others = [...this.players.values()].filter((q) => q !== p);
     const ladders = [...this.players.values()].filter((q) => q.ladder).map((q) => ({ id: q.id, data: q.ladder! }));
-    link.send(encode({ type: 'welcome', code: this.code, you: p.id, token: p.token, levelName: this.levelName, level: this.level, detail: this.detail, table: this.table, players: others.map(({ id, name }) => ({ id, name })), ladders, parts: frames.length }));
-    for (const f of frames) link.send(f);
+    const players = others.map((q) => ({ id: q.id, name: q.name, state: presence(q) }));
+    link.send(encode({ type: 'welcome', code: this.code, you: p.id, token: p.token, levelName: this.levelName, level: this.level, detail: this.detail, table: this.table, players, ladders, inventory: p.inventory, parts: own ? 0 : frames.length }));
+    if (!own) for (const f of frames) link.send(f);
     for (const f of snap.log) link.send(f);
     p.live = true;
+    if (how !== 'new') this.broadcast({ type: 'presence', id: p.id, state: 'here' }, p);
     snap.served++;
     return { p, how, note: `${note}${snap.served > 1 ? `; paint file shared (${snap.served})` : ''}` };
   }
@@ -157,6 +173,11 @@ export class Session {
       p.ladder = m.data;
       this.broadcast({ type: 'ladder', id: p.id, t: m.t, data: m.data }, p);
     } else if (m.type === 'save') void this.save(p);
+    else if (m.type === 'inventory') p.inventory = m.data;
+    else if (m.type === 'away') {
+      p.away = m.away;
+      this.broadcast({ type: 'presence', id: p.id, state: presence(p) }, p);
+    }
     else if (m.type === 'ping') this.send(p, { type: 'pong', t: m.t });
     else if (m.type === 'leave') this.remove(p, 'left');
   }
@@ -167,6 +188,7 @@ export class Session {
     p.link = null;
     p.live = false;
     p.was = { ip: link.ip, lived: Date.now() - link.since, at: Date.now() };
+    this.broadcast({ type: 'presence', id: p.id, state: 'dropped' }, p);
     p.expires = setTimeout(() => this.remove(p, `didn't come back in ${SERVER.rejoinWindow} s`), SERVER.rejoinWindow * 1000);
   }
 
@@ -196,6 +218,7 @@ export class Session {
     if (this.players.get(p.id) !== p) return;
     if (p.expires) clearTimeout(p.expires);
     this.players.delete(p.id);
+    if (p.inventory) this.carried.set(p.name, p.inventory);
     log(this.code, who(p), `out: ${why} (${this.players.size} players)`);
     const link = p.link;
     p.link = null;
@@ -290,6 +313,8 @@ export class Session {
     return fn();
   }
 }
+
+const presence = (p: Player): Presence => (!p.link ? 'dropped' : p.away ? 'away' : 'here');
 
 function deliver(p: Player, f: Uint8Array) {
   if (p.live) p.link?.send(f);

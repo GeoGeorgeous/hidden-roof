@@ -129,10 +129,15 @@ canvas {
   white-space: nowrap;
 }
 
-/* Names over the other players' heads (net/nameplates.ts). */
+/* Names over the other players' heads (net/nameplates.ts): white on a black box, readable over anything. */
 .nameplate {
-  border-left: none;
-  border-bottom: var(--line);
+  position: absolute;
+  left: 0;
+  top: 0;
+  padding: 1px 6px;
+  background: rgba(20, 20, 22, 0.78);
+  color: var(--paper);
+  white-space: nowrap;
 }
 
 /* PSI gauge above the tags, shown while spraying or shaking: label, a horizontal line, the value. */

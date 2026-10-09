@@ -155,6 +155,16 @@ export class Pickups {
     }
   }
 
+  /** Pickups of what the player already has count as collected (a multiplayer session gave their inventory back). */
+  collectOwned(inv: Inventory) {
+    for (const p of this.list.values()) {
+      const c = parsePickup(p.kind)!;
+      if (!('color' in c ? inv.colors.includes(c.color) : 'cap' in c ? inv.caps.includes(c.cap) : inv.has(c.tool))) continue;
+      p.collected = true;
+      p.group.visible = this.editing;
+    }
+  }
+
   private tryCollect(p: Pickup, inv: Inventory) {
     const c = parsePickup(p.kind)!;
     const ok = 'color' in c ? inv.addColor(c.color) : 'cap' in c ? inv.addCap(c.cap) : inv.give(c.tool);

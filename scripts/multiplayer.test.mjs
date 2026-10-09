@@ -85,12 +85,17 @@ try {
   await b.waitForTimeout(500);
   assert.equal(await paintHash(b), painted, 'B paints what A painted');
 
-  // B reloads: it comes back into the session as the same player, with the paint.
+  // B finds the marker and reloads: it comes back into the session as the same player, with the paint and the marker.
+  await b.evaluate(() => window.game.inventory.give('marker'));
+  await b.waitForTimeout(300);
   await b.reload();
   await gameReady(b);
   await status(b, 'in');
   assert.equal(await b.evaluate(() => window.game.session.player), 'player2');
   assert.equal(await paintHash(b), painted, 'the paint comes back after a reload');
+  assert.ok(await b.evaluate(() => window.game.inventory.has('marker')), 'what B carried comes back after a reload');
+  // A saw B go and come back.
+  await a.waitForFunction(() => /#2 "B" dropped[^]*#2 "B" here/.test(window.game.net.log.text()), null, { timeout: 5000 });
 
   // B hears nothing for a while (a big download ahead of everything else used to do that): it closes the link and
   // comes back in, though the last thing it heard is now long ago.
@@ -105,7 +110,7 @@ try {
   assert.equal(await b.evaluate(() => window.game.session.multiplayer), false);
 
   // B joins again, and its welcome takes 5 s to load (a big save at ULTRA): A's snapshots wait behind it, and A is
-  // still shown at once.
+  // still shown at once, with a black name tag over its head.
   await b.evaluate(() => {
     const n = window.game.net;
     const welcome = n.welcome.bind(n);
@@ -113,7 +118,8 @@ try {
   });
   await b.evaluate((c) => window.game.net.join('B', c), code);
   await status(b, 'in');
-  await b.waitForFunction(() => [...window.game.net.remotes.values()][0]?.avatar.group.visible, null, { timeout: 2000 });
+  await b.waitForFunction(() => [...window.game.net.remotes.list.values()][0]?.avatar.group.visible, null, { timeout: 2000 });
+  assert.equal(await b.textContent('.nameplate'), 'A');
   await b.evaluate(() => window.game.net.leave());
 
   // The server restarts (a deploy): A's game reconnects, finds its session gone, and says the session has ended.

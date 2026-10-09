@@ -10,6 +10,16 @@ export const SLOTS: Tool[] = ['can', 'marker', 'ladder', 'roller', 'sponge'];
 /** Tools the mouse wheel resizes (tools/wheel-size.ts). */
 export type SizedTool = 'marker' | 'roller' | 'sponge';
 
+/** What a player carries, as a multiplayer session keeps it for them (net/protocol.ts). */
+export interface InventoryData {
+  tools: Tool[];
+  colors: PaintColor[];
+  caps: CapId[];
+  selected: number;
+  color: PaintColor;
+  cap: CapId;
+}
+
 export class Inventory {
   selected = 0;
   colors: PaintColor[] = [];
@@ -38,6 +48,22 @@ export class Inventory {
     this.pressure = 1;
     this.colorIndex = 0;
     this.capIndex = 0;
+    this.version++;
+  }
+
+  toJSON(): InventoryData {
+    return { tools: [...this.found], colors: [...this.colors], caps: [...this.caps], selected: this.selected, color: this.color, cap: this.cap };
+  }
+
+  /** What `toJSON` gave, kept by the server: only what this game knows of it, on top of the starting kit. */
+  restore(d: InventoryData) {
+    this.reset();
+    for (const t of d.tools) if (SLOTS.includes(t)) this.found.add(t);
+    this.colors = COLOR_ORDER.filter((c) => c === 'black' || d.colors.includes(c));
+    this.caps = CAP_ORDER.filter((c) => c === 'standard' || d.caps.includes(c));
+    this.selected = Math.min(d.selected, SLOTS.length - 1);
+    this.colorIndex = Math.max(0, this.colors.indexOf(d.color));
+    this.capIndex = Math.max(0, this.caps.indexOf(d.cap));
     this.version++;
   }
 

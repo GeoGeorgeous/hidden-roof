@@ -23,6 +23,8 @@ const sent = [
   { type: 'ladder', t: 2, data: { type: 'stepladder', pos: [1, 0, 2], rot: 3 } },
   { type: 'ladder', t: 2.5, data: null },
   { type: 'save' },
+  { type: 'inventory', data: { tools: ['marker', 'ladder'], colors: ['black', 'red'], caps: ['standard'], selected: 2, color: 'red', cap: 'standard' } },
+  { type: 'away', away: true },
   { type: 'ping', t: 12.5 },
   { type: 'leave' },
 ];
@@ -35,7 +37,7 @@ for (const m of sent) {
   assert.deepEqual(rest, Object.fromEntries(Object.entries(json).filter(([, v]) => v !== undefined)));
   assert.deepEqual(got, bytes);
 }
-const welcome = { type: 'welcome', code: 'ABCDE', you: 2, token: 't', levelName: 'demo', level, detail: 48, table: 'x', players: [{ id: 1, name: 'geo' }], ladders: [], parts: 3 };
+const welcome = { type: 'welcome', code: 'ABCDE', you: 2, token: 't', levelName: 'demo', level, detail: 48, table: 'x', players: [{ id: 1, name: 'geo', state: 'away' }], ladders: [], inventory: null, parts: 3 };
 assert.deepEqual(decode(encode(welcome)), welcome);
 // A paint file in pieces goes as parts of at most the size asked, and comes back whole.
 const parts = partFrames([save.subarray(0, 10), save.subarray(10, 700), save.subarray(700)], 400).map(decode);
@@ -80,6 +82,9 @@ refused({ type: 'ops', t: [null], ops: [stamp] });
 refused({ type: 'ladder', t: 1, data: { type: 'building', pos: [0, 0, 0] } });
 refused({ type: 'ladder', t: 1 });
 refused({ type: 'ping' });
+refused({ type: 'away' });
+refused({ type: 'inventory', data: { tools: [], colors: [], caps: [], selected: -1, color: 'red', cap: 'x' } });
+refused({ type: 'inventory', data: { tools: Array(33).fill('x'), colors: [], caps: [], selected: 0, color: 'red', cap: 'x' } });
 // Non-finite numbers don't survive JSON (they become null), so they're refused too.
 refused({ type: 'ops', t: [1], ops: [{ ...stamp, u: NaN }] });
 

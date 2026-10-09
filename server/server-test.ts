@@ -4,13 +4,14 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import { PAINT, SERVER } from '../src/config';
 import { levelPaintFaces } from '../src/level/prop-pieces';
+import type { InventoryData } from '../src/inventory/inventory';
 import { closeCode, decode, encode, HELLO, PROTOCOL, type ToClient, type ToServer } from '../src/net/protocol';
 import { decodePaintFile, encodePaintFile, joinBytes } from '../src/save/paint-file';
 import { surfaceTable } from '../src/save/shape';
 
 // The server (dist-server/server/main.js) against games speaking the protocol:
 // HOST and JOIN, what's turned away, relaying, SAVE, a reconnect, a player who
-// doesn't come back, HOST from a save, and the limits per address. npm run test:server builds both.
+// doesn't come back, who's away or dropped, what a player carries, HOST from a save, and the limits per address. npm run test:server builds both.
 
 const PORT = 3999;
 const level = JSON.parse(fs.readFileSync('public/levels/demo.json', 'utf8'));
@@ -106,7 +107,7 @@ try {
   const b = await game();
   b.send({ type: 'join', protocol: PROTOCOL, name: 'B', code: wa.code });
   const wb = await b.next('welcome');
-  assert.deepEqual([wb.you, wb.players, wb.levelName], [2, [{ id: 1, name: 'A' }], 'demo']);
+  assert.deepEqual([wb.you, wb.players, wb.levelName, wb.inventory], [2, [{ id: 1, name: 'A', state: 'here' }], 'demo', null]);
   assert.deepEqual(await a.next('joined'), { type: 'joined', id: 2, name: 'B' });
   const c = await game();
   c.send({ type: 'join', protocol: PROTOCOL, name: 'C', code: wa.code });
@@ -131,14 +132,22 @@ try {
   const { header } = await decodePaintFile(save);
   assert.deepEqual([header.density, [...new Set(header.faces.map((f) => f.surface))]], [48, [stamp.key]]);
 
-  // B drops and comes back with its token: the same player, the paint and A's ladder in its welcome; A hears nothing.
+  // B's game is hidden (minimized): A hears it's away.
+  b.send({ type: 'away', away: true });
+  assert.deepEqual(await a.next('presence'), { type: 'presence', id: 2, state: 'away' });
+  // B carries something, drops and comes back with its token: the same player, the paint, A's ladder and what B
+  // carried in its welcome; A hears B dropped and is back, never that B left or joined.
+  const carried = { tools: ['marker'], colors: ['black', 'red'], caps: ['standard'], selected: 1, color: 'red', cap: 'standard' } as InventoryData;
+  b.send({ type: 'inventory', data: carried });
   b.ws.close();
   await b.closed;
+  assert.deepEqual(await a.next('presence'), { type: 'presence', id: 2, state: 'dropped' });
   const b2 = await game();
   b2.send({ type: 'join', protocol: PROTOCOL, name: 'B', code: wa.code, token: wb.token });
   const back = await b2.next('welcome');
-  assert.deepEqual([back.you, back.ladders], [2, [{ id: 1, data: ladder }]]);
+  assert.deepEqual([back.you, back.ladders, back.inventory], [2, [{ id: 1, data: ladder }], carried]);
   assert.deepEqual((await decodePaintFile(back.file!)).header.faces, header.faces);
+  assert.deepEqual(await a.next('presence'), { type: 'presence', id: 2, state: 'here' });
   await a.none('joined');
   await a.none('left');
 
@@ -175,12 +184,22 @@ try {
   newTab.send({ type: 'join', protocol: PROTOCOL, name: 'geo', code: wg.code });
   assert.equal((await newTab.next('welcome')).you, wg.you);
   await twin.none('joined');
+  // One who left and comes in again later under the same name gets back what they carried.
+  twin.send({ type: 'inventory', data: carried });
+  twin.send({ type: 'leave' });
+  await twin.closed;
+  const again = await game();
+  again.send({ type: 'join', protocol: PROTOCOL, name: 'geo (2)', code: wg.code });
+  assert.deepEqual((await again.next('welcome')).inventory, carried);
 
-  // HOST from a save: the paint is there for the next player.
+  // HOST from a save: the host isn't sent its own save back; the paint is there for the next player.
   const h = await game();
   h.send({ ...host, bytes: save });
   const wh = await h.next('welcome');
-  assert.deepEqual((await decodePaintFile(wh.file!)).header.faces, header.faces);
+  assert.equal(wh.parts, 0);
+  const hj = await game();
+  hj.send({ type: 'join', protocol: PROTOCOL, name: 'J', code: wh.code });
+  assert.deepEqual((await decodePaintFile((await hj.next('welcome')).file!)).header.faces, header.faces);
 
   // Who joins soon after a paint file was made shares it, and gets what was painted since right after it, to paint
   // at once (not when a figure gets there: the painter may be gone); a SAVE

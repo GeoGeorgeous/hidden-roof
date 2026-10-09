@@ -15,6 +15,9 @@ import { makeRig, sign, type Rig } from './rig';
 /** One ink material for every figure's body and tools: vertex colors in grays. */
 let material: THREE.Material | null = null;
 const ink = () => (material ??= inkify(new THREE.MeshLambertMaterial({ vertexColors: true })));
+/** The same grays lighter (AVATAR.faded): less ink, a figure that's only half there. */
+let paleMaterial: THREE.Material | null = null;
+const pale = () => (paleMaterial ??= inkify(new THREE.MeshLambertMaterial({ vertexColors: true, color: new THREE.Color().setScalar(AVATAR.faded) })));
 const noRaycast = () => {};
 
 export class Avatar {
@@ -45,6 +48,11 @@ export class Avatar {
     this.outfit = { ...outfit };
     this.mesh.geometry.dispose();
     this.mesh.geometry = buildBody(this.rig, this.outfit);
+  }
+
+  /** Drawn faded (a player whose link is gone) or not. */
+  setFaded(on: boolean) {
+    this.mesh.material = on ? pale() : ink();
   }
 
   /** Pose it for this frame. `color`: the paint color, shown on the can's label. */
