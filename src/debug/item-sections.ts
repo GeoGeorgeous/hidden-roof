@@ -1,6 +1,6 @@
 import { CAP_ORDER, CAPS, PICKUP, TAG_FONTS, type TagFont } from '../config';
 import { defaultOf } from './defaults';
-import { c, getValue, gray, live, r, setValue, type Item, type Section } from './tuning';
+import { c, getValue, gray, live, r, setValue, t, type Item, type Section } from './tuning';
 
 // F3 panel contents for items (tuning.ts has the helpers): the pickups in the
 // world, and the tool models they, the first-person view, the figure's hand
@@ -48,8 +48,10 @@ function tagItems(): Item[] {
       r(`${lines[k]}: size`, ['PICKUP', 'label', k, 'size'], 0, 48, 1),
       r(`${lines[k]}: outline`, ['PICKUP', 'label', k, 'outline'], 0, 12, 0.5),
     ]),
+    t('paint: on', ['PICKUP', 'label', 'color', 'on']),
     r('paint: up', ['PICKUP', 'label', 'color', 'up'], -0.5, 1.5, 0.01),
     ...(['cap', 'tool'] as const).flatMap((k) => [
+      t(`${k}: on`, ['PICKUP', 'label', k, 'on']),
       r(`${k}: out`, ['PICKUP', 'label', k, 'at', '0'], -0.2, 1, 0.01),
       r(`${k}: up`, ['PICKUP', 'label', k, 'at', '1'], -0.5, 1, 0.01),
       r(`${k}: tilt`, ['PICKUP', 'label', k, 'tilt'], -90, 90, 1),

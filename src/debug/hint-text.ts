@@ -39,6 +39,7 @@ export const HINTS: Record<string, string> = {
   'PICKUP.label.reach': 'Pickups closer than this show their tag by the ring (NEW TOOL, MARKER), while in sight (m). 0 = no tags.',
   'PICKUP.label.*.size': 'Size of this line of a pickup\'s tag (px): NEW TOOL, its Japanese, the name (MARKER), its Japanese. 0 = none.',
   'PICKUP.label.*.outline': 'Width of the ink outline around this line, so it reads on paper and in the dark (px). 0 = none.',
+  'PICKUP.label.*.on': 'Show tags for this kind of pickup (paint, caps, tools): NEW TOOL, the name, their Japanese.',
   'PICKUP.label.color.up': 'How high a paint pickup\'s name sits, centered over its ring (x the ring\'s size, from its middle).',
   'PICKUP.label.*.at': 'Where a cap\'s or a tool\'s name starts, and its NEW … ends, mirrored (x the ring\'s size): out from its middle, up.',
   'PICKUP.label.*.tilt': 'How far a cap\'s or a tool\'s tag texts turn, to run along the ring\'s upper edges (degrees): the name down to the right, NEW … down to the left. 0 = level.',

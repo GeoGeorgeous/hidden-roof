@@ -102,7 +102,7 @@ export class PickupLabels {
       // The ring's middle: it grows upward from its anchor (Pickups.place).
       center.set(p.pos[0], p.pos[1] + p.halo.position.y, p.pos[2]).addScaledVector(up, size * (0.5 - p.halo.center.y));
       const far = cam.distanceTo(center);
-      const close = p.group.visible && far < reach;
+      const close = p.group.visible && far < reach && PICKUP.label[tag.shape].on;
       if (close && sight) tag.seen = this.inSight(center, far);
       const shown = close && tag.seen;
       if (shown) {

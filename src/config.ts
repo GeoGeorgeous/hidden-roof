@@ -665,11 +665,11 @@ export const PICKUP = {
   label: {
     reach: 4,
     sightRate: 4,
-    /** Paint's name: centered, `up` (x the ring's size) from its middle. */
-    color: { up: 0.43 },
+    /** Each kind's tags `on` or not. Paint's name: centered, `up` (x the ring's size) from its middle. */
+    color: { on: false, up: 0.43 },
     /** A cap's and a tool's: `at` (x the ring's size: out from its middle, up) where the name starts and NEW … ends, mirrored; `tilt` (degrees), along the ring's upper edges. */
-    cap: { at: [0.1, 0.29] as [number, number], tilt: 0 },
-    tool: { at: [0.1, 0.43] as [number, number], tilt: 45 },
+    cap: { on: true, at: [0.1, 0.29] as [number, number], tilt: 0 },
+    tool: { on: true, at: [0.1, 0.43] as [number, number], tilt: 45 },
     /** The four lines, each a size and outline (px; size 0 = none): NEW TOOL and its katakana, the name and its katakana; NEW TOOL and the name in `font` (katakana is always in the gothic). */
     caption: { font: 'gothic' as TagFont, size: 12, outline: 4 },
     captionKana: { size: 10, outline: 2 },
