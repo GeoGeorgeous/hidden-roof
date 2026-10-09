@@ -7,7 +7,7 @@ import { VERSION } from './version';
 
 // Body-cam style HUD: vignette, corner brackets, REC indicator with elapsed
 // time, clock, crosshair, the PSI gauge, cap and color tags beside the tool in
-// hand, performance numbers, and the start/pause menu.
+// hand, performance numbers, and the start/pause menu (with the credits at its foot).
 // The tool readout lives in inventory/hotbar.ts, the debug panel in debug/panel.ts.
 
 /** The key list under the pause menu: the main keys, then the tools a little apart (style.css). */
@@ -26,6 +26,9 @@ const TOOLS = [
   ['4', 'roller'],
   ['5', 'sponge'],
 ];
+
+/** Where the credit line's name leads (the game's source). */
+const REPO = 'https://github.com/GeoGeorgeous/hidden-roof';
 
 /** The color tag sits this many CSS px below the cap tag. */
 const COLOR_TAG_OFFSET = 22;
@@ -121,6 +124,9 @@ export class Hud {
           <button class="exit-fs">&gt; EXIT FULLSCREEN</button>
         </div>
         <table>${[CONTROLS, TOOLS].map((keys) => `<tbody>${keys.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</tbody>`).join('')}</table>
+        <div class="credits">
+          <div>build by <a href="${REPO}" target="_blank" rel="noopener">GeoGeorgous</a></div>
+        </div>
         <div class="version">${VERSION}</div>
       </div>`;
     document.body.appendChild(root);
