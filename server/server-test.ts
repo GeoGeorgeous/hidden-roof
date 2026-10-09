@@ -182,7 +182,8 @@ try {
   const wh = await h.next('welcome');
   assert.deepEqual((await decodePaintFile(wh.file!)).header.faces, header.faces);
 
-  // Who joins soon after a paint file was made shares it, and gets what was painted since right after it; a SAVE
+  // Who joins soon after a paint file was made shares it, and gets what was painted since right after it, to paint
+  // at once (not when a figure gets there: the painter may be gone); a SAVE
   // then needs a new one, with that paint in it.
   const x = await game();
   x.send(host);
@@ -193,7 +194,7 @@ try {
   const y = await game();
   y.send({ type: 'join', protocol: PROTOCOL, name: 'Y', code: wx.code });
   assert.deepEqual((await decodePaintFile((await y.next('welcome')).file!)).header.faces, []);
-  assert.deepEqual((await y.next('ops')).ops, [stamp]);
+  assert.deepEqual((await y.next('paint')).ops, [stamp]);
   x.send({ type: 'save' });
   assert.deepEqual([...new Set((await decodePaintFile((await x.next('save')).file!)).header.faces.map((f) => f.surface))], [stamp.key]);
   shared = wx.code;

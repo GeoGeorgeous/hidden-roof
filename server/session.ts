@@ -103,9 +103,7 @@ export class Session {
     let p = token ? all.find((q) => q.token === token) : undefined;
     const how = p ? 'back' : (p = all.find((q) => !q.link && q.name === name)) ? 'takeover' : 'new';
     if (!p && this.players.size >= SERVER.maxPlayers) return 'full';
-    const id = p?.id;
-    // Not one with ops of their own since (a duplicated tab): the game takes no ops from itself.
-    const snap = this.snapshot((s) => id === undefined || !s.senders.has(id), () => p?.link === link && link.open);
+    const snap = this.snapshot(() => p?.link === link && link.open);
     if (snap === 'busy') return 'busy';
     this.counts[how]++;
     let note = '';
@@ -152,7 +150,9 @@ export class Session {
       const t = m.t.filter((_, i) => keep[i]);
       const valid = m.ops.filter((_, i) => keep[i]);
       this.paintNow(() => valid.forEach((op) => ops.apply(op)));
-      if (valid.length) this.snap?.relayed(this.broadcast({ type: 'ops', id: p.id, t, ops: valid }, p), p.id);
+      if (!valid.length) return;
+      this.broadcast({ type: 'ops', id: p.id, t, ops: valid }, p);
+      this.snap?.log.push(encode({ type: 'paint', ops: valid }));
     } else if (m.type === 'ladder') {
       p.ladder = m.data;
       this.broadcast({ type: 'ladder', id: p.id, t: m.t, data: m.data }, p);
@@ -208,8 +208,7 @@ export class Session {
   private async save(p: Player) {
     if (p.saving) return;
     const link = p.link;
-    // Not one with paint since: SAVE is the paint now.
-    const snap = this.snapshot((s) => !s.log.length, () => p.link === link && !!link?.open);
+    const snap = this.snapshot(() => p.link === link && !!link?.open, true);
     if (snap === 'busy') return this.send(p, { type: 'save', parts: 0 });
     p.saving = true;
     try {
@@ -224,14 +223,14 @@ export class Session {
   }
 
   /**
-   * A paint file that `fits`, for someone who wants it while `still()`: the
-   * newest one if it does, else the one waiting for its turn, else a new one
-   * (none when there's no memory for it). While it reads the paint, the paint
+   * A paint file for someone who wants it while `still()`: the newest one (for
+   * SAVE only with nothing painted since: SAVE is the paint now), else the one
+   * waiting for its turn, else a new one (none when there's no memory for it). While it reads the paint, the paint
    * holds still: what's painted meanwhile is applied after it, and its ops go
    * in the file's log.
    */
-  private snapshot(fits: (s: Snapshot) => boolean, still: () => boolean): Snapshot | 'busy' {
-    if (this.snap && fits(this.snap)) return this.snap.want(still);
+  private snapshot(still: () => boolean, save = false): Snapshot | 'busy' {
+    if (this.snap && !(save && this.snap.log.length)) return this.snap.want(still);
     if (this.next) return this.next.want(still);
     if (liveMemory() > SERVER.snapshotMemory) {
       log(this.code, `no memory for a paint file (${liveMemory().toFixed(0)} MB live)`);
@@ -283,7 +282,6 @@ export class Session {
   private broadcast(m: ToClient, except?: Player) {
     const f = encode(m);
     for (const p of this.players.values()) if (p !== except) deliver(p, f);
-    return f;
   }
 
   /** Runs `fn` at this session's PAINT DETAIL: PAINT.texelsPerMeter is global, and sessions may differ. */

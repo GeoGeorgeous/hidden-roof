@@ -5,9 +5,8 @@
 // its own is waiting to be made shares that one.
 
 export class Snapshot {
-  /** The ops frames relayed since its paint was read, and who sent them: a joiner gets them after the file. */
+  /** 'paint' frames of the ops relayed since its paint was read: a joiner gets them after the file. */
   readonly log: Uint8Array[] = [];
-  readonly senders = new Set<number>();
   /** Players who got it, joins and SAVEs. */
   served = 0;
   /** Its frames; null when no one still wanted it once its turn came (it wasn't made). */
@@ -24,12 +23,6 @@ export class Snapshot {
   want(still: () => boolean) {
     this.wants.push(still);
     return this;
-  }
-
-  /** An ops frame relayed after its paint was read. */
-  relayed(frame: Uint8Array, sender: number) {
-    this.log.push(frame);
-    this.senders.add(sender);
   }
 
   /** Made by `make` when its turn comes, if anyone still wants it then. */

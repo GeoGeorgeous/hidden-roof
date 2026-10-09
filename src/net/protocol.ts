@@ -69,6 +69,8 @@ export type ToClient =
   | { type: 'left'; id: number }
   | { type: 'state'; id: number; bytes: Uint8Array }
   | { type: 'ops'; id: number; t: number[]; ops: PaintOp[] }
+  /** Ops painted since the paint file of this welcome was read: painted at once, after it. */
+  | { type: 'paint'; ops: PaintOp[] }
   | { type: 'ladder'; id: number; t: number; data: PropData | null }
   /** The session's paint as a paint file in `parts` parts that follow (SAVE); none: the server can't make one now. */
   | { type: 'save'; parts: number }

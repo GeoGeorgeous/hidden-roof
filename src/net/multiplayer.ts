@@ -252,6 +252,7 @@ export class Multiplayer {
       const r = this.remotes.get(m.id);
       m.ops.forEach((op, i) => r?.receiveOp(m.t[i], op));
     } else if (m.type === 'ladder') this.remotes.get(m.id)?.receiveLadder(m.t, m.data);
+    else if (m.type === 'paint') m.ops.forEach((op) => this.g.paintOps.apply(op));
     else if (m.type === 'joined') {
       this.addRemote(m.id, m.name);
       this.onPlayer(m.name, true);
