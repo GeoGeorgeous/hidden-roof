@@ -1,4 +1,4 @@
-# roof.hidden.haus
+# Hidden Roof: the full reference
 
 A small first-person graffiti game in the browser. You're on the rooftops of a pen-and-ink megacity, high above streets lost in black: find colors, caps, a marker, a stepladder, a paint roller and a sponge, then paint whatever you like (and scrub it off again). The world is drawn in ink on paper; the only color anywhere is your paint. There are no enemies and no objectives. The HUD looks like a body-cam recording overlay.
 
