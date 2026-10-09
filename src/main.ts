@@ -121,7 +121,7 @@ const tools = new Tools(scene, viewScene, paint, level.solids, audio, inventory,
 tools.ladder.onBlocked = () => hotbar.toast("The ladder can't stand there");
 const wallHand = new WallHand(level.solids);
 viewScene.add(wallHand.group);
-const pickups = new Pickups(scene);
+const pickups = new Pickups(scene, camera, level.solids);
 pickups.onCollect = (label) => {
   audio.pickup();
   hotbar.toast(`+ ${label}`);

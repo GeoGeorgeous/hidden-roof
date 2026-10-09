@@ -641,15 +641,39 @@ export const PICKUP = {
   hover: 0.75,
   spin: 1.4,
   bob: 0.08,
-  /** The drawn ring around every pickup: size (x the item's hover box) and opacity. */
-  ring: { size: 1.3, opacity: 0.7 },
   /**
-   * A color pickup glows in its paint color, as pickups do in GTA: a soft light
-   * around the item (`size`, m) and a pool of it on the floor under it
-   * (`floor`, m), pulsing by `pulse` of `strength` at `pulseRate` (rad/s).
+   * The drawn ring around every pickup, its shape by kind (pickups/visuals.ts):
+   * size (x the item's hover box) and opacity. Never smaller on screen than
+   * `minSize` of its height, so its shape reads from far away (0 = it shrinks with distance).
+   */
+  ring: { size: 1.3, opacity: 0.7, minSize: 0.025 },
+  /**
+   * Every pickup glows, as pickups do in GTA: paint in its color, the rest
+   * white. A soft light around the item (`size`, m) and a pool of it on the
+   * floor under it (`floor`, m), pulsing by `pulse` of `strength` at `pulseRate` (rad/s).
    * `cover`: how much it tints what's behind it (paper) besides adding light (the dark).
    */
   glow: { size: 1.45, floor: 1.25, strength: 1, cover: 0.35, pulse: 0.35, pulseRate: 3.5 },
+  /**
+   * Each pickup's tag by its ring, manga-style (pickups/labels.ts): NEW TOOL
+   * in a caption box on the left, the name in outlined letters on the right,
+   * its katakana under it. Shown within `reach` (m) while in sight (checked
+   * `sightRate` times a second).
+   */
+  label: {
+    reach: 12,
+    sightRate: 4,
+    /** Per ring shape: `at` (x the ring's size: out from its middle, up) where the name starts and the caption ends, mirrored; `tilt` (degrees), along the ring's upper edges. */
+    place: {
+      color: { at: [0.33, 0.33] as [number, number], tilt: 45 },
+      cap: { at: [0.06, 0.27] as [number, number], tilt: 0 },
+      tool: { at: [0.17, 0.43] as [number, number], tilt: 45 },
+    },
+    /** NEW TOOL: font and size (px). */
+    caption: { font: 'mono' as TagFont, size: 10 },
+    /** The name: font, size and outline (px); `kana`: its katakana's size (px, 0 = none). */
+    name: { font: 'gothic' as TagFont, size: 22, outline: 5, kana: 11 },
+  },
   /**
    * Each kind's world pickup, on top of its tool model (MODELS, shown at twice real
    * size): not its hotbar icon or the avatar's tool. Color unlocks are `can`s.
@@ -663,6 +687,10 @@ export const PICKUP = {
     sponge: pickupPose(1.6),
   },
 };
+
+/** Fonts a pickup's tag can use (pickups/labels.ts): the HUD's, the neon signs' Japanese gothic, the menu title's graffiti. */
+export const TAG_FONTS = ['mono', 'gothic', 'graffiti'] as const;
+export type TagFont = (typeof TAG_FONTS)[number];
 
 /**
  * Tool models (m), at real size: one shape per tool (tools/shapes.ts), shared by

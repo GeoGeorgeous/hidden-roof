@@ -178,12 +178,21 @@ export function splitSections(list: Section[]): Section[] {
   return out;
 }
 
+/** Copies `from` into `to`, object by object, so values of one config object from several rows add up. */
+function merge(to: Obj, from: Obj) {
+  for (const [k, v] of Object.entries(from)) {
+    const o = to[k];
+    if (v && typeof v === 'object' && !Array.isArray(v) && o && typeof o === 'object') merge(o as Obj, v as Obj);
+    else to[k] = v;
+  }
+}
+
 /** Values of the given sections as nested JSON mirroring config.ts. */
 export function sectionsJSON(list: Section[]) {
   const out: Obj = {};
   for (const s of list) {
     for (const it of s.items) {
-      if (it.kind === 'choice' && it.copy) Object.assign(out, it.copy());
+      if (it.kind === 'choice' && it.copy) merge(out, it.copy());
       if (!isValue(it)) continue;
       let o = out;
       // Numeric keys are array slots ([x, y, z] values copy back as arrays).

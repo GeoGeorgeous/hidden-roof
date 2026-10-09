@@ -38,7 +38,7 @@ export function pickupLabel(kind: PickupKind) {
 }
 
 /** A pickup within its build picker group: the group, its name there and, for paint, its color. */
-function pickupVariant(kind: PickupKind) {
+export function pickupVariant(kind: PickupKind) {
   const c = parsePickup(kind)!;
   if ('color' in c) return { group: 'Paint', label: c.color, swatch: COLORS[c.color] };
   if ('cap' in c) return { group: 'Cap', label: CAPS[c.cap].name.toLowerCase() };

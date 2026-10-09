@@ -3,11 +3,18 @@ import { PICKUP } from '../config';
 import type { V3 } from '../kit/pieces';
 import type { Inventory } from '../inventory/inventory';
 import { parsePickup, pickupLabel, type PickupKind } from '../inventory/items';
-import { glow as makeGlow, glowColor, halo as makeHalo, itemModel, setGlow, type Glow } from './visuals';
+import { PickupLabels } from './labels';
+import { glow as makeGlow, halo as makeHalo, itemModel, setGlow, type Glow } from './visuals';
 
 // Pickups placed on the map. Walk into one to collect it; if it unlocks nothing
 // new (color/cap already owned, tool already found) it stays. Saved in level
 // JSON as {kind, pos}.
+
+/** You have what `kind` gives. */
+function owns(inv: Inventory, kind: PickupKind) {
+  const c = parsePickup(kind)!;
+  return 'color' in c ? inv.colors.includes(c.color) : 'cap' in c ? inv.caps.includes(c.cap) : inv.has(c.tool);
+}
 
 export interface PickupData {
   kind: PickupKind;
@@ -25,8 +32,7 @@ export interface Pickup {
   /** PICKUP.models for this kind. */
   pose: THREE.Group;
   halo: THREE.Sprite;
-  /** A color pickup's glow; null for the rest. */
-  glow: Glow | null;
+  glow: Glow;
   collected: boolean;
   /** Player was in range last frame (avoids repeating "full" messages). */
   inRange: boolean;
@@ -48,9 +54,12 @@ export class Pickups {
   onBlocked: (label: string) => void = () => {};
   private nextId = 1;
   private time = 0;
+  private labels: PickupLabels;
 
-  constructor(scene: THREE.Scene) {
+  /** `camera`: rings keep their shape readable on its screen (PICKUP.ring.minSize); tags hide behind `solids`. */
+  constructor(scene: THREE.Scene, private camera: THREE.PerspectiveCamera, solids: readonly THREE.Mesh[]) {
     scene.add(this.root);
+    this.labels = new PickupLabels(camera, solids);
   }
 
   /** Rebuild every pickup's item model (after a model changed in F3). */
@@ -72,22 +81,21 @@ export class Pickups {
       console.warn(`unknown pickup "${kind}"`);
       return null;
     }
-    const color = glowColor(kind);
     const group = new THREE.Group();
     const item = new THREE.Group();
     const pose = new THREE.Group();
     pose.add(itemModel(kind));
     item.add(pose);
-    const halo = makeHalo(color);
-    const glow = kind.startsWith('color:') ? makeGlow(color) : null;
+    // The glow first: three.js draws transparent things at the same spot in the order they were made, so the ring goes over it.
+    const glow = makeGlow(kind);
+    const halo = makeHalo(kind);
     // Invisible hit box so build mode can select the pickup.
     const hit = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.2, 0.7), new THREE.MeshBasicMaterial());
     hit.visible = false;
     hit.position.y = 0.6;
     const p: Pickup = { id: this.nextId++, kind, pos: [...pos], group, item, pose, halo, glow, collected: false, inRange: false, phase: Math.random() * 6 };
     hit.userData.pickupId = p.id;
-    group.add(item, halo, hit);
-    if (glow) group.add(glow.light, glow.floor);
+    group.add(item, halo, glow.light, glow.floor, hit);
     group.position.set(...p.pos);
     this.root.add(group);
     this.list.set(p.id, p);
@@ -106,15 +114,25 @@ export class Pickups {
     p.pose.rotation.set(...m.rotation);
     p.pose.scale.setScalar(m.size);
     p.halo.position.y = PICKUP.hover + bob;
-    p.halo.scale.setScalar(PICKUP.ring.size);
+    const size = this.ringSize(p);
+    p.halo.scale.setScalar(size);
+    // Grown past its size it grows upward, so the floor in front doesn't cut off its bottom.
+    p.halo.center.y = PICKUP.ring.size / 2 / size;
     p.halo.material.opacity = PICKUP.ring.opacity;
-    if (!p.glow) return;
     const g = PICKUP.glow;
     p.glow.light.position.y = PICKUP.hover + bob;
     p.glow.light.scale.setScalar(g.size);
     p.glow.floor.position.y = 0.01;
     p.glow.floor.scale.setScalar(g.floor);
     setGlow(p.glow, g.strength * (1 + g.pulse * Math.sin(this.time * g.pulseRate + p.phase)));
+  }
+
+  /** PICKUP.ring.size, but never under ring.minSize of the screen's height, so its shape reads from far away. */
+  private ringSize(p: Pickup) {
+    const { size, minSize } = PICKUP.ring;
+    const c = this.camera;
+    const far = Math.hypot(c.position.x - p.pos[0], c.position.y - p.pos[1] - p.halo.position.y, c.position.z - p.pos[2]);
+    return Math.max(size, minSize * far * 2 * Math.tan((c.fov * Math.PI) / 360));
   }
 
   remove(id: number) {
@@ -128,6 +146,7 @@ export class Pickups {
     });
     p.group.removeFromParent();
     this.list.delete(id);
+    this.labels.remove(id);
   }
 
   clear() {
@@ -164,13 +183,13 @@ export class Pickups {
       if (near && !p.inRange) this.tryCollect(p, inv);
       p.inRange = near;
     }
+    this.labels.update(dt, this.list.values(), (p) => !owns(inv, p.kind));
   }
 
   /** Pickups of what the player already has count as collected (a multiplayer session gave their inventory back). */
   collectOwned(inv: Inventory) {
     for (const p of this.list.values()) {
-      const c = parsePickup(p.kind)!;
-      if (!('color' in c ? inv.colors.includes(c.color) : 'cap' in c ? inv.caps.includes(c.cap) : inv.has(c.tool))) continue;
+      if (!owns(inv, p.kind)) continue;
       p.collected = true;
       p.group.visible = this.editing;
     }
