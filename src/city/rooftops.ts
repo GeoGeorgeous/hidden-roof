@@ -213,7 +213,7 @@ export function wallSigns(tw: Tower, clutterRange: number, signs: CityMesh, line
       const h = 6 + rnd() * 12;
       const w = 1.6 + rnd() * 1.6;
       const y0 = top - h - rnd() * Math.max(0, Math.min(40, top - h + 60));
-      signs.letters(cityTextRect(rnd(), rnd(), h / w, true, rnd() < 0.45));
+      signs.letters(cityTextRect(rnd(), rnd(), h / w, true, rnd() < 0.45), alongX ? ['+x', '-x'] : ['+z', '-z']);
       const gap = 0.5;
       if (alongX) signs.box(wx - 0.18, y0, out < 0 ? wz - gap - w : wz + gap, wx + 0.18, y0 + h, out < 0 ? wz - gap : wz + gap + w, true);
       else signs.box(out < 0 ? wx - gap - w : wx + gap, y0, wz - 0.18, out < 0 ? wx - gap : wx + gap + w, y0 + h, wz + 0.18, true);
@@ -230,7 +230,7 @@ export function wallSigns(tw: Tower, clutterRange: number, signs: CityMesh, line
       const h = 1 + rnd() * 1.2;
       const y0 = top - 3 - rnd() * 30;
       const a = Math.max(0.3, s - w / 2);
-      signs.letters(cityTextRect(rnd(), rnd(), (w / h) * 0.8, false, rnd() < 0.5, rnd() < 0.3));
+      signs.letters(cityTextRect(rnd(), rnd(), (w / h) * 0.8, false, rnd() < 0.5, rnd() < 0.3), [alongX ? (out < 0 ? '-z' : '+z') : out < 0 ? '-x' : '+x']);
       if (alongX) signs.box(t.x0 + a, y0, out < 0 ? wz - 0.3 : wz, t.x0 + a + w, y0 + h, out < 0 ? wz : wz + 0.3, true);
       else signs.box(out < 0 ? wx - 0.3 : wx, y0, t.z0 + a, out < 0 ? wx : wx + 0.3, y0 + h, t.z0 + a + w, true);
     }
@@ -246,7 +246,8 @@ function billboard(r: Rect, side: number, y: number, lift: number, h: number, me
   const outer = side === 0 ? z0 : side === 1 ? z1 : side === 2 ? x0 : x1;
   const inward = side % 2 ? -1 : 1;
   const across = (off: number) => outer + inward * off;
-  signs.set(0.95).letters(cityTextRect(rnd(), rnd(), (len / h) * (0.7 + rnd() * 0.5), false, rnd() < 0.4, rnd() < 0.25));
+  // Lettered on the outer face only.
+  signs.set(0.95).letters(cityTextRect(rnd(), rnd(), (len / h) * (0.7 + rnd() * 0.5), false, rnd() < 0.4, rnd() < 0.25), [(['-z', '+z', '-x', '+x'] as const)[side]]);
   const [a, b] = [across(0), across(0.25)].sort((p, q) => p - q);
   if (alongX) signs.box(x0, y + lift, a, x1, y + lift + h, b);
   else signs.box(a, y + lift, z0, b, y + lift + h, z1);

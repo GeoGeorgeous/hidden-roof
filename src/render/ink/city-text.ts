@@ -13,6 +13,7 @@ import { fillColumn } from './vertical-text';
 // for the Japanese ones, as a column of upright characters (vertical blade
 // signs). A sign takes the strip's rect as wide as its shape: wider than the
 // text leaves plain margins, narrower cuts it to a run of its characters.
+// Under them a strip of plain ink: a sign's edges and back (CITY_PLAIN).
 
 const ROW = 40;
 /** English slogans: drawn in the same font, squeezed to LATIN_WIDTH cells per letter. */
@@ -42,7 +43,8 @@ const COL_CELLS = Math.max(...JP_PIECES.map((p) => p.chars.length));
 const W = Math.max(1024, 2 * COLS * ROW);
 /** Rows (every piece, paper then ink) take the top of the atlas, the columns (every Japanese piece, paper then ink) the bottom. */
 const COLUMNS_Y = 2 * N * ROW;
-const H = COLUMNS_Y + COL_CELLS * ROW;
+const PLAIN_Y = COLUMNS_Y + COL_CELLS * ROW;
+const H = PLAIN_Y + ROW;
 
 let atlas: ReturnType<typeof letteringTexture> | null = null;
 
@@ -80,6 +82,8 @@ function draw(ctx: CanvasRenderingContext2D) {
       fillColumn(ctx, p.chars, x + ROW / 2, COLUMNS_Y + ((COL_CELLS - p.chars.length) * ROW) / 2, ROW, ROW * 0.8);
     }
   }
+  ctx.fillStyle = INK;
+  ctx.fillRect(0, PLAIN_Y, W, ROW);
 }
 
 /** The city's lettering atlas (see above); drawn at once, and again when the font arrives. */
@@ -99,6 +103,9 @@ export function cityTextAtlas() {
 }
 
 const rect = (x0: number, y0: number, x1: number, y1: number): UvRect => canvasUv(x0, y0, x1, y1, W, H);
+
+/** One point in the plain ink strip: a face mapped to it is plain ink. */
+export const CITY_PLAIN = rect(W / 2, PLAIN_Y + ROW / 2, W / 2, PLAIN_Y + ROW / 2);
 
 /**
  * Lettering for a sign `aspect` (width / height) in shape: a phrase that fits
