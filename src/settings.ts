@@ -1,4 +1,4 @@
-import { ATMOS, AUDIO, PAINT, PLAYER, RENDER, SKYLINE, SMOKE, VOLUMETRICS } from './config';
+import { ATMOS, AUDIO, HUD, PAINT, PLAYER, RENDER, SKYLINE, SMOKE, VOLUMETRICS } from './config';
 import { exitGameFullscreen } from './fullscreen';
 
 // Player settings, on the settings page of the pause menu (settings-page.ts):
@@ -176,6 +176,7 @@ export class Settings {
       toggle('RAIN', () => ATMOS.rain, (on) => (ATMOS.rain = on), 'LOW'),
       toggle('SMOKE', () => SMOKE.enabled, (on) => (SMOKE.enabled = on), 'LOW'),
       toggle('MOVING PARTS', () => RENDER.propMotion, (on) => (RENDER.propMotion = on), 'LOW'),
+      toggle('PERFORMANCE LINES', () => HUD.perf, (on) => (HUD.perf = on)),
     ];
   }
 

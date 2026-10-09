@@ -50,6 +50,8 @@ import { seedPaintRandom } from './lcg';
 
 // F3's defaults before anything changes config (the panel isn't in the player build).
 if (__DEV_TOOLS__) captureDefaults();
+// Players start without the performance lines; SETTINGS → GRAPHICS turns them on.
+else HUD.perf = false;
 // Settings first: they may change the pixel scale the renderer starts with,
 // and the paint detail the level is built with.
 const settings = new Settings(applyPixelScale, () => level.rebuildAll(), rebuildCity);
