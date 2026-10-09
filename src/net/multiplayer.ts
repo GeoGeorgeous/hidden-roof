@@ -185,24 +185,24 @@ export class Multiplayer {
       ws.send(encode(hello));
     };
     // What this game can't take (a welcome it can't load) ends the session for it.
-    const handle = (m: ToClient, file?: Uint8Array) => (this.queue = this.queue.then(() => this.receive(m, file)).catch((err) => (console.error(err), this.send({ type: 'leave' }), this.end({ state: 'failed', reason: 'version' }))));
+    const handle = (m: ToClient, arrived: number, file?: Uint8Array) => (this.queue = this.queue.then(() => this.receive(m, arrived, file)).catch((err) => (console.error(err), this.send({ type: 'leave' }), this.end({ state: 'failed', reason: 'version' }))));
     /** A welcome or save whose paint file is still coming, in parts. */
     let waiting: { m: Extract<ToClient, { type: 'welcome' | 'save' }>; parts: Uint8Array[] } | null = null;
     ws.onmessage = (e) => {
       if (this.ws !== ws) return;
-      this.lastHeard = heard = now();
+      const t = (this.lastHeard = heard = now());
       this.net.down += (e.data as ArrayBuffer).byteLength;
       const m = decode(new Uint8Array(e.data as ArrayBuffer)) as ToClient | null;
       if (m?.type === 'part') {
         if (!waiting) return;
         waiting.parts.push(m.bytes);
         if (waiting.parts.length < waiting.m.parts) return;
-        handle(waiting.m, joinBytes(waiting.parts));
+        handle(waiting.m, t, joinBytes(waiting.parts));
         waiting = null;
       } else if ((m?.type === 'welcome' || m?.type === 'save') && m.parts) {
         if (m.type === 'welcome') this.log.add(`welcome: the paint comes in ${m.parts} parts`);
         waiting = { m, parts: [] };
-      } else if (m) handle(m);
+      } else if (m) handle(m, t);
     };
     ws.onclose = (e) => {
       clearInterval(timer);
@@ -237,8 +237,8 @@ export class Multiplayer {
     r.wait = Math.min(r.wait * 2, 8);
   }
 
-  /** `file`: the paint file of a welcome or a save. */
-  private async receive(m: ToClient, file?: Uint8Array) {
+  /** `arrived`: when it came (local s); `file`: the paint file of a welcome or a save. */
+  private async receive(m: ToClient, arrived: number, file?: Uint8Array) {
     if (m.type === 'welcome') return this.welcome(m, file!);
     if (m.type === 'rejected') {
       this.log.add(`turned away by the server: ${m.reason}`);
@@ -247,7 +247,7 @@ export class Multiplayer {
       return this.end({ state: 'failed', reason: ended ? 'ended' : m.reason });
     }
     if (!this.joined) return;
-    if (m.type === 'state') this.remotes.get(m.id)?.receive(m.bytes, now());
+    if (m.type === 'state') this.remotes.get(m.id)?.receive(m.bytes, arrived);
     else if (m.type === 'ops') {
       const r = this.remotes.get(m.id);
       m.ops.forEach((op, i) => r?.receiveOp(m.t[i], op));

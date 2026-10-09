@@ -104,6 +104,18 @@ try {
   await a.waitForFunction(() => window.game.net.names.size === 0, null, { timeout: 5000 });
   assert.equal(await b.evaluate(() => window.game.session.multiplayer), false);
 
+  // B joins again, and its welcome takes 5 s to load (a big save at ULTRA): A's snapshots wait behind it, and A is
+  // still shown at once.
+  await b.evaluate(() => {
+    const n = window.game.net;
+    const welcome = n.welcome.bind(n);
+    n.welcome = async (...args) => (await new Promise((r) => setTimeout(r, 5000)), welcome(...args));
+  });
+  await b.evaluate((c) => window.game.net.join('B', c), code);
+  await status(b, 'in');
+  await b.waitForFunction(() => [...window.game.net.remotes.values()][0]?.avatar.group.visible, null, { timeout: 2000 });
+  await b.evaluate(() => window.game.net.leave());
+
   // The server restarts (a deploy): A's game reconnects, finds its session gone, and says the session has ended.
   server.kill();
   server = startServer();

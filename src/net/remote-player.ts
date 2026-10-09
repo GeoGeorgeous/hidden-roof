@@ -62,7 +62,7 @@ export class RemotePlayer {
     return this.avatar.group.position;
   }
 
-  /** A snapshot arrived at local time `now` (s). */
+  /** A snapshot arrived at local time `now` (s): when it came, not when it's read (it may have waited behind a welcome's paint). */
   receive(bytes: Uint8Array, now: number) {
     const s = decodeSnapshot(bytes);
     const last = this.snaps[this.snaps.length - 1];
@@ -105,6 +105,9 @@ export class RemotePlayer {
     const delay = Math.min(NET.maxDelay, Math.max(NET.interpDelay, 1 / NET.sendRate + NET.jitterCover * this.jitter));
     const ease = NET.clockRate * dt;
     this.lag += Math.min(ease, Math.max(-ease, this.target + delay - this.lag));
+    const s = this.snaps;
+    // Far behind every snapshot kept (they piled up while this game was busy or hidden): catch up at once, not over a minute.
+    if (s.length && now - this.lag < s[0].t - NET.maxDelay) this.lag = Math.min(this.lag, this.target + delay);
     const at = Math.max(now - this.lag, this.shown);
     this.shown = at;
     let n = 0;
@@ -113,7 +116,6 @@ export class RemotePlayer {
       else this.events[n++] = e;
     }
     this.events.length = n;
-    const s = this.snaps;
     while (s.length > 2 && s[1].t <= at) s.shift();
     if (!s.length || s[0].t > at) return;
     const a = s[0];
