@@ -164,10 +164,15 @@ export function halo(kind: PickupKind) {
   return halo;
 }
 
-/** The ring's color now (live in F3): paint's own at PICKUP.ring.opacity, a cap's or a tool's solid in its shade of ink. */
+/** The ring's color now (live in F3): paint's own (toward black by PICKUP.ring.paint) at ring.opacity, a cap's or a tool's solid in its shade of ink. */
 export function setRing(halo: THREE.Sprite, kind: PickupKind) {
   const c = parsePickup(kind)!;
-  const hex = 'color' in c ? COLORS[c.color] : 'cap' in c ? PICKUP.ring.cap : PICKUP.ring.tool;
-  if (halo.userData.color !== hex) halo.material.color.set((halo.userData.color = hex));
-  halo.material.opacity = 'color' in c ? PICKUP.ring.opacity : 1;
+  const { opacity, paint, cap, tool } = PICKUP.ring;
+  const hex = 'color' in c ? COLORS[c.color] : 'cap' in c ? cap : tool;
+  const k = 'color' in c ? paint : 1;
+  if (halo.userData.color !== hex + k) {
+    halo.userData.color = hex + k;
+    halo.material.color.set(hex).multiplyScalar(k);
+  }
+  halo.material.opacity = 'color' in c ? opacity : 1;
 }

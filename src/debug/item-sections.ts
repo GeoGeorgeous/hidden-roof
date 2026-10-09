@@ -74,6 +74,7 @@ export function itemSections(): Section[] {
         r('bob height', ['PICKUP', 'bob'], 0, 0.5, 0.01),
         r('ring: size', ['PICKUP', 'ring', 'size'], 0.3, 3, 0.05),
         r('ring: opacity', ['PICKUP', 'ring', 'opacity'], 0, 1, 0.05),
+        r('ring: paint color', ['PICKUP', 'ring', 'paint'], 0, 1, 0.05),
         gray('ring: cap color', ['PICKUP', 'ring', 'cap']),
         gray('ring: tool color', ['PICKUP', 'ring', 'tool']),
         r('ring: min size', ['PICKUP', 'ring', 'minSize'], 0, 0.1, 0.005),

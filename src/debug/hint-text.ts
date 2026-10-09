@@ -27,6 +27,7 @@ export const HINTS: Record<string, string> = {
   'PICKUP.bob': 'How far pickups bob up and down (m).',
   'PICKUP.ring.size': 'Size of the drawn ring around every pickup (x 1 m): a circle for paint, a triangle for caps, a diamond for tools.',
   'PICKUP.ring.opacity': 'How strongly a paint pickup\'s ring shows (caps\' and tools\' are solid: see their colors). 0 = no ring.',
+  'PICKUP.ring.paint': 'A paint pickup\'s ring, from black (0) to its paint color (1).',
   'PICKUP.ring.cap': 'Shade of a cap pickup\'s ring, from white to black. It\'s solid: black is black.',
   'PICKUP.ring.tool': 'Shade of a tool pickup\'s ring, from white to black. It\'s solid: black is black.',
   'PICKUP.ring.minSize': 'Smallest the ring gets on screen, as a share of its height, so its shape reads from far away (it grows upward from there). 0 = it shrinks with distance.',
