@@ -24,6 +24,10 @@ export class Player {
   onLadder = false;
   /** Running fast enough to count as sprinting (widens the FOV). */
   sprinting = false;
+  /** W double-tapped: running until W is let go, as holding Shift does. */
+  private tapSprint = false;
+  /** Time since W was last pressed (s). */
+  private sinceW = Infinity;
   /** Distance walked, for footsteps. */
   stride = 0;
   onLand: (speed: number) => void = () => {};
@@ -121,7 +125,13 @@ export class Player {
     const ladder = this.findLadder();
     this.onLadder = !!ladder;
 
-    const sprint = input.isDown('ShiftLeft') && fwd > 0 && !this.crouched && !ladder;
+    this.sinceW += dt;
+    if (input.wasPressed('KeyW')) {
+      if (this.sinceW < PLAYER.sprintDoubleTap) this.tapSprint = true;
+      this.sinceW = 0;
+    }
+    if (!input.isDown('KeyW')) this.tapSprint = false;
+    const sprint = (input.isDown('ShiftLeft') || this.tapSprint) && fwd > 0 && !this.crouched && !ladder;
     const speed = this.crouched ? PLAYER.crouchSpeed : sprint ? PLAYER.sprintSpeed : PLAYER.walkSpeed;
     const moving = wish.lengthSq() > 0;
     // Ground (and ladders): accelerate toward the wished velocity, or brake with friction.

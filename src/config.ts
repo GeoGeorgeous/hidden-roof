@@ -676,6 +676,8 @@ export const PLAYER = {
   radius: 0.3,
   walkSpeed: 4.2,
   sprintSpeed: 7,
+  /** Double-tapping W within this time (s) also sprints, until W is let go (as in Minecraft). */
+  sprintDoubleTap: 0.3,
   /** How fast you reach the wished speed (1/s). */
   acceleration: 8.5,
   /** How fast you stop on the ground with no input (1/s). */

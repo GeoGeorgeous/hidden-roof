@@ -37,6 +37,7 @@ export function playSections(): Section[] {
         { kind: 'readout', label: 'state', get: () => p()?.state ?? '-' },
         r('walk speed', ['PLAYER', 'walkSpeed'], 1, 12, 0.1),
         r('sprint: speed', ['PLAYER', 'sprintSpeed'], 1, 16, 0.1),
+        r('sprint: double tap', ['PLAYER', 'sprintDoubleTap'], 0.1, 0.6, 0.01),
         r('crouch: speed', ['PLAYER', 'crouchSpeed'], 0.5, 6, 0.1),
         r('acceleration', ['PLAYER', 'acceleration'], 1, 40, 0.5),
         r('friction', ['PLAYER', 'friction'], 1, 40, 0.5),

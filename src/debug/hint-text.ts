@@ -6,7 +6,8 @@
 export const HINTS: Record<string, string> = {
   // Movement
   'PLAYER.walkSpeed': 'Top speed when walking (m/s).',
-  'PLAYER.sprintSpeed': 'Top speed while holding Shift and moving forward (m/s).',
+  'PLAYER.sprintSpeed': 'Top speed while holding Shift and moving forward, or after double-tapping W (m/s).',
+  'PLAYER.sprintDoubleTap': 'Two presses of W closer than this (s) sprint until W is let go. Higher = easier to trigger, also by accident.',
   'PLAYER.crouchSpeed': 'Top speed while crouched (m/s).',
   'PLAYER.acceleration': 'How quickly you reach the wished speed on the ground or a ladder. Higher = snappier starts and turns.',
   'PLAYER.friction': 'How quickly you stop on the ground when you let go of the keys. Higher = shorter slide.',
