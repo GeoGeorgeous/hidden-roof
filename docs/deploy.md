@@ -58,12 +58,13 @@ roof.hidden.haus {
 		@rest not path /assets/*
 		header @assets Cache-Control "public, max-age=31536000, immutable"
 		header @rest Cache-Control "no-cache"
+		header Content-Security-Policy "default-src 'self'; img-src 'self' data: blob:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"
 		file_server
 	}
 }
 ```
 
-Add the `/ws` handle only once the server exists. Add a CSP (`default-src 'self'`) only after testing the game with it in a browser.
+Add the `/ws` handle only once the server exists. The CSP is `CSP` in `vite.config.ts`, tested by `npm run test:csp` (part of `npm run check`): change both together. The `header` line without a matcher is safe here: it sets another header than the matched pair.
 
 ## 6. The multiplayer server *(changes)*
 
