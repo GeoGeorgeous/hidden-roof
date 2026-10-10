@@ -230,6 +230,12 @@ export function uiSections(): Section[] {
         r('opacity', ['PAUSE_MENU', 'opacity'], 0, 1, 0.05, () => live.previewPause()),
         t('controls', ['PAUSE_MENU', 'controls'], () => live.previewPause()),
         r('size', ['PAUSE_MENU', 'scale'], 0.8, 2, 0.05, () => live.previewPause()),
+        t('view', ['PAUSE_MENU', 'view'], () => live.previewPause()),
+        r('view: x', ['PAUSE_MENU', 'viewX'], -80, 80, 0.5, () => live.previewPause()),
+        r('view: y', ['PAUSE_MENU', 'viewY'], -20, 40, 0.5, () => live.previewPause()),
+        r('view: z', ['PAUSE_MENU', 'viewZ'], -80, 80, 0.5, () => live.previewPause()),
+        r('view: yaw', ['PAUSE_MENU', 'viewYaw'], -180, 180, 1, () => live.previewPause()),
+        r('view: pitch', ['PAUSE_MENU', 'viewPitch'], -45, 20, 1, () => live.previewPause()),
       ],
     },
   ];

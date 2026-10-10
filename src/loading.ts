@@ -19,6 +19,14 @@ export function loadFailed() {
   if (screen) screen.querySelector('span')!.textContent = "THE LEVEL DIDN'T LOAD: RELOAD THE PAGE";
 }
 
+/**
+ * The first frame under the screen is drawn from where the player stands, the
+ * next from the title view: each sets up what it draws, so neither stalls later.
+ */
+export function drawsFromPlayer() {
+  return !!screen && drawn === 0;
+}
+
 /** After each frame drawn: enough of them, and the game shows. */
 export function frameDrawn() {
   if (!screen || ++drawn < RENDER.loadFrames) return;

@@ -10,9 +10,10 @@ export const RENDER = {
   /** Frame rate limit (frames per second); 0 = none, as fast as the display refreshes. A player setting (FRAME RATE). */
   maxFps: 0,
   /**
-   * Frames drawn under the loading screen before it goes: the first compiles
-   * the shaders and uploads the level; the next settle what waited on it (the
-   * hotbar icons' read back), so the game shows without a stall.
+   * Frames drawn under the loading screen before it goes (loading.ts): the
+   * first, from where the player stands, compiles the shaders and uploads what
+   * play draws first; the next, from the title view, what it shows, and settle
+   * what waited on them (the hotbar icons' read back). Then nothing stalls.
    */
   loadFrames: 3,
   /** Go fullscreen when the game takes the mouse (off: play in the browser window). */
@@ -300,6 +301,13 @@ export const PAUSE_MENU = {
   controls: true,
   /** Size of everything on the sheet (1 = as styled in style.css). */
   scale: 1.05,
+  /** The title screen's view (before START; ESC later shows where you are): a fixed camera on the city. Position (m), yaw and pitch (degrees, pitch < 0 looks down). */
+  view: true,
+  viewX: -24,
+  viewY: 9,
+  viewZ: -36,
+  viewYaw: -135,
+  viewPitch: -8,
 };
 
 /** What the HUD shows (hud.ts) and the hotbar's size (inventory/hotbar.ts), live in F3 → UI. */

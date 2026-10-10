@@ -695,6 +695,30 @@ await check('session: B and F3 open build mode and the panel in single player; a
   return r.solo === 'build panel' && r.entered === '- -' && r.inSession === '- -' ? null : JSON.stringify(r);
 });
 
+await check('title view: before START the title screen shows the city, without hands; once started, ESC shows where you are, in build mode too', async () => {
+  const fresh = await openPage();
+  const r = await fresh.evaluate(async () => {
+    const g = window.game;
+    const frame = () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+    const press = async (code) => (window.dispatchEvent(new KeyboardEvent('keydown', { code })), window.dispatchEvent(new KeyboardEvent('keyup', { code })), frame());
+    const lock = async (on) => (g.input.locked = on, g.input.onLockChange(on), frame());
+    const state = () => `${g.hud.cityView ? 'city' : 'you'} ${g.viewScene.visible ? 'hands' : '-'}`;
+    await frame();
+    const title = state();
+    await lock(true);
+    const playing = state();
+    await lock(false);
+    const paused = state();
+    await lock(true);
+    await press('KeyB');
+    await lock(false);
+    const buildPaused = state();
+    return { title, playing, paused, buildPaused };
+  });
+  await fresh.close();
+  return r.title === 'city -' && r.playing === 'you hands' && r.paused === 'you hands' && r.buildPaused === 'you hands' ? null : JSON.stringify(r);
+});
+
 await check('session: paused, the world goes on (you fall, paint runs run) and keys don\'t move you; paused in single player, it stops', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
