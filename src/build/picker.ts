@@ -46,7 +46,7 @@ function propEntry(base: PropDef): Entry {
 function entriesFor(c: Category): Entry[] {
   if (c === 'level') {
     const colors = [HINT.color, ...COLOR_ORDER.filter((k) => k !== HINT.color)];
-    const hint: Entry = { label: 'Hint', variants: colors.map((color) => ({ label: color, swatch: COLORS[color], choice: { kind: 'hint', color } })), settings: [{ key: 'ENTER', name: 'TEXT' }, { key: '[ ]', name: 'SIZE' }, { key: 'T', name: 'FONT' }], finishes: [] };
+    const hint: Entry = { label: 'Hint', variants: colors.map((color) => ({ label: color, swatch: COLORS[color], choice: { kind: 'hint', color } })), settings: [{ key: 'ENTER', name: 'TEXT' }, { key: '[ ]', name: 'SIZE' }, { key: 'T', name: 'FONT' }, { key: 'L', name: 'ALIGN' }], finishes: [] };
     return [{ label: 'Spawn point', variants: [{ label: 'spawn point', choice: { kind: 'spawn' } }], settings: [], finishes: [] }, hint];
   }
   if (c === 'pickups') return PICKUP_GROUPS.map((g) => ({ label: g.label, variants: g.kinds.map((k) => ({ label: k.label, swatch: k.swatch, choice: { kind: 'pickup', type: k.kind } })), settings: [], finishes: [] }));

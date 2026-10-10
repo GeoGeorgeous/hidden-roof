@@ -696,6 +696,9 @@ export type TagFont = (typeof TAG_FONTS)[number];
 /** Fonts a hint can be painted in (build/hint-fonts.ts): the HUD's mono, a marker, a comic font and a bold grotesque for signage (floor numbers, arrows). */
 export const HINT_FONTS = ['mono', 'marker', 'bangers', 'inter'] as const;
 export type HintFont = (typeof HINT_FONTS)[number];
+/** How a hint's lines line up (build/stencil-text.ts). */
+export const HINT_ALIGNS = ['left', 'center', 'right'] as const;
+export type HintAlign = (typeof HINT_ALIGNS)[number];
 
 /**
  * Tool models (m), at real size: one shape per tool (tools/shapes.ts), shared by
@@ -1149,6 +1152,8 @@ export const HINT = {
   keyGap: 0.2,
   /** From one line's middle to the next (<br>), in ems: room for a key cap and a gap. */
   lineHeight: 1.35,
+  /** How new hints' lines line up (L changes it). */
+  align: 'left' as HintAlign,
   /**
    * Each font's look: overspray, a soft haze around the letters, how far it
    * reaches (ems) and how strong it is (0..1); softness of the letters' edge,

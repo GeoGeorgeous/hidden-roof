@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { HINT, HINT_FONTS, PAINT, type HintFont, type PaintColor } from '../config';
+import { HINT, HINT_ALIGNS, HINT_FONTS, PAINT, type HintFont, type PaintColor } from '../config';
 import { download } from '../files';
 import type { Input } from '../input';
 import { rgbOf } from '../inventory/items';
@@ -17,10 +17,11 @@ import { hintImage } from './stencil-text';
 // Build mode's paint, which P saves with the level as its own (save/level-paint.ts):
 // hints painted onto walls with the Hint entry of the picker (LEVEL): Enter
 // types the text (<k>KEY</k> for a key cap, <br> for a new line), [ ] sets
-// its size, T its font, Tab its color, LMB paints it where the preview shows;
-// X wipes the paint off the face under the crosshair; Ctrl+Z undoes either
-// (build mode's history keeps the paint they changed); H shows the paintable
-// surfaces striped, then the painted spots through walls (painted-spots.ts).
+// its size, T its font, L how its lines line up, Tab its color, LMB paints it
+// where the preview shows; X wipes the paint off the face under the
+// crosshair; Ctrl+Z undoes either (build mode's history keeps the paint they
+// changed); H shows the paintable surfaces striped, then the painted spots
+// through walls (painted-spots.ts).
 
 /** What H shows: nothing, paintable surfaces striped, or the painted spots. */
 type View = 'off' | 'paintable' | 'painted';
@@ -45,6 +46,7 @@ export class PaintEditor {
   private text = '';
   private size = HINT.size;
   private font = HINT.font;
+  private align = HINT.align;
   private view: View = 'off';
   private spots: PaintedSpots;
   /** Surfaces and how many hold paint when the spots were last drawn: they're drawn again when that changes (a prop rebuilt). */
@@ -111,6 +113,10 @@ export class PaintEditor {
       const i = (HINT_FONTS.indexOf(this.font) + back + HINT_FONTS.length) % HINT_FONTS.length;
       void this.pickFont(HINT_FONTS[i]);
       this.say(`HINT FONT ${i + 1}/${HINT_FONTS.length}: ${hintFontName(this.font)}`);
+    }
+    if (input.wasPressed('KeyL')) {
+      this.align = HINT_ALIGNS[(HINT_ALIGNS.indexOf(this.align) + 1) % HINT_ALIGNS.length];
+      this.say(`HINT LINES: ${this.align.toUpperCase()}`);
     }
     if (aim) this.showPreview(aim, hint);
   }
@@ -188,7 +194,7 @@ export class PaintEditor {
   /** The hint as an image to paint, or why it can't be one. */
   private draw(): PaintImage | string {
     try {
-      return hintImage(this.text, this.font, this.size, PAINT.texelsPerMeter * HINT.supersample) ?? 'NOTHING TO PAINT';
+      return hintImage(this.text, this.font, this.size, PAINT.texelsPerMeter * HINT.supersample, this.align) ?? 'NOTHING TO PAINT';
     } catch (e) {
       return (e as Error).message;
     }
@@ -213,7 +219,7 @@ export class PaintEditor {
 
   private showPreview(aim: Aim, color: PaintColor) {
     // The font's look too: F3 changes it.
-    const key = `${this.text}|${this.font}|${JSON.stringify(HINT.looks[this.font])}|${this.size}|${color}|${PAINT.texelsPerMeter}`;
+    const key = `${this.text}|${this.font}|${this.align}|${JSON.stringify(HINT.looks[this.font])}|${this.size}|${color}|${PAINT.texelsPerMeter}`;
     if (key !== this.previewKey) {
       this.previewKey = key;
       const img = this.draw();
