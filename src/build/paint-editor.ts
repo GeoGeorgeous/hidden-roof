@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { HINT, PAINT, TAG_FONTS, type PaintColor } from '../config';
+import { HINT, HINT_FONTS, PAINT, type HintFont, type PaintColor } from '../config';
 import { download } from '../files';
 import type { Input } from '../input';
 import { rgbOf } from '../inventory/items';
@@ -11,7 +11,8 @@ import type { PaintPatch, PaintSurface, PaintSystem } from '../painting';
 import { savePaint } from '../save/save-paint';
 import { facePoint, type FacePoint } from '../surfaces';
 import { PaintedSpots } from './painted-spots';
-import { hintFontReady, hintImage } from './stencil-text';
+import { hintFontLoaded, hintFontName, hintFontReady } from './hint-fonts';
+import { hintImage } from './stencil-text';
 
 // Build mode's paint, which P saves with the level as its own (save/level-paint.ts):
 // hints painted onto walls with the Hint entry of the picker (LEVEL): Enter
@@ -66,8 +67,7 @@ export class PaintEditor {
     this.preview.renderOrder = 10;
     this.preview.visible = false;
     scene.add(this.preview);
-    // Only build mode draws in the font: players never load it for this.
-    void hintFontReady().then(() => (this.previewKey = ''));
+    void this.pickFont(this.font);
   }
 
   /** Any paint on the walls: P saves it as the level's own. */
@@ -105,8 +105,9 @@ export class PaintEditor {
     }
     if (input.wasPressed('KeyT')) {
       const back = input.isDown('ShiftLeft') || input.isDown('ShiftRight') ? -1 : 1;
-      this.font = TAG_FONTS[(TAG_FONTS.indexOf(this.font) + back + TAG_FONTS.length) % TAG_FONTS.length];
-      this.say(`HINT FONT ${this.font.toUpperCase()}`);
+      const i = (HINT_FONTS.indexOf(this.font) + back + HINT_FONTS.length) % HINT_FONTS.length;
+      void this.pickFont(HINT_FONTS[i]);
+      this.say(`HINT FONT ${i + 1}/${HINT_FONTS.length}: ${hintFontName(this.font)}`);
     }
     if (aim) this.showPreview(aim, hint);
   }
@@ -114,6 +115,7 @@ export class PaintEditor {
   /** LMB with the Hint entry selected: the hint on the wall under the crosshair. */
   stamp(color: PaintColor, camera: THREE.Camera) {
     if (!this.text) return this.editText();
+    if (!hintFontLoaded(this.font)) return this.say('FONT STILL LOADING');
     const aim = this.aim(camera);
     const img = hintImage(this.text, this.font, this.size, PAINT.texelsPerMeter * HINT.supersample);
     if (!aim || !img) return this.say('AIM AT A PAINTABLE SURFACE');
@@ -121,6 +123,12 @@ export class PaintEditor {
     if (!this.paint.imprint(aim.surface, aim.at, img, aim.right, aim.up, rgbOf(color), (s, box) => was.push(this.paint.patch(s, box)))) return this.say('HINTS GO ON FLAT FACES');
     this.remember(was);
     this.changed('HINT PAINTED · CTRL+Z UNDOES IT');
+  }
+
+  /** New hints in font `f`: drawn once it's loaded (the preview, then). */
+  pickFont(f: HintFont) {
+    this.font = f;
+    return hintFontReady(f).then(() => (this.previewKey = ''));
   }
 
   /** Ctrl+Z: paint as it was before a hint or a wipe. */

@@ -418,18 +418,19 @@ await check('hints: <br> starts a new line; a hint of only <br> is nothing', asy
   return near(r.two - r.one, r.pitch) && near(r.three - r.one, 2 * r.pitch) && r.wide && r.empty === null ? null : JSON.stringify(r);
 });
 
-await check('hints: every font paints; softness 0 paints whole texels only, softness 1 a soft edge', async () => {
+await check('hints: every font loads from its file and paints; softness 0 paints whole texels only, softness 1 a soft edge', async () => {
+  const fonts = await page.evaluate(() => window.game.config.HINT_FONTS);
   const r = {};
-  for (const [font, softness] of [['graffiti', 1], ['gothic', 0], ['gothic', 1], ['mono', 0.3]]) {
-    await page.evaluate(([font, softness]) => {
+  for (const [font, softness] of [...fonts.map((f) => [f, null]), ['gothic', 0], ['gothic', 1]]) {
+    await page.evaluate(async ([font, softness]) => {
       const g = window.game;
       g.paint.clear();
-      g.build.paintEdit.font = font;
+      await g.build.paintEdit.pickFont(font);
       window.oldLook = { ...g.config.HINT.looks[font] };
-      g.config.HINT.looks[font].softness = softness;
+      if (softness !== null) g.config.HINT.looks[font].softness = softness;
     }, [font, softness]);
     await paintHint(page);
-    r[`${font} ${softness}`] = await page.evaluate((font) => {
+    r[softness === null ? font : `${font} ${softness}`] = await page.evaluate((font) => {
       const g = window.game;
       Object.assign(g.config.HINT.looks[font], window.oldLook);
       let lit = 0;
@@ -438,12 +439,18 @@ await check('hints: every font paints; softness 0 paints whole texels only, soft
       return { lit, soft };
     }, font);
   }
+  // The extra fonts (not the pickup tags' three) came from their files, not a fallback.
+  const missing = await page.evaluate((fonts) => {
+    const loaded = new Set([...document.fonts].filter((f) => f.status === 'loaded').map((f) => f.family.replace(/["']/g, '')));
+    const url = performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/build/hint-fonts.ts'));
+    return import(url).then(({ hintCss }) => fonts.slice(3).filter((f) => !loaded.has(hintCss(f, 32).match(/'([^']+)'/)[1])));
+  }, fonts);
   await page.evaluate(() => {
     window.game.paint.clear();
-    window.game.build.paintEdit.font = window.game.config.HINT.font;
+    return window.game.build.paintEdit.pickFont(window.game.config.HINT.font);
   });
-  const ok = Object.values(r).every((v) => v.lit > 0) && r['gothic 0'].soft === 0 && r['gothic 1'].soft > r['gothic 1'].lit / 10;
-  return ok ? null : JSON.stringify(r);
+  const ok = Object.values(r).every((v) => v.lit > 0) && r['gothic 0'].soft === 0 && r['gothic 1'].soft > r['gothic 1'].lit / 10 && !missing.length;
+  return ok ? null : JSON.stringify({ ...r, missing });
 });
 
 await check("level paint: P saves the level marked as painted, and its paint; a fresh game of it puts that paint on the walls, and a session hosted FRESH LEVEL starts from it; a level without paint asks for none and starts clean", async () => {

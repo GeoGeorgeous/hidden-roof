@@ -1,4 +1,5 @@
-import { TAG_FONTS } from '../config';
+import { HINT_FONTS } from '../config';
+import { hintFontName } from '../build/hint-fonts';
 import { live, r, t, c, when, type Item, type Section } from './tuning';
 
 // F3 panel contents for build mode (tuning.ts has the helpers): its daylight
@@ -70,8 +71,8 @@ export function buildSections(): Section[] {
       id: 'hints',
       title: 'Hints',
       // The preview shows a change at once; hints already painted keep their look.
-      items: when('build', TAG_FONTS.flatMap((f) => [
-        { kind: 'heading', label: f.toUpperCase() } as Item,
+      items: when('build', HINT_FONTS.flatMap((f) => [
+        { kind: 'heading', label: hintFontName(f) } as Item,
         r('softness', ['HINT', 'looks', f, 'softness'], 0, 1, 0.05),
         r('overspray: reach', ['HINT', 'looks', f, 'overspray'], 0, 0.3, 0.01),
         r('overspray: strength', ['HINT', 'looks', f, 'oversprayStrength'], 0, 1, 0.05),
