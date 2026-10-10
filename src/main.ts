@@ -170,6 +170,7 @@ let levelName = new URLSearchParams(location.search).get('level') ?? LEVELS.star
 Promise.all([fetchLevel(levelName), jpFontReady()])
   .then(async ([data]) => {
     loadLevel(data);
+    post.warm(scene, camera);
     await putLevelPaint(paint, drips, levelName, data);
     // A reload in a session goes back into it (multiplayer.ts), with the session's paint.
     net.resume();
