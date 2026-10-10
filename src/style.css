@@ -307,15 +307,6 @@ canvas {
   pointer-events: auto;
   color: var(--ui);
 }
-.overlay .coffee {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.overlay .coffee svg {
-  width: 14px;
-  height: 14px;
-}
 .overlay .menu {
   display: flex;
   flex-direction: column;
