@@ -82,9 +82,9 @@ export class Hud {
   private gaugeOn = false;
   private lastPressure = -1;
   private crosshairSize = -1;
-  started = false;
+  private started = false;
   /** The full pause sheet is up (paused without F3, or F3 previewing it). */
-  sheetUp = false;
+  private sheetUp = false;
   /** A message (notice) shows in the menu's status line until this time. */
   private noticeUntil = 0;
   private settingsPage: SettingsPage | null = null;
@@ -212,6 +212,11 @@ export class Hud {
     this.debugOpen = debugOpen;
     this.syncCompact();
     this.syncMenu();
+  }
+
+  /** Behind the full sheet, the title screen's and ESC's alike, a fixed view of the city (PAUSE_MENU.view). */
+  get cityView() {
+    return PAUSE_MENU.view && this.sheetUp;
   }
 
   /** Show the full pause sheet (as without F3) for a moment: F3 is tuning it (PAUSE_MENU). */

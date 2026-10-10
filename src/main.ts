@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import * as config from './config';
-import { ATMOS, AUDIO, COLORS, HUD, INK, LEVELS, PAUSE_MENU, PLAYER, PRESSURE, RENDER, SMOKE, THUNDER, VIEWMODEL, VOLUMETRICS } from './config';
+import { pauseCamera } from './render/pause-view';
+import { ATMOS, AUDIO, COLORS, HUD, INK, LEVELS, PLAYER, PRESSURE, RENDER, SMOKE, THUNDER, VIEWMODEL, VOLUMETRICS } from './config';
 import { syncSharedUniforms } from './materials';
 import { syncTrackUniforms } from './render/cctv-track';
 import { Lighting } from './render/lighting';
@@ -243,7 +244,11 @@ function frame(time: number) {
   const dt = fixedStep.dt || Math.min(delta, 1 / 20);
 
   dev?.frame(input, dt);
-  const building = dev?.building ?? false;
+  // Behind the full pause sheet (title screen, ESC, in build mode too) a fixed view of
+  // the city as players see it: no hands or tools, and no build helpers (devtools.ts).
+  // It draws from a camera of its own; play (aim, tools, build mode) keeps yours.
+  const cityView = hud.cityView;
+  const building = (dev?.building ?? false) && !cityView;
 
   // Paused (pointer not locked) in single player the game stops: you, your tools,
   // paint in flight, drips, pickups and lightning. The surroundings go on (fans,
@@ -260,15 +265,9 @@ function frame(time: number) {
     audio.footstep();
   }
 
-  // Behind the pause menu (not the title screen) a fixed view of the city: no hands, no tools.
-  const m = PAUSE_MENU;
-  const view = m.view && hud.sheetUp && hud.started && !building;
-  viewScene.visible = !view;
-  if (view) eye.set(m.viewX, m.viewY, m.viewZ);
-  else player.eye(eye);
+  player.eye(eye);
   camera.position.copy(eye);
-  if (view) camera.rotation.set(m.viewPitch * THREE.MathUtils.DEG2RAD, m.viewYaw * THREE.MathUtils.DEG2RAD, 0, 'YXZ');
-  else camera.rotation.set(player.pitch, player.yaw, 0, 'YXZ');
+  camera.rotation.set(player.pitch, player.yaw, 0, 'YXZ');
   // FOV widens a little while sprinting.
   const fovTarget = RENDER.fov + (player.sprinting ? RENDER.sprintFovBoost : 0);
   fov += (fovTarget - fov) * (1 - Math.exp(-RENDER.sprintFovEase * dt));
@@ -277,20 +276,23 @@ function frame(time: number) {
     camera.updateProjectionMatrix();
   }
   camera.updateMatrixWorld();
+  viewScene.visible = !cityView;
+  const shown = cityView ? pauseCamera(camera) : camera;
+  const at = shown.position;
   dev?.lap('player');
   // Sprites follow the camera's FOV (sprinting, F3) like the world around them.
   const pointScale = viewHeight / (2 * Math.tan((camera.fov * Math.PI) / 360));
   lightFx.setPointScale(pointScale);
   smoke.setPointScale(pointScale);
   setLinePointScale(pointScale);
-  sky.position.copy(eye);
-  updateSkyline(skyline, eye);
+  sky.position.copy(at);
+  updateSkyline(skyline, at);
   (scene.fog as THREE.FogExp2).density = ATMOS.fogDensity;
   setHex((scene.fog as THREE.FogExp2).color, INK.paper);
   syncSharedUniforms(time / 1000);
-  syncTrackUniforms(eye);
+  syncTrackUniforms(at);
   if (!frozen) lightning.update(dt, ATMOS.rain && !building);
-  lighting.update(eye, camera.matrixWorldInverse, time / 1000, lightning.flash);
+  lighting.update(at, shown.matrixWorldInverse, time / 1000, lightning.flash);
   syncCityLight(lighting);
   dev?.lap('lights');
   (sky.material as THREE.ShaderMaterial).uniforms.uFlash.value = lightning.flash * THUNDER.flashSky;
@@ -302,7 +304,7 @@ function frame(time: number) {
   viewSun.intensity = VIEWMODEL.rim;
   lightFx.update();
   rainTime += dt;
-  rain.update(rainTime, eye);
+  rain.update(rainTime, at);
   smoke.update(rainTime, SMOKE.lightBase + SMOKE.lightAmbient * ATMOS.ambient + SMOKE.lightFlash * lightning.flash);
   audio.setFan(fanLevel(eye));
   if (ATMOS.rain && !building) metalDrops(dt, eye);
@@ -334,14 +336,14 @@ function frame(time: number) {
   dev?.lap('tools');
   level.flush();
   dev?.lap('level');
-  baker.update(time / 1000, eye);
+  baker.update(time / 1000, at);
   dev?.lap('bake');
   paint.gpu.flush(renderer);
   hotbar.update(inventory);
   hud.update();
   dev?.lap('paint + hud');
 
-  post.render(scene, viewScene, camera, lighting, !building);
+  post.render(scene, viewScene, shown, lighting, !building);
   dev?.lap('render');
   // Same frame as the render: the canvas still holds it (see screenshot.ts).
   if (input.wasPressed('KeyK')) saveScreenshot(renderer.domElement, () => hotbar.toast('Screenshot saved'));

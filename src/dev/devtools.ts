@@ -91,6 +91,8 @@ export class DevTools {
   private opsFrom = { count: 0, time: 0 };
   /** A model changed in F3 since the last frame. */
   private modelsChanged = false;
+  /** Build mode's look is on (syncBuildLook). */
+  private buildShown = false;
 
   constructor(private g: DevContext) {
     this.build = new BuildMode(g.scene, g.level, g.pickups, g.player, g.renderer, g.paint);
@@ -173,6 +175,7 @@ export class DevTools {
     if (input.wasPressed('F9')) this.profiler.runProbe();
     if (input.wasPressed('F2')) this.profiler.mark();
     if (this.modelsChanged) this.rebuildModelsNow();
+    this.syncBuildLook();
     this.figure.update(dt);
     this.ghost.update(dt);
     if (session.multiplayer) {
@@ -258,9 +261,18 @@ export class DevTools {
 
   private setBuilding(on: boolean) {
     this.build.setActive(on);
-    this.g.atmosphere.setDaylight(on);
+    this.syncBuildLook();
     this.debug.sync();
-    this.g.hotbar.visible = !on;
     this.g.audio.setHiss(0, 0);
+  }
+
+  /** Build mode's look (helpers, daylight, no hotbar) while building, but not behind the pause sheet's city view: that looks as in play. */
+  private syncBuildLook() {
+    const on = this.build.active && !this.g.hud.cityView;
+    if (on === this.buildShown) return;
+    this.buildShown = on;
+    this.build.setShown(on);
+    this.g.atmosphere.setDaylight(on);
+    this.g.hotbar.visible = !on;
   }
 }

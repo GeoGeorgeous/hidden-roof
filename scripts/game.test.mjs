@@ -695,6 +695,31 @@ await check('session: B and F3 open build mode and the panel in single player; a
   return r.solo === 'build panel' && r.entered === '- -' && r.inSession === '- -' ? null : JSON.stringify(r);
 });
 
+await check('pause view: paused (title screen or ESC) the city view shows, in build mode too, without hands or build mode\'s look; resuming gives them back', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const frame = () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+    const press = async (code) => (window.dispatchEvent(new KeyboardEvent('keydown', { code })), window.dispatchEvent(new KeyboardEvent('keyup', { code })), frame());
+    const lock = async (on) => (g.input.locked = on, g.input.onLockChange(on), frame());
+    const state = () => `${g.hud.cityView ? 'city' : 'you'} ${g.viewScene.visible ? 'hands' : '-'} ${g.atmosphere.daylight ? 'day' : 'night'}`;
+    await lock(false);
+    const paused = state();
+    await lock(true);
+    const playing = state();
+    await press('KeyB');
+    const building = state();
+    await lock(false);
+    const buildPaused = state();
+    await lock(true);
+    const buildResumed = state();
+    await press('KeyB');
+    await lock(false);
+    return { paused, playing, building, buildPaused, buildResumed };
+  });
+  const ok = r.paused === 'city - night' && r.playing === 'you hands night' && r.building === 'you hands day' && r.buildPaused === 'city - night' && r.buildResumed === 'you hands day';
+  return ok ? null : JSON.stringify(r);
+});
+
 await check('session: paused, the world goes on (you fall, paint runs run) and keys don\'t move you; paused in single player, it stops', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
