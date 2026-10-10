@@ -304,7 +304,10 @@ export class PaintSystem {
     for (const { surface, rect } of [{ surface: s, rect: hit }, ...this.seams.near(hit, center, Math.hypot(img.width, img.height) / 2)]) {
       if (!this.live(surface)) continue;
       const { box, alpha } = imageOnFace(img, rect, center, right, up);
-      before?.(surface, inRing(rect, box));
+      const on = inRing(rect, box);
+      // A neighbor face the image doesn't reach.
+      if (on[0] > on[2] || on[1] > on[3]) continue;
+      before?.(surface, on);
       const fresh = !surface.data;
       this.ensureTexture(surface);
       // A neighbor the image only came near takes no paint, nor memory.

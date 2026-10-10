@@ -376,6 +376,35 @@ await check('hints: Ctrl+Z takes a hint off (its memory too) and puts a wiped fa
   return r.painted > 0 && r.undone === 0 && r.pages === 0 && r.wiped < r.before && r.back === r.before ? null : JSON.stringify(r);
 });
 
+await check('hints: small hints up and down a wall, each next to faces it doesn\'t reach, paint and all undo', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const cam = g.scene.children.find((o) => o.isPerspectiveCamera);
+    const editor = g.build.paintEdit;
+    g.paint.clear();
+    g.player.yaw = -Math.PI / 2 + 0.3;
+    editor.text = '<k>RMB</k> Shake your can';
+    editor.size = 0.2;
+    const out = { stamped: 0, errors: [] };
+    for (let i = 0; i < 7; i++) {
+      g.player.pitch = Math.atan2(1 - i * 0.32, 6);
+      await window.steps((f) => f >= 2);
+      try {
+        editor.stamp('white', cam);
+        out.stamped++;
+      } catch (e) {
+        out.errors.push(e.message);
+      }
+    }
+    out.lit = lit();
+    for (let i = 0; i < out.stamped; i++) undo();
+    out.undone = lit();
+    g.paint.clear();
+    return out;
+  });
+  return r.stamped === 7 && r.lit > 0 && r.undone === 0 && !r.errors.length ? null : JSON.stringify(r);
+});
+
 await check('hints: <br> starts a new line; a hint of only <br> is nothing', async () => {
   const r = await page.evaluate(async () => {
     const url = performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/build/stencil-text.ts'));
