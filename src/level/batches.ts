@@ -12,7 +12,8 @@ import { decorMaterial, matKey, tileKey, type BuiltProp } from './build-prop';
 //  - decor: one mesh per material
 //  - paintable surfaces: one mesh per material, paint page and light page
 //    (paint-gpu.ts, render/bake/light-pages.ts), their uvs moved onto the
-//    pages; each surface's own mesh stays, never drawn, for rays
+//    pages; each surface's own mesh stays, never drawn, for rays. Clear
+//    glass gets two: its solid paint into the depth first, then its color.
 //  - one shadow proxy: the surfaces' geometry merged into a mesh that only
 //    casts shadows, so shadow passes cost a handful of draws
 // Tiles let three skip what's out of view (camera or moon shadow), and an
@@ -160,6 +161,15 @@ export class DecorBatches {
       mesh.receiveShadow = true; // the shadow proxy casts
       mesh.raycast = () => {}; // each surface's own mesh takes the rays
       this.add(tile, mesh, this.surfaces);
+      if (mat.glass) {
+        // Its solid paint into the depth, before any see-through draw (glass, light glows, rain),
+        // so nothing behind shows through it: not the outlines, not the glows.
+        const depth = new THREE.Mesh(g, surfaceMaterial(mat, list[0].slot!.page, list[0].light?.page, true));
+        depth.matrixAutoUpdate = false;
+        depth.renderOrder = -1;
+        depth.raycast = () => {};
+        this.add(tile, depth, this.surfaces);
+      }
     }
     for (const { mat, geos } of groups.values()) {
       const g = mergeGeometries(geos);
@@ -211,13 +221,13 @@ function onPages(s: PaintSurface) {
 
 /** One material per base material, paint page and light page: the pages' textures are shared uniforms. */
 const surfaceMaterials = new WeakMap<PaintPage, Map<LightPage | undefined, Map<string, SurfaceMaterial>>>();
-function surfaceMaterial(mat: Mat, paint: PaintPage, light: LightPage | undefined) {
+function surfaceMaterial(mat: Mat, paint: PaintPage, light: LightPage | undefined, glassDepth = false) {
   const byLight = surfaceMaterials.get(paint) ?? surfaceMaterials.set(paint, new Map()).get(paint)!;
   const byMat = byLight.get(light) ?? byLight.set(light, new Map()).get(light)!;
-  const k = matKey(mat);
+  const k = `${matKey(mat)}|${glassDepth}`;
   let m = byMat.get(k);
   if (!m) {
-    m = makeSurfaceMaterial({ tex: mat.tex, tileMeters: mat.tile, alphaTest: mat.alpha, glass: mat.glass });
+    m = makeSurfaceMaterial({ tex: mat.tex, tileMeters: mat.tile, alphaTest: mat.alpha, glass: mat.glass, glassDepth });
     m.setPaintable(true);
     m.bindPages(paint.uniform, light?.uniforms ?? null);
     byMat.set(k, m);

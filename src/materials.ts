@@ -43,6 +43,7 @@ export const shared = {
   uCloudFade: { value: ATMOS.cloudFade },
   uAlphaSteps: { value: PAINT.alphaSteps },
   uGlassOpacity: { value: RENDER.glassOpacity },
+  uGlassSolid: { value: RENDER.glassPaintSolid },
   uTime: { value: 0 },
   uSpin: { value: 0 },
   uFlickerSpeed: { value: FLICKER.speed },
@@ -82,6 +83,7 @@ export function syncSharedUniforms(time: number) {
   shared.uCloudFade.value = ATMOS.cloudFade;
   shared.uAlphaSteps.value = PAINT.alphaSteps;
   shared.uGlassOpacity.value = RENDER.glassOpacity;
+  shared.uGlassSolid.value = RENDER.glassPaintSolid;
   shared.uBakedScale.value = LIGHTMAP.enabled ? ATMOS.practical : 0;
   syncInkUniforms();
 }
@@ -148,6 +150,7 @@ uniform sampler2D uPaint;
 uniform float uAlphaTest;
 uniform float uAlphaSteps;
 uniform float uGlassOpacity;
+uniform float uGlassSolid;
 uniform float uWet;
 uniform float uEmissiveBoost;
 uniform float uCloudBase;
@@ -177,12 +180,15 @@ vec4 paintTex = texture2D(uPaint, vPaintUv);
 float pa = paintTex.a;
 if (uAlphaSteps > 0.0) pa = ceil(pa * uAlphaSteps - 0.15) / uAlphaSteps;
 pa = clamp(pa, 0.0, 1.0);
+#ifdef GLASS_DEPTH
+if (pa < uGlassSolid) discard;
+#endif
 diffuseColor.rgb *= baseCol;
 float hiStripe = step(0.5, fract((vWorldPos.x + vWorldPos.y + vWorldPos.z) * 1.25));
 `;
 const GLASS_FRAG = /* glsl */ `
 #ifdef GLASS
-gl_FragColor.a = mix(uGlassOpacity, 1.0, pa);
+gl_FragColor.a = mix(uGlassOpacity, 1.0, min(pa / uGlassSolid, 1.0));
 #endif
 `;
 const FRAG_SPECULAR = /* glsl */ `
@@ -200,6 +206,8 @@ export interface SurfaceMaterialOptions {
   alphaTest?: number;
   /** Clear glass: blended over what's behind, opaque where painted. */
   glass?: boolean;
+  /** Clear glass's depth pass: only its solid paint, into the depth (so outlines and fog behind stop there), no color. */
+  glassDepth?: boolean;
 }
 
 export class SurfaceMaterial extends THREE.MeshPhongMaterial {
@@ -225,6 +233,11 @@ export class SurfaceMaterial extends THREE.MeshPhongMaterial {
       this.transparent = true;
       this.depthWrite = false;
       this.side = THREE.DoubleSide; // a pane (surfaces.ts addPane), seen from both sides
+    }
+    if (opts.glassDepth) {
+      this.defines = { ...this.defines, GLASS_DEPTH: '' };
+      this.depthWrite = true;
+      this.colorWrite = false;
     }
     const base = (this.baseTexture = textures()[opts.tex]);
     const tile = opts.tileMeters ?? (base.image as HTMLCanvasElement).width / BASE_TEXTURES.texelsPerMeter;
