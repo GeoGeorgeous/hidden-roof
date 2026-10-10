@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import * as config from './config';
+import { titleCamera } from './render/title-view';
 import { ATMOS, AUDIO, COLORS, HUD, INK, LEVELS, PLAYER, PRESSURE, RENDER, SMOKE, THUNDER, VIEWMODEL, VOLUMETRICS } from './config';
 import { syncSharedUniforms } from './materials';
 import { syncTrackUniforms } from './render/cctv-track';
@@ -271,20 +272,26 @@ function frame(time: number) {
     camera.updateProjectionMatrix();
   }
   camera.updateMatrixWorld();
+  // The title screen shows a fixed view of the city, without hands or tools. It draws
+  // from a camera of its own; play (aim, tools) keeps yours.
+  const cityView = hud.cityView;
+  viewScene.visible = !cityView;
+  const shown = cityView ? titleCamera(camera) : camera;
+  const at = shown.position;
   dev?.lap('player');
   // Sprites follow the camera's FOV (sprinting, F3) like the world around them.
   const pointScale = viewHeight / (2 * Math.tan((camera.fov * Math.PI) / 360));
   lightFx.setPointScale(pointScale);
   smoke.setPointScale(pointScale);
   setLinePointScale(pointScale);
-  sky.position.copy(eye);
-  updateSkyline(skyline, eye);
+  sky.position.copy(at);
+  updateSkyline(skyline, at);
   (scene.fog as THREE.FogExp2).density = ATMOS.fogDensity;
   setHex((scene.fog as THREE.FogExp2).color, INK.paper);
   syncSharedUniforms(time / 1000);
-  syncTrackUniforms(eye);
+  syncTrackUniforms(at);
   if (!frozen) lightning.update(dt, ATMOS.rain && !building);
-  lighting.update(eye, camera.matrixWorldInverse, time / 1000, lightning.flash);
+  lighting.update(at, shown.matrixWorldInverse, time / 1000, lightning.flash);
   syncCityLight(lighting);
   dev?.lap('lights');
   (sky.material as THREE.ShaderMaterial).uniforms.uFlash.value = lightning.flash * THUNDER.flashSky;
@@ -296,7 +303,7 @@ function frame(time: number) {
   viewSun.intensity = VIEWMODEL.rim;
   lightFx.update();
   rainTime += dt;
-  rain.update(rainTime, eye);
+  rain.update(rainTime, at);
   smoke.update(rainTime, SMOKE.lightBase + SMOKE.lightAmbient * ATMOS.ambient + SMOKE.lightFlash * lightning.flash);
   audio.setFan(fanLevel(eye));
   if (ATMOS.rain && !building) metalDrops(dt, eye);
@@ -328,14 +335,14 @@ function frame(time: number) {
   dev?.lap('tools');
   level.flush();
   dev?.lap('level');
-  baker.update(time / 1000, eye);
+  baker.update(time / 1000, at);
   dev?.lap('bake');
   paint.gpu.flush(renderer);
   hotbar.update(inventory);
   hud.update();
   dev?.lap('paint + hud');
 
-  post.render(scene, viewScene, camera, lighting, !building);
+  post.render(scene, viewScene, shown, lighting, !building);
   dev?.lap('render');
   // Same frame as the render: the canvas still holds it (see screenshot.ts).
   if (input.wasPressed('KeyK')) saveScreenshot(renderer.domElement, () => hotbar.toast('Screenshot saved'));

@@ -83,6 +83,8 @@ export class Hud {
   private lastPressure = -1;
   private crosshairSize = -1;
   private started = false;
+  /** The full pause sheet is up (paused without F3, or F3 previewing it). */
+  private sheetUp = false;
   /** A message (notice) shows in the menu's status line until this time. */
   private noticeUntil = 0;
   private settingsPage: SettingsPage | null = null;
@@ -212,6 +214,11 @@ export class Hud {
     this.syncMenu();
   }
 
+  /** The title screen (before START) shows a fixed view of the city (PAUSE_MENU.view); ESC later shows where you are. */
+  get cityView() {
+    return PAUSE_MENU.view && this.sheetUp && !this.started;
+  }
+
   /** Show the full pause sheet (as without F3) for a moment: F3 is tuning it (PAUSE_MENU). */
   previewSheet() {
     this.previewUntil = performance.now() + PREVIEW_SECONDS * 1000;
@@ -223,7 +230,8 @@ export class Hud {
     const compact = this.debugOpen && performance.now() >= this.previewUntil;
     this.overlay.classList.toggle('compact', compact);
     // The full sheet hides the in-game UI (style.css); with F3 it stays, to tune it.
-    document.body.classList.toggle('paused', !this.overlay.hidden && !compact);
+    this.sheetUp = !this.overlay.hidden && !compact;
+    document.body.classList.toggle('paused', this.sheetUp);
   }
 
   /** Shows a message in the menu's status line for `seconds` (the toasts don't show over the menu); Infinity: until the next one. */
