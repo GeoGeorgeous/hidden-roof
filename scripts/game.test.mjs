@@ -937,6 +937,35 @@ await check('ghost: on a bad link (resent packets) a walk that stops is never sh
   return top(r.smoothed) < 25 && top(r.unsmoothed) > 25 && r.smoothed.every((x) => x.reached > 8.5) ? null : JSON.stringify(r);
 });
 
+await check('ghost: what another player did before this game was hidden lands before what they do while it is (a stepladder taken away stays away, the last coat stays on top)', async () => {
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    const s = g.paint.surfaces.find((s) => !s.data);
+    const coat = (color) => ({ kind: 'stamp', key: s.key, rect: 0, u: 0.5, v: 0.5, radius: 0.2, amount: 1, color, softness: 0.5, square: false });
+    g.net.remotes.add(9, 'X', 'here', 0);
+    const x = g.net.remotes.get(9);
+    // Shown: these wait for their figure to get to t = 5.
+    x.receiveLadder(5, { type: 'stepladder', pos: [0, 0, 0], rot: 0 });
+    x.receiveOp(5, coat([1, 0, 0]));
+    // Hidden (no frames): these land at once.
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+    x.receiveLadder(6, null);
+    x.receiveOp(6, coat([0, 0, 1]));
+    delete document.hidden;
+    // Shown again: their figure gets past t = 6.
+    Object.assign(x, { lag: 0, target: 0 });
+    x.update(10, 1 / 60);
+    let red = 0;
+    let blue = 0;
+    for (let i = 0; i < s.data.length; i += 4) (red += s.data[i]), (blue += s.data[i + 2]);
+    const out = { ladder: g.level.runtimeOf(x.owner) !== undefined, waiting: x.events.length, red, blue };
+    g.net.remotes.remove(9);
+    g.paint.clear();
+    return out;
+  });
+  return !r.ladder && !r.waiting && r.blue > r.red ? null : JSON.stringify(r);
+});
+
 await check('avatar: a player who leaves takes their figure along, its bone texture too', async () => {
   const disposed = await page.evaluate(() => {
     const remotes = window.game.net.remotes;

@@ -120,10 +120,13 @@ export class RemotePlayer {
    * `run` when their figure gets to their time `t`; at once while this game is
    * hidden, which draws no frames: queued, all they did for as long as it's
    * hidden would wait (memory) and land in one frame when it's shown again.
+   * What still waited from before goes first, so it all lands in their order
+   * (a stepladder they took away stays away).
    */
   private at(t: number, run: () => void) {
-    if (document.hidden) run();
-    else this.events.push({ t, run });
+    if (!document.hidden) return void this.events.push({ t, run });
+    for (const e of this.events.splice(0)) e.run();
+    run();
   }
 
   /** Start over (their clock started again), keeping what's shown. */
