@@ -2,7 +2,7 @@
 // window would be) against a local server (dist-server/server/main.js): HOST and
 // JOIN through the pause menu's MULTIPLAYER page, both at the host's PAINT
 // DETAIL, paint and the stepladder reaching the other player, a reload coming
-// back into the session, one that heard nothing for a while reconnecting, LEAVE
+// back into the session, paint while hidden, one that heard nothing for a while reconnecting, LEAVE
 // SESSION, and a server restart ending the session.
 // Usage: npm run test:mp (builds the server first)
 import assert from 'node:assert/strict';
@@ -21,6 +21,15 @@ async function open(detail) {
   const ctx = await test.browser.newContext({ viewport: { width: 320, height: 180 } });
   // Nothing drawn: the test is about the network.
   await ctx.addInitScript(noDrawing);
+  // hide() and show(): as a hidden tab, no frames and document.hidden, while the socket still takes messages.
+  await ctx.addInitScript(() => {
+    const raf = window.requestAnimationFrame.bind(window);
+    const held = [];
+    let hidden = false;
+    window.requestAnimationFrame = (cb) => (hidden ? (held.push(cb), 0) : raf(cb));
+    window.hide = () => ((hidden = true), Object.defineProperty(document, 'hidden', { configurable: true, get: () => true }));
+    window.show = () => ((hidden = false), delete document.hidden, held.splice(0).forEach((cb) => raf(cb)));
+  });
   await ctx.addInitScript((d) => localStorage.setItem('roofhiddenhaus.settings', JSON.stringify({ paintDetail: d, cityDetail: 'low' })), detail);
   const page = await ctx.newPage();
   const errors = [];
@@ -78,10 +87,28 @@ try {
     for (let i = 0; i < 20; i++) g.paint.stamp(s, { rect: 0, u: 0.2 + i * 0.03, v: 0.5 }, 0.15, 0.6, [1, 0.2, 0.1]);
     g.level.setRuntime(g.session.player, { type: 'stepladder', pos: [0, 0, 0], rot: 1 });
   });
-  const painted = await paintHash(a);
+  let painted = await paintHash(a);
   await b.waitForFunction(() => window.game.paint.surfaces.some((s) => s.data) && window.game.level.runtimeOf('player1') !== undefined, null, { timeout: 15000 });
   await b.waitForTimeout(500);
   assert.equal(await paintHash(b), painted, 'B paints what A painted');
+
+  // B's game is hidden: what A paints meanwhile is painted at once, not queued until B is shown again (all of a long
+  // absence, landing in one frame).
+  await b.evaluate(() => window.hide());
+  const hidden = await paintHash(b);
+  await a.evaluate(() => {
+    const g = window.game;
+    const s = g.paint.surfaces.find((s) => s.geo.rects.length > 1);
+    for (let i = 0; i < 10; i++) g.paint.stamp(s, { rect: 1, u: 0.2 + i * 0.05, v: 0.5 }, 0.1, 0.3, [0.1, 0.2, 1]);
+  });
+  // Polled on a timer: a hidden page runs no frames.
+  await b.waitForFunction(() => window.game.paint.surfaces.some((s) => s.dirty.length), null, { timeout: 5000, polling: 100 });
+  assert.notEqual(await paintHash(b), hidden, 'B paints what A paints while B is hidden');
+  assert.equal(await b.evaluate(() => [...window.game.net.remotes.list.values()][0].events.length), 0, 'nothing waits for B to be shown');
+  await b.evaluate(() => window.show());
+  await b.waitForTimeout(500);
+  painted = await paintHash(a);
+  assert.equal(await paintHash(b), painted, 'B, shown again, has the paint A has');
 
   // B finds the marker and reloads: it comes back into the session as the same player, with the paint and the marker.
   await b.evaluate(() => window.game.inventory.give('marker'));
