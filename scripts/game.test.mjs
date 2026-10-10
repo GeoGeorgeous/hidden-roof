@@ -376,6 +376,19 @@ await check('hints: Ctrl+Z takes a hint off (its memory too) and puts a wiped fa
   return r.painted > 0 && r.undone === 0 && r.pages === 0 && r.wiped < r.before && r.back === r.before ? null : JSON.stringify(r);
 });
 
+await check('hints: <br> starts a new line; a hint of only <br> is nothing', async () => {
+  const r = await page.evaluate(async () => {
+    const url = performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/build/stencil-text.ts'));
+    const { hintImage } = await import(url);
+    const one = hintImage('<k>A</k> one', 'mono', 0.4, 100);
+    const two = hintImage('<k>A</k> one<br>two', 'mono', 0.4, 100);
+    const three = hintImage('<k>A</k> one<BR><br/>two', 'mono', 0.4, 100);
+    return { one: one.h, two: two.h, three: three.h, pitch: window.game.config.HINT.lineHeight * 40, wide: two.w === one.w, empty: hintImage('<br>', 'mono', 0.4, 100) };
+  });
+  const near = (a, b) => Math.abs(a - b) <= 2;
+  return near(r.two - r.one, r.pitch) && near(r.three - r.one, 2 * r.pitch) && r.wide && r.empty === null ? null : JSON.stringify(r);
+});
+
 await check('hints: every font paints; softness 0 paints whole texels only, softness 1 a soft edge', async () => {
   const r = {};
   for (const [font, softness] of [['graffiti', 1], ['gothic', 0], ['gothic', 1], ['mono', 0.3]]) {

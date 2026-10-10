@@ -1137,6 +1137,8 @@ export const HINT = {
   keyLine: 0.08,
   keyRound: 0.2,
   keyGap: 0.2,
+  /** From one line's middle to the next (<br>), in ems: room for a key cap and a gap. */
+  lineHeight: 1.35,
   /**
    * Each font's look: overspray, a soft haze around the letters, how far it
    * reaches (ems) and how strong it is (0..1); softness of the letters' edge,

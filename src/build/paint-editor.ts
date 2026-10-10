@@ -15,8 +15,8 @@ import { hintFontReady, hintImage } from './stencil-text';
 
 // Build mode's paint, which P saves with the level as its own (save/level-paint.ts):
 // hints painted onto walls with the Hint entry of the picker (LEVEL): Enter
-// types the text (<k>KEY</k> for a key cap), [ ] sets its size, T its font,
-// Tab its color, LMB paints it where the preview shows;
+// types the text (<k>KEY</k> for a key cap, <br> for a new line), [ ] sets
+// its size, T its font, Tab its color, LMB paints it where the preview shows;
 // X wipes the paint off the face under the crosshair; Ctrl+Z undoes either
 // (build mode's history keeps the paint they changed); H shows the paintable
 // surfaces striped, then the painted spots through walls (painted-spots.ts).
@@ -167,7 +167,7 @@ export class PaintEditor {
   }
 
   private editText() {
-    const typed = window.prompt('Hint text (<k>KEY</k> for a key cap)', this.text || '<k>LMB</k> Spray');
+    const typed = window.prompt('Hint text (<k>KEY</k> for a key cap, <br> for a new line)', this.text || '<k>LMB</k> Spray');
     if (typed === null) return;
     this.text = typed.trim();
     this.say(`HINT: ${this.text || 'NONE'} — CLICK TO RESUME`);
