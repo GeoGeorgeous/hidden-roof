@@ -262,8 +262,12 @@ canvas {
   color: var(--paper);
 }
 .loading b {
-  font-size: 22px;
-  letter-spacing: 0.3em;
+  /* The pause menu's title (.overlay .title). */
+  font-family: 'Sedgwick Ave Display', cursive;
+  font-weight: 400;
+  font-size: 56px;
+  line-height: 1;
+  letter-spacing: 0.02em;
 }
 .loading span {
   color: rgba(235, 229, 214, 0.62);

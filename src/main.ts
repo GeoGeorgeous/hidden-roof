@@ -36,6 +36,7 @@ import { Thumbnails } from './inventory/thumbnails';
 import { Pickups, type PickupData } from './pickups/pickups';
 import { Audio } from './audio';
 import { Hud } from './hud';
+import { frameDrawn, loadFailed, loadStep } from './loading';
 import { fetchLevel } from './build/io';
 import { levelPaintOf, putLevelPaint } from './save/level-paint';
 import { jpFontReady } from './render/ink/jp-font';
@@ -167,19 +168,8 @@ function openLevel(data: LevelData, name: string) {
 
 /** The level's name: from ?level=, or the file opened in build mode. Paint saves are named by it. */
 let levelName = new URLSearchParams(location.search).get('level') ?? LEVELS.start;
-/**
- * The loading screen (index.html) stays up while the level is built, lit and
- * painted, and the game doesn't run: each step blocks, so the screen is still,
- * and there's nothing to click. The first frame drawn takes it down.
- */
-let loading = document.querySelector<HTMLElement>('.loading');
+/** The level is built, lit and painted (loading.ts): until then the game doesn't run. */
 let loaded = false;
-let framesDrawn = 0;
-/** Names the next step on the loading screen, once it's on screen. */
-function loadStep(text: string) {
-  loading!.querySelector('span')!.textContent = text;
-  return new Promise((done) => requestAnimationFrame(() => setTimeout(done)));
-}
 // Signs measure their text when they are built: wait for the sign font first.
 Promise.all([fetchLevel(levelName), jpFontReady()])
   .then(async ([data]) => {
@@ -188,7 +178,7 @@ Promise.all([fetchLevel(levelName), jpFontReady()])
     // Where the browser compiles shaders in parallel, they compile during the next steps.
     // With the lights set up as the game draws them: their number is in the shaders.
     lighting.update(player.position, camera.matrixWorldInverse);
-    post.warm(scene, camera);
+    post.warm(scene, viewScene, camera);
     await loadStep('LIGHTING THE LAMPS');
     level.flush();
     baker.update(0, player.position);
@@ -200,7 +190,7 @@ Promise.all([fetchLevel(levelName), jpFontReady()])
   })
   .catch((e) => {
     console.error(e);
-    if (loading) loading.querySelector('span')!.textContent = "THE LEVEL DIDN'T LOAD: RELOAD THE PAGE";
+    loadFailed();
   });
 
 let lastStride = 0;
@@ -366,11 +356,7 @@ function frame(time: number) {
   dev?.lap('paint + hud');
 
   post.render(scene, viewScene, camera, lighting, !building);
-  // A few frames drawn (the first compiles and uploads everything): the game shows.
-  if (loading && ++framesDrawn >= RENDER.loadFrames) {
-    loading.remove();
-    loading = null;
-  }
+  frameDrawn();
   dev?.lap('render');
   // Same frame as the render: the canvas still holds it (see screenshot.ts).
   if (input.wasPressed('KeyK')) saveScreenshot(renderer.domElement, () => hotbar.toast('Screenshot saved'));
