@@ -1,7 +1,6 @@
 import { HINT, type TagFont } from '../config';
 import type { PaintImage } from '../paint-image';
-import { FAMILIES } from '../pickups/labels';
-import { jpFontReady } from '../render/ink/jp-font';
+import { FONT_FAMILIES, jpFontReady } from '../render/ink/jp-font';
 
 // A hint as an image to paint (PaintSystem.imprint): one line of text in one
 // of the pickup tags' fonts (graffiti, gothic: manga lettering, mono), where
@@ -27,7 +26,7 @@ function parseHint(text: string): { key: boolean; text: string }[] {
 
 /** Each font's weight: the gothic is the neon signs' black, mono is bold to read as paint. */
 const WEIGHT: Record<TagFont, number> = { mono: 700, gothic: 900, graffiti: 400 };
-const css = (f: TagFont, px: number) => `${WEIGHT[f]} ${px}px ${FAMILIES[f]}`;
+const css = (f: TagFont, px: number) => `${WEIGHT[f]} ${px}px ${FONT_FAMILIES[f]}`;
 
 /** The fonts, loaded: hints drawn before would be in a fallback font. */
 export const hintFontReady = () => Promise.all([document.fonts.load(css('graffiti', 32)), jpFontReady()]).then(() => undefined);

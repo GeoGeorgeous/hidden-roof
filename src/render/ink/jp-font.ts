@@ -1,3 +1,5 @@
+import type { TagFont } from '../../config';
+
 // The Japanese font that ships with the game (public/fonts/neon-jp.woff2: Noto
 // Sans JP Black, SIL OFL, a subset of kana, ASCII and some kanji). The system
 // may have no CJK font at all, so lettering that uses real text loads this one.
@@ -5,6 +7,13 @@
 // when onJpFont calls back.
 
 export const JP_FAMILY = `'NeonJP', 'Noto Sans JP', 'Yu Gothic', Meiryo, sans-serif`;
+
+/** Each lettering font (TAG_FONTS: pickup tags, painted hints) as a CSS font family. */
+export const FONT_FAMILIES: Record<TagFont, string> = {
+  mono: `ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace`,
+  gothic: JP_FAMILY,
+  graffiti: `'Sedgwick Ave Display', cursive`,
+};
 
 const waiting: (() => void)[] = [];
 const settled: (() => void)[] = [];

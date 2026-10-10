@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import { COLORS, PICKUP, type TagFont } from '../config';
+import { COLORS, PICKUP } from '../config';
 import { parsePickup } from '../inventory/items';
 import { solidsNear } from '../level/solids';
-import { JP_FAMILY } from '../render/ink/jp-font';
+import { FONT_FAMILIES, JP_FAMILY } from '../render/ink/jp-font';
 import type { Pickup } from './pickups';
 
 // Each pickup's tag by its ring, in the HUD, manga-style (style.css
@@ -38,12 +38,6 @@ const KANA: Record<string, string> = {
   ladder: 'ハシゴ',
   roller: 'ローラー',
   sponge: 'スポンジ',
-};
-/** Each tag font (TAG_FONTS) as a CSS font family: hints painted on walls use them too (build/stencil-text.ts). */
-export const FAMILIES: Record<TagFont, string> = {
-  mono: `ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace`,
-  gothic: JP_FAMILY,
-  graffiti: `'Sedgwick Ave Display', cursive`,
 };
 /** The tag's fade (style.css .pickup-tag), followed while it fades out (ms). */
 const FADE = 300;
@@ -173,7 +167,7 @@ export class PickupLabels {
       const { size, outline } = line;
       const font = 'font' in line ? line.font : 'gothic';
       // Katakana from the gothic, whatever the font: the others have none, and the system may have no Japanese font.
-      s.setProperty(`--${k}-font`, font === 'gothic' ? JP_FAMILY : `${FAMILIES[font]}, ${JP_FAMILY}`);
+      s.setProperty(`--${k}-font`, font === 'gothic' ? JP_FAMILY : `${FONT_FAMILIES[font]}, ${JP_FAMILY}`);
       s.setProperty(`--${k}-size`, `${size}px`);
       s.setProperty(`--${k}-outline`, `${outline}px`);
     }
