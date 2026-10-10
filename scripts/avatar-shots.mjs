@@ -1,7 +1,7 @@
 // Screenshots of the avatar test figure (F3 -> Avatar) for review: each pose
 // from a chosen angle in plain daylight, a few at night in the level's own
 // light, and a contact sheet of them all. Writes shots/avatar/*.png and
-// shots/avatar/sheet.png. Slow (SwiftShader draws on the CPU): about a minute.
+// shots/avatar/sheet.png. Drawn by the real GPU where there's a display (see shots.mjs).
 // Usage: node scripts/avatar-shots.mjs [url]   (no url: starts its own server;
 // ONLY=walk,shake takes only those shots)
 import fs from 'node:fs';
@@ -45,7 +45,7 @@ const SHOTS = [
 const only = process.env.ONLY?.split(',');
 const shots = only ? SHOTS.filter(([f]) => only.includes(f)) : SHOTS;
 fs.mkdirSync(OUT, { recursive: true });
-const test = await openTestBrowser(process.argv[2]);
+const test = await openTestBrowser(process.argv[2], { gpu: true });
 const page = await test.browser.newPage({ viewport: { width: W, height: H } });
 page.on('pageerror', (e) => console.log('page error:', e.message));
 await page.goto(test.url);

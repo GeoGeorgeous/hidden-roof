@@ -12,6 +12,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit && tsc --noEmit -p server",
     "smoke": "node scripts/smoke.mjs",
+    "shots": "node scripts/shots.mjs",
     "golden": "node scripts/golden-paint.mjs",
     "bench:save": "node scripts/save-size.bench.mjs",
     "shots:avatar": "node scripts/avatar-shots.mjs",

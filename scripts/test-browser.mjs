@@ -4,6 +4,8 @@
 // Chromium draws with SwiftShader. `uncapped`: frames aren't held to 60 per
 // second, for tests that skip drawing (a page that draws would queue frames
 // faster than SwiftShader draws them, and screenshots and closing then wait).
+// `gpu`: a headed window drawn by the real GPU instead (npm run shots), through
+// WSLg's D3D12 (GPU=Intel picks the weak one); without a display, SwiftShader.
 // On machines missing Chromium's system libraries, copies extracted to
 // ~/.local/pwlibs are used (see docs/testing.md). The tests play the demo
 // level, whose layout they know (`level`: another, or null for LEVELS.start).
@@ -14,7 +16,9 @@ import os from 'node:os';
 import { chromium } from 'playwright';
 import { createLogger, createServer } from 'vite';
 
-export async function openTestBrowser(url, { uncapped = false, level = 'demo' } = {}) {
+const WSL_GPU = '/usr/lib/wsl/lib';
+
+export async function openTestBrowser(url, { uncapped = false, level = 'demo', gpu = false } = {}) {
   let server = null;
   if (!url) {
     // Its own dependency cache, so it can run beside `npm run dev`. The /ws proxy's errors
@@ -27,10 +31,14 @@ export async function openTestBrowser(url, { uncapped = false, level = 'demo' } 
     url = server.resolvedUrls.local[0];
   }
   if (level) url += `?level=${level}`;
-  const libs = `${os.homedir()}/.local/pwlibs/usr/lib/x86_64-linux-gnu`;
-  const env = fs.existsSync(libs) ? { ...process.env, LD_LIBRARY_PATH: [libs, process.env.LD_LIBRARY_PATH].filter(Boolean).join(':') } : undefined;
-  const args = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', ...(uncapped ? ['--disable-frame-rate-limit', '--disable-gpu-vsync'] : [])];
-  const browser = await chromium.launch({ env, args });
+  const real = gpu && Boolean(process.env.DISPLAY || process.env.WAYLAND_DISPLAY);
+  const libs = [`${os.homedir()}/.local/pwlibs/usr/lib/x86_64-linux-gnu`, ...(real ? [WSL_GPU] : [])].filter((d) => fs.existsSync(d));
+  const env = { ...process.env, LD_LIBRARY_PATH: [...libs, process.env.LD_LIBRARY_PATH].filter(Boolean).join(':') };
+  if (real && fs.existsSync(WSL_GPU)) Object.assign(env, { GALLIUM_DRIVER: 'd3d12', MESA_D3D12_DEFAULT_ADAPTER_NAME: process.env.GPU ?? 'NVIDIA' });
+  const args = real
+    ? ['--use-gl=angle', '--use-angle=gl', '--ignore-gpu-blocklist', '--enable-gpu', '--window-position=-3000,0']
+    : ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', ...(uncapped ? ['--disable-frame-rate-limit', '--disable-gpu-vsync'] : [])];
+  const browser = await chromium.launch({ env, args, headless: !real });
   if (uncapped) {
     // Uncapped or not, Chrome holds frames to about 60 a second while nothing
     // on screen changes (the paused game draws nothing): a blinking pixel in a
@@ -46,6 +54,8 @@ export async function openTestBrowser(url, { uncapped = false, level = 'demo' } 
   return {
     browser,
     url,
+    /** Drawn by the real GPU (`gpu` and a display), not SwiftShader. */
+    realGpu: real,
     async close() {
       await browser.close();
       await server?.close();
