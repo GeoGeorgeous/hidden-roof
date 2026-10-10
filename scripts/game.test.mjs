@@ -17,14 +17,15 @@ const test = await openTestBrowser(process.argv[2], { uncapped: true });
 const tmp = fs.mkdtempSync(`${os.tmpdir()}/taggin-test-`);
 let failed = 0;
 
-/** A page with the game loaded, not drawing (SwiftShader draws on the CPU, seconds a frame); page errors fail the run. */
-async function openPage(init) {
+/** A page with the game loaded, not drawing (SwiftShader draws on the CPU, seconds a frame); page errors fail the run. `before(page)`: set up before it loads (routes). */
+async function openPage(init, before) {
   const page = await test.browser.newPage({ viewport: { width: 320, height: 180 }, acceptDownloads: true });
   page.errors = [];
   page.on('pageerror', (e) => page.errors.push(e.message));
   await page.addInitScript(noDrawing);
   await page.addInitScript(pageSteps);
   if (init) await page.addInitScript(init);
+  await before?.(page);
   await page.goto(test.url);
   await gameReady(page, 2);
   return page;
@@ -303,7 +304,8 @@ const paintHint = (page) =>
     const g = window.game;
     g.player.yaw = -Math.PI / 2;
     g.player.pitch = 0.1;
-    await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
+    // A frame or two for the camera to turn.
+    await window.steps((f) => f >= 2);
     const editor = g.build.paintEdit;
     editor.text = '<k>RMB</k> Shake your can to release pressure';
     editor.size = 0.3;
@@ -381,12 +383,8 @@ await check("level paint: a level's own paint file goes on the walls as it loads
   const keys = await paintedKeys(first);
   const clean = await first.evaluate(() => window.game.net.g.levelPaint());
   await first.close();
-  const own = await test.browser.newPage({ viewport: { width: 320, height: 180 } });
-  own.errors = [];
-  own.on('pageerror', (e) => own.errors.push(e.message));
-  await own.route('**/levels/demo.rhhpaint', (route) => route.fulfill({ body: Buffer.from(bytes), contentType: 'application/octet-stream' }));
-  await own.goto(test.url);
-  await ready(own);
+  // The level's own paint, served for the demo level.
+  const own = await openPage(null, (p) => p.route('**/levels/demo.rhhpaint', (route) => route.fulfill({ body: Buffer.from(bytes), contentType: 'application/octet-stream' })));
   const r = { keys: await paintedKeys(own), fresh: await own.evaluate(() => window.game.net.g.levelPaint()?.length), errors: own.errors };
   await own.close();
   return keys && r.keys === keys && r.fresh === bytes.length && clean === null && !r.errors.length ? null : JSON.stringify({ ...r, clean, want: keys });
