@@ -84,11 +84,11 @@ export function multiplayerMenu(hud: Hud, hotbar: Hotbar, ctx: MultiplayerContex
     el.append(Object.assign(div('desc'), { textContent: 'Your name as a player: everyone in the session sees it over you. Not the name of the session.' }));
     return el;
   };
-  /** The network log to the clipboard, for a report; a file where the clipboard is out of reach. */
+  /** The network log to the clipboard, for a report; a file where the clipboard is out of reach (refused, or none: plain http, as on a LAN). */
   const copyLog = () => {
     const text = net.log.text();
     const done = (how: string) => (say(how), hud.notice(how));
-    navigator.clipboard.writeText(text).then(
+    (navigator.clipboard?.writeText(text) ?? Promise.reject()).then(
       () => done('NETWORK LOG COPIED'),
       () => (download(new Blob([text], { type: 'text/plain' }), `roof-network-${stamp(new Date())}.txt`), done('NETWORK LOG SAVED AS A FILE')),
     );

@@ -134,6 +134,18 @@ await check('menu: a broken file says BROKEN PAINT FILE and keeps the paint', as
   return (await paintedKeys(page)) === before ? null : 'paint changed';
 });
 
+await check('menu: COPY NETWORK LOG saves a file where the page has no clipboard (plain http, as on a LAN)', async () => {
+  const p = await openPage(() => Object.defineProperty(navigator, 'clipboard', { value: undefined }));
+  await p.evaluate(() => (window.game.hud.setLocked(true), window.game.hud.setLocked(false)));
+  const press = (text) => p.locator('.overlay button:visible', { hasText: text }).first().click();
+  await press('MULTIPLAYER');
+  const saved = p.waitForEvent('download', { timeout: 5000 });
+  await press('COPY NETWORK LOG');
+  const name = (await saved.catch(() => null))?.suggestedFilename();
+  await p.close();
+  return /^roof-network-.+\.txt$/.test(name) && !p.errors.length ? null : JSON.stringify({ name, errors: p.errors });
+});
+
 await check('saves: a sign whose text changed loses its paint (changed shape), the rest loads', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
