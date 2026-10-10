@@ -247,6 +247,28 @@ canvas {
   animation: blink 0.8s steps(2) infinite;
 }
 
+/* --- Loading screen (index.html, main.ts): over everything until the game is ready --- */
+
+.loading {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: #0e0e10;
+  color: var(--paper);
+}
+.loading b {
+  font-size: 22px;
+  letter-spacing: 0.3em;
+}
+.loading span {
+  color: rgba(235, 229, 214, 0.62);
+}
+
 /* --- Start / pause screen ---------------------------------------------- */
 
 .overlay {

@@ -9,6 +9,12 @@ export const RENDER = {
   sprintFovEase: 8,
   /** Frame rate limit (frames per second); 0 = none, as fast as the display refreshes. A player setting (FRAME RATE). */
   maxFps: 0,
+  /**
+   * Frames drawn under the loading screen before it goes: the first compiles
+   * the shaders and uploads the level; the next settle what waited on it (the
+   * hotbar icons' read back), so the game shows without a stall.
+   */
+  loadFrames: 3,
   /** Go fullscreen when the game takes the mouse (off: play in the browser window). */
   fullscreen: true,
   /** Moving prop parts: CCTV heads pan and follow, AC fans spin. Off: they stay at rest. */

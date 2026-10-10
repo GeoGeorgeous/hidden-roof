@@ -166,16 +166,41 @@ function openLevel(data: LevelData, name: string) {
 
 /** The level's name: from ?level=, or the file opened in build mode. Paint saves are named by it. */
 let levelName = new URLSearchParams(location.search).get('level') ?? LEVELS.start;
+/**
+ * The loading screen (index.html) stays up while the level is built, lit and
+ * painted, and the game doesn't run: each step blocks, so the screen is still,
+ * and there's nothing to click. The first frame drawn takes it down.
+ */
+let loading = document.querySelector<HTMLElement>('.loading');
+let loaded = false;
+let framesDrawn = 0;
+/** Names the next step on the loading screen, once it's on screen. */
+function loadStep(text: string) {
+  loading!.querySelector('span')!.textContent = text;
+  return new Promise((done) => requestAnimationFrame(() => setTimeout(done)));
+}
 // Signs measure their text when they are built: wait for the sign font first.
 Promise.all([fetchLevel(levelName), jpFontReady()])
   .then(async ([data]) => {
+    await loadStep('BUILDING THE ROOF');
     loadLevel(data);
+    // Where the browser compiles shaders in parallel, they compile during the next steps.
+    // With the lights set up as the game draws them: their number is in the shaders.
+    lighting.update(player.position, camera.matrixWorldInverse);
     post.warm(scene, camera);
+    await loadStep('LIGHTING THE LAMPS');
+    level.flush();
+    baker.update(0, player.position);
+    await loadStep('PUTTING UP THE PAINT');
     await putLevelPaint(paint, drips, levelName, data);
+    loaded = true;
     // A reload in a session goes back into it (multiplayer.ts), with the session's paint.
     net.resume();
   })
-  .catch((e) => console.error(e));
+  .catch((e) => {
+    console.error(e);
+    if (loading) loading.querySelector('span')!.textContent = "THE LEVEL DIDN'T LOAD: RELOAD THE PAGE";
+  });
 
 let lastStride = 0;
 let textAtlasSeen = textAtlasVersion();
@@ -224,6 +249,10 @@ const fixedStep: { dt: number; script: (() => void) | null } = { dt: 0, script: 
 let drawnAt = -Infinity;
 
 function frame(time: number) {
+  if (!loaded) {
+    requestAnimationFrame(frame);
+    return;
+  }
   // Frame rate limit: skip display refreshes until a frame is due. Frames are
   // due one interval after the last was due, so the average is exact on any
   // display rate; after a stall it starts over.
@@ -336,6 +365,11 @@ function frame(time: number) {
   dev?.lap('paint + hud');
 
   post.render(scene, viewScene, camera, lighting, !building);
+  // A few frames drawn (the first compiles and uploads everything): the game shows.
+  if (loading && ++framesDrawn >= RENDER.loadFrames) {
+    loading.remove();
+    loading = null;
+  }
   dev?.lap('render');
   // Same frame as the render: the canvas still holds it (see screenshot.ts).
   if (input.wasPressed('KeyK')) saveScreenshot(renderer.domElement, () => hotbar.toast('Screenshot saved'));
@@ -396,5 +430,5 @@ function toScreen(p: THREE.Vector3) {
 
 // Dev tools (build mode, F3, window.game): single player only, and not in the player build (npm run build).
 let dev: DevTools | undefined;
-const game = { city: () => skyline, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, hotbar, pickups, paint, paintOps, net, paintFile, seedPaintRandom, fixedStep, session, level, renderer, input, hud, scene, viewScene, gpuTimer, PLAYER, loadLevel, rebuildCity, levelData, levelName: () => levelName, openLevel };
+const game = { city: () => skyline, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, hotbar, pickups, paint, paintOps, net, paintFile, seedPaintRandom, fixedStep, session, level, renderer, input, hud, scene, viewScene, gpuTimer, PLAYER, loadLevel, rebuildCity, levelData, levelName: () => levelName, openLevel, loaded: () => loaded };
 if (__DEV_TOOLS__) void import('./dev/devtools').then((m) => (dev = new m.DevTools(game)));

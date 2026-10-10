@@ -107,9 +107,9 @@ export function freePort() {
   });
 }
 
-/** Waits until the level is built (slow while other tests share the CPU), then `frames` frames (text atlases settle in the first ones). */
+/** Waits until the game has loaded (slow while other tests share the CPU), then `frames` frames (text atlases settle in the first ones). */
 export async function gameReady(page, frames = 10) {
-  await page.waitForFunction(() => window.game?.level?.solids?.length > 0, null, { timeout: 120000 });
+  await page.waitForFunction(() => window.game?.loaded(), null, { timeout: 120000 });
   await page.evaluate(
     (frames) =>
       new Promise((done) => {
