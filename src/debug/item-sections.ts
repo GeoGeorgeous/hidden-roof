@@ -67,6 +67,7 @@ export function itemSections(): Section[] {
       id: 'pickups',
       title: 'Pickups',
       items: [
+        { kind: 'action', label: 'UNLOCK ALL', run: () => live.unlockAll() },
         r('reach', ['PICKUP', 'reach'], 0.2, 3, 0.05),
         r('reach: height', ['PICKUP', 'reachHeight'], 0.2, 4, 0.05),
         r('hover height', ['PICKUP', 'hover'], 0, 2, 0.05),

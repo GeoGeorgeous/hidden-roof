@@ -48,6 +48,7 @@ export const LABEL_HINTS: Record<string, string> = {
   speed: 'Horizontal speed (m/s).',
   vertical: 'Vertical speed (m/s); negative = falling.',
   state: 'Grounded, airborne, crouched, on ladder or flying (build mode).',
+  'UNLOCK ALL': 'Every tool, paint color and cap at once; their pickups go, as if collected. Lasts until a level loads (a page reload, a level opened in build mode).',
   'STRIKE NOW': 'Trigger a lightning strike right now (thunder follows).',
   fps: 'Frames per second, and CPU time per frame.',
   'gpu: scene': 'GPU time of the main scene pass (needs timer queries; desktop Chromium).',

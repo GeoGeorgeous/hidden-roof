@@ -282,9 +282,7 @@ async function play({ runs, stand, faceYaw, gap, settle }) {
   const { inventory: inv, player, input, config } = g;
   window.golden.setUp();
   config.DRIPS.enabled = true;
-  for (const t of ['marker', 'roller', 'sponge']) inv.give(t);
-  for (const c of config.COLOR_ORDER) inv.addColor(c);
-  for (const c of config.CAP_ORDER) inv.addCap(c);
+  inv.unlockAll();
   player.setSpawn(player.position.clone().set(...stand), faceYaw);
   player.respawn();
   let drips = 0;

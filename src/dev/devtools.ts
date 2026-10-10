@@ -121,6 +121,11 @@ export class DevTools {
       atmosNight: () => g.atmosphere.nightValues,
       rebuildCity: g.rebuildCity,
       applyToolSizes: () => (g.inventory.size = { marker: MARKER.width, roller: ROLLER.width, sponge: SPONGE.width }),
+      unlockAll: () => {
+        g.inventory.unlockAll();
+        g.pickups.collectOwned(g.inventory);
+        g.hotbar.toast('+ everything');
+      },
       // Once per frame however many slider ticks came in (rebuildModelsNow).
       rebuildModels: () => (this.modelsChanged = true),
       syncSkyline,
