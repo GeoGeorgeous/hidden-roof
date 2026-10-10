@@ -79,6 +79,7 @@ viewSun.position.set(-1, 1, 2);
 viewScene.add(viewSun);
 
 const paint = new PaintSystem();
+renderer.domElement.addEventListener('webglcontextrestored', () => paint.reupload());
 const drips = new PaintDrips(paint);
 const paintOps = new PaintOps(paint, drips);
 const level = new Level(scene, paint);
