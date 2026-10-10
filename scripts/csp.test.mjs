@@ -5,12 +5,12 @@
 // Usage: npm run test:csp (builds the game and the server first)
 import { spawn } from 'node:child_process';
 import { preview } from 'vite';
-import { gameReady, openTestBrowser } from './test-browser.mjs';
+import { freePort, gameReady, openTestBrowser } from './test-browser.mjs';
 
-const PORT = 3996;
+const PORT = await freePort();
 const server = spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(PORT) }, stdio: ['ignore', 'ignore', 'inherit'] });
 process.env.WS_TARGET = `ws://localhost:${PORT}`;
-const site = await preview({ build: { outDir: 'dist-dev' }, preview: { port: 4198 }, logLevel: 'error' });
+const site = await preview({ build: { outDir: 'dist-dev' }, logLevel: 'error' });
 const test = await openTestBrowser(site.resolvedUrls.local[0]);
 const problems = [];
 try {

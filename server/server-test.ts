@@ -2,6 +2,7 @@ import './headless';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
+import net from 'node:net';
 import { PAINT, SERVER } from '../src/config';
 import { levelPaintFaces } from '../src/level/prop-pieces';
 import type { InventoryData } from '../src/inventory/inventory';
@@ -14,7 +15,13 @@ import { surfaceTable } from '../src/save/shape';
 // doesn't come back, who's away or dropped, what a player carries, HOST from a save, a full session joining at once,
 // message sizes, and the limits per address. npm run test:server builds both.
 
-const PORT = 3999;
+// A free port: other agents may be testing on this machine at the same time.
+const PORT = await new Promise<number>((done) => {
+  const s = net.createServer().listen(0, () => {
+    const { port } = s.address() as net.AddressInfo;
+    s.close(() => done(port));
+  });
+});
 const level = JSON.parse(fs.readFileSync('public/levels/demo.json', 'utf8'));
 PAINT.texelsPerMeter = 48;
 const faces = levelPaintFaces(level);

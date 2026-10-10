@@ -5,18 +5,24 @@
 // second, for tests that skip drawing (a page that draws would queue frames
 // faster than SwiftShader draws them, and screenshots and closing then wait).
 // On machines missing Chromium's system libraries, copies extracted to
-// ~/.local/pwlibs are used (see docs/golden-paint.md). The tests play the demo
+// ~/.local/pwlibs are used (see docs/testing.md). The tests play the demo
 // level, whose layout they know (`level`: another, or null for LEVELS.start).
+// Several agents may test at once: servers take free ports (freePort).
 import fs from 'node:fs';
+import net from 'node:net';
 import os from 'node:os';
 import { chromium } from 'playwright';
-import { createServer } from 'vite';
+import { createLogger, createServer } from 'vite';
 
 export async function openTestBrowser(url, { uncapped = false, level = 'demo' } = {}) {
   let server = null;
   if (!url) {
-    // Its own dependency cache, so it can run beside `npm run dev`.
-    server = await createServer({ logLevel: 'error', cacheDir: 'node_modules/.vite-test', server: { port: 5180 } });
+    // Its own dependency cache, so it can run beside `npm run dev`. The /ws proxy's errors
+    // aren't printed: the multiplayer test stops its game server on purpose.
+    const logger = createLogger('error');
+    const error = logger.error;
+    logger.error = (msg, options) => !msg.includes('proxy error') && error(msg, options);
+    server = await createServer({ customLogger: logger, cacheDir: 'node_modules/.vite-test', server: { port: 5180 } });
     await server.listen();
     url = server.resolvedUrls.local[0];
   }
@@ -56,9 +62,19 @@ function keepFramesComing() {
   });
 }
 
-/** Waits until the level is built, then `frames` frames (text atlases settle in the first ones). */
+/** A port nothing listens on, for a test's own game server. */
+export function freePort() {
+  return new Promise((done) => {
+    const s = net.createServer().listen(0, () => {
+      const { port } = s.address();
+      s.close(() => done(port));
+    });
+  });
+}
+
+/** Waits until the level is built (slow while other tests share the CPU), then `frames` frames (text atlases settle in the first ones). */
 export async function gameReady(page, frames = 10) {
-  await page.waitForFunction(() => window.game?.level?.solids?.length > 0);
+  await page.waitForFunction(() => window.game?.level?.solids?.length > 0, null, { timeout: 120000 });
   await page.evaluate(
     (frames) =>
       new Promise((done) => {
