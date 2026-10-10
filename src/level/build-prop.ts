@@ -148,9 +148,9 @@ function cylIsPaintable(p: CylPiece) {
   return Math.max(p.r, p.r2 ?? p.r) >= 0.3 && p.len >= 1;
 }
 
-export const matKey = (m: Mat) => `${m.tex}|${m.tile ?? ''}|${m.alpha ?? ''}`;
+export const matKey = (m: Mat) => `${m.tex}|${m.tile ?? ''}|${m.alpha ?? ''}|${m.glass ? 'glass' : ''}`;
 function material(m: Mat) {
-  return makeSurfaceMaterial({ tex: m.tex, tileMeters: m.tile, alphaTest: m.alpha });
+  return makeSurfaceMaterial({ tex: m.tex, tileMeters: m.tile, alphaTest: m.alpha, glass: m.glass });
 }
 /** What paint surfaces' own meshes carry: they're never drawn (level/batches.ts), only hit by rays (front faces). */
 const PROXY = new THREE.MeshBasicMaterial();

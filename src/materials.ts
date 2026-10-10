@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ATMOS, BASE_TEXTURES, FANS, FLICKER, INK, LIGHTMAP, PAINT, SKYLINE } from './config';
+import { ATMOS, BASE_TEXTURES, FANS, FLICKER, INK, LIGHTMAP, PAINT, RENDER, SKYLINE } from './config';
 import { FLICKER_GLSL } from './render/flicker';
 import { TRACK_GLSL, trackUniforms } from './render/cctv-track';
 import { BAKE_FRAG, BAKE_FRAG_PARS, BAKE_VERT, BAKE_VERT_PARS, bakeUniforms } from './render/bake/glsl';
@@ -42,6 +42,7 @@ export const shared = {
   uCloudBase: { value: ATMOS.cloudBase },
   uCloudFade: { value: ATMOS.cloudFade },
   uAlphaSteps: { value: PAINT.alphaSteps },
+  uGlassOpacity: { value: RENDER.glassOpacity },
   uTime: { value: 0 },
   uSpin: { value: 0 },
   uFlickerSpeed: { value: FLICKER.speed },
@@ -80,6 +81,7 @@ export function syncSharedUniforms(time: number) {
   shared.uCloudBase.value = ATMOS.cloudBase;
   shared.uCloudFade.value = ATMOS.cloudFade;
   shared.uAlphaSteps.value = PAINT.alphaSteps;
+  shared.uGlassOpacity.value = RENDER.glassOpacity;
   shared.uBakedScale.value = LIGHTMAP.enabled ? ATMOS.practical : 0;
   syncInkUniforms();
 }
@@ -145,6 +147,7 @@ uniform sampler2D uBase;
 uniform sampler2D uPaint;
 uniform float uAlphaTest;
 uniform float uAlphaSteps;
+uniform float uGlassOpacity;
 uniform float uWet;
 uniform float uEmissiveBoost;
 uniform float uCloudBase;
@@ -177,6 +180,11 @@ pa = clamp(pa, 0.0, 1.0);
 diffuseColor.rgb *= baseCol;
 float hiStripe = step(0.5, fract((vWorldPos.x + vWorldPos.y + vWorldPos.z) * 1.25));
 `;
+const GLASS_FRAG = /* glsl */ `
+#ifdef GLASS
+gl_FragColor.a = mix(uGlassOpacity, 1.0, pa);
+#endif
+`;
 const FRAG_SPECULAR = /* glsl */ `
 float specularStrength = wet * (1.0 - 0.6 * pa);
 `;
@@ -190,6 +198,8 @@ export interface SurfaceMaterialOptions {
   tileMeters?: number;
   /** Discard texels whose base alpha is below this (chain-link etc). */
   alphaTest?: number;
+  /** Clear glass: blended over what's behind, opaque where painted. */
+  glass?: boolean;
 }
 
 export class SurfaceMaterial extends THREE.MeshPhongMaterial {
@@ -209,6 +219,12 @@ export class SurfaceMaterial extends THREE.MeshPhongMaterial {
     if (opts.alphaTest) this.defines = { BASE_ALPHA_TEST: '' };
     // Sign lettering (the text atlases) is drawn straight from the texture, not lit (render/ink/tone.ts).
     if (LETTER_TEXTURES.has(opts.tex)) this.defines = { ...this.defines, LETTERS: '' };
+    // Glass is drawn after the opaque world and stays out of the depth (outlines and fog see through it).
+    if (opts.glass) {
+      this.defines = { ...this.defines, GLASS: '' };
+      this.transparent = true;
+      this.depthWrite = false;
+    }
     const base = (this.baseTexture = textures()[opts.tex]);
     const tile = opts.tileMeters ?? (base.image as HTMLCanvasElement).width / BASE_TEXTURES.texelsPerMeter;
     this.baseScaleUniform.value = 1 / tile;
@@ -227,7 +243,7 @@ export class SurfaceMaterial extends THREE.MeshPhongMaterial {
         .replace('#include <specularmap_fragment>', FRAG_SPECULAR)
         .replace('#include <emissivemap_fragment>', FRAG_EMISSIVE)
         .replace('#include <lights_fragment_maps>', `#include <lights_fragment_maps>\n${BAKE_FRAG}`)
-        .replace('#include <opaque_fragment>', INK_FRAG)
+        .replace('#include <opaque_fragment>', `${INK_FRAG}\n${GLASS_FRAG}`)
         .replace('#include <fog_fragment>', '');
     };
   }
