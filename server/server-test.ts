@@ -315,22 +315,28 @@ assert.doesNotMatch(lines, /"A" #1 out: left[^]*"A" #1 dropped/);
 // new one. In the process, with the server's log quiet.
 {
   const say = console.log;
+  const was = { rejoinWindow: SERVER.rejoinWindow, snapshotKeep: SERVER.snapshotKeep };
   console.log = () => {};
   // No timers left to keep the test running: the dropped joiner goes and the paint file isn't kept.
   Object.assign(SERVER, { rejoinWindow: 0, snapshotKeep: 0 });
-  const s = new Session('FAILS', 'demo', level, 48, () => {});
-  const link = (): Link & { sent: number } => ({ sent: 0, send() { this.sent++; }, close() {}, open: true, ip: 'test', since: Date.now() });
-  const { paint } = (s as unknown as { world: ReturnType<typeof sessionPaint> }).world;
-  paint.stamp(paint.surfaces[0], { rect: 0, u: 0.5, v: 0.5 }, 0.2, 1, [1, 0, 0]);
-  const data = paint.surfaces[0].data!;
-  paint.surfaces[0].data = new Proxy(data, { get: () => { throw new Error('unreadable paint'); } });
-  await assert.rejects(s.admit(link(), 'X'), /unreadable paint/);
-  paint.surfaces[0].data = data;
-  const y = link();
-  const r = await s.admit(y, 'Y');
-  await new Promise((done) => setTimeout(done, 10));
-  console.log = say;
-  assert.ok(typeof r !== 'string' && y.sent > 1, 'a join after a failed paint file gets a welcome and the paint');
+  try {
+    const s = new Session('FAILS', 'demo', level, 48, () => {});
+    const link = (): Link & { sent: number } => ({ sent: 0, send() { this.sent++; }, close() {}, open: true, ip: 'test', since: Date.now() });
+    const { paint } = (s as unknown as { world: ReturnType<typeof sessionPaint> }).world;
+    paint.stamp(paint.surfaces[0], { rect: 0, u: 0.5, v: 0.5 }, 0.2, 1, [1, 0, 0]);
+    const data = paint.surfaces[0].data!;
+    paint.surfaces[0].data = new Proxy(data, { get: () => { throw new Error('unreadable paint'); } });
+    await assert.rejects(s.admit(link(), 'X'), /unreadable paint/);
+    paint.surfaces[0].data = data;
+    const y = link();
+    const r = await s.admit(y, 'Y');
+    await new Promise((done) => setTimeout(done, 10));
+    assert.ok(typeof r !== 'string' && y.sent > 1, 'a join after a failed paint file gets a welcome and the paint');
+  } finally {
+    // What a failure says is seen, and the checks after this one get the server as configured.
+    console.log = say;
+    Object.assign(SERVER, was);
+  }
   console.log('failed paint file: ok (the next join gets a new one)');
 }
 
