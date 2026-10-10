@@ -20,7 +20,7 @@ export const RENDER = {
    */
   batchTile: 32,
   /** Opacity of clear glass (Mat.glass) where it has no paint; paint on it is opaque. */
-  glassOpacity: 0.3,
+  glassOpacity: 0.85,
 };
 
 /** Rainy night. Colors are hex; everything else is live-tunable in the debug panel. */
