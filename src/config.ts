@@ -294,7 +294,7 @@ export const PAUSE_MENU = {
   controls: true,
   /** Size of everything on the sheet (1 = as styled in style.css). */
   scale: 1.05,
-  /** The view behind the sheet (not the title screen): a fixed camera on the city instead of yours. Position (m), yaw and pitch (degrees, pitch < 0 looks down). */
+  /** The title screen's view (before START; ESC later shows where you are): a fixed camera on the city. Position (m), yaw and pitch (degrees, pitch < 0 looks down). */
   view: true,
   viewX: -24,
   viewY: 9,

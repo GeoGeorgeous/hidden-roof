@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import * as config from './config';
-import { pauseCamera } from './render/pause-view';
+import { titleCamera } from './render/title-view';
 import { ATMOS, AUDIO, COLORS, HUD, INK, LEVELS, PLAYER, PRESSURE, RENDER, SMOKE, THUNDER, VIEWMODEL, VOLUMETRICS } from './config';
 import { syncSharedUniforms } from './materials';
 import { syncTrackUniforms } from './render/cctv-track';
@@ -244,11 +244,7 @@ function frame(time: number) {
   const dt = fixedStep.dt || Math.min(delta, 1 / 20);
 
   dev?.frame(input, dt);
-  // Behind the full pause sheet (title screen, ESC, in build mode too) a fixed view of
-  // the city as players see it: no hands or tools, and no build helpers (devtools.ts).
-  // It draws from a camera of its own; play (aim, tools, build mode) keeps yours.
-  const cityView = hud.cityView;
-  const building = (dev?.building ?? false) && !cityView;
+  const building = dev?.building ?? false;
 
   // Paused (pointer not locked) in single player the game stops: you, your tools,
   // paint in flight, drips, pickups and lightning. The surroundings go on (fans,
@@ -276,8 +272,11 @@ function frame(time: number) {
     camera.updateProjectionMatrix();
   }
   camera.updateMatrixWorld();
+  // The title screen shows a fixed view of the city, without hands or tools. It draws
+  // from a camera of its own; play (aim, tools) keeps yours.
+  const cityView = hud.cityView;
   viewScene.visible = !cityView;
-  const shown = cityView ? pauseCamera(camera) : camera;
+  const shown = cityView ? titleCamera(camera) : camera;
   const at = shown.position;
   dev?.lap('player');
   // Sprites follow the camera's FOV (sprinting, F3) like the world around them.

@@ -105,17 +105,11 @@ export class BuildMode {
     this.hud.append(div('title', 'BUILD'), levels, div('', HELP), this.statusEl);
     document.body.appendChild(this.hud);
     this.setActive(false);
-    this.setShown(false);
   }
 
   setActive(on: boolean) {
     this.active = on;
     this.player.fly = on;
-    if (!on) this.player.unstick();
-  }
-
-  /** Its helpers on screen: while building, but not behind the pause view (devtools.ts). */
-  setShown(on: boolean) {
     this.pickerView.visible = on;
     this.hud.hidden = !on;
     this.ghost.visible = on;
@@ -127,6 +121,7 @@ export class BuildMode {
     if (on) this.spawnMarker.set(this.level.spawn.pos, this.level.spawn.yaw);
     this.pickups.setEditing(on);
     this.paintEdit.visible = on;
+    if (!on) this.player.unstick();
   }
 
   /** The picker's size or shade, the outline's or the highlight's look changed (F3). */

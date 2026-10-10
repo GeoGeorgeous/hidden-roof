@@ -214,9 +214,9 @@ export class Hud {
     this.syncMenu();
   }
 
-  /** Behind the full sheet, the title screen's and ESC's alike, a fixed view of the city (PAUSE_MENU.view). */
+  /** The title screen (before START) shows a fixed view of the city (PAUSE_MENU.view); ESC later shows where you are. */
   get cityView() {
-    return PAUSE_MENU.view && this.sheetUp;
+    return PAUSE_MENU.view && this.sheetUp && !this.started;
   }
 
   /** Show the full pause sheet (as without F3) for a moment: F3 is tuning it (PAUSE_MENU). */
