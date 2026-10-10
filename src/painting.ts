@@ -143,6 +143,15 @@ export class PaintSystem {
     for (const s of this.surfaces) this.free(s);
   }
 
+  /**
+   * The GPU lost the paint (its WebGL context was lost and restored: a GPU
+   * reset, a driver update): three.js restores the textures it holds the data
+   * of, not the paint pages, filled by uploads. Upload it all again.
+   */
+  reupload() {
+    for (const s of this.surfaces) if (s.data) this.gpu.markDirty(s, 0, 0, s.geo.atlasW - 1, s.geo.atlasH - 1);
+  }
+
   /** Free a surface's paint if none is left (the sponge cleaned it all off): its memory comes back until the next hit. */
   freeIfClean(s: PaintSurface) {
     const d = s.data;
