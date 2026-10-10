@@ -68,7 +68,7 @@ by state: no AI, pathfinding or dialogue.
 
 First review: legs slimmer; a rounder dummy's head instead of the robot's; crouching leans forward (it leaned back: a sign error); the spray arm bent at the elbow, elbow a little out; the hoodie down to just below the waist and roomier, clear of the legs when walking; rounded shoulders.
 
-Second review: the spray arm straight out along the look again, as at first (`AVATAR.sprayReach`, F3 → Avatar: less bends the elbow out and down); crouched and spraying, the body leans a little back (`crouchSprayLean`); the shoulders round the hoodie's corners instead of cutting into it; the eyes sit out past the egg's facets, so both show from every side.
+Second review: the spray arm straight out along the look again, as at first; crouched and spraying, the body leans a little back (`crouchSprayLean`); the shoulders round the hoodie's corners instead of cutting into it; the eyes sit out past the egg's facets, so both show from every side.
 
 Third review: the hoodie and sleeves slimmer (the body looked bulky against the head and legs); spraying is the first version's pose again, the arm straight out along the look with the can standing up in the fist (the IK version turned the can's top forward). IK stays for the roller and the sponge.
 
@@ -84,12 +84,12 @@ Fourth review: the shoulders are plain boxes again, as at first (simpler than th
 | `src/avatar/outfit.ts` | Fitted long hoodie down to mid-thigh (pocket, drawstrings, cuffs, hood up or down), pants in the hoodie's gray with round hips, sneakers |
 | `src/avatar/pose.ts` | `AvatarState` → bone rotations: leg IK, walk phase from distance, layered arm poses, finger grips |
 | `src/avatar/arm-ik.ts` | Arm IK for the roller and the sponge: the elbow bends out and down |
-| `src/avatar/held.ts` | The tool in the right hand: pickup models at real size, merged; the can's label in paint color; the stepladder folded and carried by its rail |
-| `src/avatar/avatar.ts` | `Avatar`: `group`, `update(dt, state, color)`, `setOutfit`, `dispose` |
+| `src/avatar/held.ts` | The tool in the right hand: pickup models at real size, merged; the can's label in its paint color and its cap in the cap's; the nozzle, where other players' spray leaves; the stepladder folded and carried by its rail |
+| `src/avatar/avatar.ts` | `Avatar`: `group`, `update(dt, state, color, cap)`, `nozzle`, `setFaded` (a player who's gone), `setOutfit`, `dispose` |
 | `src/dev/avatar-preview.ts` | F3 → Avatar: the test figure |
 
 - **Cost:** the body is one draw call (1180 triangles); a tool adds one, the can two (its label). A frame only sets bone angles; geometry is built only when the outfit or the tool changes.
-- **Not yet:** nameplates (phase 4), facing a ladder (the snapshot will carry it; step 5), first-person hands from this hand (later).
+- **Since:** nameplates (`src/net/nameplates.ts`) and facing a ladder (`src/net/remote-player.ts`). First-person hands from this hand: `docs/backlog.md`.
 
 ## Review
 

@@ -24,7 +24,6 @@ Context for the agent that deploys and runs the game on the VPS. Read it before 
 
 - `npm run build` → `dist/` is the player build, single player and multiplayer: **deploy this one.** It leaves out the dev tools (build mode, the F3 panel, `window.game`: `__DEV_TOOLS__` in `vite.config.ts`, false only in production mode).
 - `npm run build:dev` → `dist-dev/` is the same with the dev tools. Never deploy it.
-- `v1.0.0` predates this: there the player build is `npm run build:mp` → `dist-mp/`, and `npm run build` includes the dev tools. Check `package.json` of the tag you deploy.
 - Building needs Node `^20.19 || >=22.12` (locally Node 24) and the devDependencies (`tsc`, `vite`): use `npm ci`, without `--omit=dev`. `dist/` and `dist-*/` are gitignored.
 
 ## 4. The host
