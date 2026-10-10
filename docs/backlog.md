@@ -4,6 +4,9 @@ The one place for what's left to do: bugs, things to check, performance, tests, 
 
 ## Bugs
 
+- **A game opened or reloaded in a hidden tab doesn't load until it's shown.** Seen in the code (review of 2026-10-11): `loadStep` (`src/loading.ts`) waits for an animation frame, and a hidden tab gets none. A tab opened in the background loads only once looked at; one reloaded in a session and left hidden doesn't come back into it, and after `SERVER.rejoinWindow` (60 s) comes back as a new player (no stepladder; what they carried comes back by name). Do: in `loadStep`, a plain `setTimeout` while `document.hidden`. **XS.**
+- **The loading screen says LOADING forever when the game can't start:** no WebGL (`new THREE.WebGLRenderer` in `main.ts` throws) or a script that doesn't load. Seen in the code (2026-10-11). Do: catch the renderer's failure and say so on the loading screen (as `loadFailed` does for the level). **S.**
+
 ### Mouse spikes snap the camera (Chrome on Windows)
 
 - **Seen:** a profile on Windows 11, Chrome 154 (2026-10-10): during a fast flick, one `mousemove` of 458 px among events of at most 123 px (one frame with none, then three at once); the camera jumped 60°. The frame took 16.7 ms: a bad input value, not a stall. Once in 42 minutes, 14 s after the lock was taken. `src/input.ts` adds every `movementX/Y` as it comes; unchanged since 1.0.
@@ -13,12 +16,15 @@ The one place for what's left to do: bugs, things to check, performance, tests, 
 ## Check by hand
 
 - **Before a release:** walking along railings and landings (the corner slip, `PLAYER.cornerSlip`), the lattice mast (can't be climbed), the clear windows (see through, paint from both sides, a stepladder against one from behind), pickups (ring shapes, glow, tags within 4 m, hidden behind walls), and a session from two devices on one network (paint, presence, reload, the network log). **M.**
+- **Pickup rings on the title screen are sized for where you stand,** not for the title view (`ringSize` in `src/pickups/pickups.ts` uses the player's camera): the lime one, ~16 m from the title camera and ~29 m from the spawn, shows almost twice its size. Do: size them for the camera that draws (`shown` in `main.ts`), or leave it. **XS.**
 - **A remote player's correction glides** at up to ~3× walking speed on a bad link (16 m/s at 60 fps, over 0.1–0.2 s); the ghost test allows it (it checks for jumps: 30–65 m/s unsmoothed). A speed cap changes how other players look: judge it in F3 → Test → Ghost (net: hiccups 0.2, record a walk that stops, PLAY), then decide. **S.**
 
 ## Performance
 
 - **Other players' spray with many players.** Measured (A2000 laptop, 1280×720, fake players sending no paint ops): 19 others walking 124 fps, all 19 spraying 84 fps; their particles cost ~0.2 ms of CPU a frame per sprayer (a ray each a frame, `spray/particles.ts` `show`, a pool of 3000). Their paint ops come on top, unmeasured. Do: particles only for the nearest few sprayers, or reuse each sprayer's ray for a few frames; or a lower `SERVER.maxPlayers`. Measure a real session of 8 to 20 first. **M** (XS for the cap).
-- **The roof level's edits of 2026-10-10** (48 props: lamps, signs, ducts, 4 clear windows) cost about 4–15% of the frame rate and 7–31 draw calls at five fixed views, the most facing the edited building (x 10–16). Measured with the machine under load: measure again on a quiet one. **S.**
+- **The roof level's edits of 2026-10-10** (two: lamps, signs, ducts, 4 clear windows; then railings, parapets, roof lights, skylights, ducts: 1373 → 1464 props) cost, at six fixed views at 1280×720 on a quiet machine (median of 3 runs, `next` before them vs `dev` after, 2026-10-11): Intel UHD GPU time +3–9% (14.3–17.0 → 15.6–17.7 ms, scene + post), CPU +0.4–1.4 ms (6.9–8.4 → 8.1–9.8 ms), draw calls +4–21% (128–374 → 133–422), triangles +8%. On the A2000 the GPU barely moves (±6%, under 4 ms where its clocks held); one view on each GPU varied too much between runs to compare. The extra calls are merged tile batches (more materials and finishes per tile) and glass: no draw call per prop. Not urgent; if the weak GPU needs room, fewer material and finish variants per tile first. **S.**
+- **Four shaders still compile in the first frame,** under the loading screen: the moon's shadow pass (two depth materials) and two drawn outside the scenes `post.warm` compiles (a ShaderMaterial, a MeshBasicMaterial). Nothing compiles at START or later. Do, if loading on Windows is slow: warm them as `Volumetrics.warm` does. **S.**
+- **One load of the roof took 62 s** on the real GPU (2026-10-11, an ad-hoc script: headed Chromium on WSLg, its own Vite server); 8 other loads took 4.8–5.8 s, and 3 reruns didn't show it again. Cause not found. If a player reports a long load, start here. **S.**
 - **The hint wall takes two paint pages.** It spans two level tiles (`p89`, `p90` and a joint), so every game starts with two 2048² paint pages: +42.5 MB of GPU memory before anything is painted. Do: move the hint (or the wall) into one tile and save the level and its paint again (build mode P). **S.**
 - **Paint pages at ULTRA.** After 40 minutes of painting at ULTRA a profile counted 45 more GPU textures; if paint pages (2048², ~21 MB each with mips), ~0.95 GB of GPU memory. Already so in 1.1.0. Do: check the HUD's `tex memory` after heavy painting at ULTRA; if that's what it is, smaller or fewer pages for sparse paint, or a cap with a warning. **L.**
 
@@ -27,6 +33,10 @@ The one place for what's left to do: bugs, things to check, performance, tests, 
 - **Player movement has no test:** walking, collisions (and the corner slip), jumps, climbing, ladders. A fixed-step check per move. **M.**
 - **Light baking and weather run on the wall clock** (`baker.ts` budget, rain): screenshots aren't byte-comparable. Compare pictures only after the bake finishes, rain off. **S.**
 - **The multiplayer test's first page didn't build its level within 120 s** once (2026-10-10, another agent testing on the machine too); not seen since. If it repeats, find what held it up (the page's console, the machine's load). **S.**
+
+## Code
+
+- **`src/hud.ts` is 410 lines, `src/main.ts` 400:** over and at AGENTS.md's ~400. Split by responsibility the next time either grows (`hud.ts`: the perf lines or the menu's pages; `main.ts`: the load steps). **S.**
 
 ## Known, by design
 
