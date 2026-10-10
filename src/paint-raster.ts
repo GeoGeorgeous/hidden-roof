@@ -17,6 +17,12 @@ export interface RasterSurface {
   excess: Uint16Array | null;
 }
 
+/** Atlas texels x0..x1, y0..y1, inclusive. */
+export type Box = [x0: number, y0: number, x1: number, y1: number];
+
+/** The part of `box` on face `rect` and its 1-texel ring. */
+export const inRing = (rect: Rect, [x0, y0, x1, y1]: Box): Box => [Math.max(rect.x - 1, x0), Math.max(rect.y - 1, y0), Math.min(rect.x + rect.w, x1), Math.min(rect.y + rect.h, y1)];
+
 /** A roller band's size and paint (see PaintSystem.roll). */
 export interface Band {
   halfLength: number;
@@ -132,15 +138,12 @@ export class PaintRaster<S extends RasterSurface> {
 
   /**
    * An image (PaintSystem.imprint): each texel of `rect` and its ring in
-   * x0..x1, y0..y1 gets `alpha(x, y)` (0..1, at its center) of `color`.
-   * False if none got any.
+   * `box` gets `alpha(x, y)` (0..1, at its center) of `color`. False if none
+   * got any.
    */
-  image(s: S, rect: Rect, x0: number, y0: number, x1: number, y1: number, alpha: (x: number, y: number) => number, color: Rgb) {
+  image(s: S, rect: Rect, box: Box, alpha: (x: number, y: number) => number, color: Rgb) {
     const w = s.geo.atlasW;
-    x0 = Math.max(rect.x - 1, x0);
-    x1 = Math.min(rect.x + rect.w, x1);
-    y0 = Math.max(rect.y - 1, y0);
-    y1 = Math.min(rect.y + rect.h, y1);
+    const [x0, y0, x1, y1] = inRing(rect, box);
     let touched = false;
     for (let y = y0; y <= y1; y++) {
       for (let x = x0; x <= x1; x++) {

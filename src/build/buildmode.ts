@@ -9,7 +9,7 @@ import type { Player } from '../player';
 import { Ghost, GREEN, RED } from './ghost';
 import { PropSettings } from './prop-settings';
 import { PaintEditor } from './paint-editor';
-import type { PaintSystem } from '../painting';
+import type { PaintPatch, PaintSystem } from '../painting';
 import { SpawnMarker } from './spawn-marker';
 import { BUILD, PLAYER } from '../config';
 import { describeHeight, levelOf, levelY } from '../level/levels';
@@ -94,7 +94,7 @@ export class BuildMode {
     this.outline = new Ghost(scene, { color: BUILD.targetColor, opacity: BUILD.targetOpacity, outline: true });
     this.settings = new PropSettings(scene, level, (m) => this.say(m), (def) => this.picker.finishFor(def));
     this.grid = new CursorGrid(scene);
-    this.paintEdit = new PaintEditor(scene, level, paint, (m) => this.say(m));
+    this.paintEdit = new PaintEditor(scene, level, paint, (m) => this.say(m), (was) => this.history.push({ op: 'paint', kind: 'paint', id: 0, data: was }));
     this.spawnMarker = new SpawnMarker(scene, PLAYER.height, PLAYER.radius);
     this.spawnGhost = new SpawnMarker(scene, PLAYER.height, PLAYER.radius);
     this.hud = div('build-help');
@@ -367,6 +367,7 @@ export class BuildMode {
   }
 
   private revert(e: HistoryEntry): number | undefined {
+    if (e.op === 'paint') return void this.paintEdit.undo(e.data as PaintPatch[]);
     if (e.op === 'move') {
       this.setSpawn(e.data as { pos: V3; yaw: number });
       return undefined;

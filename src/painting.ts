@@ -7,7 +7,7 @@ import { SeamIndex, texelToWorld, worldToTexel, type SeamFace } from './paint-se
 import { PaintGpu, type DirtyRect, type PaintPage } from './paint-gpu';
 import type { PageSlot } from './page-packer';
 import type { LightSlot } from './render/bake/light-pages';
-import { PaintRaster, type Band } from './paint-raster';
+import { inRing, PaintRaster, type Band, type Box } from './paint-raster';
 import type { PaintOp } from './paint-ops';
 import { imageOnFace, type PaintImage } from './paint-image';
 
@@ -52,6 +52,16 @@ export interface PaintSurface {
   excess: Uint16Array | null;
   /** Texel rects changed since the last upload (inclusive, paint-gpu.ts). */
   dirty: DirtyRect[];
+}
+
+/** A box of a surface's paint (PaintSystem.patch): its texels and excess, or null where it had none. */
+export interface PaintPatch {
+  key: string;
+  /** The surface's atlas size then: a rebuilt surface of another size can't take it. */
+  atlas: [number, number];
+  box: Box;
+  data: Uint8Array | null;
+  excess: Uint16Array | null;
 }
 
 export class PaintSystem {
@@ -284,35 +294,68 @@ export class PaintSystem {
    * world direction `right` and its y along `up` (unit vectors in the face's
    * plane): build mode's hints (build/paint-editor.ts). Each texel takes the
    * image's average over it. Carries across seams like stamp(); never logged,
-   * since level paint is made in build mode, alone. False on a curved face.
+   * since level paint is made in build mode, alone. `before` gets each surface
+   * and the box it may paint, before it's painted (undo). False on a curved face.
    */
-  imprint(s: PaintSurface, at: FacePoint, img: PaintImage, right: THREE.Vector3, up: THREE.Vector3, color: Rgb) {
+  imprint(s: PaintSurface, at: FacePoint, img: PaintImage, right: THREE.Vector3, up: THREE.Vector3, color: Rgb, before?: (s: PaintSurface, box: Box) => void) {
     const hit = faceTexel(s, at);
     if (!this.live(s) || !hit.face) return false;
     const center = texelToWorld(hit, atTexel.x, atTexel.y, new THREE.Vector3());
     for (const { surface, rect } of [{ surface: s, rect: hit }, ...this.seams.near(hit, center, Math.hypot(img.width, img.height) / 2)]) {
       if (!this.live(surface)) continue;
-      const { x0, y0, x1, y1, alpha } = imageOnFace(img, rect, center, right, up);
+      const { box, alpha } = imageOnFace(img, rect, center, right, up);
+      before?.(surface, inRing(rect, box));
       const fresh = !surface.data;
       this.ensureTexture(surface);
       // A neighbor the image only came near takes no paint, nor memory.
-      if (!this.raster.image(surface, rect, x0, y0, x1, y1, alpha, color) && fresh) this.free(surface);
+      if (!this.raster.image(surface, rect, box, alpha, color) && fresh) this.free(surface);
     }
     return true;
   }
 
+  /** Face `rect` and its ring, as a box. */
+  faceBox(s: PaintSurface, rect: number): Box {
+    const r = s.geo.rects[rect];
+    return [r.x - 1, r.y - 1, r.x + r.w, r.y + r.h];
+  }
+
   /** Wipe one face's paint and its ring (build mode's X): the surface's memory comes back once none is left. */
   wipe(s: PaintSurface, rect: number) {
-    const d = s.data;
-    if (!d) return;
-    const r = s.geo.rects[rect];
+    if (s.data) this.unpatch({ key: s.key, atlas: [s.geo.atlasW, s.geo.atlasH], box: this.faceBox(s, rect), data: null, excess: null });
+  }
+
+  /** A box of a surface's paint as it is now, to put back with unpatch() (build mode's undo). */
+  patch(s: PaintSurface, box: Box): PaintPatch {
     const w = s.geo.atlasW;
-    for (let y = r.y - 1; y <= r.y + r.h; y++) {
-      d.fill(0, (y * w + r.x - 1) * 4, (y * w + r.x + r.w + 1) * 4);
-      s.excess?.fill(0, y * w + r.x - 1, y * w + r.x + r.w + 1);
+    const [x0, y0, x1, y1] = box;
+    const crop = <T extends Uint8Array | Uint16Array>(src: T, n: number, out: T) => {
+      for (let y = y0; y <= y1; y++) out.set(src.subarray((y * w + x0) * n, (y * w + x1 + 1) * n), (y - y0) * (x1 - x0 + 1) * n);
+      return out;
+    };
+    const texels = (x1 - x0 + 1) * (y1 - y0 + 1);
+    return { key: s.key, atlas: [w, s.geo.atlasH], box, data: s.data && crop(s.data, 4, new Uint8Array(texels * 4)), excess: s.excess && crop(s.excess, 1, new Uint16Array(texels)) };
+  }
+
+  /** Put a patch back (none in it: wipe its box), on the live surface with its key; false if it has none, or its atlas changed since. */
+  unpatch({ key, atlas, box, data, excess }: PaintPatch) {
+    const s = this.find(key);
+    if (!s || s.geo.atlasW !== atlas[0] || s.geo.atlasH !== atlas[1]) return false;
+    if (!data && !s.data) return true;
+    this.ensureTexture(s);
+    const w = atlas[0];
+    const [x0, y0, x1, y1] = box;
+    const bw = x1 - x0 + 1;
+    for (let y = y0; y <= y1; y++) {
+      const at = y * w + x0;
+      const i = (y - y0) * bw;
+      if (data) s.data!.set(data.subarray(i * 4, (i + bw) * 4), at * 4);
+      else s.data!.fill(0, at * 4, (at + bw) * 4);
+      if (excess) (s.excess ??= new Uint16Array(w * atlas[1])).set(excess.subarray(i, i + bw), at);
+      else s.excess?.fill(0, at, at + bw);
     }
-    this.gpu.markDirty(s, r.x - 1, r.y - 1, r.x + r.w, r.y + r.h);
+    this.gpu.markDirty(s, x0, y0, x1, y1);
     this.freeIfClean(s);
+    return true;
   }
 
   /** Paint a single texel (paint runs), clipped to its face rect. */

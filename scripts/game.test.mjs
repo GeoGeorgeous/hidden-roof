@@ -347,6 +347,35 @@ await check('hints: painted as paint, across wall pieces; H boxes every painted 
   return ok ? null : JSON.stringify(r);
 });
 
+await check('hints: Ctrl+Z takes a hint off (its memory too) and puts a wiped face back', async () => {
+  await page.evaluate(() => window.game.paint.clear());
+  await paintHint(page);
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    // Texels with paint, and Ctrl+Z (build mode's history).
+    window.lit = () => g.paint.surfaces.reduce((n, s) => { if (s.data) for (let i = 3; i < s.data.length; i += 4) n += s.data[i] ? 1 : 0; return n; }, 0);
+    window.undo = () => g.build.history.undo((e) => g.build.revert(e));
+    const painted = lit();
+    undo();
+    return { painted, undone: lit(), pages: g.paint.gpu.textureCount };
+  });
+  await paintHint(page);
+  const w = await page.evaluate(() => {
+    const g = window.game;
+    const editor = g.build.paintEdit;
+    const before = lit();
+    editor.wipe(editor.aim(g.scene.children.find((o) => o.isPerspectiveCamera)));
+    const wiped = lit();
+    undo();
+    const back = lit();
+    undo();
+    g.paint.clear();
+    return { before, wiped, back };
+  });
+  Object.assign(r, w);
+  return r.painted > 0 && r.undone === 0 && r.pages === 0 && r.wiped < r.before && r.back === r.before ? null : JSON.stringify(r);
+});
+
 await check('hints: every font paints; softness 0 paints whole texels only, softness 1 a soft edge', async () => {
   const r = {};
   for (const [font, softness] of [['graffiti', 1], ['gothic', 0], ['gothic', 1], ['mono', 0.3]]) {

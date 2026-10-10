@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { worldToTexel } from './paint-seams';
+import type { Box } from './paint-raster';
 import type { Rect } from './surfaces';
 
 // Images painted onto flat faces (PaintSystem.imprint: build mode's hints).
@@ -56,7 +57,7 @@ export function imageOnFace(img: PaintImage, rect: Rect, center: THREE.Vector3, 
     for (const [qx, qy] of QUARTERS) a += sample(img, px0 + (x + qx) * pxX + (y + qy) * pxY, py0 + (x + qx) * pyX + (y + qy) * pyY);
     return edge(a / (4 * 255), img.softness);
   };
-  return { x0, y0, x1, y1, alpha };
+  return { box: [x0, y0, x1, y1] as Box, alpha };
 }
 
 /** Alpha `a` (0..1) with its ramp around half narrowed to `softness` (1: as it is, 0: a step at half). */

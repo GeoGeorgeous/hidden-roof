@@ -7,7 +7,7 @@ import type { Level } from '../level/level';
 import { solidsNear } from '../level/solids';
 import { shared } from '../materials';
 import { edge, type PaintImage } from '../paint-image';
-import type { PaintSurface, PaintSystem } from '../painting';
+import type { PaintPatch, PaintSurface, PaintSystem } from '../painting';
 import { savePaint } from '../save/save-paint';
 import { facePoint, type FacePoint } from '../surfaces';
 import { PaintedSpots } from './painted-spots';
@@ -16,9 +16,10 @@ import { hintFontReady, hintImage } from './stencil-text';
 // Build mode's paint, which P saves with the level as its own (save/level-paint.ts):
 // hints painted onto walls with the Hint entry of the picker (LEVEL): Enter
 // types the text (<k>KEY</k> for a key cap), [ ] sets its size, T its font,
-// Tab its color, LMB paints it where the preview shows; X wipes the paint off the
-// face under the crosshair; H shows the paintable surfaces striped, then the
-// painted spots through walls (painted-spots.ts).
+// Tab its color, LMB paints it where the preview shows;
+// X wipes the paint off the face under the crosshair; Ctrl+Z undoes either
+// (build mode's history keeps the paint they changed); H shows the paintable
+// surfaces striped, then the painted spots through walls (painted-spots.ts).
 
 /** What H shows: nothing, paintable surfaces striped, or the painted spots. */
 type View = 'off' | 'paintable' | 'painted';
@@ -56,6 +57,8 @@ export class PaintEditor {
     private level: Level,
     private paint: PaintSystem,
     private say: (m: string) => void,
+    /** Paint just changed, as it was (for undo). */
+    private remember: (was: PaintPatch[]) => void,
   ) {
     this.spots = new PaintedSpots(scene);
     const material = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -4 });
@@ -114,9 +117,16 @@ export class PaintEditor {
     const aim = this.aim(camera);
     const img = hintImage(this.text, this.font, this.size, PAINT.texelsPerMeter * HINT.supersample);
     if (!aim || !img) return this.say('AIM AT A PAINTABLE SURFACE');
-    if (!this.paint.imprint(aim.surface, aim.at, img, aim.right, aim.up, rgbOf(color))) return this.say('HINTS GO ON FLAT FACES');
-    if (this.view === 'painted') this.refreshSpots(true);
-    this.say('HINT PAINTED · X WIPES THE FACE');
+    const was: PaintPatch[] = [];
+    if (!this.paint.imprint(aim.surface, aim.at, img, aim.right, aim.up, rgbOf(color), (s, box) => was.push(this.paint.patch(s, box)))) return this.say('HINTS GO ON FLAT FACES');
+    this.remember(was);
+    this.changed('HINT PAINTED · CTRL+Z UNDOES IT');
+  }
+
+  /** Ctrl+Z: paint as it was before a hint or a wipe. */
+  undo(was: PaintPatch[]) {
+    const back = [...was].reverse().filter((p) => this.paint.unpatch(p)).length;
+    this.changed(back === was.length ? 'PAINT PUT BACK' : 'PAINT PUT BACK, BUT NOT ON PROPS CHANGED SINCE');
   }
 
   /** P: all paint on the walls as the level's own, `<name>.rhhpaint`. What it saved, for the status line; null without paint. */
@@ -145,10 +155,15 @@ export class PaintEditor {
   }
 
   private wipe(aim: Aim | null) {
-    if (!aim) return this.say('AIM AT A PAINTED SURFACE');
+    if (!aim?.surface.data) return this.say('AIM AT A PAINTED SURFACE');
+    this.remember([this.paint.patch(aim.surface, this.paint.faceBox(aim.surface, aim.at.rect))]);
     this.paint.wipe(aim.surface, aim.at.rect);
+    this.changed('FACE WIPED · CTRL+Z PUTS IT BACK');
+  }
+
+  private changed(message: string) {
     if (this.view === 'painted') this.refreshSpots(true);
-    this.say('FACE WIPED');
+    this.say(message);
   }
 
   private editText() {
