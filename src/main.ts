@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import * as config from './config';
 import { titleCamera } from './render/title-view';
-import { ATMOS, AUDIO, COLORS, HUD, INK, LEVELS, PLAYER, PRESSURE, RENDER, SMOKE, THUNDER, VIEWMODEL, VOLUMETRICS } from './config';
+import { ATMOS, COLORS, HUD, INK, LEVELS, PLAYER, PRESSURE, RENDER, SMOKE, THUNDER, VIEWMODEL, VOLUMETRICS } from './config';
 import { syncSharedUniforms } from './materials';
 import { syncTrackUniforms } from './render/cctv-track';
 import { Lighting } from './render/lighting';
@@ -37,6 +37,7 @@ import { Thumbnails } from './inventory/thumbnails';
 import { Pickups, type PickupData } from './pickups/pickups';
 import { Audio } from './audio';
 import { Hud } from './hud';
+import { drawsFromPlayer, frameDrawn, loadFailed, loadStep } from './loading';
 import { fetchLevel } from './build/io';
 import { levelPaintOf, putLevelPaint } from './save/level-paint';
 import { jpFontReady } from './render/ink/jp-font';
@@ -48,6 +49,7 @@ import { multiplayerMenu } from './net/net-menu';
 import { exitGameFullscreen } from './fullscreen';
 import { setHex } from './hex-color';
 import { seedPaintRandom } from './lcg';
+import { fanLevel, metalDrops } from './emitter-sounds';
 
 // F3's defaults before anything changes config (the panel isn't in the player build).
 if (__DEV_TOOLS__) captureDefaults();
@@ -167,16 +169,30 @@ function openLevel(data: LevelData, name: string) {
 
 /** The level's name: from ?level=, or the file opened in build mode. Paint saves are named by it. */
 let levelName = new URLSearchParams(location.search).get('level') ?? LEVELS.start;
+/** The level is built, lit and painted (loading.ts): until then the game doesn't run. */
+let loaded = false;
 // Signs measure their text when they are built: wait for the sign font first.
 Promise.all([fetchLevel(levelName), jpFontReady()])
   .then(async ([data]) => {
+    await loadStep('BUILDING THE ROOF');
     loadLevel(data);
-    post.warm(scene, camera);
+    // Where the browser compiles shaders in parallel, they compile during the next steps.
+    // With the lights set up as the game draws them: their number is in the shaders.
+    lighting.update(player.position, camera.matrixWorldInverse);
+    post.warm(scene, viewScene, camera);
+    await loadStep('LIGHTING THE LAMPS');
+    level.flush();
+    baker.update(0, player.position);
+    await loadStep('PUTTING UP THE PAINT');
     await putLevelPaint(paint, drips, levelName, data);
+    loaded = true;
     // A reload in a session goes back into it (multiplayer.ts), with the session's paint.
     net.resume();
   })
-  .catch((e) => console.error(e));
+  .catch((e) => {
+    console.error(e);
+    loadFailed();
+  });
 
 let lastStride = 0;
 let textAtlasSeen = textAtlasVersion();
@@ -225,6 +241,10 @@ const fixedStep: { dt: number; script: (() => void) | null } = { dt: 0, script: 
 let drawnAt = -Infinity;
 
 function frame(time: number) {
+  if (!loaded) {
+    requestAnimationFrame(frame);
+    return;
+  }
   // Frame rate limit: skip display refreshes until a frame is due. Frames are
   // due one interval after the last was due, so the average is exact on any
   // display rate; after a stall it starts over.
@@ -274,7 +294,7 @@ function frame(time: number) {
   camera.updateMatrixWorld();
   // The title screen shows a fixed view of the city, without hands or tools. It draws
   // from a camera of its own; play (aim, tools) keeps yours.
-  const cityView = hud.cityView;
+  const cityView = hud.cityView && !drawsFromPlayer();
   viewScene.visible = !cityView;
   const shown = cityView ? titleCamera(camera) : camera;
   const at = shown.position;
@@ -305,8 +325,8 @@ function frame(time: number) {
   rainTime += dt;
   rain.update(rainTime, at);
   smoke.update(rainTime, SMOKE.lightBase + SMOKE.lightAmbient * ATMOS.ambient + SMOKE.lightFlash * lightning.flash);
-  audio.setFan(fanLevel(eye));
-  if (ATMOS.rain && !building) metalDrops(dt, eye);
+  audio.setFan(fanLevel(level.emitters, eye));
+  if (ATMOS.rain && !building) metalDrops(audio, level.emitters, heightmap, camera, dt, eye);
   audio.update(paused && !dev?.panelOpen);
   dev?.lap('world');
 
@@ -343,6 +363,7 @@ function frame(time: number) {
   dev?.lap('paint + hud');
 
   post.render(scene, viewScene, shown, lighting, !building);
+  frameDrawn();
   dev?.lap('render');
   // Same frame as the render: the canvas still holds it (see screenshot.ts).
   if (input.wasPressed('KeyK')) saveScreenshot(renderer.domElement, () => hotbar.toast('Screenshot saved'));
@@ -368,34 +389,6 @@ function frame(time: number) {
 }
 requestAnimationFrame(frame);
 
-const toDrop = new THREE.Vector3();
-const camRight = new THREE.Vector3();
-/** Raindrops pinging on nearby metal tops that are open to the sky (not under a roof). */
-function metalDrops(dt: number, at: THREE.Vector3) {
-  const range = AUDIO.metalRange;
-  camRight.set(1, 0, 0).applyQuaternion(camera.quaternion);
-  const rate = AUDIO.metalRate * ATMOS.rainDensity * dt;
-  let n = 0;
-  for (const e of level.emitters) {
-    if (e.kind !== 'metal') continue;
-    const d = e.pos.distanceTo(at);
-    if (d > range || Math.random() > rate) continue;
-    if (heightmap.heightAt(e.pos.x, e.pos.z) > e.pos.y + 0.1) continue; // sheltered
-    toDrop.subVectors(e.pos, at).normalize();
-    const k = 1 - d / range;
-    audio.drop(toDrop.dot(camRight) * 0.8, k * k);
-    if (++n >= 4) break;
-  }
-}
-
-/** Loudness of the nearest AC fan from its distance (0 beyond AUDIO.fanRange). */
-function fanLevel(at: THREE.Vector3) {
-  let best = Infinity;
-  for (const e of level.emitters) if (e.kind === 'fan') best = Math.min(best, e.pos.distanceTo(at));
-  const k = 1 - best / AUDIO.fanRange;
-  return k > 0 ? k * k : 0;
-}
-
 function toScreen(p: THREE.Vector3) {
   p.project(camera);
   return { x: (p.x * 0.5 + 0.5) * window.innerWidth, y: (0.5 - p.y * 0.5) * window.innerHeight };
@@ -403,5 +396,5 @@ function toScreen(p: THREE.Vector3) {
 
 // Dev tools (build mode, F3, window.game): single player only, and not in the player build (npm run build).
 let dev: DevTools | undefined;
-const game = { city: () => skyline, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, hotbar, pickups, paint, paintOps, net, paintFile, seedPaintRandom, fixedStep, session, level, renderer, input, hud, scene, viewScene, gpuTimer, PLAYER, loadLevel, rebuildCity, levelData, levelName: () => levelName, openLevel };
+const game = { city: () => skyline, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, hotbar, pickups, paint, paintOps, net, paintFile, seedPaintRandom, fixedStep, session, level, renderer, input, hud, scene, viewScene, gpuTimer, PLAYER, loadLevel, rebuildCity, levelData, levelName: () => levelName, openLevel, loaded: () => loaded };
 if (__DEV_TOOLS__) void import('./dev/devtools').then((m) => (dev = new m.DevTools(game)));

@@ -6,8 +6,12 @@
     <title>Hidden Roof</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="stylesheet" href="/src/style.css" />
+    <!-- The title's font, fetched with the page: the loading screen shows the title with it. -->
+    <link rel="preload" href="/fonts/sedgwick-ave-display.woff2" as="font" type="font/woff2" crossorigin />
   </head>
   <body>
+    <!-- Up from the first paint until the game is ready to play (src/loading.ts). -->
+    <div class="loading"><b>Hidden Roof</b><span>LOADING</span></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

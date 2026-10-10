@@ -79,15 +79,22 @@ export class PostPipeline {
 
   /**
    * Compile ahead, as they're drawn, the shaders of what isn't drawn yet: what
-   * a setting turns on (rain, volumetrics) and what's out of view. Compiled
-   * when first drawn instead, each stalls the game (on Windows, up to a second
-   * or more). Where the browser compiles in parallel (KHR_parallel_shader_compile)
-   * this costs nothing now; elsewhere it's done while the level loads.
+   * a setting turns on (rain, volumetrics), what's out of view, and what's
+   * hidden until play (the tool in hand, the wall hand: `viewScene`, with its
+   * own lights). Compiled when first drawn instead, each stalls the game (on
+   * Windows, up to a second or more). Done under the loading screen.
    */
-  warm(scene: THREE.Scene, camera: THREE.PerspectiveCamera) {
+  warm(scene: THREE.Scene, viewScene: THREE.Scene, camera: THREE.PerspectiveCamera) {
     const r = this.renderer;
     r.setRenderTarget(this.target);
-    r.compile(scene, camera);
+    for (const s of [scene, viewScene]) {
+      // compile() skips what's hidden: shown for the moment. Not lights: their number is in the shaders.
+      const hidden: THREE.Object3D[] = [];
+      s.traverse((o) => !o.visible && !(o as THREE.Light).isLight && hidden.push(o));
+      for (const o of hidden) o.visible = true;
+      r.compile(s, camera);
+      for (const o of hidden) o.visible = false;
+    }
     r.setRenderTarget(null);
     this.volumetrics.warm(r, camera);
   }
