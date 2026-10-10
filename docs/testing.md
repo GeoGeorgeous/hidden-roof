@@ -16,7 +16,7 @@ How a change is verified (AGENTS.md, Verify), what each test covers, and how the
 |---|---|---|
 | `npm test` | Paint save files (round trip; broken, older, newer, oversized ones refused) and protocol messages, in Node. | <1 s |
 | `npm run smoke` | The level players get loads and plays a few frames with F3 open. Fails on page errors and console errors (shader errors among them). | ~10 s |
-| `npm run test:game` | Game behavior, one line per check (`scripts/game.test.mjs`): the menu's SAVE / LOAD PAINT, saves through level edits, spray at LOAD, sponge memory, prop ids, paint pages and their draw calls, stairs, city overrides and detail, tool sizes, ladders, session rules, the avatar, the ghost (a remote player over a pretend network), F3 rows and tooltips, hotbar readback, sign sizes. Its pages don't draw. | ~35 s |
+| `npm run test:game` | Game behavior, one line per check (`scripts/game.test.mjs`): the menu's SAVE / LOAD PAINT, saves through level edits, spray at LOAD, sponge memory, prop ids, paint pages and their draw calls, stairs, city overrides and detail, tool sizes, ladders, session rules, the avatar, the ghost (a remote player over a pretend network), F3 rows and tooltips, hotbar readback, sign sizes. Its pages don't draw; each check starts with the same seeded paint randomness, on fixed steps (`steps`), and stops after 30 s instead of hanging. | ~30 s |
 | `npm run test:server` | The server against games speaking the protocol: HOST and JOIN, what's turned away, relaying, SAVE, reconnects, limits per address. | ~8 s |
 | `node scripts/multiplayer.test.mjs` | Two players in two pages: HOST and JOIN from the menu, paint and the stepladder reaching the other, a reload, a reconnect, LEAVE, a server restart, the server down. `npm run test:mp` builds the server first. | ~25 s |
 | `npm run test:csp` | The game under the site's Content Security Policy (`vite.config.ts`). | ~6 s |
@@ -42,6 +42,7 @@ The headless tests always draw with SwiftShader, on the CPU: a frame at 1280×72
 | Problem | Effect | Fix |
 |---|---|---|
 | The ghost checks ran on the wall clock with random network hiccups; the bad-link one measured speed per frame with dt floored at 1/120 s | At the test's ~3000 fps it was blind to correction glides and failed on random 3–5 cm pops: 1 run in 12 idle, most runs under load (fewer fps, so it saw the glides) | The ghost runs on game time with a seeded network; both checks play frame by frame at 60 fps; same numbers every run |
+| Game test pages drew a few SwiftShader frames before rendering was stubbed | Slower, and closing the browser waited for them | `noDrawing` from the first frame, shared with the multiplayer and CSP tests |
 | The game tests sprayed with unseeded randomness | The sponge check failed 1 run in 20: stray specks landed outside the sponge's reach | Paint randomness seeded before every check |
 | Fixed ports (3996, 3997, 3999) | Two agents testing at once: the server test exited 13 ("unsettled top-level await"); the multiplayer and CSP tests ran against the other agent's server | Free ports |
 | The multiplayer reconnect step faked silence by setting `lastHeard` | A's next snapshot could count as heard before B's next frame: B never reconnected (15 s timeout) | B's link drops what comes in |
@@ -55,5 +56,4 @@ The headless tests always draw with SwiftShader, on the CPU: a frame at 1280×72
 |---|---|
 | On a bad link a remote player's correction glides at up to ~3× walking speed (16 m/s at 60 fps, over 0.1–0.2 s). The test allows it: it checks for jumps (30–65 m/s unsmoothed). | A speed cap changes how other players look: judge it in F3 → Test → Ghost (net: hiccups 0.2, record a walk that stops, PLAY), then decide |
 | Player movement (walking, collisions, jumps, climbing, ladders) has no test | A fixed-step check per move |
-| Most of `test:game`'s time is opening pages and closing SwiftShader | Stub rendering from an init script, as the multiplayer test does |
 | Light baking and weather run on the wall clock (`baker.ts` budget, rain) | Screenshots aren't byte-comparable: compare pictures only after the bake finishes, rain off |
