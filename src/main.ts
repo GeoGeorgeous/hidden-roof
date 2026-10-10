@@ -37,6 +37,7 @@ import { Pickups, type PickupData } from './pickups/pickups';
 import { Audio } from './audio';
 import { Hud } from './hud';
 import { fetchLevel } from './build/io';
+import { levelPaintOf, putLevelPaint } from './save/level-paint';
 import { jpFontReady } from './render/ink/jp-font';
 import { textAtlasVersion } from './render/ink/text-atlas';
 import { staticTextureBytes } from './render/texture-bytes';
@@ -166,9 +167,10 @@ function openLevel(data: LevelData, name: string) {
 let levelName = new URLSearchParams(location.search).get('level') ?? LEVELS.start;
 // Signs measure their text when they are built: wait for the sign font first.
 Promise.all([fetchLevel(levelName), jpFontReady()])
-  .then(([data]) => {
+  .then(async ([data]) => {
     loadLevel(data);
-    // A reload in a session goes back into it (multiplayer.ts).
+    await putLevelPaint(paint, drips, levelName, data);
+    // A reload in a session goes back into it (multiplayer.ts), with the session's paint.
     net.resume();
   })
   .catch((e) => console.error(e));
@@ -193,7 +195,7 @@ hud.onExitFullscreen = () => void exitGameFullscreen();
 hud.setLocked(false);
 hud.setSettings(settings.sections());
 const paintFile = paintMenu(hud, paint, drips, () => levelName);
-const net = multiplayerMenu(hud, hotbar, { scene, camera, level, paint, paintOps, drips, player, inventory, pickups, tools, levelData: () => ({ data: levelData(), name: levelName }), openLevel, lockDetail: (tpm) => settings.lockPaintDetail(tpm) }, () => levelName);
+const net = multiplayerMenu(hud, hotbar, { scene, camera, level, paint, paintOps, drips, player, inventory, pickups, tools, levelData: () => ({ data: levelData(), name: levelName }), levelPaint: () => levelPaintOf(levelName), openLevel, lockDetail: (tpm) => settings.lockPaintDetail(tpm) }, () => levelName);
 tools.onCapChange = (name) => hud.showCapTag(name);
 tools.onColorChange = (color) => hud.showColorTag(color, COLORS[color]);
 
@@ -392,5 +394,5 @@ function toScreen(p: THREE.Vector3) {
 
 // Dev tools (build mode, F3, window.game): single player only, and not in the player build (npm run build).
 let dev: DevTools | undefined;
-const game = { city: () => skyline, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, hotbar, pickups, paint, paintOps, net, paintFile, seedPaintRandom, fixedStep, session, level, renderer, input, hud, scene, viewScene, gpuTimer, PLAYER, loadLevel, rebuildCity, levelData, openLevel };
+const game = { city: () => skyline, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, hotbar, pickups, paint, paintOps, net, paintFile, seedPaintRandom, fixedStep, session, level, renderer, input, hud, scene, viewScene, gpuTimer, PLAYER, loadLevel, rebuildCity, levelData, levelName: () => levelName, openLevel };
 if (__DEV_TOOLS__) void import('./dev/devtools').then((m) => (dev = new m.DevTools(game)));

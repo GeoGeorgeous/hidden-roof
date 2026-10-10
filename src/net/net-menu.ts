@@ -9,14 +9,15 @@ import { CODE_LENGTH, CODE_LETTERS, NAME_MAX } from './protocol';
 import { Multiplayer, type MultiplayerContext, type NetStatus } from './multiplayer';
 
 // The MULTIPLAYER page of the pause menu: HOST (a name, the session's PAINT
-// DETAIL, the paint to start from: none, this level's as it is, or a paint
-// file) or JOIN (a name and the code the host shares). In a session the menu
-// shows the code and offers SAVE PAINT (the session's) and LEAVE SESSION.
-// Returns the game's Multiplayer.
+// DETAIL, the paint to start from: the level's own (save/level-paint.ts, none
+// for most levels), this level's as it is, or a paint file) or JOIN (a name
+// and the code the host shares). In a session the menu shows the code and
+// offers SAVE PAINT (the session's) and LEAVE SESSION. Returns the game's
+// Multiplayer.
 
-type Start = 'clean' | 'mine' | 'file';
-const STARTS: Start[] = ['clean', 'mine', 'file'];
-const START_LABEL: Record<Start, string> = { clean: 'NO PAINT', mine: 'THIS PAINT', file: 'A PAINT FILE' };
+type Start = 'fresh' | 'mine' | 'file';
+const STARTS: Start[] = ['fresh', 'mine', 'file'];
+const START_LABEL: Record<Start, string> = { fresh: 'FRESH LEVEL', mine: 'THIS PAINT', file: 'A PAINT FILE' };
 const DETAILS = Object.entries(PAINT_DETAIL) as [string, number][];
 const NAME_KEY = 'roofhiddenhaus.name';
 
@@ -64,7 +65,7 @@ export function multiplayerMenu(hud: Hud, hotbar: Hotbar, ctx: MultiplayerContex
   const codeInput = textInput('', CODE_LENGTH, () => {});
   codeInput.style.textTransform = 'uppercase';
   let detail = 0;
-  let start: Start = 'clean';
+  let start: Start = 'fresh';
 
   const say = (text: string) => (status.textContent = text);
   const named = () => {
@@ -95,7 +96,7 @@ export function multiplayerMenu(hud: Hud, hotbar: Hotbar, ctx: MultiplayerContex
   const host = () => {
     detail = PAINT.texelsPerMeter;
     const detailRow = choice('PAINT DETAIL', () => `${DETAILS.find(([, t]) => t === detail)![0].toUpperCase()}  ${(100 / detail).toFixed(1)} CM`, (d) => (detail = cycle(DETAILS.map(([, t]) => t), detail, d)), 'Everyone in the session paints at this detail.');
-    const startRow = choice('START WITH', () => START_LABEL[start], (d) => (start = cycle(STARTS, start, d)), "The paint the session starts from: none, this level's paint as it is now, or a saved paint file.");
+    const startRow = choice('START WITH', () => START_LABEL[start], (d) => (start = cycle(STARTS, start, d)), "The paint the session starts from: the level as it comes (its hints, if it has any), this level's paint as it is now, or a saved paint file.");
     // A click, not mousedown: the file picker opens only from a click.
     const go = Object.assign(document.createElement('button'), { textContent: '> HOST' });
     go.addEventListener('click', async () => {
@@ -103,7 +104,7 @@ export function multiplayerMenu(hud: Hud, hotbar: Hotbar, ctx: MultiplayerContex
       if (!who) return;
       try {
         if (start === 'mine') say('PACKING PAINT…');
-        const save = start === 'mine' ? await savePaint(ctx.paint, { name: levelName() }) : start === 'file' ? new Uint8Array(await (await pickFile('.rhhpaint')).arrayBuffer()) : undefined;
+        const save = start === 'mine' ? await savePaint(ctx.paint, { name: levelName() }) : start === 'file' ? new Uint8Array(await (await pickFile('.rhhpaint')).arrayBuffer()) : (ctx.levelPaint() ?? undefined);
         net.host(who, detail, save);
       } catch (e) {
         say((e as Error).message);

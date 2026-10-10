@@ -1,11 +1,11 @@
 // Undo stack for the editor (Ctrl+Z). Entries record what was added/removed
-// (or where the spawn point was before it moved); undoing a removal re-adds
-// it, under its old id when that's free (props), else a new one, and older
-// entries are remapped.
+// (or where the spawn point was before it moved, or the paint a hint or a
+// wipe changed); undoing a removal re-adds it, under its old id when that's
+// free (props), else a new one, and older entries are remapped.
 
 export interface HistoryEntry {
-  op: 'add' | 'remove' | 'move';
-  kind: 'prop' | 'pickup' | 'spawn';
+  op: 'add' | 'remove' | 'move' | 'paint';
+  kind: 'prop' | 'pickup' | 'spawn' | 'paint';
   id: number;
   data: unknown;
 }

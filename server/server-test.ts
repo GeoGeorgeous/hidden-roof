@@ -9,11 +9,17 @@ import type { InventoryData } from '../src/inventory/inventory';
 import { closeCode, decode, encode, HELLO, PROTOCOL, SNAPSHOT_BYTES, type ToClient, type ToServer } from '../src/net/protocol';
 import { decodePaintFile, encodePaintFile, joinBytes } from '../src/save/paint-file';
 import { surfaceTable } from '../src/save/shape';
+import { loadPaint } from '../src/save/load-paint';
+import { savePaint } from '../src/save/save-paint';
+import type { LevelData } from '../src/level/level';
+import { sessionPaint } from './world';
 
 // The server (dist-server/server/main.js) against games speaking the protocol:
 // HOST and JOIN, what's turned away, relaying, SAVE, a reconnect, a player who
 // doesn't come back, who's away or dropped, what a player carries, HOST from a save, a full session joining at once,
-// message sizes, and the limits per address. npm run test:server builds both.
+// message sizes, and the limits per address. Then level paint: made on a level
+// it fits, not once a painted prop is gone, and each level's own paint fits
+// its level. npm run test:server builds both.
 
 // A free port: other agents may be testing on this machine at the same time.
 const PORT = await new Promise<number>((done) => {
@@ -303,3 +309,30 @@ assert.match(lines, new RegExp(`${shared} "Y" #2 in from \\S+ \\(new, 2 players;
 assert.match(lines, /paint file: [\d.]+ MB of paint, [\d.]+ MB packed, in [\d.]+ s \(0 more in line\)/);
 // A player who left isn't also logged as dropped.
 assert.doesNotMatch(lines, /"A" #1 out: left[^]*"A" #1 dropped/);
+
+// A level's own paint (src/save/level-paint.ts) fits it face for face, and the faces of a prop removed since don't: made here on the demo level.
+const paintOn = (level: LevelData, bytes: Uint8Array, name: string) => {
+  const { paint, drips } = sessionPaint(level);
+  return loadPaint(paint, drips, bytes, { name });
+};
+const demo: LevelData = JSON.parse(fs.readFileSync('public/levels/demo.json', 'utf8'));
+const made = sessionPaint(demo).paint;
+const last = demo.props.at(-1)!.id!;
+for (const s of [made.surfaces[0], made.surfaces.find((s) => s.key.startsWith(`p${last}#`))!]) made.stamp(s, { rect: 0, u: 0.5, v: 0.5 }, 0.2, 1, [1, 1, 1]);
+const own = await savePaint(made, { name: 'demo' });
+const fits = await paintOn(demo, own, 'demo');
+assert.ok(fits.faces > 0 && !fits.skipped, `level paint: ${fits.skipped} faces don't fit the level it was made on`);
+const changed = await paintOn({ ...demo, props: demo.props.slice(0, -1) }, own, 'demo');
+assert.ok(changed.faces > 0 && changed.skipped > 0, 'level paint: the faces of a removed prop still fit');
+console.log(`level paint: ok (${fits.faces} faces fit the level made on; ${changed.skipped} skipped once their prop is gone)`);
+// Each level that ships paint is marked so in its file, and the paint still fits it (save the level again in build mode after editing props).
+const levels = fs.readdirSync('public/levels');
+for (const file of levels.filter((f) => f.endsWith('.json'))) {
+  const name = file.slice(0, -'.json'.length);
+  const level: LevelData = JSON.parse(fs.readFileSync(`public/levels/${file}`, 'utf8'));
+  assert.equal(!!level.paint, levels.includes(`${name}.rhhpaint`), `level ${name}: its file says paint: ${!!level.paint}, but ${name}.rhhpaint is ${level.paint ? 'missing' : 'there'}`);
+  if (!level.paint) continue;
+  const { faces, skipped } = await paintOn(level, fs.readFileSync(`public/levels/${name}.rhhpaint`), name);
+  assert.ok(faces > 0 && !skipped, `level paint of ${name}: ${skipped} of ${faces + skipped} faces don't fit the level`);
+  console.log(`level paint of ${name}: ok (${faces} faces)`);
+}

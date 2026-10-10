@@ -3,12 +3,13 @@ import { defOf } from '../kit';
 import { H_MODULE, V_MODULE, type PropDef } from '../kit/def';
 import type { V3 } from '../kit/pieces';
 import type { Input } from '../input';
-import { shared } from '../materials';
 import type { Level, LevelData, PropData } from '../level/level';
 import type { PickupData, Pickups } from '../pickups/pickups';
 import type { Player } from '../player';
 import { Ghost, GREEN, RED } from './ghost';
 import { PropSettings } from './prop-settings';
+import { PaintEditor } from './paint-editor';
+import type { PaintPatch, PaintSystem } from '../painting';
 import { SpawnMarker } from './spawn-marker';
 import { BUILD, PLAYER } from '../config';
 import { describeHeight, levelOf, levelY } from '../level/levels';
@@ -29,13 +30,14 @@ import { axisNormal, place, type Hit, type PlaceSpec } from './placement';
 // pick, Ctrl+Z undo; the wheel turns the category wheel, E / Q step through
 // its props, Tab / Shift+Tab through a prop's variants. Aiming at empty space hits
 // the build plane: the floor of the working level (PgUp / PgDn, and it follows
-// what you place). P save, O load, H shows which surfaces can be painted.
+// what you place). P saves the level and its paint, O loads a level.
 // [ and ] and Enter change a placed prop's settings (prop-settings.ts). The spawn
 // point is an entry of the picker (LEVEL): placing it moves the level's one
 // spawn there, facing where you look; the spawn marker shows it while
-// building.
+// building. So is the hint, painted onto walls; H shows the paint and X wipes
+// it (paint-editor.ts).
 
-const HELP = 'LMB PLACE (HOLD: REPEAT) · RMB DELETE · R ROTATE (ON A WALL: FLIP) · MMB PICK · CTRL+Z UNDO · WHEEL CATEGORY · Q / E PROP · TAB VARIANT · PGUP / PGDN LEVEL · F WALL: OWN / BRICK · V APPLY FINISH · ENTER SIGN TEXT · [ ] SETTING · H PAINTABLE · P SAVE · O LOAD · B EXIT';
+const HELP = 'LMB PLACE (HOLD: REPEAT) · RMB DELETE · R ROTATE (ON A WALL: FLIP) · MMB PICK · CTRL+Z UNDO · WHEEL CATEGORY · Q / E PROP · TAB VARIANT · PGUP / PGDN LEVEL · F WALL: OWN / BRICK · V APPLY FINISH · ENTER SIGN TEXT · [ ] SETTING · H PAINTABLE / PAINTED · X WIPE FACE · P SAVE · O LOAD · B EXIT';
 /** What build mode works on under the crosshair: a placed prop or a pickup (by id). */
 type Target = { kind: 'prop' | 'pickup'; id: number };
 
@@ -46,6 +48,8 @@ export class BuildMode {
   active = false;
   /** Main provides these, so saving and loading include what the level file holds besides props (pickups, city overrides). */
   getLevelData!: () => LevelData;
+  /** Its name: P saves `<name>.json`, and `<name>.rhhpaint` for the level's own paint. */
+  getLevelName!: () => string;
   /** A level file was opened (O): its data and name. */
   onLoad: (data: LevelData, name: string) => void = () => {};
 
@@ -73,6 +77,7 @@ export class BuildMode {
   /** Level whose floor is the build plane (where aiming at empty space lands). */
   private workLevel = 0;
   private settings: PropSettings;
+  private paintEdit: PaintEditor;
   /** Holding LMB: time of the next repeat placement (ms), or 0 when not holding. */
   private nextRepeat = 0;
 
@@ -82,12 +87,14 @@ export class BuildMode {
     private pickups: Pickups,
     private player: Player,
     renderer: THREE.WebGLRenderer,
+    paint: PaintSystem,
   ) {
     this.pickerView = new PickerView(this.picker, new Thumbnails(renderer), () => pickups.list.values());
     this.ghost = new Ghost(scene);
     this.outline = new Ghost(scene, { color: BUILD.targetColor, opacity: BUILD.targetOpacity, outline: true });
     this.settings = new PropSettings(scene, level, (m) => this.say(m), (def) => this.picker.finishFor(def));
     this.grid = new CursorGrid(scene);
+    this.paintEdit = new PaintEditor(scene, level, paint, (m) => this.say(m), (was) => this.history.push({ op: 'paint', kind: 'paint', id: 0, data: was }));
     this.spawnMarker = new SpawnMarker(scene, PLAYER.height, PLAYER.radius);
     this.spawnGhost = new SpawnMarker(scene, PLAYER.height, PLAYER.radius);
     this.hud = div('build-help');
@@ -113,7 +120,7 @@ export class BuildMode {
     if (!on) this.spawnGhost.visible = false;
     if (on) this.spawnMarker.set(this.level.spawn.pos, this.level.spawn.yaw);
     this.pickups.setEditing(on);
-    if (!on) shared.uShowPaintable.value = 0;
+    this.paintEdit.visible = on;
     if (!on) this.player.unstick();
   }
 
@@ -122,6 +129,7 @@ export class BuildMode {
     this.pickerView.syncStyle();
     this.outline.setLook(BUILD.targetColor, BUILD.targetOpacity);
     this.settings.syncLook();
+    this.paintEdit.syncLook();
   }
 
   update(input: Input, camera: THREE.Camera) {
@@ -135,22 +143,17 @@ export class BuildMode {
     if (input.wasPressed('KeyR')) this.rotate();
     const lv = (input.wasTyped('PageUp') ? 1 : 0) - (input.wasTyped('PageDown') ? 1 : 0);
     if (lv) this.workLevel += lv;
-    this.placeInput(input);
+    this.placeInput(input, camera);
     if (input.clicked(2) && aimed) this.remove(aimed);
     if (input.clicked(1) && aimed) this.pickFrom(aimed);
     if (input.wasPressed('Ctrl+KeyZ')) {
       if (!this.history.undo((e) => this.revert(e))) this.say('NOTHING TO UNDO');
     }
-    if (input.wasPressed('KeyH')) {
-      shared.uShowPaintable.value = shared.uShowPaintable.value ? 0 : 1;
-      this.say(shared.uShowPaintable.value ? 'PAINTABLE SURFACES: STRIPED' : 'PAINTABLE OVERLAY OFF');
-    }
     const e = this.picker.choice;
-    this.settings.update(input, aimed?.kind === 'prop' ? this.level.props.get(aimed.id) : undefined, e.kind === 'prop' ? e.def : null);
-    if (input.wasPressed('KeyP')) {
-      downloadLevel(this.getLevelData());
-      this.say('SAVED LEVEL.JSON');
-    }
+    this.paintEdit.update(input, camera, e.kind === 'hint' ? e.color : null);
+    // The hint has its own Enter and [ ].
+    if (e.kind !== 'hint') this.settings.update(input, aimed?.kind === 'prop' ? this.level.props.get(aimed.id) : undefined, e.kind === 'prop' ? e.def : null);
+    if (input.wasPressed('KeyP')) void this.save();
     if (input.wasPressed('KeyO')) {
       pickLevelFile()
         .then(({ data, name }) => {
@@ -191,9 +194,19 @@ export class BuildMode {
     return def.place === 'mount' && this.picker.flip;
   }
 
+  /** P: the level as `<name>.json`, and the paint on its walls as `<name>.rhhpaint` (marked in the level file) when there is some. */
+  async save() {
+    const name = this.getLevelName();
+    downloadLevel({ ...this.getLevelData(), ...(this.paintEdit.painted && { paint: true }) }, `${name}.json`);
+    const paint = await this.paintEdit.save(name);
+    this.say(`SAVED ${name}.json ${paint ? `+ ${paint}` : '(no paint)'}`.toUpperCase());
+  }
+
   /** LMB places; holding it keeps placing wherever the ghost moves (pillars, bridges). */
-  private placeInput(input: Input) {
+  private placeInput(input: Input, camera: THREE.Camera) {
     const now = performance.now();
+    const e = this.picker.choice;
+    if (e.kind === 'hint') return input.clicked(0) ? this.paintEdit.stamp(e.color, camera) : undefined;
     if (input.clicked(0)) {
       this.placeCurrent(false);
       this.nextRepeat = now + BUILD.repeatDelay * 1000;
@@ -241,9 +254,10 @@ export class BuildMode {
 
   private preview(target: Hit | null, eye: THREE.Vector3) {
     const e = this.picker.choice;
-    this.ghost.visible = !!target && e.kind !== 'spawn';
+    // The hint shows its own preview, on the wall (paint-editor.ts).
+    this.ghost.visible = !!target && (e.kind === 'prop' || e.kind === 'pickup');
     this.spawnGhost.visible = !!target && e.kind === 'spawn';
-    if (!target) {
+    if (!target || e.kind === 'hint') {
       this.grid.visible = false;
       this.placement = null;
       return;
@@ -292,7 +306,7 @@ export class BuildMode {
     } else if (e.kind === 'prop') {
       const inst = this.level.add({ type: e.def.type, variant: e.def.variant, pos, rot, mirror: this.flipped(e.def) || undefined, text: this.settings.texts.get(e.def.type), finish: this.picker.finishFor(e.def) });
       if (inst) this.history.push({ op: 'add', kind: 'prop', id: inst.id, data: null });
-    } else {
+    } else if (e.kind === 'pickup') {
       const p = this.pickups.add(e.type, pos);
       if (p) this.history.push({ op: 'add', kind: 'pickup', id: p.id, data: null });
     }
@@ -353,6 +367,7 @@ export class BuildMode {
   }
 
   private revert(e: HistoryEntry): number | undefined {
+    if (e.op === 'paint') return void this.paintEdit.undo(e.data as PaintPatch[]);
     if (e.op === 'move') {
       this.setSpawn(e.data as { pos: V3; yaw: number });
       return undefined;

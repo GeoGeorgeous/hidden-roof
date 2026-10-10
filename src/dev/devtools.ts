@@ -63,6 +63,8 @@ export interface DevContext {
   rebuildCity(): void;
   /** The level as a file: props, pickups, city overrides. */
   levelData(): LevelData;
+  /** Its name (a file in public/levels, or the file opened in build mode). */
+  levelName(): string;
   /** A level file was opened in build mode. */
   openLevel(data: LevelData, name: string): void;
 }
@@ -91,8 +93,9 @@ export class DevTools {
   private modelsChanged = false;
 
   constructor(private g: DevContext) {
-    this.build = new BuildMode(g.scene, g.level, g.pickups, g.player, g.renderer);
+    this.build = new BuildMode(g.scene, g.level, g.pickups, g.player, g.renderer, g.paint);
     this.build.getLevelData = g.levelData;
+    this.build.getLevelName = g.levelName;
     this.build.onLoad = g.openLevel;
     this.figure = new AvatarPreview(g.scene);
     this.ghost = new Ghost(g);

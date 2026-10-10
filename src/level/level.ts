@@ -49,6 +49,8 @@ export interface LevelData {
   version: 2 | 3 | 4;
   spawn: { pos: V3; yaw: number };
   props: PropData[];
+  /** It has paint of its own, levels/<name>.rhhpaint (save/level-paint.ts): P in build mode writes both. */
+  paint?: boolean;
   /** Owned by other systems (pickups). */
   [extra: string]: unknown;
 }
