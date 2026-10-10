@@ -21,7 +21,8 @@ import { SimLink } from './sim-link';
 // plays it all on a loop through a pretend network (sim-link.ts, GHOST), into
 // a remote player: the ghost repaints your strokes as it goes, and you watch
 // from anywhere. FOLLOW sends you live, GHOST.followDelay behind, without
-// paint (yours is already there). Dev tools only.
+// paint (yours is already there). Dev tools only. It runs on game time (the
+// frames' dt), so the game tests can play it frame by frame.
 
 export interface GhostContext {
   scene: THREE.Scene;
@@ -47,15 +48,18 @@ interface Recording {
 
 const OWNER = 'ghost';
 const NAME = { name: 'ghost' };
-const now = () => performance.now() / 1000;
 
 export class Ghost {
   private mode: 'off' | 'recording' | 'playing' | 'following' = 'off';
   private rec: Recording | null = null;
   private remote: RemotePlayer | null = null;
-  private link = new SimLink<Msg>();
-  /** When recording or this loop of playing began (local s), and when the next snapshot goes. */
-  private t0 = 0;
+  /** The pretend network; tests seed its randomness (`link.random`). */
+  readonly link = new SimLink<Msg>();
+  /**
+   * Game time (s) since recording, following or this loop of playing began, and
+   * when the next snapshot goes. From 0 each time, so every run adds the same dts.
+   */
+  private time = 0;
   private next = 0;
   /** How much of the recording this loop has sent. */
   private sent = { snaps: 0, ops: 0, ladders: 0 };
@@ -70,7 +74,7 @@ export class Ghost {
   get label() {
     const r = this.rec;
     const took = r ? `${r.length.toFixed(1)} s, ${r.ops.length} paint ops` : 'nothing recorded';
-    if (this.mode === 'recording') return `recording ${(now() - this.t0).toFixed(1)} s`;
+    if (this.mode === 'recording') return `recording ${this.time.toFixed(1)} s`;
     if (this.mode === 'playing') return `playing ${took}`;
     if (this.mode === 'following') return `following ${GHOST.followDelay} s behind`;
     return `off (${took})`;
@@ -90,7 +94,7 @@ export class Ghost {
     this.stop();
     const g = this.g;
     this.mode = 'recording';
-    this.t0 = now();
+    this.time = 0;
     this.next = 0;
     this.rec = { start: savePaint(g.paint, NAME), snaps: [], ops: [], ladders: [], length: 0 };
     // Paint ops as the paint system logs them (as the golden test does).
@@ -111,13 +115,14 @@ export class Ghost {
   follow() {
     this.stop();
     this.mode = 'following';
+    this.time = 0;
     this.next = 0;
     this.remote = new RemotePlayer(this.g.scene, this.g.level, this.g.paintOps, OWNER, this.g.tools.spray.others);
   }
 
   stop() {
     if (this.mode === 'recording' && this.rec) {
-      this.rec.length = now() - this.t0;
+      this.rec.length = this.time;
       this.g.paint.log = this.log;
     }
     this.remote?.dispose();
@@ -134,7 +139,7 @@ export class Ghost {
   }
 
   update(dt: number) {
-    const t = now();
+    const t = (this.time += dt);
     if (this.mode === 'recording') this.keep(t);
     else if (this.mode === 'following' && t >= this.next) {
       this.next = t + 1 / NET.sendRate;
@@ -154,17 +159,16 @@ export class Ghost {
   private keep(t: number) {
     const g = this.g;
     const rec = this.rec!;
-    const at = t - this.t0;
     if (t >= this.next) {
       this.next = t + 1 / NET.sendRate;
-      rec.snaps.push({ t: at, bytes: this.snapshot(at) });
+      rec.snaps.push({ t, bytes: this.snapshot(t) });
     }
-    for (const op of g.paint.log!.splice(0)) rec.ops.push({ t: at, op: structuredClone(op) });
+    for (const op of g.paint.log!.splice(0)) rec.ops.push({ t, op: structuredClone(op) });
     const id = g.level.runtimeOf(session.player);
     if (id !== this.ladderId) {
       this.ladderId = id;
       const p = id === undefined ? undefined : g.level.props.get(id);
-      rec.ladders.push({ t: at, data: p ? { type: p.type, pos: [...p.pos], rot: p.rot } : null });
+      rec.ladders.push({ t, data: p ? { type: p.type, pos: [...p.pos], rot: p.rot } : null });
     }
   }
 
@@ -175,13 +179,12 @@ export class Ghost {
   /** Playing: what the recording sent by now goes into the link; at the end, start over. */
   private send(t: number) {
     const rec = this.rec!;
-    const at = t - this.t0;
     const s = this.sent;
-    while (s.snaps < rec.snaps.length && rec.snaps[s.snaps].t <= at) this.link.send({ kind: 'snap', bytes: rec.snaps[s.snaps++].bytes }, t);
-    while (s.ops < rec.ops.length && rec.ops[s.ops].t <= at) this.link.send({ kind: 'op', ...rec.ops[s.ops++] }, t);
-    while (s.ladders < rec.ladders.length && rec.ladders[s.ladders].t <= at) this.link.send({ kind: 'ladder', ...rec.ladders[s.ladders++] }, t);
+    while (s.snaps < rec.snaps.length && rec.snaps[s.snaps].t <= t) this.link.send({ kind: 'snap', bytes: rec.snaps[s.snaps++].bytes }, t);
+    while (s.ops < rec.ops.length && rec.ops[s.ops].t <= t) this.link.send({ kind: 'op', ...rec.ops[s.ops++] }, t);
+    while (s.ladders < rec.ladders.length && rec.ladders[s.ladders].t <= t) this.link.send({ kind: 'ladder', ...rec.ladders[s.ladders++] }, t);
     // Once the last of it has arrived and been shown.
-    if (at > rec.length + NET.interpDelay + GHOST.latency + GHOST.jitter + GHOST.hiccupDelay + 0.5) void this.loop();
+    if (t > rec.length + NET.interpDelay + GHOST.latency + GHOST.jitter + GHOST.hiccupDelay + 0.5) void this.loop();
   }
 
   /** Paint back as it was when recording began, then play from the start. */
@@ -196,7 +199,7 @@ export class Ghost {
     this.link.clear();
     this.remote?.reset();
     this.sent = { snaps: 0, ops: 0, ladders: 0 };
-    this.t0 = now();
+    this.time = 0;
     this.loading = false;
   }
 }
