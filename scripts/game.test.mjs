@@ -1023,6 +1023,29 @@ await check('debug panel: hooks run from the rows: a Models slider rebuilds the 
   return r.before === 0.13 && r.after === 0.2 && r.asked && r.restored && r.previewed ? null : JSON.stringify(r);
 });
 
+await check('debug panel: Items → UNLOCK ALL gives every tool, color and cap, and their pickups go', async () => {
+  const r = await page.evaluate(() => {
+    const { debug, inventory: inv, pickups, config } = window.game;
+    const open = debug.visible;
+    if (!open) debug.toggle();
+    [...document.querySelectorAll('.debug-panel .tabs button')].find((b) => b.textContent.trim() === 'ITEMS').click();
+    [...document.querySelectorAll('.debug-panel .page:not([hidden]) button')].find((b) => b.textContent === 'UNLOCK ALL').click();
+    const all = [...pickups.list.values()];
+    const out = {
+      tools: ['marker', 'ladder', 'roller', 'sponge'].every((t) => inv.has(t)),
+      colors: inv.colors.join() === config.COLOR_ORDER.join(),
+      caps: inv.caps.join() === config.CAP_ORDER.join(),
+      pickups: all.length,
+      left: all.filter((p) => !p.collected || p.group.visible).map((p) => p.kind),
+    };
+    inv.reset();
+    pickups.load(pickups.toJSON());
+    if (!open) debug.toggle();
+    return out;
+  });
+  return r.tools && r.colors && r.caps && r.pickups && !r.left.length ? null : JSON.stringify(r);
+});
+
 await check('debug panel: every row on every tab has a tooltip', async () => {
   const missing = await page.evaluate(() => {
     const g = window.game;

@@ -127,6 +127,13 @@ export class Inventory {
     return true;
   }
 
+  /** Every tool, color and cap at once (F3 → Items → UNLOCK ALL). */
+  unlockAll() {
+    for (const t of SLOTS) this.give(t);
+    for (const c of COLOR_ORDER) this.addColor(c);
+    for (const c of CAP_ORDER) this.addCap(c);
+  }
+
   private cycle(key: 'colorIndex' | 'capIndex', n: number, dir: number) {
     if (n < 2) return false;
     this[key] = (this[key] + dir + n) % n;
