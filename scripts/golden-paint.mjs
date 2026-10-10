@@ -114,7 +114,7 @@ async function checkDetail(detail) {
   results[detail] = { hash: hashOf(r.paint), texelsPerMeter: r.paint.tpm, surfaces: r.paint.surfaces.length, paintedM2: r.paint.paintedM2, meanAlpha: r.paint.meanAlpha, drips: r.drips, perRun: r.perRun };
   for (const [i, png] of r.pngs.entries()) fs.writeFileSync(`${out}/${detail}-${i}.png`, Buffer.from(png, 'base64'));
   fs.writeFileSync(`${out}/${detail}.rhhpaint`, Buffer.from(r.save, 'base64'));
-  // The ops, for the server's paint check (scripts/server-paint.test.mjs).
+  // The ops, for the server's paint check (server/paint-check.ts).
   fs.writeFileSync(`${out}/${detail}.ops.json`, JSON.stringify({ hash: results[detail].hash, table: r.table, ...r.ops }));
   const atLow = detail === 'ultra' ? inGame('low', replay, { ops: r.ops, save: r.save, editLevel: true }) : null;
   const own = await game.run(replay, { ops: r.ops, save: r.save });

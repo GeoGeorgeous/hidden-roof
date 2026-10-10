@@ -59,8 +59,10 @@ public/levels      level json
 
 ```sh
 npm install
-npm run dev      # localhost:5173
-npm run check    # everything, before a commit
+npm run dev          # localhost:5173
+npm run check:quick  # types, unit tests, build: after each change
+npm run check        # everything, before a merge (docs/testing.md)
+npm run shots        # the real game on the real GPU: shots/*.png
 ```
 
 every control, prop and setting is in [docs/reference.md](docs/reference.md).

@@ -4,27 +4,42 @@
 // Chromium draws with SwiftShader. `uncapped`: frames aren't held to 60 per
 // second, for tests that skip drawing (a page that draws would queue frames
 // faster than SwiftShader draws them, and screenshots and closing then wait).
+// `gpu`: a headed window drawn by the real GPU instead (npm run shots), through
+// WSLg's D3D12 (GPU=Intel picks the weak one); without a display, SwiftShader.
 // On machines missing Chromium's system libraries, copies extracted to
-// ~/.local/pwlibs are used (see docs/golden-paint.md). The tests play the demo
+// ~/.local/pwlibs are used (see docs/testing.md). The tests play the demo
 // level, whose layout they know (`level`: another, or null for LEVELS.start).
+// Several agents may test at once: servers take free ports (freePort).
 import fs from 'node:fs';
+import net from 'node:net';
 import os from 'node:os';
 import { chromium } from 'playwright';
-import { createServer } from 'vite';
+import { createLogger, createServer } from 'vite';
 
-export async function openTestBrowser(url, { uncapped = false, level = 'demo' } = {}) {
+const WSL_GPU = '/usr/lib/wsl/lib';
+
+export async function openTestBrowser(url, { uncapped = false, level = 'demo', gpu = false } = {}) {
   let server = null;
   if (!url) {
-    // Its own dependency cache, so it can run beside `npm run dev`.
-    server = await createServer({ logLevel: 'error', cacheDir: 'node_modules/.vite-test', server: { port: 5180 } });
+    // Its own dependency cache, so it can run beside `npm run dev`. The /ws proxy's errors
+    // aren't printed: the multiplayer test stops its game server on purpose.
+    const logger = createLogger('error');
+    const error = logger.error;
+    logger.error = (msg, options) => !msg.includes('proxy error') && error(msg, options);
+    server = await createServer({ customLogger: logger, cacheDir: 'node_modules/.vite-test', server: { port: 5180 } });
     await server.listen();
     url = server.resolvedUrls.local[0];
   }
   if (level) url += `?level=${level}`;
-  const libs = `${os.homedir()}/.local/pwlibs/usr/lib/x86_64-linux-gnu`;
-  const env = fs.existsSync(libs) ? { ...process.env, LD_LIBRARY_PATH: [libs, process.env.LD_LIBRARY_PATH].filter(Boolean).join(':') } : undefined;
-  const args = ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', ...(uncapped ? ['--disable-frame-rate-limit', '--disable-gpu-vsync'] : [])];
-  const browser = await chromium.launch({ env, args });
+  const real = gpu && Boolean(process.env.DISPLAY || process.env.WAYLAND_DISPLAY);
+  const libs = [`${os.homedir()}/.local/pwlibs/usr/lib/x86_64-linux-gnu`, ...(real ? [WSL_GPU] : [])].filter((d) => fs.existsSync(d));
+  const path = [...libs, process.env.LD_LIBRARY_PATH].filter(Boolean).join(':');
+  const env = { ...process.env, ...(path && { LD_LIBRARY_PATH: path }) };
+  if (real && fs.existsSync(WSL_GPU)) Object.assign(env, { GALLIUM_DRIVER: 'd3d12', MESA_D3D12_DEFAULT_ADAPTER_NAME: process.env.GPU ?? 'NVIDIA' });
+  const args = real
+    ? ['--use-gl=angle', '--use-angle=gl', '--ignore-gpu-blocklist', '--enable-gpu', '--window-position=-3000,0']
+    : ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', ...(uncapped ? ['--disable-frame-rate-limit', '--disable-gpu-vsync'] : [])];
+  const browser = await chromium.launch({ env, args, headless: !real });
   if (uncapped) {
     // Uncapped or not, Chrome holds frames to about 60 a second while nothing
     // on screen changes (the paused game draws nothing): a blinking pixel in a
@@ -40,11 +55,18 @@ export async function openTestBrowser(url, { uncapped = false, level = 'demo' } 
   return {
     browser,
     url,
+    /** Drawn by the real GPU (`gpu` and a display), not SwiftShader. */
+    realGpu: real,
     async close() {
       await browser.close();
       await server?.close();
     },
   };
+}
+
+/** An init script for a page that needs no picture: the game draws nothing from its first frame (SwiftShader draws on the CPU). */
+export function noDrawing() {
+  const t = setInterval(() => window.game?.renderer && (clearInterval(t), (window.game.renderer.render = () => {})), 20);
 }
 
 function keepFramesComing() {
@@ -56,9 +78,38 @@ function keepFramesComing() {
   });
 }
 
-/** Waits until the level is built, then `frames` frames (text atlases settle in the first ones). */
+/** Loads the game in `page` and plays (pointer lock faked, the HUD up); returns the page's errors and warnings as they come. */
+export async function startPlaying(page, url) {
+  const errors = [];
+  const warnings = [];
+  page.on('console', (m) => {
+    if (m.type() === 'error') errors.push(`error: ${m.text()}`);
+    else if (m.type() === 'warning') warnings.push(`warning: ${m.text()}`);
+  });
+  page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
+  await page.goto(url);
+  await gameReady(page, 3);
+  await page.evaluate(() => {
+    const g = window.game;
+    g.input.locked = true;
+    g.hud.setLocked(true);
+  });
+  return { errors, warnings };
+}
+
+/** A port nothing listens on, for a test's own game server. */
+export function freePort() {
+  return new Promise((done) => {
+    const s = net.createServer().listen(0, () => {
+      const { port } = s.address();
+      s.close(() => done(port));
+    });
+  });
+}
+
+/** Waits until the level is built (slow while other tests share the CPU), then `frames` frames (text atlases settle in the first ones). */
 export async function gameReady(page, frames = 10) {
-  await page.waitForFunction(() => window.game?.level?.solids?.length > 0);
+  await page.waitForFunction(() => window.game?.level?.solids?.length > 0, null, { timeout: 120000 });
   await page.evaluate(
     (frames) =>
       new Promise((done) => {

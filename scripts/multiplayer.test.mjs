@@ -8,9 +8,9 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import net from 'node:net';
-import { gameReady, openTestBrowser } from './test-browser.mjs';
+import { freePort, gameReady, noDrawing, openTestBrowser } from './test-browser.mjs';
 
-const PORT = 3997;
+const PORT = await freePort();
 const startServer = () => spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(PORT) }, stdio: ['ignore', 'ignore', 'inherit'] });
 let server = startServer();
 process.env.WS_TARGET = `ws://localhost:${PORT}`;
@@ -19,10 +19,8 @@ const test = await openTestBrowser();
 /** A player in a browser context of its own (its own sessionStorage, like an incognito window). */
 async function open(detail) {
   const ctx = await test.browser.newContext({ viewport: { width: 320, height: 180 } });
-  // Nothing drawn (the test is about the network; SwiftShader drawing two pages is slow).
-  await ctx.addInitScript(() => {
-    const t = setInterval(() => window.game?.renderer && (clearInterval(t), (window.game.renderer.render = () => {})), 20);
-  });
+  // Nothing drawn: the test is about the network.
+  await ctx.addInitScript(noDrawing);
   await ctx.addInitScript((d) => localStorage.setItem('roofhiddenhaus.settings', JSON.stringify({ paintDetail: d, cityDetail: 'low' })), detail);
   const page = await ctx.newPage();
   const errors = [];
@@ -98,8 +96,9 @@ try {
   await a.waitForFunction(() => /#2 "B" dropped[^]*#2 "B" here/.test(window.game.net.log.text()), null, { timeout: 5000 });
 
   // B hears nothing for a while (a big download ahead of everything else used to do that): it closes the link and
-  // comes back in, though the last thing it heard is now long ago.
-  await b.evaluate(() => (window.game.net.lastHeard = -1e9));
+  // comes back in, though the last thing it heard is now long ago. Its link drops what comes in, or A's next snapshot
+  // would count as heard before B's next frame looked.
+  await b.evaluate(() => ((window.game.net.ws.onmessage = null), (window.game.net.lastHeard = -1e9)));
   await status(b, 'reconnecting');
   await status(b, 'in');
   assert.equal(await paintHash(b), painted, 'the paint comes back after a reconnect');

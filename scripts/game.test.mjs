@@ -10,7 +10,7 @@
 // Usage: node scripts/game.test.mjs [url]   (no url: starts its own server)
 import fs from 'node:fs';
 import os from 'node:os';
-import { gameReady, openTestBrowser } from './test-browser.mjs';
+import { gameReady, noDrawing, openTestBrowser } from './test-browser.mjs';
 
 // Pages here don't draw (no check needs a picture), so frames can run uncapped.
 const test = await openTestBrowser(process.argv[2], { uncapped: true });
@@ -22,18 +22,38 @@ async function openPage(init) {
   const page = await test.browser.newPage({ viewport: { width: 320, height: 180 }, acceptDownloads: true });
   page.errors = [];
   page.on('pageerror', (e) => page.errors.push(e.message));
+  await page.addInitScript(noDrawing);
+  await page.addInitScript(pageSteps);
   if (init) await page.addInitScript(init);
   await page.goto(test.url);
-  await ready(page);
+  await gameReady(page, 2);
   return page;
 }
 
-async function ready(page) {
-  await gameReady(page, 2);
-  await page.evaluate(() => (window.game.renderer.render = () => {}));
+/**
+ * In the page, `steps(each)`: frames of a fixed 1/60 s, `each(frame)` at the start of every one until it returns
+ * true. Game time, not the wall clock, so a check gives the same result every run; after 30 s it stops anyway, so a
+ * check that never gets there fails instead of hanging.
+ */
+function pageSteps() {
+  window.steps = (each) =>
+    new Promise((done) => {
+      const g = window.game;
+      const end = performance.now() + 30000;
+      let f = 0;
+      g.fixedStep.dt = 1 / 60;
+      g.fixedStep.script = () => (each(f++) || performance.now() > end) && ((g.fixedStep.script = null), done());
+    });
 }
 
 async function check(name, fn) {
+  // Every check starts alike, whatever ran (or failed) before it: seeded paint randomness (spray, drips), frames on the clock.
+  if (!page.isClosed())
+    await page.evaluate(() => {
+      const g = window.game;
+      g.seedPaintRandom(1);
+      Object.assign(g.fixedStep, { dt: 0, script: null });
+    });
   try {
     const problem = await fn();
     if (problem) throw new Error(problem);
@@ -96,7 +116,7 @@ await check('menu: with the file picker open, SAVE and LOAD do nothing; cancelli
 await check('menu: LOAD PAINT after a reload puts the paint back', async () => {
   const before = await paintedKeys(page);
   await page.reload();
-  await ready(page);
+  await gameReady(page, 2);
   const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('.load-paint')]);
   await chooser.setFiles(`${tmp}/menu.rhhpaint`);
   await waitStatus(page, 'PAINT LOADED');
@@ -132,7 +152,6 @@ await check('saves: a sign whose text changed loses its paint (changed shape), t
 await check('saves: spray in the air at LOAD lands without paint', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
-    const frames = (n, each) => new Promise((done) => { let f = 0; g.fixedStep.script = () => { each(f); if (++f === n) { g.fixedStep.script = null; done(); } }; });
     g.input.locked = true;
     g.player.setSpawn(g.player.position.clone().set(2.4, 0, 2.95), -Math.PI / 2);
     g.player.respawn();
@@ -140,11 +159,11 @@ await check('saves: spray in the air at LOAD lands without paint', async () => {
     g.inventory.select(0);
     g.paint.clear();
     const empty = await g.paintFile.save();
-    g.fixedStep.dt = 1 / 60;
     let inAir = 0;
-    await frames(60, (f) => {
+    await steps((f) => {
       g.input.lmb = f < 8;
       if (f === 8) (inAir = g.tools.spray.particles.count), g.paintFile.load(empty);
+      return f === 59;
     });
     g.fixedStep.dt = 0;
     g.input.locked = false;
@@ -157,20 +176,18 @@ await check('sponge: a surface cleaned completely gives its memory back', async 
   const r = await page.evaluate(async () => {
     const g = window.game;
     const { inventory: inv, input, config } = g;
-    const frames = (n, each) => new Promise((done) => { let f = 0; g.fixedStep.script = () => { each(f); if (++f === n) { g.fixedStep.script = null; done(); } }; });
     input.locked = true;
     inv.give('sponge');
     for (const c of config.CAP_ORDER) inv.addCap(c);
     while (inv.cap !== 'skinny') inv.cycleCap(1);
     g.player.yaw = -Math.PI / 2 + 0.2;
     g.player.pitch = -0.2;
-    g.fixedStep.dt = 1 / 60;
     inv.select(0);
-    await frames(40, (f) => (input.lmb = f < 6));
+    await steps((f) => ((input.lmb = f < 6), f === 39));
     const sprayed = g.paint.gpu.textureCount;
     inv.select(4);
     inv.size.sponge = 0.6;
-    await frames(160, (f) => (input.lmb = f < 150));
+    await steps((f) => ((input.lmb = f < 150), f === 159));
     g.fixedStep.dt = 0;
     input.locked = false;
     return { sprayed, after: g.paint.gpu.textureCount };
@@ -481,43 +498,43 @@ await check('ghost: a recorded walk plays back through a jittery network smoothl
   const r = await page.evaluate(async () => {
     const g = window.game;
     const { GHOST } = g.config;
-    const frame = () => new Promise((done) => requestAnimationFrame(done));
-    const wait = async (s) => { const end = performance.now() + s * 1000; while (performance.now() < end) await frame(); };
     const hash = () => g.paint.surfaces.filter((s) => s.data).reduce((h, s) => s.data.reduce((h, v) => (h * 31 + v) >>> 0, h), 7);
     g.paint.clear();
     g.player.fly = true;
     const start = g.player.position.clone();
     const speed = 3;
-    // Walk 1.5 s along x, painting twice on the way.
+    // Walk 1.5 s along x, painting twice on the way, for 1.7 s.
     g.ghost.record();
-    const t0 = performance.now() / 1000;
     let painted = 0;
-    g.fixedStep.script = () => {
-      const t = performance.now() / 1000 - t0;
+    await steps((f) => {
+      const t = f / 60;
       g.player.position.set(start.x + speed * Math.min(t, 1.5), start.y, start.z);
       if (painted < 2 && t > 0.4 + painted * 0.6) g.paint.stamp(g.paint.surfaces[painted++], { rect: 0, u: 0.5, v: 0.5 }, 0.1, 1, [1, 0, 0]);
-    };
-    await wait(1.7);
-    g.fixedStep.script = null;
+      return f === 102;
+    });
     g.ghost.stop();
     const end = hash();
     Object.assign(GHOST, { latency: 0.1, jitter: 0.06, hiccups: 0 });
+    let seed = 1;
+    g.ghost.link.random = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
     g.ghost.play();
     const xs = [];
     let cleared = false;
     let repainted = false;
     let buffered = false;
-    const until = performance.now() + 2600;
-    while (performance.now() < until) {
-      await frame();
+    // For 2.4 s from when the ghost shows up (putting the paint back first takes real time, any number of frames).
+    await steps(() => {
       const p = g.ghost.position;
-      if (p) xs.push([p.x - start.x, p.y - start.y, p.z - start.z, performance.now() / 1000]);
+      if (p) xs.push([p.x - start.x, p.y - start.y, p.z - start.z, xs.length / 60]);
       if (g.ghost.net?.buffered) buffered = true;
       const h = hash();
       if (h === 7) cleared = true;
       if (cleared && h === end) repainted = true;
-    }
+      return xs.length === 144;
+    });
     g.ghost.stop();
+    g.ghost.link.random = Math.random;
+    g.fixedStep.dt = 0;
     Object.assign(GHOST, { latency: 0.08, jitter: 0.04 });
     g.player.fly = false;
     g.player.position.copy(start);
@@ -534,7 +551,7 @@ await check('ghost: a recorded walk plays back through a jittery network smoothl
     }
     return { frames: xs.length, reached: xs.length ? xs[xs.length - 1][0] : 0, back, fastest, off, cleared, repainted, buffered };
   });
-  const ok = r.frames > 30 && r.reached > 4.4 && r.back < 0.001 && r.fastest < 1.25 && r.off < 0.01 && r.cleared && r.repainted && r.buffered;
+  const ok = r.reached > 4.4 && r.back < 0.001 && r.fastest < 1.25 && r.off < 0.01 && r.cleared && r.repainted && r.buffered;
   return ok ? null : JSON.stringify(r);
 });
 
@@ -571,50 +588,56 @@ await check('city: LOW city detail is the middle of HIGH, tower for tower, roof 
   return r.low > 500 && r.high > r.low && r.missing === 0 && r.differ === 0 && r.lowBoxes > 1000 ? null : JSON.stringify(r);
 });
 
-await check('ghost: on a bad link (resent packets) a walk that stops is never shown jumping: guesses past a late snapshot glide back', async () => {
+await check('ghost: on a bad link (resent packets) a walk that stops is never shown jumping: corrections glide over several frames', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
-    const { GHOST } = g.config;
-    const frame = () => new Promise((done) => requestAnimationFrame(done));
-    const wait = async (s) => { const end = performance.now() + s * 1000; while (performance.now() < end) await frame(); };
+    const { GHOST, NET } = g.config;
     g.player.fly = true;
     const start = g.player.position.clone();
-    // Walk and stop, three times: each stop is where a guess overshoots.
+    // Walk and stop, three times in 3 s: each stop is where a guess overshoots.
     g.ghost.record();
-    const t0 = performance.now() / 1000;
-    g.fixedStep.script = () => {
-      const t = performance.now() / 1000 - t0;
-      const walked = Math.min(t % 1, 0.6) + Math.floor(t) * 0.6;
-      g.player.position.set(start.x + 5 * walked, start.y, start.z);
-    };
-    await wait(3);
-    g.fixedStep.script = null;
+    await steps((f) => {
+      const t = f / 60;
+      g.player.position.set(start.x + 5 * (Math.min(t % 1, 0.6) + Math.floor(t) * 0.6), start.y, start.z);
+      return f === 180;
+    });
     g.ghost.stop();
     // A packet in five is lost and resent 0.3 s later; everything behind it waits.
     Object.assign(GHOST, { latency: 0.05, jitter: 0.02, hiccups: 0.2, hiccupDelay: 0.3 });
-    g.ghost.play();
-    const xs = [];
-    const until = performance.now() + 3600;
-    while (performance.now() < until) {
-      await frame();
-      const p = g.ghost.position;
-      if (p) xs.push([p.x - start.x, performance.now() / 1000]);
+    // One network (seeded): the most the ghost moves in a frame, either way (m/s), for 3.5 s from when it shows up.
+    const play = async (seed) => {
+      g.ghost.link.random = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
+      g.ghost.play();
+      const xs = [];
+      await steps(() => {
+        const p = g.ghost.position;
+        if (p) xs.push(p.x - start.x);
+        return xs.length === 210;
+      });
+      g.ghost.stop();
+      let fastest = 0;
+      for (let i = 1; i < xs.length; i++) fastest = Math.max(fastest, Math.abs(xs[i] - xs[i - 1]) * 60);
+      return { fastest: +fastest.toFixed(2), reached: xs.length ? +xs[xs.length - 1].toFixed(3) : 0 };
+    };
+    // Four networks, smoothed as in play and not (NET.teleport 0: every correction is a jump).
+    const out = { smoothed: [], unsmoothed: [] };
+    const teleport = NET.teleport;
+    for (const seed of [1, 2, 3, 4]) {
+      out.smoothed.push(await play(seed));
+      NET.teleport = 0;
+      out.unsmoothed.push(await play(seed));
+      NET.teleport = teleport;
     }
-    g.ghost.stop();
+    g.ghost.link.random = Math.random;
+    g.fixedStep.dt = 0;
     Object.assign(GHOST, { latency: 0.08, jitter: 0.04, hiccups: 0 });
     g.player.fly = false;
     g.player.position.copy(start);
-    let back = 0;
-    let fastest = 0;
-    for (let i = 1; i < xs.length; i++) {
-      const dt = Math.max(xs[i][1] - xs[i - 1][1], 1 / 120);
-      back = Math.max(back, (xs[i - 1][0] - xs[i][0]) / dt);
-      fastest = Math.max(fastest, (xs[i][0] - xs[i - 1][0]) / dt);
-    }
-    return { frames: xs.length, reached: xs.length ? xs[xs.length - 1][0] : 0, back, fastest };
+    return out;
   });
-  // Walking is 5 m/s; going back (a smoothed correction) and forward stay within a walk's speed (unsmoothed: 30 m/s and more).
-  return r.frames > 30 && r.reached > 8.5 && r.back < 4 && r.fastest < 8 ? null : JSON.stringify(r);
+  // Walking is 5 m/s. Smoothed, a correction glides over several frames (up to about 16 m/s here); unsmoothed it's a jump (30 to 65 m/s).
+  const top = (runs) => Math.max(...runs.map((x) => x.fastest));
+  return top(r.smoothed) < 25 && top(r.unsmoothed) > 25 && r.smoothed.every((x) => x.reached > 8.5) ? null : JSON.stringify(r);
 });
 
 await check('avatar test figure: the pose slider stops on a pose, moving poses go round the loop (on the spot if asked), slow motion slows them', async () => {
@@ -656,7 +679,7 @@ await check('avatar test figure: the pose slider stops on a pose, moving poses g
   return ok ? null : JSON.stringify(r);
 });
 
-await check('hotbar: icons arrive from the GPU (read back without stalling) and the slots are drawn again', async () => {
+await check('hotbar: each icon is read back without stalling and its slot drawn again (nothing is drawn here: not what the icons show)', async () => {
   await page.evaluate(() => { for (const t of ['marker', 'ladder', 'roller', 'sponge']) window.game.inventory.give(t); });
   const ready = () => page.evaluate(() => [...document.querySelectorAll('.hotbar img')].filter((i) => i.src.startsWith('data:image/png')).length);
   await page.waitForFunction(() => [...document.querySelectorAll('.hotbar img')].every((i) => i.src.startsWith('data:image/png')), null, { timeout: 10000 }).catch(() => {});

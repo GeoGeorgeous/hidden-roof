@@ -8,11 +8,13 @@ import { GHOST } from '../config';
 export class SimLink<T> {
   private queue: { at: number; msg: T }[] = [];
   private last = 0;
+  /** Where its delays and hiccups come from (a seeded one in tests). */
+  random: () => number = Math.random;
 
   /** Send at local time `now` (s); `extra`: a further fixed delay. */
   send(msg: T, now: number, extra = 0) {
-    const hiccup = Math.random() < GHOST.hiccups ? GHOST.hiccupDelay : 0;
-    this.last = Math.max(this.last, now + extra + GHOST.latency + Math.random() * GHOST.jitter + hiccup);
+    const hiccup = this.random() < GHOST.hiccups ? GHOST.hiccupDelay : 0;
+    this.last = Math.max(this.last, now + extra + GHOST.latency + this.random() * GHOST.jitter + hiccup);
     this.queue.push({ at: this.last, msg });
   }
 

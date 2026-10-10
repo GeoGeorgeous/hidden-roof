@@ -23,6 +23,14 @@ Hidden roof: a three.js graffiti game. The world is ink on paper and the only co
 - Keep source files under ~400 lines (`config.ts` and CSS excepted). Split by responsibility before a file gets there, not after.
 - Branch names are `type/short-kebab-name`, with type one of `feat`, `fix`, `refactor`, `perf`, `chore`, `docs`, `test` (e.g. `feat/roller-tool`, `perf/dirty-rect-upload`).
 
+## Verify
+
+- After each change: `npm run check:quick` (~5 s: types, unit tests, the player build, knip).
+- Before you say a change is done or ask me to merge: `npm run check` (~2–3 min: adds the smoke, game, server, multiplayer, CSP and golden paint tests). Give it a 10-minute command timeout or run it in the background: the shell's default 2 minutes cuts it off mid-run. Commit only once it passes (`&&`, never `;`).
+- The tests are deterministic and safe to run beside other agents'. A failure is real: never rerun until it passes, never call it flaky or unrelated. Run the failing step on a clean `dev` worktree; if it fails there too, report it under Found, with its output.
+- Visual changes (look, light, UI, props, avatar): `npm run shots` draws the real game on the real GPU (~15 s; `STEPS` adds views). Look at the PNGs and send them to me. The headless tests draw with SwiftShader: not what players see.
+- What each test covers, and how to keep them reliable: `docs/testing.md`.
+
 ## Releases
 
 - Branch flow: topic branches → `dev` → `next` (tested) → `main` (deployed). Only a release moves `main`.
