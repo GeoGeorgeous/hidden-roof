@@ -240,6 +240,9 @@ export class Session {
       this.send(p, { type: 'save', parts: frames.length });
       for (const f of frames) deliver(p, f);
       snap.served++;
+    } catch {
+      // Told as when there's no memory for one, so the game doesn't wait for it.
+      this.send(p, { type: 'save', parts: 0 });
     } finally {
       p.saving = false;
     }
@@ -274,6 +277,11 @@ export class Session {
         log(this.code, `paint file: ${mb(raw)} MB of paint, ${mb(size)} MB packed, in ${((performance.now() - t) / 1000).toFixed(1)} s (${waiting()} more in line)`);
         this.keep(s);
         return frames;
+      } catch (e) {
+        // Only who waited for it goes without: the next one who wants a paint file gets a new one.
+        if (this.snap === s) this.snap = null;
+        log(this.code, `paint file failed: ${(e as Error).message}`);
+        throw e;
       } finally {
         const held = this.frozen;
         this.frozen = null;
