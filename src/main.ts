@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import * as config from './config';
-import { ATMOS, AUDIO, COLORS, HUD, INK, LEVELS, PLAYER, PRESSURE, RENDER, SMOKE, THUNDER, VIEWMODEL, VOLUMETRICS } from './config';
+import { ATMOS, COLORS, HUD, INK, LEVELS, PLAYER, PRESSURE, RENDER, SMOKE, THUNDER, VIEWMODEL, VOLUMETRICS } from './config';
 import { syncSharedUniforms } from './materials';
 import { syncTrackUniforms } from './render/cctv-track';
 import { Lighting } from './render/lighting';
@@ -47,6 +47,7 @@ import { multiplayerMenu } from './net/net-menu';
 import { exitGameFullscreen } from './fullscreen';
 import { setHex } from './hex-color';
 import { seedPaintRandom } from './lcg';
+import { fanLevel, metalDrops } from './emitter-sounds';
 
 // F3's defaults before anything changes config (the panel isn't in the player build).
 if (__DEV_TOOLS__) captureDefaults();
@@ -327,8 +328,8 @@ function frame(time: number) {
   rainTime += dt;
   rain.update(rainTime, eye);
   smoke.update(rainTime, SMOKE.lightBase + SMOKE.lightAmbient * ATMOS.ambient + SMOKE.lightFlash * lightning.flash);
-  audio.setFan(fanLevel(eye));
-  if (ATMOS.rain && !building) metalDrops(dt, eye);
+  audio.setFan(fanLevel(level.emitters, eye));
+  if (ATMOS.rain && !building) metalDrops(audio, level.emitters, heightmap, camera, dt, eye);
   audio.update(paused && !dev?.panelOpen);
   dev?.lap('world');
 
@@ -394,34 +395,6 @@ function frame(time: number) {
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-
-const toDrop = new THREE.Vector3();
-const camRight = new THREE.Vector3();
-/** Raindrops pinging on nearby metal tops that are open to the sky (not under a roof). */
-function metalDrops(dt: number, at: THREE.Vector3) {
-  const range = AUDIO.metalRange;
-  camRight.set(1, 0, 0).applyQuaternion(camera.quaternion);
-  const rate = AUDIO.metalRate * ATMOS.rainDensity * dt;
-  let n = 0;
-  for (const e of level.emitters) {
-    if (e.kind !== 'metal') continue;
-    const d = e.pos.distanceTo(at);
-    if (d > range || Math.random() > rate) continue;
-    if (heightmap.heightAt(e.pos.x, e.pos.z) > e.pos.y + 0.1) continue; // sheltered
-    toDrop.subVectors(e.pos, at).normalize();
-    const k = 1 - d / range;
-    audio.drop(toDrop.dot(camRight) * 0.8, k * k);
-    if (++n >= 4) break;
-  }
-}
-
-/** Loudness of the nearest AC fan from its distance (0 beyond AUDIO.fanRange). */
-function fanLevel(at: THREE.Vector3) {
-  let best = Infinity;
-  for (const e of level.emitters) if (e.kind === 'fan') best = Math.min(best, e.pos.distanceTo(at));
-  const k = 1 - best / AUDIO.fanRange;
-  return k > 0 ? k * k : 0;
-}
 
 function toScreen(p: THREE.Vector3) {
   p.project(camera);
