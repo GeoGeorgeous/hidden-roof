@@ -1,6 +1,6 @@
 import { M, type Mat } from './pieces';
 
-// Wall finishes of the structure pieces (blocks, walls, parapets, plinths):
+// Wall finishes of the structure pieces (blocks, walls, parapets, plinths, stairs):
 // their own look, or brick (textures.ts). Chosen in build mode (F), saved per
 // piece (PropData.finish). A piece without one keeps its own look.
 

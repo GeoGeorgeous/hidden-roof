@@ -73,7 +73,7 @@ export class PropSettings {
 
   /** V: the current finishes onto the aimed piece (its own look where none is chosen). */
   private applyFinish(inst: PropInstance | undefined, def: PropDef | undefined) {
-    if (!inst || !def?.finishes) return this.say('AIM AT A WALL, BLOCK, PARAPET OR PLINTH');
+    if (!inst || !def?.finishes) return this.say('AIM AT A WALL, BLOCK, PARAPET, PLINTH OR STAIRS');
     const f = this.finishFor(def);
     this.level.setFinish(inst.id, f);
     this.say(`FINISH: ${def.finishes.map((k) => `${k} ${f?.[k] ?? 'own'}`).join(' · ').toUpperCase()}`);

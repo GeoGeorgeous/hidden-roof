@@ -1,13 +1,15 @@
 import { withVariants, type PropDef } from './def';
+import { finishOf, type Finish } from './finishes';
 import { M, Parts, type V3 } from './pieces';
 
 // Stairs, ladders, fire escapes, floor hatches and the player's stepladder.
 // Every walkable piece has railings (railings themselves: barriers.ts).
 
-/** Concrete stairs `width` m wide (centered in their 2 m cell), rising one 4 m module in `n` steps over `run` m toward the front (-z). */
+/** Concrete (or wall-finish) stairs `width` m wide (centered in their 2 m cell), rising one 4 m module in `n` steps over `run` m toward the front (-z). */
 function concreteStairs(n: number, run: number, width = 2) {
-  return () => {
+  return ({ finish }: { finish?: Finish }) => {
     const p = new Parts();
+    const mat = finishOf(finish, 'wall', M.concrete);
     const rise = 4 / n;
     const tread = run / n;
     const back = run / 2;
@@ -15,15 +17,15 @@ function concreteStairs(n: number, run: number, width = 2) {
     // One column per step, all paintable (sides, treads, risers). The floor face
     // is never seen and each column's back is covered by the taller next one.
     for (let i = 0; i < n; i++) {
-      p.box([-hw, 0, back - tread * (i + 1)], [hw, rise * (i + 1), back - tread * i], M.concrete, { paint: true, skip: i < n - 1 ? ['-z', '-y'] : ['-y'] });
+      p.box([-hw, 0, back - tread * (i + 1)], [hw, rise * (i + 1), back - tread * i], mat, { paint: true, skip: i < n - 1 ? ['-z', '-y'] : ['-y'] });
     }
     for (const x of [-hw + 0.06, hw - 0.06]) p.stairRail([x, rise, back - tread / 2], [x, 4, -back + tread / 2]);
     return p.list;
   };
 }
 
-/** Concrete stairs up one storey: a real flight (22 steps of 18 cm on 27 cm treads, 2 x 6 m) or a compact steep one (45°, 2 x 4 m), 2 m or 1 m wide. */
-export const stairs = withVariants({ type: 'stairs', label: 'Stairs', category: 'access', place: 'cell', snap: 2 }, [
+/** Concrete stairs up one storey: a real flight (22 steps of 18 cm on 27 cm treads, 2 x 6 m) or a compact steep one (45°, 2 x 4 m), 2 m or 1 m wide. They take the wall finish (F) like walls. */
+export const stairs = withVariants({ type: 'stairs', label: 'Stairs', category: 'access', place: 'cell', snap: 2, finishes: ['wall'] }, [
   { id: 'straight', label: 'straight', footprint: [2, 6], build: concreteStairs(22, 6) },
   { id: 'compact', label: 'compact', footprint: [2, 4], build: concreteStairs(16, 4) },
   { id: 'narrow', label: 'narrow', footprint: [2, 6], build: concreteStairs(22, 6, 1) },
