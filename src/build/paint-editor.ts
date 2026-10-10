@@ -1,12 +1,12 @@
 import * as THREE from 'three';
-import { HINT, PAINT, type PaintColor } from '../config';
+import { HINT, PAINT, TAG_FONTS, type PaintColor } from '../config';
 import { download } from '../files';
 import type { Input } from '../input';
 import { rgbOf } from '../inventory/items';
 import type { Level } from '../level/level';
 import { solidsNear } from '../level/solids';
 import { shared } from '../materials';
-import type { PaintImage } from '../paint-image';
+import { edge, type PaintImage } from '../paint-image';
 import type { PaintSurface, PaintSystem } from '../painting';
 import { savePaint } from '../save/save-paint';
 import { facePoint, type FacePoint } from '../surfaces';
@@ -15,8 +15,8 @@ import { hintFontReady, hintImage } from './stencil-text';
 
 // Build mode's paint, which P saves with the level as its own (save/level-paint.ts):
 // hints painted onto walls with the Hint entry of the picker (LEVEL): Enter
-// types the text (<k>KEY</k> for a key cap), [ ] sets its size, Tab its
-// color, LMB paints it where the preview shows; X wipes the paint off the
+// types the text (<k>KEY</k> for a key cap), [ ] sets its size, T its font,
+// Tab its color, LMB paints it where the preview shows; X wipes the paint off the
 // face under the crosshair; H shows the paintable surfaces striped, then the
 // painted spots through walls (painted-spots.ts).
 
@@ -40,6 +40,7 @@ const LIFT = 0.01;
 export class PaintEditor {
   private text = '';
   private size = HINT.size;
+  private font = HINT.font;
   private view: View = 'off';
   private spots: PaintedSpots;
   /** Surfaces and how many hold paint when the spots were last drawn: they're drawn again when that changes (a prop rebuilt). */
@@ -94,6 +95,11 @@ export class PaintEditor {
       this.size = Math.min(HINT.maxSize, Math.max(HINT.minSize, +(this.size + dir * HINT.sizeStep).toFixed(3)));
       this.say(`HINT SIZE ${this.size.toFixed(2)} M`);
     }
+    if (input.wasPressed('KeyT')) {
+      const back = input.isDown('ShiftLeft') || input.isDown('ShiftRight') ? -1 : 1;
+      this.font = TAG_FONTS[(TAG_FONTS.indexOf(this.font) + back + TAG_FONTS.length) % TAG_FONTS.length];
+      this.say(`HINT FONT ${this.font.toUpperCase()}`);
+    }
     if (aim) this.showPreview(aim, hint);
   }
 
@@ -101,7 +107,7 @@ export class PaintEditor {
   stamp(color: PaintColor, camera: THREE.Camera) {
     if (!this.text) return this.editText();
     const aim = this.aim(camera);
-    const img = hintImage(this.text, this.size, PAINT.texelsPerMeter * HINT.supersample);
+    const img = hintImage(this.text, this.font, this.size, PAINT.texelsPerMeter * HINT.supersample);
     if (!aim || !img) return this.say('AIM AT A PAINTABLE SURFACE');
     if (!this.paint.imprint(aim.surface, aim.at, img, aim.right, aim.up, rgbOf(color))) return this.say('HINTS GO ON FLAT FACES');
     if (this.view === 'painted') this.refreshSpots(true);
@@ -165,10 +171,11 @@ export class PaintEditor {
   }
 
   private showPreview(aim: Aim, color: PaintColor) {
-    const key = `${this.text}|${this.size}|${color}|${PAINT.texelsPerMeter}`;
+    // The font's look too: F3 changes it.
+    const key = `${this.text}|${this.font}|${JSON.stringify(HINT.looks[this.font])}|${this.size}|${color}|${PAINT.texelsPerMeter}`;
     if (key !== this.previewKey) {
       this.previewKey = key;
-      this.image = this.text ? hintImage(this.text, this.size, PAINT.texelsPerMeter * HINT.supersample) : null;
+      this.image = this.text ? hintImage(this.text, this.font, this.size, PAINT.texelsPerMeter * HINT.supersample) : null;
       this.preview.material.map?.dispose();
       this.preview.material.map = this.image && previewTexture(this.image, color);
       this.preview.material.needsUpdate = true;
@@ -182,15 +189,15 @@ export class PaintEditor {
   }
 }
 
-/** The hint in its color, as a texture for the preview. */
+/** The hint in its color, as a texture for the preview: in sharp pixels with its edge, as the paint shows. */
 function previewTexture(img: PaintImage, color: PaintColor) {
   const [r, g, b] = rgbOf(color).map((c) => Math.round(c * 255));
   const data = new Uint8Array(img.w * img.h * 4);
   // Texture rows go bottom up.
-  for (let y = 0; y < img.h; y++) for (let x = 0; x < img.w; x++) data.set([r, g, b, img.alpha[y * img.w + x]], ((img.h - 1 - y) * img.w + x) * 4);
+  for (let y = 0; y < img.h; y++) for (let x = 0; x < img.w; x++) data.set([r, g, b, 255 * edge(img.alpha[y * img.w + x] / 255, img.softness)], ((img.h - 1 - y) * img.w + x) * 4);
   const t = new THREE.DataTexture(data, img.w, img.h);
   t.colorSpace = THREE.SRGBColorSpace;
-  t.magFilter = t.minFilter = THREE.LinearFilter;
+  t.magFilter = t.minFilter = THREE.NearestFilter;
   t.needsUpdate = true;
   return t;
 }

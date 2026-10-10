@@ -39,7 +39,8 @@ const KANA: Record<string, string> = {
   roller: 'ローラー',
   sponge: 'スポンジ',
 };
-const FAMILIES: Record<TagFont, string> = {
+/** Each tag font (TAG_FONTS) as a CSS font family: hints painted on walls use them too (build/stencil-text.ts). */
+export const FAMILIES: Record<TagFont, string> = {
   mono: `ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace`,
   gothic: JP_FAMILY,
   graffiti: `'Sedgwick Ave Display', cursive`,

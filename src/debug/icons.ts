@@ -47,6 +47,7 @@ const ICONS: Record<string, string> = {
   build: '<path d="M1 9 5.5 4.5M4.5 1.5l4 4-1.5 1.5-4-4z"/>',
   hotbar: '<circle cx="1.8" cy="5" r="1.3"/><circle cx="5" cy="5" r="1.3"/><circle cx="8.2" cy="5" r="1.3"/>',
   mix: '<path d="M2 .5v9M5 .5v9M8 .5v9"/><path d="M1 6h2M4 3h2M7 7h2"/>',
+  hints: '<path d="M1 1.5h5M3.5 1.5v6M6.5 5.5h3v3h-3z"/>',
   picker: '<path d="M.5 5h3M1 2.2l2.7 1.4M1 7.8l2.7-1.4M5.5 2.5h4M5.5 5h4M5.5 7.5h4"/>',
   daylight: '<circle cx="5" cy="5" r="2"/><path d="M5 .5v1.2M5 8.3v1.2M.5 5h1.2M8.3 5h1.2M1.8 1.8l.9.9M7.3 7.3l.9.9M1.8 8.2l.9-.9M7.3 2.7l.9-.9"/>',
   performance: '<path d="M.5 5.5h2l1.5-4 2 7 1.5-3h2"/>',

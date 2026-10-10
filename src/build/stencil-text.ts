@@ -1,10 +1,13 @@
-import { HINT } from '../config';
+import { HINT, type TagFont } from '../config';
 import type { PaintImage } from '../paint-image';
+import { FAMILIES } from '../pickups/labels';
+import { jpFontReady } from '../render/ink/jp-font';
 
-// A hint as an image to paint (PaintSystem.imprint): one line of text in the
-// graffiti font, where <k>KEY</k> is a key cap, e.g.
-// "<k>RMB</k> Shake your can to release pressure". Drawn white on clear, with
-// a soft overspray around the letters; only alpha is kept.
+// A hint as an image to paint (PaintSystem.imprint): one line of text in one
+// of the pickup tags' fonts (graffiti, gothic: manga lettering, mono), where
+// <k>KEY</k> is a key cap, e.g. "<k>RMB</k> Shake your can to release
+// pressure". Drawn white on clear, with the font's overspray around the
+// letters (HINT.looks); only alpha is kept.
 
 /** A hint's pieces in order: text as written, and keys. */
 function parseHint(text: string): { key: boolean; text: string }[] {
@@ -22,18 +25,21 @@ function parseHint(text: string): { key: boolean; text: string }[] {
   return out.filter((p) => p.text);
 }
 
-const font = (px: number) => `${px}px "${HINT.font}"`;
+/** Each font's weight: the gothic is the neon signs' black, mono is bold to read as paint. */
+const WEIGHT: Record<TagFont, number> = { mono: 700, gothic: 900, graffiti: 400 };
+const css = (f: TagFont, px: number) => `${WEIGHT[f]} ${px}px ${FAMILIES[f]}`;
 
-/** The font, loaded: hints drawn before it would be in a fallback font. */
-export const hintFontReady = () => document.fonts.load(font(32)).then(() => undefined);
+/** The fonts, loaded: hints drawn before would be in a fallback font. */
+export const hintFontReady = () => Promise.all([document.fonts.load(css('graffiti', 32)), jpFontReady()]).then(() => undefined);
 
-/** The hint `size` m per em, at `perMeter` pixels per meter; null when there's nothing to draw. */
-export function hintImage(text: string, size: number, perMeter: number): PaintImage | null {
+/** The hint in font `f`, `size` m per em, at `perMeter` pixels per meter; null when there's nothing to draw. */
+export function hintImage(text: string, f: TagFont, size: number, perMeter: number): PaintImage | null {
   const pieces = parseHint(text);
   if (!pieces.length) return null;
+  const look = HINT.looks[f];
   const em = size * perMeter;
   const ctx = document.createElement('canvas').getContext('2d', { willReadFrequently: true })!;
-  const label = (on: boolean) => font((on ? HINT.keyLabel : 1) * em);
+  const label = (on: boolean) => css(f, (on ? HINT.keyLabel : 1) * em);
   const line = HINT.keyLine * em;
   const boxH = HINT.keyHeight * em;
   ctx.textBaseline = 'middle';
@@ -48,15 +54,15 @@ export function hintImage(text: string, size: number, perMeter: number): PaintIm
     return p.key ? m.width + 2 * HINT.keyPad * em + line + HINT.keyGap * em : m.width;
   });
   // Room around it for the overspray.
-  const margin = Math.ceil(2 * HINT.overspray * em + line);
+  const margin = Math.ceil(2 * look.overspray * em + line);
   const w = Math.ceil(widths.reduce((a, b) => a + b, 0)) + 2 * margin;
   const h = Math.ceil(up + down) + 2 * margin;
   // Resizing the canvas resets its state.
   ctx.canvas.width = w;
   ctx.canvas.height = h;
   ctx.fillStyle = ctx.strokeStyle = '#fff';
-  ctx.shadowColor = `rgba(255, 255, 255, ${HINT.oversprayStrength})`;
-  ctx.shadowBlur = HINT.overspray * em;
+  ctx.shadowColor = `rgba(255, 255, 255, ${look.oversprayStrength})`;
+  ctx.shadowBlur = look.overspray * em;
   ctx.textBaseline = 'middle';
   ctx.lineWidth = line;
   const mid = margin + up;
@@ -77,5 +83,5 @@ export function hintImage(text: string, size: number, perMeter: number): PaintIm
   const rgba = ctx.getImageData(0, 0, w, h).data;
   const alpha = new Uint8Array(w * h);
   for (let i = 0; i < alpha.length; i++) alpha[i] = rgba[i * 4 + 3];
-  return { alpha, w, h, width: w / perMeter, height: h / perMeter };
+  return { alpha, w, h, width: w / perMeter, height: h / perMeter, softness: look.softness };
 }

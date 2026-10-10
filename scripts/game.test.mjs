@@ -345,6 +345,34 @@ await check('hints: painted as paint, across wall pieces; H boxes every painted 
   return ok ? null : JSON.stringify(r);
 });
 
+await check('hints: every font paints; softness 0 paints whole texels only, softness 1 a soft edge', async () => {
+  const r = {};
+  for (const [font, softness] of [['graffiti', 1], ['gothic', 0], ['gothic', 1], ['mono', 0.3]]) {
+    await page.evaluate(([font, softness]) => {
+      const g = window.game;
+      g.paint.clear();
+      g.build.paintEdit.font = font;
+      window.oldLook = { ...g.config.HINT.looks[font] };
+      g.config.HINT.looks[font].softness = softness;
+    }, [font, softness]);
+    await paintHint(page);
+    r[`${font} ${softness}`] = await page.evaluate((font) => {
+      const g = window.game;
+      Object.assign(g.config.HINT.looks[font], window.oldLook);
+      let lit = 0;
+      let soft = 0;
+      for (const s of g.paint.surfaces.filter((s) => s.data)) for (let i = 3; i < s.data.length; i += 4) (lit += s.data[i] > 0 ? 1 : 0), (soft += s.data[i] > 0 && s.data[i] < 255 ? 1 : 0);
+      return { lit, soft };
+    }, font);
+  }
+  await page.evaluate(() => {
+    window.game.paint.clear();
+    window.game.build.paintEdit.font = window.game.config.HINT.font;
+  });
+  const ok = Object.values(r).every((v) => v.lit > 0) && r['gothic 0'].soft === 0 && r['gothic 1'].soft > r['gothic 1'].lit / 10;
+  return ok ? null : JSON.stringify(r);
+});
+
 await check("level paint: a level's own paint file goes on the walls as it loads, and a session hosted FRESH LEVEL starts from it; a level without one starts clean", async () => {
   // Pages of their own: earlier checks edited this one's level.
   const first = await openPage();

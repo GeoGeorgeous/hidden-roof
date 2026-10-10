@@ -1119,8 +1119,8 @@ export const BUILD = {
  * cap. Sizes in ems are the letter size's.
  */
 export const HINT = {
-  /** The title's graffiti font (public/fonts). */
-  font: 'Sedgwick Ave Display',
+  /** The font of new hints (T changes it): one of the pickup tags' (TAG_FONTS). */
+  font: 'graffiti' as TagFont,
   /** Letter size (the font's em) of new hints, its range and its step ([ ]), in meters. At PAINT DETAIL LOW (4 cm texels) letters under about 0.5 m blur. */
   size: 0.4,
   minSize: 0.1,
@@ -1137,9 +1137,17 @@ export const HINT = {
   keyLine: 0.08,
   keyRound: 0.2,
   keyGap: 0.2,
-  /** Overspray: a soft haze around the letters, how far it reaches (ems) and how strong it is (0..1). */
-  overspray: 0.08,
-  oversprayStrength: 0.45,
+  /**
+   * Each font's look: overspray, a soft haze around the letters, how far it
+   * reaches (ems) and how strong it is (0..1); softness of the letters' edge,
+   * 1 as drawn (smooth, a ring of half-strength texels around each letter) to
+   * 0 cut to whole texels (crisp, stepped).
+   */
+  looks: {
+    mono: { overspray: 0, oversprayStrength: 0, softness: 0.3 },
+    gothic: { overspray: 0, oversprayStrength: 0, softness: 0.3 },
+    graffiti: { overspray: 0.08, oversprayStrength: 0.45, softness: 0.5 },
+  } satisfies Record<TagFont, { overspray: number; oversprayStrength: number; softness: number }>,
   /** Image pixels per paint texel: hints are drawn finer, then averaged into texels. */
   supersample: 2,
   /** Hints are best made at this PAINT DETAIL (ULTRA, texels per meter): lower ones blur their letters, and P says so. */

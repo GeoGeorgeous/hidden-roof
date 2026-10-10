@@ -13,6 +13,8 @@ export interface PaintImage {
   h: number;
   width: number;
   height: number;
+  /** How soft its edges are on the face: 1 as averaged into texels, down to 0, each texel painted fully or not at all (edge). */
+  softness: number;
 }
 
 const corner = new THREE.Vector3();
@@ -52,9 +54,15 @@ export function imageOnFace(img: PaintImage, rect: Rect, center: THREE.Vector3, 
   const alpha = (x: number, y: number) => {
     let a = 0;
     for (const [qx, qy] of QUARTERS) a += sample(img, px0 + (x + qx) * pxX + (y + qy) * pxY, py0 + (x + qx) * pyX + (y + qy) * pyY);
-    return a / (4 * 255);
+    return edge(a / (4 * 255), img.softness);
   };
   return { x0, y0, x1, y1, alpha };
+}
+
+/** Alpha `a` (0..1) with its ramp around half narrowed to `softness` (1: as it is, 0: a step at half). */
+export function edge(a: number, softness: number) {
+  const half = softness / 2;
+  return half < 1e-3 ? (a < 0.5 ? 0 : 1) : Math.min(1, Math.max(0, (a - 0.5 + half) / (2 * half)));
 }
 
 /** The image's alpha at pixel coords (x, y), bilinear between pixel centers; 0 outside it. */
