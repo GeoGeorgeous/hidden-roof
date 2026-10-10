@@ -8,7 +8,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import net from 'node:net';
-import { freePort, gameReady, openTestBrowser } from './test-browser.mjs';
+import { freePort, gameReady, noDrawing, openTestBrowser } from './test-browser.mjs';
 
 const PORT = await freePort();
 const startServer = () => spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(PORT) }, stdio: ['ignore', 'ignore', 'inherit'] });
@@ -19,10 +19,8 @@ const test = await openTestBrowser();
 /** A player in a browser context of its own (its own sessionStorage, like an incognito window). */
 async function open(detail) {
   const ctx = await test.browser.newContext({ viewport: { width: 320, height: 180 } });
-  // Nothing drawn (the test is about the network; SwiftShader drawing two pages is slow).
-  await ctx.addInitScript(() => {
-    const t = setInterval(() => window.game?.renderer && (clearInterval(t), (window.game.renderer.render = () => {})), 20);
-  });
+  // Nothing drawn: the test is about the network.
+  await ctx.addInitScript(noDrawing);
   await ctx.addInitScript((d) => localStorage.setItem('roofhiddenhaus.settings', JSON.stringify({ paintDetail: d, cityDetail: 'low' })), detail);
   const page = await ctx.newPage();
   const errors = [];

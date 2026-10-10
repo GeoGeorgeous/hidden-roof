@@ -5,7 +5,7 @@
 // Usage: npm run test:csp (builds the game and the server first)
 import { spawn } from 'node:child_process';
 import { preview } from 'vite';
-import { freePort, gameReady, openTestBrowser } from './test-browser.mjs';
+import { freePort, gameReady, noDrawing, openTestBrowser } from './test-browser.mjs';
 
 const PORT = await freePort();
 const server = spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(PORT) }, stdio: ['ignore', 'ignore', 'inherit'] });
@@ -18,9 +18,9 @@ try {
   await page.addInitScript(() => {
     window.violations = [];
     document.addEventListener('securitypolicyviolation', (e) => window.violations.push(`${e.violatedDirective}: ${e.blockedURI || e.sample}`));
-    // Nothing drawn: what's checked is what loads, not the picture (SwiftShader is slow).
-    const t = setInterval(() => window.game?.renderer && (clearInterval(t), (window.game.renderer.render = () => {})), 20);
   });
+  // Nothing drawn: what's checked is what loads, not the picture.
+  await page.addInitScript(noDrawing);
   page.on('pageerror', (e) => problems.push(`page error: ${e.message}`));
   page.on('console', (m) => m.type() === 'error' && problems.push(`console: ${m.text()}`));
   const res = await page.goto(test.url);

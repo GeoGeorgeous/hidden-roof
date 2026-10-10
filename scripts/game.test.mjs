@@ -10,7 +10,7 @@
 // Usage: node scripts/game.test.mjs [url]   (no url: starts its own server)
 import fs from 'node:fs';
 import os from 'node:os';
-import { gameReady, openTestBrowser } from './test-browser.mjs';
+import { gameReady, noDrawing, openTestBrowser } from './test-browser.mjs';
 
 // Pages here don't draw (no check needs a picture), so frames can run uncapped.
 const test = await openTestBrowser(process.argv[2], { uncapped: true });
@@ -22,15 +22,11 @@ async function openPage(init) {
   const page = await test.browser.newPage({ viewport: { width: 320, height: 180 }, acceptDownloads: true });
   page.errors = [];
   page.on('pageerror', (e) => page.errors.push(e.message));
+  await page.addInitScript(noDrawing);
   if (init) await page.addInitScript(init);
   await page.goto(test.url);
-  await ready(page);
-  return page;
-}
-
-async function ready(page) {
   await gameReady(page, 2);
-  await page.evaluate(() => (window.game.renderer.render = () => {}));
+  return page;
 }
 
 async function check(name, fn) {
@@ -98,7 +94,7 @@ await check('menu: with the file picker open, SAVE and LOAD do nothing; cancelli
 await check('menu: LOAD PAINT after a reload puts the paint back', async () => {
   const before = await paintedKeys(page);
   await page.reload();
-  await ready(page);
+  await gameReady(page, 2);
   const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('.load-paint')]);
   await chooser.setFiles(`${tmp}/menu.rhhpaint`);
   await waitStatus(page, 'PAINT LOADED');

@@ -63,6 +63,11 @@ export async function openTestBrowser(url, { uncapped = false, level = 'demo', g
   };
 }
 
+/** An init script for a page that needs no picture: the game draws nothing from its first frame (SwiftShader draws on the CPU). */
+export function noDrawing() {
+  const t = setInterval(() => window.game?.renderer && (clearInterval(t), (window.game.renderer.render = () => {})), 20);
+}
+
 function keepFramesComing() {
   addEventListener('DOMContentLoaded', () => {
     const style = document.createElement('style');
