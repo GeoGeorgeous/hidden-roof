@@ -668,7 +668,7 @@ await check('avatar test figure: the pose slider stops on a pose, moving poses g
   return ok ? null : JSON.stringify(r);
 });
 
-await check('hotbar: icons arrive from the GPU (read back without stalling) and the slots are drawn again', async () => {
+await check('hotbar: each icon is read back without stalling and its slot drawn again (nothing is drawn here: not what the icons show)', async () => {
   await page.evaluate(() => { for (const t of ['marker', 'ladder', 'roller', 'sponge']) window.game.inventory.give(t); });
   const ready = () => page.evaluate(() => [...document.querySelectorAll('.hotbar img')].filter((i) => i.src.startsWith('data:image/png')).length);
   await page.waitForFunction(() => [...document.querySelectorAll('.hotbar img')].every((i) => i.src.startsWith('data:image/png')), null, { timeout: 10000 }).catch(() => {});
