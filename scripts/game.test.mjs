@@ -310,25 +310,41 @@ await check('paint pages: a painted level draws in as many calls as a clean one;
   return r.clean > 0 && r.painted === r.clean && r.meshesPainted === r.meshes && r.pages > 0 && r.pagesAfter === 0 ? null : JSON.stringify(r);
 });
 
-await check('paint pages: a lost and restored WebGL context (a GPU reset) gets all the paint uploaded again', async () => {
+await check('paint pages: a lost and restored WebGL context (a GPU reset) gets all the paint back on the GPU', async () => {
   // A page of its own: the others keep their context.
   const p = await openPage();
   const r = await p.evaluate(async () => {
     const g = window.game;
+    const r = g.renderer;
+    const gl = r.getContext();
+    /** Does every painted surface's block of its page (level 0) hold its paint, texel for texel? */
+    const onGpu = () =>
+      g.paint.surfaces
+        .filter((s) => s.data)
+        .every((s) => {
+          const fb = gl.createFramebuffer();
+          r.state.bindFramebuffer(gl.FRAMEBUFFER, fb);
+          gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, r.properties.get(s.texture).__webglTexture, 0);
+          const px = new Uint8Array(s.data.length);
+          gl.readPixels(s.slot.x, s.slot.y, s.geo.atlasW, s.geo.atlasH, gl.RGBA, gl.UNSIGNED_BYTE, px);
+          r.state.bindFramebuffer(gl.FRAMEBUFFER, null);
+          gl.deleteFramebuffer(fb);
+          return px.every((v, i) => v === s.data[i]);
+        });
     for (const s of g.paint.surfaces.slice(0, 3)) g.paint.stamp(s, { rect: 0, u: 0.5, v: 0.5 }, 0.3, 1, [1, 0, 0]);
     await window.steps((f) => f === 2);
-    const lose = g.renderer.getContext().getExtension('WEBGL_lose_context');
-    const restored = new Promise((done) => g.renderer.domElement.addEventListener('webglcontextrestored', done, { once: true }));
+    const before = onGpu();
+    const lose = gl.getExtension('WEBGL_lose_context');
+    const restored = new Promise((done) => r.domElement.addEventListener('webglcontextrestored', done, { once: true }));
     lose.loseContext();
     await new Promise((done) => setTimeout(done, 50));
     lose.restoreContext();
     await restored;
-    let uploads = 0;
-    await window.steps((f) => ((uploads += g.paint.gpu.uploadsLastFrame), f === 3));
-    return { painted: g.paint.surfaces.filter((s) => s.data).length, uploads };
+    await window.steps((f) => f === 3);
+    return { painted: g.paint.surfaces.filter((s) => s.data).length, before, after: onGpu() };
   });
   await p.close();
-  return r.painted === 3 && r.uploads >= r.painted ? null : JSON.stringify(r);
+  return r.painted === 3 && r.before && r.after ? null : JSON.stringify(r);
 });
 
 /** Paint a hint on the wall the demo's spawn faces (build mode's Hint entry, build/paint-editor.ts); the game's camera aims. */
