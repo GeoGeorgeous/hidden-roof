@@ -67,6 +67,11 @@ export class PaintEditor {
     void hintFontReady().then(() => (this.previewKey = ''));
   }
 
+  /** Any paint on the walls: P saves it as the level's own. */
+  get painted() {
+    return this.paint.surfaces.some((s) => s.data);
+  }
+
   set visible(on: boolean) {
     if (!on) {
       this.preview.visible = false;
@@ -116,7 +121,7 @@ export class PaintEditor {
 
   /** P: all paint on the walls as the level's own, `<name>.rhhpaint`. What it saved, for the status line; null without paint. */
   async save(name: string) {
-    if (!this.paint.surfaces.some((s) => s.data)) return null;
+    if (!this.painted) return null;
     download(new Blob([(await savePaint(this.paint, { name })) as BlobPart]), `${name}.rhhpaint`);
     const blurry = PAINT.texelsPerMeter < HINT.detail ? ` · AT PAINT DETAIL ${PAINT.texelsPerMeter}: ULTRA KEEPS HINTS SHARP` : '';
     return `${name}.rhhpaint${blurry}`;

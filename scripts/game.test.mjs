@@ -375,19 +375,29 @@ await check('hints: every font paints; softness 0 paints whole texels only, soft
   return ok ? null : JSON.stringify(r);
 });
 
-await check("level paint: a level's own paint file goes on the walls as it loads, and a session hosted FRESH LEVEL starts from it; a level without one starts clean", async () => {
+await check("level paint: P saves the level marked as painted, and its paint; a fresh game of it puts that paint on the walls, and a session hosted FRESH LEVEL starts from it; a level without paint asks for none and starts clean", async () => {
   // Pages of their own: earlier checks edited this one's level.
-  const first = await openPage();
+  const asked = [];
+  const first = await openPage(null, (p) => p.on('request', (q) => q.url().includes('.rhhpaint') && asked.push(q.url())));
+  const files = {};
+  first.on('download', async (d) => (files[d.suggestedFilename()] = fs.readFileSync(await d.path())));
   await paintHint(first);
-  const bytes = await first.evaluate(async () => Array.from(await window.game.paintFile.save()));
   const keys = await paintedKeys(first);
   const clean = await first.evaluate(() => window.game.net.g.levelPaint());
+  await first.evaluate(() => window.game.build.save());
+  for (const end = Date.now() + 10000; Object.keys(files).length < 2 && Date.now() < end; ) await new Promise((done) => setTimeout(done, 50));
   await first.close();
-  // The level's own paint, served for the demo level.
-  const own = await openPage(null, (p) => p.route('**/levels/demo.rhhpaint', (route) => route.fulfill({ body: Buffer.from(bytes), contentType: 'application/octet-stream' })));
-  const r = { keys: await paintedKeys(own), fresh: await own.evaluate(() => window.game.net.g.levelPaint()?.length), errors: own.errors };
+  const level = files['demo.json'] && JSON.parse(files['demo.json']);
+  // The saved pair, served as the demo level.
+  const own = await openPage(null, async (p) => {
+    await p.route('**/levels/demo.json', (route) => route.fulfill({ body: files['demo.json'], contentType: 'application/json' }));
+    await p.route('**/levels/demo.rhhpaint', (route) => route.fulfill({ body: files['demo.rhhpaint'], contentType: 'application/octet-stream' }));
+  });
+  await own.waitForFunction(() => window.game.net.g.levelPaint(), null, { timeout: 10000 }).catch(() => {});
+  const r = { marked: level?.paint, asked: asked.length, keys: await paintedKeys(own), fresh: await own.evaluate(() => window.game.net.g.levelPaint()?.length), errors: own.errors };
   await own.close();
-  return keys && r.keys === keys && r.fresh === bytes.length && clean === null && !r.errors.length ? null : JSON.stringify({ ...r, clean, want: keys });
+  const ok = r.marked === true && r.asked === 0 && clean === null && keys && r.keys === keys && r.fresh === files['demo.rhhpaint']?.length && !r.errors.length;
+  return ok ? null : JSON.stringify({ ...r, clean, want: keys, files: Object.keys(files) });
 });
 
 await check('levels: stairs in format 3 files stay compact (the old stairs); format 4 saves keep either kind', async () => {

@@ -153,11 +153,7 @@ export class BuildMode {
     this.paintEdit.update(input, camera, e.kind === 'hint' ? e.color : null);
     // The hint has its own Enter and [ ].
     if (e.kind !== 'hint') this.settings.update(input, aimed?.kind === 'prop' ? this.level.props.get(aimed.id) : undefined, e.kind === 'prop' ? e.def : null);
-    if (input.wasPressed('KeyP')) {
-      const name = this.getLevelName();
-      downloadLevel(this.getLevelData(), `${name}.json`);
-      void this.paintEdit.save(name).then((paint) => this.say(`SAVED ${name}.json ${paint ? `+ ${paint}` : '(no paint)'}`.toUpperCase()));
-    }
+    if (input.wasPressed('KeyP')) void this.save();
     if (input.wasPressed('KeyO')) {
       pickLevelFile()
         .then(({ data, name }) => {
@@ -196,6 +192,14 @@ export class BuildMode {
   /** Whether the next `def` placed is flipped: only wall pieces are. */
   private flipped(def: PropDef) {
     return def.place === 'mount' && this.picker.flip;
+  }
+
+  /** P: the level as `<name>.json`, and the paint on its walls as `<name>.rhhpaint` (marked in the level file) when there is some. */
+  async save() {
+    const name = this.getLevelName();
+    downloadLevel({ ...this.getLevelData(), ...(this.paintEdit.painted && { paint: true }) }, `${name}.json`);
+    const paint = await this.paintEdit.save(name);
+    this.say(`SAVED ${name}.json ${paint ? `+ ${paint}` : '(no paint)'}`.toUpperCase());
   }
 
   /** LMB places; holding it keeps placing wherever the ghost moves (pillars, bridges). */

@@ -73,18 +73,9 @@ export function joinBytes(pieces: Uint8Array[]) {
   return out;
 }
 
-/** A paint file decoded: its header and its paint. */
-export interface PaintFile {
-  header: PaintFileHeader;
-  body: Uint8Array;
-}
-
-/** Does it start like a paint file? */
-export const isPaintFile = (bytes: Uint8Array) => bytes.length >= 8 && new TextDecoder().decode(bytes.subarray(0, 4)) === MAGIC;
-
 /** The header and the paint of a save; throws an Error with a message for the player if the file is no good. */
-export async function decodePaintFile(bytes: Uint8Array, maxBytes = Infinity): Promise<PaintFile> {
-  if (!isPaintFile(bytes)) throw new Error('NOT A PAINT FILE');
+export async function decodePaintFile(bytes: Uint8Array, maxBytes = Infinity): Promise<{ header: PaintFileHeader; body: Uint8Array }> {
+  if (bytes.length < 8 || new TextDecoder().decode(bytes.subarray(0, 4)) !== MAGIC) throw new Error('NOT A PAINT FILE');
   const length = new DataView(bytes.buffer, bytes.byteOffset).getUint32(4, true);
   let header: PaintFileHeader;
   try {

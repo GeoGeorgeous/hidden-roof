@@ -1,6 +1,6 @@
 import type { PaintDrips } from '../paint-drips';
 import type { PaintSurface, PaintSystem } from '../painting';
-import { decodePaintFile, faceBytes, type PaintFile } from './paint-file';
+import { decodePaintFile, faceBytes } from './paint-file';
 import { shapeOf } from './shape';
 
 // LOAD: replaces all paint with a save's (paint-file.ts), at this player's
@@ -17,11 +17,7 @@ export interface LoadedPaint {
 
 /** Throws an Error with a message for the player if the file is no good or none of it fits this level; `maxBytes`: the most paint it may hold. */
 export async function loadPaint(paint: PaintSystem, drips: PaintDrips, bytes: Uint8Array, level: { name: string }, maxBytes?: number): Promise<LoadedPaint> {
-  return putPaint(paint, drips, await decodePaintFile(bytes, maxBytes), level);
-}
-
-/** The same with the file decoded already: at once, so nothing paints in between (a level's own paint as it loads, level-paint.ts). */
-export function putPaint(paint: PaintSystem, drips: PaintDrips, { header, body }: PaintFile, level: { name: string }): LoadedPaint {
+  const { header, body } = await decodePaintFile(bytes, maxBytes);
   const fits = new Map<string, PaintSurface | null>();
   const fit = (key: string) => {
     if (!fits.has(key)) {

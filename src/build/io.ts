@@ -39,5 +39,6 @@ function levelProblem(d: unknown) {
   if (!isObj(d.spawn) || !isV3(d.spawn.pos) || !isNum(d.spawn.yaw)) return 'BAD SPAWN';
   if (!Array.isArray(d.props) || !d.props.every(isProp)) return 'BAD PROPS';
   if (d.pickups !== undefined && !(Array.isArray(d.pickups) && d.pickups.every(isPickup))) return 'BAD PICKUPS';
+  if (d.paint !== undefined && typeof d.paint !== 'boolean') return 'BAD PAINT';
   return null;
 }
