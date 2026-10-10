@@ -17,7 +17,7 @@ import { decodeSnapshot, type Snapshot } from './snapshot';
 // one comes, the difference is smoothed out instead of jumping. Their paint ops and their stepladder are
 // applied when the figure gets to the time they happened, so the paint shows
 // up with the arm that sprays it, and their can's spray flies from the
-// figure's hand (particles only). Never simulated here: no physics, no
+// figure's hand (particles only); while this game is hidden, at once. Never simulated here: no physics, no
 // collisions. Away (their game hidden) they stand head down; dropped, or
 // silent for NET.silentAfter, they slump, drawn faded.
 
@@ -108,12 +108,22 @@ export class RemotePlayer {
 
   /** A paint op they made at their time `t`. */
   receiveOp(t: number, op: PaintOp) {
-    this.events.push({ t, run: () => this.ops.apply(op) });
+    this.at(t, () => this.ops.apply(op));
   }
 
   /** Their stepladder placed (or taken away: null) at their time `t`. */
   receiveLadder(t: number, data: PropData | null) {
-    this.events.push({ t, run: () => this.level.setRuntime(this.owner, data) });
+    this.at(t, () => this.level.setRuntime(this.owner, data));
+  }
+
+  /**
+   * `run` when their figure gets to their time `t`; at once while this game is
+   * hidden, which draws no frames: queued, all they did for as long as it's
+   * hidden would wait (memory) and land in one frame when it's shown again.
+   */
+  private at(t: number, run: () => void) {
+    if (document.hidden) run();
+    else this.events.push({ t, run });
   }
 
   /** Start over (their clock started again), keeping what's shown. */
