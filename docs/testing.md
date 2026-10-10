@@ -15,10 +15,10 @@ How a change is verified (AGENTS.md, Verify), what each test covers, and how the
 | Command | What | Time |
 |---|---|---|
 | `npm test` | Paint save files (round trip; broken, older, newer, oversized ones refused) and protocol messages, in Node. | <1 s |
-| `npm run smoke` | The level players get loads and plays a few frames with F3 open. Fails on page errors and console errors (shader errors among them). | ~10 s |
-| `npm run test:game` | Game behavior, one line per check (`scripts/game.test.mjs`): the menu's SAVE / LOAD PAINT, saves through level edits, spray at LOAD, sponge memory, prop ids, paint pages and their draw calls, stairs, city overrides and detail, tool sizes, ladders, session rules, the avatar, the ghost (a remote player over a pretend network), F3 rows and tooltips, hotbar readback, sign sizes, hints (fonts, edges, new lines, undo, X) and level paint (P saves it, a fresh game loads it, FRESH LEVEL hosts it). Its pages don't draw; each check starts with the same seeded paint randomness, on fixed steps (`steps`), and stops after 30 s instead of hanging. | ~30 s |
-| `npm run test:server` | The server against games speaking the protocol: HOST and JOIN, what's turned away, relaying, SAVE, reconnects, limits per address. Then level paint, in Node: it fits the level it was made on and not once a painted prop is gone; every level with paint is marked so and its paint still fits it. | ~8 s |
-| `node scripts/multiplayer.test.mjs` | Two players in two pages: HOST and JOIN from the menu, paint and the stepladder reaching the other, a reload, a reconnect, LEAVE, a server restart, the server down. `npm run test:mp` builds the server first. | ~25 s |
+| `npm run smoke` | The level players get loads and plays a few frames with F3 open. Fails on page errors and console errors (shader errors among them), and when turning on volumetrics or rain compiles a shader (they're compiled as the level loads). | ~10 s |
+| `npm run test:game` | Game behavior, one line per check (`scripts/game.test.mjs`): the menu's SAVE / LOAD PAINT and COPY NETWORK LOG with no clipboard, saves through level edits, spray at LOAD, sponge memory, prop ids, paint pages and their draw calls, paint after a lost and restored WebGL context, stairs, city overrides and detail, tool sizes, ladders, session rules, the avatar (and its bone texture going with a player who leaves), the ghost (a remote player over a pretend network), F3 rows and tooltips, hotbar readback, sign sizes, hints (fonts, edges, new lines, undo, X) and level paint (P saves it, a fresh game loads it, FRESH LEVEL hosts it). Its pages don't draw; each check starts with the same seeded paint randomness, on fixed steps (`steps`), and stops after 30 s instead of hanging. | ~30 s |
+| `npm run test:server` | The server against games speaking the protocol: HOST and JOIN, what's turned away, relaying, SAVE, reconnects, limits per address. In the process, a paint file that fails: the next join gets a new one. Then level paint, in Node: it fits the level it was made on and not once a painted prop is gone; every level with paint is marked so and its paint still fits it. | ~8 s |
+| `node scripts/multiplayer.test.mjs` | Two players in two pages: HOST and JOIN from the menu, paint and the stepladder reaching the other, a reload, paint while hidden (no frames), a reconnect, LEAVE, a server restart, the server down. `npm run test:mp` builds the server first. | ~25 s |
 | `npm run test:csp` | The game under the site's Content Security Policy (`vite.config.ts`). | ~6 s |
 | `npm run golden` | Paint at every PAINT DETAIL against `scripts/golden-paint.json`, op replay, saves, the server's paint (`docs/golden-paint.md`). | 25–55 s |
 
@@ -52,8 +52,4 @@ The headless tests always draw with SwiftShader, on the CPU: a frame at 1280×72
 
 ## Open
 
-| Problem | Suggested |
-|---|---|
-| On a bad link a remote player's correction glides at up to ~3× walking speed (16 m/s at 60 fps, over 0.1–0.2 s). The test allows it: it checks for jumps (30–65 m/s unsmoothed). | A speed cap changes how other players look: judge it in F3 → Test → Ghost (net: hiccups 0.2, record a walk that stops, PLAY), then decide |
-| Player movement (walking, collisions, jumps, climbing, ladders) has no test | A fixed-step check per move |
-| Light baking and weather run on the wall clock (`baker.ts` budget, rain) | Screenshots aren't byte-comparable: compare pictures only after the bake finishes, rain off |
+What's left for the tests is in `docs/backlog.md` (Tests, Check by hand).

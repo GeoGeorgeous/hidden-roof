@@ -6,8 +6,9 @@ Context for the agent that deploys and runs the game on the VPS. Read it before 
 
 ## 1. Status *(changes)*
 
-- **Now:** `v1.0.0` is released (tag `v1.0.0` on `main`): the game and the multiplayer server (`server/`, `Dockerfile`), with `npm run check` passing. Nothing is deployed yet.
-- **First deploy:** the static files first and check them (section 7), then the server and the `/ws` handle. The game loads and plays single player while the server is down.
+- **Now:** `v1.1.0` is released and deployed, the game and the server (seen 2026-10-10: the live bundle is v1.1.0's player build, and `/ws` answers protocol 3).
+- **Next release (from `dev` after 1.1.0): deploy the server and the game together.** The protocol goes from 3 to 4, so a game of one version can't join a server of the other: deploy both at once (section 6, then the static files); live sessions end, and tabs still open on 1.1.0 are told to reload. The compose service (section 6) now asks for `mem_limit: 3g` with `HOST_MEMORY` and `SNAPSHOT_MEMORY`; on a host without the RAM, keep `mem_limit: 1536m` and leave both out (their defaults, 1024 and 1280 MB, fit it). The game also fetches a new file, `/levels/roof.rhhpaint` (the hints on the wall by the spawn): check it (section 7).
+- **First deploy (done for 1.1.0):** the static files first and check them (section 7), then the server and the `/ws` handle. The game loads and plays single player while the server is down.
 - **Repo:** public, `https://github.com/GeoGeorgeous/hidden-roof.git`. Clone it over HTTPS: reading needs no key, so the host holds no GitHub credentials. Deploy releases only: a `vX.Y.Z` tag, checked out by tag, never a branch tip. Branches and releases: `AGENTS.md`, Releases.
 - **Version:** the game shows its build's `git describe` in the pause menu (`src/version.ts`). Built without git (`node:24-slim` has none; `.dockerignore` drops `.git`), it shows `package.json`'s version, which matches the tag on a release commit.
 
@@ -23,7 +24,6 @@ Context for the agent that deploys and runs the game on the VPS. Read it before 
 
 - `npm run build` → `dist/` is the player build, single player and multiplayer: **deploy this one.** It leaves out the dev tools (build mode, the F3 panel, `window.game`: `__DEV_TOOLS__` in `vite.config.ts`, false only in production mode).
 - `npm run build:dev` → `dist-dev/` is the same with the dev tools. Never deploy it.
-- `v1.0.0` predates this: there the player build is `npm run build:mp` → `dist-mp/`, and `npm run build` includes the dev tools. Check `package.json` of the tag you deploy.
 - Building needs Node `^20.19 || >=22.12` (locally Node 24) and the devDependencies (`tsc`, `vite`): use `npm ci`, without `--omit=dev`. `dist/` and `dist-*/` are gitignored.
 
 ## 4. The host
@@ -118,6 +118,8 @@ The design is in `docs/multiplayer-audit.md` (sections 0, 4, 5, 6.4, 7, 8). The 
 - `curl -I https://roof.hidden.haus/` → 200, `cache-control: no-cache`.
 - `curl -I` on a file under `/assets/` → `immutable`. With `-H 'Accept-Encoding: gzip'` → `content-encoding` is set.
 - `curl -I https://roof.hidden.haus/levels/nope.json` → 404, not `index.html`.
-- In a browser: no 404s, `roof.json` and both fonts load, the console is clean, the game starts.
+- `curl -I https://roof.hidden.haus/levels/roof.rhhpaint` → 200 (the level's own paint; `roof.json` says `"paint": true`).
+- `curl https://roof.hidden.haus/ws` → `roof server · protocol <n>`, the same `PROTOCOL` as the game deployed (`src/net/protocol.ts`).
+- In a browser: no 404s, `roof.json`, `roof.rhhpaint` and both fonts load, the console is clean, the game starts with the hints on the wall in front of the spawn.
 - `scripts/smoke.mjs <url>` uses `window.game` and F3, so it only works against the dev server or `npm run build:dev` output, not the player build.
 - Once `/ws` exists: `docker compose ps roof` is healthy, and in two browser windows HOST shows a code that JOIN accepts.
