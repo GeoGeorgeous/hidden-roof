@@ -13,3 +13,5 @@ quotes and dashes.
 - permanent-marker.woff2: Permanent Marker, by Font Diner (Apache License 2.0,
   https://www.apache.org/licenses/LICENSE-2.0)
 - bangers.woff2: Bangers, by Vernon Adams (SIL Open Font License 1.1)
+- inter-bold.woff2: Inter, weight 700 (Bold), by Rasmus Andersson (SIL Open Font License
+  1.1); with arrows (←↑→↓) too, for signs

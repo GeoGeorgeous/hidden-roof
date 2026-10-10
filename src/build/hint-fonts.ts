@@ -10,6 +10,7 @@ import { FONT_FAMILIES } from '../render/ink/jp-font';
 const EXTRA: Record<Exclude<HintFont, 'mono'>, [family: string, file: string, weight: number]> = {
   marker: ['Permanent Marker', 'permanent-marker', 400],
   bangers: ['Bangers', 'bangers', 400],
+  inter: ['Inter', 'inter-bold', 700],
 };
 /** Mono is drawn bold, to read as paint. */
 const weight = (f: HintFont) => (f === 'mono' ? 700 : EXTRA[f][2]);

@@ -693,8 +693,8 @@ export const PICKUP = {
 /** Fonts a pickup's tag can use (pickups/labels.ts): the HUD's, the neon signs' Japanese gothic, the menu title's graffiti. */
 export const TAG_FONTS = ['mono', 'gothic', 'graffiti'] as const;
 export type TagFont = (typeof TAG_FONTS)[number];
-/** Fonts a hint can be painted in (build/hint-fonts.ts): the HUD's mono, a marker and a comic font. */
-export const HINT_FONTS = ['mono', 'marker', 'bangers'] as const;
+/** Fonts a hint can be painted in (build/hint-fonts.ts): the HUD's mono, a marker, a comic font and a bold grotesque for signage (floor numbers, arrows). */
+export const HINT_FONTS = ['mono', 'marker', 'bangers', 'inter'] as const;
 export type HintFont = (typeof HINT_FONTS)[number];
 
 /**
@@ -1152,6 +1152,7 @@ export const HINT = {
     mono: { overspray: 0, oversprayStrength: 0, softness: 0.3 },
     marker: { overspray: 0, oversprayStrength: 0, softness: 0.4 },
     bangers: { overspray: 0, oversprayStrength: 0, softness: 0.3 },
+    inter: { overspray: 0, oversprayStrength: 0, softness: 0.3 },
   } satisfies Record<HintFont, { overspray: number; oversprayStrength: number; softness: number }>,
   /** Image pixels per paint texel: hints are drawn finer, then averaged into texels. */
   supersample: 2,
