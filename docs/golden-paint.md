@@ -11,7 +11,7 @@ npm run golden -- --update  # rewrite the baseline (only when a change is meant 
 
 It starts its own dev server and browser (`scripts/test-browser.mjs`); see `docs/testing.md`.
 
-A run takes about 20 s here: the four details run side by side, a page each, and each page also replays its ops and loads its save; frames aren't capped at 60 Hz. The game runs on fixed steps, so none of that changes the paint. A level of only the 49 props around the test wall paints exactly the same texels and isn't faster, so the test keeps the demo (see `docs/testing.md`). Face images land in `shots/golden/` (not committed). Copies of the baseline images are in `docs/golden/`.
+A run takes about 25 s here (55 s while other agents test): the four details run side by side, a page each, and each page also replays its ops and loads its save; frames aren't capped at 60 Hz. The game runs on fixed steps, so none of that changes the paint. A level of only the 49 props around the test wall paints exactly the same texels and isn't faster, so the test keeps the demo (see `docs/testing.md`). Face images land in `shots/golden/` (not committed). Copies of the baseline images are in `docs/golden/`.
 
 ## What it does
 
