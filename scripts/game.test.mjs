@@ -34,6 +34,8 @@ async function ready(page) {
 }
 
 async function check(name, fn) {
+  // Spray and drips draw from seeded randomness, the same for every check whatever ran before it.
+  if (!page.isClosed()) await page.evaluate(() => window.game.seedPaintRandom(1));
   try {
     const problem = await fn();
     if (problem) throw new Error(problem);
