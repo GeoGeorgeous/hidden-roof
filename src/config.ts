@@ -1124,11 +1124,18 @@ export const BUILD = {
 export const HINT = {
   /** The font of new hints (T changes it, HINT_FONTS). */
   font: 'marker' as HintFont,
-  /** Letter size (the font's em) of new hints, its range and its step ([ ]), in meters. At PAINT DETAIL LOW (4 cm texels) letters under about 0.5 m blur. */
+  /**
+   * Letter size (the font's em) of new hints, its range and its step ([ ]),
+   * in meters: from `sizeStepBigFrom` up it steps by `sizeStepBig`. A digit is
+   * about 0.7 em tall, so 6 m makes a floor number about a storey high. At
+   * PAINT DETAIL LOW (4 cm texels) letters under about 0.5 m blur.
+   */
   size: 0.4,
   minSize: 0.1,
-  maxSize: 1.2,
+  maxSize: 6,
   sizeStep: 0.05,
+  sizeStepBig: 0.25,
+  sizeStepBigFrom: 1,
   /** The color of new hints (Tab changes it). */
   color: 'white' as PaintColor,
   /** How far away hints are painted, and faces wiped (m). */

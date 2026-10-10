@@ -9,6 +9,10 @@ import { hintCss } from './hint-fonts';
 // clear, with the font's overspray around the letters (HINT.looks); only
 // alpha is kept.
 
+/** The largest canvas a hint is drawn on: its side and its area (px), within every browser's. */
+const MAX_SIDE = 16384;
+const MAX_AREA = 1 << 25;
+
 interface Piece {
   key: boolean;
   text: string;
@@ -34,7 +38,7 @@ function parseLine(text: string): Piece[] {
   return out.filter((p) => p.text);
 }
 
-/** The hint in font `f`, `size` m per em, at `perMeter` pixels per meter; null when there's nothing to draw. */
+/** The hint in font `f`, `size` m per em, at `perMeter` pixels per meter; null when there's nothing to draw. Throws, with a message for the status line, when it's too big to draw. */
 export function hintImage(text: string, f: HintFont, size: number, perMeter: number): PaintImage | null {
   const lines = parseHint(text);
   if (!lines.some((l) => l.length)) return null;
@@ -62,6 +66,8 @@ export function hintImage(text: string, f: HintFont, size: number, perMeter: num
   const margin = Math.ceil(2 * look.overspray * em + line);
   const w = Math.ceil(Math.max(...widths.map((l) => l.reduce((a, b) => a + b, 0)))) + 2 * margin;
   const h = Math.ceil(up + down + (lines.length - 1) * pitch) + 2 * margin;
+  // Browsers draw nothing on a canvas past these (or lose it).
+  if (w > MAX_SIDE || h > MAX_SIDE || w * h > MAX_AREA) throw new Error('HINT TOO BIG: SHORTER LINES, OR [ FOR SMALLER');
   // Resizing the canvas resets its state.
   ctx.canvas.width = w;
   ctx.canvas.height = h;

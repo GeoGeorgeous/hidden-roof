@@ -36,6 +36,8 @@ interface Aim {
 }
 
 const UP = new THREE.Vector3(0, 1, 0);
+/** The preview texture's largest side (px): every GPU takes 2048. */
+const PREVIEW_SIDE = 2048;
 /** How far the preview floats off the wall, so it isn't lost in the face (m). */
 const LIFT = 0.01;
 
@@ -100,7 +102,8 @@ export class PaintEditor {
     if (input.wasPressed('Enter') || input.wasPressed('NumpadEnter')) this.editText();
     const dir = (input.wasTyped('BracketRight') ? 1 : 0) - (input.wasTyped('BracketLeft') ? 1 : 0);
     if (dir) {
-      this.size = Math.min(HINT.maxSize, Math.max(HINT.minSize, +(this.size + dir * HINT.sizeStep).toFixed(3)));
+      const big = dir > 0 ? this.size >= HINT.sizeStepBigFrom : this.size > HINT.sizeStepBigFrom;
+      this.size = Math.min(HINT.maxSize, Math.max(HINT.minSize, +(this.size + dir * (big ? HINT.sizeStepBig : HINT.sizeStep)).toFixed(3)));
       this.say(`HINT SIZE ${this.size.toFixed(2)} M`);
     }
     if (input.wasPressed('KeyT')) {
@@ -117,8 +120,9 @@ export class PaintEditor {
     if (!this.text) return this.editText();
     if (!hintFontLoaded(this.font)) return this.say('FONT STILL LOADING');
     const aim = this.aim(camera);
-    const img = hintImage(this.text, this.font, this.size, PAINT.texelsPerMeter * HINT.supersample);
-    if (!aim || !img) return this.say('AIM AT A PAINTABLE SURFACE');
+    if (!aim) return this.say('AIM AT A PAINTABLE SURFACE');
+    const img = this.draw();
+    if (typeof img === 'string') return this.say(img);
     const was: PaintPatch[] = [];
     if (!this.paint.imprint(aim.surface, aim.at, img, aim.right, aim.up, rgbOf(color), (s, box) => was.push(this.paint.patch(s, box)))) return this.say('HINTS GO ON FLAT FACES');
     this.remember(was);
@@ -181,6 +185,15 @@ export class PaintEditor {
     this.say(`HINT: ${this.text || 'NONE'} — CLICK TO RESUME`);
   }
 
+  /** The hint as an image to paint, or why it can't be one. */
+  private draw(): PaintImage | string {
+    try {
+      return hintImage(this.text, this.font, this.size, PAINT.texelsPerMeter * HINT.supersample) ?? 'NOTHING TO PAINT';
+    } catch (e) {
+      return (e as Error).message;
+    }
+  }
+
   /** The paint surface under the crosshair, within reach. */
   private aim(camera: THREE.Camera): Aim | null {
     camera.getWorldDirection(this.raycaster.ray.direction);
@@ -203,7 +216,8 @@ export class PaintEditor {
     const key = `${this.text}|${this.font}|${JSON.stringify(HINT.looks[this.font])}|${this.size}|${color}|${PAINT.texelsPerMeter}`;
     if (key !== this.previewKey) {
       this.previewKey = key;
-      this.image = this.text ? hintImage(this.text, this.font, this.size, PAINT.texelsPerMeter * HINT.supersample) : null;
+      const img = this.draw();
+      this.image = typeof img === 'string' ? null : img;
       this.preview.material.map?.dispose();
       this.preview.material.map = this.image && previewTexture(this.image, color);
       this.preview.material.needsUpdate = true;
@@ -217,13 +231,16 @@ export class PaintEditor {
   }
 }
 
-/** The hint in its color, as a texture for the preview: in sharp pixels with its edge, as the paint shows. */
+/** The hint in its color, as a texture for the preview: in sharp pixels with its edge, as the paint shows; every `k`th pixel of a big one, so any GPU takes it. */
 function previewTexture(img: PaintImage, color: PaintColor) {
   const [r, g, b] = rgbOf(color).map((c) => Math.round(c * 255));
-  const data = new Uint8Array(img.w * img.h * 4);
+  const k = Math.ceil(Math.max(img.w, img.h) / PREVIEW_SIDE);
+  const w = Math.ceil(img.w / k);
+  const h = Math.ceil(img.h / k);
+  const data = new Uint8Array(w * h * 4);
   // Texture rows go bottom up.
-  for (let y = 0; y < img.h; y++) for (let x = 0; x < img.w; x++) data.set([r, g, b, 255 * edge(img.alpha[y * img.w + x] / 255, img.softness)], ((img.h - 1 - y) * img.w + x) * 4);
-  const t = new THREE.DataTexture(data, img.w, img.h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) data.set([r, g, b, 255 * edge(img.alpha[y * k * img.w + x * k] / 255, img.softness)], ((h - 1 - y) * w + x) * 4);
+  const t = new THREE.DataTexture(data, w, h);
   t.colorSpace = THREE.SRGBColorSpace;
   t.magFilter = t.minFilter = THREE.NearestFilter;
   t.needsUpdate = true;

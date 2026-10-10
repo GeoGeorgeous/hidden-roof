@@ -408,6 +408,35 @@ await check('hints: small hints up and down a wall, each next to faces it doesn\
   return r.stamped === 7 && r.lit > 0 && r.undone === 0 && !r.errors.length ? null : JSON.stringify(r);
 });
 
+await check('hints: up to 6 m letters (a floor number a storey high) paint and preview; a line too long to draw says so', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const cam = g.scene.children.find((o) => o.isPerspectiveCamera);
+    const editor = g.build.paintEdit;
+    g.paint.clear();
+    g.player.yaw = -Math.PI / 2;
+    g.player.pitch = 0.1;
+    await window.steps((f) => f >= 2);
+    await editor.pickFont(editor.font);
+    editor.size = g.config.HINT.maxSize;
+    editor.text = '3';
+    const said = () => g.build.status;
+    editor.stamp('black', cam);
+    const out = { big: lit(), saidBig: said() };
+    editor.showPreview(editor.aim(cam), 'black');
+    out.preview = Math.max(editor.preview.material.map.image.width, editor.preview.material.map.image.height);
+    out.height = editor.image.height;
+    editor.text = 'Shake your can to release pressure, then paint the whole roof';
+    editor.stamp('black', cam);
+    out.saidLong = said();
+    undo();
+    out.undone = lit();
+    g.paint.clear();
+    return out;
+  });
+  return r.big > 0 && r.height > 5 && r.undone === 0 && r.preview <= 2048 && /TOO BIG/.test(r.saidLong) ? null : JSON.stringify(r);
+});
+
 await check('hints: <br> starts a new line; a hint of only <br> is nothing', async () => {
   const r = await page.evaluate(async () => {
     const url = performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/build/stencil-text.ts'));
