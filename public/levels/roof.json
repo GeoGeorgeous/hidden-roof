@@ -2,11 +2,11 @@
  "version": 4,
  "spawn": {
   "pos": [
-   -5.5,
+   -4.5,
    0,
-   -1
+   -4
   ],
-  "yaw": 16.926
+  "yaw": 39.265
  },
  "props": [
   {
@@ -720,39 +720,6 @@
     -3
    ],
    "rot": 1
-  },
-  {
-   "id": 91,
-   "type": "wall",
-   "variant": "window",
-   "pos": [
-    -7,
-    0,
-    -2
-   ],
-   "rot": 2
-  },
-  {
-   "id": 92,
-   "type": "wall",
-   "variant": "door",
-   "pos": [
-    -5,
-    0,
-    -2
-   ],
-   "rot": 2
-  },
-  {
-   "id": 93,
-   "type": "wall",
-   "variant": "window",
-   "pos": [
-    -4,
-    0,
-    -5
-   ],
-   "rot": 3
   },
   {
    "id": 94,
@@ -13996,6 +13963,52 @@
     -20
    ],
    "rot": 0
+  },
+  {
+   "id": 2539,
+   "type": "wall",
+   "variant": "open",
+   "pos": [
+    -5,
+    0,
+    -2
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2540,
+   "type": "wall",
+   "variant": "clear",
+   "pos": [
+    -7,
+    0,
+    -2
+   ],
+   "rot": 2
+  },
+  {
+   "id": 2542,
+   "type": "wall",
+   "variant": "clear",
+   "pos": [
+    -4,
+    0,
+    -5
+   ],
+   "rot": 3
+  },
+  {
+   "id": 2547,
+   "type": "roof_light",
+   "variant": "flood",
+   "pos": [
+    -4.1500000953674325,
+    3,
+    -4
+   ],
+   "rot": 1,
+   "mirror": true,
+   "adjust": 18.53
   }
  ],
  "pickups": [
@@ -14151,5 +14164,6 @@
     -34
    ]
   }
- ]
+ ],
+ "paint": true
 }
