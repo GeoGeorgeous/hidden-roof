@@ -77,6 +77,21 @@ export class PostPipeline {
     this.grade.uniforms.uTexel.value.set(1 / s.x, 1 / s.y);
   }
 
+  /**
+   * Compile ahead, as they're drawn, the shaders of what isn't drawn yet: what
+   * a setting turns on (rain, volumetrics) and what's out of view. Compiled
+   * when first drawn instead, each stalls the game (on Windows, up to a second
+   * or more). Where the browser compiles in parallel (KHR_parallel_shader_compile)
+   * this costs nothing now; elsewhere it's done while the level loads.
+   */
+  warm(scene: THREE.Scene, camera: THREE.PerspectiveCamera) {
+    const r = this.renderer;
+    r.setRenderTarget(this.target);
+    r.compile(scene, camera);
+    r.setRenderTarget(null);
+    this.volumetrics.warm(r, camera);
+  }
+
   /** `allowVolumetrics` is false in build mode (daylight). */
   render(scene: THREE.Scene, viewScene: THREE.Scene, camera: THREE.PerspectiveCamera, lighting: Lighting, allowVolumetrics = true) {
     const r = this.renderer;
