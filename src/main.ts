@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import * as config from './config';
-import { ATMOS, AUDIO, COLORS, HUD, INK, LEVELS, PLAYER, PRESSURE, RENDER, SMOKE, THUNDER, VIEWMODEL, VOLUMETRICS } from './config';
+import { ATMOS, AUDIO, COLORS, HUD, INK, LEVELS, PAUSE_MENU, PLAYER, PRESSURE, RENDER, SMOKE, THUNDER, VIEWMODEL, VOLUMETRICS } from './config';
 import { syncSharedUniforms } from './materials';
 import { syncTrackUniforms } from './render/cctv-track';
 import { Lighting } from './render/lighting';
@@ -260,9 +260,15 @@ function frame(time: number) {
     audio.footstep();
   }
 
-  player.eye(eye);
+  // Behind the pause menu (not the title screen) a fixed view of the city: no hands, no tools.
+  const m = PAUSE_MENU;
+  const view = m.view && hud.sheetUp && hud.started && !building;
+  viewScene.visible = !view;
+  if (view) eye.set(m.viewX, m.viewY, m.viewZ);
+  else player.eye(eye);
   camera.position.copy(eye);
-  camera.rotation.set(player.pitch, player.yaw, 0, 'YXZ');
+  if (view) camera.rotation.set(m.viewPitch * THREE.MathUtils.DEG2RAD, m.viewYaw * THREE.MathUtils.DEG2RAD, 0, 'YXZ');
+  else camera.rotation.set(player.pitch, player.yaw, 0, 'YXZ');
   // FOV widens a little while sprinting.
   const fovTarget = RENDER.fov + (player.sprinting ? RENDER.sprintFovBoost : 0);
   fov += (fovTarget - fov) * (1 - Math.exp(-RENDER.sprintFovEase * dt));

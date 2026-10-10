@@ -294,6 +294,13 @@ export const PAUSE_MENU = {
   controls: true,
   /** Size of everything on the sheet (1 = as styled in style.css). */
   scale: 1.05,
+  /** The view behind the sheet (not the title screen): a fixed camera on the city instead of yours. Position (m), yaw and pitch (degrees, pitch < 0 looks down). */
+  view: true,
+  viewX: -24,
+  viewY: 9,
+  viewZ: -36,
+  viewYaw: -135,
+  viewPitch: -8,
 };
 
 /** What the HUD shows (hud.ts) and the hotbar's size (inventory/hotbar.ts), live in F3 → UI. */
