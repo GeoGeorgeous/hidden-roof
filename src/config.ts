@@ -153,7 +153,7 @@ export const DAYLIGHT: Partial<typeof ATMOS> = {
   cloudBase: 400,
   ambientSky: '#e4ecf5',
   ambientGround: '#7a7d82',
-  ambient: 1.7,
+  ambient: 1.25,
   moonColor: '#fff6e8',
   moon: 2.4,
   moonHeight: 55.9,
