@@ -150,10 +150,10 @@ function doorFrame(face: Mat) {
   return p;
 }
 
-/** Wall with a dark glass window. */
-const windowWall: Variant = {
-  id: 'window',
-  label: 'window',
+/** Wall with a window: dark glass, or clear glass you see through (both take paint). */
+const windowWall = (id: string, label: string, glass: Mat): Variant => ({
+  id,
+  label,
   build({ finish }) {
     const face = finishOf(finish, 'wall', M.plaster);
     const p = new Parts();
@@ -164,18 +164,19 @@ const windowWall: Variant = {
     p.box([w, 0, -T], [L, WALL_H, T], face, { paint: true });
     p.box([-w, 0, -T], [w, y0, T], face, { paint: true });
     p.box([-w, y1, -T], [w, WALL_H, T], face, { paint: true });
-    p.detail([-w, y0, -0.02], [w, y1, 0.02], M.glass);
+    if (glass.glass) p.box([-w, y0, -0.02], [w, y1, 0.02], glass, { paint: true });
+    else p.detail([-w, y0, -0.02], [w, y1, 0.02], glass);
     p.detail([-0.02, y0, -0.04], [0.02, y1, 0.04], M.steel);
     p.detail([-w - 0.05, y0 - 0.04, -T - 0.08], [w + 0.05, y0 + 0.03, T + 0.08], M.concrete); // sill (not coplanar with the wall)
     return p.list;
   },
-};
+});
 
 /** Building blocks: a full storey down to the street, or a half one. */
 export const building = withVariants({ type: 'building', label: 'Block', category: 'structure', place: 'cell', snap: 2, finishes: ['wall'] }, [fullBlock, halfBlock]);
 
-/** Walls: plain, with a ledge, a window or a door. */
-export const wall = withVariants({ type: 'wall', label: 'Wall', category: 'structure', place: 'edge', snap: 2, joint: 'wall', finishes: ['wall'] }, [plainWall, wallLedge, windowWall, door, doorOpen]);
+/** Walls: plain, with a ledge, a window (dark or clear) or a door. */
+export const wall = withVariants({ type: 'wall', label: 'Wall', category: 'structure', place: 'edge', snap: 2, joint: 'wall', finishes: ['wall'] }, [plainWall, wallLedge, windowWall('window', 'window', M.glass), windowWall('clear', 'clear window', M.clearGlass), door, doorOpen]);
 
 /** Plinth body (`mat`, or its wall finish) `w` x `d` m and `h` high, with an optional cap 4 cm over its edges. */
 function plinthBlock(w: number, d: number, h: number, mat: Mat, cap = 0): Variant['build'] {

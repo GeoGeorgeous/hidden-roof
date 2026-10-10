@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { againstRay } from '../surfaces';
 import { PLAYER, STEPLADDER_PLACE } from '../config';
 import { extentOf } from '../build/extent';
 import { floorBelow } from '../build/floor';
@@ -84,7 +85,7 @@ export class LadderTool {
     }
     const rot = (facing(hit.point, camera.position) + this.turn) % 4;
     const floorAt = (x: number, y: number, z: number) => floorBelow(this.level.root, x, y, z, 6, this.isPlaced);
-    const pl = place(this.def, { point: hit.point, normal: axisNormal(hit.face!.normal) }, rot, floorAt, extentOf(this.def, rot));
+    const pl = place(this.def, { point: hit.point, normal: axisNormal(againstRay(hit.face!.normal.clone(), this.ray.ray.direction)) }, rot, floorAt, extentOf(this.def, rot));
     this.ghost.showProp(this.def, pl.pos, pl.rot, NO_STACK);
     this.valid = pl.ok && this.canStand(pl.pos, pl.rot, player);
     this.ghost.setValid(this.valid);

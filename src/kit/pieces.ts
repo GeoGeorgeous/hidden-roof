@@ -16,6 +16,8 @@ export interface Mat {
   emissive?: number;
   /** Alpha-tested base texture (chain-link). Such pieces don't stop paint. */
   alpha?: number;
+  /** Clear glass: see-through (RENDER.glassOpacity) where it has no paint. */
+  glass?: boolean;
   /** Meters per base texture repeat. */
   tile?: number;
   /** Neon flicker seed (1+): emissive dips with neonFlicker() (render/flicker.ts). */
@@ -164,6 +166,7 @@ export const M = {
   wood: { tex: 'flat', tint: GRAY[2] },
   paper: { tex: 'flat', tint: '#d4d6d8' },
   glass: { tex: 'flat', tint: '#16181c' },
+  clearGlass: { tex: 'flat', tint: GRAY[0], glass: true },
   dark: { tex: 'flat', tint: '#121316' },
   cable: { tex: 'flat', tint: '#101114' },
   chain: { tex: 'chainlink', alpha: 0.5, tile: 0.4 },

@@ -3,7 +3,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { makeSurfaceMaterial, swingGeometry, tintGeometry, type SurfaceMaterial } from '../materials';
 import type { PaintSurface, PaintSystem } from '../painting';
 import type { Ladder } from '../player';
-import { addBox, addCylinder, boxSurface, cylinderSurface, SurfaceBuilder, type Axis, type BoxFace, type SurfaceGeometry } from '../surfaces';
+import { addBox, addCylinder, addPane, boxSurface, cylinderSurface, SurfaceBuilder, type Axis, type BoxFace, type SurfaceGeometry } from '../surfaces';
 import { M, type BoxPiece, type CylPiece, type Mat, type Piece, type Swing, type V3 } from '../kit/pieces';
 import { LIGHTS, NEON_COLORS, PAINT, RENDER, type LightKind, type NeonColor } from '../config';
 import { setHex } from '../hex-color';
@@ -148,12 +148,13 @@ function cylIsPaintable(p: CylPiece) {
   return Math.max(p.r, p.r2 ?? p.r) >= 0.3 && p.len >= 1;
 }
 
-export const matKey = (m: Mat) => `${m.tex}|${m.tile ?? ''}|${m.alpha ?? ''}`;
+export const matKey = (m: Mat) => `${m.tex}|${m.tile ?? ''}|${m.alpha ?? ''}|${m.glass ? 'glass' : ''}`;
 function material(m: Mat) {
-  return makeSurfaceMaterial({ tex: m.tex, tileMeters: m.tile, alphaTest: m.alpha });
+  return makeSurfaceMaterial({ tex: m.tex, tileMeters: m.tile, alphaTest: m.alpha, glass: m.glass });
 }
-/** What paint surfaces' own meshes carry: they're never drawn (level/batches.ts), only hit by rays (front faces). */
+/** What paint surfaces' own meshes carry: they're never drawn (level/batches.ts), only hit by rays (front faces; glass panes both). */
 const PROXY = new THREE.MeshBasicMaterial();
+const PANE_PROXY = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
 
 /** The level tile (RENDER.batchTile m square columns) a box's center is in: batches merge per tile, and paint pages are shared per tile. */
 export function tileKey(bounds: THREE.Box3) {
@@ -256,7 +257,8 @@ export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint =
       const box = new THREE.Box3().setFromPoints([at(p.min), at(p.max)]);
       const paint = allowPaint && !p.swing && boxIsPaintable(p);
       for (const [mat, skip] of boxParts(p, box, r)) {
-        if (paint) {
+        if (paint && mat.glass) addPane(painter(mat), box.min, box.max);
+        else if (paint) {
           const covered = cover ? BOX_FACES.filter((f) => !skip.includes(f) && cover.covered(box, f)) : [];
           if (covered.length) decor(mat, boxSurface(box.min, box.max, BOX_FACES.filter((f) => !covered.includes(f)), false, mat.letters).geometry);
           if (skip.length + covered.length < 6) addBox(painter(mat), box.min, box.max, [...skip, ...covered]);
@@ -336,7 +338,7 @@ export function buildProp(id: number, owner: string, pieces: Piece[], pos: V3, r
     return mesh;
   };
   for (const { geo, mat } of ex.paint) {
-    const mesh = add(swingGeometry(geo.geometry), PROXY);
+    const mesh = add(swingGeometry(geo.geometry), mat.glass ? PANE_PROXY : PROXY);
     mesh.visible = false; // drawn merged with its tile's surfaces (level/batches.ts)
     mesh.castShadow = false;
     mesh.userData.mat = mat;

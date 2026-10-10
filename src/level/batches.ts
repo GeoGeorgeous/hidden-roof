@@ -133,8 +133,8 @@ export class DecorBatches {
         groups.get(k)!.geos.push(proxy.geometry);
       }
       for (const s of b.paint) {
-        paintGeos.push(positionsOnly(s.mesh.geometry));
         const mat = s.mesh.userData.mat as Mat;
+        if (!mat.glass) paintGeos.push(positionsOnly(s.mesh.geometry)); // glass lets the moon through
         const k = `${matKey(mat)}|${s.slot!.page.index}|${s.light?.page.index}`;
         if (!surfaces.has(k)) surfaces.set(k, { mat, list: [] });
         surfaces.get(k)!.list.push(s);
@@ -217,7 +217,7 @@ function surfaceMaterial(mat: Mat, paint: PaintPage, light: LightPage | undefine
   const k = matKey(mat);
   let m = byMat.get(k);
   if (!m) {
-    m = makeSurfaceMaterial({ tex: mat.tex, tileMeters: mat.tile, alphaTest: mat.alpha });
+    m = makeSurfaceMaterial({ tex: mat.tex, tileMeters: mat.tile, alphaTest: mat.alpha, glass: mat.glass });
     m.setPaintable(true);
     m.bindPages(paint.uniform, light?.uniforms ?? null);
     byMat.set(k, m);

@@ -105,6 +105,7 @@ export function renderSections(): Section[] {
         r('grain', ['INK', 'grain'], 0, 3, 0.05),
         r('grime', ['INK', 'grime'], 0, 2, 0.05),
         r('light tint', ['INK', 'tint'], 0, 1, 0.05),
+        r('clear glass', ['RENDER', 'glassOpacity'], 0, 1, 0.05),
         { kind: 'heading', label: 'VOID' },
         r('top', ['INK', 'voidTop'], -100, 40, 1),
         r('black at', ['INK', 'voidBottom'], -150, 20, 1),

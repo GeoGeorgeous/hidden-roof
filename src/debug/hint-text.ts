@@ -254,6 +254,7 @@ export const HINTS: Record<string, string> = {
   'INK.hatchPx': 'Hatch line spacing on screen, in pixels (the same at any distance).',
   'INK.hatchWidth': 'Hatch line thickness, as a fraction of the spacing.',
   'INK.hatchOpacity': 'How dark the hatch lines are: 1 = full ink, lower = gray lines. Solid ink stays solid. Below 1 the drawing gets gray tones, which a pen drawing never has.',
+  'RENDER.glassOpacity': 'How dark clear windows are where they have no paint: 0 = see-through, 1 = solid. You look through both faces of the pane, so what is behind darkens about twice this. Paint on glass is always solid.',
   'INK.grime': 'Grime on surfaces: rain streaks, stains, buffed-over patches, cracks, panel and floor seams (0 = clean).',
   'INK.voidTop': 'Height (m) below which the city sinks into black.',
   'INK.voidBottom': 'Height (m) where the void is fully black.',
