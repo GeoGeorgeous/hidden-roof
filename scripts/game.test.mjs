@@ -307,6 +307,8 @@ const paintHint = (page) =>
     // A frame or two for the camera to turn.
     await window.steps((f) => f >= 2);
     const editor = g.build.paintEdit;
+    // Its font, loaded (it loads the first time it's picked).
+    await editor.pickFont(editor.font);
     editor.text = '<k>RMB</k> Shake your can to release pressure';
     editor.size = 0.3;
     editor.stamp('black', g.scene.children.find((o) => o.isPerspectiveCamera));
@@ -383,6 +385,7 @@ await check('hints: small hints up and down a wall, each next to faces it doesn\
     const editor = g.build.paintEdit;
     g.paint.clear();
     g.player.yaw = -Math.PI / 2 + 0.3;
+    await editor.pickFont(editor.font);
     editor.text = '<k>RMB</k> Shake your can';
     editor.size = 0.2;
     const out = { stamped: 0, errors: [] };
@@ -421,7 +424,7 @@ await check('hints: <br> starts a new line; a hint of only <br> is nothing', asy
 await check('hints: every font loads from its file and paints; softness 0 paints whole texels only, softness 1 a soft edge', async () => {
   const fonts = await page.evaluate(() => window.game.config.HINT_FONTS);
   const r = {};
-  for (const [font, softness] of [...fonts.map((f) => [f, null]), ['gothic', 0], ['gothic', 1]]) {
+  for (const [font, softness] of [...fonts.map((f) => [f, null]), ['marker', 0], ['marker', 1]]) {
     await page.evaluate(async ([font, softness]) => {
       const g = window.game;
       g.paint.clear();
@@ -439,17 +442,17 @@ await check('hints: every font loads from its file and paints; softness 0 paints
       return { lit, soft };
     }, font);
   }
-  // The extra fonts (not the pickup tags' three) came from their files, not a fallback.
+  // The fonts from files (all but the system's mono) came from them, not a fallback.
   const missing = await page.evaluate((fonts) => {
     const loaded = new Set([...document.fonts].filter((f) => f.status === 'loaded').map((f) => f.family.replace(/["']/g, '')));
     const url = performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/build/hint-fonts.ts'));
-    return import(url).then(({ hintCss }) => fonts.slice(3).filter((f) => !loaded.has(hintCss(f, 32).match(/'([^']+)'/)[1])));
+    return import(url).then(({ hintCss }) => fonts.filter((f) => f !== 'mono').filter((f) => !loaded.has(hintCss(f, 32).match(/'([^']+)'/)[1])));
   }, fonts);
   await page.evaluate(() => {
     window.game.paint.clear();
     return window.game.build.paintEdit.pickFont(window.game.config.HINT.font);
   });
-  const ok = Object.values(r).every((v) => v.lit > 0) && r['gothic 0'].soft === 0 && r['gothic 1'].soft > r['gothic 1'].lit / 10 && !missing.length;
+  const ok = Object.values(r).every((v) => v.lit > 0) && r['marker 0'].soft === 0 && r['marker 1'].soft > r['marker 1'].lit / 10 && !missing.length;
   return ok ? null : JSON.stringify({ ...r, missing });
 });
 

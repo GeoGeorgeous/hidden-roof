@@ -693,8 +693,8 @@ export const PICKUP = {
 /** Fonts a pickup's tag can use (pickups/labels.ts): the HUD's, the neon signs' Japanese gothic, the menu title's graffiti. */
 export const TAG_FONTS = ['mono', 'gothic', 'graffiti'] as const;
 export type TagFont = (typeof TAG_FONTS)[number];
-/** Fonts a hint can be painted in (build/hint-fonts.ts): the tags' three, then more that only build mode loads. */
-export const HINT_FONTS = [...TAG_FONTS, 'spraypaint', 'wetpaint', 'marker', 'blackops', 'stencil', 'bangers', 'dela', 'reggae', 'potta', 'yusei'] as const;
+/** Fonts a hint can be painted in (build/hint-fonts.ts): the HUD's mono, a marker and a comic font. */
+export const HINT_FONTS = ['mono', 'marker', 'bangers'] as const;
 export type HintFont = (typeof HINT_FONTS)[number];
 
 /**
@@ -1123,7 +1123,7 @@ export const BUILD = {
  */
 export const HINT = {
   /** The font of new hints (T changes it, HINT_FONTS). */
-  font: 'graffiti' as HintFont,
+  font: 'marker' as HintFont,
   /** Letter size (the font's em) of new hints, its range and its step ([ ]), in meters. At PAINT DETAIL LOW (4 cm texels) letters under about 0.5 m blur. */
   size: 0.4,
   minSize: 0.1,
@@ -1150,18 +1150,8 @@ export const HINT = {
    */
   looks: {
     mono: { overspray: 0, oversprayStrength: 0, softness: 0.3 },
-    gothic: { overspray: 0, oversprayStrength: 0, softness: 0.3 },
-    graffiti: { overspray: 0.08, oversprayStrength: 0.45, softness: 0.5 },
-    spraypaint: { overspray: 0, oversprayStrength: 0, softness: 0.5 },
-    wetpaint: { overspray: 0, oversprayStrength: 0, softness: 0.5 },
     marker: { overspray: 0, oversprayStrength: 0, softness: 0.4 },
-    blackops: { overspray: 0, oversprayStrength: 0, softness: 0.3 },
-    stencil: { overspray: 0, oversprayStrength: 0, softness: 0.3 },
     bangers: { overspray: 0, oversprayStrength: 0, softness: 0.3 },
-    dela: { overspray: 0, oversprayStrength: 0, softness: 0.3 },
-    reggae: { overspray: 0, oversprayStrength: 0, softness: 0.3 },
-    potta: { overspray: 0, oversprayStrength: 0, softness: 0.4 },
-    yusei: { overspray: 0, oversprayStrength: 0, softness: 0.4 },
   } satisfies Record<HintFont, { overspray: number; oversprayStrength: number; softness: number }>,
   /** Image pixels per paint texel: hints are drawn finer, then averaged into texels. */
   supersample: 2,

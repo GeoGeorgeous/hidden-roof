@@ -1,34 +1,24 @@
-import { TAG_FONTS, type HintFont, type TagFont } from '../config';
-import { FONT_FAMILIES, jpFontReady } from '../render/ink/jp-font';
+import type { HintFont } from '../config';
+import { FONT_FAMILIES } from '../render/ink/jp-font';
 
-// The fonts hints are painted in (T in build mode, HINT_FONTS): the pickup
-// tags' three (jp-font.ts), and more from public/fonts (README.txt: who made
-// each and its license), each loaded the first time it's picked. Only build
-// mode loads them: hints reach players as paint.
+// The fonts hints are painted in (T in build mode, HINT_FONTS): the HUD's
+// mono (jp-font.ts), and more from public/fonts (README.txt: who made each and
+// its license), each loaded the first time it's picked. Only build mode loads
+// them: hints reach players as paint.
 
-/** The extra fonts: CSS family, and file in public/fonts. */
-const EXTRA: Record<Exclude<HintFont, TagFont>, [family: string, file: string]> = {
-  spraypaint: ['Rubik Spray Paint', 'rubik-spray-paint'],
-  wetpaint: ['Rubik Wet Paint', 'rubik-wet-paint'],
-  marker: ['Permanent Marker', 'permanent-marker'],
-  blackops: ['Black Ops One', 'black-ops-one'],
-  stencil: ['Saira Stencil One', 'saira-stencil-one'],
-  bangers: ['Bangers', 'bangers'],
-  dela: ['Dela Gothic One', 'dela-gothic-one'],
-  reggae: ['Reggae One', 'reggae-one'],
-  potta: ['Potta One', 'potta-one'],
-  yusei: ['Yusei Magic', 'yusei-magic'],
+/** The fonts from files: CSS family, file in public/fonts, and the weight it's in. */
+const EXTRA: Record<Exclude<HintFont, 'mono'>, [family: string, file: string, weight: number]> = {
+  marker: ['Permanent Marker', 'permanent-marker', 400],
+  bangers: ['Bangers', 'bangers', 400],
 };
-/** Weights: the gothic is the neon signs' black, mono is bold to read as paint; the rest come in one. */
-const WEIGHT: Partial<Record<HintFont, number>> = { mono: 700, gothic: 900 };
-
-const isTag = (f: HintFont): f is TagFont => (TAG_FONTS as readonly string[]).includes(f);
+/** Mono is drawn bold, to read as paint. */
+const weight = (f: HintFont) => (f === 'mono' ? 700 : EXTRA[f][2]);
 
 /** Font `f` at `px` pixels, for a canvas. */
-export const hintCss = (f: HintFont, px: number) => `${WEIGHT[f] ?? 400} ${px}px ${isTag(f) ? FONT_FAMILIES[f] : `'${EXTRA[f][0]}'`}`;
+export const hintCss = (f: HintFont, px: number) => `${weight(f)} ${px}px ${f === 'mono' ? FONT_FAMILIES.mono : `'${EXTRA[f][0]}'`}`;
 
 /** Its name, for the status line. */
-export const hintFontName = (f: HintFont) => (isTag(f) ? f : EXTRA[f][0]).toUpperCase();
+export const hintFontName = (f: HintFont) => (f === 'mono' ? f : EXTRA[f][0]).toUpperCase();
 
 const loading = new Map<HintFont, Promise<void>>();
 const loaded = new Set<HintFont>();
@@ -37,10 +27,10 @@ const loaded = new Set<HintFont>();
 export function hintFontReady(f: HintFont): Promise<void> {
   let p = loading.get(f);
   if (!p) {
+    // Mono is the system's: nothing to load.
     const load =
-      f === 'gothic' ? jpFontReady()
-      : isTag(f) ? document.fonts.load(hintCss(f, 32))
-      : new FontFace(EXTRA[f][0], `url(${import.meta.env.BASE_URL}fonts/${EXTRA[f][1]}.woff2)`).load().then((face) => void document.fonts.add(face));
+      f === 'mono' ? undefined
+      : new FontFace(EXTRA[f][0], `url(${import.meta.env.BASE_URL}fonts/${EXTRA[f][1]}.woff2)`, { weight: `${EXTRA[f][2]}` }).load().then((face) => void document.fonts.add(face));
     p = Promise.resolve(load)
       .catch((e) => console.warn(`hint font ${f}: ${(e as Error).message}`))
       .then(() => void loaded.add(f));
