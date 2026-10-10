@@ -52,8 +52,4 @@ The headless tests always draw with SwiftShader, on the CPU: a frame at 1280×72
 
 ## Open
 
-| Problem | Suggested |
-|---|---|
-| On a bad link a remote player's correction glides at up to ~3× walking speed (16 m/s at 60 fps, over 0.1–0.2 s). The test allows it: it checks for jumps (30–65 m/s unsmoothed). | A speed cap changes how other players look: judge it in F3 → Test → Ghost (net: hiccups 0.2, record a walk that stops, PLAY), then decide |
-| Player movement (walking, collisions, jumps, climbing, ladders) has no test | A fixed-step check per move |
-| Light baking and weather run on the wall clock (`baker.ts` budget, rain) | Screenshots aren't byte-comparable: compare pictures only after the bake finishes, rain off |
+What's left for the tests is in `docs/backlog.md` (Tests, Check by hand).

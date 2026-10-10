@@ -871,7 +871,7 @@ Phases 0–3 are done on `feat/multiplayer`: every step in section 7 through pha
 - The avatar's in-air pose waits 0.18 s (or a jump up): stepping down a stair no longer flashes the jump pose.
 - A ghost PLAY pressed during a loop restart no longer runs two loops.
 
-**Carried into phase 4 (not bugs today; they need the server or the menu):**
+**Carried into phase 4 (not bugs today; they need the server or the menu).** Done since, except 1, 7 and 8, now in `docs/backlog.md` (Known, by design), where anything still open is tracked:
 
 | # | Item | Why it matters | Plan |
 |---|---|---|---|

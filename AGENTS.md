@@ -18,6 +18,7 @@ Hidden roof: a three.js graffiti game. The world is ink on paper and the only co
 ## Codebase
 
 - Tunable numbers go in `src/config.ts`, not inline.
+- Notes for later (bugs, things to check, performance, ideas) go in `docs/backlog.md`, the one list; delete an item once it's done.
 - Removing code beats adding it. A cleanup keeps behavior identical: `npm run check` passes before and after.
 - Before writing new logic, look for an existing helper and reuse or extend it.
 - Keep source files under ~400 lines (`config.ts` and CSS excepted). Split by responsibility before a file gets there, not after.
