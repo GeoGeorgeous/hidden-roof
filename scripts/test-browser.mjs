@@ -33,7 +33,8 @@ export async function openTestBrowser(url, { uncapped = false, level = 'demo', g
   if (level) url += `?level=${level}`;
   const real = gpu && Boolean(process.env.DISPLAY || process.env.WAYLAND_DISPLAY);
   const libs = [`${os.homedir()}/.local/pwlibs/usr/lib/x86_64-linux-gnu`, ...(real ? [WSL_GPU] : [])].filter((d) => fs.existsSync(d));
-  const env = { ...process.env, LD_LIBRARY_PATH: [...libs, process.env.LD_LIBRARY_PATH].filter(Boolean).join(':') };
+  const path = [...libs, process.env.LD_LIBRARY_PATH].filter(Boolean).join(':');
+  const env = { ...process.env, ...(path && { LD_LIBRARY_PATH: path }) };
   if (real && fs.existsSync(WSL_GPU)) Object.assign(env, { GALLIUM_DRIVER: 'd3d12', MESA_D3D12_DEFAULT_ADAPTER_NAME: process.env.GPU ?? 'NVIDIA' });
   const args = real
     ? ['--use-gl=angle', '--use-angle=gl', '--ignore-gpu-blocklist', '--enable-gpu', '--window-position=-3000,0']
@@ -75,6 +76,25 @@ function keepFramesComing() {
     document.head.append(style);
     document.body.append(Object.assign(document.createElement('i'), { className: 'keep-frames' }));
   });
+}
+
+/** Loads the game in `page` and plays (pointer lock faked, the HUD up); returns the page's errors and warnings as they come. */
+export async function startPlaying(page, url) {
+  const errors = [];
+  const warnings = [];
+  page.on('console', (m) => {
+    if (m.type() === 'error') errors.push(`error: ${m.text()}`);
+    else if (m.type() === 'warning') warnings.push(`warning: ${m.text()}`);
+  });
+  page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
+  await page.goto(url);
+  await gameReady(page, 3);
+  await page.evaluate(() => {
+    const g = window.game;
+    g.input.locked = true;
+    g.hud.setLocked(true);
+  });
+  return { errors, warnings };
 }
 
 /** A port nothing listens on, for a test's own game server. */

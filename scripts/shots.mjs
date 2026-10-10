@@ -4,26 +4,17 @@
 // shots/00-spawn.png, then one per STEPS step (JSON [{ js, wait, shot }]: `js`
 // runs in the page, where window.game is the game, then `wait` ms). Prints the
 // GPU and the HUD's performance lines. Without a display it falls back to
-// SwiftShader at 640x360, and says so: slow, and not what players see.
+// SwiftShader at 640x360; on a software renderer it says so: not what players see.
 // Usage: npm run shots [-- url]   (no url: starts its own server)
 import fs from 'node:fs';
-import { gameReady, openTestBrowser } from './test-browser.mjs';
+import { openTestBrowser, startPlaying } from './test-browser.mjs';
 
 const out = 'shots';
 fs.mkdirSync(out, { recursive: true });
 const steps = JSON.parse(process.env.STEPS ?? '[]');
 const test = await openTestBrowser(process.argv[2], { level: process.env.LEVEL ?? null, gpu: true });
 const page = await test.browser.newPage({ viewport: test.realGpu ? { width: 1280, height: 720 } : { width: 640, height: 360 } });
-const errors = [];
-page.on('console', (m) => m.type() === 'error' && errors.push(`error: ${m.text()}`));
-page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
-await page.goto(test.url);
-await gameReady(page, 3);
-await page.evaluate(() => {
-  const g = window.game;
-  g.input.locked = true;
-  g.hud.setLocked(true);
-});
+const { errors } = await startPlaying(page, test.url);
 await page.waitForFunction(() => window.game.baker.stats.pending === 0, null, { timeout: 120000 });
 // The HUD's numbers settle (written every 250 ms).
 await page.waitForTimeout(1000);
@@ -42,7 +33,8 @@ const gpu = await page.evaluate(() => {
   const gl = window.game.renderer.getContext();
   return gl.getParameter(gl.getExtension('WEBGL_debug_renderer_info').UNMASKED_RENDERER_WEBGL);
 });
-console.log(test.realGpu ? `real GPU: ${gpu}` : `NOT the real GPU (no display): ${gpu}`);
+// Named by what drew it: a display alone doesn't mean a GPU driver.
+console.log(/swiftshader|llvmpipe|software/i.test(gpu) ? `NOT a real GPU (software): ${gpu}` : `real GPU: ${gpu}`);
 console.log(await page.textContent('.perf'));
 if (errors.length) console.log(errors.join('\n'));
 await test.close();
