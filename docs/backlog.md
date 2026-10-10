@@ -26,7 +26,7 @@ The one place for what's left to do: bugs, things to check, performance, tests, 
 
 - **Player movement has no test:** walking, collisions (and the corner slip), jumps, climbing, ladders. A fixed-step check per move. **M.**
 - **Light baking and weather run on the wall clock** (`baker.ts` budget, rain): screenshots aren't byte-comparable. Compare pictures only after the bake finishes, rain off. **S.**
-- **Two timeouts under load** (2026-10-10, with another agent testing on the machine), each once and not again in later runs or on `dev`: the server test's HOST from a second address got no welcome within 2 s right after 25 links from one address (`server/server-test.ts`, `neighbor`); the multiplayer test's first page didn't build its level within 120 s. Do: see whether either repeats; the 2 s waits may be too short under load. **S.**
+- **Timeouts in `npm run check`** (2026-10-10, another agent testing on the machine too): the server test's wait for a HOST's welcome (2 s, `Game.next` in `server/server-test.ts`) ran out in 2 of ~10 full checks, on branches whose server code is `dev`'s; 0 of 22 runs of the server test alone or right after the game test. The multiplayer test's first page didn't build its level within 120 s once. Do: give the server test's waits more room (the server is fast; the machine isn't always), and see whether the 120 s one repeats. **S.**
 
 ## Known, by design
 
