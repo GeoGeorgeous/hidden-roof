@@ -224,6 +224,7 @@ export class SurfaceMaterial extends THREE.MeshPhongMaterial {
       this.defines = { ...this.defines, GLASS: '' };
       this.transparent = true;
       this.depthWrite = false;
+      this.side = THREE.DoubleSide; // a pane (surfaces.ts addPane), seen from both sides
     }
     const base = (this.baseTexture = textures()[opts.tex]);
     const tile = opts.tileMeters ?? (base.image as HTMLCanvasElement).width / BASE_TEXTURES.texelsPerMeter;

@@ -220,9 +220,34 @@ export function boxSurface(min: THREE.Vector3, max: THREE.Vector3, skip: BoxFace
 }
 
 export function addBox(b: SurfaceBuilder, min: THREE.Vector3, max: THREE.Vector3, skip: BoxFace[] = []) {
+  const faces = boxFaces(min, max);
+  for (const key of Object.keys(faces) as BoxFace[]) {
+    if (!skip.includes(key)) b.quad(faces[key]);
+  }
+}
+
+/**
+ * A pane: one quad through the middle of a thin box, across its thinnest
+ * side (clear glass). Drawn and hit from both sides, so paint from either
+ * side is the same paint, seen mirrored from behind.
+ */
+export function addPane(b: SurfaceBuilder, min: THREE.Vector3, max: THREE.Vector3) {
+  const s = new THREE.Vector3().subVectors(max, min);
+  const thin: Axis = s.x <= s.y && s.x <= s.z ? 'x' : s.y <= s.z ? 'y' : 'z';
+  const f = boxFaces(min, max)[`-${thin}`];
+  f.origin.setComponent('xyz'.indexOf(thin), (min.getComponent('xyz'.indexOf(thin)) + max.getComponent('xyz'.indexOf(thin))) / 2);
+  b.quad(f);
+}
+
+/** A face's normal turned to face against `dir` (a ray's direction): what a hit on a pane from behind needs. */
+export function againstRay(normal: THREE.Vector3, dir: THREE.Vector3) {
+  return normal.dot(dir) > 0 ? normal.negate() : normal;
+}
+
+function boxFaces(min: THREE.Vector3, max: THREE.Vector3): Record<BoxFace, FaceSpec> {
   const s = new THREE.Vector3().subVectors(max, min);
   const V = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
-  const faces: Record<BoxFace, FaceSpec> = {
+  return {
     '+z': { origin: V(min.x, min.y, max.z), uAxis: V(s.x, 0, 0), vAxis: V(0, s.y, 0), normal: V(0, 0, 1) },
     '-z': { origin: V(max.x, min.y, min.z), uAxis: V(-s.x, 0, 0), vAxis: V(0, s.y, 0), normal: V(0, 0, -1) },
     '+x': { origin: V(max.x, min.y, max.z), uAxis: V(0, 0, -s.z), vAxis: V(0, s.y, 0), normal: V(1, 0, 0) },
@@ -230,9 +255,6 @@ export function addBox(b: SurfaceBuilder, min: THREE.Vector3, max: THREE.Vector3
     '+y': { origin: V(min.x, max.y, max.z), uAxis: V(s.x, 0, 0), vAxis: V(0, 0, -s.z), normal: V(0, 1, 0) },
     '-y': { origin: V(min.x, min.y, min.z), uAxis: V(s.x, 0, 0), vAxis: V(0, 0, s.z), normal: V(0, -1, 0) },
   };
-  for (const key of Object.keys(faces) as BoxFace[]) {
-    if (!skip.includes(key)) b.quad(faces[key]);
-  }
 }
 
 export type Axis = 'x' | 'y' | 'z';

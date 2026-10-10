@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { againstRay } from '../surfaces';
 import { WALL_HAND } from '../config';
 import { chain, glove, segment, sleeve } from '../spray/hands';
 import { solidsNear } from '../level/solids';
@@ -120,7 +121,7 @@ export class WallHand {
       this.raycaster.set(shoulder, dir);
       const hit = this.raycaster.intersectObjects(this.near, false)[0];
       // Meshes live at the origin, so face normals are in world space. Walls only.
-      if (hit?.face && Math.abs(hit.face.normal.y) <= 0.6) return { point: hit.point, normal: hit.face.normal.clone() };
+      if (hit?.face && Math.abs(hit.face.normal.y) <= 0.6) return { point: hit.point, normal: againstRay(hit.face.normal.clone(), dir) };
     }
     return null;
   }
