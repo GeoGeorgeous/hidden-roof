@@ -1,13 +1,13 @@
-import { HINT, type HintFont } from '../config';
+import { HINT, type HintAlign, type HintFont } from '../config';
 import type { PaintImage } from '../paint-image';
 import { hintCss } from './hint-fonts';
 
 // A hint as an image to paint (PaintSystem.imprint): text in one of the
 // hint fonts (hint-fonts.ts; loaded before it's drawn), where
 // <k>KEY</k> is a key cap and <br> starts a new line, e.g. "<k>RMB</k> Shake
-// your can<br>to release pressure". Lines start at the left. Drawn white on
-// clear, with the font's overspray around the letters (HINT.looks); only
-// alpha is kept.
+// your can<br>to release pressure". Lines line up left, center or right.
+// Drawn white on clear, with the font's overspray around the letters
+// (HINT.looks); only alpha is kept.
 
 /** The largest canvas a hint is drawn on: its side and its area (px), within every browser's. */
 const MAX_SIDE = 16384;
@@ -38,8 +38,8 @@ function parseLine(text: string): Piece[] {
   return out.filter((p) => p.text);
 }
 
-/** The hint in font `f`, `size` m per em, at `perMeter` pixels per meter; null when there's nothing to draw. Throws, with a message for the status line, when it's too big to draw. */
-export function hintImage(text: string, f: HintFont, size: number, perMeter: number): PaintImage | null {
+/** The hint in font `f`, `size` m per em, its lines lined up by `align`, at `perMeter` pixels per meter; null when there's nothing to draw. Throws, with a message for the status line, when it's too big to draw. */
+export function hintImage(text: string, f: HintFont, size: number, perMeter: number, align: HintAlign = 'left'): PaintImage | null {
   const lines = parseHint(text);
   if (!lines.some((l) => l.length)) return null;
   const look = HINT.looks[f];
@@ -64,7 +64,10 @@ export function hintImage(text: string, f: HintFont, size: number, perMeter: num
   );
   // Room around it for the overspray.
   const margin = Math.ceil(2 * look.overspray * em + line);
-  const w = Math.ceil(Math.max(...widths.map((l) => l.reduce((a, b) => a + b, 0)))) + 2 * margin;
+  // Each line's width: a key cap ending one takes no gap after it.
+  const lineW = widths.map((l, j) => l.reduce((a, b) => a + b, 0) - (lines[j].at(-1)?.key ? HINT.keyGap * em : 0));
+  const textW = Math.max(...lineW);
+  const w = Math.ceil(textW) + 2 * margin;
   const h = Math.ceil(up + down + (lines.length - 1) * pitch) + 2 * margin;
   // Browsers draw nothing on a canvas past these (or lose it).
   if (w > MAX_SIDE || h > MAX_SIDE || w * h > MAX_AREA) throw new Error('HINT TOO BIG: SHORTER LINES, OR [ FOR SMALLER');
@@ -78,7 +81,7 @@ export function hintImage(text: string, f: HintFont, size: number, perMeter: num
   ctx.lineWidth = line;
   lines.forEach((pieces, j) => {
     const mid = margin + up + j * pitch;
-    let x = margin;
+    let x = margin + (textW - lineW[j]) * { left: 0, center: 0.5, right: 1 }[align];
     pieces.forEach((p, i) => {
       ctx.font = label(p.key);
       ctx.textAlign = p.key ? 'center' : 'left';

@@ -450,6 +450,33 @@ await check('hints: <br> starts a new line; a hint of only <br> is nothing', asy
   return near(r.two - r.one, r.pitch) && near(r.three - r.one, 2 * r.pitch) && r.wide && r.empty === null ? null : JSON.stringify(r);
 });
 
+await check('hints: lines line up left, center or right, a key cap ending a line too', async () => {
+  const r = await page.evaluate(async () => {
+    const url = performance.getEntriesByType('resource').map((e) => e.name).find((n) => n.includes('/src/build/stencil-text.ts'));
+    const { hintImage } = await import(url);
+    // The ink's left and right edge on the rows of each half (one line each), in pixels.
+    const ink = (img, half) => {
+      let x0 = Infinity;
+      let x1 = -Infinity;
+      for (let y = half ? img.h >> 1 : 0; y < (half ? img.h : img.h >> 1); y++) for (let x = 0; x < img.w; x++) if (img.alpha[y * img.w + x] > 128) (x0 = Math.min(x0, x)), (x1 = Math.max(x1, x));
+      return [x0, x1];
+    };
+    const out = {};
+    for (const align of ['left', 'center', 'right']) {
+      const img = hintImage('Shake your can<br>go', 'mono', 0.4, 100, align);
+      out[align] = { top: ink(img, 0), bottom: ink(img, 1), w: img.w };
+    }
+    const cap = hintImage('Shake your can<br><k>A</k>', 'mono', 0.4, 100, 'right');
+    out.cap = { top: ink(cap, 0), bottom: ink(cap, 1) };
+    return out;
+  });
+  const near = (a, b) => Math.abs(a - b) <= 3;
+  const { left, center, right, cap } = r;
+  const ok =
+    near(left.bottom[0], left.top[0]) && near(right.bottom[1], right.top[1]) && near((center.bottom[0] + center.bottom[1]) / 2, (center.top[0] + center.top[1]) / 2) && left.bottom[1] < center.bottom[1] && center.bottom[1] < right.bottom[1] && near(cap.bottom[1], cap.top[1]);
+  return ok ? null : JSON.stringify(r);
+});
+
 await check('hints: every font loads from its file and paints; softness 0 paints whole texels only, softness 1 a soft edge', async () => {
   const fonts = await page.evaluate(() => window.game.config.HINT_FONTS);
   const r = {};
