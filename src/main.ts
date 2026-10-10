@@ -176,12 +176,13 @@ Promise.all([fetchLevel(levelName), jpFontReady()])
   .then(async ([data]) => {
     await loadStep('BUILDING THE ROOF');
     loadLevel(data);
+    // The level's merged meshes first: their shaders are most of what's compiled.
+    level.flush();
     // Where the browser compiles shaders in parallel, they compile during the next steps.
     // With the lights set up as the game draws them: their number is in the shaders.
     lighting.update(player.position, camera.matrixWorldInverse);
     post.warm(scene, viewScene, camera);
     await loadStep('LIGHTING THE LAMPS');
-    level.flush();
     baker.update(0, player.position);
     await loadStep('PUTTING UP THE PAINT');
     await putLevelPaint(paint, drips, levelName, data);

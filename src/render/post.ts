@@ -87,14 +87,9 @@ export class PostPipeline {
   warm(scene: THREE.Scene, viewScene: THREE.Scene, camera: THREE.PerspectiveCamera) {
     const r = this.renderer;
     r.setRenderTarget(this.target);
-    for (const s of [scene, viewScene]) {
-      // compile() skips what's hidden: shown for the moment. Not lights: their number is in the shaders.
-      const hidden: THREE.Object3D[] = [];
-      s.traverse((o) => !o.visible && !(o as THREE.Light).isLight && hidden.push(o));
-      for (const o of hidden) o.visible = true;
-      r.compile(s, camera);
-      for (const o of hidden) o.visible = false;
-    }
+    // compile() takes hidden objects too; of the lights, only those shown (their number is in the shaders).
+    r.compile(scene, camera);
+    r.compile(viewScene, camera);
     r.setRenderTarget(null);
     this.volumetrics.warm(r, camera);
   }

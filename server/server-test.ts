@@ -77,7 +77,8 @@ class Game {
   send(m: ToServer) {
     this.ws.send(encode(m));
   }
-  async next<T extends ToClient['type']>(type: T, ms = 2000): Promise<Extract<Got, { type: T }>> {
+  /** Waits up to `ms`: the server answers in milliseconds, but a machine busy with other tests can hold it up for seconds. */
+  async next<T extends ToClient['type']>(type: T, ms = 10000): Promise<Extract<Got, { type: T }>> {
     const end = Date.now() + ms;
     for (;;) {
       const i = this.got.findIndex((m) => m.type === type);
@@ -128,7 +129,7 @@ try {
   const rest = await Promise.all(Array.from({ length: SERVER.maxPlayers - 2 }, () => game()));
   rest.forEach((x, i) => x.send({ type: 'join', protocol: PROTOCOL, name: `C${i}`, code: wa.code }));
   const ids = new Set<number>();
-  for (const x of rest) ids.add((await x.next('welcome', 5000)).you);
+  for (const x of rest) ids.add((await x.next('welcome')).you);
   assert.equal(ids.size, rest.length);
   const c = await game();
   c.send({ type: 'join', protocol: PROTOCOL, name: 'C', code: wa.code });
@@ -184,7 +185,7 @@ try {
 
   // B drops for good: after the rejoin window (1 s here) A hears it left; when A leaves, the session closes.
   b3.ws.close();
-  assert.deepEqual(await a.next('left', 8000), { type: 'left', id: 2 });
+  assert.deepEqual(await a.next('left'), { type: 'left', id: 2 });
   a.send({ type: 'leave' });
   await a.closed;
   // Its code now says the session has ended (an unknown code says there's none, above).
@@ -297,7 +298,7 @@ try {
   uploaders.forEach((x) => x.ws.close());
 
   // Pings keep coming; a message that isn't one closes the socket.
-  await h.next('ping', 3000);
+  await h.next('ping');
   h.ws.send(new Uint8Array([1, 2, 3]));
   assert.equal(await h.closed, 1008);
   console.log('server: ok');
@@ -315,22 +316,28 @@ assert.doesNotMatch(lines, /"A" #1 out: left[^]*"A" #1 dropped/);
 // new one. In the process, with the server's log quiet.
 {
   const say = console.log;
+  const was = { rejoinWindow: SERVER.rejoinWindow, snapshotKeep: SERVER.snapshotKeep };
   console.log = () => {};
   // No timers left to keep the test running: the dropped joiner goes and the paint file isn't kept.
   Object.assign(SERVER, { rejoinWindow: 0, snapshotKeep: 0 });
-  const s = new Session('FAILS', 'demo', level, 48, () => {});
-  const link = (): Link & { sent: number } => ({ sent: 0, send() { this.sent++; }, close() {}, open: true, ip: 'test', since: Date.now() });
-  const { paint } = (s as unknown as { world: ReturnType<typeof sessionPaint> }).world;
-  paint.stamp(paint.surfaces[0], { rect: 0, u: 0.5, v: 0.5 }, 0.2, 1, [1, 0, 0]);
-  const data = paint.surfaces[0].data!;
-  paint.surfaces[0].data = new Proxy(data, { get: () => { throw new Error('unreadable paint'); } });
-  await assert.rejects(s.admit(link(), 'X'), /unreadable paint/);
-  paint.surfaces[0].data = data;
-  const y = link();
-  const r = await s.admit(y, 'Y');
-  await new Promise((done) => setTimeout(done, 10));
-  console.log = say;
-  assert.ok(typeof r !== 'string' && y.sent > 1, 'a join after a failed paint file gets a welcome and the paint');
+  try {
+    const s = new Session('FAILS', 'demo', level, 48, () => {});
+    const link = (): Link & { sent: number } => ({ sent: 0, send() { this.sent++; }, close() {}, open: true, ip: 'test', since: Date.now() });
+    const { paint } = (s as unknown as { world: ReturnType<typeof sessionPaint> }).world;
+    paint.stamp(paint.surfaces[0], { rect: 0, u: 0.5, v: 0.5 }, 0.2, 1, [1, 0, 0]);
+    const data = paint.surfaces[0].data!;
+    paint.surfaces[0].data = new Proxy(data, { get: () => { throw new Error('unreadable paint'); } });
+    await assert.rejects(s.admit(link(), 'X'), /unreadable paint/);
+    paint.surfaces[0].data = data;
+    const y = link();
+    const r = await s.admit(y, 'Y');
+    await new Promise((done) => setTimeout(done, 10));
+    assert.ok(typeof r !== 'string' && y.sent > 1, 'a join after a failed paint file gets a welcome and the paint');
+  } finally {
+    // What a failure says is seen, and the checks after this one get the server as configured.
+    console.log = say;
+    Object.assign(SERVER, was);
+  }
   console.log('failed paint file: ok (the next join gets a new one)');
 }
 
