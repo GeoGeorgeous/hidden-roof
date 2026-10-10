@@ -70,6 +70,8 @@ export class Avatar {
 
   dispose() {
     this.mesh.geometry.dispose();
+    // Its bone texture: the renderer makes one per figure the first time it's drawn.
+    this.rig.skeleton.dispose();
     this.held.set(null, 'black', 'standard');
     this.group.removeFromParent();
   }

@@ -880,6 +880,22 @@ await check('ghost: on a bad link (resent packets) a walk that stops is never sh
   return top(r.smoothed) < 25 && top(r.unsmoothed) > 25 && r.smoothed.every((x) => x.reached > 8.5) ? null : JSON.stringify(r);
 });
 
+await check('avatar: a player who leaves takes their figure along, its bone texture too', async () => {
+  const disposed = await page.evaluate(() => {
+    const remotes = window.game.net.remotes;
+    remotes.add(9, 'X', 'here', 0);
+    let fig = null;
+    remotes.get(9).avatar.group.traverse((o) => (fig ??= o.isSkinnedMesh ? o : null));
+    // What the renderer makes the first time it draws the figure (pages here don't draw).
+    fig.skeleton.computeBoneTexture();
+    let gone = false;
+    fig.skeleton.boneTexture.addEventListener('dispose', () => (gone = true));
+    remotes.remove(9);
+    return gone;
+  });
+  return disposed ? null : 'its bone texture stays on the GPU';
+});
+
 await check('avatar test figure: the pose slider stops on a pose, moving poses go round the loop (on the spot if asked), slow motion slows them', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
