@@ -515,9 +515,9 @@ canvas {
   cursor: not-allowed;
   color: rgba(235, 229, 214, 0.25);
 }
-/* Debug panel open: the menu stays, on a lighter sheet, without the title. */
+/* Debug panel open: the menu stays, on a lighter sheet (still dark under the menu), without the title. */
 .overlay.compact {
-  background: var(--sheet-debug, transparent);
+  background: linear-gradient(to top, #000 0%, rgba(0, 0, 0, 0.94) 28%, rgba(0, 0, 0, 0.55) 52%, transparent 78%), var(--sheet-debug, transparent);
 }
 .overlay.compact .blur,
 .overlay.compact .hero {
