@@ -41,7 +41,7 @@ export class PauseMenu {
   private loadPaint: HTMLElement;
   private themes: ReturnType<typeof segmented>;
   private settingsPage: SettingsPage | null = null;
-  private pages = new Map<Page, { el: HTMLElement; open: () => void }>();
+  private pages = new Map<Page, { el: HTMLElement; open: () => void; back?: () => boolean }>();
   private page: Page | null = null;
   /** The multiplayer session's code while in one. */
   private session: string | null = null;
@@ -64,7 +64,7 @@ export class PauseMenu {
     );
     this.themes.el.classList.add('themes');
     this.back = div('seg back');
-    this.back.append(button('‹ Back', () => this.openPage(null)));
+    this.back.append(button('‹ Back', () => this.goBack()));
     this.back.firstChild!.appendChild(keyHint('ESC'));
 
     this.status = div('status');
@@ -116,11 +116,16 @@ export class PauseMenu {
     return PAUSE_MENU.view && this.sheetUp && !this.started;
   }
 
-  /** Esc while paused: back to the pause screen (false), or, on it, resume (true). */
+  /** Esc while paused: back (false), or, on the pause screen, resume (true). */
   escape() {
     if (!this.page) return true;
-    this.openPage(null);
+    this.goBack();
     return false;
+  }
+
+  /** Back a step within the page, or to the pause screen. */
+  private goBack() {
+    if (!this.page || !this.pages.get(this.page)?.back?.()) this.openPage(null);
   }
 
   /** Show the full pause sheet (as without F3) for a moment: F3 is tuning it (PAUSE_MENU). */
@@ -149,9 +154,9 @@ export class PauseMenu {
     this.addPage('settings', this.settingsPage.root, () => this.settingsPage!.sync());
   }
 
-  /** A page of the menu: `open` readies it each time it opens. */
-  addPage(page: Page, el: HTMLElement, open: () => void) {
-    this.pages.set(page, { el, open });
+  /** A page of the menu: `open` readies it each time it opens; `back` goes back a step within it (Esc, Back), false when there's none. */
+  addPage(page: Page, el: HTMLElement, open: () => void, back?: () => boolean) {
+    this.pages.set(page, { el, open, back });
     this.el.append(el);
     el.hidden = this.page !== page;
   }

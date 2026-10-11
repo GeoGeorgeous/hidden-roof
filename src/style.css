@@ -732,28 +732,140 @@ canvas {
 .overlay .slider input {
   position: relative;
 }
-/* The multiplayer page (net/net-menu.ts). */
-.mp-page input[type='text'] {
+/* Buttons with their key: a paper one (primary: Enter), a plain one. */
+.overlay .btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  white-space: nowrap;
+  color: rgba(235, 229, 214, 0.75);
+  transition: background 0.2s, color 0.2s;
+}
+.overlay .btn:hover {
+  background: rgba(235, 229, 214, 0.1);
+  color: var(--paper);
+}
+.overlay .btn.primary {
+  padding: 10px 20px;
+  background: var(--paper);
+  color: var(--ink);
+  font-weight: 600;
+}
+.overlay .btn.primary:hover {
+  background: #fff;
+  color: var(--ink);
+}
+.overlay .btn.primary kbd {
+  border-color: rgba(17, 17, 17, 0.35);
+  color: rgba(17, 17, 17, 0.6);
+}
+
+/* The multiplayer page (net/net-menu.ts): its subtitle a little lower, clear of the title's descenders. */
+.overlay .page-sub {
+  min-height: 16px;
+  margin-top: 4px;
+  color: var(--text-2);
+}
+/* Its column doesn't scroll: the big rows' hover reaches past its sides. */
+.overlay .mp-page .rows {
+  bottom: auto;
+  width: min(640px, calc(100% - 32px));
+  overflow: visible;
+  scrollbar-gutter: auto;
+  mask: none;
+}
+.overlay .big-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: calc(100% + 28px);
+  margin: 0 -14px;
+  padding: 16px 14px;
+  border-bottom: 1px solid var(--hair);
+  border-radius: 6px;
+  text-align: left;
+  transition: background 0.2s;
+}
+.overlay .big-row:hover {
+  background: rgba(235, 229, 214, 0.06);
+}
+.overlay .big-row .text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.overlay .big-row b {
+  font-weight: 500;
+  font-size: 16px;
+}
+.overlay .big-row span {
+  font-size: 12px;
+  color: rgba(235, 229, 214, 0.5);
+}
+.overlay .big-row i {
+  font-style: normal;
+  font-size: 18px;
+  color: rgba(235, 229, 214, 0.5);
+}
+.overlay .mp-page .setting-row .line {
+  min-height: 26px;
+}
+.overlay .mp-page input[type='text'] {
   pointer-events: auto;
-  width: 186px;
-  font: inherit;
-  letter-spacing: inherit;
-  color: var(--ui);
-  background: none;
-  border: none;
-  border-bottom: var(--line);
-  padding: 2px 4px;
+  width: 236px;
+  padding: 5px 2px;
+  border: 0;
+  border-bottom: 1px solid rgba(235, 229, 214, 0.4);
+  background: transparent;
+  color: var(--paper);
+  font: 14px var(--sans);
+  letter-spacing: 0.01em;
   text-align: center;
   outline: none;
+  user-select: text;
 }
-/* Its buttons stacked as in the pause menu (.menu), under the rows. */
-.mp-page .menu {
-  width: fit-content;
-  margin-top: 10px;
+.overlay .mp-page input::placeholder {
+  color: var(--text-3);
 }
-.mp-page .mp-status {
-  min-height: 1.4em;
-  color: var(--dim);
+.overlay .mp-page input.code {
+  letter-spacing: 0.4em;
+  font-variant-numeric: tabular-nums;
+}
+.overlay .submit {
+  display: flex;
+  justify-content: center;
+  margin-top: 28px;
+}
+.overlay .submit .btn.primary {
+  padding: 10px 22px;
+}
+/* The link's state; COPY NETWORK LOG under it after a failure. */
+.overlay .mp-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+.overlay .mp-status {
+  min-height: 18px;
+  text-align: center;
+  color: rgba(235, 229, 214, 0.6);
+}
+.overlay .mp-status.error {
+  color: var(--error);
+}
+.overlay .net-log {
+  font-size: 12px;
+  color: var(--text-3);
+  transition: color 0.2s;
+}
+.overlay .net-log:hover {
+  color: var(--paper);
 }
 /* Full pause sheet (not compact): no in-game UI behind it (hud.ts); display: none, so
    it isn't laid out or animated (the REC blink) while paused. */

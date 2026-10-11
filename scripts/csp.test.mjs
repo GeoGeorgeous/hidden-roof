@@ -49,7 +49,7 @@ try {
   await press('MULTIPLAYER');
   await press('HOST A SESSION');
   await page.fill('.mp-page input >> nth=0', 'CSP');
-  await press('> HOST');
+  await press('Host');
   await page.waitForFunction(() => window.game.net.status.state === 'in', null, { timeout: 15000 });
 
   problems.push(...(await page.evaluate(() => window.violations)).map((v) => `CSP violation: ${v}`));

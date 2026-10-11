@@ -25,6 +25,22 @@ export function keyHint(key: string) {
 /** What each primary button does: Enter runs the visible one's. */
 const primaries = new WeakMap<HTMLElement, () => void>();
 
+/**
+ * A button with its key as a hint: a paper one (`primary`, Enter runs it,
+ * ENTER by default), or a plain one.
+ */
+export function action(text: string, act: () => void, { primary = false, key = primary ? 'ENTER' : '' }: { primary?: boolean; key?: string } = {}) {
+  const b = button(text, act, primary ? 'btn primary' : 'btn');
+  if (key) b.append(keyHint(key));
+  if (primary) primaries.set(b, act);
+  return b;
+}
+
+/** Sets a button's text, keeping its key hint. */
+export function relabel(b: HTMLElement, text: string) {
+  b.firstChild!.textContent = text;
+}
+
 /** Runs the primary button showing in `root`, if any: Enter. */
 export function runPrimary(root: HTMLElement) {
   for (const b of root.querySelectorAll<HTMLElement>('.btn.primary')) {

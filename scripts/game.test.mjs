@@ -106,9 +106,16 @@ await check('menu: Esc goes back from a page to the pause screen and there resum
     menu.escape();
     document.querySelectorAll('.themes button')[0].click();
     const on = document.querySelector('.themes .on').textContent;
-    return { audio, back, after, graphics, style, on, resumes: menu.escape() };
+    // Multiplayer: Esc goes from HOST back to its choice of HOST and JOIN, then to the pause screen.
+    item('Multiplayer').click();
+    document.querySelector('.big-row').click();
+    const host = document.querySelector('.page-sub').textContent;
+    menu.escape();
+    const mp = [document.querySelector('.page-sub').textContent, document.querySelectorAll('.big-row').length];
+    menu.escape();
+    return { audio, back, after, graphics, style, on, host, mp, mpBack: shown(), resumes: menu.escape() };
   });
-  const ok = r.audio[0] === 'seg back | page settings-page' && /sound/i.test(r.audio[1]) && r.back === false && /pause/.test(r.after) && /graphics/i.test(r.graphics) && /old manga/i.test(r.style) && r.on === 'New manga' && r.resumes === true;
+  const ok = r.audio[0] === 'seg back | page settings-page' && /sound/i.test(r.audio[1]) && r.back === false && /pause/.test(r.after) && /graphics/i.test(r.graphics) && /old manga/i.test(r.style) && r.on === 'New manga' && r.host === 'Host a session' && r.mp.join() === ',2' && /pause/.test(r.mpBack) && r.resumes === true;
   return ok ? null : JSON.stringify(r);
 });
 
@@ -188,16 +195,19 @@ await check('menu: a broken file says BROKEN PAINT FILE and keeps the paint', as
   return (await paintedKeys(page)) === before ? null : 'paint changed';
 });
 
-await check('menu: COPY NETWORK LOG saves a file where the page has no clipboard (plain http, as on a LAN)', async () => {
+await check('menu: after a failed link the multiplayer page says so in red and offers COPY NETWORK LOG, which saves a file where the page has no clipboard (plain http, as on a LAN)', async () => {
   const p = await openPage(() => Object.defineProperty(navigator, 'clipboard', { value: undefined }));
   await p.evaluate(() => (window.game.hud.setLocked(true), window.game.hud.setLocked(false)));
   const press = (text) => p.locator('.overlay button:visible', { hasText: text }).first().click();
-  await press('MULTIPLAYER');
+  await press('Multiplayer');
+  const before = await p.isVisible('.net-log');
+  await p.evaluate(() => window.game.net.onStatus({ state: 'failed', reason: 'timeout' }));
+  const said = await p.evaluate(() => { const s = document.querySelector('.mp-status'); return [s.textContent, s.classList.contains('error')]; });
   const saved = p.waitForEvent('download', { timeout: 5000 });
-  await press('COPY NETWORK LOG');
+  await press('Copy network log');
   const name = (await saved.catch(() => null))?.suggestedFilename();
   await p.close();
-  return /^roof-network-.+\.txt$/.test(name) && !p.errors.length ? null : JSON.stringify({ name, errors: p.errors });
+  return !before && said.join() === "The server didn't answer,true" && /^roof-network-.+\.txt$/.test(name) && !p.errors.length ? null : JSON.stringify({ before, said, name, errors: p.errors });
 });
 
 await check('saves: a sign whose text changed loses its paint (changed shape), the rest loads', async () => {
