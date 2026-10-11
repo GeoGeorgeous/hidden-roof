@@ -1199,4 +1199,6 @@ export const CCTV = {
   lockRange: 4,
   /** How far the head can turn from straight out (rad); beyond it the player is behind the wall. */
   maxTurn: 1.3,
+  /** How far it can tilt up or down to your height (rad). */
+  maxTilt: 0.7,
 };

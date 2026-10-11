@@ -45,6 +45,7 @@ export function worldSections(): Section[] {
         r('follow: from', ['CCTV', 'followRange'], 1, 30, 0.5),
         r('follow: full', ['CCTV', 'lockRange'], 0, 20, 0.5),
         r('max turn', ['CCTV', 'maxTurn'], 0.2, 1.57, 0.01),
+        r('max tilt', ['CCTV', 'maxTilt'], 0, 1.2, 0.01),
         { kind: 'heading', label: 'SMOKE' },
         t('on', ['SMOKE', 'enabled']),
         r('puffs', ['SMOKE', 'perEmitter'], 0, 48, 1),

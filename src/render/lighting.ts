@@ -3,7 +3,7 @@ import { ATMOS, LIGHT_SPREAD_MAX, LIGHTMAP, LIGHTS, THUNDER } from '../config';
 import { moonDirection } from './moon';
 import { lampLevel } from './flicker';
 import { syncAnchor, type LightAnchor } from '../level/build-prop';
-import { rotateY, trackAngle, trackWeight } from './cctv-track';
+import { rotateY, tilt, trackAngle, trackPitch, trackWeight } from './cctv-track';
 import { bakeUniforms, HIGHLIGHT_MAX } from './bake/glsl';
 
 // Scene lighting for the rainy night:
@@ -291,11 +291,12 @@ function faded(list: Near[], k: number) {
 
 const rel = new THREE.Vector3();
 
-/** CCTV light: turn it with its head (same angle as the shader) and fade it in near the player. */
+/** CCTV light: pan and tilt it with its head (same angles as the shader) and fade it in near the player. */
 function aimTracking(a: LightAnchor, time: number, player: THREE.Vector3) {
   const t = a.track!;
   const angle = trackAngle(t, time, player);
-  a.pos.copy(t.pivot).add(rotateY(rel.copy(a.pos).sub(t.pivot), angle));
-  rotateY(a.dir, angle);
+  const pitch = trackPitch(t, player);
+  a.pos.copy(t.pivot).add(tilt(rotateY(rel.copy(a.pos).sub(t.pivot), angle), t, angle, pitch));
+  tilt(rotateY(a.dir, angle), t, angle, pitch);
   a.level = trackWeight(t, player);
 }
