@@ -149,6 +149,20 @@ await check('settings: Shift + click puts a slider back to its default; PAINT an
   return ok ? null : JSON.stringify(r);
 });
 
+await check('credits: every license the page links to ships with the game', async () => {
+  const r = await page.evaluate(async () => {
+    const links = [...document.querySelectorAll('.credits-page a')].map((a) => a.href).filter((h) => h.includes('/licenses/'));
+    const bad = [];
+    // A missing file would come back as the page (the dev server's fallback): a license is plain text.
+    for (const h of links) {
+      const res = await fetch(h);
+      if (!res.ok || !res.headers.get('content-type').startsWith('text/plain')) bad.push(h);
+    }
+    return { count: links.length, bad };
+  });
+  return r.count === 8 && !r.bad.length ? null : JSON.stringify(r);
+});
+
 await check('save popup: SAVE shows the file and its size; DOWNLOAD downloads that one file, even clicked three times at once, then says where it went', async () => {
   await dot(page);
   await page.click(SAVE);

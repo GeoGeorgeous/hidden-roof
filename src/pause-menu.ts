@@ -1,4 +1,5 @@
 import { INK_STYLES, PAUSE_MENU } from './config';
+import { creditsPage } from './credits-page';
 import { button, div, keyHint, runPrimary, segmented, sentence } from './menu-ui';
 import { inkStyle } from './render/ink/styles';
 import type { SettingSection } from './settings';
@@ -88,6 +89,7 @@ export class PauseMenu {
     this.screen.append(hero, menu, foot);
     this.el.append(div('blur'), this.themes.el, this.screen, this.back);
     parent.append(this.el);
+    this.addPage('credits', creditsPage(), () => {});
 
     window.addEventListener('keydown', (e) => {
       if (e.repeat || (e.code !== 'Enter' && e.code !== 'NumpadEnter') || this.el.hidden || this.debugOpen) return;
