@@ -4,7 +4,7 @@ One file per release, `docs/releases/vX.Y.Z.md`, is the one source of its notes:
 
 - **The game** bundles them (`src/release-notes.ts`, `src/updates-page.ts`): ESC → About → Updates, newest first, each with its date and its picture, `public/updates/vX.Y.Z.webp` (the CSP takes images from the game's own site only).
 - **GitHub**: `node scripts/release-notes.mjs vX.Y.Z` prints the release's notes, with the picture linked from the repo at the tag; the title, `Hidden Roof X.Y.Z`, is the release's own (`--title`), never repeated in the notes. Never write them on GitHub by hand.
-- **Discord** (later): the same text fits one message (2000 characters); the picture goes in an embed.
+- **Discord**: `node scripts/release-discord.mjs vX.Y.Z` posts the note as one message (2000 characters at most) with its date, a link to the GitHub release and the picture attached, through the webhook in `DISCORD_WEBHOOK` (the gitignored `.env.local`; never commit or print it). `--dry` prints the message instead.
 
 `npm test` checks every note (`scripts/release-notes.test.mjs`).
 
@@ -48,6 +48,6 @@ Nothing is written: from `last=$(git describe --tags --abbrev=0 origin/next)`, r
 
 1. On a clean, up-to-date `next`, write the draft as above. In one message, show: the draft, what was left out, the screenshot to take ("show X and Y": the release's headline, in the game as players see it), and the bump question from `AGENTS.md` → Releases (never pick it).
 2. With the owner's bump and screenshot: `node scripts/release-picture.mjs <shot> vX.Y.Z` (crops to 16:9, 1280×720 WebP within 250 KB), write `docs/releases/vX.Y.Z.md` with today's date, apply their edits. Commit both on `next` (`docs: release notes vX.Y.Z`): `npm version` needs a clean tree. Run `npm run check` (10-minute timeout). Show the text as GitHub will render it (`node scripts/release-notes.mjs vX.Y.Z`) and send the picture.
-3. On the owner's go, the release (`AGENTS.md` → Releases): `npm version <bump>`, `git push origin next:main --follow-tags`, then `node scripts/release-notes.mjs vX.Y.Z > <scratchpad>/notes.md` and `gh release create vX.Y.Z --verify-tag --title "Hidden Roof X.Y.Z" --notes-file <scratchpad>/notes.md`, then merge `next` into `dev` and push. Deploying stays with the owner (`docs/deploy.md`).
+3. On the owner's go, the release (`AGENTS.md` → Releases): `npm version <bump>`, `git push origin next:main --follow-tags`, then `node scripts/release-notes.mjs vX.Y.Z > <scratchpad>/notes.md` and `gh release create vX.Y.Z --verify-tag --title "Hidden Roof X.Y.Z" --notes-file <scratchpad>/notes.md`, then `node scripts/release-discord.mjs vX.Y.Z`, then merge `next` into `dev` and push. Deploying stays with the owner (`docs/deploy.md`).
 
 `v1.0.0` and `v1.1.0` predate their pictures in the repo: their GitHub notes link the pictures at `159a365` (`node scripts/release-notes.mjs v1.0.0 159a365`).
