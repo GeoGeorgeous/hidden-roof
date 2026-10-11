@@ -83,7 +83,7 @@ export const trafficCone: PropDef = {
       [0.36, 0.5, M.paper],
       [0.5, 0.71, M.metal],
     ] as const) {
-      p.cyl([0, y0, 0], 'y', y1 - y0, r(y0), mat, { r2: r(y1), paint: false, seg: 16 });
+      p.cyl([0, y0, 0], 'y', y1 - y0, r(y0), mat, { r2: r(y1), paint: true, seg: 16 });
     }
     return p.list;
   },
