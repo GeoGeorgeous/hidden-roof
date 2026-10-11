@@ -2,7 +2,9 @@ import { INK_STYLES, PAUSE_MENU } from './config';
 import { creditsPage } from './credits-page';
 import { EscHold, ring } from './esc-hold';
 import { button, div, keyHint, runPrimary, segmented, sentence } from './menu-ui';
+import { AUTHOR, DISCORD, REPO } from './links';
 import { inkStyle } from './render/ink/styles';
+import { SessionLine, type SessionInfo } from './session-line';
 import type { SettingSection } from './settings';
 import { SettingsPage } from './settings-page';
 import { updatesPage } from './updates-page';
@@ -10,21 +12,20 @@ import { VERSION } from './version';
 
 // The ESC menu (style.css): the start / pause screen over the live game view
 // (the title view before START, hud.cityView), with the style switcher, the
-// fullscreen control (esc-hold.ts), PLAY and MULTIPLAYER under the title, the
+// fullscreen control (esc-hold.ts), PLAY and MULTIPLAYER under the title (in a
+// session: its live line, session-line.ts, BACK TO SESSION and LEAVE SESSION), the
 // menu in three columns (paint, settings, about) and the links at its foot;
 // and the pages and popups it opens over a blurred view: Settings,
 // Multiplayer and the rest. Esc goes back to the pause screen, and there
 // resumes once released (held, it leaves fullscreen); Enter runs the open
 // page's primary button.
 
-/** Where the GitHub link and the author's name lead. */
-const REPO = 'https://github.com/GeoGeorgeous/hidden-roof';
-const AUTHOR = 'https://github.com/GeoGeorgeous';
-const DISCORD = 'https://discord.gg/yj8z9sxBrf';
 /** Messages in the status line under the title show this long. */
 const NOTICE_SECONDS = 3;
 /** previewSheet shows the full pause sheet this long after the last change. */
 const PREVIEW_SECONDS = 1.5;
+/** The session's live line (ping, players) is refreshed this often while it shows. */
+const LINE_SECONDS = 1;
 
 export type Page = 'settings' | 'mp' | 'credits' | 'updates' | 'save' | 'upload';
 
@@ -34,10 +35,16 @@ export class PauseMenu {
   onLeave = () => {};
   /** A style picked on the switcher (INK_STYLES index). */
   onStyle = (_i: number) => {};
+  /** In a session: what its live line shows (net/net-menu.ts). */
+  sessionInfo: () => SessionInfo = () => ({ ping: null, players: [] });
   readonly el: HTMLElement;
   private screen: HTMLElement;
   private back: HTMLElement;
   private status: HTMLElement;
+  /** In a live session, in place of the status line. */
+  private line = new SessionLine();
+  /** The live line is refreshed at this time (update). */
+  private nextLine = 0;
   private hold: EscHold;
   /** Esc went down on the pause screen: released, it resumes (escapeReleased). */
   private resumeOnUp = false;
@@ -53,6 +60,8 @@ export class PauseMenu {
   private page: Page | null = null;
   /** The multiplayer session's code while in one. */
   private session: string | null = null;
+  /** The session's link is up (not reconnecting). */
+  private live = false;
   /** The game was started (past the title screen). */
   started = false;
   /** The full pause sheet is up (paused without F3, or F3 previewing it). */
@@ -88,7 +97,7 @@ export class PauseMenu {
     const start = div('start');
     start.append(this.play, this.multiplayer);
     const hero = div('hero');
-    hero.append(div('title', 'Hidden Roof'), this.status, start);
+    hero.append(div('title', 'Hidden Roof'), this.status, this.line.el, start);
     this.savePaint = item('Save', () => this.openPage('save'));
     this.loadPaint = item('Upload', () => this.openPage('upload'));
     const menu = div('menu');
@@ -126,6 +135,7 @@ export class PauseMenu {
       this.openPage(null);
     }
     this.el.hidden = locked;
+    this.nextLine = 0;
     this.debugOpen = debugOpen;
     this.syncCompact();
     this.sync();
@@ -172,10 +182,13 @@ export class PauseMenu {
     return !!this.session;
   }
 
-  /** In a multiplayer session (its code) or not (null): the menu offers RESUME and LEAVE SESSION, and no UPLOAD. */
-  setSession(code: string | null) {
+  /** In a multiplayer session (its code; `live`: its link is up) or not (null): the menu offers BACK TO SESSION and LEAVE SESSION, and no UPLOAD. */
+  setSession(code: string | null, live = true) {
     this.session = code;
     if (code) this.openPage(null);
+    this.live = !!code && live;
+    if (code) this.line.session = code;
+    this.nextLine = 0;
     this.sync();
   }
 
@@ -218,6 +231,10 @@ export class PauseMenu {
     }
     this.syncSheet();
     this.hold.update();
+    if (this.live && !this.el.hidden && performance.now() >= this.nextLine) {
+      this.nextLine = performance.now() + LINE_SECONDS * 1000;
+      this.line.refresh(this.sessionInfo());
+    }
     if (this.noticeUntil && performance.now() >= this.noticeUntil) {
       this.noticeUntil = 0;
       this.sync();
@@ -235,8 +252,12 @@ export class PauseMenu {
 
   private sync() {
     const idle = this.session ? `Session · ${this.session}` : this.started ? 'Paused' : 'Click to start';
-    this.status.lastChild!.textContent = this.hold.held ? 'Keep holding to leave fullscreen' : performance.now() < this.noticeUntil ? this.message : idle;
-    this.play.firstChild!.textContent = this.session ? 'Resume' : 'Play';
+    const notice = performance.now() < this.noticeUntil;
+    this.status.lastChild!.textContent = this.hold.held ? 'Keep holding to leave fullscreen' : notice ? this.message : idle;
+    // The live line, unless a message has the status line (reconnecting, the hold, a notice).
+    this.line.el.hidden = !this.live || this.hold.held || notice;
+    this.status.hidden = !this.line.el.hidden;
+    this.play.firstChild!.textContent = this.session ? 'Back to session' : 'Play';
     this.multiplayer.textContent = this.session ? 'Leave session' : 'Multiplayer';
     // Nothing to save on the title screen; UPLOAD can come first. In a session, the server's paint is everyone's: no UPLOAD.
     this.savePaint.hidden = !this.started && !this.session;

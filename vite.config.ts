@@ -2,7 +2,7 @@ import { execSync } from 'node:child_process';
 import { readdirSync, rmSync } from 'node:fs';
 import { defineConfig } from 'vite';
 import pkg from './package.json' with { type: 'json' };
-import { LEVELS } from './src/config.ts';
+import { LEVELS, RENDER } from './src/config.ts';
 
 // The build's version (src/version.ts): git describe from the last release tag,
 // prefixed with package.json's version until the first tag exists; just that
@@ -39,7 +39,7 @@ const CSP = "default-src 'self'; img-src 'self' data: blob:; base-uri 'none'; fr
 // npm run build:dev; npm run build, the player build, leaves them out.
 export default defineConfig(({ mode, isSsrBuild }) => ({
   plugins: [releaseLevels],
-  define: { __VERSION__: JSON.stringify(version()), __DEV_TOOLS__: JSON.stringify(mode !== 'production') },
+  define: { __VERSION__: JSON.stringify(version()), __DEV_TOOLS__: JSON.stringify(mode !== 'production'), __MIN_VIEWPORT__: JSON.stringify(RENDER.minViewport) },
   ssr: { noExternal: true },
   build: { copyPublicDir: !isSsrBuild },
   server: { proxy: { '/ws': { target: process.env.WS_TARGET ?? 'ws://localhost:3000', ws: true } } },

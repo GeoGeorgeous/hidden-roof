@@ -104,6 +104,16 @@ export class Multiplayer {
     return this.joined !== null;
   }
 
+  /** In a session: everyone in it, us first, with their paint colors (null: not known yet). */
+  get players() {
+    return this.joined ? [{ name: this.name, color: this.g.inventory.color }, ...this.remotes.roster] : [];
+  }
+
+  /** The last round trip to the server (s), null before the first. */
+  get ping() {
+    return this.net.ping;
+  }
+
   /** Start a session on this level at this PAINT DETAIL, from a paint save or clean. */
   host(name: string, detail: number, save?: Uint8Array) {
     const { data, name: levelName } = this.g.levelData();

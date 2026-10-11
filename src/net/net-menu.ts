@@ -1,4 +1,4 @@
-import { PAINT } from '../config';
+import { COLORS, PAINT } from '../config';
 import { download, pickFile, stamp } from '../files';
 import type { PauseMenu } from '../pause-menu';
 import type { Hotbar } from '../inventory/hotbar';
@@ -13,8 +13,8 @@ import { Multiplayer, type MultiplayerContext, type NetStatus } from './multipla
 // DETAIL, the paint to start from: the level's own (save/level-paint.ts, none
 // for most levels), this level's as it is, or a paint file) or JOIN (a name
 // and the code the host shares), the link's state under them. In a session
-// the pause screen shows the code and offers SAVE (the session's paint) and
-// LEAVE SESSION. Returns the game's Multiplayer.
+// the pause screen shows its live line (code, ping, players) and offers SAVE
+// (the session's paint) and LEAVE SESSION. Returns the game's Multiplayer.
 
 type Start = 'fresh' | 'mine' | 'file';
 const STARTS: Start[] = ['fresh', 'mine', 'file'];
@@ -140,7 +140,7 @@ export function multiplayerMenu(hud: PauseMenu, hotbar: Hotbar, ctx: Multiplayer
       saving.fail(new Error('The link dropped before the paint came: save again'));
       saving = null;
     }
-    hud.setSession(s.state === 'in' || s.state === 'reconnecting' ? s.code : null);
+    hud.setSession(s.state === 'in' || s.state === 'reconnecting' ? s.code : null, s.state === 'in');
     const known = s.state === 'failed' ? STATUS[s.reason] : STATUS[s.state];
     // What was seen (a close code, an HTTP status, tries) goes along, for reports.
     const detail = s.state === 'failed' || s.state === 'reconnecting' ? s.detail : undefined;
@@ -151,6 +151,7 @@ export function multiplayerMenu(hud: PauseMenu, hotbar: Hotbar, ctx: Multiplayer
   };
   net.onPlayer = (who, joined) => hotbar.toast(`${who} ${joined ? 'joined' : 'left'}`);
   hud.onLeave = () => net.leave();
+  hud.sessionInfo = () => ({ ping: net.ping, players: net.players.map((p) => ({ name: p.name, color: p.color && COLORS[p.color] })) });
   // SAVE in a session downloads the session's paint, from the server.
   let saving: { done: (bytes: Uint8Array) => void; fail: (e: Error) => void } | null = null;
   const local = paintFile.save;
