@@ -1,53 +1,21 @@
 import { action, button, div } from './menu-ui';
 import type { PauseMenu } from './pause-menu';
+import { newestFirst, parseRelease } from './release-notes';
 import { VERSION } from './version';
 
-// The Updates popup of the ESC menu: the release notes, newest first. They're
-// the GitHub releases' notes, kept in docs/releases/<tag>.md and bundled with
-// the game (never fetched); each release's picture is public/updates/<tag>.webp
-// (the CSP takes images from the game's own site only). The notes are read as
-// the releases write them: a # title, the intro, then - **heading** items with
-// their text, and lists under some (- **term**: what it is, or plain - lines).
+// The Updates popup of the ESC menu: the release notes, newest first, with
+// their dates. They're bundled from docs/releases/<tag>.md (never fetched);
+// each release's picture is public/updates/<tag>.webp (the CSP takes images
+// from the game's own site only).
 
 const RELEASES = 'https://github.com/GeoGeorgeous/hidden-roof/releases';
 
-interface Item {
-  title: string;
-  text: string;
-  /** Term and description; plain lines have no term. */
-  list: [term: string, desc: string][];
-}
-interface Release {
-  tag: string;
-  intro: string;
-  items: Item[];
-}
-
-const plain = (s: string) => s.replace(/\*\*/g, '').trim();
-
-function parse(tag: string, md: string): Release {
-  const release: Release = { tag, intro: '', items: [] };
-  let item: Item | null = null;
-  for (const line of md.split('\n')) {
-    const t = line.trim();
-    const bullet = /^-\s+(.*)$/.exec(t);
-    if (!t || t.startsWith('#') || t.startsWith('<img')) continue;
-    if (bullet && line.startsWith('-')) release.items.push((item = { title: plain(bullet[1]), text: '', list: [] }));
-    else if (bullet && item) {
-      const term = /^\*\*(.+?)\*\*:?\s*(.*)$/.exec(bullet[1]);
-      item.list.push(term ? [term[1], term[2]] : ['', plain(bullet[1])]);
-    } else if (item) item.text = `${item.text} ${plain(t)}`.trim();
-    else release.intro = `${release.intro} ${plain(t)}`.trim();
-  }
-  return release;
-}
-
-/** v1.10.0 after v1.9.0. */
-const newestFirst = (a: Release, b: Release) => b.tag.localeCompare(a.tag, 'en', { numeric: true });
-
 const notes = Object.entries(import.meta.glob<string>('../docs/releases/v*.md', { query: '?raw', import: 'default', eager: true }))
-  .map(([path, md]) => parse(path.replace(/^.*\/|\.md$/g, ''), md))
+  .map(([path, md]) => parseRelease(path.replace(/^.*\/|\.md$/g, ''), md))
   .sort(newestFirst);
+
+/** 2026-10-09 → October 9, 2026, the same in every time zone. */
+const day = (date: string) => new Date(`${date}T00:00:00Z`).toLocaleDateString('en', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 
 export function updatesPage(menu: PauseMenu) {
   const head = div('updates-head');
@@ -93,7 +61,9 @@ export function updatesPage(menu: PauseMenu) {
       }
       items.append(el);
     }
-    pane.replaceChildren(div('release', `Hidden Roof ${r.tag.replace(/^v/, '')}`), div('intro', r.intro), shot, items);
+    const title = div('release', `Hidden Roof ${r.tag.replace(/^v/, '')}`);
+    if (r.date) title.append(Object.assign(document.createElement('span'), { textContent: day(r.date) }));
+    pane.replaceChildren(title, div('intro', r.intro), shot, items);
     pane.scrollTop = 0;
   };
   menu.addPage('updates', root, () => show(0));
