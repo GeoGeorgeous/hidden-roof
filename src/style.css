@@ -1,11 +1,18 @@
 /* Body-cam overlay style, inked: ink + one alert color, thin lines, small
    monospace, no panels, no glow. */
 
-/* The pause menu title's graffiti font (public/fonts/README.txt). */
+/* The titles' graffiti font and the menus' sans (public/fonts/README.txt). */
 @font-face {
   font-family: 'Sedgwick Ave Display';
   src: url('/fonts/sedgwick-ave-display.woff2') format('woff2');
   font-display: block;
+}
+/* Variable: weights 400 to 600 in one file. */
+@font-face {
+  font-family: 'Archivo';
+  src: url('/fonts/archivo.woff2') format('woff2');
+  font-weight: 400 600;
+  font-display: swap;
 }
 
 :root {
@@ -14,6 +21,15 @@
   --paper: #ebe5d6;
   --alert: #d4261c;
   --line: 1px solid var(--ui);
+  /* The ESC menu: paper on dark, in Archivo; ink on paper buttons. */
+  --sans: 'Archivo', system-ui, sans-serif;
+  --display: 'Sedgwick Ave Display', cursive;
+  --ink: #111;
+  --text-2: rgba(235, 229, 214, 0.55);
+  --text-3: rgba(235, 229, 214, 0.4);
+  --hair: rgba(235, 229, 214, 0.1);
+  --edge: rgba(235, 229, 214, 0.18);
+  --error: #e0675e;
 }
 
 html,
@@ -257,20 +273,36 @@ canvas {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 14px;
-  background: #0e0e10;
+  gap: 12px;
+  background: #000;
   color: var(--paper);
 }
 .loading b {
   /* The pause menu's title (.overlay .title). */
-  font-family: 'Sedgwick Ave Display', cursive;
+  font-family: var(--display);
   font-weight: 400;
-  font-size: 56px;
+  font-size: 96px;
   line-height: 1;
   letter-spacing: 0.02em;
 }
+/* Two status lines in one place: the one .on fades in over the other (loading.ts). */
+.loading p {
+  display: grid;
+  justify-items: center;
+  min-height: 18px;
+  margin: 0;
+  font-family: var(--sans);
+  font-size: 13px;
+  letter-spacing: 0.01em;
+  color: var(--text-2);
+}
 .loading span {
-  color: rgba(235, 229, 214, 0.62);
+  grid-area: 1 / 1;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.loading span.on {
+  opacity: 1;
 }
 
 /* --- Start / pause screen ---------------------------------------------- */

@@ -5,7 +5,12 @@ subset from Google Fonts (css2?family=Noto+Sans+JP:wght@900&text=...) and replac
 
 sedgwick-ave-display.woff2: Sedgwick Ave Display, by Kevin Burke and Mirko Velimirovic,
 licensed under the SIL Open Font License 1.1 (https://openfontlicense.org). Google Fonts'
-latin subset, for the pause menu title (style.css).
+latin subset, for the titles of the loading screen and the ESC menu (style.css).
+
+archivo.woff2: Archivo, by Omnibus-Type, licensed under the SIL Open Font License 1.1.
+Google Fonts' latin subset, variable weight (400 to 600 used), for the loading screen's
+status line and the ESC menu's text (style.css). Fetch it again with
+css2?family=Archivo:wght@400;500;600 (the latin block's file).
 
 Hint fonts, for build mode's hints painted on walls (src/build/hint-fonts.ts), loaded only
 in build mode. Each is a Google Fonts subset (css2?family=...&text=...): ASCII and a few

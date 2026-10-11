@@ -174,7 +174,7 @@ let loaded = false;
 // Signs measure their text when they are built: wait for the sign font first.
 Promise.all([fetchLevel(levelName), jpFontReady()])
   .then(async ([data]) => {
-    await loadStep('BUILDING THE ROOF');
+    await loadStep('Building the roof');
     loadLevel(data);
     // The level's merged meshes first: their shaders are most of what's compiled.
     level.flush();
@@ -182,9 +182,9 @@ Promise.all([fetchLevel(levelName), jpFontReady()])
     // With the lights set up as the game draws them: their number is in the shaders.
     lighting.update(player.position, camera.matrixWorldInverse);
     post.warm(scene, viewScene, camera);
-    await loadStep('LIGHTING THE LAMPS');
+    await loadStep('Lighting the lamps');
     baker.update(0, player.position);
-    await loadStep('PUTTING UP THE PAINT');
+    await loadStep('Putting up the paint');
     await putLevelPaint(paint, drips, levelName, data);
     loaded = true;
     // A reload in a session goes back into it (multiplayer.ts), with the session's paint.
