@@ -40,12 +40,18 @@ The host's details (machine, other services, firewall, paths) are kept out of th
 - Never put the static files in `Caddy's data directory` (certificates) or serve them from the clone's `dist*/`, where a local build would overwrite prod.
 - Update the static files in place: `rsync -a --delete-delay --delay-updates dist/ <apps>/roof/www/`. Never swap the directory with `mv`, because the bind mount keeps the old inode.
 - **Build the client off the host** (there's no Node on it): in GitHub Actions (then rsync the output) or in a throwaway `node:24-slim` container. Planned flow: push to `main` → Actions builds → deploy over SSH with the repo's own deploy key.
-- **The server is started by hand** (not automated, by choice): in `<apps>/roof/repo`, `git pull`, then `docker compose up -d --build roof` from `<apps>`.
+- **The server is started by hand** (not automated, by choice): `git fetch --depth 1 origin tag vX.Y.Z && git checkout vX.Y.Z` in `<apps>/roof/repo` (a shallow clone on a detached tag: `git pull` does nothing), then `docker compose up -d --build roof` from `<apps>`.
 - **Client and server versions can differ** after deploys at different times. The client sends a protocol version and its surface-table hash when it connects; on a mismatch the server rejects it and the client asks for a page reload (`docs/multiplayer-audit.md`, section 4, Versions). When a deploy bumps the protocol, restart `roof` and deploy the client together: live sessions end, and old tabs are told to reload.
-- Caddy site block. Two `header` lines with and without a matcher would let the unmatched one run last and overwrite the `/assets` header, so both get matchers:
+- Caddy site block (the site-level `header` block is the host's security headers). Two `header` lines with and without a matcher would let the unmatched one run last and overwrite the `/assets` header, so both get matchers:
 
 ```
 roof.hidden.haus {
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
 	handle /ws {
 		reverse_proxy roof:3000 {
 			stream_close_delay 30m
@@ -75,7 +81,7 @@ The design is in `docs/multiplayer-audit.md` (sections 0, 4, 5, 6.4, 7, 8). The 
 - One Node.js process (Node 24) with the `ws` library, TypeScript that shares modules with the client.
 - **Bundled:** `npm run build:server` → `dist-server/server/main.js`, one file with everything in it (`vite.config.ts`: `ssr.noExternal`). `src/` uses extensionless imports, which plain Node can't resolve, hence the bundle. `PORT` overrides 3000. Locally, `npm run server` builds and starts it, and `npm run dev` proxies `/ws` to it.
 - **Image:** the repo's `Dockerfile`, two stages: `npm ci` + `npm run build:server`, then `node:24-slim` with only `main.js`, as user `node`. No `node_modules` at runtime.
-- **Compose service** in `the host's compose file`. **No `ports:`**: Caddy reaches it by name on the compose network, and published ports would bypass the firewall.
+- **Compose service** in `the host's compose file`. **No `ports:`**: Caddy reaches it by name on the compose network, and published ports would bypass the firewall. The host hardens it further than the example below (`memswap_limit`, `cpus`, `pids_limit`, `read_only` with a small `/tmp` tmpfs, `cap_drop: [ALL]`, `no-new-privileges`): keep those.
 
 ```yaml
   roof:
@@ -96,7 +102,7 @@ The design is in `docs/multiplayer-audit.md` (sections 0, 4, 5, 6.4, 7, 8). The 
       retries: 3
 ```
 
-- **Deploy it by hand** (not automated, by choice), from the same commit as the client: `git pull` in `<apps>/roof/repo`, then `docker compose up -d --build roof` from `<apps>`. Then add the `/ws` handle to the Caddy block (section 5) and reload Caddy, the first time.
+- **Deploy it by hand** (not automated, by choice), from the same tag as the client: `git fetch --depth 1 origin tag vX.Y.Z && git checkout vX.Y.Z` in `<apps>/roof/repo` (a shallow clone on a detached tag: `git pull` does nothing), then `docker compose up -d --build roof` from `<apps>`. Then add the `/ws` handle to the Caddy block (section 5) and reload Caddy, the first time.
 - `/healthz` answers `ok, <n> sessions` (for Docker). A plain GET at `/ws` answers `roof server · protocol <n>`: a game that can't open its WebSocket asks there to tell "server down" (Caddy's 502) from "socket blocked" and from another version, so the `/ws` handle must pass plain requests too (it does).
 - **The log** (`docker compose logs -t roof`): one line per event, the session's code first (`-----` before there is one): server start; host (IP, level, detail, paint memory, session count); a player in (`new`, `back` with their token, or `takeover` by name from a new tab; for the last two, the link it replaces or when their last one closed and how long it was open; whether the paint file was shared) or turned away (the reason); a paint file made (MB of paint, MB packed, seconds, how many wait in line) and, when it's dropped, how many it served if more than one; dropped (WebSocket close code); out (left, or didn't come back in 60 s); session closed (how long it ran, MB of paint, players, how many came in new, back or by takeover); every 5 minutes while sessions are live, memory (live, RSS), sessions, players; bad message; server error (with the stack). IPs come from Caddy's `X-Forwarded-For`.
 - **Close codes:** a turned-away socket closes with 4001–4008 (`closeCode` in `src/net/protocol.ts`: version, no-session, ended, full, bad-save, bad-level, busy, replaced); 1008 a bad message, 1011 a server error.
