@@ -14,6 +14,8 @@ interface Particle {
   pos: THREE.Vector3;
   vel: THREE.Vector3;
   life: number;
+  /** Launched since the last update: drawn where it starts before it moves. */
+  fresh: boolean;
   surface: PaintSurface | null;
   /** PaintSystem.epoch at emit: a particle from before a wipe (LOAD) lands without paint. */
   epoch: number;
@@ -79,7 +81,7 @@ export class SprayParticles {
     this.points.frustumCulled = false;
     scene.add(this.points);
     for (let i = 0; i < SPRAY.maxParticles; i++) {
-      this.free.push({ pos: new THREE.Vector3(), vel: new THREE.Vector3(), life: 0, surface: null, epoch: 0, at: { rect: 0, u: 0, v: 0 }, amount: 0, radius: 0, softness: 0, drips: 0, rgb: [0, 0, 0] });
+      this.free.push({ pos: new THREE.Vector3(), vel: new THREE.Vector3(), life: 0, fresh: false, surface: null, epoch: 0, at: { rect: 0, u: 0, v: 0 }, amount: 0, radius: 0, softness: 0, drips: 0, rgb: [0, 0, 0] });
     }
   }
 
@@ -147,6 +149,7 @@ export class SprayParticles {
     p.vel.subVectors(end, e.nozzle);
     const dist = p.vel.length();
     p.life = dist / SPRAY.particleSpeed;
+    p.fresh = true;
     p.vel.multiplyScalar(SPRAY.particleSpeed / Math.max(dist, 1e-4));
     const k = this.live.length * 3;
     this.colors[k] = e.display.r;
@@ -160,8 +163,11 @@ export class SprayParticles {
     let n = 0;
     for (let i = 0; i < list.length; i++) {
       const p = list[i];
-      p.pos.addScaledVector(p.vel, Math.min(dt, p.life));
-      p.life -= dt;
+      // Launched after the last update: its first frame shows it leaving the nozzle.
+      const step = p.fresh ? 0 : dt;
+      p.fresh = false;
+      p.pos.addScaledVector(p.vel, Math.min(step, p.life));
+      p.life -= step;
       if (p.life <= 0) {
         if (p.surface && p.epoch === this.paint.epoch) this.paint.stamp(p.surface, p.at, p.radius, p.amount, p.rgb, p.softness, p.drips);
         p.surface = null;
