@@ -179,11 +179,11 @@ export const DAYLIGHT: Partial<typeof ATMOS> = {
  * pool (the two shadow slots also get shafts). Added in the final pass.
  */
 export const VOLUMETRICS = {
-  enabled: false,
+  enabled: true,
   /** Raymarch resolution divisor relative to the render resolution (2 = half width and height). */
-  downscale: 2,
+  downscale: 4,
   /** Samples along each ray (max 32). */
-  steps: 16,
+  steps: 12,
   /** Rays stop after this many meters. */
   maxDistance: 40,
   /** Scattering density of the air (1/m). */
