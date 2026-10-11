@@ -212,6 +212,7 @@ input.onLockChange = (locked) => {
 hud.menu.onResume = () => input.requestLock();
 hud.menu.onStyle = (i) => settings.setStyle(i);
 input.escapeResumes = () => hud.menu.escape();
+input.escapeReleased = () => hud.menu.escapeReleased();
 hud.setLocked(false);
 hud.menu.setSettings(settings.sections());
 const paintFile = paintMenu(hud.menu, paint, drips, () => levelName);

@@ -20,6 +20,8 @@ export class Input {
   onLockChange: (locked: boolean) => void = () => {};
   /** While paused, on Esc: true when it should go back to the game (on the pause screen, or a panel holds the mouse, as F3 does). */
   escapeResumes: () => boolean = () => false;
+  /** While paused, on releasing Esc: true when it should go back to the game (a press on the pause screen that didn't leave fullscreen). */
+  escapeReleased: () => boolean = () => false;
 
   /** Without an element nothing ever reaches it: the player's input while paused in a session. */
   constructor(private element?: HTMLElement) {
@@ -39,7 +41,10 @@ export class Input {
       this.typed.add(e.code);
       this.down.add(e.code);
     });
-    window.addEventListener('keyup', (e) => this.down.delete(e.code));
+    window.addEventListener('keyup', (e) => {
+      this.down.delete(e.code);
+      if (e.code === 'Escape' && !this.locked && this.escapeReleased()) this.requestLock();
+    });
     // Without the keyboard lock (windowed, refused, not Chromium) the browser keeps Ctrl+W:
     // crouch + forward would close the tab. While playing, ask before leaving instead.
     window.addEventListener('beforeunload', (e) => {

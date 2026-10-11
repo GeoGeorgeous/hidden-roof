@@ -19,7 +19,7 @@ const SECTIONS: [title: string, entries: Entry[]][] = [
     [
       ['Bombing!!: A Graffiti Sandbox & Bombing!! 2', 'The paint sandbox', 'Steam ↗', 'https://store.steampowered.com/app/1527520/'],
       ['Marc Eckō’s Getting Up: Contents Under Pressure', 'Rooftops and tags', 'Steam ↗', 'https://store.steampowered.com/app/260190/'],
-      ['Daisuke Tajima — Beyond the Lines', 'The pen-and-ink city look', 'Exhibition ↗', 'https://art-view.roppongihills.com/en/shop/adgallery/tajima/'],
+      ['Daisuke Tajima — Beyond the Lines', 'The pen-and-ink city look', 'Book ↗', 'https://www.seigensha.com/books/978-4-86152-902-3/'],
     ],
   ],
   [

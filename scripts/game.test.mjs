@@ -89,15 +89,15 @@ await check('pickups: on the start screen, before the game first runs, they alre
   return r.count && !r.sunk.length ? null : JSON.stringify(r);
 });
 
-await check('menu: Esc goes back from a page to the pause screen and there resumes; Game, Graphics and Audio open their tab; the style switcher is the settings STYLE', async () => {
+await check('menu: Esc goes back from a page to the pause screen and there resumes once released (a press on a page doesn\'t); Game, Graphics and Audio open their tab; the style switcher is the settings STYLE', async () => {
   const r = await page.evaluate(() => {
     const { menu } = window.game.hud;
-    const item = (t) => [...document.querySelectorAll('.overlay .item')].find((b) => b.textContent === t);
+    const item = (t) => [...document.querySelectorAll('.overlay button')].find((b) => b.textContent === t);
     const shown = () => [...document.querySelectorAll('.overlay > :not(.blur)')].filter((e) => !e.hidden).map((e) => e.className).join(' | ');
     const tab = () => document.querySelector('.settings-page .tabs .on')?.textContent;
     item('Audio').click();
     const audio = [shown(), tab()];
-    const back = menu.escape();
+    const back = [menu.escape(), menu.escapeReleased()];
     const after = shown();
     item('Graphics').click();
     const graphics = tab();
@@ -115,9 +115,9 @@ await check('menu: Esc goes back from a page to the pause screen and there resum
     menu.escape();
     const mp = [document.querySelector('.page-sub').textContent, document.querySelectorAll('.big-row').length];
     menu.escape();
-    return { audio, back, after, graphics, style, on, host, mp, mpBack: shown(), resumes: menu.escape() };
+    return { audio, back, after, graphics, style, on, host, mp, mpBack: shown(), resumes: [menu.escape(), menu.escapeReleased()] };
   });
-  const ok = r.audio[0] === 'seg back | page settings-page' && /sound/i.test(r.audio[1]) && r.back === false && /pause/.test(r.after) && /graphics/i.test(r.graphics) && /old manga/i.test(r.style) && r.on === 'New manga' && r.host === 'Host a session' && r.mp.join() === ',2' && /pause/.test(r.mpBack) && r.resumes === true;
+  const ok = r.audio[0] === 'seg back | page settings-page' && /sound/i.test(r.audio[1]) && r.back.join() === 'false,false' && /pause/.test(r.after) && /graphics/i.test(r.graphics) && /old manga/i.test(r.style) && r.on === 'New manga' && r.host === 'Host a session' && r.mp.join() === ',2' && /pause/.test(r.mpBack) && r.resumes.join() === 'false,true';
   return ok ? null : JSON.stringify(r);
 });
 
