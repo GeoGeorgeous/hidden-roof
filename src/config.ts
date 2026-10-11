@@ -5,8 +5,8 @@ export const RENDER = {
   pixelScale: 1,
   fov: 80,
   /** Extra FOV (degrees) while sprinting, eased in and out. */
-  sprintFovBoost: 6,
-  sprintFovEase: 8,
+  sprintFovBoost: 10,
+  sprintFovEase: 6,
   /** Frame rate limit (frames per second); 0 = none, as fast as the display refreshes. A player setting (FRAME RATE). */
   maxFps: 0,
   /**
@@ -64,13 +64,13 @@ export const ATMOS = {
   emissiveBoost: 1.8,
   /** Wet look on up-facing surfaces: darker + specular. */
   wetness: 0.15,
-  rain: false,
+  rain: true,
   /** Fraction of the maximum drop count. */
-  rainDensity: 0.09,
-  rainSpeed: 8,
+  rainDensity: 0.25,
+  rainSpeed: 10.5,
   /** Raindrop color, and how visible the drops are (multiplier, 1 = default). */
-  rainColor: '#26272c',
-  rainOpacity: 1,
+  rainColor: '#c5c5c5',
+  rainOpacity: 0.75,
   /** Wind for rain and smoke: speed (m/s) and the heading it blows toward (degrees, 0 = +z, 90 = +x). */
   windStrength: 3.6,
   windHeading: 236.3,
@@ -121,7 +121,7 @@ export const LIGHTS: Record<Exclude<LightKind, 'neon'>, LightSpec> & { neon: Omi
   neon: { tint: 1, dir: [1, 0, 0], intensity: 8, range: 10, spread: 1.45, softness: 1, glow: 0, glowAllAround: false, beam: 0, shadows: true },
   billboardLamp: { color: '#ffe2b0', tint: 0, dir: [0, -0.8, -0.6], intensity: 25, range: 12, spread: 0.8, softness: 0.5, glow: 0.3, glowAllAround: false, beam: 3.2, shadows: true },
   // On only while the camera follows the player (see CCTV); turns with the head. Glow and beam are not used.
-  cctv: { color: '#dfe9ff', tint: 0, dir: [0, -0.3, -1], intensity: 6, range: 9, spread: 0.35, softness: 0.7, glow: 0, glowAllAround: false, beam: 0, shadows: false },
+  cctv: { color: '#ff2a1a', tint: 0, dir: [0, -0.3, -1], intensity: 18, range: 28, spread: 0.35, softness: 0.7, glow: 0, glowAllAround: false, beam: 0, shadows: false },
   // Roof lights (kit/roof-lights.ts): the caged lamp over a roof door, the flat wall panel.
   bulkhead: { color: '#e9e3d2', tint: 0, dir: [0, -0.7, -0.7], intensity: 9, range: 8, spread: 1.2, softness: 0.8, glow: 0.16, glowAllAround: false, beam: 0, shadows: true },
   lightPanel: { color: '#eef1ff', tint: 0, dir: [0, -0.25, -1], intensity: 11, range: 9, spread: 1.4, softness: 1, glow: 0.1, glowAllAround: false, beam: 0, shadows: true },
@@ -1081,9 +1081,9 @@ export const FLICKER = {
   speed: 12,
   /** Fraction of steps that dip, and how deep (0..1). */
   neonRate: 0.035,
-  neonDepth: 0.55,
+  neonDepth: 0.65,
   /** Fast hum on top, as a fraction of brightness. */
-  neonHum: 0.04,
+  neonHum: 0.035,
   /** Aviation lights: pulses per second, and how dark they get between pulses (0..1). */
   pulseRate: 0.5,
   pulseDepth: 0.85,
