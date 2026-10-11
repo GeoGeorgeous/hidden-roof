@@ -3,7 +3,7 @@
 // version in package.json has its note.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { body, githubNotes, newestFirst, parseRelease } from '../src/release-notes.ts';
+import { body, discordNotes, githubNotes, newestFirst, parseRelease } from '../src/release-notes.ts';
 
 const dir = 'docs/releases';
 const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
@@ -41,6 +41,7 @@ for (const file of files) {
   assert.ok(w === 1280 && h === 720 && size <= MAX_PICTURE, `public/updates/${tag}.webp: ${w}×${h}, ${size} bytes; want 1280×720, at most ${MAX_PICTURE}`);
   const github = githubNotes(md, 'URL');
   assert.ok(github.startsWith(text.trim().slice(0, 20)) && github.includes('src="URL"'), `${at}: renders for GitHub`);
+  assert.ok(discordNotes(tag, md).length <= 2000, `${at}: fits one Discord message`);
   releases.push(r);
 }
 assert.ok(files.includes(`v${pkg.version}.md`), `package.json's version ${pkg.version} has its note`);

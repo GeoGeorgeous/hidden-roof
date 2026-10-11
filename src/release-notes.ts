@@ -46,6 +46,14 @@ export function parseRelease(tag: string, md: string): Release {
 /** v1.10.0 after v1.9.0. */
 export const newestFirst = (a: Release, b: Release) => b.tag.localeCompare(a.tag, 'en', { numeric: true });
 
+export const REPO = 'GeoGeorgeous/hidden-roof';
+
+/** The Discord message (at most 2000 characters): the title, the date and a link to the GitHub release, then the note; the picture is attached. */
+export function discordNotes(tag: string, md: string): string {
+  const { date } = parseRelease(tag, md);
+  return `# Hidden Roof ${tag.slice(1)}\n-# ${date} · [GitHub](<https://github.com/${REPO}/releases/tag/${tag}>)\n\n${body(md).trim()}\n`;
+}
+
 /** The GitHub release's notes: the intro, the picture at `pictureUrl`, then the items (GitHub shows the release's title above them). */
 export function githubNotes(md: string, pictureUrl: string): string {
   const text = body(md).trim();
