@@ -20,6 +20,7 @@ import { VERSION } from './version';
 /** Where the GitHub link and the author's name lead. */
 const REPO = 'https://github.com/GeoGeorgeous/hidden-roof';
 const AUTHOR = 'https://github.com/GeoGeorgeous';
+const DISCORD = 'https://discord.gg/yj8z9sxBrf';
 /** Messages in the status line under the title show this long. */
 const NOTICE_SECONDS = 3;
 /** previewSheet shows the full pause sheet this long after the last change. */
@@ -97,7 +98,7 @@ export class PauseMenu {
       column('about', item('Updates', () => this.openPage('updates')), item('Credits', () => this.openPage('credits'))),
     );
     const foot = div('foot');
-    foot.innerHTML = `<span class="off" title="Coming soon">Discord</span><a href="${REPO}" target="_blank" rel="noopener">GitHub</a><i>·</i><span>${VERSION}</span><i>·</i><span>built by <a href="${AUTHOR}" target="_blank" rel="noopener">GeoGeorgeous</a></span>`;
+    foot.innerHTML = `<a href="${DISCORD}" target="_blank" rel="noopener">Discord</a><a href="${REPO}" target="_blank" rel="noopener">GitHub</a><i>·</i><span>${VERSION}</span><i>·</i><span>built by <a href="${AUTHOR}" target="_blank" rel="noopener">GeoGeorgeous</a></span>`;
     // The title group stands on the menu, both on the menu's line from the bottom.
     const stack = div('stack');
     stack.append(hero, menu);
