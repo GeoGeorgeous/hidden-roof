@@ -14,7 +14,6 @@ The one place for what's left to do: bugs, things to check, performance, tests, 
 - **Do:** in `input.ts`, drop one event over 300 px (config) that is also over 3× the largest of the last ~8, and motion in the 100 ms after the lock is taken; count what's dropped in the profiler's report. A fixed cap alone would drop real flicks of 125 Hz mice at high DPI (those build up over several events, so the relative rule keeps them). Test with synthetic `MouseEvent`s: a flick passes, a lone 458 px among 60–120 px is dropped, a ramp of 250–350 px passes. Maybe later a RAW MOUSE setting (`unadjustedMovement`, off by default, with the fallback). **S.**
 
 - **The roof level's scaffolding ladder at [-1, -4, 7] can't be climbed straight up.** Seen 2026-10-11 (an ad-hoc fixed-step climb of every ladder in the roof level): its deck's hatch is 0.65 m wide for the 0.6 m player, the ladder 2.5 cm off its middle, so the head catches the toe board at its +x end at the deck; 3 cm aside it goes up. Already so before the ladder fix. Do: center the ladder in the hatch (`bay` in `src/kit/scaffold.ts`), or widen the hatch. **XS.**
-- **The roof level's wall ladder 2503 ([12, 4, 3.85]) leads nowhere.** Seen 2026-10-11 (the same climb): it ends at 8 m against a wall that goes on up, and the ladder above (1681, [12, 8, 4.15]) is on the wall's other side, so at its top you bob in place. Do: move 1681 onto 2503's face, or give 2503 a landing. **XS.**
 
 ## Check by hand
 
