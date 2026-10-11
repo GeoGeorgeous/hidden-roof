@@ -39,6 +39,7 @@ Hidden roof: a three.js graffiti game. The world is ink on paper and the only co
 - Push merges into `dev` and `next` right away. Topic branches stay local unless I ask.
 - When asked to merge or promote `next` into `main`, first ask me: patch, minor, major, or no release (and say what's new since the last tag, `git log --oneline $(git describe --tags --abbrev=0)..next`). Never pick the bump yourself.
 - Release, on a clean `next` with `npm run check` passing: `npm version <bump>` (bumps, commits, tags `vX.Y.Z`), `git push origin next:main --follow-tags` (fast-forward, never a PR or merge commit), then merge `next` back into `dev` and push.
+- Release notes ("what's in next?", "prepare a release"): `docs/releases/AGENTS.md`. They're written before `npm version`, in the repo, never on GitHub by hand.
 - The game shows its build's `git describe` (`src/version.ts`), so `dev` and `next` need no bumps.
 
 ## Long runs
@@ -52,3 +53,4 @@ End every run with: Blocked on me, Changed, Found.
 - Ink style, materials, color, signs: `src/render/ink/AGENTS.md`
 - Debug panel (F3): tabs, naming, tooltips, values: `src/debug/AGENTS.md`
 - Deploy, the VPS, the multiplayer server's hosting: `docs/deploy.md`
+- Release notes, their pictures, the GitHub release: `docs/releases/AGENTS.md`

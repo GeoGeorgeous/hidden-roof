@@ -163,7 +163,7 @@ await check('credits: every license the page links to ships with the game', asyn
   return r.count === 8 && !r.bad.length ? null : JSON.stringify(r);
 });
 
-await check('updates: the releases newest first, the newest marked Latest; each has its picture; lists under a heading keep their terms', async () => {
+await check('updates: the releases newest first, the newest marked Latest; each has its picture and its date; lists under a heading keep their terms', async () => {
   const r = await page.evaluate(async () => {
     const { menu } = window.game.hud;
     menu.openPage('updates');
@@ -173,6 +173,7 @@ await check('updates: the releases newest first, the newest marked Latest; each 
       b.click();
       const res = await fetch(document.querySelector('.pane .shot img').src);
       if (!res.ok || res.headers.get('content-type') !== 'image/webp') missing.push(b.textContent);
+      if (!/^[A-Z][a-z]+ \d{1,2}, \d{4}$/.test(document.querySelector('.pane .release span')?.textContent)) missing.push(`${b.textContent} date`);
     }
     const tools = [...document.querySelectorAll('.pane .item-note')].find((n) => n.querySelector('.item-title').textContent === 'tools');
     const terms = [...(tools?.querySelectorAll('.term-line b') ?? [])].map((t) => t.textContent);

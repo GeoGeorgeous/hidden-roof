@@ -1102,8 +1102,18 @@ canvas {
   scrollbar-color: rgba(235, 229, 214, 0.3) transparent;
 }
 .overlay .pane .release {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
   font-weight: 600;
   font-size: 20px;
+}
+/* The release date, on the title's line. */
+.overlay .pane .release span {
+  font-weight: 400;
+  font-size: 12px;
+  color: rgba(235, 229, 214, 0.5);
 }
 .overlay .pane .intro {
   font-size: 14px;
