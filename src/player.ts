@@ -127,7 +127,10 @@ export class Player {
 
     this.gatherNearby(dt);
     this.updateCrouch(dt, input);
+    const was = this.ladder;
     const ladder = (this.ladder = this.findLadder());
+    // Climbed out over a ladder's top: it lets go without the climb's lift, so you drop onto what it leads to instead of gliding over it.
+    if (was && !ladder && !this.onGround && this.position.y >= was.volume.max.y) this.velocity.y = Math.min(this.velocity.y, 0);
 
     this.sinceW += dt;
     if (input.wasPressed('KeyW')) {

@@ -688,7 +688,7 @@ await check('ladders: one per player, moved with one rebuild; each owner\'s stay
   return r.moved === 2 && r.both === 'a@2,b@4' && r.saved === 0 && r.left === 'b@4' && r.yours === 'local@8' && r.back === 0 ? null : JSON.stringify(r);
 });
 
-await check('ladders: climbed to the top (each in the level, a stepladder) you stand there off it and jump as from any floor; off the stepladder\'s front you slide down it', async () => {
+await check('ladders: climbed to the top (each in the level, a stepladder) you land close by, stand there off it and jump as from any floor; off the stepladder\'s front you slide down it', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
     const { player: p, input, level, PLAYER } = g;
@@ -708,17 +708,24 @@ await check('ladders: climbed to the top (each in the level, a stepladder) you s
       keys.add('KeyW');
       let climbed = false;
       let top = 0;
+      const left = p.position.clone();
       await steps((f) => {
         climbed ||= p.onLadder;
+        if (p.onLadder) left.copy(p.position);
         if (!(p.onGround && p.position.y > v.max.y - 1e-3) && f < 600) return false;
         keys.delete('KeyW');
         top = p.position.y;
         return true;
       });
       if (!climbed || top < v.max.y - 1e-3) return `climbed ${climbed}, stopped at ${top.toFixed(2)} (top ${v.max.y.toFixed(2)})`;
+      // Off the top it lets you go without its lift: you land close by, not gliding on over the roof.
+      const glide = Math.hypot(p.position.x - left.x, p.position.z - left.z);
+      if (glide > 0.9) return `glided ${glide.toFixed(2)} m off the top`;
+      // Idle there (sliding to a stop may step onto something low by the edge, never back down).
       let held = 0;
-      await steps((f) => ((held += p.onLadder || p.velocity.y !== 0), f === 30));
-      if (held || Math.abs(p.position.y - top) > 0.002) return `idle on top: ${held} frames on the ladder, moved ${(p.position.y - top).toFixed(3)}`;
+      await steps((f) => ((held += p.onLadder || p.velocity.y < 0), f === 30));
+      if (held || p.position.y < top - 0.002) return `idle on top: ${held} frames on the ladder, moved ${(p.position.y - top).toFixed(3)}`;
+      top = p.position.y;
       let peak = top;
       await steps((f) => {
         if (f === 0) input.pressed.add('Space'), keys.add('Space');
