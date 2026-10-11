@@ -8,6 +8,7 @@ import type { Level, PropData } from '../level/level';
 import type { PaintOp, PaintOps } from '../paint-ops';
 import type { Presence } from './protocol';
 import { decodeSnapshot, type Snapshot } from './snapshot';
+import { probe } from '../playtest/probe';
 
 // Another player, shown from their snapshots (snapshot.ts) by interpolation:
 // the figure is drawn a little behind the newest snapshot (NET.interpDelay, or
@@ -61,6 +62,8 @@ export class RemotePlayer {
   private seen = false;
   /** For F3 -> Ghost: how far behind they're shown (s), measured jitter (s), snapshots waiting, guessing past the newest, the correction still gliding (m). */
   readonly stats = { delay: 0, jitter: 0, buffered: 0, guessing: false, correction: 0 };
+  /** The playtest's numbers for this window (playtest/recorder.ts clears them): snapshots, gaps over 150 ms and the longest (ms), time guessing (s), teleports, NO SIGNAL starts. */
+  readonly window = { snaps: 0, gaps: 0, maxGap: 0, guess: 0, teleports: 0, silent: 0 };
   private state: AvatarState = { velocity: new THREE.Vector3(), yaw: 0, pitch: 0, onGround: true, crouched: false, onLadder: false, tool: null, action: null };
   private pos = new THREE.Vector3();
   /** Their time last shown: it never goes back, even when the link gets slower (it stalls instead). */
@@ -88,6 +91,14 @@ export class RemotePlayer {
 
   /** A snapshot arrived at local time `now` (s): when it came, not when it's read (it may have waited behind a welcome's paint). */
   receive(bytes: Uint8Array, now: number) {
+    const gap = (now - this.heard) * 1000;
+    const w = this.window;
+    if (Number.isFinite(gap)) {
+      probe.arrivals.add(gap);
+      if (gap > 150) w.gaps++;
+      w.maxGap = Math.max(w.maxGap, gap);
+    }
+    w.snaps++;
     this.heard = now;
     const s = decodeSnapshot(bytes);
     const last = this.snaps[this.snaps.length - 1];
@@ -108,7 +119,15 @@ export class RemotePlayer {
 
   /** A paint op they made at their time `t`. */
   receiveOp(t: number, op: PaintOp) {
-    this.at(t, () => this.ops.apply(op));
+    const came = performance.now();
+    if (this.lag !== null) probe.opLate.add(Math.max(0, (came / 1000 - t - this.target) * 1000));
+    this.at(t, () => {
+      const a = performance.now();
+      this.ops.apply(op);
+      probe.remoteOps++;
+      probe.remoteOpMs += performance.now() - a;
+      probe.opWait.add(a - came);
+    });
   }
 
   /** Their stepladder placed (or taken away: null) at their time `t`. */
@@ -165,6 +184,7 @@ export class RemotePlayer {
       const late = 1 + NET.extrapolate / span;
       const k = Math.min((at - a.t) / span, late);
       this.stats.guessing = k > 1;
+      if (k > 1) this.window.guess += dt;
       this.pos.lerpVectors(a.pos, b.pos, k);
       st.velocity.subVectors(b.pos, a.pos).divideScalar(span);
       if (k >= late) st.velocity.set(0, 0, 0);
@@ -183,7 +203,9 @@ export class RemotePlayer {
     st.onLadder = cur.onLadder;
     st.tool = cur.tool;
     st.action = cur.action;
-    this.look = this.presence === 'here' && now - this.heard > NET.silentAfter ? 'silent' : this.presence;
+    const look = this.presence === 'here' && now - this.heard > NET.silentAfter ? 'silent' : this.presence;
+    if (look === 'silent' && this.look !== 'silent') this.window.silent++;
+    this.look = look;
     if (this.look !== 'here') {
       // Head down, empty-handed; gone, slumped and faded.
       Object.assign(st, { pitch: -1.2, tool: null, action: null, crouched: this.look !== 'away' || st.crouched });
@@ -202,6 +224,7 @@ export class RemotePlayer {
   private spray(dt: number, s: Snapshot) {
     const cap = CAPS[s.cap];
     this.carry += cap.rate * s.flow * dt;
+    probe.sprayers++;
     const count = Math.floor(this.carry);
     this.carry -= count;
     if (!count) return;
@@ -233,8 +256,13 @@ export class RemotePlayer {
   private smooth(dt: number) {
     const moved = this.truePos.sub(this.pos).negate();
     const jump = moved.addScaledVector(this.state.velocity, -dt);
-    if (!this.seen || jump.length() > NET.teleport) this.error.set(0, 0, 0);
-    else if (jump.length() > 0.05) this.error.sub(jump);
+    if (!this.seen || jump.length() > NET.teleport) {
+      if (this.seen) this.window.teleports++;
+      this.error.set(0, 0, 0);
+    } else if (jump.length() > 0.05) {
+      this.error.sub(jump);
+      probe.corrections++;
+    }
     this.seen = true;
     this.error.multiplyScalar(Math.exp(-NET.smoothing * dt));
     this.truePos.copy(this.pos);

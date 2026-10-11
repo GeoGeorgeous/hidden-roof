@@ -7,6 +7,7 @@ import { checkToServer, closeCode, CODE_LENGTH, CODE_LETTERS, decode, encode, HE
 import { liveMemory, log, who } from './log';
 import { Session, type Link, type Player } from './session';
 import { waiting } from './snapshot';
+import * as playtest from './playtest';
 
 // The multiplayer server: WebSocket sessions at /ws (net/protocol.ts), on
 // SERVER.port (or PORT). A plain GET at /ws answers HELLO (the game asks it
@@ -59,7 +60,11 @@ function connected(ws: WebSocket, req: http.IncomingMessage, host: boolean) {
   // Behind Caddy the socket's address is Caddy's; it passes the player's on.
   const ip = String(req.headers['x-forwarded-for'] ?? req.socket.remoteAddress).split(',')[0].trim();
   const link: Link = {
-    send: (f) => ws.readyState === ws.OPEN && ws.send(f),
+    send: (f) => {
+      if (ws.readyState !== ws.OPEN) return;
+      ws.send(f);
+      playtest.sent(link, f.length, ws.bufferedAmount);
+    },
     close: (code, reason) => ws.close(code, reason),
     get open() {
       return ws.readyState === ws.OPEN;
@@ -67,8 +72,10 @@ function connected(ws: WebSocket, req: http.IncomingMessage, host: boolean) {
     ip,
     since: Date.now(),
   };
+  playtest.opened(link, ip, host);
   const reject = (reason: Rejection, m?: ToServer) => {
     log(m?.type === 'join' ? m.code : '-----', `${m?.type ?? 'link'} from ${ip} turned away: ${reason}`);
+    playtest.turnedAway(link, reason);
     link.send(encode({ type: 'rejected', reason }));
     ws.close(closeCode(reason), reason);
   };
@@ -99,6 +106,8 @@ function connected(ws: WebSocket, req: http.IncomingMessage, host: boolean) {
         log(at && at !== 'waiting' ? at.session.code : '-----', `bad message from ${ip}: closed`);
         return ws.close(1008, 'bad message');
       }
+      playtest.received(link, m.type, data.byteLength);
+      if (m.type === 'stats') return playtest.report(link, m.data, data.byteLength);
       if (at === 'waiting') return;
       // A link replaced by another (a reconnect, another tab) is no longer theirs.
       if (at) return at.player.link === link ? at.session.receive(at.player, m) : undefined;
@@ -114,6 +123,7 @@ function connected(ws: WebSocket, req: http.IncomingMessage, host: boolean) {
     }
   });
   ws.on('close', (code, reason) => {
+    playtest.closed(link, code, reason.toString());
     clearInterval(beat);
     clearTimeout(hello);
     if (!at || at === 'waiting' || at.player.link !== link) return;
@@ -165,6 +175,7 @@ async function enter(m: Extract<ToServer, { type: 'host' | 'join' }>, link: Link
     return r;
   }
   log(session.code, who(r.p), `in from ${ip} (${r.how}, ${session.players.size} players${r.note})`);
+  playtest.admitted(link, session.code, r.p, r.how);
   return { session, player: r.p };
 }
 
@@ -175,7 +186,16 @@ function newCode() {
   return code;
 }
 
-setInterval(() => sessions.forEach((s) => s.tick(1 / SERVER.dripRate)), 1000 / SERVER.dripRate);
+setInterval(
+  () =>
+    sessions.forEach((s) => {
+      const t = performance.now();
+      s.tick(1 / SERVER.dripRate);
+      playtest.tick(s.code, performance.now() - t);
+    }),
+  1000 / SERVER.dripRate,
+);
+playtest.watch(() => [...sessions.values()].map((s) => ({ code: s.code, players: s.players.size, paintMB: s.memory.now })));
 setInterval(() => {
   sessions.forEach((s) => s.ping());
   for (const [code, at] of ended) if (Date.now() - at > SERVER.endedMemory * 1000) ended.delete(code);

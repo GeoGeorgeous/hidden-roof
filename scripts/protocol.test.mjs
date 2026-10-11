@@ -27,6 +27,7 @@ const sent = [
   { type: 'away', away: true },
   { type: 'ping', t: 12.5 },
   { type: 'leave' },
+  { type: 'stats', data: { kind: 'window', device: 'd1', frames: { fps: 60 } } },
 ];
 // Every message comes back as sent: paint ops to the last bit of every number, which keeps everyone's paint identical.
 for (const m of sent) {

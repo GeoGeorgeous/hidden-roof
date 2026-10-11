@@ -9,6 +9,7 @@ import { surfaceTable } from '../src/save/shape';
 import { liveMemory, log, mb, span, who } from './log';
 import { Snapshot, waiting } from './snapshot';
 import { sessionPaint } from './world';
+import { event, telemetry } from './playtest';
 
 // One live session: its level, PAINT DETAIL and paint, and its players. It
 // paints every op it relays, so a joiner (or a player coming back) gets the
@@ -148,7 +149,7 @@ export class Session {
     const others = [...this.players.values()].filter((q) => q !== p);
     const ladders = [...this.players.values()].filter((q) => q.ladder).map((q) => ({ id: q.id, data: q.ladder! }));
     const players = others.map((q) => ({ id: q.id, name: q.name, state: presence(q) }));
-    link.send(encode({ type: 'welcome', code: this.code, you: p.id, token: p.token, levelName: this.levelName, level: this.level, detail: this.detail, table: this.table, players, ladders, inventory: p.inventory, parts: own ? 0 : frames.length }));
+    link.send(encode({ type: 'welcome', code: this.code, you: p.id, token: p.token, levelName: this.levelName, level: this.level, detail: this.detail, table: this.table, players, ladders, inventory: p.inventory, parts: own ? 0 : frames.length, ...(telemetry && { telemetry: 1 as const }) }));
     if (!own) for (const f of frames) link.send(f);
     for (const f of snap.log) link.send(f);
     p.live = true;
@@ -220,6 +221,7 @@ export class Session {
     this.players.delete(p.id);
     if (p.inventory) this.carried.set(p.name, p.inventory);
     log(this.code, who(p), `out: ${why} (${this.players.size} players)`);
+    event(this.code, { event: 'out', player: p.id, name: p.name, why, players: this.players.size });
     const link = p.link;
     p.link = null;
     link?.close(1000, why);
@@ -275,6 +277,7 @@ export class Session {
         const frames = partFrames(pieces, SERVER.partBytes);
         const size = frames.reduce((n, f) => n + f.length, 0);
         log(this.code, `paint file: ${mb(raw)} MB of paint, ${mb(size)} MB packed, in ${((performance.now() - t) / 1000).toFixed(1)} s (${waiting()} more in line)`);
+        event(this.code, { event: 'paint-file', rawMB: Number(mb(raw)), packedMB: Number(mb(size)), ms: Math.round(performance.now() - t), waiting: waiting() });
         this.keep(s);
         return frames;
       } catch (e) {

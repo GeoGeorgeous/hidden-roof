@@ -46,7 +46,7 @@ The 1.2.0 server closes a link that sends a message type it doesn't know, so the
 
 **Collect**
 
-When the owner says the playtest is over: `tar czf playtest-<dates>.tar.gz` the directory, copy it off the host to the owner (outside any repo), and check its size and that it opens.
+When the owner says the playtest is over: `tar czf playtest-<dates>.tar.gz` the directory, copy it off the host to the owner (outside any repo), and check its size and that it opens. The owner makes the report from it: `npm run playtest:report -- <files…>` on the `v1.2.0-playtest` checkout.
 
 **Roll back (to v1.2.0)**
 

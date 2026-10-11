@@ -888,6 +888,41 @@ export const SERVER = {
   helloTimeout: 20,
 };
 
+/** The playtest build's telemetry (docs/playtest.md): what a game reports in a session, and what the server keeps of it. */
+export const PLAYTEST = {
+  /** A report every this many seconds. */
+  every: 5,
+  /** A frame longer than this (ms) is a hitch, reported at once. */
+  hitchMs: 100,
+  /** At most this many hitch reports per window; the rest are only counted. */
+  hitchesPerWindow: 5,
+  /** Frame-time histogram bucket tops (ms); one more bucket past the last. */
+  frameBuckets: [8, 12, 17, 25, 33, 50, 100, 250],
+  /** Ping histogram bucket tops (ms). */
+  pingBuckets: [25, 50, 75, 100, 150, 200, 300, 500, 1000],
+  /** Snapshot inter-arrival histogram bucket tops (ms): a healthy link is a spike at 50. */
+  arrivalBuckets: [30, 45, 55, 70, 100, 150, 300, 1000],
+  /** Silences from the server longer than these (ms) are counted as stalls. */
+  stallMs: [150, 300, 1000],
+  /** Samples kept per metric per window (frames at 240 Hz for 5 s fit). */
+  samples: 1500,
+  /** Errors and events kept per window. */
+  keepErrors: 10,
+  keepEvents: 40,
+  /** The largest report the server keeps (bytes); bigger ones are dropped. */
+  maxReport: 16 * 2 ** 10,
+  /** Reports a player may send: a burst of this many, refilled this many a second. */
+  burst: 12,
+  rate: 2,
+  /** A socket queue past this (bytes) on the server counts as backed up. */
+  queueWarn: 64 * 2 ** 10,
+  /** The server stops writing once its telemetry files take this much (MB). */
+  maxDiskMB: 1024,
+  /** `?playtest-hitch`: a stall this long (ms) every this many seconds, to test that hitches are caught. */
+  fakeHitchMs: 250,
+  fakeHitchEvery: 30,
+};
+
 /** F3 -> Ghost (src/dev/ghost.ts): the network it plays through, and how far behind it follows you. */
 export const GHOST = {
   /** One-way delay (s), random extra delay up to (s), and the share of packets held up by a hiccup (a lost packet resent: TCP holds everything behind it). */

@@ -293,6 +293,35 @@ canvas {
   /* --sheet and --sheet-debug come from PAUSE_MENU (hud.ts). */
   background: var(--sheet, rgba(14, 14, 16, 0.65));
 }
+/* The playtest build's notice (playtest/notice.ts), over everything. */
+.overlay.playtest-notice {
+  position: fixed;
+  z-index: 1000;
+  pointer-events: auto;
+  background: rgba(14, 14, 16, 0.92);
+}
+.playtest-sheet {
+  max-width: 560px;
+  margin: 24px 16px;
+  line-height: 1.45;
+}
+.playtest-sheet h2 {
+  font-family: 'Sedgwick Ave Display', cursive;
+  font-size: 40px;
+  font-weight: normal;
+  margin: 0 0 12px;
+}
+.playtest-sheet ul {
+  padding-left: 20px;
+}
+.playtest-sheet label {
+  display: block;
+  margin: 14px 0;
+  cursor: pointer;
+}
+.playtest-sheet .ok {
+  padding: 6px 28px;
+}
 .overlay .title {
   font-family: 'Sedgwick Ave Display', cursive;
   font-size: 56px;

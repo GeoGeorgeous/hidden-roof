@@ -13,9 +13,9 @@ A temporary build of 1.2.0 that records how a 4–8 player session performs (fra
 ## How it works
 
 - **Client:** in a multiplayer session only, every `PLAYTEST.every` (5 s) the game sends one `stats` message (~1–2 KB JSON) with that window's aggregates, plus a `hitch` message right away when a frame takes more than `PLAYTEST.hitchMs` (100 ms). The first report after a join carries the device and settings (`env`). Single player records and sends nothing.
-- **Notice:** on the first launch on a device, a one-screen modal: this is the public playtest build of Hidden Roof; in a multiplayer session it sends performance data (the list below, in plain words) to the game's server; what isn't sent (no IP address in the clear, nothing typed but the name); how long it's kept and who sees it. One button, OK. Seen once per device (`localStorage`; shown again when that's unavailable). Styled as the menus are, and doesn't steal pointer lock.
+- **Notice:** on the first launch on a device (not in automated browsers: the tests and `npm run shots` press the menus under it), a one-screen modal: this is the public playtest build of Hidden Roof; in a multiplayer session it sends performance data (the list below, in plain words) to the game's server; what isn't sent (no IP address in the clear, nothing typed but the name); how long it's kept and who sees it. One button, OK. Seen once per device (`localStorage`; shown again when that's unavailable). Styled as the menus are, and doesn't steal pointer lock.
 - **Handshake, so a rollback is safe:** this is a technical guard, not a consent switch. The server says `telemetry: 1` in `welcome`. The client sends `stats` only when it saw that. The 1.2.0 server closes any link that sends a message type it doesn't know: a playtest tab left open after a rollback to 1.2.0 must not loop on reconnects. 1.2.0 tabs left open on the playtest server send nothing and work as before. `PROTOCOL` stays 4.
-- **Server:** checks each `stats` for shape and size (≤ 16 KB, ≤ 1 per second per player, dropped otherwise, never a disconnect), stamps it with the server time, session code, player id and link id (see Who's who), and appends it as one JSON line to `PLAYTEST_LOG` (a directory; one file per day, `playtest-YYYY-MM-DD.jsonl`). Every `PLAYTEST.every` it also writes its own line per live session and one for the process. Unset `PLAYTEST_LOG`: nothing is written (tests, local runs).
+- **Server:** checks each `stats` for shape and size (≤ 16 KB; a burst of 12 then 2 a second per player; dropped otherwise and counted, never a disconnect), stamps it with the server time, session code, player id and link id (see Who's who), and appends it as one JSON line to `PLAYTEST_LOG` (a directory; one file per day, `playtest-YYYY-MM-DD.jsonl`). Every `PLAYTEST.every` it also writes its own line per live session and one for the process. Unset `PLAYTEST_LOG`: nothing is written (tests, local runs).
 - **Why a file, not `docker logs`:** the container's log rotates at 3 × 10 MB. The file lives on a bind mount, outside the container, so a restart keeps it.
 - **Size:** plain text, ~1.5 KB per player per 5 s, about 1 MB per player per hour of play. 8 players for 24 hours straight is ~250 MB; real play (evenings) is tens of MB a day. Nothing is written while no session is live. Guards: at most `PLAYTEST.hitchesPerWindow` hitch lines per player per window (a hitch storm is counted, not written line by line); yesterday's file is gzipped (JSON lines shrink ~10×); past `PLAYTEST.maxDiskMB` (1 GB) the server stops writing and says so once in its log.
 - **Cost:** no allocation per frame (frame times go to a preallocated ring; laps are `performance.now()` pairs), aggregated once per window. The GPU timer runs all the time in a session (its queries are cheap; the report says whether it's supported). Network: ~0.3 KB/s up per player, nothing extra down. The report includes the telemetry's own time per window, to prove it.
@@ -130,7 +130,7 @@ Some testers reach the server through a VPN (it isn't reachable from where they 
 - CPU user and system, heap used, `arrayBuffers`, RSS.
 - GC pauses (`PerformanceObserver('gc')`): count, total, longest.
 - Sessions and players live.
-- The socket has `TCP_NODELAY` (`ws` sets it, so small messages aren't held back to be batched): checked once at start and logged.
+- `TCP_NODELAY`: `ws` sets it on every socket, so small messages aren't held back to be batched (nothing to record; Node has no getter for it).
 
 ## Line format
 
@@ -147,8 +147,8 @@ Client clocks are aligned to the server's with the ping offset, so all lines sha
 
 ## Events and markers
 
-- **Marker:** a silent key (Ctrl+Shift+M, nothing shown) writes a `mark` line from that player: "it lagged just now". Cheaper and more exact than clock times in the chat.
-- **Phases:** the organizer marks each phase of the script (below) the same way, with the phase number typed before (Ctrl+Shift+1…9), so the report can compare phases.
+- **Marker:** F9 (nothing shown) writes a `mark` line from that player: "it lagged just now". Cheaper and more exact than clock times in the chat. Tell the testers.
+- **Phases:** the organizer presses Shift+F9 at the start of each phase of the script (below): the phase number goes up by one, for everyone, so the report can compare phases. (F9 is free in the player build: F3's profiler uses it only in the dev build.)
 - **Pipeline test:** `?playtest-hitch` (URL flag) stalls one frame for 250 ms every 30 s: used once before the playtest to see the hitch end up in the file and the report. Never on in the playtest itself.
 
 ## Running the playtest
@@ -160,12 +160,13 @@ Client clocks are aligned to the server's with the ping offset, so all lines sha
 
 ## Tools on this branch
 
-- `scripts/playtest-bots.mjs <url> [players]`: headless clients that join one session, walk and spray nonstop, to load the server before real players do. Server-side numbers only: bots draw with SwiftShader.
-- `scripts/playtest-report.mjs <files…>`: a page with one timeline per player (fps, frame time p95, GPU ms, draw calls, particles, ping, remote delay) over the server's (event loop, bytes out, buffered), hitches marked, and a table of the worst windows with their causes: the input to the audit.
+- `npm run playtest:bots -- <ws url> [players] [minutes] [level]` (`server/playtest-bots.ts`): bots that host or join one session, walk in circles and spray nonstop (state 20 times a second, 3 paint ops each time, pings, empty reports), to load the server before real players do. They draw nothing: server and link numbers only. Locally each comes from its own address; never point them at the live server during the playtest (they'd be in the data, though the report leaves them out).
+- `npm run playtest:report -- <files…> [--out report.html]` (`scripts/playtest-report.mjs`): one HTML page: who's who by device, each device's numbers, timelines (fps, frame p95, GPU, draw calls, others' particles, ping, silences, heap; the server's event loop, CPU, bytes out) with marks and phases, phases compared, the worst windows and hitches with what took the time, the network split by VPN, joins, errors, the server's numbers and every link event: the input to the audit.
+- Tried locally (2026-10-11): 8 bots for a minute (8 in, ping ≤ 3 ms, ~860 KB/s sent in all, event loop fine); 3 browsers joining 5 spraying bots for 90 s (5.3 KB per report, its own cost ~6 ms per 5 s spread over ~300 frames, the report itself built between frames in ~1 ms); the notice, OK, and a reload not showing it again.
 
 ## Tunables
 
-`PLAYTEST` in `src/config.ts`: `every` (5 s), `hitchMs` (100), `hitchesPerWindow` (5), `maxReport` (16 KB), `minGap` (1 s, per player on the server), `keepErrors` (10), `maxDiskMB` (1024), `stallMs` (150 / 300 / 1000), `queueWarn` (64 KB).
+`PLAYTEST` in `src/config.ts`: `every` (5 s), `hitchMs` (100), `hitchesPerWindow` (5), `maxReport` (16 KB), `burst` / `rate` (12 reports at once, 2 a second after, per player on the server), `keepErrors` (10), `keepEvents` (40), `samples` (1500 per metric per window), `maxDiskMB` (1024), `stallMs` (150 / 300 / 1000), `queueWarn` (64 KB), the histogram buckets (`frameBuckets`, `pingBuckets`, `arrivalBuckets`), `fakeHitchMs` / `fakeHitchEvery` (250 ms every 30 s).
 
 ## Reading
 

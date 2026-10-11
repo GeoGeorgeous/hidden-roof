@@ -4,6 +4,7 @@ import type { PaintSurface, PaintSystem, Rgb } from '../painting';
 import { solidsNear } from '../level/solids';
 import { paintRandom } from '../lcg';
 import { facePoint, type FacePoint } from '../surfaces';
+import { probe } from '../playtest/probe';
 
 // Visual spray particles. Each one raycasts once when emitted, flies from the
 // nozzle to its hit point, and stamps paint into the surface texture on arrival.
@@ -91,9 +92,11 @@ export class SprayParticles {
     // Broad phase: only solids near the player can be hit.
     solidsNear(this.solids, e.eye, SPRAY.reach, this.candidates);
     const { cap } = e;
+    probe.ownAsked += e.count;
     for (let i = 0; i < e.count; i++) {
       const p = this.free.pop();
       if (!p) break;
+      probe.ownLaunched++;
       const hit = this.cast(e.eye, aim(e, paintRandom.spray));
       this.launch(p, e, hit ? hit.point : target.copy(e.eye).addScaledVector(dir, SPRAY.reach));
       p.surface = hit ? (this.paint.get(hit.object) ?? null) : null;
@@ -122,9 +125,11 @@ export class SprayParticles {
     const hit = this.cast(e.eye, e.forward);
     // Level meshes sit at the origin: the face normal is in world space.
     if (hit?.face) wall.setFromNormalAndCoplanarPoint(hit.face.normal, hit.point);
+    probe.othersAsked += e.count;
     for (let i = 0; i < e.count; i++) {
       const p = this.free.pop();
       if (!p) break;
+      probe.othersLaunched++;
       ray.set(e.eye, aim(e, Math.random));
       const onWall = hit?.face && ray.intersectPlane(wall, target) && target.distanceTo(e.eye) < SPRAY.reach;
       this.launch(p, e, onWall ? target : ray.at(SPRAY.reach, target));

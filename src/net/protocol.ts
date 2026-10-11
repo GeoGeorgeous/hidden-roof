@@ -63,7 +63,9 @@ export type ToServer =
   | { type: 'away'; away: boolean }
   /** Answered with a pong carrying the same `t`: the round trip, for the HUD. */
   | { type: 'ping'; t: number }
-  | { type: 'leave' };
+  | { type: 'leave' }
+  /** The playtest build's report (docs/playtest.md): sent only to a server whose welcome says `telemetry`. */
+  | { type: 'stats'; data: Record<string, unknown> };
 
 /** Server -> game. */
 export type ToClient =
@@ -74,7 +76,7 @@ export type ToClient =
    * starting kit); its paint as a paint file follows in `parts` parts (none:
    * it's the save this host sent).
    */
-  | { type: 'welcome'; code: string; you: number; token: string; levelName: string; level: LevelData; detail: number; table: string; players: { id: number; name: string; state: Presence }[]; ladders: { id: number; data: PropData }[]; inventory: InventoryData | null; parts: number }
+  | { type: 'welcome'; code: string; you: number; token: string; levelName: string; level: LevelData; detail: number; table: string; players: { id: number; name: string; state: Presence }[]; ladders: { id: number; data: PropData }[]; inventory: InventoryData | null; parts: number; telemetry?: 1 }
   | { type: 'rejected'; reason: Rejection }
   | { type: 'joined'; id: number; name: string }
   | { type: 'left'; id: number }
@@ -175,6 +177,8 @@ export function checkToServer(m: Message | null): ToServer | null {
     case 'save':
     case 'leave':
       return m as ToServer;
+    case 'stats':
+      return isObject(v.data) ? (m as ToServer) : null;
   }
   return null;
 }

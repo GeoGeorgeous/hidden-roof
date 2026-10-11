@@ -83,8 +83,8 @@ export class Remotes {
     this.nameplates.update(camera, shown.map(([id, r]) => ({ id, name: this.names.get(id) ?? '', note: NOTE[r.look], feet: r.position })));
   }
 
-  /** For the HUD: how far behind each is shown, and the jitter of their snapshots. */
+  /** For the HUD: how far behind each is shown, and the jitter of their snapshots; for the playtest, their id, how they look, whether they're on screen, and the window's numbers. */
   get stats() {
-    return [...this.list].map(([id, r]) => ({ name: this.names.get(id) ?? '', delay: r.stats.delay, jitter: r.stats.jitter }));
+    return [...this.list].map(([id, r]) => ({ id, name: this.names.get(id) ?? '', delay: r.stats.delay, jitter: r.stats.jitter, look: r.look, visible: r.avatar.group.visible, window: r.window }));
   }
 }

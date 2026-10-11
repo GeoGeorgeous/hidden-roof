@@ -50,6 +50,7 @@ import { exitGameFullscreen } from './fullscreen';
 import { setHex } from './hex-color';
 import { seedPaintRandom } from './lcg';
 import { fanLevel, metalDrops } from './emitter-sounds';
+import { startPlaytest } from './playtest/playtest';
 
 // F3's defaults before anything changes config (the panel isn't in the player build).
 if (__DEV_TOOLS__) captureDefaults();
@@ -216,6 +217,7 @@ hud.setLocked(false);
 hud.setSettings(settings.sections());
 const paintFile = paintMenu(hud, paint, drips, () => levelName);
 const net = multiplayerMenu(hud, hotbar, { scene, camera, level, paint, paintOps, drips, player, inventory, pickups, tools, levelData: () => ({ data: levelData(), name: levelName }), levelPaint: () => levelPaintOf(levelName), openLevel, lockDetail: (tpm) => settings.lockPaintDetail(tpm) }, () => levelName);
+const playtest = startPlaytest({ renderer, gpuTimer, camera, paint, drips, tools, net, levelName: () => levelName });
 tools.onCapChange = (name) => hud.showCapTag(name);
 tools.onColorChange = (color) => hud.showColorTag(color, COLORS[color]);
 
@@ -259,6 +261,7 @@ function frame(time: number) {
     drawnAt = since < interval * 2 ? drawnAt + interval : time;
   }
   const t0 = performance.now();
+  playtest.begin(t0);
   timer.update(time);
   const delta = timer.getDelta();
   fixedStep.script?.();
@@ -299,7 +302,7 @@ function frame(time: number) {
   viewScene.visible = !cityView;
   const shown = cityView ? titleCamera(camera) : camera;
   const at = shown.position;
-  dev?.lap('player');
+  lap('player');
   // Sprites follow the camera's FOV (sprinting, F3) like the world around them.
   const pointScale = viewHeight / (2 * Math.tan((camera.fov * Math.PI) / 360));
   lightFx.setPointScale(pointScale);
@@ -314,7 +317,7 @@ function frame(time: number) {
   if (!frozen) lightning.update(dt, ATMOS.rain && !building);
   lighting.update(at, shown.matrixWorldInverse, time / 1000, lightning.flash);
   syncCityLight(lighting);
-  dev?.lap('lights');
+  lap('lights');
   (sky.material as THREE.ShaderMaterial).uniforms.uFlash.value = lightning.flash * THUNDER.flashSky;
   playerLight.update(eye, !building);
   setHex(viewFill.color, VIEWMODEL.fillSky);
@@ -329,7 +332,7 @@ function frame(time: number) {
   audio.setFan(fanLevel(level.emitters, eye));
   if (ATMOS.rain && !building) metalDrops(audio, level.emitters, heightmap, camera, dt, eye);
   audio.update(paused && !dev?.panelOpen);
-  dev?.lap('world');
+  lap('world');
 
   if (!frozen) {
     if (building) dev!.update(input, camera);
@@ -342,7 +345,9 @@ function frame(time: number) {
     // Tuned live in F3 → Items → Pickups, which pauses the game.
     if (dev?.panelOpen) pickups.update(dt, player.position, inventory);
   }
+  lap('tools');
   net.update(dt);
+  lap('net');
   const tool = building ? null : inventory.tool;
   hud.setCrosshair(tools.crosshair(tool));
   const anchor = tools.labelAnchor(tagPos);
@@ -353,19 +358,19 @@ function frame(time: number) {
     textAtlasSeen = textAtlasVersion();
     level.rebuildLettered();
   }
-  dev?.lap('tools');
+  lap('tags');
   level.flush();
-  dev?.lap('level');
+  lap('level');
   baker.update(time / 1000, at);
-  dev?.lap('bake');
+  lap('bake');
   paint.gpu.flush(renderer);
   hotbar.update(inventory);
   hud.update();
-  dev?.lap('paint + hud');
+  lap('paint + hud');
 
   post.render(scene, viewScene, shown, lighting, !building);
   frameDrawn();
-  dev?.lap('render');
+  lap('render');
   // Same frame as the render: the canvas still holds it (see screenshot.ts).
   if (input.wasPressed('KeyK')) saveScreenshot(renderer.domElement, () => hotbar.toast('Screenshot saved'));
   gpuTimer.poll();
@@ -386,6 +391,7 @@ function frame(time: number) {
   const gpu = !HUD.perfGpu ? undefined : gpuTimer.supported ? gpuTimer.total(VOLUMETRICS.enabled ? ['scene', 'volumetrics', 'post'] : ['scene', 'post']) : null;
   hud.setPerf({ fps, frameMs, gpu, calls, triangles, textureBytes: paint.gpu.textureBytes + baker.stats.textureBytes + staticTextureBytes(), net: net.stats });
   dev?.report({ fps, frameMs, calls, triangles, interval: delta * 1000 });
+  playtest.frame({ t0, interval: delta * 1000, calls, triangles, playing: input.locked });
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
@@ -397,5 +403,7 @@ function toScreen(p: THREE.Vector3) {
 
 // Dev tools (build mode, F3, window.game): single player only, and not in the player build (npm run build).
 let dev: DevTools | undefined;
+/** A section of the frame ends: for F3's profiler and the playtest. */
+const lap = (name: string) => (dev?.lap(name), playtest.lap(name));
 const game = { city: () => skyline, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, hotbar, pickups, paint, paintOps, net, paintFile, seedPaintRandom, fixedStep, session, level, renderer, input, hud, scene, viewScene, gpuTimer, PLAYER, loadLevel, rebuildCity, levelData, levelName: () => levelName, openLevel, loaded: () => loaded };
 if (__DEV_TOOLS__) void import('./dev/devtools').then((m) => (dev = new m.DevTools(game)));

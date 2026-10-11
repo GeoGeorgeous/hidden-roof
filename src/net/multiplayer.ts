@@ -16,6 +16,8 @@ import { decode, encode, PROTOCOL, type Rejection, type ToClient, type ToServer 
 import { diagnose, NetLog, Traffic } from './diagnostics';
 import { ownerOf, Remotes } from './remotes';
 import { capture, encodeSnapshot } from './snapshot';
+import { probe } from '../playtest/probe';
+import type { NetTap } from '../playtest/link-tap';
 
 // This game in a multiplayer session (server/, protocol.ts): HOST or JOIN,
 // then NET.sendRate times a second this player's snapshot and the paint ops
@@ -68,6 +70,9 @@ export class Multiplayer {
   onProgress: (text: string | null) => void = () => {};
   /** What happened to the link (COPY NETWORK LOG). */
   readonly log = new NetLog();
+  /** The playtest build's view of the link; `telemetry`: the server keeps reports (its welcome said so). */
+  tap: NetTap | null = null;
+  telemetry = false;
   private ws: WebSocket | null = null;
   private remotes: Remotes;
   /** Who we are, once welcomed, and how to come back. */
@@ -148,7 +153,7 @@ export class Multiplayer {
     if (this.net.measure(t)) this.send({ type: 'ping', t });
     const at = t - this.t0;
     const log = this.g.paint.log!;
-    for (const op of log) this.ops.push(op), this.opTimes.push(at);
+    for (const op of log) this.ops.push(op), this.opTimes.push(at), probe.ownOps[op.kind]++;
     log.length = 0;
     const id = this.g.level.runtimeOf(session.player);
     if (id !== this.ladderId) {
@@ -172,6 +177,7 @@ export class Multiplayer {
   private connect(hello: Extract<ToServer, { type: 'host' | 'join' }>) {
     this.ws?.close();
     this.name = hello.name;
+    this.tap?.event('connect', { how: hello.type, back: hello.type === 'join' && !!hello.token });
     // HOST goes where the server takes big messages (a save), a few at a time.
     const url = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws${hello.type === 'host' ? '?host' : ''}`;
     this.log.add(`connecting to ${url}: ${hello.type === 'host' ? `HOST at ${hello.detail} texels/m${hello.bytes ? ` with ${(hello.bytes.length / 1024).toFixed(0)} KB of paint` : ''}` : `JOIN ${hello.code}${hello.token ? ' (coming back)' : ''}`}`);
@@ -226,6 +232,7 @@ export class Multiplayer {
       uploading = false;
       this.net.down += (e.data as ArrayBuffer).byteLength;
       const m = decode(new Uint8Array(e.data as ArrayBuffer)) as ToClient | null;
+      this.tap?.received(m?.type ?? '?', (e.data as ArrayBuffer).byteLength, t);
       if (m?.type === 'part') {
         if (!waiting) return;
         waiting.parts.push(m.bytes);
@@ -242,6 +249,7 @@ export class Multiplayer {
       clearInterval(timer);
       if (this.ws !== ws) return;
       this.log.add(`closed: ${e.code}${e.reason ? ` ${e.reason}` : ''}${e.wasClean ? '' : ', not clean'}, after ${(now() - started).toFixed(1)} s`);
+      this.tap?.event('closed', { code: e.code, reason: e.reason, clean: e.wasClean, after: Math.round(now() - started) });
       this.ws = null;
       if (timedOut && !this.joined) return this.end({ state: 'failed', reason: 'timeout', detail: `NO ANSWER IN ${NET.connectTimeout} S` });
       this.dropped(e.code);
@@ -300,7 +308,10 @@ export class Multiplayer {
       this.onProgress(null);
       this.onSave(file ?? null, this.joined.levelName);
     }
-    else if (m.type === 'pong') this.net.ping = now() - m.t;
+    else if (m.type === 'pong') {
+      this.net.ping = now() - m.t;
+      this.tap?.pong(this.net.ping);
+    }
   }
 
   private async welcome(w: Extract<ToClient, { type: 'welcome' }>, file: Uint8Array) {
@@ -320,8 +331,11 @@ export class Multiplayer {
       }
     }
     this.onProgress('LOADING PAINT…');
+    const l0 = performance.now();
     // The session's paint replaces ours; what we painted while the link was down is gone with it.
     await loadPaint(g.paint, g.drips, file, { name: w.levelName });
+    this.telemetry = !!w.telemetry;
+    this.tap?.welcome(this.telemetry, { code: w.code, you: w.you, others: w.players.length, fileBytes: file.length, loadMs: performance.now() - l0 });
     const name = this.name;
     this.log.add(`in session ${w.code} as #${w.you}, at ${w.detail} texels/m, with ${w.players.length} others, ${(file.length / 1024).toFixed(0)} KB of paint`);
     this.joined = { code: w.code, token: w.token, name, you: w.you, levelName: w.levelName };
@@ -388,11 +402,18 @@ export class Multiplayer {
     const f = encode(m);
     this.net.up += f.length;
     this.ws.send(f);
+    this.tap?.sent(m.type, f.length, this.ws.bufferedAmount);
+  }
+
+  /** A playtest report, when the server keeps them. */
+  report(data: Record<string, unknown>) {
+    if (this.telemetry && this.live) this.send({ type: 'stats', data });
   }
 
   private setStatus(s: NetStatus) {
     if (s.state === 'failed' || s.state === 'off') this.log.add(`status: ${s.state}${s.state === 'failed' ? ` ${s.reason}${s.detail ? ` (${s.detail})` : ''}` : ''}`);
     this.status = s;
+    this.tap?.event('status', { ...s });
     this.onStatus(s);
   }
 }

@@ -23,6 +23,8 @@
     "test:server": "npm run build:server -- --logLevel warn && vite build --ssr server/server-test.ts --outDir dist-server/test --logLevel warn && node dist-server/test/server-test.js",
     "check:quick": "npm run build -- --logLevel error && npm test && knip",
     "check": "npm run check:quick && npm run smoke && npm run test:game && npm run test:server && node scripts/multiplayer.test.mjs && npm run test:csp && npm run golden",
+    "playtest:bots": "vite build --ssr server/playtest-bots.ts --outDir dist-server/bots --logLevel warn && node dist-server/bots/playtest-bots.js",
+    "playtest:report": "node scripts/playtest-report.mjs",
     "audit": "knip; jscpd src"
   },
   "dependencies": {
