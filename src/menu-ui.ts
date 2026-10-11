@@ -60,6 +60,42 @@ export function segmented(labels: string[], pick: (i: number) => void) {
   return { el, set: (on: number) => items.forEach((b, i) => b.classList.toggle('on', i === on)) };
 }
 
+/** A popup over the blurred game (a page of the menu): its title, a body and a row of buttons, both refilled per state. */
+export function popup(title: string) {
+  const root = div('page popup-page');
+  const box = div('popup');
+  const body = div('popup-body');
+  const buttons = div('popup-buttons');
+  box.append(div('popup-title', title), body, buttons);
+  root.append(box);
+  return { root, body, buttons };
+}
+
+/** A paragraph from text and highlighted bits (`[text]` elements made with `hl`); `className`: lead (larger), error. */
+export function para(className: string, ...parts: (string | HTMLElement)[]) {
+  const p = div(`para ${className}`);
+  p.append(...parts);
+  return p;
+}
+
+/** A highlighted bit of a paragraph: a file name, a menu path. */
+export function hl(text: string) {
+  return Object.assign(document.createElement('span'), { className: 'hl', textContent: text });
+}
+
+/** A file: its name, and what's known about it (size, date) on the right. */
+export function fileChip(name: string, about: string) {
+  const el = div('chip');
+  el.append(Object.assign(document.createElement('b'), { textContent: name }), Object.assign(document.createElement('span'), { textContent: about }));
+  return el;
+}
+
+/** "~2 MB", "~340 KB". */
+export function aboutSize(bytes: number) {
+  const mb = bytes / 1048576;
+  return mb >= 1 ? `~${mb < 10 ? mb.toFixed(1) : Math.round(mb)} MB` : `~${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
 /** "NEW MANGA", "new manga" -> "New manga". */
 export function sentence(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();

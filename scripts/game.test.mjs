@@ -66,8 +66,10 @@ async function check(name, fn) {
 }
 
 /** The pause screen's SAVE and UPLOAD. */
+const SAVE = '.overlay .item:text-is("Save")';
 const UPLOAD = '.overlay .item:text-is("Upload")';
-const waitStatus = (page, text) => page.waitForFunction((t) => document.querySelector('.overlay .status').textContent === t, text, { timeout: 10000 });
+/** The popup that's open. */
+const POPUP = '.popup-page:not([hidden])';
 /** Paint one dot on surface `i` (the pause menu stays up). */
 const dot = (page, i = 0) => page.evaluate((i) => window.game.paint.stamp(window.game.paint.surfaces[i], { rect: 0, u: 0.5, v: 0.5 }, 0.1, 1, [1, 0, 0]), i);
 const paintedKeys = (page) => page.evaluate(() => window.game.paint.surfaces.filter((s) => s.data).map((s) => s.key).sort().join());
@@ -147,52 +149,67 @@ await check('settings: Shift + click puts a slider back to its default; PAINT an
   return ok ? null : JSON.stringify(r);
 });
 
-await check('menu: SAVE PAINT downloads one file, even clicked three times at once', async () => {
+await check('save popup: SAVE shows the file and its size; DOWNLOAD downloads that one file, even clicked three times at once, then says where it went', async () => {
   await dot(page);
+  await page.click(SAVE);
+  await page.waitForFunction(() => /KB|MB/.test(document.querySelector('.popup-page:not([hidden]) .chip span').textContent));
+  const chip = await page.textContent(`${POPUP} .chip b`);
   let n = 0;
   const count = () => n++;
   page.on('download', count);
   const first = page.waitForEvent('download');
-  await page.evaluate(() => { const save = [...document.querySelectorAll('.overlay .item')].find((b) => b.textContent === 'Save'); for (let i = 0; i < 3; i++) save.click(); });
-  await (await first).saveAs(`${tmp}/menu.rhhpaint`);
-  await waitStatus(page, 'Paint saved');
+  await page.evaluate((popup) => { const go = document.querySelector(`${popup} .btn.primary`); for (let i = 0; i < 3; i++) go.click(); }, POPUP);
+  const saved = await first;
+  await saved.saveAs(`${tmp}/menu.rhhpaint`);
+  await page.waitForFunction((popup) => document.querySelector(`${popup} .para.done`)?.textContent === 'Download started.', POPUP);
   await page.waitForTimeout(300);
   page.off('download', count);
-  return n === 1 ? null : `${n} downloads`;
+  const back = await page.evaluate(() => (window.game.hud.menu.escape(), document.querySelector('.overlay .pause').hidden));
+  return n === 1 && /^demo-\d{8}-\d{6}\.rhhpaint$/.test(chip) && saved.suggestedFilename() === chip && !back ? null : JSON.stringify({ n, chip, file: saved.suggestedFilename(), back });
 });
 
-await check('menu: with the file picker open, SAVE and LOAD do nothing; cancelling says NO FILE CHOSEN', async () => {
-  const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click(UPLOAD)]);
+await check('upload popup: with the file picker open, CHOOSE FILE does nothing; closing the picker leaves the popup as it was', async () => {
+  await page.click(UPLOAD);
+  const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click(`${POPUP} .btn.primary`)]);
   let extra = 0;
   const count = () => extra++;
-  page.on('download', count).on('filechooser', count);
-  await page.click('.overlay .item:text-is("Save")');
-  await page.click(UPLOAD);
+  page.on('filechooser', count);
+  await page.evaluate((popup) => document.querySelector(`${popup} .btn.primary`).click(), POPUP);
   await page.waitForTimeout(300);
-  page.off('download', count).off('filechooser', count);
+  page.off('filechooser', count);
   await chooser.setFiles([]);
-  await waitStatus(page, 'NO FILE CHOSEN');
-  return extra ? `${extra} downloads or pickers while the picker was open` : null;
+  await page.waitForTimeout(300);
+  const still = await page.textContent(`${POPUP} .btn.primary`);
+  await page.evaluate(() => window.game.hud.menu.escape());
+  return !extra && still === 'Choose file…ENTER' ? null : JSON.stringify({ extra, still });
 });
 
-await check('menu: LOAD PAINT after a reload puts the paint back', async () => {
+await check('upload popup: after a reload, a saved file shows by name, and REPLACE PAINT puts its paint back', async () => {
   const before = await paintedKeys(page);
   await page.reload();
   await gameReady(page, 2);
-  const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click(UPLOAD)]);
+  await page.click(UPLOAD);
+  const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click(`${POPUP} .btn.primary`)]);
   await chooser.setFiles(`${tmp}/menu.rhhpaint`);
-  await waitStatus(page, 'Paint loaded');
+  await page.waitForFunction((popup) => document.querySelector(`${popup} .btn.primary`).textContent.startsWith('Replace paint'), POPUP);
+  const chip = await page.textContent(`${POPUP} .chip b`);
+  await page.click(`${POPUP} .btn.primary`);
+  await page.waitForFunction((popup) => document.querySelector(`${popup} .para.done`)?.textContent === 'Paint loaded.', POPUP);
   const after = await paintedKeys(page);
-  return after === before ? null : `painted ${after}, saved ${before}`;
+  await page.evaluate(() => window.game.hud.menu.escape());
+  return after === before && chip === 'menu.rhhpaint' ? null : JSON.stringify({ painted: after, saved: before, chip });
 });
 
-await check('menu: a broken file says BROKEN PAINT FILE and keeps the paint', async () => {
+await check('upload popup: a broken file says so in red, and the paint stays', async () => {
   fs.writeFileSync(`${tmp}/broken.rhhpaint`, 'RHHPgarbage');
   const before = await paintedKeys(page);
-  const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click(UPLOAD)]);
+  await page.click(UPLOAD);
+  const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click(`${POPUP} .btn.primary`)]);
   await chooser.setFiles(`${tmp}/broken.rhhpaint`);
-  await waitStatus(page, 'BROKEN PAINT FILE');
-  return (await paintedKeys(page)) === before ? null : 'paint changed';
+  await page.waitForFunction((popup) => document.querySelector(`${popup} .para.error`)?.textContent === 'Broken paint file.', POPUP);
+  const kept = (await paintedKeys(page)) === before;
+  await page.evaluate(() => window.game.hud.menu.escape());
+  return kept ? null : 'paint changed';
 });
 
 await check('menu: after a failed link the multiplayer page says so in red and offers COPY NETWORK LOG, which saves a file where the page has no clipboard (plain http, as on a LAN)', async () => {

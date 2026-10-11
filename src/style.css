@@ -763,6 +763,102 @@ canvas {
   color: rgba(17, 17, 17, 0.6);
 }
 
+/* Popups (save, upload, updates): a dark glass card in the middle. */
+.overlay .popup-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.overlay .popup {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 460px;
+  max-width: calc(100% - 98px);
+  padding: 30px 32px 26px;
+  border: 1px solid var(--edge);
+  border-radius: 8px;
+  background: rgba(14, 14, 16, 0.88);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+}
+.overlay .popup-title {
+  font-family: var(--display);
+  font-size: 40px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+.overlay .popup-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.overlay .popup-body:has(.done) {
+  gap: 10px;
+}
+.overlay .para {
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(235, 229, 214, 0.6);
+  text-wrap: pretty;
+}
+.overlay .para.lead {
+  font-size: 14px;
+  line-height: 1.55;
+  color: rgba(235, 229, 214, 0.85);
+}
+.overlay .para.done {
+  color: var(--paper);
+}
+.overlay .para .hl {
+  color: var(--paper);
+}
+.overlay .para.lead .hl {
+  font-weight: 500;
+}
+.overlay .para.error {
+  color: var(--error);
+}
+/* A file: its name, its size or date on the right. */
+.overlay .chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  background: rgba(235, 229, 214, 0.07);
+}
+.overlay .chip b {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: 500;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.overlay .chip span {
+  white-space: nowrap;
+  font-size: 12px;
+  color: rgba(235, 229, 214, 0.5);
+}
+.overlay .popup-buttons {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+/* SAVE CURRENT PAINT FIRST, on the left. */
+.overlay .popup-buttons .link {
+  margin-right: auto;
+  font-size: 13px;
+  color: var(--text-2);
+  transition: color 0.2s;
+}
+.overlay .popup-buttons .link:hover {
+  color: var(--paper);
+}
+
 /* The multiplayer page (net/net-menu.ts): its subtitle a little lower, clear of the title's descenders. */
 .overlay .page-sub {
   min-height: 16px;

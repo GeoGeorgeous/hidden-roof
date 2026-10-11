@@ -42,7 +42,7 @@ const STATUS: Record<string, string> = {
   blocked: 'The server is up but the connection was blocked (firewall or extension?)',
 };
 
-export function multiplayerMenu(hud: PauseMenu, hotbar: Hotbar, ctx: MultiplayerContext, levelName: () => string) {
+export function multiplayerMenu(hud: PauseMenu, hotbar: Hotbar, ctx: MultiplayerContext, levelName: () => string, paintFile: { save: () => Promise<Uint8Array> }) {
   const net = new Multiplayer(ctx);
   const sub = div('page-sub');
   const rows = div('rows');
@@ -135,6 +135,11 @@ export function multiplayerMenu(hud: PauseMenu, hotbar: Hotbar, ctx: Multiplayer
   hud.addPage('mp', root, choose, () => inForm && (choose(), true));
 
   net.onStatus = (s: NetStatus) => {
+    // Out of the session (or reconnecting) before the server sent its paint.
+    if (s.state !== 'in' && saving) {
+      saving.fail(new Error('The link dropped before the paint came: save again'));
+      saving = null;
+    }
     hud.setSession(s.state === 'in' || s.state === 'reconnecting' ? s.code : null);
     const known = s.state === 'failed' ? STATUS[s.reason] : STATUS[s.state];
     // What was seen (a close code, an HTTP status, tries) goes along, for reports.
@@ -146,15 +151,16 @@ export function multiplayerMenu(hud: PauseMenu, hotbar: Hotbar, ctx: Multiplayer
   };
   net.onPlayer = (who, joined) => hotbar.toast(`${who} ${joined ? 'joined' : 'left'}`);
   hud.onLeave = () => net.leave();
-  // SAVE PAINT in a session downloads the session's paint, from the server.
-  const local = hud.onSavePaint;
-  hud.onSavePaint = () => (net.inSession ? net.requestSave() : local());
+  // SAVE in a session downloads the session's paint, from the server.
+  let saving: { done: (bytes: Uint8Array) => void; fail: (e: Error) => void } | null = null;
+  const local = paintFile.save;
+  paintFile.save = () => (net.inSession ? new Promise((done, fail) => ((saving = { done, fail }), net.requestSave())) : local());
   // Each step of HOST, JOIN or SAVE as it goes, with how far along an upload or download is.
   net.onProgress = (text) => text && (say(text), hud.notice(text, Infinity));
-  net.onSave = (bytes, name) => {
-    if (!bytes) return hud.notice('The server is busy: save again later');
-    download(new Blob([bytes as BlobPart]), `${name}-${stamp(new Date())}.rhhpaint`);
-    hud.notice('Paint saved');
+  net.onSave = (bytes) => {
+    if (bytes) saving?.done(bytes);
+    else saving?.fail(new Error('The server is busy: save again later'));
+    saving = null;
   };
   return net;
 }

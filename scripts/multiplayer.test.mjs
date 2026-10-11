@@ -84,6 +84,14 @@ try {
     return shown;
   });
   assert.deepEqual(detail, ['Medium  2.1 cm  (host)', true]);
+  // SAVE in a session: the popup downloads the session's paint, packed by the server.
+  const got = b.waitForEvent('download');
+  await b.click('.overlay .item:text-is("Save")');
+  assert.equal(await b.textContent('.popup-page:not([hidden]) .chip span'), 'from the session');
+  await b.click('.popup-page:not([hidden]) .btn.primary');
+  assert.match((await got).suggestedFilename(), /^demo-\d{8}-\d{6}\.rhhpaint$/);
+  await b.waitForSelector('.popup-page:not([hidden]) .para.done');
+  await b.evaluate(() => window.game.hud.menu.openPage(null));
   assert.deepEqual(await b.evaluate(() => [...window.game.net.names.values()]), ['A']);
   await a.waitForFunction(() => window.game.net.names.size === 1);
   // The HUD's network lines: a ping, and how far behind B is shown.

@@ -15,8 +15,15 @@ export interface LoadedPaint {
   skipped: number;
 }
 
-/** Throws an Error with a message for the player if the file is no good or none of it fits this level; `maxBytes`: the most paint it may hold. */
-export async function loadPaint(paint: PaintSystem, drips: PaintDrips, bytes: Uint8Array, level: { name: string }, maxBytes?: number): Promise<LoadedPaint> {
+/** A save none of whose paint fits this level (saved on another, or on a version of it built differently). */
+export class NotThisLevel extends Error {}
+
+/**
+ * Throws an Error with a message for the player if the file is no good, a
+ * NotThisLevel if none of it fits this level; `maxBytes`: the most paint it
+ * may hold. `apply` false: only checks, changing nothing.
+ */
+export async function loadPaint(paint: PaintSystem, drips: PaintDrips, bytes: Uint8Array, level: { name: string }, maxBytes?: number, apply = true): Promise<LoadedPaint> {
   const { header, body } = await decodePaintFile(bytes, maxBytes);
   const fits = new Map<string, PaintSurface | null>();
   const fit = (key: string) => {
@@ -33,8 +40,10 @@ export async function loadPaint(paint: PaintSystem, drips: PaintDrips, bytes: Ui
   const faces = targets.filter(Boolean).length;
   if (header.faces.length && !faces) {
     const name = header.level.name.toUpperCase();
-    throw new Error(header.level.name === level.name ? `SAVED FOR ANOTHER VERSION OF ${name}` : `SAVED FOR ${name}`);
+    throw new NotThisLevel(header.level.name === level.name ? `SAVED FOR ANOTHER VERSION OF ${name}` : `SAVED FOR ${name}`);
   }
+  const skipped = header.faces.length - faces;
+  if (!apply) return { faces, skipped };
   paint.clear();
   drips.clear();
   let o = 0;
@@ -43,5 +52,5 @@ export async function loadPaint(paint: PaintSystem, drips: PaintDrips, bytes: Ui
     if (s) paint.putFace(s, f.rect, body.subarray(o, o + faceBytes(f)), f.w, f.h);
     o += faceBytes(f);
   });
-  return { faces, skipped: header.faces.length - faces };
+  return { faces, skipped };
 }

@@ -215,7 +215,7 @@ input.escapeResumes = () => hud.menu.escape();
 hud.setLocked(false);
 hud.menu.setSettings(settings.sections());
 const paintFile = paintMenu(hud.menu, paint, drips, () => levelName);
-const net = multiplayerMenu(hud.menu, hotbar, { scene, camera, level, paint, paintOps, drips, player, inventory, pickups, tools, levelData: () => ({ data: levelData(), name: levelName }), levelPaint: () => levelPaintOf(levelName), openLevel, lockDetail: (tpm) => settings.lockPaintDetail(tpm) }, () => levelName);
+const net = multiplayerMenu(hud.menu, hotbar, { scene, camera, level, paint, paintOps, drips, player, inventory, pickups, tools, levelData: () => ({ data: levelData(), name: levelName }), levelPaint: () => levelPaintOf(levelName), openLevel, lockDetail: (tpm) => settings.lockPaintDetail(tpm) }, () => levelName, paintFile);
 tools.onCapChange = (name) => hud.showCapTag(name);
 tools.onColorChange = (color) => hud.showColorTag(color, COLORS[color]);
 

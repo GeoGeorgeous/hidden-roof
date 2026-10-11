@@ -20,13 +20,10 @@ const NOTICE_SECONDS = 3;
 /** previewSheet shows the full pause sheet this long after the last change. */
 const PREVIEW_SECONDS = 1.5;
 
-export type Page = 'settings' | 'mp' | 'credits' | 'updates';
+export type Page = 'settings' | 'mp' | 'credits' | 'updates' | 'save' | 'upload';
 
 export class PauseMenu {
   onResume = () => {};
-  /** SAVE / UPLOAD paint (save/paint-menu.ts). */
-  onSavePaint = () => {};
-  onLoadPaint = () => {};
   /** LEAVE SESSION, in a multiplayer session (net/net-menu.ts). */
   onLeave = () => {};
   /** A style picked on the switcher (INK_STYLES index). */
@@ -45,7 +42,8 @@ export class PauseMenu {
   private page: Page | null = null;
   /** The multiplayer session's code while in one. */
   private session: string | null = null;
-  private started = false;
+  /** The game was started (past the title screen). */
+  started = false;
   /** The full pause sheet is up (paused without F3, or F3 previewing it). */
   private sheetUp = false;
   private debugOpen = false;
@@ -75,8 +73,8 @@ export class PauseMenu {
     this.play.addEventListener('mousedown', (e) => (e.preventDefault(), e.button === 0 && this.onResume()));
     this.play.append(keyHint('ESC'));
     this.multiplayer = item('Multiplayer', () => (this.session ? this.onLeave() : this.openPage('mp')));
-    this.savePaint = item('Save', () => this.onSavePaint());
-    this.loadPaint = item('Upload', () => this.onLoadPaint());
+    this.savePaint = item('Save', () => this.openPage('save'));
+    this.loadPaint = item('Upload', () => this.openPage('upload'));
     const menu = div('menu');
     menu.append(
       column('play', this.play, this.multiplayer),
@@ -140,6 +138,10 @@ export class PauseMenu {
     this.status.textContent = msg;
   }
 
+  get inSession() {
+    return !!this.session;
+  }
+
   /** In a multiplayer session (its code) or not (null): the menu offers RESUME and LEAVE SESSION, and no UPLOAD. */
   setSession(code: string | null) {
     this.session = code;
@@ -172,8 +174,9 @@ export class PauseMenu {
     this.page = page;
     this.el.classList.toggle('sub', !!page);
     this.screen.hidden = this.themes.el.hidden = !!page;
-    this.back.hidden = !page;
     for (const [p, { el }] of this.pages) el.hidden = p !== page;
+    // Popups have their own buttons.
+    this.back.hidden = !page || !!this.pages.get(page)?.el.classList.contains('popup-page');
     if (page) this.pages.get(page)?.open();
     else this.themes.set(inkStyle());
   }
