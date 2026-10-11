@@ -46,11 +46,11 @@ export function parseRelease(tag: string, md: string): Release {
 /** v1.10.0 after v1.9.0. */
 export const newestFirst = (a: Release, b: Release) => b.tag.localeCompare(a.tag, 'en', { numeric: true });
 
-/** The GitHub release's notes: a # title, the intro, the picture at `pictureUrl`, then the items. */
-export function githubNotes(tag: string, md: string, pictureUrl: string): string {
+/** The GitHub release's notes: the intro, the picture at `pictureUrl`, then the items (GitHub shows the release's title above them). */
+export function githubNotes(md: string, pictureUrl: string): string {
   const text = body(md).trim();
   const at = text.search(/^-/m);
   const intro = (at < 0 ? text : text.slice(0, at)).trim();
   const items = at < 0 ? '' : text.slice(at).trim();
-  return `# Hidden Roof ${tag.replace(/^v/, '')}\n\n${intro}\n\n  <img width="1200" src="${pictureUrl}" />\n\n${items}\n`;
+  return `${intro}\n\n  <img width="1200" src="${pictureUrl}" />\n\n${items}\n`;
 }

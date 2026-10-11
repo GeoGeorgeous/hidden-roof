@@ -3,7 +3,7 @@
 One file per release, `docs/releases/vX.Y.Z.md`, is the one source of its notes:
 
 - **The game** bundles them (`src/release-notes.ts`, `src/updates-page.ts`): ESC → About → Updates, newest first, each with its date and its picture, `public/updates/vX.Y.Z.webp` (the CSP takes images from the game's own site only).
-- **GitHub**: `node scripts/release-notes.mjs vX.Y.Z` prints the release's notes, with a `# Hidden Roof X.Y.Z` title and the picture linked from the repo at the tag. Never write them on GitHub by hand.
+- **GitHub**: `node scripts/release-notes.mjs vX.Y.Z` prints the release's notes, with the picture linked from the repo at the tag; the title, `Hidden Roof X.Y.Z`, is the release's own (`--title`), never repeated in the notes. Never write them on GitHub by hand.
 - **Discord** (later): the same text fits one message (2000 characters); the picture goes in an embed.
 
 `npm test` checks every note (`scripts/release-notes.test.mjs`).

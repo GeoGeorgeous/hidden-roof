@@ -39,8 +39,8 @@ for (const file of files) {
   }
   const [w, h, size] = webpSize(`public/updates/${tag}.webp`);
   assert.ok(w === 1280 && h === 720 && size <= MAX_PICTURE, `public/updates/${tag}.webp: ${w}×${h}, ${size} bytes; want 1280×720, at most ${MAX_PICTURE}`);
-  const github = githubNotes(tag, md, 'URL');
-  assert.ok(github.startsWith(`# Hidden Roof ${tag.slice(1)}\n\n${text.trim().slice(0, 20)}`) && github.includes('src="URL"'), `${at}: renders for GitHub`);
+  const github = githubNotes(md, 'URL');
+  assert.ok(github.startsWith(text.trim().slice(0, 20)) && github.includes('src="URL"'), `${at}: renders for GitHub`);
   releases.push(r);
 }
 assert.ok(files.includes(`v${pkg.version}.md`), `package.json's version ${pkg.version} has its note`);
