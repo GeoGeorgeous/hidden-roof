@@ -16,7 +16,8 @@ A temporary build of 1.2.0 that records how a 4–8 player session performs (fra
 - **Notice:** on the first launch on a device, a one-screen modal: this is the public playtest build of Hidden Roof; in a multiplayer session it sends performance data (the list below, in plain words) to the game's server; what isn't sent (no IP address in the clear, nothing typed but the name); how long it's kept and who sees it. One button, OK. Seen once per device (`localStorage`; shown again when that's unavailable). Styled as the menus are, and doesn't steal pointer lock.
 - **Handshake, so a rollback is safe:** this is a technical guard, not a consent switch. The server says `telemetry: 1` in `welcome`. The client sends `stats` only when it saw that. The 1.2.0 server closes any link that sends a message type it doesn't know: a playtest tab left open after a rollback to 1.2.0 must not loop on reconnects. 1.2.0 tabs left open on the playtest server send nothing and work as before. `PROTOCOL` stays 4.
 - **Server:** checks each `stats` for shape and size (≤ 16 KB, ≤ 1 per second per player, dropped otherwise, never a disconnect), stamps it with the server time, session code, player id and link id (see Who's who), and appends it as one JSON line to `PLAYTEST_LOG` (a directory; one file per day, `playtest-YYYY-MM-DD.jsonl`). Every `PLAYTEST.every` it also writes its own line per live session and one for the process. Unset `PLAYTEST_LOG`: nothing is written (tests, local runs).
-- **Why a file, not `docker logs`:** at 8 players it's ~10 MB an hour, and the container's log rotates at 3 × 10 MB. The file lives on a bind mount, outside the container, so a restart keeps it.
+- **Why a file, not `docker logs`:** the container's log rotates at 3 × 10 MB. The file lives on a bind mount, outside the container, so a restart keeps it.
+- **Size:** plain text, ~1.5 KB per player per 5 s, about 1 MB per player per hour of play. 8 players for 24 hours straight is ~250 MB; real play (evenings) is tens of MB a day. Nothing is written while no session is live. Guards: at most `PLAYTEST.hitchesPerWindow` hitch lines per player per window (a hitch storm is counted, not written line by line); yesterday's file is gzipped (JSON lines shrink ~10×); past `PLAYTEST.maxDiskMB` (1 GB) the server stops writing and says so once in its log.
 - **Cost:** no allocation per frame (frame times go to a preallocated ring; laps are `performance.now()` pairs), aggregated once per window. The GPU timer runs all the time in a session (its queries are cheap; the report says whether it's supported). Network: ~0.3 KB/s up per player, nothing extra down. The report includes the telemetry's own time per window, to prove it.
 - **Privacy:** the IP is never written, only a salted hash (to tell two players behind one router apart). Names are what players typed. The files stay on the host and the auditor's machine, never in this public repo. The notice tells the testers what's recorded.
 
@@ -41,7 +42,9 @@ Each window is 5 s; times in ms; "p" is a percentile over the window's frames.
 
 - Frames, fps; frame interval p50 / p95 / p99 / max; frames over 33, 50, 100 ms.
 - CPU time per frame, p50 / p95 / max, and split by section, the same cuts as F3's laps: player, lights, world, tools, net, level, bake, paint flush, render. The worst frame's split is kept whole, so a spike can be pinned to a section.
-- Long tasks (`PerformanceObserver('longtask')`, Chromium): count, total, longest.
+- Long animation frames (`PerformanceObserver('long-animation-frame')`, Chromium 123+; `longtask` where it's missing): count, total, longest, blocking time, and for the longest its scripts' attribution (source, function, duration) and its style and layout time. That says what held the main thread, which our own laps can't see: GC, the browser, an extension.
+- Frame times also as a fixed histogram (buckets: ≤ 8, 12, 17, 25, 33, 50, 100, 250 ms, more): percentiles don't add up across windows and players, bucket counts do, so the report can give one true p99 for a player's whole session or for everyone during the shared-wall phase.
+- Drift over time: fps, heap, paint pages and draw calls per window, so the report can show a slope (a leak, or a laptop throttling as it heats). Battery charging or not (`navigator.getBattery`, Chromium), at join and when it changes.
 - Time the tab was hidden, unfocused, paused (pointer unlocked) or away: those frames don't count toward fps.
 - `RENDER.maxFps` and the display's refresh (median rAF interval while uncapped), so a 60 Hz cap isn't read as a drop.
 
@@ -59,6 +62,7 @@ Each window is 5 s; times in ms; "p" is a percentile over the window's frames.
 - GPU uploads: dirty rects and bytes, per frame p50 / max and in the window; mip regeneration bytes.
 - Paint ops applied: local and remote, per kind (`stamp`, `roll`, `drip`), and the CPU time spent applying remote ones.
 - Drips alive.
+- **Paint latency:** each remote op carries its sender's time; the time from it being made to it being applied here, p50 / p95 / max (clocks aligned with the ping offset). The number players feel: "I sprayed and they saw it N ms later".
 - On join: paint file size, parts, download time, decode and apply time, and time from JOIN to the first playable frame.
 
 ### Spray particles (others' spray)
@@ -75,13 +79,26 @@ Each window is 5 s; times in ms; "p" is a percentile over the window's frames.
 
 ### Network
 
-- Ping: p50 / p95 / max, and pings that came back late (> 1 s) or not at all.
+- Ping: p50 / p95 / max, and pings that came back late (> 1 s) or not at all. Also as a fixed histogram, as frame times.
+- **Stalls:** WebSocket runs on TCP, so one lost packet holds back everything behind it until it's resent (100–200 ms), then it all lands at once. Per window: gaps with no message from the server over 150 / 300 / 1000 ms, and the burst after each (messages in one frame). Snapshot inter-arrival per remote as a histogram: a healthy link is a spike at 50 ms.
+- How stale others look: per remote, interpolation delay + half the ping, p50 / max.
 - Messages and bytes up and down, per message type.
 - Snapshots actually sent per second (a throttled background tab sends fewer).
 - The socket's `bufferedAmount`: max in the window (backpressure on the upload).
 - The most messages handled in one frame, and the time spent decoding and handling them.
 - Reconnects: close code, reason, time to come back. Status changes from the network log (`NetLog`).
 - `navigator.connection` where it exists: type, effective type, RTT, downlink.
+
+### VPN and route
+
+Some testers reach the server through a VPN (it isn't reachable from where they are). What that changes, and what's recorded for it:
+
+- **More round trip:** the route goes through the VPN's exit. Recorded as ping, so it shows; the notice asks "Using a VPN?" (a checkbox, optional) so the report can split players by it instead of guessing.
+- **More stalls:** a VPN over TCP (OpenVPN in TCP mode, some "stealth" modes) puts TCP inside TCP: both resend on loss, and stalls stack. WireGuard or OpenVPN over UDP don't. Recorded by the stall counters above; the report compares VPN and non-VPN players.
+- **MTU:** a tunnel's smaller packets can fragment or drop big messages: the paint file on join (256 KB parts) is the one most likely to stall. Recorded: each part's arrival time on join.
+- **Shared address:** testers on one VPN exit share one IP to the server. Its limits per address (24 links, 2 HOST links, 2 hosted sessions) are per IP, so a crowded exit can be turned away as `too-many`; that's in the server's events. This is why the report keys on the device, not the IP.
+- **Exit changes:** a VPN that reconnects or switches exit drops the WebSocket and comes back from a new IP. Recorded: drop, close code, time to come back, and the server's event that the device's IP hash changed.
+- **Route vs. WebSocket:** at join, the time of a plain `fetch('/ws')`, next to the WebSocket's own ping: when the socket is much worse than plain HTTP, it's the socket's path (a proxy, a firewall), not the route.
 
 ### Memory
 
@@ -105,12 +122,15 @@ Each window is 5 s; times in ms; "p" is a percentile over the window's frames.
 - Drip simulation time per tick: p50 / max.
 - Paint MB held; paint files made: size, time, players served, queue; join, leave and drop events with close codes, time from JOIN to welcome and to the last part.
 
+- Per player: `ws.send` calls that return with the socket's queue over 64 KB (the server keeps sending to a client that can't take it), and the longest time the queue stayed over it.
+
 ### Server, process
 
 - Event loop delay p50 / p99 / max (`monitorEventLoopDelay`) and utilization (`eventLoopUtilization`).
 - CPU user and system, heap used, `arrayBuffers`, RSS.
 - GC pauses (`PerformanceObserver('gc')`): count, total, longest.
 - Sessions and players live.
+- The socket has `TCP_NODELAY` (`ws` sets it, so small messages aren't held back to be batched): checked once at start and logged.
 
 ## Line format
 
@@ -124,6 +144,12 @@ One JSON object per line, with `t` the server time (ISO) and `kind`:
 ```
 
 Client clocks are aligned to the server's with the ping offset, so all lines share one timeline.
+
+## Events and markers
+
+- **Marker:** a silent key (Ctrl+Shift+M, nothing shown) writes a `mark` line from that player: "it lagged just now". Cheaper and more exact than clock times in the chat.
+- **Phases:** the organizer marks each phase of the script (below) the same way, with the phase number typed before (Ctrl+Shift+1…9), so the report can compare phases.
+- **Pipeline test:** `?playtest-hitch` (URL flag) stalls one frame for 250 ms every 30 s: used once before the playtest to see the hitch end up in the file and the report. Never on in the playtest itself.
 
 ## Running the playtest
 
@@ -139,4 +165,18 @@ Client clocks are aligned to the server's with the ping offset, so all lines sha
 
 ## Tunables
 
-`PLAYTEST` in `src/config.ts`: `every` (5 s), `hitchMs` (100), `maxReport` (16 KB), `minGap` (1 s, per player on the server), `keepErrors` (10).
+`PLAYTEST` in `src/config.ts`: `every` (5 s), `hitchMs` (100), `hitchesPerWindow` (5), `maxReport` (16 KB), `minGap` (1 s, per player on the server), `keepErrors` (10), `maxDiskMB` (1024), `stallMs` (150 / 300 / 1000), `queueWarn` (64 KB).
+
+## Reading
+
+- [Detecting and fixing frame hitches](https://bugnet.io/blog/how-to-detect-and-fix-frame-hitches-and-stutter): averages hide hitches; watch p95 / p99 and capture what ran in the spike frame.
+- [Game profiling](https://www.skills.sh/rudolfolah/profiling-code/game-profiling): for rare hitches report the worst frame and the count, not a p99 of a few samples; fix settings and warm up before measuring.
+- [Unity: simulating hitches](https://docs.unity3d.com/6000.2/Documentation/Manual/time-simulate-hitches.html): inject hitches to test that they're caught (`?playtest-hitch`).
+- [Counter-Strike 2's telemetry HUD](https://help.steampowered.com/faqs/view/5E6F-5B36-5485-F6B9): split frame time from network problems.
+- [Long Animation Frames API](https://developer.chrome.com/docs/web-platform/long-animation-frames), [spec](https://www.w3.org/TR/2026/WD-long-animation-frames-20260428/), [DebugBear on LoAF](https://www.debugbear.com/blog/long-animation-frames): what held a frame, with script attribution; Chromium only.
+- [KHR_parallel_shader_compile](https://developer.mozilla.org/docs/Web/API/KHR_parallel_shader_compile): shader compiles block; three.js compiles on first use, so a new program mid-session is a hitch suspect.
+- [Why can't I send UDP packets from a browser?](https://gafferongames.com/post/why_cant_i_send_udp_packets_from_a_browser/), [WebSocket vs TCP](https://websocket.org/reference/websocket-vs-tcp/): head-of-line blocking on a WebSocket, the stall-then-burst pattern.
+- [Unity Netcode metrics](https://docs.unity3d.com/Packages/com.unity.netcode@1.8/manual/metrics.html), [interpolation delay calculator](https://west-games.com/interpolation-delay-calculator/): RTT, jitter and interpolation delay as the core link numbers; size the buffer from a high percentile of jitter, not the average.
+- [Peeking into VALORANT's netcode](https://technology.riotgames.com/node/111): what a player sees of others is old by interpolation delay plus half the ping.
+- [WebSocket backpressure](https://qaskills.sh/blog/websocket-testing-backpressure-limits): `bufferedAmount` is the overload signal, but not every queue.
+- [How a VPN affects ping and packet loss](https://cyberpanel.net/blog/how-a-vpn-affects-ping-packet-loss-and-latency-in-gaming): the route counts more than the cipher; TCP tunnels amplify jitter; MTU causes micro-stutters.
