@@ -35,8 +35,8 @@ The 1.2.0 server closes a link that sends a message type it doesn't know, so the
 **Check**
 
 1. `docs/deploy.md` §7, all of it. `/ws` answers `roof server · protocol 4`.
-2. The pause menu shows `v1.2.0-playtest`.
-3. Two browser windows: HOST in one, JOIN in the other, play for 30 s. A `playtest-YYYY-MM-DD.jsonl` appears in `<apps>/roof/playtest` and grows: `client` lines from both players, `session` and `process` lines every 5 s. Check one line of each kind parses (`tail -n 1 … | jq .`).
+2. The first launch shows the playtest notice; OK closes it, and a reload doesn't show it again. The pause menu shows `v1.2.0-playtest`.
+3. Two browser windows: HOST in one, JOIN in the other, play for 30 s. A `playtest-YYYY-MM-DD.jsonl` appears in `<apps>/roof/playtest` and grows: `client` lines from both players, with different `device` ids, `session` and `process` lines every 5 s. Check one line of each kind parses (`tail -n 1 … | jq .`).
 4. The server log (`docker compose logs roof`) shows no `bad message` lines.
 5. Disk: free space on the volume, and the file's growth rate (expect ~10 MB an hour at 8 players). Tell the owner if the disk can't hold a week of that.
 

@@ -1,6 +1,6 @@
 # Playtest build (v1.2.0-playtest)
 
-A temporary build of 1.2.0 that records how a 4–8 player session performs (frame rate, rendering, paint, particles, network, server) so it can be audited. Players see nothing new: no UI, no prompts, no setting. It lives only on this branch and is dropped after the playtest.
+A temporary build of 1.2.0 that records how a 4–8 player session performs (frame rate, rendering, paint, particles, network, server) so it can be audited. Players see one thing new: a notice on first launch saying this is a playtest build and what it records. Nothing else changes: no prompts in play, no setting. It lives only on this branch and is dropped after the playtest.
 
 ## What it is, and what it isn't
 
@@ -13,11 +13,25 @@ A temporary build of 1.2.0 that records how a 4–8 player session performs (fra
 ## How it works
 
 - **Client:** in a multiplayer session only, every `PLAYTEST.every` (5 s) the game sends one `stats` message (~1–2 KB JSON) with that window's aggregates, plus a `hitch` message right away when a frame takes more than `PLAYTEST.hitchMs` (100 ms). The first report after a join carries the device and settings (`env`). Single player records and sends nothing.
-- **Handshake, so a rollback is safe:** the server says `telemetry: 1` in `welcome`. The client sends `stats` only when it saw that. The 1.2.0 server closes any link that sends a message type it doesn't know: a playtest tab left open after a rollback to 1.2.0 must not loop on reconnects. 1.2.0 tabs left open on the playtest server send nothing and work as before. `PROTOCOL` stays 4.
-- **Server:** checks each `stats` for shape and size (≤ 16 KB, ≤ 1 per second per player, dropped otherwise, never a disconnect), stamps it with the server time, session code and player id, and appends it as one JSON line to `PLAYTEST_LOG` (a directory; one file per day, `playtest-YYYY-MM-DD.jsonl`). Every `PLAYTEST.every` it also writes its own line per live session and one for the process. Unset `PLAYTEST_LOG`: nothing is written (tests, local runs).
+- **Notice:** on the first launch on a device, a one-screen modal: this is the public playtest build of Hidden Roof; in a multiplayer session it sends performance data (the list below, in plain words) to the game's server; what isn't sent (no IP address in the clear, nothing typed but the name); how long it's kept and who sees it. One button, OK. Seen once per device (`localStorage`; shown again when that's unavailable). Styled as the menus are, and doesn't steal pointer lock.
+- **Handshake, so a rollback is safe:** this is a technical guard, not a consent switch. The server says `telemetry: 1` in `welcome`. The client sends `stats` only when it saw that. The 1.2.0 server closes any link that sends a message type it doesn't know: a playtest tab left open after a rollback to 1.2.0 must not loop on reconnects. 1.2.0 tabs left open on the playtest server send nothing and work as before. `PROTOCOL` stays 4.
+- **Server:** checks each `stats` for shape and size (≤ 16 KB, ≤ 1 per second per player, dropped otherwise, never a disconnect), stamps it with the server time, session code, player id and link id (see Who's who), and appends it as one JSON line to `PLAYTEST_LOG` (a directory; one file per day, `playtest-YYYY-MM-DD.jsonl`). Every `PLAYTEST.every` it also writes its own line per live session and one for the process. Unset `PLAYTEST_LOG`: nothing is written (tests, local runs).
 - **Why a file, not `docker logs`:** at 8 players it's ~10 MB an hour, and the container's log rotates at 3 × 10 MB. The file lives on a bind mount, outside the container, so a restart keeps it.
 - **Cost:** no allocation per frame (frame times go to a preallocated ring; laps are `performance.now()` pairs), aggregated once per window. The GPU timer runs all the time in a session (its queries are cheap; the report says whether it's supported). Network: ~0.3 KB/s up per player, nothing extra down. The report includes the telemetry's own time per window, to prove it.
-- **Privacy:** the IP is never written, only a salted hash (to tell two players behind one router apart). Names are what players typed. The files stay on the host and the auditor's machine, never in this public repo. Tell the testers that this build records performance.
+- **Privacy:** the IP is never written, only a salted hash (to tell two players behind one router apart). Names are what players typed. The files stay on the host and the auditor's machine, never in this public repo. The notice tells the testers what's recorded.
+
+## Who's who
+
+A name isn't a person, and neither is the server's player id: if Geo's tab drops and someone else joins under "Geo" within the 60 s rejoin window, the server hands them Geo's slot, id, stepladder and inventory (a `takeover`, `server/session.ts`, `admit`). So every line carries several ids, and the report keys players on the device, never the name:
+
+- **device:** a random id made on the first launch and kept in `localStorage` (the same key that remembers the notice). Survives reloads and sessions; a private window or another browser is a new device.
+- **load:** a random id per page load: two tabs on one device, or a reload, tell apart.
+- **link:** the server numbers each WebSocket it accepts; every line from that socket carries it. Join, back and takeover events say which link took which player id, and from which device.
+- **player:** the session's player id, as the game and the server log use it.
+- **name:** what was typed, at that moment: a label, never a key.
+- **ip:** a salted hash of the address (salt made at server start, never written), and the device's GPU and browser from `env`, to sanity-check a device id (a cleared `localStorage` makes a new one).
+
+The report shows each device as one row, labeled with the names it used, and flags takeovers and a name used by two devices.
 
 ## What it records
 
