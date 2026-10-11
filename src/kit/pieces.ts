@@ -110,7 +110,7 @@ interface ConePiece {
   mat: Mat;
   swing?: Swing;
 }
-/** Ladder climb volume; `normal` points away from the ladder toward the climber. */
+/** Ladder climb volume, from its foot up to its top (the floor it leads to); `normal` points away from the ladder toward the climber. */
 interface ClimbPiece {
   k: 'climb';
   min: V3;
@@ -293,7 +293,7 @@ export class Parts {
     for (let ry = 0.3; ry < height - 0.1; ry += 0.3) {
       this.detail([x - width / 2, y + ry - 0.02, z0 + 0.01], [x + width / 2, y + ry + 0.02, z1 - 0.01], M.steel);
     }
-    this.list.push({ k: 'climb', min: [x - width / 2, y, z0 - 0.45], max: [x + width / 2, y + height + 0.3, z0], normal: [0, 0, -1] });
+    this.list.push({ k: 'climb', min: [x - width / 2, y, z0 - 0.45], max: [x + width / 2, y + height, z0], normal: [0, 0, -1] });
   }
 }
 

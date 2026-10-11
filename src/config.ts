@@ -793,6 +793,8 @@ export const PLAYER = {
   cornerSlip: 0.03,
   /** Ladders (Minecraft-style): hold Space or push into the ladder to climb, let go to slide down, crouch to hold. */
   climbSpeed: 2.6,
+  /** A climb carries on this far (m) over a ladder's top, so you step onto the floor it leads to (a stepladder's cap, a roof, over a parapet). */
+  climbOver: 0.3,
   mouseSensitivity: 0.0022,
   /** Falling below this height respawns the player. */
   killY: -25,

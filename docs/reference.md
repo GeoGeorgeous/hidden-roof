@@ -26,7 +26,7 @@ npm run build:dev  # the same with the dev tools, into dist-dev/
 | Input | Action |
 |---|---|
 | WASD, Shift, Space | Move, run, jump |
-| Move into a ladder | Climb. Let go to slide down, Ctrl to hold on, Space to jump off. Walking away from it walks off. |
+| Move into a ladder, or Space on it | Climb. Let go to slide down, Ctrl to hold on. Walking away from it walks off. At the top you step onto what it leads to (a stepladder's top, a roof) and stand there off the ladder: Space jumps, as from any floor. Walking back off the edge puts you on it again. |
 | LMB | Spray with the can, draw with the marker, place the stepladder, roll with the roller, or scrub paint off with the sponge |
 | 1 – 5 | Can / marker / stepladder / paint roller / sponge (once found) |
 | Q / E | Cycle through the colors you've collected (can, marker, roller) |
