@@ -70,6 +70,9 @@ export const probe = {
   /** Remote figures: gaps between snapshots (ms), and smoothed corrections. */
   arrivals: new Histogram(PLAYTEST.arrivalBuckets),
   corrections: 0,
+  /** Level edits (a stepladder placed or moved, a prop built): the whole change (ms), and the part the light baker took. */
+  levelEdit: new Samples(),
+  bakeSync: new Samples(),
   /** Other players spraying this frame (the recorder clears it each frame). */
   sprayers: 0,
 };

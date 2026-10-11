@@ -2,6 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { monitorEventLoopDelay, performance, PerformanceObserver } from 'node:perf_hooks';
+import v8 from 'node:v8';
 import zlib from 'node:zlib';
 import { PLAYTEST } from '../src/config';
 import { log } from './log';
@@ -142,7 +143,8 @@ export function sent(link: object, bytes: number, queued: number) {
   l.outN++;
   l.outBytes += bytes;
   l.maxQueued = Math.max(l.maxQueued, queued);
-  if (queued > PLAYTEST.queueWarn) {
+  // What was already waiting, not this frame: a paint file part (256 KB) is over the line by itself.
+  if (queued - bytes > PLAYTEST.queueWarn) {
     l.backedUp++;
     l.backedSince ??= Date.now();
     l.longestBacked = Math.max(l.longestBacked, Date.now() - l.backedSince);
@@ -199,19 +201,31 @@ export function watch(sessions: () => { code: string; players: number; paintMB: 
     }
   }).observe({ entryTypes: ['gc'] });
   log('-----', `playtest: reports go to ${dir} (${(written / 2 ** 20).toFixed(0)} MB there already)`);
+  /** When the last session ended (ms), and when the process was last written with none live. */
+  let idleSince: number | null = null;
+  let idleWritten = 0;
   setInterval(() => {
     const live = sessions();
-    if (live.length) {
+    const now = Date.now();
+    if (live.length) idleSince = null;
+    else idleSince ??= now;
+    // Right after the last session ends, and then every PLAYTEST.idleEvery for PLAYTEST.idleMinutes: the memory it left behind.
+    const idle = !live.length && now - idleSince! < PLAYTEST.idleMinutes * 60_000 && now - idleWritten >= PLAYTEST.idleEvery * 1000;
+    if (live.length || idle) {
+      if (idle) idleWritten = now;
       const ms = (ns: number) => Math.max(0, Math.round(ns / 1e4) / 100 - RESOLUTION);
       const m = process.memoryUsage();
+      const h = v8.getHeapStatistics();
       const e = performance.eventLoopUtilization(elu);
       const c = process.cpuUsage(cpu);
       const secs = PLAYTEST.every;
       write({
         kind: 'process',
+        ...(idle && { idleSeconds: Math.round((now - idleSince!) / 1000) }),
         eventLoop: { p50: ms(loop.percentile(50)), p99: ms(loop.percentile(99)), max: ms(loop.max), utilization: Math.round(e.utilization * 1000) / 1000 },
         cpu: { user: Math.round(c.user / 1e4 / secs) / 100, system: Math.round(c.system / 1e4 / secs) / 100 },
-        memoryMB: { heap: mb(m.heapUsed), arrayBuffers: mb(m.arrayBuffers), rss: mb(m.rss) },
+        // heap used is live JS; heap total is what V8 holds; external and arrayBuffers are outside it (paint); rss minus these is what malloc keeps.
+        memoryMB: { heap: mb(m.heapUsed), heapTotal: mb(h.total_heap_size), external: mb(m.external), arrayBuffers: mb(m.arrayBuffers), rss: mb(m.rss) },
         gc: { ...gc, total: Math.round(gc.total), longest: Math.round(gc.longest) },
         sessions: live.length,
         links: links.size,

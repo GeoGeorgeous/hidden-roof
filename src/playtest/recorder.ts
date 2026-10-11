@@ -57,6 +57,13 @@ export class FrameRecorder {
   /** A visibility change since the last frame: that interval spans the time hidden, not a frame. */
   private hiddenGap = false;
   private loaf = { n: 0, total: 0, blocking: 0, longest: null as Record<string, unknown> | null };
+  /** The last few long animation frames, whole, for a hitch to say what held the thread (they arrive a moment after the frame). */
+  private recentLoaf: { end: number; entry: Record<string, unknown> }[] = [];
+  /** The last frame's own CPU time was a hitch: the next frame's long interval is that one's, not a second hitch. */
+  private prevSlow = false;
+  /** The display's refresh, from every rAF callback, drawn or skipped by the frame cap (ms between). */
+  private refresh = new Samples();
+  private lastRaf = 0;
   /** A hitch to send: the recorder only notes it, playtest.ts sends it after the frame. */
   hitch: Record<string, unknown> | null = null;
 
@@ -71,6 +78,13 @@ export class FrameRecorder {
     lapEnds.fill(-1);
   }
 
+  /** Every animation frame callback, also those the frame limit skips (RENDER.maxFps): their spacing is the display's refresh. */
+  raf(time: number) {
+    const d = time - this.lastRaf;
+    this.lastRaf = time;
+    if (d > 1 && d < 100) this.refresh.add(d);
+  }
+
   lap(name: string) {
     const i = LAPS.indexOf(name as (typeof LAPS)[number]);
     if (i >= 0) lapEnds[i] = performance.now() - this.frameStart;
@@ -80,6 +94,7 @@ export class FrameRecorder {
     if (this.hiddenGap) {
       this.hiddenGap = false;
       this.skipped++;
+      this.prevSlow = false;
       return;
     }
     this.interval.add(f.interval);
@@ -108,10 +123,15 @@ export class FrameRecorder {
       laps[name] = round(ms);
     });
     const ms = Math.max(f.interval, f.cpu);
-    if (ms > this.worstMs || f.interval > PLAYTEST.hitchMs) {
-      const frame = { interval: round(f.interval), cpu: round(f.cpu), gpu: gpuTotal === null ? null : round(gpuTotal), laps, calls: f.calls, triangles: f.triangles, uploads: f.uploads, uploadBytes: f.uploadBytes, ownParticles: f.ownParticles, otherParticles: f.otherParticles, sprayers, shown: f.shown, inView: f.inView, messages: f.messages, programs: f.programs, playing: f.playing };
+    // A frame whose own work took long is the hitch (its laps say what); the frame after it only shows the same time in its interval.
+    // A long interval after quick work is something else (the GPU, the browser, vsync).
+    const slow = f.cpu > PLAYTEST.hitchMs;
+    const late = f.interval > PLAYTEST.hitchMs && !this.prevSlow;
+    this.prevSlow = slow;
+    if (ms > this.worstMs || slow || late) {
+      const frame = { at: Math.round(this.frameStart), by: slow ? 'cpu' : 'gap', interval: round(f.interval), cpu: round(f.cpu), gpu: gpuTotal === null ? null : round(gpuTotal), laps, calls: f.calls, triangles: f.triangles, uploads: f.uploads, uploadBytes: f.uploadBytes, ownParticles: f.ownParticles, otherParticles: f.otherParticles, sprayers, shown: f.shown, inView: f.inView, messages: f.messages, programs: f.programs, playing: f.playing };
       if (ms > this.worstMs) [this.worstMs, this.worst] = [ms, frame];
-      if (f.interval > PLAYTEST.hitchMs) this.hitch = frame;
+      if (slow || late) this.hitch = frame;
     }
   }
 
@@ -145,14 +165,20 @@ export class FrameRecorder {
       sprayers: s(this.sprayers),
       inView: s(this.inView),
       longFrames: { ...this.loaf, total: round(this.loaf.total), blocking: round(this.loaf.blocking) },
+      refresh: this.refresh.summary(),
     };
-    for (const x of [this.interval, this.cpu, this.gpu, this.calls, this.triangles, this.uploadBytes, this.particles.own, this.particles.others, this.sprayers, this.inView, ...this.laps]) x.clear();
+    for (const x of [this.refresh, this.interval, this.cpu, this.gpu, this.calls, this.triangles, this.uploadBytes, this.particles.own, this.particles.others, this.sprayers, this.inView, ...this.laps]) x.clear();
     this.over = { 33: 0, 50: 0, 100: 0 };
     this.notPlaying = this.skipped = this.uploads = this.worstMs = 0;
     this.worst = null;
     this.loaf = { n: 0, total: 0, blocking: 0, longest: null };
     probe.ownAsked = probe.ownLaunched = probe.othersAsked = probe.othersLaunched = 0;
     return out;
+  }
+
+  /** The long animation frames that ended since `since` (performance.now()), whole. */
+  loafSince(since: number) {
+    return this.recentLoaf.filter((l) => l.end >= since).map((l) => l.entry);
   }
 
   /** Long animation frames (Chromium 123+), else long tasks: count, time, and the longest with what ran in it. */
@@ -166,17 +192,24 @@ export class FrameRecorder {
         l.n++;
         l.total += e.duration;
         l.blocking += e.blockingDuration ?? 0;
-        if (l.longest && (l.longest.duration as number) >= e.duration) continue;
-        l.longest = {
-          type,
-          duration: round(e.duration),
-          blocking: e.blockingDuration === undefined ? undefined : round(e.blockingDuration),
-          styleLayout: e.styleAndLayoutStart ? round(e.startTime + e.duration - e.styleAndLayoutStart) : undefined,
-          render: e.renderStart ? round(e.startTime + e.duration - e.renderStart) : undefined,
-          scripts: e.scripts?.slice(0, 5).map((x) => ({ invoker: x.invoker, fn: x.sourceFunctionName, src: x.sourceURL?.split('/').pop(), ms: round(x.duration) })),
-        };
+        const entry = this.describe(type, e);
+        this.recentLoaf.push({ end: e.startTime + e.duration, entry });
+        if (this.recentLoaf.length > 4) this.recentLoaf.shift();
+        if (!l.longest || (l.longest.duration as number) < e.duration) l.longest = entry;
       }
     }).observe({ type, buffered: false });
+  }
+
+  private describe(type: string, e: PerformanceEntry & LoafLike) {
+    return {
+      at: round(e.startTime),
+      type,
+      duration: round(e.duration),
+      blocking: e.blockingDuration === undefined ? undefined : round(e.blockingDuration),
+      styleLayout: e.styleAndLayoutStart ? round(e.startTime + e.duration - e.styleAndLayoutStart) : undefined,
+      render: e.renderStart ? round(e.startTime + e.duration - e.renderStart) : undefined,
+      scripts: e.scripts?.slice(0, 5).map((x) => ({ invoker: x.invoker, fn: x.sourceFunctionName, src: x.sourceURL?.split('/').pop(), ms: round(x.duration) })),
+    };
   }
 }
 

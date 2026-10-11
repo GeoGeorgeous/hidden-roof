@@ -27,10 +27,14 @@ interface PlaytestContext {
   tools: Tools;
   net: Multiplayer;
   levelName: () => string;
+  /** Texture bytes outside the paint pages: the baked light's, and the rest (render/texture-bytes.ts). */
+  textureBytes: () => { bake: number; fixed: number };
 }
 
 /** What the game loop calls: the frame's start, its laps (main.ts lap()), and its end. */
 export interface Playtest {
+  /** Every animation frame callback, also those the frame limit skips. */
+  raf(time: number): void;
   begin(t0: number): void;
   lap(name: string): void;
   frame(f: { t0: number; interval: number; calls: number; triangles: number; playing: boolean }): void;
@@ -43,6 +47,7 @@ export function startPlaytest(g: PlaytestContext): Playtest {
   showNotice();
   const tap = new LinkTap();
   g.net.tap = tap;
+  tap.peers = () => g.net.peersHere;
   const rec = new FrameRecorder();
   const errors: Record<string, unknown>[] = [];
   let errorCount = 0;
@@ -116,6 +121,7 @@ export function startPlaytest(g: PlaytestContext): Playtest {
     });
     const mem = (performance as { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }).memory;
     const info = g.renderer.info;
+    const extra = g.textureBytes();
     const data = {
       kind: 'window',
       seq,
@@ -140,7 +146,15 @@ export function startPlaytest(g: PlaytestContext): Playtest {
         opWait: probe.opWait.summary(),
         opLate: probe.opLate.summary(),
       },
-      render: { programs: programCount(g.renderer), geometries: info.memory.geometries, textures: info.memory.textures, gpuTimer: g.gpuTimer.supported },
+      render: {
+        programs: programCount(g.renderer),
+        geometries: info.memory.geometries,
+        textures: info.memory.textures,
+        gpuTimer: g.gpuTimer.supported,
+        textureMB: { paint: round(g.paint.gpu.textureBytes / 2 ** 20), bake: round(extra.bake / 2 ** 20), fixed: round(extra.fixed / 2 ** 20) },
+        levelEdits: probe.levelEdit.summary(),
+        bakeSync: probe.bakeSync.summary(),
+      },
       memory: mem ? { heapMB: round(mem.usedJSHeapSize / 2 ** 20), totalMB: round(mem.totalJSHeapSize / 2 ** 20), limitMB: round(mem.jsHeapSizeLimit / 2 ** 20) } : null,
       battery,
       errors: errors.splice(0),
@@ -152,6 +166,8 @@ export function startPlaytest(g: PlaytestContext): Playtest {
     probe.remoteOps = probe.remoteOpMs = probe.corrections = 0;
     probe.opWait.clear();
     probe.opLate.clear();
+    probe.levelEdit.clear();
+    probe.bakeSync.clear();
     for (const k in probe.ownOps) probe.ownOps[k] = 0;
     hitches = hitchesSent = errorCount = 0;
     windowStart = t;
@@ -164,6 +180,7 @@ export function startPlaytest(g: PlaytestContext): Playtest {
   }
 
   return {
+    raf: (time) => rec.raf(time),
     begin: (t0) => rec.begin(t0),
     lap: (name) => rec.lap(name),
     frame(f) {
@@ -184,7 +201,8 @@ export function startPlaytest(g: PlaytestContext): Playtest {
         hitches++;
         const frame = rec.hitch;
         rec.hitch = null;
-        if (inSession && hitchesSent++ < PLAYTEST.hitchesPerWindow) setTimeout(() => send({ kind: 'hitch', frame, events: [...tap.events.slice(-5), ...events.slice(-5)] }), 0);
+        // A moment later, when the browser has told what held the thread (the long animation frame arrives after the frame).
+        if (inSession && hitchesSent++ < PLAYTEST.hitchesPerWindow) setTimeout(() => send({ kind: 'hitch', frame, loaf: rec.loafSince((frame.at as number) - 50), events: [...tap.events.slice(-5), ...events.slice(-5)] }), PLAYTEST.hitchWait);
       }
       // Built when the browser is idle between frames, not in one: it takes a few ms.
       if (t >= nextReport) {
@@ -218,9 +236,9 @@ function storedSettings() {
 }
 
 /** The device and the session, once per welcome. */
+let gpuInfo: { gpu: Record<string, unknown>; maxTexture: number } | null = null;
+
 function environment(g: PlaytestContext) {
-  const gl = g.renderer.getContext();
-  const dbg = gl.getExtension('WEBGL_debug_renderer_info');
   const nav = navigator as Navigator & { deviceMemory?: number };
   const size = g.renderer.getDrawingBufferSize(new THREE.Vector2());
   return {
@@ -231,8 +249,7 @@ function environment(g: PlaytestContext) {
     platform: navigator.platform,
     cores: navigator.hardwareConcurrency,
     memoryGB: nav.deviceMemory ?? null,
-    gpu: dbg ? { vendor: gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL), renderer: gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) } : { renderer: gl.getParameter(gl.RENDERER) },
-    maxTexture: gl.getParameter(gl.MAX_TEXTURE_SIZE),
+    ...gpuOf(g.renderer.getContext()),
     screen: [screen.width, screen.height],
     window: [innerWidth, innerHeight],
     buffer: [size.x, size.y],
@@ -240,4 +257,14 @@ function environment(g: PlaytestContext) {
     fullscreen: !!document.fullscreenElement,
     settings: settings(),
   };
+}
+
+/** Asked once: these calls wait for the GPU process (a frame's worth of time the first time). */
+function gpuOf(gl: WebGLRenderingContext | WebGL2RenderingContext) {
+  if (gpuInfo) return gpuInfo;
+  const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+  return (gpuInfo = {
+    gpu: dbg ? { vendor: gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL), renderer: gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) } : { renderer: gl.getParameter(gl.RENDERER) },
+    maxTexture: gl.getParameter(gl.MAX_TEXTURE_SIZE),
+  });
 }

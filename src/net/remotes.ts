@@ -32,6 +32,13 @@ export class Remotes {
     return this.list.get(id);
   }
 
+  /** How many others are here, as the server says (not away, not dropped). */
+  get here() {
+    let n = 0;
+    for (const r of this.list.values()) if (r.presence === 'here') n++;
+    return n;
+  }
+
   /** Where the others shown stand. */
   get shown() {
     return [...this.list.values()].filter((r) => r.avatar.group.visible).map((r) => r.position);

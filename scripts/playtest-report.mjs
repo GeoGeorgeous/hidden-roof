@@ -33,6 +33,7 @@ const marks = of('mark');
 const links = of('link');
 const processes = of('process');
 const sessions = of('session');
+const serverEvents = of('event');
 
 // ---- helpers ----
 const median = (xs) => {
@@ -104,6 +105,7 @@ const stats = devList.map((d) => {
     d,
     minutes: sum(W.map((w) => w.dur)) / 60000,
     fps: median(f.map((x) => x.fps)),
+    refreshHz: (() => { const r = median(f.map((x) => x.refresh?.p50)); return r ? 1000 / r : null; })(),
     p95: median(f.map((x) => x.interval?.p95)),
     p99: histP(hist, FRAME_TOPS, 0.99),
     worst: max(f.map((x) => x.interval?.max)),
@@ -139,7 +141,8 @@ const phases = [...new Set([0, ...starts.map((s) => s.phase)])].map((p) => {
 
 // ---- worst windows and hitches ----
 const worstWindows = [...windows].sort((a, b) => (b.frames?.interval?.p99 ?? 0) - (a.frames?.interval?.p99 ?? 0)).slice(0, 20);
-const worstHitches = [...hitches].sort((a, b) => (b.frame?.interval ?? 0) - (a.frame?.interval ?? 0)).slice(0, 40);
+const hitchMs = (h) => Math.max(h.frame?.interval ?? 0, h.frame?.cpu ?? 0);
+const worstHitches = [...hitches].sort((a, b) => hitchMs(b) - hitchMs(a)).slice(0, 40);
 
 // ---- errors, deduplicated ----
 const errs = new Map();
@@ -211,7 +214,7 @@ ${ipChanges.length ? `<p><b>Devices that came back from another address</b> (a V
 
 <h2>Each device</h2>
 <p class="note">Frame p99 is from the summed histogram over the whole session (bucket tops). Lost particles: spray asked for while the pool (3000) was full. Op wait: time from another player's paint op arriving to it showing (the figure's interpolation delay); op late: how much later than that player's best it arrived. Self: the telemetry's own time per 5 s window.</p>
-${table(['device', 'min', 'fps', 'p95', 'p99', 'worst', 'hitches', 'GPU', 'CPU p95', 'calls', 'lost', 'ping', 'ping p95', 'unanswered', 'stalls >300', 'silence', 'queued', 'op wait', 'op late', 'heap +MB', 'reconnects', 'errors', 'self ms'], stats.map((s) => [esc(label(s.d)), fmt(s.minutes, 1), fmt(s.fps), fmt(s.p95, 1), fmt(s.p99), fmt(s.worst), s.hitches, fmt(s.gpu, 1), fmt(s.cpu, 1), fmt(s.calls), s.lost, fmt(s.ping), fmt(s.ping95), s.unanswered, s.stalls300, fmt(s.silence), fmt(s.queued), fmt(s.opWait), fmt(s.opLate), fmt(s.heapGrowth, 1), s.reconnects, s.errors ? `<span class="flag">${s.errors}</span>` : 0, fmt(s.self, 2)]))}
+${table(['device', 'min', 'fps', 'display Hz', 'p95', 'p99', 'worst', 'hitches', 'GPU', 'CPU p95', 'calls', 'lost', 'ping', 'ping p95', 'unanswered', 'stalls >300', 'silence', 'queued', 'op wait', 'op late', 'heap +MB', 'reconnects', 'errors', 'self ms'], stats.map((s) => [esc(label(s.d)), fmt(s.minutes, 1), fmt(s.fps), fmt(s.refreshHz), fmt(s.p95, 1), fmt(s.p99), fmt(s.worst), s.hitches, fmt(s.gpu, 1), fmt(s.cpu, 1), fmt(s.calls), s.lost, fmt(s.ping), fmt(s.ping95), s.unanswered, s.stalls300, fmt(s.silence), fmt(s.queued), fmt(s.opWait), fmt(s.opLate), fmt(s.heapGrowth, 1), s.reconnects, s.errors ? `<span class="flag">${s.errors}</span>` : 0, fmt(s.self, 2)]))}
 
 <h2>Timelines</h2>
 <p class="note">Minutes from the first line. Dashed lines: phases (Shift+F9) and marks (F9, "it lagged just now"). Hover for values.</p>
@@ -224,23 +227,27 @@ ${table(['phase', 'started by', 'reports', 'fps', 'frame p99', 'ping p95', 'hitc
 
 <h2>Worst windows</h2>
 <p class="note">The 20 five-second windows with the worst frame p99, and their worst frame: the two sections that took longest, GPU, and what was going on.</p>
-${table(['time', 'device', 'fps', 'p99', 'worst frame', 'took longest', 'GPU', 'calls', 'others spraying', 'in view', "others' particles", 'msgs/frame', 'long frame (LoAF)'], worstWindows.map((w) => { const x = w.frames ?? {}; const wf = x.worst ?? {}; const lf = x.longFrames?.longest; return [time(w), esc(who(w)), fmt(x.fps), fmt(x.interval?.p99), fmt(wf.interval), esc(topLap(wf.laps)), fmt(wf.gpu, 1), fmt(wf.calls), fmt(x.sprayers?.max), fmt(x.inView?.max), fmt(x.particles?.others?.max), fmt(w.net?.maxMessagesPerFrame), lf ? esc(`${fmt(lf.duration)} ms${lf.scripts?.[0] ? ` · ${lf.scripts[0].fn || lf.scripts[0].invoker || ''} ${lf.scripts[0].src ?? ''}` : ''}`) : '–']; }))}
+${table(['time', 'device', 'fps', 'p99', 'worst frame', 'took longest', 'GPU', 'calls', 'others spraying', 'in view', "others' particles", 'msgs/frame', 'level edit ms', 'long frame (LoAF)'], worstWindows.map((w) => { const x = w.frames ?? {}; const wf = x.worst ?? {}; const lf = x.longFrames?.longest; return [time(w), esc(who(w)), fmt(x.fps), fmt(x.interval?.p99), fmt(wf.interval), esc(topLap(wf.laps)), fmt(wf.gpu, 1), fmt(wf.calls), fmt(x.sprayers?.max), fmt(x.inView?.max), fmt(x.particles?.others?.max), fmt(w.net?.maxMessagesPerFrame), fmt(w.render?.levelEdits?.max), lf ? esc(`${fmt(lf.duration)} ms${lf.scripts?.[0] ? ` · ${lf.scripts[0].fn || lf.scripts[0].invoker || ''} ${lf.scripts[0].src ?? ''}` : ''}`) : '–']; }))}
 
 <h2>Hitches</h2>
-<p class="note">Frames over 100 ms, longest first (at most 5 per device per window are reported; the rest only counted).</p>
-${table(['time', 'device', 'frame ms', 'CPU', 'GPU', 'took longest', 'msgs', 'others spraying', 'upload KB', 'shaders', 'playing', 'just before'], worstHitches.map((h) => { const f = h.frame ?? {}; return [time(h), esc(who(h)), fmt(f.interval), fmt(f.cpu, 1), fmt(f.gpu, 1), esc(topLap(f.laps)), fmt(f.messages), fmt(f.sprayers), fmt((f.uploadBytes ?? 0) / 1024), fmt(f.programs), f.playing ? 'yes' : 'menu', esc((h.events ?? []).map((e) => e.e).join(', '))]; }))}
+<p class="note">Frames whose own work took over 100 ms ("cpu": the laps are that frame's) and frames that came late after quick work ("gap": the GPU, the browser, vsync), longest first (at most 5 per device per window are reported; the rest only counted). "Long frame" is what the browser says held the thread.</p>
+${table(['time', 'device', 'by', 'frame ms', 'CPU', 'GPU', 'took longest', 'what ran', 'long frame (LoAF)', 'msgs', 'others spraying', 'upload KB', 'shaders', 'playing', 'just before'], worstHitches.map((h) => { const f = h.frame ?? {}; const lf = h.loaf?.at(-1); return [time(h), esc(who(h)), esc(f.by ?? ''), fmt(f.interval), fmt(f.cpu, 1), fmt(f.gpu, 1), esc(topLap(f.laps)), esc(Object.entries(f.laps ?? {}).filter(([, v]) => v > 5).map(([k, v]) => `${k} ${fmt(v)}`).join(', ')), lf ? esc(`${fmt(lf.duration)} ms${lf.scripts?.[0] ? ` · ${lf.scripts[0].fn || lf.scripts[0].invoker || ''}` : ''}`) : '–', fmt(f.messages), fmt(f.sprayers), fmt((f.uploadBytes ?? 0) / 1024), fmt(f.programs), f.playing ? 'yes' : 'menu', esc((h.events ?? []).map((e) => e.e).join(', '))]; }))}
 
 <h2>Network</h2>
 <p class="note">By what players said in the notice ("I'm playing through a VPN"). Stalls: no message from the server for over 300 ms (the server sends ~20 a second per player, so a silence is a held-up link).</p>
 ${table(['VPN', 'devices', 'ping p50', 'ping p95', 'stalls >300', 'longest silence', 'reconnects'], vpnGroups)}
 <p><b>Joins</b></p>
-${table(['device', 'back?', 'join ms', 'paint parts', 'parts ms', 'longest part gap', 'paint MB', 'load ms', 'plain HTTP ms', 'socket ping ms'], stats.flatMap((s) => s.joins.map((j, i) => [esc(label(s.d)), j.back ? 'back' : 'new', fmt(j.joinMs), fmt(j.parts), fmt(j.partsMs), fmt(j.longestPartGap), fmt((j.fileBytes ?? 0) / 2 ** 20, 1), fmt(j.loadMs), fmt(s.routes[i]?.httpMs), fmt(s.routes[i]?.wsPingMs)])))}
+${table(['device', 'back?', 'join ms', 'paint parts', 'first part ms', 'parts ms', 'longest part gap', 'paint MB', 'load ms', 'plain HTTP ms', 'socket ping ms'], stats.flatMap((s) => s.joins.map((j, i) => [esc(label(s.d)), j.back ? 'back' : 'new', fmt(j.joinMs), fmt(j.parts), fmt(j.firstPartMs), fmt(j.partsMs), fmt(j.longestPartGap), fmt((j.fileBytes ?? 0) / 2 ** 20, 1), fmt(j.loadMs), fmt(s.routes[i]?.httpMs), fmt(s.routes[i]?.wsPingMs)])))}
 
 <h2>Errors</h2>
 ${errs.size ? table(['count', 'error', 'devices', 'stack'], [...errs.values()].sort((a, b) => b.n - a.n).map((e) => [e.n, esc(e.k), esc([...e.who].join(', ')), `<code>${esc((e.stack ?? '').split('\n').slice(0, 3).join(' ⏎ '))}</code>`])) : '<p>None.</p>'}
 
 <h2>Server</h2>
 ${table(['', 'value'], [['event loop p99, worst (ms)', fmt(max(processes.map((p) => p.eventLoop?.p99)), 1)], ['event loop max, worst (ms)', fmt(max(processes.map((p) => p.eventLoop?.max)), 1)], ['CPU, highest (share of a core)', fmt(max(processes.map((p) => (p.cpu ? p.cpu.user + p.cpu.system : null))), 2)], ['GC pause, longest (ms)', fmt(max(processes.map((p) => p.gc?.longest)))], ['RSS, highest (MB)', fmt(max(processes.map((p) => p.memoryMB?.rss)))], ['send queue, highest (KB)', fmt(max(sessions.flatMap((s) => (s.links ?? []).map((l) => l.maxQueued / 1024))))], ['sends to a backed-up socket', fmt(sum(sessions.flatMap((s) => (s.links ?? []).map((l) => l.backedUp))))], ['paint runs per tick, worst (ms)', fmt(max(sessions.map((s) => s.drips?.max)), 2)], ['reports dropped (too big or too many)', fmt(sum(sessions.flatMap((s) => (s.links ?? []).map((l) => l.reportsDropped))))]])}
+<p><b>Hosts</b> (the event loop is blocked while a level is built and a save loaded: every live session waits)</p>
+${table(['time', 'session', 'level', 'build ms', 'load ms', 'save KB', 'sessions live'], serverEvents.filter((e) => e.event === 'host').map((e) => [time(e), esc(e.code), esc(e.level), fmt(e.buildMs), fmt(e.loadMs), fmt((e.saveBytes ?? 0) / 1024), fmt(e.sessions)]))}
+<p><b>Memory once no session is live</b> (heap: live JS; total: held by V8; external and array buffers: outside it, the paint; RSS minus these is what the allocator keeps)</p>
+${table(['time', 'seconds idle', 'RSS MB', 'heap MB', 'heap total MB', 'external MB', 'array buffers MB'], processes.filter((p) => p.idleSeconds !== undefined).map((p) => [time(p), fmt(p.idleSeconds), fmt(p.memoryMB?.rss), fmt(p.memoryMB?.heap), fmt(p.memoryMB?.heapTotal), fmt(p.memoryMB?.external), fmt(p.memoryMB?.arrayBuffers)]))}
 <p><b>Link events</b></p>
 ${table(['time', 'event', 'link', 'session', 'player', 'name', 'how / reason / close code'], links.filter((l) => l.event !== 'open' && l.event !== 'device').map((l) => [time(l), esc(l.event), l.link, esc(l.code ?? ''), fmt(l.player), esc(l.name ?? ''), esc(l.how ?? l.reason ?? l.closeCode ?? '')]))}
 <div class="tip" id="tip"></div>

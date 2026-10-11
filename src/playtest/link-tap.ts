@@ -25,11 +25,18 @@ export class LinkTap implements NetTap {
   welcomed = false;
   private down = new Map<string, Count>();
   private up = new Map<string, Count>();
+  /** How many other players are here (the server's presence says so, not away or dropped): set by the playtest. Silences only count while there are. */
+  peers: () => number = () => 0;
   private pings = new Samples();
   private pingHist = new Histogram(PLAYTEST.pingBuckets);
+  /** Pings sent and answered on this link, and when the last went: one still on its way isn't lost. */
   private pingsSent = 0;
   private pongs = 0;
+  private lastPing = 0;
+  private lostSeen = 0;
   private lastIn = 0;
+  private lastPeers = 0;
+  private peersMax = 0;
   private stalls = PLAYTEST.stallMs.map(() => 0);
   private longestSilence = 0;
   /** After a stall: when it ended, and how many messages came within 20 ms of it. */
@@ -42,7 +49,11 @@ export class LinkTap implements NetTap {
 
   received(type: string, bytes: number, t: number) {
     const ms = t * 1000;
-    if (this.lastIn) {
+    // The server only has something to send while another player is here (the others' states, 20 a second): with no one, or with
+    // them away (a hidden tab sends once a second), a silence is nothing to send, not a stall.
+    const peers = this.peers();
+    this.peersMax = Math.max(this.peersMax, peers);
+    if (this.lastIn && Math.min(peers, this.lastPeers) > 0) {
       const gap = ms - this.lastIn;
       PLAYTEST.stallMs.forEach((s, i) => gap > s && this.stalls[i]++);
       if (gap > PLAYTEST.stallMs[0]) this.burst = { ...this.burst, at: ms, n: 0 };
@@ -50,6 +61,7 @@ export class LinkTap implements NetTap {
     }
     if (ms - this.burst.at < 20) this.burst.max = Math.max(this.burst.max, ++this.burst.n);
     this.lastIn = ms;
+    this.lastPeers = peers;
     add(this.down, type, bytes);
     this.perFrame++;
     if (type === 'part') this.joining?.parts.push(Math.round(ms - this.joining.at));
@@ -57,7 +69,7 @@ export class LinkTap implements NetTap {
 
   sent(type: string, bytes: number, queued: number) {
     add(this.up, type, bytes);
-    if (type === 'ping') this.pingsSent++;
+    if (type === 'ping') (this.pingsSent++, (this.lastPing = now()));
     this.maxQueued = Math.max(this.maxQueued, queued);
   }
 
@@ -70,11 +82,13 @@ export class LinkTap implements NetTap {
   welcome(telemetry: boolean, w: { code: string; you: number; others: number; fileBytes: number; loadMs: number }) {
     const j = this.joining;
     const parts = j?.parts ?? [];
-    const partGap = parts.reduce((m, t, i) => Math.max(m, t - (parts[i - 1] ?? 0)), 0);
-    this.event('welcome', { ...w, telemetry, loadMs: Math.round(w.loadMs), joinMs: j ? Math.round(now() - j.at) : null, back: j?.back, parts: parts.length, partsMs: parts.at(-1) ?? 0, longestPartGap: partGap });
+    // The first part waits for the server to pack the paint (and for the connection): its wait is its own number, the gaps are between parts.
+    const partGap = parts.reduce((m, t, i) => (i ? Math.max(m, t - parts[i - 1]) : m), 0);
+    this.event('welcome', { ...w, telemetry, loadMs: Math.round(w.loadMs), joinMs: j ? Math.round(now() - j.at) : null, back: j?.back, parts: parts.length, firstPartMs: parts[0] ?? 0, partsMs: parts.at(-1) ?? 0, longestPartGap: partGap });
     this.joining = null;
     this.welcomed = true;
     this.lastIn = 0;
+    this.pingsSent = this.pongs = this.lostSeen = 0;
     void this.routeCheck();
   }
 
@@ -98,9 +112,10 @@ export class LinkTap implements NetTap {
       up: Object.fromEntries(this.up),
       ping: this.pings.summary(),
       pingHist: this.pingHist.take(),
-      pingsUnanswered: Math.max(0, this.pingsSent - this.pongs),
+      pingsUnanswered: this.pingsLost(),
       stalls: Object.fromEntries(PLAYTEST.stallMs.map((s, i) => [s, this.stalls[i]])),
       longestSilence: Math.round(this.longestSilence),
+      peers: this.peersMax,
       burstAfterStall: this.burst.max,
       maxQueued: this.maxQueued,
       maxMessagesPerFrame: this.maxPerFrame,
@@ -109,10 +124,18 @@ export class LinkTap implements NetTap {
     this.down = new Map();
     this.up = new Map();
     this.pings.clear();
-    this.pingsSent = this.pongs = this.maxQueued = this.maxPerFrame = this.longestSilence = 0;
+    this.maxQueued = this.maxPerFrame = this.longestSilence = this.peersMax = 0;
     this.stalls.fill(0);
     this.burst.max = 0;
     return out;
+  }
+
+  /** Pings that never came back since the last window: those still on their way (sent less than a second ago, or in the window's last moments) aren't. */
+  private pingsLost() {
+    const pending = this.pingsSent - this.pongs - (now() - this.lastPing < 1000 ? 1 : 0);
+    const fresh = Math.max(0, pending - this.lostSeen);
+    this.lostSeen = Math.max(0, pending);
+    return fresh;
   }
 
   /** At each welcome: a plain HTTP request to the server, next to the socket's ping. Much better than the socket: it's the socket's path (a proxy), not the route. */

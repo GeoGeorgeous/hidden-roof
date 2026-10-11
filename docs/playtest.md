@@ -46,24 +46,26 @@ Each window is 5 s; times in ms; "p" is a percentile over the window's frames.
 - Frame times also as a fixed histogram (buckets: ≤ 8, 12, 17, 25, 33, 50, 100, 250 ms, more): percentiles don't add up across windows and players, bucket counts do, so the report can give one true p99 for a player's whole session or for everyone during the shared-wall phase.
 - Drift over time: fps, heap, paint pages and draw calls per window, so the report can show a slope (a leak, or a laptop throttling as it heats). Battery charging or not (`navigator.getBattery`, Chromium), at join and when it changes.
 - Time the tab was hidden, unfocused, paused (pointer unlocked) or away: those frames don't count toward fps.
-- `RENDER.maxFps` and the display's refresh (median rAF interval while uncapped), so a 60 Hz cap isn't read as a drop.
+- `RENDER.maxFps` and the display's refresh (`refresh`: the spacing of every animation frame callback, also those the frame limit skips; the report shows it as the display's Hz), so a 60 Hz display isn't read as a drop.
+- **Hitches:** a frame whose own work took over `PLAYTEST.hitchMs` (`by: cpu`: its laps say what) or a frame that came late after quick work (`by: gap`: the GPU, the browser, vsync). The frame after a slow one shows the same time in its interval, so it isn't reported twice. The hitch line is sent `PLAYTEST.hitchWait` after the frame and carries the long animation frames the browser reported around it (`loaf`).
+- **Level edits:** a stepladder placed or moved, a prop built: `levelEdits` (the whole change, ms) and `bakeSync` (the light baker's part) per window. A stepladder relights the lamps around it (`src/render/bake/reach.ts`), ~70 ms on the placer and on every receiver.
 
 ### GPU and rendering
 
 - GPU ms per pass (`scene`, `volumetrics`, `post`) and total, where `EXT_disjoint_timer_query_webgl2` exists (not in Firefox or Safari).
 - Draw calls and triangles: p50 / max. Expected to stay flat however many players paint (AGENTS.md); if it climbs with players, that's a finding.
 - `renderer.info`: programs, geometries, textures. **New shader programs mid-session** are logged as an event with their frame time: a compile is a classic hitch.
-- Texture memory: paint, bake, static.
+- Texture memory (`textureMB`): paint pages, baked light, and the fixed textures.
 - Drawing buffer size, DPR, render scale, canvas size.
 
 ### Paint
 
 - Paint pages and painted surfaces alive; pages created in the window (paint is made lazily, on first hit: a burst of first hits is a burst of allocations).
-- GPU uploads: dirty rects and bytes, per frame p50 / max and in the window; mip regeneration bytes.
+- GPU uploads: dirty rects and bytes, per frame p50 / max and in the window. The mips are made on the CPU for the dirty rect (`mipRect`) and uploaded with it, so their bytes are in the same number; there is no `generateMipmap` to count.
 - Paint ops applied: local and remote, per kind (`stamp`, `roll`, `drip`), and the CPU time spent applying remote ones.
 - Drips alive.
 - **Paint latency:** each remote op carries its sender's time; the time from it being made to it being applied here, p50 / p95 / max (clocks aligned with the ping offset). The number players feel: "I sprayed and they saw it N ms later".
-- On join: paint file size, parts, download time, decode and apply time, and time from JOIN to the first playable frame.
+- On join: paint file size, parts, the wait for the first part (the server packs the paint first, 1–2 s for a heavily painted level) and the longest gap between parts, load (decode and apply) time, and time from JOIN to the first playable frame.
 
 ### Spray particles (others' spray)
 
@@ -79,8 +81,8 @@ Each window is 5 s; times in ms; "p" is a percentile over the window's frames.
 
 ### Network
 
-- Ping: p50 / p95 / max, and pings that came back late (> 1 s) or not at all. Also as a fixed histogram, as frame times.
-- **Stalls:** WebSocket runs on TCP, so one lost packet holds back everything behind it until it's resent (100–200 ms), then it all lands at once. Per window: gaps with no message from the server over 150 / 300 / 1000 ms, and the burst after each (messages in one frame). Snapshot inter-arrival per remote as a histogram: a healthy link is a spike at 50 ms.
+- Ping: p50 / p95 / max, and pings that never came back (one sent less than a second ago is still on its way, not lost). Also as a fixed histogram, as frame times.
+- **Stalls:** WebSocket runs on TCP, so one lost packet holds back everything behind it until it's resent (100–200 ms), then it all lands at once. Per window: gaps with no message from the server over 150 / 300 / 1000 ms, and the burst after each (messages in one frame). Only while another player is here (`peers`, the server's presence): the server sends nothing but a ping every 2 s to a lone player, and a peer with a hidden tab sends once a second, so those silences are nothing to send, not a held-up link. Snapshot inter-arrival per remote as a histogram: a healthy link is a spike at 50 ms.
 - How stale others look: per remote, interpolation delay + half the ping, p50 / max.
 - Messages and bytes up and down, per message type.
 - Snapshots actually sent per second (a throttled background tab sends fewer).
@@ -122,7 +124,7 @@ Some testers reach the server through a VPN (it isn't reachable from where they 
 - Drip simulation time per tick: p50 / max.
 - Paint MB held; paint files made: size, time, players served, queue; join, leave and drop events with close codes, time from JOIN to welcome and to the last part.
 
-- Per player: `ws.send` calls that return with the socket's queue over 64 KB (the server keeps sending to a client that can't take it), and the longest time the queue stayed over it.
+- Per player: `ws.send` calls that find the socket's queue over 64 KB from before the frame (the server keeps sending to a client that can't take it; a 256 KB paint file part is over the line by itself and doesn't count), and the longest time the queue stayed over it.
 
 ### Server, process
 
@@ -130,6 +132,8 @@ Some testers reach the server through a VPN (it isn't reachable from where they 
 - CPU user and system, heap used, `arrayBuffers`, RSS.
 - GC pauses (`PerformanceObserver('gc')`): count, total, longest.
 - Sessions and players live.
+- **Hosts:** a `host` event per HOST: the time to build the level's faces and to load the save. Both run on the event loop, so every live session waits for them.
+- **After the last session ends:** the process line is written once and then every `PLAYTEST.idleEvery` seconds for `PLAYTEST.idleMinutes`, with heap used, heap total, external, array buffers and RSS, to tell memory still held from memory the allocator hasn't returned.
 - `TCP_NODELAY`: `ws` sets it on every socket, so small messages aren't held back to be batched (nothing to record; Node has no getter for it).
 
 ## Line format
@@ -166,7 +170,7 @@ Client clocks are aligned to the server's with the ping offset, so all lines sha
 
 ## Tunables
 
-`PLAYTEST` in `src/config.ts`: `every` (5 s), `hitchMs` (100), `hitchesPerWindow` (5), `maxReport` (16 KB), `burst` / `rate` (12 reports at once, 2 a second after, per player on the server), `keepErrors` (10), `keepEvents` (40), `samples` (1500 per metric per window), `maxDiskMB` (1024), `stallMs` (150 / 300 / 1000), `queueWarn` (64 KB), the histogram buckets (`frameBuckets`, `pingBuckets`, `arrivalBuckets`), `fakeHitchMs` / `fakeHitchEvery` (250 ms every 30 s).
+`PLAYTEST` in `src/config.ts`: `every` (5 s), `hitchMs` (100), `hitchesPerWindow` (5), `hitchWait` (300 ms), `idleEvery` / `idleMinutes` (60 s / 10), `maxReport` (16 KB), `burst` / `rate` (12 reports at once, 2 a second after, per player on the server), `keepErrors` (10), `keepEvents` (40), `samples` (1500 per metric per window), `maxDiskMB` (1024), `stallMs` (150 / 300 / 1000), `queueWarn` (64 KB), the histogram buckets (`frameBuckets`, `pingBuckets`, `arrivalBuckets`), `fakeHitchMs` / `fakeHitchEvery` (250 ms every 30 s).
 
 ## Reading
 

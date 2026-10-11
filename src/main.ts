@@ -50,6 +50,7 @@ import { exitGameFullscreen } from './fullscreen';
 import { setHex } from './hex-color';
 import { seedPaintRandom } from './lcg';
 import { fanLevel, metalDrops } from './emitter-sounds';
+import { probe } from './playtest/probe';
 import { startPlaytest } from './playtest/playtest';
 
 // F3's defaults before anything changes config (the panel isn't in the player build).
@@ -100,12 +101,15 @@ const smoke = new Smoke(scene);
 const lightning = new Lightning();
 lightning.onThunder = (d) => audio.thunder(d);
 level.onChange = () => {
+  const t = performance.now();
   baker.sync(level.builtProps);
+  probe.bakeSync.add(performance.now() - t);
   smoke.rebuild(level.emitters);
   lighting.setAnchors(level.lights);
   lightFx.rebuild(level.lights);
   heightmap.rebuild(level.colliders, level.totalBounds());
   rain.setHeightmap(heightmap);
+  probe.levelEdit.add(performance.now() - t);
 };
 /** Drawing-buffer height: glow and smoke sprites are sized in its pixels. */
 let viewHeight = 1;
@@ -217,7 +221,7 @@ hud.setLocked(false);
 hud.setSettings(settings.sections());
 const paintFile = paintMenu(hud, paint, drips, () => levelName);
 const net = multiplayerMenu(hud, hotbar, { scene, camera, level, paint, paintOps, drips, player, inventory, pickups, tools, levelData: () => ({ data: levelData(), name: levelName }), levelPaint: () => levelPaintOf(levelName), openLevel, lockDetail: (tpm) => settings.lockPaintDetail(tpm) }, () => levelName);
-const playtest = startPlaytest({ renderer, gpuTimer, camera, paint, drips, tools, net, levelName: () => levelName });
+const playtest = startPlaytest({ renderer, gpuTimer, camera, paint, drips, tools, net, levelName: () => levelName, textureBytes: () => ({ bake: baker.stats.textureBytes, fixed: staticTextureBytes() }) });
 tools.onCapChange = (name) => hud.showCapTag(name);
 tools.onColorChange = (color) => hud.showColorTag(color, COLORS[color]);
 
@@ -244,6 +248,7 @@ const fixedStep: { dt: number; script: (() => void) | null } = { dt: 0, script: 
 let drawnAt = -Infinity;
 
 function frame(time: number) {
+  playtest.raf(time);
   if (!loaded) {
     requestAnimationFrame(frame);
     return;

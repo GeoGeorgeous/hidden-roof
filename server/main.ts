@@ -140,6 +140,7 @@ async function enter(m: Extract<ToServer, { type: 'host' | 'join' }>, link: Link
     if ([...hosts.values()].filter((h) => h === ip).length >= SERVER.sessionsPerIp) return 'too-many';
     if (liveMemory() > SERVER.hostMemory) return 'busy';
     const code = newCode();
+    const built = performance.now();
     try {
       session = new Session(code, m.levelName, m.level, m.detail, () => {
         sessions.delete(code);
@@ -152,6 +153,8 @@ async function enter(m: Extract<ToServer, { type: 'host' | 'join' }>, link: Link
       return 'bad-level';
     }
     if (session.table !== m.table) return 'version';
+    const buildMs = Math.round(performance.now() - built);
+    const loaded = performance.now();
     if (m.bytes)
       try {
         await session.load(m.bytes);
@@ -162,7 +165,10 @@ async function enter(m: Extract<ToServer, { type: 'host' | 'join' }>, link: Link
     sessions.set(code, session);
     hosts.set(code, ip);
     const mb = session.memory;
-    log(code, `hosted by ${ip}: ${m.levelName} at ${m.detail} texels/m, ${mb.now.toFixed(0)} MB of paint (${mb.full.toFixed(0)} MB if all painted), ${sessions.size} sessions`);
+    // Building the level's faces and loading the save run on the event loop: every live session waits for them.
+    const loadMs = Math.round(performance.now() - loaded);
+    log(code, `hosted by ${ip}: ${m.levelName} at ${m.detail} texels/m, ${mb.now.toFixed(0)} MB of paint (${mb.full.toFixed(0)} MB if all painted), ${sessions.size} sessions; level built in ${buildMs} ms, save loaded in ${loadMs} ms`);
+    playtest.event(code, { event: 'host', level: m.levelName, detail: m.detail, buildMs, loadMs, saveBytes: m.bytes?.length ?? 0, sessions: sessions.size });
   } else {
     const found = sessions.get(m.code);
     if (!found) return ended.has(m.code) ? 'ended' : 'no-session';

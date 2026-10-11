@@ -896,6 +896,8 @@ export const PLAYTEST = {
   hitchMs: 100,
   /** At most this many hitch reports per window; the rest are only counted. */
   hitchesPerWindow: 5,
+  /** A hitch is sent this long (ms) after its frame, so the long animation frame that held the thread has been reported. */
+  hitchWait: 300,
   /** Frame-time histogram bucket tops (ms); one more bucket past the last. */
   frameBuckets: [8, 12, 17, 25, 33, 50, 100, 250],
   /** Ping histogram bucket tops (ms). */
@@ -916,6 +918,9 @@ export const PLAYTEST = {
   rate: 2,
   /** A socket queue past this (bytes) on the server counts as backed up. */
   queueWarn: 64 * 2 ** 10,
+  /** With no session live the server still writes its process line, every this many seconds for this many minutes (memory after a session ends). */
+  idleEvery: 60,
+  idleMinutes: 10,
   /** The server stops writing once its telemetry files take this much (MB). */
   maxDiskMB: 1024,
   /** `?playtest-hitch`: a stall this long (ms) every this many seconds, to test that hitches are caught. */

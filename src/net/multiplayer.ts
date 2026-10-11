@@ -105,6 +105,11 @@ export class Multiplayer {
     return this.remotes.names;
   }
 
+  /** Others here, not away or dropped. */
+  get peersHere() {
+    return this.remotes.here;
+  }
+
   get inSession() {
     return this.joined !== null;
   }
