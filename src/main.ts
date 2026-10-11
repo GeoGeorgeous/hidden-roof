@@ -46,7 +46,6 @@ import { staticTextureBytes } from './render/texture-bytes';
 import type { DevTools } from './dev/devtools';
 import { session } from './session';
 import { multiplayerMenu } from './net/net-menu';
-import { exitGameFullscreen } from './fullscreen';
 import { setHex } from './hex-color';
 import { seedPaintRandom } from './lcg';
 import { fanLevel, metalDrops } from './emitter-sounds';
@@ -174,7 +173,7 @@ let loaded = false;
 // Signs measure their text when they are built: wait for the sign font first.
 Promise.all([fetchLevel(levelName), jpFontReady()])
   .then(async ([data]) => {
-    await loadStep('BUILDING THE ROOF');
+    await loadStep('Building the roof');
     loadLevel(data);
     // The level's merged meshes first: their shaders are most of what's compiled.
     level.flush();
@@ -182,9 +181,9 @@ Promise.all([fetchLevel(levelName), jpFontReady()])
     // With the lights set up as the game draws them: their number is in the shaders.
     lighting.update(player.position, camera.matrixWorldInverse);
     post.warm(scene, viewScene, camera);
-    await loadStep('LIGHTING THE LAMPS');
+    await loadStep('Lighting the lamps');
     baker.update(0, player.position);
-    await loadStep('PUTTING UP THE PAINT');
+    await loadStep('Putting up the paint');
     await putLevelPaint(paint, drips, levelName, data);
     loaded = true;
     // A reload in a session goes back into it (multiplayer.ts), with the session's paint.
@@ -210,12 +209,13 @@ input.onLockChange = (locked) => {
     audio.setScribble(0);
   }
 };
-hud.onResume = () => input.requestLock();
-hud.onExitFullscreen = () => void exitGameFullscreen();
+hud.menu.onResume = () => input.requestLock();
+hud.menu.onStyle = (i) => settings.setStyle(i);
+input.escapeResumes = () => hud.menu.escape();
 hud.setLocked(false);
-hud.setSettings(settings.sections());
-const paintFile = paintMenu(hud, paint, drips, () => levelName);
-const net = multiplayerMenu(hud, hotbar, { scene, camera, level, paint, paintOps, drips, player, inventory, pickups, tools, levelData: () => ({ data: levelData(), name: levelName }), levelPaint: () => levelPaintOf(levelName), openLevel, lockDetail: (tpm) => settings.lockPaintDetail(tpm) }, () => levelName);
+hud.menu.setSettings(settings.sections());
+const paintFile = paintMenu(hud.menu, paint, drips, () => levelName);
+const net = multiplayerMenu(hud.menu, hotbar, { scene, camera, level, paint, paintOps, drips, player, inventory, pickups, tools, levelData: () => ({ data: levelData(), name: levelName }), levelPaint: () => levelPaintOf(levelName), openLevel, lockDetail: (tpm) => settings.lockPaintDetail(tpm) }, () => levelName, paintFile);
 tools.onCapChange = (name) => hud.showCapTag(name);
 tools.onColorChange = (color) => hud.showColorTag(color, COLORS[color]);
 

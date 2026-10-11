@@ -228,7 +228,7 @@ export function uiSections(): Section[] {
         r('opacity: with F3', ['PAUSE_MENU', 'debugOpacity'], 0, 1, 0.05),
         // Seen only without F3: changing them shows that sheet behind the panel for a moment.
         r('opacity', ['PAUSE_MENU', 'opacity'], 0, 1, 0.05, () => live.previewPause()),
-        t('controls', ['PAUSE_MENU', 'controls'], () => live.previewPause()),
+        r('opacity: pages', ['PAUSE_MENU', 'pageOpacity'], 0, 1, 0.05, () => live.previewPause()),
         r('size', ['PAUSE_MENU', 'scale'], 0.8, 2, 0.05, () => live.previewPause()),
         t('view', ['PAUSE_MENU', 'view'], () => live.previewPause()),
         r('view: x', ['PAUSE_MENU', 'viewX'], -80, 80, 0.5, () => live.previewPause()),

@@ -1,66 +1,21 @@
-import { HUD, PAUSE_MENU, VIGNETTE } from './config';
-import { isFullscreen } from './fullscreen';
-import { SettingsPage } from './settings-page';
-import type { SettingSection } from './settings';
+import { HUD, VIGNETTE } from './config';
 import { netLines, type NetStats } from './net/diagnostics';
-import { VERSION } from './version';
+import { PauseMenu } from './pause-menu';
 
 // Body-cam style HUD: vignette, corner brackets, REC indicator with elapsed
 // time, clock, crosshair, the PSI gauge, cap and color tags beside the tool in
-// hand, performance numbers, and the start/pause menu (with the credits at its foot).
+// hand, performance numbers, and over it all the ESC menu (pause-menu.ts).
 // The tool readout lives in inventory/hotbar.ts, the debug panel in debug/panel.ts.
-
-/** The key list under the pause menu: the main keys, then the tools a little apart (style.css). */
-const CONTROLS = [
-  ['WASD • SHIFT / W W • SPACE', 'move • run • jump / climb'],
-  ['LMB', 'draw'],
-  ['RMB (HOLD)', 'shake can'],
-  ['Q / E', 'color'],
-  ['MOUSE WHEEL', 'cap • tool width • turn ladder'],
-  ['K', 'screenshot'],
-];
-const TOOLS = [
-  ['1', 'can'],
-  ['2', 'marker'],
-  ['3', 'ladder'],
-  ['4', 'roller'],
-  ['5', 'sponge'],
-];
-
-/** Where the credit line's name leads (the game's source). */
-const REPO = 'https://github.com/GeoGeorgeous/hidden-roof';
 
 /** The color tag sits this many CSS px below the cap tag. */
 const COLOR_TAG_OFFSET = 22;
 /** The PSI gauge sits this many CSS px above the cap tag, the low-pressure alert above it. */
 const GAUGE_OFFSET = -22;
 const ALERT_OFFSET = -44;
-/** Menu messages (SAVE / LOAD PAINT) show this long. */
-const NOTICE_SECONDS = 3;
-/** previewSheet shows the full pause sheet this long after the last change. */
-const PREVIEW_SECONDS = 1.5;
 
 export class Hud {
-  onResume = () => {};
-  onExitFullscreen = () => {};
-  /** SAVE PAINT / LOAD PAINT in the menu (save/). */
-  onSavePaint = () => {};
-  onLoadPaint = () => {};
-  /** MULTIPLAYER (opens its page, net/net-menu.ts) and LEAVE SESSION. */
-  onLeave = () => {};
-  /** COPY NETWORK LOG, in a session (net/net-menu.ts). */
-  onCopyNetLog = () => {};
-  private overlay: HTMLElement;
-  private status: HTMLElement;
-  private exitFs: HTMLElement;
-  private savePaint: HTMLElement;
-  private loadPaint: HTMLElement;
-  private multiplayer: HTMLElement;
-  private leave: HTMLElement;
-  private netLog: HTMLElement;
-  /** The multiplayer session's code while in one. */
-  private session: string | null = null;
-  private resume: HTMLElement;
+  /** The start / pause screen and its pages. */
+  readonly menu: PauseMenu;
   private rec: HTMLElement;
   private clock: HTMLElement;
   private crosshair: HTMLElement;
@@ -82,22 +37,11 @@ export class Hud {
   private gaugeOn = false;
   private lastPressure = -1;
   private crosshairSize = -1;
-  private started = false;
-  /** The full pause sheet is up (paused without F3, or F3 previewing it). */
-  private sheetUp = false;
-  /** A message (notice) shows in the menu's status line until this time. */
-  private noticeUntil = 0;
-  private settingsPage: SettingsPage | null = null;
   private start = performance.now();
   private lastSecond = -1;
   /** The parts HUD switches on and off, and which were shown last (rewritten only on change). */
   private parts: [keyof typeof HUD, HTMLElement[]][];
   private partsShown = '';
-  /** The PAUSE_MENU look last applied (rewritten only on change). */
-  private sheet = '';
-  private debugOpen = false;
-  /** The full sheet shows until this time (previewSheet). */
-  private previewUntil = 0;
 
   constructor() {
     const root = document.createElement('div');
@@ -111,26 +55,7 @@ export class Hud {
       <div class="cap-tag" hidden></div>
       <div class="cap-tag color-tag" hidden></div>
       <div class="cap-tag psi-gauge"><span>PSI</span><div class="line"><i></i></div><b></b></div>
-      <div class="cap-tag psi-alert" hidden>LOW PRESSURE — HOLD [RMB] TO SHAKE</div>
-      <div class="overlay">
-        <div class="title">Hidden Roof</div>
-        <div class="status blink">CLICK TO START</div>
-        <div class="menu">
-          <button class="resume"></button>
-          <button class="save-paint">&gt; SAVE PAINT</button>
-          <button class="load-paint">&gt; LOAD PAINT</button>
-          <button class="multiplayer">&gt; MULTIPLAYER</button>
-          <button class="leave">&gt; LEAVE SESSION</button>
-          <button class="net-log">&gt; COPY NETWORK LOG</button>
-          <button class="open-settings">&gt; SETTINGS</button>
-          <button class="exit-fs">&gt; EXIT FULLSCREEN</button>
-        </div>
-        <table>${[CONTROLS, TOOLS].map((keys) => `<tbody>${keys.map(([k, v]) => `<tr><td>${k}</td><td>${v}</td></tr>`).join('')}</tbody>`).join('')}</table>
-        <div class="credits">
-          <div>built by <a href="${REPO}" target="_blank" rel="noopener">GeoGeorgeous</a></div>
-        </div>
-        <div class="version">${VERSION}</div>
-      </div>`;
+      <div class="cap-tag psi-alert" hidden>LOW PRESSURE — HOLD [RMB] TO SHAKE</div>`;
     document.body.appendChild(root);
     // The crosshair inverts what's under it (style.css), so it's its own layer
     // over the game view: inside the HUD it could only blend with the HUD.
@@ -139,9 +64,6 @@ export class Hud {
     this.crosshair.className = 'crosshair';
     this.crosshair.hidden = true;
     document.body.insertBefore(this.crosshair, root);
-    this.overlay = root.querySelector('.overlay')!;
-    this.status = root.querySelector('.status')!;
-    this.exitFs = root.querySelector('.exit-fs')!;
     this.vignette = root.querySelector('.vignette')!;
     this.perf = root.querySelector('.perf')!;
     this.syncVignette();
@@ -159,127 +81,19 @@ export class Hud {
     this.gaugeFill = root.querySelector('.psi-gauge i')!;
     this.gaugeText = root.querySelector('.psi-gauge b')!;
     this.alert = root.querySelector('.psi-alert')!;
-    // mousedown, like the canvas: the click that starts the game is the same gesture.
-    this.resume = root.querySelector('.resume')!;
-    this.resume.addEventListener('mousedown', (e) => {
-      e.preventDefault();
-      this.onResume();
-    });
-    root.querySelector('.open-settings')!.addEventListener('mousedown', (e) => {
-      e.preventDefault();
-      this.openPage('in-settings');
-    });
-    this.exitFs.addEventListener('mousedown', (e) => {
-      e.preventDefault();
-      this.onExitFullscreen();
-    });
-    this.savePaint = root.querySelector('.save-paint')!;
-    this.savePaint.addEventListener('mousedown', (e) => {
-      e.preventDefault();
-      this.onSavePaint();
-    });
-    // click, not mousedown: the file picker opens only from a click.
-    this.loadPaint = root.querySelector('.load-paint')!;
-    this.loadPaint.addEventListener('click', () => this.onLoadPaint());
-    this.multiplayer = root.querySelector('.multiplayer')!;
-    this.multiplayer.addEventListener('mousedown', (e) => {
-      e.preventDefault();
-      this.openPage('in-mp');
-    });
-    this.leave = root.querySelector('.leave')!;
-    this.leave.addEventListener('mousedown', (e) => {
-      e.preventDefault();
-      this.onLeave();
-    });
-    this.netLog = root.querySelector('.net-log')!;
-    this.netLog.addEventListener('click', () => this.onCopyNetLog());
-    document.addEventListener('fullscreenchange', () => this.syncMenu());
-    this.syncMenu();
+    this.menu = new PauseMenu(root);
   }
 
-  /**
-   * Unlocked = paused: before the first start it's the title screen, after that the
-   * pause menu. With the debug panel open the menu stays, but compact and see-through.
-   */
+  /** Unlocked = paused, behind the menu (pause-menu.ts); with the debug panel open it stays, compact. */
   setLocked(locked: boolean, debugOpen = false) {
-    if (locked) {
-      this.started = true;
-      this.openPage(null);
-    }
-    this.overlay.hidden = locked;
     // No cursor while paused (ESC), the pause menu or the debug panel has the mouse.
     this.crosshair.hidden = !locked;
-    this.debugOpen = debugOpen;
-    this.syncCompact();
-    this.syncMenu();
+    this.menu.setLocked(locked, debugOpen);
   }
 
-  /** The title screen (before START) shows a fixed view of the city (PAUSE_MENU.view); ESC later shows where you are. */
+  /** The title screen (before START) shows a fixed view of the city; ESC later shows where you are. */
   get cityView() {
-    return PAUSE_MENU.view && this.sheetUp && !this.started;
-  }
-
-  /** Show the full pause sheet (as without F3) for a moment: F3 is tuning it (PAUSE_MENU). */
-  previewSheet() {
-    this.previewUntil = performance.now() + PREVIEW_SECONDS * 1000;
-    this.syncCompact();
-  }
-
-  /** With F3 open the sheet is compact and lighter, unless it's being previewed. Paused without F3: no in-game UI. */
-  private syncCompact() {
-    const compact = this.debugOpen && performance.now() >= this.previewUntil;
-    this.overlay.classList.toggle('compact', compact);
-    // The full sheet hides the in-game UI (style.css); with F3 it stays, to tune it.
-    this.sheetUp = !this.overlay.hidden && !compact;
-    document.body.classList.toggle('paused', this.sheetUp);
-  }
-
-  /** Shows a message in the menu's status line for `seconds` (the toasts don't show over the menu); Infinity: until the next one. */
-  notice(msg: string, seconds = NOTICE_SECONDS) {
-    this.noticeUntil = performance.now() + seconds * 1000;
-    this.status.textContent = msg.toUpperCase();
-  }
-
-  private syncMenu() {
-    if (performance.now() >= this.noticeUntil) this.status.textContent = this.session ? `SESSION · ${this.session}` : this.started ? 'PAUSED' : 'CLICK TO START';
-    // The session's code stays put, to be read out and shared.
-    this.status.classList.toggle('blink', !this.session);
-    this.resume.textContent = this.started ? '> RESUME' : '> START';
-    this.exitFs.hidden = !isFullscreen();
-    // Nothing to save on the title screen; LOAD can come first. In a session, the server's paint is everyone's: no LOAD.
-    this.savePaint.hidden = !this.started && !this.session;
-    this.loadPaint.hidden = this.multiplayer.hidden = !!this.session;
-    this.leave.hidden = this.netLog.hidden = !this.session;
-  }
-
-  /** In a multiplayer session (its code) or not (null): the menu offers LEAVE SESSION instead of LOAD and MULTIPLAYER. */
-  setSession(code: string | null) {
-    this.session = code;
-    if (code) this.openPage(null);
-    this.syncMenu();
-  }
-
-  /** The settings page, opened from the pause menu (SETTINGS) and closed with BACK. */
-  setSettings(sections: SettingSection[]) {
-    this.settingsPage?.root.remove();
-    this.settingsPage = new SettingsPage(sections, () => this.openPage(null));
-    this.overlay.querySelector('.menu')!.after(this.settingsPage.root);
-  }
-
-  /** The MULTIPLAYER page (net/net-menu.ts), opened from the pause menu; `onOpen` readies it. */
-  setMultiplayer(page: HTMLElement, onOpen: () => void) {
-    this.overlay.querySelector('.menu')!.after(page);
-    this.onMultiplayerOpen = onOpen;
-  }
-
-  private onMultiplayerOpen = () => {};
-
-  /** Settings or the multiplayer page in place of the menu, or the menu (null). */
-  openPage(page: 'in-settings' | 'in-mp' | null) {
-    this.overlay.classList.toggle('in-settings', page === 'in-settings');
-    this.overlay.classList.toggle('in-mp', page === 'in-mp');
-    if (page === 'in-settings') this.settingsPage?.sync();
-    if (page === 'in-mp') this.onMultiplayerOpen();
+    return this.menu.cityView;
   }
 
   /** Crosshair circle diameter in CSS pixels. */
@@ -362,19 +176,6 @@ export class Hud {
     this.perf.textContent = text;
   }
 
-  /** The pause menu's sheet, size and key list from PAUSE_MENU. */
-  private syncSheet() {
-    const m = PAUSE_MENU;
-    const sheet = `${m.color}|${m.opacity}|${m.debugOpacity}|${m.controls}|${m.scale}`;
-    if (sheet === this.sheet) return;
-    this.sheet = sheet;
-    const mix = (a: number) => `color-mix(in srgb, ${m.color} ${Math.round(Math.min(1, Math.max(0, a)) * 100)}%, transparent)`;
-    this.overlay.style.setProperty('--sheet', mix(m.opacity));
-    this.overlay.style.setProperty('--sheet-debug', mix(m.debugOpacity));
-    this.overlay.style.setProperty('--menu-scale', String(m.scale));
-    this.overlay.querySelector('table')!.hidden = !m.controls;
-  }
-
   /** The vignette gradient from VIGNETTE: at start, and again when F3 changes it (live.syncVignette). */
   syncVignette() {
     const start = Math.min(99, Math.max(0, VIGNETTE.start));
@@ -385,19 +186,11 @@ export class Hud {
   }
 
   update() {
-    if (this.previewUntil && performance.now() >= this.previewUntil) {
-      this.previewUntil = 0;
-      this.syncCompact();
-    }
+    this.menu.update();
     const shown = this.parts.map(([k]) => (HUD[k] ? 1 : 0)).join('');
     if (shown !== this.partsShown) {
       this.partsShown = shown;
       for (const [k, els] of this.parts) for (const el of els) el.hidden = !HUD[k];
-    }
-    this.syncSheet();
-    if (this.noticeUntil && performance.now() >= this.noticeUntil) {
-      this.noticeUntil = 0;
-      this.syncMenu();
     }
     const s = Math.floor((performance.now() - this.start) / 1000);
     if (s === this.lastSecond) return;

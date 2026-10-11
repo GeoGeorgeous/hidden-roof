@@ -19,7 +19,7 @@ let failed = 0;
 
 /** A page with the game loaded, not drawing (SwiftShader draws on the CPU, seconds a frame); page errors fail the run. `before(page)`: set up before it loads (routes). */
 async function openPage(init, before) {
-  const page = await test.browser.newPage({ viewport: { width: 320, height: 180 }, acceptDownloads: true });
+  const page = await test.browser.newPage({ viewport: { width: 1280, height: 720 }, acceptDownloads: true });
   page.errors = [];
   page.on('pageerror', (e) => page.errors.push(e.message));
   await page.addInitScript(noDrawing);
@@ -65,8 +65,11 @@ async function check(name, fn) {
   }
 }
 
-const status = (page) => page.textContent('.overlay .status');
-const waitStatus = (page, text) => page.waitForFunction((t) => document.querySelector('.overlay .status').textContent === t, text, { timeout: 10000 });
+/** The pause screen's SAVE and UPLOAD. */
+const SAVE = '.overlay .item:text-is("Save")';
+const UPLOAD = '.overlay .item:text-is("Upload")';
+/** The popup that's open. */
+const POPUP = '.popup-page:not([hidden])';
 /** Paint one dot on surface `i` (the pause menu stays up). */
 const dot = (page, i = 0) => page.evaluate((i) => window.game.paint.stamp(window.game.paint.surfaces[i], { rect: 0, u: 0.5, v: 0.5 }, 0.1, 1, [1, 0, 0]), i);
 const paintedKeys = (page) => page.evaluate(() => window.game.paint.surfaces.filter((s) => s.data).map((s) => s.key).sort().join());
@@ -86,64 +89,175 @@ await check('pickups: on the start screen, before the game first runs, they alre
   return r.count && !r.sunk.length ? null : JSON.stringify(r);
 });
 
-await check('menu: SAVE PAINT downloads one file, even clicked three times at once', async () => {
+await check('menu: Esc goes back from a page to the pause screen and there resumes; Game, Graphics and Audio open their tab; the style switcher is the settings STYLE', async () => {
+  const r = await page.evaluate(() => {
+    const { menu } = window.game.hud;
+    const item = (t) => [...document.querySelectorAll('.overlay .item')].find((b) => b.textContent === t);
+    const shown = () => [...document.querySelectorAll('.overlay > :not(.blur)')].filter((e) => !e.hidden).map((e) => e.className).join(' | ');
+    const tab = () => document.querySelector('.settings-page .tabs .on')?.textContent;
+    item('Audio').click();
+    const audio = [shown(), tab()];
+    const back = menu.escape();
+    const after = shown();
+    item('Graphics').click();
+    const graphics = tab();
+    menu.escape();
+    document.querySelectorAll('.themes button')[1].click();
+    item('Graphics').click();
+    const style = [...document.querySelectorAll('.settings-page .setting-row')].find((row) => /style/i.test(row.querySelector('.label').textContent)).querySelector('.choice .value').textContent;
+    menu.escape();
+    document.querySelectorAll('.themes button')[0].click();
+    const on = document.querySelector('.themes .on').textContent;
+    // Multiplayer: Esc goes from HOST back to its choice of HOST and JOIN, then to the pause screen.
+    item('Multiplayer').click();
+    document.querySelector('.big-row').click();
+    const host = document.querySelector('.page-sub').textContent;
+    menu.escape();
+    const mp = [document.querySelector('.page-sub').textContent, document.querySelectorAll('.big-row').length];
+    menu.escape();
+    return { audio, back, after, graphics, style, on, host, mp, mpBack: shown(), resumes: menu.escape() };
+  });
+  const ok = r.audio[0] === 'seg back | page settings-page' && /sound/i.test(r.audio[1]) && r.back === false && /pause/.test(r.after) && /graphics/i.test(r.graphics) && /old manga/i.test(r.style) && r.on === 'New manga' && r.host === 'Host a session' && r.mp.join() === ',2' && /pause/.test(r.mpBack) && r.resumes === true;
+  return ok ? null : JSON.stringify(r);
+});
+
+await check('settings: Shift + click puts a slider back to its default; PAINT and CITY DETAIL say they apply on resume once changed', async () => {
+  const r = await page.evaluate(() => {
+    const { menu } = window.game.hud;
+    const row = (name) => [...document.querySelectorAll('.settings-page .setting-row')].find((r) => r.querySelector('.label').textContent.startsWith(name));
+    menu.openSettings(2);
+    const input = row('Master').querySelector('input');
+    input.value = '150';
+    input.dispatchEvent(new Event('input'));
+    const moved = row('Master').querySelector('.value').textContent;
+    input.dispatchEvent(new PointerEvent('pointerdown', { shiftKey: true }));
+    const reset = [row('Master').querySelector('.value').textContent, input.style.getPropertyValue('--fill')];
+    menu.openSettings(1);
+    const value = (name) => row(name).querySelector('.choice .value').textContent;
+    const step = (name, d) => row(name).querySelectorAll('.choice button')[d < 0 ? 0 : 1].click();
+    const before = [value('Paint detail'), value('City detail')];
+    step('Paint detail', -1);
+    step('City detail', -1);
+    const changed = [value('Paint detail'), value('City detail')];
+    step('Paint detail', 1);
+    step('City detail', 1);
+    const back = [value('Paint detail'), value('City detail')];
+    menu.openPage(null);
+    return { moved, reset, before, changed, back };
+  });
+  const ok = r.moved === '150%' && r.reset.join() === '100%,50%' && r.before.join() === 'Ultra  1.0 cm,High' && r.changed.join() === 'High  1.4 cm  ·  on resume,Medium  ·  on resume' && r.back.join() === r.before.join();
+  return ok ? null : JSON.stringify(r);
+});
+
+await check('credits: every license the page links to ships with the game', async () => {
+  const r = await page.evaluate(async () => {
+    const links = [...document.querySelectorAll('.credits-page a')].map((a) => a.href).filter((h) => h.includes('/licenses/'));
+    const bad = [];
+    // A missing file would come back as the page (the dev server's fallback): a license is plain text.
+    for (const h of links) {
+      const res = await fetch(h);
+      if (!res.ok || !res.headers.get('content-type').startsWith('text/plain')) bad.push(h);
+    }
+    return { count: links.length, bad };
+  });
+  return r.count === 8 && !r.bad.length ? null : JSON.stringify(r);
+});
+
+await check('updates: the releases newest first, the newest marked Latest; each has its picture; lists under a heading keep their terms', async () => {
+  const r = await page.evaluate(async () => {
+    const { menu } = window.game.hud;
+    menu.openPage('updates');
+    const vers = [...document.querySelectorAll('.rail .ver')].map((b) => b.textContent);
+    const missing = [];
+    for (const b of document.querySelectorAll('.rail .ver')) {
+      b.click();
+      const res = await fetch(document.querySelector('.pane .shot img').src);
+      if (!res.ok || res.headers.get('content-type') !== 'image/webp') missing.push(b.textContent);
+    }
+    const tools = [...document.querySelectorAll('.pane .item-note')].find((n) => n.querySelector('.item-title').textContent === 'tools');
+    const terms = [...(tools?.querySelectorAll('.term-line b') ?? [])].map((t) => t.textContent);
+    menu.openPage(null);
+    return { vers, missing, terms };
+  });
+  return r.vers[0].endsWith('Latest') && r.vers.at(-1) === '1.0.0' && r.vers.filter((v) => v.endsWith('Latest')).length === 1 && !r.missing.length && r.terms.join() === 'spray can,marker,roller,sponge,stepladder' ? null : JSON.stringify(r);
+});
+
+await check('save popup: SAVE shows the file and its size; DOWNLOAD downloads that one file, even clicked three times at once, then says where it went', async () => {
   await dot(page);
+  await page.click(SAVE);
+  await page.waitForFunction(() => /KB|MB/.test(document.querySelector('.popup-page:not([hidden]) .chip span').textContent));
+  const chip = await page.textContent(`${POPUP} .chip b`);
   let n = 0;
   const count = () => n++;
   page.on('download', count);
   const first = page.waitForEvent('download');
-  await page.evaluate(() => { for (let i = 0; i < 3; i++) document.querySelector('.save-paint').dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); });
-  await (await first).saveAs(`${tmp}/menu.rhhpaint`);
-  await waitStatus(page, 'PAINT SAVED');
+  await page.evaluate((popup) => { const go = document.querySelector(`${popup} .btn.primary`); for (let i = 0; i < 3; i++) go.click(); }, POPUP);
+  const saved = await first;
+  await saved.saveAs(`${tmp}/menu.rhhpaint`);
+  await page.waitForFunction((popup) => document.querySelector(`${popup} .para.done`)?.textContent === 'Download started.', POPUP);
   await page.waitForTimeout(300);
   page.off('download', count);
-  return n === 1 ? null : `${n} downloads`;
+  const back = await page.evaluate(() => (window.game.hud.menu.escape(), document.querySelector('.overlay .pause').hidden));
+  return n === 1 && /^demo-\d{8}-\d{6}\.rhhpaint$/.test(chip) && saved.suggestedFilename() === chip && !back ? null : JSON.stringify({ n, chip, file: saved.suggestedFilename(), back });
 });
 
-await check('menu: with the file picker open, SAVE and LOAD do nothing; cancelling says NO FILE CHOSEN', async () => {
-  const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('.load-paint')]);
+await check('upload popup: with the file picker open, CHOOSE FILE does nothing; closing the picker leaves the popup as it was', async () => {
+  await page.click(UPLOAD);
+  const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click(`${POPUP} .btn.primary`)]);
   let extra = 0;
   const count = () => extra++;
-  page.on('download', count).on('filechooser', count);
-  await page.dispatchEvent('.save-paint', 'mousedown');
-  await page.click('.load-paint');
+  page.on('filechooser', count);
+  await page.evaluate((popup) => document.querySelector(`${popup} .btn.primary`).click(), POPUP);
   await page.waitForTimeout(300);
-  page.off('download', count).off('filechooser', count);
+  page.off('filechooser', count);
   await chooser.setFiles([]);
-  await waitStatus(page, 'NO FILE CHOSEN');
-  return extra ? `${extra} downloads or pickers while the picker was open` : null;
+  await page.waitForTimeout(300);
+  const still = await page.textContent(`${POPUP} .btn.primary`);
+  await page.evaluate(() => window.game.hud.menu.escape());
+  return !extra && still === 'Choose file…ENTER' ? null : JSON.stringify({ extra, still });
 });
 
-await check('menu: LOAD PAINT after a reload puts the paint back', async () => {
+await check('upload popup: after a reload, a saved file shows by name, and REPLACE PAINT puts its paint back', async () => {
   const before = await paintedKeys(page);
   await page.reload();
   await gameReady(page, 2);
-  const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('.load-paint')]);
+  await page.click(UPLOAD);
+  const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click(`${POPUP} .btn.primary`)]);
   await chooser.setFiles(`${tmp}/menu.rhhpaint`);
-  await waitStatus(page, 'PAINT LOADED');
+  await page.waitForFunction((popup) => document.querySelector(`${popup} .btn.primary`).textContent.startsWith('Replace paint'), POPUP);
+  const chip = await page.textContent(`${POPUP} .chip b`);
+  await page.click(`${POPUP} .btn.primary`);
+  await page.waitForFunction((popup) => document.querySelector(`${popup} .para.done`)?.textContent === 'Paint loaded.', POPUP);
   const after = await paintedKeys(page);
-  return after === before ? null : `painted ${after}, saved ${before}`;
+  await page.evaluate(() => window.game.hud.menu.escape());
+  return after === before && chip === 'menu.rhhpaint' ? null : JSON.stringify({ painted: after, saved: before, chip });
 });
 
-await check('menu: a broken file says BROKEN PAINT FILE and keeps the paint', async () => {
+await check('upload popup: a broken file says so in red, and the paint stays', async () => {
   fs.writeFileSync(`${tmp}/broken.rhhpaint`, 'RHHPgarbage');
   const before = await paintedKeys(page);
-  const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('.load-paint')]);
+  await page.click(UPLOAD);
+  const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click(`${POPUP} .btn.primary`)]);
   await chooser.setFiles(`${tmp}/broken.rhhpaint`);
-  await waitStatus(page, 'BROKEN PAINT FILE');
-  return (await paintedKeys(page)) === before ? null : 'paint changed';
+  await page.waitForFunction((popup) => document.querySelector(`${popup} .para.error`)?.textContent === 'Broken paint file.', POPUP);
+  const kept = (await paintedKeys(page)) === before;
+  await page.evaluate(() => window.game.hud.menu.escape());
+  return kept ? null : 'paint changed';
 });
 
-await check('menu: COPY NETWORK LOG saves a file where the page has no clipboard (plain http, as on a LAN)', async () => {
+await check('menu: after a failed link the multiplayer page says so in red and offers COPY NETWORK LOG, which saves a file where the page has no clipboard (plain http, as on a LAN)', async () => {
   const p = await openPage(() => Object.defineProperty(navigator, 'clipboard', { value: undefined }));
   await p.evaluate(() => (window.game.hud.setLocked(true), window.game.hud.setLocked(false)));
   const press = (text) => p.locator('.overlay button:visible', { hasText: text }).first().click();
-  await press('MULTIPLAYER');
+  await press('Multiplayer');
+  const before = await p.isVisible('.net-log');
+  await p.evaluate(() => window.game.net.onStatus({ state: 'failed', reason: 'timeout' }));
+  const said = await p.evaluate(() => { const s = document.querySelector('.mp-status'); return [s.textContent, s.classList.contains('error')]; });
   const saved = p.waitForEvent('download', { timeout: 5000 });
-  await press('COPY NETWORK LOG');
+  await press('Copy network log');
   const name = (await saved.catch(() => null))?.suggestedFilename();
   await p.close();
-  return /^roof-network-.+\.txt$/.test(name) && !p.errors.length ? null : JSON.stringify({ name, errors: p.errors });
+  return !before && said.join() === "The server didn't answer,true" && /^roof-network-.+\.txt$/.test(name) && !p.errors.length ? null : JSON.stringify({ before, said, name, errors: p.errors });
 });
 
 await check('saves: a sign whose text changed loses its paint (changed shape), the rest loads', async () => {

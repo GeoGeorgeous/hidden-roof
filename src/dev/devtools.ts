@@ -115,7 +115,7 @@ export class DevTools {
       rebuildLightProps: () => g.level.rebuildLit(),
       syncAtmosphere: () => g.atmosphere.syncColors(),
       syncVignette: () => g.hud.syncVignette(),
-      previewPause: () => g.hud.previewSheet(),
+      previewPause: () => g.hud.menu.previewSheet(),
       applyDaylight: () => g.atmosphere.reapplyDaylight(),
       syncBuildLook: () => this.build.syncLook(),
       atmosNight: () => g.atmosphere.nightValues,
@@ -149,7 +149,8 @@ export class DevTools {
       profileProbe: () => this.profiler.runProbe(),
       profileState: () => (this.profiler.recording ? 'RECORDING' : 'off'),
     });
-    g.input.escapeResumes = () => this.debug.visible;
+    const menuEscape = g.input.escapeResumes;
+    g.input.escapeResumes = () => this.debug.visible || menuEscape();
     Object.assign(window, { game: { ...g, build: this.build, debug: this.debug, live, ghost: this.ghost, profiler: this.profiler, cityParts: { layoutCity, dressTower, wallSigns } } });
   }
 

@@ -18,7 +18,7 @@ const test = await openTestBrowser();
 
 /** A player in a browser context of its own (its own sessionStorage, like an incognito window). */
 async function open(detail) {
-  const ctx = await test.browser.newContext({ viewport: { width: 320, height: 180 } });
+  const ctx = await test.browser.newContext({ viewport: { width: 1280, height: 720 } });
   // Nothing drawn: the test is about the network.
   await ctx.addInitScript(noDrawing);
   // hide() and show(): as a hidden tab, no frames and document.hidden, while the socket still takes messages.
@@ -60,21 +60,38 @@ try {
   await press(a, 'MULTIPLAYER');
   await press(a, 'HOST A SESSION');
   await a.fill('.mp-page input >> nth=0', 'A');
-  for (let i = 0; i < 2; i++) await press(a, '<');
-  await press(a, '> HOST');
+  for (let i = 0; i < 2; i++) await a.click('.mp-page .choice button:text-is("‹") >> nth=0');
+  await press(a, 'Host');
   await status(a, 'in');
-  const code = (await a.textContent('.overlay .status')).match(/SESSION · ([A-Z]+)/)[1];
+  const code = (await a.textContent('.overlay .status')).match(/Session · ([A-Z]+)/)[1];
   assert.equal(code, await a.evaluate(() => window.game.net.status.code));
   await press(b, 'MULTIPLAYER');
   await press(b, 'JOIN A SESSION');
   await b.fill('.mp-page input >> nth=0', 'B');
   await b.fill('.mp-page input >> nth=1', code.toLowerCase());
-  await press(b, '> JOIN');
+  await press(b, 'Join');
   await status(b, 'in');
-  assert.ok(await b.isVisible('.overlay button:has-text("LEAVE SESSION")'));
-  assert.ok(!(await b.isVisible('.overlay button:has-text("LOAD PAINT")')));
-  // Both play at the host's PAINT DETAIL, whatever their own.
+  assert.ok(await b.isVisible('.overlay .item:text-is("Leave session")'));
+  assert.ok(!(await b.isVisible('.overlay .item:text-is("Upload")')));
+  // Both play at the host's PAINT DETAIL, whatever their own; B's settings show it as the host's, its arrows doing nothing.
   assert.deepEqual(await Promise.all([a, b].map((p) => p.evaluate(() => window.game.config.PAINT.texelsPerMeter))), [48, 48]);
+  const detail = await b.evaluate(() => {
+    window.game.hud.menu.openSettings(1);
+    const row = [...document.querySelectorAll('.settings-page .setting-row')].find((r) => r.querySelector('.label').textContent.startsWith('Paint detail'));
+    row.querySelector('.choice button').click();
+    const shown = [row.querySelector('.choice .value').textContent, row.querySelector('.choice').classList.contains('locked')];
+    window.game.hud.menu.openPage(null);
+    return shown;
+  });
+  assert.deepEqual(detail, ['Medium  2.1 cm  (host)', true]);
+  // SAVE in a session: the popup downloads the session's paint, packed by the server.
+  const got = b.waitForEvent('download');
+  await b.click('.overlay .item:text-is("Save")');
+  assert.equal(await b.textContent('.popup-page:not([hidden]) .chip span'), 'from the session');
+  await b.click('.popup-page:not([hidden]) .btn.primary');
+  assert.match((await got).suggestedFilename(), /^demo-\d{8}-\d{6}\.rhhpaint$/);
+  await b.waitForSelector('.popup-page:not([hidden]) .para.done');
+  await b.evaluate(() => window.game.hud.menu.openPage(null));
   assert.deepEqual(await b.evaluate(() => [...window.game.net.names.values()]), ['A']);
   await a.waitForFunction(() => window.game.net.names.size === 1);
   // The HUD's network lines: a ping, and how far behind B is shown.
@@ -153,7 +170,7 @@ try {
   server = startServer();
   await a.waitForFunction(() => window.game.net.status.state === 'failed' && window.game.net.status.reason === 'ended', null, { timeout: 15000 });
   assert.equal(await a.evaluate(() => window.game.session.multiplayer), false);
-  assert.match(await a.textContent('.overlay .status'), /THE SESSION HAS ENDED/);
+  assert.match(await a.textContent('.overlay .status'), /The session has ended/);
 
   // No server: the game asks over HTTP why it can't connect, and says the server is down.
   server.kill();
@@ -164,7 +181,7 @@ try {
   await a.evaluate(() => window.game.net.host('A', 48));
   const down = await failed();
   assert.equal(down.reason, 'server-down', JSON.stringify(down));
-  assert.match(await a.textContent('.overlay .status'), /THE GAME SERVER IS DOWN \(HTTP 5\d\d · WS \d+\)/);
+  assert.match(await a.textContent('.overlay .status'), /The game server is down \(HTTP 5\d\d · WS \d+\)/);
   // A server that takes the connection and never answers: the game gives up after NET.connectTimeout.
   const held = new Set();
   const silent = net.createServer((socket) => held.add(socket)).listen(PORT);

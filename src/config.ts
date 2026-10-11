@@ -293,14 +293,13 @@ export const VIGNETTE = {
 
 /** The pause menu (ESC): the sheet over the game and what it shows, live in F3 → UI. */
 export const PAUSE_MENU = {
-  /** Sheet color and opacity; lighter while the F3 panel is open, so the game shows behind it. */
+  /** Sheet color and opacity over the game on the pause screen, and on its pages (blurred under them); lighter while the F3 panel is open, so the game shows behind it. */
   color: '#0e0e10',
-  opacity: 0.65,
+  opacity: 0.35,
+  pageOpacity: 0.72,
   debugOpacity: 0,
-  /** The list of keys under the menu. */
-  controls: true,
   /** Size of everything on the sheet (1 = as styled in style.css). */
-  scale: 1.05,
+  scale: 1,
   /** The title screen's view (before START; ESC later shows where you are): a fixed camera on the city. Position (m), yaw and pitch (degrees, pitch < 0 looks down). */
   view: true,
   viewX: -24,

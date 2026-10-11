@@ -18,6 +18,7 @@ The one place for what's left to do: bugs, things to check, performance, tests, 
 - **Before a release:** walking along railings and landings (the corner slip, `PLAYER.cornerSlip`), the lattice mast (can't be climbed), the clear windows (see through, paint from both sides, a stepladder against one from behind), pickups (ring shapes, glow, tags within 4 m, hidden behind walls), and a session from two devices on one network (paint, presence, reload, the network log). **M.**
 - **Pickup rings on the title screen are sized for where you stand,** not for the title view (`ringSize` in `src/pickups/pickups.ts` uses the player's camera): the lime one, ~16 m from the title camera and ~29 m from the spawn, shows almost twice its size. Do: size them for the camera that draws (`shown` in `main.ts`), or leave it. **XS.**
 - **A remote player's correction glides** at up to ~3× walking speed on a bad link (16 m/s at 60 fps, over 0.1–0.2 s); the ghost test allows it (it checks for jumps: 30–65 m/s unsmoothed). A speed cap changes how other players look: judge it in F3 → Test → Ghost (net: hiccups 0.2, record a walk that stops, PLAY), then decide. **S.**
+- **The ESC menu in a real browser:** Esc on the pause screen resumes (Chromium may refuse the pointer lock for about a second after Esc released it: the menu stays up, the next Esc or click works), holding Esc leaves forced fullscreen (there's no EXIT FULLSCREEN any more), Enter in HOST's name field hosts, and the menu at 1366×768 and in a small window. **S.**
 
 ## Performance
 

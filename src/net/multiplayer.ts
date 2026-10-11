@@ -126,7 +126,7 @@ export class Multiplayer {
 
   /** SAVE: the server sends the session's paint (onSave). */
   requestSave() {
-    this.onProgress('SAVING PAINT…');
+    this.onProgress('Saving paint…');
     this.send({ type: 'save' });
   }
 
@@ -192,13 +192,13 @@ export class Multiplayer {
     /** A HOST's save: the server sends no paint back, it's this. */
     const save = hello.type === 'host' ? hello.bytes : undefined;
     /** What the server is doing once the hello is up. */
-    const next = hello.type === 'join' ? (hello.token ? 'GOING BACK IN…' : 'JOINING SESSION…') : save ? 'CREATING SESSION FROM THE SAVE…' : 'CREATING SESSION…';
+    const next = hello.type === 'join' ? (hello.token ? 'Going back in…' : 'Joining session…') : save ? 'Creating session from the save…' : 'Creating session…';
     let uploading = false;
     const timer = setInterval(() => {
       if (this.ws !== ws || this.live) return clearInterval(timer);
       if (uploading && ws.bufferedAmount) {
         heard = now();
-        this.onProgress(`UPLOADING PAINT ${percent(frame.length - ws.bufferedAmount, frame.length)}`);
+        this.onProgress(`Uploading paint ${percent(frame.length - ws.bufferedAmount, frame.length)}`);
       } else if (uploading) {
         uploading = false;
         this.onProgress(next);
@@ -214,7 +214,7 @@ export class Multiplayer {
       ws.send(frame);
       // Only a save is worth a percentage (the rest goes in a blink).
       uploading = !!save && ws.bufferedAmount > 0;
-      this.onProgress(uploading ? 'UPLOADING PAINT 0%' : next);
+      this.onProgress(uploading ? 'Uploading paint 0%' : next);
     };
     // What this game can't take (a welcome it can't load) ends the session for it.
     const handle = (m: ToClient, arrived: number, file?: Uint8Array) => (this.queue = this.queue.then(() => this.receive(m, arrived, file)).catch((err) => (console.error(err), this.send({ type: 'leave' }), this.end({ state: 'failed', reason: 'version' }))));
@@ -229,7 +229,7 @@ export class Multiplayer {
       if (m?.type === 'part') {
         if (!waiting) return;
         waiting.parts.push(m.bytes);
-        this.onProgress(`${waiting.m.type === 'save' ? 'SAVING' : 'DOWNLOADING'} PAINT ${percent(waiting.parts.length, waiting.m.parts)}`);
+        this.onProgress(`${waiting.m.type === 'save' ? 'Saving' : 'Downloading'} paint ${percent(waiting.parts.length, waiting.m.parts)}`);
         if (waiting.parts.length < waiting.m.parts) return;
         handle(waiting.m, t, joinBytes(waiting.parts));
         waiting = null;
@@ -319,7 +319,7 @@ export class Multiplayer {
         g.pickups.collectOwned(g.inventory);
       }
     }
-    this.onProgress('LOADING PAINT…');
+    this.onProgress('Loading paint…');
     // The session's paint replaces ours; what we painted while the link was down is gone with it.
     await loadPaint(g.paint, g.drips, file, { name: w.levelName });
     const name = this.name;
