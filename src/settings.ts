@@ -1,5 +1,6 @@
 import { ATMOS, AUDIO, HUD, INK_STYLES, PAINT, PLAYER, RENDER, SKYLINE, SMOKE, VOLUMETRICS } from './config';
 import { exitGameFullscreen } from './fullscreen';
+import { sentence } from './menu-ui';
 import { DEFAULT_STYLE, inkStyle, setInkStyle } from './render/ink/styles';
 
 // Player settings, on the settings page of the pause menu (settings-page.ts):
@@ -18,6 +19,8 @@ const OLD_KEY = 'taggin.settings';
 const PIXEL_SCALES = [1, 1.5, 2, 2.5, 3, 4];
 /** FRAME RATE choices (fps); 0 = no limit. */
 const FRAME_RATES = [0, 30, 60, 90, 120, 144];
+/** After PAINT and CITY DETAIL's value once it's changed: it applies when the game resumes. */
+const ON_RESUME = '  ·  on resume';
 /** Mouse sensitivity is shown as a multiple of config's (1.00x). */
 const BASE_SENSITIVITY = PLAYER.mouseSensitivity;
 /** config's field of view and running boost: their sliders' default ticks. */
@@ -92,9 +95,9 @@ export class Settings {
   /** The settings page (pause menu → SETTINGS): one section per tab. */
   sections(): SettingSection[] {
     return [
-      { title: 'GAMEPLAY', rows: gameplayRows() },
-      { title: 'GRAPHICS', rows: this.graphicsRows() },
-      { title: 'SOUND', rows: soundRows() },
+      { title: 'Gameplay', rows: gameplayRows() },
+      { title: 'Graphics', rows: this.graphicsRows() },
+      { title: 'Sound', rows: soundRows() },
     ];
   }
 
@@ -102,10 +105,10 @@ export class Settings {
     return [
       {
         kind: 'choice',
-        label: 'STYLE',
+        label: 'Style',
         desc: 'The colors of paper, ink and sky.',
         // An F3-only preset shows as such; stepping goes on from the default style.
-        value: () => INK_STYLES[inkStyle()]?.name ?? 'F3 PRESET',
+        value: () => sentence(INK_STYLES[inkStyle()]?.name ?? 'F3 preset'),
         step: (d) => {
           const i = inkStyle() < INK_STYLES.length ? inkStyle() : DEFAULT_STYLE;
           this.setStyle((i + d + INK_STYLES.length) % INK_STYLES.length);
@@ -113,7 +116,7 @@ export class Settings {
       },
       {
         kind: 'choice',
-        label: 'RESOLUTION',
+        label: 'Resolution',
         // Per-pixel work follows the pixel count: 1/2 draws a quarter of 1/1's pixels.
         cost: 'HIGH',
         value: () => {
@@ -129,9 +132,9 @@ export class Settings {
       },
       {
         kind: 'choice',
-        label: 'FRAME RATE',
+        label: 'Frame rate',
         cost: 'LOW',
-        value: () => (RENDER.maxFps ? `${RENDER.maxFps} FPS` : 'MAX'),
+        value: () => (RENDER.maxFps ? `${RENDER.maxFps} FPS` : 'Max'),
         step: (d) => {
           RENDER.maxFps = cycle(FRAME_RATES, nearest(FRAME_RATES, RENDER.maxFps), d);
           this.save();
@@ -139,11 +142,11 @@ export class Settings {
       },
       {
         kind: 'choice',
-        label: 'VOLUMETRICS',
+        label: 'Volumetrics',
         desc: 'Light shafts and lamp glow in the fog. The heaviest setting: lower it first if the game stutters.',
         // Raymarch work = pixels x steps: HIGH is about 30x LOW.
         cost: 'HIGH',
-        value: () => this.vol.toUpperCase(),
+        value: () => sentence(this.vol),
         step: (d) => {
           this.vol = cycle(VOL_ORDER, this.vol, d);
           Object.assign(VOLUMETRICS, VOL_PRESETS[this.vol]);
@@ -152,36 +155,37 @@ export class Settings {
       },
       {
         kind: 'choice',
-        label: 'PAINT DETAIL',
+        label: 'Paint detail',
         desc: 'Size of one paint texel on walls.',
-        note: 'ULTRA is recommended: 1 cm texels keep marker lines and fades sharp. It costs memory only for surfaces you actually paint, and a little CPU while painting; drawing the game is no slower.',
+        note: 'Ultra is recommended: 1 cm texels keep marker lines and fades sharp. It costs memory only for surfaces you actually paint, and a little CPU while painting; drawing the game is no slower.',
         // Stamping and uploading paint grow with the square (ULTRA 16x LOW), and paint memory; drawing doesn't.
         cost: 'MEDIUM',
         // Shown with the size of one paint texel.
         value: () => {
-          const d = this.locked ?? this.detail;
-          return `${d.toUpperCase()}  ${(100 / PAINT_DETAIL[d]).toFixed(1)} CM${this.locked ? '  (HOST)' : ''}`;
+          if (this.locked) return `${paintDetailName(this.locked)}  (host)`;
+          return paintDetailName(this.detail) + (PAINT_DETAIL[this.detail] !== PAINT.texelsPerMeter ? ON_RESUME : '');
         },
+        // In a session: the host's.
+        locked: () => !!this.locked,
         step: (d) => {
-          if (this.locked) return;
           this.detail = cycle(DETAIL_ORDER, this.detail, d);
           this.save();
         },
       },
       {
         kind: 'choice',
-        label: 'CITY DETAIL',
+        label: 'City detail',
         desc: 'How far the city stretches around the roofs. Lower trims distant blocks the haze mostly hides.',
         // The city drawn grows with the radius squared: HIGH about 3x LOW.
         cost: 'MEDIUM',
-        value: () => this.city.toUpperCase(),
+        value: () => sentence(this.city) + (this.city !== this.builtCity ? ON_RESUME : ''),
         step: (d) => {
           this.city = cycle(CITY_ORDER, this.city, d);
           this.save();
         },
       },
       toggle(
-        'FORCED FULLSCREEN',
+        'Forced fullscreen',
         () => RENDER.fullscreen,
         (on) => {
           RENDER.fullscreen = on;
@@ -189,10 +193,10 @@ export class Settings {
         },
         'LOW',
       ),
-      toggle('RAIN', () => ATMOS.rain, (on) => (ATMOS.rain = on), 'LOW'),
-      toggle('SMOKE', () => SMOKE.enabled, (on) => (SMOKE.enabled = on), 'LOW'),
-      toggle('MOVING PARTS', () => RENDER.propMotion, (on) => (RENDER.propMotion = on), 'LOW'),
-      toggle('PERFORMANCE LINES', () => HUD.perf, (on) => (HUD.perf = on)),
+      toggle('Rain', () => ATMOS.rain, (on) => (ATMOS.rain = on), 'LOW'),
+      toggle('Smoke', () => SMOKE.enabled, (on) => (SMOKE.enabled = on), 'LOW'),
+      toggle('Moving parts', () => RENDER.propMotion, (on) => (RENDER.propMotion = on), 'LOW'),
+      toggle('Performance lines', () => HUD.perf, (on) => (HUD.perf = on), undefined, 'Shows fps, ms, GPU ms, draw calls, triangles, texture memory and network stats at the bottom left.'),
     ];
   }
 
@@ -245,6 +249,11 @@ function load(): Saved {
   }
 }
 
+/** "Ultra  1.0 cm": a PAINT DETAIL with the size of one texel (the multiplayer page's too). */
+export function paintDetailName(d: PaintDetail) {
+  return `${sentence(d)}  ${(100 / PAINT_DETAIL[d]).toFixed(1)} cm`;
+}
+
 export function cycle<T>(list: T[], cur: T, d: number): T {
   return list[(list.indexOf(cur) + d + list.length) % list.length];
 }
@@ -262,23 +271,23 @@ function nearest(list: number[], v: number) {
 type RowBase = { label: string; desc?: string; note?: string; cost?: Cost };
 type Cost = 'LOW' | 'MEDIUM' | 'HIGH';
 export type SettingRow =
-  | (RowBase & { kind: 'choice'; value: () => string; step: (d: number) => void })
+  | (RowBase & { kind: 'choice'; value: () => string; step: (d: number) => void; locked?: () => boolean })
   | (RowBase & { kind: 'range'; min: number; max: number; step: number; def: number; get: () => number; set: (v: number) => void; format: (v: number) => string });
 export interface SettingSection {
   title: string;
   rows: SettingRow[];
 }
 
-/** An ON / OFF choice. */
-function toggle(label: string, get: () => boolean, set: (on: boolean) => void, cost?: Cost): SettingRow {
-  return { kind: 'choice', label, cost, value: () => (get() ? 'ON' : 'OFF'), step: () => set(!get()) };
+/** An On / Off choice. */
+function toggle(label: string, get: () => boolean, set: (on: boolean) => void, cost?: Cost, desc?: string): SettingRow {
+  return { kind: 'choice', label, cost, desc, value: () => (get() ? 'On' : 'Off'), step: () => set(!get()) };
 }
 
 function gameplayRows(): SettingRow[] {
   return [
     {
       kind: 'range',
-      label: 'SENSITIVITY',
+      label: 'Sensitivity',
       min: 0.25,
       max: 3,
       step: 0.05,
@@ -287,10 +296,10 @@ function gameplayRows(): SettingRow[] {
       set: (v) => (PLAYER.mouseSensitivity = v * BASE_SENSITIVITY),
       format: (v) => `${v.toFixed(2)}x`,
     },
-    { kind: 'range', label: 'FIELD OF VIEW', desc: 'How wide you see, in degrees.', min: 60, max: 110, step: 1, def: BASE_FOV, get: () => RENDER.fov, set: (v) => (RENDER.fov = v), format: (v) => `${v}°` },
+    { kind: 'range', label: 'Field of view', desc: 'How wide you see, in degrees.', min: 60, max: 110, step: 1, def: BASE_FOV, get: () => RENDER.fov, set: (v) => (RENDER.fov = v), format: (v) => `${v}°` },
     {
       kind: 'range',
-      label: 'FIELD OF VIEW: RUNNING',
+      label: 'Field of view: running',
       desc: 'Extra field of view while running, for a sense of speed. 0 turns it off.',
       min: 0,
       max: 15,
@@ -298,12 +307,12 @@ function gameplayRows(): SettingRow[] {
       def: BASE_RUN_FOV,
       get: () => RENDER.sprintFovBoost,
       set: (v) => (RENDER.sprintFovBoost = v),
-      format: (v) => (v ? `+${v}°` : 'OFF'),
+      format: (v) => (v ? `+${v}°` : 'Off'),
     },
     {
       kind: 'choice',
-      label: 'CROUCH',
-      value: () => (PLAYER.crouchToggle ? 'TOGGLE' : 'HOLD'),
+      label: 'Crouch',
+      value: () => (PLAYER.crouchToggle ? 'Toggle' : 'Hold'),
       step: () => (PLAYER.crouchToggle = !PLAYER.crouchToggle),
     },
   ];
@@ -311,14 +320,14 @@ function gameplayRows(): SettingRow[] {
 
 /** Volume sliders, 0..200% of each sound's default level. */
 const SOUNDS: [label: string, key: keyof typeof AUDIO, desc: string][] = [
-  ['MASTER', 'masterGain', 'Everything.'],
-  ['SPRAY', 'hissGain', 'The can hissing while you spray.'],
-  ['FOOTSTEPS', 'footstepGain', 'Your steps and landings.'],
-  ['RAIN', 'rainGain', 'The rain bed (only while it rains).'],
-  ['DROPS ON METAL', 'metalGain', 'Raindrops pinging on AC units, rails and vents near you.'],
-  ['THUNDER', 'thunderGain', 'Thunder after lightning.'],
-  ['CITY', 'ambienceGain', 'The low rumble of the city below.'],
-  ['AC FANS', 'fanGain', 'The hum of AC fans when you are close.'],
+  ['Master', 'masterGain', 'Everything.'],
+  ['Spray', 'hissGain', 'The can hissing while you spray.'],
+  ['Footsteps', 'footstepGain', 'Your steps and landings.'],
+  ['Rain', 'rainGain', 'The rain bed (only while it rains).'],
+  ['Drops on metal', 'metalGain', 'Raindrops pinging on AC units, rails and vents near you.'],
+  ['Thunder', 'thunderGain', 'Thunder after lightning.'],
+  ['City', 'ambienceGain', 'The low rumble of the city below.'],
+  ['AC fans', 'fanGain', 'The hum of AC fans when you are close.'],
 ];
 const SOUND_DEFAULTS = Object.fromEntries(SOUNDS.map(([, k]) => [k, AUDIO[k]]));
 

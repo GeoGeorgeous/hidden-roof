@@ -60,7 +60,7 @@ try {
   await press(a, 'MULTIPLAYER');
   await press(a, 'HOST A SESSION');
   await a.fill('.mp-page input >> nth=0', 'A');
-  for (let i = 0; i < 2; i++) await press(a, '<');
+  for (let i = 0; i < 2; i++) await a.click('.mp-page .choice button:text-is("‹") >> nth=0');
   await press(a, '> HOST');
   await status(a, 'in');
   const code = (await a.textContent('.overlay .status')).match(/Session · ([A-Z]+)/)[1];
@@ -73,8 +73,17 @@ try {
   await status(b, 'in');
   assert.ok(await b.isVisible('.overlay .item:text-is("Leave session")'));
   assert.ok(!(await b.isVisible('.overlay .item:text-is("Upload")')));
-  // Both play at the host's PAINT DETAIL, whatever their own.
+  // Both play at the host's PAINT DETAIL, whatever their own; B's settings show it as the host's, its arrows doing nothing.
   assert.deepEqual(await Promise.all([a, b].map((p) => p.evaluate(() => window.game.config.PAINT.texelsPerMeter))), [48, 48]);
+  const detail = await b.evaluate(() => {
+    window.game.hud.menu.openSettings(1);
+    const row = [...document.querySelectorAll('.settings-page .setting-row')].find((r) => r.querySelector('.label').textContent.startsWith('Paint detail'));
+    row.querySelector('.choice button').click();
+    const shown = [row.querySelector('.choice .value').textContent, row.querySelector('.choice').classList.contains('locked')];
+    window.game.hud.menu.openPage(null);
+    return shown;
+  });
+  assert.deepEqual(detail, ['Medium  2.1 cm  (host)', true]);
   assert.deepEqual(await b.evaluate(() => [...window.game.net.names.values()]), ['A']);
   await a.waitForFunction(() => window.game.net.names.size === 1);
   // The HUD's network lines: a ping, and how far behind B is shown.

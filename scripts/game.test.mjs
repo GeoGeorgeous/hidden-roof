@@ -102,13 +102,41 @@ await check('menu: Esc goes back from a page to the pause screen and there resum
     menu.escape();
     document.querySelectorAll('.themes button')[1].click();
     item('Graphics').click();
-    const style = [...document.querySelectorAll('.settings-page .setting-row')].find((row) => /style/i.test(row.querySelector('.label').textContent)).querySelector('.choice').textContent;
+    const style = [...document.querySelectorAll('.settings-page .setting-row')].find((row) => /style/i.test(row.querySelector('.label').textContent)).querySelector('.choice .value').textContent;
     menu.escape();
     document.querySelectorAll('.themes button')[0].click();
     const on = document.querySelector('.themes .on').textContent;
     return { audio, back, after, graphics, style, on, resumes: menu.escape() };
   });
-  const ok = r.audio[0] === 'seg back | settings-page' && /sound/i.test(r.audio[1]) && r.back === false && /pause/.test(r.after) && /graphics/i.test(r.graphics) && /old manga/i.test(r.style) && r.on === 'New manga' && r.resumes === true;
+  const ok = r.audio[0] === 'seg back | page settings-page' && /sound/i.test(r.audio[1]) && r.back === false && /pause/.test(r.after) && /graphics/i.test(r.graphics) && /old manga/i.test(r.style) && r.on === 'New manga' && r.resumes === true;
+  return ok ? null : JSON.stringify(r);
+});
+
+await check('settings: Shift + click puts a slider back to its default; PAINT and CITY DETAIL say they apply on resume once changed', async () => {
+  const r = await page.evaluate(() => {
+    const { menu } = window.game.hud;
+    const row = (name) => [...document.querySelectorAll('.settings-page .setting-row')].find((r) => r.querySelector('.label').textContent.startsWith(name));
+    menu.openSettings(2);
+    const input = row('Master').querySelector('input');
+    input.value = '150';
+    input.dispatchEvent(new Event('input'));
+    const moved = row('Master').querySelector('.value').textContent;
+    input.dispatchEvent(new PointerEvent('pointerdown', { shiftKey: true }));
+    const reset = [row('Master').querySelector('.value').textContent, input.style.getPropertyValue('--fill')];
+    menu.openSettings(1);
+    const value = (name) => row(name).querySelector('.choice .value').textContent;
+    const step = (name, d) => row(name).querySelectorAll('.choice button')[d < 0 ? 0 : 1].click();
+    const before = [value('Paint detail'), value('City detail')];
+    step('Paint detail', -1);
+    step('City detail', -1);
+    const changed = [value('Paint detail'), value('City detail')];
+    step('Paint detail', 1);
+    step('City detail', 1);
+    const back = [value('Paint detail'), value('City detail')];
+    menu.openPage(null);
+    return { moved, reset, before, changed, back };
+  });
+  const ok = r.moved === '150%' && r.reset.join() === '100%,50%' && r.before.join() === 'Ultra  1.0 cm,High' && r.changed.join() === 'High  1.4 cm  ·  on resume,Medium  ·  on resume' && r.back.join() === r.before.join();
   return ok ? null : JSON.stringify(r);
 });
 

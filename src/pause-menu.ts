@@ -1,5 +1,5 @@
 import { INK_STYLES, PAUSE_MENU } from './config';
-import { button, div, keyHint, onClick, runPrimary, segmented, sentence } from './menu-ui';
+import { button, div, keyHint, runPrimary, segmented, sentence } from './menu-ui';
 import { inkStyle } from './render/ink/styles';
 import type { SettingSection } from './settings';
 import { SettingsPage } from './settings-page';
@@ -71,7 +71,8 @@ export class PauseMenu {
     const hero = div('hero');
     hero.append(div('title', 'Hidden Roof'), this.status);
     // mousedown, like the canvas: the click that starts the game is the same gesture.
-    this.play = button('Single', () => this.onResume(), 'item main');
+    this.play = Object.assign(document.createElement('button'), { className: 'item main', textContent: 'Single' });
+    this.play.addEventListener('mousedown', (e) => (e.preventDefault(), e.button === 0 && this.onResume()));
     this.play.append(keyHint('ESC'));
     this.multiplayer = item('Multiplayer', () => (this.session ? this.onLeave() : this.openPage('mp')));
     this.savePaint = item('Save', () => this.onSavePaint());
@@ -218,7 +219,7 @@ export class PauseMenu {
 
 /** A menu entry. */
 function item(text: string, act: () => void) {
-  return onClick(Object.assign(document.createElement('button'), { className: 'item', textContent: text }), act);
+  return button(text, act, 'item');
 }
 
 /** A column of the menu: its title, then its entries. */

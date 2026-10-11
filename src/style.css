@@ -407,6 +407,10 @@ canvas {
   top: 18px;
   left: 24px;
 }
+/* Over the page it leads back from (pages fill the screen, so a click beside their column doesn't reach the game). */
+.overlay .back {
+  z-index: 1;
+}
 .overlay .back button {
   color: rgba(235, 229, 214, 0.8);
 }
@@ -520,22 +524,215 @@ canvas {
   display: none;
 }
 
-/* Settings page. */
-.overlay .settings-page {
+/* A page (settings, multiplayer, credits): the title at the top, then a column of rows. */
+.overlay .page {
   position: absolute;
-  left: 50%;
-  top: 186px;
-  transform: translateX(-50%);
-  display: flex;
+  inset: 0;
   pointer-events: auto;
+}
+.overlay .page-head {
+  position: absolute;
+  top: 44px;
+  left: 50%;
+  transform: translateX(-50%);
   width: min(640px, calc(100% - 32px));
-  max-height: calc(100% - 262px);
-  flex-direction: column;
-  gap: 10px;
-}
-.overlay .mp-page {
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
 }
+.overlay .page-title {
+  font-family: var(--display);
+  font-size: 56px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+.overlay .tabs button {
+  padding: 6px 14px;
+}
+/* The rows' column: it scrolls, its ends faded out. */
+.overlay .rows {
+  position: absolute;
+  top: 186px;
+  bottom: 76px;
+  left: 50%;
+  transform: translateX(-50%);
+  /* 640 px of rows, and the thin scrollbar beside them, always there so the rows don't move. */
+  width: min(650px, calc(100% - 32px));
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(235, 229, 214, 0.3) transparent;
+  mask: linear-gradient(to bottom, transparent 0, #000 16px, #000 calc(100% - 24px), transparent);
+}
+.overlay .setting-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--hair);
+}
+.overlay .setting-row .line {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 22px;
+}
+.overlay .setting-row .label {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  font-weight: 500;
+  font-size: 14px;
+}
+/* Performance cost after the name: ●○○ low to ●●● high. */
+.overlay .setting-row .cost {
+  font-weight: 400;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  color: rgba(235, 229, 214, 0.6);
+}
+.overlay .setting-row .desc {
+  max-width: 420px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-2);
+  text-wrap: pretty;
+}
+/* Callout: recommendations. */
+.overlay .setting-row .note {
+  margin-top: 4px;
+  padding: 10px 12px;
+  border-radius: 4px;
+  background: rgba(235, 229, 214, 0.07);
+  font-size: 12px;
+  line-height: 1.5;
+  color: rgba(235, 229, 214, 0.8);
+  text-wrap: pretty;
+}
+/* ‹ value ›, as wide as a slider and its value. */
+.overlay .choice {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: opacity 0.2s;
+}
+.overlay .choice button {
+  width: 26px;
+  height: 26px;
+  border-radius: 4px;
+  font-size: 16px;
+  color: rgba(235, 229, 214, 0.6);
+  transition: background 0.2s, color 0.2s;
+}
+.overlay .choice button:hover {
+  background: rgba(235, 229, 214, 0.1);
+  color: #fff;
+}
+.overlay .choice .value {
+  width: 186px;
+  text-align: center;
+  white-space: pre;
+  font-variant-numeric: tabular-nums;
+}
+/* PAINT DETAIL in a session: the host's. */
+.overlay .choice.locked {
+  opacity: 0.45;
+}
+.overlay .choice.locked button {
+  cursor: not-allowed;
+  background: none;
+  color: rgba(235, 229, 214, 0.6);
+}
+.overlay .range {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.overlay .range .value {
+  width: 52px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+/* A 1 px track filled up to the value (--fill, settings-page.ts), a 3 px thumb. */
+.overlay input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 186px;
+  height: 22px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.overlay input[type='range']::-webkit-slider-runnable-track {
+  height: 1px;
+  background: linear-gradient(to right, var(--paper) var(--fill, 0%), rgba(235, 229, 214, 0.3) var(--fill, 0%));
+}
+.overlay input[type='range']::-moz-range-track {
+  height: 1px;
+  background: linear-gradient(to right, var(--paper) var(--fill, 0%), rgba(235, 229, 214, 0.3) var(--fill, 0%));
+}
+.overlay input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 3px;
+  height: 12px;
+  margin-top: -5.5px;
+  border: 0;
+  border-radius: 1px;
+  background: var(--paper);
+}
+.overlay input[type='range']::-moz-range-thumb {
+  width: 3px;
+  height: 12px;
+  border: 0;
+  border-radius: 1px;
+  background: var(--paper);
+}
+.debug-panel input[type='range']::-webkit-slider-runnable-track {
+  height: 1px;
+  background: var(--ui);
+}
+.debug-panel input[type='range']::-moz-range-track {
+  height: 1px;
+  background: var(--ui);
+}
+.debug-panel input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 3px;
+  height: 11px;
+  margin-top: -5px;
+  background: var(--ui);
+  border: 0;
+}
+.debug-panel input[type='range']::-moz-range-thumb {
+  width: 3px;
+  height: 11px;
+  background: var(--ui);
+  border: 0;
+  border-radius: 0;
+}
+/* The slider over a gray tick at config.ts's value (the 3px thumb covers it there). */
+.overlay .slider {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.overlay .slider i {
+  position: absolute;
+  left: calc(1px + var(--at) * (100% - 3px));
+  top: 50%;
+  width: 1px;
+  height: 7px;
+  margin-top: -3.5px;
+  background: rgba(235, 229, 214, 0.4);
+  pointer-events: none;
+}
+.overlay .slider input {
+  position: relative;
+}
+/* The multiplayer page (net/net-menu.ts). */
 .mp-page input[type='text'] {
   pointer-events: auto;
   width: 186px;
@@ -557,123 +754,6 @@ canvas {
 .mp-page .mp-status {
   min-height: 1.4em;
   color: var(--dim);
-}
-.settings-page .tabs {
-  display: flex;
-  gap: 8px;
-}
-.settings-page .tabs button {
-  padding: 4px 14px;
-  border-color: var(--dim);
-  color: var(--dim);
-}
-.settings-page .tabs button.on {
-  border-color: var(--ui);
-  color: var(--ui);
-}
-.settings-page .rows {
-  overflow-y: auto;
-  padding-right: 6px;
-  scrollbar-width: thin;
-  scrollbar-color: var(--dim) transparent;
-}
-.settings-page .setting-row {
-  padding: 8px 0;
-  border-bottom: 1px solid rgba(235, 229, 214, 0.18);
-}
-.settings-page .line {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.settings-page .label {
-  flex: 1;
-}
-.settings-page .line button {
-  border: none;
-  padding: 2px 6px;
-}
-/* A choice's value, between its < and > buttons: as wide overall as a slider and its value. */
-.settings-page .choice {
-  width: 186px;
-  text-align: center;
-}
-.settings-page input[type='range'] {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 180px;
-  height: 12px;
-  background: transparent;
-  cursor: pointer;
-}
-.settings-page input[type='range']::-webkit-slider-runnable-track,
-.debug-panel input[type='range']::-webkit-slider-runnable-track {
-  height: 1px;
-  background: var(--ui);
-}
-.settings-page input[type='range']::-moz-range-track,
-.debug-panel input[type='range']::-moz-range-track {
-  height: 1px;
-  background: var(--ui);
-}
-.settings-page input[type='range']::-webkit-slider-thumb,
-.debug-panel input[type='range']::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 3px;
-  height: 11px;
-  margin-top: -5px;
-  background: var(--ui);
-  border: 0;
-}
-.settings-page input[type='range']::-moz-range-thumb,
-.debug-panel input[type='range']::-moz-range-thumb {
-  width: 3px;
-  height: 11px;
-  background: var(--ui);
-  border: 0;
-  border-radius: 0;
-}
-/* The slider over a gray tick at config.ts's value (the 3px thumb covers it there). */
-.settings-page .slider {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-.settings-page .slider i {
-  position: absolute;
-  left: calc(1px + var(--at) * (100% - 3px));
-  top: 50%;
-  width: 1px;
-  height: 7px;
-  margin-top: -3.5px;
-  background: rgba(235, 229, 214, 0.4);
-  pointer-events: none;
-}
-.settings-page .slider input {
-  position: relative;
-}
-.settings-page .value {
-  width: 56px;
-  text-align: right;
-}
-.settings-page .desc {
-  margin-top: 3px;
-  color: var(--dim);
-  letter-spacing: 0.04em;
-}
-/* Performance cost after the name: ●○○ LOW to ●●● HIGH. */
-.settings-page .label .cost {
-  margin-left: 10px;
-  color: var(--dim);
-  letter-spacing: 0.15em;
-}
-/* Callout: recommendations. */
-.settings-page .note {
-  margin-top: 6px;
-  padding: 4px 8px;
-  border-left: var(--line);
-  background: rgba(235, 229, 214, 0.08);
-  letter-spacing: 0.04em;
 }
 /* Full pause sheet (not compact): no in-game UI behind it (hud.ts); display: none, so
    it isn't laid out or animated (the REC blink) while paused. */

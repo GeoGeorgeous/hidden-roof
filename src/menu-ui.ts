@@ -6,21 +6,15 @@ export function div(className: string, text?: string) {
   return Object.assign(document.createElement('div'), { className }, text === undefined ? {} : { textContent: text });
 }
 
-/** A button acting on mousedown (left button), without taking the focus. */
-export function button(text: string, onClick: () => void, className = '') {
+/**
+ * A button: `act` on click (a file picker opens only from a click). It never
+ * takes the focus, so Enter can't press it again.
+ */
+export function button(text: string, act: () => void, className = '') {
   const b = Object.assign(document.createElement('button'), { textContent: text, className });
-  b.addEventListener('mousedown', (e) => {
-    e.preventDefault();
-    if (e.button === 0) onClick();
-  });
+  b.addEventListener('mousedown', (e) => e.preventDefault());
+  b.addEventListener('click', act);
   return b;
-}
-
-/** Runs `act` on click (a file picker opens only from a click); the button never takes the focus, so Enter can't press it again. */
-export function onClick(el: HTMLElement, act: () => void) {
-  el.addEventListener('mousedown', (e) => e.preventDefault());
-  el.addEventListener('click', act);
-  return el;
 }
 
 /** A key cap after a button's text: ESC, ENTER. */
@@ -43,14 +37,14 @@ export function runPrimary(root: HTMLElement) {
 export function segmented(labels: string[], pick: (i: number) => void) {
   const el = div('seg');
   const items = labels.map((l, i) => {
-    const b = onClick(Object.assign(document.createElement('button'), { textContent: l }), () => pick(i));
+    const b = button(l, () => pick(i));
     el.append(b);
     return b;
   });
   return { el, set: (on: number) => items.forEach((b, i) => b.classList.toggle('on', i === on)) };
 }
 
-/** "NEW MANGA" -> "New manga". */
+/** "NEW MANGA", "new manga" -> "New manga". */
 export function sentence(s: string) {
-  return s.charAt(0) + s.slice(1).toLowerCase();
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 }

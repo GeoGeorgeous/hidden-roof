@@ -3,8 +3,9 @@ import { download, pickFile, stamp } from '../files';
 import type { PauseMenu } from '../pause-menu';
 import type { Hotbar } from '../inventory/hotbar';
 import { savePaint } from '../save/save-paint';
-import { cycle, PAINT_DETAIL } from '../settings';
+import { cycle, PAINT_DETAIL, paintDetailName } from '../settings';
 import { button, div } from '../menu-ui';
+import { choice, pageHead, settingRow } from '../settings-page';
 import { CODE_LENGTH, CODE_LETTERS, NAME_MAX } from './protocol';
 import { Multiplayer, type MultiplayerContext, type NetStatus } from './multiplayer';
 
@@ -18,7 +19,7 @@ import { Multiplayer, type MultiplayerContext, type NetStatus } from './multipla
 type Start = 'fresh' | 'mine' | 'file';
 const STARTS: Start[] = ['fresh', 'mine', 'file'];
 const START_LABEL: Record<Start, string> = { fresh: 'FRESH LEVEL', mine: 'THIS PAINT', file: 'A PAINT FILE' };
-const DETAILS = Object.entries(PAINT_DETAIL) as [string, number][];
+const DETAILS = Object.entries(PAINT_DETAIL) as [keyof typeof PAINT_DETAIL, number][];
 const NAME_KEY = 'roofhiddenhaus.name';
 
 /** What the player reads about the link. */
@@ -43,10 +44,11 @@ const STATUS: Record<string, string> = {
 
 export function multiplayerMenu(hud: PauseMenu, hotbar: Hotbar, ctx: MultiplayerContext, levelName: () => string) {
   const net = new Multiplayer(ctx);
-  const root = div('settings-page mp-page');
+  const root = div('page mp-page');
   const rows = div('rows');
   const status = div('mp-status');
-  root.append(rows, status);
+  rows.append(status);
+  root.append(pageHead('multiplayer'), rows);
 
   let name = '';
   try {
@@ -74,16 +76,12 @@ export function multiplayerMenu(hud: PauseMenu, hotbar: Hotbar, ctx: Multiplayer
     return null;
   };
   const show = (...els: HTMLElement[]) => {
-    rows.replaceChildren(...els);
+    rows.replaceChildren(...els, status);
     say('');
   };
   const choose = () => show(menu(button('> HOST A SESSION', host), button('> JOIN A SESSION', join), button('> COPY NETWORK LOG', copyLog)));
   /** NAME, with what it is for. */
-  const nameRow = () => {
-    const el = row('NAME', nameInput);
-    el.append(Object.assign(div('desc'), { textContent: 'Your name as a player: everyone in the session sees it over you. Not the name of the session.' }));
-    return el;
-  };
+  const nameRow = () => settingRow('NAME', nameInput, { desc: 'Your name as a player: everyone in the session sees it over you. Not the name of the session.' });
   /** The network log to the clipboard, for a report; a file where the clipboard is out of reach (refused, or none: plain http, as on a LAN). */
   const copyLog = () => {
     const text = net.log.text();
@@ -95,8 +93,8 @@ export function multiplayerMenu(hud: PauseMenu, hotbar: Hotbar, ctx: Multiplayer
   };
   const host = () => {
     detail = PAINT.texelsPerMeter;
-    const detailRow = choice('PAINT DETAIL', () => `${DETAILS.find(([, t]) => t === detail)![0].toUpperCase()}  ${(100 / detail).toFixed(1)} CM`, (d) => (detail = cycle(DETAILS.map(([, t]) => t), detail, d)), 'Everyone in the session paints at this detail.');
-    const startRow = choice('START WITH', () => START_LABEL[start], (d) => (start = cycle(STARTS, start, d)), "The paint the session starts from: the level as it comes (its hints, if it has any), this level's paint as it is now, or a saved paint file.");
+    const detailRow = settingRow('PAINT DETAIL', choice(() => paintDetailName(DETAILS.find(([, t]) => t === detail)![0]), (d) => (detail = cycle(DETAILS.map(([, t]) => t), detail, d))).el, { desc: 'Everyone in the session paints at this detail.' });
+    const startRow = settingRow('START WITH', choice(() => START_LABEL[start], (d) => (start = cycle(STARTS, start, d))).el, { desc: "The paint the session starts from: the level as it comes (its hints, if it has any), this level's paint as it is now, or a saved paint file." });
     // A click, not mousedown: the file picker opens only from a click.
     const go = Object.assign(document.createElement('button'), { textContent: '> HOST' });
     go.addEventListener('click', async () => {
@@ -119,7 +117,7 @@ export function multiplayerMenu(hud: PauseMenu, hotbar: Hotbar, ctx: Multiplayer
       if (who && [...code].every((c) => CODE_LETTERS.includes(c)) && code.length === CODE_LENGTH) net.join(who, code);
       else if (who) say(`THE CODE IS ${CODE_LENGTH} LETTERS`);
     });
-    show(nameRow(), row('CODE', codeInput), menu(go, button('< BACK', choose)));
+    show(nameRow(), settingRow('CODE', codeInput), menu(go, button('< BACK', choose)));
   };
   hud.addPage('mp', root, choose);
 
@@ -148,27 +146,10 @@ export function multiplayerMenu(hud: PauseMenu, hotbar: Hotbar, ctx: Multiplayer
   return net;
 }
 
-function row(label: string, ...els: HTMLElement[]) {
-  const el = div('setting-row');
-  const line = div('line');
-  line.append(Object.assign(div('label'), { textContent: label }), ...els);
-  el.append(line);
-  return el;
-}
-
 /** Buttons stacked as in the pause menu. */
 function menu(...buttons: HTMLElement[]) {
   const el = div('menu');
   el.append(...buttons);
-  return el;
-}
-
-function choice(label: string, value: () => string, step: (d: number) => void, desc: string) {
-  const out = div('choice');
-  const sync = () => (out.textContent = value());
-  const el = row(label, button('<', () => (step(-1), sync())), out, button('>', () => (step(1), sync())));
-  el.append(Object.assign(div('desc'), { textContent: desc }));
-  sync();
   return el;
 }
 
