@@ -301,7 +301,9 @@ canvas {
   background: rgba(14, 14, 16, 0.92);
 }
 .playtest-sheet {
-  max-width: 560px;
+  max-width: 680px;
+  font-size: 14px;
+  letter-spacing: 0.04em;
   margin: 24px 16px;
   line-height: 1.45;
 }
@@ -318,6 +320,18 @@ canvas {
   display: block;
   margin: 14px 0;
   cursor: pointer;
+}
+.playtest-sheet[hidden] {
+  display: none;
+}
+.playtest-foot {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 18px;
+}
+.playtest-foot span {
+  color: var(--dim);
 }
 .playtest-sheet .ok {
   padding: 6px 28px;
