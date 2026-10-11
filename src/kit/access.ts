@@ -68,7 +68,7 @@ function fireEscapeLadder({ above, below }: { above: boolean; below: boolean }) 
     }
   }
   for (let y = y0 + 0.25; y < y1 - 0.1; y += 0.3) p.detail([-w / 2, y - 0.02, z0 + 0.01], [w / 2, y + 0.02, z1 - 0.01], M.steel, y < 4);
-  p.list.push({ k: 'climb', min: [-w / 2, y0, z0 - 0.45], max: [w / 2, y1 + 0.3, z0], normal: [0, 0, -1] });
+  p.list.push({ k: 'climb', min: [-w / 2, y0, z0 - 0.45], max: [w / 2, y1, z0], normal: [0, 0, -1] });
   return p.list;
 }
 
@@ -186,9 +186,8 @@ export const stepladder: PropDef = {
       p.detail([-w, y - 0.02, z - 0.06], [w, y + 0.02, z + 0.06], M.metal, false);
     }
     p.box([-w - 0.02, top, topFront - 0.02], [w + 0.02, h, topBack + 0.02], M.metal, { paint: false });
-    // Climbed from the front, like a wall ladder; the volume reaches over the
-    // cap's edge so you step onto it at the top.
-    p.list.push({ k: 'climb', min: [-w, 0, -f - 0.45], max: [w, h + 0.3, topFront], normal: [0, 0, -1] });
+    // Climbed from the front, like a wall ladder, up to the cap you step onto.
+    p.list.push({ k: 'climb', min: [-w, 0, -f - 0.45], max: [w, h, topFront], normal: [0, 0, -1] });
     return p.list;
   },
 };

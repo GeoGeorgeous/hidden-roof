@@ -688,6 +688,75 @@ await check('ladders: one per player, moved with one rebuild; each owner\'s stay
   return r.moved === 2 && r.both === 'a@2,b@4' && r.saved === 0 && r.left === 'b@4' && r.yours === 'local@8' && r.back === 0 ? null : JSON.stringify(r);
 });
 
+await check('ladders: climbed to the top (each in the level, a stepladder) you stand there off it and jump as from any floor; off the stepladder\'s front you slide down it', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { player: p, input, level, PLAYER } = g;
+    const keys = input.down;
+    input.locked = true;
+    /** At its foot (or its bottom, in the air), facing it, W held to the top; then idle, then a jump: what went wrong, or null. */
+    const climb = async ({ volume: v, normal: n }) => {
+      const along = Math.abs(n.x) > 0.5 ? 'x' : 'z';
+      const across = along === 'x' ? 'z' : 'x';
+      const outer = n[along] < 0 ? v.min[along] : v.max[along];
+      p.position.set(0, v.min.y + 0.02, 0);
+      p.position[along] = outer + n[along] * (PLAYER.radius + 0.05);
+      p.position[across] = (v.min[across] + v.max[across]) / 2;
+      p.velocity.set(0, 0, 0);
+      p.yaw = Math.atan2(n.x, n.z);
+      p.pitch = 0;
+      keys.add('KeyW');
+      let climbed = false;
+      let top = 0;
+      await steps((f) => {
+        climbed ||= p.onLadder;
+        if (!(p.onGround && p.position.y > v.max.y - 1e-3) && f < 600) return false;
+        keys.delete('KeyW');
+        top = p.position.y;
+        return true;
+      });
+      if (!climbed || top < v.max.y - 1e-3) return `climbed ${climbed}, stopped at ${top.toFixed(2)} (top ${v.max.y.toFixed(2)})`;
+      let held = 0;
+      await steps((f) => ((held += p.onLadder || p.velocity.y !== 0), f === 30));
+      if (held || Math.abs(p.position.y - top) > 0.002) return `idle on top: ${held} frames on the ladder, moved ${(p.position.y - top).toFixed(3)}`;
+      let peak = top;
+      await steps((f) => {
+        if (f === 0) input.pressed.add('Space'), keys.add('Space');
+        if (f === 1) keys.delete('Space');
+        peak = Math.max(peak, p.position.y);
+        return (f > 5 && p.onGround) || f > 180;
+      });
+      return peak - top > 0.95 * PLAYER.jumpHeight && Math.abs(p.position.y - top) < 0.002 ? null : `jumped ${(peak - top).toFixed(2)} m, landed at ${p.position.y.toFixed(2)}`;
+    };
+    const out = [];
+    for (const [i, l] of level.ladders.entries()) {
+      const why = await climb(l);
+      if (why) out.push(`ladder ${i}: ${why}`);
+    }
+    const before = new Set(level.ladders);
+    g.tools.ladder.put({ pos: [0, 0, 30], rot: 0 });
+    const step = level.ladders.find((l) => !before.has(l));
+    const why = await climb(step);
+    if (why) out.push(`stepladder: ${why}`);
+    // Back off its front (S, facing it): onto the ladder, let go, slide down it to its foot.
+    let on = false;
+    let fastest = 0;
+    keys.add('KeyS');
+    await steps((f) => {
+      if (p.onLadder && !on) (on = true), keys.delete('KeyS');
+      fastest = Math.max(fastest, -p.velocity.y);
+      return (on && p.onGround) || f > 300;
+    });
+    keys.delete('KeyS');
+    if (!on || !p.onGround || p.position.y > 0.4 || fastest > PLAYER.climbSpeed + 1e-6) out.push(`down the stepladder: on it ${on}, at ${p.position.y.toFixed(2)}, falling up to ${fastest.toFixed(2)} m/s`);
+    level.setRuntime(g.session.player, null);
+    input.locked = false;
+    p.respawn();
+    return { ladders: level.ladders.length, out };
+  });
+  return r.ladders && !r.out.length ? null : JSON.stringify(r);
+});
+
 await check('session: B and F3 open build mode and the panel in single player; a session closes them and the keys do nothing', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;

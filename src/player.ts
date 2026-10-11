@@ -6,6 +6,7 @@ import type { Input } from './input';
 // resolution, step-up for low ledges, Minecraft-style ladder volumes.
 
 export interface Ladder {
+  /** Where it climbs: in front of its rungs, from its foot up to its top (the floor it leads to). */
   volume: THREE.Box3;
   /** Horizontal direction pointing away from the wall the ladder is on. */
   normal: THREE.Vector3;
@@ -21,7 +22,10 @@ export class Player {
   yaw = 0;
   pitch = 0;
   onGround = false;
+  /** On a ladder off the floor: climbing, holding or sliding down (the climb pose). */
   onLadder = false;
+  /** The ladder that moved you this frame, standing at its foot too. */
+  private ladder: Ladder | null = null;
   /** Running fast enough to count as sprinting (widens the FOV). */
   sprinting = false;
   /** W double-tapped: running until W is let go, as holding Shift does. */
@@ -71,6 +75,7 @@ export class Player {
     this.yaw = this.spawnYaw;
     this.pitch = 0;
     this.stepOffset = 0;
+    this.ladder = null;
   }
 
   /** Camera position: feet + eased eye height + step smoothing. */
@@ -122,8 +127,7 @@ export class Player {
 
     this.gatherNearby(dt);
     this.updateCrouch(dt, input);
-    const ladder = this.findLadder();
-    this.onLadder = !!ladder;
+    const ladder = (this.ladder = this.findLadder());
 
     this.sinceW += dt;
     if (input.wasPressed('KeyW')) {
@@ -146,8 +150,9 @@ export class Player {
     if (ladder) {
       // Minecraft-style: holding Space or moving into the ladder climbs, crouching
       // holds, otherwise slide down. Walking away from it simply walks off; facing doesn't matter.
+      // A jump into it (up to a fire escape's first rung) keeps rising until it slows to the climb.
       const into = -(wish.x * ladder.normal.x + wish.z * ladder.normal.z);
-      if (input.isDown('Space') || into > 0.3) this.velocity.y = PLAYER.climbSpeed;
+      if (input.isDown('Space') || into > 0.3) this.velocity.y = Math.max(this.velocity.y, PLAYER.climbSpeed);
       else if (this.crouched && !this.onGround) this.velocity.y = 0;
       else this.velocity.y = Math.max(this.velocity.y - PLAYER.gravity * dt, -PLAYER.climbSpeed);
     } else {
@@ -166,10 +171,11 @@ export class Player {
     // Substep to avoid tunneling through thin rails.
     const steps = Math.ceil((this.velocity.length() * dt) / 0.2) || 1;
     for (let i = 0; i < steps; i++) {
-      this.moveAxis(0, (this.velocity.x * dt) / steps, wasGround || this.onLadder);
-      this.moveAxis(2, (this.velocity.z * dt) / steps, wasGround || this.onLadder);
+      this.moveAxis(0, (this.velocity.x * dt) / steps, wasGround || !!ladder);
+      this.moveAxis(2, (this.velocity.z * dt) / steps, wasGround || !!ladder);
       this.moveAxis(1, (this.velocity.y * dt) / steps, false);
     }
+    this.onLadder = !!ladder && !this.onGround;
     if (this.onGround && !wasGround && fallSpeed > 2) this.onLand(fallSpeed);
     // Smooth stairs: while staying grounded, height changes are eased on the camera.
     if (wasGround && this.onGround) this.stepOffset += before.y - this.position.y;
@@ -200,6 +206,7 @@ export class Player {
     this.position.addScaledVector(this.velocity, dt);
     this.onGround = false;
     this.onLadder = false;
+    this.ladder = null;
     this.sprinting = false;
   }
 
@@ -241,6 +248,8 @@ export class Player {
       p.y = hit.max.y + 0.001;
       if (!this.overlapping()) {
         this.onGround = true;
+        // Off a ladder onto its top (or a rung): the climb stops lifting you, so you don't hop over it.
+        if (this.ladder) this.velocity.y = Math.min(this.velocity.y, 0);
         return;
       }
       p.y = oldY;
@@ -282,9 +291,20 @@ export class Player {
     return false;
   }
 
+  /**
+   * The ladder you're on, as in Minecraft: your box in its volume, feet below its top. A climb
+   * carries on PLAYER.climbOver above the top, to lift you onto what it leads to; standing there
+   * (or jumping from there) you're off it, and walking back off the edge puts you on it again.
+   */
   private findLadder(): Ladder | null {
     this.updateBox();
-    for (const l of this.ladders) if (this.box.intersectsBox(l.volume)) return l;
+    const b = this.box;
+    for (const l of this.ladders) {
+      const v = l.volume;
+      const over = l === this.ladder && !this.onGround ? PLAYER.climbOver : 0;
+      if (b.max.x < v.min.x || b.min.x > v.max.x || b.max.z < v.min.z || b.min.z > v.max.z) continue;
+      if (b.max.y >= v.min.y && b.min.y < v.max.y + over - 1e-3) return l;
+    }
     return null;
   }
 }
