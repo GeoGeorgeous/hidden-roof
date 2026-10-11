@@ -104,6 +104,8 @@ export class EscHold {
     const hold = escHoldLeaves();
     if (this.shown === `${full}${hold}`) return;
     this.shown = `${full}${hold}`;
+    // Esc resumes from the pause screen only here (windowed, the browser takes it): PLAY's ESC key shows only then.
+    this.overlay.classList.toggle('esc-resumes', hold);
     this.label.textContent = full ? 'Exit fullscreen' : 'Fullscreen';
     this.key.hidden = !full;
     this.key.classList.toggle('plain', !hold);
