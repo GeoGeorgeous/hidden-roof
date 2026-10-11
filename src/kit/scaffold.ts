@@ -17,7 +17,7 @@ const GUARD = 0.9;
 const TOE_INSET = 0.04;
 const TOE = 0.024;
 /** With a ladder, the deck's back planks stop here (x): its hatch runs from here to the +x end's toe board. */
-const HATCH = 0.2;
+const HATCH = 0;
 /** The ladder up through the hatch, centered in it (x), so the player fits between the planks and the toe board. */
 const LADDER_X = (HATCH + GUARD - TOE_INSET - TOE / 2) / 2;
 

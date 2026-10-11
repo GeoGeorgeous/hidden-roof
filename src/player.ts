@@ -171,11 +171,14 @@ export class Player {
     const fallSpeed = -this.velocity.y;
     before.copy(this.position);
     this.onGround = false;
+    // Step up off the ground, and off a ladder only climbing it: going down, an edge by it
+    // (a scaffold hatch's toe board) mustn't lift you back out.
+    const canStep = wasGround || (!!ladder && this.velocity.y > 0);
     // Substep to avoid tunneling through thin rails.
     const steps = Math.ceil((this.velocity.length() * dt) / 0.2) || 1;
     for (let i = 0; i < steps; i++) {
-      this.moveAxis(0, (this.velocity.x * dt) / steps, wasGround || !!ladder);
-      this.moveAxis(2, (this.velocity.z * dt) / steps, wasGround || !!ladder);
+      this.moveAxis(0, (this.velocity.x * dt) / steps, canStep);
+      this.moveAxis(2, (this.velocity.z * dt) / steps, canStep);
       this.moveAxis(1, (this.velocity.y * dt) / steps, false);
     }
     this.onLadder = !!ladder && !this.onGround;
