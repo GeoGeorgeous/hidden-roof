@@ -163,6 +163,25 @@ await check('credits: every license the page links to ships with the game', asyn
   return r.count === 8 && !r.bad.length ? null : JSON.stringify(r);
 });
 
+await check('updates: the releases newest first, the newest marked Latest; each has its picture; lists under a heading keep their terms', async () => {
+  const r = await page.evaluate(async () => {
+    const { menu } = window.game.hud;
+    menu.openPage('updates');
+    const vers = [...document.querySelectorAll('.rail .ver')].map((b) => b.textContent);
+    const missing = [];
+    for (const b of document.querySelectorAll('.rail .ver')) {
+      b.click();
+      const res = await fetch(document.querySelector('.pane .shot img').src);
+      if (!res.ok || res.headers.get('content-type') !== 'image/webp') missing.push(b.textContent);
+    }
+    const tools = [...document.querySelectorAll('.pane .item-note')].find((n) => n.querySelector('.item-title').textContent === 'tools');
+    const terms = [...(tools?.querySelectorAll('.term-line b') ?? [])].map((t) => t.textContent);
+    menu.openPage(null);
+    return { vers, missing, terms };
+  });
+  return r.vers[0].endsWith('Latest') && r.vers.at(-1) === '1.0.0' && r.vers.filter((v) => v.endsWith('Latest')).length === 1 && !r.missing.length && r.terms.join() === 'spray can,marker,roller,sponge,stepladder' ? null : JSON.stringify(r);
+});
+
 await check('save popup: SAVE shows the file and its size; DOWNLOAD downloads that one file, even clicked three times at once, then says where it went', async () => {
   await dot(page);
   await page.click(SAVE);

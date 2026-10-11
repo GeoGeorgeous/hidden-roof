@@ -4,6 +4,7 @@ import { button, div, keyHint, runPrimary, segmented, sentence } from './menu-ui
 import { inkStyle } from './render/ink/styles';
 import type { SettingSection } from './settings';
 import { SettingsPage } from './settings-page';
+import { updatesPage } from './updates-page';
 import { VERSION } from './version';
 
 // The ESC menu (style.css): the start / pause screen over the live game view
@@ -90,6 +91,7 @@ export class PauseMenu {
     this.el.append(div('blur'), this.themes.el, this.screen, this.back);
     parent.append(this.el);
     this.addPage('credits', creditsPage(), () => {});
+    updatesPage(this);
 
     window.addEventListener('keydown', (e) => {
       if (e.repeat || (e.code !== 'Enter' && e.code !== 'NumpadEnter') || this.el.hidden || this.debugOpen) return;

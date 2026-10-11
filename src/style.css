@@ -930,6 +930,150 @@ canvas {
   color: var(--paper);
 }
 
+/* Updates (updates-page.ts): the versions on the left, the notes of one on the right. */
+.overlay .popup.updates {
+  gap: 0;
+  width: 780px;
+  height: 600px;
+  max-width: calc(100% - 32px);
+  max-height: calc(100% - 32px);
+  padding: 0;
+  overflow: hidden;
+  background: rgba(14, 14, 16, 0.9);
+}
+.overlay .updates-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 26px 32px 18px;
+  border-bottom: 1px solid var(--hair);
+}
+.overlay .updates-head .on {
+  font-size: 12px;
+  color: rgba(235, 229, 214, 0.5);
+}
+.overlay .updates-main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.overlay .rail {
+  flex: none;
+  width: 170px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px 12px;
+  border-right: 1px solid var(--hair);
+}
+.overlay .rail .ver {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 4px;
+  color: rgba(235, 229, 214, 0.6);
+  transition: background 0.2s, color 0.2s;
+}
+.overlay .rail .ver:hover {
+  background: rgba(235, 229, 214, 0.08);
+}
+.overlay .rail .ver.on {
+  background: rgba(235, 229, 214, 0.12);
+  color: var(--paper);
+}
+.overlay .rail .ver b {
+  font-weight: 500;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.overlay .rail .ver span {
+  font-size: 10px;
+  color: var(--text-2);
+}
+.overlay .pane {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 24px 32px 28px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(235, 229, 214, 0.3) transparent;
+}
+.overlay .pane .release {
+  font-weight: 600;
+  font-size: 20px;
+}
+.overlay .pane .intro {
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(235, 229, 214, 0.85);
+  text-wrap: pretty;
+}
+/* The release's picture, in full color. */
+.overlay .pane .shot {
+  flex: none;
+  aspect-ratio: 16 / 9;
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(235, 229, 214, 0.06);
+}
+.overlay .pane .shot img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.overlay .item-note {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 0;
+  border-top: 1px solid rgba(235, 229, 214, 0.08);
+}
+.overlay .item-title {
+  font-weight: 600;
+  font-size: 14px;
+}
+.overlay .item-text {
+  font-size: 13px;
+  line-height: 1.6;
+  color: rgba(235, 229, 214, 0.65);
+  text-wrap: pretty;
+}
+.overlay .terms {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 2px;
+}
+.overlay .term-line {
+  display: flex;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: rgba(235, 229, 214, 0.65);
+}
+.overlay .term-line b {
+  flex: none;
+  width: 96px;
+  font-weight: 500;
+  color: var(--paper);
+}
+.overlay .updates-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 20px 14px 32px;
+  border-top: 1px solid var(--hair);
+}
+.overlay .updates-foot a {
+  font-size: 13px;
+}
+
 /* The multiplayer page (net/net-menu.ts): its subtitle a little lower, clear of the title's descenders. */
 .overlay .page-sub {
   min-height: 16px;
