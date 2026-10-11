@@ -1,5 +1,5 @@
 import { RENDER } from './config';
-import { enterGameFullscreen, exitGameFullscreen, isFullscreen } from './fullscreen';
+import { enterGameFullscreen } from './fullscreen';
 
 // Keyboard + mouse state with pointer lock. Edge-triggered presses are consumed per frame.
 
@@ -18,7 +18,7 @@ export class Input {
   private clicks = new Set<number>();
   locked = false;
   onLockChange: (locked: boolean) => void = () => {};
-  /** While paused: true when Esc should go back to the game (a panel holds the mouse, as F3 does). */
+  /** While paused, on Esc: true when it should go back to the game (on the pause screen, or a panel holds the mouse, as F3 does). */
   escapeResumes: () => boolean = () => false;
 
   /** Without an element nothing ever reaches it: the player's input while paused in a session. */
@@ -30,8 +30,6 @@ export class Input {
       // With keyboard lock the browser no longer releases the mouse on Esc; do it ourselves.
       if (e.code === 'Escape' && this.locked) document.exitPointerLock();
       else if (e.code === 'Escape' && !e.repeat && this.escapeResumes()) this.requestLock();
-      // Already paused: a second Esc leaves fullscreen, as it would without the keyboard lock.
-      else if (e.code === 'Escape' && !e.repeat && isFullscreen()) void exitGameFullscreen();
       if (e.code === 'F3') e.preventDefault();
       if (!e.repeat) {
         this.pressed.add(e.code);

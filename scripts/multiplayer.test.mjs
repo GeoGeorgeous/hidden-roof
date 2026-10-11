@@ -18,7 +18,7 @@ const test = await openTestBrowser();
 
 /** A player in a browser context of its own (its own sessionStorage, like an incognito window). */
 async function open(detail) {
-  const ctx = await test.browser.newContext({ viewport: { width: 320, height: 180 } });
+  const ctx = await test.browser.newContext({ viewport: { width: 1280, height: 720 } });
   // Nothing drawn: the test is about the network.
   await ctx.addInitScript(noDrawing);
   // hide() and show(): as a hidden tab, no frames and document.hidden, while the socket still takes messages.
@@ -63,7 +63,7 @@ try {
   for (let i = 0; i < 2; i++) await press(a, '<');
   await press(a, '> HOST');
   await status(a, 'in');
-  const code = (await a.textContent('.overlay .status')).match(/SESSION · ([A-Z]+)/)[1];
+  const code = (await a.textContent('.overlay .status')).match(/Session · ([A-Z]+)/)[1];
   assert.equal(code, await a.evaluate(() => window.game.net.status.code));
   await press(b, 'MULTIPLAYER');
   await press(b, 'JOIN A SESSION');
@@ -71,8 +71,8 @@ try {
   await b.fill('.mp-page input >> nth=1', code.toLowerCase());
   await press(b, '> JOIN');
   await status(b, 'in');
-  assert.ok(await b.isVisible('.overlay button:has-text("LEAVE SESSION")'));
-  assert.ok(!(await b.isVisible('.overlay button:has-text("LOAD PAINT")')));
+  assert.ok(await b.isVisible('.overlay .item:text-is("Leave session")'));
+  assert.ok(!(await b.isVisible('.overlay .item:text-is("Upload")')));
   // Both play at the host's PAINT DETAIL, whatever their own.
   assert.deepEqual(await Promise.all([a, b].map((p) => p.evaluate(() => window.game.config.PAINT.texelsPerMeter))), [48, 48]);
   assert.deepEqual(await b.evaluate(() => [...window.game.net.names.values()]), ['A']);

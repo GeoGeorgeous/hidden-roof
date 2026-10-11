@@ -108,8 +108,7 @@ export class Settings {
         value: () => INK_STYLES[inkStyle()]?.name ?? 'F3 PRESET',
         step: (d) => {
           const i = inkStyle() < INK_STYLES.length ? inkStyle() : DEFAULT_STYLE;
-          setInkStyle((i + d + INK_STYLES.length) % INK_STYLES.length);
-          this.save();
+          this.setStyle((i + d + INK_STYLES.length) % INK_STYLES.length);
         },
       },
       {
@@ -195,6 +194,12 @@ export class Settings {
       toggle('MOVING PARTS', () => RENDER.propMotion, (on) => (RENDER.propMotion = on), 'LOW'),
       toggle('PERFORMANCE LINES', () => HUD.perf, (on) => (HUD.perf = on)),
     ];
+  }
+
+  /** STYLE: an INK_STYLES index (also the pause screen's switcher). */
+  setStyle(i: number) {
+    setInkStyle(i);
+    this.save();
   }
 
   /** Apply a changed paint or city detail. Call when the game resumes. */

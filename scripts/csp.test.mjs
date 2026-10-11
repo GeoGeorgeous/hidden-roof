@@ -14,7 +14,7 @@ const site = await preview({ build: { outDir: 'dist-dev' }, logLevel: 'error' })
 const test = await openTestBrowser(site.resolvedUrls.local[0]);
 const problems = [];
 try {
-  const page = await test.browser.newPage({ viewport: { width: 320, height: 180 }, acceptDownloads: true });
+  const page = await test.browser.newPage({ viewport: { width: 1280, height: 720 }, acceptDownloads: true });
   await page.addInitScript(() => {
     window.violations = [];
     document.addEventListener('securitypolicyviolation', (e) => window.violations.push(`${e.violatedDirective}: ${e.blockedURI || e.sample}`));
@@ -44,8 +44,8 @@ try {
   await download;
 
   const press = (text) => page.locator('.overlay button:visible', { hasText: text }).first().click();
-  await press('SETTINGS');
-  await press('< BACK');
+  await press('Graphics');
+  await press('Back');
   await press('MULTIPLAYER');
   await press('HOST A SESSION');
   await page.fill('.mp-page input >> nth=0', 'CSP');

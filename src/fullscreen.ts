@@ -1,7 +1,7 @@
 // Fullscreen + Keyboard Lock (Chromium): lets the game use Ctrl+W, Ctrl+D etc.
 // without the browser closing the tab. Other browsers fall back to C for crouch.
-// With the keyboard locked, Esc reaches the page instead of leaving fullscreen,
-// so leaving fullscreen goes through the pause menu (exitGameFullscreen).
+// With the keyboard locked, Esc reaches the page instead of leaving fullscreen:
+// holding it leaves (the browser's own), and so does turning FORCED FULLSCREEN off.
 
 interface KeyboardLock {
   lock(keys?: string[]): Promise<void>;
@@ -34,5 +34,3 @@ export async function exitGameFullscreen() {
     // Already leaving (e.g. the browser handled Esc itself).
   }
 }
-
-export const isFullscreen = () => !!document.fullscreenElement;

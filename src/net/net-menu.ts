@@ -1,10 +1,10 @@
 import { PAINT } from '../config';
 import { download, pickFile, stamp } from '../files';
-import type { Hud } from '../hud';
+import type { PauseMenu } from '../pause-menu';
 import type { Hotbar } from '../inventory/hotbar';
 import { savePaint } from '../save/save-paint';
 import { cycle, PAINT_DETAIL } from '../settings';
-import { button, div } from '../settings-page';
+import { button, div } from '../menu-ui';
 import { CODE_LENGTH, CODE_LETTERS, NAME_MAX } from './protocol';
 import { Multiplayer, type MultiplayerContext, type NetStatus } from './multiplayer';
 
@@ -41,7 +41,7 @@ const STATUS: Record<string, string> = {
   blocked: 'THE SERVER IS UP BUT THE CONNECTION FAILED (A PROXY, FIREWALL OR EXTENSION?)',
 };
 
-export function multiplayerMenu(hud: Hud, hotbar: Hotbar, ctx: MultiplayerContext, levelName: () => string) {
+export function multiplayerMenu(hud: PauseMenu, hotbar: Hotbar, ctx: MultiplayerContext, levelName: () => string) {
   const net = new Multiplayer(ctx);
   const root = div('settings-page mp-page');
   const rows = div('rows');
@@ -77,7 +77,7 @@ export function multiplayerMenu(hud: Hud, hotbar: Hotbar, ctx: MultiplayerContex
     rows.replaceChildren(...els);
     say('');
   };
-  const choose = () => show(menu(button('> HOST A SESSION', host), button('> JOIN A SESSION', join), button('> COPY NETWORK LOG', copyLog), button('< BACK', () => hud.openPage(null))));
+  const choose = () => show(menu(button('> HOST A SESSION', host), button('> JOIN A SESSION', join), button('> COPY NETWORK LOG', copyLog)));
   /** NAME, with what it is for. */
   const nameRow = () => {
     const el = row('NAME', nameInput);
@@ -121,7 +121,7 @@ export function multiplayerMenu(hud: Hud, hotbar: Hotbar, ctx: MultiplayerContex
     });
     show(nameRow(), row('CODE', codeInput), menu(go, button('< BACK', choose)));
   };
-  hud.setMultiplayer(root, choose);
+  hud.addPage('mp', root, choose);
 
   net.onStatus = (s: NetStatus) => {
     hud.setSession(s.state === 'in' || s.state === 'reconnecting' ? s.code : null);
@@ -131,11 +131,10 @@ export function multiplayerMenu(hud: Hud, hotbar: Hotbar, ctx: MultiplayerContex
     const text = known && detail ? `${known} (${detail})` : known;
     say(text ?? '');
     if (text) hud.notice(text, s.state === 'connecting' || s.state === 'reconnecting' ? Infinity : undefined);
-    else if (s.state === 'in') hud.notice(`SESSION · ${s.code}`, 0);
+    else if (s.state === 'in') hud.notice(`Session · ${s.code}`, 0);
   };
   net.onPlayer = (who, joined) => hotbar.toast(`${who} ${joined ? 'joined' : 'left'}`);
   hud.onLeave = () => net.leave();
-  hud.onCopyNetLog = copyLog;
   // SAVE PAINT in a session downloads the session's paint, from the server.
   const local = hud.onSavePaint;
   hud.onSavePaint = () => (net.inSession ? net.requestSave() : local());

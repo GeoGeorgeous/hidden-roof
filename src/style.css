@@ -305,111 +305,235 @@ canvas {
   opacity: 1;
 }
 
-/* --- Start / pause screen ---------------------------------------------- */
+/* --- ESC menu (pause-menu.ts): the start / pause screen, its pages and popups --- */
 
 .overlay {
-  /* A dark sheet with paper-colored text: the ink variables are inverted inside. */
+  /* Paper on the dark sheet: the ink variables are inverted inside. */
   --ui: var(--paper);
-  --dim: rgba(235, 229, 214, 0.62);
+  --dim: var(--text-2);
   --line: 1px solid var(--ui);
   position: absolute;
   inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  /* Safe: in a window too small for it, the sheet scrolls instead of cutting off its top. */
-  justify-content: safe center;
-  overflow-y: auto;
-  gap: 14px;
-  color: var(--ui);
-  /* --sheet and --sheet-debug come from PAUSE_MENU (hud.ts). */
-  background: var(--sheet, rgba(14, 14, 16, 0.65));
+  color: var(--paper);
+  font-family: var(--sans);
+  font-size: 13px;
+  letter-spacing: 0.01em;
+  /* The live game under PAUSE_MENU's sheet (--sheet, --sheet-page, hud.ts), darker toward the menu at the bottom. */
+  background: linear-gradient(to top, #000 0%, rgba(0, 0, 0, 0.94) 28%, rgba(0, 0, 0, 0.55) 52%, transparent 78%), var(--sheet, rgba(14, 14, 16, 0.35));
 }
-.overlay .title {
-  font-family: 'Sedgwick Ave Display', cursive;
-  font-size: 56px;
-  line-height: 1;
-  letter-spacing: 0.02em;
+/* A page or popup: the game blurred under a darker sheet. */
+.overlay.sub {
+  background: linear-gradient(to top, #000 0%, rgba(0, 0, 0, 0.6) 30%, transparent 70%), var(--sheet-page, rgba(14, 14, 16, 0.72));
 }
-/* Everything but the version at PAUSE_MENU.scale (--menu-scale, hud.ts). */
-.overlay > :not(.version) {
-  zoom: var(--menu-scale, 1);
-}
-/* The build's version (version.ts), bottom right: for bug reports. */
-.overlay .version {
+/* Blurs the game under the menu, fading out upward; all of it under a page. */
+.overlay .blur {
   position: absolute;
-  bottom: 26px;
-  right: 30px;
-  color: var(--dim);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 300px;
+  backdrop-filter: blur(6px);
+  mask: linear-gradient(to top, #000 55%, transparent);
 }
-/* The credits at the very bottom, on the menu only: the title's auto margin
-   and theirs share the free space, so the menu stays centered above them. */
-.overlay:not(.in-settings, .in-mp, .compact) > .title,
-.overlay > .credits {
-  margin-top: auto;
+.overlay.sub .blur {
+  top: 0;
+  height: auto;
+  backdrop-filter: blur(8px);
+  mask: none;
 }
-.overlay.in-settings > .credits,
-.overlay.in-mp > .credits,
-.overlay.compact > .credits {
-  display: none;
-}
-.overlay .credits {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 26px;
-  color: var(--dim);
-}
-.overlay .credits a {
-  pointer-events: auto;
-  color: var(--ui);
-}
-.overlay .menu {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  align-items: stretch;
+/* Everything but the blur at PAUSE_MENU.scale (--menu-scale, hud.ts). */
+.overlay > :not(.blur) {
+  zoom: var(--menu-scale, 1);
 }
 .overlay button {
   pointer-events: auto;
   cursor: pointer;
   font: inherit;
   letter-spacing: inherit;
-  color: var(--ui);
+  color: inherit;
   background: none;
-  border: var(--line);
-  padding: 6px 18px;
-  text-align: left;
+  border: 0;
+  padding: 0;
 }
-.overlay button:hover {
-  background: var(--ui);
-  color: #141416;
-}
-/* Settings page: replaces the menu while open. */
-.overlay .settings-page {
-  display: none;
+.overlay a {
   pointer-events: auto;
-  /* Zoomed by --menu-scale, viewport units too: divided back to fit the screen. */
-  width: min(620px, calc((100vw - 32px) / var(--menu-scale, 1)));
-  max-height: calc((100vh - 120px) / var(--menu-scale, 1));
+  color: var(--text-2);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.overlay a:hover {
+  color: var(--paper);
+}
+/* A key cap after a button's text. */
+.overlay kbd {
+  font: 500 10px var(--sans);
+  padding: 1px 5px;
+  border: 1px solid rgba(235, 229, 214, 0.35);
+  border-radius: 3px;
+  color: rgba(235, 229, 214, 0.6);
+}
+/* Segmented control: the style switcher, the settings tabs, Back. */
+.overlay .seg {
+  display: flex;
+  gap: 2px;
+  width: fit-content;
+  padding: 3px;
+  border: 1px solid var(--edge);
+  border-radius: 6px;
+  background: rgba(10, 10, 12, 0.45);
+  backdrop-filter: blur(6px);
+  font-size: 12px;
+}
+.overlay .seg button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  white-space: nowrap;
+  color: var(--text-2);
+  transition: background 0.2s, color 0.2s;
+}
+.overlay .seg button:hover {
+  color: var(--paper);
+}
+.overlay .seg button.on {
+  background: rgba(235, 229, 214, 0.16);
+  color: var(--paper);
+}
+.overlay .themes,
+.overlay .back {
+  position: absolute;
+  top: 18px;
+  left: 24px;
+}
+.overlay .back button {
+  color: rgba(235, 229, 214, 0.8);
+}
+.overlay .back button:hover {
+  background: rgba(235, 229, 214, 0.16);
+}
+
+/* The pause screen: the title in the middle, the menu and the links under it. */
+.overlay .pause {
+  position: absolute;
+  inset: 0;
+}
+/* The title's box: the whole screen, so it's centered, but shorter in short windows, so it stays above the menu. */
+.overlay .hero {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: clamp(130px, calc(200% - 650px), 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.overlay .title {
+  font-family: var(--display);
+  font-size: 96px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+.overlay .status {
+  min-height: 16px;
+  color: var(--text-2);
+}
+.overlay .menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 104px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+.overlay .menu .col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 0 44px;
+}
+.overlay .menu h2 {
+  /* The design's 4 px spacer and the gap after it. */
+  margin: 0 0 10px;
+  font: 400 20px/1 var(--display);
+  letter-spacing: 0.04em;
+  color: rgba(235, 229, 214, 0.45);
+}
+.overlay .item {
+  padding: 6px 0;
+  font-weight: 500;
+  font-size: 14px;
+  white-space: nowrap;
+  opacity: 0.85;
+  transition: color 0.2s, opacity 0.2s;
+}
+.overlay .item:hover {
+  opacity: 1;
+  color: #fff;
+}
+/* SINGLE (or RESUME): the main entry, with its key. */
+.overlay .item.main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  color: #fff;
+  opacity: 1;
+}
+.overlay .item.main kbd {
+  padding: 2px 5px;
+  border-color: rgba(235, 229, 214, 0.4);
+  color: rgba(235, 229, 214, 0.7);
+}
+.overlay .foot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 28px;
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  color: var(--text-3);
+}
+.overlay .foot i {
+  font-style: normal;
+  color: rgba(235, 229, 214, 0.3);
+}
+/* Discord: not yet. */
+.overlay .foot .off {
+  pointer-events: auto;
+  cursor: not-allowed;
+  color: rgba(235, 229, 214, 0.25);
+}
+/* Debug panel open: the menu stays, on a lighter sheet, without the title. */
+.overlay.compact {
+  background: var(--sheet-debug, transparent);
+}
+.overlay.compact .blur,
+.overlay.compact .hero {
+  display: none;
+}
+
+/* Settings page. */
+.overlay .settings-page {
+  position: absolute;
+  left: 50%;
+  top: 186px;
+  transform: translateX(-50%);
+  display: flex;
+  pointer-events: auto;
+  width: min(640px, calc(100% - 32px));
+  max-height: calc(100% - 262px);
   flex-direction: column;
   gap: 10px;
 }
-.overlay.in-settings .settings-page {
-  display: flex;
-}
-.overlay.in-settings > .menu,
-.overlay.in-settings > .status,
-.overlay.in-settings > table,
-.overlay.in-mp > .menu,
-.overlay.in-mp > .status,
-.overlay.in-mp > table,
-.overlay.in-settings > .mp-page {
-  display: none;
-}
-/* The multiplayer page (net/net-menu.ts) is built like the settings page. */
-.overlay.in-mp .mp-page {
+.overlay .mp-page {
   display: flex;
 }
 .mp-page input[type='text'] {
@@ -551,9 +675,6 @@ canvas {
   background: rgba(235, 229, 214, 0.08);
   letter-spacing: 0.04em;
 }
-.settings-page .back {
-  align-self: flex-start;
-}
 /* Full pause sheet (not compact): no in-game UI behind it (hud.ts); display: none, so
    it isn't laid out or animated (the REC blink) while paused. */
 body.paused .hud > :not(.overlay, .vignette),
@@ -561,29 +682,6 @@ body.paused .hotbar,
 body.paused .toast {
   display: none;
 }
-/* Debug panel open: keep the menu, lighter dimming, no controls. */
-.overlay.compact {
-  background: var(--sheet-debug, rgba(14, 14, 16, 0.65));
-}
-.overlay.compact table,
-.overlay.compact .title {
-  display: none;
-}
-.overlay td {
-  padding: 1px 10px;
-}
-.overlay td:first-child {
-  text-align: right;
-  color: var(--dim);
-}
-/* The tools (1 - 5) a little apart from the main keys. */
-.overlay tbody + tbody tr:first-child td {
-  padding-top: 10px;
-}
-.blink {
-  animation: blink 1.6s steps(2) infinite;
-}
-
 @keyframes blink {
   50% {
     opacity: 0.25;

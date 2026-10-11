@@ -1,3 +1,4 @@
+import { button, div } from './menu-ui';
 import type { SettingRow, SettingSection } from './settings';
 
 // The settings page of the pause menu: one tab per section (gameplay,
@@ -16,10 +17,7 @@ export class SettingsPage {
   private tabs: HTMLButtonElement[] = [];
   private syncs: (() => void)[] = [];
 
-  constructor(
-    private sections: SettingSection[],
-    onBack: () => void,
-  ) {
+  constructor(private sections: SettingSection[]) {
     this.root = div('settings-page');
     const head = div('tabs');
     sections.forEach((s, i) => {
@@ -28,9 +26,7 @@ export class SettingsPage {
       head.append(b);
     });
     this.body = div('rows');
-    const back = button('< BACK', onBack);
-    back.className = 'back';
-    this.root.append(head, this.body, back);
+    this.root.append(head, this.body);
     this.show(0);
   }
 
@@ -39,7 +35,7 @@ export class SettingsPage {
     for (const s of this.syncs) s();
   }
 
-  private show(i: number) {
+  show(i: number) {
     this.tabs.forEach((b, k) => b.classList.toggle('on', k === i));
     this.body.innerHTML = '';
     this.syncs = [];
@@ -93,17 +89,4 @@ export function withDefaultTick(input: HTMLInputElement, d: unknown, min: number
   }
   box.append(input);
   return box;
-}
-
-export function div(className: string) {
-  return Object.assign(document.createElement('div'), { className });
-}
-
-export function button(text: string, onClick: () => void) {
-  const b = Object.assign(document.createElement('button'), { textContent: text });
-  b.addEventListener('mousedown', (e) => {
-    e.preventDefault();
-    if (e.button === 0) onClick();
-  });
-  return b;
 }

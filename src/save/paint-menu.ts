@@ -1,4 +1,4 @@
-import type { Hud } from '../hud';
+import type { PauseMenu } from '../pause-menu';
 import type { PaintDrips } from '../paint-drips';
 import type { PaintSystem } from '../painting';
 import { download, pickFile, stamp } from '../files';
@@ -9,7 +9,7 @@ import { savePaint } from './save-paint';
 // download, and a file put back. Returns the two, for tests.
 
 /** `levelName`: the current level's name (it changes when build mode opens another). */
-export function paintMenu(hud: Hud, paint: PaintSystem, drips: PaintDrips, levelName: () => string) {
+export function paintMenu(hud: PauseMenu, paint: PaintSystem, drips: PaintDrips, levelName: () => string) {
   const info = () => ({ name: levelName() });
   const file = {
     save: () => savePaint(paint, info()),

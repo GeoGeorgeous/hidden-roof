@@ -19,7 +19,7 @@ let failed = 0;
 
 /** A page with the game loaded, not drawing (SwiftShader draws on the CPU, seconds a frame); page errors fail the run. `before(page)`: set up before it loads (routes). */
 async function openPage(init, before) {
-  const page = await test.browser.newPage({ viewport: { width: 320, height: 180 }, acceptDownloads: true });
+  const page = await test.browser.newPage({ viewport: { width: 1280, height: 720 }, acceptDownloads: true });
   page.errors = [];
   page.on('pageerror', (e) => page.errors.push(e.message));
   await page.addInitScript(noDrawing);
@@ -65,7 +65,8 @@ async function check(name, fn) {
   }
 }
 
-const status = (page) => page.textContent('.overlay .status');
+/** The pause screen's SAVE and UPLOAD. */
+const UPLOAD = '.overlay .item:text-is("Upload")';
 const waitStatus = (page, text) => page.waitForFunction((t) => document.querySelector('.overlay .status').textContent === t, text, { timeout: 10000 });
 /** Paint one dot on surface `i` (the pause menu stays up). */
 const dot = (page, i = 0) => page.evaluate((i) => window.game.paint.stamp(window.game.paint.surfaces[i], { rect: 0, u: 0.5, v: 0.5 }, 0.1, 1, [1, 0, 0]), i);
@@ -86,27 +87,52 @@ await check('pickups: on the start screen, before the game first runs, they alre
   return r.count && !r.sunk.length ? null : JSON.stringify(r);
 });
 
+await check('menu: Esc goes back from a page to the pause screen and there resumes; Game, Graphics and Audio open their tab; the style switcher is the settings STYLE', async () => {
+  const r = await page.evaluate(() => {
+    const { menu } = window.game.hud;
+    const item = (t) => [...document.querySelectorAll('.overlay .item')].find((b) => b.textContent === t);
+    const shown = () => [...document.querySelectorAll('.overlay > :not(.blur)')].filter((e) => !e.hidden).map((e) => e.className).join(' | ');
+    const tab = () => document.querySelector('.settings-page .tabs .on')?.textContent;
+    item('Audio').click();
+    const audio = [shown(), tab()];
+    const back = menu.escape();
+    const after = shown();
+    item('Graphics').click();
+    const graphics = tab();
+    menu.escape();
+    document.querySelectorAll('.themes button')[1].click();
+    item('Graphics').click();
+    const style = [...document.querySelectorAll('.settings-page .setting-row')].find((row) => /style/i.test(row.querySelector('.label').textContent)).querySelector('.choice').textContent;
+    menu.escape();
+    document.querySelectorAll('.themes button')[0].click();
+    const on = document.querySelector('.themes .on').textContent;
+    return { audio, back, after, graphics, style, on, resumes: menu.escape() };
+  });
+  const ok = r.audio[0] === 'seg back | settings-page' && /sound/i.test(r.audio[1]) && r.back === false && /pause/.test(r.after) && /graphics/i.test(r.graphics) && /old manga/i.test(r.style) && r.on === 'New manga' && r.resumes === true;
+  return ok ? null : JSON.stringify(r);
+});
+
 await check('menu: SAVE PAINT downloads one file, even clicked three times at once', async () => {
   await dot(page);
   let n = 0;
   const count = () => n++;
   page.on('download', count);
   const first = page.waitForEvent('download');
-  await page.evaluate(() => { for (let i = 0; i < 3; i++) document.querySelector('.save-paint').dispatchEvent(new MouseEvent('mousedown', { bubbles: true })); });
+  await page.evaluate(() => { const save = [...document.querySelectorAll('.overlay .item')].find((b) => b.textContent === 'Save'); for (let i = 0; i < 3; i++) save.click(); });
   await (await first).saveAs(`${tmp}/menu.rhhpaint`);
-  await waitStatus(page, 'PAINT SAVED');
+  await waitStatus(page, 'Paint saved');
   await page.waitForTimeout(300);
   page.off('download', count);
   return n === 1 ? null : `${n} downloads`;
 });
 
 await check('menu: with the file picker open, SAVE and LOAD do nothing; cancelling says NO FILE CHOSEN', async () => {
-  const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('.load-paint')]);
+  const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click(UPLOAD)]);
   let extra = 0;
   const count = () => extra++;
   page.on('download', count).on('filechooser', count);
-  await page.dispatchEvent('.save-paint', 'mousedown');
-  await page.click('.load-paint');
+  await page.click('.overlay .item:text-is("Save")');
+  await page.click(UPLOAD);
   await page.waitForTimeout(300);
   page.off('download', count).off('filechooser', count);
   await chooser.setFiles([]);
@@ -118,9 +144,9 @@ await check('menu: LOAD PAINT after a reload puts the paint back', async () => {
   const before = await paintedKeys(page);
   await page.reload();
   await gameReady(page, 2);
-  const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('.load-paint')]);
+  const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click(UPLOAD)]);
   await chooser.setFiles(`${tmp}/menu.rhhpaint`);
-  await waitStatus(page, 'PAINT LOADED');
+  await waitStatus(page, 'Paint loaded');
   const after = await paintedKeys(page);
   return after === before ? null : `painted ${after}, saved ${before}`;
 });
@@ -128,7 +154,7 @@ await check('menu: LOAD PAINT after a reload puts the paint back', async () => {
 await check('menu: a broken file says BROKEN PAINT FILE and keeps the paint', async () => {
   fs.writeFileSync(`${tmp}/broken.rhhpaint`, 'RHHPgarbage');
   const before = await paintedKeys(page);
-  const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click('.load-paint')]);
+  const [chooser] = await Promise.all([page.waitForEvent('filechooser'), page.click(UPLOAD)]);
   await chooser.setFiles(`${tmp}/broken.rhhpaint`);
   await waitStatus(page, 'BROKEN PAINT FILE');
   return (await paintedKeys(page)) === before ? null : 'paint changed';
