@@ -5,14 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Hidden Roof</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="stylesheet" href="/src/style.css" />
+    <link rel="stylesheet" href="/src/boot.css" />
     <!-- The title's font and the menus' (Archivo), fetched with the page: the loading screen shows both. -->
     <link rel="preload" href="/fonts/sedgwick-ave-display.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/archivo.woff2" as="font" type="font/woff2" crossorigin />
+    <!-- The game's files and RENDER.minViewport, filled in by the build (vite.config.ts); empty in dev. -->
+    <meta name="game-files" content="" />
+    <!-- Where the game will load (src/boot.ts decides the same), its files start coming now, with the page, not after
+         boot.ts. Allowed by its hash in the CSP (csp-hash.txt, vite.config.ts): keep it a classic script, and blocked
+         it only costs the head start. -->
+    <script>
+      (function () {
+        var meta = document.querySelector('meta[name="game-files"]');
+        var min = JSON.parse(meta.getAttribute('data-min') || 'null');
+        if (!min) return;
+        var small = matchMedia('(pointer: coarse) and (hover: none)').matches || !('requestPointerLock' in Element.prototype) || innerWidth < min.w || innerHeight < min.h;
+        if (small && !/[?&]force\b/.test(location.search)) return;
+        meta.content.split(' ').forEach(function (href) {
+          var link = document.createElement('link');
+          var css = /\.css$/.test(href);
+          link.rel = css ? 'preload' : 'modulepreload';
+          if (css) link.as = 'style';
+          link.crossOrigin = '';
+          link.href = href;
+          document.head.appendChild(link);
+        });
+      })();
+    </script>
   </head>
   <body>
     <!-- Up from the first paint until the game is ready to play (src/loading.ts). Two status lines, crossfaded. -->
     <div class="loading"><b>Hidden Roof</b><p><span class="on">Loading</span><span></span></p></div>
-    <script type="module" src="/src/main.ts"></script>
+    <!-- Loads the game, or on a phone or a small window screen 10 instead (src/boot.ts). -->
+    <script type="module" src="/src/boot.ts"></script>
   </body>
 </html>

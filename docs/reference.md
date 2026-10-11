@@ -229,6 +229,7 @@ The F3 panel groups its controls into small collapsible sections (collapse / exp
 ## Files
 
 ```
+src/boot.ts              the entry: the game, or screen 10 (small-screen.ts) below RENDER.minViewport or without a mouse; ?force=1 skips it
 src/main.ts              wiring + game loop
 src/config.ts            all tunable constants
 src/kit/                 prop kit: pieces + helpers (railings, ladders), prop builders (signs.ts, steel.ts: lettered signs, lattices), registry
@@ -251,7 +252,8 @@ src/materials.ts         surface shader, procedural base textures
 src/player.ts            FPS controller, collisions (with broadphase), ladders, fly mode
 src/sky.ts, skyline.ts   paper sky dome, the city around the level (builds src/city)
 src/hud.ts               body-cam frame: vignette, REC/clock, crosshair, cap tag, start/pause menu
-src/style.css            all UI styling (ink on paper + red alert, thin lines, monospace)
+src/boot.css             fonts, colors and the loading screen: all a page needs before the game's code
+src/style.css            the game's UI styling (ink on paper + red alert, thin lines, monospace), loaded with main.ts
 src/settings.ts          pause-menu settings (resolution, volumetrics, paint detail, city detail), saved in localStorage
 src/audio.ts, input.ts, fullscreen.ts
 src/hex-color.ts, lcg.ts small shared helpers: config colors parsed only on change, seeded random

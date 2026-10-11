@@ -1,61 +1,6 @@
 /* Body-cam overlay style, inked: ink + one alert color, thin lines, small
    monospace, no panels, no glow. */
 
-/* The titles' graffiti font and the menus' sans (public/fonts/README.txt). */
-@font-face {
-  font-family: 'Sedgwick Ave Display';
-  src: url('/fonts/sedgwick-ave-display.woff2') format('woff2');
-  font-display: block;
-}
-/* Variable: weights 400 to 600 in one file. */
-@font-face {
-  font-family: 'Archivo';
-  src: url('/fonts/archivo.woff2') format('woff2');
-  font-weight: 400 600;
-  font-display: swap;
-}
-
-:root {
-  --ui: #141416;
-  --dim: rgba(20, 20, 22, 0.62);
-  --paper: #ebe5d6;
-  --alert: #d4261c;
-  --line: 1px solid var(--ui);
-  /* The ESC menu: paper on dark, in Archivo; ink on paper buttons. */
-  --sans: 'Archivo', system-ui, sans-serif;
-  --display: 'Sedgwick Ave Display', cursive;
-  --ink: #111;
-  --text-2: rgba(235, 229, 214, 0.55);
-  --text-3: rgba(235, 229, 214, 0.4);
-  --hair: rgba(235, 229, 214, 0.1);
-  --edge: rgba(235, 229, 214, 0.18);
-  --error: #e0675e;
-}
-
-html,
-body {
-  margin: 0;
-  height: 100%;
-  overflow: hidden;
-  background: #000;
-  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  color: var(--ui);
-  user-select: none;
-}
-
-canvas {
-  display: block;
-  width: 100vw;
-  height: 100vh;
-  image-rendering: pixelated;
-}
-
-[hidden] {
-  display: none !important;
-}
-
 .dim {
   color: var(--dim);
 }
@@ -261,48 +206,6 @@ canvas {
   color: var(--alert);
   border-color: var(--alert);
   animation: blink 0.8s steps(2) infinite;
-}
-
-/* --- Loading screen (index.html, main.ts): over everything until the game is ready --- */
-
-.loading {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  background: #000;
-  color: var(--paper);
-}
-.loading b {
-  /* The pause menu's title (.overlay .title). */
-  font-family: var(--display);
-  font-weight: 400;
-  font-size: 96px;
-  line-height: 1;
-  letter-spacing: 0.02em;
-}
-/* Two status lines in one place: the one .on fades in over the other (loading.ts). */
-.loading p {
-  display: grid;
-  justify-items: center;
-  min-height: 18px;
-  margin: 0;
-  font-family: var(--sans);
-  font-size: 13px;
-  letter-spacing: 0.01em;
-  color: var(--text-2);
-}
-.loading span {
-  grid-area: 1 / 1;
-  opacity: 0;
-  transition: opacity 0.25s ease;
-}
-.loading span.on {
-  opacity: 1;
 }
 
 /* --- ESC menu (pause-menu.ts): the start / pause screen, its pages and popups --- */
@@ -516,6 +419,95 @@ canvas {
 }
 .overlay.holding .status .ring {
   opacity: 1;
+}
+/* In a live session, in place of the status line (session-line.ts): dot, ping, code, players. As tall as the status line (the initials stand out of it), so the title stays where it was. */
+.overlay .live {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 16px;
+  color: rgba(235, 229, 214, 0.65);
+}
+.overlay .live .dot {
+  position: relative;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #6fcf6a;
+}
+.overlay .live .dot::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: inherit;
+  animation: live-pulse 1.8s ease-out infinite;
+}
+@keyframes live-pulse {
+  from {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  to {
+    transform: scale(2.8);
+    opacity: 0;
+  }
+}
+.overlay .live .on-air {
+  font-weight: 500;
+  color: var(--paper);
+}
+.overlay .live .ping {
+  margin-left: -2px;
+  color: rgba(235, 229, 214, 0.5);
+  font-variant-numeric: tabular-nums;
+}
+.overlay .live i {
+  font-style: normal;
+  color: rgba(235, 229, 214, 0.3);
+}
+.overlay .live .code {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.overlay .live .code b {
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  color: var(--paper);
+}
+.overlay .live .copy {
+  font-size: 10px;
+  padding: 1px 6px;
+  border: 1px solid rgba(235, 229, 214, 0.3);
+  border-radius: 3px;
+  color: rgba(235, 229, 214, 0.6);
+  transition: color 0.2s, border-color 0.2s;
+}
+.overlay .live .copy:hover {
+  color: var(--paper);
+  border-color: rgba(235, 229, 214, 0.6);
+}
+.overlay .live .faces {
+  display: flex;
+}
+.overlay .live .faces span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid var(--paper);
+  border-radius: 50%;
+  background: #141416;
+  font-weight: 600;
+  font-size: 10px;
+  color: var(--paper);
+}
+.overlay .live .faces span + span {
+  margin-left: -6px;
 }
 /* PLAY and MULTIPLAYER, in the switcher's glass. */
 .overlay .start {

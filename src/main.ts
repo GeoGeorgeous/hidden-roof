@@ -1,3 +1,4 @@
+import './style.css';
 import * as THREE from 'three';
 import * as config from './config';
 import { titleCamera } from './render/title-view';

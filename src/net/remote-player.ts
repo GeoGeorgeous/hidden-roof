@@ -86,6 +86,11 @@ export class RemotePlayer {
     return this.avatar.group.position;
   }
 
+  /** Their paint color, as their newest snapshot says; null before one comes. */
+  get color() {
+    return this.snaps[this.snaps.length - 1]?.color ?? null;
+  }
+
   /** A snapshot arrived at local time `now` (s): when it came, not when it's read (it may have waited behind a welcome's paint). */
   receive(bytes: Uint8Array, now: number) {
     this.heard = now;

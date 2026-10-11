@@ -83,6 +83,11 @@ export class Remotes {
     this.nameplates.update(camera, shown.map(([id, r]) => ({ id, name: this.names.get(id) ?? '', note: NOTE[r.look], feet: r.position })));
   }
 
+  /** Who's in the session besides us, and their paint colors (the pause screen's live line). */
+  get roster() {
+    return [...this.list].map(([id, r]) => ({ name: this.names.get(id) ?? '', color: r.color }));
+  }
+
   /** For the HUD: how far behind each is shown, and the jitter of their snapshots. */
   get stats() {
     return [...this.list].map(([id, r]) => ({ name: this.names.get(id) ?? '', delay: r.stats.delay, jitter: r.stats.jitter }));

@@ -1,0 +1,100 @@
+/* What the page shows before any game code: the fonts, the colors, the page
+   itself and the loading screen (index.html). The game's own styles
+   (style.css) come with the game (main.ts), screen 10's with it (small-screen.css). */
+
+/* The titles' graffiti font and the menus' sans (public/fonts/README.txt). */
+@font-face {
+  font-family: 'Sedgwick Ave Display';
+  src: url('/fonts/sedgwick-ave-display.woff2') format('woff2');
+  font-display: block;
+}
+/* Variable: weights 400 to 600 in one file. */
+@font-face {
+  font-family: 'Archivo';
+  src: url('/fonts/archivo.woff2') format('woff2');
+  font-weight: 400 600;
+  font-display: swap;
+}
+
+:root {
+  --ui: #141416;
+  --dim: rgba(20, 20, 22, 0.62);
+  --paper: #ebe5d6;
+  --alert: #d4261c;
+  --line: 1px solid var(--ui);
+  /* The ESC menu: paper on dark, in Archivo; ink on paper buttons. */
+  --sans: 'Archivo', system-ui, sans-serif;
+  --display: 'Sedgwick Ave Display', cursive;
+  --ink: #111;
+  --text-2: rgba(235, 229, 214, 0.55);
+  --text-3: rgba(235, 229, 214, 0.4);
+  --hair: rgba(235, 229, 214, 0.1);
+  --edge: rgba(235, 229, 214, 0.18);
+  --error: #e0675e;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--ui);
+  user-select: none;
+}
+
+canvas {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  image-rendering: pixelated;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+/* --- Loading screen (index.html, main.ts): over everything until the game is ready --- */
+
+.loading {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: #000;
+  color: var(--paper);
+}
+.loading b {
+  /* The pause menu's title (.overlay .title). */
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 96px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+/* Two status lines in one place: the one .on fades in over the other (loading.ts). */
+.loading p {
+  display: grid;
+  justify-items: center;
+  min-height: 18px;
+  margin: 0;
+  font-family: var(--sans);
+  font-size: 13px;
+  letter-spacing: 0.01em;
+  color: var(--text-2);
+}
+.loading span {
+  grid-area: 1 / 1;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+.loading span.on {
+  opacity: 1;
+}

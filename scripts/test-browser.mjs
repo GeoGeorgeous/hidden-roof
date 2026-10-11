@@ -8,7 +8,8 @@
 // WSLg's D3D12 (GPU=Intel picks the weak one); without a display, SwiftShader.
 // On machines missing Chromium's system libraries, copies extracted to
 // ~/.local/pwlibs are used (see docs/testing.md). The tests play the demo
-// level, whose layout they know (`level`: another, or null for LEVELS.start).
+// level, whose layout they know (`level`: another, or null for LEVELS.start),
+// in windows of any size (?force=1: no small-screen gate, src/boot.ts).
 // Several agents may test at once: servers take free ports (freePort).
 import fs from 'node:fs';
 import net from 'node:net';
@@ -30,7 +31,8 @@ export async function openTestBrowser(url, { uncapped = false, level = 'demo', g
     await server.listen();
     url = server.resolvedUrls.local[0];
   }
-  if (level) url += `?level=${level}`;
+  // force: the game loads in the tests' small windows too (src/boot.ts).
+  url += `?force=1${level ? `&level=${level}` : ''}`;
   const real = gpu && Boolean(process.env.DISPLAY || process.env.WAYLAND_DISPLAY);
   const libs = [`${os.homedir()}/.local/pwlibs/usr/lib/x86_64-linux-gnu`, ...(real ? [WSL_GPU] : [])].filter((d) => fs.existsSync(d));
   const path = [...libs, process.env.LD_LIBRARY_PATH].filter(Boolean).join(':');

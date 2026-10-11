@@ -16,6 +16,17 @@ export const RENDER = {
    * what waited on them (the hotbar icons' read back). Then nothing stalls.
    */
   loadFrames: 3,
+  /**
+   * The smallest window the game loads in (CSS px); below it, or on a
+   * touch-only device, screen 10 shows instead (src/boot.ts; ?force=1 loads
+   * the game anyway). Measured on the ESC menu, the widest UI: the Updates
+   * popup is 780 px plus its 16 px margins (812; the Settings column is 640,
+   * the pause screen's widest row, its footer, 478). The pause screen's title
+   * clears the style switcher down to 560 px high, where the popups still fit
+   * (Updates shrinks and scrolls). The HUD needs far less. Read at build time
+   * (vite.config.ts).
+   */
+  minViewport: { w: 820, h: 560 },
   /** Go fullscreen when the game takes the mouse (off: play in the browser window). */
   fullscreen: true,
   /** Moving prop parts: CCTV heads pan and follow, AC fans spin. Off: they stay at rest. */
