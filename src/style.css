@@ -606,12 +606,6 @@ canvas {
   font-style: normal;
   color: rgba(235, 229, 214, 0.3);
 }
-/* Discord: not yet. */
-.overlay .foot .off {
-  pointer-events: auto;
-  cursor: not-allowed;
-  color: rgba(235, 229, 214, 0.25);
-}
 /* Debug panel open: the menu stays, on a lighter sheet (still dark under the menu), without the title and its status line. */
 .overlay.compact {
   background: linear-gradient(to top, #000 0%, rgba(0, 0, 0, 0.94) 28%, rgba(0, 0, 0, 0.55) 52%, transparent 78%), var(--sheet-debug, transparent);
