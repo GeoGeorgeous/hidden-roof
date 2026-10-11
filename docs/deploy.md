@@ -15,7 +15,7 @@ Context for the agent that deploys and runs the game on the VPS. Read it before 
 ## 2. The game (stable)
 
 - three.js + TypeScript + Vite, with a small `vite.config.ts` (the version, the server bundle, the dev `/ws` proxy; `base: '/'`). It is purely static: no API, no env secrets, no external services or CDNs, and no WASM, Workers or SharedArrayBuffer, so no COOP/COEP headers.
-- Everything is generated in code: no models, texture files or audio. The server only serves the JS/CSS bundle, two `woff2` fonts, `levels/*.json` and `favicon.svg`. The build is about 1 MB, of which the JS is ~860 KB (~250 KB gzipped).
+- Everything is generated in code: no models, texture files or audio. The server only serves the JS/CSS bundle, five `woff2` fonts (`public/fonts`), the levels (`levels/*.json`, a level's own paint `levels/*.rhhpaint`), the release pictures (`updates/*.webp`) and `favicon.svg`. The build is about 1.5 MB, of which the JS is ~870 KB (~250 KB gzipped).
 - **Paths are absolute** (`/assets`, `/fonts`, `/favicon.svg`), so the game must be served from the root of its domain.
 - `?level=name` fetches `/levels/name.json`. Without it the game opens `LEVELS.start`, and the player build ships only the levels in `LEVELS.release` (`src/config.ts`). A missing level must be a real 404. **No SPA fallback**: an `index.html` served in its place breaks JSON parsing.
 - Settings are kept in `localStorage`, per origin. Changing the domain or the scheme resets them.
@@ -120,6 +120,6 @@ The design is in `docs/multiplayer-audit.md` (sections 0, 4, 5, 6.4, 7, 8). The 
 - `curl -I https://roof.hidden.haus/levels/nope.json` → 404, not `index.html`.
 - `curl -I https://roof.hidden.haus/levels/roof.rhhpaint` → 200 (the level's own paint; `roof.json` says `"paint": true`).
 - `curl https://roof.hidden.haus/ws` → `roof server · protocol <n>`, the same `PROTOCOL` as the game deployed (`src/net/protocol.ts`).
-- In a browser: no 404s, `roof.json`, `roof.rhhpaint` and both fonts load, the console is clean, the game starts with the hints on the wall in front of the spawn.
+- In a browser: no 404s, `roof.json`, `roof.rhhpaint` and the fonts load, the console is clean, the game starts with the hints on the wall in front of the spawn.
 - `scripts/smoke.mjs <url>` uses `window.game` and F3, so it only works against the dev server or `npm run build:dev` output, not the player build.
 - Once `/ws` exists: `docker compose ps roof` is healthy, and in two browser windows HOST shows a code that JOIN accepts.
