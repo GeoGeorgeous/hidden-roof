@@ -549,8 +549,15 @@
   border-color: rgba(17, 17, 17, 0.35);
   color: rgba(17, 17, 17, 0.6);
 }
-/* Where Esc doesn't resume (esc-hold.ts), PLAY keeps its width without the key. */
+/* Where Esc doesn't resume (esc-hold.ts), PLAY keeps its width without the key, and an invisible twin on the left keeps the label centered. */
 .overlay:not(.esc-resumes) .start .play kbd {
+  visibility: hidden;
+}
+.overlay:not(.esc-resumes) .start .play::before {
+  content: 'ESC';
+  font: 500 10px var(--sans);
+  padding: 1px 5px;
+  border: 1px solid transparent;
   visibility: hidden;
 }
 .overlay .menu {
