@@ -364,6 +364,7 @@ export const HINTS: Record<string, string> = {
   'THUNDER.enabled': 'Random lightning and thunder while it rains.',
   'CCTV.followRange': 'CCTV cameras start turning toward you within this distance (m), and their light comes on.',
   'CCTV.lockRange': 'Within this distance (m) they follow you fully and their light is at full strength.',
+  'CCTV.maxTilt': 'How far a camera head can tilt up or down (rad) to follow your height.',
   'CCTV.maxTurn': 'How far a camera head can turn from straight out (rad). Beyond it you are behind the wall and it stops following.',
   'THUNDER.minInterval': 'Shortest time between strikes (s).',
   'THUNDER.maxInterval': 'Longest time between strikes (s).',

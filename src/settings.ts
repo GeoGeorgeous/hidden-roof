@@ -81,7 +81,7 @@ export class Settings {
     if (style >= 0) setInkStyle(style);
     if (s.pixelScale && PIXEL_SCALES.includes(s.pixelScale)) RENDER.pixelScale = s.pixelScale;
     if (s.maxFps !== undefined && FRAME_RATES.includes(s.maxFps)) RENDER.maxFps = s.maxFps;
-    this.vol = s.volumetrics && s.volumetrics in VOL_PRESETS ? s.volumetrics : VOLUMETRICS.enabled ? 'medium' : 'off';
+    this.vol = s.volumetrics && s.volumetrics in VOL_PRESETS ? s.volumetrics : VOL_ORDER.find((k) => VOL_PRESETS[k].enabled === VOLUMETRICS.enabled && VOL_PRESETS[k].downscale === VOLUMETRICS.downscale && VOL_PRESETS[k].steps === VOLUMETRICS.steps) ?? (VOLUMETRICS.enabled ? 'medium' : 'off');
     Object.assign(VOLUMETRICS, VOL_PRESETS[this.vol]);
     // Unsaved: the choice nearest to config's PAINT.texelsPerMeter.
     const values = DETAIL_ORDER.map((k) => PAINT_DETAIL[k]);

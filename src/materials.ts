@@ -93,7 +93,7 @@ export function syncSharedUniforms(time: number) {
  * swing = (amp, speed, phase, axis). amp > 0 swings amp * sin(t * speed + phase);
  * amp < 0 spins continuously at `speed` x uSpin (FANS.speed, rad/s). axis 0 = y, 1 = x, 2 = z.
  * swingTrack = (rest facing x, z, mode): mode 1 turns toward the player when they
- * are near (CCTV heads), mode 2 also lights up meanwhile (the lens).
+ * are near (CCTV heads: pan and tilt), mode 2 also lights up meanwhile (the lens).
  */
 const SWING_GLSL = /* glsl */ `
 attribute vec3 swingPivot;
@@ -109,7 +109,8 @@ vec3 swingRot(vec3 v) {
   float c = cos(a), s = sin(a);
   if (swing.w > 1.5) return vec3(c * v.x - s * v.y, s * v.x + c * v.y, v.z);
   if (swing.w > 0.5) return vec3(v.x, c * v.y - s * v.z, s * v.y + c * v.z);
-  return vec3(c * v.x + s * v.z, v.y, -s * v.x + c * v.z);
+  vec3 r = vec3(c * v.x + s * v.z, v.y, -s * v.x + c * v.z);
+  return swingTrack.z > 0.5 ? trackTilt(r, a, swingPivot, swingTrack.xy) : r;
 }
 `;
 const SWING_NORMAL = 'objectNormal = swingRot(objectNormal);';
