@@ -30,6 +30,7 @@ const of = (kind) => lines.filter((l) => l.kind === kind);
 const windows = of('window');
 const hitches = of('hitch');
 const marks = of('mark');
+const spikes = of('mouse');
 const links = of('link');
 const processes = of('process');
 const sessions = of('session');
@@ -238,6 +239,11 @@ ${table(['time', 'device', 'by', 'frame ms', 'CPU', 'GPU', 'took longest', 'what
 ${table(['VPN', 'devices', 'ping p50', 'ping p95', 'stalls >300', 'longest silence', 'reconnects'], vpnGroups)}
 <p><b>Joins</b></p>
 ${table(['device', 'back?', 'join ms', 'paint parts', 'first part ms', 'parts ms', 'longest part gap', 'paint MB', 'load ms', 'plain HTTP ms', 'socket ping ms'], stats.flatMap((s) => s.joins.map((j, i) => [esc(label(s.d)), j.back ? 'back' : 'new', fmt(j.joinMs), fmt(j.parts), fmt(j.firstPartMs), fmt(j.partsMs), fmt(j.longestPartGap), fmt((j.fileBytes ?? 0) / 2 ** 20, 1), fmt(j.loadMs), fmt(s.routes[i]?.httpMs), fmt(s.routes[i]?.wsPingMs)])))}
+
+<h2>Mouse</h2>
+<p class="note">Spikes: one move over 300 px and over 3x the largest of the last 8, or over 400 px within 150 ms of the lock (the Chromium-on-Windows bug, docs/backlog.md). Events per frame show the "none, then several at once" pattern; spacing is the mouse's own timestamps.</p>
+${table(['device', 'events', 'largest move px', 'spikes', 'after lock', 'most events in a frame', 'spacing p50 ms', 'held p95 ms'], stats.map((s) => { const m = s.d.windows.map((w) => w.mouse).filter(Boolean); return [esc(label(s.d)), fmt(sum(m.map((x) => x.events))), fmt(max(m.map((x) => x.maxPx))), fmt(sum(m.map((x) => x.spikes))), fmt(sum(m.map((x) => x.afterLock))), fmt(max(m.map((x) => x.maxPerFrame))), fmt(median(m.map((x) => x.spacing?.p50)), 2), fmt(median(m.map((x) => x.held?.p95)), 1)]; }))}
+${spikes.length ? table(['time', 'device', 'dx', 'dy', 'px', 'x recent largest', 'before (px, oldest first)', 'since last ms', 'since lock ms', 'since focus ms', 'events per frame (newest last)', 'in this frame', 'frame ms', 'held ms', 'buttons'], spikes.map((h) => { const k = h.spike ?? {}; return [time(h), esc(who(h)), fmt(k.dx), fmt(k.dy), fmt(k.px), fmt(k.ratio, 1), esc((k.before ?? []).join(' ')), fmt(k.sinceLast, 1), fmt(k.sinceLock), fmt(k.sinceFocus), esc((k.perFrame ?? []).join(' ')), fmt(k.inFrame), fmt(k.frameMs, 1), fmt(k.held, 1), fmt(k.buttons)]; })) : '<p>No spikes.</p>'}
 
 <h2>Errors</h2>
 ${errs.size ? table(['count', 'error', 'devices', 'stack'], [...errs.values()].sort((a, b) => b.n - a.n).map((e) => [e.n, esc(e.k), esc([...e.who].join(', ')), `<code>${esc((e.stack ?? '').split('\n').slice(0, 3).join(' ⏎ '))}</code>`])) : '<p>None.</p>'}

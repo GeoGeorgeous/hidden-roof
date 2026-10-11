@@ -4,7 +4,7 @@ A temporary build of 1.2.0 that records how a 4–8 player session performs (fra
 
 ## What it is, and what it isn't
 
-- **Branch** `chore/v1.2.0-playtest`, from the `v1.2.0` tag. **Tag** `v1.2.0-playtest` on its tip: the VPS deploys by tag, and the pause menu shows it, so testers can see which build they're on. Branch and tag have different names on purpose: git warns when a branch and a tag share one.
+- **Branch** `chore/v1.2.0-playtest`, from the `v1.2.0` tag. **Tag** `v1.2.0-playtest` on its tip (an update after the first deploy gets a new tag, `v1.2.0-playtest.2`, never a moved one: a moved tag needs a force-push and a host that has fetched the old one refuses it): the VPS deploys by tag, and the pause menu shows it, so testers can see which build they're on. Branch and tag have different names on purpose: git warns when a branch and a tag share one.
 - **Never merged** into `dev`, `next` or `main`. `main` stays at `v1.2.0`, so 1.3.0 still fast-forwards. `next` never contains the tag, so 1.3.0's "since the last tag" is still from `v1.2.0`.
 - **No release:** no `npm version`, no `docs/releases/*.md`, no GitHub release, no `scripts/release-discord.mjs` (Discord is posted only by that script, by hand; a push or a tag posts nothing).
 - **Deployed for a few days**, server and client together (`docs/playtest-devops.md`). Then back to `v1.2.0`, or on to `v1.3.0` if it's out.
@@ -17,7 +17,7 @@ A temporary build of 1.2.0 that records how a 4–8 player session performs (fra
 - **Handshake, so a rollback is safe:** this is a technical guard, not a consent switch. The server says `telemetry: 1` in `welcome`. The client sends `stats` only when it saw that. The 1.2.0 server closes any link that sends a message type it doesn't know: a playtest tab left open after a rollback to 1.2.0 must not loop on reconnects. 1.2.0 tabs left open on the playtest server send nothing and work as before. `PROTOCOL` stays 4.
 - **Server:** checks each `stats` for shape and size (≤ 16 KB; a burst of 12 then 2 a second per player; dropped otherwise and counted, never a disconnect), stamps it with the server time, session code, player id and link id (see Who's who), and appends it as one JSON line to `PLAYTEST_LOG` (a directory; one file per day, `playtest-YYYY-MM-DD.jsonl`). Every `PLAYTEST.every` it also writes its own line per live session and one for the process. Unset `PLAYTEST_LOG`: nothing is written (tests, local runs).
 - **Why a file, not `docker logs`:** the container's log rotates at 3 × 10 MB. The file lives on a bind mount, outside the container, so a restart keeps it.
-- **Size:** plain text, ~1.5 KB per player per 5 s, about 1 MB per player per hour of play. 8 players for 24 hours straight is ~250 MB; real play (evenings) is tens of MB a day. Nothing is written while no session is live. Guards: at most `PLAYTEST.hitchesPerWindow` hitch lines per player per window (a hitch storm is counted, not written line by line); yesterday's file is gzipped (JSON lines shrink ~10×); past `PLAYTEST.maxDiskMB` (1 GB) the server stops writing and says so once in its log.
+- **Size:** plain text, ~3.5 KB per player per 5 s, about 2.5 MB per player per hour of play (the smoke test: 3.5 MB for two players in 39 minutes). 10 players for 24 hours straight is ~600 MB; real play (evenings) is tens of MB a day. Nothing is written while no session is live. Guards: at most `PLAYTEST.hitchesPerWindow` hitch lines per player per window (a hitch storm is counted, not written line by line); yesterday's file is gzipped (JSON lines shrink ~10×); past `PLAYTEST.maxDiskMB` (1 GB) the server stops writing and says so once in its log.
 - **Cost:** no allocation per frame (frame times go to a preallocated ring; laps are `performance.now()` pairs), aggregated once per window. The GPU timer runs all the time in a session (its queries are cheap; the report says whether it's supported). Network: ~0.3 KB/s up per player, nothing extra down. The report includes the telemetry's own time per window, to prove it.
 - **Privacy:** the IP is never written, only a salted hash (to tell two players behind one router apart). Names are what players typed. The files stay on the host and the auditor's machine, never in this public repo. The notice tells the testers what's recorded.
 
@@ -102,6 +102,14 @@ Some testers reach the server through a VPN (it isn't reachable from where they 
 - **Exit changes:** a VPN that reconnects or switches exit drops the WebSocket and comes back from a new IP. Recorded: drop, close code, time to come back, and the server's event that the device's IP hash changed.
 - **Route vs. WebSocket:** at join, the time of a plain `fetch('/ws')`, next to the WebSocket's own ping: when the socket is much worse than plain HTTP, it's the socket's path (a proxy, a firewall), not the route.
 
+### Mouse
+
+The backlog's "mouse spikes snap the camera" (Chromium on Windows: one `mousemove` of hundreds of px among small ones, or a huge one right after the lock): seen from the side (`src/playtest/mouse.ts`), `input.ts` untouched, and only while the pointer is locked.
+
+- Per window (`mouse`): events, the largest move, moves over `PLAYTEST.mouseSpikePx`, spikes, spikes just after the lock, the most events handled in one frame, lock and unlock counts, the spacing between events (the mouse's own timestamps) and how long the browser held them (`held`).
+- A spike (a move over `mouseSpikePx` and over 3x the largest of the last 8; or over `mouseLockPx` within `mouseLockMs` of the lock) is sent at once as a `mouse` line: dx, dy, the 8 moves before it, the time since the previous event, since the lock and since the window got focus, the events per frame of the last 4 frames and in this one, the frame's interval, `held`, buttons. At most `mouseSpikesPerWindow` per window; the window's count has the rest. With the device (`env`: browser, OS, GPU, DPR, refresh) that separates the kinds: a lone value mid-flick, one after the lock, one after a long frame, or a particular device.
+- Ask the testers to press F9 when the camera snaps: the mark is on the same timeline.
+
 ### Memory
 
 - JS heap used / total / limit (`performance.memory`, Chromium).
@@ -166,11 +174,11 @@ Client clocks are aligned to the server's with the ping offset, so all lines sha
 
 - `npm run playtest:bots -- <ws url> [players] [minutes] [level]` (`server/playtest-bots.ts`): bots that host or join one session, walk in circles and spray nonstop (state 20 times a second, 3 paint ops each time, pings, empty reports), to load the server before real players do. They draw nothing: server and link numbers only. Locally each comes from its own address; never point them at the live server during the playtest (they'd be in the data, though the report leaves them out).
 - `npm run playtest:report -- <files…> [--out report.html]` (`scripts/playtest-report.mjs`): one HTML page: who's who by device, each device's numbers, timelines (fps, frame p95, GPU, draw calls, others' particles, ping, silences, heap; the server's event loop, CPU, bytes out) with marks and phases, phases compared, the worst windows and hitches with what took the time, the network split by VPN, joins, errors, the server's numbers and every link event: the input to the audit.
-- Tried locally (2026-10-11): 8 bots for a minute (8 in, ping ≤ 3 ms, ~860 KB/s sent in all, event loop fine); 3 browsers joining 5 spraying bots for 90 s (5.3 KB per report, its own cost ~6 ms per 5 s spread over ~300 frames, the report itself built between frames in ~1 ms); the notice, OK, and a reload not showing it again.
+- Tried locally (2026-10-11, again with the second build): 10 bots for a minute (10 in, ping ≤ 1 ms, ~1.4 MB/s sent in all, no report dropped, no bad message); 8 bots for a minute (8 in, ping ≤ 3 ms, ~860 KB/s sent in all, event loop fine); 3 browsers joining 5 spraying bots for 90 s (5.3 KB per report, its own cost ~6 ms per 5 s spread over ~300 frames, the report itself built between frames in ~1 ms); the notice, OK, and a reload not showing it again.
 
 ## Tunables
 
-`PLAYTEST` in `src/config.ts`: `every` (5 s), `hitchMs` (100), `hitchesPerWindow` (5), `hitchWait` (300 ms), `idleEvery` / `idleMinutes` (60 s / 10), `maxReport` (16 KB), `burst` / `rate` (12 reports at once, 2 a second after, per player on the server), `keepErrors` (10), `keepEvents` (40), `samples` (1500 per metric per window), `maxDiskMB` (1024), `stallMs` (150 / 300 / 1000), `queueWarn` (64 KB), the histogram buckets (`frameBuckets`, `pingBuckets`, `arrivalBuckets`), `fakeHitchMs` / `fakeHitchEvery` (250 ms every 30 s).
+`PLAYTEST` in `src/config.ts`: `every` (5 s), `hitchMs` (100), `hitchesPerWindow` (5), `hitchWait` (300 ms), `mouseSpikePx` / `mouseSpikesPerWindow` / `mouseLockPx` / `mouseLockMs` (300 / 5 / 400 / 150), `idleEvery` / `idleMinutes` (60 s / 10), `maxReport` (16 KB), `burst` / `rate` (12 reports at once, 2 a second after, per player on the server), `keepErrors` (10), `keepEvents` (40), `samples` (1500 per metric per window), `maxDiskMB` (1024), `stallMs` (150 / 300 / 1000), `queueWarn` (64 KB), the histogram buckets (`frameBuckets`, `pingBuckets`, `arrivalBuckets`), `fakeHitchMs` / `fakeHitchEvery` (250 ms every 30 s).
 
 ## Reading
 

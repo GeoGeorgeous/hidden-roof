@@ -8,6 +8,7 @@ import type { PaintSystem } from '../painting';
 import type { Tools } from '../tools/tools';
 import { VERSION } from '../version';
 import { LinkTap } from './link-tap';
+import { MouseWatch } from './mouse';
 import { identity, showNotice } from './notice';
 import { probe, round } from './probe';
 import { FrameRecorder } from './recorder';
@@ -49,6 +50,8 @@ export function startPlaytest(g: PlaytestContext): Playtest {
   g.net.tap = tap;
   tap.peers = () => g.net.peersHere;
   const rec = new FrameRecorder();
+  const mouse = new MouseWatch();
+  mouse.onSpike = (spike) => g.net.inSession && send({ kind: 'mouse', spike });
   const errors: Record<string, unknown>[] = [];
   let errorCount = 0;
   const events: Record<string, unknown>[] = [];
@@ -160,6 +163,7 @@ export function startPlaytest(g: PlaytestContext): Playtest {
       errors: errors.splice(0),
       errorCount,
       events: [...tap.events.splice(0), ...events.splice(0)],
+      mouse: mouse.take(),
       selfMs: round(self),
       reportMs: round(reportMs),
     };
@@ -197,6 +201,7 @@ export function startPlaytest(g: PlaytestContext): Playtest {
       const gpu = g.gpuTimer.supported ? pick(g.gpuTimer.ms, VOLUMETRICS.enabled ? ['scene', 'volumetrics', 'post'] : ['scene', 'post']) : null;
       rec.frame({ interval: f.interval, cpu: t - f.t0, gpu, calls: f.calls, triangles: f.triangles, uploads: g.paint.gpu.uploadsLastFrame, uploadBytes: g.paint.gpu.uploadBytesLastFrame, ownParticles: g.tools.spray.particles.count, otherParticles: g.tools.spray.others.count, shown: shown.length, inView, messages: tap.frame(), programs: p, playing: f.playing }, probe.sprayers);
       probe.sprayers = 0;
+      mouse.frame(f.interval);
       if (rec.hitch) {
         hitches++;
         const frame = rec.hitch;

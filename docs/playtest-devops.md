@@ -1,6 +1,6 @@
 # Prompt for the devops agent: deploy the playtest build
 
-Paste the section below to the devops agent once `chore/v1.2.0-playtest` is done (`npm run check` passed) and its tag `v1.2.0-playtest` is pushed.
+Already deployed `v1.2.0-playtest` and now updating? Paste the **Redeploy** section at the end instead. Otherwise paste the section below to the devops agent once `chore/v1.2.0-playtest` is done (`npm run check` passed) and its tag `v1.2.0-playtest` is pushed.
 
 ---
 
@@ -60,3 +60,22 @@ When the owner says the playtest is over: `tar czf playtest-<dates>.tar.gz` the 
 **Or on to v1.3.0** if it's released by then: do the rollback's step 2's compose part (remove the override), then the normal 1.3.0 deploy from `docs/deploy.md` on the `v1.3.0` tag (server and client together, as its §1 says), then step 6.
 
 **End with:** what you did (each host change and its undo), what you checked and saw, and anything odd, with the log lines.
+
+
+---
+
+## Redeploy: update the running playtest build to `v1.2.0-playtest.2`
+
+(Paste this to the devops agent. The playtest is already deployed from `v1.2.0-playtest`; this is the same build with better telemetry for the main test with 8–10 players.)
+
+**What changed:** only telemetry (client reports, server lines, the notice text, the report script). Protocol is still 4, the compose override and the `playtest` directory stay as they are. Same hard rules as above: deploy the tag, never a branch tip; don't touch `main`, `next` or `dev`; no release, no Discord.
+
+1. **Ask the owner first** and check `docker compose logs --since 30m roof`: restarting `roof` ends every live session. Go only when no session is live or the owner says go.
+2. Record for rollback: `git describe --tags` in `<apps>/roof/repo` (should say `v1.2.0-playtest`) and a copy of `<apps>/roof/www` (`cp -a www www-playtest1`).
+3. Server first: `git fetch --depth 1 origin tag v1.2.0-playtest.2 && git checkout v1.2.0-playtest.2`, then `docker compose up -d --build roof` (with the override still in place: `PLAYTEST_LOG=/data/playtest`, the volume). Wait until healthy. The server log must say `playtest: reports go to /data/playtest`.
+4. Client: build off the host from the same tag (`deploy.md` §5), rsync `dist/` to `<apps>/roof/www` as before (`--delete-delay --delay-updates`).
+5. Check: `deploy.md` §7; `/ws` answers `roof server · protocol 4`; the pause menu shows `v1.2.0-playtest.2`. Two browser windows, HOST and JOIN, play 30 s: the existing `playtest-YYYY-MM-DD.jsonl` keeps growing (today's file is appended to, not replaced) with `window`, `session`, `process`, `link` lines and a `host` line (`"kind":"event"`, `"event":"host"`); `tail -n 3 … | jq .` parses. No `bad message` in the log.
+6. The smoke test's file stays in the telemetry directory; keep it apart from the main test's by renaming it while the server is stopped (`docker compose stop roof`, `mv playtest-2026-10-11.jsonl smoke-2026-10-11.jsonl`, then step 3's `up`), only if today is the same date; otherwise nothing to do (one file per day).
+7. Tell the owner: done, what you saw, anything odd. After the main test, **Collect** as above (every `.jsonl` and `.gz`), and after it is over **Roll back**, whose target is still `v1.2.0`.
+
+**Roll back just this update** (to the first playtest build): the same steps with `v1.2.0-playtest` instead; tabs open from the newer build keep working, since clients send reports only when the server's welcome asks for them.

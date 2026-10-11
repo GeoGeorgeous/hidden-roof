@@ -896,6 +896,11 @@ export const PLAYTEST = {
   hitchMs: 100,
   /** At most this many hitch reports per window; the rest are only counted. */
   hitchesPerWindow: 5,
+  /** A mouse move over this many px, and over 3x the largest of the last 8, is a spike (sent whole, at most this many per window); so is one over `mouseLockPx` within `mouseLockMs` of the lock being taken. */
+  mouseSpikePx: 300,
+  mouseSpikesPerWindow: 5,
+  mouseLockPx: 400,
+  mouseLockMs: 150,
   /** A hitch is sent this long (ms) after its frame, so the long animation frame that held the thread has been reported. */
   hitchWait: 300,
   /** Frame-time histogram bucket tops (ms); one more bucket past the last. */
