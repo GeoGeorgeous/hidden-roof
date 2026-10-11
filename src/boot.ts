@@ -3,7 +3,8 @@
 // with no mouse to lock (a phone, a tablet without one). Both are imported
 // only once chosen, so a phone loads none of the game: no three.js, level,
 // textures, audio or WebSocket. ?force=1 loads the game anyway (the tests'
-// small windows).
+// small windows). index.html's inline script decides the same, to fetch the
+// game's files with the page: change both together.
 
 const force = new URLSearchParams(location.search).has('force');
 

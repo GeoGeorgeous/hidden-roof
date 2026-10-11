@@ -1,5 +1,6 @@
 import { execSync } from 'node:child_process';
-import { readdirSync, rmSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { defineConfig } from 'vite';
 import pkg from './package.json' with { type: 'json' };
 import { LEVELS, RENDER } from './src/config.ts';
@@ -27,9 +28,55 @@ const releaseLevels = {
   },
 };
 
-// The Content Security Policy roof.hidden.haus sends (docs/deploy.md). data: for
-// the hotbar's blank icon (inventory/thumbnails.ts), blob: for downloads and screenshots.
-const CSP = "default-src 'self'; img-src 'self' data: blob:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'";
+// The Content Security Policy roof.hidden.haus sends (docs/deploy.md), `hash` the
+// one inline script's (csp-hash.txt; Caddy reads it per request). data: for the
+// hotbar's blank icon (inventory/thumbnails.ts), blob: for downloads and screenshots.
+const csp = (hash: string) => `default-src 'self'; script-src 'self' ${hash}; img-src 'self' data: blob:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'`;
+const HASH_FILE = 'csp-hash.txt';
+
+// index.html's inline script starts the game's files coming with the page
+// (src/boot.ts would ask for them only once it runs): the build names them in
+// its meta tag, with RENDER.minViewport, and writes the script's CSP hash to
+// csp-hash.txt; vite preview sends the CSP with it, as Caddy does.
+type Chunk = { type: string; fileName: string; facadeModuleId?: string | null; imports?: string[]; viteMetadata?: { importedCss: Set<string> } };
+const gamePreload = () => {
+  let hash = '';
+  return {
+    name: 'game-preload',
+    transformIndexHtml: {
+      order: 'post' as const,
+      handler(html: string, ctx: { bundle?: Record<string, Chunk> }) {
+        if (!ctx.bundle) return html;
+        const bundle = ctx.bundle;
+        const main = Object.values(bundle).find((c) => c.type === 'chunk' && c.facadeModuleId?.endsWith('/src/main.ts'));
+        if (!main) throw new Error('game-preload: no chunk for src/main.ts');
+        // The game's chunk, the chunks it imports and their CSS: what boot.ts's import('./main') fetches.
+        const files = new Set<string>();
+        const add = (c: Chunk) => {
+          if (files.has(c.fileName)) return;
+          files.add(c.fileName);
+          c.viteMetadata?.importedCss.forEach((css) => files.add(css));
+          c.imports?.forEach((f) => add(bundle[f]));
+        };
+        add(main);
+        const meta = '<meta name="game-files" content="" />';
+        if (!html.includes(meta)) throw new Error('game-preload: no game-files meta in index.html');
+        html = html.replace(meta, `<meta name="game-files" content="${[...files].map((f) => `/${f}`).join(' ')}" data-min='${JSON.stringify(RENDER.minViewport)}' />`);
+        const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
+        if (scripts.length !== 1) throw new Error(`game-preload: ${scripts.length} inline scripts in index.html, the CSP allows one`);
+        hash = `'sha256-${createHash('sha256').update(scripts[0][1]).digest('base64')}'`;
+        return html;
+      },
+    },
+    writeBundle(options: { dir?: string }) {
+      if (hash) writeFileSync(`${options.dir}/${HASH_FILE}`, `${hash}\n`);
+    },
+    configurePreviewServer(server: { config: { build: { outDir: string } }; middlewares: { use: (f: (req: unknown, res: { setHeader: (k: string, v: string) => void }, next: () => void) => void) => void } }) {
+      const built = readFileSync(`${server.config.build.outDir}/${HASH_FILE}`, 'utf8').trim();
+      server.middlewares.use((_req, res, next) => (res.setHeader('Content-Security-Policy', csp(built)), next()));
+    },
+  };
+};
 
 // The game builds with Vite's defaults. The multiplayer server (server/) is
 // built as one file with everything in it (vite build --ssr), so its image
@@ -38,11 +85,11 @@ const CSP = "default-src 'self'; img-src 'self' data: blob:; base-uri 'none'; fr
 // The dev tools (src/dev: build mode, F3, window.game) are in the dev server and
 // npm run build:dev; npm run build, the player build, leaves them out.
 export default defineConfig(({ mode, isSsrBuild }) => ({
-  plugins: [releaseLevels],
+  plugins: [releaseLevels, gamePreload()],
   define: { __VERSION__: JSON.stringify(version()), __DEV_TOOLS__: JSON.stringify(mode !== 'production'), __MIN_VIEWPORT__: JSON.stringify(RENDER.minViewport) },
   ssr: { noExternal: true },
   build: { copyPublicDir: !isSsrBuild },
   server: { proxy: { '/ws': { target: process.env.WS_TARGET ?? 'ws://localhost:3000', ws: true } } },
-  // vite preview serves the player build as production does (docs/deploy.md, the Caddy block).
-  preview: { headers: { 'Content-Security-Policy': CSP }, proxy: { '/ws': { target: process.env.WS_TARGET ?? 'ws://localhost:3000', ws: true } } },
+  // vite preview serves the player build as production does (docs/deploy.md, the Caddy block; the CSP: gamePreload).
+  preview: { proxy: { '/ws': { target: process.env.WS_TARGET ?? 'ws://localhost:3000', ws: true } } },
 }));

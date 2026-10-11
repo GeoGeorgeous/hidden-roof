@@ -24,8 +24,11 @@ try {
   page.on('pageerror', (e) => problems.push(`page error: ${e.message}`));
   page.on('console', (m) => m.type() === 'error' && problems.push(`console: ${m.text()}`));
   const res = await page.goto(test.url);
-  if (!res.headers()['content-security-policy']) problems.push('no Content-Security-Policy header');
+  if (!/script-src 'self' 'sha256-/.test(res.headers()['content-security-policy'] ?? '')) problems.push(`no inline script hash in the CSP: ${res.headers()['content-security-policy']}`);
   await gameReady(page, 2);
+  // index.html's inline script ran (its hash allowed it) and started the game's files with the page.
+  const preloads = await page.evaluate(() => document.querySelectorAll('link[rel="modulepreload"]').length);
+  if (!preloads) problems.push('the inline script preloaded nothing');
 
   await page.evaluate(async () => {
     const g = window.game;

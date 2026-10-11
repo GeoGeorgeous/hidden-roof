@@ -1,9 +1,10 @@
 import './small-screen.css';
 import { AUTHOR, DISCORD, REPO } from './links';
+import city from './small-screen.webp';
 import { VERSION } from './version';
 
 // Screen 10, in place of the game where it can't be played (boot.ts): the
-// title over a still of the title view (public/small-screen.webp, no WebGL),
+// title over a still of the title view (small-screen.webp, no WebGL),
 // what the game needs, and the page's link to send to a computer. Made wide
 // enough (and with a mouse), it offers to load the game instead: a reload.
 
@@ -14,7 +15,7 @@ const HINT = 'Send it to yourself for later.';
 export function smallScreen(playable: () => boolean) {
   document.querySelector('.loading')?.remove();
   const root = el('div', 'small');
-  root.innerHTML = `<img src="/small-screen.webp" alt="">
+  root.innerHTML = `<img src="${city}" alt="">
 <div class="small-body">
   <div class="small-gap"></div>
   <b class="small-title">Hidden Roof</b>

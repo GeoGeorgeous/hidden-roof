@@ -58,13 +58,15 @@ roof.hidden.haus {
 		@rest not path /assets/*
 		header @assets Cache-Control "public, max-age=31536000, immutable"
 		header @rest Cache-Control "no-cache"
-		header Content-Security-Policy "default-src 'self'; img-src 'self' data: blob:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"
+		# The hash of index.html's inline script is read per request from the build's csp-hash.txt, so a deploy
+		# needs no reload. No file or an empty one: inline scripts stay blocked and the game loads without the preload.
+		header Content-Security-Policy "default-src 'self'; script-src 'self' {file./srv/roof/csp-hash.txt}; img-src 'self' data: blob:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"
 		file_server
 	}
 }
 ```
 
-Add the `/ws` handle only once the server exists. The CSP is `CSP` in `vite.config.ts`, tested by `npm run test:csp` (part of `npm run check`): change both together. The `header` line without a matcher is safe here: it sets another header than the matched pair.
+Add the `/ws` handle only once the server exists. The CSP is `csp` in `vite.config.ts`, tested by `npm run test:csp` (part of `npm run check`): change both together. Its `script-src` hash is the build's `csp-hash.txt` (one line, `'sha256-…'`, of `index.html`'s one inline script, which starts the game's files with the page): rsync ships it with `index.html`, and Caddy reads it per request (`{file.…}`, Caddy 2.11+), so a deploy needs no reload. Missing, empty or stale, the policy only blocks that script, and the game loads a round trip later. The `header` line without a matcher is safe here: it sets another header than the matched pair.
 
 ## 6. The multiplayer server *(changes)*
 
@@ -118,6 +120,7 @@ The design is in `docs/multiplayer-audit.md` (sections 0, 4, 5, 6.4, 7, 8). The 
 - `curl -I https://roof.hidden.haus/` → 200, `cache-control: no-cache`.
 - `curl -I` on a file under `/assets/` → `immutable`. With `-H 'Accept-Encoding: gzip'` → `content-encoding` is set.
 - `curl -I https://roof.hidden.haus/levels/nope.json` → 404, not `index.html`.
+- `curl -sI https://roof.hidden.haus/ | grep -o "script-src[^;]*"` shows the hash in `<apps>/roof/www/csp-hash.txt`, and the browser console shows no CSP error.
 - `curl -I https://roof.hidden.haus/levels/roof.rhhpaint` → 200 (the level's own paint; `roof.json` says `"paint": true`).
 - `curl https://roof.hidden.haus/ws` → `roof server · protocol <n>`, the same `PROTOCOL` as the game deployed (`src/net/protocol.ts`).
 - In a browser: no 404s, `roof.json`, `roof.rhhpaint` and the fonts load, the console is clean, the game starts with the hints on the wall in front of the spawn.
