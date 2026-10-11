@@ -411,30 +411,87 @@ canvas {
 .overlay .back {
   z-index: 1;
 }
-.overlay .back button {
+.overlay .back button,
+.overlay .fs button {
   color: rgba(235, 229, 214, 0.8);
 }
-.overlay .back button:hover {
+.overlay .back button:hover,
+.overlay .fs button:hover {
   background: rgba(235, 229, 214, 0.16);
+  color: var(--paper);
+}
+/* EXIT FULLSCREEN (esc-hold.ts): its key cap holds the hold's ring. */
+.overlay .fs {
+  position: absolute;
+  top: 18px;
+  right: 24px;
+  user-select: none;
+}
+.overlay .fs kbd {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 5px 1px 4px;
+  transition: border-color 0.2s, color 0.2s;
+}
+.overlay.holding .fs kbd {
+  border-color: rgba(235, 229, 214, 0.8);
+  color: var(--paper);
+}
+/* One Esc leaves fullscreen here (no keyboard lock): a plain key. */
+.overlay .fs kbd.plain {
+  padding: 1px 5px;
+}
+.overlay .fs kbd.plain .ring {
+  display: none;
+}
+/* The hold's progress: empty, filling over PAUSE_MENU.escHoldMs while Esc is held (.holding; --hold-delay starts it partway), back fast when let go. */
+.overlay .ring {
+  display: block;
+  width: 10px;
+  height: 10px;
+  transform: rotate(-90deg);
+}
+.overlay .ring circle {
+  fill: none;
+  stroke: rgba(235, 229, 214, 0.25);
+  stroke-width: 1.5;
+}
+.overlay .ring .fill {
+  stroke: var(--paper);
+  stroke-linecap: round;
+  stroke-dasharray: 28.3;
+  stroke-dashoffset: 28.3;
+  transition: stroke-dashoffset 0.2s ease-out;
+}
+.overlay.holding .ring .fill {
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset var(--hold-ms, 1500ms) linear var(--hold-delay, 0ms);
 }
 
-/* The pause screen: the title in the middle, the menu and the links under it. */
+/* The pause screen: the title group standing on the menu, the links under it. */
 .overlay .pause {
   position: absolute;
   inset: 0;
 }
-/* The title's box: the whole screen, so it's centered, but shorter in short windows, so it stays above the menu. */
-.overlay .hero {
+/* On the menu's line from the bottom; in short windows the gap over the menu shrinks, then the title goes up out of the window, never over the menu. */
+.overlay .stack {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  height: clamp(130px, calc(200% - 650px), 100%);
+  bottom: 104px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 12px;
+  justify-content: flex-end;
+  gap: clamp(16px, calc(100vh - 445px), 64px);
+}
+.overlay .hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
 }
 .overlay .title {
   font-family: var(--display);
@@ -443,14 +500,64 @@ canvas {
   letter-spacing: 0.02em;
 }
 .overlay .status {
+  position: relative;
   min-height: 16px;
   color: var(--text-2);
 }
-.overlay .menu {
+.overlay .status .ring {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 104px;
+  left: -20px;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  margin-top: -6px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.overlay.holding .status .ring {
+  opacity: 1;
+}
+/* PLAY and MULTIPLAYER, in the switcher's glass. */
+.overlay .start {
+  display: flex;
+  gap: 3px;
+  margin-top: 16px;
+  padding: 4px;
+  border: 1px solid var(--edge);
+  border-radius: 8px;
+  background: rgba(10, 10, 12, 0.45);
+  backdrop-filter: blur(6px);
+}
+.overlay .start button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 24px;
+  border-radius: 5px;
+  font-weight: 500;
+  font-size: 15px;
+  white-space: nowrap;
+  color: rgba(235, 229, 214, 0.85);
+  transition: background 0.2s, color 0.2s;
+}
+.overlay .start button:hover {
+  background: rgba(235, 229, 214, 0.16);
+  color: #fff;
+}
+.overlay .start .play,
+.overlay .start .play:hover {
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--paper);
+}
+.overlay .start .play:hover {
+  background: #fff;
+}
+.overlay .start .play kbd {
+  border-color: rgba(17, 17, 17, 0.35);
+  color: rgba(17, 17, 17, 0.6);
+}
+.overlay .menu {
   display: flex;
   justify-content: center;
   align-items: flex-start;
@@ -481,20 +588,6 @@ canvas {
   opacity: 1;
   color: #fff;
 }
-/* SINGLE (or RESUME): the main entry, with its key. */
-.overlay .item.main {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 600;
-  color: #fff;
-  opacity: 1;
-}
-.overlay .item.main kbd {
-  padding: 2px 5px;
-  border-color: rgba(235, 229, 214, 0.4);
-  color: rgba(235, 229, 214, 0.7);
-}
 .overlay .foot {
   position: absolute;
   left: 0;
@@ -515,12 +608,13 @@ canvas {
   cursor: not-allowed;
   color: rgba(235, 229, 214, 0.25);
 }
-/* Debug panel open: the menu stays, on a lighter sheet (still dark under the menu), without the title. */
+/* Debug panel open: the menu stays, on a lighter sheet (still dark under the menu), without the title and its status line. */
 .overlay.compact {
   background: linear-gradient(to top, #000 0%, rgba(0, 0, 0, 0.94) 28%, rgba(0, 0, 0, 0.55) 52%, transparent 78%), var(--sheet-debug, transparent);
 }
 .overlay.compact .blur,
-.overlay.compact .hero {
+.overlay.compact .title,
+.overlay.compact .status {
   display: none;
 }
 

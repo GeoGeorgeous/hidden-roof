@@ -71,7 +71,7 @@ try {
   await b.fill('.mp-page input >> nth=1', code.toLowerCase());
   await press(b, 'Join');
   await status(b, 'in');
-  assert.ok(await b.isVisible('.overlay .item:text-is("Leave session")'));
+  assert.ok(await b.isVisible('.overlay .start button:text-is("Leave session")'));
   assert.ok(!(await b.isVisible('.overlay .item:text-is("Upload")')));
   // Both play at the host's PAINT DETAIL, whatever their own; B's settings show it as the host's, its arrows doing nothing.
   assert.deepEqual(await Promise.all([a, b].map((p) => p.evaluate(() => window.game.config.PAINT.texelsPerMeter))), [48, 48]);

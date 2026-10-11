@@ -300,6 +300,8 @@ export const PAUSE_MENU = {
   debugOpacity: 0,
   /** Size of everything on the sheet (1 = as styled in style.css). */
   scale: 1,
+  /** How long Esc is held before the browser leaves fullscreen with the keyboard locked (Chromium's own hold, measured in Chromium 153): the pause screen's rings fill over it, and holding EXIT FULLSCREEN takes as long. */
+  escHoldMs: 1500,
   /** The title screen's view (before START; ESC later shows where you are): a fixed camera on the city. Position (m), yaw and pitch (degrees, pitch < 0 looks down). */
   view: true,
   viewX: -24,

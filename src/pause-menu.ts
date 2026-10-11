@@ -1,5 +1,6 @@
 import { INK_STYLES, PAUSE_MENU } from './config';
 import { creditsPage } from './credits-page';
+import { EscHold, ring } from './esc-hold';
 import { button, div, keyHint, runPrimary, segmented, sentence } from './menu-ui';
 import { inkStyle } from './render/ink/styles';
 import type { SettingSection } from './settings';
@@ -9,10 +10,12 @@ import { VERSION } from './version';
 
 // The ESC menu (style.css): the start / pause screen over the live game view
 // (the title view before START, hud.cityView), with the style switcher, the
-// menu in four columns (play, paint, settings, about) and the links at its
-// foot; and the pages and popups it opens over a blurred view: Settings,
+// fullscreen control (esc-hold.ts), PLAY and MULTIPLAYER under the title, the
+// menu in three columns (paint, settings, about) and the links at its foot;
+// and the pages and popups it opens over a blurred view: Settings,
 // Multiplayer and the rest. Esc goes back to the pause screen, and there
-// resumes; Enter runs the open page's primary button.
+// resumes once released (held, it leaves fullscreen); Enter runs the open
+// page's primary button.
 
 /** Where the GitHub link and the author's name lead. */
 const REPO = 'https://github.com/GeoGeorgeous/hidden-roof';
@@ -34,6 +37,11 @@ export class PauseMenu {
   private screen: HTMLElement;
   private back: HTMLElement;
   private status: HTMLElement;
+  private hold: EscHold;
+  /** Esc went down on the pause screen: released, it resumes (escapeReleased). */
+  private resumeOnUp = false;
+  /** The status line's message (notice), shown until noticeUntil. */
+  private message = '';
   private play: HTMLElement;
   private multiplayer: HTMLElement;
   private savePaint: HTMLElement;
@@ -67,32 +75,41 @@ export class PauseMenu {
     this.back.append(button('‹ Back', () => this.goBack()));
     this.back.firstChild!.appendChild(keyHint('ESC'));
 
+    this.hold = new EscHold(this.el, () => this.sync());
+    // The text, and the hold's ring beside it (left of the text, which stays centered).
     this.status = div('status');
-    const hero = div('hero');
-    hero.append(div('title', 'Hidden Roof'), this.status);
+    this.status.append(ring(), document.createElement('span'));
     // mousedown, like the canvas: the click that starts the game is the same gesture.
-    this.play = Object.assign(document.createElement('button'), { className: 'item main', textContent: 'Single' });
+    this.play = Object.assign(document.createElement('button'), { className: 'play', textContent: 'Play' });
     this.play.addEventListener('mousedown', (e) => (e.preventDefault(), e.button === 0 && this.onResume()));
     this.play.append(keyHint('ESC'));
-    this.multiplayer = item('Multiplayer', () => (this.session ? this.onLeave() : this.openPage('mp')));
+    this.multiplayer = button('Multiplayer', () => (this.session ? this.onLeave() : this.openPage('mp')));
+    const start = div('start');
+    start.append(this.play, this.multiplayer);
+    const hero = div('hero');
+    hero.append(div('title', 'Hidden Roof'), this.status, start);
     this.savePaint = item('Save', () => this.openPage('save'));
     this.loadPaint = item('Upload', () => this.openPage('upload'));
     const menu = div('menu');
     menu.append(
-      column('play', this.play, this.multiplayer),
       column('paint', this.savePaint, this.loadPaint),
       column('settings', ...['Game', 'Graphics', 'Audio'].map((t, i) => item(t, () => this.openSettings(i)))),
       column('about', item('Updates', () => this.openPage('updates')), item('Credits', () => this.openPage('credits'))),
     );
     const foot = div('foot');
     foot.innerHTML = `<span class="off" title="Coming soon">Discord</span><a href="${REPO}" target="_blank" rel="noopener">GitHub</a><i>·</i><span>${VERSION}</span><i>·</i><span>built by <a href="${AUTHOR}" target="_blank" rel="noopener">GeoGeorgeous</a></span>`;
+    // The title group stands on the menu, both on the menu's line from the bottom.
+    const stack = div('stack');
+    stack.append(hero, menu);
     this.screen = div('pause');
-    this.screen.append(hero, menu, foot);
-    this.el.append(div('blur'), this.themes.el, this.screen, this.back);
+    this.screen.append(stack, foot);
+    this.el.append(div('blur'), this.themes.el, this.hold.el, this.screen, this.back);
     parent.append(this.el);
     this.addPage('credits', creditsPage(), () => {});
     updatesPage(this);
 
+    // Esc held to the end: the browser left fullscreen, and its release doesn't resume.
+    document.addEventListener('fullscreenchange', () => (this.resumeOnUp = false));
     window.addEventListener('keydown', (e) => {
       if (e.repeat || (e.code !== 'Enter' && e.code !== 'NumpadEnter') || this.el.hidden || this.debugOpen) return;
       if (this.page) runPrimary(this.pages.get(this.page)!.el);
@@ -118,11 +135,18 @@ export class PauseMenu {
     return PAUSE_MENU.view && this.sheetUp && !this.started;
   }
 
-  /** Esc while paused: back (false), or, on the pause screen, resume (true). */
+  /** Esc pressed while paused: back a step; on the pause screen it resumes once released (escapeReleased). Never resumes now (false). */
   escape() {
-    if (!this.page) return true;
-    this.goBack();
+    if (this.page) this.goBack();
+    else this.resumeOnUp = true;
     return false;
+  }
+
+  /** Esc released: true when it was pressed on the pause screen and the browser didn't take it to leave fullscreen (held). */
+  escapeReleased() {
+    const resume = this.resumeOnUp && !this.page && !this.el.hidden;
+    this.resumeOnUp = false;
+    return resume;
   }
 
   /** Back a step within the page, or to the pause screen. */
@@ -139,7 +163,8 @@ export class PauseMenu {
   /** Shows a message in the status line for `seconds` (the toasts don't show over the menu); Infinity: until the next one. */
   notice(msg: string, seconds = NOTICE_SECONDS) {
     this.noticeUntil = performance.now() + seconds * 1000;
-    this.status.textContent = msg;
+    this.message = msg;
+    this.sync();
   }
 
   get inSession() {
@@ -177,7 +202,7 @@ export class PauseMenu {
   openPage(page: Page | null) {
     this.page = page;
     this.el.classList.toggle('sub', !!page);
-    this.screen.hidden = this.themes.el.hidden = !!page;
+    this.screen.hidden = this.themes.el.hidden = this.hold.el.hidden = !!page;
     for (const [p, { el }] of this.pages) el.hidden = p !== page;
     // Popups have their own buttons.
     this.back.hidden = !page || !!this.pages.get(page)?.el.classList.contains('popup-page');
@@ -191,6 +216,7 @@ export class PauseMenu {
       this.syncCompact();
     }
     this.syncSheet();
+    this.hold.update();
     if (this.noticeUntil && performance.now() >= this.noticeUntil) {
       this.noticeUntil = 0;
       this.sync();
@@ -207,8 +233,9 @@ export class PauseMenu {
   }
 
   private sync() {
-    if (performance.now() >= this.noticeUntil) this.status.textContent = this.session ? `Session · ${this.session}` : this.started ? 'Paused' : 'Click to start';
-    this.play.firstChild!.textContent = this.session ? 'Resume' : 'Single';
+    const idle = this.session ? `Session · ${this.session}` : this.started ? 'Paused' : 'Click to start';
+    this.status.lastChild!.textContent = this.hold.held ? 'Keep holding to leave fullscreen' : performance.now() < this.noticeUntil ? this.message : idle;
+    this.play.firstChild!.textContent = this.session ? 'Resume' : 'Play';
     this.multiplayer.textContent = this.session ? 'Leave session' : 'Multiplayer';
     // Nothing to save on the title screen; UPLOAD can come first. In a session, the server's paint is everyone's: no UPLOAD.
     this.savePaint.hidden = !this.started && !this.session;
@@ -218,7 +245,7 @@ export class PauseMenu {
   /** The sheet's color and opacities, and the menu's size, from PAUSE_MENU. */
   private syncSheet() {
     const m = PAUSE_MENU;
-    const sheet = `${m.color}|${m.opacity}|${m.pageOpacity}|${m.debugOpacity}|${m.scale}`;
+    const sheet = `${m.color}|${m.opacity}|${m.pageOpacity}|${m.debugOpacity}|${m.scale}|${m.escHoldMs}`;
     if (sheet === this.sheet) return;
     this.sheet = sheet;
     const mix = (a: number) => `color-mix(in srgb, ${m.color} ${Math.round(Math.min(1, Math.max(0, a)) * 100)}%, transparent)`;
@@ -226,6 +253,7 @@ export class PauseMenu {
     this.el.style.setProperty('--sheet-page', mix(m.pageOpacity));
     this.el.style.setProperty('--sheet-debug', mix(m.debugOpacity));
     this.el.style.setProperty('--menu-scale', String(m.scale));
+    this.el.style.setProperty('--hold-ms', `${m.escHoldMs}ms`);
   }
 }
 
