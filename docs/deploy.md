@@ -72,7 +72,7 @@ roof.hidden.haus {
 }
 ```
 
-Add the `/ws` handle only once the server exists. The CSP is `csp` in `vite.config.ts`, tested by `npm run test:csp` (part of `npm run check`): change both together. Its `script-src` hash is the build's `csp-hash.txt` (one line, `'sha256-…'`, of `index.html`'s one inline script, which starts the game's files with the page): rsync ships it with `index.html`, and Caddy reads it per request (`{file.…}`, Caddy 2.11+), so a deploy needs no reload. Missing, empty or stale, the policy only blocks that script, and the game loads a round trip later. The `header` line without a matcher is safe here: it sets another header than the matched pair.
+Add the `/ws` handle only once the server exists. The CSP is `csp` in `vite.config.ts`, tested by `npm run test:csp` (part of `npm run check`): change both together. Its `script-src` hash is the build's `csp-hash.txt` (one line, `'sha256-…'`, of `index.html`'s one inline script, which starts the game's files with the page): rsync ships it with `index.html`, and Caddy reads it per request (`{file.…}`, Caddy 2.11+), so a deploy needs no reload. Missing, empty or stale, the policy only blocks that script, and the game loads a round trip later; missing, Caddy also logs an error on every request (`placeholder: failed to read file`), so a build without it is noisy, not broken. The `header` line without a matcher is safe here: it sets another header than the matched pair.
 
 ## 6. The multiplayer server *(changes)*
 
