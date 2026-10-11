@@ -688,7 +688,7 @@ await check('ladders: one per player, moved with one rebuild; each owner\'s stay
   return r.moved === 2 && r.both === 'a@2,b@4' && r.saved === 0 && r.left === 'b@4' && r.yours === 'local@8' && r.back === 0 ? null : JSON.stringify(r);
 });
 
-await check('ladders: climbed to the top (each in the level, a stepladder) you land close by, stand there off it and jump as from any floor; off the stepladder\'s front you slide down it', async () => {
+await check('ladders: climbed to the top (each in the level, a scaffolding bay, a stepladder) you land close by, stand there off it and jump as from any floor; off the stepladder\'s front you slide down it', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
     const { player: p, input, level, PLAYER } = g;
@@ -740,9 +740,16 @@ await check('ladders: climbed to the top (each in the level, a stepladder) you l
       const why = await climb(l);
       if (why) out.push(`ladder ${i}: ${why}`);
     }
-    const before = new Set(level.ladders);
+    // A scaffolding bay railed at both ends: its ladder goes up through the deck's hatch, past the toe board.
+    const added = () => level.ladders.find((l) => !before.has(l));
+    let before = new Set(level.ladders);
+    level.setRuntime('test', { type: 'scaffolding', variant: 'single', pos: [6, 0, 30], rot: 0 });
+    const bay = await climb(added());
+    if (bay) out.push(`scaffolding: ${bay}`);
+    level.setRuntime('test', null);
+    before = new Set(level.ladders);
     g.tools.ladder.put({ pos: [0, 0, 30], rot: 0 });
-    const step = level.ladders.find((l) => !before.has(l));
+    const step = added();
     const why = await climb(step);
     if (why) out.push(`stepladder: ${why}`);
     // Back off its front (S, facing it): onto the ladder, let go, slide down it to its foot.

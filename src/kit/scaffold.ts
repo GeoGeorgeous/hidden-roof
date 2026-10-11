@@ -13,6 +13,13 @@ const POST = 0.95;
 const TUBE = 0.024;
 /** The top bay's guardrail runs this far from the center, inside the standards: a bay stacked on top clears it. */
 const GUARD = 0.9;
+/** Toe boards stand this far inside the guardrail, this thick. */
+const TOE_INSET = 0.04;
+const TOE = 0.024;
+/** With a ladder, the deck's back planks stop here (x): its hatch runs from here to the +x end's toe board. */
+const HATCH = 0.2;
+/** The ladder up through the hatch, centered in it (x), so the player fits between the planks and the toe board. */
+const LADDER_X = (HATCH + GUARD - TOE_INSET - TOE / 2) / 2;
 
 /** A guardrail on the top deck along one side, between the corner posts: top rail, knee rail and toe board (at: the side's line). */
 function guardSide(p: Parts, along: 'x' | 'z', at: number) {
@@ -25,9 +32,10 @@ function guardSide(p: Parts, along: 'x' | 'z', at: number) {
     else p.detail([at - 0.025, y0, -b], [at + 0.025, y1, b], M.steel);
   }
   // The toe board stands just inside the rails.
-  const t = at - Math.sign(at) * 0.04;
-  if (along === 'x') p.box([-b, LIFT, t - 0.012], [b, LIFT + 0.15, t + 0.012], M.wood, { paint: true });
-  else p.box([t - 0.012, LIFT, -b + 0.04], [t + 0.012, LIFT + 0.15, b - 0.04], M.wood, { paint: true });
+  const t = at - Math.sign(at) * TOE_INSET;
+  const h = TOE / 2;
+  if (along === 'x') p.box([-b, LIFT, t - h], [b, LIFT + 0.15, t + h], M.wood, { paint: true });
+  else p.box([t - h, LIFT, -b + 0.04], [t + h, LIFT + 0.15, b - 0.04], M.wood, { paint: true });
 }
 
 /**
@@ -53,14 +61,14 @@ function bay(ends: 0 | 1 | 2, ladder: boolean) {
     // Braces on the long faces, one each way.
     p.rod([-POST, y0, -POST], [POST, ly, -POST], TUBE, M.galv);
     p.rod([POST, y0, POST], [-POST, ly, POST], TUBE, M.galv);
-    // Deck: four planks along x; with a ladder, the two at the back leave its hatch (x > 0.2).
+    // Deck: four planks along x; with a ladder, the two at the back leave its hatch (x > HATCH).
     const bands = [-POST, -0.48, -0.005, 0.475, POST];
     for (let i = 0; i < 4; i++) {
-      const x1 = i < 2 || !ladder ? POST : 0.2;
+      const x1 = i < 2 || !ladder ? POST : HATCH;
       p.box([-POST, LIFT - 0.05, bands[i] + 0.005], [x1, LIFT, bands[i + 1] - 0.005], M.wood, { paint: true });
     }
     // Ladder up through the hatch, its back on the rear ledger; grab rails above it only on the top bay.
-    if (ladder) p.ladder(0.55, 0, POST, LIFT, 0.5, !above);
+    if (ladder) p.ladder(LADDER_X, 0, POST, LIFT, 0.5, !above);
     if (!above) {
       for (const x of [-GUARD, GUARD]) for (const z of [-GUARD, GUARD]) p.detail([x - 0.025, LIFT, z - 0.025], [x + 0.025, LIFT + 1.05, z + 0.025], M.steel);
       guardSide(p, 'x', -GUARD);
