@@ -2,7 +2,7 @@
 
 What the main playtest of `v1.2.0-playtest.2` showed, kept for fixing multiplayer bugs and for finding causes. The fixes themselves are in `docs/backlog.md` (items say "playtest of 2026-10-12"). The raw data (telemetry jsonl, server log, memory samples) holds player names and hashed addresses: it is **not in the repo** and never goes there. Players are labelled here by device, not by name.
 
-Build under test: `v1.2.0` plus the playtest telemetry (temporary branch `chore/v1.2.0-playtest`, tag `v1.2.0-playtest.2`; server and client together). Protocol 4. Host: Hetzner CX33 (4 shared vCPU, 8 GB), Nuremberg, Caddy in front, `roof` container (`mem_limit` 3 GB, 2 cpus, `HOST_MEMORY` 2048, `SNAPSHOT_MEMORY` 2560).
+Build under test: `v1.2.0` plus the playtest telemetry (temporary branch `chore/v1.2.0-playtest`, tag `v1.2.0-playtest.2`; server and client together). Protocol 4. Host: a VPS (4 shared vCPU, 8 GB), Caddy in front, `roof` container (`mem_limit` 3 GB, 2 cpus, `HOST_MEMORY` 2048, `SNAPSHOT_MEMORY` 2560).
 
 ## The short version
 
@@ -75,9 +75,9 @@ Drops (1006) per link-hour: 10.6 and 10.1 (the home Wi-Fi pair), 8.8 and 5.4 (tw
    Their upload rate showed no trend.
 3. **The kill is the server's heartbeat.** 79 of 81 1006s end on a multiple of 10 s after the socket opened (`server/main.ts`: a ws ping every 10 s, `terminate()` when no pong came since the last). In 62 of 69 drops with reports, the client's last report reached the server less than 10 s before the kill (median 3 s): the uplink worked; the server's ping sat in the downlink queue behind ops. App pings of 11–16 s were measured; the clients' own silence counters were 40–69 s at worst.
 4. **A rejoin makes the next drop likelier.** 32 of 81 drops came within 30 s of a (re)join, 12 links died before their welcome arrived. A welcome carries the paint file (0.3 MB at 17:12, 3.4 MB at 19:35), over the path that just failed. Join time (connect to in-session): p50 3.9 s, p90 12.2 s, max 17.8 s, for files of a few hundred KB (≈70 KB/s).
-5. **The players' networks decided who dropped,** and the home pair shows it: the host's Wi-Fi had a pause over 300 ms in 50% of its 5 s windows before 17:37 (both on it), 35% until 18:30 and 13% after, once the partner had moved to her phone. Her own drops went from 18 before 17:37 to 6 in the next two hours (the host's from 18 to 8). Weaker evidence: she was back on the home network for a minute (18:49:26–18:50:29) and dropped at its end.
+5. **The players' networks decided who dropped,** and the home pair shows it: the host's Wi-Fi had a pause over 300 ms in 50% of its 5 s windows before 17:37 (both on it), 35% until 18:30 and 13% after, once the other had moved to a phone hotspot. Their own drops went from 18 before 17:37 to 6 in the next two hours (the host's from 18 to 8). Weaker evidence: they were back on the home network for a minute (18:49:26–18:50:29) and dropped at its end.
 6. **The three VPN players share an exit address;** their drops coincide (18:31–18:33), and one of them switched exit at 17:16.
-7. Ping (app level) medians 64–134 ms (Georgia to Nuremberg); maxima 2–16 s on the weak links.
+7. Ping (app level) medians 64–134 ms (players to the server); maxima 2–16 s on the weak links.
 
 ### What it doesn't show
 
@@ -103,7 +103,7 @@ The label is only shown for a presence `dropped` that the **server** sent (`serv
 
 ## Odd things in the data
 
-- 5 players came in as new after the 60 s rejoin window ran out (host ×3, partner ×1): their stepladder and carried items were lost. The host reloaded the page 14 times in 2.6 h.
+- 5 players came in as new after the 60 s rejoin window ran out (one player three times, another once): their stepladder and carried items were lost. The host reloaded the page 14 times in 2.6 h.
 - Link and byte counts differ from the devops notes by 1 link and 7% of traffic.
 - The report prints `Infinity` for a percentile that falls in the histogram's open top bucket.
 - The stall and silence counters also count a peer whose tab is hidden.
