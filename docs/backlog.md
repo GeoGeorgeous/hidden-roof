@@ -28,7 +28,7 @@ The one place for what's left to do: bugs, things to check, performance, tests, 
 
 No WebGL (`new THREE.WebGLRenderer` in `main.ts` throws) or a script that doesn't load. Do: catch the renderer's failure and say so on the loading screen (as `loadFailed` does for the level).
 
-Triage notes (2026-10-14): needs a human: check by hand in a browser without WebGL that the screen says so; touches the boot in `main.ts` (403 lines, over the limit).
+Decided (2026-10-14): the fix and an automated test, in its own file beside the smoke test (~5–8 s): Chromium with `--disable-3d-apis` (no WebGL), and one with the main script blocked. To see it by hand in Chrome: start it with `--disable-3d-apis --user-data-dir=<a temp dir>` (`chrome://gpu` shows WebGL: Disabled), or DevTools → Network → Block request URL on the main `index-*.js`.
 
 ### Strokes made while the link is dying vanish on rejoin
 - id: BL-003
@@ -117,11 +117,12 @@ Triage notes (2026-10-14): research, not a fix: write the stalled-downlink test 
 ### Mouse spikes snap the camera (Chrome on Windows)
 - id: BL-010
 - type: bug
-- status: Planned
+- status: Blocked
 - priority: Medium
 - size: S
 - area: input
 - release: later
+- blocked-by: the owner's decision
 - source: profile 2026-10-10
 
 A profile on Windows 11, Chrome 154: during a fast flick, one `mousemove` of 458 px among events of at most 123 px (one frame with none, then three at once); the camera jumped 60°. The frame took 16.7 ms: a bad input value, not a stall. Once in 42 minutes, 14 s after the lock was taken. `src/input.ts` adds every `movementX/Y` as it comes; unchanged since 1.0.
@@ -131,6 +132,8 @@ Known: a Chromium bug on Windows since at least 2017 (Chrome 62, jumps of 300–
 Do: in `input.ts`, drop one event over 300 px (config) that is also over 3× the largest of the last ~8, and motion in the 100 ms after the lock is taken; count what's dropped in the profiler's report. A fixed cap alone would drop real flicks of 125 Hz mice at high DPI (those build up over several events, so the relative rule keeps them). Test with synthetic `MouseEvent`s: a flick passes, a lone 458 px among 60–120 px is dropped, a ramp of 250–350 px passes. Maybe later a RAW MOUSE setting (`unadjustedMovement`, off by default, with the fallback).
 
 Triage notes (2026-10-14): needs a human: the drop rule changes how the mouse feels; judge it with real 125 Hz and 1000 Hz mice on Windows.
+
+Blocked (2026-10-14): the owner decides between the drop rule, a RAW MOUSE setting, both or nothing, after looking into it. To reproduce first: (1) a test feeding synthetic `mousemove`s with the profile's numbers (one 458 px among 60–120 px) shows the 60° snap; (2) a counter of events over 300 px in the F3 profiler (time since the lock, size, the events around it), and a session on Windows with a 1000 Hz mouse, to see how often it happens.
 
 ### Pickup rings on the title screen are sized for where you stand
 - id: BL-011
@@ -299,7 +302,7 @@ Step in `config.ts` (`LADDER.rotateStep`, default 7.5°: 90° is 12 steps, 45° 
 
 Blocked in the game and in the menus (one entry in the guard table, BL-081). Zoom changes the render buffer (a 3080 Ti rendered 3840×2160 for a 2560×1440 screen at zoom); BL-026 caps the buffer too.
 
-
+Zooming out (not in) is what makes the buffer bigger: see BL-026.
 
 ### Paint ops are 94% of the downstream bytes, ~250 B each
 - id: BL-024
@@ -325,11 +328,9 @@ JSON stamps with full-precision floats and the surface key, uncompressed; a pain
 - release: later
 - source: playtest 2026-10-12
 
-83 of the test's 94 frames over 100 ms (median 230 ms, worst 1.1 s) came within 30 s of a welcome: `paint + hud` lap with 170–470 uploads and 28–195 MB in one frame (`PaintGpu.flush`, `src/paint-gpu.ts`). The JS heap also jumps to 0.8–1 GB on each join (steady ~0.5 GB). Do: spread the first upload over frames (a budget of MB per frame), and look at what `loadPaint` allocates.
+83 of the test's 94 frames over 100 ms (median 230 ms, worst 1.1 s) came within 30 s of a welcome: `paint + hud` lap with 170–470 uploads and 28–195 MB in one frame (`PaintGpu.flush`, `src/paint-gpu.ts`). The JS heap also jumps to 0.8–1 GB on each join (steady ~0.5 GB). Do: spread the first upload over frames, about one paint page (~24 MB) a frame (config), in any order: the paint shows within a second of the join, with no freeze. What `loadPaint` allocates is BL-083.
 
-Triage notes (2026-10-14): needs a human: profile a rejoin on the real GPU before and after; the per-frame budget is a judgment call.
-
-### Weak GPUs: cap the render buffer
+### Never render more pixels than the screen has
 - id: BL-026
 - type: perf
 - status: Planned
@@ -339,9 +340,7 @@ Triage notes (2026-10-14): needs a human: profile a rejoin on the real GPU befor
 - release: later
 - source: playtest 2026-10-12
 
-An Intel Iris Xe (1536×695 buffer) took 23 ms of GPU a frame and ran at 30 fps; the player left after 6 min. The M1 base takes 11 ms at 1440×900 ×2. A 3080 Ti rendered a 3840×2160 buffer for a 2560×1440 screen (browser zoom or OS scale; `pixelScale` 1). Do: a cap on the buffer's pixels (config), and the HUD's frame-time warning with a pointer to PIXEL SCALE when GPU time stays over budget.
-
-Triage notes (2026-10-14): needs a human: the cap changes the picture on big screens; judge it with `npm run shots` and on a weak GPU.
+The buffer is the window's size in CSS pixels (`renderer.setPixelRatio(1 / RENDER.pixelScale)`, `devicePixelRatio` unused). A 3080 Ti rendered 3840×2160 for a 2560×1440 screen: the page zoomed out to ~67% (Ctrl + wheel down) makes more CSS pixels than the screen has. Blocking the zoom (BL-023) stops new zooms, but Chrome remembers a site's zoom, and its menu can still zoom. Do: a pixel ratio of `min(1, devicePixelRatio) / RENDER.pixelScale`, so the buffer never has more pixels than the screen (no change at zoom 100% or above). The weak-GPU hint is BL-084.
 
 ### A closed session's paint stays in the server's memory until a GC
 - id: BL-027
@@ -1057,3 +1056,39 @@ Today the blocking is spread over `src/input.ts`: the `PREVENT` set and every Ct
 - source: owner
 
 Typing a code with a K in the join field takes a screenshot instead of typing the letter. `Input` (`src/input.ts`) records every `keydown` on `window`, including keys typed into the code and name fields, and `main.ts` takes the screenshot on `wasPressed('KeyK')`. Every other game key fires while typing too. Do: in `Input`, ignore keydown whose target is an `input`, `textarea` or editable element; test with a synthetic keydown on a text field. Confirmed in the code.
+
+### The JS heap jumps to 0.8–1 GB on each join
+- id: BL-083
+- type: perf
+- status: Requested
+- priority: Medium
+- size: S
+- area: paint
+- release: later
+- source: playtest 2026-10-12
+
+Split from BL-025. Steady ~0.5 GB. Measure what `loadPaint` allocates on a join first, then decide.
+
+### A hint in the HUD when the GPU can't keep up
+- id: BL-084
+- type: feature
+- status: Planned
+- priority: Medium
+- size: S
+- area: ui
+- release: later
+- source: playtest 2026-10-12
+
+An Intel Iris Xe player played at 30 fps (23 ms of GPU a frame) and left after 6 minutes, likely not knowing PIXEL SCALE exists. Do: once a session, when the GPU frame time stays over 20 ms for 5 s (config), a text hint in the HUD's existing style (as `LOW PRESSURE — HOLD [RMB] TO SHAKE`), pointing to SETTINGS → PIXEL SCALE. No new UI.
+
+### Paint takes 7–10 s to show after joining a session with a lot of it
+- id: BL-085
+- type: perf
+- status: Requested
+- priority: Medium
+- size: S
+- area: net
+- release: later
+- source: owner
+
+Seen as new drawings appearing in the ESC city view. Measure first: how much is the download of the paint file (0.3–3.4 MB in the playtest), how much its decoding and `loadPaint`, how much the upload (BL-025). Then decide.
