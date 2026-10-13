@@ -880,6 +880,7 @@
 }
 .overlay .team-line b {
   font-weight: 500;
+  white-space: pre-line;
   font-size: 18px;
 }
 .overlay .credits-title {

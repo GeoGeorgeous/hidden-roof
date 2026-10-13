@@ -6,7 +6,7 @@ import { pageHead } from './settings-page';
 
 const TEAM = [
   ['Idea & development', 'GeoGeorgeous & Claude'],
-  ['Testing', 'Alszlo, S1ngleMate'],
+  ['Testing', 'alszlo\nsinglemate\nivansuper\nmaria_mimi_ch\nlx\nmoskosmash'],
 ];
 
 /** A credit: its name, what it is or does here, and a link (its page, or its license's text). */
