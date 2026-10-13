@@ -37,7 +37,7 @@ vec3 trackTilt(vec3 v, float a, vec3 pivot, vec2 fwd) {
   float c = cos(a), s = sin(a);
   vec2 f = vec2(c * fwd.x + s * fwd.y, -s * fwd.x + c * fwd.y);
   vec3 k = vec3(f.y, 0.0, -f.x);
-  float p = -trackPitch(pivot) * trackWeight(pivot, fwd);
+  float p = -trackPitch(pivot) * trackWeight(pivot, fwd) * uMotion;
   return v * cos(p) + cross(k, v) * sin(p) + k * dot(k, v) * (1.0 - cos(p));
 }
 float trackAngle(float sweep, vec3 pivot, vec2 fwd) {
