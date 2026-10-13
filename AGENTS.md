@@ -27,7 +27,7 @@ Hidden roof: a three.js graffiti game. The world is ink on paper and the only co
 ## Verify
 
 - After each change: `npm run check:quick` (~5 s: types, unit tests, the player build, knip).
-- Before you say a change is done or ask me to merge: `npm run check` (~2–3 min: adds the smoke, game, server, multiplayer, CSP and golden paint tests). Give it a 10-minute command timeout or run it in the background: the shell's default 2 minutes cuts it off mid-run. Commit only once it passes (`&&`, never `;`).
+- Before you say a change is done or ask me to merge: `npm run check:quick` for a change to the UI (buttons, menus, text, styles), docs or the backlog. `npm run check` (~2–3 min: adds the smoke, game, server, multiplayer, CSP and golden paint tests) when the change touches paint, rendering, the level or props, input, movement, the network or the server, or the build setup. Unsure which: run `npm run check`. Give `npm run check` a 10-minute command timeout or run it in the background: the shell's default 2 minutes cuts it off mid-run. Commit only once the check you chose passes (`&&`, never `;`).
 - The tests are deterministic and safe to run beside other agents'. A failure is real: never rerun until it passes, never call it flaky or unrelated. Run the failing step on a clean `dev` worktree; if it fails there too, report it under Found, with its output.
 - Visual changes (look, light, UI, props, avatar): `npm run shots` draws the real game on the real GPU (~15 s; `STEPS` adds views). Look at the PNGs and send them to me. The headless tests draw with SwiftShader: not what players see.
 - What each test covers, and how to keep them reliable: `docs/testing.md`.
@@ -38,7 +38,7 @@ Hidden roof: a three.js graffiti game. The world is ink on paper and the only co
 - New work (features, fixes, docs) goes on a topic branch from `dev`. Merge it into `dev` only when I say so ("works, merge it"), never on your own. `next` and `main` move only by promotion.
 - Push merges into `dev` and `next` right away. Topic branches stay local unless I ask.
 - When asked to merge or promote `next` into `main`, first ask me: patch, minor, major, or no release (and say what's new since the last tag, `git log --oneline $(git describe --tags --abbrev=0)..next`). Never pick the bump yourself.
-- Release, on a clean `next` with `npm run check` passing: `npm version <bump>` (bumps, commits, tags `vX.Y.Z`), `git push origin next:main --follow-tags` (fast-forward, never a PR or merge commit), then merge `next` back into `dev` and push.
+- Release, on a clean `next` with `npm run check` (always the full one) passing: `npm version <bump>` (bumps, commits, tags `vX.Y.Z`), `git push origin next:main --follow-tags` (fast-forward, never a PR or merge commit), then merge `next` back into `dev` and push.
 - Release notes ("what's in next?", "prepare a release"): `docs/releases/AGENTS.md`. They're written before `npm version`, in the repo, never on GitHub by hand.
 - The game shows its build's `git describe` (`src/version.ts`), so `dev` and `next` need no bumps.
 
