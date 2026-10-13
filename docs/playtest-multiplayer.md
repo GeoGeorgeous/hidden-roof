@@ -2,7 +2,7 @@
 
 What the main playtest of `v1.2.0-playtest.2` showed, kept for fixing multiplayer bugs and for finding causes. The fixes themselves are in `docs/backlog.md` (items say "playtest of 2026-10-12"). The raw data (telemetry jsonl, server log, memory samples) holds player names and hashed addresses: it is **not in the repo** and never goes there. Players are labelled here by device, not by name.
 
-Build under test: `v1.2.0` plus the playtest telemetry (temporary branch `chore/v1.2.0-playtest`, tag `v1.2.0-playtest.2`; server and client together). Protocol 4. Host: a VPS (4 shared vCPU, 8 GB), Caddy in front, `roof` container (`mem_limit` 3 GB, 2 cpus, `HOST_MEMORY` 2048, `SNAPSHOT_MEMORY` 2560).
+Build under test: `v1.2.0` plus the playtest telemetry (branch `feat/playtest-telemetry`, kept for the next playtest, tag `v1.2.0-playtest.2`; server and client together). Protocol 4. Host: a VPS (4 shared vCPU, 8 GB), Caddy in front, `roof` container (`mem_limit` 3 GB, 2 cpus, `HOST_MEMORY` 2048, `SNAPSHOT_MEMORY` 2560).
 
 ## The short version
 
