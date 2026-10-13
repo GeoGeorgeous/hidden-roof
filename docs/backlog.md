@@ -1084,6 +1084,8 @@ An Intel Iris Xe player played at 30 fps (23 ms of GPU a frame) and left after 6
 
 Blocked (2026-10-14): GPU time is measured only while F3's perf readout is on (`EXT_disjoint_timer_query_webgl2`, desktop Chromium only). Decide: the timer on for every player (a little work every frame), sampled (the first ~30 s, or every few seconds), or judged from FPS (false alarms: a laptop on battery caps Chrome at 30 Hz). Its place in the HUD needs a screenshot.
 
+When built: a `?weak-gpu` URL flag that shows the hint at once, to see it without a weak GPU.
+
 ### Paint takes 7–10 s to show after joining a session with a lot of it
 - id: BL-085
 - type: perf
