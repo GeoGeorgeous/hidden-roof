@@ -321,7 +321,7 @@ JSON stamps with full-precision floats and the surface key, uncompressed; a pain
 ### Every rejoin uploads all paint pages in one frame
 - id: BL-025
 - type: perf
-- status: Planned
+- status: Done
 - priority: Medium
 - size: S
 - area: paint

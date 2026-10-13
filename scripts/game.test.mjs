@@ -369,6 +369,26 @@ await check('render: never more pixels than the screen has (a page zoomed out to
   return r.zoomedOut === 0.5 && r.normal === Math.min(1, r.dpr) ? null : JSON.stringify(r);
 });
 
+await check('paint pages: a frame uploads at most PAINT.uploadBudget; the rest goes up over the next frames (a join stalled up to 1.1 s)', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { PAINT } = g.config;
+    const was = PAINT.uploadBudget;
+    PAINT.uploadBudget = 0.001; // about one stamp's rect a frame
+    g.paint.clear();
+    const surfaces = g.paint.surfaces.filter((s) => s.geo.rects.length).slice(0, 12);
+    for (const s of surfaces) g.paint.stamp(s, { rect: 0, u: 0.5, v: 0.5 }, 0.2, 0.8, [1, 0.2, 0.1]);
+    const waiting = [];
+    await steps((f) => (waiting.push(g.paint.gpu.dirty.size), f === 30));
+    g.fixedStep.dt = 0;
+    PAINT.uploadBudget = was;
+    const left = g.paint.gpu.dirty.size;
+    g.paint.clear();
+    return { surfaces: surfaces.length, waiting: waiting.slice(0, 6), left };
+  });
+  return r.waiting[1] > 0 && r.left === 0 ? null : JSON.stringify(r);
+});
+
 await check('sponge: a surface cleaned completely gives its memory back', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
