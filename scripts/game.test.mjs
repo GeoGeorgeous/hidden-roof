@@ -316,6 +316,23 @@ await check('input: keys typed into a text field are not game keys (a K in the s
   return !r.typed && r.played ? null : JSON.stringify(r);
 });
 
+await check('loading: a hidden tab, given no animation frames, still goes through the load steps', async () => {
+  const r = await page.evaluate(async () => {
+    const path = '/src/loading.ts'; // by name, so knip doesn't try to resolve a page URL
+    const { loadStep } = await import(/* @vite-ignore */ path);
+    // The stubs live only while loadStep is called (synchronously): the game's own loop keeps its frames.
+    const raf = window.requestAnimationFrame;
+    window.requestAnimationFrame = () => 0;
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+    const step = loadStep('a step').then(() => true);
+    window.requestAnimationFrame = raf;
+    const done = await Promise.race([step, new Promise((over) => setTimeout(() => over(false), 1000))]);
+    delete document.hidden;
+    return done;
+  });
+  return r ? null : 'a hidden tab never finished a load step';
+});
+
 await check('sponge: a surface cleaned completely gives its memory back', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
