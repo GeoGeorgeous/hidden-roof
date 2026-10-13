@@ -129,7 +129,8 @@ try {
 
   // B finds the marker and reloads: it comes back into the session as the same player, with the paint and the marker.
   await b.evaluate(() => window.game.inventory.give('marker'));
-  await b.waitForTimeout(300);
+  // The game sends what it carries on its next frame: wait for that, not a fixed time (SwiftShader draws ~6 frames a second here).
+  await b.waitForFunction(() => window.game.net.carried === window.game.inventory.version, null, { timeout: 5000, polling: 50 });
   await b.reload();
   await gameReady(b);
   await status(b, 'in');
