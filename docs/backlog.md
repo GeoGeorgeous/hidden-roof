@@ -279,7 +279,7 @@ A screen to rebind the keys.
 - id: BL-022
 - type: feature
 - status: Requested
-- priority: Medium
+- priority: High
 - size: S
 - area: input
 - release: later
@@ -1095,3 +1095,15 @@ Blocked (2026-10-14): GPU time is measured only while F3's perf readout is on (`
 - source: owner
 
 Seen as new drawings appearing in the ESC city view. Measure first: how much is the download of the paint file (0.3–3.4 MB in the playtest), how much its decoding and `loadPaint`, how much the upload (BL-025). Then decide.
+
+### Placing the stepladder lags
+- id: BL-086
+- type: bug
+- status: Requested
+- priority: High
+- size: S
+- area: input
+- release: later
+- source: owner
+
+Placing the stepladder from the inventory lags. Needs info: a frame hitch at the moment it's placed, a delay before it shows, or the preview following the aim late? In single player, in a session, or both?
