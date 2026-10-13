@@ -300,6 +300,22 @@ await check('saves: spray in the air at LOAD lands without paint', async () => {
   return r.inAir > 0 && r.painted === 0 ? null : JSON.stringify(r);
 });
 
+await check('input: keys typed into a text field are not game keys (a K in the session code took a screenshot)', async () => {
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    const field = Object.assign(document.createElement('input'), { type: 'text' });
+    document.body.append(field);
+    field.focus();
+    const key = (target, code) => target.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true }));
+    key(field, 'KeyK');
+    const typed = g.input.wasPressed('KeyK');
+    field.remove();
+    key(document.body, 'KeyK');
+    return { typed, played: g.input.wasPressed('KeyK') };
+  });
+  return !r.typed && r.played ? null : JSON.stringify(r);
+});
+
 await check('sponge: a surface cleaned completely gives its memory back', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
