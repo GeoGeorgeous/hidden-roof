@@ -155,7 +155,7 @@ export class Player {
       // holds, otherwise slide down. Walking away from it simply walks off; facing doesn't matter.
       // A jump into it (up to a fire escape's first rung) keeps rising until it slows to the climb.
       const into = -(wish.x * ladder.normal.x + wish.z * ladder.normal.z);
-      if (input.isDown('Space') || into > 0.3) this.velocity.y = Math.max(this.velocity.y, PLAYER.climbSpeed);
+      if (input.isDown('Space') || into > 0.3) this.velocity.y = this.velocity.y > PLAYER.climbSpeed ? Math.max(this.velocity.y - PLAYER.gravity * dt, PLAYER.climbSpeed) : PLAYER.climbSpeed;
       else if (this.crouched && !this.onGround) this.velocity.y = 0;
       else this.velocity.y = Math.max(this.velocity.y - PLAYER.gravity * dt, -PLAYER.climbSpeed);
     } else {
