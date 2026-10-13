@@ -4,6 +4,7 @@ import type { PaintDrips } from '../paint-drips';
 import type { PaintSystem } from '../painting';
 import type { PauseMenu } from '../pause-menu';
 import { loadPaint, NotThisLevel } from './load-paint';
+import { decodePaintFile, type DecodedPaint } from './paint-file';
 import { savePaint } from './save-paint';
 
 // The ESC menu's SAVE and UPLOAD popups: the paint of this level as a file
@@ -16,8 +17,8 @@ export function paintMenu(menu: PauseMenu, paint: PaintSystem, drips: PaintDrips
   const info = () => ({ name: levelName() });
   const file = {
     save: () => savePaint(paint, info()),
-    load: (bytes: Uint8Array) => loadPaint(paint, drips, bytes, info()),
-    check: (bytes: Uint8Array) => loadPaint(paint, drips, bytes, info(), undefined, false),
+    load: (bytes: Uint8Array | DecodedPaint) => loadPaint(paint, drips, bytes, info()),
+    check: (bytes: Uint8Array | DecodedPaint) => loadPaint(paint, drips, bytes, info(), undefined, false),
   };
   const backToRoof = () => action('Back to the roof', () => menu.onResume(), { primary: true, key: 'ESC' });
   const cancel = () => action('Cancel', () => menu.openPage(null), { key: 'ESC' });
@@ -88,15 +89,17 @@ export function paintMenu(menu: PauseMenu, paint: PaintSystem, drips: PaintDrips
       );
       upload.buttons.replaceChildren(cancel(), action('Pick another', pick, { primary: true }));
     };
+    let decoded: DecodedPaint;
     try {
-      await file.check(bytes);
+      decoded = await decodePaintFile(bytes);
+      await file.check(decoded);
     } catch (e) {
       return failed(e);
     }
     upload.body.replaceChildren(chip(), para('', 'The paint on this roof will be replaced with the paint in this file. This can’t be undone.'));
     const replace = action('Replace paint', async () => {
       try {
-        const { skipped } = await file.load(bytes);
+        const { skipped } = await file.load(decoded);
         upload.body.replaceChildren(
           para('lead done', 'Paint loaded.'),
           para('', 'Everything from ', hl(picked.name), ` is back on the walls${skipped ? `, but ${skipped} faces changed since and stay clean` : ''}. Pick up where you left off.`),

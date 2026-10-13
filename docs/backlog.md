@@ -47,8 +47,6 @@ The one place for what's left to do: bugs, things to check, performance, tests, 
 ## Code
 
 - **`src/net/multiplayer.ts` is 408 lines, `src/main.ts` 403** (review of 1.3.0): over AGENTS.md's ~400. Split by responsibility the next time either grows (`multiplayer.ts`: the paint-file download and the heartbeat; `main.ts` as in the item below). **S.**
-- **UPLOAD decodes a paint file twice** (`src/save/paint-menu.ts`): the pick checks it with `loadPaint(..., apply=false)`, which decompresses and parses it, and REPLACE PAINT does it all again. A 30 MB save pays the CPU and the transient memory twice. Keep the decoded result from the check. **S.**
-- **Errors shown in sentence case lose their capitals** (`sentence()` in `src/save/paint-menu.ts`, and the host errors in `src/net/net-menu.ts`): it lowercases everything after the first letter, so "Not a Hidden Roof paint file" reads "Not a hidden roof paint file", and a level or file name is mangled. Lowercase only the first letter. **XS.**
 - **`src/hud.ts` is 410 lines, `src/main.ts` 400:** over and at AGENTS.md's ~400. Split by responsibility the next time either grows (`hud.ts`: the perf lines or the menu's pages; `main.ts`: the load steps). **S.**
 
 ## Known, by design
