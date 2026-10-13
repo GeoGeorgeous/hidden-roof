@@ -333,7 +333,7 @@ JSON stamps with full-precision floats and the surface key, uncompressed; a pain
 ### Never render more pixels than the screen has
 - id: BL-026
 - type: perf
-- status: Planned
+- status: Done
 - priority: Medium
 - size: S
 - area: render
