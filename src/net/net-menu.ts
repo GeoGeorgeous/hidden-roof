@@ -153,11 +153,25 @@ export function multiplayerMenu(hud: PauseMenu, hotbar: Hotbar, ctx: Multiplayer
   hud.onLeave = () => net.leave();
   hud.sessionInfo = () => ({ ping: net.ping, players: net.players.map((p) => ({ name: p.name, color: p.color && COLORS[p.color] })) });
   // SAVE in a session downloads the session's paint, from the server.
-  let saving: { done: (bytes: Uint8Array) => void; fail: (e: Error) => void } | null = null;
+  type Saving = { promise: Promise<Uint8Array>; done: (bytes: Uint8Array) => void; fail: (e: Error) => void };
+  let saving = null as Saving | null;
   const local = paintFile.save;
-  paintFile.save = () => (net.inSession ? new Promise((done, fail) => ((saving = { done, fail }), net.requestSave())) : local());
+  // One request at a time: a second SAVE while one is on its way waits for the same file.
+  paintFile.save = () => {
+    if (!net.inSession) return local();
+    if (!saving) {
+      const s = {} as Saving;
+      s.promise = new Promise((done, fail) => ((s.done = done), (s.fail = fail)));
+      saving = s;
+      net.requestSave();
+    }
+    return saving.promise;
+  };
   // Each step of HOST, JOIN or SAVE as it goes, with how far along an upload or download is.
-  net.onProgress = (text) => text && (say(text), hud.notice(text, Infinity));
+  net.onProgress = (text) => {
+    if (text) (say(text), hud.notice(text, Infinity));
+    else hud.notice('', 0);
+  };
   net.onSave = (bytes) => {
     if (bytes) saving?.done(bytes);
     else saving?.fail(new Error('The server is busy: save again later'));
