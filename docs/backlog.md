@@ -1,64 +1,1059 @@
 # Backlog
 
-The one place for what's left to do: bugs, things to check, performance, tests, ideas. Notes for later go here, not into other docs. When an item is done, delete it (the commit says so; git keeps the history). Each item: what, what showed it, where, what to do, effort (XS: minutes, S: hours, M: half a day, L: more).
+The one place for what's left to do: bugs, things to check, performance, tests, ideas. Notes for later go here, not into other docs. Items are in the order they were triaged; the fields drive the board (status: Requested, Planned, In Progress, Blocked, Done; priority: Urgent, High, Medium, Low). `Done` items stay until the release that ships them, then the release commit deletes them.
 
-## Bugs
+### A game opened or reloaded in a hidden tab doesn't load until it's shown
+- id: BL-001
+- type: bug
+- status: Planned
+- priority: High
+- size: XS
+- area: ui
+- release: later
+- source: code review 2026-10-11
 
-- **A game opened or reloaded in a hidden tab doesn't load until it's shown.** Seen in the code (review of 2026-10-11): `loadStep` (`src/loading.ts`) waits for an animation frame, and a hidden tab gets none. A tab opened in the background loads only once looked at; one reloaded in a session and left hidden doesn't come back into it, and after `SERVER.rejoinWindow` (60 s) comes back as a new player (no stepladder; what they carried comes back by name). Do: in `loadStep`, a plain `setTimeout` while `document.hidden`. **XS.**
-- **The loading screen says LOADING forever when the game can't start:** no WebGL (`new THREE.WebGLRenderer` in `main.ts` throws) or a script that doesn't load. Seen in the code (2026-10-11). Do: catch the renderer's failure and say so on the loading screen (as `loadFailed` does for the level). **S.**
-- **Strokes made while the link is dying vanish on rejoin.** Playtest of 2026-10-12 (7 players, 2.6 h; the code is the same on `dev`; all findings in `docs/playtest-multiplayer.md`): `Multiplayer.welcome` (`src/net/multiplayer.ts`) replaces the player's paint with the server's file and clears `ops`, `opTimes` and `paint.log`; ops sent into a stalled socket are never acknowledged. So everything painted from the stall's start to the end of the rejoin (silence 6 s + retry + a 4 s median, 18 s worst, download) is lost: 3–20 s of work, 81 times in the test. Do: each op batch carries a per-player sequence number, the server acks the highest in `pong` and drops repeats by token, the client keeps unacked batches, and after `loadPaint` applies them again and resends. Bump `PROTOCOL`. **M.**
-- **The server's heartbeat kills links that are only stalled downstream.** Same test (`docs/playtest-multiplayer.md`, Network): 79 of 81 drops (code 1006) fell on the 10 s heartbeat (`server/main.ts`: `terminate()` when no pong came since the last ping); in 62 of 69 the player's reports still reached the server less than 10 s before the kill, so the uplink worked and the ping sat in the downlink queue behind ops (app pings of 11–16 s were measured). 40% of the drops (32 of 81) came within 30 s of a rejoin: the paint file (0.3–3.4 MB) loads the same weak path, and the next kill follows. Do: count any message from the client as alive (`state` arrives at 20 Hz); let the game wait longer than 6 s for the server (`lastHeard`, `SERVER.ping * 3`) before it closes and rejoins, or make it adaptive. **S.**
-- **A player who is away over 60 s comes back as a new one.** Five times in the playtest (`SERVER.rejoinWindow`): the stepladder and carried items are lost (what they carried returns by name). Under the weak-link drops a minute is short. Do: a longer window (config; 3–5 min). **XS.**
+`loadStep` (`src/loading.ts`) waits for an animation frame, and a hidden tab gets none. A tab opened in the background loads only once looked at; one reloaded in a session and left hidden doesn't come back into it, and after `SERVER.rejoinWindow` (60 s) comes back as a new player (no stepladder; what they carried comes back by name). Do: in `loadStep`, a plain `setTimeout` while `document.hidden`.
+
+
+
+### The loading screen says LOADING forever when the game can't start
+- id: BL-002
+- type: bug
+- status: Planned
+- priority: High
+- size: S
+- area: ui
+- release: later
+- source: code review 2026-10-11
+
+No WebGL (`new THREE.WebGLRenderer` in `main.ts` throws) or a script that doesn't load. Do: catch the renderer's failure and say so on the loading screen (as `loadFailed` does for the level).
+
+
+
+### Strokes made while the link is dying vanish on rejoin
+- id: BL-003
+- type: bug
+- status: Planned
+- priority: Urgent
+- size: M
+- area: net
+- release: later
+- source: playtest 2026-10-12
+
+7 players, 2.6 h; all findings in `docs/playtest-multiplayer.md`. `Multiplayer.welcome` (`src/net/multiplayer.ts`) replaces the player's paint with the server's file and clears `ops`, `opTimes` and `paint.log`; ops sent into a stalled socket are never acknowledged. So everything painted from the stall's start to the end of the rejoin (silence 6 s + retry + a 4 s median, 18 s worst, download) is lost: 3–20 s of work, 81 times in the test. Do: each op batch carries a per-player sequence number, the server acks the highest in `pong` and drops repeats by token, the client keeps unacked batches, and after `loadPaint` applies them again and resends. Bump `PROTOCOL`.
+
+
+
+### The server's heartbeat kills links that are only stalled downstream
+- id: BL-004
+- type: bug
+- status: Planned
+- priority: Urgent
+- size: S
+- area: net
+- release: later
+- source: playtest 2026-10-12
+
+79 of 81 drops (code 1006) fell on the 10 s heartbeat (`server/main.ts`: `terminate()` when no pong came since the last ping); in 62 of 69 the player's reports still reached the server less than 10 s before the kill, so the uplink worked and the ping sat in the downlink queue behind ops (app pings of 11–16 s were measured). 40% of the drops (32 of 81) came within 30 s of a rejoin: the paint file (0.3–3.4 MB) loads the same weak path, and the next kill follows. Do: count any message from the client as alive (`state` arrives at 20 Hz); let the game wait longer than 6 s for the server (`lastHeard`, `SERVER.ping * 3`) before it closes and rejoins, or make it adaptive.
+
+
+
+### A player who is away over 60 s comes back as a new one
+- id: BL-005
+- type: bug
+- status: Planned
+- priority: High
+- size: XS
+- area: net
+- release: later
+- source: playtest 2026-10-12
+
+Five times in the playtest (`SERVER.rejoinWindow`): the stepladder and carried items are lost (what they carried returns by name). Under the weak-link drops a minute is short. Do: a longer window (config; 3–5 min).
+
+
+
+### Water tank roofs fall through
+- id: BL-006
+- type: bug
+- status: Planned
+- priority: Urgent
+- size: S
+- area: level
+- release: later
+- source: stress test
+
+Tanks on stands and the water tank: the roof has no collider, so the player walks in between; crouching shows the real flat roof, which can be painted (the oval roofs are fine). Seen at (-10.07, 3.40, -8.57) and (-7.13, 4.32, -14.12). Do: give those props a roof collider.
+
+
+
+### Spraying and shaking the can work at the same time
+- id: BL-007
+- type: bug
+- status: Planned
+- priority: Urgent
+- size: S
+- area: input
+- release: later
+- source: stress test
+
+Painting and shaking the can are mutually exclusive: one or the other. Today both run at once, so a player can shake forever and keep painting. Do: shaking blocks painting and painting blocks shaking.
+
+
+
+### Why did everyone show DISCONNECTED?
+- id: BL-009
+- type: bug
+- status: Planned
+- priority: Medium
+- size: S
+- area: net
+- release: later
+- source: playtest 2026-10-12
+
+In the playtest the host saw all others as DISCONNECTED, a label only the server's `presence: dropped` sets (`NO SIGNAL` is the game's own). The data can't tell if the others really dropped, a welcome lists them as dropped, or queued presence arrives in a burst. Do: two clients in `scripts/multiplayer.test.mjs` style, one with its downlink stalled for 15 s, and log the `presence` and `players[].state` the other receives (`docs/playtest-multiplayer.md`).
+
+
 
 ### Mouse spikes snap the camera (Chrome on Windows)
+- id: BL-010
+- type: bug
+- status: Planned
+- priority: Medium
+- size: S
+- area: input
+- release: later
+- source: profile 2026-10-10
 
-- **Seen:** a profile on Windows 11, Chrome 154 (2026-10-10): during a fast flick, one `mousemove` of 458 px among events of at most 123 px (one frame with none, then three at once); the camera jumped 60°. The frame took 16.7 ms: a bad input value, not a stall. Once in 42 minutes, 14 s after the lock was taken. `src/input.ts` adds every `movementX/Y` as it comes; unchanged since 1.0.
-- **Known:** a Chromium bug on Windows since at least 2017 (Chrome 62, jumps of 300–400 px, crbug 781182: [three.js #12757](https://github.com/mrdoob/three.js/issues/12757)), still reported in 2023 and 2025 (100–300 px in the direction of the move, Chrome, Edge and Opera on Windows, mostly with 1000 Hz mice, rare at 125 Hz: [three.js #27040](https://github.com/mrdoob/three.js/issues/27040), [t2-mapper #7](https://github.com/exogen/t2-mapper/issues/7)); closed as a device issue no engine can fix. A second kind: one huge value right after the lock is taken ([world PR #31](https://github.com/kathirmeyyappan/world/pull/31) drops motion for 150 ms after a lock change and events over 400 px). `requestPointerLock({ unadjustedMovement: true })` (raw input, Chromium on Windows, macOS and ChromeOS; `NotSupportedError` elsewhere: [web.dev](https://web.dev/articles/disable-mouse-acceleration), [MDN](https://developer.mozilla.org/en-US/docs/Web/API/Element/requestPointerLock)) turns off OS acceleration; no source says it ends the spikes, and it changes the feel for players used to acceleration.
-- **Do:** in `input.ts`, drop one event over 300 px (config) that is also over 3× the largest of the last ~8, and motion in the 100 ms after the lock is taken; count what's dropped in the profiler's report. A fixed cap alone would drop real flicks of 125 Hz mice at high DPI (those build up over several events, so the relative rule keeps them). Test with synthetic `MouseEvent`s: a flick passes, a lone 458 px among 60–120 px is dropped, a ramp of 250–350 px passes. Maybe later a RAW MOUSE setting (`unadjustedMovement`, off by default, with the fallback). **S.**
+A profile on Windows 11, Chrome 154: during a fast flick, one `mousemove` of 458 px among events of at most 123 px (one frame with none, then three at once); the camera jumped 60°. The frame took 16.7 ms: a bad input value, not a stall. Once in 42 minutes, 14 s after the lock was taken. `src/input.ts` adds every `movementX/Y` as it comes; unchanged since 1.0.
 
-## Check by hand
+Known: a Chromium bug on Windows since at least 2017 (Chrome 62, jumps of 300–400 px, crbug 781182: [three.js #12757](https://github.com/mrdoob/three.js/issues/12757)), still reported in 2023 and 2025 (100–300 px in the direction of the move, Chrome, Edge and Opera on Windows, mostly with 1000 Hz mice, rare at 125 Hz: [three.js #27040](https://github.com/mrdoob/three.js/issues/27040), [t2-mapper #7](https://github.com/exogen/t2-mapper/issues/7)); closed as a device issue no engine can fix. A second kind: one huge value right after the lock is taken ([world PR #31](https://github.com/kathirmeyyappan/world/pull/31) drops motion for 150 ms after a lock change and events over 400 px). `requestPointerLock({ unadjustedMovement: true })` ([web.dev](https://web.dev/articles/disable-mouse-acceleration), [MDN](https://developer.mozilla.org/en-US/docs/Web/API/Element/requestPointerLock)) turns off OS acceleration; no source says it ends the spikes, and it changes the feel for players used to acceleration.
 
-- **Before a release:** walking along railings and landings (the corner slip, `PLAYER.cornerSlip`), the lattice mast (can't be climbed), the clear windows (see through, paint from both sides, a stepladder against one from behind), pickups (ring shapes, glow, tags within 4 m, hidden behind walls), and a session from two devices on one network (paint, presence, reload, the network log). **M.**
-- **Why did everyone show DISCONNECTED?** In the playtest the host saw all others as DISCONNECTED, a label only the server's `presence: dropped` sets (`NO SIGNAL` is the game's own). The data can't tell if the others really dropped, a welcome lists them as dropped, or queued presence arrives in a burst. Do: two clients in `scripts/multiplayer.test.mjs` style, one with its downlink stalled for 15 s, and log the `presence` and `players[].state` the other receives (`docs/playtest-multiplayer.md`). **S.**
-- **Pickup rings on the title screen are sized for where you stand,** not for the title view (`ringSize` in `src/pickups/pickups.ts` uses the player's camera): the lime one, ~16 m from the title camera and ~29 m from the spawn, shows almost twice its size. Do: size them for the camera that draws (`shown` in `main.ts`), or leave it. **XS.**
-- **A remote player's correction glides** at up to ~3× walking speed on a bad link (16 m/s at 60 fps, over 0.1–0.2 s); the ghost test allows it (it checks for jumps: 30–65 m/s unsmoothed). A speed cap changes how other players look: judge it in F3 → Test → Ghost (net: hiccups 0.2, record a walk that stops, PLAY), then decide. **S.**
-- **The ESC menu in a real browser:** Enter in HOST's name field hosts, and the menu at 1366×768 and in a small window. Checked in headed Chromium 153 with real keys (2026-10-11): in fullscreen, Esc tapped on the pause screen resumes on release, held it fills the rings and Chromium leaves as they fill (1500 ms), and so does holding EXIT FULLSCREEN. Windowed, Chromium takes the Esc that frees the mouse and refuses the lock again without a click, so Esc doesn't resume there (as before the hold). Still to see: Firefox and Safari (one Esc leaves fullscreen, a plain ESC key on the control). **S.**
+Do: in `input.ts`, drop one event over 300 px (config) that is also over 3× the largest of the last ~8, and motion in the 100 ms after the lock is taken; count what's dropped in the profiler's report. A fixed cap alone would drop real flicks of 125 Hz mice at high DPI (those build up over several events, so the relative rule keeps them). Test with synthetic `MouseEvent`s: a flick passes, a lone 458 px among 60–120 px is dropped, a ramp of 250–350 px passes. Maybe later a RAW MOUSE setting (`unadjustedMovement`, off by default, with the fallback).
 
-## Performance
 
-- **Paint ops are 94% of the downstream bytes, ~250 B each.** Playtest of 2026-10-12: JSON stamps with full-precision floats and the surface key, uncompressed; a painting player makes a median 140 ops/s (p99 ~1800), and the server repeats each to the 5–6 others. Total out of the server: p50 0.5 MB/s, p99 3.2 MB/s, max 4.5 MB/s for 7 players, 7.3 GB in 2.6 h. Players on weak links (home Wi-Fi, VPN, hotspot) died more the more they received: 1.5% of 5 s windows were followed by a drop within 25 s below 100 KB/s, 28% above 500 KB/s; players on good links barely moved (0.4% to 4%). Do, in this order: (1) a binary op (quantized u/v/radius, a small integer for the surface key), every client applying the quantized values so texels still match, ~20 B; (2) merge a frame's stamps that land on the same texels; (3) when a link's ping grows past ~1 s, send it only the newest `state` per player and wait with ops. `docs/multiplayer-audit.md` first (the "nothing is compressed" decision in `protocol.ts`). **M–L.**
-- **Every rejoin uploads all paint pages in one frame.** 83 of the test's 94 frames over 100 ms (median 230 ms, worst 1.1 s) came within 30 s of a welcome: `paint + hud` lap with 170–470 uploads and 28–195 MB in one frame (`PaintGpu.flush`, `src/paint-gpu.ts`). The JS heap also jumps to 0.8–1 GB on each join (steady ~0.5 GB). Do: spread the first upload over frames (a budget of MB per frame), and look at what `loadPaint` allocates. **S.**
-- **Weak GPUs.** An Intel Iris Xe (1536×695 buffer) took 23 ms of GPU a frame and ran at 30 fps; the player left after 6 min. The M1 base takes 11 ms at 1440×900 ×2. A 3080 Ti rendered a 3840×2160 buffer for a 2560×1440 screen (browser zoom or OS scale; `pixelScale` 1). Do: a cap on the buffer's pixels (config), and the HUD's frame-time warning with a pointer to PIXEL SCALE when GPU time stays over budget. **S.**
-- **A closed session's paint stays in the server's memory until a GC.** Checked with Node 24 (2026-10-13): 320 MB of dropped `ArrayBuffer`s stay (rss 366 MB) while idle, and `gc()` frees them (rss 47 MB). The host's container showed ~500 MB with no session. `liveMemory` (`server/log.ts`: heap + arrayBuffers) counts that garbage against `HOST_MEMORY`, so a new session could be turned away as busy until the next GC. Do: run `node --expose-gc` and call `gc()` when a session closes, or sum the open sessions' `memory.now` instead. **XS.**
-- **Other players' spray with many players.** Measured (A2000 laptop, 1280×720, fake players sending no paint ops): 19 others walking 124 fps, all 19 spraying 84 fps; their particles cost ~0.2 ms of CPU a frame per sprayer (a ray each a frame, `spray/particles.ts` `show`, a pool of 3000). Their paint ops come on top, unmeasured. Do: particles only for the nearest few sprayers, or reuse each sprayer's ray for a few frames; or a lower `SERVER.maxPlayers`. Measure a real session of 8 to 20 first. **M** (XS for the cap).
-- **The roof level's edits of 2026-10-10** (two: lamps, signs, ducts, 4 clear windows; then railings, parapets, roof lights, skylights, ducts: 1373 → 1464 props) cost, at six fixed views at 1280×720 on a quiet machine (median of 3 runs, `next` before them vs `dev` after, 2026-10-11): Intel UHD GPU time +3–9% (14.3–17.0 → 15.6–17.7 ms, scene + post), CPU +0.4–1.4 ms (6.9–8.4 → 8.1–9.8 ms), draw calls +4–21% (128–374 → 133–422), triangles +8%. On the A2000 the GPU barely moves (±6%, under 4 ms where its clocks held); one view on each GPU varied too much between runs to compare. The extra calls are merged tile batches (more materials and finishes per tile) and glass: no draw call per prop. Not urgent; if the weak GPU needs room, fewer material and finish variants per tile first. **S.**
-- **Precompressed assets.** Caddy compresses every response on the fly (zstd at its default level comes out 1.5% bigger than gzip for the game's JS: 911 KB → ~270 KB). Brotli 11, made at build time, would be ~20% smaller and cost no CPU per request. Do: Vite emits `.br` and `.gz` next to each asset, and Caddy serves them (`file_server { precompressed br gzip }`, `docs/deploy.md` §5, on the host). Measured by the VPS recon (2026-10-11). **S.**
-- **Four shaders still compile in the first frame,** under the loading screen: the moon's shadow pass (two depth materials) and two drawn outside the scenes `post.warm` compiles (a ShaderMaterial, a MeshBasicMaterial). Nothing compiles at START or later. Do, if loading on Windows is slow: warm them as `Volumetrics.warm` does. **S.**
-- **One load of the roof took 62 s** on the real GPU (2026-10-11, an ad-hoc script: headed Chromium on WSLg, its own Vite server); 8 other loads took 4.8–5.8 s, and 3 reruns didn't show it again. Cause not found. If a player reports a long load, start here. **S.**
-- **The hint wall takes two paint pages.** It spans two level tiles (`p89`, `p90` and a joint), so every game starts with two 2048² paint pages: +42.5 MB of GPU memory before anything is painted. Do: move the hint (or the wall) into one tile and save the level and its paint again (build mode P). **S.**
-- **Paint pages at ULTRA.** After 40 minutes of painting at ULTRA a profile counted 45 more GPU textures; if paint pages (2048², ~21 MB each with mips), ~0.95 GB of GPU memory. Already so in 1.1.0. Do: check the HUD's `tex memory` after heavy painting at ULTRA; if that's what it is, smaller or fewer pages for sparse paint, or a cap with a warning. **L.**
 
-## Tests
+### Pickup rings on the title screen are sized for where you stand
+- id: BL-011
+- type: bug
+- status: Planned
+- priority: Low
+- size: XS
+- area: render
+- release: later
+- source: check by hand
 
-- **Player movement has no test:** walking, collisions (and the corner slip), jumps. A fixed-step check per move (ladders have one: `scripts/game.test.mjs`). **M.**
-- **Light baking and weather run on the wall clock** (`baker.ts` budget, rain): screenshots aren't byte-comparable. Compare pictures only after the bake finishes, rain off. **S.**
-- **The multiplayer test's first page didn't build its level within 120 s** once (2026-10-10, another agent testing on the machine too); not seen since. If it repeats, find what held it up (the page's console, the machine's load). **S.**
+`ringSize` in `src/pickups/pickups.ts` uses the player's camera, not the title view: the lime one, ~16 m from the title camera and ~29 m from the spawn, shows almost twice its size. Do: size them for the camera that draws (`shown` in `main.ts`), or leave it.
 
-## Code
 
-- **`src/net/multiplayer.ts` is 408 lines, `src/main.ts` 403** (review of 1.3.0): over AGENTS.md's ~400. Split by responsibility the next time either grows (`multiplayer.ts`: the paint-file download and the heartbeat; `main.ts` as in the item below). **S.**
-- **`src/hud.ts` is 410 lines, `src/main.ts` 400:** over and at AGENTS.md's ~400. Split by responsibility the next time either grows (`hud.ts`: the perf lines or the menu's pages; `main.ts`: the load steps). **S.**
 
-## Known, by design
+### A remote player's correction glides too fast on a bad link
+- id: BL-012
+- type: bug
+- status: Requested
+- priority: Low
+- size: S
+- area: net
+- release: later
+- source: check by hand
 
-- **Paint order where strokes overlap** differs per client: each applies its own ops at once and others' when their figure gets there, and blending isn't commutative. Measured: 97 of 290 overlapping texels differed; a player who joins later sees the server's order. Everyone matches again after a reload or rejoin (`docs/multiplayer-audit.md`, 2.2).
-- **Snapshot time is float32 seconds:** 2 ms steps after 8 hours of a session.
-- **TCP head-of-line blocking:** one lost packet holds the ones behind it; smoothing and the adaptive delay hide it. WebTransport datagrams (Chromium) would remove it, if it ever shows.
+Up to ~3× walking speed (16 m/s at 60 fps, over 0.1–0.2 s); the ghost test allows it (it checks for jumps: 30–65 m/s unsmoothed). A speed cap changes how other players look: judge it in F3 → Test → Ghost (net: hiccups 0.2, record a walk that stops, PLAY), then decide.
 
-## Ideas
 
-- **The next playtest** (lessons of 2026-10-12, telemetry kept on the `feat/playtest-telemetry` branch (tag `v1.2.0-playtest.2`), not in releases; merging it into a newer base conflicts in `knip.json`, `src/main.ts`, `src/net/multiplayer.ts`, `src/net/remotes.ts`, `src/style.css`): two or more players on one home network can't tell their network from the game's, so ask for separate networks; have 12–20 players and a weak laptop (Intel iGPU, 8 GB) in it; log the display's refresh rate and the browser's power-saver state (two players' "low fps" was the browser's 30 Hz cap on battery, not the game); have the server log each link's ping and `bufferedAmount` (the roof server sees a ~0 queue because Caddy drains it at once: set `tcp_notsent_lowat` on the host to see it); fix the report's `Infinity` (a percentile in the histogram's open top bucket), and count a hidden tab's silence apart from a real stall. Run it a second time with the binary ops, to compare (`docs/playtest-multiplayer.md` has the list and the numbers to beat). **S.**
-- **Deploy from GitHub Actions:** push to `main` → Actions builds → deploy over SSH with the repo's own deploy key (`docs/deploy.md`, section 5).
-- **The avatar for NPCs** (moving around, talking, helping), first-person hands from the avatar's hand, and the hood up or down outside F3 (`docs/avatar.md`).
-- **BUY ME A COFFEE:** hidden until it has a link (`git revert` the commit that hid it, then set the link).
-- **The F3 probe** turns moon shadows and wet highlights off: each compiles new shaders (7 a time; ~1.6 s on Windows D3D11), which lands in its own measurement. Players have neither setting; compile both variants before measuring if it matters.
+
+### Check by hand before a release
+- id: BL-013
+- type: test
+- status: Planned
+- priority: Medium
+- size: M
+- area: build
+- release: later
+- source: check by hand
+
+Walking along railings and landings (the corner slip, `PLAYER.cornerSlip`), the lattice mast (can't be climbed), the clear windows (see through, paint from both sides, a stepladder against one from behind), pickups (ring shapes, glow, tags within 4 m, hidden behind walls), and a session from two devices on one network (paint, presence, reload, the network log).
+
+
+
+### The ESC menu in a real browser
+- id: BL-014
+- type: test
+- status: Planned
+- priority: Low
+- size: S
+- area: ui
+- release: later
+- source: check by hand 2026-10-11
+
+Enter in HOST's name field hosts, and the menu at 1366×768 and in a small window. Checked in headed Chromium 153 with real keys: in fullscreen, Esc tapped on the pause screen resumes on release, held it fills the rings and Chromium leaves as they fill (1500 ms), and so does holding EXIT FULLSCREEN. Windowed, Chromium takes the Esc that frees the mouse and refuses the lock again without a click, so Esc doesn't resume there (as before the hold). Still to see: Firefox and Safari (one Esc leaves fullscreen, a plain ESC key on the control).
+
+
+
+### Rework the drips: independent chance, no stacking across tools
+- id: BL-015
+- type: refactor
+- status: Requested
+- priority: High
+- size: L
+- area: paint
+- release: later
+- source: owner
+
+The drip settings are not obvious: `chance` seems to be moved by the paint's density and other parameters (`DRIPS` and each tool's and cap's `drips`, `src/config.ts`). Make each setting do one thing, so tuning is predictable. Includes the core bug (was BL-008): roll a first coat, then spray on it, and the drips get stronger when they shouldn't; check how the excess paint (`DRIPS`) adds up across tools. Reproduce it with a test first. Part of reworking the painting.
+
+
+
+### Tune drips per tool by hand; remove the strong ones
+- id: BL-016
+- type: chore
+- status: Blocked
+- priority: High
+- size: M
+- area: paint
+- release: later
+- blocked-by: BL-015
+- source: owner
+
+Drips are too strong in general. Tune them for each tool (caps, marker, roller) by hand, by eye, after the config is clear. Maybe a cooldown on the paint (an open question).
+
+
+
+### Tune the caps so painting feels better
+- id: BL-017
+- type: chore
+- status: Requested
+- priority: Medium
+- size: S
+- area: paint
+- release: later
+- source: owner
+
+Adjust the can caps (`spread`, `rate`, `strength`, `dotSize`, `softness`) until painting feels right. Compare with Bombing!! 2.
+
+
+
+### Key bindings settings
+- id: BL-018
+- type: feature
+- status: Requested
+- priority: High
+- size: M
+- area: input
+- release: later
+- source: stress test feedback
+
+A screen to rebind the keys.
+
+
+
+### Remember the chosen settings
+- id: BL-019
+- type: feature
+- status: Blocked
+- priority: High
+- size: S
+- area: ui
+- release: later
+- blocked-by: BL-018
+- source: stress test feedback
+
+`src/settings.ts` already saves ink style, pixel scale, max FPS, volumetrics, paint detail and city detail. Add to what it saves: the key layout, volume and sound, mouse sensitivity and FOV.
+
+
+
+### Pick a color with a click on the mouse wheel
+- id: BL-020
+- type: feature
+- status: Requested
+- priority: Medium
+- size: S
+- area: input
+- release: later
+- source: owner
+
+
+
+### Rotate the stepladder from the inventory by 7.5° per wheel step instead of 90°
+- id: BL-022
+- type: feature
+- status: Requested
+- priority: Medium
+- size: S
+- area: input
+- release: later
+- source: owner
+
+Step in `config.ts` (`LADDER.rotateStep`, default 7.5°: 90° is 12 steps, 45° is 6).
+
+
+
+### Block the browser zoom: Ctrl +/−/0, Ctrl+wheel, trackpad pinch
+- id: BL-023
+- type: feature
+- status: Blocked
+- priority: Medium
+- size: XS
+- area: ui
+- release: later
+- blocked-by: BL-081
+- source: owner
+
+Blocked in the game and in the menus (one entry in the guard table, BL-081). Zoom changes the render buffer (a 3080 Ti rendered 3840×2160 for a 2560×1440 screen at zoom); BL-026 caps the buffer too.
+
+
+
+### Paint ops are 94% of the downstream bytes, ~250 B each
+- id: BL-024
+- type: perf
+- status: Planned
+- priority: High
+- size: L
+- area: net
+- release: later
+- source: playtest 2026-10-12
+
+JSON stamps with full-precision floats and the surface key, uncompressed; a painting player makes a median 140 ops/s (p99 ~1800), and the server repeats each to the 5–6 others. Total out of the server: p50 0.5 MB/s, p99 3.2 MB/s, max 4.5 MB/s for 7 players, 7.3 GB in 2.6 h. Players on weak links (home Wi-Fi, VPN, hotspot) died more the more they received: 1.5% of 5 s windows were followed by a drop within 25 s below 100 KB/s, 28% above 500 KB/s; players on good links barely moved (0.4% to 4%). Do, in this order: (1) a binary op (quantized u/v/radius, a small integer for the surface key), every client applying the quantized values so texels still match, ~20 B; (2) merge a frame's stamps that land on the same texels; (3) when a link's ping grows past ~1 s, send it only the newest `state` per player and wait with ops. Read `docs/multiplayer-audit.md` first (the "nothing is compressed" decision in `protocol.ts`). Effort M–L.
+
+
+
+### Every rejoin uploads all paint pages in one frame
+- id: BL-025
+- type: perf
+- status: Planned
+- priority: Medium
+- size: S
+- area: paint
+- release: later
+- source: playtest 2026-10-12
+
+83 of the test's 94 frames over 100 ms (median 230 ms, worst 1.1 s) came within 30 s of a welcome: `paint + hud` lap with 170–470 uploads and 28–195 MB in one frame (`PaintGpu.flush`, `src/paint-gpu.ts`). The JS heap also jumps to 0.8–1 GB on each join (steady ~0.5 GB). Do: spread the first upload over frames (a budget of MB per frame), and look at what `loadPaint` allocates.
+
+
+
+### Weak GPUs: cap the render buffer
+- id: BL-026
+- type: perf
+- status: Planned
+- priority: Medium
+- size: S
+- area: render
+- release: later
+- source: playtest 2026-10-12
+
+An Intel Iris Xe (1536×695 buffer) took 23 ms of GPU a frame and ran at 30 fps; the player left after 6 min. The M1 base takes 11 ms at 1440×900 ×2. A 3080 Ti rendered a 3840×2160 buffer for a 2560×1440 screen (browser zoom or OS scale; `pixelScale` 1). Do: a cap on the buffer's pixels (config), and the HUD's frame-time warning with a pointer to PIXEL SCALE when GPU time stays over budget.
+
+
+
+### A closed session's paint stays in the server's memory until a GC
+- id: BL-027
+- type: perf
+- status: Planned
+- priority: Low
+- size: XS
+- area: net
+- release: later
+- source: measured 2026-10-13
+
+Node 24: 320 MB of dropped `ArrayBuffer`s stay (rss 366 MB) while idle, and `gc()` frees them (rss 47 MB). The host's container showed ~500 MB with no session. `liveMemory` (`server/log.ts`: heap + arrayBuffers) counts that garbage against `HOST_MEMORY`, so a new session could be turned away as busy until the next GC. Do: run `node --expose-gc` and call `gc()` when a session closes, or sum the open sessions' `memory.now` instead.
+
+
+
+### Other players' spray with many players
+- id: BL-028
+- type: perf
+- status: Planned
+- priority: Medium
+- size: M
+- area: paint
+- release: later
+- source: measured
+
+A2000 laptop, 1280×720, fake players sending no paint ops: 19 others walking 124 fps, all 19 spraying 84 fps; their particles cost ~0.2 ms of CPU a frame per sprayer (a ray each a frame, `spray/particles.ts` `show`, a pool of 3000). Their paint ops come on top, unmeasured. Do: particles only for the nearest few sprayers, or reuse each sprayer's ray for a few frames; or a lower `SERVER.maxPlayers` (XS). Measure a real session of 8 to 20 first.
+
+
+
+### The roof level's edits of 2026-10-10 cost a little
+- id: BL-029
+- type: perf
+- status: Requested
+- priority: Low
+- size: S
+- area: level
+- release: later
+- source: measured 2026-10-11
+
+Two edits (lamps, signs, ducts, 4 clear windows; then railings, parapets, roof lights, skylights, ducts: 1373 → 1464 props). At six fixed views at 1280×720 on a quiet machine (median of 3 runs, `next` before them vs `dev` after): Intel UHD GPU time +3–9% (14.3–17.0 → 15.6–17.7 ms, scene + post), CPU +0.4–1.4 ms, draw calls +4–21% (128–374 → 133–422), triangles +8%. On the A2000 the GPU barely moves (±6%). The extra calls are merged tile batches (more materials and finishes per tile) and glass: no draw call per prop. Not urgent; if the weak GPU needs room, fewer material and finish variants per tile first.
+
+
+
+### Precompressed assets
+- id: BL-030
+- type: perf
+- status: Planned
+- priority: Low
+- size: S
+- area: deploy
+- release: later
+- source: VPS recon 2026-10-11
+
+Caddy compresses every response on the fly (zstd at its default level comes out 1.5% bigger than gzip for the game's JS: 911 KB → ~270 KB). Brotli 11, made at build time, would be ~20% smaller and cost no CPU per request. Do: Vite emits `.br` and `.gz` next to each asset, and Caddy serves them (`file_server { precompressed br gzip }`, `docs/deploy.md` §5, on the host).
+
+
+
+### Four shaders still compile in the first frame
+- id: BL-031
+- type: perf
+- status: Requested
+- priority: Low
+- size: S
+- area: render
+- release: later
+
+Under the loading screen: the moon's shadow pass (two depth materials) and two drawn outside the scenes `post.warm` compiles (a ShaderMaterial, a MeshBasicMaterial). Nothing compiles at START or later. Do, if loading on Windows is slow: warm them as `Volumetrics.warm` does.
+
+
+
+### One load of the roof took 62 s
+- id: BL-032
+- type: bug
+- status: Requested
+- priority: Low
+- size: S
+- area: render
+- release: later
+- source: ad-hoc script 2026-10-11
+
+On the real GPU (headed Chromium on WSLg, its own Vite server); 8 other loads took 4.8–5.8 s, and 3 reruns didn't show it again. Cause not found. If a player reports a long load, start here.
+
+
+
+### The hint wall takes two paint pages
+- id: BL-033
+- type: perf
+- status: Planned
+- priority: Medium
+- size: S
+- area: level
+- release: later
+
+It spans two level tiles (`p89`, `p90` and a joint), so every game starts with two 2048² paint pages: +42.5 MB of GPU memory before anything is painted. Do: move the hint (or the wall) into one tile and save the level and its paint again (build mode P).
+
+
+
+### Paint pages at ULTRA use ~0.95 GB of GPU memory
+- id: BL-034
+- type: perf
+- status: Planned
+- priority: Medium
+- size: L
+- area: paint
+- release: later
+- source: profile (1.1.0)
+
+After 40 minutes of painting at ULTRA a profile counted 45 more GPU textures; if paint pages (2048², ~21 MB each with mips), ~0.95 GB. Already so in 1.1.0. Do: check the HUD's `tex memory` after heavy painting at ULTRA; if that's what it is, smaller or fewer pages for sparse paint, or a cap with a warning.
+
+
+
+### Player movement has no test
+- id: BL-035
+- type: test
+- status: Planned
+- priority: Medium
+- size: M
+- area: input
+- release: later
+
+Walking, collisions (and the corner slip), jumps, climbing, ladders. A fixed-step check per move (ladders have one: `scripts/game.test.mjs`).
+
+
+
+### Light baking and weather run on the wall clock
+- id: BL-036
+- type: test
+- status: Planned
+- priority: Low
+- size: S
+- area: render
+- release: later
+
+`baker.ts` budget, rain: screenshots aren't byte-comparable. Compare pictures only after the bake finishes, rain off.
+
+
+
+### The multiplayer test's first page didn't build its level within 120 s
+- id: BL-037
+- type: test
+- status: Requested
+- priority: Low
+- size: S
+- area: net
+- release: later
+- source: 2026-10-10
+
+Once (another agent testing on the machine too); not seen since. If it repeats, find what held it up (the page's console, the machine's load).
+
+
+
+### Source files over the ~400 line limit
+- id: BL-038
+- type: refactor
+- status: Planned
+- priority: Low
+- size: S
+- area: build
+- release: later
+- source: review of 1.3.0
+
+`src/net/multiplayer.ts` is 408 lines, `src/hud.ts` 410, `src/main.ts` 403. Split by responsibility the next time any grows (`multiplayer.ts`: the paint-file download and the heartbeat; `hud.ts`: the perf lines or the menu's pages; `main.ts`: the load steps).
+
+
+
+### More marker types, placed on the map
+- id: BL-039
+- type: feature
+- status: Requested
+- priority: Medium
+- size: M
+- area: level
+- release: later
+- source: owner
+
+
+
+### New marker brushes: rectangular and calligraphy
+- id: BL-042
+- type: feature
+- status: Requested
+- priority: Medium
+- size: M
+- area: paint
+- release: later
+- source: owner
+
+
+
+### One public server, running 24/7
+- id: BL-043
+- type: feature
+- status: Requested
+- priority: High
+- size: L
+- area: deploy
+- release: later
+- source: owner
+
+See `docs/deploy.md`.
+
+
+
+### Disable host and join (don't remove them)
+- id: BL-044
+- type: chore
+- status: Blocked
+- priority: Medium
+- size: S
+- area: net
+- release: later
+- blocked-by: BL-043
+- source: owner
+
+Disable, with stubs, and switch them off on the server's side too.
+
+
+
+### A window of public servers instead of host and join
+- id: BL-045
+- type: feature
+- status: Blocked
+- priority: Medium
+- size: M
+- area: ui
+- release: later
+- blocked-by: BL-043, BL-044
+- source: owner
+
+Name, number of players and ping (one server for now). Build the UI of the new screen in Claude Code.
+
+
+
+### A queue to enter the server
+- id: BL-046
+- type: feature
+- status: Blocked
+- priority: Medium
+- size: M
+- area: net
+- release: later
+- blocked-by: BL-043
+- source: owner
+
+
+
+### Admin panel: players online, ban by IP
+- id: BL-047
+- type: feature
+- status: Blocked
+- priority: Medium
+- size: L
+- area: net
+- release: later
+- blocked-by: BL-043
+- source: owner
+
+See who is online; block by IP forever or for a time.
+
+
+
+### After connecting to a server, start the game and skip the pause menu
+- id: BL-048
+- type: chore
+- status: Requested
+- priority: Medium
+- size: XS
+- area: ui
+- release: later
+- source: owner
+
+
+
+### Check when the checks of AGENTS.md run in the test cycle
+- id: BL-049
+- type: chore
+- status: Requested
+- priority: Low
+- size: XS
+- area: build
+- release: later
+- source: owner
+
+On every commit, or only on `dev`?
+
+
+
+### Wire cutting
+- id: BL-050
+- type: feature
+- status: Requested
+- priority: Low
+- size: M
+- area: level
+- release: later
+- source: owner
+
+
+
+### Dynamic wire length
+- id: BL-051
+- type: feature
+- status: Requested
+- priority: Low
+- size: M
+- area: level
+- release: later
+- source: owner
+
+
+
+### Lamps that can be fixed to the floor
+- id: BL-052
+- type: feature
+- status: Requested
+- priority: Low
+- size: S
+- area: level
+- release: later
+- source: owner
+
+
+
+### Lamps that light signs
+- id: BL-053
+- type: feature
+- status: Requested
+- priority: Low
+- size: M
+- area: level
+- release: later
+- source: owner
+
+
+
+### New sign sizes, including big rectangular and square ones
+- id: BL-054
+- type: feature
+- status: Requested
+- priority: Low
+- size: S
+- area: level
+- release: later
+- source: owner
+
+
+
+### Group the props better in build mode
+- id: BL-055
+- type: chore
+- status: Requested
+- priority: Low
+- size: S
+- area: build
+- release: later
+- source: owner
+
+
+
+### New character avatar with a correct rig
+- id: BL-056
+- type: feature
+- status: Requested
+- priority: Medium
+- size: L
+- area: avatar
+- release: later
+- source: owner
+
+See `docs/avatar.md`.
+
+
+
+### Two body types: male and female
+- id: BL-057
+- type: feature
+- status: Blocked
+- priority: Low
+- size: L
+- area: avatar
+- release: later
+- blocked-by: BL-056
+- source: owner
+
+
+
+### Clothing attached as meshes
+- id: BL-058
+- type: feature
+- status: Blocked
+- priority: Low
+- size: L
+- area: avatar
+- release: later
+- blocked-by: BL-056, BL-057
+- source: owner
+
+Hoodies, tank tops, pants, sweatshirts, caps, bandanas and boots.
+
+
+
+### UI for character customization
+- id: BL-059
+- type: feature
+- status: Blocked
+- priority: Low
+- size: M
+- area: avatar
+- release: later
+- blocked-by: BL-058
+- source: owner
+
+
+
+### Avatar for NPCs, first-person hands, hood outside F3
+- id: BL-060
+- type: feature
+- status: Blocked
+- priority: Low
+- size: L
+- area: avatar
+- release: later
+- blocked-by: BL-056
+- source: ideas
+
+NPCs moving around, talking, helping; first-person hands from the avatar's hand; the hood up or down outside F3 (`docs/avatar.md`).
+
+
+
+### A player in the style of an old iPod Classic
+- id: BL-061
+- type: idea
+- status: Requested
+- priority: Low
+- size: M
+- area: ui
+- release: later
+- source: owner
+
+
+
+### Photo mode: Polaroid cartridges or an old 2000s point-and-shoot camera
+- id: BL-062
+- type: idea
+- status: Requested
+- priority: Low
+- size: M
+- area: ui
+- release: later
+- source: owner
+
+A better screenshot (by K). Future idea, not approved: research first. Undecided which one: a Polaroid with cartridges, or a 2000s point-and-shoot digital camera (the point-and-shoot is simpler: frame, flash, grain, date stamp).
+
+
+
+### Background music with no license, DnB and jungle
+- id: BL-063
+- type: idea
+- status: Requested
+- priority: Low
+- size: M
+- area: audio
+- release: later
+- source: owner
+
+
+
+### Sound editor for the synthesized sounds (developer mode)
+- id: BL-064
+- type: idea
+- status: Requested
+- priority: Low
+- size: M
+- area: audio
+- release: later
+- source: owner
+
+
+
+### A minimal tool to record gameplay (GIFs and short videos)
+- id: BL-065
+- type: idea
+- status: Requested
+- priority: Low
+- size: M
+- area: ui
+- release: later
+- source: owner
+
+
+
+### A camera mode for trailers and cinematics
+- id: BL-066
+- type: idea
+- status: Requested
+- priority: Low
+- size: M
+- area: render
+- release: later
+- source: owner
+
+
+
+### Posts for Reddit and Instagram reels (the game's account)
+- id: BL-067
+- type: chore
+- status: Requested
+- priority: Low
+- size: M
+- area: marketing
+- release: later
+- source: owner
+
+
+
+### Meta tags: title, description, canonical, viewport, lang, theme-color, Open Graph, Twitter Card
+- id: BL-068
+- type: chore
+- status: Requested
+- priority: Medium
+- size: S
+- area: seo
+- release: later
+- source: owner
+
+With a preview picture.
+
+
+
+### robots.txt (with rules for AI bots), sitemap.xml and llms.txt
+- id: BL-069
+- type: chore
+- status: Requested
+- priority: Low
+- size: S
+- area: seo
+- release: later
+- source: owner
+
+
+
+### JSON-LD, semantic HTML outside the canvas, favicons and a web manifest
+- id: BL-070
+- type: chore
+- status: Requested
+- priority: Low
+- size: M
+- area: seo
+- release: later
+- source: owner
+
+JSON-LD as VideoGame or WebApplication; semantic HTML outside the canvas with a noscript fallback.
+
+
+
+### Session archives, view only
+- id: BL-071
+- type: idea
+- status: Requested
+- priority: Low
+- size: M
+- area: net
+- release: later
+- source: owner
+
+Saved past sessions (the world's paint), opened for viewing only.
+
+
+
+### Nickname tags don't scale with the UI and resolution
+- id: BL-072
+- type: idea
+- status: Requested
+- priority: Low
+- size: S
+- area: ui
+- release: later
+- source: owner
+
+The tags don't scale with the UI or the resolution.
+
+
+
+### No nicknames on screenshots
+- id: BL-073
+- type: idea
+- status: Requested
+- priority: Low
+- size: XS
+- area: ui
+- release: later
+- source: owner
+
+
+
+### Stencils
+- id: BL-074
+- type: idea
+- status: Requested
+- priority: Low
+- size: M
+- area: paint
+- release: later
+- source: owner
+
+
+
+### Digital billboards
+- id: BL-075
+- type: idea
+- status: Requested
+- priority: Low
+- size: M
+- area: level
+- release: later
+- source: owner
+
+
+
+### The next playtest
+- id: BL-076
+- type: idea
+- status: Requested
+- priority: Medium
+- size: S
+- area: net
+- release: later
+- source: playtest 2026-10-12
+
+Telemetry is kept on the `feat/playtest-telemetry` branch (tag `v1.2.0-playtest.2`), not in releases; merging it into a newer base conflicts in `knip.json`, `src/main.ts`, `src/net/multiplayer.ts`, `src/net/remotes.ts`, `src/style.css`. Lessons: two or more players on one home network can't tell their network from the game's, so ask for separate networks; have 12–20 players and a weak laptop (Intel iGPU, 8 GB) in it; log the display's refresh rate and the browser's power-saver state (two players' "low fps" was the browser's 30 Hz cap on battery, not the game); have the server log each link's ping and `bufferedAmount` (the roof server sees a ~0 queue because Caddy drains it at once: set `tcp_notsent_lowat` on the host to see it); fix the report's `Infinity` (a percentile in the histogram's open top bucket), and count a hidden tab's silence apart from a real stall. Run it a second time with the binary ops (BL-024), to compare (`docs/playtest-multiplayer.md` has the list and the numbers to beat).
+
+
+
+### Deploy from GitHub Actions
+- id: BL-077
+- type: chore
+- status: Requested
+- priority: Low
+- size: M
+- area: deploy
+- release: later
+- source: ideas
+
+Push to `main` → Actions builds → deploy over SSH with the repo's own deploy key (`docs/deploy.md`, section 5).
+
+
+
+### BUY ME A COFFEE
+- id: BL-078
+- type: chore
+- status: Blocked
+- priority: Low
+- size: XS
+- area: ui
+- release: later
+- blocked-by: the link
+- source: ideas
+
+Hidden until it has a link (`git revert` the commit that hid it, then set the link).
+
+
+
+### The F3 probe's own shader compiles land in its measurement
+- id: BL-079
+- type: chore
+- status: Requested
+- priority: Low
+- size: S
+- area: render
+- release: later
+- source: ideas
+
+The probe turns moon shadows and wet highlights off: each compiles new shaders (7 a time; ~1.6 s on Windows D3D11), which lands in its own measurement. Players have neither setting; compile both variants before measuring if it matters.
+
+
+
+### Wheel and Q/E per tool
+- id: BL-080
+- type: feature
+- status: Requested
+- priority: Medium
+- size: S
+- area: input
+- release: later
+- source: owner
+
+Controls (replaces the Q/E and wheel swap): can: Q/E change the cap, the wheel changes the color; marker: Q/E change the marker type (one type for now, BL-039), the wheel changes the size; roller and sponge: the wheel changes the size (as now); stepladder: the wheel rotates it (BL-022). Click on the wheel picks a color (BL-020).
+
+
+
+### Browser input guard: one table of blocked default events
+- id: BL-081
+- type: refactor
+- status: Requested
+- priority: Medium
+- size: M
+- area: input
+- release: later
+- source: owner
+
+Today the blocking is spread over `src/input.ts`: the `PREVENT` set and every Ctrl/Meta combo while the mouse is locked, F3, `contextmenu`, and `beforeunload` for Ctrl+W. Zoom (Ctrl+wheel, pinch) is not handled anywhere, and nothing is blocked in the menus. Do: one table in `config.ts` (keys, combos, wheel+Ctrl, pinch, context menu, F-keys), each entry with a condition (while playing, or always) and a reason; one module `src/browser-guards.ts` applies it; one test. Policy: while playing, block as now plus zoom and pinch; in the menus block only zoom and pinch. Open: let F5, Ctrl+R and F11 through while playing?
+
+
+
+### A K in the session code takes a screenshot
+- id: BL-082
+- type: bug
+- status: Planned
+- priority: High
+- size: XS
+- area: input
+- release: later
+- source: owner
+
+Typing a code with a K in the join field takes a screenshot instead of typing the letter. `Input` (`src/input.ts`) records every `keydown` on `window`, including keys typed into the code and name fields, and `main.ts` takes the screenshot on `wasPressed('KeyK')`. Every other game key fires while typing too. Do: in `Input`, ignore keydown whose target is an `input`, `textarea` or editable element; test with a synthetic keydown on a text field. Confirmed in the code.
