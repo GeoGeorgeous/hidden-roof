@@ -45,7 +45,7 @@ export function smallScreen(playable: () => boolean) {
   // The share sheet where there is one (phones), else the clipboard.
   copy.addEventListener('click', () => {
     const url = location.href;
-    const sent = navigator.share ? navigator.share({ title: 'Hidden Roof', url }) : navigator.clipboard.writeText(url);
+    const sent = navigator.share ? navigator.share({ title: 'Hidden Roof', url }) : (navigator.clipboard?.writeText(url) ?? Promise.reject());
     sent.then(done, () => {});
   });
 

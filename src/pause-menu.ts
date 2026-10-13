@@ -184,8 +184,9 @@ export class PauseMenu {
 
   /** In a multiplayer session (its code; `live`: its link is up) or not (null): the menu offers BACK TO SESSION and LEAVE SESSION, and no UPLOAD. */
   setSession(code: string | null, live = true) {
+    // The menu returns to the pause screen when the session starts, not on each status after (reconnecting must not close SAVE or SETTINGS).
+    if (code && !this.session) this.openPage(null);
     this.session = code;
-    if (code) this.openPage(null);
     this.live = !!code && live;
     if (code) this.line.session = code;
     this.nextLine = 0;
