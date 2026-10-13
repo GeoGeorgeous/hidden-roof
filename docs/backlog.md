@@ -19,7 +19,7 @@ The one place for what's left to do: bugs, things to check, performance, tests, 
 ### The loading screen says LOADING forever when the game can't start
 - id: BL-002
 - type: bug
-- status: Planned
+- status: Done
 - priority: High
 - size: S
 - area: ui
