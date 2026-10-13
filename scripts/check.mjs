@@ -5,6 +5,7 @@ import { spawnSync } from 'node:child_process';
 const STEPS = [
   ['quick', 'npm run check:quick'],
   ['smoke', 'npm run smoke'],
+  ['boot', 'npm run test:boot'],
   ['game', 'npm run test:game'],
   ['server', 'npm run test:server'],
   ['multiplayer', 'node scripts/multiplayer.test.mjs'],
