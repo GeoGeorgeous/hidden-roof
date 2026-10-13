@@ -5,6 +5,11 @@ import { enterGameFullscreen } from './fullscreen';
 
 const PREVENT = new Set(['Space', 'Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown', 'Backspace', 'Minus', 'Equal', 'KeyP', 'KeyO', 'KeyZ', 'KeyW', 'KeyS', 'KeyD', 'KeyA']);
 
+/** A text field, number field, select or editable element: keys typed there belong to it. */
+function typingIn(target: EventTarget | null) {
+  return target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
+}
+
 export class Input {
   private down = new Set<string>();
   private pressed = new Set<string>();
@@ -27,6 +32,8 @@ export class Input {
   constructor(private element?: HTMLElement) {
     if (!element) return;
     window.addEventListener('keydown', (e) => {
+      // Typing into a field (the session code, a name, a number in F3) is not playing: a K must not take a screenshot.
+      if (typingIn(e.target) && e.code !== 'Escape' && e.code !== 'F3') return;
       if (PREVENT.has(e.code) && this.locked) e.preventDefault();
       if (this.locked && (e.ctrlKey || e.metaKey)) e.preventDefault();
       // With keyboard lock the browser no longer releases the mouse on Esc; do it ourselves.
