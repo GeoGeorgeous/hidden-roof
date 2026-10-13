@@ -1,0 +1,24 @@
+name: check
+
+# The full `npm run check` on every push to dev and next (topic branches stay local).
+# Public repo: GitHub-hosted runners are free. No secrets are used here.
+on:
+  push:
+    branches: [dev, next]
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # git describe for the build's version needs the tags
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run check
