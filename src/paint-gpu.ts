@@ -151,19 +151,23 @@ export class PaintGpu {
 
   /**
    * Upload what changed this frame: blocks given back are zeroed, then each
-   * dirty rect in one call, then the same rect of each smaller level.
+   * dirty rect in one call, then the same rect of each smaller level. At most
+   * PAINT.uploadBudget a frame: the rest waits for the next frames, so a join
+   * (all the session's paint at once) shows over a few frames, not in one stall.
    */
   flush(renderer: THREE.WebGLRenderer) {
     this.uploadsLastFrame = 0;
     this.uploadBytesLastFrame = 0;
     for (const c of this.clears) this.zero(renderer, c);
     this.clears.length = 0;
+    const budget = PAINT.uploadBudget * 2 ** 20;
     for (const s of this.dirty) {
+      if (this.uploadBytesLastFrame >= budget) break;
       for (const r of s.dirty) this.upload(renderer, s, r);
       this.uploadsLastFrame += s.dirty.length;
       s.dirty.length = 0;
+      this.dirty.delete(s);
     }
-    this.dirty.clear();
   }
 
   /** One dirty rect of a surface, atlas and smaller levels, into its block. Blocks start on whole texels of the smallest level. */

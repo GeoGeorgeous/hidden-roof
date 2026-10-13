@@ -404,6 +404,8 @@ export const PAINT = {
    * it grows least.
    */
   dirtyRects: 8,
+  /** Paint uploaded to the GPU at most per frame (MB, about one 2048² page with its levels): a join's paint shows over a few frames, with no stall. */
+  uploadBudget: 24,
 };
 
 /** Base textures (textures.ts) are pixel art at this density, whatever the paint detail: a 48 px panel spans one 2 m module. */
