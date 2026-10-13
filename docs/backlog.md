@@ -279,7 +279,7 @@ A screen to rebind the keys.
 - id: BL-022
 - type: feature
 - status: Requested
-- priority: Medium
+- priority: High
 - size: S
 - area: input
 - release: later
@@ -1084,6 +1084,8 @@ An Intel Iris Xe player played at 30 fps (23 ms of GPU a frame) and left after 6
 
 Blocked (2026-10-14): GPU time is measured only while F3's perf readout is on (`EXT_disjoint_timer_query_webgl2`, desktop Chromium only). Decide: the timer on for every player (a little work every frame), sampled (the first ~30 s, or every few seconds), or judged from FPS (false alarms: a laptop on battery caps Chrome at 30 Hz). Its place in the HUD needs a screenshot.
 
+When built: a `?weak-gpu` URL flag that shows the hint at once, to see it without a weak GPU.
+
 ### Paint takes 7–10 s to show after joining a session with a lot of it
 - id: BL-085
 - type: perf
@@ -1095,3 +1097,15 @@ Blocked (2026-10-14): GPU time is measured only while F3's perf readout is on (`
 - source: owner
 
 Seen as new drawings appearing in the ESC city view. Measure first: how much is the download of the paint file (0.3–3.4 MB in the playtest), how much its decoding and `loadPaint`, how much the upload (BL-025). Then decide.
+
+### Placing the stepladder lags
+- id: BL-086
+- type: bug
+- status: Requested
+- priority: High
+- size: S
+- area: input
+- release: later
+- source: owner
+
+Placing the stepladder from the inventory lags. Needs info: a frame hitch at the moment it's placed, a delay before it shows, or the preview following the aim late? In single player, in a session, or both?
