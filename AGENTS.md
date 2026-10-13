@@ -18,7 +18,7 @@ Hidden roof: a three.js graffiti game. The world is ink on paper and the only co
 ## Codebase
 
 - Tunable numbers go in `src/config.ts`, not inline.
-- Notes for later (bugs, things to check, performance, ideas) go in `docs/backlog.md`, the one list; delete an item once it's done.
+- Notes for later (bugs, things to check, performance, ideas) go in `docs/backlog.md`, the one list. Keep the item's fields (type, status, priority, size, area, release) as in the other items. Mark an item `Done` when it ships; the release commit deletes the `Done` items.
 - Removing code beats adding it. A cleanup keeps behavior identical: `npm run check` passes before and after.
 - Before writing new logic, look for an existing helper and reuse or extend it.
 - Keep source files under ~400 lines (`config.ts` and CSS excepted). Split by responsibility before a file gets there, not after.
@@ -46,6 +46,20 @@ Hidden roof: a three.js graffiti game. The world is ink on paper and the only co
 
 When a step doesn't need my input, keep going. Stop and ask only when you can't continue without me, or before deleting data, force-pushing, or changing anything outside this repository.
 End every run with: Blocked on me, Changed, Found.
+
+## Agent skills
+
+### Issue tracker
+
+Work items live in `docs/backlog.md` (no GitHub Issues). See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The triage roles map to an item's `status` and `type` in the backlog. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` and `docs/adr/` at the root, created when a term or decision is first settled. See `docs/agents/domain.md`.
 
 ## Before working in these areas, read
 

@@ -52,4 +52,4 @@ The headless tests always draw with SwiftShader, on the CPU: a frame at 1280×72
 
 ## Open
 
-What's left for the tests is in `docs/backlog.md` (Tests, Check by hand).
+What's left for the tests is in `docs/backlog.md` (items of type `test`).
