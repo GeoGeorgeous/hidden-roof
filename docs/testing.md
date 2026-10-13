@@ -1,13 +1,13 @@
 # Testing
 
-How a change is verified (AGENTS.md, Verify), what each test covers, and how they stay reliable on the WSL dev machine (6 cores, often several agents testing at once). Times measured 2026-10-10, with other agents running.
+How a change is verified (AGENTS.md, Verify), what each test covers, and how they stay reliable on the WSL dev machine (6 cores, often several agents testing at once). Times measured 2026-10-14 on a quiet machine (one check at a time; a second one beside it slows both).
 
 ## The checks
 
 | Command | What | Time |
 |---|---|---|
 | `npm run check:quick` | Type check (game and server), the player build (`npm run build`, what's deployed), `npm test`, knip. After every change. | ~5 s |
-| `npm run check` | `check:quick`, then every test below, golden paint last. Before saying a change is done, and before a merge. Stops at the first failure. | ~2 min |
+| `npm run check` | `check:quick`, then every test below, golden paint last. Before saying a change is done, and before a merge. Stops at the first failure, then prints each step's time (`scripts/check.mjs`). | ~4–5 min |
 | `npm run shots` | The real game on the real GPU (below). For every visual change. | ~15 s |
 
 ## The tests (all in `npm run check`)
@@ -15,12 +15,12 @@ How a change is verified (AGENTS.md, Verify), what each test covers, and how the
 | Command | What | Time |
 |---|---|---|
 | `npm test` | Paint save files (round trip; broken, older, newer, oversized ones refused), protocol messages and the release notes (format, style rules, pictures; `docs/releases/AGENTS.md`), in Node. | <1 s |
-| `npm run smoke` | The level players get loads and plays a few frames with F3 open. Fails on page errors and console errors (shader errors among them), and when turning on volumetrics or rain compiles a shader (they're compiled as the level loads). | ~10 s |
-| `npm run test:game` | Game behavior, one line per check (`scripts/game.test.mjs`): the ESC menu (Esc back through its pages, the style switcher, settings reset and on-resume, credits' licenses, the updates notes, pictures and dates, the save and upload popups, COPY NETWORK LOG with no clipboard), saves through level edits, spray at LOAD, sponge memory, prop ids, paint pages and their draw calls, paint after a lost and restored WebGL context, stairs, city overrides and detail, tool sizes, ladders (one per player; climbed to the top, stood on and jumped from), session rules, the avatar (and its bone texture going with a player who leaves), the ghost (a remote player over a pretend network; what they did lands in order across a hidden tab), F3 rows and tooltips, UNLOCK ALL, hotbar readback, sign sizes, hints (fonts, edges, new lines, undo, X) and level paint (P saves it, a fresh game loads it, FRESH LEVEL hosts it). Its pages don't draw; each check starts with the same seeded paint randomness, on fixed steps (`steps`), and stops after 30 s instead of hanging. | ~30 s |
+| `npm run smoke` | The level players get loads and plays a few frames with F3 open. Fails on page errors and console errors (shader errors among them), and when turning on volumetrics or rain compiles a shader (they're compiled as the level loads). | ~8 s |
+| `npm run test:game` | Game behavior, one line per check (`scripts/game.test.mjs`): the ESC menu (Esc back through its pages, the style switcher, settings reset and on-resume, credits' licenses, the updates notes, pictures and dates, the save and upload popups, COPY NETWORK LOG with no clipboard), saves through level edits, spray at LOAD, sponge memory, prop ids, paint pages and their draw calls, paint after a lost and restored WebGL context, stairs, city overrides and detail, tool sizes, ladders (one per player; climbed to the top, stood on and jumped from), session rules, the avatar (and its bone texture going with a player who leaves), the ghost (a remote player over a pretend network; what they did lands in order across a hidden tab), F3 rows and tooltips, UNLOCK ALL, hotbar readback, sign sizes, hints (fonts, edges, new lines, undo, X) and level paint (P saves it, a fresh game loads it, FRESH LEVEL hosts it). Its pages don't draw; each check starts with the same seeded paint randomness, on fixed steps (`steps`), and stops after 30 s instead of hanging. | ~140 s |
 | `npm run test:server` | The server against games speaking the protocol: HOST and JOIN, what's turned away, relaying, SAVE, reconnects, limits per address. In the process, a paint file that fails: the next join gets a new one. Then level paint, in Node: it fits the level it was made on and not once a painted prop is gone; every level with paint is marked so and its paint still fits it. | ~8 s |
-| `node scripts/multiplayer.test.mjs` | Two players in two pages: HOST and JOIN from the menu, the host's PAINT DETAIL in the joiner's settings, SAVE of the session's paint, paint and the stepladder reaching the other, a reload, paint while hidden (no frames), a reconnect, LEAVE, a server restart, the server down. `npm run test:mp` builds the server first. | ~25 s |
+| `node scripts/multiplayer.test.mjs` | Two players in two pages: HOST and JOIN from the menu, the host's PAINT DETAIL in the joiner's settings, SAVE of the session's paint, paint and the stepladder reaching the other, a reload, paint while hidden (no frames), a reconnect, LEAVE, a server restart, the server down. `npm run test:mp` builds the server first. | ~35 s |
 | `npm run test:csp` | The game under the site's Content Security Policy (`vite.config.ts`). | ~6 s |
-| `npm run golden` | Paint at every PAINT DETAIL against `scripts/golden-paint.json`, op replay, saves, the server's paint (`docs/golden-paint.md`). | 25–55 s |
+| `npm run golden` | Paint at every PAINT DETAIL against `scripts/golden-paint.json`, op replay, saves, the server's paint (`docs/golden-paint.md`). | 45–55 s |
 
 Tools, not tests: `npm run shots:avatar` (every avatar pose and a contact sheet in `shots/avatar/`, on the real GPU), `npm run bench:save` (save size and SAVE / LOAD time; run `npm run golden` first), `npm run audit` (knip and duplicated code, advisory).
 
