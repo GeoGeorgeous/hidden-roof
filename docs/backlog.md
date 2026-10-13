@@ -618,7 +618,7 @@ See who is online; block by IP forever or for a time.
 ### Check when the checks of AGENTS.md run in the test cycle
 - id: BL-049
 - type: chore
-- status: Requested
+- status: Done
 - priority: Low
 - size: XS
 - area: build
