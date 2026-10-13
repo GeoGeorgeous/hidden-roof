@@ -868,7 +868,7 @@ export const SERVER = {
   /** Players in one session (docs/multiplayer-audit.md, decision 1). */
   maxPlayers: 20,
   /** A dropped player can come back as themselves for this long (s); then their stepladder goes, and a session with no one left closes. */
-  rejoinWindow: 60,
+  rejoinWindow: 180,
   /** The server pings every game this often (s), so a game notices a dead link. */
   ping: 2,
   /** Paint runs move this many times a second on the server. */
