@@ -1072,14 +1072,17 @@ Split from BL-025. Steady ~0.5 GB. Measure what `loadPaint` allocates on a join 
 ### A hint in the HUD when the GPU can't keep up
 - id: BL-084
 - type: feature
-- status: Planned
+- status: Blocked
 - priority: Medium
 - size: S
 - area: ui
 - release: later
+- blocked-by: the owner's decision
 - source: playtest 2026-10-12
 
 An Intel Iris Xe player played at 30 fps (23 ms of GPU a frame) and left after 6 minutes, likely not knowing PIXEL SCALE exists. Do: once a session, when the GPU frame time stays over 20 ms for 5 s (config), a text hint in the HUD's existing style (as `LOW PRESSURE — HOLD [RMB] TO SHAKE`), pointing to SETTINGS → PIXEL SCALE. No new UI.
+
+Blocked (2026-10-14): GPU time is measured only while F3's perf readout is on (`EXT_disjoint_timer_query_webgl2`, desktop Chromium only). Decide: the timer on for every player (a little work every frame), sampled (the first ~30 s, or every few seconds), or judged from FPS (false alarms: a laptop on battery caps Chrome at 30 Hz). Its place in the HUD needs a screenshot.
 
 ### Paint takes 7–10 s to show after joining a session with a lot of it
 - id: BL-085
