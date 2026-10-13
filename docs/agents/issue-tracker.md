@@ -6,7 +6,7 @@ Work items live in one file, `docs/backlog.md`, the one list. No GitHub Issues, 
 
 Each item is a `###` heading (the title) followed by a `- key: value` list, then free prose (what, what showed it, where, what to do). Look at the items already in the file and follow them.
 
-- `id`: `BL-NNN`, next free number, never reused or renumbered
+- `id`: `BL-NNN`, next free number, never reused or renumbered. If two branches took the same number, the one merged later renumbers its item
 - `type`: `bug | feature | idea | chore | refactor | perf | test | docs`
 - `status`: `Requested | Planned | In Progress | Blocked | Done`
 - `priority`: `Urgent | High | Medium | Low`
