@@ -5,7 +5,7 @@ The one place for what's left to do: bugs, things to check, performance, tests, 
 ### A game opened or reloaded in a hidden tab doesn't load until it's shown
 - id: BL-001
 - type: bug
-- status: Planned
+- status: Done
 - priority: High
 - size: XS
 - area: ui
@@ -28,7 +28,7 @@ The one place for what's left to do: bugs, things to check, performance, tests, 
 
 No WebGL (`new THREE.WebGLRenderer` in `main.ts` throws) or a script that doesn't load. Do: catch the renderer's failure and say so on the loading screen (as `loadFailed` does for the level).
 
-
+Triage notes (2026-10-14): needs a human: check by hand in a browser without WebGL that the screen says so; touches the boot in `main.ts` (403 lines, over the limit).
 
 ### Strokes made while the link is dying vanish on rejoin
 - id: BL-003
@@ -61,7 +61,7 @@ No WebGL (`new THREE.WebGLRenderer` in `main.ts` throws) or a script that doesn'
 ### A player who is away over 60 s comes back as a new one
 - id: BL-005
 - type: bug
-- status: Planned
+- status: Done
 - priority: High
 - size: XS
 - area: net
@@ -89,7 +89,7 @@ Tanks on stands and the water tank: the roof has no collider, so the player walk
 ### Spraying and shaking the can work at the same time
 - id: BL-007
 - type: bug
-- status: Planned
+- status: Done
 - priority: Urgent
 - size: S
 - area: input
@@ -112,7 +112,7 @@ Painting and shaking the can are mutually exclusive: one or the other. Today bot
 
 In the playtest the host saw all others as DISCONNECTED, a label only the server's `presence: dropped` sets (`NO SIGNAL` is the game's own). The data can't tell if the others really dropped, a welcome lists them as dropped, or queued presence arrives in a burst. Do: two clients in `scripts/multiplayer.test.mjs` style, one with its downlink stalled for 15 s, and log the `presence` and `players[].state` the other receives (`docs/playtest-multiplayer.md`).
 
-
+Triage notes (2026-10-14): research, not a fix: write the stalled-downlink test first, then decide.
 
 ### Mouse spikes snap the camera (Chrome on Windows)
 - id: BL-010
@@ -130,7 +130,7 @@ Known: a Chromium bug on Windows since at least 2017 (Chrome 62, jumps of 300–
 
 Do: in `input.ts`, drop one event over 300 px (config) that is also over 3× the largest of the last ~8, and motion in the 100 ms after the lock is taken; count what's dropped in the profiler's report. A fixed cap alone would drop real flicks of 125 Hz mice at high DPI (those build up over several events, so the relative rule keeps them). Test with synthetic `MouseEvent`s: a flick passes, a lone 458 px among 60–120 px is dropped, a ramp of 250–350 px passes. Maybe later a RAW MOUSE setting (`unadjustedMovement`, off by default, with the fallback).
 
-
+Triage notes (2026-10-14): needs a human: the drop rule changes how the mouse feels; judge it with real 125 Hz and 1000 Hz mice on Windows.
 
 ### Pickup rings on the title screen are sized for where you stand
 - id: BL-011
@@ -144,7 +144,7 @@ Do: in `input.ts`, drop one event over 300 px (config) that is also over 3× the
 
 `ringSize` in `src/pickups/pickups.ts` uses the player's camera, not the title view: the lime one, ~16 m from the title camera and ~29 m from the spawn, shows almost twice its size. Do: size them for the camera that draws (`shown` in `main.ts`), or leave it.
 
-
+Triage notes (2026-10-14): needs a decision: size the rings for the title camera, or leave it.
 
 ### A remote player's correction glides too fast on a bad link
 - id: BL-012
@@ -186,7 +186,7 @@ Walking along railings and landings (the corner slip, `PLAYER.cornerSlip`), the 
 
 Enter in HOST's name field hosts, and the menu at 1366×768 and in a small window. Checked in headed Chromium 153 with real keys: in fullscreen, Esc tapped on the pause screen resumes on release, held it fills the rings and Chromium leaves as they fill (1500 ms), and so does holding EXIT FULLSCREEN. Windowed, Chromium takes the Esc that frees the mouse and refuses the lock again without a click, so Esc doesn't resume there (as before the hold). Still to see: Firefox and Safari (one Esc leaves fullscreen, a plain ESC key on the control).
 
-
+Triage notes (2026-10-14): needs a human: a check in real Firefox and Safari.
 
 ### Rework the drips: independent chance, no stacking across tools
 - id: BL-015
@@ -327,7 +327,7 @@ JSON stamps with full-precision floats and the surface key, uncompressed; a pain
 
 83 of the test's 94 frames over 100 ms (median 230 ms, worst 1.1 s) came within 30 s of a welcome: `paint + hud` lap with 170–470 uploads and 28–195 MB in one frame (`PaintGpu.flush`, `src/paint-gpu.ts`). The JS heap also jumps to 0.8–1 GB on each join (steady ~0.5 GB). Do: spread the first upload over frames (a budget of MB per frame), and look at what `loadPaint` allocates.
 
-
+Triage notes (2026-10-14): needs a human: profile a rejoin on the real GPU before and after; the per-frame budget is a judgment call.
 
 ### Weak GPUs: cap the render buffer
 - id: BL-026
@@ -341,7 +341,7 @@ JSON stamps with full-precision floats and the surface key, uncompressed; a pain
 
 An Intel Iris Xe (1536×695 buffer) took 23 ms of GPU a frame and ran at 30 fps; the player left after 6 min. The M1 base takes 11 ms at 1440×900 ×2. A 3080 Ti rendered a 3840×2160 buffer for a 2560×1440 screen (browser zoom or OS scale; `pixelScale` 1). Do: a cap on the buffer's pixels (config), and the HUD's frame-time warning with a pointer to PIXEL SCALE when GPU time stays over budget.
 
-
+Triage notes (2026-10-14): needs a human: the cap changes the picture on big screens; judge it with `npm run shots` and on a weak GPU.
 
 ### A closed session's paint stays in the server's memory until a GC
 - id: BL-027
@@ -355,7 +355,7 @@ An Intel Iris Xe (1536×695 buffer) took 23 ms of GPU a frame and ran at 30 fps;
 
 Node 24: 320 MB of dropped `ArrayBuffer`s stay (rss 366 MB) while idle, and `gc()` frees them (rss 47 MB). The host's container showed ~500 MB with no session. `liveMemory` (`server/log.ts`: heap + arrayBuffers) counts that garbage against `HOST_MEMORY`, so a new session could be turned away as busy until the next GC. Do: run `node --expose-gc` and call `gc()` when a session closes, or sum the open sessions' `memory.now` instead.
 
-
+Triage notes (2026-10-14): needs the host: `--expose-gc` changes how the server is started (Dockerfile, `docs/deploy.md`); or the other way, summing the open sessions' memory, needs a decision.
 
 ### Other players' spray with many players
 - id: BL-028
@@ -397,7 +397,7 @@ Two edits (lamps, signs, ducts, 4 clear windows; then railings, parapets, roof l
 
 Caddy compresses every response on the fly (zstd at its default level comes out 1.5% bigger than gzip for the game's JS: 911 KB → ~270 KB). Brotli 11, made at build time, would be ~20% smaller and cost no CPU per request. Do: Vite emits `.br` and `.gz` next to each asset, and Caddy serves them (`file_server { precompressed br gzip }`, `docs/deploy.md` §5, on the host).
 
-
+Triage notes (2026-10-14): needs the host: Caddy's `precompressed` is set on the VPS, outside this repo.
 
 ### Four shaders still compile in the first frame
 - id: BL-031
@@ -437,7 +437,7 @@ On the real GPU (headed Chromium on WSLg, its own Vite server); 8 other loads to
 
 It spans two level tiles (`p89`, `p90` and a joint), so every game starts with two 2048² paint pages: +42.5 MB of GPU memory before anything is painted. Do: move the hint (or the wall) into one tile and save the level and its paint again (build mode P).
 
-
+Triage notes (2026-10-14): needs a human: moving the wall and saving the level and its paint again is done in build mode (P).
 
 ### Paint pages at ULTRA use ~0.95 GB of GPU memory
 - id: BL-034
@@ -477,7 +477,7 @@ Walking, collisions (and the corner slip), jumps, climbing, ladders. A fixed-ste
 
 `baker.ts` budget, rain: screenshots aren't byte-comparable. Compare pictures only after the bake finishes, rain off.
 
-
+Triage notes (2026-10-14): unclear what to do: no test compares pictures byte for byte today. Research first: which test would.
 
 ### The multiplayer test's first page didn't build its level within 120 s
 - id: BL-037
@@ -505,7 +505,7 @@ Once (another agent testing on the machine too); not seen since. If it repeats, 
 
 `src/net/multiplayer.ts` is 408 lines, `src/hud.ts` 410, `src/main.ts` 403. Split by responsibility the next time any grows (`multiplayer.ts`: the paint-file download and the heartbeat; `hud.ts`: the perf lines or the menu's pages; `main.ts`: the load steps).
 
-
+Triage notes (2026-10-14): wait, as the item says, until one of the files grows: splitting `main.ts` now risks the boot for no gain.
 
 ### More marker types, placed on the map
 - id: BL-039
@@ -1049,7 +1049,7 @@ Today the blocking is spread over `src/input.ts`: the `PREVENT` set and every Ct
 ### A K in the session code takes a screenshot
 - id: BL-082
 - type: bug
-- status: Planned
+- status: Done
 - priority: High
 - size: XS
 - area: input
