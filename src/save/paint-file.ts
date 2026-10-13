@@ -73,8 +73,10 @@ export function joinBytes(pieces: Uint8Array[]) {
   return out;
 }
 
+export type DecodedPaint = { header: PaintFileHeader; body: Uint8Array };
+
 /** The header and the paint of a save; throws an Error with a message for the player if the file is no good. */
-export async function decodePaintFile(bytes: Uint8Array, maxBytes = Infinity): Promise<{ header: PaintFileHeader; body: Uint8Array }> {
+export async function decodePaintFile(bytes: Uint8Array, maxBytes = Infinity): Promise<DecodedPaint> {
   if (bytes.length < 8 || new TextDecoder().decode(bytes.subarray(0, 4)) !== MAGIC) throw new Error('NOT A PAINT FILE');
   const length = new DataView(bytes.buffer, bytes.byteOffset).getUint32(4, true);
   let header: PaintFileHeader;
