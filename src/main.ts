@@ -21,7 +21,7 @@ import { paintMenu } from './save/paint-menu';
 import { WallHand } from './tools/wall-hand';
 import { GpuTimer } from './debug/gpu-timer';
 import { captureDefaults } from './debug/defaults';
-import { Settings } from './settings';
+import { pixelRatio, Settings } from './settings';
 import { saveScreenshot } from './screenshot';
 import { Input } from './input';
 import { Player } from './player';
@@ -59,7 +59,7 @@ else HUD.perf = false;
 // and the paint detail the level is built with.
 const settings = new Settings(applyPixelScale, () => level.rebuildAll(), rebuildCity);
 const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
-renderer.setPixelRatio(1 / RENDER.pixelScale);
+renderer.setPixelRatio(pixelRatio());
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.autoClear = false;
 document.body.appendChild(renderer.domElement);
@@ -133,7 +133,7 @@ pickups.onCollect = (label) => {
 };
 pickups.onBlocked = (msg) => hotbar.toast(msg);
 function applyPixelScale() {
-  renderer.setPixelRatio(1 / RENDER.pixelScale);
+  renderer.setPixelRatio(pixelRatio());
   syncViewSize();
 }
 
@@ -225,7 +225,7 @@ window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
-  syncViewSize();
+  applyPixelScale(); // a zoom changes devicePixelRatio
 });
 
 const eye = new THREE.Vector3();

@@ -354,6 +354,21 @@ await check('can: shaking and spraying exclude each other, the one pressed first
   return r.shookFirst && !r.sprayedWhileShaking && r.sprayedFirst && !r.shookWhileSpraying ? null : JSON.stringify(r);
 });
 
+await check('render: never more pixels than the screen has (a page zoomed out to 50%), as many at 100%', async () => {
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    const scale = g.config.RENDER.pixelScale;
+    const real = Object.getOwnPropertyDescriptor(window, 'devicePixelRatio');
+    Object.defineProperty(window, 'devicePixelRatio', { configurable: true, get: () => 0.5 });
+    window.dispatchEvent(new Event('resize'));
+    const zoomedOut = g.renderer.getPixelRatio() * scale;
+    Object.defineProperty(window, 'devicePixelRatio', real);
+    window.dispatchEvent(new Event('resize'));
+    return { zoomedOut, normal: g.renderer.getPixelRatio() * scale, dpr: devicePixelRatio };
+  });
+  return r.zoomedOut === 0.5 && r.normal === Math.min(1, r.dpr) ? null : JSON.stringify(r);
+});
+
 await check('sponge: a surface cleaned completely gives its memory back', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
