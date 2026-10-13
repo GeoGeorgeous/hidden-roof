@@ -333,6 +333,27 @@ await check('loading: a hidden tab, given no animation frames, still goes throug
   return r ? null : 'a hidden tab never finished a load step';
 });
 
+await check('can: shaking and spraying exclude each other, the one pressed first wins', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { input } = g;
+    const spray = g.tools.spray;
+    input.locked = true;
+    g.inventory.select(0);
+    g.inventory.pressure = 0.5;
+    const out = {};
+    // RMB first, then LMB as well: it shakes, and nothing sprays.
+    await steps((f) => ((input.rmb = f < 20), (input.lmb = f >= 5 && f < 20), f === 15 && ((out.shookFirst = spray.shaking), (out.sprayedWhileShaking = spray.flow > 0)), f === 30));
+    // LMB first, then RMB as well: it sprays, and no shake starts.
+    await steps((f) => ((input.lmb = f < 20), (input.rmb = f >= 5 && f < 20), f === 15 && ((out.sprayedFirst = spray.flow > 0), (out.shookWhileSpraying = spray.shaking)), f === 30));
+    input.lmb = input.rmb = false;
+    g.fixedStep.dt = 0;
+    input.locked = false;
+    return out;
+  });
+  return r.shookFirst && !r.sprayedWhileShaking && r.sprayedFirst && !r.shookWhileSpraying ? null : JSON.stringify(r);
+});
+
 await check('sponge: a surface cleaned completely gives its memory back', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
