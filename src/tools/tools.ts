@@ -19,8 +19,8 @@ const SIZED: Record<SizedTool, WheelSized> = { marker: MARKER, roller: ROLLER, s
 const isSized = (t: Tool | null): t is SizedTool => t !== null && t in SIZED;
 
 // Routes input to the tool in hand: 1 = can, 2 = marker, 3 = stepladder, 4 =
-// roller, 5 = sponge, Q/E = color (can, marker, roller), mouse wheel = cap (can), width
-// (marker, roller, sponge) or turning the ladder. Owns the UI the tools share: it
+// roller, 5 = sponge, mouse wheel = color (can, marker, roller) or turning the ladder,
+// Q/E = the can's cap or the width (marker, roller, sponge). Owns the UI the tools share: it
 // reports color / cap changes (and which ones apply when switching tools) and
 // where the tags go next to whichever tool is in hand.
 
@@ -70,13 +70,14 @@ export class Tools {
     this.sponge.sway.rotation.copy(this.spray.model.sway.rotation);
     if (enabled) {
       SLOTS.forEach((_, i) => input.wasPressed(`Digit${i + 1}`) && inv.select(i));
-      const dc = (input.wasPressed('KeyE') ? 1 : 0) - (input.wasPressed('KeyQ') ? 1 : 0);
-      if (dc && inv.cycleColor(dc)) this.audio.click();
       if (SLOTS.some((_, i) => input.wasPressed(`Digit${i + 1}`))) this.audio.click();
-      if (input.wheelSteps !== 0 && inv.tool === 'can' && inv.cycleCap(Math.sign(input.wheelSteps))) this.audio.click();
       const t = inv.tool;
-      if (input.wheelSteps !== 0 && isSized(t)) {
-        const size = stepSize(SIZED[t], inv.size[t], -Math.sign(input.wheelSteps));
+      const wheel = Math.sign(input.wheelSteps);
+      const qe = (input.wasPressed('KeyE') ? 1 : 0) - (input.wasPressed('KeyQ') ? 1 : 0);
+      if (wheel && (t === 'can' || t === 'marker' || t === 'roller') && inv.cycleColor(wheel)) this.audio.click();
+      if (qe && t === 'can' && inv.cycleCap(qe)) this.audio.click();
+      if (qe && isSized(t)) {
+        const size = stepSize(SIZED[t], inv.size[t], qe);
         if (size !== inv.size[t]) this.audio.click();
         inv.size[t] = size;
       }

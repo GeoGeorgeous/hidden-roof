@@ -448,9 +448,9 @@ export const CAPS: Record<CapId, CapSpec> = {
   spray: { name: 'SPRAY', spread: 0.1, rate: 1100, strength: 0.12, dotSize: 0.158, softness: 0.55, hissGain: 0.9, hissTone: 0.8, crosshair: 32, drips: 50, drain: 0.1, color: '#b98cf2', nozzle: 0.013 },
 };
 
-/** Paint colors, in Q/E cycling order. Black is always owned. Paint never runs out. */
+/** Paint colors, in the mouse wheel's cycling order. Black is always owned. Paint never runs out. */
 export type PaintColor = 'black' | 'white' | 'red' | 'orange' | 'yellow' | 'lime' | 'green' | 'teal' | 'cyan' | 'blue' | 'purple' | 'pink' | 'brown';
-/** Q / E order. Black is everyone's from the start; each other color is a pickup. */
+/** The mouse wheel's order. Black is everyone's from the start; each other color is a pickup. */
 export const COLOR_ORDER: PaintColor[] = ['black', 'white', 'red', 'orange', 'yellow', 'lime', 'green', 'teal', 'cyan', 'blue', 'purple', 'pink', 'brown'];
 export const COLORS: Record<PaintColor, string> = {
   black: '#1d1d22',
