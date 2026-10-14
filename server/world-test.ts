@@ -5,11 +5,12 @@ import { PAINT, SERVER } from '../src/config';
 import type { LevelData } from '../src/level/level-data';
 import { loadPaint } from '../src/save/load-paint';
 import { savePaint } from '../src/save/save-paint';
+import { planLevel } from '../src/level/prop-pieces';
 import { Session, type Link } from './session';
 import { sessionPaint } from './world';
 
-// The server's paint in the process, no server running: a paint file that
-// fails, paint measured at its surfaces' own detail, ops replayed without being
+// The server's paint in the process, no server running: the level plan, a paint
+// file that fails, paint measured at its surfaces' own detail, ops replayed without being
 // logged, and level paint: made on a level it fits, not once a painted prop is
 // gone, and each level's own paint fits its level. npm run test:server builds it.
 
@@ -42,6 +43,16 @@ const level: LevelData = JSON.parse(fs.readFileSync('public/levels/demo.json', '
     Object.assign(SERVER, was);
   }
   console.log('failed paint file: ok (the next join gets a new one)');
+}
+
+// The level plan both the game and the server build from: a prop keeps its id from the file, one without (or with an
+// id taken) gets the next free one, and every prop's solid boxes are in the cover index before anything is built.
+{
+  const slab = { type: 'slab', pos: [0, 0, 0] as [number, number, number] };
+  const plan = planLevel({ version: 4, spawn: { pos: [0, 0, 0], yaw: 0 }, props: [{ ...slab, id: 5 }, slab, { ...slab, id: 5 }, { ...slab, type: 'no-such-prop' }] });
+  assert.deepEqual([[...plan.props.keys()], plan.next], [[5, 6, 7], 8]);
+  assert.ok([5, 6, 7].every((id) => plan.cover.boxesOf(id).length > 0));
+  console.log('level plan: ok (ids kept, numbered after, solid boxes listed)');
 }
 
 // Ops replayed (another player's) are painted and never logged; this player's are logged.

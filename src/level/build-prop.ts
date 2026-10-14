@@ -157,6 +157,9 @@ const PROXY = new THREE.MeshBasicMaterial();
 const PANE_PROXY = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
 
 /** The level tile (RENDER.batchTile m square columns) a box's center is in: batches merge per tile, and paint pages are shared per tile. */
+/** A paint surface's key (PaintSurface.key): its owner (prop-pieces.ts surfaceOwner) and its place among the owner's surfaces. */
+export const surfaceKey = (owner: string, n: number) => `${owner}#${n}`;
+
 export function tileKey(bounds: THREE.Box3) {
   const t = RENDER.batchTile;
   return `${Math.floor((bounds.min.x + bounds.max.x) / 2 / t)},${Math.floor((bounds.min.z + bounds.max.z) / 2 / t)}`;
@@ -344,7 +347,7 @@ export function buildProp(id: number, owner: string, pieces: Piece[], pos: V3, r
     mesh.castShadow = false;
     mesh.userData.mat = mat;
     out.solids.push(mesh);
-    out.paint.push(paint.register(`${owner}#${out.paint.length}`, mesh, geo, tileKey(geo.geometry.boundingBox!)));
+    out.paint.push(paint.register(surfaceKey(owner, out.paint.length), mesh, geo, tileKey(geo.geometry.boundingBox!)));
   }
   for (const { geo, mat } of mergeDecor(ex.decor)) {
     const mesh = add(geo, decorMaterial(mat));
