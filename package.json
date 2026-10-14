@@ -16,7 +16,7 @@
     "golden": "node scripts/golden-paint.mjs",
     "bench:save": "node scripts/save-size.bench.mjs",
     "shots:avatar": "node scripts/avatar-shots.mjs",
-    "test": "node scripts/paint-file.test.mjs && node scripts/protocol.test.mjs",
+    "test": "node scripts/paint-file.test.mjs && node scripts/protocol.test.mjs && node scripts/playtest-report.test.mjs",
     "test:game": "node scripts/game.test.mjs",
     "test:mp": "npm run build:server -- --logLevel warn && node scripts/multiplayer.test.mjs",
     "test:csp": "npm run build:dev -- --logLevel error && npm run build:server -- --logLevel warn && node scripts/csp.test.mjs",

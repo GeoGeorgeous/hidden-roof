@@ -46,7 +46,7 @@ const sum = (xs) => xs.reduce((n, x) => n + (typeof x === 'number' ? x : 0), 0);
 const fmt = (x, d = 0) => (x === null || x === undefined || Number.isNaN(x) ? '–' : typeof x === 'number' ? x.toFixed(d) : String(x));
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 const time = (l) => new Date(ms(l)).toISOString().slice(5, 19).replace('T', ' ');
-/** A percentile from summed bucket counts (`tops` as in PLAYTEST): the top of the bucket it falls in. */
+/** A percentile from summed bucket counts (`tops` as in PLAYTEST): the top of the bucket it falls in, Infinity in the open top one (fmtP). */
 const histP = (counts, tops, p) => {
   const n = sum(counts);
   if (!n) return null;
@@ -54,6 +54,8 @@ const histP = (counts, tops, p) => {
   for (let i = 0; i < counts.length; i++) if ((c += counts[i]) >= p * n) return i < tops.length ? tops[i] : Infinity;
   return null;
 };
+/** A histP percentile as shown: past the top bucket, more than its edge. */
+const fmtP = (x, tops) => (x === Infinity ? `>${tops.at(-1)}` : fmt(x));
 const addHist = (hs) => hs.filter(Boolean).reduce((a, h) => a.map((x, i) => x + (h[i] ?? 0)), new Array(Math.max(0, ...hs.filter(Boolean).map((h) => h.length))).fill(0));
 const FRAME_TOPS = [8, 12, 17, 25, 33, 50, 100, 250];
 const PING_TOPS = [25, 50, 75, 100, 150, 200, 300, 500, 1000];
@@ -180,7 +182,7 @@ const table = (head, rows) => `<div class="scroll"><table><thead><tr>${head.map(
 const vpnLabel = (v) => (v === true ? 'yes' : v === false ? 'no' : '–');
 const vpnGroups = [true, false, null].map((v) => {
   const S = stats.filter((s) => (s.d.vpn ?? null) === v);
-  return S.length ? [vpnLabel(v), S.length, fmt(median(S.map((s) => s.ping))), fmt(median(S.map((s) => s.ping95))), fmt(sum(S.map((s) => s.stalls300))), fmt(max(S.map((s) => s.silence))), fmt(sum(S.map((s) => s.reconnects)))] : null;
+  return S.length ? [vpnLabel(v), S.length, fmtP(median(S.map((s) => s.ping)), PING_TOPS), fmtP(median(S.map((s) => s.ping95)), PING_TOPS), fmt(sum(S.map((s) => s.stalls300))), fmt(max(S.map((s) => s.silence))), fmt(sum(S.map((s) => s.reconnects)))] : null;
 }).filter(Boolean);
 
 const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -215,7 +217,7 @@ ${ipChanges.length ? `<p><b>Devices that came back from another address</b> (a V
 
 <h2>Each device</h2>
 <p class="note">Frame p99 is from the summed histogram over the whole session (bucket tops). Lost particles: spray asked for while the pool (3000) was full. Op wait: time from another player's paint op arriving to it showing (the figure's interpolation delay); op late: how much later than that player's best it arrived. Self: the telemetry's own time per 5 s window.</p>
-${table(['device', 'min', 'fps', 'display Hz', 'p95', 'p99', 'worst', 'hitches', 'GPU', 'CPU p95', 'calls', 'lost', 'ping', 'ping p95', 'unanswered', 'stalls >300', 'silence', 'queued', 'op wait', 'op late', 'heap +MB', 'reconnects', 'errors', 'self ms'], stats.map((s) => [esc(label(s.d)), fmt(s.minutes, 1), fmt(s.fps), fmt(s.refreshHz), fmt(s.p95, 1), fmt(s.p99), fmt(s.worst), s.hitches, fmt(s.gpu, 1), fmt(s.cpu, 1), fmt(s.calls), s.lost, fmt(s.ping), fmt(s.ping95), s.unanswered, s.stalls300, fmt(s.silence), fmt(s.queued), fmt(s.opWait), fmt(s.opLate), fmt(s.heapGrowth, 1), s.reconnects, s.errors ? `<span class="flag">${s.errors}</span>` : 0, fmt(s.self, 2)]))}
+${table(['device', 'min', 'fps', 'display Hz', 'p95', 'p99', 'worst', 'hitches', 'GPU', 'CPU p95', 'calls', 'lost', 'ping', 'ping p95', 'unanswered', 'stalls >300', 'silence', 'queued', 'op wait', 'op late', 'heap +MB', 'reconnects', 'errors', 'self ms'], stats.map((s) => [esc(label(s.d)), fmt(s.minutes, 1), fmt(s.fps), fmt(s.refreshHz), fmt(s.p95, 1), fmtP(s.p99, FRAME_TOPS), fmt(s.worst), s.hitches, fmt(s.gpu, 1), fmt(s.cpu, 1), fmt(s.calls), s.lost, fmtP(s.ping, PING_TOPS), fmtP(s.ping95, PING_TOPS), s.unanswered, s.stalls300, fmt(s.silence), fmt(s.queued), fmt(s.opWait), fmt(s.opLate), fmt(s.heapGrowth, 1), s.reconnects, s.errors ? `<span class="flag">${s.errors}</span>` : 0, fmt(s.self, 2)]))}
 
 <h2>Timelines</h2>
 <p class="note">Minutes from the first line. Dashed lines: phases (Shift+F9) and marks (F9, "it lagged just now"). Hover for values.</p>
@@ -223,7 +225,7 @@ ${table(['device', 'min', 'fps', 'display Hz', 'p95', 'p99', 'worst', 'hitches',
 <div class="charts" id="charts"></div>
 
 <h2>Phases</h2>
-${table(['phase', 'started by', 'reports', 'fps', 'frame p99', 'ping p95', 'hitches', 'most spraying at once'], phases.map((p) => [p.p, esc(p.by), p.windows, fmt(p.fps), fmt(p.p99), fmt(p.ping95), p.hitches, fmt(p.sprayers)]))}
+${table(['phase', 'started by', 'reports', 'fps', 'frame p99', 'ping p95', 'hitches', 'most spraying at once'], phases.map((p) => [p.p, esc(p.by), p.windows, fmt(p.fps), fmtP(p.p99, FRAME_TOPS), fmtP(p.ping95, PING_TOPS), p.hitches, fmt(p.sprayers)]))}
 <p><b>Marks:</b> ${marks.filter((m) => !m.next).map((m) => `${time(m)} ${esc(who(m))}`).join(' · ') || 'none'}</p>
 
 <h2>Worst windows</h2>
