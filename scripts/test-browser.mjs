@@ -55,6 +55,19 @@ export async function openTestBrowser(url, { uncapped = false, level = 'demo', g
       return page;
     };
   }
+  // Pages get 2 min to load (a reload too): Playwright's own 30 s is short for SwiftShader on a slow CI runner.
+  const open = browser.newPage.bind(browser);
+  browser.newPage = async (options) => {
+    const page = await open(options);
+    page.setDefaultNavigationTimeout(120_000);
+    return page;
+  };
+  const context = browser.newContext.bind(browser);
+  browser.newContext = async (options) => {
+    const c = await context(options);
+    c.setDefaultNavigationTimeout(120_000);
+    return c;
+  };
   return {
     browser,
     url,

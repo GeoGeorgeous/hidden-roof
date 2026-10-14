@@ -48,14 +48,15 @@ function pageSteps() {
 }
 
 async function check(name, fn) {
-  // Every check starts alike, whatever ran (or failed) before it: seeded paint randomness (spray, drips), frames on the clock.
-  if (!page.isClosed())
-    await page.evaluate(() => {
-      const g = window.game;
-      g.seedPaintRandom(1);
-      Object.assign(g.fixedStep, { dt: 0, script: null });
-    });
   try {
+    // Every check starts alike, whatever ran (or failed) before it: seeded paint randomness (spray, drips), frames on the clock.
+    // Inside the try: a page a failed check left without a game fails this check too, not the whole run.
+    if (!page.isClosed())
+      await page.evaluate(() => {
+        const g = window.game;
+        g.seedPaintRandom(1);
+        Object.assign(g.fixedStep, { dt: 0, script: null });
+      });
     const problem = await fn();
     if (problem) throw new Error(problem);
     console.log(`ok    ${name}`);
