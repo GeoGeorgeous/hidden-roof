@@ -50,6 +50,8 @@ export class Lobby {
     /** Their session and who they are in it, once welcomed; 'waiting' while a host or join is under way. */
     let at: { session: Session; player: Player } | 'waiting' | null = null;
     let hello: ReturnType<typeof setTimeout> | undefined;
+    /** Counted among its address's uploads (a HOST link let past the limit on links): given back when it closes. */
+    let uploads = false;
     const input: LinkInput = {
       message: async (data) => {
         // A message the server can't handle closes that one link, never the server and everyone's sessions.
@@ -75,7 +77,7 @@ export class Lobby {
       },
       closed: (code, reason) => {
         count(this.links, ip, -1);
-        if (host) count(this.uploads, ip, -1);
+        if (uploads) count(this.uploads, ip, -1);
         clearTimeout(hello);
         if (!at || at === 'waiting' || at.player.link !== link) return;
         log(at.session.code, who(at.player), `dropped (${code}${reason.length ? ` ${reason}` : ''}): ${SERVER.rejoinWindow} s to come back`);
@@ -85,7 +87,7 @@ export class Lobby {
     // Turned away: what it still sends is ignored; its close is counted.
     const away = (): LinkInput => (reject('too-many'), { message: async () => {}, closed: input.closed });
     if (count(this.links, ip, 1) > SERVER.linksPerIp) return away();
-    if (host && (count(this.uploads, ip, 1) > SERVER.uploadsPerIp || uploading() > SERVER.uploads)) return away();
+    if (host && ((uploads = true), count(this.uploads, ip, 1) > SERVER.uploadsPerIp || uploading() > SERVER.uploads)) return away();
     hello = setTimeout(() => {
       if (at) return;
       log('-----', `link from ${ip}: no HOST or JOIN in ${SERVER.helloTimeout} s: closed`);

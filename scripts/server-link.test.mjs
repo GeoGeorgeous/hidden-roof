@@ -61,7 +61,7 @@ const join = { type: 'join', protocol: PROTOCOL, name: 'B', code: 'ABCDE' };
   assert.equal(said.at(-1), 'closed (timed out)');
 }
 
-// Keepalive: something goes up at least every SERVER.ping (pings, when nothing else does).
+// Keepalive: something goes up at least every SERVER.ping (pings, when nothing else does; the hello counts).
 {
   const { socket, at } = link(join);
   socket.open();
@@ -69,6 +69,8 @@ const join = { type: 'join', protocol: PROTOCOL, name: 'B', code: 'ABCDE' };
   assert.deepEqual(socket.sent, ['join', 'ping']);
   at(SERVER.ping + 0.2);
   assert.deepEqual(socket.sent, ['join', 'ping'], 'not again so soon');
+  at(2 * SERVER.ping + 0.2);
+  assert.deepEqual(socket.sent, ['join', 'ping', 'ping'], 'and again');
 }
 
 // HOST with a save: the upload's progress, no giving up while it goes up however long, then what the server does.

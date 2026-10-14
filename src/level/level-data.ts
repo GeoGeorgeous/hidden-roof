@@ -2,7 +2,7 @@ import type { Finish } from '../kit/finishes';
 import type { V3 } from '../kit/pieces';
 
 // The level as a file (levels/<name>.json, build mode's save, a session's HOST):
-// its props and spawn; pickups and the city's overrides ride along (main.ts levelData).
+// its props and spawn; pickups and the city's overrides ride along (OpenLevel.toJSON).
 // levelProblem checks one, for the game and the server alike. No runtime imports:
 // Node runs this file as is (net/protocol.ts, scripts/protocol.test.mjs).
 

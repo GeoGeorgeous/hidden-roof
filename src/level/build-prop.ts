@@ -156,10 +156,10 @@ function material(m: Mat) {
 const PROXY = new THREE.MeshBasicMaterial();
 const PANE_PROXY = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
 
-/** The level tile (RENDER.batchTile m square columns) a box's center is in: batches merge per tile, and paint pages are shared per tile. */
 /** A paint surface's key (PaintSurface.key): its owner (prop-pieces.ts surfaceOwner) and its place among the owner's surfaces. */
 export const surfaceKey = (owner: string, n: number) => `${owner}#${n}`;
 
+/** The level tile (RENDER.batchTile m square columns) a box's center is in: batches merge per tile, and paint pages are shared per tile. */
 export function tileKey(bounds: THREE.Box3) {
   const t = RENDER.batchTile;
   return `${Math.floor((bounds.min.x + bounds.max.x) / 2 / t)},${Math.floor((bounds.min.z + bounds.max.z) / 2 / t)}`;

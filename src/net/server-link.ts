@@ -134,6 +134,7 @@ export class ServerLink {
     if (this.gone) return;
     this.on.log(`open after ${Math.round((this.env.now() - this.started) * 1000)} ms`);
     this.socket.send(this.frame);
+    this.sent = this.env.now();
     // Only a save is worth a percentage (the rest goes in a blink).
     this.uploading = !!this.save && this.socket.bufferedAmount > 0;
     this.on.progress(this.uploading ? 'Uploading paint 0%' : this.next);

@@ -1,12 +1,10 @@
 import * as THREE from 'three';
 import { PAINT } from './config';
-import type { MipSize } from './paint-mips';
 import { painted, resampleRect } from './paint-resample';
 import type { FacePoint, Rect, SurfaceGeometry } from './surfaces';
 import { SeamIndex, texelToWorld, worldToTexel, type SeamFace } from './paint-seams';
-import { PaintGpu, type DirtyRect, type PaintPage } from './paint-gpu';
-import type { PageSlot } from './page-packer';
-import type { LightSlot } from './render/bake/light-pages';
+import { PaintGpu } from './paint-gpu';
+import type { PaintPatch, PaintSurface, Rgb } from './paint-surface';
 import { inRing, PaintRaster, type Band, type Box } from './paint-raster';
 import type { PaintOp, RollOp, StampOp } from './paint-ops';
 import { rounded } from './op-wire';
@@ -33,44 +31,12 @@ function faceTexel(s: PaintSurface, at: FacePoint): Rect {
   return r;
 }
 
-/** A paint color: sRGB channels 0..1, the way paint textures store it (inventory/items.ts rgbOf). */
-export type Rgb = readonly [number, number, number];
-
-export interface PaintSurface {
-  /** Stable name, the same on every client and at every paint detail: `p<prop id>#k` or `j<joint key>#k`, k = index in the prop's paint (level/build-prop.ts). */
-  key: string;
-  /** Never drawn (the level draws its surfaces merged, level/batches.ts): what tools' rays hit. */
-  mesh: THREE.Mesh;
-  geo: SurfaceGeometry;
-  /** Its block on a paint page. */
-  slot: PageSlot<PaintPage> | null;
-  /** Its block on a light page (render/bake), once the baker took the surface in. */
-  light: LightSlot | null;
-  data: Uint8Array | null;
-  /** Sizes of the texture's smaller levels for distant views (paint-mips.ts); empty until the first hit. */
-  mips: MipSize[];
-  /** Its page's texture, while it holds paint. */
-  texture: THREE.DataTexture | null;
-  /** Excess paint per texel (paint-raster.ts RasterSurface). */
-  excess: Uint16Array | null;
-  /** Texel rects changed since the last upload (inclusive, paint-gpu.ts). */
-  dirty: DirtyRect[];
-}
-
-/** A box of a surface's paint (PaintSystem.patch): its texels and excess, or null where it had none. */
-export interface PaintPatch {
-  key: string;
-  /** The surface's atlas size then: a rebuilt surface of another size can't take it. */
-  atlas: [number, number];
-  box: Box;
-  data: Uint8Array | null;
-  excess: Uint16Array | null;
-}
+export type { PaintPatch, PaintSurface, Rgb } from './paint-surface';
 
 export class PaintSystem {
   readonly surfaces: PaintSurface[] = [];
   /** Texels per meter of its surfaces, as built (SurfaceGeometry.texelsPerMeter): the PAINT DETAIL its paint is at. */
-  texelsPerMeter = PAINT.texelsPerMeter;
+  texelsPerMeter: number;
   private bySurfaceMesh = new Map<THREE.Object3D, PaintSurface>();
   private byKey = new Map<string, PaintSurface>();
   /** Flat faces by plane, so dots carry across seams onto coplanar neighbors. */
@@ -81,7 +47,7 @@ export class PaintSystem {
   epoch = 0;
   /** While set, every op this player makes (stamps, rolls, the runs they start) is appended (paint-ops.ts). */
   log: PaintOp[] | null = null;
-  /** Ops painted so far (stamps, rolls, runs, replayed ones too): what saves and the network carry (F3). */
+  /** Ops painted so far (stamps, rolls and runs made here, stamps and rolls replayed): what saves and the network carry (F3). */
   opCount = 0;
   /** Called when heavy paint on a vertical face should start a run (see paint-drips.ts). */
   onDrip: (s: PaintSurface, rect: Rect, x: number, y: number, rgb: Rgb) => void = () => {};
@@ -89,6 +55,11 @@ export class PaintSystem {
     touched: (s, x0, y0, x1, y1) => this.gpu.markDirty(s, x0, y0, x1, y1),
     drip: (s, rect, x, y, rgb) => this.onDrip(s, rect, x, y, rgb),
   });
+
+  /** `texelsPerMeter`: the PAINT DETAIL its surfaces are built at, until one says otherwise (a session's on the server). */
+  constructor(texelsPerMeter = PAINT.texelsPerMeter) {
+    this.texelsPerMeter = texelsPerMeter;
+  }
 
   /** `group`: where it stands (a level tile): surfaces drawn together share paint pages. */
   register(key: string, mesh: THREE.Mesh, geo: SurfaceGeometry, group: string): PaintSurface {

@@ -103,9 +103,9 @@ class FakeLink implements Link {
   try {
     const lobby = new Lobby();
     const all: FakeLink[] = [];
-    const fake = (ip: string) => {
+    const fake = (ip: string, host = false) => {
       const l = new FakeLink(ip);
-      l.input = lobby.open(l, false);
+      l.input = lobby.open(l, host);
       all.push(l);
       return l;
     };
@@ -113,7 +113,23 @@ class FakeLink implements Link {
     const crowd = Array.from({ length: SERVER.linksPerIp }, () => fake('10.0.0.1'));
     const extra = fake('10.0.0.1');
     assert.deepEqual([rejected(crowd[0]), rejected(extra), extra.closedWith, rejected(fake('10.0.0.2'))], [undefined, 'too-many', closeCode('too-many'), undefined]);
+    // Closing them frees the address.
     crowd.forEach((l) => l.close());
+    await Promise.resolve();
+    assert.equal(rejected(fake('10.0.0.1')), undefined);
+    // Uploads (HOST links, /ws?host): SERVER.uploadsPerIp from an address. One turned away for too many links never
+    // took an upload slot, so its close gives none back.
+    const ups = Array.from({ length: SERVER.uploadsPerIp }, () => fake('10.0.2.1', true));
+    const plain = Array.from({ length: SERVER.linksPerIp - SERVER.uploadsPerIp }, () => fake('10.0.2.1'));
+    const pastLinks = fake('10.0.2.1', true);
+    pastLinks.close();
+    plain[0].close();
+    await Promise.resolve();
+    assert.deepEqual([ups.map(rejected), rejected(pastLinks), rejected(fake('10.0.2.1', true))], [[undefined, undefined], 'too-many', 'too-many']);
+    // And SERVER.uploads from everyone: the rest up to it go (two already are), the next is turned away.
+    await Promise.resolve();
+    const rest = Array.from({ length: SERVER.uploads - ups.length }, (_, i) => fake(`10.0.3.${i >> 1}`, true));
+    assert.deepEqual([rest.filter(rejected).length, rejected(fake('10.0.4.1', true))], [0, 'too-many']);
     const table = surfaceTable(sessionPaint(level, 48).paint.surfaces);
     const host = fake('10.0.1.1');
     await host.say({ type: 'host', protocol: PROTOCOL, table, name: 'A', levelName: 'demo', level, detail: 48 });
@@ -149,9 +165,13 @@ for (const s of [made.surfaces[0], made.surfaces.find((s) => s.key.startsWith(`p
 const own = await savePaint(made, { name: 'demo' });
 // Paint is measured at its surfaces' own detail, whatever the global PAINT DETAIL says meanwhile (another session's).
 const ultra = sessionPaint(demo, 96).paint;
+const global = PAINT.texelsPerMeter;
 PAINT.texelsPerMeter = 24;
 ultra.stamp(ultra.surfaces[0], { rect: 0, u: 0.5, v: 0.5 }, 0.1, 1, [1, 1, 1]);
 assert.ok(ultra.surfaces[0].data!.filter((v, i) => i % 4 === 3 && v > 0).length > 200, 'a 0.1 m stamp at 96 texels/m covers ~290 texels');
+PAINT.texelsPerMeter = global;
+// A session with nothing paintable is at its detail too (what its paint files say).
+assert.equal(sessionPaint({ ...demo, props: [] }, 96).paint.texelsPerMeter, 96);
 const fits = await paintOn(demo, own, 'demo');
 assert.ok(fits.faces > 0 && !fits.skipped, `level paint: ${fits.skipped} faces don't fit the level it was made on`);
 const changed = await paintOn({ ...demo, props: demo.props.slice(0, -1) }, own, 'demo');

@@ -11,7 +11,7 @@ import { PaintSystem } from '../src/painting';
 // is drawn: textures exist but never reach a GPU.
 
 export function sessionPaint(level: LevelData, texelsPerMeter: number) {
-  const paint = new PaintSystem();
+  const paint = new PaintSystem(texelsPerMeter);
   for (const { key, geo } of levelPaintFaces(level, texelsPerMeter)) paint.register(key, new THREE.Mesh(), geo, '');
   const drips = new PaintDrips(paint);
   return { paint, drips, ops: new PaintOps(paint, drips) };
