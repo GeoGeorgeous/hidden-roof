@@ -112,6 +112,8 @@ The label is only shown for a presence `dropped` that the **server** sent (`serv
 
 ## Checks after each fix
 
+The scenarios in `npm run test:weak-link` play most of these back on one machine (`docs/testing.md`); the next playtest checks them on real networks.
+
 | Fix (backlog) | How to see it worked |
 |---|---|
 | Heartbeat counts any client message; longer wait before reconnect | Two clients, one with its downlink throttled (DevTools "Slow 3G" or `tc`): no 1006 from the server while its `state` still arrives; the stall ends in a burst, not a drop. |
