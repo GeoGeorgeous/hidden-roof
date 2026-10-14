@@ -1,123 +1,156 @@
-// The playtest's weak link, played back (docs/playtest-multiplayer.md): A paints
-// nonstop while B's downlink is narrowed to a trickle (scripts/link-proxy.mjs), and
-// B paints a stroke of its own meanwhile. It reports what happens, for BL-004 (the
-// server's heartbeat kills a link that still sends), BL-009 (what A shows for B) and
-// BL-003 (B's strokes made during the stall, after it rejoins). A report for now,
-// not a pass or fail: each fix turns its part into a check.
-// Usage: npm run test:weak-link (builds the server first)
-import { spawn } from 'node:child_process';
-import { linkProxy } from './link-proxy.mjs';
-import { freePort, gameReady, noDrawing, openTestBrowser } from './test-browser.mjs';
+// Multiplayer on weak networks: scenarios from the playtest of 2026-10-12
+// (docs/playtest-multiplayer.md) and the backlog, played back with real browsers,
+// the real server and a link proxy per player (scripts/net-lab.mjs). Each prints
+// what happened. Checks what works: a scenario fails when it breaks; what is still
+// a bug is printed under "open", with its backlog item, until it's fixed.
+// Not part of npm run check: run it for multiplayer work (~1 min a scenario).
+// Usage: npm run test:weak-link                  (every scenario)
+//        SCENARIO=slow,stall npm run test:weak-link
+import { closeLab, hasStroke, openLab, ownSurface, paintNonstop, state, story, stroke, watch } from './net-lab.mjs';
 
-const RATE = Number(process.env.RATE) || 8000; // B's downlink while narrowed (bytes a second)
-const UP = Number(process.env.UP) || 4000; // and its uplink: its reports still go through, its strokes queue
-const STALL = Number(process.env.STALL) || 40; // how long (s)
+const sleep = (s) => new Promise((done) => setTimeout(done, s * 1000));
+/** A weak link (bytes a second): the playtest's weak players joined at ~70 KB/s and dropped more the more they received. */
+const SLOW = { down: 8000, up: 4000 };
+const narrow = (p) => (Object.assign(p.proxy.down, { rate: SLOW.down }), Object.assign(p.proxy.up, { rate: SLOW.up }));
+const dropped = (lab, name, code = '') => lab.server.some((s) => new RegExp(`"${name}" #\\d+ dropped \\(${code}`).test(s.line));
 
-const PORT = await freePort();
-const PROXY = await freePort();
-const t0 = Date.now();
-const at = () => ((Date.now() - t0) / 1000).toFixed(1);
-const serverLog = [];
-const server = spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(PORT) }, stdio: ['ignore', 'pipe', 'inherit'] });
-server.stdout.on('data', (d) => String(d).split('\n').filter(Boolean).forEach((l) => serverLog.push(`${at()} ${l}`)));
-await new Promise((done) => setTimeout(done, 500));
-const proxy = linkProxy(PROXY, PORT);
-process.env.WS_TARGET = `ws://localhost:${PROXY}`;
-const test = await openTestBrowser();
+const SCENARIOS = {
+  /** B on a slow link for a minute while A paints, its rejoins too (BL-004 heartbeat, BL-009 DISCONNECTED, BL-003 strokes, BL-085 slow join). */
+  async slow(lab, r) {
+    const { A, B } = lab.players;
+    const mine = await ownSurface(B, 0);
+    const lost = await ownSurface(B, 1);
+    const painting = await paintNonstop(A);
+    narrow(B);
+    await sleep(3);
+    await stroke(B, mine);
+    await stroke(B, lost, 'down');
+    await sleep(57);
+    await painting.stop();
+    B.proxy.open();
+    await state(B, 'in', 60000).catch(() => r.fail.push('B never got back in'));
+    await sleep(3);
+    const kept = async (i) => (await hasStroke(A, i)) && (await hasStroke(B, i));
+    r.facts.push(`B's stroke on the slow link: ${(await kept(mine)) ? 'kept' : 'lost'}`);
+    r.facts.push(`B's stroke made while its link was down: ${(await kept(lost)) ? 'kept' : 'lost'}`);
+    if (!(await kept(mine))) r.fail.push("B's stroke on a slow but live link is lost");
+    if (!(await kept(lost))) r.open.push('BL-003: a stroke made between the drop and the rejoin is lost');
+    if (dropped(lab, 'B', 1006)) r.open.push('BL-004: the server drops B (1006) while B still sends; A shows B as DISCONNECTED meanwhile (BL-009)');
+  },
 
-async function open(name) {
-  const ctx = await test.browser.newContext({ viewport: { width: 1280, height: 720 } });
-  await ctx.addInitScript(noDrawing);
-  await ctx.addInitScript(() => localStorage.setItem('roofhiddenhaus.settings', JSON.stringify({ paintDetail: 'low', cityDetail: 'low' })));
-  const page = await ctx.newPage();
-  await page.goto(test.url);
-  await gameReady(page);
-  page.name = name;
-  return page;
-}
-const press = (page, text) => page.locator('.overlay button:visible', { hasText: text }).first().click();
-const status = (page, state, timeout = 15000) => page.waitForFunction((s) => window.game.net.status.state === s, state, { timeout });
+  /** B's link stops dead both ways for 15 s, then comes back: the game's own close after 6 s of silence, strokes in flight. */
+  async stall(lab, r) {
+    const { A, B } = lab.players;
+    const inFlight = await ownSurface(B, 0);
+    const lost = await ownSurface(B, 1);
+    const painting = await paintNonstop(A);
+    await sleep(2);
+    B.proxy.down.rate = B.proxy.up.rate = 0;
+    await stroke(B, inFlight);
+    await stroke(B, lost, 'down');
+    await sleep(15);
+    B.proxy.open();
+    await painting.stop();
+    await state(B, 'in', 60000).catch(() => r.fail.push('B never got back in'));
+    await sleep(3);
+    const kept = async (i) => (await hasStroke(A, i)) && (await hasStroke(B, i));
+    // The proxy keeps what a dead link was sent and delivers it once it's back; a real dead link may not.
+    r.facts.push(`B's stroke sent into the dead link: ${(await kept(inFlight)) ? 'kept' : 'lost'} (the proxy delivers it late; a real dead link may lose it)`);
+    r.facts.push(`B's stroke made while it was reconnecting: ${(await kept(lost)) ? 'kept' : 'lost'}`);
+    if (!(await kept(inFlight)) || !(await kept(lost))) r.open.push('BL-003: strokes sent into a dead link, or made before the rejoin, are lost');
+  },
 
-const report = { rate: RATE, up: UP, stall: STALL, samples: [] };
-try {
-  const a = await open('A');
-  const b = await open('B');
-  await press(a, 'MULTIPLAYER');
-  await press(a, 'HOST A SESSION');
-  await a.fill('.mp-page input >> nth=0', 'A');
-  await press(a, 'Host');
-  await status(a, 'in');
-  const code = await a.evaluate(() => window.game.net.status.code);
-  await press(b, 'MULTIPLAYER');
-  await press(b, 'JOIN A SESSION');
-  await b.fill('.mp-page input >> nth=0', 'B');
-  await b.fill('.mp-page input >> nth=1', code.toLowerCase());
-  await press(b, 'Join');
-  await status(b, 'in');
-  await a.waitForFunction(() => window.game.net.remotes.list.size === 1);
-  const link = proxy.links.at(-1); // B's: the last to open
-  // B's own surface: nobody else paints it.
-  const mine = await b.evaluate(() => window.game.paint.surfaces.findLastIndex((s) => s.geo.rects.length > 0));
-  // And one more for a stroke made once the link is gone, before B is back in.
-  const down = await b.evaluate((m) => window.game.paint.surfaces.findLastIndex((s, i) => i < m && s.geo.rects.length > 0), mine);
-  // The moment B's game sees its link go, it paints that stroke (in the page, so nothing waits on the test).
-  await b.evaluate((i) => {
-    const g = window.game;
-    const t = setInterval(() => {
-      if (g.net.status.state !== 'reconnecting') return;
-      clearInterval(t);
-      for (let k = 0; k < 20; k++) g.paint.stamp(g.paint.surfaces[i], { rect: 0, u: 0.1 + k * 0.04, v: 0.5 }, 0.1, 1, [0, 0, 1]);
-      window.strokeWhileDown = performance.now();
-    }, 20);
-  }, down);
+  /** B 1.5 s away each way (a far VPN exit) and no slower, while A paints: does anything drop? */
+  async latency(lab, r) {
+    const { A, B } = lab.players;
+    const painting = await paintNonstop(A);
+    B.proxy.down.delay = B.proxy.up.delay = 1500;
+    await sleep(30);
+    r.facts.push(`B's ping: ${await B.page.evaluate(() => window.game.net.stats?.ping?.toFixed(2) ?? 'n/a')} s`);
+    B.proxy.open();
+    await painting.stop();
+    await sleep(3);
+    if (dropped(lab, 'B')) r.fail.push('a slow but steady link (1.5 s each way) is dropped');
+  },
 
-  // A paints nonstop (its ops go to B), B's downlink narrows.
-  await a.evaluate(() => {
-    const g = window.game;
-    const s = g.paint.surfaces.find((s) => s.geo.rects.length > 1);
-    let i = 0;
-    window.painting = setInterval(() => { for (let k = 0; k < 8; k++, i++) g.paint.stamp(s, { rect: 0, u: (i * 0.013) % 1, v: (i * 0.007) % 1 }, 0.05, 0.5, [1, 0.2, 0.1]); }, 50);
-  });
-  link.down.rate = RATE;
-  link.up.rate = UP;
-  const start = Date.now();
-  report.narrowedAt = at();
-  let stroke = false;
-  while (Date.now() - start < STALL * 1000) {
-    const s = (Date.now() - start) / 1000;
-    // B's stroke, made while its link is dying (BL-003).
-    if (!stroke && s > 3) {
-      stroke = true;
-      report.strokeAt = at();
-      await b.evaluate((i) => { const g = window.game; for (let k = 0; k < 20; k++) g.paint.stamp(g.paint.surfaces[i], { rect: 0, u: 0.1 + k * 0.04, v: 0.5 }, 0.1, 1, [0, 0, 1]); }, mine);
-    }
-    report.samples.push({
-      t: at(),
-      aSeesB: await a.evaluate(() => [...window.game.net.remotes.list.values()][0]?.look ?? 'gone'),
-      bState: await b.evaluate(() => window.game.net.status.state),
-      queued: link.down.queued + link.up.queued,
+  /** Three players, B on a slow link, A painting: does C, on a good one, notice anything? */
+  async 'three-players'(lab, r) {
+    const { A, B } = lab.players;
+    const painting = await paintNonstop(A);
+    narrow(B);
+    await sleep(40);
+    B.proxy.open();
+    await painting.stop();
+    await sleep(3);
+    r.facts.push(`C (a good link) dropped: ${dropped(lab, 'C') ? 'yes' : 'no'}`);
+    if (dropped(lab, 'C')) r.fail.push('a weak player made a good one drop');
+    if (dropped(lab, 'B', 1006)) r.open.push('BL-004: the server drops B (1006) while B still sends');
+  },
+
+  /** B gone longer than the rejoin window (5 s here): back as a new player, what it carried comes back by name. */
+  async 'past-rejoin-window'(lab, r) {
+    const { A, B } = lab.players;
+    await B.page.evaluate(() => {
+      const g = window.game;
+      g.inventory.give('marker');
+      g.level.setRuntime(g.session.player, { type: 'stepladder', pos: [1, 0, 1], rot: 0 });
     });
-    await new Promise((done) => setTimeout(done, 1000));
+    await B.page.waitForFunction(() => window.game.net.carried === window.game.inventory.version, null, { timeout: 5000 });
+    await A.page.waitForFunction(() => window.game.level.runtimeOf('player2') !== undefined, null, { timeout: 10000 });
+    // Dead both ways: the server notices on its heartbeat (~20 s), then the window runs out.
+    B.proxy.down.rate = B.proxy.up.rate = 0;
+    await sleep(35);
+    B.proxy.open();
+    await state(B, 'in', 60000).catch(() => r.fail.push('B never got back in'));
+    await sleep(3);
+    const how = lab.server.filter((s) => /"B" #\d+ in from/.test(s.line)).at(-1)?.line.match(/\((new|back|takeover)/)?.[1];
+    const marker = await B.page.evaluate(() => window.game.inventory.has('marker'));
+    r.facts.push(`B came back as: ${how}; still has the marker: ${marker}`);
+    if (how !== 'new') r.fail.push(`B came back as ${how}, not new: the window didn't run out`);
+    if (!marker) r.fail.push('what B carried is not back by name');
+  },
+
+  /** What a painter's ops cost everyone else: bytes down to B per stamp A makes (BL-024: ~250 B today, ~20 B the goal). */
+  async bytes(lab, r) {
+    const { A, B } = lab.players;
+    await sleep(3);
+    const idle = B.proxy.down.bytes;
+    await sleep(5);
+    const base = (B.proxy.down.bytes - idle) / 5;
+    const start = B.proxy.down.bytes;
+    const t = Date.now();
+    const painting = await paintNonstop(A);
+    await sleep(10);
+    const stamps = await painting.stop();
+    await sleep(2);
+    const perStamp = (B.proxy.down.bytes - start - (base * (Date.now() - t)) / 1000) / stamps;
+    r.facts.push(`down to B: ${base.toFixed(0)} B/s idle, ${perStamp.toFixed(0)} B per stamp A makes (${stamps} stamps)`);
+    if (perStamp > 30) r.open.push(`BL-024: ${perStamp.toFixed(0)} B per paint op (the goal is ~20)`);
+  },
+};
+
+const PLAYERS = { 'three-players': ['A', 'B', 'C'] };
+const ENV = { 'past-rejoin-window': { REJOIN_WINDOW: '5' } };
+const picked = process.env.SCENARIO ? process.env.SCENARIO.split(',') : Object.keys(SCENARIOS);
+let failed = 0;
+for (const name of picked) {
+  const r = { facts: [], open: [], fail: [] };
+  const lab = await openLab(PLAYERS[name] ?? ['A', 'B'], ENV[name]);
+  const stop = watch(lab);
+  try {
+    await SCENARIOS[name](lab, r);
+  } catch (e) {
+    r.fail.push(e.message.split('\n')[0]);
   }
-  link.down.rate = link.up.rate = Infinity;
-  await a.evaluate(() => clearInterval(window.painting));
-  report.restoredAt = at();
-  await status(b, 'in', 60000).catch(() => (report.bNotBack = true));
-  await new Promise((done) => setTimeout(done, 3000));
-  // Is B's stroke still there: on B, on A, and on the server's paint (what a joiner gets)?
-  const has = (page) => page.evaluate((i) => !!window.game.paint.surfaces[i].data?.some((v, k) => k % 4 === 2 && v > 200), mine);
-  report.strokeKept = { onB: await has(b), onA: await has(a) };
-  const hasDown = (page) => page.evaluate((i) => !!window.game.paint.surfaces[i].data?.some((v, k) => k % 4 === 2 && v > 200), down);
-  report.strokeWhileDown = { made: await b.evaluate(() => !!window.strokeWhileDown), onB: await hasDown(b), onA: await hasDown(a) };
-  report.bLog = await b.evaluate(() => window.game.net.log.text().split('\n').slice(-12));
-} catch (e) {
-  report.error = e.message.split('\n')[0];
-} finally {
-  report.server = serverLog.filter((l) => /"B"|dropped|1006/.test(l)).slice(-20);
-  // Runs of the same view, not every second.
-  report.samples = report.samples.reduce((runs, s) => { const last = runs.at(-1); const key = `${s.aSeesB}/${s.bState}`; if (last?.key === key) last.until = s.t; else runs.push({ key, from: s.t, until: s.t, queued: s.queued }); return runs; }, []);
-  console.log(JSON.stringify(report, null, 1));
-  await test.close();
-  proxy.close();
-  server.kill();
+  stop();
+  await sleep(1.5);
+  console.log(`\n${r.fail.length ? 'FAIL' : 'ok  '}  ${name}`);
+  for (const line of story(lab)) console.log(line);
+  for (const f of r.facts) console.log(`  · ${f}`);
+  for (const o of r.open) console.log(`  open: ${o}`);
+  for (const f of r.fail) console.log(`  FAIL: ${f}`);
+  failed += r.fail.length ? 1 : 0;
+  await closeLab(lab);
 }
+console.log(failed ? `\nweak links: FAILED (${failed})` : '\nweak links: all ok (the open lines are known bugs)');
+process.exitCode = failed ? 1 : 0;
