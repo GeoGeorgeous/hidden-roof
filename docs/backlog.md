@@ -47,7 +47,7 @@ Reproduced (2026-10-14, `npm run test:weak-link`): a stroke B makes between the 
 ### The server's heartbeat kills links that are only stalled downstream
 - id: BL-004
 - type: bug
-- status: Planned
+- status: Done
 - priority: Urgent
 - size: S
 - area: net
@@ -57,6 +57,8 @@ Reproduced (2026-10-14, `npm run test:weak-link`): a stroke B makes between the 
 79 of 81 drops (code 1006) fell on the 10 s heartbeat (`server/main.ts`: `terminate()` when no pong came since the last ping); in 62 of 69 the player's reports still reached the server less than 10 s before the kill, so the uplink worked and the ping sat in the downlink queue behind ops (app pings of 11–16 s were measured). 40% of the drops (32 of 81) came within 30 s of a rejoin: the paint file (0.3–3.4 MB) loads the same weak path, and the next kill follows. Do: count any message from the client as alive (`state` arrives at 20 Hz); let the game wait longer than 6 s for the server (`lastHeard`, `SERVER.ping * 3`) before it closes and rejoins, or make it adaptive.
 
 Reproduced (2026-10-14, `npm run test:weak-link`): B's downlink narrowed to 8 KB/s while A paints, its uplink still working: the server drops B with 1006 exactly 20.0 s after the link opened (two missed heartbeats), while B's reports still arrive.
+
+Fixed (2026-10-14): the server counts any bytes from a game as alive (`SERVER.heartbeat`, 10 s: dropped after a whole beat with nothing), and a game sends a ping at least every `SERVER.ping` when it has nothing else to send (its paint file coming down, a hidden tab). The game waits `NET.serverSilence` (15 s, was 6) for the server before it closes and rejoins. A paint file comes in parts of 32 KB (`SERVER.partBytes`, was 256): a part took 32 s at 8 KB/s, so the game gave up on its join (`NET.connectTimeout`, 15 s) and a slow link could never get back into a painted session. Tests: `npm run test:server` (a game that sends but answers no ping stays, a silent one goes); `npm run test:weak-link` `slow`, `three-players` and the new `slow-join` (back in over 8 KB/s with a 382 KB paint file: 58 s, no drop; without the game's ping the server drops it 20 s into the download, with 256 KB parts the game gives up) fail on any such drop.
 
 ### A player who is away over 60 s comes back as a new one
 - id: BL-005
@@ -103,7 +105,7 @@ Painting and shaking the can are mutually exclusive: one or the other. Today bot
 ### Why did everyone show DISCONNECTED?
 - id: BL-009
 - type: bug
-- status: Planned
+- status: Done
 - priority: Medium
 - size: S
 - area: net
@@ -115,6 +117,8 @@ In the playtest the host saw all others as DISCONNECTED, a label only the server
 Triage notes (2026-10-14): research, not a fix: write the stalled-downlink test first, then decide.
 
 Explained (2026-10-14, `npm run test:weak-link`): A shows B as dropped (DISCONNECTED) the moment the server's heartbeat drops B's link (BL-004), and as here again a second later once B is back. The playtest's drops came in waves of 2–3 players, so everyone showed DISCONNECTED. Fixing BL-004 should end most of it; check again with the stand then.
+
+Checked (2026-10-14, after BL-004): on a slow link (`slow`, `three-players`) A shows B as here all along; DISCONNECTED now comes only when a link is really dead (`stall`, `past-rejoin-window`).
 
 ### Mouse spikes snap the camera (Chrome on Windows)
 - id: BL-010
@@ -1095,6 +1099,8 @@ When built: a `?weak-gpu` URL flag that shows the hint at once, to see it withou
 Seen as new drawings appearing in the ESC city view. Measure first: how much is the download of the paint file (0.3–3.4 MB in the playtest), how much its decoding and `loadPaint`, how much the upload (BL-025). Then decide.
 
 The playtest of 2026-10-12 measured it: join (connect to in-session) p50 3.9 s, p90 12.2 s, max 17.8 s for paint files of a few hundred KB (≈70 KB/s), up to 3.4 MB later in the session; 12 links died before their welcome arrived. The file comes over the same link as everyone's ops (BL-024), and a stalled link is killed by the heartbeat (BL-004): both make it slower.
+
+Part of it fixed with BL-004 (2026-10-14): a join over a slow link was killed during its download by the server's heartbeat, or by the game's own `NET.connectTimeout` while one 256 KB part came down; parts are 32 KB now. Download time itself is unchanged (BL-024 shares the link).
 
 ### Placing the stepladder lags
 - id: BL-086

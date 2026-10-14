@@ -24,6 +24,7 @@ const hosts = new Map<string, string>();
 // Tests come back (and give up on a silent link) sooner than players.
 SERVER.rejoinWindow = Number(process.env.REJOIN_WINDOW) || SERVER.rejoinWindow;
 SERVER.helloTimeout = Number(process.env.HELLO_TIMEOUT) || SERVER.helloTimeout;
+SERVER.heartbeat = Number(process.env.HEARTBEAT) || SERVER.heartbeat;
 // Memory limits follow the container's (docs/deploy.md).
 SERVER.hostMemory = Number(process.env.HOST_MEMORY) || SERVER.hostMemory;
 SERVER.snapshotMemory = Number(process.env.SNAPSHOT_MEMORY) || SERVER.snapshotMemory;
@@ -77,13 +78,13 @@ function connected(ws: WebSocket, req: http.IncomingMessage, host: boolean) {
   ws.on('error', (e) => log('-----', `link from ${ip}: ${e.message}`));
   if (count(links, ip, 1) > SERVER.linksPerIp) return reject('too-many');
   if (host && (count(uploads, ip, 1) > SERVER.uploadsPerIp || hostWss.clients.size > SERVER.uploads)) return reject('too-many');
-  let alive = true;
-  ws.on('pong', () => (alive = true));
+  // Alive while bytes come in (SERVER.heartbeat), its state or anything else: the answer to the ws ping may come late.
+  let read = req.socket.bytesRead;
   const beat = setInterval(() => {
-    if (!alive) return ws.terminate();
-    alive = false;
+    if (req.socket.bytesRead === read) return ws.terminate();
+    read = req.socket.bytesRead;
     ws.ping();
-  }, 10_000);
+  }, SERVER.heartbeat * 1000);
   /** Their session and who they are in it, once welcomed; 'waiting' while a host or join is under way. */
   let at: { session: Session; player: Player } | 'waiting' | null = null;
   const hello = setTimeout(() => {

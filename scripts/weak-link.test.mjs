@@ -6,6 +6,7 @@
 // Not part of npm run check: run it for multiplayer work (~1 min a scenario).
 // Usage: npm run test:weak-link                  (every scenario)
 //        SCENARIO=slow,stall npm run test:weak-link
+import { gameReady } from './test-browser.mjs';
 import { closeLab, hasStroke, openLab, ownSurface, paintNonstop, state, story, stroke, watch } from './net-lab.mjs';
 
 const sleep = (s) => new Promise((done) => setTimeout(done, s * 1000));
@@ -32,10 +33,10 @@ const SCENARIOS = {
     await sleep(3);
     const kept = async (i) => (await hasStroke(A, i)) && (await hasStroke(B, i));
     r.facts.push(`B's stroke on the slow link: ${(await kept(mine)) ? 'kept' : 'lost'}`);
-    r.facts.push(`B's stroke made while its link was down: ${(await kept(lost)) ? 'kept' : 'lost'}`);
     if (!(await kept(mine))) r.fail.push("B's stroke on a slow but live link is lost");
-    if (!(await kept(lost))) r.open.push('BL-003: a stroke made between the drop and the rejoin is lost');
-    if (dropped(lab, 'B', 1006)) r.open.push('BL-004: the server drops B (1006) while B still sends; A shows B as DISCONNECTED meanwhile (BL-009)');
+    // Made only if B's link went down: a slow link shouldn't.
+    if (dropped(lab, 'B')) r.facts.push(`B's stroke made while its link was down: ${(await kept(lost)) ? 'kept' : 'lost'}`);
+    if (dropped(lab, 'B', 1006)) r.fail.push('BL-004: the server drops B (1006) while B still sends');
   },
 
   /** B's link stops dead both ways for 15 s, then comes back: the game's own close after 6 s of silence, strokes in flight. */
@@ -84,7 +85,36 @@ const SCENARIOS = {
     await sleep(3);
     r.facts.push(`C (a good link) dropped: ${dropped(lab, 'C') ? 'yes' : 'no'}`);
     if (dropped(lab, 'C')) r.fail.push('a weak player made a good one drop');
-    if (dropped(lab, 'B', 1006)) r.open.push('BL-004: the server drops B (1006) while B still sends');
+    if (dropped(lab, 'B', 1006)) r.fail.push('BL-004: the server drops B (1006) while B still sends');
+  },
+
+  /** B comes back (a reload) over a slow link while A paints: the paint file and A's ops share the slow downlink (BL-004, BL-085). */
+  async 'slow-join'(lab, r) {
+    const { A, B } = lab.players;
+    // Paint that packs badly (a stamp on every surface, colors from a fixed sequence), for a paint file of some size.
+    await A.page.evaluate(() => {
+      const g = window.game;
+      let x = 1;
+      const next = () => ((x = (x * 16807) % 2147483647) / 2147483647);
+      for (const s of g.paint.surfaces.filter((s) => s.geo.rects.length)) for (let k = 0; k < 2; k++) g.paint.stamp(s, { rect: 0, u: next(), v: next() }, 0.3, 1, [next(), next(), next()]);
+    });
+    const painting = await paintNonstop(A);
+    // Past SERVER.snapshotKeep: B gets a paint file made now, not the one from its first join.
+    await sleep(16);
+    narrow(B);
+    const t = Date.now();
+    await B.page.reload();
+    await gameReady(B.page);
+    await state(B, 'in', 90000).catch(() => r.fail.push('B never got back in'));
+    const lines = await B.page.evaluate(() => window.game.net.log.text());
+    const back = lab.server.findLastIndex((s) => /"B" #\d+ in from/.test(s.line));
+    r.facts.push(`B back in after ${((Date.now() - t) / 1000).toFixed(1)} s, ${lines.match(/with \d+ others, (\d+ KB) of paint/)?.[1] ?? 'no'} paint file over the slow link (${lines.match(/comes in (\d+) parts/)?.[1] ?? 1} parts)`);
+    await painting.stop();
+    B.proxy.open();
+    await sleep(3);
+    if (lab.server.slice(back + 1).some((s) => /"B" #\d+ dropped \(1006/.test(s.line))) r.fail.push('BL-004: the server drops B (1006) while its paint file comes down');
+    // The page is new since the reload: any close in its log came while it was getting back in.
+    for (const c of lines.match(/.*(closed: |nothing from).*/g) ?? []) r.fail.push(`B's link closed while it was getting back in: ${c}`);
   },
 
   /** B gone longer than the rejoin window (5 s here): back as a new player, what it carried comes back by name. */
