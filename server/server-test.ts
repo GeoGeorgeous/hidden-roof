@@ -36,8 +36,7 @@ const freePort = () =>
   });
 const PORT = await freePort();
 const level = JSON.parse(fs.readFileSync('public/levels/demo.json', 'utf8'));
-PAINT.texelsPerMeter = 48;
-const faces = levelPaintFaces(level);
+const faces = levelPaintFaces(level, 48);
 const table = surfaceTable(faces);
 const surfaces = new SurfaceIndex(faces.map((f) => f.key));
 /** Paint ops as a game sends them (op-wire.ts), and as they come out of a message (`m.bytes`). */
@@ -264,8 +263,8 @@ try {
   assert.equal((await g.next('rejected')).reason, 'bad-save');
   assert.equal((await fetch(`http://localhost:${PORT}/healthz`)).status, 200);
 
-  // Sessions at different PAINT DETAILs side by side (PAINT.texelsPerMeter is global on the server): one's paint
-  // never depends on the other's. The same stamps, interleaved with another session's, paint what they paint alone.
+  // Sessions at different PAINT DETAILs side by side (each session's surfaces keep their own): one's paint never
+  // depends on the other's. The same stamps, interleaved with another session's, paint what they paint alone.
   const [s48, s96, alone] = await Promise.all([game(), game(), game()]);
   s48.send(host);
   s96.send({ ...host, detail: 96 });
@@ -375,14 +374,19 @@ assert.doesNotMatch(lines, /"A" #1 out: left[^]*"A" #1 dropped/);
 
 // A level's own paint (src/save/level-paint.ts) fits it face for face, and the faces of a prop removed since don't: made here on the demo level.
 const paintOn = (level: LevelData, bytes: Uint8Array, name: string) => {
-  const { paint, drips } = sessionPaint(level);
+  const { paint, drips } = sessionPaint(level, 48);
   return loadPaint(paint, drips, bytes, { name });
 };
 const demo: LevelData = JSON.parse(fs.readFileSync('public/levels/demo.json', 'utf8'));
-const made = sessionPaint(demo).paint;
+const made = sessionPaint(demo, 48).paint;
 const last = demo.props.at(-1)!.id!;
 for (const s of [made.surfaces[0], made.surfaces.find((s) => s.key.startsWith(`p${last}#`))!]) made.stamp(s, { rect: 0, u: 0.5, v: 0.5 }, 0.2, 1, [1, 1, 1]);
 const own = await savePaint(made, { name: 'demo' });
+// Paint is measured at its surfaces' own detail, whatever the global PAINT DETAIL says meanwhile (another session's).
+const ultra = sessionPaint(demo, 96).paint;
+PAINT.texelsPerMeter = 24;
+ultra.stamp(ultra.surfaces[0], { rect: 0, u: 0.5, v: 0.5 }, 0.1, 1, [1, 1, 1]);
+assert.ok(ultra.surfaces[0].data!.filter((v, i) => i % 4 === 3 && v > 0).length > 200, 'a 0.1 m stamp at 96 texels/m covers ~290 texels');
 const fits = await paintOn(demo, own, 'demo');
 assert.ok(fits.faces > 0 && !fits.skipped, `level paint: ${fits.skipped} faces don't fit the level it was made on`);
 const changed = await paintOn({ ...demo, props: demo.props.slice(0, -1) }, own, 'demo');

@@ -1,4 +1,4 @@
-import { DRIPS, PAINT } from './config';
+import { DRIPS } from './config';
 import type { PaintSurface, PaintSystem, Rgb } from './painting';
 import type { Rect } from './surfaces';
 import type { DripOp } from './paint-ops';
@@ -42,7 +42,7 @@ export class PaintDrips {
     // One run per column at a time, so a hot spot doesn't stack runs.
     if (this.runs.some((r) => r.s === s && r.x === x && Math.abs(r.y - y) < 4)) return;
     const length = DRIPS.minLength + paintRandom.drips() * (DRIPS.maxLength - DRIPS.minLength);
-    if (Math.max(rect.y, y - length * PAINT.texelsPerMeter) >= y - 1) return;
+    if (Math.max(rect.y, y - length * s.geo.texelsPerMeter) >= y - 1) return;
     // As its op carries it (op-wire.ts), so every client runs the same run.
     const op: DripOp = { kind: 'drip', key: s.key, rect: s.geo.rects.indexOf(rect), u: wire.unit((x + 0.5 - rect.x) / rect.w), v: wire.unit((y + 0.5 - rect.y) / rect.h), length: wire.meters(length), speed: wire.meters(DRIPS.speed * (0.6 + 0.8 * paintRandom.drips())), rgb: wire.rgb(rgb) };
     this.paint.opCount++;
@@ -52,7 +52,7 @@ export class PaintDrips {
 
   /** Start a run (ours or from elsewhere, paint-ops.ts) at this client's paint detail. */
   run(s: PaintSurface, op: DripOp) {
-    const tpm = PAINT.texelsPerMeter;
+    const tpm = s.geo.texelsPerMeter;
     const rect = s.geo.rects[op.rect];
     const x = rect.x + Math.floor(op.u * rect.w);
     const y = rect.y + Math.floor(op.v * rect.h);

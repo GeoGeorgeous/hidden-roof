@@ -208,7 +208,7 @@ export function solidBoxes(pieces: Piece[], pos: V3, rot: number): THREE.Box3[] 
  * (ghost preview). With `cover`, paintable box faces pressed against a solid
  * box (level/cover.ts) are decor too.
  */
-export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint = true, cover: CoverIndex | null = null): Expanded {
+export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint = true, cover: CoverIndex | null = null, texelsPerMeter = PAINT.texelsPerMeter): Expanded {
   const r = ((rot % 4) + 4) % 4;
   const origin = new THREE.Vector3(...pos);
   const at = (v: V3) => rotate(v, r).add(origin);
@@ -233,7 +233,7 @@ export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint =
   const painters = new Map<string, { b: SurfaceBuilder; mat: Mat }>();
   const painter = (mat: Mat) => {
     const k = matKey(mat);
-    if (!painters.has(k)) painters.set(k, { b: new SurfaceBuilder(), mat });
+    if (!painters.has(k)) painters.set(k, { b: new SurfaceBuilder(texelsPerMeter), mat });
     const e = painters.get(k)!;
     const c = new THREE.Color(mat.tint ?? '#ffffff');
     e.b.tint = [c.r, c.g, c.b];

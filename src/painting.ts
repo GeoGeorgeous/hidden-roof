@@ -69,6 +69,8 @@ export interface PaintPatch {
 
 export class PaintSystem {
   readonly surfaces: PaintSurface[] = [];
+  /** Texels per meter of its surfaces, as built (SurfaceGeometry.texelsPerMeter): the PAINT DETAIL its paint is at. */
+  texelsPerMeter = PAINT.texelsPerMeter;
   private bySurfaceMesh = new Map<THREE.Object3D, PaintSurface>();
   private byKey = new Map<string, PaintSurface>();
   /** Flat faces by plane, so dots carry across seams onto coplanar neighbors. */
@@ -91,6 +93,7 @@ export class PaintSystem {
   /** `group`: where it stands (a level tile): surfaces drawn together share paint pages. */
   register(key: string, mesh: THREE.Mesh, geo: SurfaceGeometry, group: string): PaintSurface {
     const s: PaintSurface = { key, mesh, geo, slot: null, light: null, data: null, mips: [], texture: null, excess: null, dirty: [] };
+    this.texelsPerMeter = geo.texelsPerMeter;
     this.gpu.place(s, group);
     this.surfaces.push(s);
     this.bySurfaceMesh.set(mesh, s);
@@ -240,7 +243,7 @@ export class PaintSystem {
     const rect = faceTexel(s, at);
     const { x: cx, y: cy } = atTexel;
     this.dot(s, rect, cx, cy, radius, amount, color, softness, drip, square);
-    for (const n of this.pastEdge(rect, cx, cy, radius)) {
+    for (const n of this.pastEdge(s, rect, cx, cy, radius)) {
       if (!this.live(n.surface)) continue;
       worldToTexel(n.rect, seamPoint, seamTexel);
       this.dot(n.surface, n.rect, seamTexel.x, seamTexel.y, radius, amount, color, softness, drip, square);
@@ -276,7 +279,7 @@ export class PaintSystem {
     const { x: cx, y: cy } = atTexel;
     const band = { halfLength, halfWidth, edge, amount, color, drip };
     this.band(s, rect, cx, cy, axis, band);
-    for (const n of this.pastEdge(rect, cx, cy, Math.hypot(halfLength, halfWidth))) {
+    for (const n of this.pastEdge(s, rect, cx, cy, Math.hypot(halfLength, halfWidth))) {
       if (!this.live(n.surface)) continue;
       worldToTexel(n.rect, seamPoint, seamTexel);
       this.band(n.surface, n.rect, seamTexel.x, seamTexel.y, axis, band);
@@ -288,8 +291,8 @@ export class PaintSystem {
    * (cx, cy) spills onto past the face's edge (other props too); seamPoint is
    * then the stamp's center in the world.
    */
-  private pastEdge(rect: Rect, cx: number, cy: number, radius: number): Iterable<SeamFace<PaintSurface>> {
-    const r = radius * PAINT.texelsPerMeter;
+  private pastEdge(s: PaintSurface, rect: Rect, cx: number, cy: number, radius: number): Iterable<SeamFace<PaintSurface>> {
+    const r = radius * s.geo.texelsPerMeter;
     if (!rect.face || (cx - r >= rect.x && cx + r <= rect.x + rect.w && cy - r >= rect.y && cy + r <= rect.y + rect.h)) return NONE;
     texelToWorld(rect, cx, cy, seamPoint);
     return this.seams.near(rect, seamPoint, radius);

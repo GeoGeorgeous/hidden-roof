@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { PAINT } from '../config';
 import type { PaintSurface, PaintSystem } from '../painting';
 import { facePoint, type FacePoint } from '../surfaces';
 import { solidsNear } from '../level/solids';
@@ -60,7 +59,7 @@ export class StrokeSweep {
     const fresh = angle > STILL_ANGLE || moved > STILL_MOVE || this.stillClock >= 1 / spec.stillRate;
     if (fresh) this.stillClock = 0;
     // How far the aim moved on a surface at full reach: the turn plus the eye's move.
-    const gap = Math.max(spec.spacing, 0.5 / PAINT.texelsPerMeter);
+    const gap = Math.max(spec.spacing, 0.5 / this.paint.texelsPerMeter);
     const n = Math.min(spec.maxRays, Math.max(1, Math.ceil((angle * spec.reach + moved) / gap)));
     this.raycaster.far = spec.reach;
     let hitAny = false;

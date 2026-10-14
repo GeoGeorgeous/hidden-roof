@@ -3,7 +3,8 @@ import type { UvRect } from './render/ink/uv-rect';
 import { PAINT } from './config';
 
 // Paintable primitives. Each primitive gets one paint atlas: every face is laid
-// out at PAINT.texelsPerMeter, so paint looks identical on any surface size.
+// out at PAINT.texelsPerMeter as it is when they're built (and keep it: SurfaceGeometry.texelsPerMeter), so paint
+// looks identical on any surface size.
 // Geometry is built directly in world space (meshes stay at the origin).
 
 /** A face's region inside the atlas, in texels. */
@@ -29,6 +30,8 @@ export interface SurfaceGeometry {
   triToRect: Uint16Array;
   /** Per vertex: rect index + 0.999 * u, then v (u, v = 0..1 across the face). Lightmaps lay out their own atlas from it. */
   faceUv: Float32Array;
+  /** Texels per meter its atlas was laid out at (the PAINT DETAIL it was built at): paint on it is measured in these. */
+  texelsPerMeter: number;
 }
 
 /** A point on one face of a surface: its rect index and where on it (u, v = 0..1 across the face). The same at every paint detail, so it can be sent, saved and replayed. */
@@ -62,6 +65,8 @@ export interface FaceSpec {
 
 /** Collects faces of one or more primitives into one geometry with one paint atlas. */
 export class SurfaceBuilder {
+  /** `texelsPerMeter`: the atlas's density (PAINT DETAIL), read once: the global may change before build(). */
+  constructor(readonly texelsPerMeter = PAINT.texelsPerMeter) {}
   /** Per-vertex tint (linear RGB) and emissive applied to the vertices added next. */
   tint: [number, number, number] = [1, 1, 1];
   emissive = 0;
@@ -85,7 +90,7 @@ export class SurfaceBuilder {
 
   /** Reserve an atlas rect for a face of the given size in meters. */
   addRect(uMeters: number, vMeters: number): number {
-    const d = PAINT.texelsPerMeter;
+    const d = this.texelsPerMeter;
     this.rects.push({ x: 0, y: 0, w: Math.max(1, Math.ceil(uMeters * d)), h: Math.max(1, Math.ceil(vMeters * d)), meters: [uMeters, vMeters] });
     return this.rects.length - 1;
   }
@@ -133,7 +138,7 @@ export class SurfaceBuilder {
     g.setIndex(this.indices);
     g.computeBoundingBox();
     g.computeBoundingSphere();
-    return { geometry: g, atlasW, atlasH, rects: this.rects, triToRect: Uint16Array.from(this.triRect), faceUv: Float32Array.from(this.uvs) };
+    return { geometry: g, atlasW, atlasH, rects: this.rects, triToRect: Uint16Array.from(this.triRect), faceUv: Float32Array.from(this.uvs), texelsPerMeter: this.texelsPerMeter };
   }
 
   /** Flat quad face. Base UVs are world-aligned so base textures line up across objects. */

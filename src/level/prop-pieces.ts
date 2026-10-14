@@ -33,8 +33,8 @@ export function propPieces(inst: PropInstance, props: Iterable<PropInstance>): P
   return inst.mirror ? mirrored(def.build(ctx)) : def.build(ctx);
 }
 
-/** Every paint surface of a level as loaded (Level.load), by key, at the current PAINT.texelsPerMeter. */
-export function levelPaintFaces(data: LevelData): { key: string; geo: SurfaceGeometry }[] {
+/** Every paint surface of a level as loaded (Level.load), by key, at this density (a PAINT DETAIL). */
+export function levelPaintFaces(data: LevelData, texelsPerMeter: number): { key: string; geo: SurfaceGeometry }[] {
   const props = new Map<number, PropInstance>();
   let next = 1;
   for (const p of data.props) {
@@ -49,7 +49,7 @@ export function levelPaintFaces(data: LevelData): { key: string; geo: SurfaceGeo
   const cover = new CoverIndex();
   for (const inst of props.values()) cover.set(inst.id, solidBoxes(pieces.get(inst.id)!, inst.pos, inst.rot));
   const add = (owner: string, pieces: Piece[], pos: PropInstance['pos'], rot: number) =>
-    expandPieces(pieces, pos, rot, true, cover).paint.forEach(({ geo }, k) => out.push({ key: `${owner}#${k}`, geo }));
+    expandPieces(pieces, pos, rot, true, cover, texelsPerMeter).paint.forEach(({ geo }, k) => out.push({ key: `${owner}#${k}`, geo }));
   for (const inst of props.values()) add(`p${inst.id}`, pieces.get(inst.id)!, inst.pos, inst.rot);
   for (const [key, joint] of computeJoints(props.values())) add(`j${key}`, jointPieces(joint), joint.pos, 0);
   return out;
