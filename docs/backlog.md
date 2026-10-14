@@ -596,18 +596,6 @@ See who is online; block by IP forever or for a time.
 
 
 
-### After connecting to a server, start the game and skip the pause menu
-- id: BL-048
-- type: chore
-- status: Requested
-- priority: Medium
-- size: XS
-- area: ui
-- release: later
-- source: owner
-
-
-
 ### Check when the checks of AGENTS.md run in the test cycle
 - id: BL-049
 - type: chore
