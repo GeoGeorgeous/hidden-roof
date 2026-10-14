@@ -13,6 +13,7 @@ import { loadPaint } from '../src/save/load-paint';
 import { savePaint } from '../src/save/save-paint';
 import type { LevelData } from '../src/level/level';
 import { WebSocket as Ws } from 'ws';
+import { PartsIn } from '../src/net/parts-in';
 import { Session, type Link } from './session';
 import { sessionPaint } from './world';
 
@@ -59,16 +60,10 @@ class Game {
     this.ws = new WebSocket(`ws://localhost:${PORT}${path}`, { headers: { 'x-forwarded-for': ip } } as unknown as string[]);
     this.ws.binaryType = 'arraybuffer';
     // A welcome or a save comes once its paint file's parts have (`file`).
-    let waiting: { m: Got; parts: Uint8Array[] } | null = null;
+    const parts = new PartsIn();
     this.ws.onmessage = (e) => {
-      const m = decode(new Uint8Array(e.data as ArrayBuffer)) as Got;
-      if (m.type === 'part') {
-        waiting!.parts.push(m.bytes);
-        if (waiting!.parts.length < (waiting!.m as { parts: number }).parts) return;
-        this.got.push({ ...waiting!.m, file: joinBytes(waiting!.parts) });
-        waiting = null;
-      } else if ((m.type === 'welcome' || m.type === 'save') && m.parts) waiting = { m, parts: [] };
-      else this.got.push(m);
+      const done = parts.take(decode(new Uint8Array(e.data as ArrayBuffer)) as ToClient);
+      if (done) this.got.push(done.file ? { ...done.m, file: done.file } : done.m);
       this.waiters.splice(0).forEach((w) => w());
     };
     this.closed = new Promise((done) => (this.ws.onclose = (e) => done(e.code)));
@@ -97,6 +92,7 @@ class Game {
   }
 }
 const game = (ip?: string, path?: string) => new Game(ip, path).open();
+const pick = <T extends object, K extends keyof T>(o: T, ...keys: K[]) => Object.fromEntries(keys.map((k) => [k, o[k]]));
 const host = { type: 'host' as const, protocol: PROTOCOL, table, name: 'A', levelName: 'demo', level, detail: 48 };
 
 try {
@@ -144,14 +140,14 @@ try {
   const snap = new Uint8Array(SNAPSHOT_BYTES).map((_, i) => i);
   a.send({ type: 'state', bytes: snap });
   assert.deepEqual((await b.next('state')).bytes, snap);
-  a.send({ type: 'ops', t: [1, 2], ops: [stamp, { ...stamp, key: 'p99999#0' }] });
+  a.send({ type: 'ops', seq: 1, t: [1, 2], ops: [stamp, { ...stamp, key: 'p99999#0' }] });
   assert.deepEqual(await b.next('ops'), { type: 'ops', id: 1, t: [1], ops: [stamp] });
   const ladder = { type: 'stepladder', pos: [1, 0, 2] as [number, number, number], rot: 1 };
   a.send({ type: 'ladder', t: 3, data: ladder });
   assert.deepEqual(await b.next('ladder'), { type: 'ladder', id: 1, t: 3, data: ladder });
   await a.none('state');
   a.send({ type: 'ping', t: 7.25 });
-  assert.deepEqual(await a.next('pong'), { type: 'pong', t: 7.25 });
+  assert.deepEqual(await a.next('pong'), { type: 'pong', t: 7.25, acked: 1 });
 
   // SAVE: the session's paint, with the stamp in it.
   b.send({ type: 'save' });
@@ -166,17 +162,23 @@ try {
   // carried in its welcome; A hears B dropped and is back, never that B left or joined.
   const carried = { tools: ['marker'], colors: ['black', 'red'], caps: ['standard'], selected: 1, color: 'red', cap: 'standard' } as InventoryData;
   b.send({ type: 'inventory', data: carried });
+  b.send({ type: 'ops', seq: 1, t: [4], ops: [stamp] });
+  assert.deepEqual((await a.next('ops')).t, [4]);
   b.ws.close();
   await b.closed;
   assert.deepEqual(await a.next('presence'), { type: 'presence', id: 2, state: 'dropped' });
   const b2 = await game();
   b2.send({ type: 'join', protocol: PROTOCOL, name: 'B', code: wa.code, token: wb.token });
   const back = await b2.next('welcome');
-  assert.deepEqual([back.you, back.ladders, back.inventory], [2, [{ id: 1, data: ladder }], carried]);
+  assert.deepEqual([back.you, back.ladders, back.inventory, back.acked], [2, [{ id: 1, data: ladder }], carried, 1]);
   assert.deepEqual((await decodePaintFile(back.file!)).header.faces, header.faces);
   assert.deepEqual(await a.next('presence'), { type: 'presence', id: 2, state: 'here' });
   await a.none('joined');
   await a.none('left');
+  // B sends again what it doesn't know the server had (BL-003): a batch it had is dropped, the next one goes on.
+  b2.send({ type: 'ops', seq: 1, t: [4], ops: [stamp] });
+  b2.send({ type: 'ops', seq: 2, t: [5], ops: [stamp] });
+  assert.deepEqual((await a.next('ops')).t, [5]);
 
   // The same player again from another tab (a duplicated tab carries the token): the old tab is told, and goes.
   const b3 = await game();
@@ -205,11 +207,14 @@ try {
   twin.send({ type: 'join', protocol: PROTOCOL, name: 'geo', code: wg.code });
   await twin.next('welcome');
   assert.equal((await geo.next('joined')).name, 'geo (2)');
+  geo.send({ type: 'ops', seq: 1, t: [1], ops: [stamp] });
+  await twin.next('ops');
   geo.ws.close();
   await geo.closed;
   const newTab = await game();
   newTab.send({ type: 'join', protocol: PROTOCOL, name: 'geo', code: wg.code });
-  assert.equal((await newTab.next('welcome')).you, wg.you);
+  // A new tab numbers its op batches from 1 again.
+  assert.deepEqual(pick(await newTab.next('welcome'), 'you', 'acked'), { you: wg.you, acked: 0 });
   await twin.none('joined');
   // One who left and comes in again later under the same name gets back what they carried.
   twin.send({ type: 'inventory', data: carried });
@@ -234,7 +239,7 @@ try {
   const x = await game();
   x.send(host);
   const wx = await x.next('welcome');
-  x.send({ type: 'ops', t: [1], ops: [stamp] });
+  x.send({ type: 'ops', seq: 1, t: [1], ops: [stamp] });
   x.send({ type: 'ping', t: 1 });
   await x.next('pong');
   const y = await game();
@@ -261,9 +266,9 @@ try {
   await Promise.all([s48, s96, alone].map((x) => x.next('welcome')));
   const other = { ...stamp, u: 0.3, color: [0, 0, 1] as const };
   for (const op of [stamp, other]) {
-    s48.send({ type: 'ops', t: [1], ops: [op] });
-    s96.send({ type: 'ops', t: [1], ops: [op] });
-    alone.send({ type: 'ops', t: [1], ops: [op] });
+    s48.send({ type: 'ops', seq: 1, t: [1], ops: [op] });
+    s96.send({ type: 'ops', seq: 1, t: [1], ops: [op] });
+    alone.send({ type: 'ops', seq: 1, t: [1], ops: [op] });
   }
   const saved = async (x: Game) => (x.send({ type: 'save' }), decodePaintFile((await x.next('save')).file!));
   const [p48, p96, pAlone] = await Promise.all([s48, s96, alone].map(saved));

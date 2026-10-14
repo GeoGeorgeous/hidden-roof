@@ -1,8 +1,9 @@
 // Tests of the multiplayer messages (src/net/protocol.ts) in Node, as the
 // server reads them: round trips, exact paint op numbers, and what the server
-// turns down.
+// turns down. Then the op batches a game keeps until the server has them (net/outbox.ts).
 // Usage: node scripts/protocol.test.mjs
 import assert from 'node:assert/strict';
+import { Outbox } from '../src/net/outbox.ts';
 import { checkToServer, cleanName, decode, encode, partFrames, PROTOCOL, SNAPSHOT_BYTES } from '../src/net/protocol.ts';
 
 const level = { version: 4, spawn: { pos: [0, 0, 0], yaw: 0 }, props: [{ id: 1, type: 'slab', pos: [0, 0, 0] }] };
@@ -19,7 +20,7 @@ const sent = [
   { ...host, bytes: undefined },
   join,
   { type: 'state', bytes: snap },
-  { type: 'ops', t: [1.5, 1.55, 1.6], ops: [stamp, roll, drip] },
+  { type: 'ops', seq: 1, t: [1.5, 1.55, 1.6], ops: [stamp, roll, drip] },
   { type: 'ladder', t: 2, data: { type: 'stepladder', pos: [1, 0, 2], rot: 3 } },
   { type: 'ladder', t: 2.5, data: null },
   { type: 'save' },
@@ -37,7 +38,7 @@ for (const m of sent) {
   assert.deepEqual(rest, Object.fromEntries(Object.entries(json).filter(([, v]) => v !== undefined)));
   assert.deepEqual(got, bytes);
 }
-const welcome = { type: 'welcome', code: 'ABCDE', you: 2, token: 't', levelName: 'demo', level, detail: 48, table: 'x', players: [{ id: 1, name: 'geo', state: 'away' }], ladders: [], inventory: null, parts: 3 };
+const welcome = { type: 'welcome', code: 'ABCDE', you: 2, token: 't', levelName: 'demo', level, detail: 48, table: 'x', players: [{ id: 1, name: 'geo', state: 'away' }], ladders: [], inventory: null, parts: 3, acked: 0 };
 assert.deepEqual(decode(encode(welcome)), welcome);
 // A paint file in pieces goes as parts of at most the size asked, and comes back whole.
 const parts = partFrames([save.subarray(0, 10), save.subarray(10, 700), save.subarray(700)], 400).map(decode);
@@ -70,9 +71,12 @@ refused({ ...join, code: 'abcde' });
 refused({ ...join, protocol: -1 });
 refused({ type: 'state', bytes: snap.subarray(1) });
 refused({ type: 'state' });
-refused({ type: 'ops', t: [1], ops: [stamp, roll] });
-refused({ type: 'ops', t: [1], ops: [{ ...stamp, kind: 'splat' }] });
-refused({ type: 'ops', t: [1], ops: [{ ...stamp, rect: -1 }] });
+refused({ type: 'ops', seq: 1, t: [1], ops: [stamp, roll] });
+refused({ type: 'ops', seq: 1, t: [1], ops: [{ ...stamp, kind: 'splat' }] });
+refused({ type: 'ops', seq: 1, t: [1], ops: [{ ...stamp, rect: -1 }] });
+// Batches are numbered from 1.
+refused({ type: 'ops', t: [1], ops: [stamp] });
+refused({ type: 'ops', seq: 0, t: [1], ops: [stamp] });
 refused({ type: 'ops', t: [1], ops: [{ ...roll, color: null }] });
 refused({ type: 'ops', t: [1], ops: [{ ...drip, rgb: [2, 0, 0] }] });
 // A run with no length or speed would never end.
@@ -86,8 +90,31 @@ refused({ type: 'away' });
 refused({ type: 'inventory', data: { tools: [], colors: [], caps: [], selected: -1, color: 'red', cap: 'x' } });
 refused({ type: 'inventory', data: { tools: Array(33).fill('x'), colors: [], caps: [], selected: 0, color: 'red', cap: 'x' } });
 // Non-finite numbers don't survive JSON (they become null), so they're refused too.
-refused({ type: 'ops', t: [1], ops: [{ ...stamp, u: NaN }] });
+refused({ type: 'ops', seq: 1, t: [1], ops: [{ ...stamp, u: NaN }] });
 
 assert.equal(cleanName('  a name far longer than allowed  '), 'a name far longe');
 assert.equal(cleanName('ゴースト'), 'ゴースト');
+// Op batches (net/outbox.ts, BL-003): numbered from 1, kept until acked; back after a drop, what the server doesn't
+// have (and what was painted meanwhile) is painted again and sent again, in order; a new session starts over.
+const out = new Outbox();
+const log = [stamp];
+out.take(log, 1);
+assert.equal(log.length, 0);
+assert.deepEqual(out.batch(), { type: 'ops', seq: 1, t: [1], ops: [stamp] });
+assert.equal(out.batch(), null);
+out.take([roll], 2);
+out.batch();
+out.take([drip], 3);
+out.batch();
+out.acked(1);
+out.take([stamp], 4);
+const painted = [];
+assert.deepEqual(out.rejoined(2, (op) => painted.push(op)).map((b) => [b.seq, b.t]), [[3, [3]], [4, [4]]]);
+assert.deepEqual(painted, [drip, stamp]);
+out.acked(4);
+assert.deepEqual(out.rejoined(4, () => assert.fail('nothing to paint again')), []);
+out.clear();
+out.take([roll], 5);
+assert.equal(out.batch().seq, 1);
+
 console.log(`protocol: ok (${sent.length} messages round trip; a stroke of ${encode(sent[4]).length} bytes for 3 ops)`);

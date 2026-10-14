@@ -33,6 +33,8 @@ export interface Player {
   /** Lets them come back as themselves (welcome hands it out). */
   token: string;
   link: Link | null;
+  /** Their last op batch painted (ToServer ops `seq`): one resent after a rejoin is dropped. */
+  acked: number;
   /** Their welcome has gone out on `link`: frames reach them. Until then what happens is in the welcome or after it. */
   live: boolean;
   /** A SAVE of theirs is under way. */
@@ -126,9 +128,11 @@ export class Session {
       p.link?.close(closeCode('replaced'), 'replaced');
       p.link = link;
       p.away = false;
+      // A new tab numbers its batches from 1.
+      if (how === 'takeover') p.acked = 0;
     } else {
       const unique = uniqueName(name, all);
-      p = { id: this.nextId++, name: unique, token: randomUUID(), link, live: false, saving: false, away: false, inventory: this.carried.get(unique) ?? null, ladder: null, expires: null, was: null };
+      p = { id: this.nextId++, name: unique, token: randomUUID(), link, acked: 0, live: false, saving: false, away: false, inventory: this.carried.get(unique) ?? null, ladder: null, expires: null, was: null };
       this.broadcast({ type: 'joined', id: p.id, name: p.name }, p);
       this.players.set(p.id, p);
     }
@@ -148,7 +152,7 @@ export class Session {
     const others = [...this.players.values()].filter((q) => q !== p);
     const ladders = [...this.players.values()].filter((q) => q.ladder).map((q) => ({ id: q.id, data: q.ladder! }));
     const players = others.map((q) => ({ id: q.id, name: q.name, state: presence(q) }));
-    link.send(encode({ type: 'welcome', code: this.code, you: p.id, token: p.token, levelName: this.levelName, level: this.level, detail: this.detail, table: this.table, players, ladders, inventory: p.inventory, parts: own ? 0 : frames.length }));
+    link.send(encode({ type: 'welcome', code: this.code, you: p.id, token: p.token, levelName: this.levelName, level: this.level, detail: this.detail, table: this.table, players, ladders, inventory: p.inventory, parts: own ? 0 : frames.length, acked: p.acked }));
     if (!own) for (const f of frames) link.send(f);
     for (const f of snap.log) link.send(f);
     p.live = true;
@@ -160,6 +164,8 @@ export class Session {
   receive(p: Player, m: ToServer) {
     if (m.type === 'state') this.broadcast({ type: 'state', id: p.id, bytes: m.bytes }, p);
     else if (m.type === 'ops') {
+      if (m.seq <= p.acked) return;
+      p.acked = m.seq;
       // Ops on surfaces this level doesn't have are dropped.
       const { paint, ops } = this.world;
       const keep = m.ops.map((op) => op.rect < (paint.find(op.key)?.geo.rects.length ?? 0));
@@ -178,7 +184,7 @@ export class Session {
       p.away = m.away;
       this.broadcast({ type: 'presence', id: p.id, state: presence(p) }, p);
     }
-    else if (m.type === 'ping') this.send(p, { type: 'pong', t: m.t });
+    else if (m.type === 'ping') this.send(p, { type: 'pong', t: m.t, acked: p.acked });
     else if (m.type === 'leave') this.remove(p, 'left');
   }
 

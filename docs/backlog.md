@@ -33,7 +33,7 @@ Decided (2026-10-14): the fix and an automated test, in its own file beside the 
 ### Strokes made while the link is dying vanish on rejoin
 - id: BL-003
 - type: bug
-- status: Planned
+- status: Done
 - priority: Urgent
 - size: M
 - area: net
@@ -43,6 +43,8 @@ Decided (2026-10-14): the fix and an automated test, in its own file beside the 
 7 players, 2.6 h; all findings in `docs/playtest-multiplayer.md`. `Multiplayer.welcome` (`src/net/multiplayer.ts`) replaces the player's paint with the server's file and clears `ops`, `opTimes` and `paint.log`; ops sent into a stalled socket are never acknowledged. So everything painted from the stall's start to the end of the rejoin (silence 6 s + retry + a 4 s median, 18 s worst, download) is lost: 3–20 s of work, 81 times in the test. Do: each op batch carries a per-player sequence number, the server acks the highest in `pong` and drops repeats by token, the client keeps unacked batches, and after `loadPaint` applies them again and resends. Bump `PROTOCOL`.
 
 Reproduced (2026-10-14, `npm run test:weak-link`): a stroke B makes between the drop and its welcome is gone, on B and on A; a stroke made while the link was only slow survives (it reached the server before the drop).
+
+Fixed (2026-10-14, `PROTOCOL` 5): op batches carry `seq`; the server acks the highest it has in `pong` and the welcome, and drops a batch it has had. The game keeps unacked batches (`src/net/outbox.ts`); back after a drop, it paints them and what it painted meanwhile again over the welcome's paint and sends them again. Tests: `npm test` (the outbox), `npm run test:server` (a resent batch is dropped, the next goes; a new tab counts from 1), `npm run test:weak-link` `stall` and the new `cut` (a link that dies with a stroke on its way, the stroke lost with it) fail on a lost stroke.
 
 ### The server's heartbeat kills links that are only stalled downstream
 - id: BL-004
