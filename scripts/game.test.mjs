@@ -1280,7 +1280,7 @@ await check('city: LOW city detail is the middle of HIGH, tower for tower, roof 
   return r.low > 500 && r.high > r.low && r.missing === 0 && r.differ === 0 && r.lowBoxes > 1000 ? null : JSON.stringify(r);
 });
 
-await check('ghost: on a bad link (resent packets) a walk that stops is never shown jumping: corrections glide over several frames', async () => {
+await check('ghost: on a bad link (resent packets) a walk that stops is never shown jumping: corrections glide over several frames, no faster than NET.glideSpeed', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
     const { GHOST, NET } = g.config;
@@ -1312,7 +1312,7 @@ await check('ghost: on a bad link (resent packets) a walk that stops is never sh
       return { fastest: +fastest.toFixed(2), reached: xs.length ? +xs[xs.length - 1].toFixed(3) : 0 };
     };
     // Four networks, smoothed as in play and not (NET.teleport 0: every correction is a jump).
-    const out = { smoothed: [], unsmoothed: [] };
+    const out = { smoothed: [], unsmoothed: [], glide: NET.glideSpeed };
     const teleport = NET.teleport;
     for (const seed of [1, 2, 3, 4]) {
       out.smoothed.push(await play(seed));
@@ -1327,9 +1327,10 @@ await check('ghost: on a bad link (resent packets) a walk that stops is never sh
     g.player.position.copy(start);
     return out;
   });
-  // Walking is 5 m/s. Smoothed, a correction glides over several frames (up to about 16 m/s here); unsmoothed it's a jump (30 to 65 m/s).
+  // Walking is 5 m/s. Smoothed, a correction glides over several frames, never faster than NET.glideSpeed on top of the
+  // walk (BL-012: up to 16 m/s before the cap); unsmoothed it's a jump (30 to 65 m/s).
   const top = (runs) => Math.max(...runs.map((x) => x.fastest));
-  return top(r.smoothed) < 25 && top(r.unsmoothed) > 25 && r.smoothed.every((x) => x.reached > 8.5) ? null : JSON.stringify(r);
+  return top(r.smoothed) < 5 + r.glide + 0.5 && top(r.unsmoothed) > 25 && r.smoothed.every((x) => x.reached > 8.5) ? null : JSON.stringify(r);
 });
 
 await check('ghost: what another player did before this game was hidden lands before what they do while it is (a stepladder taken away stays away, the last coat stays on top)', async () => {
