@@ -849,8 +849,13 @@ export const NET = {
   extrapolate: 0.25,
   /** How much faster or slower a remote player's time may run while it catches up with a better clock estimate or delay (0.1 = 10%). */
   clockRate: 0.1,
-  /** A jump in where they're shown (a late snapshot correcting a guess) is smoothed out at this rate (1/s); one longer than `teleport` (m) is not. */
+  /**
+   * A jump in where they're shown (a late snapshot correcting a guess) is smoothed out at this rate (1/s), but no
+   * faster than `glideSpeed` (m/s, on top of how they move: a big correction on a bad link would race them along);
+   * one longer than `teleport` (m) is not.
+   */
   smoothing: 12,
+  glideSpeed: 4,
   teleport: 2,
   /** A player's name tag hangs this high over their feet (m). */
   nameplateHeight: 2.1,

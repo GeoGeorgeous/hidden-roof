@@ -160,7 +160,7 @@ Triage notes (2026-10-14): needs a decision: size the rings for the title camera
 ### A remote player's correction glides too fast on a bad link
 - id: BL-012
 - type: bug
-- status: Requested
+- status: Done
 - priority: Low
 - size: S
 - area: net
@@ -169,7 +169,7 @@ Triage notes (2026-10-14): needs a decision: size the rings for the title camera
 
 Up to ~3× walking speed (16 m/s at 60 fps, over 0.1–0.2 s); the ghost test allows it (it checks for jumps: 30–65 m/s unsmoothed). A speed cap changes how other players look: judge it in F3 → Test → Ghost (net: hiccups 0.2, record a walk that stops, PLAY), then decide.
 
-
+Fixed (2026-10-14): a correction closes at `NET.smoothing` as before but never faster than `NET.glideSpeed` (4 m/s, config) on top of how the player moves: the ghost on a bad link tops out at 9 m/s walking (5 + 4), was 16. The game test's ghost check holds it to that. Judge the look on real devices (F3 → Test → Ghost, hiccups 0.2); a bigger correction now takes longer to close (2 m, the teleport limit: 0.5 s).
 
 ### Check by hand before a release
 - id: BL-013
