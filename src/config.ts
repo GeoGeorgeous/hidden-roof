@@ -860,6 +860,8 @@ export const NET = {
   hudPlayers: 4,
   /** HOST or JOIN that hears nothing from the server for this long (s) before its welcome, its upload aside, gives up (a reconnect tries again). */
   connectTimeout: 15,
+  /** In a session, nothing from the server for this long (s): the game closes the link and comes back in. The server pings every SERVER.ping, so this is a stall, not a slow link; a link that stalls for seconds and recovers is cheaper kept than rejoined (the paint file comes down again). */
+  serverSilence: 15,
   /** Network log entries kept for COPY NETWORK LOG (net/diagnostics.ts). */
   logLines: 80,
 };
@@ -873,6 +875,12 @@ export const SERVER = {
   rejoinWindow: 180,
   /** The server pings every game this often (s), so a game notices a dead link. */
   ping: 2,
+  /**
+   * Every this often (s) the server drops a link that sent it nothing since the last time, and sends a WebSocket ping.
+   * Anything from the game counts, not only the answer to that ping: on a slow link the ping waits behind what's
+   * coming down (paint ops, a paint file) while the game's state still comes up (BL-004). HEARTBEAT overrides it.
+   */
+  heartbeat: 10,
   /** Paint runs move this many times a second on the server. */
   dripRate: 30,
   /** The largest message on a HOST link (/ws?host, bytes): the paint save it uploads is ~30 MB for a heavily painted ULTRA level. */
@@ -887,8 +895,8 @@ export const SERVER = {
   snapshotChunk: 2 ** 20,
   /** A paint file made is kept this long (s) for others who join or come back (they get the paint ops since with it). */
   snapshotKeep: 15,
-  /** A paint file travels in parts of this many bytes, so a slow link still hears from the server every few seconds (net/multiplayer.ts). */
-  partBytes: 256 * 2 ** 10,
+  /** A paint file travels in parts of this many bytes, so a slow link still hears from the server every few seconds (net/multiplayer.ts, NET.connectTimeout): 4 s a part at 8 KB/s. */
+  partBytes: 32 * 2 ** 10,
   /** While sessions are live the server logs its memory this often (s). */
   statsEvery: 300,
   /** Codes of ended sessions are remembered this long (s): joining one says it has ended, not that there's no such code. */

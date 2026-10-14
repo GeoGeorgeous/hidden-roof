@@ -79,6 +79,8 @@ export class Multiplayer {
   private t0 = 0;
   private nextSend = 0;
   private lastHeard = 0;
+  /** When this game last sent anything. */
+  private sent = 0;
   private ops: PaintOp[] = [];
   private opTimes: number[] = [];
   private ladderId: number | undefined;
@@ -151,8 +153,8 @@ export class Multiplayer {
     const t = now();
     this.remotes.update(this.g.camera, t, dt);
     if (!this.joined || !this.live || this.ws?.readyState !== WebSocket.OPEN) return;
-    if (t - this.lastHeard > SERVER.ping * 3) {
-      this.log.add(`nothing from the server for ${SERVER.ping * 3} s: closing to reconnect`);
+    if (t - this.lastHeard > NET.serverSilence) {
+      this.log.add(`nothing from the server for ${NET.serverSilence} s: closing to reconnect`);
       return this.ws.close();
     }
     if (this.net.measure(t)) this.send({ type: 'ping', t });
@@ -205,7 +207,11 @@ export class Multiplayer {
     const next = hello.type === 'join' ? (hello.token ? 'Going back in…' : 'Joining session…') : save ? 'Creating session from the save…' : 'Creating session…';
     let uploading = false;
     const timer = setInterval(() => {
-      if (this.ws !== ws || this.live) return clearInterval(timer);
+      if (this.ws !== ws) return clearInterval(timer);
+      // Something up the link at least every SERVER.ping, while the paint file comes down or the tab is hidden (no
+      // state then): the server's ping may wait behind what's coming down (SERVER.heartbeat).
+      if (!uploading && ws.readyState === WebSocket.OPEN && now() - this.sent > SERVER.ping) this.send({ type: 'ping', t: now() });
+      if (this.live) return;
       if (uploading && ws.bufferedAmount) {
         heard = now();
         this.onProgress(`Uploading paint ${percent(frame.length - ws.bufferedAmount, frame.length)}`);
@@ -397,6 +403,7 @@ export class Multiplayer {
     if (this.ws?.readyState !== WebSocket.OPEN) return;
     const f = encode(m);
     this.net.up += f.length;
+    this.sent = now();
     this.ws.send(f);
   }
 

@@ -12,23 +12,26 @@ import { surfaceTable } from '../src/save/shape';
 import { loadPaint } from '../src/save/load-paint';
 import { savePaint } from '../src/save/save-paint';
 import type { LevelData } from '../src/level/level';
+import { WebSocket as Ws } from 'ws';
 import { Session, type Link } from './session';
 import { sessionPaint } from './world';
 
 // The server (dist-server/server/main.js) against games speaking the protocol:
 // HOST and JOIN, what's turned away, relaying, SAVE, a reconnect, a player who
 // doesn't come back, who's away or dropped, what a player carries, HOST from a save, a full session joining at once,
-// message sizes, and the limits per address. Then level paint: made on a level
+// message sizes, the limits per address, and the heartbeat. Then level paint: made on a level
 // it fits, not once a painted prop is gone, and each level's own paint fits
 // its level. npm run test:server builds both.
 
 // A free port: other agents may be testing on this machine at the same time.
-const PORT = await new Promise<number>((done) => {
-  const s = net.createServer().listen(0, () => {
-    const { port } = s.address() as net.AddressInfo;
-    s.close(() => done(port));
+const freePort = () =>
+  new Promise<number>((done) => {
+    const s = net.createServer().listen(0, () => {
+      const { port } = s.address() as net.AddressInfo;
+      s.close(() => done(port));
+    });
   });
-});
+const PORT = await freePort();
 const level = JSON.parse(fs.readFileSync('public/levels/demo.json', 'utf8'));
 PAINT.texelsPerMeter = 48;
 const faces = levelPaintFaces(level);
@@ -339,6 +342,27 @@ assert.doesNotMatch(lines, /"A" #1 out: left[^]*"A" #1 dropped/);
     Object.assign(SERVER, was);
   }
   console.log('failed paint file: ok (the next join gets a new one)');
+}
+
+// The heartbeat (BL-004), on a server of its own beating every second: a game that keeps sending stays though it never
+// answers a ping (on a slow link the ping waits behind what's coming down); a silent one is dropped.
+{
+  const port = await freePort();
+  const beating = spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(port), HEARTBEAT: '1' }, stdio: ['ignore', 'pipe', 'inherit'] });
+  try {
+    await new Promise((ready) => beating.stdout!.once('data', ready));
+    const open = () => new Promise<Ws>((done) => new Ws(`ws://localhost:${port}/ws`, { autoPong: false }).on('open', function (this: Ws) { done(this); }));
+    const [talking, silent] = await Promise.all([open(), open()]);
+    const talk = setInterval(() => talking.send(encode({ type: 'ping', t: 0 })), 100);
+    assert.equal(await new Promise((done) => silent.on('close', done)), 1006);
+    await new Promise((done) => setTimeout(done, 3000));
+    clearInterval(talk);
+    assert.equal(talking.readyState, Ws.OPEN, 'a game that sends but answers no ping is dropped');
+    talking.close();
+  } finally {
+    beating.kill();
+  }
+  console.log('heartbeat: ok (a game that sends stays, a silent one is dropped)');
 }
 
 // A level's own paint (src/save/level-paint.ts) fits it face for face, and the faces of a prop removed since don't: made here on the demo level.
