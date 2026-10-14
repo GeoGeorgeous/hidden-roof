@@ -8,8 +8,8 @@ import { PaintGpu, type DirtyRect, type PaintPage } from './paint-gpu';
 import type { PageSlot } from './page-packer';
 import type { LightSlot } from './render/bake/light-pages';
 import { inRing, PaintRaster, type Band, type Box } from './paint-raster';
-import type { PaintOp } from './paint-ops';
-import { wire } from './op-wire';
+import type { PaintOp, RollOp, StampOp } from './paint-ops';
+import { rounded } from './op-wire';
 import { imageOnFace, type PaintImage } from './paint-image';
 
 // Paint lives in one RGBA atlas of its faces per paintable surface, on the
@@ -79,9 +79,9 @@ export class PaintSystem {
   readonly gpu = new PaintGpu();
   /** Bumped when all paint is wiped (clear): paint still in flight from before it (spray particles) is dropped. */
   epoch = 0;
-  /** While set, every stamp and roll that paints is appended as an op (paint-ops.ts). */
+  /** While set, every op this player makes (stamps, rolls, the runs they start) is appended (paint-ops.ts). */
   log: PaintOp[] | null = null;
-  /** Ops made so far (stamps, rolls, runs), logged or not: what saves and the network carry (F3). */
+  /** Ops painted so far (stamps, rolls, runs, replayed ones too): what saves and the network carry (F3). */
   opCount = 0;
   /** Called when heavy paint on a vertical face should start a run (see paint-drips.ts). */
   onDrip: (s: PaintSurface, rect: Rect, x: number, y: number, rgb: Rgb) => void = () => {};
@@ -235,18 +235,34 @@ export class PaintSystem {
     square = false,
   ) {
     if (!this.live(s)) return;
+    // Logged before it paints: the runs it starts are logged after it.
+    const op = this.record(rounded({ kind: 'stamp', key: s.key, rect: at.rect, u: at.u, v: at.v, radius, amount, color, softness, square }));
+    this.stampOp(s, op, drip);
+  }
+
+  /** An op made here (a stamp, a roll, a run it starts): counted, and logged as this player's. */
+  record<T extends PaintOp>(op: T): T {
     this.opCount++;
-    // Painted with the numbers an op carries (op-wire.ts), so every client paints the same texels.
-    at = { rect: at.rect, u: wire.unit(at.u), v: wire.unit(at.v) };
-    [radius, amount, softness, color] = [wire.meters(radius), wire.unit(amount), wire.unit(softness), color && wire.rgb(color)];
-    this.log?.push({ kind: 'stamp', key: s.key, rect: at.rect, u: at.u, v: at.v, radius, amount, color, softness, square });
-    const rect = faceTexel(s, at);
+    this.log?.push(op);
+    return op;
+  }
+
+  /** A stamp or roll made elsewhere (another player, a recording): painted, never logged, never starting runs (whoever painted it decides those). */
+  replay(s: PaintSurface, op: StampOp | RollOp) {
+    if (!this.live(s)) return;
+    this.opCount++;
+    if (op.kind === 'stamp') this.stampOp(s, rounded(op), 0);
+    else this.rollOp(s, rounded(op), 0);
+  }
+
+  private stampOp(s: PaintSurface, op: StampOp, drip: number) {
+    const rect = faceTexel(s, op);
     const { x: cx, y: cy } = atTexel;
-    this.dot(s, rect, cx, cy, radius, amount, color, softness, drip, square);
-    for (const n of this.pastEdge(s, rect, cx, cy, radius)) {
+    this.dot(s, rect, cx, cy, op.radius, op.amount, op.color, op.softness, drip, op.square);
+    for (const n of this.pastEdge(s, rect, cx, cy, op.radius)) {
       if (!this.live(n.surface)) continue;
       worldToTexel(n.rect, seamPoint, seamTexel);
-      this.dot(n.surface, n.rect, seamTexel.x, seamTexel.y, radius, amount, color, softness, drip, square);
+      this.dot(n.surface, n.rect, seamTexel.x, seamTexel.y, op.radius, op.amount, op.color, op.softness, drip, op.square);
     }
   }
 
@@ -270,16 +286,17 @@ export class PaintSystem {
     drip = 0,
   ) {
     if (!this.live(s)) return;
-    this.opCount++;
-    at = { rect: at.rect, u: wire.unit(at.u), v: wire.unit(at.v) };
-    axis = rollAxis.set(wire.signed(axis.x), wire.signed(axis.y), wire.signed(axis.z));
-    [halfLength, halfWidth, edge, amount, color] = [wire.meters(halfLength), wire.meters(halfWidth), wire.unit(edge), wire.unit(amount), wire.rgb(color)];
-    this.log?.push({ kind: 'roll', key: s.key, rect: at.rect, u: at.u, v: at.v, axis: axis.toArray(), halfLength, halfWidth, edge, amount, color });
-    const rect = faceTexel(s, at);
+    const op = this.record(rounded({ kind: 'roll', key: s.key, rect: at.rect, u: at.u, v: at.v, axis: axis.toArray(), halfLength, halfWidth, edge, amount, color }));
+    this.rollOp(s, op, drip);
+  }
+
+  private rollOp(s: PaintSurface, op: RollOp, drip: number) {
+    const rect = faceTexel(s, op);
     const { x: cx, y: cy } = atTexel;
-    const band = { halfLength, halfWidth, edge, amount, color, drip };
+    const axis = rollAxis.fromArray(op.axis);
+    const band = { halfLength: op.halfLength, halfWidth: op.halfWidth, edge: op.edge, amount: op.amount, color: op.color, drip };
     this.band(s, rect, cx, cy, axis, band);
-    for (const n of this.pastEdge(s, rect, cx, cy, Math.hypot(halfLength, halfWidth))) {
+    for (const n of this.pastEdge(s, rect, cx, cy, Math.hypot(op.halfLength, op.halfWidth))) {
       if (!this.live(n.surface)) continue;
       worldToTexel(n.rect, seamPoint, seamTexel);
       this.band(n.surface, n.rect, seamTexel.x, seamTexel.y, axis, band);

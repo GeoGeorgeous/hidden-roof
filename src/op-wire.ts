@@ -2,8 +2,8 @@ import type { PaintOp } from './paint-ops';
 import type { Rgb } from './painting';
 
 // Paint ops on the wire (BL-024): their precision, and their bytes. Every
-// number an op carries is rounded to what its bytes hold, and the painter
-// paints with the rounded numbers too (painting.ts, paint-drips.ts), so every
+// number an op carries is rounded to what its bytes hold (rounded), and the
+// painter paints with the rounded op too (painting.ts, paint-drips.ts), so every
 // client and the server paint the very same texels from the bytes. A surface
 // goes as its place among the session's surface keys, sorted (SurfaceIndex):
 // the same on every client, since their surfaceTable matches the server's.
@@ -22,8 +22,15 @@ const unit = (x: number) => Math.round(clamp(x, 0, 1) * U16) / U16;
 const meters = (x: number) => Math.round(clamp(x, 0, MAX_M) * TENTH_MM) / TENTH_MM;
 /** A direction's component (-1..1) as it travels. */
 const signed = (x: number) => Math.round(clamp(x, -1, 1) * I16) / I16;
-/** Each number of an op as it travels: what the painter paints with too. */
-export const wire = { unit, meters, signed, rgb: (c: Rgb): Rgb => [unit(c[0]), unit(c[1]), unit(c[2])] };
+const rgb = (c: Rgb): Rgb => [unit(c[0]), unit(c[1]), unit(c[2])];
+
+/** The op with every number as it travels: what the painter paints with too, so all paint the same texels. Rounding again changes nothing. */
+export function rounded<T extends PaintOp>(op: T): T {
+  const at = { ...op, u: unit(op.u), v: unit(op.v) };
+  if (at.kind === 'stamp') return { ...at, radius: meters(at.radius), amount: unit(at.amount), softness: unit(at.softness), color: at.color && rgb(at.color) };
+  if (at.kind === 'roll') return { ...at, axis: [signed(at.axis[0]), signed(at.axis[1]), signed(at.axis[2])], halfLength: meters(at.halfLength), halfWidth: meters(at.halfWidth), edge: unit(at.edge), amount: unit(at.amount), color: rgb(at.color) };
+  return { ...at, length: meters(at.length), speed: meters(at.speed), rgb: rgb(at.rgb) };
+}
 
 /** The session's surfaces by place: their keys, sorted. */
 export class SurfaceIndex {
