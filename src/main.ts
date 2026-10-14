@@ -26,7 +26,9 @@ import { saveScreenshot } from './screenshot';
 import { Input } from './input';
 import { Player } from './player';
 import { PaintSystem } from './painting';
-import { Level, type LevelData } from './level/level';
+import { Level } from './level/level';
+import type { LevelData } from './level/level-data';
+import { FrameMeter } from './frame-meter';
 import { makeSky } from './sky';
 import { buildSkyline, disposeSkyline, updateSkyline, type SkylineSettings } from './skyline';
 import { setLinePointScale } from './city/lines';
@@ -232,10 +234,7 @@ window.addEventListener('resize', () => {
 
 const eye = new THREE.Vector3();
 const timer = new THREE.Timer();
-let fpsFrames = 0;
-let fpsTime = 0;
-let fps = 0;
-let frameMs = 0;
+const meter = new FrameMeter();
 let rainTime = 0;
 let fov = RENDER.fov;
 const tagPos = new THREE.Vector3();
@@ -262,7 +261,7 @@ function frame(time: number) {
     }
     drawnAt = since < interval * 2 ? drawnAt + interval : time;
   }
-  const t0 = performance.now();
+  meter.start();
   timer.update(time);
   const delta = timer.getDelta();
   fixedStep.script?.();
@@ -377,14 +376,8 @@ function frame(time: number) {
 
   input.endFrame();
 
-  fpsFrames++;
-  fpsTime += delta; // real time: dt is clamped, which would overstate fps below 20
-  frameMs = frameMs * 0.9 + (performance.now() - t0) * 0.1;
-  if (fpsTime >= 0.5) {
-    fps = fpsFrames / fpsTime;
-    fpsFrames = 0;
-    fpsTime = 0;
-  }
+  meter.end(delta);
+  const { fps, frameMs } = meter;
   // The HUD's GPU line keeps the timer running with the panel closed.
   if (HUD.perf && HUD.perfGpu) gpuTimer.enabled = true;
   const gpu = !HUD.perfGpu ? undefined : gpuTimer.supported ? gpuTimer.total(VOLUMETRICS.enabled ? ['scene', 'volumetrics', 'post'] : ['scene', 'post']) : null;

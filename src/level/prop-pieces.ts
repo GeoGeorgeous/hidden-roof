@@ -4,7 +4,7 @@ import type { SurfaceGeometry } from '../surfaces';
 import { expandPieces, solidBoxes, type PropInstance } from './build-prop';
 import { CoverIndex } from './cover';
 import { computeJoints, jointPieces } from './joints';
-import type { LevelData, PropData } from './level';
+import type { LevelData, PropData } from './level-data';
 import { stackContext } from './stacks';
 
 // From level data to props and their pieces, the same way on every client and

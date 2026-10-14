@@ -11,7 +11,7 @@ import { decodePaintFile, encodePaintFile, joinBytes } from '../src/save/paint-f
 import { surfaceTable } from '../src/save/shape';
 import { loadPaint } from '../src/save/load-paint';
 import { savePaint } from '../src/save/save-paint';
-import type { LevelData } from '../src/level/level';
+import type { LevelData } from '../src/level/level-data';
 import { WebSocket as Ws } from 'ws';
 import { PartsIn } from '../src/net/parts-in';
 import { decodeOps, encodeOps, SurfaceIndex } from '../src/op-wire';
