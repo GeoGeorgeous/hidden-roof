@@ -77,7 +77,7 @@ Five times in the playtest (`SERVER.rejoinWindow`): the stepladder and carried i
 ### Water tank roofs fall through
 - id: BL-006
 - type: bug
-- status: Planned
+- status: Done
 - priority: Urgent
 - size: S
 - area: level
@@ -86,7 +86,7 @@ Five times in the playtest (`SERVER.rejoinWindow`): the stepladder and carried i
 
 Tanks on stands and the water tank: the roof has no collider, so the player walks in between; crouching shows the real flat roof, which can be painted (the oval roofs are fine). Seen at (-10.07, 3.40, -8.57) and (-7.13, 4.32, -14.12). Do: give those props a roof collider.
 
-
+Fixed (2026-10-14): cones built no collider, so the player fell through the roof onto the tank's flat top inside it. A cone now collides as a stack of short cylinders (`coneColliders`, `src/level/build-prop.ts`); test: `game.test.mjs` drops a player on each tank roof.
 
 ### Spraying and shaking the can work at the same time
 - id: BL-007

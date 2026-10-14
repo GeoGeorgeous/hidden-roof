@@ -293,6 +293,7 @@ export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint =
       const c = at(p.base);
       g.translate(c.x, c.y + p.h / 2, c.z);
       decor(p.mat, g, p.swing);
+      if (p.collide && !p.swing) collide(p.mat, coneColliders(c, p.r, p.h));
     } else if (p.k === 'light') {
       const sw = p.swing?.track ? p.swing : undefined;
       const track: Track | null = sw ? { pivot: at(sw.pivot), fwd: new THREE.Vector2(restFacing.x, restFacing.z), amp: sw.amp, speed: (Math.PI * 2) / sw.period, phase: sw.phase ?? 0 } : null;
@@ -399,6 +400,12 @@ function rodColliders(a: THREE.Vector3, b: THREE.Vector3, r: number) {
     out.push(box);
   }
   return out;
+}
+
+/** An upright cone collides as a stack of short cylinders, each as wide as the cone halfway up it: a roof that steps up to its tip. */
+function coneColliders(base: THREE.Vector3, r: number, h: number) {
+  const n = Math.max(1, Math.ceil(h / 0.3));
+  return Array.from({ length: n }, (_, i) => cylinderColliders(base.clone().setY(base.y + (h * i) / n), 'y', h / n, r * (1 - (i + 0.5) / n))).flat();
 }
 
 /** Fat vertical cylinders collide as overlapping slabs; everything else as its AABB. */

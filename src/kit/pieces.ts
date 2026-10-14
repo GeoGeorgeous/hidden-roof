@@ -108,6 +108,7 @@ interface ConePiece {
   r: number;
   h: number;
   mat: Mat;
+  collide: boolean;
   swing?: Swing;
 }
 /** Ladder climb volume, from its foot up to its top (the floor it leads to); `normal` points away from the ladder toward the climber. */
@@ -218,8 +219,8 @@ export class Parts {
     this.list.push({ k: 'rod', a, b, r, mat, collide, swing: this.swing });
   }
 
-  cone(base: V3, r: number, h: number, mat: Mat) {
-    this.list.push({ k: 'cone', base, r, h, mat, swing: this.swing });
+  cone(base: V3, r: number, h: number, mat: Mat, collide = true) {
+    this.list.push({ k: 'cone', base, r, h, mat, collide, swing: this.swing });
   }
 
   emitter(kind: EmitterPiece['kind'], pos: V3, dir?: V3) {
