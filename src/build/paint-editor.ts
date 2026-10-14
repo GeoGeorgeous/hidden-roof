@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { HINT, HINT_ALIGNS, HINT_FONTS, PAINT, type HintFont, type PaintColor } from '../config';
+import { HINT, HINT_ALIGNS, HINT_FONTS, type HintFont, type PaintColor } from '../config';
 import { download } from '../files';
 import type { Input } from '../input';
 import { rgbOf } from '../inventory/items';
@@ -151,7 +151,7 @@ export class PaintEditor {
   async save(name: string) {
     if (!this.painted) return null;
     download(new Blob([(await savePaint(this.paint, { name })) as BlobPart]), `${name}.rhhpaint`);
-    const blurry = PAINT.texelsPerMeter < HINT.detail ? ` · AT PAINT DETAIL ${PAINT.texelsPerMeter}: ULTRA KEEPS HINTS SHARP` : '';
+    const blurry = this.paint.texelsPerMeter < HINT.detail ? ` · AT PAINT DETAIL ${this.paint.texelsPerMeter}: ULTRA KEEPS HINTS SHARP` : '';
     return `${name}.rhhpaint${blurry}`;
   }
 
@@ -194,7 +194,7 @@ export class PaintEditor {
   /** The hint as an image to paint, or why it can't be one. */
   private draw(): PaintImage | string {
     try {
-      return hintImage(this.text, this.font, this.size, PAINT.texelsPerMeter * HINT.supersample, this.align) ?? 'NOTHING TO PAINT';
+      return hintImage(this.text, this.font, this.size, this.paint.texelsPerMeter * HINT.supersample, this.align) ?? 'NOTHING TO PAINT';
     } catch (e) {
       return (e as Error).message;
     }
@@ -219,7 +219,7 @@ export class PaintEditor {
 
   private showPreview(aim: Aim, color: PaintColor) {
     // The font's look too: F3 changes it.
-    const key = `${this.text}|${this.font}|${this.align}|${JSON.stringify(HINT.looks[this.font])}|${this.size}|${color}|${PAINT.texelsPerMeter}`;
+    const key = `${this.text}|${this.font}|${this.align}|${JSON.stringify(HINT.looks[this.font])}|${this.size}|${color}|${this.paint.texelsPerMeter}`;
     if (key !== this.previewKey) {
       this.previewKey = key;
       const img = this.draw();

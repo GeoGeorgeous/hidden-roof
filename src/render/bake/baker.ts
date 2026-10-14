@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { ATMOS, LIGHTMAP, LIGHTS, NEON_COLORS, PAINT } from '../../config';
+import { ATMOS, LIGHTMAP, LIGHTS, NEON_COLORS } from '../../config';
 import type { BuiltProp } from '../../level/build-prop';
 import { lampLevel } from '../flicker';
 import { bakeUniforms } from './glsl';
@@ -166,7 +166,7 @@ export class LightBaker {
 
   /** A surface's light atlas at the current density, and its block (also on the surface, for the level's merged meshes). */
   private layOut(r: SurfaceReceiver) {
-    r.layout = layoutLightmap(r.surface.geo, PAINT.texelsPerMeter, this.density);
+    r.layout = layoutLightmap(r.surface.geo, r.surface.geo.texelsPerMeter, this.density);
     // One set of pages for the whole level: light is small, and every surface sharing them keeps the level's draws few.
     r.slot = r.surface.light = this.pages.place(r.layout.w, r.layout.h, '');
   }

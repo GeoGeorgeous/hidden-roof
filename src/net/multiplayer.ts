@@ -3,12 +3,12 @@ import type { PaintOp } from '../paint-ops';
 import { loadPaint } from '../save/load-paint';
 import { surfaceTable } from '../save/shape';
 import { session } from '../session';
-import { decode, encode, PROTOCOL, type Rejection, type ToClient, type ToServer } from './protocol';
+import { PROTOCOL, type Rejection, type ToClient, type ToServer } from './protocol';
 import { diagnose, NetLog, Traffic } from './diagnostics';
 import { decodeOps, encodeOps, SurfaceIndex } from '../op-wire';
 import { playSessionLevel, type MultiplayerContext } from './game-context';
 import { Outbox } from './outbox';
-import { PartsIn } from './parts-in';
+import { ServerLink } from './server-link';
 import { ownerOf, Remotes } from './remotes';
 import { keepTabSession, tabSession } from './tab-session';
 import { capture, encodeSnapshot } from './snapshot';
@@ -29,7 +29,6 @@ type Failure = Rejection | 'timeout' | Awaited<ReturnType<typeof diagnose>>['rea
 export type NetStatus = { state: 'off' } | { state: 'connecting' } | { state: 'in'; code: string } | { state: 'reconnecting'; code: string; detail: string } | { state: 'failed'; reason: Failure; detail?: string };
 
 const now = () => performance.now() / 1000;
-const percent = (done: number, all: number) => `${Math.floor((100 * done) / Math.max(all, 1))}%`;
 
 export class Multiplayer {
   status: NetStatus = { state: 'off' };
@@ -42,19 +41,15 @@ export class Multiplayer {
   onProgress: (text: string | null) => void = () => {};
   /** What happened to the link (COPY NETWORK LOG). */
   readonly log = new NetLog();
-  private ws: WebSocket | null = null;
+  /** The link to the server, while there's one. */
+  private link: ServerLink | null = null;
   private remotes: Remotes;
   /** Who we are, once welcomed, and how to come back. */
   private joined: { code: string; token: string; name: string; you: number; levelName: string } | null = null;
   /** Messages are handled one at a time, in order (a welcome loads paint before what follows it). */
   private queue = Promise.resolve();
-  /** This socket's welcome has come: it sends, and a silence on it means it's dead. */
-  private live = false;
   private t0 = 0;
   private nextSend = 0;
-  private lastHeard = 0;
-  /** When this game last sent anything. */
-  private sent = 0;
   /** This player's paint ops, until the server has them. */
   private outbox = new Outbox();
   /** The session's surfaces, as paint ops name them. */
@@ -70,7 +65,7 @@ export class Multiplayer {
   constructor(private g: MultiplayerContext) {
     this.remotes = new Remotes(g, this.log);
     g.tools.ladder.others = () => this.remotes.shown;
-    document.addEventListener('visibilitychange', () => this.live && this.send({ type: 'away', away: document.hidden }));
+    document.addEventListener('visibilitychange', () => this.link?.live && this.send({ type: 'away', away: document.hidden }));
   }
 
   /** The other players' names, by id. */
@@ -124,10 +119,11 @@ export class Multiplayer {
   update(dt: number) {
     const t = now();
     this.remotes.update(this.g.camera, t, dt);
-    if (!this.joined || !this.live || this.ws?.readyState !== WebSocket.OPEN) return;
-    if (t - this.lastHeard > NET.serverSilence) {
+    const link = this.link;
+    if (!this.joined || !link?.live || !link.open) return;
+    if (t - link.lastHeard > NET.serverSilence) {
       this.log.add(`nothing from the server for ${NET.serverSilence} s: closing to reconnect`);
-      return this.ws.close();
+      return link.close();
     }
     if (this.net.measure(t)) this.send({ type: 'ping', t });
     const at = t - this.t0;
@@ -150,79 +146,29 @@ export class Multiplayer {
   }
 
   private connect(hello: Extract<ToServer, { type: 'host' | 'join' }>) {
-    this.ws?.close();
+    this.link?.abandon();
     this.name = hello.name;
     // HOST goes where the server takes big messages (a save), a few at a time.
     const url = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws${hello.type === 'host' ? '?host' : ''}`;
     this.log.add(`connecting to ${url}: ${hello.type === 'host' ? `HOST at ${hello.detail} texels/m${hello.bytes ? ` with ${(hello.bytes.length / 1024).toFixed(0)} KB of paint` : ''}` : `JOIN ${hello.code}${hello.token ? ' (coming back)' : ''}`}`);
-    const ws = new WebSocket(url);
-    ws.binaryType = 'arraybuffer';
-    this.ws = ws;
-    this.live = false;
     if (!this.joined) this.setStatus({ state: 'connecting' });
-    const started = now();
-    /**
-     * Nothing from the server in NET.connectTimeout before the welcome (it
-     * pings while the paint file is made), not counting the hello's upload:
-     * give up on this socket.
-     */
-    let heard = started;
-    let timedOut = false;
-    const frame = encode(hello);
-    /** A HOST's save: the server sends no paint back, it's this. */
-    const save = hello.type === 'host' ? hello.bytes : undefined;
-    /** What the server is doing once the hello is up. */
-    const next = hello.type === 'join' ? (hello.token ? 'Going back in…' : 'Joining session…') : save ? 'Creating session from the save…' : 'Creating session…';
-    let uploading = false;
-    const timer = setInterval(() => {
-      if (this.ws !== ws) return clearInterval(timer);
-      // Something up the link at least every SERVER.ping, while the paint file comes down or the tab is hidden (no
-      // state then): the server's ping may wait behind what's coming down (SERVER.heartbeat).
-      if (!uploading && ws.readyState === WebSocket.OPEN && now() - this.sent > SERVER.ping) this.send({ type: 'ping', t: now() });
-      if (this.live) return;
-      if (uploading && ws.bufferedAmount) {
-        heard = now();
-        this.onProgress(`Uploading paint ${percent(frame.length - ws.bufferedAmount, frame.length)}`);
-      } else if (uploading) {
-        uploading = false;
-        this.onProgress(next);
-      }
-      if (now() - heard < NET.connectTimeout) return;
-      this.log.add(`nothing from the server in ${NET.connectTimeout} s (socket ${['connecting', 'open', 'closing', 'closed'][ws.readyState]})`);
-      timedOut = true;
-      clearInterval(timer);
-      ws.close();
-    }, 250);
-    ws.onopen = () => {
-      this.log.add(`open after ${Math.round((now() - started) * 1000)} ms`);
-      ws.send(frame);
-      // Only a save is worth a percentage (the rest goes in a blink).
-      uploading = !!save && ws.bufferedAmount > 0;
-      this.onProgress(uploading ? 'Uploading paint 0%' : next);
-    };
     // What this game can't take (a welcome it can't load) ends the session for it.
     const handle = (m: ToClient, arrived: number, file?: Uint8Array) => (this.queue = this.queue.then(() => this.receive(m, arrived, file)).catch((err) => (console.error(err), this.send({ type: 'leave' }), this.end({ state: 'failed', reason: 'version' }))));
-    const parts = new PartsIn();
-    ws.onmessage = (e) => {
-      if (this.ws !== ws) return;
-      const t = (this.lastHeard = heard = now());
-      uploading = false;
-      this.net.down += (e.data as ArrayBuffer).byteLength;
-      const m = decode(new Uint8Array(e.data as ArrayBuffer)) as ToClient | null;
-      if (m?.type === 'welcome' && m.parts) this.log.add(`welcome: the paint comes in ${m.parts} parts`);
-      const done = m && parts.take(m);
-      const of = parts.coming ?? (done?.file && done.m);
-      if (m?.type === 'part' && of) this.onProgress(`${of.type === 'save' ? 'Saving' : 'Downloading'} paint ${percent(parts.got, of.parts)}`);
-      if (done) handle(done.m, t, done.file ?? (done.m.type === 'welcome' ? save : undefined));
-    };
-    ws.onclose = (e) => {
-      clearInterval(timer);
-      if (this.ws !== ws) return;
-      this.log.add(`closed: ${e.code}${e.reason ? ` ${e.reason}` : ''}${e.wasClean ? '' : ', not clean'}, after ${(now() - started).toFixed(1)} s`);
-      this.ws = null;
-      if (timedOut && !this.joined) return this.end({ state: 'failed', reason: 'timeout', detail: `NO ANSWER IN ${NET.connectTimeout} S` });
-      this.dropped(e.code);
-    };
+    const link: ServerLink = (this.link = new ServerLink(
+      hello,
+      {
+        message: handle,
+        progress: (text) => this.onProgress(text),
+        log: (line) => this.log.add(line),
+        traffic: (up, down) => ((this.net.up += up), (this.net.down += down)),
+        closed: (code, timedOut) => {
+          if (this.link === link) this.link = null;
+          if (timedOut && !this.joined) return this.end({ state: 'failed', reason: 'timeout', detail: `NO ANSWER IN ${NET.connectTimeout} S` });
+          this.dropped(code);
+        },
+      },
+      { url, open: (u) => new WebSocket(u), now, every: (tick, ms) => ((id) => () => clearInterval(id))(setInterval(tick, ms)) },
+    ));
   }
 
   /**
@@ -234,18 +180,18 @@ export class Multiplayer {
     const j = this.joined;
     const why = diagnose().then((d) => (this.log.add(`asked the server over HTTP: ${d.reason} (${d.detail})`), d));
     if (!j) {
-      void why.then((d) => !this.ws && !this.joined && this.end({ state: 'failed', reason: d.reason, detail: `${d.detail} · WS ${code}` }));
+      void why.then((d) => !this.link && !this.joined && this.end({ state: 'failed', reason: d.reason, detail: `${d.detail} · WS ${code}` }));
       return;
     }
-    if (this.status.state !== 'reconnecting') this.retry = { until: now() + SERVER.rejoinWindow, wait: 1, tries: 0 };
+    if (this.status.state !== 'reconnecting') this.retry = { until: now() + SERVER.rejoinWindow, wait: NET.retryFirst, tries: 0 };
     const r = this.retry!;
     if (now() > r.until) return this.end({ state: 'failed', reason: 'ended', detail: `NO WAY BACK IN ${SERVER.rejoinWindow} S` });
     r.tries++;
     this.setStatus({ state: 'reconnecting', code: j.code, detail: `WS ${code} · TRY ${r.tries}` });
     void why.then((d) => this.status.state === 'reconnecting' && this.joined === j && this.setStatus({ state: 'reconnecting', code: j.code, detail: `${d.detail} · WS ${code} · TRY ${r.tries}` }));
     this.log.add(`trying again in ${r.wait} s (try ${r.tries})`);
-    setTimeout(() => this.joined === j && !this.ws && this.connect({ type: 'join', protocol: PROTOCOL, name: j.name, code: j.code, token: j.token }), r.wait * 1000);
-    r.wait = Math.min(r.wait * 2, 8);
+    setTimeout(() => this.joined === j && !this.link && this.connect({ type: 'join', protocol: PROTOCOL, name: j.name, code: j.code, token: j.token }), r.wait * 1000);
+    r.wait = Math.min(r.wait * 2, NET.retryMost);
   }
 
   /** `arrived`: when it came (local s); `file`: the paint file of a welcome or a save. */
@@ -322,8 +268,8 @@ export class Multiplayer {
     this.ladderId = g.level.runtimeOf(session.player);
     this.nextSend = 0;
     this.net = new Traffic();
-    this.live = true;
-    this.lastHeard = now();
+    // Its welcome has come: it sends, and a silence on it means it's dead.
+    if (this.link) Object.assign(this.link, { live: true, lastHeard: now() });
     this.carried = -1;
     for (const b of resend) this.sendOps(b);
     if (document.hidden) this.send({ type: 'away', away: true });
@@ -333,9 +279,8 @@ export class Multiplayer {
 
   /** Out of the session: single player again, keeping the paint (SAVE PAINT still has it). */
   private end(status: NetStatus) {
-    const ws = this.ws;
-    this.ws = null;
-    ws?.close();
+    this.link?.abandon();
+    this.link = null;
     this.onProgress(null);
     if (this.joined) {
       this.remotes.clear();
@@ -362,11 +307,7 @@ export class Multiplayer {
   }
 
   private send(m: ToServer) {
-    if (this.ws?.readyState !== WebSocket.OPEN) return;
-    const f = encode(m);
-    this.net.up += f.length;
-    this.sent = now();
-    this.ws.send(f);
+    this.link?.send(m);
   }
 
   private sendOps(b: { seq: number; t: number[]; ops: PaintOp[] }) {

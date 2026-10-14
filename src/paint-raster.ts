@@ -1,5 +1,5 @@
 import type * as THREE from 'three';
-import { DRIPS, PAINT } from './config';
+import { DRIPS } from './config';
 import { paintRandom } from './lcg';
 import type { Rgb } from './painting';
 import type { Rect, SurfaceGeometry } from './surfaces';
@@ -56,8 +56,8 @@ export class PaintRaster<S extends RasterSurface> {
     }
     const w = s.geo.atlasW;
     const data = s.data!;
-    const L = Math.max(0.5, b.halfLength * PAINT.texelsPerMeter);
-    const T = Math.max(0.5, b.halfWidth * PAINT.texelsPerMeter);
+    const L = Math.max(0.5, b.halfLength * s.geo.texelsPerMeter);
+    const T = Math.max(0.5, b.halfWidth * s.geo.texelsPerMeter);
     const fade = b.edge * L;
     const ex = Math.abs(ax) * L + Math.abs(ay) * T;
     const ey = Math.abs(ay) * L + Math.abs(ax) * T;
@@ -100,7 +100,7 @@ export class PaintRaster<S extends RasterSurface> {
   ) {
     const w = s.geo.atlasW;
     const data = s.data!;
-    const r = radius * PAINT.texelsPerMeter;
+    const r = radius * s.geo.texelsPerMeter;
     // Under half a texel diagonal the dot could miss every texel center.
     const dot = r >= Math.SQRT1_2;
     const reach = dot ? r - 0.5 : 0;
@@ -172,7 +172,7 @@ export class PaintRaster<S extends RasterSurface> {
       return;
     }
     e[k] = 0;
-    if (paintRandom.drips() >= rate / PAINT.texelsPerMeter ** 2) return;
+    if (paintRandom.drips() >= rate / s.geo.texelsPerMeter ** 2) return;
     const i = k * 4;
     const d = s.data!;
     this.hooks.drip(s, rect, x, y, [d[i] / 255, d[i + 1] / 255, d[i + 2] / 255]);

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { PAINT, SERVER } from '../src/config';
+import { SERVER } from '../src/config';
 import type { InventoryData } from '../src/inventory/inventory';
 import type { LevelData, PropData } from '../src/level/level-data';
 import { decodeOps, encodeOps, SurfaceIndex } from '../src/op-wire';
@@ -79,7 +79,7 @@ export class Session {
     readonly detail: number,
     private onEmpty: () => void,
   ) {
-    this.world = this.at(() => sessionPaint(level));
+    this.world = sessionPaint(level, detail);
     this.table = surfaceTable(this.world.paint.surfaces);
     this.surfaces = new SurfaceIndex([...this.world.paint.surfaces].map((s) => s.key));
   }
@@ -283,7 +283,7 @@ export class Session {
       this.frozen = [];
       const t = performance.now();
       try {
-        const { pieces, raw } = await this.at(() => streamPaint(this.world.paint, { name: this.levelName }, SERVER.snapshotChunk));
+        const { pieces, raw } = await streamPaint(this.world.paint, { name: this.levelName }, SERVER.snapshotChunk);
         const frames = partFrames(pieces, SERVER.partBytes);
         const size = frames.reduce((n, f) => n + f.length, 0);
         log(this.code, `paint file: ${mb(raw)} MB of paint, ${mb(size)} MB packed, in ${((performance.now() - t) / 1000).toFixed(1)} s (${waiting()} more in line)`);
@@ -297,7 +297,7 @@ export class Session {
       } finally {
         const held = this.frozen;
         this.frozen = null;
-        this.at(() => held!.forEach((f) => f()));
+        held!.forEach((f) => f());
       }
     });
     return s;
@@ -315,7 +315,7 @@ export class Session {
   /** A change to the paint now, or after the paint file that's reading it. */
   private paintNow(fn: () => void) {
     if (this.frozen) this.frozen.push(fn);
-    else this.at(fn);
+    else fn();
   }
 
   private send(p: Player, m: ToClient) {
@@ -327,11 +327,6 @@ export class Session {
     for (const p of this.players.values()) if (p !== except) deliver(p, f);
   }
 
-  /** Runs `fn` at this session's PAINT DETAIL: PAINT.texelsPerMeter is global, and sessions may differ. */
-  private at<T>(fn: () => T): T {
-    PAINT.texelsPerMeter = this.detail;
-    return fn();
-  }
 }
 
 const presence = (p: Player): Presence => (!p.link ? 'dropped' : p.away ? 'away' : 'here');

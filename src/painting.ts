@@ -1,15 +1,13 @@
 import * as THREE from 'three';
 import { PAINT } from './config';
-import type { MipSize } from './paint-mips';
 import { painted, resampleRect } from './paint-resample';
 import type { FacePoint, Rect, SurfaceGeometry } from './surfaces';
 import { SeamIndex, texelToWorld, worldToTexel, type SeamFace } from './paint-seams';
-import { PaintGpu, type DirtyRect, type PaintPage } from './paint-gpu';
-import type { PageSlot } from './page-packer';
-import type { LightSlot } from './render/bake/light-pages';
+import { PaintGpu } from './paint-gpu';
+import type { PaintPatch, PaintSurface, Rgb } from './paint-surface';
 import { inRing, PaintRaster, type Band, type Box } from './paint-raster';
-import type { PaintOp } from './paint-ops';
-import { wire } from './op-wire';
+import type { PaintOp, RollOp, StampOp } from './paint-ops';
+import { rounded } from './op-wire';
 import { imageOnFace, type PaintImage } from './paint-image';
 
 // Paint lives in one RGBA atlas of its faces per paintable surface, on the
@@ -33,42 +31,12 @@ function faceTexel(s: PaintSurface, at: FacePoint): Rect {
   return r;
 }
 
-/** A paint color: sRGB channels 0..1, the way paint textures store it (inventory/items.ts rgbOf). */
-export type Rgb = readonly [number, number, number];
-
-export interface PaintSurface {
-  /** Stable name, the same on every client and at every paint detail: `p<prop id>#k` or `j<joint key>#k`, k = index in the prop's paint (level/build-prop.ts). */
-  key: string;
-  /** Never drawn (the level draws its surfaces merged, level/batches.ts): what tools' rays hit. */
-  mesh: THREE.Mesh;
-  geo: SurfaceGeometry;
-  /** Its block on a paint page. */
-  slot: PageSlot<PaintPage> | null;
-  /** Its block on a light page (render/bake), once the baker took the surface in. */
-  light: LightSlot | null;
-  data: Uint8Array | null;
-  /** Sizes of the texture's smaller levels for distant views (paint-mips.ts); empty until the first hit. */
-  mips: MipSize[];
-  /** Its page's texture, while it holds paint. */
-  texture: THREE.DataTexture | null;
-  /** Excess paint per texel (paint-raster.ts RasterSurface). */
-  excess: Uint16Array | null;
-  /** Texel rects changed since the last upload (inclusive, paint-gpu.ts). */
-  dirty: DirtyRect[];
-}
-
-/** A box of a surface's paint (PaintSystem.patch): its texels and excess, or null where it had none. */
-export interface PaintPatch {
-  key: string;
-  /** The surface's atlas size then: a rebuilt surface of another size can't take it. */
-  atlas: [number, number];
-  box: Box;
-  data: Uint8Array | null;
-  excess: Uint16Array | null;
-}
+export type { PaintPatch, PaintSurface, Rgb } from './paint-surface';
 
 export class PaintSystem {
   readonly surfaces: PaintSurface[] = [];
+  /** Texels per meter of its surfaces, as built (SurfaceGeometry.texelsPerMeter): the PAINT DETAIL its paint is at. */
+  texelsPerMeter: number;
   private bySurfaceMesh = new Map<THREE.Object3D, PaintSurface>();
   private byKey = new Map<string, PaintSurface>();
   /** Flat faces by plane, so dots carry across seams onto coplanar neighbors. */
@@ -77,9 +45,9 @@ export class PaintSystem {
   readonly gpu = new PaintGpu();
   /** Bumped when all paint is wiped (clear): paint still in flight from before it (spray particles) is dropped. */
   epoch = 0;
-  /** While set, every stamp and roll that paints is appended as an op (paint-ops.ts). */
+  /** While set, every op this player makes (stamps, rolls, the runs they start) is appended (paint-ops.ts). */
   log: PaintOp[] | null = null;
-  /** Ops made so far (stamps, rolls, runs), logged or not: what saves and the network carry (F3). */
+  /** Ops painted so far (stamps, rolls and runs made here, stamps and rolls replayed): what saves and the network carry (F3). */
   opCount = 0;
   /** Called when heavy paint on a vertical face should start a run (see paint-drips.ts). */
   onDrip: (s: PaintSurface, rect: Rect, x: number, y: number, rgb: Rgb) => void = () => {};
@@ -88,9 +56,15 @@ export class PaintSystem {
     drip: (s, rect, x, y, rgb) => this.onDrip(s, rect, x, y, rgb),
   });
 
+  /** `texelsPerMeter`: the PAINT DETAIL its surfaces are built at, until one says otherwise (a session's on the server). */
+  constructor(texelsPerMeter = PAINT.texelsPerMeter) {
+    this.texelsPerMeter = texelsPerMeter;
+  }
+
   /** `group`: where it stands (a level tile): surfaces drawn together share paint pages. */
   register(key: string, mesh: THREE.Mesh, geo: SurfaceGeometry, group: string): PaintSurface {
     const s: PaintSurface = { key, mesh, geo, slot: null, light: null, data: null, mips: [], texture: null, excess: null, dirty: [] };
+    this.texelsPerMeter = geo.texelsPerMeter;
     this.gpu.place(s, group);
     this.surfaces.push(s);
     this.bySurfaceMesh.set(mesh, s);
@@ -232,18 +206,34 @@ export class PaintSystem {
     square = false,
   ) {
     if (!this.live(s)) return;
+    // Logged before it paints: the runs it starts are logged after it.
+    const op = this.record(rounded({ kind: 'stamp', key: s.key, rect: at.rect, u: at.u, v: at.v, radius, amount, color, softness, square }));
+    this.stampOp(s, op, drip);
+  }
+
+  /** An op made here (a stamp, a roll, a run it starts): counted, and logged as this player's. */
+  record<T extends PaintOp>(op: T): T {
     this.opCount++;
-    // Painted with the numbers an op carries (op-wire.ts), so every client paints the same texels.
-    at = { rect: at.rect, u: wire.unit(at.u), v: wire.unit(at.v) };
-    [radius, amount, softness, color] = [wire.meters(radius), wire.unit(amount), wire.unit(softness), color && wire.rgb(color)];
-    this.log?.push({ kind: 'stamp', key: s.key, rect: at.rect, u: at.u, v: at.v, radius, amount, color, softness, square });
-    const rect = faceTexel(s, at);
+    this.log?.push(op);
+    return op;
+  }
+
+  /** A stamp or roll made elsewhere (another player, a recording): painted, never logged, never starting runs (whoever painted it decides those). */
+  replay(s: PaintSurface, op: StampOp | RollOp) {
+    if (!this.live(s)) return;
+    this.opCount++;
+    if (op.kind === 'stamp') this.stampOp(s, rounded(op), 0);
+    else this.rollOp(s, rounded(op), 0);
+  }
+
+  private stampOp(s: PaintSurface, op: StampOp, drip: number) {
+    const rect = faceTexel(s, op);
     const { x: cx, y: cy } = atTexel;
-    this.dot(s, rect, cx, cy, radius, amount, color, softness, drip, square);
-    for (const n of this.pastEdge(rect, cx, cy, radius)) {
+    this.dot(s, rect, cx, cy, op.radius, op.amount, op.color, op.softness, drip, op.square);
+    for (const n of this.pastEdge(s, rect, cx, cy, op.radius)) {
       if (!this.live(n.surface)) continue;
       worldToTexel(n.rect, seamPoint, seamTexel);
-      this.dot(n.surface, n.rect, seamTexel.x, seamTexel.y, radius, amount, color, softness, drip, square);
+      this.dot(n.surface, n.rect, seamTexel.x, seamTexel.y, op.radius, op.amount, op.color, op.softness, drip, op.square);
     }
   }
 
@@ -267,16 +257,17 @@ export class PaintSystem {
     drip = 0,
   ) {
     if (!this.live(s)) return;
-    this.opCount++;
-    at = { rect: at.rect, u: wire.unit(at.u), v: wire.unit(at.v) };
-    axis = rollAxis.set(wire.signed(axis.x), wire.signed(axis.y), wire.signed(axis.z));
-    [halfLength, halfWidth, edge, amount, color] = [wire.meters(halfLength), wire.meters(halfWidth), wire.unit(edge), wire.unit(amount), wire.rgb(color)];
-    this.log?.push({ kind: 'roll', key: s.key, rect: at.rect, u: at.u, v: at.v, axis: axis.toArray(), halfLength, halfWidth, edge, amount, color });
-    const rect = faceTexel(s, at);
+    const op = this.record(rounded({ kind: 'roll', key: s.key, rect: at.rect, u: at.u, v: at.v, axis: axis.toArray(), halfLength, halfWidth, edge, amount, color }));
+    this.rollOp(s, op, drip);
+  }
+
+  private rollOp(s: PaintSurface, op: RollOp, drip: number) {
+    const rect = faceTexel(s, op);
     const { x: cx, y: cy } = atTexel;
-    const band = { halfLength, halfWidth, edge, amount, color, drip };
+    const axis = rollAxis.fromArray(op.axis);
+    const band = { halfLength: op.halfLength, halfWidth: op.halfWidth, edge: op.edge, amount: op.amount, color: op.color, drip };
     this.band(s, rect, cx, cy, axis, band);
-    for (const n of this.pastEdge(rect, cx, cy, Math.hypot(halfLength, halfWidth))) {
+    for (const n of this.pastEdge(s, rect, cx, cy, Math.hypot(op.halfLength, op.halfWidth))) {
       if (!this.live(n.surface)) continue;
       worldToTexel(n.rect, seamPoint, seamTexel);
       this.band(n.surface, n.rect, seamTexel.x, seamTexel.y, axis, band);
@@ -288,8 +279,8 @@ export class PaintSystem {
    * (cx, cy) spills onto past the face's edge (other props too); seamPoint is
    * then the stamp's center in the world.
    */
-  private pastEdge(rect: Rect, cx: number, cy: number, radius: number): Iterable<SeamFace<PaintSurface>> {
-    const r = radius * PAINT.texelsPerMeter;
+  private pastEdge(s: PaintSurface, rect: Rect, cx: number, cy: number, radius: number): Iterable<SeamFace<PaintSurface>> {
+    const r = radius * s.geo.texelsPerMeter;
     if (!rect.face || (cx - r >= rect.x && cx + r <= rect.x + rect.w && cy - r >= rect.y && cy + r <= rect.y + rect.h)) return NONE;
     texelToWorld(rect, cx, cy, seamPoint);
     return this.seams.near(rect, seamPoint, radius);

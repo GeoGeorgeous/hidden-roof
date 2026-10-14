@@ -865,6 +865,11 @@ export const NET = {
   hudPlayers: 4,
   /** HOST or JOIN that hears nothing from the server for this long (s) before its welcome, its upload aside, gives up (a reconnect tries again). */
   connectTimeout: 15,
+  /** How often the link checks its keepalive, upload and connect timeout (s, net/server-link.ts). */
+  linkCheck: 0.25,
+  /** A dropped link tries again after this long (s), twice as long each time up to `retryMost`, while the server keeps the player. */
+  retryFirst: 1,
+  retryMost: 8,
   /** In a session, nothing from the server for this long (s): the game closes the link and comes back in. The server pings every SERVER.ping, so this is a stall, not a slow link; a link that stalls for seconds and recovers is cheaper kept than rejoined (the paint file comes down again). */
   serverSilence: 15,
   /** Network log entries kept for COPY NETWORK LOG (net/diagnostics.ts). */

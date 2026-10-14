@@ -143,7 +143,7 @@ try {
   // B hears nothing for a while (a big download ahead of everything else used to do that): it closes the link and
   // comes back in, though the last thing it heard is now long ago. Its link drops what comes in, or A's next snapshot
   // would count as heard before B's next frame looked.
-  await b.evaluate(() => ((window.game.net.ws.onmessage = null), (window.game.net.lastHeard = -1e9)));
+  await b.evaluate(() => ((window.game.net.link.socket.onmessage = null), (window.game.net.link.lastHeard = -1e9)));
   await status(b, 'reconnecting');
   await status(b, 'in');
   assert.equal(await paintHash(b), painted, 'the paint comes back after a reconnect');

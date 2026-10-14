@@ -1,4 +1,4 @@
-import type { LevelData } from '../level/level-data';
+import { levelProblem, type LevelData } from '../level/level-data';
 import { download, pickFile } from '../files';
 
 // Save a level as a downloaded JSON file; load one through a file picker.
@@ -21,24 +21,9 @@ export async function fetchLevel(name: string): Promise<LevelData> {
   return checkLevel(await res.json());
 }
 
-const isNum = (v: unknown) => typeof v === 'number' && Number.isFinite(v);
-const isV3 = (v: unknown) => Array.isArray(v) && v.length === 3 && v.every(isNum);
-const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null;
-const isProp = (p: unknown) => isObj(p) && (p.id === undefined || (Number.isInteger(p.id) && (p.id as number) > 0)) && typeof p.type === 'string' && (p.variant === undefined || typeof p.variant === 'string') && isV3(p.pos) && (p.rot === undefined || isNum(p.rot)) && (p.adjust === undefined || isNum(p.adjust)) && (p.text === undefined || typeof p.text === 'string') && (p.mirror === undefined || typeof p.mirror === 'boolean') && (p.finish === undefined || (isObj(p.finish) && Object.values(p.finish).every((v) => typeof v === 'string')));
-const isPickup = (p: unknown) => isObj(p) && typeof p.kind === 'string' && isV3(p.pos);
-
 /** `data` as a level, or an error naming what's wrong with it. Unknown prop types still load (they're skipped with a warning). */
 function checkLevel(data: unknown): LevelData {
   const problem = levelProblem(data);
   if (problem) throw new Error(`NOT A LEVEL FILE (${problem})`);
   return data as LevelData;
-}
-
-function levelProblem(d: unknown) {
-  if (!isObj(d)) return 'NOT AN OBJECT';
-  if (!isObj(d.spawn) || !isV3(d.spawn.pos) || !isNum(d.spawn.yaw)) return 'BAD SPAWN';
-  if (!Array.isArray(d.props) || !d.props.every(isProp)) return 'BAD PROPS';
-  if (d.pickups !== undefined && !(Array.isArray(d.pickups) && d.pickups.every(isPickup))) return 'BAD PICKUPS';
-  if (d.paint !== undefined && typeof d.paint !== 'boolean') return 'BAD PAINT';
-  return null;
 }

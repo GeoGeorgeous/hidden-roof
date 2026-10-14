@@ -1121,3 +1121,15 @@ Placing the stepladder from the inventory lags. Measured on the roof: 170–220 
 `src/main.ts` (405: the frame loop is ~150 of them) and `src/level/level.ts` (408) are past the ~400 the codebase keeps to; both were at 403 before BL-085 added a few lines. Split by responsibility: e.g. the level's loading (load, restart, the city, the level file) out of `main.ts`; `Level`'s runtime props or its cover bookkeeping out of `level.ts`. Behavior stays identical (`npm run check` before and after).
 
 Done (2026-10-14): the level as a file (`PropData`, `LevelData`) is `src/level/level-data.ts`; the frame meter (fps, CPU time a frame) is `src/frame-meter.ts`. `level.ts` 376 lines, `main.ts` 398.
+
+### A late welcome can mark the next link as live
+- id: BL-088
+- type: bug
+- status: Planned
+- priority: Low
+- size: S
+- area: net
+- release: later
+- source: agent (architecture review 2026-10-14)
+
+`Multiplayer.welcome` (`src/net/multiplayer.ts`) marks whichever link is current as live once the paint is loaded, not the link the welcome came on. If link A drops while its welcome loads paint and the retry has opened link B, A's welcome marks B live before B's own welcome, so B stops giving up after `NET.connectTimeout`. As before the ServerLink split (a shared `live` flag). Do: pass the welcome's link from `connect`'s handler through `receive` to `welcome`, and mark that one. Test: in `scripts/multiplayer.test.mjs`, delay a welcome (as the "takes 5 s" check does), drop the link meanwhile, and check the new link still gives up after `NET.connectTimeout` when the server stays silent.

@@ -1,5 +1,4 @@
 import type * as THREE from 'three';
-import { PAINT } from '../config';
 import type { Inventory } from '../inventory/inventory';
 import type { Level } from '../level/level';
 import type { LevelData } from '../level/level-data';
@@ -46,7 +45,7 @@ export interface MultiplayerContext {
  */
 export function playSessionLevel(g: MultiplayerContext, w: Extract<ToClient, { type: 'welcome' }>) {
   // Built at the session's detail too: the table doesn't say (its shapes are the same at every detail).
-  const built = PAINT.texelsPerMeter;
+  const built = g.paint.texelsPerMeter;
   g.lockDetail(w.detail);
   const open = g.levelData();
   if (built === w.detail && open.name === w.levelName && surfaceTable(g.paint.surfaces) === w.table && JSON.stringify(open.data) === JSON.stringify(w.level)) g.restartLevel();

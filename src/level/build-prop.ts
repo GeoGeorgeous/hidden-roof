@@ -156,6 +156,9 @@ function material(m: Mat) {
 const PROXY = new THREE.MeshBasicMaterial();
 const PANE_PROXY = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide });
 
+/** A paint surface's key (PaintSurface.key): its owner (prop-pieces.ts surfaceOwner) and its place among the owner's surfaces. */
+export const surfaceKey = (owner: string, n: number) => `${owner}#${n}`;
+
 /** The level tile (RENDER.batchTile m square columns) a box's center is in: batches merge per tile, and paint pages are shared per tile. */
 export function tileKey(bounds: THREE.Box3) {
   const t = RENDER.batchTile;
@@ -208,7 +211,7 @@ export function solidBoxes(pieces: Piece[], pos: V3, rot: number): THREE.Box3[] 
  * (ghost preview). With `cover`, paintable box faces pressed against a solid
  * box (level/cover.ts) are decor too.
  */
-export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint = true, cover: CoverIndex | null = null): Expanded {
+export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint = true, cover: CoverIndex | null = null, texelsPerMeter = PAINT.texelsPerMeter): Expanded {
   const r = ((rot % 4) + 4) % 4;
   const origin = new THREE.Vector3(...pos);
   const at = (v: V3) => rotate(v, r).add(origin);
@@ -233,7 +236,7 @@ export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint =
   const painters = new Map<string, { b: SurfaceBuilder; mat: Mat }>();
   const painter = (mat: Mat) => {
     const k = matKey(mat);
-    if (!painters.has(k)) painters.set(k, { b: new SurfaceBuilder(), mat });
+    if (!painters.has(k)) painters.set(k, { b: new SurfaceBuilder(texelsPerMeter), mat });
     const e = painters.get(k)!;
     const c = new THREE.Color(mat.tint ?? '#ffffff');
     e.b.tint = [c.r, c.g, c.b];
@@ -344,7 +347,7 @@ export function buildProp(id: number, owner: string, pieces: Piece[], pos: V3, r
     mesh.castShadow = false;
     mesh.userData.mat = mat;
     out.solids.push(mesh);
-    out.paint.push(paint.register(`${owner}#${out.paint.length}`, mesh, geo, tileKey(geo.geometry.boundingBox!)));
+    out.paint.push(paint.register(surfaceKey(owner, out.paint.length), mesh, geo, tileKey(geo.geometry.boundingBox!)));
   }
   for (const { geo, mat } of mergeDecor(ex.decor)) {
     const mesh = add(geo, decorMaterial(mat));

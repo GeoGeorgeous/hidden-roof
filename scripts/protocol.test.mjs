@@ -4,7 +4,8 @@
 // Usage: node scripts/protocol.test.mjs
 import assert from 'node:assert/strict';
 import { Outbox } from '../src/net/outbox.ts';
-import { decodeOps, encodeOps, SurfaceIndex, wire } from '../src/op-wire.ts';
+import { decodeOps, encodeOps, rounded, SurfaceIndex } from '../src/op-wire.ts';
+import { levelProblem } from '../src/level/level-data.ts';
 import { checkToServer, cleanName, decode, encode, partFrames, PROTOCOL, SNAPSHOT_BYTES } from '../src/net/protocol.ts';
 
 const level = { version: 4, spawn: { pos: [0, 0, 0], yaw: 0 }, props: [{ id: 1, type: 'slab', pos: [0, 0, 0] }] };
@@ -67,6 +68,12 @@ refused({ ...host, level: { props: 'x' } });
 refused({ ...host, level: { ...level, props: [{ type: 'slab' }] } });
 refused({ ...host, level: { ...level, props: [{ type: 'slab', pos: [0, 0, 0], rot: 1.5 }] } });
 refused({ ...host, level: { ...level, props: Array.from({ length: 5001 }, () => level.props[0]) } });
+// The level as the game checks a file (levelProblem, level-data.ts): a spawn with no position, bad pickups.
+refused({ ...host, level: { ...level, spawn: { yaw: 0 } } });
+refused({ ...host, level: { ...level, pickups: [{ kind: 'can' }] } });
+// And the game refuses what HOST would be: a prop turned by a fraction of a quarter turn.
+assert.equal(levelProblem({ ...level, props: [{ ...level.props[0], rot: 1.5 }] }), 'BAD PROPS');
+assert.equal(levelProblem(level), null);
 refused({ ...join, code: 'ABCD' });
 refused({ ...join, code: 'ABCDI' });
 refused({ ...join, code: 'abcde' });
@@ -86,13 +93,13 @@ refused({ type: 'inventory', data: { tools: Array(33).fill('x'), colors: [], cap
 
 assert.equal(cleanName('  a name far longer than allowed  '), 'a name far longe');
 assert.equal(cleanName('ゴースト'), 'ゴースト');
-// Paint ops packed (op-wire.ts, BL-024): every number comes out as the painter rounded it (wire), to the last bit, so
-// everyone paints the same texels; packed again they don't change; times to the ms. A stamp is 23 bytes.
+// Paint ops packed (op-wire.ts, BL-024): every op comes out as the painter rounded it (rounded), to the last bit, so
+// everyone paints the same texels; rounded again or packed again it doesn't change; close to what was made; times to
+// the ms. A stamp is 23 bytes.
 const { t: times, ops: [s2, r2, d2] } = decodeOps(encodeOps([1.5, 1.55, 1.6], [stamp, roll, drip], surfaces), surfaces);
-const { unit, meters, signed, rgb } = wire;
-assert.deepEqual(s2, { ...stamp, u: unit(stamp.u), v: unit(stamp.v), radius: meters(stamp.radius), amount: unit(stamp.amount), softness: unit(stamp.softness), color: rgb(stamp.color) });
-assert.deepEqual(r2, { ...roll, u: unit(roll.u), v: unit(roll.v), axis: roll.axis.map(signed), halfLength: meters(roll.halfLength), halfWidth: meters(roll.halfWidth), edge: unit(roll.edge), amount: unit(roll.amount), color: rgb(roll.color) });
-assert.deepEqual(d2, { ...drip, u: unit(drip.u), v: unit(drip.v), length: meters(drip.length), speed: meters(drip.speed), rgb: rgb(drip.rgb) });
+assert.deepEqual([s2, r2, d2], [stamp, roll, drip].map(rounded));
+assert.deepEqual([s2, r2, d2].map(rounded), [s2, r2, d2]);
+assert.ok(s2.u !== stamp.u && Math.abs(s2.u - stamp.u) < 1e-4 && Math.abs(r2.axis[0] - roll.axis[0]) < 1e-4 && Math.abs(d2.speed - drip.speed) < 1e-4);
 assert.deepEqual(decodeOps(encodeOps(times, [s2, r2, d2], surfaces), surfaces).ops, [s2, r2, d2]);
 assert.ok(times.every((t, i) => Math.abs(t - [1.5, 1.55, 1.6][i]) < 1e-3));
 const scrub = decodeOps(encodeOps([0], [{ ...stamp, color: null, square: true }], surfaces), surfaces).ops[0];

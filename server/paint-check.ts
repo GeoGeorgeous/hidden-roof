@@ -1,7 +1,6 @@
 import './headless';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
-import { PAINT } from '../src/config';
 import type { PaintOp } from '../src/paint-ops';
 import { sessionPaint } from './world';
 
@@ -29,9 +28,8 @@ let failed = 0;
 for (const path of opsPaths) {
   const detail = path.match(/(\w+)\.ops\.json$/)![1];
   const rec: { hash: string; table: Table; log: PaintOp[]; frames: number[] } = JSON.parse(fs.readFileSync(path, 'utf8'));
-  PAINT.texelsPerMeter = TPM[detail];
   const t0 = performance.now();
-  const { paint, drips, ops } = sessionPaint(level);
+  const { paint, drips, ops } = sessionPaint(level, TPM[detail]);
   const built = performance.now() - t0;
   const table: Table = paint.surfaces.map((s) => [s.key, s.geo.atlasW, s.geo.atlasH, s.geo.rects.map((r) => [r.x, r.y, r.w, r.h])]);
   const differ = sameTable(table, rec.table);
