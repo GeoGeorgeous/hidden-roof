@@ -1,19 +1,18 @@
 import type { InventoryData } from '../inventory/inventory';
 import type { LevelData, PropData } from '../level/level';
-import type { PaintOp } from '../paint-ops';
 
 // The messages between the game and the multiplayer server (server/), over a
 // WebSocket. Each is one binary frame: a u32 (little-endian) length, that many
 // bytes of JSON, then the message's `bytes`, if any (a player snapshot, a paint
-// file). Paint ops travel as JSON, so their numbers arrive exactly and every
-// client paints the very same texels. Nothing is compressed by the socket:
-// full-precision numbers barely shrink, and the server would deflate every op
+// file, paint ops). Paint ops travel packed (op-wire.ts), ~23 bytes a stamp, each
+// number rounded as the painter painted it, so every client paints the very same
+// texels. Nothing is compressed by the socket: the server would deflate every op
 // once per player (with 20 painting, more than a core). Only type imports here: Node runs this file as is
 // (scripts/protocol.test.mjs), and the server reads untrusted messages
 // through checkToServer.
 
 /** Bumped when a message changes or anything the server runs for a session does (paint, drips, face keys, the save format): docs/multiplayer-audit.md, section 4. */
-export const PROTOCOL = 5;
+export const PROTOCOL = 6;
 export const NAME_MAX = 16;
 /** Session codes: this many letters from CODE_LETTERS (no I or O, which read as 1 and 0). */
 export const CODE_LENGTH = 5;
@@ -52,11 +51,11 @@ export type ToServer =
   /** This player now (net/snapshot.ts). */
   | { type: 'state'; bytes: Uint8Array }
   /**
-   * Paint ops, each made at the sender's time t[i] (the snapshots' clock). `seq` numbers this player's batches from
-   * 1 in the session: the server acks the highest it has (welcome, pong), drops a batch it has had, and the game
-   * sends again what wasn't acked when it comes back (net/outbox.ts).
+   * Paint ops, each made at the sender's time (the snapshots' clock), packed (op-wire.ts encodeOps). `seq` numbers
+   * this player's batches from 1 in the session: the server acks the highest it has (welcome, pong), drops a batch it
+   * has had, and the game sends again what wasn't acked when it comes back (net/outbox.ts).
    */
-  | { type: 'ops'; seq: number; t: number[]; ops: PaintOp[] }
+  | { type: 'ops'; seq: number; bytes: Uint8Array }
   /** Their stepladder placed, or taken away (null), at their time `t`. */
   | { type: 'ladder'; t: number; data: PropData | null }
   /** The session's paint as a paint file, please (SAVE). */
@@ -84,9 +83,10 @@ export type ToClient =
   | { type: 'left'; id: number }
   | { type: 'presence'; id: number; state: Presence }
   | { type: 'state'; id: number; bytes: Uint8Array }
-  | { type: 'ops'; id: number; t: number[]; ops: PaintOp[] }
-  /** Ops painted since the paint file of this welcome was read: painted at once, after it. */
-  | { type: 'paint'; ops: PaintOp[] }
+  /** A player's paint ops, packed as they sent them. */
+  | { type: 'ops'; id: number; bytes: Uint8Array }
+  /** Ops painted since the paint file of this welcome was read, packed: painted at once, after it. */
+  | { type: 'paint'; bytes: Uint8Array }
   | { type: 'ladder'; id: number; t: number; data: PropData | null }
   /** The session's paint as a paint file in `parts` parts that follow (SAVE); none: the server can't make one now. */
   | { type: 'save'; parts: number }
@@ -154,8 +154,8 @@ export function decode(frame: Uint8Array): Message | null {
 
 /**
  * A message from a game as the server may act on it, or null. Paint ops are
- * checked for shape only: their surfaces are the session's to check. Their
- * sizes need no limit, since paint is clipped to the face it's on.
+ * the session's to read (op-wire.ts decodeOps) and check: their surfaces and
+ * faces. Their sizes need no limit, since paint is clipped to the face it's on.
  */
 export function checkToServer(m: Message | null): ToServer | null {
   if (!m) return null;
@@ -168,7 +168,7 @@ export function checkToServer(m: Message | null): ToServer | null {
     case 'state':
       return m.bytes?.length === SNAPSHOT_BYTES ? (m as ToServer) : null;
     case 'ops':
-      return isInt(v.seq) && v.seq > 0 && Array.isArray(v.t) && Array.isArray(v.ops) && v.t.length === v.ops.length && v.t.every(isNum) && v.ops.every(isOp) ? (m as ToServer) : null;
+      return isInt(v.seq) && v.seq > 0 && !!m.bytes ? (m as ToServer) : null;
     case 'ladder':
       return isNum(v.t) && (v.data === null || isLadder(v.data)) ? (m as ToServer) : null;
     case 'ping':
@@ -195,7 +195,6 @@ const isInt = (x: unknown): x is number => Number.isInteger(x) && (x as number) 
 const isName = (x: unknown) => typeof x === 'string' && cleanName(x).length > 0;
 const isCode = (x: unknown) => typeof x === 'string' && x.length === CODE_LENGTH && [...x].every((c) => CODE_LETTERS.includes(c));
 const isV3 = (x: unknown) => Array.isArray(x) && x.length === 3 && x.every(isNum);
-const isRgb = (x: unknown) => isV3(x) && (x as number[]).every((c) => c >= 0 && c <= 1);
 const isLevel = (x: unknown) => isObject(x) && isObject(x.spawn) && Array.isArray(x.props) && x.props.length <= MAX_PROPS && x.props.every(isProp);
 /** A level's prop as Level.load reads it (level.ts PropData). */
 const isProp = (x: unknown) =>
@@ -214,17 +213,3 @@ const isWords = (x: unknown) => Array.isArray(x) && x.length <= 32 && x.every((w
 const isInventory = (x: unknown) => isObject(x) && isWords(x.tools) && isWords(x.colors) && isWords(x.caps) && isInt(x.selected) && isWords([x.color, x.cap]);
 /** Only a stepladder: a player places nothing else while playing. */
 const isLadder = (x: unknown) => isObject(x) && x.type === 'stepladder' && isV3(x.pos) && (x.rot === undefined || isInt(x.rot));
-
-function isOp(x: unknown): x is PaintOp {
-  if (!isObject(x) || typeof x.key !== 'string' || !isInt(x.rect) || !isNum(x.u) || !isNum(x.v)) return false;
-  switch (x.kind) {
-    case 'stamp':
-      return isNum(x.radius) && isNum(x.amount) && (x.color === null || isRgb(x.color)) && isNum(x.softness) && typeof x.square === 'boolean';
-    case 'roll':
-      return isV3(x.axis) && isNum(x.halfLength) && isNum(x.halfWidth) && isNum(x.edge) && isNum(x.amount) && isRgb(x.color);
-    case 'drip':
-      // A run with no length or speed would never end.
-      return isNum(x.length) && x.length > 0 && isNum(x.speed) && x.speed > 0 && isRgb(x.rgb);
-  }
-  return false;
-}

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { PAINT, SERVER } from '../src/config';
 import type { InventoryData } from '../src/inventory/inventory';
 import type { LevelData, PropData } from '../src/level/level';
+import { decodeOps, encodeOps, SurfaceIndex } from '../src/op-wire';
 import { cleanName, closeCode, encode, NAME_MAX, partFrames, type Presence, type Rejection, type ToClient, type ToServer } from '../src/net/protocol';
 import { loadPaint } from '../src/save/load-paint';
 import { streamPaint } from '../src/save/save-paint';
@@ -54,6 +55,8 @@ type How = 'new' | 'back' | 'takeover';
 export class Session {
   readonly players = new Map<number, Player>();
   readonly table: string;
+  /** Its surfaces as paint ops name them (op-wire.ts). */
+  private surfaces: SurfaceIndex;
   private world: ReturnType<typeof sessionPaint>;
   private nextId = 1;
   private readonly started = Date.now();
@@ -78,6 +81,7 @@ export class Session {
   ) {
     this.world = this.at(() => sessionPaint(level));
     this.table = surfaceTable(this.world.paint.surfaces);
+    this.surfaces = new SurfaceIndex([...this.world.paint.surfaces].map((s) => s.key));
   }
 
   /** Start from a paint save (HOST). Throws with a message if it's no good or doesn't fit the level. */
@@ -166,15 +170,17 @@ export class Session {
     else if (m.type === 'ops') {
       if (m.seq <= p.acked) return;
       p.acked = m.seq;
-      // Ops on surfaces this level doesn't have are dropped.
+      const batch = decodeOps(m.bytes, this.surfaces);
+      if (!batch) return log(this.code, who(p), 'paint ops it could not read: dropped');
+      // Ops on a face their surface doesn't have are dropped.
       const { paint, ops } = this.world;
-      const keep = m.ops.map((op) => op.rect < (paint.find(op.key)?.geo.rects.length ?? 0));
-      const t = m.t.filter((_, i) => keep[i]);
-      const valid = m.ops.filter((_, i) => keep[i]);
+      const keep = batch.ops.map((op) => op.rect < (paint.find(op.key)?.geo.rects.length ?? 0));
+      const valid = batch.ops.filter((_, i) => keep[i]);
       this.paintNow(() => valid.forEach((op) => ops.apply(op)));
       if (!valid.length) return;
-      this.broadcast({ type: 'ops', id: p.id, t, ops: valid }, p);
-      this.snap?.log.push(encode({ type: 'paint', ops: valid }));
+      const bytes = valid.length === batch.ops.length ? m.bytes : encodeOps(batch.t.filter((_, i) => keep[i]), valid, this.surfaces);
+      this.broadcast({ type: 'ops', id: p.id, bytes }, p);
+      this.snap?.log.push(encode({ type: 'paint', bytes }));
     } else if (m.type === 'ladder') {
       p.ladder = m.data;
       this.broadcast({ type: 'ladder', id: p.id, t: m.t, data: m.data }, p);

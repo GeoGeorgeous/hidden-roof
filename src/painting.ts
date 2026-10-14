@@ -9,6 +9,7 @@ import type { PageSlot } from './page-packer';
 import type { LightSlot } from './render/bake/light-pages';
 import { inRing, PaintRaster, type Band, type Box } from './paint-raster';
 import type { PaintOp } from './paint-ops';
+import { wire } from './op-wire';
 import { imageOnFace, type PaintImage } from './paint-image';
 
 // Paint lives in one RGBA atlas of its faces per paintable surface, on the
@@ -19,6 +20,8 @@ import { imageOnFace, type PaintImage } from './paint-image';
 // changes.
 
 const seamPoint = new THREE.Vector3();
+/** A roll's direction as its op carries it. */
+const rollAxis = new THREE.Vector3();
 const seamTexel = new THREE.Vector2();
 const atTexel = new THREE.Vector2();
 const NONE: readonly never[] = [];
@@ -230,6 +233,9 @@ export class PaintSystem {
   ) {
     if (!this.live(s)) return;
     this.opCount++;
+    // Painted with the numbers an op carries (op-wire.ts), so every client paints the same texels.
+    at = { rect: at.rect, u: wire.unit(at.u), v: wire.unit(at.v) };
+    [radius, amount, softness, color] = [wire.meters(radius), wire.unit(amount), wire.unit(softness), color && wire.rgb(color)];
     this.log?.push({ kind: 'stamp', key: s.key, rect: at.rect, u: at.u, v: at.v, radius, amount, color, softness, square });
     const rect = faceTexel(s, at);
     const { x: cx, y: cy } = atTexel;
@@ -262,6 +268,9 @@ export class PaintSystem {
   ) {
     if (!this.live(s)) return;
     this.opCount++;
+    at = { rect: at.rect, u: wire.unit(at.u), v: wire.unit(at.v) };
+    axis = rollAxis.set(wire.signed(axis.x), wire.signed(axis.y), wire.signed(axis.z));
+    [halfLength, halfWidth, edge, amount, color] = [wire.meters(halfLength), wire.meters(halfWidth), wire.unit(edge), wire.unit(amount), wire.rgb(color)];
     this.log?.push({ kind: 'roll', key: s.key, rect: at.rect, u: at.u, v: at.v, axis: axis.toArray(), halfLength, halfWidth, edge, amount, color });
     const rect = faceTexel(s, at);
     const { x: cx, y: cy } = atTexel;

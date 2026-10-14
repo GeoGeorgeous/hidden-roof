@@ -2,6 +2,7 @@ import { DRIPS, PAINT } from './config';
 import type { PaintSurface, PaintSystem, Rgb } from './painting';
 import type { Rect } from './surfaces';
 import type { DripOp } from './paint-ops';
+import { wire } from './op-wire';
 import { paintRandom } from './lcg';
 
 // Paint runs. PaintSystem reports texels on vertical faces that keep getting
@@ -42,7 +43,8 @@ export class PaintDrips {
     if (this.runs.some((r) => r.s === s && r.x === x && Math.abs(r.y - y) < 4)) return;
     const length = DRIPS.minLength + paintRandom.drips() * (DRIPS.maxLength - DRIPS.minLength);
     if (Math.max(rect.y, y - length * PAINT.texelsPerMeter) >= y - 1) return;
-    const op: DripOp = { kind: 'drip', key: s.key, rect: s.geo.rects.indexOf(rect), u: (x + 0.5 - rect.x) / rect.w, v: (y + 0.5 - rect.y) / rect.h, length, speed: DRIPS.speed * (0.6 + 0.8 * paintRandom.drips()), rgb };
+    // As its op carries it (op-wire.ts), so every client runs the same run.
+    const op: DripOp = { kind: 'drip', key: s.key, rect: s.geo.rects.indexOf(rect), u: wire.unit((x + 0.5 - rect.x) / rect.w), v: wire.unit((y + 0.5 - rect.y) / rect.h), length: wire.meters(length), speed: wire.meters(DRIPS.speed * (0.6 + 0.8 * paintRandom.drips())), rgb: wire.rgb(rgb) };
     this.paint.opCount++;
     this.paint.log?.push(op);
     this.run(s, op);

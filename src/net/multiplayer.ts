@@ -4,7 +4,7 @@ import type { Inventory } from '../inventory/inventory';
 import type { Level, LevelData } from '../level/level';
 import type { Pickups } from '../pickups/pickups';
 import type { PaintDrips } from '../paint-drips';
-import type { PaintOps } from '../paint-ops';
+import type { PaintOp, PaintOps } from '../paint-ops';
 import type { PaintSystem } from '../painting';
 import type { Player } from '../player';
 import { loadPaint } from '../save/load-paint';
@@ -13,6 +13,7 @@ import { session } from '../session';
 import type { Tools } from '../tools/tools';
 import { decode, encode, PROTOCOL, type Rejection, type ToClient, type ToServer } from './protocol';
 import { diagnose, NetLog, Traffic } from './diagnostics';
+import { decodeOps, encodeOps, SurfaceIndex } from '../op-wire';
 import { Outbox } from './outbox';
 import { PartsIn } from './parts-in';
 import { ownerOf, Remotes } from './remotes';
@@ -84,6 +85,8 @@ export class Multiplayer {
   private sent = 0;
   /** This player's paint ops, until the server has them. */
   private outbox = new Outbox();
+  /** The session's surfaces, as paint ops name them. */
+  private surfaces = new SurfaceIndex([]);
   private ladderId: number | undefined;
   /** The inventory's version last sent. */
   private carried = -1;
@@ -171,7 +174,7 @@ export class Multiplayer {
     this.nextSend = Math.max(this.nextSend + 1 / NET.sendRate, t);
     this.send({ type: 'state', bytes: encodeSnapshot(capture(at, this.g.player, this.g.inventory, this.g.tools)) });
     const ops = this.outbox.batch();
-    if (ops) this.send(ops);
+    if (ops) this.sendOps(ops);
   }
 
   private connect(hello: Extract<ToServer, { type: 'host' | 'join' }>) {
@@ -286,9 +289,10 @@ export class Multiplayer {
     if (m.type === 'state') this.remotes.get(m.id)?.receive(m.bytes, arrived);
     else if (m.type === 'ops') {
       const r = this.remotes.get(m.id);
-      m.ops.forEach((op, i) => r?.receiveOp(m.t[i], op));
+      const b = decodeOps(m.bytes, this.surfaces);
+      b?.ops.forEach((op, i) => r?.receiveOp(b.t[i], op));
     } else if (m.type === 'ladder') this.remotes.get(m.id)?.receiveLadder(m.t, m.data);
-    else if (m.type === 'paint') m.ops.forEach((op) => this.g.paintOps.apply(op));
+    else if (m.type === 'paint') decodeOps(m.bytes, this.surfaces)?.ops.forEach((op) => this.g.paintOps.apply(op));
     else if (m.type === 'joined') {
       this.remotes.add(m.id, m.name, 'here', arrived);
       this.onPlayer(m.name, true);
@@ -317,6 +321,8 @@ export class Multiplayer {
         this.send({ type: 'leave' });
         return this.end({ state: 'failed', reason: 'version' });
       }
+      // As the server's: the level as it opens, before anyone's stepladder is in it.
+      this.surfaces = new SurfaceIndex([...g.paint.surfaces].map((s) => s.key));
       this.t0 = now();
       // Back in this session from a new page: what we carried here before (a reconnect keeps its own).
       if (w.inventory) {
@@ -347,7 +353,7 @@ export class Multiplayer {
     this.live = true;
     this.lastHeard = now();
     this.carried = -1;
-    for (const b of resend) this.send(b);
+    for (const b of resend) this.sendOps(b);
     if (document.hidden) this.send({ type: 'away', away: true });
     this.onProgress(null);
     this.setStatus({ state: 'in', code: w.code });
@@ -389,6 +395,10 @@ export class Multiplayer {
     this.net.up += f.length;
     this.sent = now();
     this.ws.send(f);
+  }
+
+  private sendOps(b: { seq: number; t: number[]; ops: PaintOp[] }) {
+    this.send({ type: 'ops', seq: b.seq, bytes: encodeOps(b.t, b.ops, this.surfaces) });
   }
 
   private setStatus(s: NetStatus) {

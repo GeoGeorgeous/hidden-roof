@@ -158,7 +158,7 @@ const SCENARIOS = {
     if (!marker) r.fail.push('what B carried is not back by name');
   },
 
-  /** What a painter's ops cost everyone else: bytes down to B per stamp A makes (BL-024: ~250 B today, ~20 B the goal). */
+  /** What a painter's ops cost everyone else: bytes down to B per stamp A makes (BL-024: ~185 B as JSON, ~28 packed). */
   async bytes(lab, r) {
     const { A, B } = lab.players;
     await sleep(3);
@@ -173,7 +173,7 @@ const SCENARIOS = {
     await sleep(2);
     const perStamp = (B.proxy.down.bytes - start - (base * (Date.now() - t)) / 1000) / stamps;
     r.facts.push(`down to B: ${base.toFixed(0)} B/s idle, ${perStamp.toFixed(0)} B per stamp A makes (${stamps} stamps)`);
-    if (perStamp > 30) r.open.push(`BL-024: ${perStamp.toFixed(0)} B per paint op (the goal is ~20)`);
+    if (perStamp > 40) r.fail.push(`BL-024: ${perStamp.toFixed(0)} B per paint op (packed, ~28)`);
   },
 };
 

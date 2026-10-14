@@ -301,7 +301,7 @@ Zooming out (not in) is what makes the buffer bigger: see BL-026.
 ### Paint ops are 94% of the downstream bytes, ~250 B each
 - id: BL-024
 - type: perf
-- status: Planned
+- status: In Progress
 - priority: High
 - size: L
 - area: net
@@ -310,7 +310,7 @@ Zooming out (not in) is what makes the buffer bigger: see BL-026.
 
 JSON stamps with full-precision floats and the surface key, uncompressed; a painting player makes a median 140 ops/s (p99 ~1800), and the server repeats each to the 5–6 others. Total out of the server: p50 0.5 MB/s, p99 3.2 MB/s, max 4.5 MB/s for 7 players, 7.3 GB in 2.6 h. Players on weak links (home Wi-Fi, VPN, hotspot) died more the more they received: 1.5% of 5 s windows were followed by a drop within 25 s below 100 KB/s, 28% above 500 KB/s; players on good links barely moved (0.4% to 4%). Do, in this order: (1) a binary op (quantized u/v/radius, a small integer for the surface key), every client applying the quantized values so texels still match, ~20 B; (2) merge a frame's stamps that land on the same texels; (3) when a link's ping grows past ~1 s, send it only the newest `state` per player and wait with ops. Read `docs/multiplayer-audit.md` first (the "nothing is compressed" decision in `protocol.ts`). Effort M–L.
 
-
+Step (1) done (2026-10-14, `PROTOCOL` 6): ops travel packed (`src/op-wire.ts`): a surface as its place among the session's sorted surface keys, every number as u16 (i16 for a roll's axis); 23 B a stamp, 31 a roll, 21 a run, plus 8 a batch. The painter paints with the rounded numbers too (`painting.ts`, `paint-drips.ts`), so the loopback, saves and the server still match the browser to the bit; the golden hashes changed once (the strokes look the same, drip runs land differently). Measured (`npm run test:weak-link` `bytes`): 185 → 28 B down per stamp, so a painter's ops at the stand's rate (~4.5 KB/s) now fit the `slow` link (8 KB/s). Left: (2) and (3), only if the next playtest (BL-076) still shows weak links falling behind; (2) must paint what the merged op paints, or texels drift apart.
 
 ### Every rejoin uploads all paint pages in one frame
 - id: BL-025
