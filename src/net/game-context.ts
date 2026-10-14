@@ -1,7 +1,8 @@
 import type * as THREE from 'three';
 import { PAINT } from '../config';
 import type { Inventory } from '../inventory/inventory';
-import type { Level, LevelData } from '../level/level';
+import type { Level } from '../level/level';
+import type { LevelData } from '../level/level-data';
 import type { Pickups } from '../pickups/pickups';
 import type { PaintDrips } from '../paint-drips';
 import type { PaintOps } from '../paint-ops';

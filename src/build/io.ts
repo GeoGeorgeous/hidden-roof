@@ -1,4 +1,4 @@
-import type { LevelData } from '../level/level';
+import type { LevelData } from '../level/level-data';
 import { download, pickFile } from '../files';
 
 // Save a level as a downloaded JSON file; load one through a file picker.

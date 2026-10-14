@@ -1,5 +1,5 @@
 import type { InventoryData } from '../inventory/inventory';
-import type { LevelData, PropData } from '../level/level';
+import type { LevelData, PropData } from '../level/level-data';
 
 // The messages between the game and the multiplayer server (server/), over a
 // WebSocket. Each is one binary frame: a u32 (little-endian) length, that many

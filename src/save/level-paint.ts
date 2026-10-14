@@ -1,4 +1,4 @@
-import type { LevelData } from '../level/level';
+import type { LevelData } from '../level/level-data';
 import type { PaintDrips } from '../paint-drips';
 import type { PaintSystem } from '../painting';
 import { loadPaint } from './load-paint';

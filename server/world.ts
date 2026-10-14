@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { LevelData } from '../src/level/level';
+import type { LevelData } from '../src/level/level-data';
 import { levelPaintFaces } from '../src/level/prop-pieces';
 import { PaintDrips } from '../src/paint-drips';
 import { PaintOps } from '../src/paint-ops';

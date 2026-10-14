@@ -1,7 +1,8 @@
 import type * as THREE from 'three';
 import { AVATAR, GHOST, NET } from '../config';
 import type { Inventory } from '../inventory/inventory';
-import type { Level, PropData } from '../level/level';
+import type { Level } from '../level/level';
+import type { PropData } from '../level/level-data';
 import type { PaintDrips } from '../paint-drips';
 import type { PaintOp, PaintOps } from '../paint-ops';
 import type { PaintSystem } from '../painting';

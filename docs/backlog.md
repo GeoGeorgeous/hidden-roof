@@ -1123,7 +1123,7 @@ Placing the stepladder from the inventory lags. Measured on the roof: 170–220 
 ### `main.ts` and `level.ts` are over 400 lines
 - id: BL-087
 - type: refactor
-- status: Requested
+- status: Done
 - priority: Low
 - size: S
 - area: code
@@ -1131,3 +1131,5 @@ Placing the stepladder from the inventory lags. Measured on the roof: 170–220 
 - source: agent
 
 `src/main.ts` (405: the frame loop is ~150 of them) and `src/level/level.ts` (408) are past the ~400 the codebase keeps to; both were at 403 before BL-085 added a few lines. Split by responsibility: e.g. the level's loading (load, restart, the city, the level file) out of `main.ts`; `Level`'s runtime props or its cover bookkeeping out of `level.ts`. Behavior stays identical (`npm run check` before and after).
+
+Done (2026-10-14): the level as a file (`PropData`, `LevelData`) is `src/level/level-data.ts`; the frame meter (fps, CPU time a frame) is `src/frame-meter.ts`. `level.ts` 376 lines, `main.ts` 398.

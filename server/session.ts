@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { PAINT, SERVER } from '../src/config';
 import type { InventoryData } from '../src/inventory/inventory';
-import type { LevelData, PropData } from '../src/level/level';
+import type { LevelData, PropData } from '../src/level/level-data';
 import { decodeOps, encodeOps, SurfaceIndex } from '../src/op-wire';
 import { cleanName, closeCode, encode, NAME_MAX, partFrames, type Presence, type Rejection, type ToClient, type ToServer } from '../src/net/protocol';
 import { loadPaint } from '../src/save/load-paint';
