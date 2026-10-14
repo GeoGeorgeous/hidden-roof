@@ -5,6 +5,7 @@
 import assert from 'node:assert/strict';
 import { Outbox } from '../src/net/outbox.ts';
 import { decodeOps, encodeOps, rounded, SurfaceIndex } from '../src/op-wire.ts';
+import { levelProblem } from '../src/level/level-data.ts';
 import { checkToServer, cleanName, decode, encode, partFrames, PROTOCOL, SNAPSHOT_BYTES } from '../src/net/protocol.ts';
 
 const level = { version: 4, spawn: { pos: [0, 0, 0], yaw: 0 }, props: [{ id: 1, type: 'slab', pos: [0, 0, 0] }] };
@@ -67,6 +68,12 @@ refused({ ...host, level: { props: 'x' } });
 refused({ ...host, level: { ...level, props: [{ type: 'slab' }] } });
 refused({ ...host, level: { ...level, props: [{ type: 'slab', pos: [0, 0, 0], rot: 1.5 }] } });
 refused({ ...host, level: { ...level, props: Array.from({ length: 5001 }, () => level.props[0]) } });
+// The level as the game checks a file (levelProblem, level-data.ts): a spawn with no position, bad pickups.
+refused({ ...host, level: { ...level, spawn: { yaw: 0 } } });
+refused({ ...host, level: { ...level, pickups: [{ kind: 'can' }] } });
+// And the game refuses what HOST would be: a prop turned by a fraction of a quarter turn.
+assert.equal(levelProblem({ ...level, props: [{ ...level.props[0], rot: 1.5 }] }), 'BAD PROPS');
+assert.equal(levelProblem(level), null);
 refused({ ...join, code: 'ABCD' });
 refused({ ...join, code: 'ABCDI' });
 refused({ ...join, code: 'abcde' });

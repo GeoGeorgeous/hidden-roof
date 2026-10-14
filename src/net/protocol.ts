@@ -1,5 +1,5 @@
 import type { InventoryData } from '../inventory/inventory';
-import type { LevelData, PropData } from '../level/level-data';
+import { levelProblem, type LevelData, type PropData } from '../level/level-data.ts';
 
 // The messages between the game and the multiplayer server (server/), over a
 // WebSocket. Each is one binary frame: a u32 (little-endian) length, that many
@@ -7,8 +7,9 @@ import type { LevelData, PropData } from '../level/level-data';
 // file, paint ops). Paint ops travel packed (op-wire.ts), ~23 bytes a stamp, each
 // number rounded as the painter painted it, so every client paints the very same
 // texels. Nothing is compressed by the socket: the server would deflate every op
-// once per player (with 20 painting, more than a core). Only type imports here: Node runs this file as is
-// (scripts/protocol.test.mjs), and the server reads untrusted messages
+// once per player (with 20 painting, more than a core). Node runs this file as is
+// (scripts/protocol.test.mjs): runtime imports only from files that have none
+// themselves, with their .ts extension. The server reads untrusted messages
 // through checkToServer.
 
 /** Bumped when a message changes or anything the server runs for a session does (paint, drips, face keys, the save format): docs/multiplayer-audit.md, section 4. */
@@ -162,7 +163,7 @@ export function checkToServer(m: Message | null): ToServer | null {
   const v = m as Record<string, unknown>;
   switch (m.type) {
     case 'host':
-      return isInt(v.protocol) && typeof v.table === 'string' && isName(v.name) && typeof v.levelName === 'string' && v.levelName.length <= 64 && isLevel(v.level) && DETAILS.includes(v.detail as number) ? (m as ToServer) : null;
+      return isInt(v.protocol) && typeof v.table === 'string' && isName(v.name) && typeof v.levelName === 'string' && v.levelName.length <= 64 && !levelProblem(v.level, MAX_PROPS) && DETAILS.includes(v.detail as number) ? (m as ToServer) : null;
     case 'join':
       return isInt(v.protocol) && isName(v.name) && isCode(v.code) && (v.token === undefined || typeof v.token === 'string') && !m.bytes ? (m as ToServer) : null;
     case 'state':
@@ -195,19 +196,6 @@ const isInt = (x: unknown): x is number => Number.isInteger(x) && (x as number) 
 const isName = (x: unknown) => typeof x === 'string' && cleanName(x).length > 0;
 const isCode = (x: unknown) => typeof x === 'string' && x.length === CODE_LENGTH && [...x].every((c) => CODE_LETTERS.includes(c));
 const isV3 = (x: unknown) => Array.isArray(x) && x.length === 3 && x.every(isNum);
-const isLevel = (x: unknown) => isObject(x) && isObject(x.spawn) && Array.isArray(x.props) && x.props.length <= MAX_PROPS && x.props.every(isProp);
-/** A level's prop as Level.load reads it (level.ts PropData). */
-const isProp = (x: unknown) =>
-  isObject(x) &&
-  typeof x.type === 'string' &&
-  isV3(x.pos) &&
-  (x.id === undefined || isInt(x.id)) &&
-  (x.rot === undefined || isInt(x.rot)) &&
-  (x.variant === undefined || typeof x.variant === 'string') &&
-  (x.adjust === undefined || isNum(x.adjust)) &&
-  (x.text === undefined || typeof x.text === 'string') &&
-  (x.finish === undefined || isObject(x.finish)) &&
-  (x.mirror === undefined || typeof x.mirror === 'boolean');
 /** Shape and size only: the game takes from it what it knows (Inventory.restore). */
 const isWords = (x: unknown) => Array.isArray(x) && x.length <= 32 && x.every((w) => typeof w === 'string' && w.length <= 32);
 const isInventory = (x: unknown) => isObject(x) && isWords(x.tools) && isWords(x.colors) && isWords(x.caps) && isInt(x.selected) && isWords([x.color, x.cap]);
