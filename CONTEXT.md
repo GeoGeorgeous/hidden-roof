@@ -11,3 +11,9 @@ The game's words, as the code uses them. Architecture terms (module, interface, 
 - **Level plan**: a level's props as loaded, the same in the game and on the server (`planLevel`, `src/level/prop-pieces.ts`): instances by id, their pieces, the cover index of their solid boxes. The game builds meshes from it; the server only its paint surfaces.
 - **Open level**: the level being played (`OpenLevel`, `src/level/open-level.ts`): its name, the level as a file (`LevelData`, checked by `levelProblem` in `src/level/level-data.ts` for a file, a fetch and a HOST alike), and what opening or restarting it does.
 - **Paint file**: paint only, as faces (`.rhhpaint`, `src/save/paint-file.ts`): a save, a level's own paint, a session's join snapshot.
+
+## Multiplayer
+
+- **Session**: a game on one level shared through the server, under a code; players HOST or JOIN it (`src/net/multiplayer.ts`, `server/session.ts`).
+- **Server link**: one WebSocket to the server for one HOST or JOIN (`ServerLink`, `src/net/server-link.ts`): the hello, keepalive, giving up before the welcome, a paint file's parts. A dropped player comes back on a new link with their token.
+- **Welcome**: the server's answer to HOST or JOIN: the level, its paint detail, the players, and the session's paint as a paint file in parts.

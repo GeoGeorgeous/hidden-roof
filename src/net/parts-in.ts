@@ -1,4 +1,4 @@
-import { joinBytes } from '../save/paint-file';
+import { joinBytes } from '../save/paint-file.ts';
 import type { ToClient } from './protocol';
 
 // A welcome or a save with a paint file comes as the message, then the file
