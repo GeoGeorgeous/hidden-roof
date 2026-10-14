@@ -88,9 +88,11 @@ Drops (1006) per link-hour: 10.6 and 10.1 (the home Wi-Fi pair), 8.8 and 5.4 (tw
 
 Confirmed in the code (`Multiplayer.welcome`, `src/net/multiplayer.ts`): a welcome replaces the player's paint with the server's file ("what we painted while the link was down is gone with it") and empties `ops`, `opTimes` and `paint.log`. Ops sent into a stalled socket are never acknowledged and never resent. Lost work = silence until the game gives up (≥6 s) + the retry wait + the rejoin (median 4 s) = 3–20 s of strokes.
 
-### "DISCONNECTED" next to everyone (open)
+### "DISCONNECTED" next to everyone (explained)
 
 The label is only shown for a presence `dropped` that the **server** sent (`server/session.ts`, `broadcast` in `dropped`); a player whose own link stalls sees `NO SIGNAL` for the others instead. The data doesn't explain why the host saw all others as DISCONNECTED. Candidates: the others really were being dropped at the same moments (the 17:16–17:34 clusters); or a welcome after a rejoin lists others as `dropped`; or a burst of queued `presence` messages after a stall. To find: replay a two-client session with one client's downlink stalled and look at `presence` and `players[].state` in what the other client receives.
+
+Explained (2026-10-14, BL-009, `npm run test:weak-link`): the others really were being dropped. The server's heartbeat dropped a stalled player's link (BL-004) and everyone was told; the drops came in waves of 2–3 players. Since BL-004, a slow link shows as here all along.
 
 ## Server
 
@@ -105,7 +107,7 @@ The label is only shown for a presence `dropped` that the **server** sent (`serv
 
 - 5 players came in as new after the 60 s rejoin window ran out (one player three times, another once): their stepladder and carried items were lost. The host reloaded the page 14 times in 2.6 h.
 - Link and byte counts differ from the devops notes by 1 link and 7% of traffic.
-- The report prints `Infinity` for a percentile that falls in the histogram's open top bucket.
+- The report prints `Infinity` for a percentile that falls in the histogram's open top bucket (fixed on `feat/playtest-telemetry`: it prints `>` the top bucket's edge).
 - The stall and silence counters also count a peer whose tab is hidden.
 - 15 of the 16 F9 marks are at 17:12–17:43, in the worst drops.
 - The Brave device reports GPU "Brave" and 4 GB.
@@ -114,15 +116,15 @@ The label is only shown for a presence `dropped` that the **server** sent (`serv
 
 The scenarios in `npm run test:weak-link` play most of these back on one machine (`docs/testing.md`); the next playtest checks them on real networks.
 
-| Fix (backlog) | How to see it worked |
-|---|---|
-| Heartbeat counts any client message; longer wait before reconnect | Two clients, one with its downlink throttled (DevTools "Slow 3G" or `tc`): no 1006 from the server while its `state` still arrives; the stall ends in a burst, not a drop. |
-| Acked ops | Paint 10 s, cut the client's network for 15 s while painting, restore: all strokes are still there, on both clients and in the server's paint. |
-| Binary, merged ops | Golden paint tests identical; bytes per op ~20 B in the next playtest; server out for the same painting ≤ 1/8. |
-| Shed on high ping | With the link throttled, ping stays under ~1 s and the others' players still move (newest `state` only). |
-| First upload spread (BL-025, done) | After a welcome, no frame over ~50 ms in `paint + hud`. The heap spike is BL-083. |
-| `gc()` on close | Idle container memory falls to ~50 MiB a minute after the last session closes. |
+| Fix (backlog) | Status (2026-10-14) | How to see it worked |
+|---|---|---|
+| Heartbeat counts any client message; longer wait before reconnect (BL-004) | done; `slow`, `three-players`, `slow-join` | Two clients, one with its downlink throttled (DevTools "Slow 3G" or `tc`): no 1006 from the server while its `state` still arrives; the stall ends in a burst, not a drop. |
+| Acked ops (BL-003) | done; `stall`, `cut` | Paint 10 s, cut the client's network for 15 s while painting, restore: all strokes are still there, on both clients and in the server's paint. |
+| Binary, merged ops (BL-024) | binary done (28 B a stamp in `bytes`); merging not started | Golden paint tests identical; bytes per op ~20 B in the next playtest; server out for the same painting ≤ 1/8. |
+| Shed on high ping (BL-024) | not started: ops now fit weak links; revisit after the next playtest | With the link throttled, ping stays under ~1 s and the others' players still move (newest `state` only). |
+| First upload spread (BL-025) | done; joins faster since (BL-085, BL-083) | After a welcome, no frame over ~50 ms in `paint + hud`. The heap spike is BL-083. |
+| `gc()` on close (BL-027) | needs the owner's decision | Idle container memory falls to ~50 MiB a minute after the last session closes. |
 
 ## The next playtest
 
-Separate networks for all players; 12–20 players with two or three weak laptops and Firefox/Safari; say who is on VPN. Log the display's refresh rate and the power-saver state; have the server log each link's ping and `bufferedAmount` (set `tcp_notsent_lowat` on the host so the queue shows); keep client reports during an outage and send them after the rejoin; fix `Infinity`; count a hidden peer apart. Run it once more after the heartbeat, ack and op-size fixes and compare with the table above. Host-side knobs (`tcp_notsent_lowat`, BBR) change only with the owner's OK.
+Separate networks for all players; 12–20 players with two or three weak laptops and Firefox/Safari; say who is on VPN. Log the display's refresh rate and the power-saver state; have the server log each link's ping and `bufferedAmount` (set `tcp_notsent_lowat` on the host so the queue shows); keep client reports during an outage and send them after the rejoin; count a hidden peer apart. Run it once more after the heartbeat, ack and op-size fixes and compare with the table above. Host-side knobs (`tcp_notsent_lowat`, BBR) change only with the owner's OK.
