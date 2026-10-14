@@ -75,8 +75,8 @@ export function joinBytes(pieces: Uint8Array[]) {
 
 export type DecodedPaint = { header: PaintFileHeader; body: Uint8Array };
 
-/** The header and the paint of a save; throws an Error with a message for the player if the file is no good. */
-export async function decodePaintFile(bytes: Uint8Array, maxBytes = Infinity): Promise<DecodedPaint> {
+/** A save's header (checked), its packed paint, and the bytes of paint it holds; throws an Error with a message for the player if it's no good. */
+export function readPaintHeader(bytes: Uint8Array, maxBytes = Infinity): { header: PaintFileHeader; packed: Uint8Array; size: number } {
   if (bytes.length < 8 || new TextDecoder().decode(bytes.subarray(0, 4)) !== MAGIC) throw new Error('NOT A PAINT FILE');
   const length = new DataView(bytes.buffer, bytes.byteOffset).getUint32(4, true);
   let header: PaintFileHeader;
@@ -95,30 +95,62 @@ export async function decodePaintFile(bytes: Uint8Array, maxBytes = Infinity): P
   const size = header.faces.reduce((n, f) => n + faceBytes(f), 0);
   // A header may claim more than memory holds (the server takes files from anyone).
   if (size > maxBytes) throw new Error('BROKEN PAINT FILE');
-  const body = await inflate(bytes.subarray(8 + length), size);
-  if (body?.length !== size) throw new Error('BROKEN PAINT FILE');
+  return { header, packed: bytes.subarray(8 + length), size };
+}
+
+/** The header and the paint of a save; throws an Error with a message for the player if the file is no good. */
+export async function decodePaintFile(bytes: Uint8Array, maxBytes = Infinity): Promise<DecodedPaint> {
+  const { header, packed, size } = readPaintHeader(bytes, maxBytes);
+  const body = new Uint8Array(size);
+  let n = 0;
+  await inflate(packed, size, (chunk) => (body.set(chunk, n), (n += chunk.length)));
   return { header, body };
+}
+
+/**
+ * Each face's paint (readPaintHeader), in header order, as it's inflated:
+ * `face(i, crop)`, the crop good only during the call. All the paint is never
+ * in memory at once. Broken paint throws BROKEN PAINT FILE, after the faces
+ * before it were given.
+ */
+export async function eachFace({ header, packed, size }: ReturnType<typeof readPaintHeader>, face: (i: number, crop: Uint8Array) => void) {
+  let i = 0;
+  let fill = 0;
+  let crop = new Uint8Array(0);
+  await inflate(packed, size, (chunk) => {
+    for (let o = 0; o < chunk.length; ) {
+      const need = faceBytes(header.faces[i]);
+      // A face whole in the chunk goes as it is; one across chunks is put together first.
+      if (!fill && chunk.length - o >= need) {
+        face(i++, chunk.subarray(o, (o += need)));
+        continue;
+      }
+      if (crop.length < need) crop = new Uint8Array(need);
+      const n = Math.min(need - fill, chunk.length - o);
+      crop.set(chunk.subarray(o, (o += n)), fill);
+      if ((fill += n) < need) continue;
+      face(i++, crop.subarray(0, need));
+      fill = 0;
+    }
+  });
 }
 
 const isCount = (v: unknown, min: number) => Number.isInteger(v) && (v as number) >= min;
 const isFace = (f: PaintFileFace) => typeof f?.surface === 'string' && isCount(f.rect, 0) && isCount(f.w, 1) && isCount(f.h, 1);
 
-/** Inflates up to `size` bytes; null if the data is broken or holds more. */
-async function inflate(bytes: Uint8Array, size: number) {
-  const out = new Uint8Array(size);
+/** Inflates `size` bytes, a chunk at a time into `chunk`; throws BROKEN PAINT FILE if the data is broken, or holds more or less. */
+async function inflate(bytes: Uint8Array, size: number, chunk: (c: Uint8Array) => void) {
   let n = 0;
   const reader = new Blob([bytes as BlobPart]).stream().pipeThrough(new DecompressionStream('deflate')).getReader();
-  try {
-    for (let r = await reader.read(); !r.done; r = await reader.read()) {
-      if (n + r.value.length > size) {
-        await reader.cancel();
-        return null;
-      }
-      out.set(r.value, n);
-      n += r.value.length;
+  // Only what the data does is a broken file: an error in `chunk` is its own.
+  const read = () => reader.read().catch(() => Promise.reject(new Error('BROKEN PAINT FILE')));
+  for (let r = await read(); !r.done; r = await read()) {
+    if (n + r.value.length > size) {
+      await reader.cancel();
+      throw new Error('BROKEN PAINT FILE');
     }
-  } catch {
-    return null;
+    n += r.value.length;
+    chunk(r.value);
   }
-  return n === size ? out : null;
+  if (n !== size) throw new Error('BROKEN PAINT FILE');
 }

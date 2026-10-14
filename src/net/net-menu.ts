@@ -7,7 +7,8 @@ import { cycle, PAINT_DETAIL, paintDetailName } from '../settings';
 import { action, button, div, relabel, sentence } from '../menu-ui';
 import { choice, pageHead, settingRow } from '../settings-page';
 import { CODE_LENGTH, CODE_LETTERS, NAME_MAX } from './protocol';
-import { Multiplayer, type MultiplayerContext, type NetStatus } from './multiplayer';
+import type { MultiplayerContext } from './game-context';
+import { Multiplayer, type NetStatus } from './multiplayer';
 
 // The Multiplayer page of the ESC menu: HOST (a name, the session's PAINT
 // DETAIL, the paint to start from: the level's own (save/level-paint.ts, none

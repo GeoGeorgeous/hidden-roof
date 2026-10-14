@@ -1062,7 +1062,7 @@ Typing a code with a K in the join field takes a screenshot instead of typing th
 ### The JS heap jumps to 0.8–1 GB on each join
 - id: BL-083
 - type: perf
-- status: Requested
+- status: Done
 - priority: Medium
 - size: S
 - area: paint
@@ -1070,6 +1070,8 @@ Typing a code with a K in the join field takes a screenshot instead of typing th
 - source: playtest 2026-10-12
 
 Split from BL-025. Steady ~0.5 GB. Measure what `loadPaint` allocates on a join first, then decide.
+
+Measured (2026-10-14, `npm run bench:join`, as BL-085): the heap's steady growth on a join is every painted surface's CPU atlas (330 MB for the roof at HIGH, by design); on top of it the paint file inflated whole, 100–400 MB, was alive with them. Now a join's paint goes on face by face as it inflates (`eachFace`, `src/save/paint-file.ts`; LOAD from a file still reads it all first, so a broken file changes nothing): the top over the steady heap went from +124 to +65 MB at a quarter of the roof painted, +75 MB with all of it.
 
 ### A hint in the HUD when the GPU can't keep up
 - id: BL-084
@@ -1091,7 +1093,7 @@ When built: a `?weak-gpu` URL flag that shows the hint at once, to see it withou
 ### Paint takes 7–10 s to show after joining a session with a lot of it
 - id: BL-085
 - type: perf
-- status: Requested
+- status: Done
 - priority: Medium
 - size: S
 - area: net
@@ -1104,6 +1106,8 @@ The playtest of 2026-10-12 measured it: join (connect to in-session) p50 3.9 s, 
 
 Part of it fixed with BL-004 (2026-10-14): a join over a slow link was killed during its download by the server's heartbeat, or by the game's own `NET.connectTimeout` while one 256 KB part came down; parts are 32 KB now. Download time itself is unchanged (BL-024 shares the link).
 
+Measured and fixed (2026-10-14, `npm run bench:join`: the roof at HIGH, a quarter of its faces painted, 100 MB of paint in a 5.4 MB file, a joiner on the real GPU, no network delay): loaded 2.5–3.9 s → 0.8 s, shown 3.4–5.2 s → 1.3 s (all faces: 1.0 and 1.8 s). The welcome built the level again though the joiner had it open: 0.7 s, then its light bake and shader compiles (~1.3 s), and the download and the paint's inflating waited behind them. Now the open level, when it's the session's (data, name and surface table), starts over without a rebuild (`playSessionLevel`, `src/net/game-context.ts`). Mip levels are made each from the one above (`mipHalf`, `src/paint-mips.ts`), the atlas read once instead of once a level: 663 → 292 ms of the upload. Left: the upload's frames (24 MB each, `PAINT.uploadBudget`) still take 50–120 ms, and ~0.4 s of shaders compile at the first frames with paint (page materials); on a slow link the download is what's left (BL-024).
+
 ### Placing the stepladder lags
 - id: BL-086
 - type: bug
@@ -1115,3 +1119,15 @@ Part of it fixed with BL-004 (2026-10-14): a join over a slow link was killed du
 - source: owner
 
 Placing the stepladder from the inventory lags. Measured on the roof: 170–220 ms per placement, 160–207 of them in `LightBaker.sync`, which tested 3440 receivers against 416–831 shadow cones: one per lamp and per box of the ladder (17 boxes, 34 when moved). Fixed: one box per prop (`hull`, `src/render/bake/reach.ts`): 15–33 ms.
+
+### `main.ts` and `level.ts` are over 400 lines
+- id: BL-087
+- type: refactor
+- status: Requested
+- priority: Low
+- size: S
+- area: code
+- release: later
+- source: agent
+
+`src/main.ts` (405: the frame loop is ~150 of them) and `src/level/level.ts` (408) are past the ~400 the codebase keeps to; both were at 403 before BL-085 added a few lines. Split by responsibility: e.g. the level's loading (load, restart, the city, the level file) out of `main.ts`; `Level`'s runtime props or its cover bookkeeping out of `level.ts`. Behavior stays identical (`npm run check` before and after).

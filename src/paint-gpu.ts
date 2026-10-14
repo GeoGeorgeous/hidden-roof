@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { PAINT } from './config';
-import { mipRect, mipSizes, type MipSize } from './paint-mips';
+import { mipHalf, mipRects, mipSizes, type MipSize } from './paint-mips';
 import { PagePacker, type PageSlot } from './page-packer';
 import type { PaintSurface } from './painting';
 
@@ -35,8 +35,8 @@ export interface PaintPage {
 const uploadSource = new THREE.DataTexture(null, 1, 1);
 const uploadRegion = new THREE.Box2();
 const uploadAt = new THREE.Vector2();
-/** Mip texels on their way to the GPU (paint-mips.ts), and zeros for blocks given back. */
-let scratch = new Uint8Array(0);
+/** Mip texels on their way to the GPU (paint-mips.ts), a level and the one below it, and zeros for blocks given back. */
+const scratch = [new Uint8Array(0), new Uint8Array(0)];
 
 /** Changed texels, inclusive. */
 export interface DirtyRect {
@@ -174,23 +174,22 @@ export class PaintGpu {
   private upload(renderer: THREE.WebGLRenderer, s: PaintSurface, r: DirtyRect) {
     const { atlasW: w, atlasH: h } = s.geo;
     const { x: bx, y: by } = s.slot!;
-    let { x0, y0, x1, y1 } = r;
+    const { x0, y0, x1, y1 } = r;
     uploadSource.image = { data: s.data, width: w, height: h };
     uploadRegion.min.set(x0, y0);
     uploadRegion.max.set(x1 + 1, y1 + 1);
     renderer.copyTextureToTexture(uploadSource, s.texture!, uploadRegion, uploadAt.set(bx + x0, by + y0));
     this.uploadBytesLastFrame += (x1 - x0 + 1) * (y1 - y0 + 1) * 4;
-    s.mips.forEach((m, i) => {
-      x0 = Math.min(x0 >> 1, m.width - 1);
-      y0 = Math.min(y0 >> 1, m.height - 1);
-      x1 = Math.min(x1 >> 1, m.width - 1);
-      y1 = Math.min(y1 >> 1, m.height - 1);
-      const rw = x1 - x0 + 1;
-      const rh = y1 - y0 + 1;
-      mipRect(s.data!, w, h, i + 1, x0, y0, x1, y1, room(rw * rh * 4));
-      uploadSource.image = { data: scratch, width: rw, height: rh };
-      renderer.copyTextureToTexture(uploadSource, s.texture!, null, uploadAt.set((bx >> (i + 1)) + x0, (by >> (i + 1)) + y0), 0, i + 1);
-      this.uploadBytesLastFrame += rw * rh * 4;
+    // Each level made from the one above (paint-mips.ts): the atlas's texels read once.
+    let [src, sw, sx, sy, pw, ph] = [s.data!, w, 0, 0, w, h];
+    mipRects(s.mips, x0, y0, x1, y1).forEach(([a, b, c, d], i) => {
+      const rw = c - a + 1;
+      const out = room(i % 2, rw * (d - b + 1) * 4);
+      mipHalf(src, sw, sx, sy, pw, ph, a, b, c, d, out);
+      uploadSource.image = { data: out, width: rw, height: d - b + 1 };
+      renderer.copyTextureToTexture(uploadSource, s.texture!, null, uploadAt.set((bx >> (i + 1)) + a, (by >> (i + 1)) + b), 0, i + 1);
+      this.uploadBytesLastFrame += rw * (d - b + 1) * 4;
+      [src, sw, sx, sy, pw, ph] = [out, rw, a, b, s.mips[i].width, s.mips[i].height];
     });
   }
 
@@ -200,16 +199,16 @@ export class PaintGpu {
     for (let k = 0; k <= c.page.levels.length; k++) {
       const w = Math.max(1, c.w >> k);
       const h = Math.max(1, c.h >> k);
-      uploadSource.image = { data: room(w * h * 4).fill(0, 0, w * h * 4), width: w, height: h };
+      uploadSource.image = { data: room(0, w * h * 4).fill(0, 0, w * h * 4), width: w, height: h };
       renderer.copyTextureToTexture(uploadSource, t, null, uploadAt.set(c.x >> k, c.y >> k), 0, k);
     }
   }
 }
 
-/** The scratch buffer, at least `n` bytes. */
-function room(n: number) {
-  if (scratch.length < n) scratch = new Uint8Array(n);
-  return scratch;
+/** Scratch buffer `k`, at least `n` bytes. */
+function room(k: number, n: number) {
+  if (scratch[k].length < n) scratch[k] = new Uint8Array(n);
+  return scratch[k];
 }
 
 /** GPU memory of a page's texture, all levels. */

@@ -1,6 +1,6 @@
 import type { PaintDrips } from '../paint-drips';
 import type { PaintSurface, PaintSystem } from '../painting';
-import { decodePaintFile, faceBytes, type DecodedPaint } from './paint-file';
+import { decodePaintFile, eachFace, faceBytes, readPaintHeader, type DecodedPaint } from './paint-file';
 import { shapeOf } from './shape';
 
 // LOAD: replaces all paint with a save's (paint-file.ts), at this player's
@@ -22,10 +22,14 @@ export class NotThisLevel extends Error {}
  * Throws an Error with a message for the player if the file is no good, a
  * NotThisLevel if none of it fits this level; `maxBytes`: the most paint it
  * may hold. `apply` false: only checks, changing nothing. `bytes` already
- * decoded (decodePaintFile): a check then a load decode the file once.
+ * decoded (decodePaintFile): a check then a load decode the file once, and
+ * nothing changes if it's broken. Bytes not decoded are put on as they
+ * inflate: broken paint is found after the paint before it went on.
  */
 export async function loadPaint(paint: PaintSystem, drips: PaintDrips, bytes: Uint8Array | DecodedPaint, level: { name: string }, maxBytes?: number, apply = true): Promise<LoadedPaint> {
-  const { header, body } = bytes instanceof Uint8Array ? await decodePaintFile(bytes, maxBytes) : bytes;
+  // A file to load is put on face by face as it inflates, never all its paint in memory at once (BL-083); a check reads it all.
+  const file = bytes instanceof Uint8Array && apply ? readPaintHeader(bytes, maxBytes) : null;
+  const { header, body } = file ? { header: file.header, body: null } : bytes instanceof Uint8Array ? await decodePaintFile(bytes, maxBytes) : bytes;
   const fits = new Map<string, PaintSurface | null>();
   const fit = (key: string) => {
     if (!fits.has(key)) {
@@ -47,11 +51,14 @@ export async function loadPaint(paint: PaintSystem, drips: PaintDrips, bytes: Ui
   if (!apply) return { faces, skipped };
   paint.clear();
   drips.clear();
-  let o = 0;
-  header.faces.forEach((f, i) => {
-    const s = targets[i];
-    if (s) paint.putFace(s, f.rect, body.subarray(o, o + faceBytes(f)), f.w, f.h);
-    o += faceBytes(f);
-  });
+  const put = (i: number, crop: Uint8Array) => {
+    const [s, f] = [targets[i], header.faces[i]];
+    if (s) paint.putFace(s, f.rect, crop, f.w, f.h);
+  };
+  if (file) await eachFace(file, put);
+  else {
+    let o = 0;
+    header.faces.forEach((f, i) => put(i, body!.subarray(o, (o += faceBytes(f)))));
+  }
   return { faces, skipped };
 }
