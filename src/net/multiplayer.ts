@@ -1,19 +1,12 @@
-import type * as THREE from 'three';
 import { NET, SERVER } from '../config';
-import type { Inventory } from '../inventory/inventory';
-import type { Level, LevelData } from '../level/level';
-import type { Pickups } from '../pickups/pickups';
-import type { PaintDrips } from '../paint-drips';
-import type { PaintOp, PaintOps } from '../paint-ops';
-import type { PaintSystem } from '../painting';
-import type { Player } from '../player';
+import type { PaintOp } from '../paint-ops';
 import { loadPaint } from '../save/load-paint';
 import { surfaceTable } from '../save/shape';
 import { session } from '../session';
-import type { Tools } from '../tools/tools';
 import { decode, encode, PROTOCOL, type Rejection, type ToClient, type ToServer } from './protocol';
 import { diagnose, NetLog, Traffic } from './diagnostics';
 import { decodeOps, encodeOps, SurfaceIndex } from '../op-wire';
+import { playSessionLevel, type MultiplayerContext } from './game-context';
 import { Outbox } from './outbox';
 import { PartsIn } from './parts-in';
 import { ownerOf, Remotes } from './remotes';
@@ -28,27 +21,6 @@ import { capture, encodeSnapshot } from './snapshot';
 // server keeps them (SERVER.rejoinWindow); the token is kept in sessionStorage,
 // so a reload comes back too, and each tab is its own player. The server
 // keeps what the player carries, and hears when the game is hidden.
-
-export interface MultiplayerContext {
-  scene: THREE.Scene;
-  camera: THREE.Camera;
-  level: Level;
-  paint: PaintSystem;
-  paintOps: PaintOps;
-  drips: PaintDrips;
-  player: Player;
-  inventory: Inventory;
-  pickups: Pickups;
-  tools: Tools;
-  /** The level as a file, and its name (what HOST starts the session on). */
-  levelData(): { data: LevelData; name: string };
-  /** The level's own paint file (save/level-paint.ts), if it has one: what FRESH LEVEL starts from. */
-  levelPaint(): Uint8Array | null;
-  /** Play this level (the session's), from its spawn, with the starting kit. */
-  openLevel(data: LevelData, name: string): void;
-  /** Hold PAINT DETAIL at the session's (texels per meter), or give it back (null). */
-  lockDetail(tpm: number | null): void;
-}
 
 /** Why the game isn't in a session: the server said so (Rejection), it never answered, or diagnose's guess at why it can't be reached. */
 type Failure = Rejection | 'timeout' | Awaited<ReturnType<typeof diagnose>>['reason'];
@@ -315,9 +287,7 @@ export class Multiplayer {
   private async welcome(w: Extract<ToClient, { type: 'welcome' }>, file: Uint8Array) {
     const g = this.g;
     if (this.joined?.code !== w.code) {
-      g.lockDetail(w.detail);
-      g.openLevel(w.level, w.levelName);
-      if (surfaceTable(g.paint.surfaces) !== w.table) {
+      if (!playSessionLevel(g, w)) {
         this.send({ type: 'leave' });
         return this.end({ state: 'failed', reason: 'version' });
       }
@@ -333,7 +303,9 @@ export class Multiplayer {
     const back = this.joined?.code === w.code;
     this.onProgress('Loading paint…');
     // The session's paint replaces ours: what the server doesn't have yet is painted again on top (and sent again, below).
+    const loading = now();
     await loadPaint(g.paint, g.drips, file, { name: w.levelName });
+    this.log.add(`paint loaded in ${Math.round((now() - loading) * 1000)} ms`);
     if (back) this.outbox.take(g.paint.log ?? [], now() - this.t0);
     else this.outbox.clear();
     const resend = back ? this.outbox.rejoined(w.acked, (op) => g.paintOps.apply(op)) : [];

@@ -137,13 +137,15 @@ function applyPixelScale() {
   syncViewSize();
 }
 
-function loadLevel(data: LevelData) {
+/** `build` false: the open level (`data`) started over as building it leaves it, without the seconds that takes with its lights and shaders: no paint, no one's stepladder. */
+function loadLevel(data: LevelData, build = true) {
   drips.clear();
-  level.load(data);
+  if (build) level.load(data);
+  else (paint.clear(), level.clearRuntime());
   pickups.load(data.pickups as PickupData[] | undefined);
   inventory.reset();
   skylineSettings = (data.skyline as SkylineSettings | undefined) ?? {};
-  rebuildCity();
+  if (build) rebuildCity();
   player.setSpawn(new THREE.Vector3(...data.spawn.pos), data.spawn.yaw);
 }
 
@@ -217,7 +219,7 @@ input.escapeReleased = () => hud.menu.escapeReleased();
 hud.setLocked(false);
 hud.menu.setSettings(settings.sections());
 const paintFile = paintMenu(hud.menu, paint, drips, () => levelName);
-const net = multiplayerMenu(hud.menu, hotbar, { scene, camera, level, paint, paintOps, drips, player, inventory, pickups, tools, levelData: () => ({ data: levelData(), name: levelName }), levelPaint: () => levelPaintOf(levelName), openLevel, lockDetail: (tpm) => settings.lockPaintDetail(tpm) }, () => levelName, paintFile);
+const net = multiplayerMenu(hud.menu, hotbar, { scene, camera, level, paint, paintOps, drips, player, inventory, pickups, tools, levelData: () => ({ data: levelData(), name: levelName }), levelPaint: () => levelPaintOf(levelName), openLevel, restartLevel: () => loadLevel(levelData(), false), lockDetail: (tpm) => settings.lockPaintDetail(tpm) }, () => levelName, paintFile);
 tools.onCapChange = (name) => hud.showCapTag(name);
 tools.onColorChange = (color) => hud.showColorTag(color, COLORS[color]);
 

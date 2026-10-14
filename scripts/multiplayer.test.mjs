@@ -3,7 +3,7 @@
 // JOIN through the pause menu's MULTIPLAYER page, both at the host's PAINT
 // DETAIL, paint and the stepladder reaching the other player, a reload coming
 // back into the session, paint while hidden, one that heard nothing for a while reconnecting, LEAVE
-// SESSION, and a server restart ending the session.
+// SESSION, one already playing the session's level starting it over, and a server restart ending the session.
 // Usage: npm run test:mp (builds the server first)
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
@@ -166,6 +166,28 @@ try {
   assert.equal(await b.textContent('.nameplate'), 'A');
   await b.evaluate(() => window.game.net.leave());
 
+  // C plays the same level at the session's PAINT DETAIL: its welcome starts that level over rather than building it
+  // again (seconds with its lights and shaders, BL-085). What it placed and found alone is gone, it stands at the
+  // spawn, and it has the session's paint.
+  const c = await open('medium');
+  await c.evaluate(() => {
+    const g = window.game;
+    g.level.setRuntime(g.session.player, { type: 'stepladder', pos: [2, 0, 2], rot: 0 });
+    g.inventory.give('marker');
+    g.player.position.set(5, 3, 5);
+    window.kept = g.level.builtProps[0];
+  });
+  await c.evaluate((code) => window.game.net.join('C', code), code);
+  await status(c, 'in');
+  const restarted = await c.evaluate(() => {
+    const g = window.game;
+    const [x, y, z] = g.levelData().spawn.pos;
+    return { kept: g.level.builtProps[0] === window.kept, ladder: g.level.runtimeOf('local') ?? null, marker: g.inventory.has('marker'), fromSpawn: Math.round(Math.hypot(g.player.position.x - x, g.player.position.z - z)) };
+  });
+  assert.deepEqual(restarted, { kept: true, ladder: null, marker: false, fromSpawn: 0 });
+  assert.equal(await paintHash(c), await paintHash(a), 'C has the session paint');
+  await c.evaluate(() => window.game.net.leave());
+
   // The server restarts (a deploy): A's game reconnects, finds its session gone, and says the session has ended.
   server.kill();
   server = startServer();
@@ -194,7 +216,7 @@ try {
   // All of it is in the network log the menu copies.
   const log = await a.evaluate(() => window.game.net.log.text());
   for (const seen of ['connecting to ws://', 'in session', 'closed: ', 'asked the server over HTTP: server-down', 'nothing from the server in 1 s', 'status: failed timeout']) assert.ok(log.includes(seen), `the log has "${seen}"`);
-  for (const p of [a, b]) assert.deepEqual(p.errors, []);
+  for (const p of [a, b, c]) assert.deepEqual(p.errors, []);
   console.log('multiplayer: ok');
 } finally {
   await test.close();

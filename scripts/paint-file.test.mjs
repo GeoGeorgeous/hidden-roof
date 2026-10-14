@@ -1,8 +1,9 @@
 // Tests of the paint save file (src/save/paint-file.ts) in Node, as a server
-// will read and write it: round trip, and the errors a player sees.
+// will read and write it: round trip, face by face as it inflates, and the
+// errors a player sees.
 // Usage: node scripts/paint-file.test.mjs
 import assert from 'node:assert/strict';
-import { decodePaintFile, encodePaintFile as encodePieces, faceBytes, joinBytes } from '../src/save/paint-file.ts';
+import { decodePaintFile, eachFace, encodePaintFile as encodePieces, faceBytes, joinBytes, readPaintHeader } from '../src/save/paint-file.ts';
 
 const encodePaintFile = async (header, body) => joinBytes(await encodePieces(header, [body]));
 
@@ -18,6 +19,19 @@ const bytes = await encodePaintFile(header, body);
 const back = await decodePaintFile(bytes);
 assert.deepEqual(back.body, body);
 assert.deepEqual(back.header, { format: 'rhh-paint', version: 2, ...header });
+
+// Face by face as it inflates (a join, BL-083): the same paint, faces across the inflater's chunks (64 KB) too.
+const big = [...faces, { surface: 'p12#0', rect: 4, w: 300, h: 200 }, { surface: 'p12#0', rect: 5, w: 2, h: 2 }, { surface: 'p12#0', rect: 6, w: 150, h: 90 }];
+const bigBody = new Uint8Array(big.reduce((n, f) => n + faceBytes(f), 0)).map((_, i) => (i * 31 + (i >> 9)) & 255);
+const bigFile = await encodePaintFile({ ...header, faces: big }, bigBody);
+const crops = [];
+await eachFace(readPaintHeader(bigFile), (i, crop) => crops.push([i, crop.slice()]));
+assert.deepEqual(crops.map(([i]) => i), [0, 1, 2, 3, 4]);
+assert.deepEqual(joinBytes(crops.map(([, c]) => c)), bigBody);
+// Broken paint is found as it inflates: the faces before it were given.
+let given = 0;
+await assert.rejects(eachFace(readPaintHeader(bigFile.slice(0, bigFile.length - 20)), () => given++), { message: 'BROKEN PAINT FILE' });
+assert.ok(given < big.length);
 
 /** `file` with its JSON header edited by `edit` (a string replace), the paint after it kept. */
 function withHeader(file, edit) {

@@ -118,6 +118,11 @@ export class Level {
     return inst;
   }
 
+  /** Every owner's prop taken away (the level starting over without being built again). */
+  clearRuntime() {
+    for (const owner of [...this.runtime.keys()]) this.setRuntime(owner, null);
+  }
+
   /** The id of an owner's runtime prop, if one stands. */
   runtimeOf(owner: string) {
     return this.runtime.get(owner);
