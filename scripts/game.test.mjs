@@ -435,6 +435,28 @@ await check('sponge: a surface cleaned completely gives its memory back', async 
   return r.sprayed > 0 && r.after === 0 ? null : JSON.stringify(r);
 });
 
+await check('props: a tank roof (a cone) holds a player dropped on it, near its tip, not on the flat top inside it', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { player: p } = g;
+    g.input.locked = true;
+    const saved = g.build.getLevelData();
+    // Where each cone sits (kit/equipment.ts, kit/steel.ts): its tip's x, its base's height, its height.
+    const roofs = [['watertower', 0, 7.4, 1.1], ['tank_pair', 1.1, 4.32, 0.4]];
+    const out = [];
+    for (const [type, x, base, h] of roofs) {
+      g.loadLevel({ version: 4, spawn: saved.spawn, props: [{ id: 1, type, pos: [0, 0, 0], rot: 0 }] });
+      p.position.set(x, base + h + 1, 0);
+      p.velocity.set(0, 0, 0);
+      await window.steps((f) => (f > 5 && p.onGround) || f > 300);
+      if (!p.onGround || p.position.y < base + h * 0.7) out.push(`${type}: stood at ${p.position.y.toFixed(2)} (roof ${base}–${(base + h).toFixed(2)})`);
+    }
+    g.loadLevel(saved);
+    return out;
+  });
+  return r.length ? r.join('; ') : null;
+});
+
 await check('levels: props keep their ids through edits, reloads and undo; version 2 files number them in order', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
