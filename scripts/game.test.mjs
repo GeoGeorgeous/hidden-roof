@@ -856,11 +856,12 @@ await check('levels: saves are named after the level opened in build mode, and s
   return r.demo === 'demo' && r.roof === 'my-roof' && r.refused === 'SAVED FOR DEMO' ? null : JSON.stringify(r);
 });
 
-await check('tools: the wheel changes the player\'s nib, roller and patch width, not the config', async () => {
+await check('tools: Q/E change the player\'s nib, roller and patch width, not the config', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
     const { inventory: inv, input, tools, config } = g;
-    const notch = (dir) => new Promise((done) => { g.fixedStep.script = () => { input.wheelSteps = dir; g.fixedStep.script = null; requestAnimationFrame(done); }; });
+    // E grows, Q shrinks: one press a frame.
+    const notch = (dir) => new Promise((done) => { g.fixedStep.script = () => { window.dispatchEvent(new KeyboardEvent('keydown', { code: dir < 0 ? 'KeyE' : 'KeyQ' })); window.dispatchEvent(new KeyboardEvent('keyup', { code: dir < 0 ? 'KeyE' : 'KeyQ' })); g.fixedStep.script = null; requestAnimationFrame(done); }; });
     input.locked = true;
     inv.give('marker');
     inv.give('sponge');
@@ -883,6 +884,40 @@ await check('tools: the wheel changes the player\'s nib, roller and patch width,
     return out;
   });
   return r.marker === 0.056 && r.grew && r.min === 0 && r.sponge === 0.22 && r.roller === 0.5 && r.config.join() === '0.032,0.18' ? null : JSON.stringify(r);
+});
+
+await check('tools: the wheel changes the color (can, marker, roller) and Q/E the can\'s cap; the sponge\'s wheel and the stepladder\'s Q/E change nothing', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { inventory: inv, input, config } = g;
+    const frame = (act) => new Promise((done) => { g.fixedStep.script = () => { act(); g.fixedStep.script = null; requestAnimationFrame(done); }; });
+    const wheel = () => frame(() => (input.wheelSteps = 1));
+    const key = (code) => frame(() => (window.dispatchEvent(new KeyboardEvent('keydown', { code })), window.dispatchEvent(new KeyboardEvent('keyup', { code }))));
+    input.locked = true;
+    for (const c of config.COLOR_ORDER) inv.addColor(c);
+    for (const c of config.CAP_ORDER) inv.addCap(c);
+    inv.give('marker');
+    inv.give('sponge');
+    inv.give('roller');
+    const out = {};
+    const step = async (slot, act) => {
+      inv.select(slot);
+      const before = { color: inv.color, cap: inv.cap, size: { ...inv.size } };
+      await act();
+      return { color: inv.color !== before.color, cap: inv.cap !== before.cap, size: JSON.stringify(inv.size) !== JSON.stringify(before.size) };
+    };
+    out.canWheel = await step(0, wheel);
+    out.canE = await step(0, () => key('KeyE'));
+    out.markerWheel = await step(1, wheel);
+    out.rollerWheel = await step(3, wheel);
+    out.spongeWheel = await step(4, wheel);
+    out.ladderE = await step(2, () => key('KeyE'));
+    input.locked = false;
+    return out;
+  });
+  const is = (o, color, cap, size) => o.color === color && o.cap === cap && o.size === size;
+  const ok = is(r.canWheel, true, false, false) && is(r.canE, false, true, false) && is(r.markerWheel, true, false, false) && is(r.rollerWheel, true, false, false) && is(r.spongeWheel, false, false, false) && is(r.ladderE, false, false, false);
+  return ok ? null : JSON.stringify(r);
 });
 
 await check('ladders: one per player, moved with one rebuild; each owner\'s stays until they take it away; never saved', async () => {

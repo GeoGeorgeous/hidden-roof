@@ -15,7 +15,7 @@ it's an experiment: i built it with ai tools, to see how far a game like this co
 
 **tools** · a spray can with four caps (skinny, standard, fat, a soft mist), a marker, a stepladder, a paint roller and a sponge. you start with the can and black. the other eight colors, the caps and the tools are hidden around the roof.
 
-**controls** · wasd to move, shift to run, space to jump, ctrl to crouch. the left button paints, the right one shakes the can. 1–5 switch tools, q and e switch colors, the wheel changes the cap or the width. esc pauses.
+**controls** · wasd to move, shift to run, space to jump, ctrl to crouch. the left button paints, the right one shakes the can. 1–5 switch tools, the wheel switches colors, q and e change the cap or the width. esc pauses.
 
 **together** · host a session from the menu and send the five-letter code. a friend joins with it, and you paint the same roof.
 

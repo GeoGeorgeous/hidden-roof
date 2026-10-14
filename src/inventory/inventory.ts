@@ -26,7 +26,7 @@ export class Inventory {
   caps: CapId[] = [];
   /** Can pressure 0..1: drains while spraying, restored by shaking. */
   pressure = 1;
-  /** Marker nib, roller and sponge patch widths (m), set with the mouse wheel; kept across resets. */
+  /** Marker nib, roller and sponge patch widths (m), set with Q/E; kept across resets. */
   size: Record<SizedTool, number> = { marker: MARKER.width, roller: ROLLER.width, sponge: SPONGE.width };
   /** Bumped on every change so the HUD can skip redundant DOM updates. */
   version = 0;

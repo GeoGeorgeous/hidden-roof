@@ -1006,7 +1006,7 @@ The probe turns moon shadows and wet highlights off: each compiles new shaders (
 ### Wheel and Q/E per tool
 - id: BL-080
 - type: feature
-- status: Planned
+- status: Done
 - priority: Medium
 - size: S
 - area: input
@@ -1023,7 +1023,7 @@ Decided (2026-10-14), replacing the earlier table: the wheel changes the color, 
 | Sponge | nothing (no color) | size |
 | Stepladder | quarter turn (as now) | nothing |
 
-To confirm before building: the can's Q/E pick the cap; the sponge's wheel does nothing. A click on the wheel picking a color is BL-020.
+Confirmed by the owner: the can's Q/E pick the cap; the sponge's wheel does nothing. A click on the wheel picking a color is BL-020.
 
 ### Browser input guard: one table of blocked default events
 - id: BL-081
