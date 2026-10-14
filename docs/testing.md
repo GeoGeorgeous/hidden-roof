@@ -23,6 +23,8 @@ How a change is verified (AGENTS.md, Verify), what each test covers, and how the
 | `npm run test:csp` | The game under the site's Content Security Policy (`vite.config.ts`). | ~6 s |
 | `npm run golden` | Paint at every PAINT DETAIL against `scripts/golden-paint.json`, op replay, saves, the server's paint (`docs/golden-paint.md`). | 45–55 s |
 
+`npm run test:weak-link` (~1 min, not in `check` yet): the playtest's weak link played back. A paints nonstop while B's link is narrowed through a TCP proxy (`scripts/link-proxy.mjs`: each direction at its own rate, `RATE` and `UP` in bytes a second), and it prints what happened: when the server dropped B, what A showed for B, and which of B's strokes survived. A report for BL-004, BL-009 and BL-003; each fix turns its part into a check.
+
 Tools, not tests: `npm run shots:avatar` (every avatar pose and a contact sheet in `shots/avatar/`, on the real GPU), `npm run bench:save` (save size and SAVE / LOAD time; run `npm run golden` first), `npm run audit` (knip and duplicated code, advisory).
 
 ## Seeing the real game

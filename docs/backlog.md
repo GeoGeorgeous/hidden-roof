@@ -42,7 +42,7 @@ Decided (2026-10-14): the fix and an automated test, in its own file beside the 
 
 7 players, 2.6 h; all findings in `docs/playtest-multiplayer.md`. `Multiplayer.welcome` (`src/net/multiplayer.ts`) replaces the player's paint with the server's file and clears `ops`, `opTimes` and `paint.log`; ops sent into a stalled socket are never acknowledged. So everything painted from the stall's start to the end of the rejoin (silence 6 s + retry + a 4 s median, 18 s worst, download) is lost: 3–20 s of work, 81 times in the test. Do: each op batch carries a per-player sequence number, the server acks the highest in `pong` and drops repeats by token, the client keeps unacked batches, and after `loadPaint` applies them again and resends. Bump `PROTOCOL`.
 
-
+Reproduced (2026-10-14, `npm run test:weak-link`): a stroke B makes between the drop and its welcome is gone, on B and on A; a stroke made while the link was only slow survives (it reached the server before the drop).
 
 ### The server's heartbeat kills links that are only stalled downstream
 - id: BL-004
@@ -56,7 +56,7 @@ Decided (2026-10-14): the fix and an automated test, in its own file beside the 
 
 79 of 81 drops (code 1006) fell on the 10 s heartbeat (`server/main.ts`: `terminate()` when no pong came since the last ping); in 62 of 69 the player's reports still reached the server less than 10 s before the kill, so the uplink worked and the ping sat in the downlink queue behind ops (app pings of 11–16 s were measured). 40% of the drops (32 of 81) came within 30 s of a rejoin: the paint file (0.3–3.4 MB) loads the same weak path, and the next kill follows. Do: count any message from the client as alive (`state` arrives at 20 Hz); let the game wait longer than 6 s for the server (`lastHeard`, `SERVER.ping * 3`) before it closes and rejoins, or make it adaptive.
 
-
+Reproduced (2026-10-14, `npm run test:weak-link`): B's downlink narrowed to 8 KB/s while A paints, its uplink still working: the server drops B with 1006 exactly 20.0 s after the link opened (two missed heartbeats), while B's reports still arrive.
 
 ### A player who is away over 60 s comes back as a new one
 - id: BL-005
@@ -113,6 +113,8 @@ Painting and shaking the can are mutually exclusive: one or the other. Today bot
 In the playtest the host saw all others as DISCONNECTED, a label only the server's `presence: dropped` sets (`NO SIGNAL` is the game's own). The data can't tell if the others really dropped, a welcome lists them as dropped, or queued presence arrives in a burst. Do: two clients in `scripts/multiplayer.test.mjs` style, one with its downlink stalled for 15 s, and log the `presence` and `players[].state` the other receives (`docs/playtest-multiplayer.md`).
 
 Triage notes (2026-10-14): research, not a fix: write the stalled-downlink test first, then decide.
+
+Explained (2026-10-14, `npm run test:weak-link`): A shows B as dropped (DISCONNECTED) the moment the server's heartbeat drops B's link (BL-004), and as here again a second later once B is back. The playtest's drops came in waves of 2–3 players, so everyone showed DISCONNECTED. Fixing BL-004 should end most of it; check again with the stand then.
 
 ### Mouse spikes snap the camera (Chrome on Windows)
 - id: BL-010
