@@ -8,6 +8,7 @@
 // owner, the avatar's poses, the ghost's playback, the same city at every
 // city detail, hotbar icons, hints painted in build mode, a level's own paint, and small-sign sizes with another font. Each check prints ok or what went wrong.
 // Usage: node scripts/game.test.mjs [url]   (no url: starts its own server)
+//        ONLY=ladder npm run test:game   (only the checks whose name matches: while working; the full run before a merge)
 import fs from 'node:fs';
 import os from 'node:os';
 import { gameReady, noDrawing, openTestBrowser } from './test-browser.mjs';
@@ -47,7 +48,11 @@ function pageSteps() {
     });
 }
 
+const only = process.env.ONLY ? new RegExp(process.env.ONLY, 'i') : null;
+let skipped = 0;
+
 async function check(name, fn) {
+  if (only && !only.test(name)) return void skipped++;
   try {
     // Every check starts alike, whatever ran (or failed) before it: seeded paint randomness (spray, drips), frames on the clock.
     // Inside the try: a page a failed check left without a game fails this check too, not the whole run.
@@ -1460,5 +1465,5 @@ await check('signs: their size is the same with a 20% narrower font', async () =
 
 await test.close();
 fs.rmSync(tmp, { recursive: true, force: true });
-console.log(failed ? `game tests: FAILED (${failed})` : 'game tests: all ok');
+console.log(`${failed ? `game tests: FAILED (${failed})` : 'game tests: all ok'}${skipped ? ` (${skipped} skipped: ONLY=${process.env.ONLY})` : ''}`);
 process.exitCode = failed ? 1 : 0;
