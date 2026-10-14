@@ -448,7 +448,7 @@ Triage notes (2026-10-14): needs a human: moving the wall and saving the level a
 - release: later
 - source: profile (1.1.0)
 
-After 40 minutes of painting at ULTRA a profile counted 45 more GPU textures; if paint pages (2048², ~21 MB each with mips), ~0.95 GB. Already so in 1.1.0. Do: check the HUD's `tex memory` after heavy painting at ULTRA; if that's what it is, smaller or fewer pages for sparse paint, or a cap with a warning.
+After 40 minutes of painting at ULTRA a profile counted 45 more GPU textures (~0.95 GB if paint pages). Confirmed by the playtest of 2026-10-12: 49 paint pages, 1041 MB of GPU memory at 58% of the level painted; all painted would be an estimated 1.5–2 GB. Already so in 1.1.0. Do: smaller or fewer pages for sparse paint (the paint file was 23% of the atlases: most of each page is empty), or a cap with a warning.
 
 
 
@@ -970,7 +970,7 @@ The tags don't scale with the UI or the resolution.
 - release: later
 - source: playtest 2026-10-12
 
-Telemetry is kept on the `feat/playtest-telemetry` branch (tag `v1.2.0-playtest.2`), not in releases; merging it into a newer base conflicts in `knip.json`, `src/main.ts`, `src/net/multiplayer.ts`, `src/net/remotes.ts`, `src/style.css`. Lessons: two or more players on one home network can't tell their network from the game's, so ask for separate networks; have 12–20 players and a weak laptop (Intel iGPU, 8 GB) in it; log the display's refresh rate and the browser's power-saver state (two players' "low fps" was the browser's 30 Hz cap on battery, not the game); have the server log each link's ping and `bufferedAmount` (the roof server sees a ~0 queue because Caddy drains it at once: set `tcp_notsent_lowat` on the host to see it); fix the report's `Infinity` (a percentile in the histogram's open top bucket), and count a hidden tab's silence apart from a real stall. Run it a second time with the binary ops (BL-024), to compare (`docs/playtest-multiplayer.md` has the list and the numbers to beat).
+Telemetry is kept on the `feat/playtest-telemetry` branch (tag `v1.2.0-playtest.2`), not in releases; merging it into a newer base conflicts in `knip.json`, `src/main.ts`, `src/net/multiplayer.ts`, `src/net/remotes.ts`, `src/style.css`. Lessons: two or more players on one home network can't tell their network from the game's, so ask for separate networks; have 12–20 players and a weak laptop (Intel iGPU, 8 GB) in it; log the display's refresh rate and the browser's power-saver state (two players' "low fps" was the browser's 30 Hz cap on battery, not the game); have the server log each link's ping and `bufferedAmount` (the roof server sees a ~0 queue because Caddy drains it at once: set `tcp_notsent_lowat` on the host to see it); fix the report's `Infinity` (a percentile in the histogram's open top bucket), count a hidden tab's silence apart from a real stall, and keep a client's reports during an outage and send them after the rejoin (13 client-side closes were recorded for 81 drops). Run it a second time with the binary ops (BL-024), to compare (`docs/playtest-multiplayer.md` has the list and the numbers to beat).
 
 
 
@@ -1097,6 +1097,8 @@ When built: a `?weak-gpu` URL flag that shows the hint at once, to see it withou
 - source: owner
 
 Seen as new drawings appearing in the ESC city view. Measure first: how much is the download of the paint file (0.3–3.4 MB in the playtest), how much its decoding and `loadPaint`, how much the upload (BL-025). Then decide.
+
+The playtest of 2026-10-12 measured it: join (connect to in-session) p50 3.9 s, p90 12.2 s, max 17.8 s for paint files of a few hundred KB (≈70 KB/s), up to 3.4 MB later in the session; 12 links died before their welcome arrived. The file comes over the same link as everyone's ops (BL-024), and a stalled link is killed by the heartbeat (BL-004): both make it slower.
 
 ### Placing the stepladder lags
 - id: BL-086

@@ -48,7 +48,7 @@ At 19:41 the server held 326 MB of paint of 565 MB "if all painted" (58%). That 
 - 158 hitches (over 100 ms, none over 275 ms). **94 are `paint + hud` laps of 100–1100 ms (median 230) with 170–470 uploads and 28–195 MB in one frame; 83 of them came within 30 s after a welcome:** a join or rejoin uploads every paint page in one frame.
 - JS heap: ~0.5 GB steady at 58% painted (the CPU copy of the paint, ~320 MB, counts in it); on each join it jumps to 0.8–1.0 GB for some seconds. Heap limit 4 GB.
 - GPU paint pages: 49 pages, 1041 MB (the same as the backlog's "Paint pages at ULTRA"). All painted would be more (estimate 1.5–2 GB, not measured).
-- A 4K buffer on a 1440p screen (browser zoom or OS scale) is wasted work.
+- A 4K buffer on a 1440p screen is wasted work. The cause is a page zoomed out to ~67% (the buffer is in CSS pixels); fixed by BL-026.
 - Other players' particles: at most 849, none lost; at most 4 sprayers at once.
 
 ## Network
@@ -118,7 +118,7 @@ The label is only shown for a presence `dropped` that the **server** sent (`serv
 | Acked ops | Paint 10 s, cut the client's network for 15 s while painting, restore: all strokes are still there, on both clients and in the server's paint. |
 | Binary, merged ops | Golden paint tests identical; bytes per op ~20 B in the next playtest; server out for the same painting ≤ 1/8. |
 | Shed on high ping | With the link throttled, ping stays under ~1 s and the others' players still move (newest `state` only). |
-| First upload spread | After a welcome, no frame over ~50 ms in `paint + hud`; heap spike lower. |
+| First upload spread (BL-025, done) | After a welcome, no frame over ~50 ms in `paint + hud`. The heap spike is BL-083. |
 | `gc()` on close | Idle container memory falls to ~50 MiB a minute after the last session closes. |
 
 ## The next playtest
