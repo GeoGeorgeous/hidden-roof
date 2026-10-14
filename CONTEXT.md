@@ -16,4 +16,5 @@ The game's words, as the code uses them. Architecture terms (module, interface, 
 
 - **Session**: a game on one level shared through the server, under a code; players HOST or JOIN it (`src/net/multiplayer.ts`, `server/session.ts`).
 - **Server link**: one WebSocket to the server for one HOST or JOIN (`ServerLink`, `src/net/server-link.ts`): the hello, keepalive, giving up before the welcome, a paint file's parts. A dropped player comes back on a new link with their token.
+- **Lobby**: who gets into which session on the server (`server/lobby.ts`): live and ended session codes, each address's links and uploads, HOST and JOIN, and each link's messages to its session. It speaks only `Link`; `server/main.ts` gives it WebSocket links, the tests fake ones.
 - **Welcome**: the server's answer to HOST or JOIN: the level, its paint detail, the players, and the session's paint as a paint file in parts.

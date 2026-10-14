@@ -6,10 +6,13 @@ import type { LevelData } from '../src/level/level-data';
 import { loadPaint } from '../src/save/load-paint';
 import { savePaint } from '../src/save/save-paint';
 import { planLevel } from '../src/level/prop-pieces';
+import { closeCode, decode, encode, PROTOCOL, type ToClient, type ToServer } from '../src/net/protocol';
+import { surfaceTable } from '../src/save/shape';
+import { Lobby, type LinkInput } from './lobby';
 import { Session, type Link } from './session';
 import { sessionPaint } from './world';
 
-// The server's paint in the process, no server running: the level plan, a paint
+// The server in the process, no server running: the lobby with fake links, the level plan, a paint
 // file that fails, paint measured at its surfaces' own detail, ops replayed without being
 // logged, and level paint: made on a level it fits, not once a painted prop is
 // gone, and each level's own paint fits its level. npm run test:server builds it.
@@ -66,6 +69,72 @@ const level: LevelData = JSON.parse(fs.readFileSync('public/levels/demo.json', '
   assert.ok(replayed > 0, 'a replayed op paints');
   assert.deepEqual(paint.log.map((op) => op.kind), ['stamp'], 'only the stamp made here is logged');
   console.log('replayed ops: ok (painted, not logged)');
+}
+
+/** A link as the lobby sees one (Link), recording what it was sent and how it was closed. */
+class FakeLink implements Link {
+  open = true;
+  readonly since = Date.now();
+  got: ToClient[] = [];
+  closedWith = 0;
+  input: LinkInput | null = null;
+  constructor(readonly ip: string) {}
+  send(f: Uint8Array) {
+    this.got.push(decode(f) as ToClient);
+  }
+  close(code?: number) {
+    if (!this.open) return;
+    [this.open, this.closedWith] = [false, code ?? 1000];
+    // As a socket's close event comes: after the call that closed it.
+    queueMicrotask(() => this.input!.closed(this.closedWith, ''));
+  }
+  say(m: object) {
+    return this.input!.message(encode(m as ToServer));
+  }
+}
+
+// The lobby, with fake links (no sockets): limits per address, HOST and JOIN, an unknown code and one that ended, a
+// message it can't take, and a link that says nothing.
+{
+  const was = { snapshotKeep: SERVER.snapshotKeep, helloTimeout: SERVER.helloTimeout };
+  Object.assign(SERVER, { snapshotKeep: 0, helloTimeout: 0.05 });
+  const say = console.log;
+  console.log = () => {};
+  try {
+    const lobby = new Lobby();
+    const all: FakeLink[] = [];
+    const fake = (ip: string) => {
+      const l = new FakeLink(ip);
+      l.input = lobby.open(l, false);
+      all.push(l);
+      return l;
+    };
+    const rejected = (l: FakeLink) => l.got.find((m) => m.type === 'rejected')?.reason;
+    const crowd = Array.from({ length: SERVER.linksPerIp }, () => fake('10.0.0.1'));
+    const extra = fake('10.0.0.1');
+    assert.deepEqual([rejected(crowd[0]), rejected(extra), extra.closedWith, rejected(fake('10.0.0.2'))], [undefined, 'too-many', closeCode('too-many'), undefined]);
+    crowd.forEach((l) => l.close());
+    const table = surfaceTable(sessionPaint(level, 48).paint.surfaces);
+    const host = fake('10.0.1.1');
+    await host.say({ type: 'host', protocol: PROTOCOL, table, name: 'A', levelName: 'demo', level, detail: 48 });
+    const code = host.got.find((m) => m.type === 'welcome')!.code;
+    const nobody = fake('10.0.1.2');
+    await nobody.say({ type: 'join', protocol: PROTOCOL, name: 'B', code: 'ZZZZZ' });
+    await host.say({ type: 'leave' });
+    const late = fake('10.0.1.3');
+    await late.say({ type: 'join', protocol: PROTOCOL, name: 'B', code });
+    const bad = fake('10.0.1.4');
+    await bad.input!.message(new Uint8Array([1, 2, 3]));
+    const silent = fake('10.0.1.5');
+    await new Promise((done) => setTimeout(done, 100));
+    assert.deepEqual([rejected(nobody), rejected(late), bad.closedWith, silent.closedWith], ['no-session', 'ended', 1008, 1008]);
+    all.forEach((l) => l.close());
+    await new Promise((done) => setTimeout(done, 10));
+  } finally {
+    console.log = say;
+    Object.assign(SERVER, was);
+  }
+  console.log('lobby: ok (limits per address, unknown and ended codes, bad messages, silent links)');
 }
 
 // A level's own paint (src/save/level-paint.ts) fits it face for face, and the faces of a prop removed since don't: made here on the demo level.
