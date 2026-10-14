@@ -1103,11 +1103,11 @@ The playtest of 2026-10-12 measured it: join (connect to in-session) p50 3.9 s, 
 ### Placing the stepladder lags
 - id: BL-086
 - type: bug
-- status: Requested
+- status: Done
 - priority: High
 - size: S
 - area: input
 - release: later
 - source: owner
 
-Placing the stepladder from the inventory lags. Needs info: a frame hitch at the moment it's placed, a delay before it shows, or the preview following the aim late? In single player, in a session, or both?
+Placing the stepladder from the inventory lags. Measured on the roof: 170–220 ms per placement, 160–207 of them in `LightBaker.sync`, which tested 3440 receivers against 416–831 shadow cones: one per lamp and per box of the ladder (17 boxes, 34 when moved). Fixed: one box per prop (`hull`, `src/render/bake/reach.ts`): 15–33 ms.

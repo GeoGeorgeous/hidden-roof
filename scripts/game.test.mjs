@@ -395,6 +395,23 @@ await check('paint pages: a frame uploads at most PAINT.uploadBudget; the rest g
   return r.waiting[1] > 0 && r.left === 0 ? null : JSON.stringify(r);
 });
 
+await check('ladders: placing one tests a shadow cone per lamp, not per piece of the ladder (each placement stalled ~150 ms)', async () => {
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    const p = g.player.position;
+    const lamps = g.level.lights.filter((l) => !l.track).length;
+    const cones = [];
+    for (let i = 0; i < 2; i++) {
+      g.level.setRuntime('cones', { type: 'stepladder', pos: [p.x + 1.5 + i * 0.4, p.y, p.z], rot: 0 });
+      cones.push(g.baker.stats.cones);
+    }
+    g.level.setRuntime('cones', null);
+    return { lamps, cones };
+  });
+  // Moved, the old place and the new one: at most two cones per lamp (a big prop is cut in 4 m chunks; a ladder is one).
+  return r.cones.every((c) => c <= 2 * r.lamps) ? null : JSON.stringify(r);
+});
+
 await check('sponge: a surface cleaned completely gives its memory back', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
