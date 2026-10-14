@@ -1,5 +1,4 @@
 import type { PaintOp } from '../paint-ops';
-import type { ToServer } from './protocol';
 
 // This player's paint ops on their way to the server (BL-003): gathered from
 // the paint log, sent NET.sendRate times a second as a numbered batch, and
@@ -8,7 +7,8 @@ import type { ToServer } from './protocol';
 // paint file replaces its paint, so what the server never had is painted
 // again on top and sent again. The server drops a batch it already has.
 
-type Batch = Extract<ToServer, { type: 'ops' }>;
+/** A batch: its number, and its ops with when each was made (the snapshots' clock). */
+type Batch = { seq: number; t: number[]; ops: PaintOp[] };
 
 export class Outbox {
   private seq = 0;
@@ -26,7 +26,7 @@ export class Outbox {
   /** The next batch to send, kept until acked; null with nothing new. */
   batch(): Batch | null {
     if (!this.ops.length) return null;
-    const b: Batch = { type: 'ops', seq: ++this.seq, t: this.t, ops: this.ops };
+    const b: Batch = { seq: ++this.seq, t: this.t, ops: this.ops };
     this.batches.push(b);
     this.ops = [];
     this.t = [];
