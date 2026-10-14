@@ -278,16 +278,17 @@ A screen to rebind the keys.
 ### Rotate the stepladder from the inventory by 7.5° per wheel step instead of 90°
 - id: BL-022
 - type: feature
-- status: Requested
+- status: Blocked
 - priority: High
 - size: S
 - area: input
 - release: later
+- blocked-by: the owner's decision
 - source: owner
 
 Step in `config.ts` (`LADDER.rotateStep`, default 7.5°: 90° is 12 steps, 45° is 6).
 
-
+Found (2026-10-14): bigger than S. A prop's `rot` is a whole number of quarter turns everywhere (`PropData`, `rotate` and `solidBoxes` in `src/level/build-prop.ts`, placement, the network's ladder message), and the player's colliders are boxes aligned to the world's axes (`THREE.Box3`). A ladder at 7.5° or 45° fits no such box: the player would bump into air beside it, and climbing a turned ladder isn't supported. Options: (a) turn only the model, colliders on the nearest quarter turn (S, looks off up close); (b) free rotation with its own colliders, climbing and network check (L); (c) keep quarter turns, animate the turn smoothly (S). Also open: does "smooth" mean a smaller step or an animated quarter turn?
 
 ### Block the browser zoom: Ctrl +/−/0, Ctrl+wheel, trackpad pinch
 - id: BL-023
@@ -1020,16 +1021,17 @@ The probe turns moon shadows and wet highlights off: each compiles new shaders (
 ### Wheel and Q/E per tool
 - id: BL-080
 - type: feature
-- status: Requested
+- status: Blocked
 - priority: Medium
 - size: S
 - area: input
 - release: later
+- blocked-by: the owner's decision
 - source: owner
 
 Controls (replaces the Q/E and wheel swap): can: Q/E change the cap, the wheel changes the color; marker: Q/E change the marker type (one type for now, BL-039), the wheel changes the size; roller and sponge: the wheel changes the size (as now); stepladder: the wheel rotates it (BL-022). Click on the wheel picks a color (BL-020).
 
-
+Found (2026-10-14): today Q/E change the color for every tool (`src/tools/tools.ts`), the wheel changes the can's cap and the marker's, roller's and sponge's size. In the table above, Q/E on the marker go to its type and the wheel stays size: the marker and the roller would have no way left to change color. Options: (a) Q/E stay color on the marker and roller, the marker type gets its own key once there is a second type; (b) the wheel click cycles the color on every tool (BL-020).
 
 ### Browser input guard: one table of blocked default events
 - id: BL-081
