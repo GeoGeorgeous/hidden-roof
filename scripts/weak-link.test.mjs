@@ -35,7 +35,7 @@ const SCENARIOS = {
     r.facts.push(`B's stroke on the slow link: ${(await kept(mine)) ? 'kept' : 'lost'}`);
     if (!(await kept(mine))) r.fail.push("B's stroke on a slow but live link is lost");
     // Made only if B's link went down: a slow link shouldn't.
-    if (dropped(lab, 'B')) r.facts.push(`B's stroke made while its link was down: ${(await kept(lost)) ? 'kept' : 'lost'}`);
+    if (dropped(lab, 'B') && !(await kept(lost))) r.fail.push("BL-003: B's stroke made while its link was down is lost");
     if (dropped(lab, 'B', 1006)) r.fail.push('BL-004: the server drops B (1006) while B still sends');
   },
 
@@ -56,9 +56,27 @@ const SCENARIOS = {
     await sleep(3);
     const kept = async (i) => (await hasStroke(A, i)) && (await hasStroke(B, i));
     // The proxy keeps what a dead link was sent and delivers it once it's back; a real dead link may not.
-    r.facts.push(`B's stroke sent into the dead link: ${(await kept(inFlight)) ? 'kept' : 'lost'} (the proxy delivers it late; a real dead link may lose it)`);
+    // The proxy delivers what a dead link was sent once it's back (`cut` is a link that loses it).
+    r.facts.push(`B's stroke sent into the dead link: ${(await kept(inFlight)) ? 'kept' : 'lost'}`);
     r.facts.push(`B's stroke made while it was reconnecting: ${(await kept(lost)) ? 'kept' : 'lost'}`);
-    if (!(await kept(inFlight)) || !(await kept(lost))) r.open.push('BL-003: strokes sent into a dead link, or made before the rejoin, are lost');
+    if (!(await kept(inFlight)) || !(await kept(lost))) r.fail.push('BL-003: strokes sent into a dead link, or made before the rejoin, are lost');
+  },
+
+  /** B's stroke is still on its way up when the link dies, and dies with it: B sends it again once back (BL-003). */
+  async cut(lab, r) {
+    const { A, B } = lab.players;
+    const lost = await ownSurface(B, 0);
+    B.proxy.up.rate = 0;
+    await stroke(B, lost);
+    await sleep(1);
+    B.proxy.cut();
+    B.proxy.open();
+    await state(B, 'reconnecting', 10000).catch(() => r.fail.push("B's game never saw its link go"));
+    await state(B, 'in', 60000).catch(() => r.fail.push('B never got back in'));
+    await sleep(3);
+    const kept = (await hasStroke(A, lost)) && (await hasStroke(B, lost));
+    r.facts.push(`B's stroke lost with its link: ${kept ? 'sent again' : 'gone'}`);
+    if (!kept) r.fail.push('BL-003: a stroke lost with its link is gone');
   },
 
   /** B 1.5 s away each way (a far VPN exit) and no slower, while A paints: does anything drop? */

@@ -13,7 +13,7 @@ import type { PaintOp } from '../paint-ops';
 // through checkToServer.
 
 /** Bumped when a message changes or anything the server runs for a session does (paint, drips, face keys, the save format): docs/multiplayer-audit.md, section 4. */
-export const PROTOCOL = 4;
+export const PROTOCOL = 5;
 export const NAME_MAX = 16;
 /** Session codes: this many letters from CODE_LETTERS (no I or O, which read as 1 and 0). */
 export const CODE_LENGTH = 5;
@@ -51,8 +51,12 @@ export type ToServer =
   | { type: 'join'; protocol: number; name: string; code: string; token?: string }
   /** This player now (net/snapshot.ts). */
   | { type: 'state'; bytes: Uint8Array }
-  /** Paint ops, each made at the sender's time t[i] (the snapshots' clock). */
-  | { type: 'ops'; t: number[]; ops: PaintOp[] }
+  /**
+   * Paint ops, each made at the sender's time t[i] (the snapshots' clock). `seq` numbers this player's batches from
+   * 1 in the session: the server acks the highest it has (welcome, pong), drops a batch it has had, and the game
+   * sends again what wasn't acked when it comes back (net/outbox.ts).
+   */
+  | { type: 'ops'; seq: number; t: number[]; ops: PaintOp[] }
   /** Their stepladder placed, or taken away (null), at their time `t`. */
   | { type: 'ladder'; t: number; data: PropData | null }
   /** The session's paint as a paint file, please (SAVE). */
@@ -72,9 +76,9 @@ export type ToClient =
    * surfaceTable (the client checks its own against it), the players and
    * their stepladders, what this player carried when here before (null: the
    * starting kit); its paint as a paint file follows in `parts` parts (none:
-   * it's the save this host sent).
+   * it's the save this host sent). `acked`: their last op batch the server has (0: none), in the paint file.
    */
-  | { type: 'welcome'; code: string; you: number; token: string; levelName: string; level: LevelData; detail: number; table: string; players: { id: number; name: string; state: Presence }[]; ladders: { id: number; data: PropData }[]; inventory: InventoryData | null; parts: number }
+  | { type: 'welcome'; code: string; you: number; token: string; levelName: string; level: LevelData; detail: number; table: string; players: { id: number; name: string; state: Presence }[]; ladders: { id: number; data: PropData }[]; inventory: InventoryData | null; parts: number; acked: number }
   | { type: 'rejected'; reason: Rejection }
   | { type: 'joined'; id: number; name: string }
   | { type: 'left'; id: number }
@@ -90,7 +94,8 @@ export type ToClient =
   | { type: 'part'; bytes: Uint8Array }
   /** Sent every few seconds, so a client notices a dead link. */
   | { type: 'ping' }
-  | { type: 'pong'; t: number };
+  /** The ping's `t` back, and the last op batch of theirs the server has. */
+  | { type: 'pong'; t: number; acked: number };
 
 type Message = { type: string; bytes?: Uint8Array };
 
@@ -163,7 +168,7 @@ export function checkToServer(m: Message | null): ToServer | null {
     case 'state':
       return m.bytes?.length === SNAPSHOT_BYTES ? (m as ToServer) : null;
     case 'ops':
-      return Array.isArray(v.t) && Array.isArray(v.ops) && v.t.length === v.ops.length && v.t.every(isNum) && v.ops.every(isOp) ? (m as ToServer) : null;
+      return isInt(v.seq) && v.seq > 0 && Array.isArray(v.t) && Array.isArray(v.ops) && v.t.length === v.ops.length && v.t.every(isNum) && v.ops.every(isOp) ? (m as ToServer) : null;
     case 'ladder':
       return isNum(v.t) && (v.data === null || isLadder(v.data)) ? (m as ToServer) : null;
     case 'ping':

@@ -4,17 +4,19 @@ import type { Inventory } from '../inventory/inventory';
 import type { Level, LevelData } from '../level/level';
 import type { Pickups } from '../pickups/pickups';
 import type { PaintDrips } from '../paint-drips';
-import type { PaintOp, PaintOps } from '../paint-ops';
+import type { PaintOps } from '../paint-ops';
 import type { PaintSystem } from '../painting';
 import type { Player } from '../player';
 import { loadPaint } from '../save/load-paint';
-import { joinBytes } from '../save/paint-file';
 import { surfaceTable } from '../save/shape';
 import { session } from '../session';
 import type { Tools } from '../tools/tools';
 import { decode, encode, PROTOCOL, type Rejection, type ToClient, type ToServer } from './protocol';
 import { diagnose, NetLog, Traffic } from './diagnostics';
+import { Outbox } from './outbox';
+import { PartsIn } from './parts-in';
 import { ownerOf, Remotes } from './remotes';
+import { keepTabSession, tabSession } from './tab-session';
 import { capture, encodeSnapshot } from './snapshot';
 
 // This game in a multiplayer session (server/, protocol.ts): HOST or JOIN,
@@ -53,7 +55,6 @@ type Failure = Rejection | 'timeout' | Awaited<ReturnType<typeof diagnose>>['rea
 /** What the player sees of the link, shown on the menus; `detail`: what was seen (a close code, an HTTP status, tries), for reports. */
 export type NetStatus = { state: 'off' } | { state: 'connecting' } | { state: 'in'; code: string } | { state: 'reconnecting'; code: string; detail: string } | { state: 'failed'; reason: Failure; detail?: string };
 
-const KEY = 'roofhiddenhaus.session';
 const now = () => performance.now() / 1000;
 const percent = (done: number, all: number) => `${Math.floor((100 * done) / Math.max(all, 1))}%`;
 
@@ -81,8 +82,8 @@ export class Multiplayer {
   private lastHeard = 0;
   /** When this game last sent anything. */
   private sent = 0;
-  private ops: PaintOp[] = [];
-  private opTimes: number[] = [];
+  /** This player's paint ops, until the server has them. */
+  private outbox = new Outbox();
   private ladderId: number | undefined;
   /** The inventory's version last sent. */
   private carried = -1;
@@ -128,12 +129,8 @@ export class Multiplayer {
 
   /** Back into the session this tab was in before a reload, if the server may still have it. */
   resume() {
-    try {
-      const s = JSON.parse(sessionStorage.getItem(KEY) ?? 'null');
-      if (s?.code && s.token) this.connect({ type: 'join', protocol: PROTOCOL, name: s.name, code: s.code, token: s.token });
-    } catch {
-      // No storage (private mode): a reload starts single player.
-    }
+    const s = tabSession();
+    if (s) this.connect({ type: 'join', protocol: PROTOCOL, name: s.name, code: s.code, token: s.token });
   }
 
   /** SAVE: the server sends the session's paint (onSave). */
@@ -159,9 +156,7 @@ export class Multiplayer {
     }
     if (this.net.measure(t)) this.send({ type: 'ping', t });
     const at = t - this.t0;
-    const log = this.g.paint.log!;
-    for (const op of log) this.ops.push(op), this.opTimes.push(at);
-    log.length = 0;
+    this.outbox.take(this.g.paint.log!, at);
     const id = this.g.level.runtimeOf(session.player);
     if (id !== this.ladderId) {
       this.ladderId = id;
@@ -175,10 +170,8 @@ export class Multiplayer {
     if (t < this.nextSend) return;
     this.nextSend = Math.max(this.nextSend + 1 / NET.sendRate, t);
     this.send({ type: 'state', bytes: encodeSnapshot(capture(at, this.g.player, this.g.inventory, this.g.tools)) });
-    if (!this.ops.length) return;
-    this.send({ type: 'ops', t: this.opTimes, ops: this.ops });
-    this.ops = [];
-    this.opTimes = [];
+    const ops = this.outbox.batch();
+    if (ops) this.send(ops);
   }
 
   private connect(hello: Extract<ToServer, { type: 'host' | 'join' }>) {
@@ -234,25 +227,18 @@ export class Multiplayer {
     };
     // What this game can't take (a welcome it can't load) ends the session for it.
     const handle = (m: ToClient, arrived: number, file?: Uint8Array) => (this.queue = this.queue.then(() => this.receive(m, arrived, file)).catch((err) => (console.error(err), this.send({ type: 'leave' }), this.end({ state: 'failed', reason: 'version' }))));
-    /** A welcome or save whose paint file is still coming, in parts. */
-    let waiting: { m: Extract<ToClient, { type: 'welcome' | 'save' }>; parts: Uint8Array[] } | null = null;
+    const parts = new PartsIn();
     ws.onmessage = (e) => {
       if (this.ws !== ws) return;
       const t = (this.lastHeard = heard = now());
       uploading = false;
       this.net.down += (e.data as ArrayBuffer).byteLength;
       const m = decode(new Uint8Array(e.data as ArrayBuffer)) as ToClient | null;
-      if (m?.type === 'part') {
-        if (!waiting) return;
-        waiting.parts.push(m.bytes);
-        this.onProgress(`${waiting.m.type === 'save' ? 'Saving' : 'Downloading'} paint ${percent(waiting.parts.length, waiting.m.parts)}`);
-        if (waiting.parts.length < waiting.m.parts) return;
-        handle(waiting.m, t, joinBytes(waiting.parts));
-        waiting = null;
-      } else if ((m?.type === 'welcome' || m?.type === 'save') && m.parts) {
-        if (m.type === 'welcome') this.log.add(`welcome: the paint comes in ${m.parts} parts`);
-        waiting = { m, parts: [] };
-      } else if (m) handle(m, t, m.type === 'welcome' ? save : undefined);
+      if (m?.type === 'welcome' && m.parts) this.log.add(`welcome: the paint comes in ${m.parts} parts`);
+      const done = m && parts.take(m);
+      const of = parts.coming ?? (done?.file && done.m);
+      if (m?.type === 'part' && of) this.onProgress(`${of.type === 'save' ? 'Saving' : 'Downloading'} paint ${percent(parts.got, of.parts)}`);
+      if (done) handle(done.m, t, done.file ?? (done.m.type === 'welcome' ? save : undefined));
     };
     ws.onclose = (e) => {
       clearInterval(timer);
@@ -316,7 +302,10 @@ export class Multiplayer {
       this.onProgress(null);
       this.onSave(file ?? null, this.joined.levelName);
     }
-    else if (m.type === 'pong') this.net.ping = now() - m.t;
+    else if (m.type === 'pong') {
+      this.net.ping = now() - m.t;
+      this.outbox.acked(m.acked);
+    }
   }
 
   private async welcome(w: Extract<ToClient, { type: 'welcome' }>, file: Uint8Array) {
@@ -335,31 +324,30 @@ export class Multiplayer {
         g.pickups.collectOwned(g.inventory);
       }
     }
+    const back = this.joined?.code === w.code;
     this.onProgress('Loading paint…');
-    // The session's paint replaces ours; what we painted while the link was down is gone with it.
+    // The session's paint replaces ours: what the server doesn't have yet is painted again on top (and sent again, below).
     await loadPaint(g.paint, g.drips, file, { name: w.levelName });
+    if (back) this.outbox.take(g.paint.log ?? [], now() - this.t0);
+    else this.outbox.clear();
+    const resend = back ? this.outbox.rejoined(w.acked, (op) => g.paintOps.apply(op)) : [];
     const name = this.name;
     this.log.add(`in session ${w.code} as #${w.you}, at ${w.detail} texels/m, with ${w.players.length} others, ${(file.length / 1024).toFixed(0)} KB of paint`);
     this.joined = { code: w.code, token: w.token, name, you: w.you, levelName: w.levelName };
-    try {
-      sessionStorage.setItem(KEY, JSON.stringify({ code: w.code, token: w.token, name }));
-    } catch {
-      // No storage: a reload won't come back.
-    }
+    keepTabSession({ code: w.code, token: w.token, name });
     session.multiplayer = true;
     session.player = ownerOf(w.you);
     this.remotes.clear();
     for (const p of w.players) this.remotes.add(p.id, p.name, p.state, now());
     for (const l of w.ladders) g.level.setRuntime(ownerOf(l.id), l.data);
     g.paint.log = [];
-    this.ops = [];
-    this.opTimes = [];
     this.ladderId = g.level.runtimeOf(session.player);
     this.nextSend = 0;
     this.net = new Traffic();
     this.live = true;
     this.lastHeard = now();
     this.carried = -1;
+    for (const b of resend) this.send(b);
     if (document.hidden) this.send({ type: 'away', away: true });
     this.onProgress(null);
     this.setStatus({ state: 'in', code: w.code });
@@ -380,11 +368,7 @@ export class Multiplayer {
       session.player = 'local';
       this.joined = null;
     }
-    try {
-      sessionStorage.removeItem(KEY);
-    } catch {
-      // No storage.
-    }
+    keepTabSession(null);
     this.setStatus(status);
   }
 

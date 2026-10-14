@@ -47,7 +47,9 @@ export function linkProxy(port, target) {
   const tick = setInterval(() => proxy.links.forEach((l) => (l.down.drain(20), l.up.drain(20))), 20);
   /** Back to a good network: what waits goes out at once. */
   proxy.open = () => Object.assign(proxy.down, { rate: Infinity, delay: 0 }) && Object.assign(proxy.up, { rate: Infinity, delay: 0 });
-  proxy.close = () => (clearInterval(tick), server.close(), [...proxy.links].forEach((l) => (l.client.destroy(), l.upstream.destroy())));
+  /** The links die now, and what they held with them (as a link that drops does): the game opens a new one. */
+  proxy.cut = () => [...proxy.links].forEach((l) => (l.client.destroy(), l.upstream.destroy()));
+  proxy.close = () => (clearInterval(tick), server.close(), proxy.cut());
   server.listen(port);
   return proxy;
 }
