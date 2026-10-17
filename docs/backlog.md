@@ -426,11 +426,11 @@ On the real GPU (headed Chromium on WSLg, its own Vite server); 8 other loads to
 ### The hint wall takes two paint pages
 - id: BL-033
 - type: perf
-- status: Planned
+- status: Done
 - priority: Medium
 - size: S
 - area: level
-- release: later
+- release: next
 
 It spans two level tiles (`p89`, `p90` and a joint), so every game starts with two 2048² paint pages: +42.5 MB of GPU memory before anything is painted. Do: move the hint (or the wall) into one tile and save the level and its paint again (build mode P).
 
@@ -1183,7 +1183,7 @@ The 1.4.0 groundwork audit: 90 findings in 8 modules (release, performance, inpu
 ### Drop the roof's level paint: its hint wall teaches the old controls
 - id: BL-090
 - type: bug
-- status: Planned
+- status: Done
 - priority: Low
 - size: XS
 - area: level
