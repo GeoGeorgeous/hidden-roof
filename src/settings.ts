@@ -249,7 +249,6 @@ function load(): Saved {
   }
 }
 
-/** "Ultra  1.0 cm": a PAINT DETAIL with the size of one texel (the multiplayer page's too). */
 /**
  * The renderer's pixel ratio: PIXEL SCALE, and never more pixels than the screen has. The buffer is
  * in CSS pixels, and a page zoomed out (Ctrl + wheel, remembered per site) has more of them than the
@@ -259,6 +258,7 @@ export function pixelRatio() {
   return Math.min(1, devicePixelRatio) / RENDER.pixelScale;
 }
 
+/** "Ultra  1.0 cm": a PAINT DETAIL with the size of one texel (the multiplayer page's too). */
 export function paintDetailName(d: PaintDetail) {
   return `${sentence(d)}  ${(100 / PAINT_DETAIL[d]).toFixed(1)} cm`;
 }
