@@ -230,6 +230,7 @@ await check('settings: Controls rebinds a key, button or wheel step; a taken key
     slot('Jump / climb', 0).click();
     press('Escape');
     const cancelled = [...BINDINGS.jump];
+    // The middle button is the eyedropper's: into an empty slot it leaves pick unbound.
     slot('Shake the can', 1).click();
     document.body.dispatchEvent(new MouseEvent('mousedown', { button: 1, bubbles: true, cancelable: true }));
     const shake = [...BINDINGS.shake];
@@ -265,7 +266,7 @@ await check('settings: Controls rebinds a key, button or wheel step; a taken key
     shakes: true,
     next: ['WheelUp'],
   };
-  const ok = JSON.stringify({ ...r, saved: undefined, reset: undefined, after: undefined }) === JSON.stringify(want) && Object.keys(r.saved).sort().join() === 'back,crouch,forward,next,prev,shake,sprint' && r.reset.join('|') === 'KeyW|ControlLeft,ControlRight,KeyC|WheelDown' && JSON.stringify(r.after) === '{}' && loaded.forward === 'KeyI' && loaded.use === 'Mouse0';
+  const ok = JSON.stringify({ ...r, saved: undefined, reset: undefined, after: undefined }) === JSON.stringify(want) && Object.keys(r.saved).sort().join() === 'back,crouch,forward,next,pick,prev,shake,sprint' && r.saved.pick.length === 0 && r.reset.join('|') === 'KeyW|ControlLeft,ControlRight,KeyC|WheelDown' && JSON.stringify(r.after) === '{}' && loaded.forward === 'KeyI' && loaded.use === 'Mouse0';
   return ok ? null : JSON.stringify({ r, loaded });
 });
 
