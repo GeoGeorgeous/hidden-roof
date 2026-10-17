@@ -1316,3 +1316,15 @@ Windows: Sticky Keys (Shift 5 times), Filter Keys (right Shift held 8 s), Ctrl+S
 
 Triage notes: per-platform defaults (Mac crouch on C?), or a sprint toggle? Decide after T3.3.
 
+### A check's real resume unlocked later game checks
+- id: BL-103
+- type: bug
+- status: Done
+- priority: Medium
+- size: XS
+- area: code
+- release: next
+- source: audit 2026-10-17 (F8.21, S3.4)
+
+A synthetic Enter on the pause screen resumed with the real pointer lock (a user gesture in Playwright); the lock was lost ~40 ms later and that late event unlocked the next checks, under load only. Done: `noBrowserLock` on test pages; tests start play with `Input.setLocked`.
+
