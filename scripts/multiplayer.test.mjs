@@ -206,7 +206,8 @@ try {
   server = startServer();
   await a.waitForFunction(() => window.game.net.status.state === 'failed' && window.game.net.status.reason === 'ended', null, { timeout: 15000 });
   assert.equal(await a.evaluate(() => window.game.session.multiplayer), false);
-  assert.match(await a.textContent('.overlay .status'), /The session has ended/);
+  // The MULTIPLAYER page keeps saying it (the menu's status line only for a few seconds).
+  assert.match(await a.textContent('.mp-page .mp-status'), /The session has ended/);
 
   // No server: the game asks over HTTP why it can't connect, and says the server is down.
   server.kill();
@@ -217,7 +218,7 @@ try {
   await a.evaluate(() => window.game.net.host('A', 48));
   const down = await failed();
   assert.equal(down.reason, 'server-down', JSON.stringify(down));
-  assert.match(await a.textContent('.overlay .status'), /The game server is down \(HTTP 5\d\d · WS \d+\)/);
+  assert.match(await a.textContent('.mp-page .mp-status'), /The game server is down \(HTTP 5\d\d · WS \d+\)/);
   // A server that takes the connection and never answers: the game gives up after NET.connectTimeout.
   const held = new Set();
   const silent = net.createServer((socket) => held.add(socket)).listen(PORT);
