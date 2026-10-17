@@ -23,12 +23,13 @@ const WSL_GPU = '/usr/lib/wsl/lib';
 export async function openTestBrowser(url, { uncapped = false, level = 'demo', gpu = false, flags = [] } = {}) {
   let server = null;
   if (!url) {
-    // Its own dependency cache, so it can run beside `npm run dev`. The /ws proxy's errors
+    // Its own dependency cache, so it can run beside `npm run dev`; in the worktree, not node_modules: worktrees
+    // link node_modules in, and servers sharing a cache swap its files under each other. The /ws proxy's errors
     // aren't printed: the multiplayer test stops its game server on purpose.
     const logger = createLogger('error');
     const error = logger.error;
     logger.error = (msg, options) => !msg.includes('proxy error') && error(msg, options);
-    server = await createServer({ customLogger: logger, cacheDir: 'node_modules/.vite-test', server: { port: 5180 } });
+    server = await createServer({ customLogger: logger, cacheDir: '.cache/vite-test', server: { port: 5180 } });
     await server.listen();
     url = server.resolvedUrls.local[0];
   }
