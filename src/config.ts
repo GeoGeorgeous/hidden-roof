@@ -541,30 +541,33 @@ export interface BrowserGuard {
   event: string;
   /** Playing (the mouse locked), or always (the menus too). */
   when: 'playing' | 'always';
-  /** Key codes (e.code); 'bound' is every key BINDINGS gives play. */
-  keys?: readonly string[] | 'bound';
-  /** With Ctrl or Meta held, but not these keys. */
-  ctrl?: { except: readonly string[] };
+  /** Key codes (e.code), `Ctrl+` for Ctrl or Meta held; 'all' for every key. */
+  keys?: readonly string[] | 'all';
+  /** Keys (as in `keys`; a bare code matches with Ctrl too) the row lets through. */
+  except?: readonly string[];
+  /** With Ctrl or Meta held (a Ctrl+wheel). */
+  ctrl?: boolean;
   buttons?: readonly number[];
   why: string;
 }
 
+/** What the browser keeps while playing (owner, audit F3.11): Esc frees the mouse; reload asks first (beforeunload); fullscreen; devtools. */
+export const BROWSER_KEYS = ['Escape', 'F5', 'Ctrl+KeyR', 'F11', 'F12'];
+
 /** Every browser default the game cancels, and when. */
 export const BROWSER_GUARDS: readonly BrowserGuard[] = [
-  { event: 'keydown', when: 'playing', keys: 'bound', why: 'Space would scroll; the game has the keys' },
-  { event: 'keydown', when: 'playing', keys: ['Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown', 'Backspace'], why: 'scrolling, focus, going back' },
-  // F5, Ctrl+R and F11 stay the browser's: a reload asks first while playing (beforeunload below).
-  { event: 'keydown', when: 'playing', ctrl: { except: ['KeyR'] }, why: 'Ctrl is crouch: Ctrl+W, Ctrl+D, Ctrl+S would close, bookmark, save' },
+  { event: 'keydown', when: 'playing', keys: 'all', except: BROWSER_KEYS, why: "playing, the keyboard is the game's, build mode and dev keys too: Space and arrows scroll, Tab moves focus, / and ' open Firefox's find bar, F6, F10 and Alt go to the browser's bars, Ctrl is crouch (Ctrl+D, Ctrl+S)" },
+  { event: 'keyup', when: 'playing', keys: ['AltLeft', 'AltRight'], why: "Firefox shows its menu bar on Alt's release" },
   { event: 'keydown', when: 'always', keys: ['F3'], why: 'the F3 panel, not find' },
-  { event: 'keydown', when: 'always', keys: ['Equal', 'Minus', 'Digit0', 'NumpadAdd', 'NumpadSubtract', 'Numpad0'], ctrl: { except: [] }, why: 'zoom: zooming out makes the drawing buffer bigger (BL-026)' },
-  { event: 'wheel', when: 'always', ctrl: { except: [] }, why: 'zoom: Ctrl+wheel, and a trackpad pinch (a wheel with Ctrl in Chromium and Firefox)' },
+  { event: 'keydown', when: 'always', keys: ['Ctrl+Equal', 'Ctrl+Minus', 'Ctrl+Digit0', 'Ctrl+NumpadAdd', 'Ctrl+NumpadSubtract', 'Ctrl+Numpad0'], why: 'zoom: zooming out makes the drawing buffer bigger (BL-026)' },
+  { event: 'wheel', when: 'always', ctrl: true, why: 'zoom: Ctrl+wheel, and a trackpad pinch (a wheel with Ctrl in Chromium and Firefox)' },
   { event: 'gesturestart', when: 'always', why: "zoom: Safari's trackpad pinch" },
   { event: 'gesturechange', when: 'always', why: "zoom: Safari's trackpad pinch" },
   { event: 'mousedown', when: 'playing', why: 'no text selection, no middle-button autoscroll' },
   { event: 'mouseup', when: 'always', buttons: [3, 4], why: 'the back and forward buttons go on their release' },
   { event: 'auxclick', when: 'always', buttons: [3, 4], why: 'the back and forward buttons' },
   { event: 'contextmenu', when: 'always', why: 'the right button shakes the can' },
-  { event: 'beforeunload', when: 'playing', why: 'without the keyboard lock the browser keeps Ctrl+W: ask before leaving' },
+  { event: 'beforeunload', when: 'playing', why: 'without the keyboard lock the browser keeps Ctrl+W, Ctrl+T, Ctrl+N: ask before leaving' },
 ];
 
 /** Paint roller (slot 4): a wide graffiti roller on a short pole, rolling solid bands of paint. */

@@ -450,7 +450,7 @@ await check('input: a trackpad swipe\'s many small wheel events step the color o
   return r.swipe === 1 && r.notch === 1 && r.lines === 1 && r.twoNotches === 2 ? null : JSON.stringify(r);
 });
 
-await check('input: the browser defaults in BROWSER_GUARDS are cancelled, playing or in the menu: zoom always; F5, Ctrl+R and F11 never (config.ts)', async () => {
+await check('input: the browser defaults in BROWSER_GUARDS are cancelled, playing or in the menu: playing every key but BROWSER_KEYS, zoom always (config.ts)', async () => {
   // Chromium goes back or forward on the mouse button's release unless the page cancels it.
   const r = await page.evaluate(() => {
     const g = window.game;
@@ -467,6 +467,11 @@ await check('input: the browser defaults in BROWSER_GUARDS are cancelled, playin
       f3: () => key('F3'),
       f5: () => key('F5'),
       f11: () => key('F11'),
+      f12: () => key('F12'),
+      esc: () => key('Escape'),
+      // Firefox's quick find, and its menu bar on Alt's release.
+      quickFind: () => key('Slash'),
+      altUp: () => new KeyboardEvent('keyup', { code: 'AltLeft', bubbles: true, cancelable: true }),
       leftDown: () => mouse('mousedown', 0),
       backUp: () => mouse('mouseup', 3),
       forwardClick: () => mouse('auxclick', 4),
@@ -486,8 +491,8 @@ await check('input: the browser defaults in BROWSER_GUARDS are cancelled, playin
     };
     return { playing: run(true), menu: run(false) };
   });
-  const playing = { space: true, sizeUp: true, tab: true, ctrlW: true, reload: false, f3: true, f5: false, f11: false, leftDown: true, backUp: true, forwardClick: true, menu: true, wheel: false, zoomIn: true, zoomReset: true, ctrlWheel: true, pinch: true, leave: true };
-  const menu = { space: false, sizeUp: false, tab: false, ctrlW: false, reload: false, f3: true, f5: false, f11: false, leftDown: false, backUp: true, forwardClick: true, menu: true, wheel: false, zoomIn: true, zoomReset: true, ctrlWheel: true, pinch: true, leave: false };
+  const playing = { space: true, sizeUp: true, tab: true, ctrlW: true, reload: false, f3: true, f5: false, f11: false, f12: false, esc: false, quickFind: true, altUp: true, leftDown: true, backUp: true, forwardClick: true, menu: true, wheel: false, zoomIn: true, zoomReset: true, ctrlWheel: true, pinch: true, leave: true };
+  const menu = { space: false, sizeUp: false, tab: false, ctrlW: false, reload: false, f3: true, f5: false, f11: false, f12: false, esc: false, quickFind: false, altUp: false, leftDown: false, backUp: true, forwardClick: true, menu: true, wheel: false, zoomIn: true, zoomReset: true, ctrlWheel: true, pinch: true, leave: false };
   return JSON.stringify(r) === JSON.stringify({ playing, menu }) ? null : JSON.stringify(r);
 });
 

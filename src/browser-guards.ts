@@ -2,17 +2,19 @@ import { BINDINGS, BROWSER_GUARDS, type BrowserGuard } from './config';
 
 // Cancels the browser defaults in BROWSER_GUARDS (config.ts): one listener per event type, on the window.
 
-/** The keys play binds; mouse buttons and wheel steps aren't keys. */
+/** The keys play binds (mouse buttons and wheel steps aren't keys): game fullscreen locks them from the browser (fullscreen.ts). */
 export const BOUND_KEYS = new Set<string>(Object.values(BINDINGS).flat().filter((code) => !/^(Mouse|Wheel)/.test(code)));
+
+const withCtrl = (e: Event) => (e as KeyboardEvent | MouseEvent).ctrlKey || (e as KeyboardEvent | MouseEvent).metaKey;
 
 function matches(guard: BrowserGuard, e: Event, playing: boolean) {
   if (guard.when === 'playing' && !playing) return false;
-  const key = e instanceof KeyboardEvent ? e.code : undefined;
-  if (guard.keys === 'bound' && !BOUND_KEYS.has(key ?? '')) return false;
-  if (Array.isArray(guard.keys) && !guard.keys.includes(key ?? '')) return false;
-  if (guard.ctrl) {
-    const mods = e as KeyboardEvent | WheelEvent;
-    if (!(mods.ctrlKey || mods.metaKey) || guard.ctrl.except.includes(key ?? '')) return false;
+  if (guard.ctrl && !withCtrl(e)) return false;
+  if (guard.keys || guard.except) {
+    if (!(e instanceof KeyboardEvent)) return false;
+    const name = (withCtrl(e) ? 'Ctrl+' : '') + e.code;
+    if (Array.isArray(guard.keys) && !guard.keys.includes(name)) return false;
+    if (guard.except?.includes(name) || guard.except?.includes(e.code)) return false;
   }
   return !guard.buttons || (e instanceof MouseEvent && guard.buttons.includes(e.button));
 }
