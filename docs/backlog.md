@@ -488,6 +488,8 @@ Triage notes (2026-10-14): unclear what to do: no test compares pictures byte fo
 
 Once (another agent testing on the machine too); not seen since. If it repeats, find what held it up (the page's console, the machine's load).
 
+Again 2026-10-18, in the game test (the `level paint` check's page, full check on dev 988813b, nothing else running); the check passed alone after. Since then a load that doesn't end fails naming the loading screen's step and the page's last warnings, errors and failed requests (`gameReady`, `scripts/test-browser.mjs`): read those when it repeats.
+
 
 
 ### Source files over the ~400 line limit
