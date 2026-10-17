@@ -183,6 +183,8 @@ Fixed (2026-10-14): a correction closes at `NET.smoothing` as before but never f
 
 Walking along railings and landings (the corner slip, `PLAYER.cornerSlip`), the lattice mast (can't be climbed), the clear windows (see through, paint from both sides, a stepladder against one from behind), pickups (ring shapes, glow, tags within 4 m, hidden behind walls), and a session from two devices on one network (paint, presence, reload, the network log).
 
+Decided (2026-10-17, audit S1.1): for 1.4.0 the owner tests next on one device (a normal and an incognito window; Chrome, Firefox, Edge), since the home network blocks LAN play. The Mac and the weakest laptop are checked on production after the release; a failure there is a 1.4.1 patch. The split is in `docs/audit-2026-10-17.md` → Decisions.
+
 
 
 ### The ESC menu in a real browser
@@ -198,6 +200,8 @@ Walking along railings and landings (the corner slip, `PLAYER.cornerSlip`), the 
 Enter in HOST's name field hosts, and the menu at 1366×768 and in a small window. Checked in headed Chromium 153 with real keys: in fullscreen, Esc tapped on the pause screen resumes on release, held it fills the rings and Chromium leaves as they fill (1500 ms), and so does holding EXIT FULLSCREEN. Windowed, Chromium takes the Esc that frees the mouse and refuses the lock again without a click, so Esc doesn't resume there (as before the hold). Still to see: Firefox and Safari (one Esc leaves fullscreen, a plain ESC key on the control).
 
 Triage notes (2026-10-14): needs a human: a check in real Firefox and Safari.
+
+Decided (2026-10-17, audit S1.1): Firefox on Windows before the 1.4.0 release (T1.16); Safari and Firefox on the Mac after it, on production.
 
 ### Rework the drips: independent chance, no stacking across tools
 - id: BL-015
@@ -431,6 +435,8 @@ On the real GPU (headed Chromium on WSLg, its own Vite server); 8 other loads to
 It spans two level tiles (`p89`, `p90` and a joint), so every game starts with two 2048² paint pages: +42.5 MB of GPU memory before anything is painted. Do: move the hint (or the wall) into one tile and save the level and its paint again (build mode P).
 
 Triage notes (2026-10-14): needs a human: moving the wall and saving the level and its paint again is done in build mode (P).
+
+Decided (2026-10-17, audit S1.1): fixed by BL-090. The roof's level paint is dropped, so the hint wall and its two pages go with it.
 
 ### Paint pages at ULTRA use ~0.95 GB of GPU memory
 - id: BL-034
@@ -1021,6 +1027,8 @@ Decided (2026-10-14), replacing the earlier table: the wheel changes the color, 
 
 Confirmed by the owner: the can's Q/E pick the cap; the sponge's wheel does nothing. A click on the wheel picking a color is BL-020.
 
+Decided (2026-10-17, audit S1.1): BL-080 stays. The spawn wall still taught the old controls; its paint is dropped (BL-090), and a controls screen comes later (BL-092).
+
 ### Browser input guard: one table of blocked default events
 - id: BL-081
 - type: refactor
@@ -1145,3 +1153,45 @@ Done (2026-10-14): the level as a file (`PropData`, `LevelData`) is `src/level/l
 - source: review 2026-10-17
 
 The 1.4.0 groundwork audit: 90 findings in 8 modules (release, performance, input, notifications, multiplayer code, tools, props, core), 34 agent sessions and 26 tests, in `docs/audit-2026-10-17.md`, the source of truth for its findings, decisions and results. The workflow page (decide, bundle, test, generate session prompts) is linked at its top. A finding that becomes work gets its own backlog item, named on the finding's Backlog line. Done when every finding is done, set aside, or a backlog item.
+
+
+
+### Drop the roof's level paint: its hint wall teaches the old controls
+- id: BL-090
+- type: bug
+- status: Planned
+- priority: Low
+- size: XS
+- area: level
+- release: next
+- source: audit 2026-10-17 (F1.1)
+
+`public/levels/roof.rhhpaint` holds only the hint wall at the spawn, which still reads "Mouse Wheel: Cap / Tool width · Q/E: Color" (swapped by BL-080). Do: delete the file and set `"paint": false` in `public/levels/roof.json`, in one commit (`server/world-test.ts:185` checks the two agree). Also fixes BL-033: no paint pages at the start (−42.5 MB of GPU memory). Check `npm run shots` (the spawn) and the full check. Audit session S1.2.
+
+
+
+### The multiplayer test sometimes never sees B reconnect
+- id: BL-091
+- type: bug
+- status: Planned
+- priority: High
+- size: S
+- area: net
+- release: next
+- source: audit 2026-10-17 (F1.4)
+
+`scripts/multiplayer.test.mjs:147`: B never starts reconnecting within 15 s after being cut off. Failed in CI on 1ee0264 and e74440d (runs 38558757226, 38457382788), passed 4 of 4 locally. Decided (2026-10-17): find and fix the cause before dev is promoted into next; the full check must then pass with no exception. Start: print B's network log when the wait times out. Audit session S1.3.
+
+
+
+### A controls screen
+- id: BL-092
+- type: feature
+- status: Requested
+- priority: Medium
+- size: S
+- area: ui
+- release: later
+- source: audit 2026-10-17 (F1.8)
+
+Once the roof's level paint is dropped (BL-090), nothing in the game teaches the controls (the menus and HUD don't name the wheel or Q/E). Do: a controls screen; it can share its table with the key bindings screen (audit F3.13).
