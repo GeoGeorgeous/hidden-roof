@@ -322,6 +322,28 @@ await check('input: keys typed into a text field are not game keys (a K in the s
   return !r.typed && r.played ? null : JSON.stringify(r);
 });
 
+await check('input: K takes a screenshot only while playing, not on the title or pause screen', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const canvas = g.renderer.domElement;
+    let shots = 0;
+    canvas.toBlob = () => shots++;
+    const k = async (locked) => {
+      g.input.locked = locked;
+      const before = shots;
+      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyK' }));
+      window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyK' }));
+      await steps((f) => f === 1);
+      return shots - before;
+    };
+    const out = { paused: await k(false), playing: await k(true) };
+    g.input.locked = false;
+    delete canvas.toBlob;
+    return out;
+  });
+  return r.paused === 0 && r.playing === 1 ? null : JSON.stringify(r);
+});
+
 await check('input: either Shift sprints, and flies fast in build mode', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
