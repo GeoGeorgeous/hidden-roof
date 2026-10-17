@@ -322,6 +322,36 @@ await check('input: keys typed into a text field are not game keys (a K in the s
   return !r.typed && r.played ? null : JSON.stringify(r);
 });
 
+await check('input: either Shift sprints, and flies fast in build mode', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const key = (type, code) => window.dispatchEvent(new KeyboardEvent(type, { code }));
+    const speed = () => Math.hypot(g.player.velocity.x, g.player.velocity.z);
+    // W with a Shift for half a second, from the spawn facing away from its wall: the speed reached.
+    const run = async (shift, fly) => {
+      g.player.respawn();
+      g.player.yaw += Math.PI;
+      g.player.fly = fly;
+      key('keydown', shift);
+      key('keydown', 'KeyW');
+      await steps((f) => f === 30);
+      const v = speed();
+      key('keyup', 'KeyW');
+      key('keyup', shift);
+      g.player.fly = false;
+      return +v.toFixed(1);
+    };
+    g.input.locked = true;
+    const out = {};
+    for (const shift of ['ShiftLeft', 'ShiftRight']) out[shift] = [await run(shift, false), await run(shift, true)];
+    g.input.locked = false;
+    g.player.respawn();
+    return { ...out, sprint: g.PLAYER.sprintSpeed, fly: g.config.BUILD.flySprintSpeed };
+  });
+  const ok = [r.ShiftLeft, r.ShiftRight].every(([walk, fly]) => walk > r.sprint * 0.9 && fly === r.fly);
+  return ok ? null : JSON.stringify(r);
+});
+
 await check('loading: a hidden tab, given no animation frames, still goes through the load steps', async () => {
   const r = await page.evaluate(async () => {
     const path = '/src/loading.ts'; // by name, so knip doesn't try to resolve a page URL

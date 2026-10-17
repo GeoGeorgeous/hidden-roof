@@ -109,7 +109,7 @@ export class PaintEditor {
       this.say(`HINT SIZE ${this.size.toFixed(2)} M`);
     }
     if (input.wasPressed('KeyT')) {
-      const back = input.isDown('ShiftLeft') || input.isDown('ShiftRight') ? -1 : 1;
+      const back = input.shiftDown() ? -1 : 1;
       const i = (HINT_FONTS.indexOf(this.font) + back + HINT_FONTS.length) % HINT_FONTS.length;
       void this.pickFont(HINT_FONTS[i]);
       this.say(`HINT FONT ${i + 1}/${HINT_FONTS.length}: ${hintFontName(this.font)}`);

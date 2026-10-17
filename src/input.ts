@@ -118,6 +118,11 @@ export class Input {
     return this.down.has(code);
   }
 
+  /** Either Shift key held. */
+  shiftDown() {
+    return this.down.has('ShiftLeft') || this.down.has('ShiftRight');
+  }
+
   wasPressed(code: string) {
     return this.pressed.has(code);
   }
