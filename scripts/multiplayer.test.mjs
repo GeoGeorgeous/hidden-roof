@@ -82,7 +82,7 @@ try {
   // Both play at the host's PAINT DETAIL, whatever their own; B's settings show it as the host's, its arrows doing nothing.
   assert.deepEqual(await Promise.all([a, b].map((p) => p.evaluate(() => window.game.config.PAINT.texelsPerMeter))), [48, 48]);
   const detail = await b.evaluate(() => {
-    window.game.hud.menu.openSettings(1);
+    window.game.hud.menu.openSettings('Graphics');
     const row = [...document.querySelectorAll('.settings-page .setting-row')].find((r) => r.querySelector('.label').textContent.startsWith('Paint detail'));
     row.querySelector('.choice button').click();
     const shown = [row.querySelector('.choice .value').textContent, row.querySelector('.choice').classList.contains('locked')];

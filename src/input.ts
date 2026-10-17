@@ -7,22 +7,45 @@ import { enterGameFullscreen } from './fullscreen';
 
 export type Action = keyof typeof BINDINGS;
 
-/** Bindings whose name isn't the key's code without Key, Digit or Arrow, or the layout's key. */
+/** A Mac (its key names), else Windows and Linux. */
+const MAC = /mac/i.test((navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform || navigator.platform);
+
+/** Keys named per platform: a modifier's name stands for both its sides. */
+const PLATFORM_NAMES: Record<string, string> = MAC
+  ? { Control: '⌃ Control', Shift: '⇧ Shift', Alt: '⌥ Option', Tab: '⇥ Tab', CapsLock: '⇪ Caps Lock', Backspace: '⌫ Delete', Delete: '⌦ Fwd Delete', Meta: '⌘ Command' }
+  : { Control: 'Ctrl', Shift: 'Shift', Alt: 'Alt', Tab: 'Tab', CapsLock: 'Caps Lock', Backspace: 'Backspace', Delete: 'Delete', Meta: 'Win' };
+
+/** Bindings whose name isn't the key's code without Key or Digit, or the layout's key. */
 const NAMES: Record<string, string> = {
+  Space: 'Space',
+  ArrowUp: '↑',
+  ArrowDown: '↓',
+  ArrowLeft: '←',
+  ArrowRight: '→',
   Mouse0: 'LMB',
   Mouse1: 'MMB',
   Mouse2: 'RMB',
-  Mouse3: 'MOUSE 4',
-  Mouse4: 'MOUSE 5',
-  WheelUp: 'WHEEL UP',
-  WheelDown: 'WHEEL DOWN',
-  ControlLeft: 'CTRL',
-  ControlRight: 'CTRL',
-  ShiftLeft: 'SHIFT',
-  ShiftRight: 'SHIFT',
-  AltLeft: 'ALT',
-  AltRight: 'ALT',
+  Mouse3: 'Mouse 4',
+  Mouse4: 'Mouse 5',
+  WheelUp: 'Wheel ↑',
+  WheelDown: 'Wheel ↓',
+  Minus: '-',
+  Equal: '=',
+  BracketLeft: '[',
+  BracketRight: ']',
+  Backslash: '\\',
+  Semicolon: ';',
+  Quote: "'",
+  Comma: ',',
+  Period: '.',
+  Slash: '/',
+  Backquote: '`',
+  IntlBackslash: '§',
+  PageUp: 'Page Up',
+  PageDown: 'Page Down',
+  ContextMenu: 'Menu',
 };
+const NUMPAD: Record<string, string> = { Add: '+', Subtract: '-', Multiply: '*', Divide: '/', Decimal: '.' };
 
 /** What each key prints on this keyboard's layout (Chromium): W is Z on AZERTY. Elsewhere the US name. */
 let layout: Map<string, string> | undefined;
@@ -31,14 +54,16 @@ let layout: Map<string, string> | undefined;
   .then((m) => (layout = m))
   .catch(() => {});
 
-/** A binding as the game writes it: LMB, SHIFT, W. */
+/** A binding as the game writes it, on this platform: LMB, Shift (⇧ Shift on a Mac), W, ↑, Num 1. */
 export function keyName(code: string) {
-  return NAMES[code] ?? layout?.get(code)?.toUpperCase() ?? code.replace(/^(Key|Digit|Arrow)/, '').toUpperCase();
+  const key = code.replace(/^(Control|Shift|Alt|Meta)(Left|Right)$/, '$1');
+  if (key.startsWith('Numpad')) return `Num ${NUMPAD[key.slice(6)] ?? key.slice(6)}`;
+  return PLATFORM_NAMES[key] ?? layout?.get(key)?.toUpperCase() ?? NAMES[key] ?? key.replace(/^(Key|Digit)/, '');
 }
 
-/** The action's first binding: HOLD [RMB] TO SHAKE. */
+/** The action's first binding, in the HUD's capitals: HOLD [RMB] TO SHAKE. */
 export function label(action: Action) {
-  return BINDINGS[action].length ? keyName(BINDINGS[action][0]) : '—';
+  return BINDINGS[action].length ? keyName(BINDINGS[action][0]).toUpperCase() : '—';
 }
 
 /** A text field, number field, select or editable element: keys typed there belong to it. */

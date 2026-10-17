@@ -313,6 +313,8 @@ export const PAUSE_MENU = {
   scale: 1,
   /** How long Esc is held before the browser leaves fullscreen with the keyboard locked (Chromium's own hold, measured in Chromium 153): the pause screen's rings fill over it, and holding EXIT FULLSCREEN takes as long. */
   escHoldMs: 1500,
+  /** Settings → Controls: how long a moved key's or a reset's Undo shows (s). */
+  undoSeconds: 7,
   /** The title screen's view (before START; ESC later shows where you are): a fixed camera on the city. Position (m), yaw and pitch (degrees, pitch < 0 looks down). */
   view: true,
   viewX: -24,
@@ -508,15 +510,15 @@ export const WHEEL = { notchPx: 100, linePx: 100 / 3 };
  * Esc and Enter belong to the menus (src/play-state.ts) and are never bound. Build mode, F3 and the dev keys read raw codes.
  */
 export const BINDINGS = {
-  forward: ['KeyW'],
-  back: ['KeyS'],
-  left: ['KeyA'],
-  right: ['KeyD'],
+  forward: ['KeyW', 'ArrowUp'],
+  back: ['KeyS', 'ArrowDown'],
+  left: ['KeyA', 'ArrowLeft'],
+  right: ['KeyD', 'ArrowRight'],
   /** Also climbs a ladder. */
   jump: ['Space'],
   /** Held, or toggled with PLAYER.crouchToggle; also holds you on a ladder. C for browsers that keep Ctrl+W (src/fullscreen.ts). */
   crouch: ['ControlLeft', 'ControlRight', 'KeyC'],
-  /** Also a double tap of forward (PLAYER.sprintDoubleTap). */
+  /** Also a double tap of forward (PLAYER.tapToRun, PLAYER.sprintDoubleTap). */
   sprint: ['ShiftLeft', 'ShiftRight'],
   /** Sprays, draws, rolls or scrubs; places the stepladder. */
   use: ['Mouse0'],
@@ -858,7 +860,8 @@ export const PLAYER = {
   radius: 0.3,
   walkSpeed: 4.2,
   sprintSpeed: 7,
-  /** Double-tapping W within this time (s) also sprints, until W is let go (as in Minecraft). */
+  /** Double-tapping forward within this time (s) also sprints, until it is let go (as in Minecraft), while tapToRun is on (Settings → Controls). */
+  tapToRun: true,
   sprintDoubleTap: 0.3,
   /** How fast you reach the wished speed (1/s). */
   acceleration: 8.5,
