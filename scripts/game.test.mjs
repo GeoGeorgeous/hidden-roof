@@ -491,6 +491,28 @@ await check('input: the browser defaults in BROWSER_GUARDS are cancelled, playin
   return JSON.stringify(r) === JSON.stringify({ playing, menu }) ? null : JSON.stringify(r);
 });
 
+await check('input: game fullscreen locks only the keys play binds and Esc (F11, F5, Ctrl+R stay the browser\'s)', async () => {
+  // Headless has no real fullscreen or keyboard lock: stand-ins that report what the browser would.
+  const r = await page.evaluate(async () => {
+    let element = null;
+    let locked = null;
+    const own = (o, name, value) => Object.defineProperty(o, name, { value, configurable: true });
+    own(navigator, 'keyboard', { lock: async (keys) => (locked = keys), unlock() {} });
+    Object.defineProperty(document, 'fullscreenElement', { get: () => element, configurable: true });
+    own(document.documentElement, 'requestFullscreen', async () => (element = document.documentElement));
+    const control = document.querySelector('.overlay .fs button');
+    const pointer = (type) => control.dispatchEvent(new PointerEvent(type, { button: 0, bubbles: true }));
+    pointer('pointerdown');
+    await new Promise((done) => setTimeout(done, 50));
+    const out = { locked: ['Escape', 'KeyW', 'ControlLeft', 'KeyC', 'F11', 'F5', 'KeyR'].filter((k) => locked?.includes(k)) };
+    delete navigator.keyboard;
+    delete document.fullscreenElement;
+    delete document.documentElement.requestFullscreen;
+    return out;
+  });
+  return r.locked.join() === 'Escape,KeyW,ControlLeft,KeyC' ? null : JSON.stringify(r);
+});
+
 await check('input: either Shift sprints, and flies fast in build mode', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
