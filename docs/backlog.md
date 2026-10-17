@@ -1041,6 +1041,8 @@ Decided (2026-10-17, audit S1.1): BL-080 stays. The spawn wall still taught the 
 
 Today the blocking is spread over `src/input.ts`: the `PREVENT` set and every Ctrl/Meta combo while the mouse is locked, F3, `contextmenu`, and `beforeunload` for Ctrl+W. Zoom (Ctrl+wheel, pinch) is not handled anywhere, and nothing is blocked in the menus. Do: one table in `config.ts` (keys, combos, wheel+Ctrl, pinch, context menu, F-keys), each entry with a condition (while playing, or always) and a reason; one module `src/browser-guards.ts` applies it; one test. Policy: while playing, block as now plus zoom and pinch; in the menus block only zoom and pinch. Open: let F5, Ctrl+R and F11 through while playing?
 
+The mouse's back and forward buttons (3, 4) are cancelled on mouseup and auxclick, always, since audit F3.6 (S3.1); move that into the table.
+
 
 
 ### A K in the session code takes a screenshot
@@ -1205,3 +1207,15 @@ The 1.4.0 groundwork audit: 90 findings in 8 modules (release, performance, inpu
 - source: audit 2026-10-17 (F1.8)
 
 Once the roof's level paint is dropped (BL-090), nothing in the game teaches the controls (the menus and HUD don't name the wheel or Q/E). Do: a controls screen; it can share its table with the key bindings screen (audit F3.13).
+
+### A frame throws during the multiplayer test
+- id: BL-094
+- type: bug
+- status: Requested
+- priority: Medium
+- size: XS
+- area: net
+- release: next
+- source: audit 2026-10-17 (F8.19, S3.1)
+
+Each `npm run test:mp` makes Vite print `[Unhandled error] TypeError: Cannot read properties of null (reading 'frame')` at the end of a frame (`src/main.ts:348` by its source map; `dev?.report` → the profiler is the likely reader). Also on a clean dev (f793d33). The test passes, since a thrown frame no longer stops the game (BL-091). Do: find the null, fix it, and make the multiplayer test fail on a page error.
