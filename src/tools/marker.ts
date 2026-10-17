@@ -54,7 +54,7 @@ export class MarkerTool {
   update(dt: number, input: Input, camera: THREE.Camera, eye: THREE.Vector3, active: boolean, color: PaintColor, nib: number) {
     this.model.visible = active;
     setHex((this.look.paint as THREE.MeshLambertMaterial).color, COLORS[color]);
-    const drawing = active && input.lmb && input.locked;
+    const drawing = active && input.held('use') && input.locked;
     this.pose(camera, drawing);
     if (!drawing) {
       this.stroke.lift();

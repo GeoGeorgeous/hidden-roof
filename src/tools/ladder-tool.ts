@@ -58,9 +58,10 @@ export class LadderTool {
       this.target = null;
       return;
     }
-    if (input.wheelSteps) this.turn = (this.turn + Math.sign(input.wheelSteps) + 4) % 4;
+    const turn = input.step('prev', 'next');
+    if (turn) this.turn = (this.turn + turn + 4) % 4;
     this.aim(camera, player);
-    if (!input.clicked(0) || !this.target) return;
+    if (!input.justPressed('use') || !this.target) return;
     if (this.valid) this.put(this.target);
     else this.onBlocked();
   }

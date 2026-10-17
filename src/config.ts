@@ -502,6 +502,40 @@ export const HOTBAR = { slots: 5 };
 /** Mouse wheel: scroll (px) a step takes, as one notch of a wheel sends; a trackpad swipe's many small events add up to it. A line counts linePx. */
 export const WHEEL = { notchPx: 100, linePx: 100 / 3 };
 
+/**
+ * Play actions and what is bound to each (src/input.ts asks by action): key codes are e.code, the key's place
+ * whatever the layout; Mouse0 and Mouse2 the left and right buttons, WheelUp and WheelDown a wheel step.
+ * Esc and Enter belong to the menus (src/play-state.ts) and are never bound. Build mode, F3 and the dev keys read raw codes.
+ */
+export const BINDINGS = {
+  forward: ['KeyW'],
+  back: ['KeyS'],
+  left: ['KeyA'],
+  right: ['KeyD'],
+  /** Also climbs a ladder. */
+  jump: ['Space'],
+  /** Held, or toggled with PLAYER.crouchToggle; also holds you on a ladder. C for browsers that keep Ctrl+W (src/fullscreen.ts). */
+  crouch: ['ControlLeft', 'ControlRight', 'KeyC'],
+  /** Also a double tap of forward (PLAYER.sprintDoubleTap). */
+  sprint: ['ShiftLeft', 'ShiftRight'],
+  /** Sprays, draws, rolls or scrubs; places the stepladder. */
+  use: ['Mouse0'],
+  shake: ['Mouse2'],
+  /** The next or previous color; turns the stepladder. */
+  next: ['WheelDown'],
+  prev: ['WheelUp'],
+  /** The can's cap or the tool's width, a step at a time; held, at the key's auto-repeat. */
+  sizeUp: ['KeyE'],
+  sizeDown: ['KeyQ'],
+  /** The hotbar slots (HOTBAR.slots). */
+  slot1: ['Digit1'],
+  slot2: ['Digit2'],
+  slot3: ['Digit3'],
+  slot4: ['Digit4'],
+  slot5: ['Digit5'],
+  screenshot: ['KeyK'],
+} satisfies Record<string, string[]>;
+
 /** Paint roller (slot 4): a wide graffiti roller on a short pole, rolling solid bands of paint. */
 export const ROLLER = {
   /** Max distance from the eye to the surface (it's on a short pole). */

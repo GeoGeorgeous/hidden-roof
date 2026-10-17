@@ -40,7 +40,7 @@ export class RollerTool {
 
   /** `width`: the player's roller width (m). */
   update(dt: number, input: Input, camera: THREE.Camera, eye: THREE.Vector3, active: boolean, color: PaintColor, width: number) {
-    const rolled = active && input.lmb && input.locked ? this.roll(dt, camera, eye, color, width) : this.lift();
+    const rolled = active && input.held('use') && input.locked ? this.roll(dt, camera, eye, color, width) : this.lift();
     this.model.update(dt, camera, active, color, width, rolled !== null, rolled ?? 0);
   }
 

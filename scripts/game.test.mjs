@@ -357,6 +357,37 @@ await check('input: K takes a screenshot only while playing, not on the title or
   return r.paused === 0 && r.playing === 1 ? null : JSON.stringify(r);
 });
 
+await check('input: play actions answer for every key, button and wheel step bound to them (config.ts BINDINGS)', async () => {
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    const input = g.input;
+    const key = (type, code, repeat = false) => window.dispatchEvent(new KeyboardEvent(type, { code, repeat }));
+    input.setLocked(true);
+    key('keydown', 'ControlRight');
+    key('keydown', 'KeyE');
+    key('keydown', 'KeyE', true);
+    input.element.dispatchEvent(new MouseEvent('mousedown', { button: 2 }));
+    window.dispatchEvent(new WheelEvent('wheel', { deltaY: 100 }));
+    const out = {
+      crouch: [input.held('crouch'), input.justPressed('crouch')],
+      size: [input.justPressed('sizeUp'), input.repeated('sizeUp'), input.step('sizeDown', 'sizeUp')],
+      shake: [input.held('shake'), input.justPressed('shake'), input.held('use')],
+      wheel: [input.step('prev', 'next'), input.justPressed('prev')],
+    };
+    input.endFrame();
+    key('keydown', 'KeyE', true);
+    out.repeat = [input.justPressed('sizeUp'), input.step('sizeDown', 'sizeUp')];
+    for (const code of ['ControlRight', 'KeyE']) key('keyup', code);
+    window.dispatchEvent(new MouseEvent('mouseup', { button: 2 }));
+    out.released = [input.held('crouch'), input.held('shake')];
+    input.setLocked(false);
+    input.endFrame();
+    return out;
+  });
+  const want = { crouch: [true, true], size: [true, true, 1], shake: [true, true, false], wheel: [1, false], repeat: [false, 1], released: [false, false] };
+  return JSON.stringify(r) === JSON.stringify(want) ? null : JSON.stringify(r);
+});
+
 await check('input: Enter that resumes from the pause screen doesn\'t reach build mode (its sign text prompt), even when the lock is back before the next frame', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
