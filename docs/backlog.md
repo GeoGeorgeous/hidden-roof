@@ -1234,7 +1234,7 @@ Play state is spread over `Input.locked`, `main.ts` (paused, frozen, `yours`/`no
 ### Input action map
 - id: BL-096
 - type: refactor
-- status: Requested
+- status: Done
 - priority: Medium
 - size: S
 - area: input
@@ -1242,6 +1242,18 @@ Play state is spread over `Input.locked`, `main.ts` (paused, frozen, `yours`/`no
 - source: audit 2026-10-17 (F3.10, S3.2)
 
 Play code reads physical key codes (~25 reads in 10 files) and the `PREVENT` list repeats them. Do: `BINDINGS` in `config.ts` (action → codes; mouse buttons and wheel as pseudo-codes); Input answers held / pressed / repeated(action) and label(action). Build mode, F3 and F2/F8/F9 stay raw codes (dev-only); Esc and Enter are reserved. No behavior change; golden paint identical. Then BL-081 blocks what play binds, while playing. Groundwork for BL-018 and BL-092. Audit session S3.3, after S3.6.
+
+### Test runs side by side share a cache and freeze WSL
+- id: BL-098
+- type: bug
+- status: Requested
+- priority: Medium
+- size: XS
+- area: code
+- release: next
+- source: audit 2026-10-17 (F8.20, S3.3)
+
+Worktrees with `node_modules` linked in (as AGENTS.md says to run the full check) give every test server the same `node_modules/.vite-test` dependency cache (`scripts/test-browser.mjs`). Two runs at once also overload WSL: in S3.3 a side-by-side check failed a game check with `{}` (no frames for 30 s), another pair hung loading, a third froze WSL. Alone, they pass. Do: a cache dir per worktree, and say in AGENTS.md and docs/testing.md: one heavy test run at a time on one machine.
 
 ### main.ts combines the shared callback slots
 - id: BL-097
