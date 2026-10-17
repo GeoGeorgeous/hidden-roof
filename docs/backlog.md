@@ -1277,3 +1277,42 @@ Three slots are wrapped or replaced by a second module, so what they do depends 
 - source: owner (audit F3.17, S3.4)
 
 `keyboard.lock()` with no list took F11, F5, Ctrl+R, Ctrl+T and Alt+Tab from the browser in game fullscreen; F11 worked only after Esc was held. Done: lock only the keys play binds (from BINDINGS) and Esc; the hold line names [ESC] and [F11].
+
+### Playing, the keyboard is the game's: every key but the browser's
+- id: BL-100
+- type: bug
+- status: Done
+- priority: Medium
+- size: S
+- area: input
+- release: next
+- source: audit 2026-10-17 (F3.18, S3.4)
+
+The guard blocked listed keys only: Firefox's quick find (/ and '), F6, F10 and Alt's menu bar took the keyboard mid-game. Done: while playing every keydown is blocked except `BROWSER_KEYS` (Esc, F5, Ctrl+R, F11, F12), and Alt's release.
+
+### macOS: a key released during a Cmd combo stays down
+- id: BL-101
+- type: bug
+- status: Done
+- priority: Medium
+- size: XS
+- area: input
+- release: next
+- source: audit 2026-10-17 (F3.19, S3.4)
+
+macOS sends no keyup for keys released while Cmd is held: a movement key kept walking. Done: Cmd's release drops the held keys. Real Mac: audit T3.3.
+
+### Default Ctrl and Shift collide with OS shortcuts no page can block
+- id: BL-102
+- type: bug
+- status: Requested
+- priority: Medium
+- size: S
+- area: input
+- release: next
+- source: audit 2026-10-17 (F3.20, S3.4)
+
+Windows: Sticky Keys (Shift 5 times), Filter Keys (right Shift held 8 s), Ctrl+Shift layout switch. macOS: Ctrl+Space input source, Ctrl+arrows Spaces, Ctrl+click is a right click (crouch + spray). Measure in audit T3.3, then choose per-platform defaults or toggles with BL-018 (key bindings settings).
+
+Triage notes: per-platform defaults (Mac crouch on C?), or a sprint toggle? Decide after T3.3.
+
