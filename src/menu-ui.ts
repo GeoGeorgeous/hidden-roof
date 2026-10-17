@@ -10,7 +10,7 @@ export function div(className: string, text?: string) {
  * A button: `act` on click (a file picker opens only from a click). It never
  * takes the focus, so Enter can't press it again.
  */
-export function button(text: string, act: () => void, className = '') {
+export function button(text: string, act: (e: MouseEvent) => void, className = '') {
   const b = Object.assign(document.createElement('button'), { textContent: text, className });
   b.addEventListener('mousedown', (e) => e.preventDefault());
   b.addEventListener('click', act);
