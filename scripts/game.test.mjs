@@ -11,7 +11,7 @@
 //        ONLY=ladder npm run test:game   (only the checks whose name matches: while working; the full run before a merge)
 import fs from 'node:fs';
 import os from 'node:os';
-import { gameReady, noDrawing, openTestBrowser } from './test-browser.mjs';
+import { gameReady, noBrowserLock, noDrawing, openTestBrowser } from './test-browser.mjs';
 
 // Pages here don't draw (no check needs a picture), so frames can run uncapped.
 const test = await openTestBrowser(process.argv[2], { uncapped: true });
@@ -24,6 +24,7 @@ async function openPage(init, before) {
   page.errors = [];
   page.on('pageerror', (e) => page.errors.push(e.message));
   await page.addInitScript(noDrawing);
+  await page.addInitScript(noBrowserLock);
   await page.addInitScript(pageSteps);
   if (init) await page.addInitScript(init);
   await before?.(page);

@@ -86,6 +86,15 @@ export function noDrawing() {
   const t = setInterval(() => window.game?.renderer && (clearInterval(t), (window.game.renderer.render = () => {})), 20);
 }
 
+/**
+ * An init script: the browser's pointer lock and fullscreen do nothing. Tests start play with Input.setLocked; a real
+ * lock (a resume from a check's Enter or click runs as a user gesture) came and went late and unlocked later checks.
+ */
+export function noBrowserLock() {
+  Element.prototype.requestPointerLock = () => Promise.resolve();
+  Element.prototype.requestFullscreen = () => Promise.reject(new DOMException('tests start play with Input.setLocked', 'NotAllowedError'));
+}
+
 function keepFramesComing() {
   addEventListener('DOMContentLoaded', () => {
     const style = document.createElement('style');
