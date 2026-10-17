@@ -1134,6 +1134,30 @@ Done (2026-10-14): the level as a file (`PropData`, `LevelData`) is `src/level/l
 
 `Multiplayer.welcome` (`src/net/multiplayer.ts`) marks whichever link is current as live once the paint is loaded, not the link the welcome came on. If link A drops while its welcome loads paint and the retry has opened link B, A's welcome marks B live before B's own welcome, so B stops giving up after `NET.connectTimeout`. As before the ServerLink split (a shared `live` flag). Do: pass the welcome's link from `connect`'s handler through `receive` to `welcome`, and mark that one. Test: in `scripts/multiplayer.test.mjs`, delay a welcome (as the "takes 5 s" check does), drop the link meanwhile, and check the new link still gives up after `NET.connectTimeout` when the server stays silent.
 
+### The multiplayer test sometimes never sees B reconnect
+- id: BL-091
+- type: bug
+- status: Done
+- priority: High
+- size: S
+- area: net
+- release: next
+- source: audit 2026-10-17 (F1.4)
+
+`scripts/multiplayer.test.mjs:147`: B never starts reconnecting within 15 s after being cut off. Failed in CI on 1ee0264 and e74440d (runs 38558757226, 38457382788). Decided (2026-10-17): find and fix the cause before dev is promoted into next. Cause (S1.3): `frame()` in `src/main.ts` asked for the next frame only at its end, so one exception in a frame stopped the game loop, and `net.update`'s check for a silent server with it. Fixed: the frame asks for the next one first; the test throws one frame on B before the silence check, and a timed-out status wait prints the page's network log and errors.
+
+### The server's heartbeat cuts a link before its hello
+- id: BL-093
+- type: bug
+- status: Done
+- priority: Medium
+- size: S
+- area: net
+- release: next
+- source: audit 2026-10-17 (F1.10, S1.3)
+
+The heartbeat (`server/main.ts`, SERVER.heartbeat 10 s) terminated a link that had sent nothing yet, though the lobby gives it SERVER.helloTimeout (20 s) for its hello. A reload's rejoin opened while the page was busy could be cut (1006, "blocked") and leave the session. Fixed: the heartbeat starts with the link's first message; `npm run test:server` checks a hello two beats late still gets in.
+
 ### Work through the audit of 2026-10-17
 - id: BL-089
 - type: chore
