@@ -236,7 +236,9 @@ export class PauseMenu {
   private sync() {
     const idle = this.session ? `Session · ${this.session}` : this.started ? 'Paused' : 'Click to start';
     const notice = performance.now() < this.noticeUntil;
-    this.status.lastChild!.textContent = this.hold.held ? 'Keep holding to leave fullscreen' : notice ? this.message : idle;
+    const text = this.status.lastChild as HTMLElement;
+    if (this.hold.held) text.replaceChildren('Keep holding ', keyHint('ESC'), ' to leave fullscreen, or press ', keyHint('F11'), ' to leave instantly');
+    else text.textContent = notice ? this.message : idle;
     // The live line, unless a message has the status line (reconnecting, the hold, a notice).
     this.line.el.hidden = !this.live || this.hold.held || notice;
     this.status.hidden = !this.line.el.hidden;

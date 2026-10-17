@@ -8,7 +8,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import net from 'node:net';
-import { freePort, gameReady, noDrawing, openTestBrowser } from './test-browser.mjs';
+import { freePort, gameReady, noBrowserLock, noDrawing, openTestBrowser } from './test-browser.mjs';
 
 const PORT = await freePort();
 const startServer = () => spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(PORT) }, stdio: ['ignore', 'ignore', 'inherit'] });
@@ -21,6 +21,7 @@ async function open(detail) {
   const ctx = await test.browser.newContext({ viewport: { width: 1280, height: 720 } });
   // Nothing drawn: the test is about the network.
   await ctx.addInitScript(noDrawing);
+  await ctx.addInitScript(noBrowserLock);
   // hide() and show(): as a hidden tab, no frames and document.hidden, while the socket still takes messages.
   await ctx.addInitScript(() => {
     const raf = window.requestAnimationFrame.bind(window);

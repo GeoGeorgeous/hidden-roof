@@ -11,7 +11,7 @@
 //        ONLY=ladder npm run test:game   (only the checks whose name matches: while working; the full run before a merge)
 import fs from 'node:fs';
 import os from 'node:os';
-import { gameReady, noDrawing, openTestBrowser } from './test-browser.mjs';
+import { gameReady, noBrowserLock, noDrawing, openTestBrowser } from './test-browser.mjs';
 
 // Pages here don't draw (no check needs a picture), so frames can run uncapped.
 const test = await openTestBrowser(process.argv[2], { uncapped: true });
@@ -24,6 +24,7 @@ async function openPage(init, before) {
   page.errors = [];
   page.on('pageerror', (e) => page.errors.push(e.message));
   await page.addInitScript(noDrawing);
+  await page.addInitScript(noBrowserLock);
   await page.addInitScript(pageSteps);
   if (init) await page.addInitScript(init);
   await before?.(page);
@@ -450,20 +451,92 @@ await check('input: a trackpad swipe\'s many small wheel events step the color o
   return r.swipe === 1 && r.notch === 1 && r.lines === 1 && r.twoNotches === 2 ? null : JSON.stringify(r);
 });
 
-await check('input: the mouse\'s back and forward buttons don\'t leave the page, playing or in the menu', async () => {
-  // Chromium goes back or forward on the button's release unless the page cancels it (a cancelled press doesn't stop it).
+await check('input: the browser defaults in BROWSER_GUARDS are cancelled, playing or in the menu: playing every key but BROWSER_KEYS, zoom always (config.ts)', async () => {
+  // Chromium goes back or forward on the mouse button's release unless the page cancels it.
   const r = await page.evaluate(() => {
     const g = window.game;
-    const canvas = g.renderer.domElement;
-    const kept = (locked) => {
-      g.input.setLocked(locked);
-      return [3, 4].flatMap((button) => ['mouseup', 'auxclick'].map((type) => !canvas.dispatchEvent(new MouseEvent(type, { button, bubbles: true, cancelable: true }))));
+    // beforeunload goes to the window; the rest to the canvas, as the browser sends them while playing.
+    const cancelled = (e) => !(e.type === 'beforeunload' ? window : g.renderer.domElement).dispatchEvent(e);
+    const key = (code, ctrlKey = false) => new KeyboardEvent('keydown', { code, ctrlKey, bubbles: true, cancelable: true });
+    const mouse = (type, button) => new MouseEvent(type, { button, bubbles: true, cancelable: true });
+    const events = {
+      space: () => key('Space'),
+      sizeUp: () => key('KeyE'),
+      tab: () => key('Tab'),
+      ctrlW: () => key('KeyW', true),
+      reload: () => key('KeyR', true),
+      f3: () => key('F3'),
+      f5: () => key('F5'),
+      f11: () => key('F11'),
+      f12: () => key('F12'),
+      esc: () => key('Escape'),
+      // Firefox's quick find, and its menu bar on Alt's release.
+      quickFind: () => key('Slash'),
+      altUp: () => new KeyboardEvent('keyup', { code: 'AltLeft', bubbles: true, cancelable: true }),
+      leftDown: () => mouse('mousedown', 0),
+      backUp: () => mouse('mouseup', 3),
+      forwardClick: () => mouse('auxclick', 4),
+      menu: () => mouse('contextmenu', 2),
+      wheel: () => new WheelEvent('wheel', { deltaY: 100, bubbles: true, cancelable: true }),
+      zoomIn: () => key('Equal', true),
+      zoomReset: () => key('Digit0', true),
+      ctrlWheel: () => new WheelEvent('wheel', { deltaY: 100, ctrlKey: true, bubbles: true, cancelable: true }),
+      pinch: () => new Event('gesturestart', { bubbles: true, cancelable: true }),
+      leave: () => new Event('beforeunload', { cancelable: true }),
     };
-    const out = { playing: kept(true), menu: kept(false) };
-    g.input.setLocked(false);
+    const run = (locked) => {
+      g.input.setLocked(locked);
+      const out = Object.fromEntries(Object.entries(events).map(([name, make]) => [name, cancelled(make())]));
+      g.input.endFrame();
+      return out;
+    };
+    return { playing: run(true), menu: run(false) };
+  });
+  const playing = { space: true, sizeUp: true, tab: true, ctrlW: true, reload: false, f3: true, f5: false, f11: false, f12: false, esc: false, quickFind: true, altUp: true, leftDown: true, backUp: true, forwardClick: true, menu: true, wheel: false, zoomIn: true, zoomReset: true, ctrlWheel: true, pinch: true, leave: true };
+  const menu = { space: false, sizeUp: false, tab: false, ctrlW: false, reload: false, f3: true, f5: false, f11: false, f12: false, esc: false, quickFind: false, altUp: false, leftDown: false, backUp: true, forwardClick: true, menu: true, wheel: false, zoomIn: true, zoomReset: true, ctrlWheel: true, pinch: true, leave: false };
+  return JSON.stringify(r) === JSON.stringify({ playing, menu }) ? null : JSON.stringify(r);
+});
+
+await check('input: game fullscreen locks only the keys play binds and Esc (F11, F5, Ctrl+R stay the browser\'s), and the hold-Esc line says so', async () => {
+  // Headless has no real fullscreen or keyboard lock: stand-ins that report what the browser would.
+  const r = await page.evaluate(async () => {
+    let element = null;
+    let locked = null;
+    const own = (o, name, value) => Object.defineProperty(o, name, { value, configurable: true });
+    own(navigator, 'keyboard', { lock: async (keys) => (locked = keys), unlock() {} });
+    Object.defineProperty(document, 'fullscreenElement', { get: () => element, configurable: true });
+    own(document.documentElement, 'requestFullscreen', async () => (element = document.documentElement));
+    const control = document.querySelector('.overlay .fs button');
+    const pointer = (type) => control.dispatchEvent(new PointerEvent(type, { button: 0, bubbles: true }));
+    pointer('pointerdown');
+    await new Promise((done) => setTimeout(done, 50));
+    // Holding the control: the status line's hint.
+    pointer('pointerdown');
+    const hint = [...document.querySelectorAll('.overlay .status kbd')].map((k) => k.textContent);
+    pointer('pointerup');
+    const out = { locked: ['Escape', 'KeyW', 'ControlLeft', 'KeyC', 'F11', 'F5', 'KeyR'].filter((k) => locked?.includes(k)), hint };
+    delete navigator.keyboard;
+    delete document.fullscreenElement;
+    delete document.documentElement.requestFullscreen;
     return out;
   });
-  return [...r.playing, ...r.menu].every(Boolean) ? null : JSON.stringify(r);
+  return r.locked.join() === 'Escape,KeyW,ControlLeft,KeyC' && r.hint.join() === 'ESC,F11' ? null : JSON.stringify(r);
+});
+
+await check('input: a key released while Cmd is held doesn\'t stay down (macOS sends no keyup for it)', async () => {
+  const r = await page.evaluate(() => {
+    const input = window.game.input;
+    const key = (type, code, key = code) => window.dispatchEvent(new KeyboardEvent(type, { code, key }));
+    input.setLocked(true);
+    key('keydown', 'KeyW');
+    key('keydown', 'MetaLeft', 'Meta');
+    // W comes up while Cmd is held: macOS sends nothing for it.
+    key('keyup', 'MetaLeft', 'Meta');
+    const out = input.held('forward');
+    input.setLocked(false);
+    return out;
+  });
+  return r === false ? null : JSON.stringify(r);
 });
 
 await check('input: either Shift sprints, and flies fast in build mode', async () => {

@@ -290,12 +290,11 @@ A screen to rebind the keys.
 ### Block the browser zoom: Ctrl +/−/0, Ctrl+wheel, trackpad pinch
 - id: BL-023
 - type: feature
-- status: Blocked
+- status: Done
 - priority: Medium
 - size: XS
 - area: ui
-- release: later
-- blocked-by: BL-081
+- release: next
 - source: owner
 
 Blocked in the game and in the menus (one entry in the guard table, BL-081). Zoom changes the render buffer (a 3080 Ti rendered 3840×2160 for a 2560×1440 screen at zoom); BL-026 caps the buffer too.
@@ -1032,11 +1031,11 @@ Decided (2026-10-17, audit S1.1): BL-080 stays. The spawn wall still taught the 
 ### Browser input guard: one table of blocked default events
 - id: BL-081
 - type: refactor
-- status: Requested
+- status: Done
 - priority: Medium
 - size: M
 - area: input
-- release: later
+- release: next
 - source: owner
 
 Today the blocking is spread over `src/input.ts`: the `PREVENT` set and every Ctrl/Meta combo while the mouse is locked, F3, `contextmenu`, and `beforeunload` for Ctrl+W. Zoom (Ctrl+wheel, pinch) is not handled anywhere, and nothing is blocked in the menus. Do: one table in `config.ts` (keys, combos, wheel+Ctrl, pinch, context menu, F-keys), each entry with a condition (while playing, or always) and a reason; one module `src/browser-guards.ts` applies it; one test. Policy: while playing, block as now plus zoom and pinch; in the menus block only zoom and pinch. Open: let F5, Ctrl+R and F11 through while playing?
@@ -1266,3 +1265,52 @@ Worktrees with `node_modules` linked in (as AGENTS.md says to run the full check
 - source: audit 2026-10-17 (F8.10, S3.2)
 
 Three slots are wrapped or replaced by a second module, so what they do depends on construction order (DevTools arrives by async import): `tools.ladder.others` (Multiplayer, then DevTools adds the ghost), `input.escapeResumes` (main, then DevTools), `paintFile.save` (paintMenu, then net-menu). Do: main.ts sets each once, combining what the modules offer; the one-at-a-time SAVE promise moves into Multiplayer beside `requestSave`; `escapeResumes` goes with BL-095. With BL-095, in audit session S3.6.
+
+### Game fullscreen's keyboard lock took every key: F11 did nothing
+- id: BL-099
+- type: bug
+- status: Done
+- priority: Medium
+- size: XS
+- area: input
+- release: next
+- source: owner (audit F3.17, S3.4)
+
+`keyboard.lock()` with no list took F11, F5, Ctrl+R, Ctrl+T and Alt+Tab from the browser in game fullscreen; F11 worked only after Esc was held. Done: lock only the keys play binds (from BINDINGS) and Esc; the hold line names [ESC] and [F11].
+
+### Playing, the keyboard is the game's: every key but the browser's
+- id: BL-100
+- type: bug
+- status: Done
+- priority: Medium
+- size: S
+- area: input
+- release: next
+- source: audit 2026-10-17 (F3.18, S3.4)
+
+The guard blocked listed keys only: Firefox's quick find (/ and '), F6, F10 and Alt's menu bar took the keyboard mid-game. Done: while playing every keydown is blocked except `BROWSER_KEYS` (Esc, F5, Ctrl+R, F11, F12), and Alt's release.
+
+### macOS: a key released during a Cmd combo stays down
+- id: BL-101
+- type: bug
+- status: Done
+- priority: Medium
+- size: XS
+- area: input
+- release: next
+- source: audit 2026-10-17 (F3.19, S3.4)
+
+macOS sends no keyup for keys released while Cmd is held: a movement key kept walking. Done: Cmd's release drops the held keys. Real Mac: audit T3.3.
+
+### A check's real resume unlocked later game checks
+- id: BL-103
+- type: bug
+- status: Done
+- priority: Medium
+- size: XS
+- area: code
+- release: next
+- source: audit 2026-10-17 (F8.21, S3.4)
+
+A synthetic Enter on the pause screen resumed with the real pointer lock (a user gesture in Playwright); the lock was lost ~40 ms later and that late event unlocked the next checks, under load only. Done: `noBrowserLock` on test pages; tests start play with `Input.setLocked`.
+
