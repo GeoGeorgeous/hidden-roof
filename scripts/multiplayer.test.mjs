@@ -3,7 +3,7 @@
 // JOIN through the pause menu's MULTIPLAYER page, both at the host's PAINT
 // DETAIL, paint and the stepladder reaching the other player, a reload coming
 // back into the session, paint while hidden, one that heard nothing for a while reconnecting, LEAVE
-// SESSION, and a server restart ending the session.
+// SESSION, one already playing the session's level starting it over, and a server restart ending the session.
 // Usage: npm run test:mp (builds the server first)
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
@@ -39,7 +39,12 @@ async function open(detail) {
   page.errors = errors;
   return page;
 }
-const status = (page, state) => page.waitForFunction((s) => window.game.net.status.state === s, state, { timeout: 15000 });
+/** Waits for the game's network status; timed out, says why with the page's network log. */
+const status = (page, state) =>
+  page.waitForFunction((s) => window.game.net.status.state === s, state, { timeout: 15000 }).catch(async (e) => {
+    const seen = await page.evaluate(() => ({ status: window.game.net.status, log: window.game.net.log.text() })).catch(() => null);
+    throw new Error(`no "${state}" in 15 s: ${JSON.stringify(seen?.status)}\n${seen?.log}\npage errors: ${page.errors ?? '(loading)'}`, { cause: e });
+  });
 /** Every painted surface's paint, hashed (FNV-1a), by key. */
 const paintHash = (page) =>
   page.evaluate(() => {
@@ -129,7 +134,8 @@ try {
 
   // B finds the marker and reloads: it comes back into the session as the same player, with the paint and the marker.
   await b.evaluate(() => window.game.inventory.give('marker'));
-  await b.waitForTimeout(300);
+  // The game sends what it carries on its next frame: wait for that, not a fixed time (SwiftShader draws ~6 frames a second here).
+  await b.waitForFunction(() => window.game.net.carried === window.game.inventory.version, null, { timeout: 5000, polling: 50 });
   await b.reload();
   await gameReady(b);
   await status(b, 'in');
@@ -142,7 +148,15 @@ try {
   // B hears nothing for a while (a big download ahead of everything else used to do that): it closes the link and
   // comes back in, though the last thing it heard is now long ago. Its link drops what comes in, or A's next snapshot
   // would count as heard before B's next frame looked.
-  await b.evaluate(() => ((window.game.net.ws.onmessage = null), (window.game.net.lastHeard = -1e9)));
+  // One of B's frames throws first: the game goes on (it used to stop for good, its check for silence with it).
+  await b.evaluate(() => {
+    const hud = window.game.hud;
+    const setPerf = hud.setPerf;
+    hud.setPerf = () => ((hud.setPerf = setPerf), (window.threw = true), null.frame);
+  });
+  await b.waitForFunction(() => window.threw, null, { timeout: 5000, polling: 50 });
+  assert.match(b.errors.pop() ?? '', /null/);
+  await b.evaluate(() => ((window.game.net.link.socket.onmessage = null), (window.game.net.link.lastHeard = -1e9)));
   await status(b, 'reconnecting');
   await status(b, 'in');
   assert.equal(await paintHash(b), painted, 'the paint comes back after a reconnect');
@@ -165,12 +179,35 @@ try {
   assert.equal(await b.textContent('.nameplate'), 'A');
   await b.evaluate(() => window.game.net.leave());
 
+  // C plays the same level at the session's PAINT DETAIL: its welcome starts that level over rather than building it
+  // again (seconds with its lights and shaders, BL-085). What it placed and found alone is gone, it stands at the
+  // spawn, and it has the session's paint.
+  const c = await open('medium');
+  await c.evaluate(() => {
+    const g = window.game;
+    g.level.setRuntime(g.session.player, { type: 'stepladder', pos: [2, 0, 2], rot: 0 });
+    g.inventory.give('marker');
+    g.player.position.set(5, 3, 5);
+    window.kept = g.level.builtProps[0];
+  });
+  await c.evaluate((code) => window.game.net.join('C', code), code);
+  await status(c, 'in');
+  const restarted = await c.evaluate(() => {
+    const g = window.game;
+    const [x, y, z] = g.levelData().spawn.pos;
+    return { kept: g.level.builtProps[0] === window.kept, ladder: g.level.runtimeOf('local') ?? null, marker: g.inventory.has('marker'), fromSpawn: Math.round(Math.hypot(g.player.position.x - x, g.player.position.z - z)) };
+  });
+  assert.deepEqual(restarted, { kept: true, ladder: null, marker: false, fromSpawn: 0 });
+  assert.equal(await paintHash(c), await paintHash(a), 'C has the session paint');
+  await c.evaluate(() => window.game.net.leave());
+
   // The server restarts (a deploy): A's game reconnects, finds its session gone, and says the session has ended.
   server.kill();
   server = startServer();
   await a.waitForFunction(() => window.game.net.status.state === 'failed' && window.game.net.status.reason === 'ended', null, { timeout: 15000 });
   assert.equal(await a.evaluate(() => window.game.session.multiplayer), false);
-  assert.match(await a.textContent('.overlay .status'), /The session has ended/);
+  // The MULTIPLAYER page keeps saying it (the menu's status line only for a few seconds).
+  assert.match(await a.textContent('.mp-page .mp-status'), /The session has ended/);
 
   // No server: the game asks over HTTP why it can't connect, and says the server is down.
   server.kill();
@@ -181,7 +218,7 @@ try {
   await a.evaluate(() => window.game.net.host('A', 48));
   const down = await failed();
   assert.equal(down.reason, 'server-down', JSON.stringify(down));
-  assert.match(await a.textContent('.overlay .status'), /The game server is down \(HTTP 5\d\d · WS \d+\)/);
+  assert.match(await a.textContent('.mp-page .mp-status'), /The game server is down \(HTTP 5\d\d · WS \d+\)/);
   // A server that takes the connection and never answers: the game gives up after NET.connectTimeout.
   const held = new Set();
   const silent = net.createServer((socket) => held.add(socket)).listen(PORT);
@@ -193,7 +230,7 @@ try {
   // All of it is in the network log the menu copies.
   const log = await a.evaluate(() => window.game.net.log.text());
   for (const seen of ['connecting to ws://', 'in session', 'closed: ', 'asked the server over HTTP: server-down', 'nothing from the server in 1 s', 'status: failed timeout']) assert.ok(log.includes(seen), `the log has "${seen}"`);
-  for (const p of [a, b]) assert.deepEqual(p.errors, []);
+  for (const p of [a, b, c]) assert.deepEqual(p.errors, []);
   console.log('multiplayer: ok');
 } finally {
   await test.close();

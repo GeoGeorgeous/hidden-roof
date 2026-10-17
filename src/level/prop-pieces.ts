@@ -1,10 +1,10 @@
 import { defOf, renamed, upgraded } from '../kit';
 import { mirrored, type Piece } from '../kit/pieces';
 import type { SurfaceGeometry } from '../surfaces';
-import { expandPieces, solidBoxes, type PropInstance } from './build-prop';
+import { expandPieces, solidBoxes, surfaceKey, type PropInstance } from './build-prop';
 import { CoverIndex } from './cover';
 import { computeJoints, jointPieces } from './joints';
-import type { LevelData, PropData } from './level';
+import type { LevelData, PropData } from './level-data';
 import { stackContext } from './stacks';
 
 // From level data to props and their pieces, the same way on every client and
@@ -33,8 +33,17 @@ export function propPieces(inst: PropInstance, props: Iterable<PropInstance>): P
   return inst.mirror ? mirrored(def.build(ctx)) : def.build(ctx);
 }
 
-/** Every paint surface of a level as loaded (Level.load), by key, at the current PAINT.texelsPerMeter. */
-export function levelPaintFaces(data: LevelData): { key: string; geo: SurfaceGeometry }[] {
+/** The owner part of a paint surface key (PaintSurface.key, `<owner>#<n>`: build-prop.ts surfaceKey): a prop's, a joint's. */
+export const surfaceOwner = { prop: (id: number) => `p${id}`, joint: (key: string) => `j${key}` };
+
+/**
+ * A level's props as loaded, the same on every client and on the server
+ * (Level.load, levelPaintFaces): each one's instance (ids as in the file, or
+ * numbered after them), its pieces, and the cover index of all their solid
+ * boxes, listed before anything is built so each prop sees what covers it.
+ * `next`: the id the next new prop gets.
+ */
+export function planLevel(data: LevelData) {
   const props = new Map<number, PropInstance>();
   let next = 1;
   for (const p of data.props) {
@@ -43,14 +52,19 @@ export function levelPaintFaces(data: LevelData): { key: string; geo: SurfaceGeo
     props.set(inst.id, inst);
     next = Math.max(next, inst.id + 1);
   }
-  const out: { key: string; geo: SurfaceGeometry }[] = [];
-  // As Level.load: every solid box listed first, so covered faces are decor here too.
   const pieces = new Map([...props.values()].map((inst) => [inst.id, propPieces(inst, props.values())]));
   const cover = new CoverIndex();
   for (const inst of props.values()) cover.set(inst.id, solidBoxes(pieces.get(inst.id)!, inst.pos, inst.rot));
+  return { props, next, pieces, cover };
+}
+
+/** Every paint surface of a level as loaded (planLevel, and the joints between its props), by key, at this density (a PAINT DETAIL). */
+export function levelPaintFaces(data: LevelData, texelsPerMeter: number): { key: string; geo: SurfaceGeometry }[] {
+  const { props, pieces, cover } = planLevel(data);
+  const out: { key: string; geo: SurfaceGeometry }[] = [];
   const add = (owner: string, pieces: Piece[], pos: PropInstance['pos'], rot: number) =>
-    expandPieces(pieces, pos, rot, true, cover).paint.forEach(({ geo }, k) => out.push({ key: `${owner}#${k}`, geo }));
-  for (const inst of props.values()) add(`p${inst.id}`, pieces.get(inst.id)!, inst.pos, inst.rot);
-  for (const [key, joint] of computeJoints(props.values())) add(`j${key}`, jointPieces(joint), joint.pos, 0);
+    expandPieces(pieces, pos, rot, true, cover, texelsPerMeter).paint.forEach(({ geo }, k) => out.push({ key: surfaceKey(owner, k), geo }));
+  for (const inst of props.values()) add(surfaceOwner.prop(inst.id), pieces.get(inst.id)!, inst.pos, inst.rot);
+  for (const [key, joint] of computeJoints(props.values())) add(surfaceOwner.joint(key), jointPieces(joint), joint.pos, 0);
   return out;
 }

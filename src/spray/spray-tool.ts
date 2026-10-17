@@ -57,7 +57,11 @@ export class SprayTool {
     const cap = CAPS[inv.cap];
     this.model.setCan(inv.color, inv.cap);
 
-    const holding = input.rmb && input.locked;
+    // Shaking (RMB) and spraying (LMB) exclude each other: the one pressed first wins, and
+    // LMB cuts a shake short once RMB is let go. Else a player could shake forever while painting.
+    const lmb = input.lmb && input.locked;
+    const holding = input.rmb && input.locked && (this.shakeT >= 0 || !lmb);
+    if (lmb && !holding) this.shakeT = -1;
     if (holding && this.shakeT < 0) {
       this.shakeT = 0;
       inv.pressure = Math.min(1, inv.pressure + PRESSURE.shakeTap);
@@ -73,7 +77,7 @@ export class SprayTool {
       }
     }
 
-    const spraying = input.lmb && input.locked;
+    const spraying = lmb && !holding;
     this.flow = spraying ? this.computeFlow(dt, inv.pressure) : 0;
     if (spraying) inv.pressure = Math.max(0, inv.pressure - cap.drain * dt);
     this.audio.setHiss(this.flow * cap.hissGain, cap.hissTone);

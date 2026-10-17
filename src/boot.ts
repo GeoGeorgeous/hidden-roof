@@ -15,5 +15,16 @@ function playable() {
   return !touchOnly && lock && innerWidth >= __MIN_VIEWPORT__.w && innerHeight >= __MIN_VIEWPORT__.h;
 }
 
-if (force || playable()) import('./main');
+/** The game didn't start: say why on the loading screen (index.html), which would otherwise say Loading forever. */
+function failed() {
+  const [shown, next] = document.querySelectorAll('.loading span');
+  if (!next) return;
+  const webgl = !!document.createElement('canvas').getContext('webgl2');
+  next.textContent = webgl ? "The game didn't load: reload the page" : 'The game needs WebGL, and this browser has it turned off';
+  shown.classList.remove('on');
+  next.classList.add('on');
+}
+
+// Fails when a file of the game doesn't load, or the game can't start (no WebGL: three.js throws).
+if (force || playable()) import('./main').catch(failed);
 else import('./small-screen').then((s) => s.smallScreen(playable));

@@ -10,6 +10,7 @@
 // ~/.local/pwlibs are used (see docs/testing.md). The tests play the demo
 // level, whose layout they know (`level`: another, or null for LEVELS.start),
 // in windows of any size (?force=1: no small-screen gate, src/boot.ts).
+// `flags`: more Chromium switches (the boot test turns WebGL off).
 // Several agents may test at once: servers take free ports (freePort).
 import fs from 'node:fs';
 import net from 'node:net';
@@ -19,7 +20,7 @@ import { createLogger, createServer } from 'vite';
 
 const WSL_GPU = '/usr/lib/wsl/lib';
 
-export async function openTestBrowser(url, { uncapped = false, level = 'demo', gpu = false } = {}) {
+export async function openTestBrowser(url, { uncapped = false, level = 'demo', gpu = false, flags = [] } = {}) {
   let server = null;
   if (!url) {
     // Its own dependency cache, so it can run beside `npm run dev`. The /ws proxy's errors
@@ -41,7 +42,7 @@ export async function openTestBrowser(url, { uncapped = false, level = 'demo', g
   const args = real
     ? ['--use-gl=angle', '--use-angle=gl', '--ignore-gpu-blocklist', '--enable-gpu', '--window-position=-3000,0']
     : ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', ...(uncapped ? ['--disable-frame-rate-limit', '--disable-gpu-vsync'] : [])];
-  const browser = await chromium.launch({ env, args, headless: !real });
+  const browser = await chromium.launch({ env, args: [...args, ...flags], headless: !real });
   if (uncapped) {
     // Uncapped or not, Chrome holds frames to about 60 a second while nothing
     // on screen changes (the paused game draws nothing): a blinking pixel in a
@@ -54,6 +55,19 @@ export async function openTestBrowser(url, { uncapped = false, level = 'demo', g
       return page;
     };
   }
+  // Pages get 2 min to load (a reload too): Playwright's own 30 s is short for SwiftShader on a slow CI runner.
+  const open = browser.newPage.bind(browser);
+  browser.newPage = async (options) => {
+    const page = await open(options);
+    page.setDefaultNavigationTimeout(120_000);
+    return page;
+  };
+  const context = browser.newContext.bind(browser);
+  browser.newContext = async (options) => {
+    const c = await context(options);
+    c.setDefaultNavigationTimeout(120_000);
+    return c;
+  };
   return {
     browser,
     url,

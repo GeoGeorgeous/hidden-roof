@@ -8,6 +8,7 @@
 // owner, the avatar's poses, the ghost's playback, the same city at every
 // city detail, hotbar icons, hints painted in build mode, a level's own paint, and small-sign sizes with another font. Each check prints ok or what went wrong.
 // Usage: node scripts/game.test.mjs [url]   (no url: starts its own server)
+//        ONLY=ladder npm run test:game   (only the checks whose name matches: while working; the full run before a merge)
 import fs from 'node:fs';
 import os from 'node:os';
 import { gameReady, noDrawing, openTestBrowser } from './test-browser.mjs';
@@ -47,15 +48,20 @@ function pageSteps() {
     });
 }
 
+const only = process.env.ONLY ? new RegExp(process.env.ONLY, 'i') : null;
+let skipped = 0;
+
 async function check(name, fn) {
-  // Every check starts alike, whatever ran (or failed) before it: seeded paint randomness (spray, drips), frames on the clock.
-  if (!page.isClosed())
-    await page.evaluate(() => {
-      const g = window.game;
-      g.seedPaintRandom(1);
-      Object.assign(g.fixedStep, { dt: 0, script: null });
-    });
+  if (only && !only.test(name)) return void skipped++;
   try {
+    // Every check starts alike, whatever ran (or failed) before it: seeded paint randomness (spray, drips), frames on the clock.
+    // Inside the try: a page a failed check left without a game fails this check too, not the whole run.
+    if (!page.isClosed())
+      await page.evaluate(() => {
+        const g = window.game;
+        g.seedPaintRandom(1);
+        Object.assign(g.fixedStep, { dt: 0, script: null });
+      });
     const problem = await fn();
     if (problem) throw new Error(problem);
     console.log(`ok    ${name}`);
@@ -300,6 +306,112 @@ await check('saves: spray in the air at LOAD lands without paint', async () => {
   return r.inAir > 0 && r.painted === 0 ? null : JSON.stringify(r);
 });
 
+await check('input: keys typed into a text field are not game keys (a K in the session code took a screenshot)', async () => {
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    const field = Object.assign(document.createElement('input'), { type: 'text' });
+    document.body.append(field);
+    field.focus();
+    const key = (target, code) => target.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true }));
+    key(field, 'KeyK');
+    const typed = g.input.wasPressed('KeyK');
+    field.remove();
+    key(document.body, 'KeyK');
+    return { typed, played: g.input.wasPressed('KeyK') };
+  });
+  return !r.typed && r.played ? null : JSON.stringify(r);
+});
+
+await check('loading: a hidden tab, given no animation frames, still goes through the load steps', async () => {
+  const r = await page.evaluate(async () => {
+    const path = '/src/loading.ts'; // by name, so knip doesn't try to resolve a page URL
+    const { loadStep } = await import(/* @vite-ignore */ path);
+    // The stubs live only while loadStep is called (synchronously): the game's own loop keeps its frames.
+    const raf = window.requestAnimationFrame;
+    window.requestAnimationFrame = () => 0;
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+    const step = loadStep('a step').then(() => true);
+    window.requestAnimationFrame = raf;
+    const done = await Promise.race([step, new Promise((over) => setTimeout(() => over(false), 1000))]);
+    delete document.hidden;
+    return done;
+  });
+  return r ? null : 'a hidden tab never finished a load step';
+});
+
+await check('can: shaking and spraying exclude each other, the one pressed first wins', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { input } = g;
+    const spray = g.tools.spray;
+    input.locked = true;
+    g.inventory.select(0);
+    g.inventory.pressure = 0.5;
+    const out = {};
+    // RMB first, then LMB as well: it shakes, and nothing sprays.
+    await steps((f) => ((input.rmb = f < 20), (input.lmb = f >= 5 && f < 20), f === 15 && ((out.shookFirst = spray.shaking), (out.sprayedWhileShaking = spray.flow > 0)), f === 30));
+    // LMB first, then RMB as well: it sprays, and no shake starts.
+    await steps((f) => ((input.lmb = f < 20), (input.rmb = f >= 5 && f < 20), f === 15 && ((out.sprayedFirst = spray.flow > 0), (out.shookWhileSpraying = spray.shaking)), f === 30));
+    input.lmb = input.rmb = false;
+    g.fixedStep.dt = 0;
+    input.locked = false;
+    return out;
+  });
+  return r.shookFirst && !r.sprayedWhileShaking && r.sprayedFirst && !r.shookWhileSpraying ? null : JSON.stringify(r);
+});
+
+await check('render: never more pixels than the screen has (a page zoomed out to 50%), as many at 100%', async () => {
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    const scale = g.config.RENDER.pixelScale;
+    const real = Object.getOwnPropertyDescriptor(window, 'devicePixelRatio');
+    Object.defineProperty(window, 'devicePixelRatio', { configurable: true, get: () => 0.5 });
+    window.dispatchEvent(new Event('resize'));
+    const zoomedOut = g.renderer.getPixelRatio() * scale;
+    Object.defineProperty(window, 'devicePixelRatio', real);
+    window.dispatchEvent(new Event('resize'));
+    return { zoomedOut, normal: g.renderer.getPixelRatio() * scale, dpr: devicePixelRatio };
+  });
+  return r.zoomedOut === 0.5 && r.normal === Math.min(1, r.dpr) ? null : JSON.stringify(r);
+});
+
+await check('paint pages: a frame uploads at most PAINT.uploadBudget; the rest goes up over the next frames (a join stalled up to 1.1 s)', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { PAINT } = g.config;
+    const was = PAINT.uploadBudget;
+    PAINT.uploadBudget = 0.001; // about one stamp's rect a frame
+    g.paint.clear();
+    const surfaces = g.paint.surfaces.filter((s) => s.geo.rects.length).slice(0, 12);
+    for (const s of surfaces) g.paint.stamp(s, { rect: 0, u: 0.5, v: 0.5 }, 0.2, 0.8, [1, 0.2, 0.1]);
+    const waiting = [];
+    await steps((f) => (waiting.push(g.paint.gpu.dirty.size), f === 30));
+    g.fixedStep.dt = 0;
+    PAINT.uploadBudget = was;
+    const left = g.paint.gpu.dirty.size;
+    g.paint.clear();
+    return { surfaces: surfaces.length, waiting: waiting.slice(0, 6), left };
+  });
+  return r.waiting[1] > 0 && r.left === 0 ? null : JSON.stringify(r);
+});
+
+await check('ladders: placing one tests a shadow cone per lamp, not per piece of the ladder (each placement stalled ~150 ms)', async () => {
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    const p = g.player.position;
+    const lamps = g.level.lights.filter((l) => !l.track).length;
+    const cones = [];
+    for (let i = 0; i < 2; i++) {
+      g.level.setRuntime('cones', { type: 'stepladder', pos: [p.x + 1.5 + i * 0.4, p.y, p.z], rot: 0 });
+      cones.push(g.baker.stats.cones);
+    }
+    g.level.setRuntime('cones', null);
+    return { lamps, cones };
+  });
+  // Moved, the old place and the new one: at most two cones per lamp (a big prop is cut in 4 m chunks; a ladder is one).
+  return r.cones.every((c) => c <= 2 * r.lamps) ? null : JSON.stringify(r);
+});
+
 await check('sponge: a surface cleaned completely gives its memory back', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
@@ -321,6 +433,28 @@ await check('sponge: a surface cleaned completely gives its memory back', async 
     return { sprayed, after: g.paint.gpu.textureCount };
   });
   return r.sprayed > 0 && r.after === 0 ? null : JSON.stringify(r);
+});
+
+await check('props: a tank roof (a cone) holds a player dropped on it, near its tip, not on the flat top inside it', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { player: p } = g;
+    g.input.locked = true;
+    const saved = g.build.getLevelData();
+    // Where each cone sits (kit/equipment.ts, kit/steel.ts): its tip's x, its base's height, its height.
+    const roofs = [['watertower', 0, 7.4, 1.1], ['tank_pair', 1.1, 4.32, 0.4]];
+    const out = [];
+    for (const [type, x, base, h] of roofs) {
+      g.loadLevel({ version: 4, spawn: saved.spawn, props: [{ id: 1, type, pos: [0, 0, 0], rot: 0 }] });
+      p.position.set(x, base + h + 1, 0);
+      p.velocity.set(0, 0, 0);
+      await window.steps((f) => (f > 5 && p.onGround) || f > 300);
+      if (!p.onGround || p.position.y < base + h * 0.7) out.push(`${type}: stood at ${p.position.y.toFixed(2)} (roof ${base}–${(base + h).toFixed(2)})`);
+    }
+    g.loadLevel(saved);
+    return out;
+  });
+  return r.length ? r.join('; ') : null;
 });
 
 await check('levels: props keep their ids through edits, reloads and undo; version 2 files number them in order', async () => {
@@ -744,11 +878,12 @@ await check('levels: saves are named after the level opened in build mode, and s
   return r.demo === 'demo' && r.roof === 'my-roof' && r.refused === 'SAVED FOR DEMO' ? null : JSON.stringify(r);
 });
 
-await check('tools: the wheel changes the player\'s nib, roller and patch width, not the config', async () => {
+await check('tools: Q/E change the player\'s nib, roller and patch width, not the config', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
     const { inventory: inv, input, tools, config } = g;
-    const notch = (dir) => new Promise((done) => { g.fixedStep.script = () => { input.wheelSteps = dir; g.fixedStep.script = null; requestAnimationFrame(done); }; });
+    // E grows, Q shrinks: one press a frame.
+    const notch = (dir) => new Promise((done) => { g.fixedStep.script = () => { window.dispatchEvent(new KeyboardEvent('keydown', { code: dir < 0 ? 'KeyE' : 'KeyQ' })); window.dispatchEvent(new KeyboardEvent('keyup', { code: dir < 0 ? 'KeyE' : 'KeyQ' })); g.fixedStep.script = null; requestAnimationFrame(done); }; });
     input.locked = true;
     inv.give('marker');
     inv.give('sponge');
@@ -771,6 +906,40 @@ await check('tools: the wheel changes the player\'s nib, roller and patch width,
     return out;
   });
   return r.marker === 0.056 && r.grew && r.min === 0 && r.sponge === 0.22 && r.roller === 0.5 && r.config.join() === '0.032,0.18' ? null : JSON.stringify(r);
+});
+
+await check('tools: the wheel changes the color (can, marker, roller) and Q/E the can\'s cap; the sponge\'s wheel and the stepladder\'s Q/E change nothing', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { inventory: inv, input, config } = g;
+    const frame = (act) => new Promise((done) => { g.fixedStep.script = () => { act(); g.fixedStep.script = null; requestAnimationFrame(done); }; });
+    const wheel = () => frame(() => (input.wheelSteps = 1));
+    const key = (code) => frame(() => (window.dispatchEvent(new KeyboardEvent('keydown', { code })), window.dispatchEvent(new KeyboardEvent('keyup', { code }))));
+    input.locked = true;
+    for (const c of config.COLOR_ORDER) inv.addColor(c);
+    for (const c of config.CAP_ORDER) inv.addCap(c);
+    inv.give('marker');
+    inv.give('sponge');
+    inv.give('roller');
+    const out = {};
+    const step = async (slot, act) => {
+      inv.select(slot);
+      const before = { color: inv.color, cap: inv.cap, size: { ...inv.size } };
+      await act();
+      return { color: inv.color !== before.color, cap: inv.cap !== before.cap, size: JSON.stringify(inv.size) !== JSON.stringify(before.size) };
+    };
+    out.canWheel = await step(0, wheel);
+    out.canE = await step(0, () => key('KeyE'));
+    out.markerWheel = await step(1, wheel);
+    out.rollerWheel = await step(3, wheel);
+    out.spongeWheel = await step(4, wheel);
+    out.ladderE = await step(2, () => key('KeyE'));
+    input.locked = false;
+    return out;
+  });
+  const is = (o, color, cap, size) => o.color === color && o.cap === cap && o.size === size;
+  const ok = is(r.canWheel, true, false, false) && is(r.canE, false, true, false) && is(r.markerWheel, true, false, false) && is(r.rollerWheel, true, false, false) && is(r.spongeWheel, false, false, false) && is(r.ladderE, false, false, false);
+  return ok ? null : JSON.stringify(r);
 });
 
 await check('ladders: one per player, moved with one rebuild; each owner\'s stays until they take it away; never saved', async () => {
@@ -1111,7 +1280,7 @@ await check('city: LOW city detail is the middle of HIGH, tower for tower, roof 
   return r.low > 500 && r.high > r.low && r.missing === 0 && r.differ === 0 && r.lowBoxes > 1000 ? null : JSON.stringify(r);
 });
 
-await check('ghost: on a bad link (resent packets) a walk that stops is never shown jumping: corrections glide over several frames', async () => {
+await check('ghost: on a bad link (resent packets) a walk that stops is never shown jumping: corrections glide over several frames, no faster than NET.glideSpeed', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
     const { GHOST, NET } = g.config;
@@ -1143,7 +1312,7 @@ await check('ghost: on a bad link (resent packets) a walk that stops is never sh
       return { fastest: +fastest.toFixed(2), reached: xs.length ? +xs[xs.length - 1].toFixed(3) : 0 };
     };
     // Four networks, smoothed as in play and not (NET.teleport 0: every correction is a jump).
-    const out = { smoothed: [], unsmoothed: [] };
+    const out = { smoothed: [], unsmoothed: [], glide: NET.glideSpeed };
     const teleport = NET.teleport;
     for (const seed of [1, 2, 3, 4]) {
       out.smoothed.push(await play(seed));
@@ -1158,9 +1327,10 @@ await check('ghost: on a bad link (resent packets) a walk that stops is never sh
     g.player.position.copy(start);
     return out;
   });
-  // Walking is 5 m/s. Smoothed, a correction glides over several frames (up to about 16 m/s here); unsmoothed it's a jump (30 to 65 m/s).
+  // Walking is 5 m/s. Smoothed, a correction glides over several frames, never faster than NET.glideSpeed on top of the
+  // walk (BL-012: up to 16 m/s before the cap); unsmoothed it's a jump (30 to 65 m/s).
   const top = (runs) => Math.max(...runs.map((x) => x.fastest));
-  return top(r.smoothed) < 25 && top(r.unsmoothed) > 25 && r.smoothed.every((x) => x.reached > 8.5) ? null : JSON.stringify(r);
+  return top(r.smoothed) < 5 + r.glide + 0.5 && top(r.unsmoothed) > 25 && r.smoothed.every((x) => x.reached > 8.5) ? null : JSON.stringify(r);
 });
 
 await check('ghost: what another player did before this game was hidden lands before what they do while it is (a stepladder taken away stays away, the last coat stays on top)', async () => {
@@ -1370,5 +1540,5 @@ await check('signs: their size is the same with a 20% narrower font', async () =
 
 await test.close();
 fs.rmSync(tmp, { recursive: true, force: true });
-console.log(failed ? `game tests: FAILED (${failed})` : 'game tests: all ok');
+console.log(`${failed ? `game tests: FAILED (${failed})` : 'game tests: all ok'}${skipped ? ` (${skipped} skipped: ONLY=${process.env.ONLY})` : ''}`);
 process.exitCode = failed ? 1 : 0;

@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto';
-import { PAINT, SERVER } from '../src/config';
+import { SERVER } from '../src/config';
 import type { InventoryData } from '../src/inventory/inventory';
-import type { LevelData, PropData } from '../src/level/level';
+import type { LevelData, PropData } from '../src/level/level-data';
+import { decodeOps, encodeOps, SurfaceIndex } from '../src/op-wire';
 import { cleanName, closeCode, encode, NAME_MAX, partFrames, type Presence, type Rejection, type ToClient, type ToServer } from '../src/net/protocol';
 import { loadPaint } from '../src/save/load-paint';
 import { streamPaint } from '../src/save/save-paint';
@@ -33,6 +34,8 @@ export interface Player {
   /** Lets them come back as themselves (welcome hands it out). */
   token: string;
   link: Link | null;
+  /** Their last op batch painted (ToServer ops `seq`): one resent after a rejoin is dropped. */
+  acked: number;
   /** Their welcome has gone out on `link`: frames reach them. Until then what happens is in the welcome or after it. */
   live: boolean;
   /** A SAVE of theirs is under way. */
@@ -52,6 +55,8 @@ type How = 'new' | 'back' | 'takeover';
 export class Session {
   readonly players = new Map<number, Player>();
   readonly table: string;
+  /** Its surfaces as paint ops name them (op-wire.ts). */
+  private surfaces: SurfaceIndex;
   private world: ReturnType<typeof sessionPaint>;
   private nextId = 1;
   private readonly started = Date.now();
@@ -74,8 +79,9 @@ export class Session {
     readonly detail: number,
     private onEmpty: () => void,
   ) {
-    this.world = this.at(() => sessionPaint(level));
+    this.world = sessionPaint(level, detail);
     this.table = surfaceTable(this.world.paint.surfaces);
+    this.surfaces = new SurfaceIndex([...this.world.paint.surfaces].map((s) => s.key));
   }
 
   /** Start from a paint save (HOST). Throws with a message if it's no good or doesn't fit the level. */
@@ -126,9 +132,11 @@ export class Session {
       p.link?.close(closeCode('replaced'), 'replaced');
       p.link = link;
       p.away = false;
+      // A new tab numbers its batches from 1.
+      if (how === 'takeover') p.acked = 0;
     } else {
       const unique = uniqueName(name, all);
-      p = { id: this.nextId++, name: unique, token: randomUUID(), link, live: false, saving: false, away: false, inventory: this.carried.get(unique) ?? null, ladder: null, expires: null, was: null };
+      p = { id: this.nextId++, name: unique, token: randomUUID(), link, acked: 0, live: false, saving: false, away: false, inventory: this.carried.get(unique) ?? null, ladder: null, expires: null, was: null };
       this.broadcast({ type: 'joined', id: p.id, name: p.name }, p);
       this.players.set(p.id, p);
     }
@@ -148,7 +156,7 @@ export class Session {
     const others = [...this.players.values()].filter((q) => q !== p);
     const ladders = [...this.players.values()].filter((q) => q.ladder).map((q) => ({ id: q.id, data: q.ladder! }));
     const players = others.map((q) => ({ id: q.id, name: q.name, state: presence(q) }));
-    link.send(encode({ type: 'welcome', code: this.code, you: p.id, token: p.token, levelName: this.levelName, level: this.level, detail: this.detail, table: this.table, players, ladders, inventory: p.inventory, parts: own ? 0 : frames.length }));
+    link.send(encode({ type: 'welcome', code: this.code, you: p.id, token: p.token, levelName: this.levelName, level: this.level, detail: this.detail, table: this.table, players, ladders, inventory: p.inventory, parts: own ? 0 : frames.length, acked: p.acked }));
     if (!own) for (const f of frames) link.send(f);
     for (const f of snap.log) link.send(f);
     p.live = true;
@@ -160,15 +168,19 @@ export class Session {
   receive(p: Player, m: ToServer) {
     if (m.type === 'state') this.broadcast({ type: 'state', id: p.id, bytes: m.bytes }, p);
     else if (m.type === 'ops') {
-      // Ops on surfaces this level doesn't have are dropped.
+      if (m.seq <= p.acked) return;
+      p.acked = m.seq;
+      const batch = decodeOps(m.bytes, this.surfaces);
+      if (!batch) return log(this.code, who(p), 'paint ops it could not read: dropped');
+      // Ops on a face their surface doesn't have are dropped.
       const { paint, ops } = this.world;
-      const keep = m.ops.map((op) => op.rect < (paint.find(op.key)?.geo.rects.length ?? 0));
-      const t = m.t.filter((_, i) => keep[i]);
-      const valid = m.ops.filter((_, i) => keep[i]);
+      const keep = batch.ops.map((op) => op.rect < (paint.find(op.key)?.geo.rects.length ?? 0));
+      const valid = batch.ops.filter((_, i) => keep[i]);
       this.paintNow(() => valid.forEach((op) => ops.apply(op)));
       if (!valid.length) return;
-      this.broadcast({ type: 'ops', id: p.id, t, ops: valid }, p);
-      this.snap?.log.push(encode({ type: 'paint', ops: valid }));
+      const bytes = valid.length === batch.ops.length ? m.bytes : encodeOps(batch.t.filter((_, i) => keep[i]), valid, this.surfaces);
+      this.broadcast({ type: 'ops', id: p.id, bytes }, p);
+      this.snap?.log.push(encode({ type: 'paint', bytes }));
     } else if (m.type === 'ladder') {
       p.ladder = m.data;
       this.broadcast({ type: 'ladder', id: p.id, t: m.t, data: m.data }, p);
@@ -178,7 +190,7 @@ export class Session {
       p.away = m.away;
       this.broadcast({ type: 'presence', id: p.id, state: presence(p) }, p);
     }
-    else if (m.type === 'ping') this.send(p, { type: 'pong', t: m.t });
+    else if (m.type === 'ping') this.send(p, { type: 'pong', t: m.t, acked: p.acked });
     else if (m.type === 'leave') this.remove(p, 'left');
   }
 
@@ -271,7 +283,7 @@ export class Session {
       this.frozen = [];
       const t = performance.now();
       try {
-        const { pieces, raw } = await this.at(() => streamPaint(this.world.paint, { name: this.levelName }, SERVER.snapshotChunk));
+        const { pieces, raw } = await streamPaint(this.world.paint, { name: this.levelName }, SERVER.snapshotChunk);
         const frames = partFrames(pieces, SERVER.partBytes);
         const size = frames.reduce((n, f) => n + f.length, 0);
         log(this.code, `paint file: ${mb(raw)} MB of paint, ${mb(size)} MB packed, in ${((performance.now() - t) / 1000).toFixed(1)} s (${waiting()} more in line)`);
@@ -285,7 +297,7 @@ export class Session {
       } finally {
         const held = this.frozen;
         this.frozen = null;
-        this.at(() => held!.forEach((f) => f()));
+        held!.forEach((f) => f());
       }
     });
     return s;
@@ -303,7 +315,7 @@ export class Session {
   /** A change to the paint now, or after the paint file that's reading it. */
   private paintNow(fn: () => void) {
     if (this.frozen) this.frozen.push(fn);
-    else this.at(fn);
+    else fn();
   }
 
   private send(p: Player, m: ToClient) {
@@ -315,11 +327,6 @@ export class Session {
     for (const p of this.players.values()) if (p !== except) deliver(p, f);
   }
 
-  /** Runs `fn` at this session's PAINT DETAIL: PAINT.texelsPerMeter is global, and sessions may differ. */
-  private at<T>(fn: () => T): T {
-    PAINT.texelsPerMeter = this.detail;
-    return fn();
-  }
 }
 
 const presence = (p: Player): Presence => (!p.link ? 'dropped' : p.away ? 'away' : 'here');

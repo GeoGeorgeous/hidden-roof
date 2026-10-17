@@ -404,6 +404,8 @@ export const PAINT = {
    * it grows least.
    */
   dirtyRects: 8,
+  /** Paint uploaded to the GPU at most per frame (MB, about one 2048² page with its levels): a join's paint shows over a few frames, with no stall. */
+  uploadBudget: 24,
 };
 
 /** Base textures (textures.ts) are pixel art at this density, whatever the paint detail: a 48 px panel spans one 2 m module. */
@@ -446,9 +448,9 @@ export const CAPS: Record<CapId, CapSpec> = {
   spray: { name: 'SPRAY', spread: 0.1, rate: 1100, strength: 0.12, dotSize: 0.158, softness: 0.55, hissGain: 0.9, hissTone: 0.8, crosshair: 32, drips: 50, drain: 0.1, color: '#b98cf2', nozzle: 0.013 },
 };
 
-/** Paint colors, in Q/E cycling order. Black is always owned. Paint never runs out. */
+/** Paint colors, in the mouse wheel's cycling order. Black is always owned. Paint never runs out. */
 export type PaintColor = 'black' | 'white' | 'red' | 'orange' | 'yellow' | 'lime' | 'green' | 'teal' | 'cyan' | 'blue' | 'purple' | 'pink' | 'brown';
-/** Q / E order. Black is everyone's from the start; each other color is a pickup. */
+/** The mouse wheel's order. Black is everyone's from the start; each other color is a pickup. */
 export const COLOR_ORDER: PaintColor[] = ['black', 'white', 'red', 'orange', 'yellow', 'lime', 'green', 'teal', 'cyan', 'blue', 'purple', 'pink', 'brown'];
 export const COLORS: Record<PaintColor, string> = {
   black: '#1d1d22',
@@ -847,8 +849,13 @@ export const NET = {
   extrapolate: 0.25,
   /** How much faster or slower a remote player's time may run while it catches up with a better clock estimate or delay (0.1 = 10%). */
   clockRate: 0.1,
-  /** A jump in where they're shown (a late snapshot correcting a guess) is smoothed out at this rate (1/s); one longer than `teleport` (m) is not. */
+  /**
+   * A jump in where they're shown (a late snapshot correcting a guess) is smoothed out at this rate (1/s), but no
+   * faster than `glideSpeed` (m/s, on top of how they move: a big correction on a bad link would race them along);
+   * one longer than `teleport` (m) is not.
+   */
   smoothing: 12,
+  glideSpeed: 4,
   teleport: 2,
   /** A player's name tag hangs this high over their feet (m). */
   nameplateHeight: 2.1,
@@ -858,6 +865,13 @@ export const NET = {
   hudPlayers: 4,
   /** HOST or JOIN that hears nothing from the server for this long (s) before its welcome, its upload aside, gives up (a reconnect tries again). */
   connectTimeout: 15,
+  /** How often the link checks its keepalive, upload and connect timeout (s, net/server-link.ts). */
+  linkCheck: 0.25,
+  /** A dropped link tries again after this long (s), twice as long each time up to `retryMost`, while the server keeps the player. */
+  retryFirst: 1,
+  retryMost: 8,
+  /** In a session, nothing from the server for this long (s): the game closes the link and comes back in. The server pings every SERVER.ping, so this is a stall, not a slow link; a link that stalls for seconds and recovers is cheaper kept than rejoined (the paint file comes down again). */
+  serverSilence: 15,
   /** Network log entries kept for COPY NETWORK LOG (net/diagnostics.ts). */
   logLines: 80,
 };
@@ -868,9 +882,15 @@ export const SERVER = {
   /** Players in one session (docs/multiplayer-audit.md, decision 1). */
   maxPlayers: 20,
   /** A dropped player can come back as themselves for this long (s); then their stepladder goes, and a session with no one left closes. */
-  rejoinWindow: 60,
+  rejoinWindow: 180,
   /** The server pings every game this often (s), so a game notices a dead link. */
   ping: 2,
+  /**
+   * Every this often (s) the server drops a link that sent it nothing since the last time, and sends a WebSocket ping.
+   * Anything from the game counts, not only the answer to that ping: on a slow link the ping waits behind what's
+   * coming down (paint ops, a paint file) while the game's state still comes up (BL-004). HEARTBEAT overrides it.
+   */
+  heartbeat: 10,
   /** Paint runs move this many times a second on the server. */
   dripRate: 30,
   /** The largest message on a HOST link (/ws?host, bytes): the paint save it uploads is ~30 MB for a heavily painted ULTRA level. */
@@ -885,8 +905,8 @@ export const SERVER = {
   snapshotChunk: 2 ** 20,
   /** A paint file made is kept this long (s) for others who join or come back (they get the paint ops since with it). */
   snapshotKeep: 15,
-  /** A paint file travels in parts of this many bytes, so a slow link still hears from the server every few seconds (net/multiplayer.ts). */
-  partBytes: 256 * 2 ** 10,
+  /** A paint file travels in parts of this many bytes, so a slow link still hears from the server every few seconds (net/multiplayer.ts, NET.connectTimeout): 4 s a part at 8 KB/s. */
+  partBytes: 32 * 2 ** 10,
   /** While sessions are live the server logs its memory this often (s). */
   statsEvery: 300,
   /** Codes of ended sessions are remembered this long (s): joining one says it has ended, not that there's no such code. */

@@ -4,7 +4,8 @@ import { Avatar } from '../avatar/avatar';
 import { setHex } from '../hex-color';
 import type { SprayParticles } from '../spray/particles';
 import type { AvatarState } from '../avatar/pose';
-import type { Level, PropData } from '../level/level';
+import type { Level } from '../level/level';
+import type { PropData } from '../level/level-data';
 import type { PaintOp, PaintOps } from '../paint-ops';
 import type { Presence } from './protocol';
 import { decodeSnapshot, type Snapshot } from './snapshot';
@@ -233,7 +234,8 @@ export class RemotePlayer {
   /**
    * Shown where interpolation puts them, unless that jumped (a guess past the
    * newest snapshot, corrected by the next): then the jump is kept as an error
-   * that fades out, so they glide to the right place. A teleport snaps.
+   * that fades out, so they glide to the right place, never faster than
+   * NET.glideSpeed. A teleport snaps.
    */
   private smooth(dt: number) {
     const moved = this.truePos.sub(this.pos).negate();
@@ -241,7 +243,8 @@ export class RemotePlayer {
     if (!this.seen || jump.length() > NET.teleport) this.error.set(0, 0, 0);
     else if (jump.length() > 0.05) this.error.sub(jump);
     this.seen = true;
-    this.error.multiplyScalar(Math.exp(-NET.smoothing * dt));
+    const left = this.error.length();
+    this.error.setLength(left - Math.min(left * (1 - Math.exp(-NET.smoothing * dt)), NET.glideSpeed * dt));
     this.truePos.copy(this.pos);
     this.avatar.group.position.copy(this.pos).add(this.error);
   }

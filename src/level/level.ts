@@ -1,59 +1,27 @@
 import { MAX_TEXT } from '../render/ink/words';
 import * as THREE from 'three';
-import { defOf, upgraded } from '../kit';
-import type { V3 } from '../kit/pieces';
+import { defOf } from '../kit';
 import { V_MODULE, type PropDef } from '../kit/def';
 import type { PaintSystem } from '../painting';
 import { PAINT } from '../config';
 import type { Ladder } from '../player';
+import type { Finish } from '../kit/finishes';
+import type { V3 } from '../kit/pieces';
 import { DecorBatches } from './batches';
+import type { LevelData, PropData } from './level-data';
 import { buildProp, disposeProp, solidBoxes, type BuiltProp, type Emitter, type LightAnchor, type PropInstance } from './build-prop';
 import { CoverIndex } from './cover';
 import type { Piece } from '../kit/pieces';
 import { computeJoints, jointOwner, jointPieces, sameFinish, type Joint } from './joints';
-import { instanceOf, propPieces } from './prop-pieces';
+import { instanceOf, planLevel, propPieces, surfaceOwner } from './prop-pieces';
 import { column, propAt, stackContext } from './stacks';
-import type { Finish } from '../kit/finishes';
 
 // The editable level: prop instances + everything built from them (meshes,
 // colliders, ladders), auto joints between edge props, and decor batches.
 // Faces pressed against another prop are decor (level/cover.ts): when a prop
 // comes, goes or changes shape, the props and joints it touches are rebuilt.
 // The collider/ladder/solid arrays are mutated in place so the player and the
-// tools keep their references across edits.
-
-export interface PropData {
-  /**
-   * Its id for good (level format 3): paint names surfaces by it (`p<id>#k`),
-   * so a saved level keeps it through edits. Files without ids (format 2)
-   * number props in file order.
-   */
-  id?: number;
-  type: string;
-  /** Its variant (PropDef.variants), for props that have them. */
-  variant?: string;
-  pos: V3;
-  rot?: number;
-  /** Per-instance setting (PropDef.adjust), e.g. floodlight tilt in degrees. */
-  adjust?: number;
-  /** Per-instance text (PropDef.text), e.g. a sign's words. */
-  text?: string;
-  /** Its wall finish (PropDef.finishes), when not its own look. */
-  finish?: Finish;
-  /** Mirrored left to right (a wall piece flipped with R in build mode). */
-  mirror?: boolean;
-}
-
-export interface LevelData {
-  /** 4: props keep their default variant even when it changes later (format 3 files: see kit/index.ts upgraded). */
-  version: 2 | 3 | 4;
-  spawn: { pos: V3; yaw: number };
-  props: PropData[];
-  /** It has paint of its own, levels/<name>.rhhpaint (save/level-paint.ts): P in build mode writes both. */
-  paint?: boolean;
-  /** Owned by other systems (pickups). */
-  [extra: string]: unknown;
-}
+// tools keep their references across edits. The level as a file: level-data.ts.
 
 export class Level {
   readonly root = new THREE.Group();
@@ -118,6 +86,11 @@ export class Level {
     return inst;
   }
 
+  /** Every owner's prop taken away (the level starting over without being built again). */
+  clearRuntime() {
+    for (const owner of [...this.runtime.keys()]) this.setRuntime(owner, null);
+  }
+
   /** The id of an owner's runtime prop, if one stands. */
   runtimeOf(owner: string) {
     return this.runtime.get(owner);
@@ -141,12 +114,12 @@ export class Level {
   load(data: LevelData) {
     this.clear();
     this.spawn = { pos: [...data.spawn.pos], yaw: data.spawn.yaw };
-    // Create all instances first so stacking props see their neighbors when
-    // built, and list every solid box first so each prop sees what covers it.
-    for (const p of data.props) this.create(upgraded(p, data.version), false);
-    const pieces = new Map([...this.props.values()].map((inst) => [inst.id, propPieces(inst, this.props.values())]));
-    for (const inst of this.props.values()) this.cover.set(inst.id, solidBoxes(pieces.get(inst.id)!, inst.pos, inst.rot));
-    for (const inst of this.props.values()) this.build(inst, pieces.get(inst.id));
+    // All instances and their solid boxes first (as on the server), so stacking props see their neighbors and each prop what covers it.
+    const plan = planLevel(data);
+    for (const [id, inst] of plan.props) this.props.set(id, inst);
+    this.nextId = plan.next;
+    this.cover = plan.cover;
+    for (const inst of this.props.values()) this.build(inst, plan.pieces.get(inst.id));
     this.refresh();
   }
 
@@ -310,7 +283,7 @@ export class Level {
       const boxes = solidBoxes(pieces, inst.pos, inst.rot);
       if (this.cover.set(inst.id, boxes)) this.touched.push(...was, ...boxes);
     }
-    const b = buildProp(inst.id, `p${inst.id}`, pieces, inst.pos, inst.rot, this.paint, this.cover);
+    const b = buildProp(inst.id, surfaceOwner.prop(inst.id), pieces, inst.pos, inst.rot, this.paint, this.cover);
     this.root.add(b.group);
     this.built.set(inst.id, b);
     if (old) this.paint.carry(old.paint, b.paint);
@@ -366,12 +339,11 @@ export class Level {
     for (const [key, joint] of want) {
       const old = this.joints.get(key);
       if (old && sameFinish(old.joint, joint) && !touches(old.b)) continue;
-      // New, its finish changed, or what covers it: (re)built, its paint carried over.
+      // New, its finish changed, or what covers it: (re)built, its paint carried over. The old one goes first, as a
+      // prop's does (build): its paint block is free for the new one.
+      if (old) disposeProp(old.b, this.paint);
       const b = this.buildJoint(key, joint);
-      if (old) {
-        this.paint.carry(old.b.paint, b.paint);
-        disposeProp(old.b, this.paint);
-      }
+      if (old) this.paint.carry(old.b.paint, b.paint);
       this.joints.set(key, { joint, b });
     }
     this.colliders.length = 0;
@@ -393,7 +365,7 @@ export class Level {
   }
 
   private buildJoint(key: string, joint: Joint) {
-    const b = buildProp(-1, `j${key}`, jointPieces(joint), joint.pos, 0, this.paint, this.cover);
+    const b = buildProp(-1, surfaceOwner.joint(key), jointPieces(joint), joint.pos, 0, this.paint, this.cover);
     for (const o of b.group.children) o.userData.joint = key;
     this.root.add(b.group);
     return b;

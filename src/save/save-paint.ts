@@ -1,4 +1,3 @@
-import { PAINT } from '../config';
 import type { PaintSystem } from '../painting';
 import { painted } from '../paint-resample';
 import type { Rect } from '../surfaces';
@@ -40,7 +39,7 @@ function paintedFaces(paint: PaintSystem, level: { name: string }) {
   }
   const faces = parts.map((p) => p.face);
   const raw = faces.reduce((n, f) => n + faceBytes(f), 0);
-  const header = { created: new Date().toISOString(), level, density: PAINT.texelsPerMeter, surfaces, faces };
+  const header = { created: new Date().toISOString(), level, density: paint.texelsPerMeter, surfaces, faces };
   function* read(chunk: number) {
     let left = raw;
     let out = new Uint8Array(Math.min(chunk, left));

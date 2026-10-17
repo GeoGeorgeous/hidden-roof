@@ -22,8 +22,9 @@ function say(text: string) {
 
 /** Names the next step; resolves once that is on screen (not waiting for the fade). */
 export function loadStep(text: string) {
-  say(text);
-  return new Promise((done) => requestAnimationFrame(() => setTimeout(done)));
+  if (screen) say(text);
+  // A hidden tab is given no animation frames: it would wait for one until it is shown.
+  return new Promise((done) => (document.hidden ? setTimeout(done) : requestAnimationFrame(() => setTimeout(done))));
 }
 
 export function loadFailed() {

@@ -838,7 +838,7 @@ Single player stays the default and keeps build mode and F3. Multiplayer is ente
 - **Client:**
   - **MULTIPLAYER → HOST:** name, PAINT DETAIL (locked for the session), "Upload a save?" (file / use my current paint / start clean), then shows the code.
   - **MULTIPLAYER → JOIN:** name, code, a loading screen until the full snapshot is in, then spawn.
-  - In a session the ESC menu shows the code, SAVE, LEAVE. `?session` (the offline test mode from phase 3) goes. Done 2026-10-08, with steps 2–7: `src/net/protocol.ts`, `server/`, `src/net/multiplayer.ts`, `src/net/net-menu.ts`; paint ops go as JSON (exact numbers, so every client paints the same texels; ~6.5 KB/s compressed while painting nonstop) instead of section 4's packed binary.
+  - In a session the ESC menu shows the code, SAVE, LEAVE. `?session` (the offline test mode from phase 3) goes. Done 2026-10-08, with steps 2–7: `src/net/protocol.ts`, `server/`, `src/net/multiplayer.ts`, `src/net/net-menu.ts`; paint ops go as JSON (exact numbers, so every client paints the same texels; ~6.5 KB/s compressed while painting nonstop) instead of section 4's packed binary. Packed since 2026-10-14 (BL-024, `src/op-wire.ts`): u16 numbers the painter paints with too, ~23 B a stamp.
   - Reconnects on its own; the reconnect token is kept in `sessionStorage`, so a reload within 60 s rejoins as the same player, and each tab is its own player.
   - Remote paint is played at its timestamps; the remote avatar has a nameplate.
   - Closes the items carried over in 7a (#3 player ids, #4 ladder `others`, #5 session menu, #6 locked detail and session config, #10 memory log).
@@ -871,7 +871,7 @@ Phases 0–3 are done on `feat/multiplayer`: every step in section 7 through pha
 - The avatar's in-air pose waits 0.18 s (or a jump up): stepping down a stair no longer flashes the jump pose.
 - A ghost PLAY pressed during a loop restart no longer runs two loops.
 
-**Carried into phase 4 (not bugs today; they need the server or the menu).** Done since, except 1, 7 and 8, now in `docs/backlog.md` (Known, by design), where anything still open is tracked:
+**Carried into phase 4 (not bugs today; they need the server or the menu).** Done since, except 1, 7 and 8, now in `docs/known-limits.md`:
 
 | # | Item | Why it matters | Plan |
 |---|---|---|---|

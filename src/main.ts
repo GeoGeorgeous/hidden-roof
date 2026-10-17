@@ -21,21 +21,24 @@ import { paintMenu } from './save/paint-menu';
 import { WallHand } from './tools/wall-hand';
 import { GpuTimer } from './debug/gpu-timer';
 import { captureDefaults } from './debug/defaults';
-import { Settings } from './settings';
+import { pixelRatio, Settings } from './settings';
 import { saveScreenshot } from './screenshot';
 import { Input } from './input';
 import { Player } from './player';
 import { PaintSystem } from './painting';
-import { Level, type LevelData } from './level/level';
+import { Level } from './level/level';
+import type { LevelData } from './level/level-data';
+import { FrameMeter } from './frame-meter';
 import { makeSky } from './sky';
-import { buildSkyline, disposeSkyline, updateSkyline, type SkylineSettings } from './skyline';
+import { updateSkyline } from './skyline';
 import { setLinePointScale } from './city/lines';
 import { syncCityLight } from './city/material';
 import { Tools } from './tools/tools';
 import { Inventory } from './inventory/inventory';
 import { Hotbar } from './inventory/hotbar';
 import { Thumbnails } from './inventory/thumbnails';
-import { Pickups, type PickupData } from './pickups/pickups';
+import { Pickups } from './pickups/pickups';
+import { OpenLevel } from './level/open-level';
 import { Audio } from './audio';
 import { Hud } from './hud';
 import { drawsFromPlayer, frameDrawn, loadFailed, loadStep } from './loading';
@@ -57,9 +60,9 @@ if (__DEV_TOOLS__) captureDefaults();
 else HUD.perf = false;
 // Settings first: they may change the pixel scale the renderer starts with,
 // and the paint detail the level is built with.
-const settings = new Settings(applyPixelScale, () => level.rebuildAll(), rebuildCity);
+const settings = new Settings(applyPixelScale, () => level.rebuildAll(), () => opened.rebuildCity());
 const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance' });
-renderer.setPixelRatio(1 / RENDER.pixelScale);
+renderer.setPixelRatio(pixelRatio());
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.autoClear = false;
 document.body.appendChild(renderer.domElement);
@@ -112,7 +115,6 @@ function syncViewSize() {
   viewHeight = renderer.getDrawingBufferSize(new THREE.Vector2()).y;
 }
 syncViewSize();
-let skyline = new THREE.Group();
 
 const input = new Input(renderer.domElement);
 /** Nothing pressed: what the player and tools get while paused in a session. */
@@ -133,49 +135,19 @@ pickups.onCollect = (label) => {
 };
 pickups.onBlocked = (msg) => hotbar.toast(msg);
 function applyPixelScale() {
-  renderer.setPixelRatio(1 / RENDER.pixelScale);
+  renderer.setPixelRatio(pixelRatio());
   syncViewSize();
 }
 
-function loadLevel(data: LevelData) {
-  drips.clear();
-  level.load(data);
-  pickups.load(data.pickups as PickupData[] | undefined);
-  inventory.reset();
-  skylineSettings = (data.skyline as SkylineSettings | undefined) ?? {};
-  rebuildCity();
-  player.setSpawn(new THREE.Vector3(...data.spawn.pos), data.spawn.yaw);
-}
+const opened = new OpenLevel({ scene, level, pickups, inventory, drips, paint, player }, new URLSearchParams(location.search).get('level') ?? LEVELS.start);
 
-/** The city around the level, from SKYLINE + the level's own `skyline` overrides. */
-let skylineSettings: SkylineSettings = {};
-function rebuildCity() {
-  scene.remove(skyline);
-  disposeSkyline(skyline);
-  skyline = buildSkyline(level.totalBounds(), skylineSettings);
-  scene.add(skyline);
-}
-
-/** The level as a file: props, pickups and the city overrides. */
-function levelData(): LevelData {
-  return { ...level.toJSON(), pickups: pickups.toJSON(), ...(Object.keys(skylineSettings).length ? { skyline: skylineSettings } : {}) };
-}
-
-/** A level file opened in build mode. */
-function openLevel(data: LevelData, name: string) {
-  levelName = name;
-  loadLevel(data);
-}
-
-/** The level's name: from ?level=, or the file opened in build mode. Paint saves are named by it. */
-let levelName = new URLSearchParams(location.search).get('level') ?? LEVELS.start;
 /** The level is built, lit and painted (loading.ts): until then the game doesn't run. */
 let loaded = false;
 // Signs measure their text when they are built: wait for the sign font first.
-Promise.all([fetchLevel(levelName), jpFontReady()])
+Promise.all([fetchLevel(opened.name), jpFontReady()])
   .then(async ([data]) => {
     await loadStep('Building the roof');
-    loadLevel(data);
+    opened.load(data);
     // The level's merged meshes first: their shaders are most of what's compiled.
     level.flush();
     // Where the browser compiles shaders in parallel, they compile during the next steps.
@@ -185,7 +157,7 @@ Promise.all([fetchLevel(levelName), jpFontReady()])
     await loadStep('Lighting the lamps');
     baker.update(0, player.position);
     await loadStep('Putting up the paint');
-    await putLevelPaint(paint, drips, levelName, data);
+    await putLevelPaint(paint, drips, opened.name, data);
     loaded = true;
     // A reload in a session goes back into it (multiplayer.ts), with the session's paint.
     net.resume();
@@ -216,8 +188,8 @@ input.escapeResumes = () => hud.menu.escape();
 input.escapeReleased = () => hud.menu.escapeReleased();
 hud.setLocked(false);
 hud.menu.setSettings(settings.sections());
-const paintFile = paintMenu(hud.menu, paint, drips, () => levelName);
-const net = multiplayerMenu(hud.menu, hotbar, { scene, camera, level, paint, paintOps, drips, player, inventory, pickups, tools, levelData: () => ({ data: levelData(), name: levelName }), levelPaint: () => levelPaintOf(levelName), openLevel, lockDetail: (tpm) => settings.lockPaintDetail(tpm) }, () => levelName, paintFile);
+const paintFile = paintMenu(hud.menu, paint, drips, () => opened.name);
+const net = multiplayerMenu(hud.menu, hotbar, { scene, camera, level, paint, paintOps, drips, player, inventory, pickups, tools, levelData: () => ({ data: opened.toJSON(), name: opened.name }), levelPaint: () => levelPaintOf(opened.name), openLevel: (d, n) => opened.open(d, n), restartLevel: () => opened.restart(), lockDetail: (tpm) => settings.lockPaintDetail(tpm) }, () => opened.name, paintFile);
 tools.onCapChange = (name) => hud.showCapTag(name);
 tools.onColorChange = (color) => hud.showColorTag(color, COLORS[color]);
 
@@ -225,15 +197,12 @@ window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
-  syncViewSize();
+  applyPixelScale(); // a zoom changes devicePixelRatio
 });
 
 const eye = new THREE.Vector3();
 const timer = new THREE.Timer();
-let fpsFrames = 0;
-let fpsTime = 0;
-let fps = 0;
-let frameMs = 0;
+const meter = new FrameMeter();
 let rainTime = 0;
 let fov = RENDER.fov;
 const tagPos = new THREE.Vector3();
@@ -244,23 +213,19 @@ const fixedStep: { dt: number; script: (() => void) | null } = { dt: 0, script: 
 let drawnAt = -Infinity;
 
 function frame(time: number) {
-  if (!loaded) {
-    requestAnimationFrame(frame);
-    return;
-  }
+  // First: a frame that throws must not stop the game (and the session's check for a silent server with it).
+  requestAnimationFrame(frame);
+  if (!loaded) return;
   // Frame rate limit: skip display refreshes until a frame is due. Frames are
   // due one interval after the last was due, so the average is exact on any
   // display rate; after a stall it starts over.
   if (RENDER.maxFps > 0 && !fixedStep.dt) {
     const interval = 1000 / RENDER.maxFps;
     const since = time - drawnAt;
-    if (since < interval - 0.5) {
-      requestAnimationFrame(frame);
-      return;
-    }
+    if (since < interval - 0.5) return;
     drawnAt = since < interval * 2 ? drawnAt + interval : time;
   }
-  const t0 = performance.now();
+  meter.start();
   timer.update(time);
   const delta = timer.getDelta();
   fixedStep.script?.();
@@ -308,7 +273,7 @@ function frame(time: number) {
   smoke.setPointScale(pointScale);
   setLinePointScale(pointScale);
   sky.position.copy(at);
-  updateSkyline(skyline, at);
+  updateSkyline(opened.city, at);
   (scene.fog as THREE.FogExp2).density = ATMOS.fogDensity;
   setHex((scene.fog as THREE.FogExp2).color, INK.paper);
   syncSharedUniforms(time / 1000);
@@ -375,20 +340,13 @@ function frame(time: number) {
 
   input.endFrame();
 
-  fpsFrames++;
-  fpsTime += delta; // real time: dt is clamped, which would overstate fps below 20
-  frameMs = frameMs * 0.9 + (performance.now() - t0) * 0.1;
-  if (fpsTime >= 0.5) {
-    fps = fpsFrames / fpsTime;
-    fpsFrames = 0;
-    fpsTime = 0;
-  }
+  meter.end(delta);
+  const { fps, frameMs } = meter;
   // The HUD's GPU line keeps the timer running with the panel closed.
   if (HUD.perf && HUD.perfGpu) gpuTimer.enabled = true;
   const gpu = !HUD.perfGpu ? undefined : gpuTimer.supported ? gpuTimer.total(VOLUMETRICS.enabled ? ['scene', 'volumetrics', 'post'] : ['scene', 'post']) : null;
   hud.setPerf({ fps, frameMs, gpu, calls, triangles, textureBytes: paint.gpu.textureBytes + baker.stats.textureBytes + staticTextureBytes(), net: net.stats });
   dev?.report({ fps, frameMs, calls, triangles, interval: delta * 1000 });
-  requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 
@@ -399,5 +357,5 @@ function toScreen(p: THREE.Vector3) {
 
 // Dev tools (build mode, F3, window.game): single player only, and not in the player build (npm run build).
 let dev: DevTools | undefined;
-const game = { city: () => skyline, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, hotbar, pickups, paint, paintOps, net, paintFile, seedPaintRandom, fixedStep, session, level, renderer, input, hud, scene, viewScene, gpuTimer, PLAYER, loadLevel, rebuildCity, levelData, levelName: () => levelName, openLevel, loaded: () => loaded };
+const game = { city: () => opened.city, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, hotbar, pickups, paint, paintOps, net, paintFile, seedPaintRandom, fixedStep, session, level, renderer, input, hud, scene, viewScene, gpuTimer, PLAYER, loadLevel: (d: LevelData) => opened.load(d), rebuildCity: () => opened.rebuildCity(), levelData: () => opened.toJSON(), levelName: () => opened.name, openLevel: (d: LevelData, n: string) => opened.open(d, n), loaded: () => loaded };
 if (__DEV_TOOLS__) void import('./dev/devtools').then((m) => (dev = new m.DevTools(game)));

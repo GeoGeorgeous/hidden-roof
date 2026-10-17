@@ -249,6 +249,15 @@ function load(): Saved {
   }
 }
 
+/**
+ * The renderer's pixel ratio: PIXEL SCALE, and never more pixels than the screen has. The buffer is
+ * in CSS pixels, and a page zoomed out (Ctrl + wheel, remembered per site) has more of them than the
+ * screen: a 3080 Ti drew 3840×2160 for a 2560×1440 screen. At zoom 100% and above nothing changes.
+ */
+export function pixelRatio() {
+  return Math.min(1, devicePixelRatio) / RENDER.pixelScale;
+}
+
 /** "Ultra  1.0 cm": a PAINT DETAIL with the size of one texel (the multiplayer page's too). */
 export function paintDetailName(d: PaintDetail) {
   return `${sentence(d)}  ${(100 / PAINT_DETAIL[d]).toFixed(1)} cm`;

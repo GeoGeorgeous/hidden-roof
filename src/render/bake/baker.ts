@@ -1,11 +1,11 @@
 import * as THREE from 'three';
-import { ATMOS, LIGHTMAP, LIGHTS, NEON_COLORS, PAINT } from '../../config';
+import { ATMOS, LIGHTMAP, LIGHTS, NEON_COLORS } from '../../config';
 import type { BuiltProp } from '../../level/build-prop';
 import { lampLevel } from '../flicker';
 import { bakeUniforms } from './glsl';
 import { makeLamps, type Lamp } from './lamps';
 import { Occluders } from './occluders';
-import { lampSpheres, reaches, shadowCones, type Reach } from './reach';
+import { hull, lampSpheres, reaches, shadowCones, type Reach } from './reach';
 import { layoutLightmap } from './layout';
 import { LightPages } from './light-pages';
 import { bakeDecor, bakeSurface, dropReceiver, type Receiver, type SurfaceReceiver } from './receivers';
@@ -37,7 +37,7 @@ export class LightBaker {
   onRelayout: () => void = () => {};
   /** Surfaces' light atlases, blocks of shared pages. */
   private pages = new LightPages();
-  readonly stats = { textureBytes: 0, pending: 0, ms: 0 };
+  readonly stats = { textureBytes: 0, pending: 0, ms: 0, cones: 0 };
   private owners = new Map<BuiltProp, Owner>();
   private nextId = 1;
   private pending = new Set<Receiver>();
@@ -87,7 +87,7 @@ export class LightBaker {
       if (current.has(b)) continue;
       any = true;
       if (!same.has(b)) {
-        changed.push(...b.occluders);
+        changed.push(...hull(b.occluders));
         lampSpheres(b, reach);
       }
       for (const r of o.receivers) {
@@ -102,7 +102,7 @@ export class LightBaker {
       if (this.owners.has(b)) continue;
       this.register(b);
       if (!same.has(b)) {
-        changed.push(...b.occluders);
+        changed.push(...hull(b.occluders));
         lampSpheres(b, reach);
       }
       added++;
@@ -114,6 +114,7 @@ export class LightBaker {
       return;
     }
     shadowCones(this.owners.keys(), changed, reach);
+    this.stats.cones = reach.cones.length;
     this.forEachReceiver((r) => {
       if (reaches(reach, r.bounds)) this.queue(r);
     });
@@ -165,7 +166,7 @@ export class LightBaker {
 
   /** A surface's light atlas at the current density, and its block (also on the surface, for the level's merged meshes). */
   private layOut(r: SurfaceReceiver) {
-    r.layout = layoutLightmap(r.surface.geo, PAINT.texelsPerMeter, this.density);
+    r.layout = layoutLightmap(r.surface.geo, r.surface.geo.texelsPerMeter, this.density);
     // One set of pages for the whole level: light is small, and every surface sharing them keeps the level's draws few.
     r.slot = r.surface.light = this.pages.place(r.layout.w, r.layout.h, '');
   }
