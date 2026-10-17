@@ -91,7 +91,11 @@ export class Input {
     );
     document.addEventListener('pointerlockchange', () => {
       this.locked = document.pointerLockElement === this.element;
-      if (!this.locked) {
+      // Keys pressed while paused belong to the menu: the Enter that resumed must not reach build mode in the first frame back.
+      if (this.locked) {
+        this.pressed.clear();
+        this.typed.clear();
+      } else {
         this.lmb = this.rmb = false;
         this.down.clear();
       }

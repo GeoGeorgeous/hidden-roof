@@ -344,6 +344,36 @@ await check('input: K takes a screenshot only while playing, not on the title or
   return r.paused === 0 && r.playing === 1 ? null : JSON.stringify(r);
 });
 
+await check('input: Enter that resumes from the pause screen doesn\'t reach build mode (its sign text prompt), even when the lock is back before the next frame', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const canvas = g.renderer.domElement;
+    const press = (code) => (window.dispatchEvent(new KeyboardEvent('keydown', { code })), window.dispatchEvent(new KeyboardEvent('keyup', { code })));
+    // The browser's pointer lock, as it reports it.
+    const lock = (on) => (Object.defineProperty(document, 'pointerLockElement', { get: () => (on ? canvas : null), configurable: true }), document.dispatchEvent(new Event('pointerlockchange')));
+    let prompts = 0;
+    window.prompt = () => (prompts++, null);
+    lock(true);
+    press('KeyB');
+    await steps((f) => f === 1);
+    const building = g.build.active;
+    lock(false);
+    await steps((f) => f === 1);
+    g.build.status = '';
+    press('Enter');
+    lock(true);
+    await steps((f) => f === 1);
+    const out = { building, prompts, status: g.build.status };
+    press('KeyB');
+    await steps((f) => f === 1);
+    lock(false);
+    delete document.pointerLockElement;
+    delete window.prompt;
+    return out;
+  });
+  return r.building && r.prompts === 0 && r.status === '' ? null : JSON.stringify(r);
+});
+
 await check('input: either Shift sprints, and flies fast in build mode', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
