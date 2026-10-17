@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { Audio } from '../audio';
 import { CAPS, CROSSHAIR, MARKER, ROLLER, SPONGE, type PaintColor } from '../config';
-import type { Input } from '../input';
+import type { Action, Input } from '../input';
 import { SLOTS, type Inventory, type SizedTool, type Tool } from '../inventory/inventory';
 import type { PaintSystem } from '../painting';
 import { SprayTool } from '../spray/spray-tool';
@@ -69,12 +69,13 @@ export class Tools {
     this.sponge.sway.position.copy(this.spray.model.sway.position);
     this.sponge.sway.rotation.copy(this.spray.model.sway.rotation);
     if (enabled) {
-      SLOTS.forEach((_, i) => input.wasPressed(`Digit${i + 1}`) && inv.select(i));
-      if (SLOTS.some((_, i) => input.wasPressed(`Digit${i + 1}`))) this.audio.click();
+      const slot = (i: number) => input.justPressed(`slot${i + 1}` as Action);
+      SLOTS.forEach((_, i) => slot(i) && inv.select(i));
+      if (SLOTS.some((_, i) => slot(i))) this.audio.click();
       const t = inv.tool;
-      const wheel = Math.sign(input.wheelSteps);
+      const wheel = input.step('prev', 'next');
       // Held, they keep stepping (the key's auto-repeat), as in build mode.
-      const qe = (input.wasTyped('KeyE') ? 1 : 0) - (input.wasTyped('KeyQ') ? 1 : 0);
+      const qe = input.step('sizeDown', 'sizeUp');
       if (wheel && (t === 'can' || t === 'marker' || t === 'roller') && inv.cycleColor(wheel)) this.audio.click();
       if (qe && t === 'can' && inv.cycleCap(qe)) this.audio.click();
       if (qe && isSized(t)) {
@@ -91,7 +92,7 @@ export class Tools {
     // After the marker: they share the scribble sound, and these only touch it while in hand or just put away.
     this.roller.update(dt, input, camera, eye, tool === 'roller', inv.color, inv.size.roller);
     this.sponge.update(dt, input, camera, eye, tool === 'sponge', inv.size.sponge / 2);
-    const pressing = tool !== null && tool !== 'ladder' && input.lmb && input.locked;
+    const pressing = tool !== null && tool !== 'ladder' && input.held('use') && input.locked;
     this.action = tool === 'can' && this.spray.shaking ? 'shake' : !pressing ? null : tool === 'roller' ? 'roll' : tool === 'sponge' ? 'scrub' : 'spray';
   }
 

@@ -1,9 +1,21 @@
-import { RENDER, WHEEL } from './config';
+import { BINDINGS, RENDER, WHEEL } from './config';
 import { enterGameFullscreen } from './fullscreen';
 
 // Keyboard + mouse state with pointer lock. Edge-triggered presses are consumed per frame.
+// Play asks by action (BINDINGS); build mode and the dev keys ask by raw code.
+
+export type Action = keyof typeof BINDINGS;
 
 const PREVENT = new Set(['Space', 'Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown', 'Backspace', 'Minus', 'Equal', 'KeyP', 'KeyO', 'KeyZ', 'KeyW', 'KeyS', 'KeyD', 'KeyA']);
+
+/** Bindings whose name isn't the key's code without Key or Digit. */
+const NAMES: Record<string, string> = { Mouse0: 'LMB', Mouse2: 'RMB', WheelUp: 'WHEEL', WheelDown: 'WHEEL', ControlLeft: 'CTRL', ControlRight: 'CTRL', ShiftLeft: 'SHIFT', ShiftRight: 'SHIFT' };
+
+/** The action's first binding as the game writes it: HOLD [RMB] TO SHAKE. */
+export function label(action: Action) {
+  const code = BINDINGS[action][0];
+  return NAMES[code] ?? code.replace(/^(Key|Digit)/, '').toUpperCase();
+}
 
 /** A text field, number field, select or editable element: keys typed there belong to it. */
 function typingIn(target: EventTarget | null) {
@@ -132,6 +144,34 @@ export class Input {
       // Refused (see above).
     }
     if (RENDER.fullscreen) void enterGameFullscreen();
+  }
+
+  /** Any of the action's bindings held. */
+  held(action: Action) {
+    return BINDINGS[action].some((code) => (code === 'Mouse0' ? this.lmb : code === 'Mouse2' ? this.rmb : this.down.has(code)));
+  }
+
+  /** Any of the action's bindings pressed this frame. */
+  justPressed(action: Action) {
+    return BINDINGS[action].some((code) => this.hit(code, this.pressed));
+  }
+
+  /** Pressed this frame, including keyboard auto-repeat. */
+  repeated(action: Action) {
+    return BINDINGS[action].some((code) => this.hit(code, this.typed));
+  }
+
+  /** 1 for `more` (repeated), -1 for `less`, 0 for neither or both. */
+  step(less: Action, more: Action) {
+    return (this.repeated(more) ? 1 : 0) - (this.repeated(less) ? 1 : 0);
+  }
+
+  /** A mouse button clicked or a wheel step taken this frame; else the key in `keys`. */
+  private hit(code: string, keys: Set<string>) {
+    if (code.startsWith('Mouse')) return this.clicks.has(Number(code.slice(5)));
+    if (code === 'WheelDown') return this.wheelSteps > 0;
+    if (code === 'WheelUp') return this.wheelSteps < 0;
+    return keys.has(code);
   }
 
   isDown(code: string) {
