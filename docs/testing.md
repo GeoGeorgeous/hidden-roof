@@ -36,7 +36,8 @@ The headless tests always draw with SwiftShader, on the CPU: a frame at 1280×72
 ## How the tests stay reliable
 
 - **Deterministic.** Game logic in a test runs on fixed steps (`window.game.fixedStep`: a dt and a script per frame), never on the wall clock. Randomness is seeded (`seedPaintRandom`, before every game check too; the ghost's `link.random`). Waits are for a state (`gameReady`, `waitForFunction`), never fixed sleeps. A check that can pass for the wrong reason shows it can fail (the ghost's bad-link check also plays unsmoothed, which must fail).
-- **Side by side.** Each run starts its own Vite server (the next free port from 5180) and game servers on free ports (`freePort`), so agents in other worktrees can test at the same time. Sharing the CPU only slows a run (pages get 2 min to load, a reload too: `openTestBrowser` sets it, Playwright's own is 30 s).
+- **Apart.** Each run starts its own Vite server (the next free port from 5180), with its dependency cache in its worktree (`.cache/vite-test`, never the linked `node_modules`), and game servers on free ports (`freePort`). Pages get 2 min to load, a reload too (`openTestBrowser` sets it, Playwright's own is 30 s).
+- **One at a time.** On one machine, browser test runs go one after another. Two SwiftShader runs at once starve each other: on 2026-10-18 a game check got no frame for 30 s, a page never loaded, and a third pair froze WSL (audit F8.20).
 - **Not drawing.** Pages that need no picture stub `renderer.render`: SwiftShader drawing is most of a browser test's time.
 - **No setup.** Chromium's system libraries missing here come from `~/.local/pwlibs`: `apt-get download libnspr4 libnss3 libasound2t64`, then `dpkg -x` each into it (or `npx playwright install-deps chromium`, with sudo).
 
