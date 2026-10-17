@@ -1205,3 +1205,39 @@ The 1.4.0 groundwork audit: 90 findings in 8 modules (release, performance, inpu
 - source: audit 2026-10-17 (F1.8)
 
 Once the roof's level paint is dropped (BL-090), nothing in the game teaches the controls (the menus and HUD don't name the wheel or Q/E). Do: a controls screen; it can share its table with the key bindings screen (audit F3.13).
+
+### One play state module; Esc and Enter routed by it
+- id: BL-095
+- type: refactor
+- status: Requested
+- priority: Medium
+- size: M
+- area: input
+- release: next
+- source: audit 2026-10-17 (F8.2, F3.9, S3.2)
+
+Play state is spread over `Input.locked`, `main.ts` (paused, frozen, `yours`/`noInput`), DevTools (panel, building), the pause menu (started, debugOpen) and three "in a session" flags (`session.multiplayer`, `Multiplayer.inSession`, `PauseMenu.session`). Esc is handled in four places with a check that changes state (`escapeResumes`), and Enter has its own listener while Input also records it (S3.1's F3.4). Do: one module owns locked, panel open, building, in a session and started, and derives playing, frozen, the input play gets and what the menu shows; no DOM, tested in Node (`npm test`). The browser's pointer lock and a test lock are its two adapters: the tests start play one way. While paused, Esc and Enter go to the menu through it (PauseMenu `back()`/`primary()` say what they did) and never into the game's keys; EscHold keeps its listener. No behavior change. Audit session S3.6.
+
+### Input action map
+- id: BL-096
+- type: refactor
+- status: Requested
+- priority: Medium
+- size: S
+- area: input
+- release: next
+- source: audit 2026-10-17 (F3.10, S3.2)
+
+Play code reads physical key codes (~25 reads in 10 files) and the `PREVENT` list repeats them. Do: `BINDINGS` in `config.ts` (action → codes; mouse buttons and wheel as pseudo-codes); Input answers held / pressed / repeated(action) and label(action). Build mode, F3 and F2/F8/F9 stay raw codes (dev-only); Esc and Enter are reserved. No behavior change; golden paint identical. Then BL-081 blocks what play binds, while playing. Groundwork for BL-018 and BL-092. Audit session S3.3, after S3.6.
+
+### main.ts combines the shared callback slots
+- id: BL-097
+- type: refactor
+- status: Requested
+- priority: Low
+- size: S
+- area: core
+- release: next
+- source: audit 2026-10-17 (F8.10, S3.2)
+
+Three slots are wrapped or replaced by a second module, so what they do depends on construction order (DevTools arrives by async import): `tools.ladder.others` (Multiplayer, then DevTools adds the ghost), `input.escapeResumes` (main, then DevTools), `paintFile.save` (paintMenu, then net-menu). Do: main.ts sets each once, combining what the modules offer; the one-at-a-time SAVE promise moves into Multiplayer beside `requestSave`; `escapeResumes` goes with BL-095. With BL-095, in audit session S3.6.
