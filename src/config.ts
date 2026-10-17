@@ -553,7 +553,8 @@ export interface BrowserGuard {
 export const BROWSER_GUARDS: readonly BrowserGuard[] = [
   { event: 'keydown', when: 'playing', keys: 'bound', why: 'Space would scroll; the game has the keys' },
   { event: 'keydown', when: 'playing', keys: ['Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown', 'Backspace'], why: 'scrolling, focus, going back' },
-  { event: 'keydown', when: 'playing', ctrl: { except: [] }, why: 'Ctrl is crouch: Ctrl+W, Ctrl+D, Ctrl+S would close, bookmark, save' },
+  // F5, Ctrl+R and F11 stay the browser's: a reload asks first while playing (beforeunload below).
+  { event: 'keydown', when: 'playing', ctrl: { except: ['KeyR'] }, why: 'Ctrl is crouch: Ctrl+W, Ctrl+D, Ctrl+S would close, bookmark, save' },
   { event: 'keydown', when: 'always', keys: ['F3'], why: 'the F3 panel, not find' },
   { event: 'keydown', when: 'always', keys: ['Equal', 'Minus', 'Digit0', 'NumpadAdd', 'NumpadSubtract', 'Numpad0'], ctrl: { except: [] }, why: 'zoom: zooming out makes the drawing buffer bigger (BL-026)' },
   { event: 'wheel', when: 'always', ctrl: { except: [] }, why: 'zoom: Ctrl+wheel, and a trackpad pinch (a wheel with Ctrl in Chromium and Firefox)' },
