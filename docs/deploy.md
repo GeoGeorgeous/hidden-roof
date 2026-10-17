@@ -127,8 +127,7 @@ The design is in `docs/multiplayer-audit.md` (sections 0, 4, 5, 6.4, 7, 8). The 
 - `curl -I` on a file under `/assets/` → `immutable`. With `-H 'Accept-Encoding: gzip'` → `content-encoding` is set.
 - `curl -I https://roof.hidden.haus/levels/nope.json` → 404, not `index.html`.
 - `curl -sI https://roof.hidden.haus/ | grep -o "script-src[^;]*"` shows the hash in `<apps>/roof/www/csp-hash.txt`, and the browser console shows no CSP error.
-- `curl -I https://roof.hidden.haus/levels/roof.rhhpaint` → 200 (the level's own paint; `roof.json` says `"paint": true`).
 - `curl https://roof.hidden.haus/ws` → `roof server · protocol <n>`, the same `PROTOCOL` as the game deployed (`src/net/protocol.ts`).
-- In a browser: no 404s, `roof.json`, `roof.rhhpaint` and the fonts load, the console is clean, the game starts with the hints on the wall in front of the spawn.
+- In a browser: no 404s, `roof.json` and the fonts load, the console is clean, the game starts at the spawn.
 - `scripts/smoke.mjs <url>` uses `window.game` and F3, so it only works against the dev server or `npm run build:dev` output, not the player build.
 - Once `/ws` exists: `docker compose ps roof` is healthy, and in two browser windows HOST shows a code that JOIN accepts.
