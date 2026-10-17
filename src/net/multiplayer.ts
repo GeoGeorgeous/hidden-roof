@@ -33,8 +33,6 @@ const now = () => performance.now() / 1000;
 export class Multiplayer {
   status: NetStatus = { state: 'off' };
   onStatus: (s: NetStatus) => void = () => {};
-  /** The session's paint as a file (SAVE); null: the server couldn't make one. */
-  onSave: (bytes: Uint8Array | null, levelName: string) => void = () => {};
   /** Someone joined or left the session. */
   onPlayer: (name: string, joined: boolean) => void = () => {};
   /** What's under way, for the player to watch (UPLOADING PAINT 40%…); null when it's done. */
@@ -55,6 +53,8 @@ export class Multiplayer {
   /** The session's surfaces, as paint ops name them. */
   private surfaces = new SurfaceIndex([]);
   private ladderId: number | undefined;
+  /** SAVE on its way: a second SAVE meanwhile waits for the same file. */
+  private saving: { promise: Promise<Uint8Array>; done: (bytes: Uint8Array) => void; fail: (e: Error) => void } | null = null;
   /** The inventory's version last sent. */
   private carried = -1;
   private retry: { until: number; wait: number; tries: number } | null = null;
@@ -64,7 +64,6 @@ export class Multiplayer {
 
   constructor(private g: MultiplayerContext) {
     this.remotes = new Remotes(g, this.log);
-    g.tools.ladder.others = () => this.remotes.shown;
     document.addEventListener('visibilitychange', () => this.link?.live && this.send({ type: 'away', away: document.hidden }));
   }
 
@@ -73,8 +72,9 @@ export class Multiplayer {
     return this.remotes.names;
   }
 
-  get inSession() {
-    return this.joined !== null;
+  /** Where the other players shown stand (a stepladder can't go there). */
+  get shown() {
+    return this.remotes.shown;
   }
 
   /** In a session: everyone in it, us first, with their paint colors (null: not known yet). */
@@ -103,10 +103,23 @@ export class Multiplayer {
     if (s) this.connect({ type: 'join', protocol: PROTOCOL, name: s.name, code: s.code, token: s.token });
   }
 
-  /** SAVE: the server sends the session's paint (onSave). */
-  requestSave() {
-    this.onProgress('Saving paint…');
-    this.send({ type: 'save' });
+  /** SAVE in a session: the session's paint, as a file the server makes. One request at a time. */
+  savePaint() {
+    if (!this.saving) {
+      let done!: (bytes: Uint8Array) => void, fail!: (e: Error) => void;
+      const promise = new Promise<Uint8Array>((ok, no) => ((done = ok), (fail = no)));
+      this.saving = { promise, done, fail };
+      this.onProgress('Saving paint…');
+      this.send({ type: 'save' });
+    }
+    return this.saving.promise;
+  }
+
+  /** The SAVE on its way gets its file, or fails with `error`. */
+  private saved(bytes: Uint8Array | null, error = 'The server is busy: save again later') {
+    if (bytes) this.saving?.done(bytes);
+    else this.saving?.fail(new Error(error));
+    this.saving = null;
   }
 
   leave() {
@@ -222,7 +235,7 @@ export class Multiplayer {
     }
     else if (m.type === 'save') {
       this.onProgress(null);
-      this.onSave(file ?? null, this.joined.levelName);
+      this.saved(file ?? null);
     }
     else if (m.type === 'pong') {
       this.net.ping = now() - m.t;
@@ -315,6 +328,8 @@ export class Multiplayer {
   }
 
   private setStatus(s: NetStatus) {
+    // Out of the session (or reconnecting) before the server sent its paint.
+    if (s.state !== 'in' && this.saving) this.saved(null, 'The link dropped before the paint came: save again');
     if (s.state === 'failed' || s.state === 'off') this.log.add(`status: ${s.state}${s.state === 'failed' ? ` ${s.reason}${s.detail ? ` (${s.detail})` : ''}` : ''}`);
     this.status = s;
     this.onStatus(s);

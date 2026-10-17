@@ -1222,7 +1222,7 @@ Each `npm run test:mp` makes Vite print `[Unhandled error] TypeError: Cannot rea
 ### One play state module; Esc and Enter routed by it
 - id: BL-095
 - type: refactor
-- status: Requested
+- status: Done
 - priority: Medium
 - size: M
 - area: input
@@ -1246,7 +1246,7 @@ Play code reads physical key codes (~25 reads in 10 files) and the `PREVENT` lis
 ### main.ts combines the shared callback slots
 - id: BL-097
 - type: refactor
-- status: Requested
+- status: Done
 - priority: Low
 - size: S
 - area: core

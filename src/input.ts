@@ -23,24 +23,22 @@ export class Input {
   rmb = false;
   /** Mouse buttons (0 left, 1 middle, 2 right) pressed this frame. */
   private clicks = new Set<number>();
-  locked = false;
+  private isLocked = false;
   onLockChange: (locked: boolean) => void = () => {};
-  /** While paused, on Esc: true when it should go back to the game (on the pause screen, or a panel holds the mouse, as F3 does). */
-  escapeResumes: () => boolean = () => false;
-  /** While paused, on releasing Esc: true when it should go back to the game (a press on the pause screen that didn't leave fullscreen). */
-  escapeReleased: () => boolean = () => false;
+  /** A key went down or up: true when it's the menu's (Esc; Enter on the pause menu, play-state.ts), so it isn't a game key. */
+  onMenuKey: (code: string, down: boolean, repeat: boolean) => boolean = () => false;
 
   /** Without an element nothing ever reaches it: the player's input while paused in a session. */
   constructor(private element?: HTMLElement) {
     if (!element) return;
     window.addEventListener('keydown', (e) => {
       // Typing into a field (the session code, a name, a number in F3) is not playing: a K must not take a screenshot.
-      if (typingIn(e.target) && e.code !== 'Escape' && e.code !== 'F3') return;
+      // Esc and F3 still work there, and Enter still runs the page's primary button.
+      const typing = typingIn(e.target);
+      if (typing && !['Escape', 'F3', 'Enter', 'NumpadEnter'].includes(e.code)) return;
       if (PREVENT.has(e.code) && this.locked) e.preventDefault();
       if (this.locked && (e.ctrlKey || e.metaKey)) e.preventDefault();
-      // With keyboard lock the browser no longer releases the mouse on Esc; do it ourselves.
-      if (e.code === 'Escape' && this.locked) document.exitPointerLock();
-      else if (e.code === 'Escape' && !e.repeat && this.escapeResumes()) this.requestLock();
+      if (this.onMenuKey(e.code, true, e.repeat) || (typing && e.code !== 'F3')) return;
       if (e.code === 'F3') e.preventDefault();
       if (!e.repeat) {
         this.pressed.add(e.code);
@@ -52,7 +50,7 @@ export class Input {
     });
     window.addEventListener('keyup', (e) => {
       this.down.delete(e.code);
-      if (e.code === 'Escape' && !this.locked && this.escapeReleased()) this.requestLock();
+      this.onMenuKey(e.code, false, false);
     });
     // Without the keyboard lock (windowed, refused, not Chromium) the browser keeps Ctrl+W:
     // crouch + forward would close the tab. While playing, ask before leaving instead.
@@ -99,18 +97,26 @@ export class Input {
       },
       { passive: true },
     );
-    document.addEventListener('pointerlockchange', () => {
-      this.locked = document.pointerLockElement === this.element;
-      // Keys pressed while paused belong to the menu: the Enter that resumed must not reach build mode in the first frame back.
-      if (this.locked) {
-        this.pressed.clear();
-        this.typed.clear();
-      } else {
-        this.lmb = this.rmb = false;
-        this.down.clear();
-      }
-      this.onLockChange(this.locked);
-    });
+    document.addEventListener('pointerlockchange', () => this.setLocked(document.pointerLockElement === this.element));
+  }
+
+  /** The pointer is locked to the game: playing. */
+  get locked() {
+    return this.isLocked;
+  }
+
+  /** The pointer lock came or went: the browser's (pointerlockchange), or a test's (the one way tests start and stop play). */
+  setLocked(locked: boolean) {
+    this.isLocked = locked;
+    // Keys pressed while paused belong to the menu: the Enter that resumed must not reach build mode in the first frame back.
+    if (locked) {
+      this.pressed.clear();
+      this.typed.clear();
+    } else {
+      this.lmb = this.rmb = false;
+      this.down.clear();
+    }
+    this.onLockChange(locked);
   }
 
   /**

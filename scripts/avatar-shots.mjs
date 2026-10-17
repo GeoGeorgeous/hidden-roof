@@ -57,7 +57,7 @@ await page.evaluate(() => {
   g.player.fly = true;
   // No first-person hands and tools.
   g.viewScene.visible = false;
-  g.input.locked = true;
+  g.input.setLocked(true);
   g.live.avatarToggle();
   g.live.avatarNext();
 });

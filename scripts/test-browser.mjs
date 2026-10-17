@@ -107,8 +107,7 @@ export async function startPlaying(page, url) {
   await gameReady(page, 3);
   await page.evaluate(() => {
     const g = window.game;
-    g.input.locked = true;
-    g.hud.setLocked(true);
+    g.input.setLocked(true);
   });
   return { errors, warnings };
 }

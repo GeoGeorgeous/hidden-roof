@@ -35,11 +35,11 @@ try {
     const frames = (n, each) => new Promise((done) => { let f = 0; g.fixedStep.script = () => { each(f); if (++f === n) { g.fixedStep.script = null; done(); } }; });
     g.inventory.addColor('red');
     g.hud.showColorTag('red', g.config.COLORS.red);
-    g.input.locked = true;
+    g.input.setLocked(true);
     g.fixedStep.dt = 1 / 60;
     await frames(20, (f) => (g.input.lmb = f < 10));
     g.fixedStep.dt = 0;
-    g.input.locked = false;
+    g.input.setLocked(false);
   });
   // A download the way files.ts makes one: a blob link.
   const download = page.waitForEvent('download');

@@ -180,8 +180,7 @@ function pageHelpers() {
     setUp() {
       const g = window.game;
       g.renderer.render = () => {};
-      g.input.locked = true;
-      g.hud.setLocked(true);
+      g.input.setLocked(true);
       g.fixedStep.dt = 1 / 60;
     },
     /** Every painted surface's paint, and totals. */
