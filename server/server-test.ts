@@ -318,23 +318,31 @@ assert.doesNotMatch(lines, /"A" #1 out: left[^]*"A" #1 dropped/);
 
 
 // The heartbeat (BL-004), on a server of its own beating every second: a game that keeps sending stays though it never
-// answers a ping (on a slow link the ping waits behind what's coming down); a silent one is dropped.
+// answers a ping (on a slow link the ping waits behind what's coming down); a silent one is dropped. Before its hello a
+// link has SERVER.helloTimeout: a game busy loading may send it a few beats late.
 {
   const port = await freePort();
   const beating = spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(port), HEARTBEAT: '1' }, stdio: ['ignore', 'pipe', 'inherit'] });
   try {
     await new Promise((ready) => beating.stdout!.once('data', ready));
-    const open = () => new Promise<Ws>((done) => new Ws(`ws://localhost:${port}/ws`, { autoPong: false }).on('open', function (this: Ws) { done(this); }));
-    const [talking, silent] = await Promise.all([open(), open()]);
+    const open = (ip: string) => new Promise<Ws>((done) => new Ws(`ws://localhost:${port}/ws`, { autoPong: false, headers: { 'x-forwarded-for': ip } }).on('open', function (this: Ws) { done(this); }));
+    const [talking, silent, late] = await Promise.all(['10.9.0.1', '10.9.0.2', '10.9.0.3'].map(open));
+    const welcomed = (ws: Ws) => new Promise((done) => ws.on('message', (d: Buffer) => (decode(new Uint8Array(d)) as ToClient | null)?.type === 'welcome' && done(true)));
+    const closed = new Promise((done) => late.once('close', (code) => done(`closed ${code}`)));
+    talking.send(encode(host));
+    silent.send(encode(host));
     const talk = setInterval(() => talking.send(encode({ type: 'ping', t: 0 })), 100);
     assert.equal(await new Promise((done) => silent.on('close', done)), 1006);
-    await new Promise((done) => setTimeout(done, 3000));
+    if (late.readyState === Ws.OPEN) late.send(encode(host));
+    assert.equal(await Promise.race([welcomed(late), closed]), true, 'a link whose hello comes two beats late gets in');
+    await new Promise((done) => setTimeout(done, 2000));
     clearInterval(talk);
     assert.equal(talking.readyState, Ws.OPEN, 'a game that sends but answers no ping is dropped');
     talking.close();
+    late.close();
   } finally {
     beating.kill();
   }
-  console.log('heartbeat: ok (a game that sends stays, a silent one is dropped)');
+  console.log('heartbeat: ok (a game that sends stays, a silent one is dropped, a late hello still gets in)');
 }
 

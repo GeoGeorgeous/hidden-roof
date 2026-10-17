@@ -39,7 +39,12 @@ async function open(detail) {
   page.errors = errors;
   return page;
 }
-const status = (page, state) => page.waitForFunction((s) => window.game.net.status.state === s, state, { timeout: 15000 });
+/** Waits for the game's network status; timed out, says why with the page's network log. */
+const status = (page, state) =>
+  page.waitForFunction((s) => window.game.net.status.state === s, state, { timeout: 15000 }).catch(async (e) => {
+    const seen = await page.evaluate(() => ({ status: window.game.net.status, log: window.game.net.log.text() })).catch(() => null);
+    throw new Error(`no "${state}" in 15 s: ${JSON.stringify(seen?.status)}\n${seen?.log}\npage errors: ${page.errors ?? '(loading)'}`, { cause: e });
+  });
 /** Every painted surface's paint, hashed (FNV-1a), by key. */
 const paintHash = (page) =>
   page.evaluate(() => {
@@ -143,6 +148,14 @@ try {
   // B hears nothing for a while (a big download ahead of everything else used to do that): it closes the link and
   // comes back in, though the last thing it heard is now long ago. Its link drops what comes in, or A's next snapshot
   // would count as heard before B's next frame looked.
+  // One of B's frames throws first: the game goes on (it used to stop for good, its check for silence with it).
+  await b.evaluate(() => {
+    const hud = window.game.hud;
+    const setPerf = hud.setPerf;
+    hud.setPerf = () => ((hud.setPerf = setPerf), (window.threw = true), null.frame);
+  });
+  await b.waitForFunction(() => window.threw, null, { timeout: 5000, polling: 50 });
+  assert.match(b.errors.pop() ?? '', /null/);
   await b.evaluate(() => ((window.game.net.link.socket.onmessage = null), (window.game.net.link.lastHeard = -1e9)));
   await status(b, 'reconnecting');
   await status(b, 'in');
@@ -193,7 +206,8 @@ try {
   server = startServer();
   await a.waitForFunction(() => window.game.net.status.state === 'failed' && window.game.net.status.reason === 'ended', null, { timeout: 15000 });
   assert.equal(await a.evaluate(() => window.game.session.multiplayer), false);
-  assert.match(await a.textContent('.overlay .status'), /The session has ended/);
+  // The MULTIPLAYER page keeps saying it (the menu's status line only for a few seconds).
+  assert.match(await a.textContent('.mp-page .mp-status'), /The session has ended/);
 
   // No server: the game asks over HTTP why it can't connect, and says the server is down.
   server.kill();
@@ -204,7 +218,7 @@ try {
   await a.evaluate(() => window.game.net.host('A', 48));
   const down = await failed();
   assert.equal(down.reason, 'server-down', JSON.stringify(down));
-  assert.match(await a.textContent('.overlay .status'), /The game server is down \(HTTP 5\d\d · WS \d+\)/);
+  assert.match(await a.textContent('.mp-page .mp-status'), /The game server is down \(HTTP 5\d\d · WS \d+\)/);
   // A server that takes the connection and never answers: the game gives up after NET.connectTimeout.
   const held = new Set();
   const silent = net.createServer((socket) => held.add(socket)).listen(PORT);

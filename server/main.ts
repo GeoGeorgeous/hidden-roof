@@ -58,8 +58,12 @@ function connected(ws: WebSocket, req: http.IncomingMessage, host: boolean) {
   ws.on('error', (e) => log('-----', `link from ${ip}: ${e.message}`));
   const input = lobby.open(link, host);
   // Alive while bytes come in (SERVER.heartbeat), its state or anything else: the answer to the ws ping may come late.
+  // Before its first message the lobby gives it SERVER.helloTimeout: a game busy loading may send its hello late.
   let read = req.socket.bytesRead;
+  let greeted = false;
+  ws.once('message', () => (greeted = true));
   const beat = setInterval(() => {
+    if (!greeted) return;
     if (req.socket.bytesRead === read) return ws.terminate();
     read = req.socket.bytesRead;
     ws.ping();
