@@ -450,20 +450,40 @@ await check('input: a trackpad swipe\'s many small wheel events step the color o
   return r.swipe === 1 && r.notch === 1 && r.lines === 1 && r.twoNotches === 2 ? null : JSON.stringify(r);
 });
 
-await check('input: the mouse\'s back and forward buttons don\'t leave the page, playing or in the menu', async () => {
-  // Chromium goes back or forward on the button's release unless the page cancels it (a cancelled press doesn't stop it).
+await check('input: the browser defaults in BROWSER_GUARDS are cancelled, playing or in the menu (config.ts)', async () => {
+  // Chromium goes back or forward on the mouse button's release unless the page cancels it.
   const r = await page.evaluate(() => {
     const g = window.game;
-    const canvas = g.renderer.domElement;
-    const kept = (locked) => {
-      g.input.setLocked(locked);
-      return [3, 4].flatMap((button) => ['mouseup', 'auxclick'].map((type) => !canvas.dispatchEvent(new MouseEvent(type, { button, bubbles: true, cancelable: true }))));
+    // beforeunload goes to the window; the rest to the canvas, as the browser sends them while playing.
+    const cancelled = (e) => !(e.type === 'beforeunload' ? window : g.renderer.domElement).dispatchEvent(e);
+    const key = (code, ctrlKey = false) => new KeyboardEvent('keydown', { code, ctrlKey, bubbles: true, cancelable: true });
+    const mouse = (type, button) => new MouseEvent(type, { button, bubbles: true, cancelable: true });
+    const events = {
+      space: () => key('Space'),
+      sizeUp: () => key('KeyE'),
+      tab: () => key('Tab'),
+      ctrlW: () => key('KeyW', true),
+      f3: () => key('F3'),
+      f5: () => key('F5'),
+      f11: () => key('F11'),
+      leftDown: () => mouse('mousedown', 0),
+      backUp: () => mouse('mouseup', 3),
+      forwardClick: () => mouse('auxclick', 4),
+      menu: () => mouse('contextmenu', 2),
+      wheel: () => new WheelEvent('wheel', { deltaY: 100, bubbles: true, cancelable: true }),
+      leave: () => new Event('beforeunload', { cancelable: true }),
     };
-    const out = { playing: kept(true), menu: kept(false) };
-    g.input.setLocked(false);
-    return out;
+    const run = (locked) => {
+      g.input.setLocked(locked);
+      const out = Object.fromEntries(Object.entries(events).map(([name, make]) => [name, cancelled(make())]));
+      g.input.endFrame();
+      return out;
+    };
+    return { playing: run(true), menu: run(false) };
   });
-  return [...r.playing, ...r.menu].every(Boolean) ? null : JSON.stringify(r);
+  const playing = { space: true, sizeUp: true, tab: true, ctrlW: true, f3: true, f5: false, f11: false, leftDown: true, backUp: true, forwardClick: true, menu: true, wheel: false, leave: true };
+  const menu = { space: false, sizeUp: false, tab: false, ctrlW: false, f3: true, f5: false, f11: false, leftDown: false, backUp: true, forwardClick: true, menu: true, wheel: false, leave: false };
+  return JSON.stringify(r) === JSON.stringify({ playing, menu }) ? null : JSON.stringify(r);
 });
 
 await check('input: either Shift sprints, and flies fast in build mode', async () => {

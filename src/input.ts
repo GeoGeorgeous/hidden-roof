@@ -3,10 +3,9 @@ import { enterGameFullscreen } from './fullscreen';
 
 // Keyboard + mouse state with pointer lock. Edge-triggered presses are consumed per frame.
 // Play asks by action (BINDINGS); build mode and the dev keys ask by raw code.
+// The browser defaults it cancels are in BROWSER_GUARDS (browser-guards.ts).
 
 export type Action = keyof typeof BINDINGS;
-
-const PREVENT = new Set(['Space', 'Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown', 'Backspace', 'Minus', 'Equal', 'KeyP', 'KeyO', 'KeyZ', 'KeyW', 'KeyS', 'KeyD', 'KeyA']);
 
 /** Bindings whose name isn't the key's code without Key or Digit. */
 const NAMES: Record<string, string> = { Mouse0: 'LMB', Mouse2: 'RMB', WheelUp: 'WHEEL', WheelDown: 'WHEEL', ControlLeft: 'CTRL', ControlRight: 'CTRL', ShiftLeft: 'SHIFT', ShiftRight: 'SHIFT' };
@@ -48,10 +47,7 @@ export class Input {
       // Esc and F3 still work there, and Enter still runs the page's primary button.
       const typing = typingIn(e.target);
       if (typing && !['Escape', 'F3', 'Enter', 'NumpadEnter'].includes(e.code)) return;
-      if (PREVENT.has(e.code) && this.locked) e.preventDefault();
-      if (this.locked && (e.ctrlKey || e.metaKey)) e.preventDefault();
       if (this.onMenuKey(e.code, true, e.repeat) || (typing && e.code !== 'F3')) return;
-      if (e.code === 'F3') e.preventDefault();
       if (!e.repeat) {
         this.pressed.add(e.code);
         // Shortcut combos are recorded at keydown, so releasing Ctrl first can't drop them.
@@ -64,11 +60,6 @@ export class Input {
       this.down.delete(e.code);
       this.onMenuKey(e.code, false, false);
     });
-    // Without the keyboard lock (windowed, refused, not Chromium) the browser keeps Ctrl+W:
-    // crouch + forward would close the tab. While playing, ask before leaving instead.
-    window.addEventListener('beforeunload', (e) => {
-      if (this.locked) e.preventDefault();
-    });
     window.addEventListener('blur', () => {
       this.down.clear();
       this.lmb = this.rmb = false;
@@ -78,14 +69,10 @@ export class Input {
         this.requestLock();
         return;
       }
-      e.preventDefault();
       this.clicks.add(e.button);
       if (e.button === 0) this.lmb = true;
       if (e.button === 2) this.rmb = true;
     });
-    window.addEventListener('contextmenu', (e) => e.preventDefault());
-    // The mouse's back and forward buttons (3, 4) would leave the game: browsers go on their release.
-    for (const type of ['mouseup', 'auxclick']) window.addEventListener(type, (e) => (e as MouseEvent).button > 2 && e.preventDefault());
     window.addEventListener('mouseup', (e) => {
       if (e.button === 0) this.lmb = false;
       if (e.button === 2) this.rmb = false;

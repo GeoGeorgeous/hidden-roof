@@ -536,6 +536,32 @@ export const BINDINGS = {
   screenshot: ['KeyK'],
 } satisfies Record<string, string[]>;
 
+/** A browser default the game cancels (src/browser-guards.ts). Unset fields match anything. */
+export interface BrowserGuard {
+  event: string;
+  /** Playing (the mouse locked), or always (the menus too). */
+  when: 'playing' | 'always';
+  /** Key codes (e.code); 'bound' is every key BINDINGS gives play. */
+  keys?: readonly string[] | 'bound';
+  /** With Ctrl or Meta held, but not these keys. */
+  ctrl?: { except: readonly string[] };
+  buttons?: readonly number[];
+  why: string;
+}
+
+/** Every browser default the game cancels, and when. */
+export const BROWSER_GUARDS: readonly BrowserGuard[] = [
+  { event: 'keydown', when: 'playing', keys: 'bound', why: 'Space would scroll; the game has the keys' },
+  { event: 'keydown', when: 'playing', keys: ['Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown', 'Backspace'], why: 'scrolling, focus, going back' },
+  { event: 'keydown', when: 'playing', ctrl: { except: [] }, why: 'Ctrl is crouch: Ctrl+W, Ctrl+D, Ctrl+S would close, bookmark, save' },
+  { event: 'keydown', when: 'always', keys: ['F3'], why: 'the F3 panel, not find' },
+  { event: 'mousedown', when: 'playing', why: 'no text selection, no middle-button autoscroll' },
+  { event: 'mouseup', when: 'always', buttons: [3, 4], why: 'the back and forward buttons go on their release' },
+  { event: 'auxclick', when: 'always', buttons: [3, 4], why: 'the back and forward buttons' },
+  { event: 'contextmenu', when: 'always', why: 'the right button shakes the can' },
+  { event: 'beforeunload', when: 'playing', why: 'without the keyboard lock the browser keeps Ctrl+W: ask before leaving' },
+];
+
 /** Paint roller (slot 4): a wide graffiti roller on a short pole, rolling solid bands of paint. */
 export const ROLLER = {
   /** Max distance from the eye to the surface (it's on a short pole). */

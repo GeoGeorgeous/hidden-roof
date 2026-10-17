@@ -24,6 +24,7 @@ import { captureDefaults } from './debug/defaults';
 import { pixelRatio, Settings } from './settings';
 import { saveScreenshot } from './screenshot';
 import { Input } from './input';
+import { guardBrowser } from './browser-guards';
 import { PlayState } from './play-state';
 import { Player } from './player';
 import { PaintSystem } from './painting';
@@ -180,6 +181,7 @@ const play = new PlayState(input, session, {
   primary: () => hud.menu.primary(),
 });
 input.onMenuKey = (code, down, repeat) => play.key(code, down, repeat);
+guardBrowser(() => !play.paused);
 // Esc held to the end: the browser left fullscreen, and its release doesn't resume.
 document.addEventListener('fullscreenchange', () => play.disarm());
 const showMenu = () => hud.setLocked(input.locked, play.panel);
