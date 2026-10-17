@@ -534,7 +534,12 @@ export const BINDINGS = {
   slot4: ['Digit4'],
   slot5: ['Digit5'],
   screenshot: ['KeyK'],
+  /** The eyedropper: the color of the paint under the crosshair (src/tools/eyedropper.ts). */
+  pick: ['Mouse1'],
 } satisfies Record<string, string[]>;
+
+/** The eyedropper (BINDINGS.pick): how far it reads paint (m), and the least cover (0..1) a texel needs to count as painted. */
+export const EYEDROPPER = { reach: 40, minCover: 0.25 };
 
 /** A browser default the game cancels (src/browser-guards.ts). Unset fields match anything. */
 export interface BrowserGuard {

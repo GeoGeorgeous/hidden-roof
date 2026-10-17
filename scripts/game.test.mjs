@@ -19,14 +19,14 @@ const tmp = fs.mkdtempSync(`${os.tmpdir()}/taggin-test-`);
 let failed = 0;
 
 /** A page with the game loaded, not drawing (SwiftShader draws on the CPU, seconds a frame); page errors fail the run. `before(page)`: set up before it loads (routes). */
-async function openPage(init, before) {
+async function openPage(init, before, arg) {
   const page = await test.browser.newPage({ viewport: { width: 1280, height: 720 }, acceptDownloads: true });
   page.errors = [];
   page.on('pageerror', (e) => page.errors.push(e.message));
   await page.addInitScript(noDrawing);
   await page.addInitScript(noBrowserLock);
   await page.addInitScript(pageSteps);
-  if (init) await page.addInitScript(init);
+  if (init) await page.addInitScript(init, arg);
   await before?.(page);
   await page.goto(test.url);
   await gameReady(page, 2);
@@ -167,6 +167,107 @@ await check('settings: Shift + click puts a slider back to its default; PAINT an
   });
   const ok = r.moved === '150%' && r.reset.join() === '100%,50%' && r.before.join() === 'Ultra  1.0 cm,High' && r.changed.join() === 'High  1.4 cm  ·  on resume,Medium  ·  on resume' && r.back.join() === r.before.join();
   return ok ? null : JSON.stringify(r);
+});
+
+await check('settings: gameplay, sound and on/off settings are remembered after a reload, saved only where they differ from the default', async () => {
+  const r = await page.evaluate(() => {
+    const { menu } = window.game.hud;
+    const row = (name) => [...document.querySelectorAll('.settings-page .setting-row')].find((r) => r.querySelector('.label').textContent.startsWith(name));
+    const slide = (name, v) => {
+      const input = row(name).querySelector('input');
+      input.value = String(v);
+      input.dispatchEvent(new Event('input'));
+    };
+    menu.openSettings(0);
+    row('Crouch').querySelectorAll('.choice button')[1].click();
+    menu.openSettings(2);
+    slide('Master', 150);
+    const saved = localStorage.getItem('roofhiddenhaus.settings');
+    // Back to the defaults: nothing left to save.
+    slide('Master', 100);
+    menu.openSettings(0);
+    row('Crouch').querySelectorAll('.choice button')[1].click();
+    menu.openPage(null);
+    return { saved: JSON.parse(saved).values, after: JSON.parse(localStorage.getItem('roofhiddenhaus.settings')).values };
+  });
+  const p = await openPage((saved) => localStorage.setItem('roofhiddenhaus.settings', saved), undefined, JSON.stringify({ values: r.saved }));
+  const loaded = await p.evaluate(() => {
+    const { AUDIO, PLAYER } = window.game.config;
+    return { master: AUDIO.masterGain, crouchToggle: PLAYER.crouchToggle };
+  });
+  const defaults = await page.evaluate(() => window.game.config.AUDIO.masterGain);
+  await p.close();
+  const ok = Object.keys(r.saved).sort().join() === 'AUDIO.masterGain,PLAYER.crouchToggle' && r.saved['PLAYER.crouchToggle'] === true && JSON.stringify(r.after) === '{}' && loaded.crouchToggle === true && Math.abs(loaded.master - defaults * 1.5) < 1e-9;
+  return ok ? null : JSON.stringify({ ...r, loaded, defaults });
+});
+
+await check('settings: Controls rebinds a key, button or wheel step; a taken key swaps, a reserved one is refused; bindings are remembered and reset', async () => {
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    const { BINDINGS } = g.config;
+    const { menu } = g.hud;
+    const row = (name) => [...document.querySelectorAll('.settings-page .setting-row')].find((r) => r.querySelector('.label').textContent === name);
+    const slot = (name, i) => row(name).querySelectorAll('.key')[i];
+    // Sent to the page, as a real key or click is: the window hears them last.
+    const press = (code) => !document.body.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true, cancelable: true }));
+    menu.openSettings(3);
+    slot('Forward', 0).click();
+    const capturing = slot('Forward', 0).textContent;
+    const swallowed = press('KeyI');
+    const heard = g.input.wasPressed('KeyI');
+    const forward = [...BINDINGS.forward];
+    // Back's S: the two swap.
+    slot('Forward', 0).click();
+    press('KeyS');
+    const swapped = { forward: [...BINDINGS.forward], back: [...BINDINGS.back] };
+    // Crouch's second slot (C) takes Shift, both sides; run gets C.
+    slot('Crouch', 1).click();
+    press('ShiftLeft');
+    const mods = { crouch: [...BINDINGS.crouch], sprint: [...BINDINGS.sprint], shown: [slot('Crouch', 0).textContent, slot('Crouch', 1).textContent] };
+    slot('Jump / climb', 0).click();
+    press('F3');
+    const refused = [slot('Jump / climb', 0).textContent, [...BINDINGS.jump]];
+    slot('Jump / climb', 0).click();
+    press('Escape');
+    const cancelled = [...BINDINGS.jump];
+    // The middle button is the eyedropper's: into an empty slot it leaves pick unbound.
+    slot('Shake the can', 1).click();
+    document.body.dispatchEvent(new MouseEvent('mousedown', { button: 1, bubbles: true, cancelable: true }));
+    const shake = [...BINDINGS.shake];
+    g.input.setLocked(true);
+    g.input.element.dispatchEvent(new MouseEvent('mousedown', { button: 1 }));
+    const shakes = g.input.held('shake');
+    window.dispatchEvent(new MouseEvent('mouseup', { button: 1 }));
+    g.input.setLocked(false);
+    g.input.endFrame();
+    slot('Next color', 0).click();
+    document.body.dispatchEvent(new WheelEvent('wheel', { deltaY: -100, bubbles: true, cancelable: true }));
+    const next = [...BINDINGS.next];
+    const saved = JSON.parse(localStorage.getItem('roofhiddenhaus.settings')).keys;
+    row('Every key').querySelector('.reset').click();
+    const reset = [BINDINGS.forward, BINDINGS.crouch, BINDINGS.next].map((b) => b.join());
+    const after = JSON.parse(localStorage.getItem('roofhiddenhaus.settings')).keys;
+    menu.openPage(null);
+    return { capturing, swallowed, heard, forward, swapped, mods, refused, cancelled, shake, shakes, next, saved, reset, after };
+  });
+  const p = await openPage((saved) => localStorage.setItem('roofhiddenhaus.settings', saved), undefined, JSON.stringify({ keys: { forward: ['KeyI'], use: ['F5'] } }));
+  const loaded = await p.evaluate(() => ({ forward: window.game.config.BINDINGS.forward.join(), use: window.game.config.BINDINGS.use.join() }));
+  await p.close();
+  const want = {
+    capturing: 'Press a key',
+    swallowed: true,
+    heard: false,
+    forward: ['KeyI'],
+    swapped: { forward: ['KeyS'], back: ['KeyI'] },
+    mods: { crouch: ['ControlLeft', 'ControlRight', 'ShiftLeft', 'ShiftRight'], sprint: ['KeyC'], shown: ['CTRL', 'SHIFT'] },
+    refused: ['F3 is taken', ['Space']],
+    cancelled: ['Space'],
+    shake: ['Mouse2', 'Mouse1'],
+    shakes: true,
+    next: ['WheelUp'],
+  };
+  const ok = JSON.stringify({ ...r, saved: undefined, reset: undefined, after: undefined }) === JSON.stringify(want) && Object.keys(r.saved).sort().join() === 'back,crouch,forward,next,pick,prev,shake,sprint' && r.saved.pick.length === 0 && r.reset.join('|') === 'KeyW|ControlLeft,ControlRight,KeyC|WheelDown' && JSON.stringify(r.after) === '{}' && loaded.forward === 'KeyI' && loaded.use === 'Mouse0';
+  return ok ? null : JSON.stringify({ r, loaded });
 });
 
 await check('credits: every license the page links to ships with the game', async () => {
@@ -680,6 +781,47 @@ await check('sponge: a surface cleaned completely gives its memory back', async 
     return { sprayed, after: g.paint.gpu.textureCount };
   });
   return r.sprayed > 0 && r.after === 0 ? null : JSON.stringify(r);
+});
+
+await check('tools: the wheel\'s click picks the color of the paint under the crosshair (the nearest owned); at the sky nothing changes', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { inventory: inv, input, config } = g;
+    input.setLocked(true);
+    for (const c of config.COLOR_ORDER) inv.addColor(c);
+    for (const c of config.CAP_ORDER) inv.addCap(c);
+    while (inv.cap !== 'fat') inv.cycleCap(1);
+    // From the spawn, face the nearest wall (within the can's reach).
+    g.player.respawn();
+    g.player.pitch = 0;
+    await steps((f) => f === 1);
+    const cam = g.scene.children.find((o) => o.isPerspectiveCamera);
+    const ray = new g.tools.marker.stroke.raycaster.constructor();
+    const wallAt = (yaw) => {
+      ray.set(cam.position, { x: -Math.sin(yaw), y: 0, z: -Math.cos(yaw) });
+      return ray.intersectObjects(g.level.solids, false)[0]?.distance ?? Infinity;
+    };
+    const yaws = [0, 1, 2, 3].map((k) => g.player.yaw + (k * Math.PI) / 2);
+    g.player.yaw = yaws.reduce((a, b) => (wallAt(b) < wallAt(a) ? b : a));
+    inv.select(0);
+    inv.pressure = 1;
+    inv.pickColor('red');
+    await steps((f) => ((input.lmb = f < 20), f === 39));
+    inv.pickColor('blue');
+    const click = () => input.element.dispatchEvent(new MouseEvent('mousedown', { button: 1 }));
+    await steps((f) => (f === 0 && click(), f === 2));
+    const wall = inv.color;
+    g.player.pitch = 1.4;
+    inv.pickColor('blue');
+    await steps((f) => (f === 0 && click(), f === 2));
+    const sky = inv.color;
+    window.dispatchEvent(new MouseEvent('mouseup', { button: 1 }));
+    g.paint.clear();
+    g.fixedStep.dt = 0;
+    input.setLocked(false);
+    return { wall, sky };
+  });
+  return r.wall === 'red' && r.sky === 'blue' ? null : JSON.stringify(r);
 });
 
 await check('props: a tank roof (a cone) holds a player dropped on it, near its tip, not on the flat top inside it', async () => {

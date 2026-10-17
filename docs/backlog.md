@@ -249,43 +249,42 @@ Adjust the can caps (`spread`, `rate`, `strength`, `dotSize`, `softness`) until 
 ### Key bindings settings
 - id: BL-018
 - type: feature
-- status: Requested
+- status: Done
 - priority: High
 - size: M
 - area: input
-- release: later
+- release: next
 - source: stress test feedback
 
-A screen to rebind the keys.
+A screen to rebind the keys. Done (audit S3.5): Settings → Controls, two slots per play action, swap on conflict, reserved keys refused, saved as overrides.
 
 
 
 ### Remember the chosen settings
 - id: BL-019
 - type: feature
-- status: Blocked
+- status: Done
 - priority: High
 - size: S
 - area: ui
-- release: later
-- blocked-by: BL-018
+- release: next
 - source: stress test feedback
 
-`src/settings.ts` already saves ink style, pixel scale, max FPS, volumetrics, paint detail and city detail. Add to what it saves: the key layout, volume and sound, mouse sensitivity and FOV.
+`src/settings.ts` already saves ink style, pixel scale, max FPS, volumetrics, paint detail and city detail. Add to what it saves: the key layout, volume and sound, mouse sensitivity and FOV. Done (audit S3.5): gameplay, sound and on/off settings and the key bindings are saved as overrides of config's defaults (`src/settings-store.ts`).
 
 
 
 ### Pick a color with a click on the mouse wheel
 - id: BL-020
 - type: feature
-- status: Requested
+- status: Done
 - priority: Medium
 - size: S
 - area: input
-- release: later
+- release: next
 - source: owner
 
-
+An eyedropper (owner, 2026-10-18): the wheel's click picks the owned color nearest the paint under the crosshair. Done (audit S3.5): action `pick`, `src/tools/eyedropper.ts`.
 
 ### Block the browser zoom: Ctrl +/−/0, Ctrl+wheel, trackpad pinch
 - id: BL-023

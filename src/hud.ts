@@ -145,7 +145,12 @@ export class Hud {
     if (at) this.gauge.style.transform = `translate(${Math.round(at.x)}px, ${Math.round(at.y + GAUGE_OFFSET)}px)`;
     const alert = !!at && pressure !== null && low;
     this.alert.hidden = !alert;
-    if (alert) this.alert.style.transform = `translate(${Math.round(at.x)}px, ${Math.round(at.y + ALERT_OFFSET)}px)`;
+    if (alert) {
+      // The shake key may have been rebound (Settings → Controls).
+      const text = `LOW PRESSURE — HOLD [${label('shake')}] TO SHAKE`;
+      if (this.alert.textContent !== text) this.alert.textContent = text;
+      this.alert.style.transform = `translate(${Math.round(at.x)}px, ${Math.round(at.y + ALERT_OFFSET)}px)`;
+    }
     const place = (el: HTMLElement, until: number, dy: number) => {
       const show = !!at && now < until;
       el.hidden = !show;

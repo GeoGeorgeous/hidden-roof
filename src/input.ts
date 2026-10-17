@@ -7,13 +7,38 @@ import { enterGameFullscreen } from './fullscreen';
 
 export type Action = keyof typeof BINDINGS;
 
-/** Bindings whose name isn't the key's code without Key or Digit. */
-const NAMES: Record<string, string> = { Mouse0: 'LMB', Mouse2: 'RMB', WheelUp: 'WHEEL', WheelDown: 'WHEEL', ControlLeft: 'CTRL', ControlRight: 'CTRL', ShiftLeft: 'SHIFT', ShiftRight: 'SHIFT' };
+/** Bindings whose name isn't the key's code without Key, Digit or Arrow, or the layout's key. */
+const NAMES: Record<string, string> = {
+  Mouse0: 'LMB',
+  Mouse1: 'MMB',
+  Mouse2: 'RMB',
+  Mouse3: 'MOUSE 4',
+  Mouse4: 'MOUSE 5',
+  WheelUp: 'WHEEL UP',
+  WheelDown: 'WHEEL DOWN',
+  ControlLeft: 'CTRL',
+  ControlRight: 'CTRL',
+  ShiftLeft: 'SHIFT',
+  ShiftRight: 'SHIFT',
+  AltLeft: 'ALT',
+  AltRight: 'ALT',
+};
 
-/** The action's first binding as the game writes it: HOLD [RMB] TO SHAKE. */
+/** What each key prints on this keyboard's layout (Chromium): W is Z on AZERTY. Elsewhere the US name. */
+let layout: Map<string, string> | undefined;
+(navigator as Navigator & { keyboard?: { getLayoutMap?(): Promise<Map<string, string>> } }).keyboard
+  ?.getLayoutMap?.()
+  .then((m) => (layout = m))
+  .catch(() => {});
+
+/** A binding as the game writes it: LMB, SHIFT, W. */
+export function keyName(code: string) {
+  return NAMES[code] ?? layout?.get(code)?.toUpperCase() ?? code.replace(/^(Key|Digit|Arrow)/, '').toUpperCase();
+}
+
+/** The action's first binding: HOLD [RMB] TO SHAKE. */
 export function label(action: Action) {
-  const code = BINDINGS[action][0];
-  return NAMES[code] ?? code.replace(/^(Key|Digit)/, '').toUpperCase();
+  return BINDINGS[action].length ? keyName(BINDINGS[action][0]) : '—';
 }
 
 /** A text field, number field, select or editable element: keys typed there belong to it. */
@@ -72,10 +97,12 @@ export class Input {
         return;
       }
       this.clicks.add(e.button);
+      this.down.add(`Mouse${e.button}`);
       if (e.button === 0) this.lmb = true;
       if (e.button === 2) this.rmb = true;
     });
     window.addEventListener('mouseup', (e) => {
+      this.down.delete(`Mouse${e.button}`);
       if (e.button === 0) this.lmb = false;
       if (e.button === 2) this.rmb = false;
     });
@@ -135,7 +162,7 @@ export class Input {
     if (RENDER.fullscreen) void enterGameFullscreen();
   }
 
-  /** Any of the action's bindings held. */
+  /** Any of the action's bindings held (the left and right buttons as tests set them). */
   held(action: Action) {
     return BINDINGS[action].some((code) => (code === 'Mouse0' ? this.lmb : code === 'Mouse2' ? this.rmb : this.down.has(code)));
   }

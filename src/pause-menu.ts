@@ -101,7 +101,7 @@ export class PauseMenu {
     const menu = div('menu');
     menu.append(
       column('paint', this.savePaint, this.loadPaint),
-      column('settings', ...['Game', 'Graphics', 'Audio'].map((t, i) => item(t, () => this.openSettings(i)))),
+      column('settings', ...['Game', 'Graphics', 'Audio', 'Controls'].map((t, i) => item(t, () => this.openSettings(i)))),
       column('about', item('Updates', () => this.openPage('updates')), item('Credits', () => this.openPage('credits'))),
     );
     const foot = div('foot');
@@ -189,7 +189,7 @@ export class PauseMenu {
     el.hidden = this.page !== page;
   }
 
-  /** The settings page on its tab `i` (0 gameplay, 1 graphics, 2 sound). */
+  /** The settings page on its tab `i` (0 gameplay, 1 graphics, 2 sound, 3 controls). */
   openSettings(i: number) {
     this.openPage('settings');
     this.settingsPage?.show(i);

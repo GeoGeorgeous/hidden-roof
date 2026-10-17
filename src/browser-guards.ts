@@ -2,8 +2,10 @@ import { BINDINGS, BROWSER_GUARDS, type BrowserGuard } from './config';
 
 // Cancels the browser defaults in BROWSER_GUARDS (config.ts): one listener per event type, on the window.
 
-/** The keys play binds (mouse buttons and wheel steps aren't keys): game fullscreen locks them from the browser (fullscreen.ts). */
-export const BOUND_KEYS = new Set<string>(Object.values(BINDINGS).flat().filter((code) => !/^(Mouse|Wheel)/.test(code)));
+/** The keys play binds now (mouse buttons and wheel steps aren't keys): game fullscreen locks them from the browser (fullscreen.ts). */
+export function boundKeys() {
+  return [...new Set(Object.values(BINDINGS).flat())].filter((code) => !/^(Mouse|Wheel)/.test(code));
+}
 
 const withCtrl = (e: Event) => (e as KeyboardEvent | MouseEvent).ctrlKey || (e as KeyboardEvent | MouseEvent).metaKey;
 
