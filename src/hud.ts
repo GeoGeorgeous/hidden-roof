@@ -1,4 +1,5 @@
 import { HUD, VIGNETTE } from './config';
+import { label } from './input';
 import { netLines, type NetStats } from './net/diagnostics';
 import { PauseMenu } from './pause-menu';
 
@@ -55,7 +56,7 @@ export class Hud {
       <div class="cap-tag" hidden></div>
       <div class="cap-tag color-tag" hidden></div>
       <div class="cap-tag psi-gauge"><span>PSI</span><div class="line"><i></i></div><b></b></div>
-      <div class="cap-tag psi-alert" hidden>LOW PRESSURE — HOLD [RMB] TO SHAKE</div>`;
+      <div class="cap-tag psi-alert" hidden>LOW PRESSURE — HOLD [${label('shake')}] TO SHAKE</div>`;
     document.body.appendChild(root);
     // The crosshair inverts what's under it (style.css), so it's its own layer
     // over the game view: inside the HUD it could only blend with the HUD.

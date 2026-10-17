@@ -382,9 +382,11 @@ await check('input: play actions answer for every key, button and wheel step bou
     out.released = [input.held('crouch'), input.held('shake')];
     input.setLocked(false);
     input.endFrame();
+    // Labels come from the bindings.
+    out.alert = document.querySelector('.psi-alert').textContent;
     return out;
   });
-  const want = { crouch: [true, true], size: [true, true, 1], shake: [true, true, false], wheel: [1, false], repeat: [false, 1], released: [false, false] };
+  const want = { crouch: [true, true], size: [true, true, 1], shake: [true, true, false], wheel: [1, false], repeat: [false, 1], released: [false, false], alert: 'LOW PRESSURE — HOLD [RMB] TO SHAKE' };
   return JSON.stringify(r) === JSON.stringify(want) ? null : JSON.stringify(r);
 });
 

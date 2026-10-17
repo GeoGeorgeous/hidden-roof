@@ -8,6 +8,15 @@ export type Action = keyof typeof BINDINGS;
 
 const PREVENT = new Set(['Space', 'Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown', 'Backspace', 'Minus', 'Equal', 'KeyP', 'KeyO', 'KeyZ', 'KeyW', 'KeyS', 'KeyD', 'KeyA']);
 
+/** Bindings whose name isn't the key's code without Key or Digit. */
+const NAMES: Record<string, string> = { Mouse0: 'LMB', Mouse2: 'RMB', WheelUp: 'WHEEL', WheelDown: 'WHEEL', ControlLeft: 'CTRL', ControlRight: 'CTRL', ShiftLeft: 'SHIFT', ShiftRight: 'SHIFT' };
+
+/** The action's first binding as the game writes it: HOLD [RMB] TO SHAKE. */
+export function label(action: Action) {
+  const code = BINDINGS[action][0];
+  return NAMES[code] ?? code.replace(/^(Key|Digit)/, '').toUpperCase();
+}
+
 /** A text field, number field, select or editable element: keys typed there belong to it. */
 function typingIn(target: EventTarget | null) {
   return target instanceof HTMLElement && (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
