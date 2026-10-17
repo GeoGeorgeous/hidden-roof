@@ -1246,7 +1246,7 @@ Play code reads physical key codes (~25 reads in 10 files) and the `PREVENT` lis
 ### Test runs side by side share a cache and freeze WSL
 - id: BL-098
 - type: bug
-- status: Requested
+- status: Done
 - priority: Medium
 - size: XS
 - area: code
