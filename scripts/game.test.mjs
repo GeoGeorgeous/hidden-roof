@@ -82,7 +82,7 @@ const paintedKeys = (page) => page.evaluate(() => window.game.paint.surfaces.fil
 
 const page = await openPage();
 // Started and paused: the menu shows SAVE PAINT.
-await page.evaluate(() => (window.game.hud.setLocked(true), window.game.hud.setLocked(false)));
+await page.evaluate(() => (window.game.input.setLocked(true), window.game.input.setLocked(false)));
 
 await check('pickups: on the start screen, before the game first runs, they already hover in their rings', async () => {
   const r = await page.evaluate(() => {
@@ -97,31 +97,44 @@ await check('pickups: on the start screen, before the game first runs, they alre
 
 await check('menu: Esc goes back from a page to the pause screen and there resumes once released (a press on a page doesn\'t); Game, Graphics and Audio open their tab; the style switcher is the settings STYLE', async () => {
   const r = await page.evaluate(() => {
-    const { menu } = window.game.hud;
+    const { input } = window.game;
+    // A real Esc, down or up: whether it asked to resume (the pointer lock).
+    let resumed = 0;
+    const requestLock = input.requestLock;
+    input.requestLock = () => resumed++;
+    const esc = (type) => {
+      const before = resumed;
+      window.dispatchEvent(new KeyboardEvent(type, { code: 'Escape' }));
+      return resumed > before;
+    };
+    const tap = () => [esc('keydown'), esc('keyup')];
     const item = (t) => [...document.querySelectorAll('.overlay button')].find((b) => b.textContent === t);
     const shown = () => [...document.querySelectorAll('.overlay > :not(.blur)')].filter((e) => !e.hidden).map((e) => e.className).join(' | ');
     const tab = () => document.querySelector('.settings-page .tabs .on')?.textContent;
     item('Audio').click();
     const audio = [shown(), tab()];
-    const back = [menu.escape(), menu.escapeReleased()];
+    const back = tap();
     const after = shown();
     item('Graphics').click();
     const graphics = tab();
-    menu.escape();
+    tap();
     document.querySelectorAll('.themes button')[1].click();
     item('Graphics').click();
     const style = [...document.querySelectorAll('.settings-page .setting-row')].find((row) => /style/i.test(row.querySelector('.label').textContent)).querySelector('.choice .value').textContent;
-    menu.escape();
+    tap();
     document.querySelectorAll('.themes button')[0].click();
     const on = document.querySelector('.themes .on').textContent;
     // Multiplayer: Esc goes from HOST back to its choice of HOST and JOIN, then to the pause screen.
     item('Multiplayer').click();
     document.querySelector('.big-row').click();
     const host = document.querySelector('.page-sub').textContent;
-    menu.escape();
+    tap();
     const mp = [document.querySelector('.page-sub').textContent, document.querySelectorAll('.big-row').length];
-    menu.escape();
-    return { audio, back, after, graphics, style, on, host, mp, mpBack: shown(), resumes: [menu.escape(), menu.escapeReleased()] };
+    tap();
+    const mpBack = shown();
+    const resumes = tap();
+    input.requestLock = requestLock;
+    return { audio, back, after, graphics, style, on, host, mp, mpBack, resumes };
   });
   const ok = r.audio[0] === 'seg back | page settings-page' && /sound/i.test(r.audio[1]) && r.back.join() === 'false,false' && /pause/.test(r.after) && /graphics/i.test(r.graphics) && /old manga/i.test(r.style) && r.on === 'New manga' && r.host === 'Host a session' && r.mp.join() === ',2' && /pause/.test(r.mpBack) && r.resumes.join() === 'false,true';
   return ok ? null : JSON.stringify(r);
@@ -204,7 +217,7 @@ await check('save popup: SAVE shows the file and its size; DOWNLOAD downloads th
   await page.waitForFunction((popup) => document.querySelector(`${popup} .para.done`)?.textContent === 'Download started.', POPUP);
   await page.waitForTimeout(300);
   page.off('download', count);
-  const back = await page.evaluate(() => (window.game.hud.menu.escape(), document.querySelector('.overlay .pause').hidden));
+  const back = await page.evaluate(() => (window.game.hud.menu.goBack(), document.querySelector('.overlay .pause').hidden));
   return n === 1 && /^demo-\d{8}-\d{6}\.rhhpaint$/.test(chip) && saved.suggestedFilename() === chip && !back ? null : JSON.stringify({ n, chip, file: saved.suggestedFilename(), back });
 });
 
@@ -220,7 +233,7 @@ await check('upload popup: with the file picker open, CHOOSE FILE does nothing; 
   await chooser.setFiles([]);
   await page.waitForTimeout(300);
   const still = await page.textContent(`${POPUP} .btn.primary`);
-  await page.evaluate(() => window.game.hud.menu.escape());
+  await page.evaluate(() => window.game.hud.menu.goBack());
   return !extra && still === 'Choose file…ENTER' ? null : JSON.stringify({ extra, still });
 });
 
@@ -236,7 +249,7 @@ await check('upload popup: after a reload, a saved file shows by name, and REPLA
   await page.click(`${POPUP} .btn.primary`);
   await page.waitForFunction((popup) => document.querySelector(`${popup} .para.done`)?.textContent === 'Paint loaded.', POPUP);
   const after = await paintedKeys(page);
-  await page.evaluate(() => window.game.hud.menu.escape());
+  await page.evaluate(() => window.game.hud.menu.goBack());
   return after === before && chip === 'menu.rhhpaint' ? null : JSON.stringify({ painted: after, saved: before, chip });
 });
 
@@ -248,13 +261,13 @@ await check('upload popup: a broken file says so in red, and the paint stays', a
   await chooser.setFiles(`${tmp}/broken.rhhpaint`);
   await page.waitForFunction((popup) => document.querySelector(`${popup} .para.error`)?.textContent === 'Broken paint file.', POPUP);
   const kept = (await paintedKeys(page)) === before;
-  await page.evaluate(() => window.game.hud.menu.escape());
+  await page.evaluate(() => window.game.hud.menu.goBack());
   return kept ? null : 'paint changed';
 });
 
 await check('menu: after a failed link the multiplayer page says so in red and offers COPY NETWORK LOG, which saves a file where the page has no clipboard (plain http, as on a LAN)', async () => {
   const p = await openPage(() => Object.defineProperty(navigator, 'clipboard', { value: undefined }));
-  await p.evaluate(() => (window.game.hud.setLocked(true), window.game.hud.setLocked(false)));
+  await p.evaluate(() => (window.game.input.setLocked(true), window.game.input.setLocked(false)));
   const press = (text) => p.locator('.overlay button:visible', { hasText: text }).first().click();
   await press('Multiplayer');
   const before = await p.isVisible('.net-log');
@@ -286,7 +299,7 @@ await check('saves: a sign whose text changed loses its paint (changed shape), t
 await check('saves: spray in the air at LOAD lands without paint', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
-    g.input.locked = true;
+    g.input.setLocked(true);
     g.player.setSpawn(g.player.position.clone().set(2.4, 0, 2.95), -Math.PI / 2);
     g.player.respawn();
     g.player.pitch = -0.3;
@@ -300,7 +313,7 @@ await check('saves: spray in the air at LOAD lands without paint', async () => {
       return f === 59;
     });
     g.fixedStep.dt = 0;
-    g.input.locked = false;
+    g.input.setLocked(false);
     return { inAir, painted: g.paint.surfaces.filter((s) => s.data).length };
   });
   return r.inAir > 0 && r.painted === 0 ? null : JSON.stringify(r);
@@ -329,7 +342,7 @@ await check('input: K takes a screenshot only while playing, not on the title or
     let shots = 0;
     canvas.toBlob = () => shots++;
     const k = async (locked) => {
-      g.input.locked = locked;
+      g.input.setLocked(locked);
       const before = shots;
       window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyK' }));
       window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyK' }));
@@ -337,7 +350,7 @@ await check('input: K takes a screenshot only while playing, not on the title or
       return shots - before;
     };
     const out = { paused: await k(false), playing: await k(true) };
-    g.input.locked = false;
+    g.input.setLocked(false);
     delete canvas.toBlob;
     return out;
   });
@@ -391,14 +404,14 @@ await check('input: a trackpad swipe\'s many small wheel events step the color o
       });
       return changes;
     };
-    input.locked = true;
+    input.setLocked(true);
     const out = {
       swipe: await roll(Array(20).fill({ deltaY: 5 })),
       notch: await roll([{ deltaY: 100 }]),
       lines: await roll([{ deltaY: 3, deltaMode: 1 }]),
       twoNotches: await roll([{ deltaY: -100 }, { deltaY: -100 }]),
     };
-    input.locked = false;
+    input.setLocked(false);
     return out;
   });
   return r.swipe === 1 && r.notch === 1 && r.lines === 1 && r.twoNotches === 2 ? null : JSON.stringify(r);
@@ -410,11 +423,11 @@ await check('input: the mouse\'s back and forward buttons don\'t leave the page,
     const g = window.game;
     const canvas = g.renderer.domElement;
     const kept = (locked) => {
-      g.input.locked = locked;
+      g.input.setLocked(locked);
       return [3, 4].flatMap((button) => ['mouseup', 'auxclick'].map((type) => !canvas.dispatchEvent(new MouseEvent(type, { button, bubbles: true, cancelable: true }))));
     };
     const out = { playing: kept(true), menu: kept(false) };
-    g.input.locked = false;
+    g.input.setLocked(false);
     return out;
   });
   return [...r.playing, ...r.menu].every(Boolean) ? null : JSON.stringify(r);
@@ -439,10 +452,10 @@ await check('input: either Shift sprints, and flies fast in build mode', async (
       g.player.fly = false;
       return +v.toFixed(1);
     };
-    g.input.locked = true;
+    g.input.setLocked(true);
     const out = {};
     for (const shift of ['ShiftLeft', 'ShiftRight']) out[shift] = [await run(shift, false), await run(shift, true)];
-    g.input.locked = false;
+    g.input.setLocked(false);
     g.player.respawn();
     return { ...out, sprint: g.PLAYER.sprintSpeed, fly: g.config.BUILD.flySprintSpeed };
   });
@@ -472,7 +485,7 @@ await check('can: shaking and spraying exclude each other, the one pressed first
     const g = window.game;
     const { input } = g;
     const spray = g.tools.spray;
-    input.locked = true;
+    input.setLocked(true);
     g.inventory.select(0);
     g.inventory.pressure = 0.5;
     const out = {};
@@ -482,7 +495,7 @@ await check('can: shaking and spraying exclude each other, the one pressed first
     await steps((f) => ((input.lmb = f < 20), (input.rmb = f >= 5 && f < 20), f === 15 && ((out.sprayedFirst = spray.flow > 0), (out.shookWhileSpraying = spray.shaking)), f === 30));
     input.lmb = input.rmb = false;
     g.fixedStep.dt = 0;
-    input.locked = false;
+    input.setLocked(false);
     return out;
   });
   return r.shookFirst && !r.sprayedWhileShaking && r.sprayedFirst && !r.shookWhileSpraying ? null : JSON.stringify(r);
@@ -544,7 +557,7 @@ await check('sponge: a surface cleaned completely gives its memory back', async 
   const r = await page.evaluate(async () => {
     const g = window.game;
     const { inventory: inv, input, config } = g;
-    input.locked = true;
+    input.setLocked(true);
     inv.give('sponge');
     for (const c of config.CAP_ORDER) inv.addCap(c);
     while (inv.cap !== 'skinny') inv.cycleCap(1);
@@ -557,7 +570,7 @@ await check('sponge: a surface cleaned completely gives its memory back', async 
     inv.size.sponge = 0.6;
     await steps((f) => ((input.lmb = f < 150), f === 159));
     g.fixedStep.dt = 0;
-    input.locked = false;
+    input.setLocked(false);
     return { sprayed, after: g.paint.gpu.textureCount };
   });
   return r.sprayed > 0 && r.after === 0 ? null : JSON.stringify(r);
@@ -567,7 +580,7 @@ await check('props: a tank roof (a cone) holds a player dropped on it, near its 
   const r = await page.evaluate(async () => {
     const g = window.game;
     const { player: p } = g;
-    g.input.locked = true;
+    g.input.setLocked(true);
     const saved = g.build.getLevelData();
     // Where each cone sits (kit/equipment.ts, kit/steel.ts): its tip's x, its base's height, its height.
     const roofs = [['watertower', 0, 7.4, 1.1], ['tank_pair', 1.1, 4.32, 0.4]];
@@ -1012,7 +1025,7 @@ await check('tools: Q/E change the player\'s nib, roller and patch width, not th
     const { inventory: inv, input, tools, config } = g;
     // E grows, Q shrinks: one press a frame.
     const notch = (dir) => new Promise((done) => { g.fixedStep.script = () => { window.dispatchEvent(new KeyboardEvent('keydown', { code: dir < 0 ? 'KeyE' : 'KeyQ' })); window.dispatchEvent(new KeyboardEvent('keyup', { code: dir < 0 ? 'KeyE' : 'KeyQ' })); g.fixedStep.script = null; requestAnimationFrame(done); }; });
-    input.locked = true;
+    input.setLocked(true);
     inv.give('marker');
     inv.give('sponge');
     inv.give('roller');
@@ -1030,7 +1043,7 @@ await check('tools: Q/E change the player\'s nib, roller and patch width, not th
     await notch(-1);
     out.roller = inv.size.roller;
     out.config = [config.MARKER.width, config.SPONGE.width];
-    input.locked = false;
+    input.setLocked(false);
     return out;
   });
   return r.marker === 0.056 && r.grew && r.min === 0 && r.sponge === 0.22 && r.roller === 0.5 && r.config.join() === '0.032,0.18' ? null : JSON.stringify(r);
@@ -1042,7 +1055,7 @@ await check('tools: holding Q or E keeps changing the width (and the can\'s cap)
     const { inventory: inv, input, config } = g;
     // A press, then the keyboard's auto-repeat, one a frame.
     const hold = (code, repeats) => steps((f) => (f <= repeats && window.dispatchEvent(new KeyboardEvent('keydown', { code, repeat: f > 0 })), f === repeats + 1 && (window.dispatchEvent(new KeyboardEvent('keyup', { code })), true)));
-    input.locked = true;
+    input.setLocked(true);
     for (const c of config.CAP_ORDER) inv.addCap(c);
     inv.give('marker');
     inv.size = { ...inv.size, marker: config.MARKER.width };
@@ -1054,7 +1067,7 @@ await check('tools: holding Q or E keeps changing the width (and the can\'s cap)
     const cap = at();
     await hold('KeyE', 1);
     out.capSteps = (at() - cap + config.CAP_ORDER.length) % config.CAP_ORDER.length;
-    input.locked = false;
+    input.setLocked(false);
     return out;
   });
   // 0.032 m and five steps of 0.008 m; two caps on.
@@ -1068,7 +1081,7 @@ await check('tools: the wheel changes the color (can, marker, roller) and Q/E th
     const frame = (act) => new Promise((done) => { g.fixedStep.script = () => { act(); g.fixedStep.script = null; requestAnimationFrame(done); }; });
     const wheel = () => frame(() => (input.wheelSteps = 1));
     const key = (code) => frame(() => (window.dispatchEvent(new KeyboardEvent('keydown', { code })), window.dispatchEvent(new KeyboardEvent('keyup', { code }))));
-    input.locked = true;
+    input.setLocked(true);
     for (const c of config.COLOR_ORDER) inv.addColor(c);
     for (const c of config.CAP_ORDER) inv.addCap(c);
     inv.give('marker');
@@ -1087,7 +1100,7 @@ await check('tools: the wheel changes the color (can, marker, roller) and Q/E th
     out.rollerWheel = await step(3, wheel);
     out.spongeWheel = await step(4, wheel);
     out.ladderE = await step(2, () => key('KeyE'));
-    input.locked = false;
+    input.setLocked(false);
     return out;
   });
   const is = (o, color, cap, size) => o.color === color && o.cap === cap && o.size === size;
@@ -1130,7 +1143,7 @@ await check('ladders: climbed to the top (each in the level, a scaffolding bay, 
     const g = window.game;
     const { player: p, input, level, PLAYER } = g;
     const keys = input.down;
-    input.locked = true;
+    input.setLocked(true);
     /** At its foot (or its bottom, in the air), facing it, W held to the top; then idle, then a jump: what went wrong, or null. */
     const climb = async ({ volume: v, normal: n }) => {
       const along = Math.abs(n.x) > 0.5 ? 'x' : 'z';
@@ -1213,7 +1226,7 @@ await check('ladders: climbed to the top (each in the level, a scaffolding bay, 
     keys.delete('KeyS');
     if (!on || !p.onGround || p.position.y > 0.4 || fastest > PLAYER.climbSpeed + 1e-6) out.push(`down the stepladder: on it ${on}, at ${p.position.y.toFixed(2)}, falling up to ${fastest.toFixed(2)} m/s`);
     level.setRuntime(g.session.player, null);
-    input.locked = false;
+    input.setLocked(false);
     p.respawn();
     return { ladders: level.ladders.length, out };
   });
@@ -1226,7 +1239,7 @@ await check('session: B and F3 open build mode and the panel in single player; a
     const frame = () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
     const press = async (code) => (window.dispatchEvent(new KeyboardEvent('keydown', { code })), window.dispatchEvent(new KeyboardEvent('keyup', { code })), frame());
     const state = () => `${g.build.active ? 'build' : '-'} ${g.debug.visible ? 'panel' : '-'}`;
-    g.input.locked = true;
+    g.input.setLocked(true);
     await press('KeyB');
     await press('F3');
     const solo = state();
@@ -1237,7 +1250,7 @@ await check('session: B and F3 open build mode and the panel in single player; a
     await press('F3');
     const inSession = state();
     g.session.multiplayer = false;
-    g.input.locked = false;
+    g.input.setLocked(false);
     return { solo, entered, inSession };
   });
   return r.solo === 'build panel' && r.entered === '- -' && r.inSession === '- -' ? null : JSON.stringify(r);
@@ -1249,7 +1262,7 @@ await check('title view: before START the title screen shows the city, without h
     const g = window.game;
     const frame = () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
     const press = async (code) => (window.dispatchEvent(new KeyboardEvent('keydown', { code })), window.dispatchEvent(new KeyboardEvent('keyup', { code })), frame());
-    const lock = async (on) => (g.input.locked = on, g.input.onLockChange(on), frame());
+    const lock = async (on) => (g.input.setLocked(on), frame());
     const state = () => `${g.hud.cityView ? 'city' : 'you'} ${g.viewScene.visible ? 'hands' : '-'}`;
     await frame();
     const title = state();
@@ -1290,7 +1303,7 @@ await check('session: paused, the world goes on (you fall, paint runs run) and k
     };
     // Frames here run uncapped: give each one a real step.
     g.fixedStep.dt = 0.05;
-    g.input.locked = false;
+    g.input.setLocked(false);
     const solo = await step();
     g.session.multiplayer = true;
     const inSession = await step();
@@ -1584,7 +1597,7 @@ await check('debug panel: hooks run from the rows: a Models slider rebuilds the 
     const frame = () => new Promise((d) => requestAnimationFrame(() => requestAnimationFrame(d)));
     const open = g.debug.visible;
     if (!open) g.debug.toggle();
-    g.hud.setLocked(false, true);
+    g.play.setPanel(true);
     const tab = (name) => [...document.querySelectorAll('.debug-panel .tabs button')].find((b) => b.textContent.trim() === name).click();
     const row = (name) => [...document.querySelectorAll('.debug-panel .page:not([hidden]) label')].filter((l) => l.querySelector('span')?.firstChild?.textContent === name).pop().querySelector('input');
     const length = () => {
@@ -1619,7 +1632,7 @@ await check('debug panel: hooks run from the rows: a Models slider rebuilds the 
     const pauseReset = pause.closest('section').querySelector('.head .reset');
     pauseReset.click();
     pauseReset.click();
-    if (!open) g.debug.toggle();
+    if (!open) (g.debug.toggle(), g.play.setPanel(false));
     return { before, after, asked, restored, previewed: !compact };
   });
   return r.before === 0.13 && r.after === 0.2 && r.asked && r.restored && r.previewed ? null : JSON.stringify(r);

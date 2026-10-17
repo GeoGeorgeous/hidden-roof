@@ -24,6 +24,7 @@ import { captureDefaults } from './debug/defaults';
 import { pixelRatio, Settings } from './settings';
 import { saveScreenshot } from './screenshot';
 import { Input } from './input';
+import { PlayState } from './play-state';
 import { Player } from './player';
 import { PaintSystem } from './painting';
 import { Level } from './level/level';
@@ -171,9 +172,21 @@ let lastStride = 0;
 let textAtlasSeen = textAtlasVersion();
 player.onLand = (speed) => audio.footstep(speed > PLAYER.hardLanding);
 
+const play = new PlayState(input, session, {
+  release: () => document.exitPointerLock(),
+  resume: () => input.requestLock(),
+  page: () => hud.menu.onPage,
+  back: () => hud.menu.goBack(),
+  primary: () => hud.menu.primary(),
+});
+input.onMenuKey = (code, down, repeat) => play.key(code, down, repeat);
+// Esc held to the end: the browser left fullscreen, and its release doesn't resume.
+document.addEventListener('fullscreenchange', () => play.disarm());
+const showMenu = () => hud.setLocked(input.locked, play.panel);
+play.onPanel = showMenu;
 // Losing pointer lock (Esc, alt-tab, a file dialog) pauses the game behind the menu.
 input.onLockChange = (locked) => {
-  hud.setLocked(locked, dev?.panelOpen);
+  showMenu();
   if (locked) {
     settings.applyPending();
     audio.start();
@@ -184,9 +197,7 @@ input.onLockChange = (locked) => {
 };
 hud.menu.onResume = () => input.requestLock();
 hud.menu.onStyle = (i) => settings.setStyle(i);
-input.escapeResumes = () => hud.menu.escape();
-input.escapeReleased = () => hud.menu.escapeReleased();
-hud.setLocked(false);
+showMenu();
 hud.menu.setSettings(settings.sections());
 const paintFile = paintMenu(hud.menu, paint, drips, () => opened.name);
 const net = multiplayerMenu(hud.menu, hotbar, { scene, camera, level, paint, paintOps, drips, player, inventory, pickups, tools, levelData: () => ({ data: opened.toJSON(), name: opened.name }), levelPaint: () => levelPaintOf(opened.name), openLevel: (d, n) => opened.open(d, n), restartLevel: () => opened.restart(), lockDetail: (tpm) => settings.lockPaintDetail(tpm) }, () => opened.name);
@@ -237,7 +248,7 @@ function frame(time: number) {
   const dt = fixedStep.dt || Math.min(delta, 1 / 20);
 
   dev?.frame(input, dt);
-  const building = dev?.building ?? false;
+  const building = play.building;
 
   // Paused (pointer not locked) in single player the game stops: you, your tools,
   // paint in flight, drips, pickups and lightning. The surroundings go on (fans,
@@ -245,8 +256,7 @@ function frame(time: number) {
   // not with F3 open, to tune it). In a session the game goes on without you:
   // you stand still, but you still fall, your spray lands and paint runs, as
   // others see it.
-  const paused = !input.locked;
-  const frozen = paused && !session.multiplayer;
+  const { paused, frozen } = play;
   const yours = paused ? noInput : input;
   if (!frozen) player.update(dt, yours);
   if (player.onGround && player.stride - lastStride > PLAYER.footstepStride) {
@@ -300,7 +310,7 @@ function frame(time: number) {
   smoke.update(rainTime, SMOKE.lightBase + SMOKE.lightAmbient * ATMOS.ambient + SMOKE.lightFlash * lightning.flash);
   audio.setFan(fanLevel(level.emitters, eye));
   if (ATMOS.rain && !building) metalDrops(audio, level.emitters, heightmap, camera, dt, eye);
-  audio.update(paused && !dev?.panelOpen);
+  audio.update(paused && !play.panel);
   dev?.lap('world');
 
   if (!frozen) {
@@ -312,7 +322,7 @@ function frame(time: number) {
   } else {
     if (!building) tools.holdStill(camera);
     // Tuned live in F3 → Items → Pickups, which pauses the game.
-    if (dev?.panelOpen) pickups.update(dt, player.position, inventory);
+    if (play.panel) pickups.update(dt, player.position, inventory);
   }
   net.update(dt);
   const tool = building ? null : inventory.tool;
@@ -362,5 +372,5 @@ function toScreen(p: THREE.Vector3) {
 
 // Dev tools (build mode, F3, window.game): single player only, and not in the player build (npm run build).
 let dev: DevTools | undefined;
-const game = { city: () => opened.city, config, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, hotbar, pickups, paint, paintOps, net, paintFile, seedPaintRandom, fixedStep, session, level, renderer, input, hud, scene, viewScene, gpuTimer, PLAYER, loadLevel: (d: LevelData) => opened.load(d), rebuildCity: () => opened.rebuildCity(), levelData: () => opened.toJSON(), levelName: () => opened.name, openLevel: (d: LevelData, n: string) => opened.open(d, n), loaded: () => loaded };
+const game = { city: () => opened.city, config, play, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, hotbar, pickups, paint, paintOps, net, paintFile, seedPaintRandom, fixedStep, session, level, renderer, input, hud, scene, viewScene, gpuTimer, PLAYER, loadLevel: (d: LevelData) => opened.load(d), rebuildCity: () => opened.rebuildCity(), levelData: () => opened.toJSON(), levelName: () => opened.name, openLevel: (d: LevelData, n: string) => opened.open(d, n), loaded: () => loaded };
 if (__DEV_TOOLS__) void import('./dev/devtools').then((m) => (dev = new m.DevTools(game)));

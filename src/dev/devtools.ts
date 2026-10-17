@@ -16,6 +16,7 @@ import type { PaintDrips } from '../paint-drips';
 import type { PaintSystem } from '../painting';
 import type { Pickups } from '../pickups/pickups';
 import type { Player } from '../player';
+import type { PlayState } from '../play-state';
 import type { Atmosphere } from '../render/atmosphere';
 import type { LightBaker } from '../render/bake/baker';
 import type { LightFX } from '../render/light-fx';
@@ -28,7 +29,7 @@ import { AvatarPreview } from './avatar-preview';
 import { layoutCity } from '../city/layout';
 import { dressTower, wallSigns } from '../city/rooftops';
 import { Ghost } from './ghost';
-import { Profiler, type ProfiledFrame } from './profiler';
+import { Profiler } from './profiler';
 import type { PaintOps } from '../paint-ops';
 import type { Tools } from '../tools/tools';
 
@@ -42,6 +43,7 @@ export interface DevContext {
   scene: THREE.Scene;
   renderer: THREE.WebGLRenderer;
   input: Input;
+  play: PlayState;
   hud: Hud;
   audio: Audio;
   hotbar: Hotbar;
@@ -144,17 +146,7 @@ export class DevTools {
       profileProbe: () => this.profiler.runProbe(),
       profileState: () => (this.profiler.recording ? 'RECORDING' : 'off'),
     });
-    const menuEscape = g.input.escapeResumes;
-    g.input.escapeResumes = () => this.debug.visible || menuEscape();
     Object.assign(window, { game: { ...g, build: this.build, debug: this.debug, live, ghost: this.ghost, profiler: this.profiler, cityParts: { layoutCity, dressTower, wallSigns } } });
-  }
-
-  get building() {
-    return this.build.active;
-  }
-
-  get panelOpen() {
-    return this.debug.visible;
   }
 
   /** Where the test figures stand besides the session's players (the ghost): a stepladder can't go there. */
@@ -201,8 +193,7 @@ export class DevTools {
   /** End of frame: the profiler, and the panel's readouts (only while it's open). */
   report({ fps, frameMs, calls, triangles, interval }: FrameStats) {
     const g = this.g;
-    const state: ProfiledFrame['state'] = this.build.active ? 'build' : g.input.locked ? 'play' : 'paused';
-    this.profiler.frame({ interval, calls, triangles, state });
+    this.profiler.frame({ interval, calls, triangles, state: g.play.mode });
     g.gpuTimer.enabled = this.debug.visible || this.profiler.recording;
     if (!this.debug.visible) return;
     Object.assign(live.stats, {
@@ -234,7 +225,7 @@ export class DevTools {
 
   /**
    * Opening frees the mouse for the panel; Esc then goes back to the game and
-   * to the panel again (Input.escapeResumes). Closing with the key (`byKey`)
+   * to the panel again (play-state.ts). Closing with the key (`byKey`)
    * goes back to the game if that's where the panel was opened.
    */
   /** Rebuild every tool model (first person, pickups, hotbar icons, the figure's tool) from MODELS and CAPS. */
@@ -255,11 +246,12 @@ export class DevTools {
       this.resumeOnClose = input.locked;
       if (input.locked) document.exitPointerLock();
     } else if (byKey && this.resumeOnClose && !input.locked) input.requestLock();
-    this.g.hud.setLocked(input.locked, this.debug.visible);
+    this.g.play.setPanel(this.debug.visible);
   }
 
   private setBuilding(on: boolean) {
     this.build.setActive(on);
+    this.g.play.building = on;
     this.g.atmosphere.setDaylight(on);
     this.debug.sync();
     this.g.hotbar.visible = !on;

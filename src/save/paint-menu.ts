@@ -3,6 +3,7 @@ import { aboutSize, action, button, fileChip, hl, para, popup, relabel, sentence
 import type { PaintDrips } from '../paint-drips';
 import type { PaintSystem } from '../painting';
 import type { PauseMenu } from '../pause-menu';
+import { session } from '../session';
 import { loadPaint, NotThisLevel } from './load-paint';
 import { decodePaintFile, type DecodedPaint } from './paint-file';
 import { savePaint } from './save-paint';
@@ -31,8 +32,8 @@ export function paintMenu(menu: PauseMenu, paint: PaintSystem, drips: PaintDrips
   const openSave = () => {
     name = `${levelName()}-${stamp(new Date())}.rhhpaint`;
     saving = false;
-    const chip = fileChip(name, menu.inSession ? 'from the session' : 'packing…');
-    const pack = (packed = menu.inSession ? null : file.save());
+    const chip = fileChip(name, session.multiplayer ? 'from the session' : 'packing…');
+    const pack = (packed = session.multiplayer ? null : file.save());
     pack?.then(
       (bytes) => pack === packed && (chip.lastChild!.textContent = aboutSize(bytes.length)),
       () => {},
