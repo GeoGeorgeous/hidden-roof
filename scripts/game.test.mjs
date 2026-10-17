@@ -522,6 +522,22 @@ await check('input: game fullscreen locks only the keys play binds and Esc (F11,
   return r.locked.join() === 'Escape,KeyW,ControlLeft,KeyC' && r.hint.join() === 'ESC,F11' ? null : JSON.stringify(r);
 });
 
+await check('input: a key released while Cmd is held doesn\'t stay down (macOS sends no keyup for it)', async () => {
+  const r = await page.evaluate(() => {
+    const input = window.game.input;
+    const key = (type, code, key = code) => window.dispatchEvent(new KeyboardEvent(type, { code, key }));
+    input.setLocked(true);
+    key('keydown', 'KeyW');
+    key('keydown', 'MetaLeft', 'Meta');
+    // W comes up while Cmd is held: macOS sends nothing for it.
+    key('keyup', 'MetaLeft', 'Meta');
+    const out = input.held('forward');
+    input.setLocked(false);
+    return out;
+  });
+  return r === false ? null : JSON.stringify(r);
+});
+
 await check('input: either Shift sprints, and flies fast in build mode', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;

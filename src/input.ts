@@ -58,6 +58,8 @@ export class Input {
     });
     window.addEventListener('keyup', (e) => {
       this.down.delete(e.code);
+      // macOS sends no keyup for keys released while Cmd is held: drop them all (one still held comes back on its auto-repeat).
+      if (e.key === 'Meta') this.down.clear();
       this.onMenuKey(e.code, false, false);
     });
     window.addEventListener('blur', () => {
