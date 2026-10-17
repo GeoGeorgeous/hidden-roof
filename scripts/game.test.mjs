@@ -1036,6 +1036,31 @@ await check('tools: Q/E change the player\'s nib, roller and patch width, not th
   return r.marker === 0.056 && r.grew && r.min === 0 && r.sponge === 0.22 && r.roller === 0.5 && r.config.join() === '0.032,0.18' ? null : JSON.stringify(r);
 });
 
+await check('tools: holding Q or E keeps changing the width (and the can\'s cap), as in build mode: the key\'s auto-repeat steps too', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { inventory: inv, input, config } = g;
+    // A press, then the keyboard's auto-repeat, one a frame.
+    const hold = (code, repeats) => steps((f) => (f <= repeats && window.dispatchEvent(new KeyboardEvent('keydown', { code, repeat: f > 0 })), f === repeats + 1 && (window.dispatchEvent(new KeyboardEvent('keyup', { code })), true)));
+    input.locked = true;
+    for (const c of config.CAP_ORDER) inv.addCap(c);
+    inv.give('marker');
+    inv.size = { ...inv.size, marker: config.MARKER.width };
+    inv.select(1);
+    await hold('KeyE', 4);
+    const out = { marker: inv.size.marker };
+    inv.select(0);
+    const at = () => config.CAP_ORDER.indexOf(inv.cap);
+    const cap = at();
+    await hold('KeyE', 1);
+    out.capSteps = (at() - cap + config.CAP_ORDER.length) % config.CAP_ORDER.length;
+    input.locked = false;
+    return out;
+  });
+  // 0.032 m and five steps of 0.008 m; two caps on.
+  return r.marker === 0.072 && r.capSteps === 2 ? null : JSON.stringify(r);
+});
+
 await check('tools: the wheel changes the color (can, marker, roller) and Q/E the can\'s cap; the sponge\'s wheel and the stepladder\'s Q/E change nothing', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
