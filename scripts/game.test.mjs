@@ -322,6 +322,134 @@ await check('input: keys typed into a text field are not game keys (a K in the s
   return !r.typed && r.played ? null : JSON.stringify(r);
 });
 
+await check('input: K takes a screenshot only while playing, not on the title or pause screen', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const canvas = g.renderer.domElement;
+    let shots = 0;
+    canvas.toBlob = () => shots++;
+    const k = async (locked) => {
+      g.input.locked = locked;
+      const before = shots;
+      window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyK' }));
+      window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyK' }));
+      await steps((f) => f === 1);
+      return shots - before;
+    };
+    const out = { paused: await k(false), playing: await k(true) };
+    g.input.locked = false;
+    delete canvas.toBlob;
+    return out;
+  });
+  return r.paused === 0 && r.playing === 1 ? null : JSON.stringify(r);
+});
+
+await check('input: Enter that resumes from the pause screen doesn\'t reach build mode (its sign text prompt), even when the lock is back before the next frame', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const canvas = g.renderer.domElement;
+    const press = (code) => (window.dispatchEvent(new KeyboardEvent('keydown', { code })), window.dispatchEvent(new KeyboardEvent('keyup', { code })));
+    // The browser's pointer lock, as it reports it.
+    const lock = (on) => (Object.defineProperty(document, 'pointerLockElement', { get: () => (on ? canvas : null), configurable: true }), document.dispatchEvent(new Event('pointerlockchange')));
+    let prompts = 0;
+    window.prompt = () => (prompts++, null);
+    lock(true);
+    press('KeyB');
+    await steps((f) => f === 1);
+    const building = g.build.active;
+    lock(false);
+    await steps((f) => f === 1);
+    g.build.status = '';
+    press('Enter');
+    lock(true);
+    await steps((f) => f === 1);
+    const out = { building, prompts, status: g.build.status };
+    press('KeyB');
+    await steps((f) => f === 1);
+    lock(false);
+    delete document.pointerLockElement;
+    delete window.prompt;
+    return out;
+  });
+  return r.building && r.prompts === 0 && r.status === '' ? null : JSON.stringify(r);
+});
+
+await check('input: a trackpad swipe\'s many small wheel events step the color once a notch, like a wheel\'s notch', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { inventory: inv, input, config } = g;
+    for (const c of config.COLOR_ORDER) inv.addColor(c);
+    inv.select(0);
+    // Wheel events, one a frame: how many times the color changed.
+    const roll = async (events) => {
+      let changes = 0;
+      let color = inv.color;
+      await steps((f) => {
+        if (inv.color !== color) (changes++, (color = inv.color));
+        if (f < events.length) window.dispatchEvent(new WheelEvent('wheel', events[f]));
+        return f === events.length + 1;
+      });
+      return changes;
+    };
+    input.locked = true;
+    const out = {
+      swipe: await roll(Array(20).fill({ deltaY: 5 })),
+      notch: await roll([{ deltaY: 100 }]),
+      lines: await roll([{ deltaY: 3, deltaMode: 1 }]),
+      twoNotches: await roll([{ deltaY: -100 }, { deltaY: -100 }]),
+    };
+    input.locked = false;
+    return out;
+  });
+  return r.swipe === 1 && r.notch === 1 && r.lines === 1 && r.twoNotches === 2 ? null : JSON.stringify(r);
+});
+
+await check('input: the mouse\'s back and forward buttons don\'t leave the page, playing or in the menu', async () => {
+  // Chromium goes back or forward on the button's release unless the page cancels it (a cancelled press doesn't stop it).
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    const canvas = g.renderer.domElement;
+    const kept = (locked) => {
+      g.input.locked = locked;
+      return [3, 4].flatMap((button) => ['mouseup', 'auxclick'].map((type) => !canvas.dispatchEvent(new MouseEvent(type, { button, bubbles: true, cancelable: true }))));
+    };
+    const out = { playing: kept(true), menu: kept(false) };
+    g.input.locked = false;
+    return out;
+  });
+  return [...r.playing, ...r.menu].every(Boolean) ? null : JSON.stringify(r);
+});
+
+await check('input: either Shift sprints, and flies fast in build mode', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const key = (type, code) => window.dispatchEvent(new KeyboardEvent(type, { code }));
+    const speed = () => Math.hypot(g.player.velocity.x, g.player.velocity.z);
+    // W with a Shift for half a second, from the spawn facing away from its wall: the speed reached.
+    const run = async (shift, fly) => {
+      g.player.respawn();
+      g.player.yaw += Math.PI;
+      g.player.fly = fly;
+      key('keydown', shift);
+      key('keydown', 'KeyW');
+      await steps((f) => f === 30);
+      const v = speed();
+      key('keyup', 'KeyW');
+      key('keyup', shift);
+      g.player.fly = false;
+      return +v.toFixed(1);
+    };
+    g.input.locked = true;
+    const out = {};
+    for (const shift of ['ShiftLeft', 'ShiftRight']) out[shift] = [await run(shift, false), await run(shift, true)];
+    g.input.locked = false;
+    g.player.respawn();
+    return { ...out, sprint: g.PLAYER.sprintSpeed, fly: g.config.BUILD.flySprintSpeed };
+  });
+  const ok = [r.ShiftLeft, r.ShiftRight].every(([walk, fly]) => walk > r.sprint * 0.9 && fly === r.fly);
+  return ok ? null : JSON.stringify(r);
+});
+
 await check('loading: a hidden tab, given no animation frames, still goes through the load steps', async () => {
   const r = await page.evaluate(async () => {
     const path = '/src/loading.ts'; // by name, so knip doesn't try to resolve a page URL
@@ -906,6 +1034,31 @@ await check('tools: Q/E change the player\'s nib, roller and patch width, not th
     return out;
   });
   return r.marker === 0.056 && r.grew && r.min === 0 && r.sponge === 0.22 && r.roller === 0.5 && r.config.join() === '0.032,0.18' ? null : JSON.stringify(r);
+});
+
+await check('tools: holding Q or E keeps changing the width (and the can\'s cap), as in build mode: the key\'s auto-repeat steps too', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { inventory: inv, input, config } = g;
+    // A press, then the keyboard's auto-repeat, one a frame.
+    const hold = (code, repeats) => steps((f) => (f <= repeats && window.dispatchEvent(new KeyboardEvent('keydown', { code, repeat: f > 0 })), f === repeats + 1 && (window.dispatchEvent(new KeyboardEvent('keyup', { code })), true)));
+    input.locked = true;
+    for (const c of config.CAP_ORDER) inv.addCap(c);
+    inv.give('marker');
+    inv.size = { ...inv.size, marker: config.MARKER.width };
+    inv.select(1);
+    await hold('KeyE', 4);
+    const out = { marker: inv.size.marker };
+    inv.select(0);
+    const at = () => config.CAP_ORDER.indexOf(inv.cap);
+    const cap = at();
+    await hold('KeyE', 1);
+    out.capSteps = (at() - cap + config.CAP_ORDER.length) % config.CAP_ORDER.length;
+    input.locked = false;
+    return out;
+  });
+  // 0.032 m and five steps of 0.008 m; two caps on.
+  return r.marker === 0.072 && r.capSteps === 2 ? null : JSON.stringify(r);
 });
 
 await check('tools: the wheel changes the color (can, marker, roller) and Q/E the can\'s cap; the sponge\'s wheel and the stepladder\'s Q/E change nothing', async () => {

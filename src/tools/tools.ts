@@ -73,7 +73,8 @@ export class Tools {
       if (SLOTS.some((_, i) => input.wasPressed(`Digit${i + 1}`))) this.audio.click();
       const t = inv.tool;
       const wheel = Math.sign(input.wheelSteps);
-      const qe = (input.wasPressed('KeyE') ? 1 : 0) - (input.wasPressed('KeyQ') ? 1 : 0);
+      // Held, they keep stepping (the key's auto-repeat), as in build mode.
+      const qe = (input.wasTyped('KeyE') ? 1 : 0) - (input.wasTyped('KeyQ') ? 1 : 0);
       if (wheel && (t === 'can' || t === 'marker' || t === 'roller') && inv.cycleColor(wheel)) this.audio.click();
       if (qe && t === 'can' && inv.cycleCap(qe)) this.audio.click();
       if (qe && isSized(t)) {

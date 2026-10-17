@@ -1,4 +1,4 @@
-import { RENDER } from './config';
+import { RENDER, WHEEL } from './config';
 import { enterGameFullscreen } from './fullscreen';
 
 // Keyboard + mouse state with pointer lock. Edge-triggered presses are consumed per frame.
@@ -17,6 +17,8 @@ export class Input {
   mouseDX = 0;
   mouseDY = 0;
   wheelSteps = 0;
+  /** Scroll (px) toward the next wheel step. */
+  private wheelPx = 0;
   lmb = false;
   rmb = false;
   /** Mouse buttons (0 left, 1 middle, 2 right) pressed this frame. */
@@ -72,6 +74,8 @@ export class Input {
       if (e.button === 2) this.rmb = true;
     });
     window.addEventListener('contextmenu', (e) => e.preventDefault());
+    // The mouse's back and forward buttons (3, 4) would leave the game: browsers go on their release.
+    for (const type of ['mouseup', 'auxclick']) window.addEventListener(type, (e) => (e as MouseEvent).button > 2 && e.preventDefault());
     window.addEventListener('mouseup', (e) => {
       if (e.button === 0) this.lmb = false;
       if (e.button === 2) this.rmb = false;
@@ -85,13 +89,23 @@ export class Input {
       'wheel',
       (e) => {
         if (!this.locked) return;
-        this.wheelSteps += Math.sign(e.deltaY);
+        // Pixels, lines or pages; turning back starts over, so the first notch back steps.
+        const px = e.deltaY * (e.deltaMode === 1 ? WHEEL.linePx : e.deltaMode === 2 ? WHEEL.notchPx : 1);
+        if (Math.sign(px) !== Math.sign(this.wheelPx)) this.wheelPx = 0;
+        this.wheelPx += px;
+        const steps = Math.trunc(this.wheelPx / WHEEL.notchPx);
+        this.wheelPx -= steps * WHEEL.notchPx;
+        this.wheelSteps += steps;
       },
       { passive: true },
     );
     document.addEventListener('pointerlockchange', () => {
       this.locked = document.pointerLockElement === this.element;
-      if (!this.locked) {
+      // Keys pressed while paused belong to the menu: the Enter that resumed must not reach build mode in the first frame back.
+      if (this.locked) {
+        this.pressed.clear();
+        this.typed.clear();
+      } else {
         this.lmb = this.rmb = false;
         this.down.clear();
       }
@@ -116,6 +130,11 @@ export class Input {
 
   isDown(code: string) {
     return this.down.has(code);
+  }
+
+  /** Either Shift key held. */
+  shiftDown() {
+    return this.down.has('ShiftLeft') || this.down.has('ShiftRight');
   }
 
   wasPressed(code: string) {

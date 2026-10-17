@@ -333,8 +333,8 @@ function frame(time: number) {
   post.render(scene, viewScene, shown, lighting, !building);
   frameDrawn();
   dev?.lap('render');
-  // Same frame as the render: the canvas still holds it (see screenshot.ts).
-  if (input.wasPressed('KeyK')) saveScreenshot(renderer.domElement, () => hotbar.toast('Screenshot saved'));
+  // Same frame as the render: the canvas still holds it (see screenshot.ts). Only while playing: not on the title or pause screen, nor with F3 open.
+  if (yours.wasPressed('KeyK')) saveScreenshot(renderer.domElement, () => hotbar.toast('Screenshot saved'));
   gpuTimer.poll();
   const { calls, triangles } = post.sceneStats;
 

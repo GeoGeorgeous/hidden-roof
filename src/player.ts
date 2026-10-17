@@ -138,7 +138,7 @@ export class Player {
       this.sinceW = 0;
     }
     if (!input.isDown('KeyW')) this.tapSprint = false;
-    const sprint = (input.isDown('ShiftLeft') || this.tapSprint) && fwd > 0 && !this.crouched && !ladder;
+    const sprint = (input.shiftDown() || this.tapSprint) && fwd > 0 && !this.crouched && !ladder;
     const speed = this.crouched ? PLAYER.crouchSpeed : sprint ? PLAYER.sprintSpeed : PLAYER.walkSpeed;
     const moving = wish.lengthSq() > 0;
     // Ground (and ladders): accelerate toward the wished velocity, or brake with friction.
@@ -204,7 +204,7 @@ export class Player {
 
   /** Free-fly for build mode: no gravity, no collisions. Space up, C down. */
   private flyMove(dt: number, input: Input, wish: THREE.Vector3) {
-    const speed = input.isDown('ShiftLeft') ? BUILD.flySprintSpeed : BUILD.flySpeed;
+    const speed = input.shiftDown() ? BUILD.flySprintSpeed : BUILD.flySpeed;
     let up = 0;
     if (input.isDown('Space')) up += 1;
     if (input.isDown('KeyC')) up -= 1;
