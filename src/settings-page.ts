@@ -1,5 +1,5 @@
 import { button, div, segmented } from './menu-ui';
-import type { SettingRow, SettingSection } from './settings';
+import type { OwnTab, SettingRow, SettingSection } from './settings';
 
 // The Settings page of the ESC menu: one tab per section (gameplay, graphics,
 // sound), each row a choice (‹ and › step to the previous and next value) or
@@ -7,9 +7,9 @@ import type { SettingRow, SettingSection } from './settings';
 // with, for some, a short description, a performance cost (one to three dots
 // after its name) and a callout (recommendations). Values are read again
 // whenever the page opens, since the debug panel edits the same settings.
-// The multiplayer page builds its rows with the same pieces. Controls: a
-// key slot, clicked, takes the next key, mouse button or wheel step (Esc
-// cancels); nothing else hears it.
+// The multiplayer page builds its rows with the same pieces. A tab can build
+// its own page instead (Controls, controls-tab.ts): its rows, footer line and
+// a control top right.
 
 /** Performance cost after a setting's name: one dot (LOW) to three (HIGH). */
 const COST_DOTS = { LOW: '●○○', MEDIUM: '●●○', HIGH: '●●●' };
@@ -18,6 +18,11 @@ export class SettingsPage {
   readonly root: HTMLElement;
   private body: HTMLElement;
   private tabs: ReturnType<typeof segmented>;
+  private foot: HTMLElement;
+  private costs: HTMLElement[];
+  private corner = div('page-corner');
+  /** The open tab's own page, if it has one. */
+  private own: OwnTab | undefined;
   private syncs: (() => void)[] = [];
 
   constructor(private sections: SettingSection[]) {
@@ -28,10 +33,16 @@ export class SettingsPage {
     );
     this.tabs.el.classList.add('tabs');
     this.body = div('rows');
-    const foot = div('foot');
-    foot.innerHTML = '<span>Performance cost:&nbsp; ●○○ low · ●●○ medium · ●●● high</span><i>·</i><span>Shift + click a slider to reset it</span>';
-    this.root.append(pageHead('settings', this.tabs.el), this.body, foot);
+    this.foot = div('foot');
+    this.foot.innerHTML = '<span>Performance cost:&nbsp; ●○○ low · ●●○ medium · ●●● high</span><i>·</i><span>Shift + click a slider to reset it</span>';
+    this.costs = [...this.foot.children] as HTMLElement[];
+    this.root.append(pageHead('settings', this.tabs.el), this.corner, this.body, this.foot);
     this.show(0);
+  }
+
+  /** The tab with this title. */
+  showTab(title: string) {
+    this.show(this.sections.findIndex((s) => s.title === title));
   }
 
   /** Re-read every value (the debug panel may have changed them). */
@@ -41,19 +52,26 @@ export class SettingsPage {
 
   show(i: number) {
     this.tabs.set(i);
+    this.own?.close();
+    this.own = this.sections[i].tab;
     this.body.replaceChildren();
     this.body.scrollTop = 0;
+    this.body.classList.toggle('own', !!this.own);
     this.syncs = [];
     for (const row of this.sections[i].rows) this.body.append(this.rowEl(row));
+    if (this.own) {
+      this.body.append(this.own.rows);
+      this.foot.replaceChildren(this.own.foot);
+      this.corner.replaceChildren(this.own.corner);
+      this.own.open();
+    } else {
+      this.foot.replaceChildren(...this.costs);
+      this.corner.replaceChildren();
+    }
     this.sync();
   }
 
   private rowEl(row: SettingRow) {
-    if (row.kind === 'keys') return settingRow(row.label, this.keysEl(row), row);
-    if (row.kind === 'button') {
-      const b = button(row.text, () => (row.run(), this.sync()), 'reset');
-      return settingRow(row.label, b, row);
-    }
     if (row.kind === 'choice') {
       const c = choice(row.value, (d) => (row.step(d), this.sync()), row.locked);
       this.syncs.push(c.sync);
@@ -82,44 +100,6 @@ export class SettingsPage {
     const el = div('range');
     el.append(withDefaultTick(input, row.def, row.min, row.max), out);
     return settingRow(row.label, el, row);
-  }
-
-  /** Two key slots: each shows its key, or — when empty. */
-  private keysEl(row: Extract<SettingRow, { kind: 'keys' }>) {
-    const el = div('keys');
-    const slots = [0, 1].map((i) => button('', () => this.capture(row, i, slots[i]), 'key'));
-    el.append(...slots);
-    this.syncs.push(() => {
-      const names = row.slots();
-      slots.forEach((b, i) => {
-        b.textContent = names[i] ?? '—';
-        b.classList.remove('capturing');
-      });
-    });
-    return el;
-  }
-
-  /** The next key, button or wheel step goes to the slot, before the game, the menu or the page hear it. Esc cancels. */
-  private capture(row: Extract<SettingRow, { kind: 'keys' }>, i: number, b: HTMLElement) {
-    b.textContent = 'Press a key';
-    b.classList.add('capturing');
-    const take = (e: Event, code: string | null) => {
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      for (const [type, f] of listeners) window.removeEventListener(type, f, true);
-      const refused = code && row.bind(i, code);
-      this.sync();
-      if (refused) {
-        b.textContent = refused;
-        setTimeout(() => this.sync(), 1500);
-      }
-    };
-    const listeners: [string, (e: Event) => void][] = [
-      ['keydown', (e) => take(e, (e as KeyboardEvent).code === 'Escape' ? null : (e as KeyboardEvent).code)],
-      ['mousedown', (e) => take(e, `Mouse${(e as MouseEvent).button}`)],
-      ['wheel', (e) => take(e, (e as WheelEvent).deltaY < 0 ? 'WheelUp' : 'WheelDown')],
-    ];
-    for (const [type, f] of listeners) window.addEventListener(type, f, { capture: true, passive: false });
   }
 }
 

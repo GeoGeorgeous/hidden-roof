@@ -19,8 +19,8 @@ export interface Saved {
   cityDetail?: string;
   /** Config fields changed from their defaults (REMEMBERED in settings.ts), as `OBJECT.field`. */
   values?: Record<string, number | boolean>;
-  /** Actions bound to other keys than BINDINGS' defaults (key-bindings.ts). */
-  keys?: Record<string, string[]>;
+  /** Actions bound to other keys than BINDINGS' defaults (key-bindings.ts): two slots each. Saves before them (`keys`) are dropped, so everyone starts from the defaults. */
+  controls?: Record<string, (string | null)[]>;
 }
 
 export function loadSaved(): Saved {

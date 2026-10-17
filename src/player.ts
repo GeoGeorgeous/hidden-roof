@@ -133,7 +133,7 @@ export class Player {
 
     this.sinceW += dt;
     if (input.justPressed('forward')) {
-      if (this.sinceW < PLAYER.sprintDoubleTap) this.tapSprint = true;
+      if (PLAYER.tapToRun && this.sinceW < PLAYER.sprintDoubleTap) this.tapSprint = true;
       this.sinceW = 0;
     }
     if (!input.held('forward')) this.tapSprint = false;

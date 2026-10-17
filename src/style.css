@@ -728,31 +728,165 @@
   white-space: pre;
   font-variant-numeric: tabular-nums;
 }
-/* Controls: two key slots (key caps), and RESET. */
-.overlay .keys {
+/* Settings → Controls (controls-tab.ts): groups of rows, each with two key slots. */
+.overlay .rows.own {
+  width: min(680px, calc(100% - 32px));
+  padding-right: 10px;
+  padding-bottom: 32px;
+}
+.overlay .controls .group {
+  padding: 30px 0 6px;
+  font-family: var(--display);
+  font-size: 20px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  color: rgba(235, 229, 214, 0.45);
+}
+.overlay .control-row {
+  border-bottom: 1px solid var(--hair);
+}
+.overlay .control-row .line,
+.overlay .control-row .sub {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 24px;
+  padding: 7px 0;
 }
-.overlay .keys .key,
-.overlay .setting-row .reset {
-  min-width: 96px;
+/* Crouch's mode and Forward's tap twice to run: inside the row, no divider between. */
+.overlay .control-row:has(.sub) .line {
+  padding-bottom: 4px;
+}
+.overlay .control-row .sub {
+  padding-top: 0;
+}
+.overlay .control-row .text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.overlay .control-row .label {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-weight: 500;
+  font-size: 13px;
+}
+.overlay .control-row .no-key {
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--error);
+}
+.overlay .control-row .desc {
+  flex: 1;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-2);
+  text-wrap: pretty;
+}
+.overlay .control-row .slots {
+  display: flex;
+  flex: none;
+  gap: 4px;
+}
+.overlay .control-row .slot {
+  width: 104px;
   height: 26px;
-  padding: 0 10px;
-  border: 1px solid rgba(235, 229, 214, 0.35);
+  border: 1px solid var(--edge);
   border-radius: 4px;
-  font: 500 11px var(--sans);
-  color: rgba(235, 229, 214, 0.8);
+  background: rgba(10, 10, 12, 0.45);
+  font-size: 12px;
+  color: var(--paper);
   white-space: nowrap;
-  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  user-select: none;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
 }
-.overlay .keys .key:hover,
-.overlay .setting-row .reset:hover {
+.overlay .control-row .slot:hover {
   background: rgba(235, 229, 214, 0.1);
+}
+.overlay .control-row .slot.empty {
+  color: rgba(235, 229, 214, 0.3);
+}
+.overlay .control-row .slot.listening {
+  border-color: var(--paper);
+  background: rgba(235, 229, 214, 0.14);
+  color: var(--paper);
+}
+.overlay .control-row .slot.refused {
+  border-color: var(--error);
+}
+/* The ‹ value › chooser, compacted across both slots. */
+.overlay .control-row .choice {
+  width: 212px;
+  flex: none;
+}
+.overlay .control-row .choice .value {
+  flex: 1;
+  width: auto;
+  font-size: 12px;
+}
+.overlay .controls-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  letter-spacing: 0.01em;
+}
+.overlay .controls-foot .listening {
+  color: var(--paper);
+}
+.overlay .controls-foot .error {
+  color: var(--error);
+}
+.overlay .controls-foot .notice {
+  color: rgba(235, 229, 214, 0.8);
+}
+.overlay .controls-foot .undo {
+  font-weight: 500;
+  color: var(--paper);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.overlay .controls-foot .undo:hover {
   color: #fff;
 }
-.overlay .keys .key.capturing {
-  border-color: #fff;
-  color: #fff;
+/* Reset all: top right, like Back; dimmed and inert when everything is default, then asks. */
+.overlay .page-corner {
+  position: absolute;
+  top: 18px;
+  right: 24px;
+}
+.overlay .reset-all {
+  align-items: center;
+}
+.overlay .reset-all button {
+  color: rgba(235, 229, 214, 0.8);
+}
+.overlay .reset-all button:hover {
+  background: rgba(235, 229, 214, 0.16);
+  color: var(--paper);
+}
+.overlay .reset-all button.dim {
+  color: rgba(235, 229, 214, 0.3);
+  cursor: default;
+  background: none;
+}
+.overlay .reset-all .ask {
+  padding: 6px 8px 6px 12px;
+  white-space: nowrap;
+  color: rgba(235, 229, 214, 0.65);
+}
+.overlay .reset-all button.confirm {
+  background: var(--paper);
+  color: var(--ink);
+  font-weight: 600;
+}
+.overlay .reset-all button.confirm:hover {
+  background: #fff;
+  color: var(--ink);
+}
+.overlay .reset-all button.cancel {
+  color: rgba(235, 229, 214, 0.7);
 }
 /* PAINT DETAIL in a session: the host's. */
 .overlay .choice.locked {
