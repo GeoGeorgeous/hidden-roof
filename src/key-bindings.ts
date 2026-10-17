@@ -34,6 +34,7 @@ export const ACTION_NAMES: Record<Action, string> = {
   slot4: 'Tool 4',
   slot5: 'Tool 5',
   screenshot: 'Screenshot',
+  pick: 'Pick a color',
 };
 
 /** A slot is a code, or a modifier's name for both its sides. */

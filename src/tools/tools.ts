@@ -6,6 +6,7 @@ import { SLOTS, type Inventory, type SizedTool, type Tool } from '../inventory/i
 import type { PaintSystem } from '../painting';
 import { SprayTool } from '../spray/spray-tool';
 import { LadderTool } from './ladder-tool';
+import { Eyedropper } from './eyedropper';
 import { MarkerTool } from './marker';
 import { RollerTool } from './roller';
 import { SpongeTool } from './sponge';
@@ -19,7 +20,7 @@ const SIZED: Record<SizedTool, WheelSized> = { marker: MARKER, roller: ROLLER, s
 const isSized = (t: Tool | null): t is SizedTool => t !== null && t in SIZED;
 
 // Routes input to the tool in hand: 1 = can, 2 = marker, 3 = stepladder, 4 =
-// roller, 5 = sponge, mouse wheel = color (can, marker, roller) or turning the ladder,
+// roller, 5 = sponge, mouse wheel = color (can, marker, roller) or turning the ladder, its click the eyedropper,
 // Q/E = the can's cap or the width (marker, roller, sponge). Owns the UI the tools share: it
 // reports color / cap changes (and which ones apply when switching tools) and
 // where the tags go next to whichever tool is in hand.
@@ -31,6 +32,7 @@ export class Tools {
   readonly roller: RollerTool;
   readonly sponge: SpongeTool;
   private sway = new ViewSway();
+  private eyedropper: Eyedropper;
   /** Called with the color when it changes or another tool comes out. */
   onColorChange: (color: PaintColor) => void = () => {};
   /** Called with the cap name when it changes or the can comes out. */
@@ -53,6 +55,7 @@ export class Tools {
     this.ladder = new LadderTool(scene, level);
     this.roller = new RollerTool(paint, solids, audio);
     this.sponge = new SpongeTool(paint, solids, audio);
+    this.eyedropper = new Eyedropper(solids, paint);
     viewScene.add(this.spray.model.group, this.marker.model, this.ladder.model.group, this.roller.model.group, this.sponge.model.group);
   }
 
@@ -76,7 +79,12 @@ export class Tools {
       const wheel = input.step('prev', 'next');
       // Held, they keep stepping (the key's auto-repeat), as in build mode.
       const qe = input.step('sizeDown', 'sizeUp');
-      if (wheel && (t === 'can' || t === 'marker' || t === 'roller') && inv.cycleColor(wheel)) this.audio.click();
+      const colored = t === 'can' || t === 'marker' || t === 'roller';
+      if (wheel && colored && inv.cycleColor(wheel)) this.audio.click();
+      if (colored && input.justPressed('pick')) {
+        const picked = this.eyedropper.pick(camera, eye, inv.colors);
+        if (picked && inv.pickColor(picked)) this.audio.click();
+      }
       if (qe && t === 'can' && inv.cycleCap(qe)) this.audio.click();
       if (qe && isSized(t)) {
         const size = stepSize(SIZED[t], inv.size[t], qe);

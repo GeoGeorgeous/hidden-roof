@@ -782,6 +782,47 @@ await check('sponge: a surface cleaned completely gives its memory back', async 
   return r.sprayed > 0 && r.after === 0 ? null : JSON.stringify(r);
 });
 
+await check('tools: the wheel\'s click picks the color of the paint under the crosshair (the nearest owned); at the sky nothing changes', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { inventory: inv, input, config } = g;
+    input.setLocked(true);
+    for (const c of config.COLOR_ORDER) inv.addColor(c);
+    for (const c of config.CAP_ORDER) inv.addCap(c);
+    while (inv.cap !== 'fat') inv.cycleCap(1);
+    // From the spawn, face the nearest wall (within the can's reach).
+    g.player.respawn();
+    g.player.pitch = 0;
+    await steps((f) => f === 1);
+    const cam = g.scene.children.find((o) => o.isPerspectiveCamera);
+    const ray = new g.tools.marker.stroke.raycaster.constructor();
+    const wallAt = (yaw) => {
+      ray.set(cam.position, { x: -Math.sin(yaw), y: 0, z: -Math.cos(yaw) });
+      return ray.intersectObjects(g.level.solids, false)[0]?.distance ?? Infinity;
+    };
+    const yaws = [0, 1, 2, 3].map((k) => g.player.yaw + (k * Math.PI) / 2);
+    g.player.yaw = yaws.reduce((a, b) => (wallAt(b) < wallAt(a) ? b : a));
+    inv.select(0);
+    inv.pressure = 1;
+    inv.pickColor('red');
+    await steps((f) => ((input.lmb = f < 20), f === 39));
+    inv.pickColor('blue');
+    const click = () => input.element.dispatchEvent(new MouseEvent('mousedown', { button: 1 }));
+    await steps((f) => (f === 0 && click(), f === 2));
+    const wall = inv.color;
+    g.player.pitch = 1.4;
+    inv.pickColor('blue');
+    await steps((f) => (f === 0 && click(), f === 2));
+    const sky = inv.color;
+    window.dispatchEvent(new MouseEvent('mouseup', { button: 1 }));
+    g.paint.clear();
+    g.fixedStep.dt = 0;
+    input.setLocked(false);
+    return { wall, sky };
+  });
+  return r.wall === 'red' && r.sky === 'blue' ? null : JSON.stringify(r);
+});
+
 await check('props: a tank roof (a cone) holds a player dropped on it, near its tip, not on the flat top inside it', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;

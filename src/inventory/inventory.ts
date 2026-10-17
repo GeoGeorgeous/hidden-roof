@@ -96,6 +96,14 @@ export class Inventory {
     return this.cycle('colorIndex', this.colors.length, dir);
   }
 
+  /** Takes an owned color in hand; false when it already was, or isn't owned. */
+  pickColor(c: PaintColor) {
+    const i = this.colors.indexOf(c);
+    if (i < 0 || i === this.colorIndex) return false;
+    this.colorIndex = i;
+    return true;
+  }
+
   cycleCap(dir: number) {
     return this.cycle('capIndex', this.caps.length, dir);
   }
