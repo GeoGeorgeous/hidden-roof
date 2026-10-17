@@ -404,6 +404,22 @@ await check('input: a trackpad swipe\'s many small wheel events step the color o
   return r.swipe === 1 && r.notch === 1 && r.lines === 1 && r.twoNotches === 2 ? null : JSON.stringify(r);
 });
 
+await check('input: the mouse\'s back and forward buttons don\'t leave the page, playing or in the menu', async () => {
+  // Chromium goes back or forward on the button's release unless the page cancels it (a cancelled press doesn't stop it).
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    const canvas = g.renderer.domElement;
+    const kept = (locked) => {
+      g.input.locked = locked;
+      return [3, 4].flatMap((button) => ['mouseup', 'auxclick'].map((type) => !canvas.dispatchEvent(new MouseEvent(type, { button, bubbles: true, cancelable: true }))));
+    };
+    const out = { playing: kept(true), menu: kept(false) };
+    g.input.locked = false;
+    return out;
+  });
+  return [...r.playing, ...r.menu].every(Boolean) ? null : JSON.stringify(r);
+});
+
 await check('input: either Shift sprints, and flies fast in build mode', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;

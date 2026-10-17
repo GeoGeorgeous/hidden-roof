@@ -74,6 +74,8 @@ export class Input {
       if (e.button === 2) this.rmb = true;
     });
     window.addEventListener('contextmenu', (e) => e.preventDefault());
+    // The mouse's back and forward buttons (3, 4) would leave the game: browsers go on their release.
+    for (const type of ['mouseup', 'auxclick']) window.addEventListener(type, (e) => (e as MouseEvent).button > 2 && e.preventDefault());
     window.addEventListener('mouseup', (e) => {
       if (e.button === 0) this.lmb = false;
       if (e.button === 2) this.rmb = false;
