@@ -1133,3 +1133,15 @@ Done (2026-10-14): the level as a file (`PropData`, `LevelData`) is `src/level/l
 - source: agent (architecture review 2026-10-14)
 
 `Multiplayer.welcome` (`src/net/multiplayer.ts`) marks whichever link is current as live once the paint is loaded, not the link the welcome came on. If link A drops while its welcome loads paint and the retry has opened link B, A's welcome marks B live before B's own welcome, so B stops giving up after `NET.connectTimeout`. As before the ServerLink split (a shared `live` flag). Do: pass the welcome's link from `connect`'s handler through `receive` to `welcome`, and mark that one. Test: in `scripts/multiplayer.test.mjs`, delay a welcome (as the "takes 5 s" check does), drop the link meanwhile, and check the new link still gives up after `NET.connectTimeout` when the server stays silent.
+
+### Work through the audit of 2026-10-17
+- id: BL-089
+- type: chore
+- status: Planned
+- priority: High
+- size: L
+- area: build
+- release: next
+- source: review 2026-10-17
+
+The 1.4.0 groundwork audit: 90 findings in 8 modules (release, performance, input, notifications, multiplayer code, tools, props, core), 34 agent sessions and 26 tests, in `docs/audit-2026-10-17.md`, the source of truth for its findings, decisions and results. The workflow page (decide, bundle, test, generate session prompts) is linked at its top. A finding that becomes work gets its own backlog item, named on the finding's Backlog line. Done when every finding is done, set aside, or a backlog item.
