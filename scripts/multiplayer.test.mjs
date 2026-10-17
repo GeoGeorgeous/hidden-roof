@@ -39,7 +39,12 @@ async function open(detail) {
   page.errors = errors;
   return page;
 }
-const status = (page, state) => page.waitForFunction((s) => window.game.net.status.state === s, state, { timeout: 15000 });
+/** Waits for the game's network status; timed out, says why with the page's network log. */
+const status = (page, state) =>
+  page.waitForFunction((s) => window.game.net.status.state === s, state, { timeout: 15000 }).catch(async (e) => {
+    const seen = await page.evaluate(() => ({ status: window.game.net.status, log: window.game.net.log.text() })).catch(() => null);
+    throw new Error(`no "${state}" in 15 s: ${JSON.stringify(seen?.status)}\n${seen?.log}\npage errors: ${page.errors ?? '(loading)'}`, { cause: e });
+  });
 /** Every painted surface's paint, hashed (FNV-1a), by key. */
 const paintHash = (page) =>
   page.evaluate(() => {
