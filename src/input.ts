@@ -1,4 +1,4 @@
-import { RENDER } from './config';
+import { RENDER, WHEEL } from './config';
 import { enterGameFullscreen } from './fullscreen';
 
 // Keyboard + mouse state with pointer lock. Edge-triggered presses are consumed per frame.
@@ -17,6 +17,8 @@ export class Input {
   mouseDX = 0;
   mouseDY = 0;
   wheelSteps = 0;
+  /** Scroll (px) toward the next wheel step. */
+  private wheelPx = 0;
   lmb = false;
   rmb = false;
   /** Mouse buttons (0 left, 1 middle, 2 right) pressed this frame. */
@@ -85,7 +87,13 @@ export class Input {
       'wheel',
       (e) => {
         if (!this.locked) return;
-        this.wheelSteps += Math.sign(e.deltaY);
+        // Pixels, lines or pages; turning back starts over, so the first notch back steps.
+        const px = e.deltaY * (e.deltaMode === 1 ? WHEEL.linePx : e.deltaMode === 2 ? WHEEL.notchPx : 1);
+        if (Math.sign(px) !== Math.sign(this.wheelPx)) this.wheelPx = 0;
+        this.wheelPx += px;
+        const steps = Math.trunc(this.wheelPx / WHEEL.notchPx);
+        this.wheelPx -= steps * WHEEL.notchPx;
+        this.wheelSteps += steps;
       },
       { passive: true },
     );

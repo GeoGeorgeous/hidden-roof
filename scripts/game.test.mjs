@@ -374,6 +374,36 @@ await check('input: Enter that resumes from the pause screen doesn\'t reach buil
   return r.building && r.prompts === 0 && r.status === '' ? null : JSON.stringify(r);
 });
 
+await check('input: a trackpad swipe\'s many small wheel events step the color once a notch, like a wheel\'s notch', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { inventory: inv, input, config } = g;
+    for (const c of config.COLOR_ORDER) inv.addColor(c);
+    inv.select(0);
+    // Wheel events, one a frame: how many times the color changed.
+    const roll = async (events) => {
+      let changes = 0;
+      let color = inv.color;
+      await steps((f) => {
+        if (inv.color !== color) (changes++, (color = inv.color));
+        if (f < events.length) window.dispatchEvent(new WheelEvent('wheel', events[f]));
+        return f === events.length + 1;
+      });
+      return changes;
+    };
+    input.locked = true;
+    const out = {
+      swipe: await roll(Array(20).fill({ deltaY: 5 })),
+      notch: await roll([{ deltaY: 100 }]),
+      lines: await roll([{ deltaY: 3, deltaMode: 1 }]),
+      twoNotches: await roll([{ deltaY: -100 }, { deltaY: -100 }]),
+    };
+    input.locked = false;
+    return out;
+  });
+  return r.swipe === 1 && r.notch === 1 && r.lines === 1 && r.twoNotches === 2 ? null : JSON.stringify(r);
+});
+
 await check('input: either Shift sprints, and flies fast in build mode', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;

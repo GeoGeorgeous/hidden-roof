@@ -499,6 +499,9 @@ export const CROSSHAIR = { plain: 6 };
 /** Hotbar circles shown from the start (empty until their tool is found); at least one per tool. */
 export const HOTBAR = { slots: 5 };
 
+/** Mouse wheel: scroll (px) a step takes, as one notch of a wheel sends; a trackpad swipe's many small events add up to it. A line counts linePx. */
+export const WHEEL = { notchPx: 100, linePx: 100 / 3 };
+
 /** Paint roller (slot 4): a wide graffiti roller on a short pole, rolling solid bands of paint. */
 export const ROLLER = {
   /** Max distance from the eye to the surface (it's on a short pole). */
