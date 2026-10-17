@@ -61,6 +61,11 @@ export async function openTestBrowser(url, { uncapped = false, level = 'demo', g
   browser.newPage = async (options) => {
     const page = await open(options);
     page.setDefaultNavigationTimeout(120_000);
+    // The page's warnings and errors, for gameReady to name what held a load up.
+    page.loadLog = [];
+    page.on('console', (m) => ['error', 'warning'].includes(m.type()) && page.loadLog.push(`${m.type()}: ${m.text()}`));
+    page.on('pageerror', (e) => page.loadLog.push(`pageerror: ${e.message}`));
+    page.on('requestfailed', (q) => page.loadLog.push(`requestfailed: ${q.url()} ${q.failure()?.errorText}`));
     return page;
   };
   const context = browser.newContext.bind(browser);
@@ -132,9 +137,17 @@ export function freePort() {
   });
 }
 
-/** Waits until the game has loaded (slow while other tests share the CPU), then `frames` frames (text atlases settle in the first ones). */
+/**
+ * Waits until the game has loaded (slow while other tests share the CPU), then `frames` frames (text atlases settle in
+ * the first ones). A load that never ends fails naming where it stood: the loading screen's step and the page's log.
+ */
 export async function gameReady(page, frames = 10) {
-  await page.waitForFunction(() => window.game?.loaded(), null, { timeout: 120000 });
+  await page.waitForFunction(() => window.game?.loaded(), null, { timeout: 120000 }).catch(async (e) => {
+    const at = await page
+      .evaluate(() => ({ ready: document.readyState, game: !!window.game, step: document.querySelector('.loading .on')?.textContent }))
+      .catch((err) => err.message);
+    throw new Error(`${e.message}; the load stood at ${JSON.stringify(at)}; log: ${JSON.stringify(page.loadLog?.slice(-10) ?? [])}`);
+  });
   await page.evaluate(
     (frames) =>
       new Promise((done) => {
