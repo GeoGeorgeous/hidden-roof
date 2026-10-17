@@ -491,7 +491,7 @@ await check('input: the browser defaults in BROWSER_GUARDS are cancelled, playin
   return JSON.stringify(r) === JSON.stringify({ playing, menu }) ? null : JSON.stringify(r);
 });
 
-await check('input: game fullscreen locks only the keys play binds and Esc (F11, F5, Ctrl+R stay the browser\'s)', async () => {
+await check('input: game fullscreen locks only the keys play binds and Esc (F11, F5, Ctrl+R stay the browser\'s), and the hold-Esc line says so', async () => {
   // Headless has no real fullscreen or keyboard lock: stand-ins that report what the browser would.
   const r = await page.evaluate(async () => {
     let element = null;
@@ -504,13 +504,17 @@ await check('input: game fullscreen locks only the keys play binds and Esc (F11,
     const pointer = (type) => control.dispatchEvent(new PointerEvent(type, { button: 0, bubbles: true }));
     pointer('pointerdown');
     await new Promise((done) => setTimeout(done, 50));
-    const out = { locked: ['Escape', 'KeyW', 'ControlLeft', 'KeyC', 'F11', 'F5', 'KeyR'].filter((k) => locked?.includes(k)) };
+    // Holding the control: the status line's hint.
+    pointer('pointerdown');
+    const hint = [...document.querySelectorAll('.overlay .status kbd')].map((k) => k.textContent);
+    pointer('pointerup');
+    const out = { locked: ['Escape', 'KeyW', 'ControlLeft', 'KeyC', 'F11', 'F5', 'KeyR'].filter((k) => locked?.includes(k)), hint };
     delete navigator.keyboard;
     delete document.fullscreenElement;
     delete document.documentElement.requestFullscreen;
     return out;
   });
-  return r.locked.join() === 'Escape,KeyW,ControlLeft,KeyC' ? null : JSON.stringify(r);
+  return r.locked.join() === 'Escape,KeyW,ControlLeft,KeyC' && r.hint.join() === 'ESC,F11' ? null : JSON.stringify(r);
 });
 
 await check('input: either Shift sprints, and flies fast in build mode', async () => {
