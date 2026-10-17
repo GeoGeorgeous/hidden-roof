@@ -213,20 +213,16 @@ const fixedStep: { dt: number; script: (() => void) | null } = { dt: 0, script: 
 let drawnAt = -Infinity;
 
 function frame(time: number) {
-  if (!loaded) {
-    requestAnimationFrame(frame);
-    return;
-  }
+  // First: a frame that throws must not stop the game (and the session's check for a silent server with it).
+  requestAnimationFrame(frame);
+  if (!loaded) return;
   // Frame rate limit: skip display refreshes until a frame is due. Frames are
   // due one interval after the last was due, so the average is exact on any
   // display rate; after a stall it starts over.
   if (RENDER.maxFps > 0 && !fixedStep.dt) {
     const interval = 1000 / RENDER.maxFps;
     const since = time - drawnAt;
-    if (since < interval - 0.5) {
-      requestAnimationFrame(frame);
-      return;
-    }
+    if (since < interval - 0.5) return;
     drawnAt = since < interval * 2 ? drawnAt + interval : time;
   }
   meter.start();
@@ -351,7 +347,6 @@ function frame(time: number) {
   const gpu = !HUD.perfGpu ? undefined : gpuTimer.supported ? gpuTimer.total(VOLUMETRICS.enabled ? ['scene', 'volumetrics', 'post'] : ['scene', 'post']) : null;
   hud.setPerf({ fps, frameMs, gpu, calls, triangles, textureBytes: paint.gpu.textureBytes + baker.stats.textureBytes + staticTextureBytes(), net: net.stats });
   dev?.report({ fps, frameMs, calls, triangles, interval: delta * 1000 });
-  requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 

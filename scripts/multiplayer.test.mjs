@@ -148,6 +148,14 @@ try {
   // B hears nothing for a while (a big download ahead of everything else used to do that): it closes the link and
   // comes back in, though the last thing it heard is now long ago. Its link drops what comes in, or A's next snapshot
   // would count as heard before B's next frame looked.
+  // One of B's frames throws first: the game goes on (it used to stop for good, its check for silence with it).
+  await b.evaluate(() => {
+    const hud = window.game.hud;
+    const setPerf = hud.setPerf;
+    hud.setPerf = () => ((hud.setPerf = setPerf), (window.threw = true), null.frame);
+  });
+  await b.waitForFunction(() => window.threw, null, { timeout: 5000, polling: 50 });
+  assert.match(b.errors.pop() ?? '', /null/);
   await b.evaluate(() => ((window.game.net.link.socket.onmessage = null), (window.game.net.link.lastHeard = -1e9)));
   await status(b, 'reconnecting');
   await status(b, 'in');
