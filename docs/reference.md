@@ -26,7 +26,7 @@ npm run build:dev  # the same with the dev tools, into dist-dev/
 | Input | Action |
 |---|---|
 | WASD, Shift, Space | Move, run, jump |
-| Move into a ladder, or Space on it | Climb. Let go to slide down, Ctrl to hold on. Walking away from it walks off. At the top you step onto what it leads to (a stepladder's top, a roof) and stand there off the ladder: Space jumps, as from any floor. Walking back off the edge puts you on it again. |
+| Move into a ladder, or Space on it | Climb. Let go to slide down, Ctrl or C (crouch) to hold on. Walking away from it walks off. At the top you step onto what it leads to (a stepladder's top, a roof) and stand there off the ladder: Space jumps, as from any floor. Walking back off the edge puts you on it again. |
 | LMB | Spray with the can, draw with the marker, place the stepladder, roll with the roller, or scrub paint off with the sponge |
 | 1 – 5 | Can / marker / stepladder / paint roller / sponge (once found) |
 | Mouse wheel | Cycle through the colors you've collected (can, marker, roller). Stepladder: turn it. |
@@ -210,7 +210,7 @@ Each prop is a builder function that returns a list of **pieces** (box, cylinder
 - `VOLUMETRICS`: `enabled`, `downscale`, `steps`, `maxDistance`, `density`, `moon`, `lights`, `anisotropy`.
 - `INK`: `paper`, `ink`, `sky` and `cloud` colors (`cloud`: what the city fades into above `ATMOS.cloudBase`, the sky color by default), `exposure`, the tone steps (`paperTone`, `hatchTone`, `blackTone`, `toneNoise`), `hatchPx` / `hatchWidth`, `grime`, the void (`voidTop`, `voidBottom`), paint (`paintLight`, `paintMin`, `paintHatch`) and the final pass (`outline`, `crease`, `outlineFade`, `grain`). All live in F3 → Render → Shaders. `ATMOS.fogDensity` is how fast the drawing fades into paper.
 - `GRADE`: `exposure`, the finished image's brightness in stops (0 by default).
-- `PAUSE_MENU`: the pause sheet's color, opacity (and with F3 open), and the key list. Live in F3 → UI.
+- `PAUSE_MENU`: the pause sheet's color, opacity (and with F3 open), size, how long Esc is held to leave fullscreen, and the title screen's view. Live in F3 → UI.
 - `HUD`: which HUD parts show (`frame`, `rec`, `cam`, `clock`, `perf`, `perfGpu` for GPU time), how long tags, the PSI gauge and messages show (`tagTime`, `gaugeTime`, `toastTime`), and the hotbar's look (`slotSize`, `slotGap`, `slotRoundness`, `iconSize`, border and background colors, and the selected slot's). Live in F3 → UI.
 - `SKYLINE`: the city: `seed`, `radius`, `block`, `streetMin`/`streetMax`, `margin` (free space round the level), `street` (how far down the street is), `near`, `tallChance`/`tallMin`/`tallMax` (huge towers), `clutterRange`, `lineRange` (live), `litWindows` (live), `opacity` (live: fades the whole city into the sky color to focus on the level). F3 → World → City: the layout rebuilds the city when you let go of a slider; a level can override any of them.
 - `PICKUP`: `radius`, `hover`, `spin`, `bob`.
