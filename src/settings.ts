@@ -2,6 +2,7 @@ import { ATMOS, AUDIO, HUD, INK_STYLES, PAINT, PLAYER, RENDER, SKYLINE, SMOKE, V
 import { exitGameFullscreen } from './fullscreen';
 import { sentence } from './menu-ui';
 import { DEFAULT_STYLE, inkStyle, setInkStyle } from './render/ink/styles';
+import { ACTION_NAMES, applyKeys, bind, keyOverrides, resetKeys, slotName, slots } from './key-bindings';
 import { applyValues, changedValues, defaultsOf, loadSaved, save, type Remembered } from './settings-store';
 
 // Player settings, on the settings page of the pause menu (settings-page.ts):
@@ -64,6 +65,7 @@ export class Settings {
   ) {
     const s = loadSaved();
     applyValues(REMEMBERED, REMEMBERED_DEFAULTS, s.values);
+    applyKeys(s.keys);
     const style = INK_STYLES.findIndex((t) => t.name === s.style);
     if (style >= 0) setInkStyle(style);
     if (s.pixelScale && PIXEL_SCALES.includes(s.pixelScale)) RENDER.pixelScale = s.pixelScale;
@@ -81,12 +83,25 @@ export class Settings {
 
   /** The settings page (pause menu → SETTINGS): one section per tab. Every change is saved. */
   sections(): SettingSection[] {
-    const saving = (row: SettingRow): SettingRow =>
-      row.kind === 'choice' ? { ...row, step: (d) => (row.step(d), this.save()) } : { ...row, set: (v) => (row.set(v), this.save()) };
+    const saving = (row: SettingRow): SettingRow => {
+      if (row.kind === 'choice') return { ...row, step: (d) => (row.step(d), this.save()) };
+      if (row.kind === 'range') return { ...row, set: (v) => (row.set(v), this.save()) };
+      if (row.kind === 'keys')
+        return {
+          ...row,
+          bind: (i, code) => {
+            const refused = row.bind(i, code);
+            this.save();
+            return refused;
+          },
+        };
+      return { ...row, run: () => (row.run(), this.save()) };
+    };
     return [
       { title: 'Gameplay', rows: gameplayRows() },
       { title: 'Graphics', rows: this.graphicsRows() },
       { title: 'Sound', rows: soundRows() },
+      { title: 'Controls', rows: controlRows() },
     ].map((s) => ({ ...s, rows: s.rows.map(saving) }));
   }
 
@@ -219,7 +234,7 @@ export class Settings {
   }
 
   private save() {
-    save({ style: INK_STYLES[inkStyle()]?.name, pixelScale: RENDER.pixelScale, maxFps: RENDER.maxFps, volumetrics: this.vol, paintDetail: this.detail, cityDetail: this.city, values: changedValues(REMEMBERED, REMEMBERED_DEFAULTS) });
+    save({ style: INK_STYLES[inkStyle()]?.name, pixelScale: RENDER.pixelScale, maxFps: RENDER.maxFps, volumetrics: this.vol, paintDetail: this.detail, cityDetail: this.city, values: changedValues(REMEMBERED, REMEMBERED_DEFAULTS), keys: keyOverrides() });
   }
 }
 
@@ -255,6 +270,9 @@ type RowBase = { label: string; desc?: string; note?: string; cost?: Cost };
 type Cost = 'LOW' | 'MEDIUM' | 'HIGH';
 export type SettingRow =
   | (RowBase & { kind: 'choice'; value: () => string; step: (d: number) => void; locked?: () => boolean })
+  /** Two key slots (Controls): `bind` a captured key to slot `i`, or say why it can't be. */
+  | (RowBase & { kind: 'keys'; slots: () => string[]; bind: (i: number, code: string) => string | null })
+  | (RowBase & { kind: 'button'; text: string; run: () => void })
   | (RowBase & { kind: 'range'; min: number; max: number; step: number; def: number; get: () => number; set: (v: number) => void; format: (v: number) => string });
 export interface SettingSection {
   title: string;
@@ -299,6 +317,15 @@ function gameplayRows(): SettingRow[] {
       step: () => (PLAYER.crouchToggle = !PLAYER.crouchToggle),
     },
   ];
+}
+
+/** A row per play action, then a reset. */
+function controlRows(): SettingRow[] {
+  const rows: SettingRow[] = Object.entries(ACTION_NAMES).map(([a, label]) => {
+    const action = a as keyof typeof ACTION_NAMES;
+    return { kind: 'keys', label, slots: () => slots(action).map(slotName), bind: (i, code) => bind(action, i, code) };
+  });
+  return [...rows, { kind: 'button', label: 'Every key', text: 'Reset', run: resetKeys }];
 }
 
 /** Volume sliders, 0..200% of each sound's default level. */

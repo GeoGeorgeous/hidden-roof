@@ -1,4 +1,4 @@
-import { BOUND_KEYS } from './browser-guards';
+import { boundKeys } from './browser-guards';
 
 // Fullscreen + Keyboard Lock (Chromium): lets the game use Ctrl+W, Ctrl+D etc.
 // without the browser closing the tab. Other browsers fall back to C for crouch.
@@ -26,7 +26,7 @@ export async function enterGameFullscreen() {
   try {
     if (!document.fullscreenElement) await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
     const kb = keyboard();
-    if (kb) await kb.lock([...BOUND_KEYS, 'Escape']);
+    if (kb) await kb.lock([...boundKeys(), 'Escape']);
     keysLocked = !!kb;
   } catch {
     // Not allowed or not supported: keep playing windowed.

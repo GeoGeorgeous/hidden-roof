@@ -201,6 +201,74 @@ await check('settings: gameplay, sound and on/off settings are remembered after 
   return ok ? null : JSON.stringify({ ...r, loaded, defaults });
 });
 
+await check('settings: Controls rebinds a key, button or wheel step; a taken key swaps, a reserved one is refused; bindings are remembered and reset', async () => {
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    const { BINDINGS } = g.config;
+    const { menu } = g.hud;
+    const row = (name) => [...document.querySelectorAll('.settings-page .setting-row')].find((r) => r.querySelector('.label').textContent === name);
+    const slot = (name, i) => row(name).querySelectorAll('.key')[i];
+    // Sent to the page, as a real key or click is: the window hears them last.
+    const press = (code) => !document.body.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true, cancelable: true }));
+    menu.openSettings(3);
+    slot('Forward', 0).click();
+    const capturing = slot('Forward', 0).textContent;
+    const swallowed = press('KeyI');
+    const heard = g.input.wasPressed('KeyI');
+    const forward = [...BINDINGS.forward];
+    // Back's S: the two swap.
+    slot('Forward', 0).click();
+    press('KeyS');
+    const swapped = { forward: [...BINDINGS.forward], back: [...BINDINGS.back] };
+    // Crouch's second slot (C) takes Shift, both sides; run gets C.
+    slot('Crouch', 1).click();
+    press('ShiftLeft');
+    const mods = { crouch: [...BINDINGS.crouch], sprint: [...BINDINGS.sprint], shown: [slot('Crouch', 0).textContent, slot('Crouch', 1).textContent] };
+    slot('Jump / climb', 0).click();
+    press('F3');
+    const refused = [slot('Jump / climb', 0).textContent, [...BINDINGS.jump]];
+    slot('Jump / climb', 0).click();
+    press('Escape');
+    const cancelled = [...BINDINGS.jump];
+    slot('Shake the can', 1).click();
+    document.body.dispatchEvent(new MouseEvent('mousedown', { button: 1, bubbles: true, cancelable: true }));
+    const shake = [...BINDINGS.shake];
+    g.input.setLocked(true);
+    g.input.element.dispatchEvent(new MouseEvent('mousedown', { button: 1 }));
+    const shakes = g.input.held('shake');
+    window.dispatchEvent(new MouseEvent('mouseup', { button: 1 }));
+    g.input.setLocked(false);
+    g.input.endFrame();
+    slot('Next color', 0).click();
+    document.body.dispatchEvent(new WheelEvent('wheel', { deltaY: -100, bubbles: true, cancelable: true }));
+    const next = [...BINDINGS.next];
+    const saved = JSON.parse(localStorage.getItem('roofhiddenhaus.settings')).keys;
+    row('Every key').querySelector('.reset').click();
+    const reset = [BINDINGS.forward, BINDINGS.crouch, BINDINGS.next].map((b) => b.join());
+    const after = JSON.parse(localStorage.getItem('roofhiddenhaus.settings')).keys;
+    menu.openPage(null);
+    return { capturing, swallowed, heard, forward, swapped, mods, refused, cancelled, shake, shakes, next, saved, reset, after };
+  });
+  const p = await openPage((saved) => localStorage.setItem('roofhiddenhaus.settings', saved), undefined, JSON.stringify({ keys: { forward: ['KeyI'], use: ['F5'] } }));
+  const loaded = await p.evaluate(() => ({ forward: window.game.config.BINDINGS.forward.join(), use: window.game.config.BINDINGS.use.join() }));
+  await p.close();
+  const want = {
+    capturing: 'Press a key',
+    swallowed: true,
+    heard: false,
+    forward: ['KeyI'],
+    swapped: { forward: ['KeyS'], back: ['KeyI'] },
+    mods: { crouch: ['ControlLeft', 'ControlRight', 'ShiftLeft', 'ShiftRight'], sprint: ['KeyC'], shown: ['CTRL', 'SHIFT'] },
+    refused: ['F3 is taken', ['Space']],
+    cancelled: ['Space'],
+    shake: ['Mouse2', 'Mouse1'],
+    shakes: true,
+    next: ['WheelUp'],
+  };
+  const ok = JSON.stringify({ ...r, saved: undefined, reset: undefined, after: undefined }) === JSON.stringify(want) && Object.keys(r.saved).sort().join() === 'back,crouch,forward,next,prev,shake,sprint' && r.reset.join('|') === 'KeyW|ControlLeft,ControlRight,KeyC|WheelDown' && JSON.stringify(r.after) === '{}' && loaded.forward === 'KeyI' && loaded.use === 'Mouse0';
+  return ok ? null : JSON.stringify({ r, loaded });
+});
+
 await check('credits: every license the page links to ships with the game', async () => {
   const r = await page.evaluate(async () => {
     const links = [...document.querySelectorAll('.credits-page a')].map((a) => a.href).filter((h) => h.includes('/licenses/'));
