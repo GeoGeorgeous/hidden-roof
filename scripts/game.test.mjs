@@ -19,14 +19,14 @@ const tmp = fs.mkdtempSync(`${os.tmpdir()}/taggin-test-`);
 let failed = 0;
 
 /** A page with the game loaded, not drawing (SwiftShader draws on the CPU, seconds a frame); page errors fail the run. `before(page)`: set up before it loads (routes). */
-async function openPage(init, before) {
+async function openPage(init, before, arg) {
   const page = await test.browser.newPage({ viewport: { width: 1280, height: 720 }, acceptDownloads: true });
   page.errors = [];
   page.on('pageerror', (e) => page.errors.push(e.message));
   await page.addInitScript(noDrawing);
   await page.addInitScript(noBrowserLock);
   await page.addInitScript(pageSteps);
-  if (init) await page.addInitScript(init);
+  if (init) await page.addInitScript(init, arg);
   await before?.(page);
   await page.goto(test.url);
   await gameReady(page, 2);
@@ -167,6 +167,38 @@ await check('settings: Shift + click puts a slider back to its default; PAINT an
   });
   const ok = r.moved === '150%' && r.reset.join() === '100%,50%' && r.before.join() === 'Ultra  1.0 cm,High' && r.changed.join() === 'High  1.4 cm  ·  on resume,Medium  ·  on resume' && r.back.join() === r.before.join();
   return ok ? null : JSON.stringify(r);
+});
+
+await check('settings: gameplay, sound and on/off settings are remembered after a reload, saved only where they differ from the default', async () => {
+  const r = await page.evaluate(() => {
+    const { menu } = window.game.hud;
+    const row = (name) => [...document.querySelectorAll('.settings-page .setting-row')].find((r) => r.querySelector('.label').textContent.startsWith(name));
+    const slide = (name, v) => {
+      const input = row(name).querySelector('input');
+      input.value = String(v);
+      input.dispatchEvent(new Event('input'));
+    };
+    menu.openSettings(0);
+    row('Crouch').querySelectorAll('.choice button')[1].click();
+    menu.openSettings(2);
+    slide('Master', 150);
+    const saved = localStorage.getItem('roofhiddenhaus.settings');
+    // Back to the defaults: nothing left to save.
+    slide('Master', 100);
+    menu.openSettings(0);
+    row('Crouch').querySelectorAll('.choice button')[1].click();
+    menu.openPage(null);
+    return { saved: JSON.parse(saved).values, after: JSON.parse(localStorage.getItem('roofhiddenhaus.settings')).values };
+  });
+  const p = await openPage((saved) => localStorage.setItem('roofhiddenhaus.settings', saved), undefined, JSON.stringify({ values: r.saved }));
+  const loaded = await p.evaluate(() => {
+    const { AUDIO, PLAYER } = window.game.config;
+    return { master: AUDIO.masterGain, crouchToggle: PLAYER.crouchToggle };
+  });
+  const defaults = await page.evaluate(() => window.game.config.AUDIO.masterGain);
+  await p.close();
+  const ok = Object.keys(r.saved).sort().join() === 'AUDIO.masterGain,PLAYER.crouchToggle' && r.saved['PLAYER.crouchToggle'] === true && JSON.stringify(r.after) === '{}' && loaded.crouchToggle === true && Math.abs(loaded.master - defaults * 1.5) < 1e-9;
+  return ok ? null : JSON.stringify({ ...r, loaded, defaults });
 });
 
 await check('credits: every license the page links to ships with the game', async () => {
