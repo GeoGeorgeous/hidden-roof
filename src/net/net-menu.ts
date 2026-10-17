@@ -43,7 +43,7 @@ const STATUS: Record<string, string> = {
   blocked: 'The server is up but the connection was blocked (firewall or extension?)',
 };
 
-export function multiplayerMenu(hud: PauseMenu, hotbar: Hotbar, ctx: MultiplayerContext, levelName: () => string, paintFile: { save: () => Promise<Uint8Array> }) {
+export function multiplayerMenu(hud: PauseMenu, hotbar: Hotbar, ctx: MultiplayerContext, levelName: () => string) {
   const net = new Multiplayer(ctx);
   const sub = div('page-sub');
   const rows = div('rows');
@@ -136,11 +136,6 @@ export function multiplayerMenu(hud: PauseMenu, hotbar: Hotbar, ctx: Multiplayer
   hud.addPage('mp', root, choose, () => inForm && (choose(), true));
 
   net.onStatus = (s: NetStatus) => {
-    // Out of the session (or reconnecting) before the server sent its paint.
-    if (s.state !== 'in' && saving) {
-      saving.fail(new Error('The link dropped before the paint came: save again'));
-      saving = null;
-    }
     hud.setSession(s.state === 'in' || s.state === 'reconnecting' ? s.code : null, s.state === 'in');
     const known = s.state === 'failed' ? STATUS[s.reason] : STATUS[s.state];
     // What was seen (a close code, an HTTP status, tries) goes along, for reports.
@@ -153,30 +148,10 @@ export function multiplayerMenu(hud: PauseMenu, hotbar: Hotbar, ctx: Multiplayer
   net.onPlayer = (who, joined) => hotbar.toast(`${who} ${joined ? 'joined' : 'left'}`);
   hud.onLeave = () => net.leave();
   hud.sessionInfo = () => ({ ping: net.ping, players: net.players.map((p) => ({ name: p.name, color: p.color && COLORS[p.color] })) });
-  // SAVE in a session downloads the session's paint, from the server.
-  type Saving = { promise: Promise<Uint8Array>; done: (bytes: Uint8Array) => void; fail: (e: Error) => void };
-  let saving = null as Saving | null;
-  const local = paintFile.save;
-  // One request at a time: a second SAVE while one is on its way waits for the same file.
-  paintFile.save = () => {
-    if (!net.inSession) return local();
-    if (!saving) {
-      const s = {} as Saving;
-      s.promise = new Promise((done, fail) => ((s.done = done), (s.fail = fail)));
-      saving = s;
-      net.requestSave();
-    }
-    return saving.promise;
-  };
   // Each step of HOST, JOIN or SAVE as it goes, with how far along an upload or download is.
   net.onProgress = (text) => {
     if (text) (say(text), hud.notice(text, Infinity));
     else hud.notice('', 0);
-  };
-  net.onSave = (bytes) => {
-    if (bytes) saving?.done(bytes);
-    else saving?.fail(new Error('The server is busy: save again later'));
-    saving = null;
   };
   return net;
 }

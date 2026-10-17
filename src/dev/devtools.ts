@@ -102,12 +102,6 @@ export class DevTools {
     this.ghost = new Ghost(g);
     this.profiler = new Profiler(g);
     if (new URLSearchParams(location.search).has('profile')) this.profiler.start();
-    // The ghost, besides the players of a session (net/multiplayer.ts).
-    const players = g.tools.ladder.others;
-    g.tools.ladder.others = () => {
-      const p = this.ghost.position;
-      return p ? [...players(), p] : players();
-    };
     Object.assign(live, {
       gpu: (label: string) => g.gpuTimer.read(label),
       strikeLightning: () => g.lightning.strike(),
@@ -161,6 +155,12 @@ export class DevTools {
 
   get panelOpen() {
     return this.debug.visible;
+  }
+
+  /** Where the test figures stand besides the session's players (the ghost): a stepladder can't go there. */
+  get figures() {
+    const p = this.ghost.position;
+    return p ? [p] : [];
   }
 
   /**

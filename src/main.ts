@@ -189,7 +189,12 @@ input.escapeReleased = () => hud.menu.escapeReleased();
 hud.setLocked(false);
 hud.menu.setSettings(settings.sections());
 const paintFile = paintMenu(hud.menu, paint, drips, () => opened.name);
-const net = multiplayerMenu(hud.menu, hotbar, { scene, camera, level, paint, paintOps, drips, player, inventory, pickups, tools, levelData: () => ({ data: opened.toJSON(), name: opened.name }), levelPaint: () => levelPaintOf(opened.name), openLevel: (d, n) => opened.open(d, n), restartLevel: () => opened.restart(), lockDetail: (tpm) => settings.lockPaintDetail(tpm) }, () => opened.name, paintFile);
+const net = multiplayerMenu(hud.menu, hotbar, { scene, camera, level, paint, paintOps, drips, player, inventory, pickups, tools, levelData: () => ({ data: opened.toJSON(), name: opened.name }), levelPaint: () => levelPaintOf(opened.name), openLevel: (d, n) => opened.open(d, n), restartLevel: () => opened.restart(), lockDetail: (tpm) => settings.lockPaintDetail(tpm) }, () => opened.name);
+// SAVE in a session downloads the session's paint, from the server.
+const saveHere = paintFile.save;
+paintFile.save = () => (session.multiplayer ? net.savePaint() : saveHere());
+// A stepladder can't stand where the session's players or F3's figures (the ghost) are.
+tools.ladder.others = () => [...net.shown, ...(dev?.figures ?? [])];
 tools.onCapChange = (name) => hud.showCapTag(name);
 tools.onColorChange = (color) => hud.showColorTag(color, COLORS[color]);
 
