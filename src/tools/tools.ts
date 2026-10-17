@@ -1,11 +1,12 @@
 import * as THREE from 'three';
 import type { Audio } from '../audio';
 import { CAPS, CROSSHAIR, MARKER, ROLLER, SPONGE, type PaintColor } from '../config';
-import type { Input } from '../input';
+import type { Action, Input } from '../input';
 import { SLOTS, type Inventory, type SizedTool, type Tool } from '../inventory/inventory';
 import type { PaintSystem } from '../painting';
 import { SprayTool } from '../spray/spray-tool';
 import { LadderTool } from './ladder-tool';
+import { Eyedropper } from './eyedropper';
 import { MarkerTool } from './marker';
 import { RollerTool } from './roller';
 import { SpongeTool } from './sponge';
@@ -19,7 +20,7 @@ const SIZED: Record<SizedTool, WheelSized> = { marker: MARKER, roller: ROLLER, s
 const isSized = (t: Tool | null): t is SizedTool => t !== null && t in SIZED;
 
 // Routes input to the tool in hand: 1 = can, 2 = marker, 3 = stepladder, 4 =
-// roller, 5 = sponge, mouse wheel = color (can, marker, roller) or turning the ladder,
+// roller, 5 = sponge, mouse wheel = color (can, marker, roller) or turning the ladder, its click the eyedropper,
 // Q/E = the can's cap or the width (marker, roller, sponge). Owns the UI the tools share: it
 // reports color / cap changes (and which ones apply when switching tools) and
 // where the tags go next to whichever tool is in hand.
@@ -31,6 +32,7 @@ export class Tools {
   readonly roller: RollerTool;
   readonly sponge: SpongeTool;
   private sway = new ViewSway();
+  private eyedropper: Eyedropper;
   /** Called with the color when it changes or another tool comes out. */
   onColorChange: (color: PaintColor) => void = () => {};
   /** Called with the cap name when it changes or the can comes out. */
@@ -53,6 +55,7 @@ export class Tools {
     this.ladder = new LadderTool(scene, level);
     this.roller = new RollerTool(paint, solids, audio);
     this.sponge = new SpongeTool(paint, solids, audio);
+    this.eyedropper = new Eyedropper(solids, paint);
     viewScene.add(this.spray.model.group, this.marker.model, this.ladder.model.group, this.roller.model.group, this.sponge.model.group);
   }
 
@@ -69,12 +72,19 @@ export class Tools {
     this.sponge.sway.position.copy(this.spray.model.sway.position);
     this.sponge.sway.rotation.copy(this.spray.model.sway.rotation);
     if (enabled) {
-      SLOTS.forEach((_, i) => input.wasPressed(`Digit${i + 1}`) && inv.select(i));
-      if (SLOTS.some((_, i) => input.wasPressed(`Digit${i + 1}`))) this.audio.click();
+      const slot = (i: number) => input.justPressed(`slot${i + 1}` as Action);
+      SLOTS.forEach((_, i) => slot(i) && inv.select(i));
+      if (SLOTS.some((_, i) => slot(i))) this.audio.click();
       const t = inv.tool;
-      const wheel = Math.sign(input.wheelSteps);
-      const qe = (input.wasPressed('KeyE') ? 1 : 0) - (input.wasPressed('KeyQ') ? 1 : 0);
-      if (wheel && (t === 'can' || t === 'marker' || t === 'roller') && inv.cycleColor(wheel)) this.audio.click();
+      const wheel = input.step('prev', 'next');
+      // Held, they keep stepping (the key's auto-repeat), as in build mode.
+      const qe = input.step('sizeDown', 'sizeUp');
+      const colored = t === 'can' || t === 'marker' || t === 'roller';
+      if (wheel && colored && inv.cycleColor(wheel)) this.audio.click();
+      if (colored && input.justPressed('pick')) {
+        const picked = this.eyedropper.pick(camera, eye, inv.colors);
+        if (picked && inv.pickColor(picked)) this.audio.click();
+      }
       if (qe && t === 'can' && inv.cycleCap(qe)) this.audio.click();
       if (qe && isSized(t)) {
         const size = stepSize(SIZED[t], inv.size[t], qe);
@@ -90,7 +100,7 @@ export class Tools {
     // After the marker: they share the scribble sound, and these only touch it while in hand or just put away.
     this.roller.update(dt, input, camera, eye, tool === 'roller', inv.color, inv.size.roller);
     this.sponge.update(dt, input, camera, eye, tool === 'sponge', inv.size.sponge / 2);
-    const pressing = tool !== null && tool !== 'ladder' && input.lmb && input.locked;
+    const pressing = tool !== null && tool !== 'ladder' && input.held('use') && input.locked;
     this.action = tool === 'can' && this.spray.shaking ? 'shake' : !pressing ? null : tool === 'roller' ? 'roll' : tool === 'sponge' ? 'scrub' : 'spray';
   }
 

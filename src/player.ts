@@ -14,7 +14,6 @@ export interface Ladder {
 
 const wish = new THREE.Vector3();
 const before = new THREE.Vector3();
-const CROUCH_KEYS = ['ControlLeft', 'ControlRight', 'KeyC'];
 
 export class Player {
   readonly position = new THREE.Vector3(); // feet
@@ -86,8 +85,8 @@ export class Player {
   /** Ctrl or C to crouch (held, or toggled with PLAYER.crouchToggle); you can't stand up under a low ceiling. */
   private updateCrouch(dt: number, input: Input) {
     if (!PLAYER.crouchToggle) this.crouchOn = false;
-    else if (CROUCH_KEYS.some((k) => input.wasPressed(k))) this.crouchOn = !this.crouchOn;
-    const want = PLAYER.crouchToggle ? this.crouchOn : CROUCH_KEYS.some((k) => input.isDown(k));
+    else if (input.justPressed('crouch')) this.crouchOn = !this.crouchOn;
+    const want = PLAYER.crouchToggle ? this.crouchOn : input.held('crouch');
     if (want) {
       this.crouched = true;
       this.height = PLAYER.crouchHeight;
@@ -109,10 +108,10 @@ export class Player {
 
     let fwd = 0;
     let side = 0;
-    if (input.isDown('KeyW')) fwd += 1;
-    if (input.isDown('KeyS')) fwd -= 1;
-    if (input.isDown('KeyD')) side += 1;
-    if (input.isDown('KeyA')) side -= 1;
+    if (input.held('forward')) fwd += 1;
+    if (input.held('back')) fwd -= 1;
+    if (input.held('right')) side += 1;
+    if (input.held('left')) side -= 1;
 
     const sin = Math.sin(this.yaw);
     const cos = Math.cos(this.yaw);
@@ -133,12 +132,12 @@ export class Player {
     if (was && !ladder && !this.onGround && this.position.y >= was.volume.max.y) this.velocity.y = Math.min(this.velocity.y, 0);
 
     this.sinceW += dt;
-    if (input.wasPressed('KeyW')) {
+    if (input.justPressed('forward')) {
       if (this.sinceW < PLAYER.sprintDoubleTap) this.tapSprint = true;
       this.sinceW = 0;
     }
-    if (!input.isDown('KeyW')) this.tapSprint = false;
-    const sprint = (input.isDown('ShiftLeft') || this.tapSprint) && fwd > 0 && !this.crouched && !ladder;
+    if (!input.held('forward')) this.tapSprint = false;
+    const sprint = (input.held('sprint') || this.tapSprint) && fwd > 0 && !this.crouched && !ladder;
     const speed = this.crouched ? PLAYER.crouchSpeed : sprint ? PLAYER.sprintSpeed : PLAYER.walkSpeed;
     const moving = wish.lengthSq() > 0;
     // Ground (and ladders): accelerate toward the wished velocity, or brake with friction.
@@ -155,14 +154,14 @@ export class Player {
       // holds, otherwise slide down. Walking away from it simply walks off; facing doesn't matter.
       // A jump into it (up to a fire escape's first rung) keeps rising until it slows to the climb.
       const into = -(wish.x * ladder.normal.x + wish.z * ladder.normal.z);
-      if (input.isDown('Space') || into > 0.3) this.velocity.y = this.velocity.y > PLAYER.climbSpeed ? Math.max(this.velocity.y - PLAYER.gravity * dt, PLAYER.climbSpeed) : PLAYER.climbSpeed;
+      if (input.held('jump') || into > 0.3) this.velocity.y = this.velocity.y > PLAYER.climbSpeed ? Math.max(this.velocity.y - PLAYER.gravity * dt, PLAYER.climbSpeed) : PLAYER.climbSpeed;
       else if (this.crouched && !this.onGround) this.velocity.y = 0;
       else this.velocity.y = Math.max(this.velocity.y - PLAYER.gravity * dt, -PLAYER.climbSpeed);
     } else {
       this.velocity.y -= PLAYER.gravity * dt;
     }
     // Jump off the ground; on a ladder Space climbs instead.
-    if (this.onGround && !ladder && input.wasPressed('Space')) {
+    if (this.onGround && !ladder && input.justPressed('jump')) {
       this.velocity.y = Math.sqrt(2 * PLAYER.gravity * PLAYER.jumpHeight);
       this.onGround = false;
     }
@@ -204,7 +203,7 @@ export class Player {
 
   /** Free-fly for build mode: no gravity, no collisions. Space up, C down. */
   private flyMove(dt: number, input: Input, wish: THREE.Vector3) {
-    const speed = input.isDown('ShiftLeft') ? BUILD.flySprintSpeed : BUILD.flySpeed;
+    const speed = input.shiftDown() ? BUILD.flySprintSpeed : BUILD.flySpeed;
     let up = 0;
     if (input.isDown('Space')) up += 1;
     if (input.isDown('KeyC')) up -= 1;

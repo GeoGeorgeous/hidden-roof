@@ -728,6 +728,32 @@
   white-space: pre;
   font-variant-numeric: tabular-nums;
 }
+/* Controls: two key slots (key caps), and RESET. */
+.overlay .keys {
+  display: flex;
+  gap: 8px;
+}
+.overlay .keys .key,
+.overlay .setting-row .reset {
+  min-width: 96px;
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid rgba(235, 229, 214, 0.35);
+  border-radius: 4px;
+  font: 500 11px var(--sans);
+  color: rgba(235, 229, 214, 0.8);
+  white-space: nowrap;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.overlay .keys .key:hover,
+.overlay .setting-row .reset:hover {
+  background: rgba(235, 229, 214, 0.1);
+  color: #fff;
+}
+.overlay .keys .key.capturing {
+  border-color: #fff;
+  color: #fff;
+}
 /* PAINT DETAIL in a session: the host's. */
 .overlay .choice.locked {
   opacity: 0.45;

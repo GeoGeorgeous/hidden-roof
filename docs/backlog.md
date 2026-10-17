@@ -249,53 +249,51 @@ Adjust the can caps (`spread`, `rate`, `strength`, `dotSize`, `softness`) until 
 ### Key bindings settings
 - id: BL-018
 - type: feature
-- status: Requested
+- status: Done
 - priority: High
 - size: M
 - area: input
-- release: later
+- release: next
 - source: stress test feedback
 
-A screen to rebind the keys.
+A screen to rebind the keys. Done (audit S3.5): Settings → Controls, two slots per play action, swap on conflict, reserved keys refused, saved as overrides.
 
 
 
 ### Remember the chosen settings
 - id: BL-019
 - type: feature
-- status: Blocked
+- status: Done
 - priority: High
 - size: S
 - area: ui
-- release: later
-- blocked-by: BL-018
+- release: next
 - source: stress test feedback
 
-`src/settings.ts` already saves ink style, pixel scale, max FPS, volumetrics, paint detail and city detail. Add to what it saves: the key layout, volume and sound, mouse sensitivity and FOV.
+`src/settings.ts` already saves ink style, pixel scale, max FPS, volumetrics, paint detail and city detail. Add to what it saves: the key layout, volume and sound, mouse sensitivity and FOV. Done (audit S3.5): gameplay, sound and on/off settings and the key bindings are saved as overrides of config's defaults (`src/settings-store.ts`).
 
 
 
 ### Pick a color with a click on the mouse wheel
 - id: BL-020
 - type: feature
-- status: Requested
+- status: Done
 - priority: Medium
 - size: S
 - area: input
-- release: later
+- release: next
 - source: owner
 
-
+An eyedropper (owner, 2026-10-18): the wheel's click picks the owned color nearest the paint under the crosshair. Done (audit S3.5): action `pick`, `src/tools/eyedropper.ts`.
 
 ### Block the browser zoom: Ctrl +/−/0, Ctrl+wheel, trackpad pinch
 - id: BL-023
 - type: feature
-- status: Blocked
+- status: Done
 - priority: Medium
 - size: XS
 - area: ui
-- release: later
-- blocked-by: BL-081
+- release: next
 - source: owner
 
 Blocked in the game and in the menus (one entry in the guard table, BL-081). Zoom changes the render buffer (a 3080 Ti rendered 3840×2160 for a 2560×1440 screen at zoom); BL-026 caps the buffer too.
@@ -489,6 +487,8 @@ Triage notes (2026-10-14): unclear what to do: no test compares pictures byte fo
 - source: 2026-10-10
 
 Once (another agent testing on the machine too); not seen since. If it repeats, find what held it up (the page's console, the machine's load).
+
+Again 2026-10-18, in the game test (the `level paint` check's page, full check on dev 988813b, nothing else running); the check passed alone after. Since then a load that doesn't end fails naming the loading screen's step and the page's last warnings, errors and failed requests (`gameReady`, `scripts/test-browser.mjs`): read those when it repeats.
 
 
 
@@ -1032,14 +1032,16 @@ Decided (2026-10-17, audit S1.1): BL-080 stays. The spawn wall still taught the 
 ### Browser input guard: one table of blocked default events
 - id: BL-081
 - type: refactor
-- status: Requested
+- status: Done
 - priority: Medium
 - size: M
 - area: input
-- release: later
+- release: next
 - source: owner
 
 Today the blocking is spread over `src/input.ts`: the `PREVENT` set and every Ctrl/Meta combo while the mouse is locked, F3, `contextmenu`, and `beforeunload` for Ctrl+W. Zoom (Ctrl+wheel, pinch) is not handled anywhere, and nothing is blocked in the menus. Do: one table in `config.ts` (keys, combos, wheel+Ctrl, pinch, context menu, F-keys), each entry with a condition (while playing, or always) and a reason; one module `src/browser-guards.ts` applies it; one test. Policy: while playing, block as now plus zoom and pinch; in the menus block only zoom and pinch. Open: let F5, Ctrl+R and F11 through while playing?
+
+The mouse's back and forward buttons (3, 4) are cancelled on mouseup and auxclick, always, since audit F3.6 (S3.1); move that into the table.
 
 
 
@@ -1205,3 +1207,111 @@ The 1.4.0 groundwork audit: 90 findings in 8 modules (release, performance, inpu
 - source: audit 2026-10-17 (F1.8)
 
 Once the roof's level paint is dropped (BL-090), nothing in the game teaches the controls (the menus and HUD don't name the wheel or Q/E). Do: a controls screen; it can share its table with the key bindings screen (audit F3.13).
+
+### A frame throws during the multiplayer test
+- id: BL-094
+- type: bug
+- status: Requested
+- priority: Medium
+- size: XS
+- area: net
+- release: next
+- source: audit 2026-10-17 (F8.19, S3.1)
+
+Each `npm run test:mp` makes Vite print `[Unhandled error] TypeError: Cannot read properties of null (reading 'frame')` at the end of a frame (`src/main.ts:348` by its source map; `dev?.report` → the profiler is the likely reader). Also on a clean dev (f793d33). The test passes, since a thrown frame no longer stops the game (BL-091). Do: find the null, fix it, and make the multiplayer test fail on a page error.
+### One play state module; Esc and Enter routed by it
+- id: BL-095
+- type: refactor
+- status: Done
+- priority: Medium
+- size: M
+- area: input
+- release: next
+- source: audit 2026-10-17 (F8.2, F3.9, S3.2)
+
+Play state is spread over `Input.locked`, `main.ts` (paused, frozen, `yours`/`noInput`), DevTools (panel, building), the pause menu (started, debugOpen) and three "in a session" flags (`session.multiplayer`, `Multiplayer.inSession`, `PauseMenu.session`). Esc is handled in four places with a check that changes state (`escapeResumes`), and Enter has its own listener while Input also records it (S3.1's F3.4). Do: one module owns locked, panel open, building, in a session and started, and derives playing, frozen, the input play gets and what the menu shows; no DOM, tested in Node (`npm test`). The browser's pointer lock and a test lock are its two adapters: the tests start play one way. While paused, Esc and Enter go to the menu through it (PauseMenu `back()`/`primary()` say what they did) and never into the game's keys; EscHold keeps its listener. No behavior change. Audit session S3.6.
+
+### Input action map
+- id: BL-096
+- type: refactor
+- status: Done
+- priority: Medium
+- size: S
+- area: input
+- release: next
+- source: audit 2026-10-17 (F3.10, S3.2)
+
+Play code reads physical key codes (~25 reads in 10 files) and the `PREVENT` list repeats them. Do: `BINDINGS` in `config.ts` (action → codes; mouse buttons and wheel as pseudo-codes); Input answers held / pressed / repeated(action) and label(action). Build mode, F3 and F2/F8/F9 stay raw codes (dev-only); Esc and Enter are reserved. No behavior change; golden paint identical. Then BL-081 blocks what play binds, while playing. Groundwork for BL-018 and BL-092. Audit session S3.3, after S3.6.
+
+### Test runs side by side share a cache and freeze WSL
+- id: BL-098
+- type: bug
+- status: Done
+- priority: Medium
+- size: XS
+- area: code
+- release: next
+- source: audit 2026-10-17 (F8.20, S3.3)
+
+Worktrees with `node_modules` linked in (as AGENTS.md says to run the full check) give every test server the same `node_modules/.vite-test` dependency cache (`scripts/test-browser.mjs`). Two runs at once also overload WSL: in S3.3 a side-by-side check failed a game check with `{}` (no frames for 30 s), another pair hung loading, a third froze WSL. Alone, they pass. Do: a cache dir per worktree, and say in AGENTS.md and docs/testing.md: one heavy test run at a time on one machine.
+
+### main.ts combines the shared callback slots
+- id: BL-097
+- type: refactor
+- status: Done
+- priority: Low
+- size: S
+- area: core
+- release: next
+- source: audit 2026-10-17 (F8.10, S3.2)
+
+Three slots are wrapped or replaced by a second module, so what they do depends on construction order (DevTools arrives by async import): `tools.ladder.others` (Multiplayer, then DevTools adds the ghost), `input.escapeResumes` (main, then DevTools), `paintFile.save` (paintMenu, then net-menu). Do: main.ts sets each once, combining what the modules offer; the one-at-a-time SAVE promise moves into Multiplayer beside `requestSave`; `escapeResumes` goes with BL-095. With BL-095, in audit session S3.6.
+
+### Game fullscreen's keyboard lock took every key: F11 did nothing
+- id: BL-099
+- type: bug
+- status: Done
+- priority: Medium
+- size: XS
+- area: input
+- release: next
+- source: owner (audit F3.17, S3.4)
+
+`keyboard.lock()` with no list took F11, F5, Ctrl+R, Ctrl+T and Alt+Tab from the browser in game fullscreen; F11 worked only after Esc was held. Done: lock only the keys play binds (from BINDINGS) and Esc; the hold line names [ESC] and [F11].
+
+### Playing, the keyboard is the game's: every key but the browser's
+- id: BL-100
+- type: bug
+- status: Done
+- priority: Medium
+- size: S
+- area: input
+- release: next
+- source: audit 2026-10-17 (F3.18, S3.4)
+
+The guard blocked listed keys only: Firefox's quick find (/ and '), F6, F10 and Alt's menu bar took the keyboard mid-game. Done: while playing every keydown is blocked except `BROWSER_KEYS` (Esc, F5, Ctrl+R, F11, F12), and Alt's release.
+
+### macOS: a key released during a Cmd combo stays down
+- id: BL-101
+- type: bug
+- status: Done
+- priority: Medium
+- size: XS
+- area: input
+- release: next
+- source: audit 2026-10-17 (F3.19, S3.4)
+
+macOS sends no keyup for keys released while Cmd is held: a movement key kept walking. Done: Cmd's release drops the held keys. Real Mac: audit T3.3.
+
+### A check's real resume unlocked later game checks
+- id: BL-103
+- type: bug
+- status: Done
+- priority: Medium
+- size: XS
+- area: code
+- release: next
+- source: audit 2026-10-17 (F8.21, S3.4)
+
+A synthetic Enter on the pause screen resumed with the real pointer lock (a user gesture in Playwright); the lock was lost ~40 ms later and that late event unlocked the next checks, under load only. Done: `noBrowserLock` on test pages; tests start play with `Input.setLocked`.
+

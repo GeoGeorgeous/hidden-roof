@@ -59,8 +59,8 @@ export class SprayTool {
 
     // Shaking (RMB) and spraying (LMB) exclude each other: the one pressed first wins, and
     // LMB cuts a shake short once RMB is let go. Else a player could shake forever while painting.
-    const lmb = input.lmb && input.locked;
-    const holding = input.rmb && input.locked && (this.shakeT >= 0 || !lmb);
+    const lmb = input.held('use') && input.locked;
+    const holding = input.held('shake') && input.locked && (this.shakeT >= 0 || !lmb);
     if (lmb && !holding) this.shakeT = -1;
     if (holding && this.shakeT < 0) {
       this.shakeT = 0;

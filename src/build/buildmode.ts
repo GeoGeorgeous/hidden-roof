@@ -228,7 +228,7 @@ export class BuildMode {
     if (input.wheelSteps) this.picker.wheel(Math.sign(input.wheelSteps));
     const step = (input.wasTyped('KeyE') ? 1 : 0) - (input.wasTyped('KeyQ') ? 1 : 0);
     if (step) this.picker.step(step);
-    const back = input.isDown('ShiftLeft') || input.isDown('ShiftRight') ? -1 : 1;
+    const back = input.shiftDown() ? -1 : 1;
     if (input.wasTyped('Tab')) this.picker.variant(back);
     if (input.wasTyped('KeyF')) this.picker.cycleFinish('wall', back);
   }

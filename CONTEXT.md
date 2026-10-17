@@ -18,3 +18,7 @@ The game's words, as the code uses them. Architecture terms (module, interface, 
 - **Server link**: one WebSocket to the server for one HOST or JOIN (`ServerLink`, `src/net/server-link.ts`): the hello, keepalive, giving up before the welcome, a paint file's parts. A dropped player comes back on a new link with their token.
 - **Lobby**: who gets into which session on the server (`server/lobby.ts`): live and ended session codes, each address's links and uploads, HOST and JOIN, and each link's messages to its session. It speaks only `Link`; `server/main.ts` gives it WebSocket links, the tests fake ones.
 - **Welcome**: the server's answer to HOST or JOIN: the level, its paint detail, the players, and the session's paint as a paint file in parts.
+
+## Play
+
+- **Play state**: playing (the pointer locked to the game), paused behind the menu, F3's panel open, build mode, in a session (`PlayState`, `src/play-state.ts`): whether the game is **frozen** (paused in single player) and what Esc and Enter do. The lock itself is Input's (`Input.setLocked`: the browser's pointer lock, or a test's).

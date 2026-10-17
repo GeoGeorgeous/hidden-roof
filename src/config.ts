@@ -499,6 +499,82 @@ export const CROSSHAIR = { plain: 6 };
 /** Hotbar circles shown from the start (empty until their tool is found); at least one per tool. */
 export const HOTBAR = { slots: 5 };
 
+/** Mouse wheel: scroll (px) a step takes, as one notch of a wheel sends; a trackpad swipe's many small events add up to it. A line counts linePx. */
+export const WHEEL = { notchPx: 100, linePx: 100 / 3 };
+
+/**
+ * Play actions and what is bound to each (src/input.ts asks by action): key codes are e.code, the key's place
+ * whatever the layout; Mouse0 and Mouse2 the left and right buttons, WheelUp and WheelDown a wheel step.
+ * Esc and Enter belong to the menus (src/play-state.ts) and are never bound. Build mode, F3 and the dev keys read raw codes.
+ */
+export const BINDINGS = {
+  forward: ['KeyW'],
+  back: ['KeyS'],
+  left: ['KeyA'],
+  right: ['KeyD'],
+  /** Also climbs a ladder. */
+  jump: ['Space'],
+  /** Held, or toggled with PLAYER.crouchToggle; also holds you on a ladder. C for browsers that keep Ctrl+W (src/fullscreen.ts). */
+  crouch: ['ControlLeft', 'ControlRight', 'KeyC'],
+  /** Also a double tap of forward (PLAYER.sprintDoubleTap). */
+  sprint: ['ShiftLeft', 'ShiftRight'],
+  /** Sprays, draws, rolls or scrubs; places the stepladder. */
+  use: ['Mouse0'],
+  shake: ['Mouse2'],
+  /** The next or previous color; turns the stepladder. */
+  next: ['WheelDown'],
+  prev: ['WheelUp'],
+  /** The can's cap or the tool's width, a step at a time; held, at the key's auto-repeat. */
+  sizeUp: ['KeyE'],
+  sizeDown: ['KeyQ'],
+  /** The hotbar slots (HOTBAR.slots). */
+  slot1: ['Digit1'],
+  slot2: ['Digit2'],
+  slot3: ['Digit3'],
+  slot4: ['Digit4'],
+  slot5: ['Digit5'],
+  screenshot: ['KeyK'],
+  /** The eyedropper: the color of the paint under the crosshair (src/tools/eyedropper.ts). */
+  pick: ['Mouse1'],
+} satisfies Record<string, string[]>;
+
+/** The eyedropper (BINDINGS.pick): how far it reads paint (m), and the least cover (0..1) a texel needs to count as painted. */
+export const EYEDROPPER = { reach: 40, minCover: 0.25 };
+
+/** A browser default the game cancels (src/browser-guards.ts). Unset fields match anything. */
+export interface BrowserGuard {
+  event: string;
+  /** Playing (the mouse locked), or always (the menus too). */
+  when: 'playing' | 'always';
+  /** Key codes (e.code), `Ctrl+` for Ctrl or Meta held; 'all' for every key. */
+  keys?: readonly string[] | 'all';
+  /** Keys (as in `keys`; a bare code matches with Ctrl too) the row lets through. */
+  except?: readonly string[];
+  /** With Ctrl or Meta held (a Ctrl+wheel). */
+  ctrl?: boolean;
+  buttons?: readonly number[];
+  why: string;
+}
+
+/** What the browser keeps while playing (owner, audit F3.11): Esc frees the mouse; reload asks first (beforeunload); fullscreen; devtools. */
+export const BROWSER_KEYS = ['Escape', 'F5', 'Ctrl+KeyR', 'F11', 'F12'];
+
+/** Every browser default the game cancels, and when. */
+export const BROWSER_GUARDS: readonly BrowserGuard[] = [
+  { event: 'keydown', when: 'playing', keys: 'all', except: BROWSER_KEYS, why: "playing, the keyboard is the game's, build mode and dev keys too: Space and arrows scroll, Tab moves focus, / and ' open Firefox's find bar, F6, F10 and Alt go to the browser's bars, Ctrl is crouch (Ctrl+D, Ctrl+S)" },
+  { event: 'keyup', when: 'playing', keys: ['AltLeft', 'AltRight'], why: "Firefox shows its menu bar on Alt's release" },
+  { event: 'keydown', when: 'always', keys: ['F3'], why: 'the F3 panel, not find' },
+  { event: 'keydown', when: 'always', keys: ['Ctrl+Equal', 'Ctrl+Minus', 'Ctrl+Digit0', 'Ctrl+NumpadAdd', 'Ctrl+NumpadSubtract', 'Ctrl+Numpad0'], why: 'zoom: zooming out makes the drawing buffer bigger (BL-026)' },
+  { event: 'wheel', when: 'always', ctrl: true, why: 'zoom: Ctrl+wheel, and a trackpad pinch (a wheel with Ctrl in Chromium and Firefox)' },
+  { event: 'gesturestart', when: 'always', why: "zoom: Safari's trackpad pinch" },
+  { event: 'gesturechange', when: 'always', why: "zoom: Safari's trackpad pinch" },
+  { event: 'mousedown', when: 'playing', why: 'no text selection, no middle-button autoscroll' },
+  { event: 'mouseup', when: 'always', buttons: [3, 4], why: 'the back and forward buttons go on their release' },
+  { event: 'auxclick', when: 'always', buttons: [3, 4], why: 'the back and forward buttons' },
+  { event: 'contextmenu', when: 'always', why: 'the right button shakes the can' },
+  { event: 'beforeunload', when: 'playing', why: 'without the keyboard lock the browser keeps Ctrl+W, Ctrl+T, Ctrl+N: ask before leaving' },
+];
+
 /** Paint roller (slot 4): a wide graffiti roller on a short pole, rolling solid bands of paint. */
 export const ROLLER = {
   /** Max distance from the eye to the surface (it's on a short pole). */

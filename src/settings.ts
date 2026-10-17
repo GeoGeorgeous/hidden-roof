@@ -2,20 +2,17 @@ import { ATMOS, AUDIO, HUD, INK_STYLES, PAINT, PLAYER, RENDER, SKYLINE, SMOKE, V
 import { exitGameFullscreen } from './fullscreen';
 import { sentence } from './menu-ui';
 import { DEFAULT_STYLE, inkStyle, setInkStyle } from './render/ink/styles';
+import { ACTION_NAMES, applyKeys, bind, keyOverrides, resetKeys, slotName, slots } from './key-bindings';
+import { applyValues, changedValues, defaultsOf, loadSaved, save, type Remembered } from './settings-store';
 
 // Player settings, on the settings page of the pause menu (settings-page.ts):
 // gameplay, graphics and sound. They write the same config values the debug
-// panel (F3) edits, so both stay in step. Style, resolution, volumetrics, paint and
-// city detail and the frame rate are remembered in this browser; the rest reset on reload.
+// panel (F3) edits, so both stay in step. All are remembered in this browser
+// (settings-store.ts).
 // Paint and city detail apply when the game resumes, since they rebuild every
 // paint texture or the whole city: stepping through the choices costs
 // nothing. config.ts holds the defaults.
 
-const KEY = 'roofhiddenhaus.settings';
-/** Settings saved under the old name (taggin): read once, so nothing resets with the rename. */
-const RENAMED_KEY = 'taggin.settings.v2';
-/** Settings saved before v2: their paint detail and volumetrics are dropped, so the defaults (ULTRA, off) apply once. */
-const OLD_KEY = 'taggin.settings';
 const PIXEL_SCALES = [1, 1.5, 2, 2.5, 3, 4];
 /** FRAME RATE choices (fps); 0 = no limit. */
 const FRAME_RATES = [0, 30, 60, 90, 120, 144];
@@ -47,16 +44,6 @@ const CITY_DETAIL = {
 type CityDetail = keyof typeof CITY_DETAIL;
 const CITY_ORDER = Object.keys(CITY_DETAIL) as CityDetail[];
 
-interface Saved {
-  /** INK_STYLES name. */
-  style?: string;
-  pixelScale?: number;
-  maxFps?: number;
-  volumetrics?: VolPreset;
-  paintDetail?: PaintDetail;
-  cityDetail?: CityDetail;
-}
-
 export class Settings {
   private vol: VolPreset;
   private detail: PaintDetail;
@@ -76,29 +63,46 @@ export class Settings {
     private applyPaintDetail: () => void,
     private applyCityDetail: () => void,
   ) {
-    const s = load();
+    const s = loadSaved();
+    applyValues(REMEMBERED, REMEMBERED_DEFAULTS, s.values);
+    applyKeys(s.keys);
     const style = INK_STYLES.findIndex((t) => t.name === s.style);
     if (style >= 0) setInkStyle(style);
     if (s.pixelScale && PIXEL_SCALES.includes(s.pixelScale)) RENDER.pixelScale = s.pixelScale;
     if (s.maxFps !== undefined && FRAME_RATES.includes(s.maxFps)) RENDER.maxFps = s.maxFps;
-    this.vol = s.volumetrics && s.volumetrics in VOL_PRESETS ? s.volumetrics : VOL_ORDER.find((k) => VOL_PRESETS[k].enabled === VOLUMETRICS.enabled && VOL_PRESETS[k].downscale === VOLUMETRICS.downscale && VOL_PRESETS[k].steps === VOLUMETRICS.steps) ?? (VOLUMETRICS.enabled ? 'medium' : 'off');
+    this.vol = s.volumetrics && s.volumetrics in VOL_PRESETS ? (s.volumetrics as VolPreset) : VOL_ORDER.find((k) => VOL_PRESETS[k].enabled === VOLUMETRICS.enabled && VOL_PRESETS[k].downscale === VOLUMETRICS.downscale && VOL_PRESETS[k].steps === VOLUMETRICS.steps) ?? (VOLUMETRICS.enabled ? 'medium' : 'off');
     Object.assign(VOLUMETRICS, VOL_PRESETS[this.vol]);
     // Unsaved: the choice nearest to config's PAINT.texelsPerMeter.
     const values = DETAIL_ORDER.map((k) => PAINT_DETAIL[k]);
     const preset = DETAIL_ORDER[values.indexOf(nearest(values, PAINT.texelsPerMeter))];
-    this.detail = s.paintDetail && s.paintDetail in PAINT_DETAIL ? s.paintDetail : preset;
+    this.detail = s.paintDetail && s.paintDetail in PAINT_DETAIL ? (s.paintDetail as PaintDetail) : preset;
     PAINT.texelsPerMeter = PAINT_DETAIL[this.detail];
-    this.city = this.builtCity = s.cityDetail && s.cityDetail in CITY_DETAIL ? s.cityDetail : 'high';
+    this.city = this.builtCity = s.cityDetail && s.cityDetail in CITY_DETAIL ? (s.cityDetail as CityDetail) : 'high';
     Object.assign(SKYLINE, CITY_DETAIL[this.city]);
   }
 
-  /** The settings page (pause menu → SETTINGS): one section per tab. */
+  /** The settings page (pause menu → SETTINGS): one section per tab. Every change is saved. */
   sections(): SettingSection[] {
+    const saving = (row: SettingRow): SettingRow => {
+      if (row.kind === 'choice') return { ...row, step: (d) => (row.step(d), this.save()) };
+      if (row.kind === 'range') return { ...row, set: (v) => (row.set(v), this.save()) };
+      if (row.kind === 'keys')
+        return {
+          ...row,
+          bind: (i, code) => {
+            const refused = row.bind(i, code);
+            this.save();
+            return refused;
+          },
+        };
+      return { ...row, run: () => (row.run(), this.save()) };
+    };
     return [
       { title: 'Gameplay', rows: gameplayRows() },
       { title: 'Graphics', rows: this.graphicsRows() },
       { title: 'Sound', rows: soundRows() },
-    ];
+      { title: 'Controls', rows: controlRows() },
+    ].map((s) => ({ ...s, rows: s.rows.map(saving) }));
   }
 
   private graphicsRows(): SettingRow[] {
@@ -230,22 +234,7 @@ export class Settings {
   }
 
   private save() {
-    try {
-      localStorage.setItem(KEY, JSON.stringify({ style: INK_STYLES[inkStyle()]?.name, pixelScale: RENDER.pixelScale, maxFps: RENDER.maxFps, volumetrics: this.vol, paintDetail: this.detail, cityDetail: this.city } satisfies Saved));
-    } catch {
-      // Storage unavailable (private mode): settings last for this session only.
-    }
-  }
-}
-
-function load(): Saved {
-  try {
-    const saved = localStorage.getItem(KEY) ?? localStorage.getItem(RENAMED_KEY);
-    if (saved) return JSON.parse(saved) as Saved;
-    const old = JSON.parse(localStorage.getItem(OLD_KEY) ?? '{}') as Saved;
-    return { pixelScale: old.pixelScale, cityDetail: old.cityDetail };
-  } catch {
-    return {};
+    save({ style: INK_STYLES[inkStyle()]?.name, pixelScale: RENDER.pixelScale, maxFps: RENDER.maxFps, volumetrics: this.vol, paintDetail: this.detail, cityDetail: this.city, values: changedValues(REMEMBERED, REMEMBERED_DEFAULTS), keys: keyOverrides() });
   }
 }
 
@@ -281,6 +270,9 @@ type RowBase = { label: string; desc?: string; note?: string; cost?: Cost };
 type Cost = 'LOW' | 'MEDIUM' | 'HIGH';
 export type SettingRow =
   | (RowBase & { kind: 'choice'; value: () => string; step: (d: number) => void; locked?: () => boolean })
+  /** Two key slots (Controls): `bind` a captured key to slot `i`, or say why it can't be. */
+  | (RowBase & { kind: 'keys'; slots: () => string[]; bind: (i: number, code: string) => string | null })
+  | (RowBase & { kind: 'button'; text: string; run: () => void })
   | (RowBase & { kind: 'range'; min: number; max: number; step: number; def: number; get: () => number; set: (v: number) => void; format: (v: number) => string });
 export interface SettingSection {
   title: string;
@@ -327,6 +319,15 @@ function gameplayRows(): SettingRow[] {
   ];
 }
 
+/** A row per play action, then a reset. */
+function controlRows(): SettingRow[] {
+  const rows: SettingRow[] = Object.entries(ACTION_NAMES).map(([a, label]) => {
+    const action = a as keyof typeof ACTION_NAMES;
+    return { kind: 'keys', label, slots: () => slots(action).map(slotName), bind: (i, code) => bind(action, i, code) };
+  });
+  return [...rows, { kind: 'button', label: 'Every key', text: 'Reset', run: resetKeys }];
+}
+
 /** Volume sliders, 0..200% of each sound's default level. */
 const SOUNDS: [label: string, key: keyof typeof AUDIO, desc: string][] = [
   ['Master', 'masterGain', 'Everything.'],
@@ -339,6 +340,17 @@ const SOUNDS: [label: string, key: keyof typeof AUDIO, desc: string][] = [
   ['AC fans', 'fanGain', 'The hum of AC fans when you are close.'],
 ];
 const SOUND_DEFAULTS = Object.fromEntries(SOUNDS.map(([, k]) => [k, AUDIO[k]]));
+
+/** The gameplay, sound and on/off settings, saved as overrides (settings-store.ts). */
+const REMEMBERED: Remembered[] = [
+  ...(['mouseSensitivity', 'crouchToggle'] as const).map((field) => ({ name: `PLAYER.${field}`, obj: PLAYER, field })),
+  ...(['fov', 'sprintFovBoost', 'fullscreen', 'propMotion'] as const).map((field) => ({ name: `RENDER.${field}`, obj: RENDER, field })),
+  { name: 'ATMOS.rain', obj: ATMOS, field: 'rain' },
+  { name: 'SMOKE.enabled', obj: SMOKE, field: 'enabled' },
+  { name: 'HUD.perf', obj: HUD, field: 'perf' },
+  ...SOUNDS.map(([, field]) => ({ name: `AUDIO.${field}`, obj: AUDIO, field })),
+];
+const REMEMBERED_DEFAULTS = defaultsOf(REMEMBERED);
 
 function soundRows(): SettingRow[] {
   return SOUNDS.map(([label, key, desc]) => ({

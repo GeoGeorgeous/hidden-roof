@@ -35,7 +35,7 @@ export class SpongeTool {
 
   /** `radius`: the patch it cleans (m). */
   update(dt: number, input: Input, camera: THREE.Camera, eye: THREE.Vector3, active: boolean, radius: number) {
-    const pressed = active && input.lmb && input.locked;
+    const pressed = active && input.held('use') && input.locked;
     const scrubbing = pressed && this.scrub(dt, camera, eye, radius);
     if (!pressed) this.lift();
     if (scrubbing || this.sounding) this.audio.setScribble(scrubbing ? 0.5 : 0);

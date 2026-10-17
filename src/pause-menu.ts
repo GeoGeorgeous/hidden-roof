@@ -46,8 +46,6 @@ export class PauseMenu {
   /** The live line is refreshed at this time (update). */
   private nextLine = 0;
   private hold: EscHold;
-  /** Esc went down on the pause screen: released, it resumes (escapeReleased). */
-  private resumeOnUp = false;
   /** The status line's message (notice), shown until noticeUntil. */
   private message = '';
   private play: HTMLElement;
@@ -103,7 +101,7 @@ export class PauseMenu {
     const menu = div('menu');
     menu.append(
       column('paint', this.savePaint, this.loadPaint),
-      column('settings', ...['Game', 'Graphics', 'Audio'].map((t, i) => item(t, () => this.openSettings(i)))),
+      column('settings', ...['Game', 'Graphics', 'Audio', 'Controls'].map((t, i) => item(t, () => this.openSettings(i)))),
       column('about', item('Updates', () => this.openPage('updates')), item('Credits', () => this.openPage('credits'))),
     );
     const foot = div('foot');
@@ -117,14 +115,6 @@ export class PauseMenu {
     parent.append(this.el);
     this.addPage('credits', creditsPage(), () => {});
     updatesPage(this);
-
-    // Esc held to the end: the browser left fullscreen, and its release doesn't resume.
-    document.addEventListener('fullscreenchange', () => (this.resumeOnUp = false));
-    window.addEventListener('keydown', (e) => {
-      if (e.repeat || (e.code !== 'Enter' && e.code !== 'NumpadEnter') || this.el.hidden || this.debugOpen) return;
-      if (this.page) runPrimary(this.pages.get(this.page)!.el);
-      else this.onResume();
-    });
     this.openPage(null);
   }
 
@@ -146,22 +136,18 @@ export class PauseMenu {
     return PAUSE_MENU.view && this.sheetUp && !this.started;
   }
 
-  /** Esc pressed while paused: back a step; on the pause screen it resumes once released (escapeReleased). Never resumes now (false). */
-  escape() {
-    if (this.page) this.goBack();
-    else this.resumeOnUp = true;
-    return false;
+  /** A page shows (SAVE, SETTINGS…), not the pause screen. Esc and Enter go to it (play-state.ts). */
+  get onPage() {
+    return this.page !== null;
   }
 
-  /** Esc released: true when it was pressed on the pause screen and the browser didn't take it to leave fullscreen (held). */
-  escapeReleased() {
-    const resume = this.resumeOnUp && !this.page && !this.el.hidden;
-    this.resumeOnUp = false;
-    return resume;
+  /** Enter on a page: its primary button. */
+  primary() {
+    if (this.page) runPrimary(this.pages.get(this.page)!.el);
   }
 
-  /** Back a step within the page, or to the pause screen. */
-  private goBack() {
+  /** Back a step within the page, or to the pause screen (Esc, the BACK button). */
+  goBack() {
     if (!this.page || !this.pages.get(this.page)?.back?.()) this.openPage(null);
   }
 
@@ -176,10 +162,6 @@ export class PauseMenu {
     this.noticeUntil = performance.now() + seconds * 1000;
     this.message = msg;
     this.sync();
-  }
-
-  get inSession() {
-    return !!this.session;
   }
 
   /** In a multiplayer session (its code; `live`: its link is up) or not (null): the menu offers BACK TO SESSION and LEAVE SESSION, and no UPLOAD. */
@@ -207,7 +189,7 @@ export class PauseMenu {
     el.hidden = this.page !== page;
   }
 
-  /** The settings page on its tab `i` (0 gameplay, 1 graphics, 2 sound). */
+  /** The settings page on its tab `i` (0 gameplay, 1 graphics, 2 sound, 3 controls). */
   openSettings(i: number) {
     this.openPage('settings');
     this.settingsPage?.show(i);
@@ -254,7 +236,9 @@ export class PauseMenu {
   private sync() {
     const idle = this.session ? `Session · ${this.session}` : this.started ? 'Paused' : 'Click to start';
     const notice = performance.now() < this.noticeUntil;
-    this.status.lastChild!.textContent = this.hold.held ? 'Keep holding to leave fullscreen' : notice ? this.message : idle;
+    const text = this.status.lastChild as HTMLElement;
+    if (this.hold.held) text.replaceChildren('Keep holding ', keyHint('ESC'), ' to leave fullscreen, or press ', keyHint('F11'), ' to leave instantly');
+    else text.textContent = notice ? this.message : idle;
     // The live line, unless a message has the status line (reconnecting, the hold, a notice).
     this.line.el.hidden = !this.live || this.hold.held || notice;
     this.status.hidden = !this.line.el.hidden;

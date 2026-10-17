@@ -23,12 +23,13 @@ const WSL_GPU = '/usr/lib/wsl/lib';
 export async function openTestBrowser(url, { uncapped = false, level = 'demo', gpu = false, flags = [] } = {}) {
   let server = null;
   if (!url) {
-    // Its own dependency cache, so it can run beside `npm run dev`. The /ws proxy's errors
+    // Its own dependency cache, so it can run beside `npm run dev`; in the worktree, not node_modules: worktrees
+    // link node_modules in, and servers sharing a cache swap its files under each other. The /ws proxy's errors
     // aren't printed: the multiplayer test stops its game server on purpose.
     const logger = createLogger('error');
     const error = logger.error;
     logger.error = (msg, options) => !msg.includes('proxy error') && error(msg, options);
-    server = await createServer({ customLogger: logger, cacheDir: 'node_modules/.vite-test', server: { port: 5180 } });
+    server = await createServer({ customLogger: logger, cacheDir: '.cache/vite-test', server: { port: 5180 } });
     await server.listen();
     url = server.resolvedUrls.local[0];
   }
@@ -60,6 +61,11 @@ export async function openTestBrowser(url, { uncapped = false, level = 'demo', g
   browser.newPage = async (options) => {
     const page = await open(options);
     page.setDefaultNavigationTimeout(120_000);
+    // The page's warnings and errors, for gameReady to name what held a load up.
+    page.loadLog = [];
+    page.on('console', (m) => ['error', 'warning'].includes(m.type()) && page.loadLog.push(`${m.type()}: ${m.text()}`));
+    page.on('pageerror', (e) => page.loadLog.push(`pageerror: ${e.message}`));
+    page.on('requestfailed', (q) => page.loadLog.push(`requestfailed: ${q.url()} ${q.failure()?.errorText}`));
     return page;
   };
   const context = browser.newContext.bind(browser);
@@ -85,6 +91,15 @@ export function noDrawing() {
   const t = setInterval(() => window.game?.renderer && (clearInterval(t), (window.game.renderer.render = () => {})), 20);
 }
 
+/**
+ * An init script: the browser's pointer lock and fullscreen do nothing. Tests start play with Input.setLocked; a real
+ * lock (a resume from a check's Enter or click runs as a user gesture) came and went late and unlocked later checks.
+ */
+export function noBrowserLock() {
+  Element.prototype.requestPointerLock = () => Promise.resolve();
+  Element.prototype.requestFullscreen = () => Promise.reject(new DOMException('tests start play with Input.setLocked', 'NotAllowedError'));
+}
+
 function keepFramesComing() {
   addEventListener('DOMContentLoaded', () => {
     const style = document.createElement('style');
@@ -107,8 +122,7 @@ export async function startPlaying(page, url) {
   await gameReady(page, 3);
   await page.evaluate(() => {
     const g = window.game;
-    g.input.locked = true;
-    g.hud.setLocked(true);
+    g.input.setLocked(true);
   });
   return { errors, warnings };
 }
@@ -123,9 +137,17 @@ export function freePort() {
   });
 }
 
-/** Waits until the game has loaded (slow while other tests share the CPU), then `frames` frames (text atlases settle in the first ones). */
+/**
+ * Waits until the game has loaded (slow while other tests share the CPU), then `frames` frames (text atlases settle in
+ * the first ones). A load that never ends fails naming where it stood: the loading screen's step and the page's log.
+ */
 export async function gameReady(page, frames = 10) {
-  await page.waitForFunction(() => window.game?.loaded(), null, { timeout: 120000 });
+  await page.waitForFunction(() => window.game?.loaded(), null, { timeout: 120000 }).catch(async (e) => {
+    const at = await page
+      .evaluate(() => ({ ready: document.readyState, game: !!window.game, step: document.querySelector('.loading .on')?.textContent }))
+      .catch((err) => err.message);
+    throw new Error(`${e.message}; the load stood at ${JSON.stringify(at)}; log: ${JSON.stringify(page.loadLog?.slice(-10) ?? [])}`);
+  });
   await page.evaluate(
     (frames) =>
       new Promise((done) => {
