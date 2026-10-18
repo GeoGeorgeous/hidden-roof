@@ -3,6 +3,7 @@ import { download, pickFile, stamp } from '../files';
 import type { PauseMenu } from '../pause-menu';
 import type { Hotbar } from '../inventory/hotbar';
 import { savePaint } from '../save/save-paint';
+import { store, stored } from '../stored';
 import { cycle, paintDetailName } from '../settings';
 import { action, button, div, relabel, sentence } from '../menu-ui';
 import { choice, pageHead, settingRow } from '../settings-page';
@@ -56,19 +57,10 @@ export function multiplayerMenu(hud: PauseMenu, hotbar: Hotbar, ctx: Multiplayer
   const root = div('page mp-page');
   root.append(pageHead('multiplayer', sub), rows);
 
-  let name = '';
-  try {
-    name = localStorage.getItem(NAME_KEY) ?? '';
-  } catch {
-    // No storage: asked again next time.
-  }
+  let name = stored(NAME_KEY) ?? '';
   const nameInput = textInput(name, NAME_MAX, 'Your name', (v) => {
     name = v;
-    try {
-      localStorage.setItem(NAME_KEY, v);
-    } catch {
-      // No storage.
-    }
+    store(NAME_KEY, v);
   });
   const codeInput = textInput('', CODE_LENGTH, 'A B C D E', () => (codeInput.value = codeInput.value.toUpperCase().replace(/[^A-Z]/g, '')));
   codeInput.classList.add('code');

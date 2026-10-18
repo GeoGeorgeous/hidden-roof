@@ -1,3 +1,5 @@
+import { store, stored } from './stored';
+
 // The player's settings in this browser (localStorage), read once at start and
 // written on every change. Most are kept as overrides: a value equal to
 // config's default isn't saved, so a changed default reaches everyone who never
@@ -25,22 +27,19 @@ export interface Saved {
 
 export function loadSaved(): Saved {
   try {
-    const saved = localStorage.getItem(KEY) ?? localStorage.getItem(RENAMED_KEY);
+    const saved = stored(KEY) ?? stored(RENAMED_KEY);
     if (saved) return JSON.parse(saved) as Saved;
-    const old = JSON.parse(localStorage.getItem(OLD_KEY) ?? '{}') as Saved;
+    const old = JSON.parse(stored(OLD_KEY) ?? '{}') as Saved;
     return { pixelScale: old.pixelScale, cityDetail: old.cityDetail };
   } catch {
+    // Not JSON: the defaults.
     return {};
   }
 }
 
 /** Merges `part` into what's saved. */
 export function save(part: Saved) {
-  try {
-    localStorage.setItem(KEY, JSON.stringify({ ...loadSaved(), ...part }));
-  } catch {
-    // Storage unavailable (private mode): settings last for this session only.
-  }
+  store(KEY, JSON.stringify({ ...loadSaved(), ...part }));
 }
 
 /** A config field kept as an override: `name` is how it's saved. */
