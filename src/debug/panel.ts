@@ -8,6 +8,7 @@ import { playSections } from './play-sections';
 import { itemRow, whenOf, WHEN, type Row } from './rows';
 import { isChanged, isValue, resetItems, sectionsJSON, splitSections, type Section } from './tuning';
 import { worldSections } from './world-sections';
+import { el } from '../menu-ui';
 
 // Debug panel (F3 / `): tabs of groups of small collapsible sections of live
 // tunables and stats. RESET puts config.ts's values back without saving
@@ -216,10 +217,6 @@ export class DebugPanel {
       },
     };
   }
-}
-
-function el(tag: string, className = '') {
-  return Object.assign(document.createElement(tag), { className });
 }
 
 function button(label: string, run: () => void) {

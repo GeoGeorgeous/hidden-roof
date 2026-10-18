@@ -1,5 +1,4 @@
-import { div } from './menu-ui';
-import { pageHead } from './settings-page';
+import { div, el, pageHead } from './menu-ui';
 
 // The Credits page of the ESC menu: who made the game, what inspired it, and
 // the fonts and code it ships with, each with its license (public/licenses).
@@ -47,22 +46,22 @@ export function creditsPage() {
   const team = div('team');
   for (const [role, names] of TEAM) {
     const line = div('team-line');
-    line.append(Object.assign(document.createElement('span'), { textContent: role }), Object.assign(document.createElement('b'), { textContent: names }));
+    line.append(el('span', '', role), el('b', '', names));
     team.append(line);
   }
   rows.append(team);
   for (const [title, entries] of SECTIONS) {
     rows.append(div('credits-title', title));
     for (const [name, about, link, href] of entries) {
-      const el = div('credit');
+      const box = div('credit');
       const text = div('text');
-      text.append(Object.assign(document.createElement('b'), { textContent: name }), Object.assign(document.createElement('span'), { textContent: about }));
-      el.append(text, Object.assign(document.createElement('a'), { textContent: link, href, target: '_blank', rel: 'noopener' }));
-      rows.append(el);
+      text.append(el('b', '', name), el('span', '', about));
+      box.append(text, Object.assign(el('a', '', link), { href, target: '_blank', rel: 'noopener' }));
+      rows.append(box);
     }
   }
   const end = div('credits-end');
-  end.append('Geometry, textures and sounds are all made in code.', document.createElement('br'), 'Full license texts ship with the game.');
+  end.append('Geometry, textures and sounds are all made in code.', el('br'), 'Full license texts ship with the game.');
   rows.append(end);
   const root = div('page credits-page');
   root.append(pageHead('credits'), rows);

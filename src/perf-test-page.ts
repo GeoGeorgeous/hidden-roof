@@ -1,6 +1,6 @@
 import { PERF_TEST, RENDER } from './config';
 import { currentOs, type GpuInfo } from './gpu-name';
-import { action, div } from './menu-ui';
+import { action, div, el } from './menu-ui';
 import type { PauseMenu } from './pause-menu';
 import { browserOf, perfTip, TIERS, tierOf, tierShare, type PerfResult, type PerfTest, type TestedSettings } from './perf-test';
 
@@ -22,8 +22,8 @@ export function perfTestPage(menu: PauseMenu, test: PerfTest, gpu: GpuInfo, sett
   const toSettings = () => (menu.openSettings('Graphics', 'Performance test'), true);
   const stop = () => (test.stop(), toSettings());
 
-  const status = Object.assign(document.createElement('span'), { className: 'perf-status' });
-  const progress = document.createElement('i');
+  const status = el('span', 'perf-status');
+  const progress = el('i');
   const title = div('perf-title');
   title.append(div('popup-title', 'performance test'), status);
   const line = div('perf-progress');
@@ -31,43 +31,43 @@ export function perfTestPage(menu: PauseMenu, test: PerfTest, gpu: GpuInfo, sett
   const head = div('perf-head');
   head.append(title, line);
 
-  const fps = document.createElement('b');
+  const fps = el('b');
   const fpsLine = div('perf-fps');
-  fpsLine.append(fps, Object.assign(document.createElement('span'), { textContent: 'FPS' }));
+  fpsLine.append(fps, el('span', '', 'FPS'));
   const low = div('perf-low');
   const headline = div('perf-headline');
   const tiers = div('perf-tiers');
   tiers.title = 'Set by the test';
   const tierEls = TIERS.map((name) => {
-    const el = div('perf-tier');
-    const fill = document.createElement('i');
+    const box = div('perf-tier');
+    const fill = el('i');
     const bar = div('bar');
     bar.append(fill);
-    el.append(bar, Object.assign(document.createElement('span'), { textContent: name }));
-    tiers.append(el);
-    return { el, fill };
+    box.append(bar, el('span', '', name));
+    tiers.append(box);
+    return { el: box, fill };
   });
   const score = div('perf-score');
   score.append(fpsLine, low, headline, tiers);
 
   const bars = div('perf-bars');
   const timeBar = (name: string) => {
-    const fill = document.createElement('i');
+    const fill = el('i');
     const bar = div('bar');
     bar.append(fill);
-    const value = Object.assign(document.createElement('span'), { className: 'ms' });
-    bars.append(Object.assign(document.createElement('span'), { className: 'name', textContent: name }), bar, value);
+    const value = el('span', 'ms');
+    bars.append(el('span', 'name', name), bar, value);
     return { bar, fill, value };
   };
   const cpuBar = timeBar('CPU');
   const gpuBar = timeBar('GPU');
   const facts = div('perf-facts');
   const fact = (name: string) => {
-    const el = div('fact');
-    const value = Object.assign(document.createElement('span'), { className: 'v' });
-    el.append(Object.assign(document.createElement('span'), { className: 'k', textContent: name }), value);
-    facts.append(el);
-    return { el, value };
+    const box = div('fact');
+    const value = el('span', 'v');
+    box.append(el('span', 'k', name), value);
+    facts.append(box);
+    return { el: box, value };
   };
   const ran = { size: fact('Resolution'), volumetrics: fact('Volumetrics'), paint: fact('Paint detail'), city: fact('City detail') };
   const calls = fact('Draw calls').value;
@@ -144,7 +144,7 @@ export function perfTestPage(menu: PauseMenu, test: PerfTest, gpu: GpuInfo, sett
     low.textContent = `1% low ${Math.round(r.low)} FPS`;
     headline.textContent = `${TIERS[tierOf(r.fps)]} at your settings`;
     const t = perfTip(r, { gpu, os: currentOs(), browser: browserOf(navigator.userAgent), maxFps: RENDER.maxFps, settings: tested });
-    advice.replaceChildren(Object.assign(document.createElement('b'), { textContent: t.lead }), Object.assign(document.createElement('span'), { textContent: t.more }));
+    advice.replaceChildren(el('b', '', t.lead), el('span', '', t.more));
     buttons.replaceChildren(action('Dismiss', toSettings, { key: 'ESC' }), action('Run again', run, { primary: true }));
   };
 
@@ -157,7 +157,7 @@ export function perfTestPage(menu: PauseMenu, test: PerfTest, gpu: GpuInfo, sett
     draw({ fps: null, cpu: null, gpu: null, calls: null });
     low.textContent = '1% low after the run';
     headline.textContent = 'Measuring…';
-    advice.replaceChildren(Object.assign(document.createElement('span'), { textContent: 'Watching where each frame’s time goes.' }));
+    advice.replaceChildren(el('span', '', 'Watching where each frame’s time goes.'));
     buttons.replaceChildren(action('Stop', stop, { key: 'ESC' }));
     status.textContent = `Testing · ${Math.ceil(PERF_TEST.warmup + PERF_TEST.seconds)} s left`;
     progress.style.transform = 'scaleX(0)';

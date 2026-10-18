@@ -1,5 +1,5 @@
 import { defaultOf } from './defaults';
-import { withDefaultTick } from '../settings-page';
+import { el, withDefaultTick } from '../menu-ui';
 import { hintFor, LABEL_HINTS } from './hints';
 import { getValue, isChanged, setValue, type Item, type When } from './tuning';
 
@@ -31,7 +31,7 @@ export const whenOf = (it: Item): When | undefined => ('path' in it ? (it.when ?
 export function itemRow(it: Item, edited: () => void, tag = true): Row {
   const row = control(it, edited);
   const w = whenOf(it);
-  if (w && tag) row.el.querySelector('span')!.append(Object.assign(document.createElement('em'), { className: 'when', textContent: WHEN[w][0] }));
+  if (w && tag) row.el.querySelector('span')!.append(el('em', 'when', WHEN[w][0]));
   const own = 'path' in it ? hintFor(it.path) : LABEL_HINTS[it.label];
   if (own) row.el.classList.add('has-hint');
   const hint = [own, w && WHEN[w][1]].filter(Boolean).join(' ');
@@ -42,32 +42,32 @@ export function itemRow(it: Item, edited: () => void, tag = true): Row {
 }
 
 function control(it: Item, edited: () => void): Row {
-  const el = document.createElement('label');
+  const label = el('label');
   if (it.kind === 'heading') {
-    el.className = 'heading';
-    el.textContent = it.label;
-    return { el };
+    label.className = 'heading';
+    label.textContent = it.label;
+    return { el: label };
   }
   if (it.kind === 'action') {
-    el.className = 'readout-row';
-    const b = document.createElement('button');
+    label.className = 'readout-row';
+    const b = el('button');
     b.textContent = it.label;
     b.addEventListener('click', (e) => {
       e.preventDefault();
       it.run();
     });
-    el.append(b);
-    return { el };
+    label.append(b);
+    return { el: label };
   }
-  const name = Object.assign(document.createElement('span'), { textContent: it.label });
-  const value = document.createElement('b');
+  const name = el('span', '', it.label);
+  const value = el('b');
   if (it.kind === 'choice') {
-    el.className = 'choice-row';
+    label.className = 'choice-row';
     // Clicking the name would press the first button (a label's control).
     name.addEventListener('click', (e) => e.preventDefault());
-    const box = Object.assign(document.createElement('div'), { className: 'choice' });
+    const box = el('div', 'choice');
     const buttons = it.options.map((o, i) => {
-      const b = Object.assign(document.createElement('button'), { textContent: o });
+      const b = el('button', '', o);
       b.addEventListener('click', (e) => {
         e.preventDefault();
         it.pick(i);
@@ -76,17 +76,17 @@ function control(it: Item, edited: () => void): Row {
       return b;
     });
     box.append(...buttons);
-    el.append(name, box);
+    label.append(name, box);
     const sync = () => buttons.forEach((b, i) => b.classList.toggle('on', i === it.get()));
     sync();
-    return { el, sync };
+    return { el: label, sync };
   }
   if (it.kind === 'readout') {
-    el.className = 'readout-row';
-    el.append(name, value);
-    return { el, read: () => (value.textContent = it.get()) };
+    label.className = 'readout-row';
+    label.append(name, value);
+    return { el: label, read: () => (value.textContent = it.get()) };
   }
-  const input = document.createElement('input');
+  const input = el('input');
   let control: HTMLElement = input;
   let show: () => void;
   let read: () => unknown;
@@ -131,7 +131,7 @@ function control(it: Item, edited: () => void): Row {
   }
   const sync = () => {
     show();
-    el.classList.toggle('changed', isChanged(it));
+    label.classList.toggle('changed', isChanged(it));
   };
   input.addEventListener(it.kind === 'toggle' ? 'change' : 'input', () => {
     setValue(it.path, read());
@@ -140,8 +140,8 @@ function control(it: Item, edited: () => void): Row {
     edited();
   });
   sync();
-  el.append(name, control, value);
-  return { el, sync };
+  label.append(name, control, value);
+  return { el: label, sync };
 }
 
 /** A hex color's gray level, 0..255 (the mean of its channels). */
