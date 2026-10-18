@@ -478,11 +478,11 @@ export const MARKER = {
   reach: 4,
   /** Starting width of the square nib, in meters (0 = one paint texel: the thinnest line, 4 cm on LOW paint detail, 1 cm on ULTRA). Each player's own is Inventory.size. */
   width: 0.032,
-  /** Mouse wheel with the marker in hand: changes the player's nib width by widthStep, within widthMin..widthMax (m). */
+  /** Q/E (sizeUp, sizeDown) with the marker in hand: change the player's nib width by widthStep, within widthMin..widthMax (m). */
   widthMin: 0,
   widthMax: 0.1,
   widthStep: 0.008,
-  /** Crosshair with the marker in hand (px): `crosshair` plus `crosshairPerMeter` x the nib width, so it follows the wheel. */
+  /** Crosshair with the marker in hand (px): `crosshair` plus `crosshairPerMeter` x the nib width, so it follows the size keys. */
   crosshair: 4,
   crosshairPerMeter: 200,
   /**
@@ -586,7 +586,7 @@ export const ROLLER = {
   reach: 5,
   /** Starting width of the stroke: the roller head's length (m). Each player's own is Inventory.size. */
   width: 0.44,
-  /** Mouse wheel with the roller in hand: changes the player's roller width by widthStep, within widthMin..widthMax (m). */
+  /** Q/E (sizeUp, sizeDown) with the roller in hand: change the player's roller width by widthStep, within widthMin..widthMax (m). */
   widthMin: 0.2,
   widthMax: 0.8,
   widthStep: 0.06,
@@ -618,11 +618,11 @@ export const SPONGE = {
   strength: 0.24,
   /** 0 = cleans the whole patch evenly .. 1 = only the middle, fading to the rim. */
   softness: 0.5,
-  /** Mouse wheel with the sponge in hand: changes the player's patch width by widthStep, within widthMin..widthMax (m). */
+  /** Q/E (sizeUp, sizeDown) with the sponge in hand: change the player's patch width by widthStep, within widthMin..widthMax (m). */
   widthMin: 0.04,
   widthMax: 0.6,
   widthStep: 0.04,
-  /** Crosshair with the sponge in hand (px): `crosshair` plus `crosshairPerMeter` x the patch width, so it follows the wheel. */
+  /** Crosshair with the sponge in hand (px): `crosshair` plus `crosshairPerMeter` x the patch width, so it follows the size keys. */
   crosshair: 6,
   crosshairPerMeter: 100,
   /** How far it scrubs in small circles while cleaning (m), and how fast (turns per s). */
