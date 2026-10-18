@@ -1,9 +1,9 @@
-import { button, div, segmented } from './menu-ui';
+import { action, button, div, segmented } from './menu-ui';
 import type { OwnTab, SettingRow, SettingSection } from './settings';
 
 // The Settings page of the ESC menu: one tab per section (gameplay, graphics,
 // sound), each row a choice (‹ and › step to the previous and next value), a
-// value to read (the GPU) or a slider with a gray tick at its default (Shift + click goes back to it),
+// value to read (the GPU), a button (the performance test) or a slider with a gray tick at its default (Shift + click goes back to it),
 // with, for some, a short description, a performance cost (one to three dots
 // after its name) and a callout (recommendations). Values are read again
 // whenever the page opens, since the debug panel edits the same settings.
@@ -82,6 +82,7 @@ export class SettingsPage {
       this.syncs.push(() => (out.textContent = row.value()));
       return settingRow(row.label, out, row);
     }
+    if (row.kind === 'action') return settingRow(row.label, action(row.button, row.act), row);
     const input = Object.assign(document.createElement('input'), { type: 'range', min: `${row.min}`, max: `${row.max}`, step: `${row.step}` });
     const out = div('value');
     const sync = () => {

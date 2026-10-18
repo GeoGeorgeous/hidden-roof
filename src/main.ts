@@ -23,6 +23,8 @@ import { GpuTimer } from './debug/gpu-timer';
 import { captureDefaults } from './debug/defaults';
 import { pixelRatio, Settings } from './settings';
 import { readGpu } from './gpu-name';
+import { PerfTest } from './perf-test';
+import { perfTestPage } from './perf-test-page';
 import { saveScreenshot } from './screenshot';
 import { Input } from './input';
 import { guardBrowser } from './browser-guards';
@@ -72,6 +74,8 @@ document.body.appendChild(renderer.domElement);
 const gpuTimer = new GpuTimer(renderer.getContext() as WebGL2RenderingContext);
 /** What the game draws with, read once (Settings, the perf lines). */
 const gpu = readGpu(renderer.getContext());
+/** Settings → Performance test (perf-test.ts): the city view measured for a few seconds, on the player's request only. */
+const perfTest = new PerfTest(gpuTimer);
 const post = new PostPipeline(renderer, gpuTimer);
 
 const scene = new THREE.Scene();
@@ -203,7 +207,8 @@ input.onLockChange = (locked) => {
 hud.menu.onResume = () => input.requestLock();
 hud.menu.onStyle = (i) => settings.setStyle(i);
 showMenu();
-hud.menu.setSettings(settings.sections(gpu));
+const testPage = perfTestPage(hud.menu, perfTest, gpu, () => settings.summary());
+hud.menu.setSettings(settings.sections(gpu, testPage.run));
 const paintFile = paintMenu(hud.menu, paint, drips, () => opened.name);
 const net = multiplayerMenu(hud.menu, hotbar, { scene, camera, level, paint, paintOps, drips, player, inventory, pickups, tools, levelData: () => ({ data: opened.toJSON(), name: opened.name }), levelPaint: () => levelPaintOf(opened.name), openLevel: (d, n) => opened.open(d, n), restartLevel: () => opened.restart(), lockDetail: (tpm) => settings.lockPaintDetail(tpm) }, () => opened.name);
 // SAVE in a session downloads the session's paint, from the server.
@@ -247,6 +252,7 @@ function frame(time: number) {
     drawnAt = since < interval * 2 ? drawnAt + interval : time;
   }
   meter.start();
+  const begun = performance.now();
   timer.update(time);
   const delta = timer.getDelta();
   fixedStep.script?.();
@@ -280,9 +286,9 @@ function frame(time: number) {
     camera.updateProjectionMatrix();
   }
   camera.updateMatrixWorld();
-  // The title screen shows a fixed view of the city, without hands or tools. It draws
-  // from a camera of its own; play (aim, tools) keeps yours.
-  const cityView = hud.cityView && !drawsFromPlayer();
+  // The title screen shows a fixed view of the city, without hands or tools, and so does the
+  // performance test. It draws from a camera of its own; play (aim, tools) keeps yours.
+  const cityView = (hud.cityView || perfTest.running) && !drawsFromPlayer();
   viewScene.visible = !cityView;
   const shown = cityView ? titleCamera(camera) : camera;
   const at = shown.position;
@@ -350,6 +356,9 @@ function frame(time: number) {
   hud.update();
   dev?.lap('paint + hud');
 
+  // The CPU time before the draw calls: a GPU that falls behind stalls them (the performance test's CPU time).
+  const beforeDraw = performance.now() - begun;
+  perfTest.beforeDraw();
   post.render(scene, viewScene, shown, lighting, !building);
   frameDrawn();
   dev?.lap('render');
@@ -357,6 +366,7 @@ function frame(time: number) {
   if (yours.justPressed('screenshot')) saveScreenshot(renderer.domElement, () => hotbar.toast('Screenshot saved'));
   gpuTimer.poll();
   const { calls, triangles } = post.sceneStats;
+  perfTest.frame(time, beforeDraw, calls);
 
   input.endFrame();
 
@@ -377,5 +387,5 @@ function toScreen(p: THREE.Vector3) {
 
 // Dev tools (build mode, F3, window.game): single player only, and not in the player build (npm run build).
 let dev: DevTools | undefined;
-const game = { city: () => opened.city, config, gpu, play, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, hotbar, pickups, paint, paintOps, net, paintFile, seedPaintRandom, fixedStep, session, level, renderer, input, hud, scene, viewScene, gpuTimer, PLAYER, loadLevel: (d: LevelData) => opened.load(d), rebuildCity: () => opened.rebuildCity(), levelData: () => opened.toJSON(), levelName: () => opened.name, openLevel: (d: LevelData, n: string) => opened.open(d, n), loaded: () => loaded };
+const game = { city: () => opened.city, config, gpu, perfTest, testPage, settings, play, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, hotbar, pickups, paint, paintOps, net, paintFile, seedPaintRandom, fixedStep, session, level, renderer, input, hud, scene, viewScene, gpuTimer, PLAYER, loadLevel: (d: LevelData) => opened.load(d), rebuildCity: () => opened.rebuildCity(), levelData: () => opened.toJSON(), levelName: () => opened.name, openLevel: (d: LevelData, n: string) => opened.open(d, n), loaded: () => loaded };
 if (__DEV_TOOLS__) void import('./dev/devtools').then((m) => (dev = new m.DevTools(game)));

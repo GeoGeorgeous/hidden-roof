@@ -735,6 +735,13 @@
   overflow-wrap: anywhere;
   font-variant-numeric: tabular-nums;
 }
+/* A button row (the performance test): the button under a choice's value. */
+.overlay .setting-row .line > .btn {
+  width: 246px;
+  justify-content: center;
+  padding: 4px 16px;
+  border: 1px solid var(--edge);
+}
 /* Settings → Controls (controls-tab.ts): groups of rows, each with two key slots. */
 .overlay .rows.own {
   width: min(680px, calc(100% - 32px));
@@ -1091,6 +1098,30 @@
   font-size: 12px;
   line-height: 1.6;
   color: rgba(235, 229, 214, 0.45);
+}
+
+/* The performance test running (perf-test-page.ts): the game as it is, one line over it. */
+.overlay.bare {
+  background: none;
+}
+.overlay.bare .blur {
+  display: none;
+}
+.overlay .testing-page {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 48px;
+}
+.overlay .testing {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 6px;
+  background: rgba(14, 14, 16, 0.75);
+  font-size: 13px;
+  letter-spacing: 0.12em;
 }
 
 /* Popups (save, upload, updates): a dark glass card in the middle. */
