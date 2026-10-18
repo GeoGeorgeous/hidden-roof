@@ -1639,3 +1639,51 @@ Menu building blocks lived in settings-page.ts, with local el/div/span copies an
 - source: audit 2026-10-17 (F8.14, F8.23)
 
 The F3 panel's config paths were plain strings no test checked; a broken range path stopped the dev tools as the game loaded, unnamed. Now `scripts/f3-paths.test.mjs` (npm test) checks each path and default in Node. Branch `test/f3-paths`.
+
+### An Environment module: main.ts stops wiring sky, fog and lights
+- id: BL-131
+- type: refactor
+- status: Planned
+- priority: Medium
+- size: S
+- area: render
+- release: next
+- source: audit 2026-10-17 (F8.11, S8.6)
+
+main.ts is at its ~400-line cap and builds, rebuilds and updates the sky, fog, atmosphere, lighting, lightning, light FX, rain, heightmap, smoke, the player light and the view lights itself (`src/main.ts:82-127,302-331`). `src/render/environment.ts` owns them behind `rebuild(level)`, `setViewHeight(h)` and one `update(view)`; the per-frame copies from config stay inside it, so F3 stays live. No behavior change: golden identical, full check before and after. Session S8.7.
+
+### A test driver: steps, keys and buttons
+- id: BL-132
+- type: test
+- status: Planned
+- priority: High
+- size: S
+- area: code
+- release: next
+- source: audit 2026-10-17 (F8.13, F3.15, S8.6)
+
+The fixed-frame `steps()` is written in four scripts (game.test, golden-paint, csp, avatar-shots), and tests write Input's private `down` and `pressed` sets and `lmb`/`rmb`/`wheelSteps`. One page script in test-browser.mjs for steps, and one Input entry for what the browser reports (`key`, `button`, `wheel`), called by its own listeners and by tests. What tests look at stays on window.game. Session S8.8.
+
+### F3: the hooks first, then the sections
+- id: BL-133
+- type: refactor
+- status: Planned
+- priority: Low
+- size: S
+- area: code
+- release: later
+- source: audit 2026-10-17 (F8.3, S8.6)
+
+The panel is built before DevTools sets its 33 hooks, so tuning.ts holds placeholder bodies and hooks.ts an indirection. DevTools sets up its parts, then `new DebugPanel(hooks)`; the sections take the hooks; `Hooks` becomes an interface, hooks.ts and its test go, `live` keeps stats and player; `atmosNight` goes to the panel as a getter. Dev-only. Session S8.9.
+
+### game.test.mjs split by area
+- id: BL-134
+- type: test
+- status: Planned
+- priority: Medium
+- size: S
+- area: code
+- release: next
+- source: audit 2026-10-17 (F8.13, S8.6)
+
+2318 lines, 78 checks in one file. Split into `scripts/game/` by area (menu and settings, input, paint pages and saves, levels and hints, tools and ladders, session, ghost and avatar, debug panel), each under ~400 lines, with the harness in one module; one runner and browser, `ONLY` across all, `npm run test:game` unchanged, same check names. After BL-132. Session S8.8.
