@@ -1320,18 +1320,6 @@ macOS sends no keyup for keys released while Cmd is held: a movement key kept wa
 A synthetic Enter on the pause screen resumed with the real pointer lock (a user gesture in Playwright); the lock was lost ~40 ms later and that late event unlocked the next checks, under load only. Done: `noBrowserLock` on test pages; tests start play with `Input.setLocked`.
 
 
-### Ctrl+W while playing brings the browser's leave prompt
-- id: BL-104
-- type: bug
-- status: Requested
-- priority: Urgent
-- size: S
-- area: input
-- release: next
-- source: owner device tests 2026-10-18 (audit F3.21)
-
-Crouch (Ctrl) + forward (W) asks "leave the page?" in Chrome 155 on Windows (next, v1.3.0-159). Windowed that prompt is the 1.3.0 fix (`beforeunload`; no page can stop Ctrl+W without the keyboard lock); in game fullscreen Ctrl+W must do nothing, and since S3.4 the lock lists only the bound keys and Esc. Do: reproduce on next and on v1.3.0, windowed and in fullscreen; if fullscreen lets it through, lock what Ctrl combos reach too, with a check.
-
 ### A slow join shows PLAY before the session has loaded
 - id: BL-105
 - type: bug
