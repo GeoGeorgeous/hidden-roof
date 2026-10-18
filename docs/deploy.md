@@ -1,6 +1,6 @@
 # Deploy and the VPS
 
-Context for the agent that deploys and runs the game on the VPS. Read it before deploy or server work instead of re-auditing the VPS and the repo. It was written on 2026-10-08 from the code, `docs/multiplayer-audit.md` and a read-only recon of the VPS.
+Context for the agent that deploys and runs the game on the VPS. Read it before deploy or server work instead of re-auditing the VPS and the repo. It was written on 2026-10-08 from the code and a read-only recon of the VPS.
 
 **Parts of this file go stale.** Sections marked *(changes)* follow the server work. Before relying on them, check the repo: `package.json` scripts, a server directory, a `Dockerfile`, the deploy workflow. When the repo or the VPS disagrees with this file, trust them and fix this file in the same commit as the change.
 
@@ -41,7 +41,7 @@ The host's details (machine, other services, firewall, paths) are kept out of th
 - Update the static files in place: `rsync -a --delete-delay --delay-updates dist/ <apps>/roof/www/`. Never swap the directory with `mv`, because the bind mount keeps the old inode.
 - **Build the client off the host** (there's no Node on it): in GitHub Actions (then rsync the output) or in a throwaway `node:24-slim` container. Planned flow: push to `main` → Actions builds → deploy over SSH with the repo's own deploy key.
 - **The server is started by hand** (not automated, by choice): `git fetch --depth 1 origin tag vX.Y.Z && git checkout vX.Y.Z` in `<apps>/roof/repo` (a shallow clone on a detached tag: `git pull` does nothing), then `docker compose up -d --build roof` from `<apps>`.
-- **Client and server versions can differ** after deploys at different times. The client sends a protocol version and its surface-table hash when it connects; on a mismatch the server rejects it and the client asks for a page reload (`docs/multiplayer-audit.md`, section 4, Versions). When a deploy bumps the protocol, restart `roof` and deploy the client together: live sessions end, and old tabs are told to reload.
+- **Client and server versions can differ** after deploys at different times. The client sends a protocol version and its surface-table hash when it connects; on a mismatch the server rejects it and the client asks for a page reload. When a deploy bumps the protocol, restart `roof` and deploy the client together: live sessions end, and old tabs are told to reload.
 - Caddy site block (the site-level `header` block is the host's security headers). Two `header` lines with and without a matcher would let the unmatched one run last and overwrite the `/assets` header, so both get matchers:
 
 ```
@@ -76,7 +76,7 @@ Add the `/ws` handle only once the server exists. The CSP is `csp` in `vite.conf
 
 ## 6. The multiplayer server *(changes)*
 
-The design is in `docs/multiplayer-audit.md` (sections 0, 4, 5, 6.4, 7, 8). The code: `server/` (`main.ts`, `session.ts`), messages in `src/net/protocol.ts`.
+The design and its limits are in `docs/known-limits.md` (Multiplayer). The code: `server/` (`main.ts`, `session.ts`), messages in `src/net/protocol.ts`.
 
 - One Node.js process (Node 24) with the `ws` library, TypeScript that shares modules with the client.
 - **Bundled:** `npm run build:server` → `dist-server/server/main.js`, one file with everything in it (`vite.config.ts`: `ssr.noExternal`). `src/` uses extensionless imports, which plain Node can't resolve, hence the bundle. `PORT` overrides 3000. Locally, `npm run server` builds and starts it, and `npm run dev` proxies `/ws` to it.

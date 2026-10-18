@@ -13,7 +13,7 @@ import { isNum, isObj, isV3, levelProblem, type LevelData, type PropData } from 
 // themselves, with their .ts extension. The server reads untrusted messages
 // through checkToServer.
 
-/** Bumped when a message changes or anything the server runs for a session does (paint, drips, face keys, the save format): docs/multiplayer-audit.md, section 4. */
+/** Bumped when a message changes or anything the server runs for a session does (paint, drips, face keys, the save format). host and join carry it and the level's surface-table hash; a mismatch is answered 'version' and the game asks for a reload. */
 export const PROTOCOL = 6;
 export const NAME_MAX = 16;
 /** Session codes: this many letters from CODE_LETTERS (no I or O, which read as 1 and 0). */

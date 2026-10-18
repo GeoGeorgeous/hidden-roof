@@ -1,6 +1,6 @@
 # Testing
 
-How a change is verified (AGENTS.md, Verify), what each test covers, and how they stay reliable on the WSL dev machine (6 cores, often several agents testing at once). Times measured 2026-10-14 on a quiet machine (one check at a time; a second one beside it slows both).
+How a change is verified (AGENTS.md, Verify), what each test covers, and how they stay reliable on the WSL dev machine (6 cores). Times measured 2026-10-14 on a quiet machine (one check at a time; a second one beside it slows both).
 
 ## The checks
 
@@ -28,11 +28,22 @@ How a change is verified (AGENTS.md, Verify), what each test covers, and how the
 | `npm run test:server` | The server against games speaking the protocol: HOST and JOIN, what's turned away, relaying, SAVE, reconnects, limits per address; on a server of its own, the heartbeat (a game that sends stays without answering pings, a silent one is dropped). In the process (`server/world-test.ts`): the lobby with fake links (limits per address, unknown and ended codes, bad messages, silent links), a paint file that fails (the next join gets a new one), paint at its surfaces' own detail, replayed ops painted and never logged. Then level paint, in Node: it fits the level it was made on and not once a painted prop is gone; every level with paint is marked so and its paint still fits it. | ~8 s |
 | `node scripts/multiplayer.test.mjs` | Two players in two pages: HOST and JOIN from the menu, the host's PAINT DETAIL in the joiner's settings, SAVE of the session's paint, paint and the stepladder reaching the other, a reload, paint while hidden (no frames), a reconnect, LEAVE, a server restart, the server down. `npm run test:mp` builds the server first. | ~35 s |
 | `npm run test:csp` | The game under the site's Content Security Policy (`vite.config.ts`). | ~6 s |
-| `npm run golden` | Paint at every PAINT DETAIL against `scripts/golden-paint.json`, op replay, saves, the server's paint (`docs/golden-paint.md`). | 45–55 s |
+| `npm run golden` | Paint at every PAINT DETAIL against `scripts/golden-paint.json`, op replay, saves, the server's paint (below). | 45–55 s |
 
 `npm run test:weak-link` (~8 min, ~1 min a scenario, `SCENARIO=slow,stall` picks some; never in `check`): multiplayer on weak networks, the playtest of 2026-10-12 played back. Each player has its own page server and link proxy (`scripts/net-lab.mjs`, `scripts/link-proxy.mjs`: each direction at its own rate and delay, through reconnects too), so a weak network stays with its player. Scenarios: `slow` (a slow link for a minute while another paints), `stall` (dead both ways for 15 s), `cut` (a link that dies with a stroke on its way), `latency` (1.5 s each way), `slow-join` (back in over a slow link while another paints: the paint file comes down the same weak path), `three-players` (one weak, one good), `past-rejoin-window` (gone longer than `REJOIN_WINDOW`), `bytes` (what a painter's ops cost the others: ~28 B a stamp). Each prints the server's drops and joins, what every player showed for the others, and its facts; it fails when something that works breaks, and lists known bugs as `open:` with their backlog item. When a fix lands, its `open:` line becomes a check.
 
 Tools, not tests: `npm run bench` (below), `npm run shots:avatar` (every avatar pose and a contact sheet in `shots/avatar/`, on the real GPU), `npm run bench:save` (save size and SAVE / LOAD time; run `npm run golden` first), `npm run bench:join` (a join into a painted roof, on the real GPU: download, load, shown, and the joiner's heap; `LEVEL`, `DETAIL`, `SHARES`, `RATE`), `npm run audit` (knip and duplicated code, advisory).
+
+## Golden paint: `npm run golden`
+
+Guards the paint path: a refactor of painting, ops, saves or the server's paint must leave the hashes unchanged.
+
+- **What it plays.** The demo level at each PAINT DETAIL (24, 48, 72, 96 texels/m), a page each. It stands 1 m from the test wall, seeds paint randomness (`seedPaintRandom(1)`), steps frames at 1/60 s through `window.game.fixedStep`, turns DRIPS on and plays 12 scripted runs (can with each cap and sputtering, marker with three nibs, roller on wall and floor, sponge at two sizes). Runs overlap on purpose (layering, wet paint, sponge over paint). Rendering is stubbed; the paint is all on the CPU.
+- **What it checks.** (1) A hash of every paint atlas, keyed by `PaintSurface.key`, plus painted area, mean alpha, drip triggers and the coverage each run added, against `scripts/golden-paint.json`. (2) Loopback: the recorded paint ops, replayed into the same page with its paint wiped, give the same hash (the remote-paint path); ULTRA's ops replayed at LOW paint within 10% of ULTRA's area. (3) Saves: a `.rhhpaint` saved while playing loads to the same hash; ULTRA's at LOW and LOW's at ULTRA equal switching detail in game; after level edits a save still loads (unpainted prop removed), skips a removed painted prop's faces, and is refused once none of its paint fits. (4) The server, in Node (`server/paint-check.ts`), builds the same surfaces and paints the same hashes from the recorded ops.
+- **Across details the paint is approximate**: total area agrees within ~3%; LOW's 4 cm texels make thin marker lines wider and the sponge and roller differ by tens of percent. Only the same detail is bit-exact. The demo wall has unpaintable slats 2 cm in front of it, so strokes leave stripes there; that is correct occlusion.
+- **When it fails.** Read the `MISMATCH` lines (expected vs got, per detail) and the PNGs of the most painted faces in `shots/golden/` (not committed; `bench:save` also reads the `.rhhpaint` files there). A change that is meant to alter paint (new brush, cap or run defaults, order of random draws): compare the per-run coverage against the old baseline, look at the PNGs, then `npm run golden -- --update`, and commit the new `scripts/golden-paint.json` with the change, saying so in the message. If only the test scene changes (new runs, another wall), update the baseline in its own commit with no paint-path change in it.
+- Takes 45-55 s (four details side by side).
+- Vite gotcha for tests: after a source file is edited while `npm run dev` runs, the game imports it as `file.ts?t=...`; `import('/src/file.ts')` from a test loads a second copy with its own state. Use the exact URL from `performance.getEntriesByType('resource')`, or go through `window.game`.
 
 ## Seeing the real game
 
@@ -50,24 +61,20 @@ The headless tests always draw with SwiftShader, on the CPU: a frame at 1280×72
 
 - **Deterministic.** Game logic in a test runs on fixed steps (`window.game.fixedStep`: a dt and a script per frame), never on the wall clock. Randomness is seeded (`seedPaintRandom`, before every game check too; the ghost's `link.random`). Waits are for a state (`gameReady`, `waitForFunction`), never fixed sleeps. A check that can pass for the wrong reason shows it can fail (the ghost's bad-link check also plays unsmoothed, which must fail).
 - **Apart.** Each run starts its own Vite server (the next free port from 5180), with its dependency cache in its worktree (`.cache/vite-test`, never the linked `node_modules`), and game servers on free ports (`freePort`). Pages get 2 min to load, a reload too (`openTestBrowser` sets it, Playwright's own is 30 s).
-- **One at a time.** On one machine, browser test runs go one after another. Two SwiftShader runs at once starve each other: on 2026-10-18 a game check got no frame for 30 s, a page never loaded, and a third pair froze WSL (audit F8.20).
-- **No real lock.** Checks start play with `Input.setLocked`; the browser's pointer lock and fullscreen do nothing (`noBrowserLock`). A check's Enter or click runs as a user gesture: a real resume took the lock, lost it ~40 ms later, and that late event unlocked the next checks, under load only (audit F8.21).
+- **One at a time.** On one machine, browser test runs go one after another. Two SwiftShader runs at once starve each other: on 2026-10-18 a game check got no frame for 30 s, a page never loaded, and a third pair froze WSL.
+- **No real lock.** Checks start play with `Input.setLocked`; the browser's pointer lock and fullscreen do nothing (`noBrowserLock`). A check's Enter or click runs as a user gesture: a real resume took the lock, lost it ~40 ms later, and that late event unlocked the next checks, under load only.
 - **Not drawing.** Pages that need no picture stub `renderer.render`: SwiftShader drawing is most of a browser test's time.
+- **Node tests import with `.ts`.** Modules a Node test imports (`npm test`) import each other with the `.ts` suffix (`../config.ts`), since Node runs them without Vite.
 - **No setup.** Chromium's system libraries missing here come from `~/.local/pwlibs`: `apt-get download libnspr4 libnss3 libasound2t64`, then `dpkg -x` each into it (or `npx playwright install-deps chromium`, with sudo).
 
-## Fixed 2026-10-10
+## Testing by hand
 
-| Problem | Effect | Fix |
-|---|---|---|
-| The ghost checks ran on the wall clock with random network hiccups; the bad-link one measured speed per frame with dt floored at 1/120 s | At the test's ~3000 fps it was blind to correction glides and failed on random 3–5 cm pops: 1 run in 12 idle, most runs under load (fewer fps, so it saw the glides) | The ghost runs on game time with a seeded network; both checks play frame by frame at 60 fps; same numbers every run |
-| Game test pages drew a few SwiftShader frames before rendering was stubbed | Slower, and closing the browser waited for them | `noDrawing` from the first frame, shared with the multiplayer and CSP tests |
-| The game tests sprayed with unseeded randomness | The sponge check failed 1 run in 20: stray specks landed outside the sponge's reach | Paint randomness seeded before every check |
-| Fixed ports (3996, 3997, 3999) | Two agents testing at once: the server test exited 13 ("unsettled top-level await"); the multiplayer and CSP tests ran against the other agent's server | Free ports |
-| The multiplayer reconnect step faked silence by setting `lastHeard` | A's next snapshot could count as heard before B's next frame: B never reconnected (15 s timeout) | B's link drops what comes in |
-| Vite's /ws proxy errors during the multiplayer test | Stack traces that read as failures | Not printed |
-| The smoke test's screenshot; avatar shots in SwiftShader | 20 s of the smoke test; avatar shots timed out under load | `npm run shots` on the real GPU |
-| `check` left out the player build and golden paint | A broken deploy build or broken paint passed `check` | Both in `check` |
+**Two players on one computer.** `npm run server` (the game server on :3000) and `npm run dev` (:5173), or `npm run build && npx vite preview` (:4173) for the player build. Window A: MULTIPLAYER → HOST. Window B: a second window, or an incognito one for its own name and settings: JOIN with the code. Put the windows side by side (a background tab doesn't draw). Each tab is its own player (sessionStorage), so a duplicated tab joins as a second one. Two windows share one GPU: never judge performance this way.
 
-## Open
+**A weak or dead link for one player.** In the repo, `node`, then `const { linkProxy } = await import('./scripts/link-proxy.mjs'); const p = linkProxy(3100, 3000)`. After `npm run build`: `WS_TARGET=ws://localhost:3100 npx vite preview --port 4174`; window B opens :4174. In the node prompt: `p.down.rate = 8000` (slow downlink, bytes/s) · `p.down.rate = 0; p.up.rate = 0` (stall, like Wi-Fi gone) · `p.cut()` (the link dies now) · `p.open()` (good network again). Every link B opens goes through the proxy, reconnects included.
 
-What's left for the tests is in `docs/backlog.md` (items of type `test`).
+**Other devices on the LAN.** Build from a clean worktree (`git worktree add ../roof-next next && cd ../roof-next && npm ci`), then `npm run server` and `npm run build && npx vite preview --host`; devices open `http://<this machine's LAN address>:4173`. Windows may need an inbound firewall rule for WSL on 4173/5173. Check the build string in the pause menu on every device. Over http there's no clipboard (COPY NETWORK LOG saves a file). A MacBook on battery caps at 30 Hz unless Energy Saver is off.
+
+**Which GPU a laptop's Chrome uses.** `chrome://gpu` → GL_RENDERER, or the game's Settings → Graphics → GPU row. To force the dedicated GPU on Windows: Settings → System → Display → Graphics → Chrome → High performance, then restart Chrome. Chrome's Energy Saver (chrome://settings/performance) caps frames at 30 Hz. Settings → Graphics → Performance test gives fps, CPU and GPU time.
+
+The checks to run by hand before and after a release: `docs/ideas/release-checks.md`.
