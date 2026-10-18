@@ -193,10 +193,10 @@ export class PauseMenu {
     el.hidden = this.page !== page;
   }
 
-  /** The settings page on the tab with this title (Gameplay, Controls, Graphics, Sound). */
-  openSettings(tab: string) {
+  /** The settings page on the tab with this title (Gameplay, Controls, Graphics, Sound); `row`: scrolled to the row with this label. */
+  openSettings(tab: string, row?: string) {
     this.openPage('settings');
-    this.settingsPage?.showTab(tab);
+    this.settingsPage?.showTab(tab, row);
   }
 
   /** A page over the blurred view, or the pause screen (null). */

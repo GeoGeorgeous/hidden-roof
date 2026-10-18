@@ -40,9 +40,10 @@ export class SettingsPage {
     this.show(0);
   }
 
-  /** The tab with this title. */
-  showTab(title: string) {
+  /** The tab with this title; `row`: scrolled to the row with this label (back from the performance test). */
+  showTab(title: string, row?: string) {
     this.show(this.sections.findIndex((s) => s.title === title));
+    if (row) [...this.body.querySelectorAll('.setting-row')].find((el) => el.querySelector('.label span')?.textContent === row)?.scrollIntoView({ block: 'nearest' });
   }
 
   /** Re-read every value (the debug panel may have changed them). */
