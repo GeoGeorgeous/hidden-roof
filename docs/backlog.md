@@ -1,19 +1,18 @@
 # Backlog
 
-The one list of what's left. One line per item, `TYPE [BL-NNN]: what`, under its domain (BUG, IDEA, CHORE, or DESIGN where a designer's work comes first); detail an item needs is in the file it links. A new item takes the next free id (BL-156). When an item ships, its line moves to Done; the release commit empties Done.
+The one list of what's left. One line per item, `TYPE [BL-NNN]: what`, under its domain (BUG, IDEA, CHORE, or DESIGN where a designer's work comes first); detail an item needs is in the file it links. A new item takes the next free id (BL-157). When an item ships, its line moves to Done; the release commit empties Done.
 
 ## Now: 1.4.0
 
-1. BUG [BL-138]: The multiplayer test misses B's 1 s "reconnecting" in CI (failed on d008e1c); four CI runs stuck since
-2. CHORE [BL-137]: CI moves to Ubuntu 26 on 19 Oct: watch the first run, pin ubuntu-24.04 if it breaks
-3. BUG [BL-105]: A slow join shows PLAY before the session has loaded; paint made meanwhile is lost (the menu should stay on Joining…, LEAVE cancels)
-4. CHORE [BL-136]: F3 tooltips and code comments still say the wheel changes a tool's size (hint-text.ts, paint-sections.ts, wheel-size.ts)
-5. CHORE [BL-113]: One Sender owns paint.log and what this player sends; the ghost's copy of the send path goes (docs/ideas/net-sender.md)
-6. CHORE [BL-133]: F3 builds its hooks first, then the panel; the 33 placeholder hooks and hooks.ts go (docs/ideas/f3-hooks-first.md)
-7. CHORE [BL-131]: An Environment module owns sky, fog and lights; main.ts stops wiring them (docs/ideas/environment-module.md)
-8. CHORE [BL-132]: One test driver: steps, keys and buttons, instead of four copies and private writes (docs/ideas/test-driver.md)
-9. CHORE [BL-134]: Split game.test.mjs (2318 lines) into scripts/game/ by area (docs/ideas/test-driver.md)
-10. CHORE [BL-013]: Device checks before the release: page zoom, three browsers, mouse side buttons, browser keys (docs/ideas/release-checks.md)
+1. BUG [BL-138]: The multiplayer test misses B's 1 s "reconnecting" in CI under load (failed on d008e1c)
+2. BUG [BL-105]: A slow join shows PLAY before the session has loaded; paint made meanwhile is lost (the menu should stay on Joining…, LEAVE cancels)
+3. CHORE [BL-136]: F3 tooltips and code comments still say the wheel changes a tool's size (hint-text.ts, paint-sections.ts, wheel-size.ts)
+4. CHORE [BL-113]: One Sender owns paint.log and what this player sends; the ghost's copy of the send path goes (docs/ideas/net-sender.md)
+5. CHORE [BL-133]: F3 builds its hooks first, then the panel; the 33 placeholder hooks and hooks.ts go (docs/ideas/f3-hooks-first.md)
+6. CHORE [BL-131]: An Environment module owns sky, fog and lights; main.ts stops wiring them (docs/ideas/environment-module.md)
+7. CHORE [BL-132]: One test driver: steps, keys and buttons, instead of four copies and private writes (docs/ideas/test-driver.md)
+8. CHORE [BL-134]: Split game.test.mjs (2318 lines) into scripts/game/ by area (docs/ideas/test-driver.md)
+9. CHORE [BL-013]: Device checks before the release: page zoom, three browsers, mouse side buttons, browser keys (docs/ideas/release-checks.md)
 
 ## Multiplayer
 
@@ -82,7 +81,7 @@ The one list of what's left. One line per item, `TYPE [BL-NNN]: what`, under its
 ## UI
 
 1. IDEA [BL-140]: One notification system: messages lost in menus and hidden tabs, nothing in play says reconnecting (docs/ideas/notifications.md)
-2. IDEA [BL-092]: A screen that teaches the controls (nothing names the wheel and Q/E since the spawn wall's paint went)
+2. DESIGN [BL-092]: A screen that teaches the controls (nothing names the wheel and Q/E since the spawn wall's paint went)
 3. BUG [BL-072]: Nickname tags don't scale with the UI and resolution
 4. CHORE [BL-078]: Show BUY ME A COFFEE again once it has a link (revert e2c2310)
 5. IDEA [BL-061]: A player in the style of an old iPod Classic
@@ -110,6 +109,7 @@ The one list of what's left. One line per item, `TYPE [BL-NNN]: what`, under its
 3. CHORE [BL-036]: Light baking and weather run on the wall clock; decide what a test would compare first
 4. CHORE [BL-079]: The F3 probe's own shader compiles land in its measurement
 5. CHORE [BL-149]: A test that the protocol and op-wire never read PAINT.texelsPerMeter
+6. CHORE [BL-156]: CI is pinned to ubuntu-24.04 for 1.4.0; move it to Ubuntu 26 after the release
 
 ## Servers and deploy
 
@@ -134,3 +134,5 @@ The one list of what's left. One line per item, `TYPE [BL-NNN]: what`, under its
 ## Done
 
 Shipped since the last release; the release commit empties this list. What 1.4.0 already holds is in `docs/releases/drafts/v1.4.0.md`.
+
+1. CHORE [BL-137]: CI pinned to ubuntu-24.04 for 1.4.0, as GitHub moved ubuntu-latest to Ubuntu 26
