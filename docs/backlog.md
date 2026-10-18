@@ -1495,3 +1495,15 @@ Controls took a wheel step for actions read with Input.held(), which never sees 
 - source: code review 2026-10-18 (F3.23)
 
 A wheel event with no vertical scroll reset the part of a step; blur kept it. Fixed both. Branch `fix/review-bugs`, with its test.
+
+### A menu UI kit
+- id: BL-129
+- type: refactor
+- status: Done
+- priority: Medium
+- size: S
+- area: ui
+- release: next
+- source: audit 2026-10-17 (F8.9)
+
+Menu building blocks lived in settings-page.ts, with local el/div/span copies and hand-written createElement calls elsewhere. Now menu-ui.ts holds them with one el(tag, className, text). Branch `refactor/menu-ui-kit`.
