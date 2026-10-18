@@ -58,6 +58,14 @@ const paintHash = (page) =>
     }
     return (h >>> 0).toString(16);
   });
+/** Waits until `page`'s paint hashes to `hash` (another player's strokes land when their figure gets there); fails after 10 s. */
+async function paintReaches(page, hash, what) {
+  for (const until = Date.now() + 10000; Date.now() < until; ) {
+    if ((await paintHash(page)) === hash) return;
+    await page.waitForTimeout(100);
+  }
+  assert.equal(await paintHash(page), hash, what);
+}
 
 try {
   const a = await open('ultra');
@@ -139,6 +147,18 @@ try {
   painted = await paintHash(a);
   assert.equal(await paintHash(b), painted, 'B, shown again, has the paint A has');
 
+  // B paints, so the server has batches from it; after the reload its batches go on from there (a new page numbering
+  // from 1 again had every stroke dropped by the server as one it already had).
+  const stampB = (page, v) =>
+    page.evaluate((v) => {
+      const g = window.game;
+      const s = g.paint.surfaces.find((s) => s.geo.rects.length > 1);
+      for (let i = 0; i < 5; i++) g.paint.stamp(s, { rect: 0, u: 0.3 + i * 0.05, v }, 0.1, 0.6, [0.1, 0.8, 0.2]);
+    }, v);
+  await stampB(b, 0.2);
+  painted = await paintHash(b);
+  await paintReaches(a, painted, 'A has what B painted');
+
   // B finds the marker and reloads: it comes back into the session as the same player, with the paint and the marker.
   await b.evaluate(() => window.game.inventory.give('marker'));
   // The game sends what it carries on its next frame: wait for that, not a fixed time (SwiftShader draws ~6 frames a second here).
@@ -149,6 +169,9 @@ try {
   assert.equal(await b.evaluate(() => window.game.session.player), 'player2');
   assert.equal(await paintHash(b), painted, 'the paint comes back after a reload');
   assert.ok(await b.evaluate(() => window.game.inventory.has('marker')), 'what B carried comes back after a reload');
+  await stampB(b, 0.8);
+  painted = await paintHash(b);
+  await paintReaches(a, painted, 'A has what B painted after its reload');
   // A saw B go and come back.
   await a.waitForFunction(() => /#2 "B" dropped[^]*#2 "B" here/.test(window.game.net.log.text()), null, { timeout: 5000 });
 

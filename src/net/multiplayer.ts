@@ -272,7 +272,7 @@ export class Multiplayer {
     await loadPaint(g.paint, g.drips, file, { name: w.levelName });
     this.log.add(`paint loaded in ${Math.round((now() - loading) * 1000)} ms`);
     if (back) this.outbox.take(g.paint.log ?? [], now() - this.t0);
-    else this.outbox.clear();
+    else this.outbox.clear(w.acked);
     const resend = back ? this.outbox.rejoined(w.acked, (op) => g.paintOps.apply(op)) : [];
     const name = this.name;
     this.log.add(`in session ${w.code} as #${w.you}, at ${w.detail} texels/m, with ${w.players.length} others, ${(file.length / 1024).toFixed(0)} KB of paint`);
