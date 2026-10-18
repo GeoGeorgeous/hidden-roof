@@ -1,13 +1,7 @@
 import { icon, sectionIcon } from './icons';
-import { paintSections } from './paint-sections';
-import { itemSections } from './item-sections';
-import { renderSections, uiSections } from './render-sections';
-import { soundSections } from './sound-sections';
-import { buildSections } from './build-sections';
-import { playSections } from './play-sections';
 import { itemRow, whenOf, WHEN, type Row } from './rows';
-import { isChanged, isValue, resetItems, sectionsJSON, splitSections, type Section } from './tuning';
-import { worldSections } from './world-sections';
+import { allSections } from './sections';
+import { isChanged, isValue, resetItems, sectionsJSON, type Section } from './tuning';
 import { store, stored } from '../stored';
 import { el } from '../menu-ui';
 
@@ -64,7 +58,7 @@ export class DebugPanel {
   private openIds: Set<string>;
 
   constructor() {
-    this.list = splitSections([...playSections(), ...paintSections(), ...renderSections(), ...worldSections(), ...soundSections(), ...uiSections(), ...buildSections(), ...itemSections()]);
+    this.list = allSections();
     this.openIds = loadOpen() ?? new Set(this.list.filter((s) => s.open).map((s) => s.id));
     this.root = el('div', 'debug-panel');
     this.root.hidden = true;
