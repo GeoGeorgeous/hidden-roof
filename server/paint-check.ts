@@ -1,6 +1,7 @@
 import './headless';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
+import { PAINT_DETAIL } from '../src/config';
 import type { PaintOp } from '../src/paint-ops';
 import { sessionPaint } from './world';
 
@@ -21,7 +22,6 @@ function sameTable(a: Table, b: Table) {
   return bad ? `${bad[0]}: ${JSON.stringify(bad)} vs ${byKey.get(bad[0]) ?? 'missing'}` : null;
 }
 
-const TPM: Record<string, number> = { low: 24, medium: 48, high: 72, ultra: 96 };
 const [levelPath, ...opsPaths] = process.argv.slice(2);
 const level = JSON.parse(fs.readFileSync(levelPath, 'utf8'));
 let failed = 0;
@@ -29,7 +29,7 @@ for (const path of opsPaths) {
   const detail = path.match(/(\w+)\.ops\.json$/)![1];
   const rec: { hash: string; table: Table; log: PaintOp[]; frames: number[] } = JSON.parse(fs.readFileSync(path, 'utf8'));
   const t0 = performance.now();
-  const { paint, drips, ops } = sessionPaint(level, TPM[detail]);
+  const { paint, drips, ops } = sessionPaint(level, PAINT_DETAIL[detail as keyof typeof PAINT_DETAIL]);
   const built = performance.now() - t0;
   const table: Table = paint.surfaces.map((s) => [s.key, s.geo.atlasW, s.geo.atlasH, s.geo.rects.map((r) => [r.x, r.y, r.w, r.h])]);
   const differ = sameTable(table, rec.table);

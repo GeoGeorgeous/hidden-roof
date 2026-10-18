@@ -2204,6 +2204,48 @@ await check('debug panel: every row on every tab has a tooltip', async () => {
   return missing.length ? `no tooltip: ${missing.join(', ')}` : null;
 });
 
+await check('perf lines: the GPU line keeps the GPU timer on with F3 closed, and off once hidden', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { HUD } = g.config;
+    const was = [HUD.perf, HUD.perfGpu];
+    HUD.perf = HUD.perfGpu = true;
+    await window.steps((f) => f >= 3);
+    const on = g.gpuTimer.enabled;
+    [HUD.perf, HUD.perfGpu] = was;
+    await window.steps((f) => f >= 3);
+    return { on, off: g.gpuTimer.enabled, panel: g.debug.visible };
+  });
+  return r.on && !r.off && !r.panel ? null : JSON.stringify(r);
+});
+
+await check('settings: Rain set in build mode (daylight) is what the night has on leaving it, and what is saved', async () => {
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    const { ATMOS } = g.config;
+    const { menu } = g.hud;
+    const row = (name) => [...document.querySelectorAll('.settings-page .setting-row')].find((r) => r.querySelector('.label').textContent.startsWith(name));
+    const flip = () => {
+      menu.openSettings('Graphics');
+      const shown = row('Rain').querySelector('.choice .value').textContent;
+      row('Rain').querySelectorAll('.choice button')[1].click();
+      menu.openPage(null);
+      return shown;
+    };
+    const was = ATMOS.rain;
+    g.atmosphere.setDaylight(true);
+    const shown = flip();
+    const day = ATMOS.rain;
+    g.atmosphere.setDaylight(false);
+    const night = ATMOS.rain;
+    const saved = JSON.parse(localStorage.getItem('roofhiddenhaus.settings')).values['ATMOS.rain'];
+    flip();
+    return { was, shown, day, night, saved, back: ATMOS.rain };
+  });
+  const ok = r.shown === (r.was ? 'On' : 'Off') && r.day === false && r.night === !r.was && r.saved === !r.was && r.back === r.was;
+  return ok ? null : JSON.stringify(r);
+});
+
 if (page.errors.length) {
   failed++;
   console.log(`FAIL  page errors: ${page.errors.join('; ')}`);
@@ -2248,6 +2290,26 @@ await check('frame: a frame that throws is reported once and asks for a reload; 
   await p.close();
   const ok = frames === 30 && p.errors.join() === 'test: a broken frame' && /reload/i.test(notice ?? '');
   return ok ? null : JSON.stringify({ frames, errors: p.errors.length, notice });
+});
+
+await check('probe: the half resolution step puts back the pixel ratio Settings gives, also on a page zoomed out', async () => {
+  const p = await openPage(() => Object.defineProperty(window, 'devicePixelRatio', { get: () => 0.5 }));
+  const r = await p.evaluate(async () => {
+    const g = window.game;
+    // The game's own module, from the dev server (a URL, not a file path).
+    const url = '/src/dev/probe.ts';
+    const { Probe } = await import(url);
+    const probe = new Probe(g);
+    // Straight to the step (its settle and measure times aside): next() applies step i + 1.
+    for (probe.i = 0; !probe.label.startsWith('half resolution'); probe.i++);
+    probe.i--;
+    probe.next(performance.now());
+    const half = g.renderer.getPixelRatio();
+    probe.cancel();
+    return { half, after: g.renderer.getPixelRatio(), want: 0.5 / g.config.RENDER.pixelScale };
+  });
+  await p.close();
+  return r.after === r.want && r.half === r.want / 2 ? null : JSON.stringify(r);
 });
 
 await test.close();

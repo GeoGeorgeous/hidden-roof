@@ -1,7 +1,8 @@
 import type * as THREE from 'three';
-import { ATMOS, LIGHTMAP, PROFILE, RENDER, SMOKE, VOLUMETRICS } from '../config';
+import { ATMOS, LIGHTMAP, PROFILE, SMOKE, VOLUMETRICS } from '../config';
 import type { Level } from '../level/level';
 import type { Lighting } from '../render/lighting';
+import { pixelRatio } from '../settings';
 
 // The probe (F9 while profiling): stand still and it turns the game's systems
 // off one at a time, a few seconds each, and measures the frame with each
@@ -14,6 +15,8 @@ interface ProbeWorld {
   lighting: Lighting;
   lightFx: { root: THREE.Object3D };
   city(): THREE.Object3D;
+  /** Sets the renderer's pixel ratio from Settings (main.ts), and what is sized by it. */
+  applyPixelScale(): void;
 }
 
 /** A step: what it turns off, and how to put it back (null: nothing to turn off here). */
@@ -53,8 +56,8 @@ const STEPS: Step[] = [
   {
     name: 'half resolution',
     apply: (w) => {
-      w.renderer.setPixelRatio(1 / (RENDER.pixelScale * 2));
-      return () => w.renderer.setPixelRatio(1 / RENDER.pixelScale);
+      w.renderer.setPixelRatio(pixelRatio() / 2);
+      return () => w.applyPixelScale();
     },
   },
 ];

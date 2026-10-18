@@ -8,6 +8,7 @@ import { playSections } from './play-sections';
 import { itemRow, whenOf, WHEN, type Row } from './rows';
 import { isChanged, isValue, resetItems, sectionsJSON, splitSections, type Section } from './tuning';
 import { worldSections } from './world-sections';
+import { store, stored } from '../stored';
 
 // Debug panel (F3 / `): tabs of groups of small collapsible sections of live
 // tunables and stats. RESET puts config.ts's values back without saving
@@ -104,7 +105,7 @@ export class DebugPanel {
     }
     const hint = Object.assign(el('div', 'hint'), { textContent: 'ESC: GAME / PANEL · F3: CLOSE' });
     this.root.append(top, tabs, hint, body);
-    this.show(this.pages.find((p) => p.id === load(TAB_KEY)) ?? this.pages[0]);
+    this.show(this.pages.find((p) => p.id === stored(TAB_KEY)) ?? this.pages[0]);
     this.refresh();
     document.body.appendChild(this.root);
   }
@@ -133,7 +134,7 @@ export class DebugPanel {
       p.el.hidden = p !== page;
       p.tab.classList.toggle('on', p === page);
     }
-    save(TAB_KEY, page.id);
+    store(TAB_KEY, page.id);
   }
 
   private reset(list: Section[]) {
@@ -160,7 +161,7 @@ export class DebugPanel {
   }
 
   private saveOpen() {
-    save(OPEN_KEY, JSON.stringify([...this.openIds]));
+    store(OPEN_KEY, JSON.stringify([...this.openIds]));
   }
 
   private section(s: Section, into: HTMLElement): Part {
@@ -266,25 +267,9 @@ function copyButton(label: string, text: () => string) {
   return b;
 }
 
-function load(key: string) {
-  try {
-    return localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-}
-
-function save(key: string, value: string) {
-  try {
-    localStorage.setItem(key, value);
-  } catch {
-    // Storage unavailable: the panel just isn't remembered.
-  }
-}
-
 function loadOpen(): Set<string> | null {
   try {
-    const v = load(OPEN_KEY) ?? load('taggin.debug.open');
+    const v = stored(OPEN_KEY) ?? stored('taggin.debug.open');
     return v ? new Set(JSON.parse(v) as string[]) : null;
   } catch {
     return null;

@@ -378,8 +378,8 @@ function step(time: number) {
 
   meter.end(delta);
   const { fps, frameMs } = meter;
-  // The HUD's GPU line keeps the timer running with the panel closed.
-  if (HUD.perf && HUD.perfGpu) gpuTimer.enabled = true;
+  // The one writer of the timer, for the next frame: the HUD's GPU line or the dev tools (F3, profiling); the performance test turns it on for its run.
+  gpuTimer.enabled = (HUD.perf && HUD.perfGpu) || !!dev?.timesGpu;
   const gpuMs = !HUD.perfGpu ? undefined : gpuTimer.supported ? gpuTimer.total(VOLUMETRICS.enabled ? ['scene', 'volumetrics', 'post'] : ['scene', 'post']) : null;
   hud.setPerf({ fps, frameMs, gpuName: gpu.name, gpu: gpuMs, calls, triangles, textureBytes: paint.gpu.textureBytes + baker.stats.textureBytes + staticTextureBytes(), net: net.stats });
   dev?.report({ fps, frameMs, calls, triangles, interval: delta * 1000 });
@@ -393,5 +393,5 @@ function toScreen(p: THREE.Vector3) {
 
 // Dev tools (build mode, F3, window.game): single player only, and not in the player build (npm run build).
 let dev: DevTools | undefined;
-const game = { city: () => opened.city, config, gpu, perfTest, testPage, settings, play, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, hotbar, pickups, paint, paintOps, net, paintFile, seedPaintRandom, fixedStep, session, level, renderer, input, hud, scene, viewScene, gpuTimer, PLAYER, loadLevel: (d: LevelData) => opened.load(d), rebuildCity: () => opened.rebuildCity(), levelData: () => opened.toJSON(), levelName: () => opened.name, openLevel: (d: LevelData, n: string) => opened.open(d, n), loaded: () => loaded };
+const game = { city: () => opened.city, applyPixelScale, config, gpu, perfTest, testPage, settings, play, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, hotbar, pickups, paint, paintOps, net, paintFile, seedPaintRandom, fixedStep, session, level, renderer, input, hud, scene, viewScene, gpuTimer, PLAYER, loadLevel: (d: LevelData) => opened.load(d), rebuildCity: () => opened.rebuildCity(), levelData: () => opened.toJSON(), levelName: () => opened.name, openLevel: (d: LevelData, n: string) => opened.open(d, n), loaded: () => loaded };
 if (__DEV_TOOLS__) void import('./dev/devtools').then((m) => (dev = new m.DevTools(game)));

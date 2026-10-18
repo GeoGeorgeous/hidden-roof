@@ -1,7 +1,8 @@
-import { ATMOS, AUDIO, HUD, INK_STYLES, PAINT, PLAYER, RENDER, SKYLINE, SMOKE, VOLUMETRICS } from './config';
+import { AUDIO, HUD, INK_STYLES, PAINT, PAINT_DETAIL, PLAYER, RENDER, SKYLINE, SMOKE, VOLUMETRICS } from './config';
 import { exitGameFullscreen } from './fullscreen';
 import { sentence } from './menu-ui';
 import { DEFAULT_STYLE, inkStyle, setInkStyle } from './render/ink/styles';
+import { NIGHT } from './render/atmosphere';
 import { ControlsTab } from './controls-tab';
 import { applyKeys, keyOverrides } from './key-bindings';
 import { applyValues, changedValues, defaultsOf, loadSaved, save, type Remembered } from './settings-store';
@@ -34,8 +35,6 @@ const VOL_PRESETS = {
 };
 type VolPreset = keyof typeof VOL_PRESETS;
 const VOL_ORDER = Object.keys(VOL_PRESETS) as VolPreset[];
-/** Paint texels per meter. Paint memory grows with the square: ULTRA needs 16x LOW. */
-export const PAINT_DETAIL = { low: 24, medium: 48, high: 72, ultra: 96 };
 type PaintDetail = keyof typeof PAINT_DETAIL;
 const DETAIL_ORDER = Object.keys(PAINT_DETAIL) as PaintDetail[];
 /** How much of the city around the level is built: reach, rooftop clutter and how far thin lines show. */
@@ -193,7 +192,7 @@ export class Settings {
         },
         'LOW',
       ),
-      toggle('Rain', () => ATMOS.rain, (on) => (ATMOS.rain = on), 'LOW'),
+      toggle('Rain', () => NIGHT.rain, (on) => (NIGHT.rain = on), 'LOW'),
       toggle('Smoke', () => SMOKE.enabled, (on) => (SMOKE.enabled = on), 'LOW'),
       toggle('Moving parts', () => RENDER.propMotion, (on) => (RENDER.propMotion = on), 'LOW'),
       toggle('Performance lines', () => HUD.perf, (on) => (HUD.perf = on), undefined, 'Shows fps, ms, the GPU, draw calls, triangles, texture memory and network stats at the bottom left.'),
@@ -373,7 +372,7 @@ const SOUND_DEFAULTS = Object.fromEntries(SOUNDS.map(([, k]) => [k, AUDIO[k]]));
 const REMEMBERED: Remembered[] = [
   ...(['mouseSensitivity', 'crouchToggle', 'tapToRun'] as const).map((field) => ({ name: `PLAYER.${field}`, obj: PLAYER, field })),
   ...(['fov', 'sprintFovBoost', 'fullscreen', 'propMotion'] as const).map((field) => ({ name: `RENDER.${field}`, obj: RENDER, field })),
-  { name: 'ATMOS.rain', obj: ATMOS, field: 'rain' },
+  { name: 'ATMOS.rain', obj: NIGHT, field: 'rain' },
   { name: 'SMOKE.enabled', obj: SMOKE, field: 'enabled' },
   { name: 'HUD.perf', obj: HUD, field: 'perf' },
   ...SOUNDS.map(([, field]) => ({ name: `AUDIO.${field}`, obj: AUDIO, field })),

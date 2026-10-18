@@ -63,6 +63,8 @@ export interface DevContext {
   gpuTimer: GpuTimer;
   /** The generated city around the level. */
   city(): THREE.Object3D;
+  /** The renderer's pixel ratio from Settings, and what is sized by it. */
+  applyPixelScale(): void;
   rebuildCity(): void;
   /** The level as a file: props, pickups, city overrides. */
   levelData(): LevelData;
@@ -190,11 +192,15 @@ export class DevTools {
     this.profiler.lap(name);
   }
 
+  /** The GPU timer is wanted: the panel is open or the profiler records (main.ts turns it on). */
+  get timesGpu() {
+    return this.debug.visible || this.profiler.recording;
+  }
+
   /** End of frame: the profiler, and the panel's readouts (only while it's open). */
   report({ fps, frameMs, calls, triangles, interval }: FrameStats) {
     const g = this.g;
     this.profiler.frame({ interval, calls, triangles, state: g.play.mode });
-    g.gpuTimer.enabled = this.debug.visible || this.profiler.recording;
     if (!this.debug.visible) return;
     Object.assign(live.stats, {
       fps,
@@ -223,11 +229,6 @@ export class DevTools {
     this.debug.update();
   }
 
-  /**
-   * Opening frees the mouse for the panel; Esc then goes back to the game and
-   * to the panel again (play-state.ts). Closing with the key (`byKey`)
-   * goes back to the game if that's where the panel was opened.
-   */
   /** Rebuild every tool model (first person, pickups, hotbar icons, the figure's tool) from MODELS and CAPS. */
   private rebuildModelsNow() {
     this.modelsChanged = false;
@@ -239,6 +240,11 @@ export class DevTools {
     shapes.version++;
   }
 
+  /**
+   * Opening frees the mouse for the panel; Esc then goes back to the game and
+   * to the panel again (play-state.ts). Closing with the key (`byKey`)
+   * goes back to the game if that's where the panel was opened.
+   */
   private setPanel(open: boolean, input: Input, byKey = false) {
     if (open === this.debug.visible) return;
     this.debug.toggle();

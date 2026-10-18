@@ -1543,3 +1543,75 @@ A wheel event with no vertical scroll reset the part of a step; blur kept it. Fi
 - source: audit 2026-10-17 (F8.1)
 
 A thrown frame repeated every frame with nothing on screen. Fixed: reported once, and a notice asks for a reload (`src/frame-guard.ts`). Branch `fix/frame-guard`, with its test.
+
+### The HUD's GPU line froze with F3 closed
+- id: BL-123
+- type: bug
+- status: Done
+- priority: Medium
+- size: XS
+- area: ui
+- release: next
+- source: audit 2026-10-17 (F8.4)
+
+main.ts turned the GPU timer on and DevTools turned it off in the same frame (dev builds). Fixed: main.ts is the one writer. Branch `fix/small-spots`, with its test.
+
+### The F9 probe restored the wrong pixel ratio
+- id: BL-124
+- type: bug
+- status: Done
+- priority: Low
+- size: XS
+- area: render
+- release: next
+- source: audit 2026-10-17 (F8.5)
+
+Its half resolution step put back 1/pixelScale, ignoring min(1, DPR) (BL-026), without the view size. Fixed: put back with applyPixelScale. Branch `fix/small-spots`, with its test.
+
+### Rain set in build mode was undone on leaving it
+- id: BL-125
+- type: bug
+- status: Done
+- priority: Medium
+- size: XS
+- area: render
+- release: next
+- source: audit 2026-10-17 (F8.6)
+
+Daylight swaps rain out of ATMOS, so the setting wrote and saved daylight's value. Fixed: it writes the night's value (atmosphere.ts NIGHT). Branch `fix/small-spots`, with its test.
+
+### The PAINT DETAIL table was defined three times
+- id: BL-126
+- type: refactor
+- status: Done
+- priority: High
+- size: XS
+- area: code
+- release: next
+- source: audit 2026-10-17 (F8.7)
+
+Settings, the protocol and the server's paint check each had 24/48/72/96. Now config.ts PAINT_DETAIL. Branch `fix/small-spots`.
+
+### Misplaced doc comments
+- id: BL-127
+- type: chore
+- status: Done
+- priority: Medium
+- size: XS
+- area: code
+- release: next
+- source: audit 2026-10-17 (F8.8)
+
+setPanel's comment sat on rebuildModelsNow (devtools.ts). Moved. Branch `fix/small-spots`.
+
+### localStorage try/catch repeated
+- id: BL-128
+- type: refactor
+- status: Done
+- priority: Medium
+- size: XS
+- area: code
+- release: next
+- source: audit 2026-10-17 (F8.17)
+
+Six copies in settings-store.ts, the F3 panel and net-menu.ts. Now stored() and store() (src/stored.ts). Branch `fix/small-spots`.
