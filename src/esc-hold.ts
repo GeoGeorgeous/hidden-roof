@@ -1,5 +1,5 @@
 import { PAUSE_MENU } from './config';
-import { enterGameFullscreen, escHoldLeaves, exitGameFullscreen, isFullscreen } from './fullscreen';
+import { canLockKeys, enterGameFullscreen, escHoldLeaves, exitGameFullscreen, isFullscreen } from './fullscreen';
 import { div, keyHint } from './menu-ui';
 
 // The pause screen's fullscreen control (top right) and the hold-Esc rings.
@@ -102,10 +102,13 @@ export class EscHold {
   private sync() {
     const full = isFullscreen();
     const hold = escHoldLeaves();
-    if (this.shown === `${full}${hold}`) return;
-    this.shown = `${full}${hold}`;
-    // Esc resumes from the pause screen only here (windowed, the browser takes it): PLAY's ESC key shows only then.
-    this.overlay.classList.toggle('esc-resumes', hold);
+    // Esc resumes from the pause screen in fullscreen with the keyboard locked, and windowed where there's no keyboard
+    // lock (Firefox, Safari give the pointer lock back on its release); not windowed in Chromium (it wants a click), nor in
+    // fullscreen without the lock (one Esc leaves fullscreen). PLAY's ESC key shows only where it resumes.
+    const resumes = hold || (!full && !canLockKeys());
+    if (this.shown === `${full}${hold}${resumes}`) return;
+    this.shown = `${full}${hold}${resumes}`;
+    this.overlay.classList.toggle('esc-resumes', resumes);
     this.label.textContent = full ? 'Exit fullscreen' : 'Fullscreen';
     this.key.hidden = !full;
     this.key.classList.toggle('plain', !hold);

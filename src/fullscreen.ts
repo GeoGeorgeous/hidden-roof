@@ -18,6 +18,9 @@ let keysLocked = false;
 
 export const isFullscreen = () => !!document.fullscreenElement;
 
+/** The browser has a keyboard lock (Chromium). */
+export const canLockKeys = () => !!keyboard()?.lock;
+
 /** Esc reaches the page, and the browser leaves fullscreen only once it's held: fullscreen with the keyboard locked. Elsewhere one press leaves. */
 export const escHoldLeaves = () => keysLocked && isFullscreen();
 
