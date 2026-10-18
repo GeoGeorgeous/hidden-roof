@@ -75,7 +75,9 @@ export function perfTestPage(menu: PauseMenu, test: PerfTest, gpu: GpuInfo, sett
   card.el.classList.add('card');
   card.value.textContent = gpu.name ?? 'Unknown';
   const times = div('perf-times');
-  times.append(div('col-title', 'frame time'), bars, facts);
+  const timesHead = div('perf-times-head');
+  timesHead.append(div('col-title', 'frame time'), div('perf-hint', 'Less is better'));
+  times.append(timesHead, bars, facts);
   const body = div('perf-body');
   body.append(score, times);
 

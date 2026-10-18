@@ -1334,6 +1334,15 @@
   flex-direction: column;
   gap: 14px;
 }
+.overlay .perf-times-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.overlay .perf-hint {
+  font-size: 12px;
+  color: rgba(235, 229, 214, 0.4);
+}
 .overlay .perf-bars {
   display: grid;
   grid-template-columns: 40px minmax(0, 1fr) 64px;

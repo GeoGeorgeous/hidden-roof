@@ -199,7 +199,7 @@ await check('settings: Graphics names the GPU under Resolution, short, in the pe
   return ok ? null : JSON.stringify({ r, h });
 });
 
-await check('performance test: first on Graphics, its Run button on the values below; Run opens its popup, 800 px in the middle, over the blurred flight with live numbers and Stop; Esc stops it back on Graphics with no result; done, the fps, 1% low, tier, CPU and GPU, settings, card and a tip; Enter runs it again; Dismiss; resuming stops it; the GPU timer goes back off', async () => {
+await check('performance test: first on Graphics, its Run button on the values below; Run opens its popup, 800 px in the middle, over the blurred flight with live numbers (frame time: less is better) and Stop; Esc stops it back on Graphics with no result; done, the fps, 1% low, tier, CPU and GPU, settings, card and a tip; Enter runs it again; Dismiss; resuming stops it; the GPU timer goes back off', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
     const { PERF_TEST } = g.config;
@@ -222,7 +222,7 @@ await check('performance test: first on Graphics, its Run button on the values b
     runButton().click();
     await frames(2);
     const at = box.getBoundingClientRect();
-    const started = { place: [at.width, at.left + at.width / 2 - innerWidth / 2, at.top + at.height / 2 - innerHeight / 2].map(Math.round).join(), page: shown(), sub: g.hud.menu.el.classList.contains('sub'), back: !g.hud.menu.el.querySelector('.back').hidden, running: g.perfTest.running, hands: g.viewScene.visible, status: text('.perf-status'), fps: text('.perf-fps b'), low: text('.perf-low'), headline: text('.perf-headline'), tip: text('.perf-advice'), buttons: buttons(), facts: [...box.querySelectorAll('.perf-facts .fact')].map((f) => f.textContent) };
+    const started = { hint: text('.perf-times-head'), place: [at.width, at.left + at.width / 2 - innerWidth / 2, at.top + at.height / 2 - innerHeight / 2].map(Math.round).join(), page: shown(), sub: g.hud.menu.el.classList.contains('sub'), back: !g.hud.menu.el.querySelector('.back').hidden, running: g.perfTest.running, hands: g.viewScene.visible, status: text('.perf-status'), fps: text('.perf-fps b'), low: text('.perf-low'), headline: text('.perf-headline'), tip: text('.perf-advice'), buttons: buttons(), facts: [...box.querySelectorAll('.perf-facts .fact')].map((f) => f.textContent) };
     const live = await until(() => /^\d+$/.test(text('.perf-fps b')));
     const during = { running: g.perfTest.running, fps: text('.perf-fps b'), cpu: text('.perf-bars .ms'), calls: box.querySelectorAll('.perf-facts .v')[4].textContent };
     key('Escape');
@@ -251,7 +251,7 @@ await check('performance test: first on Graphics, its Run button on the values b
   const res = r.result;
   const ok =
     r.row.first === 'Performance test' && r.row.desc === 'Flies over the roof for a few seconds at your current settings and shows how it ran.' && r.row.button === '186,26,0,0' &&
-    s.place === '800,0,0' && s.page === 'page popup-page' && s.sub && !s.back && s.running && !s.hands && /^Testing · \d+ s left$/.test(s.status) && s.fps === '—' && s.low === '1% low after the run' && s.headline === 'Measuring…' && s.tip === 'Watching where each frame’s time goes.' && s.buttons.join() === 'StopESC' &&
+    s.hint === 'frame timeLess is better' && s.place === '800,0,0' && s.page === 'page popup-page' && s.sub && !s.back && s.running && !s.hands && /^Testing · \d+ s left$/.test(s.status) && s.fps === '—' && s.low === '1% low after the run' && s.headline === 'Measuring…' && s.tip === 'Watching where each frame’s time goes.' && s.buttons.join() === 'StopESC' &&
     s.facts.join('|') === `Resolution1280×720|Volumetrics${s.facts[1].slice(11)}|Paint detailUltra|City detailHigh|Draw calls—|Video card${r.card}` && /^(Off|Low|Medium|High)$/.test(s.facts[1].slice(11)) &&
     r.live && r.during.running && /^\d+\.\d ms$/.test(r.during.cpu) && /^[\d,]+$/.test(r.during.calls) &&
     !r.stopped.running && r.stopped.page === 'page settings-page' && r.stopped.tab === 'Graphics' && r.stopped.timer === r.timerWas &&
