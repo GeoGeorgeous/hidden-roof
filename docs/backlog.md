@@ -1078,7 +1078,7 @@ Measured (2026-10-14, `npm run bench:join`, as BL-085): the heap's steady growth
 ### A performance test in Settings, and `npm run bench`
 - id: BL-084
 - type: feature
-- status: Planned
+- status: Done
 - priority: Medium
 - size: M
 - area: ui
@@ -1091,6 +1091,8 @@ An Intel Iris Xe player played at 30 fps (23 ms of GPU a frame) and left after 6
 - The test uses the player's current settings, never its own. During it: `TESTING…  [ESC] TO STOP` only (Esc: back to Settings, no result); the game stays as paused as it was (multiplayer allowed). After it: a `performance test` popup (`popup()`, as SAVE/UPLOAD PAINT) with the numbers, the settings, the GPU name and the message; `Run again`, `Dismiss` [ESC]; nothing kept.
 - `npm run bench`: headed Playwright on the real GPU starts the same test with a fresh profile (the game's defaults) at the screen's size; 3 runs, median of each p50/p95/p99 of CPU and GPU ms, fps, draw calls; JSON with GPU name, OS, CPU cores, build, settings, refresh rate, printed and in `.cache/bench/<git describe>-<gpu>.json`; `npm run bench -- a.json b.json` compares (change in %, no threshold), builds only.
 - Any developer's machine: ANGLE's native backend per OS (D3D11 Windows, Metal macOS, OpenGL Linux, D3D12 + `GPU=` on WSL; today `scripts/test-browser.mjs` uses the real GPU on Linux with a display only); a software GPU stops it with "no real GPU: <name>". Only when needed: never in `npm run check`, CI or another script; `docs/testing.md` says when (before and after a render or level change, comparing GPUs).
+
+Done (2026-10-18, audit S2.3, `feat/perf-test`): `src/perf-test.ts` (the measuring and the message, tested in Node with stand-in timings), `src/perf-test-page.ts` (TESTING…, the popup), Settings → Graphics → Performance test → RUN, `scripts/bench.mjs`. Also: a FRAME RATE the player set that caps it says so ("Your Frame rate setting holds the game at 30 fps"), a busy CPU says "Your CPU is the limit", and a cap is judged against 33 ms, not the frame (F2.11). Bench, 1920×1080, defaults: RTX A2000 GPU 2.7 ms, CPU 1.4 ms, "Runs well"; Intel UHD GPU 22.1 ms, CPU 1.1 ms, 28 fps, "built into the processor, and it is the limit".
 
 ### Paint takes 7–10 s to show after joining a session with a lot of it
 - id: BL-085
@@ -1368,10 +1370,12 @@ RTX laptop: CPU ~7.3 → 14–16 ms a frame while the ladder is placed over and 
 
 Intel UHD laptop, Chrome's Energy Saver on: 30 fps in play, but 12 fps and CPU 18–24 ms while the game loads (likely shader compiles and uploads). Do: measure the load with `npm run bench` on the Intel UHD (BL-084) before deciding.
 
+Measured (2026-10-18, `npm run bench`, WSL, no Energy Saver: it can't be turned on there): the load takes 7.9 s on the Intel UHD (frames 5.5 a second, the longest 2.4 s) and 5.3 s on the RTX A2000 (9 a second, the longest 1.3 s). The steps block by design, so few frames on either GPU; the Intel's extra time is the long steps (shader compiles, the bake). Next: the same on the Windows laptop with Energy Saver on, then decide.
+
 ### Show the GPU in use in Settings; FRAME RATE's note
 - id: BL-109
 - type: feature
-- status: Planned
+- status: Done
 - priority: Medium
 - size: S
 - area: ui
@@ -1379,3 +1383,17 @@ Intel UHD laptop, Chrome's Energy Saver on: 30 fps in play, but 12 fps and CPU 1
 - source: owner laptop runs 2026-10-18 (audit F2.2, F2.6, S2.2)
 
 The RTX laptop ran Chrome on its Intel UHD without the owner knowing. Do: a read-only GPU row under Resolution in Settings, from `WEBGL_debug_renderer_info` read once (as `src/dev/profiler.ts`), short name, "Hidden by the browser" when masked; when it looks integrated (Intel UHD / HD / Iris, AMD "Radeon Graphics" without a model), a description per OS: Windows Settings → System → Display → Graphics → the browser → High performance; Linux `prime-run` or `DRI_PRIME=1`; Intel Macs: turn off automatic graphics switching; nothing on Apple silicon. The name in the perf readout too. The Frame rate row's description: "Above your display's refresh rate this acts like Max." Shots of Settings.
+
+Done (2026-10-18, audit S2.2, `feat/show-gpu`): `src/gpu-name.ts` (short name, integrated, the per-OS line; tested in Node over the names browsers report), the GPU row and Frame rate's note in Settings → Graphics, `gpu · <name>` in the perf lines.
+
+### Crossed lines on the menu's glass bars on the Intel UHD (WSL)
+- id: BL-110
+- type: bug
+- status: Requested
+- priority: Low
+- size: XS
+- area: ui
+- release: later
+- source: audit S2.2 shots 2026-10-18 (F2.12)
+
+`npm run shots` with `GPU=Intel` (WSLg's D3D12 on the Intel UHD) draws an X across the Settings tabs and the Back button, the blurred-glass bars (`backdrop-filter`); the NVIDIA draws them clean. Likely WSLg's driver, not the game. Do: look at Settings on the Windows laptop's Intel UHD in Chrome; only if it shows there, look at the bars' CSS.
