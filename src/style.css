@@ -1748,3 +1748,31 @@ body.paused .toast {
 .toast.show {
   opacity: 1;
 }
+/* A frame threw (frame-guard.ts): over everything, the game behind it stopped or broken. */
+.frame-failed {
+  position: fixed;
+  left: 50%;
+  top: 48px;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  border-radius: 4px;
+  transform: translateX(-50%);
+  background: var(--ui);
+  color: var(--paper);
+  font: 14px var(--sans);
+}
+.frame-failed p {
+  margin: 0;
+}
+.frame-failed button {
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 4px;
+  background: var(--paper);
+  color: var(--ui);
+  font: 600 14px var(--sans);
+  cursor: pointer;
+}

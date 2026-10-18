@@ -2230,6 +2230,26 @@ await check('signs: their size is the same with a 20% narrower font', async () =
   return normal === narrow ? null : `${normal} vs ${narrow}`;
 });
 
+await check('frame: a frame that throws is reported once and asks for a reload; the frames go on', async () => {
+  const p = await openPage();
+  const frames = await p.evaluate(
+    () =>
+      new Promise((done) => {
+        const g = window.game;
+        let n = 0;
+        g.fixedStep.dt = 1 / 60;
+        g.fixedStep.script = () => {
+          if (++n === 30) (g.fixedStep.script = null), setTimeout(() => done(n), 100);
+          throw new Error('test: a broken frame');
+        };
+      }),
+  );
+  const notice = await p.evaluate(() => { const n = document.querySelector('.frame-failed'); return n?.checkVisibility() ? n.textContent : null; });
+  await p.close();
+  const ok = frames === 30 && p.errors.join() === 'test: a broken frame' && /reload/i.test(notice ?? '');
+  return ok ? null : JSON.stringify({ frames, errors: p.errors.length, notice });
+});
+
 await test.close();
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log(`${failed ? `game tests: FAILED (${failed})` : 'game tests: all ok'}${skipped ? ` (${skipped} skipped: ONLY=${process.env.ONLY})` : ''}`);

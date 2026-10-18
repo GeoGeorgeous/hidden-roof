@@ -58,6 +58,7 @@ import { multiplayerMenu } from './net/net-menu';
 import { setHex } from './hex-color';
 import { seedPaintRandom } from './lcg';
 import { fanLevel, metalDrops } from './emitter-sounds';
+import { guarded } from './frame-guard';
 
 // F3's defaults before anything changes config (the panel isn't in the player build).
 if (__DEV_TOOLS__) captureDefaults();
@@ -241,7 +242,10 @@ let drawnAt = -Infinity;
 function frame(time: number) {
   // First: a frame that throws must not stop the game (and the session's check for a silent server with it).
   requestAnimationFrame(frame);
-  if (!loaded) return;
+  if (loaded) guarded(step, time);
+}
+
+function step(time: number) {
   // Frame rate limit: skip display refreshes until a frame is due. Frames are
   // due one interval after the last was due, so the average is exact on any
   // display rate; after a stall it starts over.
