@@ -1012,7 +1012,6 @@ export const GHOST = {
   followDelay: 2,
 };
 
-/** Profiling mode (src/dev/profiler.ts, F8) and its probe (src/dev/probe.ts, F9). */
 /** Settings → Performance test and npm run bench (perf-test.ts): what it measures and how its message reads the numbers. */
 export const PERF_TEST = {
   /** Drawn but not measured first (shaders, the GPU clocking up), then measured (s). */
@@ -1031,6 +1030,7 @@ export const PERF_TEST = {
   idleShare: 0.5,
 };
 
+/** Profiling mode (src/dev/profiler.ts, F8) and its probe (src/dev/probe.ts, F9). */
 export const PROFILE = {
   /** The slowest frames the report keeps whole, with where their CPU time went. */
   worstFrames: 20,
