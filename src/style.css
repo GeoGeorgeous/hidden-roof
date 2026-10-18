@@ -728,6 +728,13 @@
   white-space: pre;
   font-variant-numeric: tabular-nums;
 }
+/* A value to read (the GPU): under a choice's value, long names wrapped. */
+.overlay .info-value {
+  width: 246px;
+  text-align: center;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
 /* Settings → Controls (controls-tab.ts): groups of rows, each with two key slots. */
 .overlay .rows.own {
   width: min(680px, calc(100% - 32px));

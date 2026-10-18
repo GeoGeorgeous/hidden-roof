@@ -161,8 +161,8 @@ export class Hud {
     place(this.colorTag, this.colorTagUntil, this.capTag.hidden ? 0 : COLOR_TAG_OFFSET);
   }
 
-  /** The performance readout, bottom left: written a few times a second. `gpu`: ms per frame, null = not measurable, undefined = not shown. */
-  setPerf(p: { fps: number; frameMs: number; gpu?: number | null; calls: number; triangles: number; textureBytes: number; net: NetStats | null }) {
+  /** The performance readout, bottom left: written a few times a second. `gpuName`: what draws (null: hidden by the browser); `gpu`: ms per frame, null = not measurable, undefined = not shown. */
+  setPerf(p: { fps: number; frameMs: number; gpuName: string | null; gpu?: number | null; calls: number; triangles: number; textureBytes: number; net: NetStats | null }) {
     this.perf.hidden = !HUD.perf;
     if (!HUD.perf) return;
     const now = performance.now();
@@ -171,7 +171,7 @@ export class Hud {
     const mb = p.textureBytes / 1048576;
     const text = [
       `fps · ${Math.round(p.fps)} (${p.frameMs.toFixed(1)} ms cpu)`,
-      ...(p.gpu === undefined ? [] : [`gpu · ${p.gpu === null ? 'n/a' : `${p.gpu.toFixed(1)} ms`}`]),
+      `gpu · ${p.gpuName ?? 'hidden'}${p.gpu === undefined ? '' : ` · ${p.gpu === null ? 'n/a' : `${p.gpu.toFixed(1)} ms`}`}`,
       `draw calls · ${p.calls}`,
       `triangles · ${p.triangles.toLocaleString('en-US')}`,
       `tex memory · ${mb < 10 ? mb.toFixed(1) : Math.round(mb)} MB`,

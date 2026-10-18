@@ -5,6 +5,7 @@ import { DEFAULT_STYLE, inkStyle, setInkStyle } from './render/ink/styles';
 import { ControlsTab } from './controls-tab';
 import { applyKeys, keyOverrides } from './key-bindings';
 import { applyValues, changedValues, defaultsOf, loadSaved, save, type Remembered } from './settings-store';
+import { currentOs, fasterGpuHow, type GpuInfo } from './gpu-name';
 
 // Player settings, on the settings page of the pause menu (settings-page.ts):
 // gameplay, controls (controls-tab.ts), graphics and sound. They write the same config values the debug
@@ -82,21 +83,22 @@ export class Settings {
     Object.assign(SKYLINE, CITY_DETAIL[this.city]);
   }
 
-  /** The settings page (pause menu → SETTINGS): one section per tab. Every change is saved. */
-  sections(): SettingSection[] {
+  /** The settings page (pause menu → SETTINGS): one section per tab. Every change is saved. `gpu`: what the game draws with. */
+  sections(gpu: GpuInfo): SettingSection[] {
     const saving = (row: SettingRow): SettingRow => {
       if (row.kind === 'choice') return { ...row, step: (d) => (row.step(d), this.save()) };
-      return { ...row, set: (v) => (row.set(v), this.save()) };
+      if (row.kind === 'range') return { ...row, set: (v) => (row.set(v), this.save()) };
+      return row;
     };
     return [
       { title: 'Gameplay', rows: gameplayRows().map(saving) },
       { title: 'Controls', rows: [], tab: new ControlsTab(() => this.save()) },
-      { title: 'Graphics', rows: this.graphicsRows().map(saving) },
+      { title: 'Graphics', rows: this.graphicsRows(gpu).map(saving) },
       { title: 'Sound', rows: soundRows().map(saving) },
     ];
   }
 
-  private graphicsRows(): SettingRow[] {
+  private graphicsRows(gpu: GpuInfo): SettingRow[] {
     return [
       {
         kind: 'choice',
@@ -126,8 +128,16 @@ export class Settings {
         },
       },
       {
+        kind: 'info',
+        label: 'GPU',
+        // A laptop's browser may draw on its built-in GPU while a faster one idles: say how to switch.
+        desc: ['The graphics chip the browser draws the game with.', gpu.integrated ? `It's built into the processor. ${fasterGpuHow(currentOs()) ?? ''}` : ''].join(' ').trim(),
+        value: () => gpu.name ?? 'Hidden by the browser',
+      },
+      {
         kind: 'choice',
         label: 'Frame rate',
+        desc: "Above your display's refresh rate this acts like Max.",
         cost: 'LOW',
         value: () => (RENDER.maxFps ? `${RENDER.maxFps} FPS` : 'Max'),
         step: (d) => {
@@ -191,7 +201,7 @@ export class Settings {
       toggle('Rain', () => ATMOS.rain, (on) => (ATMOS.rain = on), 'LOW'),
       toggle('Smoke', () => SMOKE.enabled, (on) => (SMOKE.enabled = on), 'LOW'),
       toggle('Moving parts', () => RENDER.propMotion, (on) => (RENDER.propMotion = on), 'LOW'),
-      toggle('Performance lines', () => HUD.perf, (on) => (HUD.perf = on), undefined, 'Shows fps, ms, GPU ms, draw calls, triangles, texture memory and network stats at the bottom left.'),
+      toggle('Performance lines', () => HUD.perf, (on) => (HUD.perf = on), undefined, 'Shows fps, ms, the GPU, draw calls, triangles, texture memory and network stats at the bottom left.'),
     ];
   }
 
@@ -252,8 +262,8 @@ function nearest(list: number[], v: number) {
 }
 
 /**
- * A setting row: a choice stepped through with < and >, or a slider (`def`: its
- * default, marked on it). `desc` is an optional line under it, `note` a callout
+ * A setting row: a choice stepped through with < and >, a slider (`def`: its
+ * default, marked on it), or a value to read (info). `desc` is an optional line under it, `note` a callout
  * (recommendations), `cost` how much the setting can change how smoothly the
  * game runs, whatever its value.
  */
@@ -261,6 +271,7 @@ type RowBase = { label: string; desc?: string; note?: string; cost?: Cost };
 type Cost = 'LOW' | 'MEDIUM' | 'HIGH';
 export type SettingRow =
   | (RowBase & { kind: 'choice'; value: () => string; step: (d: number) => void; locked?: () => boolean })
+  | (RowBase & { kind: 'info'; value: () => string })
   | (RowBase & { kind: 'range'; min: number; max: number; step: number; def: number; get: () => number; set: (v: number) => void; format: (v: number) => string });
 /** A tab that builds its own page (Controls): its rows' column, its footer line and a control top right; `open` readies it each time it shows, `close` when it goes. */
 export interface OwnTab {

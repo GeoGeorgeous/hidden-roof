@@ -17,7 +17,7 @@
     "bench:save": "node scripts/save-size.bench.mjs",
     "bench:join": "npm run build:server -- --logLevel warn && node scripts/join.bench.mjs",
     "shots:avatar": "node scripts/avatar-shots.mjs",
-    "test": "node scripts/paint-file.test.mjs && node scripts/paint-mips.test.mjs && node scripts/protocol.test.mjs && node scripts/play-state.test.mjs && node scripts/server-link.test.mjs && node scripts/release-notes.test.mjs",
+    "test": "node scripts/gpu-name.test.mjs && node scripts/paint-file.test.mjs && node scripts/paint-mips.test.mjs && node scripts/protocol.test.mjs && node scripts/play-state.test.mjs && node scripts/server-link.test.mjs && node scripts/release-notes.test.mjs",
     "test:game": "node scripts/game.test.mjs",
     "test:boot": "node scripts/boot.test.mjs",
     "test:mp": "npm run build:server -- --logLevel warn && node scripts/multiplayer.test.mjs",

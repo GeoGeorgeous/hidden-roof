@@ -169,6 +169,36 @@ await check('settings: Shift + click puts a slider back to its default; PAINT an
   return ok ? null : JSON.stringify(r);
 });
 
+await check('settings: Graphics names the GPU under Resolution, short, in the perf lines too; hidden by the browser, it says so; Frame rate says it acts like Max above the refresh rate', async () => {
+  const read = (p) =>
+    p.evaluate(() => {
+      const g = window.game;
+      g.hud.menu.openSettings('Graphics');
+      const rows = [...document.querySelectorAll('.settings-page .setting-row')];
+      const at = rows.findIndex((r) => r.querySelector('.label').textContent === 'GPU');
+      const desc = (name) => rows.find((r) => r.querySelector('.label').textContent.startsWith(name))?.querySelector('.desc')?.textContent;
+      const shown = { gpu: rows[at]?.querySelector('.info-value').textContent, above: rows[at - 1]?.querySelector('.label').textContent, frameRate: desc('Frame rate') };
+      g.hud.menu.openPage(null);
+      // Shown for the read only: a changed HUD.perf would be saved by the next check's settings.
+      const perf = g.config.HUD.perf;
+      g.config.HUD.perf = true;
+      g.hud.setPerf({ fps: 60, frameMs: 5, gpuName: g.gpu.name, calls: 1, triangles: 1, textureBytes: 0, net: null });
+      g.config.HUD.perf = perf;
+      return { ...shown, raw: g.gpu.raw, perf: document.querySelector('.perf').textContent.split('\n')[1] };
+    });
+  const r = await read(page);
+  const hidden = await openPage(() => {
+    const get = WebGL2RenderingContext.prototype.getExtension;
+    WebGL2RenderingContext.prototype.getExtension = function (name) {
+      return name === 'WEBGL_debug_renderer_info' ? null : get.call(this, name);
+    };
+  });
+  const h = await read(hidden);
+  await hidden.close();
+  const ok = /^SwiftShader/.test(r.gpu) && !/ANGLE|0x/.test(r.gpu) && r.above.startsWith('Resolution') && r.frameRate === "Above your display's refresh rate this acts like Max." && r.perf === `gpu · ${r.gpu}` && h.gpu === 'Hidden by the browser' && h.perf === 'gpu · hidden';
+  return ok ? null : JSON.stringify({ r, h });
+});
+
 await check('settings: gameplay, sound and on/off settings are remembered after a reload, saved only where they differ from the default', async () => {
   const r = await page.evaluate(() => {
     const { menu } = window.game.hud;
