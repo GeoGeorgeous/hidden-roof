@@ -1,4 +1,13 @@
-# Release notes
+# Releases
+
+## Releasing
+
+- Before a release (merging or promoting `next` into `main`), ask the owner to choose patch, minor, major, or no release. Show what changed since the last tag using `git log --oneline $(git describe --tags --abbrev=0)..next`. Never choose the version bump yourself.
+- Release only from a clean `next` with the full `npm run check` passing. Run `npm version <bump>` (bumps, commits, tags `vX.Y.Z`), push with `git push origin next:main --follow-tags` (fast-forward only, never a PR or merge commit), then merge `next` back into `dev` and push. The full steps, with the notes: "Prepare a release" below.
+- Write release notes in the repository before `npm version`, never manually on GitHub.
+- The game displays its build's `git describe` (`src/version.ts`), so `dev` and `next` do not need version bumps.
+
+## Release notes
 
 One file per release, `docs/releases/vX.Y.Z.md`, is the one source of its notes:
 
@@ -46,8 +55,8 @@ Nothing is written: from `last=$(git describe --tags --abbrev=0 origin/next)`, r
 
 ## "Prepare a release"
 
-1. On a clean, up-to-date `next`, list the backlog items marked `Done` (`docs/backlog.md`): they are what shipped since the last release, and the source for the draft. Write the draft as above. In one message, show: the draft, what was left out, the screenshot to take ("show X and Y": the release's headline, in the game as players see it), and the bump question from `AGENTS.md` → Releases (never pick it).
+1. On a clean, up-to-date `next`, list the backlog items marked `Done` (`docs/backlog.md`): they are what shipped since the last release, and the source for the draft. Write the draft as above. In one message, show: the draft, what was left out, the screenshot to take ("show X and Y": the release's headline, in the game as players see it), and the bump question from Releasing above (never pick it).
 2. With the owner's bump and screenshot: `node scripts/release-picture.mjs <shot> vX.Y.Z` (crops to 16:9, 1280×720 WebP within 250 KB), write `docs/releases/vX.Y.Z.md` with today's date (from `docs/releases/drafts/vX.Y.Z.md` if one was drafted earlier: a draft has no picture yet, so it stays out of the game and the test, and moves here), apply their edits. Delete the `Done` items from `docs/backlog.md` in the same commit. Commit all on `next` (`docs: release notes vX.Y.Z`): `npm version` needs a clean tree. Run `npm run check` (10-minute timeout). Show the text as GitHub will render it (`node scripts/release-notes.mjs vX.Y.Z`) and send the picture.
-3. On the owner's go, the release (`AGENTS.md` → Releases): `npm version <bump>`, `git push origin next:main --follow-tags`, then `node scripts/release-notes.mjs vX.Y.Z > <scratchpad>/notes.md` and `gh release create vX.Y.Z --verify-tag --title "Hidden Roof X.Y.Z" --notes-file <scratchpad>/notes.md`, then `node scripts/release-discord.mjs vX.Y.Z`, then merge `next` into `dev` and push. Deploying stays with the owner (`docs/deploy.md`).
+3. On the owner's go, the release (Releasing above): `npm version <bump>`, `git push origin next:main --follow-tags`, then `node scripts/release-notes.mjs vX.Y.Z > <scratchpad>/notes.md` and `gh release create vX.Y.Z --verify-tag --title "Hidden Roof X.Y.Z" --notes-file <scratchpad>/notes.md`, then `node scripts/release-discord.mjs vX.Y.Z`, then merge `next` into `dev` and push. Deploying stays with the owner (`docs/deploy.md`).
 
 `v1.0.0` and `v1.1.0` predate their pictures in the repo: their GitHub notes link the pictures at `159a365` (`node scripts/release-notes.mjs v1.0.0 159a365`).

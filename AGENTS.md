@@ -35,16 +35,12 @@ Hidden roof: a three.js graffiti game. The world is ink on paper and the only co
 - The full check takes several minutes and may exceed the shell's default timeout. Give it a 10-minute timeout or run it in the background in a worktree of the tested commit, with `node_modules` linked. Continue only with work that cannot affect the running check.
 - See `docs/testing.md` for test coverage and reliability details.
 
-## Releases
+## Git workflow
 
-- Branch flow: topic branches → `dev` → `next` → `main`. `next` is the tested branch; only a release moves `main`.
+- Branch flow: topic branches → `dev` → `next` → `main`. `next` is the tested branch; only a release moves `main` (`docs/releases/AGENTS.md`).
 - Start new work (features, fixes, docs) on a topic branch from `dev`. Merge it into `dev` only when I explicitly approve ("works, merge it"). Never move `next` or `main` except through promotion.
 - Before promoting `dev` to `next`, run the full `npm run check` on `dev` and confirm it passes.
 - After merging a topic branch into `dev`, delete it with `git branch -d`, unless I ask to keep it. Push merges into `dev` and `next` immediately; keep topic branches local unless I ask otherwise.
-- Before a release, ask me to choose patch, minor, major, or no release. Show what changed since the last tag using `git log --oneline $(git describe --tags --abbrev=0)..next`. Never choose the version bump yourself.
-- Release only from a clean `next` with the full `npm run check` passing. Run `npm version <bump>`, push with `git push origin next:main --follow-tags` (fast-forward only, never a PR or merge commit), then merge `next` back into `dev` and push.
-- For release notes and their publication, read `docs/releases/AGENTS.md`. Write release notes in the repository before `npm version`, never manually on GitHub.
-- The game displays its build's `git describe` (`src/version.ts`), so `dev` and `next` do not need version bumps.
 
 ## Long runs
 
@@ -57,4 +53,4 @@ Hidden roof: a three.js graffiti game. The world is ink on paper and the only co
 - Ink style, materials, color, and signs: `src/render/ink/AGENTS.md`
 - Debug panel (F3): tabs, naming, tooltips, and values: `src/debug/AGENTS.md`
 - Deployment, VPS, and multiplayer hosting: `docs/deploy.md`
-- Release notes and publication: `docs/releases/AGENTS.md`
+- Releases: `docs/releases/AGENTS.md`
