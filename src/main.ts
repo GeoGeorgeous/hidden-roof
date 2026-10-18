@@ -1,7 +1,7 @@
 import './style.css';
 import * as THREE from 'three';
 import * as config from './config';
-import { titleCamera } from './render/title-view';
+import { flyCamera, titleCamera } from './render/title-view';
 import { ATMOS, COLORS, HUD, INK, LEVELS, PLAYER, PRESSURE, RENDER, SMOKE, THUNDER, VIEWMODEL, VOLUMETRICS } from './config';
 import { syncSharedUniforms } from './materials';
 import { syncTrackUniforms } from './render/cctv-track';
@@ -207,7 +207,7 @@ input.onLockChange = (locked) => {
 hud.menu.onResume = () => input.requestLock();
 hud.menu.onStyle = (i) => settings.setStyle(i);
 showMenu();
-const testPage = perfTestPage(hud.menu, perfTest, gpu, () => settings.summary());
+const testPage = perfTestPage(hud.menu, perfTest, gpu, () => settings.tested());
 hud.menu.setSettings(settings.sections(gpu, testPage.run));
 const paintFile = paintMenu(hud.menu, paint, drips, () => opened.name);
 const net = multiplayerMenu(hud.menu, hotbar, { scene, camera, level, paint, paintOps, drips, player, inventory, pickups, tools, levelData: () => ({ data: opened.toJSON(), name: opened.name }), levelPaint: () => levelPaintOf(opened.name), openLevel: (d, n) => opened.open(d, n), restartLevel: () => opened.restart(), lockDetail: (tpm) => settings.lockPaintDetail(tpm) }, () => opened.name);
@@ -227,6 +227,8 @@ window.addEventListener('resize', () => {
 });
 
 const eye = new THREE.Vector3();
+/** The level's middle while the performance test flies around it (render/title-view.ts). */
+let flyAround: THREE.Vector3 | null = null;
 const timer = new THREE.Timer();
 const meter = new FrameMeter();
 let rainTime = 0;
@@ -286,11 +288,13 @@ function frame(time: number) {
     camera.updateProjectionMatrix();
   }
   camera.updateMatrixWorld();
-  // The title screen shows a fixed view of the city, without hands or tools, and so does the
-  // performance test. It draws from a camera of its own; play (aim, tools) keeps yours.
+  // The title screen shows a fixed view of the city, without hands or tools; the performance test
+  // flies from it around the level. They draw from a camera of their own; play (aim, tools) keeps yours.
   const cityView = (hud.cityView || perfTest.running) && !drawsFromPlayer();
   viewScene.visible = !cityView;
-  const shown = cityView ? titleCamera(camera) : camera;
+  if (perfTest.running) flyAround ??= level.totalBounds().getCenter(new THREE.Vector3());
+  else flyAround = null;
+  const shown = !cityView ? camera : flyAround ? flyCamera(camera, perfTest.progress(time), flyAround) : titleCamera(camera);
   const at = shown.position;
   dev?.lap('player');
   // Sprites follow the camera's FOV (sprinting, F3) like the world around them.

@@ -1012,22 +1012,33 @@ export const GHOST = {
   followDelay: 2,
 };
 
-/** Settings → Performance test and npm run bench (perf-test.ts): what it measures and how its message reads the numbers. */
+/** Settings → Performance test and npm run bench (perf-test.ts, perf-test-page.ts): what it measures, how its tip reads the numbers, how its popup shows them. */
 export const PERF_TEST = {
-  /** Drawn but not measured first (shaders, the GPU clocking up), then measured (s). */
+  /** Drawn but not measured first (shaders, the GPU clocking up), then measured (s): the camera flies the whole time. */
   warmup: 0.5,
-  seconds: 3,
+  seconds: 9.5,
   /** After measuring, at most this long for the GPU timer's last results (s). */
   gpuWait: 0.5,
-  /** GPU or CPU ms a frame (median) over which it is "the limit". */
-  slowMs: 20,
+  /** Times around the level's middle the camera flies over the run, from the title view (render/title-view.ts). */
+  turns: 1,
+  /** GPU or CPU ms a frame (median) over this many times the other: it is "the limit". */
+  limitRatio: 1.15,
   /**
-   * Frames at least `cappedMs` apart (median) while GPU and CPU each take under `idleShare` of it: something caps the
-   * frame rate (a power saver's 30 Hz is 33 ms). Measured against the cap, not the frame: a GPU too slow for a 60 Hz
-   * frame (27 ms on the Intel UHD) is shown every second or third refresh, 33–50 ms apart, and isn't a cap.
+   * Frames held apart while GPU and CPU each take under `idleShare` of the frame, at most of `cappedMs`: something
+   * holds the frame rate (the display's refresh, FRAME RATE, a power saver's 30 Hz). Frames at least `cappedMs` apart
+   * so: a power saver. Never more than `cappedMs`: a GPU too slow for a 60 Hz frame (27 ms on the Intel UHD) is shown
+   * every second or third refresh, 33–50 ms apart, and isn't held.
    */
   cappedMs: 30,
   idleShare: 0.5,
+  /** The tier slider (Stutters, Playable, Smooth, Very smooth): the average fps at its 0, 25, 50, 75 and 100 %. */
+  tierFps: [15, 30, 60, 90, 144],
+  /** The popup's CPU and GPU bars: full at this many ms. */
+  barMs: 25,
+  /** While it runs the popup shows the last `liveSeconds`' numbers, refreshed every `liveMs`, each step `ease` of the way to them. */
+  liveSeconds: 0.5,
+  liveMs: 100,
+  ease: 0.5,
 };
 
 /** Profiling mode (src/dev/profiler.ts, F8) and its probe (src/dev/probe.ts, F9). */

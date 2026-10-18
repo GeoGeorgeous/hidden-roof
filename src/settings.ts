@@ -6,6 +6,7 @@ import { ControlsTab } from './controls-tab';
 import { applyKeys, keyOverrides } from './key-bindings';
 import { applyValues, changedValues, defaultsOf, loadSaved, save, type Remembered } from './settings-store';
 import { currentOs, fasterGpuHow, type GpuInfo } from './gpu-name';
+import type { TestedSettings } from './perf-test';
 
 // Player settings, on the settings page of the pause menu (settings-page.ts):
 // gameplay, controls (controls-tab.ts), graphics and sound. They write the same config values the debug
@@ -94,7 +95,7 @@ export class Settings {
     return [
       { title: 'Gameplay', rows: gameplayRows().map(saving) },
       { title: 'Controls', rows: [], tab: new ControlsTab(() => this.save()) },
-      { title: 'Graphics', rows: [...this.graphicsRows(gpu).map(saving), { kind: 'action', label: 'Performance test', desc: 'Draws the city for 3 seconds with these settings, then shows how fast it ran and what holds it back.', button: 'Run', act: runTest }] },
+      { title: 'Graphics', rows: [{ kind: 'action', label: 'Performance test', desc: 'Flies over the roof for a few seconds at your current settings and shows how it ran.', button: 'Run', act: runTest }, ...this.graphicsRows(gpu).map(saving)] },
       { title: 'Sound', rows: soundRows().map(saving) },
     ];
   }
@@ -202,11 +203,27 @@ export class Settings {
     ];
   }
 
-  /** The settings that change how fast the game draws, for the performance test: "1/1 1920x1080 · Volumetrics Low · Paint Ultra · City High". */
-  summary() {
+  /** The settings that change how fast the game draws, as the performance test runs with them (its popup and tip). */
+  tested(): TestedSettings {
     // The paint and city detail drawn now, not one waiting for the game to resume.
     const paint = DETAIL_ORDER.find((k) => PAINT_DETAIL[k] === PAINT.texelsPerMeter);
-    return [resolution(), `Volumetrics ${sentence(this.vol)}`, `Paint ${paint ? sentence(paint) : `${PAINT.texelsPerMeter}/m`}`, `City ${sentence(this.builtCity)}`, ...(RENDER.maxFps ? [`${RENDER.maxFps} FPS`] : [])].join(' · ');
+    const next = PIXEL_SCALES[PIXEL_SCALES.indexOf(nearest(PIXEL_SCALES, RENDER.pixelScale)) + 1];
+    return {
+      size: drawnSize().replace('x', '×'),
+      volumetrics: sentence(this.vol),
+      paint: paint ? sentence(paint) : `${PAINT.texelsPerMeter}/m`,
+      city: sentence(this.builtCity),
+      volOff: this.vol === 'off',
+      volHigh: this.vol === 'high',
+      nextScale: next ?? null,
+      cityLow: this.builtCity === 'low',
+    };
+  }
+
+  /** The same in one line, for npm run bench: "1/1  1920x1080 · Volumetrics Low · Paint Ultra · City High". */
+  summary() {
+    const t = this.tested();
+    return [resolution(), `Volumetrics ${t.volumetrics}`, `Paint ${t.paint}`, `City ${t.city}`, ...(RENDER.maxFps ? [`${RENDER.maxFps} FPS`] : [])].join(' · ');
   }
 
   /** STYLE: an INK_STYLES index (also the pause screen's switcher). */
@@ -254,9 +271,12 @@ export function pixelRatio() {
 
 /** RESOLUTION: the pixel scale and the size drawn, "1/1  1920x1080". */
 function resolution() {
-  const w = Math.round(window.innerWidth / RENDER.pixelScale);
-  const h = Math.round(window.innerHeight / RENDER.pixelScale);
-  return `1/${RENDER.pixelScale}  ${w}x${h}`;
+  return `1/${RENDER.pixelScale}  ${drawnSize()}`;
+}
+
+/** The size drawn at RESOLUTION's pixel scale: "1920x1080". */
+function drawnSize() {
+  return `${Math.round(window.innerWidth / RENDER.pixelScale)}x${Math.round(window.innerHeight / RENDER.pixelScale)}`;
 }
 
 /** "Ultra  1.0 cm": a PAINT DETAIL with the size of one texel (the multiplayer page's too). */

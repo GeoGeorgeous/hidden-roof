@@ -27,7 +27,7 @@ const PREVIEW_SECONDS = 1.5;
 /** The session's live line (ping, players) is refreshed this often while it shows. */
 const LINE_SECONDS = 1;
 
-export type Page = 'settings' | 'mp' | 'credits' | 'updates' | 'save' | 'upload' | 'testing' | 'perf';
+export type Page = 'settings' | 'mp' | 'credits' | 'updates' | 'save' | 'upload' | 'perf';
 
 export class PauseMenu {
   onResume = () => {};
@@ -184,8 +184,7 @@ export class PauseMenu {
 
   /**
    * A page of the menu: `open` readies it each time it opens; `back` goes back a step within it (Esc, Back), false
-   * when there's none; `close` runs when another page or the game takes its place. A `bare-page` shows over the game
-   * as it is: no sheet, no blur, no Back (the performance test).
+   * when there's none; `close` runs when another page or the game takes its place.
    */
   addPage(page: Page, el: HTMLElement, open: () => void, back?: () => boolean, close?: () => void) {
     this.pages.set(page, { el, open, back, close });
@@ -204,13 +203,11 @@ export class PauseMenu {
     if (this.page !== page && this.page) this.pages.get(this.page)?.close?.();
     this.page = page;
     const el = page && this.pages.get(page)?.el;
-    const bare = !!el?.classList.contains('bare-page');
-    this.el.classList.toggle('sub', !!page && !bare);
-    this.el.classList.toggle('bare', bare);
+    this.el.classList.toggle('sub', !!page);
     this.screen.hidden = this.themes.el.hidden = this.hold.el.hidden = !!page;
     for (const [p, { el }] of this.pages) el.hidden = p !== page;
     // Popups have their own buttons.
-    this.back.hidden = !el || bare || el.classList.contains('popup-page');
+    this.back.hidden = !el || el.classList.contains('popup-page');
     if (page) this.pages.get(page)?.open();
     else this.themes.set(inkStyle());
   }
