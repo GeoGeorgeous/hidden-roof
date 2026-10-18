@@ -347,6 +347,32 @@ await check('settings: gameplay, sound and on/off settings are remembered after 
   return ok ? null : JSON.stringify({ ...r, loaded, defaults });
 });
 
+await check("settings: the player build remembers the performance lines turned on, though its default is off (main.ts turns them off before Settings starts)", async () => {
+  const r = await page.evaluate(async () => {
+    // The game's own module, from the dev server (a URL, not a file path).
+    const url = '/src/settings.ts';
+    const { Settings } = await import(url);
+    const { HUD, PAINT, RENDER, SKYLINE, VOLUMETRICS } = window.game.config;
+    const KEY = 'roofhiddenhaus.settings';
+    const kept = { saved: localStorage.getItem(KEY), perf: HUD.perf, tpm: PAINT.texelsPerMeter, scale: RENDER.pixelScale, fps: RENDER.maxFps, sky: { ...SKYLINE }, vol: { ...VOLUMETRICS } };
+    // As a player build starts: the lines off, then Settings.
+    HUD.perf = false;
+    const s = new Settings(() => {}, () => {}, () => {});
+    HUD.perf = true;
+    s.save();
+    const saved = JSON.parse(localStorage.getItem(KEY)).values['HUD.perf'];
+    if (kept.saved === null) localStorage.removeItem(KEY);
+    else localStorage.setItem(KEY, kept.saved);
+    Object.assign(HUD, { perf: kept.perf });
+    Object.assign(PAINT, { texelsPerMeter: kept.tpm });
+    Object.assign(RENDER, { pixelScale: kept.scale, maxFps: kept.fps });
+    Object.assign(SKYLINE, kept.sky);
+    Object.assign(VOLUMETRICS, kept.vol);
+    return saved;
+  });
+  return r === true ? null : `HUD.perf saved: ${r}`;
+});
+
 await check('settings: Controls binds a key, button or wheel step to two slots each; a taken key moves (Undo), a reserved one is refused; Reset all asks and undoes; modes; remembered', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;

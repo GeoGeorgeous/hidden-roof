@@ -55,6 +55,8 @@ export class Settings {
   private builtCity: CityDetail;
   /** In a multiplayer session: the host's PAINT DETAIL, which holds whatever is picked here. */
   private locked: PaintDetail | null = null;
+  /** The remembered fields' defaults, as they are when Settings starts: after main.ts turned the player build's performance lines off. */
+  private defaults = defaultsOf(REMEMBERED);
 
   /**
    * `applyResolution` resizes the renderer after the pixel scale changed,
@@ -67,7 +69,7 @@ export class Settings {
     private applyCityDetail: () => void,
   ) {
     const s = loadSaved();
-    applyValues(REMEMBERED, REMEMBERED_DEFAULTS, s.values);
+    applyValues(REMEMBERED, this.defaults, s.values);
     applyKeys(s.controls);
     const style = INK_STYLES.findIndex((t) => t.name === s.style);
     if (style >= 0) setInkStyle(style);
@@ -256,7 +258,7 @@ export class Settings {
   }
 
   private save() {
-    save({ style: INK_STYLES[inkStyle()]?.name, pixelScale: RENDER.pixelScale, maxFps: RENDER.maxFps, volumetrics: this.vol, paintDetail: this.detail, cityDetail: this.city, values: changedValues(REMEMBERED, REMEMBERED_DEFAULTS), controls: keyOverrides() });
+    save({ style: INK_STYLES[inkStyle()]?.name, pixelScale: RENDER.pixelScale, maxFps: RENDER.maxFps, volumetrics: this.vol, paintDetail: this.detail, cityDetail: this.city, values: changedValues(REMEMBERED, this.defaults), controls: keyOverrides() });
   }
 }
 
@@ -381,7 +383,6 @@ const REMEMBERED: Remembered[] = [
   { name: 'HUD.perf', obj: HUD, field: 'perf' },
   ...SOUNDS.map(([, field]) => ({ name: `AUDIO.${field}`, obj: AUDIO, field })),
 ];
-const REMEMBERED_DEFAULTS = defaultsOf(REMEMBERED);
 
 function soundRows(): SettingRow[] {
   return SOUNDS.map(([label, key, desc]) => ({
