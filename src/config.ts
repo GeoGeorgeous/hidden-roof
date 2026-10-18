@@ -936,6 +936,18 @@ export const NET = {
   smoothing: 12,
   glideSpeed: 4,
   teleport: 2,
+  /**
+   * The delay they're shown at follows a link that got slower by at most this much per snapshot (s), so a slower link
+   * is followed, not just a faster one; their jitter is a moving average that takes this share of each new sample.
+   */
+  lagDrift: 0.002,
+  jitterShare: 0.05,
+  /** Snapshots kept per remote player: one not shown for a while (a hidden tab draws no frames) keeps the newest. */
+  snapsKept: 64,
+  /** A jump in where they're shown shorter than this (m) is not smoothed (net/remote-player.ts). */
+  smoothFrom: 0.05,
+  /** A remote player this near a ladder (m) faces it, whichever way they look. */
+  ladderNear: 0.3,
   /** A player's name tag hangs this high over their feet (m). */
   nameplateHeight: 2.1,
   /** No snapshot from a player for this long (s): they're shown as gone (NO SIGNAL) until the server says more. */
@@ -951,6 +963,8 @@ export const NET = {
   retryMost: 8,
   /** In a session, nothing from the server for this long (s): the game closes the link and comes back in. The server pings every SERVER.ping, so this is a stall, not a slow link; a link that stalls for seconds and recovers is cheaper kept than rejoined (the paint file comes down again). */
   serverSilence: 15,
+  /** Asking the server over HTTP why the link failed gives up after this long (s, net/diagnostics.ts). */
+  diagnoseTimeout: 5,
   /** Network log entries kept for COPY NETWORK LOG (net/diagnostics.ts). */
   logLines: 80,
 };
