@@ -49,6 +49,10 @@ From `v1.0.0.md`, the model to follow:
 
 The test checks the format, the lowercase headings, the periods, the length, the picture (1280×720 WebP, ≤ 300 KB) and that `package.json`'s version has a note. Tone and choices are for review.
 
+## Drafts
+
+`docs/releases/drafts/vX.Y.Z.md` gathers the next release's notes as work lands. It has no length limit, in characters, items or lines: put in everything a player could notice, from the commits (`git log`), the backlog's `Done` items and the audit. The owner trims it. Format and style still apply; the limits apply only once it moves to `docs/releases/vX.Y.Z.md`.
+
 ## "What's in next?"
 
 Nothing is written: from `last=$(git describe --tags --abbrev=0 origin/next)`, read `git log --first-parent --merges $last..origin/next` (one summary per topic) and, for detail, `git log --no-merges --format='%s%n%b' $last..origin/next`. Show the draft notes in chat, in this format and style, and below them what you left out and why.
