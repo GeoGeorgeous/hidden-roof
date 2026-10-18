@@ -10,6 +10,13 @@ How a change is verified (AGENTS.md, Verify), what each test covers, and how the
 | `npm run check` | `check:quick`, then every test below, golden paint last. Before saying a change is done, and before a merge. Stops at the first failure, then prints each step's time (`scripts/check.mjs`). | ~4–5 min |
 | `npm run shots` | The real game on the real GPU (below). For every visual change. | ~15 s |
 
+## Running the full check
+
+- It takes several minutes and may exceed the shell's default timeout. Give it a 10-minute timeout, or run it in the background in a worktree of the tested commit (`git worktree add <scratchpad>/check <commit>`, `node_modules` linked in), so edits in the main tree can't change the run. Meanwhile do only work that cannot affect it: text edits and reads, no `check:quick` or `ONLY=` runs.
+- A failure is real. Investigate it rather than rerunning blindly to get a green result. If it appears pre-existing, run the failing step on a clean `dev` worktree and report the evidence and output.
+- A test that fails by timing (a fixed wait, a race) is fixed at its cause: wait for the event, never a longer sleep.
+- The headless tests draw with SwiftShader, not what players see: judge looks and frame cost with `npm run shots` and `npm run bench` (below).
+
 ## The tests (all in `npm run check`)
 
 | Command | What | Time |

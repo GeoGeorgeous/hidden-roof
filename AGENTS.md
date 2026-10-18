@@ -20,55 +20,34 @@ Hidden roof: a three.js graffiti game. The world is ink on paper and the only co
 - Tunable numbers go in `src/config.ts`, not inline.
 - Notes for later (bugs, things to check, performance, ideas) go in `docs/backlog.md`, the one list. Keep the item's fields (type, status, priority, size, area, release) as in the other items. Mark an item `Done` when it ships; the release commit deletes the `Done` items.
 - Removing code beats adding it. A cleanup keeps behavior identical: `npm run check` passes before and after.
-- Before writing new logic, look for an existing helper and reuse or extend it.
 - Keep source files under ~400 lines (`config.ts` and CSS excepted). Split by responsibility before a file gets there, not after.
-- Branch names are `type/short-kebab-name`, with type one of `feat`, `fix`, `refactor`, `perf`, `chore`, `docs`, `test` (e.g. `feat/roller-tool`, `perf/dirty-rect-upload`).
 
 ## Verify
 
-- After each change: `npm run check:quick` (~5 s: types, unit tests, the player build, knip).
-- Before you say a change is done or ask me to merge: `npm run check:quick` for a change to the UI (buttons, menus, text, styles), docs or the backlog. `npm run check` (~4–5 min: adds the smoke, game, server, multiplayer, CSP and golden paint tests, and prints each step's time at the end) when the change touches paint, rendering, the level or props, input, movement, the network or the server, or the build setup. Unsure which: run `npm run check`. Give `npm run check` a 10-minute command timeout or run it in the background: the shell's default 2 minutes cuts it off mid-run. Commit only once the check you chose passes (`&&`, never `;`).
-- The tests are deterministic. Browser test runs (`npm run check`, `test:game`, `test:mp`, `golden`) go one at a time on this machine: two at once starve each other's frames and can freeze WSL. A failure is real: never rerun until it passes, never call it flaky or unrelated. Run the failing step on a clean `dev` worktree; if it fails there too, report it under Found, with its output.
-- Visual changes (look, light, UI, props, avatar): `npm run shots` draws the real game on the real GPU (~15 s; `STEPS` adds views). Look at the PNGs and send them to me. The headless tests draw with SwiftShader: not what players see.
-- Every fix brings its test: one that fails without the fix and passes with it (run it both ways). A test that fails by timing (a fixed wait, a race) is fixed at its cause, as part of the work: wait for the event, never a longer sleep.
-- The full check (~5 min) runs in the background while you go on with work that doesn't change what it tests: run it in a git worktree of the commit (`git worktree add <scratchpad>/check <commit>`, `node_modules` linked in), so edits in the main tree can't change the run.
-- What each test covers, and how to keep them reliable: `docs/testing.md`.
+- Use `npm run check:quick` for docs, backlog, UI, and changes that do not affect the core runtime paths. Use `npm run check` when changes affect paint, rendering, the level, props, input, movement, networking, the server, or build setup. When unsure, run the full check.
+- Run the appropriate check before reporting a task as done or asking me to merge. Commit only after it passes; chain the commands with `&&`, never `;`.
+- Browser test suites (`npm run check`, `test:game`, `test:mp`, and `golden`) run one at a time on this machine. Concurrent runs can starve each other's frames and freeze WSL.
+- For visual changes (appearance, lighting, UI, props, avatar), run `npm run shots`, inspect the PNGs, and share them with me.
+- Running the full check, reading a failure, and what each test covers: `docs/testing.md`.
 
-## Releases
+## Git workflow
 
-- Branch flow: topic branches → `dev` → `next` (tested) → `main` (deployed). Only a release moves `main`.
-- New work (features, fixes, docs) goes on a topic branch from `dev`. Merge it into `dev` only when I say so ("works, merge it"), never on your own. `next` and `main` move only by promotion.
-- Before promoting `dev` into `next`: the full `npm run check` on `dev`, passing. `next` is the tested branch.
-- After merging a topic branch into `dev`, delete it (`git branch -d`), unless I say to keep it. The merge commit keeps its commits.
-- Push merges into `dev` and `next` right away. Topic branches stay local unless I ask.
-- When asked to merge or promote `next` into `main`, first ask me: patch, minor, major, or no release (and say what's new since the last tag, `git log --oneline $(git describe --tags --abbrev=0)..next`). Never pick the bump yourself.
-- Release, on a clean `next` with `npm run check` (always the full one) passing: `npm version <bump>` (bumps, commits, tags `vX.Y.Z`), `git push origin next:main --follow-tags` (fast-forward, never a PR or merge commit), then merge `next` back into `dev` and push.
-- Release notes ("what's in next?", "prepare a release"): `docs/releases/AGENTS.md`. They're written before `npm version`, in the repo, never on GitHub by hand.
-- The game shows its build's `git describe` (`src/version.ts`), so `dev` and `next` need no bumps.
+- Branch flow: topic branches → `dev` → `next` → `main`. `next` is the tested branch; only a release moves `main` (`docs/releases/AGENTS.md`).
+- Start new work (features, fixes, docs) on a topic branch from `dev`. Merge it into `dev` only when I explicitly approve ("works, merge it"). Never move `next` or `main` except through promotion.
+- Before promoting `dev` to `next`, run the full `npm run check` on `dev` and confirm it passes.
+- On a topic branch, commit each change once its check passes, without asking.
+- After merging a topic branch into `dev`, delete it with `git branch -d`, unless I ask to keep it. Push merges into `dev` and `next` immediately; keep topic branches local unless I ask otherwise.
 
 ## Long runs
 
-When a step doesn't need my input, keep going. Stop and ask only when you can't continue without me, or before deleting data, force-pushing, or changing anything outside this repository.
-End every run with: Blocked on me, Changed, Found.
-
-## Agent skills
-
-### Issue tracker
-
-Work items live in `docs/backlog.md` (no GitHub Issues). See `docs/agents/issue-tracker.md`.
-
-### Triage labels
-
-The triage roles map to an item's `status` and `type` in the backlog. See `docs/agents/triage-labels.md`.
-
-### Domain docs
-
-Single-context: `CONTEXT.md` and `docs/adr/` at the root, created when a term or decision is first settled. See `docs/agents/domain.md`.
+- When a step does not need my input, keep going. Put status notes in the same message as your next action. Stop and ask only when you cannot proceed without me, or before destructive actions, force-pushing, or changing anything outside this repository.
+- End every run with: `Blocked on me`, `Changed`, `Found`.
 
 ## Before working in these areas, read
 
-- Props, colliders, grid, paintable faces: `src/kit/AGENTS.md`
-- Ink style, materials, color, signs: `src/render/ink/AGENTS.md`
-- Debug panel (F3): tabs, naming, tooltips, values: `src/debug/AGENTS.md`
-- Deploy, the VPS, the multiplayer server's hosting: `docs/deploy.md`
-- Release notes, their pictures, the GitHub release: `docs/releases/AGENTS.md`
+- Props, colliders, grid, and paintable faces: `src/kit/AGENTS.md`
+- Ink style, materials, color, and signs: `src/render/ink/AGENTS.md`
+- Debug panel (F3): tabs, naming, tooltips, and values: `src/debug/AGENTS.md`
+- Deployment, VPS, and multiplayer hosting: `docs/deploy.md`
+- Domain terms: `CONTEXT.md`
+- Releases: `docs/releases/AGENTS.md`
