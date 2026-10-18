@@ -11,13 +11,13 @@ import { savePaint } from './save-paint';
 // The ESC menu's SAVE and UPLOAD popups: the paint of this level as a file
 // download, and a file put back. SAVE packs the paint as it opens, to show
 // the file's size (in a session the server packs it, on DOWNLOAD:
-// main.ts makes `save` ask it). UPLOAD checks the file it's given before
-// anything is replaced. Returns the save and load, for tests.
+// `sessionSave`). UPLOAD checks the file it's given before anything is
+// replaced. Returns the save and load, for tests.
 
-export function paintMenu(menu: PauseMenu, paint: PaintSystem, drips: PaintDrips, levelName: () => string) {
+export function paintMenu(menu: PauseMenu, paint: PaintSystem, drips: PaintDrips, levelName: () => string, sessionSave: () => Promise<Uint8Array>) {
   const info = () => ({ name: levelName() });
   const file = {
-    save: () => savePaint(paint, info()),
+    save: () => (session.multiplayer ? sessionSave() : savePaint(paint, info())),
     load: (bytes: Uint8Array | DecodedPaint) => loadPaint(paint, drips, bytes, info()),
     check: (bytes: Uint8Array | DecodedPaint) => loadPaint(paint, drips, bytes, info(), undefined, false),
   };
