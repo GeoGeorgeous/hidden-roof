@@ -1,6 +1,6 @@
 # Context
 
-The game's words, as the code uses them. Architecture terms (module, interface, seam, depth) are in the mattpocock-skills `codebase-design` vocabulary.
+The game's words, as the code uses them.
 
 ## Paint
 
