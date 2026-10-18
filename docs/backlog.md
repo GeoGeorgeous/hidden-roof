@@ -1075,22 +1075,20 @@ Split from BL-025. Steady ~0.5 GB. Measure what `loadPaint` allocates on a join 
 
 Measured (2026-10-14, `npm run bench:join`, as BL-085): the heap's steady growth on a join is every painted surface's CPU atlas (330 MB for the roof at HIGH, by design); on top of it the paint file inflated whole, 100–400 MB, was alive with them. Now a join's paint goes on face by face as it inflates (`eachFace`, `src/save/paint-file.ts`; LOAD from a file still reads it all first, so a broken file changes nothing): the top over the steady heap went from +124 to +65 MB at a quarter of the roof painted, +75 MB with all of it.
 
-### A hint in the HUD when the GPU can't keep up
+### A performance test in Settings, and `npm run bench`
 - id: BL-084
 - type: feature
-- status: Blocked
+- status: Planned
 - priority: Medium
-- size: S
+- size: M
 - area: ui
-- release: later
-- blocked-by: the owner's decision
-- source: playtest 2026-10-12
+- release: next
+- source: playtest 2026-10-12; owner laptop runs 2026-10-18 (audit F2.3, F2.5, F2.10, S2.3)
 
-An Intel Iris Xe player played at 30 fps (23 ms of GPU a frame) and left after 6 minutes, likely not knowing PIXEL SCALE exists. Do: once a session, when the GPU frame time stays over 20 ms for 5 s (config), a text hint in the HUD's existing style (as `LOW PRESSURE — HOLD [RMB] TO SHAKE`), pointing to SETTINGS → PIXEL SCALE. No new UI.
+An Intel Iris Xe player played at 30 fps (23 ms of GPU a frame) and left after 6 minutes; the owner's RTX laptop ran Chrome on its Intel UHD unnoticed. Decided (2026-10-18, audit S2.1): nothing measures on its own (no timer in play or on the menu). Do: one test module that hides the menu and draws the pause menu's city view (`titleCamera`) for ~3 s, 0.5 s of it warm-up, with the GPU timer (`src/debug/gpu-timer.ts`) on only then and CPU time taken before the draw calls (F2.10).
 
-Blocked (2026-10-14): GPU time is measured only while F3's perf readout is on (`EXT_disjoint_timer_query_webgl2`, desktop Chromium only). Decide: the timer on for every player (a little work every frame), sampled (the first ~30 s, or every few seconds), or judged from FPS (false alarms: a laptop on battery caps Chrome at 30 Hz). Its place in the HUD needs a screenshot.
-
-When built: a `?weak-gpu` URL flag that shows the hint at once, to see it without a weak GPU.
+- Settings → Performance test → RUN: `GPU · CPU · fps` and one message. Capped (frames ~33 ms apart, GPU and CPU low): Chrome's Energy Saver (chrome://settings/performance), Edge's efficiency mode, macOS Low Power Mode, else the browser's or system's power saver. Integrated GPU by name: the per-OS line of BL-109. GPU over 20 ms (config) on a dedicated GPU: "Your GPU is the limit". Else "Runs well". No GPU timer: CPU and fps, "GPU time isn't available in this browser". Never suggest a lower RESOLUTION.
+- `npm run bench`: headed Playwright on the real GPU starts the same test; JSON with p50/p95/p99 of CPU and GPU ms, fps, draw calls, GPU name, build, settings, refresh rate; compares builds only.
 
 ### Paint takes 7–10 s to show after joining a session with a lot of it
 - id: BL-085
