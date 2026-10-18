@@ -169,6 +169,86 @@ await check('settings: Shift + click puts a slider back to its default; PAINT an
   return ok ? null : JSON.stringify(r);
 });
 
+await check('settings: Graphics names the GPU under Resolution, short, in the perf lines too; hidden by the browser, it says so; Frame rate says it acts like Max above the refresh rate', async () => {
+  const read = (p) =>
+    p.evaluate(() => {
+      const g = window.game;
+      g.hud.menu.openSettings('Graphics');
+      const rows = [...document.querySelectorAll('.settings-page .setting-row')];
+      const at = rows.findIndex((r) => r.querySelector('.label').textContent === 'GPU');
+      const desc = (name) => rows.find((r) => r.querySelector('.label').textContent.startsWith(name))?.querySelector('.desc')?.textContent;
+      const shown = { gpu: rows[at]?.querySelector('.info-value').textContent, above: rows[at - 1]?.querySelector('.label').textContent, frameRate: desc('Frame rate') };
+      g.hud.menu.openPage(null);
+      // Shown for the read only: a changed HUD.perf would be saved by the next check's settings.
+      const perf = g.config.HUD.perf;
+      g.config.HUD.perf = true;
+      g.hud.setPerf({ fps: 60, frameMs: 5, gpuName: g.gpu.name, calls: 1, triangles: 1, textureBytes: 0, net: null });
+      g.config.HUD.perf = perf;
+      return { ...shown, raw: g.gpu.raw, perf: document.querySelector('.perf').textContent.split('\n')[1] };
+    });
+  const r = await read(page);
+  const hidden = await openPage(() => {
+    const get = WebGL2RenderingContext.prototype.getExtension;
+    WebGL2RenderingContext.prototype.getExtension = function (name) {
+      return name === 'WEBGL_debug_renderer_info' ? null : get.call(this, name);
+    };
+  });
+  const h = await read(hidden);
+  await hidden.close();
+  const ok = /^SwiftShader/.test(r.gpu) && !/ANGLE|0x/.test(r.gpu) && r.above.startsWith('Resolution') && r.frameRate === "Above your display's refresh rate this acts like Max." && r.perf === `gpu · ${r.gpu}` && h.gpu === 'Hidden by the browser' && h.perf === 'gpu · hidden';
+  return ok ? null : JSON.stringify({ r, h });
+});
+
+await check('performance test: RUN shows only TESTING… over the city view; Esc stops it back on Graphics with no result; done, its popup shows the numbers, GPU, settings and one message; RUN AGAIN and DISMISS; resuming stops it; the GPU timer goes back off', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { PERF_TEST } = g.config;
+    const saved = { ...PERF_TEST };
+    Object.assign(PERF_TEST, { warmup: 0.1, seconds: 0.3 });
+    const frames = (n) => new Promise((done) => { const tick = () => (n-- ? requestAnimationFrame(tick) : done()); tick(); });
+    const until = async (ok) => { const end = performance.now() + 10000; while (!ok() && performance.now() < end) await frames(1); return ok(); };
+    const shown = () => [...document.querySelectorAll('.overlay > .page')].filter((e) => !e.hidden).map((e) => e.className).join();
+    const esc = () => ['keydown', 'keyup'].forEach((type) => window.dispatchEvent(new KeyboardEvent(type, { code: 'Escape' })));
+    const runButton = () => [...document.querySelectorAll('.settings-page .setting-row')].find((row) => row.querySelector('.label').textContent === 'Performance test')?.querySelector('.btn');
+    const popupButtons = () => [...document.querySelectorAll('.popup-page:not([hidden]) .btn')];
+    const timerWas = g.gpuTimer.enabled;
+    g.hud.menu.openSettings('Graphics');
+    runButton().click();
+    await frames(2);
+    const testing = { page: shown(), line: document.querySelector('.testing').textContent, bare: g.hud.menu.el.classList.contains('bare'), sub: g.hud.menu.el.classList.contains('sub'), running: g.perfTest.running, hands: g.viewScene.visible };
+    esc();
+    await frames(2);
+    const stopped = { running: g.perfTest.running, page: shown(), tab: document.querySelector('.settings-page .tabs .on').textContent, timer: g.gpuTimer.enabled };
+    runButton().click();
+    const done = await until(() => shown().includes('popup-page'));
+    const popup = document.querySelector('.popup-page:not([hidden])');
+    const result = { done, title: popup.querySelector('.popup-title').textContent, chip: popup.querySelector('.chip').textContent, paras: [...popup.querySelectorAll('.para')].map((p) => p.textContent), buttons: popupButtons().map((b) => b.textContent), timer: g.gpuTimer.enabled, running: g.perfTest.running };
+    popupButtons().find((b) => b.textContent.startsWith('Run again')).click();
+    await frames(1);
+    const again = shown();
+    const twice = await until(() => shown().includes('popup-page'));
+    popupButtons().find((b) => b.textContent.startsWith('Dismiss')).click();
+    const dismissed = [shown(), document.querySelector('.settings-page .tabs .on').textContent];
+    runButton().click();
+    await frames(2);
+    g.input.setLocked(true);
+    const resumed = g.perfTest.running;
+    g.input.setLocked(false);
+    Object.assign(PERF_TEST, saved);
+    g.hud.menu.openPage(null);
+    return { testing, stopped, result, again, twice, dismissed, resumed, timerWas, summary: g.settings.summary() };
+  });
+  const t = r.testing;
+  const ok =
+    t.page === 'page bare-page testing-page' && t.line === 'TESTING…ESCTO STOP' && t.bare && !t.sub && t.running && !t.hands &&
+    !r.stopped.running && r.stopped.page === 'page settings-page' && r.stopped.tab === 'Graphics' && r.stopped.timer === r.timerWas &&
+    r.result.done && r.result.title === 'performance test' && /^(GPU [\d.]+ ms · )?CPU [\d.]+ ms · \d+ fps\d+ draw calls$/.test(r.result.chip) &&
+    r.result.paras[0].endsWith(` · ${r.summary}`) && /^1\/1  1280x720 · Volumetrics \w+ · Paint \w+ · City \w+$/.test(r.summary) && r.result.paras[1].length > 5 &&
+    r.result.buttons.join() === 'DismissESC,Run againENTER' && r.result.timer === r.timerWas && !r.result.running &&
+    r.again === 'page bare-page testing-page' && r.twice && r.dismissed.join() === 'page settings-page,Graphics' && !r.resumed;
+  return ok ? null : JSON.stringify(r);
+});
+
 await check('settings: gameplay, sound and on/off settings are remembered after a reload, saved only where they differ from the default', async () => {
   const r = await page.evaluate(() => {
     const { menu } = window.game.hud;

@@ -4,8 +4,10 @@
 // Chromium draws with SwiftShader. `uncapped`: frames aren't held to 60 per
 // second, for tests that skip drawing (a page that draws would queue frames
 // faster than SwiftShader draws them, and screenshots and closing then wait).
-// `gpu`: a headed window drawn by the real GPU instead (npm run shots), through
-// WSLg's D3D12 (GPU=Intel picks the weak one); without a display, SwiftShader.
+// `gpu`: a headed window drawn by the real GPU instead (npm run shots, npm run
+// bench), through ANGLE's native backend: D3D11 on Windows, Metal on macOS,
+// OpenGL on Linux, which on WSL is WSLg's D3D12 (GPU=Intel picks the weak one);
+// on Linux without a display, SwiftShader.
 // On machines missing Chromium's system libraries, copies extracted to
 // ~/.local/pwlibs are used (see docs/testing.md). The tests play the demo
 // level, whose layout they know (`level`: another, or null for LEVELS.start),
@@ -19,6 +21,8 @@ import { chromium } from 'playwright';
 import { createLogger, createServer } from 'vite';
 
 const WSL_GPU = '/usr/lib/wsl/lib';
+/** ANGLE's native backend per OS, for the real GPU. */
+const ANGLE = { win32: 'd3d11', darwin: 'metal' };
 
 export async function openTestBrowser(url, { uncapped = false, level = 'demo', gpu = false, flags = [] } = {}) {
   let server = null;
@@ -35,13 +39,13 @@ export async function openTestBrowser(url, { uncapped = false, level = 'demo', g
   }
   // force: the game loads in the tests' small windows too (src/boot.ts).
   url += `?force=1${level ? `&level=${level}` : ''}`;
-  const real = gpu && Boolean(process.env.DISPLAY || process.env.WAYLAND_DISPLAY);
+  const real = gpu && (process.platform !== 'linux' || Boolean(process.env.DISPLAY || process.env.WAYLAND_DISPLAY));
   const libs = [`${os.homedir()}/.local/pwlibs/usr/lib/x86_64-linux-gnu`, ...(real ? [WSL_GPU] : [])].filter((d) => fs.existsSync(d));
   const path = [...libs, process.env.LD_LIBRARY_PATH].filter(Boolean).join(':');
   const env = { ...process.env, ...(path && { LD_LIBRARY_PATH: path }) };
   if (real && fs.existsSync(WSL_GPU)) Object.assign(env, { GALLIUM_DRIVER: 'd3d12', MESA_D3D12_DEFAULT_ADAPTER_NAME: process.env.GPU ?? 'NVIDIA' });
   const args = real
-    ? ['--use-gl=angle', '--use-angle=gl', '--ignore-gpu-blocklist', '--enable-gpu', '--window-position=-3000,0']
+    ? ['--use-gl=angle', `--use-angle=${ANGLE[process.platform] ?? 'gl'}`, '--ignore-gpu-blocklist', '--enable-gpu', '--window-position=-3000,0']
     : ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', ...(uncapped ? ['--disable-frame-rate-limit', '--disable-gpu-vsync'] : [])];
   const browser = await chromium.launch({ env, args: [...args, ...flags], headless: !real });
   if (uncapped) {

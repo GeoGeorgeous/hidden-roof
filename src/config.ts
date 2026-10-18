@@ -1013,6 +1013,24 @@ export const GHOST = {
 };
 
 /** Profiling mode (src/dev/profiler.ts, F8) and its probe (src/dev/probe.ts, F9). */
+/** Settings → Performance test and npm run bench (perf-test.ts): what it measures and how its message reads the numbers. */
+export const PERF_TEST = {
+  /** Drawn but not measured first (shaders, the GPU clocking up), then measured (s). */
+  warmup: 0.5,
+  seconds: 3,
+  /** After measuring, at most this long for the GPU timer's last results (s). */
+  gpuWait: 0.5,
+  /** GPU or CPU ms a frame (median) over which it is "the limit". */
+  slowMs: 20,
+  /**
+   * Frames at least `cappedMs` apart (median) while GPU and CPU each take under `idleShare` of it: something caps the
+   * frame rate (a power saver's 30 Hz is 33 ms). Measured against the cap, not the frame: a GPU too slow for a 60 Hz
+   * frame (27 ms on the Intel UHD) is shown every second or third refresh, 33–50 ms apart, and isn't a cap.
+   */
+  cappedMs: 30,
+  idleShare: 0.5,
+};
+
 export const PROFILE = {
   /** The slowest frames the report keeps whole, with where their CPU time went. */
   worstFrames: 20,

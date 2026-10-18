@@ -27,7 +27,7 @@ const PREVIEW_SECONDS = 1.5;
 /** The session's live line (ping, players) is refreshed this often while it shows. */
 const LINE_SECONDS = 1;
 
-export type Page = 'settings' | 'mp' | 'credits' | 'updates' | 'save' | 'upload';
+export type Page = 'settings' | 'mp' | 'credits' | 'updates' | 'save' | 'upload' | 'testing' | 'perf';
 
 export class PauseMenu {
   onResume = () => {};
@@ -54,7 +54,7 @@ export class PauseMenu {
   private loadPaint: HTMLElement;
   private themes: ReturnType<typeof segmented>;
   private settingsPage: SettingsPage | null = null;
-  private pages = new Map<Page, { el: HTMLElement; open: () => void; back?: () => boolean }>();
+  private pages = new Map<Page, { el: HTMLElement; open: () => void; back?: () => boolean; close?: () => void }>();
   private page: Page | null = null;
   /** The multiplayer session's code while in one. */
   private session: string | null = null;
@@ -182,9 +182,13 @@ export class PauseMenu {
     this.addPage('settings', this.settingsPage.root, () => this.settingsPage!.sync());
   }
 
-  /** A page of the menu: `open` readies it each time it opens; `back` goes back a step within it (Esc, Back), false when there's none. */
-  addPage(page: Page, el: HTMLElement, open: () => void, back?: () => boolean) {
-    this.pages.set(page, { el, open, back });
+  /**
+   * A page of the menu: `open` readies it each time it opens; `back` goes back a step within it (Esc, Back), false
+   * when there's none; `close` runs when another page or the game takes its place. A `bare-page` shows over the game
+   * as it is: no sheet, no blur, no Back (the performance test).
+   */
+  addPage(page: Page, el: HTMLElement, open: () => void, back?: () => boolean, close?: () => void) {
+    this.pages.set(page, { el, open, back, close });
     this.el.append(el);
     el.hidden = this.page !== page;
   }
@@ -197,12 +201,16 @@ export class PauseMenu {
 
   /** A page over the blurred view, or the pause screen (null). */
   openPage(page: Page | null) {
+    if (this.page !== page && this.page) this.pages.get(this.page)?.close?.();
     this.page = page;
-    this.el.classList.toggle('sub', !!page);
+    const el = page && this.pages.get(page)?.el;
+    const bare = !!el?.classList.contains('bare-page');
+    this.el.classList.toggle('sub', !!page && !bare);
+    this.el.classList.toggle('bare', bare);
     this.screen.hidden = this.themes.el.hidden = this.hold.el.hidden = !!page;
     for (const [p, { el }] of this.pages) el.hidden = p !== page;
     // Popups have their own buttons.
-    this.back.hidden = !page || !!this.pages.get(page)?.el.classList.contains('popup-page');
+    this.back.hidden = !el || bare || el.classList.contains('popup-page');
     if (page) this.pages.get(page)?.open();
     else this.themes.set(inkStyle());
   }

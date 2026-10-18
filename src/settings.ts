@@ -5,6 +5,7 @@ import { DEFAULT_STYLE, inkStyle, setInkStyle } from './render/ink/styles';
 import { ControlsTab } from './controls-tab';
 import { applyKeys, keyOverrides } from './key-bindings';
 import { applyValues, changedValues, defaultsOf, loadSaved, save, type Remembered } from './settings-store';
+import { currentOs, fasterGpuHow, type GpuInfo } from './gpu-name';
 
 // Player settings, on the settings page of the pause menu (settings-page.ts):
 // gameplay, controls (controls-tab.ts), graphics and sound. They write the same config values the debug
@@ -82,21 +83,23 @@ export class Settings {
     Object.assign(SKYLINE, CITY_DETAIL[this.city]);
   }
 
-  /** The settings page (pause menu → SETTINGS): one section per tab. Every change is saved. */
-  sections(): SettingSection[] {
+  /** The settings page (pause menu → SETTINGS): one section per tab. Every change is saved. `gpu`: what the game draws with; `runTest`: the performance test. */
+  sections(gpu: GpuInfo, runTest: () => void): SettingSection[] {
     const saving = (row: SettingRow): SettingRow => {
       if (row.kind === 'choice') return { ...row, step: (d) => (row.step(d), this.save()) };
-      return { ...row, set: (v) => (row.set(v), this.save()) };
+      if (row.kind === 'range') return { ...row, set: (v) => (row.set(v), this.save()) };
+      // Info and action rows change nothing.
+      return row;
     };
     return [
       { title: 'Gameplay', rows: gameplayRows().map(saving) },
       { title: 'Controls', rows: [], tab: new ControlsTab(() => this.save()) },
-      { title: 'Graphics', rows: this.graphicsRows().map(saving) },
+      { title: 'Graphics', rows: [...this.graphicsRows(gpu).map(saving), { kind: 'action', label: 'Performance test', desc: 'Draws the city for 3 seconds with these settings, then shows how fast it ran and what holds it back.', button: 'Run', act: runTest }] },
       { title: 'Sound', rows: soundRows().map(saving) },
     ];
   }
 
-  private graphicsRows(): SettingRow[] {
+  private graphicsRows(gpu: GpuInfo): SettingRow[] {
     return [
       {
         kind: 'choice',
@@ -114,11 +117,7 @@ export class Settings {
         label: 'Resolution',
         // Per-pixel work follows the pixel count: 1/2 draws a quarter of 1/1's pixels.
         cost: 'HIGH',
-        value: () => {
-          const w = Math.round(window.innerWidth / RENDER.pixelScale);
-          const h = Math.round(window.innerHeight / RENDER.pixelScale);
-          return `1/${RENDER.pixelScale}  ${w}x${h}`;
-        },
+        value: resolution,
         step: (d) => {
           RENDER.pixelScale = cycle(PIXEL_SCALES, nearest(PIXEL_SCALES, RENDER.pixelScale), d);
           this.applyResolution();
@@ -126,8 +125,16 @@ export class Settings {
         },
       },
       {
+        kind: 'info',
+        label: 'GPU',
+        // A laptop's browser may draw on its built-in GPU while a faster one idles: say how to switch.
+        desc: ['The graphics chip the browser draws the game with.', gpu.integrated ? `It's built into the processor. ${fasterGpuHow(currentOs()) ?? ''}` : ''].join(' ').trim(),
+        value: () => gpu.name ?? 'Hidden by the browser',
+      },
+      {
         kind: 'choice',
         label: 'Frame rate',
+        desc: "Above your display's refresh rate this acts like Max.",
         cost: 'LOW',
         value: () => (RENDER.maxFps ? `${RENDER.maxFps} FPS` : 'Max'),
         step: (d) => {
@@ -191,8 +198,13 @@ export class Settings {
       toggle('Rain', () => ATMOS.rain, (on) => (ATMOS.rain = on), 'LOW'),
       toggle('Smoke', () => SMOKE.enabled, (on) => (SMOKE.enabled = on), 'LOW'),
       toggle('Moving parts', () => RENDER.propMotion, (on) => (RENDER.propMotion = on), 'LOW'),
-      toggle('Performance lines', () => HUD.perf, (on) => (HUD.perf = on), undefined, 'Shows fps, ms, GPU ms, draw calls, triangles, texture memory and network stats at the bottom left.'),
+      toggle('Performance lines', () => HUD.perf, (on) => (HUD.perf = on), undefined, 'Shows fps, ms, the GPU, draw calls, triangles, texture memory and network stats at the bottom left.'),
     ];
+  }
+
+  /** The settings that change how fast the game draws, for the performance test: "1/1 1920x1080 · Volumetrics Low · Paint Ultra · City High". */
+  summary() {
+    return [resolution(), `Volumetrics ${sentence(this.vol)}`, `Paint ${sentence(this.locked ?? this.detail)}`, `City ${sentence(this.builtCity)}`, ...(RENDER.maxFps ? [`${RENDER.maxFps} FPS`] : [])].join(' · ');
   }
 
   /** STYLE: an INK_STYLES index (also the pause screen's switcher). */
@@ -238,6 +250,13 @@ export function pixelRatio() {
   return Math.min(1, devicePixelRatio) / RENDER.pixelScale;
 }
 
+/** RESOLUTION: the pixel scale and the size drawn, "1/1  1920x1080". */
+function resolution() {
+  const w = Math.round(window.innerWidth / RENDER.pixelScale);
+  const h = Math.round(window.innerHeight / RENDER.pixelScale);
+  return `1/${RENDER.pixelScale}  ${w}x${h}`;
+}
+
 /** "Ultra  1.0 cm": a PAINT DETAIL with the size of one texel (the multiplayer page's too). */
 export function paintDetailName(d: PaintDetail) {
   return `${sentence(d)}  ${(100 / PAINT_DETAIL[d]).toFixed(1)} cm`;
@@ -252,8 +271,8 @@ function nearest(list: number[], v: number) {
 }
 
 /**
- * A setting row: a choice stepped through with < and >, or a slider (`def`: its
- * default, marked on it). `desc` is an optional line under it, `note` a callout
+ * A setting row: a choice stepped through with < and >, a slider (`def`: its
+ * default, marked on it), a value to read (info) or a button (action). `desc` is an optional line under it, `note` a callout
  * (recommendations), `cost` how much the setting can change how smoothly the
  * game runs, whatever its value.
  */
@@ -261,6 +280,8 @@ type RowBase = { label: string; desc?: string; note?: string; cost?: Cost };
 type Cost = 'LOW' | 'MEDIUM' | 'HIGH';
 export type SettingRow =
   | (RowBase & { kind: 'choice'; value: () => string; step: (d: number) => void; locked?: () => boolean })
+  | (RowBase & { kind: 'info'; value: () => string })
+  | (RowBase & { kind: 'action'; button: string; act: () => void })
   | (RowBase & { kind: 'range'; min: number; max: number; step: number; def: number; get: () => number; set: (v: number) => void; format: (v: number) => string });
 /** A tab that builds its own page (Controls): its rows' column, its footer line and a control top right; `open` readies it each time it shows, `close` when it goes. */
 export interface OwnTab {
