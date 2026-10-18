@@ -2,7 +2,7 @@
 // desktop has it; elsewhere the readouts show "n/a"). Queries are read back a
 // few frames later and smoothed; each frame's total goes to `onFrame` too (the
 // performance test). Only one query can run at a time, so passes are timed
-// back to back, never nested.
+// back to back, never nested. No DOM: tested in Node (scripts/perf-test.test.mjs).
 
 type Ext = { TIME_ELAPSED_EXT: number; GPU_DISJOINT_EXT: number };
 
@@ -20,14 +20,22 @@ export class GpuTimer {
   private open: { label: string; q: WebGLQuery; frame: number } | null = null;
   /** The frame whose queries are being summed, for onFrame. */
   private sum = { frame: -1, ms: 0, bad: false };
+  /** Whether this frame is timed, decided at its first pass: all its passes or none, so its total is whole. */
+  private timed = { frame: -1, on: false };
+  // A plain field, not a parameter property: Node runs this file as it is (type stripping).
+  private gl: WebGL2RenderingContext;
 
-  constructor(private gl: WebGL2RenderingContext) {
+  constructor(gl: WebGL2RenderingContext) {
+    this.gl = gl;
     this.ext = gl.getExtension('EXT_disjoint_timer_query_webgl2') as Ext | null;
     this.supported = !!this.ext;
   }
 
   begin(label: string) {
-    if (!this.enabled || !this.ext || this.open || this.pending.length > 24) return;
+    if (!this.enabled || !this.ext || this.open) return;
+    // Too many results waiting (a GPU far behind): the whole frame goes untimed, never just its later passes.
+    if (this.timed.frame !== this.frame) this.timed = { frame: this.frame, on: this.pending.length <= 24 };
+    if (!this.timed.on) return;
     const q = this.gl.createQuery();
     if (!q) return;
     this.gl.beginQuery(this.ext.TIME_ELAPSED_EXT, q);
