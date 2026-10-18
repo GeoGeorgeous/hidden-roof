@@ -1412,6 +1412,42 @@ Done (2026-10-18, audit S2.2, `feat/show-gpu`): `src/gpu-name.ts` (short name, i
 
 The first `npm run test:weak-link` run in a tree twice stopped at "The game didn't load: reload the page" (`src/boot.ts`: `import('./main')` rejected): once on `fix/net-bugs`, once on a clean `dev` worktree. Later runs passed, a cold Vite cache too. Its pages come from a browser context, which had no load log; since S5.1 (`scripts/test-browser.mjs`) they have one. Do: on the next failure, read the load log `gameReady` prints and fix the cause.
 
+### The remote player's timeline as a pure module
+- id: BL-112
+- type: refactor
+- status: Planned
+- priority: Medium
+- size: M
+- area: net
+- release: next
+- source: audit S5.2 2026-10-18 (F5.4)
+
+`src/net/remote-player.ts` mixes the clock (snapshots, lag, target, jitter, the shown time, timed events, the catch-up) with the figure, reads `document.hidden`, and the tests set its private fields (`scripts/game.test.mjs:2008`). Do: a pure `RemoteTimeline` (`receive`, `schedule(t, run, hidden)`, `sample(now, dt)`, `reset`, `flush`, `heard`, `stats`) with a Node test in `npm test`; RemotePlayer keeps the avatar, look, smoothing, ladder facing and spray; Remotes gives the tests a read-only view instead of `remotes.list`. No behavior change. Session S5.3.
+
+### One Sender owns paint.log and what this player sends
+- id: BL-113
+- type: refactor
+- status: Planned
+- priority: Medium
+- size: M
+- area: net
+- release: next
+- source: audit S5.2 2026-10-18 (F5.5)
+
+What this player sends is built twice: `Multiplayer.update` (snapshot clock, paint ops from paint.log, stepladder and inventory changes) and `src/dev/ghost.ts` (its own Msg type and keep()); paint.log has three writers (F5.2 came from that). Do: `src/net/sender.ts` owns paint.log (a second owner is refused), the snapshot clock and the change checks, and gives out the real `ToServer` messages on a clock it's handed; Multiplayer sends them through Outbox and ServerLink, the ghost records them and replays them over SimLink through the same dispatch into a RemotePlayer, ops through encodeOps/decodeOps. Node test with a fake capture and level. No behavior or protocol change. Session S5.4, after BL-112.
+
+### A failure says whether the player was in a session
+- id: BL-114
+- type: feature
+- status: Planned
+- priority: Low
+- size: XS
+- area: net
+- release: next
+- source: audit S5.2 2026-10-18 (F5.12)
+
+`NetStatus` `failed` is the same after a failed JOIN and after a session that ended mid-play, but M4's notification model shows them differently (a blocking error in play, F4.4; the MULTIPLAYER page's line while joining). Do: with M4's notify module (F4.9), `failed` carries the session's code when the player was in one; net-menu's onStatus stays the one adapter.
+
 ### A reloaded tab's paint never reached the others
 - id: BL-115
 - type: bug
