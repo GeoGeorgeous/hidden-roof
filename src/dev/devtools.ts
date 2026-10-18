@@ -2,7 +2,7 @@ import './dev.css';
 import type * as THREE from 'three';
 import { BuildMode } from '../build/buildmode';
 import { DebugPanel } from '../debug/panel';
-import { live } from '../debug/tuning';
+import { live, setHooks } from '../debug/tuning';
 import type { GpuTimer } from '../debug/gpu-timer';
 import { MARKER, ROLLER, SPONGE } from '../config';
 import type { Input } from '../input';
@@ -104,7 +104,7 @@ export class DevTools {
     this.ghost = new Ghost(g);
     this.profiler = new Profiler(g);
     if (new URLSearchParams(location.search).has('profile')) this.profiler.start();
-    Object.assign(live, {
+    setHooks({
       gpu: (label: string) => g.gpuTimer.read(label),
       strikeLightning: () => g.lightning.strike(),
       rebuildLights: () => g.lightFx.rebuild(g.level.lights),
