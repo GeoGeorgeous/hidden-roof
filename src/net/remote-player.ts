@@ -7,6 +7,7 @@ import type { AvatarState } from '../avatar/pose';
 import type { Level } from '../level/level';
 import type { PropData } from '../level/level-data';
 import type { PaintOp, PaintOps } from '../paint-ops';
+import { decodeOps, type SurfaceIndex } from '../op-wire';
 import type { Presence } from './protocol';
 import { decodeSnapshot, type Snapshot } from './snapshot';
 
@@ -110,6 +111,15 @@ export class RemotePlayer {
     this.snaps.push(s);
     // Not shown for a while (a hidden tab draws no frames): keep only the newest.
     if (this.snaps.length > NET.snapsKept) this.snaps.shift();
+  }
+
+  /** What they sent (the server hands on a player's state, ops and stepladder as they sent them; the ghost plays its recording the same way): into their figure, `now` when it came. */
+  deliver(m: { type: 'state'; bytes: Uint8Array } | { type: 'ops'; bytes: Uint8Array } | { type: 'ladder'; t: number; data: PropData | null }, surfaces: SurfaceIndex, now: number) {
+    if (m.type === 'state') this.receive(m.bytes, now);
+    else if (m.type === 'ops') {
+      const b = decodeOps(m.bytes, surfaces);
+      b?.ops.forEach((op, i) => this.receiveOp(b.t[i], op));
+    } else this.receiveLadder(m.t, m.data);
   }
 
   /** A paint op they made at their time `t`. */

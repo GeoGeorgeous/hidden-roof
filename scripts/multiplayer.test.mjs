@@ -183,7 +183,7 @@ try {
   // B finds the marker and reloads: it comes back into the session as the same player, with the paint and the marker.
   await b.evaluate(() => window.game.inventory.give('marker'));
   // The game sends what it carries on its next frame: wait for that, not a fixed time (SwiftShader draws ~6 frames a second here).
-  await b.waitForFunction(() => window.game.net.carried === window.game.inventory.version, null, { timeout: 5000, polling: 50 });
+  await b.waitForFunction(() => window.game.net.sender.carried === window.game.inventory.version, null, { timeout: 5000, polling: 50 });
   await b.reload();
   await gameReady(b);
   await watchStatus(b);
@@ -337,7 +337,7 @@ try {
   await welcomeHeld();
   // The network's progress, as it has it: the welcome's paint coming down.
   const joining = await menuNow();
-  assert.match(joining.play[1], /^(Joining session…|Downloading paint \d+%)$/);
+  assert.match(joining.play[1], /^(Joining…|Loading \d+%)$/);
   assert.deepEqual({ ...joining, play: [joining.play[0]] }, { play: [true], other: 'Leave session', resumed: 0 }, 'joining: PLAY is disabled and nothing resumes');
   await press(b, 'LEAVE SESSION');
   await status(b, 'off');

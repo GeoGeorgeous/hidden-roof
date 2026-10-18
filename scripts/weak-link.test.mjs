@@ -143,7 +143,7 @@ const SCENARIOS = {
       g.inventory.give('marker');
       g.level.setRuntime(g.session.player, { type: 'stepladder', pos: [1, 0, 1], rot: 0 });
     });
-    await B.page.waitForFunction(() => window.game.net.carried === window.game.inventory.version, null, { timeout: 5000 });
+    await B.page.waitForFunction(() => window.game.net.sender.carried === window.game.inventory.version, null, { timeout: 5000 });
     await A.page.waitForFunction(() => window.game.level.runtimeOf('player2') !== undefined, null, { timeout: 10000 });
     // Dead both ways: the server notices on its heartbeat (~20 s), then the window runs out.
     B.proxy.down.rate = B.proxy.up.rate = 0;

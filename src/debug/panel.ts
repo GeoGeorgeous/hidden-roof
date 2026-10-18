@@ -1,7 +1,7 @@
 import { icon, sectionIcon } from './icons';
 import { itemRow, whenOf, WHEN, type Row } from './rows';
 import { allSections } from './sections';
-import { isChanged, isValue, resetItems, sectionsJSON, type Section } from './tuning';
+import { isChanged, isValue, resetItems, sectionsJSON, type Hooks, type Night, type Section } from './tuning';
 import { store, stored } from '../stored';
 import { el } from '../menu-ui';
 
@@ -57,8 +57,9 @@ export class DebugPanel {
   private page!: Page;
   private openIds: Set<string>;
 
-  constructor() {
-    this.list = allSections();
+  /** `night`: the ATMOS values daylight replaced, while build mode shows it (see tuning.ts). */
+  constructor(hooks: Hooks, private night: Night) {
+    this.list = allSections(hooks);
     this.openIds = loadOpen() ?? new Set(this.list.filter((s) => s.open).map((s) => s.id));
     this.root = el('div', 'debug-panel');
     this.root.hidden = true;
@@ -67,7 +68,7 @@ export class DebugPanel {
       confirmButton('RESET ALL', () => this.reset(this.list)),
       button('COLLAPSE ALL', () => this.setAll(false)),
       button('EXPAND ALL', () => this.setAll(true)),
-      copyButton('COPY ALL', () => sectionsJSON(this.list)),
+      copyButton('COPY ALL', () => sectionsJSON(this.list, this.night)),
     );
     const tabs = el('div', 'tabs');
     const body = el('div', 'pages');
@@ -133,7 +134,7 @@ export class DebugPanel {
   }
 
   private reset(list: Section[]) {
-    resetItems(list.flatMap((s) => s.items));
+    resetItems(list.flatMap((s) => s.items), this.night);
     this.sync();
   }
 
@@ -142,7 +143,7 @@ export class DebugPanel {
     for (const p of this.pages) {
       let any = false;
       for (const part of p.parts) {
-        const changed = part.s.items.some((it) => isValue(it) && isChanged(it));
+        const changed = part.s.items.some((it) => isValue(it) && isChanged(it, this.night));
         part.head.classList.toggle('changed', changed);
         any ||= changed;
       }
@@ -193,10 +194,10 @@ export class DebugPanel {
       if (shared) head.append(Object.assign(el('span', 'hint'), { textContent: WHEN[w!][0], title: WHEN[w!][1] }));
       const reset = confirmButton('RESET', () => this.reset([s]));
       reset.classList.add('reset');
-      head.append(copyButton('COPY', () => sectionsJSON([s])), reset);
+      head.append(copyButton('COPY', () => sectionsJSON([s], this.night)), reset);
     }
     for (const it of s.items) {
-      const row = itemRow(it, it.kind === 'choice' ? () => this.sync() : () => this.refresh(), !shared);
+      const row = itemRow(it, it.kind === 'choice' ? () => this.sync() : () => this.refresh(), this.night, !shared);
       this.rows.push(row);
       if (row.read) this.readouts.push(row.read);
       body.append(row.el);

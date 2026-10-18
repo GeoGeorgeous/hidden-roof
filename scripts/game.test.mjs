@@ -1847,16 +1847,16 @@ await check('avatar: one draw call for the body, at most two for a tool; every t
     const g = window.game;
     const frames = (n) => new Promise((done) => { const tick = () => (--n ? requestAnimationFrame(tick) : done()); requestAnimationFrame(tick); });
     g.fixedStep.dt = 0.05;
-    g.live.avatarToggle();
+    g.hooks.avatarToggle();
     let fig = null;
     g.level.root.parent.traverse((o) => (fig ??= o.isSkinnedMesh ? o : null));
     const out = { meshes: 0, problems: [] };
     const y = (name) => { const b = fig.skeleton.bones.find((x) => x.name === name); b.updateWorldMatrix(true, false); return b.matrixWorld.elements[13] - fig.parent.position.y; };
     const seen = new Set();
     for (;;) {
-      g.live.avatarNext();
+      g.hooks.avatarNext();
       // '7 / 18: jump' -> 'jump'
-      const pose = g.live.avatarPose().split(': ')[1];
+      const pose = g.hooks.avatarPose().split(': ')[1];
       if (seen.has(pose)) break;
       seen.add(pose);
       await frames(12);
@@ -1871,7 +1871,7 @@ await check('avatar: one draw call for the body, at most two for a tool; every t
       if (pose === 'crouch' && y('head') > 1.25) out.problems.push(`crouch: head at ${y('head').toFixed(2)}`);
       if (pose === 'spray up' && y('handR') < y('upperArmR')) out.problems.push('spray up: hand below the shoulder');
     }
-    g.live.avatarToggle();
+    g.hooks.avatarToggle();
     g.fixedStep.dt = 0;
     return { ...out, poses: seen.size };
   });
@@ -2076,17 +2076,17 @@ await check('avatar test figure: the pose slider stops on a pose, moving poses g
     const T = g.config.AVATAR_TEST;
     const frames = (n) => new Promise((done) => { const tick = () => (--n ? requestAnimationFrame(tick) : done()); requestAnimationFrame(tick); });
     g.fixedStep.dt = 0.05;
-    g.live.avatarToggle();
+    g.hooks.avatarToggle();
     let fig = null;
     g.level.root.parent.traverse((o) => (fig ??= o.isSkinnedMesh ? o.parent : null));
     // Standing still first (idle), to find where it stands.
     T.pose = 0;
-    g.live.avatarPick();
+    g.hooks.avatarPick();
     await frames(2);
     const center = fig.position.clone();
     T.pose = 1;
-    g.live.avatarPick();
-    const picked = g.live.avatarPose();
+    g.hooks.avatarPick();
+    const picked = g.hooks.avatarPose();
     // Walking round the loop: how far it went in 10 frames, and how far from the middle it stays.
     const walk = async () => {
       const a = fig.position.clone();
@@ -2101,7 +2101,7 @@ await check('avatar test figure: the pose slider stops on a pose, moving poses g
     await frames(2);
     const [spot] = await walk();
     T.onTheSpot = false;
-    g.live.avatarToggle();
+    g.hooks.avatarToggle();
     g.fixedStep.dt = 0;
     return { picked, moved, radius, slow, spot };
   });
@@ -2233,10 +2233,10 @@ await check('settings: Rain set in build mode (daylight) is what the night has o
       return shown;
     };
     const was = ATMOS.rain;
-    g.atmosphere.setDaylight(true);
+    g.environment.atmosphere.setDaylight(true);
     const shown = flip();
     const day = ATMOS.rain;
-    g.atmosphere.setDaylight(false);
+    g.environment.atmosphere.setDaylight(false);
     const night = ATMOS.rain;
     const saved = JSON.parse(localStorage.getItem('roofhiddenhaus.settings')).values['ATMOS.rain'];
     flip();

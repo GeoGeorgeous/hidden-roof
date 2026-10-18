@@ -144,10 +144,16 @@ export function multiplayerMenu(hud: PauseMenu, hotbar: Hotbar, ctx: Multiplayer
   hud.sessionInfo = () => ({ ping: net.ping, players: net.players.map((p) => ({ name: p.name, color: p.color && COLORS[p.color] })) });
   // Each step of HOST, JOIN or SAVE as it goes, with how far along an upload or download is.
   net.onProgress = (text) => {
-    if (text) (say(text), hud.notice(text, Infinity), net.status.state === 'connecting' && hud.setJoining(text));
+    if (text) (say(text), hud.notice(text, Infinity), net.status.state === 'connecting' && hud.setJoining(short(text)));
     else hud.notice('', 0);
   };
   return net;
+}
+
+/** PLAY's short form of a progress line while joining: 'Loading 40%', or 'Joining…' before there's a share. */
+function short(progress: string) {
+  const share = /\d+%$/.exec(progress);
+  return share ? `Loading ${share[0]}` : 'Joining…';
 }
 
 /** HOST A SESSION / JOIN A SESSION: a big row with what it's for. */

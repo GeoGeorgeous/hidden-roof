@@ -1,5 +1,5 @@
 import { HOLD } from '../config';
-import { live, r, t, gray, v3, type Item, type Section } from './tuning';
+import { live, r, t, gray, v3, type Hooks, type Item, type Section } from './tuning';
 import { POSE_COUNT } from '../dev/avatar-preview';
 
 // F3 panel contents for playing (tuning.ts has the helpers).
@@ -22,9 +22,9 @@ function holdItems(): Item[] {
 
 
 /** F3 sections for playing: movement, camera, hands, held, avatar, ghost. */
-export function playSections(): Section[] {
+export function playSections(h: Hooks): Section[] {
   const p = () => live.player;
-  const net = () => live.ghostNet();
+  const net = () => h.ghostNet();
   const v2 = (x: number, y: number) => Math.hypot(x, y).toFixed(2);
   return [
     {
@@ -62,7 +62,7 @@ export function playSections(): Section[] {
       id: 'avatar',
       title: 'Avatar',
       items: [
-        t('hood up', ['AVATAR', 'hoodUp'], () => live.avatarRestyle()),
+        t('hood up', ['AVATAR', 'hoodUp'], () => h.avatarRestyle()),
         { kind: 'heading', label: 'MOTION' },
         r('step length', ['AVATAR', 'step'], 0.3, 1.2, 0.01),
         r('run: step length', ['AVATAR', 'stepPerSpeed'], 0, 0.3, 0.005),
@@ -73,27 +73,27 @@ export function playSections(): Section[] {
         r('sprint: lean', ['AVATAR', 'sprintLean'], 0, 0.6, 0.01),
         r('blend speed', ['AVATAR', 'blend'], 1, 30, 0.5),
         { kind: 'heading', label: 'GRAY TONES' },
-        gray('hoodie', ['AVATAR', 'colors', 'hoodie'], () => live.avatarRestyle()),
-        gray('trim', ['AVATAR', 'colors', 'trim'], () => live.avatarRestyle()),
-        gray('pocket', ['AVATAR', 'colors', 'pocket'], () => live.avatarRestyle()),
-        gray('pants', ['AVATAR', 'colors', 'pants'], () => live.avatarRestyle()),
-        gray('shoe', ['AVATAR', 'colors', 'shoe'], () => live.avatarRestyle()),
-        gray('sole', ['AVATAR', 'colors', 'sole'], () => live.avatarRestyle()),
-        gray('head', ['AVATAR', 'colors', 'head'], () => live.avatarRestyle()),
-        gray('eyes', ['AVATAR', 'colors', 'eyes'], () => live.avatarRestyle()),
-        gray('glove', ['AVATAR', 'colors', 'glove'], () => live.avatarRestyle()),
+        gray('hoodie', ['AVATAR', 'colors', 'hoodie'], () => h.avatarRestyle()),
+        gray('trim', ['AVATAR', 'colors', 'trim'], () => h.avatarRestyle()),
+        gray('pocket', ['AVATAR', 'colors', 'pocket'], () => h.avatarRestyle()),
+        gray('pants', ['AVATAR', 'colors', 'pants'], () => h.avatarRestyle()),
+        gray('shoe', ['AVATAR', 'colors', 'shoe'], () => h.avatarRestyle()),
+        gray('sole', ['AVATAR', 'colors', 'sole'], () => h.avatarRestyle()),
+        gray('head', ['AVATAR', 'colors', 'head'], () => h.avatarRestyle()),
+        gray('eyes', ['AVATAR', 'colors', 'eyes'], () => h.avatarRestyle()),
+        gray('glove', ['AVATAR', 'colors', 'glove'], () => h.avatarRestyle()),
       ],
     },
     {
       id: 'avatar-test',
       title: 'Avatar test',
       items: [
-        { kind: 'readout', label: 'showing', get: () => live.avatarPose() },
-        { kind: 'action', label: 'SHOW / HIDE', run: () => live.avatarToggle() },
-        { kind: 'action', label: 'PREVIOUS POSE', run: () => live.avatarPrevious() },
-        { kind: 'action', label: 'NEXT POSE', run: () => live.avatarNext() },
-        { kind: 'action', label: 'CYCLE POSES', run: () => live.avatarCycle() },
-        r('pose', ['AVATAR_TEST', 'pose'], 0, POSE_COUNT - 1, 1, () => live.avatarPick()),
+        { kind: 'readout', label: 'showing', get: () => h.avatarPose() },
+        { kind: 'action', label: 'SHOW / HIDE', run: () => h.avatarToggle() },
+        { kind: 'action', label: 'PREVIOUS POSE', run: () => h.avatarPrevious() },
+        { kind: 'action', label: 'NEXT POSE', run: () => h.avatarNext() },
+        { kind: 'action', label: 'CYCLE POSES', run: () => h.avatarCycle() },
+        r('pose', ['AVATAR_TEST', 'pose'], 0, POSE_COUNT - 1, 1, () => h.avatarPick()),
         r('slow motion', ['AVATAR_TEST', 'timeScale'], 0.05, 1, 0.05),
         r('look up / down', ['AVATAR_TEST', 'pitch'], -1.5, 1.5, 0.01),
         r('walk speed', ['AVATAR_TEST', 'speed'], 0, 8, 0.1),
@@ -105,16 +105,16 @@ export function playSections(): Section[] {
       id: 'ghost',
       title: 'Ghost',
       items: [
-        { kind: 'readout', label: 'ghost', get: () => live.ghostState() },
+        { kind: 'readout', label: 'ghost', get: () => h.ghostState() },
         { kind: 'readout', label: 'shown behind them', get: () => (net() ? `${(net()!.delay * 1000).toFixed(0)} ms` : '-') },
         { kind: 'readout', label: 'jitter measured', get: () => (net() ? `${(net()!.jitter * 1000).toFixed(0)} ms` : '-') },
         { kind: 'readout', label: 'snapshots buffered', get: () => (net() ? `${net()!.buffered}` : '-') },
         { kind: 'readout', label: 'guessing', get: () => (net() ? (net()!.guessing ? 'YES' : 'no') : '-') },
         { kind: 'readout', label: 'correction gliding', get: () => (net() ? `${(net()!.correction * 100).toFixed(0)} cm` : '-') },
-        { kind: 'action', label: 'RECORD', run: () => live.ghostRecord() },
-        { kind: 'action', label: 'PLAY (LOOP)', run: () => live.ghostPlay() },
-        { kind: 'action', label: 'FOLLOW ME', run: () => live.ghostFollow() },
-        { kind: 'action', label: 'STOP', run: () => live.ghostStop() },
+        { kind: 'action', label: 'RECORD', run: () => h.ghostRecord() },
+        { kind: 'action', label: 'PLAY (LOOP)', run: () => h.ghostPlay() },
+        { kind: 'action', label: 'FOLLOW ME', run: () => h.ghostFollow() },
+        { kind: 'action', label: 'STOP', run: () => h.ghostStop() },
         r('net: delay', ['GHOST', 'latency'], 0, 0.5, 0.01),
         r('net: jitter', ['GHOST', 'jitter'], 0, 0.3, 0.01),
         r('net: hiccups', ['GHOST', 'hiccups'], 0, 0.2, 0.005),

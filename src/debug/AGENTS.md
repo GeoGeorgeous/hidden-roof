@@ -38,6 +38,7 @@
 
 ## Code and process
 
+- **Rows reach the game through `Hooks`** (`tuning.ts`): DevTools builds build mode, the figure, the ghost and the profiler first, then `new DebugPanel(hooks, …)`, and `allSections(h)` hands `h` to each `*Sections(h)`. A new side effect is a method on `Hooks` and a line in `devtools.ts`; there are no placeholders to keep in step.
 - **Tunables live in `config.ts`.** Panel contents go in a `*-sections.ts` file per area (each under 400 lines), with shared helpers for repeated rows.
 - **Renaming a config key** updates tooltips, tests and code in the same commit. Golden paint must still match, unless the change means to alter paint and the commit says so (`npm run golden -- --update`).
 - **Before restructuring a tab,** propose the changes point by point, with options, and let the user decide.

@@ -1,6 +1,6 @@
 import { CAP_ORDER, CAPS, PICKUP, TAG_FONTS, type TagFont } from '../config';
 import { defaultOf } from './defaults';
-import { c, getValue, gray, live, r, setValue, t, type Item, type Section } from './tuning';
+import { c, getValue, gray, r, setValue, t, type Hooks, type Item, type Section } from './tuning';
 
 // F3 panel contents for items (tuning.ts has the helpers): the pickups in the
 // world, and the tool models they, the first-person view, the figure's hand
@@ -60,14 +60,14 @@ function tagItems(): Item[] {
 }
 
 /** F3 sections for items: pickups, then each tool's model and the caps. */
-export function itemSections(): Section[] {
-  const m = (label: string, path: string[], min: number, max: number, step: number) => r(label, ['MODELS', ...path], min, max, step, () => live.rebuildModels());
+export function itemSections(h: Hooks): Section[] {
+  const m = (label: string, path: string[], min: number, max: number, step: number) => r(label, ['MODELS', ...path], min, max, step, () => h.rebuildModels());
   return [
     {
       id: 'pickups',
       title: 'Pickups',
       items: [
-        { kind: 'action', label: 'UNLOCK ALL', run: () => live.unlockAll() },
+        { kind: 'action', label: 'UNLOCK ALL', run: () => h.unlockAll() },
         r('reach', ['PICKUP', 'reach'], 0.2, 3, 0.05),
         r('reach: height', ['PICKUP', 'reachHeight'], 0.2, 4, 0.05),
         r('hover height', ['PICKUP', 'hover'], 0, 2, 0.05),
@@ -106,8 +106,8 @@ export function itemSections(): Section[] {
         m('height', ['cap', 'height'], 0.004, 0.03, 0.001),
         ...CAP_ORDER.flatMap((cap) => [
           { kind: 'heading', label: CAPS[cap].name } as Item,
-          c('color', ['CAPS', cap, 'color'], () => live.rebuildModels()),
-          r('nozzle size', ['CAPS', cap, 'nozzle'], 0.002, 0.02, 0.001, () => live.rebuildModels()),
+          c('color', ['CAPS', cap, 'color'], () => h.rebuildModels()),
+          r('nozzle size', ['CAPS', cap, 'nozzle'], 0.002, 0.02, 0.001, () => h.rebuildModels()),
         ]),
       ],
     },

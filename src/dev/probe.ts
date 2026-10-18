@@ -1,7 +1,7 @@
 import type * as THREE from 'three';
 import { ATMOS, LIGHTMAP, PROFILE, SMOKE, VOLUMETRICS } from '../config';
 import type { Level } from '../level/level';
-import type { Lighting } from '../render/lighting';
+import type { Environment } from '../render/environment';
 import { pixelRatio } from '../settings';
 
 // The probe (F9 while profiling): stand still and it turns the game's systems
@@ -12,8 +12,7 @@ import { pixelRatio } from '../settings';
 interface ProbeWorld {
   renderer: THREE.WebGLRenderer;
   level: Level;
-  lighting: Lighting;
-  lightFx: { root: THREE.Object3D };
+  environment: Pick<Environment, 'lighting' | 'lightFx'>;
   city(): THREE.Object3D;
   /** Sets the renderer's pixel ratio from Settings (main.ts), and what is sized by it. */
   applyPixelScale(): void;
@@ -39,10 +38,10 @@ const STEPS: Step[] = [
   // The level in two halves, both merged per tile: its paintable surfaces, and the rest of its props.
   { name: 'no prop surfaces', apply: (w) => hide(w.level.merged.surfaces) },
   { name: 'no prop details', apply: (w) => hide(w.level.merged.decor) },
-  { name: 'no glows or beams', apply: (w) => hide(w.lightFx.root) },
+  { name: 'no glows or beams', apply: (w) => hide(w.environment.lightFx.root) },
   { name: 'no moon shadows', apply: () => (ATMOS.shadows ? set(ATMOS, 'shadows', false) : null) },
   { name: 'no wet highlights', apply: () => (LIGHTMAP.highlights ? set(LIGHTMAP, 'highlights', 0) : null) },
-  { name: 'no real lights', apply: (w) => hide(...w.lighting.spots) },
+  { name: 'no real lights', apply: (w) => hide(...w.environment.lighting.spots) },
   { name: 'no volumetrics', apply: () => (VOLUMETRICS.enabled ? set(VOLUMETRICS, 'enabled', false) : null) },
   {
     name: 'no rain or smoke',

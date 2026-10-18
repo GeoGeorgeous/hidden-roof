@@ -1,6 +1,6 @@
 import { HINT_FONTS } from '../config';
 import { hintFontName } from '../build/hint-fonts';
-import { live, r, t, c, when, type Item, type Section } from './tuning';
+import { r, t, c, when, type Hooks, type Item, type Section } from './tuning';
 
 // F3 panel contents for build mode (tuning.ts has the helpers): its daylight
 // (DAYLIGHT replaces those ATMOS values while building), editing (with the
@@ -8,9 +8,9 @@ import { live, r, t, c, when, type Item, type Section } from './tuning';
 // around painted faces), the picker, and how hints look in each font.
 
 /** F3 sections for the Build tab. */
-export function buildSections(): Section[] {
-  const apply = () => live.applyDaylight();
-  const look = () => live.syncBuildLook();
+export function buildSections(h: Hooks): Section[] {
+  const apply = () => h.applyDaylight();
+  const look = () => h.syncBuildLook();
   const d = (label: string, key: string, min: number, max: number, step: number) => r(label, ['DAYLIGHT', key], min, max, step, apply);
   return [
     {

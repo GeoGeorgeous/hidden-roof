@@ -1,5 +1,5 @@
 import { CAP_ORDER, CAPS } from '../config';
-import { live, r, t, type Item, type Section } from './tuning';
+import { r, t, type Hooks, type Item, type Section } from './tuning';
 
 // F3 panel contents for painting (tuning.ts has the helpers): what each tool
 // does (one vocabulary: reach, width, opacity, softness), the caps, paint
@@ -33,8 +33,8 @@ function qualityItems(tool: 'MARKER' | 'ROLLER' | 'SPONGE'): Item[] {
 }
 
 /** Each tool: reach, width, opacity, softness, then what only it has. */
-export function paintSections(): Section[] {
-  const sizes = () => live.applyToolSizes();
+export function paintSections(h: Hooks): Section[] {
+  const sizes = () => h.applyToolSizes();
   return [
     {
       id: 'painting',
