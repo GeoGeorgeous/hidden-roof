@@ -3,7 +3,8 @@
 // JOIN through the pause menu's MULTIPLAYER page, both at the host's PAINT
 // DETAIL, paint and the stepladder reaching the other player, a reload coming
 // back into the session, paint while hidden, one that heard nothing for a while reconnecting, LEAVE
-// SESSION, one already playing the session's level starting it over, and a server restart ending the session.
+// SESSION, one already playing the session's level starting it over, a message it can't handle ending its session as
+// broken, and a server restart ending the session.
 // Usage: npm run test:mp (builds the server first)
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
@@ -67,8 +68,13 @@ try {
   await press(a, 'HOST A SESSION');
   await a.fill('.mp-page input >> nth=0', 'A');
   for (let i = 0; i < 2; i++) await a.click('.mp-page .choice button:text-is("‹") >> nth=0');
+  // A was recording a ghost (F3, dev builds): the session stops it, and its frames go on (it used to put paint.log
+  // back to null after the welcome, so every frame threw).
+  await a.evaluate(() => window.game.ghost.record());
   await press(a, 'Host');
   await status(a, 'in');
+  await a.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  assert.deepEqual(a.errors, [], 'a ghost recording before HOST breaks no frame');
   const code = (await a.textContent('.overlay .status')).match(/Session · ([A-Z]+)/)[1];
   assert.equal(code, await a.evaluate(() => window.game.net.status.code));
   await press(b, 'MULTIPLAYER');
@@ -162,6 +168,35 @@ try {
   await status(b, 'in');
   assert.equal(await paintHash(b), painted, 'the paint comes back after a reconnect');
 
+  // BL-088: B comes back on link 1, which drops while its welcome loads (4 s); the retry's link 2 hears nothing. Link 1's
+  // late welcome must not mark link 2 live: link 2 still gives up after NET.connectTimeout (3 s here), not serverSilence.
+  await b.evaluate(() => {
+    const n = window.game.net;
+    const welcome = n.welcome.bind(n);
+    n.welcome = async (...args) => {
+      n.welcome = welcome;
+      n.link.close();
+      window.mute = true;
+      await new Promise((r) => setTimeout(r, 4000));
+      return welcome(...args);
+    };
+    // A link opened while muted hears nothing from the server.
+    const WS = window.WebSocket;
+    window.WebSocket = class extends WS {
+      set onmessage(f) {
+        super.onmessage = window.mute ? null : f;
+      }
+      get onmessage() {
+        return super.onmessage;
+      }
+    };
+    window.game.config.NET.connectTimeout = 3;
+    n.link.close();
+  });
+  await b.waitForFunction(() => window.game.net.log.text().includes('nothing from the server in 3 s'), null, { timeout: 9000 }).catch(async () => assert.fail(`link 2 never gave up:\n${await b.evaluate(() => window.game.net.log.text())}`));
+  await b.evaluate(() => ((window.mute = false), (window.game.config.NET.connectTimeout = 15)));
+  await status(b, 'in');
+
   // LEAVE: A hears B has gone, B plays alone at its own detail again.
   await press(b, 'LEAVE SESSION');
   await a.waitForFunction(() => window.game.net.names.size === 0, null, { timeout: 5000 });
@@ -200,7 +235,14 @@ try {
   });
   assert.deepEqual(restarted, { kept: true, ladder: null, marker: false, fromSpawn: 0 });
   assert.equal(await paintHash(c), await paintHash(a), 'C has the session paint');
-  await c.evaluate(() => window.game.net.leave());
+
+  // A message C's game can't handle ends its session as broken, with the error in the log; not "a new version is out".
+  await c.evaluate(() => (window.game.net.remotes.get = () => null.state));
+  await c.waitForFunction(() => window.game.net.status.state === 'failed', null, { timeout: 5000 });
+  assert.equal(await c.evaluate(() => window.game.net.status.reason), 'broken');
+  assert.match(await c.evaluate(() => window.game.hud.menu.message), /The game hit an error in the session/);
+  assert.match(await c.evaluate(() => window.game.net.log.text()), /couldn't handle state: TypeError/);
+  await a.waitForFunction(() => window.game.net.names.size === 0, null, { timeout: 5000 });
 
   // The server restarts (a deploy): A's game reconnects, finds its session gone, and says the session has ended.
   server.kill();

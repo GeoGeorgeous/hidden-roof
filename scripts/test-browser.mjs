@@ -63,21 +63,26 @@ export async function openTestBrowser(url, { uncapped = false, level = 'demo', g
     };
   }
   // Pages get 2 min to load (a reload too): Playwright's own 30 s is short for SwiftShader on a slow CI runner.
-  const open = browser.newPage.bind(browser);
-  browser.newPage = async (options) => {
-    const page = await open(options);
-    page.setDefaultNavigationTimeout(120_000);
-    // The page's warnings and errors, for gameReady to name what held a load up.
+  /** The page's warnings and errors, for gameReady to name what held a load up: pages of a context too (net-lab's). */
+  const keepLoadLog = (page) => {
+    if (page.loadLog) return;
     page.loadLog = [];
     page.on('console', (m) => ['error', 'warning'].includes(m.type()) && page.loadLog.push(`${m.type()}: ${m.text()}`));
     page.on('pageerror', (e) => page.loadLog.push(`pageerror: ${e.message}`));
     page.on('requestfailed', (q) => page.loadLog.push(`requestfailed: ${q.url()} ${q.failure()?.errorText}`));
+  };
+  const open = browser.newPage.bind(browser);
+  browser.newPage = async (options) => {
+    const page = await open(options);
+    page.setDefaultNavigationTimeout(120_000);
+    keepLoadLog(page);
     return page;
   };
   const context = browser.newContext.bind(browser);
   browser.newContext = async (options) => {
     const c = await context(options);
     c.setDefaultNavigationTimeout(120_000);
+    c.on('page', keepLoadLog);
     return c;
   };
   return {

@@ -8,7 +8,7 @@ import { action, button, div, relabel, sentence } from '../menu-ui';
 import { choice, pageHead, settingRow } from '../settings-page';
 import { CODE_LENGTH, CODE_LETTERS, NAME_MAX } from './protocol';
 import type { MultiplayerContext } from './game-context';
-import { Multiplayer, type NetStatus } from './multiplayer';
+import { Multiplayer, type Failure, type NetStatus } from './multiplayer';
 
 // The Multiplayer page of the ESC menu: HOST (a name, the session's PAINT
 // DETAIL, the paint to start from: the level's own (save/level-paint.ts, none
@@ -23,8 +23,8 @@ const START_LABEL: Record<Start, string> = { fresh: 'Fresh level', mine: 'This p
 const DETAILS = Object.entries(PAINT_DETAIL) as [keyof typeof PAINT_DETAIL, number][];
 const NAME_KEY = 'roofhiddenhaus.name';
 
-/** What the player reads about the link. */
-const STATUS: Record<string, string> = {
+/** What the player reads about the link: every failure has its text. */
+const STATUS: Record<Failure | 'connecting' | 'reconnecting', string> & Partial<Record<NetStatus['state'], string>> = {
   connecting: 'Connecting…',
   reconnecting: 'Connection lost · reconnecting…',
   version: 'A new version is out: reload the page',
@@ -37,6 +37,7 @@ const STATUS: Record<string, string> = {
   'too-many': 'Too many connections from your network: try again later',
   ended: 'The session has ended',
   timeout: "The server didn't answer",
+  broken: 'The game hit an error in the session: copy the network log for a report',
   offline: "Can't reach the site: check your connection",
   'server-down': 'The game server is down',
   'no-server': 'No game server at this address',

@@ -36,9 +36,9 @@ export async function diagnose(): Promise<{ reason: 'offline' | 'server-down' | 
   if (!navigator.onLine) return { reason: 'offline', detail: 'BROWSER OFFLINE' };
   let res: Response;
   try {
-    res = await fetch('/ws', { cache: 'no-store', signal: AbortSignal.timeout(5000) });
+    res = await fetch('/ws', { cache: 'no-store', signal: AbortSignal.timeout(NET.diagnoseTimeout * 1000) });
   } catch (e) {
-    return { reason: 'offline', detail: (e as Error).name === 'TimeoutError' ? 'NO HTTP ANSWER IN 5 S' : 'HTTP FAILED' };
+    return { reason: 'offline', detail: (e as Error).name === 'TimeoutError' ? `NO HTTP ANSWER IN ${NET.diagnoseTimeout} S` : 'HTTP FAILED' };
   }
   const text = res.ok ? await res.text() : '';
   const theirs = text.match(/^roof server · protocol (\d+)/)?.[1];

@@ -1143,14 +1143,14 @@ Done (2026-10-14): the level as a file (`PropData`, `LevelData`) is `src/level/l
 ### A late welcome can mark the next link as live
 - id: BL-088
 - type: bug
-- status: Planned
+- status: Done
 - priority: Low
 - size: S
 - area: net
-- release: later
+- release: next
 - source: agent (architecture review 2026-10-14)
 
-`Multiplayer.welcome` (`src/net/multiplayer.ts`) marks whichever link is current as live once the paint is loaded, not the link the welcome came on. If link A drops while its welcome loads paint and the retry has opened link B, A's welcome marks B live before B's own welcome, so B stops giving up after `NET.connectTimeout`. As before the ServerLink split (a shared `live` flag). Do: pass the welcome's link from `connect`'s handler through `receive` to `welcome`, and mark that one. Test: in `scripts/multiplayer.test.mjs`, delay a welcome (as the "takes 5 s" check does), drop the link meanwhile, and check the new link still gives up after `NET.connectTimeout` when the server stays silent.
+`Multiplayer.welcome` (`src/net/multiplayer.ts`) marks whichever link is current as live once the paint is loaded, not the link the welcome came on. If link A drops while its welcome loads paint and the retry has opened link B, A's welcome marks B live before B's own welcome, so B stops giving up after `NET.connectTimeout`. As before the ServerLink split (a shared `live` flag). Do: pass the welcome's link from `connect`'s handler through `receive` to `welcome`, and mark that one. Test: in `scripts/multiplayer.test.mjs`, delay a welcome (as the "takes 5 s" check does), drop the link meanwhile, and check the new link still gives up after `NET.connectTimeout` when the server stays silent. Fixed (S5.1, F5.3): the welcome marks the link it came on; the test is in `scripts/multiplayer.test.mjs` as above (link 1 drops while its welcome loads, link 2 hears nothing and gives up after `NET.connectTimeout`).
 
 ### The multiplayer test sometimes never sees B reconnect
 - id: BL-091
@@ -1399,3 +1399,15 @@ Done (2026-10-18, audit S2.2, `feat/show-gpu`): `src/gpu-name.ts` (short name, i
 - source: audit S2.2 shots 2026-10-18 (F2.12)
 
 `npm run shots` with `GPU=Intel` (WSLg's D3D12 on the Intel UHD) draws an X across the Settings tabs and the Back button, the blurred-glass bars (`backdrop-filter`); the NVIDIA draws them clean. Likely WSLg's driver, not the game. Do: look at Settings on the Windows laptop's Intel UHD in Chrome; only if it shows there, look at the bars' CSS.
+
+### test:weak-link sometimes doesn't load the game
+- id: BL-111
+- type: bug
+- status: Requested
+- priority: Medium
+- size: S
+- area: net
+- release: next
+- source: audit S5.1 2026-10-18 (F5.11)
+
+The first `npm run test:weak-link` run in a tree twice stopped at "The game didn't load: reload the page" (`src/boot.ts`: `import('./main')` rejected): once on `fix/net-bugs`, once on a clean `dev` worktree. Later runs passed, a cold Vite cache too. Its pages come from a browser context, which had no load log; since S5.1 (`scripts/test-browser.mjs`) they have one. Do: on the next failure, read the load log `gameReady` prints and fix the cause.

@@ -22,8 +22,8 @@ import { capture, encodeSnapshot } from './snapshot';
 // so a reload comes back too, and each tab is its own player. The server
 // keeps what the player carries, and hears when the game is hidden.
 
-/** Why the game isn't in a session: the server said so (Rejection), it never answered, or diagnose's guess at why it can't be reached. */
-type Failure = Rejection | 'timeout' | Awaited<ReturnType<typeof diagnose>>['reason'];
+/** Why the game isn't in a session: the server said so (Rejection), it never answered, it couldn't handle a message (broken), or diagnose's guess at why it can't be reached. */
+export type Failure = Rejection | 'timeout' | 'broken' | Awaited<ReturnType<typeof diagnose>>['reason'];
 
 /** What the player sees of the link, shown on the menus; `detail`: what was seen (a close code, an HTTP status, tries), for reports. */
 export type NetStatus = { state: 'off' } | { state: 'connecting' } | { state: 'in'; code: string } | { state: 'reconnecting'; code: string; detail: string } | { state: 'failed'; reason: Failure; detail?: string };
@@ -165,8 +165,14 @@ export class Multiplayer {
     const url = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws${hello.type === 'host' ? '?host' : ''}`;
     this.log.add(`connecting to ${url}: ${hello.type === 'host' ? `HOST at ${hello.detail} texels/m${hello.bytes ? ` with ${(hello.bytes.length / 1024).toFixed(0)} KB of paint` : ''}` : `JOIN ${hello.code}${hello.token ? ' (coming back)' : ''}`}`);
     if (!this.joined) this.setStatus({ state: 'connecting' });
-    // What this game can't take (a welcome it can't load) ends the session for it.
-    const handle = (m: ToClient, arrived: number, file?: Uint8Array) => (this.queue = this.queue.then(() => this.receive(m, arrived, file)).catch((err) => (console.error(err), this.send({ type: 'leave' }), this.end({ state: 'failed', reason: 'version' }))));
+    // A message this game can't handle (a bug, a paint file it can't load) ends the session for it, with the error in the log.
+    const handle = (m: ToClient, arrived: number, file?: Uint8Array) =>
+      (this.queue = this.queue.then(() => this.receive(m, arrived, link, file)).catch((err) => {
+        console.error(err);
+        this.log.add(`couldn't handle ${m.type}: ${err}`);
+        this.send({ type: 'leave' });
+        this.end({ state: 'failed', reason: 'broken' });
+      }));
     const link: ServerLink = (this.link = new ServerLink(
       hello,
       {
@@ -207,9 +213,9 @@ export class Multiplayer {
     r.wait = Math.min(r.wait * 2, NET.retryMost);
   }
 
-  /** `arrived`: when it came (local s); `file`: the paint file of a welcome or a save. */
-  private async receive(m: ToClient, arrived: number, file?: Uint8Array) {
-    if (m.type === 'welcome') return this.welcome(m, file!);
+  /** `arrived`: when it came (local s); `link`: the link it came on; `file`: the paint file of a welcome or a save. */
+  private async receive(m: ToClient, arrived: number, link: ServerLink, file?: Uint8Array) {
+    if (m.type === 'welcome') return this.welcome(m, link, file!);
     if (m.type === 'rejected') {
       this.log.add(`turned away by the server: ${m.reason}`);
       // A session that's gone (the server restarted) while we were coming back: it ended.
@@ -243,7 +249,7 @@ export class Multiplayer {
     }
   }
 
-  private async welcome(w: Extract<ToClient, { type: 'welcome' }>, file: Uint8Array) {
+  private async welcome(w: Extract<ToClient, { type: 'welcome' }>, link: ServerLink, file: Uint8Array) {
     const g = this.g;
     if (this.joined?.code !== w.code) {
       if (!playSessionLevel(g, w)) {
@@ -281,8 +287,9 @@ export class Multiplayer {
     this.ladderId = g.level.runtimeOf(session.player);
     this.nextSend = 0;
     this.net = new Traffic();
-    // Its welcome has come: it sends, and a silence on it means it's dead.
-    if (this.link) Object.assign(this.link, { live: true, lastHeard: now() });
+    // Its welcome has come: it sends, and a silence on it means it's dead. That link only: a newer one (this one dropped
+    // while the paint loaded) waits for its own welcome, or gives up after NET.connectTimeout (BL-088).
+    Object.assign(link, { live: true, lastHeard: now() });
     this.carried = -1;
     for (const b of resend) this.sendOps(b);
     if (document.hidden) this.send({ type: 'away', away: true });
