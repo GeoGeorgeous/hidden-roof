@@ -2245,6 +2245,26 @@ await check('signs: their size is the same with a 20% narrower font', async () =
   return normal === narrow ? null : `${normal} vs ${narrow}`;
 });
 
+await check('probe: the half resolution step puts back the pixel ratio Settings gives, also on a page zoomed out', async () => {
+  const p = await openPage(() => Object.defineProperty(window, 'devicePixelRatio', { get: () => 0.5 }));
+  const r = await p.evaluate(async () => {
+    const g = window.game;
+    // The game's own module, from the dev server (a URL, not a file path).
+    const url = '/src/dev/probe.ts';
+    const { Probe } = await import(url);
+    const probe = new Probe(g);
+    // Straight to the step (its settle and measure times aside): next() applies step i + 1.
+    for (probe.i = 0; !probe.label.startsWith('half resolution'); probe.i++);
+    probe.i--;
+    probe.next(performance.now());
+    const half = g.renderer.getPixelRatio();
+    probe.cancel();
+    return { half, after: g.renderer.getPixelRatio(), want: 0.5 / g.config.RENDER.pixelScale };
+  });
+  await p.close();
+  return r.after === r.want && r.half === r.want / 2 ? null : JSON.stringify(r);
+});
+
 await test.close();
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log(`${failed ? `game tests: FAILED (${failed})` : 'game tests: all ok'}${skipped ? ` (${skipped} skipped: ONLY=${process.env.ONLY})` : ''}`);

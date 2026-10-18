@@ -63,6 +63,8 @@ export interface DevContext {
   gpuTimer: GpuTimer;
   /** The generated city around the level. */
   city(): THREE.Object3D;
+  /** The renderer's pixel ratio from Settings, and what is sized by it. */
+  applyPixelScale(): void;
   rebuildCity(): void;
   /** The level as a file: props, pickups, city overrides. */
   levelData(): LevelData;
