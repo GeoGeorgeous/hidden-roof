@@ -1355,3 +1355,15 @@ The cone roofs of the water tank and the tanks on stands (`p.cone`, `src/kit/equ
 - source: owner device tests 2026-10-18 (audit F2.8)
 
 RTX laptop: CPU ~7.3 → 14–16 ms a frame while the ladder is placed over and over near lamps (each move re-bakes its lamp light, `LightBaker.sync`, BL-086); one placement is fine. Do: measure on the Intel laptop (audit T1.8) before deciding.
+
+### Loading drops to 12 fps on the Intel UHD with Energy Saver on
+- id: BL-108
+- type: perf
+- status: Requested
+- priority: Low
+- size: S
+- area: render
+- release: later
+- source: owner laptop runs 2026-10-18 (audit F2.9)
+
+Intel UHD laptop, Chrome's Energy Saver on: 30 fps in play, but 12 fps and CPU 18–24 ms while the game loads (likely shader compiles and uploads). Do: measure the load with `npm run bench` on the Intel UHD (BL-084) before deciding.
