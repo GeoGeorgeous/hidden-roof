@@ -203,6 +203,8 @@ Triage notes (2026-10-14): needs a human: a check in real Firefox and Safari.
 
 Decided (2026-10-17, audit S1.1): Firefox on Windows before the 1.4.0 release (T1.16); Safari and Firefox on the Mac after it, on production.
 
+Checked (2026-10-18, T1.16 by an agent, headed Firefox 155 and WebKit 26.6 on Linux, automated keys): in fullscreen one Esc leaves and doesn't resume, held it leaves, EXIT FULLSCREEN leaves at once, no rings; windowed, Esc on the pause screen resumes (both give the pointer lock back on its release). PLAY's ESC key now shows there too (`esc-hold.ts`). Left for a human: a real held key, and Safari on the Mac.
+
 ### Rework the drips: independent chance, no stacking across tools
 - id: BL-015
 - type: refactor

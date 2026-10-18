@@ -671,6 +671,22 @@ await check('input: game fullscreen locks only the keys play binds and Esc (F11,
   return r.locked.join() === 'Escape,KeyW,ControlLeft,KeyC' && r.hint.join() === 'ESC,F11' ? null : JSON.stringify(r);
 });
 
+await check('menu: PLAY shows its ESC key windowed only where Esc resumes there (no keyboard lock: Firefox, Safari), not in Chromium', async () => {
+  const r = await page.evaluate(async () => {
+    const shown = async () => {
+      await new Promise((done) => setTimeout(done, 100));
+      return getComputedStyle(document.querySelector('.overlay .start .play kbd')).visibility === 'visible';
+    };
+    const chromium = await shown();
+    // Firefox and Safari: no navigator.keyboard.
+    Object.defineProperty(navigator, 'keyboard', { value: undefined, configurable: true });
+    const other = await shown();
+    delete navigator.keyboard;
+    return { chromium, other, after: await shown() };
+  });
+  return !r.chromium && r.other && !r.after ? null : JSON.stringify(r);
+});
+
 await check('input: a key released while Cmd is held doesn\'t stay down (macOS sends no keyup for it)', async () => {
   const r = await page.evaluate(() => {
     const input = window.game.input;
