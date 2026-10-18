@@ -5,11 +5,10 @@ The one list of what's left. One line per item, under its domain: `[TYPE-NNN]: w
 ## Now: 1.4.0
 
 1. TASK [BL-113]: One Sender owns paint.log and what this player sends; the ghost's copy of the send path goes (docs/ideas/net-sender.md)
-2. TASK [BL-133]: F3 builds its hooks first, then the panel; the 33 placeholder hooks and hooks.ts go (docs/ideas/f3-hooks-first.md)
-3. TASK [BL-131]: An Environment module owns sky, fog and lights; main.ts stops wiring them (docs/ideas/environment-module.md)
-4. TASK [BL-132]: One test driver: steps, keys and buttons, instead of four copies and private writes (docs/ideas/test-driver.md)
-5. TASK [BL-134]: Split game.test.mjs (2318 lines) into scripts/game/ by area (docs/ideas/test-driver.md)
-6. TASK [BL-013]: Device checks before the release: page zoom, three browsers, mouse side buttons, browser keys (docs/ideas/release-checks.md)
+2. TASK [BL-131]: An Environment module owns sky, fog and lights; main.ts stops wiring them (docs/ideas/environment-module.md)
+3. TASK [BL-132]: One test driver: steps, keys and buttons, instead of four copies and private writes (docs/ideas/test-driver.md)
+4. TASK [BL-134]: Split game.test.mjs (2318 lines) into scripts/game/ by area (docs/ideas/test-driver.md)
+5. TASK [BL-013]: Device checks before the release: page zoom, three browsers, mouse side buttons, browser keys (docs/ideas/release-checks.md)
 
 ## Multiplayer
 
@@ -140,3 +139,4 @@ Shipped since the last release; the release commit empties this list. What 1.4.0
 2. BUGS [BL-138]: The multiplayer test records every network status the page passes through, so B's 1 s "reconnecting" is never missed
 3. TASK [BL-136]: F3 tooltips, row labels and code comments say Q/E sizes a tool, not the wheel; WheelSized is SizeRange (tools/size-range.ts)
 4. BUGS [BL-105]: Joining or hosting, the menu shows a disabled Joining… (the progress) instead of PLAY until the session's paint has loaded; no key or click resumes; LEAVE or Back cancels; a failed join gives PLAY back
+5. TASK [BL-133]: F3 builds its hooks first, then the panel (DevTools passes a Hooks interface to DebugPanel); the placeholder hooks, hooks.ts and its test are gone

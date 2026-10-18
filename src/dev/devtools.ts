@@ -2,7 +2,7 @@ import './dev.css';
 import type * as THREE from 'three';
 import { BuildMode } from '../build/buildmode';
 import { DebugPanel } from '../debug/panel';
-import { live, setHooks } from '../debug/tuning';
+import { live, type Hooks } from '../debug/tuning';
 import type { GpuTimer } from '../debug/gpu-timer';
 import { MARKER, ROLLER, SPONGE } from '../config';
 import type { Input } from '../input';
@@ -33,7 +33,7 @@ import { Profiler } from './profiler';
 import type { PaintOps } from '../paint-ops';
 import type { Tools } from '../tools/tools';
 
-// Dev tools: build mode (B), the F3 panel with its live hooks, and window.game
+// Dev tools: build mode (B), the F3 panel (built after the hooks it calls), and window.game
 // for the console and the tests. Single player only: main loads this module
 // only with the dev tools (the player build, npm run build, leaves it out), and in a session
 // the keys do nothing and both are closed.
@@ -86,7 +86,7 @@ interface FrameStats {
 
 export class DevTools {
   private build: BuildMode;
-  private debug = new DebugPanel();
+  private debug: DebugPanel;
   private figure: AvatarPreview;
   private ghost: Ghost;
   private profiler: Profiler;
@@ -106,7 +106,7 @@ export class DevTools {
     this.ghost = new Ghost(g);
     this.profiler = new Profiler(g);
     if (new URLSearchParams(location.search).has('profile')) this.profiler.start();
-    setHooks({
+    const hooks: Hooks = {
       gpu: (label: string) => g.gpuTimer.read(label),
       strikeLightning: () => g.lightning.strike(),
       rebuildLights: () => g.lightFx.rebuild(g.level.lights),
@@ -117,7 +117,6 @@ export class DevTools {
       previewPause: () => g.hud.menu.previewSheet(),
       applyDaylight: () => g.atmosphere.reapplyDaylight(),
       syncBuildLook: () => this.build.syncLook(),
-      atmosNight: () => g.atmosphere.nightValues,
       rebuildCity: g.rebuildCity,
       applyToolSizes: () => (g.inventory.size = { marker: MARKER.width, roller: ROLLER.width, sponge: SPONGE.width }),
       unlockAll: () => {
@@ -147,8 +146,9 @@ export class DevTools {
       profileToggle: () => this.profiler.toggle(),
       profileProbe: () => this.profiler.runProbe(),
       profileState: () => (this.profiler.recording ? 'RECORDING' : 'off'),
-    });
-    Object.assign(window, { game: { ...g, build: this.build, debug: this.debug, live, ghost: this.ghost, profiler: this.profiler, cityParts: { layoutCity, dressTower, wallSigns } } });
+    };
+    this.debug = new DebugPanel(hooks, () => g.atmosphere.nightValues);
+    Object.assign(window, { game: { ...g, build: this.build, debug: this.debug, hooks, live, ghost: this.ghost, profiler: this.profiler, cityParts: { layoutCity, dressTower, wallSigns } } });
   }
 
   /** Where the test figures stand besides the session's players (the ghost): a stepladder can't go there. */

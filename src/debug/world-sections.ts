@@ -1,15 +1,15 @@
-import { live, r, t, gray, type Item, type Section } from './tuning';
+import { live, r, t, gray, type Hooks, type Item, type Section } from './tuning';
 
 // F3 panel contents for the world (tuning.ts has the helpers): weather, props
 // and the city; and Test → Performance.
 
 /** City layout rows (SKYLINE): each rebuilds the city when the slider is let go (a moment's work, too slow per tick). */
-function layout(rows: [label: string, key: string, min: number, max: number, step: number][]): Item[] {
-  return rows.map(([label, key, min, max, step]) => ({ ...r(label, ['SKYLINE', key], min, max, step), onRelease: () => live.rebuildCity() }));
+function layout(h: Hooks, rows: [label: string, key: string, min: number, max: number, step: number][]): Item[] {
+  return rows.map(([label, key, min, max, step]) => ({ ...r(label, ['SKYLINE', key], min, max, step), onRelease: () => h.rebuildCity() }));
 }
 
 /** F3 sections for the world: weather, props, city, and performance (Test). */
-export function worldSections(): Section[] {
+export function worldSections(h: Hooks): Section[] {
   return [
     {
       id: 'weather',
@@ -29,7 +29,7 @@ export function worldSections(): Section[] {
         r('opacity', ['ATMOS', 'rainOpacity'], 0, 4, 0.05),
         { kind: 'heading', label: 'LIGHTNING' },
         t('on', ['THUNDER', 'enabled']),
-        { kind: 'action', label: 'STRIKE NOW', run: () => live.strikeLightning() },
+        { kind: 'action', label: 'STRIKE NOW', run: () => h.strikeLightning() },
         r('interval: min', ['THUNDER', 'minInterval'], 5, 300, 1),
         r('interval: max', ['THUNDER', 'maxInterval'], 5, 600, 1),
         r('flash: ambient', ['THUNDER', 'flashAmbient'], 0, 20, 0.5),
@@ -75,10 +75,10 @@ export function worldSections(): Section[] {
       items: [
         r('opacity', ['SKYLINE', 'opacity'], 0, 1, 0.01),
         r('lit windows', ['SKYLINE', 'litWindows'], 0, 1, 0.01),
-        r('line range', ['SKYLINE', 'lineRange'], 0, 3, 0.05, () => live.syncSkyline()),
+        r('line range', ['SKYLINE', 'lineRange'], 0, 3, 0.05, () => h.syncSkyline()),
         { kind: 'heading', label: 'LAYOUT' },
-        { kind: 'action', label: 'REBUILD', run: () => live.rebuildCity() },
-        ...layout([
+        { kind: 'action', label: 'REBUILD', run: () => h.rebuildCity() },
+        ...layout(h, [
           ['seed', 'seed', 1, 100, 1],
           ['reach', 'radius', 100, 1200, 10],
           ['full height at', 'riseTo', 100, 1200, 10],
@@ -101,9 +101,9 @@ export function worldSections(): Section[] {
       open: true,
       items: [
         { kind: 'readout', label: 'fps', get: () => `${live.stats.fps.toFixed(0)}  (${live.stats.frameMs.toFixed(1)} ms cpu)` },
-        { kind: 'readout', label: 'gpu: scene', get: () => live.gpu('scene') },
-        { kind: 'readout', label: 'gpu: volumetrics', get: () => live.gpu('volumetrics') },
-        { kind: 'readout', label: 'gpu: hands + post', get: () => live.gpu('post') },
+        { kind: 'readout', label: 'gpu: scene', get: () => h.gpu('scene') },
+        { kind: 'readout', label: 'gpu: volumetrics', get: () => h.gpu('volumetrics') },
+        { kind: 'readout', label: 'gpu: hands + post', get: () => h.gpu('post') },
         { kind: 'readout', label: 'draw calls', get: () => `${live.stats.drawCalls}` },
         { kind: 'readout', label: 'real lights', get: () => `${live.stats.lights}` },
         { kind: 'readout', label: 'baked light', get: () => `${(live.stats.bakedBytes / 1048576).toFixed(2)} MB, ${live.stats.bakeMs.toFixed(1)} ms` },
@@ -114,9 +114,9 @@ export function worldSections(): Section[] {
         { kind: 'readout', label: 'uploads', get: () => `${live.stats.uploads} rects, ${(live.stats.uploadBytes / 1024).toFixed(1)} KB` },
         { kind: 'readout', label: 'particles', get: () => `${live.stats.particles}` },
         { kind: 'readout', label: 'paint runs', get: () => `${live.stats.drips}` },
-        { kind: 'readout', label: 'profiling', get: () => live.profileState() },
-        { kind: 'action', label: 'PROFILE', run: () => live.profileToggle() },
-        { kind: 'action', label: 'PROBE', run: () => live.profileProbe() },
+        { kind: 'readout', label: 'profiling', get: () => h.profileState() },
+        { kind: 'action', label: 'PROFILE', run: () => h.profileToggle() },
+        { kind: 'action', label: 'PROBE', run: () => h.profileProbe() },
       ],
     },
   ];

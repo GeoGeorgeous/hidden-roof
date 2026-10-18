@@ -58,8 +58,8 @@ await page.evaluate(() => {
   // No first-person hands and tools.
   g.viewScene.visible = false;
   g.input.setLocked(true);
-  g.live.avatarToggle();
-  g.live.avatarNext();
+  g.hooks.avatarToggle();
+  g.hooks.avatarNext();
 });
 const frames = (n) => page.evaluate((n) => new Promise((done) => { const tick = () => (--n ? requestAnimationFrame(tick) : done()); requestAnimationFrame(tick); }), n);
 // One frame turns the figure to face you; the shots go around it from there.
@@ -69,8 +69,8 @@ for (const [file, pose, angle, dist, eye, day, hood, at = 0.95] of shots) {
   await page.evaluate(({ pose, angle, dist, eye, day, hood, at }) => {
     const g = window.game;
     g.config.AVATAR.hoodUp = !!hood;
-    g.live.avatarRestyle();
-    for (let i = 0; i < 40 && g.live.avatarPose() !== pose; i++) g.live.avatarNext();
+    g.hooks.avatarRestyle();
+    for (let i = 0; i < 40 && g.hooks.avatarPose() !== pose; i++) g.hooks.avatarNext();
     g.atmosphere.setDaylight(day);
     // The figure: the first avatar in the scene.
     let fig = null;

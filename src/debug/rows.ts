@@ -1,7 +1,7 @@
 import { defaultOf } from './defaults';
 import { el, withDefaultTick } from '../menu-ui';
 import { hintFor, LABEL_HINTS } from './hints';
-import { getValue, isChanged, setValue, type Item, type When } from './tuning';
+import { getValue, isChanged, setValue, type Item, type Night, type When } from './tuning';
 
 // One row of the F3 panel per item: a slider, toggle, color, gray (a color as
 // one shade, on a black-to-white slider), button, choice, readout or heading. A value
@@ -28,8 +28,8 @@ export const WHEN: Record<When, [tag: string, note: string]> = {
 export const whenOf = (it: Item): When | undefined => ('path' in it ? (it.when ?? (it.kind === 'range' && it.onRelease ? 'release' : undefined)) : undefined);
 
 /** `tag`: show the When tag on the row (off when its section shows it once for all). */
-export function itemRow(it: Item, edited: () => void, tag = true): Row {
-  const row = control(it, edited);
+export function itemRow(it: Item, edited: () => void, night: Night, tag = true): Row {
+  const row = control(it, edited, night);
   const w = whenOf(it);
   if (w && tag) row.el.querySelector('span')!.append(el('em', 'when', WHEN[w][0]));
   const own = 'path' in it ? hintFor(it.path) : LABEL_HINTS[it.label];
@@ -41,7 +41,7 @@ export function itemRow(it: Item, edited: () => void, tag = true): Row {
   return row;
 }
 
-function control(it: Item, edited: () => void): Row {
+function control(it: Item, edited: () => void, night: Night): Row {
   const label = el('label');
   if (it.kind === 'heading') {
     label.className = 'heading';
@@ -93,7 +93,7 @@ function control(it: Item, edited: () => void): Row {
   if (it.kind === 'color') {
     input.type = 'color';
     show = () => {
-      input.value = String(getValue(it.path));
+      input.value = String(getValue(it.path, night));
       value.textContent = input.value;
     };
     read = () => input.value;
@@ -101,7 +101,7 @@ function control(it: Item, edited: () => void): Row {
     input.type = 'range';
     Object.assign(input, { min: '0', max: '255', step: '1' });
     show = () => {
-      const hex = String(getValue(it.path));
+      const hex = String(getValue(it.path, night));
       input.value = String(grayOf(hex));
       value.textContent = hex;
     };
@@ -112,7 +112,7 @@ function control(it: Item, edited: () => void): Row {
   } else if (it.kind === 'toggle') {
     input.type = 'checkbox';
     show = () => {
-      input.checked = !!getValue(it.path);
+      input.checked = !!getValue(it.path, night);
       value.textContent = input.checked ? 'ON' : 'OFF';
     };
     read = () => input.checked;
@@ -121,7 +121,7 @@ function control(it: Item, edited: () => void): Row {
     Object.assign(input, { min: String(it.min), max: String(it.max), step: String(it.step) });
     const digits = Math.max(0, -Math.floor(Math.log10(it.step)));
     show = () => {
-      const v = getValue(it.path) as number;
+      const v = getValue(it.path, night) as number;
       input.value = String(v);
       value.textContent = v.toFixed(digits);
     };
@@ -131,10 +131,10 @@ function control(it: Item, edited: () => void): Row {
   }
   const sync = () => {
     show();
-    label.classList.toggle('changed', isChanged(it));
+    label.classList.toggle('changed', isChanged(it, night));
   };
   input.addEventListener(it.kind === 'toggle' ? 'change' : 'input', () => {
-    setValue(it.path, read());
+    setValue(it.path, read(), night);
     sync();
     it.onChange?.();
     edited();
