@@ -68,8 +68,13 @@ try {
   await press(a, 'HOST A SESSION');
   await a.fill('.mp-page input >> nth=0', 'A');
   for (let i = 0; i < 2; i++) await a.click('.mp-page .choice button:text-is("‹") >> nth=0');
+  // A was recording a ghost (F3, dev builds): the session stops it, and its frames go on (it used to put paint.log
+  // back to null after the welcome, so every frame threw).
+  await a.evaluate(() => window.game.ghost.record());
   await press(a, 'Host');
   await status(a, 'in');
+  await a.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  assert.deepEqual(a.errors, [], 'a ghost recording before HOST breaks no frame');
   const code = (await a.textContent('.overlay .status')).match(/Session · ([A-Z]+)/)[1];
   assert.equal(code, await a.evaluate(() => window.game.net.status.code));
   await press(b, 'MULTIPLAYER');

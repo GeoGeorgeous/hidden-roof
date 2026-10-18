@@ -68,7 +68,9 @@ export class Ghost {
   private loading = false;
   private loops = 0;
   private ladderId: number | undefined;
+  /** paint.log before recording, and the one recording reads (a session's welcome may replace it: then it stays the session's). */
   private log: PaintOp[] | null = null;
+  private mine: PaintOp[] = [];
 
   constructor(private g: GhostContext) {}
 
@@ -100,7 +102,7 @@ export class Ghost {
     this.rec = { start: savePaint(g.paint, NAME), snaps: [], ops: [], ladders: [], length: 0 };
     // Paint ops as the paint system logs them (as the golden test does).
     this.log = g.paint.log;
-    g.paint.log = [];
+    g.paint.log = this.mine = [];
     this.ladderId = undefined;
   }
 
@@ -124,7 +126,7 @@ export class Ghost {
   stop() {
     if (this.mode === 'recording' && this.rec) {
       this.rec.length = this.time;
-      this.g.paint.log = this.log;
+      if (this.g.paint.log === this.mine) this.g.paint.log = this.log;
     }
     this.remote?.dispose();
     this.remote = null;
@@ -164,7 +166,7 @@ export class Ghost {
       this.next = t + 1 / NET.sendRate;
       rec.snaps.push({ t, bytes: this.snapshot(t) });
     }
-    for (const op of g.paint.log!.splice(0)) rec.ops.push({ t, op: structuredClone(op) });
+    for (const op of this.mine.splice(0)) rec.ops.push({ t, op: structuredClone(op) });
     const id = g.level.runtimeOf(session.player);
     if (id !== this.ladderId) {
       this.ladderId = id;
