@@ -1627,3 +1627,15 @@ Six copies in settings-store.ts, the F3 panel and net-menu.ts. Now stored() and 
 - source: audit 2026-10-17 (F8.9)
 
 Menu building blocks lived in settings-page.ts, with local el/div/span copies and hand-written createElement calls elsewhere. Now menu-ui.ts holds them with one el(tag, className, text). Branch `refactor/menu-ui-kit`.
+
+### A test for F3 config paths
+- id: BL-130
+- type: test
+- status: Done
+- priority: Medium
+- size: XS
+- area: code
+- release: next
+- source: audit 2026-10-17 (F8.14, F8.23)
+
+The F3 panel's config paths were plain strings no test checked; a broken range path stopped the dev tools as the game loaded, unnamed. Now `scripts/f3-paths.test.mjs` (npm test) checks each path and default in Node. Branch `test/f3-paths`.
