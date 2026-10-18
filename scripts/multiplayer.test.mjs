@@ -168,6 +168,35 @@ try {
   await status(b, 'in');
   assert.equal(await paintHash(b), painted, 'the paint comes back after a reconnect');
 
+  // BL-088: B comes back on link 1, which drops while its welcome loads (4 s); the retry's link 2 hears nothing. Link 1's
+  // late welcome must not mark link 2 live: link 2 still gives up after NET.connectTimeout (3 s here), not serverSilence.
+  await b.evaluate(() => {
+    const n = window.game.net;
+    const welcome = n.welcome.bind(n);
+    n.welcome = async (...args) => {
+      n.welcome = welcome;
+      n.link.close();
+      window.mute = true;
+      await new Promise((r) => setTimeout(r, 4000));
+      return welcome(...args);
+    };
+    // A link opened while muted hears nothing from the server.
+    const WS = window.WebSocket;
+    window.WebSocket = class extends WS {
+      set onmessage(f) {
+        super.onmessage = window.mute ? null : f;
+      }
+      get onmessage() {
+        return super.onmessage;
+      }
+    };
+    window.game.config.NET.connectTimeout = 3;
+    n.link.close();
+  });
+  await b.waitForFunction(() => window.game.net.log.text().includes('nothing from the server in 3 s'), null, { timeout: 9000 }).catch(async () => assert.fail(`link 2 never gave up:\n${await b.evaluate(() => window.game.net.log.text())}`));
+  await b.evaluate(() => ((window.mute = false), (window.game.config.NET.connectTimeout = 15)));
+  await status(b, 'in');
+
   // LEAVE: A hears B has gone, B plays alone at its own detail again.
   await press(b, 'LEAVE SESSION');
   await a.waitForFunction(() => window.game.net.names.size === 0, null, { timeout: 5000 });
