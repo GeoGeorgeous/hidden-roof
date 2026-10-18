@@ -7,7 +7,9 @@
 // `gpu`: a headed window drawn by the real GPU instead (npm run shots, npm run
 // bench), through ANGLE's native backend: D3D11 on Windows, Metal on macOS,
 // OpenGL on Linux, which on WSL is WSLg's D3D12 (GPU=Intel picks the weak one);
-// on Linux without a display, SwiftShader.
+// on Linux without a display, SwiftShader. Its window is off screen, and
+// Chrome on Windows and macOS stops drawing windows it thinks are covered:
+// that's turned off.
 // On machines missing Chromium's system libraries, copies extracted to
 // ~/.local/pwlibs are used (see docs/testing.md). The tests play the demo
 // level, whose layout they know (`level`: another, or null for LEVELS.start),
@@ -45,7 +47,7 @@ export async function openTestBrowser(url, { uncapped = false, level = 'demo', g
   const env = { ...process.env, ...(path && { LD_LIBRARY_PATH: path }) };
   if (real && fs.existsSync(WSL_GPU)) Object.assign(env, { GALLIUM_DRIVER: 'd3d12', MESA_D3D12_DEFAULT_ADAPTER_NAME: process.env.GPU ?? 'NVIDIA' });
   const args = real
-    ? ['--use-gl=angle', `--use-angle=${ANGLE[process.platform] ?? 'gl'}`, '--ignore-gpu-blocklist', '--enable-gpu', '--window-position=-3000,0']
+    ? ['--use-gl=angle', `--use-angle=${ANGLE[process.platform] ?? 'gl'}`, '--ignore-gpu-blocklist', '--enable-gpu', '--window-position=-3000,0', '--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding', '--disable-features=CalculateNativeWinOcclusion']
     : ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', ...(uncapped ? ['--disable-frame-rate-limit', '--disable-gpu-vsync'] : [])];
   const browser = await chromium.launch({ env, args: [...args, ...flags], headless: !real });
   if (uncapped) {

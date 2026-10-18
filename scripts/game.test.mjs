@@ -249,6 +249,33 @@ await check('performance test: RUN shows only TESTING… over the city view; Esc
   return ok ? null : JSON.stringify(r);
 });
 
+await check('performance test: hiding the window stops it (the gap would be one slow frame), back on Graphics at its row; the settings line is the paint detail drawn, not one waiting for resume', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const frames = (n) => new Promise((done) => { const tick = () => (n-- ? requestAnimationFrame(tick) : done()); tick(); });
+    const rowEl = (name) => [...document.querySelectorAll('.settings-page .setting-row')].find((row) => row.querySelector('.label').textContent.startsWith(name));
+    g.hud.menu.openSettings('Graphics');
+    const before = g.settings.summary();
+    rowEl('Paint detail').querySelectorAll('.choice button')[0].click();
+    const pending = g.settings.summary();
+    rowEl('Paint detail').querySelectorAll('.choice button')[1].click();
+    rowEl('Performance test').querySelector('.btn').click();
+    await frames(2);
+    const running = g.perfTest.running;
+    const real = Object.getOwnPropertyDescriptor(Document.prototype, 'hidden');
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+    document.dispatchEvent(new Event('visibilitychange'));
+    delete document.hidden;
+    const after = { running: g.perfTest.running, page: [...document.querySelectorAll('.overlay > .page')].filter((e) => !e.hidden).map((e) => e.className).join(), hiddenRestored: document.hidden === real.get.call(document) };
+    const rows = document.querySelector('.settings-page .rows').getBoundingClientRect();
+    const run = rowEl('Performance test').getBoundingClientRect();
+    g.hud.menu.openPage(null);
+    return { before, pending, running, after, rowShown: rows.height > 0 && run.top >= rows.top - 1 && run.bottom <= rows.bottom + 1 };
+  });
+  const ok = r.before === r.pending && /Paint Ultra/.test(r.before) && r.running && !r.after.running && r.after.page === 'page settings-page' && r.after.hiddenRestored && r.rowShown;
+  return ok ? null : JSON.stringify(r);
+});
+
 await check('settings: gameplay, sound and on/off settings are remembered after a reload, saved only where they differ from the default', async () => {
   const r = await page.evaluate(() => {
     const { menu } = window.game.hud;

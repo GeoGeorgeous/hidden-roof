@@ -6,6 +6,7 @@
 import assert from 'node:assert/strict';
 import { PERF_TEST } from '../src/config.ts';
 import { gpuInfo } from '../src/gpu-name.ts';
+import { GpuTimer } from '../src/debug/gpu-timer.ts';
 import { browserOf, perfMessage, perfNumbers, PerfTest, spread } from '../src/perf-test.ts';
 
 /** A GPU timer whose results come `lag` frames late, `gpuMs` each; null: no timer queries. */
@@ -66,6 +67,35 @@ assert.equal((await measure({ gpu: null })).result.gpuMs, null);
   assert.equal(result, null);
   assert.equal(timer.enabled, false);
   assert.equal(test.running, false);
+}
+
+// The real GPU timer, over a fake WebGL whose results come `lag` frames late: each frame's total is whole (all its
+// passes), late results included, and a GPU far behind leaves whole frames out, never some of a frame's passes.
+for (const lag of [2, 12]) {
+  let polled = 0;
+  const made = [];
+  const gl = {
+    QUERY_RESULT_AVAILABLE: 1,
+    QUERY_RESULT: 2,
+    getExtension: () => ({ TIME_ELAPSED_EXT: 3, GPU_DISJOINT_EXT: 4 }),
+    createQuery: () => (made.push({ at: polled }), made.at(-1)),
+    beginQuery() {},
+    endQuery() {},
+    deleteQuery() {},
+    getParameter: () => false,
+    getQueryParameter: (q, p) => (p === 1 ? polled - q.at >= lag : 2e6),
+  };
+  const timer = new GpuTimer(gl);
+  timer.enabled = true;
+  const totals = [];
+  timer.onFrame = (frame, ms) => totals.push(ms);
+  for (let f = 0; f < 60; f++) {
+    for (const pass of ['scene', 'volumetrics', 'post']) (timer.begin(pass), timer.end());
+    timer.poll();
+    polled++;
+  }
+  assert.ok(totals.length > 10, `lag ${lag}: ${totals.length} frames`);
+  assert.ok(totals.every((ms) => ms === 6), `lag ${lag}: ${[...new Set(totals)]}`);
 }
 
 assert.deepEqual(spread([5, 1, 3, 2, 4]), { p50: 3, p95: 5, p99: 5 });

@@ -8,16 +8,20 @@ import { browserOf, perfMessage, perfNumbers, type PerfResult, type PerfTest } f
 // while it runs, the game as it is with only TESTING… [ESC] TO STOP over it
 // (Esc: back to Settings, no result); then the `performance test` popup with
 // the numbers, the settings, the GPU and the message, RUN AGAIN and DISMISS.
-// Leaving the page (resuming, a session starting) stops the test. Nothing is kept.
+// Leaving the page (resuming, a session starting) or hiding the window stops
+// the test. Back on Settings, the row shows. Nothing is kept.
 
 export function perfTestPage(menu: PauseMenu, test: PerfTest, gpu: GpuInfo, settings: () => string) {
-  const toSettings = () => (menu.openSettings('Graphics'), true);
+  const toSettings = () => (menu.openSettings('Graphics', 'Performance test'), true);
 
   const testing = div('page bare-page testing-page');
   const line = div('testing');
   line.append('TESTING…', keyHint('ESC'), 'TO STOP');
   testing.append(line);
   menu.addPage('testing', testing, () => {}, () => (test.stop(), toSettings()), () => test.stop());
+
+  // A hidden window gets no frames: the gap would count as one slow frame. Stopped, as by Esc.
+  document.addEventListener('visibilitychange', () => document.hidden && test.running && (test.stop(), toSettings()));
 
   const shown = popup('performance test');
   menu.addPage('perf', shown.root, () => {}, toSettings);

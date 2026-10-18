@@ -18,10 +18,20 @@ export interface GpuInfo {
 export type Os = 'windows' | 'mac' | 'linux' | 'other';
 
 /** Names browsers give in place of the real one. */
-const MASKED = /^(|mozilla|webkit webgl|generic renderer|disabled)$/i;
+const MASKED = /^(|mozilla|webkit|webkit webgl|generic renderer|disabled)$/i;
+/**
+ * Built into the processor, by name: Intel UHD / HD / Iris / Xe and the model-less Arc of Meteor Lake (Arc 1x0V:
+ * Lunar Lake), AMD's APUs (Radeon Graphics, Vega 8, 780M, R7). Dedicated Arc and Radeon cards have a model (A770, RX 6700).
+ */
+const INTEGRATED = [/^intel\b.*\b(uhd|hd|iris|xe)\b/i, /^intel arc (graphics|1\d0v)\b/i, /^amd radeon( r\d| vega \d+| \d{3}m)? graphics$/i];
 
-/** Reads the GPU once from the game's context. */
-export function readGpu(gl: WebGLRenderingContext | WebGL2RenderingContext): GpuInfo {
+/**
+ * Reads the GPU once from the game's context: the plain RENDERER where it names the GPU (Firefox, which warns that
+ * the extension is going away), else WEBGL_debug_renderer_info (Chromium and Safari say "WebKit WebGL" there).
+ */
+export function readGpu(gl: Pick<WebGLRenderingContext, 'getParameter' | 'getExtension' | 'RENDERER'>): GpuInfo {
+  const plain = String(gl.getParameter(gl.RENDERER) ?? '');
+  if (shortGpuName(plain)) return gpuInfo(plain);
   const ext = gl.getExtension('WEBGL_debug_renderer_info');
   return gpuInfo(ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)) : '');
 }
@@ -31,8 +41,9 @@ export function gpuInfo(raw: string): GpuInfo {
   return {
     raw,
     name,
-    integrated: !!name && (/^intel.*\b(uhd|hd|iris)\b/i.test(name) || /^amd radeon graphics$/i.test(name)),
-    software: /swiftshader|llvmpipe|softpipe|software/i.test(raw),
+    integrated: !!name && INTEGRATED.some((re) => re.test(name)),
+    // Windows' own is the Microsoft Basic Render Driver (WARP), used when the GPU is blocked.
+    software: /swiftshader|llvmpipe|softpipe|software|basic render/i.test(raw),
   };
 }
 
@@ -42,7 +53,8 @@ export function gpuInfo(raw: string): GpuInfo {
  * vs_5_0 ps_5_0, D3D11)" → "NVIDIA RTX A2000 Laptop GPU". Null when hidden.
  */
 function shortGpuName(raw: string): string | null {
-  let s = raw.trim();
+  // Firefox rounds the name to a common one and says so: "ANGLE (…), or similar".
+  let s = raw.trim().replace(/,? or similar$/, '');
   if (MASKED.test(s)) return null;
   // ANGLE (vendor, renderer, backend): the renderer.
   const angle = /^ANGLE \((.*)\)$/.exec(s);
