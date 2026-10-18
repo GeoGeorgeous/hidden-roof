@@ -6,7 +6,7 @@ From the audit of 2026-10-17 (module M4, skipped for 1.4.0). Nothing here is dec
 
 - No central module: about 9 mechanisms reach the player (Hotbar.toast, HUD tags and PSI, the pause status line, the live line, the multiplayer page status, nameplate notes, loading lines, popups, settings marks) plus 3 dev-only, each with its own element, timer and CSS.
 - Two durations are in config (HUD.toastTime, HUD.tagTime); four are inline. Three "Copy → Copied" flashes use their own setTimeout.
-- The design handoff (design_handoff_esc_menu/) does not cover notifications; it keeps the monospace HUD as is, screens 01–09 must stay pixel-identical, and it added non-paint colors (a green dot, #e0675e).
+- The ESC menu's design handoff did not cover notifications; it kept the monospace HUD as is, screens 01–09 must stay pixel-identical, and it added non-paint colors (a green dot, #e0675e).
 - Proposed model: kinds (event toast, keyed status, blocking error; contextual hints stay outside) shown by whatever surface is current (loading, title, play, ESC menu, page, hidden tab).
 
 ## Findings (line numbers as of dev 23f7835)

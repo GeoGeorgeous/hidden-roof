@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left: bugs, ideas, chores. One line per item, `TYPE [BL-NNN]: what`, under its domain; detail an item needs is in the file it links. A new item takes the next free id (BL-151). When an item ships, its line moves to Done; the release commit empties Done.
+The one list of what's left: bugs, ideas, chores. One line per item, `TYPE [BL-NNN]: what`, under its domain; detail an item needs is in the file it links. A new item takes the next free id (BL-155). When an item ships, its line moves to Done; the release commit empties Done.
 
 ## Now: 1.4.0
 
@@ -22,6 +22,9 @@ The one list of what's left: bugs, ideas, chores. One line per item, `TYPE [BL-N
 3. CHORE [BL-112]: The remote player's timeline as a pure module with a Node test (docs/ideas/remote-timeline.md)
 4. IDEA [BL-114]: A failure says whether the player was in a session, for the notification system (docs/ideas/notifications.md)
 5. IDEA [BL-071]: Saved past sessions, opened for viewing only
+6. IDEA [BL-151]: Show what each other player is doing (in the menu, in Settings…) by their nameplate
+7. IDEA [BL-153]: Find who painted something by player id, picked like the eyedropper (to spot bad paint)
+8. IDEA [BL-154]: Limit some tools in multiplayer (e.g. the roller)
 
 ## Painting
 
@@ -33,6 +36,7 @@ The one list of what's left: bugs, ideas, chores. One line per item, `TYPE [BL-N
 6. CHORE [BL-145]: PaintSurface is a public struct written by GPU upload, the baker and painting; "has paint?" asked two ways (paint-surface.ts)
 7. IDEA [BL-042]: New marker brushes: rectangular and calligraphy
 8. IDEA [BL-074]: Stencils
+9. IDEA [BL-152]: Tune the can's pressure with Shift + mouse
 
 ## Input
 

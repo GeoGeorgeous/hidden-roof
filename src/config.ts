@@ -1082,7 +1082,7 @@ export const PROFILE = {
 };
 
 /**
- * The player figure others see (src/avatar, docs/avatar.md). Joint heights
+ * The player figure others see (src/avatar). Joint heights
  * above the feet and lengths in meters, at rest: standing, arms down. Its
  * eyes are at PLAYER.eyeHeight and the top of its head at PLAYER.height.
  */
