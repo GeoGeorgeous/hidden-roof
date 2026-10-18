@@ -374,8 +374,8 @@ function frame(time: number) {
 
   meter.end(delta);
   const { fps, frameMs } = meter;
-  // The HUD's GPU line keeps the timer running with the panel closed.
-  if (HUD.perf && HUD.perfGpu) gpuTimer.enabled = true;
+  // The one writer of the timer, for the next frame: the HUD's GPU line or the dev tools (F3, profiling); the performance test turns it on for its run.
+  gpuTimer.enabled = (HUD.perf && HUD.perfGpu) || !!dev?.timesGpu;
   const gpuMs = !HUD.perfGpu ? undefined : gpuTimer.supported ? gpuTimer.total(VOLUMETRICS.enabled ? ['scene', 'volumetrics', 'post'] : ['scene', 'post']) : null;
   hud.setPerf({ fps, frameMs, gpuName: gpu.name, gpu: gpuMs, calls, triangles, textureBytes: paint.gpu.textureBytes + baker.stats.textureBytes + staticTextureBytes(), net: net.stats });
   dev?.report({ fps, frameMs, calls, triangles, interval: delta * 1000 });

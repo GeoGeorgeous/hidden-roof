@@ -190,11 +190,15 @@ export class DevTools {
     this.profiler.lap(name);
   }
 
+  /** The GPU timer is wanted: the panel is open or the profiler records (main.ts turns it on). */
+  get timesGpu() {
+    return this.debug.visible || this.profiler.recording;
+  }
+
   /** End of frame: the profiler, and the panel's readouts (only while it's open). */
   report({ fps, frameMs, calls, triangles, interval }: FrameStats) {
     const g = this.g;
     this.profiler.frame({ interval, calls, triangles, state: g.play.mode });
-    g.gpuTimer.enabled = this.debug.visible || this.profiler.recording;
     if (!this.debug.visible) return;
     Object.assign(live.stats, {
       fps,

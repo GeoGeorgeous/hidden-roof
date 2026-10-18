@@ -2204,6 +2204,21 @@ await check('debug panel: every row on every tab has a tooltip', async () => {
   return missing.length ? `no tooltip: ${missing.join(', ')}` : null;
 });
 
+await check('perf lines: the GPU line keeps the GPU timer on with F3 closed, and off once hidden', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { HUD } = g.config;
+    const was = [HUD.perf, HUD.perfGpu];
+    HUD.perf = HUD.perfGpu = true;
+    await window.steps((f) => f >= 3);
+    const on = g.gpuTimer.enabled;
+    [HUD.perf, HUD.perfGpu] = was;
+    await window.steps((f) => f >= 3);
+    return { on, off: g.gpuTimer.enabled, panel: g.debug.visible };
+  });
+  return r.on && !r.off && !r.panel ? null : JSON.stringify(r);
+});
+
 if (page.errors.length) {
   failed++;
   console.log(`FAIL  page errors: ${page.errors.join('; ')}`);
