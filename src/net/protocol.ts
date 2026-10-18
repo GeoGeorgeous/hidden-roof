@@ -1,3 +1,4 @@
+import { PAINT_DETAIL } from '../config.ts';
 import type { InventoryData } from '../inventory/inventory';
 import { isNum, isObj, isV3, levelProblem, type LevelData, type PropData } from '../level/level-data.ts';
 
@@ -18,8 +19,8 @@ export const NAME_MAX = 16;
 /** Session codes: this many letters from CODE_LETTERS (no I or O, which read as 1 and 0). */
 export const CODE_LENGTH = 5;
 export const CODE_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-/** The PAINT DETAILs a host may pick (texels per meter, settings.ts). */
-const DETAILS = [24, 48, 72, 96];
+/** The PAINT DETAILs a host may pick (texels per meter). */
+const DETAILS = Object.values(PAINT_DETAIL);
 /** Player snapshot size (net/snapshot.ts). */
 export const SNAPSHOT_BYTES = 25;
 /** Most props a hosted level may have (the roof has 1340): each costs the server building it. */

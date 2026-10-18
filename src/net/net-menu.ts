@@ -1,9 +1,9 @@
-import { COLORS, PAINT } from '../config';
+import { COLORS, PAINT, PAINT_DETAIL } from '../config';
 import { download, pickFile, stamp } from '../files';
 import type { PauseMenu } from '../pause-menu';
 import type { Hotbar } from '../inventory/hotbar';
 import { savePaint } from '../save/save-paint';
-import { cycle, PAINT_DETAIL, paintDetailName } from '../settings';
+import { cycle, paintDetailName } from '../settings';
 import { action, button, div, relabel, sentence } from '../menu-ui';
 import { choice, pageHead, settingRow } from '../settings-page';
 import { CODE_LENGTH, CODE_LETTERS, NAME_MAX } from './protocol';

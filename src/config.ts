@@ -363,10 +363,13 @@ export const SIGN_TEXT = {
   minCharWidth: 0.28,
 };
 
+/** PAINT DETAIL's choices (Settings, a session's host, the server's paint check): texels per meter. Paint memory grows with the square: ULTRA needs 16x LOW. */
+export const PAINT_DETAIL = { low: 24, medium: 48, high: 72, ultra: 96 };
+
 export const PAINT = {
   /**
    * Texel density of every paint texture. The PAINT DETAIL setting (pause menu)
-   * picks it from its choices in settings.ts: 24, 48, 72 or 96 (1 cm texels).
+   * picks it from PAINT_DETAIL: 24, 48, 72 or 96 (1 cm texels).
    */
   texelsPerMeter: 96,
   /**

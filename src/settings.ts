@@ -1,4 +1,4 @@
-import { AUDIO, HUD, INK_STYLES, PAINT, PLAYER, RENDER, SKYLINE, SMOKE, VOLUMETRICS } from './config';
+import { AUDIO, HUD, INK_STYLES, PAINT, PAINT_DETAIL, PLAYER, RENDER, SKYLINE, SMOKE, VOLUMETRICS } from './config';
 import { exitGameFullscreen } from './fullscreen';
 import { sentence } from './menu-ui';
 import { DEFAULT_STYLE, inkStyle, setInkStyle } from './render/ink/styles';
@@ -35,8 +35,6 @@ const VOL_PRESETS = {
 };
 type VolPreset = keyof typeof VOL_PRESETS;
 const VOL_ORDER = Object.keys(VOL_PRESETS) as VolPreset[];
-/** Paint texels per meter. Paint memory grows with the square: ULTRA needs 16x LOW. */
-export const PAINT_DETAIL = { low: 24, medium: 48, high: 72, ultra: 96 };
 type PaintDetail = keyof typeof PAINT_DETAIL;
 const DETAIL_ORDER = Object.keys(PAINT_DETAIL) as PaintDetail[];
 /** How much of the city around the level is built: reach, rooftop clutter and how far thin lines show. */
