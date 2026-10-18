@@ -1615,3 +1615,15 @@ setPanel's comment sat on rebuildModelsNow (devtools.ts). Moved. Branch `fix/sma
 - source: audit 2026-10-17 (F8.17)
 
 Six copies in settings-store.ts, the F3 panel and net-menu.ts. Now stored() and store() (src/stored.ts). Branch `fix/small-spots`.
+
+### A menu UI kit
+- id: BL-129
+- type: refactor
+- status: Done
+- priority: Medium
+- size: S
+- area: ui
+- release: next
+- source: audit 2026-10-17 (F8.9)
+
+Menu building blocks lived in settings-page.ts, with local el/div/span copies and hand-written createElement calls elsewhere. Now menu-ui.ts holds them with one el(tag, className, text). Branch `refactor/menu-ui-kit`.

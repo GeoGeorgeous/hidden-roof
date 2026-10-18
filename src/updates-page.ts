@@ -1,4 +1,4 @@
-import { action, button, div } from './menu-ui';
+import { action, button, div, el } from './menu-ui';
 import type { PauseMenu } from './pause-menu';
 import { newestFirst, parseRelease } from './release-notes';
 import { VERSION } from './version';
@@ -26,7 +26,7 @@ export function updatesPage(menu: PauseMenu) {
   main.append(rail, pane);
   const foot = div('updates-foot');
   foot.append(
-    Object.assign(document.createElement('a'), { textContent: 'All releases on GitHub ↗', href: RELEASES, target: '_blank', rel: 'noopener' }),
+    Object.assign(el('a', '', 'All releases on GitHub ↗'), { href: RELEASES, target: '_blank', rel: 'noopener' }),
     action('Close', () => menu.openPage(null), { primary: true, key: 'ESC' }),
   );
   const box = div('popup updates');
@@ -35,7 +35,7 @@ export function updatesPage(menu: PauseMenu) {
   root.append(box);
   const tabs = notes.map((r, i) => {
     const b = button('', () => show(i), 'ver');
-    b.append(Object.assign(document.createElement('b'), { textContent: r.tag.replace(/^v/, '') }), Object.assign(document.createElement('span'), { textContent: i ? '' : 'Latest' }));
+    b.append(el('b', '', r.tag.replace(/^v/, '')), el('span', '', i ? '' : 'Latest'));
     rail.append(b);
     return b;
   });
@@ -43,26 +43,26 @@ export function updatesPage(menu: PauseMenu) {
     const r = notes[i];
     tabs.forEach((b, k) => b.classList.toggle('on', k === i));
     const shot = div('shot');
-    shot.append(Object.assign(document.createElement('img'), { src: `${import.meta.env.BASE_URL}updates/${r.tag}.webp`, alt: '', loading: 'lazy' }));
+    shot.append(Object.assign(el('img'), { src: `${import.meta.env.BASE_URL}updates/${r.tag}.webp`, alt: '', loading: 'lazy' }));
     const items = div('items');
     for (const it of r.items) {
-      const el = div('item-note');
-      el.append(div('item-title', it.title));
-      if (it.text) el.append(div('item-text', it.text));
+      const box = div('item-note');
+      box.append(div('item-title', it.title));
+      if (it.text) box.append(div('item-text', it.text));
       if (it.list.length) {
         const list = div('terms');
         for (const [term, desc] of it.list) {
           const line = div('term-line');
-          if (term) line.append(Object.assign(document.createElement('b'), { textContent: term }));
-          line.append(Object.assign(document.createElement('span'), { textContent: desc }));
+          if (term) line.append(el('b', '', term));
+          line.append(el('span', '', desc));
           list.append(line);
         }
-        el.append(list);
+        box.append(list);
       }
-      items.append(el);
+      items.append(box);
     }
     const title = div('release', `Hidden Roof ${r.tag.replace(/^v/, '')}`);
-    if (r.date) title.append(Object.assign(document.createElement('span'), { textContent: day(r.date) }));
+    if (r.date) title.append(el('span', '', day(r.date)));
     pane.replaceChildren(title, div('intro', r.intro), shot, items);
     pane.scrollTop = 0;
   };

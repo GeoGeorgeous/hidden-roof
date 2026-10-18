@@ -2,6 +2,7 @@ import './small-screen.css';
 import { AUTHOR, DISCORD, REPO } from './links';
 import city from './small-screen.webp';
 import { VERSION } from './version';
+import { el } from './menu-ui';
 
 // Screen 10, in place of the game where it can't be played (boot.ts): the
 // title over a still of the title view (small-screen.webp, no WebGL),
@@ -62,6 +63,3 @@ export function smallScreen(playable: () => boolean) {
   fits();
 }
 
-function el(tag: string, className: string) {
-  return Object.assign(document.createElement(tag), { className });
-}

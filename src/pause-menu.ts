@@ -1,7 +1,7 @@
 import { INK_STYLES, PAUSE_MENU } from './config';
 import { creditsPage } from './credits-page';
 import { EscHold, ring } from './esc-hold';
-import { button, div, keyHint, runPrimary, segmented, sentence } from './menu-ui';
+import { button, div, el, keyHint, runPrimary, segmented, sentence } from './menu-ui';
 import { AUTHOR, DISCORD, REPO } from './links';
 import { inkStyle } from './render/ink/styles';
 import { SessionLine, type SessionInfo } from './session-line';
@@ -86,9 +86,9 @@ export class PauseMenu {
     this.hold = new EscHold(this.el, () => this.sync());
     // The text, and the hold's ring beside it (left of the text, which stays centered).
     this.status = div('status');
-    this.status.append(ring(), document.createElement('span'));
+    this.status.append(ring(), el('span'));
     // mousedown, like the canvas: the click that starts the game is the same gesture.
-    this.play = Object.assign(document.createElement('button'), { className: 'play', textContent: 'Play' });
+    this.play = el('button', 'play', 'Play');
     this.play.addEventListener('mousedown', (e) => (e.preventDefault(), e.button === 0 && this.onResume()));
     this.play.append(keyHint('ESC'));
     this.multiplayer = button('Multiplayer', () => (this.session ? this.onLeave() : this.openPage('mp')));
@@ -202,12 +202,12 @@ export class PauseMenu {
   openPage(page: Page | null) {
     if (this.page !== page && this.page) this.pages.get(this.page)?.close?.();
     this.page = page;
-    const el = page && this.pages.get(page)?.el;
+    const shown = page && this.pages.get(page)?.el;
     this.el.classList.toggle('sub', !!page);
     this.screen.hidden = this.themes.el.hidden = this.hold.el.hidden = !!page;
-    for (const [p, { el }] of this.pages) el.hidden = p !== page;
+    for (const [p, { el: e }] of this.pages) e.hidden = p !== page;
     // Popups have their own buttons.
-    this.back.hidden = !el || el.classList.contains('popup-page');
+    this.back.hidden = !shown || shown.classList.contains('popup-page');
     if (page) this.pages.get(page)?.open();
     else this.themes.set(inkStyle());
   }
@@ -276,7 +276,7 @@ function item(text: string, act: () => void) {
 
 /** A column of the menu: its title, then its entries. */
 function column(title: string, ...items: HTMLElement[]) {
-  const el = div('col');
-  el.append(Object.assign(document.createElement('h2'), { textContent: title }), ...items);
-  return el;
+  const box = div('col');
+  box.append(el('h2', '', title), ...items);
+  return box;
 }

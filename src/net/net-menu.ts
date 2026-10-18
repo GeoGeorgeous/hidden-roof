@@ -5,8 +5,7 @@ import type { Hotbar } from '../inventory/hotbar';
 import { savePaint } from '../save/save-paint';
 import { store, stored } from '../stored';
 import { cycle, paintDetailName } from '../settings';
-import { action, button, div, relabel, sentence } from '../menu-ui';
-import { choice, pageHead, settingRow } from '../settings-page';
+import { action, button, choice, div, el, pageHead, relabel, sentence, settingRow } from '../menu-ui';
 import { CODE_LENGTH, CODE_LETTERS, NAME_MAX } from './protocol';
 import type { MultiplayerContext } from './game-context';
 import { Multiplayer, type Failure, type NetStatus } from './multiplayer';
@@ -153,20 +152,20 @@ export function multiplayerMenu(hud: PauseMenu, hotbar: Hotbar, ctx: Multiplayer
 function bigRow(title: string, desc: string, act: () => void) {
   const b = button('', act, 'big-row');
   const text = div('text');
-  text.append(Object.assign(document.createElement('b'), { textContent: title }), Object.assign(document.createElement('span'), { textContent: desc }));
-  b.append(text, Object.assign(document.createElement('i'), { textContent: '›' }));
+  text.append(el('b', '', title), el('span', '', desc));
+  b.append(text, el('i', '', '›'));
   return b;
 }
 
 /** The form's button, centered under its rows (the status line under it). */
 function submit(go: HTMLElement) {
-  const el = div('submit');
-  el.append(go);
-  return el;
+  const box = div('submit');
+  box.append(go);
+  return box;
 }
 
 function textInput(value: string, max: number, placeholder: string, onInput: (v: string) => void) {
-  const input = Object.assign(document.createElement('input'), { type: 'text', value, maxLength: max, placeholder, spellcheck: false });
+  const input = Object.assign(el('input'), { type: 'text', value, maxLength: max, placeholder, spellcheck: false });
   input.addEventListener('input', () => onInput(input.value));
   return input;
 }
