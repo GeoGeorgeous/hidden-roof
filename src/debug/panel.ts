@@ -22,7 +22,7 @@ const OPEN_KEY = 'roofhiddenhaus.debug.open';
 const TAB_KEY = 'roofhiddenhaus.debug.tab';
 const CONFIRM_SECONDS = 2;
 
-/** The groups (authored sections, by id) on each tab; a group not listed goes on the last tab. */
+/** The groups (authored sections, by id) on each tab; a group not listed throws. */
 const TABS = [
   { id: 'player', title: 'Player', groups: ['movement', 'camera', 'hands', 'held', 'stepladder', 'avatar'] },
   { id: 'paint', title: 'Paint', groups: ['painting', 'caps', 'runs', 'pressure', 'quality', 'cursor'] },
@@ -78,7 +78,8 @@ export class DebugPanel {
     const at = (s: Section) => {
       const g = groupOf(s);
       const t = TABS.findIndex((tab) => tab.groups.includes(g));
-      return t < 0 ? [TABS.length - 1, Infinity] : [t, TABS[t].groups.indexOf(g)];
+      if (t < 0) throw new Error(`debug panel: group ${g} is on no tab (TABS)`);
+      return [t, TABS[t].groups.indexOf(g)];
     };
     for (const t of TABS) {
       const page: Page = { id: t.id, tab: button('', () => this.show(page)), el: el('div', 'page'), parts: [] };
