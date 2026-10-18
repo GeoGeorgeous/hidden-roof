@@ -230,7 +230,7 @@ try {
   await b.evaluate(() => {
     const n = window.game.net;
     const welcome = n.welcome.bind(n);
-    n.welcome = async (...args) => (await new Promise((r) => setTimeout(r, 5000)), welcome(...args));
+    n.welcome = async (...args) => ((n.welcome = welcome), await new Promise((r) => setTimeout(r, 5000)), welcome(...args));
   });
   await b.evaluate((c) => window.game.net.join('B', c), code);
   await status(b, 'in');
@@ -238,21 +238,31 @@ try {
   assert.equal(await b.textContent('.nameplate'), 'A');
   await b.evaluate(() => window.game.net.leave());
 
-  // B joins and presses LEAVE while the welcome's paint loads: B stays out of the session, not "in" with no link.
-  await b.evaluate((c) => {
-    const n = window.game.net;
-    const welcome = n.welcome.bind(n);
-    n.welcome = (...args) => {
-      n.welcome = welcome;
-      const loading = welcome(...args);
-      n.leave();
-      return loading.then(() => (window.welcomed = true));
-    };
-    n.join('B', c);
-  }, code);
-  await b.waitForFunction(() => window.welcomed, null, { timeout: 15000 });
-  assert.deepEqual(await b.evaluate(() => [window.game.net.status.state, window.game.session.multiplayer]), ['off', false], 'LEAVE while the welcome loads stays out');
-  await a.waitForFunction(() => window.game.net.names.size === 0, null, { timeout: 5000 });
+  // B joins and presses LEAVE while the welcome's paint loads, then again before the welcome is handled (it waits
+  // behind other messages): B stays out of the session, not "in" with no link, and its PAINT DETAIL is its own again
+  // (the welcome locks it to the session's: not "(host)" alone).
+  for (const when of ['loading', 'before']) {
+    await b.evaluate(
+      ([c, when]) => {
+        const n = window.game.net;
+        const welcome = n.welcome.bind(n);
+        window.welcomed = false;
+        n.welcome = (...args) => {
+          n.welcome = welcome;
+          if (when === 'before') n.leave();
+          const handled = welcome(...args);
+          if (when === 'loading') n.leave();
+          return handled.then(() => (window.welcomed = true));
+        };
+        n.join('B', c);
+      },
+      [code, when],
+    );
+    await b.waitForFunction(() => window.welcomed, null, { timeout: 15000 });
+    const out = await b.evaluate(() => [window.game.net.status.state, window.game.session.multiplayer, window.game.settings.locked]);
+    assert.deepEqual(out, ['off', false, null], `LEAVE ${when} the welcome: out of the session, PAINT DETAIL unlocked`);
+    await a.waitForFunction(() => window.game.net.names.size === 0, null, { timeout: 5000 });
+  }
 
   // C plays the same level at the session's PAINT DETAIL: its welcome starts that level over rather than building it
   // again (seconds with its lights and shaders, BL-085). What it placed and found alone is gone, it stands at the

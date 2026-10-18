@@ -250,6 +250,8 @@ export class Multiplayer {
   }
 
   private async welcome(w: Extract<ToClient, { type: 'welcome' }>, link: ServerLink, file: Uint8Array) {
+    // LEAVE, or the link dropped, before it was handled (it waited behind other messages): nothing to open or lock.
+    if (this.link !== link) return this.log.add('welcome dropped: its link is gone');
     const g = this.g;
     if (this.joined?.code !== w.code) {
       if (!playSessionLevel(g, w)) {
@@ -303,11 +305,12 @@ export class Multiplayer {
     this.link?.abandon();
     this.link = null;
     this.onProgress(null);
+    // A welcome locks it before the player is in (its paint still loading): unlocked whatever the stage.
+    this.g.lockDetail(null);
     if (this.joined) {
       this.remotes.clear();
       this.g.level.setRuntime(session.player, null);
       this.g.paint.log = null;
-      this.g.lockDetail(null);
       session.multiplayer = false;
       session.player = 'local';
       this.joined = null;
