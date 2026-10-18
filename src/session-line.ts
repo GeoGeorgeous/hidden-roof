@@ -1,4 +1,4 @@
-import { button, div } from './menu-ui';
+import { button, div, el } from './menu-ui';
 
 // The pause screen's status line in a live multiplayer session (pause-menu.ts):
 // a live dot, your ping, the session's code with Copy, everyone's initials
@@ -13,11 +13,11 @@ const COPIED_MS = 1500;
 
 export class SessionLine {
   readonly el = div('live');
-  private ping = span('ping');
-  private code = document.createElement('b');
+  private ping = el('span', 'ping');
+  private code = el('b');
   private copy: HTMLButtonElement;
   private faces = div('faces');
-  private count = span('');
+  private count = el('span', '');
   /** What's shown, to change only what changed. */
   private shown = { ping: '', players: '' };
   private copied = 0;
@@ -25,9 +25,9 @@ export class SessionLine {
   constructor() {
     this.ping.title = 'Your ping to the server';
     this.copy = button('Copy', () => this.copyCode(), 'copy');
-    const code = span('code');
+    const code = el('span', 'code');
     code.append('Code ', this.code, this.copy);
-    this.el.append(div('dot'), span('on-air', 'Live session'), this.ping, sep(), code, sep(), this.faces, this.count);
+    this.el.append(div('dot'), el('span', 'on-air', 'Live session'), this.ping, sep(), code, sep(), this.faces, this.count);
   }
 
   set session(code: string) {
@@ -42,7 +42,7 @@ export class SessionLine {
     this.shown.players = key;
     this.faces.replaceChildren(
       ...players.map((p) => {
-        const face = span('', [...p.name.trim()][0]?.toUpperCase() ?? '?');
+        const face = el('span', '', [...p.name.trim()][0]?.toUpperCase() ?? '?');
         face.title = p.name;
         if (p.color) face.style.borderColor = p.color;
         return face;
@@ -60,10 +60,6 @@ export class SessionLine {
   }
 }
 
-function span(className: string, text = '') {
-  return Object.assign(document.createElement('span'), { className, textContent: text });
-}
-
 function sep() {
-  return Object.assign(document.createElement('i'), { textContent: '·' });
+  return el('i', '', '·');
 }

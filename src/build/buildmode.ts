@@ -24,6 +24,7 @@ import { propAt } from '../level/stacks';
 import { PickerView } from './picker-view';
 import { Thumbnails } from '../inventory/thumbnails';
 import { axisNormal, place, type Hit, type PlaceSpec } from './placement';
+import { div, el } from '../menu-ui';
 
 // Minecraft-style editor. Aim with the crosshair: the ghost sits on the face
 // under it, snapped to the grid (on a top face it goes on top, on a side face
@@ -100,7 +101,7 @@ export class BuildMode {
     this.spawnGhost = new SpawnMarker(scene, PLAYER.height, PLAYER.radius);
     this.hud = div('build-help');
     const levels = div('levels');
-    levels.append(this.aimText, document.createElement('br'), this.planeText);
+    levels.append(this.aimText, el('br'), this.planeText);
     this.statusEl = div('status');
     this.statusEl.hidden = true;
     this.hud.append(div('title', 'BUILD'), levels, div('', HELP), this.statusEl);
@@ -387,10 +388,6 @@ export class BuildMode {
     this.status = m;
     this.statusTime = performance.now();
   }
-}
-
-function div(className: string, text = '') {
-  return Object.assign(document.createElement('div'), { className, textContent: text });
 }
 
 function setText(node: Text, s: string) {

@@ -1,5 +1,6 @@
 import * as config from '../config';
 import { defaultOf } from './defaults';
+import { hooks } from './hooks';
 
 // What the debug panel's contents are made of: collapsible sections of live
 // sliders/toggles that write straight into the config objects, plus read-only
@@ -89,11 +90,8 @@ function parentOf(path: string[]): Obj {
   return path.slice(1, -1).reduce<unknown>((o, k) => (o as Obj)[k], root) as Obj;
 }
 
-/** Live values filled in by main (stats) and the player state. */
-export const live = {
-  stats: { fps: 0, frameMs: 0, lights: 0, drawCalls: 0, triangles: 0, textures: 0, textureBytes: 0, surfaces: 0, uploads: 0, uploadBytes: 0, particles: 0, drips: 0, bakedBytes: 0, bakePending: 0, bakeMs: 0, paintOps: 0 },
-  player: null as null | { position: { x: number; y: number; z: number }; velocity: { x: number; y: number; z: number }; state: string },
-  /** Main sets these so sliders can apply side effects. */
+/** The rows' side effects, set by the dev tools (`setHooks`; see hooks.ts). */
+const sideEffects = hooks({
   rebuildLights: () => {},
   /** Rebuild the light props themselves (lens colors, floodlight heads), then their FX. */
   rebuildLightProps: () => {},
@@ -144,6 +142,14 @@ export const live = {
   gpu: (_label: string) => 'n/a',
   /** While build mode shows daylight: the night values it replaced in ATMOS (see Atmosphere). */
   atmosNight: (): Obj | null => null,
+});
+export const setHooks = sideEffects.set;
+
+/** Live values filled in by main (stats) and the player state, and the rows' side effects. */
+export const live = {
+  stats: { fps: 0, frameMs: 0, lights: 0, drawCalls: 0, triangles: 0, textures: 0, textureBytes: 0, surfaces: 0, uploads: 0, uploadBytes: 0, particles: 0, drips: 0, bakedBytes: 0, bakePending: 0, bakeMs: 0, paintOps: 0 },
+  player: null as null | { position: { x: number; y: number; z: number }; velocity: { x: number; y: number; z: number }; state: string },
+  ...sideEffects.call,
 };
 
 export const r = (label: string, path: string[], min: number, max: number, step: number, onChange?: () => void): Item => ({ kind: 'range', label, path, min, max, step, onChange });

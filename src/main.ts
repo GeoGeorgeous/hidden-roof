@@ -1,7 +1,7 @@
 import './style.css';
 import * as THREE from 'three';
 import * as config from './config';
-import { titleCamera } from './render/title-view';
+import { flyCamera, titleCamera } from './render/title-view';
 import { ATMOS, COLORS, HUD, INK, LEVELS, PLAYER, PRESSURE, RENDER, SMOKE, THUNDER, VIEWMODEL, VOLUMETRICS } from './config';
 import { syncSharedUniforms } from './materials';
 import { syncTrackUniforms } from './render/cctv-track';
@@ -22,6 +22,9 @@ import { WallHand } from './tools/wall-hand';
 import { GpuTimer } from './debug/gpu-timer';
 import { captureDefaults } from './debug/defaults';
 import { pixelRatio, Settings } from './settings';
+import { readGpu } from './gpu-name';
+import { PerfTest } from './perf-test';
+import { perfTestPage } from './perf-test-page';
 import { saveScreenshot } from './screenshot';
 import { Input } from './input';
 import { guardBrowser } from './browser-guards';
@@ -55,6 +58,7 @@ import { multiplayerMenu } from './net/net-menu';
 import { setHex } from './hex-color';
 import { seedPaintRandom } from './lcg';
 import { fanLevel, metalDrops } from './emitter-sounds';
+import { guarded } from './frame-guard';
 
 // F3's defaults before anything changes config (the panel isn't in the player build).
 if (__DEV_TOOLS__) captureDefaults();
@@ -69,6 +73,10 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.autoClear = false;
 document.body.appendChild(renderer.domElement);
 const gpuTimer = new GpuTimer(renderer.getContext() as WebGL2RenderingContext);
+/** What the game draws with, read once (Settings, the perf lines). */
+const gpu = readGpu(renderer.getContext());
+/** Settings → Performance test (perf-test.ts): the city view measured for a few seconds, on the player's request only. */
+const perfTest = new PerfTest(gpuTimer);
 const post = new PostPipeline(renderer, gpuTimer);
 
 const scene = new THREE.Scene();
@@ -200,12 +208,11 @@ input.onLockChange = (locked) => {
 hud.menu.onResume = () => input.requestLock();
 hud.menu.onStyle = (i) => settings.setStyle(i);
 showMenu();
-hud.menu.setSettings(settings.sections());
-const paintFile = paintMenu(hud.menu, paint, drips, () => opened.name);
-const net = multiplayerMenu(hud.menu, hotbar, { scene, camera, level, paint, paintOps, drips, player, inventory, pickups, tools, levelData: () => ({ data: opened.toJSON(), name: opened.name }), levelPaint: () => levelPaintOf(opened.name), openLevel: (d, n) => opened.open(d, n), restartLevel: () => opened.restart(), lockDetail: (tpm) => settings.lockPaintDetail(tpm) }, () => opened.name);
+const testPage = perfTestPage(hud.menu, perfTest, gpu, () => settings.tested());
+hud.menu.setSettings(settings.sections(gpu, testPage.run));
 // SAVE in a session downloads the session's paint, from the server.
-const saveHere = paintFile.save;
-paintFile.save = () => (session.multiplayer ? net.savePaint() : saveHere());
+const paintFile = paintMenu(hud.menu, paint, drips, () => opened.name, () => net.savePaint());
+const net = multiplayerMenu(hud.menu, hotbar, { scene, camera, level, paint, paintOps, drips, player, inventory, pickups, tools, levelData: () => ({ data: opened.toJSON(), name: opened.name }), levelPaint: () => levelPaintOf(opened.name), openLevel: (d, n) => opened.open(d, n), restartLevel: () => opened.restart(), lockDetail: (tpm) => settings.lockPaintDetail(tpm) }, () => opened.name);
 // A stepladder can't stand where the session's players or F3's figures (the ghost) are.
 tools.ladder.others = () => [...net.shown, ...(dev?.figures ?? [])];
 tools.onCapChange = (name) => hud.showCapTag(name);
@@ -219,6 +226,8 @@ window.addEventListener('resize', () => {
 });
 
 const eye = new THREE.Vector3();
+/** The level's middle while the performance test flies around it (render/title-view.ts). */
+let flyAround: THREE.Vector3 | null = null;
 const timer = new THREE.Timer();
 const meter = new FrameMeter();
 let rainTime = 0;
@@ -233,7 +242,10 @@ let drawnAt = -Infinity;
 function frame(time: number) {
   // First: a frame that throws must not stop the game (and the session's check for a silent server with it).
   requestAnimationFrame(frame);
-  if (!loaded) return;
+  if (loaded) guarded(step, time);
+}
+
+function step(time: number) {
   // Frame rate limit: skip display refreshes until a frame is due. Frames are
   // due one interval after the last was due, so the average is exact on any
   // display rate; after a stall it starts over.
@@ -244,6 +256,7 @@ function frame(time: number) {
     drawnAt = since < interval * 2 ? drawnAt + interval : time;
   }
   meter.start();
+  const begun = performance.now();
   timer.update(time);
   const delta = timer.getDelta();
   fixedStep.script?.();
@@ -277,11 +290,13 @@ function frame(time: number) {
     camera.updateProjectionMatrix();
   }
   camera.updateMatrixWorld();
-  // The title screen shows a fixed view of the city, without hands or tools. It draws
-  // from a camera of its own; play (aim, tools) keeps yours.
-  const cityView = hud.cityView && !drawsFromPlayer();
+  // The title screen shows a fixed view of the city, without hands or tools; the performance test
+  // flies from it around the level. They draw from a camera of their own; play (aim, tools) keeps yours.
+  const cityView = (hud.cityView || perfTest.running) && !drawsFromPlayer();
   viewScene.visible = !cityView;
-  const shown = cityView ? titleCamera(camera) : camera;
+  if (perfTest.running) flyAround ??= level.totalBounds().getCenter(new THREE.Vector3());
+  else flyAround = null;
+  const shown = !cityView ? camera : flyAround ? flyCamera(camera, perfTest.progress(time), flyAround) : titleCamera(camera);
   const at = shown.position;
   dev?.lap('player');
   // Sprites follow the camera's FOV (sprinting, F3) like the world around them.
@@ -347,6 +362,9 @@ function frame(time: number) {
   hud.update();
   dev?.lap('paint + hud');
 
+  // The CPU time before the draw calls: a GPU that falls behind stalls them (the performance test's CPU time).
+  const beforeDraw = performance.now() - begun;
+  perfTest.beforeDraw();
   post.render(scene, viewScene, shown, lighting, !building);
   frameDrawn();
   dev?.lap('render');
@@ -354,15 +372,16 @@ function frame(time: number) {
   if (yours.justPressed('screenshot')) saveScreenshot(renderer.domElement, () => hotbar.toast('Screenshot saved'));
   gpuTimer.poll();
   const { calls, triangles } = post.sceneStats;
+  perfTest.frame(time, beforeDraw, calls);
 
   input.endFrame();
 
   meter.end(delta);
   const { fps, frameMs } = meter;
-  // The HUD's GPU line keeps the timer running with the panel closed.
-  if (HUD.perf && HUD.perfGpu) gpuTimer.enabled = true;
-  const gpu = !HUD.perfGpu ? undefined : gpuTimer.supported ? gpuTimer.total(VOLUMETRICS.enabled ? ['scene', 'volumetrics', 'post'] : ['scene', 'post']) : null;
-  hud.setPerf({ fps, frameMs, gpu, calls, triangles, textureBytes: paint.gpu.textureBytes + baker.stats.textureBytes + staticTextureBytes(), net: net.stats });
+  // The one writer of the timer, for the next frame: the HUD's GPU line or the dev tools (F3, profiling); the performance test turns it on for its run.
+  gpuTimer.enabled = (HUD.perf && HUD.perfGpu) || !!dev?.timesGpu;
+  const gpuMs = !HUD.perfGpu ? undefined : gpuTimer.supported ? gpuTimer.total(VOLUMETRICS.enabled ? ['scene', 'volumetrics', 'post'] : ['scene', 'post']) : null;
+  hud.setPerf({ fps, frameMs, gpuName: gpu.name, gpu: gpuMs, calls, triangles, textureBytes: paint.gpu.textureBytes + baker.stats.textureBytes + staticTextureBytes(), net: net.stats });
   dev?.report({ fps, frameMs, calls, triangles, interval: delta * 1000 });
 }
 requestAnimationFrame(frame);
@@ -374,5 +393,5 @@ function toScreen(p: THREE.Vector3) {
 
 // Dev tools (build mode, F3, window.game): single player only, and not in the player build (npm run build).
 let dev: DevTools | undefined;
-const game = { city: () => opened.city, config, play, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, hotbar, pickups, paint, paintOps, net, paintFile, seedPaintRandom, fixedStep, session, level, renderer, input, hud, scene, viewScene, gpuTimer, PLAYER, loadLevel: (d: LevelData) => opened.load(d), rebuildCity: () => opened.rebuildCity(), levelData: () => opened.toJSON(), levelName: () => opened.name, openLevel: (d: LevelData, n: string) => opened.open(d, n), loaded: () => loaded };
+const game = { city: () => opened.city, applyPixelScale, config, gpu, perfTest, testPage, settings, play, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, hotbar, pickups, paint, paintOps, net, paintFile, seedPaintRandom, fixedStep, session, level, renderer, input, hud, scene, viewScene, gpuTimer, PLAYER, loadLevel: (d: LevelData) => opened.load(d), rebuildCity: () => opened.rebuildCity(), levelData: () => opened.toJSON(), levelName: () => opened.name, openLevel: (d: LevelData, n: string) => opened.open(d, n), loaded: () => loaded };
 if (__DEV_TOOLS__) void import('./dev/devtools').then((m) => (dev = new m.DevTools(game)));

@@ -28,7 +28,7 @@ The one place for what's left to do: bugs, things to check, performance, tests, 
 
 No WebGL (`new THREE.WebGLRenderer` in `main.ts` throws) or a script that doesn't load. Do: catch the renderer's failure and say so on the loading screen (as `loadFailed` does for the level).
 
-Decided (2026-10-14): the fix and an automated test, in its own file beside the smoke test (~5–8 s): Chromium with `--disable-3d-apis` (no WebGL), and one with the main script blocked. To see it by hand in Chrome: start it with `--disable-3d-apis --user-data-dir=<a temp dir>` (`chrome://gpu` shows WebGL: Disabled), or DevTools → Network → Block request URL on the main `index-*.js`.
+Decided (2026-10-14): the fix and an automated test, in its own file beside the smoke test (~5–8 s): Chromium with `--disable-3d-apis` (no WebGL), and one with the main script blocked. To see it by hand in Chrome: start it with `--disable-3d-apis --user-data-dir=<a temp dir>` (`chrome://gpu` shows WebGL: Disabled), or DevTools → Network → Block request URL on `main-*.js` (not `index-*.js`: that is the boot script that writes the message).
 
 ### Strokes made while the link is dying vanish on rejoin
 - id: BL-003
@@ -203,6 +203,8 @@ Triage notes (2026-10-14): needs a human: a check in real Firefox and Safari.
 
 Decided (2026-10-17, audit S1.1): Firefox on Windows before the 1.4.0 release (T1.16); Safari and Firefox on the Mac after it, on production.
 
+Checked (2026-10-18, T1.16 by an agent, headed Firefox 155 and WebKit 26.6 on Linux, automated keys): in fullscreen one Esc leaves and doesn't resume, held it leaves, EXIT FULLSCREEN leaves at once, no rings; windowed, Esc on the pause screen resumes (both give the pointer lock back on its release). PLAY's ESC key now shows there too (`esc-hold.ts`). Left for a human: a real held key, and Safari on the Mac.
+
 ### Rework the drips: independent chance, no stacking across tools
 - id: BL-015
 - type: refactor
@@ -313,6 +315,8 @@ Zooming out (not in) is what makes the buffer bigger: see BL-026.
 JSON stamps with full-precision floats and the surface key, uncompressed; a painting player makes a median 140 ops/s (p99 ~1800), and the server repeats each to the 5–6 others. Total out of the server: p50 0.5 MB/s, p99 3.2 MB/s, max 4.5 MB/s for 7 players, 7.3 GB in 2.6 h. Players on weak links (home Wi-Fi, VPN, hotspot) died more the more they received: 1.5% of 5 s windows were followed by a drop within 25 s below 100 KB/s, 28% above 500 KB/s; players on good links barely moved (0.4% to 4%). Do, in this order: (1) a binary op (quantized u/v/radius, a small integer for the surface key), every client applying the quantized values so texels still match, ~20 B; (2) merge a frame's stamps that land on the same texels; (3) when a link's ping grows past ~1 s, send it only the newest `state` per player and wait with ops. Read `docs/multiplayer-audit.md` first (the "nothing is compressed" decision in `protocol.ts`). Effort M–L.
 
 Step (1) done (2026-10-14, `PROTOCOL` 6): ops travel packed (`src/op-wire.ts`): a surface as its place among the session's sorted surface keys, every number as u16 (i16 for a roll's axis); 23 B a stamp, 31 a roll, 21 a run, plus 8 a batch. The painter paints with the rounded numbers too (`painting.ts`, `paint-drips.ts`), so the loopback, saves and the server still match the browser to the bit; the golden hashes changed once (the strokes look the same, drip runs land differently). Measured (`npm run test:weak-link` `bytes`): 185 → 28 B down per stamp, so a painter's ops at the stand's rate (~4.5 KB/s) now fit the `slow` link (8 KB/s). Left: (2) and (3), only if the next playtest (BL-076) still shows weak links falling behind; (2) must paint what the merged op paints, or texels drift apart.
+
+Found (2026-10-18, T1.13): in a live session the players' paint and the server's save were not identical: ~100 of ~6,000 painted texels apart after every tool on one wall (Chromium, Firefox and WebKit alike; identical with drips off). A run's paint per row depended on the frame times of the client running it; now it depends on the row (`paint-drips.ts`, golden hashes changed once): ~50–80 texels apart. The rest is order: a run trickles in real time, so it meets the next strokes (and the sponge) at another moment on each client. Bit-exact would need a run painted whole when it starts (no trickle). Decided (owner, 2026-10-18): runs keep flowing down slowly; the drift stays. A fix would have to keep the flow on screen (e.g. the run whole in the shared paint, animated only in what's drawn).
 
 ### Every rejoin uploads all paint pages in one frame
 - id: BL-025
@@ -1071,22 +1075,26 @@ Split from BL-025. Steady ~0.5 GB. Measure what `loadPaint` allocates on a join 
 
 Measured (2026-10-14, `npm run bench:join`, as BL-085): the heap's steady growth on a join is every painted surface's CPU atlas (330 MB for the roof at HIGH, by design); on top of it the paint file inflated whole, 100–400 MB, was alive with them. Now a join's paint goes on face by face as it inflates (`eachFace`, `src/save/paint-file.ts`; LOAD from a file still reads it all first, so a broken file changes nothing): the top over the steady heap went from +124 to +65 MB at a quarter of the roof painted, +75 MB with all of it.
 
-### A hint in the HUD when the GPU can't keep up
+### A performance test in Settings, and `npm run bench`
 - id: BL-084
 - type: feature
-- status: Blocked
+- status: Done
 - priority: Medium
-- size: S
+- size: M
 - area: ui
-- release: later
-- blocked-by: the owner's decision
-- source: playtest 2026-10-12
+- release: next
+- source: playtest 2026-10-12; owner laptop runs 2026-10-18 (audit F2.3, F2.5, F2.10, S2.3)
 
-An Intel Iris Xe player played at 30 fps (23 ms of GPU a frame) and left after 6 minutes, likely not knowing PIXEL SCALE exists. Do: once a session, when the GPU frame time stays over 20 ms for 5 s (config), a text hint in the HUD's existing style (as `LOW PRESSURE — HOLD [RMB] TO SHAKE`), pointing to SETTINGS → PIXEL SCALE. No new UI.
+An Intel Iris Xe player played at 30 fps (23 ms of GPU a frame) and left after 6 minutes; the owner's RTX laptop ran Chrome on its Intel UHD unnoticed. Decided (2026-10-18, audit S2.1): nothing measures on its own (no timer in play or on the menu). Do: one test module that hides the menu and draws the pause menu's city view (`titleCamera`) for ~3 s, 0.5 s of it warm-up, with the GPU timer (`src/debug/gpu-timer.ts`) on only then and CPU time taken before the draw calls (F2.10).
 
-Blocked (2026-10-14): GPU time is measured only while F3's perf readout is on (`EXT_disjoint_timer_query_webgl2`, desktop Chromium only). Decide: the timer on for every player (a little work every frame), sampled (the first ~30 s, or every few seconds), or judged from FPS (false alarms: a laptop on battery caps Chrome at 30 Hz). Its place in the HUD needs a screenshot.
+- Settings → Performance test → RUN: `GPU · CPU · fps` and one message. Capped (frames ~33 ms apart, GPU and CPU low): Chrome's Energy Saver (chrome://settings/performance), Edge's efficiency mode, macOS Low Power Mode, else the browser's or system's power saver. Integrated GPU by name: the per-OS line of BL-109. GPU over 20 ms (config) on a dedicated GPU: "Your GPU is the limit". Else "Runs well". No GPU timer: CPU and fps, "GPU time isn't available in this browser". Never suggest a lower RESOLUTION.
+- The test uses the player's current settings, never its own. During it: `TESTING…  [ESC] TO STOP` only (Esc: back to Settings, no result); the game stays as paused as it was (multiplayer allowed). After it: a `performance test` popup (`popup()`, as SAVE/UPLOAD PAINT) with the numbers, the settings, the GPU name and the message; `Run again`, `Dismiss` [ESC]; nothing kept.
+- `npm run bench`: headed Playwright on the real GPU starts the same test with a fresh profile (the game's defaults) at the screen's size; 3 runs, median of each p50/p95/p99 of CPU and GPU ms, fps, draw calls; JSON with GPU name, OS, CPU cores, build, settings, refresh rate, printed and in `.cache/bench/<git describe>-<gpu>.json`; `npm run bench -- a.json b.json` compares (change in %, no threshold), builds only.
+- Any developer's machine: ANGLE's native backend per OS (D3D11 Windows, Metal macOS, OpenGL Linux, D3D12 + `GPU=` on WSL; today `scripts/test-browser.mjs` uses the real GPU on Linux with a display only); a software GPU stops it with "no real GPU: <name>". Only when needed: never in `npm run check`, CI or another script; `docs/testing.md` says when (before and after a render or level change, comparing GPUs).
 
-When built: a `?weak-gpu` URL flag that shows the hint at once, to see it without a weak GPU.
+Done (2026-10-18, audit S2.3, `feat/perf-test`): `src/perf-test.ts` (the measuring and the message, tested in Node with stand-in timings), `src/perf-test-page.ts` (TESTING…, the popup), Settings → Graphics → Performance test → RUN, `scripts/bench.mjs`. Also: a FRAME RATE the player set that caps it says so ("Your Frame rate setting holds the game at 30 fps"), a busy CPU says "Your CPU is the limit", and a cap is judged against 33 ms, not the frame (F2.11). Bench, 1920×1080, defaults: RTX A2000 GPU 2.7 ms, CPU 1.3 ms, "Runs well"; Intel UHD GPU 23.1 ms, CPU 1.1 ms, 26 fps, "built into the processor, and it is the limit". Review fixes (audit F2.13): Firefox's names, more built-in GPUs, a hidden window stops the test, the bench on the bundled build.
+
+Redesigned (2026-10-18, `design_handoff_esc_menu/UPDATE-12.md`, screen 12): the row is first on Graphics, Run under the values below; the camera flies once around the level from the title view (`flyCamera`, `src/render/title-view.ts`) for 10 s (0.5 s warm-up); a popup over the blurred flight shows live numbers (eased, every 100 ms), then average and 1% low fps, a tier (Stutters, Playable, Smooth, Very smooth) on a read-only slider, CPU and GPU bars, the settings, draw calls, the card and a tip: room to spare, the video card, the processor, or evenly loaded, with what to lower (Volumetrics, Resolution, City detail). Kept from before: a Frame rate setting or a power saver holding it, and, on a built-in GPU, how to give the browser the faster one. The design reverses "never suggest a lower Resolution". `PERF_TEST` in config.
 
 ### Paint takes 7–10 s to show after joining a session with a lot of it
 - id: BL-085
@@ -1135,14 +1143,14 @@ Done (2026-10-14): the level as a file (`PropData`, `LevelData`) is `src/level/l
 ### A late welcome can mark the next link as live
 - id: BL-088
 - type: bug
-- status: Planned
+- status: Done
 - priority: Low
 - size: S
 - area: net
-- release: later
+- release: next
 - source: agent (architecture review 2026-10-14)
 
-`Multiplayer.welcome` (`src/net/multiplayer.ts`) marks whichever link is current as live once the paint is loaded, not the link the welcome came on. If link A drops while its welcome loads paint and the retry has opened link B, A's welcome marks B live before B's own welcome, so B stops giving up after `NET.connectTimeout`. As before the ServerLink split (a shared `live` flag). Do: pass the welcome's link from `connect`'s handler through `receive` to `welcome`, and mark that one. Test: in `scripts/multiplayer.test.mjs`, delay a welcome (as the "takes 5 s" check does), drop the link meanwhile, and check the new link still gives up after `NET.connectTimeout` when the server stays silent.
+`Multiplayer.welcome` (`src/net/multiplayer.ts`) marks whichever link is current as live once the paint is loaded, not the link the welcome came on. If link A drops while its welcome loads paint and the retry has opened link B, A's welcome marks B live before B's own welcome, so B stops giving up after `NET.connectTimeout`. As before the ServerLink split (a shared `live` flag). Do: pass the welcome's link from `connect`'s handler through `receive` to `welcome`, and mark that one. Test: in `scripts/multiplayer.test.mjs`, delay a welcome (as the "takes 5 s" check does), drop the link meanwhile, and check the new link still gives up after `NET.connectTimeout` when the server stays silent. Fixed (S5.1, F5.3): the welcome marks the link it came on; the test is in `scripts/multiplayer.test.mjs` as above (link 1 drops while its welcome loads, link 2 hears nothing and gives up after `NET.connectTimeout`).
 
 ### The multiplayer test sometimes never sees B reconnect
 - id: BL-091
@@ -1315,3 +1323,367 @@ macOS sends no keyup for keys released while Cmd is held: a movement key kept wa
 
 A synthetic Enter on the pause screen resumed with the real pointer lock (a user gesture in Playwright); the lock was lost ~40 ms later and that late event unlocked the next checks, under load only. Done: `noBrowserLock` on test pages; tests start play with `Input.setLocked`.
 
+
+### A slow join shows PLAY before the session has loaded
+- id: BL-105
+- type: bug
+- status: Requested
+- priority: High
+- size: S
+- area: net
+- release: next
+- source: owner device tests 2026-10-18 (audit F5.10)
+
+On a slow link the welcome's paint file takes a while; the joiner sees PLAY meanwhile, paints alone, and loses it when the welcome lands and moves them into the session. Do: the menu stays on joining (no PLAY) until the welcome is loaded; LEAVE cancels.
+
+### Water tank roofs can't be painted
+- id: BL-106
+- type: idea
+- status: Requested
+- priority: Low
+- size: S
+- area: paint
+- release: later
+- source: owner device tests 2026-10-18 (audit F7.15)
+
+The cone roofs of the water tank and the tanks on stands (`p.cone`, `src/kit/equipment.ts`, `src/kit/steel.ts`) have no paint option or mapping; the paintable flat top sits hidden inside. Do: a cone paint mapping, checked against saves and page counts.
+
+### Moving the stepladder again and again near lamps doubles the CPU time
+- id: BL-107
+- type: perf
+- status: Requested
+- priority: Low
+- size: S
+- area: render
+- release: later
+- source: owner device tests 2026-10-18 (audit F2.8)
+
+RTX laptop: CPU ~7.3 → 14–16 ms a frame while the ladder is placed over and over near lamps (each move re-bakes its lamp light, `LightBaker.sync`, BL-086); one placement is fine. Do: measure on the Intel laptop (audit T1.8) before deciding.
+
+### Loading drops to 12 fps on the Intel UHD with Energy Saver on
+- id: BL-108
+- type: perf
+- status: Requested
+- priority: Low
+- size: S
+- area: render
+- release: later
+- source: owner laptop runs 2026-10-18 (audit F2.9)
+
+Intel UHD laptop, Chrome's Energy Saver on: 30 fps in play, but 12 fps and CPU 18–24 ms while the game loads (likely shader compiles and uploads). Do: measure the load with `npm run bench` on the Intel UHD (BL-084) before deciding.
+
+Measured (2026-10-18, `npm run bench` on the bundled build, WSL, no Energy Saver: it can't be turned on there): the load takes 3.9 s on the Intel UHD (the longest frame 1.6 s) and 2.7 s on the RTX A2000 (1.1 s). The steps block by design, so few frames on either GPU. (A first measurement through the dev server, 7.9 and 5.3 s, was mostly Vite compiling modules: audit F2.13.) Next: the same on the Windows laptop with Energy Saver on, then decide.
+
+### Show the GPU in use in Settings; FRAME RATE's note
+- id: BL-109
+- type: feature
+- status: Done
+- priority: Medium
+- size: S
+- area: ui
+- release: next
+- source: owner laptop runs 2026-10-18 (audit F2.2, F2.6, S2.2)
+
+The RTX laptop ran Chrome on its Intel UHD without the owner knowing. Do: a read-only GPU row under Resolution in Settings, from `WEBGL_debug_renderer_info` read once (as `src/dev/profiler.ts`), short name, "Hidden by the browser" when masked; when it looks integrated (Intel UHD / HD / Iris, AMD "Radeon Graphics" without a model), a description per OS: Windows Settings → System → Display → Graphics → the browser → High performance; Linux `prime-run` or `DRI_PRIME=1`; Intel Macs: turn off automatic graphics switching; nothing on Apple silicon. The name in the perf readout too. The Frame rate row's description: "Above your display's refresh rate this acts like Max." Shots of Settings.
+
+Done (2026-10-18, audit S2.2, `feat/show-gpu`): `src/gpu-name.ts` (short name, integrated, the per-OS line; tested in Node over the names browsers report), the GPU row and Frame rate's note in Settings → Graphics, `gpu · <name>` in the perf lines.
+
+### Crossed lines on the menu's glass bars on the Intel UHD (WSL)
+- id: BL-110
+- type: bug
+- status: Requested
+- priority: Low
+- size: XS
+- area: ui
+- release: later
+- source: audit S2.2 shots 2026-10-18 (F2.12)
+
+`npm run shots` with `GPU=Intel` (WSLg's D3D12 on the Intel UHD) draws an X across the Settings tabs and the Back button, the blurred-glass bars (`backdrop-filter`); the NVIDIA draws them clean. Likely WSLg's driver, not the game. Do: look at Settings on the Windows laptop's Intel UHD in Chrome; only if it shows there, look at the bars' CSS.
+
+### test:weak-link sometimes doesn't load the game
+- id: BL-111
+- type: bug
+- status: Requested
+- priority: Medium
+- size: S
+- area: net
+- release: next
+- source: audit S5.1 2026-10-18 (F5.11)
+
+The first `npm run test:weak-link` run in a tree twice stopped at "The game didn't load: reload the page" (`src/boot.ts`: `import('./main')` rejected): once on `fix/net-bugs`, once on a clean `dev` worktree. Later runs passed, a cold Vite cache too. Its pages come from a browser context, which had no load log; since S5.1 (`scripts/test-browser.mjs`) they have one. Do: on the next failure, read the load log `gameReady` prints and fix the cause.
+
+### The remote player's timeline as a pure module
+- id: BL-112
+- type: refactor
+- status: Planned
+- priority: Medium
+- size: M
+- area: net
+- release: next
+- source: audit S5.2 2026-10-18 (F5.4)
+
+`src/net/remote-player.ts` mixes the clock (snapshots, lag, target, jitter, the shown time, timed events, the catch-up) with the figure, reads `document.hidden`, and the tests set its private fields (`scripts/game.test.mjs:2008`). Do: a pure `RemoteTimeline` (`receive`, `schedule(t, run, hidden)`, `sample(now, dt)`, `reset`, `flush`, `heard`, `stats`) with a Node test in `npm test`; RemotePlayer keeps the avatar, look, smoothing, ladder facing and spray; Remotes gives the tests a read-only view instead of `remotes.list`. No behavior change. Session S5.3.
+
+### One Sender owns paint.log and what this player sends
+- id: BL-113
+- type: refactor
+- status: Planned
+- priority: Medium
+- size: M
+- area: net
+- release: next
+- source: audit S5.2 2026-10-18 (F5.5)
+
+What this player sends is built twice: `Multiplayer.update` (snapshot clock, paint ops from paint.log, stepladder and inventory changes) and `src/dev/ghost.ts` (its own Msg type and keep()); paint.log has three writers (F5.2 came from that). Do: `src/net/sender.ts` owns paint.log (a second owner is refused), the snapshot clock and the change checks, and gives out the real `ToServer` messages on a clock it's handed; Multiplayer sends them through Outbox and ServerLink, the ghost records them and replays them over SimLink through the same dispatch into a RemotePlayer, ops through encodeOps/decodeOps. Node test with a fake capture and level. No behavior or protocol change. Session S5.4, after BL-112.
+
+### A failure says whether the player was in a session
+- id: BL-114
+- type: feature
+- status: Planned
+- priority: Low
+- size: XS
+- area: net
+- release: next
+- source: audit S5.2 2026-10-18 (F5.12)
+
+`NetStatus` `failed` is the same after a failed JOIN and after a session that ended mid-play, but M4's notification model shows them differently (a blocking error in play, F4.4; the MULTIPLAYER page's line while joining). Do: with M4's notify module (F4.9), `failed` carries the session's code when the player was in one; net-menu's onStatus stays the one adapter.
+
+### A reloaded tab's paint never reached the others
+- id: BL-115
+- type: bug
+- status: Done
+- priority: High
+- size: S
+- area: net
+- release: next
+- source: code review 2026-10-18 (F5.13)
+
+A reload rejoins with its token, but the new page numbered its op batches from 1 and the server dropped them as ones it had. Fixed: the Outbox numbers on from the welcome's `acked`; the server's takeover reset goes. Branch `fix/review-bugs`, with its test.
+
+### LEAVE while the welcome loads left the game 'in session'
+- id: BL-116
+- type: bug
+- status: Done
+- priority: High
+- size: S
+- area: net
+- release: next
+- source: code review 2026-10-18 (F5.14)
+
+welcome() went on after the paint loaded though its link was gone. Fixed: it stops when its link isn't the current one. Branch `fix/review-bugs`, with its test.
+
+### SAVE while reconnecting waited forever
+- id: BL-117
+- type: bug
+- status: Done
+- priority: High
+- size: XS
+- area: net
+- release: next
+- source: code review 2026-10-18 (F5.15)
+
+The request had no link and nothing failed it once back in. Fixed: refused at once while the link isn't live. Branch `fix/review-bugs`, with its test.
+
+### LEAVE before a session started kept PAINT DETAIL locked
+- id: BL-118
+- type: bug
+- status: Done
+- priority: High
+- size: XS
+- area: net
+- release: next
+- source: code review 2026-10-18 (F5.16)
+
+end() unlocked only once joined. Fixed: it always unlocks; a welcome whose link is gone locks nothing. Branch `fix/review-bugs`, with its test.
+
+### The player build forgot the performance lines
+- id: BL-119
+- type: bug
+- status: Done
+- priority: High
+- size: XS
+- area: ui
+- release: next
+- source: code review 2026-10-18 (F2.14)
+
+Settings took its defaults before main.ts turned the lines off. Fixed: it takes them when it starts. Branch `fix/review-bugs`, with its test.
+
+### A wheel step bound to a held action
+- id: BL-120
+- type: bug
+- status: Done
+- priority: High
+- size: XS
+- area: input
+- release: next
+- source: code review 2026-10-18 (F3.22)
+
+Controls took a wheel step for actions read with Input.held(), which never sees one. Fixed: refused, and not loaded from a save. Branch `fix/review-bugs`, with its test.
+
+### A swipe's sideways events dropped the wheel step
+- id: BL-121
+- type: bug
+- status: Done
+- priority: High
+- size: XS
+- area: input
+- release: next
+- source: code review 2026-10-18 (F3.23)
+
+A wheel event with no vertical scroll reset the part of a step; blur kept it. Fixed both. Branch `fix/review-bugs`, with its test.
+
+### A frame that throws freezes the game silently
+- id: BL-122
+- type: bug
+- status: Done
+- priority: High
+- size: XS
+- area: core
+- release: next
+- source: audit 2026-10-17 (F8.1)
+
+A thrown frame repeated every frame with nothing on screen. Fixed: reported once, and a notice asks for a reload (`src/frame-guard.ts`). Branch `fix/frame-guard`, with its test.
+
+### The HUD's GPU line froze with F3 closed
+- id: BL-123
+- type: bug
+- status: Done
+- priority: Medium
+- size: XS
+- area: ui
+- release: next
+- source: audit 2026-10-17 (F8.4)
+
+main.ts turned the GPU timer on and DevTools turned it off in the same frame (dev builds). Fixed: main.ts is the one writer. Branch `fix/small-spots`, with its test.
+
+### The F9 probe restored the wrong pixel ratio
+- id: BL-124
+- type: bug
+- status: Done
+- priority: Low
+- size: XS
+- area: render
+- release: next
+- source: audit 2026-10-17 (F8.5)
+
+Its half resolution step put back 1/pixelScale, ignoring min(1, DPR) (BL-026), without the view size. Fixed: put back with applyPixelScale. Branch `fix/small-spots`, with its test.
+
+### Rain set in build mode was undone on leaving it
+- id: BL-125
+- type: bug
+- status: Done
+- priority: Medium
+- size: XS
+- area: render
+- release: next
+- source: audit 2026-10-17 (F8.6)
+
+Daylight swaps rain out of ATMOS, so the setting wrote and saved daylight's value. Fixed: it writes the night's value (atmosphere.ts NIGHT). Branch `fix/small-spots`, with its test.
+
+### The PAINT DETAIL table was defined three times
+- id: BL-126
+- type: refactor
+- status: Done
+- priority: High
+- size: XS
+- area: code
+- release: next
+- source: audit 2026-10-17 (F8.7)
+
+Settings, the protocol and the server's paint check each had 24/48/72/96. Now config.ts PAINT_DETAIL. Branch `fix/small-spots`.
+
+### Misplaced doc comments
+- id: BL-127
+- type: chore
+- status: Done
+- priority: Medium
+- size: XS
+- area: code
+- release: next
+- source: audit 2026-10-17 (F8.8)
+
+setPanel's comment sat on rebuildModelsNow (devtools.ts). Moved. Branch `fix/small-spots`.
+
+### localStorage try/catch repeated
+- id: BL-128
+- type: refactor
+- status: Done
+- priority: Medium
+- size: XS
+- area: code
+- release: next
+- source: audit 2026-10-17 (F8.17)
+
+Six copies in settings-store.ts, the F3 panel and net-menu.ts. Now stored() and store() (src/stored.ts). Branch `fix/small-spots`.
+
+### A menu UI kit
+- id: BL-129
+- type: refactor
+- status: Done
+- priority: Medium
+- size: S
+- area: ui
+- release: next
+- source: audit 2026-10-17 (F8.9)
+
+Menu building blocks lived in settings-page.ts, with local el/div/span copies and hand-written createElement calls elsewhere. Now menu-ui.ts holds them with one el(tag, className, text). Branch `refactor/menu-ui-kit`.
+
+### A test for F3 config paths
+- id: BL-130
+- type: test
+- status: Done
+- priority: Medium
+- size: XS
+- area: code
+- release: next
+- source: audit 2026-10-17 (F8.14, F8.23)
+
+The F3 panel's config paths were plain strings no test checked; a broken range path stopped the dev tools as the game loaded, unnamed. Now `scripts/f3-paths.test.mjs` (npm test) checks each path and default in Node. Branch `test/f3-paths`.
+
+### An Environment module: main.ts stops wiring sky, fog and lights
+- id: BL-131
+- type: refactor
+- status: Planned
+- priority: Medium
+- size: S
+- area: render
+- release: next
+- source: audit 2026-10-17 (F8.11, S8.6)
+
+main.ts is at its ~400-line cap and builds, rebuilds and updates the sky, fog, atmosphere, lighting, lightning, light FX, rain, heightmap, smoke, the player light and the view lights itself (`src/main.ts:82-127,302-331`). `src/render/environment.ts` owns them behind `rebuild(level)`, `setViewHeight(h)` and one `update(view)`; the per-frame copies from config stay inside it, so F3 stays live. No behavior change: golden identical, full check before and after. Session S8.7.
+
+### A test driver: steps, keys and buttons
+- id: BL-132
+- type: test
+- status: Planned
+- priority: High
+- size: S
+- area: code
+- release: next
+- source: audit 2026-10-17 (F8.13, F3.15, S8.6)
+
+The fixed-frame `steps()` is written in four scripts (game.test, golden-paint, csp, avatar-shots), and tests write Input's private `down` and `pressed` sets and `lmb`/`rmb`/`wheelSteps`. One page script in test-browser.mjs for steps, and one Input entry for what the browser reports (`key`, `button`, `wheel`), called by its own listeners and by tests. What tests look at stays on window.game. Session S8.8.
+
+### F3: the hooks first, then the sections
+- id: BL-133
+- type: refactor
+- status: Planned
+- priority: Low
+- size: S
+- area: code
+- release: later
+- source: audit 2026-10-17 (F8.3, S8.6)
+
+The panel is built before DevTools sets its 33 hooks, so tuning.ts holds placeholder bodies and hooks.ts an indirection. DevTools sets up its parts, then `new DebugPanel(hooks)`; the sections take the hooks; `Hooks` becomes an interface, hooks.ts and its test go, `live` keeps stats and player; `atmosNight` goes to the panel as a getter. Dev-only. Session S8.9.
+
+### game.test.mjs split by area
+- id: BL-134
+- type: test
+- status: Planned
+- priority: Medium
+- size: S
+- area: code
+- release: next
+- source: audit 2026-10-17 (F8.13, S8.6)
+
+2318 lines, 78 checks in one file. Split into `scripts/game/` by area (menu and settings, input, paint pages and saves, levels and hints, tools and ladders, session, ghost and avatar, debug panel), each under ~400 lines, with the harness in one module; one runner and browser, `ONLY` across all, `npm run test:game` unchanged, same check names. After BL-132. Session S8.8.

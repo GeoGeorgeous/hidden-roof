@@ -1,14 +1,14 @@
-import { COLORS, PAINT } from '../config';
+import { COLORS, PAINT, PAINT_DETAIL } from '../config';
 import { download, pickFile, stamp } from '../files';
 import type { PauseMenu } from '../pause-menu';
 import type { Hotbar } from '../inventory/hotbar';
 import { savePaint } from '../save/save-paint';
-import { cycle, PAINT_DETAIL, paintDetailName } from '../settings';
-import { action, button, div, relabel, sentence } from '../menu-ui';
-import { choice, pageHead, settingRow } from '../settings-page';
+import { store, stored } from '../stored';
+import { cycle, paintDetailName } from '../settings';
+import { action, button, choice, div, el, pageHead, relabel, sentence, settingRow } from '../menu-ui';
 import { CODE_LENGTH, CODE_LETTERS, NAME_MAX } from './protocol';
 import type { MultiplayerContext } from './game-context';
-import { Multiplayer, type NetStatus } from './multiplayer';
+import { Multiplayer, type Failure, type NetStatus } from './multiplayer';
 
 // The Multiplayer page of the ESC menu: HOST (a name, the session's PAINT
 // DETAIL, the paint to start from: the level's own (save/level-paint.ts, none
@@ -23,8 +23,8 @@ const START_LABEL: Record<Start, string> = { fresh: 'Fresh level', mine: 'This p
 const DETAILS = Object.entries(PAINT_DETAIL) as [keyof typeof PAINT_DETAIL, number][];
 const NAME_KEY = 'roofhiddenhaus.name';
 
-/** What the player reads about the link. */
-const STATUS: Record<string, string> = {
+/** What the player reads about the link: every failure has its text. */
+const STATUS: Record<Failure | 'connecting' | 'reconnecting', string> & Partial<Record<NetStatus['state'], string>> = {
   connecting: 'Connecting…',
   reconnecting: 'Connection lost · reconnecting…',
   version: 'A new version is out: reload the page',
@@ -37,6 +37,7 @@ const STATUS: Record<string, string> = {
   'too-many': 'Too many connections from your network: try again later',
   ended: 'The session has ended',
   timeout: "The server didn't answer",
+  broken: 'The game hit an error in the session: copy the network log for a report',
   offline: "Can't reach the site: check your connection",
   'server-down': 'The game server is down',
   'no-server': 'No game server at this address',
@@ -55,19 +56,10 @@ export function multiplayerMenu(hud: PauseMenu, hotbar: Hotbar, ctx: Multiplayer
   const root = div('page mp-page');
   root.append(pageHead('multiplayer', sub), rows);
 
-  let name = '';
-  try {
-    name = localStorage.getItem(NAME_KEY) ?? '';
-  } catch {
-    // No storage: asked again next time.
-  }
+  let name = stored(NAME_KEY) ?? '';
   const nameInput = textInput(name, NAME_MAX, 'Your name', (v) => {
     name = v;
-    try {
-      localStorage.setItem(NAME_KEY, v);
-    } catch {
-      // No storage.
-    }
+    store(NAME_KEY, v);
   });
   const codeInput = textInput('', CODE_LENGTH, 'A B C D E', () => (codeInput.value = codeInput.value.toUpperCase().replace(/[^A-Z]/g, '')));
   codeInput.classList.add('code');
@@ -160,20 +152,20 @@ export function multiplayerMenu(hud: PauseMenu, hotbar: Hotbar, ctx: Multiplayer
 function bigRow(title: string, desc: string, act: () => void) {
   const b = button('', act, 'big-row');
   const text = div('text');
-  text.append(Object.assign(document.createElement('b'), { textContent: title }), Object.assign(document.createElement('span'), { textContent: desc }));
-  b.append(text, Object.assign(document.createElement('i'), { textContent: '›' }));
+  text.append(el('b', '', title), el('span', '', desc));
+  b.append(text, el('i', '', '›'));
   return b;
 }
 
 /** The form's button, centered under its rows (the status line under it). */
 function submit(go: HTMLElement) {
-  const el = div('submit');
-  el.append(go);
-  return el;
+  const box = div('submit');
+  box.append(go);
+  return box;
 }
 
 function textInput(value: string, max: number, placeholder: string, onInput: (v: string) => void) {
-  const input = Object.assign(document.createElement('input'), { type: 'text', value, maxLength: max, placeholder, spellcheck: false });
+  const input = Object.assign(el('input'), { type: 'text', value, maxLength: max, placeholder, spellcheck: false });
   input.addEventListener('input', () => onInput(input.value));
   return input;
 }

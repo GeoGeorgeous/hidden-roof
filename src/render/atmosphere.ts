@@ -10,32 +10,54 @@ import type { Lighting } from './lighting';
 
 type Atmos = typeof ATMOS;
 
-export class Atmosphere {
-  private night: Partial<Atmos> | null = null;
+/** While daylight is on: the night values it swapped out of ATMOS, else null. */
+let night: Partial<Atmos> | null = null;
 
+/** A night value (a setting, such as rain): ATMOS's, or while daylight is on, the one it swapped out. */
+function nightValue<K extends keyof Atmos>(key: K): Atmos[K] {
+  return night && key in night ? night[key]! : ATMOS[key];
+}
+
+/** Sets a night value: where nightValue reads it, so leaving daylight keeps it. */
+function setNightValue<K extends keyof Atmos>(key: K, value: Atmos[K]) {
+  if (night && key in night) night[key] = value;
+  else ATMOS[key] = value;
+}
+
+/** The night's settings (Settings → Rain): set in build mode's daylight, they hold once it ends. */
+export const NIGHT = {
+  get rain() {
+    return nightValue('rain');
+  },
+  set rain(on: boolean) {
+    setNightValue('rain', on);
+  },
+};
+
+export class Atmosphere {
   constructor(
     private sky: THREE.Mesh,
     private lighting: Lighting,
   ) {}
 
   get daylight() {
-    return !!this.night;
+    return !!night;
   }
 
   /** While daylight is on: the night values it replaced in ATMOS (the F3 panel edits these), else null. */
   get nightValues(): Partial<Atmos> | null {
-    return this.night;
+    return night;
   }
 
   setDaylight(on: boolean) {
     if (on === this.daylight) return;
     if (on) {
       const keys = Object.keys(DAYLIGHT) as (keyof Atmos)[];
-      this.night = Object.fromEntries(keys.map((k) => [k, ATMOS[k]])) as Partial<Atmos>;
+      night = Object.fromEntries(keys.map((k) => [k, ATMOS[k]])) as Partial<Atmos>;
       Object.assign(ATMOS, DAYLIGHT);
     } else {
-      Object.assign(ATMOS, this.night);
-      this.night = null;
+      Object.assign(ATMOS, night);
+      night = null;
     }
     this.syncColors();
   }

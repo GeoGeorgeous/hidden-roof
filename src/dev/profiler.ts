@@ -30,6 +30,7 @@ export interface ProfilerWorld {
   gpuTimer: GpuTimer;
   lightFx: { root: THREE.Object3D };
   city(): THREE.Object3D;
+  applyPixelScale(): void;
 }
 
 /** What a frame told the profiler, at its end. */

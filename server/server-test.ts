@@ -213,8 +213,10 @@ try {
   await geo.closed;
   const newTab = await game();
   newTab.send({ type: 'join', protocol: PROTOCOL, name: 'geo', code: wg.code });
-  // A new tab numbers its op batches from 1 again.
-  assert.deepEqual(pick(await newTab.next('welcome'), 'you', 'acked'), { you: wg.you, acked: 0 });
+  // The welcome says the last batch the server has from this player; the new tab numbers on from there.
+  assert.deepEqual(pick(await newTab.next('welcome'), 'you', 'acked'), { you: wg.you, acked: 1 });
+  newTab.send(ops(2, [2], [stamp]));
+  await twin.next('ops');
   await twin.none('joined');
   // One who left and comes in again later under the same name gets back what they carried.
   twin.send({ type: 'inventory', data: carried });

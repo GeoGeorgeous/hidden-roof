@@ -1,8 +1,7 @@
 import { PAUSE_MENU, PLAYER } from './config';
 import { type Action, keyName } from './input';
-import { allDefault, bind, type Bound, CONTROL_GROUPS, defaultSlot, refusal, resetKeys, restore, slots, snapshot } from './key-bindings';
-import { button, div } from './menu-ui';
-import { choice } from './settings-page';
+import { allDefault, bind, type Bound, CONTROL_GROUPS, defaultSlot, nameOf, refusal, resetKeys, restore, slots, snapshot } from './key-bindings';
+import { button, choice, div, el } from './menu-ui';
 import type { OwnTab } from './settings';
 
 // Settings → Controls: every play action's two slots (key-bindings.ts), in
@@ -14,8 +13,6 @@ import type { OwnTab } from './settings';
 // undone for PAUSE_MENU.undoSeconds. The footer line says what's going on.
 
 const HINT = 'Click a slot, then press a key, click or scroll  ·  Right-click clears  ·  Shift + click resets';
-const ROWS = CONTROL_GROUPS.flatMap((g) => g.rows);
-const nameOf = (action: Action) => ROWS.find((r) => r.action === action)!.name;
 /** The window's input events a listening slot takes, before anyone else hears them. */
 const EVENTS = ['keydown', 'keyup', 'mousedown', 'mouseup', 'click', 'auxclick', 'contextmenu', 'wheel'];
 
@@ -23,7 +20,7 @@ export class ControlsTab implements OwnTab {
   readonly rows = div('controls');
   readonly foot = div('controls-foot');
   readonly corner = div('seg reset-all');
-  private status = Object.assign(document.createElement('span'), { className: 'status' });
+  private status = el('span', 'status');
   private undoLink = button('Undo', () => this.undo(), 'undo');
   private syncs: (() => void)[] = [];
   /** The slot listening, and why the last key was refused. */
@@ -64,12 +61,12 @@ export class ControlsTab implements OwnTab {
 
   /** An action's row: its name (No key when it has none) and description, its two slots, and a line inside it (`sub`). */
   private row(action: Action, name: string, desc: string | undefined, sub: HTMLElement | null) {
-    const el = div('control-row');
+    const row = div('control-row');
     const line = div('line');
     const text = div('text');
     const head = div('label');
-    const none = Object.assign(document.createElement('span'), { className: 'no-key', textContent: 'No key' });
-    head.append(Object.assign(document.createElement('span'), { textContent: name }), none);
+    const none = el('span', 'no-key', 'No key');
+    head.append(el('span', '', name), none);
     text.append(head);
     if (desc) text.append(div('desc', desc));
     const buttons = [0, 1].map((i) => {
@@ -84,8 +81,8 @@ export class ControlsTab implements OwnTab {
     const box = div('slots');
     box.append(...buttons);
     line.append(text, box);
-    el.append(line);
-    if (sub) el.append(sub);
+    row.append(line);
+    if (sub) row.append(sub);
     this.syncs.push(() => {
       const s = slots(action);
       none.hidden = s.some((c) => c !== null);
@@ -97,16 +94,16 @@ export class ControlsTab implements OwnTab {
         b.classList.toggle('empty', !s[i]);
       });
     });
-    return el;
+    return row;
   }
 
   /** A line inside a row: a ‹ value › chooser across both slots, either arrow flips it. */
   private mode(name: string, value: () => string, flip: () => void) {
-    const el = div('sub');
+    const box = div('sub');
     const c = choice(value, () => (flip(), this.changed()));
-    el.append(div('desc', name), c.el);
+    box.append(div('desc', name), c.el);
     this.syncs.push(c.sync);
-    return el;
+    return box;
   }
 
   private click(action: Action, i: number, shift: boolean) {
@@ -143,12 +140,13 @@ export class ControlsTab implements OwnTab {
     let code: string | null = null;
     if (e instanceof KeyboardEvent && e.type === 'keydown' && !e.repeat) {
       if (e.code === 'Escape') return this.bound(null, true);
-      listening.refused = refusal(e.code);
-      if (listening.refused) return this.sync();
       code = e.code;
     } else if (e instanceof WheelEvent && e.deltaY) code = e.deltaY < 0 ? 'WheelUp' : 'WheelDown';
     else if (e instanceof MouseEvent && e.type === 'mousedown') code = `Mouse${e.button}`;
-    if (code) this.bound(code, !(e instanceof WheelEvent));
+    if (!code) return;
+    listening.refused = refusal(code, listening.action);
+    if (listening.refused) return this.sync();
+    this.bound(code, !(e instanceof WheelEvent));
   };
 
   /** The listening slot takes `code` (null: Esc, nothing); `release`: its keyup or mouseup is still to come. */
@@ -184,7 +182,7 @@ export class ControlsTab implements OwnTab {
   /** Reset all: dimmed when everything is default; asks first. */
   private syncCorner() {
     if (this.asking) {
-      const ask = Object.assign(document.createElement('span'), { className: 'ask', textContent: 'Reset all controls?' });
+      const ask = el('span', 'ask', 'Reset all controls?');
       const reset = button('Reset', () => {
         const before = snapshot();
         this.asking = false;

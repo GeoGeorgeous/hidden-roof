@@ -39,9 +39,10 @@ export interface LevelData {
   [extra: string]: unknown;
 }
 
-const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
-const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
-const isV3 = (v: unknown) => Array.isArray(v) && v.length === 3 && v.every(isNum);
+/** Shape checks for data from outside (a level file, a network message: protocol.ts). */
+export const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+export const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+export const isV3 = (v: unknown) => Array.isArray(v) && v.length === 3 && v.every(isNum);
 const optional = (v: unknown, is: (v: unknown) => boolean) => v === undefined || is(v);
 const isProp = (p: unknown) =>
   isObj(p) &&

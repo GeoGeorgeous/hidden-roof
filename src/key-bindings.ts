@@ -1,5 +1,5 @@
 import { BINDINGS, BROWSER_KEYS } from './config';
-import { type Action, keyName } from './input';
+import { type Action, keyName, sideless } from './input';
 
 // Rebinding play's actions (Settings → Controls) writes BINDINGS, as the other
 // settings write config. Each action has two slots, a primary and an alternate,
@@ -13,11 +13,9 @@ export type Slots = (string | null)[];
 export type Bound = Record<Action, Slots>;
 
 const ACTIONS = Object.keys(BINDINGS) as Action[];
-const SIDES = /^(Control|Shift|Alt|Meta)(Left|Right)$/;
-const slotOf = (code: string) => code.replace(SIDES, '$1');
 /** A slot's codes. */
 const codes = (slot: string) => (/^(Control|Shift|Alt|Meta)$/.test(slot) ? [`${slot}Left`, `${slot}Right`] : [slot]);
-const pair = (list: string[]): Slots => [...[...new Set(list.map(slotOf))], null, null].slice(0, 2);
+const pair = (list: string[]): Slots => [...[...new Set(list.map(sideless))], null, null].slice(0, 2);
 const copy = (b: Bound) => Object.fromEntries(ACTIONS.map((a) => [a, [...b[a]]])) as Bound;
 
 const DEFAULTS = Object.fromEntries(ACTIONS.map((a) => [a, pair(BINDINGS[a])])) as Bound;
@@ -57,8 +55,15 @@ function apply() {
   for (const a of ACTIONS) BINDINGS[a] = bound[a].filter((s) => s !== null).flatMap(codes);
 }
 
-/** Why `code` can't be bound: the menus' (Enter), the F3 panel's, the system's (Cmd, Win) and the browser's; null when it can. Esc cancels. */
-export function refusal(code: string) {
+/** An action's name on the Controls tab. */
+export const nameOf = (action: Action) => CONTROL_GROUPS.flatMap((g) => g.rows).find((r) => r.action === action)!.name;
+
+/** Actions played by holding (Input.held): a wheel step can't be held, so it isn't bound to them. */
+const HELD: readonly Action[] = ['forward', 'back', 'left', 'right', 'jump', 'crouch', 'sprint', 'use', 'shake'];
+
+/** Why `code` can't be bound to `action`: the menus' (Enter), the F3 panel's, the system's (Cmd, Win), the browser's, or a wheel step for a held action; null when it can. Esc cancels. */
+export function refusal(code: string, action: Action) {
+  if (code.startsWith('Wheel') && HELD.includes(action)) return `${nameOf(action)} is held down, and a wheel step can't be.`;
   if (code === 'Enter' || code === 'NumpadEnter') return 'Enter is for the menus.';
   if (code === 'F3' || code === 'Backquote') return `${keyName(code)} opens the debug panel.`;
   if (code === 'MetaLeft' || code === 'MetaRight') return keyName(code) === 'Win' ? 'The Windows key belongs to the system.' : `${keyName(code)} belongs to the system.`;
@@ -74,7 +79,7 @@ export const defaultSlot = (action: Action, i: number) => DEFAULTS[action][i];
 
 /** Binds `code` (a key, Mouse<n>, WheelUp or WheelDown; null clears) to the action's slot `i`; the action it moved from, if another had it. */
 export function bind(action: Action, i: number, code: string | null): Action | null {
-  const slot = code && slotOf(code);
+  const slot = code && sideless(code);
   let from: Action | null = null;
   for (const a of ACTIONS) {
     bound[a].forEach((s, j) => {
@@ -111,7 +116,7 @@ export function keyOverrides() {
 /** Applies saved bindings: known actions, two slots each, no reserved keys. */
 export function applyKeys(saved: Record<string, Slots> = {}) {
   for (const [a, s] of Object.entries(saved)) {
-    if (a in bound && Array.isArray(s) && s.length === 2 && s.every((c) => c === null || (typeof c === 'string' && !refusal(c)))) bound[a as Action] = [...s];
+    if (a in bound && Array.isArray(s) && s.length === 2 && s.every((c) => c === null || (typeof c === 'string' && !refusal(c, a as Action)))) bound[a as Action] = [...s];
   }
   apply();
 }

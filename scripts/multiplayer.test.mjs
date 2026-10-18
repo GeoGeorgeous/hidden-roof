@@ -3,7 +3,8 @@
 // JOIN through the pause menu's MULTIPLAYER page, both at the host's PAINT
 // DETAIL, paint and the stepladder reaching the other player, a reload coming
 // back into the session, paint while hidden, one that heard nothing for a while reconnecting, LEAVE
-// SESSION, one already playing the session's level starting it over, and a server restart ending the session.
+// SESSION, one already playing the session's level starting it over, a message it can't handle ending its session as
+// broken, and a server restart ending the session.
 // Usage: npm run test:mp (builds the server first)
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
@@ -57,6 +58,14 @@ const paintHash = (page) =>
     }
     return (h >>> 0).toString(16);
   });
+/** Waits until `page`'s paint hashes to `hash` (another player's strokes land when their figure gets there); fails after 10 s. */
+async function paintReaches(page, hash, what) {
+  for (const until = Date.now() + 10000; Date.now() < until; ) {
+    if ((await paintHash(page)) === hash) return;
+    await page.waitForTimeout(100);
+  }
+  assert.equal(await paintHash(page), hash, what);
+}
 
 try {
   const a = await open('ultra');
@@ -67,8 +76,13 @@ try {
   await press(a, 'HOST A SESSION');
   await a.fill('.mp-page input >> nth=0', 'A');
   for (let i = 0; i < 2; i++) await a.click('.mp-page .choice button:text-is("‹") >> nth=0');
+  // A was recording a ghost (F3, dev builds): the session stops it, and its frames go on (it used to put paint.log
+  // back to null after the welcome, so every frame threw).
+  await a.evaluate(() => window.game.ghost.record());
   await press(a, 'Host');
   await status(a, 'in');
+  await a.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+  assert.deepEqual(a.errors, [], 'a ghost recording before HOST breaks no frame');
   const code = (await a.textContent('.overlay .status')).match(/Session · ([A-Z]+)/)[1];
   assert.equal(code, await a.evaluate(() => window.game.net.status.code));
   await press(b, 'MULTIPLAYER');
@@ -133,6 +147,18 @@ try {
   painted = await paintHash(a);
   assert.equal(await paintHash(b), painted, 'B, shown again, has the paint A has');
 
+  // B paints, so the server has batches from it; after the reload its batches go on from there (a new page numbering
+  // from 1 again had every stroke dropped by the server as one it already had).
+  const stampB = (page, v) =>
+    page.evaluate((v) => {
+      const g = window.game;
+      const s = g.paint.surfaces.find((s) => s.geo.rects.length > 1);
+      for (let i = 0; i < 5; i++) g.paint.stamp(s, { rect: 0, u: 0.3 + i * 0.05, v }, 0.1, 0.6, [0.1, 0.8, 0.2]);
+    }, v);
+  await stampB(b, 0.2);
+  painted = await paintHash(b);
+  await paintReaches(a, painted, 'A has what B painted');
+
   // B finds the marker and reloads: it comes back into the session as the same player, with the paint and the marker.
   await b.evaluate(() => window.game.inventory.give('marker'));
   // The game sends what it carries on its next frame: wait for that, not a fixed time (SwiftShader draws ~6 frames a second here).
@@ -143,6 +169,9 @@ try {
   assert.equal(await b.evaluate(() => window.game.session.player), 'player2');
   assert.equal(await paintHash(b), painted, 'the paint comes back after a reload');
   assert.ok(await b.evaluate(() => window.game.inventory.has('marker')), 'what B carried comes back after a reload');
+  await stampB(b, 0.8);
+  painted = await paintHash(b);
+  await paintReaches(a, painted, 'A has what B painted after its reload');
   // A saw B go and come back.
   await a.waitForFunction(() => /#2 "B" dropped[^]*#2 "B" here/.test(window.game.net.log.text()), null, { timeout: 5000 });
 
@@ -159,8 +188,40 @@ try {
   assert.match(b.errors.pop() ?? '', /null/);
   await b.evaluate(() => ((window.game.net.link.socket.onmessage = null), (window.game.net.link.lastHeard = -1e9)));
   await status(b, 'reconnecting');
+  // SAVE meanwhile is refused at once: the request can't go, and a reconnect wouldn't answer it (it used to wait forever).
+  const saving = b.evaluate(() => Promise.race([window.game.net.savePaint().then(() => 'saved', (e) => e.message), new Promise((r) => setTimeout(() => r('no answer'), 8000))]));
   await status(b, 'in');
+  assert.match(await saving, /^Reconnecting/, 'SAVE while reconnecting');
   assert.equal(await paintHash(b), painted, 'the paint comes back after a reconnect');
+
+  // BL-088: B comes back on link 1, which drops while its welcome loads (4 s); the retry's link 2 hears nothing. Link 1's
+  // late welcome must not mark link 2 live: link 2 still gives up after NET.connectTimeout (3 s here), not serverSilence.
+  await b.evaluate(() => {
+    const n = window.game.net;
+    const welcome = n.welcome.bind(n);
+    n.welcome = async (...args) => {
+      n.welcome = welcome;
+      n.link.close();
+      window.mute = true;
+      await new Promise((r) => setTimeout(r, 4000));
+      return welcome(...args);
+    };
+    // A link opened while muted hears nothing from the server.
+    const WS = window.WebSocket;
+    window.WebSocket = class extends WS {
+      set onmessage(f) {
+        super.onmessage = window.mute ? null : f;
+      }
+      get onmessage() {
+        return super.onmessage;
+      }
+    };
+    window.game.config.NET.connectTimeout = 3;
+    n.link.close();
+  });
+  await b.waitForFunction(() => window.game.net.log.text().includes('nothing from the server in 3 s'), null, { timeout: 9000 }).catch(async () => assert.fail(`link 2 never gave up:\n${await b.evaluate(() => window.game.net.log.text())}`));
+  await b.evaluate(() => ((window.mute = false), (window.game.config.NET.connectTimeout = 15)));
+  await status(b, 'in');
 
   // LEAVE: A hears B has gone, B plays alone at its own detail again.
   await press(b, 'LEAVE SESSION');
@@ -172,13 +233,39 @@ try {
   await b.evaluate(() => {
     const n = window.game.net;
     const welcome = n.welcome.bind(n);
-    n.welcome = async (...args) => (await new Promise((r) => setTimeout(r, 5000)), welcome(...args));
+    n.welcome = async (...args) => ((n.welcome = welcome), await new Promise((r) => setTimeout(r, 5000)), welcome(...args));
   });
   await b.evaluate((c) => window.game.net.join('B', c), code);
   await status(b, 'in');
   await b.waitForFunction(() => [...window.game.net.remotes.list.values()][0]?.avatar.group.visible, null, { timeout: 2000 });
   assert.equal(await b.textContent('.nameplate'), 'A');
   await b.evaluate(() => window.game.net.leave());
+
+  // B joins and presses LEAVE while the welcome's paint loads, then again before the welcome is handled (it waits
+  // behind other messages): B stays out of the session, not "in" with no link, and its PAINT DETAIL is its own again
+  // (the welcome locks it to the session's: not "(host)" alone).
+  for (const when of ['loading', 'before']) {
+    await b.evaluate(
+      ([c, when]) => {
+        const n = window.game.net;
+        const welcome = n.welcome.bind(n);
+        window.welcomed = false;
+        n.welcome = (...args) => {
+          n.welcome = welcome;
+          if (when === 'before') n.leave();
+          const handled = welcome(...args);
+          if (when === 'loading') n.leave();
+          return handled.then(() => (window.welcomed = true));
+        };
+        n.join('B', c);
+      },
+      [code, when],
+    );
+    await b.waitForFunction(() => window.welcomed, null, { timeout: 15000 });
+    const out = await b.evaluate(() => [window.game.net.status.state, window.game.session.multiplayer, window.game.settings.locked]);
+    assert.deepEqual(out, ['off', false, null], `LEAVE ${when} the welcome: out of the session, PAINT DETAIL unlocked`);
+    await a.waitForFunction(() => window.game.net.names.size === 0, null, { timeout: 5000 });
+  }
 
   // C plays the same level at the session's PAINT DETAIL: its welcome starts that level over rather than building it
   // again (seconds with its lights and shaders, BL-085). What it placed and found alone is gone, it stands at the
@@ -200,7 +287,14 @@ try {
   });
   assert.deepEqual(restarted, { kept: true, ladder: null, marker: false, fromSpawn: 0 });
   assert.equal(await paintHash(c), await paintHash(a), 'C has the session paint');
-  await c.evaluate(() => window.game.net.leave());
+
+  // A message C's game can't handle ends its session as broken, with the error in the log; not "a new version is out".
+  await c.evaluate(() => (window.game.net.remotes.get = () => null.state));
+  await c.waitForFunction(() => window.game.net.status.state === 'failed', null, { timeout: 5000 });
+  assert.equal(await c.evaluate(() => window.game.net.status.reason), 'broken');
+  assert.match(await c.evaluate(() => window.game.hud.menu.message), /The game hit an error in the session/);
+  assert.match(await c.evaluate(() => window.game.net.log.text()), /couldn't handle state: TypeError/);
+  await a.waitForFunction(() => window.game.net.names.size === 0, null, { timeout: 5000 });
 
   // The server restarts (a deploy): A's game reconnects, finds its session gone, and says the session has ended.
   server.kill();

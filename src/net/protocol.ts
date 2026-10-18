@@ -1,5 +1,6 @@
+import { PAINT_DETAIL } from '../config.ts';
 import type { InventoryData } from '../inventory/inventory';
-import { levelProblem, type LevelData, type PropData } from '../level/level-data.ts';
+import { isNum, isObj, isV3, levelProblem, type LevelData, type PropData } from '../level/level-data.ts';
 
 // The messages between the game and the multiplayer server (server/), over a
 // WebSocket. Each is one binary frame: a u32 (little-endian) length, that many
@@ -18,8 +19,8 @@ export const NAME_MAX = 16;
 /** Session codes: this many letters from CODE_LETTERS (no I or O, which read as 1 and 0). */
 export const CODE_LENGTH = 5;
 export const CODE_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-/** The PAINT DETAILs a host may pick (texels per meter, settings.ts). */
-const DETAILS = [24, 48, 72, 96];
+/** The PAINT DETAILs a host may pick (texels per meter). */
+const DETAILS = Object.values(PAINT_DETAIL);
 /** Player snapshot size (net/snapshot.ts). */
 export const SNAPSHOT_BYTES = 25;
 /** Most props a hosted level may have (the roof has 1340): each costs the server building it. */
@@ -147,7 +148,7 @@ export function decode(frame: Uint8Array): Message | null {
   } catch {
     return null;
   }
-  if (!isObject(msg) || typeof msg.type !== 'string') return null;
+  if (!isObj(msg) || typeof msg.type !== 'string') return null;
   const m = msg as Message;
   if (4 + n < frame.length) m.bytes = frame.subarray(4 + n);
   return m;
@@ -190,14 +191,11 @@ export function cleanName(name: string) {
   return Array.from(name.trim()).slice(0, NAME_MAX).join('');
 }
 
-const isObject = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x !== null && !Array.isArray(x);
-const isNum = (x: unknown): x is number => typeof x === 'number' && Number.isFinite(x);
 const isInt = (x: unknown): x is number => Number.isInteger(x) && (x as number) >= 0;
 const isName = (x: unknown) => typeof x === 'string' && cleanName(x).length > 0;
 const isCode = (x: unknown) => typeof x === 'string' && x.length === CODE_LENGTH && [...x].every((c) => CODE_LETTERS.includes(c));
-const isV3 = (x: unknown) => Array.isArray(x) && x.length === 3 && x.every(isNum);
 /** Shape and size only: the game takes from it what it knows (Inventory.restore). */
 const isWords = (x: unknown) => Array.isArray(x) && x.length <= 32 && x.every((w) => typeof w === 'string' && w.length <= 32);
-const isInventory = (x: unknown) => isObject(x) && isWords(x.tools) && isWords(x.colors) && isWords(x.caps) && isInt(x.selected) && isWords([x.color, x.cap]);
+const isInventory = (x: unknown) => isObj(x) && isWords(x.tools) && isWords(x.colors) && isWords(x.caps) && isInt(x.selected) && isWords([x.color, x.cap]);
 /** Only a stepladder: a player places nothing else while playing. */
-const isLadder = (x: unknown) => isObject(x) && x.type === 'stepladder' && isV3(x.pos) && (x.rot === undefined || isInt(x.rot));
+const isLadder = (x: unknown) => isObj(x) && x.type === 'stepladder' && isV3(x.pos) && (x.rot === undefined || isInt(x.rot));

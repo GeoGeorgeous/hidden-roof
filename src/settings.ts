@@ -1,10 +1,13 @@
-import { ATMOS, AUDIO, HUD, INK_STYLES, PAINT, PLAYER, RENDER, SKYLINE, SMOKE, VOLUMETRICS } from './config';
+import { AUDIO, HUD, INK_STYLES, PAINT, PAINT_DETAIL, PLAYER, RENDER, SKYLINE, SMOKE, VOLUMETRICS } from './config';
 import { exitGameFullscreen } from './fullscreen';
 import { sentence } from './menu-ui';
 import { DEFAULT_STYLE, inkStyle, setInkStyle } from './render/ink/styles';
+import { NIGHT } from './render/atmosphere';
 import { ControlsTab } from './controls-tab';
 import { applyKeys, keyOverrides } from './key-bindings';
 import { applyValues, changedValues, defaultsOf, loadSaved, save, type Remembered } from './settings-store';
+import { currentOs, fasterGpuHow, type GpuInfo } from './gpu-name';
+import type { TestedSettings } from './perf-test';
 
 // Player settings, on the settings page of the pause menu (settings-page.ts):
 // gameplay, controls (controls-tab.ts), graphics and sound. They write the same config values the debug
@@ -32,8 +35,6 @@ const VOL_PRESETS = {
 };
 type VolPreset = keyof typeof VOL_PRESETS;
 const VOL_ORDER = Object.keys(VOL_PRESETS) as VolPreset[];
-/** Paint texels per meter. Paint memory grows with the square: ULTRA needs 16x LOW. */
-export const PAINT_DETAIL = { low: 24, medium: 48, high: 72, ultra: 96 };
 type PaintDetail = keyof typeof PAINT_DETAIL;
 const DETAIL_ORDER = Object.keys(PAINT_DETAIL) as PaintDetail[];
 /** How much of the city around the level is built: reach, rooftop clutter and how far thin lines show. */
@@ -53,6 +54,8 @@ export class Settings {
   private builtCity: CityDetail;
   /** In a multiplayer session: the host's PAINT DETAIL, which holds whatever is picked here. */
   private locked: PaintDetail | null = null;
+  /** The remembered fields' defaults, as they are when Settings starts: after main.ts turned the player build's performance lines off. */
+  private defaults = defaultsOf(REMEMBERED);
 
   /**
    * `applyResolution` resizes the renderer after the pixel scale changed,
@@ -65,7 +68,7 @@ export class Settings {
     private applyCityDetail: () => void,
   ) {
     const s = loadSaved();
-    applyValues(REMEMBERED, REMEMBERED_DEFAULTS, s.values);
+    applyValues(REMEMBERED, this.defaults, s.values);
     applyKeys(s.controls);
     const style = INK_STYLES.findIndex((t) => t.name === s.style);
     if (style >= 0) setInkStyle(style);
@@ -82,21 +85,23 @@ export class Settings {
     Object.assign(SKYLINE, CITY_DETAIL[this.city]);
   }
 
-  /** The settings page (pause menu → SETTINGS): one section per tab. Every change is saved. */
-  sections(): SettingSection[] {
+  /** The settings page (pause menu → SETTINGS): one section per tab. Every change is saved. `gpu`: what the game draws with; `runTest`: the performance test. */
+  sections(gpu: GpuInfo, runTest: () => void): SettingSection[] {
     const saving = (row: SettingRow): SettingRow => {
       if (row.kind === 'choice') return { ...row, step: (d) => (row.step(d), this.save()) };
-      return { ...row, set: (v) => (row.set(v), this.save()) };
+      if (row.kind === 'range') return { ...row, set: (v) => (row.set(v), this.save()) };
+      // Info and action rows change nothing.
+      return row;
     };
     return [
       { title: 'Gameplay', rows: gameplayRows().map(saving) },
       { title: 'Controls', rows: [], tab: new ControlsTab(() => this.save()) },
-      { title: 'Graphics', rows: this.graphicsRows().map(saving) },
+      { title: 'Graphics', rows: [{ kind: 'action', label: 'Performance test', desc: 'Flies over the roof for a few seconds at your current settings and shows how it ran.', button: 'Run', act: runTest }, ...this.graphicsRows(gpu).map(saving)] },
       { title: 'Sound', rows: soundRows().map(saving) },
     ];
   }
 
-  private graphicsRows(): SettingRow[] {
+  private graphicsRows(gpu: GpuInfo): SettingRow[] {
     return [
       {
         kind: 'choice',
@@ -114,25 +119,27 @@ export class Settings {
         label: 'Resolution',
         // Per-pixel work follows the pixel count: 1/2 draws a quarter of 1/1's pixels.
         cost: 'HIGH',
-        value: () => {
-          const w = Math.round(window.innerWidth / RENDER.pixelScale);
-          const h = Math.round(window.innerHeight / RENDER.pixelScale);
-          return `1/${RENDER.pixelScale}  ${w}x${h}`;
-        },
+        value: resolution,
         step: (d) => {
           RENDER.pixelScale = cycle(PIXEL_SCALES, nearest(PIXEL_SCALES, RENDER.pixelScale), d);
           this.applyResolution();
-          this.save();
         },
+      },
+      {
+        kind: 'info',
+        label: 'GPU',
+        // A laptop's browser may draw on its built-in GPU while a faster one idles: say how to switch.
+        desc: ['The graphics chip the browser draws the game with.', gpu.integrated ? `It's built into the processor. ${fasterGpuHow(currentOs()) ?? ''}` : ''].join(' ').trim(),
+        value: () => gpu.name ?? 'Hidden by the browser',
       },
       {
         kind: 'choice',
         label: 'Frame rate',
+        desc: "Above your display's refresh rate this acts like Max.",
         cost: 'LOW',
         value: () => (RENDER.maxFps ? `${RENDER.maxFps} FPS` : 'Max'),
         step: (d) => {
           RENDER.maxFps = cycle(FRAME_RATES, nearest(FRAME_RATES, RENDER.maxFps), d);
-          this.save();
         },
       },
       {
@@ -145,7 +152,6 @@ export class Settings {
         step: (d) => {
           this.vol = cycle(VOL_ORDER, this.vol, d);
           Object.assign(VOLUMETRICS, VOL_PRESETS[this.vol]);
-          this.save();
         },
       },
       {
@@ -164,7 +170,6 @@ export class Settings {
         locked: () => !!this.locked,
         step: (d) => {
           this.detail = cycle(DETAIL_ORDER, this.detail, d);
-          this.save();
         },
       },
       {
@@ -176,7 +181,6 @@ export class Settings {
         value: () => sentence(this.city) + (this.city !== this.builtCity ? ON_RESUME : ''),
         step: (d) => {
           this.city = cycle(CITY_ORDER, this.city, d);
-          this.save();
         },
       },
       toggle(
@@ -188,11 +192,34 @@ export class Settings {
         },
         'LOW',
       ),
-      toggle('Rain', () => ATMOS.rain, (on) => (ATMOS.rain = on), 'LOW'),
+      toggle('Rain', () => NIGHT.rain, (on) => (NIGHT.rain = on), 'LOW'),
       toggle('Smoke', () => SMOKE.enabled, (on) => (SMOKE.enabled = on), 'LOW'),
       toggle('Moving parts', () => RENDER.propMotion, (on) => (RENDER.propMotion = on), 'LOW'),
-      toggle('Performance lines', () => HUD.perf, (on) => (HUD.perf = on), undefined, 'Shows fps, ms, GPU ms, draw calls, triangles, texture memory and network stats at the bottom left.'),
+      toggle('Performance lines', () => HUD.perf, (on) => (HUD.perf = on), undefined, 'Shows fps, ms, the GPU, draw calls, triangles, texture memory and network stats at the bottom left.'),
     ];
+  }
+
+  /** The settings that change how fast the game draws, as the performance test runs with them (its popup and tip). */
+  tested(): TestedSettings {
+    // The paint and city detail drawn now, not one waiting for the game to resume.
+    const paint = DETAIL_ORDER.find((k) => PAINT_DETAIL[k] === PAINT.texelsPerMeter);
+    const next = PIXEL_SCALES[PIXEL_SCALES.indexOf(nearest(PIXEL_SCALES, RENDER.pixelScale)) + 1];
+    return {
+      size: drawnSize().replace('x', '×'),
+      volumetrics: sentence(this.vol),
+      paint: paint ? sentence(paint) : `${PAINT.texelsPerMeter}/m`,
+      city: sentence(this.builtCity),
+      volOff: this.vol === 'off',
+      volHigh: this.vol === 'high',
+      nextScale: next ?? null,
+      cityLow: this.builtCity === 'low',
+    };
+  }
+
+  /** The same in one line, for npm run bench: "1/1  1920x1080 · Volumetrics Low · Paint Ultra · City High". */
+  summary() {
+    const t = this.tested();
+    return [resolution(), `Volumetrics ${t.volumetrics}`, `Paint ${t.paint}`, `City ${t.city}`, ...(RENDER.maxFps ? [`${RENDER.maxFps} FPS`] : [])].join(' · ');
   }
 
   /** STYLE: an INK_STYLES index (also the pause screen's switcher). */
@@ -225,7 +252,7 @@ export class Settings {
   }
 
   private save() {
-    save({ style: INK_STYLES[inkStyle()]?.name, pixelScale: RENDER.pixelScale, maxFps: RENDER.maxFps, volumetrics: this.vol, paintDetail: this.detail, cityDetail: this.city, values: changedValues(REMEMBERED, REMEMBERED_DEFAULTS), controls: keyOverrides() });
+    save({ style: INK_STYLES[inkStyle()]?.name, pixelScale: RENDER.pixelScale, maxFps: RENDER.maxFps, volumetrics: this.vol, paintDetail: this.detail, cityDetail: this.city, values: changedValues(REMEMBERED, this.defaults), controls: keyOverrides() });
   }
 }
 
@@ -236,6 +263,16 @@ export class Settings {
  */
 export function pixelRatio() {
   return Math.min(1, devicePixelRatio) / RENDER.pixelScale;
+}
+
+/** RESOLUTION: the pixel scale and the size drawn, "1/1  1920x1080". */
+function resolution() {
+  return `1/${RENDER.pixelScale}  ${drawnSize()}`;
+}
+
+/** The size drawn at RESOLUTION's pixel scale: "1920x1080". */
+function drawnSize() {
+  return `${Math.round(window.innerWidth / RENDER.pixelScale)}x${Math.round(window.innerHeight / RENDER.pixelScale)}`;
 }
 
 /** "Ultra  1.0 cm": a PAINT DETAIL with the size of one texel (the multiplayer page's too). */
@@ -252,8 +289,8 @@ function nearest(list: number[], v: number) {
 }
 
 /**
- * A setting row: a choice stepped through with < and >, or a slider (`def`: its
- * default, marked on it). `desc` is an optional line under it, `note` a callout
+ * A setting row: a choice stepped through with < and >, a slider (`def`: its
+ * default, marked on it), a value to read (info) or a button (action). `desc` is an optional line under it, `note` a callout
  * (recommendations), `cost` how much the setting can change how smoothly the
  * game runs, whatever its value.
  */
@@ -261,6 +298,8 @@ type RowBase = { label: string; desc?: string; note?: string; cost?: Cost };
 type Cost = 'LOW' | 'MEDIUM' | 'HIGH';
 export type SettingRow =
   | (RowBase & { kind: 'choice'; value: () => string; step: (d: number) => void; locked?: () => boolean })
+  | (RowBase & { kind: 'info'; value: () => string })
+  | (RowBase & { kind: 'action'; button: string; act: () => void })
   | (RowBase & { kind: 'range'; min: number; max: number; step: number; def: number; get: () => number; set: (v: number) => void; format: (v: number) => string });
 /** A tab that builds its own page (Controls): its rows' column, its footer line and a control top right; `open` readies it each time it shows, `close` when it goes. */
 export interface OwnTab {
@@ -333,12 +372,11 @@ const SOUND_DEFAULTS = Object.fromEntries(SOUNDS.map(([, k]) => [k, AUDIO[k]]));
 const REMEMBERED: Remembered[] = [
   ...(['mouseSensitivity', 'crouchToggle', 'tapToRun'] as const).map((field) => ({ name: `PLAYER.${field}`, obj: PLAYER, field })),
   ...(['fov', 'sprintFovBoost', 'fullscreen', 'propMotion'] as const).map((field) => ({ name: `RENDER.${field}`, obj: RENDER, field })),
-  { name: 'ATMOS.rain', obj: ATMOS, field: 'rain' },
+  { name: 'ATMOS.rain', obj: NIGHT, field: 'rain' },
   { name: 'SMOKE.enabled', obj: SMOKE, field: 'enabled' },
   { name: 'HUD.perf', obj: HUD, field: 'perf' },
   ...SOUNDS.map(([, field]) => ({ name: `AUDIO.${field}`, obj: AUDIO, field })),
 ];
-const REMEMBERED_DEFAULTS = defaultsOf(REMEMBERED);
 
 function soundRows(): SettingRow[] {
   return SOUNDS.map(([label, key, desc]) => ({

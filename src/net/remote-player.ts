@@ -105,11 +105,11 @@ export class RemotePlayer {
     if (this.lag === null) {
       this.target = sample;
       this.lag = sample + NET.interpDelay;
-    } else this.target = Math.min(sample, this.target + 0.002);
-    this.jitter += (sample - this.target - this.jitter) * 0.05;
+    } else this.target = Math.min(sample, this.target + NET.lagDrift);
+    this.jitter += (sample - this.target - this.jitter) * NET.jitterShare;
     this.snaps.push(s);
     // Not shown for a while (a hidden tab draws no frames): keep only the newest.
-    if (this.snaps.length > 64) this.snaps.shift();
+    if (this.snaps.length > NET.snapsKept) this.snaps.shift();
   }
 
   /** A paint op they made at their time `t`. */
@@ -241,7 +241,7 @@ export class RemotePlayer {
     const moved = this.truePos.sub(this.pos).negate();
     const jump = moved.addScaledVector(this.state.velocity, -dt);
     if (!this.seen || jump.length() > NET.teleport) this.error.set(0, 0, 0);
-    else if (jump.length() > 0.05) this.error.sub(jump);
+    else if (jump.length() > NET.smoothFrom) this.error.sub(jump);
     this.seen = true;
     const left = this.error.length();
     this.error.setLength(left - Math.min(left * (1 - Math.exp(-NET.smoothing * dt)), NET.glideSpeed * dt));
@@ -251,7 +251,7 @@ export class RemotePlayer {
 
   /** On a ladder they face it, whichever way they look. */
   private faceLadder() {
-    const l = this.level.ladders.find((l) => l.volume.containsPoint(this.pos) || l.volume.distanceToPoint(this.pos) < 0.3);
+    const l = this.level.ladders.find((l) => l.volume.containsPoint(this.pos) || l.volume.distanceToPoint(this.pos) < NET.ladderNear);
     if (l) this.state.yaw = Math.atan2(l.normal.x, l.normal.z);
   }
 }

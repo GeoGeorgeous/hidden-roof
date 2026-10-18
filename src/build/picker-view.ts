@@ -2,6 +2,7 @@ import { BUILD } from '../config';
 import { itemIcon, type Thumbnails } from '../inventory/thumbnails';
 import type { Choice, Entry, Picker } from './picker';
 import type { Finish } from '../kit/finishes';
+import { div, el } from '../menu-ui';
 import { propIcon } from './prop-icon';
 
 // The picker on the left edge: a wheel of categories fanned out from a hub
@@ -36,9 +37,9 @@ export class PickerView {
     icons.onReady = () => (this.drawn = '');
     const wheel = div('wheel');
     this.cats = picker.categories.map((c) => {
-      const el = div('cat');
-      el.append(document.createElement('i'), Object.assign(document.createElement('span'), { textContent: c.id }));
-      return el;
+      const box = div('cat');
+      box.append(el('i'), el('span', '', c.id));
+      return box;
     });
     wheel.append(...this.cats);
     this.root.append(wheel, this.column);
@@ -125,6 +126,3 @@ function placedLine(e: Entry, counts: Map<string, number>) {
   return `<div class="placed">${e.variants.map((v) => `<span>${v.swatch ? `<i style="background:${v.swatch}"></i>` : v.label}${placedCount(v.choice, counts)}</span>`).join('')}</div>`;
 }
 
-function div(className: string) {
-  return Object.assign(document.createElement('div'), { className });
-}

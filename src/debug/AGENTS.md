@@ -4,7 +4,7 @@
 
 - **Tab → group → section → row.** A tab is an area of the game (Player, Paint, Render, World, Sound, UI, Build, Items, Models, Test). A group is one system or object (Movement, Caps, Pressure). A section is one part of it, started by a heading.
 - **General first.** Settings for the whole group come first, in a section titled General; a group with one section titles it General too.
-- **Every group is listed in exactly one tab** (`TABS` in `panel.ts`). Never rely on the fallback to the last tab.
+- **Every group is listed in exactly one tab** (`TABS` in `panel.ts`).
 - **Group by effect, not by config object.** Put a setting where you'd look for it by what it changes. Concerns that cut across tools (Cursor, Quality, Paint runs, Pressure) get their own group, with one section per tool or cap.
 - **Same rows for repeated things.** Each cap, tool, light or pickup gets a section with the same name pattern and the same rows in the same order, generated from config with a shared helper.
 - **Feel → quality → looks.** Settings that change how something plays or looks come first. Smoothness-against-cost trade-offs go in a Quality group; purely cosmetic animation goes with its model or held pose; performance stats go in Test.
@@ -38,7 +38,6 @@
 
 ## Code and process
 
-- **Hooks are called through `live`, never passed by reference:** `() => live.rebuildModels()`, not `live.rebuildModels`. The panel is built before dev tools set the hooks, so a reference keeps the empty placeholder.
 - **Tunables live in `config.ts`.** Panel contents go in a `*-sections.ts` file per area (each under 400 lines), with shared helpers for repeated rows.
 - **Renaming a config key** updates tooltips, tests and code in the same commit. Golden paint must still match, unless the change means to alter paint and the commit says so (`npm run golden -- --update`).
 - **Before restructuring a tab,** propose the changes point by point, with options, and let the user decide.

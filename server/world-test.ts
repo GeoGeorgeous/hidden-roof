@@ -71,6 +71,21 @@ const level: LevelData = JSON.parse(fs.readFileSync('public/levels/demo.json', '
   console.log('replayed ops: ok (painted, not logged)');
 }
 
+// A run paints the same texels whatever the frames it runs in: every client (and the server) runs it at its own frame rate.
+{
+  const ranAt = (steps: number[]) => {
+    const { paint, ops, drips } = sessionPaint(level, 48);
+    const s = paint.surfaces.find((s) => s.geo.rects[0].h >= 30)!;
+    ops.apply({ kind: 'drip', key: s.key, rect: 0, u: 0.5, v: 0.95, length: 0.5, speed: 0.25, rgb: [0, 0, 1] });
+    for (let i = 0; drips.count; i++) drips.update(steps[i % steps.length]);
+    return s.data!;
+  };
+  const steady = ranAt([1 / 60]);
+  assert.ok(steady.some((v, i) => i % 4 === 3 && v > 0), 'a run paints');
+  assert.deepEqual(ranAt([1 / 20, 1 / 144, 1 / 37, 1 / 90]), steady, 'a run paints the same at another frame rate');
+  console.log('paint runs: ok (the same at any frame rate)');
+}
+
 /** A link as the lobby sees one (Link), recording what it was sent and how it was closed. */
 class FakeLink implements Link {
   open = true;

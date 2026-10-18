@@ -29,12 +29,9 @@ for (const s of steps) {
   await page.waitForTimeout(s.wait ?? 500);
   if (s.shot) await shot(`${String(i++).padStart(2, '0')}-${s.shot}`);
 }
-const gpu = await page.evaluate(() => {
-  const gl = window.game.renderer.getContext();
-  return gl.getParameter(gl.getExtension('WEBGL_debug_renderer_info').UNMASKED_RENDERER_WEBGL);
-});
+const gpu = await page.evaluate(() => window.game.gpu);
 // Named by what drew it: a display alone doesn't mean a GPU driver.
-console.log(/swiftshader|llvmpipe|software/i.test(gpu) ? `NOT a real GPU (software): ${gpu}` : `real GPU: ${gpu}`);
+console.log(gpu.software ? `NOT a real GPU (software): ${gpu.raw}` : `real GPU: ${gpu.raw}`);
 console.log(await page.textContent('.perf'));
 if (errors.length) console.log(errors.join('\n'));
 await test.close();

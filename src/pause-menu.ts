@@ -1,7 +1,7 @@
 import { INK_STYLES, PAUSE_MENU } from './config';
 import { creditsPage } from './credits-page';
 import { EscHold, ring } from './esc-hold';
-import { button, div, keyHint, runPrimary, segmented, sentence } from './menu-ui';
+import { button, div, el, keyHint, runPrimary, segmented, sentence } from './menu-ui';
 import { AUTHOR, DISCORD, REPO } from './links';
 import { inkStyle } from './render/ink/styles';
 import { SessionLine, type SessionInfo } from './session-line';
@@ -27,7 +27,7 @@ const PREVIEW_SECONDS = 1.5;
 /** The session's live line (ping, players) is refreshed this often while it shows. */
 const LINE_SECONDS = 1;
 
-export type Page = 'settings' | 'mp' | 'credits' | 'updates' | 'save' | 'upload';
+export type Page = 'settings' | 'mp' | 'credits' | 'updates' | 'save' | 'upload' | 'perf';
 
 export class PauseMenu {
   onResume = () => {};
@@ -54,7 +54,7 @@ export class PauseMenu {
   private loadPaint: HTMLElement;
   private themes: ReturnType<typeof segmented>;
   private settingsPage: SettingsPage | null = null;
-  private pages = new Map<Page, { el: HTMLElement; open: () => void; back?: () => boolean }>();
+  private pages = new Map<Page, { el: HTMLElement; open: () => void; back?: () => boolean; close?: () => void }>();
   private page: Page | null = null;
   /** The multiplayer session's code while in one. */
   private session: string | null = null;
@@ -86,9 +86,9 @@ export class PauseMenu {
     this.hold = new EscHold(this.el, () => this.sync());
     // The text, and the hold's ring beside it (left of the text, which stays centered).
     this.status = div('status');
-    this.status.append(ring(), document.createElement('span'));
+    this.status.append(ring(), el('span'));
     // mousedown, like the canvas: the click that starts the game is the same gesture.
-    this.play = Object.assign(document.createElement('button'), { className: 'play', textContent: 'Play' });
+    this.play = el('button', 'play', 'Play');
     this.play.addEventListener('mousedown', (e) => (e.preventDefault(), e.button === 0 && this.onResume()));
     this.play.append(keyHint('ESC'));
     this.multiplayer = button('Multiplayer', () => (this.session ? this.onLeave() : this.openPage('mp')));
@@ -182,27 +182,32 @@ export class PauseMenu {
     this.addPage('settings', this.settingsPage.root, () => this.settingsPage!.sync());
   }
 
-  /** A page of the menu: `open` readies it each time it opens; `back` goes back a step within it (Esc, Back), false when there's none. */
-  addPage(page: Page, el: HTMLElement, open: () => void, back?: () => boolean) {
-    this.pages.set(page, { el, open, back });
+  /**
+   * A page of the menu: `open` readies it each time it opens; `back` goes back a step within it (Esc, Back), false
+   * when there's none; `close` runs when another page or the game takes its place.
+   */
+  addPage(page: Page, el: HTMLElement, open: () => void, back?: () => boolean, close?: () => void) {
+    this.pages.set(page, { el, open, back, close });
     this.el.append(el);
     el.hidden = this.page !== page;
   }
 
-  /** The settings page on the tab with this title (Gameplay, Controls, Graphics, Sound). */
-  openSettings(tab: string) {
+  /** The settings page on the tab with this title (Gameplay, Controls, Graphics, Sound); `row`: scrolled to the row with this label. */
+  openSettings(tab: string, row?: string) {
     this.openPage('settings');
-    this.settingsPage?.showTab(tab);
+    this.settingsPage?.showTab(tab, row);
   }
 
   /** A page over the blurred view, or the pause screen (null). */
   openPage(page: Page | null) {
+    if (this.page !== page && this.page) this.pages.get(this.page)?.close?.();
     this.page = page;
+    const shown = page && this.pages.get(page)?.el;
     this.el.classList.toggle('sub', !!page);
     this.screen.hidden = this.themes.el.hidden = this.hold.el.hidden = !!page;
-    for (const [p, { el }] of this.pages) el.hidden = p !== page;
+    for (const [p, { el: e }] of this.pages) e.hidden = p !== page;
     // Popups have their own buttons.
-    this.back.hidden = !page || !!this.pages.get(page)?.el.classList.contains('popup-page');
+    this.back.hidden = !shown || shown.classList.contains('popup-page');
     if (page) this.pages.get(page)?.open();
     else this.themes.set(inkStyle());
   }
@@ -271,7 +276,7 @@ function item(text: string, act: () => void) {
 
 /** A column of the menu: its title, then its entries. */
 function column(title: string, ...items: HTMLElement[]) {
-  const el = div('col');
-  el.append(Object.assign(document.createElement('h2'), { textContent: title }), ...items);
-  return el;
+  const box = div('col');
+  box.append(el('h2', '', title), ...items);
+  return box;
 }

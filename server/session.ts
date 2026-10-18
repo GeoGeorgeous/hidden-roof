@@ -132,8 +132,6 @@ export class Session {
       p.link?.close(closeCode('replaced'), 'replaced');
       p.link = link;
       p.away = false;
-      // A new tab numbers its batches from 1.
-      if (how === 'takeover') p.acked = 0;
     } else {
       const unique = uniqueName(name, all);
       p = { id: this.nextId++, name: unique, token: randomUUID(), link, acked: 0, live: false, saving: false, away: false, inventory: this.carried.get(unique) ?? null, ladder: null, expires: null, was: null };

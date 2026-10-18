@@ -1,13 +1,9 @@
 import { icon, sectionIcon } from './icons';
-import { paintSections } from './paint-sections';
-import { itemSections } from './item-sections';
-import { renderSections, uiSections } from './render-sections';
-import { soundSections } from './sound-sections';
-import { buildSections } from './build-sections';
-import { playSections } from './play-sections';
 import { itemRow, whenOf, WHEN, type Row } from './rows';
-import { isChanged, isValue, resetItems, sectionsJSON, splitSections, type Section } from './tuning';
-import { worldSections } from './world-sections';
+import { allSections } from './sections';
+import { isChanged, isValue, resetItems, sectionsJSON, type Section } from './tuning';
+import { store, stored } from '../stored';
+import { el } from '../menu-ui';
 
 // Debug panel (F3 / `): tabs of groups of small collapsible sections of live
 // tunables and stats. RESET puts config.ts's values back without saving
@@ -22,7 +18,7 @@ const OPEN_KEY = 'roofhiddenhaus.debug.open';
 const TAB_KEY = 'roofhiddenhaus.debug.tab';
 const CONFIRM_SECONDS = 2;
 
-/** The groups (authored sections, by id) on each tab; a group not listed goes on the last tab. */
+/** The groups (authored sections, by id) on each tab; a group not listed throws. */
 const TABS = [
   { id: 'player', title: 'Player', groups: ['movement', 'camera', 'hands', 'held', 'stepladder', 'avatar'] },
   { id: 'paint', title: 'Paint', groups: ['painting', 'caps', 'runs', 'pressure', 'quality', 'cursor'] },
@@ -62,7 +58,7 @@ export class DebugPanel {
   private openIds: Set<string>;
 
   constructor() {
-    this.list = splitSections([...playSections(), ...paintSections(), ...renderSections(), ...worldSections(), ...soundSections(), ...uiSections(), ...buildSections(), ...itemSections()]);
+    this.list = allSections();
     this.openIds = loadOpen() ?? new Set(this.list.filter((s) => s.open).map((s) => s.id));
     this.root = el('div', 'debug-panel');
     this.root.hidden = true;
@@ -78,7 +74,8 @@ export class DebugPanel {
     const at = (s: Section) => {
       const g = groupOf(s);
       const t = TABS.findIndex((tab) => tab.groups.includes(g));
-      return t < 0 ? [TABS.length - 1, Infinity] : [t, TABS[t].groups.indexOf(g)];
+      if (t < 0) throw new Error(`debug panel: group ${g} is on no tab (TABS)`);
+      return [t, TABS[t].groups.indexOf(g)];
     };
     for (const t of TABS) {
       const page: Page = { id: t.id, tab: button('', () => this.show(page)), el: el('div', 'page'), parts: [] };
@@ -103,7 +100,7 @@ export class DebugPanel {
     }
     const hint = Object.assign(el('div', 'hint'), { textContent: 'ESC: GAME / PANEL · F3: CLOSE' });
     this.root.append(top, tabs, hint, body);
-    this.show(this.pages.find((p) => p.id === load(TAB_KEY)) ?? this.pages[0]);
+    this.show(this.pages.find((p) => p.id === stored(TAB_KEY)) ?? this.pages[0]);
     this.refresh();
     document.body.appendChild(this.root);
   }
@@ -132,7 +129,7 @@ export class DebugPanel {
       p.el.hidden = p !== page;
       p.tab.classList.toggle('on', p === page);
     }
-    save(TAB_KEY, page.id);
+    store(TAB_KEY, page.id);
   }
 
   private reset(list: Section[]) {
@@ -159,7 +156,7 @@ export class DebugPanel {
   }
 
   private saveOpen() {
-    save(OPEN_KEY, JSON.stringify([...this.openIds]));
+    store(OPEN_KEY, JSON.stringify([...this.openIds]));
   }
 
   private section(s: Section, into: HTMLElement): Part {
@@ -217,10 +214,6 @@ export class DebugPanel {
   }
 }
 
-function el(tag: string, className = '') {
-  return Object.assign(document.createElement(tag), { className });
-}
-
 function button(label: string, run: () => void) {
   const b = el('button') as HTMLButtonElement;
   b.textContent = label;
@@ -265,25 +258,9 @@ function copyButton(label: string, text: () => string) {
   return b;
 }
 
-function load(key: string) {
-  try {
-    return localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-}
-
-function save(key: string, value: string) {
-  try {
-    localStorage.setItem(key, value);
-  } catch {
-    // Storage unavailable: the panel just isn't remembered.
-  }
-}
-
 function loadOpen(): Set<string> | null {
   try {
-    const v = load(OPEN_KEY) ?? load('taggin.debug.open');
+    const v = stored(OPEN_KEY) ?? stored('taggin.debug.open');
     return v ? new Set(JSON.parse(v) as string[]) : null;
   } catch {
     return null;

@@ -363,10 +363,13 @@ export const SIGN_TEXT = {
   minCharWidth: 0.28,
 };
 
+/** PAINT DETAIL's choices (Settings, a session's host, the server's paint check): texels per meter. Paint memory grows with the square: ULTRA needs 16x LOW. */
+export const PAINT_DETAIL = { low: 24, medium: 48, high: 72, ultra: 96 };
+
 export const PAINT = {
   /**
    * Texel density of every paint texture. The PAINT DETAIL setting (pause menu)
-   * picks it from its choices in settings.ts: 24, 48, 72 or 96 (1 cm texels).
+   * picks it from PAINT_DETAIL: 24, 48, 72 or 96 (1 cm texels).
    */
   texelsPerMeter: 96,
   /**
@@ -936,6 +939,18 @@ export const NET = {
   smoothing: 12,
   glideSpeed: 4,
   teleport: 2,
+  /**
+   * The delay they're shown at follows a link that got slower by at most this much per snapshot (s), so a slower link
+   * is followed, not just a faster one; their jitter is a moving average that takes this share of each new sample.
+   */
+  lagDrift: 0.002,
+  jitterShare: 0.05,
+  /** Snapshots kept per remote player: one not shown for a while (a hidden tab draws no frames) keeps the newest. */
+  snapsKept: 64,
+  /** A jump in where they're shown shorter than this (m) is not smoothed (net/remote-player.ts). */
+  smoothFrom: 0.05,
+  /** A remote player this near a ladder (m) faces it, whichever way they look. */
+  ladderNear: 0.3,
   /** A player's name tag hangs this high over their feet (m). */
   nameplateHeight: 2.1,
   /** No snapshot from a player for this long (s): they're shown as gone (NO SIGNAL) until the server says more. */
@@ -951,6 +966,8 @@ export const NET = {
   retryMost: 8,
   /** In a session, nothing from the server for this long (s): the game closes the link and comes back in. The server pings every SERVER.ping, so this is a stall, not a slow link; a link that stalls for seconds and recovers is cheaper kept than rejoined (the paint file comes down again). */
   serverSilence: 15,
+  /** Asking the server over HTTP why the link failed gives up after this long (s, net/diagnostics.ts). */
+  diagnoseTimeout: 5,
   /** Network log entries kept for COPY NETWORK LOG (net/diagnostics.ts). */
   logLines: 80,
 };
@@ -1010,6 +1027,35 @@ export const GHOST = {
   /** How long a hiccup holds up a packet and everything after it (s), as a resend over a reliable link would. */
   hiccupDelay: 0.3,
   followDelay: 2,
+};
+
+/** Settings → Performance test and npm run bench (perf-test.ts, perf-test-page.ts): what it measures, how its tip reads the numbers, how its popup shows them. */
+export const PERF_TEST = {
+  /** Drawn but not measured first (shaders, the GPU clocking up), then measured (s): the camera flies the whole time. */
+  warmup: 0.5,
+  seconds: 9.5,
+  /** After measuring, at most this long for the GPU timer's last results (s). */
+  gpuWait: 0.5,
+  /** Times around the level's middle the camera flies over the run, from the title view (render/title-view.ts). */
+  turns: 1,
+  /** GPU or CPU ms a frame (median) over this many times the other: it is "the limit". */
+  limitRatio: 1.15,
+  /**
+   * Frames held apart while GPU and CPU each take under `idleShare` of the frame, at most of `cappedMs`: something
+   * holds the frame rate (the display's refresh, FRAME RATE, a power saver's 30 Hz). Frames at least `cappedMs` apart
+   * so: a power saver. Never more than `cappedMs`: a GPU too slow for a 60 Hz frame (27 ms on the Intel UHD) is shown
+   * every second or third refresh, 33–50 ms apart, and isn't held.
+   */
+  cappedMs: 30,
+  idleShare: 0.5,
+  /** The tier slider (Stutters, Playable, Smooth, Very smooth): the average fps at its 0, 25, 50, 75 and 100 %. */
+  tierFps: [15, 30, 60, 90, 144],
+  /** The popup's CPU and GPU bars: full at this many ms. */
+  barMs: 25,
+  /** While it runs the popup shows the last `liveSeconds`' numbers, refreshed every `liveMs`, each step `ease` of the way to them. */
+  liveSeconds: 0.5,
+  liveMs: 100,
+  ease: 0.5,
 };
 
 /** Profiling mode (src/dev/profiler.ts, F8) and its probe (src/dev/probe.ts, F9). */
@@ -1203,6 +1249,9 @@ export const FLICKER = {
   brokenRate: 0.3,
   brokenDepth: 0.95,
 };
+
+/** Colliders made from a prop's pieces (src/level/piece-colliders.ts): a sloped rod's chain of boxes and an upright cone's stack of short cylinders, each at most this long or tall (m). */
+export const PIECE_COLLIDERS = { rodLink: 0.3, coneSlice: 0.3 };
 
 /** The player's stepladder (a pickup, slot 3; placed with LMB, one at a time). */
 export const STEPLADDER_PLACE = {
