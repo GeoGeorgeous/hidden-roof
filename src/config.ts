@@ -1247,6 +1247,9 @@ export const FLICKER = {
   brokenDepth: 0.95,
 };
 
+/** Colliders made from a prop's pieces (src/level/piece-colliders.ts): a sloped rod's chain of boxes and an upright cone's stack of short cylinders, each at most this long or tall (m). */
+export const PIECE_COLLIDERS = { rodLink: 0.3, coneSlice: 0.3 };
+
 /** The player's stepladder (a pickup, slot 3; placed with LMB, one at a time). */
 export const STEPLADDER_PLACE = {
   /** How far from the eye the crosshair can place it (m). */
