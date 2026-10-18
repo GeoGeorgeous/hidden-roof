@@ -1,23 +1,32 @@
 // npm run bench: the Settings performance test (src/perf-test.ts) on the real
-// GPU, to compare builds. A fresh profile (the game's defaults), the level
-// players get, the window at the screen's size; the test started from Settings
+// GPU, to compare builds. The build with the dev tools (npm run build:dev:
+// bundled as players get it, so the load is the game's, not Vite's dev server
+// compiling modules; window.game drives it), a fresh profile (the game's
+// defaults), the level players get, the window at the screen's size; the test started from Settings
 // as a player does, 3 runs, the median of each percentile. Also the load: how
 // long, and how smooth its frames were. Prints the JSON and writes it to
 // .cache/bench/<git describe>-<gpu>.json. Stops on a software GPU.
 // Compares builds only, never a player's result with a bench result. Run it
 // when needed (before and after a render or level change, comparing GPUs),
 // never in `npm run check` or CI. See docs/testing.md.
-// Usage: npm run bench [-- url]          (WSL: GPU=Intel for the iGPU)
+// Usage: npm run bench [-- url]          (no url: builds and serves dist-dev; WSL: GPU=Intel for the iGPU)
 //        npm run bench -- a.json b.json  (both, and the change in %)
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
-import { openTestBrowser } from './test-browser.mjs';
+import { preview } from 'vite';
+import { freePort, openTestBrowser } from './test-browser.mjs';
 
 const RUNS = 3;
 const args = process.argv.slice(2);
 
 async function bench(url) {
+  let site = null;
+  if (!url) {
+    execSync('npm run build:dev -- --logLevel error', { stdio: ['ignore', 'ignore', 'inherit'] });
+    site = await preview({ build: { outDir: 'dist-dev' }, logLevel: 'error', preview: { port: await freePort() } });
+    url = site.resolvedUrls.local[0];
+  }
   const test = await openTestBrowser(url, { level: null, gpu: true });
   try {
     if (!test.realGpu) throw new Error('no real GPU: no display to open a window on');
@@ -99,6 +108,7 @@ async function bench(url) {
     process.exitCode = 1;
   } finally {
     await test.close();
+    await site?.close();
   }
 }
 
