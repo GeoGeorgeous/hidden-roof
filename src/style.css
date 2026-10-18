@@ -1317,6 +1317,14 @@
   border-radius: 1px;
   background: rgba(235, 229, 214, 0.12);
 }
+/* However slow, a measured run shows a stub at the slider's start. */
+.overlay .perf-tiers.measured .perf-tier:first-child .bar::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--paper);
+}
 .overlay .perf-tier i {
   background: var(--paper);
   transition: transform 0.4s ease-out;

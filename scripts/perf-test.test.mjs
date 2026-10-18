@@ -131,10 +131,10 @@ for (const lag of [2, 12]) {
 
 assert.deepEqual(spread([5, 1, 3, 2, 4]), { p50: 3, p95: 5, p99: 5 });
 
-// Tiers from the average fps: the slider straight between 15, 30, 60, 100 and 144.
-assert.deepEqual([10, 15, 22.5, 30, 45, 60, 80, 100, 122, 144, 200].map(tierShare), [0, 0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1, 1]);
+// Tiers from the average fps: the slider straight between 15, 30, 60, 90 and 144.
+assert.deepEqual([10, 15, 22.5, 30, 45, 60, 75, 90, 117, 144, 200].map(tierShare), [0, 0, 0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875, 1, 1]);
 // The tier of the fps shown: 59.6 reads 60, Smooth.
-assert.deepEqual([12, 29.4, 30, 59.4, 59.6, 60, 99.4, 100, 240].map(tierOf), [0, 0, 1, 1, 2, 2, 2, 3, 3]);
+assert.deepEqual([12, 29.4, 30, 59.4, 59.6, 60, 89.4, 90, 240].map(tierOf), [0, 0, 1, 1, 2, 2, 2, 3, 3]);
 
 // Each tip, from stand-in timings and settings.
 const nvidia = gpuInfo('ANGLE (NVIDIA, NVIDIA RTX A2000 Laptop GPU (0x000025B8) Direct3D11 vs_5_0 ps_5_0, D3D11)');
@@ -149,6 +149,9 @@ const say = (r, c) => {
 // 1. Very smooth: room to spare, Volumetrics a step higher, unless it's at High.
 assert.equal(say(run(8, 6, 7.5), ctx()), 'Room to spare. Volumetrics can go a step higher.');
 assert.equal(say(run(8, 6, 7.5), ctx({}, { volHigh: true })), 'Room to spare. Even the highest settings run smoothly.');
+// Very smooth from 90 fps: 88 is Smooth, and its GPU the limit.
+assert.equal(say(run(11.1, 6, 7.5), ctx()), 'Room to spare. Volumetrics can go a step higher.');
+assert.match(say(run(11.4, 6, 7.5), ctx()), /^The video card is the limit/);
 // Held at the display's refresh with time to spare (60 Hz, the RTX A2000's bench run): room to spare too.
 assert.equal(say(run(16.7, 1.3, 2.7), ctx()), 'Room to spare. Volumetrics can go a step higher.');
 // 2. The video card: Volumetrics, then Resolution; with Volumetrics off the next Resolution; at the lowest, nothing.

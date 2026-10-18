@@ -1032,7 +1032,7 @@ export const PERF_TEST = {
   cappedMs: 30,
   idleShare: 0.5,
   /** The tier slider (Stutters, Playable, Smooth, Very smooth): the average fps at its 0, 25, 50, 75 and 100 %. */
-  tierFps: [15, 30, 60, 100, 144],
+  tierFps: [15, 30, 60, 90, 144],
   /** The popup's CPU and GPU bars: full at this many ms. */
   barMs: 25,
   /** While it runs the popup shows the last `liveSeconds`' numbers, refreshed every `liveMs`, each step `ease` of the way to them. */

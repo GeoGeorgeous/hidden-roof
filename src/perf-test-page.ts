@@ -106,6 +106,8 @@ export function perfTestPage(menu: PauseMenu, test: PerfTest, gpu: GpuInfo, sett
     fps.textContent = n.fps === null ? NONE : `${Math.round(n.fps)}`;
     const share = n.fps === null ? 0 : tierShare(n.fps);
     const tier = n.fps === null ? -1 : tierOf(n.fps);
+    // Measured, the slider never shows empty: a stub at its start, however slow.
+    tiers.classList.toggle('measured', n.fps !== null);
     tierEls.forEach(({ el, fill }, i) => {
       fill.style.transform = `scaleX(${Math.min(1, Math.max(0, share * TIERS.length - i))})`;
       el.classList.toggle('on', i === tier);

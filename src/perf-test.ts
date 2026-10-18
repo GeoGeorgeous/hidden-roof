@@ -221,7 +221,7 @@ export function tierShare(fps: number) {
   return 1;
 }
 
-/** The TIERS index of an average fps as shown, rounded: under 30 Stutters, 30–60 Playable, 60–100 Smooth, 100 and over Very smooth. */
+/** The TIERS index of an average fps as shown, rounded: under 30 Stutters, 30–59 Playable, 60–89 Smooth, 90 and over Very smooth (PERF_TEST.tierFps). */
 export function tierOf(fps: number) {
   return Math.min(TIERS.length - 1, Math.floor(tierShare(Math.round(fps)) * TIERS.length));
 }
