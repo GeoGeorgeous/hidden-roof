@@ -1495,3 +1495,15 @@ Controls took a wheel step for actions read with Input.held(), which never sees 
 - source: code review 2026-10-18 (F3.23)
 
 A wheel event with no vertical scroll reset the part of a step; blur kept it. Fixed both. Branch `fix/review-bugs`, with its test.
+
+### A frame that throws freezes the game silently
+- id: BL-122
+- type: bug
+- status: Done
+- priority: High
+- size: XS
+- area: core
+- release: next
+- source: audit 2026-10-17 (F8.1)
+
+A thrown frame repeated every frame with nothing on screen. Fixed: reported once, and a notice asks for a reload (`src/frame-guard.ts`). Branch `fix/frame-guard`, with its test.
