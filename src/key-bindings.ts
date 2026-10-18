@@ -57,8 +57,15 @@ function apply() {
   for (const a of ACTIONS) BINDINGS[a] = bound[a].filter((s) => s !== null).flatMap(codes);
 }
 
-/** Why `code` can't be bound: the menus' (Enter), the F3 panel's, the system's (Cmd, Win) and the browser's; null when it can. Esc cancels. */
-export function refusal(code: string) {
+/** An action's name on the Controls tab. */
+export const nameOf = (action: Action) => CONTROL_GROUPS.flatMap((g) => g.rows).find((r) => r.action === action)!.name;
+
+/** Actions played by holding (Input.held): a wheel step can't be held, so it isn't bound to them. */
+const HELD: readonly Action[] = ['forward', 'back', 'left', 'right', 'jump', 'crouch', 'sprint', 'use', 'shake'];
+
+/** Why `code` can't be bound to `action`: the menus' (Enter), the F3 panel's, the system's (Cmd, Win), the browser's, or a wheel step for a held action; null when it can. Esc cancels. */
+export function refusal(code: string, action: Action) {
+  if (code.startsWith('Wheel') && HELD.includes(action)) return `${nameOf(action)} is held down, and a wheel step can't be.`;
   if (code === 'Enter' || code === 'NumpadEnter') return 'Enter is for the menus.';
   if (code === 'F3' || code === 'Backquote') return `${keyName(code)} opens the debug panel.`;
   if (code === 'MetaLeft' || code === 'MetaRight') return keyName(code) === 'Win' ? 'The Windows key belongs to the system.' : `${keyName(code)} belongs to the system.`;
@@ -111,7 +118,7 @@ export function keyOverrides() {
 /** Applies saved bindings: known actions, two slots each, no reserved keys. */
 export function applyKeys(saved: Record<string, Slots> = {}) {
   for (const [a, s] of Object.entries(saved)) {
-    if (a in bound && Array.isArray(s) && s.length === 2 && s.every((c) => c === null || (typeof c === 'string' && !refusal(c)))) bound[a as Action] = [...s];
+    if (a in bound && Array.isArray(s) && s.length === 2 && s.every((c) => c === null || (typeof c === 'string' && !refusal(c, a as Action)))) bound[a as Action] = [...s];
   }
   apply();
 }

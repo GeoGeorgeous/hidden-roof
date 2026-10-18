@@ -428,6 +428,11 @@ await check('settings: Controls binds a key, button or wheel step to two slots e
     slot('Next color', 0).click();
     document.body.dispatchEvent(new WheelEvent('wheel', { deltaY: -100, bubbles: true, cancelable: true }));
     const wheel = [[...BINDINGS.next], [...BINDINGS.prev]];
+    // A wheel step can't be held: Forward refuses it, as every action played by holding does.
+    slot('Forward', 0).click();
+    document.body.dispatchEvent(new WheelEvent('wheel', { deltaY: 100, bubbles: true, cancelable: true }));
+    const heldWheel = [slot('Forward', 0).className, foot(), [...BINDINGS.forward]];
+    press('Escape');
     // Right-click clears a slot, Shift + click puts its default back.
     slot('Tool 1', 0).dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
     const cleared = [...BINDINGS.slot1];
@@ -453,7 +458,7 @@ await check('settings: Controls binds a key, button or wheel step to two slots e
     corner('Reset all').click();
     corner('Reset').click();
     menu.openPage(null);
-    return { groups, defaults, listening, swallowed, heard, forward, moved, undone, mods, refused, cancelled, shake, shakes, wheel, cleared, restored, kept: Object.keys(kept).sort().join(), modes, gameplay, asking, reset, back, values: saved().values };
+    return { groups, defaults, listening, swallowed, heard, forward, moved, undone, mods, refused, cancelled, shake, shakes, wheel, heldWheel, cleared, restored, kept: Object.keys(kept).sort().join(), modes, gameplay, asking, reset, back, values: saved().values };
   });
   // Saves from before the two slots (keys) are dropped; reserved keys aren't loaded.
   const p = await openPage((saved) => localStorage.setItem('roofhiddenhaus.settings', saved), undefined, JSON.stringify({ controls: { forward: ['KeyI', null], use: ['F5', null] }, keys: { back: ['KeyX'] } }));
@@ -475,6 +480,7 @@ await check('settings: Controls binds a key, button or wheel step to two slots e
     shake: [['Mouse2', 'Mouse1'], [], false],
     shakes: true,
     wheel: [['WheelUp'], []],
+    heldWheel: ['slot listening refused', "Forward is held down, and a wheel step can't be. Try another key.", ['KeyI', 'ArrowUp']],
     cleared: [],
     restored: ['Digit1'],
     kept: 'crouch,forward,next,pick,prev,shake,sprint',
