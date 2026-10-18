@@ -204,7 +204,9 @@ export class Settings {
 
   /** The settings that change how fast the game draws, for the performance test: "1/1 1920x1080 · Volumetrics Low · Paint Ultra · City High". */
   summary() {
-    return [resolution(), `Volumetrics ${sentence(this.vol)}`, `Paint ${sentence(this.locked ?? this.detail)}`, `City ${sentence(this.builtCity)}`, ...(RENDER.maxFps ? [`${RENDER.maxFps} FPS`] : [])].join(' · ');
+    // The paint and city detail drawn now, not one waiting for the game to resume.
+    const paint = DETAIL_ORDER.find((k) => PAINT_DETAIL[k] === PAINT.texelsPerMeter);
+    return [resolution(), `Volumetrics ${sentence(this.vol)}`, `Paint ${paint ? sentence(paint) : `${PAINT.texelsPerMeter}/m`}`, `City ${sentence(this.builtCity)}`, ...(RENDER.maxFps ? [`${RENDER.maxFps} FPS`] : [])].join(' · ');
   }
 
   /** STYLE: an INK_STYLES index (also the pause screen's switcher). */
