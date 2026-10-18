@@ -39,7 +39,7 @@ const SCENARIOS = {
     if (dropped(lab, 'B', 1006)) r.fail.push('BL-004: the server drops B (1006) while B still sends');
   },
 
-  /** B's link stops dead both ways for 15 s, then comes back: the game's own close after 6 s of silence, strokes in flight. */
+  /** B's link stops dead both ways for 15 s, then comes back: the game's own close after NET.serverSilence (15 s) of silence, strokes in flight. */
   async stall(lab, r) {
     const { A, B } = lab.players;
     const inFlight = await ownSurface(B, 0);

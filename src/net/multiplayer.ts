@@ -23,7 +23,7 @@ import { capture, encodeSnapshot } from './snapshot';
 // keeps what the player carries, and hears when the game is hidden.
 
 /** Why the game isn't in a session: the server said so (Rejection), it never answered, or diagnose's guess at why it can't be reached. */
-type Failure = Rejection | 'timeout' | Awaited<ReturnType<typeof diagnose>>['reason'];
+export type Failure = Rejection | 'timeout' | Awaited<ReturnType<typeof diagnose>>['reason'];
 
 /** What the player sees of the link, shown on the menus; `detail`: what was seen (a close code, an HTTP status, tries), for reports. */
 export type NetStatus = { state: 'off' } | { state: 'connecting' } | { state: 'in'; code: string } | { state: 'reconnecting'; code: string; detail: string } | { state: 'failed'; reason: Failure; detail?: string };
