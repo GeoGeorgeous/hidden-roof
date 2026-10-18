@@ -205,7 +205,7 @@ input.onLockChange = (locked) => {
     audio.setScribble(0);
   }
 };
-hud.menu.onResume = () => input.requestLock();
+input.onResume = hud.menu.onResume = () => play.resume();
 hud.menu.onStyle = (i) => settings.setStyle(i);
 showMenu();
 const testPage = perfTestPage(hud.menu, perfTest, gpu, () => settings.tested());

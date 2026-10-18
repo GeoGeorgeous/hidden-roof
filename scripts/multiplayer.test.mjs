@@ -39,14 +39,35 @@ async function open(detail) {
   await page.goto(test.url);
   await gameReady(page);
   page.errors = errors;
+  await watchStatus(page);
   return page;
 }
-/** Waits for the game's network status; timed out, says why with the page's network log. */
-const status = (page, state) =>
-  page.waitForFunction((s) => window.game.net.status.state === s, state, { timeout: 15000 }).catch(async (e) => {
-    const seen = await page.evaluate(() => ({ status: window.game.net.status, log: window.game.net.log.text() })).catch(() => null);
-    throw new Error(`no "${state}" in 15 s: ${JSON.stringify(seen?.status)}\n${seen?.log}\npage errors: ${page.errors ?? '(loading)'}`, { cause: e });
+/**
+ * The page records every network status it passes through (window.statuses, oldest first, starting with the one it has
+ * now): a short one, like the 1 s of "reconnecting", is seen however late the test looks. Again after a reload.
+ */
+async function watchStatus(page) {
+  page.heard = 0;
+  await page.evaluate(() => {
+    const n = window.game.net;
+    const onStatus = n.onStatus;
+    window.statuses = [n.status.state];
+    n.onStatus = (s) => (window.statuses.push(s.state), onStatus(s));
   });
+}
+/**
+ * Waits for the game's network status to be `state`, as it was passed through since the last wait on this page
+ * (each wait takes the status it found, so the next one looks after it); timed out, says why with the page's network log.
+ */
+const status = async (page, state) => {
+  try {
+    const found = await page.waitForFunction(([s, from]) => window.statuses.findIndex((x, i) => i >= from && x === s) + 1, [state, page.heard], { timeout: 15000, polling: 50 });
+    page.heard = await found.jsonValue();
+  } catch (e) {
+    const seen = await page.evaluate(() => ({ status: window.game.net.status, statuses: window.statuses, log: window.game.net.log.text() })).catch(() => null);
+    throw new Error(`no "${state}" in 15 s: ${JSON.stringify(seen?.status)}, passed through ${seen?.statuses?.slice(page.heard)}\n${seen?.log}\npage errors: ${page.errors ?? '(loading)'}`, { cause: e });
+  }
+};
 /** Every painted surface's paint, hashed (FNV-1a), by key. */
 const paintHash = (page) =>
   page.evaluate(() => {
@@ -165,6 +186,7 @@ try {
   await b.waitForFunction(() => window.game.net.carried === window.game.inventory.version, null, { timeout: 5000, polling: 50 });
   await b.reload();
   await gameReady(b);
+  await watchStatus(b);
   await status(b, 'in');
   assert.equal(await b.evaluate(() => window.game.session.player), 'player2');
   assert.equal(await paintHash(b), painted, 'the paint comes back after a reload');
@@ -186,12 +208,25 @@ try {
   });
   await b.waitForFunction(() => window.threw, null, { timeout: 5000, polling: 50 });
   assert.match(b.errors.pop() ?? '', /null/);
-  await b.evaluate(() => ((window.game.net.link.socket.onmessage = null), (window.game.net.link.lastHeard = -1e9)));
+  // SAVE as it starts to reconnect is refused at once: the request can't go, and a reconnect wouldn't answer it (it used
+  // to wait forever). Asked by the page the moment it reports "reconnecting", which may last only a second.
+  await b.evaluate(() => {
+    const n = window.game.net;
+    const onStatus = n.onStatus;
+    n.onStatus = (s) => {
+      onStatus(s);
+      if (s.state !== 'reconnecting' || window.saving) return;
+      window.reconnecting = [!!window.game.session.joining, document.querySelector('.overlay .start .play').disabled];
+      window.saving = Promise.race([n.savePaint().then(() => 'saved', (e) => e.message), new Promise((r) => setTimeout(() => r('no answer'), 8000))]);
+    };
+    n.link.socket.onmessage = null;
+    n.link.lastHeard = -1e9;
+  });
   await status(b, 'reconnecting');
-  // SAVE meanwhile is refused at once: the request can't go, and a reconnect wouldn't answer it (it used to wait forever).
-  const saving = b.evaluate(() => Promise.race([window.game.net.savePaint().then(() => 'saved', (e) => e.message), new Promise((r) => setTimeout(() => r('no answer'), 8000))]));
   await status(b, 'in');
-  assert.match(await saving, /^Reconnecting/, 'SAVE while reconnecting');
+  const saving = await b.evaluate(() => window.saving);
+  assert.deepEqual(await b.evaluate(() => window.reconnecting), [false, false], 'a reconnect mid-play does not block PLAY');
+  assert.match(saving, /^Reconnecting/, 'SAVE while reconnecting');
   assert.equal(await paintHash(b), painted, 'the paint comes back after a reconnect');
 
   // BL-088: B comes back on link 1, which drops while its welcome loads (4 s); the retry's link 2 hears nothing. Link 1's
@@ -266,6 +301,80 @@ try {
     assert.deepEqual(out, ['off', false, null], `LEAVE ${when} the welcome: out of the session, PAINT DETAIL unlocked`);
     await a.waitForFunction(() => window.game.net.names.size === 0, null, { timeout: 5000 });
   }
+
+  // BL-105: from JOIN (or HOST) until the session's paint has loaded the player can't resume: PLAY is a disabled note of
+  // the progress, and neither it, Enter, Esc nor a click on the game starts play (the paint made meanwhile would be
+  // lost to the welcome's). LEAVE, Back on the MULTIPLAYER page and a failed join give PLAY back. B joins four times
+  // with its welcome held until the test lets it go: the welcome that takes a while to download and load.
+  await b.evaluate(() => {
+    window.resumes = 0;
+    window.game.input.requestLock = () => window.resumes++;
+  });
+  const holdWelcome = () =>
+    b.evaluate(() => {
+      const n = window.game.net;
+      const welcome = n.welcome.bind(n);
+      const held = new Promise((r) => (window.releaseWelcome = r));
+      window.welcomeHeld = false;
+      n.welcome = async (...args) => ((n.welcome = welcome), (window.welcomeHeld = true), await held, welcome(...args));
+    });
+  const welcomeHeld = () => b.waitForFunction(() => window.welcomeHeld, null, { timeout: 15000 });
+  /** What PLAY and the button beside it say, and how many times the page tried to resume play (PLAY, Enter, Esc, a click on the game). */
+  const menuNow = () =>
+    b.evaluate(() => {
+      const play = document.querySelector('.overlay .start .play');
+      const before = window.resumes;
+      const key = (type, code) => window.dispatchEvent(new KeyboardEvent(type, { code }));
+      play.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }));
+      for (const code of ['Enter', 'Escape']) (key('keydown', code), key('keyup', code));
+      window.game.renderer.domElement.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }));
+      return { play: [play.disabled, play.firstChild.textContent], other: document.querySelector('.overlay .start button:not(.play)').textContent, resumed: window.resumes - before };
+    });
+  const aloneAgain = () => a.waitForFunction(() => window.game.net.names.size === 0, null, { timeout: 5000 });
+  // 1. LEAVE cancels the join.
+  await holdWelcome();
+  await b.evaluate((c) => window.game.net.join('B', c), code);
+  await welcomeHeld();
+  // The network's progress, as it has it: the welcome's paint coming down.
+  const joining = await menuNow();
+  assert.match(joining.play[1], /^(Joining session…|Downloading paint \d+%)$/);
+  assert.deepEqual({ ...joining, play: [joining.play[0]] }, { play: [true], other: 'Leave session', resumed: 0 }, 'joining: PLAY is disabled and nothing resumes');
+  await press(b, 'LEAVE SESSION');
+  await status(b, 'off');
+  assert.deepEqual(await menuNow(), { play: [false, 'Play'], other: 'Multiplayer', resumed: 4 }, 'LEAVE cancels the join: PLAY is back');
+  await b.evaluate(() => window.releaseWelcome());
+  await aloneAgain();
+  // 2. The welcome has loaded: in the session, PLAY is back as BACK TO SESSION.
+  await holdWelcome();
+  await b.evaluate((c) => window.game.net.join('B', c), code);
+  await welcomeHeld();
+  assert.deepEqual((await menuNow()).resumed, 0, 'joining: nothing resumes, again');
+  await b.evaluate(() => window.releaseWelcome());
+  await status(b, 'in');
+  assert.deepEqual(await menuNow(), { play: [false, 'Back to session'], other: 'Leave session', resumed: 4 }, 'in the session, PLAY is back');
+  assert.equal(await paintHash(b), await paintHash(a), 'B has the session paint before it can play');
+  await b.evaluate(() => window.game.net.leave());
+  await aloneAgain();
+  // 3. A join that fails gives PLAY back.
+  await b.evaluate(() => window.game.net.join('B', 'QQQQQ'));
+  await status(b, 'failed');
+  assert.deepEqual(await menuNow(), { play: [false, 'Play'], other: 'Multiplayer', resumed: 4 }, 'a failed join: PLAY is back');
+  // 4. Back on the MULTIPLAYER page cancels the join.
+  await holdWelcome();
+  await press(b, 'MULTIPLAYER');
+  await press(b, 'JOIN A SESSION');
+  await b.fill('.mp-page input >> nth=0', 'B');
+  await b.fill('.mp-page input >> nth=1', code.toLowerCase());
+  await press(b, 'Join');
+  await welcomeHeld();
+  assert.equal(await b.evaluate(() => window.game.session.joining), true);
+  await b.click('.overlay .back button');
+  await status(b, 'off');
+  // On to the pause screen.
+  await b.click('.overlay .back button');
+  assert.deepEqual(await menuNow(), { play: [false, 'Play'], other: 'Multiplayer', resumed: 4 }, 'Back cancels the join: PLAY is back');
+  await b.evaluate(() => window.releaseWelcome());
+  await aloneAgain();
 
   // C plays the same level at the session's PAINT DETAIL: its welcome starts that level over rather than building it
   // again (seconds with its lights and shaders, BL-085). What it placed and found alone is gone, it stands at the

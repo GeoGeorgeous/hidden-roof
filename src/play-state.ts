@@ -1,6 +1,7 @@
 // Play state: playing (the game has the mouse), paused behind the menu, F3's
 // panel open, build mode, in a session; what the frame does in each, and what
-// Esc and Enter do while paused. The pointer lock itself is Input's (the
+// Esc and Enter do while paused; while joining a session (its paint still
+// loading) nothing resumes. The pointer lock itself is Input's (the
 // browser's, or a test's through Input.setLocked). No DOM here: tested in
 // Node (scripts/play-state.test.mjs).
 
@@ -30,10 +31,10 @@ export class PlayState {
 
   // Plain fields, not parameter properties: Node runs this file as it is (type stripping).
   private input: { readonly locked: boolean };
-  private session: { readonly multiplayer: boolean };
+  private session: { readonly multiplayer: boolean; readonly joining: boolean };
   private menu: MenuActions;
 
-  constructor(input: { readonly locked: boolean }, session: { readonly multiplayer: boolean }, menu: MenuActions) {
+  constructor(input: { readonly locked: boolean }, session: { readonly multiplayer: boolean; readonly joining: boolean }, menu: MenuActions) {
     this.input = input;
     this.session = session;
     this.menu = menu;
@@ -47,6 +48,14 @@ export class PlayState {
   /** Paused in single player the game stops; in a session it goes on without you. */
   get frozen() {
     return this.paused && !this.session.multiplayer;
+  }
+
+  /**
+   * Back to the game, unless a join or HOST is still loading the session: the paint that lands replaces the one made
+   * meanwhile. Every way to resume comes here (Enter, Esc, PLAY, a click on the game).
+   */
+  resume() {
+    if (!this.session.joining) this.menu.resume();
   }
 
   /** For the profiler. */
@@ -73,18 +82,18 @@ export class PlayState {
         if (locked) return true;
         const resume = this.escArmed && !this.menu.page();
         this.escArmed = false;
-        if (resume) this.menu.resume();
+        if (resume) this.resume();
       } else if (locked) this.menu.release();
       else if (repeat) return true;
-      else if (this.panel) this.menu.resume();
+      else if (this.panel) this.resume();
       else if (this.menu.page()) this.menu.back();
-      else this.escArmed = true;
+      else this.escArmed = !this.session.joining;
       return true;
     }
     if ((code !== 'Enter' && code !== 'NumpadEnter') || locked || this.panel) return false;
     if (down && !repeat) {
       if (this.menu.page()) this.menu.primary();
-      else this.menu.resume();
+      else this.resume();
     }
     return true;
   }

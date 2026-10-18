@@ -91,6 +91,8 @@ export class Input {
   private clicks = new Set<number>();
   private isLocked = false;
   onLockChange: (locked: boolean) => void = () => {};
+  /** A click on the game while paused: resume (main.ts routes it through the play state). */
+  onResume: () => void = () => this.requestLock();
   /** A key went down or up: true when it's the menu's (Esc; Enter on the pause menu, play-state.ts), so it isn't a game key. */
   onMenuKey: (code: string, down: boolean, repeat: boolean) => boolean = () => false;
 
@@ -124,7 +126,7 @@ export class Input {
     });
     element.addEventListener('mousedown', (e) => {
       if (!this.locked) {
-        this.requestLock();
+        this.onResume();
         return;
       }
       this.clicks.add(e.button);

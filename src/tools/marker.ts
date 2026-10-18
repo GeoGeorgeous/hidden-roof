@@ -17,7 +17,7 @@ import { disposeShape, inkLook, markerShape } from './shapes';
 // are as wide as the nib going straight and wider on the diagonal, like a held
 // chisel. No particles, no pressure. With paint runs on (DRIPS), going over
 // the same spot again, or holding the nib still, can start a run like the can.
-// The mouse wheel changes the nib size (Inventory.size, MARKER.widthMin..widthMax, see wheel-size.ts).
+// The size keys (Q/E) change the nib size (Inventory.size, MARKER.widthMin..widthMax, see size-range.ts).
 // Fast mouse moves are filled by interpolating rays between frames. The band
 // on the barrel shows the current color, like the can's label.
 
