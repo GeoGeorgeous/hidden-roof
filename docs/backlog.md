@@ -1367,3 +1367,15 @@ RTX laptop: CPU ~7.3 → 14–16 ms a frame while the ladder is placed over and 
 - source: owner laptop runs 2026-10-18 (audit F2.9)
 
 Intel UHD laptop, Chrome's Energy Saver on: 30 fps in play, but 12 fps and CPU 18–24 ms while the game loads (likely shader compiles and uploads). Do: measure the load with `npm run bench` on the Intel UHD (BL-084) before deciding.
+
+### Show the GPU in use in Settings; FRAME RATE's note
+- id: BL-109
+- type: feature
+- status: Planned
+- priority: Medium
+- size: S
+- area: ui
+- release: next
+- source: owner laptop runs 2026-10-18 (audit F2.2, F2.6, S2.2)
+
+The RTX laptop ran Chrome on its Intel UHD without the owner knowing. Do: a read-only GPU row under Resolution in Settings, from `WEBGL_debug_renderer_info` read once (as `src/dev/profiler.ts`), short name, "Hidden by the browser" when masked; when it looks integrated (Intel UHD / HD / Iris, AMD "Radeon Graphics" without a model), a description per OS: Windows Settings → System → Display → Graphics → the browser → High performance; Linux `prime-run` or `DRI_PRIME=1`; Intel Macs: turn off automatic graphics switching; nothing on Apple silicon. The name in the perf readout too. The Frame rate row's description: "Above your display's refresh rate this acts like Max." Shots of Settings.
