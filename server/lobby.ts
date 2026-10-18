@@ -87,7 +87,10 @@ export class Lobby {
     // Turned away: what it still sends is ignored; its close is counted.
     const away = (): LinkInput => (reject('too-many'), { message: async () => {}, closed: input.closed });
     if (count(this.links, ip, 1) > SERVER.linksPerIp) return away();
-    if (host && ((uploads = true), count(this.uploads, ip, 1) > SERVER.uploadsPerIp || uploading() > SERVER.uploads)) return away();
+    if (host) {
+      uploads = true;
+      if (count(this.uploads, ip, 1) > SERVER.uploadsPerIp || uploading() > SERVER.uploads) return away();
+    }
     hello = setTimeout(() => {
       if (at) return;
       log('-----', `link from ${ip}: no HOST or JOIN in ${SERVER.helloTimeout} s: closed`);
