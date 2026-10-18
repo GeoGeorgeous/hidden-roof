@@ -238,6 +238,22 @@ try {
   assert.equal(await b.textContent('.nameplate'), 'A');
   await b.evaluate(() => window.game.net.leave());
 
+  // B joins and presses LEAVE while the welcome's paint loads: B stays out of the session, not "in" with no link.
+  await b.evaluate((c) => {
+    const n = window.game.net;
+    const welcome = n.welcome.bind(n);
+    n.welcome = (...args) => {
+      n.welcome = welcome;
+      const loading = welcome(...args);
+      n.leave();
+      return loading.then(() => (window.welcomed = true));
+    };
+    n.join('B', c);
+  }, code);
+  await b.waitForFunction(() => window.welcomed, null, { timeout: 15000 });
+  assert.deepEqual(await b.evaluate(() => [window.game.net.status.state, window.game.session.multiplayer]), ['off', false], 'LEAVE while the welcome loads stays out');
+  await a.waitForFunction(() => window.game.net.names.size === 0, null, { timeout: 5000 });
+
   // C plays the same level at the session's PAINT DETAIL: its welcome starts that level over rather than building it
   // again (seconds with its lights and shaders, BL-085). What it placed and found alone is gone, it stands at the
   // spawn, and it has the session's paint.

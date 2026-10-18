@@ -271,6 +271,8 @@ export class Multiplayer {
     const loading = now();
     await loadPaint(g.paint, g.drips, file, { name: w.levelName });
     this.log.add(`paint loaded in ${Math.round((now() - loading) * 1000)} ms`);
+    // LEAVE, or the link dropped, while it loaded: this welcome is over (a retry gets its own).
+    if (this.link !== link) return this.log.add('welcome dropped: its link is gone');
     if (back) this.outbox.take(g.paint.log ?? [], now() - this.t0);
     else this.outbox.clear(w.acked);
     const resend = back ? this.outbox.rejoined(w.acked, (op) => g.paintOps.apply(op)) : [];
@@ -287,8 +289,7 @@ export class Multiplayer {
     this.ladderId = g.level.runtimeOf(session.player);
     this.nextSend = 0;
     this.net = new Traffic();
-    // Its welcome has come: it sends, and a silence on it means it's dead. That link only: a newer one (this one dropped
-    // while the paint loaded) waits for its own welcome, or gives up after NET.connectTimeout (BL-088).
+    // Its welcome has come: it sends, and a silence on it means it's dead.
     Object.assign(link, { live: true, lastHeard: now() });
     this.carried = -1;
     for (const b of resend) this.sendOps(b);
