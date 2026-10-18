@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. One line per item, under its domain: `[TYPE-NNN]: what`. TYPE is BUGS, IDEA, TASK, or DSGN where a designer's work comes first; one counter for all types (next: 165), so a number is used once and stays if the type changes. `?` in front (`[?BUGS-162]`) means unconfirmed: check it before working on it. Older items keep their `BL-NNN` ids. Detail an item needs is in the file it links. When an item ships, its line moves to Done; the release commit empties Done.
+The one list of what's left. One line per item, under its domain: `[TYPE-NNN]: what`. TYPE is BUGS, IDEA, TASK, DSGN where a designer's work comes first, PERF for frame time, memory or load time, RFCT for a refactor that keeps behavior identical, TEST for tests and tooling, or DOCS for docs only; one counter for all types (next: 165), so a number is used once and stays if the type changes. `?` in front (`[?BUGS-162]`) means unconfirmed: check it before working on it. Older items keep their `BL-NNN` ids. Detail an item needs is in the file it links. When an item ships, its line moves to Done; the release commit empties Done.
 
 ## Now: 1.4.0
 
@@ -107,7 +107,7 @@ The one list of what's left. One line per item, under its domain: `[TYPE-NNN]: w
 4. TASK [BL-079]: The F3 probe's own shader compiles land in its measurement
 5. TASK [BL-149]: A test that the protocol and op-wire never read PAINT.texelsPerMeter
 6. TASK [BL-156]: CI is pinned to ubuntu-24.04 for 1.4.0; move it to Ubuntu 26 after the release
-7. [TASK-164]: scripts/multiplayer.test.mjs is ~440 lines, over the ~400 cap: split it with BL-134
+7. [TEST-164]: scripts/multiplayer.test.mjs is ~440 lines, over the ~400 cap: split it with BL-134
 
 ## Servers and deploy
 

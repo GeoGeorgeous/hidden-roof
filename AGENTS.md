@@ -18,7 +18,7 @@ Hidden roof: a three.js graffiti game. The world is ink on paper and the only co
 ## Codebase
 
 - Tunable numbers go in `src/config.ts`, not inline.
-- Notes for later go in `docs/backlog.md`, the one list: one line per item, `[TYPE-NNN]: what` (BUGS, IDEA, TASK or DSGN; one counter for all types, the next free number is in its header; `[?BUGS-NNN]` while unconfirmed), under its domain; the current release's items under `## Now`. Older items keep `TYPE [BL-NNN]`. Don't put ids in code comments. Detail an item needs goes in a file in `docs/ideas/`, linked from its line, and goes when the item does. When an item ships, move its line to `## Done`; the release commit empties it.
+- Notes for later go in `docs/backlog.md`, the one list: one line per item, `[TYPE-NNN]: what` (BUGS, IDEA, TASK, DSGN, PERF, RFCT, TEST or DOCS; one counter for all types, the next free number is in its header; `[?BUGS-NNN]` while unconfirmed), under its domain; the current release's items under `## Now`. Older items keep `TYPE [BL-NNN]`. Don't put ids in code comments. Detail an item needs goes in a file in `docs/ideas/`, linked from its line, and goes when the item does. When an item ships, move its line to `## Done`; the release commit empties it.
 - Removing code beats adding it. A cleanup keeps behavior identical: `npm run check` passes before and after.
 - Keep source files under ~400 lines (`config.ts` and CSS excepted). Split by responsibility before a file gets there, not after.
 
