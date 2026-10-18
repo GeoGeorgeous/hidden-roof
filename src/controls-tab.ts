@@ -1,6 +1,6 @@
 import { PAUSE_MENU, PLAYER } from './config';
 import { type Action, keyName } from './input';
-import { allDefault, bind, type Bound, CONTROL_GROUPS, defaultSlot, refusal, resetKeys, restore, slots, snapshot } from './key-bindings';
+import { allDefault, bind, type Bound, CONTROL_GROUPS, defaultSlot, nameOf, refusal, resetKeys, restore, slots, snapshot } from './key-bindings';
 import { button, div } from './menu-ui';
 import { choice } from './settings-page';
 import type { OwnTab } from './settings';
@@ -14,8 +14,6 @@ import type { OwnTab } from './settings';
 // undone for PAUSE_MENU.undoSeconds. The footer line says what's going on.
 
 const HINT = 'Click a slot, then press a key, click or scroll  ·  Right-click clears  ·  Shift + click resets';
-const ROWS = CONTROL_GROUPS.flatMap((g) => g.rows);
-const nameOf = (action: Action) => ROWS.find((r) => r.action === action)!.name;
 /** The window's input events a listening slot takes, before anyone else hears them. */
 const EVENTS = ['keydown', 'keyup', 'mousedown', 'mouseup', 'click', 'auxclick', 'contextmenu', 'wheel'];
 
@@ -143,12 +141,13 @@ export class ControlsTab implements OwnTab {
     let code: string | null = null;
     if (e instanceof KeyboardEvent && e.type === 'keydown' && !e.repeat) {
       if (e.code === 'Escape') return this.bound(null, true);
-      listening.refused = refusal(e.code);
-      if (listening.refused) return this.sync();
       code = e.code;
     } else if (e instanceof WheelEvent && e.deltaY) code = e.deltaY < 0 ? 'WheelUp' : 'WheelDown';
     else if (e instanceof MouseEvent && e.type === 'mousedown') code = `Mouse${e.button}`;
-    if (code) this.bound(code, !(e instanceof WheelEvent));
+    if (!code) return;
+    listening.refused = refusal(code, listening.action);
+    if (listening.refused) return this.sync();
+    this.bound(code, !(e instanceof WheelEvent));
   };
 
   /** The listening slot takes `code` (null: Esc, nothing); `release`: its keyup or mouseup is still to come. */

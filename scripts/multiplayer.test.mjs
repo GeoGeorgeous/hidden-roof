@@ -58,6 +58,14 @@ const paintHash = (page) =>
     }
     return (h >>> 0).toString(16);
   });
+/** Waits until `page`'s paint hashes to `hash` (another player's strokes land when their figure gets there); fails after 10 s. */
+async function paintReaches(page, hash, what) {
+  for (const until = Date.now() + 10000; Date.now() < until; ) {
+    if ((await paintHash(page)) === hash) return;
+    await page.waitForTimeout(100);
+  }
+  assert.equal(await paintHash(page), hash, what);
+}
 
 try {
   const a = await open('ultra');
@@ -139,6 +147,18 @@ try {
   painted = await paintHash(a);
   assert.equal(await paintHash(b), painted, 'B, shown again, has the paint A has');
 
+  // B paints, so the server has batches from it; after the reload its batches go on from there (a new page numbering
+  // from 1 again had every stroke dropped by the server as one it already had).
+  const stampB = (page, v) =>
+    page.evaluate((v) => {
+      const g = window.game;
+      const s = g.paint.surfaces.find((s) => s.geo.rects.length > 1);
+      for (let i = 0; i < 5; i++) g.paint.stamp(s, { rect: 0, u: 0.3 + i * 0.05, v }, 0.1, 0.6, [0.1, 0.8, 0.2]);
+    }, v);
+  await stampB(b, 0.2);
+  painted = await paintHash(b);
+  await paintReaches(a, painted, 'A has what B painted');
+
   // B finds the marker and reloads: it comes back into the session as the same player, with the paint and the marker.
   await b.evaluate(() => window.game.inventory.give('marker'));
   // The game sends what it carries on its next frame: wait for that, not a fixed time (SwiftShader draws ~6 frames a second here).
@@ -149,6 +169,9 @@ try {
   assert.equal(await b.evaluate(() => window.game.session.player), 'player2');
   assert.equal(await paintHash(b), painted, 'the paint comes back after a reload');
   assert.ok(await b.evaluate(() => window.game.inventory.has('marker')), 'what B carried comes back after a reload');
+  await stampB(b, 0.8);
+  painted = await paintHash(b);
+  await paintReaches(a, painted, 'A has what B painted after its reload');
   // A saw B go and come back.
   await a.waitForFunction(() => /#2 "B" dropped[^]*#2 "B" here/.test(window.game.net.log.text()), null, { timeout: 5000 });
 
@@ -165,7 +188,10 @@ try {
   assert.match(b.errors.pop() ?? '', /null/);
   await b.evaluate(() => ((window.game.net.link.socket.onmessage = null), (window.game.net.link.lastHeard = -1e9)));
   await status(b, 'reconnecting');
+  // SAVE meanwhile is refused at once: the request can't go, and a reconnect wouldn't answer it (it used to wait forever).
+  const saving = b.evaluate(() => Promise.race([window.game.net.savePaint().then(() => 'saved', (e) => e.message), new Promise((r) => setTimeout(() => r('no answer'), 8000))]));
   await status(b, 'in');
+  assert.match(await saving, /^Reconnecting/, 'SAVE while reconnecting');
   assert.equal(await paintHash(b), painted, 'the paint comes back after a reconnect');
 
   // BL-088: B comes back on link 1, which drops while its welcome loads (4 s); the retry's link 2 hears nothing. Link 1's
@@ -207,13 +233,39 @@ try {
   await b.evaluate(() => {
     const n = window.game.net;
     const welcome = n.welcome.bind(n);
-    n.welcome = async (...args) => (await new Promise((r) => setTimeout(r, 5000)), welcome(...args));
+    n.welcome = async (...args) => ((n.welcome = welcome), await new Promise((r) => setTimeout(r, 5000)), welcome(...args));
   });
   await b.evaluate((c) => window.game.net.join('B', c), code);
   await status(b, 'in');
   await b.waitForFunction(() => [...window.game.net.remotes.list.values()][0]?.avatar.group.visible, null, { timeout: 2000 });
   assert.equal(await b.textContent('.nameplate'), 'A');
   await b.evaluate(() => window.game.net.leave());
+
+  // B joins and presses LEAVE while the welcome's paint loads, then again before the welcome is handled (it waits
+  // behind other messages): B stays out of the session, not "in" with no link, and its PAINT DETAIL is its own again
+  // (the welcome locks it to the session's: not "(host)" alone).
+  for (const when of ['loading', 'before']) {
+    await b.evaluate(
+      ([c, when]) => {
+        const n = window.game.net;
+        const welcome = n.welcome.bind(n);
+        window.welcomed = false;
+        n.welcome = (...args) => {
+          n.welcome = welcome;
+          if (when === 'before') n.leave();
+          const handled = welcome(...args);
+          if (when === 'loading') n.leave();
+          return handled.then(() => (window.welcomed = true));
+        };
+        n.join('B', c);
+      },
+      [code, when],
+    );
+    await b.waitForFunction(() => window.welcomed, null, { timeout: 15000 });
+    const out = await b.evaluate(() => [window.game.net.status.state, window.game.session.multiplayer, window.game.settings.locked]);
+    assert.deepEqual(out, ['off', false, null], `LEAVE ${when} the welcome: out of the session, PAINT DETAIL unlocked`);
+    await a.waitForFunction(() => window.game.net.names.size === 0, null, { timeout: 5000 });
+  }
 
   // C plays the same level at the session's PAINT DETAIL: its welcome starts that level over rather than building it
   // again (seconds with its lights and shaders, BL-085). What it placed and found alone is gone, it stands at the

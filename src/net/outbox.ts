@@ -50,9 +50,9 @@ export class Outbox {
     return this.batches;
   }
 
-  /** A new session: nothing to send, batches count from 1 again. */
-  clear() {
-    this.seq = 0;
+  /** A new page in the session: nothing to send, batches count on from `acked`, the last the server has from this player (0 when new). */
+  clear(acked = 0) {
+    this.seq = acked;
     this.batches = [];
     this.ops = [];
     this.t = [];

@@ -347,6 +347,32 @@ await check('settings: gameplay, sound and on/off settings are remembered after 
   return ok ? null : JSON.stringify({ ...r, loaded, defaults });
 });
 
+await check("settings: the player build remembers the performance lines turned on, though its default is off (main.ts turns them off before Settings starts)", async () => {
+  const r = await page.evaluate(async () => {
+    // The game's own module, from the dev server (a URL, not a file path).
+    const url = '/src/settings.ts';
+    const { Settings } = await import(url);
+    const { HUD, PAINT, RENDER, SKYLINE, VOLUMETRICS } = window.game.config;
+    const KEY = 'roofhiddenhaus.settings';
+    const kept = { saved: localStorage.getItem(KEY), perf: HUD.perf, tpm: PAINT.texelsPerMeter, scale: RENDER.pixelScale, fps: RENDER.maxFps, sky: { ...SKYLINE }, vol: { ...VOLUMETRICS } };
+    // As a player build starts: the lines off, then Settings.
+    HUD.perf = false;
+    const s = new Settings(() => {}, () => {}, () => {});
+    HUD.perf = true;
+    s.save();
+    const saved = JSON.parse(localStorage.getItem(KEY)).values['HUD.perf'];
+    if (kept.saved === null) localStorage.removeItem(KEY);
+    else localStorage.setItem(KEY, kept.saved);
+    Object.assign(HUD, { perf: kept.perf });
+    Object.assign(PAINT, { texelsPerMeter: kept.tpm });
+    Object.assign(RENDER, { pixelScale: kept.scale, maxFps: kept.fps });
+    Object.assign(SKYLINE, kept.sky);
+    Object.assign(VOLUMETRICS, kept.vol);
+    return saved;
+  });
+  return r === true ? null : `HUD.perf saved: ${r}`;
+});
+
 await check('settings: Controls binds a key, button or wheel step to two slots each; a taken key moves (Undo), a reserved one is refused; Reset all asks and undoes; modes; remembered', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
@@ -402,6 +428,11 @@ await check('settings: Controls binds a key, button or wheel step to two slots e
     slot('Next color', 0).click();
     document.body.dispatchEvent(new WheelEvent('wheel', { deltaY: -100, bubbles: true, cancelable: true }));
     const wheel = [[...BINDINGS.next], [...BINDINGS.prev]];
+    // A wheel step can't be held: Forward refuses it, as every action played by holding does.
+    slot('Forward', 0).click();
+    document.body.dispatchEvent(new WheelEvent('wheel', { deltaY: 100, bubbles: true, cancelable: true }));
+    const heldWheel = [slot('Forward', 0).className, foot(), [...BINDINGS.forward]];
+    press('Escape');
     // Right-click clears a slot, Shift + click puts its default back.
     slot('Tool 1', 0).dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
     const cleared = [...BINDINGS.slot1];
@@ -427,7 +458,7 @@ await check('settings: Controls binds a key, button or wheel step to two slots e
     corner('Reset all').click();
     corner('Reset').click();
     menu.openPage(null);
-    return { groups, defaults, listening, swallowed, heard, forward, moved, undone, mods, refused, cancelled, shake, shakes, wheel, cleared, restored, kept: Object.keys(kept).sort().join(), modes, gameplay, asking, reset, back, values: saved().values };
+    return { groups, defaults, listening, swallowed, heard, forward, moved, undone, mods, refused, cancelled, shake, shakes, wheel, heldWheel, cleared, restored, kept: Object.keys(kept).sort().join(), modes, gameplay, asking, reset, back, values: saved().values };
   });
   // Saves from before the two slots (keys) are dropped; reserved keys aren't loaded.
   const p = await openPage((saved) => localStorage.setItem('roofhiddenhaus.settings', saved), undefined, JSON.stringify({ controls: { forward: ['KeyI', null], use: ['F5', null] }, keys: { back: ['KeyX'] } }));
@@ -449,6 +480,7 @@ await check('settings: Controls binds a key, button or wheel step to two slots e
     shake: [['Mouse2', 'Mouse1'], [], false],
     shakes: true,
     wheel: [['WheelUp'], []],
+    heldWheel: ['slot listening refused', "Forward is held down, and a wheel step can't be. Try another key.", ['KeyI', 'ArrowUp']],
     cleared: [],
     restored: ['Digit1'],
     kept: 'crouch,forward,next,pick,prev,shake,sprint',
@@ -715,7 +747,7 @@ await check('input: Enter that resumes from the pause screen doesn\'t reach buil
   return r.building && r.prompts === 0 && r.status === '' ? null : JSON.stringify(r);
 });
 
-await check('input: a trackpad swipe\'s many small wheel events step the color once a notch, like a wheel\'s notch', async () => {
+await check('input: a trackpad swipe\'s many small wheel events step the color once a notch, like a wheel\'s notch; its sideways events keep the part of a step, leaving the window drops it', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
     const { inventory: inv, input, config } = g;
@@ -738,11 +770,17 @@ await check('input: a trackpad swipe\'s many small wheel events step the color o
       notch: await roll([{ deltaY: 100 }]),
       lines: await roll([{ deltaY: 3, deltaMode: 1 }]),
       twoNotches: await roll([{ deltaY: -100 }, { deltaY: -100 }]),
+      // A swipe's sideways event (no vertical scroll) keeps the part of a step so far: 60 + 60 is a notch (20 left).
+      sideways: await roll([{ deltaY: 60 }, { deltaX: 20, deltaY: 0 }, { deltaY: 60 }]),
     };
+    // Leaving the window drops the part of a step: 20 + 60, then away, then 60 is no notch.
+    await roll([{ deltaY: 60 }]);
+    window.dispatchEvent(new Event('blur'));
+    out.afterBlur = await roll([{ deltaY: 60 }]);
     input.setLocked(false);
     return out;
   });
-  return r.swipe === 1 && r.notch === 1 && r.lines === 1 && r.twoNotches === 2 ? null : JSON.stringify(r);
+  return r.swipe === 1 && r.notch === 1 && r.lines === 1 && r.twoNotches === 2 && r.sideways === 1 && r.afterBlur === 0 ? null : JSON.stringify(r);
 });
 
 await check('input: the browser defaults in BROWSER_GUARDS are cancelled, playing or in the menu: playing every key but BROWSER_KEYS, zoom always (config.ts)', async () => {
