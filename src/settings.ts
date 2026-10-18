@@ -124,7 +124,6 @@ export class Settings {
         step: (d) => {
           RENDER.pixelScale = cycle(PIXEL_SCALES, nearest(PIXEL_SCALES, RENDER.pixelScale), d);
           this.applyResolution();
-          this.save();
         },
       },
       {
@@ -142,7 +141,6 @@ export class Settings {
         value: () => (RENDER.maxFps ? `${RENDER.maxFps} FPS` : 'Max'),
         step: (d) => {
           RENDER.maxFps = cycle(FRAME_RATES, nearest(FRAME_RATES, RENDER.maxFps), d);
-          this.save();
         },
       },
       {
@@ -155,7 +153,6 @@ export class Settings {
         step: (d) => {
           this.vol = cycle(VOL_ORDER, this.vol, d);
           Object.assign(VOLUMETRICS, VOL_PRESETS[this.vol]);
-          this.save();
         },
       },
       {
@@ -174,7 +171,6 @@ export class Settings {
         locked: () => !!this.locked,
         step: (d) => {
           this.detail = cycle(DETAIL_ORDER, this.detail, d);
-          this.save();
         },
       },
       {
@@ -186,7 +182,6 @@ export class Settings {
         value: () => sentence(this.city) + (this.city !== this.builtCity ? ON_RESUME : ''),
         step: (d) => {
           this.city = cycle(CITY_ORDER, this.city, d);
-          this.save();
         },
       },
       toggle(
