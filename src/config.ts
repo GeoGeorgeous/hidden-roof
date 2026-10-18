@@ -975,7 +975,7 @@ export const NET = {
 /** The multiplayer server (server/, docs/deploy.md). */
 export const SERVER = {
   port: 3000,
-  /** Players in one session (docs/multiplayer-audit.md, decision 1). */
+  /** Players in one session; each receives everyone's state and ops (no interest management), load-tested with 20 (docs/deploy.md, section 6). */
   maxPlayers: 20,
   /** A dropped player can come back as themselves for this long (s); then their stepladder goes, and a session with no one left closes. */
   rejoinWindow: 180,
@@ -1082,7 +1082,7 @@ export const PROFILE = {
 };
 
 /**
- * The player figure others see (src/avatar, docs/avatar.md). Joint heights
+ * The player figure others see (src/avatar). Joint heights
  * above the feet and lengths in meters, at rest: standing, arms down. Its
  * eyes are at PLAYER.eyeHeight and the top of its head at PLAYER.height.
  */

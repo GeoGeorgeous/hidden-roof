@@ -1,5 +1,5 @@
 // Multiplayer on weak networks: scenarios from the playtest of 2026-10-12
-// (docs/playtest-multiplayer.md) and the backlog, played back with real browsers,
+// (docs/ideas/weak-links.md) and the backlog, played back with real browsers,
 // the real server and a link proxy per player (scripts/net-lab.mjs). Each prints
 // what happened. Checks what works: a scenario fails when it breaks; what is still
 // a bug is printed under "open", with its backlog item, until it's fixed.

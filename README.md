@@ -13,9 +13,9 @@ it's an experiment: i built it with ai tools, to see how far a game like this co
 
 ## playing
 
-**tools** · a spray can with four caps (skinny, standard, fat, a soft mist), a marker, a stepladder, a paint roller and a sponge. you start with the can and black. the other eight colors, the caps and the tools are hidden around the roof.
+**tools** · a spray can with four caps (skinny, standard, fat, a soft mist), a marker, a stepladder, a paint roller and a sponge. you start with the can and black. the other twelve colors, the caps and the tools are hidden around the roof.
 
-**controls** · wasd to move, shift to run, space to jump, ctrl to crouch. the left button paints, the right one shakes the can. 1–5 switch tools, the wheel switches colors, q and e change the cap or the width. esc pauses.
+**controls** · wasd to move, shift to run, space to jump, ctrl to crouch. the left button paints, the right one shakes the can. 1–5 switch tools, the wheel switches colors, a click on the wheel picks the color under the crosshair, q and e change the cap or the width. esc pauses. every key can be changed in settings → controls.
 
 **together** · host a session from the menu and send the five-letter code. a friend joins with it, and you paint the same roof.
 
@@ -27,11 +27,11 @@ three.js, typescript and vite, with no asset files: geometry, textures and sound
 
 **prop kit** · every prop is a function that returns simple pieces: boxes, cylinders, rods and climb volumes. the same pieces become the meshes, the colliders, the ladders and the paintable faces. props turn in quarter turns, so every collider is an exact box.
 
-**level json** · a level is a spawn, props on a 2 m grid with 4 m storeys, and pickups. build mode (b) edits it in the game and saves it back. the city around it is generated from a seed.
+**level json** · a level is a spawn, props on a 2 m grid with 4 m storeys, and pickups. build mode (b) edits it in the game and saves it back. the city around it is generated from a seed. `pos` is in meters (`y` = storey × 4), `rot` in quarter turns, and each prop keeps its `id` through edits, since paint saves find their surfaces by it. `?level=demo` opens another level in the dev build.
 
 ```json
 {
-  "version": 3,
+  "version": 4,
   "spawn": { "pos": [0, 0, 5], "yaw": 0 },
   "props": [{ "id": 1, "type": "building", "pos": [-7, 0, -5], "rot": 0 }],
   "pickups": [{ "kind": "color:red", "pos": [-3, 0, 6] }]
@@ -63,6 +63,7 @@ npm run dev          # localhost:5173
 npm run check:quick  # types, unit tests, build: after each change
 npm run check        # everything, before a merge (docs/testing.md)
 npm run shots        # the real game on the real GPU: shots/*.png
+npm run server       # the multiplayer server, beside npm run dev
 ```
 
-every control, prop and setting is in [docs/reference.md](docs/reference.md).
+to play together locally, open the game in two windows side by side (one incognito): a background tab draws nothing.

@@ -1,6 +1,6 @@
 // A TCP proxy between one player's game (its Vite /ws proxy) and the game server
 // that plays back a weak network, as home Wi-Fi, a hotspot or a VPN did in the
-// playtest of 2026-10-12 (docs/playtest-multiplayer.md). Each direction queues and
+// playtest of 2026-10-12 (docs/ideas/weak-links.md). Each direction queues and
 // trickles out at its own rate (bytes a second; Infinity: at once, 0: nothing),
 // after a delay (ms). The settings hold for every link the player opens, a
 // reconnect's too. The server's WebSocket pings queue behind the rest, as there.
