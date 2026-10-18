@@ -747,7 +747,7 @@ await check('input: Enter that resumes from the pause screen doesn\'t reach buil
   return r.building && r.prompts === 0 && r.status === '' ? null : JSON.stringify(r);
 });
 
-await check('input: a trackpad swipe\'s many small wheel events step the color once a notch, like a wheel\'s notch', async () => {
+await check('input: a trackpad swipe\'s many small wheel events step the color once a notch, like a wheel\'s notch; its sideways events keep the part of a step, leaving the window drops it', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
     const { inventory: inv, input, config } = g;
@@ -770,11 +770,17 @@ await check('input: a trackpad swipe\'s many small wheel events step the color o
       notch: await roll([{ deltaY: 100 }]),
       lines: await roll([{ deltaY: 3, deltaMode: 1 }]),
       twoNotches: await roll([{ deltaY: -100 }, { deltaY: -100 }]),
+      // A swipe's sideways event (no vertical scroll) keeps the part of a step so far: 60 + 60 is a notch (20 left).
+      sideways: await roll([{ deltaY: 60 }, { deltaX: 20, deltaY: 0 }, { deltaY: 60 }]),
     };
+    // Leaving the window drops the part of a step: 20 + 60, then away, then 60 is no notch.
+    await roll([{ deltaY: 60 }]);
+    window.dispatchEvent(new Event('blur'));
+    out.afterBlur = await roll([{ deltaY: 60 }]);
     input.setLocked(false);
     return out;
   });
-  return r.swipe === 1 && r.notch === 1 && r.lines === 1 && r.twoNotches === 2 ? null : JSON.stringify(r);
+  return r.swipe === 1 && r.notch === 1 && r.lines === 1 && r.twoNotches === 2 && r.sideways === 1 && r.afterBlur === 0 ? null : JSON.stringify(r);
 });
 
 await check('input: the browser defaults in BROWSER_GUARDS are cancelled, playing or in the menu: playing every key but BROWSER_KEYS, zoom always (config.ts)', async () => {

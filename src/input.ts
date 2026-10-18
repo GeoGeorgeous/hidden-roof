@@ -115,6 +115,7 @@ export class Input {
     window.addEventListener('blur', () => {
       this.down.clear();
       this.lmb = this.rmb = false;
+      this.wheelPx = 0;
     });
     element.addEventListener('mousedown', (e) => {
       if (!this.locked) {
@@ -142,6 +143,8 @@ export class Input {
         if (!this.locked) return;
         // Pixels, lines or pages; turning back starts over, so the first notch back steps.
         const px = e.deltaY * (e.deltaMode === 1 ? WHEEL.linePx : e.deltaMode === 2 ? WHEEL.notchPx : 1);
+        // A sideways event (a swipe's other component) keeps the part of a step so far.
+        if (!px) return;
         if (Math.sign(px) !== Math.sign(this.wheelPx)) this.wheelPx = 0;
         this.wheelPx += px;
         const steps = Math.trunc(this.wheelPx / WHEEL.notchPx);
