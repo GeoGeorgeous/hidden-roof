@@ -1,90 +1,90 @@
 {
-  "high": {
-    "hash": "31d70e89799f340b",
-    "texelsPerMeter": 72,
-    "surfaces": 2,
-    "paintedM2": 1.1586,
-    "meanAlpha": 0.7796,
-    "drips": 39,
-    "perRun": {
-      "can skinny": 0.0574,
-      "can standard": 0.1314,
-      "can fat, held for runs": 0.0333,
-      "can spray": 0.2686,
-      "can sputtering": 0.0353,
-      "marker": 0.0408,
-      "marker thinnest": 0.0089,
-      "marker widest, held for runs": 0.0452,
-      "roller on the wall": 0.3641,
-      "roller on the floor": 0.0671,
-      "sponge": -0.0722,
-      "sponge widest": -0.0767
-    }
-  },
   "medium": {
-    "hash": "fc69a61e1bc65d02",
+    "hash": "e8161ccd9eb64a3a",
     "texelsPerMeter": 48,
     "surfaces": 2,
     "paintedM2": 1.1454,
-    "meanAlpha": 0.7806,
+    "meanAlpha": 0.7804,
     "drips": 30,
     "perRun": {
       "can skinny": 0.0592,
       "can standard": 0.1332,
-      "can fat, held for runs": 0.0368,
-      "can spray": 0.2673,
+      "can fat, held for runs": 0.0364,
+      "can spray": 0.2674,
       "can sputtering": 0.0357,
-      "marker": 0.0378,
-      "marker thinnest": 0.0129,
-      "marker widest, held for runs": 0.0423,
-      "roller on the wall": 0.354,
-      "roller on the floor": 0.0668,
-      "sponge": -0.0782,
-      "sponge widest": -0.0737
+      "marker": 0.0377,
+      "marker thinnest": 0.0128,
+      "marker widest, held for runs": 0.0422,
+      "roller on the wall": 0.3541,
+      "roller on the floor": 0.0667,
+      "sponge": -0.078,
+      "sponge widest": -0.0735
+    }
+  },
+  "low": {
+    "hash": "ab76a4767f724353",
+    "texelsPerMeter": 24,
+    "surfaces": 2,
+    "paintedM2": 1.1858,
+    "meanAlpha": 0.7864,
+    "drips": 45,
+    "perRun": {
+      "can skinny": 0.0777,
+      "can standard": 0.1452,
+      "can fat, held for runs": 0.0551,
+      "can spray": 0.2618,
+      "can sputtering": 0.0315,
+      "marker": 0.075,
+      "marker thinnest": 0.0291,
+      "marker widest, held for runs": 0.0384,
+      "roller on the wall": 0.3439,
+      "roller on the floor": 0.0661,
+      "sponge": -0.0995,
+      "sponge widest": -0.0935
+    }
+  },
+  "high": {
+    "hash": "321914315f424f75",
+    "texelsPerMeter": 72,
+    "surfaces": 2,
+    "paintedM2": 1.1586,
+    "meanAlpha": 0.7794,
+    "drips": 39,
+    "perRun": {
+      "can skinny": 0.0574,
+      "can standard": 0.1314,
+      "can fat, held for runs": 0.0331,
+      "can spray": 0.2686,
+      "can sputtering": 0.0353,
+      "marker": 0.0407,
+      "marker thinnest": 0.0089,
+      "marker widest, held for runs": 0.045,
+      "roller on the wall": 0.3642,
+      "roller on the floor": 0.067,
+      "sponge": -0.0722,
+      "sponge widest": -0.0765
     }
   },
   "ultra": {
-    "hash": "84451d82d0ed2419",
+    "hash": "8c43b2f17b89433e",
     "texelsPerMeter": 96,
     "surfaces": 2,
-    "paintedM2": 1.153,
+    "paintedM2": 1.1529,
     "meanAlpha": 0.7842,
     "drips": 41,
     "perRun": {
       "can skinny": 0.0586,
       "can standard": 0.1321,
-      "can fat, held for runs": 0.0358,
+      "can fat, held for runs": 0.0356,
       "can spray": 0.2666,
       "can sputtering": 0.0351,
       "marker": 0.0409,
       "marker thinnest": 0.0063,
-      "marker widest, held for runs": 0.0409,
+      "marker widest, held for runs": 0.0408,
       "roller on the wall": 0.3684,
       "roller on the floor": 0.0666,
-      "sponge": -0.0708,
-      "sponge widest": -0.0763
-    }
-  },
-  "low": {
-    "hash": "9a79cb3f10235c65",
-    "texelsPerMeter": 24,
-    "surfaces": 2,
-    "paintedM2": 1.1875,
-    "meanAlpha": 0.7878,
-    "drips": 46,
-    "perRun": {
-      "can skinny": 0.078,
-      "can standard": 0.1457,
-      "can fat, held for runs": 0.0567,
-      "can spray": 0.2613,
-      "can sputtering": 0.0315,
-      "marker": 0.0758,
-      "marker thinnest": 0.0294,
-      "marker widest, held for runs": 0.0394,
-      "roller on the wall": 0.3412,
-      "roller on the floor": 0.0662,
-      "sponge": -0.0974,
-      "sponge widest": -0.0939
+      "sponge": -0.0707,
+      "sponge widest": -0.0762
     }
   }
 }
