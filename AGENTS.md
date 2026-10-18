@@ -20,31 +20,27 @@ Hidden roof: a three.js graffiti game. The world is ink on paper and the only co
 - Tunable numbers go in `src/config.ts`, not inline.
 - Notes for later (bugs, things to check, performance, ideas) go in `docs/backlog.md`, the one list. Keep the item's fields (type, status, priority, size, area, release) as in the other items. Mark an item `Done` when it ships; the release commit deletes the `Done` items.
 - Removing code beats adding it. A cleanup keeps behavior identical: `npm run check` passes before and after.
-- Before writing new logic, look for an existing helper and reuse or extend it.
 - Keep source files under ~400 lines (`config.ts` and CSS excepted). Split by responsibility before a file gets there, not after.
-- Branch names are `type/short-kebab-name`, with type one of `feat`, `fix`, `refactor`, `perf`, `chore`, `docs`, `test` (e.g. `feat/roller-tool`, `perf/dirty-rect-upload`).
 
 ## Verify
 
-- Use `npm run check:quick` for docs, backlog, UI, and changes that do not affect the core runtime paths.
-- Use `npm run check` when changes affect paint, rendering, the level, props, input, movement, networking, the server, or build setup. When unsure, run the full check.
+- Use `npm run check:quick` for docs, backlog, UI, and changes that do not affect the core runtime paths. Use `npm run check` when changes affect paint, rendering, the level, props, input, movement, networking, the server, or build setup. When unsure, run the full check.
 - Run the appropriate check before reporting a task as done or asking me to merge. Commit only after it passes; chain the commands with `&&`, never `;`.
-- Add a regression test for each bug fix. Verify that it fails without the fix and passes with it.
-- Browser test suites (`npm run check`, `test:game`, `test:mp`, and `golden`) run one at a time on this machine. Concurrent runs can starve each other's frames and freeze WSL. Investigate failures rather than rerunning blindly to get a green result. If a failure appears pre-existing, verify it on a clean `dev` worktree and report the evidence and output.
-- For visual changes (appearance, lighting, UI, props, avatar), run `npm run shots`, inspect the PNGs, and share them with me. These screenshots use the real game and GPU; headless tests use SwiftShader and may not represent the player's experience.
-- The full check takes several minutes and may exceed the shell's default timeout. Give it a 10-minute timeout or run it in the background in a worktree of the tested commit, with `node_modules` linked. Continue only with work that cannot affect the running check.
-- See `docs/testing.md` for test coverage and reliability details.
+- Browser test suites (`npm run check`, `test:game`, `test:mp`, and `golden`) run one at a time on this machine. Concurrent runs can starve each other's frames and freeze WSL.
+- For visual changes (appearance, lighting, UI, props, avatar), run `npm run shots`, inspect the PNGs, and share them with me.
+- Running the full check, reading a failure, and what each test covers: `docs/testing.md`.
 
 ## Git workflow
 
 - Branch flow: topic branches → `dev` → `next` → `main`. `next` is the tested branch; only a release moves `main` (`docs/releases/AGENTS.md`).
 - Start new work (features, fixes, docs) on a topic branch from `dev`. Merge it into `dev` only when I explicitly approve ("works, merge it"). Never move `next` or `main` except through promotion.
 - Before promoting `dev` to `next`, run the full `npm run check` on `dev` and confirm it passes.
+- On a topic branch, commit each change once its check passes, without asking.
 - After merging a topic branch into `dev`, delete it with `git branch -d`, unless I ask to keep it. Push merges into `dev` and `next` immediately; keep topic branches local unless I ask otherwise.
 
 ## Long runs
 
-- When a step does not need my input, keep going. Stop and ask only when you cannot proceed without me, or before destructive actions, force-pushing, or changing anything outside this repository.
+- When a step does not need my input, keep going. Put status notes in the same message as your next action. Stop and ask only when you cannot proceed without me, or before destructive actions, force-pushing, or changing anything outside this repository.
 - End every run with: `Blocked on me`, `Changed`, `Found`.
 
 ## Before working in these areas, read
@@ -53,4 +49,5 @@ Hidden roof: a three.js graffiti game. The world is ink on paper and the only co
 - Ink style, materials, color, and signs: `src/render/ink/AGENTS.md`
 - Debug panel (F3): tabs, naming, tooltips, and values: `src/debug/AGENTS.md`
 - Deployment, VPS, and multiplayer hosting: `docs/deploy.md`
+- Domain terms: `CONTEXT.md`
 - Releases: `docs/releases/AGENTS.md`
