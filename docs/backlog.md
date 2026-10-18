@@ -28,7 +28,7 @@ The one place for what's left to do: bugs, things to check, performance, tests, 
 
 No WebGL (`new THREE.WebGLRenderer` in `main.ts` throws) or a script that doesn't load. Do: catch the renderer's failure and say so on the loading screen (as `loadFailed` does for the level).
 
-Decided (2026-10-14): the fix and an automated test, in its own file beside the smoke test (~5–8 s): Chromium with `--disable-3d-apis` (no WebGL), and one with the main script blocked. To see it by hand in Chrome: start it with `--disable-3d-apis --user-data-dir=<a temp dir>` (`chrome://gpu` shows WebGL: Disabled), or DevTools → Network → Block request URL on the main `index-*.js`.
+Decided (2026-10-14): the fix and an automated test, in its own file beside the smoke test (~5–8 s): Chromium with `--disable-3d-apis` (no WebGL), and one with the main script blocked. To see it by hand in Chrome: start it with `--disable-3d-apis --user-data-dir=<a temp dir>` (`chrome://gpu` shows WebGL: Disabled), or DevTools → Network → Block request URL on `main-*.js` (not `index-*.js`: that is the boot script that writes the message).
 
 ### Strokes made while the link is dying vanish on rejoin
 - id: BL-003
@@ -1319,3 +1319,51 @@ macOS sends no keyup for keys released while Cmd is held: a movement key kept wa
 
 A synthetic Enter on the pause screen resumed with the real pointer lock (a user gesture in Playwright); the lock was lost ~40 ms later and that late event unlocked the next checks, under load only. Done: `noBrowserLock` on test pages; tests start play with `Input.setLocked`.
 
+
+### Ctrl+W while playing brings the browser's leave prompt
+- id: BL-104
+- type: bug
+- status: Requested
+- priority: Urgent
+- size: S
+- area: input
+- release: next
+- source: owner device tests 2026-10-18 (audit F3.21)
+
+Crouch (Ctrl) + forward (W) asks "leave the page?" in Chrome 155 on Windows (next, v1.3.0-159). Windowed that prompt is the 1.3.0 fix (`beforeunload`; no page can stop Ctrl+W without the keyboard lock); in game fullscreen Ctrl+W must do nothing, and since S3.4 the lock lists only the bound keys and Esc. Do: reproduce on next and on v1.3.0, windowed and in fullscreen; if fullscreen lets it through, lock what Ctrl combos reach too, with a check.
+
+### A slow join shows PLAY before the session has loaded
+- id: BL-105
+- type: bug
+- status: Requested
+- priority: High
+- size: S
+- area: net
+- release: next
+- source: owner device tests 2026-10-18 (audit F5.10)
+
+On a slow link the welcome's paint file takes a while; the joiner sees PLAY meanwhile, paints alone, and loses it when the welcome lands and moves them into the session. Do: the menu stays on joining (no PLAY) until the welcome is loaded; LEAVE cancels.
+
+### Water tank roofs can't be painted
+- id: BL-106
+- type: idea
+- status: Requested
+- priority: Low
+- size: S
+- area: paint
+- release: later
+- source: owner device tests 2026-10-18 (audit F7.15)
+
+The cone roofs of the water tank and the tanks on stands (`p.cone`, `src/kit/equipment.ts`, `src/kit/steel.ts`) have no paint option or mapping; the paintable flat top sits hidden inside. Do: a cone paint mapping, checked against saves and page counts.
+
+### Moving the stepladder again and again near lamps doubles the CPU time
+- id: BL-107
+- type: perf
+- status: Requested
+- priority: Low
+- size: S
+- area: render
+- release: later
+- source: owner device tests 2026-10-18 (audit F2.8)
+
+RTX laptop: CPU ~7.3 → 14–16 ms a frame while the ladder is placed over and over near lamps (each move re-bakes its lamp light, `LightBaker.sync`, BL-086); one placement is fine. Do: measure on the Intel laptop (audit T1.8) before deciding.
