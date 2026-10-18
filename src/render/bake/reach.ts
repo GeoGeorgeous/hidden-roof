@@ -39,7 +39,6 @@ export function lampSpheres(b: BuiltProp, out: Reach) {
   for (const a of b.lights) if (!a.track) out.spheres.push(new THREE.Sphere(a.pos.clone(), LIGHTS[a.kind].range));
 }
 
-/** Shadow cones of colliders that came or went, from every steady lamp of `props` that reaches them. */
 /**
  * A prop's occluders as one box: its shadow holds all of theirs, so what it reaches is
  * baked again too (a little more, over the frames' budget). A stepladder has 17 boxes:
@@ -52,6 +51,7 @@ export function hull(boxes: readonly THREE.Box3[]): THREE.Box3[] {
   return [all];
 }
 
+/** Shadow cones of colliders that came or went, from every steady lamp of `props` that reaches them. */
 export function shadowCones(props: Iterable<BuiltProp>, boxes: THREE.Box3[], out: Reach) {
   const lamps: { pos: THREE.Vector3; range: number }[] = [];
   for (const b of props) for (const a of b.lights) if (!a.track) lamps.push({ pos: a.pos, range: LIGHTS[a.kind].range });
