@@ -103,8 +103,9 @@ export class Multiplayer {
     if (s) this.connect({ type: 'join', protocol: PROTOCOL, name: s.name, code: s.code, token: s.token });
   }
 
-  /** SAVE in a session: the session's paint, as a file the server makes. One request at a time. */
+  /** SAVE in a session: the session's paint, as a file the server makes. One request at a time; none while the link is down (nothing would answer it). */
   savePaint() {
+    if (!this.saving && !this.link?.live) return Promise.reject(new Error('Reconnecting: save again once back in the session'));
     if (!this.saving) {
       let done!: (bytes: Uint8Array) => void, fail!: (e: Error) => void;
       const promise = new Promise<Uint8Array>((ok, no) => ((done = ok), (fail = no)));

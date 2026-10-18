@@ -188,7 +188,10 @@ try {
   assert.match(b.errors.pop() ?? '', /null/);
   await b.evaluate(() => ((window.game.net.link.socket.onmessage = null), (window.game.net.link.lastHeard = -1e9)));
   await status(b, 'reconnecting');
+  // SAVE meanwhile is refused at once: the request can't go, and a reconnect wouldn't answer it (it used to wait forever).
+  const saving = b.evaluate(() => Promise.race([window.game.net.savePaint().then(() => 'saved', (e) => e.message), new Promise((r) => setTimeout(() => r('no answer'), 8000))]));
   await status(b, 'in');
+  assert.match(await saving, /^Reconnecting/, 'SAVE while reconnecting');
   assert.equal(await paintHash(b), painted, 'the paint comes back after a reconnect');
 
   // BL-088: B comes back on link 1, which drops while its welcome loads (4 s); the retry's link 2 hears nothing. Link 1's
