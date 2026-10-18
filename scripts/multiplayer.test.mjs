@@ -337,7 +337,7 @@ try {
   await welcomeHeld();
   // The network's progress, as it has it: the welcome's paint coming down.
   const joining = await menuNow();
-  assert.match(joining.play[1], /^(Joining session…|Downloading paint \d+%)$/);
+  assert.match(joining.play[1], /^(Joining…|Loading \d+%)$/);
   assert.deepEqual({ ...joining, play: [joining.play[0]] }, { play: [true], other: 'Leave session', resumed: 0 }, 'joining: PLAY is disabled and nothing resumes');
   await press(b, 'LEAVE SESSION');
   await status(b, 'off');
