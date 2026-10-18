@@ -229,11 +229,6 @@ export class DevTools {
     this.debug.update();
   }
 
-  /**
-   * Opening frees the mouse for the panel; Esc then goes back to the game and
-   * to the panel again (play-state.ts). Closing with the key (`byKey`)
-   * goes back to the game if that's where the panel was opened.
-   */
   /** Rebuild every tool model (first person, pickups, hotbar icons, the figure's tool) from MODELS and CAPS. */
   private rebuildModelsNow() {
     this.modelsChanged = false;
@@ -245,6 +240,11 @@ export class DevTools {
     shapes.version++;
   }
 
+  /**
+   * Opening frees the mouse for the panel; Esc then goes back to the game and
+   * to the panel again (play-state.ts). Closing with the key (`byKey`)
+   * goes back to the game if that's where the panel was opened.
+   */
   private setPanel(open: boolean, input: Input, byKey = false) {
     if (open === this.debug.visible) return;
     this.debug.toggle();
