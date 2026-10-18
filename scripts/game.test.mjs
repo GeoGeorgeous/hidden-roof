@@ -2233,10 +2233,10 @@ await check('settings: Rain set in build mode (daylight) is what the night has o
       return shown;
     };
     const was = ATMOS.rain;
-    g.atmosphere.setDaylight(true);
+    g.environment.atmosphere.setDaylight(true);
     const shown = flip();
     const day = ATMOS.rain;
-    g.atmosphere.setDaylight(false);
+    g.environment.atmosphere.setDaylight(false);
     const night = ATMOS.rain;
     const saved = JSON.parse(localStorage.getItem('roofhiddenhaus.settings')).values['ATMOS.rain'];
     flip();

@@ -17,11 +17,8 @@ import type { PaintSystem } from '../painting';
 import type { Pickups } from '../pickups/pickups';
 import type { Player } from '../player';
 import type { PlayState } from '../play-state';
-import type { Atmosphere } from '../render/atmosphere';
 import type { LightBaker } from '../render/bake/baker';
-import type { LightFX } from '../render/light-fx';
-import type { Lighting } from '../render/lighting';
-import type { Lightning } from '../render/lightning';
+import type { Environment } from '../render/environment';
 import { session } from '../session';
 import { shapes } from '../tools/shapes';
 import { syncSkyline } from '../skyline';
@@ -55,10 +52,7 @@ export interface DevContext {
   paint: PaintSystem;
   paintOps: PaintOps;
   drips: PaintDrips;
-  atmosphere: Atmosphere;
-  lighting: Lighting;
-  lightFx: LightFX;
-  lightning: Lightning;
+  environment: Environment;
   baker: LightBaker;
   gpuTimer: GpuTimer;
   /** The generated city around the level. */
@@ -108,14 +102,14 @@ export class DevTools {
     if (new URLSearchParams(location.search).has('profile')) this.profiler.start();
     const hooks: Hooks = {
       gpu: (label: string) => g.gpuTimer.read(label),
-      strikeLightning: () => g.lightning.strike(),
-      rebuildLights: () => g.lightFx.rebuild(g.level.lights),
+      strikeLightning: () => g.environment.lightning.strike(),
+      rebuildLights: () => g.environment.lightFx.rebuild(g.level.lights),
       // Props with lights (light props, billboards) are rebuilt for a new lens color or aim; their paint carries over.
       rebuildLightProps: () => g.level.rebuildLit(),
-      syncAtmosphere: () => g.atmosphere.syncColors(),
+      syncAtmosphere: () => g.environment.atmosphere.syncColors(),
       syncVignette: () => g.hud.syncVignette(),
       previewPause: () => g.hud.menu.previewSheet(),
-      applyDaylight: () => g.atmosphere.reapplyDaylight(),
+      applyDaylight: () => g.environment.atmosphere.reapplyDaylight(),
       syncBuildLook: () => this.build.syncLook(),
       rebuildCity: g.rebuildCity,
       applyToolSizes: () => (g.inventory.size = { marker: MARKER.width, roller: ROLLER.width, sponge: SPONGE.width }),
@@ -147,7 +141,7 @@ export class DevTools {
       profileProbe: () => this.profiler.runProbe(),
       profileState: () => (this.profiler.recording ? 'RECORDING' : 'off'),
     };
-    this.debug = new DebugPanel(hooks, () => g.atmosphere.nightValues);
+    this.debug = new DebugPanel(hooks, () => g.environment.atmosphere.nightValues);
     Object.assign(window, { game: { ...g, build: this.build, debug: this.debug, hooks, live, ghost: this.ghost, profiler: this.profiler, cityParts: { layoutCity, dressTower, wallSigns } } });
   }
 
@@ -214,7 +208,7 @@ export class DevTools {
       uploadBytes: g.paint.gpu.uploadBytesLastFrame,
       particles: g.tools.spray.particles.count,
       drips: g.drips.count,
-      lights: g.lighting.active,
+      lights: g.environment.lighting.active,
       bakedBytes: g.baker.stats.textureBytes,
       bakePending: g.baker.stats.pending,
       bakeMs: g.baker.stats.ms,
@@ -258,7 +252,7 @@ export class DevTools {
   private setBuilding(on: boolean) {
     this.build.setActive(on);
     this.g.play.building = on;
-    this.g.atmosphere.setDaylight(on);
+    this.g.environment.atmosphere.setDaylight(on);
     this.debug.sync();
     this.g.hotbar.visible = !on;
     this.g.audio.setHiss(0, 0);

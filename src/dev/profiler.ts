@@ -5,7 +5,7 @@ import { download, stamp } from '../files';
 import type { Level } from '../level/level';
 import type { Player } from '../player';
 import type { LightBaker } from '../render/bake/baker';
-import type { Lighting } from '../render/lighting';
+import type { Environment } from '../render/environment';
 import { VERSION } from '../version';
 import { Probe, type ProbeResult } from './probe';
 import { SpikeCatcher } from './spikes';
@@ -24,11 +24,10 @@ export interface ProfilerWorld {
   scene: THREE.Scene;
   renderer: THREE.WebGLRenderer;
   level: Level;
-  lighting: Lighting;
+  environment: Pick<Environment, 'lighting' | 'lightFx'>;
   baker: LightBaker;
   player: Player;
   gpuTimer: GpuTimer;
-  lightFx: { root: THREE.Object3D };
   city(): THREE.Object3D;
   applyPixelScale(): void;
 }
@@ -217,7 +216,7 @@ export class Profiler {
       gpu: this.w.gpuTimer.supported ? rounded(Object.fromEntries(PASSES.map((pass, i) => [pass, b.gpu[i] / n]))) : null,
       calls: Math.round(b.calls / n),
       triangles: Math.round(b.triangles / n),
-      realLights: this.w.lighting.active,
+      realLights: this.w.environment.lighting.active,
       bakePending: this.w.baker.stats.pending,
       longTasks: this.observer ? this.longTasks : -1,
       heapMB: heap ? Math.round(heap.usedJSHeapSize / 1048576) : null,

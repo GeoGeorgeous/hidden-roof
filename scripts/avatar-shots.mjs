@@ -71,7 +71,7 @@ for (const [file, pose, angle, dist, eye, day, hood, at = 0.95] of shots) {
     g.config.AVATAR.hoodUp = !!hood;
     g.hooks.avatarRestyle();
     for (let i = 0; i < 40 && g.hooks.avatarPose() !== pose; i++) g.hooks.avatarNext();
-    g.atmosphere.setDaylight(day);
+    g.environment.atmosphere.setDaylight(day);
     // The figure: the first avatar in the scene.
     let fig = null;
     g.level.root.parent.traverse((o) => (fig ??= o.isSkinnedMesh ? o.parent : null));
