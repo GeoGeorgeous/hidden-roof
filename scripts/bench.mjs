@@ -79,7 +79,7 @@ async function bench(url) {
       runs.push(rounded(await page.evaluate((n) => window.benchResults[n], i)));
       await page.waitForSelector('.popup-page:not([hidden])');
     }
-    const message = await page.textContent('.popup-page:not([hidden]) .para.lead');
+    const message = await page.textContent('.popup.perf-popup .perf-advice');
     const load = await page.evaluate(() => window.benchLoad);
     const sorted = [...load.intervals].sort((a, b) => a - b);
     const result = {
@@ -119,7 +119,7 @@ function medianOf(runs) {
     return v.length ? round(v[Math.floor(v.length / 2)]) : null;
   };
   const spread = (key) => (runs.some((r) => !r[key]) ? null : { p50: med((r) => r[key].p50), p95: med((r) => r[key].p95), p99: med((r) => r[key].p99) });
-  return { fps: med((r) => r.fps), frameMs: spread('frameMs'), cpuMs: spread('cpuMs'), gpuMs: spread('gpuMs'), calls: med((r) => r.calls) };
+  return { fps: med((r) => r.fps), low: med((r) => r.low), frameMs: spread('frameMs'), cpuMs: spread('cpuMs'), gpuMs: spread('gpuMs'), calls: med((r) => r.calls) };
 }
 
 /** Two results side by side, and the change from the first to the second (no threshold). */
@@ -128,6 +128,7 @@ function compare(a, b) {
   const add = (name, x, y) => rows.push([name, fmt(x), fmt(y), x && y !== null && y !== undefined ? `${y >= x ? '+' : ''}${(((y - x) / x) * 100).toFixed(1)}%` : '']);
   rows.push(['gpu', a.gpu.name, b.gpu.name, ''], ['settings', a.settings, b.settings, '']);
   add('fps', a.fps, b.fps);
+  add('1% low fps', a.low, b.low);
   for (const key of ['frameMs', 'cpuMs', 'gpuMs']) for (const p of ['p50', 'p95', 'p99']) add(`${key} ${p}`, a[key]?.[p], b[key]?.[p]);
   add('draw calls', a.calls, b.calls);
   add('load s', a.load?.seconds, b.load?.seconds);

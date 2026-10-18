@@ -83,7 +83,12 @@ export class SettingsPage {
       this.syncs.push(() => (out.textContent = row.value()));
       return settingRow(row.label, out, row);
     }
-    if (row.kind === 'action') return settingRow(row.label, action(row.button, row.act), row);
+    if (row.kind === 'action') {
+      // Under a choice's value: its edges line up with the values in the rows below.
+      const cell = div('action-cell');
+      cell.append(action(row.button, row.act));
+      return settingRow(row.label, cell, row);
+    }
     const input = Object.assign(document.createElement('input'), { type: 'range', min: `${row.min}`, max: `${row.max}`, step: `${row.step}` });
     const out = div('value');
     const sync = () => {

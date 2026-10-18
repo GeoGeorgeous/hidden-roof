@@ -199,35 +199,44 @@ await check('settings: Graphics names the GPU under Resolution, short, in the pe
   return ok ? null : JSON.stringify({ r, h });
 });
 
-await check('performance test: RUN shows only TESTING… over the city view; Esc stops it back on Graphics with no result; done, its popup shows the numbers, GPU, settings and one message; RUN AGAIN and DISMISS; resuming stops it; the GPU timer goes back off', async () => {
+await check('performance test: first on Graphics, its Run button on the values below; Run opens its popup, 800 px in the middle, over the blurred flight with live numbers and Stop; Esc stops it back on Graphics with no result; done, the fps, 1% low, tier, CPU and GPU, settings, card and a tip; Enter runs it again; Dismiss; resuming stops it; the GPU timer goes back off', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
     const { PERF_TEST } = g.config;
     const saved = { ...PERF_TEST };
-    Object.assign(PERF_TEST, { warmup: 0.1, seconds: 0.3 });
+    Object.assign(PERF_TEST, { warmup: 0.1, seconds: 1.5 });
     const frames = (n) => new Promise((done) => { const tick = () => (n-- ? requestAnimationFrame(tick) : done()); tick(); });
-    const until = async (ok) => { const end = performance.now() + 10000; while (!ok() && performance.now() < end) await frames(1); return ok(); };
+    const until = async (ok) => { const end = performance.now() + 15000; while (!ok() && performance.now() < end) await frames(1); return ok(); };
     const shown = () => [...document.querySelectorAll('.overlay > .page')].filter((e) => !e.hidden).map((e) => e.className).join();
-    const esc = () => ['keydown', 'keyup'].forEach((type) => window.dispatchEvent(new KeyboardEvent(type, { code: 'Escape' })));
-    const runButton = () => [...document.querySelectorAll('.settings-page .setting-row')].find((row) => row.querySelector('.label').textContent === 'Performance test')?.querySelector('.btn');
-    const popupButtons = () => [...document.querySelectorAll('.popup-page:not([hidden]) .btn')];
+    const key = (code) => ['keydown', 'keyup'].forEach((type) => window.dispatchEvent(new KeyboardEvent(type, { code })));
+    const rows = () => [...document.querySelectorAll('.settings-page .setting-row')];
+    const runButton = () => rows()[0].querySelector('.btn');
+    const box = document.querySelector('.popup.perf-popup');
+    const text = (sel) => box.querySelector(sel).textContent;
+    const buttons = () => [...box.querySelectorAll('.popup-buttons .btn')].map((b) => b.textContent);
     const timerWas = g.gpuTimer.enabled;
     g.hud.menu.openSettings('Graphics');
+    const run = runButton().getBoundingClientRect();
+    const value = rows().find((row) => row.querySelector('.choice')).querySelector('.choice .value').getBoundingClientRect();
+    const row = { first: rows()[0].querySelector('.label').textContent, desc: rows()[0].querySelector('.desc').textContent, button: [run.width, run.height, run.left - value.left, run.right - value.right].map(Math.round).join() };
     runButton().click();
     await frames(2);
-    const testing = { page: shown(), line: document.querySelector('.testing').textContent, bare: g.hud.menu.el.classList.contains('bare'), sub: g.hud.menu.el.classList.contains('sub'), running: g.perfTest.running, hands: g.viewScene.visible };
-    esc();
+    const at = box.getBoundingClientRect();
+    const started = { place: [at.width, at.left + at.width / 2 - innerWidth / 2, at.top + at.height / 2 - innerHeight / 2].map(Math.round).join(), page: shown(), sub: g.hud.menu.el.classList.contains('sub'), back: !g.hud.menu.el.querySelector('.back').hidden, running: g.perfTest.running, hands: g.viewScene.visible, status: text('.perf-status'), fps: text('.perf-fps b'), low: text('.perf-low'), headline: text('.perf-headline'), tip: text('.perf-advice'), buttons: buttons(), facts: [...box.querySelectorAll('.perf-facts .fact')].map((f) => f.textContent) };
+    const live = await until(() => /^\d+$/.test(text('.perf-fps b')));
+    const during = { running: g.perfTest.running, fps: text('.perf-fps b'), cpu: text('.perf-bars .ms'), calls: box.querySelectorAll('.perf-facts .v')[4].textContent };
+    key('Escape');
     await frames(2);
     const stopped = { running: g.perfTest.running, page: shown(), tab: document.querySelector('.settings-page .tabs .on').textContent, timer: g.gpuTimer.enabled };
+    Object.assign(PERF_TEST, { seconds: 0.3 });
     runButton().click();
-    const done = await until(() => shown().includes('popup-page'));
-    const popup = document.querySelector('.popup-page:not([hidden])');
-    const result = { done, title: popup.querySelector('.popup-title').textContent, chip: popup.querySelector('.chip').textContent, paras: [...popup.querySelectorAll('.para')].map((p) => p.textContent), buttons: popupButtons().map((b) => b.textContent), timer: g.gpuTimer.enabled, running: g.perfTest.running };
-    popupButtons().find((b) => b.textContent.startsWith('Run again')).click();
+    const done = await until(() => !g.perfTest.running && text('.perf-status').startsWith('Tested'));
+    const result = { done, page: shown(), status: text('.perf-status'), fps: text('.perf-fps b'), low: text('.perf-low'), headline: text('.perf-headline'), on: [...box.querySelectorAll('.perf-tier.on')].map((t) => t.textContent), ms: [...box.querySelectorAll('.perf-bars .ms')].map((m) => m.textContent), limits: box.querySelectorAll('.perf-bars .limit').length, lead: text('.perf-advice b'), more: text('.perf-advice span'), buttons: buttons(), timer: g.gpuTimer.enabled };
+    key('Enter');
     await frames(1);
-    const again = shown();
-    const twice = await until(() => shown().includes('popup-page'));
-    popupButtons().find((b) => b.textContent.startsWith('Dismiss')).click();
+    const again = g.perfTest.running && text('.perf-headline') === 'Measuring…';
+    const twice = await until(() => !g.perfTest.running && text('.perf-status').startsWith('Tested'));
+    [...box.querySelectorAll('.popup-buttons .btn')].find((b) => b.textContent.startsWith('Dismiss')).click();
     const dismissed = [shown(), document.querySelector('.settings-page .tabs .on').textContent];
     runButton().click();
     await frames(2);
@@ -236,17 +245,46 @@ await check('performance test: RUN shows only TESTING… over the city view; Esc
     g.input.setLocked(false);
     Object.assign(PERF_TEST, saved);
     g.hud.menu.openPage(null);
-    return { testing, stopped, result, again, twice, dismissed, resumed, timerWas, summary: g.settings.summary() };
+    return { row, started, live, during, stopped, result, again, twice, dismissed, resumed, timerWas, card: g.gpu.name ?? 'Unknown' };
   });
-  const t = r.testing;
+  const s = r.started;
+  const res = r.result;
   const ok =
-    t.page === 'page bare-page testing-page' && t.line === 'TESTING…ESCTO STOP' && t.bare && !t.sub && t.running && !t.hands &&
+    r.row.first === 'Performance test' && r.row.desc === 'Flies over the roof for a few seconds at your current settings and shows how it ran.' && r.row.button === '186,26,0,0' &&
+    s.place === '800,0,0' && s.page === 'page popup-page' && s.sub && !s.back && s.running && !s.hands && /^Testing · \d+ s left$/.test(s.status) && s.fps === '—' && s.low === '1% low after the run' && s.headline === 'Measuring…' && s.tip === 'Watching where each frame’s time goes.' && s.buttons.join() === 'StopESC' &&
+    s.facts.join('|') === `Resolution1280×720|Volumetrics${s.facts[1].slice(11)}|Paint detailUltra|City detailHigh|Draw calls—|Video card${r.card}` && /^(Off|Low|Medium|High)$/.test(s.facts[1].slice(11)) &&
+    r.live && r.during.running && /^\d+\.\d ms$/.test(r.during.cpu) && /^[\d,]+$/.test(r.during.calls) &&
     !r.stopped.running && r.stopped.page === 'page settings-page' && r.stopped.tab === 'Graphics' && r.stopped.timer === r.timerWas &&
-    r.result.done && r.result.title === 'performance test' && /^(GPU [\d.]+ ms · )?CPU [\d.]+ ms · \d+ fps\d+ draw calls$/.test(r.result.chip) &&
-    r.result.paras[0].endsWith(` · ${r.summary}`) && /^1\/1  1280x720 · Volumetrics \w+ · Paint \w+ · City \w+$/.test(r.summary) && r.result.paras[1].length > 5 &&
-    r.result.buttons.join() === 'DismissESC,Run againENTER' && r.result.timer === r.timerWas && !r.result.running &&
-    r.again === 'page bare-page testing-page' && r.twice && r.dismissed.join() === 'page settings-page,Graphics' && !r.resumed;
+    res.done && res.page === 'page popup-page' && res.status === 'Tested at your current settings' && /^\d+$/.test(res.fps) && /^1% low \d+ FPS$/.test(res.low) &&
+    /^(Stutters|Playable|Smooth|Very smooth) at your settings$/.test(res.headline) && res.on.length === 1 && res.headline.startsWith(res.on[0]) &&
+    /^\d+\.\d ms$/.test(res.ms[0]) && /^(\d+\.\d ms|—)$/.test(res.ms[1]) && res.limits === (res.ms[1] === '—' ? 0 : 1) && res.lead.endsWith('.') && res.more.length > 5 &&
+    res.buttons.join() === 'DismissESC,Run againENTER' && res.timer === r.timerWas &&
+    r.again && r.twice && r.dismissed.join() === 'page settings-page,Graphics' && !r.resumed;
   return ok ? null : JSON.stringify(r);
+});
+
+await check('settings: no description runs under its control: 16px clear of it on Gameplay, Graphics and Sound (the widest control), and of the first key slot on Controls', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const bad = [];
+    for (const tab of ['Gameplay', 'Graphics', 'Sound', 'Controls']) {
+      g.hud.menu.openSettings(tab);
+      for (const row of document.querySelectorAll('.settings-page .setting-row, .settings-page .control-row')) {
+        for (const desc of row.querySelectorAll('.desc')) {
+          // Its text as laid out, each line's end.
+          const range = document.createRange();
+          range.selectNodeContents(desc);
+          const right = Math.max(...[...range.getClientRects()].map((c) => c.right));
+          // Controls: the key slots (or the line's chooser) beside it; the other tabs: the widest control, a slider and its value.
+          const left = row.classList.contains('control-row') ? desc.closest('.line, .sub').lastElementChild.getBoundingClientRect().left : row.getBoundingClientRect().right - 252;
+          if (right > left - 16 + 0.5) bad.push(`${tab}: ${desc.textContent.slice(0, 30)}… ends at ${Math.round(right)}, over ${Math.round(left - 16)}`);
+        }
+      }
+    }
+    g.hud.menu.openPage(null);
+    return bad;
+  });
+  return r.length ? r.join('; ') : null;
 });
 
 await check('performance test: hiding the window stops it (the gap would be one slow frame), back on Graphics at its row; the settings line is the paint detail drawn, not one waiting for resume', async () => {

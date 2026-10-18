@@ -685,8 +685,9 @@
   letter-spacing: 0.05em;
   color: rgba(235, 229, 214, 0.6);
 }
+/* Stops short of the widest control and a 16px gap, so it never runs under a slider, chooser or button. */
 .overlay .setting-row .desc {
-  max-width: 420px;
+  padding-right: 268px;
   font-size: 12px;
   line-height: 1.5;
   color: var(--text-2);
@@ -735,12 +736,28 @@
   overflow-wrap: anywhere;
   font-variant-numeric: tabular-nums;
 }
-/* A button row (the performance test): the button under a choice's value. */
-.overlay .setting-row .line > .btn {
+/* A button row (the performance test): the button under a choice's value, its edges on the values below. */
+.overlay .action-cell {
+  display: flex;
+  box-sizing: border-box;
   width: 246px;
+  padding: 0 30px;
+}
+.overlay .action-cell .btn {
   justify-content: center;
-  padding: 4px 16px;
-  border: 1px solid var(--edge);
+  width: 186px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid rgba(235, 229, 214, 0.3);
+  background: rgba(10, 10, 12, 0.45);
+  font-size: 12px;
+  color: var(--paper);
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.overlay .action-cell .btn:hover {
+  border-color: rgba(235, 229, 214, 0.5);
+  background: rgba(235, 229, 214, 0.16);
+  color: #fff;
 }
 /* Settings → Controls (controls-tab.ts): groups of rows, each with two key slots. */
 .overlay .rows.own {
@@ -1100,30 +1117,6 @@
   color: rgba(235, 229, 214, 0.45);
 }
 
-/* The performance test running (perf-test-page.ts): the game as it is, one line over it. */
-.overlay.bare {
-  background: none;
-}
-.overlay.bare .blur {
-  display: none;
-}
-.overlay .testing-page {
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding-bottom: 48px;
-}
-.overlay .testing {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 16px;
-  border-radius: 6px;
-  background: rgba(14, 14, 16, 0.75);
-  font-size: 13px;
-  letter-spacing: 0.12em;
-}
-
 /* Popups (save, upload, updates): a dark glass card in the middle. */
 .overlay .popup-page {
   display: flex;
@@ -1217,6 +1210,194 @@
   transition: color 0.2s;
 }
 .overlay .popup-buttons .link:hover {
+  color: var(--paper);
+}
+
+/* The performance test (perf-test-page.ts): the score on the left, frame time on the right, what to change under them. */
+.overlay .popup.perf-popup {
+  box-sizing: border-box;
+  gap: 22px;
+  width: 800px;
+  max-width: calc(100% - 32px);
+}
+.overlay .perf-popup .popup-buttons {
+  margin-top: 0;
+}
+.overlay .perf-head {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.overlay .perf-title {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+}
+.overlay .perf-status {
+  font-size: 12px;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+/* Bars fill with a transform: no layout while the test runs. */
+.overlay .perf-popup i {
+  position: absolute;
+  inset: 0;
+  transform-origin: left;
+  transform: scaleX(0);
+}
+.overlay .perf-progress {
+  position: relative;
+  height: 1px;
+  background: rgba(235, 229, 214, 0.12);
+}
+.overlay .perf-progress i {
+  background: rgba(235, 229, 214, 0.6);
+}
+.overlay .perf-body,
+.overlay .perf-tip {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 44px;
+}
+.overlay .perf-popup .col-title {
+  font-family: var(--display);
+  font-size: 20px;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  color: rgba(235, 229, 214, 0.45);
+}
+.overlay .perf-score {
+  display: flex;
+  flex-direction: column;
+}
+.overlay .perf-fps {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.overlay .perf-fps b {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 104px;
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+}
+.overlay .perf-fps span {
+  font-size: 13px;
+  color: rgba(235, 229, 214, 0.6);
+}
+.overlay .perf-low {
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+.overlay .perf-headline {
+  margin-top: 18px;
+  font-weight: 500;
+  font-size: 15px;
+}
+/* The tier slider: read only, filled up to the result, the tier reached in paper. */
+.overlay .perf-tiers {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  padding-top: 12px;
+}
+.overlay .perf-tier {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.overlay .perf-popup .bar {
+  position: relative;
+  overflow: hidden;
+  height: 6px;
+  border-radius: 1px;
+  background: rgba(235, 229, 214, 0.12);
+}
+.overlay .perf-tier i {
+  background: var(--paper);
+  transition: transform 0.4s ease-out;
+}
+.overlay .perf-tier span {
+  white-space: nowrap;
+  font-size: 11px;
+  color: rgba(235, 229, 214, 0.4);
+}
+.overlay .perf-tier.on span {
+  color: var(--paper);
+}
+.overlay .perf-times {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.overlay .perf-bars {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 64px;
+  align-items: center;
+  gap: 14px;
+}
+.overlay .perf-bars .name {
+  color: rgba(235, 229, 214, 0.6);
+}
+.overlay .perf-bars .bar {
+  background: rgba(235, 229, 214, 0.1);
+}
+.overlay .perf-bars i {
+  background: rgba(235, 229, 214, 0.4);
+  transition: transform 0.3s;
+}
+.overlay .perf-bars .limit i {
+  background: var(--paper);
+}
+.overlay .perf-bars .ms {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.overlay .perf-facts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hair);
+}
+.overlay .perf-facts .fact {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.overlay .perf-facts .card {
+  grid-column: span 3;
+}
+.overlay .perf-facts .k {
+  font-size: 11px;
+  color: rgba(235, 229, 214, 0.5);
+}
+.overlay .perf-facts .v {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+.overlay .perf-tip {
+  padding-top: 18px;
+  border-top: 1px solid var(--hair);
+}
+.overlay .perf-advice {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(235, 229, 214, 0.7);
+  text-wrap: pretty;
+}
+.overlay .perf-advice b {
+  font-weight: 500;
   color: var(--paper);
 }
 
