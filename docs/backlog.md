@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left: bugs, ideas, chores. One line per item, `TYPE [BL-NNN]: what`, under its domain; detail an item needs is in the file it links. A new item takes the next free id (BL-155). When an item ships, its line moves to Done; the release commit empties Done.
+The one list of what's left. One line per item, `TYPE [BL-NNN]: what`, under its domain (BUG, IDEA, CHORE, or DESIGN where a designer's work comes first); detail an item needs is in the file it links. A new item takes the next free id (BL-156). When an item ships, its line moves to Done; the release commit empties Done.
 
 ## Now: 1.4.0
 
@@ -119,9 +119,10 @@ The one list of what's left: bugs, ideas, chores. One line per item, `TYPE [BL-N
 4. IDEA [BL-043]: One public server, running 24/7 (docs/ideas/public-servers.md)
 5. CHORE [BL-044]: Disable host and join (don't remove them), after BL-043 (docs/ideas/public-servers.md)
 6. IDEA [BL-045]: A window of public servers instead of host and join (docs/ideas/public-servers.md)
-7. IDEA [BL-046]: A queue to enter the server, after BL-043 (docs/ideas/public-servers.md)
-8. IDEA [BL-047]: Admin panel: players online, ban by IP, after BL-043 (docs/ideas/public-servers.md)
-9. IDEA [BL-147]: The server checks what players send (op reach and rate, ladder spot, jumps) before it goes public
+7. DESIGN [BL-155]: The lobby list for BL-045: allowed tools, players online, ping with a country flag
+8. IDEA [BL-046]: A queue to enter the server, after BL-043 (docs/ideas/public-servers.md)
+9. IDEA [BL-047]: Admin panel: players online, ban by IP, after BL-043 (docs/ideas/public-servers.md)
+10. IDEA [BL-147]: The server checks what players send (op reach and rate, ladder spot, jumps) before it goes public
 
 ## Web and promotion
 
