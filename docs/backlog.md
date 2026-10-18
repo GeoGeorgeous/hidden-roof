@@ -1399,3 +1399,15 @@ Done (2026-10-18, audit S2.2, `feat/show-gpu`): `src/gpu-name.ts` (short name, i
 - source: audit S2.2 shots 2026-10-18 (F2.12)
 
 `npm run shots` with `GPU=Intel` (WSLg's D3D12 on the Intel UHD) draws an X across the Settings tabs and the Back button, the blurred-glass bars (`backdrop-filter`); the NVIDIA draws them clean. Likely WSLg's driver, not the game. Do: look at Settings on the Windows laptop's Intel UHD in Chrome; only if it shows there, look at the bars' CSS.
+
+### test:weak-link sometimes doesn't load the game
+- id: BL-111
+- type: bug
+- status: Requested
+- priority: Medium
+- size: S
+- area: net
+- release: next
+- source: audit S5.1 2026-10-18 (F5.11)
+
+The first `npm run test:weak-link` run in a tree twice stopped at "The game didn't load: reload the page" (`src/boot.ts`: `import('./main')` rejected): once on `fix/net-bugs`, once on a clean `dev` worktree. Later runs passed, a cold Vite cache too. Its pages come from a browser context, which had no load log; since S5.1 (`scripts/test-browser.mjs`) they have one. Do: on the next failure, read the load log `gameReady` prints and fix the cause.
