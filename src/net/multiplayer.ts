@@ -8,15 +8,16 @@ import { diagnose, NetLog, Traffic } from './diagnostics';
 import { decodeOps, encodeOps, SurfaceIndex } from '../op-wire';
 import { playSessionLevel, type MultiplayerContext } from './game-context';
 import { Outbox } from './outbox';
+import { Sender } from './sender';
 import { ServerLink } from './server-link';
 import { ownerOf, Remotes } from './remotes';
 import { keepTabSession, tabSession } from './tab-session';
 import { capture, encodeSnapshot } from './snapshot';
 
 // This game in a multiplayer session (server/, protocol.ts): HOST or JOIN,
-// then NET.sendRate times a second this player's snapshot and the paint ops
-// they made since, and their stepladder when it moves; the others come in as
-// remote players. The welcome brings the session's level, PAINT DETAIL and
+// then what this player sends (sender.ts: NET.sendRate times a second their
+// snapshot and the paint ops they made since, their stepladder when it moves)
+// goes to the server; the others come in as remote players. The welcome brings the session's level, PAINT DETAIL and
 // paint. A dropped link is retried with the player's token for as long as the
 // server keeps them (SERVER.rejoinWindow); the token is kept in sessionStorage,
 // so a reload comes back too, and each tab is its own player. The server
@@ -47,16 +48,14 @@ export class Multiplayer {
   /** Messages are handled one at a time, in order (a welcome loads paint before what follows it). */
   private queue = Promise.resolve();
   private t0 = 0;
-  private nextSend = 0;
+  /** What this player sends, and owns paint.log. */
+  private sender: Sender;
   /** This player's paint ops, until the server has them. */
   private outbox = new Outbox();
   /** The session's surfaces, as paint ops name them. */
   private surfaces = new SurfaceIndex([]);
-  private ladderId: number | undefined;
   /** SAVE on its way: a second SAVE meanwhile waits for the same file. */
   private saving: { promise: Promise<Uint8Array>; done: (bytes: Uint8Array) => void; fail: (e: Error) => void } | null = null;
-  /** The inventory's version last sent. */
-  private carried = -1;
   private retry: { until: number; wait: number; tries: number } | null = null;
   private net = new Traffic();
   /** The name we go by in the session. */
@@ -64,6 +63,7 @@ export class Multiplayer {
 
   constructor(private g: MultiplayerContext) {
     this.remotes = new Remotes(g, this.log);
+    this.sender = new Sender({ capture: (at) => encodeSnapshot(capture(at, g.player, g.inventory, g.tools)), paint: g.paint, level: g.level, owner: () => session.player, inventory: g.inventory });
     document.addEventListener('visibilitychange', () => this.link?.live && this.send({ type: 'away', away: document.hidden }));
   }
 
@@ -141,21 +141,10 @@ export class Multiplayer {
     }
     if (this.net.measure(t)) this.send({ type: 'ping', t });
     const at = t - this.t0;
-    this.outbox.take(this.g.paint.log!, at);
-    const id = this.g.level.runtimeOf(session.player);
-    if (id !== this.ladderId) {
-      this.ladderId = id;
-      const p = id === undefined ? undefined : this.g.level.props.get(id);
-      this.send({ type: 'ladder', t: at, data: p ? { type: p.type, pos: [...p.pos], rot: p.rot } : null });
-    }
-    if (this.g.inventory.version !== this.carried) {
-      this.carried = this.g.inventory.version;
-      this.send({ type: 'inventory', data: this.g.inventory.toJSON() });
-    }
-    if (t < this.nextSend) return;
-    this.nextSend = Math.max(this.nextSend + 1 / NET.sendRate, t);
-    this.send({ type: 'state', bytes: encodeSnapshot(capture(at, this.g.player, this.g.inventory, this.g.tools)) });
-    const ops = this.outbox.batch();
+    const out = this.sender.update(t, at);
+    this.outbox.take(out.ops, at);
+    out.messages.forEach((m) => this.send(m));
+    const ops = out.tick && this.outbox.batch();
     if (ops) this.sendOps(ops);
   }
 
@@ -224,12 +213,7 @@ export class Multiplayer {
       return this.end({ state: 'failed', reason: ended ? 'ended' : m.reason });
     }
     if (!this.joined) return;
-    if (m.type === 'state') this.remotes.get(m.id)?.receive(m.bytes, arrived);
-    else if (m.type === 'ops') {
-      const r = this.remotes.get(m.id);
-      const b = decodeOps(m.bytes, this.surfaces);
-      b?.ops.forEach((op, i) => r?.receiveOp(b.t[i], op));
-    } else if (m.type === 'ladder') this.remotes.get(m.id)?.receiveLadder(m.t, m.data);
+    if (m.type === 'state' || m.type === 'ops' || m.type === 'ladder') this.remotes.get(m.id)?.deliver(m, this.surfaces, arrived);
     else if (m.type === 'paint') decodeOps(m.bytes, this.surfaces)?.ops.forEach((op) => this.g.paintOps.apply(op));
     else if (m.type === 'joined') {
       this.remotes.add(m.id, m.name, 'here', arrived);
@@ -276,7 +260,7 @@ export class Multiplayer {
     this.log.add(`paint loaded in ${Math.round((now() - loading) * 1000)} ms`);
     // LEAVE, or the link dropped, while it loaded: this welcome is over (a retry gets its own).
     if (this.link !== link) return this.log.add('welcome dropped: its link is gone');
-    if (back) this.outbox.take(g.paint.log ?? [], now() - this.t0);
+    if (back) this.outbox.take(this.sender.take(), now() - this.t0);
     else this.outbox.clear(w.acked);
     const resend = back ? this.outbox.rejoined(w.acked, (op) => g.paintOps.apply(op)) : [];
     const name = this.name;
@@ -288,13 +272,12 @@ export class Multiplayer {
     this.remotes.clear();
     for (const p of w.players) this.remotes.add(p.id, p.name, p.state, now());
     for (const l of w.ladders) g.level.setRuntime(ownerOf(l.id), l.data);
-    g.paint.log = [];
-    this.ladderId = g.level.runtimeOf(session.player);
-    this.nextSend = 0;
+    // The session's log counts: a ghost recording (F3) that had it is left without paint ops.
+    this.sender.begin(true);
+    this.sender.restart(g.level.runtimeOf(session.player));
     this.net = new Traffic();
     // Its welcome has come: it sends, and a silence on it means it's dead.
     Object.assign(link, { live: true, lastHeard: now() });
-    this.carried = -1;
     for (const b of resend) this.sendOps(b);
     if (document.hidden) this.send({ type: 'away', away: true });
     this.onProgress(null);
@@ -311,7 +294,7 @@ export class Multiplayer {
     if (this.joined) {
       this.remotes.clear();
       this.g.level.setRuntime(session.player, null);
-      this.g.paint.log = null;
+      this.sender.end();
       session.multiplayer = false;
       session.player = 'local';
       this.joined = null;
