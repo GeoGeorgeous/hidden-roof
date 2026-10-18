@@ -22,8 +22,8 @@ import { capture, encodeSnapshot } from './snapshot';
 // so a reload comes back too, and each tab is its own player. The server
 // keeps what the player carries, and hears when the game is hidden.
 
-/** Why the game isn't in a session: the server said so (Rejection), it never answered, or diagnose's guess at why it can't be reached. */
-export type Failure = Rejection | 'timeout' | Awaited<ReturnType<typeof diagnose>>['reason'];
+/** Why the game isn't in a session: the server said so (Rejection), it never answered, it couldn't handle a message (broken), or diagnose's guess at why it can't be reached. */
+export type Failure = Rejection | 'timeout' | 'broken' | Awaited<ReturnType<typeof diagnose>>['reason'];
 
 /** What the player sees of the link, shown on the menus; `detail`: what was seen (a close code, an HTTP status, tries), for reports. */
 export type NetStatus = { state: 'off' } | { state: 'connecting' } | { state: 'in'; code: string } | { state: 'reconnecting'; code: string; detail: string } | { state: 'failed'; reason: Failure; detail?: string };
@@ -165,8 +165,14 @@ export class Multiplayer {
     const url = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws${hello.type === 'host' ? '?host' : ''}`;
     this.log.add(`connecting to ${url}: ${hello.type === 'host' ? `HOST at ${hello.detail} texels/m${hello.bytes ? ` with ${(hello.bytes.length / 1024).toFixed(0)} KB of paint` : ''}` : `JOIN ${hello.code}${hello.token ? ' (coming back)' : ''}`}`);
     if (!this.joined) this.setStatus({ state: 'connecting' });
-    // What this game can't take (a welcome it can't load) ends the session for it.
-    const handle = (m: ToClient, arrived: number, file?: Uint8Array) => (this.queue = this.queue.then(() => this.receive(m, arrived, file)).catch((err) => (console.error(err), this.send({ type: 'leave' }), this.end({ state: 'failed', reason: 'version' }))));
+    // A message this game can't handle (a bug, a paint file it can't load) ends the session for it, with the error in the log.
+    const handle = (m: ToClient, arrived: number, file?: Uint8Array) =>
+      (this.queue = this.queue.then(() => this.receive(m, arrived, file)).catch((err) => {
+        console.error(err);
+        this.log.add(`couldn't handle ${m.type}: ${err}`);
+        this.send({ type: 'leave' });
+        this.end({ state: 'failed', reason: 'broken' });
+      }));
     const link: ServerLink = (this.link = new ServerLink(
       hello,
       {

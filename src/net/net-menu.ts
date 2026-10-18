@@ -37,6 +37,7 @@ const STATUS: Record<Failure | 'connecting' | 'reconnecting', string> & Partial<
   'too-many': 'Too many connections from your network: try again later',
   ended: 'The session has ended',
   timeout: "The server didn't answer",
+  broken: 'The game hit an error in the session: copy the network log for a report',
   offline: "Can't reach the site: check your connection",
   'server-down': 'The game server is down',
   'no-server': 'No game server at this address',

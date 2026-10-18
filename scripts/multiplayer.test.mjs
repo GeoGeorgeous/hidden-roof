@@ -3,7 +3,8 @@
 // JOIN through the pause menu's MULTIPLAYER page, both at the host's PAINT
 // DETAIL, paint and the stepladder reaching the other player, a reload coming
 // back into the session, paint while hidden, one that heard nothing for a while reconnecting, LEAVE
-// SESSION, one already playing the session's level starting it over, and a server restart ending the session.
+// SESSION, one already playing the session's level starting it over, a message it can't handle ending its session as
+// broken, and a server restart ending the session.
 // Usage: npm run test:mp (builds the server first)
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
@@ -200,7 +201,14 @@ try {
   });
   assert.deepEqual(restarted, { kept: true, ladder: null, marker: false, fromSpawn: 0 });
   assert.equal(await paintHash(c), await paintHash(a), 'C has the session paint');
-  await c.evaluate(() => window.game.net.leave());
+
+  // A message C's game can't handle ends its session as broken, with the error in the log; not "a new version is out".
+  await c.evaluate(() => (window.game.net.remotes.get = () => null.state));
+  await c.waitForFunction(() => window.game.net.status.state === 'failed', null, { timeout: 5000 });
+  assert.equal(await c.evaluate(() => window.game.net.status.reason), 'broken');
+  assert.match(await c.evaluate(() => window.game.hud.menu.message), /The game hit an error in the session/);
+  assert.match(await c.evaluate(() => window.game.net.log.text()), /couldn't handle state: TypeError/);
+  await a.waitForFunction(() => window.game.net.names.size === 0, null, { timeout: 5000 });
 
   // The server restarts (a deploy): A's game reconnects, finds its session gone, and says the session has ended.
   server.kill();
