@@ -39,14 +39,35 @@ async function open(detail) {
   await page.goto(test.url);
   await gameReady(page);
   page.errors = errors;
+  await watchStatus(page);
   return page;
 }
-/** Waits for the game's network status; timed out, says why with the page's network log. */
-const status = (page, state) =>
-  page.waitForFunction((s) => window.game.net.status.state === s, state, { timeout: 15000 }).catch(async (e) => {
-    const seen = await page.evaluate(() => ({ status: window.game.net.status, log: window.game.net.log.text() })).catch(() => null);
-    throw new Error(`no "${state}" in 15 s: ${JSON.stringify(seen?.status)}\n${seen?.log}\npage errors: ${page.errors ?? '(loading)'}`, { cause: e });
+/**
+ * The page records every network status it passes through (window.statuses, oldest first, starting with the one it has
+ * now): a short one, like the 1 s of "reconnecting", is seen however late the test looks. Again after a reload.
+ */
+async function watchStatus(page) {
+  page.heard = 0;
+  await page.evaluate(() => {
+    const n = window.game.net;
+    const onStatus = n.onStatus;
+    window.statuses = [n.status.state];
+    n.onStatus = (s) => (window.statuses.push(s.state), onStatus(s));
   });
+}
+/**
+ * Waits for the game's network status to be `state`, as it was passed through since the last wait on this page
+ * (each wait takes the status it found, so the next one looks after it); timed out, says why with the page's network log.
+ */
+const status = async (page, state) => {
+  try {
+    const found = await page.waitForFunction(([s, from]) => window.statuses.findIndex((x, i) => i >= from && x === s) + 1, [state, page.heard], { timeout: 15000, polling: 50 });
+    page.heard = await found.jsonValue();
+  } catch (e) {
+    const seen = await page.evaluate(() => ({ status: window.game.net.status, statuses: window.statuses, log: window.game.net.log.text() })).catch(() => null);
+    throw new Error(`no "${state}" in 15 s: ${JSON.stringify(seen?.status)}, passed through ${seen?.statuses?.slice(page.heard)}\n${seen?.log}\npage errors: ${page.errors ?? '(loading)'}`, { cause: e });
+  }
+};
 /** Every painted surface's paint, hashed (FNV-1a), by key. */
 const paintHash = (page) =>
   page.evaluate(() => {
@@ -165,6 +186,7 @@ try {
   await b.waitForFunction(() => window.game.net.carried === window.game.inventory.version, null, { timeout: 5000, polling: 50 });
   await b.reload();
   await gameReady(b);
+  await watchStatus(b);
   await status(b, 'in');
   assert.equal(await b.evaluate(() => window.game.session.player), 'player2');
   assert.equal(await paintHash(b), painted, 'the paint comes back after a reload');
@@ -186,12 +208,23 @@ try {
   });
   await b.waitForFunction(() => window.threw, null, { timeout: 5000, polling: 50 });
   assert.match(b.errors.pop() ?? '', /null/);
-  await b.evaluate(() => ((window.game.net.link.socket.onmessage = null), (window.game.net.link.lastHeard = -1e9)));
+  // SAVE as it starts to reconnect is refused at once: the request can't go, and a reconnect wouldn't answer it (it used
+  // to wait forever). Asked by the page the moment it reports "reconnecting", which may last only a second.
+  await b.evaluate(() => {
+    const n = window.game.net;
+    const onStatus = n.onStatus;
+    n.onStatus = (s) => {
+      onStatus(s);
+      if (s.state !== 'reconnecting' || window.saving) return;
+      window.saving = Promise.race([n.savePaint().then(() => 'saved', (e) => e.message), new Promise((r) => setTimeout(() => r('no answer'), 8000))]);
+    };
+    n.link.socket.onmessage = null;
+    n.link.lastHeard = -1e9;
+  });
   await status(b, 'reconnecting');
-  // SAVE meanwhile is refused at once: the request can't go, and a reconnect wouldn't answer it (it used to wait forever).
-  const saving = b.evaluate(() => Promise.race([window.game.net.savePaint().then(() => 'saved', (e) => e.message), new Promise((r) => setTimeout(() => r('no answer'), 8000))]));
   await status(b, 'in');
-  assert.match(await saving, /^Reconnecting/, 'SAVE while reconnecting');
+  const saving = await b.evaluate(() => window.saving);
+  assert.match(saving, /^Reconnecting/, 'SAVE while reconnecting');
   assert.equal(await paintHash(b), painted, 'the paint comes back after a reconnect');
 
   // BL-088: B comes back on link 1, which drops while its welcome loads (4 s); the retry's link 2 hears nothing. Link 1's
