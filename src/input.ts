@@ -1,5 +1,6 @@
 import { BINDINGS, RENDER, WHEEL } from './config';
 import { enterGameFullscreen } from './fullscreen';
+import { currentOs } from './gpu-name';
 
 // Keyboard + mouse state with pointer lock. Edge-triggered presses are consumed per frame.
 // Play asks by action (BINDINGS); build mode and the dev keys ask by raw code.
@@ -8,7 +9,11 @@ import { enterGameFullscreen } from './fullscreen';
 export type Action = keyof typeof BINDINGS;
 
 /** A Mac (its key names), else Windows and Linux. */
-const MAC = /mac/i.test((navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform || navigator.platform);
+const MAC = currentOs() === 'mac';
+/** A modifier's left or right side. */
+const SIDES = /^(Control|Shift|Alt|Meta)(Left|Right)$/;
+/** A modifier's code as its name for both sides (ShiftLeft is Shift); any other code as it is. */
+export const sideless = (code: string) => code.replace(SIDES, '$1');
 
 /** Keys named per platform: a modifier's name stands for both its sides. */
 const PLATFORM_NAMES: Record<string, string> = MAC
@@ -56,7 +61,7 @@ let layout: Map<string, string> | undefined;
 
 /** A binding as the game writes it, on this platform: LMB, Shift (⇧ Shift on a Mac), W, ↑, Num 1. */
 export function keyName(code: string) {
-  const key = code.replace(/^(Control|Shift|Alt|Meta)(Left|Right)$/, '$1');
+  const key = sideless(code);
   if (key.startsWith('Numpad')) return `Num ${NUMPAD[key.slice(6)] ?? key.slice(6)}`;
   return PLATFORM_NAMES[key] ?? layout?.get(key)?.toUpperCase() ?? NAMES[key] ?? key.replace(/^(Key|Digit)/, '');
 }

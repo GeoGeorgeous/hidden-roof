@@ -1,5 +1,5 @@
 import { BINDINGS, BROWSER_KEYS } from './config';
-import { type Action, keyName } from './input';
+import { type Action, keyName, sideless } from './input';
 
 // Rebinding play's actions (Settings → Controls) writes BINDINGS, as the other
 // settings write config. Each action has two slots, a primary and an alternate,
@@ -13,11 +13,9 @@ export type Slots = (string | null)[];
 export type Bound = Record<Action, Slots>;
 
 const ACTIONS = Object.keys(BINDINGS) as Action[];
-const SIDES = /^(Control|Shift|Alt|Meta)(Left|Right)$/;
-const slotOf = (code: string) => code.replace(SIDES, '$1');
 /** A slot's codes. */
 const codes = (slot: string) => (/^(Control|Shift|Alt|Meta)$/.test(slot) ? [`${slot}Left`, `${slot}Right`] : [slot]);
-const pair = (list: string[]): Slots => [...[...new Set(list.map(slotOf))], null, null].slice(0, 2);
+const pair = (list: string[]): Slots => [...[...new Set(list.map(sideless))], null, null].slice(0, 2);
 const copy = (b: Bound) => Object.fromEntries(ACTIONS.map((a) => [a, [...b[a]]])) as Bound;
 
 const DEFAULTS = Object.fromEntries(ACTIONS.map((a) => [a, pair(BINDINGS[a])])) as Bound;
@@ -81,7 +79,7 @@ export const defaultSlot = (action: Action, i: number) => DEFAULTS[action][i];
 
 /** Binds `code` (a key, Mouse<n>, WheelUp or WheelDown; null clears) to the action's slot `i`; the action it moved from, if another had it. */
 export function bind(action: Action, i: number, code: string | null): Action | null {
-  const slot = code && slotOf(code);
+  const slot = code && sideless(code);
   let from: Action | null = null;
   for (const a of ACTIONS) {
     bound[a].forEach((s, j) => {
