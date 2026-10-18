@@ -1411,3 +1411,87 @@ Done (2026-10-18, audit S2.2, `feat/show-gpu`): `src/gpu-name.ts` (short name, i
 - source: audit S5.1 2026-10-18 (F5.11)
 
 The first `npm run test:weak-link` run in a tree twice stopped at "The game didn't load: reload the page" (`src/boot.ts`: `import('./main')` rejected): once on `fix/net-bugs`, once on a clean `dev` worktree. Later runs passed, a cold Vite cache too. Its pages come from a browser context, which had no load log; since S5.1 (`scripts/test-browser.mjs`) they have one. Do: on the next failure, read the load log `gameReady` prints and fix the cause.
+
+### A reloaded tab's paint never reached the others
+- id: BL-115
+- type: bug
+- status: Done
+- priority: High
+- size: S
+- area: net
+- release: next
+- source: code review 2026-10-18 (F5.13)
+
+A reload rejoins with its token, but the new page numbered its op batches from 1 and the server dropped them as ones it had. Fixed: the Outbox numbers on from the welcome's `acked`; the server's takeover reset goes. Branch `fix/review-bugs`, with its test.
+
+### LEAVE while the welcome loads left the game 'in session'
+- id: BL-116
+- type: bug
+- status: Done
+- priority: High
+- size: S
+- area: net
+- release: next
+- source: code review 2026-10-18 (F5.14)
+
+welcome() went on after the paint loaded though its link was gone. Fixed: it stops when its link isn't the current one. Branch `fix/review-bugs`, with its test.
+
+### SAVE while reconnecting waited forever
+- id: BL-117
+- type: bug
+- status: Done
+- priority: High
+- size: XS
+- area: net
+- release: next
+- source: code review 2026-10-18 (F5.15)
+
+The request had no link and nothing failed it once back in. Fixed: refused at once while the link isn't live. Branch `fix/review-bugs`, with its test.
+
+### LEAVE before a session started kept PAINT DETAIL locked
+- id: BL-118
+- type: bug
+- status: Done
+- priority: High
+- size: XS
+- area: net
+- release: next
+- source: code review 2026-10-18 (F5.16)
+
+end() unlocked only once joined. Fixed: it always unlocks; a welcome whose link is gone locks nothing. Branch `fix/review-bugs`, with its test.
+
+### The player build forgot the performance lines
+- id: BL-119
+- type: bug
+- status: Done
+- priority: High
+- size: XS
+- area: ui
+- release: next
+- source: code review 2026-10-18 (F2.14)
+
+Settings took its defaults before main.ts turned the lines off. Fixed: it takes them when it starts. Branch `fix/review-bugs`, with its test.
+
+### A wheel step bound to a held action
+- id: BL-120
+- type: bug
+- status: Done
+- priority: High
+- size: XS
+- area: input
+- release: next
+- source: code review 2026-10-18 (F3.22)
+
+Controls took a wheel step for actions read with Input.held(), which never sees one. Fixed: refused, and not loaded from a save. Branch `fix/review-bugs`, with its test.
+
+### A swipe's sideways events dropped the wheel step
+- id: BL-121
+- type: bug
+- status: Done
+- priority: High
+- size: XS
+- area: input
+- release: next
+- source: code review 2026-10-18 (F3.23)
+
+A wheel event with no vertical scroll reset the part of a step; blur kept it. Fixed both. Branch `fix/review-bugs`, with its test.
