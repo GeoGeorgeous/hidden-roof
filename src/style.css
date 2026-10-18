@@ -549,11 +549,20 @@
   border-color: rgba(17, 17, 17, 0.35);
   color: rgba(17, 17, 17, 0.6);
 }
-/* Where Esc doesn't resume (esc-hold.ts), PLAY keeps its width without the key, and an invisible twin on the left keeps the label centered. */
-.overlay:not(.esc-resumes) .start .play kbd {
+/* Joining a session (its paint still loading): PLAY is a dimmed note of the progress, and nothing resumes. */
+.overlay .start .play:disabled,
+.overlay .start .play:disabled:hover {
+  background: var(--paper);
+  cursor: default;
+  opacity: 0.55;
+}
+/* Where Esc doesn't resume (esc-hold.ts) or PLAY is disabled, PLAY keeps its width without the key, and an invisible twin on the left keeps the label centered. */
+.overlay:not(.esc-resumes) .start .play kbd,
+.overlay .start .play:disabled kbd {
   visibility: hidden;
 }
-.overlay:not(.esc-resumes) .start .play::before {
+.overlay:not(.esc-resumes) .start .play::before,
+.overlay .start .play:disabled::before {
   content: 'ESC';
   font: 500 10px var(--sans);
   padding: 1px 5px;

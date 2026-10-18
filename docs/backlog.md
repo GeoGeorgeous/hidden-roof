@@ -4,13 +4,12 @@ The one list of what's left. One line per item, `TYPE [BL-NNN]: what`, under its
 
 ## Now: 1.4.0
 
-1. BUG [BL-105]: A slow join shows PLAY before the session has loaded; paint made meanwhile is lost (the menu should stay on Joining…, LEAVE cancels)
-2. CHORE [BL-113]: One Sender owns paint.log and what this player sends; the ghost's copy of the send path goes (docs/ideas/net-sender.md)
-3. CHORE [BL-133]: F3 builds its hooks first, then the panel; the 33 placeholder hooks and hooks.ts go (docs/ideas/f3-hooks-first.md)
-4. CHORE [BL-131]: An Environment module owns sky, fog and lights; main.ts stops wiring them (docs/ideas/environment-module.md)
-5. CHORE [BL-132]: One test driver: steps, keys and buttons, instead of four copies and private writes (docs/ideas/test-driver.md)
-6. CHORE [BL-134]: Split game.test.mjs (2318 lines) into scripts/game/ by area (docs/ideas/test-driver.md)
-7. CHORE [BL-013]: Device checks before the release: page zoom, three browsers, mouse side buttons, browser keys (docs/ideas/release-checks.md)
+1. CHORE [BL-113]: One Sender owns paint.log and what this player sends; the ghost's copy of the send path goes (docs/ideas/net-sender.md)
+2. CHORE [BL-133]: F3 builds its hooks first, then the panel; the 33 placeholder hooks and hooks.ts go (docs/ideas/f3-hooks-first.md)
+3. CHORE [BL-131]: An Environment module owns sky, fog and lights; main.ts stops wiring them (docs/ideas/environment-module.md)
+4. CHORE [BL-132]: One test driver: steps, keys and buttons, instead of four copies and private writes (docs/ideas/test-driver.md)
+5. CHORE [BL-134]: Split game.test.mjs (2318 lines) into scripts/game/ by area (docs/ideas/test-driver.md)
+6. CHORE [BL-013]: Device checks before the release: page zoom, three browsers, mouse side buttons, browser keys (docs/ideas/release-checks.md)
 
 ## Multiplayer
 
@@ -136,3 +135,4 @@ Shipped since the last release; the release commit empties this list. What 1.4.0
 1. CHORE [BL-137]: CI pinned to ubuntu-24.04 for 1.4.0, as GitHub moved ubuntu-latest to Ubuntu 26
 2. BUG [BL-138]: The multiplayer test records every network status the page passes through, so B's 1 s "reconnecting" is never missed
 3. CHORE [BL-136]: F3 tooltips, row labels and code comments say Q/E sizes a tool, not the wheel; WheelSized is SizeRange (tools/size-range.ts)
+4. BUG [BL-105]: Joining or hosting, the menu shows a disabled Joining… (the progress) instead of PLAY until the session's paint has loaded; no key or click resumes; LEAVE or Back cancels; a failed join gives PLAY back

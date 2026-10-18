@@ -343,6 +343,8 @@ export class Multiplayer {
     // Out of the session (or reconnecting) before the server sent its paint.
     if (s.state !== 'in' && this.saving) this.saved(null, 'The link dropped before the paint came: save again');
     if (s.state === 'failed' || s.state === 'off') this.log.add(`status: ${s.state}${s.state === 'failed' ? ` ${s.reason}${s.detail ? ` (${s.detail})` : ''}` : ''}`);
+    // From JOIN or HOST until the welcome's paint has loaded the game can't be played (a reconnect, or a welcome for the session we are in, doesn't count).
+    session.joining = s.state === 'connecting';
     this.status = s;
     this.onStatus(s);
   }
