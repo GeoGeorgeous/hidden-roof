@@ -1,6 +1,50 @@
 # Backlog
 
-The one list of what's left. One line per item, under its domain: `[TYPE-NNN]: what`. TYPE is BUGS, IDEA, TASK, DSGN where a designer's work comes first, PERF for frame time, memory or load time, RFCT for a refactor that keeps behavior identical, TEST for tests and tooling, or DOCS for docs only; one counter for all types (next: 168), so a number is used once and stays if the type changes. Markers go inside the brackets, before the id, in this order: `!` critical, `?` unconfirmed (check it before working on it), `>` explain (`[!>BL-024]`). Older items keep their `BL-NNN` ids. Detail an item needs is in the file it links. When an item ships, its line moves to Done; the release commit empties Done.
+The one list of what's left. Counter for new ids: next: 168
+
+<details>
+<summary>Backlog rules (read before editing)</summary>
+
+### File structure
+
+- **Counter:** one sequential counter for all items, on the line above. Every new id takes that number, then the counter goes up by one. Numbers are never reused, even if an item's type changes or the item is deleted.
+- **Sections:** `Now: X.Y.Z` holds the current release; domain sections (Multiplayer, Painting, UI, ...) hold the backlog; `Done` holds items shipped since the last release and is emptied by the release commit.
+- **Numbering:** items are numbered 1, 2, 3... within each section. Renumber the section after any add, move or removal.
+
+### Item line
+
+`N. [~~]TYPE [MARKERS ID]: Description (path/to/detail.md) @X.Y.Z[~~]`
+
+Only `N.`, the id and the description are required. The optional parts appear in this order:
+
+- **TYPE:** `BUGS`, `IDEA`, `TASK`, `DSGN` (designer's work comes first), `PERF` (frame time, memory, load time), `RFCT` (refactor, same behavior), `TEST` (tests and tooling), `DOCS` (docs only).
+- **ID:** two formats exist. Both took their numbers from the same counter, so a number appears only once across all of them.
+  - **Current format** `[TYPE-NNN]`, for every new item. No separate type word; the type is the id prefix. Example: `3. [BUGS-165]: Lamps flicker after a reload`
+  - **Legacy format** `[BL-NNN]`, for items created before the change. These keep a type word in front, because the id carries no type. Example: `1. TASK [BL-013]: Device checks before the release`
+  - Never create new `BL` ids, and never convert a `BL` id to the current format. Other lines, docs and commits refer to it (e.g. "after BL-015").
+  - **Reclassifying:** keep the number. For a current id change the prefix (`[BUGS-161]` becomes `[TASK-161]`); for a legacy id change only the type word (`IDEA [BL-071]` becomes `TASK [BL-071]`).
+- **Markers:** zero or more characters inside the brackets, before the id, always in the order `!?>`: `!` critical, `?` unconfirmed (verify before working on it), `>` explain (the owner wants it explained). Examples: `[?BUGS-162]`, `[!>BL-024]`. Keep markers when editing a line; never drop them silently.
+- **Detail link:** specs live in `docs/ideas/` and are linked in parentheses after the description.
+- **Release tag:** `@X.Y.Z` at the very end of the line.
+- **Deleted:** everything after the number is wrapped in `~~...~~`. The item is dropped but kept for the record: don't work on it, don't move it to Done, and don't remove the line unless asked.
+
+### Release planning
+
+- Items in `Now: X.Y.Z` belong to release X.Y.Z and need no tag.
+- Any other item can be planned for a future release with `@X.Y.Z` at the end of its line. It stays in its domain section.
+- An item without a tag and outside Now is unplanned. A release's list is Now (when it is that version) plus every line tagged with that version.
+- Never invent a release tag. Plan items for a release only when asked.
+- **Starting the next release** (e.g. 1.4.0 is released and 1.5.0 begins): rename the section to `Now: 1.5.0`, move every line tagged `@1.5.0` into it and remove the tag, leave later tags where they are, and ask before moving anything left unshipped from the old release.
+
+### Operations
+
+- **Add:** take the counter's number and increment it. Write `[TYPE-NNN]` under the right domain or Now, and link a detail doc if there is one.
+- **Ship:** move the line into Done and drop its release tag. Delete its detail doc in `docs/ideas/` (or its part of a shared one) and the link.
+- **Delete:** wrap the line in `~~...~~` in place; don't remove it.
+- **Unconfirmed (`?`):** before working on it, check whether the problem is real and report back. Remove the `?` only once it is confirmed.
+- **Explain (`>`):** find every id containing `>`. For each, say what the task means, why it matters and what the work involves, using the linked docs/ideas file and the code. Then remove the `>` from those ids.
+
+</details>
 
 ## Now: 1.4.0
 
