@@ -3,6 +3,7 @@
 // turns down. Then the op batches a game keeps until the server has them (net/outbox.ts).
 // Usage: node scripts/protocol.test.mjs
 import assert from 'node:assert/strict';
+import { PAINT, PAINT_DETAIL } from '../src/config.ts';
 import { Outbox } from '../src/net/outbox.ts';
 import { decodeOps, encodeOps, rounded, SurfaceIndex } from '../src/op-wire.ts';
 import { LEVEL_VERSION, levelProblem } from '../src/level/level-data.ts';
@@ -138,5 +139,16 @@ assert.deepEqual(out.rejoined(4, () => assert.fail('nothing to paint again')), [
 out.clear();
 out.take([roll], 5);
 assert.equal(out.batch().seq, 1);
+
+// Paint ops travel in meters, so neither module reads the local PAINT.texelsPerMeter (BL-149): at every PAINT DETAIL
+// the messages and op batches pack to the same bytes and unpack to the same ops.
+const wire = () => {
+  const ops = encodeOps([1.5, 1.55, 1.6], [stamp, roll, drip], surfaces);
+  return { frames: sent.map((m) => [...encode(m)]), ops: [...ops], back: decodeOps(ops, surfaces), rounded: [stamp, roll, drip].map(rounded) };
+};
+const texels = PAINT.texelsPerMeter;
+const byDetail = Object.values(PAINT_DETAIL).map((d) => ((PAINT.texelsPerMeter = d), wire()));
+PAINT.texelsPerMeter = texels;
+for (const w of byDetail) assert.deepEqual(w, byDetail[0]);
 
 console.log(`protocol: ok (${sent.length} messages round trip; a stroke of ${encode(sent[4]).length} bytes for 3 ops, a stamp ${encodeOps([0], [stamp], surfaces).length - 8})`);
