@@ -5,7 +5,7 @@
 import assert from 'node:assert/strict';
 import { Outbox } from '../src/net/outbox.ts';
 import { decodeOps, encodeOps, rounded, SurfaceIndex } from '../src/op-wire.ts';
-import { levelProblem } from '../src/level/level-data.ts';
+import { LEVEL_VERSION, levelProblem } from '../src/level/level-data.ts';
 import { checkToServer, cleanName, decode, encode, partFrames, PROTOCOL, SNAPSHOT_BYTES } from '../src/net/protocol.ts';
 
 const level = { version: 4, spawn: { pos: [0, 0, 0], yaw: 0 }, props: [{ id: 1, type: 'slab', pos: [0, 0, 0] }] };
@@ -74,6 +74,10 @@ refused({ ...host, level: { ...level, pickups: [{ kind: 'can' }] } });
 // And the game refuses what HOST would be: a prop turned by a fraction of a quarter turn.
 assert.equal(levelProblem({ ...level, props: [{ ...level.props[0], rot: 1.5 }] }), 'BAD PROPS');
 assert.equal(levelProblem(level), null);
+// A file from a newer game is refused, not read as the newest format this one knows.
+assert.equal(levelProblem({ ...level, version: LEVEL_VERSION + 1 }), 'MADE BY A NEWER VERSION');
+assert.equal(levelProblem({ ...level, version: '4' }), 'BAD VERSION');
+refused({ ...host, level: { ...level, version: LEVEL_VERSION + 1 } });
 refused({ ...join, code: 'ABCD' });
 refused({ ...join, code: 'ABCDI' });
 refused({ ...join, code: 'abcde' });

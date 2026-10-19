@@ -305,6 +305,7 @@ function step(time: number) {
   dev?.lap('level');
   baker.update(time / 1000, at);
   dev?.lap('bake');
+  paint.settle();
   paint.gpu.flush(renderer);
   hotbar.update(inventory);
   hud.update();

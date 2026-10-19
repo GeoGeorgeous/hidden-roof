@@ -8,7 +8,7 @@ import type { Ladder } from '../player';
 import type { Finish } from '../kit/finishes';
 import type { V3 } from '../kit/pieces';
 import { DecorBatches } from './batches';
-import type { LevelData, PropData } from './level-data';
+import { LEVEL_VERSION, type LevelData, type PropData } from './level-data';
 import { buildProp, disposeProp, solidBoxes, type BuiltProp, type Emitter, type LightAnchor, type PropInstance } from './build-prop';
 import { CoverIndex } from './cover';
 import type { Piece } from '../kit/pieces';
@@ -126,7 +126,7 @@ export class Level {
   toJSON(): LevelData {
     // Props the player placed while playing (the stepladder) aren't part of the level file. Default variants go unsaved.
     const props = [...this.props.values()].filter((p) => p.owner === undefined).map(({ id, type, variant, pos, rot, adjust, text, finish, mirror }) => ({ id, type, ...(variant === defOf(type)!.variant ? {} : { variant }), pos, rot, ...(mirror ? { mirror } : {}), ...(adjust === undefined ? {} : { adjust }), ...(text === undefined ? {} : { text }), ...(finish && Object.keys(finish).length ? { finish } : {}) }));
-    return { version: 4, spawn: this.spawn, props };
+    return { version: LEVEL_VERSION, spawn: this.spawn, props };
   }
 
   /** Change a prop's per-instance setting (clamped to its range) and rebuild it. Returns the new value. */
