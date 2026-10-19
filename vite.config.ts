@@ -31,7 +31,7 @@ const releaseLevels = {
 // The player build ships no comments of ours: the HTML's (stripped by gamePreload) and the GLSL's, which Vite
 // keeps inside the template literals tagged /* glsl */. Each literal's ${...} are set aside while the comments go,
 // and every line that ends a non-empty line keeps its newline (the preprocessor lines stay lines). A literal with an
-// escape, or an interpolation holding a quote or a backtick, is left as it is.
+// escape, an interpolation holding a quote or a backtick, or one inside a comment, is left as it is.
 const GLSL_TAG = /\/\* glsl \*\/\s*`/g;
 const SLOT = '\uE000';
 function stripGlslLiteral(code: string, start: number): { end: number; text: string } | null {
@@ -40,7 +40,10 @@ function stripGlslLiteral(code: string, start: number): { end: number; text: str
   for (let i = start; i < code.length; i++) {
     const c = code[i];
     if (c === '`') {
-      const lines = text.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, (m) => (m[1] === '*' ? ' ' : '')).split('\n');
+      const bare = text.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, (m) => (m[1] === '*' ? ' ' : ''));
+      // An interpolation inside a comment would go with it, and the rest would shift.
+      if (bare.split(SLOT).length - 1 !== holes.length) return null;
+      const lines = bare.split('\n');
       const last = lines.length - 1;
       const kept = lines.filter((l, n) => n === 0 || n === last || l.trim() !== '').map((l, n, all) => (n === all.length - 1 ? (all.length > 1 && l.trim() === '' ? '' : l) : l.trimEnd()));
       return { end: i, text: kept.join('\n').replaceAll(SLOT, () => holes.shift()!) };
