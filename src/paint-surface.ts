@@ -38,6 +38,8 @@ export interface PaintPatch {
   key: string;
   /** The surface's atlas size then: a rebuilt surface of another size can't take it. */
   atlas: [number, number];
+  /** Its face rects then (x, y, w, h each): a rebuilt surface with other faces in the same atlas size can't take it either. */
+  rects: number[];
   box: Box;
   data: Uint8Array | null;
   excess: Uint16Array | null;
