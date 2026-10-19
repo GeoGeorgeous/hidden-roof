@@ -105,7 +105,6 @@ The one list of what's left. One line per item, under its domain: `[TYPE-NNN]: w
 4. TASK [BL-079]: The F3 probe's own shader compiles land in its measurement
 5. TASK [BL-149]: A test that the protocol and op-wire never read PAINT.texelsPerMeter
 6. TASK [BL-156]: CI is pinned to ubuntu-24.04 for 1.4.0; move it to Ubuntu 26 after the release
-7. [TEST-164]: scripts/multiplayer.test.mjs is ~440 lines, over the ~400 cap: split it with BL-134
 
 ## Servers and deploy
 
@@ -140,3 +139,4 @@ Shipped since the last release; the release commit empties this list. What 1.4.0
 7. TASK [BL-113]: One Sender (net/sender.ts) owns paint.log and says what this player sends: the snapshot clock, the stepladder and inventory checks, the paint ops taken; Multiplayer sends its output, the ghost records and plays the same messages through SimLink and RemotePlayer.deliver, and its own copy of the send path is gone
 8. TASK [BL-132]: One test driver: one fixed-frame stepper in test-browser.mjs; Input takes keys, buttons and the wheel through key/button/wheel, and tests press through them
 9. TASK [BL-134]: game.test.mjs split by area into scripts/game/, one module each under ~400 lines, one runner
+10. [TEST-164]: multiplayer.test.mjs split into scripts/multiplayer/, a harness and one module per phase
