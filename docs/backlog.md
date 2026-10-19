@@ -170,20 +170,4 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## Done
 
-Shipped since the last release; the release commit empties this list. What 1.4.0 already holds is in `docs/releases/drafts/v1.4.0.md`.
-
-1. TASK [BL-137]: CI pinned to ubuntu-24.04 for 1.4.0, as GitHub moved ubuntu-latest to Ubuntu 26
-2. BUGS [BL-138]: The multiplayer test records every network status the page passes through, so B's 1 s "reconnecting" is never missed
-3. TASK [BL-136]: F3 tooltips, row labels and code comments say Q/E sizes a tool, not the wheel; WheelSized is SizeRange (tools/size-range.ts)
-4. BUGS [BL-105]: Joining or hosting, the menu shows a disabled Joining… (the progress) instead of PLAY until the session's paint has loaded; no key or click resumes; LEAVE or Back cancels; a failed join gives PLAY back
-5. TASK [BL-133]: F3 builds its hooks first, then the panel (DevTools passes a Hooks interface to DebugPanel); the placeholder hooks, hooks.ts and its test are gone
-6. TASK [BL-131]: An Environment module (render/environment.ts) builds, rebuilds and updates sky, fog, atmosphere, lights, lightning, rain, smoke and the view scene's lights; main.ts calls it and window.game has environment
-7. TASK [BL-113]: One Sender (net/sender.ts) owns paint.log and says what this player sends: the snapshot clock, the stepladder and inventory checks, the paint ops taken; Multiplayer sends its output, the ghost records and plays the same messages through SimLink and RemotePlayer.deliver, and its own copy of the send path is gone
-8. TASK [BL-132]: One test driver: one fixed-frame stepper in test-browser.mjs; Input takes keys, buttons and the wheel through key/button/wheel, and tests press through them
-9. TASK [BL-134]: game.test.mjs split by area into scripts/game/, one module each under ~400 lines, one runner
-10. [TEST-164]: multiplayer.test.mjs split into scripts/multiplayer/, a harness and one module per phase
-11. BUGS [BL-146]: Every scrub, local, another player's, the catch-up's or the ghost's, frees a surface it left clean, once a frame (PaintSystem.settle); build undo also checks the face rects
-12. TASK [BL-139]: hint-text.ts split into play and world tooltips (hint-text-world.ts)
-13. BUGS [BL-150]: A level file from a newer game is refused (MADE BY A NEWER VERSION); the newest format is LEVEL_VERSION
-14. [TEST-163]: Every Settings control is remembered after a reload (the suspected bug is ruled out); scripts/game/remember.mjs proves it
-15. BUGS [BL-027]: Past a memory limit the server collects garbage and measures again before turning a session or a paint file away (node --expose-gc)
+Shipped since the last release; the release commit empties this list.
