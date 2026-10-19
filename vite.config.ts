@@ -28,6 +28,59 @@ const releaseLevels = {
   },
 };
 
+// The player build ships no comments of ours: the HTML's (stripped by gamePreload) and the GLSL's, which Vite
+// keeps inside the template literals tagged /* glsl */. Each literal's ${...} are set aside while the comments go,
+// and every line that ends a non-empty line keeps its newline (the preprocessor lines stay lines). A literal with an
+// escape, or an interpolation holding a quote or a backtick, is left as it is.
+const GLSL_TAG = /\/\* glsl \*\/\s*`/g;
+const SLOT = '\uE000';
+function stripGlslLiteral(code: string, start: number): { end: number; text: string } | null {
+  const holes: string[] = [];
+  let text = '';
+  for (let i = start; i < code.length; i++) {
+    const c = code[i];
+    if (c === '`') {
+      const lines = text.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*/g, (m) => (m[1] === '*' ? ' ' : '')).split('\n');
+      const last = lines.length - 1;
+      const kept = lines.filter((l, n) => n === 0 || n === last || l.trim() !== '').map((l, n, all) => (n === all.length - 1 ? (all.length > 1 && l.trim() === '' ? '' : l) : l.trimEnd()));
+      return { end: i, text: kept.join('\n').replaceAll(SLOT, () => holes.shift()!) };
+    }
+    if (c === '\\' || c === SLOT) return null;
+    if (c === '$' && code[i + 1] === '{') {
+      let depth = 1;
+      let j = i + 2;
+      for (; j < code.length && depth > 0; j++) {
+        if (/['"`]/.test(code[j])) return null;
+        depth += code[j] === '{' ? 1 : code[j] === '}' ? -1 : 0;
+      }
+      if (depth > 0) return null;
+      holes.push(code.slice(i, j));
+      text += SLOT;
+      i = j - 1;
+    } else text += c;
+  }
+  return null;
+}
+const stripComments = {
+  name: 'strip-comments',
+  apply: (_: unknown, env: { mode: string; isSsrBuild?: boolean }) => env.mode === 'production' && !env.isSsrBuild,
+  enforce: 'pre' as const,
+  transform(code: string, id: string) {
+    if (!id.endsWith('.ts') || id.includes('node_modules') || !code.includes('/* glsl */')) return null;
+    let out = '';
+    let at = 0;
+    for (const tag of code.matchAll(GLSL_TAG)) {
+      const start = tag.index! + tag[0].length;
+      if (start < at) continue;
+      const lit = stripGlslLiteral(code, start);
+      if (!lit) continue;
+      out += code.slice(at, start) + lit.text;
+      at = lit.end;
+    }
+    return out + code.slice(at);
+  },
+};
+
 // The Content Security Policy roof.hidden.haus sends (docs/deploy.md), `hash` the
 // one inline script's (csp-hash.txt; Caddy reads it per request). data: for the
 // hotbar's blank icon (inventory/thumbnails.ts), blob: for downloads and screenshots.
@@ -48,6 +101,7 @@ const gamePreload = () => {
       handler(html: string, ctx: { bundle?: Record<string, Chunk> }) {
         if (!ctx.bundle) return html;
         const bundle = ctx.bundle;
+        html = html.replace(/[ \t]*<!--[\s\S]*?-->[ \t]*\n?/g, '');
         const main = Object.values(bundle).find((c) => c.type === 'chunk' && c.facadeModuleId?.endsWith('/src/main.ts'));
         if (!main) throw new Error('game-preload: no chunk for src/main.ts');
         // The game's chunk, the chunks it imports and their CSS: what boot.ts's import('./main') fetches.
@@ -85,7 +139,7 @@ const gamePreload = () => {
 // The dev tools (src/dev: build mode, F3, window.game) are in the dev server and
 // npm run build:dev; npm run build, the player build, leaves them out.
 export default defineConfig(({ mode, isSsrBuild }) => ({
-  plugins: [releaseLevels, gamePreload()],
+  plugins: [releaseLevels, stripComments, gamePreload()],
   define: { __VERSION__: JSON.stringify(version()), __DEV_TOOLS__: JSON.stringify(mode !== 'production'), __MIN_VIEWPORT__: JSON.stringify(RENDER.minViewport) },
   ssr: { noExternal: true },
   build: { copyPublicDir: !isSsrBuild },
