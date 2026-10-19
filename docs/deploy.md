@@ -6,7 +6,7 @@ Context for the agent that deploys and runs the game on the VPS. Read it before 
 
 ## 1. Status *(changes)*
 
-- **Now:** `v1.3.0` is released and deployed, the game and the server together (reported done 2026-10-13; protocol 4; the playtest telemetry override is gone). Server and client of a release go up together when it changes the surface table, as 1.3.0 did (the traffic cone takes paint): a game of one version can't join a server of the other (section 5, client and server versions).
+- **Now:** `v1.4.0` is released and deployed, the game and the server together (reported done 2026-10-19; protocol 6; the server runs with `node --expose-gc`, the Dockerfile's CMD, so no compose `command:` may override it). Server and client of a release go up together when it changes the protocol or the surface table, as 1.3.0 and 1.4.0 did: a game of one version can't join a server of the other (section 5, client and server versions).
 - **Next release:** check each build's changes for a new protocol or surface table; if there is one, deploy the server and the game together (section 6, then the static files): live sessions end, and tabs still open on the old version are told to reload. Check the build's new files load (section 7).
 - **First deploy (done for 1.1.0):** the static files first and check them (section 7), then the server and the `/ws` handle. The game loads and plays single player while the server is down.
 - **Repo:** public, `https://github.com/GeoGeorgeous/hidden-roof.git`. Clone it over HTTPS: reading needs no key, so the host holds no GitHub credentials. Deploy releases only: a `vX.Y.Z` tag, checked out by tag, never a branch tip. Branches and releases: `AGENTS.md`, Releases.
