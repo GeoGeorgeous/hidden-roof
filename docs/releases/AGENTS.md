@@ -13,7 +13,7 @@ One file per release, `docs/releases/vX.Y.Z.md`, is the one source of its notes:
 
 - **The game** bundles them (`src/release-notes.ts`, `src/updates-page.ts`): ESC → About → Updates, newest first, each with its date and its picture, `public/updates/vX.Y.Z.webp` (the CSP takes images from the game's own site only).
 - **GitHub**: `node scripts/release-notes.mjs vX.Y.Z` prints the release's notes, with the picture linked from the repo at the tag; the title, `Hidden Roof X.Y.Z`, is the release's own (`--title`), never repeated in the notes. Never write them on GitHub by hand.
-- **Discord**: `node scripts/release-discord.mjs vX.Y.Z` posts the note as one message (2000 characters at most) with its date, a link to the GitHub release and the picture attached, through the webhook in `DISCORD_WEBHOOK` (the gitignored `.env.local`; never commit or print it). `--dry` prints the message instead.
+- **Discord**: `node scripts/release-discord.mjs vX.Y.Z` posts the note with its date, a link to the GitHub release and the picture attached, through the webhook in `DISCORD_WEBHOOK` (the gitignored `.env.local`; never commit or print it). A note longer than one message (2000 characters) goes in several, split between items, the picture with the first. `--dry` prints the messages instead.
 
 `npm test` checks every note (`scripts/release-notes.test.mjs`).
 
@@ -26,10 +26,9 @@ date: 2026-10-09
 one or two sentences: what this release is about.
 
 - **heading**
-  what changed and what you do with it. one to three sentences.
+  - what changed and what you do with it
 
 - **heading**
-  a sentence, then a list.
   - **term**: what it is
   - plain line
 ```
@@ -43,9 +42,9 @@ From `v1.0.0.md`, the model to follow:
 
 - English, all lowercase except keys and names the game spells out (RMB, W, Minecraft). Second person, a player's words.
 - Intro: one or two sentences. It promises only what the items say.
-- Items: a heading of 1–3 lowercase words, then 1–3 sentences, each ending with a period. Lists: `**term**: what it is` or plain lines, without a final period or comma.
-- Order: the biggest new thing first, then the world and tools, then performance, fixes last. At most about 8 items; the text stays under 1800 characters.
-- Only what a player sees or feels. Leave out F3, build mode, tests, refactors, file names and config keys; keep changed defaults a player notices. A protocol bump (`src/net/protocol.ts`) gets a line: players on an older version can't join.
+- Items: a heading of 1–3 lowercase words, then a list, also for a single line: `**term**: what it is` or plain lines, without a final period or comma. Older notes have sentences under the heading; the test still takes them (each ends with a period), but new notes use lists.
+- Order: the biggest new thing first, then the world and tools, then performance, fixes last. At most about 8 items; the text stays under 3000 characters.
+- Only what a player sees or feels. Leave out F3, build mode, tests, refactors, file names and config keys; keep changed defaults a player notices. No line for a protocol bump (`src/net/protocol.ts`), such as "players on an older version can't join".
 
 The test checks the format, the lowercase headings, the periods, the length, the picture (1280×720 WebP, ≤ 300 KB) and that `package.json`'s version has a note. Tone and choices are for review.
 

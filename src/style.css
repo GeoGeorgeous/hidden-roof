@@ -1564,6 +1564,12 @@
   line-height: 1.55;
   color: rgba(235, 229, 214, 0.65);
 }
+.overlay .term-line::before {
+  content: '•';
+  flex: none;
+  margin-right: -2px;
+  color: rgba(235, 229, 214, 0.35);
+}
 .overlay .term-line b {
   flex: none;
   width: 96px;
