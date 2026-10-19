@@ -46,10 +46,6 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 </details>
 
-## Now: 1.4.0
-
-1. TASK [BL-013]: Device checks before the release: page zoom, three browsers, mouse side buttons, browser keys (docs/ideas/release-checks.md)
-
 ## Multiplayer
 
 1. BUGS [BL-024]: Paint ops are most of the downstream bytes; merge stamps, shed load on slow links, after the playtest (docs/ideas/weak-links.md) @1.6.0
