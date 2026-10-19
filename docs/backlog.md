@@ -8,7 +8,7 @@ The one list of what's left. Counter for new ids: next: 175
 ### File structure
 
 - **Counter:** one sequential counter for all items, on the line above. Every new id takes that number, then the counter goes up by one. Numbers are never reused, even if an item's type changes or the item is deleted.
-- **Sections:** `Now: X.Y.Z` holds the current release; domain sections (Multiplayer, Painting, UI, ...) hold the backlog; `Done` holds items shipped since the last release and is emptied by the release commit.
+- **Sections:** `Now: X.Y.Z` names the current release and stays empty (its items are tagged `@X.Y.Z` in their domains); domain sections (Multiplayer, Painting, UI, ...) hold the backlog; `Done` holds items shipped since the last release and is emptied by the release commit.
 - **Numbering:** items are numbered 1, 2, 3... within each section. Renumber the section after any add, move or removal.
 
 ### Item line
@@ -30,15 +30,14 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ### Release planning
 
-- Items in `Now: X.Y.Z` belong to release X.Y.Z and need no tag.
-- Any other item can be planned for a future release with `@X.Y.Z` at the end of its line. It stays in its domain section.
-- An item without a tag and outside Now is unplanned. A release's list is Now (when it is that version) plus every line tagged with that version.
+- An item is planned for a release, the current one included, with `@X.Y.Z` at the end of its line. It stays in its domain section; nothing moves into Now.
+- An item without a tag is unplanned. A release's list is every line tagged with that version.
 - Never invent a release tag. Plan items for a release only when asked.
-- **Starting the next release** (e.g. 1.4.0 is released and 1.5.0 begins): rename the section to `Now: 1.5.0`, move every line tagged `@1.5.0` into it and remove the tag, leave later tags where they are, and ask before moving anything left unshipped from the old release.
+- **Starting the next release** (e.g. 1.4.0 is released and 1.5.0 begins): rename the section to `Now: 1.5.0` and leave every tag where it is; ask before retagging anything left unshipped from the old release.
 
 ### Operations
 
-- **Add:** take the counter's number and increment it. Write `[TYPE-NNN]` under the right domain or Now, and link a detail doc if there is one.
+- **Add:** take the counter's number and increment it. Write `[TYPE-NNN]` under the right domain, and link a detail doc if there is one.
 - **Ship:** move the line into Done and drop its release tag. Delete its detail doc in `docs/ideas/` (or its part of a shared one) and the link.
 - **Delete:** wrap the line in `~~...~~` in place; don't remove it.
 - **Unconfirmed (`?`):** before working on it, check whether the problem is real and report back. Remove the `?` only once it is confirmed.
