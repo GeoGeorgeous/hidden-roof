@@ -102,7 +102,8 @@ const audio = new Audio();
 const hud = new Hud();
 const player = new Player(level.colliders, level.ladders);
 const inventory = new Inventory();
-const hotbar = new Hotbar(new Thumbnails(renderer));
+const thumbnails = new Thumbnails(renderer);
+const hotbar = new Hotbar(thumbnails);
 const tools = new Tools(scene, viewScene, paint, level.solids, audio, inventory, level);
 tools.ladder.onBlocked = () => hotbar.toast("The ladder can't stand there");
 const wallHand = new WallHand(level.solids);
@@ -133,6 +134,7 @@ Promise.all([fetchLevel(opened.name), jpFontReady()])
     // With the lights set up as the game draws them: their number is in the shaders.
     environment.lighting.update(player.position, camera.matrixWorldInverse);
     post.warm(scene, viewScene, camera);
+    thumbnails.warm();
     await loadStep('Lighting the lamps');
     baker.update(0, player.position);
     await loadStep('Putting up the paint');
