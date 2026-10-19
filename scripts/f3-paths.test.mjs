@@ -19,7 +19,9 @@ captureDefaults();
 
 const bad = [];
 let rows = 0;
-for (const s of allSections()) {
+// The rows only name their side effects here: any hook is a no-op.
+const hooks = new Proxy({}, { get: () => () => {} });
+for (const s of allSections(hooks)) {
   for (const it of s.items) {
     if (!it.path) continue;
     rows++;

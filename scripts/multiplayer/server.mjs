@@ -1,0 +1,36 @@
+// Multiplayer: The server restarting, the server down or silent, and the network log. Reads and adds to `w`, the players and what they share.
+import assert from 'node:assert/strict';
+import net from 'node:net';
+import { status, PORT, stopServer, restartServer } from './harness.mjs';
+
+export async function server(w) {
+  const { a } = w;
+  // The server restarts (a deploy): A's game reconnects, finds its session gone, and says the session has ended.
+  restartServer();
+  await a.waitForFunction(() => window.game.net.status.state === 'failed' && window.game.net.status.reason === 'ended', null, { timeout: 15000 });
+  assert.equal(await a.evaluate(() => window.game.session.multiplayer), false);
+  // The MULTIPLAYER page keeps saying it (the menu's status line only for a few seconds).
+  assert.match(await a.textContent('.mp-page .mp-status'), /The session has ended/);
+
+  // No server: the game asks over HTTP why it can't connect, and says the server is down.
+  stopServer();
+  const failed = async () => {
+    await a.waitForFunction(() => window.game.net.status.state === 'failed', null, { timeout: 15000 });
+    return a.evaluate(() => window.game.net.status);
+  };
+  await a.evaluate(() => window.game.net.host('A', 48));
+  const down = await failed();
+  assert.equal(down.reason, 'server-down', JSON.stringify(down));
+  assert.match(await a.textContent('.mp-page .mp-status'), /The game server is down \(HTTP 5\d\d · WS \d+\)/);
+  // A server that takes the connection and never answers: the game gives up after NET.connectTimeout.
+  const held = new Set();
+  const silent = net.createServer((socket) => held.add(socket)).listen(PORT);
+  await a.evaluate(() => ((window.game.config.NET.connectTimeout = 1), window.game.net.host('A', 48)));
+  assert.equal((await failed()).reason, 'timeout');
+  // Its connections too, or they'd keep this process running.
+  for (const socket of held) socket.destroy();
+  silent.close();
+  // All of it is in the network log the menu copies.
+  const log = await a.evaluate(() => window.game.net.log.text());
+  for (const seen of ['connecting to ws://', 'in session', 'closed: ', 'asked the server over HTTP: server-down', 'nothing from the server in 1 s', 'status: failed timeout']) assert.ok(log.includes(seen), `the log has "${seen}"`);
+}

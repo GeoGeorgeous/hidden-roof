@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { Audio } from '../audio';
 import { SPONGE } from '../config';
 import type { Input } from '../input';
-import type { PaintSurface, PaintSystem } from '../painting';
+import type { PaintSystem } from '../painting';
 import { StrokeSweep } from './stroke';
 import { SpongeModel } from './sponge-model';
 
@@ -11,14 +11,12 @@ import { SpongeModel } from './sponge-model';
 // left off a round patch (PaintSystem.stamp with no color), so one pass fades
 // it and scrubbing back and forth cleans it. Moving the view fills the steps in
 // between frames, like the marker. Works on any paint (can, marker, roller, runs).
-// The mouse wheel changes the patch size (Inventory.size, SPONGE.widthMin..widthMax, see wheel-size.ts).
+// The size keys (Q/E) change the patch size (Inventory.size, SPONGE.widthMin..widthMax, see size-range.ts).
 
 export class SpongeTool {
   readonly model = new SpongeModel();
   private stroke: StrokeSweep;
   private sounding = false;
-  /** Surfaces this stroke scrubbed: freed when it ends if it cleaned them completely. */
-  private scrubbed = new Set<PaintSurface>();
 
   constructor(
     private paint: PaintSystem,
@@ -49,13 +47,10 @@ export class SpongeTool {
     return this.stroke.sweep(dt, camera, eye, spec, (_hit, surface, at, fresh) => {
       if (!fresh || !surface) return;
       this.paint.stamp(surface, at, radius, SPONGE.strength, null, SPONGE.softness);
-      this.scrubbed.add(surface);
     }).hit;
   }
 
   private lift() {
     this.stroke.lift();
-    for (const s of this.scrubbed) this.paint.freeIfClean(s);
-    this.scrubbed.clear();
   }
 }

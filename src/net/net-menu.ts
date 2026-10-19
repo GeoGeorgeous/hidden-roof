@@ -125,10 +125,12 @@ export function multiplayerMenu(hud: PauseMenu, hotbar: Hotbar, ctx: Multiplayer
     }, { primary: true });
     show('Join a session', nameRow(), settingRow('Code', codeInput, { desc: `The ${CODE_LENGTH} letters the host shared.` }), submit(go));
   };
-  hud.addPage('mp', root, choose, () => inForm && (choose(), true));
+  // Back (and Esc) from here while JOIN or HOST is loading the session cancels it: the pause screen can't offer PLAY before the paint is in.
+  hud.addPage('mp', root, choose, () => (net.status.state === 'connecting' && net.leave(), inForm && (choose(), true)));
 
   net.onStatus = (s: NetStatus) => {
     hud.setSession(s.state === 'in' || s.state === 'reconnecting' ? s.code : null, s.state === 'in');
+    hud.setJoining(s.state === 'connecting' ? 'Joining…' : null);
     const known = s.state === 'failed' ? STATUS[s.reason] : STATUS[s.state];
     // What was seen (a close code, an HTTP status, tries) goes along, for reports.
     const detail = s.state === 'failed' || s.state === 'reconnecting' ? s.detail : undefined;
@@ -142,10 +144,16 @@ export function multiplayerMenu(hud: PauseMenu, hotbar: Hotbar, ctx: Multiplayer
   hud.sessionInfo = () => ({ ping: net.ping, players: net.players.map((p) => ({ name: p.name, color: p.color && COLORS[p.color] })) });
   // Each step of HOST, JOIN or SAVE as it goes, with how far along an upload or download is.
   net.onProgress = (text) => {
-    if (text) (say(text), hud.notice(text, Infinity));
+    if (text) (say(text), hud.notice(text, Infinity), net.status.state === 'connecting' && hud.setJoining(short(text)));
     else hud.notice('', 0);
   };
   return net;
+}
+
+/** PLAY's short form of a progress line while joining: 'Loading 40%', or 'Joining…' before there's a share. */
+function short(progress: string) {
+  const share = /\d+%$/.exec(progress);
+  return share ? `Loading ${share[0]}` : 'Joining…';
 }
 
 /** HOST A SESSION / JOIN A SESSION: a big row with what it's for. */

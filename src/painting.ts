@@ -51,6 +51,9 @@ export class PaintSystem {
   opCount = 0;
   /** Called when heavy paint on a vertical face should start a run (see paint-drips.ts). */
   onDrip: (s: PaintSurface, rect: Rect, x: number, y: number, rgb: Rgb) => void = () => {};
+  /** Surfaces scrubbed this frame and last, for settle(). */
+  private scrubbed = new Set<PaintSurface>();
+  private settling = new Set<PaintSurface>();
   private raster = new PaintRaster<PaintSurface>({
     touched: (s, x0, y0, x1, y1) => this.gpu.markDirty(s, x0, y0, x1, y1),
     drip: (s, rect, x, y, rgb) => this.onDrip(s, rect, x, y, rgb),
@@ -127,6 +130,18 @@ export class PaintSystem {
    */
   reupload() {
     for (const s of this.surfaces) if (s.data) this.gpu.markDirty(s, 0, 0, s.geo.atlasW - 1, s.geo.atlasH - 1);
+  }
+
+  /**
+   * Once a frame: free the surfaces a scrub (local or from elsewhere) touched
+   * that it left clean. A surface is checked when a frame passes without it
+   * being scrubbed, so a stroke costs one scan at its end, not one per stamp.
+   */
+  settle() {
+    if (!this.scrubbed.size && !this.settling.size) return;
+    for (const s of this.settling) if (!this.scrubbed.has(s)) this.freeIfClean(s);
+    [this.settling, this.scrubbed] = [this.scrubbed, this.settling];
+    this.scrubbed.clear();
   }
 
   /** Free a surface's paint if none is left (the sponge cleaned it all off): its memory comes back until the next hit. */
@@ -295,6 +310,7 @@ export class PaintSystem {
     // Nothing to scrub off a surface that was never painted.
     if (!color && !s.data) return;
     this.ensureTexture(s);
+    if (!color) this.scrubbed.add(s);
     this.raster.dot(s, rect, cx, cy, radius, amount, color, softness, drip, square);
   }
 
@@ -333,7 +349,7 @@ export class PaintSystem {
 
   /** Wipe one face's paint and its ring (build mode's X): the surface's memory comes back once none is left. */
   wipe(s: PaintSurface, rect: number) {
-    if (s.data) this.unpatch({ key: s.key, atlas: [s.geo.atlasW, s.geo.atlasH], box: this.faceBox(s, rect), data: null, excess: null });
+    if (s.data) this.unpatch({ key: s.key, atlas: [s.geo.atlasW, s.geo.atlasH], rects: rectsOf(s), box: this.faceBox(s, rect), data: null, excess: null });
   }
 
   /** A box of a surface's paint as it is now, to put back with unpatch() (build mode's undo). */
@@ -345,13 +361,15 @@ export class PaintSystem {
       return out;
     };
     const texels = (x1 - x0 + 1) * (y1 - y0 + 1);
-    return { key: s.key, atlas: [w, s.geo.atlasH], box, data: s.data && crop(s.data, 4, new Uint8Array(texels * 4)), excess: s.excess && crop(s.excess, 1, new Uint16Array(texels)) };
+    return { key: s.key, atlas: [w, s.geo.atlasH], box, data: s.data && crop(s.data, 4, new Uint8Array(texels * 4)), excess: s.excess && crop(s.excess, 1, new Uint16Array(texels)), rects: rectsOf(s) };
   }
 
-  /** Put a patch back (none in it: wipe its box), on the live surface with its key; false if it has none, or its atlas changed since. */
-  unpatch({ key, atlas, box, data, excess }: PaintPatch) {
+  /** Put a patch back (none in it: wipe its box), on the live surface with its key; false if it has none, or its atlas or faces changed since. */
+  unpatch({ key, atlas, rects, box, data, excess }: PaintPatch) {
     const s = this.find(key);
     if (!s || s.geo.atlasW !== atlas[0] || s.geo.atlasH !== atlas[1]) return false;
+    const now = rectsOf(s);
+    if (now.length !== rects.length || now.some((n, i) => n !== rects[i])) return false;
     if (!data && !s.data) return true;
     this.ensureTexture(s);
     const w = atlas[0];
@@ -376,6 +394,11 @@ export class PaintSystem {
     this.ensureTexture(s);
     this.raster.texel(s, x, y, amount, color);
   }
+}
+
+/** A surface's face rects as numbers (x, y, w, h each), to tell a rebuilt surface from the one a patch was made on. */
+function rectsOf(s: PaintSurface) {
+  return s.geo.rects.flatMap((r) => [r.x, r.y, r.w, r.h]);
 }
 
 /** Where a face is, to match it across rebuilds: a flat face by its corners (to the mm), a curved one by its place in its surface. */

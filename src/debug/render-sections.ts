@@ -1,7 +1,7 @@
 import { type LightKind, type NeonColor, INK, INK_PRESETS, INK_STYLES, LIGHT_SPREAD_MAX, LIGHTS, NEON_COLORS } from '../config';
 import { INK_COLORS, INK_SETS, inkStyle, setInkStyle } from '../render/ink/styles';
 import { swapDefault } from './defaults';
-import { live, r, t, c, when, type Item, type Section } from './tuning';
+import { live, r, t, c, when, type Hooks, type Item, type Section } from './tuning';
 
 // F3 panel contents for rendering (tuning.ts has the helpers): the ink
 // shaders, the scene's light, the light props, the final pass, and the HUD
@@ -19,9 +19,9 @@ const LIGHT_LABELS: Record<LightKind, string> = {
 };
 
 /** One section per light kind, the same rows for each; neon signs have a color each. */
-function lightItems(): Item[] {
-  const fx = () => live.rebuildLights();
-  const props = () => live.rebuildLightProps();
+function lightItems(h: Hooks): Item[] {
+  const fx = () => h.rebuildLights();
+  const props = () => h.rebuildLightProps();
   return (Object.keys(LIGHTS) as LightKind[]).flatMap((k) => {
     // The CCTV light is a real light (it moves), with no glow or beam: only the steady lamps bake, glow and tint.
     const cctv = k === 'cctv';
@@ -74,9 +74,9 @@ function inkPresets(): Item {
 }
 
 /** F3 sections for the Render tab: shaders, lights, light props, post. */
-export function renderSections(): Section[] {
-  const sync = () => live.syncAtmosphere();
-  const vignette = () => live.syncVignette();
+export function renderSections(h: Hooks): Section[] {
+  const sync = () => h.syncAtmosphere();
+  const vignette = () => h.syncVignette();
   return [
     {
       id: 'shaders',
@@ -163,7 +163,7 @@ export function renderSections(): Section[] {
         { kind: 'heading', label: 'REAL LIGHTS' },
         t('spot shadows', ['ATMOS', 'spotShadows']),
         r('light budget', ['ATMOS', 'lightBudget'], 0, 8, 1),
-        ...lightItems(),
+        ...lightItems(h),
       ],
     },
     {
@@ -191,7 +191,7 @@ export function renderSections(): Section[] {
 }
 
 /** F3 sections for the UI tab: what the HUD shows, the hotbar, and the pause menu. */
-export function uiSections(): Section[] {
+export function uiSections(h: Hooks): Section[] {
   return [
     {
       id: 'hud',
@@ -227,15 +227,15 @@ export function uiSections(): Section[] {
         c('color', ['PAUSE_MENU', 'color']),
         r('opacity: with F3', ['PAUSE_MENU', 'debugOpacity'], 0, 1, 0.05),
         // Seen only without F3: changing them shows that sheet behind the panel for a moment.
-        r('opacity', ['PAUSE_MENU', 'opacity'], 0, 1, 0.05, () => live.previewPause()),
-        r('opacity: pages', ['PAUSE_MENU', 'pageOpacity'], 0, 1, 0.05, () => live.previewPause()),
-        r('size', ['PAUSE_MENU', 'scale'], 0.8, 2, 0.05, () => live.previewPause()),
-        t('view', ['PAUSE_MENU', 'view'], () => live.previewPause()),
-        r('view: x', ['PAUSE_MENU', 'viewX'], -80, 80, 0.5, () => live.previewPause()),
-        r('view: y', ['PAUSE_MENU', 'viewY'], -20, 40, 0.5, () => live.previewPause()),
-        r('view: z', ['PAUSE_MENU', 'viewZ'], -80, 80, 0.5, () => live.previewPause()),
-        r('view: yaw', ['PAUSE_MENU', 'viewYaw'], -180, 180, 1, () => live.previewPause()),
-        r('view: pitch', ['PAUSE_MENU', 'viewPitch'], -45, 20, 1, () => live.previewPause()),
+        r('opacity', ['PAUSE_MENU', 'opacity'], 0, 1, 0.05, () => h.previewPause()),
+        r('opacity: pages', ['PAUSE_MENU', 'pageOpacity'], 0, 1, 0.05, () => h.previewPause()),
+        r('size', ['PAUSE_MENU', 'scale'], 0.8, 2, 0.05, () => h.previewPause()),
+        t('view', ['PAUSE_MENU', 'view'], () => h.previewPause()),
+        r('view: x', ['PAUSE_MENU', 'viewX'], -80, 80, 0.5, () => h.previewPause()),
+        r('view: y', ['PAUSE_MENU', 'viewY'], -20, 40, 0.5, () => h.previewPause()),
+        r('view: z', ['PAUSE_MENU', 'viewZ'], -80, 80, 0.5, () => h.previewPause()),
+        r('view: yaw', ['PAUSE_MENU', 'viewYaw'], -180, 180, 1, () => h.previewPause()),
+        r('view: pitch', ['PAUSE_MENU', 'viewPitch'], -45, 20, 1, () => h.previewPause()),
       ],
     },
   ];

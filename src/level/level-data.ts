@@ -28,6 +28,9 @@ export interface PropData {
   mirror?: boolean;
 }
 
+/** The newest level format: what the game writes, and the most it reads. */
+export const LEVEL_VERSION = 4;
+
 export interface LevelData {
   /** 4: props keep their default variant even when it changes later (format 3 files: see kit/index.ts upgraded). */
   version: 2 | 3 | 4;
@@ -65,6 +68,8 @@ const isPickup = (p: unknown) => isObj(p) && typeof p.kind === 'string' && isV3(
  */
 export function levelProblem(d: unknown, maxProps = Infinity): string | null {
   if (!isObj(d)) return 'NOT AN OBJECT';
+  if (!optional(d.version, Number.isInteger)) return 'BAD VERSION';
+  if ((d.version as number) > LEVEL_VERSION) return 'MADE BY A NEWER VERSION';
   if (!isObj(d.spawn) || !isV3(d.spawn.pos) || !isNum(d.spawn.yaw)) return 'BAD SPAWN';
   if (!Array.isArray(d.props) || d.props.length > maxProps || !d.props.every(isProp)) return 'BAD PROPS';
   if (!optional(d.pickups, (v) => Array.isArray(v) && v.every(isPickup))) return 'BAD PICKUPS';

@@ -1,6 +1,5 @@
 import * as config from '../config';
 import { defaultOf } from './defaults';
-import { hooks } from './hooks';
 
 // What the debug panel's contents are made of: collapsible sections of live
 // sliders/toggles that write straight into the config objects, plus read-only
@@ -38,20 +37,20 @@ type Value = Extract<Item, { path: string[] }>;
 export const isValue = (it: Item): it is Value => 'path' in it;
 
 /** The value differs from config.ts (colors in any case). */
-export function isChanged(it: Value) {
-  const v = getValue(it.path);
+export function isChanged(it: Value, night?: Night) {
+  const v = getValue(it.path, night);
   const d = defaultOf(it.path);
   if (d === undefined) return false;
   return typeof v === 'string' && typeof d === 'string' ? v.toLowerCase() !== d.toLowerCase() : v !== d;
 }
 
 /** Puts config.ts's values back (nothing is saved), then runs each side effect once. */
-export function resetItems(items: Item[]) {
+export function resetItems(items: Item[], night?: Night) {
   const effects = new Set<() => void>();
   for (const it of items) {
     if (it.kind === 'choice') it.reset?.();
-    if (!isValue(it) || !isChanged(it)) continue;
-    setValue(it.path, defaultOf(it.path));
+    if (!isValue(it) || !isChanged(it, night)) continue;
+    setValue(it.path, defaultOf(it.path), night);
     if (it.onChange) effects.add(it.onChange);
     if (it.kind === 'range' && it.onRelease) effects.add(it.onRelease);
   }
@@ -68,15 +67,18 @@ export interface Section {
   items: Item[];
 }
 
+/** While build mode shows daylight: the night values it replaced in ATMOS (see Atmosphere), else null. */
+export type Night = () => Obj | null;
+
 /** Config objects by export name: a path's first key. */
 const ROOTS = config as unknown as Record<string, Obj>;
 
-export function getValue(path: string[]): unknown {
-  return parentOf(path)[path[path.length - 1]];
+export function getValue(path: string[], night?: Night): unknown {
+  return parentOf(path, night)[path[path.length - 1]];
 }
 
-export function setValue(path: string[], v: unknown) {
-  parentOf(path)[path[path.length - 1]] = v;
+export function setValue(path: string[], v: unknown, night?: Night) {
+  parentOf(path, night)[path[path.length - 1]] = v;
 }
 
 /**
@@ -84,72 +86,68 @@ export function setValue(path: string[], v: unknown) {
  * holds DAYLIGHT's values for some keys: those read and write the saved night
  * values instead, so the panel (and its copy) always shows the night look.
  */
-function parentOf(path: string[]): Obj {
-  const night = path[0] === 'ATMOS' ? live.atmosNight() : null;
-  const root = night && path[1] in night ? night : ROOTS[path[0]];
+function parentOf(path: string[], night?: Night): Obj {
+  const saved = path[0] === 'ATMOS' ? night?.() : null;
+  const root = saved && path[1] in saved ? saved : ROOTS[path[0]];
   return path.slice(1, -1).reduce<unknown>((o, k) => (o as Obj)[k], root) as Obj;
 }
 
-/** The rows' side effects, set by the dev tools (`setHooks`; see hooks.ts). */
-const sideEffects = hooks({
-  rebuildLights: () => {},
+/** The rows' side effects, built by the dev tools before the panel (`new DebugPanel(hooks, atmosNight)`). */
+export interface Hooks {
+  rebuildLights(): void;
   /** Rebuild the light props themselves (lens colors, floodlight heads), then their FX. */
-  rebuildLightProps: () => {},
+  rebuildLightProps(): void;
   /** Redraw the HUD vignette (VIGNETTE changed). */
-  syncVignette: () => {},
+  syncVignette(): void;
   /** Show the full pause sheet behind the panel for a moment (F3 → UI → Pause menu). */
-  previewPause: () => {},
+  previewPause(): void;
   /** Push ATMOS colors / moon direction into fog, sky and lights. */
-  syncAtmosphere: () => {},
+  syncAtmosphere(): void;
   /** Re-apply DAYLIGHT if build mode is showing it. */
-  applyDaylight: () => {},
+  applyDaylight(): void;
   /** Restyle build mode: the picker's size and shade, the target outline, the settings highlight (BUILD.wheelScale, columnScale, shade*, target*, highlight*). */
-  syncBuildLook: () => {},
+  syncBuildLook(): void;
   /** Rebuild the city around the level (SKYLINE changed). */
-  rebuildCity: () => {},
+  rebuildCity(): void;
   /** Give the player the starting nib and patch sizes (MARKER, ROLLER or SPONGE.width changed). */
-  applyToolSizes: () => {},
+  applyToolSizes(): void;
   /** F3 -> Items: every tool, color and cap, their pickups gone as if collected. */
-  unlockAll: () => {},
+  unlockAll(): void;
   /** Rebuild every tool model (first person, pickups, hotbar icons, the figure's tool) from MODELS and CAPS. */
-  rebuildModels: () => {},
+  rebuildModels(): void;
   /** Apply live SKYLINE values (line range). */
-  syncSkyline: () => {},
+  syncSkyline(): void;
   /** F3 -> Avatar: the test figure (dev/avatar-preview.ts). */
-  avatarToggle: () => {},
-  avatarNext: () => {},
-  avatarPrevious: () => {},
+  avatarToggle(): void;
+  avatarNext(): void;
+  avatarPrevious(): void;
   /** AVATAR_TEST.pose was set: show that one. */
-  avatarPick: () => {},
-  avatarCycle: () => {},
-  avatarRestyle: () => {},
-  avatarPose: () => 'hidden',
+  avatarPick(): void;
+  avatarCycle(): void;
+  avatarRestyle(): void;
+  avatarPose(): string;
   /** F3 -> Ghost (dev/ghost.ts). */
-  ghostRecord: () => {},
-  ghostPlay: () => {},
-  ghostFollow: () => {},
-  ghostStop: () => {},
-  ghostState: () => 'off',
+  ghostRecord(): void;
+  ghostPlay(): void;
+  ghostFollow(): void;
+  ghostStop(): void;
+  ghostState(): string;
   /** The ghost's network as its remote player sees it, or null. */
-  ghostNet: (): null | { delay: number; jitter: number; buffered: number; guessing: boolean; correction: number } => null,
+  ghostNet(): null | { delay: number; jitter: number; buffered: number; guessing: boolean; correction: number };
   /** F3 -> Test -> Performance: profiling mode (dev/profiler.ts). */
-  profileToggle: () => {},
-  profileProbe: () => {},
-  profileState: () => 'off',
+  profileToggle(): void;
+  profileProbe(): void;
+  profileState(): string;
   /** Debug: a lightning strike right now. */
-  strikeLightning: () => {},
+  strikeLightning(): void;
   /** GPU time of a render pass, as text ('n/a' without timer queries). */
-  gpu: (_label: string) => 'n/a',
-  /** While build mode shows daylight: the night values it replaced in ATMOS (see Atmosphere). */
-  atmosNight: (): Obj | null => null,
-});
-export const setHooks = sideEffects.set;
+  gpu(label: string): string;
+}
 
-/** Live values filled in by main (stats) and the player state, and the rows' side effects. */
+/** Live values filled in by the dev tools each frame: the stats and the player's state. */
 export const live = {
   stats: { fps: 0, frameMs: 0, lights: 0, drawCalls: 0, triangles: 0, textures: 0, textureBytes: 0, surfaces: 0, uploads: 0, uploadBytes: 0, particles: 0, drips: 0, bakedBytes: 0, bakePending: 0, bakeMs: 0, paintOps: 0 },
   player: null as null | { position: { x: number; y: number; z: number }; velocity: { x: number; y: number; z: number }; state: string },
-  ...sideEffects.call,
 };
 
 export const r = (label: string, path: string[], min: number, max: number, step: number, onChange?: () => void): Item => ({ kind: 'range', label, path, min, max, step, onChange });
@@ -196,7 +194,7 @@ function merge(to: Obj, from: Obj) {
 }
 
 /** Values of the given sections as nested JSON mirroring config.ts. */
-export function sectionsJSON(list: Section[]) {
+export function sectionsJSON(list: Section[], night?: Night) {
   const out: Obj = {};
   for (const s of list) {
     for (const it of s.items) {
@@ -205,7 +203,7 @@ export function sectionsJSON(list: Section[]) {
       let o = out;
       // Numeric keys are array slots ([x, y, z] values copy back as arrays).
       it.path.slice(0, -1).forEach((k, i) => (o = (o[k] ??= /^\d+$/.test(it.path[i + 1]) ? [] : {}) as Obj));
-      o[it.path[it.path.length - 1]] = getValue(it.path);
+      o[it.path[it.path.length - 1]] = getValue(it.path, night);
     }
   }
   return JSON.stringify(out, null, 2);

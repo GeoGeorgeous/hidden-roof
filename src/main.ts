@@ -2,19 +2,12 @@ import './style.css';
 import * as THREE from 'three';
 import * as config from './config';
 import { flyCamera, titleCamera } from './render/title-view';
-import { ATMOS, COLORS, HUD, INK, LEVELS, PLAYER, PRESSURE, RENDER, SMOKE, THUNDER, VIEWMODEL, VOLUMETRICS } from './config';
+import { ATMOS, COLORS, HUD, LEVELS, PLAYER, PRESSURE, RENDER, VOLUMETRICS } from './config';
 import { syncSharedUniforms } from './materials';
 import { syncTrackUniforms } from './render/cctv-track';
-import { Lighting } from './render/lighting';
 import { LightBaker } from './render/bake/baker';
-import { LightFX } from './render/light-fx';
-import { Rain } from './render/rain';
-import { Heightmap } from './render/heightmap';
-import { Atmosphere } from './render/atmosphere';
 import { PostPipeline } from './render/post';
-import { PlayerLight } from './render/player-light';
-import { Smoke } from './render/smoke';
-import { Lightning } from './render/lightning';
+import { Environment } from './render/environment';
 import { PaintDrips } from './paint-drips';
 import { PaintOps } from './paint-ops';
 import { paintMenu } from './save/paint-menu';
@@ -34,9 +27,7 @@ import { PaintSystem } from './painting';
 import { Level } from './level/level';
 import type { LevelData } from './level/level-data';
 import { FrameMeter } from './frame-meter';
-import { makeSky } from './sky';
 import { updateSkyline } from './skyline';
-import { setLinePointScale } from './city/lines';
 import { syncCityLight } from './city/material';
 import { Tools } from './tools/tools';
 import { Inventory } from './inventory/inventory';
@@ -55,7 +46,6 @@ import { staticTextureBytes } from './render/texture-bytes';
 import type { DevTools } from './dev/devtools';
 import { session } from './session';
 import { multiplayerMenu } from './net/net-menu';
-import { setHex } from './hex-color';
 import { seedPaintRandom } from './lcg';
 import { fanLevel, metalDrops } from './emitter-sounds';
 import { guarded } from './frame-guard';
@@ -80,49 +70,28 @@ const perfTest = new PerfTest(gpuTimer);
 const post = new PostPipeline(renderer, gpuTimer);
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.FogExp2(INK.paper, ATMOS.fogDensity);
 const camera = new THREE.PerspectiveCamera(RENDER.fov, window.innerWidth / window.innerHeight, 0.05, 2000);
 scene.add(camera);
-const sky = makeSky();
-scene.add(sky);
-
 // The can is drawn in a second pass so it never clips into walls.
 const viewScene = new THREE.Scene();
-const viewFill = new THREE.HemisphereLight(VIEWMODEL.fillSky, VIEWMODEL.fillGround, VIEWMODEL.fill);
-viewScene.add(viewFill);
-const viewSun = new THREE.DirectionalLight(VIEWMODEL.rimColor, VIEWMODEL.rim); // warm practical-light rim
-viewSun.position.set(-1, 1, 2);
-viewScene.add(viewSun);
+const environment = new Environment(scene, viewScene, renderer);
 
 const paint = new PaintSystem();
 renderer.domElement.addEventListener('webglcontextrestored', () => paint.reupload());
 const drips = new PaintDrips(paint);
 const paintOps = new PaintOps(paint, drips);
 const level = new Level(scene, paint);
-const lighting = new Lighting(scene, renderer);
 const baker = new LightBaker();
 baker.onDecorBaked = (geo) => level.pushBaked(geo);
 baker.onRelayout = () => level.remerge();
-const lightFx = new LightFX(scene);
-const rain = new Rain(scene);
-const heightmap = new Heightmap();
-const atmosphere = new Atmosphere(sky, lighting);
-const playerLight = new PlayerLight(scene);
-const smoke = new Smoke(scene);
-const lightning = new Lightning();
-lightning.onThunder = (d) => audio.thunder(d);
+environment.lightning.onThunder = (d) => audio.thunder(d);
 level.onChange = () => {
   baker.sync(level.builtProps);
-  smoke.rebuild(level.emitters);
-  lighting.setAnchors(level.lights);
-  lightFx.rebuild(level.lights);
-  heightmap.rebuild(level.colliders, level.totalBounds());
-  rain.setHeightmap(heightmap);
+  environment.rebuild(level);
 };
-/** Drawing-buffer height: glow and smoke sprites are sized in its pixels. */
-let viewHeight = 1;
+/** Glow and smoke sprites are sized in the drawing buffer's pixels. */
 function syncViewSize() {
-  viewHeight = renderer.getDrawingBufferSize(new THREE.Vector2()).y;
+  environment.setViewHeight(renderer.getDrawingBufferSize(new THREE.Vector2()).y);
 }
 syncViewSize();
 
@@ -162,7 +131,7 @@ Promise.all([fetchLevel(opened.name), jpFontReady()])
     level.flush();
     // Where the browser compiles shaders in parallel, they compile during the next steps.
     // With the lights set up as the game draws them: their number is in the shaders.
-    lighting.update(player.position, camera.matrixWorldInverse);
+    environment.lighting.update(player.position, camera.matrixWorldInverse);
     post.warm(scene, viewScene, camera);
     await loadStep('Lighting the lamps');
     baker.update(0, player.position);
@@ -205,7 +174,7 @@ input.onLockChange = (locked) => {
     audio.setScribble(0);
   }
 };
-hud.menu.onResume = () => input.requestLock();
+input.onResume = hud.menu.onResume = () => play.resume();
 hud.menu.onStyle = (i) => settings.setStyle(i);
 showMenu();
 const testPage = perfTestPage(hud.menu, perfTest, gpu, () => settings.tested());
@@ -230,7 +199,6 @@ const eye = new THREE.Vector3();
 let flyAround: THREE.Vector3 | null = null;
 const timer = new THREE.Timer();
 const meter = new FrameMeter();
-let rainTime = 0;
 let fov = RENDER.fov;
 const tagPos = new THREE.Vector3();
 /** Test hook (golden paint test): a fixed dt and a script run at the start of every frame, so paint follows the frame count, not wall time. */
@@ -299,36 +267,16 @@ function step(time: number) {
   const shown = !cityView ? camera : flyAround ? flyCamera(camera, perfTest.progress(time), flyAround) : titleCamera(camera);
   const at = shown.position;
   dev?.lap('player');
-  // Sprites follow the camera's FOV (sprinting, F3) like the world around them.
-  const pointScale = viewHeight / (2 * Math.tan((camera.fov * Math.PI) / 360));
-  lightFx.setPointScale(pointScale);
-  smoke.setPointScale(pointScale);
-  setLinePointScale(pointScale);
-  sky.position.copy(at);
   updateSkyline(opened.city, at);
-  (scene.fog as THREE.FogExp2).density = ATMOS.fogDensity;
-  setHex((scene.fog as THREE.FogExp2).color, INK.paper);
   syncSharedUniforms(time / 1000);
   syncTrackUniforms(at);
-  if (!frozen) lightning.update(dt, ATMOS.rain && !building);
-  lighting.update(at, shown.matrixWorldInverse, time / 1000, lightning.flash);
-  syncCityLight(lighting);
-  dev?.lap('lights');
-  (sky.material as THREE.ShaderMaterial).uniforms.uFlash.value = lightning.flash * THUNDER.flashSky;
-  playerLight.update(eye, !building);
-  setHex(viewFill.color, VIEWMODEL.fillSky);
-  setHex(viewFill.groundColor, VIEWMODEL.fillGround);
-  viewFill.intensity = VIEWMODEL.fill;
-  setHex(viewSun.color, VIEWMODEL.rimColor);
-  viewSun.intensity = VIEWMODEL.rim;
-  lightFx.update();
-  rainTime += dt;
-  rain.update(rainTime, at);
-  smoke.update(rainTime, SMOKE.lightBase + SMOKE.lightAmbient * ATMOS.ambient + SMOKE.lightFlash * lightning.flash);
+  environment.update({ time, dt, at, shown, eye, fov: camera.fov, frozen, building });
+  syncCityLight(environment.lighting);
+  dev?.lap('environment');
   audio.setFan(fanLevel(level.emitters, eye));
-  if (ATMOS.rain && !building) metalDrops(audio, level.emitters, heightmap, camera, dt, eye);
+  if (ATMOS.rain && !building) metalDrops(audio, level.emitters, environment.heightmap, camera, dt, eye);
   audio.update(paused && !play.panel);
-  dev?.lap('world');
+  dev?.lap('audio');
 
   if (!frozen) {
     if (building) dev!.update(input, camera);
@@ -357,6 +305,7 @@ function step(time: number) {
   dev?.lap('level');
   baker.update(time / 1000, at);
   dev?.lap('bake');
+  paint.settle();
   paint.gpu.flush(renderer);
   hotbar.update(inventory);
   hud.update();
@@ -365,7 +314,7 @@ function step(time: number) {
   // The CPU time before the draw calls: a GPU that falls behind stalls them (the performance test's CPU time).
   const beforeDraw = performance.now() - begun;
   perfTest.beforeDraw();
-  post.render(scene, viewScene, shown, lighting, !building);
+  post.render(scene, viewScene, shown, environment.lighting, !building);
   frameDrawn();
   dev?.lap('render');
   // Same frame as the render: the canvas still holds it (see screenshot.ts). Only while playing: not on the title or pause screen, nor with F3 open.
@@ -393,5 +342,5 @@ function toScreen(p: THREE.Vector3) {
 
 // Dev tools (build mode, F3, window.game): single player only, and not in the player build (npm run build).
 let dev: DevTools | undefined;
-const game = { city: () => opened.city, applyPixelScale, config, gpu, perfTest, testPage, settings, play, lightning, smoke, audio, wallHand, drips, lightFx, lighting, baker, player, tools, atmosphere, inventory, hotbar, pickups, paint, paintOps, net, paintFile, seedPaintRandom, fixedStep, session, level, renderer, input, hud, scene, viewScene, gpuTimer, PLAYER, loadLevel: (d: LevelData) => opened.load(d), rebuildCity: () => opened.rebuildCity(), levelData: () => opened.toJSON(), levelName: () => opened.name, openLevel: (d: LevelData, n: string) => opened.open(d, n), loaded: () => loaded };
+const game = { city: () => opened.city, applyPixelScale, config, gpu, perfTest, testPage, settings, play, environment, audio, wallHand, drips, baker, player, tools, inventory, hotbar, pickups, paint, paintOps, net, paintFile, seedPaintRandom, fixedStep, session, level, renderer, input, hud, scene, viewScene, gpuTimer, PLAYER, loadLevel: (d: LevelData) => opened.load(d), rebuildCity: () => opened.rebuildCity(), levelData: () => opened.toJSON(), levelName: () => opened.name, openLevel: (d: LevelData, n: string) => opened.open(d, n), loaded: () => loaded };
 if (__DEV_TOOLS__) void import('./dev/devtools').then((m) => (dev = new m.DevTools(game)));

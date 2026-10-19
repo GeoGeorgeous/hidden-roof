@@ -11,12 +11,12 @@ import { MarkerTool } from './marker';
 import { RollerTool } from './roller';
 import { SpongeTool } from './sponge';
 import type { Level } from '../level/level';
-import { sizedCrosshair, stepSize, type WheelSized } from './wheel-size';
+import { sizedCrosshair, stepSize, type SizeRange } from './size-range';
 import { ViewSway, type Motion } from './view-sway';
 import type { AvatarAction } from '../avatar/pose';
 
-/** Tools the mouse wheel resizes (wheel-size.ts): their config. */
-const SIZED: Record<SizedTool, WheelSized> = { marker: MARKER, roller: ROLLER, sponge: SPONGE };
+/** Tools the size keys (Q/E) resize (size-range.ts): their config. */
+const SIZED: Record<SizedTool, SizeRange> = { marker: MARKER, roller: ROLLER, sponge: SPONGE };
 const isSized = (t: Tool | null): t is SizedTool => t !== null && t in SIZED;
 
 // Routes input to the tool in hand: 1 = can, 2 = marker, 3 = stepladder, 4 =

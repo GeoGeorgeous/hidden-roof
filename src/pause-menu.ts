@@ -48,7 +48,7 @@ export class PauseMenu {
   private hold: EscHold;
   /** The status line's message (notice), shown until noticeUntil. */
   private message = '';
-  private play: HTMLElement;
+  private play: HTMLButtonElement;
   private multiplayer: HTMLElement;
   private savePaint: HTMLElement;
   private loadPaint: HTMLElement;
@@ -60,6 +60,8 @@ export class PauseMenu {
   private session: string | null = null;
   /** The session's link is up (not reconnecting). */
   private live = false;
+  /** JOIN or HOST is under way: what PLAY says instead (the network's progress), null when not. */
+  private joining: string | null = null;
   /** The game was started (past the title screen). */
   started = false;
   /** The full pause sheet is up (paused without F3, or F3 previewing it). */
@@ -89,9 +91,9 @@ export class PauseMenu {
     this.status.append(ring(), el('span'));
     // mousedown, like the canvas: the click that starts the game is the same gesture.
     this.play = el('button', 'play', 'Play');
-    this.play.addEventListener('mousedown', (e) => (e.preventDefault(), e.button === 0 && this.onResume()));
+    this.play.addEventListener('mousedown', (e) => (e.preventDefault(), e.button === 0 && !this.joining && this.onResume()));
     this.play.append(keyHint('ESC'));
-    this.multiplayer = button('Multiplayer', () => (this.session ? this.onLeave() : this.openPage('mp')));
+    this.multiplayer = button('Multiplayer', () => (this.session || this.joining ? this.onLeave() : this.openPage('mp')));
     const start = div('start');
     start.append(this.play, this.multiplayer);
     const hero = div('hero');
@@ -175,6 +177,12 @@ export class PauseMenu {
     this.sync();
   }
 
+  /** JOIN or HOST is loading the session (`text`: its progress), or isn't (null): PLAY is a disabled `text` meanwhile, and the other button cancels. */
+  setJoining(text: string | null) {
+    this.joining = text;
+    this.sync();
+  }
+
   /** The settings page, one tab per section. */
   setSettings(sections: SettingSection[]) {
     this.settingsPage?.root.remove();
@@ -247,8 +255,9 @@ export class PauseMenu {
     // The live line, unless a message has the status line (reconnecting, the hold, a notice).
     this.line.el.hidden = !this.live || this.hold.held || notice;
     this.status.hidden = !this.line.el.hidden;
-    this.play.firstChild!.textContent = this.session ? 'Back to session' : 'Play';
-    this.multiplayer.textContent = this.session ? 'Leave session' : 'Multiplayer';
+    this.play.firstChild!.textContent = this.joining ?? (this.session ? 'Back to session' : 'Play');
+    this.play.disabled = this.joining !== null;
+    this.multiplayer.textContent = this.session || this.joining ? 'Leave session' : 'Multiplayer';
     // Nothing to save on the title screen; UPLOAD can come first. In a session, the server's paint is everyone's: no UPLOAD.
     this.savePaint.hidden = !this.started && !this.session;
     this.loadPaint.hidden = !!this.session;

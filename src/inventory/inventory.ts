@@ -7,7 +7,7 @@ import { CAP_ORDER, COLOR_ORDER, MARKER, ROLLER, SPONGE, type CapId, type PaintC
 
 export type Tool = 'can' | 'marker' | 'ladder' | 'roller' | 'sponge';
 export const SLOTS: Tool[] = ['can', 'marker', 'ladder', 'roller', 'sponge'];
-/** Tools the mouse wheel resizes (tools/wheel-size.ts). */
+/** Tools the size keys (Q/E) resize (tools/size-range.ts). */
 export type SizedTool = 'marker' | 'roller' | 'sponge';
 
 /** What a player carries, as a multiplayer session keeps it for them (net/protocol.ts). */

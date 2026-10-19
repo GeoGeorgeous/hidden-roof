@@ -2,7 +2,7 @@ import './dev.css';
 import type * as THREE from 'three';
 import { BuildMode } from '../build/buildmode';
 import { DebugPanel } from '../debug/panel';
-import { live, setHooks } from '../debug/tuning';
+import { live, type Hooks } from '../debug/tuning';
 import type { GpuTimer } from '../debug/gpu-timer';
 import { MARKER, ROLLER, SPONGE } from '../config';
 import type { Input } from '../input';
@@ -17,11 +17,8 @@ import type { PaintSystem } from '../painting';
 import type { Pickups } from '../pickups/pickups';
 import type { Player } from '../player';
 import type { PlayState } from '../play-state';
-import type { Atmosphere } from '../render/atmosphere';
 import type { LightBaker } from '../render/bake/baker';
-import type { LightFX } from '../render/light-fx';
-import type { Lighting } from '../render/lighting';
-import type { Lightning } from '../render/lightning';
+import type { Environment } from '../render/environment';
 import { session } from '../session';
 import { shapes } from '../tools/shapes';
 import { syncSkyline } from '../skyline';
@@ -33,7 +30,7 @@ import { Profiler } from './profiler';
 import type { PaintOps } from '../paint-ops';
 import type { Tools } from '../tools/tools';
 
-// Dev tools: build mode (B), the F3 panel with its live hooks, and window.game
+// Dev tools: build mode (B), the F3 panel (built after the hooks it calls), and window.game
 // for the console and the tests. Single player only: main loads this module
 // only with the dev tools (the player build, npm run build, leaves it out), and in a session
 // the keys do nothing and both are closed.
@@ -55,10 +52,7 @@ export interface DevContext {
   paint: PaintSystem;
   paintOps: PaintOps;
   drips: PaintDrips;
-  atmosphere: Atmosphere;
-  lighting: Lighting;
-  lightFx: LightFX;
-  lightning: Lightning;
+  environment: Environment;
   baker: LightBaker;
   gpuTimer: GpuTimer;
   /** The generated city around the level. */
@@ -86,7 +80,7 @@ interface FrameStats {
 
 export class DevTools {
   private build: BuildMode;
-  private debug = new DebugPanel();
+  private debug: DebugPanel;
   private figure: AvatarPreview;
   private ghost: Ghost;
   private profiler: Profiler;
@@ -106,18 +100,17 @@ export class DevTools {
     this.ghost = new Ghost(g);
     this.profiler = new Profiler(g);
     if (new URLSearchParams(location.search).has('profile')) this.profiler.start();
-    setHooks({
+    const hooks: Hooks = {
       gpu: (label: string) => g.gpuTimer.read(label),
-      strikeLightning: () => g.lightning.strike(),
-      rebuildLights: () => g.lightFx.rebuild(g.level.lights),
+      strikeLightning: () => g.environment.lightning.strike(),
+      rebuildLights: () => g.environment.lightFx.rebuild(g.level.lights),
       // Props with lights (light props, billboards) are rebuilt for a new lens color or aim; their paint carries over.
       rebuildLightProps: () => g.level.rebuildLit(),
-      syncAtmosphere: () => g.atmosphere.syncColors(),
+      syncAtmosphere: () => g.environment.atmosphere.syncColors(),
       syncVignette: () => g.hud.syncVignette(),
       previewPause: () => g.hud.menu.previewSheet(),
-      applyDaylight: () => g.atmosphere.reapplyDaylight(),
+      applyDaylight: () => g.environment.atmosphere.reapplyDaylight(),
       syncBuildLook: () => this.build.syncLook(),
-      atmosNight: () => g.atmosphere.nightValues,
       rebuildCity: g.rebuildCity,
       applyToolSizes: () => (g.inventory.size = { marker: MARKER.width, roller: ROLLER.width, sponge: SPONGE.width }),
       unlockAll: () => {
@@ -147,8 +140,9 @@ export class DevTools {
       profileToggle: () => this.profiler.toggle(),
       profileProbe: () => this.profiler.runProbe(),
       profileState: () => (this.profiler.recording ? 'RECORDING' : 'off'),
-    });
-    Object.assign(window, { game: { ...g, build: this.build, debug: this.debug, live, ghost: this.ghost, profiler: this.profiler, cityParts: { layoutCity, dressTower, wallSigns } } });
+    };
+    this.debug = new DebugPanel(hooks, () => g.environment.atmosphere.nightValues);
+    Object.assign(window, { game: { ...g, build: this.build, debug: this.debug, hooks, live, ghost: this.ghost, profiler: this.profiler, cityParts: { layoutCity, dressTower, wallSigns } } });
   }
 
   /** Where the test figures stand besides the session's players (the ghost): a stepladder can't go there. */
@@ -214,7 +208,7 @@ export class DevTools {
       uploadBytes: g.paint.gpu.uploadBytesLastFrame,
       particles: g.tools.spray.particles.count,
       drips: g.drips.count,
-      lights: g.lighting.active,
+      lights: g.environment.lighting.active,
       bakedBytes: g.baker.stats.textureBytes,
       bakePending: g.baker.stats.pending,
       bakeMs: g.baker.stats.ms,
@@ -258,7 +252,7 @@ export class DevTools {
   private setBuilding(on: boolean) {
     this.build.setActive(on);
     this.g.play.building = on;
-    this.g.atmosphere.setDaylight(on);
+    this.g.environment.atmosphere.setDaylight(on);
     this.debug.sync();
     this.g.hotbar.visible = !on;
     this.g.audio.setHiss(0, 0);

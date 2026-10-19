@@ -6,8 +6,8 @@ import type { Player } from '../player';
 import type { Tools } from '../tools/tools';
 import { SNAPSHOT_BYTES } from './protocol';
 
-// What a player sends about themselves, NET.sendRate times a second
-// (docs/multiplayer-audit.md 2.3): where their feet are, where they look, a few
+// What a player sends about themselves, NET.sendRate times a second:
+// where their feet are, where they look, a few
 // state flags, the tool in hand and what it's doing, the paint color and cap,
 // how much paint comes out of the can (for the spray others see). 25 bytes.
 // Velocity, footsteps and the eased crouch are derived on the other side;

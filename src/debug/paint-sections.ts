@@ -1,22 +1,22 @@
 import { CAP_ORDER, CAPS } from '../config';
-import { live, r, t, type Item, type Section } from './tuning';
+import { r, t, type Hooks, type Item, type Section } from './tuning';
 
 // F3 panel contents for painting (tuning.ts has the helpers): what each tool
 // does (one vocabulary: reach, width, opacity, softness), the caps, paint
-// runs, pressure, quality (smoothness against cost), the cursor (wheel range
-// and crosshair).
+// runs, pressure, quality (smoothness against cost), the cursor (size keys'
+// range and crosshair).
 
 /** One heading per cap, its own items under each. */
 const perCap = (items: (cap: (typeof CAP_ORDER)[number]) => Item[]): Item[] =>
   CAP_ORDER.flatMap((cap) => [{ kind: 'heading', label: CAPS[cap].name } as Item, ...items(cap)]);
 
-/** A wheel-sized tool's wheel range and crosshair (wheel-size.ts), the same rows for each. */
+/** A tool sized by the size keys: their range and its crosshair (size-range.ts), the same rows for each. */
 function cursorItems(tool: 'MARKER' | 'ROLLER' | 'SPONGE', max: number, step: number, perMeter: number): Item[] {
   return [
     { kind: 'heading', label: tool },
-    r('wheel: min', [tool, 'widthMin'], 0, max, step),
-    r('wheel: max', [tool, 'widthMax'], 0, max, step),
-    r('wheel: step', [tool, 'widthStep'], step, max / 4, step),
+    r('size keys: min', [tool, 'widthMin'], 0, max, step),
+    r('size keys: max', [tool, 'widthMax'], 0, max, step),
+    r('size keys: step', [tool, 'widthStep'], step, max / 4, step),
     r('crosshair', [tool, 'crosshair'], 0, 60, 1),
     r('crosshair growth', [tool, 'crosshairPerMeter'], 0, perMeter, 5),
   ];
@@ -33,8 +33,8 @@ function qualityItems(tool: 'MARKER' | 'ROLLER' | 'SPONGE'): Item[] {
 }
 
 /** Each tool: reach, width, opacity, softness, then what only it has. */
-export function paintSections(): Section[] {
-  const sizes = () => live.applyToolSizes();
+export function paintSections(h: Hooks): Section[] {
+  const sizes = () => h.applyToolSizes();
   return [
     {
       id: 'painting',

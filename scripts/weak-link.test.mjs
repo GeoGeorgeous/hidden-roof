@@ -1,5 +1,5 @@
 // Multiplayer on weak networks: scenarios from the playtest of 2026-10-12
-// (docs/playtest-multiplayer.md) and the backlog, played back with real browsers,
+// (docs/ideas/weak-links.md) and the backlog, played back with real browsers,
 // the real server and a link proxy per player (scripts/net-lab.mjs). Each prints
 // what happened. Checks what works: a scenario fails when it breaks; what is still
 // a bug is printed under "open", with its backlog item, until it's fixed.
@@ -143,7 +143,7 @@ const SCENARIOS = {
       g.inventory.give('marker');
       g.level.setRuntime(g.session.player, { type: 'stepladder', pos: [1, 0, 1], rot: 0 });
     });
-    await B.page.waitForFunction(() => window.game.net.carried === window.game.inventory.version, null, { timeout: 5000 });
+    await B.page.waitForFunction(() => window.game.net.sender.carried === window.game.inventory.version, null, { timeout: 5000 });
     await A.page.waitForFunction(() => window.game.level.runtimeOf('player2') !== undefined, null, { timeout: 10000 });
     // Dead both ways: the server notices on its heartbeat (~20 s), then the window runs out.
     B.proxy.down.rate = B.proxy.up.rate = 0;

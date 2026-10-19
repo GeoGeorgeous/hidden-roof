@@ -16,7 +16,7 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
-import { gameReady, openTestBrowser } from './test-browser.mjs';
+import { fixedFrames, gameReady, openTestBrowser } from './test-browser.mjs';
 
 const update = process.argv.includes('--update');
 const baselinePath = new URL('./golden-paint.json', import.meta.url);
@@ -136,6 +136,7 @@ async function openGame(detail) {
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   await page.addInitScript((d) => localStorage.setItem('roofhiddenhaus.settings', JSON.stringify({ paintDetail: d, cityDetail: 'low' })), detail);
+  await page.addInitScript(fixedFrames);
   await page.addInitScript(pageHelpers);
   await page.goto(test.url);
   await gameReady(page);
@@ -214,17 +215,14 @@ async function replay({ ops, save, editLevel }) {
   // Wiped: the page may have just played (paint, runs and their excess counters go).
   g.paint.clear();
   g.drips.clear();
-  await new Promise((done) => {
-    let f = 0;
-    g.fixedStep.script = () => {
+  await window.frames(
+    ops.frames.length,
+    (f) => {
       const end = f + 1 < ops.frames.length ? ops.frames[f + 1] : ops.log.length;
       for (let i = ops.frames[f]; i < end; i++) g.paintOps.apply(ops.log[i]);
-      if (++f === ops.frames.length) {
-        g.fixedStep.script = null;
-        done();
-      }
-    };
-  });
+    },
+    600000,
+  );
   const replayed = window.golden.paint();
   const bytes = window.golden.fromB64(save);
   await g.paintFile.load(bytes);
@@ -317,38 +315,36 @@ async function play({ runs, stand, faceYaw, gap, settle }) {
   for (let i = 0; i < settle; i++) steps.push([null, 0]);
 
   let last = null;
-  await new Promise((done) => {
-    let f = 0;
-    g.fixedStep.script = () => {
-      frames.push(g.paint.log.length);
-      if (f === steps.length) {
-        g.fixedStep.script = null;
-        input.lmb = false;
-        done();
-        return;
-      }
-      const [run, t] = steps[f++];
-      if (run === 'measure') {
-        const now = coverage();
-        perRun[t] = round(now - before);
-        before = now;
-        return;
-      }
-      input.lmb = !!run;
-      if (!run) return;
-      if (run !== last) {
-        last = run;
-        inv.select(run.slot);
-        while (run.color && inv.color !== run.color) inv.cycleColor(1);
-        while (run.cap && inv.cap !== run.cap) inv.cycleCap(1);
-        inv.pressure = run.pressure ?? 1;
-        if (run.width !== undefined) inv.size[inv.tool] = run.width;
-      }
-      const [yaw, pitch] = run.aim(t);
-      player.yaw = faceYaw + yaw;
-      player.pitch = pitch;
-    };
-  });
+  /** The left button, pressed or let go when that changes. */
+  const press = (down) => down !== input.lmb && input.button(0, down);
+  // Ten minutes of limit: the steps end when the schedule does, not on the clock.
+  await window.steps((f) => {
+    frames.push(g.paint.log.length);
+    if (f === steps.length) {
+      press(false);
+      return true;
+    }
+    const [run, t] = steps[f];
+    if (run === 'measure') {
+      const now = coverage();
+      perRun[t] = round(now - before);
+      before = now;
+      return;
+    }
+    press(!!run);
+    if (!run) return;
+    if (run !== last) {
+      last = run;
+      inv.select(run.slot);
+      while (run.color && inv.color !== run.color) inv.cycleColor(1);
+      while (run.cap && inv.cap !== run.cap) inv.cycleCap(1);
+      inv.pressure = run.pressure ?? 1;
+      if (run.width !== undefined) inv.size[inv.tool] = run.width;
+    }
+    const [yaw, pitch] = run.aim(t);
+    player.yaw = faceYaw + yaw;
+    player.pitch = pitch;
+  }, 600000);
 
   const log = g.paint.log;
   g.paint.log = null;

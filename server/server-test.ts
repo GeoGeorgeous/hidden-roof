@@ -11,6 +11,7 @@ import { decodePaintFile, encodePaintFile, joinBytes } from '../src/save/paint-f
 import { surfaceTable } from '../src/save/shape';
 import { WebSocket as Ws } from 'ws';
 import { PartsIn } from '../src/net/parts-in';
+import { overMemory } from './log';
 import { decodeOps, encodeOps, SurfaceIndex } from '../src/op-wire';
 import type { PaintOp } from '../src/paint-ops';
 
@@ -38,7 +39,7 @@ const ops = (seq: number, t: number[], list: PaintOp[]) => ({ type: 'ops' as con
 const opsIn = (m: { bytes: Uint8Array }) => decodeOps(m.bytes, surfaces)!;
 const stamp = { kind: 'stamp' as const, key: faces[0].key, rect: 0, u: 0.5, v: 0.5, radius: 0.2, amount: 1, color: [1, 0, 0] as const, softness: 0, square: false };
 
-const server = spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(PORT), REJOIN_WINDOW: '1', HELLO_TIMEOUT: '2' }, stdio: ['ignore', 'pipe', 'inherit'] });
+const server = spawn(process.execPath, ['--expose-gc', 'dist-server/server/main.js'], { env: { ...process.env, PORT: String(PORT), REJOIN_WINDOW: '1', HELLO_TIMEOUT: '2' }, stdio: ['ignore', 'pipe', 'inherit'] });
 if (process.env.SERVER_LOG) server.stdout!.pipe(process.stderr);
 const log: string[] = [];
 await new Promise<void>((ready) => server.stdout!.on('data', (d: Buffer) => (log.push(d.toString()), ready())));
@@ -318,6 +319,18 @@ assert.match(lines, /paint file: [\d.]+ MB of paint, [\d.]+ MB packed, in [\d.]+
 // A player who left isn't also logged as dropped.
 assert.doesNotMatch(lines, /"A" #1 out: left[^]*"A" #1 dropped/);
 
+
+// Past a memory limit the server collects garbage before it says it's over (dropped paint counts until a GC); under it, it doesn't.
+{
+  let collected = 0;
+  const gc = globalThis.gc;
+  globalThis.gc = (() => void collected++) as NodeJS.GCFunction;
+  assert.equal(overMemory(Infinity), false);
+  assert.equal(collected, 0);
+  assert.equal(overMemory(0), true);
+  assert.equal(collected, 1);
+  globalThis.gc = gc;
+}
 
 // The heartbeat (BL-004), on a server of its own beating every second: a game that keeps sending stays though it never
 // answers a ping (on a slow link the ping waits behind what's coming down); a silent one is dropped. Before its hello a
