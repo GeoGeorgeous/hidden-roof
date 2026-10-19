@@ -30,7 +30,7 @@ Essentials:
 - One line per item, under its domain. Ids come from one shared counter (`next:` in the header); a number is never reused.
 - New items use `[TYPE-NNN]`. Never create `BL` ids, and never convert existing `BL` ids.
 - Markers in the id brackets: `!` critical, `?` unconfirmed (verify first), `>` explain.
-- `@X.Y.Z` at the end of a line plans it for a release; `## Now: X.Y.Z` is the current release.
+- `@X.Y.Z` at the end of a line plans it for a release; `## Now: X.Y.Z` names the current release and stays empty (its items are the lines tagged with it).
 - A line wrapped in `~~...~~` is deleted: don't work on it or remove it.
 
 ## Verify
