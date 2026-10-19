@@ -77,4 +77,3 @@ The headless tests always draw with SwiftShader, on the CPU: a frame at 1280×72
 
 **Which GPU a laptop's Chrome uses.** `chrome://gpu` → GL_RENDERER, or the game's Settings → Graphics → GPU row. To force the dedicated GPU on Windows: Settings → System → Display → Graphics → Chrome → High performance, then restart Chrome. Chrome's Energy Saver (chrome://settings/performance) caps frames at 30 Hz. Settings → Graphics → Performance test gives fps, CPU and GPU time.
 
-The checks to run by hand before and after a release: `docs/ideas/release-checks.md`.

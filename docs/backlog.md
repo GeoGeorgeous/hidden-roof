@@ -46,6 +46,19 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 </details>
 
+## Now: 1.5.0
+
+1. RFCT [BL-015]: Rework the drips: each setting does one thing; spraying over a coat no longer grows them (docs/ideas/painting.md)
+2. TASK [BL-016]: Tune drips per tool by hand and remove the strong ones, after BL-015 (docs/ideas/painting.md)
+3. IDEA [BL-042]: Reword the painting: new marker brushes: rectangular and calligraphy
+4. [IDEA-165]: Reword the painting: pressure
+5. [IDEA-166]: Reword the painting: lock the camera
+6. [IDEA-167]: Reword the painting: different brushes (soft / hard)
+7. TASK [BL-017]: Tune the can's caps until painting feels right, against Bombing!! 2 or paintsessions.com (docs/ideas/painting.md)
+8. TASK [BL-068]: Meta tags: title, description, canonical, Open Graph, Twitter Card
+9. TASK [BL-069]: robots.txt (with rules for AI bots), sitemap.xml and llms.txt
+10. TASK [BL-070]: JSON-LD, semantic HTML outside the canvas, favicons and a web manifest
+
 ## Multiplayer
 
 1. BUGS [BL-024]: Paint ops are most of the downstream bytes; merge stamps, shed load on slow links, after the playtest (docs/ideas/weak-links.md) @1.6.0
@@ -63,18 +76,11 @@ Only `N.`, the id and the description are required. The optional parts appear in
 2. TASK [BL-145]: PaintSurface is a public struct written by GPU upload, the baker and painting; "has paint?" asked two ways (paint-surface.ts)
 3. IDEA [BL-074]: Stencils
 4. IDEA [?BL-152]: Tune the can's pressure with Shift + mouse
-5. RFCT [BL-015]: Rework the drips: each setting does one thing; spraying over a coat no longer grows them (docs/ideas/painting.md) @1.5.0
-6. TASK [BL-016]: Tune drips per tool by hand and remove the strong ones, after BL-015 (docs/ideas/painting.md) @1.5.0
-7. IDEA [BL-042]: Reword the painting: new marker brushes: rectangular and calligraphy @1.5.0
-8. [IDEA-165]: Reword the painting: pressure @1.5.0
-9. [IDEA-166]: Reword the painting: lock the camera @1.5.0
-10. [IDEA-167]: Reword the painting: different brushes (soft / hard) @1.5.0
-11. TASK [BL-017]: Tune the can's caps until painting feels right, against Bombing!! 2 or paintsessions.com (docs/ideas/painting.md) @1.5.0
 
 ## Input
 
 1. BUGS [?BL-010]: Rare huge mouse jumps snap the camera in Chrome on Windows; the fix is the owner's choice (docs/ideas/mouse-spikes.md)
-2. BUGS [BL-135]: A Mac mouse wheel may need several notches per color (WHEEL.notchPx); measure first (docs/ideas/release-checks.md) @1.4.1
+2. BUGS [BL-135]: A Mac mouse wheel may need several notches per color (WHEEL.notchPx); measure first: can in hand, one gentle trackpad swipe and one wheel notch, count the colors each moves @1.4.1
 
 ## Performance
 
@@ -159,10 +165,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## Web and promotion
 
-1. TASK [BL-068]: Meta tags: title, description, canonical, Open Graph, Twitter Card @1.5.0
-2. TASK [BL-069]: robots.txt (with rules for AI bots), sitemap.xml and llms.txt @1.5.0
-3. TASK [BL-070]: JSON-LD, semantic HTML outside the canvas, favicons and a web manifest @1.5.0
-4. TASK [BL-067]: Posts for Reddit and Instagram reels from the game's account
+1. TASK [BL-067]: Posts for Reddit and Instagram reels from the game's account
 
 ## Done
 
