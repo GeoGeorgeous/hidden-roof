@@ -69,6 +69,7 @@ export const HINTS: Record<string, string> = {
   'VIEWMODEL.pressCurl': 'How far the index finger curls when pressing the nozzle (rad).',
   'VIEWMODEL.pressSpeed': 'How fast the finger presses and releases.',
   // Left hand
+  'WALL_HAND.enabled': 'Shows the left hand at all. Off = it never reaches for walls. Also in Settings → Gameplay.',
   'WALL_HAND.reach': 'The left hand reaches for a wall closer than this to your shoulder (m).',
   'WALL_HAND.release': 'The left hand lets go when the wall is farther than this from your shoulder (m). Keep above reach.',
   'WALL_HAND.speed': 'How fast the left hand moves to the wall and back.',

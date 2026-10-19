@@ -689,6 +689,8 @@ export const HOLD: Record<'can' | 'marker' | 'ladder' | 'roller' | 'sponge', Hol
 
 /** Free left hand: reaches out and rests on a wall when you stand close to one. */
 export const WALL_HAND = {
+  /** Show the hand at all. Off hides it and never reaches for walls. */
+  enabled: true,
   /** Start touching a wall closer than this to your shoulder (m), let go beyond `release`. */
   reach: 1.1,
   release: 1.3,
