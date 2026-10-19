@@ -53,7 +53,7 @@ const DISCORD_MAX = 2000;
 
 /**
  * The Discord messages: the title, the date and a link to the GitHub release, then the note, split between sections
- * (a heading and its list) where it doesn't fit one message (2000 characters); the picture goes with the first.
+ * (a heading and its list) where it doesn't fit one message (2000 characters); the picture goes with the last.
  */
 export function discordNotes(tag: string, md: string): string[] {
   const { date } = parseRelease(tag, md);

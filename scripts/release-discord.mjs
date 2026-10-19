@@ -18,12 +18,13 @@ if (!process.env.DISCORD_WEBHOOK && fs.existsSync('.env.local')) process.loadEnv
 const webhook = process.env.DISCORD_WEBHOOK;
 if (!webhook?.startsWith('https://discord.com/api/webhooks/')) throw new Error('DISCORD_WEBHOOK is missing: put it in .env.local');
 
-// One message after another, so they show in order; the picture goes with the first.
+// One message after another, so they show in order; the picture goes with the last, below the note.
 for (const [i, content] of messages.entries()) {
+  const last = i === messages.length - 1;
   const form = new FormData();
-  const payload = { content, allowed_mentions: { parse: [] }, attachments: i ? [] : [{ id: 0, filename: `${tag}.webp` }] };
+  const payload = { content, allowed_mentions: { parse: [] }, attachments: last ? [{ id: 0, filename: `${tag}.webp` }] : [] };
   form.append('payload_json', JSON.stringify(payload));
-  if (!i) form.append('files[0]', new Blob([fs.readFileSync(picture)], { type: 'image/webp' }), `${tag}.webp`);
+  if (last) form.append('files[0]', new Blob([fs.readFileSync(picture)], { type: 'image/webp' }), `${tag}.webp`);
   const res = await fetch(`${webhook}?wait=true`, { method: 'POST', body: form });
   if (!res.ok) throw new Error(`Discord: ${res.status} ${await res.text()}`);
   console.log(`${tag}: posted ${i + 1}/${messages.length}, message ${(await res.json()).id}`);
