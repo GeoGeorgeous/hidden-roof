@@ -20,7 +20,11 @@ On the real GPU (headed Chromium on WSLg, its own Vite server); 8 other loads to
 
 ## BL-034 Paint pages at ULTRA use ~0.95 GB of GPU memory
 
-After 40 minutes of painting at ULTRA a profile counted 45 more GPU textures (~0.95 GB if paint pages). Confirmed by the playtest of 2026-10-12: 49 paint pages, 1041 MB of GPU memory at 58% of the level painted; all painted would be an estimated 1.5–2 GB. Already so in 1.1.0. Do: smaller or fewer pages for sparse paint (the paint file was 23% of the atlases: most of each page is empty), or a cap with a warning.
+After 40 minutes of painting at ULTRA a profile counted 45 more GPU textures (~0.95 GB if paint pages). Confirmed by the playtest of 2026-10-12: 49 paint pages, 1041 MB of GPU memory at 58% of the level painted; all painted would be an estimated 1.5–2 GB. Already so in 1.1.0.
+
+Owner (2026-10-20): no change that lowers paint quality or detail (no fewer texels, no lossy compression, no fewer mip levels); skip the task if there's no such way.
+
+How the memory adds up (2026-10-20): every surface gets its block on a page of its level tile when the level loads (`PagePacker`, `src/page-packer.ts`); a page's texture is made on the first hit on any of its surfaces: 2048² RGBA8 plus its levels, ~21 MB, the same at every PAINT DETAIL (detail changes how many pages the level needs: ULTRA 16x LOW). Coats cost nothing: painting a wall red again, or with a roller and then a can, writes the same texels. So the memory is the pages touched, at most every page of the level; the waste is the empty part of each page (44% full) and a whole page made for one small hit. Lossless options: (1) measure how full each page is and where its empty part is; (2) make a page's texture only as tall as its blocks reach (shelf packing fills from the top), if most of the waste is at the bottom; (3) smaller pages at ULTRA (a first hit costs less, more draw calls: measure); (4) pack fuller, BL-144. Plan for 1.5.0: (1), then (2) if it pays, golden identical; otherwise move the rest to BL-144.
 
 ## BL-107 Moving the stepladder again and again near lamps doubles the CPU time
 

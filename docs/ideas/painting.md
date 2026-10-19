@@ -12,6 +12,15 @@ Reworking the painting: BL-015 first, BL-016 after it; BL-017 and BL-106 are ind
 
 The drip settings are not obvious: `chance` seems to be moved by the paint's density and other parameters (`DRIPS` and each tool's and cap's `drips`, `src/config.ts`). Make each setting do one thing, so tuning is predictable. Includes the core bug (was BL-008): roll a first coat, then spray on it, and the drips get stronger when they shouldn't; check how the excess paint (`DRIPS`) adds up across tools. Reproduce it with a test first. Part of reworking the painting.
 
+How it works now (2026-10-20, `src/paint-raster.ts` addExcess): every bit of paint on a texel that is already opaque (alpha ≥ 250) adds to that texel's excess, a CPU-only counter (`PaintSurface.excess`, 2 bytes a texel, made on the first excess); at `DRIPS.excess` coats it resets and rolls a run with the tool's or cap's `drips` chance. The counter never goes down and doesn't care how old the paint under it is, so a rolled wall is opaque everywhere and every spray on it counts as excess from the first stamp: that is the bug. How much excess a stamp adds follows the cap's `strength`, softness and `rate`, so those also move how often it drips. The painter alone decides a run and sends it as a drip op (21 bytes); other players and the server only replay drip ops and keep no excess (`server/paint-check.ts`). So any drip model here costs nothing on the wire or the GPU, and fewer drips means slightly fewer bytes.
+
+Two models; the owner picked **paint dries, per texel** (2026-10-20):
+
+- **Paint dries.** Excess drains with time since it was put down (op time, so replays and tests stay deterministic). Spraying over a dry coat drips only after you linger; heavy fresh paint drips as now. Per-texel time: one more 2-byte array per painted surface on the CPU, next to the excess. Per-surface time instead: no memory, but a whole surface dries at once (one fresh stroke keeps a big wall wet). M.
+- **Only this stroke counts.** Excess resets when the tool stops (button up). Simpler (S-M), no memory; going back over a spot in a new stroke never adds up, so slow repeated passes never drip.
+
+Either way each setting gets one job: `DRIPS.excess` how much paint makes a texel wet enough, the tool's `drips` how often a wet texel runs, and the amount a stamp adds no longer depends on its rate. Golden changes (drips move): a new baseline in its own commit.
+
 ## BL-016 Tune drips per tool by hand; remove the strong ones
 
 Blocked by: BL-015;
