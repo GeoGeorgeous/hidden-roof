@@ -23,11 +23,10 @@ The one list of what's left. One line per item, under its domain: `[TYPE-NNN]: w
 2. TASK [BL-016]: Tune drips per tool by hand and remove the strong ones, after BL-015 (docs/ideas/painting.md)
 3. TASK [BL-017]: Tune the can's caps until painting feels right, against Bombing!! 2 (docs/ideas/painting.md)
 4. IDEA [BL-106]: Paintable cone roofs on the water tanks (a cone paint mapping) (docs/ideas/painting.md)
-5. BUGS [BL-146]: The sponge frees paint memory only after local strokes; build-mode undo checks only the atlas size (sponge.ts:58, painting.ts:354)
-6. TASK [BL-145]: PaintSurface is a public struct written by GPU upload, the baker and painting; "has paint?" asked two ways (paint-surface.ts)
-7. IDEA [BL-042]: New marker brushes: rectangular and calligraphy
-8. IDEA [BL-074]: Stencils
-9. IDEA [BL-152]: Tune the can's pressure with Shift + mouse
+5. TASK [BL-145]: PaintSurface is a public struct written by GPU upload, the baker and painting; "has paint?" asked two ways (paint-surface.ts)
+6. IDEA [BL-042]: New marker brushes: rectangular and calligraphy
+7. IDEA [BL-074]: Stencils
+8. IDEA [BL-152]: Tune the can's pressure with Shift + mouse
 
 ## Input
 
@@ -55,16 +54,14 @@ The one list of what's left. One line per item, under its domain: `[TYPE-NNN]: w
 1. TASK [BL-143]: A design run on props and the level plan: PropContext, placement, sign text, saves by face (docs/ideas/props-and-level.md)
 2. IDEA [BL-144]: Cover v2: drop hidden paint faces and pack pages fuller, after BL-143 (docs/ideas/props-and-level.md)
 3. TASK [BL-055]: Group the props better in build mode: decide which prop goes into which category (docs/ideas/props-and-level.md)
-4. TASK [BL-139]: src/debug/hint-text.ts is 419 lines, over the ~400 cap
-5. [BUGS-161]: A wall prop overlaps a fence
-6. BUGS [BL-150]: A level file newer than the game knows loads as if it were version 4 (levelProblem never reads version)
-7. IDEA [BL-039]: More marker types, placed on the map
-8. IDEA [BL-050]: Wire cutting
-9. IDEA [BL-051]: Dynamic wire length
-10. IDEA [BL-052]: Lamps that can be fixed to the floor or the ceiling
-11. IDEA [BL-053]: Lamps that light signs
-12. IDEA [BL-054]: New sign sizes, including big rectangular and square ones
-13. IDEA [BL-075]: Digital billboards
+4. [BUGS-161]: A wall prop overlaps a fence
+5. IDEA [BL-039]: More marker types, placed on the map
+6. IDEA [BL-050]: Wire cutting
+7. IDEA [BL-051]: Dynamic wire length
+8. IDEA [BL-052]: Lamps that can be fixed to the floor or the ceiling
+9. IDEA [BL-053]: Lamps that light signs
+10. IDEA [BL-054]: New sign sizes, including big rectangular and square ones
+11. IDEA [BL-075]: Digital billboards
 
 ## Tools
 
@@ -77,11 +74,10 @@ The one list of what's left. One line per item, under its domain: `[TYPE-NNN]: w
 2. DSGN [BL-092]: A screen that teaches the controls (nothing names the wheel and Q/E since the spawn wall's paint went)
 3. BUGS [BL-072]: Nickname tags don't scale with the UI and resolution
 4. [?BUGS-162]: The browser's page zoom scales the HUD and menus
-5. [?BUGS-163]: Some Settings may not be remembered after a reload; check each one
-6. TASK [BL-078]: Show BUY ME A COFFEE again once it has a link (revert e2c2310)
-7. IDEA [BL-061]: A player in the style of an old iPod Classic
-8. IDEA [BL-062]: Photo mode with Polaroid-like cards for photos
-9. IDEA [BL-065]: A minimal tool to record gameplay as GIFs and short videos
+5. TASK [BL-078]: Show BUY ME A COFFEE again once it has a link (revert e2c2310)
+6. IDEA [BL-061]: A player in the style of an old iPod Classic
+7. IDEA [BL-062]: Photo mode with Polaroid-like cards for photos
+8. IDEA [BL-065]: A minimal tool to record gameplay as GIFs and short videos
 
 ## Avatar
 
@@ -108,16 +104,15 @@ The one list of what's left. One line per item, under its domain: `[TYPE-NNN]: w
 
 ## Servers and deploy
 
-1. BUGS [BL-027]: A closed session's paint stays in the server's memory until a GC (docs/ideas/server-ops.md)
-2. TASK [BL-030]: Precompressed assets served by Caddy (docs/ideas/server-ops.md)
-3. TASK [BL-077]: Deploy from GitHub Actions (docs/ideas/server-ops.md)
-4. IDEA [BL-043]: One public server, running 24/7 (docs/ideas/public-servers.md)
-5. TASK [BL-044]: Disable host and join (don't remove them), after BL-043 (docs/ideas/public-servers.md)
-6. IDEA [BL-045]: A window of public servers instead of host and join (docs/ideas/public-servers.md)
-7. [DSGN-160]: The lobby list for BL-045: allowed tools, players online, ping with a country flag
-8. IDEA [BL-046]: A queue to enter the server, after BL-043 (docs/ideas/public-servers.md)
-9. IDEA [BL-047]: Admin panel: players online, ban by IP, after BL-043 (docs/ideas/public-servers.md)
-10. IDEA [BL-147]: The server checks what players send (op reach and rate, ladder spot, jumps) before it goes public
+1. TASK [BL-030]: Precompressed assets served by Caddy (docs/ideas/server-ops.md)
+2. TASK [BL-077]: Deploy from GitHub Actions (docs/ideas/server-ops.md)
+3. IDEA [BL-043]: One public server, running 24/7 (docs/ideas/public-servers.md)
+4. TASK [BL-044]: Disable host and join (don't remove them), after BL-043 (docs/ideas/public-servers.md)
+5. IDEA [BL-045]: A window of public servers instead of host and join (docs/ideas/public-servers.md)
+6. [DSGN-160]: The lobby list for BL-045: allowed tools, players online, ping with a country flag
+7. IDEA [BL-046]: A queue to enter the server, after BL-043 (docs/ideas/public-servers.md)
+8. IDEA [BL-047]: Admin panel: players online, ban by IP, after BL-043 (docs/ideas/public-servers.md)
+9. IDEA [BL-147]: The server checks what players send (op reach and rate, ladder spot, jumps) before it goes public
 
 ## Web and promotion
 
@@ -140,3 +135,8 @@ Shipped since the last release; the release commit empties this list. What 1.4.0
 8. TASK [BL-132]: One test driver: one fixed-frame stepper in test-browser.mjs; Input takes keys, buttons and the wheel through key/button/wheel, and tests press through them
 9. TASK [BL-134]: game.test.mjs split by area into scripts/game/, one module each under ~400 lines, one runner
 10. [TEST-164]: multiplayer.test.mjs split into scripts/multiplayer/, a harness and one module per phase
+11. BUGS [BL-146]: Every scrub, local, another player's, the catch-up's or the ghost's, frees a surface it left clean, once a frame (PaintSystem.settle); build undo also checks the face rects
+12. TASK [BL-139]: hint-text.ts split into play and world tooltips (hint-text-world.ts)
+13. BUGS [BL-150]: A level file from a newer game is refused (MADE BY A NEWER VERSION); the newest format is LEVEL_VERSION
+14. [TEST-163]: Every Settings control is remembered after a reload (the suspected bug is ruled out); scripts/game/remember.mjs proves it
+15. BUGS [BL-027]: Past a memory limit the server collects garbage and measures again before turning a session or a paint file away (node --expose-gc)
