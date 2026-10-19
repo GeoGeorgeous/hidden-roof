@@ -5,7 +5,7 @@
 // Usage: npm run test:csp (builds the game and the server first)
 import { spawn } from 'node:child_process';
 import { preview } from 'vite';
-import { freePort, gameReady, noDrawing, openTestBrowser } from './test-browser.mjs';
+import { fixedFrames, freePort, gameReady, noDrawing, openTestBrowser } from './test-browser.mjs';
 
 const PORT = await freePort();
 const server = spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(PORT) }, stdio: ['ignore', 'ignore', 'inherit'] });
@@ -21,6 +21,7 @@ try {
   });
   // Nothing drawn: what's checked is what loads, not the picture.
   await page.addInitScript(noDrawing);
+  await page.addInitScript(fixedFrames);
   page.on('pageerror', (e) => problems.push(`page error: ${e.message}`));
   page.on('console', (m) => m.type() === 'error' && problems.push(`console: ${m.text()}`));
   const res = await page.goto(test.url);
@@ -32,12 +33,10 @@ try {
 
   await page.evaluate(async () => {
     const g = window.game;
-    const frames = (n, each) => new Promise((done) => { let f = 0; g.fixedStep.script = () => { each(f); if (++f === n) { g.fixedStep.script = null; done(); } }; });
     g.inventory.addColor('red');
     g.hud.showColorTag('red', g.config.COLORS.red);
     g.input.setLocked(true);
-    g.fixedStep.dt = 1 / 60;
-    await frames(20, (f) => (g.input.lmb = f < 10));
+    await frames(20, (f) => (f === 0 && g.input.button(0, true), f === 10 && g.input.button(0, false)));
     g.fixedStep.dt = 0;
     g.input.setLocked(false);
   });

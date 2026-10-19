@@ -11,7 +11,7 @@
 //        ONLY=ladder npm run test:game   (only the checks whose name matches: while working; the full run before a merge)
 import fs from 'node:fs';
 import os from 'node:os';
-import { gameReady, noBrowserLock, noDrawing, openTestBrowser } from './test-browser.mjs';
+import { fixedFrames, gameReady, noBrowserLock, noDrawing, openTestBrowser } from './test-browser.mjs';
 
 // Pages here don't draw (no check needs a picture), so frames can run uncapped.
 const test = await openTestBrowser(process.argv[2], { uncapped: true });
@@ -25,28 +25,12 @@ async function openPage(init, before, arg) {
   page.on('pageerror', (e) => page.errors.push(e.message));
   await page.addInitScript(noDrawing);
   await page.addInitScript(noBrowserLock);
-  await page.addInitScript(pageSteps);
+  await page.addInitScript(fixedFrames);
   if (init) await page.addInitScript(init, arg);
   await before?.(page);
   await page.goto(test.url);
   await gameReady(page, 2);
   return page;
-}
-
-/**
- * In the page, `steps(each)`: frames of a fixed 1/60 s, `each(frame)` at the start of every one until it returns
- * true. Game time, not the wall clock, so a check gives the same result every run; after 30 s it stops anyway, so a
- * check that never gets there fails instead of hanging.
- */
-function pageSteps() {
-  window.steps = (each) =>
-    new Promise((done) => {
-      const g = window.game;
-      const end = performance.now() + 30000;
-      let f = 0;
-      g.fixedStep.dt = 1 / 60;
-      g.fixedStep.script = () => (each(f++) || performance.now() > end) && ((g.fixedStep.script = null), done());
-    });
 }
 
 const only = process.env.ONLY ? new RegExp(process.env.ONLY, 'i') : null;
@@ -635,7 +619,8 @@ await check('saves: spray in the air at LOAD lands without paint', async () => {
     const empty = await g.paintFile.save();
     let inAir = 0;
     await steps((f) => {
-      g.input.lmb = f < 8;
+      if (f === 0) g.input.button(0, true);
+      if (f === 8) g.input.button(0, false);
       if (f === 8) (inAir = g.tools.spray.particles.count), g.paintFile.load(empty);
       return f === 59;
     });
@@ -975,10 +960,10 @@ await check('can: shaking and spraying exclude each other, the one pressed first
     g.inventory.pressure = 0.5;
     const out = {};
     // RMB first, then LMB as well: it shakes, and nothing sprays.
-    await steps((f) => ((input.rmb = f < 20), (input.lmb = f >= 5 && f < 20), f === 15 && ((out.shookFirst = spray.shaking), (out.sprayedWhileShaking = spray.flow > 0)), f === 30));
+    await steps((f) => (f === 0 && input.button(2, true), f === 5 && input.button(0, true), f === 20 && (input.button(0, false), input.button(2, false)), f === 15 && ((out.shookFirst = spray.shaking), (out.sprayedWhileShaking = spray.flow > 0)), f === 30));
     // LMB first, then RMB as well: it sprays, and no shake starts.
-    await steps((f) => ((input.lmb = f < 20), (input.rmb = f >= 5 && f < 20), f === 15 && ((out.sprayedFirst = spray.flow > 0), (out.shookWhileSpraying = spray.shaking)), f === 30));
-    input.lmb = input.rmb = false;
+    await steps((f) => (f === 0 && input.button(0, true), f === 5 && input.button(2, true), f === 20 && (input.button(0, false), input.button(2, false)), f === 15 && ((out.sprayedFirst = spray.flow > 0), (out.shookWhileSpraying = spray.shaking)), f === 30));
+    input.button(0, false), input.button(2, false);
     g.fixedStep.dt = 0;
     input.setLocked(false);
     return out;
@@ -1049,11 +1034,11 @@ await check('sponge: a surface cleaned completely gives its memory back', async 
     g.player.yaw = -Math.PI / 2 + 0.2;
     g.player.pitch = -0.2;
     inv.select(0);
-    await steps((f) => ((input.lmb = f < 6), f === 39));
+    await steps((f) => (f === 0 && input.button(0, true), f === 6 && input.button(0, false), f === 39));
     const sprayed = g.paint.gpu.textureCount;
     inv.select(4);
     inv.size.sponge = 0.6;
-    await steps((f) => ((input.lmb = f < 150), f === 159));
+    await steps((f) => (f === 0 && input.button(0, true), f === 150 && input.button(0, false), f === 159));
     g.fixedStep.dt = 0;
     input.setLocked(false);
     return { sprayed, after: g.paint.gpu.textureCount };
@@ -1084,7 +1069,7 @@ await check('tools: the wheel\'s click picks the color of the paint under the cr
     inv.select(0);
     inv.pressure = 1;
     inv.pickColor('red');
-    await steps((f) => ((input.lmb = f < 20), f === 39));
+    await steps((f) => (f === 0 && input.button(0, true), f === 20 && input.button(0, false), f === 39));
     inv.pickColor('blue');
     const click = () => input.element.dispatchEvent(new MouseEvent('mousedown', { button: 1 }));
     await steps((f) => (f === 0 && click(), f === 2));
@@ -1605,7 +1590,7 @@ await check('tools: the wheel changes the color (can, marker, roller) and Q/E th
     const g = window.game;
     const { inventory: inv, input, config } = g;
     const frame = (act) => new Promise((done) => { g.fixedStep.script = () => { act(); g.fixedStep.script = null; requestAnimationFrame(done); }; });
-    const wheel = () => frame(() => (input.wheelSteps = 1));
+    const wheel = () => frame(() => input.wheel(1));
     const key = (code) => frame(() => (window.dispatchEvent(new KeyboardEvent('keydown', { code })), window.dispatchEvent(new KeyboardEvent('keyup', { code }))));
     input.setLocked(true);
     for (const c of config.COLOR_ORDER) inv.addColor(c);
@@ -1668,7 +1653,6 @@ await check('ladders: climbed to the top (each in the level, a scaffolding bay, 
   const r = await page.evaluate(async () => {
     const g = window.game;
     const { player: p, input, level, PLAYER } = g;
-    const keys = input.down;
     input.setLocked(true);
     /** At its foot (or its bottom, in the air), facing it, W held to the top; then idle, then a jump: what went wrong, or null. */
     const climb = async ({ volume: v, normal: n }) => {
@@ -1681,7 +1665,7 @@ await check('ladders: climbed to the top (each in the level, a scaffolding bay, 
       p.velocity.set(0, 0, 0);
       p.yaw = Math.atan2(n.x, n.z);
       p.pitch = 0;
-      keys.add('KeyW');
+      input.key('KeyW', true);
       let climbed = false;
       let top = 0;
       const left = p.position.clone();
@@ -1689,7 +1673,7 @@ await check('ladders: climbed to the top (each in the level, a scaffolding bay, 
         climbed ||= p.onLadder;
         if (p.onLadder) left.copy(p.position);
         if (!(p.onGround && p.position.y > v.max.y - 1e-3) && f < 600) return false;
-        keys.delete('KeyW');
+        input.key('KeyW', false);
         top = p.position.y;
         return true;
       });
@@ -1704,8 +1688,8 @@ await check('ladders: climbed to the top (each in the level, a scaffolding bay, 
       top = p.position.y;
       let peak = top;
       await steps((f) => {
-        if (f === 0) input.pressed.add('Space'), keys.add('Space');
-        if (f === 1) keys.delete('Space');
+        if (f === 0) input.key('Space', true);
+        if (f === 1) input.key('Space', false);
         peak = Math.max(peak, p.position.y);
         return (f > 5 && p.onGround) || f > 180;
       });
@@ -1727,12 +1711,12 @@ await check('ladders: climbed to the top (each in the level, a scaffolding bay, 
     p.velocity.set(0, 0, 0);
     p.yaw = -Math.PI / 2;
     let into = false;
-    keys.add('KeyW');
+    input.key('KeyW', true);
     await steps((f) => {
-      if (p.onLadder && !into) (into = true), keys.delete('KeyW');
+      if (p.onLadder && !into) (into = true), input.key('KeyW', false);
       return (into && p.onGround) || f > 300;
     });
-    keys.delete('KeyW');
+    input.key('KeyW', false);
     if (!into || p.position.y > 0.01) out.push(`down the scaffolding: on its ladder ${into}, at ${p.position.y.toFixed(2)}`);
     level.setRuntime('test', null);
     before = new Set(level.ladders);
@@ -1743,13 +1727,13 @@ await check('ladders: climbed to the top (each in the level, a scaffolding bay, 
     // Back off its front (S, facing it): onto the ladder, let go, slide down it to its foot.
     let on = false;
     let fastest = 0;
-    keys.add('KeyS');
+    input.key('KeyS', true);
     await steps((f) => {
-      if (p.onLadder && !on) (on = true), keys.delete('KeyS');
+      if (p.onLadder && !on) (on = true), input.key('KeyS', false);
       fastest = Math.max(fastest, -p.velocity.y);
       return (on && p.onGround) || f > 300;
     });
-    keys.delete('KeyS');
+    input.key('KeyS', false);
     if (!on || !p.onGround || p.position.y > 0.4 || fastest > PLAYER.climbSpeed + 1e-6) out.push(`down the stepladder: on it ${on}, at ${p.position.y.toFixed(2)}, falling up to ${fastest.toFixed(2)} m/s`);
     level.setRuntime(g.session.player, null);
     input.setLocked(false);
