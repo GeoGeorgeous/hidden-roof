@@ -111,6 +111,25 @@ export function noBrowserLock() {
   Element.prototype.requestFullscreen = () => Promise.reject(new DOMException('tests start play with Input.setLocked', 'NotAllowedError'));
 }
 
+/**
+ * An init script, for pages that step the game by hand. In the page, `steps(each, limit)`: frames of a fixed 1/60 s,
+ * `each(frame)` at the start of every one until it returns true. Game time, not the wall clock, so a check gives the
+ * same result every run; after `limit` ms (30 s) it stops anyway, so a check that never gets there fails instead of
+ * hanging. `frames(n, each, limit)`: n such frames, `each(frame)` at the start of each (if given); resolves after the
+ * last. The fixed step stays on 1/60 s afterwards: a test that wants the clock back sets `fixedStep.dt = 0`.
+ */
+export function fixedFrames() {
+  window.steps = (each, limit = 30000) =>
+    new Promise((done) => {
+      const g = window.game;
+      const end = performance.now() + limit;
+      let f = 0;
+      g.fixedStep.dt = 1 / 60;
+      g.fixedStep.script = () => (each(f++) || performance.now() > end) && ((g.fixedStep.script = null), done());
+    });
+  window.frames = (n, each, limit) => window.steps((f) => (each?.(f), f === n - 1), limit);
+}
+
 function keepFramesComing() {
   addEventListener('DOMContentLoaded', () => {
     const style = document.createElement('style');

@@ -99,46 +99,15 @@ export class Input {
   /** Without an element nothing ever reaches it: the player's input while paused in a session. */
   constructor(private element?: HTMLElement) {
     if (!element) return;
-    window.addEventListener('keydown', (e) => {
-      // Typing into a field (the session code, a name, a number in F3) is not playing: a K must not take a screenshot.
-      // Esc and F3 still work there, and Enter still runs the page's primary button.
-      const typing = typingIn(e.target);
-      if (typing && !['Escape', 'F3', 'Enter', 'NumpadEnter'].includes(e.code)) return;
-      if (this.onMenuKey(e.code, true, e.repeat) || (typing && e.code !== 'F3')) return;
-      if (!e.repeat) {
-        this.pressed.add(e.code);
-        // Shortcut combos are recorded at keydown, so releasing Ctrl first can't drop them.
-        if (e.ctrlKey || e.metaKey) this.pressed.add(`Ctrl+${e.code}`);
-      }
-      this.typed.add(e.code);
-      this.down.add(e.code);
-    });
-    window.addEventListener('keyup', (e) => {
-      this.down.delete(e.code);
-      // macOS sends no keyup for keys released while Cmd is held: drop them all (one still held comes back on its auto-repeat).
-      if (e.key === 'Meta') this.down.clear();
-      this.onMenuKey(e.code, false, false);
-    });
+    window.addEventListener('keydown', (e) => this.key(e.code, true, e.repeat, { ctrl: e.ctrlKey, meta: e.metaKey, target: e.target }));
+    window.addEventListener('keyup', (e) => this.key(e.code, false));
     window.addEventListener('blur', () => {
       this.down.clear();
       this.lmb = this.rmb = false;
       this.wheelPx = 0;
     });
-    element.addEventListener('mousedown', (e) => {
-      if (!this.locked) {
-        this.onResume();
-        return;
-      }
-      this.clicks.add(e.button);
-      this.down.add(`Mouse${e.button}`);
-      if (e.button === 0) this.lmb = true;
-      if (e.button === 2) this.rmb = true;
-    });
-    window.addEventListener('mouseup', (e) => {
-      this.down.delete(`Mouse${e.button}`);
-      if (e.button === 0) this.lmb = false;
-      if (e.button === 2) this.rmb = false;
-    });
+    element.addEventListener('mousedown', (e) => this.button(e.button, true));
+    window.addEventListener('mouseup', (e) => this.button(e.button, false));
     window.addEventListener('mousemove', (e) => {
       if (!this.locked) return;
       this.mouseDX += e.movementX;
@@ -156,11 +125,54 @@ export class Input {
         this.wheelPx += px;
         const steps = Math.trunc(this.wheelPx / WHEEL.notchPx);
         this.wheelPx -= steps * WHEEL.notchPx;
-        this.wheelSteps += steps;
+        this.wheel(steps);
       },
       { passive: true },
     );
     document.addEventListener('pointerlockchange', () => this.setLocked(document.pointerLockElement === this.element));
+  }
+
+  /**
+   * A key went down or up, as the browser reports it (the listeners' one entry, and the way tests press keys).
+   * `target`: where a keydown came from, `ctrl`/`meta`: modifiers held with it.
+   */
+  key(code: string, down: boolean, repeat = false, mods: { ctrl?: boolean; meta?: boolean; target?: EventTarget | null } = {}) {
+    if (!down) {
+      this.down.delete(code);
+      // macOS sends no keyup for keys released while Cmd is held: drop them all (one still held comes back on its auto-repeat).
+      if (sideless(code) === 'Meta') this.down.clear();
+      this.onMenuKey(code, false, false);
+      return;
+    }
+    // Typing into a field (the session code, a name, a number in F3) is not playing: a K must not take a screenshot.
+    // Esc and F3 still work there, and Enter still runs the page's primary button.
+    const typing = typingIn(mods.target ?? null);
+    if (typing && !['Escape', 'F3', 'Enter', 'NumpadEnter'].includes(code)) return;
+    if (this.onMenuKey(code, true, repeat) || (typing && code !== 'F3')) return;
+    if (!repeat) {
+      this.pressed.add(code);
+      // Shortcut combos are recorded at keydown, so releasing Ctrl first can't drop them.
+      if (mods.ctrl || mods.meta) this.pressed.add(`Ctrl+${code}`);
+    }
+    this.typed.add(code);
+    this.down.add(code);
+  }
+
+  /** A mouse button (0 left, 1 middle, 2 right) went down or up. While paused a press resumes instead. */
+  button(n: number, down: boolean) {
+    if (down && !this.locked) {
+      this.onResume();
+      return;
+    }
+    if (down) (this.clicks.add(n), this.down.add(`Mouse${n}`));
+    else this.down.delete(`Mouse${n}`);
+    if (n === 0) this.lmb = down;
+    if (n === 2) this.rmb = down;
+  }
+
+  /** Whole wheel steps taken (positive down), as the listener counts them from the scroll. */
+  wheel(steps: number) {
+    this.wheelSteps += steps;
   }
 
   /** The pointer is locked to the game: playing. */
