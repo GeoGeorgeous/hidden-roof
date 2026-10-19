@@ -8,7 +8,7 @@ import { body, discordNotes, githubNotes, newestFirst, parseRelease } from '../s
 const dir = 'docs/releases';
 const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 const MAX_PICTURE = 300 * 1024;
-const MAX_TEXT = 1800; // fits a Discord message (2000) with its title and link
+const MAX_TEXT = 3000; // Discord gets it in more than one message (release-notes.ts)
 
 /** A WebP's canvas size, from its VP8X header (the extended format a browser writes). */
 function webpSize(file) {
@@ -41,7 +41,7 @@ for (const file of files) {
   assert.ok(w === 1280 && h === 720 && size <= MAX_PICTURE, `public/updates/${tag}.webp: ${w}×${h}, ${size} bytes; want 1280×720, at most ${MAX_PICTURE}`);
   const github = githubNotes(md, 'URL');
   assert.ok(github.startsWith(text.trim().slice(0, 20)) && github.includes('src="URL"'), `${at}: renders for GitHub`);
-  assert.ok(discordNotes(tag, md).length <= 2000, `${at}: fits one Discord message`);
+  assert.ok(discordNotes(tag, md).every((m) => m.length <= 2000), `${at}: each Discord message fits 2000 characters`);
   releases.push(r);
 }
 assert.ok(files.includes(`v${pkg.version}.md`), `package.json's version ${pkg.version} has its note`);

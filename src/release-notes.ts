@@ -48,10 +48,23 @@ export const newestFirst = (a: Release, b: Release) => b.tag.localeCompare(a.tag
 
 export const REPO = 'GeoGeorgeous/hidden-roof';
 
-/** The Discord message (at most 2000 characters): the title, the date and a link to the GitHub release, then the note; the picture is attached. */
-export function discordNotes(tag: string, md: string): string {
+/** Discord's limit for one message. */
+const DISCORD_MAX = 2000;
+
+/**
+ * The Discord messages: the title, the date and a link to the GitHub release, then the note, split between items
+ * where it doesn't fit one message (2000 characters); the picture goes with the first.
+ */
+export function discordNotes(tag: string, md: string): string[] {
   const { date } = parseRelease(tag, md);
-  return `# Hidden Roof ${tag.slice(1)}\n-# ${date} · [GitHub](<https://github.com/${REPO}/releases/tag/${tag}>)\n\n${body(md).trim()}\n`;
+  const [intro, ...items] = body(md).trim().split(/\n(?=- )/);
+  const messages = [`# Hidden Roof ${tag.slice(1)}\n-# ${date} · [GitHub](<https://github.com/${REPO}/releases/tag/${tag}>)\n\n${intro.trim()}`];
+  for (const item of items) {
+    const joined = `${messages[messages.length - 1]}\n\n${item.trim()}`;
+    if (joined.length <= DISCORD_MAX) messages[messages.length - 1] = joined;
+    else messages.push(item.trim());
+  }
+  return messages.map((m) => `${m}\n`);
 }
 
 /** The GitHub release's notes: the intro, the picture at `pictureUrl`, then the items (GitHub shows the release's title above them). */
