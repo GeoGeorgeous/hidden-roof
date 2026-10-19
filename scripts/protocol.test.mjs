@@ -140,7 +140,7 @@ out.clear();
 out.take([roll], 5);
 assert.equal(out.batch().seq, 1);
 
-// Paint ops travel in meters, so neither module reads the local PAINT.texelsPerMeter (BL-149): at every PAINT DETAIL
+// Paint ops travel in meters, so neither module reads the local PAINT.texelsPerMeter: at every PAINT DETAIL
 // the messages and op batches pack to the same bytes and unpack to the same ops.
 const wire = () => {
   const ops = encodeOps([1.5, 1.55, 1.6], [stamp, roll, drip], surfaces);
