@@ -6,6 +6,7 @@ import { finish } from './game/harness.mjs';
 
 await import('./game/menu.mjs');
 await import('./game/controls.mjs');
+await import('./game/remember.mjs');
 await import('./game/files.mjs');
 await import('./game/input.mjs');
 await import('./game/paint.mjs');
