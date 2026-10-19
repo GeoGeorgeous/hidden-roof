@@ -1066,7 +1066,7 @@ export const PERF_TEST = {
 export const PROFILE = {
   /** The slowest frames the report keeps whole, with where their CPU time went. */
   worstFrames: 20,
-  /** Each probe step: time for the change to settle (shader compiles, smoothed GPU timers), then time measured (s). */
+  /** Each probe step: time for the change to settle (smoothed GPU timers; a frame that compiles a shader starts the settling over), then time measured (s). */
   probeSettle: 1.5,
   probeMeasure: 3,
   /** And at least this many frames for each (settling, then measured). */

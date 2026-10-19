@@ -64,7 +64,7 @@ const STEPS: Step[] = [
 export interface ProbeResult {
   step: string;
   frames: number;
-  /** Time between frames (the median: a step's shader compiles don't count), mean CPU and GPU time (all passes; null where the browser can't time it), ms. */
+  /** Time between frames (the median), mean CPU and GPU time (all passes; null where the browser can't time it), ms. */
   frameMs: number;
   cpuMs: number;
   gpuMs: number | null;
@@ -80,6 +80,8 @@ export class Probe {
   private undo: (() => void) | null = null;
   private since = 0;
   private settled = 0;
+  /** The newest shader program built so far (their ids count up): a frame that moved it compiled something. */
+  private built = 0;
   private baseCost = 0;
   private sum = { intervals: [] as number[], cpu: 0, gpu: 0, gpuFrames: 0, calls: 0 };
 
@@ -110,6 +112,13 @@ export class Probe {
   /** Once a frame. Returns true when the last step is done. */
   frame(now: number, frameMs: number, cpuMs: number, gpuMs: number | null, calls: number) {
     if (!this.running) return false;
+    // A step's change can make three.js build new program variants (no lights, no shadows), and the frame that builds them waits for the GPU's compiler: settle again from here, so no such frame is measured.
+    const built = this.newestProgram();
+    if (built !== this.built) {
+      this.built = built;
+      this.restart(now);
+      return false;
+    }
     const t = (now - this.since) / 1000;
     // Settled: the time has passed and some frames have been drawn (a compile can hold up the first ones for seconds).
     if (t < PROFILE.probeSettle || ++this.settled < PROFILE.probeSettleFrames) return false;
@@ -144,9 +153,18 @@ export class Probe {
     // Steps with nothing to turn off here (volumetrics already off) are skipped.
     while (++this.i < STEPS.length && !(this.undo = STEPS[this.i].apply(this.w)));
     if (this.i >= STEPS.length) this.i = -1;
+    this.built = this.newestProgram();
+    this.restart(now);
+  }
+
+  private restart(now: number) {
     this.since = now;
     this.settled = 0;
     this.sum = { intervals: [], cpu: 0, gpu: 0, gpuFrames: 0, calls: 0 };
+  }
+
+  private newestProgram() {
+    return this.w.renderer.info.programs?.reduce((top, p) => Math.max(top, p.id), 0) ?? 0;
   }
 }
 
