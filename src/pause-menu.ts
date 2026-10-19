@@ -103,7 +103,7 @@ export class PauseMenu {
     const menu = div('menu');
     menu.append(
       column('paint', this.savePaint, this.loadPaint),
-      column('settings', ...Object.entries({ Game: 'Gameplay', Graphics: 'Graphics', Audio: 'Sound', Controls: 'Controls' }).map(([t, tab]) => item(t, () => this.openSettings(tab)))),
+      column('settings', ...Object.entries({ Game: 'Gameplay', Audio: 'Sound', Controls: 'Controls', Graphics: 'Graphics' }).map(([t, tab]) => item(t, () => this.openSettings(tab)))),
       column('about', item('Updates', () => this.openPage('updates')), item('Credits', () => this.openPage('credits'))),
     );
     const foot = div('foot');
@@ -200,7 +200,7 @@ export class PauseMenu {
     el.hidden = this.page !== page;
   }
 
-  /** The settings page on the tab with this title (Gameplay, Controls, Graphics, Sound); `row`: scrolled to the row with this label. */
+  /** The settings page on the tab with this title (Gameplay, Sound, Controls, Graphics); `row`: scrolled to the row with this label. */
   openSettings(tab: string, row?: string) {
     this.openPage('settings');
     this.settingsPage?.showTab(tab, row);

@@ -1,4 +1,4 @@
-import { AUDIO, HUD, INK_STYLES, PAINT, PAINT_DETAIL, PLAYER, RENDER, SKYLINE, SMOKE, VOLUMETRICS } from './config';
+import { AUDIO, HUD, INK_STYLES, PAINT, PAINT_DETAIL, PLAYER, RENDER, SKYLINE, SMOKE, VOLUMETRICS, WALL_HAND } from './config';
 import { exitGameFullscreen } from './fullscreen';
 import { sentence } from './menu-ui';
 import { DEFAULT_STYLE, inkStyle, setInkStyle } from './render/ink/styles';
@@ -95,9 +95,9 @@ export class Settings {
     };
     return [
       { title: 'Gameplay', rows: gameplayRows().map(saving) },
+      { title: 'Sound', rows: soundRows().map(saving) },
       { title: 'Controls', rows: [], tab: new ControlsTab(() => this.save()) },
       { title: 'Graphics', rows: [{ kind: 'action', label: 'Performance test', desc: 'Flies over the roof for a few seconds at your current settings and shows how it ran.', button: 'Run', act: runTest }, ...this.graphicsRows(gpu).map(saving)] },
-      { title: 'Sound', rows: soundRows().map(saving) },
     ];
   }
 
@@ -346,12 +346,7 @@ function gameplayRows(): SettingRow[] {
       set: (v) => (RENDER.sprintFovBoost = v),
       format: (v) => (v ? `+${v}°` : 'Off'),
     },
-    {
-      kind: 'choice',
-      label: 'Crouch',
-      value: () => (PLAYER.crouchToggle ? 'Toggle' : 'Hold'),
-      step: () => (PLAYER.crouchToggle = !PLAYER.crouchToggle),
-    },
+    toggle('Show left hand', () => WALL_HAND.enabled, (on) => (WALL_HAND.enabled = on), undefined, 'Your free hand rests on walls you stand close to. It may get in the way of what you paint.'),
   ];
 }
 
@@ -375,6 +370,7 @@ const REMEMBERED: Remembered[] = [
   { name: 'ATMOS.rain', obj: NIGHT, field: 'rain' },
   { name: 'SMOKE.enabled', obj: SMOKE, field: 'enabled' },
   { name: 'HUD.perf', obj: HUD, field: 'perf' },
+  { name: 'WALL_HAND.enabled', obj: WALL_HAND, field: 'enabled' },
   ...SOUNDS.map(([, field]) => ({ name: `AUDIO.${field}`, obj: AUDIO, field })),
 ];
 

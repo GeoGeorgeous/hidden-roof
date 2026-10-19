@@ -67,13 +67,10 @@ await check('settings: Controls binds a key, button or wheel step to two slots e
     slot('Tool 1', 0).dispatchEvent(new MouseEvent('click', { shiftKey: true, bubbles: true }));
     const restored = [...BINDINGS.slot1];
     const kept = saved().controls;
-    // Crouch's mode is Gameplay's Crouch; Tap twice to run is remembered.
+    // Crouch's mode and Tap twice to run are remembered.
     row('Crouch').querySelectorAll('.choice button')[1].click();
     row('Forward').querySelectorAll('.choice button')[0].click();
     const modes = [PLAYER.crouchToggle, PLAYER.tapToRun, row('Crouch').querySelector('.choice .value').textContent, row('Forward').querySelector('.choice .value').textContent, saved().values];
-    menu.openSettings('Gameplay');
-    const gameplay = [...document.querySelectorAll('.settings-page .setting-row')].find((r) => r.querySelector('.label').textContent === 'Crouch').querySelector('.choice .value').textContent;
-    menu.openSettings('Controls');
     row('Crouch').querySelectorAll('.choice button')[0].click();
     row('Forward').querySelectorAll('.choice button')[1].click();
     // Reset all asks first, then can be undone.
@@ -86,7 +83,7 @@ await check('settings: Controls binds a key, button or wheel step to two slots e
     corner('Reset all').click();
     corner('Reset').click();
     menu.openPage(null);
-    return { groups, defaults, listening, swallowed, heard, forward, moved, undone, mods, refused, cancelled, shake, shakes, wheel, heldWheel, cleared, restored, kept: Object.keys(kept).sort().join(), modes, gameplay, asking, reset, back, values: saved().values };
+    return { groups, defaults, listening, swallowed, heard, forward, moved, undone, mods, refused, cancelled, shake, shakes, wheel, heldWheel, cleared, restored, kept: Object.keys(kept).sort().join(), modes, asking, reset, back, values: saved().values };
   });
   // Saves from before the two slots (keys) are dropped; reserved keys aren't loaded.
   const p = await openPage((saved) => localStorage.setItem('roofhiddenhaus.settings', saved), undefined, JSON.stringify({ controls: { forward: ['KeyI', null], use: ['F5', null] }, keys: { back: ['KeyX'] } }));
@@ -113,7 +110,6 @@ await check('settings: Controls binds a key, button or wheel step to two slots e
     restored: ['Digit1'],
     kept: 'crouch,forward,next,pick,prev,shake,sprint',
     modes: [true, false, 'Toggle', 'No', { 'PLAYER.crouchToggle': true, 'PLAYER.tapToRun': false }],
-    gameplay: 'Toggle',
     asking: 'Reset all controls?',
     reset: { forward: 'KeyW,ArrowUp', crouch: 'ControlLeft,ControlRight,KeyC', next: 'WheelDown', foot: 'Controls are back to defaults.', dim: true, saved: {} },
     back: 'WheelUp',

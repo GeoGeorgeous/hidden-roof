@@ -241,25 +241,25 @@ await check('settings: gameplay, sound and on/off settings are remembered after 
       input.dispatchEvent(new Event('input'));
     };
     menu.openSettings('Gameplay');
-    row('Crouch').querySelectorAll('.choice button')[1].click();
+    row('Show left hand').querySelectorAll('.choice button')[1].click();
     menu.openSettings('Sound');
     slide('Master', 150);
     const saved = localStorage.getItem('roofhiddenhaus.settings');
     // Back to the defaults: nothing left to save.
     slide('Master', 100);
     menu.openSettings('Gameplay');
-    row('Crouch').querySelectorAll('.choice button')[1].click();
+    row('Show left hand').querySelectorAll('.choice button')[1].click();
     menu.openPage(null);
     return { saved: JSON.parse(saved).values, after: JSON.parse(localStorage.getItem('roofhiddenhaus.settings')).values };
   });
   const p = await openPage((saved) => localStorage.setItem('roofhiddenhaus.settings', saved), undefined, JSON.stringify({ values: r.saved }));
   const loaded = await p.evaluate(() => {
-    const { AUDIO, PLAYER } = window.game.config;
-    return { master: AUDIO.masterGain, crouchToggle: PLAYER.crouchToggle };
+    const { AUDIO, WALL_HAND } = window.game.config;
+    return { master: AUDIO.masterGain, hand: WALL_HAND.enabled };
   });
   const defaults = await page.evaluate(() => window.game.config.AUDIO.masterGain);
   await p.close();
-  const ok = Object.keys(r.saved).sort().join() === 'AUDIO.masterGain,PLAYER.crouchToggle' && r.saved['PLAYER.crouchToggle'] === true && JSON.stringify(r.after) === '{}' && loaded.crouchToggle === true && Math.abs(loaded.master - defaults * 1.5) < 1e-9;
+  const ok = Object.keys(r.saved).sort().join() === 'AUDIO.masterGain,WALL_HAND.enabled' && r.saved['WALL_HAND.enabled'] === false && JSON.stringify(r.after) === '{}' && loaded.hand === false && Math.abs(loaded.master - defaults * 1.5) < 1e-9;
   return ok ? null : JSON.stringify({ ...r, loaded, defaults });
 });
 

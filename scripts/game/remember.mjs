@@ -26,7 +26,7 @@ await check('settings: every control of Gameplay, Controls, Graphics and Sound i
   const p = await openPage();
   try {
     const before = await snapshot(p);
-    // Each control changed as the menu does: a choice stepped once, a slider moved off its default, two keys bound, and Tap twice to run flipped (Crouch's mode is Gameplay's).
+    // Each control changed as the menu does: a choice stepped once, a slider moved off its default, two keys bound, and Tap twice to run flipped (Crouch's mode is Controls').
     await p.evaluate(() => {
       const g = window.game;
       for (const tab of ['Gameplay', 'Graphics', 'Sound']) {
