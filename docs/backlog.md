@@ -4,9 +4,7 @@ The one list of what's left. One line per item, under its domain: `[TYPE-NNN]: w
 
 ## Now: 1.4.0
 
-1. TASK [BL-132]: One test driver: steps, keys and buttons, instead of four copies and private writes (docs/ideas/test-driver.md)
-2. TASK [BL-134]: Split game.test.mjs (2318 lines) into scripts/game/ by area (docs/ideas/test-driver.md)
-3. TASK [BL-013]: Device checks before the release: page zoom, three browsers, mouse side buttons, browser keys (docs/ideas/release-checks.md)
+1. TASK [BL-013]: Device checks before the release: page zoom, three browsers, mouse side buttons, browser keys (docs/ideas/release-checks.md)
 
 ## Multiplayer
 
@@ -140,3 +138,5 @@ Shipped since the last release; the release commit empties this list. What 1.4.0
 5. TASK [BL-133]: F3 builds its hooks first, then the panel (DevTools passes a Hooks interface to DebugPanel); the placeholder hooks, hooks.ts and its test are gone
 6. TASK [BL-131]: An Environment module (render/environment.ts) builds, rebuilds and updates sky, fog, atmosphere, lights, lightning, rain, smoke and the view scene's lights; main.ts calls it and window.game has environment
 7. TASK [BL-113]: One Sender (net/sender.ts) owns paint.log and says what this player sends: the snapshot clock, the stepladder and inventory checks, the paint ops taken; Multiplayer sends its output, the ghost records and plays the same messages through SimLink and RemotePlayer.deliver, and its own copy of the send path is gone
+8. TASK [BL-132]: One test driver: one fixed-frame stepper in test-browser.mjs; Input takes keys, buttons and the wheel through key/button/wheel, and tests press through them
+9. TASK [BL-134]: game.test.mjs split by area into scripts/game/, one module each under ~400 lines, one runner
