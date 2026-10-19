@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 175
+The one list of what's left. Counter for new ids: next: 178
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -45,15 +45,12 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 </details>
 
-## Now: 1.5.0
-<!-- Groups next-version tickets by owner in owner-side apps -->
-
 ## Multiplayer
 
-1. BUGS [BL-024]: Paint ops are most of the downstream bytes; merge stamps, shed load on slow links, after the playtest (docs/ideas/weak-links.md) @1.5.0
-2. TASK [BL-076]: Run the next public playtest and verify that all bugs from the previous playtest have been fixed (docs/ideas/weak-links.md) @1.6.0
-3. TASK [BL-112]: The remote player's timeline as a pure module with a Node test (docs/ideas/remote-timeline.md) @1.6.0
-4. IDEA [?BL-114]: A failure says whether the player was in a session, for the notification system (docs/ideas/notifications.md)
+1. BUGS [BL-024]: Paint ops are most of the downstream bytes; merge stamps, shed load on slow links, after the playtest (docs/ideas/weak-links.md) @1.6.1
+2. TASK [BL-076]: Run the next public playtest and verify that all bugs from the previous playtest have been fixed (docs/ideas/weak-links.md) @1.6.1
+3. RFCT [BL-112]: The remote player's timeline as a pure module with a Node test (docs/ideas/remote-timeline.md) @1.5.0
+4. IDEA [BL-114]: A failure says whether the player was in a session, for the notification system (docs/ideas/notifications.md) @1.9.0
 5. IDEA [?BL-071]: Multiplayer View-Only sessions: past sessions are opened for viewing only (gallary)
 6. TASK [BL-151]: Show what each other player is doing, add more statuses (in the menu, in Settings…) by their nameplate. For now, we have AWAY and DISCONNECTED @1.6.0
 7. IDEA [?BL-153]: Find who painted something by player id, picked like the eyedropper (to spot bad paint)
@@ -63,7 +60,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## Painting
 
-1. TASK [BL-145]: PaintSurface is a public struct written by GPU upload, the baker and painting; "has paint?" asked two ways (paint-surface.ts) @1.5.0
+1. RFCT [BL-145]: PaintSurface is a public struct written by GPU upload, the baker and painting; "has paint?" asked two ways (paint-surface.ts) @1.5.0
 2. IDEA [BL-074]: Stencils
 3. IDEA [?BL-152]: Tune the can's pressure with Shift + mouse
 4. RFCT [BL-015]: Rework the drips: each setting does one thing; spraying over a coat no longer grows them (docs/ideas/painting.md) @1.5.0
@@ -92,7 +89,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## Rendering
 
 1. BUGS [?BL-011]: Title-screen pickup rings are sized for where the player stands, not the title view
-2. BUGS [?BL-110]: Crossed lines on the menu's glass bars on the Intel UHD under WSL (likely the driver)
+2. ~~BUGS [?BL-110]: Crossed lines on the menu's glass bars on the Intel UHD under WSL (likely the driver)~~
 3. IDEA [BL-066]: A camera mode for trailers and cinematics
 
 ## Props and level
@@ -116,14 +113,16 @@ Only `N.`, the id and the description are required. The optional parts appear in
 2. BUGS [BL-142]: Other players' figures hold their tools wrong: roller width, sponge tilt, ladder model (docs/ideas/tools.md)
 3. IDEA [BL-062]: Photo mode with Polaroid-like cards for photos
 4. IDEA [BL-061]: A player in the style of an old iPod Classic
+5. [TEST-177]: Allow releasing small patch versions with no image at all @1.6.1
 
 ## UI
 
-1. IDEA [BL-140]: One notification system: messages lost in menus and hidden tabs, nothing in play says reconnecting (docs/ideas/notifications.md)
-2. DSGN [BL-092]: A screen that teaches the controls (nothing names the wheel and Q/E since the spawn wall's paint went) @1.5.0
+1. IDEA [BL-140]: One notification system: messages lost in menus and hidden tabs, nothing in play says reconnecting (docs/ideas/notifications.md) @1.9.0
+2. DSGN [BL-092]: A screen that teaches the controls @1.5.0
 3. ~~BUGS [BL-072]: Nickname tags don't scale with the UI and resolution~~
 4. [?BUGS-162]: The browser's page zoom scales the HUD and menus @1.5.0
 5. TASK [BL-078]: Show BUY ME A COFFEE again once it has a link (revert e2c2310) @1.6.0
+6. [BUGS-175]: Screenshot K does not capture players name tags
 
 ## Avatar
 
@@ -142,15 +141,15 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## Tests and tooling
 
 1. TEST [BL-035]: Fixed-step tests for walking, collisions, jumps and climbing
-2. BUGS [?BL-037]: A game test page twice failed to load its level in 120 s; read `gameReady`'s log when it repeats
-3. TEST [BL-036]: Light baking and weather run on the wall clock; decide what a test would compare first
-4. TASK [BL-079]: The F3 probe's own shader compiles land in its measurement
-5. TEST [BL-149]: A test that the protocol and op-wire never read PAINT.texelsPerMeter
+2. ~~BUGS [?BL-037]: A game test page twice failed to load its level in 120 s; read `gameReady`'s log when it repeats~~
+3. TEST [BL-036]: Light baking and weather run on the wall clock; decide what a test would compare first @1.5.0
+4. TEST [BL-079]: The F3 probe's own shader compiles land in its measurement @1.5.0
+5. TEST [BL-149]: A test that the protocol and op-wire never read PAINT.texelsPerMeter @1.5.0
 6. TASK [BL-156]: CI is pinned to ubuntu-24.04 for 1.4.0; move it to Ubuntu 26 after 1.5.0 release @1.5.0
 
 ## Servers and deploy
 
-1. TASK [BL-030]: Precompressed assets served by Caddy (docs/ideas/server-ops.md)
+1. PERF [BL-030]: Precompressed assets served by Caddy (docs/ideas/server-ops.md) @1.5.0
 2. TASK [BL-077]: Deploy from GitHub Actions (docs/ideas/server-ops.md)
 3. IDEA [BL-043]: One public server, running 24/7 (docs/ideas/public-servers.md) @1.6.0
 4. TASK [BL-044]: Disable host and join (don't remove them), after BL-043 (docs/ideas/public-servers.md) @1.6.0
@@ -158,23 +157,27 @@ Only `N.`, the id and the description are required. The optional parts appear in
 6. [DSGN-160]: The lobby list for BL-045: allowed tools, players online, ping with a country flag @1.6.0
 7. IDEA [BL-046]: A queue to enter the server, after BL-043 (docs/ideas/public-servers.md) @1.6.0
 8. IDEA [BL-047]: Admin panel: servers stats (players online, perfomance, etc), players info (username, IP, ping), ban by IP, after BL-043 (docs/ideas/public-servers.md) @1.6.0
-9. IDEA [BL-147]: The server checks what players send (op reach and rate, ladder spot, jumps) before it goes public @1.5.0
+9. IDEA [?BL-147]: Anti-cheat: The server checks what players send (op reach and rate, ladder spot, jumps) before it goes public @1.6.0
 10. [BUGS-174]: DevTools displays comments in the HTML, CSS, and JavaScript, but the code should be minified @1.5.0
 
 ## Web and promotion
 
-1. TASK [BL-068]: Meta tags: title, description, canonical, Open Graph, Twitter Card @1.5.0
-2. TASK [BL-069]: robots.txt (with rules for AI bots), sitemap.xml and llms.txt @1.5.0
-3. TASK [BL-070]: JSON-LD, semantic HTML outside the canvas, favicons and a web manifest @1.5.0
+1. TASK [BL-068]: Meta tags: title, description, canonical, Open Graph, Twitter Card (docs/ideas/seo.md) @1.5.0
+2. TASK [BL-069]: robots.txt (with rules for AI bots), sitemap.xml and llms.txt (docs/ideas/seo.md) @1.5.0
+3. TASK [BL-070]: JSON-LD, semantic HTML outside the canvas, favicons and a web manifest (docs/ideas/seo.md) @1.5.0
 4. TASK [BL-067]: Posts on Reddit with technical decription @1.6.0
 5. [TASK-169]: Creating and posting instagram reels @1.7.0
 6. IDEA [BL-065]: A minimal tool to record gameplay as GIFs and short videos
 7. [TASK-170]: Create accounts in social media (Discord, Instagram, YouTube, TikTok, subreddit) @1.5.0
-8. [TASK-173]: Add cookies notification and all legal necessary documentation @1.5.0
 
 ## Auth
 
 1. [IDEA-171]: Add Auth
+
+## Legal
+
+1. [TASK-176]: Add LICENCE, CONTRIBUTING, Terms of Service and other Legal docs (docs/ideas/legal.md) @1.5.0
+2. [TASK-173]: Add cookies notification and all legal necessary documentation (docs/ideas/legal.md) @1.5.0
 
 ## Done
 
