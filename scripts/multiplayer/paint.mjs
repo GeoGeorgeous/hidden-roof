@@ -26,8 +26,9 @@ export async function paint(w) {
     const s = g.paint.surfaces.find((s) => s.geo.rects.length > 1);
     for (let i = 0; i < 10; i++) g.paint.stamp(s, { rect: 1, u: 0.2 + i * 0.05, v: 0.5 }, 0.1, 0.3, [0.1, 0.2, 1]);
   });
-  // Polled on a timer: a hidden page runs no frames.
-  await b.waitForFunction(() => window.game.paint.surfaces.some((s) => s.dirty.length), null, { timeout: 5000, polling: 100 });
+  // Polled from here: a hidden page runs no frames. Not its dirty rects: the frame it asked for before hide() still runs
+  // and uploads them, so paint that lands before it leaves none.
+  for (const until = Date.now() + 5000; Date.now() < until && (await paintHash(b)) === hidden; ) await b.waitForTimeout(100);
   assert.notEqual(await paintHash(b), hidden, 'B paints what A paints while B is hidden');
   assert.equal(await b.evaluate(() => [...window.game.net.remotes.list.values()][0].events.length), 0, 'nothing waits for B to be shown');
   await b.evaluate(() => window.show());

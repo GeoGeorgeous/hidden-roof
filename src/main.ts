@@ -2,7 +2,7 @@ import './style.css';
 import * as THREE from 'three';
 import * as config from './config';
 import { flyCamera, titleCamera } from './render/title-view';
-import { ATMOS, COLORS, HUD, LEVELS, PLAYER, PRESSURE, RENDER, VOLUMETRICS } from './config';
+import { ATMOS, COLORS, HUD, LEVELS, PLAYER, PRESSURE, RENDER, VOLUMETRICS, WALL_HAND } from './config';
 import { syncSharedUniforms } from './materials';
 import { syncTrackUniforms } from './render/cctv-track';
 import { LightBaker } from './render/bake/baker';
@@ -281,7 +281,7 @@ function step(time: number) {
   if (!frozen) {
     if (building) dev!.update(input, camera);
     tools.update(dt, yours, camera, eye, player, !building);
-    wallHand.update(dt, camera, eye, !building, tools.spray.model.sway);
+    wallHand.update(dt, camera, eye, WALL_HAND.enabled && !building, tools.spray.model.sway);
     drips.update(dt);
     pickups.update(dt, player.position, inventory);
   } else {

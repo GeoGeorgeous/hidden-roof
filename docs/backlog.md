@@ -1,6 +1,50 @@
 # Backlog
 
-The one list of what's left. One line per item, under its domain: `[TYPE-NNN]: what`. TYPE is BUGS, IDEA, TASK, DSGN where a designer's work comes first, PERF for frame time, memory or load time, RFCT for a refactor that keeps behavior identical, TEST for tests and tooling, or DOCS for docs only; one counter for all types (next: 165), so a number is used once and stays if the type changes. `?` in front (`[?BUGS-162]`) means unconfirmed: check it before working on it. Older items keep their `BL-NNN` ids. Detail an item needs is in the file it links. When an item ships, its line moves to Done; the release commit empties Done.
+The one list of what's left. Counter for new ids: next: 168
+
+<details>
+<summary>Backlog rules (read before editing)</summary>
+
+### File structure
+
+- **Counter:** one sequential counter for all items, on the line above. Every new id takes that number, then the counter goes up by one. Numbers are never reused, even if an item's type changes or the item is deleted.
+- **Sections:** `Now: X.Y.Z` holds the current release; domain sections (Multiplayer, Painting, UI, ...) hold the backlog; `Done` holds items shipped since the last release and is emptied by the release commit.
+- **Numbering:** items are numbered 1, 2, 3... within each section. Renumber the section after any add, move or removal.
+
+### Item line
+
+`N. [~~]TYPE [MARKERS ID]: Description (path/to/detail.md) @X.Y.Z[~~]`
+
+Only `N.`, the id and the description are required. The optional parts appear in this order:
+
+- **TYPE:** `BUGS`, `IDEA`, `TASK`, `DSGN` (designer's work comes first), `PERF` (frame time, memory, load time), `RFCT` (refactor, same behavior), `TEST` (tests and tooling), `DOCS` (docs only).
+- **ID:** two formats exist. Both took their numbers from the same counter, so a number appears only once across all of them.
+  - **Current format** `[TYPE-NNN]`, for every new item. No separate type word; the type is the id prefix. Example: `3. [BUGS-165]: Lamps flicker after a reload`
+  - **Legacy format** `[BL-NNN]`, for items created before the change. These keep a type word in front, because the id carries no type. Example: `1. TASK [BL-013]: Device checks before the release`
+  - Never create new `BL` ids, and never convert a `BL` id to the current format. Other lines, docs and commits refer to it (e.g. "after BL-015").
+  - **Reclassifying:** keep the number. For a current id change the prefix (`[BUGS-161]` becomes `[TASK-161]`); for a legacy id change only the type word (`IDEA [BL-071]` becomes `TASK [BL-071]`).
+- **Markers:** zero or more characters inside the brackets, before the id, always in the order `!?>`: `!` critical, `?` unconfirmed (verify before working on it), `>` explain (the owner wants it explained). Examples: `[?BUGS-162]`, `[!>BL-024]`. Keep markers when editing a line; never drop them silently.
+- **Detail link:** specs live in `docs/ideas/` and are linked in parentheses after the description.
+- **Release tag:** `@X.Y.Z` at the very end of the line.
+- **Deleted:** everything after the number is wrapped in `~~...~~`. The item is dropped but kept for the record: don't work on it, don't move it to Done, and don't remove the line unless asked.
+
+### Release planning
+
+- Items in `Now: X.Y.Z` belong to release X.Y.Z and need no tag.
+- Any other item can be planned for a future release with `@X.Y.Z` at the end of its line. It stays in its domain section.
+- An item without a tag and outside Now is unplanned. A release's list is Now (when it is that version) plus every line tagged with that version.
+- Never invent a release tag. Plan items for a release only when asked.
+- **Starting the next release** (e.g. 1.4.0 is released and 1.5.0 begins): rename the section to `Now: 1.5.0`, move every line tagged `@1.5.0` into it and remove the tag, leave later tags where they are, and ask before moving anything left unshipped from the old release.
+
+### Operations
+
+- **Add:** take the counter's number and increment it. Write `[TYPE-NNN]` under the right domain or Now, and link a detail doc if there is one.
+- **Ship:** move the line into Done and drop its release tag. Delete its detail doc in `docs/ideas/` (or its part of a shared one) and the link.
+- **Delete:** wrap the line in `~~...~~` in place; don't remove it.
+- **Unconfirmed (`?`):** before working on it, check whether the problem is real and report back. Remove the `?` only once it is confirmed.
+- **Explain (`>`):** find every id containing `>`. For each, say what the task means, why it matters and what the work involves, using the linked docs/ideas file and the code. Then remove the `>` from those ids.
+
+</details>
 
 ## Now: 1.4.0
 
@@ -8,44 +52,47 @@ The one list of what's left. One line per item, under its domain: `[TYPE-NNN]: w
 
 ## Multiplayer
 
-1. BUGS [BL-024]: Paint ops are most of the downstream bytes; merge stamps, shed load on slow links, after the playtest (docs/ideas/weak-links.md)
-2. IDEA [BL-076]: The next playtest: binary ops, 12–20 players on separate networks, better telemetry (docs/ideas/weak-links.md)
-3. TASK [BL-112]: The remote player's timeline as a pure module with a Node test (docs/ideas/remote-timeline.md)
-4. IDEA [BL-114]: A failure says whether the player was in a session, for the notification system (docs/ideas/notifications.md)
-5. IDEA [BL-071]: Saved past sessions, opened for viewing only
-6. IDEA [BL-151]: Show what each other player is doing (in the menu, in Settings…) by their nameplate
-7. IDEA [BL-153]: Find who painted something by player id, picked like the eyedropper (to spot bad paint)
-8. IDEA [BL-154]: Limit some tools in multiplayer (e.g. the roller)
+1. BUGS [BL-024]: Paint ops are most of the downstream bytes; merge stamps, shed load on slow links, after the playtest (docs/ideas/weak-links.md) @1.6.0
+2. IDEA [BL-076]: The next playtest: binary ops, 12–20 players on separate networks, better telemetry (docs/ideas/weak-links.md) @1.7.0
+3. TASK [BL-112]: The remote player's timeline as a pure module with a Node test (docs/ideas/remote-timeline.md) @1.6.0
+4. IDEA [?BL-114]: A failure says whether the player was in a session, for the notification system (docs/ideas/notifications.md)
+5. IDEA [?BL-071]: Saved past sessions, opened for viewing only
+6. IDEA [BL-151]: Show what each other player is doing (in the menu, in Settings…) by their nameplate @1.6.0
+7. IDEA [?BL-153]: Find who painted something by player id, picked like the eyedropper (to spot bad paint)
+8. IDEA [BL-154]: Limit some tools in multiplayer (e.g. the roller) @1.6.0
 
 ## Painting
 
-1. BUGS [BL-015]: Rework the drips: each setting does one thing; spraying over a coat no longer grows them (docs/ideas/painting.md)
-2. TASK [BL-016]: Tune drips per tool by hand and remove the strong ones, after BL-015 (docs/ideas/painting.md)
-3. TASK [BL-017]: Tune the can's caps until painting feels right, against Bombing!! 2 (docs/ideas/painting.md)
-4. IDEA [BL-106]: Paintable cone roofs on the water tanks (a cone paint mapping) (docs/ideas/painting.md)
-5. TASK [BL-145]: PaintSurface is a public struct written by GPU upload, the baker and painting; "has paint?" asked two ways (paint-surface.ts)
-6. IDEA [BL-042]: New marker brushes: rectangular and calligraphy
-7. IDEA [BL-074]: Stencils
-8. IDEA [BL-152]: Tune the can's pressure with Shift + mouse
+1. IDEA [BL-106]: Paintable cone roofs on the water tanks (a cone paint mapping) (docs/ideas/painting.md) @1.4.1
+2. TASK [BL-145]: PaintSurface is a public struct written by GPU upload, the baker and painting; "has paint?" asked two ways (paint-surface.ts)
+3. IDEA [BL-074]: Stencils
+4. IDEA [?BL-152]: Tune the can's pressure with Shift + mouse
+5. RFCT [BL-015]: Rework the drips: each setting does one thing; spraying over a coat no longer grows them (docs/ideas/painting.md) @1.5.0
+6. TASK [BL-016]: Tune drips per tool by hand and remove the strong ones, after BL-015 (docs/ideas/painting.md) @1.5.0
+7. IDEA [BL-042]: Reword the painting: new marker brushes: rectangular and calligraphy @1.5.0
+8. [IDEA-165]: Reword the painting: pressure @1.5.0
+9. [IDEA-166]: Reword the painting: lock the camera @1.5.0
+10. [IDEA-167]: Reword the painting: different brushes (soft / hard) @1.5.0
+11. TASK [BL-017]: Tune the can's caps until painting feels right, against Bombing!! 2 or paintsessions.com (docs/ideas/painting.md) @1.5.0
 
 ## Input
 
-1. BUGS [BL-010]: Rare huge mouse jumps snap the camera in Chrome on Windows; the fix is the owner's choice (docs/ideas/mouse-spikes.md)
-2. BUGS [BL-135]: A Mac mouse wheel may need several notches per color (WHEEL.notchPx); measure first (docs/ideas/release-checks.md)
+1. BUGS [?BL-010]: Rare huge mouse jumps snap the camera in Chrome on Windows; the fix is the owner's choice (docs/ideas/mouse-spikes.md)
+2. BUGS [BL-135]: A Mac mouse wheel may need several notches per color (WHEEL.notchPx); measure first (docs/ideas/release-checks.md) @1.4.1
 
 ## Performance
 
 1. BUGS [BL-034]: Paint pages at ULTRA can reach ~1 GB of GPU memory: 49 pages, 44% full (docs/ideas/performance.md)
 2. BUGS [BL-107]: Moving the stepladder again and again near lamps doubles the CPU time (lamp light re-baked) (docs/ideas/performance.md)
-3. BUGS [BL-108]: Loading drops to 12 fps on the Intel UHD with Energy Saver on (docs/ideas/performance.md)
+3. BUGS [?BL-108]: Loading drops to 12 fps on the Intel UHD with Energy Saver on (docs/ideas/performance.md)
 4. BUGS [BL-028]: Other players' spray costs ~0.2 ms of CPU a sprayer (docs/ideas/performance.md)
 5. BUGS [BL-031]: Four shaders still compile in the first frame (docs/ideas/performance.md)
-6. BUGS [BL-029]: The roof's edits of 2026-10-10 cost 3–9% GPU on the Intel UHD (docs/ideas/performance.md)
+6. ~~BUGS [BL-029]: The roof's edits of 2026-10-10 cost 3–9% GPU on the Intel UHD (docs/ideas/performance.md)~~
 7. BUGS [BL-032]: One load of the roof took 62 s; not reproduced (docs/ideas/performance.md)
 
 ## Rendering
 
-1. BUGS [BL-011]: Title-screen pickup rings are sized for where the player stands, not the title view
+1. BUGS [?BL-011]: Title-screen pickup rings are sized for where the player stands, not the title view
 2. BUGS [BL-110]: Crossed lines on the menu's glass bars on the Intel UHD under WSL (likely the driver)
 3. IDEA [BL-066]: A camera mode for trailers and cinematics
 
@@ -89,8 +136,8 @@ The one list of what's left. One line per item, under its domain: `[TYPE-NNN]: w
 
 ## Audio
 
-1. IDEA [BL-063]: License-free background music: drum and bass, jungle
-2. IDEA [BL-064]: A sound editor for the synthesized sounds (dev mode)
+1. IDEA [BL-063]: License-free background music: drum and bass, jungle @1.7.0
+2. IDEA [BL-064]: A sound editor for the synthesized sounds (dev mode) @1.7.0
 3. IDEA [BL-148]: Other players' sounds: spray hiss, marker, footsteps, landing as positional voices
 
 ## Tests and tooling
@@ -106,19 +153,19 @@ The one list of what's left. One line per item, under its domain: `[TYPE-NNN]: w
 
 1. TASK [BL-030]: Precompressed assets served by Caddy (docs/ideas/server-ops.md)
 2. TASK [BL-077]: Deploy from GitHub Actions (docs/ideas/server-ops.md)
-3. IDEA [BL-043]: One public server, running 24/7 (docs/ideas/public-servers.md)
+3. IDEA [BL-043]: One public server, running 24/7 (docs/ideas/public-servers.md) @1.6.0
 4. TASK [BL-044]: Disable host and join (don't remove them), after BL-043 (docs/ideas/public-servers.md)
-5. IDEA [BL-045]: A window of public servers instead of host and join (docs/ideas/public-servers.md)
-6. [DSGN-160]: The lobby list for BL-045: allowed tools, players online, ping with a country flag
-7. IDEA [BL-046]: A queue to enter the server, after BL-043 (docs/ideas/public-servers.md)
-8. IDEA [BL-047]: Admin panel: players online, ban by IP, after BL-043 (docs/ideas/public-servers.md)
+5. IDEA [BL-045]: A window of public servers instead of host and join (docs/ideas/public-servers.md) @1.6.0
+6. [DSGN-160]: The lobby list for BL-045: allowed tools, players online, ping with a country flag @1.6.0
+7. IDEA [BL-046]: A queue to enter the server, after BL-043 (docs/ideas/public-servers.md) @1.6.0
+8. IDEA [BL-047]: Admin panel: players online, ban by IP, after BL-043 (docs/ideas/public-servers.md) @1.6.0
 9. IDEA [BL-147]: The server checks what players send (op reach and rate, ladder spot, jumps) before it goes public
 
 ## Web and promotion
 
-1. TASK [BL-068]: Meta tags: title, description, canonical, Open Graph, Twitter Card
-2. TASK [BL-069]: robots.txt (with rules for AI bots), sitemap.xml and llms.txt
-3. TASK [BL-070]: JSON-LD, semantic HTML outside the canvas, favicons and a web manifest
+1. TASK [BL-068]: Meta tags: title, description, canonical, Open Graph, Twitter Card @1.5.0
+2. TASK [BL-069]: robots.txt (with rules for AI bots), sitemap.xml and llms.txt @1.5.0
+3. TASK [BL-070]: JSON-LD, semantic HTML outside the canvas, favicons and a web manifest @1.5.0
 4. TASK [BL-067]: Posts for Reddit and Instagram reels from the game's account
 
 ## Done

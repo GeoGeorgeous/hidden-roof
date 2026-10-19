@@ -152,6 +152,7 @@ export function playSections(h: Hooks): Section[] {
         r('trigger: speed', ['VIEWMODEL', 'pressSpeed'], 2, 60, 1),
         // To be reworked: shown, not editable.
         { kind: 'heading', label: 'LEFT HAND ON WALLS', disabled: true },
+        t('on', ['WALL_HAND', 'enabled']),
         r('reach', ['WALL_HAND', 'reach'], 0.3, 1.5, 0.05),
         r('let go at', ['WALL_HAND', 'release'], 0.4, 2, 0.05),
         r('speed', ['WALL_HAND', 'speed'], 1, 20, 0.5),
