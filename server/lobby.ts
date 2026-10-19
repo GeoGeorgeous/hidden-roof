@@ -1,7 +1,7 @@
 import { randomInt } from 'node:crypto';
 import { SERVER } from '../src/config';
 import { checkToServer, closeCode, CODE_LENGTH, CODE_LETTERS, decode, encode, PROTOCOL, type Rejection, type ToServer } from '../src/net/protocol';
-import { liveMemory, log, who } from './log';
+import { log, overMemory, who } from './log';
 import { Session, type Link, type Player } from './session';
 
 // Who gets into which session: the live sessions by code, the codes of those
@@ -120,7 +120,7 @@ export class Lobby {
     let session: Session;
     if (m.type === 'host') {
       if ([...this.hosts.values()].filter((h) => h === ip).length >= SERVER.sessionsPerIp) return 'too-many';
-      if (liveMemory() > SERVER.hostMemory) return 'busy';
+      if (overMemory(SERVER.hostMemory)) return 'busy';
       const code = this.newCode();
       try {
         session = new Session(code, m.levelName, m.level, m.detail, () => {

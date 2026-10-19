@@ -24,3 +24,10 @@ export function liveMemory() {
   const m = process.memoryUsage();
   return (m.heapUsed + m.arrayBuffers) / 2 ** 20;
 }
+
+/** Over `limit` MB of live data, even after collecting garbage (dropped paint stays counted until a GC; gc() is there with node --expose-gc). */
+export function overMemory(limit: number) {
+  if (liveMemory() <= limit) return false;
+  globalThis.gc?.();
+  return liveMemory() > limit;
+}

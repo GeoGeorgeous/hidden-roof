@@ -12,4 +12,4 @@ WORKDIR /app
 COPY --from=build /app/dist-server/server/main.js .
 USER node
 EXPOSE 3000
-CMD ["node", "main.js"]
+CMD ["node", "--expose-gc", "main.js"]

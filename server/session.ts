@@ -7,7 +7,7 @@ import { cleanName, closeCode, encode, NAME_MAX, partFrames, type Presence, type
 import { loadPaint } from '../src/save/load-paint';
 import { streamPaint } from '../src/save/save-paint';
 import { surfaceTable } from '../src/save/shape';
-import { liveMemory, log, mb, span, who } from './log';
+import { liveMemory, log, mb, overMemory, span, who } from './log';
 import { Snapshot, waiting } from './snapshot';
 import { sessionPaint } from './world';
 
@@ -268,7 +268,7 @@ export class Session {
   private snapshot(still: () => boolean, save = false): Snapshot | 'busy' {
     if (this.snap && !(save && this.snap.log.length)) return this.snap.want(still);
     if (this.next) return this.next.want(still);
-    if (liveMemory() > SERVER.snapshotMemory) {
+    if (overMemory(SERVER.snapshotMemory)) {
       log(this.code, `no memory for a paint file (${liveMemory().toFixed(0)} MB live)`);
       return 'busy';
     }
