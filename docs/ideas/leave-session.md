@@ -11,7 +11,6 @@ Today LEAVE SESSION (`Multiplayer.leave`, `src/net/multiplayer.ts`) ends the lin
 
 SAVE and UPLOAD already turn the level's paint into a paint file and back (`savePaint`, `src/save/save-paint.ts`; `loadPaint`, `src/save/load-paint.ts`). On join, when there is solo paint: keep `savePaint`'s bytes in memory (one compressed file, about a quarter of the atlases: no second paint system, nothing on the GPU). On leave: clear the paint and free its pages, then `loadPaint` those bytes, or nothing. A reload during the session loses the solo paint, as it does today.
 
-## Open
+Owner (2026-10-20): it can be kept cheaply, so the solo paint comes back and JOIN asks nothing. A host gets their pre-session paint back too, like any joiner; the session's paint stays only through SAVE.
 
-- Hosting: does a host who started from their own paint get the pre-session paint back on leave, or keep the session's?
-- A drop that reconnects is not a leave: only LEAVE SESSION, a kick and giving up on the reconnect restore.
+A drop that reconnects is not a leave: only LEAVE SESSION, a kick and giving up on the reconnect restore.
