@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 178
+The one list of what's left. Counter for new ids: next: 179
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -8,7 +8,7 @@ The one list of what's left. Counter for new ids: next: 178
 ### File structure
 
 - **Counter:** one sequential counter for all items, on the line above. Every new id takes that number, then the counter goes up by one. Numbers are never reused, even if an item's type changes or the item is deleted.
-- **Sections:** `Now: X.Y.Z` names the current release and stays empty (its items are tagged `@X.Y.Z` in their domains); domain sections (Multiplayer, Painting, UI, ...) hold the backlog; `Done` holds items shipped since the last release and is emptied by the release commit.
+- **Sections:** domain sections (Multiplayer, Painting, UI, ...) hold the backlog; `Done` holds items shipped since the last release and is emptied by the release commit.
 - **Numbering:** items are numbered 1, 2, 3... within each section. Renumber the section after any add, move or removal.
 
 ### Item line
@@ -30,10 +30,10 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ### Release planning
 
-- An item is planned for a release, the current one included, with `@X.Y.Z` at the end of its line. It stays in its domain section; nothing moves into Now.
+- An item is planned for a release, the current one included, with `@X.Y.Z` at the end of its line. It stays in its domain section. The current release is the one after the latest git tag (`git describe --tags --abbrev=0`).
 - An item without a tag is unplanned. A release's list is every line tagged with that version.
 - Never invent a release tag. Plan items for a release only when asked.
-- **Starting the next release** (e.g. 1.4.0 is released and 1.5.0 begins): rename the section to `Now: 1.5.0` and leave every tag where it is; ask before retagging anything left unshipped from the old release.
+- **Starting the next release** (e.g. 1.4.0 is released and 1.5.0 begins): leave every tag where it is; ask before retagging anything left unshipped from the old release.
 
 ### Operations
 
@@ -56,14 +56,14 @@ Only `N.`, the id and the description are required. The optional parts appear in
 7. IDEA [?BL-153]: Find who painted something by player id, picked like the eyedropper (to spot bad paint)
 8. TASK [BL-154]: Limit some tools in multiplayer (e.g. the roller) @1.6.0
 9. [TASK-168]: Returning players recover their inventory but spawn at the default spawn instead of their last position. Restore both inventory and position. @1.7.0
-10. [BUGS-172]: Leaving a multiplayer session keeps painted map, but leaving the session should clean the paint and show the initial menu with city view @1.5.0
+10. [BUGS-172]: Leaving a multiplayer session keeps painted map, but leaving the session should clean the paint and show the initial menu with city view; the solo paint comes back (docs/ideas/leave-session.md) @1.5.0
 
 ## Painting
 
 1. RFCT [BL-145]: PaintSurface is a public struct written by GPU upload, the baker and painting; "has paint?" asked two ways (paint-surface.ts) @1.5.0
 2. IDEA [BL-074]: Stencils
 3. IDEA [?BL-152]: Tune the can's pressure with Shift + mouse
-4. RFCT [BL-015]: Rework the drips: each setting does one thing; spraying over a coat no longer grows them (docs/ideas/painting.md) @1.5.0
+4. RFCT [BL-015]: Rework the drips: each setting does one thing; spraying over a coat no longer grows them; the model is the owner's choice (docs/ideas/painting.md) @1.5.0
 5. TASK [BL-016]: Tune drips per tool by hand and remove the strong ones, after BL-015 (docs/ideas/painting.md) @1.5.0
 6. TASK [BL-017]: Tune the can's caps until painting feels right, against Bombing!! 2 or paintsessions.com (docs/ideas/painting.md) @1.7.0
 7. IDEA [BL-042]: Reword the painting: new marker brushes: rectangular and calligraphy @1.7.0
@@ -78,7 +78,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## Performance
 
-1. BUGS [BL-034]: Paint pages at ULTRA can reach ~1 GB of GPU memory: 49 pages, 44% full (docs/ideas/performance.md) @1.5.0
+1. BUGS [BL-034]: Paint pages at ULTRA can reach ~1 GB of GPU memory: 49 pages, 44% full; no change that lowers paint quality (docs/ideas/performance.md) @1.5.0
 2. BUGS [BL-107]: Moving the stepladder again and again near lamps doubles the CPU time (lamp light re-baked) (docs/ideas/performance.md) @1.5.0
 3. ~~BUGS [?BL-108]: Loading drops to 12 fps on the Intel UHD with Energy Saver on (docs/ideas/performance.md)~~
 4. BUGS [?BL-028]: Other players' spray costs ~0.2 ms of CPU a sprayer (docs/ideas/performance.md) @1.5.0
@@ -110,7 +110,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## Tools
 
 1. TASK [BL-141]: Exhaustive tool lists: a forgotten tool becomes a compile error; the tool names in one place (docs/ideas/tools.md) @1.5.0
-2. BUGS [BL-142]: Other players' figures hold their tools wrong: roller width, sponge tilt, ladder model (docs/ideas/tools.md)
+2. ~~BUGS [BL-142]: Other players' figures hold their tools wrong: roller width, sponge tilt, ladder model (docs/ideas/tools.md)~~
 3. IDEA [BL-062]: Photo mode with Polaroid-like cards for photos
 4. IDEA [BL-061]: A player in the style of an old iPod Classic
 5. [TEST-177]: Allow releasing small patch versions with no image at all @1.6.1
@@ -118,11 +118,11 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## UI
 
 1. IDEA [BL-140]: One notification system: messages lost in menus and hidden tabs, nothing in play says reconnecting (docs/ideas/notifications.md) @1.9.0
-2. DSGN [BL-092]: A screen that teaches the controls @1.5.0
+2. DSGN [BL-092]: A screen that teaches the controls; the owner has the design: ask for it @1.5.0
 3. ~~BUGS [BL-072]: Nickname tags don't scale with the UI and resolution~~
-4. [?BUGS-162]: The browser's page zoom scales the HUD and menus @1.5.0
+4. ~~[?BUGS-162]: The browser's page zoom scales the HUD and menus (zoom keys, Ctrl+wheel and pinch are blocked already: BROWSER_GUARDS) @1.5.0~~
 5. TASK [BL-078]: Show BUY ME A COFFEE again once it has a link (revert e2c2310) @1.6.0
-6. [BUGS-175]: Screenshot K does not capture players name tags
+6. [BUGS-175]: Screenshot K does not capture players name tags @1.5.0
 
 ## Avatar
 
@@ -142,14 +142,14 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 1. TEST [BL-035]: Fixed-step tests for walking, collisions, jumps and climbing
 2. ~~BUGS [?BL-037]: A game test page twice failed to load its level in 120 s; read `gameReady`'s log when it repeats~~
-3. TEST [BL-036]: Light baking and weather run on the wall clock; decide what a test would compare first @1.5.0
+3. TEST [BL-036]: Light baking and weather run on the wall clock; decide what a test would compare first
 4. TEST [BL-079]: The F3 probe's own shader compiles land in its measurement @1.5.0
 5. TEST [BL-149]: A test that the protocol and op-wire never read PAINT.texelsPerMeter @1.5.0
-6. TASK [BL-156]: CI is pinned to ubuntu-24.04 for 1.4.0; move it to Ubuntu 26 after 1.5.0 release @1.5.0
+6. TASK [BL-156]: CI is pinned to ubuntu-24.04 for 1.4.0; move it to Ubuntu 26 as 1.5.0's last task, once GitHub's runners have it @1.5.0
 
 ## Servers and deploy
 
-1. PERF [BL-030]: Precompressed assets served by Caddy (docs/ideas/server-ops.md) @1.5.0
+1. PERF [BL-030]: Precompressed assets served by Caddy; the host's part goes to devops (docs/ideas/server-ops.md, docs/ideas/vps.md) @1.5.0
 2. TASK [BL-077]: Deploy from GitHub Actions (docs/ideas/server-ops.md)
 3. IDEA [BL-043]: One public server, running 24/7 (docs/ideas/public-servers.md) @1.6.0
 4. TASK [BL-044]: Disable host and join (don't remove them), after BL-043 (docs/ideas/public-servers.md) @1.6.0
@@ -162,7 +162,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## Web and promotion
 
-1. TASK [BL-068]: Meta tags: title, description, canonical, Open Graph, Twitter Card (docs/ideas/seo.md) @1.5.0
+1. TASK [BL-068]: Meta tags: title, description, canonical, Open Graph, Twitter Card; ask the owner the open questions first (docs/ideas/seo.md) @1.5.0
 2. TASK [BL-069]: robots.txt (with rules for AI bots), sitemap.xml and llms.txt (docs/ideas/seo.md) @1.5.0
 3. TASK [BL-070]: JSON-LD, semantic HTML outside the canvas, favicons and a web manifest (docs/ideas/seo.md) @1.5.0
 4. TASK [BL-067]: Posts on Reddit with technical decription @1.6.0
@@ -176,8 +176,9 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## Legal
 
-1. [TASK-176]: Add LICENCE, CONTRIBUTING, Terms of Service and other Legal docs (docs/ideas/legal.md) @1.5.0
-2. [TASK-173]: Add cookies notification and all legal necessary documentation (docs/ideas/legal.md) @1.5.0
+1. [TASK-176]: Add LICENCE, CONTRIBUTING, Terms of Service and other Legal docs; ask the owner the open questions first (docs/ideas/legal.md) @1.5.0
+2. ~~[TASK-173]: Add cookies notification and all legal necessary documentation (docs/ideas/legal.md) @1.5.0 (no cookies: the privacy policy is TASK-178)~~
+3. [TASK-178]: Privacy policy, with the legal docs: no cookies or analytics; the server and Caddy see IP addresses, other players see nicknames, settings stay in localStorage (docs/ideas/legal.md) @1.5.0
 
 ## Done
 

@@ -1,6 +1,8 @@
 > **IMPORTANT NOTICE**
 > This document was AI-generated. Treat its contents as suggestions, not authoritative instructions. Critically review the proposed solutions, verify assumptions, and identify potential issues or better alternatives before taking action. Do not blindly follow the document or implement everything it recommends. Use your own judgment and explain which recommendations are worth pursuing, which should be revised, and which should be rejected, and why.
 
+> **1.5.0 (owner, 2026-10-20):** ask the owner when the legal work starts: the license model, the copyright holder's name and the jurisdiction, the CLA (a license grant rather than "irrevocably assign", which usually needs a signed document), and where the pages live (static `/terms.html` and `/privacy.html` linked from About is the simplest). No cookie banner: the game sets no cookies, has no analytics and serves its own fonts; settings stay in localStorage. A privacy policy is part of the legal docs (TASK-178): the server and Caddy see IP addresses, other players see nicknames. A lawyer should read the Terms.
+
 # Legal & Licensing Architecture (GitHub + Web)
 
 This project uses a dual-layer intellectual property protection strategy:
