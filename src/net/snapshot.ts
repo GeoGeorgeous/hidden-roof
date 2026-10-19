@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { CAP_ORDER, COLOR_ORDER, type CapId, type PaintColor } from '../config';
 import type { AvatarAction } from '../avatar/pose';
-import { SLOTS, type Inventory, type Tool } from '../inventory/inventory';
+import type { Inventory } from '../inventory/inventory';
+import { SLOTS, type Tool } from '../inventory/tool';
 import type { Player } from '../player';
 import type { Tools } from '../tools/tools';
 import { SNAPSHOT_BYTES } from './protocol';
@@ -49,6 +50,7 @@ export function encodeSnapshot(s: Snapshot) {
   v.setUint16(16, Math.round((((s.yaw % TAU) + TAU) % TAU) * (65535 / TAU)), true);
   v.setInt16(18, Math.round((s.pitch / (Math.PI / 2)) * 32767), true);
   b[20] = (s.onGround ? 1 : 0) | (s.onLadder ? 2 : 0) | (s.crouched ? 4 : 0);
+  // The tool in 3 bits: SLOTS has at most 7 (inventory/tool.ts).
   b[21] = (s.tool ? SLOTS.indexOf(s.tool) + 1 : 0) | (ACTIONS.indexOf(s.action) << 3);
   b[22] = COLOR_ORDER.indexOf(s.color);
   b[23] = CAP_ORDER.indexOf(s.cap);

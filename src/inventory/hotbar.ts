@@ -1,5 +1,6 @@
 import { HOTBAR, HUD } from '../config';
-import { SLOTS, type Inventory, type Tool } from './inventory';
+import type { Inventory } from './inventory';
+import { SLOTS, type Tool } from './tool';
 import { itemIcon, type Thumbnails } from './thumbnails';
 
 // Hotbar, bottom center: a row of small circles, HOTBAR.slots of them from the

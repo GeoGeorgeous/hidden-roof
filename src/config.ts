@@ -1,3 +1,5 @@
+import type { Tool } from './inventory/tool.ts';
+
 // All tunable constants live here. Units: meters, seconds, radians unless noted.
 
 export const RENDER = {
@@ -679,7 +681,7 @@ export interface HoldPose {
   yaw: number;
   roll: number;
 }
-export const HOLD: Record<'can' | 'marker' | 'ladder' | 'roller' | 'sponge', HoldPose> = {
+export const HOLD: Record<Tool, HoldPose> = {
   can: { distance: 0.5, x: 0.4, y: -0.44, scale: 1, pitch: -0.12, yaw: 0.25, roll: 0.08 },
   marker: { distance: 0.38, x: 0.421, y: -0.447, scale: 1, pitch: -1.1, yaw: 0.3, roll: 0.25 },
   ladder: { distance: 0.5, x: 0.48, y: -0.54, scale: 1, pitch: 0.15, yaw: -0.75, roll: 0.18 },
@@ -802,7 +804,7 @@ export const PICKUP = {
     ladder: pickupPose(1.05),
     roller: pickupPose(0.55),
     sponge: pickupPose(1.35),
-  },
+  } satisfies Record<Tool | 'cap', ReturnType<typeof pickupPose>>,
 };
 
 /** Fonts a pickup's tag can use (pickups/labels.ts): the HUD's, the neon signs' Japanese gothic, the menu title's graffiti. */
@@ -831,7 +833,7 @@ export const MODELS = {
   ladder: { height: 0.36, width: 0.09, treadSpacing: 0.1 },
   /** A kitchen sponge: a soft block with a darker scouring pad on its front (the side that goes on the wall), pores on the soft part. */
   sponge: { width: 0.14, height: 0.09, depth: 0.05, padThickness: 0.014, pores: 14, poreSize: 0.006 },
-};
+} satisfies Record<Tool | 'cap', object>;
 
 export const SPRAY = {
   /** Max distance from the eye to the surface: how far paint travels. */

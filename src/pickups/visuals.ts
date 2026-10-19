@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { COLORS, INK, PICKUP, ROLLER, type CapId, type PaintColor } from '../config';
-import { canShape, capSeat, capShape, ladderShape, markerShape, rollerShape, spongeShape } from '../tools/shapes';
-import { parsePickup, type PickupKind } from '../inventory/items';
+import { COLORS, INK, PICKUP, ROLLER, type CapId } from '../config';
+import { canShape, capSeat, capShape, ladderShape, markerShape, rollerShape, spongeShape, type Look } from '../tools/shapes';
+import { parsePickup, type FoundTool, type PickupKind } from '../inventory/items';
 
 // Pickup look, inked: the item hovers and spins, tilted, inside a drawn ring
 // (a solid one and a dashed one inside it), and glows. The ring's shape says
@@ -126,28 +126,35 @@ const kept = (color: string) => Object.assign(basic(color), { userData: { keep: 
 /** A tool's paint part (marker band, roller cover) on a pickup: no paint yet. */
 const PAPER = '#e8e8e8';
 
+/** A found tool's shape as a pickup shows it. */
+const TOOL_SHAPE: Record<FoundTool, (look: Look) => THREE.Object3D> = {
+  marker: markerShape,
+  ladder: ladderShape,
+  roller: (look) => rollerShape(look, ROLLER.width).group,
+  // Turned to show its pad.
+  sponge: (look) => {
+    const shape = spongeShape(look);
+    shape.rotation.set(0.3, 0.4, 0);
+    return shape;
+  },
+};
+
 /**
  * The spinning item itself: its tool model (tools/shapes.ts) at twice real
  * size, centered and leaning, in flat colors. A color unlock is a can with
  * that label and `cap` (a figure's can, held.ts: theirs); a cap shows its own color.
  */
 export function itemModel(kind: PickupKind, cap: CapId = 'standard'): THREE.Group {
-  const [k, a] = kind.split(':');
-  const look = { tone: basic, color: kept, paint: k === 'color' ? kept(COLORS[a as PaintColor]) : basic(PAPER) };
+  const c = parsePickup(kind)!;
+  const look = { tone: basic, color: kept, paint: 'color' in c ? kept(COLORS[c.color]) : basic(PAPER) };
   let shape: THREE.Object3D;
-  if (k === 'color') {
+  if ('color' in c) {
     shape = canShape(look);
     const top = capShape(cap, look).group;
     top.position.y = capSeat();
     shape.add(top);
-  } else if (k === 'cap') shape = capShape(a as CapId, look).group;
-  else if (k === 'ladder') shape = ladderShape(look);
-  else if (k === 'roller') shape = rollerShape(look, ROLLER.width).group;
-  else if (k === 'sponge') {
-    // Turned to show its pad.
-    shape = spongeShape(look);
-    shape.rotation.set(0.3, 0.4, 0);
-  } else shape = markerShape(look);
+  } else if ('cap' in c) shape = capShape(c.cap, look).group;
+  else shape = TOOL_SHAPE[c.tool](look);
   shape.position.sub(new THREE.Box3().setFromObject(shape).getCenter(new THREE.Vector3()));
   const g = new THREE.Group();
   g.add(shape);

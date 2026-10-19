@@ -4,12 +4,11 @@ import { BuildMode } from '../build/buildmode';
 import { DebugPanel } from '../debug/panel';
 import { live, type Hooks } from '../debug/tuning';
 import type { GpuTimer } from '../debug/gpu-timer';
-import { MARKER, ROLLER, SPONGE } from '../config';
 import type { Input } from '../input';
 import type { Hud } from '../hud';
 import type { Audio } from '../audio';
 import type { Hotbar } from '../inventory/hotbar';
-import type { Inventory } from '../inventory/inventory';
+import { startSizes, type Inventory } from '../inventory/inventory';
 import type { Level } from '../level/level';
 import type { LevelData } from '../level/level-data';
 import type { PaintDrips } from '../paint-drips';
@@ -112,7 +111,7 @@ export class DevTools {
       applyDaylight: () => g.environment.atmosphere.reapplyDaylight(),
       syncBuildLook: () => this.build.syncLook(),
       rebuildCity: g.rebuildCity,
-      applyToolSizes: () => (g.inventory.size = { marker: MARKER.width, roller: ROLLER.width, sponge: SPONGE.width }),
+      applyToolSizes: () => (g.inventory.size = startSizes()),
       unlockAll: () => {
         g.inventory.unlockAll();
         g.pickups.collectOwned(g.inventory);
