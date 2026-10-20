@@ -1,9 +1,11 @@
 import { execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { extname, join } from 'node:path';
+import { brotliCompressSync, constants, gzipSync } from 'node:zlib';
 import { defineConfig } from 'vite';
 import pkg from './package.json' with { type: 'json' };
-import { LEVELS, RENDER } from './src/config.ts';
+import { LEVELS, PRECOMPRESS, RENDER } from './src/config.ts';
 
 // The build's version (src/version.ts): git describe from the last release tag,
 // prefixed with package.json's version until the first tag exists; just that
@@ -26,6 +28,37 @@ const releaseLevels = {
     const dir = `${options.dir}/levels`;
     for (const file of readdirSync(dir)) if (!LEVELS.release.includes(file.replace(/\.(json|rhhpaint)$/, ''))) rmSync(`${dir}/${file}`);
   },
+};
+
+// Next to every compressible file of the player build, a .br (brotli 11) and a .gz (gzip 9) where they are smaller, made
+// once here so the host serves them as they are (Caddy's precompressed, docs/deploy.md) and compresses nothing per request.
+const precompress = () => {
+  let outDir = 'dist';
+  return {
+    name: 'precompress',
+    apply: (_: unknown, env: { mode: string; isSsrBuild?: boolean }) => env.mode === 'production' && !env.isSsrBuild,
+    configResolved(config: { build: { outDir: string } }) {
+      outDir = config.build.outDir;
+    },
+    closeBundle() {
+      const walk = (dir: string) => {
+        for (const entry of readdirSync(dir, { withFileTypes: true })) {
+          const path = join(dir, entry.name);
+          if (entry.isDirectory()) walk(path);
+          else if (PRECOMPRESS.extensions.includes(extname(path))) {
+            const raw = readFileSync(path);
+            if (raw.length < PRECOMPRESS.minBytes) continue;
+            const packed: [string, Buffer][] = [
+              ['.br', brotliCompressSync(raw, { params: { [constants.BROTLI_PARAM_QUALITY]: 11, [constants.BROTLI_PARAM_SIZE_HINT]: raw.length } })],
+              ['.gz', gzipSync(raw, { level: 9 })],
+            ];
+            for (const [ext, data] of packed) if (data.length < raw.length) writeFileSync(path + ext, data);
+          }
+        }
+      };
+      walk(outDir);
+    },
+  };
 };
 
 // The player build ships no comments of ours: the HTML's (stripped by gamePreload) and the GLSL's, which Vite
@@ -142,7 +175,7 @@ const gamePreload = () => {
 // The dev tools (src/dev: build mode, F3, window.game) are in the dev server and
 // npm run build:dev; npm run build, the player build, leaves them out.
 export default defineConfig(({ mode, isSsrBuild }) => ({
-  plugins: [releaseLevels, stripComments, gamePreload()],
+  plugins: [releaseLevels, stripComments, gamePreload(), precompress()],
   define: { __VERSION__: JSON.stringify(version()), __DEV_TOOLS__: JSON.stringify(mode !== 'production'), __MIN_VIEWPORT__: JSON.stringify(RENDER.minViewport) },
   ssr: { noExternal: true },
   build: { copyPublicDir: !isSsrBuild },

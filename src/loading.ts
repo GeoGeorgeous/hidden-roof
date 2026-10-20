@@ -1,9 +1,10 @@
 import { RENDER } from './config';
+import { sayLoading } from './loading-line';
 
 // The loading screen (index.html): up from the first paint while the level is
 // built, lit and painted (main.ts), each step named on it. The steps block,
 // so it's plain markup, and nothing on it to click. Each step's name fades
-// in over the last (two stacked lines, one class swap: a CSS transition, no
+// in over the last (loading-line.ts: two stacked lines, one class swap, a CSS transition, no
 // timers); a step that blocks just finishes the fade later.
 // It goes once RENDER.loadFrames frames are drawn: the first compiles and
 // uploads what the level needs, the next settle what waited on it.
@@ -11,24 +12,15 @@ import { RENDER } from './config';
 let screen = document.querySelector<HTMLElement>('.loading');
 let drawn = 0;
 
-/** The hidden status line takes `text` and fades in over the shown one. */
-function say(text: string) {
-  const [a, b] = screen!.querySelectorAll('span');
-  const next = a.classList.contains('on') ? b : a;
-  next.textContent = text;
-  a.classList.toggle('on', next === a);
-  b.classList.toggle('on', next === b);
-}
-
 /** Names the next step; resolves once that is on screen (not waiting for the fade). */
 export function loadStep(text: string) {
-  if (screen) say(text);
+  if (screen) sayLoading(text);
   // A hidden tab is given no animation frames: it would wait for one until it is shown.
   return new Promise((done) => (document.hidden ? setTimeout(done) : requestAnimationFrame(() => setTimeout(done))));
 }
 
 export function loadFailed() {
-  if (screen) say("The level didn't load: reload the page");
+  if (screen) sayLoading("The level didn't load: reload the page");
 }
 
 /**
