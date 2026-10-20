@@ -162,6 +162,8 @@ export const LIGHTMAP = {
   highlights: 4,
   /** Bake time per frame after edits and tweaks (ms). A freshly loaded level bakes at once. */
   budgetMs: 3,
+  /** A stepladder placed or moved relights the surfaces around it once it has stood this long (s), so moving it again and again costs one relight. */
+  ladderRest: 0.6,
   /** Surfaces' light lives on shared pages this many texels square (render/bake/light-pages.ts). */
   pageSize: 1024,
 };

@@ -136,16 +136,23 @@ await check('wet view (F3): wet paint on an upright face shows as points, dry pa
 });
 
 await check('ladders: placing one tests a shadow cone per lamp, not per piece of the ladder (each placement stalled ~150 ms)', async () => {
-  const r = await page.evaluate(() => {
+  const r = await page.evaluate(async () => {
     const g = window.game;
     const p = g.player.position;
     const lamps = g.level.lights.filter((l) => !l.track).length;
     const cones = [];
+    // No rest: the light around a ladder is queued at the next frame.
+    const rest = g.config.LIGHTMAP.ladderRest;
+    g.config.LIGHTMAP.ladderRest = 0;
+    const frame = () => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
     for (let i = 0; i < 2; i++) {
       g.level.setRuntime('cones', { type: 'stepladder', pos: [p.x + 1.5 + i * 0.4, p.y, p.z], rot: 0 });
+      await frame();
       cones.push(g.baker.stats.cones);
     }
     g.level.setRuntime('cones', null);
+    await frame();
+    g.config.LIGHTMAP.ladderRest = rest;
     return { lamps, cones };
   });
   // Moved, the old place and the new one: at most two cones per lamp (a big prop is cut in 4 m chunks; a ladder is one).

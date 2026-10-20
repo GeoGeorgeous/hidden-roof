@@ -160,6 +160,7 @@ export function renderSections(h: Hooks): Section[] {
         ...when('bake', [t('shadows', ['LIGHTMAP', 'shadows']), r('detail', ['LIGHTMAP', 'texelsPerMeter'], 1, 16, 1)]),
         r('wet highlights', ['LIGHTMAP', 'highlights'], 0, 4, 1),
         r('bake time', ['LIGHTMAP', 'budgetMs'], 0.5, 16, 0.5),
+        r('ladder delay', ['LIGHTMAP', 'ladderRest'], 0, 3, 0.1),
         { kind: 'heading', label: 'REAL LIGHTS' },
         t('spot shadows', ['ATMOS', 'spotShadows']),
         r('light budget', ['ATMOS', 'lightBudget'], 0, 8, 1),
