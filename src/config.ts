@@ -730,16 +730,16 @@ export const PLAYER_LIGHT = {
 /**
  * Paint runs: paint put onto paint that is already opaque is wet until it dries,
  * and on vertical faces a texel with enough wet paint may start a thin run down the wall.
- * Each setting does one job: `excess` how much wet paint makes a texel run, `dryRate` how
- * fast it dries, and each tool's and cap's `drips` how often a wet texel runs.
+ * Each setting does one job: `excess` how much wet paint makes a texel run, `dryTime` how
+ * long it stays wet, and each tool's and cap's `drips` how often a wet texel runs.
  * All baked into the paint texture: no extra objects.
  */
 export const DRIPS = {
   enabled: true,
   /** Wet paint (in full coats) a texel needs before it may run; the paint that ran is gone. How often it then runs is each cap's and tool's `drips` (per m², spread over its texels, so every paint detail runs alike). */
   excess: 6,
-  /** Wet paint a texel dries per second (coats): 6 coats take 3 s. A coat over a dry wall no longer runs; holding the can on one spot (hundreds of coats a second) still does. */
-  dryRate: 2,
+  /** How long paint stays wet (s): `excess` coats of wet paint are dry after this long, less paint sooner. A coat over a dry wall no longer runs; holding the can on one spot (hundreds of coats a second) still does. */
+  dryTime: 3,
   /** Runs moving at the same time, level-wide. */
   maxActive: 65,
   /** Run length range (m). */

@@ -167,15 +167,15 @@ export class PaintRaster<S extends RasterSurface> {
   }
 
   /**
-   * `amt` coats more on an opaque texel: wet paint is what is left to dry
-   * (DRIPS.dryRate coats a second); at DRIPS.excess coats the texel may run, and
-   * the paint that ran is gone.
+   * `amt` coats more on an opaque texel: wet paint is what is left to dry, and
+   * DRIPS.excess coats of it take DRIPS.dryTime to dry; at DRIPS.excess coats the
+   * texel may run, and the paint that ran is gone.
    */
   private addWet(s: S, rect: Rect, x: number, y: number, amt: number, rate: number) {
     const wet = (s.wet ??= new Float32Array(s.geo.atlasW * s.geo.atlasH));
     const k = y * s.geo.atlasW + x;
-    const until = Math.max(wet[k], this.now) + amt / DRIPS.dryRate;
-    if ((until - this.now) * DRIPS.dryRate < DRIPS.excess) {
+    const until = Math.max(wet[k], this.now) + (amt / DRIPS.excess) * DRIPS.dryTime;
+    if (until - this.now < DRIPS.dryTime) {
       wet[k] = until;
       return;
     }

@@ -191,7 +191,7 @@ export const HINTS: Record<string, string> = {
   'HOLD.*.roll': 'Lean left / right (radians).',
   'DRIPS.enabled': 'Paint runs: spraying heavily onto wet, opaque paint on vertical faces makes it run down.',
   'DRIPS.excess': 'Wet coats of paint a spot holds before it may run. Higher = fewer runs.',
-  'DRIPS.dryRate': 'Coats of wet paint a spot dries per second. Higher = paint dries sooner, so only heavy spraying runs; lower = old paint stays wet and runs again.',
+  'DRIPS.dryTime': 'Seconds paint stays wet: a spot with the build-up needed to run is dry this long after the last paint on it, less paint sooner. Lower = only heavy spraying runs; higher = going back over a spot soon runs again.',
   'DRIPS.maxActive': 'Most runs moving at the same time, level-wide.',
   'DRIPS.minLength': 'Shortest run (m).',
   'DRIPS.maxLength': 'Longest run (m).',
