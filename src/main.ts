@@ -87,7 +87,8 @@ baker.onRelayout = () => level.remerge();
 environment.lightning.onThunder = (d) => audio.thunder(d);
 level.onChange = (runtime) => {
   baker.sync(level.builtProps, runtime);
-  environment.rebuild(level);
+  // A runtime prop (the stepladder) has no lamps or smoke, and is too thin to shelter rain.
+  if (!runtime) environment.rebuild(level);
 };
 /** Glow and smoke sprites are sized in the drawing buffer's pixels. */
 function syncViewSize() {

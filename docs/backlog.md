@@ -79,7 +79,6 @@ Only `N.`, the id and the description are required. The optional parts appear in
 2. ~~BUGS [?BL-108]: Loading drops to 12 fps on the Intel UHD with Energy Saver on (docs/ideas/performance.md)~~
 3. ~~BUGS [BL-029]: The roof's edits of 2026-10-10 cost 3–9% GPU on the Intel UHD (docs/ideas/performance.md)~~
 4. ~~BUGS [BL-032]: One load of the roof took 62 s; not reproduced (docs/ideas/performance.md)~~
-5. [PERF-181]: Placing a stepladder still costs one ~6 ms frame: about 3 ms is environment.rebuild (rain heightmap, lights), which a runtime prop never changes; skip it for runtime props @1.5.0
 
 ## Rendering
 
@@ -189,3 +188,4 @@ Shipped since the last release; the release commit empties this list.
 17. [TASK-176]: LICENSE, CONTRIBUTING and Terms of Service
 18. [TASK-178]: Privacy policy: no cookies or analytics; the server and Caddy see IP addresses, other players see nicknames, settings stay in localStorage
 19. TASK [BL-156]: CI runs on ubuntu-26.04 (pinned, not ubuntu-latest)
+20. [PERF-181]: Placing a stepladder skips the environment rebuild (rain heightmap, lights): a runtime prop never changes them
