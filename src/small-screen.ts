@@ -1,5 +1,5 @@
 import './small-screen.css';
-import { AUTHOR, DISCORD, REPO } from './links';
+import { AUTHOR, DISCORD, PRIVACY, REPO, TERMS } from './links';
 import city from './small-screen.webp';
 import { VERSION } from './version';
 import { el } from './menu-ui';
@@ -28,7 +28,7 @@ export function smallScreen(playable: () => boolean) {
     <a class="outline" href="${DISCORD}" target="_blank" rel="noopener">Join the Discord</a>
   </div>
   <div class="small-gap"></div>
-  <footer><span><a href="${REPO}" target="_blank" rel="noopener">GitHub</a><i>·</i>${VERSION}</span><span>built by <a href="${AUTHOR}" target="_blank" rel="noopener">GeoGeorgeous</a></span></footer>
+  <footer><span><a href="${REPO}" target="_blank" rel="noopener">GitHub</a><i>·</i>${VERSION}</span><span><a href="${TERMS}" target="_blank" rel="noopener">Terms</a><i>·</i><a href="${PRIVACY}" target="_blank" rel="noopener">Privacy</a></span><span>built by <a href="${AUTHOR}" target="_blank" rel="noopener">GeoGeorgeous</a></span></footer>
 </div>`;
   document.body.append(root);
   const hint = root.querySelector<HTMLElement>('.hint')!;

@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 183
+The one list of what's left. Counter for new ids: next: 184
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -156,7 +156,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 2. [TASK-169]: Creating and posting instagram reels @1.7.0
 3. IDEA [BL-065]: A minimal tool to record gameplay as GIFs and short videos
 4. [TASK-170]: Create accounts in social media (Discord, Instagram, YouTube, TikTok, subreddit) @1.5.0
-5. [TASK-182]: Screenshots for the designer, then their og:image, screenshot and raster icons dropped in (docs/ideas/seo.md, section 4)
+5. [TASK-182]: Screenshots for the designer, then their og:image, screenshot and raster icons dropped in (docs/ideas/seo.md)
 
 ## Auth
 
@@ -164,9 +164,8 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## Legal
 
-1. [TASK-176]: Add LICENCE, CONTRIBUTING, Terms of Service and other Legal docs; ask the owner the open questions first (docs/ideas/legal.md) @1.5.0
-2. ~~[TASK-173]: Add cookies notification and all legal necessary documentation (docs/ideas/legal.md) @1.5.0 (no cookies: the privacy policy is TASK-178)~~
-3. [TASK-178]: Privacy policy, with the legal docs: no cookies or analytics; the server and Caddy see IP addresses, other players see nicknames, settings stay in localStorage (docs/ideas/legal.md) @1.5.0
+1. ~~[TASK-173]: Add cookies notification and all legal necessary documentation (docs/ideas/legal.md) @1.5.0 (no cookies: the privacy policy is TASK-178)~~
+2. [TASK-183]: A lawyer reads LICENSE, the Terms and the privacy policy (public/terms.html, public/privacy.html)
 
 ## Done
 
@@ -188,3 +187,5 @@ Shipped since the last release; the release commit empties this list.
 14. TASK [BL-069]: robots.txt (with rules for AI bots), sitemap.xml and llms.txt
 15. TASK [BL-070]: JSON-LD, semantic HTML outside the canvas, favicons and a web manifest
 16. PERF [BL-030]: Precompressed assets served by Caddy: the build writes them; the host's part goes to devops (docs/ideas/vps.md)
+17. [TASK-176]: LICENSE, CONTRIBUTING and Terms of Service
+18. [TASK-178]: Privacy policy: no cookies or analytics; the server and Caddy see IP addresses, other players see nicknames, settings stay in localStorage

@@ -12,6 +12,8 @@ Reworking the painting: BL-016 next (paint now dries: DRIPS.dryTime); BL-017 and
 
 Drips are too strong in general. Tune them for each tool (caps, marker, roller) by hand, by eye, after the config is clear. Maybe a cooldown on the paint (an open question).
 
+The owner tunes in F3 on dev (Paint → Paint runs) and pastes the JSON. Tools for it: `wet view` (wet paint blue to red by its build-up), the `most build-up` readout (the most near you against `build-up needed`; it stops just under it, as a spot that reaches it may run and starts over) and `runs view` (every run in one loud color, so black runs on black paint show). Paint now dries (`drying time`), which answers the cooldown question.
+
 ## BL-017 Tune the caps so painting feels better
 
 Adjust the can caps (`spread`, `rate`, `strength`, `dotSize`, `softness`) until painting feels right. Compare with Bombing!! 2 and paintsessions.

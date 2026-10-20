@@ -1,0 +1,115 @@
+/* The Terms and Privacy pages (terms.html, privacy.html): plain paper and ink,
+   in the game's own fonts (public/fonts/README.txt). One file for both, since
+   the site's CSP allows no inline styles. */
+
+@font-face {
+  font-family: 'Sedgwick Ave Display';
+  src: url('/fonts/sedgwick-ave-display.woff2') format('woff2');
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Archivo';
+  src: url('/fonts/archivo.woff2') format('woff2');
+  font-weight: 400 600;
+  font-display: swap;
+}
+
+:root {
+  --ink: #141416;
+  --dim: rgba(20, 20, 22, 0.62);
+  --paper: #ebe5d6;
+  --rule: rgba(20, 20, 22, 0.2);
+  --alert: #d4261c;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'Archivo', system-ui, sans-serif;
+  font-size: 17px;
+  line-height: 1.6;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 24px 16px 64px;
+}
+
+main {
+  max-width: 40rem;
+  margin: 0 auto;
+}
+
+.back {
+  display: inline-block;
+  margin-bottom: 28px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+h1 {
+  margin: 0 0 16px;
+  font: 400 clamp(2.4rem, 11vw, 3.6rem) / 1.05 'Sedgwick Ave Display', cursive;
+  letter-spacing: 0.02em;
+}
+
+.updated {
+  margin: 0 0 32px;
+  font-size: 0.9rem;
+  color: var(--dim);
+}
+
+h2 {
+  margin: 2.2em 0 0.4em;
+  padding-top: 0.9em;
+  border-top: 1px solid var(--rule);
+  font-size: 1.15rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+p,
+ul {
+  margin: 0.7em 0;
+}
+
+ul {
+  padding-left: 1.3em;
+}
+
+li {
+  margin: 0.35em 0;
+}
+
+a {
+  color: var(--ink);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  color: var(--alert);
+}
+
+a:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+code {
+  font-size: 0.9em;
+  overflow-wrap: anywhere;
+}
+
+footer {
+  margin-top: 3em;
+  padding-top: 1em;
+  border-top: 1px solid var(--rule);
+  font-size: 0.9rem;
+  color: var(--dim);
+}
