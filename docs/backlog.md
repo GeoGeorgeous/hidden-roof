@@ -116,7 +116,6 @@ Only `N.`, the id and the description are required. The optional parts appear in
 3. ~~BUGS [BL-072]: Nickname tags don't scale with the UI and resolution~~
 4. ~~[?BUGS-162]: The browser's page zoom scales the HUD and menus (zoom keys, Ctrl+wheel and pinch are blocked already: BROWSER_GUARDS) @1.5.0~~
 5. TASK [BL-078]: Show BUY ME A COFFEE again once it has a link (revert e2c2310) @1.6.0
-6. [BUGS-175]: Screenshot K does not capture players name tags @1.5.0
 
 ## Avatar
 
@@ -187,3 +186,4 @@ Shipped since the last release; the release commit empties this list.
 9. BUGS [BL-107]: Moving the stepladder again and again near lamps doubles the CPU time (lamp light re-baked)
 10. BUGS [BL-028]: Other players' spray costs ~0.2 ms of CPU a sprayer
 11. RFCT [BL-112]: The remote player's timeline as a pure module with a Node test
+12. [BUGS-175]: Screenshot K does not capture players name tags

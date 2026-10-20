@@ -20,9 +20,8 @@ await check('input: keys typed into a text field are not game keys (a K in the s
 await check('input: K takes a screenshot only while playing, not on the title or pause screen', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
-    const canvas = g.renderer.domElement;
     let shots = 0;
-    canvas.toBlob = () => shots++;
+    HTMLCanvasElement.prototype.toBlob = () => shots++;
     const k = async (locked) => {
       g.input.setLocked(locked);
       const before = shots;
@@ -33,10 +32,43 @@ await check('input: K takes a screenshot only while playing, not on the title or
     };
     const out = { paused: await k(false), playing: await k(true) };
     g.input.setLocked(false);
-    delete canvas.toBlob;
+    delete HTMLCanvasElement.prototype.toBlob;
     return out;
   });
   return r.paused === 0 && r.playing === 1 ? null : JSON.stringify(r);
+});
+
+await check('input: a screenshot has the other players\' name tags in it, box and name', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const tag = Object.assign(document.createElement('div'), { className: 'nameplate', textContent: 'WWWWWWWW' });
+    tag.style.transform = `translate(${innerWidth / 2}px, ${innerHeight / 2}px)`;
+    document.querySelector('.hud').append(tag);
+    const proto = HTMLCanvasElement.prototype;
+    const was = proto.toBlob;
+    let shot = null;
+    proto.toBlob = function () {
+      shot = this;
+    };
+    g.input.setLocked(true);
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyK' }));
+    window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyK' }));
+    await steps((f) => f === 1);
+    const box = tag.getBoundingClientRect();
+    g.input.setLocked(false);
+    proto.toBlob = was;
+    tag.remove();
+    if (!shot) return { shot: false };
+    const view = g.renderer.domElement.getBoundingClientRect();
+    const scale = shot.width / view.width;
+    const px = shot.getContext('2d').getImageData(Math.floor((box.left - view.left) * scale), Math.floor((box.top - view.top) * scale), Math.ceil(box.width * scale), Math.ceil(box.height * scale)).data;
+    const at = (i) => px.slice(i * 4, i * 4 + 4);
+    let light = 0;
+    for (let i = 0; i < px.length / 4; i++) if (px[i * 4] > 150) light++;
+    // The corner is the box's padding (dark, nearly opaque); the name's letters are light.
+    return { corner: [...at(0)], light };
+  });
+  return r.corner && r.corner[0] < 80 && r.corner[3] > 150 && r.light > 0 ? null : JSON.stringify(r);
 });
 
 await check('input: play actions answer for every key, button and wheel step bound to them (config.ts BINDINGS)', async () => {
