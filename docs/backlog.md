@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 179
+The one list of what's left. Counter for new ids: next: 180
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -56,20 +56,18 @@ Only `N.`, the id and the description are required. The optional parts appear in
 7. IDEA [?BL-153]: Find who painted something by player id, picked like the eyedropper (to spot bad paint)
 8. TASK [BL-154]: Limit some tools in multiplayer (e.g. the roller) @1.6.0
 9. [TASK-168]: Returning players recover their inventory but spawn at the default spawn instead of their last position. Restore both inventory and position. @1.7.0
-10. [BUGS-172]: Leaving a multiplayer session keeps painted map, but leaving the session should clean the paint and show the initial menu with city view; the solo paint comes back (docs/ideas/leave-session.md) @1.5.0
 
 ## Painting
 
-1. RFCT [BL-145]: PaintSurface is a public struct written by GPU upload, the baker and painting; "has paint?" asked two ways (paint-surface.ts) @1.5.0
-2. IDEA [BL-074]: Stencils
-3. IDEA [?BL-152]: Tune the can's pressure with Shift + mouse
-4. RFCT [BL-015]: Rework the drips: each setting does one thing; spraying over a coat no longer grows them; paint dries, per texel (docs/ideas/painting.md) @1.5.0
-5. TASK [BL-016]: Tune drips per tool by hand and remove the strong ones, after BL-015 (docs/ideas/painting.md) @1.5.0
-6. TASK [BL-017]: Tune the can's caps until painting feels right, against Bombing!! 2 or paintsessions.com (docs/ideas/painting.md) @1.7.0
-7. IDEA [BL-042]: Reword the painting: new marker brushes: rectangular and calligraphy @1.7.0
-8. [IDEA-165]: Reword the painting: pressure @1.7.0
-9. [IDEA-166]: Reword the painting: lock the camera @1.7.0
-10. [IDEA-167]: Reword the painting: different brushes (soft / hard) @1.7.0
+1. IDEA [BL-074]: Stencils
+2. IDEA [?BL-152]: Tune the can's pressure with Shift + mouse
+3. RFCT [BL-015]: Rework the drips: each setting does one thing; spraying over a coat no longer grows them; paint dries, per texel (docs/ideas/painting.md) @1.5.0
+4. TASK [BL-016]: Tune drips per tool by hand and remove the strong ones, after BL-015 (docs/ideas/painting.md) @1.5.0
+5. TASK [BL-017]: Tune the can's caps until painting feels right, against Bombing!! 2 or paintsessions.com (docs/ideas/painting.md) @1.7.0
+6. IDEA [BL-042]: Reword the painting: new marker brushes: rectangular and calligraphy @1.7.0
+7. [IDEA-165]: Reword the painting: pressure @1.7.0
+8. [IDEA-166]: Reword the painting: lock the camera @1.7.0
+9. [IDEA-167]: Reword the painting: different brushes (soft / hard) @1.7.0
 
 ## Input
 
@@ -142,6 +140,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 2. ~~BUGS [?BL-037]: A game test page twice failed to load its level in 120 s; read `gameReady`'s log when it repeats~~
 3. TEST [BL-036]: Light baking and weather run on the wall clock; decide what a test would compare first
 4. TASK [BL-156]: CI is pinned to ubuntu-24.04 for 1.4.0; move it to Ubuntu 26 as 1.5.0's last task, once GitHub's runners have it @1.5.0
+5. [BUGS-179]: test:mp logs two console errors on dev and still passes: "reading 'frame'" in main.ts step and "reading 'state'" in a test's remotes.get
 
 ## Servers and deploy
 
@@ -184,3 +183,5 @@ Shipped since the last release; the release commit empties this list.
 3. TEST [BL-079]: The F3 probe's own shader compiles land in its measurement
 4. TEST [BL-149]: A test that the protocol and op-wire never read PAINT.texelsPerMeter
 5. [BUGS-174]: DevTools displays comments in the HTML, CSS, and JavaScript, but the code should be minified
+6. [BUGS-172]: Leaving a multiplayer session keeps painted map, but leaving the session should clean the paint and show the initial menu with city view; the solo paint comes back
+7. RFCT [BL-145]: PaintSurface is a public struct written by GPU upload, the baker and painting; "has paint?" asked two ways (paint-surface.ts)
