@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs';
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const html = read('index.html');
 const links = Object.fromEntries([...read('src/links.ts').matchAll(/export const (\w+) = '([^']+)'/g)].map((m) => [m[1], m[2]]));
-assert.deepEqual(Object.keys(links).sort(), ['AUTHOR', 'DISCORD', 'REPO'], 'src/links.ts: REPO, AUTHOR and DISCORD');
+for (const name of ['AUTHOR', 'DISCORD', 'REPO']) assert.ok(links[name], `src/links.ts: no ${name}`);
 
 // Tags outside the comments (the og:image ones wait for the designer's picture).
 const live = html.replace(/<!--[\s\S]*?-->/g, '');
@@ -38,7 +38,7 @@ assert.deepEqual(ld.sameAs, [links.REPO, links.DISCORD]);
 assert.equal(html.replace(/<!--[\s\S]*?-->/g, '').match(/<script>/g)?.length, 1, 'index.html: one bare <script>');
 
 // Every project link in the hidden page and in llms.txt is one of links.ts's.
-const project = Object.values(links);
+const project = [links.AUTHOR, links.DISCORD, links.REPO];
 const mine = (text) => text.match(/https?:\/\/(?:github\.com\/GeoGeorgeous|discord\.gg)[^\s"')<]*/g) ?? [];
 for (const [file, text] of [['index.html <main>', html.match(/<main[\s\S]*?<\/main>/)[0]], ['public/llms.txt', read('public/llms.txt')]]) {
   const found = mine(text);

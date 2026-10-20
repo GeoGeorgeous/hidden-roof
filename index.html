@@ -80,22 +80,24 @@
     </script>
   </head>
   <body>
-    <!-- Up from the first paint until the game is ready to play (src/loading.ts). Two status lines, crossfaded. -->
-    <div class="loading"><b>Hidden Roof</b><p><span class="on">Loading</span><span></span></p></div>
+    <!-- Up from the first paint until the game is ready to play (src/loading.ts). Two status lines, crossfaded
+         (src/loading-line.ts); without JavaScript, the noscript line in their place (boot.css). -->
+    <div class="loading"><h1>Hidden Roof</h1><p role="status"><span class="on">Loading</span><span></span></p><noscript>Hidden Roof needs JavaScript and a desktop browser with WebGL2.</noscript></div>
     <!-- What the page is, for search engines and link readers; the game's own screens are drawn on the canvas. -->
     <main hidden>
-      <h1>Hidden Roof, a browser-based first-person graffiti game</h1>
+      <h2>Hidden Roof, a browser-based first-person graffiti game</h2>
       <p>
         Hidden Roof is a free first-person graffiti game for desktop browsers. You climb onto the rooftops of a city drawn in ink, and the only color in it is the paint you bring. There are no enemies and no goals: find your tools, paint whatever you like, scrub it off, paint again. Play alone, or bring friends into a multiplayer session and paint the same roof together.
       </p>
-      <ul>
-        <li><a href="https://roof.hidden.haus/">Play Hidden Roof</a></li>
-        <li><a href="https://github.com/GeoGeorgeous">GeoGeorgeous, the author</a></li>
-        <li><a href="https://github.com/GeoGeorgeous/hidden-roof">Source code on GitHub</a></li>
-        <li><a href="https://discord.gg/yj8z9sxBrf">Discord</a></li>
-      </ul>
+      <nav aria-label="Links">
+        <ul>
+          <li><a href="https://roof.hidden.haus/">Play Hidden Roof</a></li>
+          <li><a href="https://github.com/GeoGeorgeous">GeoGeorgeous, the author</a></li>
+          <li><a href="https://github.com/GeoGeorgeous/hidden-roof">Source code on GitHub</a></li>
+          <li><a href="https://discord.gg/yj8z9sxBrf">Discord</a></li>
+        </ul>
+      </nav>
     </main>
-    <noscript>Hidden Roof needs JavaScript and a desktop browser with WebGL2.</noscript>
     <!-- Loads the game, or on a phone or a small window screen 10 instead (src/boot.ts). -->
     <script type="module" src="/src/boot.ts"></script>
   </body>
