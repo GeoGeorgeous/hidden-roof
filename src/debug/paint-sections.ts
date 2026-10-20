@@ -116,6 +116,10 @@ export function paintSections(h: Hooks): Section[] {
         ...qualityItems('ROLLER'),
         r('press length', ['ROLLER', 'pressLength'], 0.01, 0.3, 0.01),
         ...qualityItems('SPONGE'),
+        { kind: 'heading', label: 'OTHERS\' CANS' },
+        r('wall: time', ['SPRAY', 'others', 'reuse'], 0, 1, 0.05),
+        r('wall: move', ['SPRAY', 'others', 'move'], 0, 0.3, 0.01),
+        r('wall: aim', ['SPRAY', 'others', 'aim'], 0, 10, 0.5),
       ],
     },
     {

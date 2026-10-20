@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 181
+The one list of what's left. Counter for new ids: next: 182
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -62,7 +62,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 1. IDEA [BL-074]: Stencils
 2. IDEA [?BL-152]: Tune the can's pressure with Shift + mouse
 3. TASK [BL-016]: Tune drips per tool by hand and remove the strong ones (drying time, build-up, each cap's and tool's drips): the owner tunes in F3 on dev and pastes the JSON (docs/ideas/painting.md) @1.5.0
-4. [RFCT-180]: painting.ts is past the ~400-line limit (412): split it by responsibility (patches for build mode and saves into paint-patch.ts) @1.5.0
+4. ~~[RFCT-180]: painting.ts is past the ~400-line limit (412): split it by responsibility (patches for build mode and saves into paint-patch.ts) @1.5.0 (no boundary without exposing PaintSystem's internals: 417 lines accepted)~~
 5. TASK [BL-017]: Tune the can's caps until painting feels right, against Bombing!! 2 or paintsessions.com (docs/ideas/painting.md) @1.7.0
 6. IDEA [BL-042]: Reword the painting: new marker brushes: rectangular and calligraphy @1.7.0
 7. [IDEA-165]: Reword the painting: pressure @1.7.0
@@ -76,12 +76,11 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## Performance
 
-1. BUGS [BL-034]: Paint pages at ULTRA can reach ~1 GB of GPU memory: 49 pages, 44% full; no change that lowers paint quality (docs/ideas/performance.md) @1.5.0
-2. BUGS [BL-107]: Moving the stepladder again and again near lamps doubles the CPU time (lamp light re-baked) (docs/ideas/performance.md) @1.5.0
-3. ~~BUGS [?BL-108]: Loading drops to 12 fps on the Intel UHD with Energy Saver on (docs/ideas/performance.md)~~
-4. BUGS [?BL-028]: Other players' spray costs ~0.2 ms of CPU a sprayer (docs/ideas/performance.md) @1.5.0
-5. ~~BUGS [BL-029]: The roof's edits of 2026-10-10 cost 3–9% GPU on the Intel UHD (docs/ideas/performance.md)~~
-6. ~~BUGS [BL-032]: One load of the roof took 62 s; not reproduced (docs/ideas/performance.md)~~
+1. BUGS [BL-034]: Paint pages at ULTRA can reach ~1 GB of GPU memory: measured, 1045 MB is the ceiling (all 49 pages, 72% full); the lossless fix is BL-144 (docs/ideas/performance.md)
+2. ~~BUGS [?BL-108]: Loading drops to 12 fps on the Intel UHD with Energy Saver on (docs/ideas/performance.md)~~
+3. ~~BUGS [BL-029]: The roof's edits of 2026-10-10 cost 3–9% GPU on the Intel UHD (docs/ideas/performance.md)~~
+4. ~~BUGS [BL-032]: One load of the roof took 62 s; not reproduced (docs/ideas/performance.md)~~
+5. [PERF-181]: Placing a stepladder still costs one ~6 ms frame: about 3 ms is environment.rebuild (rain heightmap, lights), which a runtime prop never changes; skip it for runtime props
 
 ## Rendering
 
@@ -92,7 +91,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## Props and level
 
 1. TASK [BL-143]: A design run on props and the level plan: PropContext, placement, sign text, saves by face (docs/ideas/props-and-level.md)
-2. IDEA [BL-144]: Cover v2: drop hidden paint faces and pack pages fuller, after BL-143 (docs/ideas/props-and-level.md)
+2. IDEA [BL-144]: Cover v2: drop hidden paint faces and pack pages fuller, after BL-143; up to 28% less paint memory at ULTRA (BL-034) (docs/ideas/props-and-level.md)
 3. TASK [BL-055]: Group the props better in build mode: decide which prop goes into which category (docs/ideas/props-and-level.md)
 4. [BUGS-161]: A wall prop overlaps a fence
 5. IDEA [BL-039]: More marker types, placed on the map @1.7.0
@@ -186,3 +185,5 @@ Shipped since the last release; the release commit empties this list.
 6. [BUGS-172]: Leaving a multiplayer session keeps painted map, but leaving the session should clean the paint and show the initial menu with city view; the solo paint comes back
 7. RFCT [BL-145]: PaintSurface is a public struct written by GPU upload, the baker and painting; "has paint?" asked two ways (paint-surface.ts)
 8. RFCT [BL-015]: Rework the drips: each setting does one thing; spraying over a coat no longer grows them; paint dries, per texel
+9. BUGS [BL-107]: Moving the stepladder again and again near lamps doubles the CPU time (lamp light re-baked)
+10. BUGS [BL-028]: Other players' spray costs ~0.2 ms of CPU a sprayer

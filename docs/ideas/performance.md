@@ -2,12 +2,6 @@
 
 Performance measurements and what to do next.
 
-## BL-028 Other players' spray with many players
-
-A2000 laptop, 1280×720, fake players sending no paint ops: 19 others walking 124 fps, all 19 spraying 84 fps; their particles cost ~0.2 ms of CPU a frame per sprayer (a ray each a frame, `spray/particles.ts` `show`, a pool of 3000). Their paint ops come on top, unmeasured. Do: particles only for the nearest few sprayers, or reuse each sprayer's ray for a few frames; or a lower `SERVER.maxPlayers` (XS). Measure a real session of 8 to 20 first.
-
-Plan (2026-10-20): measure with 19 fake players; owner: if confirmed and the fix is small (reuse each sprayer's hit for a few frames while its aim barely moves), do it in 1.5.0, else move it to the 1.6.1 playtest.
-
 ## BL-029 The roof level's edits of 2026-10-10 cost a little
 
 Two edits (lamps, signs, ducts, 4 clear windows; then railings, parapets, roof lights, skylights, ducts: 1373 → 1464 props). At six fixed views at 1280×720 on a quiet machine (median of 3 runs, `next` before them vs `dev` after): Intel UHD GPU time +3–9% (14.3–17.0 → 15.6–17.7 ms, scene + post), CPU +0.4–1.4 ms, draw calls +4–21% (128–374 → 133–422), triangles +8%. On the A2000 the GPU barely moves (±6%). The extra calls are merged tile batches (more materials and finishes per tile) and glass: no draw call per prop. Not urgent; if the weak GPU needs room, fewer material and finish variants per tile first.
@@ -22,13 +16,7 @@ After 40 minutes of painting at ULTRA a profile counted 45 more GPU textures (~0
 
 Owner (2026-10-20): no change that lowers paint quality or detail (no fewer texels, no lossy compression, no fewer mip levels); skip the task if there's no such way.
 
-How the memory adds up (2026-10-20): every surface gets its block on a page of its level tile when the level loads (`PagePacker`, `src/page-packer.ts`); a page's texture is made on the first hit on any of its surfaces: 2048² RGBA8 plus its levels, ~21 MB, the same at every PAINT DETAIL (detail changes how many pages the level needs: ULTRA 16x LOW). Coats cost nothing: painting a wall red again, or with a roller and then a can, writes the same texels. So the memory is the pages touched, at most every page of the level; the waste is the empty part of each page (44% full) and a whole page made for one small hit. Lossless options: (1) measure how full each page is and where its empty part is; (2) make a page's texture only as tall as its blocks reach (shelf packing fills from the top), if most of the waste is at the bottom; (3) smaller pages at ULTRA (a first hit costs less, more draw calls: measure); (4) pack fuller, BL-144. Plan for 1.5.0: (1), then (2) if it pays, golden identical; otherwise move the rest to BL-144.
-
-## BL-107 Moving the stepladder again and again near lamps doubles the CPU time
-
-RTX laptop: CPU ~7.3 → 14–16 ms a frame while the ladder is placed over and over near lamps (each move re-bakes its lamp light, `LightBaker.sync`, BL-086); one placement is fine. Do: measure on the Intel laptop (audit T1.8) before deciding.
-
-Plan (2026-10-20): the bake work is capped (`LIGHTMAP.budgetMs`, 3 ms), so most of the extra time is likely `sync`'s per-move recheck (shadow cones, every receiver in reach). Measure on the real GPUs (NVIDIA and Intel, headed Chromium on WSLg), splitting the recheck from the bake. Owner: a short delay is fine: relight only once the ladder has rested ~0.5–1 s (a tunable in config.ts and F3), so repeated moves cost one rebake.
+How the memory adds up (2026-10-20): every surface gets its block on a page of its level tile when the level loads (`PagePacker`, `src/page-packer.ts`); a page's texture is made on the first hit on any of its surfaces: 2048² RGBA8 plus its levels, ~21 MB, the same at every PAINT DETAIL (detail changes how many pages the level needs: ULTRA 16x LOW). Coats cost nothing: painting a wall red again, or with a roller and then a can, writes the same texels. So the memory is the pages touched, at most every page of the level; the waste is the empty part of each page (44% full) and a whole page made for one small hit. Lossless options: (1) measure how full each page is and where its empty part is; (2) make a page's texture only as tall as its blocks reach (shelf packing fills from the top), if most of the waste is at the bottom; (3) smaller pages at ULTRA (a first hit costs less, more draw calls: measure); (4) pack fuller, BL-144. Measured (2026-10-20, the roof's paint surfaces packed in Node as the client packs them, per tile): LOW 8 pages, 171 MB if all are made; MEDIUM 17, 363 MB; HIGH 30, 640 MB; ULTRA 49, 1045 MB. Blocks fill 39/59/69/72% of the pages; cropping each page to the rows its blocks use would save 32/15/10/9%, perfect packing 61/41/32/28%. The playtest's 49 pages and 1041 MB were already every page the level has: 1 GB at ULTRA is the ceiling, not on its way to 2 GB. Cropping isn't worth its cost (a texture that grows when build mode adds a block, UVs per page height); the rest of the waste is inside the shelves, which is BL-144's job (pack fuller, drop hidden faces). Moved out of 1.5.0.
 
 ## BL-108 Loading drops to 12 fps on the Intel UHD with Energy Saver on
 

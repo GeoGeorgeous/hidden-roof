@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { CAPS, COLORS, NET, PLAYER } from '../config';
 import { Avatar } from '../avatar/avatar';
 import { setHex } from '../hex-color';
-import type { SprayParticles } from '../spray/particles';
+import { WallMemo, type SprayParticles } from '../spray/particles';
 import type { AvatarState } from '../avatar/pose';
 import type { Level } from '../level/level';
 import type { PropData } from '../level/level-data';
@@ -69,6 +69,8 @@ export class RemotePlayer {
   private shown = -Infinity;
   /** Spray particles owed to the next frame (a fraction of one). */
   private carry = 0;
+  /** The wall their spray found, kept while their aim holds. */
+  private wall = new WallMemo();
 
   constructor(
     scene: THREE.Scene,
@@ -212,6 +214,7 @@ export class RemotePlayer {
     this.avatar.group.visible = true;
     this.avatar.update(dt, st, cur.color, cur.cap);
     if (st.tool === 'can' && st.action === 'spray' && cur.flow > 0) this.spray(dt, cur);
+    else this.wall.age = Infinity;
   }
 
   /** Their can's spray, from its nozzle along their look, as much as comes out of it (SprayTool.emit). */
@@ -228,7 +231,7 @@ export class RemotePlayer {
     up.crossVectors(right, forward);
     eye.copy(this.position).y += st.crouched ? PLAYER.crouchEyeHeight : PLAYER.eyeHeight;
     setHex(display, COLORS[s.color]);
-    this.particles.show({ count, eye, nozzle: this.avatar.nozzle(nozzle), forward, right, up, cap, display, dt });
+    this.particles.show({ count, eye, nozzle: this.avatar.nozzle(nozzle), forward, right, up, cap, display, dt, memo: this.wall });
   }
 
   /** Everything they did that waits for their figure, done now. */

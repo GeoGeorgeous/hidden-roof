@@ -162,6 +162,8 @@ export const LIGHTMAP = {
   highlights: 4,
   /** Bake time per frame after edits and tweaks (ms). A freshly loaded level bakes at once. */
   budgetMs: 3,
+  /** A stepladder placed or moved relights the surfaces around it once it has stood this long (s), so moving it again and again costs one relight. */
+  ladderRest: 0.6,
   /** Surfaces' light lives on shared pages this many texels square (render/bake/light-pages.ts). */
   pageSize: 1024,
 };
@@ -861,6 +863,12 @@ export const SPRAY = {
   particleSpeed: 26,
   particleSize: 0.035,
   maxParticles: 3000,
+  /**
+   * Other players' spray finds its wall with one ray, reused while it still holds: for at most `reuse` seconds,
+   * while the eye moved less than `move` (m) and the aim turned less than `aim` (degrees) since the ray was cast.
+   * 0 casts every frame. Only what is seen: the paint comes as paint ops.
+   */
+  others: { reuse: 0.25, move: 0.05, aim: 1.5 },
 };
 
 export const PRESSURE = {

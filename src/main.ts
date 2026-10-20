@@ -85,8 +85,8 @@ const baker = new LightBaker();
 baker.onDecorBaked = (geo) => level.pushBaked(geo);
 baker.onRelayout = () => level.remerge();
 environment.lightning.onThunder = (d) => audio.thunder(d);
-level.onChange = () => {
-  baker.sync(level.builtProps);
+level.onChange = (runtime) => {
+  baker.sync(level.builtProps, runtime);
   environment.rebuild(level);
 };
 /** Glow and smoke sprites are sized in the drawing buffer's pixels. */
