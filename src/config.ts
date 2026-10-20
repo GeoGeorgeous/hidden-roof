@@ -863,6 +863,12 @@ export const SPRAY = {
   particleSpeed: 26,
   particleSize: 0.035,
   maxParticles: 3000,
+  /**
+   * Other players' spray finds its wall with one ray, reused while it still holds: for at most `reuse` seconds,
+   * while the eye moved less than `move` (m) and the aim turned less than `aim` (degrees) since the ray was cast.
+   * 0 casts every frame. Only what is seen: the paint comes as paint ops.
+   */
+  others: { reuse: 0.25, move: 0.05, aim: 1.5 },
 };
 
 export const PRESSURE = {

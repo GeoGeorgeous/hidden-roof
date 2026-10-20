@@ -86,6 +86,9 @@ export const HINTS: Record<string, string> = {
   // Painting
   'SPRAY.reach': 'Farthest distance spray paint reaches (m).',
   'SPRAY.falloffStart': 'Spray paint lands at full strength up to this distance, then fades linearly to nothing at the reach (m). Only shows when you spray from farther away than this.',
+  'SPRAY.others.reuse': 'How long another player\'s spray keeps the wall it found before looking for it again (s). Higher = less CPU with many players spraying, but the particles lag behind a changed wall. 0 = every frame.',
+  'SPRAY.others.move': 'Another player\'s spray looks for its wall again once they moved farther than this (m). Higher = less CPU, particles may miss the wall.',
+  'SPRAY.others.aim': 'Another player\'s spray looks for its wall again once their aim turned more than this (degrees). Higher = less CPU, particles may miss the wall.',
   'SPRAY.particleSpeed': 'Flight speed of the visible spray particles (m/s). Paint lands when they arrive.',
   'PAINT.alphaSteps': 'Paint opacity is shown in this many steps for a chunky look; 0 = smooth. Only how paint is drawn: the paint itself keeps every value.',
   'MARKER.reach': 'Farthest distance the marker draws (m).',

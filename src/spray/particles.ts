@@ -42,13 +42,22 @@ export interface EmitParams {
   display: THREE.Color;
 }
 
+/** The wall one other player's spray found, kept while their aim holds (SPRAY.others): where and how it was cast, how long ago, and the wall's plane. */
+export class WallMemo {
+  readonly eye = new THREE.Vector3();
+  readonly forward = new THREE.Vector3();
+  readonly plane = new THREE.Plane();
+  /** Seconds sprayed since the cast; Infinity: none kept. */
+  age = Infinity;
+  onWall = false;
+}
+
 /** Another player's spray, to be seen only; `dt`: the frame it came out over. */
-export type ShowParams = Omit<EmitParams, 'flow' | 'rgb'> & { dt: number };
+export type ShowParams = Omit<EmitParams, 'flow' | 'rgb'> & { dt: number; memo: WallMemo };
 
 const dir = new THREE.Vector3();
 const target = new THREE.Vector3();
 const ray = new THREE.Ray();
-const wall = new THREE.Plane();
 
 /** A particle's direction into `dir`: in the cap's cone around the aim, Gaussian-ish, clamped. */
 function aim(e: Pick<EmitParams, 'forward' | 'right' | 'up' | 'cap'>, random: () => number) {
@@ -114,21 +123,30 @@ export class SprayParticles {
 
   /**
    * Another player's spray, only to be seen: one ray along their aim finds the
-   * wall, and each particle flies to where its own ray meets that wall's plane
+   * wall (kept in `memo` while their eye and aim hold, SPRAY.others), and each particle flies to where its own ray meets that wall's plane
    * (or SPRAY.reach), with no ray of its own and no draw from the paint's
    * random streams. Each is already on its way for part of the frame, so the
    * frame's batch reads as a stream, not a clump.
    */
   show(e: ShowParams) {
-    solidsNear(this.solids, e.eye, SPRAY.reach, this.candidates);
-    const hit = this.cast(e.eye, e.forward);
-    // Level meshes sit at the origin: the face normal is in world space.
-    if (hit?.face) wall.setFromNormalAndCoplanarPoint(hit.face.normal, hit.point);
+    const m = e.memo;
+    const o = SPRAY.others;
+    m.age += e.dt;
+    if (m.age > o.reuse || m.eye.distanceToSquared(e.eye) > o.move * o.move || m.forward.dot(e.forward) < Math.cos((o.aim * Math.PI) / 180)) {
+      solidsNear(this.solids, e.eye, SPRAY.reach, this.candidates);
+      const hit = this.cast(e.eye, e.forward);
+      m.onWall = !!hit?.face;
+      // Level meshes sit at the origin: the face normal is in world space.
+      if (hit?.face) m.plane.setFromNormalAndCoplanarPoint(hit.face.normal, hit.point);
+      m.eye.copy(e.eye);
+      m.forward.copy(e.forward);
+      m.age = 0;
+    }
     for (let i = 0; i < e.count; i++) {
       const p = this.free.pop();
       if (!p) break;
       ray.set(e.eye, aim(e, Math.random));
-      const onWall = hit?.face && ray.intersectPlane(wall, target) && target.distanceTo(e.eye) < SPRAY.reach;
+      const onWall = m.onWall && ray.intersectPlane(m.plane, target) && target.distanceTo(e.eye) < SPRAY.reach;
       this.launch(p, e, onWall ? target : ray.at(SPRAY.reach, target));
       const early = Math.min(Math.random() * e.dt, p.life);
       p.pos.addScaledVector(p.vel, early);
