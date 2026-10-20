@@ -756,15 +756,32 @@ export const DRIPS = {
 /** F3's wet view (dev/wet-view.ts): points on the paint that is still wet, to tune paint runs by. */
 export const WET_VIEW = {
   enabled: false,
-  /** Point size (px) and color: fainter the less wet, full where it may run. */
+  /** Point size (px). */
   size: 4,
+  /** The ramp of a point's color by its build-up: `cool` for just wet, `color` where it may run (DRIPS.excess). */
+  cool: '#2a6cff',
   color: '#ff2a1a',
+  /** Opacity of a just-wet point; it reaches full where it may run. */
+  minOpacity: 0.4,
   /** Only faces this close to the player (m) are walked, every `refresh` seconds, and at most `maxPoints` are drawn (a denser PAINT DETAIL skips texels to stay under it). */
   reach: 10,
   refresh: 0.25,
   maxPoints: 20000,
   /** How far off the face the points sit (m), so they don't flicker in it. */
   lift: 0.004,
+};
+
+/** F3's runs view (dev/runs-view.ts): every texel a paint run painted, in one loud color. */
+export const RUNS_VIEW = {
+  enabled: false,
+  /** Point size (px) and color. */
+  size: 5,
+  color: '#ff0000',
+  /** The most texels kept (the oldest go first), redrawn every `refresh` seconds. */
+  maxPoints: 20000,
+  refresh: 0.25,
+  /** How far off the face the points sit (m), so they don't flicker in it. */
+  lift: 0.008,
 };
 
 type V3 = [number, number, number];

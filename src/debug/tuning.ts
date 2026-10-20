@@ -111,6 +111,8 @@ export interface Hooks {
   rebuildCity(): void;
   /** Give the player the starting nib and patch sizes (MARKER, ROLLER or SPONGE.width changed). */
   applyToolSizes(): void;
+  /** F3 -> Paint -> Paint runs: the wet view's highest build-up against what makes paint run ("2.4 / 6.0"). */
+  wetBuildUp(): string;
   /** F3 -> Items: every tool, color and cap, their pickups gone as if collected. */
   unlockAll(): void;
   /** Rebuild every tool model (first person, pickups, hotbar icons, the figure's tool) from MODELS and CAPS. */
