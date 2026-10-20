@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 182
+The one list of what's left. Counter for new ids: next: 184
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -167,9 +167,8 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## Legal
 
-1. [TASK-176]: Add LICENCE, CONTRIBUTING, Terms of Service and other Legal docs; ask the owner the open questions first (docs/ideas/legal.md) @1.5.0
-2. ~~[TASK-173]: Add cookies notification and all legal necessary documentation (docs/ideas/legal.md) @1.5.0 (no cookies: the privacy policy is TASK-178)~~
-3. [TASK-178]: Privacy policy, with the legal docs: no cookies or analytics; the server and Caddy see IP addresses, other players see nicknames, settings stay in localStorage (docs/ideas/legal.md) @1.5.0
+1. ~~[TASK-173]: Add cookies notification and all legal necessary documentation (docs/ideas/legal.md) @1.5.0 (no cookies: the privacy policy is TASK-178)~~
+2. [TASK-183]: A lawyer reads LICENSE, the Terms and the privacy policy (public/terms.html, public/privacy.html)
 
 ## Done
 
@@ -187,3 +186,5 @@ Shipped since the last release; the release commit empties this list.
 10. BUGS [BL-028]: Other players' spray costs ~0.2 ms of CPU a sprayer
 11. RFCT [BL-112]: The remote player's timeline as a pure module with a Node test
 12. [BUGS-175]: Screenshot K does not capture players name tags
+13. [TASK-176]: LICENSE, CONTRIBUTING and Terms of Service
+14. [TASK-178]: Privacy policy: no cookies or analytics; the server and Caddy see IP addresses, other players see nicknames, settings stay in localStorage
