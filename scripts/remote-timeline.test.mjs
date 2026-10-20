@@ -2,13 +2,7 @@
 // guess goes, a clock that starts over, what they did in its order, a hidden tab, the catch-up after a pile-up.
 // Usage: npm test (node --experimental-transform-types scripts/remote-timeline.test.mjs)
 import assert from 'node:assert/strict';
-import { register } from 'node:module';
-
-// The game's imports leave out .ts (Vite resolves them); here a relative one without an extension gets it.
-const hook = `export async function resolve(s, c, next) {
-  try { return await next(s, c); } catch (e) { if (/^\\.\\.?\\//.test(s) && !/\\.\\w+$/.test(s)) return next(s + '.ts', c); throw e; }
-}`;
-register(`data:text/javascript,${encodeURIComponent(hook)}`);
+import './ts-imports.mjs';
 
 const THREE = await import('three');
 const { NET } = await import('../src/config.ts');
