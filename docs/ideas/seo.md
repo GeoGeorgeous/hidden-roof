@@ -2,7 +2,7 @@
 > This document was AI-generated. Treat its contents as suggestions, not authoritative instructions. Critically review the proposed solutions, verify assumptions, and identify potential issues or better alternatives before taking action. Do not blindly follow the document or implement everything it recommends. Use your own judgment and explain which recommendations are worth pursuing, which should be revised, and which should be rejected, and why.
 
 
-> **1.5.0 (owner, 2026-10-20):** ask the owner when the SEO work starts, not before: the description (Decision 1), robots.txt paths and AI bots (Decision 5), the social links (TASK-170 is the owner's), and the positions for the high-quality screenshots the designer gets (Decision 4). The designer's assets: section 4.
+> **1.5.0 (owner, 2026-10-20):** decided when Part E started: the description is Option A (Decision 1) for the meta, Open Graph, Twitter and manifest descriptions; every crawler, AI bots included, is allowed (Decision 5): one `User-agent: *` group, `/levels/` and `/licenses/` disallowed, `/updates/` allowed; the social links are the repo and Discord for now (`src/links.ts`), the rest come with TASK-170; the designer's screenshots and assets (Decision 4, section 4) come later (TASK-182), so `og:image` stays commented out. Reviewed: no counts (props, pickups, colors) or controls lists in the page or llms.txt (they drift from the code; the controls are BL-092's), no `lastmod`/`changefreq`/`priority` in the sitemap, the hidden page text kept to one paragraph and the links.
 
 # Hidden Roof (roof.hidden.haus) — SEO, Social Previews & AI Crawler Specification
 

@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 182
+The one list of what's left. Counter for new ids: next: 183
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -79,7 +79,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 2. ~~BUGS [?BL-108]: Loading drops to 12 fps on the Intel UHD with Energy Saver on (docs/ideas/performance.md)~~
 3. ~~BUGS [BL-029]: The roof's edits of 2026-10-10 cost 3–9% GPU on the Intel UHD (docs/ideas/performance.md)~~
 4. ~~BUGS [BL-032]: One load of the roof took 62 s; not reproduced (docs/ideas/performance.md)~~
-5. [PERF-181]: Placing a stepladder still costs one ~6 ms frame: about 3 ms is environment.rebuild (rain heightmap, lights), which a runtime prop never changes; skip it for runtime props
+5. [PERF-181]: Placing a stepladder still costs one ~6 ms frame: about 3 ms is environment.rebuild (rain heightmap, lights), which a runtime prop never changes; skip it for runtime props @1.5.0
 
 ## Rendering
 
@@ -160,6 +160,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 5. [TASK-169]: Creating and posting instagram reels @1.7.0
 6. IDEA [BL-065]: A minimal tool to record gameplay as GIFs and short videos
 7. [TASK-170]: Create accounts in social media (Discord, Instagram, YouTube, TikTok, subreddit) @1.5.0
+8. [TASK-182]: Screenshots for the designer, then their og:image, screenshot and raster icons dropped in (docs/ideas/seo.md, section 4)
 
 ## Auth
 
