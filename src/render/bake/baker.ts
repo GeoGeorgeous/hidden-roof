@@ -123,6 +123,7 @@ export class LightBaker {
       this.stale = this.all = true; // everything is new, and all of it is queued already
       this.dropEdits();
     } else if (rest) {
+      this.stale = true; // the new prop's own surfaces bake against the occluders and lamps as they are now
       this.relightAt = this.now + LIGHTMAP.ladderRest;
     } else {
       this.relight();

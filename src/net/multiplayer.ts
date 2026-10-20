@@ -65,8 +65,10 @@ export class Multiplayer {
   private name = '';
   /** The player's own level and paint, from before the session's welcome replaced them until it ends. */
   private solo: Solo | null = null;
-  /** Those on their way back after the session ended: a welcome waits for them. */
+  /** The queue up to the player's own level and paint being back after the session ended: HOST and JOIN wait for it. */
   private restoring: Promise<void> = Promise.resolve();
+  /** Counts the sessions ended: a HOST or JOIN waiting for the restore is dropped by LEAVE. */
+  private attempt = 0;
 
   constructor(private g: MultiplayerContext) {
     this.remotes = new Remotes(g, this.log);
@@ -96,12 +98,21 @@ export class Multiplayer {
 
   /** Start a session on this level at this PAINT DETAIL, from a paint save or clean. */
   host(name: string, detail: number, save?: Uint8Array) {
-    const { data, name: levelName } = this.g.levelData();
-    this.connect({ type: 'host', protocol: PROTOCOL, table: surfaceTable(this.g.paint.surfaces), name, levelName, level: data, detail, bytes: save });
+    this.afterRestore(() => {
+      const { data, name: levelName } = this.g.levelData();
+      this.connect({ type: 'host', protocol: PROTOCOL, table: surfaceTable(this.g.paint.surfaces), name, levelName, level: data, detail, bytes: save });
+    });
   }
 
   join(name: string, code: string) {
-    this.connect({ type: 'join', protocol: PROTOCOL, name, code });
+    this.afterRestore(() => this.connect({ type: 'join', protocol: PROTOCOL, name, code }));
+  }
+
+  /** `start` once the player's own level is back from the last session (it reads the level), unless the session was left meanwhile; connecting is shown at once. */
+  private afterRestore(start: () => void) {
+    const attempt = this.attempt;
+    if (!this.joined) this.setStatus({ state: 'connecting' });
+    void this.restoring.then(() => attempt === this.attempt && start());
   }
 
   /** Back into the session this tab was in before a reload, if the server may still have it. */
@@ -163,7 +174,7 @@ export class Multiplayer {
     // HOST goes where the server takes big messages (a save), a few at a time.
     const url = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws${hello.type === 'host' ? '?host' : ''}`;
     this.log.add(`connecting to ${url}: ${hello.type === 'host' ? `HOST at ${hello.detail} texels/m${hello.bytes ? ` with ${(hello.bytes.length / 1024).toFixed(0)} KB of paint` : ''}` : `JOIN ${hello.code}${hello.token ? ' (coming back)' : ''}`}`);
-    if (!this.joined) this.setStatus({ state: 'connecting' });
+    if (!this.joined && this.status.state !== 'connecting') this.setStatus({ state: 'connecting' });
     // A message this game can't handle (a bug, a paint file it can't load) ends the session for it, with the error in the log.
     const handle = (m: ToClient, arrived: number, file?: Uint8Array) =>
       (this.queue = this.queue.then(() => this.receive(m, arrived, link, file)).catch((err) => {
@@ -244,8 +255,6 @@ export class Multiplayer {
   }
 
   private async welcome(w: Extract<ToClient, { type: 'welcome' }>, link: ServerLink, file: Uint8Array) {
-    // The last session's end puts the player's paint back before this one's replaces it.
-    await this.restoring;
     // LEAVE, or the link dropped, before it was handled (it waited behind other messages): nothing to open or lock.
     if (this.link !== link) return this.log.add('welcome dropped: its link is gone');
     const g = this.g;
@@ -303,6 +312,7 @@ export class Multiplayer {
 
   /** Out of the session: single player again, with the paint the player had before it (nothing of the session's stays; SAVE has it). */
   private end(status: NetStatus) {
+    this.attempt++;
     this.link?.abandon();
     this.link = null;
     this.onProgress(null);
@@ -320,8 +330,8 @@ export class Multiplayer {
     this.setStatus(status);
     const solo = this.solo;
     this.solo = null;
-    // After the message being handled (a welcome loading paint), and nothing is played meanwhile.
-    if (solo) this.restoring = this.queue.catch(() => {}).then(() => this.restore(solo));
+    // In the queue: after the message being handled (a welcome loading paint) and the ones waiting, and before any that comes later.
+    if (solo) this.restoring = this.queue = this.queue.then(() => this.restore(solo)).catch(console.error);
   }
 
   private async restore(solo: Solo) {

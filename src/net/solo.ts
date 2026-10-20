@@ -3,7 +3,7 @@ import type { LevelData } from '../level/level-data';
 import { hasPaint } from '../paint-surface';
 import { loadPaint } from '../save/load-paint';
 import { savePaint } from '../save/save-paint';
-import type { MultiplayerContext } from './game-context';
+import { playLevel, type MultiplayerContext } from './game-context';
 
 // The player's own game while a session has its level and paint: kept as a
 // level and one paint file (nothing else, nothing on the GPU) when the welcome
@@ -26,8 +26,6 @@ export async function keepSolo(g: MultiplayerContext): Promise<Solo> {
 export async function restoreSolo(g: MultiplayerContext, solo: Solo) {
   const built = g.paint.texelsPerMeter;
   g.ownDetail();
-  const open = g.levelData();
-  if (built === PAINT.texelsPerMeter && open.name === solo.name && JSON.stringify(open.data) === JSON.stringify(solo.data)) g.restartLevel();
-  else g.openLevel(solo.data, solo.name);
+  playLevel(g, solo.data, solo.name, built, PAINT.texelsPerMeter);
   if (solo.paint) await loadPaint(g.paint, g.drips, solo.paint, { name: solo.name });
 }
