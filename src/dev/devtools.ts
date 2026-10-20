@@ -168,7 +168,7 @@ export class DevTools {
     if (this.modelsChanged) this.rebuildModelsNow();
     this.figure.update(dt);
     this.ghost.update(dt);
-    this.wet.update(dt, WET_VIEW.enabled && !session.multiplayer);
+    this.wet.update(dt, WET_VIEW.enabled);
     if (session.multiplayer) {
       this.figure.hide();
       this.ghost.stop();

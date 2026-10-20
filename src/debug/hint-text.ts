@@ -192,7 +192,7 @@ export const HINTS: Record<string, string> = {
   'DRIPS.enabled': 'Paint runs: spraying heavily onto wet, opaque paint on vertical faces makes it run down.',
   'DRIPS.excess': 'Wet coats of paint a spot holds before it may run. Higher = fewer runs.',
   'DRIPS.dryTime': 'Seconds paint stays wet: a spot with the build-up needed to run is dry this long after the last paint on it, less paint sooner. Lower = only heavy spraying runs; higher = going back over a spot soon runs again.',
-  'WET_VIEW.enabled': 'Dev view: a point on each texel of wet paint near you, faint when just painted, strong red where it may run. Off in play; it costs a little while on.',
+  'WET_VIEW.enabled': 'A point on each texel of your wet paint near you, faint when just painted, strong red where it may run (others\' paint runs on their side, so it never shows wet here). Dev builds only; it costs a little while on.',
   'WET_VIEW.size': 'Size of the wet view\'s points (px). Higher = easier to see from afar.',
   'DRIPS.maxActive': 'Most runs moving at the same time, level-wide.',
   'DRIPS.minLength': 'Shortest run (m).',
