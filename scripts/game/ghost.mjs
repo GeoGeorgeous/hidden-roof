@@ -199,13 +199,15 @@ await check('ghost: what another player did before this game was hidden lands be
     x.receiveLadder(6, null);
     x.receiveOp(6, coat([0, 0, 1]));
     delete document.hidden;
-    // Shown again: their figure gets past t = 6.
-    Object.assign(x, { lag: 0, target: 0 });
+    // Shown again: a snapshot of theirs at t = 10 starts their clock, and their figure gets past t = 6.
+    const snapshot = new Uint8Array(25);
+    new DataView(snapshot.buffer).setFloat32(0, 10, true);
+    x.receive(snapshot, 10);
     x.update(10, 1 / 60);
     let red = 0;
     let blue = 0;
     for (let i = 0; i < s.data.length; i += 4) (red += s.data[i]), (blue += s.data[i + 2]);
-    const out = { ladder: g.level.runtimeOf(x.owner) !== undefined, waiting: x.events.length, red, blue };
+    const out = { ladder: g.level.runtimeOf(x.owner) !== undefined, waiting: x.timeline.waiting, red, blue };
     g.net.remotes.remove(9);
     g.paint.clear();
     return out;

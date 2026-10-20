@@ -67,7 +67,7 @@ export function watch(lab) {
         const v = await p.page.evaluate(() => {
           const g = window.game;
           const others = {};
-          for (const [id, r] of g.net.remotes.list) others[g.net.names.get(id) ?? `#${id}`] = r.look;
+          for (const [id, r] of g.net.remotes.players) others[g.net.names.get(id) ?? `#${id}`] = r.look;
           return { state: g.net.status.state, others };
         }).catch(() => null);
         if (v) lab.timeline.push({ t, who: p.name, ...v });

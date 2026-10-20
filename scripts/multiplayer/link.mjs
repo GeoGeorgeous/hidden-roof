@@ -83,7 +83,7 @@ export async function link(w) {
   });
   await b.evaluate((c) => window.game.net.join('B', c), code);
   await status(b, 'in');
-  await b.waitForFunction(() => [...window.game.net.remotes.list.values()][0]?.avatar.group.visible, null, { timeout: 2000 });
+  await b.waitForFunction(() => [...window.game.net.remotes.players.values()][0]?.avatar.group.visible, null, { timeout: 2000 });
   assert.equal(await b.textContent('.nameplate'), 'A');
   await b.evaluate(() => window.game.net.leave());
 

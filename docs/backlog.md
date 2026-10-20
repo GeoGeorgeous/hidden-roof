@@ -49,13 +49,12 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 1. BUGS [BL-024]: Paint ops are most of the downstream bytes; merge stamps, shed load on slow links, after the playtest (docs/ideas/weak-links.md) @1.6.1
 2. TASK [BL-076]: Run the next public playtest and verify that all bugs from the previous playtest have been fixed (docs/ideas/weak-links.md) @1.6.1
-3. RFCT [BL-112]: The remote player's timeline as a pure module with a Node test (docs/ideas/remote-timeline.md) @1.5.0
-4. IDEA [BL-114]: A failure says whether the player was in a session, for the notification system (docs/ideas/notifications.md) @1.9.0
-5. IDEA [?BL-071]: Multiplayer View-Only sessions: past sessions are opened for viewing only (gallary)
-6. TASK [BL-151]: Show what each other player is doing, add more statuses (in the menu, in Settings…) by their nameplate. For now, we have AWAY and DISCONNECTED @1.6.0
-7. IDEA [?BL-153]: Find who painted something by player id, picked like the eyedropper (to spot bad paint)
-8. TASK [BL-154]: Limit some tools in multiplayer (e.g. the roller) @1.6.0
-9. [TASK-168]: Returning players recover their inventory but spawn at the default spawn instead of their last position. Restore both inventory and position. @1.7.0
+3. IDEA [BL-114]: A failure says whether the player was in a session, for the notification system (docs/ideas/notifications.md) @1.9.0
+4. IDEA [?BL-071]: Multiplayer View-Only sessions: past sessions are opened for viewing only (gallary)
+5. TASK [BL-151]: Show what each other player is doing, add more statuses (in the menu, in Settings…) by their nameplate. For now, we have AWAY and DISCONNECTED @1.6.0
+6. IDEA [?BL-153]: Find who painted something by player id, picked like the eyedropper (to spot bad paint)
+7. TASK [BL-154]: Limit some tools in multiplayer (e.g. the roller) @1.6.0
+8. [TASK-168]: Returning players recover their inventory but spawn at the default spawn instead of their last position. Restore both inventory and position. @1.7.0
 
 ## Painting
 
@@ -187,3 +186,4 @@ Shipped since the last release; the release commit empties this list.
 8. RFCT [BL-015]: Rework the drips: each setting does one thing; spraying over a coat no longer grows them; paint dries, per texel
 9. BUGS [BL-107]: Moving the stepladder again and again near lamps doubles the CPU time (lamp light re-baked)
 10. BUGS [BL-028]: Other players' spray costs ~0.2 ms of CPU a sprayer
+11. RFCT [BL-112]: The remote player's timeline as a pure module with a Node test
