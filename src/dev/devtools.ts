@@ -27,7 +27,8 @@ import { dressTower, wallSigns } from '../city/rooftops';
 import { Ghost } from './ghost';
 import { Profiler } from './profiler';
 import { WetView } from './wet-view';
-import { WET_VIEW } from '../config';
+import { RunsView } from './runs-view';
+import { RUNS_VIEW, WET_VIEW } from '../config';
 import type { PaintOps } from '../paint-ops';
 import type { Tools } from '../tools/tools';
 
@@ -86,6 +87,7 @@ export class DevTools {
   private ghost: Ghost;
   private profiler: Profiler;
   private wet: WetView;
+  private runs: RunsView;
   /** The game had the mouse when the panel opened: closing it goes back. */
   private resumeOnClose = false;
   /** Paint ops per second: counted over a second at a time. */
@@ -102,6 +104,7 @@ export class DevTools {
     this.ghost = new Ghost(g);
     this.profiler = new Profiler(g);
     this.wet = new WetView(g.scene, g.paint, () => g.player.position);
+    this.runs = new RunsView(g.scene, g.drips, g.paint);
     if (new URLSearchParams(location.search).has('profile')) this.profiler.start();
     const hooks: Hooks = {
       gpu: (label: string) => g.gpuTimer.read(label),
@@ -146,7 +149,7 @@ export class DevTools {
       profileState: () => (this.profiler.recording ? 'RECORDING' : 'off'),
     };
     this.debug = new DebugPanel(hooks, () => g.environment.atmosphere.nightValues);
-    Object.assign(window, { game: { ...g, build: this.build, debug: this.debug, hooks, live, ghost: this.ghost, wetView: this.wet, profiler: this.profiler, cityParts: { layoutCity, dressTower, wallSigns } } });
+    Object.assign(window, { game: { ...g, build: this.build, debug: this.debug, hooks, live, ghost: this.ghost, wetView: this.wet, runsView: this.runs, profiler: this.profiler, cityParts: { layoutCity, dressTower, wallSigns } } });
   }
 
   /** Where the test figures stand besides the session's players (the ghost): a stepladder can't go there. */
@@ -170,6 +173,7 @@ export class DevTools {
     this.figure.update(dt);
     this.ghost.update(dt);
     this.wet.update(dt, WET_VIEW.enabled);
+    this.runs.update(dt, RUNS_VIEW.enabled);
     if (session.multiplayer) {
       this.figure.hide();
       this.ghost.stop();

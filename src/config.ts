@@ -771,6 +771,19 @@ export const WET_VIEW = {
   lift: 0.004,
 };
 
+/** F3's runs view (dev/runs-view.ts): every texel a paint run painted, in one loud color. */
+export const RUNS_VIEW = {
+  enabled: false,
+  /** Point size (px) and color. */
+  size: 5,
+  color: '#ff0000',
+  /** The most texels kept (the oldest go first), redrawn every `refresh` seconds. */
+  maxPoints: 20000,
+  refresh: 0.25,
+  /** How far off the face the points sit (m), so they don't flicker in it. */
+  lift: 0.008,
+};
+
 type V3 = [number, number, number];
 /** A pickup's pose on top of its model: size multiplier, offset (m) and rotation (radians). */
 const pickupPose = (size = 1) => ({ size, offset: [0, 0, 0] as V3, rotation: [0, 0, 0] as V3 });
