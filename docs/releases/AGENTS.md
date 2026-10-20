@@ -13,7 +13,7 @@ One file per release, `docs/releases/vX.Y.Z.md`, is the one source of its notes:
 
 - **The game** bundles them (`src/release-notes.ts`, `src/updates-page.ts`): ESC → About → Updates, newest first, each with its date and its picture, `public/updates/vX.Y.Z.webp` (the CSP takes images from the game's own site only).
 - **GitHub**: `node scripts/release-notes.mjs vX.Y.Z` prints the release's notes, with the picture linked from the repo at the tag; the title, `Hidden Roof X.Y.Z`, is the release's own (`--title`), never repeated in the notes. Never write them on GitHub by hand.
-- **Discord**: `node scripts/release-discord.mjs vX.Y.Z` posts the note with its date, a link to the GitHub release and the picture attached, through the webhook in `DISCORD_WEBHOOK` (the gitignored `.env.local`; never commit or print it). A note longer than one message (2000 characters) goes in several, split between sections (a heading and its list stay together), the picture with the last, so it shows below the note. `--dry` prints the messages instead.
+- **Discord**: `node scripts/release-discord.mjs vX.Y.Z` posts the picture, then the note with its date and a link to the GitHub release, through the webhook in `DISCORD_WEBHOOK` (the gitignored `.env.local`; never commit or print it). A note longer than one message (2000 characters) goes in several, split between sections (a heading and its list stay together). The picture is the first message, on its own, so it tops the note as on GitHub (Discord shows attachments below a message's text); it is read before anything is posted, so a missing picture fails before any message. `--dry` prints the picture's size and the messages instead.
 
 `npm test` checks every note (`scripts/release-notes.test.mjs`).
 

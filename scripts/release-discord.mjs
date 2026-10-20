@@ -1,6 +1,7 @@
 // Posts a release's notes to Discord through the webhook in DISCORD_WEBHOOK
-// (from the environment or the gitignored .env.local), its picture attached.
-// --dry prints the messages instead. Process: docs/releases/AGENTS.md.
+// (from the environment or the gitignored .env.local): the picture first, as its
+// own message, then the notes. --dry prints what would be posted instead.
+// Process: docs/releases/AGENTS.md.
 // Usage: node scripts/release-discord.mjs v1.2.0 [--dry]
 import fs from 'node:fs';
 import { discordNotes } from '../src/release-notes.ts';
@@ -9,8 +10,10 @@ const [tag, flag] = process.argv.slice(2);
 if (!/^v\d+\.\d+\.\d+$/.test(tag ?? '') || (flag && flag !== '--dry')) throw new Error('usage: node scripts/release-discord.mjs vX.Y.Z [--dry]');
 const messages = discordNotes(tag, fs.readFileSync(`docs/releases/${tag}.md`, 'utf8'));
 const picture = `public/updates/${tag}.webp`;
+// Read before anything is posted: a missing picture fails here, not halfway through.
+const image = fs.readFileSync(picture);
 if (flag) {
-  console.log(`${messages.join('\n---\n')}\n[${picture}, ${Math.round(fs.statSync(picture).size / 1024)} KB]`);
+  console.log(`[${picture}, ${Math.round(image.length / 1024)} KB]\n---\n${messages.join('\n---\n')}`);
   process.exit(0);
 }
 
@@ -18,14 +21,15 @@ if (!process.env.DISCORD_WEBHOOK && fs.existsSync('.env.local')) process.loadEnv
 const webhook = process.env.DISCORD_WEBHOOK;
 if (!webhook?.startsWith('https://discord.com/api/webhooks/')) throw new Error('DISCORD_WEBHOOK is missing: put it in .env.local');
 
-// One message after another, so they show in order; the picture goes with the last, below the note.
-for (const [i, content] of messages.entries()) {
-  const last = i === messages.length - 1;
+// One message after another, so they show in order. Discord shows attachments below a message's text, so the
+// picture is a message of its own, first: it tops the note, and if Discord rejects it nothing has been posted.
+const posts = [{ picture: true }, ...messages.map((content) => ({ content }))];
+for (const [i, { content, picture: withPicture }] of posts.entries()) {
   const form = new FormData();
-  const payload = { content, allowed_mentions: { parse: [] }, attachments: last ? [{ id: 0, filename: `${tag}.webp` }] : [] };
+  const payload = { content, allowed_mentions: { parse: [] }, attachments: withPicture ? [{ id: 0, filename: `${tag}.webp` }] : [] };
   form.append('payload_json', JSON.stringify(payload));
-  if (last) form.append('files[0]', new Blob([fs.readFileSync(picture)], { type: 'image/webp' }), `${tag}.webp`);
+  if (withPicture) form.append('files[0]', new Blob([image], { type: 'image/webp' }), `${tag}.webp`);
   const res = await fetch(`${webhook}?wait=true`, { method: 'POST', body: form });
   if (!res.ok) throw new Error(`Discord: ${res.status} ${await res.text()}`);
-  console.log(`${tag}: posted ${i + 1}/${messages.length}, message ${(await res.json()).id}`);
+  console.log(`${tag}: posted ${i + 1}/${posts.length}, message ${(await res.json()).id}`);
 }
