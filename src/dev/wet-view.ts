@@ -14,6 +14,8 @@ const p = new THREE.Vector3();
 export class WetView {
   /** Points in the last refresh. */
   count = 0;
+  /** The most build-up (coats) among them. */
+  peak = 0;
   private points: THREE.Points;
   private pos = new Float32Array(WET_VIEW.maxPoints * 3);
   private col = new Float32Array(WET_VIEW.maxPoints * 4);
@@ -43,6 +45,11 @@ export class WetView {
     if (this.since >= WET_VIEW.refresh) this.refresh();
   }
 
+  /** The panel's readout: the most build-up found near you against what makes paint run. */
+  get label() {
+    return this.points.visible ? `${this.peak.toFixed(1)} / ${DRIPS.excess.toFixed(1)}` : '-';
+  }
+
   /** The points as the wet paint is now. */
   refresh() {
     this.since = 0;
@@ -62,8 +69,11 @@ export class WetView {
       }
     }
     const stride = Math.max(1, Math.ceil(Math.sqrt(texels / maxPoints)));
-    const base = new THREE.Color(WET_VIEW.color);
+    const cool = new THREE.Color(WET_VIEW.cool);
+    const hot = new THREE.Color(WET_VIEW.color);
+    const ramp = new THREE.Color();
     let n = 0;
+    let most = 0;
     for (const [wet, w, r] of faces) {
       if (n === maxPoints) break;
       const nm = r.face!.normal;
@@ -73,17 +83,21 @@ export class WetView {
           if (left <= 0) continue;
           if (n === maxPoints) break;
           texelToWorld(r, x + 0.5, y + 0.5, p).addScaledVector(nm, lift).toArray(this.pos, n * 3);
-          const wetness = Math.min(1, left / DRIPS.dryTime);
+          // The share of the build-up needed to run: 1 is where it may.
+          const buildUp = Math.min(1, left / DRIPS.dryTime);
+          if (buildUp > most) most = buildUp;
+          ramp.lerpColors(cool, hot, buildUp);
           const i = n * 4;
-          this.col[i] = base.r;
-          this.col[i + 1] = base.g;
-          this.col[i + 2] = base.b;
-          this.col[i + 3] = 0.2 + 0.8 * wetness;
+          this.col[i] = ramp.r;
+          this.col[i + 1] = ramp.g;
+          this.col[i + 2] = ramp.b;
+          this.col[i + 3] = WET_VIEW.minOpacity + (1 - WET_VIEW.minOpacity) * buildUp;
           n++;
         }
       }
     }
     this.count = n;
+    this.peak = most * DRIPS.excess;
     const geo = this.points.geometry;
     geo.setDrawRange(0, n);
     geo.attributes.position.needsUpdate = true;

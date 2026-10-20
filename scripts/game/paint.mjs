@@ -135,6 +135,37 @@ await check('wet view (F3): wet paint on an upright face shows as points, dry pa
   return r.wet > 0 && r.dry === 0 ? null : JSON.stringify(r);
 });
 
+await check('wet view (F3): the highest build-up reads coats against the build-up needed', async () => {
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    const faces = g.paint.surfaces.flatMap((s) => s.geo.rects.map((rect, i) => ({ s, rect: i, size: rect.upright && rect.face ? rect.w * rect.h : 0 })));
+    const { s, rect } = faces.reduce((a, b) => (b.size > a.size ? b : a));
+    const at = { rect, u: 0.5, v: 0.5 };
+    const { DRIPS, WET_VIEW } = g.config;
+    DRIPS.enabled = true;
+    WET_VIEW.reach = 1e6;
+    const was = g.paint.onDrip;
+    g.paint.onDrip = () => {};
+    g.paint.clear();
+    // A dot wider than the face, so every texel the view samples holds the same build-up.
+    const coats = (n) => {
+      for (let i = 0; i < n; i++) g.paint.stamp(s, at, 5, 1, [0.9, 0.2, 0.1], 0, 1e9);
+      g.wetView.refresh();
+      return g.wetView.peak;
+    };
+    const out = { needed: DRIPS.excess };
+    coats(1); // opaque
+    out.some = coats(2);
+    out.near = coats(Math.ceil(DRIPS.excess) - 3);
+    g.paint.clear();
+    WET_VIEW.reach = 10;
+    g.paint.onDrip = was;
+    return out;
+  });
+  const last = Math.ceil(r.needed) - 1;
+  return Math.abs(r.some - 2) < 0.1 && r.near > last - 0.1 && r.near < r.needed ? null : JSON.stringify(r);
+});
+
 await check('ladders: placing one tests a shadow cone per lamp, not per piece of the ladder (each placement stalled ~150 ms)', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;

@@ -1,5 +1,5 @@
 import { CAP_ORDER, CAPS } from '../config';
-import { r, t, type Hooks, type Item, type Section } from './tuning';
+import { c, r, t, type Hooks, type Item, type Section } from './tuning';
 
 // F3 panel contents for painting (tuning.ts has the helpers): what each tool
 // does (one vocabulary: reach, width, opacity, softness), the caps, paint
@@ -75,11 +75,15 @@ export function paintSections(h: Hooks): Section[] {
       id: 'runs',
       title: 'Paint runs',
       items: [
+        { kind: 'readout', label: 'most build-up', get: () => h.wetBuildUp() },
         t('on', ['DRIPS', 'enabled']),
         r('build-up needed', ['DRIPS', 'excess'], 0.5, 10, 0.1),
         r('drying time', ['DRIPS', 'dryTime'], 0.1, 20, 0.1),
         t('wet view', ['WET_VIEW', 'enabled']),
         r('wet view: size', ['WET_VIEW', 'size'], 1, 12, 0.5),
+        c('wet view: just wet', ['WET_VIEW', 'cool']),
+        c('wet view: may run', ['WET_VIEW', 'color']),
+        r('wet view: opacity', ['WET_VIEW', 'minOpacity'], 0, 1, 0.05),
         r('length: min', ['DRIPS', 'minLength'], 0.02, 1, 0.01),
         r('length: max', ['DRIPS', 'maxLength'], 0.02, 1.5, 0.01),
         r('drip speed', ['DRIPS', 'speed'], 0.01, 1, 0.01),

@@ -140,6 +140,7 @@ export class DevTools {
       ghostStop: () => this.ghost.stop(),
       ghostState: () => this.ghost.label,
       ghostNet: () => this.ghost.net,
+      wetBuildUp: () => this.wet.label,
       profileToggle: () => this.profiler.toggle(),
       profileProbe: () => this.profiler.runProbe(),
       profileState: () => (this.profiler.recording ? 'RECORDING' : 'off'),
