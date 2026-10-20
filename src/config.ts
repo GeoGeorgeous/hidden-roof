@@ -1,4 +1,5 @@
 import type { Tool } from './inventory/tool.ts';
+import { DISCORD, REPO } from './links.ts';
 
 // All tunable constants live here. Units: meters, seconds, radians unless noted.
 
@@ -23,7 +24,7 @@ export const RENDER = {
    * touch-only device, screen 10 shows instead (src/boot.ts; ?force=1 loads
    * the game anyway). Measured on the ESC menu, the widest UI: the Updates
    * popup is 780 px plus its 16 px margins (812; the Settings column is 640,
-   * the pause screen's widest row, its footer, 478). The pause screen's title
+   * the pause screen's widest row, its title, 468). The pause screen's title
    * clears the style switcher down to 560 px high, where the popups still fit
    * (Updates shrinks and scrolls). The HUD needs far less. Read at build time
    * (vite.config.ts).
@@ -327,6 +328,27 @@ export const PAUSE_MENU = {
   viewYaw: -135,
   viewPitch: -8,
 };
+
+/** A social channel in the pause screen's footer (pause-menu.ts). */
+export interface SocialLink {
+  id: string;
+  /** Its name: the icon's tooltip and accessible name. */
+  label: string;
+  /** Its Tabler icon (src/social-icons.ts). */
+  icon: string;
+  url: string;
+  /** Open (a link in a new tab), or not yet: a muted icon, "coming soon". */
+  live: boolean;
+}
+
+/** The pause screen's social icons, in order. */
+export const SOCIAL_LINKS: readonly SocialLink[] = [
+  { id: 'discord', label: 'Discord', icon: 'brand-discord', url: DISCORD, live: true },
+  { id: 'github', label: 'GitHub', icon: 'brand-github', url: REPO, live: true },
+  { id: 'youtube', label: 'YouTube', icon: 'brand-youtube', url: 'https://www.youtube.com/channel/UCIN2OeR6_IqEivP1uALkpJQ', live: true },
+  { id: 'instagram', label: 'Instagram', icon: 'brand-instagram', url: 'https://www.instagram.com/roof.hidden/', live: true },
+  { id: 'tiktok', label: 'TikTok', icon: 'brand-tiktok', url: 'https://www.tiktok.com/@roof.hidden', live: true },
+];
 
 /** What the HUD shows (hud.ts) and the hotbar's size (inventory/hotbar.ts), live in F3 → UI. */
 export const HUD = {

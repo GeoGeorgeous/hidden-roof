@@ -372,18 +372,18 @@
   transition: stroke-dashoffset var(--hold-ms, 1500ms) linear var(--hold-delay, 0ms);
 }
 
-/* The pause screen: the title group standing on the menu, the links under it. */
+/* The pause screen: the title group standing on the menu, the footer under it. */
 .overlay .pause {
   position: absolute;
   inset: 0;
 }
-/* On the menu's line from the bottom; in short windows the gap over the menu shrinks, then the title goes up out of the window, never over the menu. */
+/* On the menu's line from the bottom, 48 px over the footer's icons; in short windows the gap over the menu shrinks, then the title goes up out of the window, never over the menu. */
 .overlay .stack {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  bottom: 104px;
+  bottom: 116px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -611,6 +611,45 @@
   color: var(--text-3);
 }
 .overlay .foot i {
+  font-style: normal;
+  color: rgba(235, 229, 214, 0.3);
+}
+/* The pause screen's footer: the social icons, then the legal links, the version and the author. */
+.overlay .pause-foot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+}
+.overlay .pause-foot div {
+  display: flex;
+  align-items: center;
+}
+.overlay .pause-foot .social {
+  gap: 18px;
+}
+.overlay .pause-foot .social > * {
+  display: flex;
+}
+.overlay .pause-foot svg {
+  display: block;
+}
+/* A channel not open yet: no link, "coming soon" on hover. */
+.overlay .pause-foot .soon {
+  pointer-events: auto;
+  cursor: not-allowed;
+  color: rgba(235, 229, 214, 0.2);
+}
+.overlay .pause-foot .meta {
+  gap: 10px;
+  color: var(--text-3);
+}
+.overlay .pause-foot i {
   font-style: normal;
   color: rgba(235, 229, 214, 0.3);
 }

@@ -37,6 +37,7 @@ const SECTIONS: [title: string, entries: Entry[]][] = [
     [
       ['three.js', '3D rendering', 'MIT', license('three.js')],
       ['ws', 'WebSocket server for multiplayer', 'MIT', license('ws')],
+      ['Tabler Icons', 'Paweł Kuna · social link icons', 'MIT', license('tabler-icons')],
     ],
   ],
 ];
