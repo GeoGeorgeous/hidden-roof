@@ -78,3 +78,30 @@ The broader goal is to understand how the painting mechanics could become more r
 The debug screen is an important part of this process. It should make brush behavior easier to understand and tune, with controls that are precise, comfortable to use, and meaningful in relation to the underlying mechanics. At present, it is difficult to determine which parameters are responsible for particular visual results and how to tune them systematically.
 
 I want to establish a clearer understanding of the current implementation, the relationships between its parameters, the suspected limitations, and the realistic behavior we are trying to achieve. This should provide a sound basis for evaluating possible directions before any implementation work begins.
+
+## Tuning paint runs by hand: the F3 run settings are not enough (2026-10-20)
+
+The owner is tuning runs in F3 → paint → paint runs. Build-up, drying time and the per-tool frequency are not the only things that decide how many runs a tool makes, so tuning them alone does not get there. Other inputs weigh more:
+
+- **Marker spacing** (stroke spacing, so how often a texel is hit).
+- **Each cap's density and power** (how much paint a hit puts down).
+
+While chasing runs for one tool, the owner ends up changing core painting mechanics (spacing, density, power) instead of the run settings. That is the problem, not any one number.
+
+**Wanted:** holding the spray on one spot makes a hard run, for every tool.
+
+**Seen:** paint does not seem to build up on a texel until the stroke moves a little. Hitting the same texels again does not always add a coat:
+
+- the marker does not build up;
+- the spray cap does;
+- the skinny cap does not.
+
+It is not obvious why, it is not consistent between tools, and it is not flexible.
+
+**Ask:** find a way to simplify or harden how runs are decided, so that:
+
+1. Build-up per texel behaves the same for every tool (a hit adds a coat, whatever the tool and spacing).
+2. The run settings are the only knobs that change how many runs a tool makes, without touching how its paint looks.
+3. F3 shows why a texel did or did not build up (the `most build-up` readout and the `runs view` overlay are the tools for it).
+
+Open before any change: why a repeated hit on a texel adds no coat for the marker and skinny cap (jitter, spacing, the per-hit amount, or the coat threshold). Measure it per tool first. The branch `exp/runs-by-load` (runs start at a load limit) is one attempt at this.
