@@ -141,26 +141,22 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## Servers and deploy
 
-1. PERF [BL-030]: Precompressed assets served by Caddy; the host's part goes to devops (docs/ideas/server-ops.md, docs/ideas/vps.md) @1.5.0
-2. TASK [BL-077]: Deploy from GitHub Actions (docs/ideas/server-ops.md)
-3. IDEA [BL-043]: One public server, running 24/7 (docs/ideas/public-servers.md) @1.6.0
-4. TASK [BL-044]: Disable host and join (don't remove them), after BL-043 (docs/ideas/public-servers.md) @1.6.0
-5. IDEA [BL-045]: A window of public servers instead of host and join (docs/ideas/public-servers.md) @1.6.0
-6. [DSGN-160]: The lobby list for BL-045: allowed tools, players online, ping with a country flag @1.6.0
-7. IDEA [BL-046]: A queue to enter the server, after BL-043 (docs/ideas/public-servers.md) @1.6.0
-8. IDEA [BL-047]: Admin panel: servers stats (players online, perfomance, etc), players info (username, IP, ping), ban by IP, after BL-043 (docs/ideas/public-servers.md) @1.6.0
-9. IDEA [?BL-147]: Anti-cheat: The server checks what players send (op reach and rate, ladder spot, jumps) before it goes public @1.6.0
+1. TASK [BL-077]: Deploy from GitHub Actions (docs/ideas/server-ops.md)
+2. IDEA [BL-043]: One public server, running 24/7 (docs/ideas/public-servers.md) @1.6.0
+3. TASK [BL-044]: Disable host and join (don't remove them), after BL-043 (docs/ideas/public-servers.md) @1.6.0
+4. IDEA [BL-045]: A window of public servers instead of host and join (docs/ideas/public-servers.md) @1.6.0
+5. [DSGN-160]: The lobby list for BL-045: allowed tools, players online, ping with a country flag @1.6.0
+6. IDEA [BL-046]: A queue to enter the server, after BL-043 (docs/ideas/public-servers.md) @1.6.0
+7. IDEA [BL-047]: Admin panel: servers stats (players online, perfomance, etc), players info (username, IP, ping), ban by IP, after BL-043 (docs/ideas/public-servers.md) @1.6.0
+8. IDEA [?BL-147]: Anti-cheat: The server checks what players send (op reach and rate, ladder spot, jumps) before it goes public @1.6.0
 
 ## Web and promotion
 
-1. TASK [BL-068]: Meta tags: title, description, canonical, Open Graph, Twitter Card; ask the owner the open questions first (docs/ideas/seo.md) @1.5.0
-2. TASK [BL-069]: robots.txt (with rules for AI bots), sitemap.xml and llms.txt (docs/ideas/seo.md) @1.5.0
-3. TASK [BL-070]: JSON-LD, semantic HTML outside the canvas, favicons and a web manifest (docs/ideas/seo.md) @1.5.0
-4. TASK [BL-067]: Posts on Reddit with technical decription @1.6.0
-5. [TASK-169]: Creating and posting instagram reels @1.7.0
-6. IDEA [BL-065]: A minimal tool to record gameplay as GIFs and short videos
-7. [TASK-170]: Create accounts in social media (Discord, Instagram, YouTube, TikTok, subreddit) @1.5.0
-8. [TASK-182]: Screenshots for the designer, then their og:image, screenshot and raster icons dropped in (docs/ideas/seo.md, section 4)
+1. TASK [BL-067]: Posts on Reddit with technical decription @1.6.0
+2. [TASK-169]: Creating and posting instagram reels @1.7.0
+3. IDEA [BL-065]: A minimal tool to record gameplay as GIFs and short videos
+4. [TASK-170]: Create accounts in social media (Discord, Instagram, YouTube, TikTok, subreddit) @1.5.0
+5. [TASK-182]: Screenshots for the designer, then their og:image, screenshot and raster icons dropped in (docs/ideas/seo.md, section 4)
 
 ## Auth
 
@@ -188,3 +184,7 @@ Shipped since the last release; the release commit empties this list.
 10. BUGS [BL-028]: Other players' spray costs ~0.2 ms of CPU a sprayer
 11. RFCT [BL-112]: The remote player's timeline as a pure module with a Node test
 12. [BUGS-175]: Screenshot K does not capture players name tags
+13. TASK [BL-068]: Meta tags: title, description, canonical, Open Graph, Twitter Card
+14. TASK [BL-069]: robots.txt (with rules for AI bots), sitemap.xml and llms.txt
+15. TASK [BL-070]: JSON-LD, semantic HTML outside the canvas, favicons and a web manifest
+16. PERF [BL-030]: Precompressed assets served by Caddy: the build writes them; the host's part goes to devops (docs/ideas/vps.md)
