@@ -156,7 +156,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 2. [TASK-169]: Creating and posting instagram reels @1.7.0
 3. IDEA [BL-065]: A minimal tool to record gameplay as GIFs and short videos
 4. [TASK-170]: Create accounts in social media (Discord, Instagram, YouTube, TikTok, subreddit) @1.5.0
-5. [TASK-182]: Screenshots for the designer, then their og:image, screenshot and raster icons dropped in (docs/ideas/seo.md)
+5. [TASK-182]: Screenshots for the designer, then their og:image, screenshot and raster icons dropped in (docs/ideas/seo.md) @1.5.0
 
 ## Auth
 
@@ -165,7 +165,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## Legal
 
 1. ~~[TASK-173]: Add cookies notification and all legal necessary documentation (docs/ideas/legal.md) @1.5.0 (no cookies: the privacy policy is TASK-178)~~
-2. [TASK-183]: A lawyer reads LICENSE, the Terms and the privacy policy (public/terms.html, public/privacy.html)
+2. [TASK-183]: A lawyer reads LICENSE, the Terms and the privacy policy (public/terms.html, public/privacy.html) @1.5.0
 
 ## Done
 
