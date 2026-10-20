@@ -100,11 +100,13 @@ export async function welcome(w) {
   assert.equal(await paintHash(c), await paintHash(a), 'C has the session paint');
 
   // A message C's game can't handle ends its session as broken, with the error in the log; not "a new version is out".
-  await c.evaluate(() => (window.game.net.remotes.get = () => null.state));
+  await c.evaluate(() => (window.game.net.remotes.get = () => {
+    throw new Error('test: a message the game cannot handle, on purpose');
+  }));
   await c.waitForFunction(() => window.game.net.status.state === 'failed', null, { timeout: 5000 });
   assert.equal(await c.evaluate(() => window.game.net.status.reason), 'broken');
   assert.match(await c.evaluate(() => window.game.hud.menu.message), /The game hit an error in the session/);
-  assert.match(await c.evaluate(() => window.game.net.log.text()), /couldn't handle state: TypeError/);
+  assert.match(await c.evaluate(() => window.game.net.log.text()), /couldn't handle state: Error: test: .* on purpose/);
   await a.waitForFunction(() => window.game.net.names.size === 0, null, { timeout: 5000 });
   Object.assign(w, { c });
 }
