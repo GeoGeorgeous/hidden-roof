@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { AVATAR, PLAYER } from '../config';
-import type { Tool } from '../inventory/inventory';
+import type { Tool } from '../inventory/tool';
 import { reachArm } from './arm-ik';
 import { FINGERS, SIDES, sign, type Rig, type Side } from './rig';
 

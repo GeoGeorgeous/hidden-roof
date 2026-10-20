@@ -192,3 +192,30 @@ await check('probe: the half resolution step puts back the pixel ratio Settings 
   await p.close();
   return r.after === r.want && r.half === r.want / 2 ? null : JSON.stringify(r);
 });
+
+await check('probe: a frame that compiles a shader is not measured, and the settling starts over', async () => {
+  const p = await openPage();
+  const r = await p.evaluate(async () => {
+    // The game's own module, from the dev server (a URL, not a file path).
+    const url = '/src/dev/probe.ts';
+    const { Probe } = await import(url);
+    // A world of stand-ins: the baseline step touches nothing, and the renderer lists its programs.
+    const programs = [{ id: 1 }];
+    const probe = new Probe({ renderer: { info: { programs } } });
+    probe.start();
+    let t = performance.now();
+    const frame = () => probe.frame((t += 100), 100, 5, null, 1);
+    for (let i = 0; i < 28; i++) frame();
+    const measured = probe.sum.intervals.length;
+    programs.push({ id: 2 });
+    frame();
+    const compiled = probe.sum.intervals.length;
+    for (let i = 0; i < 5; i++) frame();
+    const settling = probe.sum.intervals.length;
+    for (let i = 0; i < 25; i++) frame();
+    probe.cancel();
+    return { measured, compiled, settling, again: probe.sum.intervals.length };
+  });
+  await p.close();
+  return r.measured > 0 && r.compiled === 0 && r.settling === 0 && r.again > 0 ? null : JSON.stringify(r);
+});

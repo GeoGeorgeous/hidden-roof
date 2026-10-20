@@ -1,14 +1,17 @@
 import { CAP_ORDER, COLOR_ORDER, MARKER, ROLLER, SPONGE, type CapId, type PaintColor } from '../config';
+import type { SizeRange } from '../tools/size-range';
+import { SLOTS, type Tool } from './tool';
 
-// Five slots: 1 = the spray can (always), 2 = the marker, 3 = the stepladder,
+// Slots (tool.ts): 1 = the spray can (always), 2 = the marker, 3 = the stepladder,
 // 4 = the paint roller, 5 = the sponge (each once found).
 // Colors and caps are permanent unlocks (colors shared by can, marker and roller).
 // Paint never runs out; the can only has pressure.
 
-export type Tool = 'can' | 'marker' | 'ladder' | 'roller' | 'sponge';
-export const SLOTS: Tool[] = ['can', 'marker', 'ladder', 'roller', 'sponge'];
-/** Tools the size keys (Q/E) resize (tools/size-range.ts). */
-export type SizedTool = 'marker' | 'roller' | 'sponge';
+/** Tools the size keys (Q/E) resize (tools/size-range.ts): their config. */
+export const SIZED = { marker: MARKER, roller: ROLLER, sponge: SPONGE } satisfies Partial<Record<Tool, SizeRange>>;
+export type SizedTool = keyof typeof SIZED;
+/** Every sized tool at its starting width. */
+export const startSizes = (): Record<SizedTool, number> => ({ marker: MARKER.width, roller: ROLLER.width, sponge: SPONGE.width });
 
 /** What a player carries, as a multiplayer session keeps it for them (net/protocol.ts). */
 export interface InventoryData {
@@ -27,7 +30,7 @@ export class Inventory {
   /** Can pressure 0..1: drains while spraying, restored by shaking. */
   pressure = 1;
   /** Marker nib, roller and sponge patch widths (m), set with Q/E; kept across resets. */
-  size: Record<SizedTool, number> = { marker: MARKER.width, roller: ROLLER.width, sponge: SPONGE.width };
+  size = startSizes();
   /** Bumped on every change so the HUD can skip redundant DOM updates. */
   version = 0;
   /** Tools found so far (the can is always there). */

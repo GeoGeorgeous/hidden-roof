@@ -30,6 +30,15 @@ export class Thumbnails {
     this.target.texture.colorSpace = THREE.SRGBColorSpace;
   }
 
+  /** The icons' shader compiled ahead, as it's drawn (alone, into the target): the first icon doesn't stall the first frame. The material is not disposed: its program stays. */
+  warm() {
+    const r = this.renderer;
+    const prev = r.getRenderTarget();
+    r.setRenderTarget(this.target);
+    r.compile(new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshBasicMaterial()), this.camera);
+    r.setRenderTarget(prev);
+  }
+
   /** Image URL of the icon named `key` (e.g. 'marker', or 'color:red' for the can with a red label), drawn from `model` the first time; blank until it's ready. */
   get(key: string, model: () => THREE.Object3D) {
     const url = this.cache.get(key);

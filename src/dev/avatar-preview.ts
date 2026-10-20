@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { AVATAR, AVATAR_TEST, PLAYER, type PaintColor } from '../config';
 import { Avatar } from '../avatar/avatar';
 import type { AvatarState } from '../avatar/pose';
-import type { Tool } from '../inventory/inventory';
+import type { Tool } from '../inventory/tool';
 
 // F3 -> Avatar: a test figure standing in front of you, facing you, to review
 // the avatar in the level. It shows one pose at a time or cycles through them

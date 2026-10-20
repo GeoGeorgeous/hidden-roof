@@ -2,9 +2,9 @@ import * as THREE from 'three';
 import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass.js';
 import { GRADE, INK, VOLUMETRICS } from '../config';
 import type { GpuTimer } from '../debug/gpu-timer';
-import type { SurfaceMaterial } from '../materials';
+import { swingDepthMaterial, type SurfaceMaterial } from '../materials';
 import type { Lighting } from './lighting';
-import { Volumetrics } from './volumetrics';
+import { compileQuad, Volumetrics } from './volumetrics';
 import { composeShader, paperTexture, VIEW_DEPTH } from './ink/compose';
 import { inkUniforms } from './ink/tone';
 
@@ -81,8 +81,9 @@ export class PostPipeline {
    * Compile ahead, as they're drawn, the shaders of what isn't drawn yet: what
    * a setting turns on (rain, volumetrics), what's out of view, and what's
    * hidden until play (the tool in hand, the wall hand: `viewScene`, with its
-   * own lights). Compiled when first drawn instead, each stalls the game (on
-   * Windows, up to a second or more). Done under the loading screen.
+   * own lights), and what is drawn outside the scenes (the final pass, the
+   * moon's shadow pass). Compiled when first drawn instead, each stalls the
+   * game (on Windows, up to a second or more). Done under the loading screen.
    */
   warm(scene: THREE.Scene, viewScene: THREE.Scene, camera: THREE.PerspectiveCamera) {
     const r = this.renderer;
@@ -90,7 +91,18 @@ export class PostPipeline {
     // compile() takes hidden objects too; of the lights, only those shown (their number is in the shaders).
     r.compile(scene, camera);
     r.compile(viewScene, camera);
+    // The moon's shadow pass draws geometry with normals with the decor's depth material and the rest with three's own, turned inside out and without the scene's fog. Compiled as a pass of their own, with the scene's lights.
+    const position = new THREE.BufferAttribute(new Float32Array(9), 3);
+    const casters = new THREE.Group().add(
+      new THREE.Mesh(new THREE.BufferGeometry().setAttribute('position', position).setAttribute('normal', position), swingDepthMaterial),
+      new THREE.Mesh(new THREE.BufferGeometry().setAttribute('position', position), new THREE.MeshDepthMaterial({ side: THREE.BackSide })),
+    );
+    const fog = scene.fog;
+    scene.fog = null;
+    r.compile(casters, camera, scene);
+    scene.fog = fog;
     r.setRenderTarget(null);
+    compileQuad(r, this.grade, camera);
     this.volumetrics.warm(r, camera);
   }
 
