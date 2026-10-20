@@ -251,6 +251,12 @@ export class Settings {
     if (this.locked) PAINT.texelsPerMeter = tpm!;
   }
 
+  /** Give PAINT DETAIL back to this player's own at once, for the level opened next to be built with (lockPaintDetail's null waits for the game to resume). */
+  useOwnDetail() {
+    this.locked = null;
+    PAINT.texelsPerMeter = PAINT_DETAIL[this.detail];
+  }
+
   private save() {
     save({ style: INK_STYLES[inkStyle()]?.name, pixelScale: RENDER.pixelScale, maxFps: RENDER.maxFps, volumetrics: this.vol, paintDetail: this.detail, cityDetail: this.city, values: changedValues(REMEMBERED, this.defaults), controls: keyOverrides() });
   }

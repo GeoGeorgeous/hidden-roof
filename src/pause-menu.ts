@@ -138,6 +138,14 @@ export class PauseMenu {
     return PAUSE_MENU.view && this.sheetUp && !this.started;
   }
 
+  /** Back to the title screen (START, the city view): a session that ended took the level and paint the player had with it. */
+  toTitle() {
+    this.started = false;
+    this.openPage(null);
+    document.exitPointerLock();
+    this.sync();
+  }
+
   /** A page shows (SAVE, SETTINGS…), not the pause screen. Esc and Enter go to it (play-state.ts). */
   get onPage() {
     return this.page !== null;

@@ -139,6 +139,7 @@ export function multiplayerMenu(hud: PauseMenu, hotbar: Hotbar, ctx: Multiplayer
     if (text) hud.notice(text, s.state === 'connecting' || s.state === 'reconnecting' ? Infinity : undefined);
     else if (s.state === 'in') hud.notice(`Session · ${s.code}`, 0);
   };
+  net.onEnd = () => hud.toTitle();
   net.onPlayer = (who, joined) => hotbar.toast(`${who} ${joined ? 'joined' : 'left'}`);
   hud.onLeave = () => net.leave();
   hud.sessionInfo = () => ({ ping: net.ping, players: net.players.map((p) => ({ name: p.name, color: p.color && COLORS[p.color] })) });

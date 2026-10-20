@@ -183,7 +183,7 @@ const testPage = perfTestPage(hud.menu, perfTest, gpu, () => settings.tested());
 hud.menu.setSettings(settings.sections(gpu, testPage.run));
 // SAVE in a session downloads the session's paint, from the server.
 const paintFile = paintMenu(hud.menu, paint, drips, () => opened.name, () => net.savePaint());
-const net = multiplayerMenu(hud.menu, hotbar, { scene, camera, level, paint, paintOps, drips, player, inventory, pickups, tools, levelData: () => ({ data: opened.toJSON(), name: opened.name }), levelPaint: () => levelPaintOf(opened.name), openLevel: (d, n) => opened.open(d, n), restartLevel: () => opened.restart(), lockDetail: (tpm) => settings.lockPaintDetail(tpm) }, () => opened.name);
+const net = multiplayerMenu(hud.menu, hotbar, { scene, camera, level, paint, paintOps, drips, player, inventory, pickups, tools, levelData: () => ({ data: opened.toJSON(), name: opened.name }), levelPaint: () => levelPaintOf(opened.name), openLevel: (d, n) => opened.open(d, n), restartLevel: () => opened.restart(), lockDetail: (tpm) => settings.lockPaintDetail(tpm), ownDetail: () => settings.useOwnDetail() }, () => opened.name);
 // A stepladder can't stand where the session's players or F3's figures (the ghost) are.
 tools.ladder.others = () => [...net.shown, ...(dev?.figures ?? [])];
 tools.onCapChange = (name) => hud.showCapTag(name);

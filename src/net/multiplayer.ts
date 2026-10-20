@@ -7,6 +7,7 @@ import { PROTOCOL, type Rejection, type ToClient, type ToServer } from './protoc
 import { diagnose, NetLog, Traffic } from './diagnostics';
 import { decodeOps, encodeOps, SurfaceIndex } from '../op-wire';
 import { playSessionLevel, type MultiplayerContext } from './game-context';
+import { keepSolo, restoreSolo, type Solo } from './solo';
 import { Outbox } from './outbox';
 import { Sender } from './sender';
 import { ServerLink } from './server-link';
@@ -36,6 +37,8 @@ export class Multiplayer {
   onStatus: (s: NetStatus) => void = () => {};
   /** Someone joined or left the session. */
   onPlayer: (name: string, joined: boolean) => void = () => {};
+  /** The session is over and the player's own level and paint are back (solo.ts): the menu shows its title view. */
+  onEnd: () => void = () => {};
   /** What's under way, for the player to watch (UPLOADING PAINT 40%…); null when it's done. */
   onProgress: (text: string | null) => void = () => {};
   /** What happened to the link (COPY NETWORK LOG). */
@@ -60,6 +63,10 @@ export class Multiplayer {
   private net = new Traffic();
   /** The name we go by in the session. */
   private name = '';
+  /** The player's own level and paint, from before the session's welcome replaced them until it ends. */
+  private solo: Solo | null = null;
+  /** Those on their way back after the session ended: a welcome waits for them. */
+  private restoring: Promise<void> = Promise.resolve();
 
   constructor(private g: MultiplayerContext) {
     this.remotes = new Remotes(g, this.log);
@@ -123,10 +130,12 @@ export class Multiplayer {
     this.saving = null;
   }
 
+  /** Resolves once the player's own paint is back. */
   leave() {
     this.log.add('LEAVE SESSION');
     this.send({ type: 'leave' });
     this.end({ state: 'off' });
+    return this.restoring;
   }
 
   /** Once a frame: send this player's state and paint, show the others. */
@@ -235,10 +244,18 @@ export class Multiplayer {
   }
 
   private async welcome(w: Extract<ToClient, { type: 'welcome' }>, link: ServerLink, file: Uint8Array) {
+    // The last session's end puts the player's paint back before this one's replaces it.
+    await this.restoring;
     // LEAVE, or the link dropped, before it was handled (it waited behind other messages): nothing to open or lock.
     if (this.link !== link) return this.log.add('welcome dropped: its link is gone');
     const g = this.g;
     if (this.joined?.code !== w.code) {
+      // Their own level and paint come back when the session ends: kept before the session's replaces them.
+      if (!this.solo) {
+        const solo = await keepSolo(g);
+        if (this.link !== link) return this.log.add('welcome dropped: its link is gone');
+        this.solo = solo;
+      }
       if (!playSessionLevel(g, w)) {
         this.send({ type: 'leave' });
         return this.end({ state: 'failed', reason: 'version' });
@@ -284,7 +301,7 @@ export class Multiplayer {
     this.setStatus({ state: 'in', code: w.code });
   }
 
-  /** Out of the session: single player again, keeping the paint (SAVE PAINT still has it). */
+  /** Out of the session: single player again, with the paint the player had before it (nothing of the session's stays; SAVE has it). */
   private end(status: NetStatus) {
     this.link?.abandon();
     this.link = null;
@@ -301,6 +318,22 @@ export class Multiplayer {
     }
     keepTabSession(null);
     this.setStatus(status);
+    const solo = this.solo;
+    this.solo = null;
+    // After the message being handled (a welcome loading paint), and nothing is played meanwhile.
+    if (solo) this.restoring = this.queue.catch(() => {}).then(() => this.restore(solo));
+  }
+
+  private async restore(solo: Solo) {
+    session.joining = true;
+    try {
+      await restoreSolo(this.g, solo);
+    } catch (err) {
+      console.error(err);
+      this.log.add(`couldn't bring back the paint from before the session: ${err}`);
+    }
+    session.joining = this.status.state === 'connecting';
+    this.onEnd();
   }
 
   /**
