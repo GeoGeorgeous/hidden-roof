@@ -388,7 +388,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  gap: clamp(16px, calc(100vh - 445px), 64px);
+  gap: clamp(16px, calc(100vh - 540px), 64px);
 }
 .overlay .hero {
   display: flex;
