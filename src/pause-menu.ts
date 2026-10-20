@@ -1,12 +1,13 @@
-import { INK_STYLES, PAUSE_MENU } from './config';
+import { INK_STYLES, PAUSE_MENU, SOCIAL_LINKS } from './config';
 import { creditsPage } from './credits-page';
 import { EscHold, ring } from './esc-hold';
 import { button, div, el, keyHint, runPrimary, segmented, sentence } from './menu-ui';
-import { AUTHOR, DISCORD, PRIVACY, REPO, TERMS } from './links';
+import { AUTHOR, PRIVACY, TERMS } from './links';
 import { inkStyle } from './render/ink/styles';
 import { SessionLine, type SessionInfo } from './session-line';
 import type { SettingSection } from './settings';
 import { SettingsPage } from './settings-page';
+import { socialIcon } from './social-icons';
 import { updatesPage } from './updates-page';
 import { VERSION } from './version';
 
@@ -14,7 +15,8 @@ import { VERSION } from './version';
 // (the title view before START, hud.cityView), with the style switcher, the
 // fullscreen control (esc-hold.ts), PLAY and MULTIPLAYER under the title (in a
 // session: its live line, session-line.ts, BACK TO SESSION and LEAVE SESSION), the
-// menu in three columns (paint, settings, about) and the links at its foot;
+// menu in three columns (paint, settings, about) and the footer under it (the
+// social icons, SOCIAL_LINKS; the legal pages, the version and the author);
 // and the pages and popups it opens over a blurred view: Settings,
 // Multiplayer and the rest. Esc goes back to the pause screen, and there
 // resumes once released (held, it leaves fullscreen); Enter runs the open
@@ -106,13 +108,11 @@ export class PauseMenu {
       column('settings', ...Object.entries({ Game: 'Gameplay', Audio: 'Sound', Controls: 'Controls', Graphics: 'Graphics' }).map(([t, tab]) => item(t, () => this.openSettings(tab)))),
       column('about', item('Updates', () => this.openPage('updates')), item('Credits', () => this.openPage('credits'))),
     );
-    const foot = div('foot');
-    foot.innerHTML = `<a href="${DISCORD}" target="_blank" rel="noopener">Discord</a><a href="${REPO}" target="_blank" rel="noopener">GitHub</a><a href="${TERMS}" target="_blank" rel="noopener">Terms</a><a href="${PRIVACY}" target="_blank" rel="noopener">Privacy</a><i>·</i><span>${VERSION}</span><i>·</i><span>built by <a href="${AUTHOR}" target="_blank" rel="noopener">GeoGeorgeous</a></span>`;
     // The title group stands on the menu, both on the menu's line from the bottom.
     const stack = div('stack');
     stack.append(hero, menu);
     this.screen = div('pause');
-    this.screen.append(stack, foot);
+    this.screen.append(stack, footer());
     this.el.append(div('blur'), this.themes.el, this.hold.el, this.screen, this.back);
     parent.append(this.el);
     this.addPage('credits', creditsPage(), () => {});
@@ -296,4 +296,17 @@ function column(title: string, ...items: HTMLElement[]) {
   const box = div('col');
   box.append(el('h2', '', title), ...items);
   return box;
+}
+
+/** The pause screen's footer: the social icons, then the legal pages (in a new tab: the paint stays), the version and the author. */
+function footer() {
+  const foot = div('pause-foot');
+  const icons = SOCIAL_LINKS.map((s) =>
+    s.live
+      ? `<a href="${s.url}" target="_blank" rel="noopener noreferrer" title="${s.label}" aria-label="${s.label}">${socialIcon(s.icon)}</a>`
+      : `<span class="soon" role="img" title="${s.label} — coming soon" aria-label="${s.label} (coming soon)">${socialIcon(s.icon)}</span>`,
+  );
+  const link = (href: string, text: string) => `<a href="${href}" target="_blank" rel="noopener">${text}</a>`;
+  foot.innerHTML = `<div class="social">${icons.join('')}</div><div class="meta">${link(TERMS, 'Terms')}<i>·</i>${link(PRIVACY, 'Privacy')}<i>·</i><span>${VERSION}</span><i>·</i><span>built by ${link(AUTHOR, 'GeoGeorgeous')}</span></div>`;
+  return foot;
 }

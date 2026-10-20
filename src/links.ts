@@ -1,9 +1,12 @@
-// Where the menus' links lead: the pause screen's foot (pause-menu.ts) and screen 10 (small-screen.ts).
+// Where the menus' links lead: the pause screen's footer (pause-menu.ts; its social icons in SOCIAL_LINKS, config.ts) and screen 10 (small-screen.ts).
 
 export const REPO = 'https://github.com/GeoGeorgeous/hidden-roof';
 /** The author's name. */
 export const AUTHOR = 'https://github.com/GeoGeorgeous';
-export const DISCORD = 'https://discord.gg/yj8z9sxBrf';
+export const DISCORD = 'https://discord.gg/CMG9tT5Q4u';
+export const YOUTUBE = 'https://www.youtube.com/channel/UCIN2OeR6_IqEivP1uALkpJQ';
+export const INSTAGRAM = 'https://www.instagram.com/roof.hidden/';
+export const TIKTOK = 'https://www.tiktok.com/@roof.hidden';
 /** The static legal pages (public/terms.html, public/privacy.html). */
 export const TERMS = '/terms.html';
 export const PRIVACY = '/privacy.html';

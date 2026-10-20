@@ -69,7 +69,7 @@ async function bench(url) {
       g.perfTest.start = () => start().then((r) => (r && window.benchResults.push(r), r));
       g.hud.menu.openSettings('Graphics');
       // The build, as the pause menu's foot shows it (src/version.ts).
-      const build = [...document.querySelectorAll('.overlay .foot span')].map((s) => s.textContent).find((t) => /^v\d/.test(t));
+      const build = [...document.querySelectorAll('.overlay .pause-foot span')].map((s) => s.textContent).find((t) => /^v\d/.test(t));
       return { settings: g.settings.summary(), build };
     });
     const runs = [];

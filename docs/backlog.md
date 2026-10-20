@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 184
+The one list of what's left. Counter for new ids: next: 185
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -153,8 +153,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 1. TASK [BL-067]: Posts on Reddit with technical decription @1.6.0
 2. [TASK-169]: Creating and posting instagram reels @1.7.0
 3. IDEA [BL-065]: A minimal tool to record gameplay as GIFs and short videos
-4. [TASK-170]: Create accounts in social media (Discord, Instagram, YouTube, TikTok, subreddit) @1.5.0
-5. [TASK-182]: Screenshots for the designer, then their og:image, screenshot and raster icons dropped in (docs/ideas/seo.md) @1.5.0
+4. [TASK-182]: Screenshots for the designer, then their og:image, screenshot and raster icons dropped in (docs/ideas/seo.md) @1.5.0
 
 ## Auth
 
@@ -189,3 +188,5 @@ Shipped since the last release; the release commit empties this list.
 18. [TASK-178]: Privacy policy: no cookies or analytics; the server and Caddy see IP addresses, other players see nicknames, settings stay in localStorage
 19. TASK [BL-156]: CI runs on ubuntu-26.04 (pinned, not ubuntu-latest)
 20. [PERF-181]: Placing a stepladder skips the environment rebuild (rain heightmap, lights): a runtime prop never changes them
+21. [TASK-170]: Create accounts in social media (Discord, Instagram, YouTube, TikTok, subreddit)
+22. [TASK-184]: The pause menu's footer: social icons built from SOCIAL_LINKS (Tabler filled), then Terms · Privacy · version · built by; the Terms and Privacy pages restyled dark like the ESC menu
