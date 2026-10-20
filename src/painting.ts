@@ -54,6 +54,11 @@ export class PaintSystem {
     this.raster.now += dt;
   }
 
+  /** The paint clock (s): wet paint (PaintSurface.wet) is dry once it is past. */
+  get now() {
+    return this.raster.now;
+  }
+
   /** Called when heavy paint on a vertical face should start a run (see paint-drips.ts). */
   onDrip: (s: PaintSurface, rect: Rect, x: number, y: number, rgb: Rgb) => void = () => {};
   /** Surfaces scrubbed this frame and last, for settle(). */

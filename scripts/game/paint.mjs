@@ -111,6 +111,30 @@ await check('paint runs: paint dries; a coat over a dry coat starts no run, the 
   return r.overDry === 0 && r.overWet > 0 && r.held > 0 ? null : JSON.stringify(r);
 });
 
+await check('wet view (F3): wet paint on an upright face shows as points, dry paint as none', async () => {
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    const faces = g.paint.surfaces.flatMap((s) => s.geo.rects.map((rect, i) => ({ s, rect: i, size: rect.upright && rect.face ? rect.w * rect.h : 0 })));
+    const { s, rect } = faces.reduce((a, b) => (b.size > a.size ? b : a));
+    g.config.DRIPS.enabled = true;
+    g.config.WET_VIEW.reach = 1e6;
+    const was = g.paint.onDrip;
+    g.paint.onDrip = () => {};
+    g.paint.clear();
+    for (let i = 0; i < 4; i++) g.paint.stamp(s, { rect, u: 0.5, v: 0.5 }, 0.1, 1, [0.9, 0.2, 0.1], 0, 1e9);
+    g.wetView.refresh();
+    const wet = g.wetView.count;
+    g.drips.update(30);
+    g.wetView.refresh();
+    const dry = g.wetView.count;
+    g.paint.clear();
+    g.config.WET_VIEW.reach = 10;
+    g.paint.onDrip = was;
+    return { wet, dry };
+  });
+  return r.wet > 0 && r.dry === 0 ? null : JSON.stringify(r);
+});
+
 await check('ladders: placing one tests a shadow cone per lamp, not per piece of the ladder (each placement stalled ~150 ms)', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
