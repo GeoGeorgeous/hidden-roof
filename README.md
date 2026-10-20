@@ -67,3 +67,7 @@ npm run server       # the multiplayer server, beside npm run dev
 ```
 
 to play together locally, open the game in two windows side by side (one incognito): a background tab draws nothing.
+
+## license
+
+hidden roof is source-available, not open source. copyright (c) 2026 george gorchev, all rights reserved. you can read the code, report bugs and send pull requests from a fork on github; copying it, hosting it or reusing it needs written permission. the third-party parts keep their own licenses (public/licenses, and credits in the game). see [LICENSE](LICENSE) for the terms and [CONTRIBUTING.md](CONTRIBUTING.md) for bug reports and pull requests. the game's [terms](https://roof.hidden.haus/terms.html) and [privacy policy](https://roof.hidden.haus/privacy.html) are for players.

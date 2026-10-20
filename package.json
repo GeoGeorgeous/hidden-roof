@@ -1,6 +1,7 @@
 {
   "name": "roof-hidden-haus",
   "private": true,
+  "license": "SEE LICENSE IN LICENSE",
   "version": "1.4.0",
   "type": "module",
   "scripts": {
