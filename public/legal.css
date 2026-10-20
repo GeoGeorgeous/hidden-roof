@@ -53,7 +53,7 @@ main {
 }
 
 h1 {
-  margin: 0 0 4px;
+  margin: 0 0 16px;
   font: 400 clamp(2.4rem, 11vw, 3.6rem) / 1.05 'Sedgwick Ave Display', cursive;
   letter-spacing: 0.02em;
 }
