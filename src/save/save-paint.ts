@@ -1,5 +1,6 @@
 import type { PaintSystem } from '../painting';
 import { painted } from '../paint-resample';
+import { hasPaint } from '../paint-surface';
 import type { Rect } from '../surfaces';
 import { encodePaintFile, faceBytes, joinBytes, type PaintFileFace } from './paint-file';
 import { shapeOf } from './shape';
@@ -29,8 +30,8 @@ function paintedFaces(paint: PaintSystem, level: { name: string }) {
   const surfaces: Record<string, string> = {};
   const parts: { face: PaintFileFace; data: Uint8Array; atlasW: number; r: Rect }[] = [];
   for (const s of paint.surfaces) {
+    if (!hasPaint(s)) continue;
     const data = s.data;
-    if (!data) continue;
     s.geo.rects.forEach((r, rect) => {
       if (!painted(data, s.geo.atlasW, r)) return;
       parts.push({ face: { surface: s.key, rect, w: r.w, h: r.h }, data, atlasW: s.geo.atlasW, r });

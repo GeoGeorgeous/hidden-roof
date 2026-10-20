@@ -74,6 +74,43 @@ await check('paint pages: a frame uploads at most PAINT.uploadBudget; the rest g
   return r.waiting[1] > 0 && r.left === 0 ? null : JSON.stringify(r);
 });
 
+await check('paint runs: paint dries; a coat over a dry coat starts no run, the same coats right after it do, and holding the can on one spot still does', async () => {
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    const faces = g.paint.surfaces.flatMap((s) => s.geo.rects.map((rect, i) => ({ s, rect: i, size: rect.upright ? rect.w * rect.h : 0 })));
+    const { s, rect } = faces.reduce((a, b) => (b.size > a.size ? b : a));
+    const at = { rect, u: 0.5, v: 0.5 };
+    const was = g.paint.onDrip;
+    let runs = 0;
+    g.paint.onDrip = () => runs++;
+    g.config.DRIPS.enabled = true;
+    // A rate this high makes every texel that gets wet enough run: no dice.
+    const coats = (n, amount) => {
+      runs = 0;
+      for (let i = 0; i < n; i++) g.paint.stamp(s, at, 0.1, amount, [0.9, 0.2, 0.1], 0, 1e9);
+      return runs;
+    };
+    const out = {};
+    // Synchronous: no frame moves the paint clock but the dry() below.
+    const dry = () => g.drips.update(30);
+    g.paint.clear();
+    coats(1, 1); // opaque
+    coats(3, 1); // 3 coats of wet paint, under DRIPS.excess
+    dry();
+    out.overDry = coats(4, 1);
+    g.paint.clear();
+    coats(1, 1);
+    coats(3, 1);
+    out.overWet = coats(4, 1);
+    g.paint.clear();
+    out.held = coats(40, 0.75);
+    g.paint.clear();
+    g.paint.onDrip = was;
+    return out;
+  });
+  return r.overDry === 0 && r.overWet > 0 && r.held > 0 ? null : JSON.stringify(r);
+});
+
 await check('ladders: placing one tests a shadow cone per lamp, not per piece of the ladder (each placement stalled ~150 ms)', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
@@ -293,7 +330,7 @@ await check('paint pages: a lost and restored WebGL context (a GPU reset) gets a
         .every((s) => {
           const fb = gl.createFramebuffer();
           r.state.bindFramebuffer(gl.FRAMEBUFFER, fb);
-          gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, r.properties.get(s.texture).__webglTexture, 0);
+          gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, r.properties.get(s.slot.page.texture).__webglTexture, 0);
           const px = new Uint8Array(s.data.length);
           gl.readPixels(s.slot.x, s.slot.y, s.geo.atlasW, s.geo.atlasH, gl.RGBA, gl.UNSIGNED_BYTE, px);
           r.state.bindFramebuffer(gl.FRAMEBUFFER, null);

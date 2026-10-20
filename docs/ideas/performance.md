@@ -6,6 +6,8 @@ Performance measurements and what to do next.
 
 A2000 laptop, 1280×720, fake players sending no paint ops: 19 others walking 124 fps, all 19 spraying 84 fps; their particles cost ~0.2 ms of CPU a frame per sprayer (a ray each a frame, `spray/particles.ts` `show`, a pool of 3000). Their paint ops come on top, unmeasured. Do: particles only for the nearest few sprayers, or reuse each sprayer's ray for a few frames; or a lower `SERVER.maxPlayers` (XS). Measure a real session of 8 to 20 first.
 
+Plan (2026-10-20): measure with 19 fake players; owner: if confirmed and the fix is small (reuse each sprayer's hit for a few frames while its aim barely moves), do it in 1.5.0, else move it to the 1.6.1 playtest.
+
 ## BL-029 The roof level's edits of 2026-10-10 cost a little
 
 Two edits (lamps, signs, ducts, 4 clear windows; then railings, parapets, roof lights, skylights, ducts: 1373 → 1464 props). At six fixed views at 1280×720 on a quiet machine (median of 3 runs, `next` before them vs `dev` after): Intel UHD GPU time +3–9% (14.3–17.0 → 15.6–17.7 ms, scene + post), CPU +0.4–1.4 ms, draw calls +4–21% (128–374 → 133–422), triangles +8%. On the A2000 the GPU barely moves (±6%). The extra calls are merged tile batches (more materials and finishes per tile) and glass: no draw call per prop. Not urgent; if the weak GPU needs room, fewer material and finish variants per tile first.
@@ -25,6 +27,8 @@ How the memory adds up (2026-10-20): every surface gets its block on a page of i
 ## BL-107 Moving the stepladder again and again near lamps doubles the CPU time
 
 RTX laptop: CPU ~7.3 → 14–16 ms a frame while the ladder is placed over and over near lamps (each move re-bakes its lamp light, `LightBaker.sync`, BL-086); one placement is fine. Do: measure on the Intel laptop (audit T1.8) before deciding.
+
+Plan (2026-10-20): the bake work is capped (`LIGHTMAP.budgetMs`, 3 ms), so most of the extra time is likely `sync`'s per-move recheck (shadow cones, every receiver in reach). Measure on the real GPUs (NVIDIA and Intel, headed Chromium on WSLg), splitting the recheck from the bake. Owner: a short delay is fine: relight only once the ladder has rested ~0.5–1 s (a tunable in config.ts and F3), so repeated moves cost one rebake.
 
 ## BL-108 Loading drops to 12 fps on the Intel UHD with Energy Saver on
 

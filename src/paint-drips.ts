@@ -5,8 +5,8 @@ import type { DripOp } from './paint-ops';
 import { rounded } from './op-wire';
 import { paintRandom } from './lcg';
 
-// Paint runs. PaintSystem reports texels on vertical faces that keep getting
-// sprayed after they're already opaque; a few of them start a run: a one-texel
+// Paint runs. PaintSystem reports texels on vertical faces that get more paint
+// than they can dry, once they're already opaque; a few of them start a run: a one-texel
 // trickle that moves down the face rect (texel -y = world down on upright
 // rects), slows down, and ends in a slightly heavier drop. Runs only write into
 // the paint texture, so they cost nothing once they stop.
@@ -60,6 +60,7 @@ export class PaintDrips {
   }
 
   update(dt: number) {
+    this.paint.tick(dt);
     const list = this.runs;
     let n = 0;
     for (let i = 0; i < list.length; i++) {
