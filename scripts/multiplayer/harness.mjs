@@ -95,3 +95,14 @@ export async function paintReaches(page, hash, what) {
 
 /** Click the visible button with this text. */
 export const press = (page, text) => page.locator('.overlay button:visible', { hasText: text }).first().click();
+
+/** Eight stamps of `color` on the level's first surface with several faces, on face `rect` at height `v`. */
+export const stamp = (page, rect, v, color) =>
+  page.evaluate(
+    ([rect, v, color]) => {
+      const g = window.game;
+      const s = g.paint.surfaces.find((s) => s.geo.rects.length > 1);
+      for (let i = 0; i < 8; i++) g.paint.stamp(s, { rect, u: 0.2 + i * 0.05, v }, 0.1, 0.6, color);
+    },
+    [rect, v, color],
+  );

@@ -8,6 +8,7 @@ import { solidsNear } from '../level/solids';
 import { shared } from '../materials';
 import { edge, type PaintImage } from '../paint-image';
 import type { PaintPatch, PaintSurface, PaintSystem } from '../painting';
+import { hasPaint } from '../paint-surface';
 import { savePaint } from '../save/save-paint';
 import { facePoint, type FacePoint } from '../surfaces';
 import { PaintedSpots } from './painted-spots';
@@ -76,7 +77,7 @@ export class PaintEditor {
 
   /** Any paint on the walls: P saves it as the level's own. */
   get painted() {
-    return this.paint.surfaces.some((s) => s.data);
+    return this.paint.surfaces.some(hasPaint);
   }
 
   set visible(on: boolean) {
@@ -166,14 +167,14 @@ export class PaintEditor {
 
   /** The spots drawn again when surfaces came or went, or took paint or lost it (or `force`: paint changed). */
   private refreshSpots(force = false) {
-    const seen = `${this.paint.surfaces.length}|${this.paint.surfaces.filter((s) => s.data).length}`;
+    const seen = `${this.paint.surfaces.length}|${this.paint.surfaces.filter(hasPaint).length}`;
     if (seen === this.seen && !force) return;
     this.seen = seen;
     this.spots.show(this.paint);
   }
 
   private wipe(aim: Aim | null) {
-    if (!aim?.surface.data) return this.say('AIM AT A PAINTED SURFACE');
+    if (!aim || !hasPaint(aim.surface)) return this.say('AIM AT A PAINTED SURFACE');
     this.remember([this.paint.patch(aim.surface, this.paint.faceBox(aim.surface, aim.at.rect))]);
     this.paint.wipe(aim.surface, aim.at.rect);
     this.changed('FACE WIPED · CTRL+Z PUTS IT BACK');

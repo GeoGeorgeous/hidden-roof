@@ -208,4 +208,5 @@ export const WORLD_HINTS: Record<string, string> = {
   'LIGHTMAP.texelsPerMeter': 'Detail of baked light on paintable surfaces: 4 = 25 cm light texels. Higher = sharper shadows, longer bakes.',
   'LIGHTMAP.highlights': 'The nearest lamps also add a moving wet highlight (real-time, wet surfaces only). 0 = none, cheapest.',
   'LIGHTMAP.budgetMs': 'Time per frame spent rebaking after an edit or a light tweak. Higher = faster updates, lower fps meanwhile.',
+  'LIGHTMAP.ladderRest': 'Seconds a placed stepladder must stand before the light around it is baked again (its own light is at once). Higher = moving it again and again costs less, but its shadow lags. 0 = at every move.',
 };

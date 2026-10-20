@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import type { Audio } from '../audio';
-import { CAPS, CROSSHAIR, MARKER, ROLLER, SPONGE, type PaintColor } from '../config';
+import { CAPS, CROSSHAIR, type PaintColor } from '../config';
 import type { Action, Input } from '../input';
-import { SLOTS, type Inventory, type SizedTool, type Tool } from '../inventory/inventory';
+import { SIZED, type Inventory, type SizedTool } from '../inventory/inventory';
+import { SLOTS, type Tool } from '../inventory/tool';
 import type { PaintSystem } from '../painting';
 import { SprayTool } from '../spray/spray-tool';
 import { LadderTool } from './ladder-tool';
@@ -11,13 +12,15 @@ import { MarkerTool } from './marker';
 import { RollerTool } from './roller';
 import { SpongeTool } from './sponge';
 import type { Level } from '../level/level';
-import { sizedCrosshair, stepSize, type SizeRange } from './size-range';
+import { sizedCrosshair, stepSize } from './size-range';
 import { ViewSway, type Motion } from './view-sway';
 import type { AvatarAction } from '../avatar/pose';
 
-/** Tools the size keys (Q/E) resize (size-range.ts): their config. */
-const SIZED: Record<SizedTool, SizeRange> = { marker: MARKER, roller: ROLLER, sponge: SPONGE };
 const isSized = (t: Tool | null): t is SizedTool => t !== null && t in SIZED;
+/** Tools the wheel and the eyedropper change the color of. */
+const COLORED: Record<Tool, boolean> = { can: true, marker: true, ladder: false, roller: true, sponge: false };
+/** What pressing LMB with each tool shows others (the can's shake is separate); the ladder has none. */
+const PRESS: Record<Tool, AvatarAction> = { can: 'spray', marker: 'spray', ladder: null, roller: 'roll', sponge: 'scrub' };
 
 // Routes input to the tool in hand: 1 = can, 2 = marker, 3 = stepladder, 4 =
 // roller, 5 = sponge, mouse wheel = color (can, marker, roller) or turning the ladder, its click the eyedropper,
@@ -79,7 +82,7 @@ export class Tools {
       const wheel = input.step('prev', 'next');
       // Held, they keep stepping (the key's auto-repeat), as in build mode.
       const qe = input.step('sizeDown', 'sizeUp');
-      const colored = t === 'can' || t === 'marker' || t === 'roller';
+      const colored = t !== null && COLORED[t];
       if (wheel && colored && inv.cycleColor(wheel)) this.audio.click();
       if (colored && input.justPressed('pick')) {
         const picked = this.eyedropper.pick(camera, eye, inv.colors);
@@ -94,24 +97,27 @@ export class Tools {
     }
     const tool = enabled ? inv.tool : null;
     this.reportChanges(tool);
+    // The order is part of the op log: the marker silences the shared scribble channel before the roller and sponge use it, and the can's particles keep stamping while another tool is out.
     this.spray.update(dt, input, camera, eye, tool === 'can' ? inv : null);
     this.marker.update(dt, input, camera, eye, tool === 'marker', inv.color, inv.size.marker / 2);
     this.ladder.update(input, camera, motion.position, tool === 'ladder');
     // After the marker: they share the scribble sound, and these only touch it while in hand or just put away.
     this.roller.update(dt, input, camera, eye, tool === 'roller', inv.color, inv.size.roller);
     this.sponge.update(dt, input, camera, eye, tool === 'sponge', inv.size.sponge / 2);
-    const pressing = tool !== null && tool !== 'ladder' && input.held('use') && input.locked;
-    this.action = tool === 'can' && this.spray.shaking ? 'shake' : !pressing ? null : tool === 'roller' ? 'roll' : tool === 'sponge' ? 'scrub' : 'spray';
+    this.action = tool === 'can' && this.spray.shaking ? 'shake' : tool && input.held('use') && input.locked ? PRESS[tool] : null;
   }
 
   /** Paused (F3 open, pointer free): keeps posing the tool in hand at rest, so HOLD tuning shows live. */
   holdStill(camera: THREE.Camera) {
     const tool = this.last?.tool;
-    if (tool === 'can') this.spray.model.update(0, camera, false, false, -1);
-    else if (tool === 'marker') this.marker.pose(camera, false);
-    else if (tool === 'ladder') this.ladder.model.update(camera, true);
-    else if (tool === 'roller') this.roller.model.update(0, camera, true, this.inventory.color, this.inventory.size.roller, false, 0);
-    else if (tool === 'sponge') this.sponge.model.update(0, camera, true, false);
+    switch (tool) {
+      case 'can': this.spray.model.update(0, camera, false, false, -1); break;
+      case 'marker': this.marker.pose(camera, false); break;
+      case 'ladder': this.ladder.model.update(camera, true); break;
+      case 'roller': this.roller.model.update(0, camera, true, this.inventory.color, this.inventory.size.roller, false, 0); break;
+      case 'sponge': this.sponge.model.update(0, camera, true, false); break;
+      default: tool satisfies null | undefined;
+    }
   }
 
   /** Crosshair size (px) for the tool in hand (null: none, or build mode). */
@@ -123,10 +129,15 @@ export class Tools {
   /** Screen anchor for the color / cap tags next to the tool in hand, or null with no tool. */
   labelAnchor(out: THREE.Vector3): THREE.Vector3 | null {
     const tool = this.last?.tool;
-    if (tool === 'can') return this.spray.model.labelAnchor(out);
-    if (tool === 'marker') return this.marker.labelAnchor(out);
-    if (tool === 'roller') return this.roller.model.labelAnchor(out);
-    return null;
+    switch (tool) {
+      case 'can': return this.spray.model.labelAnchor(out);
+      case 'marker': return this.marker.labelAnchor(out);
+      case 'roller': return this.roller.model.labelAnchor(out);
+      case 'ladder':
+      case 'sponge':
+      case null:
+      case undefined: return null;
+    }
   }
 
   private reportChanges(tool: Tool | null) {

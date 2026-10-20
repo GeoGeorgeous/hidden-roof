@@ -28,6 +28,7 @@ export const LABEL_HINTS: Record<string, string> = {
   'snapshots buffered': 'Snapshots waiting to be shown.',
   guessing: 'YES while no newer snapshot has come and the ghost keeps going the way it went.',
   'correction gliding': 'How far the ghost is still gliding back after a wrong guess (cm).',
+  'most build-up': 'The most wet paint the wet view finds near you, in coats, against the build-up needed to run (it stops just under it: a spot that reaches it may run, and its wet paint starts over). Only while the wet view is on.',
   RECORD: 'Record your movement and painting until you press STOP.',
   profiling: 'Whether profiling mode is recording (F8 starts and stops it, F9 probes, F2 marks a spike you saw; ?profile in the address starts it with the game).',
   PROFILE: 'Start profiling mode, or stop it and download the report (JSON). Same as F8. Play as usual while it records: each second\'s frame times, CPU time per part of the frame, GPU time per pass, draw calls, lights and where you stood.',

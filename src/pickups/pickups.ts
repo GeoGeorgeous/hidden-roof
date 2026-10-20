@@ -41,8 +41,8 @@ export interface Pickup {
 
 /** A kind's entry in PICKUP.models: color unlocks are cans, caps share one, tools have their own. */
 function modelOf(kind: PickupKind): keyof typeof PICKUP.models {
-  const k = kind.split(':')[0];
-  return k === 'color' ? 'can' : (k as keyof typeof PICKUP.models);
+  const c = parsePickup(kind)!;
+  return 'color' in c ? 'can' : 'cap' in c ? 'cap' : c.tool;
 }
 
 export class Pickups {

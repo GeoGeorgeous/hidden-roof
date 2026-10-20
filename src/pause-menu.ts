@@ -2,7 +2,7 @@ import { INK_STYLES, PAUSE_MENU } from './config';
 import { creditsPage } from './credits-page';
 import { EscHold, ring } from './esc-hold';
 import { button, div, el, keyHint, runPrimary, segmented, sentence } from './menu-ui';
-import { AUTHOR, DISCORD, REPO } from './links';
+import { AUTHOR, DISCORD, PRIVACY, REPO, TERMS } from './links';
 import { inkStyle } from './render/ink/styles';
 import { SessionLine, type SessionInfo } from './session-line';
 import type { SettingSection } from './settings';
@@ -107,7 +107,7 @@ export class PauseMenu {
       column('about', item('Updates', () => this.openPage('updates')), item('Credits', () => this.openPage('credits'))),
     );
     const foot = div('foot');
-    foot.innerHTML = `<a href="${DISCORD}" target="_blank" rel="noopener">Discord</a><a href="${REPO}" target="_blank" rel="noopener">GitHub</a><i>·</i><span>${VERSION}</span><i>·</i><span>built by <a href="${AUTHOR}" target="_blank" rel="noopener">GeoGeorgeous</a></span>`;
+    foot.innerHTML = `<a href="${DISCORD}" target="_blank" rel="noopener">Discord</a><a href="${REPO}" target="_blank" rel="noopener">GitHub</a><a href="${TERMS}" target="_blank" rel="noopener">Terms</a><a href="${PRIVACY}" target="_blank" rel="noopener">Privacy</a><i>·</i><span>${VERSION}</span><i>·</i><span>built by <a href="${AUTHOR}" target="_blank" rel="noopener">GeoGeorgeous</a></span>`;
     // The title group stands on the menu, both on the menu's line from the bottom.
     const stack = div('stack');
     stack.append(hero, menu);
@@ -136,6 +136,14 @@ export class PauseMenu {
   /** The title screen (before START) shows a fixed view of the city (PAUSE_MENU.view); ESC later shows where you are. */
   get cityView() {
     return PAUSE_MENU.view && this.sheetUp && !this.started;
+  }
+
+  /** Back to the title screen (START, the city view): a session that ended took the level and paint the player had with it. */
+  toTitle() {
+    this.started = false;
+    this.openPage(null);
+    document.exitPointerLock();
+    this.sync();
   }
 
   /** A page shows (SAVE, SETTINGS…), not the pause screen. Esc and Enter go to it (play-state.ts). */

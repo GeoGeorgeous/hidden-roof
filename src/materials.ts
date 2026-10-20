@@ -355,8 +355,8 @@ export function swingGeometry(g: THREE.BufferGeometry, pivot?: THREE.Vector3, am
   return g;
 }
 
-/** Shadow-pass material for decor batches: same swing as the surface shader. */
-export const swingDepthMaterial = new THREE.MeshDepthMaterial();
+/** Shadow-pass material for decor batches: same swing as the surface shader. Inside out, as three.js sets it for the shadow pass of front-sided casters (PostPipeline.warm compiles it that way). */
+export const swingDepthMaterial = new THREE.MeshDepthMaterial({ side: THREE.BackSide });
 swingDepthMaterial.onBeforeCompile = (shader) => {
   shader.uniforms.uTime = shared.uTime;
   shader.uniforms.uSpin = shared.uSpin;

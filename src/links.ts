@@ -4,3 +4,6 @@ export const REPO = 'https://github.com/GeoGeorgeous/hidden-roof';
 /** The author's name. */
 export const AUTHOR = 'https://github.com/GeoGeorgeous';
 export const DISCORD = 'https://discord.gg/yj8z9sxBrf';
+/** The static legal pages (public/terms.html, public/privacy.html). */
+export const TERMS = '/terms.html';
+export const PRIVACY = '/privacy.html';

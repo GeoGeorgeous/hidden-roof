@@ -5,7 +5,7 @@ import { div, el, pageHead } from './menu-ui';
 
 const TEAM = [
   ['Idea & development', 'GeoGeorgeous & Claude'],
-  ['Testing', 'alszlo\nsinglemate\nivansuper\nmaria_mimi_ch\nlx\nmoskosmash\nchocoboi\nJennifer Aster'],
+  ['Testing', 'alszlo\nsinglemate\nivansuper\nmaria_mimi_ch\nlx\nmoskosmash\nchocoboi\nblow'],
 ];
 
 /** A credit: its name, what it is or does here, and a link (its page, or its license's text). */

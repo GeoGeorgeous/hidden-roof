@@ -1,0 +1,19 @@
+# Hidden Roof
+
+> A free first-person graffiti game in the browser. You climb onto the rooftops of a city drawn in ink, and the only color in it is the paint you bring.
+
+There are no enemies and no goals: find your tools, paint whatever you like, scrub it off, paint again. Play alone, or bring friends into a multiplayer session and paint the same roof together.
+
+- Play: https://roof.hidden.haus/
+- Creator: GeoGeorgeous
+- Free, in the browser: no account, no install.
+- Needs a desktop browser with WebGL2, a keyboard and a mouse. Phones and tablets are not supported.
+- Solo, or multiplayer: one player hosts a session and the others join it with its code.
+- Inspired by Bombing!!, Marc Ecko's Getting Up and Daisuke Tajima's Beyond the Lines.
+
+## Links
+
+- [Play Hidden Roof](https://roof.hidden.haus/): the game
+- [Source code](https://github.com/GeoGeorgeous/hidden-roof): the GitHub repository
+- [GeoGeorgeous](https://github.com/GeoGeorgeous): the author
+- [Discord](https://discord.gg/yj8z9sxBrf): the community

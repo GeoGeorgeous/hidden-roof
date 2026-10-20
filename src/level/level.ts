@@ -32,8 +32,8 @@ export class Level {
   readonly emitters: Emitter[] = [];
   readonly props = new Map<number, PropInstance>();
   spawn = { pos: [0, 0, 0] as V3, yaw: 0 };
-  /** Called after every structural change. */
-  onChange: () => void = () => {};
+  /** Called after every structural change; `runtime`: only runtime props (setRuntime) came or went. */
+  onChange: (runtime: boolean) => void = () => {};
 
   private built = new Map<number, BuiltProp>();
   /** Props whose pieces show lettering (Mat.letters): rebuilt when the text atlases change (rebuildLettered). */
@@ -82,7 +82,7 @@ export class Level {
       this.runtime.set(owner, inst.id);
       this.build(inst);
     }
-    this.refresh();
+    this.refresh(true);
     return inst;
   }
 
@@ -323,8 +323,8 @@ export class Level {
     return true;
   }
 
-  /** Update joints, flat arrays and batches after a change. */
-  private refresh() {
+  /** Update joints, flat arrays and batches after a change; `runtime`: it was a runtime prop's. */
+  private refresh(runtime = false) {
     // What touches a box that came or went is rebuilt: its covered faces may have changed.
     const near = this.touched.map((b) => b.clone().expandByScalar(PAINT.coverGap * 2));
     this.touched = [];
@@ -361,7 +361,7 @@ export class Level {
     }
     this.batches.markDirty();
     this.allBuilt = all;
-    this.onChange();
+    this.onChange(runtime);
   }
 
   private buildJoint(key: string, joint: Joint) {

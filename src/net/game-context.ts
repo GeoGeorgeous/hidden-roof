@@ -35,6 +35,8 @@ export interface MultiplayerContext {
   restartLevel(): void;
   /** Hold PAINT DETAIL at the session's (texels per meter), or give it back (null). */
   lockDetail(tpm: number | null): void;
+  /** PAINT DETAIL back at the player's own at once, for the level opened next to be built with. */
+  ownDetail(): void;
 }
 
 /**

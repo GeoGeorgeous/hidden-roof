@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { PAINT } from './config';
 import { mipHalf, mipRects, mipSizes, type MipSize } from './paint-mips';
 import { PagePacker, type PageSlot } from './page-packer';
-import type { PaintSurface } from './painting';
+import { hasPaint, type Owned, type PaintSurface } from './paint-surface';
 
 // Paint on the GPU: shared pages (PAINT.pageSize square, PAINT.mipLevels
 // levels) hold the paint of many surfaces, each in its own block of its
@@ -64,14 +64,14 @@ export class PaintGpu {
 
   /** A block on a page for a new surface; `group`: its level tile, whose surfaces share pages. */
   place(s: PaintSurface, group: string) {
-    s.slot = this.pages.place(s.geo.atlasW, s.geo.atlasH, group);
+    (s as Owned<'slot'>).slot = this.pages.place(s.geo.atlasW, s.geo.atlasH, group);
   }
 
   /** Give a removed surface's block back (its paint goes first). */
   release(s: PaintSurface) {
     this.dispose(s);
     if (s.slot) this.pages.release(s.slot);
-    s.slot = null;
+    (s as Owned<'slot'>).slot = null;
   }
 
   /** Forget every page (a new level): their textures go too. */
@@ -84,7 +84,7 @@ export class PaintGpu {
   /** A surface whose CPU paint was just created: its page gets a texture if it has none. */
   create(s: PaintSurface) {
     const page = s.slot!.page;
-    s.mips = mipSizes(s.geo.atlasW, s.geo.atlasH, PAINT.mipLevels);
+    (s as Owned<'mips'>).mips = mipSizes(s.geo.atlasW, s.geo.atlasH, PAINT.mipLevels);
     if (!page.texture) {
       const t = new THREE.DataTexture(null, page.size, page.size, THREE.RGBAFormat);
       // Levels only tell three their sizes: it allocates them (zero-filled) without uploading; flush fills them.
@@ -102,14 +102,14 @@ export class PaintGpu {
       this.textureBytes += pageBytes(page);
     }
     page.painted++;
-    s.texture = page.texture;
   }
 
   /** A surface's paint is gone (cleaned off, or the surface removed): its block is zeroed, and its page dropped once no surface on it holds paint. */
   dispose(s: PaintSurface) {
     this.dirty.delete(s);
-    if (!s.texture || !s.slot) return;
-    s.texture = null;
+    s.dirty.length = 0;
+    (s as Owned<'mips'>).mips = [];
+    if (!hasPaint(s) || !s.slot) return;
     const page = s.slot.page;
     if (--page.painted === 0) this.drop(page);
     else this.clears.push(s.slot);
@@ -175,10 +175,11 @@ export class PaintGpu {
     const { atlasW: w, atlasH: h } = s.geo;
     const { x: bx, y: by } = s.slot!;
     const { x0, y0, x1, y1 } = r;
+    const texture = s.slot!.page.texture!;
     uploadSource.image = { data: s.data, width: w, height: h };
     uploadRegion.min.set(x0, y0);
     uploadRegion.max.set(x1 + 1, y1 + 1);
-    renderer.copyTextureToTexture(uploadSource, s.texture!, uploadRegion, uploadAt.set(bx + x0, by + y0));
+    renderer.copyTextureToTexture(uploadSource, texture, uploadRegion, uploadAt.set(bx + x0, by + y0));
     this.uploadBytesLastFrame += (x1 - x0 + 1) * (y1 - y0 + 1) * 4;
     // Each level made from the one above (paint-mips.ts): the atlas's texels read once.
     let [src, sw, sx, sy, pw, ph] = [s.data!, w, 0, 0, w, h];
@@ -187,7 +188,7 @@ export class PaintGpu {
       const out = room(i % 2, rw * (d - b + 1) * 4);
       mipHalf(src, sw, sx, sy, pw, ph, a, b, c, d, out);
       uploadSource.image = { data: out, width: rw, height: d - b + 1 };
-      renderer.copyTextureToTexture(uploadSource, s.texture!, null, uploadAt.set((bx >> (i + 1)) + a, (by >> (i + 1)) + b), 0, i + 1);
+      renderer.copyTextureToTexture(uploadSource, texture, null, uploadAt.set((bx >> (i + 1)) + a, (by >> (i + 1)) + b), 0, i + 1);
       this.uploadBytesLastFrame += rw * (d - b + 1) * 4;
       [src, sw, sx, sy, pw, ph] = [out, rw, a, b, s.mips[i].width, s.mips[i].height];
     });

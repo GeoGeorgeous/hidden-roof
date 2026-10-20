@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Privacy Policy · Hidden Roof</title>
+    <meta name="description" content="What Hidden Roof, the graffiti game in your browser, stores and sends: no cookies, no analytics, no accounts, and what multiplayer needs." />
+    <link rel="canonical" href="https://roof.hidden.haus/privacy.html" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="stylesheet" href="/legal.css" />
+  </head>
+  <body>
+    <main>
+      <a class="back" href="/">‹ Back to the game</a>
+      <h1>Privacy Policy</h1>
+      <p class="updated">Last updated 2026-10-20</p>
+
+      <p>Hidden Roof is a small game made and run by George Gorchev (&ldquo;I&rdquo;, &ldquo;me&rdquo;). This page says what the game keeps and sends. The short version: I collect almost nothing, and what multiplayer needs is only held while you play.</p>
+
+      <h2>What the game does not do</h2>
+      <ul>
+        <li>It sets no cookies.</li>
+        <li>It has no analytics, tracking or advertising, and loads nothing from other companies: the fonts, the code and the pictures all come from the game&rsquo;s own site.</li>
+        <li>It has no accounts, so I do not ask for your email, your real name or a password.</li>
+      </ul>
+      <p>Because of this, the game shows no cookie banner.</p>
+
+      <h2>Single player: what stays on your device</h2>
+      <p>Playing alone sends nothing about you to anyone, beyond your browser asking the game&rsquo;s site for its files, as for any web page. The game keeps a few things in your browser&rsquo;s own storage (<code>localStorage</code>), on your device only:</p>
+      <ul>
+        <li>your settings: look, graphics, sound, and the keys you chose;</li>
+        <li>the nickname you last typed for multiplayer.</li>
+      </ul>
+      <p>Your paint is not saved by the game. It lives in the page while it is open. If you press Save, the game gives you a file on your own device.</p>
+      <p>To remove what is stored, clear this site&rsquo;s data in your browser&rsquo;s settings (look for &ldquo;site data&rdquo; or &ldquo;cookies and site data&rdquo; for roof.hidden.haus). The game then starts fresh.</p>
+
+      <h2>Multiplayer: what is sent, and who sees it</h2>
+      <p>When you host or join a session, your browser opens a connection to the game&rsquo;s server and sends:</p>
+      <ul>
+        <li>the nickname you typed, and the session&rsquo;s five-letter code;</li>
+        <li>where you stand and look, which tool and color you hold, and a few flags such as whether you crouch, about twenty times a second;</li>
+        <li>your paint, as it happens, and your stepladder;</li>
+        <li>if you host: the level, and the paint file you chose to start from, if any.</li>
+      </ul>
+      <p><strong>Other players</strong> in your session see your nickname, your figure, your paint and your stepladder. Anything you paint or type as a nickname is visible to them, so please keep personal information out of both.</p>
+      <p><strong>The server</strong> sees your IP address, as any server you connect to does. It uses it to count connections and to apply per-address limits against abuse, and it writes it to its log (see below). It does not look you up or tie it to a person.</p>
+      <p>Your browser also keeps, for the tab you are in, a session key that lets a reload put you back into your session as the same player. It is kept in the tab&rsquo;s <code>sessionStorage</code> and goes when the tab closes or when you leave the session.</p>
+
+      <h2>What the server keeps, and for how long</h2>
+      <ul>
+        <li><strong>In memory only</strong>: the session&rsquo;s level and paint, each player&rsquo;s nickname, the key mentioned above, what they carry, and the address they connected from. The server writes none of this to disk, and has no database.</li>
+        <li><strong>When you drop</strong> out of a session, the server holds your place for 3 minutes in case you come back. Then you are removed. When the last player is gone, the session and its paint are deleted at once. The session&rsquo;s code is remembered for an hour, so that anyone who tries it is told the session has ended; nothing else is kept with it.</li>
+        <li><strong>Restarting</strong> the server ends every session and clears all of this.</li>
+        <li><strong>The server&rsquo;s log</strong> is a plain text record with one line per event: the time, the session code, the nickname, the IP address and what happened (joined, left, dropped, refused, an error). I use it to find faults and abuse. The hosting setup rotates the log, which discards old lines automatically; how long a line lives depends on how busy the server is and on that setup.</li>
+        <li><strong>The web server</strong> that delivers the game&rsquo;s pages may keep the usual access records of any website (your IP address, the time, the file asked for and your browser&rsquo;s name), rotated in the same way.</li>
+      </ul>
+      <p>I do not sell these records or share them with anyone, other than the company that hosts the server, which handles the traffic. I may use them to deal with abuse, or if the law requires it.</p>
+
+      <h2>Your rights</h2>
+      <p>You can ask me what I hold about you, ask me to correct or delete it, or ask me to remove paint or a nickname that you put in a session. The server holds nothing that names you except what you typed as a nickname and your IP address in its log, so please tell me the approximate time and the session code (if you know it) and your nickname, and I will look. Contact is below. If you live where the law gives you more rights than this page does, they stay yours.</p>
+
+      <h2>Children</h2>
+      <p>Hidden Roof is not directed at children under 13, and I do not knowingly collect their data. If you are a parent and think a child has used multiplayer, contact me and I will remove what I can.</p>
+
+      <h2>Changes to this policy</h2>
+      <p>I may change this policy as the game changes. The date at the top shows when it last changed.</p>
+
+      <h2>Contact</h2>
+      <p>Questions or requests: open an issue at <a href="https://github.com/GeoGeorgeous/hidden-roof/issues">the game&rsquo;s GitHub repository</a> (issues there are public, so leave out anything private and say you would like to talk elsewhere), or write in <a href="https://discord.gg/yj8z9sxBrf">the Discord</a>.</p>
+
+      <footer><a href="/">Hidden Roof</a> · <a href="/terms.html">Terms of Service</a></footer>
+    </main>
+  </body>
+</html>

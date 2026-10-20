@@ -71,8 +71,9 @@ canvas {
   background: #000;
   color: var(--paper);
 }
-.loading b {
+.loading h1 {
   /* The pause menu's title (.overlay .title). */
+  margin: 0;
   font-family: var(--display);
   font-weight: 400;
   font-size: 96px;
@@ -97,4 +98,15 @@ canvas {
 }
 .loading span.on {
   opacity: 1;
+}
+/* Without JavaScript the game can't start: the noscript line says so in place of Loading. */
+.loading noscript {
+  font-family: var(--sans);
+  font-size: 13px;
+  color: var(--text-2);
+}
+@media (scripting: none) {
+  .loading p {
+    display: none;
+  }
 }

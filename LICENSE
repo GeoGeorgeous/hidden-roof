@@ -1,0 +1,82 @@
+Hidden Roof: Source-Available License, All Rights Reserved
+
+Copyright (c) 2026 George Gorchev. All rights reserved.
+
+This is not an open source license. The source code is public so that you can
+read it, report problems and send fixes. Everything else needs permission.
+
+1. What this covers
+
+All the source code, shaders, level files, game design, UI, text and other
+assets in this repository (the "Software") belong to George Gorchev (the
+"Copyright Holder"). All rights not granted below are reserved.
+
+Third-party parts are not covered: three.js, ws, the fonts and anything else
+that came from someone else stay under their own licenses (section 6).
+
+2. What you may do
+
+You may, free of charge:
+
+  (a) read, run and inspect the Software on your own device, to look at how it
+      works, to evaluate it or to learn from reading it;
+  (b) report bugs, security problems and ideas to the Copyright Holder;
+  (c) fork the repository on GitHub, and only on GitHub, to read it there and
+      to send a pull request back to this repository. This is what GitHub's
+      Terms of Service already allow for any public repository, and it is all
+      this license adds to them.
+
+3. What you may not do
+
+Without the prior written permission of the Copyright Holder, you may not:
+
+  (a) copy, redistribute, publish or sublicense the Software or any part of it,
+      except as section 2(c) allows;
+  (b) host, deploy or offer the Software or a build of it to anyone, as a
+      website, a server, a download or in any other way;
+  (c) modify it or make derivative works from it, except for a pull request
+      under section 2(c);
+  (d) keep a fork for your own use, or use it for independent development;
+  (e) take code, shaders, models, textures, level data, UI or any other part of
+      the Software and use it in another project, commercial or not.
+
+4. Contributions
+
+A contribution is anything you submit to this repository: a pull request, a
+patch, a comment with code in it.
+
+By submitting a contribution you confirm that it is your own work, or that you
+have the right to submit it, and you grant the Copyright Holder a perpetual,
+worldwide, non-exclusive, royalty-free, irrevocable license to use, modify,
+sublicense and commercialize it, in any form and without attribution or
+payment.
+
+You keep the copyright in your contribution. This is a license, not an
+assignment: nothing is transferred to the Copyright Holder.
+
+5. Termination
+
+If you break this license, your permissions end. You must then stop using the
+Software and delete your copies and forks.
+
+6. Third-party software and assets
+
+The Software uses and ships parts that are not the Copyright Holder's, under
+their own licenses: three.js and ws (MIT) and the fonts (SIL Open Font License
+1.1 and Apache License 2.0). Their license texts are in public/licenses/, and
+the game lists them under Credits. This license does not change them.
+
+7. No warranty
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE
+FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
+ITS USE.
+
+8. Asking for permission
+
+To ask for permission to do something this license does not allow, write to
+the Copyright Holder through the issues of the GitHub repository
+(https://github.com/GeoGeorgeous/hidden-roof) or the game's Discord.

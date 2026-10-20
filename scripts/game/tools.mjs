@@ -96,7 +96,7 @@ await check('ladders: one per player, moved with one rebuild; each owner\'s stay
     const level = g.level;
     let rebuilds = 0;
     const onChange = level.onChange;
-    level.onChange = () => (rebuilds++, onChange());
+    level.onChange = (...a) => (rebuilds++, onChange(...a));
     const ladder = (x) => ({ type: 'stepladder', pos: [x, 0, 30], rot: 0 });
     const ladders = () => [...level.props.values()].filter((p) => p.type === 'stepladder').map((p) => `${p.owner}@${p.pos[0]}`).sort().join();
     const props = level.props.size;

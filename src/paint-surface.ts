@@ -12,7 +12,17 @@ import type { SurfaceGeometry } from './surfaces';
 /** A paint color: sRGB channels 0..1, the way paint textures store it (inventory/items.ts rgbOf). */
 export type Rgb = readonly [number, number, number];
 
-export interface PaintSurface {
+/**
+ * A paint surface as everyone but its owners sees it. Each field is written by
+ * one module, which gets it through `Owned` (painting.ts: data, wet;
+ * paint-gpu.ts: slot, mips, and the rects in dirty; render/bake: light); the rest only read.
+ */
+export type PaintSurface = Readonly<PaintSurfaceFields>;
+
+/** The fields a module writes on a surface it owns them on: `(s as Owned<'light'>).light = ...`. */
+export type Owned<K extends keyof PaintSurfaceFields> = Pick<PaintSurfaceFields, K>;
+
+interface PaintSurfaceFields {
   /** Stable name, the same on every client and at every paint detail: `p<prop id>#k` or `j<joint key>#k`, k = index in the prop's paint (level/build-prop.ts). */
   key: string;
   /** Never drawn (the level draws its surfaces merged, level/batches.ts): what tools' rays hit. */
@@ -22,18 +32,22 @@ export interface PaintSurface {
   slot: PageSlot<PaintPage> | null;
   /** Its block on a light page (render/bake), once the baker took the surface in. */
   light: LightSlot | null;
+  /** Its paint: RGBA texels of its atlas, there from the first hit until the paint is cleaned off or cleared. Ask hasPaint(), not data. */
   data: Uint8Array | null;
-  /** Sizes of the texture's smaller levels for distant views (paint-mips.ts); empty until the first hit. */
+  /** Sizes of the texture's smaller levels for distant views (paint-mips.ts); empty while it has no paint. */
   mips: MipSize[];
-  /** Its page's texture, while it holds paint. */
-  texture: THREE.DataTexture | null;
-  /** Excess paint per texel (paint-raster.ts RasterSurface). */
-  excess: Uint16Array | null;
-  /** Texel rects changed since the last upload (inclusive, paint-gpu.ts). */
+  /** When each texel's wet paint is dry (paint-raster.ts RasterSurface). */
+  wet: Float32Array | null;
+  /** Texel rects changed since the last upload (inclusive, paint-gpu.ts: its list, nobody else's). */
   dirty: DirtyRect[];
 }
 
-/** A box of a surface's paint (PaintSystem.patch): its texels and excess, or null where it had none. */
+/** Whether a surface holds paint: its CPU texels, and so a block of its page's texture, exist. The one answer to that (not "clean": freeIfClean scans for ink). */
+export function hasPaint<S extends Pick<PaintSurface, 'data'>>(s: S): s is S & { readonly data: Uint8Array } {
+  return s.data !== null;
+}
+
+/** A box of a surface's paint (PaintSystem.patch): its texels, or null where it had none (restored paint is dry). */
 export interface PaintPatch {
   key: string;
   /** The surface's atlas size then: a rebuilt surface of another size can't take it. */
@@ -42,5 +56,4 @@ export interface PaintPatch {
   rects: number[];
   box: Box;
   data: Uint8Array | null;
-  excess: Uint16Array | null;
 }

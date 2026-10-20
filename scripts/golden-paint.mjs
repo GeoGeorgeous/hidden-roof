@@ -212,7 +212,7 @@ function pageHelpers() {
 async function replay({ ops, save, editLevel }) {
   const g = window.game;
   window.golden.setUp();
-  // Wiped: the page may have just played (paint, runs and their excess counters go).
+  // Wiped: the page may have just played (paint, runs and their wet paint go).
   g.paint.clear();
   g.drips.clear();
   await window.frames(

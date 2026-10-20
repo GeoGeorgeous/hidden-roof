@@ -1,5 +1,5 @@
 import { CAP_ORDER, CAPS, COLOR_ORDER, COLORS, type CapId, type PaintColor } from '../config';
-import { SLOTS, type Tool } from './inventory';
+import { SLOTS, type Tool } from './tool';
 import type { Rgb } from '../painting';
 
 // Pickup kinds as stored in level JSON:
@@ -13,17 +13,20 @@ import type { Rgb } from '../painting';
 
 export type PickupKind = string;
 
-export type PickupContent = { color: PaintColor } | { cap: CapId } | { tool: Tool };
+/** A tool that is found as a pickup: all but the can, which you always have. */
+export type FoundTool = Exclude<Tool, 'can'>;
 
-/** Tools you find as pickups (the can you always have), and what a pickup calls them. */
-const FOUND_TOOLS: Tool[] = SLOTS.filter((t) => t !== 'can');
-const TOOL_LABEL: Record<Tool, string> = { can: 'spray can', marker: 'marker', ladder: 'stepladder', roller: 'paint roller', sponge: 'sponge' };
+export type PickupContent = { color: PaintColor } | { cap: CapId } | { tool: FoundTool };
+
+/** Tools you find as pickups, and what a pickup calls them. */
+const FOUND_TOOLS: FoundTool[] = SLOTS.filter((t) => t !== 'can');
+const TOOL_LABEL: Record<FoundTool, string> = { marker: 'marker', ladder: 'stepladder', roller: 'paint roller', sponge: 'sponge' };
 
 const PICKUP_KINDS: PickupKind[] = [...COLOR_ORDER.filter((c) => c !== 'black').map((c) => `color:${c}`), ...CAP_ORDER.map((c) => `cap:${c}`), ...FOUND_TOOLS];
 
 export function parsePickup(kind: PickupKind): PickupContent | null {
   const [k, a] = kind.split(':');
-  if (FOUND_TOOLS.includes(k as Tool) && a === undefined) return { tool: k as Tool };
+  if (FOUND_TOOLS.includes(k as FoundTool) && a === undefined) return { tool: k as FoundTool };
   if (k === 'color' && COLOR_ORDER.includes(a as PaintColor)) return { color: a as PaintColor };
   if (k === 'cap' && a in CAPS) return { cap: a as CapId };
   return null;

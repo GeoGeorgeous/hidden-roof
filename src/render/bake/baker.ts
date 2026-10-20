@@ -7,6 +7,7 @@ import { makeLamps, type Lamp } from './lamps';
 import { Occluders } from './occluders';
 import { hull, lampSpheres, reaches, shadowCones, type Reach } from './reach';
 import { layoutLightmap } from './layout';
+import type { Owned } from '../../paint-surface';
 import { LightPages } from './light-pages';
 import { bakeDecor, bakeSurface, dropReceiver, type Receiver, type SurfaceReceiver } from './receivers';
 
@@ -50,6 +51,13 @@ export class LightBaker {
   private stale = true;
   /** Everything is new: bake it all on the next update. */
   private all = false;
+  /** The last update's time (s). */
+  private now = 0;
+  /** Runtime props taken in whose change to the light around them isn't queued yet, and when it is (null: none waits). */
+  private deferred = new Set<BuiltProp>();
+  private relightAt: number | null = null;
+  /** Where props that came or went changed the light, since the last relight. */
+  private edits: { boxes: THREE.Box3[]; reach: Reach } = { boxes: [], reach: { spheres: [], cones: [] } };
   /** Neon flicker seed -> slot (1+); the shader reads each slot's brightness from a tiny texture. */
   private seeds = new Map<number, number>();
   private flickerValues = new Float32Array(16).fill(1);
@@ -67,11 +75,14 @@ export class LightBaker {
     this.settingsChanged();
   }
 
-  /** After a level change: forget removed props, take in new ones, queue what they relight. */
-  sync(built: readonly BuiltProp[]) {
+  /**
+   * After a level change: forget removed props, take in new ones, queue what they relight.
+   * `rest`: only runtime props (a stepladder) came or went. They are taken in at once, but the light
+   * they change around them waits until the change has rested (LIGHTMAP.ladderRest): moved again and
+   * again, they cost one relight, not one per move.
+   */
+  sync(built: readonly BuiltProp[], rest = false) {
     const current = new Set(built);
-    const changed: THREE.Box3[] = [];
-    const reach: Reach = { spheres: [], cones: [] };
     // A prop rebuilt as it was (a neighbor of an edit, its covered faces redone)
     // casts and lights as before: only its own surfaces are baked again.
     const gone = new Map<string, BuiltProp>();
@@ -81,15 +92,15 @@ export class LightBaker {
     for (const b of built) {
       if (this.owners.has(b)) continue;
       const was = gone.get(shapeKey(b));
-      if (was) same.add(was).add(b);
+      if (!was) continue;
+      same.add(was).add(b);
+      if (this.deferred.has(was)) this.deferred.add(b);
     }
     for (const [b, o] of this.owners) {
       if (current.has(b)) continue;
       any = true;
-      if (!same.has(b)) {
-        changed.push(...hull(b.occluders));
-        lampSpheres(b, reach);
-      }
+      // A prop that never relit its surroundings has nothing to undo there.
+      if (!same.has(b) && !this.deferred.delete(b)) this.changed(b);
       for (const r of o.receivers) {
         this.pending.delete(r);
         dropReceiver(r, this.pages);
@@ -102,28 +113,54 @@ export class LightBaker {
       if (this.owners.has(b)) continue;
       this.register(b);
       if (!same.has(b)) {
-        changed.push(...hull(b.occluders));
-        lampSpheres(b, reach);
+        if (rest) this.deferred.add(b);
+        else this.changed(b);
       }
       added++;
     }
     if (!any && !added) return;
-    this.stale = true;
     if (added === this.owners.size) {
-      this.all = true; // everything is new, and all of it is queued already
-      return;
+      this.stale = this.all = true; // everything is new, and all of it is queued already
+      this.dropEdits();
+    } else if (rest) {
+      this.relightAt = this.now + LIGHTMAP.ladderRest;
+    } else {
+      this.relight();
     }
-    shadowCones(this.owners.keys(), changed, reach);
+  }
+
+  /** A prop that came or went changes the light around it: note where. */
+  private changed(b: BuiltProp) {
+    this.edits.boxes.push(...hull(b.occluders));
+    lampSpheres(b, this.edits.reach);
+  }
+
+  /** Queue what the changes noted since the last relight lit or shaded. */
+  private relight() {
+    const { boxes, reach } = this.edits;
+    for (const b of this.deferred) this.changed(b);
+    this.stale = true;
+    shadowCones(this.owners.keys(), boxes, reach);
     this.stats.cones = reach.cones.length;
     this.forEachReceiver((r) => {
       if (reaches(reach, r.bounds)) this.queue(r);
     });
+    this.dropEdits();
+  }
+
+  /** Forget the noted changes (relit, or everything is baked anyway). */
+  private dropEdits() {
+    this.relightAt = null;
+    this.deferred.clear();
+    this.edits.boxes.length = this.edits.reach.spheres.length = this.edits.reach.cones.length = 0;
   }
 
   /** Call once per frame, after the level flushed its batches. */
   update(time: number, eye: THREE.Vector3) {
+    this.now = time;
     this.updateFlicker(time);
     if (!LIGHTMAP.enabled) return;
+    if (this.relightAt !== null && time >= this.relightAt) this.relight();
     if (this.settingsChanged()) this.rebakeAll();
     if (this.density !== LIGHTMAP.texelsPerMeter) {
       this.density = LIGHTMAP.texelsPerMeter;
@@ -139,6 +176,7 @@ export class LightBaker {
   /** Queue everything (a light setting changed); the old light stays up until each part is redone. */
   rebakeAll() {
     this.stale = true;
+    this.dropEdits();
     this.forEachReceiver((r) => this.queue(r));
   }
 
@@ -168,7 +206,7 @@ export class LightBaker {
   private layOut(r: SurfaceReceiver) {
     r.layout = layoutLightmap(r.surface.geo, r.surface.geo.texelsPerMeter, this.density);
     // One set of pages for the whole level: light is small, and every surface sharing them keeps the level's draws few.
-    r.slot = r.surface.light = this.pages.place(r.layout.w, r.layout.h, '');
+    r.slot = (r.surface as Owned<'light'>).light = this.pages.place(r.layout.w, r.layout.h, '');
   }
 
   /** Bake pending receivers, nearest to `eye` first, for up to `budget` ms. */

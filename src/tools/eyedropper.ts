@@ -3,6 +3,7 @@ import { EYEDROPPER, type PaintColor } from '../config';
 import { rgbOf } from '../inventory/items';
 import { solidsNear } from '../level/solids';
 import type { PaintSystem } from '../painting';
+import { hasPaint } from '../paint-surface';
 
 // The eyedropper (the wheel's click, BL-020): the paint under the crosshair, as
 // the nearest of the colors you have. Reads one texel of the surface's paint;
@@ -25,7 +26,7 @@ export class Eyedropper {
     this.raycaster.far = EYEDROPPER.reach;
     const hit = this.raycaster.intersectObjects(solidsNear(this.solids, eye, EYEDROPPER.reach, this.near), false)[0];
     const s = hit && this.paint.get(hit.object);
-    if (!s?.data || !hit.uv) return null;
+    if (!s || !hasPaint(s) || !hit.uv) return null;
     const x = Math.min(s.geo.atlasW - 1, Math.floor(hit.uv.x * s.geo.atlasW));
     const y = Math.min(s.geo.atlasH - 1, Math.floor(hit.uv.y * s.geo.atlasH));
     const i = (y * s.geo.atlasW + x) * 4;

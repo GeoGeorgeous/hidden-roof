@@ -1,3 +1,5 @@
+import type { Tool } from './inventory/tool.ts';
+
 // All tunable constants live here. Units: meters, seconds, radians unless noted.
 
 export const RENDER = {
@@ -160,6 +162,8 @@ export const LIGHTMAP = {
   highlights: 4,
   /** Bake time per frame after edits and tweaks (ms). A freshly loaded level bakes at once. */
   budgetMs: 3,
+  /** A stepladder placed or moved relights the surfaces around it once it has stood this long (s), so moving it again and again costs one relight. */
+  ladderRest: 0.6,
   /** Surfaces' light lives on shared pages this many texels square (render/bake/light-pages.ts). */
   pageSize: 1024,
 };
@@ -446,9 +450,9 @@ export interface CapSpec {
 export type CapId = 'skinny' | 'standard' | 'fat' | 'spray';
 export const CAP_ORDER: CapId[] = ['skinny', 'standard', 'fat', 'spray'];
 export const CAPS: Record<CapId, CapSpec> = {
-  skinny: { name: 'SKINNY', spread: 0.01, rate: 1900, strength: 0.9, dotSize: 0.036, softness: 0.15, hissGain: 0.5, hissTone: 0, crosshair: 10, drips: 4, drain: 0.015, color: '#7fb4f2', nozzle: 0.004 },
-  standard: { name: 'STANDARD', spread: 0.03, rate: 1760, strength: 0.75, dotSize: 0.05, softness: 0.35, hissGain: 0.75, hissTone: 0.4, crosshair: 18, drips: 6, drain: 0.03, color: '#f4f4f4', nozzle: 0.006 },
-  fat: { name: 'FAT', spread: 0.04, rate: 650, strength: 0.8, dotSize: 0.12, softness: 0.15, hissGain: 1, hissTone: 1, crosshair: 24, drips: 10, drain: 0.06, color: '#f2a04c', nozzle: 0.01 },
+  skinny: { name: 'SKINNY', spread: 0.01, rate: 1900, strength: 0.9, dotSize: 0.036, softness: 0.15, hissGain: 0.5, hissTone: 0, crosshair: 10, drips: 2, drain: 0.015, color: '#7fb4f2', nozzle: 0.004 },
+  standard: { name: 'STANDARD', spread: 0.03, rate: 1760, strength: 0.75, dotSize: 0.05, softness: 0.35, hissGain: 0.75, hissTone: 0.4, crosshair: 18, drips: 4, drain: 0.03, color: '#f4f4f4', nozzle: 0.006 },
+  fat: { name: 'FAT', spread: 0.04, rate: 650, strength: 0.8, dotSize: 0.12, softness: 0.15, hissGain: 1, hissTone: 1, crosshair: 24, drips: 6, drain: 0.06, color: '#f2a04c', nozzle: 0.01 },
   /** Wide, soft mist for fades and backgrounds: lots of faint, fuzzy dots. */
   spray: { name: 'SPRAY', spread: 0.1, rate: 1100, strength: 0.12, dotSize: 0.158, softness: 0.55, hissGain: 0.9, hissTone: 0.8, crosshair: 32, drips: 50, drain: 0.1, color: '#b98cf2', nozzle: 0.013 },
 };
@@ -598,9 +602,9 @@ export const ROLLER = {
   crosshair: 10,
   crosshairPerMeter: 0,
   /** Opacity per press: a roller lays it on thick. */
-  strength: 0.85,
+  strength: 0.45,
   /** Paint runs (with DRIPS on), per m² of paint reaching DRIPS.excess: a loaded roller runs easily. */
-  drips: 70,
+  drips: 60,
   /** Held still, presses add to runs this often (per s), whatever the frame rate. */
   stillRate: 20,
   /** Moves are filled with presses at most `spacing` x the press length apart at full reach, at most maxRays per frame. */
@@ -679,7 +683,7 @@ export interface HoldPose {
   yaw: number;
   roll: number;
 }
-export const HOLD: Record<'can' | 'marker' | 'ladder' | 'roller' | 'sponge', HoldPose> = {
+export const HOLD: Record<Tool, HoldPose> = {
   can: { distance: 0.5, x: 0.4, y: -0.44, scale: 1, pitch: -0.12, yaw: 0.25, roll: 0.08 },
   marker: { distance: 0.38, x: 0.421, y: -0.447, scale: 1, pitch: -1.1, yaw: 0.3, roll: 0.25 },
   ladder: { distance: 0.5, x: 0.48, y: -0.54, scale: 1, pitch: 0.15, yaw: -0.75, roll: 0.18 },
@@ -726,14 +730,18 @@ export const PLAYER_LIGHT = {
 };
 
 /**
- * Paint runs: spraying a lot onto paint that is already opaque builds up excess,
- * and on vertical faces enough excess starts a thin run down the wall.
+ * Paint runs: paint put onto paint that is already opaque is wet until it dries,
+ * and on vertical faces a texel with enough wet paint may start a thin run down the wall.
+ * Each setting does one job: `excess` how much wet paint makes a texel run, `dryTime` how
+ * long it stays wet, and each tool's and cap's `drips` how often a wet texel runs.
  * All baked into the paint texture: no extra objects.
  */
 export const DRIPS = {
   enabled: true,
-  /** Excess paint (in full coats) a texel needs before it may run. How often it then runs is each cap's and tool's `drips` (per m², spread over its texels, so every paint detail runs alike). */
+  /** Wet paint (in full coats) a texel needs before it may run; the paint that ran is gone. How often it then runs is each cap's and tool's `drips` (per m², spread over its texels, so every paint detail runs alike). */
   excess: 6,
+  /** How long paint stays wet (s): `excess` coats of wet paint are dry after this long, less paint sooner. A coat over a dry wall no longer runs; holding the can on one spot (hundreds of coats a second) still does. */
+  dryTime: 3,
   /** Runs moving at the same time, level-wide. */
   maxActive: 65,
   /** Run length range (m). */
@@ -743,6 +751,37 @@ export const DRIPS = {
   speed: 0.25,
   /** Opacity the run leaves behind (0..1). */
   strength: 0.85,
+};
+
+/** F3's wet view (dev/wet-view.ts): points on the paint that is still wet, to tune paint runs by. */
+export const WET_VIEW = {
+  enabled: false,
+  /** Point size (px). */
+  size: 4,
+  /** The ramp of a point's color by its build-up: `cool` for just wet, `color` where it may run (DRIPS.excess). */
+  cool: '#2a6cff',
+  color: '#ff2a1a',
+  /** Opacity of a just-wet point; it reaches full where it may run. */
+  minOpacity: 0.4,
+  /** Only faces this close to the player (m) are walked, every `refresh` seconds, and at most `maxPoints` are drawn (a denser PAINT DETAIL skips texels to stay under it). */
+  reach: 10,
+  refresh: 0.25,
+  maxPoints: 20000,
+  /** How far off the face the points sit (m), so they don't flicker in it. */
+  lift: 0.004,
+};
+
+/** F3's runs view (dev/runs-view.ts): every texel a paint run painted, in one loud color. */
+export const RUNS_VIEW = {
+  enabled: false,
+  /** Point size (px) and color. */
+  size: 5,
+  color: '#ff0000',
+  /** The most texels kept (the oldest go first), redrawn every `refresh` seconds. */
+  maxPoints: 20000,
+  refresh: 0.25,
+  /** How far off the face the points sit (m), so they don't flicker in it. */
+  lift: 0.008,
 };
 
 type V3 = [number, number, number];
@@ -802,7 +841,7 @@ export const PICKUP = {
     ladder: pickupPose(1.05),
     roller: pickupPose(0.55),
     sponge: pickupPose(1.35),
-  },
+  } satisfies Record<Tool | 'cap', ReturnType<typeof pickupPose>>,
 };
 
 /** Fonts a pickup's tag can use (pickups/labels.ts): the HUD's, the neon signs' Japanese gothic, the menu title's graffiti. */
@@ -831,7 +870,7 @@ export const MODELS = {
   ladder: { height: 0.36, width: 0.09, treadSpacing: 0.1 },
   /** A kitchen sponge: a soft block with a darker scouring pad on its front (the side that goes on the wall), pores on the soft part. */
   sponge: { width: 0.14, height: 0.09, depth: 0.05, padThickness: 0.014, pores: 14, poreSize: 0.006 },
-};
+} satisfies Record<Tool | 'cap', object>;
 
 export const SPRAY = {
   /** Max distance from the eye to the surface: how far paint travels. */
@@ -841,6 +880,12 @@ export const SPRAY = {
   particleSpeed: 26,
   particleSize: 0.035,
   maxParticles: 3000,
+  /**
+   * Other players' spray finds its wall with one ray, reused while it still holds: for at most `reuse` seconds,
+   * while the eye moved less than `move` (m) and the aim turned less than `aim` (degrees) since the ray was cast.
+   * 0 casts every frame. Only what is seen: the paint comes as paint ops.
+   */
+  others: { reuse: 0.25, move: 0.05, aim: 1.5 },
 };
 
 export const PRESSURE = {
@@ -1064,7 +1109,7 @@ export const PERF_TEST = {
 export const PROFILE = {
   /** The slowest frames the report keeps whole, with where their CPU time went. */
   worstFrames: 20,
-  /** Each probe step: time for the change to settle (shader compiles, smoothed GPU timers), then time measured (s). */
+  /** Each probe step: time for the change to settle (smoothed GPU timers; a frame that compiles a shader starts the settling over), then time measured (s). */
   probeSettle: 1.5,
   probeMeasure: 3,
   /** And at least this many frames for each (settling, then measured). */
@@ -1271,6 +1316,13 @@ export const LEVELS = {
   start: 'roof',
   /** The levels the player build ships (npm run build, vite.config.ts); the rest stay for the dev server and the tests. */
   release: ['roof'],
+};
+
+/** The player build's precompressed files (vite.config.ts): a .br and a .gz next to each file of these types, when it saves bytes. */
+export const PRECOMPRESS = {
+  extensions: ['.js', '.css', '.html', '.json', '.svg', '.txt', '.xml', '.webmanifest', '.map'],
+  /** Smaller files are served as they are (bytes). */
+  minBytes: 1024,
 };
 
 /** Build mode (B). */

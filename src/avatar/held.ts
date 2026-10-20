@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { CapId, PaintColor } from '../config';
-import type { Tool } from '../inventory/inventory';
+import type { Tool } from '../inventory/tool';
 import { STEPLADDER } from '../kit/access';
 import { itemModel } from '../pickups/visuals';
 import { inkify } from '../render/ink/tone';

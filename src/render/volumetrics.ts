@@ -139,10 +139,8 @@ export class Volumetrics {
 
   /** Its shader compiled ahead, as it's drawn (alone, into its target): turning volumetrics on doesn't stall (PostPipeline.warm). */
   warm(renderer: THREE.WebGLRenderer, camera: THREE.Camera) {
-    // FullScreenQuad's triangle: its attributes (position, uv) are what decides the program.
-    const g = new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute([-1, 3, 0, -1, -1, 0, 3, -1, 0], 3)).setAttribute('uv', new THREE.Float32BufferAttribute([0, 2, 0, 0, 2, 0], 2));
     renderer.setRenderTarget(this.target);
-    renderer.compile(new THREE.Mesh(g, this.material), camera);
+    compileQuad(renderer, this.material, camera);
     renderer.setRenderTarget(null);
   }
 
@@ -185,4 +183,10 @@ export class Volumetrics {
     renderer.setRenderTarget(this.target);
     this.quad.render(renderer);
   }
+}
+
+/** A fullscreen pass's material compiled ahead, for the target set now. FullScreenQuad's triangle: its attributes (position, uv) are what decides the program. */
+export function compileQuad(renderer: THREE.WebGLRenderer, material: THREE.Material, camera: THREE.Camera) {
+  const g = new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute([-1, 3, 0, -1, -1, 0, 3, -1, 0], 3)).setAttribute('uv', new THREE.Float32BufferAttribute([0, 2, 0, 0, 2, 0], 2));
+  renderer.compile(new THREE.Mesh(g, material), camera);
 }

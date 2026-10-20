@@ -85,8 +85,8 @@ const baker = new LightBaker();
 baker.onDecorBaked = (geo) => level.pushBaked(geo);
 baker.onRelayout = () => level.remerge();
 environment.lightning.onThunder = (d) => audio.thunder(d);
-level.onChange = () => {
-  baker.sync(level.builtProps);
+level.onChange = (runtime) => {
+  baker.sync(level.builtProps, runtime);
   environment.rebuild(level);
 };
 /** Glow and smoke sprites are sized in the drawing buffer's pixels. */
@@ -102,7 +102,8 @@ const audio = new Audio();
 const hud = new Hud();
 const player = new Player(level.colliders, level.ladders);
 const inventory = new Inventory();
-const hotbar = new Hotbar(new Thumbnails(renderer));
+const thumbnails = new Thumbnails(renderer);
+const hotbar = new Hotbar(thumbnails);
 const tools = new Tools(scene, viewScene, paint, level.solids, audio, inventory, level);
 tools.ladder.onBlocked = () => hotbar.toast("The ladder can't stand there");
 const wallHand = new WallHand(level.solids);
@@ -133,6 +134,7 @@ Promise.all([fetchLevel(opened.name), jpFontReady()])
     // With the lights set up as the game draws them: their number is in the shaders.
     environment.lighting.update(player.position, camera.matrixWorldInverse);
     post.warm(scene, viewScene, camera);
+    thumbnails.warm();
     await loadStep('Lighting the lamps');
     baker.update(0, player.position);
     await loadStep('Putting up the paint');
@@ -181,7 +183,7 @@ const testPage = perfTestPage(hud.menu, perfTest, gpu, () => settings.tested());
 hud.menu.setSettings(settings.sections(gpu, testPage.run));
 // SAVE in a session downloads the session's paint, from the server.
 const paintFile = paintMenu(hud.menu, paint, drips, () => opened.name, () => net.savePaint());
-const net = multiplayerMenu(hud.menu, hotbar, { scene, camera, level, paint, paintOps, drips, player, inventory, pickups, tools, levelData: () => ({ data: opened.toJSON(), name: opened.name }), levelPaint: () => levelPaintOf(opened.name), openLevel: (d, n) => opened.open(d, n), restartLevel: () => opened.restart(), lockDetail: (tpm) => settings.lockPaintDetail(tpm) }, () => opened.name);
+const net = multiplayerMenu(hud.menu, hotbar, { scene, camera, level, paint, paintOps, drips, player, inventory, pickups, tools, levelData: () => ({ data: opened.toJSON(), name: opened.name }), levelPaint: () => levelPaintOf(opened.name), openLevel: (d, n) => opened.open(d, n), restartLevel: () => opened.restart(), lockDetail: (tpm) => settings.lockPaintDetail(tpm), ownDetail: () => settings.useOwnDetail() }, () => opened.name);
 // A stepladder can't stand where the session's players or F3's figures (the ghost) are.
 tools.ladder.others = () => [...net.shown, ...(dev?.figures ?? [])];
 tools.onCapChange = (name) => hud.showCapTag(name);

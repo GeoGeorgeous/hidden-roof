@@ -30,7 +30,7 @@ Essentials:
 - One line per item, under its domain. Ids come from one shared counter (`next:` in the header); a number is never reused.
 - New items use `[TYPE-NNN]`. Never create `BL` ids, and never convert existing `BL` ids.
 - Markers in the id brackets: `!` critical, `?` unconfirmed (verify first), `>` explain.
-- `@X.Y.Z` at the end of a line plans it for a release; `## Now: X.Y.Z` is the current release.
+- `@X.Y.Z` at the end of a line plans it for a release; a release's items are the lines tagged with it.
 - A line wrapped in `~~...~~` is deleted: don't work on it or remove it.
 
 ## Verify
@@ -59,6 +59,6 @@ Essentials:
 - Props, colliders, grid, and paintable faces: `src/kit/AGENTS.md`
 - Ink style, materials, color, and signs: `src/render/ink/AGENTS.md`
 - Debug panel (F3): tabs, naming, tooltips, and values: `src/debug/AGENTS.md`
-- Deployment, VPS, and multiplayer hosting: `docs/deploy.md`
+- Deployment, VPS, and multiplayer hosting: `docs/deploy.md`; host changes waiting for devops: `docs/ideas/vps.md`
 - Domain terms: `CONTEXT.md`
 - Releases: `docs/releases/AGENTS.md`

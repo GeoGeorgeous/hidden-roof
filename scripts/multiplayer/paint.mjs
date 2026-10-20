@@ -30,7 +30,7 @@ export async function paint(w) {
   // and uploads them, so paint that lands before it leaves none.
   for (const until = Date.now() + 5000; Date.now() < until && (await paintHash(b)) === hidden; ) await b.waitForTimeout(100);
   assert.notEqual(await paintHash(b), hidden, 'B paints what A paints while B is hidden');
-  assert.equal(await b.evaluate(() => [...window.game.net.remotes.list.values()][0].events.length), 0, 'nothing waits for B to be shown');
+  assert.equal(await b.evaluate(() => [...window.game.net.remotes.players.values()][0].timeline.waiting), 0, 'nothing waits for B to be shown');
   await b.evaluate(() => window.show());
   await b.waitForTimeout(500);
   painted = await paintHash(a);

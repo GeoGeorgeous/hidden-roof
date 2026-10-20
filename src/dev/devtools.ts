@@ -4,12 +4,11 @@ import { BuildMode } from '../build/buildmode';
 import { DebugPanel } from '../debug/panel';
 import { live, type Hooks } from '../debug/tuning';
 import type { GpuTimer } from '../debug/gpu-timer';
-import { MARKER, ROLLER, SPONGE } from '../config';
 import type { Input } from '../input';
 import type { Hud } from '../hud';
 import type { Audio } from '../audio';
 import type { Hotbar } from '../inventory/hotbar';
-import type { Inventory } from '../inventory/inventory';
+import { startSizes, type Inventory } from '../inventory/inventory';
 import type { Level } from '../level/level';
 import type { LevelData } from '../level/level-data';
 import type { PaintDrips } from '../paint-drips';
@@ -27,6 +26,9 @@ import { layoutCity } from '../city/layout';
 import { dressTower, wallSigns } from '../city/rooftops';
 import { Ghost } from './ghost';
 import { Profiler } from './profiler';
+import { WetView } from './wet-view';
+import { RunsView } from './runs-view';
+import { RUNS_VIEW, WET_VIEW } from '../config';
 import type { PaintOps } from '../paint-ops';
 import type { Tools } from '../tools/tools';
 
@@ -84,6 +86,8 @@ export class DevTools {
   private figure: AvatarPreview;
   private ghost: Ghost;
   private profiler: Profiler;
+  private wet: WetView;
+  private runs: RunsView;
   /** The game had the mouse when the panel opened: closing it goes back. */
   private resumeOnClose = false;
   /** Paint ops per second: counted over a second at a time. */
@@ -99,6 +103,8 @@ export class DevTools {
     this.figure = new AvatarPreview(g.scene);
     this.ghost = new Ghost(g);
     this.profiler = new Profiler(g);
+    this.wet = new WetView(g.scene, g.paint, () => g.player.position);
+    this.runs = new RunsView(g.scene, g.drips, g.paint);
     if (new URLSearchParams(location.search).has('profile')) this.profiler.start();
     const hooks: Hooks = {
       gpu: (label: string) => g.gpuTimer.read(label),
@@ -112,7 +118,7 @@ export class DevTools {
       applyDaylight: () => g.environment.atmosphere.reapplyDaylight(),
       syncBuildLook: () => this.build.syncLook(),
       rebuildCity: g.rebuildCity,
-      applyToolSizes: () => (g.inventory.size = { marker: MARKER.width, roller: ROLLER.width, sponge: SPONGE.width }),
+      applyToolSizes: () => (g.inventory.size = startSizes()),
       unlockAll: () => {
         g.inventory.unlockAll();
         g.pickups.collectOwned(g.inventory);
@@ -137,12 +143,13 @@ export class DevTools {
       ghostStop: () => this.ghost.stop(),
       ghostState: () => this.ghost.label,
       ghostNet: () => this.ghost.net,
+      wetBuildUp: () => this.wet.label,
       profileToggle: () => this.profiler.toggle(),
       profileProbe: () => this.profiler.runProbe(),
       profileState: () => (this.profiler.recording ? 'RECORDING' : 'off'),
     };
     this.debug = new DebugPanel(hooks, () => g.environment.atmosphere.nightValues);
-    Object.assign(window, { game: { ...g, build: this.build, debug: this.debug, hooks, live, ghost: this.ghost, profiler: this.profiler, cityParts: { layoutCity, dressTower, wallSigns } } });
+    Object.assign(window, { game: { ...g, build: this.build, debug: this.debug, hooks, live, ghost: this.ghost, wetView: this.wet, runsView: this.runs, profiler: this.profiler, cityParts: { layoutCity, dressTower, wallSigns } } });
   }
 
   /** Where the test figures stand besides the session's players (the ghost): a stepladder can't go there. */
@@ -165,6 +172,8 @@ export class DevTools {
     if (this.modelsChanged) this.rebuildModelsNow();
     this.figure.update(dt);
     this.ghost.update(dt);
+    this.wet.update(dt, WET_VIEW.enabled);
+    this.runs.update(dt, RUNS_VIEW.enabled);
     if (session.multiplayer) {
       this.figure.hide();
       this.ghost.stop();

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { COLORS, PICKUP } from '../config';
-import { parsePickup } from '../inventory/items';
+import { COLORS, PICKUP, type CapId, type PaintColor } from '../config';
+import { parsePickup, type FoundTool } from '../inventory/items';
 import { solidsNear } from '../level/solids';
 import { FONT_FAMILIES, JP_FAMILY } from '../render/ink/jp-font';
 import type { Pickup } from './pickups';
@@ -17,7 +17,7 @@ const WORD = { cap: ['CAP', 'キャップ'], tool: ['TOOL', 'ツール'] } as co
 /** The tag's lines (style.css .l-caption…), by their PICKUP.label key. */
 const LINES = ['caption', 'captionKana', 'name', 'nameKana'] as const;
 /** Each thing's name in katakana, by its id (red, fat, marker). */
-const KANA: Record<string, string> = {
+const KANA: Record<Exclude<PaintColor, 'black'> | CapId | FoundTool, string> = {
   white: 'ホワイト',
   red: 'レッド',
   orange: 'オレンジ',
@@ -140,7 +140,7 @@ export class PickupLabels {
     const el = Object.assign(document.createElement('div'), { className: `pickup-tag ${shape}` });
     const line = (key: (typeof LINES)[number], text = '') => Object.assign(document.createElement('span'), { className: `l-${key}`, textContent: text });
     const name = Object.assign(document.createElement('div'), { className: 'tag-name' });
-    name.append(line('name', id.toUpperCase()), line('nameKana', KANA[id]));
+    name.append(line('name', id.toUpperCase()), line('nameKana', KANA[id as keyof typeof KANA]));
     // Paint's name in its color, through the DOM, not a style attribute: a CSP without 'unsafe-inline' allows it.
     if ('color' in c) name.style.color = COLORS[c.color];
     let caption: Tag['caption'] = null;

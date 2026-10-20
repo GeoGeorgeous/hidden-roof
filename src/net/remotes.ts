@@ -32,6 +32,11 @@ export class Remotes {
     return this.list.get(id);
   }
 
+  /** Every one of them, by id (read-only: for tests and tools). */
+  get players(): ReadonlyMap<number, RemotePlayer> {
+    return this.list;
+  }
+
   /** Where the others shown stand. */
   get shown() {
     return [...this.list.values()].filter((r) => r.avatar.group.visible).map((r) => r.position);
