@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 181
+The one list of what's left. Counter for new ids: next: 182
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -77,11 +77,10 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## Performance
 
 1. BUGS [BL-034]: Paint pages at ULTRA can reach ~1 GB of GPU memory: measured, 1045 MB is the ceiling (all 49 pages, 72% full); the lossless fix is BL-144 (docs/ideas/performance.md)
-2. BUGS [BL-107]: Moving the stepladder again and again near lamps doubles the CPU time (lamp light re-baked) (docs/ideas/performance.md) @1.5.0
-3. ~~BUGS [?BL-108]: Loading drops to 12 fps on the Intel UHD with Energy Saver on (docs/ideas/performance.md)~~
-4. BUGS [?BL-028]: Other players' spray costs ~0.2 ms of CPU a sprayer (docs/ideas/performance.md) @1.5.0
-5. ~~BUGS [BL-029]: The roof's edits of 2026-10-10 cost 3–9% GPU on the Intel UHD (docs/ideas/performance.md)~~
-6. ~~BUGS [BL-032]: One load of the roof took 62 s; not reproduced (docs/ideas/performance.md)~~
+2. ~~BUGS [?BL-108]: Loading drops to 12 fps on the Intel UHD with Energy Saver on (docs/ideas/performance.md)~~
+3. ~~BUGS [BL-029]: The roof's edits of 2026-10-10 cost 3–9% GPU on the Intel UHD (docs/ideas/performance.md)~~
+4. ~~BUGS [BL-032]: One load of the roof took 62 s; not reproduced (docs/ideas/performance.md)~~
+5. [PERF-181]: Placing a stepladder still costs one ~6 ms frame: about 3 ms is environment.rebuild (rain heightmap, lights), which a runtime prop never changes; skip it for runtime props
 
 ## Rendering
 
@@ -186,3 +185,5 @@ Shipped since the last release; the release commit empties this list.
 6. [BUGS-172]: Leaving a multiplayer session keeps painted map, but leaving the session should clean the paint and show the initial menu with city view; the solo paint comes back
 7. RFCT [BL-145]: PaintSurface is a public struct written by GPU upload, the baker and painting; "has paint?" asked two ways (paint-surface.ts)
 8. RFCT [BL-015]: Rework the drips: each setting does one thing; spraying over a coat no longer grows them; paint dries, per texel
+9. BUGS [BL-107]: Moving the stepladder again and again near lamps doubles the CPU time (lamp light re-baked)
+10. BUGS [BL-028]: Other players' spray costs ~0.2 ms of CPU a sprayer
