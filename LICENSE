@@ -1,82 +1,137 @@
-Hidden Roof: Source-Available License, All Rights Reserved
+Hidden Roof Proprietary Source-Available License
+================================================
 
-Copyright (c) 2026 George Gorchev. All rights reserved.
+Copyright (c) 2026 Hidden Haus (The Operator of Hidden Roof). All rights reserved.
 
-This is not an open source license. The source code is public so that you can
-read it, report problems and send fixes. Everything else needs permission.
+IMPORTANT NOTICE: THIS IS NOT AN OPEN-SOURCE LICENSE.
+The source code and assets in this repository are made publicly visible solely for
+portfolio review, code inspection, bug reporting, and submitting pull requests back
+to the primary repository. No right to reuse, redistribute, re-host, or create
+derivative works is granted. All rights not expressly granted herein are strictly
+reserved by the Copyright Holder.
 
-1. What this covers
+1. Definitions and Scope
+------------------------
+"Software" refers to all source code, scripts, shaders, level files, 3D models,
+textures, UI components, game design documentation, text, and other proprietary
+assets contained within this repository, in both source and compiled forms.
 
-All the source code, shaders, level files, game design, UI, text and other
-assets in this repository (the "Software") belong to George Gorchev (the
-"Copyright Holder"). All rights not granted below are reserved.
+"Copyright Holder" refers to the independent developer and operator of Hidden Roof
+under the Hidden Haus project network (`roof.hidden.haus`).
 
-Third-party parts are not covered: three.js, ws, the fonts and anything else
-that came from someone else stay under their own licenses (section 6).
+Third-party libraries and fonts included in or referenced by this repository are
+excluded from the definition of the Software and remain governed by their respective
+licenses as detailed in Section 6.
 
-2. What you may do
+2. Limited Grant of Permission (What You May Do)
+------------------------------------------------
+Subject to your strict and continuous compliance with all terms of this License,
+the Copyright Holder grants you a personal, revocable, non-exclusive, non-transferable,
+non-sublicensable, and royalty-free permission solely to:
 
-You may, free of charge:
+  (a) Read and Inspect: View and examine the Software's source code for personal
+      educational review, portfolio evaluation, or security/bug auditing;
+  (b) Local Debugging Only: Clone and run the Software strictly on your own local
+      machine (`localhost`) in an isolated, single-user environment solely to
+      inspect how it functions or to test a fix intended for a pull request;
+  (c) Report Issues: Report bugs, vulnerabilities, or suggestions to the Copyright
+      Holder via the primary repository's issue tracker; and
+  (d) Fork for Pull Requests Only: Fork this repository on GitHub—and exclusively
+      within the GitHub platform as permitted by Section D.5 of the GitHub Terms of
+      Service—solely for the purpose of developing and submitting a pull request
+      back to the Copyright Holder's primary upstream repository.
 
-  (a) read, run and inspect the Software on your own device, to look at how it
-      works, to evaluate it or to learn from reading it;
-  (b) report bugs, security problems and ideas to the Copyright Holder;
-  (c) fork the repository on GitHub, and only on GitHub, to read it there and
-      to send a pull request back to this repository. This is what GitHub's
-      Terms of Service already allow for any public repository, and it is all
-      this license adds to them.
+3. Strict Prohibitions (What You May Not Do)
+--------------------------------------------
+Except as expressly permitted under Section 2, you shall not, under any circumstances,
+without the prior written permission of the Copyright Holder:
 
-3. What you may not do
+  (a) Redistribute or Publish: Copy, distribute, publish, mirror, or sublicense the
+      Software, or any portion or build thereof, outside the primary GitHub workflow;
+  (b) Host or Deploy (Including via Cloud/CI Pages): Host, deploy, serve, or make the
+      Software (or any modified build or fork thereof) accessible to any third party
+      over a local network or the internet—explicitly including via GitHub Pages,
+      Vercel, Netlify, Cloudflare Pages, Docker registries, or private game servers;
+  (c) Independent Forking or Derivative Works: Maintain or use a fork for independent
+      or diverging development, or modify, adapt, translate, or create derivative
+      works, clones, or substantially similar games based on the Software;
+  (d) Asset or Code Extraction: Extract, copy, or reuse any code modules, architecture,
+      shaders, algorithms, 3D models, textures, level data, or UI designs in any other
+      project, whether commercial, non-commercial, open-source, or academic;
+  (e) Commercial Use: Sell, rent, lease, monetize, or otherwise use the Software for
+      any commercial or revenue-generating purpose; or
+  (f) Automated Cloning: Use the Software or its architecture as input to automated
+      refactoring tools or generative systems to produce a competing or derivative
+      application.
 
-Without the prior written permission of the Copyright Holder, you may not:
+4. Contributions and Inbound License (CLA)
+------------------------------------------
+A "Contribution" means any code, patch, pull request, shader, asset, documentation,
+or feedback that you intentionally submit to the Copyright Holder for inclusion in
+the Software.
 
-  (a) copy, redistribute, publish or sublicense the Software or any part of it,
-      except as section 2(c) allows;
-  (b) host, deploy or offer the Software or a build of it to anyone, as a
-      website, a server, a download or in any other way;
-  (c) modify it or make derivative works from it, except for a pull request
-      under section 2(c);
-  (d) keep a fork for your own use, or use it for independent development;
-  (e) take code, shaders, models, textures, level data, UI or any other part of
-      the Software and use it in another project, commercial or not.
+By submitting a Contribution, you represent and warrant that the Contribution is your
+original creation and that you have the full legal right and authority to grant the
+rights below. While you retain underlying copyright in your Contribution, you hereby
+grant to the Copyright Holder (and its successors and assigns):
 
-4. Contributions
+  (a) Copyright License: A perpetual, irrevocable, worldwide, non-exclusive,
+      transferable, sublicensable (through multiple tiers), and royalty-free license
+      to use, reproduce, modify, reformat, distribute, publicly display, and
+      commercialize your Contribution as part of the Software or any other project,
+      under any license terms (including proprietary or commercial terms), without
+      any obligation of attribution, accounting, or compensation to you;
+  (b) Patent License: A perpetual, irrevocable, worldwide, non-exclusive, royalty-free
+      patent license to make, have made, use, sell, offer for sale, import, and
+      otherwise transfer your Contribution, where such license applies to any patent
+      claims licensable by you that are necessarily infringed by your Contribution
+      alone or by combination of your Contribution with the Software; and
+  (c) Waiver of Moral Rights: To the fullest extent permitted by applicable law, you
+      irrevocably waive and agree never to assert any "moral rights" (including rights
+      of paternity/attribution and integrity) against the Copyright Holder or its
+      licensees with respect to your Contribution.
 
-A contribution is anything you submit to this repository: a pull request, a
-patch, a comment with code in it.
+Submitting a Contribution does not grant you any ownership interest in, or expanded
+license to, the Software beyond the limited permissions in Section 2.
 
-By submitting a contribution you confirm that it is your own work, or that you
-have the right to submit it, and you grant the Copyright Holder a perpetual,
-worldwide, non-exclusive, royalty-free, irrevocable license to use, modify,
-sublicense and commercialize it, in any form and without attribution or
-payment.
+5. Automatic Termination
+------------------------
+Your rights under this License will terminate automatically and immediately, without
+prior notice from the Copyright Holder, if you breach any term or restriction of this
+License. Upon termination, you must immediately cease all use of the Software and
+permanently delete all local clones, builds, and GitHub forks of the repository in
+your possession or control. Sections 1, 3, 4, 6, 7, and 8 shall survive any termination.
 
-You keep the copyright in your contribution. This is a license, not an
-assignment: nothing is transferred to the Copyright Holder.
+6. Third-Party Software and Assets
+----------------------------------
+The Software incorporates or interacts with third-party open-source components and
+assets that remain the property of their respective authors and are governed by their
+own separate licenses:
+  - `three.js` and `ws` (licensed under the MIT License);
+  - Fonts (licensed under the SIL Open Font License 1.1 and Apache License 2.0);
+  - Tabler Icons (licensed under the MIT License).
 
-5. Termination
+Full license texts for these components are located in `public/licenses/` and are
+listed under "Credits" within the game menu. Nothing in this License restricts or
+alters your rights under those third-party licenses with respect to those standalone
+third-party files.
 
-If you break this license, your permissions end. You must then stop using the
-Software and delete your copies and forks.
+7. Disclaimer of Warranty and Limitation of Liability
+-----------------------------------------------------
+THE SOFTWARE IS PROVIDED "AS IS" AND "AS AVAILABLE", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT.
 
-6. Third-party software and assets
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL THE COPYRIGHT
+HOLDER BE LIABLE FOR ANY CLAIM, DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
+OR CONSEQUENTIAL DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT,
+OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
 
-The Software uses and ships parts that are not the Copyright Holder's, under
-their own licenses: three.js and ws (MIT) and the fonts (SIL Open Font License
-1.1 and Apache License 2.0). Their license texts are in public/licenses/, and
-the game lists them under Credits. This license does not change them.
-
-7. No warranty
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
-PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE
-FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
-ITS USE.
-
-8. Asking for permission
-
-To ask for permission to do something this license does not allow, write to
-the Copyright Holder through the issues of the GitHub repository
-(https://github.com/GeoGeorgeous/hidden-roof) or the game's Discord.
+8. Permissions and Contact
+--------------------------
+To request written permission for any use not expressly authorized by this License,
+or for formal copyright inquiries:
+  - Email: roof@hidden.haus
+  - GitHub / Community: You may also open an inquiry via the repository's issue
+    tracker (https://github.com/GeoGeorgeous/hidden-roof) or the official Discord.

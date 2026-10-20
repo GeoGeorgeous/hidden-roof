@@ -20,77 +20,113 @@
     </header>
     <main>
       <h1>Privacy Policy</h1>
-      <p class="updated">Last updated 2026-10-21</p>
-
-      <div class="intro">
-        <p>Hidden Roof is a small game made and run by George Gorchev (&ldquo;I&rdquo;, &ldquo;me&rdquo;). This page says what the game keeps and sends. The short version: I collect almost nothing, and what multiplayer needs is only held while you play.</p>
-      </div>
+      <p class="updated">Last updated October 21, 2026</p>
 
       <section>
-        <h2>What the game does not do</h2>
+        <h2>Introduction and Data Controller</h2>
+        <p>This Privacy Policy explains how the independent developer and operator of <strong>Hidden Roof</strong> under the <strong>Hidden Haus</strong> project network (&ldquo;Operator&rdquo;, &ldquo;Developer&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo;, or &ldquo;our&rdquo;) collects, processes, stores, and protects information when you access or play the browser-based video game <strong>Hidden Roof</strong> at <code>roof.hidden.haus</code> (the &ldquo;Service&rdquo;).</p>
+        <p>For the purposes of the European Union General Data Protection Regulation (Regulation (EU) 2016/679, &ldquo;GDPR&rdquo;) and equivalent applicable data protection laws, the Operator acts as the <strong>Data Controller</strong> for the limited technical data processed through the Service.</p>
         <ul>
-          <li>It sets no cookies.</li>
-          <li>It has no analytics, tracking or advertising, and loads nothing from other companies: the fonts, the code and the pictures all come from the game&rsquo;s own site.</li>
-          <li>It has no accounts, so I do not ask for your email, your real name or a password.</li>
+          <li><strong>Controller:</strong> The Operator of Hidden Roof (<code>hidden.haus</code>)</li>
+          <li><strong>Contact Email:</strong> <a href="mailto:roof@hidden.haus">roof@hidden.haus</a> <em>(Full legal identity and contact details of the Controller are available upon legitimate request to this email address.)</em></li>
         </ul>
-        <p>Because of this, the game shows no cookie banner.</p>
       </section>
 
       <section>
-        <h2>Single player: what stays on your device</h2>
-        <p>Playing alone sends nothing about you to anyone, beyond your browser asking the game&rsquo;s site for its files, as for any web page. The game keeps a few things in your browser&rsquo;s own storage (<code>localStorage</code>), on your device only:</p>
+        <h2>Zero-Tracking Architecture (&ldquo;What the Service Does Not Do&rdquo;)</h2>
+        <p>The Service is engineered in accordance with the principle of <strong>Data Protection by Design and by Default</strong> (Article 25 GDPR). Specifically, the Service:</p>
         <ul>
-          <li>your settings: look, graphics, sound, and the keys you chose;</li>
-          <li>the nickname you last typed for multiplayer.</li>
+          <li><strong>Sets no tracking or advertising cookies</strong>;</li>
+          <li><strong>Integrates no third-party analytics, telemetry, or advertising SDKs</strong>;</li>
+          <li><strong>Loads no external third-party resources</strong> (all fonts, scripts, icons, and visual assets are self-hosted directly on the Service&rsquo;s own domain, preventing third-party IP leakage);</li>
+          <li><strong>Maintains no user accounts or persistent databases</strong> (we never request or collect your real name, email address, phone number, or passwords to play).</li>
         </ul>
-        <p>Your paint is not saved by the game. It lives in the page while it is open. If you press Save, the game gives you a file on your own device.</p>
-        <p>To remove what is stored, clear this site&rsquo;s data in your browser&rsquo;s settings (look for &ldquo;site data&rdquo; or &ldquo;cookies and site data&rdquo; for roof.hidden.haus). The game then starts fresh.</p>
       </section>
 
       <section>
-        <h2>Multiplayer: what is sent, and who sees it</h2>
-        <p>When you host or join a session, your browser opens a connection to the game&rsquo;s server and sends:</p>
+        <h2>Single-Player Mode &amp; Local Browser Storage</h2>
+        <p>When you play in Single-Player mode, no gameplay data, drawings, or personal information is transmitted to the Operator&rsquo;s application servers, beyond standard HTTP requests required by your browser to download the Service&rsquo;s static files.</p>
+        <p><strong>3.1. Local Storage (<code>localStorage</code>).</strong> To preserve your preferences across browser sessions without using server-side accounts, the Service stores the following data locally on your own device via your browser&rsquo;s <code>localStorage</code>:</p>
         <ul>
-          <li>the nickname you typed, and the session&rsquo;s five-letter code;</li>
-          <li>where you stand and look, which tool and color you hold, and a few flags such as whether you crouch, about twenty times a second;</li>
-          <li>your paint, as it happens, and your stepladder;</li>
-          <li>if you host: the level, and the paint file you chose to start from, if any.</li>
+          <li>Your configuration preferences (visual appearance, graphics settings, audio volume, and custom keybindings);</li>
+          <li>The last nickname you entered for multiplayer sessions.</li>
         </ul>
-        <p><strong>Other players</strong> in your session see your nickname, your figure, your paint and your stepladder. Anything you paint or type as a nickname is visible to them, so please keep personal information out of both.</p>
-        <p><strong>The server</strong> sees your IP address, as any server you connect to does. It uses it to count connections and to apply per-address limits against abuse, and it writes it to its log (see below). It does not look you up or tie it to a person.</p>
-        <p>Your browser also keeps, for the tab you are in, a session key that lets a reload put you back into your session as the same player. It is kept in the tab&rsquo;s <code>sessionStorage</code> and goes when the tab closes or when you leave the session.</p>
+        <p><strong>3.2. Session Storage (<code>sessionStorage</code>).</strong> When you join a multiplayer session, your browser stores a temporary, randomly generated session key in the active tab&rsquo;s <code>sessionStorage</code>. This key allows you to reload the page and rejoin your active session as the same player. It is automatically purged when you close the browser tab or leave the session.</p>
+        <p><strong>3.3. Local Save Files.</strong> Your single-player paintings exist solely within your browser&rsquo;s active memory while the page is open. If you use the in-game &ldquo;Save&rdquo; function, the painting is exported directly as a local file onto your own device; no copy is transmitted to the Operator.</p>
+        <p><strong>3.4. Legal Basis and Absence of Cookie Banner.</strong> Under Article 5(3) of the EU ePrivacy Directive (2002/58/EC) and equivalent national laws (such as &sect;&nbsp;25 TDDDG), accessing or storing data in <code>localStorage</code> and <code>sessionStorage</code> does not require prior consent (or a cookie banner) because these storage mechanisms are <strong>strictly necessary</strong> to provide the specific functionality and settings explicitly requested by the User. You may erase this data at any time by clearing the site data for <code>roof.hidden.haus</code> in your browser settings.</p>
       </section>
 
       <section>
-        <h2>What the server keeps, and for how long</h2>
+        <h2>Multiplayer Mode: Data Processed and Shared</h2>
+        <p>When you host or join a multiplayer session, your browser establishes a real-time WebSocket connection to the Service&rsquo;s server.</p>
+        <p><strong>4.1. Real-Time Gameplay Data.</strong> During an active session, your browser transmits:</p>
         <ul>
-          <li><strong>In memory only</strong>: the session&rsquo;s level and paint, each player&rsquo;s nickname, the key mentioned above, what they carry, and the address they connected from. The server writes none of this to disk, and has no database.</li>
-          <li><strong>When you drop</strong> out of a session, the server holds your place for 3 minutes in case you come back. Then you are removed. When the last player is gone, the session and its paint are deleted at once. The session&rsquo;s code is remembered for an hour, so that anyone who tries it is told the session has ended; nothing else is kept with it.</li>
-          <li><strong>Restarting</strong> the server ends every session and clears all of this.</li>
-          <li><strong>The server&rsquo;s log</strong> is a plain text record with one line per event: the time, the session code, the nickname, the IP address and what happened (joined, left, dropped, refused, an error). I use it to find faults and abuse. The hosting setup rotates the log, which discards old lines automatically; how long a line lives depends on how busy the server is and on that setup.</li>
-          <li><strong>The web server</strong> that delivers the game&rsquo;s pages may keep the usual access records of any website (your IP address, the time, the file asked for and your browser&rsquo;s name), rotated in the same way.</li>
+          <li>The nickname you entered and the five-letter session code;</li>
+          <li>Real-time state updates (approximately 20 times per second), including your character coordinates, camera orientation, active tool, selected color, and movement flags (such as crouching);</li>
+          <li>Your in-game paintings (as they are drawn) and the placement of your stepladder;</li>
+          <li>If you are hosting a session: the selected level and any initial paint file you choose to load into the session.</li>
         </ul>
-        <p>I do not sell these records or share them with anyone, other than the company that hosts the server, which handles the traffic. I may use them to deal with abuse, or if the law requires it.</p>
+        <p><strong>4.2. Visibility to Other Players &amp; Public Recordings.</strong> All participants within the same multiplayer session can see your chosen nickname, character avatar, movements, stepladder, and paintings in real time. <strong>Do not include any real names, contact details, or sensitive personal data in your nickname or in-game drawings.</strong> Furthermore, as detailed in Section 6 of our <a href="/terms.html">Terms of Service</a>, active multiplayer sessions may be screenshotted, streamed, or recorded by the Operator (or other Players) and published across social media networks, websites, portfolios, or promotional channels.</p>
+        <p><strong>4.3. Technical Connection Data and IP Addresses.</strong> As is technically inherent to all internet communications, the Service&rsquo;s web server and WebSocket server receive your <strong>IP address</strong> (and standard HTTP header metadata such as browser user-agent and timestamp). Your IP address is processed strictly to route traffic, count active connections, enforce per-address rate limits against abuse, and maintain security logs. The Operator does not perform reverse-identity lookups or link IP addresses to real-world identities.</p>
       </section>
 
       <section>
-        <h2>Your rights</h2>
-        <p>You can ask me what I hold about you, ask me to correct or delete it, or ask me to remove paint or a nickname that you put in a session. The server holds nothing that names you except what you typed as a nickname and your IP address in its log, so please tell me the approximate time and the session code (if you know it) and your nickname, and I will look. Contact is below. If you live where the law gives you more rights than this page does, they stay yours.</p>
+        <h2>Legal Bases for Processing (Article 6 GDPR)</h2>
+        <p>If you are located in the European Economic Area (EEA) or the United Kingdom, we process your data on the following legal bases:</p>
+        <ul>
+          <li>(1) <strong>Performance of a Contract / Provision of Requested Service (Article 6(1)(b) GDPR):</strong> Processing your nickname, session code, session key, and real-time gameplay/painting data in memory is strictly necessary to execute the multiplayer session you chose to join or host, governed by our Terms of Service.</li>
+          <li>(2) <strong>Legitimate Interests (Article 6(1)(f) GDPR):</strong> Processing IP addresses, connection events, and web server access logs is necessary for our legitimate interests in ensuring network and information security (Recital 49 GDPR), preventing DDoS attacks, enforcing rate limits, debugging server faults, and moderating abusive conduct. Capturing gameplay screenshots/videos of sessions is likewise based on our legitimate interest in showcasing and documenting the Service.</li>
+          <li>(3) <strong>Compliance with Legal Obligations (Article 6(1)(c) GDPR):</strong> Where required to respond to lawful requests by public authorities or courts.</li>
+        </ul>
       </section>
 
       <section>
-        <h2>Children</h2>
-        <p>Hidden Roof is not directed at children under 13, and I do not knowingly collect their data. If you are a parent and think a child has used multiplayer, contact me and I will remove what I can.</p>
+        <h2>Storage Architecture and Data Retention</h2>
+        <p>The Service operates without a persistent database. Data is retained strictly for the minimum duration necessary:</p>
+        <ul>
+          <li><strong>Ephemeral In-Memory Data (RAM Only):</strong> Active session state&mdash;including the level, in-game paint, player nicknames, temporary session keys, held items, and connected IP addresses&mdash;is held <strong>exclusively in volatile server memory (RAM)</strong> and is never written to a database on disk.</li>
+          <li><strong>Disconnection and Session Expiry:</strong> If your connection drops, the server reserves your player slot in memory for <strong>three (3) minutes</strong> to allow reconnection, after which your player record is purged. Once the last player leaves a session, the session and all associated paintings are <strong>immediately and permanently deleted</strong> from memory. The five-letter session code alone is retained in memory for <strong>one (1) hour</strong> solely to inform subsequent callers that the session has ended, without retaining any player or painting data. Restarting the server immediately clears all active sessions from memory.</li>
+          <li><strong>Multiplayer Server Logs:</strong> The application server writes a minimal plain-text diagnostic log containing one line per connection event: timestamp, five-letter session code, chosen nickname, IP address, and event type (e.g., joined, left, dropped, connection refused, or error).</li>
+          <li><strong>Web Server Access Logs:</strong> The underlying web server delivering the Service&rsquo;s static files records standard HTTP access logs (IP address, timestamp, requested URL path, HTTP status code, and browser user-agent).</li>
+          <li><strong>Log Rotation and Deletion:</strong> Both application and web server logs are used exclusively for fault diagnosis, rate-limiting, and security incident response. Logs are managed via automated log rotation on the host server, which systematically overwrites and purges older entries (typically within <strong>7 to 30 days</strong>, depending on traffic volume and rotation thresholds), unless specific log lines must be preserved longer to investigate an ongoing security attack or legal violation.</li>
+        </ul>
       </section>
 
       <section>
-        <h2>Changes to this policy</h2>
-        <p>I may change this policy as the game changes. The date at the top shows when it last changed.</p>
+        <h2>Data Sharing, Hosting, and International Transfers</h2>
+        <p><strong>7.1. No Sale or Commercial Sharing.</strong> The Operator does not sell, rent, trade, or monetize any User data (including under the definitions of the California Consumer Privacy Act &mdash; CCPA/CPRA).</p>
+        <p><strong>7.2. Infrastructure Processor.</strong> The Service is hosted on virtual private server (VPS) infrastructure provided by a third-party cloud hosting provider (such as Hetzner Online GmbH), which processes network traffic and stores encrypted server disks as an infrastructure data processor on behalf of the Operator, and only in accordance with strict security obligations.</p>
+        <p><strong>7.3. International Data Transfers.</strong> While server infrastructure may be located within the European Union, the Operator administers the Service remotely (including from Georgia), and multiplayer data is broadcast in real time to other Players connecting from various jurisdictions worldwide. Where personal data is transferred outside the EEA/UK to a jurisdiction without an adequacy decision, such transfers occur as strictly necessary for the performance of the multiplayer Service requested by you (Article 49(1)(b) GDPR) or under appropriate technical and contractual safeguards.</p>
       </section>
 
       <section>
-        <h2>Contact</h2>
-        <p>Questions or requests: open an issue at <a href="https://github.com/GeoGeorgeous/hidden-roof/issues">the game&rsquo;s GitHub repository</a> (issues there are public, so leave out anything private and say you would like to talk elsewhere), or write in <a href="https://discord.gg/CMG9tT5Q4u">the Discord</a>.</p>
+        <h2>Your Data Protection Rights</h2>
+        <p>Depending on your jurisdiction (including under the GDPR in the EEA/UK and the CCPA in California), you have the right to:</p>
+        <ul>
+          <li>Access information regarding the personal data we hold about you (Article 15 GDPR);</li>
+          <li>Request rectification or erasure (&ldquo;right to be forgotten&rdquo;) of your data, including removal of an active in-game nickname or painting (Articles 16&ndash;17 GDPR);</li>
+          <li>Request restriction of processing or object to processing based on legitimate interests (Articles 18 &amp; 21 GDPR);</li>
+          <li>Lodge a complaint with a competent Data Protection Authority (DPA) in your country of residence.</li>
+        </ul>
+        <p><strong>Important Notice on Unidentifiable Data (Article 11 GDPR):</strong> Because the Service does not use accounts, real names, or emails, the Operator cannot identify which log entries or in-memory sessions belong to you based on your name or email alone. Pursuant to Article 11 GDPR, if you submit a request to inspect or delete your server log records or remove in-game content, you must provide additional corroborating information&mdash;specifically the approximate date and time (with time zone), the five-letter session code (if known), the nickname used, and/or your public IP address at the time of play&mdash;so that the Operator can locate the relevant record.</p>
+      </section>
+
+      <section>
+        <h2>Children&rsquo;s Privacy</h2>
+        <p>In alignment with our <a href="/terms.html">Terms of Service</a>, the Service is not directed to or intended for individuals under the age of 16, and the Operator does not knowingly collect personal data from anyone under 16 years of age (complying with both the U.S. Children&rsquo;s Online Privacy Protection Act (COPPA) and Article 8 GDPR). If you are a parent or legal guardian and believe that your child under 16 has participated in a multiplayer session or transmitted personal information in a nickname or drawing, please contact the Operator immediately at <a href="mailto:roof@hidden.haus">roof@hidden.haus</a> so that any active session data or log records can be promptly removed.</p>
+      </section>
+
+      <section>
+        <h2>Changes to This Privacy Policy</h2>
+        <p>The Operator may update this Privacy Policy from time to time to reflect technical or legal changes. The &ldquo;Last Updated&rdquo; date at the top of this page indicates the effective date of the current version.</p>
+      </section>
+
+      <section>
+        <h2>Contact Information</h2>
+        <p>To exercise any of your privacy rights, request the removal of in-game content, or ask questions regarding this Privacy Policy, please contact the Operator directly via email:</p>
+        <ul>
+          <li><strong>Email:</strong> <a href="mailto:roof@hidden.haus">roof@hidden.haus</a></li>
+        </ul>
       </section>
 
       <footer><a class="other" href="/terms.html">Terms of Service →</a><a href="/">Back to the game →</a></footer>

@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 185
+The one list of what's left. Counter for new ids: next: 186
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -190,3 +190,4 @@ Shipped since the last release; the release commit empties this list.
 20. [PERF-181]: Placing a stepladder skips the environment rebuild (rain heightmap, lights): a runtime prop never changes them
 21. [TASK-170]: Create accounts in social media (Discord, Instagram, YouTube, TikTok, subreddit)
 22. [TASK-184]: The pause menu's footer: social icons built from SOCIAL_LINKS (Tabler filled), then Terms · Privacy · version · built by; the Terms and Privacy pages restyled dark like the ESC menu
+23. [TASK-185]: LICENSE, CONTRIBUTING, Terms and Privacy rewritten as formal legal text under Hidden Haus: players 16+, a license to show recorded sessions, liability capped at EUR 20, GDPR bases and rights, contact roof@hidden.haus
