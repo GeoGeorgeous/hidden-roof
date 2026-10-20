@@ -1318,6 +1318,13 @@ export const LEVELS = {
   release: ['roof'],
 };
 
+/** The player build's precompressed files (vite.config.ts): a .br and a .gz next to each file of these types, when it saves bytes. */
+export const PRECOMPRESS = {
+  extensions: ['.js', '.css', '.html', '.json', '.svg', '.txt', '.xml', '.webmanifest', '.map'],
+  /** Smaller files are served as they are (bytes). */
+  minBytes: 1024,
+};
+
 /** Build mode (B). */
 export const BUILD = {
   /** How far the crosshair reaches when aiming at faces (m). */

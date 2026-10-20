@@ -15,7 +15,7 @@ Context for the agent that deploys and runs the game on the VPS. Read it before 
 ## 2. The game (stable)
 
 - three.js + TypeScript + Vite, with a small `vite.config.ts` (the version, the server bundle, the dev `/ws` proxy; `base: '/'`). It is purely static: no API, no env secrets, no external services or CDNs, and no WASM, Workers or SharedArrayBuffer, so no COOP/COEP headers.
-- Everything is generated in code: no models, texture files or audio. The server only serves the JS/CSS bundle, six `woff2` fonts (`public/fonts`), the levels (`levels/*.json`, a level's own paint `levels/*.rhhpaint`), the release pictures (`updates/*.webp`), the licenses (`licenses/*.txt`) and `favicon.svg`. The build is about 2 MB, of which the JS is ~890 KB (~250 KB gzipped).
+- Everything is generated in code: no models, texture files or audio. The server only serves the JS/CSS bundle, six `woff2` fonts (`public/fonts`), the levels (`levels/*.json`, a level's own paint `levels/*.rhhpaint`), the release pictures (`updates/*.webp`), the licenses (`licenses/*.txt`) and `favicon.svg`, and the files crawlers read (`robots.txt`, `sitemap.xml`, `llms.txt`, `site.webmanifest`). The build is about 2 MB, of which the JS is ~890 KB (~250 KB gzipped).
 - **Paths are absolute** (`/assets`, `/fonts`, `/favicon.svg`), so the game must be served from the root of its domain.
 - `?level=name` fetches `/levels/name.json`. Without it the game opens `LEVELS.start`, and the player build ships only the levels in `LEVELS.release` (`src/config.ts`). A missing level must be a real 404. **No SPA fallback**: an `index.html` served in its place breaks JSON parsing.
 - Settings are kept in `localStorage`, per origin. Changing the domain or the scheme resets them.
@@ -42,6 +42,7 @@ The host's details (machine, other services, firewall, paths) are kept out of th
 - **Build the client off the host** (there's no Node on it): in GitHub Actions (then rsync the output) or in a throwaway `node:24-slim` container. Planned flow: push to `main` → Actions builds → deploy over SSH with the repo's own deploy key.
 - **The server is started by hand** (not automated, by choice): `git fetch --depth 1 origin tag vX.Y.Z && git checkout vX.Y.Z` in `<apps>/roof/repo` (a shallow clone on a detached tag: `git pull` does nothing), then `docker compose up -d --build roof` from `<apps>`.
 - **Client and server versions can differ** after deploys at different times. The client sends a protocol version and its surface-table hash when it connects; on a mismatch the server rejects it and the client asks for a page reload. When a deploy bumps the protocol, restart `roof` and deploy the client together: live sessions end, and old tabs are told to reload.
+- **Precompressed files:** `npm run build` writes a `.br` (brotli 11) and a `.gz` (gzip 9) next to each js, css, html, json, svg, txt, xml and webmanifest file of `dist/` that is over 1 KB and gets smaller (`PRECOMPRESS` in `src/config.ts`, the `precompress` plugin in `vite.config.ts`), `levels/*.json` too: the main bundle is ~950 KB raw, ~280 KB gz, ~230 KB br; `roof.json` ~159 KB, ~12 KB, ~8 KB. rsync ships them with the rest. Caddy serves them with `file_server { precompressed br gzip }` in place of plain `file_server`, and `encode` stays for anything without one; the block below shows what the host runs now, and that change is the host's (`docs/ideas/vps.md`).
 - Caddy site block (the site-level `header` block is the host's security headers). Two `header` lines with and without a matcher would let the unmatched one run last and overwrite the `/assets` header, so both get matchers:
 
 ```
@@ -124,7 +125,7 @@ The design and its limits are in `docs/known-limits.md` (Multiplayer). The code:
 ## 7. After a deploy
 
 - `curl -I https://roof.hidden.haus/` → 200, `cache-control: no-cache`.
-- `curl -I` on a file under `/assets/` → `immutable`. With `-H 'Accept-Encoding: gzip'` → `content-encoding` is set.
+- `curl -I` on a file under `/assets/` → `immutable`. With `-H 'Accept-Encoding: gzip'` → `content-encoding` is set. With `-H 'Accept-Encoding: br'` → `content-encoding: br`, once Caddy serves the precompressed files.
 - `curl -I https://roof.hidden.haus/levels/nope.json` → 404, not `index.html`.
 - `curl -sI https://roof.hidden.haus/ | grep -o "script-src[^;]*"` shows the hash in `<apps>/roof/www/csp-hash.txt`, and the browser console shows no CSP error.
 - `curl https://roof.hidden.haus/ws` → `roof server · protocol <n>`, the same `PROTOCOL` as the game deployed (`src/net/protocol.ts`).
