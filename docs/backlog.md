@@ -82,9 +82,8 @@ Only `N.`, the id and the description are required. The optional parts appear in
 2. BUGS [BL-107]: Moving the stepladder again and again near lamps doubles the CPU time (lamp light re-baked) (docs/ideas/performance.md) @1.5.0
 3. ~~BUGS [?BL-108]: Loading drops to 12 fps on the Intel UHD with Energy Saver on (docs/ideas/performance.md)~~
 4. BUGS [?BL-028]: Other players' spray costs ~0.2 ms of CPU a sprayer (docs/ideas/performance.md) @1.5.0
-5. BUGS [?BL-031]: Four shaders still compile in the first frame (docs/ideas/performance.md) @1.5.0
-6. ~~BUGS [BL-029]: The roof's edits of 2026-10-10 cost 3–9% GPU on the Intel UHD (docs/ideas/performance.md)~~
-7. ~~BUGS [BL-032]: One load of the roof took 62 s; not reproduced (docs/ideas/performance.md)~~
+5. ~~BUGS [BL-029]: The roof's edits of 2026-10-10 cost 3–9% GPU on the Intel UHD (docs/ideas/performance.md)~~
+6. ~~BUGS [BL-032]: One load of the roof took 62 s; not reproduced (docs/ideas/performance.md)~~
 
 ## Rendering
 
@@ -109,11 +108,10 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## Tools
 
-1. TASK [BL-141]: Exhaustive tool lists: a forgotten tool becomes a compile error; the tool names in one place (docs/ideas/tools.md) @1.5.0
-2. ~~BUGS [BL-142]: Other players' figures hold their tools wrong: roller width, sponge tilt, ladder model (docs/ideas/tools.md)~~
-3. IDEA [BL-062]: Photo mode with Polaroid-like cards for photos
-4. IDEA [BL-061]: A player in the style of an old iPod Classic
-5. [TEST-177]: Allow releasing small patch versions with no image at all @1.6.1
+1. ~~BUGS [BL-142]: Other players' figures hold their tools wrong: roller width, sponge tilt, ladder model (docs/ideas/tools.md)~~
+2. IDEA [BL-062]: Photo mode with Polaroid-like cards for photos
+3. IDEA [BL-061]: A player in the style of an old iPod Classic
+4. [TEST-177]: Allow releasing small patch versions with no image at all @1.6.1
 
 ## UI
 
@@ -143,9 +141,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 1. TEST [BL-035]: Fixed-step tests for walking, collisions, jumps and climbing
 2. ~~BUGS [?BL-037]: A game test page twice failed to load its level in 120 s; read `gameReady`'s log when it repeats~~
 3. TEST [BL-036]: Light baking and weather run on the wall clock; decide what a test would compare first
-4. TEST [BL-079]: The F3 probe's own shader compiles land in its measurement @1.5.0
-5. TEST [BL-149]: A test that the protocol and op-wire never read PAINT.texelsPerMeter @1.5.0
-6. TASK [BL-156]: CI is pinned to ubuntu-24.04 for 1.4.0; move it to Ubuntu 26 as 1.5.0's last task, once GitHub's runners have it @1.5.0
+4. TASK [BL-156]: CI is pinned to ubuntu-24.04 for 1.4.0; move it to Ubuntu 26 as 1.5.0's last task, once GitHub's runners have it @1.5.0
 
 ## Servers and deploy
 
@@ -158,7 +154,6 @@ Only `N.`, the id and the description are required. The optional parts appear in
 7. IDEA [BL-046]: A queue to enter the server, after BL-043 (docs/ideas/public-servers.md) @1.6.0
 8. IDEA [BL-047]: Admin panel: servers stats (players online, perfomance, etc), players info (username, IP, ping), ban by IP, after BL-043 (docs/ideas/public-servers.md) @1.6.0
 9. IDEA [?BL-147]: Anti-cheat: The server checks what players send (op reach and rate, ladder spot, jumps) before it goes public @1.6.0
-10. [BUGS-174]: DevTools displays comments in the HTML, CSS, and JavaScript, but the code should be minified @1.5.0
 
 ## Web and promotion
 
@@ -183,3 +178,9 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## Done
 
 Shipped since the last release; the release commit empties this list.
+
+1. BUGS [BL-031]: Four shaders still compile in the first frame
+2. TASK [BL-141]: Exhaustive tool lists: a forgotten tool becomes a compile error; the tool names in one place
+3. TEST [BL-079]: The F3 probe's own shader compiles land in its measurement
+4. TEST [BL-149]: A test that the protocol and op-wire never read PAINT.texelsPerMeter
+5. [BUGS-174]: DevTools displays comments in the HTML, CSS, and JavaScript, but the code should be minified

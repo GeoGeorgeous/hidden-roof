@@ -1,4 +1,4 @@
-# A shared tool type (audit M6, not started)
+# A shared tool type (audit M6: F6.1–F6.3 and F6.4 approach 1 done)
 
 From the audit of 2026-10-17 (module M6, skipped for 1.4.0). Nothing decided. ★ marks the audit's recommended approach. Line numbers as of dev 23f7835.
 
@@ -11,9 +11,6 @@ From the audit of 2026-10-17 (module M6, skipped for 1.4.0). Nothing decided. �
 
 ## Findings
 
-- **F6.1 Make the tool lists exhaustive** (refactor, S). Tool and SLOTS in a leaf module; key HOLD, MODELS, PICKUP.models and KANA by the union; if-chains become Record<Tool,…> or a switch with a never default; one SIZED map; a static check SLOTS.length ≤ 7. About 10 silent spots become compile errors; behavior identical. `src/inventory/inventory.ts:8-11`; `src/tools/tools.ts`; `src/pickups/visuals.ts:136-150`; `src/config.ts:601,715`.
-- **F6.2 Silent defaults for a missing tool** (latent bug, fixed by F6.1). A tool missing from itemModel is drawn as a marker; one missing from PICKUP.models throws every frame (hidden by a cast); one missing from KANA shows a blank line. `src/pickups/visuals.ts:150`; `src/pickups/pickups.ts:43-46,113`; `src/pickups/labels.ts:20-41,143`.
-- **F6.3 Three bits for the tool in the snapshot** (latent bug). An 8th SLOTS entry would spill into the action bits; nothing checks it. `src/net/snapshot.ts:52`. A static check with F6.1.
 - **F6.4 Update order is an unwritten rule** (arch). The marker writes scribble 0 every frame it isn't drawing, so it must update before the roller and sponge; the can's particles keep stamping while another tool is out. `src/tools/marker.ts:61`; `src/tools/tools.ts:90`; `src/spray/particles.ts:172`. Approaches: (1) document the rule in tools.ts ★ · (2) tools report sound levels, Tools mixes once (later).
 - **F6.5 Other players' tools don't match** (cosmetic). Figures always hold a roller at ROLLER.width (the snapshot has no size); the sponge's pickup tilt carries into the figure's hand; the figure's ladder is a separate model that ignores MODELS.ladder. `src/pickups/visuals.ts:145-149`; `src/avatar/held.ts:28-40,83-98`. Approaches: (1) fix tilt and ladder model (no protocol change) ★ · (2) also the roller size (snapshot field, protocol bump) · (3) leave it.
 - **F6.6 Tool names drift** (docs). ladder / stepladder / LADDER and two F3 groups; can / SprayTool / color:* pickups; the action "spray" also covers the marker. `src/tools/ladder-tool.ts:39`; `src/inventory/items.ts:20`; `src/debug/panel.ts:27,35`.
