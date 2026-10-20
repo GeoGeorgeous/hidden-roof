@@ -751,6 +751,20 @@ export const DRIPS = {
   strength: 0.85,
 };
 
+/** F3's wet view (dev/wet-view.ts): points on the paint that is still wet, to tune paint runs by. */
+export const WET_VIEW = {
+  enabled: false,
+  /** Point size (px) and color: fainter the less wet, full where it may run. */
+  size: 4,
+  color: '#ff2a1a',
+  /** Only faces this close to the player (m) are walked, every `refresh` seconds, and at most `maxPoints` are drawn (a denser PAINT DETAIL skips texels to stay under it). */
+  reach: 10,
+  refresh: 0.25,
+  maxPoints: 20000,
+  /** How far off the face the points sit (m), so they don't flicker in it. */
+  lift: 0.004,
+};
+
 type V3 = [number, number, number];
 /** A pickup's pose on top of its model: size multiplier, offset (m) and rotation (radians). */
 const pickupPose = (size = 1) => ({ size, offset: [0, 0, 0] as V3, rotation: [0, 0, 0] as V3 });
