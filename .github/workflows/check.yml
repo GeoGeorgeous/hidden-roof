@@ -9,7 +9,7 @@ on:
 
 jobs:
   check:
-    runs-on: ubuntu-24.04 # pinned for 1.4.0 (BL-156)
+    runs-on: ubuntu-26.04 # pinned, not ubuntu-latest, so the image changes only on purpose
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4

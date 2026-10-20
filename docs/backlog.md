@@ -136,8 +136,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 1. TEST [BL-035]: Fixed-step tests for walking, collisions, jumps and climbing
 2. ~~BUGS [?BL-037]: A game test page twice failed to load its level in 120 s; read `gameReady`'s log when it repeats~~
 3. TEST [BL-036]: Light baking and weather run on the wall clock; decide what a test would compare first
-4. TASK [BL-156]: CI is pinned to ubuntu-24.04 for 1.4.0; move it to Ubuntu 26 as 1.5.0's last task, once GitHub's runners have it @1.5.0
-5. ~~[BUGS-179]: test:mp logs two console errors on dev and still passes: "reading 'frame'" in main.ts step and "reading 'state'" in a test's remotes.get (no bug: both are the tests' own injected faults, now thrown as 'on purpose' errors)~~
+4. ~~[BUGS-179]: test:mp logs two console errors on dev and still passes: "reading 'frame'" in main.ts step and "reading 'state'" in a test's remotes.get (no bug: both are the tests' own injected faults, now thrown as 'on purpose' errors)~~
 
 ## Servers and deploy
 
@@ -189,3 +188,4 @@ Shipped since the last release; the release commit empties this list.
 16. PERF [BL-030]: Precompressed assets served by Caddy: the build writes them; the host's part goes to devops (docs/ideas/vps.md)
 17. [TASK-176]: LICENSE, CONTRIBUTING and Terms of Service
 18. [TASK-178]: Privacy policy: no cookies or analytics; the server and Caddy see IP addresses, other players see nicknames, settings stay in localStorage
+19. TASK [BL-156]: CI runs on ubuntu-26.04 (pinned, not ubuntu-latest)
