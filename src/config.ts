@@ -1,5 +1,5 @@
 import type { Tool } from './inventory/tool.ts';
-import { DISCORD, REPO } from './links.ts';
+import { DISCORD, INSTAGRAM, REPO, TIKTOK, YOUTUBE } from './links.ts';
 
 // All tunable constants live here. Units: meters, seconds, radians unless noted.
 
@@ -345,9 +345,9 @@ export interface SocialLink {
 export const SOCIAL_LINKS: readonly SocialLink[] = [
   { id: 'discord', label: 'Discord', icon: 'brand-discord', url: DISCORD, live: true },
   { id: 'github', label: 'GitHub', icon: 'brand-github', url: REPO, live: true },
-  { id: 'youtube', label: 'YouTube', icon: 'brand-youtube', url: 'https://www.youtube.com/channel/UCIN2OeR6_IqEivP1uALkpJQ', live: true },
-  { id: 'instagram', label: 'Instagram', icon: 'brand-instagram', url: 'https://www.instagram.com/roof.hidden/', live: true },
-  { id: 'tiktok', label: 'TikTok', icon: 'brand-tiktok', url: 'https://www.tiktok.com/@roof.hidden', live: true },
+  { id: 'youtube', label: 'YouTube', icon: 'brand-youtube', url: YOUTUBE, live: true },
+  { id: 'instagram', label: 'Instagram', icon: 'brand-instagram', url: INSTAGRAM, live: true },
+  { id: 'tiktok', label: 'TikTok', icon: 'brand-tiktok', url: TIKTOK, live: true },
 ];
 
 /** What the HUD shows (hud.ts) and the hotbar's size (inventory/hotbar.ts), live in F3 → UI. */
