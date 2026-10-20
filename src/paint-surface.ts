@@ -14,7 +14,7 @@ export type Rgb = readonly [number, number, number];
 
 /**
  * A paint surface as everyone but its owners sees it. Each field is written by
- * one module, which gets it through `Owned` (painting.ts: data, excess;
+ * one module, which gets it through `Owned` (painting.ts: data, wet;
  * paint-gpu.ts: slot, mips, and the rects in dirty; render/bake: light); the rest only read.
  */
 export type PaintSurface = Readonly<PaintSurfaceFields>;
@@ -36,8 +36,8 @@ interface PaintSurfaceFields {
   data: Uint8Array | null;
   /** Sizes of the texture's smaller levels for distant views (paint-mips.ts); empty while it has no paint. */
   mips: MipSize[];
-  /** Excess paint per texel (paint-raster.ts RasterSurface). */
-  excess: Uint16Array | null;
+  /** When each texel's wet paint is dry (paint-raster.ts RasterSurface). */
+  wet: Float32Array | null;
   /** Texel rects changed since the last upload (inclusive, paint-gpu.ts: its list, nobody else's). */
   dirty: DirtyRect[];
 }
@@ -47,7 +47,7 @@ export function hasPaint<S extends Pick<PaintSurface, 'data'>>(s: S): s is S & {
   return s.data !== null;
 }
 
-/** A box of a surface's paint (PaintSystem.patch): its texels and excess, or null where it had none. */
+/** A box of a surface's paint (PaintSystem.patch): its texels, or null where it had none (restored paint is dry). */
 export interface PaintPatch {
   key: string;
   /** The surface's atlas size then: a rebuilt surface of another size can't take it. */
@@ -56,5 +56,4 @@ export interface PaintPatch {
   rects: number[];
   box: Box;
   data: Uint8Array | null;
-  excess: Uint16Array | null;
 }

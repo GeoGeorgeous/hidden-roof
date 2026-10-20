@@ -5,7 +5,7 @@ import type { Rgb } from './painting';
 import type { Rect, SurfaceGeometry } from './surfaces';
 
 // The paint raster: dots, roller bands and single texels written into a
-// surface's CPU paint (its RGBA atlas), and the excess paint that may start
+// surface's CPU paint (its RGBA atlas), and the wet paint that may start
 // runs. CPU only: textures and uploads are paint-gpu.ts, so this can run
 // anywhere the paint has to be the same (a server, a test).
 
@@ -13,8 +13,8 @@ import type { Rect, SurfaceGeometry } from './surfaces';
 export interface RasterSurface {
   geo: SurfaceGeometry;
   data: Uint8Array | null;
-  /** Excess paint per texel on already-opaque paint, in 1/256 coats (created on first excess). */
-  excess: Uint16Array | null;
+  /** Per texel, the paint clock time (PaintRaster.now) at which its wet paint on already-opaque paint is dry (created on first wet paint). */
+  wet: Float32Array | null;
 }
 
 /** Atlas texels x0..x1, y0..y1, inclusive. */
@@ -34,6 +34,9 @@ export interface Band {
 }
 
 export class PaintRaster<S extends RasterSurface> {
+  /** The paint clock (s), advanced by the game's frame time (PaintSystem.tick): wet paint dries by it. */
+  now = 0;
+
   constructor(
     private hooks: {
       /** Texels in this rect (inclusive) changed. */
@@ -77,7 +80,7 @@ export class PaintRaster<S extends RasterSurface> {
         const amt = fade > 0 ? b.amount * Math.min(1, (L - along) / fade) : b.amount;
         if (amt <= 0) continue;
         const i = (y * w + x) * 4;
-        if (runs && data[i + 3] >= 250) this.addExcess(s, rect, x, y, amt, runs);
+        if (runs && data[i + 3] >= 250) this.addWet(s, rect, x, y, amt, runs);
         blend(data, i, amt, b.color);
         touched = true;
       }
@@ -128,7 +131,7 @@ export class PaintRaster<S extends RasterSurface> {
           touched = true;
           continue;
         }
-        if (runs && data[i + 3] >= 250) this.addExcess(s, rect, x, y, amt, runs);
+        if (runs && data[i + 3] >= 250) this.addWet(s, rect, x, y, amt, runs);
         blend(data, i, amt, color);
         touched = true;
       }
@@ -163,15 +166,20 @@ export class PaintRaster<S extends RasterSurface> {
     this.hooks.touched(s, x, y, x, y);
   }
 
-  private addExcess(s: S, rect: Rect, x: number, y: number, amt: number, rate: number) {
-    const e = (s.excess ??= new Uint16Array(s.geo.atlasW * s.geo.atlasH));
+  /**
+   * `amt` coats more on an opaque texel: wet paint is what is left to dry
+   * (DRIPS.dryRate coats a second); at DRIPS.excess coats the texel may run, and
+   * the paint that ran is gone.
+   */
+  private addWet(s: S, rect: Rect, x: number, y: number, amt: number, rate: number) {
+    const wet = (s.wet ??= new Float32Array(s.geo.atlasW * s.geo.atlasH));
     const k = y * s.geo.atlasW + x;
-    const v = e[k] + Math.round(amt * 256);
-    if (v < DRIPS.excess * 256) {
-      e[k] = v;
+    const until = Math.max(wet[k], this.now) + amt / DRIPS.dryRate;
+    if ((until - this.now) * DRIPS.dryRate < DRIPS.excess) {
+      wet[k] = until;
       return;
     }
-    e[k] = 0;
+    wet[k] = this.now;
     if (paintRandom.drips() >= rate / s.geo.texelsPerMeter ** 2) return;
     const i = k * 4;
     const d = s.data!;

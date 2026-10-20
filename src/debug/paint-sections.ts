@@ -77,6 +77,7 @@ export function paintSections(h: Hooks): Section[] {
       items: [
         t('on', ['DRIPS', 'enabled']),
         r('build-up needed', ['DRIPS', 'excess'], 0.5, 10, 0.1),
+        r('drying speed', ['DRIPS', 'dryRate'], 0.1, 10, 0.1),
         r('length: min', ['DRIPS', 'minLength'], 0.02, 1, 0.01),
         r('length: max', ['DRIPS', 'maxLength'], 0.02, 1.5, 0.01),
         r('drip speed', ['DRIPS', 'speed'], 0.01, 1, 0.01),

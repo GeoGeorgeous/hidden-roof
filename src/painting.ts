@@ -49,6 +49,11 @@ export class PaintSystem {
   log: PaintOp[] | null = null;
   /** Ops painted so far (stamps, rolls and runs made here, stamps and rolls replayed): what saves and the network carry (F3). */
   opCount = 0;
+  /** The paint clock moves on by the game's frame time: wet paint dries by it (paint-raster.ts). */
+  tick(dt: number) {
+    this.raster.now += dt;
+  }
+
   /** Called when heavy paint on a vertical face should start a run (see paint-drips.ts). */
   onDrip: (s: PaintSurface, rect: Rect, x: number, y: number, rgb: Rgb) => void = () => {};
   /** Surfaces scrubbed this frame and last, for settle(). */
@@ -66,7 +71,7 @@ export class PaintSystem {
 
   /** `group`: where it stands (a level tile): surfaces drawn together share paint pages. */
   register(key: string, mesh: THREE.Mesh, geo: SurfaceGeometry, group: string): PaintSurface {
-    const s: PaintSurface = { key, mesh, geo, slot: null, light: null, data: null, mips: [], excess: null, dirty: [] };
+    const s: PaintSurface = { key, mesh, geo, slot: null, light: null, data: null, mips: [], wet: null, dirty: [] };
     this.texelsPerMeter = geo.texelsPerMeter;
     this.gpu.place(s, group);
     this.surfaces.push(s);
@@ -155,8 +160,8 @@ export class PaintSystem {
   private free(s: PaintSurface) {
     if (!hasPaint(s)) return;
     this.gpu.dispose(s);
-    const mine = s as Owned<'data' | 'excess'>;
-    mine.data = mine.excess = null;
+    const mine = s as Owned<'data' | 'wet'>;
+    mine.data = mine.wet = null;
   }
 
   /**
@@ -202,7 +207,7 @@ export class PaintSystem {
    * is the same size at every paint detail; one smaller than a texel paints
    * the texel under it. `amount` 0..1 opacity at the center, `color` sRGB 0..1,
    * `softness` 0 = hard dot .. 1 = fades to nothing at the rim.
-   * `drip`: excess paint on opaque texels of vertical faces may start a run;
+   * `drip`: wet paint on opaque texels of vertical faces may start a run;
    * the number is how often (runs per m² of paint reaching DRIPS.excess), 0 = never.
    * `square`: a hard square nib instead of a round dot (`radius` is half its
    * side), its sides along the face's axes, like a pump marker's nib.
@@ -348,23 +353,23 @@ export class PaintSystem {
 
   /** Wipe one face's paint and its ring (build mode's X): the surface's memory comes back once none is left. */
   wipe(s: PaintSurface, rect: number) {
-    if (hasPaint(s)) this.unpatch({ key: s.key, atlas: [s.geo.atlasW, s.geo.atlasH], rects: rectsOf(s), box: this.faceBox(s, rect), data: null, excess: null });
+    if (hasPaint(s)) this.unpatch({ key: s.key, atlas: [s.geo.atlasW, s.geo.atlasH], rects: rectsOf(s), box: this.faceBox(s, rect), data: null });
   }
 
   /** A box of a surface's paint as it is now, to put back with unpatch() (build mode's undo). */
   patch(s: PaintSurface, box: Box): PaintPatch {
     const w = s.geo.atlasW;
     const [x0, y0, x1, y1] = box;
-    const crop = <T extends Uint8Array | Uint16Array>(src: T, n: number, out: T) => {
-      for (let y = y0; y <= y1; y++) out.set(src.subarray((y * w + x0) * n, (y * w + x1 + 1) * n), (y - y0) * (x1 - x0 + 1) * n);
-      return out;
-    };
-    const texels = (x1 - x0 + 1) * (y1 - y0 + 1);
-    return { key: s.key, atlas: [w, s.geo.atlasH], box, data: s.data && crop(s.data, 4, new Uint8Array(texels * 4)), excess: s.excess && crop(s.excess, 1, new Uint16Array(texels)), rects: rectsOf(s) };
+    let data: Uint8Array | null = null;
+    if (s.data) {
+      data = new Uint8Array((x1 - x0 + 1) * (y1 - y0 + 1) * 4);
+      for (let y = y0; y <= y1; y++) data.set(s.data.subarray((y * w + x0) * 4, (y * w + x1 + 1) * 4), (y - y0) * (x1 - x0 + 1) * 4);
+    }
+    return { key: s.key, atlas: [w, s.geo.atlasH], box, data, rects: rectsOf(s) };
   }
 
   /** Put a patch back (none in it: wipe its box), on the live surface with its key; false if it has none, or its atlas or faces changed since. */
-  unpatch({ key, atlas, rects, box, data, excess }: PaintPatch) {
+  unpatch({ key, atlas, rects, box, data }: PaintPatch) {
     const s = this.find(key);
     if (!s || s.geo.atlasW !== atlas[0] || s.geo.atlasH !== atlas[1]) return false;
     const now = rectsOf(s);
@@ -379,8 +384,7 @@ export class PaintSystem {
       const i = (y - y0) * bw;
       if (data) s.data!.set(data.subarray(i * 4, (i + bw) * 4), at * 4);
       else s.data!.fill(0, at * 4, (at + bw) * 4);
-      if (excess) ((s as Owned<'excess'>).excess ??= new Uint16Array(w * atlas[1])).set(excess.subarray(i, i + bw), at);
-      else s.excess?.fill(0, at, at + bw);
+      s.wet?.fill(0, at, at + bw);
     }
     this.gpu.markDirty(s, x0, y0, x1, y1);
     this.freeIfClean(s);
