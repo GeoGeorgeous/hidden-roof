@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { BUILD } from '../config';
 import { texelToWorld } from '../paint-seams';
 import type { PaintSystem } from '../painting';
+import { hasPaint } from '../paint-surface';
 import type { Rect } from '../surfaces';
 
 // Build mode's view of the paint on the walls (H): a box around the paint on
@@ -46,7 +47,7 @@ export class PaintedSpots {
     const v: number[] = [];
     this.count = 0;
     for (const s of paint.surfaces) {
-      if (!s.data) continue;
+      if (!hasPaint(s)) continue;
       s.geo.rects.forEach((r) => {
         const box = paintBox(s.data!, s.geo.atlasW, r);
         if (!box) return;

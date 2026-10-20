@@ -293,7 +293,7 @@ await check('paint pages: a lost and restored WebGL context (a GPU reset) gets a
         .every((s) => {
           const fb = gl.createFramebuffer();
           r.state.bindFramebuffer(gl.FRAMEBUFFER, fb);
-          gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, r.properties.get(s.texture).__webglTexture, 0);
+          gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, r.properties.get(s.slot.page.texture).__webglTexture, 0);
           const px = new Uint8Array(s.data.length);
           gl.readPixels(s.slot.x, s.slot.y, s.geo.atlasW, s.geo.atlasH, gl.RGBA, gl.UNSIGNED_BYTE, px);
           r.state.bindFramebuffer(gl.FRAMEBUFFER, null);

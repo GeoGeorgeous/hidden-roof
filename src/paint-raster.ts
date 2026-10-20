@@ -9,7 +9,7 @@ import type { Rect, SurfaceGeometry } from './surfaces';
 // runs. CPU only: textures and uploads are paint-gpu.ts, so this can run
 // anywhere the paint has to be the same (a server, a test).
 
-/** The CPU side of a paint surface (painting.ts PaintSurface): its paint must exist before anything is drawn. */
+/** The CPU side of a paint surface (paint-surface.ts PaintSurface): its paint must exist before anything is drawn. */
 export interface RasterSurface {
   geo: SurfaceGeometry;
   data: Uint8Array | null;

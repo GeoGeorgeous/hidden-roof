@@ -7,6 +7,7 @@ import { makeLamps, type Lamp } from './lamps';
 import { Occluders } from './occluders';
 import { hull, lampSpheres, reaches, shadowCones, type Reach } from './reach';
 import { layoutLightmap } from './layout';
+import type { Owned } from '../../paint-surface';
 import { LightPages } from './light-pages';
 import { bakeDecor, bakeSurface, dropReceiver, type Receiver, type SurfaceReceiver } from './receivers';
 
@@ -168,7 +169,7 @@ export class LightBaker {
   private layOut(r: SurfaceReceiver) {
     r.layout = layoutLightmap(r.surface.geo, r.surface.geo.texelsPerMeter, this.density);
     // One set of pages for the whole level: light is small, and every surface sharing them keeps the level's draws few.
-    r.slot = r.surface.light = this.pages.place(r.layout.w, r.layout.h, '');
+    r.slot = (r.surface as Owned<'light'>).light = this.pages.place(r.layout.w, r.layout.h, '');
   }
 
   /** Bake pending receivers, nearest to `eye` first, for up to `budget` ms. */

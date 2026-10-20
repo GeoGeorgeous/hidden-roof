@@ -4,7 +4,7 @@ import { painted, resampleRect } from './paint-resample';
 import type { FacePoint, Rect, SurfaceGeometry } from './surfaces';
 import { SeamIndex, texelToWorld, worldToTexel, type SeamFace } from './paint-seams';
 import { PaintGpu } from './paint-gpu';
-import type { PaintPatch, PaintSurface, Rgb } from './paint-surface';
+import { hasPaint, type Owned, type PaintPatch, type PaintSurface, type Rgb } from './paint-surface';
 import { inRing, PaintRaster, type Band, type Box } from './paint-raster';
 import type { PaintOp, RollOp, StampOp } from './paint-ops';
 import { rounded } from './op-wire';
@@ -66,7 +66,7 @@ export class PaintSystem {
 
   /** `group`: where it stands (a level tile): surfaces drawn together share paint pages. */
   register(key: string, mesh: THREE.Mesh, geo: SurfaceGeometry, group: string): PaintSurface {
-    const s: PaintSurface = { key, mesh, geo, slot: null, light: null, data: null, mips: [], texture: null, excess: null, dirty: [] };
+    const s: PaintSurface = { key, mesh, geo, slot: null, light: null, data: null, mips: [], excess: null, dirty: [] };
     this.texelsPerMeter = geo.texelsPerMeter;
     this.gpu.place(s, group);
     this.surfaces.push(s);
@@ -97,7 +97,7 @@ export class PaintSystem {
    */
   carry(old: readonly PaintSurface[], fresh: readonly PaintSurface[]) {
     const from = new Map<string, { s: PaintSurface; a: number }>();
-    for (const s of old) if (s.data) s.geo.rects.forEach((r, a) => from.set(faceKey(s, r, a), { s, a }));
+    for (const s of old) if (hasPaint(s)) s.geo.rects.forEach((r, a) => from.set(faceKey(s, r, a), { s, a }));
     if (!from.size) return;
     for (const s of fresh) {
       const faces = s.geo.rects.flatMap((r, b) => {
@@ -110,7 +110,7 @@ export class PaintSystem {
 
   /** Face `b` of `s` takes face `a` of `from`, resampled when the atlas differs. */
   private adopt(s: PaintSurface, faces: { from: PaintSurface; a: number; b: number }[]) {
-    const live = faces.filter(({ from, a }) => from.data && painted(from.data, from.geo.atlasW, from.geo.rects[a]));
+    const live = faces.filter(({ from, a }) => hasPaint(from) && painted(from.data, from.geo.atlasW, from.geo.rects[a]));
     if (!live.length) return;
     this.ensureTexture(s);
     for (const { from, a, b } of live) resampleRect(from.data!, from.geo.atlasW, from.geo.rects[a], s.data!, s.geo.atlasW, s.geo.rects[b]);
@@ -129,7 +129,7 @@ export class PaintSystem {
    * of, not the paint pages, filled by uploads. Upload it all again.
    */
   reupload() {
-    for (const s of this.surfaces) if (s.data) this.gpu.markDirty(s, 0, 0, s.geo.atlasW - 1, s.geo.atlasH - 1);
+    for (const s of this.surfaces) if (hasPaint(s)) this.gpu.markDirty(s, 0, 0, s.geo.atlasW - 1, s.geo.atlasH - 1);
   }
 
   /**
@@ -146,18 +146,17 @@ export class PaintSystem {
 
   /** Free a surface's paint if none is left (the sponge cleaned it all off): its memory comes back until the next hit. */
   freeIfClean(s: PaintSurface) {
+    if (!hasPaint(s) || !this.live(s)) return;
     const d = s.data;
-    if (!d || !this.live(s)) return;
     for (let i = 3; i < d.length; i += 4) if (d[i]) return;
     this.free(s);
   }
 
   private free(s: PaintSurface) {
-    if (!s.data) return;
+    if (!hasPaint(s)) return;
     this.gpu.dispose(s);
-    s.data = s.excess = null;
-    s.mips = [];
-    s.dirty.length = 0;
+    const mine = s as Owned<'data' | 'excess'>;
+    mine.data = mine.excess = null;
   }
 
   /**
@@ -192,8 +191,8 @@ export class PaintSystem {
 
   /** CPU paint and its texture, on a surface's first hit. */
   private ensureTexture(s: PaintSurface) {
-    if (s.texture) return;
-    s.data = new Uint8Array(s.geo.atlasW * s.geo.atlasH * 4);
+    if (hasPaint(s)) return;
+    (s as Owned<'data'>).data = new Uint8Array(s.geo.atlasW * s.geo.atlasH * 4);
     this.gpu.create(s);
   }
 
@@ -308,7 +307,7 @@ export class PaintSystem {
 
   private dot(s: PaintSurface, rect: Rect, cx: number, cy: number, radius: number, amount: number, color: Rgb | null, softness: number, drip: number, square: boolean) {
     // Nothing to scrub off a surface that was never painted.
-    if (!color && !s.data) return;
+    if (!color && !hasPaint(s)) return;
     this.ensureTexture(s);
     if (!color) this.scrubbed.add(s);
     this.raster.dot(s, rect, cx, cy, radius, amount, color, softness, drip, square);
@@ -333,7 +332,7 @@ export class PaintSystem {
       // A neighbor face the image doesn't reach.
       if (on[0] > on[2] || on[1] > on[3]) continue;
       before?.(surface, on);
-      const fresh = !surface.data;
+      const fresh = !hasPaint(surface);
       this.ensureTexture(surface);
       // A neighbor the image only came near takes no paint, nor memory.
       if (!this.raster.image(surface, rect, box, alpha, color) && fresh) this.free(surface);
@@ -349,7 +348,7 @@ export class PaintSystem {
 
   /** Wipe one face's paint and its ring (build mode's X): the surface's memory comes back once none is left. */
   wipe(s: PaintSurface, rect: number) {
-    if (s.data) this.unpatch({ key: s.key, atlas: [s.geo.atlasW, s.geo.atlasH], rects: rectsOf(s), box: this.faceBox(s, rect), data: null, excess: null });
+    if (hasPaint(s)) this.unpatch({ key: s.key, atlas: [s.geo.atlasW, s.geo.atlasH], rects: rectsOf(s), box: this.faceBox(s, rect), data: null, excess: null });
   }
 
   /** A box of a surface's paint as it is now, to put back with unpatch() (build mode's undo). */
@@ -370,7 +369,7 @@ export class PaintSystem {
     if (!s || s.geo.atlasW !== atlas[0] || s.geo.atlasH !== atlas[1]) return false;
     const now = rectsOf(s);
     if (now.length !== rects.length || now.some((n, i) => n !== rects[i])) return false;
-    if (!data && !s.data) return true;
+    if (!data && !hasPaint(s)) return true;
     this.ensureTexture(s);
     const w = atlas[0];
     const [x0, y0, x1, y1] = box;
@@ -380,7 +379,7 @@ export class PaintSystem {
       const i = (y - y0) * bw;
       if (data) s.data!.set(data.subarray(i * 4, (i + bw) * 4), at * 4);
       else s.data!.fill(0, at * 4, (at + bw) * 4);
-      if (excess) (s.excess ??= new Uint16Array(w * atlas[1])).set(excess.subarray(i, i + bw), at);
+      if (excess) ((s as Owned<'excess'>).excess ??= new Uint16Array(w * atlas[1])).set(excess.subarray(i, i + bw), at);
       else s.excess?.fill(0, at, at + bw);
     }
     this.gpu.markDirty(s, x0, y0, x1, y1);
