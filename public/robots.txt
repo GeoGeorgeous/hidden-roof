@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /levels/
+Disallow: /licenses/
+
+Sitemap: https://roof.hidden.haus/sitemap.xml
