@@ -62,7 +62,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 1. IDEA [BL-074]: Stencils
 2. IDEA [?BL-152]: Tune the can's pressure with Shift + mouse
 3. TASK [BL-016]: Tune drips per tool by hand and remove the strong ones (drying time, build-up, each cap's and tool's drips): the owner tunes in F3 on dev and pastes the JSON (docs/ideas/painting.md) @1.5.0
-4. [RFCT-180]: painting.ts is past the ~400-line limit (412): split it by responsibility (patches for build mode and saves into paint-patch.ts) @1.5.0
+4. ~~[RFCT-180]: painting.ts is past the ~400-line limit (412): split it by responsibility (patches for build mode and saves into paint-patch.ts) @1.5.0 (no boundary without exposing PaintSystem's internals: 417 lines accepted)~~
 5. TASK [BL-017]: Tune the can's caps until painting feels right, against Bombing!! 2 or paintsessions.com (docs/ideas/painting.md) @1.7.0
 6. IDEA [BL-042]: Reword the painting: new marker brushes: rectangular and calligraphy @1.7.0
 7. [IDEA-165]: Reword the painting: pressure @1.7.0
