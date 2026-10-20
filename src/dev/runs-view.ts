@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { RUNS_VIEW } from '../config';
 import type { PaintDrips } from '../paint-drips';
-import type { PaintSurface, PaintSystem } from '../painting';
+import type { PaintSystem } from '../painting';
 import { texelToWorld } from '../paint-seams';
 import type { Rect } from '../surfaces';
 
@@ -11,7 +11,8 @@ import type { Rect } from '../surfaces';
 // (the oldest go first), so runs made before it was switched on show too; the
 // paint itself is not touched. One Points object with a fixed buffer, rebuilt
 // every RUNS_VIEW.refresh seconds while on; off, it is invisible and costs the
-// ring write alone.
+// ring write alone. The ring holds a surface's key and rect, never the surface:
+// its paint atlas goes with the level or the session.
 
 const p = new THREE.Vector3();
 
@@ -20,7 +21,7 @@ export class RunsView {
   count = 0;
   private points: THREE.Points;
   private pos = new Float32Array(RUNS_VIEW.maxPoints * 3);
-  private surfaces: (PaintSurface | null)[] = new Array(RUNS_VIEW.maxPoints).fill(null);
+  private keys: (string | null)[] = new Array(RUNS_VIEW.maxPoints).fill(null);
   private rects: Rect[] = new Array(RUNS_VIEW.maxPoints);
   private xs = new Int32Array(RUNS_VIEW.maxPoints);
   private ys = new Int32Array(RUNS_VIEW.maxPoints);
@@ -32,7 +33,7 @@ export class RunsView {
   constructor(scene: THREE.Scene, drips: PaintDrips, private paint: PaintSystem) {
     drips.tap = (s, rect, x, y) => {
       const i = this.head;
-      this.surfaces[i] = s;
+      this.keys[i] = s.key;
       this.rects[i] = rect;
       this.xs[i] = x;
       this.ys[i] = y;
@@ -68,10 +69,11 @@ export class RunsView {
     const epoch = this.paint.epoch;
     let n = 0;
     for (let i = 0; i < RUNS_VIEW.maxPoints; i++) {
-      const s = this.surfaces[i];
-      if (!s) break;
+      const key = this.keys[i];
+      if (!key) break;
       const rect = this.rects[i];
-      if (this.epochs[i] !== epoch || !rect.face || this.paint.get(s.mesh) !== s) continue;
+      // A rebuilt surface keeps its key but not its rects.
+      if (this.epochs[i] !== epoch || !rect.face || !this.paint.find(key)?.geo.rects.includes(rect)) continue;
       texelToWorld(rect, this.xs[i] + 0.5, this.ys[i] + 0.5, p).addScaledVector(rect.face.normal, RUNS_VIEW.lift).toArray(this.pos, n * 3);
       n++;
     }
