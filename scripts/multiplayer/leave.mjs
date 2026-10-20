@@ -1,18 +1,9 @@
 // Multiplayer: LEAVE SESSION clears the session's paint and brings back the paint the player had before it, then shows the title view. Reads `w`, the players and what they share.
 import assert from 'node:assert/strict';
-import { status, paintHash, paintReaches } from './harness.mjs';
+import { status, paintHash, paintReaches, stamp } from './harness.mjs';
 
 /** Paint pages a player has: surfaces with paint, however little. */
 const pages = (page) => page.evaluate(() => [...window.game.paint.surfaces].filter((s) => s.data).length);
-const stamp = (page, rect, v, color) =>
-  page.evaluate(
-    ([rect, v, color]) => {
-      const g = window.game;
-      const s = g.paint.surfaces.find((s) => s.geo.rects.length > 1);
-      for (let i = 0; i < 8; i++) g.paint.stamp(s, { rect, u: 0.2 + i * 0.05, v }, 0.1, 0.6, color);
-    },
-    [rect, v, color],
-  );
 /** The player pressed START once, so the title view is something LEAVE has to bring back. */
 const started = (page) => page.evaluate(() => (window.game.hud.menu.started = true));
 /** Out of the session with the own paint back (leave() answers once it is), and the menu on the title view. */
