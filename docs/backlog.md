@@ -164,7 +164,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 1. ~~[TASK-173]: Add cookies notification and all legal necessary documentation (docs/ideas/legal.md) @1.5.0 (no cookies: the privacy policy is TASK-178)~~
 2. [TASK-183]: A lawyer reads LICENSE, the Terms and the privacy policy (public/terms.html, public/privacy.html) @1.5.0
-3. [TASK-186]: What the privacy page now promises holds on the host: the Hetzner data processing agreement signed (owner), logs deleted after 14 days, disk encryption answered: the page claims none until then (devops, docs/ideas/vps.md) (docs/ideas/legal.md) @1.5.0
+3. ~~[TASK-186]: What the privacy page now promises holds on the host: the Hetzner data processing agreement signed (owner), logs deleted after 14 days, disk encryption answered: the page claims none until then (devops, docs/ideas/vps.md) (docs/ideas/legal.md) @1.5.0 (the owner dropped it: the page no longer mentions the agreement, a log period or encryption)~~
 4. [TASK-187]: Performance telemetry (feat/playtest-telemetry) needs opt-in consent in the EU before it ships; "on for everyone" breaks ePrivacy 5(3) and GDPR 7(4) (docs/ideas/legal.md)
 5. [IDEA-188]: Who plays and from where, counted on the server: country from the IP at connect, counts only, the IP not kept (docs/ideas/legal.md)
 
@@ -195,4 +195,4 @@ Shipped since the last release; the release commit empties this list.
 21. [TASK-170]: Create accounts in social media (Discord, Instagram, YouTube, TikTok, subreddit)
 22. [TASK-184]: The pause menu's footer: social icons built from SOCIAL_LINKS (Tabler filled), then Terms · Privacy · version · built by; the Terms and Privacy pages restyled dark like the ESC menu
 23. [TASK-185]: LICENSE, CONTRIBUTING, Terms and Privacy rewritten as formal legal text under Hidden Haus: players 16+, a license to show recorded sessions, liability capped at EUR 20, GDPR bases and rights, contact roof@hidden.haus
-24. [DOCS-190]: Legal texts checked against the code and the law: the controller named, players 18+, recordings for promotion with a right to object, logs kept 14 days, Hetzner named, email the only contact; Terms, Privacy and CONTRIBUTING cut to the essentials
+24. [DOCS-190]: Legal texts checked against the code and the law: the controller named, players 18+, recordings for promotion with a right to object, Hetzner named, email the only contact; Terms, Privacy and CONTRIBUTING cut to the essentials

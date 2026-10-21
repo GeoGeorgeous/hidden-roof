@@ -1,4 +1,4 @@
-# Legal (TASK-186, TASK-187, IDEA-188)
+# Legal (TASK-187, IDEA-188)
 
 What the legal texts (`LICENSE`, `CONTRIBUTING.md`, `public/terms.html`, `public/privacy.html`) rest on, the owner's decisions behind them, and what each future feature must do before it ships. Not legal advice; TASK-183 is the lawyer's read.
 
@@ -14,7 +14,7 @@ What the legal texts (`LICENSE`, `CONTRIBUTING.md`, `public/terms.html`, `public
 - The only contact is roof@hidden.haus. GitHub appears only where it is the mechanism (issues, forks, pull requests).
 - Players are 18+. Nothing in the game checks it yet; TASK-189 adds it to the house rules.
 - Recordings of sessions may be published to promote the game, nicknames included, on legitimate interest. The right to object (Article 21) is its own section of the page, as Article 21(4) requires; an objection keeps the nickname out of new material.
-- Logs: 14 days (TASK-186).
+- Logs: no fixed period on the page, only the criterion (as long as needed for security and faults; the game server's log is overwritten as it grows). Article 13(2)(a) GDPR accepts criteria in place of a period.
 - Terms and LICENSE: the laws of Georgia, keeping consumers' mandatory protection at home (Rome I Article 6(2)).
 - Pull requests are welcome; LICENSE §4 is the CLA. CONTRIBUTING stays three lines.
 - The texts are short on purpose: a free experiment with no players yet. Article 12 GDPR asks for concise, plain language anyway.
@@ -25,6 +25,8 @@ What the legal texts (`LICENSE`, `CONTRIBUTING.md`, `public/terms.html`, `public
 - **Browsewrap.** Playing means accepting the Terms; there is no click. The license to use recordings is weaker for it, most of all in the US. TASK-189 adds the click for public servers.
 - **No EU representative** (Article 27 GDPR; Article 13 DSA). Resting on the exception for occasional, low-risk processing (Article 27(2)(a)). Public servers 24/7, telemetry and analytics weaken it: revisit at 1.6.0.
 - **Transfers to Georgia.** The owner runs the server from Georgia, which has no adequacy decision; the page relies on Article 49(1)(b), which the EDPB reads narrowly. Moving the controller into the EU, or standard contractual clauses, would close it.
+- **No data processing agreement with Hetzner** (Article 28 GDPR). The law asks for one whoever the hosting provider is; the page doesn't mention it. Concluding it later takes a few minutes in the Hetzner account.
+- **Logs without a time limit.** Caddy's log isn't rotated, and the game server's only by size, so a quiet server keeps IP addresses for months (Article 5(1)(e) GDPR, storage limitation).
 - **Moral rights.** The waivers in the Terms and LICENSE hold only where the law allows it (not fully in France or Germany).
 
 ## Before telemetry ships (TASK-187)
