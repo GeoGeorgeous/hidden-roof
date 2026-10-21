@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 191
+The one list of what's left. Counter for new ids: next: 192
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -55,6 +55,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 6. IDEA [?BL-153]: Find who painted something by player id, picked like the eyedropper (to spot bad paint)
 7. TASK [BL-154]: Limit some tools in multiplayer (e.g. the roller) @1.6.0
 8. [TASK-168]: Returning players recover their inventory but spawn at the default spawn instead of their last position. Restore both inventory and position. @1.7.0
+9. [BUGS-191]: A nickname can hold control characters: the server keeps a newline (cleanName trims and cuts to 16, nothing more), so a crafted name splits or forges lines in the server log, and the log redaction misses its tail (docs/ideas/vps.md)
 
 ## Painting
 
