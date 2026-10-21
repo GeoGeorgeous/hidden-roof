@@ -42,7 +42,7 @@ The host's details (machine, other services, firewall, paths) are kept out of th
 - **Build the client off the host** (there's no Node on it): in GitHub Actions (then rsync the output) or in a throwaway `node:24-slim` container. Planned flow: push to `main` → Actions builds → deploy over SSH with the repo's own deploy key.
 - **The server is started by hand** (not automated, by choice): `git fetch --depth 1 origin tag vX.Y.Z && git checkout vX.Y.Z` in `<apps>/roof/repo` (a shallow clone on a detached tag: `git pull` does nothing), then `docker compose up -d --build roof` from `<apps>`.
 - **Client and server versions can differ** after deploys at different times. The client sends a protocol version and its surface-table hash when it connects; on a mismatch the server rejects it and the client asks for a page reload. When a deploy bumps the protocol, restart `roof` and deploy the client together: live sessions end, and old tabs are told to reload.
-- **Precompressed files:** `npm run build` writes a `.br` (brotli 11) and a `.gz` (gzip 9) next to each js, css, html, json, svg, txt, xml and webmanifest file of `dist/` that is over 1 KB and gets smaller (`PRECOMPRESS` in `src/config.ts`, the `precompress` plugin in `vite.config.ts`), `levels/*.json` too: the main bundle is ~950 KB raw, ~280 KB gz, ~230 KB br; `roof.json` ~159 KB, ~12 KB, ~8 KB. rsync ships them with the rest. Caddy serves them with `file_server { precompressed br gzip }` in place of plain `file_server`, and `encode` stays for anything without one; the block below shows what the host runs now, and that change is the host's (`docs/ideas/vps.md`).
+- **Precompressed files:** `npm run build` writes a `.br` (brotli 11) and a `.gz` (gzip 9) next to each js, css, html, json, svg, txt, xml and webmanifest file of `dist/` that is over 1 KB and gets smaller (`PRECOMPRESS` in `src/config.ts`, the `precompress` plugin in `vite.config.ts`), `levels/*.json` too: the main bundle is ~950 KB raw, ~280 KB gz, ~230 KB br; `roof.json` ~159 KB, ~12 KB, ~8 KB. rsync ships them with the rest. Caddy serves them with `file_server { precompressed br gzip }` in place of plain `file_server`, and `encode` stays for anything without one (on the host since 2026-10-21).
 - Caddy site block (the site-level `header` block is the host's security headers). Two `header` lines with and without a matcher would let the unmatched one run last and overwrite the `/assets` header, so both get matchers:
 
 ```
@@ -68,7 +68,9 @@ roof.hidden.haus {
 		# The hash of index.html's inline script is read per request from the build's csp-hash.txt, so a deploy
 		# needs no reload. No file or an empty one: inline scripts stay blocked and the game loads without the preload.
 		header Content-Security-Policy "default-src 'self'; script-src 'self' {file./srv/roof/csp-hash.txt}; img-src 'self' data: blob:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"
-		file_server
+		file_server {
+			precompressed br gzip
+		}
 	}
 }
 ```
@@ -130,7 +132,7 @@ The design and its limits are in `docs/known-limits.md` (Multiplayer). The code:
 ## 7. After a deploy
 
 - `curl -I https://roof.hidden.haus/` → 200, `cache-control: no-cache`.
-- `curl -I` on a file under `/assets/` → `immutable`. With `-H 'Accept-Encoding: gzip'` → `content-encoding` is set. With `-H 'Accept-Encoding: br'` → `content-encoding: br`, once Caddy serves the precompressed files.
+- `curl -I` on a file under `/assets/` → `immutable`. With `-H 'Accept-Encoding: gzip'` → `content-encoding` is set. With `-H 'Accept-Encoding: br'` → `content-encoding: br` (a build with the `.br` files, 1.5.0 on).
 - `curl -I https://roof.hidden.haus/levels/nope.json` → 404, not `index.html`.
 - `curl -sI https://roof.hidden.haus/ | grep -o "script-src[^;]*"` shows the hash in `<apps>/roof/www/csp-hash.txt`, and the browser console shows no CSP error.
 - `curl https://roof.hidden.haus/ws` → `roof server · protocol <n>`, the same `PROTOCOL` as the game deployed (`src/net/protocol.ts`).
