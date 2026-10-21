@@ -1085,6 +1085,10 @@ export const SERVER = {
   sessionsPerIp: 2,
   /** A link that hasn't sent HOST or JOIN by then is closed (s), so idle links hold no slot. */
   helloTimeout: 20,
+  /** With LOG_DIR, the log's lines lose their IP addresses and nicknames after this many days, and are deleted after logKeepDays (the privacy page says so); checked every logCleanEvery (s). */
+  logRedactDays: 14,
+  logKeepDays: 60,
+  logCleanEvery: 3600,
 };
 
 /** F3 -> Ghost (src/dev/ghost.ts): the network it plays through, and how far behind it follows you. */

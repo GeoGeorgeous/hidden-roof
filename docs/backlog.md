@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 186
+The one list of what's left. Counter for new ids: next: 193
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -139,7 +139,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## Servers and deploy
 
-1. TASK [BL-077]: Deploy from GitHub Actions (docs/ideas/server-ops.md)
+1. ~~TASK [BL-077]: Deploy from GitHub Actions (docs/ideas/server-ops.md) (the owner dropped it: deploys stay by hand)~~
 2. IDEA [BL-043]: One public server, running 24/7 (docs/ideas/public-servers.md) @1.6.0
 3. TASK [BL-044]: Disable host and join (don't remove them), after BL-043 (docs/ideas/public-servers.md) @1.6.0
 4. IDEA [BL-045]: A window of public servers instead of host and join (docs/ideas/public-servers.md) @1.6.0
@@ -147,6 +147,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 6. IDEA [BL-046]: A queue to enter the server, after BL-043 (docs/ideas/public-servers.md) @1.6.0
 7. IDEA [BL-047]: Admin panel: servers stats (players online, perfomance, etc), players info (username, IP, ping), ban by IP, after BL-043 (docs/ideas/public-servers.md) @1.6.0
 8. IDEA [?BL-147]: Anti-cheat: The server checks what players send (op reach and rate, ladder spot, jumps) before it goes public @1.6.0
+9. [TASK-189]: House rules before joining a public server: players are 18+, joining accepts the Terms, sessions may be recorded and published (docs/ideas/public-servers.md) @1.6.0
 
 ## Web and promotion
 
@@ -163,6 +164,9 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 1. ~~[TASK-173]: Add cookies notification and all legal necessary documentation (docs/ideas/legal.md) @1.5.0 (no cookies: the privacy policy is TASK-178)~~
 2. [TASK-183]: A lawyer reads LICENSE, the Terms and the privacy policy (public/terms.html, public/privacy.html) @1.5.0
+3. ~~[TASK-186]: What the privacy page now promises holds on the host: the Hetzner data processing agreement signed (owner), logs deleted after 14 days, disk encryption answered: the page claims none until then (devops, docs/ideas/vps.md) (docs/ideas/legal.md) @1.5.0 (the owner dropped it: the page no longer mentions the agreement, a log period or encryption)~~
+4. [TASK-187]: Performance telemetry (feat/playtest-telemetry) needs opt-in consent in the EU before it ships; "on for everyone" breaks ePrivacy 5(3) and GDPR 7(4) (docs/ideas/legal.md)
+5. [IDEA-188]: Who plays and from where, counted on the server: country from the IP at connect, counts only, the IP not kept (docs/ideas/legal.md)
 
 ## Done
 
@@ -191,3 +195,6 @@ Shipped since the last release; the release commit empties this list.
 21. [TASK-170]: Create accounts in social media (Discord, Instagram, YouTube, TikTok, subreddit)
 22. [TASK-184]: The pause menu's footer: social icons built from SOCIAL_LINKS (Tabler filled), then Terms · Privacy · version · built by; the Terms and Privacy pages restyled dark like the ESC menu
 23. [TASK-185]: LICENSE, CONTRIBUTING, Terms and Privacy rewritten as formal legal text under Hidden Haus: players 16+, a license to show recorded sessions, liability capped at EUR 20, GDPR bases and rights, contact roof@hidden.haus
+24. [DOCS-190]: Legal texts checked against the code and the law: the controller named, players 18+, recordings for promotion with a right to object, Hetzner named, email the only contact; Terms, Privacy and CONTRIBUTING cut to the essentials
+25. [BUGS-191]: A nickname can hold control characters: the server keeps a newline (cleanName trims and cuts to 16, nothing more), so a crafted name splits or forges lines in the server log, and the log redaction misses its tail (fixed: cleanName drops control characters; the log writes names as JSON)
+26. [TASK-192]: The server writes its log to one file a day in LOG_DIR and cleans it: IP addresses and nicknames gone after 14 days, lines after 60 (server/log-files.ts); the host part waits for the release (docs/ideas/vps.md)

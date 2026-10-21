@@ -313,7 +313,7 @@ try {
   server.kill();
 }
 const lines = log.join('');
-assert.match(lines, /[A-Z]{5} hosted by \S+: demo at 48 texels\/m/);
+assert.match(lines, /[A-Z]{5} hosted by \S+: "demo" at 48 texels\/m/);
 assert.match(lines, new RegExp(`${shared} "Y" #2 in from \\S+ \\(new, 2 players; paint file shared \\(2\\)\\)`));
 assert.match(lines, /paint file: [\d.]+ MB of paint, [\d.]+ MB packed, in [\d.]+ s \(0 more in line\)/);
 // A player who left isn't also logged as dropped.

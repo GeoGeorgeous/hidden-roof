@@ -144,7 +144,7 @@ export class Lobby {
       this.sessions.set(code, session);
       this.hosts.set(code, ip);
       const mb = session.memory;
-      log(code, `hosted by ${ip}: ${m.levelName} at ${m.detail} texels/m, ${mb.now.toFixed(0)} MB of paint (${mb.full.toFixed(0)} MB if all painted), ${this.sessions.size} sessions`);
+      log(code, `hosted by ${ip}: ${JSON.stringify(m.levelName)} at ${m.detail} texels/m, ${mb.now.toFixed(0)} MB of paint (${mb.full.toFixed(0)} MB if all painted), ${this.sessions.size} sessions`);
     } else {
       const found = this.sessions.get(m.code);
       if (!found) return this.ended.has(m.code) ? 'ended' : 'no-session';

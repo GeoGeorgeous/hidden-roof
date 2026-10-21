@@ -1,49 +1,40 @@
 # Deploy and the VPS
 
-Context for the agent that deploys and runs the game on the VPS. Read it before deploy or server work instead of re-auditing the VPS and the repo. It was written on 2026-10-08 from the code and a read-only recon of the VPS.
-
-**Parts of this file go stale.** Sections marked *(changes)* follow the server work. Before relying on them, check the repo: `package.json` scripts, a server directory, a `Dockerfile`, the deploy workflow. When the repo or the VPS disagrees with this file, trust them and fix this file in the same commit as the change.
+Context for the agent that deploys and runs the game on the VPS: read it before deploy or server work instead of re-auditing the VPS and the repo. Sections marked *(changes)* follow the server work; when the repo or the VPS disagrees with this file, trust them and fix this file in the same commit.
 
 ## 1. Status *(changes)*
 
-- **Now:** `v1.4.0` is released and deployed, the game and the server together (reported done 2026-10-19; protocol 6; the server runs with `node --expose-gc`, the Dockerfile's CMD, so no compose `command:` may override it). Server and client of a release go up together when it changes the protocol or the surface table, as 1.3.0 and 1.4.0 did: a game of one version can't join a server of the other (section 5, client and server versions).
-- **Next release:** check each build's changes for a new protocol or surface table; if there is one, deploy the server and the game together (section 6, then the static files): live sessions end, and tabs still open on the old version are told to reload. Check the build's new files load (section 7).
-- **First deploy (done for 1.1.0):** the static files first and check them (section 7), then the server and the `/ws` handle. The game loads and plays single player while the server is down.
-- **Repo:** public, `https://github.com/GeoGeorgeous/hidden-roof.git`. Clone it over HTTPS: reading needs no key, so the host holds no GitHub credentials. Deploy releases only: a `vX.Y.Z` tag, checked out by tag, never a branch tip. Branches and releases: `AGENTS.md`, Releases.
-- **Version:** the game shows its build's `git describe` in the pause menu (`src/version.ts`). Built without git (`node:24-slim` has none; `.dockerignore` drops `.git`), it shows `package.json`'s version, which matches the tag on a release commit.
+- **Now:** `v1.4.0` is deployed, game and server (2026-10-19; protocol 6). The server runs with `node --expose-gc`, the Dockerfile's CMD, so no compose `command:` may override it.
+- **Next release:** set `LOG_DIR` when the server is deployed (section 6, and `docs/ideas/vps.md`). For every release, check its changes for a new protocol or surface table: if there is one, deploy the server and the game together (section 6, then the static files); live sessions end, and tabs still open on the old version are told to reload. Then section 7.
+- **Repo:** public, `https://github.com/GeoGeorgeous/hidden-roof.git`, cloned over HTTPS (the host holds no GitHub credentials). Deploy releases only: a `vX.Y.Z` tag, never a branch tip. Branches and releases: `AGENTS.md`.
+- **Version:** the pause menu shows the build's `git describe` (`src/version.ts`); built without git (the image has none), `package.json`'s version, which matches the tag on a release commit.
 
 ## 2. The game (stable)
 
-- three.js + TypeScript + Vite, with a small `vite.config.ts` (the version, the server bundle, the dev `/ws` proxy; `base: '/'`). It is purely static: no API, no env secrets, no external services or CDNs, and no WASM, Workers or SharedArrayBuffer, so no COOP/COEP headers.
-- Everything is generated in code: no models, texture files or audio. The server only serves the JS/CSS bundle, six `woff2` fonts (`public/fonts`), the levels (`levels/*.json`, a level's own paint `levels/*.rhhpaint`), the release pictures (`updates/*.webp`), the licenses (`licenses/*.txt`) and `favicon.svg`, and the files crawlers read (`robots.txt`, `sitemap.xml`, `llms.txt`, `site.webmanifest`). The build is about 2 MB, of which the JS is ~890 KB (~250 KB gzipped).
-- **Paths are absolute** (`/assets`, `/fonts`, `/favicon.svg`), so the game must be served from the root of its domain.
-- `?level=name` fetches `/levels/name.json`. Without it the game opens `LEVELS.start`, and the player build ships only the levels in `LEVELS.release` (`src/config.ts`). A missing level must be a real 404. **No SPA fallback**: an `index.html` served in its place breaks JSON parsing.
-- Settings are kept in `localStorage`, per origin. Changing the domain or the scheme resets them.
+- three.js + TypeScript + Vite. Purely static: no API, no env secrets, no external services or CDNs, no WASM, Workers or SharedArrayBuffer (so no COOP/COEP headers). Everything is generated in code: no models, textures or audio files.
+- What's served: the JS/CSS bundle, the fonts (`fonts/*.woff2`), the levels (`levels/*.json`), the release pictures (`updates/*.webp`), the licenses (`licenses/*.txt`), `favicon.svg`, the Terms and Privacy pages, and the files crawlers read (`robots.txt`, `sitemap.xml`, `llms.txt`, `site.webmanifest`).
+- **Paths are absolute** (`/assets`, `/fonts`), so the game is served from the root of its domain.
+- `?level=name` fetches `/levels/name.json`; the player build ships only `LEVELS.release` (`src/config.ts`). A missing level must be a real 404: **no SPA fallback** (an `index.html` in its place breaks JSON parsing).
+- Settings live in `localStorage`, per origin: changing the domain or the scheme resets them.
 
 ## 3. Builds *(changes)*
 
-- `npm run build` → `dist/` is the player build, single player and multiplayer: **deploy this one.** It leaves out the dev tools (build mode, the F3 panel, `window.game`: `__DEV_TOOLS__` in `vite.config.ts`, false only in production mode).
-- `npm run build:dev` → `dist-dev/` is the same with the dev tools. Never deploy it.
-- Building needs Node `^20.19 || >=22.12` (locally Node 24) and the devDependencies (`tsc`, `vite`): use `npm ci`, without `--omit=dev`. `dist/` and `dist-*/` are gitignored.
+- `npm run build` → `dist/`, the player build: **deploy this one.** It leaves out the dev tools (`__DEV_TOOLS__` in `vite.config.ts`).
+- `npm run build:dev` → `dist-dev/`, with the dev tools. Never deploy it.
+- Building needs Node `^20.19 || >=22.12` and the devDependencies: `npm ci`, without `--omit=dev`.
+- **Precompressed files:** the build writes a `.br` and a `.gz` next to each text file of `dist/` over 1 KB that gets smaller (`PRECOMPRESS` in `src/config.ts`): the main bundle is ~950 KB raw, ~280 KB gz, ~230 KB br. Caddy serves them (section 5).
 
 ## 4. The host
 
-The host's details (machine, other services, firewall, paths) are kept out of this public repo, in `SECRET_deploy.md` (gitignored; ask the owner). Never commit them here.
+Its details (machine, other services, firewall, paths, logs) are kept out of this public repo, in `SECRET_deploy.md` (gitignored; ask the owner). Never commit them here. Other projects share the host: change nothing of theirs without the owner's OK.
 
 ## 5. Layout (agreed)
 
 - One origin, `roof.hidden.haus`: static files at `/`, the WebSocket at `/ws`. No CORS.
-- **Static files via Caddy, the server apart** (decided 2026-10-08):
-  - `<apps>/roof/repo`: a git clone of this repo. The server image is built from it.
-  - `<apps>/roof/www`: the player build (`npm run build`, `dist/`), mounted into Caddy as `/srv/roof:ro`.
-  - Why: a client-only deploy leaves the server image unchanged, so `roof` isn't recreated and live sessions survive. The game also loads while the server is down.
-- Never put the static files in `Caddy's data directory` (certificates) or serve them from the clone's `dist*/`, where a local build would overwrite prod.
-- Update the static files in place: `rsync -a --delete-delay --delay-updates dist/ <apps>/roof/www/`. Never swap the directory with `mv`, because the bind mount keeps the old inode.
-- **Build the client off the host** (there's no Node on it): in GitHub Actions (then rsync the output) or in a throwaway `node:24-slim` container. Planned flow: push to `main` → Actions builds → deploy over SSH with the repo's own deploy key.
-- **The server is started by hand** (not automated, by choice): `git fetch --depth 1 origin tag vX.Y.Z && git checkout vX.Y.Z` in `<apps>/roof/repo` (a shallow clone on a detached tag: `git pull` does nothing), then `docker compose up -d --build roof` from `<apps>`.
-- **Client and server versions can differ** after deploys at different times. The client sends a protocol version and its surface-table hash when it connects; on a mismatch the server rejects it and the client asks for a page reload. When a deploy bumps the protocol, restart `roof` and deploy the client together: live sessions end, and old tabs are told to reload.
-- **Precompressed files:** `npm run build` writes a `.br` (brotli 11) and a `.gz` (gzip 9) next to each js, css, html, json, svg, txt, xml and webmanifest file of `dist/` that is over 1 KB and gets smaller (`PRECOMPRESS` in `src/config.ts`, the `precompress` plugin in `vite.config.ts`), `levels/*.json` too: the main bundle is ~950 KB raw, ~280 KB gz, ~230 KB br; `roof.json` ~159 KB, ~12 KB, ~8 KB. rsync ships them with the rest. Caddy serves them with `file_server { precompressed br gzip }` in place of plain `file_server`, and `encode` stays for anything without one; the block below shows what the host runs now, and that change is the host's (`docs/ideas/vps.md`).
-- Caddy site block (the site-level `header` block is the host's security headers). Two `header` lines with and without a matcher would let the unmatched one run last and overwrite the `/assets` header, so both get matchers:
+- **Static files via Caddy, the server apart:** `<apps>/roof/repo` is a git clone the server image is built from; `<apps>/roof/www` holds the player build, mounted into Caddy as `/srv/roof:ro`. A client-only deploy leaves `roof` running, so live sessions survive, and the game loads while the server is down.
+- Never serve the static files from Caddy's data directory (certificates) or the clone's `dist*/`.
+- **Build the client off the host** (no Node on it), e.g. in a throwaway `node:24-slim` container, then update in place: `rsync -a --delete-delay --delay-updates dist/ <apps>/roof/www/`. Never swap the directory with `mv`: the bind mount keeps the old inode.
+- Caddy site block (the site-level `header` block is the host's security headers). Both cache `header` lines have matchers: an unmatched one would run last and overwrite the `/assets` one.
 
 ```
 roof.hidden.haus {
@@ -68,21 +59,23 @@ roof.hidden.haus {
 		# The hash of index.html's inline script is read per request from the build's csp-hash.txt, so a deploy
 		# needs no reload. No file or an empty one: inline scripts stay blocked and the game loads without the preload.
 		header Content-Security-Policy "default-src 'self'; script-src 'self' {file./srv/roof/csp-hash.txt}; img-src 'self' data: blob:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'"
-		file_server
+		file_server {
+			precompressed br gzip
+		}
 	}
 }
 ```
 
-Add the `/ws` handle only once the server exists. The CSP is `csp` in `vite.config.ts`, tested by `npm run test:csp` (part of `npm run check`): change both together. Its `script-src` hash is the build's `csp-hash.txt` (one line, `'sha256-…'`, of `index.html`'s one inline script, which starts the game's files with the page): rsync ships it with `index.html`, and Caddy reads it per request (`{file.…}`, Caddy 2.11+), so a deploy needs no reload. Missing, empty or stale, the policy only blocks that script, and the game loads a round trip later; missing, Caddy also logs an error on every request (`placeholder: failed to read file`), so a build without it is noisy, not broken. The `header` line without a matcher is safe here: it sets another header than the matched pair.
+- `encode` stays for anything without a precompressed file. `stream_close_delay` keeps live games through a Caddy reload.
+- The CSP is `csp` in `vite.config.ts`, tested by `npm run test:csp`: change both together. Its `script-src` hash is the build's `csp-hash.txt` (one line, `'sha256-…'`), shipped by rsync with `index.html` and read by Caddy per request (Caddy 2.11+). Missing, empty or stale, it only blocks that script and the game loads a round trip later; missing, Caddy also logs an error on every request.
 
 ## 6. The multiplayer server *(changes)*
 
-The design and its limits are in `docs/known-limits.md` (Multiplayer). The code: `server/` (`main.ts`, `session.ts`), messages in `src/net/protocol.ts`.
+Design and limits: `docs/known-limits.md` (Multiplayer). Code: `server/`, messages in `src/net/protocol.ts`.
 
-- One Node.js process (Node 24) with the `ws` library, TypeScript that shares modules with the client.
-- **Bundled:** `npm run build:server` → `dist-server/server/main.js`, one file with everything in it (`vite.config.ts`: `ssr.noExternal`). `src/` uses extensionless imports, which plain Node can't resolve, hence the bundle. `PORT` overrides 3000. Locally, `npm run server` builds and starts it, and `npm run dev` proxies `/ws` to it.
-- **Image:** the repo's `Dockerfile`, two stages: `npm ci` + `npm run build:server`, then `node:24-slim` with only `main.js`, as user `node`. No `node_modules` at runtime.
-- **Compose service** in `the host's compose file`. **No `ports:`**: Caddy reaches it by name on the compose network, and published ports would bypass the firewall. The host hardens it further than the example below (`memswap_limit`, `cpus`, `pids_limit`, `read_only` with a small `/tmp` tmpfs, `cap_drop: [ALL]`, `no-new-privileges`): keep those.
+- One Node 24 process with `ws`. `npm run build:server` → `dist-server/server/main.js`, one file with everything (plain Node can't resolve `src/`'s extensionless imports). `PORT` overrides 3000. Locally, `npm run server` builds and starts it; `npm run dev` proxies `/ws` to it.
+- **Image:** the repo's `Dockerfile`: `npm ci` + `npm run build:server`, then `node:24-slim` with only `main.js`, as user `node`.
+- **Compose service:** **no `ports:`** (Caddy reaches it by name; published ports bypass the firewall). The host hardens it further (`memswap_limit`, `cpus`, `pids_limit`, `read_only` with a `/tmp` tmpfs, `cap_drop: [ALL]`, `no-new-privileges`): keep those.
 
 ```yaml
   roof:
@@ -93,6 +86,11 @@ The design and its limits are in `docs/known-limits.md` (Multiplayer). The code:
       # Live data (JS heap + paint) past which no new session starts / no paint file is made (MB); keep both under mem_limit.
       HOST_MEMORY: "2048"
       SNAPSHOT_MEMORY: "2560"
+      # The log's files, one a day: IP addresses and nicknames removed after 14 days, files deleted after 60 (the privacy page promises it).
+      LOG_DIR: /logs
+    volumes:
+      # Writable by the image's user `node` (uid 1000), also under read_only.
+      - ./roof/logs/server:/logs
     logging:
       driver: json-file
       options: { max-size: 10m, max-file: "3" }
@@ -103,32 +101,24 @@ The design and its limits are in `docs/known-limits.md` (Multiplayer). The code:
       retries: 3
 ```
 
-- **Deploy it by hand** (not automated, by choice), from the same tag as the client: `git fetch --depth 1 origin tag vX.Y.Z && git checkout vX.Y.Z` in `<apps>/roof/repo` (a shallow clone on a detached tag: `git pull` does nothing), then `docker compose up -d --build roof` from `<apps>`. Then add the `/ws` handle to the Caddy block (section 5) and reload Caddy, the first time.
-- `/healthz` answers `ok, <n> sessions` (for Docker). A plain GET at `/ws` answers `roof server · protocol <n>`: a game that can't open its WebSocket asks there to tell "server down" (Caddy's 502) from "socket blocked" and from another version, so the `/ws` handle must pass plain requests too (it does).
-- **The log** (`docker compose logs -t roof`): one line per event, the session's code first (`-----` before there is one): server start; host (IP, level, detail, paint memory, session count); a player in (`new`, `back` with their token, or `takeover` by name from a new tab; for the last two, the link it replaces or when their last one closed and how long it was open; whether the paint file was shared) or turned away (the reason); a paint file made (MB of paint, MB packed, seconds, how many wait in line) and, when it's dropped, how many it served if more than one; dropped (WebSocket close code); out (left, or didn't come back in 60 s); session closed (how long it ran, MB of paint, players, how many came in new, back or by takeover); every 5 minutes while sessions are live, memory (live, RSS), sessions, players; bad message; server error (with the stack). IPs come from Caddy's `X-Forwarded-For`.
-- **Close codes:** a turned-away socket closes with 4001–4008 (`closeCode` in `src/net/protocol.ts`: version, no-session, ended, full, bad-save, bad-level, busy, replaced); 1008 a bad message, 1011 a server error.
-- Players report problems with COPY NETWORK LOG (menu): their side of it, with close codes, timings and what `/ws` answered.
-- **State in RAM only:** no database, no disk, no accounts. **Restarting `roof` ends every live session** (accepted); the games then say the session has ended. Caddy reloads don't, thanks to `stream_close_delay`.
-- Single instance: no sticky sessions, no shared store.
-- Sessions:
-  - Up to 20 players (`SERVER.maxPlayers` in `src/config.ts`), usually one session at a time.
-  - Binary frames: player state 20 times a second, paint ops as JSON (~9 KB/s up while painting nonstop), a ping every 2 s. No socket compression: full-precision numbers barely shrink, and deflating every op once per player took more than a core with 20 painting. Measured (2026-10-10, roof level, 20 players all spraying nonstop, every one sending state at 20 Hz): the server at ~20% of a core, ~280 MB RSS, ping 5 ms (p99 12 ms); each player downloads ~170 KB/s, so the server sends ~3.4 MB/s (27 Mbit/s). 19 joining one session at the same moment were all in within ~25 ms (no paint); with paint, one paint file serves them all, and each still downloads it (~28 MB for 170 MB of paint at ULTRA).
-  - The host picks PAINT DETAIL (LOW to ULTRA) and it's locked for the session; the server keeps the paint at that detail.
-  - Players give a name on HOST and JOIN.
-  - A dropped player has 3 minutes to reconnect (`SERVER.rejoinWindow`, `REJOIN_WINDOW`) (the game retries on its own, and a reload goes back in), then their ladder goes. A session with no one left closes.
-- **Paint files** (a welcome's paint, SAVE in a session) are made one at a time for the whole process, deflated as the paint is read (no full copy: about +80 MB for 170 MB of paint at ULTRA, where 1.1.0 took +650 MB), and sent in 256 KB parts, so a slow link still hears from the server. Who joins, comes back or presses SAVE while one is waiting or being made, or up to 15 s after, gets the same file (a joiner also gets the paint ops made since). HOST from a save sends no paint back (the host has it) and that save is the first paint file for joiners. Past `SNAPSHOT_MEMORY` (default 1280 MB of live data) no new file is made: a join is turned away as busy, a SAVE says the server is busy.
-- Sizes: a save uploaded on HOST is one message of up to ~30 MB; `maxPayload` is 64 MiB. Paint is `Uint8Array`, outside the V8 heap, so no `--max-old-space-size`. The server's own all-painted estimate (its log line on HOST): the demo level 15 MB at LOW, 47 MEDIUM, 99 HIGH, 171 ULTRA; the roof level (the one players get, 1340 props to the demo's 344) 46 MB, 148, 302, 519. Faces pressed against another prop take no paint (src/level/cover.ts), which more than halved these. A session costs ~15–25 MB before any paint (the level's geometry); past 1 GB of live data (JS heap and paint buffers, `SERVER.hostMemory` or `HOST_MEMORY`; not RSS, which stays up after sessions end; it runs with `--expose-gc` and collects the garbage first, so closed sessions don't count) the server takes no new sessions ("the server is full"). A stopped or restarted process gives all of it back.
-- **Two endpoints, one handle:** HOST connects to `/ws?host`, which takes messages up to `maxPayload` (64 MiB, a save); everything else to `/ws`, up to `maxMessage` (1 MiB). Caddy's `handle /ws` matches both (it matches the path only). A bigger message closes that link with 1009.
-- **Limits per address** (Caddy's `X-Forwarded-For`; `SERVER` in `src/config.ts`): 24 open links (a whole session behind one router), of them 2 HOST links (and 8 HOST links in all), 2 hosted sessions, and a link must send HOST or JOIN within 20 s. Past a limit the game says TOO MANY CONNECTIONS FROM YOUR NETWORK (close code 4009, `too-many` in the log). So one address holds at most 2 × 64 MiB + 22 × 1 MiB in flight, and all of them together 8 × 64 MiB in HOST links.
-- Hardened against bad input: a message it can't handle closes that player's link, never the process; a paint file whose header claims more paint than the level can hold is refused before anything is allocated; a level is checked prop by prop (at most 5000).
+- **Deploy by hand** (by choice), from the same tag as the client: `git fetch --depth 1 origin tag vX.Y.Z && git checkout vX.Y.Z` in `<apps>/roof/repo` (a shallow clone on a detached tag: `git pull` does nothing), then `docker compose up -d --build roof` from `<apps>`. **Restarting `roof` ends every live session**; the games say so.
+- **Versions:** the client sends its protocol and surface-table hash; on a mismatch the server turns it away and the client asks for a reload.
+- `/healthz` answers `ok, <n> sessions` (Docker). A plain GET at `/ws` answers `roof server · protocol <n>`: a game that can't open its socket asks there, to tell a server that's down (Caddy's 502) from a blocked socket or another version.
+- **The log:** with `LOG_DIR`, one file a day (`YYYY-MM-DD.log`, UTC); without it, stdout. One line per event, the session's code first (`-----` before there is one): start, host (IP, level, detail, paint memory), a player in (new, back or takeover, with IP) or turned away (why), paint files, drops (close code), out (left, or not back in 3 minutes), session closed, memory every 5 minutes while sessions are live, bad messages, errors with stacks. IPs come from Caddy's `X-Forwarded-For`; nicknames are JSON strings. The server cleans every `*.log` in `LOG_DIR` at start and hourly (`server/log-files.ts`): past 14 days a line keeps its time, code and player number but loses IP addresses and nicknames, past 60 it goes. Logs saved before (`docker logs -t`) can be moved there to be cleaned the same way.
+- **Close codes:** 4001–4009 (`closeCode` in `src/net/protocol.ts`: version, no-session, ended, full, bad-save, bad-level, busy, replaced, too-many), 1008 a bad message, 1009 too big, 1011 a server error. Players report their side with COPY NETWORK LOG (menu).
+- **State in RAM only:** no database, no accounts. Single instance.
+- **Sessions:** up to 20 players (`SERVER.maxPlayers`). Player state 20 times a second, paint ops packed (`src/op-wire.ts`, ~23 B a stamp), a ping every 2 s; no socket compression. The host picks PAINT DETAIL, locked for the session. A dropped player has 3 minutes to come back (`SERVER.rejoinWindow`), then their stepladder goes; a session with no one left closes.
+- **Paint files** (a joiner's paint, SAVE) are made one at a time for the whole process, deflated as read, sent in 32 KB parts; whoever joins or saves within 15 s of one gets the same file. Past `SNAPSHOT_MEMORY` of live data no new file is made (busy).
+- **Memory:** paint is `Uint8Array`, outside the V8 heap (no `--max-old-space-size`). The roof level all painted is 46 MB at LOW, 148 MEDIUM, 302 HIGH, 519 ULTRA; a session is ~15–25 MB before paint. Past `HOST_MEMORY` of live data (heap and paint, after a GC; not RSS) no new session starts ("the server is full").
+- **Limits:** a HOST link (`/ws?host`) takes messages up to 64 MiB (a save), any other up to 1 MiB; Caddy's `handle /ws` matches both. Per address (`X-Forwarded-For`): 24 open links, 2 HOST links (8 in all), 2 hosted sessions; a link must send HOST or JOIN within 20 s. Past a limit: TOO MANY CONNECTIONS FROM YOUR NETWORK (4009).
+- A message it can't handle closes that link, never the process; paint files and levels are checked before anything is allocated.
 
 ## 7. After a deploy
 
 - `curl -I https://roof.hidden.haus/` → 200, `cache-control: no-cache`.
-- `curl -I` on a file under `/assets/` → `immutable`. With `-H 'Accept-Encoding: gzip'` → `content-encoding` is set. With `-H 'Accept-Encoding: br'` → `content-encoding: br`, once Caddy serves the precompressed files.
+- `curl -I` on a file under `/assets/` → `immutable`; with `-H 'Accept-Encoding: br'` → `content-encoding: br`.
 - `curl -I https://roof.hidden.haus/levels/nope.json` → 404, not `index.html`.
-- `curl -sI https://roof.hidden.haus/ | grep -o "script-src[^;]*"` shows the hash in `<apps>/roof/www/csp-hash.txt`, and the browser console shows no CSP error.
-- `curl https://roof.hidden.haus/ws` → `roof server · protocol <n>`, the same `PROTOCOL` as the game deployed (`src/net/protocol.ts`).
-- In a browser: no 404s, `roof.json` and the fonts load, the console is clean, the game starts at the spawn.
-- `scripts/smoke.mjs <url>` uses `window.game` and F3, so it only works against the dev server or `npm run build:dev` output, not the player build.
-- Once `/ws` exists: `docker compose ps roof` is healthy, and in two browser windows HOST shows a code that JOIN accepts.
+- `curl -sI https://roof.hidden.haus/ | grep -o "script-src[^;]*"` shows the hash in `<apps>/roof/www/csp-hash.txt`; the browser console shows no CSP error.
+- `curl https://roof.hidden.haus/ws` → `roof server · protocol <n>`, the `PROTOCOL` of the game deployed.
+- `docker compose ps roof` is healthy; in two browser windows, HOST shows a code that JOIN accepts; a new file appears in `LOG_DIR`.
+- In a browser: no 404s, the level and fonts load, the console is clean, the game starts at the spawn. (`scripts/smoke.mjs` needs `window.game`, so it works only against the dev server or `build:dev`.)
