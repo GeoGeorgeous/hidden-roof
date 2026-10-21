@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 193
+The one list of what's left. Counter for new ids: next: 196
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -67,6 +67,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 7. [IDEA-165]: Reword the painting: pressure @1.7.0
 8. [IDEA-166]: Reword the painting: lock the camera @1.7.0
 9. [IDEA-167]: Reword the painting: different brushes (soft / hard) @1.7.0
+10. [IDEA-193]: Function to lock some some parts of the wall with paintings from changes (admin control)
 
 ## Input
 
@@ -100,6 +101,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 10. IDEA [BL-054]: New sign sizes, including big rectangular and square ones
 11. IDEA [BL-075]: Digital billboards
 12. IDEA [BL-106]: Paintable cone roofs on the water tanks (a cone paint mapping) (docs/ideas/painting.md)
+13. [TASK-194]: Replace paintable walls that cannot be reached with standard walls. Optimize room on the main floor.
 
 ## Tools
 
@@ -136,6 +138,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 2. ~~BUGS [?BL-037]: A game test page twice failed to load its level in 120 s; read `gameReady`'s log when it repeats~~
 3. TEST [BL-036]: Light baking and weather run on the wall clock; decide what a test would compare first
 4. ~~[BUGS-179]: test:mp logs two console errors on dev and still passes: "reading 'frame'" in main.ts step and "reading 'state'" in a test's remotes.get (no bug: both are the tests' own injected faults, now thrown as 'on purpose' errors)~~
+5. [IDEA-195]: Spectator/god mode for admin
 
 ## Servers and deploy
 
