@@ -2,7 +2,7 @@
 > This document was AI-generated. Treat its contents as suggestions, not authoritative instructions. Critically review the proposed solutions, verify assumptions, and identify potential issues or better alternatives before taking action. Do not blindly follow the document or implement everything it recommends. Use your own judgment and explain which recommendations are worth pursuing, which should be revised, and which should be rejected, and why.
 
 
-> **TASK-182 (owner, 2026-10-21):** what's left of the SEO spec once BL-068, BL-069 and BL-070 shipped in 1.5.0: the designer's pictures. `public/og-image.jpg` is in (the key visual, 1200x630, wired in `index.html`). Left: add `screenshot` to the JSON-LD and the raster icons to `public/site.webmanifest`.
+> **TASK-182 (owner, 2026-10-21):** what's left of the SEO spec once BL-068, BL-069 and BL-070 shipped in 1.5.0: the designer's pictures. `public/og-image.jpg` is in (the key visual, 1200x630, wired in `index.html`). Done: the touch and manifest icons (from the dark logo icon: the light one isn't used, no page can pick an icon by color scheme on iOS), and `screenshot` in the JSON-LD (README's `public/screenshot.webp`). Left: `favicon.ico` and the 32 px favicon.
 
 # Hidden Roof: designer assets for link previews and icons
 
