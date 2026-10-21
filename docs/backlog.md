@@ -195,4 +195,4 @@ Shipped since the last release; the release commit empties this list.
 21. [TASK-170]: Create accounts in social media (Discord, Instagram, YouTube, TikTok, subreddit)
 22. [TASK-184]: The pause menu's footer: social icons built from SOCIAL_LINKS (Tabler filled), then Terms · Privacy · version · built by; the Terms and Privacy pages restyled dark like the ESC menu
 23. [TASK-185]: LICENSE, CONTRIBUTING, Terms and Privacy rewritten as formal legal text under Hidden Haus: players 16+, a license to show recorded sessions, liability capped at EUR 20, GDPR bases and rights, contact roof@hidden.haus
-24. [DOCS-190]: Legal texts checked against the code and the law: the controller named, players 18+, recordings for promotion with a right to object, logs kept 14 days, Hetzner named, email the only contact, CONTRIBUTING cut to four points and a pull request template
+24. [DOCS-190]: Legal texts checked against the code and the law: the controller named, players 18+, recordings for promotion with a right to object, logs kept 14 days, Hetzner named, email the only contact; Terms, Privacy and CONTRIBUTING cut to the essentials

@@ -16,8 +16,9 @@ What the legal texts (`LICENSE`, `CONTRIBUTING.md`, `public/terms.html`, `public
 - Recordings of sessions may be published to promote the game, nicknames included, on legitimate interest. The right to object (Article 21) is its own section of the page, as Article 21(4) requires; an objection keeps the nickname out of new material.
 - Logs: 14 days (TASK-186).
 - Terms and LICENSE: the laws of Georgia, keeping consumers' mandatory protection at home (Rome I Article 6(2)).
-- Pull requests are welcome; LICENSE §4 is the CLA, and the pull request template asks for agreement.
-- Moderation is the owner alone, by hand, on reports by email; a restricted player is told why. That is the shape the DSA asks of a hosting service (Articles 14, 16 and 17), and Article 19 spares micro enterprises the platform duties.
+- Pull requests are welcome; LICENSE §4 is the CLA. CONTRIBUTING stays three lines.
+- The texts are short on purpose: a free experiment with no players yet. Article 12 GDPR asks for concise, plain language anyway.
+- Moderation is the owner alone, by hand, on reports by email. The Terms say only what may be done; the DSA details wait for public servers (TASK-189).
 
 ## Risks the owner accepts
 
@@ -41,4 +42,6 @@ Who plays and from where, counted on the server: look up the country of the IP w
 
 ## Before public servers ship (TASK-189)
 
-House rules on the way into a public server, with one action to accept: 18+, the Terms and the Privacy Policy, sessions may be recorded and published. The Terms' moderation section then covers public servers as written; check the reports by email still keep up.
+House rules on the way into a public server, with one action to accept: 18+, the Terms and the Privacy Policy, sessions may be recorded and published.
+
+The Terms then get a moderation section, as the DSA asks of a hosting service: the grounds and the measures (erase paint, rename, remove, block an IP) applied in proportion (Article 14), reports by email with what they need (Article 16), and a restricted player told what was done and why, and able to reply (Article 17). Article 19 spares micro enterprises the online-platform duties.
