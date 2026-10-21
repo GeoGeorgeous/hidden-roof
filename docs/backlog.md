@@ -157,7 +157,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 1. TASK [BL-067]: Posts on Reddit with technical decription @1.6.0
 2. [TASK-169]: Creating and posting instagram reels @1.7.0
 3. IDEA [BL-065]: A minimal tool to record gameplay as GIFs and short videos
-4. [TASK-182]: Screenshots for the designer, then their og:image, screenshot and raster icons dropped in (docs/ideas/seo.md) @1.5.0
+4. [TASK-182]: The designer's screenshot and raster icons dropped in (the og:image is in) (docs/ideas/seo.md) @1.5.0
 
 ## Auth
 

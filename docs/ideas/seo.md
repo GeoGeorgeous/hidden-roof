@@ -2,7 +2,7 @@
 > This document was AI-generated. Treat its contents as suggestions, not authoritative instructions. Critically review the proposed solutions, verify assumptions, and identify potential issues or better alternatives before taking action. Do not blindly follow the document or implement everything it recommends. Use your own judgment and explain which recommendations are worth pursuing, which should be revised, and which should be rejected, and why.
 
 
-> **TASK-182 (owner, 2026-10-20):** what's left of the SEO spec once BL-068, BL-069 and BL-070 shipped in 1.5.0: the designer's pictures. The views are picked when TASK-182 starts (owner: later). When the image comes, uncomment the `og:image` and `twitter:image` lines in `index.html`, add `screenshot` to its JSON-LD and the raster icons to `public/site.webmanifest`.
+> **TASK-182 (owner, 2026-10-21):** what's left of the SEO spec once BL-068, BL-069 and BL-070 shipped in 1.5.0: the designer's pictures. `public/og-image.jpg` is in (the key visual, 1200x630, wired in `index.html`). Left: add `screenshot` to the JSON-LD and the raster icons to `public/site.webmanifest`.
 
 # Hidden Roof: designer assets for link previews and icons
 
@@ -24,7 +24,7 @@ Once Claude Code exports the raw gameplay screenshots, the designer prepares the
 
 | File Path | Dimensions | Format | Purpose & Notes |
 | :--- | :--- | :--- | :--- |
-| `public/og-image.jpg` | `1200x630` | `JPG` / `PNG` (<350 KB) | Social preview card for Telegram, Discord, X, Reddit, Facebook. Keep title & key focal point inside central `1000x500` safe zone. |
+| `public/og-image.jpg` (done) | `1200x630` | `JPG` / `PNG` (<350 KB) | Social preview card for Telegram, Discord, X, Reddit, Facebook. Keep title & key focal point inside central `1000x500` safe zone. |
 | `public/screenshot-wide.jpg` | `1920x1080` | `JPG` / `WebP` (<500 KB) | Gameplay screenshot for JSON-LD `screenshot` property and rich PWA install sheet. |
 | `public/favicon.ico` | `32x32` (with `16x16`) | `ICO` | Legacy fallback icon for search snippets and older crawlers. |
 | `public/favicon-32x32.png` | `32x32` | `PNG` | Raster tab icon fallback. |
