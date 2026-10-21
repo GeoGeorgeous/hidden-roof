@@ -7,7 +7,7 @@
 
 <p align="center">A graffiti game in your browser · <a href="https://roof.hidden.haus"><b>Play at roof.hidden.haus</b></a></p>
 
-<p align="center"><img src="public/updates/v1.1.0.webp" alt="Two players on a painted roof" width="800"></p>
+<p align="center"><img src="docs/img/screenshot.webp" alt="A rooftop painted in every color" width="800"></p>
 
 Hidden Roof is a first-person graffiti game. You climb onto the rooftops of a city drawn in ink, where the only color is the paint you bring. There are no enemies and no goals: paint whatever you like, scrub it off, paint again.
 
