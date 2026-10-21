@@ -11,7 +11,7 @@ const links = Object.fromEntries([...read('src/links.ts').matchAll(/export const
 const SOCIAL = ['REPO', 'DISCORD', 'YOUTUBE', 'INSTAGRAM', 'TIKTOK'];
 for (const name of ['AUTHOR', ...SOCIAL]) assert.ok(links[name], `src/links.ts: no ${name}`);
 
-// Tags outside the comments (the og:image ones wait for the designer's picture).
+// Tags outside the comments.
 const live = html.replace(/<!--[\s\S]*?-->/g, '');
 const tag = (re) => {
   const m = live.match(re);
