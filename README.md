@@ -5,69 +5,93 @@
   </picture>
 </p>
 
-<p align="center">a graffiti game in your browser · <a href="https://roof.hidden.haus">roof.hidden.haus</a></p>
+<p align="center">A graffiti game in your browser · <a href="https://roof.hidden.haus"><b>Play at roof.hidden.haus</b></a></p>
 
-hidden roof is a small first-person graffiti game. you climb onto the rooftops of a city drawn in ink, and the only color in it is the paint you bring. there are no enemies and no goals: find your tools, paint whatever you like, scrub it off, paint again. or bring a friend and paint the same roof together.
+<p align="center"><img src="public/updates/v1.1.0.webp" alt="Two players on a painted roof" width="800"></p>
 
-it's an experiment: i built it with ai tools, to see how far a game like this could go.
+Hidden Roof is a first-person graffiti game. You climb onto the rooftops of a city drawn in ink, where the only color is the paint you bring. There are no enemies and no goals: paint whatever you like, scrub it off, paint again.
 
-## playing
+## The game
 
-**tools** · a spray can with four caps (skinny, standard, fat, a soft mist), a marker, a stepladder, a paint roller and a sponge. you start with the can and black. the other twelve colors, the caps and the tools are hidden around the roof.
+- **Tools:** a spray can with four caps, a marker, a stepladder, a paint roller and a sponge. You start with the can and black; the other twelve colors, the caps and the tools are hidden around the roof.
+- **Multiplayer:** host a session from the menu and share its five-letter code. Up to 20 players paint the same roof.
+- **Inspired by** [Bombing!!: A Graffiti Sandbox and Bombing!! 2](https://store.steampowered.com/app/1527520/), [Marc Eckō's Getting Up: Contents Under Pressure](https://store.steampowered.com/app/260190/) and Daisuke Tajima's [*Beyond the Lines*](https://www.seigensha.com/books/978-4-86152-902-3/).
 
-**controls** · wasd to move, shift to run, space to jump, ctrl to crouch. the left button paints, the right one shakes the can. 1–5 switch tools, the wheel switches colors, a click on the wheel picks the color under the crosshair, q and e change the cap or the width. esc pauses. every key can be changed in settings → controls.
+## How it's built
 
-**together** · host a session from the menu and send the five-letter code. a friend joins with it, and you paint the same roof.
+three.js, TypeScript and Vite, with no asset files: geometry, textures and sounds are made in code. The first rule: painting the whole level costs the same per frame as painting nothing.
 
-**inspired by** · [Bombing!!: A Graffiti Sandbox](https://store.steampowered.com/app/1527520/Bombing_A_Graffiti_Sandbox/), [Bombing!! 2: A Graffiti Paradise](https://store.steampowered.com/app/2109570/Bombing_2_A_Graffiti_Paradise/) and [Marc Eckō's Getting Up: Contents Under Pressure](https://store.steampowered.com/app/260190/Marc_Eckos_Getting_Up_Contents_Under_Pressure/). the look comes from the pen-and-ink cities of Daisuke Tajima's *Beyond the Lines* ([the exhibition](https://art-view.roppongihills.com/en/shop/adgallery/tajima/), [on tokyo art beat](https://www.tokyoartbeat.com/en/events/-/Daisuke-Tajima-Beyond-the-Lines/49897F3F/2022-09-16)).
+- **Paint** is baked into textures shared by many surfaces, at one density everywhere; only the changed part of a texture is uploaded.
+- **Ink:** each pixel's tone picks paper, hatching, cross-hatching or black; pen outlines come from the depth buffer.
+- **Light** from lamps is baked with shadows; only the moving CCTV lights are real-time.
+- **Multiplayer** is one Node server with `ws`, state in memory only.
 
-## how it's built
+| Path | What |
+|---|---|
+| `src/kit` | Props as simple pieces: meshes, colliders, ladders and paintable faces |
+| `src/level` | Levels: pieces into meshes, colliders and draw batches |
+| `src/render`, `src/city` | The ink look, baked light, the generated city |
+| `src/net`, `server/` | Multiplayer client and server |
+| `src/config.ts` | Every tunable number |
+| `public/levels` | Levels as JSON |
 
-three.js, typescript and vite, with no asset files: geometry, textures and sounds are all made in code. one rule comes first: painting the whole level costs the same per frame as painting nothing.
+## Getting started
 
-**prop kit** · every prop is a function that returns simple pieces: boxes, cylinders, rods and climb volumes. the same pieces become the meshes, the colliders, the ladders and the paintable faces. props turn in quarter turns, so every collider is an exact box.
-
-**level json** · a level is a spawn, props on a 2 m grid with 4 m storeys, and pickups. build mode (b) edits it in the game and saves it back. the city around it is generated from a seed. `pos` is in meters (`y` = storey × 4), `rot` in quarter turns, and each prop keeps its `id` through edits, since paint saves find their surfaces by it. `?level=demo` opens another level in the dev build.
-
-```json
-{
-  "version": 4,
-  "spawn": { "pos": [0, 0, 5], "yaw": 0 },
-  "props": [{ "id": 1, "type": "building", "pos": [-7, 0, -5], "rot": 0 }],
-  "pickups": [{ "kind": "color:red", "pos": [-3, 0, 6] }]
-}
-```
-
-**painting** · paint is baked into textures, as in bombing!!, at the same density everywhere (up to 1 cm a texel), and many surfaces share one texture, so a painted roof draws as fast as a clean one. spray particles are only for show: each one stamps paint where it lands, and only the changed part of a texture is uploaded. paint runs, crosses the seams between props, and comes off with the sponge.
-
-**rendering** · ink on paper. each pixel's tone picks paper, hatching, cross-hatching or black, with hatch lines laid out in the world and filtered by their size on screen, so nothing turns to gray mush in the distance. pen outlines come from the depth buffer. paint is the only color.
-
-**lights** · lamp light is baked, with shadows, so a hundred lamps cost what one does. only moving lights, the cctv cameras, are real-time. rain, lightning, fog and flickering neon go on top.
-
-**files**
-
-```
-src/kit            props as pieces
-src/level          pieces into meshes, colliders and batches
-src/painting.ts    paint textures, stamps, uploads
-src/render         the ink look, baked light, post
-src/city           the generated city
-src/net, server/   multiplayer
-src/config.ts      every tunable number
-public/levels      level json
-```
+Requires Node 20.19+ or 22.12+.
 
 ```sh
+git clone https://github.com/GeoGeorgeous/hidden-roof.git
+cd hidden-roof
 npm install
-npm run dev          # localhost:5173
-npm run check:quick  # types, unit tests, build: after each change
-npm run check        # everything, before a merge (docs/testing.md)
-npm run shots        # the real game on the real GPU: shots/*.png
-npm run server       # the multiplayer server, beside npm run dev
+npm run dev
 ```
 
-to play together locally, open the game in two windows side by side (one incognito): a background tab draws nothing.
+The game opens at `http://localhost:5173`, with the dev tools (F3). To play together locally, run `npm run server` in a second terminal and open the game in two windows side by side, one of them incognito: a background tab draws nothing.
 
-## license
+## Commands
 
-hidden roof is source-available, not open source. copyright (c) 2026 hidden haus, all rights reserved. you can read the code, report bugs and send pull requests from a fork on github; copying it, hosting it or reusing it needs written permission. the third-party parts keep their own licenses (public/licenses, and credits in the game). see [LICENSE](LICENSE) for the terms and [CONTRIBUTING.md](CONTRIBUTING.md) for bug reports and pull requests. the game's [terms](https://roof.hidden.haus/terms.html) and [privacy policy](https://roof.hidden.haus/privacy.html) are for players.
+**Develop**
+
+| Command | What |
+|---|---|
+| `npm run dev` | The game with dev tools at `localhost:5173`; `/ws` goes to the local server |
+| `npm run server` | Builds and starts the multiplayer server on port 3000 |
+| `npm run build` | The player build in `dist/`, what is deployed |
+| `npm run build:dev` | The build with dev tools in `dist-dev/` |
+| `npm run build:server` | The server as one file in `dist-server/` |
+| `npm run preview` | Serves the last build at `localhost:4173` |
+| `npm run typecheck` | Types of the game and the server |
+
+**Check**
+
+| Command | What | Time |
+|---|---|---|
+| `npm run check:quick` | Build, unit tests and unused code: after every change | ~5 s |
+| `npm run check` | Everything below, golden paint last: before a merge | ~5 min |
+| `npm test` | Unit tests in Node | <1 s |
+| `npm run audit` | Unused code (knip) and duplicates (jscpd) | |
+
+**Tests in the browser** (one at a time)
+
+| Command | What | Time |
+|---|---|---|
+| `npm run smoke` | The level loads and plays without errors | ~8 s |
+| `npm run test:boot` | The loading screen explains why the game can't start | ~2 s |
+| `npm run test:game` | Game behavior: menus, tools, paint, input, hints | ~140 s |
+| `npm run test:server` | The server against games speaking the protocol | ~8 s |
+| `npm run test:mp` | Two players in two pages: host, join, save, reconnect | ~35 s |
+| `npm run test:csp` | The game under the site's Content Security Policy | ~6 s |
+| `npm run golden` | Paint at every detail level against a stored baseline | ~50 s |
+| `npm run test:weak-link` | Multiplayer on weak networks (not in `check`) | ~8 min |
+
+**Looks and performance** (on the real GPU)
+
+| Command | What |
+|---|---|
+| `npm run shots` | Screenshots of the real game in `shots/` |
+| `npm run shots:avatar` | Every avatar pose and a contact sheet |
+| `npm run bench` | Frame cost, to compare builds or GPUs |
+| `npm run bench:save` | Save size and save/load time (after `npm run golden`) |
+| `npm run bench:join` | A join into a painted roof: download, load, memory |
+
+What each test covers and how to read a failure: [docs/testing.md](docs/testing.md). Hosting: [docs/deploy.md](docs/deploy.md).
