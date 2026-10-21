@@ -130,7 +130,7 @@ await check('credits: every license the page links to ships with the game', asyn
     }
     return { count: links.length, bad };
   });
-  return r.count === 8 && !r.bad.length ? null : JSON.stringify(r);
+  return r.count === 9 && !r.bad.length ? null : JSON.stringify(r);
 });
 
 await check('updates: the releases newest first, the newest marked Latest; each has its picture and its date; lists under a heading keep their terms', async () => {
