@@ -1,12 +1,43 @@
-// The server's log: one line per event, with the time (docker logs adds its
-// own with -t; npm run server doesn't), the session's code first when there is one.
+import fs from 'node:fs';
+import path from 'node:path';
+import { format } from 'node:util';
+import { SERVER } from '../src/config';
+import { cleanDir } from './log-files';
 
-export function log(...parts: unknown[]) {
-  console.log(`${new Date().toISOString().slice(0, 19)}Z`, ...parts);
+// The server's log: one line per event, with the time first (UTC), the session's
+// code next when there is one. With a directory set (LOG_DIR) it goes to one file
+// a day there, cleaned as server/log-files.ts says; without one, to stdout.
+
+let dir: string | null = null;
+
+/** Logs to files in `to` from now on, and cleans them now and every SERVER.logCleanEvery. */
+export function logTo(to: string) {
+  fs.mkdirSync(to, { recursive: true });
+  dir = to;
+  const tidy = () => {
+    try {
+      cleanDir(to, { redact: SERVER.logRedactDays, keep: SERVER.logKeepDays });
+    } catch (e) {
+      log('-----', 'log cleaning failed:', e);
+    }
+  };
+  tidy();
+  setInterval(tidy, SERVER.logCleanEvery * 1000).unref();
 }
 
-/** A player as the log names them. */
-export const who = (p: { id: number; name: string }) => `"${p.name}" #${p.id}`;
+export function log(...parts: unknown[]) {
+  const now = new Date().toISOString();
+  const line = format(`${now.slice(0, 19)}Z`, ...parts);
+  if (!dir) return console.log(line);
+  try {
+    fs.appendFileSync(path.join(dir, `${now.slice(0, 10)}.log`), line + '\n');
+  } catch {
+    console.log(line);
+  }
+}
+
+/** A player as the log names them: the name as JSON, so a quote or a newline in it can't break the line. */
+export const who = (p: { id: number; name: string }) => `${JSON.stringify(p.name)} #${p.id}`;
 
 /** Bytes as MB, for the log. */
 export const mb = (bytes: number) => (bytes / 2 ** 20).toFixed(1);

@@ -14,7 +14,8 @@ What the legal texts (`LICENSE`, `CONTRIBUTING.md`, `public/terms.html`, `public
 - The only contact is roof@hidden.haus. GitHub appears only where it is the mechanism (issues, forks, pull requests).
 - Players are 18+. Nothing in the game checks it yet; TASK-189 adds it to the house rules.
 - Recordings of sessions may be published to promote the game, nicknames included, on legitimate interest. The right to object (Article 21) is its own section of the page, as Article 21(4) requires; an objection keeps the nickname out of new material.
-- Logs: no fixed period on the page, only the criterion (as long as needed for security and faults; the game server's log is overwritten as it grows). Article 13(2)(a) GDPR accepts criteria in place of a period.
+- Logs: the game server writes its log to files and cleans them itself (`server/log-files.ts`): IP addresses and nicknames gone after 14 days, lines after 60. Caddy is shared with other sites on the host and stays untouched; the page gives a criterion for its error log (Article 13(2)(a) accepts one).
+- Nothing on the host may change for the sake of this game that touches the other projects there, except the network settings the owner allowed (BBR).
 - Terms and LICENSE: the laws of Georgia, keeping consumers' mandatory protection at home (Rome I Article 6(2)).
 - Pull requests are welcome; LICENSE §4 is the CLA. CONTRIBUTING stays three lines.
 - The texts are short on purpose: a free experiment with no players yet. Article 12 GDPR asks for concise, plain language anyway.
@@ -26,7 +27,8 @@ What the legal texts (`LICENSE`, `CONTRIBUTING.md`, `public/terms.html`, `public
 - **No EU representative** (Article 27 GDPR; Article 13 DSA). Resting on the exception for occasional, low-risk processing (Article 27(2)(a)). Public servers 24/7, telemetry and analytics weaken it: revisit at 1.6.0.
 - **Transfers to Georgia.** The owner runs the server from Georgia, which has no adequacy decision; the page relies on Article 49(1)(b), which the EDPB reads narrowly. Moving the controller into the EU, or standard contractual clauses, would close it.
 - **No data processing agreement with Hetzner** (Article 28 GDPR). The law asks for one whoever the hosting provider is; the page doesn't mention it. Concluding it later takes a few minutes in the Hetzner account.
-- **Logs without a time limit.** Caddy's log isn't rotated, and the game server's only by size, and rsyslog keeps copies for about 5 weeks, so IP addresses stay for months (Article 5(1)(e) GDPR, storage limitation). Planned with devops: IP addresses and nicknames masked after 14 days, logs deleted after 60 (docs/ideas/vps.md); that closes it.
+- **Caddy's error log has no time limit.** It is shared with other sites and never rotated; its rare lines with a player's IP address stay (Article 5(1)(e) GDPR, storage limitation). Until the release with the log files is deployed, the game server's Docker log is rotated only by size.
+- **The first playtest's data is kept** (telemetry with nicknames and hashed addresses, on the host and the owner's machine), though the testers' notice promised deletion after the test (Article 5(1)(b) and (e)).
 - **Disk not encrypted** (plain ext4). Article 32 GDPR asks for security appropriate to the risk and names encryption only as an example; for IP addresses and nicknames on a rented server that is acceptable. The page claims no encryption.
 - **Moral rights.** The waivers in the Terms and LICENSE hold only where the law allows it (not fully in France or Germany).
 

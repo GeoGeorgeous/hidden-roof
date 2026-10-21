@@ -3,7 +3,7 @@ import http from 'node:http';
 import { WebSocketServer, type WebSocket } from 'ws';
 import { SERVER } from '../src/config';
 import { HELLO, PROTOCOL } from '../src/net/protocol';
-import { liveMemory, log } from './log';
+import { liveMemory, log, logTo } from './log';
 import { Lobby } from './lobby';
 import type { Link } from './session';
 import { waiting } from './snapshot';
@@ -14,6 +14,8 @@ import { waiting } from './snapshot';
 // /healthz is for Docker. Caddy serves the game and passes /ws through
 // (docs/deploy.md). One process, everything in memory; every event is a log line.
 
+// LOG_DIR: the log goes to files there, one a day, cleaned of IP addresses and nicknames as they age (server/log-files.ts).
+if (process.env.LOG_DIR) logTo(process.env.LOG_DIR);
 const lobby = new Lobby();
 // Tests come back (and give up on a silent link) sooner than players.
 SERVER.rejoinWindow = Number(process.env.REJOIN_WINDOW) || SERVER.rejoinWindow;

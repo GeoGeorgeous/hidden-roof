@@ -98,6 +98,7 @@ refused({ type: 'inventory', data: { tools: Array(33).fill('x'), colors: [], cap
 
 assert.equal(cleanName('  a name far longer than allowed  '), 'a name far longe');
 assert.equal(cleanName('ゴースト'), 'ゴースト');
+assert.equal(cleanName('a\nb\t\u0000c'), 'abc');
 // Paint ops packed (op-wire.ts, BL-024): every op comes out as the painter rounded it (rounded), to the last bit, so
 // everyone paints the same texels; rounded again or packed again it doesn't change; close to what was made; times to
 // the ms. A stamp is 23 bytes.

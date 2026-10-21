@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 192
+The one list of what's left. Counter for new ids: next: 193
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -55,7 +55,6 @@ Only `N.`, the id and the description are required. The optional parts appear in
 6. IDEA [?BL-153]: Find who painted something by player id, picked like the eyedropper (to spot bad paint)
 7. TASK [BL-154]: Limit some tools in multiplayer (e.g. the roller) @1.6.0
 8. [TASK-168]: Returning players recover their inventory but spawn at the default spawn instead of their last position. Restore both inventory and position. @1.7.0
-9. [BUGS-191]: A nickname can hold control characters: the server keeps a newline (cleanName trims and cuts to 16, nothing more), so a crafted name splits or forges lines in the server log, and the log redaction misses its tail (docs/ideas/vps.md)
 
 ## Painting
 
@@ -197,3 +196,5 @@ Shipped since the last release; the release commit empties this list.
 22. [TASK-184]: The pause menu's footer: social icons built from SOCIAL_LINKS (Tabler filled), then Terms · Privacy · version · built by; the Terms and Privacy pages restyled dark like the ESC menu
 23. [TASK-185]: LICENSE, CONTRIBUTING, Terms and Privacy rewritten as formal legal text under Hidden Haus: players 16+, a license to show recorded sessions, liability capped at EUR 20, GDPR bases and rights, contact roof@hidden.haus
 24. [DOCS-190]: Legal texts checked against the code and the law: the controller named, players 18+, recordings for promotion with a right to object, Hetzner named, email the only contact; Terms, Privacy and CONTRIBUTING cut to the essentials
+25. [BUGS-191]: A nickname can hold control characters: the server keeps a newline (cleanName trims and cuts to 16, nothing more), so a crafted name splits or forges lines in the server log, and the log redaction misses its tail (fixed: cleanName drops control characters; the log writes names as JSON)
+26. [TASK-192]: The server writes its log to one file a day in LOG_DIR and cleans it: IP addresses and nicknames gone after 14 days, lines after 60 (server/log-files.ts); the host part waits for the release (docs/ideas/vps.md)

@@ -186,9 +186,9 @@ export function checkToServer(m: Message | null): ToServer | null {
   return null;
 }
 
-/** The name as shown: trimmed, at most NAME_MAX characters. */
+/** The name as shown: no control characters (a newline), trimmed, at most NAME_MAX characters. */
 export function cleanName(name: string) {
-  return Array.from(name.trim()).slice(0, NAME_MAX).join('');
+  return Array.from(name.replace(/\p{Cc}/gu, '').trim()).slice(0, NAME_MAX).join('');
 }
 
 const isInt = (x: unknown): x is number => Number.isInteger(x) && (x as number) >= 0;
