@@ -26,7 +26,8 @@ What the legal texts (`LICENSE`, `CONTRIBUTING.md`, `public/terms.html`, `public
 - **No EU representative** (Article 27 GDPR; Article 13 DSA). Resting on the exception for occasional, low-risk processing (Article 27(2)(a)). Public servers 24/7, telemetry and analytics weaken it: revisit at 1.6.0.
 - **Transfers to Georgia.** The owner runs the server from Georgia, which has no adequacy decision; the page relies on Article 49(1)(b), which the EDPB reads narrowly. Moving the controller into the EU, or standard contractual clauses, would close it.
 - **No data processing agreement with Hetzner** (Article 28 GDPR). The law asks for one whoever the hosting provider is; the page doesn't mention it. Concluding it later takes a few minutes in the Hetzner account.
-- **Logs without a time limit.** Caddy's log isn't rotated, and the game server's only by size, so a quiet server keeps IP addresses for months (Article 5(1)(e) GDPR, storage limitation).
+- **Logs without a time limit.** Caddy's log isn't rotated, and the game server's only by size, and rsyslog keeps copies for about 5 weeks, so IP addresses stay for months (Article 5(1)(e) GDPR, storage limitation). Planned with devops: IP addresses and nicknames masked after 14 days, logs deleted after 60 (docs/ideas/vps.md); that closes it.
+- **Disk not encrypted** (plain ext4). Article 32 GDPR asks for security appropriate to the risk and names encryption only as an example; for IP addresses and nicknames on a rented server that is acceptable. The page claims no encryption.
 - **Moral rights.** The waivers in the Terms and LICENSE hold only where the law allows it (not fully in France or Germany).
 
 ## Before telemetry ships (TASK-187)
