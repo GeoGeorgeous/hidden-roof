@@ -14,7 +14,7 @@ Ids are `group.name`. Duration: how long it shows. Tech = technical (a code, a l
 | `toast.screenshot` | Screenshot saved | `main.ts` | screenshot key | same | toast |
 | `toast.joined` / `left` | `BOB JOINED` → **{user}** joined / left | `net-menu.ts:143` | a player joins or leaves | same | toast |
 | `toast.unlockedAll` | `+ EVERYTHING` | `dev/devtools.ts` | F3 unlock all (dev) | same | toast |
-| `hint.*` (13) | move, spray, four tools (take, use), cap, color, climb | `tutorial/hints.ts` | by hint rules | by kind | hint |
+| `hint.*` (17) | move, spray, four tools (take, use), cap, color, climb, and new: `ladderMove`, `ladderShared`, `spongeCrouch`, `lowPressure` | `tutorial/hints.ts` | by hint rules | by kind | hint |
 | `hud.lowPressure` | LOW PRESSURE — HOLD [{shake}] TO SHAKE | `hud.ts` | can pressure low | while low | stays (tool-hand alert, a state) |
 | `hud.noteAway` / `noteDropped` / `noteSilent` | AWAY / DISCONNECTED / NO SIGNAL | `net/remotes.ts:17` | another player's state | while true | stays (nameplate) |
 | `menu.net*` (17) | the MULTIPLAYER page's status per state and failure | `net-menu.ts:27-45` | `NetStatus` change | until the next | stays on the page; `netReconnecting` also becomes the chip (`chip.reconnecting`) |
@@ -37,7 +37,7 @@ Ids are `group.name`. Duration: how long it shows. Tech = technical (a code, a l
 
 Not moved, and not in the catalogue: menu labels and button captions, tooltips, the popups' body paragraphs (save, upload, update notes: page copy, not messages), the HUD tags (CAP, NEW TOOL), the F3 panel's descriptions (`debug/hint-text-*.ts`, dev only). Nothing player-facing comes from `server/`: it sends a `rejected` reason code and the game words it (`menu.net*`). The CSP and boot checks show nothing to players beyond `boot*` and `noScript`.
 
-Counts in the catalogue: hint 13, toast 7, chip 3, dialogue 2, hud 5, menu 73.
+Counts in the catalogue: hint 17, toast 7, chip 3, dialogue 2, hud 5, menu 73.
 
 ## Statuses
 

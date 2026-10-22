@@ -69,7 +69,7 @@ export class Tools {
   }
 
   /** `enabled` is false in build mode: tools are put away but particles finish flying. */
-  update(dt: number, input: Input, camera: THREE.Camera, eye: THREE.Vector3, motion: Motion & { position: THREE.Vector3 }, enabled: boolean) {
+  update(dt: number, input: Input, camera: THREE.Camera, eye: THREE.Vector3, motion: Motion & { position: THREE.Vector3; crouched: boolean }, enabled: boolean) {
     const inv = this.inventory;
     this.sway.update(dt, input.mouseDX, input.mouseDY, motion, this.spray.model.sway);
     this.marker.sway.position.copy(this.spray.model.sway.position);
@@ -110,7 +110,7 @@ export class Tools {
     // After the marker: they share the scribble sound, and these only touch it while in hand or just put away.
     this.roller.update(dt, input, camera, eye, tool === 'roller', inv.color, inv.size.roller);
     this.sponge.update(dt, input, camera, eye, tool === 'sponge', inv.size.sponge / 2);
-    this.reportUse(dt);
+    this.reportUse(dt, motion.crouched);
     this.action = tool === 'can' && this.spray.shaking ? 'shake' : tool && input.held('use') && input.locked ? PRESS[tool] : null;
   }
 
@@ -148,11 +148,11 @@ export class Tools {
   }
 
   /** Spray seconds and meters drawn this frame, as facts. */
-  private reportUse(dt: number) {
+  private reportUse(dt: number, crouched: boolean) {
     if (this.spray.flow > 0 && this.spray.landing) this.onFact({ type: 'used', tool: 'can', amount: dt });
     for (const tool of ['marker', 'roller', 'sponge'] as const) {
       const now = this[tool].distance;
-      if (now > this.drawn[tool]) this.onFact({ type: 'used', tool, amount: now - this.drawn[tool] });
+      if (now > this.drawn[tool]) this.onFact({ type: 'used', tool, amount: now - this.drawn[tool], crouched });
       this.drawn[tool] = now;
     }
   }

@@ -40,7 +40,7 @@ export class Tutorial {
   private played = 0;
   private seq = 0;
   private on = true;
-  private snap: Snapshot = { tool: null, tools: [], colors: 1, caps: 1, nearLadder: false, onLadder: false };
+  private snap: Snapshot = { tool: null, tools: [], lowPressure: false, colors: 1, caps: 1, nearLadder: false, onLadder: false };
   /** What the message layer has: the hint's id and which of its texts. */
   private shown: { id: string; text: number } | null = null;
 
@@ -63,6 +63,11 @@ export class Tutorial {
     this.save();
     for (const s of this.states) this.forget(s);
     this.show(null);
+  }
+
+  /** Something was learnt: Show hints again has something to forget. */
+  anyLearnt() {
+    return this.done.size > 0;
   }
 
   isLearnt(id: string) {

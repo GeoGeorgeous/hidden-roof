@@ -1,10 +1,10 @@
 import { AUDIO, HUD, INK_STYLES, PAINT, PAINT_DETAIL, PLAYER, RENDER, SKYLINE, SMOKE, TUTORIAL, VOLUMETRICS, WALL_HAND } from './config';
 import { exitGameFullscreen } from './fullscreen';
-import { msg } from './messages';
 import { sentence } from './menu-ui';
 import { DEFAULT_STYLE, inkStyle, setInkStyle } from './render/ink/styles';
 import { NIGHT } from './render/atmosphere';
 import { ControlsTab } from './controls-tab';
+import { gameplayRows, soundRows, SOUNDS, toggle, type Hints } from './settings-rows';
 import { applyKeys, keyOverrides } from './key-bindings';
 import { applyValues, changedValues, defaultsOf, loadSaved, save, type Remembered } from './settings-store';
 import { currentOs, fasterGpuHow, type GpuInfo } from './gpu-name';
@@ -23,11 +23,6 @@ const PIXEL_SCALES = [1, 1.5, 2, 2.5, 3, 4];
 const FRAME_RATES = [0, 30, 60, 90, 120, 144];
 /** After PAINT and CITY DETAIL's value once it's changed: it applies when the game resumes. */
 const ON_RESUME = '  ·  on resume';
-/** Mouse sensitivity is shown as a multiple of config's (1.00x). */
-const BASE_SENSITIVITY = PLAYER.mouseSensitivity;
-/** config's field of view and running boost: their sliders' default ticks. */
-const BASE_FOV = RENDER.fov;
-const BASE_RUN_FOV = RENDER.sprintFovBoost;
 const VOL_PRESETS = {
   off: { enabled: false, downscale: 2, steps: 16 },
   low: { enabled: true, downscale: 4, steps: 12 },
@@ -86,8 +81,8 @@ export class Settings {
     Object.assign(SKYLINE, CITY_DETAIL[this.city]);
   }
 
-  /** The settings page (pause menu → SETTINGS): one section per tab. Every change is saved. `gpu`: what the game draws with; `runTest`: the performance test; `resetHints`: forget the hints learnt. */
-  sections(gpu: GpuInfo, runTest: () => void, resetHints: () => void): SettingSection[] {
+  /** The settings page (pause menu → SETTINGS): one section per tab. Every change is saved. `gpu`: what the game draws with; `runTest`: the performance test; `hints`: the tutorial. */
+  sections(gpu: GpuInfo, runTest: () => void, hints: Hints): SettingSection[] {
     const saving = (row: SettingRow): SettingRow => {
       if (row.kind === 'choice') return { ...row, step: (d) => (row.step(d), this.save()) };
       if (row.kind === 'range') return { ...row, set: (v) => (row.set(v), this.save()) };
@@ -95,7 +90,7 @@ export class Settings {
       return row;
     };
     return [
-      { title: 'Gameplay', rows: gameplayRows(resetHints).map(saving) },
+      { title: 'Gameplay', rows: gameplayRows(hints).map(saving) },
       { title: 'Sound', rows: soundRows().map(saving) },
       { title: 'Controls', rows: [], tab: new ControlsTab(() => this.save()) },
       { title: 'Graphics', rows: [{ kind: 'action', label: 'Performance test', desc: 'Flies over the roof for a few seconds at your current settings and shows how it ran.', button: 'Run', act: runTest }, ...this.graphicsRows(gpu).map(saving)] },
@@ -302,11 +297,11 @@ function nearest(list: number[], v: number) {
  * game runs, whatever its value.
  */
 type RowBase = { label: string; desc?: string; note?: string; cost?: Cost };
-type Cost = 'LOW' | 'MEDIUM' | 'HIGH';
+export type Cost = 'LOW' | 'MEDIUM' | 'HIGH';
 export type SettingRow =
   | (RowBase & { kind: 'choice'; value: () => string; step: (d: number) => void; locked?: () => boolean })
   | (RowBase & { kind: 'info'; value: () => string })
-  | (RowBase & { kind: 'action'; button: string; act: () => void; /** The button says this for a moment after it's pressed. */ done?: string })
+  | (RowBase & { kind: 'action'; button: string; act: () => void; /** The button says this for a moment after it's pressed. */ done?: string; /** The button can be pressed. */ enabled?: () => boolean })
   | (RowBase & { kind: 'range'; min: number; max: number; step: number; def: number; get: () => number; set: (v: number) => void; format: (v: number) => string });
 /** A tab that builds its own page (Controls): its rows' column, its footer line and a control top right; `open` readies it each time it shows, `close` when it goes. */
 export interface OwnTab {
@@ -322,56 +317,6 @@ export interface SettingSection {
   tab?: OwnTab;
 }
 
-/** An On / Off choice. */
-function toggle(label: string, get: () => boolean, set: (on: boolean) => void, cost?: Cost, desc?: string): SettingRow {
-  return { kind: 'choice', label, cost, desc, value: () => (get() ? 'On' : 'Off'), step: () => set(!get()) };
-}
-
-function gameplayRows(resetHints: () => void): SettingRow[] {
-  return [
-    {
-      kind: 'range',
-      label: 'Sensitivity',
-      min: 0.25,
-      max: 3,
-      step: 0.05,
-      def: 1,
-      get: () => PLAYER.mouseSensitivity / BASE_SENSITIVITY,
-      set: (v) => (PLAYER.mouseSensitivity = v * BASE_SENSITIVITY),
-      format: (v) => `${v.toFixed(2)}x`,
-    },
-    { kind: 'range', label: 'Field of view', desc: 'How wide you see, in degrees.', min: 60, max: 110, step: 1, def: BASE_FOV, get: () => RENDER.fov, set: (v) => (RENDER.fov = v), format: (v) => `${v}°` },
-    {
-      kind: 'range',
-      label: 'Field of view: running',
-      desc: 'Extra field of view while running, for a sense of speed. 0 turns it off.',
-      min: 0,
-      max: 15,
-      step: 1,
-      def: BASE_RUN_FOV,
-      get: () => RENDER.sprintFovBoost,
-      set: (v) => (RENDER.sprintFovBoost = v),
-      format: (v) => (v ? `+${v}°` : 'Off'),
-    },
-    toggle('Hints', () => TUTORIAL.enabled, (on) => (TUTORIAL.enabled = on), undefined, 'Short lines at the bottom of the screen that teach a control when you need it, and go once you have done it.'),
-    { kind: 'action', label: 'Show hints again', desc: 'Forget the hints you have learnt: they come back as you play.', button: 'Show', act: resetHints, done: msg('menu.hintsReset') },
-    toggle('Show left hand', () => WALL_HAND.enabled, (on) => (WALL_HAND.enabled = on), undefined, 'Your free hand rests on walls you stand close to. It may get in the way of what you paint.'),
-  ];
-}
-
-/** Volume sliders, 0..200% of each sound's default level. */
-const SOUNDS: [label: string, key: keyof typeof AUDIO, desc: string][] = [
-  ['Master', 'masterGain', 'Everything.'],
-  ['Spray', 'hissGain', 'The can hissing while you spray.'],
-  ['Footsteps', 'footstepGain', 'Your steps and landings.'],
-  ['Rain', 'rainGain', 'The rain bed (only while it rains).'],
-  ['Drops on metal', 'metalGain', 'Raindrops pinging on AC units, rails and vents near you.'],
-  ['Thunder', 'thunderGain', 'Thunder after lightning.'],
-  ['City', 'ambienceGain', 'The low rumble of the city below.'],
-  ['AC fans', 'fanGain', 'The hum of AC fans when you are close.'],
-];
-const SOUND_DEFAULTS = Object.fromEntries(SOUNDS.map(([, k]) => [k, AUDIO[k]]));
-
 /** The gameplay, sound and on/off settings, saved as overrides (settings-store.ts). */
 const REMEMBERED: Remembered[] = [
   ...(['mouseSensitivity', 'crouchToggle', 'tapToRun'] as const).map((field) => ({ name: `PLAYER.${field}`, obj: PLAYER, field })),
@@ -384,17 +329,3 @@ const REMEMBERED: Remembered[] = [
   ...SOUNDS.map(([, field]) => ({ name: `AUDIO.${field}`, obj: AUDIO, field })),
 ];
 
-function soundRows(): SettingRow[] {
-  return SOUNDS.map(([label, key, desc]) => ({
-    kind: 'range',
-    label,
-    desc,
-    min: 0,
-    max: 200,
-    step: 5,
-    def: 100,
-    get: () => Math.round((AUDIO[key] / SOUND_DEFAULTS[key]) * 100),
-    set: (v: number) => (AUDIO[key] = (SOUND_DEFAULTS[key] * v) / 100),
-    format: (v: number) => `${v}%`,
-  }));
-}

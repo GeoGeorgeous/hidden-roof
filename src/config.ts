@@ -355,13 +355,13 @@ export const HUD = {
   /** Body-cam corner brackets. */
   frame: true,
   /** REC dot and elapsed time, top left. */
-  rec: true,
+  rec: false,
   /** Camera label under it (CAM 01 · ROOFTOP). */
-  cam: true,
+  cam: false,
   /** Date and time, top right. */
-  clock: true,
+  clock: false,
   /** Performance readout, bottom left: fps, draw calls, triangles, texture memory. */
-  perf: true,
+  perf: false,
   /** GPU time per frame in it too (timer queries: desktop Chromium; a few queries a frame while shown). */
   perfGpu: false,
   /** How long the cap and color tags show after a change, and the PSI gauge after the pressure last changed (s). */
@@ -1504,6 +1504,8 @@ export const TUTORIAL = {
   rollerMeters: 1,
   /** Climbing this far (m) is learning ladders. */
   climbMeters: 1.5,
+  /** A hint with nothing to do (about the stepladder) is learnt after this long on screen (s). */
+  infoSeconds: 6,
   /** A ladder hint shows within this distance (m) of a ladder's climb volume. */
   ladderRadius: 2.5,
 };

@@ -19,6 +19,10 @@ export const MESSAGES = {
     sponge: ['Press {use} to scrub paint off, {sizeDown} / {sizeUp} to change size'],
     cap: ['Press {sizeDown} / {sizeUp} to change the cap'],
     color: ['Scroll {prev} / {next} to change color'],
+    ladderMove: ['Press {use} again to move it: only one stepladder stands at a time'],
+    ladderShared: ['In a session, other players can climb your stepladder too'],
+    spongeCrouch: ['Hold {crouch} to scrub paint off the floor'],
+    lowPressure: ['Low pressure: hold {shake} to shake the can'],
     climb: ['Walk into the ladder or hold {jump} to climb', 'Hold {crouch} to stay on it'],
   },
 

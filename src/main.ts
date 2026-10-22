@@ -194,7 +194,7 @@ input.onResume = hud.menu.onResume = () => play.resume();
 hud.menu.onStyle = (i) => settings.setStyle(i);
 showMenu();
 const testPage = perfTestPage(hud.menu, perfTest, gpu, () => settings.tested());
-hud.menu.setSettings(settings.sections(gpu, testPage.run, () => tutorial.reset()));
+hud.menu.setSettings(settings.sections(gpu, testPage.run, tutorial));
 // SAVE in a session downloads the session's paint, from the server.
 const paintFile = paintMenu(hud.menu, paint, drips, () => opened.name, () => net.savePaint());
 const net = multiplayerMenu(hud.menu, notify, { scene, camera, level, paint, paintOps, drips, player, inventory, pickups, tools, levelData: () => ({ data: opened.toJSON(), name: opened.name }), levelPaint: () => levelPaintOf(opened.name), openLevel: (d, n) => opened.open(d, n), restartLevel: () => opened.restart(), lockDetail: (tpm) => settings.lockPaintDetail(tpm), ownDetail: () => settings.useOwnDetail() }, () => opened.name);
