@@ -649,6 +649,11 @@
   gap: 10px;
   color: var(--text-3);
 }
+.overlay .pause-foot .kofi {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 .overlay .pause-foot i {
   font-style: normal;
   color: rgba(235, 229, 214, 0.3);
