@@ -1443,3 +1443,26 @@ export const CCTV = {
   /** How far it can tilt up or down to your height (rad). */
   maxTilt: 0.7,
 };
+
+/** Hints in play (src/tutorial). Times are visible play seconds: paused, F3, build mode and a hidden tab don't count. */
+export const TUTORIAL = {
+  /** The first hint (move, run, jump) waits this long after play starts (s). */
+  moveDelay: 1.5,
+  /** Walking this far (m) is learning to move; one key press isn't. */
+  moveMeters: 3,
+  /** A hint shows at least this long (s) before it can leave as done, so it doesn't flash. */
+  minShown: 2,
+  /** A color hint is learnt after this long on screen (s), whatever the player did. */
+  colorShown: 5,
+  /** Spraying this long (s) on a surface is learning the can. */
+  spraySeconds: 0.5,
+  /** Drawing this far (m) with the marker, or scrubbing with the sponge, is learning it. */
+  markerMeters: 0.5,
+  spongeMeters: 0.5,
+  /** Rolling this far (m) is learning the roller. */
+  rollerMeters: 1,
+  /** Climbing this far (m) is learning ladders. */
+  climbMeters: 1.5,
+  /** A ladder hint shows within this distance (m) of a ladder's climb volume. */
+  ladderRadius: 2.5,
+};
