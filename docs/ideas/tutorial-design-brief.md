@@ -4,7 +4,7 @@ For the designer; no code knowledge needed. Owner's background: `docs/ideas/tuto
 
 ## What and why
 
-Hidden Roof is a first-person graffiti game in a body-cam look: the world is ink on paper, and the only color is the paint players spray. Today a new player gets no help with the controls; the full key list sits in Settings → Controls. We want short hints in play instead: "how to move" in the first seconds, "how to use it" when a new tool is picked up, "how to switch color" when there's a second color, "how to climb" next to a ladder. A hint appears when it's needed and goes once the player has done it; learnt hints never come back.
+Hidden Roof is a first-person graffiti game: the world is ink on paper, and the only color is the paint players spray. Today's HUD frames the view like a camera recording (REC, corner brackets, a clock); that's decoration, not a game mechanic. Today a new player gets no help with the controls; the full key list sits in Settings → Controls. We want short hints in play instead: "how to move" in the first seconds, "how to use it" when a new tool is picked up, "how to switch color" when there's a second color, "how to climb" next to a ladder. A hint appears when it's needed and goes once the player has done it; learnt hints never come back.
 
 The same screen already carries other messages: "+ MARKER" when something is picked up, "Bob joined", the low-pressure alert by the can, and soon "reconnecting". They're the same family and fight for the same space, so the proposal is **one brief for both**: hints first (they ship in 1.5.0), then toasts, the status chip and blocking errors (BL-140, later), in one visual system.
 
@@ -37,11 +37,11 @@ Two families exist; hints and messages live in play, so the HUD family is the ba
 | Type | monospace (`ui-monospace`, SF Mono, Menlo, Consolas) 11 px, letter-spacing .08em, capitals | Archivo 400/500/600 (variable, `fonts/archivo.woff2`); Sedgwick Ave Display for titles only, lowercase (`fonts/sedgwick-ave-display.woff2`) |
 | Pickup tags | outlined white letters with katakana (gothic) | — |
 
-Hints may move from bare ink text toward the nameplate's paper-on-dark box, or take Archivo: that's question 1 and 2, decide with reasons. Don't add a third family or a hue.
+**Direction:** the owner wants to move hints and messages away from today's bare monospace ink text, toward the ESC menu's look (paper on dark, Archivo, soft grays), simplified for play. How far is open: propose the directions (see What to deliver). Don't add a third type family or a new hue.
 
 ## Constraints
 
-- **Monochrome body-cam.** HUD is ink and paper with one red for alerts. No new hues: color belongs to the paint. (The ESC menu added a green dot and a second red; the HUD must not.)
+- **No new hues.** Ink, paper, black and their grays, one red for alerts: color belongs to the paint. (The ESC menu added a green dot and a second red; hints and messages don't take them.)
 - **Readable over anything:** white walls under a lamp, black paint, any of 13 paint colors, the night sky, rain. Hints sit over paint all the time.
 - **Windows from 820×560 up to 4K and ultrawide (21:9, 32:9).** The HUD is sized in CSS pixels and stays so in this task: design at fixed px for 1280×720 and check they hold at 820×560. Scaling with the window and the DPR is a later, separate task (TASK-197); ideas for it are welcome but not part of this delivery.
 - **Keys are rebindable**, and named for the platform and keyboard layout: `W` may be `Z`, `Shift` is `⇧ Shift` on a Mac, a key may be a mouse button (`LMB`, `RMB`, `MMB`, `Mouse 4`), a wheel step (`Wheel ↑`) or unbound (`—`). Key-cap widths change; texts get longer or shorter.
@@ -65,8 +65,8 @@ Hints may move from bare ink text toward the nameplate's paper-on-dark box, or t
 
 ## Questions for you
 
-1. Hints in the HUD's monospace capitals, or a sentence-case face like the menu's Archivo?
-2. A backing (a dark box like the nameplates, a paper tape, an outline) or bare text with a halo?
+1. Which direction you recommend of the ones you propose, and why.
+2. Should the rest of the HUD (REC, clock, PSI and the tool tags) follow later, or stay as it is?
 3. Mouse buttons and the wheel: words in key caps, or small icons?
 4. Should a hint point at its target (a line to the hotbar slot, the ladder), or only sit near it?
 5. Katakana under the text, as on the pickup tags, or not for hints?
@@ -77,7 +77,8 @@ Hints may move from bare ink text toward the nameplate's paper-on-dark box, or t
 
 ## What to deliver
 
-- Mockups over the screenshots above (or new ones the owner takes), at 1280×720 and 820×560.
+- **First, directions:** 2 or 3 distinct looks, from close to today's HUD to close to the ESC menu, each shown on two scenes only (the move hint at the start; a tool hint with the "+ MARKER" toast and the hotbar), over a light and a dark background. The owner picks one (or a mix).
+- **Then, the chosen one in full:** mockups over the screenshots above (or new ones the owner takes), at 1280×720 and 820×560.
 - Each kind in each state, with timings: fade in, wait, done, out (ms), easing.
 - Sizes in px at 1280×720; spacing, paddings, stroke widths.
 - Key-cap component: all variants from point 3.
