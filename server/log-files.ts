@@ -58,18 +58,25 @@ export function clean(text: string, now: number, days: Ages) {
   return out.length ? out.join('\n') + '\n' : '';
 }
 
-/** Cleans every *.log in `dir`: a file is rewritten only when it changes (written aside, then renamed), and deleted once empty. */
-export function cleanDir(dir: string, days: Ages, now = Date.now()) {
+/** Cleans every *.log in `dir`: a file is rewritten only when it changes (written aside, then renamed), and deleted once empty. A file that fails is reported to `fail` and the rest go on. */
+export function cleanDir(dir: string, days: Ages, now = Date.now(), fail: (name: string, e: unknown) => void = () => {}) {
   for (const name of fs.readdirSync(dir)) {
     if (!name.endsWith('.log')) continue;
     const file = path.join(dir, name);
-    const text = fs.readFileSync(file, 'utf8');
-    const kept = clean(text, now, days);
-    if (kept === text) continue;
-    if (!kept) fs.rmSync(file);
-    else {
-      fs.writeFileSync(`${file}.tmp`, kept);
-      fs.renameSync(`${file}.tmp`, file);
+    try {
+      const text = fs.readFileSync(file, 'utf8');
+      const kept = clean(text, now, days);
+      if (kept === text) continue;
+      if (!kept) fs.rmSync(file);
+      else {
+        fs.writeFileSync(`${file}.tmp`, kept);
+        fs.renameSync(`${file}.tmp`, file);
+      }
+    } catch (e) {
+      fail(name, e);
+      try {
+        fs.rmSync(`${file}.tmp`, { force: true });
+      } catch {}
     }
   }
 }

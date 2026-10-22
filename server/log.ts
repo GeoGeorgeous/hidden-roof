@@ -18,7 +18,7 @@ export function logTo(to: string) {
   dir = to;
   const tidy = () => {
     try {
-      cleanDir(to, { redact: SERVER.logRedactDays, keep: SERVER.logKeepDays });
+      cleanDir(to, { redact: SERVER.logRedactDays, keep: SERVER.logKeepDays }, Date.now(), (name, e) => log('-----', `log cleaning failed for ${name}:`, e));
     } catch (e) {
       log('-----', 'log cleaning failed:', e);
     }

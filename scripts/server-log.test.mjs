@@ -56,6 +56,13 @@ fs.writeFileSync(path.join(dir, 'mem.txt'), `${at(90)} 192.0.2.9\n`);
 cleanDir(dir, days, now);
 assert.deepEqual(fs.readdirSync(dir).sort(), ['a.log', 'mem.txt']);
 assert.equal(fs.readFileSync(path.join(dir, 'a.log'), 'utf8'), cleaned);
+// A file that fails (a directory named x.log) is reported, and the others are still cleaned.
+fs.mkdirSync(path.join(dir, 'a-dir.log'));
+fs.writeFileSync(path.join(dir, 'z.log'), `${at(90)} ----- gone\n`);
+const failed = [];
+cleanDir(dir, days, now, (name) => failed.push(name));
+assert.deepEqual(failed, ['a-dir.log']);
+assert.ok(!fs.existsSync(path.join(dir, 'z.log')));
 fs.rmSync(dir, { recursive: true });
 
 console.log(`server log: ok (IP addresses and nicknames gone after ${SERVER.logRedactDays} days, lines after ${SERVER.logKeepDays}; times, codes and player numbers kept)`);
