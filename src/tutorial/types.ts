@@ -10,7 +10,7 @@ export type Fact =
   | { type: 'sprinted'; seconds: number }
   | { type: 'jumped' }
   /** m drawn, rolled or scrubbed, s sprayed on a surface, 1 = a stepladder placed. */
-  | { type: 'used'; tool: Tool; amount: number }
+  | { type: 'used'; tool: Tool; amount: number; crouched?: boolean }
   | { type: 'colorCycled' }
   | { type: 'colorPicked' }
   | { type: 'capCycled' }
@@ -26,6 +26,8 @@ export interface Snapshot {
   tool: Tool | null;
   /** In the inventory. */
   tools: readonly Tool[];
+  /** The can in hand is under PRESSURE.sputterThreshold. */
+  lowPressure: boolean;
   colors: number;
   caps: number;
   /** Within TUTORIAL.ladderRadius of a level ladder's climb volume, not on it. */
@@ -48,7 +50,9 @@ export type Cond =
   /** Near a ladder or on one. */
   | { near: 'ladder' }
   /** Summed over the facts since the hint was wanted. */
-  | { total: 'moved' | 'sprinted' | 'used' | 'climbed'; tool?: Tool; atLeast: Amount }
+  | { total: 'moved' | 'sprinted' | 'used' | 'climbed'; tool?: Tool; crouched?: true; atLeast: Amount }
+  /** The can in hand is low on pressure. */
+  | { low: 'pressure' }
   /** A fact of this type since the hint was wanted. */
   | { event: Fact['type'] }
   /** Visible seconds of play. */

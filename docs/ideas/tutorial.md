@@ -236,8 +236,12 @@ Thresholds are `TUTORIAL` config with F3 descriptions; the owner agreed these va
 | `spray` | basic | `[LMB]` spray · `[RMB]` shake | after `move`, can in hand | `total used can` ≥ 0.5 s on a surface |
 | `tool.marker` | tool | step `[2]` take the marker, then `[LMB]` draw · `[Q]` `[E]` nib | `owns marker` | `total used marker` ≥ 0.5 m |
 | `tool.ladder` | tool | step `[3]` take the stepladder, then `[LMB]` put it down · `[WHEEL]` turn it | `owns ladder` | `used ladder` (placed) |
+| `ladder.move` | context | `[LMB]` again to move it: only one stepladder stands at a time | after `tool.ladder`, ladder in hand | shown `infoSeconds` (6 s), no action |
+| `ladder.shared` | context | in a session, other players can climb your stepladder too | after `ladder.move`, ladder in hand | shown `infoSeconds`. Open question for the owner: show it only in a session? |
 | `tool.roller` | tool | step `[4]`, then `[LMB]` roll · `[Q]` `[E]` width | `owns roller` | `total used roller` ≥ 1 m |
 | `tool.sponge` | tool | step `[5]`, then `[LMB]` scrub paint off · `[Q]` `[E]` size | `owns sponge` | `total used sponge` ≥ 0.5 m |
+| `sponge.crouch` | context | hold `[CTRL]` to scrub paint off the floor | after `tool.sponge`, sponge in hand | `total used sponge` ≥ 0.5 m while crouched |
+| `pressure` | context | low pressure: hold `[RMB]` to shake the can | the can in hand under `PRESSURE.sputterThreshold` | `pressed shake` |
 | `cap` | tool | `[Q]` `[E]` change the cap | `has caps ≥ 2`, can in hand | `capCycled` |
 | `color` | tool | `[WHEEL]` change color | `has colors ≥ 2`, a colored tool in hand | shown 5 s (time), or earlier `colorCycled` / `colorPicked` |
 | `ladder.climb` | context | walk into it or hold `[SPACE]` to climb · `[CTRL]` hold on | `near ladder` | `total climbed` ≥ 1.5 m |

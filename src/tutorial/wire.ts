@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { BINDINGS, PLAYER, TUTORIAL } from '../config';
+import { BINDINGS, PLAYER, PRESSURE, TUTORIAL } from '../config';
 import type { Action, Input } from '../input';
 import type { Inventory } from '../inventory/inventory';
 import { SLOTS } from '../inventory/tool';
@@ -55,6 +55,7 @@ export class TutorialWire {
     middle.copy(player.position).y += PLAYER.height / 2;
     return {
       tool: inventory.tool,
+      lowPressure: inventory.tool === 'can' && inventory.pressure < PRESSURE.sputterThreshold,
       tools: SLOTS.filter((t) => inventory.has(t)),
       colors: inventory.colors.length,
       caps: inventory.caps.length,

@@ -1,6 +1,7 @@
 // Tests of the tutorial (src/tutorial) in Node, on a fake clock: which hint shows, when it is learnt,
 // what is stored. Usage: node --experimental-transform-types --disable-warning=ExperimentalWarning scripts/tutorial.test.mjs
 import assert from 'node:assert/strict';
+import { TUTORIAL } from '../src/config.ts';
 import { Tutorial } from '../src/tutorial/tutorial.ts';
 import { resolveLine } from '../src/notify.ts';
 
@@ -17,7 +18,7 @@ function setup(saved = null) {
   const disk = { text: saved };
   const storage = { read: () => disk.text, write: (t) => (disk.text = t) };
   const t = new Tutorial(notes, storage);
-  const snap = { tool: 'can', tools: ['can'], colors: 1, caps: 1, nearLadder: false, onLadder: false };
+  const snap = { tool: 'can', tools: ['can'], lowPressure: false, colors: 1, caps: 1, nearLadder: false, onLadder: false };
   let visible = true;
   const play = (seconds) => {
     for (let i = 0; i < Math.round(seconds * 10); i++) t.update(0.1, visible, snap);
@@ -127,6 +128,64 @@ assert.equal(resolveLine('Press {use} to draw, {sizeDown} / {sizeUp} to change n
   assert.deepEqual(board.get('hint:tool.roller').lines, ['Press {use} to roll, {sizeDown} / {sizeUp} to change width']);
 }
 
+// The stepladder's two info hints: in order, after the ladder hint, while it's in hand, each learnt after INFO seconds on screen.
+{
+  const { play, keys, snap, learnt } = setup('{"v":1,"done":["move","spray","tool.ladder"]}');
+  snap.tools = ['can', 'ladder'];
+  snap.tool = 'can';
+  play(1);
+  assert.deepEqual(keys(), []);
+  snap.tool = 'ladder';
+  play(0.2);
+  assert.deepEqual(keys(), ['hint:ladder.move']);
+  play(TUTORIAL.infoSeconds);
+  assert.deepEqual(keys(), ['hint:ladder.shared']);
+  play(TUTORIAL.infoSeconds + 0.2);
+  assert.deepEqual(keys(), []);
+  assert.deepEqual(learnt(), ['move', 'spray', 'tool.ladder', 'ladder.move', 'ladder.shared']);
+}
+{
+  const { play, keys, snap } = setup('{"v":1,"done":["move","spray"]}');
+  snap.tools = ['can', 'ladder'];
+  snap.tool = 'ladder';
+  play(0.2);
+  assert.deepEqual(keys(), ['hint:tool.ladder'], 'before the ladder hint is learnt, the info hints wait');
+}
+
+// The sponge's crouch hint: after the sponge hint; learnt by scrubbing crouched, not standing.
+{
+  const { t, play, keys, snap, learnt } = setup('{"v":1,"done":["move","spray","tool.sponge"]}');
+  snap.tools = ['can', 'sponge'];
+  snap.tool = 'sponge';
+  play(2.5);
+  assert.deepEqual(keys(), ['hint:sponge.crouch']);
+  t.fact({ type: 'used', tool: 'sponge', amount: 2, crouched: false });
+  play(0.2);
+  assert.deepEqual(keys(), ['hint:sponge.crouch']);
+  t.fact({ type: 'used', tool: 'sponge', amount: 2, crouched: true });
+  play(0.2);
+  assert.deepEqual(keys(), []);
+  assert.ok(learnt().includes('sponge.crouch'));
+}
+
+// Low pressure: shown while the can is low, learnt by shaking; leaves unlearnt when the pressure is back.
+{
+  const { t, play, keys, snap, learnt } = setup('{"v":1,"done":["move","spray"]}');
+  snap.lowPressure = true;
+  play(0.2);
+  assert.deepEqual(keys(), ['hint:pressure']);
+  snap.lowPressure = false;
+  play(0.2);
+  assert.deepEqual(keys(), []);
+  assert.ok(!learnt().includes('pressure'));
+  snap.lowPressure = true;
+  play(2.1);
+  t.fact({ type: 'pressed', action: 'shake' });
+  play(0.2);
+  assert.deepEqual(keys(), []);
+  assert.ok(learnt().includes('pressure'));
+}
+
 // A context hint leaves unlearnt when away from the ladder, and starts over.
 {
   const { t, play, keys, snap, learnt } = setup('{"v":1,"done":["move","spray"]}');
@@ -189,7 +248,7 @@ assert.equal(resolveLine('Press {use} to draw, {sizeDown} / {sizeUp} to change n
 // No storage at all: in memory, no errors.
 {
   const t = new Tutorial({ set() {}, clear() {} });
-  t.update(2, true, { tool: 'can', tools: ['can'], colors: 1, caps: 1, nearLadder: false, onLadder: false });
+  t.update(2, true, { tool: 'can', tools: ['can'], lowPressure: false, colors: 1, caps: 1, nearLadder: false, onLadder: false });
 }
 
 console.log('tutorial: ok');

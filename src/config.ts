@@ -1504,6 +1504,8 @@ export const TUTORIAL = {
   rollerMeters: 1,
   /** Climbing this far (m) is learning ladders. */
   climbMeters: 1.5,
+  /** A hint with nothing to do (about the stepladder) is learnt after this long on screen (s). */
+  infoSeconds: 6,
   /** A ladder hint shows within this distance (m) of a ladder's climb volume. */
   ladderRadius: 2.5,
 };
