@@ -1,6 +1,6 @@
 # Hints in play (BL-092, not started)
 
-The controls screen is dropped: the key reference stays in Settings → Controls (`src/controls-tab.ts`). Instead, short hints appear in play when they're needed and go once the player has done the thing. This file is the model, the HUD layer map and the API sketch; nothing is decided until the owner agrees. The designer's brief: `docs/ideas/tutorial-design-brief.md`. Code comes after the design.
+The controls screen is dropped: the key reference stays in Settings → Controls (`src/controls-tab.ts`). Instead, short hints appear in play when they're needed and go once the player has done the thing. This file is the spec: the model, the HUD layer map and the API sketch, agreed with the owner on 2026-10-22 (Decisions below). The designer's brief: `docs/ideas/tutorial-design-brief.md`. Code comes after the design is agreed.
 
 Facts checked on dev @ 7598b94 (2026-10-22). One hint system with the notifications of BL-140 (`docs/ideas/notifications.md`): a hint is that model's "one-time advice".
 
@@ -10,9 +10,23 @@ Facts checked on dev @ 7598b94 (2026-10-22). One hint system with the notificati
 - **A new tool** (marker, stepladder, roller, sponge): how to take it, use it, size it, its quirk (the stepladder turns). Gone after the first real use.
 - **A new color, or more than one for the first time:** how to switch. Gone after the first switch.
 - **Context:** by a ladder, how to climb; more below. Low pressure already has its own alert and stays as it is.
-- **Priority:** new tool > context > basics. One hint on screen, two at most; a lower one waits, it isn't dropped.
+- **Priority:** new tool > context > basics. One hint on screen at a time; a lower one waits, it isn't dropped.
 - **Remembered** in the browser: a hint learnt is never shown again. Settings has "show hints again".
 - **Rebound keys** show as bound: no "WASD" anywhere in the text.
+
+## Decisions (owner, 2026-10-22)
+
+1. **Order:** (a) as cut below: BL-140's model and `notify.ts` with the event and advice kinds, in 1.5.0; the existing toasts move onto the event kind.
+2. **One designer brief** for hints and BL-140's messages.
+3. **One hint at a time.** No `maxShown` setting.
+4. **A switch in Settings → Gameplay** turns hints off. Off doesn't touch the progress; **Show hints again** is a separate action that clears it.
+5. **Pickups:** with hints on, the tool's hint replaces the "+ MARKER" toast; the pickup's NEW TOOL tag stays. With hints off the toast works as today.
+6. **Personal hints in single player and in sessions,** progress in the browser.
+7. **Wall hints painted in build mode may name keys,** even though rebinding can make them stale. (The owner's later note; the quick answer to the question read the other way.)
+8. **Thresholds as drafted, simpler where it helps:** moving is learnt after 3 m; a hint may be learnt by time shown instead of an action (a new color: its hint for 5 s).
+9. **English only.** Casing and katakana are the designer's.
+10. **HUD scaling is not BL-092:** TASK-197 (the HUD scales with the window and the DPR). No HUD size setting in BL-092.
+11. **Filed separately:** TASK-197, BUGS-198 (compact F3 menu under tags, hotbar, toast), BUGS-199 (LOW PRESSURE off the edge at 820 px). BUGS-198 and BUGS-199 are checked and closed on their own, never as done because BL-092 changed the layers.
 
 ## What exists (checked)
 
@@ -32,7 +46,7 @@ All confirmed unless marked. Line numbers as of 7598b94.
 - **Inventory:** `reset()` (`src/inventory/inventory.ts:46`) gives the starting kit on every level open (`src/level/open-level.ts:39`); a session restores what the server kept (`src/net/multiplayer.ts:277`). So "got a tool" happens every session: without stored flags every hint repeats. A pickup gives the tool but does not put it in hand (`src/pickups/pickups.ts:198-208`): the tool hint starts with "press [2]".
 - **Ladders:** `level.ladders` (`src/level/level.ts:29`), each a climb volume and a facing (`src/player.ts:8-12`); `Player.findLadder` (`:304`) already tests the player's box against them and `player.onLadder` says climbing. A "near a ladder" zone is that volume grown by a radius: no hand-placed zones.
 - **Walked distance:** `player.stride` (`src/player.ts:35, 191`), ground distance, already used for footsteps (`src/main.ts:248`).
-- **Not in the brief, found:** build mode can paint control hints onto walls (the LEVEL category's Hint entry, `src/build/paint-editor.ts`, text like `<k>RMB</k> Shake your can`, commit df9b287), shipped as `public/levels/<name>.rhhpaint`. No level ships one today (`public/levels` has only `demo.json`, `roof.json`). Painted keys can't follow rebinding: see the questions.
+- **Not in the brief, found:** build mode can paint control hints onto walls (the LEVEL category's Hint entry, `src/build/paint-editor.ts`, text like `<k>RMB</k> Shake your can`, commit df9b287), shipped as `public/levels/<name>.rhhpaint`. No level ships one today (`public/levels` has only `demo.json`, `roof.json`). Painted keys can't follow rebinding; the owner allows them anyway (decision 7).
 
 ## Weak spots (checked)
 
@@ -42,7 +56,7 @@ All confirmed unless marked. Line numbers as of 7598b94.
 - **Frame-bound timers** (confirmed, BL-140 F4.2/F4.3): toast and notice compare `performance.now()`; under the full pause sheet toasts are `display: none` (`src/style.css:1735-1737`) while their clock runs; a hidden tab runs no frames, so they expire on the first frame back. The cap/color tags do the same (minor).
 - **Hud does too much** (confirmed): frame, crosshair, tool cluster, perf, vignette and the owner of the pause menu, 209 lines. Hints don't go in it.
 - **Readability** (confirmed by screenshots): toast, tags, REC and clock are 11 px ink monospace with no backing (`src/boot.css:42-45`). Over the lit white wall the red LOW PRESSURE alert almost disappears (`docs/img/tutorial/1280x720-low-pressure.jpg`); REC and the clock are lost in brick hatching (all shots). On dark paint ink text is invisible.
-- **Scale** (confirmed): everything is px. At **820×560** the LOW PRESSURE alert runs off the right edge ("…TO SH", `docs/img/tutorial/min-820x560-busy-hud.jpg`): the tool cluster starts right of center and only grows rightward. At **3840×2160 with DPR 1** the HUD is a sliver: 11 px text on a 2160 px screen, hotbar 30 px (`docs/img/tutorial/4k-3840x2160-busy-hud.jpg`). (A 4K laptop at DPR 1.5-2 is fine: it's 1920-2560 CSS px.) Ultrawide 3440×1440 is fine: corners far out, tool cluster near center.
+- **Scale** (confirmed; scaling is TASK-197, the clipping BUGS-199): everything is px. At **820×560** the LOW PRESSURE alert runs off the right edge ("…TO SH", `docs/img/tutorial/min-820x560-busy-hud.jpg`): the tool cluster starts right of center and only grows rightward. At **3840×2160 with DPR 1** the HUD is a sliver: 11 px text on a 2160 px screen, hotbar 30 px (`docs/img/tutorial/4k-3840x2160-busy-hud.jpg`). (A 4K laptop at DPR 1.5-2 is fine: it's 1920-2560 CSS px.) Ultrawide 3440×1440 is fine: corners far out, tool cluster near center.
 - **Multiplayer** (confirmed, worse than expected): in play nothing says reconnecting at all (BL-140 F4.4); "X joined" uses the toast slot and would overwrite or be overwritten by a hint if hints used it.
 
 ## HUD layers
@@ -66,7 +80,7 @@ Also local: `.overlay .back` z-index 1 inside the menu; `.small-body` z-index 1 
 
 ### Where it's already wrong
 
-1. **Pickup tags and nameplates are above the pause menu.** Hidden by `body.paused` under the full sheet, but with F3 open the menu is compact (`src/style.css:657`, `body.paused` off): tags and names draw over the menu's buttons.
+1. **Pickup tags and nameplates are above the pause menu** (1 and 2: BUGS-198). Hidden by `body.paused` under the full sheet, but with F3 open the menu is compact (`src/style.css:657`, `body.paused` off): tags and names draw over the menu's buttons.
 2. **Hotbar and toast are above the pause menu** for the same reason: in the compact menu they sit over its darkened bottom, where the menu's buttons are.
 3. **World tags are above the body-cam frame and the vignette.** Harmless today (they rarely meet), but the opposite of the intended order.
 4. **The crosshair is under the vignette.** It inverts the canvas, then the vignette darkens over it. Harmless while the vignette's middle is clear (VIGNETTE.start), wrong if F3 moves it.
@@ -164,12 +178,16 @@ type Cond =
   | { total: Fact['type']; tool?: Tool; atLeast: number | keyof typeof TUTORIAL } // summed while the hint is wanted
   | { event: Fact['type'] }
   | { playedFor: number | keyof typeof TUTORIAL }    // visible seconds
+  | { shownFor: number | keyof typeof TUTORIAL }     // this hint's own visible seconds: learnt by time
   | { all: Cond[] } | { any: Cond[] };
 ```
 
 Rules:
 
+- Hints off (Settings → Gameplay): the tutorial sets nothing and records nothing; the stored progress stays as it is. Show hints again clears it, on or off.
 - Wanted = `show` true, not learnt, `after` learnt. A hint learnt before it was ever shown (the player already knew) is stored silently.
+- One hint shows at a time. A higher rank takes the place of a lower one; the lower one goes back to waiting (its progress kept) and comes back after.
+- A pickup's toast: with hints on, a tool pickup whose hint gets wanted posts no "+ NAME" toast (the hint says it). With hints off, or a tool whose hint is learnt, the toast as today. Colors and caps keep their toast.
 - Context hints are wanted only while their condition holds (near the ladder); they leave without being learnt when it stops, and come back next time.
 - A hint shown at least `TUTORIAL.minShown` s before it can leave as done, so it doesn't flash.
 - Stored under one key, `roofhiddenhaus.tutorial`: `{"v":1,"done":["move","tool.marker"]}`. No storage: an in-memory set, hints come back next load, no errors. "Show hints again" (Settings → Gameplay, an action row like Performance test) clears it.
@@ -184,22 +202,22 @@ notify.update(dt, visible);         // the one clock
 notify.shown(): Note[];             // what the DOM module draws this frame
 ```
 
-The tutorial sets every wanted hint; notify picks what shows: kinds by priority (error > status > event > advice), within advice by rank then age, `TUTORIAL.maxShown` (1, 2 at most). A waiting hint stays set, so nothing is lost. Key caps are resolved when drawn (`label()`), so rebinding or the keyboard layout arriving changes the text live.
+The tutorial sets every wanted hint; notify picks what shows: kinds by priority (error > status > event > advice; kinds live in their own zones, so an event doesn't hide a hint), within advice one at a time, by rank then age. A waiting hint stays set, so nothing is lost. Key caps are resolved when drawn (`label()`), so rebinding or the keyboard layout arriving changes the text live.
 
 ### Draft hints
 
-Thresholds are `TUTORIAL` config with F3 descriptions; values are first guesses.
+Thresholds are `TUTORIAL` config with F3 descriptions; the owner agreed these values (move 3 m, color by time).
 
 | id | rank | Text (keys as bound by default) | Shows | Learnt |
 |---|---|---|---|---|
-| `move` | basic | `[W][A][S][D]` move · `[SHIFT]` run · `[SPACE]` jump | `playedFor` 1.5 s | `total moved` ≥ `moveMeters` (8 m) |
+| `move` | basic | `[W][A][S][D]` move · `[SHIFT]` run · `[SPACE]` jump | `playedFor` 1.5 s | `total moved` ≥ `moveMeters` (3 m) |
 | `spray` | basic | `[LMB]` spray · `[RMB]` shake | after `move`, can in hand | `total used can` ≥ 0.5 s on a surface |
 | `tool.marker` | tool | step `[2]` take the marker, then `[LMB]` draw · `[Q]` `[E]` nib | `got marker` | `total used marker` ≥ 0.5 m |
 | `tool.ladder` | tool | step `[3]` take the stepladder, then `[LMB]` put it down · `[WHEEL]` turn it | `got ladder` | `used ladder` (placed) |
 | `tool.roller` | tool | step `[4]`, then `[LMB]` roll · `[Q]` `[E]` width | `got roller` | `total used roller` ≥ 1 m |
 | `tool.sponge` | tool | step `[5]`, then `[LMB]` scrub paint off · `[Q]` `[E]` size | `got sponge` | `total used sponge` ≥ 0.5 m |
 | `cap` | tool | `[Q]` `[E]` change the cap | `has caps ≥ 2`, can in hand | `capCycled` |
-| `color` | tool | `[WHEEL]` change color | `has colors ≥ 2`, a colored tool in hand | `colorCycled` or `colorPicked` |
+| `color` | tool | `[WHEEL]` change color | `has colors ≥ 2`, a colored tool in hand | `colorCycled`, `colorPicked`, or `shownFor` 5 s |
 | `ladder.climb` | context | walk into it or hold `[SPACE]` to climb · `[CTRL]` hold on | `near ladder` | `total climbed` ≥ 1.5 m |
 | `pick` | context | `[MMB]` take this color | `aim otherColor`, after `color` | `colorPicked` |
 | `screenshot` | basic | `[K]` save a screenshot | `playedFor` 120 s, after `spray` | `screenshot` |
@@ -210,7 +228,7 @@ Other context candidates, not in the first set: crouching where a gap needs it (
 
 ## Order against BL-140 (section 7)
 
-**Recommendation: (a), cut to what BL-092 needs.** Take from BL-140: the model (F4.1) and `src/notify.ts` (F4.9) with two kinds working, **event** and **advice**; statuses and blocking errors stay typed but unimplemented until BL-140 @1.9.0. Move the existing toast callers to the event kind one to one (they share the screen with hints anyway); `PauseMenu.notice` stays as it is for now.
+**Decided: (a), cut to what BL-092 needs.** Take from BL-140: the model (F4.1) and `src/notify.ts` (F4.9) with two kinds working, **event** and **advice**; statuses and blocking errors stay typed but unimplemented until BL-140 @1.9.0. Move the existing toast callers to the event kind one to one (they share the screen with hints anyway); `PauseMenu.notice` stays as it is for now.
 
 | | (a) cut model + notify | (b) a hint layer alone |
 |---|---|---|
@@ -223,21 +241,15 @@ What breaks with (b): toast and hint can't know of each other, so "max two on sc
 
 Option (c) considered: hints in the tool stack only, no new layer. Rejected: the stack is anchored to the tool, hints about moving or the hotbar have no tool, and the stack's offsets are the weakest code here.
 
-Separately and first, small: layer tokens (`--z-*`) and the tool stack as one flex container. The stack alone is a cleanup with identical looks; the tokens change what's on top, on purpose. The tokens fix the compact-menu overlaps; the stack can also flip left when it would leave the screen (the 820 px clipping, question 10).
+Part of BL-092, first and small: layer tokens (`--z-*`) and the tool stack as one flex container. The stack alone is a cleanup with identical looks; the tokens change what's on top, on purpose. They may fix BUGS-198 and make BUGS-199 easy, but those close only after their own check (decision 11).
 
-## Open questions for the owner
+## Implementation order (after the design)
 
-1. (a) as cut above, with toasts moved onto the event kind in 1.5.0?
-2. One designer brief for hints and BL-140's notifications (proposed), or hints only?
-3. At most 1 hint, or 2?
-4. A Settings switch to turn hints off, besides "show hints again"? Where: Gameplay?
-5. When a tool is picked up: the toast "+ MARKER", the NEW TOOL tag and the hint all three, or does the hint replace the toast?
-6. Hints in a multiplayer session too? (Proposed yes, they're personal; under a status chip, never over it.)
-7. Painted wall hints (build mode's Hint entry): decoration only, never key names? Their keys can't follow rebinding.
-8. Thresholds: 8 m to learn moving, 0.5 s / 0.5 m for a first use: right feel?
-9. Language and casing: English only; HUD capitals or the menu's sentence case (F4.7)? Katakana under the text as on the pickup tags?
-10. The 4K at DPR 1 sliver and the 820 px clipping: fix with the HUD's scale (a `--hud-scale` from the window, or a Settings value) in BL-092, or file separately?
-11. Separately filed? The compact-menu overlaps (tags, hotbar, toast over the F3 menu) and the LOW PRESSURE clipping at 820 px.
+1. Layer tokens and the tool stack as one container (CSS, hud.ts), looks identical except the layer order.
+2. `src/notify.ts` (event and advice kinds, the visible clock) with a Node test; the play display module; the six toast callers moved, the toast queue's test (a "+ MARKER" and a "Bob joined" both seen; a toast under the pause sheet seen after it).
+3. `src/tutorial/` (facts, hint data, conditions, storage) with a Node test on a fake clock; the fact hooks in main.ts, tools, pickups, the stepladder; the `TUTORIAL` config with F3 rows.
+4. Settings → Gameplay: the Hints switch and Show hints again.
+5. Shots at 1280×720 and 820×560, `npm run check`, the release draft line.
 
 ## Screenshots
 

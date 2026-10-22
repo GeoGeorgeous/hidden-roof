@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 197
+The one list of what's left. Counter for new ids: next: 200
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -113,10 +113,13 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## UI
 
 1. IDEA [BL-140]: One notification system: messages lost in menus and hidden tabs, nothing in play says reconnecting (docs/ideas/notifications.md) @1.9.0
-2. DSGN [BL-092]: Hints in play instead of a controls screen: move, each new tool, colors, ladders; shown when needed, gone once done, remembered; the designer first (docs/ideas/tutorial.md) @1.5.0
+2. DSGN [BL-092]: Hints in play instead of a controls screen: move, each new tool, colors, ladders; one at a time, gone once done, remembered; on BL-140's notify core; the designer first, one brief with BL-140's messages (docs/ideas/tutorial.md) @1.5.0
 3. ~~BUGS [BL-072]: Nickname tags don't scale with the UI and resolution~~
 4. ~~[?BUGS-162]: The browser's page zoom scales the HUD and menus (zoom keys, Ctrl+wheel and pinch are blocked already: BROWSER_GUARDS) @1.5.0~~
 5. TASK [BL-078]: Show BUY ME A COFFEE again once it has a link (revert e2c2310) @1.6.0
+6. [TASK-197]: The HUD scales with the window and the DPR: tiny at 4K at 100%, crowded at 820×560; not part of BL-092 (docs/ideas/tutorial.md)
+7. [BUGS-198]: With F3 open the compact pause menu is under the pickup tags, nameplates, hotbar and toast; checked and closed on its own, not by BL-092's layers (docs/ideas/tutorial.md)
+8. [BUGS-199]: LOW PRESSURE runs off the right edge in narrow windows (820×560); checked and closed on its own, not by BL-092's layers (docs/ideas/tutorial.md)
 
 ## Avatar
 
