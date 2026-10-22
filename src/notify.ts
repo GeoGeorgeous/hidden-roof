@@ -2,7 +2,7 @@ import { NOTIFY } from './config';
 
 // Every in-game message, as data: no DOM, the clock passed in (notify-view.ts
 // draws it). Four kinds, each with a place of its own, so one doesn't hide another:
-//   advice  a hint: keyed, set until cleared; one shows at a time, the lowest
+//   advice  a hint: keyed, set until cleared; one shows at a time, the highest
 //           rank first, then the oldest; the others wait, still set
 //   event   a toast: a few seconds, newest last; a full stack drops the oldest
 //   status  a chip: keyed, shown while set; the first NOTIFY.maxChips show
@@ -19,7 +19,7 @@ export interface Note {
   key: string;
   kind: Kind;
   lines: readonly string[];
-  /** Advice only: lower shows first. */
+  /** Advice only: higher shows first. */
   rank: number;
 }
 
@@ -90,7 +90,7 @@ export class Notify {
     this.cacheVersion = this.version;
     const of = (kind: Kind) => this.notes.filter((n) => n.kind === kind);
     // The sort is stable: among equal ranks the one set first stays first.
-    const hint = of('advice').sort((a, b) => a.rank - b.rank)[0];
+    const hint = of('advice').sort((a, b) => b.rank - a.rank)[0];
     this.cache = [...(hint ? [hint] : []), ...of('event'), ...of('status').slice(0, NOTIFY.maxChips), ...of('error').slice(0, 1)];
     return this.cache;
   }

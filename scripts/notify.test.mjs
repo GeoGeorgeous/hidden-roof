@@ -45,14 +45,14 @@ const play = (n, seconds) => n.update(seconds, true);
   assert.deepEqual(texts(n, 'event'), []);
 }
 
-// One hint at a time: the lowest rank, then the oldest; the rest wait, still set.
+// One hint at a time: the highest rank, then the oldest; the rest wait, still set.
 {
   const n = new Notify();
-  n.set({ key: 'a', kind: 'advice', rank: 2, lines: ['basic'] });
-  n.set({ key: 'b', kind: 'advice', rank: 1, lines: ['context one'] });
-  n.set({ key: 'c', kind: 'advice', rank: 1, lines: ['context two'] });
+  n.set({ key: 'a', kind: 'advice', rank: 1, lines: ['basic'] });
+  n.set({ key: 'b', kind: 'advice', rank: 2, lines: ['context one'] });
+  n.set({ key: 'c', kind: 'advice', rank: 2, lines: ['context two'] });
   assert.deepEqual(texts(n, 'advice'), ['context one']);
-  n.set({ key: 'd', kind: 'advice', rank: 0, lines: ['new tool', 'second line'] });
+  n.set({ key: 'd', kind: 'advice', rank: 3, lines: ['new tool', 'second line'] });
   assert.deepEqual(texts(n, 'advice'), ['new tool|second line']);
   n.clear('d');
   assert.deepEqual(texts(n, 'advice'), ['context one']);
