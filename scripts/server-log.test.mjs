@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { SERVER } from '../src/config.ts';
-import { clean, cleanDir } from '../server/log-files.ts';
+import { clean, cleanDir, oneEntry } from '../server/log-files.ts';
 
 const DAY = 86_400_000;
 const days = { redact: SERVER.logRedactDays, keep: SERVER.logKeepDays };
@@ -43,6 +43,11 @@ assert.equal(
 assert.equal(clean(cleaned, now, days), cleaned, 'a second clean changes nothing');
 assert.equal(clean(`${at(SERVER.logKeepDays + 1)} ----- old\n`, now, days), '');
 
+// Client text can't start a line of its own: no forged time, and the cleaning still sees one entry.
+const forged = oneEntry(`${at(0)} ABCDE "x" #1 dropped (1000 a\r\n${at(90)} ----- forged\u0007)\n    at stack`);
+assert.equal(forged.split('\n').filter((l) => /^\d{4}-/.test(l)).length, 1);
+assert.ok(!/[\r\u0007]/.test(forged) && forged.endsWith('\n    at stack'));
+
 // The directory: a changed file rewritten, an emptied one deleted, other files left alone.
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'roof-log-'));
 fs.writeFileSync(path.join(dir, 'a.log'), text);
@@ -51,6 +56,41 @@ fs.writeFileSync(path.join(dir, 'mem.txt'), `${at(90)} 192.0.2.9\n`);
 cleanDir(dir, days, now);
 assert.deepEqual(fs.readdirSync(dir).sort(), ['a.log', 'mem.txt']);
 assert.equal(fs.readFileSync(path.join(dir, 'a.log'), 'utf8'), cleaned);
+// Dated files go by their names: young ones are not read, old ones are deleted unread, and a cleaned one is not read again.
+const day = (d) => new Date(now - d * DAY).toISOString().slice(0, 10);
+const put = (d, body) => {
+  fs.writeFileSync(path.join(dir, `${day(d)}.log`), body);
+  fs.chmodSync(path.join(dir, `${day(d)}.log`), 0o644);
+};
+const dated = (d) => path.join(dir, `${day(d)}.log`);
+const stamp = (d, ms) => fs.utimesSync(dated(d), new Date(ms), new Date(ms));
+put(1, `${at(1)} ABCDE "New" #1 in from 192.0.2.1\n`);
+put(30, `${at(30)} ABCDE "Mid" #1 in from 192.0.2.1\n`); // the line's own time is not read: only the name counts
+put(80, `${at(80)} ----- old\n`);
+put(20, `${at(20)} ABCDE "Mid" #1 in from 192.0.2.1\n`);
+for (const d of [1, 30, 80, 20]) stamp(d, now - 100 * DAY); // never cleaned
+cleanDir(dir, days, now);
+assert.ok(!fs.existsSync(dated(80)), 'older than keep: deleted');
+assert.match(fs.readFileSync(dated(1), 'utf8'), /192\.0\.2\.1/, 'younger than redact: left as it is');
+assert.equal(fs.statSync(dated(1)).mtimeMs, now - 100 * DAY, 'and not touched');
+assert.match(fs.readFileSync(dated(20), 'utf8'), /"" #1 in from x/);
+assert.equal(fs.statSync(dated(20)).mtimeMs, now, 'redacted file: written now');
+// A cleaned file is skipped: change its text without a new mtime and the next pass leaves it.
+fs.writeFileSync(dated(20), `${at(20)} ----- 192.0.2.5\n`);
+stamp(20, now);
+cleanDir(dir, days, now + 3600_000);
+assert.match(fs.readFileSync(dated(20), 'utf8'), /192\.0\.2\.5/, 'cleaned after its day was due: not read again');
+fs.rmSync(dated(1));
+fs.rmSync(dated(20));
+fs.rmSync(dated(30));
+
+// A file that fails (a directory named x.log) is reported, and the others are still cleaned.
+fs.mkdirSync(path.join(dir, 'a-dir.log'));
+fs.writeFileSync(path.join(dir, 'z.log'), `${at(90)} ----- gone\n`);
+const failed = [];
+cleanDir(dir, days, now, (name) => failed.push(name));
+assert.deepEqual(failed, ['a-dir.log']);
+assert.ok(!fs.existsSync(path.join(dir, 'z.log')));
 fs.rmSync(dir, { recursive: true });
 
 console.log(`server log: ok (IP addresses and nicknames gone after ${SERVER.logRedactDays} days, lines after ${SERVER.logKeepDays}; times, codes and player numbers kept)`);

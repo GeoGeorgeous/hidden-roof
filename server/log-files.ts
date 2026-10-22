@@ -6,6 +6,7 @@ import path from 'node:path';
 // past `days.keep` the line goes, and an empty file with it (SERVER.logRedactDays, logKeepDays).
 // Any *.log in the directory is cleaned the same way, so logs saved before
 // LOG_DIR existed (docker logs -t: two times, the first counts) can go there.
+// A file named YYYY-MM-DD.log is judged by its name: not read while young or once cleaned, deleted unread when old.
 
 const DAY = 86_400_000;
 
@@ -26,6 +27,13 @@ function ipv6(m: string) {
   const tail = m.endsWith(':') && !m.endsWith('::') ? ':' : '';
   const ip = tail ? m.slice(0, -1) : m;
   return ip.includes('::') || ip.split(':').length > 3 ? 'x' + tail : m;
+}
+
+/** A log entry made safe to write: control characters escaped, and a line break only followed by a space, so no text can start a line of its own (a forged time would beat the cleaning by age). A stack's lines already start with spaces. */
+export function oneEntry(text: string) {
+  return text
+    .replace(/[\0-\x08\x0b-\x1f\x7f]/g, (c) => (c === '\r' ? '\\r' : `\\x${c.charCodeAt(0).toString(16).padStart(2, '0')}`))
+    .replace(/\n(?!\s)/g, '\n  ');
 }
 
 /** A line with its IP addresses and nicknames removed. */
@@ -51,18 +59,46 @@ export function clean(text: string, now: number, days: Ages) {
   return out.length ? out.join('\n') + '\n' : '';
 }
 
-/** Cleans every *.log in `dir`: a file is rewritten only when it changes (written aside, then renamed), and deleted once empty. */
-export function cleanDir(dir: string, days: Ages, now = Date.now()) {
+const DATED = /^(\d{4}-\d\d-\d\d)\.log$/;
+
+/** What a YYYY-MM-DD.log needs, by its name alone (all its lines are from that UTC day): 'skip' while it is younger than `redact`, or when it was cleaned after it was due; 'remove' once all of it is older than `keep`; else 'lines'. An imported log has no date: always 'lines'. */
+function due(name: string, mtime: number, now: number, days: Ages) {
+  const m = DATED.exec(name);
+  const start = m ? Date.parse(m[1]) : NaN;
+  if (Number.isNaN(start)) return 'lines';
+  if (now - start <= days.redact * DAY) return 'skip';
+  if (now - start - DAY > days.keep * DAY) return 'remove';
+  // Cleaned once its last line was past `redact`, and before its first one was past `keep`: nothing left to do.
+  return mtime >= start + DAY + days.redact * DAY && now - start <= days.keep * DAY ? 'skip' : 'lines';
+}
+
+/** Cleans every *.log in `dir`: a dated file (YYYY-MM-DD.log) is read only when its day is due, a file is rewritten only when it changes (written aside, then renamed), and deleted once empty. A file that fails is reported to `fail` and the rest go on. */
+export function cleanDir(dir: string, days: Ages, now = Date.now(), fail: (name: string, e: unknown) => void = () => {}) {
   for (const name of fs.readdirSync(dir)) {
     if (!name.endsWith('.log')) continue;
     const file = path.join(dir, name);
-    const text = fs.readFileSync(file, 'utf8');
-    const kept = clean(text, now, days);
-    if (kept === text) continue;
-    if (!kept) fs.rmSync(file);
-    else {
-      fs.writeFileSync(`${file}.tmp`, kept);
-      fs.renameSync(`${file}.tmp`, file);
+    try {
+      const todo = due(name, fs.statSync(file).mtimeMs, now, days);
+      if (todo === 'skip') continue;
+      if (todo === 'remove') {
+        fs.rmSync(file);
+        continue;
+      }
+      const text = fs.readFileSync(file, 'utf8');
+      const kept = clean(text, now, days);
+      if (!kept) fs.rmSync(file);
+      else {
+        if (kept !== text) {
+          fs.writeFileSync(`${file}.tmp`, kept);
+          fs.renameSync(`${file}.tmp`, file);
+        }
+        fs.utimesSync(file, new Date(now), new Date(now)); // cleaned at `now`: a dated file isn't read again
+      }
+    } catch (e) {
+      fail(name, e);
+      try {
+        fs.rmSync(`${file}.tmp`, { force: true });
+      } catch {}
     }
   }
 }
