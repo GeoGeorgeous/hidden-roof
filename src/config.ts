@@ -1459,6 +1459,8 @@ export const CCTV = {
 
 /** Hints in play (src/tutorial). Times are visible play seconds: paused, F3, build mode and a hidden tab don't count. */
 export const TUTORIAL = {
+  /** Hints on (Settings → Gameplay → Hints). Off: none show and none are learnt. */
+  enabled: true,
   /** The first hint (move, run, jump) waits this long after play starts (s). */
   moveDelay: 1.5,
   /** Walking this far (m) is learning to move; one key press isn't. */

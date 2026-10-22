@@ -33,8 +33,8 @@ export interface Snapshot {
   onLadder: boolean;
 }
 
-/** A number, or the name of a TUTORIAL setting. */
-export type Amount = number | keyof typeof TUTORIAL;
+/** A number, or the name of a TUTORIAL number. */
+export type Amount = number | { [K in keyof typeof TUTORIAL]: (typeof TUTORIAL)[K] extends number ? K : never }[keyof typeof TUTORIAL];
 
 /** A fixed vocabulary; a hint combines it, so a new hint is a new entry, not new code. */
 export type Cond =

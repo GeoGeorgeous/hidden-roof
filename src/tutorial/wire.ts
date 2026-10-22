@@ -45,6 +45,7 @@ export class TutorialWire {
     this.feetY = player.position.y;
     if (player.onLadder && rose > 0) tutorial.fact({ type: 'climbed', meters: rose });
     for (const action of ACTIONS) if (input.justPressed(action)) tutorial.fact({ type: 'pressed', action });
+    tutorial.setEnabled(TUTORIAL.enabled);
     tutorial.update(dt, visible, this.snapshot());
   }
 

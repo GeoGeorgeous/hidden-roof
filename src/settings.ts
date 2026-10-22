@@ -1,4 +1,4 @@
-import { AUDIO, HUD, INK_STYLES, PAINT, PAINT_DETAIL, PLAYER, RENDER, SKYLINE, SMOKE, VOLUMETRICS, WALL_HAND } from './config';
+import { AUDIO, HUD, INK_STYLES, PAINT, PAINT_DETAIL, PLAYER, RENDER, SKYLINE, SMOKE, TUTORIAL, VOLUMETRICS, WALL_HAND } from './config';
 import { exitGameFullscreen } from './fullscreen';
 import { sentence } from './menu-ui';
 import { DEFAULT_STYLE, inkStyle, setInkStyle } from './render/ink/styles';
@@ -85,8 +85,8 @@ export class Settings {
     Object.assign(SKYLINE, CITY_DETAIL[this.city]);
   }
 
-  /** The settings page (pause menu → SETTINGS): one section per tab. Every change is saved. `gpu`: what the game draws with; `runTest`: the performance test. */
-  sections(gpu: GpuInfo, runTest: () => void): SettingSection[] {
+  /** The settings page (pause menu → SETTINGS): one section per tab. Every change is saved. `gpu`: what the game draws with; `runTest`: the performance test; `resetHints`: forget the hints learnt. */
+  sections(gpu: GpuInfo, runTest: () => void, resetHints: () => void): SettingSection[] {
     const saving = (row: SettingRow): SettingRow => {
       if (row.kind === 'choice') return { ...row, step: (d) => (row.step(d), this.save()) };
       if (row.kind === 'range') return { ...row, set: (v) => (row.set(v), this.save()) };
@@ -94,7 +94,7 @@ export class Settings {
       return row;
     };
     return [
-      { title: 'Gameplay', rows: gameplayRows().map(saving) },
+      { title: 'Gameplay', rows: gameplayRows(resetHints).map(saving) },
       { title: 'Sound', rows: soundRows().map(saving) },
       { title: 'Controls', rows: [], tab: new ControlsTab(() => this.save()) },
       { title: 'Graphics', rows: [{ kind: 'action', label: 'Performance test', desc: 'Flies over the roof for a few seconds at your current settings and shows how it ran.', button: 'Run', act: runTest }, ...this.graphicsRows(gpu).map(saving)] },
@@ -326,7 +326,7 @@ function toggle(label: string, get: () => boolean, set: (on: boolean) => void, c
   return { kind: 'choice', label, cost, desc, value: () => (get() ? 'On' : 'Off'), step: () => set(!get()) };
 }
 
-function gameplayRows(): SettingRow[] {
+function gameplayRows(resetHints: () => void): SettingRow[] {
   return [
     {
       kind: 'range',
@@ -352,6 +352,8 @@ function gameplayRows(): SettingRow[] {
       set: (v) => (RENDER.sprintFovBoost = v),
       format: (v) => (v ? `+${v}°` : 'Off'),
     },
+    toggle('Hints', () => TUTORIAL.enabled, (on) => (TUTORIAL.enabled = on), undefined, 'Short lines at the bottom of the screen that teach a control when you need it, and go once you have done it.'),
+    { kind: 'action', label: 'Show hints again', desc: 'Forget the hints you have learnt: they come back as you play.', button: 'Show', act: resetHints },
     toggle('Show left hand', () => WALL_HAND.enabled, (on) => (WALL_HAND.enabled = on), undefined, 'Your free hand rests on walls you stand close to. It may get in the way of what you paint.'),
   ];
 }
@@ -377,6 +379,7 @@ const REMEMBERED: Remembered[] = [
   { name: 'SMOKE.enabled', obj: SMOKE, field: 'enabled' },
   { name: 'HUD.perf', obj: HUD, field: 'perf' },
   { name: 'WALL_HAND.enabled', obj: WALL_HAND, field: 'enabled' },
+  { name: 'TUTORIAL.enabled', obj: TUTORIAL, field: 'enabled' },
   ...SOUNDS.map(([, field]) => ({ name: `AUDIO.${field}`, obj: AUDIO, field })),
 ];
 
