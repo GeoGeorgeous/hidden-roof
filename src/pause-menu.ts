@@ -2,12 +2,12 @@ import { INK_STYLES, PAUSE_MENU, SOCIAL_LINKS } from './config';
 import { creditsPage } from './credits-page';
 import { EscHold, ring } from './esc-hold';
 import { button, div, el, keyHint, runPrimary, segmented, sentence } from './menu-ui';
-import { AUTHOR, PRIVACY, TERMS } from './links';
+import { AUTHOR, KOFI, PRIVACY, TERMS } from './links';
 import { inkStyle } from './render/ink/styles';
 import { SessionLine, type SessionInfo } from './session-line';
 import type { SettingSection } from './settings';
 import { SettingsPage } from './settings-page';
-import { socialIcon } from './social-icons';
+import { kofiCup, socialIcon } from './social-icons';
 import { updatesPage } from './updates-page';
 import { VERSION } from './version';
 
@@ -16,7 +16,7 @@ import { VERSION } from './version';
 // fullscreen control (esc-hold.ts), PLAY and MULTIPLAYER under the title (in a
 // session: its live line, session-line.ts, BACK TO SESSION and LEAVE SESSION), the
 // menu in three columns (paint, settings, about) and the footer under it (the
-// social icons, SOCIAL_LINKS; the legal pages, the version and the author);
+// social icons, SOCIAL_LINKS; the legal pages, the version, the author and Ko-fi);
 // and the pages and popups it opens over a blurred view: Settings,
 // Multiplayer and the rest. Esc goes back to the pause screen, and there
 // resumes once released (held, it leaves fullscreen); Enter runs the open
@@ -298,7 +298,7 @@ function column(title: string, ...items: HTMLElement[]) {
   return box;
 }
 
-/** The pause screen's footer: the social icons, then the legal pages (in a new tab: the paint stays), the version and the author. */
+/** The pause screen's footer: the social icons, then the legal pages (in a new tab: the paint stays), the version, the author and Ko-fi. */
 function footer() {
   const foot = div('pause-foot');
   const icons = SOCIAL_LINKS.map((s) =>
@@ -307,6 +307,6 @@ function footer() {
       : `<span class="soon" role="img" title="${s.label} — coming soon" aria-label="${s.label} (coming soon)">${socialIcon(s.icon)}</span>`,
   );
   const link = (href: string, text: string) => `<a href="${href}" target="_blank" rel="noopener">${text}</a>`;
-  foot.innerHTML = `<div class="social">${icons.join('')}</div><div class="meta">${link(TERMS, 'Terms')}<i>·</i>${link(PRIVACY, 'Privacy')}<i>·</i><span>${VERSION}</span><i>·</i><span>built by ${link(AUTHOR, 'GeoGeorgeous')}</span></div>`;
+  foot.innerHTML = `<div class="social">${icons.join('')}</div><div class="meta">${link(TERMS, 'Terms')}<i>·</i>${link(PRIVACY, 'Privacy')}<i>·</i><span>${VERSION}</span><i>·</i><span>built by ${link(AUTHOR, 'GeoGeorgeous')}</span><i>·</i><a class="kofi" href="${KOFI}" target="_blank" rel="noopener">${kofiCup()}Buy me a coffee</a></div>`;
   return foot;
 }

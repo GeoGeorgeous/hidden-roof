@@ -7,6 +7,8 @@ export const DISCORD = 'https://discord.gg/CMG9tT5Q4u';
 export const YOUTUBE = 'https://www.youtube.com/channel/UCIN2OeR6_IqEivP1uALkpJQ';
 export const INSTAGRAM = 'https://www.instagram.com/roof.hidden/';
 export const TIKTOK = 'https://www.tiktok.com/@roof.hidden';
+/** Support the game: the last link of the pause screen's footer. */
+export const KOFI = 'https://ko-fi.com/D0Q7296HCP';
 /** The static legal pages (public/terms.html, public/privacy.html). */
 export const TERMS = '/terms.html';
 export const PRIVACY = '/privacy.html';
