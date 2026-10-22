@@ -1,7 +1,7 @@
 // Play state: playing (the game has the mouse), paused behind the menu, F3's
 // panel open, build mode, in a session; what the frame does in each, and what
 // Esc and Enter do while paused; while joining a session (its paint still
-// loading) nothing resumes. A dialogue in play: Enter confirms it, Esc opens the menu and confirms it too. The pointer lock itself is Input's (the
+// loading) nothing resumes. A dialogue in play: Enter accepts it, Esc opens the menu and dismisses it (the dialogue's own code says what each means). The pointer lock itself is Input's (the
 // browser's, or a test's through Input.setLocked). No DOM here: tested in
 // Node (scripts/play-state.test.mjs).
 
@@ -19,8 +19,8 @@ export interface MenuActions {
   primary(): void;
   /** A dialogue blocks play (the pointer stays locked). */
   dialogue(): boolean;
-  /** Confirms it: it goes. */
-  confirm(): void;
+  /** Answers it, and it goes: accepted with its button (Enter), or not (Esc). */
+  confirm(accepted: boolean): void;
 }
 
 export class PlayState {
@@ -89,7 +89,7 @@ export class PlayState {
         if (resume) this.resume();
       } else if (locked) {
         this.menu.release();
-        if (this.menu.dialogue()) this.menu.confirm();
+        if (this.menu.dialogue()) this.menu.confirm(false);
       }
       else if (repeat) return true;
       else if (this.panel) this.resume();
@@ -100,7 +100,7 @@ export class PlayState {
     if (code !== 'Enter' && code !== 'NumpadEnter') return false;
     // A dialogue in play: Enter confirms it and is no game key.
     if (locked && this.menu.dialogue()) {
-      if (down && !repeat) this.menu.confirm();
+      if (down && !repeat) this.menu.confirm(true);
       return true;
     }
     if (locked || this.panel) return false;

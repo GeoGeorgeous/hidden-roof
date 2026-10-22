@@ -45,7 +45,9 @@ export const MESSAGES = {
 
   /** Blocks play until confirmed. */
   dialogue: {
-    sessionLost: "You're playing alone now; your paint is kept",
+    /** The session's link is gone for good (net/multiplayer.ts). Enter saves the session's paint as a file and leaves; Esc leaves without. */
+    serverLost: 'Server not responding',
+    serverLostAction: 'SAVE PAINT AND LEAVE',
     /** The frame loop threw (frame-guard.ts): its own card with a Reload button. */
     frameFailed: 'Something broke. Reload the page to go on.',
   },

@@ -140,13 +140,15 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
     say(text ?? '', s.state === 'failed', s.state === 'failed');
     // In play the link's loss is a chip, as long as it lasts; a session lost mid-play is a dialogue in its place (the menu's line above says either with the page open). A failed JOIN or HOST stays on the page.
     if (s.state === 'reconnecting') notify.set({ key: 'net', kind: 'status', lines: [msg('chip.reconnecting', { n: s.tries })], spin: true });
-    else if (s.state === 'failed' && s.code) notify.set({ key: 'net', kind: 'error', lines: [msg('dialogue.sessionLost')] });
+    else if (s.state === 'failed' && s.code) notify.set({ key: 'net', kind: 'error', lines: [msg('dialogue.serverLost')], action: msg('dialogue.serverLostAction') });
     else notify.clear('net');
     if (text) hud.notice(text, s.state === 'connecting' || s.state === 'reconnecting' ? Infinity : undefined);
     else if (s.state === 'in') hud.notice(msg('menu.session', { code: s.code }), 0);
   };
   net.onHealth = (h) => (h ? notify.set({ key: 'net', kind: 'status', lines: [msg(`chip.${h.id}`)] }) : notify.clear('net'));
   net.onEnd = () => hud.toTitle();
+  // Enter on the lost session's dialogue saves its paint and leaves; Esc leaves (the menu opens).
+  notify.onConfirm = (key, accepted) => key === 'net' && void net.resolveLoss(accepted);
   net.onPlayer = (who, joined) => notify.event(msg(joined ? 'toast.joined' : 'toast.left', { user: who.replaceAll('*', '') }));
   hud.onLeave = () => net.leave();
   hud.sessionInfo = () => ({ ping: net.ping, players: net.players.map((p) => ({ name: p.name, color: p.color && COLORS[p.color] })) });

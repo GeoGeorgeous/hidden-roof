@@ -46,7 +46,7 @@ Hint texts to use: `[W][A][S][D] move · [SHIFT] run · [SPACE] jump`; a tool in
 Three distinct directions, from close to today's HUD to close to the ESC menu. Each as static HTML/CSS over the screenshots:
 
 1. **The scene:** the marker hint (step 2) with the "+ MARKER" toast and the hotbar, over a light ground (`1280x720-toast-hotbar-tools.jpg`) and a dark one (the same with black paint under the hint).
-2. **Messages:** a stack of three toasts, the status chip "reconnecting", and the blocking error "you're playing alone now; your paint is kept", in play.
+2. **Messages:** a stack of three toasts, the status chip "reconnecting", and the blocking error "server not responding", with a button to save the paint and leave, in play.
 
 With each direction: two lines on why. Then answer:
 

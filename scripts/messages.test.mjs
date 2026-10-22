@@ -5,7 +5,7 @@ import { MESSAGES, msg, msgLines } from '../src/messages.ts';
 
 assert.equal(msg('toast.joined', { user: 'Geo' }), '**Geo** joined');
 assert.equal(msg('chip.reconnecting', { n: 3 }), 'Trying to reconnect · Attempt #3');
-assert.equal(msg('dialogue.sessionLost'), "You're playing alone now; your paint is kept");
+assert.equal(msg('dialogue.serverLost'), 'Server not responding');
 // A missing value stays as {name}; an extra one is ignored.
 assert.equal(msg('toast.pickedUp'), 'You picked up **{item}**');
 assert.equal(msg('toast.left', { user: 'A', other: 1 }), '**A** left');

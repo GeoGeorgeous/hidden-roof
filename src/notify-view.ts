@@ -89,13 +89,13 @@ export class NotifyView {
     this.events.style.setProperty('--hint-lines', String(Math.max(1, lines.length)));
     this.toasts.replaceChildren(...notes.filter((n) => n.kind === 'event').map((n) => box('', rich(n.lines[0]))));
     const error = notes.find((n) => n.kind === 'error');
-    this.drawDialogue(error?.lines[0] ?? null);
+    this.drawDialogue(error ? error.lines[0] : null, error?.action ?? 'OK');
     // A dialogue takes the place of the chip it replaces: that one cuts out.
     this.drawChips(notes.filter((n) => n.kind === 'status'), !!error);
   }
 
-  /** The dimming and a box where the chips are: a dot, the text, OK and the key that presses it (Enter, handled by play-state.ts). It fades in and out like a chip. */
-  private drawDialogue(text: string | null) {
+  /** The dimming and a box where the chips are: a dot, the text, its button (OK) and the key that presses it (Enter, handled by play-state.ts). It fades in and out like a chip. */
+  private drawDialogue(text: string | null, action: string) {
     if (text === null) {
       if (this.dialogueShown === null || this.dialogueTimer !== undefined) return;
       this.dialogue.classList.remove('on');
@@ -104,10 +104,11 @@ export class NotifyView {
     }
     clearTimeout(this.dialogueTimer);
     this.dialogueTimer = undefined;
-    if (text !== this.dialogueShown) {
+    const shown = text + '\n' + action;
+    if (shown !== this.dialogueShown) {
       const fresh = this.dialogueShown === null;
-      this.dialogueShown = text;
-      this.dialogue.replaceChildren(el('div', 'dim'), box('dialogue', [el('i'), box('', rich(text)), el('span', 'ok', 'OK'), el('span', 'key', 'Enter')]));
+      this.dialogueShown = shown;
+      this.dialogue.replaceChildren(el('div', 'dim'), box('dialogue', [el('i'), box('', rich(text)), el('span', 'ok', action), el('span', 'key', 'Enter')]));
       // Laid out once off, so the next change fades in.
       if (fresh) void this.dialogue.offsetWidth;
     }

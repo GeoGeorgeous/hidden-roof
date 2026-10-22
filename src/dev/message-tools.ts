@@ -51,7 +51,7 @@ export class MessageTools {
       case 'pickup':
         return n.event(msg('toast.pickedUp', { item: pick(ITEMS) }));
       case 'dialogue':
-        return n.set({ key: 'net', kind: 'error', lines: [msg('dialogue.sessionLost')] });
+        return n.set({ key: 'net', kind: 'error', lines: [msg('dialogue.serverLost')], action: msg('dialogue.serverLostAction') });
     }
   }
 }

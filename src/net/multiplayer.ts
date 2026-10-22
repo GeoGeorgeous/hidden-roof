@@ -10,6 +10,8 @@ import { decodeOps, encodeOps, SurfaceIndex } from '../op-wire';
 import { playSessionLevel, type MultiplayerContext } from './game-context';
 import { keepSolo, restoreSolo, type Solo } from './solo';
 import { LinkHealth, type LinkStatus } from './link-health';
+import { download, stamp } from '../files';
+import { savePaint } from '../save/save-paint';
 import { Outbox } from './outbox';
 import { Sender } from './sender';
 import { ServerLink } from './server-link';
@@ -73,6 +75,8 @@ export class Multiplayer {
   private restoring: Promise<void> = Promise.resolve();
   /** Counts the sessions ended: a HOST or JOIN waiting for the restore is dropped by LEAVE. */
   private attempt = 0;
+  /** A session lost for good while playing: the game still holds the session's paint, and the player's own level waits to come back until they choose (resolveLoss). */
+  private lost: { solo: Solo; name: string } | null = null;
   private health = new LinkHealth();
   private healthNext = 0;
   private healthShown: LinkStatus | null = null;
@@ -117,6 +121,8 @@ export class Multiplayer {
 
   /** `start` once the player's own level is back from the last session (it reads the level), unless the session was left meanwhile; connecting is shown at once. */
   private afterRestore(start: () => void) {
+    // Starting another session is a choice to leave without saving.
+    void this.resolveLoss(false);
     const attempt = this.attempt;
     if (!this.joined) this.setStatus({ state: 'connecting' });
     void this.restoring.then(() => attempt === this.attempt && start());
@@ -327,7 +333,11 @@ export class Multiplayer {
     this.setStatus({ state: 'in', code: w.code });
   }
 
-  /** Out of the session: single player again, with the paint the player had before it (nothing of the session's stays; SAVE has it). */
+  /**
+   * Out of the session: single player again, with the paint the player had before it (nothing of the session's stays; SAVE has it).
+   * A session lost for good while playing (a failure after the welcome) is different: the player stays in the game with the session's
+   * paint, which the dialogue offers to save, and their own level and paint come back when they answer it (resolveLoss).
+   */
   private end(status: NetStatus) {
     // A failure after the welcome says which session it cost the player (a failed JOIN or HOST has none).
     if (status.state === 'failed' && this.joined) status = { ...status, code: this.joined.code };
@@ -337,7 +347,8 @@ export class Multiplayer {
     this.onProgress(null);
     // A welcome locks it before the player is in (its paint still loading): unlocked whatever the stage.
     this.g.lockDetail(null);
-    if (this.joined) {
+    const was = this.joined;
+    if (was) {
       this.remotes.clear();
       this.g.level.setRuntime(session.player, null);
       this.sender.end();
@@ -349,11 +360,38 @@ export class Multiplayer {
     this.setStatus(status);
     const solo = this.solo;
     this.solo = null;
-    // In the queue: after the message being handled (a welcome loading paint) and the ones waiting, and before any that comes later.
-    if (solo) this.restoring = this.queue = this.queue.then(() => this.restore(solo)).catch(console.error);
+    if (!solo) return;
+    if (was && status.state === 'failed') this.lost = { solo, name: was.levelName };
+    else this.restoreSoon(solo, true);
   }
 
-  private async restore(solo: Solo) {
+  /**
+   * The answer to the lost session's dialogue: `save` first writes the session's paint as a file (the link is down, so not SAVE), then the
+   * player's own level and paint come back. The player stays in play; the menu is not sent to its title.
+   */
+  async resolveLoss(save: boolean) {
+    const lost = this.lost;
+    if (!lost) return;
+    this.lost = null;
+    if (save) {
+      try {
+        const bytes = await savePaint(this.g.paint, { name: lost.name });
+        download(new Blob([bytes as BlobPart]), `${lost.name}-${stamp(new Date())}.rhhpaint`);
+      } catch (err) {
+        console.error(err);
+        this.log.add(`couldn't save the paint of the lost session: ${err}`);
+      }
+    }
+    this.restoreSoon(lost.solo, false);
+  }
+
+  /** In the queue: after the message being handled (a welcome loading paint) and the ones waiting, and before any that comes later. `title`: the menu goes to its title view after, unless a HOST or JOIN began meanwhile. */
+  private restoreSoon(solo: Solo, title: boolean) {
+    const attempt = this.attempt;
+    this.restoring = this.queue = this.queue.then(() => this.restore(solo, title && (() => attempt === this.attempt && this.status.state !== 'connecting'))).catch(console.error);
+  }
+
+  private async restore(solo: Solo, title: false | (() => boolean)) {
     session.joining = true;
     try {
       await restoreSolo(this.g, solo);
@@ -362,7 +400,7 @@ export class Multiplayer {
       this.log.add(`couldn't bring back the paint from before the session: ${err}`);
     }
     session.joining = this.status.state === 'connecting';
-    this.onEnd();
+    if (title && title()) this.onEnd();
   }
 
   /**
