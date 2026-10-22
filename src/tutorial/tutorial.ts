@@ -65,6 +65,11 @@ export class Tutorial {
     this.show(null);
   }
 
+  /** Something was learnt: Show hints again has something to forget. */
+  anyLearnt() {
+    return this.done.size > 0;
+  }
+
   isLearnt(id: string) {
     return this.done.has(id);
   }

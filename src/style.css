@@ -855,6 +855,15 @@
   background: rgba(235, 229, 214, 0.16);
   color: #fff;
 }
+/* An action with nothing to do (Show hints again, before anything was learnt). */
+.overlay .action-cell .btn:disabled,
+.overlay .action-cell .btn:disabled:hover {
+  border-color: rgba(235, 229, 214, 0.3);
+  background: rgba(10, 10, 12, 0.45);
+  color: var(--paper);
+  opacity: 0.45;
+  cursor: default;
+}
 /* Settings → Controls (controls-tab.ts): groups of rows, each with two key slots. */
 .overlay .rows.own {
   width: min(680px, calc(100% - 32px));

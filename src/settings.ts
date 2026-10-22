@@ -86,8 +86,8 @@ export class Settings {
     Object.assign(SKYLINE, CITY_DETAIL[this.city]);
   }
 
-  /** The settings page (pause menu → SETTINGS): one section per tab. Every change is saved. `gpu`: what the game draws with; `runTest`: the performance test; `resetHints`: forget the hints learnt. */
-  sections(gpu: GpuInfo, runTest: () => void, resetHints: () => void): SettingSection[] {
+  /** The settings page (pause menu → SETTINGS): one section per tab. Every change is saved. `gpu`: what the game draws with; `runTest`: the performance test; `hints`: the tutorial. */
+  sections(gpu: GpuInfo, runTest: () => void, hints: Hints): SettingSection[] {
     const saving = (row: SettingRow): SettingRow => {
       if (row.kind === 'choice') return { ...row, step: (d) => (row.step(d), this.save()) };
       if (row.kind === 'range') return { ...row, set: (v) => (row.set(v), this.save()) };
@@ -95,7 +95,7 @@ export class Settings {
       return row;
     };
     return [
-      { title: 'Gameplay', rows: gameplayRows(resetHints).map(saving) },
+      { title: 'Gameplay', rows: gameplayRows(hints).map(saving) },
       { title: 'Sound', rows: soundRows().map(saving) },
       { title: 'Controls', rows: [], tab: new ControlsTab(() => this.save()) },
       { title: 'Graphics', rows: [{ kind: 'action', label: 'Performance test', desc: 'Flies over the roof for a few seconds at your current settings and shows how it ran.', button: 'Run', act: runTest }, ...this.graphicsRows(gpu).map(saving)] },
@@ -306,7 +306,7 @@ type Cost = 'LOW' | 'MEDIUM' | 'HIGH';
 export type SettingRow =
   | (RowBase & { kind: 'choice'; value: () => string; step: (d: number) => void; locked?: () => boolean })
   | (RowBase & { kind: 'info'; value: () => string })
-  | (RowBase & { kind: 'action'; button: string; act: () => void; /** The button says this for a moment after it's pressed. */ done?: string })
+  | (RowBase & { kind: 'action'; button: string; act: () => void; /** The button says this for a moment after it's pressed. */ done?: string; /** The button can be pressed. */ enabled?: () => boolean })
   | (RowBase & { kind: 'range'; min: number; max: number; step: number; def: number; get: () => number; set: (v: number) => void; format: (v: number) => string });
 /** A tab that builds its own page (Controls): its rows' column, its footer line and a control top right; `open` readies it each time it shows, `close` when it goes. */
 export interface OwnTab {
@@ -322,12 +322,18 @@ export interface SettingSection {
   tab?: OwnTab;
 }
 
+/** What Settings needs of the tutorial: forgetting what was learnt, and whether there is any. */
+interface Hints {
+  reset(): void;
+  anyLearnt(): boolean;
+}
+
 /** An On / Off choice. */
 function toggle(label: string, get: () => boolean, set: (on: boolean) => void, cost?: Cost, desc?: string): SettingRow {
   return { kind: 'choice', label, cost, desc, value: () => (get() ? 'On' : 'Off'), step: () => set(!get()) };
 }
 
-function gameplayRows(resetHints: () => void): SettingRow[] {
+function gameplayRows(hints: Hints): SettingRow[] {
   return [
     {
       kind: 'range',
@@ -354,7 +360,7 @@ function gameplayRows(resetHints: () => void): SettingRow[] {
       format: (v) => (v ? `+${v}°` : 'Off'),
     },
     toggle('Hints', () => TUTORIAL.enabled, (on) => (TUTORIAL.enabled = on), undefined, 'Short lines at the bottom of the screen that teach a control when you need it, and go once you have done it.'),
-    { kind: 'action', label: 'Show hints again', desc: 'Forget the hints you have learnt: they come back as you play.', button: 'Show', act: resetHints, done: msg('menu.hintsReset') },
+    { kind: 'action', label: 'Show hints again', desc: 'Forget the hints you have learnt: they come back as you play.', button: 'Show', act: () => hints.reset(), enabled: () => hints.anyLearnt(), done: msg('menu.hintsReset') },
     toggle('Show left hand', () => WALL_HAND.enabled, (on) => (WALL_HAND.enabled = on), undefined, 'Your free hand rests on walls you stand close to. It may get in the way of what you paint.'),
   ];
 }

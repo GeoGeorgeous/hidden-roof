@@ -88,12 +88,14 @@ export class SettingsPage {
       const cell = div('action-cell');
       const button = action(row.button, () => {
         row.act();
+        this.sync();
         if (!row.done) return;
         relabel(button, row.done);
         clearTimeout(done);
         done = window.setTimeout(() => relabel(button, row.button), DONE_MS);
       });
       let done = 0;
+      if (row.enabled) this.syncs.push(() => (button.disabled = !row.enabled!()));
       cell.append(button);
       return settingRow(row.label, cell, row);
     }
