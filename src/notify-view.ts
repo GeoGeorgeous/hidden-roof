@@ -118,7 +118,7 @@ export class NotifyView {
   private drawHint(lines: readonly string[]) {
     if (!lines.length) return this.hint.replaceChildren();
     const group = (className: string) => box(className, lines.map((l) => box('', rich(l))));
-    this.hint.replaceChildren(box('hint', [group('hint-boxes'), group('hint-text')]));
+    this.hint.replaceChildren(box('subtitle', [group('hint-boxes'), group('hint-text')]));
   }
 
   /** A chip stays while its key is set, its text rewritten in place; a new one fades in, a cleared one fades out and goes. */

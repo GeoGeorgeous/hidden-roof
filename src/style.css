@@ -1877,7 +1877,7 @@ body.paused .layer-dialogue {
 .layer-event b {
   font-weight: 700;
 }
-.hint,
+.subtitle,
 .hint-boxes,
 .hint-text,
 .toasts {
@@ -1886,13 +1886,13 @@ body.paused .layer-dialogue {
   align-items: center;
   white-space: nowrap;
 }
-.hint,
+.subtitle,
 .toasts {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
 }
-.hint {
+.subtitle {
   bottom: var(--hint-bottom);
 }
 .hint-boxes > div,
