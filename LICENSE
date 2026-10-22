@@ -5,7 +5,8 @@ Copyright (c) 2026 Hidden Haus. All rights reserved.
 
 THIS IS NOT AN OPEN-SOURCE LICENSE. The repository is public so that people can
 read the code, report bugs and propose fixes. It grants no right to reuse,
-redistribute, host or build on the Software.
+redistribute, host or build on the Software. Playing the game at
+roof.hidden.haus is governed by its Terms of Service, not by this License.
 
 1. Definitions
 --------------
@@ -14,7 +15,7 @@ Hidden Roof under the Hidden Haus brand, reachable at roof@hidden.haus.
 
 "Software" means everything in this repository, in source and built form: code,
 shaders, levels, models, textures, user interface, text and documentation,
-except the third-party components listed in Section 6.
+except the third-party components described in Section 6.
 
 "You" means anyone who views, downloads or otherwise uses the Software.
 
@@ -84,11 +85,9 @@ Sections 3, 4, 7 and 8 survive termination.
 
 6. Third-Party Components
 -------------------------
-The Software includes third-party components under their own licenses: three.js
-and ws (MIT License), fonts (SIL Open Font License 1.1 and Apache License 2.0)
-and Tabler Icons (MIT License). Their license texts are in public/licenses/ and
-in the game's Credits. This License does not limit your rights under those
-licenses.
+The Software includes third-party components under their own licenses. They
+are listed in the game's Credits, and their license texts are in
+public/licenses/. This License does not limit your rights under those licenses.
 
 7. No Warranty; Limitation of Liability
 ---------------------------------------
@@ -103,9 +102,11 @@ TO LIFE, BODY OR HEALTH, OR ANY OTHER LIABILITY THAT CANNOT BE LIMITED BY LAW.
 
 8. Governing Law
 ----------------
-This License is governed by the laws of Georgia, without regard to its conflict
-of law rules. This does not deprive you of the protection of mandatory laws of
-your country of habitual residence.
+This License is governed by the laws of the country of Georgia, without regard
+to its conflict of law rules. The courts of Tbilisi, Georgia, have jurisdiction;
+Hidden Haus may also bring a claim in the courts of your country. This does not
+deprive you of the protection of mandatory laws, or of the courts, of your
+country of habitual residence.
 
 9. Contact
 ----------
