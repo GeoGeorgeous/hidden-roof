@@ -15,6 +15,13 @@
   font-weight: 400 600;
   font-display: swap;
 }
+/* Variable: weights 500 to 700 in one file. In-game hints and toasts. */
+@font-face {
+  font-family: 'Montserrat';
+  src: url('/fonts/montserrat.woff2') format('woff2');
+  font-weight: 500 700;
+  font-display: swap;
+}
 
 :root {
   --ui: #141416;

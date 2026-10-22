@@ -12,6 +12,11 @@ Google Fonts' latin subset, variable weight (400 to 600 used), for the loading s
 status line and the ESC menu's text (style.css). Fetch it again with
 css2?family=Archivo:wght@400;500;600 (the latin block's file).
 
+montserrat.woff2: Montserrat, by Julieta Ulanovsky and others, licensed under the SIL Open
+Font License 1.1. Google Fonts' latin subset, variable weight (500 to 700 used), for the
+in-game hints and toasts. Fetch it again with css2?family=Montserrat:wght@500..700 (the
+latin block's file).
+
 Hint fonts, for build mode's hints painted on walls (src/build/hint-fonts.ts), loaded only
 in build mode. Each is a Google Fonts subset (css2?family=...&text=...): ASCII and a few
 quotes and dashes.

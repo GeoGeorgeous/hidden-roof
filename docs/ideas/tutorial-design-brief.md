@@ -2,7 +2,7 @@
 
 For the designer: everything needed is here and in the files below. (In the repo, the code spec is `docs/ideas/tutorial.md`, BL-092; not needed for this task.)
 
-Round 1 is done: the owner's decision (hint, chip, toast, dialogue) is in `docs/ideas/tutorial.md`, Look. This brief is kept as it was sent.
+Round 1 is done: the owner's decision (hint, chip, toast, dialogue) is in `docs/ideas/tutorial.md`, In-game UI. This brief is kept as it was sent.
 
 ## What
 

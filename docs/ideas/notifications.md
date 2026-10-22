@@ -27,7 +27,7 @@ From the audit of 2026-10-17 (module M4, skipped for 1.4.0). Nothing here is dec
 
 ## Order (audit plan)
 
-BL-092 (1.5.0, `docs/ideas/tutorial.md`) takes a cut of steps 1 and 2 first: the model and `src/notify.ts` with the event and advice kinds, the toasts moved onto events. Statuses, blocking errors, surfaces other than play and the rest stay here. One designer brief covers both (`docs/ideas/tutorial-design-brief.md`). The look of all four components (hint, chip, toast, dialogue) is decided: `docs/ideas/tutorial.md`, Look.
+BL-092 (1.5.0, `docs/ideas/tutorial.md`) takes a cut of steps 1 and 2 first: the model and `src/notify.ts` with all four kinds in play (hint, chip, toast, dialogue), the toasts moved onto events. Surfaces other than play and the rest stay here. One designer brief covers both (`docs/ideas/tutorial-design-brief.md`). The look of all four components (hint, chip, toast, dialogue) is decided and all four are built in BL-092: `docs/ideas/tutorial.md`, In-game UI.
 
 
 1. Settle the model and write the designer brief (F4.1, F4.7, F4.10, F4.12). Questions: kinds and surfaces the right cut? A blocking error in play: pause into the menu or a HUD line? Battery notices? A badge in the tab title while hidden? Coalescing window and maximum age?
