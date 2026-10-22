@@ -137,7 +137,7 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
     const text = known && detail ? `${known} (${detail})` : known;
     say(text ?? '', s.state === 'failed', s.state === 'failed');
     // In play the link's loss is a chip, as long as it lasts (the menu's line above says it with the page open).
-    if (s.state === 'reconnecting') notify.set({ key: 'net', kind: 'status', lines: [`Trying to reconnect · Attempt #${s.tries}`] });
+    if (s.state === 'reconnecting') notify.set({ key: 'net', kind: 'status', spin: true, lines: [`Trying to reconnect · Attempt #${s.tries}`] });
     else notify.clear('net');
     if (text) hud.notice(text, s.state === 'connecting' || s.state === 'reconnecting' ? Infinity : undefined);
     else if (s.state === 'in') hud.notice(`Session · ${s.code}`, 0);

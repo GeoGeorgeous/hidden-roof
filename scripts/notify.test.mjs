@@ -94,4 +94,28 @@ const play = (n, seconds) => n.update(seconds, true);
   assert.equal(n.shown(), a);
 }
 
-console.log('notify: ok (toast queue and clock, hint by rank, keyed chips)');
+// A dialogue replaces the chip with its key, blocks until confirmed (one at a time), and the hook hears which.
+{
+  const n = new Notify();
+  const heard = [];
+  n.onConfirm = (key) => heard.push(key);
+  n.set({ key: 'net', kind: 'status', spin: true, lines: ['Trying to reconnect · Attempt #2'] });
+  assert.equal(n.blocked, false);
+  assert.equal(n.shown()[0].spin, true);
+  n.set({ key: 'net', kind: 'error', lines: ['You are playing alone now'] });
+  assert.deepEqual(texts(n, 'status'), []);
+  assert.deepEqual(texts(n, 'error'), ['You are playing alone now']);
+  assert.equal(n.blocked, true);
+  n.set({ key: 'other', kind: 'error', lines: ['second'] });
+  assert.deepEqual(texts(n, 'error'), ['You are playing alone now']);
+  play(n, 1000);
+  assert.equal(n.blocked, true);
+  n.confirm();
+  assert.deepEqual(texts(n, 'error'), ['second']);
+  n.confirm();
+  n.confirm();
+  assert.equal(n.blocked, false);
+  assert.deepEqual(heard, ['net', 'other']);
+}
+
+console.log('notify: ok (toast queue and clock, hint by rank, keyed chips, dialogue)');

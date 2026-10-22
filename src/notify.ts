@@ -7,7 +7,7 @@ import type { Action } from './input.ts';
 //           rank first, then the oldest; the others wait, still set
 //   event   a toast: a few seconds, newest last; a full stack drops the oldest
 //   status  a chip: keyed, shown while set; the first NOTIFY.maxChips show
-//   error   keyed and typed only: no display yet
+//   error   a dialogue: keyed, blocks play until confirmed (confirm); one shows, the rest wait
 // The clock runs only while play is visible (update): a message that arrives or
 // runs while a menu is open or the tab is hidden is seen in full after.
 // Text marks bold parts with **double stars** (key names, item and player names).
@@ -22,6 +22,8 @@ export interface Note {
   lines: readonly string[];
   /** Advice only: higher shows first. */
   rank: number;
+  /** A status chip with a spinner: something is going on, not just true. */
+  spin?: boolean;
 }
 
 interface Held extends Note {
@@ -35,6 +37,7 @@ export interface Setting {
   kind: Exclude<Kind, 'event'>;
   lines: string[];
   rank?: number;
+  spin?: boolean;
 }
 
 /**
@@ -52,6 +55,8 @@ export function resolveLine(line: string, label: (action: Action) => string) {
 export class Notify {
   /** Changes whenever what shows could have changed. */
   version = 0;
+  /** Called with the key of an error the player confirmed (Enter) or left for the menu (Esc). */
+  onConfirm: (key: string) => void = () => {};
   private notes: Held[] = [];
   private cache: readonly Note[] = [];
   private cacheVersion = -1;
@@ -59,16 +64,17 @@ export class Notify {
   private ids = 0;
 
   /** Sets a keyed message, or replaces the text of the one with this key (it keeps its age). */
-  set({ key, kind, lines, rank = 0 }: Setting) {
+  set({ key, kind, lines, rank = 0, spin }: Setting) {
     const same = this.notes.find((n) => n.key === key);
     if (same && same.kind === kind) {
-      if (same.rank === rank && same.lines.join('\n') === lines.join('\n')) return;
+      if (same.rank === rank && same.spin === spin && same.lines.join('\n') === lines.join('\n')) return;
       same.rank = rank;
+      same.spin = spin;
       same.lines = lines;
       same.id = ++this.ids;
     } else {
       if (same) this.clear(key);
-      this.notes.push({ id: ++this.ids, key, kind, lines, rank, until: 0 });
+      this.notes.push({ id: ++this.ids, key, kind, lines, rank, spin, until: 0 });
     }
     this.version++;
   }
@@ -78,6 +84,19 @@ export class Notify {
     if (i < 0) return;
     this.notes.splice(i, 1);
     this.version++;
+  }
+
+  /** An error is up: play is blocked until it's confirmed. */
+  get blocked() {
+    return this.notes.some((n) => n.kind === 'error');
+  }
+
+  /** The player confirmed the dialogue on screen: it goes, and the next error, if any, comes. */
+  confirm() {
+    const error = this.notes.find((n) => n.kind === 'error');
+    if (!error) return;
+    this.clear(error.key);
+    this.onConfirm(error.key);
   }
 
   /** A toast. */

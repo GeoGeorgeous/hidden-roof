@@ -1,6 +1,6 @@
 # Every message in one place (BL-140, in 1.5.0)
 
-The texts live in `src/messages.ts`: one typed object grouped by component (`hint`, `toast`, `chip`, `dialogue`, `hud`, `menu`), a template per entry with `{var}` and `**bold**`; `msg(id, vars)` and `msgLines(id, vars)` fill it. Action names (`{forward}`, `{use}`) stay in the text until display, where `label()` gives the key as bound. To change a text, change it there; this file says where each one shows and when. Callers still hold their own strings today (only the hints read the catalogue); each moves over as its component lands (`docs/ideas/tutorial.md`, Implementation order). The four components: `docs/ideas/tutorial.md`, In-game UI. Only play gets them now; the rest "stays" in its menu or page.
+The texts live in `src/messages.ts`: one typed object grouped by component (`hint`, `toast`, `chip`, `dialogue`, `hud`, `menu`), a template per entry with `{var}` and `**bold**`; `msg(id, vars)` and `msgLines(id, vars)` fill it. Action names (`{forward}`, `{use}`) stay in the text until display, where `label()` gives the key as bound. To change a text, change it there; this file says where each one shows and when. Play's callers (toasts, the low-pressure alert, the hints) read the catalogue; the rest still hold their own strings and each moves over as its component lands (`docs/ideas/tutorial.md`, Implementation order). The four components: `docs/ideas/tutorial.md`, In-game UI. Only play gets them now; the rest "stays" in its menu or page.
 
 Ids are `group.name`. Duration: how long it shows. Tech = technical (a code, a log, for reports).
 
@@ -8,14 +8,14 @@ Ids are `group.name`. Duration: how long it shows. Tech = technical (a code, a l
 
 | Id | Text (today → catalogue) | Where | Trigger | Lasts | Becomes |
 |---|---|---|---|---|---|
-| `toast.pickedUp` | `+ MARKER` → You picked up **{item}** | `main.ts:115` | a pickup collected | `HUD.toastTime` 2.2 s → 3 s | toast |
-| `toast.alreadyHave` | `ALREADY HAVE …` → You already have **{item}** | `pickups.ts:202`, `main.ts:117` | a pickup the player has | same | toast |
-| `toast.ladderBlocked` | The ladder can't stand there | `main.ts:109` | stepladder blocked | same | toast |
-| `toast.screenshot` | Screenshot saved | `main.ts:324` | screenshot key | same | toast |
+| `toast.pickedUp` | `+ MARKER` → You picked up **{item}** | `main.ts` (`pickups.onCollect`) | a pickup collected | `HUD.toastTime` 2.2 s → 3 s | toast |
+| `toast.alreadyHave` | `ALREADY HAVE …` → You already have **{item}** | `main.ts` (`pickups.onBlocked`) | a pickup the player has | same | toast |
+| `toast.ladderBlocked` | The ladder can't stand there | `main.ts` (`tools.ladder.onBlocked`) | stepladder blocked | same | toast |
+| `toast.screenshot` | Screenshot saved | `main.ts` | screenshot key | same | toast |
 | `toast.joined` / `left` | `BOB JOINED` → **{user}** joined / left | `net-menu.ts:143` | a player joins or leaves | same | toast |
-| `toast.unlockedAll` | `+ EVERYTHING` | `dev/devtools.ts:125` | F3 unlock all (dev) | same | toast |
+| `toast.unlockedAll` | `+ EVERYTHING` | `dev/devtools.ts` | F3 unlock all (dev) | same | toast |
 | `hint.*` (13) | move, spray, four tools (take, use), cap, color, climb | `tutorial/hints.ts` | by hint rules | by kind | hint |
-| `hud.lowPressure` | LOW PRESSURE — HOLD [{shake}] TO SHAKE | `hud.ts:59,151` | can pressure low | while low | stays (tool-hand alert, a state) |
+| `hud.lowPressure` | LOW PRESSURE — HOLD [{shake}] TO SHAKE | `hud.ts` | can pressure low | while low | stays (tool-hand alert, a state) |
 | `hud.noteAway` / `noteDropped` / `noteSilent` | AWAY / DISCONNECTED / NO SIGNAL | `net/remotes.ts:17` | another player's state | while true | stays (nameplate) |
 | `menu.net*` (17) | the MULTIPLAYER page's status per state and failure | `net-menu.ts:27-45` | `NetStatus` change | until the next | stays on the page; `netReconnecting` also becomes the chip (`chip.reconnecting`) |
 | `menu.session`, `pauseIdle`, `pauseStart` | Session · CODE / Paused / Click to start | `pause-menu.ts:262`, `net-menu.ts:140` | ESC menu status line | while true | stays in the menu |

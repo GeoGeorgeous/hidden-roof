@@ -31,6 +31,16 @@
 .layer-event {
   z-index: var(--z-event);
 }
+.layer-dialogue {
+  z-index: var(--z-error);
+  opacity: 0;
+  transition: opacity var(--chip-out) ease-in;
+}
+.layer-dialogue.on {
+  opacity: 1;
+  transition-duration: var(--chip-in);
+  transition-timing-function: ease-out;
+}
 
 .vignette {
   position: absolute;
@@ -1776,7 +1786,8 @@ body.paused .layer-tool,
 body.paused .hotbar,
 body.paused .layer-shade,
 body.paused .layer-hint,
-body.paused .layer-event {
+body.paused .layer-event,
+body.paused .layer-dialogue {
   display: none;
 }
 @keyframes blink {
@@ -1949,12 +1960,72 @@ body.paused .layer-event {
 }
 .chip i {
   box-sizing: border-box;
+  width: 6px;
+  height: 6px;
+  border: 1px solid color-mix(in srgb, var(--paper) 55%, transparent);
+  border-radius: 50%;
+}
+/* Something is going on: an 8 px ring with a turning arc. */
+.chip.spin i {
   width: 8px;
   height: 8px;
-  border: 1.5px solid color-mix(in srgb, var(--paper) 25%, transparent);
+  border-width: 1.5px;
+  border-color: color-mix(in srgb, var(--paper) 25%, transparent);
   border-top-color: var(--paper);
-  border-radius: 50%;
   animation: spin 0.9s linear infinite;
+}
+/* A blocking message, where the chip is: the game dims under it (play-state.ts: Enter confirms). */
+.layer-dialogue .dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(14, 14, 16, 0.35);
+}
+.dialogue {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translate(-50%, -4px);
+  transition: transform var(--chip-out) ease-in;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  height: 50px;
+  padding: 6px 6px 6px 18px;
+  border: 1px solid var(--edge);
+  border-radius: 8px;
+  background: var(--glass);
+  color: var(--paper);
+  font: 500 14px var(--sans);
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+.layer-dialogue.on .dialogue {
+  transform: translate(-50%, 0);
+  transition-duration: var(--chip-in);
+  transition-timing-function: ease-out;
+}
+.dialogue i {
+  width: 7px;
+  height: 7px;
+  margin-right: 9px;
+  border-radius: 50%;
+  background: var(--error);
+}
+.dialogue .ok {
+  margin-left: 12px;
+  padding: 10px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 16px;
+  color: rgba(235, 229, 214, 0.75);
+}
+.dialogue .key {
+  margin-left: 8px;
+  padding: 0 5px;
+  border: 1px solid rgba(235, 229, 214, 0.35);
+  border-radius: 3px;
+  font: 600 11px/14px var(--sans);
+  color: rgba(235, 229, 214, 0.6);
 }
 @keyframes spin {
   to {

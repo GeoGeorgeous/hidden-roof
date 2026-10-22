@@ -171,6 +171,8 @@ const play = new PlayState(input, session, {
   page: () => hud.menu.onPage,
   back: () => hud.menu.goBack(),
   primary: () => hud.menu.primary(),
+  dialogue: () => notify.blocked,
+  confirm: () => notify.confirm(),
 });
 input.onMenuKey = (code, down, repeat) => play.key(code, down, repeat);
 guardBrowser(() => !play.paused);
@@ -255,7 +257,7 @@ function step(time: number) {
   // you stand still, but you still fall, your spray lands and paint runs, as
   // others see it.
   const { paused, frozen } = play;
-  const yours = paused ? noInput : input;
+  const yours = paused || notify.blocked ? noInput : input;
   tutorialWire.before();
   if (!frozen) player.update(dt, yours);
   if (player.onGround && player.stride - lastStride > PLAYER.footstepStride) {
