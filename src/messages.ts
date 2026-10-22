@@ -45,15 +45,26 @@ export const MESSAGES = {
     noSignal: 'No signal from the server',
     /** The round trip to the server is long (NET.badPing). */
     badConnection: 'Bad connection',
+    /** The chip's result when reconnecting worked (notify.succeed). */
+    reconnected: 'Reconnected',
   },
 
-  /** Blocks play until confirmed. */
+  /**
+   * Blocks play until answered: a card with a label, a title, a text and a button. The first six end a session the player was in
+   * (net/net-menu.ts maps the failure to one); Enter presses the button, Esc leaves without it, and `esc` names that when it differs.
+   */
   dialogue: {
-    /** The session's link is gone for good (net/multiplayer.ts). Enter saves the session's paint as a file and leaves; Esc leaves without. */
-    serverLost: 'Server not responding',
-    serverLostAction: 'SAVE PAINT AND LEAVE',
-    /** The frame loop threw (frame-guard.ts): its own card with a Reload button. */
-    frameFailed: 'Something broke. Reload the page to go on.',
+    /** The window to rejoin ran out ({minutes} of it). The only one that grows from the reconnecting chip. */
+    serverLost: { label: 'DISCONNECTED', title: 'Server not responding', text: "We couldn't reach the server for {minutes} minutes, so your place in the session is gone.", button: 'Save paint and leave', esc: 'Leave without saving' },
+    sessionEnded: { label: 'SESSION ENDED', title: 'The session has ended', text: 'The server restarted and the session closed with it.', button: 'Save paint and leave', esc: 'Leave without saving' },
+    openedElsewhere: { label: 'OPENED ELSEWHERE', title: 'Opened in another tab', text: 'You joined this session from another tab, so this one left it.', button: 'Got it' },
+    updated: { label: 'UPDATE', title: 'A new version is out', text: 'The game was updated while you were away. Reload the page to play together again.', button: 'Reload page', esc: 'Leave without reloading' },
+    sessionFull: { label: 'SESSION FULL', title: 'The session is full', text: 'Someone took your place while you were reconnecting.', button: 'Save paint and leave', esc: 'Leave without saving' },
+    serverBusy: { label: 'SERVER BUSY', title: 'The server is busy', text: "It couldn't take you back right now. Try joining again later.", button: 'Save paint and leave', esc: 'Leave without saving' },
+    /** Shown with the error as a callout. */
+    networkError: { label: 'NETWORK ERROR', title: 'Something went wrong in the session', text: 'The game hit an error. Copy the network log from the menu to report it.', button: 'Open menu' },
+    /** The frame loop threw (frame-guard.ts); shown with the error and its stack as a callout. */
+    clientError: { label: 'CLIENT ERROR', title: 'The game crashed', text: 'Something broke on your side. Reload the page to keep playing; copy the error below to report it.', button: 'Reload page' },
   },
 
   /** Play's own HUD text that is not one of the four: the tool-hand alert and the other players' nameplate notes. */
@@ -62,6 +73,9 @@ export const MESSAGES = {
     noteAway: 'AWAY',
     noteDropped: 'DISCONNECTED',
     noteSilent: 'NO SIGNAL',
+    /** The dialogue's key caps. */
+    keyEnter: 'ENTER',
+    keyEsc: 'ESC',
     /** Shown far behind for a while (NET.highDelay); the other notes win. */
     noteLagging: 'LAGGING',
   },
@@ -157,20 +171,39 @@ export const MESSAGES = {
 } as const;
 
 type Messages = typeof MESSAGES;
-/** `group.name`: 'toast.joined'. */
-export type MessageId = { [G in keyof Messages]: `${G}.${keyof Messages[G] & string}` }[keyof Messages];
+/** `group.name`: 'toast.joined'. The dialogue's messages have several fields: see dialogueOf. */
+export type MessageId = { [G in Exclude<keyof Messages, 'dialogue'>]: `${G}.${keyof Messages[G] & string}` }[Exclude<keyof Messages, 'dialogue'>];
+export type DialogueId = keyof Messages['dialogue'];
 export type Vars = Record<string, string | number>;
+
+/** A dialogue's text: `esc` is what Esc does when that isn't what the button does. */
+export interface DialogueText {
+  label: string;
+  title: string;
+  text: string;
+  button: string;
+  esc?: string;
+}
+
+/** `{name}` filled from `vars`. A name without a value stays as it is, `{name}` in view, so it is caught. Values go in as plain text. */
+const fill = (line: string, vars: Vars) => line.replace(/\{(\w+)\}/g, (whole, name: string) => (Object.hasOwn(vars, name) ? String(vars[name]) : whole));
 
 const template = (id: MessageId) => {
   const [group, name] = id.split('.') as [keyof Messages, string];
   return (MESSAGES[group] as Record<string, string | readonly string[]>)[name];
 };
 
-/** A message's lines, `{name}` filled from `vars`. A name without a value stays as it is, `{name}` in view, so it is caught. Values go in as plain text. */
+/** A message's lines, filled. */
 export function msgLines(id: MessageId, vars: Vars = {}): string[] {
   const t = template(id);
-  return (typeof t === 'string' ? [t] : t).map((line) => line.replace(/\{(\w+)\}/g, (whole, name: string) => (Object.hasOwn(vars, name) ? String(vars[name]) : whole)));
+  return (typeof t === 'string' ? [t] : t).map((line) => fill(line, vars));
 }
 
 /** A one-line message. */
 export const msg = (id: MessageId, vars: Vars = {}) => msgLines(id, vars).join('\n');
+
+/** A dialogue's label, title, text and button, filled. */
+export function dialogueOf(id: DialogueId, vars: Vars = {}): DialogueText {
+  const d: DialogueText = MESSAGES.dialogue[id];
+  return { label: fill(d.label, vars), title: fill(d.title, vars), text: fill(d.text, vars), button: fill(d.button, vars), esc: d.esc && fill(d.esc, vars) };
+}

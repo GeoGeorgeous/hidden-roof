@@ -394,6 +394,17 @@ export const NOTIFY = {
   shadeOut: 300,
   chipIn: 200,
   chipOut: 160,
+  /** A chip that succeeded shows its result this long (s of play) before it goes. */
+  doneSeconds: 1.5,
+  /** The cycling bars of a chip trying again: one loop and the delay between one bar and the next (ms). */
+  barsLoop: 1200,
+  barsStep: 200,
+  /** A chip growing into the dialogue (ms): the move and resize, with its easing; the chip's content fading out; the card's content fading in, after a delay. */
+  growTime: 320,
+  growEase: 'cubic-bezier(.3,.7,.2,1)',
+  growOut: 100,
+  growIn: 160,
+  growDelay: 200,
   /** The look, live in F3 → Test → Messages (px unless said): the lowest hint box's distance from the bottom, text size and line height, box padding across and down, box opacity. */
   hintBottom: 72,
   fontSize: 12,

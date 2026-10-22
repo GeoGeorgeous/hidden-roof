@@ -6,7 +6,8 @@ import './ts-imports.mjs';
 const { NOTIFY } = await import('../src/config.ts');
 const { Notify } = await import('../src/notify.ts');
 
-const texts = (n, kind) => n.shown().filter((x) => x.kind === kind).map((x) => x.lines.join('|'));
+const texts = (n, kind) => n.shown().filter((x) => x.kind === kind).map((x) => (x.dialogue ? x.dialogue.title : x.lines.join('|')));
+const card = (title, rest = {}) => ({ label: 'LABEL', title, text: 'text', button: 'OK', ...rest });
 const play = (n, seconds) => n.update(seconds, true);
 
 // A pickup and a join in the same moment are both seen, the first above the second, and both go after their time.
@@ -99,14 +100,15 @@ const play = (n, seconds) => n.update(seconds, true);
   const n = new Notify();
   const heard = [];
   n.onConfirm = (key, accepted) => heard.push(`${key}${accepted ? '' : ' (no)'}`);
-  n.set({ key: 'net', kind: 'status', spin: true, lines: ['Trying to reconnect · Attempt #2'] });
+  n.set({ key: 'net', kind: 'status', icon: 'cycle', lines: ['Trying to reconnect · Attempt #2'] });
   assert.equal(n.blocked, false);
-  assert.equal(n.shown()[0].spin, true);
-  n.set({ key: 'net', kind: 'error', lines: ['You are playing alone now'] });
+  assert.equal(n.shown()[0].icon, 'cycle');
+  n.set({ key: 'net', kind: 'error', dialogue: card('You are playing alone now') });
   assert.deepEqual(texts(n, 'status'), []);
   assert.deepEqual(texts(n, 'error'), ['You are playing alone now']);
   assert.equal(n.blocked, true);
-  n.set({ key: 'other', kind: 'error', lines: ['second'] });
+  n.set({ key: 'other', kind: 'error', dialogue: card('second', { callout: 'Error: x', esc: 'Leave' }) });
+  assert.equal(n.shown().find((x) => x.kind === 'error').dialogue.button, 'OK');
   assert.deepEqual(texts(n, 'error'), ['You are playing alone now']);
   play(n, 1000);
   assert.equal(n.blocked, true);
@@ -116,6 +118,30 @@ const play = (n, seconds) => n.update(seconds, true);
   n.confirm();
   assert.equal(n.blocked, false);
   assert.deepEqual(heard, ['net', 'other (no)']);
+}
+
+// A chip that succeeded shows its result (a check, past tense) for NOTIFY.doneSeconds of play, then goes; clock stops while hidden.
+{
+  const n = new Notify();
+  n.succeed('net', 'Reconnected');
+  assert.deepEqual(texts(n, 'status'), [], 'nothing to succeed');
+  n.set({ key: 'net', kind: 'status', icon: 'cycle', lines: ['Trying to reconnect · Attempt #3'] });
+  n.set({ key: 'other', kind: 'status', icon: 'bars', lines: ['Bad connection'] });
+  n.succeed('net', 'Reconnected');
+  const [chip] = n.shown();
+  assert.deepEqual([chip.lines[0], chip.icon, chip.done], ['Reconnected', 'check', true]);
+  assert.equal(n.shown().length, 2, 'the other chip stays');
+  n.update(100, false);
+  play(n, NOTIFY.doneSeconds - 0.1);
+  assert.deepEqual(texts(n, 'status'), ['Reconnected', 'Bad connection']);
+  play(n, 0.2);
+  assert.deepEqual(texts(n, 'status'), ['Bad connection'], 'it goes by itself');
+  // A new state for the key after a success starts a fresh chip; setting the same chip again while done does too.
+  n.set({ key: 'net', kind: 'status', icon: 'cycle', lines: ['Trying to reconnect · Attempt #1'] });
+  n.succeed('net', 'Reconnected');
+  n.set({ key: 'net', kind: 'status', icon: 'cycle', lines: ['Trying to reconnect · Attempt #1'] });
+  play(n, NOTIFY.doneSeconds + 1);
+  assert.deepEqual(texts(n, 'status'), ['Bad connection', 'Trying to reconnect · Attempt #1']);
 }
 
 console.log('notify: ok (toast queue and clock, hint by rank, keyed chips, dialogue)');

@@ -26,8 +26,8 @@ import { capture, encodeSnapshot } from './snapshot';
 // so a reload comes back too, and each tab is its own player. The server
 // keeps what the player carries, and hears when the game is hidden.
 
-/** Why the game isn't in a session: the server said so (Rejection), it never answered, it couldn't handle a message (broken), or diagnose's guess at why it can't be reached. */
-export type Failure = Rejection | 'timeout' | 'broken' | Awaited<ReturnType<typeof diagnose>>['reason'];
+/** Why the game isn't in a session: the server said so (Rejection), it never answered, it couldn't handle a message (broken), the time to rejoin ran out (expired), or diagnose's guess at why it can't be reached. */
+export type Failure = Rejection | 'timeout' | 'broken' | 'expired' | Awaited<ReturnType<typeof diagnose>>['reason'];
 
 /** What the player sees of the link, shown on the menus; `detail`: what was seen (a close code, an HTTP status, tries), for reports. */
 export type NetStatus = { state: 'off' } | { state: 'connecting' } | { state: 'in'; code: string } | { state: 'reconnecting'; code: string; detail: string; tries: number } | { state: 'failed'; reason: Failure; detail?: string; code?: string };
@@ -74,8 +74,8 @@ export class Multiplayer {
   /** Counts the sessions ended: a HOST or JOIN waiting for the restore is dropped by LEAVE. */
   private attempt = 0;
   private health = new LinkHealth();
-  private healthNext = 0;
-  private healthShown: LinkStatus | null = null;
+  /** Tries the link again now, instead of when the wait is over (the browser came back online). */
+  private retryNow: (() => void) | null = null;
 
   constructor(private g: MultiplayerContext) {
     this.remotes = new Remotes(g, this.log);
@@ -87,6 +87,7 @@ export class Multiplayer {
       onEnd: () => this.onEnd(),
     });
     this.sender = new Sender({ capture: (at) => encodeSnapshot(capture(at, g.player, g.inventory, g.tools)), paint: g.paint, level: g.level, owner: () => session.player, inventory: g.inventory });
+    addEventListener('online', () => this.status.state === 'reconnecting' && this.retryNow?.());
     document.addEventListener('visibilitychange', () => this.link?.live && this.send({ type: 'away', away: document.hidden }));
   }
 
@@ -175,7 +176,7 @@ export class Multiplayer {
       this.log.add(`nothing from the server for ${NET.serverSilence} s: closing to reconnect`);
       return link.close();
     }
-    if (t >= this.healthNext) this.checkHealth(t, link.lastHeard);
+    if (this.health.due(t)) this.health.report({ t, ping: this.net.ping, silence: t - link.lastHeard }, this.onHealth);
     if (this.net.measure(t)) this.send({ type: 'ping', t });
     const at = t - this.t0;
     const out = this.sender.update(t, at);
@@ -183,15 +184,6 @@ export class Multiplayer {
     out.messages.forEach((m) => this.send(m));
     const ops = out.tick && this.outbox.batch();
     if (ops) this.sendOps(ops);
-  }
-
-  /** The link's health, a few times a second. */
-  private checkHealth(t: number, heard: number) {
-    this.healthNext = t + NET.healthEvery;
-    const h = this.health.update({ t, ping: this.net.ping, silence: t - heard });
-    if (h?.id === this.healthShown?.id) return;
-    this.healthShown = h;
-    this.onHealth(h);
   }
 
   private connect(hello: Extract<ToServer, { type: 'host' | 'join' }>) {
@@ -207,7 +199,7 @@ export class Multiplayer {
         console.error(err);
         this.log.add(`couldn't handle ${m.type}: ${err}`);
         this.send({ type: 'leave' });
-        this.end({ state: 'failed', reason: 'broken' });
+        this.end({ state: 'failed', reason: 'broken', detail: err instanceof Error ? err.message : String(err) });
       }));
     const link: ServerLink = (this.link = new ServerLink(
       hello,
@@ -240,12 +232,18 @@ export class Multiplayer {
     }
     if (this.status.state !== 'reconnecting') this.retry = { until: now() + SERVER.rejoinWindow, wait: NET.retryFirst, tries: 0 };
     const r = this.retry!;
-    if (now() > r.until) return this.end({ state: 'failed', reason: 'ended', detail: msg('menu.detailNoWayBack', { seconds: SERVER.rejoinWindow }) });
+    if (now() > r.until) return this.end({ state: 'failed', reason: 'expired', detail: msg('menu.detailNoWayBack', { seconds: SERVER.rejoinWindow }) });
     r.tries++;
     this.setStatus({ state: 'reconnecting', code: j.code, detail: msg('menu.detailTry', { code, n: r.tries }), tries: r.tries });
     void why.then((d) => this.status.state === 'reconnecting' && this.joined === j && this.setStatus({ state: 'reconnecting', code: j.code, detail: `${d.detail} · ${msg('menu.detailTry', { code, n: r.tries })}`, tries: r.tries }));
     this.log.add(`trying again in ${r.wait} s (try ${r.tries})`);
-    setTimeout(() => this.joined === j && !this.link && this.connect({ type: 'join', protocol: PROTOCOL, name: j.name, code: j.code, token: j.token }), r.wait * 1000);
+    // After the wait, or at once when the browser says it is back online.
+    const timer = setTimeout(() => this.retryNow?.(), r.wait * 1000);
+    this.retryNow = () => {
+      clearTimeout(timer);
+      this.retryNow = null;
+      if (this.joined === j && !this.link) this.connect({ type: 'join', protocol: PROTOCOL, name: j.name, code: j.code, token: j.token });
+    };
     r.wait = Math.min(r.wait * 2, NET.retryMost);
   }
 
@@ -393,7 +391,7 @@ export class Multiplayer {
     session.joining = s.state === 'connecting';
     this.status = s;
     // The chip of a slow link starts over with the link; the status handler owns the chip from here.
-    if (s.state !== 'in') (this.health.reset(), (this.healthShown = null));
+    if (s.state !== 'in') this.health.reset();
     this.onStatus(s);
   }
 }
