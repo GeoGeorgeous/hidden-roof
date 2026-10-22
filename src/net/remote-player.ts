@@ -8,6 +8,7 @@ import type { PropData } from '../level/level-data';
 import type { PaintOp, PaintOps } from '../paint-ops';
 import { decodeOps, type SurfaceIndex } from '../op-wire';
 import type { Presence } from './protocol';
+import { Flag } from './link-health';
 import { RemoteTimeline, type Pose } from './remote-timeline';
 import { decodeSnapshot } from './snapshot';
 
@@ -36,6 +37,9 @@ export class RemotePlayer {
   /** What the server last said of them. */
   presence: Presence = 'here';
   look: Look = 'here';
+  /** Shown far behind for a while (NET.highDelay): marked on their nameplate. */
+  lagging = false;
+  private lag = new Flag();
   /** Their snapshots and what they did, on their clock. */
   readonly timeline = new RemoteTimeline();
   /** Where they'd be shown without smoothing, last frame, and what's still being smoothed out (shown minus that). */
@@ -109,6 +113,7 @@ export class RemotePlayer {
   update(now: number, dt: number) {
     const st = this.timeline.sample(now, dt);
     if (!st) return;
+    this.lagging = this.lag.step(now, this.timeline.stats.delay, NET.highDelay, NET.highDelayClear, NET.statusHold);
     this.look = this.presence === 'here' && now - this.timeline.heard > NET.silentAfter ? 'silent' : this.presence;
     if (this.look !== 'here') {
       // Head down, empty-handed; gone, slumped and faded.

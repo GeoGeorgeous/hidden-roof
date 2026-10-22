@@ -124,6 +124,20 @@ export function playSections(h: Hooks): Section[] {
       ],
     },
     {
+      id: 'link-status',
+      title: 'Link status',
+      items: [
+        r('bad ping', ['NET', 'badPing'], 0.1, 1, 0.01),
+        r('bad ping: clear', ['NET', 'badPingClear'], 0.05, 1, 0.01),
+        r('status: hold', ['NET', 'statusHold'], 0, 20, 0.5),
+        r('no signal', ['NET', 'noSignal'], 1, 15, 0.5),
+        r('no signal: clear', ['NET', 'noSignalClear'], 0.5, 10, 0.5),
+        r('high delay', ['NET', 'highDelay'], 0.15, 0.45, 0.01),
+        r('high delay: clear', ['NET', 'highDelayClear'], 0.1, 0.45, 0.01),
+        r('check every', ['NET', 'healthEvery'], 0.05, 2, 0.05),
+      ],
+    },
+    {
       id: 'camera',
       title: 'Camera',
       items: [

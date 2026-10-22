@@ -1052,6 +1052,18 @@ export const NET = {
   diagnoseTimeout: 5,
   /** Network log entries kept for COPY NETWORK LOG (net/diagnostics.ts). */
   logLines: 80,
+  /** The link's chip (net/link-health.ts): a chip shows when its value stays past the first number for `statusHold` s, and goes when it stays under the second for as long. */
+  /** How often (s) the link's numbers are checked. */
+  healthEvery: 0.25,
+  badPing: 0.3,
+  badPingClear: 0.2,
+  statusHold: 5,
+  /** Nothing from the server for this long (s) shows "No signal"; it goes at once under the second. The server pings every SERVER.ping; serverSilence then closes the link. */
+  noSignal: 4,
+  noSignalClear: 1.5,
+  /** A remote player shown further behind than this (s, NET.maxDelay caps it) for `statusHold` s is marked LAGGING on their nameplate; it goes under the second for as long (net/remote-player.ts). */
+  highDelay: 0.3,
+  highDelayClear: 0.2,
 };
 
 /** The multiplayer server (server/, docs/deploy.md). */

@@ -37,6 +37,10 @@ export const MESSAGES = {
   /** Top center, one at a time, while true: the link's state. */
   chip: {
     reconnecting: 'Trying to reconnect · Attempt #{n}',
+    /** The server has said nothing for a few seconds (NET.noSignal). */
+    noSignal: 'No signal from the server',
+    /** The round trip to the server is long (NET.badPing). */
+    badConnection: 'Bad connection',
   },
 
   /** Blocks play until confirmed. */
@@ -52,6 +56,8 @@ export const MESSAGES = {
     noteAway: 'AWAY',
     noteDropped: 'DISCONNECTED',
     noteSilent: 'NO SIGNAL',
+    /** Shown far behind for a while (NET.highDelay); the other notes win. */
+    noteLagging: 'LAGGING',
   },
 
   /** The menu, its pages, and the screens before play: they keep their own places. */
@@ -84,6 +90,7 @@ export const MESSAGES = {
     logCopied: 'Network log copied',
     logSaved: 'Network log saved as a file',
     saveBusy: 'The server is busy: save again later',
+    saveDropped: 'The link dropped before the paint came: save again',
     saveReconnecting: 'Reconnecting: save again once back in the session',
     // Progress of HOST, JOIN and SAVE; PLAY shows the short form while joining
     progressSaving: 'Saving paint…',
@@ -91,8 +98,13 @@ export const MESSAGES = {
     progressUploading: 'Uploading paint {percent}',
     progressSavingParts: 'Saving paint {percent}',
     progressDownloading: 'Downloading paint {percent}',
+    progressJoining: 'Joining session…',
+    progressGoingBack: 'Going back in…',
+    progressCreating: 'Creating session…',
+    progressCreatingSave: 'Creating session from the save…',
     progressShort: 'Loading {percent}',
     /** What was seen when a link failed, for reports (technical). */
+    detailWs: 'WS {code}',
     detailTry: 'WS {code} · TRY {n}',
     detailOffline: 'BROWSER OFFLINE',
     detailNoHttp: 'NO HTTP ANSWER IN {seconds} S',
