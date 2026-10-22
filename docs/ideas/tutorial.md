@@ -20,10 +20,10 @@ Facts checked on dev @ 7598b94 (2026-10-22). One hint system with the notificati
 2. **One designer brief** for hints and BL-140's messages.
 3. **One hint at a time.** No `maxShown` setting.
 4. **A switch in Settings → Gameplay** turns hints off. Off doesn't touch the progress; **Show hints again** is a separate action that clears it.
-5. **Pickups:** with hints on, the tool's hint replaces the "+ MARKER" toast; the pickup's NEW TOOL tag stays. With hints off the toast works as today.
+5. **Pickups:** the "+ MARKER" toast and the like stay as they are (legacy) for now, hints on or off; the NEW TOOL tag stays. Whether a hint should replace them is judged later in the game itself.
 6. **Personal hints in single player and in sessions,** progress in the browser.
-7. **Wall hints painted in build mode may name keys,** even though rebinding can make them stale. (The owner's later note; the quick answer to the question read the other way.)
-8. **Thresholds as drafted, simpler where it helps:** moving is learnt after 3 m; a hint may be learnt by time shown instead of an action (a new color: its hint for 5 s).
+7. **Wall typography in build mode is unchanged and out of BL-092:** the owner still paints any text on surfaces, control instructions and `<k>KEY</k>` key caps included. Stale or wrong instructions after a rebinding are the owner's call.
+8. **Two kinds of completion:** by **time** (shown N s: stored as learnt and removed even if the player did nothing; a new color: 5 s) and by **action** (walked N m, a key pressed, jumped, switched to a given tool, used it). Moving is learnt after 3 m.
 9. **English only.** Casing and katakana are the designer's.
 10. **HUD scaling is not BL-092:** TASK-197 (the HUD scales with the window and the DPR). No HUD size setting in BL-092.
 11. **Filed separately:** TASK-197, BUGS-198 (compact F3 menu under tags, hotbar, toast), BUGS-199 (LOW PRESSURE off the edge at 820 px). BUGS-198 and BUGS-199 are checked and closed on their own, never as done because BL-092 changed the layers.
@@ -142,6 +142,7 @@ type Fact =
   | { type: 'used'; tool: Tool; amount: number }  // m drawn/rolled/scrubbed, s sprayed on a surface, 1 = stepladder placed
   | { type: 'colorCycled' } | { type: 'colorPicked' } | { type: 'capCycled' } | { type: 'sized'; tool: Tool }
   | { type: 'climbed'; meters: number }
+  | { type: 'pressed'; action: Action }           // any bound action, from Input.justPressed
   | { type: 'screenshot' };
 
 interface Snapshot {
@@ -163,31 +164,35 @@ interface HintDef {
   rank: 'tool' | 'context' | 'basic'; // new tool > context > basic
   lines: string[];                    // '{use} spray · {shake} shake': {action} becomes its key cap at display time
   show: Cond;                         // when it's wanted
-  done: Cond;                         // when it's learnt
+  done: Done;                         // when it's learnt and goes
   steps?: { lines: string[]; until: Cond }[]; // e.g. "[2] take the marker" until it's in hand
   anchor?: 'hints' | 'world:ladder';  // the hints zone unless said
   after?: string[];                   // shown only once these are learnt
 }
 
+/** By time: shown this many visible seconds, then learnt and removed whatever the player did. By action: learnt when the condition holds. Both: whichever comes first. */
+type Done = { shown: number | keyof typeof TUTORIAL } | { action: Cond } | { shown: number | keyof typeof TUTORIAL; action: Cond };
+
 // A fixed vocabulary; data combines it, so a new hint is a new entry, not new code.
 type Cond =
   | { got: string }                                  // a 'got' fact for this item, ever
   | { has: 'colors' | 'caps'; atLeast: number }
-  | { holding: Tool }
+  | { holding: Tool }                               // in hand (as a done: switched to it)
+  | { pressed: Action }                             // an action's key pressed since the hint was wanted
   | { near: 'ladder' } | { aim: 'otherColor' }
   | { total: Fact['type']; tool?: Tool; atLeast: number | keyof typeof TUTORIAL } // summed while the hint is wanted
   | { event: Fact['type'] }
   | { playedFor: number | keyof typeof TUTORIAL }    // visible seconds
-  | { shownFor: number | keyof typeof TUTORIAL }     // this hint's own visible seconds: learnt by time
   | { all: Cond[] } | { any: Cond[] };
 ```
 
 Rules:
 
-- Hints off (Settings → Gameplay): the tutorial sets nothing and records nothing; the stored progress stays as it is. Show hints again clears it, on or off.
+- Hints off (Settings → Gameplay): the tutorial sets nothing and records nothing; the stored progress stays as it is; turned on again, it shows only what wasn't learnt yet. Show hints again clears it, on or off.
 - Wanted = `show` true, not learnt, `after` learnt. A hint learnt before it was ever shown (the player already knew) is stored silently.
 - One hint shows at a time. A higher rank takes the place of a lower one; the lower one goes back to waiting (its progress kept) and comes back after.
-- A pickup's toast: with hints on, a tool pickup whose hint gets wanted posts no "+ NAME" toast (the hint says it). With hints off, or a tool whose hint is learnt, the toast as today. Colors and caps keep their toast.
+- Pickup toasts ("+ MARKER") are untouched: they go through notify as events, beside the hint.
+- A hint done by time is learnt after its seconds of visible play (paused, F3, build mode and a hidden tab don't count), and goes even if the player did nothing.
 - Context hints are wanted only while their condition holds (near the ladder); they leave without being learnt when it stops, and come back next time.
 - A hint shown at least `TUTORIAL.minShown` s before it can leave as done, so it doesn't flash.
 - Stored under one key, `roofhiddenhaus.tutorial`: `{"v":1,"done":["move","tool.marker"]}`. No storage: an in-memory set, hints come back next load, no errors. "Show hints again" (Settings → Gameplay, an action row like Performance test) clears it.
@@ -217,7 +222,7 @@ Thresholds are `TUTORIAL` config with F3 descriptions; the owner agreed these va
 | `tool.roller` | tool | step `[4]`, then `[LMB]` roll · `[Q]` `[E]` width | `got roller` | `total used roller` ≥ 1 m |
 | `tool.sponge` | tool | step `[5]`, then `[LMB]` scrub paint off · `[Q]` `[E]` size | `got sponge` | `total used sponge` ≥ 0.5 m |
 | `cap` | tool | `[Q]` `[E]` change the cap | `has caps ≥ 2`, can in hand | `capCycled` |
-| `color` | tool | `[WHEEL]` change color | `has colors ≥ 2`, a colored tool in hand | `colorCycled`, `colorPicked`, or `shownFor` 5 s |
+| `color` | tool | `[WHEEL]` change color | `has colors ≥ 2`, a colored tool in hand | shown 5 s (time), or earlier `colorCycled` / `colorPicked` |
 | `ladder.climb` | context | walk into it or hold `[SPACE]` to climb · `[CTRL]` hold on | `near ladder` | `total climbed` ≥ 1.5 m |
 | `pick` | context | `[MMB]` take this color | `aim otherColor`, after `color` | `colorPicked` |
 | `screenshot` | basic | `[K]` save a screenshot | `playedFor` 120 s, after `spray` | `screenshot` |

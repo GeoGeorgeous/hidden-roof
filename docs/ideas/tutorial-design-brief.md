@@ -33,14 +33,14 @@ The same screen already carries other messages: "+ MARKER" when something is pic
 - **Nothing over the crosshair** (screen center), **the hotbar** (bottom center) or **the tool-hand cluster** (follows the tool, right of center, lower half). A hint never covers what it teaches.
 - **The game is fast.** No video, no blur over the moving game for every message; CSS transitions and a few elements are fine.
 - **One hint at a time.** A more important one (a new tool) takes the place of a waiting one, which comes back after.
-- **A picked-up tool:** its hint replaces the "+ MARKER" toast; the NEW TOOL tag on the pickup stays. With hints off in Settings the toast shows as today.
+- **A picked-up tool:** the "+ MARKER" toast stays as it is for now, next to the tool's hint; the NEW TOOL tag stays. Show both together; whether the hint should replace the toast is decided later in the game.
 - **English only.**
 - **Proposed place for hints:** the lower left third, left of the hotbar. Context hints may instead hang on their object in the world (like the pickup tags). Your call.
 
 ## What to draw
 
 1. **Hint kinds:** a basic hint (move, spray), a new-tool hint (two steps: "[2] take the marker", then "[LMB] draw · [Q] [E] nib"), a context hint (by a ladder), a hint pointing at a hotbar slot.
-2. **States:** appearing, waiting (shown a while, player hasn't done it: quieter?), done (a short acknowledgement before it leaves), deferred (a more important one took its place), leaving without done (walked away from the ladder).
+2. **States:** appearing, waiting (some hints go by themselves after 5 s: show that they're timed, or not?) (shown a while, player hasn't done it: quieter?), done (a short acknowledgement before it leaves), deferred (a more important one took its place), leaving without done (walked away from the ladder).
 3. **Key caps:** a key, a long key (`⇧ Shift`, `Space`, `Page Down`), a pair (`[Q] [E]`), four keys (`[W][A][S][D]`), mouse buttons and the wheel (icons or words?), an unbound key.
 4. **One line and multi-line hints;** the longest realistic one: "walk into it or hold [SPACE] to climb · [CTRL] hold on".
 5. **One replacing another:** a new-tool hint arriving while the move hint waits.
