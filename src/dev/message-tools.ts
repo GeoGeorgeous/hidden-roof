@@ -51,7 +51,8 @@ export class MessageTools {
       case 'pickup':
         return n.event(msg('toast.pickedUp', { item: pick(ITEMS) }));
       case 'dialogue':
-        return n.set({ key: 'net', kind: 'error', lines: [msg('dialogue.serverLost')], action: msg('dialogue.serverLostAction') });
+        // Its own key: net-menu answers only the key 'net' (the real lost session), so confirming this one just closes it.
+        return n.set({ key: 'test.dialogue', kind: 'error', lines: [msg('dialogue.serverLost')], action: msg('dialogue.serverLostAction') });
     }
   }
 }
