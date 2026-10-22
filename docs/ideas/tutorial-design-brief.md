@@ -49,7 +49,7 @@ Two families exist: today's HUD and the ESC menu. Hints and messages start from 
 - **The game is fast.** No video, no blur over the moving game for every message; CSS transitions and a few elements are fine.
 - **One hint at a time.** A more important one (a new tool) takes the place of a waiting one, which comes back after.
 - **A picked-up tool:** the "+ MARKER" toast stays as it is for now, next to the tool's hint; the NEW TOOL tag stays. Show both together; whether the hint should replace the toast is decided later in the game.
-- **English only.**
+- **English only,** no katakana under hints (unlike the pickup tags): subtitles read at a glance.
 - **Hints are subtitles.** One line (or two) at the bottom center, just above the hotbar, like film subtitles. While a hint shows, a soft gradient overlay runs the full width of the screen from the bottom edge to a little above the hint, for readability; it fades with the hint. Every hint lives there, context hints too (none hang on objects in the world).
 - **No blur** (no `backdrop-filter`) under hints or messages: a gradient or a flat translucent fill only.
 - **Hints come and go by themselves,** like subtitles: the player never confirms or dismisses one. A simple smooth animation in and out; no "done" acknowledgement, no dimming while waiting.
@@ -68,12 +68,9 @@ Two families exist: today's HUD and the ESC menu. Hints and messages start from 
 ## Questions for you
 
 1. Which direction you recommend of the ones you propose, and why.
-2. Should the rest of the HUD (REC, clock, PSI and the tool tags) follow later, or stay as it is?
-3. Mouse buttons and the wheel: words in key caps, or small icons?
-4. Katakana under the text, as on the pickup tags, or not for hints?
-5. How the hint and toast hold at 820×560 (later scaling is TASK-197).
-6. The tool-hand cluster runs off the right edge in small windows: flip it left, or wrap?
-7. Toasts: where, now that hints take the bottom center (above the hint line, or top)?
+2. Mouse buttons and the wheel: words in key caps, or small icons?
+3. How the hint and toast hold at 820×560 (later scaling is TASK-197).
+4. Toasts: where, now that hints take the bottom center (above the hint line, or top)?
 
 ## What to deliver
 

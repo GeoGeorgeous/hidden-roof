@@ -24,7 +24,7 @@ Facts checked on dev @ 7598b94 (2026-10-22). One hint system with the notificati
 6. **Personal hints in single player and in sessions,** progress in the browser.
 7. **Wall typography in build mode is unchanged and out of BL-092:** the owner still paints any text on surfaces, control instructions and `<k>KEY</k>` key caps included. Stale or wrong instructions after a rebinding are the owner's call.
 8. **Two kinds of completion:** by **time** (shown N s: stored as learnt and removed even if the player did nothing; a new color: 5 s) and by **action** (walked N m, a key pressed, jumped, switched to a given tool, used it). Moving is learnt after 3 m.
-9. **English only.** Casing and katakana are the designer's.
+9. **English only,** no katakana under hints. Casing is the designer's.
 10. **HUD scaling is not BL-092:** TASK-197 (the HUD scales with the window and the DPR). No HUD size setting in BL-092.
 11. **Filed separately:** TASK-197, BUGS-198 (compact F3 menu under tags, hotbar, toast), BUGS-199 (LOW PRESSURE off the edge at 820 px). BUGS-198 and BUGS-199 are checked and closed on their own, never as done because BL-092 changed the layers.
 
@@ -148,11 +148,10 @@ interface Snapshot {
   colors: number; caps: number;
   nearLadder: boolean;       // within TUTORIAL.ladderRadius of a level ladder's volume, not on it
   onLadder: boolean;
-  aimOtherColor: boolean;    // a colored tool in hand, aiming at owned paint of another color (throttled probe)
 }
 ```
 
-New hooks needed (small): `onCollect` passes the kind; `tools` reports color cycle/pick, cap cycle, size steps and use amounts (not via `onColorChange`); the stepladder reports a placement; the eyedropper's probe at `TUTORIAL.aimRate` Hz, not every frame.
+New hooks needed (small): `onCollect` passes the kind; `tools` reports color cycle/pick, cap cycle, size steps and use amounts (not via `onColorChange`); the stepladder reports a placement.
 
 ### A hint as data
 
@@ -163,7 +162,7 @@ interface HintDef {
   lines: string[];                    // '{use} spray · {shake} shake': {action} becomes its key cap at display time
   show: Cond;                         // when it's wanted
   done: Done;                         // when it's learnt and goes
-  steps?: { lines: string[]; until: Cond }[]; // e.g. "[2] take the marker" until it's in hand
+  steps?: { lines: string[]; until: Cond }[]; // e.g. "[2] take the marker" until it's in hand; a step already true is skipped
   after?: string[];                   // shown only once these are learnt
 }
 
@@ -176,7 +175,7 @@ type Cond =
   | { has: 'colors' | 'caps'; atLeast: number }
   | { holding: Tool }                               // in hand (as a done: switched to it)
   | { pressed: Action }                             // an action's key pressed since the hint was wanted
-  | { near: 'ladder' } | { aim: 'otherColor' }
+  | { near: 'ladder' }
   | { total: Fact['type']; tool?: Tool; atLeast: number | keyof typeof TUTORIAL } // summed while the hint is wanted
   | { event: Fact['type'] }
   | { playedFor: number | keyof typeof TUTORIAL }    // visible seconds
@@ -221,10 +220,8 @@ Thresholds are `TUTORIAL` config with F3 descriptions; the owner agreed these va
 | `cap` | tool | `[Q]` `[E]` change the cap | `has caps ≥ 2`, can in hand | `capCycled` |
 | `color` | tool | `[WHEEL]` change color | `has colors ≥ 2`, a colored tool in hand | shown 5 s (time), or earlier `colorCycled` / `colorPicked` |
 | `ladder.climb` | context | walk into it or hold `[SPACE]` to climb · `[CTRL]` hold on | `near ladder` | `total climbed` ≥ 1.5 m |
-| `pick` | context | `[MMB]` take this color | `aim otherColor`, after `color` | `colorPicked` |
-| `screenshot` | basic | `[K]` save a screenshot | `playedFor` 120 s, after `spray` | `screenshot` |
 
-Other context candidates, not in the first set: crouching where a gap needs it (no data in the level yet), sprint for a player who never ran after N minutes, the stepladder when the player stands under a wall top out of reach (needs a reach probe). Low pressure stays the tool stack's alert: it's a state, not advice.
+Dropped by the owner (2026-10-22): the eyedropper hint and the screenshot hint. Other context candidates, not in the first set: crouching where a gap needs it (no data in the level yet), sprint for a player who never ran after N minutes, the stepladder when the player stands under a wall top out of reach (needs a reach probe). Low pressure stays the tool stack's alert: it's a state, not advice.
 
 `move` uses four actions: `{forward}{left}{back}{right}` shows `[W][A][S][D]`, or `[↑][←][↓][→]` if those are first. On AZERTY it's `[Z][Q][S][D]` once the layout map arrives.
 
