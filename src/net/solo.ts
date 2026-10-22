@@ -25,7 +25,7 @@ export async function keepSolo(g: MultiplayerContext): Promise<Solo> {
 }
 
 /** The kept level from its spawn at the player's own PAINT DETAIL, with the paint it had; the session's is gone, free again. */
-export async function restoreSolo(g: MultiplayerContext, solo: Solo) {
+async function restoreSolo(g: MultiplayerContext, solo: Solo) {
   const built = g.paint.texelsPerMeter;
   g.ownDetail();
   playLevel(g, solo.data, solo.name, built, PAINT.texelsPerMeter);
