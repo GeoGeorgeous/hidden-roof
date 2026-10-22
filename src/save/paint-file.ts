@@ -9,6 +9,9 @@
 // the multiplayer join snapshot.
 // Version 2: surface shapes instead of a hash of the whole level (version 1).
 
+// With .ts: Node runs this file as it is (scripts/paint-file.test.mjs).
+import { msg } from '../messages.ts';
+
 const MAGIC = 'RHHP';
 const VERSION = 2;
 
@@ -77,24 +80,24 @@ export type DecodedPaint = { header: PaintFileHeader; body: Uint8Array };
 
 /** A save's header (checked), its packed paint, and the bytes of paint it holds; throws an Error with a message for the player if it's no good. */
 export function readPaintHeader(bytes: Uint8Array, maxBytes = Infinity): { header: PaintFileHeader; packed: Uint8Array; size: number } {
-  if (bytes.length < 8 || new TextDecoder().decode(bytes.subarray(0, 4)) !== MAGIC) throw new Error('NOT A PAINT FILE');
+  if (bytes.length < 8 || new TextDecoder().decode(bytes.subarray(0, 4)) !== MAGIC) throw new Error(msg('menu.paintNotFile'));
   const length = new DataView(bytes.buffer, bytes.byteOffset).getUint32(4, true);
   let header: PaintFileHeader;
   try {
     header = JSON.parse(new TextDecoder().decode(bytes.subarray(8, 8 + length)));
   } catch {
-    throw new Error('BROKEN PAINT FILE');
+    throw new Error(msg('menu.paintBroken'));
   }
-  if (header?.format !== 'rhh-paint') throw new Error('NOT A PAINT FILE');
-  if (!isCount(header.version, 1)) throw new Error('BROKEN PAINT FILE');
-  if (header.version > VERSION) throw new Error('SAVED BY A NEWER VERSION');
-  if (header.version < VERSION) throw new Error('SAVED BY AN OLDER VERSION');
+  if (header?.format !== 'rhh-paint') throw new Error(msg('menu.paintNotFile'));
+  if (!isCount(header.version, 1)) throw new Error(msg('menu.paintBroken'));
+  if (header.version > VERSION) throw new Error(msg('menu.paintNewer'));
+  if (header.version < VERSION) throw new Error(msg('menu.paintOlder'));
   const ok = typeof header.level?.name === 'string' && header.density > 0 && typeof header.surfaces === 'object' && Array.isArray(header.faces);
-  if (!ok || !header.faces.every((f) => isFace(f) && typeof header.surfaces[f.surface] === 'string')) throw new Error('BROKEN PAINT FILE');
+  if (!ok || !header.faces.every((f) => isFace(f) && typeof header.surfaces[f.surface] === 'string')) throw new Error(msg('menu.paintBroken'));
   // The header says how much paint there is: inflating stops past it (a small broken file can't fill memory).
   const size = header.faces.reduce((n, f) => n + faceBytes(f), 0);
   // A header may claim more than memory holds (the server takes files from anyone).
-  if (size > maxBytes) throw new Error('BROKEN PAINT FILE');
+  if (size > maxBytes) throw new Error(msg('menu.paintBroken'));
   return { header, packed: bytes.subarray(8 + length), size };
 }
 
@@ -143,14 +146,14 @@ async function inflate(bytes: Uint8Array, size: number, chunk: (c: Uint8Array) =
   let n = 0;
   const reader = new Blob([bytes as BlobPart]).stream().pipeThrough(new DecompressionStream('deflate')).getReader();
   // Only what the data does is a broken file: an error in `chunk` is its own.
-  const read = () => reader.read().catch(() => Promise.reject(new Error('BROKEN PAINT FILE')));
+  const read = () => reader.read().catch(() => Promise.reject(new Error(msg('menu.paintBroken'))));
   for (let r = await read(); !r.done; r = await read()) {
     if (n + r.value.length > size) {
       await reader.cancel();
-      throw new Error('BROKEN PAINT FILE');
+      throw new Error(msg('menu.paintBroken'));
     }
     n += r.value.length;
     chunk(r.value);
   }
-  if (n !== size) throw new Error('BROKEN PAINT FILE');
+  if (n !== size) throw new Error(msg('menu.paintBroken'));
 }

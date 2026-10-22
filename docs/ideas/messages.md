@@ -1,6 +1,6 @@
 # Every message in one place (BL-140, in 1.5.0)
 
-The texts live in `src/messages.ts`: one typed object grouped by component (`hint`, `toast`, `chip`, `dialogue`, `hud`, `menu`), a template per entry with `{var}` and `**bold**`; `msg(id, vars)` and `msgLines(id, vars)` fill it. Action names (`{forward}`, `{use}`) stay in the text until display, where `label()` gives the key as bound. To change a text, change it there; this file says where each one shows and when. Play's callers (toasts, the low-pressure alert, the hints) and everything in `src/net/` read the catalogue; the rest still hold their own strings and move over as their component lands (`docs/ideas/tutorial.md`, Implementation order). The four components: `docs/ideas/tutorial.md`, In-game UI. Only play gets them now; the rest "stays" in its menu or page.
+The texts live in `src/messages.ts`: one typed object grouped by component (`hint`, `toast`, `chip`, `dialogue`, `hud`, `menu`), a template per entry with `{var}` and `**bold**`; `msg(id, vars)` and `msgLines(id, vars)` fill it. Action names (`{forward}`, `{use}`) stay in the text until display, where `label()` gives the key as bound. To change a text, change it there; this file says where each one shows and when. Every JS call site reads the catalogue (play, `src/net/`, the menu and its pages, the paint files' errors, Settings → Controls, the loading screen's steps, screen 10). Two places keep their own text, because they run before the game's code and the entry must stay tiny (a phone loads none of the game): `boot.ts` ("The game didn't load", "The game needs WebGL") and `index.html`'s noscript line. A new text goes into the catalogue, never into a call site. The four components: `docs/ideas/tutorial.md`, In-game UI. Only play gets them now; the rest "stays" in its menu or page.
 
 Ids are `group.name`. Duration: how long it shows. Tech = technical (a code, a log, for reports).
 
@@ -31,12 +31,13 @@ Ids are `group.name`. Duration: how long it shows. Tech = technical (a code, a l
 | `menu.bind*` (5) | Press a key… / moved here from … / back to defaults | `controls-tab.ts:120,190,210` | rebinding | `PAUSE_MENU.undoSeconds` | stays (Settings → Controls) |
 | `menu.perf*` (2) | Testing · 12 s left / Tested at your current settings | `perf-test-page.ts:129-162` | the performance test | while running | stays (page) |
 | `menu.copied`, `linkCopied` | Copied / Link copied | `session-line.ts:56`, `small-screen.ts:41`, dev `debug/panel.ts:253` (COPIED) | a copy button | `COPIED_MS` 2.5 s (dev 1.5 s) | stays |
-| `menu.load*`, `boot*`, `noScript` | Building the roof / Lighting the lamps / Putting up the paint / The level didn't load / The game needs WebGL … | `main.ts:130-141`, `loading.ts:23`, `boot.ts:23`, `index.html:84` | start up | until the game shows | stays (loading screen) |
+| `menu.load*` | Building the roof / Lighting the lamps / Putting up the paint / The level didn't load | `main.ts`, `loading.ts` | start up | until the game shows | stays (loading screen) |
+| (not in the catalogue) | The game didn't load / The game needs WebGL / Hidden Roof needs JavaScript … | `boot.ts`, `index.html` | the game can't start | until reload | stays (loading screen); runs before the module graph |
 | `menu.small*` | Send it to yourself for later / Paste it on your computer to play / Wide enough to play now | `small-screen.ts:37-60` | small window | `COPIED_MS` for the second | stays (screen 10) |
 
 Not moved, and not in the catalogue: menu labels and button captions, tooltips, the popups' body paragraphs (save, upload, update notes: page copy, not messages), the HUD tags (CAP, NEW TOOL), the F3 panel's descriptions (`debug/hint-text-*.ts`, dev only). Nothing player-facing comes from `server/`: it sends a `rejected` reason code and the game words it (`menu.net*`). The CSP and boot checks show nothing to players beyond `boot*` and `noScript`.
 
-Counts in the catalogue: hint 13, toast 7, chip 1, dialogue 2, hud 4, menu 69.
+Counts in the catalogue: hint 13, toast 7, chip 3, dialogue 2, hud 5, menu 73.
 
 ## Statuses
 

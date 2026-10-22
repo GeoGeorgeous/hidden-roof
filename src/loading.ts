@@ -1,3 +1,4 @@
+import { msg } from './messages';
 import { RENDER } from './config';
 import { sayLoading } from './loading-line';
 
@@ -20,7 +21,7 @@ export function loadStep(text: string) {
 }
 
 export function loadFailed() {
-  if (screen) sayLoading("The level didn't load: reload the page");
+  if (screen) sayLoading(msg('menu.loadFailed'));
 }
 
 /**

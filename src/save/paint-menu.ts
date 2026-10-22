@@ -1,4 +1,5 @@
 import { download, pickFile, stamp } from '../files';
+import { msg } from '../messages';
 import { aboutSize, action, button, fileChip, hl, para, popup, relabel, sentence } from '../menu-ui';
 import type { PaintDrips } from '../paint-drips';
 import type { PaintSystem } from '../painting';
@@ -85,7 +86,7 @@ export function paintMenu(menu: PauseMenu, paint: PaintSystem, drips: PaintDrips
       const fits = !(e instanceof NotThisLevel);
       upload.body.replaceChildren(
         chip(),
-        para('lead error', fits ? `${sentence((e as Error).message)}.` : 'That paint file doesn’t fit this level.'),
+        para('lead error', fits ? `${sentence((e as Error).message)}.` : msg('menu.paintNoFit')),
         para('', fits ? 'Pick a file you saved with Paint → Save.' : 'It was saved on a different roof, so the walls don’t line up. Pick a file saved here, or start fresh.'),
       );
       upload.buttons.replaceChildren(cancel(), action('Pick another', pick, { primary: true }));

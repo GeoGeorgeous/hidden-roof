@@ -142,9 +142,7 @@ export const MESSAGES = {
     loadLamps: 'Lighting the lamps',
     loadPaint: 'Putting up the paint',
     loadFailed: "The level didn't load: reload the page",
-    bootFailed: "The game didn't load: reload the page",
-    bootNoWebgl: 'The game needs WebGL, and this browser has it turned off',
-    noScript: 'Hidden Roof needs JavaScript and a desktop browser with WebGL2.',
+    // Not here: the texts before the game's code runs stay where they run, as the entry must stay tiny (a phone loads none of the game): boot.ts ("The game didn't load", "The game needs WebGL") and index.html's noscript line.
     // Screen for small windows and touch devices
     smallHint: 'Send it to yourself for later.',
     smallCopied: 'Paste it on your computer to play.',
