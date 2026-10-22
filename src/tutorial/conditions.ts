@@ -24,7 +24,7 @@ export interface Ctx {
 export const amount = (a: Amount) => (typeof a === 'number' ? a : TUTORIAL[a]);
 
 /** The key a fact's amount is summed under: 'moved', 'used:marker'. */
-export const totalKey = (type: string, tool?: string) => (tool ? `${type}:${tool}` : type);
+const totalKey = (type: string, tool?: string) => (tool ? `${type}:${tool}` : type);
 
 /** Records a fact for a hint that is wanted. */
 export function see(seen: Seen, f: Fact) {

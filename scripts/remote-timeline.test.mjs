@@ -150,4 +150,19 @@ function started() {
   assert.ok(Math.abs(tl.stats.delay - wanted) < 0.02, `the delay eased to it: ${tl.stats.delay}, not ${wanted}`);
 }
 
+// Missing snapshots are counted from the gaps in their clock: a sender's slower frames and long stalls are not.
+{
+  const tl = new RemoteTimeline();
+  const every = 1 / NET.sendRate;
+  let t = 1;
+  for (let i = 0; i < 5; i++) tl.receive(snap((t += every), i), t);
+  assert.deepEqual([tl.received, tl.missed], [5, 0]);
+  tl.receive(snap((t += 3 * every), 5), t);
+  assert.deepEqual([tl.received, tl.missed], [6, 2], 'two missing between');
+  tl.receive(snap((t += 2 * every), 6), t);
+  assert.equal(tl.missed, 2, 'a frame late is not a loss');
+  tl.receive(snap((t += NET.lossGapMost + 1), 7), t);
+  assert.equal(tl.missed, 2, 'a long stall is not a loss');
+}
+
 console.log('remote timeline: ok');

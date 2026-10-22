@@ -34,6 +34,7 @@ export interface Setting {
   kind: Exclude<Kind, 'event'>;
   lines: string[];
   rank?: number;
+  spin?: boolean;
 }
 
 export class Notify {

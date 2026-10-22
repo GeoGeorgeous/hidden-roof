@@ -1052,6 +1052,25 @@ export const NET = {
   diagnoseTimeout: 5,
   /** Network log entries kept for COPY NETWORK LOG (net/diagnostics.ts). */
   logLines: 80,
+  /** The link's chip (net/link-health.ts): a status shows when its value stays past the first number for `statusHold` s, and goes when it stays under the second for as long. */
+  /** How often (s) the link's numbers are checked. */
+  healthEvery: 0.25,
+  badPing: 0.3,
+  badPingClear: 0.2,
+  statusHold: 5,
+  /** Nothing from the server for this long (s) shows "No signal"; it goes at once under the second. The server pings every SERVER.ping; serverSilence then closes the link. */
+  noSignal: 4,
+  noSignalClear: 1.5,
+  /** Snapshots missing from the others' streams, as a share of what was due, over the last `lossWindow` s; fewer than `lossMinSnapshots` due in it say nothing. A gap counts as loss from `lossGap` snapshot intervals up to `lossGapMost` s (longer is a stalled or hidden sender). */
+  lossShare: 0.05,
+  lossShareClear: 0.02,
+  lossWindow: 10,
+  lossMinSnapshots: 100,
+  lossGap: 2.5,
+  lossGapMost: 1,
+  /** The most a remote player is shown behind (s, NET.maxDelay caps it) before "High delay" shows; clears under the second. */
+  highDelay: 0.3,
+  highDelayClear: 0.2,
 };
 
 /** The multiplayer server (server/, docs/deploy.md). */

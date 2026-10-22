@@ -28,6 +28,9 @@ export class Remotes {
     private log: NetLog,
   ) {}
 
+  /** What the others who left had sent (snapshots received and missed), so the counts only go up. */
+  private gone = { received: 0, missed: 0 };
+
   get(id: number) {
     return this.list.get(id);
   }
@@ -57,6 +60,8 @@ export class Remotes {
     const r = this.list.get(id);
     if (!r) return;
     if (finish) r.finish();
+    this.gone.received += r.timeline.received;
+    this.gone.missed += r.timeline.missed;
     r.dispose();
     this.log.add(`#${id} "${this.names.get(id)}" taken away`);
     this.list.delete(id);
@@ -91,6 +96,16 @@ export class Remotes {
   /** Who's in the session besides us, and their paint colors (the pause screen's live line). */
   get roster() {
     return [...this.list].map(([id, r]) => ({ name: this.names.get(id) ?? '', color: r.color }));
+  }
+
+  /** Snapshots received and missed from everyone, since the session began. */
+  get counts() {
+    let { received, missed } = this.gone;
+    for (const r of this.list.values()) {
+      received += r.timeline.received;
+      missed += r.timeline.missed;
+    }
+    return { received, missed };
   }
 
   /** For the HUD: how far behind each is shown, and the jitter of their snapshots. */

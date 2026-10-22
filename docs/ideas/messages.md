@@ -1,6 +1,6 @@
 # Every message in one place (BL-140, in 1.5.0)
 
-The texts live in `src/messages.ts`: one typed object grouped by component (`hint`, `toast`, `chip`, `dialogue`, `hud`, `menu`), a template per entry with `{var}` and `**bold**`; `msg(id, vars)` and `msgLines(id, vars)` fill it. Action names (`{forward}`, `{use}`) stay in the text until display, where `label()` gives the key as bound. To change a text, change it there; this file says where each one shows and when. Callers still hold their own strings today (only the hints read the catalogue); each moves over as its component lands (`docs/ideas/tutorial.md`, Implementation order). The four components: `docs/ideas/tutorial.md`, In-game UI. Only play gets them now; the rest "stays" in its menu or page.
+The texts live in `src/messages.ts`: one typed object grouped by component (`hint`, `toast`, `chip`, `dialogue`, `hud`, `menu`), a template per entry with `{var}` and `**bold**`; `msg(id, vars)` and `msgLines(id, vars)` fill it. Action names (`{forward}`, `{use}`) stay in the text until display, where `label()` gives the key as bound. To change a text, change it there; this file says where each one shows and when. Callers in `src/net/` read the catalogue (`msg`); the others still hold their own strings and move as their component lands; each moves over as its component lands (`docs/ideas/tutorial.md`, Implementation order). The four components: `docs/ideas/tutorial.md`, In-game UI. Only play gets them now; the rest "stays" in its menu or page.
 
 Ids are `group.name`. Duration: how long it shows. Tech = technical (a code, a log, for reports).
 
@@ -58,14 +58,21 @@ Exist today (`net/multiplayer.ts` `NetStatus`, `Failure`; `net/diagnostics.ts`):
 
 Data that exists but is not shown as a status: `Traffic.ping` (a ping every `SERVER.ping` 2 s), up/down rates (`Traffic`), each player's `delay` and `jitter` (`netLines`), the time since the last server message (`ServerLink.heard`).
 
-Candidates: the owner chose the first four for 1.5.0 (2026-10-22), thresholds as proposed (`NET` config, tunable in F3); the rest stay candidates:
+Built on feat/hints-net (`src/net/link-health.ts`, tested in `scripts/link-health.test.mjs`; thresholds in `NET`, F3 → Link status). At most one chip, the worst first: reconnecting (net-menu's) > no signal > bad connection > packet loss > high delay. Each shows when its value stays past the limit and clears when it stays under the clear value (hysteresis); no signal and loss act at once, ping and delay hold `NET.statusHold` 5 s.
+
+| Status (chip id) | Data, where read | Limit (clear) |
+|---|---|---|
+| `chip.noSignal` | `ServerLink.lastHeard`, in `Multiplayer.update` | silent over 4 s (1.5 s) |
+| `chip.badConnection` | `Traffic.ping` (`Multiplayer.ping`) | over 300 ms for 5 s (under 200 ms for 5 s) |
+| `chip.packetLoss` | `RemoteTimeline.received` / `missed`, summed by `Remotes.counts`: a gap of 2.5 snapshot intervals or more in a sender's clock (up to 1 s) counts the ones between as missing. No protocol change. | over 5% of the snapshots due in the last 10 s, at least 100 due (under 2%) |
+| `chip.highDelay` | `Remotes.stats` `delay`, the worst player named | over 300 ms for 5 s (under 200 ms for 5 s) |
+
+The loss count is approximate: a WebSocket doesn't lose packets, so it sees snapshots the server shed or a sender that sent less than it should (below about 8 fps on their side). Check by hand with the link proxy (`docs/testing.md`).
+
+Still candidates:
 
 | Candidate | Data | Proposed threshold | Component |
 |---|---|---|---|
-| Bad connection | `Traffic.ping` | ping over 300 ms for 5 s; clears under 200 ms for 5 s | chip (status, while true) |
-| Server silent | `ServerLink.heard` | nothing for 4 s (the server pings every 2 s); rejoin stays at 15 s | chip "No signal from the server" |
-| High delay behind others | player `delay` (cap `NET.maxDelay` .45 s) | over 300 ms for a player, for 5 s | chip, or the nameplate's own note |
-| Packet loss | not counted today: needs a sequence gap counter on snapshots | needs data first; say 5% over 10 s | chip |
 | Slow upload (a paint file) | upload progress rate | under 8 KB/s | stays in the menu's progress line |
 | Server full / busy / version | `rejected` reasons | exist | JOIN: page; mid-play: dialogue |
 | Away, dropped, back | `Remotes.onPresence` | exists as nameplate | toast "**{user}** is back" |
@@ -74,5 +81,5 @@ Candidates: the owner chose the first four for 1.5.0 (2026-10-22), thresholds as
 ## Open questions for the owner
 
 1. ~~Reconnecting: a chip at once or after 2 s?~~ Decided (owner, 2026-10-22): at once.
-2. ~~Which candidate statuses in 1.5.0?~~ Decided: bad connection, server silent, high delay, packet loss (the loss counter first), with the proposed thresholds.
-3. ~~A failure while joining?~~ Decided: it stays on the MULTIPLAYER page; the dialogue only in play, after the player was in (BL-114 tells them apart).
+2. ~~Which candidate statuses in 1.5.0?~~ Decided and built: bad connection, server silent, high delay, packet loss, with the proposed thresholds.
+3. ~~A failure while joining?~~ Decided: it stays on the MULTIPLAYER page; the dialogue only in play, after the player was in (BL-114: `NetStatus` `failed` carries `code`; done on feat/hints-net).

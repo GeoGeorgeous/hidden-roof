@@ -1,4 +1,5 @@
 import { NET, SERVER } from '../config.ts';
+import { msg } from '../messages.ts';
 import { PartsIn } from './parts-in.ts';
 import { decode, encode, type ToClient, type ToServer } from './protocol.ts';
 
@@ -75,7 +76,7 @@ export class ServerLink {
     this.env = env;
     this.frame = encode(hello);
     this.save = hello.type === 'host' ? hello.bytes : undefined;
-    this.next = hello.type === 'join' ? (hello.token ? 'Going back in…' : 'Joining session…') : this.save ? 'Creating session from the save…' : 'Creating session…';
+    this.next = msg(hello.type === 'join' ? (hello.token ? 'menu.progressGoingBack' : 'menu.progressJoining') : this.save ? 'menu.progressCreatingSave' : 'menu.progressCreating');
     this.started = this.heard = this.lastHeard = env.now();
     const ws = (this.socket = env.open(env.url));
     ws.binaryType = 'arraybuffer';
@@ -118,7 +119,7 @@ export class ServerLink {
     if (this.live) return;
     if (this.uploading && this.socket.bufferedAmount) {
       this.heard = now;
-      this.on.progress(`Uploading paint ${percent(this.frame.length - this.socket.bufferedAmount, this.frame.length)}`);
+      this.on.progress(msg('menu.progressUploading', { percent: percent(this.frame.length - this.socket.bufferedAmount, this.frame.length) }));
     } else if (this.uploading) {
       this.uploading = false;
       this.on.progress(this.next);
@@ -137,7 +138,7 @@ export class ServerLink {
     this.sent = this.env.now();
     // Only a save is worth a percentage (the rest goes in a blink).
     this.uploading = !!this.save && this.socket.bufferedAmount > 0;
-    this.on.progress(this.uploading ? 'Uploading paint 0%' : this.next);
+    this.on.progress(this.uploading ? msg('menu.progressUploading', { percent: '0%' }) : this.next);
   }
 
   private arrived(data: ArrayBuffer) {
@@ -150,7 +151,7 @@ export class ServerLink {
     if (m.type === 'welcome' && m.parts) this.on.log(`welcome: the paint comes in ${m.parts} parts`);
     const done = this.parts.take(m);
     const of = this.parts.coming ?? (done?.file && done.m);
-    if (m.type === 'part' && of) this.on.progress(`${of.type === 'save' ? 'Saving' : 'Downloading'} paint ${percent(this.parts.got, of.parts)}`);
+    if (m.type === 'part' && of) this.on.progress(msg(of.type === 'save' ? 'menu.progressSavingParts' : 'menu.progressDownloading', { percent: percent(this.parts.got, of.parts) }));
     if (done) this.on.message(done.m, t, done.file ?? (done.m.type === 'welcome' ? this.save : undefined));
   }
 

@@ -60,7 +60,7 @@ export type Cond =
  * When a hint is learnt and goes. By time: shown this many visible seconds, whatever the player did. By action: the
  * condition holds. Both: whichever comes first. Neither can clear it before TUTORIAL.minShown.
  */
-export type Done = { shown: Amount; action?: Cond } | { shown?: Amount; action: Cond };
+type Done = { shown: Amount; action?: Cond } | { shown?: Amount; action: Cond };
 
 export type Rank = 'tool' | 'context' | 'basic';
 
