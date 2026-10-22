@@ -113,7 +113,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## UI
 
 1. IDEA [BL-140]: One notification system: messages lost in menus and hidden tabs, nothing in play says reconnecting (docs/ideas/notifications.md) @1.9.0
-2. DSGN [BL-092]: A screen that teaches the controls; the owner has the design: ask for it @1.5.0
+2. DSGN [BL-092]: Hints in play instead of a controls screen: move, each new tool, colors, ladders; shown when needed, gone once done, remembered; the designer first (docs/ideas/tutorial.md) @1.5.0
 3. ~~BUGS [BL-072]: Nickname tags don't scale with the UI and resolution~~
 4. ~~[?BUGS-162]: The browser's page zoom scales the HUD and menus (zoom keys, Ctrl+wheel and pinch are blocked already: BROWSER_GUARDS) @1.5.0~~
 5. TASK [BL-078]: Show BUY ME A COFFEE again once it has a link (revert e2c2310) @1.6.0
