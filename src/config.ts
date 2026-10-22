@@ -1089,6 +1089,8 @@ export const SERVER = {
   logRedactDays: 14,
   logKeepDays: 60,
   logCleanEvery: 3600,
+  /** With LOG_DIR, a day's file stops growing at this many bytes (a note says so); the next day starts afresh. */
+  logDayBytes: 20 * 2 ** 20,
 };
 
 /** F3 -> Ghost (src/dev/ghost.ts): the network it plays through, and how far behind it follows you. */
