@@ -9,6 +9,7 @@ export const MESSAGES = {
   hint: {
     move: ['Press {forward} {left} {back} {right} to move', 'Hold {sprint} to run, press {jump} to jump'],
     spray: ['Press {use} to spray, {shake} to shake the can'],
+    canTake: ['Press {slot1} to take the can'],
     markerTake: ['Press {slot2} to take the marker'],
     marker: ['Press {use} to draw, {sizeDown} / {sizeUp} to change nib'],
     ladderTake: ['Press {slot3} to take the stepladder'],

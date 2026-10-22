@@ -26,7 +26,7 @@ export interface Snapshot {
   tool: Tool | null;
   /** In the inventory. */
   tools: readonly Tool[];
-  /** The can in hand is under PRESSURE.sputterThreshold. */
+  /** The can's pressure is under PRESSURE.sputterThreshold (in hand or not). */
   lowPressure: boolean;
   colors: number;
   caps: number;
@@ -51,7 +51,7 @@ export type Cond =
   | { near: 'ladder' }
   /** Summed over the facts since the hint was wanted. */
   | { total: 'moved' | 'sprinted' | 'used' | 'climbed'; tool?: Tool; crouched?: true; atLeast: Amount }
-  /** The can in hand is low on pressure. */
+  /** The can is low on pressure. */
   | { low: 'pressure' }
   /** A fact of this type since the hint was wanted. */
   | { event: Fact['type'] }

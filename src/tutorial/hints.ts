@@ -8,17 +8,18 @@ const holding = (tool: Tool): Cond => ({ holding: tool });
 /** A tool that paints in the current color. */
 const colored: Cond = { any: [holding('can'), holding('marker'), holding('roller')] };
 
-/** A tool picked up: take it from its slot, then use it. */
-function tool(id: Exclude<Tool, 'can'>, learnt: Cond): HintDef {
-  return {
-    id: `tool.${id}`,
-    rank: 'tool',
-    lines: msgLines(`hint.${id}`),
-    show: { owns: id },
-    done: { action: learnt },
-    steps: [{ lines: msgLines(`hint.${id}Take`), until: holding(id) }],
-  };
+/**
+ * A hint about a tool, built one way for all: wanted while the tool is in the inventory (and `show` holds, if given).
+ * With the tool away it shows that tool's "take it" step first, then the hint; its time on screen counts only for
+ * the hint itself.
+ */
+function forTool(id: string, tool: Tool, def: Pick<HintDef, 'rank' | 'lines' | 'done' | 'after'> & { show?: Cond }): HintDef {
+  const { show, ...rest } = def;
+  return { ...rest, id, show: show ? { all: [{ owns: tool }, show] } : { owns: tool }, steps: [{ lines: msgLines(`hint.${tool}Take`), until: holding(tool) }] };
 }
+
+/** A tool picked up: take it from its slot, then use it. */
+const tool = (id: Exclude<Tool, 'can'>, learnt: Cond) => forTool(`tool.${id}`, id, { rank: 'tool', lines: msgLines(`hint.${id}`), done: { action: learnt } });
 
 export const HINTS: HintDef[] = [
   {
@@ -28,56 +29,16 @@ export const HINTS: HintDef[] = [
     show: { playedFor: 'moveDelay' },
     done: { action: { total: 'moved', atLeast: 'moveMeters' } },
   },
-  {
-    id: 'spray',
-    rank: 'basic',
-    lines: msgLines('hint.spray'),
-    show: holding('can'),
-    done: { action: { total: 'used', tool: 'can', atLeast: 'spraySeconds' } },
-    after: ['move'],
-  },
+  forTool('spray', 'can', { rank: 'basic', lines: msgLines('hint.spray'), done: { action: { total: 'used', tool: 'can', atLeast: 'spraySeconds' } }, after: ['move'] }),
   tool('marker', { total: 'used', tool: 'marker', atLeast: 'markerMeters' }),
   tool('ladder', { total: 'used', tool: 'ladder', atLeast: 1 }),
-  {
-    id: 'ladder.move',
-    rank: 'context',
-    lines: msgLines('hint.ladderMove'),
-    show: holding('ladder'),
-    done: { shown: 'infoSeconds' },
-    after: ['tool.ladder'],
-  },
-  {
-    id: 'ladder.shared',
-    rank: 'context',
-    lines: msgLines('hint.ladderShared'),
-    show: holding('ladder'),
-    done: { shown: 'infoSeconds' },
-    after: ['ladder.move'],
-  },
+  forTool('ladder.move', 'ladder', { rank: 'tool', lines: msgLines('hint.ladderMove'), done: { shown: 'infoSeconds' }, after: ['tool.ladder'] }),
+  forTool('ladder.shared', 'ladder', { rank: 'tool', lines: msgLines('hint.ladderShared'), done: { shown: 'infoSeconds' }, after: ['ladder.move'] }),
   tool('roller', { total: 'used', tool: 'roller', atLeast: 'rollerMeters' }),
   tool('sponge', { total: 'used', tool: 'sponge', atLeast: 'spongeMeters' }),
-  {
-    id: 'sponge.crouch',
-    rank: 'context',
-    lines: msgLines('hint.spongeCrouch'),
-    show: holding('sponge'),
-    done: { action: { total: 'used', tool: 'sponge', crouched: true, atLeast: 'spongeMeters' } },
-    after: ['tool.sponge'],
-  },
-  {
-    id: 'pressure',
-    rank: 'context',
-    lines: msgLines('hint.lowPressure'),
-    show: { low: 'pressure' },
-    done: { action: { pressed: 'shake' } },
-  },
-  {
-    id: 'cap',
-    rank: 'tool',
-    lines: msgLines('hint.cap'),
-    show: { all: [{ has: 'caps', atLeast: 2 }, holding('can')] },
-    done: { action: { event: 'capCycled' } },
-  },
+  forTool('sponge.crouch', 'sponge', { rank: 'tool', lines: msgLines('hint.spongeCrouch'), done: { action: { total: 'used', tool: 'sponge', crouched: true, atLeast: 'spongeMeters' } }, after: ['tool.sponge'] }),
+  forTool('pressure', 'can', { rank: 'context', lines: msgLines('hint.lowPressure'), show: { low: 'pressure' }, done: { action: { pressed: 'shake' } } }),
+  forTool('cap', 'can', { rank: 'tool', lines: msgLines('hint.cap'), show: { has: 'caps', atLeast: 2 }, done: { action: { event: 'capCycled' } } }),
   {
     id: 'color',
     rank: 'tool',

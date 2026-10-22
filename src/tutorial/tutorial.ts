@@ -87,7 +87,8 @@ export class Tutorial {
     this.played += dt;
     const wanted = this.refresh();
     const pick = this.pick(wanted);
-    if (pick) pick.shownFor += dt;
+    // Time on screen counts while the hint itself shows, not its "take it" step.
+    if (pick && this.text(pick) === (pick.def.steps?.length ?? 0)) pick.shownFor += dt;
     let learnt = false;
     for (const s of wanted) {
       if (this.finished(s, s === pick)) {
@@ -147,6 +148,14 @@ export class Tutorial {
     return acted || (done.shown !== undefined && s.shownFor >= amount(done.shown));
   }
 
+  /** Which text a hint shows now: the first step not yet done, or (the number of steps) the hint itself. */
+  private text(s: State) {
+    const steps = s.def.steps ?? [];
+    const ctx = this.ctx(s);
+    const step = steps.findIndex((st) => !holds(st.until, ctx));
+    return step < 0 ? steps.length : step;
+  }
+
   /** The note for the message layer: only the one hint, and only when it or its step changed. */
   private show(s: State | null) {
     if (!s) {
@@ -155,9 +164,7 @@ export class Tutorial {
       return;
     }
     const steps = s.def.steps ?? [];
-    const ctx = this.ctx(s);
-    let text = steps.findIndex((step) => !holds(step.until, ctx));
-    if (text < 0) text = steps.length;
+    const text = this.text(s);
     if (this.shown?.id === s.def.id && this.shown.text === text) return;
     if (this.shown && this.shown.id !== s.def.id) this.notes.clear(`hint:${this.shown.id}`);
     this.shown = { id: s.def.id, text };

@@ -55,7 +55,7 @@ export class TutorialWire {
     middle.copy(player.position).y += PLAYER.height / 2;
     return {
       tool: inventory.tool,
-      lowPressure: inventory.tool === 'can' && inventory.pressure < PRESSURE.sputterThreshold,
+      lowPressure: inventory.pressure < PRESSURE.sputterThreshold,
       tools: SLOTS.filter((t) => inventory.has(t)),
       colors: inventory.colors.length,
       caps: inventory.caps.length,

@@ -128,17 +128,26 @@ assert.equal(resolveLine('Press {use} to draw, {sizeDown} / {sizeUp} to change n
   assert.deepEqual(board.get('hint:tool.roller').lines, ['Press {use} to roll, {sizeDown} / {sizeUp} to change width']);
 }
 
-// The stepladder's two info hints: in order, after the ladder hint, while it's in hand, each learnt after INFO seconds on screen.
+// The stepladder's two info hints follow every tool hint's rule: in order, after the ladder hint; with the ladder away they
+// show its take step; the info time counts only while the hint itself shows.
 {
-  const { play, keys, snap, learnt } = setup('{"v":1,"done":["move","spray","tool.ladder"]}');
+  const { play, keys, snap, board, learnt } = setup('{"v":1,"done":["move","spray","tool.ladder"]}');
   snap.tools = ['can', 'ladder'];
   snap.tool = 'can';
   play(1);
-  assert.deepEqual(keys(), []);
+  assert.deepEqual(keys(), ['hint:ladder.move']);
+  assert.deepEqual(board.get('hint:ladder.move').lines, ['Press {slot3} to take the stepladder']);
+  play(TUTORIAL.infoSeconds * 2);
+  assert.deepEqual(keys(), ['hint:ladder.move'], 'time on the take step does not count');
   snap.tool = 'ladder';
   play(0.2);
-  assert.deepEqual(keys(), ['hint:ladder.move']);
-  play(TUTORIAL.infoSeconds);
+  assert.deepEqual(board.get('hint:ladder.move').lines, ['Press {use} again to move it: only one stepladder stands at a time']);
+  play(TUTORIAL.infoSeconds - 0.5);
+  snap.tool = 'can';
+  play(5);
+  assert.deepEqual(keys(), ['hint:ladder.move'], 'put away: the take step again, the timer waits');
+  snap.tool = 'ladder';
+  play(1);
   assert.deepEqual(keys(), ['hint:ladder.shared']);
   play(TUTORIAL.infoSeconds + 0.2);
   assert.deepEqual(keys(), []);
@@ -152,10 +161,12 @@ assert.equal(resolveLine('Press {use} to draw, {sizeDown} / {sizeUp} to change n
   assert.deepEqual(keys(), ['hint:tool.ladder'], 'before the ladder hint is learnt, the info hints wait');
 }
 
-// The sponge's crouch hint: after the sponge hint; learnt by scrubbing crouched, not standing.
+// The sponge's crouch hint: after the sponge hint; take step with the sponge away; learnt by scrubbing crouched, not standing.
 {
-  const { t, play, keys, snap, learnt } = setup('{"v":1,"done":["move","spray","tool.sponge"]}');
+  const { t, play, keys, snap, board, learnt } = setup('{"v":1,"done":["move","spray","tool.sponge"]}');
   snap.tools = ['can', 'sponge'];
+  play(0.2);
+  assert.deepEqual(board.get('hint:sponge.crouch').lines, ['Press {slot5} to take the sponge']);
   snap.tool = 'sponge';
   play(2.5);
   assert.deepEqual(keys(), ['hint:sponge.crouch']);
@@ -168,12 +179,24 @@ assert.equal(resolveLine('Press {use} to draw, {sizeDown} / {sizeUp} to change n
   assert.ok(learnt().includes('sponge.crouch'));
 }
 
-// Low pressure: shown while the can is low, learnt by shaking; leaves unlearnt when the pressure is back.
+// Low pressure is about the can: with the can away it shows "take the can"; learnt by shaking; leaves unlearnt when the pressure is back.
 {
-  const { t, play, keys, snap, learnt } = setup('{"v":1,"done":["move","spray"]}');
+  const { t, play, keys, snap, board, learnt } = setup('{"v":1,"done":["move","spray"]}');
   snap.lowPressure = true;
+  snap.tool = 'marker';
+  snap.tools = ['can', 'marker'];
   play(0.2);
-  assert.deepEqual(keys(), ['hint:pressure']);
+  assert.deepEqual(keys(), ['hint:tool.marker']);
+  snap.tool = 'roller';
+  snap.tools = ['can', 'roller'];
+  play(0.1);
+  snap.tools = ['can'];
+  snap.tool = null;
+  play(0.2);
+  assert.deepEqual(board.get('hint:pressure').lines, ['Press {slot1} to take the can']);
+  snap.tool = 'can';
+  play(0.2);
+  assert.deepEqual(board.get('hint:pressure').lines, ['Low pressure: hold {shake} to shake the can']);
   snap.lowPressure = false;
   play(0.2);
   assert.deepEqual(keys(), []);

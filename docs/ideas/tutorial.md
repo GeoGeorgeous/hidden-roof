@@ -228,21 +228,21 @@ The tutorial sets every wanted hint; notify picks what shows: kinds by priority 
 
 ### Draft hints
 
-Thresholds are `TUTORIAL` config with F3 descriptions; the owner agreed these values (move 3 m, color by time).
+Every per-tool hint is built the same way (`forTool` in `tutorial/hints.ts`): wanted while the tool is owned, with the tool away it shows that tool's take step first, and its on-screen time counts only for the hint itself. `color` (any colored tool) and `ladder.climb` are not about one tool. Thresholds are `TUTORIAL` config with F3 descriptions; the owner agreed these values (move 3 m, color by time).
 
 | id | rank | Text (keys as bound by default) | Shows | Learnt |
 |---|---|---|---|---|
 | `move` | basic | `[W][A][S][D]` move · `[SHIFT]` run · `[SPACE]` jump | `playedFor` 1.5 s | `total moved` ≥ `moveMeters` (3 m) |
-| `spray` | basic | `[LMB]` spray · `[RMB]` shake | after `move`, can in hand | `total used can` ≥ 0.5 s on a surface |
+| `spray` | basic | step `[1]` take the can, then `[LMB]` spray · `[RMB]` shake | after `move`, `owns can` | `total used can` ≥ 0.5 s on a surface |
 | `tool.marker` | tool | step `[2]` take the marker, then `[LMB]` draw · `[Q]` `[E]` nib | `owns marker` | `total used marker` ≥ 0.5 m |
 | `tool.ladder` | tool | step `[3]` take the stepladder, then `[LMB]` put it down · `[WHEEL]` turn it | `owns ladder` | `used ladder` (placed) |
-| `ladder.move` | context | `[LMB]` again to move it: only one stepladder stands at a time | after `tool.ladder`, ladder in hand | shown `infoSeconds` (6 s), no action |
-| `ladder.shared` | context | in a session, other players can climb your stepladder too | after `ladder.move`, ladder in hand | shown `infoSeconds`. Open question for the owner: show it only in a session? |
+| `ladder.move` | tool | `[LMB]` again to move it: only one stepladder stands at a time | after `tool.ladder`, `owns ladder` (take step `[3]` while it's away) | shown `infoSeconds` (6 s), no action |
+| `ladder.shared` | tool | in a session, other players can climb your stepladder too | after `ladder.move`, `owns ladder` | shown `infoSeconds`. In every mode, solo and session alike (owner) |
 | `tool.roller` | tool | step `[4]`, then `[LMB]` roll · `[Q]` `[E]` width | `owns roller` | `total used roller` ≥ 1 m |
 | `tool.sponge` | tool | step `[5]`, then `[LMB]` scrub paint off · `[Q]` `[E]` size | `owns sponge` | `total used sponge` ≥ 0.5 m |
-| `sponge.crouch` | context | hold `[CTRL]` to scrub paint off the floor | after `tool.sponge`, sponge in hand | `total used sponge` ≥ 0.5 m while crouched |
-| `pressure` | context | low pressure: hold `[RMB]` to shake the can | the can in hand under `PRESSURE.sputterThreshold` | `pressed shake` |
-| `cap` | tool | `[Q]` `[E]` change the cap | `has caps ≥ 2`, can in hand | `capCycled` |
+| `sponge.crouch` | tool | hold `[CTRL]` to scrub paint off the floor | after `tool.sponge`, `owns sponge` (take step `[5]`) | `total used sponge` ≥ 0.5 m while crouched |
+| `pressure` | context | low pressure: hold `[RMB]` to shake the can | `owns can`, pressure under `PRESSURE.sputterThreshold` (take step `[1]` with the can away) | `pressed shake` |
+| `cap` | tool | step `[1]` take the can, then `[Q]` `[E]` change the cap | `has caps ≥ 2`, `owns can` | `capCycled` |
 | `color` | tool | `[WHEEL]` change color | `has colors ≥ 2`, a colored tool in hand | shown 5 s (time), or earlier `colorCycled` / `colorPicked` |
 | `ladder.climb` | context | walk into it or hold `[SPACE]` to climb · `[CTRL]` hold on | `near ladder` | `total climbed` ≥ 1.5 m |
 
