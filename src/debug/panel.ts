@@ -29,7 +29,7 @@ const TABS = [
   { id: 'build', title: 'Build', groups: ['daylight', 'editing', 'picker', 'hints'] },
   { id: 'items', title: 'Items', groups: ['pickups'] },
   { id: 'models', title: 'Models', groups: ['can', 'cap-models', 'marker', 'ladder', 'roller', 'sponge'] },
-  { id: 'test', title: 'Test', groups: ['performance', 'avatar-test', 'ghost'] },
+  { id: 'test', title: 'Test', groups: ['performance', 'avatar-test', 'ghost', 'link-status'] },
 ];
 
 interface Part {

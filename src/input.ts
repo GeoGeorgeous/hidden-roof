@@ -1,3 +1,4 @@
+import { layoutName } from './key-name';
 import { BINDINGS, RENDER, WHEEL } from './config';
 import { enterGameFullscreen } from './fullscreen';
 import { currentOs } from './gpu-name';
@@ -52,7 +53,7 @@ const NAMES: Record<string, string> = {
 };
 const NUMPAD: Record<string, string> = { Add: '+', Subtract: '-', Multiply: '*', Divide: '/', Decimal: '.' };
 
-/** What each key prints on this keyboard's layout (Chromium): W is Z on AZERTY. Elsewhere the US name. */
+/** What each key prints on this keyboard's layout (Chromium): W is Z on AZERTY. Elsewhere, and for a non-Latin layout, the US name. */
 let layout: Map<string, string> | undefined;
 (navigator as Navigator & { keyboard?: { getLayoutMap?(): Promise<Map<string, string>> } }).keyboard
   ?.getLayoutMap?.()
@@ -63,7 +64,7 @@ let layout: Map<string, string> | undefined;
 export function keyName(code: string) {
   const key = sideless(code);
   if (key.startsWith('Numpad')) return `Num ${NUMPAD[key.slice(6)] ?? key.slice(6)}`;
-  return PLATFORM_NAMES[key] ?? layout?.get(key)?.toUpperCase() ?? NAMES[key] ?? key.replace(/^(Key|Digit)/, '');
+  return PLATFORM_NAMES[key] ?? layoutName(layout?.get(key)) ?? NAMES[key] ?? key.replace(/^(Key|Digit)/, '');
 }
 
 /** The action's first binding, in the HUD's capitals: HOLD [RMB] TO SHAKE. */
