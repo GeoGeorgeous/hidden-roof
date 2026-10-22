@@ -58,7 +58,7 @@ Exist today (`net/multiplayer.ts` `NetStatus`, `Failure`; `net/diagnostics.ts`):
 
 Data that exists but is not shown as a status: `Traffic.ping` (a ping every `SERVER.ping` 2 s), up/down rates (`Traffic`), each player's `delay` and `jitter` (`netLines`), the time since the last server message (`ServerLink.heard`).
 
-Candidates, not built (thresholds are questions for the owner):
+Candidates: the owner chose the first four for 1.5.0 (2026-10-22), thresholds as proposed (`NET` config, tunable in F3); the rest stay candidates:
 
 | Candidate | Data | Proposed threshold | Component |
 |---|---|---|---|
@@ -74,5 +74,5 @@ Candidates, not built (thresholds are questions for the owner):
 ## Open questions for the owner
 
 1. Is `NetStatus` `reconnecting` always a chip, or only after 2 s (so a blink of a drop shows nothing)?
-2. Which candidate statuses to build in 1.5.0, if any? The thresholds above are proposals.
-3. Does a failure while joining stay only on the MULTIPLAYER page (as today), with the dialogue only after the player was in?
+2. ~~Which candidate statuses in 1.5.0?~~ Decided: bad connection, server silent, high delay, packet loss (the loss counter first), with the proposed thresholds.
+3. Does a failure while joining stay only on the MULTIPLAYER page (as today), with the dialogue only after the player was in? (BL-114, in 1.5.0 now, tells the two apart.)
