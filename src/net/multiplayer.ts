@@ -28,7 +28,7 @@ import { capture, encodeSnapshot } from './snapshot';
 export type Failure = Rejection | 'timeout' | 'broken' | Awaited<ReturnType<typeof diagnose>>['reason'];
 
 /** What the player sees of the link, shown on the menus; `detail`: what was seen (a close code, an HTTP status, tries), for reports. */
-export type NetStatus = { state: 'off' } | { state: 'connecting' } | { state: 'in'; code: string } | { state: 'reconnecting'; code: string; detail: string } | { state: 'failed'; reason: Failure; detail?: string };
+export type NetStatus = { state: 'off' } | { state: 'connecting' } | { state: 'in'; code: string } | { state: 'reconnecting'; code: string; detail: string; tries: number } | { state: 'failed'; reason: Failure; detail?: string };
 
 const now = () => performance.now() / 1000;
 
@@ -216,8 +216,8 @@ export class Multiplayer {
     const r = this.retry!;
     if (now() > r.until) return this.end({ state: 'failed', reason: 'ended', detail: `NO WAY BACK IN ${SERVER.rejoinWindow} S` });
     r.tries++;
-    this.setStatus({ state: 'reconnecting', code: j.code, detail: `WS ${code} · TRY ${r.tries}` });
-    void why.then((d) => this.status.state === 'reconnecting' && this.joined === j && this.setStatus({ state: 'reconnecting', code: j.code, detail: `${d.detail} · WS ${code} · TRY ${r.tries}` }));
+    this.setStatus({ state: 'reconnecting', code: j.code, detail: `WS ${code} · TRY ${r.tries}`, tries: r.tries });
+    void why.then((d) => this.status.state === 'reconnecting' && this.joined === j && this.setStatus({ state: 'reconnecting', code: j.code, detail: `${d.detail} · WS ${code} · TRY ${r.tries}`, tries: r.tries }));
     this.log.add(`trying again in ${r.wait} s (try ${r.tries})`);
     setTimeout(() => this.joined === j && !this.link && this.connect({ type: 'join', protocol: PROTOCOL, name: j.name, code: j.code, token: j.token }), r.wait * 1000);
     r.wait = Math.min(r.wait * 2, NET.retryMost);

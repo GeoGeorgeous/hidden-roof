@@ -8,6 +8,7 @@ import type { Input } from '../input';
 import type { Hud } from '../hud';
 import type { Audio } from '../audio';
 import type { Hotbar } from '../inventory/hotbar';
+import type { Notify } from '../notify';
 import { startSizes, type Inventory } from '../inventory/inventory';
 import type { Level } from '../level/level';
 import type { LevelData } from '../level/level-data';
@@ -46,6 +47,7 @@ export interface DevContext {
   hud: Hud;
   audio: Audio;
   hotbar: Hotbar;
+  notify: Notify;
   inventory: Inventory;
   level: Level;
   pickups: Pickups;
@@ -122,7 +124,7 @@ export class DevTools {
       unlockAll: () => {
         g.inventory.unlockAll();
         g.pickups.collectOwned(g.inventory);
-        g.hotbar.toast('+ everything');
+        g.notify.event('You unlocked **everything**');
       },
       // Once per frame however many slider ticks came in (rebuildModelsNow).
       rebuildModels: () => (this.modelsChanged = true),

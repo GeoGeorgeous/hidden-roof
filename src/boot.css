@@ -38,6 +38,10 @@
   --hair: rgba(235, 229, 214, 0.1);
   --edge: rgba(235, 229, 214, 0.18);
   --error: #e0675e;
+  /* In-game messages: the hint and toast box, the chip's glass, the gradient behind a hint. */
+  --box: rgba(20, 20, 22, 0.78);
+  --glass: rgba(0, 0, 0, 0.78);
+  --shade: rgba(0, 0, 0, 0.4);
   /* What draws over what, bottom to top. Every layer is its own fixed root under body. */
   --z-shade: 5;
   --z-world: 10;

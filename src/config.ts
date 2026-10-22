@@ -364,10 +364,9 @@ export const HUD = {
   perf: true,
   /** GPU time per frame in it too (timer queries: desktop Chromium; a few queries a frame while shown). */
   perfGpu: false,
-  /** How long the cap and color tags show after a change, the PSI gauge after the pressure last changed, and a hotbar message (s). */
+  /** How long the cap and color tags show after a change, and the PSI gauge after the pressure last changed (s). */
   tagTime: 2.5,
   gaugeTime: 1.2,
-  toastTime: 2.2,
   /** Hotbar slots: size and the gap between them (CSS px), roundness (0 = square, 1 = circle), icon size (share of the slot). */
   slotSize: 30,
   slotGap: 10,
@@ -381,6 +380,20 @@ export const HUD = {
   selectedBorder: '#141416',
   selectedFill: '#ebe5d6',
   selectedFillOpacity: 0.35,
+};
+
+/** In-game messages (notify.ts, notify-view.ts): hints at the bottom, toasts above them, chips at the top. */
+export const NOTIFY = {
+  /** How long a toast shows, counted only while play is visible (s), and how many stack: a newer one removes the oldest. */
+  toastSeconds: 3,
+  maxToasts: 3,
+  /** Status chips at once: the next waits its turn. */
+  maxChips: 2,
+  /** Fades (ms): the dark gradient behind a hint in and out, a chip in and out. Hints and toasts cut. */
+  shadeIn: 200,
+  shadeOut: 300,
+  chipIn: 200,
+  chipOut: 160,
 };
 
 /** Slogans on lettered sign panels (kit/lettering.ts panelLettering). */

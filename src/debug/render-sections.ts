@@ -207,7 +207,7 @@ export function uiSections(h: Hooks): Section[] {
         { kind: 'heading', label: 'TIMING' },
         r('tags', ['HUD', 'tagTime'], 0.5, 8, 0.1),
         r('pressure gauge', ['HUD', 'gaugeTime'], 0.2, 5, 0.1),
-        r('messages', ['HUD', 'toastTime'], 0.5, 8, 0.1),
+        r('toasts', ['NOTIFY', 'toastSeconds'], 0.5, 8, 0.1),
         { kind: 'heading', label: 'HOTBAR' },
         r('size', ['HUD', 'slotSize'], 16, 60, 1),
         r('gap', ['HUD', 'slotGap'], 0, 40, 1),

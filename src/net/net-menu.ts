@@ -1,7 +1,7 @@
 import { COLORS, PAINT, PAINT_DETAIL } from '../config';
 import { download, pickFile, stamp } from '../files';
 import type { PauseMenu } from '../pause-menu';
-import type { Hotbar } from '../inventory/hotbar';
+import type { Notify } from '../notify';
 import { savePaint } from '../save/save-paint';
 import { store, stored } from '../stored';
 import { cycle, paintDetailName } from '../settings';
@@ -44,7 +44,7 @@ const STATUS: Record<Failure | 'connecting' | 'reconnecting', string> & Partial<
   blocked: 'The server is up but the connection was blocked (firewall or extension?)',
 };
 
-export function multiplayerMenu(hud: PauseMenu, hotbar: Hotbar, ctx: MultiplayerContext, levelName: () => string) {
+export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: MultiplayerContext, levelName: () => string) {
   const net = new Multiplayer(ctx);
   const sub = div('page-sub');
   const rows = div('rows');
@@ -136,11 +136,14 @@ export function multiplayerMenu(hud: PauseMenu, hotbar: Hotbar, ctx: Multiplayer
     const detail = s.state === 'failed' || s.state === 'reconnecting' ? s.detail : undefined;
     const text = known && detail ? `${known} (${detail})` : known;
     say(text ?? '', s.state === 'failed', s.state === 'failed');
+    // In play the link's loss is a chip, as long as it lasts (the menu's line above says it with the page open).
+    if (s.state === 'reconnecting') notify.set({ key: 'net', kind: 'status', lines: [`Trying to reconnect · Attempt #${s.tries}`] });
+    else notify.clear('net');
     if (text) hud.notice(text, s.state === 'connecting' || s.state === 'reconnecting' ? Infinity : undefined);
     else if (s.state === 'in') hud.notice(`Session · ${s.code}`, 0);
   };
   net.onEnd = () => hud.toTitle();
-  net.onPlayer = (who, joined) => hotbar.toast(`${who} ${joined ? 'joined' : 'left'}`);
+  net.onPlayer = (who, joined) => notify.event(`**${who.replaceAll('*', '')}** ${joined ? 'joined' : 'left'}`);
   hud.onLeave = () => net.leave();
   hud.sessionInfo = () => ({ ping: net.ping, players: net.players.map((p) => ({ name: p.name, color: p.color && COLORS[p.color] })) });
   // Each step of HOST, JOIN or SAVE as it goes, with how far along an upload or download is.

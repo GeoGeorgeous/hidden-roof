@@ -25,6 +25,12 @@
 .layer-menu {
   z-index: var(--z-menu);
 }
+.layer-hint {
+  z-index: var(--z-hint);
+}
+.layer-event {
+  z-index: var(--z-event);
+}
 
 .vignette {
   position: absolute;
@@ -1768,7 +1774,9 @@ body.paused .layer-world,
 body.paused .layer-frame > :not(.vignette),
 body.paused .layer-tool,
 body.paused .hotbar,
-body.paused .toast {
+body.paused .layer-shade,
+body.paused .layer-hint,
+body.paused .layer-event {
   display: none;
 }
 @keyframes blink {
@@ -1826,18 +1834,132 @@ body.paused .toast {
 }
 
 
-.toast {
+
+/* --- In-game messages (notify-view.ts): hint and toasts at the bottom, chips at the top --- */
+
+/* The gradient behind a hint, under every HUD part; the only fade here besides the chip's. The fade times come from NOTIFY. */
+.layer-shade {
   position: fixed;
-  left: 50%;
-  bottom: 30%;
-  z-index: var(--z-event);
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 180px;
+  z-index: var(--z-shade);
+  background: linear-gradient(to top, var(--shade) 0, transparent 180px);
   opacity: 0;
-  transition: opacity 0.3s;
+  transition: opacity var(--shade-out) ease;
   pointer-events: none;
 }
-.toast.show {
+.layer-shade.on {
   opacity: 1;
+  transition-duration: var(--shade-in);
+}
+/* The hint and the toasts: Montserrat, bold names, sized in px (the HUD doesn't scale). */
+.layer-hint,
+.layer-event {
+  font: 500 12px/16px 'Montserrat', var(--sans);
+  letter-spacing: 0;
+  color: var(--paper);
+}
+.layer-hint b,
+.layer-event b {
+  font-weight: 700;
+}
+.hint,
+.hint-boxes,
+.hint-text,
+.toasts {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  white-space: nowrap;
+}
+.hint,
+.toasts {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.hint {
+  bottom: 72px;
+}
+.hint-boxes > div,
+.hint-text > div,
+.toasts > div {
+  box-sizing: border-box;
+  height: 24px;
+  padding: 4px 8px;
+}
+/* Opaque boxes in a group at the box's opacity, so their 1px overlaps don't darken; the text in a group of its own above at full strength. */
+.hint-boxes {
+  opacity: 0.78;
+}
+.hint-boxes > div {
+  background: var(--ui);
+  color: transparent;
+}
+.hint-boxes > div + div,
+.hint-text > div + div {
+  margin-top: -1px;
+}
+.hint-text {
+  position: absolute;
+  inset: 0;
+}
+/* Four px above the hint's top line (a one-line hint or none: 100px from the bottom); --hint-lines is set from JS. */
+.toasts {
+  bottom: calc(100px + (var(--hint-lines, 1) - 1) * 23px);
+  gap: 4px;
+}
+.toasts > div {
+  background: var(--box);
+}
+.chips {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.chip {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 14px;
+  border: 1px solid var(--edge);
+  border-radius: 6px;
+  background: var(--glass);
+  font: 500 14px var(--sans);
+  letter-spacing: 0;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity var(--chip-out) ease-in, transform var(--chip-out) ease-in;
+}
+.chip.on {
+  opacity: 1;
+  transform: none;
+  transition-duration: var(--chip-in);
+  transition-timing-function: ease-out;
+}
+.chip i {
+  box-sizing: border-box;
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid color-mix(in srgb, var(--paper) 25%, transparent);
+  border-top-color: var(--paper);
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 /* A frame threw (frame-guard.ts): over everything, the game behind it stopped or broken. */
 .frame-failed {

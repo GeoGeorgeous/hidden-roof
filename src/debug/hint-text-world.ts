@@ -92,7 +92,7 @@ export const WORLD_HINTS: Record<string, string> = {
   'HUD.perfGpu': 'Adds GPU time per frame (scene, volumetrics, hands + post) to the readout. Needs timer queries (desktop Chromium; elsewhere n/a); runs a few queries a frame while shown.',
   'HUD.tagTime': 'How long the cap and color tags beside the tool show after a change (s).',
   'HUD.gaugeTime': 'How long the PSI gauge stays up after the pressure last changed (s). It stays while the pressure is low.',
-  'HUD.toastTime': 'How long a message over the hotbar shows ("already have …", "the ladder can\'t stand there") (s).',
+  'NOTIFY.toastSeconds': 'How long a toast shows ("You picked up Marker", "Geo joined"), counted only while you play: not with a menu open (s).',
   'PAUSE_MENU.color': 'Color of the sheet over the game while paused (ESC).',
   'PAUSE_MENU.opacity': 'How much the pause sheet hides the game on the pause screen without F3 (the bottom darkens further for the menu). 1 = solid. Changing it shows that sheet behind the panel for a moment.',
   'PAUSE_MENU.pageOpacity': 'How much the sheet hides the blurred game under the menu\'s pages and popups (settings, multiplayer, credits, save, upload, updates). 1 = solid.',
