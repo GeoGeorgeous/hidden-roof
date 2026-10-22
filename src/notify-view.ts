@@ -1,6 +1,7 @@
 import { NOTIFY } from './config';
+import { label } from './input';
 import { el } from './menu-ui';
-import type { Notify } from './notify';
+import { resolveLine, type Notify } from './notify';
 
 // What notify.ts holds, drawn in play (style.css, "In-game messages"): the hint
 // and the toasts cut in and out; the dark gradient behind a hint and the chips fade.
@@ -35,6 +36,8 @@ export class NotifyView {
   private chips = el('div', 'chips');
   private chipByKey = new Map<string, Chip>();
   private seen = -1;
+  /** The hint's text as drawn, key names in: they follow rebinding and the keyboard layout, which don't signal. */
+  private hintShown = '';
 
   constructor(private notify: Notify) {
     for (const [name, ms] of [['shade-in', NOTIFY.shadeIn], ['shade-out', NOTIFY.shadeOut], ['chip-in', NOTIFY.chipIn], ['chip-out', NOTIFY.chipOut]] as const) {
@@ -46,11 +49,16 @@ export class NotifyView {
 
   /** Call every frame; it draws only when something changed. */
   update() {
+    const notes = this.notify.shown();
+    const raw = notes.find((n) => n.kind === 'advice')?.lines ?? [];
+    const lines = raw.map((l) => resolveLine(l, label));
+    const text = lines.join('\n');
+    if (text !== this.hintShown) {
+      this.hintShown = text;
+      this.drawHint(lines);
+    }
     if (this.notify.version === this.seen) return;
     this.seen = this.notify.version;
-    const notes = this.notify.shown();
-    const lines = notes.find((n) => n.kind === 'advice')?.lines ?? [];
-    this.drawHint(lines);
     this.shade.classList.toggle('on', lines.length > 0);
     // The toasts sit above the hint's top line.
     this.events.style.setProperty('--hint-lines', String(Math.max(1, lines.length)));

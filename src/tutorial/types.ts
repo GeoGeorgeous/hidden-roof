@@ -69,7 +69,7 @@ export interface HintDef {
   id: string;
   /** New tool > context > basic. A context hint leaves, unlearnt, when its `show` stops holding. */
   rank: Rank;
-  /** Up to 3 lines; `{use}` is the action's key name in bold, resolved at display time (resolveLine). */
+  /** Up to 3 lines; `{use}` is the action's key name in bold, resolved at display time (notify.ts resolveLine). */
   lines: string[];
   /** When it's wanted. */
   show: Cond;

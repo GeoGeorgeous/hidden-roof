@@ -2,7 +2,7 @@
 // touching game logic. Grouped by the component that shows it (docs/ideas/messages.md lists where and when).
 // A template has `{name}` for a value msg() fills in, and `**bold**` for what the display draws bold. An action's
 // name (`{forward}`, `{use}`) is not filled here: the display swaps it for the key's name when it draws
-// (tutorial/text.ts resolveLine), so a rebound key shows as bound. No DOM: tested in Node (scripts/messages.test.mjs).
+// (notify.ts resolveLine), so a rebound key shows as bound. No DOM: tested in Node (scripts/messages.test.mjs).
 
 export const MESSAGES = {
   /** Subtitles at the bottom center: a control being taught. Up to 3 lines, each its own entry line. */

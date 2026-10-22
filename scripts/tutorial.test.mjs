@@ -2,7 +2,7 @@
 // what is stored. Usage: node --experimental-transform-types --disable-warning=ExperimentalWarning scripts/tutorial.test.mjs
 import assert from 'node:assert/strict';
 import { Tutorial } from '../src/tutorial/tutorial.ts';
-import { resolveLine } from '../src/tutorial/text.ts';
+import { resolveLine } from '../src/notify.ts';
 
 const KEY_NAMES = { use: 'LMB', sizeDown: 'Q', sizeUp: 'E', prev: 'WHEELUP', next: 'WHEELDOWN' };
 

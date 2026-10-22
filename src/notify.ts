@@ -1,4 +1,5 @@
-import { NOTIFY } from './config';
+import { NOTIFY } from './config.ts';
+import type { Action } from './input.ts';
 
 // Every in-game message, as data: no DOM, the clock passed in (notify-view.ts
 // draws it). Four kinds, each with a place of its own, so one doesn't hide another:
@@ -34,6 +35,18 @@ export interface Setting {
   kind: Exclude<Kind, 'event'>;
   lines: string[];
   rank?: number;
+}
+
+/**
+ * A hint's line as the player reads it: `Press {use} to draw` as `Press **LMB** to draw`. Each `{action}` becomes
+ * its key name in bold, at display time, so rebinding or the keyboard layout arriving changes it. An unbound key
+ * (`—`) isn't bold.
+ */
+export function resolveLine(line: string, label: (action: Action) => string) {
+  return line.replace(/\{(\w+)\}/g, (_, action: string) => {
+    const key = label(action as Action).replaceAll('*', '×');
+    return key === '—' ? key : `**${key}**`;
+  });
 }
 
 export class Notify {
