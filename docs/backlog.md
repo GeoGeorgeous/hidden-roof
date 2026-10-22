@@ -165,8 +165,8 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 1. ~~[TASK-173]: Add cookies notification and all legal necessary documentation (docs/ideas/legal.md) @1.5.0 (no cookies: the privacy policy is TASK-178)~~
 2. ~~[TASK-186]: What the privacy page now promises holds on the host: the Hetzner data processing agreement signed (owner), logs deleted after 14 days, disk encryption answered: the page claims none until then (devops, docs/ideas/vps.md) (docs/ideas/legal.md) @1.5.0 (the owner dropped it: the page no longer mentions the agreement, a log period or encryption)~~
-3. [TASK-187]: Performance telemetry (feat/playtest-telemetry) needs opt-in consent in the EU before it ships; "on for everyone" breaks ePrivacy 5(3) and GDPR 7(4) (docs/ideas/legal.md)
-4. [IDEA-188]: Who plays and from where, counted on the server: country from the IP at connect, counts only, the IP not kept (docs/ideas/legal.md)
+3. [TASK-187]: Performance telemetry (feat/playtest-telemetry) needs opt-in consent in the EU before it ships; "on for everyone" breaks ePrivacy 5(3) and GDPR 7(4) (SECRET_legal.md)
+4. [IDEA-188]: Who plays and from where, counted on the server: country from the IP at connect, counts only, the IP not kept (SECRET_legal.md)
 
 ## Done
 
@@ -200,5 +200,5 @@ Shipped since the last release; the release commit empties this list.
 26. [TASK-192]: The server writes its log to one file a day in LOG_DIR and cleans it: IP addresses and nicknames gone after 14 days, lines after 60 (server/log-files.ts); the host part waits for the release (docs/ideas/vps.md)
 27. [TASK-182]: Link preview picture (og:image, twitter:image), touch and manifest icons, and the screenshot in the JSON-LD
 28. [TASK-196]: Ko-fi support link in the ESC menu footer
-29. [TASK-183]: A lawyer read LICENSE, the Terms and the privacy policy: the country of Georgia and the courts of Tbilisi, streaming allowed, IP rights in the rules, moderation on our belief of a breach, blocked IPs kept while blocked, single player's IP note; LICENSE §6 points to the Credits (docs/ideas/legal.md) @1.5.0
+29. [TASK-183]: A lawyer read LICENSE, the Terms and the privacy policy: the country of Georgia and the courts of Tbilisi, streaming allowed, IP rights in the rules, moderation on our belief of a breach, blocked IPs kept while blocked, single player's IP note; LICENSE §6 points to the Credits @1.5.0
 30. TASK [BL-078]: Show BUY ME A COFFEE again once it has a link (done by TASK-196: the Ko-fi link in the pause menu footer) @1.5.0
