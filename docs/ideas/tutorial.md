@@ -20,13 +20,35 @@ Facts checked on dev @ 7598b94 (2026-10-22). One hint system with the notificati
 2. **One designer brief** for hints and BL-140's messages.
 3. **One hint at a time.** No `maxShown` setting.
 4. **A switch in Settings → Gameplay** turns hints off. Off doesn't touch the progress; **Show hints again** is a separate action that clears it.
-5. **Pickups:** the "+ MARKER" toast and the like stay as they are (legacy) for now, hints on or off; the NEW TOOL tag stays. Whether a hint should replace them is judged later in the game itself.
+5. **Pickups:** a pickup still gets its toast, hints on or off, now in the new look and words ("You picked up **Marker**", Look below); the NEW TOOL tag stays. Whether a hint should replace the toast is judged later in the game itself.
 6. **Personal hints in single player and in sessions,** progress in the browser.
 7. **Wall typography in build mode is unchanged and out of BL-092:** the owner still paints any text on surfaces, control instructions and `<k>KEY</k>` key caps included. Stale or wrong instructions after a rebinding are the owner's call.
 8. **Two kinds of completion:** by **time** (shown N s: stored as learnt and removed even if the player did nothing; a new color: 5 s) and by **action** (walked N m, a key pressed, jumped, switched to a given tool, used it). Moving is learnt after 3 m.
 9. **English only,** no katakana under hints. Casing is the designer's.
 10. **HUD scaling is not BL-092:** TASK-197 (the HUD scales with the window and the DPR). No HUD size setting in BL-092.
 11. **Filed separately:** TASK-197, BUGS-198 (compact F3 menu under tags, hotbar, toast), BUGS-199 (LOW PRESSURE off the edge at 820 px). BUGS-198 and BUGS-199 are checked and closed on their own, never as done because BL-092 changed the layers.
+12. **The look is decided** (owner, 2026-10-22): four components, in Look below. Exact values and live demos come from the designer; until then the numbers there are the reference.
+
+## Look (owner, 2026-10-22)
+
+Every in-game message is one of four components, and each message type belongs to exactly one. Colors aren't final: they follow the current ink style (GRAPHICS → STYLE, `INK_STYLES` in `src/config.ts`) and change with it. Sizes at 1280×720.
+
+| | Hint (subtitles) | Chip | Toast | Dialogue |
+|---|---|---|---|---|
+| Use | teaching a control ("Press **LMB** to draw, **Q** / **E** to change nib") | system status: bad connection, reconnecting | pickups, joins and leaves: "You picked up **Marker**", "**Geo** joined" | blocking, to confirm: "You're playing alone now; your paint is kept" |
+| Where | bottom center, the box's bottom 72 px from the screen's bottom; grows upward | top center, 24 px from the top | centered, 4 px above the hint's top line (100 px from the bottom with a one-line hint or none) | where the chip is; a failed reconnect replaces the chip in place |
+| Look | Montserrat 500, keys 700, 12/16 px, `#ebe5d6`; box `rgba(20,20,22,.78)`, padding 4px 8px, no radius, no shadow; keys are bold words, no key caps | the ESC menu's style: 30 px tall, radius 6, padding 0 14px, `rgba(0,0,0,.78)`, border 1px `rgba(235,229,214,.18)`; Archivo 500 14 px `#ebe5d6`, lowercase | the hint's line style, the item or player name bold | the chip's style, radius 8, padding 6px 6px 6px 18px (50 px tall); a red dot (7 px, `#e0675e`) 9 px before the text; Archivo 500 14 px |
+| Lines | up to 3; each line its own box as wide as the line; the boxes touch | one | up to 3 stacked 4 px apart, newest at the bottom; a fourth removes the oldest | one, plus OK |
+| Motion | direct cut (0 ms) in and out; a new hint replaces the old one in the same frame | in 200 ms ease-out (opacity 0→1, translateY −4px→0), out 160 ms ease-in, reversed | direct cut; 3 s each | as the chip; the dimming fades with it |
+| Stays | until the player does the action | while true | 3 s | until confirmed |
+
+- **Hint overlay:** only while a hint shows; full width, 180 px tall, `linear-gradient(to top, rgba(0,0,0,.4) 0, rgba(0,0,0,0) 180px)`; fades in 200 ms, out 300 ms. Every HUD element (hotbar, tags, perf, frame) draws above it.
+- **Chip spinner** ("reconnecting"): an 8 px ring, 1.5 px border `rgba(235,229,214,.25)`, its top arc `#ebe5d6`, one turn per 900 ms, 8 px before the word.
+- **Dialogue button:** "OK" 12 px after the text; no background, `rgba(235,229,214,.75)`, 14 px, padding 10px 16px, radius 4; hover: background `rgba(235,229,214,.1)`, text `#ebe5d6`. Key hint "Enter" 8 px after OK: border 1px `rgba(235,229,214,.35)`, text `rgba(235,229,214,.6)`, Archivo 600 11 px, padding 0 5px, radius 3.
+- **Dialogue blocks play:** the game dims under `rgba(14,14,16,.35)` until the player confirms.
+- **What this changes in the code:** Montserrat isn't shipped (`public/fonts/` has Archivo, Sedgwick and others): add its woff2 (500, 700; OFL) with the license line. Key names come from `label()` as words, no caps to draw. Chip and dialogue belong to BL-140 (decision 1): their look is set now, the code comes with BL-140.
+
+Open (owner): a hint done by time (`color`, 5 s) leaves without the action, against "stays until the player does the action": kept as decided in 8 until the owner says otherwise. How each ink style maps to these colors (only RETRO LIGHT's paper is `#ebe5d6`).
 
 ## What exists (checked)
 
@@ -92,27 +114,28 @@ The owner's list, with these changes: the crosshair moves above the world tags (
 
 | Token | Layer | Holds |
 |---|---|---|
+| `--z-shade` | 5 | the hint's full-width gradient (every HUD element draws above it) |
 | `--z-world` | 10 | pickup tags, nameplates |
 | `--z-frame` | 20 | vignette, corners, REC, clock, perf |
 | `--z-aim` | 30 | crosshair (difference blend over everything under it) |
 | `--z-tool` | 40 | tool-hand stack: alert, PSI, cap, color |
-| `--z-hint` | 50 | hints and their full-width gradient |
-| `--z-event` | 60 | event toasts, status chip (reconnecting) |
+| `--z-hint` | 50 | hints |
+| `--z-event` | 60 | toasts, chip (reconnecting) |
 | `--z-hotbar` | 70 | hotbar: never covered |
 | `--z-menu` | 80 | pause menu, its pages and popups |
 | `--z-panel` | 90 | F3 panel, profiling line, build mode's picker and help |
 | `--z-loading` | 100 | loading screen |
-| `--z-error` | 110 | blocking errors (frame failed, BL-140's) |
+| `--z-error` | 110 | dialogue and its dimming (BL-140), frame failed |
 
 To make tokens work each layer must be its own root under `body` (a `.hud` that holds layers 10-40 and the menu can't interleave with body-level layers). So: `.hud` keeps its job as the play HUD but becomes several fixed roots (`.layer-world`, `.layer-frame`, …), or the menu moves out of `.hud` and `.hud` takes one z. The tokens live on `:root` in `src/boot.css` next to the colors. Full sheet up: layers 10-70 hidden (as now); compact F3 menu: they stay, under the menu.
 
 ### Screen zones (reference 1280×720; the designer sets the sizes)
 
 - **Top corners:** the body-cam frame. No messages.
-- **Top center** (under the frame line, where frame-failed is today, 48 px): status chip (reconnecting, session ended) and blocking errors.
+- **Top center** (24 px from the top): the chip, and the dialogue in its place.
 - **Center:** crosshair and aim area, a circle of about 15% of the window height: nothing, ever.
 - **Right of center, lower half:** the tool-hand stack follows the tool in hand (about x 860, y 450-520 at 1280×720). No hints there. It must grow so it stays on screen (fails at 820×560 today).
-- **Bottom center:** hotbar (bottom 22 px), and just above it **the hint line, like film subtitles** (owner, 2026-10-22): every hint shows there, context hints too. While one shows, a gradient overlay runs the full width from the bottom edge to a little above the hint, under the hotbar. Hints come and go by themselves with a simple fade; no blur. Event toasts move (today one toast at 30% from the bottom): the designer places them.
+- **Bottom center:** hotbar (bottom 22 px), and just above it **the hint line, like film subtitles** (owner, 2026-10-22): every hint shows there, context hints too. While one shows, a 180 px gradient runs the full width from the bottom edge, under every HUD element. Hints cut in and out; the gradient fades. Toasts stack just above the hint (Look).
 
 A hint never covers what it teaches: the tool stack is right of center, above the hint line.
 
@@ -187,7 +210,7 @@ Rules:
 - Hints off (Settings → Gameplay): the tutorial sets nothing and records nothing; the stored progress stays as it is; turned on again, it shows only what wasn't learnt yet. Show hints again clears it, on or off.
 - Wanted = `show` true, not learnt, `after` learnt. A hint learnt before it was ever shown (the player already knew) is stored silently.
 - One hint shows at a time. A higher rank takes the place of a lower one; the lower one goes back to waiting (its progress kept) and comes back after.
-- Pickup toasts ("+ MARKER") are untouched: they go through notify as events, beside the hint.
+- Pickup and session toasts go through notify as events, stacked above the hint (Look).
 - A hint done by time is learnt after its seconds of visible play (paused, F3, build mode and a hidden tab don't count), and goes even if the player did nothing.
 - Context hints are wanted only while their condition holds (near the ladder); they leave without being learnt when it stops, and come back next time.
 - A hint shown at least `TUTORIAL.minShown` s before it can leave as done, so it doesn't flash.
@@ -198,7 +221,7 @@ Rules:
 ```ts
 // notify.ts (BL-140 F4.9), the part BL-092 needs:
 notify.set({ key: 'hint:move', kind: 'advice', rank, lines }); // keyed: shown while set, in the subtitle line
-notify.clear('hint:move');           // learnt, timed out or walked away: the same fade out
+notify.clear('hint:move');           // learnt, timed out or walked away: cut out
 notify.update(dt, visible);         // the one clock
 notify.shown(): Note[];             // what the DOM module draws this frame
 ```

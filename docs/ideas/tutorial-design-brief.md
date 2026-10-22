@@ -2,6 +2,8 @@
 
 For the designer: everything needed is here and in the files below. (In the repo, the code spec is `docs/ideas/tutorial.md`, BL-092; not needed for this task.)
 
+Round 1 is done: the owner's decision (hint, chip, toast, dialogue) is in `docs/ideas/tutorial.md`, Look. This brief is kept as it was sent.
+
 ## What
 
 Hidden Roof is a first-person graffiti game: the world is ink on paper, and the only color is the paint players spray. Today's HUD frames the view like a camera recording (REC, corner brackets, a clock); that's decoration.
