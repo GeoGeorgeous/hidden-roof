@@ -16,7 +16,10 @@ What the legal texts (`LICENSE`, `CONTRIBUTING.md`, `public/terms.html`, `public
 - Recordings of sessions may be published to promote the game, nicknames included, on legitimate interest. The right to object (Article 21) is its own section of the page, as Article 21(4) requires; an objection keeps the nickname out of new material.
 - Logs: the game server writes its log to files and cleans them itself (`server/log-files.ts`): IP addresses and nicknames gone after 14 days, lines after 60. Caddy is shared with other sites on the host; the owner allowed its restart (2026-10-21), so its own log is kept 13 days, cut daily (devops, 2026-10-21).
 - Nothing on the host may change for the sake of this game that touches the other projects there, except what the owner allowed: the network settings (BBR) and Caddy's restart and log.
-- Terms and LICENSE: the laws of Georgia, keeping consumers' mandatory protection at home (Rome I Article 6(2)).
+- Terms and LICENSE: the laws of the country of Georgia (not the US state), the courts of Tbilisi, not exclusive: consumers keep their mandatory law and their own courts (Rome I Article 6(2); Brussels I bis Articles 18 and 19), and Hidden Haus may sue an infringer where they live.
+- Lawyer's read (TASK-183, 2026-10-22): taken with changes. Moderation stays tied to the rules ("if we believe you have broken"), not "as needed to moderate", which names no ground (DSA Article 14). Single player: the server sees the IP whenever the game's files load, levels included, not only the first page. LICENSE §6 names no components; the Credits and public/licenses/ list them.
+- Streaming and videos of play are allowed, monetized too; the LICENSE says playing is governed by the Terms, so its §3(e) doesn't forbid it.
+- IP blocks are by hand on the host, not in the code; a blocked IP is kept as long as the block is needed.
 - Pull requests are welcome; LICENSE §4 is the CLA. CONTRIBUTING stays three lines.
 - The texts are short on purpose: a free experiment with no players yet. Article 12 GDPR asks for concise, plain language anyway.
 - Moderation is the owner alone, by hand, on reports by email. The Terms say only what may be done; the DSA details wait for public servers (TASK-189).
