@@ -35,6 +35,8 @@ import { Hotbar } from './inventory/hotbar';
 import { sentence } from './menu-ui';
 import { Notify } from './notify';
 import { NotifyView } from './notify-view';
+import { Tutorial } from './tutorial/tutorial';
+import { TutorialWire } from './tutorial/wire';
 import { Thumbnails } from './inventory/thumbnails';
 import { Pickups } from './pickups/pickups';
 import { OpenLevel } from './level/open-level';
@@ -110,14 +112,18 @@ const thumbnails = new Thumbnails(renderer);
 const hotbar = new Hotbar(thumbnails);
 const notify = new Notify();
 const notifyView = new NotifyView(notify);
+const tutorial = new Tutorial(notify);
 const tools = new Tools(scene, viewScene, paint, level.solids, audio, inventory, level);
+tools.onFact = (f) => tutorial.fact(f);
+const tutorialWire = new TutorialWire(tutorial, player, inventory, level.ladders);
 tools.ladder.onBlocked = () => notify.event("The ladder can't stand there");
 const wallHand = new WallHand(level.solids);
 viewScene.add(wallHand.group);
 const pickups = new Pickups(scene, camera, level.solids);
-pickups.onCollect = (label) => {
+pickups.onCollect = (label, item) => {
   audio.pickup();
   notify.event(`You picked up **${sentence(label)}**`);
+  tutorial.fact({ type: 'got', item });
 };
 pickups.onBlocked = (label) => notify.event(`You already have **${sentence(label)}**`);
 function applyPixelScale() {
@@ -249,6 +255,7 @@ function step(time: number) {
   // others see it.
   const { paused, frozen } = play;
   const yours = paused ? noInput : input;
+  tutorialWire.before();
   if (!frozen) player.update(dt, yours);
   if (player.onGround && player.stride - lastStride > PLAYER.footstepStride) {
     lastStride = player.stride;
@@ -317,7 +324,9 @@ function step(time: number) {
   paint.gpu.flush(renderer);
   hotbar.update(inventory);
   hud.update();
-  notify.update(dt, input.locked && !play.panel && !building && document.visibilityState === 'visible');
+  const visible = input.locked && !play.panel && !building && document.visibilityState === 'visible';
+  notify.update(dt, visible);
+  tutorialWire.frame(dt, visible, yours);
   notifyView.update();
   dev?.lap('paint + hud');
 
@@ -328,7 +337,7 @@ function step(time: number) {
   frameDrawn();
   dev?.lap('render');
   // Same frame as the render: the canvas still holds it (see screenshot.ts). Only while playing: not on the title or pause screen, nor with F3 open.
-  if (yours.justPressed('screenshot')) saveScreenshot(renderer.domElement, () => notify.event('Screenshot saved'));
+  if (yours.justPressed('screenshot')) saveScreenshot(renderer.domElement, () => (notify.event('Screenshot saved'), tutorial.fact({ type: 'screenshot' })));
   gpuTimer.poll();
   const { calls, triangles } = post.sceneStats;
   perfTest.frame(time, beforeDraw, calls);

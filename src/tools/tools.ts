@@ -15,6 +15,7 @@ import type { Level } from '../level/level';
 import { sizedCrosshair, stepSize } from './size-range';
 import { ViewSway, type Motion } from './view-sway';
 import type { AvatarAction } from '../avatar/pose';
+import type { Fact } from '../tutorial/types';
 
 const isSized = (t: Tool | null): t is SizedTool => t !== null && t in SIZED;
 /** Tools the wheel and the eyedropper change the color of. */
@@ -40,6 +41,10 @@ export class Tools {
   onColorChange: (color: PaintColor) => void = () => {};
   /** Called with the cap name when it changes or the can comes out. */
   onCapChange: (name: string) => void = () => {};
+  /** Called with what the player did that a hint could be about (tutorial/wire.ts). */
+  onFact: (fact: Fact) => void = () => {};
+  /** What the marker, roller and sponge had drawn at the last frame (m). */
+  private drawn = { marker: 0, roller: 0, sponge: 0 };
   private last: { tool: Tool | null; color: string; cap: string } | null = null;
   /** What the tool in hand is doing this frame, as others see it (net/snapshot.ts): pressing LMB with it, or shaking the can. */
   action: AvatarAction = null;
@@ -59,6 +64,7 @@ export class Tools {
     this.roller = new RollerTool(paint, solids, audio);
     this.sponge = new SpongeTool(paint, solids, audio);
     this.eyedropper = new Eyedropper(solids, paint);
+    this.ladder.onPlaced = () => this.onFact({ type: 'used', tool: 'ladder', amount: 1 });
     viewScene.add(this.spray.model.group, this.marker.model, this.ladder.model.group, this.roller.model.group, this.sponge.model.group);
   }
 
@@ -83,15 +89,15 @@ export class Tools {
       // Held, they keep stepping (the key's auto-repeat), as in build mode.
       const qe = input.step('sizeDown', 'sizeUp');
       const colored = t !== null && COLORED[t];
-      if (wheel && colored && inv.cycleColor(wheel)) this.audio.click();
+      if (wheel && colored && inv.cycleColor(wheel)) (this.audio.click(), this.onFact({ type: 'colorCycled' }));
       if (colored && input.justPressed('pick')) {
         const picked = this.eyedropper.pick(camera, eye, inv.colors);
-        if (picked && inv.pickColor(picked)) this.audio.click();
+        if (picked && inv.pickColor(picked)) (this.audio.click(), this.onFact({ type: 'colorPicked' }));
       }
-      if (qe && t === 'can' && inv.cycleCap(qe)) this.audio.click();
+      if (qe && t === 'can' && inv.cycleCap(qe)) (this.audio.click(), this.onFact({ type: 'capCycled' }));
       if (qe && isSized(t)) {
         const size = stepSize(SIZED[t], inv.size[t], qe);
-        if (size !== inv.size[t]) this.audio.click();
+        if (size !== inv.size[t]) (this.audio.click(), this.onFact({ type: 'sized', tool: t }));
         inv.size[t] = size;
       }
     }
@@ -104,6 +110,7 @@ export class Tools {
     // After the marker: they share the scribble sound, and these only touch it while in hand or just put away.
     this.roller.update(dt, input, camera, eye, tool === 'roller', inv.color, inv.size.roller);
     this.sponge.update(dt, input, camera, eye, tool === 'sponge', inv.size.sponge / 2);
+    this.reportUse(dt);
     this.action = tool === 'can' && this.spray.shaking ? 'shake' : tool && input.held('use') && input.locked ? PRESS[tool] : null;
   }
 
@@ -137,6 +144,16 @@ export class Tools {
       case 'sponge':
       case null:
       case undefined: return null;
+    }
+  }
+
+  /** Spray seconds and meters drawn this frame, as facts. */
+  private reportUse(dt: number) {
+    if (this.spray.flow > 0) this.onFact({ type: 'used', tool: 'can', amount: dt });
+    for (const tool of ['marker', 'roller', 'sponge'] as const) {
+      const now = this[tool].distance;
+      if (now > this.drawn[tool]) this.onFact({ type: 'used', tool, amount: now - this.drawn[tool] });
+      this.drawn[tool] = now;
     }
   }
 

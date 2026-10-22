@@ -9,7 +9,7 @@ import type { Ctx, Seen } from './conditions.ts';
 import { HINTS } from './hints.ts';
 import type { Fact, HintDef, Notes, Rank, Snapshot } from './types.ts';
 
-export const TUTORIAL_KEY = 'roofhiddenhaus.tutorial';
+const TUTORIAL_KEY = 'roofhiddenhaus.tutorial';
 
 /** What the message layer ranks by: higher wins. */
 const RANK: Record<Rank, number> = { tool: 3, context: 2, basic: 1 };

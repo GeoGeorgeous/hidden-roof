@@ -33,6 +33,9 @@ export class StrokeSweep {
   private raycaster = new THREE.Raycaster();
   private near: THREE.Object3D[] = [];
   private stillClock = 0;
+  private last: THREE.Vector3 | null = null;
+  /** The path the stroke has hit so far, in all (m): what a tool reports as used. */
+  travel = 0;
 
   constructor(
     private solids: THREE.Mesh[],
@@ -67,8 +70,13 @@ export class StrokeSweep {
       step.copy(from).lerp(dir, k / n).normalize();
       this.raycaster.set(origin.copy(fromEye).lerp(eye, k / n), step);
       const hit = this.near.length ? this.raycaster.intersectObjects(this.near, false)[0] : undefined;
-      if (!hit) continue;
+      if (!hit) {
+        this.last = null;
+        continue;
+      }
       hitAny = true;
+      if (this.last) this.travel += hit.point.distanceTo(this.last);
+      this.last = (this.last ?? new THREE.Vector3()).copy(hit.point);
       const surface = this.paint.get(hit.object);
       if (surface) facePoint(surface.geo, hit.faceIndex!, hit.uv!, at);
       each(hit, surface, at, fresh);
@@ -81,5 +89,6 @@ export class StrokeSweep {
   /** Off the surface (LMB up): the next stroke starts fresh. */
   lift() {
     this.prev = null;
+    this.last = null;
   }
 }
