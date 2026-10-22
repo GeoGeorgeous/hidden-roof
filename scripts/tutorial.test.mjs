@@ -17,7 +17,7 @@ function setup(saved = null) {
   const disk = { text: saved };
   const storage = { read: () => disk.text, write: (t) => (disk.text = t) };
   const t = new Tutorial(notes, storage);
-  const snap = { tool: 'can', colors: 1, caps: 1, nearLadder: false, onLadder: false };
+  const snap = { tool: 'can', tools: ['can'], colors: 1, caps: 1, nearLadder: false, onLadder: false };
   let visible = true;
   const play = (seconds) => {
     for (let i = 0; i < Math.round(seconds * 10); i++) t.update(0.1, visible, snap);
@@ -106,7 +106,7 @@ assert.equal(resolveLine('Press {use} to draw, {sizeDown} / {sizeUp} to change n
   const { t, play, keys, snap, board, learnt } = setup();
   play(2);
   assert.deepEqual(keys(), ['hint:move']);
-  t.fact({ type: 'got', item: 'marker' });
+  snap.tools = ['can', 'marker'];
   play(0.1);
   assert.deepEqual(keys(), ['hint:tool.marker']);
   assert.deepEqual(board.get('hint:tool.marker').lines, ['Press {slot2} to take the marker']);
@@ -122,7 +122,7 @@ assert.equal(resolveLine('Press {use} to draw, {sizeDown} / {sizeUp} to change n
 {
   const { t, play, snap, board } = setup();
   snap.tool = 'roller';
-  t.fact({ type: 'got', item: 'roller' });
+  snap.tools = ['can', 'roller'];
   play(0.1);
   assert.deepEqual(board.get('hint:tool.roller').lines, ['Press {use} to roll, {sizeDown} / {sizeUp} to change width']);
 }
@@ -189,7 +189,7 @@ assert.equal(resolveLine('Press {use} to draw, {sizeDown} / {sizeUp} to change n
 // No storage at all: in memory, no errors.
 {
   const t = new Tutorial({ set() {}, clear() {} });
-  t.update(2, true, { tool: 'can', colors: 1, caps: 1, nearLadder: false, onLadder: false });
+  t.update(2, true, { tool: 'can', tools: ['can'], colors: 1, caps: 1, nearLadder: false, onLadder: false });
 }
 
 console.log('tutorial: ok');

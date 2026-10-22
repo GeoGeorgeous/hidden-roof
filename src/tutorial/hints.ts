@@ -14,7 +14,7 @@ function tool(id: Exclude<Tool, 'can'>, learnt: Cond): HintDef {
     id: `tool.${id}`,
     rank: 'tool',
     lines: msgLines(`hint.${id}`),
-    show: { got: id },
+    show: { owns: id },
     done: { action: learnt },
     steps: [{ lines: msgLines(`hint.${id}Take`), until: holding(id) }],
   };

@@ -1,6 +1,6 @@
 // What the tutorial is told and what a hint is made of. Data only: no DOM, no game imports beyond types.
 
-import type { CapId, PaintColor, TUTORIAL } from '../config.ts';
+import type { TUTORIAL } from '../config.ts';
 import type { Action } from '../input.ts';
 import type { Tool } from '../inventory/tool.ts';
 
@@ -9,8 +9,6 @@ export type Fact =
   | { type: 'moved'; meters: number }
   | { type: 'sprinted'; seconds: number }
   | { type: 'jumped' }
-  /** A pickup, not a session restore. */
-  | { type: 'got'; item: Tool | `color:${PaintColor}` | `cap:${CapId}` }
   /** m drawn, rolled or scrubbed, s sprayed on a surface, 1 = a stepladder placed. */
   | { type: 'used'; tool: Tool; amount: number }
   | { type: 'colorCycled' }
@@ -26,6 +24,8 @@ export type Fact =
 export interface Snapshot {
   /** In hand. */
   tool: Tool | null;
+  /** In the inventory. */
+  tools: readonly Tool[];
   colors: number;
   caps: number;
   /** Within TUTORIAL.ladderRadius of a level ladder's climb volume, not on it. */
@@ -38,8 +38,8 @@ export type Amount = number | { [K in keyof typeof TUTORIAL]: (typeof TUTORIAL)[
 
 /** A fixed vocabulary; a hint combines it, so a new hint is a new entry, not new code. */
 export type Cond =
-  /** A 'got' fact for this item, ever. */
-  | { got: Extract<Fact, { type: 'got' }>['item'] }
+  /** The tool is in the inventory now. */
+  | { owns: Tool }
   | { has: 'colors' | 'caps'; atLeast: number }
   /** In hand. */
   | { holding: Tool }

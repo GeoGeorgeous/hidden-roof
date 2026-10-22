@@ -121,10 +121,9 @@ tools.ladder.onBlocked = () => notify.event(msg('toast.ladderBlocked'));
 const wallHand = new WallHand(level.solids);
 viewScene.add(wallHand.group);
 const pickups = new Pickups(scene, camera, level.solids);
-pickups.onCollect = (label, item) => {
+pickups.onCollect = (label) => {
   audio.pickup();
   notify.event(msg('toast.pickedUp', { item: sentence(label) }));
-  tutorial.fact({ type: 'got', item });
 };
 pickups.onBlocked = (label) => notify.event(msg('toast.alreadyHave', { item: sentence(label) }));
 function applyPixelScale() {

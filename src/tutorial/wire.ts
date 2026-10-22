@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { BINDINGS, PLAYER, TUTORIAL } from '../config';
 import type { Action, Input } from '../input';
 import type { Inventory } from '../inventory/inventory';
+import { SLOTS } from '../inventory/tool';
 import type { Ladder, Player } from '../player';
 import type { Tutorial } from './tutorial';
 import type { Snapshot } from './types';
@@ -54,6 +55,7 @@ export class TutorialWire {
     middle.copy(player.position).y += PLAYER.height / 2;
     return {
       tool: inventory.tool,
+      tools: SLOTS.filter((t) => inventory.has(t)),
       colors: inventory.colors.length,
       caps: inventory.caps.length,
       nearLadder: !player.onLadder && this.ladders.some((l) => l.volume.distanceToPoint(middle) <= TUTORIAL.ladderRadius),

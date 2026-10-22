@@ -3,7 +3,6 @@ import { PICKUP } from '../config';
 import type { V3 } from '../kit/pieces';
 import type { Inventory } from '../inventory/inventory';
 import { parsePickup, pickupLabel, type PickupKind } from '../inventory/items';
-import type { Fact } from '../tutorial/types';
 import { PickupLabels } from './labels';
 import { glow as makeGlow, halo as makeHalo, itemModel, setGlow, setRing, type Glow } from './visuals';
 
@@ -51,8 +50,7 @@ export class Pickups {
   readonly list = new Map<number, Pickup>();
   /** In build mode everything is shown and nothing can be collected. */
   editing = false;
-  /** Called with the label and what was got, when a pickup is collected (not when a session gives back what the player had). */
-  onCollect: (label: string, item: Extract<Fact, { type: 'got' }>['item']) => void = () => {};
+  onCollect: (label: string) => void = () => {};
   onBlocked: (label: string) => void = () => {};
   private nextId = 1;
   private time = 0;
@@ -206,6 +204,6 @@ export class Pickups {
     }
     p.collected = true;
     p.group.visible = false;
-    this.onCollect(pickupLabel(p.kind), 'color' in c ? `color:${c.color}` : 'cap' in c ? `cap:${c.cap}` : c.tool);
+    this.onCollect(pickupLabel(p.kind));
   }
 }

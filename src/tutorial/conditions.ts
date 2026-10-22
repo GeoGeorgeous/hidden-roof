@@ -14,8 +14,6 @@ export const newSeen = (): Seen => ({ totals: new Map(), events: new Set(), pres
 
 export interface Ctx {
   snap: Snapshot;
-  /** Items picked up, ever. */
-  got: ReadonlySet<string>;
   /** Visible seconds of play. */
   played: number;
   seen: Seen;
@@ -36,7 +34,7 @@ export function see(seen: Seen, f: Fact) {
 }
 
 export function holds(c: Cond, x: Ctx): boolean {
-  if ('got' in c) return x.got.has(c.got);
+  if ('owns' in c) return x.snap.tools.includes(c.owns);
   if ('has' in c) return (c.has === 'colors' ? x.snap.colors : x.snap.caps) >= c.atLeast;
   if ('holding' in c) return x.snap.tool === c.holding;
   if ('pressed' in c) return x.seen.pressed.has(c.pressed);

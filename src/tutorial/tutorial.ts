@@ -37,12 +37,10 @@ export class Tutorial {
   private storage: Storage;
   private states: State[];
   private done = new Set<string>();
-  /** Items picked up, ever (also while hints are off). */
-  private got = new Set<string>();
   private played = 0;
   private seq = 0;
   private on = true;
-  private snap: Snapshot = { tool: null, colors: 1, caps: 1, nearLadder: false, onLadder: false };
+  private snap: Snapshot = { tool: null, tools: [], colors: 1, caps: 1, nearLadder: false, onLadder: false };
   /** What the message layer has: the hint's id and which of its texts. */
   private shown: { id: string; text: number } | null = null;
 
@@ -73,7 +71,6 @@ export class Tutorial {
 
   /** Something happened. */
   fact(f: Fact) {
-    if (f.type === 'got') this.got.add(f.item);
     if (!this.on) return;
     for (const s of this.states) if (s.wanted) see(s.seen, f);
   }
@@ -100,7 +97,7 @@ export class Tutorial {
   }
 
   private ctx(s: State): Ctx {
-    return { snap: this.snap, got: this.got, played: this.played, seen: s.seen };
+    return { snap: this.snap, played: this.played, seen: s.seen };
   }
 
   /** Marks which unlearnt hints are wanted; a context hint that stops being wanted starts over. */

@@ -158,7 +158,6 @@ type Fact =
   | { type: 'moved'; meters: number }             // ground distance this frame (player.stride delta)
   | { type: 'sprinted'; seconds: number }
   | { type: 'jumped' }
-  | { type: 'got'; item: Tool | `color:${PaintColor}` | `cap:${CapId}` } // a pickup, not a session restore
   | { type: 'used'; tool: Tool; amount: number }  // m drawn/rolled/scrubbed, s sprayed on a surface, 1 = stepladder placed
   | { type: 'colorCycled' } | { type: 'colorPicked' } | { type: 'capCycled' } | { type: 'sized'; tool: Tool }
   | { type: 'climbed'; meters: number }
@@ -193,7 +192,7 @@ type Done = { shown: number | keyof typeof TUTORIAL } | { action: Cond } | { sho
 
 // A fixed vocabulary; data combines it, so a new hint is a new entry, not new code.
 type Cond =
-  | { got: string }                                  // a 'got' fact for this item, ever
+  | { owns: Tool }                                    // in the inventory now
   | { has: 'colors' | 'caps'; atLeast: number }
   | { holding: Tool }                               // in hand (as a done: switched to it)
   | { pressed: Action }                             // an action's key pressed since the hint was wanted
@@ -235,10 +234,10 @@ Thresholds are `TUTORIAL` config with F3 descriptions; the owner agreed these va
 |---|---|---|---|---|
 | `move` | basic | `[W][A][S][D]` move · `[SHIFT]` run · `[SPACE]` jump | `playedFor` 1.5 s | `total moved` ≥ `moveMeters` (3 m) |
 | `spray` | basic | `[LMB]` spray · `[RMB]` shake | after `move`, can in hand | `total used can` ≥ 0.5 s on a surface |
-| `tool.marker` | tool | step `[2]` take the marker, then `[LMB]` draw · `[Q]` `[E]` nib | `got marker` | `total used marker` ≥ 0.5 m |
-| `tool.ladder` | tool | step `[3]` take the stepladder, then `[LMB]` put it down · `[WHEEL]` turn it | `got ladder` | `used ladder` (placed) |
-| `tool.roller` | tool | step `[4]`, then `[LMB]` roll · `[Q]` `[E]` width | `got roller` | `total used roller` ≥ 1 m |
-| `tool.sponge` | tool | step `[5]`, then `[LMB]` scrub paint off · `[Q]` `[E]` size | `got sponge` | `total used sponge` ≥ 0.5 m |
+| `tool.marker` | tool | step `[2]` take the marker, then `[LMB]` draw · `[Q]` `[E]` nib | `owns marker` | `total used marker` ≥ 0.5 m |
+| `tool.ladder` | tool | step `[3]` take the stepladder, then `[LMB]` put it down · `[WHEEL]` turn it | `owns ladder` | `used ladder` (placed) |
+| `tool.roller` | tool | step `[4]`, then `[LMB]` roll · `[Q]` `[E]` width | `owns roller` | `total used roller` ≥ 1 m |
+| `tool.sponge` | tool | step `[5]`, then `[LMB]` scrub paint off · `[Q]` `[E]` size | `owns sponge` | `total used sponge` ≥ 0.5 m |
 | `cap` | tool | `[Q]` `[E]` change the cap | `has caps ≥ 2`, can in hand | `capCycled` |
 | `color` | tool | `[WHEEL]` change color | `has colors ≥ 2`, a colored tool in hand | shown 5 s (time), or earlier `colorCycled` / `colorPicked` |
 | `ladder.climb` | context | walk into it or hold `[SPACE]` to climb · `[CTRL]` hold on | `near ladder` | `total climbed` ≥ 1.5 m |
@@ -270,7 +269,7 @@ Part of BL-092, first and small: layer tokens (`--z-*`) and the tool stack as on
 2. **Done** (the dialogue is not): `src/notify.ts` (advice, event, status, error; the visible clock; `NOTIFY` in `config.ts`) with `scripts/notify.test.mjs`; `src/notify-view.ts` draws hint, shade, toasts and chips; every toast caller is on `notify.event` (`Hotbar.toast` and `.toast` are gone), and the reconnecting chip (`Trying to reconnect · Attempt #N`) is set and cleared in net-menu's `onStatus` from `NetStatus.tries`. `error` is typed only. The chip always shows the spinner: the static ring is for a state that doesn't exist yet. The hint's lines are drawn twice (opaque boxes in a group at 0.78, the text above), so the layout is the same by construction. A toast's text is the message with `**bold**`; names have `*` stripped. `window.game.notify` is the dev hook: `notify.set({ key, kind: 'advice', rank: 0, lines })`, `notify.event(text)`.
 3. **Play side done, the net side is the other agent's:** the chip (`spin`: the turning ring; without it a static 6 px ring) and the dialogue (kind `error`) are drawn by `notify-view.ts`. A dialogue takes the chip's place with the same key, dims the game, and blocks play: the pointer stays locked, the player's input is `noInput` (the world goes on), **Enter** confirms it (`PlayState.key`, `MenuActions.dialogue` / `confirm`), Esc opens the menu and confirms it too. Its OK button is drawn, not clicked (no cursor); its key hint says Enter. API: `notify.set({ key: 'net', kind: 'error', lines: [msg('dialogue.sessionLost')] })` replaces the `net` chip; `notify.blocked`, `notify.confirm()`, `notify.onConfirm = (key) => …`. Left: `NetStatus` → the dialogue in net-menu's `onStatus` (BL-140 F4.4, F5.12), checked by hand with the link proxy (`docs/ideas/notifications.md`, Checks by hand).
 4. **Done:** `src/tutorial/` (facts, hint data, conditions, storage) with a Node test on a fake clock; `tutorial/wire.ts` sends the player's facts (walked, ran, jumped, climbed, keys pressed) and a snapshot each frame; tools, pickups and the stepladder send theirs (`Tools.onFact`, `Pickups.onCollect(label, item)`, `StrokeSweep.travel` for meters drawn). `TUTORIAL.enabled` is the setting; no F3 rows for `TUTORIAL` yet.
-   - Differences from the first sketch: the engine sets only the one hint to show (and clears the rest), so it knows what is on screen to count its time; `{near: 'ladder'}` is also true on the ladder, or the hint would leave before the 1.5 m climb; `{action}` stays in the lines and `resolveLine(line, label)` (now in `notify.ts`) bolds the key names when they are drawn, polled each frame because rebinding and the layout map don't signal; an unbound key shows `—`, not bold; the nib keys are `sizeDown` / `sizeUp` (Q / E), not prev / next; `rank` passed to notify is a number, higher shows first (tool 3, context 2, basic 1); items picked up are remembered while hints are off, nothing else is; a hint done before it was ever shown is stored silently. Spray time counts while the can flows (`Spray.flow > 0`), not only on a surface.
+   - Differences from the first sketch: the engine sets only the one hint to show (and clears the rest), so it knows what is on screen to count its time; `{near: 'ladder'}` is also true on the ladder, or the hint would leave before the 1.5 m climb; `{action}` stays in the lines and `resolveLine(line, label)` (now in `notify.ts`) bolds the key names when they are drawn, polled each frame because rebinding and the layout map don't signal; an unbound key shows `—`, not bold; the nib keys are `sizeDown` / `sizeUp` (Q / E), not prev / next; `rank` passed to notify is a number, higher shows first (tool 3, context 2, basic 1); a tool hint is wanted while the tool is in the inventory now (the snapshot's `tools`), so a restart, a join or a session end can't leave one for a tool the player no longer has; nothing else is remembered while hints are off; a hint done before it was ever shown is stored silently. Spray time counts while the can flows (`Spray.flow > 0`), not only on a surface.
 5. **Done:** Settings → Gameplay: Hints (`TUTORIAL.enabled`, remembered) and Show hints again (`Tutorial.reset`).
 6. Shots at 1280×720 and 820×560, `npm run check`, the release draft line (shots done, in the session's scratchpad).
 
