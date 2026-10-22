@@ -26,7 +26,7 @@ The same screen already carries other messages: "+ MARKER" when something is pic
 
 ## Palette and type
 
-Two families exist; hints and messages live in play, so the HUD family is the base, the menu family is there for messages shown on the ESC menu. Values are from `src/boot.css` and `src/style.css`; the menu list was checked against them.
+Two families exist: today's HUD and the ESC menu. Hints and messages start from the HUD and move toward the menu (Direction below). Values are from `src/boot.css` and `src/style.css`; the menu list was checked against them.
 
 | | HUD (in play, over the game) | ESC menu (dark sheet) |
 |---|---|---|
@@ -50,12 +50,14 @@ Two families exist; hints and messages live in play, so the HUD family is the ba
 - **One hint at a time.** A more important one (a new tool) takes the place of a waiting one, which comes back after.
 - **A picked-up tool:** the "+ MARKER" toast stays as it is for now, next to the tool's hint; the NEW TOOL tag stays. Show both together; whether the hint should replace the toast is decided later in the game.
 - **English only.**
-- **Proposed place for hints:** the lower left third, left of the hotbar. Context hints may instead hang on their object in the world (like the pickup tags). Your call.
+- **Hints are subtitles.** One line (or two) at the bottom center, just above the hotbar, like film subtitles. While a hint shows, a soft gradient overlay runs the full width of the screen from the bottom edge to a little above the hint, for readability; it fades with the hint. Every hint lives there, context hints too (none hang on objects in the world).
+- **No blur** (no `backdrop-filter`) under hints or messages: a gradient or a flat translucent fill only.
+- **Hints come and go by themselves,** like subtitles: the player never confirms or dismisses one. A simple smooth animation in and out; no "done" acknowledgement, no dimming while waiting.
 
 ## What to draw
 
-1. **Hint kinds:** a basic hint (move, spray), a new-tool hint (two steps: "[2] take the marker", then "[LMB] draw · [Q] [E] nib"), a context hint (by a ladder), a hint pointing at a hotbar slot.
-2. **States:** appearing, waiting (some hints go by themselves after 5 s: show that they're timed, or not?) (shown a while, player hasn't done it: quieter?), done (a short acknowledgement before it leaves), deferred (a more important one took its place), leaving without done (walked away from the ladder).
+1. **Hint kinds:** a basic hint (move, spray), a new-tool hint (two steps: "[2] take the marker", then "[LMB] draw · [Q] [E] nib"), a context hint (by a ladder).
+2. **Motion:** in, on screen, out (the same out whether the player did it, its time ran out or they walked away), one hint replaced by another (step 1 to step 2 of a tool hint; a new-tool hint taking the move hint's place), the gradient with it.
 3. **Key caps:** a key, a long key (`⇧ Shift`, `Space`, `Page Down`), a pair (`[Q] [E]`), four keys (`[W][A][S][D]`), mouse buttons and the wheel (icons or words?), an unbound key.
 4. **One line and multi-line hints;** the longest realistic one: "walk into it or hold [SPACE] to climb · [CTRL] hold on".
 5. **One replacing another:** a new-tool hint arriving while the move hint waits.
@@ -68,20 +70,18 @@ Two families exist; hints and messages live in play, so the HUD family is the ba
 1. Which direction you recommend of the ones you propose, and why.
 2. Should the rest of the HUD (REC, clock, PSI and the tool tags) follow later, or stay as it is?
 3. Mouse buttons and the wheel: words in key caps, or small icons?
-4. Should a hint point at its target (a line to the hotbar slot, the ladder), or only sit near it?
-5. Katakana under the text, as on the pickup tags, or not for hints?
-6. The red: only for alerts, or also for "done"?
-7. How the hint and toast hold at 820×560 (later scaling is TASK-197).
-8. The tool-hand cluster runs off the right edge in small windows: flip it left, or wrap?
-9. Toasts: where, if hints take the lower left (above the hotbar as now, or top)?
+4. Katakana under the text, as on the pickup tags, or not for hints?
+5. How the hint and toast hold at 820×560 (later scaling is TASK-197).
+6. The tool-hand cluster runs off the right edge in small windows: flip it left, or wrap?
+7. Toasts: where, now that hints take the bottom center (above the hint line, or top)?
 
 ## What to deliver
 
-- **First, directions:** 2 or 3 distinct looks, from close to today's HUD to close to the ESC menu, each shown on two scenes only (the move hint at the start; a tool hint with the "+ MARKER" toast and the hotbar), over a light and a dark background. The owner picks one (or a mix).
+- **First, directions:** 2 or 3 distinct looks, from close to today's HUD to close to the ESC menu, each shown on two scenes (the move hint at the start; a tool hint with the "+ MARKER" toast and the hotbar) over a light and a dark background, plus one sheet with the messages (toast, a stack of three, the status chip, the blocking error). The owner picks one (or a mix).
 - **Then, the chosen one in full:** mockups over the screenshots above (or new ones the owner takes), at 1280×720 and 820×560.
-- Each kind in each state, with timings: fade in, wait, done, out (ms), easing.
+- Each kind's motion, with timings: in, out, replace (ms), easing.
 - Sizes in px at 1280×720; spacing, paddings, stroke widths.
 - Key-cap component: all variants from point 3.
 - Colors and opacities as values from the palette above.
 - Zones: a screen map with where each kind lives and the no-go areas.
-- Optional: a short motion clip of a hint going from waiting to done.
+- Optional: a short motion clip of a hint coming in, being replaced, and going.

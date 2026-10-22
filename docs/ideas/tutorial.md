@@ -92,11 +92,11 @@ The owner's list, with these changes: the crosshair moves above the world tags (
 
 | Token | Layer | Holds |
 |---|---|---|
-| `--z-world` | 10 | pickup tags, nameplates, future world-anchored hints (by a ladder) |
+| `--z-world` | 10 | pickup tags, nameplates |
 | `--z-frame` | 20 | vignette, corners, REC, clock, perf |
 | `--z-aim` | 30 | crosshair (difference blend over everything under it) |
 | `--z-tool` | 40 | tool-hand stack: alert, PSI, cap, color |
-| `--z-hint` | 50 | hints |
+| `--z-hint` | 50 | hints and their full-width gradient |
 | `--z-event` | 60 | event toasts, status chip (reconnecting) |
 | `--z-hotbar` | 70 | hotbar: never covered |
 | `--z-menu` | 80 | pause menu, its pages and popups |
@@ -112,11 +112,9 @@ To make tokens work each layer must be its own root under `body` (a `.hud` that 
 - **Top center** (under the frame line, where frame-failed is today, 48 px): status chip (reconnecting, session ended) and blocking errors.
 - **Center:** crosshair and aim area, a circle of about 15% of the window height: nothing, ever.
 - **Right of center, lower half:** the tool-hand stack follows the tool in hand (about x 860, y 450-520 at 1280×720). No hints there. It must grow so it stays on screen (fails at 820×560 today).
-- **Bottom center:** hotbar (bottom 22 px); event toasts stack up above it (today one toast at 30% from the bottom).
-- **Lower left third** (left of the hotbar, above the perf lines when they're on): **hints.** Empty in every screenshot, away from the right hand, the crosshair and the hotbar; close enough to the hotbar to point at a slot.
-- **World:** a context hint may instead hang on its object (the ladder), placed like a pickup tag. A design choice.
+- **Bottom center:** hotbar (bottom 22 px), and just above it **the hint line, like film subtitles** (owner, 2026-10-22): every hint shows there, context hints too. While one shows, a gradient overlay runs the full width from the bottom edge to a little above the hint, under the hotbar. Hints come and go by themselves with a simple fade; no blur. Event toasts move (today one toast at 30% from the bottom): the designer places them.
 
-A hint never covers what it teaches: a slot hint points at the slot, a tool hint stays clear of the tool stack, the ladder hint is beside the ladder.
+A hint never covers what it teaches: the tool stack is right of center, above the hint line.
 
 ## Model
 
@@ -166,7 +164,6 @@ interface HintDef {
   show: Cond;                         // when it's wanted
   done: Done;                         // when it's learnt and goes
   steps?: { lines: string[]; until: Cond }[]; // e.g. "[2] take the marker" until it's in hand
-  anchor?: 'hints' | 'world:ladder';  // the hints zone unless said
   after?: string[];                   // shown only once these are learnt
 }
 
@@ -201,8 +198,8 @@ Rules:
 
 ```ts
 // notify.ts (BL-140 F4.9), the part BL-092 needs:
-notify.set({ key: 'hint:move', kind: 'advice', rank, lines, anchor }); // keyed: shown while set, as space allows
-notify.clear('hint:move', 'done');  // 'done' plays the done state; 'gone' just leaves (walked away from the ladder)
+notify.set({ key: 'hint:move', kind: 'advice', rank, lines }); // keyed: shown while set, in the subtitle line
+notify.clear('hint:move');           // learnt, timed out or walked away: the same fade out
 notify.update(dt, visible);         // the one clock
 notify.shown(): Note[];             // what the DOM module draws this frame
 ```
