@@ -2,7 +2,7 @@
 
 From the audit of 2026-10-17 (module M4, skipped for 1.4.0). Nothing here is decided yet: the first step is settling the model (F4.1) before the designer starts. ★ marks the audit's recommended approach.
 
-BL-140 is in 1.5.0 now (the owner moved it from 1.9.0). The texts of every message are in one catalogue, `src/messages.ts`; where each shows and the connection statuses: `docs/ideas/messages.md`. The link statuses (no signal, bad connection, packet loss, high delay) are built on feat/hints-net: `src/net/link-health.ts`.
+BL-140 is in 1.5.0 now (the owner moved it from 1.9.0). The texts of every message are in one catalogue, `src/messages.ts`; where each shows and the connection statuses: `docs/ideas/messages.md`. The link statuses (no signal and bad connection as chips; high delay as the nameplate note LAGGING; packet loss dropped) are built on feat/hints-net: `src/net/link-health.ts`.
 
 ## What exists
 

@@ -28,9 +28,6 @@ interface Timed {
 export class RemoteTimeline {
   /** When their newest snapshot arrived (local s). */
   heard = -Infinity;
-  /** Snapshots that came, and ones the numbers say are missing between them (a gap of NET.lossGap intervals or more, up to NET.lossGapMost s: longer is a stalled or hidden sender, not a lost snapshot). */
-  received = 0;
-  missed = 0;
   /** For F3 -> Ghost: how far behind they're shown (s), measured jitter (s), snapshots waiting, guessing past the newest. */
   readonly stats = { delay: 0, jitter: 0, buffered: 0, guessing: false };
   private snaps: Snapshot[] = [];
@@ -66,11 +63,6 @@ export class RemoteTimeline {
     // Their clock started over (they reloaded the page and came back): follow the new one.
     if (last && s.t < last.t - 1) this.reset();
     else if (last && s.t <= last.t) return;
-    if (last && s.t > last.t) {
-      const gap = s.t - last.t;
-      if (gap * NET.sendRate >= NET.lossGap && gap <= NET.lossGapMost) this.missed += Math.round(gap * NET.sendRate) - 1;
-    }
-    this.received++;
     // Drifts up slowly, so a link that got slower is followed, not just a faster one.
     const sample = now - s.t;
     if (this.lag === null) {

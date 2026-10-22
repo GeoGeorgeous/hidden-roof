@@ -41,10 +41,6 @@ export const MESSAGES = {
     noSignal: 'No signal from the server',
     /** The round trip to the server is long (NET.badPing). */
     badConnection: 'Bad connection',
-    /** Others' snapshots are missing (NET.lossShare). */
-    packetLoss: 'Packet loss',
-    /** Another player is shown far behind (NET.highDelay). */
-    highDelay: 'High delay for **{user}**',
   },
 
   /** Blocks play until confirmed. */
@@ -60,6 +56,8 @@ export const MESSAGES = {
     noteAway: 'AWAY',
     noteDropped: 'DISCONNECTED',
     noteSilent: 'NO SIGNAL',
+    /** Shown far behind for a while (NET.highDelay); the other notes win. */
+    noteLagging: 'LAGGING',
   },
 
   /** The menu, its pages, and the screens before play: they keep their own places. */

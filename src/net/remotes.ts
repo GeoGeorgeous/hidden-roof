@@ -2,6 +2,7 @@ import type * as THREE from 'three';
 import type { Level } from '../level/level';
 import type { PaintOps } from '../paint-ops';
 import type { Tools } from '../tools/tools';
+import { msg } from '../messages';
 import type { NetLog } from './diagnostics';
 import { Nameplates } from './nameplates';
 import type { Presence } from './protocol';
@@ -14,7 +15,9 @@ import { RemotePlayer, type Look } from './remote-player';
 /** A player's key: what they own (their stepladder). */
 export const ownerOf = (id: number) => `player${id}`;
 
-const NOTE: Record<Look, string> = { here: '', away: 'AWAY', dropped: 'DISCONNECTED', silent: 'NO SIGNAL' };
+/** A player who is here and heard, but shown far behind. The others' notes win: they say more. */
+const LAGGING = msg('hud.noteLagging');
+const NOTE: Record<Look, string> = { here: '', away: msg('hud.noteAway'), dropped: msg('hud.noteDropped'), silent: msg('hud.noteSilent') };
 
 export class Remotes {
   readonly names = new Map<number, string>();
@@ -27,9 +30,6 @@ export class Remotes {
     private g: { scene: THREE.Scene; camera: THREE.Camera; level: Level; paintOps: PaintOps; tools: Tools },
     private log: NetLog,
   ) {}
-
-  /** What the others who left had sent (snapshots received and missed), so the counts only go up. */
-  private gone = { received: 0, missed: 0 };
 
   get(id: number) {
     return this.list.get(id);
@@ -60,8 +60,6 @@ export class Remotes {
     const r = this.list.get(id);
     if (!r) return;
     if (finish) r.finish();
-    this.gone.received += r.timeline.received;
-    this.gone.missed += r.timeline.missed;
     r.dispose();
     this.log.add(`#${id} "${this.names.get(id)}" taken away`);
     this.list.delete(id);
@@ -90,22 +88,12 @@ export class Remotes {
       this.unseen.delete(id);
     }
     const shown = [...this.list].filter(([, r]) => r.avatar.group.visible);
-    this.nameplates.update(camera, shown.map(([id, r]) => ({ id, name: this.names.get(id) ?? '', note: NOTE[r.look], feet: r.position })));
+    this.nameplates.update(camera, shown.map(([id, r]) => ({ id, name: this.names.get(id) ?? '', note: NOTE[r.look] || (r.lagging ? LAGGING : ''), feet: r.position })));
   }
 
   /** Who's in the session besides us, and their paint colors (the pause screen's live line). */
   get roster() {
     return [...this.list].map(([id, r]) => ({ name: this.names.get(id) ?? '', color: r.color }));
-  }
-
-  /** Snapshots received and missed from everyone, since the session began. */
-  get counts() {
-    let { received, missed } = this.gone;
-    for (const r of this.list.values()) {
-      received += r.timeline.received;
-      missed += r.timeline.missed;
-    }
-    return { received, missed };
   }
 
   /** For the HUD: how far behind each is shown, and the jitter of their snapshots. */

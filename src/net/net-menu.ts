@@ -145,7 +145,7 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
     if (text) hud.notice(text, s.state === 'connecting' || s.state === 'reconnecting' ? Infinity : undefined);
     else if (s.state === 'in') hud.notice(msg('menu.session', { code: s.code }), 0);
   };
-  net.onHealth = (h) => (h ? notify.set({ key: 'net', kind: 'status', lines: [msg(`chip.${h.id}`, { user: (h.user ?? '').replaceAll('*', '') })] }) : notify.clear('net'));
+  net.onHealth = (h) => (h ? notify.set({ key: 'net', kind: 'status', lines: [msg(`chip.${h.id}`)] }) : notify.clear('net'));
   net.onEnd = () => hud.toTitle();
   net.onPlayer = (who, joined) => notify.event(msg(joined ? 'toast.joined' : 'toast.left', { user: who.replaceAll('*', '') }));
   hud.onLeave = () => net.leave();

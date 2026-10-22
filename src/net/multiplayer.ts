@@ -41,7 +41,7 @@ export class Multiplayer {
   onPlayer: (name: string, joined: boolean) => void = () => {};
   /** The session is over and the player's own level and paint are back (solo.ts): the menu shows its title view. */
   onEnd: () => void = () => {};
-  /** The link's state worth telling the player (slow, quiet, lossy), or null; called when it changes, while in a session. */
+  /** The link's state worth telling the player (slow, quiet), or null; called when it changes, while in a session. */
   onHealth: (h: LinkStatus | null) => void = () => {};
   /** What's under way, for the player to watch (UPLOADING PAINT 40%…); null when it's done. */
   onProgress: (text: string | null) => void = () => {};
@@ -179,9 +179,8 @@ export class Multiplayer {
   /** The link's health, a few times a second. */
   private checkHealth(t: number, heard: number) {
     this.healthNext = t + NET.healthEvery;
-    const { received, missed } = this.remotes.counts;
-    const h = this.health.update({ t, ping: this.net.ping, silence: t - heard, delays: this.remotes.stats, got: received, lost: missed });
-    if (h?.id === this.healthShown?.id && h?.user === this.healthShown?.user) return;
+    const h = this.health.update({ t, ping: this.net.ping, silence: t - heard });
+    if (h?.id === this.healthShown?.id) return;
     this.healthShown = h;
     this.onHealth(h);
   }
