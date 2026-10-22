@@ -149,7 +149,7 @@ export class Tools {
 
   /** Spray seconds and meters drawn this frame, as facts. */
   private reportUse(dt: number) {
-    if (this.spray.flow > 0) this.onFact({ type: 'used', tool: 'can', amount: dt });
+    if (this.spray.flow > 0 && this.spray.landing) this.onFact({ type: 'used', tool: 'can', amount: dt });
     for (const tool of ['marker', 'roller', 'sponge'] as const) {
       const now = this[tool].distance;
       if (now > this.drawn[tool]) this.onFact({ type: 'used', tool, amount: now - this.drawn[tool] });
