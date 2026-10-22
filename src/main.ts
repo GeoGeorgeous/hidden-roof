@@ -33,6 +33,7 @@ import { Tools } from './tools/tools';
 import { Inventory } from './inventory/inventory';
 import { Hotbar } from './inventory/hotbar';
 import { sentence } from './menu-ui';
+import { msg } from './messages';
 import { Notify } from './notify';
 import { NotifyView } from './notify-view';
 import { Tutorial } from './tutorial/tutorial';
@@ -116,16 +117,16 @@ const tutorial = new Tutorial(notify);
 const tools = new Tools(scene, viewScene, paint, level.solids, audio, inventory, level);
 tools.onFact = (f) => tutorial.fact(f);
 const tutorialWire = new TutorialWire(tutorial, player, inventory, level.ladders);
-tools.ladder.onBlocked = () => notify.event("The ladder can't stand there");
+tools.ladder.onBlocked = () => notify.event(msg('toast.ladderBlocked'));
 const wallHand = new WallHand(level.solids);
 viewScene.add(wallHand.group);
 const pickups = new Pickups(scene, camera, level.solids);
 pickups.onCollect = (label, item) => {
   audio.pickup();
-  notify.event(`You picked up **${sentence(label)}**`);
+  notify.event(msg('toast.pickedUp', { item: sentence(label) }));
   tutorial.fact({ type: 'got', item });
 };
-pickups.onBlocked = (label) => notify.event(`You already have **${sentence(label)}**`);
+pickups.onBlocked = (label) => notify.event(msg('toast.alreadyHave', { item: sentence(label) }));
 function applyPixelScale() {
   renderer.setPixelRatio(pixelRatio());
   syncViewSize();
@@ -337,7 +338,7 @@ function step(time: number) {
   frameDrawn();
   dev?.lap('render');
   // Same frame as the render: the canvas still holds it (see screenshot.ts). Only while playing: not on the title or pause screen, nor with F3 open.
-  if (yours.justPressed('screenshot')) saveScreenshot(renderer.domElement, () => (notify.event('Screenshot saved'), tutorial.fact({ type: 'screenshot' })));
+  if (yours.justPressed('screenshot')) saveScreenshot(renderer.domElement, () => (notify.event(msg('toast.screenshot')), tutorial.fact({ type: 'screenshot' })));
   gpuTimer.poll();
   const { calls, triangles } = post.sceneStats;
   perfTest.frame(time, beforeDraw, calls);

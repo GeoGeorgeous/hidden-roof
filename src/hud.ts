@@ -1,6 +1,7 @@
 import { HUD, VIGNETTE } from './config';
 import { label } from './input';
 import { netLines, type NetStats } from './net/diagnostics';
+import { msg } from './messages';
 import { PauseMenu } from './pause-menu';
 
 // Body-cam style HUD: vignette, corner brackets, REC indicator with elapsed
@@ -56,7 +57,7 @@ export class Hud {
     tools.className = 'layer layer-tool';
     tools.innerHTML = `
       <div class="tool-stack" hidden>
-        <div class="cap-tag psi-alert off">LOW PRESSURE — HOLD [${label('shake')}] TO SHAKE</div>
+        <div class="cap-tag psi-alert off">${msg('hud.lowPressure', { shake: label('shake') })}</div>
         <div class="cap-tag psi-gauge"><span>PSI</span><div class="line"><i></i></div><b></b></div>
         <div class="cap-tag" hidden></div>
         <div class="cap-tag color-tag" hidden></div>
@@ -157,7 +158,7 @@ export class Hud {
     this.alert.classList.toggle('off', !alert);
     if (alert) {
       // The shake key may have been rebound (Settings → Controls).
-      const text = `LOW PRESSURE — HOLD [${label('shake')}] TO SHAKE`;
+      const text = msg('hud.lowPressure', { shake: label('shake') });
       if (this.alert.textContent !== text) this.alert.textContent = text;
     }
     this.capTag.hidden = now >= this.capTagUntil;
