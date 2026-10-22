@@ -8,7 +8,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { SERVER } from '../src/config.ts';
-import { clean, cleanDir } from '../server/log-files.ts';
+import { clean, cleanDir, oneEntry } from '../server/log-files.ts';
 
 const DAY = 86_400_000;
 const days = { redact: SERVER.logRedactDays, keep: SERVER.logKeepDays };
@@ -42,6 +42,11 @@ assert.equal(
 );
 assert.equal(clean(cleaned, now, days), cleaned, 'a second clean changes nothing');
 assert.equal(clean(`${at(SERVER.logKeepDays + 1)} ----- old\n`, now, days), '');
+
+// Client text can't start a line of its own: no forged time, and the cleaning still sees one entry.
+const forged = oneEntry(`${at(0)} ABCDE "x" #1 dropped (1000 a\r\n${at(90)} ----- forged\u0007)\n    at stack`);
+assert.equal(forged.split('\n').filter((l) => /^\d{4}-/.test(l)).length, 1);
+assert.ok(!/[\r\u0007]/.test(forged) && forged.endsWith('\n    at stack'));
 
 // The directory: a changed file rewritten, an emptied one deleted, other files left alone.
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'roof-log-'));

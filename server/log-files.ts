@@ -28,6 +28,13 @@ function ipv6(m: string) {
   return ip.includes('::') || ip.split(':').length > 3 ? 'x' + tail : m;
 }
 
+/** A log entry made safe to write: control characters escaped, and a line break only followed by a space, so no text can start a line of its own (a forged time would beat the cleaning by age). A stack's lines already start with spaces. */
+export function oneEntry(text: string) {
+  return text
+    .replace(/[\0-\x08\x0b-\x1f\x7f]/g, (c) => (c === '\r' ? '\\r' : `\\x${c.charCodeAt(0).toString(16).padStart(2, '0')}`))
+    .replace(/\n(?!\s)/g, '\n  ');
+}
+
 /** A line with its IP addresses and nicknames removed. */
 function redact(line: string) {
   return line

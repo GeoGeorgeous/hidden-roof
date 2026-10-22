@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { format } from 'node:util';
 import { SERVER } from '../src/config';
-import { cleanDir } from './log-files';
+import { cleanDir, oneEntry } from './log-files';
 
 // The server's log: one line per event, with the time first (UTC), the session's
 // code next when there is one. With a directory set (LOG_DIR) it goes to one file
@@ -27,7 +27,7 @@ export function logTo(to: string) {
 
 export function log(...parts: unknown[]) {
   const now = new Date().toISOString();
-  const line = format(`${now.slice(0, 19)}Z`, ...parts);
+  const line = oneEntry(format(`${now.slice(0, 19)}Z`, ...parts));
   if (!dir) return console.log(line);
   try {
     fs.appendFileSync(path.join(dir, `${now.slice(0, 10)}.log`), line + '\n');
