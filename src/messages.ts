@@ -123,6 +123,8 @@ export const MESSAGES = {
     paintOtherLevel: 'SAVED FOR {level}',
     paintNoFile: 'NO FILE CHOSEN',
     paintNoFit: 'That paint file doesn’t fit this level.',
+    // Settings → Gameplay: the button's confirmation
+    hintsReset: 'Done: hints will show again',
     // Settings → Controls
     bindPrompt: 'Press a key, click a mouse button or scroll to bind {action}. Esc cancels.',
     bindRefused: '{reason} Try another key.',

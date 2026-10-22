@@ -1,5 +1,6 @@
 import { AUDIO, HUD, INK_STYLES, PAINT, PAINT_DETAIL, PLAYER, RENDER, SKYLINE, SMOKE, TUTORIAL, VOLUMETRICS, WALL_HAND } from './config';
 import { exitGameFullscreen } from './fullscreen';
+import { msg } from './messages';
 import { sentence } from './menu-ui';
 import { DEFAULT_STYLE, inkStyle, setInkStyle } from './render/ink/styles';
 import { NIGHT } from './render/atmosphere';
@@ -305,7 +306,7 @@ type Cost = 'LOW' | 'MEDIUM' | 'HIGH';
 export type SettingRow =
   | (RowBase & { kind: 'choice'; value: () => string; step: (d: number) => void; locked?: () => boolean })
   | (RowBase & { kind: 'info'; value: () => string })
-  | (RowBase & { kind: 'action'; button: string; act: () => void })
+  | (RowBase & { kind: 'action'; button: string; act: () => void; /** The button says this for a moment after it's pressed. */ done?: string })
   | (RowBase & { kind: 'range'; min: number; max: number; step: number; def: number; get: () => number; set: (v: number) => void; format: (v: number) => string });
 /** A tab that builds its own page (Controls): its rows' column, its footer line and a control top right; `open` readies it each time it shows, `close` when it goes. */
 export interface OwnTab {
@@ -353,7 +354,7 @@ function gameplayRows(resetHints: () => void): SettingRow[] {
       format: (v) => (v ? `+${v}°` : 'Off'),
     },
     toggle('Hints', () => TUTORIAL.enabled, (on) => (TUTORIAL.enabled = on), undefined, 'Short lines at the bottom of the screen that teach a control when you need it, and go once you have done it.'),
-    { kind: 'action', label: 'Show hints again', desc: 'Forget the hints you have learnt: they come back as you play.', button: 'Show', act: resetHints },
+    { kind: 'action', label: 'Show hints again', desc: 'Forget the hints you have learnt: they come back as you play.', button: 'Show', act: resetHints, done: msg('menu.hintsReset') },
     toggle('Show left hand', () => WALL_HAND.enabled, (on) => (WALL_HAND.enabled = on), undefined, 'Your free hand rests on walls you stand close to. It may get in the way of what you paint.'),
   ];
 }
