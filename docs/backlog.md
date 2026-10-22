@@ -112,7 +112,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## UI
 
-1. IDEA [BL-140]: One notification system: messages lost in menus and hidden tabs, nothing in play says reconnecting (docs/ideas/notifications.md) @1.9.0
+1. IDEA [BL-140]: One notification system: messages lost in menus and hidden tabs, nothing in play says reconnecting; every message text in one catalogue (docs/ideas/notifications.md, docs/ideas/messages.md) @1.5.0
 2. DSGN [BL-092]: Hints in play instead of a controls screen: move, each new tool, colors, ladders; one at a time, gone once done, remembered; on BL-140's notify core; the look decided, all four built here (hint, chip, toast, dialogue), exact values and demos from the designer (docs/ideas/tutorial.md) @1.5.0
 3. ~~BUGS [BL-072]: Nickname tags don't scale with the UI and resolution~~
 4. ~~[?BUGS-162]: The browser's page zoom scales the HUD and menus (zoom keys, Ctrl+wheel and pinch are blocked already: BROWSER_GUARDS) @1.5.0~~

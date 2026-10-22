@@ -1,6 +1,7 @@
-// The hints, as data (types.ts). Text: plain sentences; `{action}` becomes the action's key name in bold at display time.
+// The hints, as data (types.ts). Their texts are in src/messages.ts.
 
 import type { Tool } from '../inventory/tool.ts';
+import { msgLines } from '../messages.ts';
 import type { Cond, HintDef } from './types.ts';
 
 const holding = (tool: Tool): Cond => ({ holding: tool });
@@ -8,14 +9,14 @@ const holding = (tool: Tool): Cond => ({ holding: tool });
 const colored: Cond = { any: [holding('can'), holding('marker'), holding('roller')] };
 
 /** A tool picked up: take it from its slot, then use it. */
-function tool(id: Tool, slot: string, take: string, use: string[], learnt: Cond): HintDef {
+function tool(id: Exclude<Tool, 'can'>, learnt: Cond): HintDef {
   return {
     id: `tool.${id}`,
     rank: 'tool',
-    lines: use,
+    lines: msgLines(`hint.${id}`),
     show: { got: id },
     done: { action: learnt },
-    steps: [{ lines: [`Press {${slot}} to ${take}`], until: holding(id) }],
+    steps: [{ lines: msgLines(`hint.${id}Take`), until: holding(id) }],
   };
 }
 
@@ -23,40 +24,40 @@ export const HINTS: HintDef[] = [
   {
     id: 'move',
     rank: 'basic',
-    lines: ['Press {forward} {left} {back} {right} to move', 'Hold {sprint} to run, press {jump} to jump'],
+    lines: msgLines('hint.move'),
     show: { playedFor: 'moveDelay' },
     done: { action: { total: 'moved', atLeast: 'moveMeters' } },
   },
   {
     id: 'spray',
     rank: 'basic',
-    lines: ['Press {use} to spray, {shake} to shake the can'],
+    lines: msgLines('hint.spray'),
     show: holding('can'),
     done: { action: { total: 'used', tool: 'can', atLeast: 'spraySeconds' } },
     after: ['move'],
   },
-  tool('marker', 'slot2', 'take the marker', ['Press {use} to draw, {sizeDown} / {sizeUp} to change nib'], { total: 'used', tool: 'marker', atLeast: 'markerMeters' }),
-  tool('ladder', 'slot3', 'take the stepladder', ['Press {use} to put it down, {prev} / {next} to turn it'], { total: 'used', tool: 'ladder', atLeast: 1 }),
-  tool('roller', 'slot4', 'take the roller', ['Press {use} to roll, {sizeDown} / {sizeUp} to change width'], { total: 'used', tool: 'roller', atLeast: 'rollerMeters' }),
-  tool('sponge', 'slot5', 'take the sponge', ['Press {use} to scrub paint off, {sizeDown} / {sizeUp} to change size'], { total: 'used', tool: 'sponge', atLeast: 'spongeMeters' }),
+  tool('marker', { total: 'used', tool: 'marker', atLeast: 'markerMeters' }),
+  tool('ladder', { total: 'used', tool: 'ladder', atLeast: 1 }),
+  tool('roller', { total: 'used', tool: 'roller', atLeast: 'rollerMeters' }),
+  tool('sponge', { total: 'used', tool: 'sponge', atLeast: 'spongeMeters' }),
   {
     id: 'cap',
     rank: 'tool',
-    lines: ['Press {sizeDown} / {sizeUp} to change the cap'],
+    lines: msgLines('hint.cap'),
     show: { all: [{ has: 'caps', atLeast: 2 }, holding('can')] },
     done: { action: { event: 'capCycled' } },
   },
   {
     id: 'color',
     rank: 'tool',
-    lines: ['Scroll {prev} / {next} to change color'],
+    lines: msgLines('hint.color'),
     show: { all: [{ has: 'colors', atLeast: 2 }, colored] },
     done: { shown: 'colorShown', action: { any: [{ event: 'colorCycled' }, { event: 'colorPicked' }] } },
   },
   {
     id: 'ladder.climb',
     rank: 'context',
-    lines: ['Walk into the ladder or hold {jump} to climb', 'Hold {crouch} to stay on it'],
+    lines: msgLines('hint.climb'),
     show: { near: 'ladder' },
     done: { action: { total: 'climbed', atLeast: 'climbMeters' } },
   },
