@@ -56,6 +56,34 @@ fs.writeFileSync(path.join(dir, 'mem.txt'), `${at(90)} 192.0.2.9\n`);
 cleanDir(dir, days, now);
 assert.deepEqual(fs.readdirSync(dir).sort(), ['a.log', 'mem.txt']);
 assert.equal(fs.readFileSync(path.join(dir, 'a.log'), 'utf8'), cleaned);
+// Dated files go by their names: young ones are not read, old ones are deleted unread, and a cleaned one is not read again.
+const day = (d) => new Date(now - d * DAY).toISOString().slice(0, 10);
+const put = (d, body) => {
+  fs.writeFileSync(path.join(dir, `${day(d)}.log`), body);
+  fs.chmodSync(path.join(dir, `${day(d)}.log`), 0o644);
+};
+const dated = (d) => path.join(dir, `${day(d)}.log`);
+const stamp = (d, ms) => fs.utimesSync(dated(d), new Date(ms), new Date(ms));
+put(1, `${at(1)} ABCDE "New" #1 in from 192.0.2.1\n`);
+put(30, `${at(30)} ABCDE "Mid" #1 in from 192.0.2.1\n`); // the line's own time is not read: only the name counts
+put(80, `${at(80)} ----- old\n`);
+put(20, `${at(20)} ABCDE "Mid" #1 in from 192.0.2.1\n`);
+for (const d of [1, 30, 80, 20]) stamp(d, now - 100 * DAY); // never cleaned
+cleanDir(dir, days, now);
+assert.ok(!fs.existsSync(dated(80)), 'older than keep: deleted');
+assert.match(fs.readFileSync(dated(1), 'utf8'), /192\.0\.2\.1/, 'younger than redact: left as it is');
+assert.equal(fs.statSync(dated(1)).mtimeMs, now - 100 * DAY, 'and not touched');
+assert.match(fs.readFileSync(dated(20), 'utf8'), /"" #1 in from x/);
+assert.equal(fs.statSync(dated(20)).mtimeMs, now, 'redacted file: written now');
+// A cleaned file is skipped: change its text without a new mtime and the next pass leaves it.
+fs.writeFileSync(dated(20), `${at(20)} ----- 192.0.2.5\n`);
+stamp(20, now);
+cleanDir(dir, days, now + 3600_000);
+assert.match(fs.readFileSync(dated(20), 'utf8'), /192\.0\.2\.5/, 'cleaned after its day was due: not read again');
+fs.rmSync(dated(1));
+fs.rmSync(dated(20));
+fs.rmSync(dated(30));
+
 // A file that fails (a directory named x.log) is reported, and the others are still cleaned.
 fs.mkdirSync(path.join(dir, 'a-dir.log'));
 fs.writeFileSync(path.join(dir, 'z.log'), `${at(90)} ----- gone\n`);
