@@ -7,10 +7,23 @@
 
 /* --- Frame -------------------------------------------------------------- */
 
-.hud {
+/* Each layer is a fixed root of its own under body, stacked by the --z-* tokens (boot.css). */
+.layer {
   position: fixed;
   inset: 0;
   pointer-events: none;
+}
+.layer-world {
+  z-index: var(--z-world);
+}
+.layer-frame {
+  z-index: var(--z-frame);
+}
+.layer-tool {
+  z-index: var(--z-tool);
+}
+.layer-menu {
+  z-index: var(--z-menu);
 }
 
 .vignette {
@@ -76,18 +89,32 @@
   border: 1px solid #fff;
   border-radius: 50%;
   mix-blend-mode: difference;
+  z-index: var(--z-aim);
   pointer-events: none;
   transition: width 0.12s, height 0.12s;
 }
 
-/* Cap name beside the can after switching caps; positioned from JS. */
-.cap-tag {
+/* What's beside the tool in hand, top to bottom: low-pressure alert, PSI gauge, cap, color. One stack, placed from JS (hud.ts). */
+.tool-stack {
   position: absolute;
   left: 0;
   top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.cap-tag {
+  box-sizing: border-box;
+  height: 18px;
   padding: 2px 6px;
   border-left: var(--line);
+  line-height: 14px;
   white-space: nowrap;
+}
+/* The alert and the gauge keep their rows while off, so the cap tag stays put. */
+.psi-alert.off {
+  visibility: hidden;
 }
 
 /*
@@ -1737,7 +1764,9 @@
 }
 /* Full pause sheet (not compact): no in-game UI behind it (hud.ts); display: none, so
    it isn't laid out or animated (the REC blink) while paused. */
-body.paused .hud > :not(.overlay, .vignette),
+body.paused .layer-world,
+body.paused .layer-frame > :not(.vignette),
+body.paused .layer-tool,
 body.paused .hotbar,
 body.paused .toast {
   display: none;
@@ -1754,6 +1783,7 @@ body.paused .toast {
   position: fixed;
   left: 50%;
   bottom: 22px;
+  z-index: var(--z-hotbar);
   transform: translateX(-50%);
   display: flex;
   align-items: center;
@@ -1795,10 +1825,12 @@ body.paused .toast {
   border: var(--line);
 }
 
+
 .toast {
   position: fixed;
   left: 50%;
   bottom: 30%;
+  z-index: var(--z-event);
   transform: translateX(-50%);
   opacity: 0;
   transition: opacity 0.3s;
@@ -1812,7 +1844,7 @@ body.paused .toast {
   position: fixed;
   left: 50%;
   top: 48px;
-  z-index: 200;
+  z-index: var(--z-error);
   display: flex;
   align-items: center;
   gap: 16px;

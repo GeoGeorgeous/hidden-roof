@@ -266,7 +266,7 @@ Part of BL-092, first and small: layer tokens (`--z-*`) and the tool stack as on
 
 ## Implementation order (after the design)
 
-1. Layer tokens and the tool stack as one container (CSS, hud.ts), looks identical except the layer order.
+1. **Done.** Layer tokens (`--z-*` on `:root` in `boot.css`) and the tool stack as one flex container (`.tool-stack`, `hud.ts`), looks identical except the layer order. `.hud` is gone: `.layer-world`, `.layer-frame`, `.layer-tool` and `.layer-menu` are fixed roots under `body`, with the crosshair, hotbar, F3 panel, build UI and the frame-failed card on their tokens. The alert and gauge rows keep their place while off (`visibility`), so the cap tag stays put; rows are 18 px plus a 4 px gap, so text sits about 1 px lower than before.
 2. `src/notify.ts` (the four kinds, the visible clock) with a Node test; the play display module; the six toast callers moved, the toast queue's test (a "+ MARKER" and a "Bob joined" both seen; a toast under the pause sheet seen after it).
 3. The chip and the dialogue fed from `NetStatus` through net-menu's onStatus (BL-140 F4.4, F5.12): reconnecting as the chip, a session lost mid-play as the dialogue; checked by hand with the link proxy (`docs/ideas/notifications.md`, Checks by hand).
 4. `src/tutorial/` (facts, hint data, conditions, storage) with a Node test on a fake clock; the fact hooks in main.ts, tools, pickups, the stepladder; the `TUTORIAL` config with F3 rows.

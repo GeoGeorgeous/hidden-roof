@@ -38,6 +38,19 @@
   --hair: rgba(235, 229, 214, 0.1);
   --edge: rgba(235, 229, 214, 0.18);
   --error: #e0675e;
+  /* What draws over what, bottom to top. Every layer is its own fixed root under body. */
+  --z-shade: 5;
+  --z-world: 10;
+  --z-frame: 20;
+  --z-aim: 30;
+  --z-tool: 40;
+  --z-hint: 50;
+  --z-event: 60;
+  --z-hotbar: 70;
+  --z-menu: 80;
+  --z-panel: 90;
+  --z-loading: 100;
+  --z-error: 110;
 }
 
 html,
@@ -69,7 +82,7 @@ canvas {
 .loading {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: var(--z-loading);
   display: flex;
   flex-direction: column;
   align-items: center;
