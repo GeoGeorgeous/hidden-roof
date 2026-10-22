@@ -1,6 +1,7 @@
 import { COLORS, PAINT, PAINT_DETAIL } from '../config';
 import { download, pickFile, stamp } from '../files';
 import type { PauseMenu } from '../pause-menu';
+import { msg } from '../messages';
 import type { Notify } from '../notify';
 import { savePaint } from '../save/save-paint';
 import { store, stored } from '../stored';
@@ -136,8 +137,9 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
     const detail = s.state === 'failed' || s.state === 'reconnecting' ? s.detail : undefined;
     const text = known && detail ? `${known} (${detail})` : known;
     say(text ?? '', s.state === 'failed', s.state === 'failed');
-    // In play the link's loss is a chip, as long as it lasts (the menu's line above says it with the page open).
+    // In play the link's loss is a chip, as long as it lasts; a session lost mid-play is a dialogue in its place (the menu's line above says either with the page open). A failed JOIN or HOST stays on the page.
     if (s.state === 'reconnecting') notify.set({ key: 'net', kind: 'status', lines: [`Trying to reconnect · Attempt #${s.tries}`] });
+    else if (s.state === 'failed' && s.code) notify.set({ key: 'net', kind: 'error', lines: [msg('dialogue.sessionLost')] });
     else notify.clear('net');
     if (text) hud.notice(text, s.state === 'connecting' || s.state === 'reconnecting' ? Infinity : undefined);
     else if (s.state === 'in') hud.notice(`Session · ${s.code}`, 0);

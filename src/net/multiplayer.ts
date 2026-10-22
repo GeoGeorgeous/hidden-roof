@@ -28,7 +28,7 @@ import { capture, encodeSnapshot } from './snapshot';
 export type Failure = Rejection | 'timeout' | 'broken' | Awaited<ReturnType<typeof diagnose>>['reason'];
 
 /** What the player sees of the link, shown on the menus; `detail`: what was seen (a close code, an HTTP status, tries), for reports. */
-export type NetStatus = { state: 'off' } | { state: 'connecting' } | { state: 'in'; code: string } | { state: 'reconnecting'; code: string; detail: string; tries: number } | { state: 'failed'; reason: Failure; detail?: string };
+export type NetStatus = { state: 'off' } | { state: 'connecting' } | { state: 'in'; code: string } | { state: 'reconnecting'; code: string; detail: string; tries: number } | { state: 'failed'; reason: Failure; detail?: string; code?: string };
 
 const now = () => performance.now() / 1000;
 
@@ -312,6 +312,8 @@ export class Multiplayer {
 
   /** Out of the session: single player again, with the paint the player had before it (nothing of the session's stays; SAVE has it). */
   private end(status: NetStatus) {
+    // A failure after the welcome says which session it cost the player (a failed JOIN or HOST has none).
+    if (status.state === 'failed' && this.joined) status = { ...status, code: this.joined.code };
     this.attempt++;
     this.link?.abandon();
     this.link = null;
