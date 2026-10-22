@@ -73,6 +73,6 @@ Candidates: the owner chose the first four for 1.5.0 (2026-10-22), thresholds as
 
 ## Open questions for the owner
 
-1. Is `NetStatus` `reconnecting` always a chip, or only after 2 s (so a blink of a drop shows nothing)?
+1. ~~Reconnecting: a chip at once or after 2 s?~~ Decided (owner, 2026-10-22): at once.
 2. ~~Which candidate statuses in 1.5.0?~~ Decided: bad connection, server silent, high delay, packet loss (the loss counter first), with the proposed thresholds.
-3. Does a failure while joining stay only on the MULTIPLAYER page (as today), with the dialogue only after the player was in? (BL-114, in 1.5.0 now, tells the two apart.)
+3. ~~A failure while joining?~~ Decided: it stays on the MULTIPLAYER page; the dialogue only in play, after the player was in (BL-114 tells them apart).
