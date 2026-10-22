@@ -24,6 +24,21 @@ The same screen already carries other messages: "+ MARKER" when something is pic
 - **Messages:** `docs/ideas/notifications.md`, F4.7 (toasts unreadable over dark paint, casing mixed) and F4.10 (the earlier brief outline: types, places, states).
 - **Readable already:** the nameplates over other players: paper text on a dark box (`.nameplate` in `src/style.css`).
 
+## Palette and type
+
+Two families exist; hints and messages live in play, so the HUD family is the base, the menu family is there for messages shown on the ESC menu. Values are from `src/boot.css` and `src/style.css`; the menu list was checked against them.
+
+| | HUD (in play, over the game) | ESC menu (dark sheet) |
+|---|---|---|
+| Text | ink `#141416` (`--ui`), dim ink at .62 (`--dim`) | paper `#ebe5d6`; on paper buttons ink `#111` (`--ink`); hover `#fff` |
+| Background | none (the game); the nameplate box `rgba(20,20,22,.78)` with paper text | `#000`, the game under a sheet `rgba(14,14,16,.35)`, `.72` under a page |
+| Grays | — | paper at: text .85, .72, .65, .55 (`--text-2`), .45, .4 (`--text-3`); numbers and `·` .35, .3; muted .2; lines and frames .18 (`--edge`), .12, .1 (`--hair`). The CSS also uses .8, .6 and .5 often: treat the list as the scale, not every value in use |
+| Alert | red `#d4261c` (`--alert`): REC dot, LOW PRESSURE | error red `#e0675e` (`--error`) |
+| Type | monospace (`ui-monospace`, SF Mono, Menlo, Consolas) 11 px, letter-spacing .08em, capitals | Archivo 400/500/600 (variable, `fonts/archivo.woff2`); Sedgwick Ave Display for titles only, lowercase (`fonts/sedgwick-ave-display.woff2`) |
+| Pickup tags | outlined white letters with katakana (gothic) | — |
+
+Hints may move from bare ink text toward the nameplate's paper-on-dark box, or take Archivo: that's question 1 and 2, decide with reasons. Don't add a third family or a hue.
+
 ## Constraints
 
 - **Monochrome body-cam.** HUD is ink and paper with one red for alerts. No new hues: color belongs to the paint. (The ESC menu added a green dot and a second red; the HUD must not.)
