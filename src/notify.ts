@@ -7,7 +7,8 @@ import type { Action } from './input.ts';
 //           rank first, then the oldest; the others wait, still set
 //   event   a toast: a few seconds, newest last; a full stack drops the oldest
 //   status  a chip: keyed, shown while set; the first NOTIFY.maxChips show
-//   error   a dialogue: keyed, blocks play until confirmed (confirm); one shows, the rest wait
+//   error   a dialogue: keyed, blocks play until confirmed (confirm); one shows, the rest wait;
+//           its button says OK unless the note brings its own `action`
 // The clock runs only while play is visible (update): a message that arrives or
 // runs while a menu is open or the tab is hidden is seen in full after.
 // Text marks bold parts with **double stars** (key names, item and player names).
@@ -24,6 +25,8 @@ export interface Note {
   rank: number;
   /** A status chip with a spinner: something is going on, not just true. */
   spin?: boolean;
+  /** A dialogue's button; OK when unset. */
+  action?: string;
 }
 
 interface Held extends Note {
@@ -38,6 +41,7 @@ export interface Setting {
   lines: string[];
   rank?: number;
   spin?: boolean;
+  action?: string;
 }
 
 /**
@@ -55,8 +59,8 @@ export function resolveLine(line: string, label: (action: Action) => string) {
 export class Notify {
   /** Changes whenever what shows could have changed. */
   version = 0;
-  /** Called with the key of an error the player confirmed (Enter) or left for the menu (Esc). */
-  onConfirm: (key: string) => void = () => {};
+  /** Called with the key of an error the player answered: accepted with its button (Enter), or not (Esc, which opens the menu). */
+  onConfirm: (key: string, accepted: boolean) => void = () => {};
   private notes: Held[] = [];
   private cache: readonly Note[] = [];
   private cacheVersion = -1;
@@ -64,17 +68,18 @@ export class Notify {
   private ids = 0;
 
   /** Sets a keyed message, or replaces the text of the one with this key (it keeps its age). */
-  set({ key, kind, lines, rank = 0, spin }: Setting) {
+  set({ key, kind, lines, rank = 0, spin, action }: Setting) {
     const same = this.notes.find((n) => n.key === key);
     if (same && same.kind === kind) {
-      if (same.rank === rank && same.spin === spin && same.lines.join('\n') === lines.join('\n')) return;
+      if (same.rank === rank && same.spin === spin && same.action === action && same.lines.join('\n') === lines.join('\n')) return;
       same.rank = rank;
       same.spin = spin;
+      same.action = action;
       same.lines = lines;
       same.id = ++this.ids;
     } else {
       if (same) this.clear(key);
-      this.notes.push({ id: ++this.ids, key, kind, lines, rank, spin, until: 0 });
+      this.notes.push({ id: ++this.ids, key, kind, lines, rank, spin, action, until: 0 });
     }
     this.version++;
   }
@@ -91,12 +96,12 @@ export class Notify {
     return this.notes.some((n) => n.kind === 'error');
   }
 
-  /** The player confirmed the dialogue on screen: it goes, and the next error, if any, comes. */
-  confirm() {
+  /** The player answered the dialogue on screen: it goes, and the next error, if any, comes. */
+  confirm(accepted = true) {
     const error = this.notes.find((n) => n.kind === 'error');
     if (!error) return;
     this.clear(error.key);
-    this.onConfirm(error.key);
+    this.onConfirm(error.key, accepted);
   }
 
   /** A toast. */

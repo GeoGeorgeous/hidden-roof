@@ -171,7 +171,7 @@ const play = new PlayState(input, session, {
   back: () => hud.menu.goBack(),
   primary: () => hud.menu.primary(),
   dialogue: () => notify.blocked,
-  confirm: () => notify.confirm(),
+  confirm: (accepted) => notify.confirm(accepted),
 });
 input.onMenuKey = (code, down, repeat) => play.key(code, down, repeat);
 guardBrowser(() => !play.paused);

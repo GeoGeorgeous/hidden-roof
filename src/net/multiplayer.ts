@@ -8,7 +8,7 @@ import { PROTOCOL, type Rejection, type ToClient, type ToServer } from './protoc
 import { diagnose, NetLog, Traffic } from './diagnostics';
 import { decodeOps, encodeOps, SurfaceIndex } from '../op-wire';
 import { playSessionLevel, type MultiplayerContext } from './game-context';
-import { keepSolo, restoreSolo, type Solo } from './solo';
+import { keepSolo, SoloReturn, type Solo } from './solo';
 import { LinkHealth, type LinkStatus } from './link-health';
 import { Outbox } from './outbox';
 import { Sender } from './sender';
@@ -69,8 +69,8 @@ export class Multiplayer {
   private name = '';
   /** The player's own level and paint, from before the session's welcome replaced them until it ends. */
   private solo: Solo | null = null;
-  /** The queue up to the player's own level and paint being back after the session ended: HOST and JOIN wait for it. */
-  private restoring: Promise<void> = Promise.resolve();
+  /** Gets the player's own level and paint back when the session ends (HOST and JOIN wait for it). */
+  private tail: SoloReturn;
   /** Counts the sessions ended: a HOST or JOIN waiting for the restore is dropped by LEAVE. */
   private attempt = 0;
   private health = new LinkHealth();
@@ -79,6 +79,13 @@ export class Multiplayer {
 
   constructor(private g: MultiplayerContext) {
     this.remotes = new Remotes(g, this.log);
+    this.tail = new SoloReturn(g, {
+      enqueue: (job) => (this.queue = this.queue.then(job).catch(console.error)),
+      log: (line) => this.log.add(line),
+      attempt: () => this.attempt,
+      connecting: () => this.status.state === 'connecting',
+      onEnd: () => this.onEnd(),
+    });
     this.sender = new Sender({ capture: (at) => encodeSnapshot(capture(at, g.player, g.inventory, g.tools)), paint: g.paint, level: g.level, owner: () => session.player, inventory: g.inventory });
     document.addEventListener('visibilitychange', () => this.link?.live && this.send({ type: 'away', away: document.hidden }));
   }
@@ -117,9 +124,11 @@ export class Multiplayer {
 
   /** `start` once the player's own level is back from the last session (it reads the level), unless the session was left meanwhile; connecting is shown at once. */
   private afterRestore(start: () => void) {
+    // Starting another session is a choice to leave without saving.
+    void this.resolveLoss(false);
     const attempt = this.attempt;
     if (!this.joined) this.setStatus({ state: 'connecting' });
-    void this.restoring.then(() => attempt === this.attempt && start());
+    void this.tail.restoring.then(() => attempt === this.attempt && start());
   }
 
   /** Back into the session this tab was in before a reload, if the server may still have it. */
@@ -153,7 +162,7 @@ export class Multiplayer {
     this.log.add('LEAVE SESSION');
     this.send({ type: 'leave' });
     this.end({ state: 'off' });
-    return this.restoring;
+    return this.tail.restoring;
   }
 
   /** Once a frame: send this player's state and paint, show the others. */
@@ -327,7 +336,7 @@ export class Multiplayer {
     this.setStatus({ state: 'in', code: w.code });
   }
 
-  /** Out of the session: single player again, with the paint the player had before it (nothing of the session's stays; SAVE has it). */
+  /** Out of the session: single player again, with the paint the player had before it (SAVE has the session's). A session lost for good while playing waits for the dialogue's answer first (solo.ts). */
   private end(status: NetStatus) {
     // A failure after the welcome says which session it cost the player (a failed JOIN or HOST has none).
     if (status.state === 'failed' && this.joined) status = { ...status, code: this.joined.code };
@@ -337,7 +346,8 @@ export class Multiplayer {
     this.onProgress(null);
     // A welcome locks it before the player is in (its paint still loading): unlocked whatever the stage.
     this.g.lockDetail(null);
-    if (this.joined) {
+    const was = this.joined;
+    if (was) {
       this.remotes.clear();
       this.g.level.setRuntime(session.player, null);
       this.sender.end();
@@ -349,21 +359,12 @@ export class Multiplayer {
     this.setStatus(status);
     const solo = this.solo;
     this.solo = null;
-    // In the queue: after the message being handled (a welcome loading paint) and the ones waiting, and before any that comes later.
-    if (solo) this.restoring = this.queue = this.queue.then(() => this.restore(solo)).catch(console.error);
+    if (!solo) return;
+    this.tail.end(solo, was && status.state === 'failed' ? was.levelName : undefined);
   }
 
-  private async restore(solo: Solo) {
-    session.joining = true;
-    try {
-      await restoreSolo(this.g, solo);
-    } catch (err) {
-      console.error(err);
-      this.log.add(`couldn't bring back the paint from before the session: ${err}`);
-    }
-    session.joining = this.status.state === 'connecting';
-    this.onEnd();
-  }
+  /** The answer to the lost session's dialogue (solo.ts). */
+  resolveLoss = (save: boolean) => this.tail.answer(save);
 
   /**
    * The link for the HUD's performance lines, in a session: round trip to the

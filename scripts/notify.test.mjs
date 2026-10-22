@@ -98,7 +98,7 @@ const play = (n, seconds) => n.update(seconds, true);
 {
   const n = new Notify();
   const heard = [];
-  n.onConfirm = (key) => heard.push(key);
+  n.onConfirm = (key, accepted) => heard.push(`${key}${accepted ? '' : ' (no)'}`);
   n.set({ key: 'net', kind: 'status', spin: true, lines: ['Trying to reconnect · Attempt #2'] });
   assert.equal(n.blocked, false);
   assert.equal(n.shown()[0].spin, true);
@@ -112,10 +112,10 @@ const play = (n, seconds) => n.update(seconds, true);
   assert.equal(n.blocked, true);
   n.confirm();
   assert.deepEqual(texts(n, 'error'), ['second']);
-  n.confirm();
+  n.confirm(false);
   n.confirm();
   assert.equal(n.blocked, false);
-  assert.deepEqual(heard, ['net', 'other']);
+  assert.deepEqual(heard, ['net', 'other (no)']);
 }
 
 console.log('notify: ok (toast queue and clock, hint by rank, keyed chips, dialogue)');

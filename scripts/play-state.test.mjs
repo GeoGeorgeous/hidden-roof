@@ -10,7 +10,7 @@ function setup({ locked = false, multiplayer = false, joining = false, page = fa
   let dialogue = false;
   const session = { multiplayer, joining };
   const done = [];
-  const menu = { page: () => page, release: () => done.push('release'), resume: () => done.push('resume'), back: () => done.push('back'), primary: () => done.push('primary'), dialogue: () => dialogue, confirm: () => ((dialogue = false), done.push('confirm')) };
+  const menu = { page: () => page, release: () => done.push('release'), resume: () => done.push('resume'), back: () => done.push('back'), primary: () => done.push('primary'), dialogue: () => dialogue, confirm: (accepted) => ((dialogue = false), done.push(accepted ? 'confirm' : 'dismiss')) };
   const play = new PlayState(input, session, menu);
   const key = (code, down = true, repeat = false) => play.key(code, down, repeat);
   const tap = (code) => [key(code), key(code, false)];
@@ -114,7 +114,7 @@ for (const [locked, multiplayer, paused, frozen] of [[false, false, true, true],
   assert.equal(shown, 2);
 }
 
-// A dialogue in play: Enter confirms it (and is no game key); Esc opens the menu and confirms it too. With none, nothing changes.
+// A dialogue in play: Enter confirms it (and is no game key); Esc opens the menu and dismisses it. With none, nothing changes.
 {
   const { tap, key, up, done } = setup({ locked: true });
   up();
@@ -123,7 +123,7 @@ for (const [locked, multiplayer, paused, frozen] of [[false, false, true, true],
   assert.equal(key('Enter'), false, 'gone: Enter is a game key again');
   up();
   tap('Escape');
-  assert.deepEqual(done, ['confirm', 'release', 'confirm']);
+  assert.deepEqual(done, ['confirm', 'release', 'dismiss']);
 }
 
 // Keys that aren't Esc or Enter are never the menu's.

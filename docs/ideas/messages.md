@@ -21,7 +21,7 @@ Ids are `group.name`. Duration: how long it shows. Tech = technical (a code, a l
 | `menu.session`, `pauseIdle`, `pauseStart` | Session · CODE / Paused / Click to start | `pause-menu.ts:262`, `net-menu.ts:140` | ESC menu status line | while true | stays in the menu |
 | (the notice) | the status text again as the menu's notice | `net-menu.ts:94,139,148` | status, progress, log copy | `NOTICE_SECONDS` 3 s, Infinity for connecting and reconnecting | stays in the menu |
 | `chip.reconnecting` | Trying to reconnect · Attempt #{n} | new (today `menu.netReconnecting`, `multiplayer.ts:219`) | link dropped, retrying | while true | chip |
-| `dialogue.sessionLost` | You're playing alone now; your paint is kept | new (today nothing in play) | a session that ended mid-play | until confirmed | dialogue |
+| `dialogue.serverLost` + `serverLostAction` | Server not responding · button SAVE PAINT AND LEAVE | new (today nothing in play) | a session lost for good mid-play | until answered: Enter saves the session's paint as a .rhhpaint download and leaves, Esc leaves without saving (the menu opens) | dialogue |
 | `dialogue.frameFailed` | Something broke. Reload the page to go on. | `frame-guard.ts:25` | the frame loop threw | until reload | dialogue (own card, above all) |
 | `menu.joining`, `progress*` (6) | Joining… / Saving paint… / Uploading paint 40% … | `net-menu.ts`, `multiplayer.ts:131,282`, `server-link.ts:121-153` | HOST, JOIN, SAVE steps | until done | stays (menu, PLAY button) |
 | `menu.typeName`, `codeLength`, `logCopied`, `logSaved` | form errors, log copy result | `net-menu.ts:75,111,95-97` | a click | until the next say / 3 s | stays on the page |
@@ -48,7 +48,7 @@ Exist today (`net/multiplayer.ts` `NetStatus`, `Failure`; `net/diagnostics.ts`):
 | `connecting` | HOST/JOIN started | page status, PLAY button | no (menu, before play) |
 | `in` | welcome received | `Session · CODE` | no |
 | `reconnecting` | socket closed or server silent `NET.serverSilence` 15 s; retries 1, 2, 4, 8 s, until `SERVER.rejoinWindow` 180 s | menu notice, frozen nameplates | no: the chip |
-| `failed` `ended` | rejoin window over, or the session is gone | menu notice | yes (dialogue: playing alone) |
+| `failed` `ended` | rejoin window over, or the session is gone | menu notice | yes (dialogue: server not responding) |
 | `failed` `replaced` | opened in another tab | menu notice | yes |
 | `failed` `broken` | a message the game couldn't handle | menu notice | yes |
 | `failed` `version` | server of another protocol, from the server or `diagnose` | menu notice | yes |
