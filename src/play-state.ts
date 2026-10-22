@@ -1,7 +1,7 @@
 // Play state: playing (the game has the mouse), paused behind the menu, F3's
 // panel open, build mode, in a session; what the frame does in each, and what
 // Esc and Enter do while paused; while joining a session (its paint still
-// loading) nothing resumes. A dialogue in play: Enter accepts it, Esc opens the menu and dismisses it (the dialogue's own code says what each means). The pointer lock itself is Input's (the
+// loading) nothing resumes. A dialogue in play: Enter presses its button, Esc opens the menu and leaves without it (what each does is the dialogue's: net-menu.ts). The pointer lock itself is Input's (the
 // browser's, or a test's through Input.setLocked). No DOM here: tested in
 // Node (scripts/play-state.test.mjs).
 

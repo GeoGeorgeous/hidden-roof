@@ -80,4 +80,17 @@ assert.equal(setup().run(30), null);
   assert.equal(feed(20, 0.25), true);
   assert.equal(feed(NET.statusHold + 1, 0.1), false);
 }
+// report tells only a change, and due paces the looks.
+{
+  const h = new LinkHealth();
+  const told = [];
+  assert.equal(h.due(0), true);
+  assert.equal(h.due(NET.healthEvery / 2), false);
+  assert.equal(h.due(NET.healthEvery), true);
+  h.report({ t: 1, ping: 0.1, silence: 0 }, (x) => told.push(x?.id ?? null));
+  h.report({ t: 2, ping: 0.1, silence: 9 }, (x) => told.push(x?.id ?? null));
+  h.report({ t: 3, ping: 0.1, silence: 9 }, (x) => told.push(x?.id ?? null));
+  h.report({ t: 4, ping: 0.1, silence: 0 }, (x) => told.push(x?.id ?? null));
+  assert.deepEqual(told, ['noSignal', null]);
+}
 console.log('link-health: ok');

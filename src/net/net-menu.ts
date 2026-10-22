@@ -9,6 +9,7 @@ import { cycle, paintDetailName } from '../settings';
 import { action, button, choice, div, el, pageHead, relabel, sentence, settingRow } from '../menu-ui';
 import { CODE_LENGTH, CODE_LETTERS, NAME_MAX } from './protocol';
 import type { MultiplayerContext } from './game-context';
+import { lostDialogue, type LostButton } from './lost-dialogue';
 import { Multiplayer, type Failure, type NetStatus } from './multiplayer';
 
 // The Multiplayer page of the ESC menu: HOST (a name, the session's PAINT
@@ -37,6 +38,7 @@ const STATUS: Record<Failure | 'connecting' | 'reconnecting', MessageId> & Parti
   replaced: 'menu.netReplaced',
   'too-many': 'menu.netTooMany',
   ended: 'menu.netEnded',
+  expired: 'menu.netEnded',
   timeout: 'menu.netTimeout',
   broken: 'menu.netBroken',
   offline: 'menu.netOffline',
@@ -129,6 +131,9 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
   // Back (and Esc) from here while JOIN or HOST is loading the session cancels it: the pause screen can't offer PLAY before the paint is in.
   hud.addPage('mp', root, choose, () => (net.status.state === 'connecting' && net.leave(), inForm && (choose(), true)));
 
+  /** The state before this one, and what the lost session's dialogue button does. */
+  let was: NetStatus['state'] = 'off';
+  let lostButton: LostButton = 'leave';
   net.onStatus = (s: NetStatus) => {
     hud.setSession(s.state === 'in' || s.state === 'reconnecting' ? s.code : null, s.state === 'in');
     hud.setJoining(s.state === 'connecting' ? msg('menu.joining') : null);
@@ -139,16 +144,26 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
     const text = known && detail ? `${known} (${detail})` : known;
     say(text ?? '', s.state === 'failed', s.state === 'failed');
     // In play the link's loss is a chip, as long as it lasts; a session lost mid-play is a dialogue in its place (the menu's line above says either with the page open). A failed JOIN or HOST stays on the page.
-    if (s.state === 'reconnecting') notify.set({ key: 'net', kind: 'status', lines: [msg('chip.reconnecting', { n: s.tries })], spin: true });
-    else if (s.state === 'failed' && s.code) notify.set({ key: 'net', kind: 'error', lines: [msg('dialogue.serverLost')], action: msg('dialogue.serverLostAction') });
+    if (s.state === 'reconnecting') notify.set({ key: 'net', kind: 'status', icon: 'cycle', lines: [msg('chip.reconnecting', { n: s.tries })] });
+    else if (s.state === 'failed' && s.code) {
+      const lost = lostDialogue(s.reason, s.detail);
+      lostButton = lost.button;
+      notify.set({ key: 'net', kind: 'error', dialogue: lost.dialogue });
+    } else if (s.state === 'in' && was === 'reconnecting') notify.succeed('net', msg('chip.reconnected'));
     else notify.clear('net');
+    was = s.state;
     if (text) hud.notice(text, s.state === 'connecting' || s.state === 'reconnecting' ? Infinity : undefined);
     else if (s.state === 'in') hud.notice(msg('menu.session', { code: s.code }), 0);
   };
-  net.onHealth = (h) => (h ? notify.set({ key: 'net', kind: 'status', lines: [msg(`chip.${h.id}`)] }) : notify.clear('net'));
+  net.onHealth = (h) => (h ? notify.set({ key: 'net', kind: 'status', icon: h.id === 'noSignal' ? 'ring' : 'bars', lines: [msg(`chip.${h.id}`)] }) : notify.clear('net'));
   net.onEnd = () => hud.toTitle();
-  // Enter on the lost session's dialogue saves its paint and leaves; Esc leaves (the menu opens).
-  notify.onConfirm = (key, accepted) => key === 'net' && void net.resolveLoss(accepted);
+  // The lost session's dialogue: Enter presses its button (save the paint and leave, leave, reload, open the menu); Esc, which opens the menu, just leaves.
+  notify.onConfirm = (key, accepted) => {
+    if (key !== 'net') return;
+    if (accepted && lostButton === 'reload') return location.reload();
+    if (accepted && lostButton === 'menu') document.exitPointerLock();
+    void net.resolveLoss(accepted && lostButton === 'save');
+  };
   net.onPlayer = (who, joined) => notify.event(msg(joined ? 'toast.joined' : 'toast.left', { user: who.replaceAll('*', '') }));
   hud.onLeave = () => net.leave();
   hud.sessionInfo = () => ({ ping: net.ping, players: net.players.map((p) => ({ name: p.name, color: p.color && COLORS[p.color] })) });

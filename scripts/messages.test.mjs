@@ -1,11 +1,16 @@
 // Tests of the message catalogue (src/messages.ts) in Node: values fill in, a missing one stays visible, action names stay.
 // Usage: node --experimental-transform-types --disable-warning=ExperimentalWarning scripts/messages.test.mjs
 import assert from 'node:assert/strict';
-import { MESSAGES, msg, msgLines } from '../src/messages.ts';
+import { MESSAGES, dialogueOf, msg, msgLines } from '../src/messages.ts';
 
 assert.equal(msg('toast.joined', { user: 'Geo' }), '**Geo** joined');
 assert.equal(msg('chip.reconnecting', { n: 3 }), 'Trying to reconnect · Attempt #3');
-assert.equal(msg('dialogue.serverLost'), 'Server not responding');
+assert.equal(msg('chip.reconnected'), 'Reconnected');
+// A dialogue is label, title, text and button, filled; {minutes} comes from the caller.
+assert.equal(dialogueOf('serverLost', { minutes: 3 }).text, "We couldn't reach the server for 3 minutes, so your place in the session is gone.");
+assert.match(dialogueOf('serverLost').text, /\{minutes\}/);
+assert.equal(dialogueOf('openedElsewhere').esc, undefined);
+for (const d of Object.values(MESSAGES.dialogue)) assert.ok(d.label && d.title && d.text && d.button);
 // A missing value stays as {name}; an extra one is ignored.
 assert.equal(msg('toast.pickedUp'), 'You picked up **{item}**');
 assert.equal(msg('toast.left', { user: 'A', other: 1 }), '**A** left');

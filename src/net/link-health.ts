@@ -38,6 +38,23 @@ export class Flag {
 export class LinkHealth {
   private silent = new Flag();
   private bad = new Flag();
+  private next = 0;
+  private shown: LinkStatus | null = null;
+
+  /** Time to look again (every NET.healthEvery s). */
+  due(t: number) {
+    if (t < this.next) return false;
+    this.next = t + NET.healthEvery;
+    return true;
+  }
+
+  /** Looks at the numbers; `changed` hears the status when it differs from the one last told. */
+  report(s: LinkSample, changed: (status: LinkStatus | null) => void) {
+    const status = this.update(s);
+    if (status?.id === this.shown?.id) return;
+    this.shown = status;
+    changed(status);
+  }
 
   /** Once a frame while the session's link is up. The status to show, or null. */
   update(s: LinkSample): LinkStatus | null {
@@ -51,5 +68,6 @@ export class LinkHealth {
   reset() {
     this.silent = new Flag();
     this.bad = new Flag();
+    this.shown = null;
   }
 }

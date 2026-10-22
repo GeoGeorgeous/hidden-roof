@@ -21,8 +21,8 @@ Ids are `group.name`. Duration: how long it shows. Tech = technical (a code, a l
 | `menu.session`, `pauseIdle`, `pauseStart` | Session · CODE / Paused / Click to start | `pause-menu.ts:262`, `net-menu.ts:140` | ESC menu status line | while true | stays in the menu |
 | (the notice) | the status text again as the menu's notice | `net-menu.ts:94,139,148` | status, progress, log copy | `NOTICE_SECONDS` 3 s, Infinity for connecting and reconnecting | stays in the menu |
 | `chip.reconnecting` | Trying to reconnect · Attempt #{n} | new (today `menu.netReconnecting`, `multiplayer.ts:219`) | link dropped, retrying | while true | chip |
-| `dialogue.serverLost` + `serverLostAction` | Server not responding · button SAVE PAINT AND LEAVE | new (today nothing in play) | a session lost for good mid-play | until answered: Enter saves the session's paint as a .rhhpaint download and leaves, Esc leaves without saving (the menu opens) | dialogue |
-| `dialogue.frameFailed` | Something broke. Reload the page to go on. | `frame-guard.ts:25` | the frame loop threw | until reload | dialogue (own card, above all) |
+| `chip.reconnected` | Reconnected | `net-menu.ts` | the link came back after reconnecting (`Notify.succeed`) | 1.5 s of play | chip (check) |
+| `dialogue.*` (8) | label, title, text, button each: server not responding (reconnect window ran out, `expired`), session ended (`ended`), opened in another tab (`replaced`), a new version (`version`), session full (`full`), server busy (`busy`, `too-many`), network error (`broken`, with the error as a callout), client error (the frame loop threw, with the error and stack) | `net/lost-dialogue.ts`, `frame-guard.ts` | a session lost for good mid-play, or a crash | until answered: Enter presses the button (save the paint as a .rhhpaint and leave; leave; reload; open the menu), Esc leaves without it (never reloads); the card shows ENTER and, when Esc differs, "ESC · Leave without saving" | dialogue |
 | `menu.joining`, `progress*` (6) | Joining… / Saving paint… / Uploading paint 40% … | `net-menu.ts`, `multiplayer.ts:131,282`, `server-link.ts:121-153` | HOST, JOIN, SAVE steps | until done | stays (menu, PLAY button) |
 | `menu.typeName`, `codeLength`, `logCopied`, `logSaved` | form errors, log copy result | `net-menu.ts:75,111,95-97` | a click | until the next say / 3 s | stays on the page |
 | `menu.saveBusy`, `saveReconnecting` | save failures | `multiplayer.ts:126,140` | SAVE refused | in the save popup | stays (popup) |
@@ -37,7 +37,7 @@ Ids are `group.name`. Duration: how long it shows. Tech = technical (a code, a l
 
 Not moved, and not in the catalogue: menu labels and button captions, tooltips, the popups' body paragraphs (save, upload, update notes: page copy, not messages), the HUD tags (CAP, NEW TOOL), the F3 panel's descriptions (`debug/hint-text-*.ts`, dev only). Nothing player-facing comes from `server/`: it sends a `rejected` reason code and the game words it (`menu.net*`). The CSP and boot checks show nothing to players beyond `boot*` and `noScript`.
 
-Counts in the catalogue: hint 17, toast 7, chip 3, dialogue 2, hud 5, menu 73.
+Counts in the catalogue: hint 17, toast 7, chip 4, dialogue 8, hud 5, menu 73.
 
 ## Statuses
 
@@ -47,19 +47,20 @@ Exist today (`net/multiplayer.ts` `NetStatus`, `Failure`; `net/diagnostics.ts`):
 |---|---|---|---|
 | `connecting` | HOST/JOIN started | page status, PLAY button | no (menu, before play) |
 | `in` | welcome received | `Session · CODE` | no |
-| `reconnecting` | socket closed or server silent `NET.serverSilence` 15 s; retries 1, 2, 4, 8 s, until `SERVER.rejoinWindow` 180 s | menu notice, frozen nameplates | no: the chip |
-| `failed` `ended` | rejoin window over, or the session is gone | menu notice | yes (dialogue: server not responding) |
-| `failed` `replaced` | opened in another tab | menu notice | yes |
-| `failed` `broken` | a message the game couldn't handle | menu notice | yes |
-| `failed` `version` | server of another protocol, from the server or `diagnose` | menu notice | yes |
+| `reconnecting` | socket closed or server silent `NET.serverSilence` 15 s; retries 1, 2, 4, 8 s, until `SERVER.rejoinWindow` 180 s; the browser's `online` event retries at once | menu notice, frozen nameplates | no: the chip |
+| `failed` `expired` | the rejoin window (`SERVER.rejoinWindow`) ran out | menu notice | yes (dialogue 1, grows out of the chip) |
+| `failed` `ended` | the session is gone (the server restarted) | menu notice | yes (dialogue 2) |
+| `failed` `replaced` | opened in another tab | menu notice | yes (dialogue 3) |
+| `failed` `broken` | a message the game couldn't handle (the error is the callout) | menu notice | yes (dialogue 7) |
+| `failed` `version` | server of another protocol, from the server or `diagnose` | menu notice | yes (dialogue 4) |
 | `failed` `timeout` | no answer in `NET.connectTimeout` 15 s (before the welcome) | page | JOIN only: no |
-| `failed` `no-session`, `full`, `bad-save`, `bad-level`, `busy`, `too-many` | the server's `rejected` | page | JOIN or HOST only: no (`too-many` can also hit a reconnect: then yes) |
+| `failed` `no-session`, `full`, `bad-save`, `bad-level`, `busy`, `too-many` | the server's `rejected` | page | JOIN or HOST only: no (mid-session: `full` is dialogue 5, `busy` and `too-many` dialogue 6) |
 | `failed` `offline`, `server-down`, `no-server`, `blocked` | `diagnose()` after a socket failed | page | while reconnecting these are retried (chip), then `ended` |
 | other player: `away`, `dropped`, `silent` (`NET.silentAfter` 3 s) | presence, snapshots | nameplate note | no |
 
 Data that exists but is not shown as a status: `Traffic.ping` (a ping every `SERVER.ping` 2 s), up/down rates (`Traffic`), each player's `delay` and `jitter` (`netLines`), the time since the last server message (`ServerLink.heard`).
 
-Built on feat/hints-net (`src/net/link-health.ts`, tested in `scripts/link-health.test.mjs`; thresholds in `NET`, F3 → Link status). At most one chip, the worst first: reconnecting (net-menu's) > no signal > bad connection. Each shows when its value stays past the limit and clears when it stays under the clear value (hysteresis); no signal acts at once, ping holds `NET.statusHold` 5 s.
+Built on feat/hints-net (`src/net/link-health.ts`, tested in `scripts/link-health.test.mjs`; thresholds in `NET`, F3 → Link status). Chip icons: bad connection bars (1 of 3 lit), no signal a red ring, reconnecting bars cycling, reconnected a check. At most one chip, the worst first: reconnecting (net-menu's) > no signal > bad connection. Each shows when its value stays past the limit and clears when it stays under the clear value (hysteresis); no signal acts at once, ping holds `NET.statusHold` 5 s.
 
 | Status (chip id) | Data, where read | Limit (clear) |
 |---|---|---|

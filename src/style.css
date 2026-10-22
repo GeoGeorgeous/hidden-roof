@@ -1796,7 +1796,7 @@ body.paused .hotbar,
 body.paused .layer-shade,
 body.paused .layer-hint,
 body.paused .layer-event,
-body.paused .layer-dialogue {
+body.paused .layer-dialogue:not(.crash) {
   display: none;
 }
 @keyframes blink {
@@ -1968,105 +1968,208 @@ body.paused .layer-dialogue {
   transition-duration: var(--chip-in);
   transition-timing-function: ease-out;
 }
-.chip i {
+:is(.chip, .dialogue .ghost) i {
+  position: relative;
+  flex: none;
+  width: 10px;
+  height: 10px;
+}
+/* Bars: three, 2 px wide, 4 / 7 / 10 px tall, 2 px apart, bottom-aligned; the first lit, or each in turn. */
+:is(.chip, .dialogue .ghost) i b {
+  position: absolute;
+  bottom: 0;
+  width: 2px;
+  background: color-mix(in srgb, var(--paper) 25%, transparent);
+}
+:is(.chip, .dialogue .ghost) i b:nth-child(1) {
+  left: 0;
+  height: 4px;
+}
+:is(.chip, .dialogue .ghost) i b:nth-child(2) {
+  left: 4px;
+  height: 7px;
+}
+:is(.chip, .dialogue .ghost) i b:nth-child(3) {
+  left: 8px;
+  height: 10px;
+}
+:is(.chip, .dialogue .ghost) i.bars b:nth-child(1) {
+  background: var(--paper);
+}
+:is(.chip, .dialogue .ghost) i.cycle b {
+  animation: bar var(--bars-loop) infinite;
+}
+:is(.chip, .dialogue .ghost) i.cycle b:nth-child(2) {
+  animation-delay: var(--bars-step);
+}
+:is(.chip, .dialogue .ghost) i.cycle b:nth-child(3) {
+  animation-delay: calc(var(--bars-step) * 2);
+}
+@keyframes bar {
+  0%,
+  25% {
+    background: var(--paper);
+  }
+  26%,
+  100% {
+    background: color-mix(in srgb, var(--paper) 25%, transparent);
+  }
+}
+:is(.chip, .dialogue .ghost) i.ring::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
   box-sizing: border-box;
-  width: 6px;
-  height: 6px;
-  border: 1px solid color-mix(in srgb, var(--paper) 55%, transparent);
+  border: 1.5px solid var(--error);
   border-radius: 50%;
 }
-/* Something is going on: an 8 px ring with a turning arc. */
-.chip.spin i {
-  width: 8px;
+:is(.chip, .dialogue .ghost) i.check::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 0;
+  width: 4px;
   height: 8px;
-  border-width: 1.5px;
-  border-color: color-mix(in srgb, var(--paper) 25%, transparent);
-  border-top-color: var(--paper);
-  animation: spin 0.9s linear infinite;
+  box-sizing: border-box;
+  border: solid var(--paper);
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
 }
-/* A blocking message, where the chip is: the game dims under it (play-state.ts: Enter confirms). */
+/* A blocking message in the middle: the game dims under it (play-state.ts: Enter presses the button, Esc leaves). The frame guard's own copy (.crash) stays over the paused menu. */
+.layer-dialogue {
+  z-index: var(--z-error);
+}
 .layer-dialogue .dim {
   position: absolute;
   inset: 0;
   background: rgba(14, 14, 16, 0.35);
+  opacity: 0;
+  transition: opacity var(--chip-out) ease-in;
+}
+.layer-dialogue.on .dim {
+  opacity: 1;
+  transition-duration: var(--chip-in);
+  transition-timing-function: ease-out;
 }
 .dialogue {
   position: absolute;
-  top: var(--chip-top);
   left: 50%;
-  transform: translate(-50%, -4px);
-  transition: transform var(--chip-out) ease-in;
+  top: 50%;
+  transform: translate(-50%, calc(-50% - 4px));
+  opacity: 0;
+  transition: opacity var(--chip-out) ease-in, transform var(--chip-out) ease-in;
   box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  height: 50px;
-  padding: 6px 6px 6px 18px;
+  width: 340px;
+  overflow: hidden;
+  pointer-events: auto;
   border: 1px solid var(--edge);
   border-radius: 8px;
   background: var(--glass);
   color: var(--paper);
-  font: 500 14px var(--sans);
+  font: 500 14px/20px var(--sans);
   letter-spacing: 0;
-  white-space: nowrap;
 }
 .layer-dialogue.on .dialogue {
-  transform: translate(-50%, 0);
+  opacity: 1;
+  transform: translate(-50%, -50%);
   transition-duration: var(--chip-in);
   transition-timing-function: ease-out;
 }
-.dialogue i {
-  width: 7px;
-  height: 7px;
-  margin-right: 9px;
+/* Growing out of the chip: placed in px from JS, no fade or offset of its own. */
+.layer-dialogue .dialogue.grow {
+  opacity: 1;
+  transform: none;
+}
+.dialogue .body {
+  box-sizing: border-box;
+  padding: 24px 24px 20px;
+}
+.dialogue .label {
+  display: flex;
+  align-items: center;
+  color: var(--error);
+  font: 600 11px/14px var(--sans);
+  letter-spacing: 0.08em;
+}
+.dialogue .label i {
+  width: 6px;
+  height: 6px;
+  margin-right: 8px;
   border-radius: 50%;
   background: var(--error);
 }
-.dialogue .ok {
-  margin-left: 12px;
-  padding: 10px 16px;
+.dialogue .title {
+  margin-top: 14px;
+  font: 30px/32px var(--display);
+  text-transform: lowercase;
+}
+.dialogue .text {
+  margin-top: 10px;
+  color: color-mix(in srgb, var(--paper) 75%, transparent);
+}
+.dialogue .callout {
+  max-height: 112px;
+  margin: 14px 0 0;
+  padding: 8px 10px;
+  overflow: auto;
+  border: 1px solid color-mix(in srgb, var(--paper) 12%, transparent);
   border-radius: 4px;
-  font-size: 14px;
-  line-height: 16px;
-  color: rgba(235, 229, 214, 0.75);
+  background: color-mix(in srgb, var(--paper) 6%, transparent);
+  color: color-mix(in srgb, var(--paper) 75%, transparent);
+  font: 11px/16px ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+.dialogue .actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+}
+.dialogue .bar {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--edge);
+  border-radius: 6px;
+  background: rgba(10, 10, 12, 0.45);
+  backdrop-filter: blur(6px);
+}
+.dialogue .bar button {
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: color-mix(in srgb, var(--paper) 80%, transparent);
+  font: 500 12px/16px var(--sans);
+  cursor: pointer;
+}
+.dialogue .bar button:hover {
+  background: color-mix(in srgb, var(--paper) 16%, transparent);
+  color: var(--paper);
 }
 .dialogue .key {
-  margin-left: 8px;
   padding: 0 5px;
   border: 1px solid rgba(235, 229, 214, 0.35);
   border-radius: 3px;
   font: 600 11px/14px var(--sans);
   color: rgba(235, 229, 214, 0.6);
 }
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+.dialogue .esc {
+  margin-left: 4px;
+  font: 500 11px/14px var(--sans);
+  color: rgba(235, 229, 214, 0.6);
 }
-/* A frame threw (frame-guard.ts): over everything, the game behind it stopped or broken. */
-.frame-failed {
-  position: fixed;
-  left: 50%;
-  top: 48px;
-  z-index: var(--z-error);
+/* The chip's content over the card while it grows out of it. */
+.dialogue .ghost {
+  position: absolute;
+  left: 0;
+  top: 0;
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 12px 16px;
-  border-radius: 4px;
-  transform: translateX(-50%);
-  background: var(--ui);
-  color: var(--paper);
-  font: 14px var(--sans);
-}
-.frame-failed p {
-  margin: 0;
-}
-.frame-failed button {
-  padding: 8px 16px;
-  border: 0;
-  border-radius: 4px;
-  background: var(--paper);
-  color: var(--ui);
-  font: 600 14px var(--sans);
-  cursor: pointer;
+  gap: 8px;
+  height: 30px;
+  padding: 0 14px;
+  white-space: nowrap;
 }

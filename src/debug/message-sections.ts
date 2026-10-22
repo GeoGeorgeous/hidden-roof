@@ -6,6 +6,7 @@ import { getValue, r, setValue, type Hooks, type Item, type Section } from './tu
 // F3 panel contents for the in-game messages (dev/message-tools.ts shows them, NOTIFY is the look).
 
 const HINTS = Object.keys(MESSAGES.hint);
+const DIALOGUES = Object.keys(MESSAGES.dialogue) as (keyof typeof MESSAGES.dialogue)[];
 const SHADES = ['auto', 'always', 'never'] as const;
 
 /** One press shows one message. */
@@ -33,6 +34,7 @@ export function messageSections(h: Hooks): Section[] {
         },
         { kind: 'heading', label: 'CHIPS AND TOASTS' },
         act(h, 'reconnecting', 'reconnecting'),
+        act(h, 'reconnected', 'reconnected'),
         act(h, 'no signal', 'noSignal'),
         act(h, 'bad connection', 'badConnection'),
         act(h, 'clear chip', 'chipClear'),
@@ -41,7 +43,7 @@ export function messageSections(h: Hooks): Section[] {
         act(h, 'toast: left', 'left'),
         act(h, 'toast: pickup', 'pickup'),
         { kind: 'heading', label: 'DIALOGUE' },
-        act(h, 'session lost', 'dialogue'),
+        ...DIALOGUES.map((id) => act(h, id.replace(/([A-Z])/g, ' $1').toLowerCase(), `dialogue:${id}` as const)),
         { kind: 'heading', label: 'LOOK' },
         look('hint: from bottom', 'hintBottom', 0, 200, 1),
         look('text: size', 'fontSize', 8, 24, 1),
