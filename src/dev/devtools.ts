@@ -10,6 +10,8 @@ import type { Audio } from '../audio';
 import type { Hotbar } from '../inventory/hotbar';
 import { msg } from '../messages';
 import type { Notify } from '../notify';
+import type { NotifyView } from '../notify-view';
+import { MessageTools } from './message-tools';
 import { startSizes, type Inventory } from '../inventory/inventory';
 import type { Level } from '../level/level';
 import type { LevelData } from '../level/level-data';
@@ -49,6 +51,7 @@ export interface DevContext {
   audio: Audio;
   hotbar: Hotbar;
   notify: Notify;
+  notifyView: NotifyView;
   inventory: Inventory;
   level: Level;
   pickups: Pickups;
@@ -89,6 +92,7 @@ export class DevTools {
   private figure: AvatarPreview;
   private ghost: Ghost;
   private profiler: Profiler;
+  private messages: MessageTools;
   private wet: WetView;
   private runs: RunsView;
   /** The game had the mouse when the panel opened: closing it goes back. */
@@ -105,6 +109,7 @@ export class DevTools {
     this.build.onLoad = g.openLevel;
     this.figure = new AvatarPreview(g.scene);
     this.ghost = new Ghost(g);
+    this.messages = new MessageTools(g.notify);
     this.profiler = new Profiler(g);
     this.wet = new WetView(g.scene, g.paint, () => g.player.position);
     this.runs = new RunsView(g.scene, g.drips, g.paint);
@@ -140,6 +145,10 @@ export class DevTools {
         this.ghost.restyle();
       },
       avatarPose: () => this.figure.label,
+      message: (a) => this.messages.run(a),
+      messageHint: (i) => this.messages.showHint(i),
+      messageHintShown: () => this.messages.hint,
+      syncNotify: () => g.notifyView.syncLook(),
       ghostRecord: () => this.ghost.record(),
       ghostPlay: () => this.ghost.play(),
       ghostFollow: () => this.ghost.follow(),

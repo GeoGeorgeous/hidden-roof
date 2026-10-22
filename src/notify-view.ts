@@ -44,11 +44,32 @@ export class NotifyView {
   private hintShown = '';
 
   constructor(private notify: Notify) {
-    for (const [name, ms] of [['shade-in', NOTIFY.shadeIn], ['shade-out', NOTIFY.shadeOut], ['chip-in', NOTIFY.chipIn], ['chip-out', NOTIFY.chipOut]] as const) {
-      document.documentElement.style.setProperty(`--${name}`, `${ms}ms`);
-    }
+    this.syncLook();
     this.events.append(this.toasts, this.chips);
     document.body.append(this.shade, this.hint, this.events, this.dialogue);
+  }
+
+  /** NOTIFY's look and fades as CSS variables: at start, and again when F3 changes them. */
+  syncLook() {
+    const css = document.documentElement.style;
+    const vars: Record<string, string> = {
+      'shade-in': `${NOTIFY.shadeIn}ms`,
+      'shade-out': `${NOTIFY.shadeOut}ms`,
+      'chip-in': `${NOTIFY.chipIn}ms`,
+      'chip-out': `${NOTIFY.chipOut}ms`,
+      'hint-bottom': `${NOTIFY.hintBottom}px`,
+      'note-size': `${NOTIFY.fontSize}px`,
+      'note-line': `${NOTIFY.lineHeight}px`,
+      'note-padx': `${NOTIFY.padX}px`,
+      'note-pady': `${NOTIFY.padY}px`,
+      'box-opacity': `${NOTIFY.boxOpacity}`,
+      'shade-height': `${NOTIFY.shadeHeight}px`,
+      'shade-strength': `${NOTIFY.shadeStrength}`,
+      'toast-gap': `${NOTIFY.toastGap}px`,
+      'chip-top': `${NOTIFY.chipTop}px`,
+    };
+    for (const k in vars) css.setProperty(`--${k}`, vars[k]);
+    this.seen = -1;
   }
 
   /** Call every frame; it draws only when something changed. */
@@ -63,7 +84,7 @@ export class NotifyView {
     }
     if (this.notify.version === this.seen) return;
     this.seen = this.notify.version;
-    this.shade.classList.toggle('on', lines.length > 0);
+    this.shade.classList.toggle('on', NOTIFY.shade === 'always' || (NOTIFY.shade === 'auto' && lines.length > 0));
     // The toasts sit above the hint's top line.
     this.events.style.setProperty('--hint-lines', String(Math.max(1, lines.length)));
     this.toasts.replaceChildren(...notes.filter((n) => n.kind === 'event').map((n) => box('', rich(n.lines[0]))));

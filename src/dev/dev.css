@@ -385,6 +385,13 @@ body.paused .build-help {
   grid-auto-columns: 1fr;
   gap: 4px;
 }
+.debug-panel .choice.many {
+  grid-auto-flow: row;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+}
+.debug-panel .choice.many button {
+  padding: 2px 0;
+}
 .debug-panel label.heading {
   display: block;
   margin-top: 6px;

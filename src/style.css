@@ -1854,9 +1854,9 @@ body.paused .layer-dialogue {
   left: 0;
   right: 0;
   bottom: 0;
-  height: 180px;
+  height: var(--shade-height);
   z-index: var(--z-shade);
-  background: linear-gradient(to top, var(--shade) 0, transparent 180px);
+  background: linear-gradient(to top, color-mix(in srgb, #000 calc(var(--shade-strength) * 100%), transparent) 0, transparent var(--shade-height));
   opacity: 0;
   transition: opacity var(--shade-out) ease;
   pointer-events: none;
@@ -1868,7 +1868,8 @@ body.paused .layer-dialogue {
 /* The hint and the toasts: Montserrat, bold names, sized in px (the HUD doesn't scale). */
 .layer-hint,
 .layer-event {
-  font: 500 12px/16px 'Montserrat', var(--sans);
+  --box-height: calc(var(--note-line) + 2 * var(--note-pady));
+  font: 500 var(--note-size) / var(--note-line) 'Montserrat', var(--sans);
   letter-spacing: 0;
   color: var(--paper);
 }
@@ -1892,18 +1893,18 @@ body.paused .layer-dialogue {
   transform: translateX(-50%);
 }
 .hint {
-  bottom: 72px;
+  bottom: var(--hint-bottom);
 }
 .hint-boxes > div,
 .hint-text > div,
 .toasts > div {
   box-sizing: border-box;
-  height: 24px;
-  padding: 4px 8px;
+  height: var(--box-height);
+  padding: var(--note-pady) var(--note-padx);
 }
 /* Opaque boxes in a group at the box's opacity, so their 1px overlaps don't darken; the text in a group of its own above at full strength. */
 .hint-boxes {
-  opacity: 0.78;
+  opacity: var(--box-opacity);
 }
 .hint-boxes > div {
   background: var(--ui);
@@ -1917,17 +1918,17 @@ body.paused .layer-dialogue {
   position: absolute;
   inset: 0;
 }
-/* Four px above the hint's top line (a one-line hint or none: 100px from the bottom); --hint-lines is set from JS. */
+/* Above the hint's top line (a one-line hint or none: the hint's own height); the boxes overlap by 1px; --hint-lines is set from JS. */
 .toasts {
-  bottom: calc(100px + (var(--hint-lines, 1) - 1) * 23px);
+  bottom: calc(var(--hint-bottom) + var(--toast-gap) + var(--hint-lines, 1) * var(--box-height) - (var(--hint-lines, 1) - 1) * 1px);
   gap: 4px;
 }
 .toasts > div {
-  background: var(--box);
+  background: color-mix(in srgb, var(--ui) calc(var(--box-opacity) * 100%), transparent);
 }
 .chips {
   position: absolute;
-  top: 24px;
+  top: var(--chip-top);
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -1982,7 +1983,7 @@ body.paused .layer-dialogue {
 }
 .dialogue {
   position: absolute;
-  top: 24px;
+  top: var(--chip-top);
   left: 50%;
   transform: translate(-50%, -4px);
   transition: transform var(--chip-out) ease-in;

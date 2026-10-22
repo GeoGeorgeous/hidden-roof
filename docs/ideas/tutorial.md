@@ -47,7 +47,7 @@ Every in-game message is one of four components, and each message type belongs t
 - **Dialogue button:** "OK" 12 px after the text; no background, `rgba(235,229,214,.75)`, 14 px, padding 10px 16px, radius 4; hover: background `rgba(235,229,214,.1)`, text `#ebe5d6`. Key hint "Enter" 8 px after OK: border 1px `rgba(235,229,214,.35)`, text `rgba(235,229,214,.6)`, Archivo 600 11 px, padding 0 5px, radius 3.
 - **Dialogue blocks play:** the game dims under `rgba(14,14,16,.35)` until the player confirms with Enter. The pointer stays locked and the player's input is cut (the world goes on); Esc opens the menu and confirms it too.
 - **What this changes in the code:** key names come from `label()` as words, no caps to draw. All four are built in BL-092 (decision 1). Montserrat is in `public/fonts/montserrat.woff2` (`@font-face` in `src/boot.css`, latin subset: `←` `→` `⇧` fall back to the system font).
-- **Colors per ink style:** tuned once the designer's files are in (only RETRO LIGHT's paper is `#ebe5d6`); maybe nothing changes.
+- **Colors:** message text is the same in every ink style (owner, 2026-10-22): no theme mapping. The look's numbers (offsets, sizes, box opacity, the gradient's height and strength, the overlay mode) are `NOTIFY` in `config.ts`, live in F3 → Test → Messages, where every message can also be shown on demand.
 
 ## What exists (checked)
 

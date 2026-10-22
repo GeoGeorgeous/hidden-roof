@@ -394,6 +394,20 @@ export const NOTIFY = {
   shadeOut: 300,
   chipIn: 200,
   chipOut: 160,
+  /** The look, live in F3 → Test → Messages (px unless said): the lowest hint box's distance from the bottom, text size and line height, box padding across and down, box opacity. */
+  hintBottom: 72,
+  fontSize: 12,
+  lineHeight: 16,
+  padX: 8,
+  padY: 4,
+  boxOpacity: 0.78,
+  /** The gradient behind a hint: with a hint ('auto'), 'always' or 'never'; its height and its strength at the bottom edge. */
+  shade: 'auto' as 'auto' | 'always' | 'never',
+  shadeHeight: 180,
+  shadeStrength: 0.4,
+  /** The gap between the hint's top line and the toasts above it, and the chips' and the dialogue's distance from the top. */
+  toastGap: 4,
+  chipTop: 24,
 };
 
 /** Slogans on lettered sign panels (kit/lettering.ts panelLettering). */
