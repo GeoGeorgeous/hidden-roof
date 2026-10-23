@@ -135,10 +135,9 @@ export class NotifyView {
     }
   }
 
-  /** Bars: three, the first lit with the second flickering (a weak link) or each in turn (trying again); a blinking red ring; a check with its burst. Drawn in CSS; mounted fresh, so the check's pop starts now. */
+  /** Bars: three, 4, 7 and 10 px tall, the first lit (a weak link) or cycling (trying again); a red ring; a check. Drawn in CSS; a new class starts its animation, so the check pops in as it is set. */
   private drawIcon(status: StatusBox, icon: StatusIcon) {
     status.icon.className = `status-icon ${icon}`;
-    const parts = icon === 'ring' ? 1 : icon === 'check' ? 2 : 3;
-    status.icon.replaceChildren(...Array.from({ length: parts }, () => el('b')));
+    status.icon.replaceChildren(...(icon === 'ring' || icon === 'check' ? [] : [el('b'), el('b'), el('b')]));
   }
 }
