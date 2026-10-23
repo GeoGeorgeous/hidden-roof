@@ -7,7 +7,7 @@ import { PAINT, PAINT_DETAIL } from '../src/config.ts';
 import { Outbox } from '../src/net/outbox.ts';
 import { decodeOps, encodeOps, rounded, SurfaceIndex } from '../src/op-wire.ts';
 import { LEVEL_VERSION, levelProblem } from '../src/level/level-data.ts';
-import { checkToServer, decode, encode, isName, partFrames, PROTOCOL, SNAPSHOT_BYTES } from '../src/net/protocol.ts';
+import { checkToServer, cleanName, decode, encode, isName, partFrames, PROTOCOL, SNAPSHOT_BYTES } from '../src/net/protocol.ts';
 
 const level = { version: 4, spawn: { pos: [0, 0, 0], yaw: 0 }, props: [{ id: 1, type: 'slab', pos: [0, 0, 0] }] };
 const stamp = { kind: 'stamp', key: 'p12#0', rect: 3, u: 0.1 + 0.2, v: 1 / 3, radius: 0.0125, amount: 0.35, color: [1, 0.2, 0.1], softness: 0.5, square: false };
@@ -74,6 +74,12 @@ for (const name of ['', '   ', 'Geo Geo', ' Geo', 'Geo ', 'Geo_', 'Geo.', 'Geo-1
   refused({ ...host, name });
   refused({ ...join, name });
 }
+// A name saved by an older version is cleaned to what a name may be: letters and digits, at most NAME_MAX.
+assert.equal(cleanName('Geo Geo'), 'GeoGeo');
+assert.equal(cleanName('Гоша_7!'), '7');
+assert.equal(cleanName('abcdefghij1234567'), 'abcdefghij123456');
+assert.equal(cleanName('Ｇｅｏ'), '');
+for (const name of ['Geo Geo', 'Гоша_7!', 'abcdefghij1234567', ' g.e-o ']) assert.ok(!cleanName(name) || isName(cleanName(name)), name);
 refused({ ...host, level: { props: 'x' } });
 refused({ ...host, level: { ...level, props: [{ type: 'slab' }] } });
 refused({ ...host, level: { ...level, props: [{ type: 'slab', pos: [0, 0, 0], rot: 1.5 }] } });
