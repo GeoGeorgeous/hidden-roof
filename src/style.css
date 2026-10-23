@@ -2134,7 +2134,7 @@ body.paused .layer-toast {
   pointer-events: auto;
   background: var(--veil);
 }
-/* The layer fades; the card also slides down into place. */
+/* The layer fades; the card also slides down into place. Its fill is solid (--ink, about the glass over a dark scene): it stays over the paused menu, which must not show through. */
 .dialog {
   position: absolute;
   left: 50%;
@@ -2147,7 +2147,7 @@ body.paused .layer-toast {
   pointer-events: auto;
   border: 1px solid var(--edge);
   border-radius: 8px;
-  background: var(--glass);
+  background: var(--ink);
   color: var(--paper);
   font: 500 14px/20px var(--sans);
   letter-spacing: 0;
