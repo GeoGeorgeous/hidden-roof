@@ -12,4 +12,22 @@ Known: a Chromium bug on Windows since at least 2017 (Chrome 62, jumps of 300–
 
 Do: in `input.ts`, drop one event over 300 px (config) that is also over 3× the largest of the last ~8, and motion in the 100 ms after the lock is taken; count what's dropped in the profiler's report. A fixed cap alone would drop real flicks of 125 Hz mice at high DPI (those build up over several events, so the relative rule keeps them). Test with synthetic `MouseEvent`s: a flick passes, a lone 458 px among 60–120 px is dropped, a ramp of 250–350 px passes. Maybe later a RAW MOUSE setting (`unadjustedMovement`, off by default, with the fallback).
 
+Second profile (2026-10-23, Windows 11, Chrome 155, 1920×1080, RTX A2000 laptop, 33 min, 4 mouse spikes, all at a steady 60 fps):
+
+| at | event (dx, dy) | camera | frame before |
+| --- | --- | --- | --- |
+| 192.5 s | −97, −381 | 49.6° | 0 events |
+| 276.8 s | ~34, −383 | 48.5° | 0 events |
+| 399.5 s | 256, +381 | 39.8° (pitch hit the −89° stop) | 1 event |
+| 1300.7 s | 61, +381 | 48.6° | 0 events |
+
+- **The vertical part is the same each time: 381–383 px, up twice and down twice.** Only dx differs. Random noise would not repeat a value. This looks like a fixed distance in the browser or OS (a cursor re-centering for the lock?), not a loose sensor value. The first profile's 458 px may be the same: here one of 458.75 is 256 by 381.
+- Each comes as 2–3 events in one frame, usually after a frame with none. It is not a stall (16.7 ms frames), not at the lock (65 s, 7 s, 130 s and 890 s after it), and not near a lock change.
+- Rate: about once in 8 minutes here, against once in 42 minutes before.
+- Not known yet: whether the browser produced it or the OS did, and whether `unadjustedMovement` ends it.
+
+Diagnostics now in the profile (this section's next step): a mouse spike keeps `trail`, the raw events of the last frames as three listeners saw them (`mouse` = mousemove, `pointer` = pointermove with its `coalesced` events, `raw` = pointerrawupdate), each with `ago` (ms before the frame ended) and `lag` (the page's delay after the event's own time stamp), and the reason says how long after the lock it came. Reading it: the 381 in `raw` too means the OS sent it; only in `mouse` means the browser built it; a big `lag` or equal time stamps mean events held up and let go together.
+
+Next profile: if one more spike shows the same ±381, test `unadjustedMovement` (a setting or a URL flag) for a session of 30+ minutes; a drop rule at 300 px with a 3× rule would also have caught all four.
+
 Blocked (2026-10-14): the owner decides between the drop rule, a RAW MOUSE setting, both or nothing, after looking into it. To reproduce first: (1) a test feeding synthetic `mousemove`s with the profile's numbers (one 458 px among 60–120 px) shows the 60° snap; (2) a counter of events over 300 px in the F3 profiler (time since the lock, size, the events around it), and a session on Windows with a 1000 Hz mouse, to see how often it happens.

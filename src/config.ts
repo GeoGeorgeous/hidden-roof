@@ -1152,6 +1152,8 @@ export const PROFILE = {
   jumpDegrees: 45,
   /** A mouse spike: one mouse event moved further than this (px; a hard flick is under 150). */
   mouseSpikePx: 300,
+  /** Raw events of each kind a mouse spike keeps from before it. */
+  mouseTrail: 24,
   /** Spikes kept in a report; the rest are only counted. */
   maxSpikes: 40,
 };
