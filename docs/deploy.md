@@ -4,8 +4,8 @@ Context for the agent that deploys and runs the game on the VPS: read it before 
 
 ## 1. Status *(changes)*
 
-- **Now:** `v1.4.0` is deployed, game and server (2026-10-19; protocol 6). The server runs with `node --expose-gc`, the Dockerfile's CMD, so no compose `command:` may override it.
-- **Next release:** `v1.5.0`, protocol 7 (players send their status: here, away, in the menu, idle; nicknames are ASCII letters and digits only): deploy the server and the game together. Set `LOG_DIR` when the server is deployed (section 6, and `docs/ideas/vps.md`). For every release, check its changes for a new protocol or surface table: if there is one, deploy the server and the game together (section 6, then the static files); live sessions end, and tabs still open on the old version are told to reload. Then section 7.
+- **Now:** `v1.5.0` is deployed, game and server (2026-10-23; protocol 7), the log in `LOG_DIR` (section 6). The server runs with `node --expose-gc`, the Dockerfile's CMD, so no compose `command:` may override it.
+- **Next release:** `v1.6.0`, not soon. For every release, check its changes for a new protocol or surface table: if there is one, deploy the server and the game together (section 6, then the static files); live sessions end, and tabs still open on the old version are told to reload. Then section 7.
 - **Repo:** public, `https://github.com/GeoGeorgeous/hidden-roof.git`, cloned over HTTPS (the host holds no GitHub credentials). Deploy releases only: a `vX.Y.Z` tag, never a branch tip. Branches and releases: `AGENTS.md`.
 - **Version:** the pause menu shows the build's `git describe` (`src/version.ts`); built without git (the image has none), `package.json`'s version, which matches the tag on a release commit.
 
