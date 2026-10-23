@@ -85,7 +85,7 @@ export class Remotes {
       const plate = (this.plates[shown++] ??= { id, name: '', note: null, feet: r.position });
       plate.id = id;
       plate.name = this.names.get(id) ?? '';
-      plate.note = r.look !== 'here' ? r.look : r.lagging ? 'lagging' : null;
+      plate.note = r.look !== 'here' ? r.look : null;
       plate.feet = r.position;
       const since = this.unseen.get(id);
       if (since === undefined) continue;

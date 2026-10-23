@@ -161,7 +161,8 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
     if (text) hud.notice(text, s.state === 'connecting' || s.state === 'reconnecting' ? Infinity : undefined);
     else if (s.state === 'in') hud.notice(msg('menu.session', { code: s.code }), 0);
   };
-  net.onHealth = (h) => (h ? notify.set({ key: 'net', kind: 'status', icon: h.id === 'noSignal' ? 'ring' : 'bars', text: msg(`status.${h.id}`) }) : notify.clear('net'));
+  // Only the link-up, in-session check tells null: a link that went down resets the health silently, so null here is the trouble going away by itself.
+  net.onHealth = (h) => (h ? notify.set({ key: 'net', kind: 'status', icon: h.id === 'noSignal' ? 'ring' : 'bars', text: msg(`status.${h.id}`) }) : notify.succeed('net', msg('status.reconnected')));
   net.onEnd = () => hud.toTitle();
   net.onPlayer = (who, joined) => notify.toast(msg(joined ? 'toast.joined' : 'toast.left', { user: who.replaceAll('*', '') }));
   hud.onLeave = () => net.leave();

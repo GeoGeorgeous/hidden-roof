@@ -1064,7 +1064,7 @@ export const NET = {
   /** A player's name tag hangs this high over their feet (m). */
   nameplateHeight: 2.1,
   /** Name tags fade with the distance from the camera (m): whole up to `near`, down to `faintest` at `far` and beyond (never gone: the others can always be found). */
-  nameplateFade: { near: 20, far: 80, faintest: 0.35 },
+  nameplateFade: { near: 15, far: 50, faintest: 0.35 },
   /** Nothing pressed for this long (s) while playing: shown to the others as idle (net/own-status.ts). */
   idleAfter: 60,
   /** No snapshot from a player for this long (s): they're shown as gone (NO SIGNAL) until the server says more. */
@@ -1084,18 +1084,18 @@ export const NET = {
   diagnoseTimeout: 5,
   /** Network log entries kept for COPY NETWORK LOG (net/diagnostics.ts). */
   logLines: 80,
-  /** The link's status (net/link-health.ts): a status shows when its value stays past the first number for `statusHold` s, and goes when it stays under the second for as long. */
+  /** The link's status (net/link-health.ts): a status shows when its value stays past the first number for `statusShow` s, and goes when it stays under the second for `statusClear` s. */
   /** How often (s) the link's numbers are checked. */
   healthEvery: 0.25,
   badPing: 0.3,
   badPingClear: 0.2,
-  statusHold: 5,
+  /** "Bad connection" shows once the round trip has stayed past badPing for this long (s). The round trip is measured every SERVER.ping, so this is a couple of measurements. */
+  statusShow: 2,
+  /** "Bad connection" goes once the round trip has stayed under badPingClear for this long (s): longer than it takes to show, so a link on the edge doesn't flicker. */
+  statusClear: 3,
   /** Nothing from the server for this long (s) shows "No signal"; it goes at once under the second. The server pings every SERVER.ping; serverSilence then closes the link. */
   noSignal: 4,
   noSignalClear: 1.5,
-  /** A remote player shown further behind than this (s, NET.maxDelay caps it) for `statusHold` s is marked LAGGING on their nameplate; it goes under the second for as long (net/remote-player.ts). */
-  highDelay: 0.3,
-  highDelayClear: 0.2,
 };
 
 /** The multiplayer server (server/, docs/deploy.md). */
@@ -1105,8 +1105,8 @@ export const SERVER = {
   maxPlayers: 20,
   /** A dropped player can come back as themselves for this long (s); then their stepladder goes, and a session with no one left closes. */
   rejoinWindow: 180,
-  /** The server pings every game this often (s), so a game notices a dead link. */
-  ping: 2,
+  /** The server pings every game this often (s), so a game notices a dead link; a game pings the server as often, and each answer is a round trip for the link's status (NET.statusShow). */
+  ping: 1,
   /**
    * Every this often (s) the server drops a link that sent it nothing since the last time, and sends a WebSocket ping.
    * Anything from the game counts, not only the answer to that ping: on a slow link the ping waits behind what's

@@ -163,6 +163,9 @@ try {
   assert.deepEqual(await a.next('presence'), { type: 'presence', id: 2, state: 'menu' });
   b.send({ type: 'status', status: 'away' });
   assert.deepEqual(await a.next('presence'), { type: 'presence', id: 2, state: 'away' });
+  // B's own link is bad: A is told (the nameplate's LAGGING is B's report).
+  b.send({ type: 'status', status: 'lagging' });
+  assert.deepEqual(await a.next('presence'), { type: 'presence', id: 2, state: 'lagging' });
   // B carries something, drops and comes back with its token: the same player, the paint, A's ladder and what B
   // carried in its welcome; A hears B dropped and is back, never that B left or joined.
   const carried = { tools: ['marker'], colors: ['black', 'red'], caps: ['standard'], selected: 1, color: 'red', cap: 'standard' } as InventoryData;

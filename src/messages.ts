@@ -55,7 +55,7 @@ export const MESSAGES = {
     noSignal: 'No signal from the server',
     /** The round trip to the server is long (NET.badPing). */
     badConnection: 'Bad connection',
-    /** The status's result when reconnecting worked (notify.succeed). */
+    /** There was trouble, now it's fine (notify.succeed on the status): the link reconnected, or No signal / Bad connection went away by itself. */
     reconnected: 'Reconnected',
   },
 
@@ -92,7 +92,7 @@ export const MESSAGES = {
     /** The dialog's key caps. */
     keyEnter: 'ENTER',
     keyEsc: 'ESC',
-    /** Shown far behind for a while (NET.highDelay); the other notes win. */
+    /** Shown when that player's own link is bad (they say so: net/own-status.ts); the other notes win. */
     noteLagging: 'Lagging',
     /** How far another player is, in whole meters. */
     distance: '{meters}m',

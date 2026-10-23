@@ -8,7 +8,6 @@ import type { PropData } from '../level/level-data';
 import type { PaintOp, PaintOps } from '../paint-ops';
 import { decodeOps, type SurfaceIndex } from '../op-wire';
 import type { Presence } from './protocol';
-import { Flag } from './link-health';
 import { RemoteTimeline, type Pose } from './remote-timeline';
 import { decodeSnapshot } from './snapshot';
 
@@ -20,7 +19,7 @@ import { decodeSnapshot } from './snapshot';
 // the paint shows up with the arm that sprays it, and their can's spray flies
 // from the figure's hand (particles only); while this game is hidden, at once.
 // Never simulated here: no physics, no collisions. Away (their game hidden) they stand head down; dropped, or
-// silent for NET.silentAfter, they slump, drawn faded. In the menu or idle they're shown as they are: their snapshots keep coming.
+// silent for NET.silentAfter, they slump, drawn faded. In the menu, idle or lagging (their own link is bad) they're shown as they are: their snapshots keep coming.
 
 const eye = new THREE.Vector3();
 const nozzle = new THREE.Vector3();
@@ -29,7 +28,7 @@ const right = new THREE.Vector3();
 const up = new THREE.Vector3();
 const display = new THREE.Color();
 
-/** How they're shown: what the server says (here, away, menu, idle, dropped), or silent (no snapshots of late). */
+/** How they're shown: what the server says (here, away, menu, idle, lagging, dropped), or silent (no snapshots of late). */
 export type Look = Presence | 'silent';
 
 export class RemotePlayer {
@@ -37,9 +36,6 @@ export class RemotePlayer {
   /** What the server last said of them. */
   presence: Presence = 'here';
   look: Look = 'here';
-  /** Shown far behind for a while (NET.highDelay): marked on their nameplate. */
-  lagging = false;
-  private lag = new Flag();
   /** Their snapshots and what they did, on their clock. */
   readonly timeline = new RemoteTimeline();
   /** Where they'd be shown without smoothing, last frame, and what's still being smoothed out (shown minus that). */
@@ -113,7 +109,6 @@ export class RemotePlayer {
   update(now: number, dt: number) {
     const st = this.timeline.sample(now, dt);
     if (!st) return;
-    this.lagging = this.lag.step(now, this.timeline.stats.delay, NET.highDelay, NET.highDelayClear, NET.statusHold);
     const sending = this.presence !== 'away' && this.presence !== 'dropped';
     this.look = sending && now - this.timeline.heard > NET.silentAfter ? 'silent' : this.presence;
     const gone = this.look === 'dropped' || this.look === 'silent';

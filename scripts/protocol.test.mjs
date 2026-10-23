@@ -30,6 +30,7 @@ const sent = [
   { type: 'save' },
   { type: 'inventory', data: { tools: ['marker', 'ladder'], colors: ['black', 'red'], caps: ['standard'], selected: 2, color: 'red', cap: 'standard' } },
   { type: 'status', status: 'idle' },
+  { type: 'status', status: 'lagging' },
   { type: 'ping', t: 12.5 },
   { type: 'leave' },
 ];

@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 223
+The one list of what's left. Counter for new ids: next: 224
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -217,6 +217,7 @@ Shipped since the last release; the release commit empties this list.
 51. [PERF-220]: Per-frame work in play cut: the hints build nothing once learnt or off, the hint and low-pressure texts are redone only when the keys change, Notify and the nameplates stop allocating every frame
 52. [PERF-221]: The hints' font loads during the loading screen (no flash of the fallback at the first hint); the PNG icons recompressed (350 KB to 92 KB at most)
 53. [TASK-222]: Release notes can link: [text](url) is a link in the Updates page (white, bold, underlined), absolute on GitHub, with no preview card on Discord; the test allows the game's own pages and Ko-fi, GitHub and Discord
+54. [BUGS-223]: LAGGING on a nameplate means that player's own link is bad: each game reports its bad connection or no signal as its status (protocol 7), instead of every game guessing from how late the others' snapshots reach it (which marked the wrong player and missed a steady delay); nameplates fade from 15 m to 50 m (was 20 to 80); the link is checked every second (SERVER.ping 1), bad connection shows after 2 s and goes after 3 s (was 5 both), and the "Reconnected" check shows whenever trouble ends, not only after a reconnect
 
 ## Discarder
 
