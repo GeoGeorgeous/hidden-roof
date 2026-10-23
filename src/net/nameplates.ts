@@ -14,7 +14,7 @@ export class Nameplates {
 
   constructor() {
     this.root.className = 'nameplates';
-    document.querySelector('.hud')!.append(this.root);
+    document.querySelector('.layer-world')!.append(this.root);
   }
 
   /** `players`: id, name, note and feet position of each one shown. */

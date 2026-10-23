@@ -1,4 +1,5 @@
 import { PERF_TEST, RENDER } from './config';
+import { msg } from './messages';
 import { currentOs, type GpuInfo } from './gpu-name';
 import { action, div, el } from './menu-ui';
 import type { PauseMenu } from './pause-menu';
@@ -126,7 +127,7 @@ export function perfTestPage(menu: PauseMenu, test: PerfTest, gpu: GpuInfo, sett
     const live = test.live();
     if (!live) return;
     const total = PERF_TEST.warmup + PERF_TEST.seconds;
-    status.textContent = `Testing · ${Math.max(1, Math.ceil((1 - live.progress) * total))} s left`;
+    status.textContent = msg('menu.perfTesting', { seconds: Math.max(1, Math.ceil((1 - live.progress) * total)) });
     progress.style.transform = `scaleX(${live.progress})`;
     if (live.fps === null || live.cpuMs === null || live.calls === null) return;
     const to = { fps: live.fps, cpu: live.cpuMs, gpu: live.gpuMs ?? 0, calls: live.calls };
@@ -138,7 +139,7 @@ export function perfTestPage(menu: PauseMenu, test: PerfTest, gpu: GpuInfo, sett
 
   const done = (r: PerfResult) => {
     end();
-    status.textContent = 'Tested at your current settings';
+    status.textContent = msg('menu.perfTested');
     progress.style.transform = 'scaleX(1)';
     draw({ fps: r.fps, cpu: r.cpuMs.p50, gpu: r.gpuMs?.p50 ?? null, calls: r.calls });
     low.textContent = `1% low ${Math.round(r.low)} FPS`;
@@ -159,7 +160,7 @@ export function perfTestPage(menu: PauseMenu, test: PerfTest, gpu: GpuInfo, sett
     headline.textContent = 'Measuring…';
     advice.replaceChildren(el('span', '', 'Watching where each frame’s time goes.'));
     buttons.replaceChildren(action('Stop', stop, { key: 'ESC' }));
-    status.textContent = `Testing · ${Math.ceil(PERF_TEST.warmup + PERF_TEST.seconds)} s left`;
+    status.textContent = msg('menu.perfTesting', { seconds: Math.ceil(PERF_TEST.warmup + PERF_TEST.seconds) });
     progress.style.transform = 'scaleX(0)';
     menu.openPage('perf');
     void test.start().then((r) => r && done(r));

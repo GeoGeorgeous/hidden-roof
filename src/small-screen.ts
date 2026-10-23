@@ -1,3 +1,4 @@
+import { msg } from './messages';
 import './small-screen.css';
 import { AUTHOR, DISCORD, PRIVACY, REPO, TERMS } from './links';
 import city from './small-screen.webp';
@@ -11,7 +12,7 @@ import { el } from './menu-ui';
 
 /** "Link copied" and its hint show this long (ms). */
 const COPIED_MS = 2500;
-const HINT = 'Send it to yourself for later.';
+const HINT = msg('menu.smallHint');
 
 export function smallScreen(playable: () => boolean) {
   document.querySelector('.loading')?.remove();
@@ -38,8 +39,8 @@ export function smallScreen(playable: () => boolean) {
 
   let copied = 0;
   const done = () => {
-    copy.textContent = 'Link copied';
-    hint.textContent = 'Paste it on your computer to play.';
+    copy.textContent = msg('menu.linkCopied');
+    hint.textContent = msg('menu.smallCopied');
     clearTimeout(copied);
     copied = window.setTimeout(() => ((copy.textContent = 'Copy link'), (hint.textContent = HINT)), COPIED_MS);
   };
@@ -57,7 +58,7 @@ export function smallScreen(playable: () => boolean) {
     if (ok === !load.hidden) return;
     load.hidden = !ok;
     copy.hidden = ok;
-    hint.textContent = ok ? 'Wide enough to play now.' : HINT;
+    hint.textContent = ok ? msg('menu.smallWide') : HINT;
   };
   addEventListener('resize', fits);
   fits();

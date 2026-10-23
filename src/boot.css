@@ -15,6 +15,13 @@
   font-weight: 400 600;
   font-display: swap;
 }
+/* Variable: weights 500 to 700 in one file. In-game hints and toasts. */
+@font-face {
+  font-family: 'Montserrat';
+  src: url('/fonts/montserrat.woff2') format('woff2');
+  font-weight: 500 700;
+  font-display: swap;
+}
 
 :root {
   --ui: #141416;
@@ -31,6 +38,21 @@
   --hair: rgba(235, 229, 214, 0.1);
   --edge: rgba(235, 229, 214, 0.18);
   --error: #e0675e;
+  /* In-game messages: the chip's glass. The hint's look comes from NOTIFY (notify-view.ts). */
+  --glass: rgba(0, 0, 0, 0.78);
+  /* What draws over what, bottom to top. Every layer is its own fixed root under body. */
+  --z-shade: 5;
+  --z-world: 10;
+  --z-frame: 20;
+  --z-aim: 30;
+  --z-tool: 40;
+  --z-hint: 50;
+  --z-event: 60;
+  --z-hotbar: 70;
+  --z-menu: 80;
+  --z-panel: 90;
+  --z-loading: 100;
+  --z-error: 110;
 }
 
 html,
@@ -62,7 +84,7 @@ canvas {
 .loading {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: var(--z-loading);
   display: flex;
   flex-direction: column;
   align-items: center;

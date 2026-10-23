@@ -43,7 +43,7 @@ await check('input: a screenshot has the other players\' name tags in it, box an
     const g = window.game;
     const tag = Object.assign(document.createElement('div'), { className: 'nameplate', textContent: 'WWWWWWWW' });
     tag.style.transform = `translate(${innerWidth / 2}px, ${innerHeight / 2}px)`;
-    document.querySelector('.hud').append(tag);
+    document.querySelector('.layer-world').append(tag);
     const proto = HTMLCanvasElement.prototype;
     const was = proto.toBlob;
     let shot = null;

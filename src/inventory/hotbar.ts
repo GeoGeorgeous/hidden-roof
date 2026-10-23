@@ -9,7 +9,7 @@ import { itemIcon, type Thumbnails } from './thumbnails';
 // (thumbnails.ts; the can with the current paint color); a slot you haven't
 // found the tool for yet stays an empty circle, so every tool always sits under
 // its own key. The selected slot has a solid ring, the others a faint one. No
-// numbers, no labels. Plus toasts.
+// numbers, no labels.
 // Pressure, color and cap stay by the tool in hand (hud.ts).
 
 /** The icon of each tool: its pickup model (the can's label in the current color). */
@@ -23,8 +23,6 @@ const ICON: Record<Tool, (inv: Inventory) => string> = {
 
 export class Hotbar {
   private root: HTMLElement;
-  private toastEl: HTMLElement;
-  private toastTime = 0;
   private version = -1;
   /** The HUD slot look last applied (rewritten only on change). */
   private look = '';
@@ -32,21 +30,13 @@ export class Hotbar {
   constructor(private icons: Thumbnails) {
     this.root = document.createElement('div');
     this.root.className = 'hotbar';
-    this.toastEl = document.createElement('div');
-    this.toastEl.className = 'toast';
-    document.body.append(this.root, this.toastEl);
+    document.body.append(this.root);
     // An icon arrived from the GPU: draw the slots again.
     icons.onReady = () => (this.version = -1);
   }
 
   set visible(v: boolean) {
     this.root.hidden = !v;
-  }
-
-  toast(msg: string) {
-    this.toastEl.textContent = msg.toUpperCase();
-    this.toastEl.classList.add('show');
-    this.toastTime = performance.now();
   }
 
   /** Re-render every icon (a model changed); shown on the next update. */
@@ -72,10 +62,6 @@ export class Hotbar {
         '--on-fill': mix(h.selectedFill, h.selectedFillOpacity),
       };
       for (const k in vars) this.root.style.setProperty(k, vars[k]);
-    }
-    if (this.toastTime && performance.now() - this.toastTime > HUD.toastTime * 1000) {
-      this.toastEl.classList.remove('show');
-      this.toastTime = 0;
     }
     if (inv.version === this.version) return;
     this.version = inv.version;

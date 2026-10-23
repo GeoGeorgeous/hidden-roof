@@ -1,11 +1,11 @@
 // Play state: playing (the game has the mouse), paused behind the menu, F3's
 // panel open, build mode, in a session; what the frame does in each, and what
 // Esc and Enter do while paused; while joining a session (its paint still
-// loading) nothing resumes. The pointer lock itself is Input's (the
+// loading) nothing resumes. A dialogue in play: Enter presses its button, Esc opens the menu and leaves without it (what each does is the dialogue's: net-menu.ts). The pointer lock itself is Input's (the
 // browser's, or a test's through Input.setLocked). No DOM here: tested in
 // Node (scripts/play-state.test.mjs).
 
-/** What Esc and Enter can do: the pointer lock and the pause menu. */
+/** What Esc and Enter can do: the pointer lock, the pause menu and a dialogue. */
 export interface MenuActions {
   /** Frees the mouse (with the keyboard locked the browser no longer does it on Esc). */
   release(): void;
@@ -17,6 +17,10 @@ export interface MenuActions {
   back(): void;
   /** Runs the page's primary button. */
   primary(): void;
+  /** A dialogue blocks play (the pointer stays locked). */
+  dialogue(): boolean;
+  /** Answers it, and it goes: accepted with its button (Enter), or not (Esc). */
+  confirm(accepted: boolean): void;
 }
 
 export class PlayState {
@@ -83,14 +87,23 @@ export class PlayState {
         const resume = this.escArmed && !this.menu.page();
         this.escArmed = false;
         if (resume) this.resume();
-      } else if (locked) this.menu.release();
+      } else if (locked) {
+        this.menu.release();
+        if (this.menu.dialogue()) this.menu.confirm(false);
+      }
       else if (repeat) return true;
       else if (this.panel) this.resume();
       else if (this.menu.page()) this.menu.back();
       else this.escArmed = !this.session.joining;
       return true;
     }
-    if ((code !== 'Enter' && code !== 'NumpadEnter') || locked || this.panel) return false;
+    if (code !== 'Enter' && code !== 'NumpadEnter') return false;
+    // A dialogue in play: Enter confirms it and is no game key.
+    if (locked && this.menu.dialogue()) {
+      if (down && !repeat) this.menu.confirm(true);
+      return true;
+    }
+    if (locked || this.panel) return false;
     if (down && !repeat) {
       if (this.menu.page()) this.menu.primary();
       else this.resume();

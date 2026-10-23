@@ -2,6 +2,8 @@
 
 From the audit of 2026-10-17 (module M4, skipped for 1.4.0). Nothing here is decided yet: the first step is settling the model (F4.1) before the designer starts. ★ marks the audit's recommended approach.
 
+BL-140 is in 1.5.0 now (the owner moved it from 1.9.0). The texts of every message are in one catalogue, `src/messages.ts`; where each shows and the connection statuses: `docs/ideas/messages.md`. The link statuses (no signal and bad connection as chips; high delay as the nameplate note LAGGING; packet loss dropped) are built on feat/hints-net: `src/net/link-health.ts`.
+
 ## What exists
 
 - No central module: about 9 mechanisms reach the player (Hotbar.toast, HUD tags and PSI, the pause status line, the live line, the multiplayer page status, nameplate notes, loading lines, popups, settings marks) plus 3 dev-only, each with its own element, timer and CSS.
@@ -23,9 +25,12 @@ From the audit of 2026-10-17 (module M4, skipped for 1.4.0). Nothing here is dec
 - **F4.10 The designer brief** (docs). Types and states (toast, status chip, blocking error, one-time advice), places (HUD, title and pause incl. 09, pages, MP page, loading, F3 compact; minimum viewport to 4K) and nine questions for the designer.
 - **F4.11 New events** (later). Away / dropped / back (a Remotes.onPresence hook), WebGL context lost, online/offline, refused pointer lock or fullscreen or clipboard, "updated to vX". `src/net/remotes.ts:66`; `src/main.ts:88`.
 - **F4.12 Battery notices** (decision, later). navigator.getBattery works in Chromium only, needs HTTPS since Chrome 103 (no LAN http testing); Firefox removed it, Safari never had it. Its useful signal is "unplugged" (Energy Saver's 30 Hz cap). Approaches: (1) an optional Chromium-only extra ★ · (2) no.
-- **F5.12 A failure doesn't say whether the player was in a session** (decided 2026-10-18). `NetStatus` `failed` looks the same after a failed JOIN and after a session that ended mid-play ('broken', 'version', a diagnose reason can be either; only 'ended' is always mid-session). In play it should be a blocking error ("you're playing alone now; your paint is kept", F4.4); while joining, the MULTIPLAYER page's line as today. Decision: NetStatus stays the interface between the network and what the player sees; `failed` carries the session's code when the player was in one, and net-menu's onStatus is the one adapter into the notify module. Do it with the notify work, not before.
+- **F5.12 A failure doesn't say whether the player was in a session** (BL-114, done on feat/hints-net: `NetStatus` `failed` carries `code` when the player was in a session; net-menu's onStatus shows a dialogue for it, one of eight by reason (`src/net/lost-dialogue.ts`), most of them offering to save the session's paint before leaving; the reconnecting chip grows into the first, and a reconnect that works ends in a chip with a check, "Reconnected") (decided 2026-10-18). `NetStatus` `failed` looks the same after a failed JOIN and after a session that ended mid-play ('broken', 'version', a diagnose reason can be either; only 'ended' is always mid-session). In play it should be a blocking error ("you're playing alone now; your paint is kept", F4.4); while joining, the MULTIPLAYER page's line as today. Decision: NetStatus stays the interface between the network and what the player sees; `failed` carries the session's code when the player was in one, and net-menu's onStatus is the one adapter into the notify module. Do it with the notify work, not before.
 
 ## Order (audit plan)
+
+BL-092 (1.5.0, `docs/ideas/tutorial.md`) takes a cut of steps 1 and 2 first: the model and `src/notify.ts` with all four kinds in play (hint, chip, toast, dialogue), the toasts moved onto events. Surfaces other than play and the rest stay here. One designer brief covers both (`docs/ideas/tutorial-design-brief.md`). The look of all four components (hint, chip, toast, dialogue) is decided and all four are built in BL-092: `docs/ideas/tutorial.md`, In-game UI.
+
 
 1. Settle the model and write the designer brief (F4.1, F4.7, F4.10, F4.12). Questions: kinds and surfaces the right cut? A blocking error in play: pause into the menu or a HUD line? Battery notices? A badge in the tab title while hidden? Coalescing window and maximum age?
 2. The notify module, callers moved one to one, behavior identical (F4.8, F4.9).

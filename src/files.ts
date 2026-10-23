@@ -1,6 +1,8 @@
 // Files the player keeps: downloads (screenshots, paint saves, levels) and
 // opening one with the file picker.
 
+import { msg } from './messages';
+
 export function download(blob: Blob, name: string) {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -16,7 +18,7 @@ export function pickFile(accept: string): Promise<File> {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = accept;
-    const none = () => reject(new Error('NO FILE CHOSEN'));
+    const none = () => reject(new Error(msg('menu.paintNoFile')));
     input.onchange = () => (input.files?.[0] ? resolve(input.files[0]) : none());
     input.oncancel = none;
     input.click();

@@ -199,7 +199,7 @@ export class Pickups {
     const c = parsePickup(p.kind)!;
     const ok = 'color' in c ? inv.addColor(c.color) : 'cap' in c ? inv.addCap(c.cap) : inv.give(c.tool);
     if (!ok) {
-      this.onBlocked(`already have ${pickupLabel(p.kind)}`);
+      this.onBlocked(pickupLabel(p.kind));
       return;
     }
     p.collected = true;

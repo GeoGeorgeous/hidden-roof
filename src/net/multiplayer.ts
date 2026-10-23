@@ -1,4 +1,5 @@
 import { NET, SERVER } from '../config';
+import { msg } from '../messages';
 import type { PaintOp } from '../paint-ops';
 import { loadPaint } from '../save/load-paint';
 import { surfaceTable } from '../save/shape';
@@ -7,7 +8,8 @@ import { PROTOCOL, type Rejection, type ToClient, type ToServer } from './protoc
 import { diagnose, NetLog, Traffic } from './diagnostics';
 import { decodeOps, encodeOps, SurfaceIndex } from '../op-wire';
 import { playSessionLevel, type MultiplayerContext } from './game-context';
-import { keepSolo, restoreSolo, type Solo } from './solo';
+import { keepSolo, SoloReturn, type Solo } from './solo';
+import { LinkHealth, type LinkStatus } from './link-health';
 import { Outbox } from './outbox';
 import { Sender } from './sender';
 import { ServerLink } from './server-link';
@@ -24,11 +26,11 @@ import { capture, encodeSnapshot } from './snapshot';
 // so a reload comes back too, and each tab is its own player. The server
 // keeps what the player carries, and hears when the game is hidden.
 
-/** Why the game isn't in a session: the server said so (Rejection), it never answered, it couldn't handle a message (broken), or diagnose's guess at why it can't be reached. */
-export type Failure = Rejection | 'timeout' | 'broken' | Awaited<ReturnType<typeof diagnose>>['reason'];
+/** Why the game isn't in a session: the server said so (Rejection), it never answered, it couldn't handle a message (broken), the time to rejoin ran out (expired), or diagnose's guess at why it can't be reached. */
+export type Failure = Rejection | 'timeout' | 'broken' | 'expired' | Awaited<ReturnType<typeof diagnose>>['reason'];
 
 /** What the player sees of the link, shown on the menus; `detail`: what was seen (a close code, an HTTP status, tries), for reports. */
-export type NetStatus = { state: 'off' } | { state: 'connecting' } | { state: 'in'; code: string } | { state: 'reconnecting'; code: string; detail: string } | { state: 'failed'; reason: Failure; detail?: string };
+export type NetStatus = { state: 'off' } | { state: 'connecting' } | { state: 'in'; code: string } | { state: 'reconnecting'; code: string; detail: string; tries: number } | { state: 'failed'; reason: Failure; detail?: string; code?: string };
 
 const now = () => performance.now() / 1000;
 
@@ -39,6 +41,8 @@ export class Multiplayer {
   onPlayer: (name: string, joined: boolean) => void = () => {};
   /** The session is over and the player's own level and paint are back (solo.ts): the menu shows its title view. */
   onEnd: () => void = () => {};
+  /** The link's state worth telling the player (slow, quiet), or null; called when it changes, while in a session. */
+  onHealth: (h: LinkStatus | null) => void = () => {};
   /** What's under way, for the player to watch (UPLOADING PAINT 40%…); null when it's done. */
   onProgress: (text: string | null) => void = () => {};
   /** What happened to the link (COPY NETWORK LOG). */
@@ -65,14 +69,25 @@ export class Multiplayer {
   private name = '';
   /** The player's own level and paint, from before the session's welcome replaced them until it ends. */
   private solo: Solo | null = null;
-  /** The queue up to the player's own level and paint being back after the session ended: HOST and JOIN wait for it. */
-  private restoring: Promise<void> = Promise.resolve();
+  /** Gets the player's own level and paint back when the session ends (HOST and JOIN wait for it). */
+  private tail: SoloReturn;
   /** Counts the sessions ended: a HOST or JOIN waiting for the restore is dropped by LEAVE. */
   private attempt = 0;
+  private health = new LinkHealth();
+  /** Tries the link again now, instead of when the wait is over (the browser came back online). */
+  private retryNow: (() => void) | null = null;
 
   constructor(private g: MultiplayerContext) {
     this.remotes = new Remotes(g, this.log);
+    this.tail = new SoloReturn(g, {
+      enqueue: (job) => (this.queue = this.queue.then(job).catch(console.error)),
+      log: (line) => this.log.add(line),
+      attempt: () => this.attempt,
+      connecting: () => this.status.state === 'connecting',
+      onEnd: () => this.onEnd(),
+    });
     this.sender = new Sender({ capture: (at) => encodeSnapshot(capture(at, g.player, g.inventory, g.tools)), paint: g.paint, level: g.level, owner: () => session.player, inventory: g.inventory });
+    addEventListener('online', () => this.status.state === 'reconnecting' && this.retryNow?.());
     document.addEventListener('visibilitychange', () => this.link?.live && this.send({ type: 'away', away: document.hidden }));
   }
 
@@ -110,9 +125,11 @@ export class Multiplayer {
 
   /** `start` once the player's own level is back from the last session (it reads the level), unless the session was left meanwhile; connecting is shown at once. */
   private afterRestore(start: () => void) {
+    // Starting another session is a choice to leave without saving.
+    void this.resolveLoss(false);
     const attempt = this.attempt;
     if (!this.joined) this.setStatus({ state: 'connecting' });
-    void this.restoring.then(() => attempt === this.attempt && start());
+    void this.tail.restoring.then(() => attempt === this.attempt && start());
   }
 
   /** Back into the session this tab was in before a reload, if the server may still have it. */
@@ -123,19 +140,19 @@ export class Multiplayer {
 
   /** SAVE in a session: the session's paint, as a file the server makes. One request at a time; none while the link is down (nothing would answer it). */
   savePaint() {
-    if (!this.saving && !this.link?.live) return Promise.reject(new Error('Reconnecting: save again once back in the session'));
+    if (!this.saving && !this.link?.live) return Promise.reject(new Error(msg('menu.saveReconnecting')));
     if (!this.saving) {
       let done!: (bytes: Uint8Array) => void, fail!: (e: Error) => void;
       const promise = new Promise<Uint8Array>((ok, no) => ((done = ok), (fail = no)));
       this.saving = { promise, done, fail };
-      this.onProgress('Saving paint…');
+      this.onProgress(msg('menu.progressSaving'));
       this.send({ type: 'save' });
     }
     return this.saving.promise;
   }
 
   /** The SAVE on its way gets its file, or fails with `error`. */
-  private saved(bytes: Uint8Array | null, error = 'The server is busy: save again later') {
+  private saved(bytes: Uint8Array | null, error = msg('menu.saveBusy')) {
     if (bytes) this.saving?.done(bytes);
     else this.saving?.fail(new Error(error));
     this.saving = null;
@@ -146,7 +163,7 @@ export class Multiplayer {
     this.log.add('LEAVE SESSION');
     this.send({ type: 'leave' });
     this.end({ state: 'off' });
-    return this.restoring;
+    return this.tail.restoring;
   }
 
   /** Once a frame: send this player's state and paint, show the others. */
@@ -159,6 +176,7 @@ export class Multiplayer {
       this.log.add(`nothing from the server for ${NET.serverSilence} s: closing to reconnect`);
       return link.close();
     }
+    if (this.health.due(t)) this.health.report({ t, ping: this.net.ping, silence: t - link.lastHeard }, this.onHealth);
     if (this.net.measure(t)) this.send({ type: 'ping', t });
     const at = t - this.t0;
     const out = this.sender.update(t, at);
@@ -181,7 +199,7 @@ export class Multiplayer {
         console.error(err);
         this.log.add(`couldn't handle ${m.type}: ${err}`);
         this.send({ type: 'leave' });
-        this.end({ state: 'failed', reason: 'broken' });
+        this.end({ state: 'failed', reason: 'broken', detail: err instanceof Error ? err.message : String(err) });
       }));
     const link: ServerLink = (this.link = new ServerLink(
       hello,
@@ -192,7 +210,7 @@ export class Multiplayer {
         traffic: (up, down) => ((this.net.up += up), (this.net.down += down)),
         closed: (code, timedOut) => {
           if (this.link === link) this.link = null;
-          if (timedOut && !this.joined) return this.end({ state: 'failed', reason: 'timeout', detail: `NO ANSWER IN ${NET.connectTimeout} S` });
+          if (timedOut && !this.joined) return this.end({ state: 'failed', reason: 'timeout', detail: msg('menu.detailNoAnswer', { seconds: NET.connectTimeout }) });
           this.dropped(code);
         },
       },
@@ -209,17 +227,23 @@ export class Multiplayer {
     const j = this.joined;
     const why = diagnose().then((d) => (this.log.add(`asked the server over HTTP: ${d.reason} (${d.detail})`), d));
     if (!j) {
-      void why.then((d) => !this.link && !this.joined && this.end({ state: 'failed', reason: d.reason, detail: `${d.detail} · WS ${code}` }));
+      void why.then((d) => !this.link && !this.joined && this.end({ state: 'failed', reason: d.reason, detail: `${d.detail} · ${msg('menu.detailWs', { code })}` }));
       return;
     }
     if (this.status.state !== 'reconnecting') this.retry = { until: now() + SERVER.rejoinWindow, wait: NET.retryFirst, tries: 0 };
     const r = this.retry!;
-    if (now() > r.until) return this.end({ state: 'failed', reason: 'ended', detail: `NO WAY BACK IN ${SERVER.rejoinWindow} S` });
+    if (now() > r.until) return this.end({ state: 'failed', reason: 'expired', detail: msg('menu.detailNoWayBack', { seconds: SERVER.rejoinWindow }) });
     r.tries++;
-    this.setStatus({ state: 'reconnecting', code: j.code, detail: `WS ${code} · TRY ${r.tries}` });
-    void why.then((d) => this.status.state === 'reconnecting' && this.joined === j && this.setStatus({ state: 'reconnecting', code: j.code, detail: `${d.detail} · WS ${code} · TRY ${r.tries}` }));
+    this.setStatus({ state: 'reconnecting', code: j.code, detail: msg('menu.detailTry', { code, n: r.tries }), tries: r.tries });
+    void why.then((d) => this.status.state === 'reconnecting' && this.joined === j && this.setStatus({ state: 'reconnecting', code: j.code, detail: `${d.detail} · ${msg('menu.detailTry', { code, n: r.tries })}`, tries: r.tries }));
     this.log.add(`trying again in ${r.wait} s (try ${r.tries})`);
-    setTimeout(() => this.joined === j && !this.link && this.connect({ type: 'join', protocol: PROTOCOL, name: j.name, code: j.code, token: j.token }), r.wait * 1000);
+    // After the wait, or at once when the browser says it is back online.
+    const timer = setTimeout(() => this.retryNow?.(), r.wait * 1000);
+    this.retryNow = () => {
+      clearTimeout(timer);
+      this.retryNow = null;
+      if (this.joined === j && !this.link) this.connect({ type: 'join', protocol: PROTOCOL, name: j.name, code: j.code, token: j.token });
+    };
     r.wait = Math.min(r.wait * 2, NET.retryMost);
   }
 
@@ -279,7 +303,7 @@ export class Multiplayer {
       }
     }
     const back = this.joined?.code === w.code;
-    this.onProgress('Loading paint…');
+    this.onProgress(msg('menu.progressLoading'));
     // The session's paint replaces ours: what the server doesn't have yet is painted again on top (and sent again, below).
     const loading = now();
     await loadPaint(g.paint, g.drips, file, { name: w.levelName });
@@ -310,15 +334,18 @@ export class Multiplayer {
     this.setStatus({ state: 'in', code: w.code });
   }
 
-  /** Out of the session: single player again, with the paint the player had before it (nothing of the session's stays; SAVE has it). */
+  /** Out of the session: single player again, with the paint the player had before it (SAVE has the session's). A session lost for good while playing waits for the dialogue's answer first (solo.ts). */
   private end(status: NetStatus) {
+    // A failure after the welcome says which session it cost the player (a failed JOIN or HOST has none).
+    if (status.state === 'failed' && this.joined) status = { ...status, code: this.joined.code };
     this.attempt++;
     this.link?.abandon();
     this.link = null;
     this.onProgress(null);
     // A welcome locks it before the player is in (its paint still loading): unlocked whatever the stage.
     this.g.lockDetail(null);
-    if (this.joined) {
+    const was = this.joined;
+    if (was) {
       this.remotes.clear();
       this.g.level.setRuntime(session.player, null);
       this.sender.end();
@@ -330,21 +357,12 @@ export class Multiplayer {
     this.setStatus(status);
     const solo = this.solo;
     this.solo = null;
-    // In the queue: after the message being handled (a welcome loading paint) and the ones waiting, and before any that comes later.
-    if (solo) this.restoring = this.queue = this.queue.then(() => this.restore(solo)).catch(console.error);
+    if (!solo) return;
+    this.tail.end(solo, was && status.state === 'failed' ? was.levelName : undefined);
   }
 
-  private async restore(solo: Solo) {
-    session.joining = true;
-    try {
-      await restoreSolo(this.g, solo);
-    } catch (err) {
-      console.error(err);
-      this.log.add(`couldn't bring back the paint from before the session: ${err}`);
-    }
-    session.joining = this.status.state === 'connecting';
-    this.onEnd();
-  }
+  /** The answer to the lost session's dialogue (solo.ts). */
+  resolveLoss = (save: boolean) => this.tail.answer(save);
 
   /**
    * The link for the HUD's performance lines, in a session: round trip to the
@@ -367,11 +385,13 @@ export class Multiplayer {
 
   private setStatus(s: NetStatus) {
     // Out of the session (or reconnecting) before the server sent its paint.
-    if (s.state !== 'in' && this.saving) this.saved(null, 'The link dropped before the paint came: save again');
+    if (s.state !== 'in' && this.saving) this.saved(null, msg('menu.saveDropped'));
     if (s.state === 'failed' || s.state === 'off') this.log.add(`status: ${s.state}${s.state === 'failed' ? ` ${s.reason}${s.detail ? ` (${s.detail})` : ''}` : ''}`);
     // From JOIN or HOST until the welcome's paint has loaded the game can't be played (a reconnect, or a welcome for the session we are in, doesn't count).
     session.joining = s.state === 'connecting';
     this.status = s;
+    // The chip of a slow link starts over with the link; the status handler owns the chip from here.
+    if (s.state !== 'in') this.health.reset();
     this.onStatus(s);
   }
 }

@@ -19,6 +19,9 @@ export async function link(w) {
   });
   await b.waitForFunction(() => window.threw, null, { timeout: 5000, polling: 50 });
   assert.match(b.errors.pop() ?? '', /on purpose/);
+  // It shows the crash card with the error to copy; taken off here, so the rest of this test can use the menu.
+  assert.match(await b.textContent('.layer-dialogue.crash .callout'), /on purpose/);
+  await b.evaluate(() => document.querySelector('.layer-dialogue.crash').remove());
   // SAVE as it starts to reconnect is refused at once: the request can't go, and a reconnect wouldn't answer it (it used
   // to wait forever). Asked by the page the moment it reports "reconnecting", which may last only a second.
   await b.evaluate(() => {

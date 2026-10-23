@@ -1,5 +1,8 @@
-import { action, choice, div, el, pageHead, segmented, settingRow, withDefaultTick } from './menu-ui';
+import { action, choice, div, el, pageHead, relabel, segmented, settingRow, withDefaultTick } from './menu-ui';
 import type { OwnTab, SettingRow, SettingSection } from './settings';
+
+/** An action's confirmation shows on its button this long (ms), like "Copied". */
+const DONE_MS = 2500;
 
 // The Settings page of the ESC menu: one tab per section (gameplay, graphics,
 // sound), each row a choice (‹ and › step to the previous and next value), a
@@ -83,7 +86,17 @@ export class SettingsPage {
     if (row.kind === 'action') {
       // Under a choice's value: its edges line up with the values in the rows below.
       const cell = div('action-cell');
-      cell.append(action(row.button, row.act));
+      const button = action(row.button, () => {
+        row.act();
+        this.sync();
+        if (!row.done) return;
+        relabel(button, row.done);
+        clearTimeout(done);
+        done = window.setTimeout(() => relabel(button, row.button), DONE_MS);
+      });
+      let done = 0;
+      if (row.enabled) this.syncs.push(() => (button.disabled = !row.enabled!()));
+      cell.append(button);
       return settingRow(row.label, cell, row);
     }
     const input = Object.assign(el('input'), { type: 'range', min: `${row.min}`, max: `${row.max}`, step: `${row.step}` });

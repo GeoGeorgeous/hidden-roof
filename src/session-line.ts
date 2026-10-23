@@ -1,3 +1,4 @@
+import { msg } from './messages';
 import { button, div, el } from './menu-ui';
 
 // The pause screen's status line in a live multiplayer session (pause-menu.ts):
@@ -53,7 +54,7 @@ export class SessionLine {
 
   private copyCode() {
     navigator.clipboard?.writeText(this.code.textContent!).then(() => {
-      this.copy.textContent = 'Copied';
+      this.copy.textContent = msg('menu.copied');
       clearTimeout(this.copied);
       this.copied = window.setTimeout(() => (this.copy.textContent = 'Copy'), COPIED_MS);
     }, () => {});

@@ -355,19 +355,18 @@ export const HUD = {
   /** Body-cam corner brackets. */
   frame: true,
   /** REC dot and elapsed time, top left. */
-  rec: true,
+  rec: false,
   /** Camera label under it (CAM 01 · ROOFTOP). */
-  cam: true,
+  cam: false,
   /** Date and time, top right. */
-  clock: true,
+  clock: false,
   /** Performance readout, bottom left: fps, draw calls, triangles, texture memory. */
-  perf: true,
+  perf: false,
   /** GPU time per frame in it too (timer queries: desktop Chromium; a few queries a frame while shown). */
   perfGpu: false,
-  /** How long the cap and color tags show after a change, the PSI gauge after the pressure last changed, and a hotbar message (s). */
+  /** How long the cap and color tags show after a change, and the PSI gauge after the pressure last changed (s). */
   tagTime: 2.5,
   gaugeTime: 1.2,
-  toastTime: 2.2,
   /** Hotbar slots: size and the gap between them (CSS px), roundness (0 = square, 1 = circle), icon size (share of the slot). */
   slotSize: 30,
   slotGap: 10,
@@ -381,6 +380,45 @@ export const HUD = {
   selectedBorder: '#141416',
   selectedFill: '#ebe5d6',
   selectedFillOpacity: 0.35,
+};
+
+/** In-game messages (notify.ts, notify-view.ts): hints at the bottom, toasts above them, chips at the top. */
+export const NOTIFY = {
+  /** How long a toast shows, counted only while play is visible (s), and how many stack: a newer one removes the oldest. */
+  toastSeconds: 3,
+  maxToasts: 3,
+  /** Status chips at once: the next waits its turn. */
+  maxChips: 2,
+  /** Fades (ms): the dark gradient behind a hint in and out, a chip in and out. Hints and toasts cut. */
+  shadeIn: 200,
+  shadeOut: 300,
+  chipIn: 200,
+  chipOut: 160,
+  /** A chip that succeeded shows its result this long (s of play) before it goes. */
+  doneSeconds: 1.5,
+  /** The cycling bars of a chip trying again: one loop and the delay between one bar and the next (ms). */
+  barsLoop: 1200,
+  barsStep: 200,
+  /** A chip growing into the dialogue (ms): the move and resize, with its easing; the chip's content fading out; the card's content fading in, after a delay. */
+  growTime: 320,
+  growEase: 'cubic-bezier(.3,.7,.2,1)',
+  growOut: 100,
+  growIn: 160,
+  growDelay: 200,
+  /** The look, live in F3 → Test → Messages (px unless said): the lowest hint box's distance from the bottom, text size and line height, box padding across and down, box opacity. */
+  hintBottom: 72,
+  fontSize: 12,
+  lineHeight: 16,
+  padX: 8,
+  padY: 4,
+  boxOpacity: 0.78,
+  /** The gradient behind a hint: with a hint ('auto'), 'always' or 'never'; its height and its strength at the bottom edge. */
+  shade: 'auto' as 'auto' | 'always' | 'never',
+  shadeHeight: 180,
+  shadeStrength: 0.4,
+  /** The gap between the hint's top line and the toasts above it, and the chips' and the dialogue's distance from the top. */
+  toastGap: 4,
+  chipTop: 24,
 };
 
 /** Slogans on lettered sign panels (kit/lettering.ts panelLettering). */
@@ -1041,6 +1079,18 @@ export const NET = {
   diagnoseTimeout: 5,
   /** Network log entries kept for COPY NETWORK LOG (net/diagnostics.ts). */
   logLines: 80,
+  /** The link's chip (net/link-health.ts): a chip shows when its value stays past the first number for `statusHold` s, and goes when it stays under the second for as long. */
+  /** How often (s) the link's numbers are checked. */
+  healthEvery: 0.25,
+  badPing: 0.3,
+  badPingClear: 0.2,
+  statusHold: 5,
+  /** Nothing from the server for this long (s) shows "No signal"; it goes at once under the second. The server pings every SERVER.ping; serverSilence then closes the link. */
+  noSignal: 4,
+  noSignalClear: 1.5,
+  /** A remote player shown further behind than this (s, NET.maxDelay caps it) for `statusHold` s is marked LAGGING on their nameplate; it goes under the second for as long (net/remote-player.ts). */
+  highDelay: 0.3,
+  highDelayClear: 0.2,
 };
 
 /** The multiplayer server (server/, docs/deploy.md). */
@@ -1448,4 +1498,31 @@ export const CCTV = {
   maxTurn: 1.3,
   /** How far it can tilt up or down to your height (rad). */
   maxTilt: 0.7,
+};
+
+/** Hints in play (src/tutorial). Times are visible play seconds: paused, F3, build mode and a hidden tab don't count. */
+export const TUTORIAL = {
+  /** Hints on (Settings → Gameplay → Hints). Off: none show and none are learnt. */
+  enabled: true,
+  /** The first hint (move, run, jump) waits this long after play starts (s). */
+  moveDelay: 1.5,
+  /** Walking this far (m) is learning to move; one key press isn't. */
+  moveMeters: 3,
+  /** A hint shows at least this long (s) before it can leave as done, so it doesn't flash. */
+  minShown: 2,
+  /** A color hint is learnt after this long on screen (s), whatever the player did. */
+  colorShown: 5,
+  /** Spraying this long (s) on a surface is learning the can. */
+  spraySeconds: 0.5,
+  /** Drawing this far (m) with the marker, or scrubbing with the sponge, is learning it. */
+  markerMeters: 0.5,
+  spongeMeters: 0.5,
+  /** Rolling this far (m) is learning the roller. */
+  rollerMeters: 1,
+  /** Climbing this far (m) is learning ladders. */
+  climbMeters: 1.5,
+  /** A hint with nothing to do (about the stepladder) is learnt after this long on screen (s). */
+  infoSeconds: 6,
+  /** A ladder hint shows within this distance (m) of a ladder's climb volume. */
+  ladderRadius: 2.5,
 };

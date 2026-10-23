@@ -1,3 +1,4 @@
+import { msg } from './messages';
 import { INK_STYLES, PAUSE_MENU, SOCIAL_LINKS } from './config';
 import { creditsPage } from './credits-page';
 import { EscHold, ring } from './esc-hold';
@@ -255,7 +256,7 @@ export class PauseMenu {
   }
 
   private sync() {
-    const idle = this.session ? `Session · ${this.session}` : this.started ? 'Paused' : 'Click to start';
+    const idle = this.session ? msg('menu.session', { code: this.session }) : msg(this.started ? 'menu.pauseIdle' : 'menu.pauseStart');
     const notice = performance.now() < this.noticeUntil;
     const text = this.status.lastChild as HTMLElement;
     if (this.hold.held) text.replaceChildren('Keep holding ', keyHint('ESC'), ' to leave fullscreen, or press ', keyHint('F11'), ' to leave instantly');

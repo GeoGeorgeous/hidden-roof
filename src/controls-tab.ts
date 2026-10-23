@@ -1,4 +1,5 @@
 import { PAUSE_MENU, PLAYER } from './config';
+import { msg } from './messages';
 import { type Action, keyName } from './input';
 import { allDefault, bind, type Bound, CONTROL_GROUPS, defaultSlot, nameOf, refusal, resetKeys, restore, slots, snapshot } from './key-bindings';
 import { button, choice, div, el } from './menu-ui';
@@ -117,7 +118,7 @@ export class ControlsTab implements OwnTab {
   private commit(action: Action, i: number, code: string | null) {
     const before = snapshot();
     const from = bind(action, i, code);
-    if (from) this.say(`${keyName(code!)} moved here from ${nameOf(from)}${slots(from).some((c) => c !== null) ? '' : ', which has no key now'}.`, before);
+    if (from) this.say(msg(slots(from).some((c) => c !== null) ? 'menu.bindMoved' : 'menu.bindMovedEmpty', { key: keyName(code!), action: nameOf(from) }), before);
     this.changed();
     this.sync();
   }
@@ -187,7 +188,7 @@ export class ControlsTab implements OwnTab {
         const before = snapshot();
         this.asking = false;
         resetKeys();
-        this.say('Controls are back to defaults.', before);
+        this.say(msg('menu.bindReset'), before);
         this.changed();
         this.sync();
       }, 'confirm');
@@ -207,7 +208,7 @@ export class ControlsTab implements OwnTab {
     for (const s of this.syncs) s();
     const l = this.listening;
     const notice = !l && this.notice;
-    this.status.textContent = l ? (l.refused ? `${l.refused} Try another key.` : `Press a key, click a mouse button or scroll to bind ${nameOf(l.action)}. Esc cancels.`) : notice ? notice.text : HINT;
+    this.status.textContent = l ? (l.refused ? msg('menu.bindRefused', { reason: l.refused }) : msg('menu.bindPrompt', { action: nameOf(l.action) })) : notice ? notice.text : HINT;
     this.status.className = `status${l ? (l.refused ? ' error' : ' listening') : notice ? ' notice' : ''}`;
     this.undoLink.hidden = !notice;
   }

@@ -1,4 +1,5 @@
 import * as config from '../config';
+import type { MessageAction } from '../dev/message-tools';
 import { defaultOf } from './defaults';
 
 // What the debug panel's contents are made of: collapsible sections of live
@@ -136,6 +137,11 @@ export interface Hooks {
   ghostState(): string;
   /** The ghost's network as its remote player sees it, or null. */
   ghostNet(): null | { delay: number; jitter: number; buffered: number; guessing: boolean; correction: number };
+  /** F3 → Test → Messages (dev/message-tools.ts): shows a message, picks a hint (an index of the hint names; -1 none), and applies NOTIFY's look. */
+  message(action: MessageAction): void;
+  messageHint(i: number): void;
+  messageHintShown(): number;
+  syncNotify(): void;
   /** F3 -> Test -> Performance: profiling mode (dev/profiler.ts). */
   profileToggle(): void;
   profileProbe(): void;

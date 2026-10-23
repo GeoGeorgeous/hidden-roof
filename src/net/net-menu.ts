@@ -1,13 +1,15 @@
 import { COLORS, PAINT, PAINT_DETAIL } from '../config';
 import { download, pickFile, stamp } from '../files';
 import type { PauseMenu } from '../pause-menu';
-import type { Hotbar } from '../inventory/hotbar';
+import { msg, type MessageId } from '../messages';
+import type { Notify } from '../notify';
 import { savePaint } from '../save/save-paint';
 import { store, stored } from '../stored';
 import { cycle, paintDetailName } from '../settings';
 import { action, button, choice, div, el, pageHead, relabel, sentence, settingRow } from '../menu-ui';
 import { CODE_LENGTH, CODE_LETTERS, NAME_MAX } from './protocol';
 import type { MultiplayerContext } from './game-context';
+import { lostDialogue, type LostButton } from './lost-dialogue';
 import { Multiplayer, type Failure, type NetStatus } from './multiplayer';
 
 // The Multiplayer page of the ESC menu: HOST (a name, the session's PAINT
@@ -24,27 +26,28 @@ const DETAILS = Object.entries(PAINT_DETAIL) as [keyof typeof PAINT_DETAIL, numb
 const NAME_KEY = 'roofhiddenhaus.name';
 
 /** What the player reads about the link: every failure has its text. */
-const STATUS: Record<Failure | 'connecting' | 'reconnecting', string> & Partial<Record<NetStatus['state'], string>> = {
-  connecting: 'Connecting…',
-  reconnecting: 'Connection lost · reconnecting…',
-  version: 'A new version is out: reload the page',
-  'no-session': 'No session with that code',
-  full: 'That session is full',
-  'bad-save': "That paint file doesn't fit this level",
-  'bad-level': "This level can't be hosted",
-  busy: 'The server is full: try again later',
-  replaced: 'This session was opened in another tab',
-  'too-many': 'Too many connections from your network: try again later',
-  ended: 'The session has ended',
-  timeout: "The server didn't answer",
-  broken: 'The game hit an error in the session: copy the network log for a report',
-  offline: "Can't reach the site: check your connection",
-  'server-down': 'The game server is down',
-  'no-server': 'No game server at this address',
-  blocked: 'The server is up but the connection was blocked (firewall or extension?)',
+const STATUS: Record<Failure | 'connecting' | 'reconnecting', MessageId> & Partial<Record<NetStatus['state'], MessageId>> = {
+  connecting: 'menu.netConnecting',
+  reconnecting: 'menu.netReconnecting',
+  version: 'menu.netVersion',
+  'no-session': 'menu.netNoSession',
+  full: 'menu.netFull',
+  'bad-save': 'menu.netBadSave',
+  'bad-level': 'menu.netBadLevel',
+  busy: 'menu.netBusy',
+  replaced: 'menu.netReplaced',
+  'too-many': 'menu.netTooMany',
+  ended: 'menu.netEnded',
+  expired: 'menu.netEnded',
+  timeout: 'menu.netTimeout',
+  broken: 'menu.netBroken',
+  offline: 'menu.netOffline',
+  'server-down': 'menu.netServerDown',
+  'no-server': 'menu.netNoServer',
+  blocked: 'menu.netBlocked',
 };
 
-export function multiplayerMenu(hud: PauseMenu, hotbar: Hotbar, ctx: MultiplayerContext, levelName: () => string) {
+export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: MultiplayerContext, levelName: () => string) {
   const net = new Multiplayer(ctx);
   const sub = div('page-sub');
   const rows = div('rows');
@@ -76,7 +79,7 @@ export function multiplayerMenu(hud: PauseMenu, hotbar: Hotbar, ctx: Multiplayer
   };
   const named = () => {
     if (name.trim()) return name.trim();
-    say('Type a name first', true);
+    say(msg('menu.typeName'), true);
     return null;
   };
   const show = (title: string, ...els: HTMLElement[]) => {
@@ -93,8 +96,8 @@ export function multiplayerMenu(hud: PauseMenu, hotbar: Hotbar, ctx: Multiplayer
     const text = net.log.text();
     const done = (how: string) => (say(how), hud.notice(how));
     (navigator.clipboard?.writeText(text) ?? Promise.reject()).then(
-      () => done('Network log copied'),
-      () => (download(new Blob([text], { type: 'text/plain' }), `roof-network-${stamp(new Date())}.txt`), done('Network log saved as a file')),
+      () => done(msg('menu.logCopied')),
+      () => (download(new Blob([text], { type: 'text/plain' }), `roof-network-${stamp(new Date())}.txt`), done(msg('menu.logSaved'))),
     );
   };
   const host = () => {
@@ -121,26 +124,47 @@ export function multiplayerMenu(hud: PauseMenu, hotbar: Hotbar, ctx: Multiplayer
       const who = named();
       const code = codeInput.value.toUpperCase();
       if (who && [...code].every((c) => CODE_LETTERS.includes(c)) && code.length === CODE_LENGTH) net.join(who, code);
-      else if (who) say(`The code is ${CODE_LENGTH} letters`, true);
+      else if (who) say(msg('menu.codeLength', { length: CODE_LENGTH }), true);
     }, { primary: true });
     show('Join a session', nameRow(), settingRow('Code', codeInput, { desc: `The ${CODE_LENGTH} letters the host shared.` }), submit(go));
   };
   // Back (and Esc) from here while JOIN or HOST is loading the session cancels it: the pause screen can't offer PLAY before the paint is in.
   hud.addPage('mp', root, choose, () => (net.status.state === 'connecting' && net.leave(), inForm && (choose(), true)));
 
+  /** The state before this one, and what the lost session's dialogue button does. */
+  let was: NetStatus['state'] = 'off';
+  let lostButton: LostButton = 'leave';
   net.onStatus = (s: NetStatus) => {
     hud.setSession(s.state === 'in' || s.state === 'reconnecting' ? s.code : null, s.state === 'in');
-    hud.setJoining(s.state === 'connecting' ? 'Joining…' : null);
-    const known = s.state === 'failed' ? STATUS[s.reason] : STATUS[s.state];
+    hud.setJoining(s.state === 'connecting' ? msg('menu.joining') : null);
+    const id = s.state === 'failed' ? STATUS[s.reason] : STATUS[s.state];
+    const known = id && msg(id);
     // What was seen (a close code, an HTTP status, tries) goes along, for reports.
     const detail = s.state === 'failed' || s.state === 'reconnecting' ? s.detail : undefined;
     const text = known && detail ? `${known} (${detail})` : known;
     say(text ?? '', s.state === 'failed', s.state === 'failed');
+    // In play the link's loss is a chip, as long as it lasts; a session lost mid-play is a dialogue in its place (the menu's line above says either with the page open). A failed JOIN or HOST stays on the page.
+    if (s.state === 'reconnecting') notify.set({ key: 'net', kind: 'status', icon: 'cycle', lines: [msg('chip.reconnecting', { n: s.tries })] });
+    else if (s.state === 'failed' && s.code) {
+      const lost = lostDialogue(s.reason, s.detail);
+      lostButton = lost.button;
+      notify.set({ key: 'net', kind: 'error', dialogue: lost.dialogue });
+    } else if (s.state === 'in' && was === 'reconnecting') notify.succeed('net', msg('chip.reconnected'));
+    else notify.clear('net');
+    was = s.state;
     if (text) hud.notice(text, s.state === 'connecting' || s.state === 'reconnecting' ? Infinity : undefined);
-    else if (s.state === 'in') hud.notice(`Session · ${s.code}`, 0);
+    else if (s.state === 'in') hud.notice(msg('menu.session', { code: s.code }), 0);
   };
+  net.onHealth = (h) => (h ? notify.set({ key: 'net', kind: 'status', icon: h.id === 'noSignal' ? 'ring' : 'bars', lines: [msg(`chip.${h.id}`)] }) : notify.clear('net'));
   net.onEnd = () => hud.toTitle();
-  net.onPlayer = (who, joined) => hotbar.toast(`${who} ${joined ? 'joined' : 'left'}`);
+  // The lost session's dialogue: Enter presses its button (save the paint and leave, leave, reload, open the menu); Esc, which opens the menu, just leaves.
+  notify.onConfirm = (key, accepted) => {
+    if (key !== 'net') return;
+    if (accepted && lostButton === 'reload') return location.reload();
+    if (accepted && lostButton === 'menu') document.exitPointerLock();
+    void net.resolveLoss(accepted && lostButton === 'save');
+  };
+  net.onPlayer = (who, joined) => notify.event(msg(joined ? 'toast.joined' : 'toast.left', { user: who.replaceAll('*', '') }));
   hud.onLeave = () => net.leave();
   hud.sessionInfo = () => ({ ping: net.ping, players: net.players.map((p) => ({ name: p.name, color: p.color && COLORS[p.color] })) });
   // Each step of HOST, JOIN or SAVE as it goes, with how far along an upload or download is.
@@ -154,7 +178,7 @@ export function multiplayerMenu(hud: PauseMenu, hotbar: Hotbar, ctx: Multiplayer
 /** PLAY's short form of a progress line while joining: 'Loading 40%', or 'Joining…' before there's a share. */
 function short(progress: string) {
   const share = /\d+%$/.exec(progress);
-  return share ? `Loading ${share[0]}` : 'Joining…';
+  return share ? msg('menu.progressShort', { percent: share[0] }) : msg('menu.joining');
 }
 
 /** HOST A SESSION / JOIN A SESSION: a big row with what it's for. */

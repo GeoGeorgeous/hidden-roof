@@ -98,10 +98,12 @@ export class SprayParticles {
     return this.live.length;
   }
 
+  /** Launches `e.count` particles; returns how many will land on paint-taking surface. */
   emit(e: EmitParams) {
     // Broad phase: only solids near the player can be hit.
     solidsNear(this.solids, e.eye, SPRAY.reach, this.candidates);
     const { cap } = e;
+    let landing = 0;
     for (let i = 0; i < e.count; i++) {
       const p = this.free.pop();
       if (!p) break;
@@ -109,6 +111,7 @@ export class SprayParticles {
       this.launch(p, e, hit ? hit.point : target.copy(e.eye).addScaledVector(dir, SPRAY.reach));
       p.surface = hit ? (this.paint.get(hit.object) ?? null) : null;
       if (hit && p.surface) {
+        landing++;
         facePoint(p.surface.geo, hit.faceIndex!, hit.uv!, p.at);
         p.epoch = this.paint.epoch;
         const fall = hit.distance <= SPRAY.falloffStart ? 1 : 1 - (hit.distance - SPRAY.falloffStart) / (SPRAY.reach - SPRAY.falloffStart);
@@ -119,6 +122,7 @@ export class SprayParticles {
         p.rgb = e.rgb;
       }
     }
+    return landing;
   }
 
   /**

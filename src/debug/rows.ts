@@ -66,7 +66,8 @@ function control(it: Item, edited: () => void, night: Night): Row {
     label.className = 'choice-row';
     // Clicking the name would press the first button (a label's control).
     name.addEventListener('click', (e) => e.preventDefault());
-    const box = el('div', 'choice');
+    // Many options wrap into rows.
+    const box = el('div', it.options.length > 5 ? 'choice many' : 'choice');
     const buttons = it.options.map((o, i) => {
       const b = el('button', '', o);
       b.addEventListener('click', (e) => {

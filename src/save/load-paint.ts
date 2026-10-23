@@ -1,4 +1,5 @@
 import type { PaintDrips } from '../paint-drips';
+import { msg } from '../messages';
 import type { PaintSurface, PaintSystem } from '../painting';
 import { decodePaintFile, eachFace, faceBytes, readPaintHeader, type DecodedPaint } from './paint-file';
 import { shapeOf } from './shape';
@@ -45,7 +46,7 @@ export async function loadPaint(paint: PaintSystem, drips: PaintDrips, bytes: Ui
   const faces = targets.filter(Boolean).length;
   if (header.faces.length && !faces) {
     const name = header.level.name.toUpperCase();
-    throw new NotThisLevel(header.level.name === level.name ? `SAVED FOR ANOTHER VERSION OF ${name}` : `SAVED FOR ${name}`);
+    throw new NotThisLevel(msg(header.level.name === level.name ? 'menu.paintOtherVersion' : 'menu.paintOtherLevel', { level: name }));
   }
   const skipped = header.faces.length - faces;
   if (!apply) return { faces, skipped };

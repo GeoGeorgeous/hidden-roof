@@ -12,6 +12,7 @@
   position: fixed;
   inset: 0 auto 0 0;
   max-width: 80vw;
+  z-index: var(--z-panel);
   pointer-events: none;
 }
 /* The full pause sheet (hud.ts) hides build mode's UI; with F3 open it stays, to tune it. */
@@ -28,6 +29,7 @@ body.paused .build-help {
   position: fixed;
   left: 14px;
   top: 46%;
+  z-index: var(--z-panel);
   pointer-events: none;
   text-transform: uppercase;
 }
@@ -193,6 +195,7 @@ body.paused .build-help {
   position: fixed;
   top: 56px;
   right: 30px;
+  z-index: var(--z-panel);
   width: 260px;
   text-align: right;
   line-height: 1.7;
@@ -233,7 +236,7 @@ body.paused .build-help {
   padding: 8px 10px;
   background: rgba(14, 14, 16, 0.82);
   backdrop-filter: blur(2px);
-  z-index: 10;
+  z-index: var(--z-panel);
 }
 /* Buttons and tabs stay; the open tab scrolls. */
 .debug-panel .pages {
@@ -382,6 +385,13 @@ body.paused .build-help {
   grid-auto-columns: 1fr;
   gap: 4px;
 }
+.debug-panel .choice.many {
+  grid-auto-flow: row;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+}
+.debug-panel .choice.many button {
+  padding: 2px 0;
+}
 .debug-panel label.heading {
   display: block;
   margin-top: 6px;
@@ -496,7 +506,7 @@ body.paused .build-help {
   top: 12px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 30;
+  z-index: var(--z-panel);
   padding: 3px 8px;
   font-size: 11px;
   letter-spacing: 0.12em;
