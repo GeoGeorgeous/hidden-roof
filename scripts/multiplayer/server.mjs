@@ -5,10 +5,10 @@ import { status, PORT, stopServer, restartServer } from './harness.mjs';
 
 export async function server(w) {
   const { a } = w;
-  // The server restarts (a deploy): A's game reconnects, finds its session gone, and says the session has ended.
+  // The server restarts (a deploy): A's game reconnects, finds its session gone, and says the session has ended (restarted: the dialog says the server restarted).
   await a.evaluate(() => (window.game.hud.menu.started = true));
   restartServer();
-  await a.waitForFunction(() => window.game.net.status.state === 'failed' && window.game.net.status.reason === 'ended', null, { timeout: 15000 });
+  await a.waitForFunction(() => window.game.net.status.state === 'failed' && window.game.net.status.reason === 'restarted', null, { timeout: 15000 });
   assert.equal(await a.evaluate(() => window.game.session.multiplayer), false);
   // Lost mid-play, the session is a dialog: A stays in the game with the session's paint until it answers.
   assert.equal(await a.evaluate(() => window.game.notify.blocked), true);
