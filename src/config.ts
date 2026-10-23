@@ -397,6 +397,9 @@ export const NOTIFY = {
   /** The cycling bars of a status trying again: one loop and the delay between one bar and the next (ms). */
   barsLoop: 1200,
   barsStep: 200,
+  /** One loop (ms) of a weak link's second bar, flickering twice, and of the red ring blinking while nothing is heard. */
+  flickerLoop: 2400,
+  blinkLoop: 1000,
   /** A status growing into the dialog (ms): the move and resize, with its easing; the status's content fading out; the card's content fading in, after a delay. */
   growTime: 320,
   growEase: 'cubic-bezier(.3,.7,.2,1)',

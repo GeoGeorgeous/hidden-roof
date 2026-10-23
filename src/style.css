@@ -1963,7 +1963,7 @@ body.paused .layer-dialog:not(.crash) {
   letter-spacing: 0;
   transform: translateY(-4px);
 }
-/* Its icon. Bars: three, 2 px wide, 4 / 7 / 10 px tall, 2 px apart, bottom-aligned; the first lit, or each in turn. */
+/* Its icon. Bars: three, 2 px wide, 4 / 7 / 10 px tall, 2 px apart, bottom-aligned; the first lit with the second flickering twice a loop, or each in turn. Loops run only while the status is drawn. */
 .status-icon {
   position: relative;
   flex: none;
@@ -1991,6 +1991,19 @@ body.paused .layer-dialog:not(.crash) {
 .status-icon.bars b:nth-child(1) {
   background: var(--paper);
 }
+.status-icon.bars b:nth-child(2) {
+  animation: flicker var(--flicker-loop) steps(1) infinite;
+}
+@keyframes flicker {
+  62%,
+  70% {
+    background: var(--paper);
+  }
+  66%,
+  74% {
+    background: var(--text-4);
+  }
+}
 .status-icon.cycle b {
   animation: bar var(--bars-loop) infinite;
 }
@@ -2010,6 +2023,7 @@ body.paused .layer-dialog:not(.crash) {
     background: var(--text-4);
   }
 }
+/* Nothing heard: a red ring, blinking. */
 .status-icon.ring::after {
   content: '';
   position: absolute;
@@ -2017,8 +2031,10 @@ body.paused .layer-dialog:not(.crash) {
   box-sizing: border-box;
   border: 1.5px solid var(--error);
   border-radius: 50%;
+  animation: blink var(--blink-loop) steps(2) infinite;
 }
-.status-icon.check::after {
+/* Done: the check pops in and a ring bursts out of it, once, as the class is set. */
+.status-icon.check::before {
   content: '';
   position: absolute;
   left: 3px;
@@ -2029,6 +2045,35 @@ body.paused .layer-dialog:not(.crash) {
   border: solid var(--paper);
   border-width: 0 1.5px 1.5px 0;
   transform: rotate(45deg);
+  animation: pop 0.29s ease-out;
+}
+.status-icon.check::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  box-sizing: border-box;
+  border: 1px solid var(--paper);
+  border-radius: 50%;
+  opacity: 0;
+  animation: burst 0.33s ease-out 0.07s;
+}
+@keyframes pop {
+  from {
+    transform: rotate(45deg) scale(0);
+  }
+  60% {
+    transform: rotate(45deg) scale(1.3);
+  }
+}
+@keyframes burst {
+  from {
+    transform: scale(0.4);
+    opacity: 0.8;
+  }
+  to {
+    transform: scale(1.6);
+    opacity: 0;
+  }
 }
 /* A blocking message in the middle: the game dims under it (play-state.ts: Enter presses the button, Esc leaves). The frame guard's own copy (.crash) stays over the paused menu. */
 .layer-dialog .veil {

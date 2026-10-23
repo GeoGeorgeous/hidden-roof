@@ -69,6 +69,8 @@ export class NotifyView {
       'status-top': `${NOTIFY.statusTop}px`,
       'bars-loop': `${NOTIFY.barsLoop}ms`,
       'bars-step': `${NOTIFY.barsStep}ms`,
+      'flicker-loop': `${NOTIFY.flickerLoop}ms`,
+      'blink-loop': `${NOTIFY.blinkLoop}ms`,
     };
     for (const k in vars) css.setProperty(`--${k}`, vars[k]);
     this.seen = -1;
@@ -133,7 +135,7 @@ export class NotifyView {
     }
   }
 
-  /** Bars: three, 4, 7 and 10 px tall, the first lit (a weak link) or cycling (trying again); a red ring; a check. Drawn in CSS. */
+  /** Bars: three, 4, 7 and 10 px tall, the first lit (a weak link) or cycling (trying again); a red ring; a check. Drawn in CSS; a new class starts its animation, so the check pops in as it is set. */
   private drawIcon(status: StatusBox, icon: StatusIcon) {
     status.icon.className = `status-icon ${icon}`;
     status.icon.replaceChildren(...(icon === 'ring' || icon === 'check' ? [] : [el('b'), el('b'), el('b')]));
