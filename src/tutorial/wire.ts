@@ -2,10 +2,10 @@ import * as THREE from 'three';
 import { BINDINGS, PLAYER, PRESSURE, TUTORIAL } from '../config';
 import type { Action, Input } from '../input';
 import type { Inventory } from '../inventory/inventory';
-import { SLOTS } from '../inventory/tool';
+import { SLOTS, type Tool } from '../inventory/tool';
 import type { Ladder, Player } from '../player';
 import type { Tutorial } from './tutorial';
-import type { Snapshot } from './types';
+import type { Fact, Snapshot } from './types';
 
 // What the game tells the tutorial each frame (types.ts): the player's walking, running, jumping and climbing as
 // facts, and how things are as a snapshot. The tools and pickups send their own facts straight to `tutorial.fact`.
@@ -13,11 +13,20 @@ import type { Snapshot } from './types';
 const middle = new THREE.Vector3();
 const ACTIONS = Object.keys(BINDINGS) as Action[];
 
+// The tutorial keeps no fact it is told, so the ones sent every frame are one object each, filled in.
+const MOVED = { type: 'moved' as const, meters: 0 };
+const SPRINTED = { type: 'sprinted' as const, seconds: 0 };
+const CLIMBED = { type: 'climbed' as const, meters: 0 };
+const JUMPED: Fact = { type: 'jumped' };
+
 export class TutorialWire {
   private stride: number;
   private feetY: number;
   /** Standing on the floor when the frame began: a jump key press then is a jump. */
   private grounded = false;
+  private enabled = true;
+  private tools: Tool[] = [];
+  private snap: Snapshot = { tool: null, tools: this.tools, lowPressure: false, colors: 1, caps: 1, nearLadder: false, onLadder: false };
 
   constructor(
     private tutorial: Tutorial,
@@ -39,28 +48,30 @@ export class TutorialWire {
     const { player, tutorial } = this;
     const moved = player.stride - this.stride;
     this.stride = player.stride;
-    if (moved > 0) tutorial.fact({ type: 'moved', meters: moved });
-    if (player.sprinting) tutorial.fact({ type: 'sprinted', seconds: dt });
-    if (this.grounded && input.justPressed('jump') && player.velocity.y > 0) tutorial.fact({ type: 'jumped' });
     const rose = player.position.y - this.feetY;
     this.feetY = player.position.y;
-    if (player.onLadder && rose > 0) tutorial.fact({ type: 'climbed', meters: rose });
-    for (const action of ACTIONS) if (input.justPressed(action)) tutorial.fact({ type: 'pressed', action });
-    tutorial.setEnabled(TUTORIAL.enabled);
-    tutorial.update(dt, visible, this.snapshot());
+    if (tutorial.teaching) {
+      if (moved > 0) tutorial.fact(((MOVED.meters = moved), MOVED));
+      if (player.sprinting) tutorial.fact(((SPRINTED.seconds = dt), SPRINTED));
+      if (this.grounded && input.justPressed('jump') && player.velocity.y > 0) tutorial.fact(JUMPED);
+      if (player.onLadder && rose > 0) tutorial.fact(((CLIMBED.meters = rose), CLIMBED));
+      for (const action of ACTIONS) if (input.justPressed(action)) tutorial.fact({ type: 'pressed', action });
+    }
+    if (TUTORIAL.enabled !== this.enabled) tutorial.setEnabled((this.enabled = TUTORIAL.enabled));
+    tutorial.update(dt, visible, visible && tutorial.teaching ? this.snapshot() : undefined);
   }
 
   private snapshot(): Snapshot {
-    const { player, inventory } = this;
+    const { player, inventory, snap, tools } = this;
     middle.copy(player.position).y += PLAYER.height / 2;
-    return {
-      tool: inventory.tool,
-      lowPressure: inventory.pressure < PRESSURE.sputterThreshold,
-      tools: SLOTS.filter((t) => inventory.has(t)),
-      colors: inventory.colors.length,
-      caps: inventory.caps.length,
-      nearLadder: !player.onLadder && this.ladders.some((l) => l.volume.distanceToPoint(middle) <= TUTORIAL.ladderRadius),
-      onLadder: player.onLadder,
-    };
+    tools.length = 0;
+    for (const t of SLOTS) if (inventory.has(t)) tools.push(t);
+    snap.tool = inventory.tool;
+    snap.lowPressure = inventory.pressure < PRESSURE.sputterThreshold;
+    snap.colors = inventory.colors.length;
+    snap.caps = inventory.caps.length;
+    snap.nearLadder = !player.onLadder && this.ladders.some((l) => l.volume.distanceToPoint(middle) <= TUTORIAL.ladderRadius);
+    snap.onLadder = player.onLadder;
+    return snap;
   }
 }

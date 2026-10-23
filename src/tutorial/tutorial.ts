@@ -40,6 +40,8 @@ export class Tutorial {
   private played = 0;
   private seq = 0;
   private on = true;
+  /** How many hints are not learnt yet. */
+  private left = 0;
   private snap: Snapshot = { tool: null, tools: [], lowPressure: false, colors: 1, caps: 1, nearLadder: false, onLadder: false };
   /** What the message layer has: the hint's id and which of its texts. */
   private shown: { id: string; text: number } | null = null;
@@ -49,6 +51,7 @@ export class Tutorial {
     this.storage = storage;
     this.states = hints.map((def) => ({ def, seen: newSeen(), wanted: false, seq: 0, shownFor: 0 }));
     this.load();
+    this.recount();
   }
 
   /** Hints on or off (a setting). Off: nothing shown, nothing recorded; the progress stays. */
@@ -57,9 +60,15 @@ export class Tutorial {
     if (!on) this.show(null);
   }
 
+  /** Hints are on and something is left to learn: only then do facts and the snapshot count. */
+  get teaching() {
+    return this.on && this.left > 0;
+  }
+
   /** Show hints again: forgets what was learnt. */
   reset() {
     this.done.clear();
+    this.recount();
     this.save();
     for (const s of this.states) this.forget(s);
     this.show(null);
@@ -80,11 +89,12 @@ export class Tutorial {
     for (const s of this.states) if (s.wanted) see(s.seen, f);
   }
 
-  /** Once a frame. `visible`: the player is looking at play (locked, no panel, not building, tab visible). */
-  update(dt: number, visible: boolean, snap: Snapshot) {
+  /** Once a frame. `visible`: the player is looking at play (locked, no panel, not building, tab visible). `snap`: not needed while nothing is `teaching`; only the clock runs then. */
+  update(dt: number, visible: boolean, snap?: Snapshot) {
     if (!this.on || !visible) return;
-    this.snap = snap;
     this.played += dt;
+    if (!snap || this.left === 0) return;
+    this.snap = snap;
     const wanted = this.refresh();
     const pick = this.pick(wanted);
     // Time on screen counts while the hint itself shows, not its "take it" step.
@@ -97,6 +107,7 @@ export class Tutorial {
       }
     }
     if (learnt) {
+      this.recount();
       this.save();
       this.show(this.pick(this.refresh()));
     } else this.show(pick);
@@ -169,6 +180,10 @@ export class Tutorial {
     if (this.shown && this.shown.id !== s.def.id) this.notes.clear(`hint:${this.shown.id}`);
     this.shown = { id: s.def.id, text };
     this.notes.set({ key: `hint:${s.def.id}`, kind: 'hint', rank: RANK[s.def.rank], lines: text < steps.length ? steps[text].lines : s.def.lines });
+  }
+
+  private recount() {
+    this.left = this.states.filter((s) => !this.done.has(s.def.id)).length;
   }
 
   private load() {
