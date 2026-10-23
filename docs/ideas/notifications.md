@@ -1,6 +1,6 @@
 # Notifications beyond play (IDEA-204)
 
-What is left of the 2026-10-17 audit (module M4) after the notify model shipped for play. Built: `src/notify.ts` (advice, event, status, error; the clock runs only while play is visible), `src/notify-view.ts`, `src/dialogue-view.ts`, the texts in `src/messages.ts`, the link statuses in `src/net/link-health.ts`, the lost-session dialogues in `src/net/lost-dialogue.ts`. Nothing here is decided.
+What is left of the 2026-10-17 audit (module M4) after the notify model shipped for play. Built: `src/notify.ts` (hint, toast, status, dialog; the clock runs only while play is visible), `src/notify-view.ts`, `src/dialog-view.ts`, the texts in `src/messages.ts`, the link statuses in `src/net/link-health.ts`, the lost-session dialogs in `src/net/lost-dialog.ts`. Nothing here is decided.
 
 ## Open
 
@@ -15,6 +15,6 @@ What is left of the 2026-10-17 audit (module M4) after the notify model shipped 
 |---|---|---|---|
 | Slow upload (a paint file) | upload progress rate | under 8 KB/s | the menu's progress line |
 | Away, dropped, back | `Remotes.onPresence` | exists as nameplate | toast |
-| Context lost, online/offline, pointer lock or clipboard refused | browser events | event fires | toast or chip |
+| Context lost, online/offline, pointer lock or clipboard refused | browser events | event fires | toast or status |
 
 Data that exists but is not shown as a status: up/down rates (`Traffic`), each player's `delay` and `jitter` (`netLines`).

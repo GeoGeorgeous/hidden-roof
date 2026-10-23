@@ -166,7 +166,7 @@ export const HINTS: Record<string, string> = {
   'NET.interpDelay': 'Remote players are shown this far behind their newest snapshot (s), so there is always one to move toward; grows with the jitter.',
   'NET.badPing': 'Round trip to the server (s) past which "Bad connection" shows, once it stays there for the hold.',
   'NET.badPingClear': 'Round trip (s) under which "Bad connection" goes, once it stays there for the hold. Lower than the one above, so it does not flicker.',
-  'NET.statusHold': 'How long (s) a slow ping or a high delay must last before its chip or LAGGING shows, and stay gone before it clears.',
+  'NET.statusHold': 'How long (s) a slow ping or a high delay must last before its status or LAGGING shows, and stay gone before it clears.',
   'NET.noSignal': 'Silence from the server (s) past which "No signal from the server" shows, at once.',
   'NET.noSignalClear': 'Silence from the server (s) under which "No signal" goes, at once.',
   'NET.highDelay': 'How far behind (s) a player is shown before LAGGING marks their nameplate, once it lasts for the hold (the most is NET.maxDelay, 0.45).',

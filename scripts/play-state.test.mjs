@@ -7,14 +7,14 @@ import { PlayState } from '../src/play-state.ts';
 /** A play state over a fake pointer lock, session and menu; `done` lists what the keys did. */
 function setup({ locked = false, multiplayer = false, joining = false, page = false } = {}) {
   const input = { locked };
-  let dialogue = false;
+  let dialog = false;
   const session = { multiplayer, joining };
   const done = [];
-  const menu = { page: () => page, release: () => done.push('release'), resume: () => done.push('resume'), back: () => done.push('back'), primary: () => done.push('primary'), dialogue: () => dialogue, confirm: (accepted) => ((dialogue = false), done.push(accepted ? 'confirm' : 'dismiss')) };
+  const menu = { page: () => page, release: () => done.push('release'), resume: () => done.push('resume'), back: () => done.push('back'), primary: () => done.push('primary'), dialog: () => dialog, confirm: (accepted) => ((dialog = false), done.push(accepted ? 'confirm' : 'dismiss')) };
   const play = new PlayState(input, session, menu);
   const key = (code, down = true, repeat = false) => play.key(code, down, repeat);
   const tap = (code) => [key(code), key(code, false)];
-  return { input, session, play, key, tap, done, up: () => (dialogue = true) };
+  return { input, session, play, key, tap, done, up: () => (dialog = true) };
 }
 
 // Paused in single player the game stops; in a session it goes on; playing it runs.
@@ -114,7 +114,7 @@ for (const [locked, multiplayer, paused, frozen] of [[false, false, true, true],
   assert.equal(shown, 2);
 }
 
-// A dialogue in play: Enter confirms it (and is no game key); Esc opens the menu and dismisses it. With none, nothing changes.
+// A dialog in play: Enter confirms it (and is no game key); Esc opens the menu and dismisses it. With none, nothing changes.
 {
   const { tap, key, up, done } = setup({ locked: true });
   up();

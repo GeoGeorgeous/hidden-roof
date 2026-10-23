@@ -382,30 +382,28 @@ export const HUD = {
   selectedFillOpacity: 0.35,
 };
 
-/** In-game messages (notify.ts, notify-view.ts): hints at the bottom, toasts above them, chips at the top. */
+/** In-game messages (notify.ts, notify-view.ts): hints at the bottom, toasts above them, statuses at the top. */
 export const NOTIFY = {
   /** How long a toast shows, counted only while play is visible (s), and how many stack: a newer one removes the oldest. */
   toastSeconds: 3,
   maxToasts: 3,
-  /** Status chips at once: the next waits its turn. */
-  maxChips: 2,
-  /** Fades (ms): the dark gradient behind a hint in and out, a chip in and out. Hints and toasts cut. */
-  shadeIn: 200,
-  shadeOut: 300,
-  chipIn: 200,
-  chipOut: 160,
-  /** A chip that succeeded shows its result this long (s of play) before it goes. */
+  /** Statuses at once: the next waits its turn. */
+  maxStatuses: 2,
+  /** Fades (ms), in and out: the dark gradient behind a hint, a status, the dialog. Hints and toasts cut. */
+  fadeIn: 200,
+  fadeOut: 160,
+  /** A status that succeeded shows its result this long (s of play) before it goes. */
   doneSeconds: 1.5,
-  /** The cycling bars of a chip trying again: one loop and the delay between one bar and the next (ms). */
+  /** The cycling bars of a status trying again: one loop and the delay between one bar and the next (ms). */
   barsLoop: 1200,
   barsStep: 200,
-  /** A chip growing into the dialogue (ms): the move and resize, with its easing; the chip's content fading out; the card's content fading in, after a delay. */
+  /** A status growing into the dialog (ms): the move and resize, with its easing; the status's content fading out; the card's content fading in, after a delay. */
   growTime: 320,
   growEase: 'cubic-bezier(.3,.7,.2,1)',
   growOut: 100,
   growIn: 160,
   growDelay: 200,
-  /** The look, live in F3 → Test → Messages (px unless said): the lowest hint box's distance from the bottom, text size and line height, box padding across and down, box opacity. */
+  /** The look, live in F3 → Test → Messages (px unless said): the lowest hint box's distance from the bottom, text size and line height, box padding across and down, the opacity of every message box (hint, toast, status, dialog). */
   hintBottom: 72,
   fontSize: 12,
   lineHeight: 16,
@@ -416,9 +414,9 @@ export const NOTIFY = {
   shade: 'auto' as 'auto' | 'always' | 'never',
   shadeHeight: 180,
   shadeStrength: 0.4,
-  /** The gap between the hint's top line and the toasts above it, and the chips' and the dialogue's distance from the top. */
+  /** The gap between the hint's top line and the toasts above it, and between toasts; the statuses' distance from the top. */
   toastGap: 4,
-  chipTop: 24,
+  statusTop: 24,
 };
 
 /** Slogans on lettered sign panels (kit/lettering.ts panelLettering). */
@@ -1079,7 +1077,7 @@ export const NET = {
   diagnoseTimeout: 5,
   /** Network log entries kept for COPY NETWORK LOG (net/diagnostics.ts). */
   logLines: 80,
-  /** The link's chip (net/link-health.ts): a chip shows when its value stays past the first number for `statusHold` s, and goes when it stays under the second for as long. */
+  /** The link's status (net/link-health.ts): a status shows when its value stays past the first number for `statusHold` s, and goes when it stays under the second for as long. */
   /** How often (s) the link's numbers are checked. */
   healthEvery: 0.25,
   badPing: 0.3,

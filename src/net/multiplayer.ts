@@ -334,7 +334,7 @@ export class Multiplayer {
     this.setStatus({ state: 'in', code: w.code });
   }
 
-  /** Out of the session: single player again, with the paint the player had before it (SAVE has the session's). A session lost for good while playing waits for the dialogue's answer first (solo.ts). */
+  /** Out of the session: single player again, with the paint the player had before it (SAVE has the session's). A session lost for good while playing waits for the dialog's answer first (solo.ts). */
   private end(status: NetStatus) {
     // A failure after the welcome says which session it cost the player (a failed JOIN or HOST has none).
     if (status.state === 'failed' && this.joined) status = { ...status, code: this.joined.code };
@@ -361,7 +361,7 @@ export class Multiplayer {
     this.tail.end(solo, was && status.state === 'failed' ? was.levelName : undefined);
   }
 
-  /** The answer to the lost session's dialogue (solo.ts). */
+  /** The answer to the lost session's dialog (solo.ts). */
   resolveLoss = (save: boolean) => this.tail.answer(save);
 
   /**
@@ -390,7 +390,7 @@ export class Multiplayer {
     // From JOIN or HOST until the welcome's paint has loaded the game can't be played (a reconnect, or a welcome for the session we are in, doesn't count).
     session.joining = s.state === 'connecting';
     this.status = s;
-    // The chip of a slow link starts over with the link; the status handler owns the chip from here.
+    // The status of a slow link starts over with the link; the status handler owns the status from here.
     if (s.state !== 'in') this.health.reset();
     this.onStatus(s);
   }

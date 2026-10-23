@@ -130,7 +130,7 @@ export class DevTools {
       unlockAll: () => {
         g.inventory.unlockAll();
         g.pickups.collectOwned(g.inventory);
-        g.notify.event(msg('toast.unlockedAll'));
+        g.notify.toast(msg('toast.unlockedAll'));
       },
       // Once per frame however many slider ticks came in (rebuildModelsNow).
       rebuildModels: () => (this.modelsChanged = true),

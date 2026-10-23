@@ -4,7 +4,7 @@ import { NET } from '../config.ts';
 // quiet. No DOM, no clock of its own: tested in Node (scripts/link-health.test.mjs). At most one status is said at a time, the worst first:
 //   noSignal > badConnection
 // (reconnecting is stronger still, and is net-menu's: it resets this while the link is down). Each condition has
-// hysteresis, so a value hovering at the threshold doesn't flicker the chip.
+// hysteresis, so a value hovering at the threshold doesn't flicker the status.
 
 export type LinkStatus = { id: 'noSignal' | 'badConnection' };
 

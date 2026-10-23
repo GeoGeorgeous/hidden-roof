@@ -33,13 +33,17 @@
   --sans: 'Archivo', system-ui, sans-serif;
   --display: 'Sedgwick Ave Display', cursive;
   --ink: #111;
+  --text-1: rgba(235, 229, 214, 0.75);
   --text-2: rgba(235, 229, 214, 0.55);
   --text-3: rgba(235, 229, 214, 0.4);
   --hair: rgba(235, 229, 214, 0.1);
   --edge: rgba(235, 229, 214, 0.18);
   --error: #e0675e;
-  /* In-game messages: the chip's glass. The hint's look comes from NOTIFY (notify-view.ts). */
-  --glass: rgba(0, 0, 0, 0.78);
+  --mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
+  /* The game dimmed under the menu and a dialog. */
+  --veil: rgba(14, 14, 16, 0.35);
+  /* In-game messages: every box's glass, at NOTIFY.boxOpacity (--box-opacity, notify-view.ts). */
+  --glass: rgb(0 0 0 / var(--box-opacity));
   /* What draws over what, bottom to top. Every layer is its own fixed root under body. */
   --z-shade: 5;
   --z-world: 10;
@@ -47,12 +51,12 @@
   --z-aim: 30;
   --z-tool: 40;
   --z-hint: 50;
-  --z-event: 60;
+  --z-toast: 60;
   --z-hotbar: 70;
   --z-menu: 80;
   --z-panel: 90;
   --z-loading: 100;
-  --z-error: 110;
+  --z-dialog: 110;
 }
 
 html,
@@ -61,7 +65,7 @@ body {
   height: 100%;
   overflow: hidden;
   background: #000;
-  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
+  font-family: var(--mono);
   font-size: 11px;
   letter-spacing: 0.08em;
   color: var(--ui);

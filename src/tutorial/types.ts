@@ -73,7 +73,7 @@ export interface HintDef {
   id: string;
   /** New tool > context > basic. A context hint leaves, unlearnt, when its `show` stops holding. */
   rank: Rank;
-  /** Up to 3 lines; `{use}` is the action's key name in bold, resolved at display time (notify.ts resolveLine). */
+  /** Up to 3 lines; `{use}` is the action's key name in bold, resolved at display time (messages.ts resolveLine). */
   lines: string[];
   /** When it's wanted. */
   show: Cond;
@@ -86,6 +86,6 @@ export interface HintDef {
 
 /** The message layer, as far as hints need it (src/notify.ts has these two). */
 export interface Notes {
-  set(note: { key: string; kind: 'advice'; rank: number; lines: string[] }): void;
+  set(note: { key: string; kind: 'hint'; rank: number; lines: string[] }): void;
   clear(key: string): void;
 }

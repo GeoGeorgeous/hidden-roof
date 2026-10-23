@@ -6,7 +6,7 @@ import { getValue, r, setValue, type Hooks, type Item, type Section } from './tu
 // F3 panel contents for the in-game messages (dev/message-tools.ts shows them, NOTIFY is the look).
 
 const HINTS = Object.keys(MESSAGES.hint);
-const DIALOGUES = Object.keys(MESSAGES.dialogue) as (keyof typeof MESSAGES.dialogue)[];
+const DIALOGS = Object.keys(MESSAGES.dialog) as (keyof typeof MESSAGES.dialog)[];
 const SHADES = ['auto', 'always', 'never'] as const;
 
 /** One press shows one message. */
@@ -32,18 +32,18 @@ export function messageSections(h: Hooks): Section[] {
           copy: () => ({ NOTIFY: { shade: NOTIFY.shade } }),
           reset: () => (setValue(['NOTIFY', 'shade'], defaultOf(['NOTIFY', 'shade'])), h.syncNotify()),
         },
-        { kind: 'heading', label: 'CHIPS AND TOASTS' },
+        { kind: 'heading', label: 'STATUSES AND TOASTS' },
         act(h, 'reconnecting', 'reconnecting'),
         act(h, 'reconnected', 'reconnected'),
         act(h, 'no signal', 'noSignal'),
         act(h, 'bad connection', 'badConnection'),
-        act(h, 'clear chip', 'chipClear'),
+        act(h, 'clear status', 'statusClear'),
         act(h, 'toast: Geo joined', 'joined'),
         act(h, 'toast: random joined', 'joinedRandom'),
         act(h, 'toast: left', 'left'),
         act(h, 'toast: pickup', 'pickup'),
-        { kind: 'heading', label: 'DIALOGUE' },
-        ...DIALOGUES.map((id) => act(h, id.replace(/([A-Z])/g, ' $1').toLowerCase(), `dialogue:${id}` as const)),
+        { kind: 'heading', label: 'DIALOG' },
+        ...DIALOGS.map((id) => act(h, id.replace(/([A-Z])/g, ' $1').toLowerCase(), `dialog:${id}` as const)),
         { kind: 'heading', label: 'LOOK' },
         look('hint: from bottom', 'hintBottom', 0, 200, 1),
         look('text: size', 'fontSize', 8, 24, 1),
@@ -55,7 +55,7 @@ export function messageSections(h: Hooks): Section[] {
         look('overlay: strength', 'shadeStrength', 0, 1, 0.01),
         look('toast: gap above hint', 'toastGap', 0, 40, 1),
         r('toast: seconds', ['NOTIFY', 'toastSeconds'], 0.5, 8, 0.1),
-        look('chip: from top', 'chipTop', 0, 200, 1),
+        look('status: from top', 'statusTop', 0, 200, 1),
       ],
     },
   ];
