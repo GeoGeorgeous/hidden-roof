@@ -345,11 +345,16 @@
 .overlay a:hover {
   color: var(--paper);
 }
-/* A link inside a release note reads as one. */
+/* A link inside a release note: paper, bold as an item title, under a dim thin line that lights on hover. */
 .overlay :is(.intro, .item-text, .term-line) a {
-  color: var(--text-1);
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  color: var(--paper);
+  font-weight: 600;
+  text-decoration: underline 1px var(--text-3);
+  text-underline-offset: 3px;
+  transition: color 0.2s, text-decoration-color 0.2s;
+}
+.overlay :is(.intro, .item-text, .term-line) a:hover {
+  text-decoration-color: var(--paper);
 }
 /* A key cap after a button's text (the menu's and the dialog's). */
 :is(.overlay, .dialog) kbd {
