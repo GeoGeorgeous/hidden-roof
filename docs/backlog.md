@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 197
+The one list of what's left. Counter for new ids: next: 198
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -201,4 +201,5 @@ Shipped since the last release; the release commit empties this list.
 27. [TASK-182]: Link preview picture (og:image, twitter:image), touch and manifest icons, and the screenshot in the JSON-LD
 28. [TASK-196]: Ko-fi support link in the ESC menu footer
 29. [TASK-183]: A lawyer read LICENSE, the Terms and the privacy policy: the country of Georgia and the courts of Tbilisi, streaming allowed, IP rights in the rules, moderation on our belief of a breach, blocked IPs kept while blocked, single player's IP note; LICENSE §6 points to the Credits @1.5.0
-30. TASK [BL-078]: Show BUY ME A COFFEE again once it has a link (done by TASK-196: the Ko-fi link in the pause menu footer) @1.5.0
+30. [DOCS-197]: Legal texts: the controller's legal name, "the country of Georgia" in the transfer sentence, recordings kept with only the nickname removed on objection (new material, and our own posts where reasonably possible), copies others make are theirs, the Terms no longer call the license perpetual
+31. TASK [BL-078]: Show BUY ME A COFFEE again once it has a link (done by TASK-196: the Ko-fi link in the pause menu footer) @1.5.0
