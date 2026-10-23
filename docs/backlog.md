@@ -117,7 +117,6 @@ Only `N.`, the id and the description are required. The optional parts appear in
 3. [BUGS-198]: With F3 open the compact pause menu is under the pickup tags, nameplates, hotbar and toast (docs/ideas/hud-scale.md)
 4. [BUGS-199]: LOW PRESSURE runs off the right edge in narrow windows (820×560) (docs/ideas/hud-scale.md)
 5. [IDEA-204]: Notifications beyond play: the menu, pages, loading and a hidden tab on the same model; screen-reader announcements; more events (away and back, context lost, online, refused pointer lock or clipboard); battery (docs/ideas/notifications.md)
-6. [RFCT-206]: The menu's CSS writes paper at ~25 opacities, as rgba and as color-mix: map them to --text-1/2/3, --hair and --edge (src/style.css)
 
 ## Avatar
 
@@ -215,3 +214,4 @@ Shipped since the last release; the release commit empties this list.
 34. DSGN [BL-092]: Hints in play instead of a controls screen: move, each tool, colors, ladders, low pressure; one at a time, gone once done, remembered; Settings: Hints and Show hints again
 35. IDEA [BL-114]: A failure says whether the player was in a session: a session lost mid-play is one of eight dialogs by reason, most offering to save the paint before leaving; the reconnecting status grows into it
 36. [RFCT-205]: In-game messages reviewed: one vocabulary (hint, toast, status, dialog) in code, CSS and the catalogue; one glass token and one fade for every box; the dialog's button and key caps are the menu's; each dialog carries its own answer; a repeated toast shows once
+37. [RFCT-206]: The menu's paper tints are tokens: its ~85 hand-written opacities (21 values, rgba and color-mix) map to --text-1/2/3/4, --hair and --edge; --text-4 (0.3) is new; each tint moved by at most 0.1
