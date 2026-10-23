@@ -69,6 +69,8 @@ export class NotifyView {
       'status-top': `${NOTIFY.statusTop}px`,
       'bars-loop': `${NOTIFY.barsLoop}ms`,
       'bars-step': `${NOTIFY.barsStep}ms`,
+      'flicker-loop': `${NOTIFY.flickerLoop}ms`,
+      'blink-loop': `${NOTIFY.blinkLoop}ms`,
     };
     for (const k in vars) css.setProperty(`--${k}`, vars[k]);
     this.seen = -1;
@@ -133,9 +135,10 @@ export class NotifyView {
     }
   }
 
-  /** Bars: three, 4, 7 and 10 px tall, the first lit (a weak link) or cycling (trying again); a red ring; a check. Drawn in CSS. */
+  /** Bars: three, the first lit with the second flickering (a weak link) or each in turn (trying again); a blinking red ring; a check with its burst. Drawn in CSS; mounted fresh, so the check's pop starts now. */
   private drawIcon(status: StatusBox, icon: StatusIcon) {
     status.icon.className = `status-icon ${icon}`;
-    status.icon.replaceChildren(...(icon === 'ring' || icon === 'check' ? [] : [el('b'), el('b'), el('b')]));
+    const parts = icon === 'ring' ? 1 : icon === 'check' ? 2 : 3;
+    status.icon.replaceChildren(...Array.from({ length: parts }, () => el('b')));
   }
 }

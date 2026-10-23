@@ -1963,36 +1963,42 @@ body.paused .layer-dialog:not(.crash) {
   letter-spacing: 0;
   transform: translateY(-4px);
 }
-/* Its icon. Bars: three, 2 px wide, 4 / 7 / 10 px tall, 2 px apart, bottom-aligned; the first lit, or each in turn. */
+/* Its icon (notify-view.ts), in a 10 px square, mounted fresh when it changes. Its loop runs only while the status is drawn: removed once faded out, display: none under the pause sheet. */
 .status-icon {
   position: relative;
   flex: none;
   width: 10px;
   height: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.status-icon b {
-  position: absolute;
-  bottom: 0;
+/* Bars: three, 2 px wide, 4 / 7 / 10 px tall, 2 px apart, bottom-aligned. A weak link: the first lit, the second flickering twice a loop. Trying again: each lit in turn. */
+.status-icon:is(.bars, .cycle) {
+  align-items: flex-end;
+  gap: 2px;
+}
+.status-icon:is(.bars, .cycle) b {
   width: 2px;
   background: var(--text-4);
 }
-.status-icon b:nth-child(1) {
-  left: 0;
+.status-icon:is(.bars, .cycle) b:nth-child(1) {
   height: 4px;
 }
-.status-icon b:nth-child(2) {
-  left: 4px;
+.status-icon:is(.bars, .cycle) b:nth-child(2) {
   height: 7px;
 }
-.status-icon b:nth-child(3) {
-  left: 8px;
+.status-icon:is(.bars, .cycle) b:nth-child(3) {
   height: 10px;
 }
 .status-icon.bars b:nth-child(1) {
   background: var(--paper);
 }
+.status-icon.bars b:nth-child(2) {
+  animation: status-flicker var(--flicker-loop) linear infinite;
+}
 .status-icon.cycle b {
-  animation: bar var(--bars-loop) infinite;
+  animation: status-cycle var(--bars-loop) linear infinite;
 }
 .status-icon.cycle b:nth-child(2) {
   animation-delay: var(--bars-step);
@@ -2000,35 +2006,94 @@ body.paused .layer-dialog:not(.crash) {
 .status-icon.cycle b:nth-child(3) {
   animation-delay: calc(var(--bars-step) * 2);
 }
-@keyframes bar {
-  0%,
-  25% {
-    background: var(--paper);
-  }
-  26%,
-  100% {
-    background: var(--text-4);
-  }
-}
-.status-icon.ring::after {
-  content: '';
-  position: absolute;
-  inset: 2px;
+/* Nothing heard: a red ring, blinking hard. */
+.status-icon.ring b {
   box-sizing: border-box;
+  width: 6px;
+  height: 6px;
   border: 1.5px solid var(--error);
   border-radius: 50%;
+  animation: status-blink var(--blink-loop) steps(1) infinite;
 }
-.status-icon.check::after {
-  content: '';
-  position: absolute;
-  left: 3px;
-  top: 0;
+/* Done: the check pops in with a ring bursting out of it, once (about 400 ms). */
+.status-icon.check b:nth-child(1) {
+  box-sizing: border-box;
   width: 4px;
   height: 8px;
-  box-sizing: border-box;
+  margin-top: -2px;
   border: solid var(--paper);
   border-width: 0 1.5px 1.5px 0;
   transform: rotate(45deg);
+  animation: status-check 290ms ease-out both;
+}
+.status-icon.check b:nth-child(2) {
+  position: absolute;
+  left: 1px;
+  top: 1px;
+  box-sizing: border-box;
+  width: 8px;
+  height: 8px;
+  border: 1px solid var(--paper);
+  border-radius: 50%;
+  animation: status-burst 330ms ease-out 70ms both;
+}
+@keyframes status-flicker {
+  0%,
+  62%,
+  70%,
+  78%,
+  100% {
+    background: var(--text-4);
+  }
+  66%,
+  74% {
+    background: var(--paper);
+  }
+}
+@keyframes status-cycle {
+  0%,
+  60%,
+  100% {
+    background: var(--text-4);
+  }
+  20% {
+    background: var(--paper);
+  }
+}
+@keyframes status-blink {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.2;
+  }
+}
+@keyframes status-check {
+  0% {
+    transform: rotate(45deg) scale(0);
+    opacity: 0;
+  }
+  62% {
+    transform: rotate(45deg) scale(1.3);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(45deg) scale(1);
+    opacity: 1;
+  }
+}
+@keyframes status-burst {
+  0% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
 }
 /* A blocking message in the middle: the game dims under it (play-state.ts: Enter presses the button, Esc leaves). The frame guard's own copy (.crash) stays over the paused menu. */
 .layer-dialog .veil {
