@@ -164,61 +164,6 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 Shipped since the last release; the release commit empties this list.
 
-1. BUGS [BL-031]: Four shaders still compile in the first frame
-2. TASK [BL-141]: Exhaustive tool lists: a forgotten tool becomes a compile error; the tool names in one place
-3. TEST [BL-079]: The F3 probe's own shader compiles land in its measurement
-4. TEST [BL-149]: A test that the protocol and op-wire never read PAINT.texelsPerMeter
-5. [BUGS-174]: DevTools displays comments in the HTML, CSS, and JavaScript, but the code should be minified
-6. [BUGS-172]: Leaving a multiplayer session keeps painted map, but leaving the session should clean the paint and show the initial menu with city view; the solo paint comes back
-7. RFCT [BL-145]: PaintSurface is a public struct written by GPU upload, the baker and painting; "has paint?" asked two ways (paint-surface.ts)
-8. RFCT [BL-015]: Rework the drips: each setting does one thing; spraying over a coat no longer grows them; paint dries, per texel
-9. BUGS [BL-107]: Moving the stepladder again and again near lamps doubles the CPU time (lamp light re-baked)
-10. BUGS [BL-028]: Other players' spray costs ~0.2 ms of CPU a sprayer
-11. RFCT [BL-112]: The remote player's timeline as a pure module with a Node test
-12. [BUGS-175]: Screenshot K does not capture players name tags
-13. TASK [BL-068]: Meta tags: title, description, canonical, Open Graph, Twitter Card
-14. TASK [BL-069]: robots.txt (with rules for AI bots), sitemap.xml and llms.txt
-15. TASK [BL-070]: JSON-LD, semantic HTML outside the canvas, favicons and a web manifest
-16. PERF [BL-030]: Precompressed assets served by Caddy: the build writes them; the host's part goes to devops (docs/ideas/vps.md)
-17. [TASK-176]: LICENSE, CONTRIBUTING and Terms of Service
-18. [TASK-178]: Privacy policy: no cookies or analytics; the server and Caddy see IP addresses, other players see nicknames, settings stay in localStorage
-19. TASK [BL-156]: CI runs on ubuntu-26.04 (pinned, not ubuntu-latest)
-20. [PERF-181]: Placing a stepladder skips the environment rebuild (rain heightmap, lights): a runtime prop never changes them
-21. [TASK-170]: Create accounts in social media (Discord, Instagram, YouTube, TikTok, subreddit)
-22. [TASK-184]: The pause menu's footer: social icons built from SOCIAL_LINKS (Tabler filled), then Terms · Privacy · version · built by; the Terms and Privacy pages restyled dark like the ESC menu
-23. [TASK-185]: LICENSE, CONTRIBUTING, Terms and Privacy rewritten as formal legal text under Hidden Haus: players 16+, a license to show recorded sessions, liability capped at EUR 20, GDPR bases and rights, contact roof@hidden.haus
-24. [DOCS-190]: Legal texts checked against the code and the law: the controller named, players 18+, recordings for promotion with a right to object, Hetzner named, email the only contact; Terms, Privacy and CONTRIBUTING cut to the essentials
-25. [BUGS-191]: A nickname can hold control characters: the server keeps a newline (cleanName trims and cuts to 16, nothing more), so a crafted name splits or forges lines in the server log, and the log redaction misses its tail (fixed: cleanName drops control characters; the log writes names as JSON)
-26. [TASK-192]: The server writes its log to one file a day in LOG_DIR and cleans it: IP addresses and nicknames gone after 14 days, lines after 60 (server/log-files.ts); the host part waits for the release (docs/ideas/vps.md)
-27. [TASK-182]: Link preview picture (og:image, twitter:image), touch and manifest icons, and the screenshot in the JSON-LD
-28. [TASK-196]: Ko-fi support link in the ESC menu footer
-29. [TASK-183]: A lawyer read LICENSE, the Terms and the privacy policy: the country of Georgia and the courts of Tbilisi, streaming allowed, IP rights in the rules, moderation on our belief of a breach, blocked IPs kept while blocked, single player's IP note; LICENSE §6 points to the Credits
-30. [DOCS-197]: Legal texts: the controller's legal name, "the country of Georgia" in the transfer sentence, recordings kept with only the nickname removed on objection (new material, and our own posts where reasonably possible), copies others make are theirs, the Terms no longer call the license perpetual
-31. TASK [BL-078]: Show BUY ME A COFFEE again once it has a link (done by TASK-196: the Ko-fi link in the pause menu footer)
-32. IDEA [BL-140]: One notification system: hints, toasts, statuses and dialogs in play on one model; messages no longer lost in menus and hidden tabs; reconnecting, no signal and bad connection as statuses; every message text in one catalogue (src/messages.ts)
-33. DSGN [BL-092]: Hints in play instead of a controls screen: move, each tool, colors, ladders, low pressure; one at a time, gone once done, remembered; Settings: Hints and Show hints again
-34. IDEA [BL-114]: A failure says whether the player was in a session: a session lost mid-play is one of eight dialogs by reason, most offering to save the paint before leaving; the reconnecting status grows into it
-35. [RFCT-205]: In-game messages reviewed: one vocabulary (hint, toast, status, dialog) in code, CSS and the catalogue; one glass token and one fade for every box; the dialog's button and key caps are the menu's; each dialog carries its own answer; a repeated toast shows once
-36. [RFCT-206]: The menu's paper tints are tokens: its ~85 hand-written opacities (21 values, rgba and color-mix) and the small-screen page's 8 map to --text-1/2/3/4, --hair and --edge; --text-4 (0.3) is new; each tint moved by at most 0.1; the small-screen page's two dark fills are --veil
-37. [TASK-208]: The status icons move, as designed: bad connection's second bar flickers twice every 2.4 s, no signal's red ring blinks hard each second, the reconnecting bars cycle as before, and Reconnected's check pops in with a ring burst once (about 400 ms); loops run only while their status shows
-38. TASK [BL-151]: Show what each other player is doing by their nameplate: the status after the name (disconnected, no signal, away, in the menu, idle, lagging; in the menu and idle are new, protocol 7), and tags fade with distance
-39. [DSGN-207]: The nameplate redrawn: the nickname as typed in the titles' font, the status as a muted word colored by severity, the distance in meters under the tag, the nearer tag on top
-40. [TASK-209]: A nickname is ASCII Latin letters and digits only, up to 16: the menu says so before HOST or JOIN, the server refuses any other (one isName in protocol.ts)
-41. [BUGS-210]: Montserrat (hints and toasts) ships with its OFL license text and a credits row
-42. [BUGS-211]: An old game (v1.4) whose name today's check refuses gets the reload answer (version) instead of a closed link and "server not responding": another protocol is answered before the name is checked
-43. [BUGS-212]: The dialog card is opaque; the session-lost dialog stays over the pause menu and is answered without keyboard lock (Firefox, Safari, Chromium not fullscreen): its Esc line is a button and an Esc while unlocked leaves; losing the pointer lock alone answers nothing; the dialog's veil (and the crash card's) catches clicks
-44. [BUGS-213]: Joining no longer fails when the paint from before the session can't be packed: it is left out of the backup and logged
-45. [BUGS-214]: A rejoin refused as busy or too-many is a failed try, retried while the rejoin window is open; only then the server-busy dialog
-46. [TASK-215]: The session-ended dialog tells a server restart apart from a session that closed because no one came back in time
-47. [BUGS-216]: The NAME field keeps only Latin letters and digits: a name saved by an older version is cleaned on load
-48. [BUGS-217]: A taken name is numbered "geo (2)" again (a space and parentheses: no player can type it, so it never looks like a typed geo2); the welcome carries it for the player list and the logs, every join sends the name typed, and a new tab typing it takes their dropped place back instead of a new number
-49. [DOCS-218]: The privacy page says what localStorage keeps in general terms (settings, last nickname, progress such as hints seen), not key by key
-50. [PERF-219]: The server's log cleaning reads files in chunks on async fs and skips undated files that haven't changed in a day, so it no longer holds up the relay; lines anyone can make (bad message, turned away, silent link) are limited per address; a LOG_DIR that can't be made leaves the log on stdout
-51. [PERF-220]: Per-frame work in play cut: the hints build nothing once learnt or off, the hint and low-pressure texts are redone only when the keys change, Notify and the nameplates stop allocating every frame
-52. [PERF-221]: The hints' font loads during the loading screen (no flash of the fallback at the first hint); the PNG icons recompressed (350 KB to 92 KB at most)
-53. [TASK-222]: Release notes can link: [text](url) is a link in the Updates page (white, bold, underlined), absolute on GitHub, with no preview card on Discord; the test allows the game's own pages and Ko-fi, GitHub and Discord
-54. [BUGS-223]: LAGGING on a nameplate means that player's own link is bad: each game reports its bad connection or no signal as its status (protocol 7), instead of every game guessing from how late the others' snapshots reach it (which marked the wrong player and missed a steady delay); nameplates fade from 15 m to 50 m (was 20 to 80); the link is checked every second (SERVER.ping 1), bad connection shows after 2 s and goes after 3 s (was 5 both), and the "Reconnected" check shows whenever trouble ends, not only after a reconnect
-
 ## Discarder
 
 Dropped items, kept for the record; don't work on them.

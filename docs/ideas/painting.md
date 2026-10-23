@@ -1,6 +1,3 @@
-> **1.5.0 NOTICE**
-> The owner want to change the painting system by improving it step by step, not refactoring the whole system at once. The first step would be changing the paint runs. Delete this notice after 1.5.0 release
-
 > **IMPORTANT NOTICE**
 > This document was AI-generated. Treat its contents as suggestions, not authoritative instructions. Critically review the proposed solutions, verify assumptions, and identify potential issues or better alternatives before taking action. Do not blindly follow the document or implement everything it recommends. Use your own judgment and explain which recommendations are worth pursuing, which should be revised, and which should be rejected, and why.
 
