@@ -14,8 +14,12 @@ import { isNum, isObj, isV3, levelProblem, type LevelData, type PropData } from 
 // through checkToServer.
 
 /** Bumped when a message changes or anything the server runs for a session does (paint, drips, face keys, the save format). host and join carry it and the level's surface-table hash; a mismatch is answered 'version' and the game asks for a reload. */
-export const PROTOCOL = 6;
+export const PROTOCOL = 7;
 export const NAME_MAX = 16;
+/** A player's name: Latin letters and digits only (ASCII), 1 to NAME_MAX of them; the menu checks it before HOST or JOIN, the server refuses any other. */
+export const isName = (x: unknown): x is string => typeof x === 'string' && x.length <= NAME_MAX && /^[A-Za-z0-9]+$/.test(x);
+/** What is left of `x` as a name: the letters and digits of it, at most NAME_MAX (a name saved by an older version, or typed). */
+export const cleanName = (x: string) => x.replace(/[^A-Za-z0-9]/g, '').slice(0, NAME_MAX);
 /** Session codes: this many letters from CODE_LETTERS (no I or O, which read as 1 and 0). */
 export const CODE_LENGTH = 5;
 export const CODE_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -28,8 +32,9 @@ const MAX_PROPS = 5000;
 
 /**
  * Why the server turned a player away (the game says it in its own words):
- * another version, no session with that code, one that has ended (the server
- * remembers codes for SERVER.endedMemory), a full session, a paint file or
+ * another version, no session with that code (a server that restarted has none
+ * either), one that has ended (every player left or ran out of time to come
+ * back; the server remembers codes for SERVER.endedMemory), a full session, a paint file or
  * level it can't use, the server too full for another session, or the same
  * player come in from another tab (a duplicated tab carries the token along),
  * or too many links or sessions from one address (SERVER.linksPerIp, sessionsPerIp).
@@ -38,11 +43,16 @@ const MAX_PROPS = 5000;
 const REJECTIONS = ['version', 'no-session', 'ended', 'full', 'bad-save', 'bad-level', 'busy', 'replaced', 'too-many'] as const;
 export type Rejection = (typeof REJECTIONS)[number];
 export const closeCode = (r: Rejection) => 4001 + REJECTIONS.indexOf(r);
+/** The rejection a socket's close code says (see closeCode), if it does. */
+export const rejectionOf = (code: number): Rejection | undefined => REJECTIONS[code - 4001];
 /** What the server answers a plain GET at /ws (no WebSocket): the game asks when it can't connect (net/diagnostics.ts). */
 export const HELLO = `roof server · protocol ${PROTOCOL}`;
 
-/** A player as the others see them: playing, away (their game is hidden: minimized, another tab), or dropped (their link is gone; they may come back). */
-export type Presence = 'here' | 'away' | 'dropped';
+/** What a player is doing, as they say: playing, away (their game is hidden: minimized, another tab), in the menu (paused), or idle (nothing pressed for NET.idleAfter s). */
+const ACTIVITIES = ['here', 'away', 'menu', 'idle', 'lagging'] as const;
+export type Activity = (typeof ACTIVITIES)[number];
+/** A player as the others see them: what they're doing, or dropped (their link is gone; they may come back). */
+export type Presence = Activity | 'dropped';
 
 /** Game -> server. */
 export type ToServer =
@@ -64,8 +74,8 @@ export type ToServer =
   | { type: 'save' }
   /** What they carry, whenever it changes: given back when they come back. */
   | { type: 'inventory'; data: InventoryData }
-  /** Their game is hidden (minimized, another tab) or shown again. */
-  | { type: 'away'; away: boolean }
+  /** What they're doing now, when it changes (net/own-status.ts). */
+  | { type: 'status'; status: Activity }
   /** Answered with a pong carrying the same `t`: the round trip, for the HUD. */
   | { type: 'ping'; t: number }
   | { type: 'leave' };
@@ -79,7 +89,7 @@ export type ToClient =
    * starting kit); its paint as a paint file follows in `parts` parts (none:
    * it's the save this host sent). `acked`: their last op batch the server has (0: none), in the paint file.
    */
-  | { type: 'welcome'; code: string; you: number; token: string; levelName: string; level: LevelData; detail: number; table: string; players: { id: number; name: string; state: Presence }[]; ladders: { id: number; data: PropData }[]; inventory: InventoryData | null; parts: number; acked: number }
+  | { type: 'welcome'; code: string; you: number; name: string; token: string; levelName: string; level: LevelData; detail: number; table: string; players: { id: number; name: string; state: Presence }[]; ladders: { id: number; data: PropData }[]; inventory: InventoryData | null; parts: number; acked: number }
   | { type: 'rejected'; reason: Rejection }
   | { type: 'joined'; id: number; name: string }
   | { type: 'left'; id: number }
@@ -162,6 +172,8 @@ export function decode(frame: Uint8Array): Message | null {
 export function checkToServer(m: Message | null): ToServer | null {
   if (!m) return null;
   const v = m as Record<string, unknown>;
+  // A game of another version is answered 'version' whatever else it sent: an older one's fields may not pass today's checks.
+  if ((m.type === 'host' || m.type === 'join') && isInt(v.protocol) && v.protocol !== PROTOCOL) return m as ToServer;
   switch (m.type) {
     case 'host':
       return isInt(v.protocol) && typeof v.table === 'string' && isName(v.name) && typeof v.levelName === 'string' && v.levelName.length <= 64 && !levelProblem(v.level, MAX_PROPS) && DETAILS.includes(v.detail as number) ? (m as ToServer) : null;
@@ -177,8 +189,8 @@ export function checkToServer(m: Message | null): ToServer | null {
       return isNum(v.t) ? (m as ToServer) : null;
     case 'inventory':
       return isInventory(v.data) ? (m as ToServer) : null;
-    case 'away':
-      return typeof v.away === 'boolean' ? (m as ToServer) : null;
+    case 'status':
+      return ACTIVITIES.includes(v.status as Activity) ? (m as ToServer) : null;
     case 'save':
     case 'leave':
       return m as ToServer;
@@ -186,13 +198,7 @@ export function checkToServer(m: Message | null): ToServer | null {
   return null;
 }
 
-/** The name as shown: trimmed, at most NAME_MAX characters. */
-export function cleanName(name: string) {
-  return Array.from(name.trim()).slice(0, NAME_MAX).join('');
-}
-
 const isInt = (x: unknown): x is number => Number.isInteger(x) && (x as number) >= 0;
-const isName = (x: unknown) => typeof x === 'string' && cleanName(x).length > 0;
 const isCode = (x: unknown) => typeof x === 'string' && x.length === CODE_LENGTH && [...x].every((c) => CODE_LETTERS.includes(c));
 /** Shape and size only: the game takes from it what it knows (Inventory.restore). */
 const isWords = (x: unknown) => Array.isArray(x) && x.length <= 32 && x.every((w) => typeof w === 'string' && w.length <= 32);

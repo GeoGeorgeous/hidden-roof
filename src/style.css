@@ -1,5 +1,6 @@
 /* Body-cam overlay style, inked: ink + one alert color, thin lines, small
-   monospace, no panels, no glow. */
+   monospace, no panels, no glow. The other players' nameplates add two muted
+   status colors (--status-lost, --status-slow). */
 
 .dim {
   color: var(--dim);
@@ -7,10 +8,32 @@
 
 /* --- Frame -------------------------------------------------------------- */
 
-.hud {
+/* Each layer is a fixed root of its own under body, stacked by the --z-* tokens (boot.css). */
+.layer {
   position: fixed;
   inset: 0;
   pointer-events: none;
+}
+.layer-world {
+  z-index: var(--z-world);
+}
+.layer-frame {
+  z-index: var(--z-frame);
+}
+.layer-tool {
+  z-index: var(--z-tool);
+}
+.layer-menu {
+  z-index: var(--z-menu);
+}
+.layer-hint {
+  z-index: var(--z-hint);
+}
+.layer-toast {
+  z-index: var(--z-toast);
+}
+.layer-dialog {
+  z-index: var(--z-dialog);
 }
 
 .vignette {
@@ -76,18 +99,32 @@
   border: 1px solid #fff;
   border-radius: 50%;
   mix-blend-mode: difference;
+  z-index: var(--z-aim);
   pointer-events: none;
   transition: width 0.12s, height 0.12s;
 }
 
-/* Cap name beside the can after switching caps; positioned from JS. */
-.cap-tag {
+/* What's beside the tool in hand, top to bottom: low-pressure alert, PSI gauge, cap, color. One stack, placed from JS (hud.ts). */
+.tool-stack {
   position: absolute;
   left: 0;
   top: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.cap-tag {
+  box-sizing: border-box;
+  height: 18px;
   padding: 2px 6px;
   border-left: var(--line);
+  line-height: 14px;
   white-space: nowrap;
+}
+/* The alert and the gauge keep their rows while off, so the cap tag stays put. */
+.psi-alert.off {
+  visibility: hidden;
 }
 
 /*
@@ -157,15 +194,56 @@
   -webkit-text-stroke: var(--nameKana-outline) var(--ui);
 }
 
-/* Names over the other players' heads (net/nameplates.ts): white on a black box, readable over anything. */
+/* Over the other players' heads (net/nameplates.ts): their name and what they're doing on a dark box, 15px tall,
+   readable over anything; how far they are on a smaller one under it. The stack's bottom center sits over the head. */
 .nameplate {
   position: absolute;
   left: 0;
   top: 0;
-  padding: 1px 6px;
-  background: rgba(20, 20, 22, 0.78);
-  color: var(--paper);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--sans);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  line-height: 13px;
   white-space: nowrap;
+}
+.nameplate > * {
+  background: rgba(20, 20, 22, 0.78);
+}
+.nameplate .tag {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 6px;
+  font-size: 11px;
+}
+/* As typed (Latin letters and digits only), in the titles' font; the sans until it loads, not the browser's cursive. Its letters sit high: nudged down to center. */
+.nameplate .name {
+  position: relative;
+  top: 2px;
+  font-family: 'Sedgwick Ave Display', var(--sans);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: var(--paper);
+}
+/* Colored by how bad it is: the link lost, far behind, or just not playing. */
+.nameplate .note {
+  color: var(--text-2);
+}
+.nameplate .note:is([data-note='dropped'], [data-note='silent']) {
+  color: var(--status-lost);
+}
+.nameplate .note[data-note='lagging'] {
+  color: var(--status-slow);
+}
+.nameplate .far {
+  padding: 0 4px;
+  font-size: 10px;
+  color: var(--text-1);
 }
 
 /* PSI gauge above the tags, shown while spraying or shaking: label, a horizontal line, the value. */
@@ -222,7 +300,7 @@
   font-size: 13px;
   letter-spacing: 0.01em;
   /* The live game under PAUSE_MENU's sheet (--sheet, --sheet-page, hud.ts), darker toward the menu at the bottom. */
-  background: linear-gradient(to top, #000 0%, rgba(0, 0, 0, 0.94) 28%, rgba(0, 0, 0, 0.55) 52%, transparent 78%), var(--sheet, rgba(14, 14, 16, 0.35));
+  background: linear-gradient(to top, #000 0%, rgba(0, 0, 0, 0.94) 28%, rgba(0, 0, 0, 0.55) 52%, transparent 78%), var(--sheet, var(--veil));
 }
 /* A page or popup: the game blurred under a darker sheet. */
 .overlay.sub {
@@ -248,7 +326,7 @@
 .overlay > :not(.blur) {
   zoom: var(--menu-scale, 1);
 }
-.overlay button {
+:is(.overlay, .dialog) button {
   pointer-events: auto;
   cursor: pointer;
   font: inherit;
@@ -267,16 +345,27 @@
 .overlay a:hover {
   color: var(--paper);
 }
-/* A key cap after a button's text. */
-.overlay kbd {
+/* A link inside a release note: paper, bold as an item title, under a dim thin line that lights on hover. */
+.overlay :is(.intro, .item-text, .term-line) a {
+  color: var(--paper);
+  font-weight: 600;
+  text-decoration: underline 1px var(--text-3);
+  text-underline-offset: 3px;
+  transition: color 0.2s, text-decoration-color 0.2s;
+}
+.overlay :is(.intro, .item-text, .term-line) a:hover {
+  text-decoration-color: var(--paper);
+}
+/* A key cap after a button's text (the menu's and the dialog's). */
+:is(.overlay, .dialog) kbd {
   font: 500 10px var(--sans);
   padding: 1px 5px;
-  border: 1px solid rgba(235, 229, 214, 0.35);
+  border: 1px solid var(--text-3);
   border-radius: 3px;
-  color: rgba(235, 229, 214, 0.6);
+  color: var(--text-2);
 }
-/* Segmented control: the style switcher, the settings tabs, Back. */
-.overlay .seg {
+/* Segmented control: the style switcher, the settings tabs, Back, the dialog's button. */
+:is(.overlay, .dialog) .seg {
   display: flex;
   gap: 2px;
   width: fit-content;
@@ -287,7 +376,7 @@
   backdrop-filter: blur(6px);
   font-size: 12px;
 }
-.overlay .seg button {
+:is(.overlay, .dialog) .seg button {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -297,11 +386,12 @@
   color: var(--text-2);
   transition: background 0.2s, color 0.2s;
 }
-.overlay .seg button:hover {
+:is(.overlay, .dialog) .seg button:hover {
   color: var(--paper);
 }
-.overlay .seg button.on {
-  background: rgba(235, 229, 214, 0.16);
+.overlay .seg button.on,
+.dialog .seg button:hover {
+  background: var(--edge);
   color: var(--paper);
 }
 .overlay .themes,
@@ -316,11 +406,11 @@
 }
 .overlay .back button,
 .overlay .fs button {
-  color: rgba(235, 229, 214, 0.8);
+  color: var(--text-1);
 }
 .overlay .back button:hover,
 .overlay .fs button:hover {
-  background: rgba(235, 229, 214, 0.16);
+  background: var(--edge);
   color: var(--paper);
 }
 /* EXIT FULLSCREEN (esc-hold.ts): its key cap holds the hold's ring. */
@@ -338,7 +428,7 @@
   transition: border-color 0.2s, color 0.2s;
 }
 .overlay.holding .fs kbd {
-  border-color: rgba(235, 229, 214, 0.8);
+  border-color: var(--text-1);
   color: var(--paper);
 }
 /* One Esc leaves fullscreen here (no keyboard lock): a plain key. */
@@ -357,7 +447,7 @@
 }
 .overlay .ring circle {
   fill: none;
-  stroke: rgba(235, 229, 214, 0.25);
+  stroke: var(--text-4);
   stroke-width: 1.5;
 }
 .overlay .ring .fill {
@@ -372,23 +462,23 @@
   transition: stroke-dashoffset var(--hold-ms, 1500ms) linear var(--hold-delay, 0ms);
 }
 
-/* The pause screen: the title group standing on the menu, the links under it. */
+/* The pause screen: the title group standing on the menu, the footer under it. */
 .overlay .pause {
   position: absolute;
   inset: 0;
 }
-/* On the menu's line from the bottom; in short windows the gap over the menu shrinks, then the title goes up out of the window, never over the menu. */
+/* On the menu's line from the bottom, 48 px over the footer's icons; in short windows the gap over the menu shrinks, then the title goes up out of the window, never over the menu. */
 .overlay .stack {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  bottom: 104px;
+  bottom: 116px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  gap: clamp(16px, calc(100vh - 445px), 64px);
+  gap: clamp(16px, calc(100vh - 540px), 64px);
 }
 .overlay .hero {
   display: flex;
@@ -426,7 +516,7 @@
   align-items: center;
   gap: 10px;
   height: 16px;
-  color: rgba(235, 229, 214, 0.65);
+  color: var(--text-2);
 }
 .overlay .live .dot {
   position: relative;
@@ -460,12 +550,12 @@
 }
 .overlay .live .ping {
   margin-left: -2px;
-  color: rgba(235, 229, 214, 0.5);
+  color: var(--text-2);
   font-variant-numeric: tabular-nums;
 }
 .overlay .live i {
   font-style: normal;
-  color: rgba(235, 229, 214, 0.3);
+  color: var(--text-4);
 }
 .overlay .live .code {
   display: flex;
@@ -480,14 +570,14 @@
 .overlay .live .copy {
   font-size: 10px;
   padding: 1px 6px;
-  border: 1px solid rgba(235, 229, 214, 0.3);
+  border: 1px solid var(--text-4);
   border-radius: 3px;
-  color: rgba(235, 229, 214, 0.6);
+  color: var(--text-2);
   transition: color 0.2s, border-color 0.2s;
 }
 .overlay .live .copy:hover {
   color: var(--paper);
-  border-color: rgba(235, 229, 214, 0.6);
+  border-color: var(--text-2);
 }
 .overlay .live .faces {
   display: flex;
@@ -529,11 +619,11 @@
   font-weight: 500;
   font-size: 15px;
   white-space: nowrap;
-  color: rgba(235, 229, 214, 0.85);
+  color: var(--text-1);
   transition: background 0.2s, color 0.2s;
 }
 .overlay .start button:hover {
-  background: rgba(235, 229, 214, 0.16);
+  background: var(--edge);
   color: #fff;
 }
 .overlay .start .play,
@@ -586,7 +676,7 @@
   margin: 0 0 10px;
   font: 400 20px/1 var(--display);
   letter-spacing: 0.04em;
-  color: rgba(235, 229, 214, 0.45);
+  color: var(--text-3);
 }
 .overlay .item {
   padding: 6px 0;
@@ -612,7 +702,51 @@
 }
 .overlay .foot i {
   font-style: normal;
-  color: rgba(235, 229, 214, 0.3);
+  color: var(--text-4);
+}
+/* The pause screen's footer: the social icons, then the legal links, the version and the author. */
+.overlay .pause-foot {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+}
+.overlay .pause-foot div {
+  display: flex;
+  align-items: center;
+}
+.overlay .pause-foot .social {
+  gap: 18px;
+}
+.overlay .pause-foot .social > * {
+  display: flex;
+}
+.overlay .pause-foot svg {
+  display: block;
+}
+/* A channel not open yet: no link, "coming soon" on hover. */
+.overlay .pause-foot .soon {
+  pointer-events: auto;
+  cursor: not-allowed;
+  color: var(--text-4);
+}
+.overlay .pause-foot .meta {
+  gap: 10px;
+  color: var(--text-3);
+}
+.overlay .pause-foot .kofi {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.overlay .pause-foot i {
+  font-style: normal;
+  color: var(--text-4);
 }
 /* Debug panel open: the menu stays, on a lighter sheet (still dark under the menu), without the title and its status line. */
 .overlay.compact {
@@ -662,7 +796,7 @@
   overflow-y: auto;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
-  scrollbar-color: rgba(235, 229, 214, 0.3) transparent;
+  scrollbar-color: var(--text-4) transparent;
   mask: linear-gradient(to bottom, transparent 0, #000 16px, #000 calc(100% - 24px), transparent);
 }
 .overlay .setting-row {
@@ -692,7 +826,7 @@
   font-weight: 400;
   font-size: 12px;
   letter-spacing: 0.05em;
-  color: rgba(235, 229, 214, 0.6);
+  color: var(--text-2);
 }
 /* Stops short of the widest control and a 16px gap, so it never runs under a slider, chooser or button. */
 .overlay .setting-row .desc {
@@ -707,10 +841,10 @@
   margin-top: 4px;
   padding: 10px 12px;
   border-radius: 4px;
-  background: rgba(235, 229, 214, 0.07);
+  background: var(--hair);
   font-size: 12px;
   line-height: 1.5;
-  color: rgba(235, 229, 214, 0.8);
+  color: var(--text-1);
   text-wrap: pretty;
 }
 /* ‹ value ›, as wide as a slider and its value. */
@@ -725,11 +859,11 @@
   height: 26px;
   border-radius: 4px;
   font-size: 16px;
-  color: rgba(235, 229, 214, 0.6);
+  color: var(--text-2);
   transition: background 0.2s, color 0.2s;
 }
 .overlay .choice button:hover {
-  background: rgba(235, 229, 214, 0.1);
+  background: var(--hair);
   color: #fff;
 }
 .overlay .choice .value {
@@ -757,16 +891,25 @@
   width: 186px;
   height: 26px;
   padding: 0;
-  border: 1px solid rgba(235, 229, 214, 0.3);
+  border: 1px solid var(--text-4);
   background: rgba(10, 10, 12, 0.45);
   font-size: 12px;
   color: var(--paper);
   transition: background 0.2s, color 0.2s, border-color 0.2s;
 }
 .overlay .action-cell .btn:hover {
-  border-color: rgba(235, 229, 214, 0.5);
-  background: rgba(235, 229, 214, 0.16);
+  border-color: var(--text-2);
+  background: var(--edge);
   color: #fff;
+}
+/* An action with nothing to do (Show hints again, before anything was learnt). */
+.overlay .action-cell .btn:disabled,
+.overlay .action-cell .btn:disabled:hover {
+  border-color: var(--text-4);
+  background: rgba(10, 10, 12, 0.45);
+  color: var(--paper);
+  opacity: 0.45;
+  cursor: default;
 }
 /* Settings → Controls (controls-tab.ts): groups of rows, each with two key slots. */
 .overlay .rows.own {
@@ -780,7 +923,7 @@
   font-size: 20px;
   line-height: 1;
   letter-spacing: 0.04em;
-  color: rgba(235, 229, 214, 0.45);
+  color: var(--text-3);
 }
 .overlay .control-row {
   border-bottom: 1px solid var(--hair);
@@ -843,14 +986,14 @@
   transition: border-color 0.15s, background 0.15s, color 0.15s;
 }
 .overlay .control-row .slot:hover {
-  background: rgba(235, 229, 214, 0.1);
+  background: var(--hair);
 }
 .overlay .control-row .slot.empty {
-  color: rgba(235, 229, 214, 0.3);
+  color: var(--text-4);
 }
 .overlay .control-row .slot.listening {
   border-color: var(--paper);
-  background: rgba(235, 229, 214, 0.14);
+  background: var(--edge);
   color: var(--paper);
 }
 .overlay .control-row .slot.refused {
@@ -879,7 +1022,7 @@
   color: var(--error);
 }
 .overlay .controls-foot .notice {
-  color: rgba(235, 229, 214, 0.8);
+  color: var(--text-1);
 }
 .overlay .controls-foot .undo {
   font-weight: 500;
@@ -900,21 +1043,21 @@
   align-items: center;
 }
 .overlay .reset-all button {
-  color: rgba(235, 229, 214, 0.8);
+  color: var(--text-1);
 }
 .overlay .reset-all button:hover {
-  background: rgba(235, 229, 214, 0.16);
+  background: var(--edge);
   color: var(--paper);
 }
 .overlay .reset-all button.dim {
-  color: rgba(235, 229, 214, 0.3);
+  color: var(--text-4);
   cursor: default;
   background: none;
 }
 .overlay .reset-all .ask {
   padding: 6px 8px 6px 12px;
   white-space: nowrap;
-  color: rgba(235, 229, 214, 0.65);
+  color: var(--text-2);
 }
 .overlay .reset-all button.confirm {
   background: var(--paper);
@@ -926,7 +1069,7 @@
   color: var(--ink);
 }
 .overlay .reset-all button.cancel {
-  color: rgba(235, 229, 214, 0.7);
+  color: var(--text-1);
 }
 /* PAINT DETAIL in a session: the host's. */
 .overlay .choice.locked {
@@ -935,7 +1078,7 @@
 .overlay .choice.locked button {
   cursor: not-allowed;
   background: none;
-  color: rgba(235, 229, 214, 0.6);
+  color: var(--text-2);
 }
 .overlay .range {
   display: flex;
@@ -959,11 +1102,11 @@
 }
 .overlay input[type='range']::-webkit-slider-runnable-track {
   height: 1px;
-  background: linear-gradient(to right, var(--paper) var(--fill, 0%), rgba(235, 229, 214, 0.3) var(--fill, 0%));
+  background: linear-gradient(to right, var(--paper) var(--fill, 0%), var(--text-4) var(--fill, 0%));
 }
 .overlay input[type='range']::-moz-range-track {
   height: 1px;
-  background: linear-gradient(to right, var(--paper) var(--fill, 0%), rgba(235, 229, 214, 0.3) var(--fill, 0%));
+  background: linear-gradient(to right, var(--paper) var(--fill, 0%), var(--text-4) var(--fill, 0%));
 }
 .overlay input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
@@ -1017,7 +1160,7 @@
   width: 1px;
   height: 7px;
   margin-top: -3.5px;
-  background: rgba(235, 229, 214, 0.4);
+  background: var(--text-3);
   pointer-events: none;
 }
 .overlay .slider input {
@@ -1032,11 +1175,11 @@
   border-radius: 4px;
   font-size: 14px;
   white-space: nowrap;
-  color: rgba(235, 229, 214, 0.75);
+  color: var(--text-1);
   transition: background 0.2s, color 0.2s;
 }
 .overlay .btn:hover {
-  background: rgba(235, 229, 214, 0.1);
+  background: var(--hair);
   color: var(--paper);
 }
 .overlay .btn.primary {
@@ -1076,7 +1219,7 @@
   width: 200px;
   text-align: right;
   font-size: 13px;
-  color: rgba(235, 229, 214, 0.5);
+  color: var(--text-2);
 }
 .overlay .team-line b {
   font-weight: 500;
@@ -1089,7 +1232,7 @@
   font-size: 22px;
   line-height: 1;
   letter-spacing: 0.04em;
-  color: rgba(235, 229, 214, 0.45);
+  color: var(--text-3);
 }
 .overlay .credit {
   display: flex;
@@ -1111,19 +1254,19 @@
 }
 .overlay .credit .text span {
   font-size: 12px;
-  color: rgba(235, 229, 214, 0.5);
+  color: var(--text-2);
 }
 .overlay .credit a {
   white-space: nowrap;
   font-size: 12px;
-  color: rgba(235, 229, 214, 0.6);
+  color: var(--text-2);
 }
 .overlay .credits-end {
   padding: 34px 0 20px;
   text-align: center;
   font-size: 12px;
   line-height: 1.6;
-  color: rgba(235, 229, 214, 0.45);
+  color: var(--text-3);
 }
 
 /* Popups (save, upload, updates): a dark glass card in the middle. */
@@ -1162,13 +1305,13 @@
 .overlay .para {
   font-size: 13px;
   line-height: 1.6;
-  color: rgba(235, 229, 214, 0.6);
+  color: var(--text-2);
   text-wrap: pretty;
 }
 .overlay .para.lead {
   font-size: 14px;
   line-height: 1.55;
-  color: rgba(235, 229, 214, 0.85);
+  color: var(--text-1);
 }
 .overlay .para.done {
   color: var(--paper);
@@ -1190,7 +1333,7 @@
   gap: 12px;
   padding: 10px 14px;
   border-radius: 6px;
-  background: rgba(235, 229, 214, 0.07);
+  background: var(--hair);
 }
 .overlay .chip b {
   min-width: 0;
@@ -1202,7 +1345,7 @@
 .overlay .chip span {
   white-space: nowrap;
   font-size: 12px;
-  color: rgba(235, 229, 214, 0.5);
+  color: var(--text-2);
 }
 .overlay .popup-buttons {
   display: flex;
@@ -1258,10 +1401,10 @@
 .overlay .perf-progress {
   position: relative;
   height: 1px;
-  background: rgba(235, 229, 214, 0.12);
+  background: var(--hair);
 }
 .overlay .perf-progress i {
-  background: rgba(235, 229, 214, 0.6);
+  background: var(--text-2);
 }
 .overlay .perf-body,
 .overlay .perf-tip {
@@ -1274,7 +1417,7 @@
   font-size: 20px;
   line-height: 1;
   letter-spacing: 0.04em;
-  color: rgba(235, 229, 214, 0.45);
+  color: var(--text-3);
 }
 .overlay .perf-score {
   display: flex;
@@ -1294,7 +1437,7 @@
 }
 .overlay .perf-fps span {
   font-size: 13px;
-  color: rgba(235, 229, 214, 0.6);
+  color: var(--text-2);
 }
 .overlay .perf-low {
   margin-top: 6px;
@@ -1324,7 +1467,7 @@
   overflow: hidden;
   height: 6px;
   border-radius: 1px;
-  background: rgba(235, 229, 214, 0.12);
+  background: var(--hair);
 }
 /* However slow, a measured run shows a stub at the slider's start. */
 .overlay .perf-tiers.measured .perf-tier:first-child .bar::before {
@@ -1341,7 +1484,7 @@
 .overlay .perf-tier span {
   white-space: nowrap;
   font-size: 11px;
-  color: rgba(235, 229, 214, 0.4);
+  color: var(--text-3);
 }
 .overlay .perf-tier.on span {
   color: var(--paper);
@@ -1358,7 +1501,7 @@
 }
 .overlay .perf-hint {
   font-size: 12px;
-  color: rgba(235, 229, 214, 0.4);
+  color: var(--text-3);
 }
 .overlay .perf-bars {
   display: grid;
@@ -1367,13 +1510,13 @@
   gap: 14px;
 }
 .overlay .perf-bars .name {
-  color: rgba(235, 229, 214, 0.6);
+  color: var(--text-2);
 }
 .overlay .perf-bars .bar {
-  background: rgba(235, 229, 214, 0.1);
+  background: var(--hair);
 }
 .overlay .perf-bars i {
-  background: rgba(235, 229, 214, 0.4);
+  background: var(--text-3);
   transition: transform 0.3s;
 }
 .overlay .perf-bars .limit i {
@@ -1401,7 +1544,7 @@
 }
 .overlay .perf-facts .k {
   font-size: 11px;
-  color: rgba(235, 229, 214, 0.5);
+  color: var(--text-2);
 }
 .overlay .perf-facts .v {
   overflow: hidden;
@@ -1419,7 +1562,7 @@
   gap: 4px;
   font-size: 13px;
   line-height: 1.5;
-  color: rgba(235, 229, 214, 0.7);
+  color: var(--text-1);
   text-wrap: pretty;
 }
 .overlay .perf-advice b {
@@ -1447,7 +1590,7 @@
 }
 .overlay .updates-head .on {
   font-size: 12px;
-  color: rgba(235, 229, 214, 0.5);
+  color: var(--text-2);
 }
 .overlay .updates-main {
   flex: 1;
@@ -1470,14 +1613,14 @@
   gap: 8px;
   padding: 9px 12px;
   border-radius: 4px;
-  color: rgba(235, 229, 214, 0.6);
+  color: var(--text-2);
   transition: background 0.2s, color 0.2s;
 }
 .overlay .rail .ver:hover {
-  background: rgba(235, 229, 214, 0.08);
+  background: var(--hair);
 }
 .overlay .rail .ver.on {
-  background: rgba(235, 229, 214, 0.12);
+  background: var(--hair);
   color: var(--paper);
 }
 .overlay .rail .ver b {
@@ -1498,7 +1641,7 @@
   padding: 24px 32px 28px;
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: rgba(235, 229, 214, 0.3) transparent;
+  scrollbar-color: var(--text-4) transparent;
 }
 .overlay .pane .release {
   display: flex;
@@ -1512,12 +1655,12 @@
 .overlay .pane .release span {
   font-weight: 400;
   font-size: 12px;
-  color: rgba(235, 229, 214, 0.5);
+  color: var(--text-2);
 }
 .overlay .pane .intro {
   font-size: 14px;
   line-height: 1.6;
-  color: rgba(235, 229, 214, 0.85);
+  color: var(--text-1);
   text-wrap: pretty;
 }
 /* The release's picture, in full color. */
@@ -1526,7 +1669,7 @@
   aspect-ratio: 16 / 9;
   border-radius: 6px;
   overflow: hidden;
-  background: rgba(235, 229, 214, 0.06);
+  background: var(--hair);
 }
 .overlay .pane .shot img {
   display: block;
@@ -1539,7 +1682,7 @@
   flex-direction: column;
   gap: 6px;
   padding: 14px 0;
-  border-top: 1px solid rgba(235, 229, 214, 0.08);
+  border-top: 1px solid var(--hair);
 }
 .overlay .item-title {
   font-weight: 600;
@@ -1548,7 +1691,7 @@
 .overlay .item-text {
   font-size: 13px;
   line-height: 1.6;
-  color: rgba(235, 229, 214, 0.65);
+  color: var(--text-2);
   text-wrap: pretty;
 }
 .overlay .terms {
@@ -1562,13 +1705,13 @@
   gap: 10px;
   font-size: 13px;
   line-height: 1.55;
-  color: rgba(235, 229, 214, 0.65);
+  color: var(--text-2);
 }
 .overlay .term-line::before {
   content: '•';
   flex: none;
   margin-right: -2px;
-  color: rgba(235, 229, 214, 0.35);
+  color: var(--text-3);
 }
 .overlay .term-line b {
   flex: none;
@@ -1614,7 +1757,7 @@
   transition: background 0.2s;
 }
 .overlay .big-row:hover {
-  background: rgba(235, 229, 214, 0.06);
+  background: var(--hair);
 }
 .overlay .big-row .text {
   flex: 1;
@@ -1628,12 +1771,12 @@
 }
 .overlay .big-row span {
   font-size: 12px;
-  color: rgba(235, 229, 214, 0.5);
+  color: var(--text-2);
 }
 .overlay .big-row i {
   font-style: normal;
   font-size: 18px;
-  color: rgba(235, 229, 214, 0.5);
+  color: var(--text-2);
 }
 .overlay .mp-page .setting-row .line {
   min-height: 26px;
@@ -1643,7 +1786,7 @@
   width: 236px;
   padding: 5px 2px;
   border: 0;
-  border-bottom: 1px solid rgba(235, 229, 214, 0.4);
+  border-bottom: 1px solid var(--text-3);
   background: transparent;
   color: var(--paper);
   font: 14px var(--sans);
@@ -1678,7 +1821,7 @@
 .overlay .mp-status {
   min-height: 18px;
   text-align: center;
-  color: rgba(235, 229, 214, 0.6);
+  color: var(--text-2);
 }
 .overlay .mp-status.error {
   color: var(--error);
@@ -1693,9 +1836,13 @@
 }
 /* Full pause sheet (not compact): no in-game UI behind it (hud.ts); display: none, so
    it isn't laid out or animated (the REC blink) while paused. */
-body.paused .hud > :not(.overlay, .vignette),
+body.paused .layer-world,
+body.paused .layer-frame > :not(.vignette),
+body.paused .layer-tool,
 body.paused .hotbar,
-body.paused .toast {
+body.paused .layer-shade,
+body.paused .layer-hint,
+body.paused .layer-toast {
   display: none;
 }
 @keyframes blink {
@@ -1710,6 +1857,7 @@ body.paused .toast {
   position: fixed;
   left: 50%;
   bottom: 22px;
+  z-index: var(--z-hotbar);
   transform: translateX(-50%);
   display: flex;
   align-items: center;
@@ -1733,7 +1881,7 @@ body.paused .toast {
 }
 .hotbar i.on {
   border-color: var(--on-border, var(--ui));
-  background: var(--on-fill, rgba(235, 229, 214, 0.35));
+  background: var(--on-fill, var(--text-3));
   opacity: 1;
   transform: scale(1.12);
 }
@@ -1751,43 +1899,331 @@ body.paused .toast {
   border: var(--line);
 }
 
-.toast {
-  position: fixed;
-  left: 50%;
-  bottom: 30%;
-  transform: translateX(-50%);
+
+
+/* --- In-game messages (notify-view.ts): hint and toasts at the bottom, statuses at the top, the dialog in the middle --- */
+
+/* What fades: in with .on, out without it, at NOTIFY.fadeIn / fadeOut. The hint and the toasts cut. */
+.layer-shade,
+.layer-dialog,
+.statuses .status {
   opacity: 0;
-  transition: opacity 0.3s;
+  transition: opacity var(--fade-out) ease-in, transform var(--fade-out) ease-in;
+}
+:is(.layer-shade, .layer-dialog, .statuses .status).on {
+  opacity: 1;
+  transform: none;
+  transition-duration: var(--fade-in);
+  transition-timing-function: ease-out;
+}
+/* The gradient behind a hint, under every HUD part. */
+.layer-shade {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--shade-height);
+  z-index: var(--z-shade);
+  background: linear-gradient(to top, color-mix(in srgb, #000 calc(var(--shade-strength) * 100%), transparent) 0, transparent var(--shade-height));
   pointer-events: none;
 }
-.toast.show {
-  opacity: 1;
+/* The hint and the toasts: Montserrat, bold names, sized in px (the HUD doesn't scale). */
+.layer-hint,
+.layer-toast {
+  --box-height: calc(var(--note-line) + 2 * var(--note-pady));
+  font: 500 var(--note-size) / var(--note-line) 'Montserrat', var(--sans);
+  letter-spacing: 0;
+  color: var(--paper);
 }
-/* A frame threw (frame-guard.ts): over everything, the game behind it stopped or broken. */
-.frame-failed {
-  position: fixed;
+.layer-hint b,
+.layer-toast b {
+  font-weight: 700;
+}
+.hint-lines,
+.hint-boxes,
+.hint-text,
+.toasts {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  white-space: nowrap;
+}
+.hint-lines,
+.toasts,
+.statuses {
+  position: absolute;
   left: 50%;
-  top: 48px;
-  z-index: 200;
+  transform: translateX(-50%);
+}
+.hint-lines {
+  bottom: var(--hint-bottom);
+}
+.hint-boxes > div,
+.hint-text > div,
+.toasts > div {
+  box-sizing: border-box;
+  height: var(--box-height);
+  padding: var(--note-pady) var(--note-padx);
+}
+/* Opaque boxes in a group at the glass's opacity, so their 1px overlaps don't darken; the text in a group of its own above at full strength. */
+.hint-boxes {
+  opacity: var(--box-opacity);
+}
+.hint-boxes > div {
+  background: #000;
+  color: transparent;
+}
+.hint-boxes > div + div,
+.hint-text > div + div {
+  margin-top: -1px;
+}
+.hint-text {
+  position: absolute;
+  inset: 0;
+}
+/* Above the hint's top line (a one-line hint or none: the hint's own height); the boxes overlap by 1px; --hint-lines is set from JS. */
+.toasts {
+  bottom: calc(var(--hint-bottom) + var(--toast-gap) + var(--hint-lines, 1) * var(--box-height) - (var(--hint-lines, 1) - 1) * 1px);
+  gap: var(--toast-gap);
+}
+.toasts > div {
+  background: var(--glass);
+}
+.statuses {
+  top: var(--status-top);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+/* A status, and its copy over the dialog while the dialog grows out of it. */
+.statuses .status,
+.dialog .ghost {
+  box-sizing: border-box;
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 12px 16px;
-  border-radius: 4px;
-  transform: translateX(-50%);
-  background: var(--ui);
-  color: var(--paper);
-  font: 14px var(--sans);
+  gap: 8px;
+  height: 30px;
+  padding: 0 14px;
+  white-space: nowrap;
 }
-.frame-failed p {
-  margin: 0;
+.statuses .status {
+  border: 1px solid var(--edge);
+  border-radius: 6px;
+  background: var(--glass);
+  font: 500 14px var(--sans);
+  letter-spacing: 0;
+  transform: translateY(-4px);
 }
-.frame-failed button {
-  padding: 8px 16px;
-  border: 0;
-  border-radius: 4px;
+/* Its icon. Bars: three, 2 px wide, 4 / 7 / 10 px tall, 2 px apart, bottom-aligned; the first lit with the second flickering twice a loop, or each in turn. Loops run only while the status is drawn. */
+.status-icon {
+  position: relative;
+  flex: none;
+  width: 10px;
+  height: 10px;
+}
+.status-icon b {
+  position: absolute;
+  bottom: 0;
+  width: 2px;
+  background: var(--text-4);
+}
+.status-icon b:nth-child(1) {
+  left: 0;
+  height: 4px;
+}
+.status-icon b:nth-child(2) {
+  left: 4px;
+  height: 7px;
+}
+.status-icon b:nth-child(3) {
+  left: 8px;
+  height: 10px;
+}
+.status-icon.bars b:nth-child(1) {
   background: var(--paper);
-  color: var(--ui);
-  font: 600 14px var(--sans);
-  cursor: pointer;
+}
+.status-icon.bars b:nth-child(2) {
+  animation: flicker var(--flicker-loop) steps(1) infinite;
+}
+@keyframes flicker {
+  62%,
+  70% {
+    background: var(--paper);
+  }
+  66%,
+  74% {
+    background: var(--text-4);
+  }
+}
+.status-icon.cycle b {
+  animation: bar var(--bars-loop) infinite;
+}
+.status-icon.cycle b:nth-child(2) {
+  animation-delay: var(--bars-step);
+}
+.status-icon.cycle b:nth-child(3) {
+  animation-delay: calc(var(--bars-step) * 2);
+}
+@keyframes bar {
+  0%,
+  25% {
+    background: var(--paper);
+  }
+  26%,
+  100% {
+    background: var(--text-4);
+  }
+}
+/* Nothing heard: a red ring, blinking. */
+.status-icon.ring::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  box-sizing: border-box;
+  border: 1.5px solid var(--error);
+  border-radius: 50%;
+  animation: blink var(--blink-loop) steps(2) infinite;
+}
+/* Done: the check pops in and a ring bursts out of it, once, as the class is set. */
+.status-icon.check::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 0;
+  width: 4px;
+  height: 8px;
+  box-sizing: border-box;
+  border: solid var(--paper);
+  border-width: 0 1.5px 1.5px 0;
+  transform: rotate(45deg);
+  animation: pop 0.29s ease-out;
+}
+.status-icon.check::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  box-sizing: border-box;
+  border: 1px solid var(--paper);
+  border-radius: 50%;
+  opacity: 0;
+  animation: burst 0.33s ease-out 0.07s;
+}
+@keyframes pop {
+  from {
+    transform: rotate(45deg) scale(0);
+  }
+  60% {
+    transform: rotate(45deg) scale(1.3);
+  }
+}
+@keyframes burst {
+  from {
+    transform: scale(0.4);
+    opacity: 0.8;
+  }
+  to {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+/* A blocking message in the middle: the game dims under it (play-state.ts: Enter presses the button, Esc leaves). It stays over the paused menu, and its veil catches the clicks, so none reaches the game or the menu. */
+.layer-dialog .veil {
+  position: absolute;
+  inset: 0;
+  pointer-events: auto;
+  background: var(--veil);
+}
+/* The layer fades; the card also slides down into place. Its fill is solid (--ink, about the glass over a dark scene): it stays over the paused menu, which must not show through. */
+.dialog {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, calc(-50% - 4px));
+  transition: transform var(--fade-out) ease-in;
+  box-sizing: border-box;
+  width: 340px;
+  overflow: hidden;
+  pointer-events: auto;
+  border: 1px solid var(--edge);
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--paper);
+  font: 500 14px/20px var(--sans);
+  letter-spacing: 0;
+}
+.layer-dialog.on .dialog {
+  transform: translate(-50%, -50%);
+  transition-duration: var(--fade-in);
+  transition-timing-function: ease-out;
+}
+.dialog .body {
+  box-sizing: border-box;
+  padding: 24px 24px 20px;
+}
+.dialog .label {
+  display: flex;
+  align-items: center;
+  color: var(--error);
+  font: 600 11px/14px var(--sans);
+  letter-spacing: 0.08em;
+}
+.dialog .label i {
+  width: 6px;
+  height: 6px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: var(--error);
+}
+.dialog .title {
+  margin-top: 14px;
+  font: 30px/32px var(--display);
+  text-transform: lowercase;
+}
+.dialog .text {
+  margin-top: 10px;
+  color: var(--text-1);
+}
+.dialog .callout {
+  max-height: 112px;
+  margin: 14px 0 0;
+  padding: 8px 10px;
+  overflow: auto;
+  border: 1px solid var(--edge);
+  border-radius: 4px;
+  background: var(--hair);
+  color: var(--text-1);
+  font: 11px/16px var(--mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+.dialog .actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 20px;
+}
+/* The button is the menu's segmented control (.seg) with one button, its key cap in it. */
+.dialog .seg {
+  line-height: 16px;
+}
+.dialog .seg button {
+  gap: 8px;
+  padding-right: 8px;
+  color: var(--text-1);
+}
+/* What Esc does, a button too (the mouse is free when the browser kept the first Esc). */
+.dialog button.esc {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 4px;
+  font: 500 11px/14px var(--sans);
+  color: var(--text-2);
+  transition: color 0.2s;
+}
+.dialog button.esc:hover {
+  color: var(--paper);
 }

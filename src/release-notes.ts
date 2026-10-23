@@ -2,7 +2,11 @@
 // the Updates popup (updates-page.ts), the GitHub release (scripts/release-notes.mjs)
 // and their test. Format and rules: docs/releases/AGENTS.md. A note is a
 // frontmatter date, the intro, then - **heading** items with their text, and
-// lists under some (- **term**: what it is, or plain - lines).
+// lists under some (- **term**: what it is, or plain - lines). A link is
+// markdown, [text](url): the game's own pages root-relative ([Terms](/terms.html)),
+// other sites absolute.
+
+import { AUTHOR, SITE } from './links.ts';
 
 interface Item {
   title: string;
@@ -16,6 +20,34 @@ export interface Release {
   date: string;
   intro: string;
   items: Item[];
+}
+
+/** The sites a note may link to besides the game's own pages (root-relative); the Updates page makes links of nothing else. */
+const LINK_SITES = ['https://ko-fi.com/', `${AUTHOR}/`, 'https://discord.gg/'];
+
+const LINK = /\[([^\]]+)\]\(([^)\s]+)\)/g;
+const LOCAL = /^\/(?!\/)[\w./#-]*$/;
+
+/** Whether a note may link to `href`: a page of the game (/terms.html) or one of LINK_SITES. */
+export const linkable = (href: string) => LOCAL.test(href) || LINK_SITES.some((site) => href.startsWith(site));
+
+/** The text with each link's target through `target`. */
+const mapLinks = (md: string, target: (href: string) => string) => md.replace(LINK, (_, text, href) => `[${text}](${target(href)})`);
+
+/** A root-relative target on the game's own site, for places outside it. */
+const absolute = (href: string) => (LOCAL.test(href) ? `${SITE}${href}` : href);
+
+/** A line cut into plain text and its [text](url) links; what isn't `linkable` stays its text. */
+export function splitLinks(s: string): (string | { text: string; href: string })[] {
+  const parts: (string | { text: string; href: string })[] = [];
+  let at = 0;
+  for (const m of s.matchAll(LINK)) {
+    if (m.index > at) parts.push(s.slice(at, m.index));
+    parts.push(linkable(m[2]) ? { text: m[1], href: m[2] } : m[1]);
+    at = m.index + m[0].length;
+  }
+  if (at < s.length) parts.push(s.slice(at));
+  return parts;
 }
 
 const FRONT = /^---\n([\s\S]*?)\n---\n/;
@@ -57,7 +89,8 @@ const DISCORD_MAX = 2000;
  */
 export function discordNotes(tag: string, md: string): string[] {
   const { date } = parseRelease(tag, md);
-  const [intro, ...items] = body(md).trim().split(/\n(?=- )/);
+  // <...> around a target: Discord shows no preview card.
+  const [intro, ...items] = mapLinks(body(md), (href) => `<${absolute(href)}>`).trim().split(/\n(?=- )/);
   const messages = [`# Hidden Roof ${tag.slice(1)}\n-# ${date} · [GitHub](<https://github.com/${REPO}/releases/tag/${tag}>)\n\n${intro.trim()}`];
   for (const item of items) {
     const joined = `${messages[messages.length - 1]}\n\n${item.trim()}`;
@@ -69,7 +102,7 @@ export function discordNotes(tag: string, md: string): string[] {
 
 /** The GitHub release's notes: the intro, the picture at `pictureUrl`, then the items (GitHub shows the release's title above them). */
 export function githubNotes(md: string, pictureUrl: string): string {
-  const text = body(md).trim();
+  const text = mapLinks(body(md), absolute).trim();
   const at = text.search(/^-/m);
   const intro = (at < 0 ? text : text.slice(0, at)).trim();
   const items = at < 0 ? '' : text.slice(at).trim();

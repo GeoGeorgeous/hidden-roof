@@ -7,7 +7,10 @@ import { PROFILE } from '../config';
 // mouse event far larger than the rest, or F2 when you saw something) keeps
 // that buffer and the second after it. Browser events that can upset the
 // mouse (pointer lock lost or taken, focus, tab hidden, fullscreen) are
-// logged and marked on their frame.
+// logged and marked on their frame. A mouse spike also keeps the trail of the
+// last raw events, as the page got them three ways (mousemove, pointermove
+// with its coalesced events, pointerrawupdate), to tell a bad value from the
+// OS from one the browser made.
 
 /** One frame, as the spike buffer keeps it. */
 export interface FrameRecord {
@@ -27,7 +30,25 @@ export interface FrameRecord {
   turn: number;
   /** Mouse movement that came in for this frame (px): the sum, how many events, the largest single one. */
   mouse: { dx: number; dy: number; events: number; largest: number };
+  /** On a mouse spike: the raw events around it, oldest first. */
+  trail?: TrailEvent[];
   notes?: string[];
+}
+
+/** One raw input event. */
+interface TrailEvent {
+  /** Which listener saw it: mousemove, pointermove or pointerrawupdate. */
+  on: 'mouse' | 'pointer' | 'raw';
+  /** Ms before the end of the frame it came in for. */
+  ago: number;
+  dx: number;
+  dy: number;
+  /** Ms between the event's own time stamp and the page getting it. */
+  lag: number;
+  /** A pointermove: its coalesced events' movements, kept only for a big one. */
+  coalesced?: number[][];
+  /** A pointermove: how many events it stands for. */
+  n?: number;
 }
 
 interface Spike {
@@ -42,7 +63,6 @@ interface Spike {
 }
 
 const BROWSER_EVENTS: [EventTarget, string, () => string][] = [
-  [document, 'pointerlockchange', () => (document.pointerLockElement ? 'pointer lock taken' : 'pointer lock lost')],
   [document, 'pointerlockerror', () => 'pointer lock refused'],
   [document, 'visibilitychange', () => `tab ${document.visibilityState}`],
   [document, 'fullscreenchange', () => (document.fullscreenElement ? 'fullscreen on' : 'fullscreen off')],
@@ -64,10 +84,15 @@ export class SpikeCatcher {
   private openUntil = 0;
   private last: FrameRecord | null = null;
   private mouse = { dx: 0, dy: 0, events: 0, largest: 0 };
+  /** The last PROFILE.mouseTrail events of each kind, with when the page got them (performance.now). */
+  private trail: Record<TrailEvent['on'], (TrailEvent & { at: number })[]> = { mouse: [], pointer: [], raw: [] };
+  /** When the pointer lock was last taken (performance.now), or null. */
+  private lockedAt: number | null = null;
   private notes: string[] = [];
   private marked = false;
 
-  constructor() {
+  /** `rawLocked`: the lock was taken without OS acceleration (PLAYER.rawMouse, Input.rawLocked). */
+  constructor(rawLocked: () => boolean) {
     addEventListener(
       'mousemove',
       (e) => {
@@ -77,10 +102,45 @@ export class SpikeCatcher {
         m.dy += e.movementY;
         m.events++;
         m.largest = Math.max(m.largest, Math.hypot(e.movementX, e.movementY));
+        this.keep('mouse', e);
       },
       { passive: true },
     );
+    // The same motion as pointer events: coalesced ones show whether a big value was one hardware event or a sum.
+    const pointer = (type: string, on: TrailEvent['on']) =>
+      addEventListener(
+        type,
+        (ev) => {
+          if (!this.on || !document.pointerLockElement) return;
+          const e = ev as PointerEvent;
+          const events = on === 'pointer' ? e.getCoalescedEvents?.() ?? [] : [];
+          const big = [e, ...events].some((c) => Math.hypot(c.movementX, c.movementY) > PROFILE.mouseSpikePx);
+          this.keep(on, e, on === 'pointer' ? { n: events.length, coalesced: big ? events.map((c) => [c.movementX, c.movementY]) : undefined } : {});
+        },
+        { passive: true },
+      );
+    pointer('pointermove', 'pointer');
+    pointer('pointerrawupdate', 'raw');
     for (const [target, type, what] of BROWSER_EVENTS) target.addEventListener(type, () => this.note(what()));
+    document.addEventListener('pointerlockchange', () => {
+      this.lockedAt = document.pointerLockElement ? performance.now() : null;
+      this.note(document.pointerLockElement ? `pointer lock taken${rawLocked() ? ' (raw mouse)' : ''}` : 'pointer lock lost');
+    });
+  }
+
+  private keep(on: TrailEvent['on'], e: MouseEvent, more: Partial<TrailEvent> = {}) {
+    const at = performance.now();
+    const ring = this.trail[on];
+    ring.push({ on, ago: 0, at, dx: e.movementX, dy: e.movementY, lag: at - e.timeStamp, ...more });
+    if (ring.length > PROFILE.mouseTrail) ring.shift();
+  }
+
+  /** The raw events kept so far, oldest first, timed back from `now`. */
+  private snapshot(now: number): TrailEvent[] {
+    return Object.values(this.trail)
+      .flat()
+      .sort((a, b) => a.at - b.at)
+      .map(({ at, ...e }) => ({ ...e, ago: round(now - at), lag: round(e.lag) }));
   }
 
   start(started: number) {
@@ -92,6 +152,7 @@ export class SpikeCatcher {
     this.ring = [];
     this.open = null;
     this.last = null;
+    this.trail = { mouse: [], pointer: [], raw: [] };
   }
 
   stop() {
@@ -111,6 +172,7 @@ export class SpikeCatcher {
     const turn = prev ? Math.hypot(wrapDeg(rec.yaw - prev.yaw), rec.pitch - prev.pitch) : 0;
     const r: FrameRecord = { ...rec, turn: round(turn), mouse: { ...this.mouse, largest: round(this.mouse.largest) } };
     if (this.notes.length) r.notes = this.notes;
+    if (r.mouse.largest > PROFILE.mouseSpikePx) r.trail = this.snapshot(performance.now());
     this.mouse = { dx: 0, dy: 0, events: 0, largest: 0 };
     this.notes = [];
     this.last = r;
@@ -121,7 +183,10 @@ export class SpikeCatcher {
     if (this.marked) why.push('marked (F2)');
     if (prev && rec.ms > Math.max(PROFILE.hitchMinMs, PROFILE.hitchFactor * typicalMs)) why.push(`slow frame: ${round(rec.ms)} ms (typical ${round(typicalMs)})`);
     if (turn > PROFILE.jumpDegrees) why.push(`camera jump: ${round(turn)}° in one frame`);
-    if (r.mouse.largest > PROFILE.mouseSpikePx) why.push(`mouse spike: one event of ${r.mouse.largest} px`);
+    if (r.mouse.largest > PROFILE.mouseSpikePx) {
+      const since = this.lockedAt === null ? '' : `, ${round((performance.now() - this.lockedAt) / 1000)} s after the lock`;
+      why.push(`mouse spike: one event of ${r.mouse.largest} px${since}`);
+    }
     this.marked = false;
     for (const w of why) this.trigger(r, w);
     if (this.open && r.t > this.openUntil) this.open = null;

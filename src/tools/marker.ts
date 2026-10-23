@@ -50,6 +50,11 @@ export class MarkerTool {
     this.tipModel.add(this.shape);
   }
 
+  /** Meters drawn so far. */
+  get distance() {
+    return this.stroke.travel;
+  }
+
   /** `nib`: half-width of the square nib (m). */
   update(dt: number, input: Input, camera: THREE.Camera, eye: THREE.Vector3, active: boolean, color: PaintColor, nib: number) {
     this.model.visible = active;

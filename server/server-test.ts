@@ -103,6 +103,8 @@ try {
   // Turned away: an older game, a game that builds the level differently, an unknown code, a broken save.
   for (const [m, reason] of [
     [{ ...host, protocol: PROTOCOL + 1 }, 'version'],
+    [{ ...host, protocol: PROTOCOL - 1, name: 'Anna K', level: null }, 'version'],
+    [{ type: 'join', protocol: PROTOCOL - 1, name: 'Anna K', code: 'ZZZZZ' }, 'version'],
     [{ ...host, table: 'x' }, 'version'],
     [{ type: 'join', protocol: PROTOCOL, name: 'B', code: 'ZZZZZ' }, 'no-session'],
     [{ ...host, bytes: new Uint8Array([1, 2, 3]) }, 'bad-save'],
@@ -156,9 +158,14 @@ try {
   const { header } = await decodePaintFile(save);
   assert.deepEqual([header.density, [...new Set(header.faces.map((f) => f.surface))]], [48, [stamp.key]]);
 
-  // B's game is hidden (minimized): A hears it's away.
-  b.send({ type: 'away', away: true });
+  // B pauses, then its game is hidden (minimized): A hears it's in the menu, then away.
+  b.send({ type: 'status', status: 'menu' });
+  assert.deepEqual(await a.next('presence'), { type: 'presence', id: 2, state: 'menu' });
+  b.send({ type: 'status', status: 'away' });
   assert.deepEqual(await a.next('presence'), { type: 'presence', id: 2, state: 'away' });
+  // B's own link is bad: A is told (the nameplate's LAGGING is B's report).
+  b.send({ type: 'status', status: 'lagging' });
+  assert.deepEqual(await a.next('presence'), { type: 'presence', id: 2, state: 'lagging' });
   // B carries something, drops and comes back with its token: the same player, the paint, A's ladder and what B
   // carried in its welcome; A hears B dropped and is back, never that B left or joined.
   const carried = { tools: ['marker'], colors: ['black', 'red'], caps: ['standard'], selected: 1, color: 'red', cap: 'standard' } as InventoryData;
@@ -198,6 +205,12 @@ try {
   const late = await game();
   late.send({ type: 'join', protocol: PROTOCOL, name: 'B', code: wa.code });
   assert.equal((await late.next('rejected')).reason, 'ended');
+  assert.equal(await late.closed, closeCode('ended'));
+  // A player coming back with their token after everyone's time ran out is told the same (not "no session": that is a server that restarted).
+  const tooLate = await game();
+  tooLate.send({ type: 'join', protocol: PROTOCOL, name: 'B', code: wa.code, token: wb.token });
+  assert.equal((await tooLate.next('rejected')).reason, 'ended');
+  assert.equal(await tooLate.closed, closeCode('ended'));
 
   // The same name twice gets a number. The host drops and comes back from a new tab (no token) while the other is
   // still in a full session: under the same name it takes its own place back, not "full".
@@ -206,7 +219,9 @@ try {
   const wg = await geo.next('welcome');
   const twin = await game();
   twin.send({ type: 'join', protocol: PROTOCOL, name: 'geo', code: wg.code });
-  await twin.next('welcome');
+  // The welcome tells the player the name they go by.
+  assert.equal(wg.name, 'geo');
+  assert.equal((await twin.next('welcome')).name, 'geo (2)');
   assert.equal((await geo.next('joined')).name, 'geo (2)');
   geo.send(ops(1, [1], [stamp]));
   await twin.next('ops');
@@ -224,8 +239,31 @@ try {
   twin.send({ type: 'leave' });
   await twin.closed;
   const again = await game();
-  again.send({ type: 'join', protocol: PROTOCOL, name: 'geo (2)', code: wg.code });
+  again.send({ type: 'join', protocol: PROTOCOL, name: 'geo', code: wg.code });
   assert.deepEqual((await again.next('welcome')).inventory, carried);
+
+  // A numbered player who drops and comes back from a new tab typing the name they first asked for takes their own place back, not a new number.
+  const tom = await game();
+  tom.send({ ...host, name: 'tom' });
+  const wt = await tom.next('welcome');
+  const tom2 = await game();
+  tom2.send({ type: 'join', protocol: PROTOCOL, name: 'tom', code: wt.code });
+  const wt2 = await tom2.next('welcome');
+  assert.equal(wt2.name, 'tom (2)');
+  assert.equal((await tom.next('joined')).name, 'tom (2)');
+  tom2.ws.close();
+  await tom2.closed;
+  const tomAgain = await game();
+  tomAgain.send({ type: 'join', protocol: PROTOCOL, name: 'tom', code: wt.code });
+  const wt3 = await tomAgain.next('welcome');
+  assert.deepEqual(pick(wt3, 'you', 'name'), { you: wt2.you, name: 'tom (2)' });
+  await tom.none('joined');
+  // A numbered name is not one a player can type, so a token rejoin sends the typed name and gets the same player back.
+  tomAgain.ws.close();
+  await tomAgain.closed;
+  const tomBack = await game();
+  tomBack.send({ type: 'join', protocol: PROTOCOL, name: 'tom', code: wt.code, token: wt3.token });
+  assert.deepEqual(pick(await tomBack.next('welcome'), 'you', 'name'), { you: wt2.you, name: 'tom (2)' });
 
   // HOST from a save: the host isn't sent its own save back; the paint is there for the next player.
   const h = await game();
@@ -292,6 +330,13 @@ try {
   const silent = await game();
   assert.equal(await silent.closed, 1008);
 
+  // Bad messages from one address fill no log: SERVER.noisyPerIp lines, then one that says the rest are held back.
+  for (let i = 0; i < SERVER.noisyPerIp + 5; i++) {
+    const bad = await game('10.6.6.6');
+    bad.ws.send(new Uint8Array([1, 2, 3]));
+    assert.equal(await bad.closed, 1008);
+  }
+
   // Only /ws?host takes a message past SERVER.maxMessage (a save), from a few links per address.
   const tooBig = await game();
   tooBig.ws.send(new Uint8Array(SERVER.maxMessage + 1));
@@ -313,9 +358,12 @@ try {
   server.kill();
 }
 const lines = log.join('');
-assert.match(lines, /[A-Z]{5} hosted by \S+: demo at 48 texels\/m/);
+assert.match(lines, /[A-Z]{5} hosted by \S+: "demo" at 48 texels\/m/);
 assert.match(lines, new RegExp(`${shared} "Y" #2 in from \\S+ \\(new, 2 players; paint file shared \\(2\\)\\)`));
 assert.match(lines, /paint file: [\d.]+ MB of paint, [\d.]+ MB packed, in [\d.]+ s \(0 more in line\)/);
+// The flood of bad messages: the first lines, and one note.
+assert.equal(lines.match(/bad message from 10\.6\.6\.6: closed/g)?.length, SERVER.noisyPerIp);
+assert.equal(lines.match(/more lines from 10\.6\.6\.6 held back/g)?.length, 1);
 // A player who left isn't also logged as dropped.
 assert.doesNotMatch(lines, /"A" #1 out: left[^]*"A" #1 dropped/);
 
@@ -330,6 +378,24 @@ assert.doesNotMatch(lines, /"A" #1 out: left[^]*"A" #1 dropped/);
   assert.equal(overMemory(0), true);
   assert.equal(collected, 1);
   globalThis.gc = gc;
+}
+
+// A LOG_DIR that can't be made is no reason to stay down: the server says so and logs to stdout.
+{
+  const port = await freePort();
+  const out: string[] = [];
+  const bare = spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(port), LOG_DIR: '/dev/null/logs' }, stdio: ['ignore', 'pipe', 'inherit'] });
+  try {
+    bare.stdout!.on('data', (d: Buffer) => out.push(d.toString()));
+    for (let i = 0; !out.join('').includes('roof server on'); i++) {
+      assert.ok(i < 100, 'the server starts');
+      await new Promise((w) => setTimeout(w, 100));
+    }
+    assert.match(out.join(''), /LOG_DIR \/dev\/null\/logs can't be made, logging to stdout/);
+    assert.equal((await fetch(`http://localhost:${port}/healthz`)).status, 200);
+  } finally {
+    bare.kill();
+  }
 }
 
 // The heartbeat (BL-004), on a server of its own beating every second: a game that keeps sending stays though it never

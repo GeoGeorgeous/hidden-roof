@@ -1,4 +1,4 @@
-// Game tests: The save and upload popups, COPY NETWORK LOG, and paint saves through level edits and spray at LOAD.
+// Game tests: The save and upload popups, COPY NETWORK LOG, the NAME field's cleaning and HOST without a name, and paint saves through level edits and spray at LOAD.
 import fs from 'node:fs';
 import { gameReady } from '../test-browser.mjs';
 import { page, check, openPage, dot, paintedKeys, POPUP, SAVE, UPLOAD, tmp } from './harness.mjs';
@@ -79,6 +79,29 @@ await check('menu: after a failed link the multiplayer page says so in red and o
   const name = (await saved.catch(() => null))?.suggestedFilename();
   await p.close();
   return !before && said.join() === "The server didn't answer,true" && /^roof-network-.+\.txt$/.test(name) && !p.errors.length ? null : JSON.stringify({ before, said, name, errors: p.errors });
+});
+
+await check('menu: the NAME field keeps only Latin letters and digits as typed (a stored name too); HOST with it empty says so in red and does not connect', async () => {
+  const p = await openPage((k) => localStorage.setItem(k, 'Anna K'), null, 'roofhiddenhaus.name');
+  const press = (text) => p.locator('.overlay button:visible', { hasText: text }).first().click();
+  await p.evaluate(() => (window.game.input.setLocked(true), window.game.input.setLocked(false)));
+  await press('Multiplayer');
+  await press('Host a session');
+  const field = p.locator('.mp-page input >> nth=0');
+  const stored = await field.inputValue();
+  const typed = [];
+  for (const name of ['Geo Geo', 'Geo_', 'Geo.', 'Гоша', 'Geo!@#$%']) {
+    await field.fill('');
+    await field.pressSequentially(name);
+    typed.push(await field.inputValue());
+  }
+  await field.fill('');
+  await press('Host');
+  const said = await p.evaluate(() => { const s = document.querySelector('.mp-status'); return `${s.textContent}${s.classList.contains('error') ? '' : ' (not red)'}`; });
+  const state = await p.evaluate(() => window.game.net.status.state);
+  await p.close();
+  const ok = stored === 'AnnaK' && typed.join() === 'GeoGeo,Geo,Geo,,Geo' && said === 'Type a name first' && state !== 'connecting' && !p.errors.length;
+  return ok ? null : JSON.stringify({ stored, typed, said, state, errors: p.errors });
 });
 
 await check('saves: a sign whose text changed loses its paint (changed shape), the rest loads', async () => {

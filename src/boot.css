@@ -15,6 +15,13 @@
   font-weight: 400 600;
   font-display: swap;
 }
+/* Variable: weights 500 to 700 in one file. In-game hints and toasts. */
+@font-face {
+  font-family: 'Montserrat';
+  src: url('/fonts/montserrat.woff2') format('woff2');
+  font-weight: 500 700;
+  font-display: swap;
+}
 
 :root {
   --ui: #141416;
@@ -26,11 +33,35 @@
   --sans: 'Archivo', system-ui, sans-serif;
   --display: 'Sedgwick Ave Display', cursive;
   --ink: #111;
+  /* Paper at four strengths for text, two for lines and fills: every paper tint in the menu and the messages is one of these. */
+  --text-1: rgba(235, 229, 214, 0.75);
   --text-2: rgba(235, 229, 214, 0.55);
   --text-3: rgba(235, 229, 214, 0.4);
+  --text-4: rgba(235, 229, 214, 0.3);
   --hair: rgba(235, 229, 214, 0.1);
   --edge: rgba(235, 229, 214, 0.18);
   --error: #e0675e;
+  /* A player's status on their nameplate, muted: the link lost (disconnected, no signal), far behind (lagging). */
+  --status-lost: #d18882;
+  --status-slow: #d2ad7a;
+  --mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
+  /* The game dimmed under the menu and a dialog. */
+  --veil: rgba(14, 14, 16, 0.35);
+  /* In-game messages: every box's glass, at NOTIFY.boxOpacity (--box-opacity, notify-view.ts). */
+  --glass: rgb(0 0 0 / var(--box-opacity));
+  /* What draws over what, bottom to top. Every layer is its own fixed root under body. */
+  --z-shade: 5;
+  --z-world: 10;
+  --z-frame: 20;
+  --z-aim: 30;
+  --z-tool: 40;
+  --z-hint: 50;
+  --z-toast: 60;
+  --z-hotbar: 70;
+  --z-menu: 80;
+  --z-panel: 90;
+  --z-loading: 100;
+  --z-dialog: 110;
 }
 
 html,
@@ -39,7 +70,7 @@ body {
   height: 100%;
   overflow: hidden;
   background: #000;
-  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
+  font-family: var(--mono);
   font-size: 11px;
   letter-spacing: 0.08em;
   color: var(--ui);
@@ -62,7 +93,7 @@ canvas {
 .loading {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: var(--z-loading);
   display: flex;
   flex-direction: column;
   align-items: center;

@@ -31,6 +31,8 @@ const NO_STACK = { above: false, below: false };
 export class LadderTool {
   /** Called when LMB can't place it (shown as a toast). */
   onBlocked: () => void = () => {};
+  /** Called when it's put down. */
+  onPlaced: () => void = () => {};
   readonly model = new LadderModel();
   /** Other players' feet (remote players): it can't stand in them either. */
   others: () => THREE.Vector3[] = () => [];
@@ -123,6 +125,7 @@ export class LadderTool {
 
   private put(t: { pos: V3; rot: number }) {
     this.level.setRuntime(session.player, { type: this.def.type, pos: t.pos, rot: t.rot });
+    this.onPlaced();
     this.valid = false; // re-checked next frame against the new ladder
   }
 }

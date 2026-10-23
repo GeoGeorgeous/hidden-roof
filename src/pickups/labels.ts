@@ -76,7 +76,7 @@ export class PickupLabels {
     private solids: readonly THREE.Mesh[],
   ) {
     this.root.className = 'pickup-tags';
-    document.querySelector('.hud')!.append(this.root);
+    document.querySelector('.layer-world')!.append(this.root);
   }
 
   /** Shows, hides and places every pickup's tag; `isNew`: it would give you something. */

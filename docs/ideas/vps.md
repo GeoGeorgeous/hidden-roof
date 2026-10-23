@@ -1,8 +1,7 @@
 # Changes for the host (VPS)
 
-What the repo needs from the host, collected for devops: each change outside this repo goes here when its repo part lands, and leaves once devops reports it done. The host itself: `docs/deploy.md`.
+What the repo needs from the host, for devops: an item goes here when its repo part lands and leaves once devops reports it done. The host itself: `docs/deploy.md`.
 
 ## Waiting
 
-1. **Precompressed assets (BL-030).** Once the build writes `.br` and `.gz` next to each asset: in the game's Caddy block, `file_server { precompressed br gzip }` in place of plain `file_server`, and `encode` kept for anything without a file (`docs/deploy.md` §5). Check: `curl -sI -H 'Accept-Encoding: br' https://roof.hidden.haus/assets/<a js file>` answers `Content-Encoding: br`.
-2. **Logs, for the privacy page (TASK-178).** Tell the owner whether the game's Caddy block keeps access logs, and how long those and the game server's Docker log (one line per join and leave, with the IP address, nickname and session code) are kept. Until then `public/privacy.html` says it generically: rotated, kept as long as the host's setup keeps them.
+1. **Log files, with the next release.** When deploying it: create `<apps>/roof/logs/server` writable by uid 1000; give `roof` (and later `roof-next`) `LOG_DIR: /logs` and that volume (`docs/deploy.md` §6); before recreating the container, save `docker logs -t roof` there, and move the saved game logs (`<apps>/roof/logs/*.log`, not `mem.log`) in, so the server cleans them too. Check: a new `YYYY-MM-DD.log` after a join.

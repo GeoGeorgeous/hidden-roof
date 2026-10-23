@@ -31,6 +31,11 @@ export class SpongeTool {
     return this.model.sway;
   }
 
+  /** Meters scrubbed so far. */
+  get distance() {
+    return this.stroke.travel;
+  }
+
   /** `radius`: the patch it cleans (m). */
   update(dt: number, input: Input, camera: THREE.Camera, eye: THREE.Vector3, active: boolean, radius: number) {
     const pressed = active && input.held('use') && input.locked;

@@ -19,7 +19,7 @@ import { decodeSnapshot } from './snapshot';
 // the paint shows up with the arm that sprays it, and their can's spray flies
 // from the figure's hand (particles only); while this game is hidden, at once.
 // Never simulated here: no physics, no collisions. Away (their game hidden) they stand head down; dropped, or
-// silent for NET.silentAfter, they slump, drawn faded.
+// silent for NET.silentAfter, they slump, drawn faded. In the menu, idle or lagging (their own link is bad) they're shown as they are: their snapshots keep coming.
 
 const eye = new THREE.Vector3();
 const nozzle = new THREE.Vector3();
@@ -28,7 +28,7 @@ const right = new THREE.Vector3();
 const up = new THREE.Vector3();
 const display = new THREE.Color();
 
-/** How they're shown: here, away, dropped (the server says), or silent (no snapshots of late). */
+/** How they're shown: what the server says (here, away, menu, idle, lagging, dropped), or silent (no snapshots of late). */
 export type Look = Presence | 'silent';
 
 export class RemotePlayer {
@@ -109,13 +109,15 @@ export class RemotePlayer {
   update(now: number, dt: number) {
     const st = this.timeline.sample(now, dt);
     if (!st) return;
-    this.look = this.presence === 'here' && now - this.timeline.heard > NET.silentAfter ? 'silent' : this.presence;
-    if (this.look !== 'here') {
+    const sending = this.presence !== 'away' && this.presence !== 'dropped';
+    this.look = sending && now - this.timeline.heard > NET.silentAfter ? 'silent' : this.presence;
+    const gone = this.look === 'dropped' || this.look === 'silent';
+    if (gone || this.look === 'away') {
       // Head down, empty-handed; gone, slumped and faded.
-      Object.assign(st, { pitch: -1.2, tool: null, action: null, crouched: this.look !== 'away' || st.crouched });
+      Object.assign(st, { pitch: -1.2, tool: null, action: null, crouched: gone || st.crouched });
       st.velocity.set(0, 0, 0);
     }
-    this.avatar.setFaded(this.look === 'dropped' || this.look === 'silent');
+    this.avatar.setFaded(gone);
     if (st.onLadder) this.faceLadder(st);
     this.smooth(st, dt);
     Object.assign(this.stats, this.timeline.stats, { correction: this.error.length() });

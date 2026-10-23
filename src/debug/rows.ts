@@ -22,6 +22,7 @@ export const WHEN: Record<When, [tag: string, note: string]> = {
   release: ['LET GO', 'Applies when you let go of the slider.'],
   bake: ['BAKE', 'With baked light on, shows once the lamp light rebakes (a moment).'],
   build: ['BUILD', 'Shows only in build mode (B).'],
+  resume: ['RESUME', 'Applies the next time the game takes the mouse: close F3 and click to resume.'],
 };
 
 /** When a row's change shows, if not at once. */
@@ -65,7 +66,8 @@ function control(it: Item, edited: () => void, night: Night): Row {
     label.className = 'choice-row';
     // Clicking the name would press the first button (a label's control).
     name.addEventListener('click', (e) => e.preventDefault());
-    const box = el('div', 'choice');
+    // Many options wrap into rows.
+    const box = el('div', it.options.length > 5 ? 'choice many' : 'choice');
     const buttons = it.options.map((o, i) => {
       const b = el('button', '', o);
       b.addEventListener('click', (e) => {

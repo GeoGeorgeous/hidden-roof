@@ -1,18 +1,17 @@
 import { HUD, VIGNETTE } from './config';
-import { label } from './input';
+import { keysVersion, label } from './input';
 import { netLines, type NetStats } from './net/diagnostics';
+import { msg } from './messages';
 import { PauseMenu } from './pause-menu';
 
 // Body-cam style HUD: vignette, corner brackets, REC indicator with elapsed
 // time, clock, crosshair, the PSI gauge, cap and color tags beside the tool in
 // hand, performance numbers, and over it all the ESC menu (pause-menu.ts).
+// Each part is a layer of its own under body (style.css, the --z-* tokens in boot.css).
 // The tool readout lives in inventory/hotbar.ts, the debug panel in debug/panel.ts.
 
-/** The color tag sits this many CSS px below the cap tag. */
-const COLOR_TAG_OFFSET = 22;
-/** The PSI gauge sits this many CSS px above the cap tag, the low-pressure alert above it. */
-const GAUGE_OFFSET = -22;
-const ALERT_OFFSET = -44;
+/** The tool stack starts this many CSS px above the cap tag: the low-pressure alert, then the PSI gauge, then the cap tag (style.css .tool-stack). */
+const STACK_TOP = -44;
 
 export class Hud {
   /** The start / pause screen and its pages. */
@@ -24,6 +23,7 @@ export class Hud {
   private perfShown = '';
   private perfAt = 0;
   private vignette: HTMLElement;
+  private stack: HTMLElement;
   private capTag: HTMLElement;
   private capTagUntil = 0;
   private colorTag: HTMLElement;
@@ -34,6 +34,7 @@ export class Hud {
   private alert: HTMLElement;
   /** What the gauge shows now, so it's rewritten only on change. */
   private gaugeShown = '';
+  private alertKeys = -1;
   private gaugeUntil = 0;
   private gaugeOn = false;
   private lastPressure = -1;
@@ -45,44 +46,54 @@ export class Hud {
   private partsShown = '';
 
   constructor() {
-    const root = document.createElement('div');
-    root.className = 'hud';
-    root.innerHTML = `
+    const frame = document.createElement('div');
+    frame.className = 'layer layer-frame';
+    frame.innerHTML = `
       <div class="vignette"></div>
       <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
       <div class="rec"><div class="rec-line"><i></i><span class="rec-time">REC 00:00:00</span></div><div class="dim">CAM 01 · ROOFTOP</div></div>
       <div class="clock"></div>
-      <div class="perf"></div>
-      <div class="cap-tag" hidden></div>
-      <div class="cap-tag color-tag" hidden></div>
-      <div class="cap-tag psi-gauge"><span>PSI</span><div class="line"><i></i></div><b></b></div>
-      <div class="cap-tag psi-alert" hidden>LOW PRESSURE — HOLD [${label('shake')}] TO SHAKE</div>`;
-    document.body.appendChild(root);
+      <div class="perf"></div>`;
+    const tools = document.createElement('div');
+    tools.className = 'layer layer-tool';
+    tools.innerHTML = `
+      <div class="tool-stack" hidden>
+        <div class="cap-tag psi-alert off">${msg('hud.lowPressure', { shake: label('shake') })}</div>
+        <div class="cap-tag psi-gauge"><span>PSI</span><div class="line"><i></i></div><b></b></div>
+        <div class="cap-tag" hidden></div>
+        <div class="cap-tag color-tag" hidden></div>
+      </div>`;
+    const world = document.createElement('div');
+    world.className = 'layer layer-world';
+    const menu = document.createElement('div');
+    menu.className = 'layer layer-menu';
+    document.body.append(world, frame, tools, menu);
     // The crosshair inverts what's under it (style.css), so it's its own layer
     // over the game view: inside the HUD it could only blend with the HUD.
-    // Before the HUD, so the pause menu still covers it.
+    // Under the pause menu, over the world tags.
     this.crosshair = document.createElement('div');
     this.crosshair.className = 'crosshair';
     this.crosshair.hidden = true;
-    document.body.insertBefore(this.crosshair, root);
-    this.vignette = root.querySelector('.vignette')!;
-    this.perf = root.querySelector('.perf')!;
+    document.body.append(this.crosshair);
+    this.vignette = frame.querySelector('.vignette')!;
+    this.perf = frame.querySelector('.perf')!;
     this.syncVignette();
-    this.rec = root.querySelector('.rec-time')!;
-    this.clock = root.querySelector('.clock')!;
+    this.rec = frame.querySelector('.rec-time')!;
+    this.clock = frame.querySelector('.clock')!;
     this.parts = [
-      ['frame', [...root.querySelectorAll<HTMLElement>('.corner')]],
-      ['rec', [root.querySelector('.rec-line')!]],
-      ['cam', [root.querySelector('.rec .dim')!]],
+      ['frame', [...frame.querySelectorAll<HTMLElement>('.corner')]],
+      ['rec', [frame.querySelector('.rec-line')!]],
+      ['cam', [frame.querySelector('.rec .dim')!]],
       ['clock', [this.clock]],
     ];
-    this.capTag = root.querySelector('.cap-tag')!;
-    this.colorTag = root.querySelector('.color-tag')!;
-    this.gauge = root.querySelector('.psi-gauge')!;
-    this.gaugeFill = root.querySelector('.psi-gauge i')!;
-    this.gaugeText = root.querySelector('.psi-gauge b')!;
-    this.alert = root.querySelector('.psi-alert')!;
-    this.menu = new PauseMenu(root);
+    this.stack = tools.querySelector('.tool-stack')!;
+    this.capTag = tools.querySelector('.cap-tag:not(.psi-alert, .psi-gauge)')!;
+    this.colorTag = tools.querySelector('.color-tag')!;
+    this.gauge = tools.querySelector('.psi-gauge')!;
+    this.gaugeFill = tools.querySelector('.psi-gauge i')!;
+    this.gaugeText = tools.querySelector('.psi-gauge b')!;
+    this.alert = tools.querySelector('.psi-alert')!;
+    this.menu = new PauseMenu(menu);
   }
 
   /** Unlocked = paused, behind the menu (pause-menu.ts); with the debug panel open it stays, compact. */
@@ -141,24 +152,20 @@ export class Hud {
         this.gauge.classList.toggle('low', low);
       }
     }
-    // Keeps following the can while it fades out.
-    if (at) this.gauge.style.transform = `translate(${Math.round(at.x)}px, ${Math.round(at.y + GAUGE_OFFSET)}px)`;
+    // Keeps following the can while the gauge fades out.
+    this.stack.hidden = !at;
+    if (at) this.stack.style.transform = `translate(${Math.round(at.x)}px, ${Math.round(at.y + STACK_TOP)}px)`;
     const alert = !!at && pressure !== null && low;
-    this.alert.hidden = !alert;
+    this.alert.classList.toggle('off', !alert);
     if (alert) {
       // The shake key may have been rebound (Settings → Controls).
-      const text = `LOW PRESSURE — HOLD [${label('shake')}] TO SHAKE`;
-      if (this.alert.textContent !== text) this.alert.textContent = text;
-      this.alert.style.transform = `translate(${Math.round(at.x)}px, ${Math.round(at.y + ALERT_OFFSET)}px)`;
+      if (keysVersion !== this.alertKeys) {
+        this.alertKeys = keysVersion;
+        this.alert.textContent = msg('hud.lowPressure', { shake: label('shake') });
+      }
     }
-    const place = (el: HTMLElement, until: number, dy: number) => {
-      const show = !!at && now < until;
-      el.hidden = !show;
-      if (show) el.style.transform = `translate(${Math.round(at.x)}px, ${Math.round(at.y + dy)}px)`;
-    };
-    place(this.capTag, this.capTagUntil, 0);
-    // The marker has no cap: its color tag takes the cap tag's place.
-    place(this.colorTag, this.colorTagUntil, this.capTag.hidden ? 0 : COLOR_TAG_OFFSET);
+    this.capTag.hidden = now >= this.capTagUntil;
+    this.colorTag.hidden = now >= this.colorTagUntil;
   }
 
   /** The performance readout, bottom left: written a few times a second. `gpuName`: what draws (null: hidden by the browser); `gpu`: ms per frame, null = not measurable, undefined = not shown. */

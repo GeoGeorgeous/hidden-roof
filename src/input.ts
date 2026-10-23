@@ -1,4 +1,5 @@
-import { BINDINGS, RENDER, WHEEL } from './config';
+import { layoutName } from './key-name';
+import { BINDINGS, PLAYER, RENDER, WHEEL } from './config';
 import { enterGameFullscreen } from './fullscreen';
 import { currentOs } from './gpu-name';
 
@@ -52,18 +53,21 @@ const NAMES: Record<string, string> = {
 };
 const NUMPAD: Record<string, string> = { Add: '+', Subtract: '-', Multiply: '*', Divide: '/', Decimal: '.' };
 
-/** What each key prints on this keyboard's layout (Chromium): W is Z on AZERTY. Elsewhere the US name. */
+/** What each key prints on this keyboard's layout (Chromium): W is Z on AZERTY. Elsewhere, and for a non-Latin layout, the US name. */
 let layout: Map<string, string> | undefined;
+/** Counts the changes to what keys are called (a rebind, the layout arriving): text with key names in it is redone when it moves. */
+export let keysVersion = 0;
+export const keysChanged = () => keysVersion++;
 (navigator as Navigator & { keyboard?: { getLayoutMap?(): Promise<Map<string, string>> } }).keyboard
   ?.getLayoutMap?.()
-  .then((m) => (layout = m))
+  .then((m) => ((layout = m), keysChanged()))
   .catch(() => {});
 
 /** A binding as the game writes it, on this platform: LMB, Shift (⇧ Shift on a Mac), W, ↑, Num 1. */
 export function keyName(code: string) {
   const key = sideless(code);
   if (key.startsWith('Numpad')) return `Num ${NUMPAD[key.slice(6)] ?? key.slice(6)}`;
-  return PLATFORM_NAMES[key] ?? layout?.get(key)?.toUpperCase() ?? NAMES[key] ?? key.replace(/^(Key|Digit)/, '');
+  return PLATFORM_NAMES[key] ?? layoutName(layout?.get(key)) ?? NAMES[key] ?? key.replace(/^(Key|Digit)/, '');
 }
 
 /** The action's first binding, in the HUD's capitals: HOLD [RMB] TO SHAKE. */
@@ -90,6 +94,10 @@ export class Input {
   /** Mouse buttons (0 left, 1 middle, 2 right) pressed this frame. */
   private clicks = new Set<number>();
   private isLocked = false;
+  /** The last lock asked for the mouse without acceleration (PLAYER.rawMouse), and wasn't refused it. */
+  rawLocked = false;
+  /** When the player last pressed, clicked, scrolled or moved the mouse in play (performance.now() s): idle since. */
+  lastActive = performance.now() / 1000;
   onLockChange: (locked: boolean) => void = () => {};
   /** A click on the game while paused: resume (main.ts routes it through the play state). */
   onResume: () => void = () => this.requestLock();
@@ -110,6 +118,7 @@ export class Input {
     window.addEventListener('mouseup', (e) => this.button(e.button, false));
     window.addEventListener('mousemove', (e) => {
       if (!this.locked) return;
+      this.active();
       this.mouseDX += e.movementX;
       this.mouseDY += e.movementY;
     });
@@ -137,6 +146,7 @@ export class Input {
    * `target`: where a keydown came from, `ctrl`/`meta`: modifiers held with it.
    */
   key(code: string, down: boolean, repeat = false, mods: { ctrl?: boolean; meta?: boolean; target?: EventTarget | null } = {}) {
+    this.active();
     if (!down) {
       this.down.delete(code);
       // macOS sends no keyup for keys released while Cmd is held: drop them all (one still held comes back on its auto-repeat).
@@ -160,6 +170,7 @@ export class Input {
 
   /** A mouse button (0 left, 1 middle, 2 right) went down or up. While paused a press resumes instead. */
   button(n: number, down: boolean) {
+    this.active();
     if (down && !this.locked) {
       this.onResume();
       return;
@@ -172,7 +183,12 @@ export class Input {
 
   /** Whole wheel steps taken (positive down), as the listener counts them from the scroll. */
   wheel(steps: number) {
+    this.active();
     this.wheelSteps += steps;
+  }
+
+  private active() {
+    this.lastActive = performance.now() / 1000;
   }
 
   /** The pointer is locked to the game: playing. */
@@ -200,9 +216,15 @@ export class Input {
    * pause menu simply stays up and the next click tries again.
    */
   requestLock() {
+    // Raw: without OS acceleration. A browser without it rejects (NotSupportedError), and the plain lock follows.
+    this.rawLocked = PLAYER.rawMouse;
     try {
-      const p = this.element?.requestPointerLock() as unknown as Promise<void> | undefined;
-      p?.catch?.(() => {});
+      const p = this.element?.requestPointerLock(this.rawLocked ? { unadjustedMovement: true } : undefined) as unknown as Promise<void> | undefined;
+      p?.catch?.((e: DOMException) => {
+        if (!this.rawLocked || e?.name !== 'NotSupportedError') return;
+        this.rawLocked = false;
+        this.element?.requestPointerLock();
+      });
     } catch {
       // Refused (see above).
     }

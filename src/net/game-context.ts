@@ -25,6 +25,9 @@ export interface MultiplayerContext {
   inventory: Inventory;
   pickups: Pickups;
   tools: Tools;
+  /** Paused behind the menu, and when the player last pressed or moved anything (s): what the others see them doing (own-status.ts). */
+  paused(): boolean;
+  lastActive(): number;
   /** The level as a file, and its name (what HOST starts the session on). */
   levelData(): { data: LevelData; name: string };
   /** The level's own paint file (save/level-paint.ts), if it has one: what FRESH LEVEL starts from. */
@@ -40,17 +43,26 @@ export interface MultiplayerContext {
 }
 
 /**
+ * Play this level from its spawn with the starting kit: the open one started
+ * over when it's the same, built at `detail` (`built`: the detail it was built
+ * at) and `also` holds, else built again, which takes seconds with its lights
+ * and shaders.
+ */
+export function playLevel(g: MultiplayerContext, data: LevelData, name: string, built: number, detail: number, also = () => true) {
+  const open = g.levelData();
+  if (built === detail && open.name === name && also() && JSON.stringify(open.data) === JSON.stringify(data)) g.restartLevel();
+  else g.openLevel(data, name);
+}
+
+/**
  * The welcome's level, at its PAINT DETAIL, from its spawn with the starting
- * kit: the open one started over when it's the same, built at its detail,
- * since building it again takes seconds with its lights and shaders (BL-085).
+ * kit (playLevel).
  * False: this game builds it differently from the server (another version).
  */
 export function playSessionLevel(g: MultiplayerContext, w: Extract<ToClient, { type: 'welcome' }>) {
   // Built at the session's detail too: the table doesn't say (its shapes are the same at every detail).
   const built = g.paint.texelsPerMeter;
   g.lockDetail(w.detail);
-  const open = g.levelData();
-  if (built === w.detail && open.name === w.levelName && surfaceTable(g.paint.surfaces) === w.table && JSON.stringify(open.data) === JSON.stringify(w.level)) g.restartLevel();
-  else g.openLevel(w.level, w.levelName);
+  playLevel(g, w.level, w.levelName, built, w.detail, () => surfaceTable(g.paint.surfaces) === w.table);
   return surfaceTable(g.paint.surfaces) === w.table;
 }

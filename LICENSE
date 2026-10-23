@@ -1,82 +1,113 @@
-Hidden Roof: Source-Available License, All Rights Reserved
+Hidden Roof Source-Available License
+====================================
 
-Copyright (c) 2026 George Gorchev. All rights reserved.
+Copyright (c) 2026 Hidden Haus. All rights reserved.
 
-This is not an open source license. The source code is public so that you can
-read it, report problems and send fixes. Everything else needs permission.
+THIS IS NOT AN OPEN-SOURCE LICENSE. The repository is public so that people can
+read the code, report bugs and propose fixes. It grants no right to reuse,
+redistribute, host or build on the Software. Playing the game at
+roof.hidden.haus is governed by its Terms of Service, not by this License.
 
-1. What this covers
+1. Definitions
+--------------
+"Hidden Haus" (also "we") means the individual developer who owns and operates
+Hidden Roof under the Hidden Haus brand, reachable at roof@hidden.haus.
 
-All the source code, shaders, level files, game design, UI, text and other
-assets in this repository (the "Software") belong to George Gorchev (the
-"Copyright Holder"). All rights not granted below are reserved.
+"Software" means everything in this repository, in source and built form: code,
+shaders, levels, models, textures, user interface, text and documentation,
+except the third-party components described in Section 6.
 
-Third-party parts are not covered: three.js, ws, the fonts and anything else
-that came from someone else stay under their own licenses (section 6).
+"You" means anyone who views, downloads or otherwise uses the Software.
 
-2. What you may do
+2. What You May Do
+------------------
+Hidden Haus grants you a personal, revocable, non-exclusive, non-transferable,
+non-sublicensable and royalty-free permission to:
 
-You may, free of charge:
+  (a) view and study the Software;
+  (b) build and run it on your own machine, for yourself alone, to see how it
+      works or to test a change you intend to submit under Section 4;
+  (c) fork it on GitHub, within GitHub and as GitHub's Terms of Service allow,
+      to prepare a pull request to this repository; and
+  (d) report bugs and suggest changes.
 
-  (a) read, run and inspect the Software on your own device, to look at how it
-      works, to evaluate it or to learn from reading it;
-  (b) report bugs, security problems and ideas to the Copyright Holder;
-  (c) fork the repository on GitHub, and only on GitHub, to read it there and
-      to send a pull request back to this repository. This is what GitHub's
-      Terms of Service already allow for any public repository, and it is all
-      this license adds to them.
+3. What You May Not Do
+----------------------
+Unless Hidden Haus has given you written permission, you may not:
 
-3. What you may not do
+  (a) copy, publish, mirror or distribute the Software or any build of it,
+      except through GitHub's own functions as Section 2(c) allows;
+  (b) host or deploy the Software, or any modified version of it, where anyone
+      but you can reach it, including on a website, GitHub Pages or any other
+      hosting service, a container registry, a game server or a local network;
+  (c) keep a fork for independent development, or make derivative works, ports
+      or clones based on the Software;
+  (d) reuse any part of the Software (code, shaders, levels, models, textures
+      or user interface) in another project, commercial or not;
+  (e) sell, rent, license or otherwise make money from the Software; or
+  (f) use the Software as input to automated or AI tools to produce a
+      competing or derivative product.
 
-Without the prior written permission of the Copyright Holder, you may not:
-
-  (a) copy, redistribute, publish or sublicense the Software or any part of it,
-      except as section 2(c) allows;
-  (b) host, deploy or offer the Software or a build of it to anyone, as a
-      website, a server, a download or in any other way;
-  (c) modify it or make derivative works from it, except for a pull request
-      under section 2(c);
-  (d) keep a fork for your own use, or use it for independent development;
-  (e) take code, shaders, models, textures, level data, UI or any other part of
-      the Software and use it in another project, commercial or not.
+This License does not restrict anything that applicable law allows regardless
+of a license, such as observing, studying and testing the Software, or
+decompiling it to the extent needed for interoperability (Articles 5(3) and 6
+of Directive 2009/24/EC).
 
 4. Contributions
+----------------
+A "Contribution" is any code, asset, documentation or other material you submit
+to this repository, for example in a pull request, a patch or an issue.
 
-A contribution is anything you submit to this repository: a pull request, a
-patch, a comment with code in it.
+By submitting a Contribution, you confirm that it is your own work or that you
+otherwise have the right to submit it under this Section, and that it contains
+no material under terms that conflict with this Section (such as the GPL, the
+AGPL or CC BY-SA).
 
-By submitting a contribution you confirm that it is your own work, or that you
-have the right to submit it, and you grant the Copyright Holder a perpetual,
-worldwide, non-exclusive, royalty-free, irrevocable license to use, modify,
-sublicense and commercialize it, in any form and without attribution or
-payment.
+You keep the copyright in your Contribution. You grant Hidden Haus and its
+successors and assigns a perpetual, irrevocable, worldwide, non-exclusive,
+royalty-free, transferable and sublicensable license to use, copy, modify,
+publish, distribute and commercially exploit the Contribution, alone or as part
+of any product, under any terms, without attribution or payment. You grant the
+same license under any patent claims you can license that the Contribution, alone
+or combined with the Software, would infringe. To the extent the law allows, you
+agree not to assert any moral rights in the Contribution against Hidden Haus or
+its licensees.
 
-You keep the copyright in your contribution. This is a license, not an
-assignment: nothing is transferred to the Copyright Holder.
+This Section is a separate agreement in the sense of Section D.6 of GitHub's
+Terms of Service and applies instead of it. A Contribution gives you no rights
+in the Software beyond Section 2.
 
 5. Termination
+--------------
+If you breach this License, your permissions under it end automatically. You
+must then stop using the Software and delete your copies and forks of it.
+Sections 3, 4, 7 and 8 survive termination.
 
-If you break this license, your permissions end. You must then stop using the
-Software and delete your copies and forks.
+6. Third-Party Components
+-------------------------
+The Software includes third-party components under their own licenses. They
+are listed in the game's Credits, and their license texts are in
+public/licenses/. This License does not limit your rights under those licenses.
 
-6. Third-party software and assets
-
-The Software uses and ships parts that are not the Copyright Holder's, under
-their own licenses: three.js and ws (MIT) and the fonts (SIL Open Font License
-1.1 and Apache License 2.0). Their license texts are in public/licenses/, and
-the game lists them under Credits. This license does not change them.
-
-7. No warranty
-
+7. No Warranty; Limitation of Liability
+---------------------------------------
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
-PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE
-FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
-ITS USE.
+PURPOSE, TITLE AND NON-INFRINGEMENT.
 
-8. Asking for permission
+TO THE EXTENT THE LAW ALLOWS, HIDDEN HAUS IS NOT LIABLE FOR ANY CLAIM, DAMAGES
+OR OTHER LIABILITY, IN CONTRACT, TORT OR OTHERWISE, ARISING FROM THE SOFTWARE
+OR ITS USE. THIS DOES NOT LIMIT LIABILITY FOR INTENT, GROSS NEGLIGENCE, INJURY
+TO LIFE, BODY OR HEALTH, OR ANY OTHER LIABILITY THAT CANNOT BE LIMITED BY LAW.
 
-To ask for permission to do something this license does not allow, write to
-the Copyright Holder through the issues of the GitHub repository
-(https://github.com/GeoGeorgeous/hidden-roof) or the game's Discord.
+8. Governing Law
+----------------
+This License is governed by the laws of the country of Georgia, without regard
+to its conflict of law rules. The courts of Tbilisi, Georgia, have jurisdiction;
+Hidden Haus may also bring a claim in the courts of your country. This does not
+deprive you of the protection of mandatory laws, or of the courts, of your
+country of habitual residence.
+
+9. Contact
+----------
+Permission requests and copyright questions: roof@hidden.haus

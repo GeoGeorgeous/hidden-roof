@@ -74,6 +74,8 @@ export async function openTestBrowser(url, { uncapped = false, level = 'demo', g
   const open = browser.newPage.bind(browser);
   browser.newPage = async (options) => {
     const page = await open(options);
+    // The game loads more than the default 250 resource entries: tests look their modules' URLs up there.
+    await page.addInitScript(() => performance.setResourceTimingBufferSize(5000));
     page.setDefaultNavigationTimeout(120_000);
     keepLoadLog(page);
     return page;
@@ -82,6 +84,7 @@ export async function openTestBrowser(url, { uncapped = false, level = 'demo', g
   browser.newContext = async (options) => {
     const c = await context(options);
     c.setDefaultNavigationTimeout(120_000);
+    await c.addInitScript(() => performance.setResourceTimingBufferSize(5000));
     c.on('page', keepLoadLog);
     return c;
   };

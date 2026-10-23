@@ -17,9 +17,11 @@ export async function paint(w) {
   await b.waitForTimeout(500);
   assert.equal(await paintHash(b), painted, 'B paints what A painted');
 
-  // B's game is hidden: what A paints meanwhile is painted at once, not queued until B is shown again (all of a long
-  // absence, landing in one frame).
+  // B's game is hidden: A's tag over B says it's away, and what A paints meanwhile is painted at once, not queued until
+  // B is shown again (all of a long absence, landing in one frame).
+  const noted = (note) => a.waitForFunction((n) => document.querySelector('.nameplate .note')?.dataset.note === n, note, { timeout: 5000 });
   await b.evaluate(() => window.hide());
+  await noted('away');
   const hidden = await paintHash(b);
   await a.evaluate(() => {
     const g = window.game;
@@ -33,6 +35,8 @@ export async function paint(w) {
   assert.equal(await b.evaluate(() => [...window.game.net.remotes.players.values()][0].timeline.waiting), 0, 'nothing waits for B to be shown');
   await b.evaluate(() => window.show());
   await b.waitForTimeout(500);
+  // Shown again, but paused: in the menu.
+  await noted('menu');
   painted = await paintHash(a);
   assert.equal(await paintHash(b), painted, 'B, shown again, has the paint A has');
 

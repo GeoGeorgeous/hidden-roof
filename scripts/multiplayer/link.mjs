@@ -19,6 +19,9 @@ export async function link(w) {
   });
   await b.waitForFunction(() => window.threw, null, { timeout: 5000, polling: 50 });
   assert.match(b.errors.pop() ?? '', /on purpose/);
+  // It shows the crash card with the error to copy; taken off here, so the rest of this test can use the menu.
+  assert.match(await b.textContent('.layer-dialog.crash .callout'), /on purpose/);
+  await b.evaluate(() => document.querySelector('.layer-dialog.crash').remove());
   // SAVE as it starts to reconnect is refused at once: the request can't go, and a reconnect wouldn't answer it (it used
   // to wait forever). Asked by the page the moment it reports "reconnecting", which may last only a second.
   await b.evaluate(() => {
@@ -84,7 +87,9 @@ export async function link(w) {
   await b.evaluate((c) => window.game.net.join('B', c), code);
   await status(b, 'in');
   await b.waitForFunction(() => [...window.game.net.remotes.players.values()][0]?.avatar.group.visible, null, { timeout: 2000 });
-  assert.equal(await b.textContent('.nameplate'), 'A');
+  assert.equal(await b.textContent('.nameplate .name'), 'A');
+  assert.equal(await b.textContent('.nameplate .note'), 'In menu', 'A, paused, is shown in the menu');
+  assert.match(await b.textContent('.nameplate .far'), /^\d+m$/);
   await b.evaluate(() => window.game.net.leave());
 
   // B joins and presses LEAVE while the welcome's paint loads (its own paint kept, the session's level open, the paint

@@ -26,6 +26,7 @@ const SECTIONS: [title: string, entries: Entry[]][] = [
     [
       ['Sedgwick Ave Display', 'Kevin Burke & Mirko Velimirovic · titles', 'SIL OFL 1.1', license('sedgwick-ave-display')],
       ['Archivo', 'Omnibus-Type · menus and text', 'SIL OFL 1.1', license('archivo')],
+      ['Montserrat', 'Julieta Ulanovsky & others · hints and toasts', 'SIL OFL 1.1', license('montserrat')],
       ['Noto Sans JP', 'Google & Adobe · neon signs', 'SIL OFL 1.1', license('noto-sans-jp')],
       ['Permanent Marker', 'Font Diner · build-mode hints', 'Apache 2.0', license('permanent-marker')],
       ['Bangers', 'Vernon Adams · build-mode hints', 'SIL OFL 1.1', license('bangers')],
@@ -37,6 +38,7 @@ const SECTIONS: [title: string, entries: Entry[]][] = [
     [
       ['three.js', '3D rendering', 'MIT', license('three.js')],
       ['ws', 'WebSocket server for multiplayer', 'MIT', license('ws')],
+      ['Tabler Icons', 'Paweł Kuna · social link icons', 'MIT', license('tabler-icons')],
     ],
   ],
 ];

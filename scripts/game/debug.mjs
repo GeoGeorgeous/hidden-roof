@@ -167,7 +167,7 @@ await check('frame: a frame that throws is reported once and asks for a reload; 
         };
       }),
   );
-  const notice = await p.evaluate(() => { const n = document.querySelector('.frame-failed'); return n?.checkVisibility() ? n.textContent : null; });
+  const notice = await p.evaluate(() => { const n = document.querySelector('.layer-dialog.crash'); return n?.checkVisibility() ? n.textContent : null; });
   await p.close();
   const ok = frames === 30 && p.errors.join() === 'test: a broken frame' && /reload/i.test(notice ?? '');
   return ok ? null : JSON.stringify({ frames, errors: p.errors.length, notice });

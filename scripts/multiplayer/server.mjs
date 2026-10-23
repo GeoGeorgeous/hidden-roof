@@ -5,13 +5,19 @@ import { status, PORT, stopServer, restartServer } from './harness.mjs';
 
 export async function server(w) {
   const { a } = w;
-  // The server restarts (a deploy): A's game reconnects, finds its session gone, and says the session has ended.
+  // The server restarts (a deploy): A's game reconnects, finds its session gone, and says the session has ended (restarted: the dialog says the server restarted).
   await a.evaluate(() => (window.game.hud.menu.started = true));
   restartServer();
-  await a.waitForFunction(() => window.game.net.status.state === 'failed' && window.game.net.status.reason === 'ended', null, { timeout: 15000 });
+  await a.waitForFunction(() => window.game.net.status.state === 'failed' && window.game.net.status.reason === 'restarted', null, { timeout: 15000 });
   assert.equal(await a.evaluate(() => window.game.session.multiplayer), false);
-  // Any end of a session brings back the player's own game, as LEAVE does: A had no paint of its own, so every surface is clean again, at its own PAINT DETAIL (ULTRA, not the session's), and the menu is on the title view.
-  await a.waitForFunction(() => !window.game.session.joining && !window.game.hud.menu.started && ![...window.game.paint.surfaces].some((s) => s.data), null, { timeout: 15000 });
+  // Lost mid-play, the session is a dialog: A stays in the game with the session's paint until it answers.
+  assert.equal(await a.evaluate(() => window.game.notify.blocked), true);
+  assert.equal(await a.evaluate(() => window.game.hud.menu.started), true);
+  assert.equal(await a.evaluate(() => [...window.game.paint.surfaces].some((s) => s.data)), true);
+  // Esc (leave without saving) brings back the player's own game: A had no paint of its own, so every surface is clean again, at its own PAINT DETAIL (ULTRA, not the session's); the menu stays where it was.
+  await a.evaluate(() => window.game.notify.confirm(false));
+  await a.waitForFunction(() => !window.game.session.joining && ![...window.game.paint.surfaces].some((s) => s.data), null, { timeout: 15000 });
+  assert.equal(await a.evaluate(() => window.game.hud.menu.started), true);
   assert.equal(await a.evaluate(() => window.game.config.PAINT.texelsPerMeter), 96);
   // The MULTIPLAYER page keeps saying it (the menu's status line only for a few seconds).
   assert.match(await a.textContent('.mp-page .mp-status'), /The session has ended/);

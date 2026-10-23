@@ -7,7 +7,7 @@ import { PAINT, PAINT_DETAIL } from '../src/config.ts';
 import { Outbox } from '../src/net/outbox.ts';
 import { decodeOps, encodeOps, rounded, SurfaceIndex } from '../src/op-wire.ts';
 import { LEVEL_VERSION, levelProblem } from '../src/level/level-data.ts';
-import { checkToServer, cleanName, decode, encode, partFrames, PROTOCOL, SNAPSHOT_BYTES } from '../src/net/protocol.ts';
+import { checkToServer, cleanName, closeCode, decode, encode, isName, partFrames, PROTOCOL, rejectionOf, SNAPSHOT_BYTES } from '../src/net/protocol.ts';
 
 const level = { version: 4, spawn: { pos: [0, 0, 0], yaw: 0 }, props: [{ id: 1, type: 'slab', pos: [0, 0, 0] }] };
 const stamp = { kind: 'stamp', key: 'p12#0', rect: 3, u: 0.1 + 0.2, v: 1 / 3, radius: 0.0125, amount: 0.35, color: [1, 0.2, 0.1], softness: 0.5, square: false };
@@ -29,7 +29,8 @@ const sent = [
   { type: 'ladder', t: 2.5, data: null },
   { type: 'save' },
   { type: 'inventory', data: { tools: ['marker', 'ladder'], colors: ['black', 'red'], caps: ['standard'], selected: 2, color: 'red', cap: 'standard' } },
-  { type: 'away', away: true },
+  { type: 'status', status: 'idle' },
+  { type: 'status', status: 'lagging' },
   { type: 'ping', t: 12.5 },
   { type: 'leave' },
 ];
@@ -42,7 +43,7 @@ for (const m of sent) {
   assert.deepEqual(rest, Object.fromEntries(Object.entries(json).filter(([, v]) => v !== undefined)));
   assert.deepEqual(got, bytes);
 }
-const welcome = { type: 'welcome', code: 'ABCDE', you: 2, token: 't', levelName: 'demo', level, detail: 48, table: 'x', players: [{ id: 1, name: 'geo', state: 'away' }], ladders: [], inventory: null, parts: 3, acked: 0 };
+const welcome = { type: 'welcome', code: 'ABCDE', you: 2, name: 'geo (2)', token: 't', levelName: 'demo', level, detail: 48, table: 'x', players: [{ id: 1, name: 'geo', state: 'away' }], ladders: [], inventory: null, parts: 3, acked: 0 };
 assert.deepEqual(decode(encode(welcome)), welcome);
 // A paint file in pieces goes as parts of at most the size asked, and comes back whole.
 const parts = partFrames([save.subarray(0, 10), save.subarray(10, 700), save.subarray(700)], 400).map(decode);
@@ -64,7 +65,32 @@ for (const json of ['{"type":', '[1,2]', '{"kind":"x"}', 'null']) assert.equal(d
 const refused = (m) => assert.equal(checkToServer(decode(encode(m))), null, JSON.stringify(m).slice(0, 120));
 refused({ type: 'nope' });
 refused({ ...host, detail: 50 });
-refused({ ...host, name: '   ' });
+// A name is Latin letters and digits (ASCII) only, 1 to NAME_MAX of them: the menu and the server ask the same isName.
+for (const name of ['Geo', 'geo', 'GEOGEO', 'G293', '7', 'abcdefghij123456']) {
+  assert.ok(isName(name), name);
+  assert.ok(checkToServer(decode(encode({ ...join, name }))), name);
+}
+for (const name of ['', '   ', 'Geo Geo', ' Geo', 'Geo ', 'Geo_', 'Geo.', 'Geo-1', 'Гоша', 'Geо', 'ゴースト', 'Geo!@#$%', 'Ｇｅｏ', 'Geo\n', 'a\u0000b', 'abcdefghij1234567', 7, null]) {
+  assert.ok(!isName(name), JSON.stringify(name));
+  refused({ ...host, name });
+  refused({ ...join, name });
+}
+// Another protocol passes whatever else is in it (a name or fields an older game sent), so the server can answer 'version'; the current one keeps every check.
+for (const m of [host, join]) {
+  assert.ok(checkToServer(decode(encode({ ...m, protocol: PROTOCOL - 1, name: 'Anna K', code: 'x', level: 1 }))));
+  assert.ok(checkToServer(decode(encode({ ...m, protocol: PROTOCOL + 1, name: '' }))));
+  refused({ ...m, protocol: PROTOCOL, name: 'Anna K' });
+  refused({ ...m, protocol: '6', name: 'Anna K' });
+}
+// A socket's close code says the rejection it came with; any other close code says none.
+for (const r of ['version', 'no-session', 'ended', 'full', 'bad-save', 'bad-level', 'busy', 'replaced', 'too-many']) assert.equal(rejectionOf(closeCode(r)), r);
+for (const code of [1000, 1006, 1008, 1011, 4000, 4010]) assert.equal(rejectionOf(code), undefined, String(code));
+// A name saved by an older version is cleaned to what a name may be: letters and digits, at most NAME_MAX.
+assert.equal(cleanName('Geo Geo'), 'GeoGeo');
+assert.equal(cleanName('Гоша_7!'), '7');
+assert.equal(cleanName('abcdefghij1234567'), 'abcdefghij123456');
+assert.equal(cleanName('Ｇｅｏ'), '');
+for (const name of ['Geo Geo', 'Гоша_7!', 'abcdefghij1234567', ' g.e-o ']) assert.ok(!cleanName(name) || isName(cleanName(name)), name);
 refused({ ...host, level: { props: 'x' } });
 refused({ ...host, level: { ...level, props: [{ type: 'slab' }] } });
 refused({ ...host, level: { ...level, props: [{ type: 'slab', pos: [0, 0, 0], rot: 1.5 }] } });
@@ -92,12 +118,11 @@ refused({ type: 'ops', seq: 1 });
 refused({ type: 'ladder', t: 1, data: { type: 'building', pos: [0, 0, 0] } });
 refused({ type: 'ladder', t: 1 });
 refused({ type: 'ping' });
-refused({ type: 'away' });
+refused({ type: 'status' });
+refused({ type: 'status', status: 'dropped' });
 refused({ type: 'inventory', data: { tools: [], colors: [], caps: [], selected: -1, color: 'red', cap: 'x' } });
 refused({ type: 'inventory', data: { tools: Array(33).fill('x'), colors: [], caps: [], selected: 0, color: 'red', cap: 'x' } });
 
-assert.equal(cleanName('  a name far longer than allowed  '), 'a name far longe');
-assert.equal(cleanName('ゴースト'), 'ゴースト');
 // Paint ops packed (op-wire.ts, BL-024): every op comes out as the painter rounded it (rounded), to the last bit, so
 // everyone paints the same texels; rounded again or packed again it doesn't change; close to what was made; times to
 // the ms. A stamp is 23 bytes.

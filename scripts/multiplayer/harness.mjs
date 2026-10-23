@@ -28,14 +28,15 @@ export async function open(detail) {
   // Nothing drawn: the test is about the network.
   await ctx.addInitScript(noDrawing);
   await ctx.addInitScript(noBrowserLock);
-  // hide() and show(): as a hidden tab, no frames and document.hidden, while the socket still takes messages.
+  // hide() and show(): as a hidden tab, no frames and document.hidden, while the socket still takes messages; the page hears it (visibilitychange).
   await ctx.addInitScript(() => {
     const raf = window.requestAnimationFrame.bind(window);
     const held = [];
     let hidden = false;
     window.requestAnimationFrame = (cb) => (hidden ? (held.push(cb), 0) : raf(cb));
-    window.hide = () => ((hidden = true), Object.defineProperty(document, 'hidden', { configurable: true, get: () => true }));
-    window.show = () => ((hidden = false), delete document.hidden, held.splice(0).forEach((cb) => raf(cb)));
+    const told = () => document.dispatchEvent(new Event('visibilitychange'));
+    window.hide = () => ((hidden = true), Object.defineProperty(document, 'hidden', { configurable: true, get: () => true }), told());
+    window.show = () => ((hidden = false), delete document.hidden, told(), held.splice(0).forEach((cb) => raf(cb)));
   });
   await ctx.addInitScript((d) => localStorage.setItem('roofhiddenhaus.settings', JSON.stringify({ paintDetail: d, cityDetail: 'low' })), detail);
   const page = await ctx.newPage();

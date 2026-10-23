@@ -23,6 +23,8 @@ const display = new THREE.Color();
 export class SprayTool {
   /** 0..1 flow actually coming out this frame. */
   flow = 0;
+  /** The spray is landing on paintable surface (not the sky, not out of reach): as of the last frame that sprayed. */
+  landing = false;
   readonly model = new CanModel();
   readonly particles: SprayParticles;
   /** Other players' spray (net/remote-player.ts): seen only, their paint comes as paint ops. */
@@ -50,6 +52,7 @@ export class SprayTool {
     this.others.update(dt);
     if (!inv) {
       this.flow = 0;
+      this.landing = false;
       this.shakeT = -1;
       this.audio.setHiss(0, 0);
       return;
@@ -84,6 +87,7 @@ export class SprayTool {
 
     this.model.update(dt, camera, spraying, this.flow > 0, this.shakeT >= 0 ? this.shakeT / PRESSURE.shakeDuration : -1);
     if (this.flow > 0) this.emit(dt, camera, eye, inv);
+    else this.landing = false;
   }
 
   /** Shaking the can (RMB) right now. */
@@ -101,7 +105,7 @@ export class SprayTool {
     right.set(1, 0, 0).applyQuaternion(camera.quaternion);
     up.crossVectors(right, forward);
     setHex(display, COLORS[inv.color]);
-    this.particles.emit({ count, eye, nozzle: this.model.nozzleWorld(nozzle), forward, right, up, cap, flow: this.flow, rgb: rgbOf(inv.color), display });
+    this.landing = this.particles.emit({ count, eye, nozzle: this.model.nozzleWorld(nozzle), forward, right, up, cap, flow: this.flow, rgb: rgbOf(inv.color), display }) > 0;
   }
 
   private computeFlow(dt: number, p: number): number {

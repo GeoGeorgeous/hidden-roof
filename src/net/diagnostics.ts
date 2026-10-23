@@ -1,4 +1,5 @@
 import { NET, SERVER } from '../config';
+import { msg } from '../messages';
 import type { Multiplayer } from './multiplayer';
 import { HELLO, PROTOCOL } from './protocol';
 import { VERSION } from '../version';
@@ -33,18 +34,18 @@ export class NetLog {
  * what was seen.
  */
 export async function diagnose(): Promise<{ reason: 'offline' | 'server-down' | 'no-server' | 'version' | 'blocked'; detail: string }> {
-  if (!navigator.onLine) return { reason: 'offline', detail: 'BROWSER OFFLINE' };
+  if (!navigator.onLine) return { reason: 'offline', detail: msg('menu.detailOffline') };
   let res: Response;
   try {
     res = await fetch('/ws', { cache: 'no-store', signal: AbortSignal.timeout(NET.diagnoseTimeout * 1000) });
   } catch (e) {
-    return { reason: 'offline', detail: (e as Error).name === 'TimeoutError' ? `NO HTTP ANSWER IN ${NET.diagnoseTimeout} S` : 'HTTP FAILED' };
+    return { reason: 'offline', detail: (e as Error).name === 'TimeoutError' ? msg('menu.detailNoHttp', { seconds: NET.diagnoseTimeout }) : msg('menu.detailHttpFailed') };
   }
   const text = res.ok ? await res.text() : '';
   const theirs = text.match(/^roof server · protocol (\d+)/)?.[1];
-  if (text === HELLO) return { reason: 'blocked', detail: 'SERVER UP' };
-  if (theirs) return { reason: 'version', detail: `SERVER PROTOCOL ${theirs}, OURS ${PROTOCOL}` };
-  return { reason: res.status >= 500 ? 'server-down' : 'no-server', detail: `HTTP ${res.status}` };
+  if (text === HELLO) return { reason: 'blocked', detail: msg('menu.detailServerUp') };
+  if (theirs) return { reason: 'version', detail: msg('menu.detailProtocol', { theirs, ours: PROTOCOL }) };
+  return { reason: res.status >= 500 ? 'server-down' : 'no-server', detail: msg('menu.detailHttp', { status: res.status }) };
 }
 
 /** For the HUD: the last round trip (s), bytes each way since `since`, and their rates (bytes/s). */

@@ -3,7 +3,7 @@ import { SERVER } from '../src/config';
 import type { InventoryData } from '../src/inventory/inventory';
 import type { LevelData, PropData } from '../src/level/level-data';
 import { decodeOps, encodeOps, SurfaceIndex } from '../src/op-wire';
-import { cleanName, closeCode, encode, NAME_MAX, partFrames, type Presence, type Rejection, type ToClient, type ToServer } from '../src/net/protocol';
+import { closeCode, encode, NAME_MAX, partFrames, type Activity, type Presence, type Rejection, type ToClient, type ToServer } from '../src/net/protocol';
 import { loadPaint } from '../src/save/load-paint';
 import { streamPaint } from '../src/save/save-paint';
 import { surfaceTable } from '../src/save/shape';
@@ -30,7 +30,10 @@ export interface Link {
 
 export interface Player {
   id: number;
+  /** The name they go by in the session: the one they asked for, numbered if it was taken. */
   name: string;
+  /** The name they asked for, as the menu sent it: a new tab typing it takes their place back too. */
+  asked: string;
   /** Lets them come back as themselves (welcome hands it out). */
   token: string;
   link: Link | null;
@@ -40,8 +43,8 @@ export interface Player {
   live: boolean;
   /** A SAVE of theirs is under way. */
   saving: boolean;
-  /** Their game is hidden (minimized, another tab). */
-  away: boolean;
+  /** What they said they're doing (playing, hidden, paused, idle). */
+  activity: Activity;
   /** What they carry, as they last said (null: the starting kit). */
   inventory: InventoryData | null;
   ladder: PropData | null;
@@ -114,9 +117,9 @@ export class Session {
    */
   async admit(link: Link, name: string, token?: string): Promise<{ p: Player; how: How; note: string } | Rejection> {
     const all = [...this.players.values()];
-    name = cleanName(name);
     let p = token ? all.find((q) => q.token === token) : undefined;
-    const how = p ? 'back' : (p = all.find((q) => !q.link && q.name === name)) ? 'takeover' : 'new';
+    const dropped = all.filter((q) => !q.link);
+    const how = p ? 'back' : (p = dropped.find((q) => q.name === name) ?? dropped.find((q) => q.asked === name)) ? 'takeover' : 'new';
     if (!p && this.players.size >= SERVER.maxPlayers) return 'full';
     const snap = this.snapshot(() => p?.link === link && link.open);
     if (snap === 'busy') return 'busy';
@@ -131,10 +134,10 @@ export class Session {
       p.link?.send(encode({ type: 'rejected', reason: 'replaced' }));
       p.link?.close(closeCode('replaced'), 'replaced');
       p.link = link;
-      p.away = false;
+      p.activity = 'here';
     } else {
       const unique = uniqueName(name, all);
-      p = { id: this.nextId++, name: unique, token: randomUUID(), link, acked: 0, live: false, saving: false, away: false, inventory: this.carried.get(unique) ?? null, ladder: null, expires: null, was: null };
+      p = { id: this.nextId++, name: unique, asked: name, token: randomUUID(), link, acked: 0, live: false, saving: false, activity: 'here', inventory: this.carried.get(unique) ?? null, ladder: null, expires: null, was: null };
       this.broadcast({ type: 'joined', id: p.id, name: p.name }, p);
       this.players.set(p.id, p);
     }
@@ -154,7 +157,7 @@ export class Session {
     const others = [...this.players.values()].filter((q) => q !== p);
     const ladders = [...this.players.values()].filter((q) => q.ladder).map((q) => ({ id: q.id, data: q.ladder! }));
     const players = others.map((q) => ({ id: q.id, name: q.name, state: presence(q) }));
-    link.send(encode({ type: 'welcome', code: this.code, you: p.id, token: p.token, levelName: this.levelName, level: this.level, detail: this.detail, table: this.table, players, ladders, inventory: p.inventory, parts: own ? 0 : frames.length, acked: p.acked }));
+    link.send(encode({ type: 'welcome', code: this.code, you: p.id, name: p.name, token: p.token, levelName: this.levelName, level: this.level, detail: this.detail, table: this.table, players, ladders, inventory: p.inventory, parts: own ? 0 : frames.length, acked: p.acked }));
     if (!own) for (const f of frames) link.send(f);
     for (const f of snap.log) link.send(f);
     p.live = true;
@@ -184,8 +187,8 @@ export class Session {
       this.broadcast({ type: 'ladder', id: p.id, t: m.t, data: m.data }, p);
     } else if (m.type === 'save') void this.save(p);
     else if (m.type === 'inventory') p.inventory = m.data;
-    else if (m.type === 'away') {
-      p.away = m.away;
+    else if (m.type === 'status') {
+      p.activity = m.status;
       this.broadcast({ type: 'presence', id: p.id, state: presence(p) }, p);
     }
     else if (m.type === 'ping') this.send(p, { type: 'pong', t: m.t, acked: p.acked });
@@ -327,19 +330,19 @@ export class Session {
 
 }
 
-const presence = (p: Player): Presence => (!p.link ? 'dropped' : p.away ? 'away' : 'here');
+const presence = (p: Player): Presence => (p.link ? p.activity : 'dropped');
 
 function deliver(p: Player, f: Uint8Array) {
   if (p.live) p.link?.send(f);
 }
 
-/** `name`, or with the lowest number free when another player has it: "geo (2)". */
+/** `name`, or with the lowest number free when another player has it: "geo (2)", which no player can type, so it never looks like a typed name. */
 function uniqueName(name: string, players: Player[]) {
   const taken = new Set(players.map((p) => p.name));
   if (!taken.has(name)) return name;
   for (let n = 2; ; n++) {
     const tag = ` (${n})`;
-    const s = Array.from(name).slice(0, NAME_MAX - tag.length).join('') + tag;
+    const s = name.slice(0, NAME_MAX - tag.length) + tag;
     if (!taken.has(s)) return s;
   }
 }

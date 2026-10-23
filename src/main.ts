@@ -32,6 +32,12 @@ import { syncCityLight } from './city/material';
 import { Tools } from './tools/tools';
 import { Inventory } from './inventory/inventory';
 import { Hotbar } from './inventory/hotbar';
+import { sentence } from './menu-ui';
+import { msg } from './messages';
+import { Notify } from './notify';
+import { NotifyView } from './notify-view';
+import { Tutorial } from './tutorial/tutorial';
+import { TutorialWire } from './tutorial/wire';
 import { Thumbnails } from './inventory/thumbnails';
 import { Pickups } from './pickups/pickups';
 import { OpenLevel } from './level/open-level';
@@ -105,16 +111,21 @@ const player = new Player(level.colliders, level.ladders);
 const inventory = new Inventory();
 const thumbnails = new Thumbnails(renderer);
 const hotbar = new Hotbar(thumbnails);
+const notify = new Notify();
+const notifyView = new NotifyView(notify);
+const tutorial = new Tutorial(notify);
 const tools = new Tools(scene, viewScene, paint, level.solids, audio, inventory, level);
-tools.ladder.onBlocked = () => hotbar.toast("The ladder can't stand there");
+tools.onFact = (f) => tutorial.fact(f);
+const tutorialWire = new TutorialWire(tutorial, player, inventory, level.ladders);
+tools.ladder.onBlocked = () => notify.toast(msg('toast.ladderBlocked'));
 const wallHand = new WallHand(level.solids);
 viewScene.add(wallHand.group);
 const pickups = new Pickups(scene, camera, level.solids);
 pickups.onCollect = (label) => {
   audio.pickup();
-  hotbar.toast(`+ ${label}`);
+  notify.toast(msg('toast.pickedUp', { item: sentence(label) }));
 };
-pickups.onBlocked = (msg) => hotbar.toast(msg);
+pickups.onBlocked = (label) => notify.toast(msg('toast.alreadyHave', { item: sentence(label) }));
 function applyPixelScale() {
   renderer.setPixelRatio(pixelRatio());
   syncViewSize();
@@ -124,10 +135,12 @@ const opened = new OpenLevel({ scene, level, pickups, inventory, drips, paint, p
 
 /** The level is built, lit and painted (loading.ts): until then the game doesn't run. */
 let loaded = false;
+// The hints' font loads meanwhile, not awaited: the first hint doesn't flash in the fallback.
+void document.fonts.load('500 1em Montserrat').catch(() => {});
 // Signs measure their text when they are built: wait for the sign font first.
 Promise.all([fetchLevel(opened.name), jpFontReady()])
   .then(async ([data]) => {
-    await loadStep('Building the roof');
+    await loadStep(msg('menu.loadRoof'));
     opened.load(data);
     // The level's merged meshes first: their shaders are most of what's compiled.
     level.flush();
@@ -136,9 +149,9 @@ Promise.all([fetchLevel(opened.name), jpFontReady()])
     environment.lighting.update(player.position, camera.matrixWorldInverse);
     post.warm(scene, viewScene, camera);
     thumbnails.warm();
-    await loadStep('Lighting the lamps');
+    await loadStep(msg('menu.loadLamps'));
     baker.update(0, player.position);
-    await loadStep('Putting up the paint');
+    await loadStep(msg('menu.loadPaint'));
     await putLevelPaint(paint, drips, opened.name, data);
     loaded = true;
     // A reload in a session goes back into it (multiplayer.ts), with the session's paint.
@@ -159,6 +172,8 @@ const play = new PlayState(input, session, {
   page: () => hud.menu.onPage,
   back: () => hud.menu.goBack(),
   primary: () => hud.menu.primary(),
+  dialog: () => notify.blocked,
+  confirm: (accepted) => notify.confirm(accepted),
 });
 input.onMenuKey = (code, down, repeat) => play.key(code, down, repeat);
 guardBrowser(() => !play.paused);
@@ -181,10 +196,10 @@ input.onResume = hud.menu.onResume = () => play.resume();
 hud.menu.onStyle = (i) => settings.setStyle(i);
 showMenu();
 const testPage = perfTestPage(hud.menu, perfTest, gpu, () => settings.tested());
-hud.menu.setSettings(settings.sections(gpu, testPage.run));
+hud.menu.setSettings(settings.sections(gpu, testPage.run, tutorial));
 // SAVE in a session downloads the session's paint, from the server.
 const paintFile = paintMenu(hud.menu, paint, drips, () => opened.name, () => net.savePaint());
-const net = multiplayerMenu(hud.menu, hotbar, { scene, camera, level, paint, paintOps, drips, player, inventory, pickups, tools, levelData: () => ({ data: opened.toJSON(), name: opened.name }), levelPaint: () => levelPaintOf(opened.name), openLevel: (d, n) => opened.open(d, n), restartLevel: () => opened.restart(), lockDetail: (tpm) => settings.lockPaintDetail(tpm), ownDetail: () => settings.useOwnDetail() }, () => opened.name);
+const net = multiplayerMenu(hud.menu, notify, { scene, camera, level, paint, paintOps, drips, player, inventory, pickups, tools, paused: () => play.paused, lastActive: () => input.lastActive, levelData: () => ({ data: opened.toJSON(), name: opened.name }), levelPaint: () => levelPaintOf(opened.name), openLevel: (d, n) => opened.open(d, n), restartLevel: () => opened.restart(), lockDetail: (tpm) => settings.lockPaintDetail(tpm), ownDetail: () => settings.useOwnDetail() }, () => opened.name);
 // A stepladder can't stand where the session's players or F3's figures (the ghost) are.
 tools.ladder.others = () => [...net.shown, ...(dev?.figures ?? [])];
 tools.onCapChange = (name) => hud.showCapTag(name);
@@ -243,7 +258,8 @@ function step(time: number) {
   // you stand still, but you still fall, your spray lands and paint runs, as
   // others see it.
   const { paused, frozen } = play;
-  const yours = paused ? noInput : input;
+  const yours = paused || notify.blocked ? noInput : input;
+  tutorialWire.before();
   if (!frozen) player.update(dt, yours);
   if (player.onGround && player.stride - lastStride > PLAYER.footstepStride) {
     lastStride = player.stride;
@@ -312,6 +328,10 @@ function step(time: number) {
   paint.gpu.flush(renderer);
   hotbar.update(inventory);
   hud.update();
+  const visible = input.locked && !play.panel && !building && document.visibilityState === 'visible';
+  notify.update(dt, visible);
+  tutorialWire.frame(dt, visible, yours);
+  notifyView.update();
   dev?.lap('paint + hud');
 
   // The CPU time before the draw calls: a GPU that falls behind stalls them (the performance test's CPU time).
@@ -321,7 +341,7 @@ function step(time: number) {
   frameDrawn();
   dev?.lap('render');
   // Same frame as the render: the canvas still holds it (see screenshot.ts). Only while playing: not on the title or pause screen, nor with F3 open.
-  if (yours.justPressed('screenshot')) saveScreenshot(renderer.domElement, () => hotbar.toast('Screenshot saved'));
+  if (yours.justPressed('screenshot')) saveScreenshot(renderer.domElement, () => (notify.toast(msg('toast.screenshot')), tutorial.fact({ type: 'screenshot' })));
   gpuTimer.poll();
   const { calls, triangles } = post.sceneStats;
   perfTest.frame(time, beforeDraw, calls);
@@ -345,5 +365,5 @@ function toScreen(p: THREE.Vector3) {
 
 // Dev tools (build mode, F3, window.game): single player only, and not in the player build (npm run build).
 let dev: DevTools | undefined;
-const game = { city: () => opened.city, applyPixelScale, config, gpu, perfTest, testPage, settings, play, environment, audio, wallHand, drips, baker, player, tools, inventory, hotbar, pickups, paint, paintOps, net, paintFile, seedPaintRandom, fixedStep, session, level, renderer, input, hud, scene, viewScene, gpuTimer, PLAYER, loadLevel: (d: LevelData) => opened.load(d), rebuildCity: () => opened.rebuildCity(), levelData: () => opened.toJSON(), levelName: () => opened.name, openLevel: (d: LevelData, n: string) => opened.open(d, n), loaded: () => loaded };
+const game = { city: () => opened.city, applyPixelScale, config, gpu, perfTest, testPage, settings, play, environment, audio, wallHand, drips, baker, player, tools, inventory, hotbar, notify, notifyView, pickups, paint, paintOps, net, paintFile, seedPaintRandom, fixedStep, session, level, renderer, input, hud, scene, viewScene, gpuTimer, PLAYER, loadLevel: (d: LevelData) => opened.load(d), rebuildCity: () => opened.rebuildCity(), levelData: () => opened.toJSON(), levelName: () => opened.name, openLevel: (d: LevelData, n: string) => opened.open(d, n), loaded: () => loaded };
 if (__DEV_TOOLS__) void import('./dev/devtools').then((m) => (dev = new m.DevTools(game)));

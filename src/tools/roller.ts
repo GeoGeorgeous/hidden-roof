@@ -38,6 +38,11 @@ export class RollerTool {
     return this.model.sway;
   }
 
+  /** Meters rolled so far. */
+  get distance() {
+    return this.stroke.travel;
+  }
+
   /** `width`: the player's roller width (m). */
   update(dt: number, input: Input, camera: THREE.Camera, eye: THREE.Vector3, active: boolean, color: PaintColor, width: number) {
     const rolled = active && input.held('use') && input.locked ? this.roll(dt, camera, eye, color, width) : this.lift();

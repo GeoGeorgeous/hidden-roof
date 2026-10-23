@@ -1,4 +1,5 @@
 import type { Tool } from './inventory/tool.ts';
+import { DISCORD, INSTAGRAM, REPO, TIKTOK, YOUTUBE } from './links.ts';
 
 // All tunable constants live here. Units: meters, seconds, radians unless noted.
 
@@ -23,7 +24,7 @@ export const RENDER = {
    * touch-only device, screen 10 shows instead (src/boot.ts; ?force=1 loads
    * the game anyway). Measured on the ESC menu, the widest UI: the Updates
    * popup is 780 px plus its 16 px margins (812; the Settings column is 640,
-   * the pause screen's widest row, its footer, 478). The pause screen's title
+   * the pause screen's widest row, its title, 468). The pause screen's title
    * clears the style switcher down to 560 px high, where the popups still fit
    * (Updates shrinks and scrolls). The HUD needs far less. Read at build time
    * (vite.config.ts).
@@ -328,24 +329,44 @@ export const PAUSE_MENU = {
   viewPitch: -8,
 };
 
+/** A social channel in the pause screen's footer (pause-menu.ts). */
+export interface SocialLink {
+  id: string;
+  /** Its name: the icon's tooltip and accessible name. */
+  label: string;
+  /** Its Tabler icon (src/social-icons.ts). */
+  icon: string;
+  url: string;
+  /** Open (a link in a new tab), or not yet: a muted icon, "coming soon". */
+  live: boolean;
+}
+
+/** The pause screen's social icons, in order. */
+export const SOCIAL_LINKS: readonly SocialLink[] = [
+  { id: 'discord', label: 'Discord', icon: 'brand-discord', url: DISCORD, live: true },
+  { id: 'github', label: 'GitHub', icon: 'brand-github', url: REPO, live: true },
+  { id: 'youtube', label: 'YouTube', icon: 'brand-youtube', url: YOUTUBE, live: true },
+  { id: 'instagram', label: 'Instagram', icon: 'brand-instagram', url: INSTAGRAM, live: true },
+  { id: 'tiktok', label: 'TikTok', icon: 'brand-tiktok', url: TIKTOK, live: true },
+];
+
 /** What the HUD shows (hud.ts) and the hotbar's size (inventory/hotbar.ts), live in F3 → UI. */
 export const HUD = {
   /** Body-cam corner brackets. */
   frame: true,
   /** REC dot and elapsed time, top left. */
-  rec: true,
+  rec: false,
   /** Camera label under it (CAM 01 · ROOFTOP). */
-  cam: true,
+  cam: false,
   /** Date and time, top right. */
-  clock: true,
+  clock: false,
   /** Performance readout, bottom left: fps, draw calls, triangles, texture memory. */
-  perf: true,
+  perf: false,
   /** GPU time per frame in it too (timer queries: desktop Chromium; a few queries a frame while shown). */
   perfGpu: false,
-  /** How long the cap and color tags show after a change, the PSI gauge after the pressure last changed, and a hotbar message (s). */
+  /** How long the cap and color tags show after a change, and the PSI gauge after the pressure last changed (s). */
   tagTime: 2.5,
   gaugeTime: 1.2,
-  toastTime: 2.2,
   /** Hotbar slots: size and the gap between them (CSS px), roundness (0 = square, 1 = circle), icon size (share of the slot). */
   slotSize: 30,
   slotGap: 10,
@@ -359,6 +380,46 @@ export const HUD = {
   selectedBorder: '#141416',
   selectedFill: '#ebe5d6',
   selectedFillOpacity: 0.35,
+};
+
+/** In-game messages (notify.ts, notify-view.ts): hints at the bottom, toasts above them, statuses at the top. */
+export const NOTIFY = {
+  /** How long a toast shows, counted only while play is visible (s), and how many stack: a newer one removes the oldest. */
+  toastSeconds: 3,
+  maxToasts: 3,
+  /** Statuses at once: the next waits its turn. */
+  maxStatuses: 2,
+  /** Fades (ms), in and out: the dark gradient behind a hint, a status, the dialog. Hints and toasts cut. */
+  fadeIn: 200,
+  fadeOut: 160,
+  /** A status that succeeded shows its result this long (s of play) before it goes. */
+  doneSeconds: 1.5,
+  /** The cycling bars of a status trying again: one loop and the delay between one bar and the next (ms). */
+  barsLoop: 1200,
+  barsStep: 200,
+  /** One loop (ms) of a weak link's second bar, flickering twice, and of the red ring blinking while nothing is heard. */
+  flickerLoop: 2400,
+  blinkLoop: 1000,
+  /** A status growing into the dialog (ms): the move and resize, with its easing; the status's content fading out; the card's content fading in, after a delay. */
+  growTime: 320,
+  growEase: 'cubic-bezier(.3,.7,.2,1)',
+  growOut: 100,
+  growIn: 160,
+  growDelay: 200,
+  /** The look, live in F3 → Test → Messages (px unless said): the lowest hint box's distance from the bottom, text size and line height, box padding across and down, the opacity of every message box (hint, toast, status, dialog). */
+  hintBottom: 72,
+  fontSize: 12,
+  lineHeight: 16,
+  padX: 8,
+  padY: 4,
+  boxOpacity: 0.78,
+  /** The gradient behind a hint: with a hint ('auto'), 'always' or 'never'; its height and its strength at the bottom edge. */
+  shade: 'auto' as 'auto' | 'always' | 'never',
+  shadeHeight: 180,
+  shadeStrength: 0.4,
+  /** The gap between the hint's top line and the toasts above it, and between toasts; the statuses' distance from the top. */
+  toastGap: 4,
+  statusTop: 24,
 };
 
 /** Slogans on lettered sign panels (kit/lettering.ts panelLettering). */
@@ -939,6 +1000,8 @@ export const PLAYER = {
   /** A climb carries on this far (m) over a ladder's top, so you step onto the floor it leads to (a stepladder's cap, a roof, over a parapet). */
   climbOver: 0.3,
   mouseSensitivity: 0.0022,
+  /** Take the mouse without the OS's pointer acceleration (the pointer lock's `unadjustedMovement`), at the next lock. For finding what makes mouse spikes (docs/ideas/mouse-spikes.md); F3 only. */
+  rawMouse: false,
   /** Falling below this height respawns the player. */
   killY: -25,
   /** Meters walked per footstep sound, and the landing speed (m/s) above which a landing sounds hard. */
@@ -1000,6 +1063,10 @@ export const NET = {
   ladderNear: 0.3,
   /** A player's name tag hangs this high over their feet (m). */
   nameplateHeight: 2.1,
+  /** Name tags fade with the distance from the camera (m): whole up to `near`, down to `faintest` at `far` and beyond (never gone: the others can always be found). */
+  nameplateFade: { near: 15, far: 50, faintest: 0.35 },
+  /** Nothing pressed for this long (s) while playing: shown to the others as idle (net/own-status.ts). */
+  idleAfter: 60,
   /** No snapshot from a player for this long (s): they're shown as gone (NO SIGNAL) until the server says more. */
   silentAfter: 3,
   /** The HUD's network lines name this many other players, then say how many more. */
@@ -1017,6 +1084,18 @@ export const NET = {
   diagnoseTimeout: 5,
   /** Network log entries kept for COPY NETWORK LOG (net/diagnostics.ts). */
   logLines: 80,
+  /** The link's status (net/link-health.ts): a status shows when its value stays past the first number for `statusShow` s, and goes when it stays under the second for `statusClear` s. */
+  /** How often (s) the link's numbers are checked. */
+  healthEvery: 0.25,
+  badPing: 0.3,
+  badPingClear: 0.2,
+  /** "Bad connection" shows once the round trip has stayed past badPing for this long (s). The round trip is measured every SERVER.ping, so this is a couple of measurements. */
+  statusShow: 2,
+  /** "Bad connection" goes once the round trip has stayed under badPingClear for this long (s): longer than it takes to show, so a link on the edge doesn't flicker. */
+  statusClear: 3,
+  /** Nothing from the server for this long (s) shows "No signal"; it goes at once under the second. The server pings every SERVER.ping; serverSilence then closes the link. */
+  noSignal: 4,
+  noSignalClear: 1.5,
 };
 
 /** The multiplayer server (server/, docs/deploy.md). */
@@ -1026,8 +1105,8 @@ export const SERVER = {
   maxPlayers: 20,
   /** A dropped player can come back as themselves for this long (s); then their stepladder goes, and a session with no one left closes. */
   rejoinWindow: 180,
-  /** The server pings every game this often (s), so a game notices a dead link. */
-  ping: 2,
+  /** The server pings every game this often (s), so a game notices a dead link; a game pings the server as often, and each answer is a round trip for the link's status (NET.statusShow). */
+  ping: 1,
   /**
    * Every this often (s) the server drops a link that sent it nothing since the last time, and sends a WebSocket ping.
    * Anything from the game counts, not only the answer to that ping: on a slow link the ping waits behind what's
@@ -1063,6 +1142,18 @@ export const SERVER = {
   sessionsPerIp: 2,
   /** A link that hasn't sent HOST or JOIN by then is closed (s), so idle links hold no slot. */
   helloTimeout: 20,
+  /** With LOG_DIR, the log's lines lose their IP addresses and nicknames after this many days, and are deleted after logKeepDays (the privacy page says so); checked every logCleanEvery (s). */
+  logRedactDays: 14,
+  logKeepDays: 60,
+  logCleanEvery: 3600,
+  /** The cleaning reads and redacts a log file this many bytes at a time, and lets the server's links (the relay) run between them. */
+  logChunkBytes: 256 * 1024,
+  /** With LOG_DIR, a day's file stops growing at this many bytes (a note says so); the next day starts afresh. */
+  logDayBytes: 20 * 2 ** 20,
+  /** Lines anyone can make at will (a bad message, a link turned away or silent) are logged this many a noisyWindow (s) per address, then one line says the rest are held back: they can't fill the day's file. noisyIps addresses are tracked at once; past it, new ones are held back. */
+  noisyPerIp: 10,
+  noisyWindow: 60,
+  noisyIps: 1000,
 };
 
 /** F3 -> Ghost (src/dev/ghost.ts): the network it plays through, and how far behind it follows you. */
@@ -1124,6 +1215,8 @@ export const PROFILE = {
   jumpDegrees: 45,
   /** A mouse spike: one mouse event moved further than this (px; a hard flick is under 150). */
   mouseSpikePx: 300,
+  /** Raw events of each kind a mouse spike keeps from before it. */
+  mouseTrail: 24,
   /** Spikes kept in a report; the rest are only counted. */
   maxSpikes: 40,
 };
@@ -1416,4 +1509,31 @@ export const CCTV = {
   maxTurn: 1.3,
   /** How far it can tilt up or down to your height (rad). */
   maxTilt: 0.7,
+};
+
+/** Hints in play (src/tutorial). Times are visible play seconds: paused, F3, build mode and a hidden tab don't count. */
+export const TUTORIAL = {
+  /** Hints on (Settings → Gameplay → Hints). Off: none show and none are learnt. */
+  enabled: true,
+  /** The first hint (move, run, jump) waits this long after play starts (s). */
+  moveDelay: 1.5,
+  /** Walking this far (m) is learning to move; one key press isn't. */
+  moveMeters: 3,
+  /** A hint shows at least this long (s) before it can leave as done, so it doesn't flash. */
+  minShown: 2,
+  /** A color hint is learnt after this long on screen (s), whatever the player did. */
+  colorShown: 5,
+  /** Spraying this long (s) on a surface is learning the can. */
+  spraySeconds: 0.5,
+  /** Drawing this far (m) with the marker, or scrubbing with the sponge, is learning it. */
+  markerMeters: 0.5,
+  spongeMeters: 0.5,
+  /** Rolling this far (m) is learning the roller. */
+  rollerMeters: 1,
+  /** Climbing this far (m) is learning ladders. */
+  climbMeters: 1.5,
+  /** A hint with nothing to do (about the stepladder) is learnt after this long on screen (s). */
+  infoSeconds: 6,
+  /** A ladder hint shows within this distance (m) of a ladder's climb volume. */
+  ladderRadius: 2.5,
 };

@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 184
+The one list of what's left. Counter for new ids: next: 224
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -8,7 +8,7 @@ The one list of what's left. Counter for new ids: next: 184
 ### File structure
 
 - **Counter:** one sequential counter for all items, on the line above. Every new id takes that number, then the counter goes up by one. Numbers are never reused, even if an item's type changes or the item is deleted.
-- **Sections:** domain sections (Multiplayer, Painting, UI, ...) hold the backlog; `Done` holds items shipped since the last release and is emptied by the release commit.
+- **Sections:** domain sections (Multiplayer, Painting, UI, ...) hold the backlog; `Done` holds items shipped since the last release and is emptied by the release commit; `Discarder`, last, holds deleted items and is never emptied.
 - **Numbering:** items are numbered 1, 2, 3... within each section. Renumber the section after any add, move or removal.
 
 ### Item line
@@ -26,7 +26,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 - **Markers:** zero or more characters inside the brackets, before the id, always in the order `!?>`: `!` critical, `?` unconfirmed (verify before working on it), `>` explain (the owner wants it explained). Examples: `[?BUGS-162]`, `[!>BL-024]`. Keep markers when editing a line; never drop them silently.
 - **Detail link:** specs live in `docs/ideas/` and are linked in parentheses after the description.
 - **Release tag:** `@X.Y.Z` at the very end of the line.
-- **Deleted:** everything after the number is wrapped in `~~...~~`. The item is dropped but kept for the record: don't work on it, don't move it to Done, and don't remove the line unless asked.
+- **Deleted:** everything after the number is wrapped in `~~...~~`, and the line lives in `Discarder`. The item is dropped but kept for the record: don't work on it, don't move it to Done, and don't remove the line unless asked.
 
 ### Release planning
 
@@ -39,7 +39,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 - **Add:** take the counter's number and increment it. Write `[TYPE-NNN]` under the right domain, and link a detail doc if there is one.
 - **Ship:** move the line into Done and drop its release tag. Delete its detail doc in `docs/ideas/` (or its part of a shared one) and the link.
-- **Delete:** wrap the line in `~~...~~` in place; don't remove it.
+- **Delete:** wrap the line in `~~...~~` and move it to the end of `Discarder`; don't remove it. No struck-through line stays in another section.
 - **Unconfirmed (`?`):** before working on it, check whether the problem is real and report back. Remove the `?` only once it is confirmed.
 - **Explain (`>`):** find every id containing `>`. For each, say what the task means, why it matters and what the work involves, using the linked docs/ideas file and the code. Then remove the `>` from those ids.
 
@@ -47,44 +47,38 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## Multiplayer
 
-1. BUGS [BL-024]: Paint ops are most of the downstream bytes; merge stamps, shed load on slow links, after the playtest (docs/ideas/weak-links.md) @1.6.1
-2. TASK [BL-076]: Run the next public playtest and verify that all bugs from the previous playtest have been fixed (docs/ideas/weak-links.md) @1.6.1
-3. IDEA [BL-114]: A failure says whether the player was in a session, for the notification system (docs/ideas/notifications.md) @1.9.0
-4. IDEA [?BL-071]: Multiplayer View-Only sessions: past sessions are opened for viewing only (gallary)
-5. TASK [BL-151]: Show what each other player is doing, add more statuses (in the menu, in Settings…) by their nameplate. For now, we have AWAY and DISCONNECTED @1.6.0
-6. IDEA [?BL-153]: Find who painted something by player id, picked like the eyedropper (to spot bad paint)
-7. TASK [BL-154]: Limit some tools in multiplayer (e.g. the roller) @1.6.0
-8. [TASK-168]: Returning players recover their inventory but spawn at the default spawn instead of their last position. Restore both inventory and position. @1.7.0
+1. BUGS [BL-024]: Paint ops are most of the downstream bytes; merge stamps, shed load on slow links, after the playtest (docs/ideas/weak-links.md) @1.6.0
+2. TASK [BL-076]: Run the next public playtest and verify that all bugs from the previous playtest have been fixed (docs/ideas/weak-links.md) @1.6.2
+3. IDEA [?BL-071]: Multiplayer View-Only sessions: past sessions are opened for viewing only (gallary)
+4. IDEA [?BL-153]: Find who painted something by player id, picked like the eyedropper (to spot bad paint)
+5. TASK [BL-154]: Limit some tools in multiplayer (e.g. the roller) @1.6.0
+6. [BUGS-168]: Returning players recover their inventory but spawn at the default spawn instead of their last position. Restore both inventory and position. @1.6.1
 
 ## Painting
 
 1. IDEA [BL-074]: Stencils
 2. IDEA [?BL-152]: Tune the can's pressure with Shift + mouse
-3. TASK [BL-016]: Tune drips per tool by hand and remove the strong ones (drying time, build-up, each cap's and tool's drips): the owner tunes in F3 on dev and pastes the JSON (docs/ideas/painting.md) @1.5.0
-4. ~~[RFCT-180]: painting.ts is past the ~400-line limit (412): split it by responsibility (patches for build mode and saves into paint-patch.ts) @1.5.0 (no boundary without exposing PaintSystem's internals: 417 lines accepted)~~
-5. TASK [BL-017]: Tune the can's caps until painting feels right, against Bombing!! 2 or paintsessions.com (docs/ideas/painting.md) @1.7.0
-6. IDEA [BL-042]: Reword the painting: new marker brushes: rectangular and calligraphy @1.7.0
-7. [IDEA-165]: Reword the painting: pressure @1.7.0
-8. [IDEA-166]: Reword the painting: lock the camera @1.7.0
-9. [IDEA-167]: Reword the painting: different brushes (soft / hard) @1.7.0
+3. TASK [BL-016]: Tune drips per tool by hand and remove the strong ones (drying time, build-up, each cap's and tool's drips): the owner tunes in F3 on dev and pastes the JSON (docs/ideas/painting.md) @1.7.0
+4. TASK [BL-017]: Tune the can's caps until painting feels right, against Bombing!! 2 or paintsessions.com (docs/ideas/painting.md) @1.7.0
+5. IDEA [BL-042]: Reword the painting: new marker brushes: rectangular and calligraphy @1.7.0
+6. [IDEA-165]: Reword the painting: pressure @1.7.0
+7. [IDEA-166]: Reword the painting: lock the camera @1.7.0
+8. [IDEA-167]: Reword the painting: different brushes (soft / hard) @1.7.0
+9. [IDEA-193]: Function to lock some some parts of the wall with paintings from changes (admin control)
 
 ## Input
 
-1. BUGS [?BL-010]: Rare huge mouse jumps snap the camera in Chrome on Windows; the fix is the owner's choice (docs/ideas/mouse-spikes.md)
-2. ~~BUGS [BL-135]: A Mac mouse wheel may need several notches per color (WHEEL.notchPx); measure first (docs/ideas/release-checks.md)~~
+1. BUGS [BL-010]: Rare huge mouse jumps snap the camera in Chrome on Windows; the fix is the owner's choice (docs/ideas/mouse-spikes.md) @1.6.1
 
 ## Performance
 
 1. BUGS [BL-034]: Paint pages at ULTRA can reach ~1 GB of GPU memory: measured, 1045 MB is the ceiling (all 49 pages, 72% full); the lossless fix is BL-144 (docs/ideas/performance.md)
-2. ~~BUGS [?BL-108]: Loading drops to 12 fps on the Intel UHD with Energy Saver on (docs/ideas/performance.md)~~
-3. ~~BUGS [BL-029]: The roof's edits of 2026-10-10 cost 3–9% GPU on the Intel UHD (docs/ideas/performance.md)~~
-4. ~~BUGS [BL-032]: One load of the roof took 62 s; not reproduced (docs/ideas/performance.md)~~
+2. [PERF-200]: Reduce Ladder Shadow Update Delay Without Frequent Rebaking @1.7.0
 
 ## Rendering
 
-1. BUGS [?BL-011]: Title-screen pickup rings are sized for where the player stands, not the title view
-2. ~~BUGS [?BL-110]: Crossed lines on the menu's glass bars on the Intel UHD under WSL (likely the driver)~~
-3. IDEA [BL-066]: A camera mode for trailers and cinematics
+1. BUGS [?BL-011]: Title-screen pickup rings are sized for where the player stands, not the title view @1.6.1
+2. IDEA [BL-066]: A camera mode for trailers and cinematics
 
 ## Props and level
 
@@ -100,21 +94,20 @@ Only `N.`, the id and the description are required. The optional parts appear in
 10. IDEA [BL-054]: New sign sizes, including big rectangular and square ones
 11. IDEA [BL-075]: Digital billboards
 12. IDEA [BL-106]: Paintable cone roofs on the water tanks (a cone paint mapping) (docs/ideas/painting.md)
+13. [TASK-194]: Replace paintable walls that cannot be reached with standard walls. Optimize room on the main floor.
 
 ## Tools
 
-1. ~~BUGS [BL-142]: Other players' figures hold their tools wrong: roller width, sponge tilt, ladder model (docs/ideas/tools.md)~~
-2. IDEA [BL-062]: Photo mode with Polaroid-like cards for photos
-3. IDEA [BL-061]: A player in the style of an old iPod Classic
-4. [TEST-177]: Allow releasing small patch versions with no image at all @1.6.1
+1. IDEA [BL-062]: Photo mode with Polaroid-like cards for photos
+2. IDEA [BL-061]: A player in the style of an old iPod Classic
+3. [TEST-177]: Allow releasing small patch versions with no image at all @1.6.0
 
 ## UI
 
-1. IDEA [BL-140]: One notification system: messages lost in menus and hidden tabs, nothing in play says reconnecting (docs/ideas/notifications.md) @1.9.0
-2. DSGN [BL-092]: A screen that teaches the controls; the owner has the design: ask for it @1.5.0
-3. ~~BUGS [BL-072]: Nickname tags don't scale with the UI and resolution~~
-4. ~~[?BUGS-162]: The browser's page zoom scales the HUD and menus (zoom keys, Ctrl+wheel and pinch are blocked already: BROWSER_GUARDS) @1.5.0~~
-5. TASK [BL-078]: Show BUY ME A COFFEE again once it has a link (revert e2c2310) @1.6.0
+1. [TASK-203]: The HUD scales with the window and the DPR: tiny at 4K at 100%, crowded at 820×560 (docs/ideas/hud-scale.md)
+2. [BUGS-198]: With F3 open the compact pause menu is under the pickup tags, nameplates, hotbar and toast (docs/ideas/hud-scale.md)
+3. [BUGS-199]: LOW PRESSURE runs off the right edge in narrow windows (820×560) (docs/ideas/hud-scale.md)
+4. [IDEA-204]: Notifications beyond play: the menu, pages, loading and a hidden tab on the same model; screen-reader announcements; more events (away and back, context lost, online, refused pointer lock or clipboard); battery (docs/ideas/notifications.md)
 
 ## Avatar
 
@@ -133,28 +126,26 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## Tests and tooling
 
 1. TEST [BL-035]: Fixed-step tests for walking, collisions, jumps and climbing
-2. ~~BUGS [?BL-037]: A game test page twice failed to load its level in 120 s; read `gameReady`'s log when it repeats~~
-3. TEST [BL-036]: Light baking and weather run on the wall clock; decide what a test would compare first
-4. ~~[BUGS-179]: test:mp logs two console errors on dev and still passes: "reading 'frame'" in main.ts step and "reading 'state'" in a test's remotes.get (no bug: both are the tests' own injected faults, now thrown as 'on purpose' errors)~~
+2. TEST [BL-036]: Light baking and weather run on the wall clock; decide what a test would compare first
+3. [IDEA-195]: Spectator/god mode for admin @1.6.0
 
 ## Servers and deploy
 
-1. TASK [BL-077]: Deploy from GitHub Actions (docs/ideas/server-ops.md)
-2. IDEA [BL-043]: One public server, running 24/7 (docs/ideas/public-servers.md) @1.6.0
-3. TASK [BL-044]: Disable host and join (don't remove them), after BL-043 (docs/ideas/public-servers.md) @1.6.0
-4. IDEA [BL-045]: A window of public servers instead of host and join (docs/ideas/public-servers.md) @1.6.0
-5. [DSGN-160]: The lobby list for BL-045: allowed tools, players online, ping with a country flag @1.6.0
-6. IDEA [BL-046]: A queue to enter the server, after BL-043 (docs/ideas/public-servers.md) @1.6.0
-7. IDEA [BL-047]: Admin panel: servers stats (players online, perfomance, etc), players info (username, IP, ping), ban by IP, after BL-043 (docs/ideas/public-servers.md) @1.6.0
-8. IDEA [?BL-147]: Anti-cheat: The server checks what players send (op reach and rate, ladder spot, jumps) before it goes public @1.6.0
+1. IDEA [BL-043]: One public server, running 24/7 (docs/ideas/public-servers.md) @1.6.0
+2. TASK [BL-044]: Disable host and join (don't remove them), after BL-043 (docs/ideas/public-servers.md) @1.6.0
+3. IDEA [BL-045]: A window of public servers instead of host and join (docs/ideas/public-servers.md) @1.6.0
+4. [DSGN-160]: The lobby list for BL-045: allowed tools, players online, ping with a country flag @1.6.0
+5. IDEA [BL-046]: A queue to enter the server, after BL-043 (docs/ideas/public-servers.md) @1.6.0
+6. IDEA [BL-047]: Admin panel: servers stats (players online, perfomance, etc), players info (username, IP, ping), ban by IP, after BL-043 (docs/ideas/public-servers.md) @1.6.0
+7. IDEA [?BL-147]: Anti-cheat: The server checks what players send (op reach and rate, ladder spot, jumps) before it goes public @1.6.1
+8. [TASK-189]: House rules before joining a public server: players are 18+, joining accepts the Terms, sessions may be recorded and published (docs/ideas/public-servers.md) @1.6.0
+9. [TASK-201]: Research itch.io Publishing Requirements, AI Policies, and Download Restrictions @1.6.3
 
 ## Web and promotion
 
-1. TASK [BL-067]: Posts on Reddit with technical decription @1.6.0
+1. TASK [BL-067]: Posts on Reddit with technical decription @1.6.3
 2. [TASK-169]: Creating and posting instagram reels @1.7.0
 3. IDEA [BL-065]: A minimal tool to record gameplay as GIFs and short videos
-4. [TASK-170]: Create accounts in social media (Discord, Instagram, YouTube, TikTok, subreddit) @1.5.0
-5. [TASK-182]: Screenshots for the designer, then their og:image, screenshot and raster icons dropped in (docs/ideas/seo.md) @1.5.0
 
 ## Auth
 
@@ -162,8 +153,12 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## Legal
 
-1. ~~[TASK-173]: Add cookies notification and all legal necessary documentation (docs/ideas/legal.md) @1.5.0 (no cookies: the privacy policy is TASK-178)~~
-2. [TASK-183]: A lawyer reads LICENSE, the Terms and the privacy policy (public/terms.html, public/privacy.html) @1.5.0
+1. [TASK-187]: Performance telemetry (feat/playtest-telemetry) needs opt-in consent in the EU before it ships; "on for everyone" breaks ePrivacy 5(3) and GDPR 7(4) (SECRET_legal.md) @1.6.0
+2. [IDEA-188]: Who plays and from where, counted on the server: country from the IP at connect, counts only, the IP not kept (SECRET_legal.md) @1.6.0
+
+## Codebase
+
+1. [RFCT-202]: Evaluate Organizing src/ into Feature-Based Modules
 
 ## Done
 
@@ -189,3 +184,56 @@ Shipped since the last release; the release commit empties this list.
 18. [TASK-178]: Privacy policy: no cookies or analytics; the server and Caddy see IP addresses, other players see nicknames, settings stay in localStorage
 19. TASK [BL-156]: CI runs on ubuntu-26.04 (pinned, not ubuntu-latest)
 20. [PERF-181]: Placing a stepladder skips the environment rebuild (rain heightmap, lights): a runtime prop never changes them
+21. [TASK-170]: Create accounts in social media (Discord, Instagram, YouTube, TikTok, subreddit)
+22. [TASK-184]: The pause menu's footer: social icons built from SOCIAL_LINKS (Tabler filled), then Terms · Privacy · version · built by; the Terms and Privacy pages restyled dark like the ESC menu
+23. [TASK-185]: LICENSE, CONTRIBUTING, Terms and Privacy rewritten as formal legal text under Hidden Haus: players 16+, a license to show recorded sessions, liability capped at EUR 20, GDPR bases and rights, contact roof@hidden.haus
+24. [DOCS-190]: Legal texts checked against the code and the law: the controller named, players 18+, recordings for promotion with a right to object, Hetzner named, email the only contact; Terms, Privacy and CONTRIBUTING cut to the essentials
+25. [BUGS-191]: A nickname can hold control characters: the server keeps a newline (cleanName trims and cuts to 16, nothing more), so a crafted name splits or forges lines in the server log, and the log redaction misses its tail (fixed: cleanName drops control characters; the log writes names as JSON)
+26. [TASK-192]: The server writes its log to one file a day in LOG_DIR and cleans it: IP addresses and nicknames gone after 14 days, lines after 60 (server/log-files.ts); the host part waits for the release (docs/ideas/vps.md)
+27. [TASK-182]: Link preview picture (og:image, twitter:image), touch and manifest icons, and the screenshot in the JSON-LD
+28. [TASK-196]: Ko-fi support link in the ESC menu footer
+29. [TASK-183]: A lawyer read LICENSE, the Terms and the privacy policy: the country of Georgia and the courts of Tbilisi, streaming allowed, IP rights in the rules, moderation on our belief of a breach, blocked IPs kept while blocked, single player's IP note; LICENSE §6 points to the Credits
+30. [DOCS-197]: Legal texts: the controller's legal name, "the country of Georgia" in the transfer sentence, recordings kept with only the nickname removed on objection (new material, and our own posts where reasonably possible), copies others make are theirs, the Terms no longer call the license perpetual
+31. TASK [BL-078]: Show BUY ME A COFFEE again once it has a link (done by TASK-196: the Ko-fi link in the pause menu footer)
+32. IDEA [BL-140]: One notification system: hints, toasts, statuses and dialogs in play on one model; messages no longer lost in menus and hidden tabs; reconnecting, no signal and bad connection as statuses; every message text in one catalogue (src/messages.ts)
+33. DSGN [BL-092]: Hints in play instead of a controls screen: move, each tool, colors, ladders, low pressure; one at a time, gone once done, remembered; Settings: Hints and Show hints again
+34. IDEA [BL-114]: A failure says whether the player was in a session: a session lost mid-play is one of eight dialogs by reason, most offering to save the paint before leaving; the reconnecting status grows into it
+35. [RFCT-205]: In-game messages reviewed: one vocabulary (hint, toast, status, dialog) in code, CSS and the catalogue; one glass token and one fade for every box; the dialog's button and key caps are the menu's; each dialog carries its own answer; a repeated toast shows once
+36. [RFCT-206]: The menu's paper tints are tokens: its ~85 hand-written opacities (21 values, rgba and color-mix) and the small-screen page's 8 map to --text-1/2/3/4, --hair and --edge; --text-4 (0.3) is new; each tint moved by at most 0.1; the small-screen page's two dark fills are --veil
+37. [TASK-208]: The status icons move, as designed: bad connection's second bar flickers twice every 2.4 s, no signal's red ring blinks hard each second, the reconnecting bars cycle as before, and Reconnected's check pops in with a ring burst once (about 400 ms); loops run only while their status shows
+38. TASK [BL-151]: Show what each other player is doing by their nameplate: the status after the name (disconnected, no signal, away, in the menu, idle, lagging; in the menu and idle are new, protocol 7), and tags fade with distance
+39. [DSGN-207]: The nameplate redrawn: the nickname as typed in the titles' font, the status as a muted word colored by severity, the distance in meters under the tag, the nearer tag on top
+40. [TASK-209]: A nickname is ASCII Latin letters and digits only, up to 16: the menu says so before HOST or JOIN, the server refuses any other (one isName in protocol.ts)
+41. [BUGS-210]: Montserrat (hints and toasts) ships with its OFL license text and a credits row
+42. [BUGS-211]: An old game (v1.4) whose name today's check refuses gets the reload answer (version) instead of a closed link and "server not responding": another protocol is answered before the name is checked
+43. [BUGS-212]: The dialog card is opaque; the session-lost dialog stays over the pause menu and is answered without keyboard lock (Firefox, Safari, Chromium not fullscreen): its Esc line is a button and an Esc while unlocked leaves; losing the pointer lock alone answers nothing; the dialog's veil (and the crash card's) catches clicks
+44. [BUGS-213]: Joining no longer fails when the paint from before the session can't be packed: it is left out of the backup and logged
+45. [BUGS-214]: A rejoin refused as busy or too-many is a failed try, retried while the rejoin window is open; only then the server-busy dialog
+46. [TASK-215]: The session-ended dialog tells a server restart apart from a session that closed because no one came back in time
+47. [BUGS-216]: The NAME field keeps only Latin letters and digits: a name saved by an older version is cleaned on load
+48. [BUGS-217]: A taken name is numbered "geo (2)" again (a space and parentheses: no player can type it, so it never looks like a typed geo2); the welcome carries it for the player list and the logs, every join sends the name typed, and a new tab typing it takes their dropped place back instead of a new number
+49. [DOCS-218]: The privacy page says what localStorage keeps in general terms (settings, last nickname, progress such as hints seen), not key by key
+50. [PERF-219]: The server's log cleaning reads files in chunks on async fs and skips undated files that haven't changed in a day, so it no longer holds up the relay; lines anyone can make (bad message, turned away, silent link) are limited per address; a LOG_DIR that can't be made leaves the log on stdout
+51. [PERF-220]: Per-frame work in play cut: the hints build nothing once learnt or off, the hint and low-pressure texts are redone only when the keys change, Notify and the nameplates stop allocating every frame
+52. [PERF-221]: The hints' font loads during the loading screen (no flash of the fallback at the first hint); the PNG icons recompressed (350 KB to 92 KB at most)
+53. [TASK-222]: Release notes can link: [text](url) is a link in the Updates page (white, bold, underlined), absolute on GitHub, with no preview card on Discord; the test allows the game's own pages and Ko-fi, GitHub and Discord
+54. [BUGS-223]: LAGGING on a nameplate means that player's own link is bad: each game reports its bad connection or no signal as its status (protocol 7), instead of every game guessing from how late the others' snapshots reach it (which marked the wrong player and missed a steady delay); nameplates fade from 15 m to 50 m (was 20 to 80); the link is checked every second (SERVER.ping 1), bad connection shows after 2 s and goes after 3 s (was 5 both), and the "Reconnected" check shows whenever trouble ends, not only after a reconnect
+
+## Discarder
+
+Dropped items, kept for the record; don't work on them.
+
+1. ~~[RFCT-180]: painting.ts is past the ~400-line limit (412): split it by responsibility (patches for build mode and saves into paint-patch.ts) @1.5.0 (no boundary without exposing PaintSystem's internals: 417 lines accepted)~~
+2. ~~BUGS [BL-135]: A Mac mouse wheel may need several notches per color (WHEEL.notchPx); measure first (docs/ideas/release-checks.md)~~
+3. ~~BUGS [?BL-108]: Loading drops to 12 fps on the Intel UHD with Energy Saver on (docs/ideas/performance.md)~~
+4. ~~BUGS [BL-029]: The roof's edits of 2026-10-10 cost 3–9% GPU on the Intel UHD (docs/ideas/performance.md)~~
+5. ~~BUGS [BL-032]: One load of the roof took 62 s; not reproduced (docs/ideas/performance.md)~~
+6. ~~BUGS [?BL-110]: Crossed lines on the menu's glass bars on the Intel UHD under WSL (likely the driver)~~
+7. ~~BUGS [BL-142]: Other players' figures hold their tools wrong: roller width, sponge tilt, ladder model (docs/ideas/tools.md)~~
+8. ~~BUGS [BL-072]: Nickname tags don't scale with the UI and resolution~~
+9. ~~BUGS [?BL-037]: A game test page twice failed to load its level in 120 s; read `gameReady`'s log when it repeats~~
+10. ~~[BUGS-179]: test:mp logs two console errors on dev and still passes: "reading 'frame'" in main.ts step and "reading 'state'" in a test's remotes.get (no bug: both are the tests' own injected faults, now thrown as 'on purpose' errors)~~
+11. ~~TASK [BL-077]: Deploy from GitHub Actions (docs/ideas/server-ops.md) (the owner dropped it: deploys stay by hand)~~
+12. ~~[TASK-173]: Add cookies notification and all legal necessary documentation (docs/ideas/legal.md) @1.5.0 (no cookies: the privacy policy is TASK-178)~~
+13. ~~[TASK-186]: What the privacy page now promises holds on the host: the Hetzner data processing agreement signed (owner), logs deleted after 14 days, disk encryption answered: the page claims none until then (devops, docs/ideas/vps.md) (docs/ideas/legal.md) @1.5.0 (the owner dropped it: the page no longer mentions the agreement, a log period or encryption)~~
+14. ~~[?BUGS-162]: The browser's page zoom scales the HUD and menus (zoom keys, Ctrl+wheel and pinch are blocked already: BROWSER_GUARDS) @1.5.0~~
