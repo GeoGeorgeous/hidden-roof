@@ -3,7 +3,8 @@
 // version in package.json has its note.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { body, discordNotes, githubNotes, newestFirst, parseRelease } from '../src/release-notes.ts';
+import { SITE } from '../src/links.ts';
+import { body, discordNotes, githubNotes, linkable, newestFirst, parseRelease, splitLinks } from '../src/release-notes.ts';
 
 const dir = 'docs/releases';
 const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
@@ -16,6 +17,25 @@ function webpSize(file) {
   assert.equal(b.toString('ascii', 0, 4) + b.toString('ascii', 8, 16), 'RIFFWEBPVP8X', `${file}: not an extended WebP`);
   return [1 + b.readUIntLE(24, 3), 1 + b.readUIntLE(27, 3), b.length];
 }
+
+// Links: [text](url), a page of the game root-relative, other sites on the allow-list (LINK_SITES).
+const fixture = `---
+date: 2026-10-09
+---
+see [Terms](/terms.html) and [Privacy](/privacy.html).
+
+- **support**
+  - **ko-fi**: [Ko-fi](https://ko-fi.com/D0Q7296HCP) keeps it going
+  - read the [Terms](/terms.html)
+`;
+const github = githubNotes(fixture, 'URL');
+assert.ok(!github.includes('](/') && github.includes('](https://roof.hidden.haus/terms.html)'), 'GitHub: root-relative links made absolute');
+const discord = discordNotes('v9.9.9', fixture).join('');
+assert.ok(!discord.includes('](/') && !/\]\((?!<)/.test(discord), 'Discord: every link target absolute and wrapped in <>');
+assert.ok(discord.includes('[Privacy](<https://roof.hidden.haus/privacy.html>)') && discord.includes('[Ko-fi](<https://ko-fi.com/D0Q7296HCP>)'), 'Discord: the links');
+assert.deepEqual(splitLinks('see [Terms](/terms.html) now'), ['see ', { text: 'Terms', href: '/terms.html' }, ' now']);
+assert.deepEqual(splitLinks('[x](https://evil.example/a) and [y](//evil.example) and [z](javascript:alert(1))'), ['x', ' and ', 'y', ' and ', 'z', ')'], 'other targets stay text');
+assert.ok(linkable('/terms.html') && linkable('https://ko-fi.com/D0Q7296HCP') && !linkable('https://roof.hidden.haus/terms.html') && !linkable('//evil.example') && !linkable('https://ko-fi.com.evil.example'));
 
 const files = fs.readdirSync(dir).filter((f) => f.endsWith('.md') && f !== 'AGENTS.md');
 const releases = [];
@@ -36,6 +56,10 @@ for (const file of files) {
   for (const it of r.items) {
     assert.ok(it.title === it.title.toLowerCase() && it.title.split(' ').length <= 3, `${at}: "${it.title}" is lowercase, 1-3 words`);
     for (const [term, desc] of it.list) assert.ok(!/[.,;:]$/.test(desc), `${at}: list line "${term || desc}" ends without punctuation`);
+  }
+  for (const m of text.matchAll(/\[([^\]]*)\]\(([^)]*)\)/g)) {
+    assert.ok(m[1].trim(), `${at}: link ${m[0]} has text`);
+    assert.ok(linkable(m[2]), `${at}: link ${m[0]} leads to a page of the game (/terms.html) or an allowed site, not ${SITE}`);
   }
   const [w, h, size] = webpSize(`public/updates/${tag}.webp`);
   assert.ok(w === 1280 && h === 720 && size <= MAX_PICTURE, `public/updates/${tag}.webp: ${w}×${h}, ${size} bytes; want 1280×720, at most ${MAX_PICTURE}`);

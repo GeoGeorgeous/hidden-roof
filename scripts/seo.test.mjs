@@ -27,6 +27,7 @@ assert.equal(tag(/<meta property="og:title" content="([^"]+)"/), title);
 assert.equal(tag(/<meta name="twitter:title" content="([^"]+)"/), title);
 
 const url = tag(/<link rel="canonical" href="([^"]+)"/);
+assert.equal(`${links.SITE}/`, url, 'src/links.ts: SITE is the canonical address');
 assert.equal(tag(/<meta property="og:url" content="([^"]+)"/), url);
 assert.equal(read('public/sitemap.xml').match(/<loc>([^<]+)<\/loc>/)?.[1], url);
 assert.equal(read('public/robots.txt').match(/^Sitemap: (\S+)/m)?.[1], new URL('sitemap.xml', url).href);
