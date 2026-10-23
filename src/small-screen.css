@@ -20,7 +20,7 @@
   pointer-events: none;
 }
 .small::before {
-  background: rgba(14, 14, 16, 0.35);
+  background: var(--veil);
 }
 .small::after {
   background: linear-gradient(to top, #000 0%, #000 46%, rgba(0, 0, 0, 0.75) 62%, rgba(0, 0, 0, 0.25) 82%, transparent 100%);
@@ -72,7 +72,7 @@
 .small-text p {
   font-size: 14px;
   line-height: 1.6;
-  color: rgba(235, 229, 214, 0.6);
+  color: var(--text-2);
 }
 .small-text .lead {
   font-weight: 600;
@@ -91,7 +91,7 @@
   min-height: 16px;
   margin-bottom: -2px;
   font-size: 12px;
-  color: rgba(235, 229, 214, 0.5);
+  color: var(--text-2);
 }
 .small-buttons button,
 .small-buttons a {
@@ -118,13 +118,13 @@
   background: #fff;
 }
 .small .outline {
-  border: 1px solid rgba(235, 229, 214, 0.35);
-  background: rgba(10, 10, 12, 0.35);
+  border: 1px solid var(--text-3);
+  background: var(--veil);
   color: var(--paper);
 }
 .small .outline:hover {
-  border-color: rgba(235, 229, 214, 0.6);
-  background: rgba(235, 229, 214, 0.12);
+  border-color: var(--text-2);
+  background: var(--hair);
   color: #fff;
 }
 .small footer {
@@ -133,15 +133,15 @@
   align-items: center;
   gap: 8px;
   padding: 28px 0;
-  color: rgba(235, 229, 214, 0.4);
+  color: var(--text-3);
 }
 .small footer i {
   margin: 0 16px;
   font-style: normal;
-  color: rgba(235, 229, 214, 0.3);
+  color: var(--text-4);
 }
 .small footer a {
-  color: rgba(235, 229, 214, 0.55);
+  color: var(--text-2);
   text-decoration: none;
   transition: color 0.2s;
 }
