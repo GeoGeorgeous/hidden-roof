@@ -307,9 +307,9 @@
 :is(.overlay, .dialog) kbd {
   font: 500 10px var(--sans);
   padding: 1px 5px;
-  border: 1px solid rgba(235, 229, 214, 0.35);
+  border: 1px solid var(--text-3);
   border-radius: 3px;
-  color: rgba(235, 229, 214, 0.6);
+  color: var(--text-2);
 }
 /* Segmented control: the style switcher, the settings tabs, Back, the dialog's button. */
 :is(.overlay, .dialog) .seg {
@@ -338,7 +338,7 @@
 }
 .overlay .seg button.on,
 .dialog .seg button:hover {
-  background: rgba(235, 229, 214, 0.16);
+  background: var(--edge);
   color: var(--paper);
 }
 .overlay .themes,
@@ -353,11 +353,11 @@
 }
 .overlay .back button,
 .overlay .fs button {
-  color: rgba(235, 229, 214, 0.8);
+  color: var(--text-1);
 }
 .overlay .back button:hover,
 .overlay .fs button:hover {
-  background: rgba(235, 229, 214, 0.16);
+  background: var(--edge);
   color: var(--paper);
 }
 /* EXIT FULLSCREEN (esc-hold.ts): its key cap holds the hold's ring. */
@@ -375,7 +375,7 @@
   transition: border-color 0.2s, color 0.2s;
 }
 .overlay.holding .fs kbd {
-  border-color: rgba(235, 229, 214, 0.8);
+  border-color: var(--text-1);
   color: var(--paper);
 }
 /* One Esc leaves fullscreen here (no keyboard lock): a plain key. */
@@ -394,7 +394,7 @@
 }
 .overlay .ring circle {
   fill: none;
-  stroke: rgba(235, 229, 214, 0.25);
+  stroke: var(--text-4);
   stroke-width: 1.5;
 }
 .overlay .ring .fill {
@@ -463,7 +463,7 @@
   align-items: center;
   gap: 10px;
   height: 16px;
-  color: rgba(235, 229, 214, 0.65);
+  color: var(--text-2);
 }
 .overlay .live .dot {
   position: relative;
@@ -497,12 +497,12 @@
 }
 .overlay .live .ping {
   margin-left: -2px;
-  color: rgba(235, 229, 214, 0.5);
+  color: var(--text-2);
   font-variant-numeric: tabular-nums;
 }
 .overlay .live i {
   font-style: normal;
-  color: rgba(235, 229, 214, 0.3);
+  color: var(--text-4);
 }
 .overlay .live .code {
   display: flex;
@@ -517,14 +517,14 @@
 .overlay .live .copy {
   font-size: 10px;
   padding: 1px 6px;
-  border: 1px solid rgba(235, 229, 214, 0.3);
+  border: 1px solid var(--text-4);
   border-radius: 3px;
-  color: rgba(235, 229, 214, 0.6);
+  color: var(--text-2);
   transition: color 0.2s, border-color 0.2s;
 }
 .overlay .live .copy:hover {
   color: var(--paper);
-  border-color: rgba(235, 229, 214, 0.6);
+  border-color: var(--text-2);
 }
 .overlay .live .faces {
   display: flex;
@@ -566,11 +566,11 @@
   font-weight: 500;
   font-size: 15px;
   white-space: nowrap;
-  color: rgba(235, 229, 214, 0.85);
+  color: var(--text-1);
   transition: background 0.2s, color 0.2s;
 }
 .overlay .start button:hover {
-  background: rgba(235, 229, 214, 0.16);
+  background: var(--edge);
   color: #fff;
 }
 .overlay .start .play,
@@ -623,7 +623,7 @@
   margin: 0 0 10px;
   font: 400 20px/1 var(--display);
   letter-spacing: 0.04em;
-  color: rgba(235, 229, 214, 0.45);
+  color: var(--text-3);
 }
 .overlay .item {
   padding: 6px 0;
@@ -649,7 +649,7 @@
 }
 .overlay .foot i {
   font-style: normal;
-  color: rgba(235, 229, 214, 0.3);
+  color: var(--text-4);
 }
 /* The pause screen's footer: the social icons, then the legal links, the version and the author. */
 .overlay .pause-foot {
@@ -680,7 +680,7 @@
 .overlay .pause-foot .soon {
   pointer-events: auto;
   cursor: not-allowed;
-  color: rgba(235, 229, 214, 0.2);
+  color: var(--text-4);
 }
 .overlay .pause-foot .meta {
   gap: 10px;
@@ -693,7 +693,7 @@
 }
 .overlay .pause-foot i {
   font-style: normal;
-  color: rgba(235, 229, 214, 0.3);
+  color: var(--text-4);
 }
 /* Debug panel open: the menu stays, on a lighter sheet (still dark under the menu), without the title and its status line. */
 .overlay.compact {
@@ -743,7 +743,7 @@
   overflow-y: auto;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
-  scrollbar-color: rgba(235, 229, 214, 0.3) transparent;
+  scrollbar-color: var(--text-4) transparent;
   mask: linear-gradient(to bottom, transparent 0, #000 16px, #000 calc(100% - 24px), transparent);
 }
 .overlay .setting-row {
@@ -773,7 +773,7 @@
   font-weight: 400;
   font-size: 12px;
   letter-spacing: 0.05em;
-  color: rgba(235, 229, 214, 0.6);
+  color: var(--text-2);
 }
 /* Stops short of the widest control and a 16px gap, so it never runs under a slider, chooser or button. */
 .overlay .setting-row .desc {
@@ -788,10 +788,10 @@
   margin-top: 4px;
   padding: 10px 12px;
   border-radius: 4px;
-  background: rgba(235, 229, 214, 0.07);
+  background: var(--hair);
   font-size: 12px;
   line-height: 1.5;
-  color: rgba(235, 229, 214, 0.8);
+  color: var(--text-1);
   text-wrap: pretty;
 }
 /* ‹ value ›, as wide as a slider and its value. */
@@ -806,11 +806,11 @@
   height: 26px;
   border-radius: 4px;
   font-size: 16px;
-  color: rgba(235, 229, 214, 0.6);
+  color: var(--text-2);
   transition: background 0.2s, color 0.2s;
 }
 .overlay .choice button:hover {
-  background: rgba(235, 229, 214, 0.1);
+  background: var(--hair);
   color: #fff;
 }
 .overlay .choice .value {
@@ -838,21 +838,21 @@
   width: 186px;
   height: 26px;
   padding: 0;
-  border: 1px solid rgba(235, 229, 214, 0.3);
+  border: 1px solid var(--text-4);
   background: rgba(10, 10, 12, 0.45);
   font-size: 12px;
   color: var(--paper);
   transition: background 0.2s, color 0.2s, border-color 0.2s;
 }
 .overlay .action-cell .btn:hover {
-  border-color: rgba(235, 229, 214, 0.5);
-  background: rgba(235, 229, 214, 0.16);
+  border-color: var(--text-2);
+  background: var(--edge);
   color: #fff;
 }
 /* An action with nothing to do (Show hints again, before anything was learnt). */
 .overlay .action-cell .btn:disabled,
 .overlay .action-cell .btn:disabled:hover {
-  border-color: rgba(235, 229, 214, 0.3);
+  border-color: var(--text-4);
   background: rgba(10, 10, 12, 0.45);
   color: var(--paper);
   opacity: 0.45;
@@ -870,7 +870,7 @@
   font-size: 20px;
   line-height: 1;
   letter-spacing: 0.04em;
-  color: rgba(235, 229, 214, 0.45);
+  color: var(--text-3);
 }
 .overlay .control-row {
   border-bottom: 1px solid var(--hair);
@@ -933,14 +933,14 @@
   transition: border-color 0.15s, background 0.15s, color 0.15s;
 }
 .overlay .control-row .slot:hover {
-  background: rgba(235, 229, 214, 0.1);
+  background: var(--hair);
 }
 .overlay .control-row .slot.empty {
-  color: rgba(235, 229, 214, 0.3);
+  color: var(--text-4);
 }
 .overlay .control-row .slot.listening {
   border-color: var(--paper);
-  background: rgba(235, 229, 214, 0.14);
+  background: var(--edge);
   color: var(--paper);
 }
 .overlay .control-row .slot.refused {
@@ -969,7 +969,7 @@
   color: var(--error);
 }
 .overlay .controls-foot .notice {
-  color: rgba(235, 229, 214, 0.8);
+  color: var(--text-1);
 }
 .overlay .controls-foot .undo {
   font-weight: 500;
@@ -990,21 +990,21 @@
   align-items: center;
 }
 .overlay .reset-all button {
-  color: rgba(235, 229, 214, 0.8);
+  color: var(--text-1);
 }
 .overlay .reset-all button:hover {
-  background: rgba(235, 229, 214, 0.16);
+  background: var(--edge);
   color: var(--paper);
 }
 .overlay .reset-all button.dim {
-  color: rgba(235, 229, 214, 0.3);
+  color: var(--text-4);
   cursor: default;
   background: none;
 }
 .overlay .reset-all .ask {
   padding: 6px 8px 6px 12px;
   white-space: nowrap;
-  color: rgba(235, 229, 214, 0.65);
+  color: var(--text-2);
 }
 .overlay .reset-all button.confirm {
   background: var(--paper);
@@ -1016,7 +1016,7 @@
   color: var(--ink);
 }
 .overlay .reset-all button.cancel {
-  color: rgba(235, 229, 214, 0.7);
+  color: var(--text-1);
 }
 /* PAINT DETAIL in a session: the host's. */
 .overlay .choice.locked {
@@ -1025,7 +1025,7 @@
 .overlay .choice.locked button {
   cursor: not-allowed;
   background: none;
-  color: rgba(235, 229, 214, 0.6);
+  color: var(--text-2);
 }
 .overlay .range {
   display: flex;
@@ -1049,11 +1049,11 @@
 }
 .overlay input[type='range']::-webkit-slider-runnable-track {
   height: 1px;
-  background: linear-gradient(to right, var(--paper) var(--fill, 0%), rgba(235, 229, 214, 0.3) var(--fill, 0%));
+  background: linear-gradient(to right, var(--paper) var(--fill, 0%), var(--text-4) var(--fill, 0%));
 }
 .overlay input[type='range']::-moz-range-track {
   height: 1px;
-  background: linear-gradient(to right, var(--paper) var(--fill, 0%), rgba(235, 229, 214, 0.3) var(--fill, 0%));
+  background: linear-gradient(to right, var(--paper) var(--fill, 0%), var(--text-4) var(--fill, 0%));
 }
 .overlay input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
@@ -1107,7 +1107,7 @@
   width: 1px;
   height: 7px;
   margin-top: -3.5px;
-  background: rgba(235, 229, 214, 0.4);
+  background: var(--text-3);
   pointer-events: none;
 }
 .overlay .slider input {
@@ -1122,11 +1122,11 @@
   border-radius: 4px;
   font-size: 14px;
   white-space: nowrap;
-  color: rgba(235, 229, 214, 0.75);
+  color: var(--text-1);
   transition: background 0.2s, color 0.2s;
 }
 .overlay .btn:hover {
-  background: rgba(235, 229, 214, 0.1);
+  background: var(--hair);
   color: var(--paper);
 }
 .overlay .btn.primary {
@@ -1166,7 +1166,7 @@
   width: 200px;
   text-align: right;
   font-size: 13px;
-  color: rgba(235, 229, 214, 0.5);
+  color: var(--text-2);
 }
 .overlay .team-line b {
   font-weight: 500;
@@ -1179,7 +1179,7 @@
   font-size: 22px;
   line-height: 1;
   letter-spacing: 0.04em;
-  color: rgba(235, 229, 214, 0.45);
+  color: var(--text-3);
 }
 .overlay .credit {
   display: flex;
@@ -1201,19 +1201,19 @@
 }
 .overlay .credit .text span {
   font-size: 12px;
-  color: rgba(235, 229, 214, 0.5);
+  color: var(--text-2);
 }
 .overlay .credit a {
   white-space: nowrap;
   font-size: 12px;
-  color: rgba(235, 229, 214, 0.6);
+  color: var(--text-2);
 }
 .overlay .credits-end {
   padding: 34px 0 20px;
   text-align: center;
   font-size: 12px;
   line-height: 1.6;
-  color: rgba(235, 229, 214, 0.45);
+  color: var(--text-3);
 }
 
 /* Popups (save, upload, updates): a dark glass card in the middle. */
@@ -1252,13 +1252,13 @@
 .overlay .para {
   font-size: 13px;
   line-height: 1.6;
-  color: rgba(235, 229, 214, 0.6);
+  color: var(--text-2);
   text-wrap: pretty;
 }
 .overlay .para.lead {
   font-size: 14px;
   line-height: 1.55;
-  color: rgba(235, 229, 214, 0.85);
+  color: var(--text-1);
 }
 .overlay .para.done {
   color: var(--paper);
@@ -1280,7 +1280,7 @@
   gap: 12px;
   padding: 10px 14px;
   border-radius: 6px;
-  background: rgba(235, 229, 214, 0.07);
+  background: var(--hair);
 }
 .overlay .chip b {
   min-width: 0;
@@ -1292,7 +1292,7 @@
 .overlay .chip span {
   white-space: nowrap;
   font-size: 12px;
-  color: rgba(235, 229, 214, 0.5);
+  color: var(--text-2);
 }
 .overlay .popup-buttons {
   display: flex;
@@ -1348,10 +1348,10 @@
 .overlay .perf-progress {
   position: relative;
   height: 1px;
-  background: rgba(235, 229, 214, 0.12);
+  background: var(--hair);
 }
 .overlay .perf-progress i {
-  background: rgba(235, 229, 214, 0.6);
+  background: var(--text-2);
 }
 .overlay .perf-body,
 .overlay .perf-tip {
@@ -1364,7 +1364,7 @@
   font-size: 20px;
   line-height: 1;
   letter-spacing: 0.04em;
-  color: rgba(235, 229, 214, 0.45);
+  color: var(--text-3);
 }
 .overlay .perf-score {
   display: flex;
@@ -1384,7 +1384,7 @@
 }
 .overlay .perf-fps span {
   font-size: 13px;
-  color: rgba(235, 229, 214, 0.6);
+  color: var(--text-2);
 }
 .overlay .perf-low {
   margin-top: 6px;
@@ -1414,7 +1414,7 @@
   overflow: hidden;
   height: 6px;
   border-radius: 1px;
-  background: rgba(235, 229, 214, 0.12);
+  background: var(--hair);
 }
 /* However slow, a measured run shows a stub at the slider's start. */
 .overlay .perf-tiers.measured .perf-tier:first-child .bar::before {
@@ -1431,7 +1431,7 @@
 .overlay .perf-tier span {
   white-space: nowrap;
   font-size: 11px;
-  color: rgba(235, 229, 214, 0.4);
+  color: var(--text-3);
 }
 .overlay .perf-tier.on span {
   color: var(--paper);
@@ -1448,7 +1448,7 @@
 }
 .overlay .perf-hint {
   font-size: 12px;
-  color: rgba(235, 229, 214, 0.4);
+  color: var(--text-3);
 }
 .overlay .perf-bars {
   display: grid;
@@ -1457,13 +1457,13 @@
   gap: 14px;
 }
 .overlay .perf-bars .name {
-  color: rgba(235, 229, 214, 0.6);
+  color: var(--text-2);
 }
 .overlay .perf-bars .bar {
-  background: rgba(235, 229, 214, 0.1);
+  background: var(--hair);
 }
 .overlay .perf-bars i {
-  background: rgba(235, 229, 214, 0.4);
+  background: var(--text-3);
   transition: transform 0.3s;
 }
 .overlay .perf-bars .limit i {
@@ -1491,7 +1491,7 @@
 }
 .overlay .perf-facts .k {
   font-size: 11px;
-  color: rgba(235, 229, 214, 0.5);
+  color: var(--text-2);
 }
 .overlay .perf-facts .v {
   overflow: hidden;
@@ -1509,7 +1509,7 @@
   gap: 4px;
   font-size: 13px;
   line-height: 1.5;
-  color: rgba(235, 229, 214, 0.7);
+  color: var(--text-1);
   text-wrap: pretty;
 }
 .overlay .perf-advice b {
@@ -1537,7 +1537,7 @@
 }
 .overlay .updates-head .on {
   font-size: 12px;
-  color: rgba(235, 229, 214, 0.5);
+  color: var(--text-2);
 }
 .overlay .updates-main {
   flex: 1;
@@ -1560,14 +1560,14 @@
   gap: 8px;
   padding: 9px 12px;
   border-radius: 4px;
-  color: rgba(235, 229, 214, 0.6);
+  color: var(--text-2);
   transition: background 0.2s, color 0.2s;
 }
 .overlay .rail .ver:hover {
-  background: rgba(235, 229, 214, 0.08);
+  background: var(--hair);
 }
 .overlay .rail .ver.on {
-  background: rgba(235, 229, 214, 0.12);
+  background: var(--hair);
   color: var(--paper);
 }
 .overlay .rail .ver b {
@@ -1588,7 +1588,7 @@
   padding: 24px 32px 28px;
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: rgba(235, 229, 214, 0.3) transparent;
+  scrollbar-color: var(--text-4) transparent;
 }
 .overlay .pane .release {
   display: flex;
@@ -1602,12 +1602,12 @@
 .overlay .pane .release span {
   font-weight: 400;
   font-size: 12px;
-  color: rgba(235, 229, 214, 0.5);
+  color: var(--text-2);
 }
 .overlay .pane .intro {
   font-size: 14px;
   line-height: 1.6;
-  color: rgba(235, 229, 214, 0.85);
+  color: var(--text-1);
   text-wrap: pretty;
 }
 /* The release's picture, in full color. */
@@ -1616,7 +1616,7 @@
   aspect-ratio: 16 / 9;
   border-radius: 6px;
   overflow: hidden;
-  background: rgba(235, 229, 214, 0.06);
+  background: var(--hair);
 }
 .overlay .pane .shot img {
   display: block;
@@ -1629,7 +1629,7 @@
   flex-direction: column;
   gap: 6px;
   padding: 14px 0;
-  border-top: 1px solid rgba(235, 229, 214, 0.08);
+  border-top: 1px solid var(--hair);
 }
 .overlay .item-title {
   font-weight: 600;
@@ -1638,7 +1638,7 @@
 .overlay .item-text {
   font-size: 13px;
   line-height: 1.6;
-  color: rgba(235, 229, 214, 0.65);
+  color: var(--text-2);
   text-wrap: pretty;
 }
 .overlay .terms {
@@ -1652,13 +1652,13 @@
   gap: 10px;
   font-size: 13px;
   line-height: 1.55;
-  color: rgba(235, 229, 214, 0.65);
+  color: var(--text-2);
 }
 .overlay .term-line::before {
   content: '•';
   flex: none;
   margin-right: -2px;
-  color: rgba(235, 229, 214, 0.35);
+  color: var(--text-3);
 }
 .overlay .term-line b {
   flex: none;
@@ -1704,7 +1704,7 @@
   transition: background 0.2s;
 }
 .overlay .big-row:hover {
-  background: rgba(235, 229, 214, 0.06);
+  background: var(--hair);
 }
 .overlay .big-row .text {
   flex: 1;
@@ -1718,12 +1718,12 @@
 }
 .overlay .big-row span {
   font-size: 12px;
-  color: rgba(235, 229, 214, 0.5);
+  color: var(--text-2);
 }
 .overlay .big-row i {
   font-style: normal;
   font-size: 18px;
-  color: rgba(235, 229, 214, 0.5);
+  color: var(--text-2);
 }
 .overlay .mp-page .setting-row .line {
   min-height: 26px;
@@ -1733,7 +1733,7 @@
   width: 236px;
   padding: 5px 2px;
   border: 0;
-  border-bottom: 1px solid rgba(235, 229, 214, 0.4);
+  border-bottom: 1px solid var(--text-3);
   background: transparent;
   color: var(--paper);
   font: 14px var(--sans);
@@ -1768,7 +1768,7 @@
 .overlay .mp-status {
   min-height: 18px;
   text-align: center;
-  color: rgba(235, 229, 214, 0.6);
+  color: var(--text-2);
 }
 .overlay .mp-status.error {
   color: var(--error);
@@ -1829,7 +1829,7 @@ body.paused .layer-dialog:not(.crash) {
 }
 .hotbar i.on {
   border-color: var(--on-border, var(--ui));
-  background: var(--on-fill, rgba(235, 229, 214, 0.35));
+  background: var(--on-fill, var(--text-3));
   opacity: 1;
   transform: scale(1.12);
 }
@@ -1965,7 +1965,6 @@ body.paused .layer-dialog:not(.crash) {
 }
 /* Its icon. Bars: three, 2 px wide, 4 / 7 / 10 px tall, 2 px apart, bottom-aligned; the first lit, or each in turn. */
 .status-icon {
-  --bar-off: color-mix(in srgb, var(--paper) 25%, transparent);
   position: relative;
   flex: none;
   width: 10px;
@@ -1975,7 +1974,7 @@ body.paused .layer-dialog:not(.crash) {
   position: absolute;
   bottom: 0;
   width: 2px;
-  background: var(--bar-off);
+  background: var(--text-4);
 }
 .status-icon b:nth-child(1) {
   left: 0;
@@ -2008,7 +2007,7 @@ body.paused .layer-dialog:not(.crash) {
   }
   26%,
   100% {
-    background: var(--bar-off);
+    background: var(--text-4);
   }
 }
 .status-icon.ring::after {

@@ -33,9 +33,11 @@
   --sans: 'Archivo', system-ui, sans-serif;
   --display: 'Sedgwick Ave Display', cursive;
   --ink: #111;
+  /* Paper at four strengths for text, two for lines and fills: every paper tint in the menu and the messages is one of these. */
   --text-1: rgba(235, 229, 214, 0.75);
   --text-2: rgba(235, 229, 214, 0.55);
   --text-3: rgba(235, 229, 214, 0.4);
+  --text-4: rgba(235, 229, 214, 0.3);
   --hair: rgba(235, 229, 214, 0.1);
   --edge: rgba(235, 229, 214, 0.18);
   --error: #e0675e;
