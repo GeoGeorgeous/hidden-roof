@@ -103,6 +103,8 @@ try {
   // Turned away: an older game, a game that builds the level differently, an unknown code, a broken save.
   for (const [m, reason] of [
     [{ ...host, protocol: PROTOCOL + 1 }, 'version'],
+    [{ ...host, protocol: PROTOCOL - 1, name: 'Anna K', level: null }, 'version'],
+    [{ type: 'join', protocol: PROTOCOL - 1, name: 'Anna K', code: 'ZZZZZ' }, 'version'],
     [{ ...host, table: 'x' }, 'version'],
     [{ type: 'join', protocol: PROTOCOL, name: 'B', code: 'ZZZZZ' }, 'no-session'],
     [{ ...host, bytes: new Uint8Array([1, 2, 3]) }, 'bad-save'],
@@ -294,6 +296,13 @@ try {
   const silent = await game();
   assert.equal(await silent.closed, 1008);
 
+  // Bad messages from one address fill no log: SERVER.noisyPerIp lines, then one that says the rest are held back.
+  for (let i = 0; i < SERVER.noisyPerIp + 5; i++) {
+    const bad = await game('10.6.6.6');
+    bad.ws.send(new Uint8Array([1, 2, 3]));
+    assert.equal(await bad.closed, 1008);
+  }
+
   // Only /ws?host takes a message past SERVER.maxMessage (a save), from a few links per address.
   const tooBig = await game();
   tooBig.ws.send(new Uint8Array(SERVER.maxMessage + 1));
@@ -318,6 +327,9 @@ const lines = log.join('');
 assert.match(lines, /[A-Z]{5} hosted by \S+: "demo" at 48 texels\/m/);
 assert.match(lines, new RegExp(`${shared} "Y" #2 in from \\S+ \\(new, 2 players; paint file shared \\(2\\)\\)`));
 assert.match(lines, /paint file: [\d.]+ MB of paint, [\d.]+ MB packed, in [\d.]+ s \(0 more in line\)/);
+// The flood of bad messages: the first lines, and one note.
+assert.equal(lines.match(/bad message from 10\.6\.6\.6: closed/g)?.length, SERVER.noisyPerIp);
+assert.equal(lines.match(/more lines from 10\.6\.6\.6 held back/g)?.length, 1);
 // A player who left isn't also logged as dropped.
 assert.doesNotMatch(lines, /"A" #1 out: left[^]*"A" #1 dropped/);
 
@@ -332,6 +344,24 @@ assert.doesNotMatch(lines, /"A" #1 out: left[^]*"A" #1 dropped/);
   assert.equal(overMemory(0), true);
   assert.equal(collected, 1);
   globalThis.gc = gc;
+}
+
+// A LOG_DIR that can't be made is no reason to stay down: the server says so and logs to stdout.
+{
+  const port = await freePort();
+  const out: string[] = [];
+  const bare = spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(port), LOG_DIR: '/dev/null/logs' }, stdio: ['ignore', 'pipe', 'inherit'] });
+  try {
+    bare.stdout!.on('data', (d: Buffer) => out.push(d.toString()));
+    for (let i = 0; !out.join('').includes('roof server on'); i++) {
+      assert.ok(i < 100, 'the server starts');
+      await new Promise((w) => setTimeout(w, 100));
+    }
+    assert.match(out.join(''), /LOG_DIR \/dev\/null\/logs can't be made, logging to stdout/);
+    assert.equal((await fetch(`http://localhost:${port}/healthz`)).status, 200);
+  } finally {
+    bare.kill();
+  }
 }
 
 // The heartbeat (BL-004), on a server of its own beating every second: a game that keeps sending stays though it never

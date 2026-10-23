@@ -74,6 +74,13 @@ for (const name of ['', '   ', 'Geo Geo', ' Geo', 'Geo ', 'Geo_', 'Geo.', 'Geo-1
   refused({ ...host, name });
   refused({ ...join, name });
 }
+// Another protocol passes whatever else is in it (a name or fields an older game sent), so the server can answer 'version'; the current one keeps every check.
+for (const m of [host, join]) {
+  assert.ok(checkToServer(decode(encode({ ...m, protocol: PROTOCOL - 1, name: 'Anna K', code: 'x', level: 1 }))));
+  assert.ok(checkToServer(decode(encode({ ...m, protocol: PROTOCOL + 1, name: '' }))));
+  refused({ ...m, protocol: PROTOCOL, name: 'Anna K' });
+  refused({ ...m, protocol: '6', name: 'Anna K' });
+}
 refused({ ...host, level: { props: 'x' } });
 refused({ ...host, level: { ...level, props: [{ type: 'slab' }] } });
 refused({ ...host, level: { ...level, props: [{ type: 'slab', pos: [0, 0, 0], rot: 1.5 }] } });

@@ -167,6 +167,8 @@ export function decode(frame: Uint8Array): Message | null {
 export function checkToServer(m: Message | null): ToServer | null {
   if (!m) return null;
   const v = m as Record<string, unknown>;
+  // A game of another version is answered 'version' whatever else it sent: an older one's fields may not pass today's checks.
+  if ((m.type === 'host' || m.type === 'join') && isInt(v.protocol) && v.protocol !== PROTOCOL) return m as ToServer;
   switch (m.type) {
     case 'host':
       return isInt(v.protocol) && typeof v.table === 'string' && isName(v.name) && typeof v.levelName === 'string' && v.levelName.length <= 64 && !levelProblem(v.level, MAX_PROPS) && DETAILS.includes(v.detail as number) ? (m as ToServer) : null;
