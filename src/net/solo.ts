@@ -18,10 +18,18 @@ export interface Solo {
   paint: Uint8Array | null;
 }
 
-/** The open level and its paint, kept. The paint is read at once: what lands after it isn't in the file. */
-export async function keepSolo(g: MultiplayerContext): Promise<Solo> {
+/** The open level and its paint, kept. The paint is read at once: what lands after it isn't in the file. A paint that can't be packed (no memory) is left out, logged: joining goes on without it. */
+export async function keepSolo(g: MultiplayerContext, log: (line: string) => void): Promise<Solo> {
   const { data, name } = g.levelData();
-  return { data, name, paint: [...g.paint.surfaces].some(hasPaint) ? await savePaint(g.paint, { name }) : null };
+  let paint: Uint8Array | null = null;
+  if ([...g.paint.surfaces].some(hasPaint))
+    try {
+      paint = await savePaint(g.paint, { name });
+    } catch (err) {
+      console.error(err);
+      log(`couldn't keep the paint from before the session, it won't come back: ${err}`);
+    }
+  return { data, name, paint };
 }
 
 /** The kept level from its spawn at the player's own PAINT DETAIL, with the paint it had; the session's is gone, free again. */

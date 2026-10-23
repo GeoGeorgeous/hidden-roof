@@ -289,7 +289,7 @@ export class Multiplayer {
     if (this.joined?.code !== w.code) {
       // Their own level and paint come back when the session ends: kept before the session's replaces them.
       if (!this.solo) {
-        const solo = await keepSolo(g);
+        const solo = await keepSolo(g, (line) => this.log.add(line));
         if (this.link !== link) return this.log.add('welcome dropped: its link is gone');
         this.solo = solo;
       }
