@@ -55,7 +55,7 @@ export const MESSAGES = {
     noSignal: 'No signal from the server',
     /** The round trip to the server is long (NET.badPing). */
     badConnection: 'Bad connection',
-    /** The status's result when reconnecting worked (notify.succeed). */
+    /** There was trouble, now it's fine (notify.succeed on the status): the link reconnected, or No signal / Bad connection went away by itself. */
     reconnected: 'Reconnected',
   },
 

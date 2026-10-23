@@ -17,16 +17,16 @@ export interface LinkSample {
   silence: number;
 }
 
-/** On when the value stays past `on` for `hold` s, off when it stays under `off` for as long. */
+/** On when the value stays past `on` for `holdOn` s, off when it stays under `off` for `holdOff` s. */
 export class Flag {
   active = false;
   private since: number | null = null;
 
-  step(t: number, value: number, on: number, off: number, hold: number) {
+  step(t: number, value: number, on: number, off: number, holdOn: number, holdOff: number) {
     if (this.active ? value >= off : value <= on) this.since = null;
     else {
       this.since ??= t;
-      if (t - this.since >= hold) {
+      if (t - this.since >= (this.active ? holdOff : holdOn)) {
         this.active = !this.active;
         this.since = null;
       }
@@ -63,8 +63,8 @@ export class LinkHealth {
 
   /** Once a frame while the session's link is up. The status to show, or null. */
   update(s: LinkSample): LinkStatus | null {
-    const silent = this.silent.step(s.t, s.silence, NET.noSignal, NET.noSignalClear, 0);
-    const bad = this.bad.step(s.t, s.ping ?? 0, NET.badPing, NET.badPingClear, NET.statusHold);
+    const silent = this.silent.step(s.t, s.silence, NET.noSignal, NET.noSignalClear, 0, 0);
+    const bad = this.bad.step(s.t, s.ping ?? 0, NET.badPing, NET.badPingClear, NET.statusShow, NET.statusClear);
     if (silent) return { id: 'noSignal' };
     return bad ? { id: 'badConnection' } : null;
   }
