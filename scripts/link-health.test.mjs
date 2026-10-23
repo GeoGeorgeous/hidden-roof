@@ -1,4 +1,4 @@
-// Tests of the link's chip (src/net/link-health.ts) in Node, on a fake clock: a status shows after its hold and goes
+// Tests of the link's status (src/net/link-health.ts) in Node, on a fake clock: a status shows after its hold and goes
 // after its clear time, a value at the threshold doesn't flicker, the worst status wins.
 // Usage: node --experimental-transform-types --disable-warning=ExperimentalWarning scripts/link-health.test.mjs
 import assert from 'node:assert/strict';

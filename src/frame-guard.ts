@@ -1,11 +1,11 @@
 // A frame that throws (main.ts): the error is reported once, as an uncaught
-// error would be (the console, the tests' page errors), and a dialogue asks for
+// error would be (the console, the tests' page errors), and a dialog asks for
 // a reload, with the error to copy. Without it the game stands still, or throws
 // every frame, with nothing on screen to say so. The frames go on: the
 // session's check for a silent server is one of them (F1.4).
 
-import { dialogueLayer } from './dialogue-view';
-import { dialogueOf } from './messages';
+import { dialogLayer } from './dialog-view';
+import { dialogOf } from './messages';
 
 let failed = false;
 
@@ -28,15 +28,15 @@ function describe(e: unknown) {
   return e.stack ? (e.stack.startsWith(head) ? e.stack : `${head}\n${e.stack}`) : head;
 }
 
-/** The "game crashed" dialogue, drawn here by itself: this is the frame loop, which updates the notify view, breaking. */
+/** The "game crashed" dialog, drawn here by itself: this is the frame loop, which updates the notify view, breaking. */
 function showNotice(e: unknown) {
   // The cursor back, to copy the error and click the button.
   document.exitPointerLock();
   const reload = () => location.reload();
-  const { dim, card } = dialogueLayer({ ...dialogueOf('clientError'), callout: describe(e) }, reload);
-  const root = Object.assign(document.createElement('div'), { className: 'layer layer-dialogue crash on' });
-  root.append(dim, card);
+  const { veil, card } = dialogLayer({ ...dialogOf('clientError'), callout: describe(e) }, reload);
+  const root = Object.assign(document.createElement('div'), { className: 'layer layer-dialog crash on' });
+  root.append(veil, card);
   document.body.append(root);
-  // Enter presses the button, as on every dialogue, while the card is up.
+  // Enter presses the button, as on every dialog, while the card is up.
   addEventListener('keydown', (ev) => root.isConnected && (ev.code === 'Enter' || ev.code === 'NumpadEnter') && reload(), true);
 }

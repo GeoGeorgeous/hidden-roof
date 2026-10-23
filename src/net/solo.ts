@@ -48,7 +48,7 @@ interface Env {
 /**
  * Getting the player's own level and paint back when a session ends. A planned end (LEAVE, a failed JOIN) brings them back at
  * once. A session lost for good while playing (a failure after the welcome) doesn't: the player stays in the game with the
- * session's paint, which the dialogue offers to save, and the answer to it (`answer`) brings the rest back.
+ * session's paint, which the dialog offers to save, and the answer to it (`answer`) brings the rest back.
  */
 export class SoloReturn {
   /** Resolves once the player's own game is back: HOST and JOIN wait for it. */
@@ -62,14 +62,14 @@ export class SoloReturn {
     this.env = env;
   }
 
-  /** The session is over: back at once, or (`lostName`: the level it was on) waiting for the answer to the dialogue. */
+  /** The session is over: back at once, or (`lostName`: the level it was on) waiting for the answer to the dialog. */
   end(solo: Solo, lostName?: string) {
     if (lostName === undefined) this.back(solo, true);
     else this.lost = { solo, name: lostName };
   }
 
   /**
-   * The answer to the lost session's dialogue: `save` first writes the session's paint as a file (the link is down, so not SAVE),
+   * The answer to the lost session's dialog: `save` first writes the session's paint as a file (the link is down, so not SAVE),
    * then the player's own level and paint come back. The player stays in play; the menu is not sent to its title.
    */
   async answer(save: boolean) {

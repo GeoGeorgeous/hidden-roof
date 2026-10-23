@@ -117,15 +117,15 @@ const tutorial = new Tutorial(notify);
 const tools = new Tools(scene, viewScene, paint, level.solids, audio, inventory, level);
 tools.onFact = (f) => tutorial.fact(f);
 const tutorialWire = new TutorialWire(tutorial, player, inventory, level.ladders);
-tools.ladder.onBlocked = () => notify.event(msg('toast.ladderBlocked'));
+tools.ladder.onBlocked = () => notify.toast(msg('toast.ladderBlocked'));
 const wallHand = new WallHand(level.solids);
 viewScene.add(wallHand.group);
 const pickups = new Pickups(scene, camera, level.solids);
 pickups.onCollect = (label) => {
   audio.pickup();
-  notify.event(msg('toast.pickedUp', { item: sentence(label) }));
+  notify.toast(msg('toast.pickedUp', { item: sentence(label) }));
 };
-pickups.onBlocked = (label) => notify.event(msg('toast.alreadyHave', { item: sentence(label) }));
+pickups.onBlocked = (label) => notify.toast(msg('toast.alreadyHave', { item: sentence(label) }));
 function applyPixelScale() {
   renderer.setPixelRatio(pixelRatio());
   syncViewSize();
@@ -170,7 +170,7 @@ const play = new PlayState(input, session, {
   page: () => hud.menu.onPage,
   back: () => hud.menu.goBack(),
   primary: () => hud.menu.primary(),
-  dialogue: () => notify.blocked,
+  dialog: () => notify.blocked,
   confirm: (accepted) => notify.confirm(accepted),
 });
 input.onMenuKey = (code, down, repeat) => play.key(code, down, repeat);
@@ -339,7 +339,7 @@ function step(time: number) {
   frameDrawn();
   dev?.lap('render');
   // Same frame as the render: the canvas still holds it (see screenshot.ts). Only while playing: not on the title or pause screen, nor with F3 open.
-  if (yours.justPressed('screenshot')) saveScreenshot(renderer.domElement, () => (notify.event(msg('toast.screenshot')), tutorial.fact({ type: 'screenshot' })));
+  if (yours.justPressed('screenshot')) saveScreenshot(renderer.domElement, () => (notify.toast(msg('toast.screenshot')), tutorial.fact({ type: 'screenshot' })));
   gpuTimer.poll();
   const { calls, triangles } = post.sceneStats;
   perfTest.frame(time, beforeDraw, calls);

@@ -1,15 +1,15 @@
 import { SERVER } from '../config';
-import { dialogueOf, type DialogueId } from '../messages';
-import type { Dialogue } from '../notify';
+import { dialogOf, type DialogId } from '../messages';
+import type { Dialog } from '../notify';
 import type { Failure } from './multiplayer';
 
-// The dialogue for a session the player was in and lost: which message by why it failed, and what its button does
+// The dialog for a session the player was in and lost: which message by why it failed, and what its button does
 // (Esc always leaves without it: net-menu.ts). The texts are messages.ts's.
 
 /** What the button does: save the session's paint to a file and leave, leave, reload the page, or open the menu and leave. */
 export type LostButton = 'save' | 'leave' | 'reload' | 'menu';
 
-const LOST: Partial<Record<Failure, { id: DialogueId; button: LostButton }>> = {
+const LOST: Partial<Record<Failure, { id: DialogId; button: LostButton }>> = {
   expired: { id: 'serverLost', button: 'save' },
   ended: { id: 'sessionEnded', button: 'save' },
   replaced: { id: 'openedElsewhere', button: 'leave' },
@@ -21,11 +21,11 @@ const LOST: Partial<Record<Failure, { id: DialogueId; button: LostButton }>> = {
 };
 
 /** The card for a session lost because of `reason` (`detail`: what was seen, shown for a network error); any other reason is a session that ended. */
-export function lostDialogue(reason: Failure, detail?: string): { dialogue: Dialogue; button: LostButton } {
+export function lostDialog(reason: Failure, detail?: string): { dialog: Dialog; button: LostButton } {
   const { id, button } = LOST[reason] ?? LOST.ended!;
-  const dialogue: Dialogue = { ...dialogueOf(id, { minutes: Math.round(SERVER.rejoinWindow / 60) }) };
-  if (id === 'networkError') dialogue.callout = detail;
-  // Only this one comes from the reconnecting chip.
-  if (id === 'serverLost') dialogue.grow = 'net';
-  return { dialogue, button };
+  const dialog: Dialog = { ...dialogOf(id, { minutes: Math.round(SERVER.rejoinWindow / 60) }) };
+  if (id === 'networkError') dialog.callout = detail;
+  // Only this one comes from the reconnecting status.
+  if (id === 'serverLost') dialog.grow = 'net';
+  return { dialog, button };
 }

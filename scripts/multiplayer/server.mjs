@@ -10,7 +10,7 @@ export async function server(w) {
   restartServer();
   await a.waitForFunction(() => window.game.net.status.state === 'failed' && window.game.net.status.reason === 'ended', null, { timeout: 15000 });
   assert.equal(await a.evaluate(() => window.game.session.multiplayer), false);
-  // Lost mid-play, the session is a dialogue: A stays in the game with the session's paint until it answers.
+  // Lost mid-play, the session is a dialog: A stays in the game with the session's paint until it answers.
   assert.equal(await a.evaluate(() => window.game.notify.blocked), true);
   assert.equal(await a.evaluate(() => window.game.hud.menu.started), true);
   assert.equal(await a.evaluate(() => [...window.game.paint.surfaces].some((s) => s.data)), true);

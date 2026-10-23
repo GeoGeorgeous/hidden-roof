@@ -1,9 +1,11 @@
+import type { Action } from './input.ts';
+
 // Every message a player reads in the game, in one place, so each line can be reviewed and reworded without
 // touching game logic. Grouped by the component that shows it; each group says where and when. A new text goes
 // here, never into a call site.
 // A template has `{name}` for a value msg() fills in, and `**bold**` for what the display draws bold. An action's
 // name (`{forward}`, `{use}`) is not filled here: the display swaps it for the key's name when it draws
-// (notify.ts resolveLine), so a rebound key shows as bound. No DOM: tested in Node (scripts/messages.test.mjs).
+// (resolveLine below), so a rebound key shows as bound. No DOM: tested in Node (scripts/messages.test.mjs).
 // Not messages, so not here: menu labels and button captions, tooltips, the popups' body paragraphs (save, upload,
 // update notes), the HUD tags (CAP, NEW TOOL), the F3 panel's descriptions. Nothing player-facing comes from
 // server/: it sends a `rejected` reason code and the game words it (menu.net*).
@@ -47,23 +49,23 @@ export const MESSAGES = {
    * Top center, one at a time, while true: the link's state, the worst first (reconnecting > noSignal > badConnection).
    * Reconnecting is net/net-menu.ts's; the other two are net/link-health.ts's. Its icon: bars cycling, a red ring, one bar of three.
    */
-  chip: {
+  status: {
     reconnecting: 'Trying to reconnect · Attempt #{n}',
     /** The server has said nothing for a few seconds (NET.noSignal). */
     noSignal: 'No signal from the server',
     /** The round trip to the server is long (NET.badPing). */
     badConnection: 'Bad connection',
-    /** The chip's result when reconnecting worked (notify.succeed). */
+    /** The status's result when reconnecting worked (notify.succeed). */
     reconnected: 'Reconnected',
   },
 
   /**
    * Blocks play until answered: a card with a label, a title, a text and a button. The first six end a session the player was in
-   * (net/lost-dialogue.ts maps the failure to one; a failure while joining stays on the MULTIPLAYER page instead). Shown until answered:
+   * (net/lost-dialog.ts maps the failure to one; a failure while joining stays on the MULTIPLAYER page instead). Shown until answered:
    * Enter presses the button, Esc leaves without it (never reloads), and `esc` names that when it differs.
    */
-  dialogue: {
-    /** The window to rejoin ran out ({minutes} of it). The only one that grows from the reconnecting chip. */
+  dialog: {
+    /** The window to rejoin ran out ({minutes} of it). The only one that grows from the reconnecting status. */
     serverLost: { label: 'DISCONNECTED', title: 'Server not responding', text: "We couldn't reach the server for {minutes} minutes, so your place in the session is gone.", button: 'Save paint and leave', esc: 'Leave without saving' },
     sessionEnded: { label: 'SESSION ENDED', title: 'The session has ended', text: 'The server restarted and the session closed with it.', button: 'Save paint and leave', esc: 'Leave without saving' },
     openedElsewhere: { label: 'OPENED ELSEWHERE', title: 'Opened in another tab', text: 'You joined this session from another tab, so this one left it.', button: 'Got it' },
@@ -82,7 +84,7 @@ export const MESSAGES = {
     noteAway: 'AWAY',
     noteDropped: 'DISCONNECTED',
     noteSilent: 'NO SIGNAL',
-    /** The dialogue's key caps. */
+    /** The dialog's key caps. */
     keyEnter: 'ENTER',
     keyEsc: 'ESC',
     /** Shown far behind for a while (NET.highDelay); the other notes win. */
@@ -180,18 +182,30 @@ export const MESSAGES = {
 } as const;
 
 type Messages = typeof MESSAGES;
-/** `group.name`: 'toast.joined'. The dialogue's messages have several fields: see dialogueOf. */
-export type MessageId = { [G in Exclude<keyof Messages, 'dialogue'>]: `${G}.${keyof Messages[G] & string}` }[Exclude<keyof Messages, 'dialogue'>];
-export type DialogueId = keyof Messages['dialogue'];
+/** `group.name`: 'toast.joined'. The dialog's messages have several fields: see dialogOf. */
+export type MessageId = { [G in Exclude<keyof Messages, 'dialog'>]: `${G}.${keyof Messages[G] & string}` }[Exclude<keyof Messages, 'dialog'>];
+export type DialogId = keyof Messages['dialog'];
 export type Vars = Record<string, string | number>;
 
-/** A dialogue's text: `esc` is what Esc does when that isn't what the button does. */
-export interface DialogueText {
+/** A dialog's text: `esc` is what Esc does when that isn't what the button does. */
+export interface DialogText {
   label: string;
   title: string;
   text: string;
   button: string;
   esc?: string;
+}
+
+/**
+ * A hint's line as the player reads it: `Press {use} to draw` as `Press **LMB** to draw`. Each `{action}` becomes
+ * its key name in bold, at display time (notify-view.ts), so rebinding or the keyboard layout arriving changes it.
+ * An unbound key (`—`) isn't bold.
+ */
+export function resolveLine(line: string, label: (action: Action) => string) {
+  return line.replace(/\{(\w+)\}/g, (_, action: string) => {
+    const key = label(action as Action).replaceAll('*', '×');
+    return key === '—' ? key : `**${key}**`;
+  });
 }
 
 /** `{name}` filled from `vars`. A name without a value stays as it is, `{name}` in view, so it is caught. Values go in as plain text. */
@@ -211,8 +225,8 @@ export function msgLines(id: MessageId, vars: Vars = {}): string[] {
 /** A one-line message. */
 export const msg = (id: MessageId, vars: Vars = {}) => msgLines(id, vars).join('\n');
 
-/** A dialogue's label, title, text and button, filled. */
-export function dialogueOf(id: DialogueId, vars: Vars = {}): DialogueText {
-  const d: DialogueText = MESSAGES.dialogue[id];
+/** A dialog's label, title, text and button, filled. */
+export function dialogOf(id: DialogId, vars: Vars = {}): DialogText {
+  const d: DialogText = MESSAGES.dialog[id];
   return { label: fill(d.label, vars), title: fill(d.title, vars), text: fill(d.text, vars), button: fill(d.button, vars), esc: d.esc && fill(d.esc, vars) };
 }

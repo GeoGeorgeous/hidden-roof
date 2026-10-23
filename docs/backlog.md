@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 205
+The one list of what's left. Counter for new ids: next: 207
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -117,6 +117,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 3. [BUGS-198]: With F3 open the compact pause menu is under the pickup tags, nameplates, hotbar and toast (docs/ideas/hud-scale.md)
 4. [BUGS-199]: LOW PRESSURE runs off the right edge in narrow windows (820×560) (docs/ideas/hud-scale.md)
 5. [IDEA-204]: Notifications beyond play: the menu, pages, loading and a hidden tab on the same model; screen-reader announcements; more events (away and back, context lost, online, refused pointer lock or clipboard); battery (docs/ideas/notifications.md)
+6. [RFCT-206]: The menu's CSS writes paper at ~25 opacities, as rgba and as color-mix: map them to --text-1/2/3, --hair and --edge (src/style.css)
 
 ## Avatar
 
@@ -210,6 +211,7 @@ Shipped since the last release; the release commit empties this list.
 30. [DOCS-197]: Legal texts: the controller's legal name, "the country of Georgia" in the transfer sentence, recordings kept with only the nickname removed on objection (new material, and our own posts where reasonably possible), copies others make are theirs, the Terms no longer call the license perpetual
 31. TASK [BL-078]: Show BUY ME A COFFEE again once it has a link (done by TASK-196: the Ko-fi link in the pause menu footer) @1.5.0
 32. ~~[?BUGS-162]: The browser's page zoom scales the HUD and menus (zoom keys, Ctrl+wheel and pinch are blocked already: BROWSER_GUARDS) @1.5.0~~
-33. IDEA [BL-140]: One notification system: hints, toasts, chips and dialogues in play on one model; messages no longer lost in menus and hidden tabs; reconnecting, no signal and bad connection as chips; every message text in one catalogue (src/messages.ts)
+33. IDEA [BL-140]: One notification system: hints, toasts, statuses and dialogs in play on one model; messages no longer lost in menus and hidden tabs; reconnecting, no signal and bad connection as statuses; every message text in one catalogue (src/messages.ts)
 34. DSGN [BL-092]: Hints in play instead of a controls screen: move, each tool, colors, ladders, low pressure; one at a time, gone once done, remembered; Settings: Hints and Show hints again
-35. IDEA [BL-114]: A failure says whether the player was in a session: a session lost mid-play is one of eight dialogues by reason, most offering to save the paint before leaving; the reconnecting chip grows into it
+35. IDEA [BL-114]: A failure says whether the player was in a session: a session lost mid-play is one of eight dialogs by reason, most offering to save the paint before leaving; the reconnecting status grows into it
+36. [RFCT-205]: In-game messages reviewed: one vocabulary (hint, toast, status, dialog) in code, CSS and the catalogue; one glass token and one fade for every box; the dialog's button and key caps are the menu's; each dialog carries its own answer; a repeated toast shows once

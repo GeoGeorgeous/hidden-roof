@@ -168,7 +168,7 @@ export class Tutorial {
     if (this.shown?.id === s.def.id && this.shown.text === text) return;
     if (this.shown && this.shown.id !== s.def.id) this.notes.clear(`hint:${this.shown.id}`);
     this.shown = { id: s.def.id, text };
-    this.notes.set({ key: `hint:${s.def.id}`, kind: 'advice', rank: RANK[s.def.rank], lines: text < steps.length ? steps[text].lines : s.def.lines });
+    this.notes.set({ key: `hint:${s.def.id}`, kind: 'hint', rank: RANK[s.def.rank], lines: text < steps.length ? steps[text].lines : s.def.lines });
   }
 
   private load() {

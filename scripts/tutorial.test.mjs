@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { TUTORIAL } from '../src/config.ts';
 import { Tutorial } from '../src/tutorial/tutorial.ts';
-import { resolveLine } from '../src/notify.ts';
+import { resolveLine } from '../src/messages.ts';
 
 const KEY_NAMES = { use: 'LMB', sizeDown: 'Q', sizeUp: 'E', prev: 'WHEELUP', next: 'WHEELDOWN' };
 
@@ -111,7 +111,7 @@ assert.equal(resolveLine('Press {use} to draw, {sizeDown} / {sizeUp} to change n
   play(0.1);
   assert.deepEqual(keys(), ['hint:tool.marker']);
   assert.deepEqual(board.get('hint:tool.marker').lines, ['Press {slot2} to take the marker']);
-  assert.equal(board.get('hint:tool.marker').kind, 'advice');
+  assert.equal(board.get('hint:tool.marker').kind, 'hint');
   snap.tool = 'marker';
   play(0.1);
   assert.deepEqual(board.get('hint:tool.marker').lines, ['Press {use} to draw, {sizeDown} / {sizeUp} to change nib']);
