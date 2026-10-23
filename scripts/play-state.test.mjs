@@ -126,6 +126,21 @@ for (const [locked, multiplayer, paused, frozen] of [[false, false, true, true],
   assert.deepEqual(done, ['confirm', 'release', 'dismiss']);
 }
 
+// A dialog over the pause menu (the browser took the first Esc to free the mouse): Esc leaves it and is not the menu's; losing the lock alone answers nothing.
+{
+  const { key, up, done, input } = setup({ locked: true, page: true });
+  up();
+  input.locked = false;
+  assert.deepEqual(done, []);
+  key('Escape', true, true);
+  assert.deepEqual(done, [], 'a held key does nothing');
+  key('Escape');
+  key('Escape', false);
+  assert.deepEqual(done, ['dismiss'], 'the dialog is answered, the page stays');
+  key('Escape');
+  assert.deepEqual(done, ['dismiss', 'back'], 'with none, Esc is the menu\'s again');
+}
+
 // Keys that aren't Esc or Enter are never the menu's.
 {
   const { key, done } = setup();

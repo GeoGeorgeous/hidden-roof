@@ -45,7 +45,7 @@ export class NotifyView {
   private hintShown = '';
 
   constructor(private notify: Notify) {
-    this.dialogView = new DialogView(() => notify.confirm(true));
+    this.dialogView = new DialogView(() => notify.confirm(true), () => notify.confirm(false));
     this.syncLook();
     this.bottom.append(this.toasts, this.statuses);
     document.body.append(this.shade, this.hint, this.bottom, this.dialogView.el);

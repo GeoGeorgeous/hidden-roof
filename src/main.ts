@@ -135,6 +135,8 @@ const opened = new OpenLevel({ scene, level, pickups, inventory, drips, paint, p
 
 /** The level is built, lit and painted (loading.ts): until then the game doesn't run. */
 let loaded = false;
+// The hints' font loads meanwhile, not awaited: the first hint doesn't flash in the fallback.
+void document.fonts.load('500 1em Montserrat').catch(() => {});
 // Signs measure their text when they are built: wait for the sign font first.
 Promise.all([fetchLevel(opened.name), jpFontReady()])
   .then(async ([data]) => {

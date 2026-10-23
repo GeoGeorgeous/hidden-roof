@@ -8,8 +8,8 @@ import type { Dialog } from './notify';
 // notify.ts holds (`DialogView`); the frame guard draws the same card by itself (`dialogLayer`), because the frame loop
 // that updates the notify view may be what broke. Enter presses the button and Esc leaves (play-state.ts); the key caps say so.
 
-/** The veil and the card, for a layer. `press`: the button's click (with the mouse free). */
-export function dialogLayer(d: Dialog, press: () => void) {
+/** The veil and the card, for a layer. `press`: the button's click (with the mouse free); `leave`: the click on what Esc does. */
+export function dialogLayer(d: Dialog, press: () => void, leave?: () => void) {
   const label = el('div', 'label');
   label.append(el('i'), el('span', '', d.label));
   // The button with its key cap in it, in a segmented control as in the menu; what Esc does, when that's something else, on a line of its own under it.
@@ -21,8 +21,9 @@ export function dialogLayer(d: Dialog, press: () => void) {
   const actions = el('div', 'actions');
   actions.append(seg);
   if (d.esc) {
-    const esc = el('div', 'esc');
+    const esc = el('button', 'esc');
     esc.append(el('kbd', '', msg('hud.keyEsc')), el('span', '', d.esc));
+    if (leave) esc.addEventListener('click', leave);
     actions.append(esc);
   }
   const body = el('div', 'body');
@@ -41,9 +42,11 @@ export class DialogView {
   private shown: string | null = null;
   private timer: number | undefined;
   private press: () => void;
+  private leave: () => void;
 
-  constructor(press: () => void) {
+  constructor(press: () => void, leave: () => void) {
     this.press = press;
+    this.leave = leave;
   }
 
   /** `d`: the dialog to show, or null for none; `status`: the element of the status it grows out of, if any. */
@@ -61,7 +64,7 @@ export class DialogView {
     if (text !== this.shown) {
       const fresh = this.shown === null;
       this.shown = text;
-      const { veil, card } = dialogLayer(d, this.press);
+      const { veil, card } = dialogLayer(d, this.press, this.leave);
       layer.replaceChildren(veil, card);
       // Laid out once off, so the next change fades in.
       if (fresh) void layer.offsetWidth;
