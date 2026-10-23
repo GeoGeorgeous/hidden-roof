@@ -7,7 +7,7 @@ import { PAINT, PAINT_DETAIL } from '../src/config.ts';
 import { Outbox } from '../src/net/outbox.ts';
 import { decodeOps, encodeOps, rounded, SurfaceIndex } from '../src/op-wire.ts';
 import { LEVEL_VERSION, levelProblem } from '../src/level/level-data.ts';
-import { checkToServer, cleanName, decode, encode, isName, partFrames, PROTOCOL, SNAPSHOT_BYTES } from '../src/net/protocol.ts';
+import { checkToServer, cleanName, closeCode, decode, encode, isName, partFrames, PROTOCOL, rejectionOf, SNAPSHOT_BYTES } from '../src/net/protocol.ts';
 
 const level = { version: 4, spawn: { pos: [0, 0, 0], yaw: 0 }, props: [{ id: 1, type: 'slab', pos: [0, 0, 0] }] };
 const stamp = { kind: 'stamp', key: 'p12#0', rect: 3, u: 0.1 + 0.2, v: 1 / 3, radius: 0.0125, amount: 0.35, color: [1, 0.2, 0.1], softness: 0.5, square: false };
@@ -74,6 +74,9 @@ for (const name of ['', '   ', 'Geo Geo', ' Geo', 'Geo ', 'Geo_', 'Geo.', 'Geo-1
   refused({ ...host, name });
   refused({ ...join, name });
 }
+// A socket's close code says the rejection it came with; any other close code says none.
+for (const r of ['version', 'no-session', 'ended', 'full', 'bad-save', 'bad-level', 'busy', 'replaced', 'too-many']) assert.equal(rejectionOf(closeCode(r)), r);
+for (const code of [1000, 1006, 1008, 1011, 4000, 4010]) assert.equal(rejectionOf(code), undefined, String(code));
 // A name saved by an older version is cleaned to what a name may be: letters and digits, at most NAME_MAX.
 assert.equal(cleanName('Geo Geo'), 'GeoGeo');
 assert.equal(cleanName('Гоша_7!'), '7');

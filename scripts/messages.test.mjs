@@ -9,6 +9,10 @@ assert.equal(msg('status.reconnected'), 'Reconnected');
 // A dialog is label, title, text and button, filled; {minutes} comes from the caller.
 assert.equal(dialogOf('serverLost', { minutes: 3 }).text, "We couldn't reach the server for 3 minutes, so your place in the session is gone.");
 assert.match(dialogOf('serverLost').text, /\{minutes\}/);
+// A session closed because no one came back is not the server restarting: each has its own words.
+assert.match(dialogOf('sessionEmpty', { minutes: 3 }).text, /within 3 minutes/);
+assert.notEqual(dialogOf('sessionEmpty').text, dialogOf('sessionEnded').text);
+assert.match(dialogOf('sessionEnded').text, /restarted/);
 assert.equal(dialogOf('openedElsewhere').esc, undefined);
 for (const d of Object.values(MESSAGES.dialog)) assert.ok(d.label && d.title && d.text && d.button);
 // A missing value stays as {name}; an extra one is ignored.

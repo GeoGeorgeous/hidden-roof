@@ -32,8 +32,9 @@ const MAX_PROPS = 5000;
 
 /**
  * Why the server turned a player away (the game says it in its own words):
- * another version, no session with that code, one that has ended (the server
- * remembers codes for SERVER.endedMemory), a full session, a paint file or
+ * another version, no session with that code (a server that restarted has none
+ * either), one that has ended (every player left or ran out of time to come
+ * back; the server remembers codes for SERVER.endedMemory), a full session, a paint file or
  * level it can't use, the server too full for another session, or the same
  * player come in from another tab (a duplicated tab carries the token along),
  * or too many links or sessions from one address (SERVER.linksPerIp, sessionsPerIp).
@@ -42,6 +43,8 @@ const MAX_PROPS = 5000;
 const REJECTIONS = ['version', 'no-session', 'ended', 'full', 'bad-save', 'bad-level', 'busy', 'replaced', 'too-many'] as const;
 export type Rejection = (typeof REJECTIONS)[number];
 export const closeCode = (r: Rejection) => 4001 + REJECTIONS.indexOf(r);
+/** The rejection a socket's close code says (see closeCode), if it does. */
+export const rejectionOf = (code: number): Rejection | undefined => REJECTIONS[code - 4001];
 /** What the server answers a plain GET at /ws (no WebSocket): the game asks when it can't connect (net/diagnostics.ts). */
 export const HELLO = `roof server · protocol ${PROTOCOL}`;
 

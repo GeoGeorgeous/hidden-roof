@@ -60,14 +60,17 @@ export const MESSAGES = {
   },
 
   /**
-   * Blocks play until answered: a card with a label, a title, a text and a button. The first six end a session the player was in
+   * Blocks play until answered: a card with a label, a title, a text and a button. The first seven end a session the player was in
    * (net/lost-dialog.ts maps the failure to one; a failure while joining stays on the MULTIPLAYER page instead). Shown until answered:
    * Enter presses the button, Esc leaves without it (never reloads), and `esc` names that when it differs.
    */
   dialog: {
     /** The window to rejoin ran out ({minutes} of it). The only one that grows from the reconnecting status. */
     serverLost: { label: 'DISCONNECTED', title: 'Server not responding', text: "We couldn't reach the server for {minutes} minutes, so your place in the session is gone.", button: 'Save paint and leave', esc: 'Leave without saving' },
+    /** The server came back without the session (it restarted). */
     sessionEnded: { label: 'SESSION ENDED', title: 'The session has ended', text: 'The server restarted and the session closed with it.', button: 'Save paint and leave', esc: 'Leave without saving' },
+    /** The server closed the session: every player had left or lost their link, and none came back within {minutes}. */
+    sessionEmpty: { label: 'SESSION ENDED', title: 'The session has ended', text: 'Everyone left or lost their connection, and no one came back within {minutes} minutes, so the session closed.', button: 'Save paint and leave', esc: 'Leave without saving' },
     openedElsewhere: { label: 'OPENED ELSEWHERE', title: 'Opened in another tab', text: 'You joined this session from another tab, so this one left it.', button: 'Got it' },
     updated: { label: 'UPDATE', title: 'A new version is out', text: 'The game was updated while you were away. Reload the page to play together again.', button: 'Reload page', esc: 'Leave without reloading' },
     sessionFull: { label: 'SESSION FULL', title: 'The session is full', text: 'Someone took your place while you were reconnecting.', button: 'Save paint and leave', esc: 'Leave without saving' },

@@ -200,6 +200,12 @@ try {
   const late = await game();
   late.send({ type: 'join', protocol: PROTOCOL, name: 'B', code: wa.code });
   assert.equal((await late.next('rejected')).reason, 'ended');
+  assert.equal(await late.closed, closeCode('ended'));
+  // A player coming back with their token after everyone's time ran out is told the same (not "no session": that is a server that restarted).
+  const tooLate = await game();
+  tooLate.send({ type: 'join', protocol: PROTOCOL, name: 'B', code: wa.code, token: wb.token });
+  assert.equal((await tooLate.next('rejected')).reason, 'ended');
+  assert.equal(await tooLate.closed, closeCode('ended'));
 
   // The same name twice gets a number. The host drops and comes back from a new tab (no token) while the other is
   // still in a full session: under the same name it takes its own place back, not "full".
