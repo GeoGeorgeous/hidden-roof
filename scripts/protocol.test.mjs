@@ -29,7 +29,7 @@ const sent = [
   { type: 'ladder', t: 2.5, data: null },
   { type: 'save' },
   { type: 'inventory', data: { tools: ['marker', 'ladder'], colors: ['black', 'red'], caps: ['standard'], selected: 2, color: 'red', cap: 'standard' } },
-  { type: 'away', away: true },
+  { type: 'status', status: 'idle' },
   { type: 'ping', t: 12.5 },
   { type: 'leave' },
 ];
@@ -92,7 +92,8 @@ refused({ type: 'ops', seq: 1 });
 refused({ type: 'ladder', t: 1, data: { type: 'building', pos: [0, 0, 0] } });
 refused({ type: 'ladder', t: 1 });
 refused({ type: 'ping' });
-refused({ type: 'away' });
+refused({ type: 'status' });
+refused({ type: 'status', status: 'dropped' });
 refused({ type: 'inventory', data: { tools: [], colors: [], caps: [], selected: -1, color: 'red', cap: 'x' } });
 refused({ type: 'inventory', data: { tools: Array(33).fill('x'), colors: [], caps: [], selected: 0, color: 'red', cap: 'x' } });
 

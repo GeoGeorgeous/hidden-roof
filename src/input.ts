@@ -93,6 +93,8 @@ export class Input {
   private isLocked = false;
   /** The last lock asked for the mouse without acceleration (PLAYER.rawMouse), and wasn't refused it. */
   rawLocked = false;
+  /** When the player last pressed, clicked, scrolled or moved the mouse in play (performance.now() s): idle since. */
+  lastActive = performance.now() / 1000;
   onLockChange: (locked: boolean) => void = () => {};
   /** A click on the game while paused: resume (main.ts routes it through the play state). */
   onResume: () => void = () => this.requestLock();
@@ -113,6 +115,7 @@ export class Input {
     window.addEventListener('mouseup', (e) => this.button(e.button, false));
     window.addEventListener('mousemove', (e) => {
       if (!this.locked) return;
+      this.active();
       this.mouseDX += e.movementX;
       this.mouseDY += e.movementY;
     });
@@ -140,6 +143,7 @@ export class Input {
    * `target`: where a keydown came from, `ctrl`/`meta`: modifiers held with it.
    */
   key(code: string, down: boolean, repeat = false, mods: { ctrl?: boolean; meta?: boolean; target?: EventTarget | null } = {}) {
+    this.active();
     if (!down) {
       this.down.delete(code);
       // macOS sends no keyup for keys released while Cmd is held: drop them all (one still held comes back on its auto-repeat).
@@ -163,6 +167,7 @@ export class Input {
 
   /** A mouse button (0 left, 1 middle, 2 right) went down or up. While paused a press resumes instead. */
   button(n: number, down: boolean) {
+    this.active();
     if (down && !this.locked) {
       this.onResume();
       return;
@@ -175,7 +180,12 @@ export class Input {
 
   /** Whole wheel steps taken (positive down), as the listener counts them from the scroll. */
   wheel(steps: number) {
+    this.active();
     this.wheelSteps += steps;
+  }
+
+  private active() {
+    this.lastActive = performance.now() / 1000;
   }
 
   /** The pointer is locked to the game: playing. */

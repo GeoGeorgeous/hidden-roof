@@ -193,16 +193,33 @@
   -webkit-text-stroke: var(--nameKana-outline) var(--ui);
 }
 
-/* Names over the other players' heads (net/nameplates.ts): white on a black box, readable over anything. */
+/* Names over the other players' heads (net/nameplates.ts): white on a black box, readable over anything; 15px tall.
+   What they're doing is an 11px icon after the name (public/icons/note-*.svg, one color: the mask's shape in --paper). */
 .nameplate {
   position: absolute;
   left: 0;
   top: 0;
+  display: flex;
+  align-items: center;
   padding: 1px 6px;
+  line-height: 13px;
   background: rgba(20, 20, 22, 0.78);
   color: var(--paper);
   white-space: nowrap;
 }
+.nameplate i {
+  width: 11px;
+  height: 11px;
+  margin-left: 5px;
+  background: currentColor;
+  mask: var(--icon) center / contain no-repeat;
+}
+.nameplate i[data-note='away'] { --icon: url('/icons/note-away.svg'); }
+.nameplate i[data-note='menu'] { --icon: url('/icons/note-menu.svg'); }
+.nameplate i[data-note='idle'] { --icon: url('/icons/note-idle.svg'); }
+.nameplate i[data-note='lagging'] { --icon: url('/icons/note-lagging.svg'); }
+.nameplate i[data-note='silent'] { --icon: url('/icons/note-silent.svg'); }
+.nameplate i[data-note='dropped'] { --icon: url('/icons/note-dropped.svg'); }
 
 /* PSI gauge above the tags, shown while spraying or shaking: label, a horizontal line, the value. */
 .psi-gauge {

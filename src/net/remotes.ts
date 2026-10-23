@@ -2,22 +2,18 @@ import type * as THREE from 'three';
 import type { Level } from '../level/level';
 import type { PaintOps } from '../paint-ops';
 import type { Tools } from '../tools/tools';
-import { msg } from '../messages';
 import type { NetLog } from './diagnostics';
 import { Nameplates } from './nameplates';
 import type { Presence } from './protocol';
-import { RemotePlayer, type Look } from './remote-player';
+import { RemotePlayer } from './remote-player';
 
 // The other players in a session, by id: their figures (remote-player.ts),
-// name tags (nameplates.ts) saying when they're away or gone, and their
+// name tags (nameplates.ts) noting what they're doing (away, in the menu,
+// idle, gone; far behind only when nothing else: the others say more), and their
 // stepladders. The network log hears when each comes, is first shown, and goes.
 
 /** A player's key: what they own (their stepladder). */
 export const ownerOf = (id: number) => `player${id}`;
-
-/** A player who is here and heard, but shown far behind. The others' notes win: they say more. */
-const LAGGING = msg('hud.noteLagging');
-const NOTE: Record<Look, string> = { here: '', away: msg('hud.noteAway'), dropped: msg('hud.noteDropped'), silent: msg('hud.noteSilent') };
 
 export class Remotes {
   readonly names = new Map<number, string>();
@@ -88,7 +84,7 @@ export class Remotes {
       this.unseen.delete(id);
     }
     const shown = [...this.list].filter(([, r]) => r.avatar.group.visible);
-    this.nameplates.update(camera, shown.map(([id, r]) => ({ id, name: this.names.get(id) ?? '', note: NOTE[r.look] || (r.lagging ? LAGGING : ''), feet: r.position })));
+    this.nameplates.update(camera, shown.map(([id, r]) => ({ id, name: this.names.get(id) ?? '', note: r.look !== 'here' ? r.look : r.lagging ? 'lagging' : null, feet: r.position })));
   }
 
   /** Who's in the session besides us, and their paint colors (the pause screen's live line). */

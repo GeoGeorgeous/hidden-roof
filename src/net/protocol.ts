@@ -14,7 +14,7 @@ import { isNum, isObj, isV3, levelProblem, type LevelData, type PropData } from 
 // through checkToServer.
 
 /** Bumped when a message changes or anything the server runs for a session does (paint, drips, face keys, the save format). host and join carry it and the level's surface-table hash; a mismatch is answered 'version' and the game asks for a reload. */
-export const PROTOCOL = 6;
+export const PROTOCOL = 7;
 export const NAME_MAX = 16;
 /** Session codes: this many letters from CODE_LETTERS (no I or O, which read as 1 and 0). */
 export const CODE_LENGTH = 5;
@@ -41,8 +41,11 @@ export const closeCode = (r: Rejection) => 4001 + REJECTIONS.indexOf(r);
 /** What the server answers a plain GET at /ws (no WebSocket): the game asks when it can't connect (net/diagnostics.ts). */
 export const HELLO = `roof server · protocol ${PROTOCOL}`;
 
-/** A player as the others see them: playing, away (their game is hidden: minimized, another tab), or dropped (their link is gone; they may come back). */
-export type Presence = 'here' | 'away' | 'dropped';
+/** What a player is doing, as they say: playing, away (their game is hidden: minimized, another tab), in the menu (paused), or idle (nothing pressed for NET.idleAfter s). */
+const ACTIVITIES = ['here', 'away', 'menu', 'idle'] as const;
+export type Activity = (typeof ACTIVITIES)[number];
+/** A player as the others see them: what they're doing, or dropped (their link is gone; they may come back). */
+export type Presence = Activity | 'dropped';
 
 /** Game -> server. */
 export type ToServer =
@@ -64,8 +67,8 @@ export type ToServer =
   | { type: 'save' }
   /** What they carry, whenever it changes: given back when they come back. */
   | { type: 'inventory'; data: InventoryData }
-  /** Their game is hidden (minimized, another tab) or shown again. */
-  | { type: 'away'; away: boolean }
+  /** What they're doing now, when it changes (net/own-status.ts). */
+  | { type: 'status'; status: Activity }
   /** Answered with a pong carrying the same `t`: the round trip, for the HUD. */
   | { type: 'ping'; t: number }
   | { type: 'leave' };
@@ -177,8 +180,8 @@ export function checkToServer(m: Message | null): ToServer | null {
       return isNum(v.t) ? (m as ToServer) : null;
     case 'inventory':
       return isInventory(v.data) ? (m as ToServer) : null;
-    case 'away':
-      return typeof v.away === 'boolean' ? (m as ToServer) : null;
+    case 'status':
+      return ACTIVITIES.includes(v.status as Activity) ? (m as ToServer) : null;
     case 'save':
     case 'leave':
       return m as ToServer;

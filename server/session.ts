@@ -3,7 +3,7 @@ import { SERVER } from '../src/config';
 import type { InventoryData } from '../src/inventory/inventory';
 import type { LevelData, PropData } from '../src/level/level-data';
 import { decodeOps, encodeOps, SurfaceIndex } from '../src/op-wire';
-import { cleanName, closeCode, encode, NAME_MAX, partFrames, type Presence, type Rejection, type ToClient, type ToServer } from '../src/net/protocol';
+import { cleanName, closeCode, encode, NAME_MAX, partFrames, type Activity, type Presence, type Rejection, type ToClient, type ToServer } from '../src/net/protocol';
 import { loadPaint } from '../src/save/load-paint';
 import { streamPaint } from '../src/save/save-paint';
 import { surfaceTable } from '../src/save/shape';
@@ -40,8 +40,8 @@ export interface Player {
   live: boolean;
   /** A SAVE of theirs is under way. */
   saving: boolean;
-  /** Their game is hidden (minimized, another tab). */
-  away: boolean;
+  /** What they said they're doing (playing, hidden, paused, idle). */
+  activity: Activity;
   /** What they carry, as they last said (null: the starting kit). */
   inventory: InventoryData | null;
   ladder: PropData | null;
@@ -131,10 +131,10 @@ export class Session {
       p.link?.send(encode({ type: 'rejected', reason: 'replaced' }));
       p.link?.close(closeCode('replaced'), 'replaced');
       p.link = link;
-      p.away = false;
+      p.activity = 'here';
     } else {
       const unique = uniqueName(name, all);
-      p = { id: this.nextId++, name: unique, token: randomUUID(), link, acked: 0, live: false, saving: false, away: false, inventory: this.carried.get(unique) ?? null, ladder: null, expires: null, was: null };
+      p = { id: this.nextId++, name: unique, token: randomUUID(), link, acked: 0, live: false, saving: false, activity: 'here', inventory: this.carried.get(unique) ?? null, ladder: null, expires: null, was: null };
       this.broadcast({ type: 'joined', id: p.id, name: p.name }, p);
       this.players.set(p.id, p);
     }
@@ -184,8 +184,8 @@ export class Session {
       this.broadcast({ type: 'ladder', id: p.id, t: m.t, data: m.data }, p);
     } else if (m.type === 'save') void this.save(p);
     else if (m.type === 'inventory') p.inventory = m.data;
-    else if (m.type === 'away') {
-      p.away = m.away;
+    else if (m.type === 'status') {
+      p.activity = m.status;
       this.broadcast({ type: 'presence', id: p.id, state: presence(p) }, p);
     }
     else if (m.type === 'ping') this.send(p, { type: 'pong', t: m.t, acked: p.acked });
@@ -327,7 +327,7 @@ export class Session {
 
 }
 
-const presence = (p: Player): Presence => (!p.link ? 'dropped' : p.away ? 'away' : 'here');
+const presence = (p: Player): Presence => (p.link ? p.activity : 'dropped');
 
 function deliver(p: Player, f: Uint8Array) {
   if (p.live) p.link?.send(f);

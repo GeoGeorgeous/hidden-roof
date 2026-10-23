@@ -78,10 +78,12 @@ export const MESSAGES = {
     clientError: { label: 'CLIENT ERROR', title: 'The game crashed', text: 'Something broke on your side. Reload the page to keep playing; copy the error below to report it.', button: 'Reload page' },
   },
 
-  /** Play's own HUD text that is not one of the four: the tool-hand alert (hud.ts, while the can is low) and the other players' nameplate notes (net/remotes.ts, while true). */
+  /** Play's own HUD text that is not one of the four: the tool-hand alert (hud.ts, while the can is low) and the words of the other players' nameplate icons (net/nameplates.ts, for screen readers). */
   hud: {
     lowPressure: 'LOW PRESSURE — HOLD [{shake}] TO SHAKE',
     noteAway: 'AWAY',
+    noteMenu: 'IN MENU',
+    noteIdle: 'IDLE',
     noteDropped: 'DISCONNECTED',
     noteSilent: 'NO SIGNAL',
     /** The dialog's key caps. */
