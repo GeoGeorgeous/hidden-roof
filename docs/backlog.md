@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 204
+The one list of what's left. Counter for new ids: next: 205
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -49,12 +49,11 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 1. BUGS [BL-024]: Paint ops are most of the downstream bytes; merge stamps, shed load on slow links, after the playtest (docs/ideas/weak-links.md) @1.6.0
 2. TASK [BL-076]: Run the next public playtest and verify that all bugs from the previous playtest have been fixed (docs/ideas/weak-links.md) @1.6.2
-3. IDEA [BL-114]: A failure says whether the player was in a session, for the notification system (docs/ideas/notifications.md) @1.5.0
-4. IDEA [?BL-071]: Multiplayer View-Only sessions: past sessions are opened for viewing only (gallary)
-5. TASK [BL-151]: Show what each other player is doing, add more statuses (in the menu, in Settings…) by their nameplate. For now, we have AWAY and DISCONNECTED @1.5.0
-6. IDEA [?BL-153]: Find who painted something by player id, picked like the eyedropper (to spot bad paint)
-7. TASK [BL-154]: Limit some tools in multiplayer (e.g. the roller) @1.6.0
-8. [BUGS-168]: Returning players recover their inventory but spawn at the default spawn instead of their last position. Restore both inventory and position. @1.6.1
+3. IDEA [?BL-071]: Multiplayer View-Only sessions: past sessions are opened for viewing only (gallary)
+4. TASK [BL-151]: Show what each other player is doing, add more statuses (in the menu, in Settings…) by their nameplate. For now, we have AWAY and DISCONNECTED @1.5.0
+5. IDEA [?BL-153]: Find who painted something by player id, picked like the eyedropper (to spot bad paint)
+6. TASK [BL-154]: Limit some tools in multiplayer (e.g. the roller) @1.6.0
+7. [BUGS-168]: Returning players recover their inventory but spawn at the default spawn instead of their last position. Restore both inventory and position. @1.6.1
 
 ## Painting
 
@@ -113,12 +112,11 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## UI
 
-1. IDEA [BL-140]: One notification system: messages lost in menus and hidden tabs, nothing in play says reconnecting; every message text in one catalogue (docs/ideas/notifications.md, src/messages.ts) @1.5.0
-2. DSGN [BL-092]: Hints in play instead of a controls screen: move, each new tool, colors, ladders; one at a time, gone once done, remembered; on BL-140's notify core; the look decided, all four built here (hint, chip, toast, dialogue), exact values and demos from the designer (docs/ideas/tutorial.md) @1.5.0
-3. ~~BUGS [BL-072]: Nickname tags don't scale with the UI and resolution~~
-4. [TASK-203]: The HUD scales with the window and the DPR: tiny at 4K at 100%, crowded at 820×560; not part of BL-092 (docs/ideas/tutorial.md)
-5. [BUGS-198]: With F3 open the compact pause menu is under the pickup tags, nameplates, hotbar and toast; checked and closed on its own, not by BL-092's layers (docs/ideas/tutorial.md)
-6. [BUGS-199]: LOW PRESSURE runs off the right edge in narrow windows (820×560); checked and closed on its own, not by BL-092's layers (docs/ideas/tutorial.md)
+1. ~~BUGS [BL-072]: Nickname tags don't scale with the UI and resolution~~
+2. [TASK-203]: The HUD scales with the window and the DPR: tiny at 4K at 100%, crowded at 820×560 (docs/ideas/hud-scale.md)
+3. [BUGS-198]: With F3 open the compact pause menu is under the pickup tags, nameplates, hotbar and toast (docs/ideas/hud-scale.md)
+4. [BUGS-199]: LOW PRESSURE runs off the right edge in narrow windows (820×560) (docs/ideas/hud-scale.md)
+5. [IDEA-204]: Notifications beyond play: the menu, pages, loading and a hidden tab on the same model; screen-reader announcements; more events (away and back, context lost, online, refused pointer lock or clipboard); battery (docs/ideas/notifications.md)
 
 ## Avatar
 
@@ -212,3 +210,6 @@ Shipped since the last release; the release commit empties this list.
 30. [DOCS-197]: Legal texts: the controller's legal name, "the country of Georgia" in the transfer sentence, recordings kept with only the nickname removed on objection (new material, and our own posts where reasonably possible), copies others make are theirs, the Terms no longer call the license perpetual
 31. TASK [BL-078]: Show BUY ME A COFFEE again once it has a link (done by TASK-196: the Ko-fi link in the pause menu footer) @1.5.0
 32. ~~[?BUGS-162]: The browser's page zoom scales the HUD and menus (zoom keys, Ctrl+wheel and pinch are blocked already: BROWSER_GUARDS) @1.5.0~~
+33. IDEA [BL-140]: One notification system: hints, toasts, chips and dialogues in play on one model; messages no longer lost in menus and hidden tabs; reconnecting, no signal and bad connection as chips; every message text in one catalogue (src/messages.ts)
+34. DSGN [BL-092]: Hints in play instead of a controls screen: move, each tool, colors, ladders, low pressure; one at a time, gone once done, remembered; Settings: Hints and Show hints again
+35. IDEA [BL-114]: A failure says whether the player was in a session: a session lost mid-play is one of eight dialogues by reason, most offering to save the paint before leaving; the reconnecting chip grows into it
