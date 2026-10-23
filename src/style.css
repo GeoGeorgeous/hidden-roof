@@ -1831,8 +1831,7 @@ body.paused .layer-tool,
 body.paused .hotbar,
 body.paused .layer-shade,
 body.paused .layer-hint,
-body.paused .layer-toast,
-body.paused .layer-dialog:not(.crash) {
+body.paused .layer-toast {
   display: none;
 }
 @keyframes blink {
@@ -2117,10 +2116,11 @@ body.paused .layer-dialog:not(.crash) {
     opacity: 0;
   }
 }
-/* A blocking message in the middle: the game dims under it (play-state.ts: Enter presses the button, Esc leaves). The frame guard's own copy (.crash) stays over the paused menu. */
+/* A blocking message in the middle: the game dims under it (play-state.ts: Enter presses the button, Esc leaves). It stays over the paused menu, and its veil catches the clicks, so none reaches the game or the menu. */
 .layer-dialog .veil {
   position: absolute;
   inset: 0;
+  pointer-events: auto;
   background: var(--veil);
 }
 /* The layer fades; the card also slides down into place. */
@@ -2203,11 +2203,16 @@ body.paused .layer-dialog:not(.crash) {
   padding-right: 8px;
   color: var(--text-1);
 }
-.dialog .esc {
+/* What Esc does, a button too (the mouse is free when the browser kept the first Esc). */
+.dialog button.esc {
   display: flex;
   align-items: center;
   gap: 8px;
   padding-left: 4px;
   font: 500 11px/14px var(--sans);
   color: var(--text-2);
+  transition: color 0.2s;
+}
+.dialog button.esc:hover {
+  color: var(--paper);
 }
