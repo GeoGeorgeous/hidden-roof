@@ -3,7 +3,7 @@ import type { Level } from '../level/level';
 import type { PaintOps } from '../paint-ops';
 import type { Tools } from '../tools/tools';
 import type { NetLog } from './diagnostics';
-import { Nameplates } from './nameplates';
+import { Nameplates, type Plate } from './nameplates';
 import type { Presence } from './protocol';
 import { RemotePlayer } from './remote-player';
 
@@ -19,6 +19,8 @@ export class Remotes {
   readonly names = new Map<number, string>();
   private list = new Map<number, RemotePlayer>();
   private nameplates = new Nameplates();
+  /** The nameplates' players, refilled each frame. */
+  private plates: Plate[] = [];
   /** Players not shown yet, and since when (s), for the log. */
   private unseen = new Map<number, number>();
 
@@ -76,15 +78,22 @@ export class Remotes {
 
   /** Once a frame, at local time `now` (s). */
   update(camera: THREE.Camera, now: number, dt: number) {
+    let shown = 0;
     for (const [id, r] of this.list) {
       r.update(now, dt);
+      if (!r.avatar.group.visible) continue;
+      const plate = (this.plates[shown++] ??= { id, name: '', note: null, feet: r.position });
+      plate.id = id;
+      plate.name = this.names.get(id) ?? '';
+      plate.note = r.look !== 'here' ? r.look : r.lagging ? 'lagging' : null;
+      plate.feet = r.position;
       const since = this.unseen.get(id);
-      if (since === undefined || !r.avatar.group.visible) continue;
+      if (since === undefined) continue;
       this.log.add(`#${id} "${this.names.get(id)}" shown after ${(now - since).toFixed(1)} s`);
       this.unseen.delete(id);
     }
-    const shown = [...this.list].filter(([, r]) => r.avatar.group.visible);
-    this.nameplates.update(camera, shown.map(([id, r]) => ({ id, name: this.names.get(id) ?? '', note: r.look !== 'here' ? r.look : r.lagging ? 'lagging' : null, feet: r.position })));
+    this.plates.length = shown;
+    this.nameplates.update(camera, this.plates);
   }
 
   /** Who's in the session besides us, and their paint colors (the pause screen's live line). */

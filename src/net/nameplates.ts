@@ -10,7 +10,7 @@ import { msg } from '../messages';
 // What they're doing (away, in the menu…) goes after the name, colored by how bad it is.
 
 /** What a nameplate notes after the name. */
-export type Note = 'away' | 'menu' | 'idle' | 'lagging' | 'silent' | 'dropped';
+type Note = 'away' | 'menu' | 'idle' | 'lagging' | 'silent' | 'dropped';
 
 const WORD: Record<Note, string> = {
   away: msg('hud.noteAway'),
@@ -20,6 +20,14 @@ const WORD: Record<Note, string> = {
   silent: msg('hud.noteSilent'),
   dropped: msg('hud.noteDropped'),
 };
+
+/** One player's tag, as the nameplates are told each frame: id, name, note and feet position. */
+export interface Plate {
+  id: number;
+  name: string;
+  note: Note | null;
+  feet: THREE.Vector3;
+}
 
 const at = new THREE.Vector3();
 const eye = new THREE.Vector3();
@@ -45,8 +53,8 @@ export class Nameplates {
     document.querySelector('.layer-world')!.append(this.root);
   }
 
-  /** `players`: id, name, note and feet position of each one shown. */
-  update(camera: THREE.Camera, players: { id: number; name: string; note: Note | null; feet: THREE.Vector3 }[]) {
+  /** `players`: each one shown. */
+  update(camera: THREE.Camera, players: readonly Plate[]) {
     for (const [id, tag] of this.tags) {
       if (players.some((p) => p.id === id)) continue;
       tag.root.remove();
@@ -54,6 +62,7 @@ export class Nameplates {
     }
     eye.setFromMatrixPosition(camera.matrixWorld);
     const { near, far, faintest } = NET.nameplateFade;
+    const { innerWidth, innerHeight } = window;
     for (const p of players) {
       const tag = this.tags.get(p.id) ?? this.add(p.id);
       if (tag.name.textContent !== p.name) tag.name.textContent = p.name;
@@ -75,7 +84,7 @@ export class Nameplates {
       if (opacity !== tag.opacity) tag.root.style.opacity = String((tag.opacity = opacity));
       at.project(camera);
       tag.root.hidden = at.z > 1;
-      if (!tag.root.hidden) tag.root.style.transform = `translate(${Math.round((at.x * 0.5 + 0.5) * window.innerWidth)}px, ${Math.round((0.5 - at.y * 0.5) * window.innerHeight)}px) translate(-50%, -100%)`;
+      if (!tag.root.hidden) tag.root.style.transform = `translate(${Math.round((at.x * 0.5 + 0.5) * innerWidth)}px, ${Math.round((0.5 - at.y * 0.5) * innerHeight)}px) translate(-50%, -100%)`;
     }
   }
 
