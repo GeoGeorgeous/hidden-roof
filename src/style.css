@@ -1,5 +1,6 @@
 /* Body-cam overlay style, inked: ink + one alert color, thin lines, small
-   monospace, no panels, no glow. */
+   monospace, no panels, no glow. The other players' nameplates add two muted
+   status colors (--status-lost, --status-slow). */
 
 .dim {
   color: var(--dim);
@@ -193,33 +194,57 @@
   -webkit-text-stroke: var(--nameKana-outline) var(--ui);
 }
 
-/* Names over the other players' heads (net/nameplates.ts): white on a black box, readable over anything; 15px tall.
-   What they're doing is an 11px icon after the name (public/icons/note-*.svg, one color: the mask's shape in --paper). */
+/* Over the other players' heads (net/nameplates.ts): their name and what they're doing on a dark box, 15px tall,
+   readable over anything; how far they are on a smaller one under it. The stack's bottom center sits over the head. */
 .nameplate {
   position: absolute;
   left: 0;
   top: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  padding: 1px 6px;
+  gap: 3px;
+  font-family: var(--sans);
+  font-weight: 500;
+  letter-spacing: 0.08em;
   line-height: 13px;
-  background: rgba(20, 20, 22, 0.78);
-  color: var(--paper);
   white-space: nowrap;
 }
-.nameplate i {
-  width: 11px;
-  height: 11px;
-  margin-left: 5px;
-  background: currentColor;
-  mask: var(--icon) center / contain no-repeat;
+.nameplate > * {
+  background: rgba(20, 20, 22, 0.78);
 }
-.nameplate i[data-note='away'] { --icon: url('/icons/note-away.svg'); }
-.nameplate i[data-note='menu'] { --icon: url('/icons/note-menu.svg'); }
-.nameplate i[data-note='idle'] { --icon: url('/icons/note-idle.svg'); }
-.nameplate i[data-note='lagging'] { --icon: url('/icons/note-lagging.svg'); }
-.nameplate i[data-note='silent'] { --icon: url('/icons/note-silent.svg'); }
-.nameplate i[data-note='dropped'] { --icon: url('/icons/note-dropped.svg'); }
+.nameplate .tag {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 6px;
+  font-size: 11px;
+}
+/* As typed, in the titles' font; a script it lacks falls back to the sans, not the browser's cursive. Its letters sit high: nudged down to center. */
+.nameplate .name {
+  position: relative;
+  top: 2px;
+  font-family: 'Sedgwick Ave Display', var(--sans);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: var(--paper);
+}
+/* Colored by how bad it is: the link lost, far behind, or just not playing. */
+.nameplate .note {
+  color: var(--text-2);
+}
+.nameplate .note:is([data-note='dropped'], [data-note='silent']) {
+  color: var(--status-lost);
+}
+.nameplate .note[data-note='lagging'] {
+  color: var(--status-slow);
+}
+.nameplate .far {
+  padding: 0 4px;
+  font-size: 10px;
+  color: var(--text-1);
+}
 
 /* PSI gauge above the tags, shown while spraying or shaking: label, a horizontal line, the value. */
 .psi-gauge {

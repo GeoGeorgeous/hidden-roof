@@ -19,7 +19,7 @@ export async function paint(w) {
 
   // B's game is hidden: A's tag over B says it's away, and what A paints meanwhile is painted at once, not queued until
   // B is shown again (all of a long absence, landing in one frame).
-  const noted = (note) => a.waitForFunction((n) => document.querySelector('.nameplate i')?.dataset.note === n, note, { timeout: 5000 });
+  const noted = (note) => a.waitForFunction((n) => document.querySelector('.nameplate .note')?.dataset.note === n, note, { timeout: 5000 });
   await b.evaluate(() => window.hide());
   await noted('away');
   const hidden = await paintHash(b);

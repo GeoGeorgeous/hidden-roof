@@ -18,22 +18,30 @@ export function saveScreenshot(canvas: HTMLCanvasElement, onSaved: () => void) {
   }, 'image/png');
 }
 
-/** Each name tag on screen, its box and text where it sits over the canvas, at the canvas's resolution. */
+/** Each name tag on screen, as shown: its boxes, and each text in its own font and color where it sits, at the canvas's resolution. */
 function drawNameplates(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {
   const view = canvas.getBoundingClientRect();
   const scale = canvas.width / view.width;
+  ctx.textBaseline = 'middle';
   for (const tag of document.querySelectorAll<HTMLElement>('.nameplate')) {
-    const r = tag.getBoundingClientRect();
-    if (tag.hidden || !r.width) continue;
-    const css = getComputedStyle(tag);
-    const x = (r.left - view.left) * scale;
-    const y = (r.top - view.top) * scale;
-    ctx.fillStyle = css.backgroundColor;
-    ctx.fillRect(x, y, r.width * scale, r.height * scale);
-    ctx.font = `${css.fontWeight} ${parseFloat(css.fontSize) * scale}px ${css.fontFamily}`;
-    if (css.letterSpacing !== 'normal') ctx.letterSpacing = `${parseFloat(css.letterSpacing) * scale}px`;
-    ctx.fillStyle = css.color;
-    ctx.textBaseline = 'middle';
-    ctx.fillText(tag.textContent ?? '', x + parseFloat(css.paddingLeft) * scale, y + (r.height * scale) / 2);
+    if (tag.hidden) continue;
+    ctx.globalAlpha = parseFloat(getComputedStyle(tag).opacity);
+    for (const el of tag.querySelectorAll<HTMLElement>('*')) {
+      const r = el.getBoundingClientRect();
+      if (!r.width) continue;
+      const css = getComputedStyle(el);
+      const x = (r.left - view.left) * scale;
+      const y = (r.top - view.top) * scale;
+      if (css.backgroundColor !== 'rgba(0, 0, 0, 0)') {
+        ctx.fillStyle = css.backgroundColor;
+        ctx.fillRect(x, y, r.width * scale, r.height * scale);
+      }
+      if (el.children.length || !el.textContent) continue;
+      ctx.font = `${css.fontWeight} ${parseFloat(css.fontSize) * scale}px ${css.fontFamily}`;
+      ctx.letterSpacing = css.letterSpacing === 'normal' ? '0px' : `${parseFloat(css.letterSpacing) * scale}px`;
+      ctx.fillStyle = css.color;
+      ctx.fillText(el.textContent, x + parseFloat(css.paddingLeft) * scale, y + (r.height * scale) / 2);
+    }
   }
+  ctx.globalAlpha = 1;
 }

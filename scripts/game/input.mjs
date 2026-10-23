@@ -41,7 +41,9 @@ await check('input: K takes a screenshot only while playing, not on the title or
 await check('input: a screenshot has the other players\' name tags in it, box and name', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
-    const tag = Object.assign(document.createElement('div'), { className: 'nameplate', textContent: 'WWWWWWWW' });
+    // As net/nameplates.ts builds one: the name on its box, the distance under it.
+    const tag = Object.assign(document.createElement('div'), { className: 'nameplate' });
+    tag.innerHTML = '<div class="tag"><span class="name">WWWWWWWW</span></div><span class="far">5m</span>';
     tag.style.transform = `translate(${innerWidth / 2}px, ${innerHeight / 2}px)`;
     document.querySelector('.layer-world').append(tag);
     const proto = HTMLCanvasElement.prototype;
@@ -54,7 +56,7 @@ await check('input: a screenshot has the other players\' name tags in it, box an
     window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyK' }));
     window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyK' }));
     await steps((f) => f === 1);
-    const box = tag.getBoundingClientRect();
+    const box = tag.querySelector('.tag').getBoundingClientRect();
     g.input.setLocked(false);
     proto.toBlob = was;
     tag.remove();
