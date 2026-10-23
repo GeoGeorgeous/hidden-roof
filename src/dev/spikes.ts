@@ -63,7 +63,6 @@ interface Spike {
 }
 
 const BROWSER_EVENTS: [EventTarget, string, () => string][] = [
-  [document, 'pointerlockchange', () => (document.pointerLockElement ? 'pointer lock taken' : 'pointer lock lost')],
   [document, 'pointerlockerror', () => 'pointer lock refused'],
   [document, 'visibilitychange', () => `tab ${document.visibilityState}`],
   [document, 'fullscreenchange', () => (document.fullscreenElement ? 'fullscreen on' : 'fullscreen off')],
@@ -92,7 +91,8 @@ export class SpikeCatcher {
   private notes: string[] = [];
   private marked = false;
 
-  constructor() {
+  /** `rawLocked`: the lock was taken without OS acceleration (PLAYER.rawMouse, Input.rawLocked). */
+  constructor(rawLocked: () => boolean) {
     addEventListener(
       'mousemove',
       (e) => {
@@ -122,7 +122,10 @@ export class SpikeCatcher {
     pointer('pointermove', 'pointer');
     pointer('pointerrawupdate', 'raw');
     for (const [target, type, what] of BROWSER_EVENTS) target.addEventListener(type, () => this.note(what()));
-    document.addEventListener('pointerlockchange', () => (this.lockedAt = document.pointerLockElement ? performance.now() : null));
+    document.addEventListener('pointerlockchange', () => {
+      this.lockedAt = document.pointerLockElement ? performance.now() : null;
+      this.note(document.pointerLockElement ? `pointer lock taken${rawLocked() ? ' (raw mouse)' : ''}` : 'pointer lock lost');
+    });
   }
 
   private keep(on: TrailEvent['on'], e: MouseEvent, more: Partial<TrailEvent> = {}) {
