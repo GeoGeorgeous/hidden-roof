@@ -1,5 +1,5 @@
 import { BINDINGS, BROWSER_KEYS } from './config';
-import { type Action, keyName, sideless } from './input';
+import { type Action, keyName, keysChanged, sideless } from './input';
 
 // Rebinding play's actions (Settings → Controls) writes BINDINGS, as the other
 // settings write config. Each action has two slots, a primary and an alternate,
@@ -53,6 +53,7 @@ export const CONTROL_GROUPS: { name: string; rows: { action: Action; name: strin
 
 function apply() {
   for (const a of ACTIONS) BINDINGS[a] = bound[a].filter((s) => s !== null).flatMap(codes);
+  keysChanged();
 }
 
 /** An action's name on the Controls tab. */

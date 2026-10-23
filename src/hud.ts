@@ -1,5 +1,5 @@
 import { HUD, VIGNETTE } from './config';
-import { label } from './input';
+import { keysVersion, label } from './input';
 import { netLines, type NetStats } from './net/diagnostics';
 import { msg } from './messages';
 import { PauseMenu } from './pause-menu';
@@ -34,6 +34,7 @@ export class Hud {
   private alert: HTMLElement;
   /** What the gauge shows now, so it's rewritten only on change. */
   private gaugeShown = '';
+  private alertKeys = -1;
   private gaugeUntil = 0;
   private gaugeOn = false;
   private lastPressure = -1;
@@ -158,8 +159,10 @@ export class Hud {
     this.alert.classList.toggle('off', !alert);
     if (alert) {
       // The shake key may have been rebound (Settings → Controls).
-      const text = msg('hud.lowPressure', { shake: label('shake') });
-      if (this.alert.textContent !== text) this.alert.textContent = text;
+      if (keysVersion !== this.alertKeys) {
+        this.alertKeys = keysVersion;
+        this.alert.textContent = msg('hud.lowPressure', { shake: label('shake') });
+      }
     }
     this.capTag.hidden = now >= this.capTagUntil;
     this.colorTag.hidden = now >= this.colorTagUntil;
