@@ -15,9 +15,11 @@ const { SpikeCatcher } = await import('../src/dev/spikes.ts');
 const emit = (type, e) => listeners[type]?.forEach((fn) => fn({ timeStamp: performance.now() - 1, ...e }));
 const frame = (c, t, yaw = 0) => c.frame({ t, ms: 16.7, cpuMs: 3, laps: {}, gpuMs: 5, calls: 100, state: 'play', pos: [0, 0, 0], yaw, pitch: 0 }, 16.7);
 
-const c = new SpikeCatcher();
+let raw = false;
+const c = new SpikeCatcher(() => raw);
 c.start(performance.now());
 doc.pointerLockElement = {};
+raw = true;
 listeners.pointerlockchange.forEach((fn) => fn());
 
 for (let i = 0; i < 5; i++) {
@@ -44,6 +46,9 @@ assert.deepEqual(spike.trail.find((e) => e.on === 'pointer').coalesced, [[-97, -
 assert.ok(spike.trail.every((e) => e.lag >= 0));
 // Frames without a spike carry no trail.
 assert.equal(c.spikes[0].frames[0].trail, undefined);
+
+// The lock's note says it was taken raw.
+assert.deepEqual(c.events.map((e) => e.what), ['pointer lock taken (raw mouse)']);
 
 // Events outside the lock are not the camera's.
 doc.pointerLockElement = null;

@@ -961,6 +961,8 @@ export const PLAYER = {
   /** A climb carries on this far (m) over a ladder's top, so you step onto the floor it leads to (a stepladder's cap, a roof, over a parapet). */
   climbOver: 0.3,
   mouseSensitivity: 0.0022,
+  /** Take the mouse without the OS's pointer acceleration (the pointer lock's `unadjustedMovement`), at the next lock. For finding what makes mouse spikes (docs/ideas/mouse-spikes.md); F3 only. */
+  rawMouse: false,
   /** Falling below this height respawns the player. */
   killY: -25,
   /** Meters walked per footstep sound, and the landing speed (m/s) above which a landing sounds hard. */
