@@ -4,6 +4,7 @@
 import assert from 'node:assert/strict';
 import { NET } from '../src/config.ts';
 import { Flag, LinkHealth } from '../src/net/link-health.ts';
+import { activity } from '../src/net/own-status.ts';
 
 /** A health over a clock; `run(seconds, values)` ticks each 0.25 s with the values and returns the id shown at the end. */
 function setup() {
@@ -67,18 +68,18 @@ assert.equal(setup().run(30), null);
   h.reset();
   assert.equal(run(0.25), null);
 }
-// A player's LAGGING note uses the same flag: past 0.3 s for the hold, gone under 0.2 s for the hold.
+// The flag: past the threshold for the hold, gone under the clear value for the hold.
 {
   const f = new Flag();
   let t = 0;
   const feed = (seconds, v) => {
-    for (let i = 0; i < seconds * 4; i++) f.step((t += 0.25), v, NET.highDelay, NET.highDelayClear, NET.statusHold);
+    for (let i = 0; i < seconds * 4; i++) f.step((t += 0.25), v, NET.badPing, NET.badPingClear, NET.statusHold);
     return f.active;
   };
-  assert.equal(feed(NET.statusHold - 1, 0.4), false);
-  assert.equal(feed(1.5, 0.4), true);
-  assert.equal(feed(20, 0.25), true);
-  assert.equal(feed(NET.statusHold + 1, 0.1), false);
+  assert.equal(feed(NET.statusHold - 1, NET.badPing + 0.1), false);
+  assert.equal(feed(1.5, NET.badPing + 0.1), true);
+  assert.equal(feed(20, (NET.badPing + NET.badPingClear) / 2), true);
+  assert.equal(feed(NET.statusHold + 1, NET.badPingClear - 0.1), false);
 }
 // report tells only a change, and due paces the looks.
 {
@@ -92,5 +93,23 @@ assert.equal(setup().run(30), null);
   h.report({ t: 3, ping: 0.1, silence: 9 }, (x) => told.push(x?.id ?? null));
   h.report({ t: 4, ping: 0.1, silence: 0 }, (x) => told.push(x?.id ?? null));
   assert.deepEqual(told, ['noSignal', null]);
+}
+// troubled follows the status chip (bad connection or no signal), and reset clears it.
+{
+  const h = new LinkHealth();
+  assert.equal(h.troubled, false);
+  h.report({ t: 1, ping: 0.1, silence: 9 }, () => {});
+  assert.equal(h.troubled, true);
+  h.reset();
+  assert.equal(h.troubled, false);
+}
+// What the player tells the others (src/net/own-status.ts): away > menu > idle > lagging > here.
+{
+  const d = { hidden: false, paused: false, idleFor: 0, trouble: false };
+  assert.equal(activity(d), 'here');
+  assert.equal(activity({ ...d, trouble: true }), 'lagging');
+  assert.equal(activity({ ...d, trouble: true, idleFor: NET.idleAfter + 1 }), 'idle');
+  assert.equal(activity({ ...d, trouble: true, paused: true }), 'menu');
+  assert.equal(activity({ ...d, trouble: true, paused: true, hidden: true }), 'away');
 }
 console.log('link-health: ok');

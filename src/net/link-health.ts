@@ -41,6 +41,11 @@ export class LinkHealth {
   private next = 0;
   private shown: LinkStatus | null = null;
 
+  /** The status chip is showing: bad connection or no signal. */
+  get troubled() {
+    return this.shown !== null;
+  }
+
   /** Time to look again (every NET.healthEvery s). */
   due(t: number) {
     if (t < this.next) return false;

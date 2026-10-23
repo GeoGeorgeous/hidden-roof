@@ -49,7 +49,7 @@ export const rejectionOf = (code: number): Rejection | undefined => REJECTIONS[c
 export const HELLO = `roof server · protocol ${PROTOCOL}`;
 
 /** What a player is doing, as they say: playing, away (their game is hidden: minimized, another tab), in the menu (paused), or idle (nothing pressed for NET.idleAfter s). */
-const ACTIVITIES = ['here', 'away', 'menu', 'idle'] as const;
+const ACTIVITIES = ['here', 'away', 'menu', 'idle', 'lagging'] as const;
 export type Activity = (typeof ACTIVITIES)[number];
 /** A player as the others see them: what they're doing, or dropped (their link is gone; they may come back). */
 export type Presence = Activity | 'dropped';

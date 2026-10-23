@@ -92,7 +92,7 @@ export const MESSAGES = {
     /** The dialog's key caps. */
     keyEnter: 'ENTER',
     keyEsc: 'ESC',
-    /** Shown far behind for a while (NET.highDelay); the other notes win. */
+    /** Shown when that player's own link is bad (they say so: net/own-status.ts); the other notes win. */
     noteLagging: 'Lagging',
     /** How far another player is, in whole meters. */
     distance: '{meters}m',

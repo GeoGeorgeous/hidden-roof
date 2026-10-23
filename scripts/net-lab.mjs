@@ -127,7 +127,7 @@ export function story(lab) {
     key(`${s.who}: own link`, s.state);
     for (const [o, look] of Object.entries(s.others)) key(`${s.who} shows ${o}`, look);
   }
-  // The lab's players never take the mouse: in the menu is their normal.
+  // The lab's players never take the mouse: in the menu is their normal. A look of lagging is that player's own report of a bad link (it is told, not shown as normal).
   for (const [k, list] of runs) if (list.length > 1 || !['in', 'here', 'menu'].includes(list[0].v)) out.push(`  ${k}: ${list.map((r) => `${r.v} ${(r.from - lab.t0).toFixed(0)}–${(r.to - lab.t0).toFixed(0)} s`).join(', ')}`);
   return out;
 }

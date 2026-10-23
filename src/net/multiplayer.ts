@@ -93,7 +93,7 @@ export class Multiplayer {
     });
     this.sender = new Sender({ capture: (at) => encodeSnapshot(capture(at, g.player, g.inventory, g.tools)), paint: g.paint, level: g.level, owner: () => session.player, inventory: g.inventory });
     addEventListener('online', () => this.status.state === 'reconnecting' && this.retryNow?.());
-    this.own = new OwnStatus(g, (status) => this.send({ type: 'status', status }), () => Boolean(this.link?.live));
+    this.own = new OwnStatus(g, (status) => this.send({ type: 'status', status }), () => Boolean(this.link?.live), () => this.health.troubled);
   }
 
   /** The other players' names, by id. */
