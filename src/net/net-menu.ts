@@ -7,7 +7,7 @@ import { savePaint } from '../save/save-paint';
 import { store, stored } from '../stored';
 import { cycle, paintDetailName } from '../settings';
 import { action, button, choice, div, el, pageHead, relabel, sentence, settingRow } from '../menu-ui';
-import { CODE_LENGTH, CODE_LETTERS, NAME_MAX } from './protocol';
+import { CODE_LENGTH, CODE_LETTERS, isName, NAME_MAX } from './protocol';
 import type { MultiplayerContext } from './game-context';
 import { lostDialog, type LostButton } from './lost-dialog';
 import { Multiplayer, type Failure, type NetStatus } from './multiplayer';
@@ -78,8 +78,8 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
     log.hidden = !failed;
   };
   const named = () => {
-    if (name.trim()) return name.trim();
-    say(msg('menu.typeName'), true);
+    if (isName(name)) return name;
+    say(msg(name ? 'menu.nameLetters' : 'menu.typeName'), true);
     return null;
   };
   const show = (title: string, ...els: HTMLElement[]) => {

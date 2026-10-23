@@ -3,7 +3,7 @@ import { SERVER } from '../src/config';
 import type { InventoryData } from '../src/inventory/inventory';
 import type { LevelData, PropData } from '../src/level/level-data';
 import { decodeOps, encodeOps, SurfaceIndex } from '../src/op-wire';
-import { cleanName, closeCode, encode, NAME_MAX, partFrames, type Activity, type Presence, type Rejection, type ToClient, type ToServer } from '../src/net/protocol';
+import { closeCode, encode, NAME_MAX, partFrames, type Activity, type Presence, type Rejection, type ToClient, type ToServer } from '../src/net/protocol';
 import { loadPaint } from '../src/save/load-paint';
 import { streamPaint } from '../src/save/save-paint';
 import { surfaceTable } from '../src/save/shape';
@@ -114,7 +114,6 @@ export class Session {
    */
   async admit(link: Link, name: string, token?: string): Promise<{ p: Player; how: How; note: string } | Rejection> {
     const all = [...this.players.values()];
-    name = cleanName(name);
     let p = token ? all.find((q) => q.token === token) : undefined;
     const how = p ? 'back' : (p = all.find((q) => !q.link && q.name === name)) ? 'takeover' : 'new';
     if (!p && this.players.size >= SERVER.maxPlayers) return 'full';
@@ -333,13 +332,12 @@ function deliver(p: Player, f: Uint8Array) {
   if (p.live) p.link?.send(f);
 }
 
-/** `name`, or with the lowest number free when another player has it: "geo (2)". */
+/** `name`, or with the lowest number free when another player has it: "geo2", itself a name a player may take. */
 function uniqueName(name: string, players: Player[]) {
   const taken = new Set(players.map((p) => p.name));
   if (!taken.has(name)) return name;
   for (let n = 2; ; n++) {
-    const tag = ` (${n})`;
-    const s = Array.from(name).slice(0, NAME_MAX - tag.length).join('') + tag;
+    const s = name.slice(0, NAME_MAX - String(n).length) + n;
     if (!taken.has(s)) return s;
   }
 }

@@ -16,6 +16,8 @@ import { isNum, isObj, isV3, levelProblem, type LevelData, type PropData } from 
 /** Bumped when a message changes or anything the server runs for a session does (paint, drips, face keys, the save format). host and join carry it and the level's surface-table hash; a mismatch is answered 'version' and the game asks for a reload. */
 export const PROTOCOL = 7;
 export const NAME_MAX = 16;
+/** A player's name: Latin letters and digits only (ASCII), 1 to NAME_MAX of them; the menu checks it before HOST or JOIN, the server refuses any other. */
+export const isName = (x: unknown): x is string => typeof x === 'string' && x.length <= NAME_MAX && /^[A-Za-z0-9]+$/.test(x);
 /** Session codes: this many letters from CODE_LETTERS (no I or O, which read as 1 and 0). */
 export const CODE_LENGTH = 5;
 export const CODE_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -189,13 +191,7 @@ export function checkToServer(m: Message | null): ToServer | null {
   return null;
 }
 
-/** The name as shown: no control characters (a newline), trimmed, at most NAME_MAX characters. */
-export function cleanName(name: string) {
-  return Array.from(name.replace(/\p{Cc}/gu, '').trim()).slice(0, NAME_MAX).join('');
-}
-
 const isInt = (x: unknown): x is number => Number.isInteger(x) && (x as number) >= 0;
-const isName = (x: unknown) => typeof x === 'string' && cleanName(x).length > 0;
 const isCode = (x: unknown) => typeof x === 'string' && x.length === CODE_LENGTH && [...x].every((c) => CODE_LETTERS.includes(c));
 /** Shape and size only: the game takes from it what it knows (Inventory.restore). */
 const isWords = (x: unknown) => Array.isArray(x) && x.length <= 32 && x.every((w) => typeof w === 'string' && w.length <= 32);

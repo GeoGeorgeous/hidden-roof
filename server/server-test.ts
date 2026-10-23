@@ -209,7 +209,7 @@ try {
   const twin = await game();
   twin.send({ type: 'join', protocol: PROTOCOL, name: 'geo', code: wg.code });
   await twin.next('welcome');
-  assert.equal((await geo.next('joined')).name, 'geo (2)');
+  assert.equal((await geo.next('joined')).name, 'geo2');
   geo.send(ops(1, [1], [stamp]));
   await twin.next('ops');
   geo.ws.close();
@@ -226,7 +226,7 @@ try {
   twin.send({ type: 'leave' });
   await twin.closed;
   const again = await game();
-  again.send({ type: 'join', protocol: PROTOCOL, name: 'geo (2)', code: wg.code });
+  again.send({ type: 'join', protocol: PROTOCOL, name: 'geo2', code: wg.code });
   assert.deepEqual((await again.next('welcome')).inventory, carried);
 
   // HOST from a save: the host isn't sent its own save back; the paint is there for the next player.
