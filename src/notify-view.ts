@@ -78,7 +78,9 @@ export class NotifyView {
   /** Call every frame; it draws only when something changed. */
   update() {
     const notes = this.notify.shown();
-    const raw = notes.find((n) => n.kind === 'advice')?.lines ?? [];
+    const error = notes.find((n) => n.kind === 'error');
+    // Under a dialogue there's nothing to do in play: no hint.
+    const raw = (!error && notes.find((n) => n.kind === 'advice')?.lines) || [];
     const lines = raw.map((l) => resolveLine(l, label));
     const text = lines.join('\n');
     if (text !== this.hintShown) {
@@ -91,10 +93,9 @@ export class NotifyView {
     // The toasts sit above the hint's top line.
     this.events.style.setProperty('--hint-lines', String(Math.max(1, lines.length)));
     this.toasts.replaceChildren(...notes.filter((n) => n.kind === 'event').map((n) => box('', rich(n.lines[0]))));
-    const error = notes.find((n) => n.kind === 'error');
-    this.dialogue.draw(error?.dialogue ?? null, error?.dialogue?.grow ? this.chipByKey.get(error.key)?.el : undefined);
+    this.dialogue.draw(error?.dialogue ?? null, error?.dialogue?.grow ? this.chipByKey.get(error.dialogue.grow)?.el : undefined);
     // A dialogue takes the place of the chip it replaces: that one cuts out.
-    this.drawChips(notes.filter((n) => n.kind === 'status'), !!error);
+    this.drawChips(notes.filter((n) => n.kind === 'status' && n.key !== error?.dialogue?.grow), !!error);
   }
 
   /** One box per line, each as wide as its line. The boxes are opaque in a group at the box's opacity, so where they overlap they don't darken; the text is a group above, at full strength. */

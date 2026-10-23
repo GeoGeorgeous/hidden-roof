@@ -36,10 +36,10 @@ export interface Note {
 /** What a chip's icon is: bars with one lit (a weak link), a red ring (nothing heard), bars cycling (trying again), a check (done, only by `succeed`). */
 export type ChipIcon = 'bars' | 'ring' | 'cycle' | 'check';
 
-/** A dialogue's card: its text (messages.ts), an error shown as a selectable callout, and whether it grows out of the chip with the same key. */
+/** A dialogue's card: its text (messages.ts), an error shown as a selectable callout, and the key of the chip it grows out of, if that one shows. */
 export interface Dialogue extends DialogueText {
   callout?: string;
-  grow?: boolean;
+  grow?: string;
 }
 
 interface Held extends Note {

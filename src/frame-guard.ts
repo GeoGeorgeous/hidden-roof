@@ -37,6 +37,6 @@ function showNotice(e: unknown) {
   const root = Object.assign(document.createElement('div'), { className: 'layer layer-dialogue crash on' });
   root.append(dim, card);
   document.body.append(root);
-  // Enter presses the button, as on every dialogue.
-  addEventListener('keydown', (ev) => (ev.code === 'Enter' || ev.code === 'NumpadEnter') && reload(), true);
+  // Enter presses the button, as on every dialogue, while the card is up.
+  addEventListener('keydown', (ev) => root.isConnected && (ev.code === 'Enter' || ev.code === 'NumpadEnter') && reload(), true);
 }

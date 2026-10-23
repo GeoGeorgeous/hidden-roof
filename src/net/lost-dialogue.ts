@@ -26,6 +26,6 @@ export function lostDialogue(reason: Failure, detail?: string): { dialogue: Dial
   const dialogue: Dialogue = { ...dialogueOf(id, { minutes: Math.round(SERVER.rejoinWindow / 60) }) };
   if (id === 'networkError') dialogue.callout = detail;
   // Only this one comes from the reconnecting chip.
-  if (id === 'serverLost') dialogue.grow = true;
+  if (id === 'serverLost') dialogue.grow = 'net';
   return { dialogue, button };
 }

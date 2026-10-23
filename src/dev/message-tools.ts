@@ -64,6 +64,8 @@ export class MessageTools {
         const dialogue: Dialogue = dialogueOf(id, { minutes: 3 });
         if (id === 'clientError') dialogue.callout = FAKE_STACK;
         if (id === 'networkError') dialogue.callout = FAKE_NETWORK;
+        // As in play: out of the reconnecting chip, when one shows.
+        if (id === 'serverLost') dialogue.grow = 'net';
         return n.set({ key: 'test.dialogue', kind: 'error', dialogue });
       }
     }

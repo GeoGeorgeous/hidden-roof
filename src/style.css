@@ -2075,10 +2075,9 @@ body.paused .layer-dialogue:not(.crash) {
   transition-duration: var(--chip-in);
   transition-timing-function: ease-out;
 }
-/* Growing out of the chip: placed in px from JS, no fade or offset of its own. */
+/* Growing out of the chip: moved and sized from JS (dialogue-view.ts grow), no fade of its own. */
 .layer-dialogue .dialogue.grow {
   opacity: 1;
-  transform: none;
 }
 .dialogue .body {
   box-sizing: border-box;
@@ -2123,8 +2122,9 @@ body.paused .layer-dialogue:not(.crash) {
 }
 .dialogue .actions {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
   margin-top: 20px;
 }
 .dialogue .bar {
@@ -2137,7 +2137,11 @@ body.paused .layer-dialogue:not(.crash) {
   backdrop-filter: blur(6px);
 }
 .dialogue .bar button {
-  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  padding: 6px 8px 6px 12px;
   border: 0;
   border-radius: 4px;
   background: none;
@@ -2157,7 +2161,10 @@ body.paused .layer-dialogue:not(.crash) {
   color: rgba(235, 229, 214, 0.6);
 }
 .dialogue .esc {
-  margin-left: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-left: 4px;
   font: 500 11px/14px var(--sans);
   color: rgba(235, 229, 214, 0.6);
 }

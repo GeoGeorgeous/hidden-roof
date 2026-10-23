@@ -12,13 +12,19 @@ import type { Dialogue } from './notify';
 export function dialogueLayer(d: Dialogue, press: () => void) {
   const label = el('div', 'label');
   label.append(el('i'), el('span', '', d.label));
-  const button = el('button', '', d.button);
+  // The button with its key cap in it; what Esc does, when that's something else, on a line of its own under it.
+  const button = el('button');
+  button.append(el('span', '', d.button), el('span', 'key', msg('hud.keyEnter')));
   button.addEventListener('click', press);
   const bar = el('div', 'bar');
   bar.append(button);
   const actions = el('div', 'actions');
-  actions.append(bar, el('span', 'key', msg('hud.keyEnter')));
-  if (d.esc) actions.append(el('span', 'esc', `${msg('hud.keyEsc')} · ${d.esc}`));
+  actions.append(bar);
+  if (d.esc) {
+    const esc = el('div', 'esc');
+    esc.append(el('span', 'key', msg('hud.keyEsc')), el('span', '', d.esc));
+    actions.append(esc);
+  }
   const body = el('div', 'body');
   body.append(label, el('div', 'title', d.title), el('div', 'text', d.text));
   if (d.callout) body.append(el('pre', 'callout', d.callout));
@@ -28,7 +34,7 @@ export function dialogueLayer(d: Dialogue, press: () => void) {
   return { dim: el('div', 'dim'), card };
 }
 
-/** The layer in play: it fades in and out like a chip; a dialogue that `grow`s starts as the chip with its key and becomes the card. */
+/** The layer in play: it fades in and out like a chip; a dialogue that `grow`s starts as the chip it names and becomes the card. */
 export class DialogueView {
   readonly el = el('div', 'layer layer-dialogue');
   /** The card as drawn, as text (also while it fades out). */
@@ -67,7 +73,8 @@ export class DialogueView {
 
 /**
  * The card starts as the chip's box and grows into place: position, size and corner together, the chip's content (a copy) fading out,
- * the card's fading in a little after (NOTIFY.grow*). Measured, then moved by the transition; its own styles are given back at the end.
+ * the card's fading in a little after (NOTIFY.grow*). It stays centered by its own CSS (left/top 50%, translate -50%), so only an
+ * offset from the center, its size and its corner move: at the end the inline styles go and nothing jumps.
  */
 function grow(card: HTMLElement, chip: HTMLElement) {
   const from = chip.getBoundingClientRect();
@@ -77,22 +84,29 @@ function grow(card: HTMLElement, chip: HTMLElement) {
   const ghost = el('div', 'ghost');
   ghost.append(...[...chip.children].map((c) => c.cloneNode(true)));
   card.append(ghost);
+  const dx = from.left + from.width / 2 - window.innerWidth / 2;
+  const dy = from.top + from.height / 2 - window.innerHeight / 2;
   const place = (x: number, y: number, width: number, height: number, radius: number) =>
-    Object.assign(card.style, { left: `${x}px`, top: `${y}px`, width: `${width}px`, height: `${height}px`, borderRadius: `${radius}px` });
+    Object.assign(card.style, { transform: `translate(-50%, -50%) translate(${x}px, ${y}px)`, width: `${width}px`, height: `${height}px`, borderRadius: `${radius}px` });
   card.classList.add('grow');
   // The body keeps its final width, so its lines don't re-wrap on the way.
   body.style.width = `${w - 2}px`;
   body.style.opacity = '0';
-  place(from.left, from.top, from.width, from.height, 6);
+  card.style.transition = 'none';
+  place(dx, dy, from.width, from.height, 6);
   void card.offsetWidth;
   const ease = NOTIFY.growEase;
-  card.style.transition = ['left', 'top', 'width', 'height', 'border-radius'].map((p) => `${p} ${NOTIFY.growTime}ms ${ease}`).join(', ');
+  card.style.transition = ['transform', 'width', 'height', 'border-radius'].map((p) => `${p} ${NOTIFY.growTime}ms ${ease}`).join(', ');
   body.style.transition = `opacity ${NOTIFY.growIn}ms ease ${NOTIFY.growDelay}ms`;
   ghost.style.transition = `opacity ${NOTIFY.growOut}ms ease`;
-  place((window.innerWidth - w) / 2, (window.innerHeight - h) / 2, w, h, 8);
+  place(0, 0, w, h, 8);
   body.style.opacity = '1';
   ghost.style.opacity = '0';
   window.setTimeout(() => {
+    // Its own transitions are off for this frame: the inline end state is the CSS one, so nothing should move anyway.
+    card.style.transition = 'none';
+    for (const p of ['transform', 'width', 'height', 'borderRadius'] as const) card.style[p] = '';
+    void card.offsetWidth;
     card.removeAttribute('style');
     card.classList.remove('grow');
     body.removeAttribute('style');
