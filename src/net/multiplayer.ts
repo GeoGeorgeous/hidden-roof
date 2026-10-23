@@ -308,7 +308,8 @@ export class Multiplayer {
     if (back) this.outbox.take(this.sender.take(), now() - this.t0);
     else this.outbox.clear(w.acked);
     const resend = back ? this.outbox.rejoined(w.acked, (op) => g.paintOps.apply(op)) : [];
-    const name = this.name;
+    // The session may have numbered it (the name was taken): the player goes by that, the NAME field keeps what they typed.
+    const name = (this.name = w.name);
     this.log.add(`in session ${w.code} as #${w.you}, at ${w.detail} texels/m, with ${w.players.length} others, ${(file.length / 1024).toFixed(0)} KB of paint`);
     this.joined = { code: w.code, token: w.token, name, you: w.you, levelName: w.levelName };
     keepTabSession({ code: w.code, token: w.token, name });

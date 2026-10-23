@@ -42,7 +42,7 @@ for (const m of sent) {
   assert.deepEqual(rest, Object.fromEntries(Object.entries(json).filter(([, v]) => v !== undefined)));
   assert.deepEqual(got, bytes);
 }
-const welcome = { type: 'welcome', code: 'ABCDE', you: 2, token: 't', levelName: 'demo', level, detail: 48, table: 'x', players: [{ id: 1, name: 'geo', state: 'away' }], ladders: [], inventory: null, parts: 3, acked: 0 };
+const welcome = { type: 'welcome', code: 'ABCDE', you: 2, name: 'geo2', token: 't', levelName: 'demo', level, detail: 48, table: 'x', players: [{ id: 1, name: 'geo', state: 'away' }], ladders: [], inventory: null, parts: 3, acked: 0 };
 assert.deepEqual(decode(encode(welcome)), welcome);
 // A paint file in pieces goes as parts of at most the size asked, and comes back whole.
 const parts = partFrames([save.subarray(0, 10), save.subarray(10, 700), save.subarray(700)], 400).map(decode);

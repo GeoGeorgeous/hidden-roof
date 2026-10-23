@@ -89,7 +89,7 @@ export type ToClient =
    * starting kit); its paint as a paint file follows in `parts` parts (none:
    * it's the save this host sent). `acked`: their last op batch the server has (0: none), in the paint file.
    */
-  | { type: 'welcome'; code: string; you: number; token: string; levelName: string; level: LevelData; detail: number; table: string; players: { id: number; name: string; state: Presence }[]; ladders: { id: number; data: PropData }[]; inventory: InventoryData | null; parts: number; acked: number }
+  | { type: 'welcome'; code: string; you: number; name: string; token: string; levelName: string; level: LevelData; detail: number; table: string; players: { id: number; name: string; state: Presence }[]; ladders: { id: number; data: PropData }[]; inventory: InventoryData | null; parts: number; acked: number }
   | { type: 'rejected'; reason: Rejection }
   | { type: 'joined'; id: number; name: string }
   | { type: 'left'; id: number }
