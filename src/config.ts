@@ -1146,8 +1146,14 @@ export const SERVER = {
   logRedactDays: 14,
   logKeepDays: 60,
   logCleanEvery: 3600,
+  /** The cleaning reads and redacts a log file this many bytes at a time, and lets the server's links (the relay) run between them. */
+  logChunkBytes: 256 * 1024,
   /** With LOG_DIR, a day's file stops growing at this many bytes (a note says so); the next day starts afresh. */
   logDayBytes: 20 * 2 ** 20,
+  /** Lines anyone can make at will (a bad message, a link turned away or silent) are logged this many a noisyWindow (s) per address, then one line says the rest are held back: they can't fill the day's file. noisyIps addresses are tracked at once; past it, new ones are held back. */
+  noisyPerIp: 10,
+  noisyWindow: 60,
+  noisyIps: 1000,
 };
 
 /** F3 -> Ghost (src/dev/ghost.ts): the network it plays through, and how far behind it follows you. */

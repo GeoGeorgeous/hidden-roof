@@ -53,7 +53,7 @@ const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'roof-log-'));
 fs.writeFileSync(path.join(dir, 'a.log'), text);
 fs.writeFileSync(path.join(dir, 'b.log'), `${at(90)} ----- gone\n`);
 fs.writeFileSync(path.join(dir, 'mem.txt'), `${at(90)} 192.0.2.9\n`);
-cleanDir(dir, days, now);
+await cleanDir(dir, days, now);
 assert.deepEqual(fs.readdirSync(dir).sort(), ['a.log', 'mem.txt']);
 assert.equal(fs.readFileSync(path.join(dir, 'a.log'), 'utf8'), cleaned);
 // Dated files go by their names: young ones are not read, old ones are deleted unread, and a cleaned one is not read again.
@@ -69,7 +69,7 @@ put(30, `${at(30)} ABCDE "Mid" #1 in from 192.0.2.1\n`); // the line's own time 
 put(80, `${at(80)} ----- old\n`);
 put(20, `${at(20)} ABCDE "Mid" #1 in from 192.0.2.1\n`);
 for (const d of [1, 30, 80, 20]) stamp(d, now - 100 * DAY); // never cleaned
-cleanDir(dir, days, now);
+await cleanDir(dir, days, now);
 assert.ok(!fs.existsSync(dated(80)), 'older than keep: deleted');
 assert.match(fs.readFileSync(dated(1), 'utf8'), /192\.0\.2\.1/, 'younger than redact: left as it is');
 assert.equal(fs.statSync(dated(1)).mtimeMs, now - 100 * DAY, 'and not touched');
@@ -78,17 +78,45 @@ assert.equal(fs.statSync(dated(20)).mtimeMs, now, 'redacted file: written now');
 // A cleaned file is skipped: change its text without a new mtime and the next pass leaves it.
 fs.writeFileSync(dated(20), `${at(20)} ----- 192.0.2.5\n`);
 stamp(20, now);
-cleanDir(dir, days, now + 3600_000);
+await cleanDir(dir, days, now + 3600_000);
 assert.match(fs.readFileSync(dated(20), 'utf8'), /192\.0\.2\.5/, 'cleaned after its day was due: not read again');
 fs.rmSync(dated(1));
 fs.rmSync(dated(20));
 fs.rmSync(dated(30));
 
+// An undated file (an imported log) is read again only if it changed, or once a day: its lines keep aging.
+const imported = path.join(dir, 'import.log');
+const lineAt = (d) => `${at(d)} ----- from 192.0.2.7\n`;
+fs.writeFileSync(imported, lineAt(20));
+await cleanDir(dir, days, now);
+assert.equal(fs.readFileSync(imported, 'utf8'), `${at(20)} ----- from x\n`);
+const kept = fs.statSync(imported).mtimeMs;
+const poke = (text, ms) => (fs.writeFileSync(imported, text), fs.utimesSync(imported, new Date(ms), new Date(ms)));
+poke(lineAt(20), kept);
+await cleanDir(dir, days, now + 3600_000);
+assert.equal(fs.readFileSync(imported, 'utf8'), lineAt(20), 'unchanged since the last cleaning: not read');
+poke(lineAt(20), kept + 1000);
+await cleanDir(dir, days, now + 3600_000);
+assert.equal(fs.readFileSync(imported, 'utf8'), `${at(20)} ----- from x\n`, 'changed: read');
+poke(lineAt(20), fs.statSync(imported).mtimeMs);
+await cleanDir(dir, days, now + 2 * DAY);
+assert.equal(fs.readFileSync(imported, 'utf8'), `${at(20)} ----- from x\n`, 'a day on: read again');
+fs.rmSync(imported);
+
+// A big file is cleaned in chunks, as the whole would be: times carry over from one chunk to the next, a line can span chunks.
+const big = Array.from({ length: SERVER.logChunkBytes / 10 }, (_, i) => `${at(i % 3 ? 20 : 90)} ----- "n${i}" #1 from 192.0.2.${i % 200}\n${i % 5 ? '' : '    at stack 192.0.2.1\n'}`).join('');
+assert.ok(big.length > 3 * SERVER.logChunkBytes);
+fs.writeFileSync(path.join(dir, 'big.log'), big);
+await cleanDir(dir, days, now);
+assert.equal(fs.readFileSync(path.join(dir, 'big.log'), 'utf8'), clean(big, now, days));
+assert.ok(!fs.existsSync(path.join(dir, 'big.log.tmp')));
+fs.rmSync(path.join(dir, 'big.log'));
+
 // A file that fails (a directory named x.log) is reported, and the others are still cleaned.
 fs.mkdirSync(path.join(dir, 'a-dir.log'));
 fs.writeFileSync(path.join(dir, 'z.log'), `${at(90)} ----- gone\n`);
 const failed = [];
-cleanDir(dir, days, now, (name) => failed.push(name));
+await cleanDir(dir, days, now, (name) => failed.push(name));
 assert.deepEqual(failed, ['a-dir.log']);
 assert.ok(!fs.existsSync(path.join(dir, 'z.log')));
 fs.rmSync(dir, { recursive: true });

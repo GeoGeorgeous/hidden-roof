@@ -1,7 +1,7 @@
 import { randomInt } from 'node:crypto';
 import { SERVER } from '../src/config';
 import { checkToServer, closeCode, CODE_LENGTH, CODE_LETTERS, decode, encode, PROTOCOL, type Rejection, type ToServer } from '../src/net/protocol';
-import { log, overMemory, who } from './log';
+import { log, logNoisy, overMemory, who } from './log';
 import { Session, type Link, type Player } from './session';
 
 // Who gets into which session: the live sessions by code, the codes of those
@@ -42,7 +42,7 @@ export class Lobby {
   open(link: Link, host: boolean): LinkInput {
     const ip = link.ip;
     const reject = (reason: Rejection, m?: ToServer) => {
-      log(m?.type === 'join' ? m.code : '-----', `${m?.type ?? 'link'} from ${ip} turned away: ${reason}`);
+      logNoisy(ip, m?.type === 'join' && typeof m.code === 'string' ? m.code.slice(0, CODE_LENGTH) : '-----', `${m?.type ?? 'link'} from ${ip} turned away: ${reason}`);
       link.send(encode({ type: 'rejected', reason }));
       link.close(closeCode(reason), reason);
     };
@@ -58,7 +58,7 @@ export class Lobby {
         try {
           const m = checkToServer(decode(data));
           if (!m) {
-            log(at && at !== 'waiting' ? at.session.code : '-----', `bad message from ${ip}: closed`);
+            logNoisy(ip, at && at !== 'waiting' ? at.session.code : '-----', `bad message from ${ip}: closed`);
             return link.close(1008, 'bad message');
           }
           if (at === 'waiting') return;
@@ -93,7 +93,7 @@ export class Lobby {
     }
     hello = setTimeout(() => {
       if (at) return;
-      log('-----', `link from ${ip}: no HOST or JOIN in ${SERVER.helloTimeout} s: closed`);
+      logNoisy(ip, '-----', `link from ${ip}: no HOST or JOIN in ${SERVER.helloTimeout} s: closed`);
       link.close(1008, 'no host or join');
     }, SERVER.helloTimeout * 1000);
     return input;
