@@ -121,6 +121,7 @@ export const MESSAGES = {
     netBlocked: 'The server is up but the connection was blocked (firewall or extension?)',
     joining: 'Joining…',
     typeName: 'Type a name first',
+    nameLetters: 'A name is Latin letters A–Z and digits 0–9 only',
     codeLength: 'The code is {length} letters',
     logCopied: 'Network log copied',
     logSaved: 'Network log saved as a file',

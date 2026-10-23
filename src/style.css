@@ -220,7 +220,7 @@
   padding: 1px 6px;
   font-size: 11px;
 }
-/* As typed, in the titles' font; a script it lacks falls back to the sans, not the browser's cursive. Its letters sit high: nudged down to center. */
+/* As typed (Latin letters and digits only), in the titles' font; the sans until it loads, not the browser's cursive. Its letters sit high: nudged down to center. */
 .nameplate .name {
   position: relative;
   top: 2px;

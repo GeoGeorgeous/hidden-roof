@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 209
+The one list of what's left. Counter for new ids: next: 210
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -203,6 +203,7 @@ Shipped since the last release; the release commit empties this list.
 37. [TASK-208]: The status icons move, as designed: bad connection's second bar flickers twice every 2.4 s, no signal's red ring blinks hard each second, the reconnecting bars cycle as before, and Reconnected's check pops in with a ring burst once (about 400 ms); loops run only while their status shows
 38. TASK [BL-151]: Show what each other player is doing by their nameplate: the status after the name (disconnected, no signal, away, in the menu, idle, lagging; in the menu and idle are new, protocol 7), and tags fade with distance
 39. [DSGN-207]: The nameplate redrawn: the nickname as typed in the titles' font, the status as a muted word colored by severity, the distance in meters under the tag, the nearer tag on top
+40. [TASK-209]: A nickname is ASCII Latin letters and digits only, up to 16: the menu says so before HOST or JOIN, the server refuses any other (one isName in protocol.ts); a taken name is numbered geo2, not "geo (2)"
 
 ## Discarder
 

@@ -1,4 +1,4 @@
-// Game tests: The save and upload popups, COPY NETWORK LOG, and paint saves through level edits and spray at LOAD.
+// Game tests: The save and upload popups, COPY NETWORK LOG, a refused name at HOST, and paint saves through level edits and spray at LOAD.
 import fs from 'node:fs';
 import { gameReady } from '../test-browser.mjs';
 import { page, check, openPage, dot, paintedKeys, POPUP, SAVE, UPLOAD, tmp } from './harness.mjs';
@@ -79,6 +79,24 @@ await check('menu: after a failed link the multiplayer page says so in red and o
   const name = (await saved.catch(() => null))?.suggestedFilename();
   await p.close();
   return !before && said.join() === "The server didn't answer,true" && /^roof-network-.+\.txt$/.test(name) && !p.errors.length ? null : JSON.stringify({ before, said, name, errors: p.errors });
+});
+
+await check('menu: HOST with a name that is not only Latin letters and digits says so in red and does not connect', async () => {
+  const p = await openPage();
+  await p.evaluate(() => (window.game.input.setLocked(true), window.game.input.setLocked(false)));
+  const press = (text) => p.locator('.overlay button:visible', { hasText: text }).first().click();
+  await press('Multiplayer');
+  await press('Host a session');
+  const said = [];
+  for (const name of ['Geo Geo', 'Geo_', 'Geo.', 'Гоша', 'Geo!@#$%', '']) {
+    await p.fill('.mp-page input >> nth=0', name);
+    await press('Host');
+    said.push(await p.evaluate(() => { const s = document.querySelector('.mp-status'); return `${s.textContent}${s.classList.contains('error') ? '' : ' (not red)'}`; }));
+  }
+  const state = await p.evaluate(() => window.game.net.status.state);
+  await p.close();
+  const want = [...Array(5).fill('A name is Latin letters A–Z and digits 0–9 only'), 'Type a name first'];
+  return said.join() === want.join() && state !== 'connecting' && !p.errors.length ? null : JSON.stringify({ said, state, errors: p.errors });
 });
 
 await check('saves: a sign whose text changed loses its paint (changed shape), the rest loads', async () => {
