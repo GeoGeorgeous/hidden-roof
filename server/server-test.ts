@@ -156,8 +156,10 @@ try {
   const { header } = await decodePaintFile(save);
   assert.deepEqual([header.density, [...new Set(header.faces.map((f) => f.surface))]], [48, [stamp.key]]);
 
-  // B's game is hidden (minimized): A hears it's away.
-  b.send({ type: 'away', away: true });
+  // B pauses, then its game is hidden (minimized): A hears it's in the menu, then away.
+  b.send({ type: 'status', status: 'menu' });
+  assert.deepEqual(await a.next('presence'), { type: 'presence', id: 2, state: 'menu' });
+  b.send({ type: 'status', status: 'away' });
   assert.deepEqual(await a.next('presence'), { type: 'presence', id: 2, state: 'away' });
   // B carries something, drops and comes back with its token: the same player, the paint, A's ladder and what B
   // carried in its welcome; A hears B dropped and is back, never that B left or joined.

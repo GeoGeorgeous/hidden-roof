@@ -78,17 +78,21 @@ export const MESSAGES = {
     clientError: { label: 'CLIENT ERROR', title: 'The game crashed', text: 'Something broke on your side. Reload the page to keep playing; copy the error below to report it.', button: 'Reload page' },
   },
 
-  /** Play's own HUD text that is not one of the four: the tool-hand alert (hud.ts, while the can is low) and the other players' nameplate notes (net/remotes.ts, while true). */
+  /** Play's own HUD text that is not one of the four: the tool-hand alert (hud.ts, while the can is low) and the other players' nameplates (net/nameplates.ts: what each is doing, while true, and how far they are). */
   hud: {
     lowPressure: 'LOW PRESSURE — HOLD [{shake}] TO SHAKE',
-    noteAway: 'AWAY',
-    noteDropped: 'DISCONNECTED',
-    noteSilent: 'NO SIGNAL',
+    noteAway: 'Away',
+    noteMenu: 'In menu',
+    noteIdle: 'Idle',
+    noteDropped: 'Disconnected',
+    noteSilent: 'No signal',
     /** The dialog's key caps. */
     keyEnter: 'ENTER',
     keyEsc: 'ESC',
     /** Shown far behind for a while (NET.highDelay); the other notes win. */
-    noteLagging: 'LAGGING',
+    noteLagging: 'Lagging',
+    /** How far another player is, in whole meters. */
+    distance: '{meters}m',
   },
 
   /** The menu, its pages, and the screens before play: they keep their own places, and show until the next status or the step is done (a copy's flash: a few seconds). */

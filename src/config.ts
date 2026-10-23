@@ -1063,6 +1063,10 @@ export const NET = {
   ladderNear: 0.3,
   /** A player's name tag hangs this high over their feet (m). */
   nameplateHeight: 2.1,
+  /** Name tags fade with the distance from the camera (m): whole up to `near`, down to `faintest` at `far` and beyond (never gone: the others can always be found). */
+  nameplateFade: { near: 20, far: 80, faintest: 0.35 },
+  /** Nothing pressed for this long (s) while playing: shown to the others as idle (net/own-status.ts). */
+  idleAfter: 60,
   /** No snapshot from a player for this long (s): they're shown as gone (NO SIGNAL) until the server says more. */
   silentAfter: 3,
   /** The HUD's network lines name this many other players, then say how many more. */

@@ -13,6 +13,7 @@ import { LinkHealth, type LinkStatus } from './link-health';
 import { Outbox } from './outbox';
 import { Sender } from './sender';
 import { ServerLink } from './server-link';
+import { OwnStatus } from './own-status';
 import { ownerOf, Remotes } from './remotes';
 import { keepTabSession, tabSession } from './tab-session';
 import { capture, encodeSnapshot } from './snapshot';
@@ -24,7 +25,7 @@ import { capture, encodeSnapshot } from './snapshot';
 // paint. A dropped link is retried with the player's token for as long as the
 // server keeps them (SERVER.rejoinWindow); the token is kept in sessionStorage,
 // so a reload comes back too, and each tab is its own player. The server
-// keeps what the player carries, and hears when the game is hidden.
+// keeps what the player carries, and hears what they're doing (own-status.ts).
 
 /** Why the game isn't in a session: the server said so (Rejection), it never answered, it couldn't handle a message (broken), the time to rejoin ran out (expired), or diagnose's guess at why it can't be reached. */
 export type Failure = Rejection | 'timeout' | 'broken' | 'expired' | Awaited<ReturnType<typeof diagnose>>['reason'];
@@ -74,6 +75,8 @@ export class Multiplayer {
   /** Counts the sessions ended: a HOST or JOIN waiting for the restore is dropped by LEAVE. */
   private attempt = 0;
   private health = new LinkHealth();
+  /** What this player is doing, for the others. */
+  private own: OwnStatus;
   /** Tries the link again now, instead of when the wait is over (the browser came back online). */
   private retryNow: (() => void) | null = null;
 
@@ -88,7 +91,7 @@ export class Multiplayer {
     });
     this.sender = new Sender({ capture: (at) => encodeSnapshot(capture(at, g.player, g.inventory, g.tools)), paint: g.paint, level: g.level, owner: () => session.player, inventory: g.inventory });
     addEventListener('online', () => this.status.state === 'reconnecting' && this.retryNow?.());
-    document.addEventListener('visibilitychange', () => this.link?.live && this.send({ type: 'away', away: document.hidden }));
+    this.own = new OwnStatus(g, (status) => this.send({ type: 'status', status }), () => Boolean(this.link?.live));
   }
 
   /** The other players' names, by id. */
@@ -176,6 +179,7 @@ export class Multiplayer {
       this.log.add(`nothing from the server for ${NET.serverSilence} s: closing to reconnect`);
       return link.close();
     }
+    this.own.update(t);
     if (this.health.due(t)) this.health.report({ t, ping: this.net.ping, silence: t - link.lastHeard }, this.onHealth);
     if (this.net.measure(t)) this.send({ type: 'ping', t });
     const at = t - this.t0;
@@ -329,7 +333,7 @@ export class Multiplayer {
     // Its welcome has come: it sends, and a silence on it means it's dead.
     Object.assign(link, { live: true, lastHeard: now() });
     for (const b of resend) this.sendOps(b);
-    if (document.hidden) this.send({ type: 'away', away: true });
+    this.own.restart(now());
     this.onProgress(null);
     this.setStatus({ state: 'in', code: w.code });
   }

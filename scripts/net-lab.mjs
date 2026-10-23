@@ -127,7 +127,8 @@ export function story(lab) {
     key(`${s.who}: own link`, s.state);
     for (const [o, look] of Object.entries(s.others)) key(`${s.who} shows ${o}`, look);
   }
-  for (const [k, list] of runs) if (list.length > 1 || list[0].v !== 'in' && list[0].v !== 'here') out.push(`  ${k}: ${list.map((r) => `${r.v} ${(r.from - lab.t0).toFixed(0)}–${(r.to - lab.t0).toFixed(0)} s`).join(', ')}`);
+  // The lab's players never take the mouse: in the menu is their normal.
+  for (const [k, list] of runs) if (list.length > 1 || !['in', 'here', 'menu'].includes(list[0].v)) out.push(`  ${k}: ${list.map((r) => `${r.v} ${(r.from - lab.t0).toFixed(0)}–${(r.to - lab.t0).toFixed(0)} s`).join(', ')}`);
   return out;
 }
 

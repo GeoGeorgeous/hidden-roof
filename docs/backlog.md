@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 207
+The one list of what's left. Counter for new ids: next: 209
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -50,10 +50,9 @@ Only `N.`, the id and the description are required. The optional parts appear in
 1. BUGS [BL-024]: Paint ops are most of the downstream bytes; merge stamps, shed load on slow links, after the playtest (docs/ideas/weak-links.md) @1.6.0
 2. TASK [BL-076]: Run the next public playtest and verify that all bugs from the previous playtest have been fixed (docs/ideas/weak-links.md) @1.6.2
 3. IDEA [?BL-071]: Multiplayer View-Only sessions: past sessions are opened for viewing only (gallary)
-4. TASK [BL-151]: Show what each other player is doing, add more statuses (in the menu, in Settings…) by their nameplate. For now, we have AWAY and DISCONNECTED @1.5.0
-5. IDEA [?BL-153]: Find who painted something by player id, picked like the eyedropper (to spot bad paint)
-6. TASK [BL-154]: Limit some tools in multiplayer (e.g. the roller) @1.6.0
-7. [BUGS-168]: Returning players recover their inventory but spawn at the default spawn instead of their last position. Restore both inventory and position. @1.6.1
+4. IDEA [?BL-153]: Find who painted something by player id, picked like the eyedropper (to spot bad paint)
+5. TASK [BL-154]: Limit some tools in multiplayer (e.g. the roller) @1.6.0
+6. [BUGS-168]: Returning players recover their inventory but spawn at the default spawn instead of their last position. Restore both inventory and position. @1.6.1
 
 ## Painting
 
@@ -216,3 +215,5 @@ Shipped since the last release; the release commit empties this list.
 36. [RFCT-205]: In-game messages reviewed: one vocabulary (hint, toast, status, dialog) in code, CSS and the catalogue; one glass token and one fade for every box; the dialog's button and key caps are the menu's; each dialog carries its own answer; a repeated toast shows once
 37. [RFCT-206]: The menu's paper tints are tokens: its ~85 hand-written opacities (21 values, rgba and color-mix) and the small-screen page's 8 map to --text-1/2/3/4, --hair and --edge; --text-4 (0.3) is new; each tint moved by at most 0.1; the small-screen page's two dark fills are --veil
 38. [TASK-208]: The status icons move, as designed: bad connection's second bar flickers twice every 2.4 s, no signal's red ring blinks hard each second, the reconnecting bars cycle as before, and Reconnected's check pops in with a ring burst once (about 400 ms); loops run only while their status shows
+39. TASK [BL-151]: Show what each other player is doing by their nameplate: the status after the name (disconnected, no signal, away, in the menu, idle, lagging; in the menu and idle are new, protocol 7), and tags fade with distance
+40. [DSGN-207]: The nameplate redrawn: the nickname as typed in the titles' font, the status as a muted word colored by severity, the distance in meters under the tag, the nearer tag on top

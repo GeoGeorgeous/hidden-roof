@@ -41,6 +41,9 @@
   --hair: rgba(235, 229, 214, 0.1);
   --edge: rgba(235, 229, 214, 0.18);
   --error: #e0675e;
+  /* A player's status on their nameplate, muted: the link lost (disconnected, no signal), far behind (lagging). */
+  --status-lost: #d18882;
+  --status-slow: #d2ad7a;
   --mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'Courier New', monospace;
   /* The game dimmed under the menu and a dialog. */
   --veil: rgba(14, 14, 16, 0.35);

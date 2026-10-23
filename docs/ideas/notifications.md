@@ -14,7 +14,7 @@ What is left of the 2026-10-17 audit (module M4) after the notify model shipped 
 | Candidate | Data | Proposed threshold | Component |
 |---|---|---|---|
 | Slow upload (a paint file) | upload progress rate | under 8 KB/s | the menu's progress line |
-| Away, dropped, back | `Remotes.onPresence` | exists as nameplate | toast |
+| Away, dropped, back | `Remotes.onPresence` | exists on the nameplate | toast |
 | Context lost, online/offline, pointer lock or clipboard refused | browser events | event fires | toast or status |
 
 Data that exists but is not shown as a status: up/down rates (`Traffic`), each player's `delay` and `jitter` (`netLines`).

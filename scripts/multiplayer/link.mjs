@@ -87,7 +87,9 @@ export async function link(w) {
   await b.evaluate((c) => window.game.net.join('B', c), code);
   await status(b, 'in');
   await b.waitForFunction(() => [...window.game.net.remotes.players.values()][0]?.avatar.group.visible, null, { timeout: 2000 });
-  assert.equal(await b.textContent('.nameplate'), 'A');
+  assert.equal(await b.textContent('.nameplate .name'), 'A');
+  assert.equal(await b.textContent('.nameplate .note'), 'In menu', 'A, paused, is shown in the menu');
+  assert.match(await b.textContent('.nameplate .far'), /^\d+m$/);
   await b.evaluate(() => window.game.net.leave());
 
   // B joins and presses LEAVE while the welcome's paint loads (its own paint kept, the session's level open, the paint

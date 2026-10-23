@@ -25,6 +25,9 @@ export interface MultiplayerContext {
   inventory: Inventory;
   pickups: Pickups;
   tools: Tools;
+  /** Paused behind the menu, and when the player last pressed or moved anything (s): what the others see them doing (own-status.ts). */
+  paused(): boolean;
+  lastActive(): number;
   /** The level as a file, and its name (what HOST starts the session on). */
   levelData(): { data: LevelData; name: string };
   /** The level's own paint file (save/level-paint.ts), if it has one: what FRESH LEVEL starts from. */
