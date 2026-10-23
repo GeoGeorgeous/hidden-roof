@@ -345,6 +345,17 @@
 .overlay a:hover {
   color: var(--paper);
 }
+/* A link inside a release note: paper, bold as an item title, under a dim thin line that lights on hover. */
+.overlay :is(.intro, .item-text, .term-line) a {
+  color: var(--paper);
+  font-weight: 600;
+  text-decoration: underline 1px var(--text-3);
+  text-underline-offset: 3px;
+  transition: color 0.2s, text-decoration-color 0.2s;
+}
+.overlay :is(.intro, .item-text, .term-line) a:hover {
+  text-decoration-color: var(--paper);
+}
 /* A key cap after a button's text (the menu's and the dialog's). */
 :is(.overlay, .dialog) kbd {
   font: 500 10px var(--sans);
@@ -1831,8 +1842,7 @@ body.paused .layer-tool,
 body.paused .hotbar,
 body.paused .layer-shade,
 body.paused .layer-hint,
-body.paused .layer-toast,
-body.paused .layer-dialog:not(.crash) {
+body.paused .layer-toast {
   display: none;
 }
 @keyframes blink {
@@ -2117,13 +2127,14 @@ body.paused .layer-dialog:not(.crash) {
     opacity: 0;
   }
 }
-/* A blocking message in the middle: the game dims under it (play-state.ts: Enter presses the button, Esc leaves). The frame guard's own copy (.crash) stays over the paused menu. */
+/* A blocking message in the middle: the game dims under it (play-state.ts: Enter presses the button, Esc leaves). It stays over the paused menu, and its veil catches the clicks, so none reaches the game or the menu. */
 .layer-dialog .veil {
   position: absolute;
   inset: 0;
+  pointer-events: auto;
   background: var(--veil);
 }
-/* The layer fades; the card also slides down into place. */
+/* The layer fades; the card also slides down into place. Its fill is solid (--ink, about the glass over a dark scene): it stays over the paused menu, which must not show through. */
 .dialog {
   position: absolute;
   left: 50%;
@@ -2136,7 +2147,7 @@ body.paused .layer-dialog:not(.crash) {
   pointer-events: auto;
   border: 1px solid var(--edge);
   border-radius: 8px;
-  background: var(--glass);
+  background: var(--ink);
   color: var(--paper);
   font: 500 14px/20px var(--sans);
   letter-spacing: 0;
@@ -2203,11 +2214,16 @@ body.paused .layer-dialog:not(.crash) {
   padding-right: 8px;
   color: var(--text-1);
 }
-.dialog .esc {
+/* What Esc does, a button too (the mouse is free when the browser kept the first Esc). */
+.dialog button.esc {
   display: flex;
   align-items: center;
   gap: 8px;
   padding-left: 4px;
   font: 500 11px/14px var(--sans);
   color: var(--text-2);
+  transition: color 0.2s;
+}
+.dialog button.esc:hover {
+  color: var(--paper);
 }

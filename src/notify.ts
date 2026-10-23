@@ -128,9 +128,11 @@ export class Notify {
   update(dt: number, visible: boolean) {
     if (!visible) return;
     this.clock += dt;
-    const before = this.notes.length;
+    let expired = false;
+    for (const n of this.notes) if (n.until && n.until <= this.clock) expired = true;
+    if (!expired) return;
     this.notes = this.notes.filter((n) => !n.until || n.until > this.clock);
-    if (this.notes.length !== before) this.version++;
+    this.version++;
   }
 
   /** What to draw: the hint to show, the toasts oldest first, the statuses, the dialog. Same array until something changes. */

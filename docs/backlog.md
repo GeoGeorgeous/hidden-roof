@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 210
+The one list of what's left. Counter for new ids: next: 223
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -192,9 +192,9 @@ Shipped since the last release; the release commit empties this list.
 26. [TASK-192]: The server writes its log to one file a day in LOG_DIR and cleans it: IP addresses and nicknames gone after 14 days, lines after 60 (server/log-files.ts); the host part waits for the release (docs/ideas/vps.md)
 27. [TASK-182]: Link preview picture (og:image, twitter:image), touch and manifest icons, and the screenshot in the JSON-LD
 28. [TASK-196]: Ko-fi support link in the ESC menu footer
-29. [TASK-183]: A lawyer read LICENSE, the Terms and the privacy policy: the country of Georgia and the courts of Tbilisi, streaming allowed, IP rights in the rules, moderation on our belief of a breach, blocked IPs kept while blocked, single player's IP note; LICENSE §6 points to the Credits @1.5.0
+29. [TASK-183]: A lawyer read LICENSE, the Terms and the privacy policy: the country of Georgia and the courts of Tbilisi, streaming allowed, IP rights in the rules, moderation on our belief of a breach, blocked IPs kept while blocked, single player's IP note; LICENSE §6 points to the Credits
 30. [DOCS-197]: Legal texts: the controller's legal name, "the country of Georgia" in the transfer sentence, recordings kept with only the nickname removed on objection (new material, and our own posts where reasonably possible), copies others make are theirs, the Terms no longer call the license perpetual
-31. TASK [BL-078]: Show BUY ME A COFFEE again once it has a link (done by TASK-196: the Ko-fi link in the pause menu footer) @1.5.0
+31. TASK [BL-078]: Show BUY ME A COFFEE again once it has a link (done by TASK-196: the Ko-fi link in the pause menu footer)
 32. IDEA [BL-140]: One notification system: hints, toasts, statuses and dialogs in play on one model; messages no longer lost in menus and hidden tabs; reconnecting, no signal and bad connection as statuses; every message text in one catalogue (src/messages.ts)
 33. DSGN [BL-092]: Hints in play instead of a controls screen: move, each tool, colors, ladders, low pressure; one at a time, gone once done, remembered; Settings: Hints and Show hints again
 34. IDEA [BL-114]: A failure says whether the player was in a session: a session lost mid-play is one of eight dialogs by reason, most offering to save the paint before leaving; the reconnecting status grows into it
@@ -203,7 +203,20 @@ Shipped since the last release; the release commit empties this list.
 37. [TASK-208]: The status icons move, as designed: bad connection's second bar flickers twice every 2.4 s, no signal's red ring blinks hard each second, the reconnecting bars cycle as before, and Reconnected's check pops in with a ring burst once (about 400 ms); loops run only while their status shows
 38. TASK [BL-151]: Show what each other player is doing by their nameplate: the status after the name (disconnected, no signal, away, in the menu, idle, lagging; in the menu and idle are new, protocol 7), and tags fade with distance
 39. [DSGN-207]: The nameplate redrawn: the nickname as typed in the titles' font, the status as a muted word colored by severity, the distance in meters under the tag, the nearer tag on top
-40. [TASK-209]: A nickname is ASCII Latin letters and digits only, up to 16: the menu says so before HOST or JOIN, the server refuses any other (one isName in protocol.ts); a taken name is numbered geo2, not "geo (2)"
+40. [TASK-209]: A nickname is ASCII Latin letters and digits only, up to 16: the menu says so before HOST or JOIN, the server refuses any other (one isName in protocol.ts)
+41. [BUGS-210]: Montserrat (hints and toasts) ships with its OFL license text and a credits row
+42. [BUGS-211]: An old game (v1.4) whose name today's check refuses gets the reload answer (version) instead of a closed link and "server not responding": another protocol is answered before the name is checked
+43. [BUGS-212]: The dialog card is opaque; the session-lost dialog stays over the pause menu and is answered without keyboard lock (Firefox, Safari, Chromium not fullscreen): its Esc line is a button and an Esc while unlocked leaves; losing the pointer lock alone answers nothing; the dialog's veil (and the crash card's) catches clicks
+44. [BUGS-213]: Joining no longer fails when the paint from before the session can't be packed: it is left out of the backup and logged
+45. [BUGS-214]: A rejoin refused as busy or too-many is a failed try, retried while the rejoin window is open; only then the server-busy dialog
+46. [TASK-215]: The session-ended dialog tells a server restart apart from a session that closed because no one came back in time
+47. [BUGS-216]: The NAME field keeps only Latin letters and digits: a name saved by an older version is cleaned on load
+48. [BUGS-217]: A taken name is numbered "geo (2)" again (a space and parentheses: no player can type it, so it never looks like a typed geo2); the welcome carries it for the player list and the logs, every join sends the name typed, and a new tab typing it takes their dropped place back instead of a new number
+49. [DOCS-218]: The privacy page says what localStorage keeps in general terms (settings, last nickname, progress such as hints seen), not key by key
+50. [PERF-219]: The server's log cleaning reads files in chunks on async fs and skips undated files that haven't changed in a day, so it no longer holds up the relay; lines anyone can make (bad message, turned away, silent link) are limited per address; a LOG_DIR that can't be made leaves the log on stdout
+51. [PERF-220]: Per-frame work in play cut: the hints build nothing once learnt or off, the hint and low-pressure texts are redone only when the keys change, Notify and the nameplates stop allocating every frame
+52. [PERF-221]: The hints' font loads during the loading screen (no flash of the fallback at the first hint); the PNG icons recompressed (350 KB to 92 KB at most)
+53. [TASK-222]: Release notes can link: [text](url) is a link in the Updates page (white, bold, underlined), absolute on GitHub, with no preview card on Discord; the test allows the game's own pages and Ko-fi, GitHub and Discord
 
 ## Discarder
 

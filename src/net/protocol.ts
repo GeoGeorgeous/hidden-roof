@@ -18,6 +18,8 @@ export const PROTOCOL = 7;
 export const NAME_MAX = 16;
 /** A player's name: Latin letters and digits only (ASCII), 1 to NAME_MAX of them; the menu checks it before HOST or JOIN, the server refuses any other. */
 export const isName = (x: unknown): x is string => typeof x === 'string' && x.length <= NAME_MAX && /^[A-Za-z0-9]+$/.test(x);
+/** What is left of `x` as a name: the letters and digits of it, at most NAME_MAX (a name saved by an older version, or typed). */
+export const cleanName = (x: string) => x.replace(/[^A-Za-z0-9]/g, '').slice(0, NAME_MAX);
 /** Session codes: this many letters from CODE_LETTERS (no I or O, which read as 1 and 0). */
 export const CODE_LENGTH = 5;
 export const CODE_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -30,8 +32,9 @@ const MAX_PROPS = 5000;
 
 /**
  * Why the server turned a player away (the game says it in its own words):
- * another version, no session with that code, one that has ended (the server
- * remembers codes for SERVER.endedMemory), a full session, a paint file or
+ * another version, no session with that code (a server that restarted has none
+ * either), one that has ended (every player left or ran out of time to come
+ * back; the server remembers codes for SERVER.endedMemory), a full session, a paint file or
  * level it can't use, the server too full for another session, or the same
  * player come in from another tab (a duplicated tab carries the token along),
  * or too many links or sessions from one address (SERVER.linksPerIp, sessionsPerIp).
@@ -40,6 +43,8 @@ const MAX_PROPS = 5000;
 const REJECTIONS = ['version', 'no-session', 'ended', 'full', 'bad-save', 'bad-level', 'busy', 'replaced', 'too-many'] as const;
 export type Rejection = (typeof REJECTIONS)[number];
 export const closeCode = (r: Rejection) => 4001 + REJECTIONS.indexOf(r);
+/** The rejection a socket's close code says (see closeCode), if it does. */
+export const rejectionOf = (code: number): Rejection | undefined => REJECTIONS[code - 4001];
 /** What the server answers a plain GET at /ws (no WebSocket): the game asks when it can't connect (net/diagnostics.ts). */
 export const HELLO = `roof server · protocol ${PROTOCOL}`;
 
@@ -84,7 +89,7 @@ export type ToClient =
    * starting kit); its paint as a paint file follows in `parts` parts (none:
    * it's the save this host sent). `acked`: their last op batch the server has (0: none), in the paint file.
    */
-  | { type: 'welcome'; code: string; you: number; token: string; levelName: string; level: LevelData; detail: number; table: string; players: { id: number; name: string; state: Presence }[]; ladders: { id: number; data: PropData }[]; inventory: InventoryData | null; parts: number; acked: number }
+  | { type: 'welcome'; code: string; you: number; name: string; token: string; levelName: string; level: LevelData; detail: number; table: string; players: { id: number; name: string; state: Presence }[]; ladders: { id: number; data: PropData }[]; inventory: InventoryData | null; parts: number; acked: number }
   | { type: 'rejected'; reason: Rejection }
   | { type: 'joined'; id: number; name: string }
   | { type: 'left'; id: number }
@@ -167,6 +172,8 @@ export function decode(frame: Uint8Array): Message | null {
 export function checkToServer(m: Message | null): ToServer | null {
   if (!m) return null;
   const v = m as Record<string, unknown>;
+  // A game of another version is answered 'version' whatever else it sent: an older one's fields may not pass today's checks.
+  if ((m.type === 'host' || m.type === 'join') && isInt(v.protocol) && v.protocol !== PROTOCOL) return m as ToServer;
   switch (m.type) {
     case 'host':
       return isInt(v.protocol) && typeof v.table === 'string' && isName(v.name) && typeof v.levelName === 'string' && v.levelName.length <= 64 && !levelProblem(v.level, MAX_PROPS) && DETAILS.includes(v.detail as number) ? (m as ToServer) : null;

@@ -72,6 +72,7 @@ export const LABEL_HINTS: Record<string, string> = {
   reconnected: 'Shows the reconnecting status, then its success: the check and "Reconnected" for a moment.',
   'server lost': 'The dialog of a reconnect that ran out of time: grows out of the reconnecting status if one shows. Test only: its button just closes it.',
   'session ended': 'The dialog of a session the server closed (it restarted). Test only: its button just closes it.',
+  'session empty': 'The dialog of a session the server closed because everyone left and no one came back in time. Test only: its button just closes it.',
   'opened elsewhere': 'The dialog of the same player joining from another tab. Test only: its button just closes it.',
   updated: 'The dialog of a new version on the server. Test only: its button just closes it, no reload.',
   'session full': 'The dialog of a session that filled up while you reconnected. Test only: its button just closes it.',

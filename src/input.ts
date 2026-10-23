@@ -55,9 +55,12 @@ const NUMPAD: Record<string, string> = { Add: '+', Subtract: '-', Multiply: '*',
 
 /** What each key prints on this keyboard's layout (Chromium): W is Z on AZERTY. Elsewhere, and for a non-Latin layout, the US name. */
 let layout: Map<string, string> | undefined;
+/** Counts the changes to what keys are called (a rebind, the layout arriving): text with key names in it is redone when it moves. */
+export let keysVersion = 0;
+export const keysChanged = () => keysVersion++;
 (navigator as Navigator & { keyboard?: { getLayoutMap?(): Promise<Map<string, string>> } }).keyboard
   ?.getLayoutMap?.()
-  .then((m) => (layout = m))
+  .then((m) => ((layout = m), keysChanged()))
   .catch(() => {});
 
 /** A binding as the game writes it, on this platform: LMB, Shift (⇧ Shift on a Mac), W, ↑, Num 1. */

@@ -1,5 +1,7 @@
 import fs from 'node:fs';
+import fsp from 'node:fs/promises';
 import path from 'node:path';
+import { SERVER } from '../src/config.ts';
 
 // The log's files (LOG_DIR, server/log.ts): one a day. Each line starts with
 // its time; past `days.redact` its IP addresses and nicknames are removed,
@@ -7,6 +9,9 @@ import path from 'node:path';
 // Any *.log in the directory is cleaned the same way, so logs saved before
 // LOG_DIR existed (docker logs -t: two times, the first counts) can go there.
 // A file named YYYY-MM-DD.log is judged by its name: not read while young or once cleaned, deleted unread when old.
+// An undated one is read again only when it has changed since the last cleaning, or once a day (its lines keep aging).
+// A file is read and rewritten in chunks (SERVER.logChunkBytes) so the cleaning never holds up the relay.
+// (Node runs this file as is in scripts/server-log.test.mjs: imports with their .ts extension.)
 
 const DAY = 86_400_000;
 
@@ -44,20 +49,25 @@ function redact(line: string) {
     .replace(NAME, '"" #$1');
 }
 
-/** A log file's text, cleaned for `now` (ms): old lines redacted, older ones dropped. A line without a time is as old as the one before it. */
-export function clean(text: string, now: number, days: Ages) {
+/** `clean` for a file in pieces: each piece is whole lines (the last may lack its break), and a line without a time is as old as the one before, also across pieces. */
+function cleaner(now: number, days: Ages) {
   let time = now;
-  const out: string[] = [];
-  for (const line of text.split('\n')) {
-    if (!line) continue;
-    const t = TIME.exec(line);
-    if (t) time = Date.parse(t[1]);
-    const age = (now - time) / DAY;
-    if (age > days.keep) continue;
-    out.push(age > days.redact ? redact(line) : line);
-  }
-  return out.length ? out.join('\n') + '\n' : '';
+  return (text: string) => {
+    const out: string[] = [];
+    for (const line of text.split('\n')) {
+      if (!line) continue;
+      const t = TIME.exec(line);
+      if (t) time = Date.parse(t[1]);
+      const age = (now - time) / DAY;
+      if (age > days.keep) continue;
+      out.push(age > days.redact ? redact(line) : line);
+    }
+    return out.length ? out.join('\n') + '\n' : '';
+  };
 }
+
+/** A log file's text, cleaned for `now` (ms): old lines redacted, older ones dropped. */
+export const clean = (text: string, now: number, days: Ages) => cleaner(now, days)(text);
 
 const DATED = /^(\d{4}-\d\d-\d\d)\.log$/;
 
@@ -72,33 +82,61 @@ function due(name: string, mtime: number, now: number, days: Ages) {
   return mtime >= start + DAY + days.redact * DAY && now - start <= days.keep * DAY ? 'skip' : 'lines';
 }
 
-/** Cleans every *.log in `dir`: a dated file (YYYY-MM-DD.log) is read only when its day is due, a file is rewritten only when it changes (written aside, then renamed), and deleted once empty. A file that fails is reported to `fail` and the rest go on. */
-export function cleanDir(dir: string, days: Ages, now = Date.now(), fail: (name: string, e: unknown) => void = () => {}) {
-  for (const name of fs.readdirSync(dir)) {
+/** Undated files as the last cleaning left them: their mtime then, and when. */
+const cleaned = new Map<string, { mtime: number; at: number }>();
+
+/** Rewrites a file cleaned, chunk by chunk, written aside and renamed only if it changed; deleted if nothing is left. */
+async function cleanFile(file: string, now: number, days: Ages) {
+  const step = cleaner(now, days);
+  const kept: string[] = [];
+  let changed = false;
+  const take = (text: string) => {
+    const out = step(text);
+    if (out !== text) changed = true;
+    if (out) kept.push(out);
+  };
+  let rest = '';
+  // Each chunk is awaited from the disk, so the event loop runs in between.
+  for await (const piece of fs.createReadStream(file, { encoding: 'utf8', highWaterMark: SERVER.logChunkBytes })) {
+    rest += piece;
+    const cut = rest.lastIndexOf('\n') + 1;
+    if (cut) take(rest.slice(0, cut));
+    rest = rest.slice(cut);
+  }
+  if (rest) take(rest);
+  if (!kept.length) return fsp.rm(file);
+  if (changed) {
+    const out = await fsp.open(`${file}.tmp`, 'w');
+    try {
+      for (const text of kept) await out.write(text);
+    } finally {
+      await out.close();
+    }
+    await fsp.rename(`${file}.tmp`, file);
+  }
+  await fsp.utimes(file, new Date(now), new Date(now)); // cleaned at `now`: a dated file isn't read again
+}
+
+/** Cleans every *.log in `dir`: a dated file (YYYY-MM-DD.log) is read only when its day is due, an undated one when it changed or a day has passed, a file is rewritten only when it changes (written aside, then renamed), and deleted once empty. A file that fails is reported to `fail` and the rest go on. */
+export async function cleanDir(dir: string, days: Ages, now = Date.now(), fail: (name: string, e: unknown) => void = () => {}) {
+  for (const name of await fsp.readdir(dir)) {
     if (!name.endsWith('.log')) continue;
     const file = path.join(dir, name);
     try {
-      const todo = due(name, fs.statSync(file).mtimeMs, now, days);
-      if (todo === 'skip') continue;
-      if (todo === 'remove') {
-        fs.rmSync(file);
-        continue;
-      }
-      const text = fs.readFileSync(file, 'utf8');
-      const kept = clean(text, now, days);
-      if (!kept) fs.rmSync(file);
+      const mtime = (await fsp.stat(file)).mtimeMs;
+      const todo = due(name, mtime, now, days);
+      const seen = cleaned.get(file);
+      if (todo === 'skip' || (seen?.mtime === mtime && now - seen.at < DAY)) continue;
+      cleaned.delete(file);
+      if (todo === 'remove') await fsp.rm(file);
       else {
-        if (kept !== text) {
-          fs.writeFileSync(`${file}.tmp`, kept);
-          fs.renameSync(`${file}.tmp`, file);
-        }
-        fs.utimesSync(file, new Date(now), new Date(now)); // cleaned at `now`: a dated file isn't read again
+        await cleanFile(file, now, days);
+        const after = DATED.test(name) ? null : await fsp.stat(file).catch(() => null);
+        if (after) cleaned.set(file, { mtime: after.mtimeMs, at: now });
       }
     } catch (e) {
       fail(name, e);
-      try {
-        fs.rmSync(`${file}.tmp`, { force: true });
-      } catch {}
+      await fsp.rm(`${file}.tmp`, { force: true }).catch(() => {});
     }
   }
 }

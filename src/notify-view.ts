@@ -1,5 +1,5 @@
 import { NOTIFY } from './config';
-import { label } from './input';
+import { keysVersion, label } from './input';
 import { el } from './menu-ui';
 import { DialogView } from './dialog-view';
 import { resolveLine } from './messages';
@@ -9,6 +9,8 @@ import type { StatusIcon, Notify } from './notify';
 // and the toasts cut in and out; the dark gradient behind a hint, the statuses and the dialog fade.
 // Four layers under body: the gradient (--z-shade), the hint (--z-hint),
 // toasts with statuses (--z-toast), and the dialog with its dimming (--z-dialog; dialog-view.ts). Redrawn only when `Notify.version` changes.
+
+const NO_LINES: readonly string[] = [];
 
 /** Text with **bold** parts as nodes. Never HTML: names in messages come from the network. */
 function rich(text: string): Node[] {
@@ -41,11 +43,14 @@ export class NotifyView {
   private dialogView: DialogView;
   private statusByKey = new Map<string, StatusBox>();
   private seen = -1;
-  /** The hint's text as drawn, key names in: they follow rebinding and the keyboard layout, which don't signal. */
+  /** The hint's text as drawn, key names in: redone when the hint or the key names change (`keysVersion`). */
   private hintShown = '';
+  private hintRaw: readonly string[] = NO_LINES;
+  private hintKeys = keysVersion;
+  private hintLines: string[] = [];
 
   constructor(private notify: Notify) {
-    this.dialogView = new DialogView(() => notify.confirm(true));
+    this.dialogView = new DialogView(() => notify.confirm(true), () => notify.confirm(false));
     this.syncLook();
     this.bottom.append(this.toasts, this.statuses);
     document.body.append(this.shade, this.hint, this.bottom, this.dialogView.el);
@@ -81,13 +86,18 @@ export class NotifyView {
     const notes = this.notify.shown();
     const dialog = notes.find((n) => n.kind === 'dialog')?.dialog;
     // Under a dialog there's nothing to do in play: no hint.
-    const raw = (!dialog && notes.find((n) => n.kind === 'hint')?.lines) || [];
-    const lines = raw.map((l) => resolveLine(l, label));
-    const text = lines.join('\n');
-    if (text !== this.hintShown) {
-      this.hintShown = text;
-      this.drawHint(lines);
+    const raw = (!dialog && notes.find((n) => n.kind === 'hint')?.lines) || NO_LINES;
+    if (raw !== this.hintRaw || keysVersion !== this.hintKeys) {
+      this.hintRaw = raw;
+      this.hintKeys = keysVersion;
+      this.hintLines = raw.map((l) => resolveLine(l, label));
+      const text = this.hintLines.join('\n');
+      if (text !== this.hintShown) {
+        this.hintShown = text;
+        this.drawHint(this.hintLines);
+      }
     }
+    const lines = this.hintLines;
     if (this.notify.version === this.seen) return;
     this.seen = this.notify.version;
     this.shade.classList.toggle('on', NOTIFY.shade === 'always' || (NOTIFY.shade === 'auto' && lines.length > 0));

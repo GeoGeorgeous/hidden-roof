@@ -1,4 +1,5 @@
 // Game tests: Settings > Controls, the credits' licenses and the updates notes.
+import fs from 'node:fs';
 import { page, check, openPage } from './harness.mjs';
 
 await check('settings: Controls binds a key, button or wheel step to two slots each; a taken key moves (Undo), a reserved one is refused; Reset all asks and undoes; modes; remembered', async () => {
@@ -130,7 +131,9 @@ await check('credits: every license the page links to ships with the game', asyn
     }
     return { count: links.length, bad };
   });
-  return r.count === 9 && !r.bad.length ? null : JSON.stringify(r);
+  // The page links every file in public/licenses, once.
+  const files = fs.readdirSync(new URL('../../public/licenses', import.meta.url)).length;
+  return r.count === files && !r.bad.length ? null : JSON.stringify({ ...r, files });
 });
 
 await check('updates: the releases newest first, the newest marked Latest; each has its picture and its date; lists under a heading keep their terms', async () => {

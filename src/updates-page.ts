@@ -1,6 +1,6 @@
 import { action, button, div, el } from './menu-ui';
 import type { PauseMenu } from './pause-menu';
-import { newestFirst, parseRelease } from './release-notes';
+import { newestFirst, parseRelease, splitLinks } from './release-notes';
 import { VERSION } from './version';
 
 // The Updates popup of the ESC menu: the release notes, newest first, with
@@ -16,6 +16,13 @@ const notes = Object.entries(import.meta.glob<string>('../docs/releases/v*.md', 
 
 /** 2026-10-09 → October 9, 2026, the same in every time zone. */
 const day = (date: string) => new Date(`${date}T00:00:00Z`).toLocaleDateString('en', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+
+/** A line of a note with its [text](url) links as anchors; a new tab, so the game and its paint stay. */
+function rich(tag: 'div' | 'span', className: string, text: string) {
+  const e = el(tag, className);
+  e.append(...splitLinks(text).map((p) => (typeof p === 'string' ? p : Object.assign(el('a', '', p.text), { href: p.href, target: '_blank', rel: 'noopener' }))));
+  return e;
+}
 
 export function updatesPage(menu: PauseMenu) {
   const head = div('updates-head');
@@ -48,14 +55,14 @@ export function updatesPage(menu: PauseMenu) {
     for (const it of r.items) {
       const box = div('item-note');
       box.append(div('item-title', it.title));
-      if (it.text) box.append(div('item-text', it.text));
+      if (it.text) box.append(rich('div', 'item-text', it.text));
       if (it.list.length) {
         const list = div('terms');
         for (const [term, desc] of it.list) {
-          const line = div('term-line');
-          if (term) line.append(el('b', '', term));
-          line.append(el('span', '', desc));
-          list.append(line);
+          const row = div('term-line');
+          if (term) row.append(el('b', '', term));
+          row.append(rich('span', '', desc));
+          list.append(row);
         }
         box.append(list);
       }
@@ -63,7 +70,7 @@ export function updatesPage(menu: PauseMenu) {
     }
     const title = div('release', `Hidden Roof ${r.tag.replace(/^v/, '')}`);
     if (r.date) title.append(el('span', '', day(r.date)));
-    pane.replaceChildren(title, div('intro', r.intro), shot, items);
+    pane.replaceChildren(title, rich('div', 'intro', r.intro), shot, items);
     pane.scrollTop = 0;
   };
   menu.addPage('updates', root, () => show(0));

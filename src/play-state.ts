@@ -1,7 +1,8 @@
 // Play state: playing (the game has the mouse), paused behind the menu, F3's
 // panel open, build mode, in a session; what the frame does in each, and what
 // Esc and Enter do while paused; while joining a session (its paint still
-// loading) nothing resumes. A dialog in play: Enter presses its button, Esc opens the menu and leaves without it (what each does is the dialog's: net-menu.ts). The pointer lock itself is Input's (the
+// loading) nothing resumes. A dialog in play: Enter presses its button, Esc opens the menu and leaves without it (what each does is the dialog's: net-menu.ts);
+// where the browser takes the first Esc for itself (no keyboard lock), the dialog stays up over the menu and the next Esc leaves. The pointer lock itself is Input's (the
 // browser's, or a test's through Input.setLocked). No DOM here: tested in
 // Node (scripts/play-state.test.mjs).
 
@@ -19,7 +20,7 @@ export interface MenuActions {
   primary(): void;
   /** A dialog blocks play (the pointer stays locked). */
   dialog(): boolean;
-  /** Answers it, and it goes: accepted with its button (Enter), or not (Esc). */
+  /** Answers it, and it goes: accepted with its button (Enter), or not (Esc). Losing the pointer lock alone never answers it. */
   confirm(accepted: boolean): void;
 }
 
@@ -92,6 +93,8 @@ export class PlayState {
         if (this.menu.dialog()) this.menu.confirm(false);
       }
       else if (repeat) return true;
+      // The dialog stays up over the menu: this Esc is its answer, not the menu's.
+      else if (this.menu.dialog()) this.menu.confirm(false);
       else if (this.panel) this.resume();
       else if (this.menu.page()) this.menu.back();
       else this.escArmed = !this.session.joining;

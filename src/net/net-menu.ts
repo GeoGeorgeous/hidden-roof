@@ -7,7 +7,7 @@ import { savePaint } from '../save/save-paint';
 import { store, stored } from '../stored';
 import { cycle, paintDetailName } from '../settings';
 import { action, button, choice, div, el, pageHead, relabel, sentence, settingRow } from '../menu-ui';
-import { CODE_LENGTH, CODE_LETTERS, isName, NAME_MAX } from './protocol';
+import { cleanName, CODE_LENGTH, CODE_LETTERS, isName, NAME_MAX } from './protocol';
 import type { MultiplayerContext } from './game-context';
 import { lostDialog, type LostButton } from './lost-dialog';
 import { Multiplayer, type Failure, type NetStatus } from './multiplayer';
@@ -38,6 +38,7 @@ const STATUS: Record<Failure | 'connecting' | 'reconnecting', MessageId> & Parti
   replaced: 'menu.netReplaced',
   'too-many': 'menu.netTooMany',
   ended: 'menu.netEnded',
+  restarted: 'menu.netEnded',
   expired: 'menu.netEnded',
   timeout: 'menu.netTimeout',
   broken: 'menu.netBroken',
@@ -59,10 +60,11 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
   const root = div('page mp-page');
   root.append(pageHead('multiplayer', sub), rows);
 
-  let name = stored(NAME_KEY) ?? '';
+  let name = cleanName(stored(NAME_KEY) ?? '');
   const nameInput = textInput(name, NAME_MAX, 'Your name', (v) => {
-    name = v;
-    store(NAME_KEY, v);
+    name = cleanName(v);
+    if (name !== v) nameInput.value = name;
+    store(NAME_KEY, name);
   });
   const codeInput = textInput('', CODE_LENGTH, 'A B C D E', () => (codeInput.value = codeInput.value.toUpperCase().replace(/[^A-Z]/g, '')));
   codeInput.classList.add('code');

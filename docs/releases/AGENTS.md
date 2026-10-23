@@ -35,6 +35,10 @@ one or two sentences: what this release is about.
 
 - `date`: the day it's released (the owner's local date). The only field: the version is the file name, the title and the picture follow from it.
 - No `#` headings and no HTML: the title and the picture are added where the note is shown.
+- Links are markdown, `[text](url)`, in the intro, a heading's sentence or a list line (not in a heading or a `**term**`). The game's own pages are root-relative: `[Terms](/terms.html)`, `[Privacy](/privacy.html)`; other sites are absolute and only `https://ko-fi.com/`, `https://github.com/GeoGeorgeous/` and `https://discord.gg/` (`LINK_SITES`, `src/release-notes.ts`): `[Ko-fi](https://ko-fi.com/D0Q7296HCP)`. Never write the game's own address (`SITE`, `src/links.ts`) in a note. The text is a word or two, never a bare URL.
+  - **In the game** a link is an anchor in a new tab (the paint stays); a root-relative one stays on the game's site. A target outside the rule shows its text only.
+  - **On GitHub** a root-relative target becomes `https://roof.hidden.haus/...`.
+  - **On Discord** the same, and every target is wrapped in `<...>` so no preview card opens.
 
 ## Style
 

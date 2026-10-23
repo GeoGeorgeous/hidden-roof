@@ -7,7 +7,10 @@ const KEY = 'roofhiddenhaus.session';
 export interface TabSession {
   code: string;
   token: string;
+  /** The name they go by in the session (numbered if it was taken). */
   name: string;
+  /** The name they typed: what a join sends. Missing from a session kept by an older version. */
+  asked?: string;
 }
 
 /** The session this tab was in before a reload; none without storage (private mode). */
