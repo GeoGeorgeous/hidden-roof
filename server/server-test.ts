@@ -218,8 +218,8 @@ try {
   twin.send({ type: 'join', protocol: PROTOCOL, name: 'geo', code: wg.code });
   // The welcome tells the player the name they go by.
   assert.equal(wg.name, 'geo');
-  assert.equal((await twin.next('welcome')).name, 'geo2');
-  assert.equal((await geo.next('joined')).name, 'geo2');
+  assert.equal((await twin.next('welcome')).name, 'geo (2)');
+  assert.equal((await geo.next('joined')).name, 'geo (2)');
   geo.send(ops(1, [1], [stamp]));
   await twin.next('ops');
   geo.ws.close();
@@ -236,7 +236,7 @@ try {
   twin.send({ type: 'leave' });
   await twin.closed;
   const again = await game();
-  again.send({ type: 'join', protocol: PROTOCOL, name: 'geo2', code: wg.code });
+  again.send({ type: 'join', protocol: PROTOCOL, name: 'geo', code: wg.code });
   assert.deepEqual((await again.next('welcome')).inventory, carried);
 
   // A numbered player who drops and comes back from a new tab typing the name they first asked for takes their own place back, not a new number.
@@ -246,15 +246,21 @@ try {
   const tom2 = await game();
   tom2.send({ type: 'join', protocol: PROTOCOL, name: 'tom', code: wt.code });
   const wt2 = await tom2.next('welcome');
-  assert.equal(wt2.name, 'tom2');
-  assert.equal((await tom.next('joined')).name, 'tom2');
+  assert.equal(wt2.name, 'tom (2)');
+  assert.equal((await tom.next('joined')).name, 'tom (2)');
   tom2.ws.close();
   await tom2.closed;
   const tomAgain = await game();
   tomAgain.send({ type: 'join', protocol: PROTOCOL, name: 'tom', code: wt.code });
   const wt3 = await tomAgain.next('welcome');
-  assert.deepEqual(pick(wt3, 'you', 'name'), { you: wt2.you, name: 'tom2' });
+  assert.deepEqual(pick(wt3, 'you', 'name'), { you: wt2.you, name: 'tom (2)' });
   await tom.none('joined');
+  // A numbered name is not one a player can type, so a token rejoin sends the typed name and gets the same player back.
+  tomAgain.ws.close();
+  await tomAgain.closed;
+  const tomBack = await game();
+  tomBack.send({ type: 'join', protocol: PROTOCOL, name: 'tom', code: wt.code, token: wt3.token });
+  assert.deepEqual(pick(await tomBack.next('welcome'), 'you', 'name'), { you: wt2.you, name: 'tom (2)' });
 
   // HOST from a save: the host isn't sent its own save back; the paint is there for the next player.
   const h = await game();

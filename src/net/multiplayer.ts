@@ -4,7 +4,7 @@ import type { PaintOp } from '../paint-ops';
 import { loadPaint } from '../save/load-paint';
 import { surfaceTable } from '../save/shape';
 import { session } from '../session';
-import { PROTOCOL, rejectionOf, type Rejection, type ToClient, type ToServer } from './protocol';
+import { cleanName, PROTOCOL, rejectionOf, type Rejection, type ToClient, type ToServer } from './protocol';
 import { diagnose, NetLog, Traffic } from './diagnostics';
 import { decodeOps, encodeOps, SurfaceIndex } from '../op-wire';
 import { playSessionLevel, type MultiplayerContext } from './game-context';
@@ -55,7 +55,7 @@ export class Multiplayer {
   private link: ServerLink | null = null;
   private remotes: Remotes;
   /** Who we are, once welcomed, and how to come back. */
-  private joined: { code: string; token: string; name: string; you: number; levelName: string } | null = null;
+  private joined: { code: string; token: string; name: string; asked: string; you: number; levelName: string } | null = null;
   /** Messages are handled one at a time, in order (a welcome loads paint before what follows it). */
   private queue = Promise.resolve();
   private t0 = 0;
@@ -68,8 +68,8 @@ export class Multiplayer {
   private saving = new SaveRequest();
   private retry: { until: number; wait: number; tries: number } | null = null;
   private net = new Traffic();
-  /** The name we go by in the session. */
-  private name = '';
+  /** The name the player typed, sent in every join of this session (the welcome's name may be numbered). */
+  private asked = '';
   /** The player's own level and paint, from before the session's welcome replaced them until it ends. */
   private solo: Solo | null = null;
   /** Gets the player's own level and paint back when the session ends (HOST and JOIN wait for it). */
@@ -108,7 +108,7 @@ export class Multiplayer {
 
   /** In a session: everyone in it, us first, with their paint colors (null: not known yet). */
   get players() {
-    return this.joined ? [{ name: this.name, color: this.g.inventory.color }, ...this.remotes.roster] : [];
+    return this.joined ? [{ name: this.joined.name, color: this.g.inventory.color }, ...this.remotes.roster] : [];
   }
 
   /** The last round trip to the server (s), null before the first. */
@@ -140,7 +140,7 @@ export class Multiplayer {
   /** Back into the session this tab was in before a reload, if the server may still have it. */
   resume() {
     const s = tabSession();
-    if (s) this.connect({ type: 'join', protocol: PROTOCOL, name: s.name, code: s.code, token: s.token });
+    if (s) this.connect({ type: 'join', protocol: PROTOCOL, name: cleanName(s.asked ?? s.name), code: s.code, token: s.token });
   }
 
   /** SAVE in a session: the session's paint, as a file the server makes. One request at a time; none while the link is down (nothing would answer it). */
@@ -180,7 +180,7 @@ export class Multiplayer {
 
   private connect(hello: Extract<ToServer, { type: 'host' | 'join' }>) {
     this.link?.abandon();
-    this.name = hello.name;
+    this.asked = hello.name;
     // HOST goes where the server takes big messages (a save), a few at a time.
     const url = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws${hello.type === 'host' ? '?host' : ''}`;
     this.log.add(`connecting to ${url}: ${hello.type === 'host' ? `HOST at ${hello.detail} texels/m${hello.bytes ? ` with ${(hello.bytes.length / 1024).toFixed(0)} KB of paint` : ''}` : `JOIN ${hello.code}${hello.token ? ' (coming back)' : ''}`}`);
@@ -236,7 +236,7 @@ export class Multiplayer {
     this.retryNow = () => {
       clearTimeout(timer);
       this.retryNow = null;
-      if (this.joined === j && !this.link) this.connect({ type: 'join', protocol: PROTOCOL, name: j.name, code: j.code, token: j.token });
+      if (this.joined === j && !this.link) this.connect({ type: 'join', protocol: PROTOCOL, name: j.asked, code: j.code, token: j.token });
     };
     r.wait = Math.min(r.wait * 2, NET.retryMost);
   }
@@ -308,11 +308,12 @@ export class Multiplayer {
     if (back) this.outbox.take(this.sender.take(), now() - this.t0);
     else this.outbox.clear(w.acked);
     const resend = back ? this.outbox.rejoined(w.acked, (op) => g.paintOps.apply(op)) : [];
-    // The session may have numbered it (the name was taken): the player goes by that, the NAME field keeps what they typed.
-    const name = (this.name = w.name);
+    // The session may have numbered it ("geo (2)" when geo was taken): the player goes by that, but every join sends what they typed (a numbered name is not one a player can type).
+    const name = w.name;
+    const asked = this.asked;
     this.log.add(`in session ${w.code} as #${w.you}, at ${w.detail} texels/m, with ${w.players.length} others, ${(file.length / 1024).toFixed(0)} KB of paint`);
-    this.joined = { code: w.code, token: w.token, name, you: w.you, levelName: w.levelName };
-    keepTabSession({ code: w.code, token: w.token, name });
+    this.joined = { code: w.code, token: w.token, name, asked, you: w.you, levelName: w.levelName };
+    keepTabSession({ code: w.code, token: w.token, name, asked });
     session.multiplayer = true;
     session.player = ownerOf(w.you);
     this.remotes.clear();

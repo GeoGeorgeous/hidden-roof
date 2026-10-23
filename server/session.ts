@@ -336,12 +336,13 @@ function deliver(p: Player, f: Uint8Array) {
   if (p.live) p.link?.send(f);
 }
 
-/** `name`, or with the lowest number free when another player has it: "geo2", itself a name a player may take. */
+/** `name`, or with the lowest number free when another player has it: "geo (2)", which no player can type, so it never looks like a typed name. */
 function uniqueName(name: string, players: Player[]) {
   const taken = new Set(players.map((p) => p.name));
   if (!taken.has(name)) return name;
   for (let n = 2; ; n++) {
-    const s = name.slice(0, NAME_MAX - String(n).length) + n;
+    const tag = ` (${n})`;
+    const s = name.slice(0, NAME_MAX - tag.length) + tag;
     if (!taken.has(s)) return s;
   }
 }
