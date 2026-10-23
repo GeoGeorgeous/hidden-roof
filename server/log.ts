@@ -2,13 +2,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { format } from 'node:util';
 import { SERVER } from '../src/config';
-import { cleanDir } from './log-files';
+import { cleanDir, oneEntry } from './log-files';
 
 // The server's log: one line per event, with the time first (UTC), the session's
 // code next when there is one. With a directory set (LOG_DIR) it goes to one file
-// a day there, cleaned as server/log-files.ts says; without one, to stdout.
+// a day there (capped in size), cleaned as server/log-files.ts says; without one, to stdout.
 
 let dir: string | null = null;
+/** The day file being written, and its size; `full` once the cap (SERVER.logDayBytes) is reached. */
+const today = { name: '', bytes: 0, full: false };
 
 /** Logs to files in `to` from now on, and cleans them now and every SERVER.logCleanEvery. */
 export function logTo(to: string) {
@@ -16,7 +18,7 @@ export function logTo(to: string) {
   dir = to;
   const tidy = () => {
     try {
-      cleanDir(to, { redact: SERVER.logRedactDays, keep: SERVER.logKeepDays });
+      cleanDir(to, { redact: SERVER.logRedactDays, keep: SERVER.logKeepDays }, Date.now(), (name, e) => log('-----', `log cleaning failed for ${name}:`, e));
     } catch (e) {
       log('-----', 'log cleaning failed:', e);
     }
@@ -27,10 +29,26 @@ export function logTo(to: string) {
 
 export function log(...parts: unknown[]) {
   const now = new Date().toISOString();
-  const line = format(`${now.slice(0, 19)}Z`, ...parts);
+  const line = oneEntry(format(`${now.slice(0, 19)}Z`, ...parts));
   if (!dir) return console.log(line);
   try {
-    fs.appendFileSync(path.join(dir, `${now.slice(0, 10)}.log`), line + '\n');
+    const name = `${now.slice(0, 10)}.log`;
+    const file = path.join(dir, name);
+    if (today.name !== name) {
+      let bytes = 0;
+      try {
+        bytes = fs.statSync(file).size;
+      } catch {}
+      Object.assign(today, { name, bytes, full: false });
+    }
+    if (today.full) return;
+    let text = line + '\n';
+    if (today.bytes + Buffer.byteLength(text) > SERVER.logDayBytes) {
+      today.full = true;
+      text = `${now.slice(0, 19)}Z ----- log full (${mb(SERVER.logDayBytes)} MB today): the rest of today's lines are dropped\n`;
+    }
+    fs.appendFileSync(file, text);
+    today.bytes += Buffer.byteLength(text);
   } catch {
     console.log(line);
   }

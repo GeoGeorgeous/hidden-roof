@@ -999,6 +999,8 @@ export const PLAYER = {
   /** A climb carries on this far (m) over a ladder's top, so you step onto the floor it leads to (a stepladder's cap, a roof, over a parapet). */
   climbOver: 0.3,
   mouseSensitivity: 0.0022,
+  /** Take the mouse without the OS's pointer acceleration (the pointer lock's `unadjustedMovement`), at the next lock. For finding what makes mouse spikes (docs/ideas/mouse-spikes.md); F3 only. */
+  rawMouse: false,
   /** Falling below this height respawns the player. */
   killY: -25,
   /** Meters walked per footstep sound, and the landing speed (m/s) above which a landing sounds hard. */
@@ -1139,6 +1141,8 @@ export const SERVER = {
   logRedactDays: 14,
   logKeepDays: 60,
   logCleanEvery: 3600,
+  /** With LOG_DIR, a day's file stops growing at this many bytes (a note says so); the next day starts afresh. */
+  logDayBytes: 20 * 2 ** 20,
 };
 
 /** F3 -> Ghost (src/dev/ghost.ts): the network it plays through, and how far behind it follows you. */
@@ -1200,6 +1204,8 @@ export const PROFILE = {
   jumpDegrees: 45,
   /** A mouse spike: one mouse event moved further than this (px; a hard flick is under 150). */
   mouseSpikePx: 300,
+  /** Raw events of each kind a mouse spike keeps from before it. */
+  mouseTrail: 24,
   /** Spikes kept in a report; the rest are only counted. */
   maxSpikes: 40,
 };

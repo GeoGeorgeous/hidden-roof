@@ -4,6 +4,7 @@ import type { GpuTimer } from '../debug/gpu-timer';
 import { download, stamp } from '../files';
 import type { Level } from '../level/level';
 import type { Player } from '../player';
+import type { Input } from '../input';
 import type { LightBaker } from '../render/bake/baker';
 import type { Environment } from '../render/environment';
 import { VERSION } from '../version';
@@ -27,6 +28,7 @@ export interface ProfilerWorld {
   environment: Pick<Environment, 'lighting' | 'lightFx'>;
   baker: LightBaker;
   player: Player;
+  input: Pick<Input, 'rawLocked'>;
   gpuTimer: GpuTimer;
   city(): THREE.Object3D;
   applyPixelScale(): void;
@@ -68,7 +70,7 @@ interface Second {
 
 export class Profiler {
   private probe: Probe;
-  private spikes = new SpikeCatcher();
+  private spikes: SpikeCatcher;
   /** The last full second's frame time (ms), what a slow frame is measured against. */
   private typicalMs = 0;
   private on = false;
@@ -87,6 +89,7 @@ export class Profiler {
 
   constructor(private w: ProfilerWorld) {
     this.probe = new Probe(w);
+    this.spikes = new SpikeCatcher(() => w.input.rawLocked);
     document.body.append(this.badge);
   }
 

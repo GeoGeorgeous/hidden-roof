@@ -25,8 +25,8 @@ Facts checked on dev @ 7598b94 (2026-10-22). One hint system with the notificati
 7. **Wall typography in build mode is unchanged and out of BL-092:** the owner still paints any text on surfaces, control instructions and `<k>KEY</k>` key caps included. Stale or wrong instructions after a rebinding are the owner's call.
 8. **Two kinds of completion:** by **time** (shown N s: stored as learnt and removed even if the player did nothing; a new color: 5 s) and by **action** (walked N m, a key pressed, jumped, switched to a given tool, used it). Moving is learnt after 3 m.
 9. **English only,** no katakana under hints. Casing is the designer's.
-10. **HUD scaling is not BL-092:** TASK-197 (the HUD scales with the window and the DPR). No HUD size setting in BL-092.
-11. **Filed separately:** TASK-197, BUGS-198 (compact F3 menu under tags, hotbar, toast), BUGS-199 (LOW PRESSURE off the edge at 820 px). BUGS-198 and BUGS-199 are checked and closed on their own, never as done because BL-092 changed the layers.
+10. **HUD scaling is not BL-092:** TASK-203 (the HUD scales with the window and the DPR). No HUD size setting in BL-092.
+11. **Filed separately:** TASK-203, BUGS-198 (compact F3 menu under tags, hotbar, toast), BUGS-199 (LOW PRESSURE off the edge at 820 px). BUGS-198 and BUGS-199 are checked and closed on their own, never as done because BL-092 changed the layers.
 12. **The look is decided** (owner, 2026-10-22): four components, in In-game UI below. Exact values and live demos come from the designer; until then the numbers there are the reference.
 
 ## In-game UI (owner, 2026-10-22)
@@ -77,7 +77,7 @@ All confirmed unless marked. Line numbers as of 7598b94.
 - **Frame-bound timers** (confirmed, BL-140 F4.2/F4.3): toast and notice compare `performance.now()`; under the full pause sheet toasts are `display: none` (`src/style.css:1735-1737`) while their clock runs; a hidden tab runs no frames, so they expire on the first frame back. The cap/color tags do the same (minor).
 - **Hud does too much** (confirmed): frame, crosshair, tool cluster, perf, vignette and the owner of the pause menu, 209 lines. Hints don't go in it.
 - **Readability** (confirmed by screenshots): toast, tags, REC and clock are 11 px ink monospace with no backing (`src/boot.css:42-45`). Over the lit white wall the red LOW PRESSURE alert almost disappears (`docs/img/tutorial/1280x720-low-pressure.jpg`); REC and the clock are lost in brick hatching (all shots). On dark paint ink text is invisible.
-- **Scale** (confirmed; scaling is TASK-197, the clipping BUGS-199): everything is px. At **820×560** the LOW PRESSURE alert runs off the right edge ("…TO SH", `docs/img/tutorial/min-820x560-busy-hud.jpg`): the tool cluster starts right of center and only grows rightward. At **3840×2160 with DPR 1** the HUD is a sliver: 11 px text on a 2160 px screen, hotbar 30 px (`docs/img/tutorial/4k-3840x2160-busy-hud.jpg`). (A 4K laptop at DPR 1.5-2 is fine: it's 1920-2560 CSS px.) Ultrawide 3440×1440 is fine: corners far out, tool cluster near center.
+- **Scale** (confirmed; scaling is TASK-203, the clipping BUGS-199): everything is px. At **820×560** the LOW PRESSURE alert runs off the right edge ("…TO SH", `docs/img/tutorial/min-820x560-busy-hud.jpg`): the tool cluster starts right of center and only grows rightward. At **3840×2160 with DPR 1** the HUD is a sliver: 11 px text on a 2160 px screen, hotbar 30 px (`docs/img/tutorial/4k-3840x2160-busy-hud.jpg`). (A 4K laptop at DPR 1.5-2 is fine: it's 1920-2560 CSS px.) Ultrawide 3440×1440 is fine: corners far out, tool cluster near center.
 - **Multiplayer** (confirmed, worse than expected): in play nothing says reconnecting at all (BL-140 F4.4); "X joined" uses the toast slot and would overwrite or be overwritten by a hint if hints used it.
 
 ## HUD layers

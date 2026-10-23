@@ -1,5 +1,5 @@
 import { layoutName } from './key-name';
-import { BINDINGS, RENDER, WHEEL } from './config';
+import { BINDINGS, PLAYER, RENDER, WHEEL } from './config';
 import { enterGameFullscreen } from './fullscreen';
 import { currentOs } from './gpu-name';
 
@@ -91,6 +91,8 @@ export class Input {
   /** Mouse buttons (0 left, 1 middle, 2 right) pressed this frame. */
   private clicks = new Set<number>();
   private isLocked = false;
+  /** The last lock asked for the mouse without acceleration (PLAYER.rawMouse), and wasn't refused it. */
+  rawLocked = false;
   onLockChange: (locked: boolean) => void = () => {};
   /** A click on the game while paused: resume (main.ts routes it through the play state). */
   onResume: () => void = () => this.requestLock();
@@ -201,9 +203,15 @@ export class Input {
    * pause menu simply stays up and the next click tries again.
    */
   requestLock() {
+    // Raw: without OS acceleration. A browser without it rejects (NotSupportedError), and the plain lock follows.
+    this.rawLocked = PLAYER.rawMouse;
     try {
-      const p = this.element?.requestPointerLock() as unknown as Promise<void> | undefined;
-      p?.catch?.(() => {});
+      const p = this.element?.requestPointerLock(this.rawLocked ? { unadjustedMovement: true } : undefined) as unknown as Promise<void> | undefined;
+      p?.catch?.((e: DOMException) => {
+        if (!this.rawLocked || e?.name !== 'NotSupportedError') return;
+        this.rawLocked = false;
+        this.element?.requestPointerLock();
+      });
     } catch {
       // Refused (see above).
     }

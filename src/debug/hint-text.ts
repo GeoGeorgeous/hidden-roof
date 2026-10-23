@@ -55,6 +55,7 @@ export const HINTS: Record<string, string> = {
   'PLAYER.crouchTransition': 'How fast the camera moves between standing and crouched heights. Higher = quicker.',
   'PLAYER.stepSmoothing': 'How fast the camera catches up after stepping up or down stairs. Higher = less smoothing.',
   'PLAYER.mouseSensitivity': 'Radians of turn per pixel of mouse movement.',
+  'PLAYER.rawMouse': 'Takes the mouse without the OS pointer acceleration (Chrome: unadjustedMovement). On = the mouse feels different. For testing the mouse spikes: profile a long session with it on. Falls back to the normal mouse where the browser refuses.',
   'RENDER.fov': 'Vertical field of view (degrees).',
   'RENDER.sprintFovBoost': 'Extra field of view while sprinting (degrees).',
   'RENDER.sprintFovEase': 'How fast the sprint FOV change eases in and out.',
