@@ -1,11 +1,15 @@
 // Every message a player reads in the game, in one place, so each line can be reviewed and reworded without
-// touching game logic. Grouped by the component that shows it (docs/ideas/messages.md lists where and when).
+// touching game logic. Grouped by the component that shows it; each group says where and when. A new text goes
+// here, never into a call site.
 // A template has `{name}` for a value msg() fills in, and `**bold**` for what the display draws bold. An action's
 // name (`{forward}`, `{use}`) is not filled here: the display swaps it for the key's name when it draws
 // (notify.ts resolveLine), so a rebound key shows as bound. No DOM: tested in Node (scripts/messages.test.mjs).
+// Not messages, so not here: menu labels and button captions, tooltips, the popups' body paragraphs (save, upload,
+// update notes), the HUD tags (CAP, NEW TOOL), the F3 panel's descriptions. Nothing player-facing comes from
+// server/: it sends a `rejected` reason code and the game words it (menu.net*).
 
 export const MESSAGES = {
-  /** Subtitles at the bottom center: a control being taught. Up to 3 lines, each its own entry line. */
+  /** Subtitles at the bottom center: a control being taught (tutorial/hints.ts picks which, and for how long). Up to 3 lines, each its own entry line. */
   hint: {
     move: ['Press {forward} {left} {back} {right} to move', 'Hold {sprint} to run, press {jump} to jump'],
     spray: ['Press {use} to spray, {shake} to shake the can'],
@@ -27,7 +31,7 @@ export const MESSAGES = {
     climb: ['Walk into the ladder or hold {jump} to climb', 'Hold {crouch} to stay on it'],
   },
 
-  /** Centered over the hint, 3 s each, stacked: things that happened. */
+  /** Centered over the hint, NOTIFY.toastSeconds each, stacked: things that happened (pickups and the stepladder in main.ts, joins and leaves in net/net-menu.ts). */
   toast: {
     pickedUp: 'You picked up **{item}**',
     alreadyHave: 'You already have **{item}**',
@@ -39,7 +43,10 @@ export const MESSAGES = {
     unlockedAll: 'You picked up **everything**',
   },
 
-  /** Top center, one at a time, while true: the link's state. */
+  /**
+   * Top center, one at a time, while true: the link's state, the worst first (reconnecting > noSignal > badConnection).
+   * Reconnecting is net/net-menu.ts's; the other two are net/link-health.ts's. Its icon: bars cycling, a red ring, one bar of three.
+   */
   chip: {
     reconnecting: 'Trying to reconnect · Attempt #{n}',
     /** The server has said nothing for a few seconds (NET.noSignal). */
@@ -52,7 +59,8 @@ export const MESSAGES = {
 
   /**
    * Blocks play until answered: a card with a label, a title, a text and a button. The first six end a session the player was in
-   * (net/net-menu.ts maps the failure to one); Enter presses the button, Esc leaves without it, and `esc` names that when it differs.
+   * (net/lost-dialogue.ts maps the failure to one; a failure while joining stays on the MULTIPLAYER page instead). Shown until answered:
+   * Enter presses the button, Esc leaves without it (never reloads), and `esc` names that when it differs.
    */
   dialogue: {
     /** The window to rejoin ran out ({minutes} of it). The only one that grows from the reconnecting chip. */
@@ -68,7 +76,7 @@ export const MESSAGES = {
     clientError: { label: 'CLIENT ERROR', title: 'The game crashed', text: 'Something broke on your side. Reload the page to keep playing; copy the error below to report it.', button: 'Reload page' },
   },
 
-  /** Play's own HUD text that is not one of the four: the tool-hand alert and the other players' nameplate notes. */
+  /** Play's own HUD text that is not one of the four: the tool-hand alert (hud.ts, while the can is low) and the other players' nameplate notes (net/remotes.ts, while true). */
   hud: {
     lowPressure: 'LOW PRESSURE — HOLD [{shake}] TO SHAKE',
     noteAway: 'AWAY',
@@ -81,7 +89,7 @@ export const MESSAGES = {
     noteLagging: 'LAGGING',
   },
 
-  /** The menu, its pages, and the screens before play: they keep their own places. */
+  /** The menu, its pages, and the screens before play: they keep their own places, and show until the next status or the step is done (a copy's flash: a few seconds). */
   menu: {
     // ESC menu status line
     pauseIdle: 'Paused',

@@ -2,7 +2,7 @@
 
 From the audit of 2026-10-17 (module M4, skipped for 1.4.0). Nothing here is decided yet: the first step is settling the model (F4.1) before the designer starts. ★ marks the audit's recommended approach.
 
-BL-140 is in 1.5.0 now (the owner moved it from 1.9.0). The texts of every message are in one catalogue, `src/messages.ts`; where each shows and the connection statuses: `docs/ideas/messages.md`. The link statuses (no signal and bad connection as chips; high delay as the nameplate note LAGGING; packet loss dropped) are built on feat/hints-net: `src/net/link-health.ts`.
+BL-140 is in 1.5.0 now (the owner moved it from 1.9.0). The texts of every message are in one catalogue, `src/messages.ts`; each group's comment says where and when it shows, and the dialogue per failure is `src/net/lost-dialogue.ts`. The link statuses (no signal and bad connection as chips; high delay as the nameplate note LAGGING; packet loss dropped) are built on feat/hints-net: `src/net/link-health.ts`.
 
 ## What exists
 
@@ -41,3 +41,13 @@ BL-092 (1.5.0, `docs/ideas/tutorial.md`) takes a cut of steps 1 and 2 first: the
 
 - A join while you are in Settings: A opens ESC → Settings, B joins, A closes Settings. Today A never sees "B joined"; after the fix A sees it.
 - What play shows when the link drops or the session ends: B playing, cut and stall the link (`docs/testing.md`, the link proxy), then stop the server. Today nothing shows in play; after the fix a reconnecting status, then "session ended".
+
+## Status candidates, not built
+
+| Candidate | Data | Proposed threshold | Component |
+|---|---|---|---|
+| Slow upload (a paint file) | upload progress rate | under 8 KB/s | stays in the menu's progress line |
+| Away, dropped, back | `Remotes.onPresence` | exists as nameplate | toast "**{user}** is back" |
+| Context lost, online/offline, pointer lock or clipboard refused | browser events | event fires | toast or chip |
+
+Data that exists but is not shown as a status: `Traffic.ping`, up/down rates (`Traffic`), each player's `delay` and `jitter` (`netLines`), the time since the last server message (`ServerLink.heard`).
