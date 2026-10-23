@@ -31,7 +31,7 @@ Essentials:
 - New items use `[TYPE-NNN]`. Never create `BL` ids, and never convert existing `BL` ids.
 - Markers in the id brackets: `!` critical, `?` unconfirmed (verify first), `>` explain.
 - `@X.Y.Z` at the end of a line plans it for a release; a release's items are the lines tagged with it.
-- A line wrapped in `~~...~~` is deleted: don't work on it or remove it.
+- A line wrapped in `~~...~~` is deleted and lives in `## Discarder`: don't work on it or remove it.
 
 ## Verify
 
