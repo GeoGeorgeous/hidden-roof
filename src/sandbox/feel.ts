@@ -29,7 +29,7 @@ export const FEEL = {
   // Brush (sandbox/brush.ts): paint at once, as a continuous stroke
   brush: true,
   /** One pass of a stroke reaches about this opacity (Shift + wheel). */
-  opacity: 0.5,
+  opacity: 0.9,
   /** Dab spacing, a fraction of the dab's radius. */
   spacing: 0.2,
   /** Aim smoothing (StreamLine), 0 = off. */
