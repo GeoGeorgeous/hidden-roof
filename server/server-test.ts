@@ -127,7 +127,7 @@ try {
   assert.deepEqual([wb.you, wb.players, wb.levelName, wb.inventory], [2, [{ id: 1, name: 'A', state: 'here' }], 'demo', null]);
   assert.deepEqual(await a.next('joined'), { type: 'joined', id: 2, name: 'B' });
   // The rest of a full session joins all at once; one more is turned away; they go again.
-  const rest = await Promise.all(Array.from({ length: SERVER.maxPlayers - 2 }, () => game()));
+  const rest = await Promise.all(Array.from({ length: SERVER.players.private - 2 }, () => game()));
   rest.forEach((x, i) => x.send({ type: 'join', protocol: PROTOCOL, name: `C${i}`, code: wa.code }));
   const ids = new Set<number>();
   for (const x of rest) ids.add((await x.next('welcome')).you);

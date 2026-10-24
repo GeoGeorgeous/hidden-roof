@@ -10,6 +10,10 @@ RUN npm run build:server
 FROM node:24-slim
 WORKDIR /app
 COPY --from=build /app/dist-server/server/main.js .
+# The admin's sessions are made of these levels (LEVELS_DIR); the admin command asks the admin API (server/admin.mjs).
+COPY --from=build /app/public/levels ./levels
+COPY --from=build /app/server/admin.mjs .
+ENV LEVELS_DIR=levels
 USER node
-EXPOSE 3000
+EXPOSE 3000 3001
 CMD ["node", "--expose-gc", "main.js"]

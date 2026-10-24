@@ -20,6 +20,8 @@ export const NAME_MAX = 16;
 export const isName = (x: unknown): x is string => typeof x === 'string' && x.length <= NAME_MAX && /^[A-Za-z0-9]+$/.test(x);
 /** What is left of `x` as a name: the letters and digits of it, at most NAME_MAX (a name saved by an older version, or typed). */
 export const cleanName = (x: string) => x.replace(/[^A-Za-z0-9]/g, '').slice(0, NAME_MAX);
+/** A session's name, as its creator typed it (server/admin-api.ts): at most this many characters. */
+export const SESSION_NAME_MAX = 32;
 /** Session codes: this many letters from CODE_LETTERS (no I or O, which read as 1 and 0). */
 export const CODE_LENGTH = 5;
 export const CODE_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -145,6 +147,12 @@ export function partFrames(pieces: Uint8Array[], size: number): Uint8Array[] {
       [o, left, piece] = [o + n, left - n, piece.subarray(n)];
     }
   return frames;
+}
+
+/** The pieces of a paint file in its 'part' frames (partFrames), without their headers. */
+export function partPieces(frames: Uint8Array[]) {
+  const head = encode({ type: 'part', bytes: new Uint8Array(0) }).length;
+  return frames.map((f) => f.subarray(head));
 }
 
 /** A message as sent, or null if it isn't one; its fields still need checking if the sender isn't trusted. */

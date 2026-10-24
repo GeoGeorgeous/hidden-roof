@@ -11,13 +11,13 @@ The public server: see also docs/deploy.md. Order: BL-043 first; 044, 045 (needs
 - **Tools off per session** (BL-154), chosen only at creation: e.g. no sponge or roller; those items leave the map and can't be picked up or used.
 - **Queue** (BL-046): a full session, public or private, lets players wait for a free place, as in Minecraft.
 - **One public session in 1.6.0**: the roof at ULTRA (519 MB all painted).
-- **Public paint is kept** (TASK-238), the simplest version first: saved to the host's disk now and then (a config value, e.g. 30 min) and on shutdown, the last 3 saves kept, loaded at start, so a host outage loses at most one interval. Wiped only when the protocol, the surface table or the level changes, or on the admin's wipe (command or panel); a release that changes none of them keeps the paint.
+- **Public paint is kept** (done: `docs/deploy.md` §6), the simplest version first: saved to the host's disk now and then (a config value, e.g. 30 min) and on shutdown, the last 3 saves kept, loaded at start, so a host outage loses at most one interval. Wiped only when the protocol, the surface table or the level changes, or on the admin's wipe (command or panel); a release that changes none of them keeps the paint.
 - **Anti-cheat** (BL-147) waits for 1.6.1: no real players are expected before 1.7.0, and a bad wall is fixed by a wipe.
 - **Admin panel** (BL-047): minimal, stats and session management (create, name, tools, wipe). Full stats from 1.6.0 (server counters, country, the client beacon); the privacy page and Terms are updated alongside.
 
 ## BL-043 One public server, running 24/7
 
-See `docs/deploy.md`.
+See `docs/deploy.md`. Server side done (2026-10-25): the admin API and command (`server/admin-api.ts`, `server/admin.mjs`), sessions the admin makes (public or private, a name, tools; they stay when empty), public ones kept in `DATA_DIR` with their paint (`server/kept.ts`), private sessions up to 4. Left: the deploy (`docs/ideas/vps.md` item 2); players join by code until the list (BL-045). The tools a session allows are stored and listed, not yet applied in the game (BL-154).
 
 ## BL-044 Disable HOST for everyone (don't remove it)
 

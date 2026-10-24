@@ -146,8 +146,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 8. [TASK-189]: House rules before joining a public server: players are 18+, joining accepts the Terms, sessions may be recorded and published (docs/ideas/public-servers.md) @1.6.0
 9. [TASK-236]: Private and public sessions: private joined by code (up to 4 players), public open to all (up to 20), created by the admin only (server command or admin panel) (docs/ideas/public-servers.md) @1.6.0
 10. [IDEA-237]: Session names chosen at creation, shown in the server list (docs/ideas/public-servers.md) @1.6.0
-11. [TASK-238]: Public paint stored and backed up, restored after a host outage; wiped when the version, level or protocol changes (docs/ideas/public-servers.md) @1.6.0
-12. [TASK-201]: Research itch.io Publishing Requirements, AI Policies, and Download Restrictions @1.6.3
+11. [TASK-201]: Research itch.io Publishing Requirements, AI Policies, and Download Restrictions @1.6.3
 
 ## Web and promotion
 
@@ -171,6 +170,8 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## Done
 
 Shipped since the last release; the release commit empties this list.
+
+1. [TASK-238]: Public paint stored and backed up, restored after a host outage; wiped when the protocol, surface table or level changes, or by the admin
 
 ## Discarder
 
