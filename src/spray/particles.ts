@@ -6,6 +6,7 @@ import { paintRandom } from '../lcg';
 import { facePoint, type FacePoint } from '../surfaces';
 import type { DotShape } from '../paint-raster';
 import { FEEL, landing, type Landing } from '../sandbox/feel';
+import { mistMaterial, updateMist } from '../sandbox/mist';
 
 // Visual spray particles. Each one raycasts once when emitted, flies from the
 // nozzle to its hit point, and stamps paint into the surface texture on arrival.
@@ -16,6 +17,10 @@ interface Particle {
   pos: THREE.Vector3;
   vel: THREE.Vector3;
   life: number;
+  /** Its whole flight (s): how far along it is, for the mist (sandbox/mist.ts). */
+  span: number;
+  /** Mist only: landed and now hanging in the air a moment, drifting, before it's gone. */
+  lingering: boolean;
   /** Launched since the last update: drawn where it starts before it moves. */
   fresh: boolean;
   surface: PaintSurface | null;
@@ -80,6 +85,10 @@ export class SprayParticles {
   private points: THREE.Points;
   private positions: Float32Array;
   private colors: Float32Array;
+  private ages: Float32Array;
+  private seeds: Float32Array;
+  private plain: THREE.PointsMaterial;
+  private mist = mistMaterial();
   private raycaster = new THREE.Raycaster();
   private candidates: THREE.Object3D[] = [];
 
@@ -90,15 +99,21 @@ export class SprayParticles {
   ) {
     this.positions = new Float32Array(SPRAY.maxParticles * 3);
     this.colors = new Float32Array(SPRAY.maxParticles * 3);
+    this.ages = new Float32Array(SPRAY.maxParticles);
+    this.seeds = new Float32Array(SPRAY.maxParticles);
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(this.positions, 3).setUsage(THREE.DynamicDrawUsage));
     g.setAttribute('color', new THREE.BufferAttribute(this.colors, 3).setUsage(THREE.DynamicDrawUsage));
+    g.setAttribute('age', new THREE.BufferAttribute(this.ages, 1).setUsage(THREE.DynamicDrawUsage));
+    g.setAttribute('seed', new THREE.BufferAttribute(this.seeds, 1).setUsage(THREE.DynamicDrawUsage));
     g.setDrawRange(0, 0);
-    this.points = new THREE.Points(g, new THREE.PointsMaterial({ vertexColors: true, size: SPRAY.particleSize, sizeAttenuation: true }));
+    this.plain = new THREE.PointsMaterial({ vertexColors: true, size: SPRAY.particleSize, sizeAttenuation: true });
+    this.points = new THREE.Points(g, this.plain);
+    this.points.onBeforeRender = (renderer) => updateMist(this.mist, renderer);
     this.points.frustumCulled = false;
     scene.add(this.points);
     for (let i = 0; i < SPRAY.maxParticles; i++) {
-      this.free.push({ pos: new THREE.Vector3(), vel: new THREE.Vector3(), life: 0, fresh: false, surface: null, epoch: 0, at: { rect: 0, u: 0, v: 0 }, amount: 0, radius: 0, softness: 0, drips: 0, rgb: [0, 0, 0], shape: undefined });
+      this.free.push({ pos: new THREE.Vector3(), vel: new THREE.Vector3(), life: 0, span: 0, lingering: false, fresh: false, surface: null, epoch: 0, at: { rect: 0, u: 0, v: 0 }, amount: 0, radius: 0, softness: 0, drips: 0, rgb: [0, 0, 0], shape: undefined });
     }
   }
 
@@ -113,9 +128,18 @@ export class SprayParticles {
     const { cap } = e;
     let landed = 0;
     const feel = FEEL.on;
-    for (let i = 0; i < e.count; i++) {
+    // Sandbox mist: extra specks in a wider cone, only seen (their own random, not the paint's).
+    const mist = feel && FEEL.brush && FEEL.mist;
+    const extra = mist ? Math.floor(e.count * (FEEL.mistCount - 1) + Math.random()) : 0;
+    for (let i = 0; i < e.count + extra; i++) {
       const p = this.free.pop();
       if (!p) break;
+      if (i >= e.count) {
+        const hit = this.cast(e.eye, hitDir.copy(aim(e, Math.random, (e.cone ?? 1) * FEEL.mistCone)));
+        this.launch(p, e, hit ? hit.point : target.copy(e.eye).addScaledVector(hitDir, SPRAY.reach));
+        p.surface = null;
+        continue;
+      }
       const hit = this.cast(e.eye, hitDir.copy(aim(e, paintRandom.spray, e.cone ?? 1)));
       this.launch(p, e, hit ? hit.point : target.copy(e.eye).addScaledVector(hitDir, SPRAY.reach));
       p.surface = hit ? (this.paint.get(hit.object) ?? null) : null;
@@ -207,13 +231,17 @@ export class SprayParticles {
     p.pos.copy(e.nozzle);
     p.vel.subVectors(end, e.nozzle);
     const dist = p.vel.length();
-    p.life = dist / SPRAY.particleSpeed;
+    const speed = FEEL.on && FEEL.brush && FEEL.mist ? FEEL.mistSpeed : SPRAY.particleSpeed;
+    p.life = dist / speed;
+    p.span = p.life;
+    p.lingering = false;
     p.fresh = true;
-    p.vel.multiplyScalar(SPRAY.particleSpeed / Math.max(dist, 1e-4));
+    p.vel.multiplyScalar(speed / Math.max(dist, 1e-4));
     const k = this.live.length * 3;
     this.colors[k] = e.display.r;
     this.colors[k + 1] = e.display.g;
     this.colors[k + 2] = e.display.b;
+    this.seeds[this.live.length] = Math.random();
     this.live.push(p);
   }
 
@@ -223,10 +251,17 @@ export class SprayParticles {
     for (let i = 0; i < list.length; i++) {
       const p = list[i];
       // Launched after the last update: its first frame shows it leaving the nozzle.
-      const step = p.fresh ? 0 : dt;
+      // Mist: each speck already on its way for part of the frame, so a frame's batch is a stream, not a bead.
+      const step = p.fresh ? (FEEL.on && FEEL.brush && FEEL.mist ? Math.random() * dt : 0) : dt;
       p.fresh = false;
       p.pos.addScaledVector(p.vel, Math.min(step, p.life));
       p.life -= step;
+      if (p.life <= 0 && !p.lingering && !p.surface && FEEL.on && FEEL.brush && FEEL.mist && FEEL.mistLinger > 0) {
+        // Mist hangs in the air a moment, bouncing back off the wall and drifting.
+        p.lingering = true;
+        p.life = p.span = FEEL.mistLinger * (0.5 + Math.random());
+        p.vel.multiplyScalar(-0.02).add(target.randomDirection().multiplyScalar(FEEL.mistDrift));
+      }
       if (p.life <= 0) {
         if (p.surface && p.epoch === this.paint.epoch) this.paint.stamp(p.surface, p.at, p.radius, p.amount, p.rgb, p.softness, p.drips, false, p.shape);
         p.surface = null;
@@ -234,7 +269,11 @@ export class SprayParticles {
         continue;
       }
       // Compact in place, carrying colors along.
-      if (n !== i) for (let c = 0; c < 3; c++) this.colors[n * 3 + c] = this.colors[i * 3 + c];
+      if (n !== i) {
+        for (let c = 0; c < 3; c++) this.colors[n * 3 + c] = this.colors[i * 3 + c];
+        this.seeds[n] = this.seeds[i];
+      }
+      this.ages[n] = (p.lingering ? 2 : 1) - (p.span > 0 ? p.life / p.span : 0);
       list[n] = p;
       this.positions[n * 3] = p.pos.x;
       this.positions[n * 3 + 1] = p.pos.y;
@@ -248,6 +287,9 @@ export class SprayParticles {
     g.setDrawRange(0, n);
     g.attributes.position.needsUpdate = true;
     g.attributes.color.needsUpdate = true;
+    g.attributes.age.needsUpdate = true;
+    g.attributes.seed.needsUpdate = true;
+    this.points.material = FEEL.on && FEEL.mist ? this.mist : this.plain;
   }
 }
 

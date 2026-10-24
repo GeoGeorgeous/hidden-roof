@@ -44,7 +44,7 @@ const SCOPE_TIP: Record<Scope, string> = {
 };
 const SCOPES: Partial<Record<string, Scope>> = {
   closeSoft: 'cap', farSoft: 'cap', closeSize: 'cap', farSize: 'cap', closeDrips: 'cap',
-  speedThin: 'particles',
+  speedThin: 'particles', mist: 'particles', mistSize: 'particles', mistGrow: 'particles', mistOpacity: 'particles', mistCount: 'particles', mistCone: 'particles', mistSpeed: 'particles', mistLinger: 'particles', mistDrift: 'particles',
 };
 /** Settings without a dot (actions, the readout). */
 const NO_SCOPE = new Set(['copy', 'reset', 'showGap', 'aimTrue', 'aimSoft']);
@@ -83,6 +83,15 @@ const TIPS: Record<string, string> = {
   maxElong: 'Насколько сильно может вытянуться пятно под углом.',
   tail: 'Дальний конец эллипса бледнее — для фэйдов поворотом.',
   speedThin: 'Быстрый взмах сужает линию.',
+  mist: 'Частицы как красочный туман: мягкие круглые капельки, растут и тают в полёте. Выключить — старые квадратики.',
+  mistSize: 'Размер капельки у сопла, м.',
+  mistGrow: 'Во сколько раз капелька вырастает к стене (облако расходится).',
+  mistOpacity: 'Насколько плотные капельки.',
+  mistCount: 'Сколько капелек на одну частицу (лишние только видны, краску кладёт кисть).',
+  mistCone: 'Во сколько раз шире конус лишних капелек, чем у кэпа.',
+  mistSpeed: 'Скорость полёта капелек, м/с. Медленнее — видно облако, быстрее — струя.',
+  mistLinger: 'Сколько секунд капелька висит в воздухе у стены, прежде чем растаять.',
+  mistDrift: 'Как быстро капельки расплываются у стены, м/с.',
 };
 const CAP_TIPS: Record<string, string> = {
   spread: 'Угол конуса: насколько быстро пятно растёт с дистанцией. Больше — шире издалека.',
@@ -180,6 +189,15 @@ export function initFeel() {
 
   const pa = gui.addFolder('Частицы').close();
   pa.add(FEEL, 'speedThin', 0, 1).name('быстро: уже');
+  pa.add(FEEL, 'mist').name('туман');
+  pa.add(FEEL, 'mistSize', 0.001, 0.04, 0.001).name('туман: размер, м');
+  pa.add(FEEL, 'mistGrow', 1, 10, 0.1).name('туман: рост, ×');
+  pa.add(FEEL, 'mistOpacity', 0.05, 1, 0.01).name('туман: плотность');
+  pa.add(FEEL, 'mistCount', 1, 6, 0.1).name('туман: капелек, ×');
+  pa.add(FEEL, 'mistCone', 1, 4, 0.1).name('туман: конус, ×');
+  pa.add(FEEL, 'mistSpeed', 2, 30, 0.5).name('туман: скорость, м/с');
+  pa.add(FEEL, 'mistLinger', 0, 1.5, 0.05).name('туман: висит, с');
+  pa.add(FEEL, 'mistDrift', 0, 1, 0.01).name('туман: расплывается, м/с');
 
   for (const c of gui.controllersRecursive()) {
     const scope = scopeOf(c);
