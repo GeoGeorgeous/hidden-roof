@@ -238,14 +238,19 @@ export function initFeel() {
   s.add(FEEL, 'chiselAngle', 0, 180).name('chisel: угол, °');
   s.add(FEEL, 'speedThin', 0, 1).name('быстро: уже (частицы)');
   for (const c of gui.controllersRecursive()) {
-    const icon = ICONS[c.property];
-    if (icon) c.name(`${icon} ${c._name}`);
-    const tip = [TIPS[c.property], icon && ICON_TIPS[icon]].filter(Boolean).join('\n');
+    const scope = NO_SCOPE.has(c.property) ? null : (SCOPES[c.property] ?? 'all');
+    if (scope) c.domElement.querySelector('.name')?.prepend(dot(scope));
+    const tip = [TIPS[c.property], scope && SCOPE_TIP[scope]].filter(Boolean).join('\n');
     if (tip) c.domElement.title = tip;
   }
   const legend = document.createElement('div');
-  legend.textContent = '🌐 все кэпы · 🧢 зависит от кэпа · ✒️ chisel · ✨ частицы';
-  Object.assign(legend.style, { padding: '4px 8px', fontSize: '11px', opacity: '0.7' });
+  Object.assign(legend.style, { padding: '4px 8px', fontSize: '11px', opacity: '0.75' });
+  for (const [scope, word] of [['all', 'все кэпы'], ['cap', 'зависит от кэпа'], ['chisel', 'chisel'], ['particles', 'частицы']] as [Scope, string][]) {
+    const item = document.createElement('span');
+    item.style.marginRight = '10px';
+    item.append(dot(scope), word);
+    legend.append(item);
+  }
   gui.domElement.querySelector(':scope > .children')?.prepend(legend);
   gui.hide();
   window.addEventListener('keydown', (e) => {
@@ -300,25 +305,25 @@ function pulseGauge() {
   gauge.style.transform = t < 0.25 ? 'scale(1.1)' : 'scale(1)';
 }
 
-/**
- * What a setting acts on, before its name: 🌐 every cap alike, 🧢 scaled by the
- * cap's own value (so it differs per cap), ✒️ only the chisel nib, ✨ only the
- * particles (brush off).
- */
-const ICONS: Record<string, string> = {
-  on: '🌐', nib: '🌐', alphaSteps: '🌐', brush: '🌐', opacity: '🌐', spacing: '🌐', streamline: '🌐',
-  closeSoft: '🧢', farSoft: '🧢',
-  speedRef: '🌐', speedFade: '🌐', speedWiden: '🌐', speedSoft: '🌐',
-  gap: '🌐', closeAt: '🌐', farAt: '🌐', closeSize: '🧢', farSize: '🧢', closeFlow: '🌐', closeDrips: '🧢',
-  overspray: '🌐', oversprayCone: '🧢', oversprayAmount: '✨', spatter: '🌐', spatterLowPressure: '🌐', spatterSize: '🧢',
-  spit: '🌐', spitTime: '🌐', releaseTail: '🌐',
-  slant: '🌐', maxElong: '🌐', tail: '🌐', chiselRatio: '✒️', chiselAngle: '✒️', speedThin: '✨',
+/** What a setting acts on, as a dot before its name: every cap alike, scaled per cap, the chisel only, the particles only. */
+type Scope = 'all' | 'cap' | 'chisel' | 'particles';
+const SCOPE_COLOR: Record<Scope, string> = { all: '#8a8a8a', cap: '#f2a04c', chisel: '#36c2ea', particles: '#b98cf2' };
+const SCOPE_TIP: Record<Scope, string> = {
+  all: 'Серый: одинаково для всех кэпов.',
+  cap: 'Оранжевый: умножается на свойство кэпа — у SOFT, HARD, FAT и других эффект разный.',
+  chisel: 'Голубой: только насадка chisel.',
+  particles: 'Фиолетовый: только режим частиц (галка «кисть» снята).',
 };
-const ICON_TIPS: Record<string, string> = {
-  '🌐': '🌐 Одинаково для всех кэпов.',
-  '🧢': '🧢 Умножается на свойство кэпа: у SOFT, HARD, FAT и других эффект разный.',
-  '✒️': '✒️ Только насадка chisel.',
-  '✨': '✨ Только режим частиц (галка «кисть» снята).',
+const SCOPES: Partial<Record<string, Scope>> = {
+  closeSoft: 'cap', farSoft: 'cap', closeSize: 'cap', farSize: 'cap', closeDrips: 'cap', oversprayCone: 'cap', spatterSize: 'cap',
+  chiselRatio: 'chisel', chiselAngle: 'chisel', oversprayAmount: 'particles', speedThin: 'particles',
+};
+/** Settings without a dot (actions, the readout). */
+const NO_SCOPE = new Set(['copy', 'reset', 'showGap']);
+const dot = (scope: Scope) => {
+  const d = document.createElement('span');
+  Object.assign(d.style, { display: 'inline-block', width: '7px', height: '7px', borderRadius: '50%', background: SCOPE_COLOR[scope], marginRight: '6px', verticalAlign: 'middle' });
+  return d;
 };
 
 /** Hover tips for the panel: what each setting does to the paint, in plain words. */
