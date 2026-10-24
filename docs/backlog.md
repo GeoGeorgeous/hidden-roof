@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 224
+The one list of what's left. Counter for new ids: next: 225
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -65,6 +65,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 7. [IDEA-166]: Reword the painting: lock the camera @1.7.0
 8. [IDEA-167]: Reword the painting: different brushes (soft / hard) @1.7.0
 9. [IDEA-193]: Function to lock some some parts of the wall with paintings from changes (admin control)
+10. [IDEA-224]: The can as a brush (continuous stroke, opacity, speed and distance feel): bring the R&D branch exp/visual-sandbox into the game (docs/ideas/paint-refactoring.md)
 
 ## Input
 
