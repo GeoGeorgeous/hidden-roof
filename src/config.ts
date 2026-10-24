@@ -585,7 +585,8 @@ export const BINDINGS = {
   /** Also climbs a ladder. */
   jump: ['Space'],
   /** Held, or toggled with PLAYER.crouchToggle; also holds you on a ladder. C for browsers that keep Ctrl+W (src/fullscreen.ts). */
-  crouch: ['ControlLeft', 'ControlRight', 'KeyC'],
+  // Sandbox: C cycles the wall tooth (sandbox/feel.ts).
+  crouch: ['ControlLeft', 'ControlRight'],
   /** Also a double tap of forward (PLAYER.tapToRun, PLAYER.sprintDoubleTap). */
   sprint: ['ShiftLeft', 'ShiftRight'],
   /** Sprays, draws, rolls or scrubs; places the stepladder. */

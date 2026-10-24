@@ -16,7 +16,7 @@ import type { Rect } from '../surfaces';
 //  - fast aim thins the line (flicks taper)
 //  - a reticle on the wall: the real size and shape of the spot
 //  - the wall's tooth: paint grabs the bumps first (shader, materials.ts)
-// F7 shows the panel, F8 cycles nibs, F9 cycles tooth modes.
+// Z shows the panel, X cycles nibs, C cycles tooth modes.
 
 export const NIBS = ['round', 'chisel', 'needle'] as const;
 export type Nib = (typeof NIBS)[number];
@@ -291,10 +291,10 @@ export function initFeel() {
     color: '#fff', textShadow: '0 0 6px #000, 0 0 2px #000', pointerEvents: 'none', opacity: '0', transition: 'opacity 0.3s', zIndex: '9999',
   });
   document.body.appendChild(label);
-  gui = new GUI({ title: 'SANDBOX · Spray feel (F7)' });
+  gui = new GUI({ title: 'SANDBOX · Spray feel (Z)' });
   gui.domElement.style.zIndex = '9998';
   gui.add(FEEL, 'on');
-  gui.add(FEEL, 'nib', NIBS as unknown as string[]).name('nib (F8)');
+  gui.add(FEEL, 'nib', NIBS as unknown as string[]).name('nib (X)');
   gui.add(FEEL, 'reticle');
   const d = gui.addFolder('Distance');
   d.add(FEEL, 'closeAt', 0.05, 1);
@@ -321,23 +321,22 @@ export function initFeel() {
   s.add(FEEL, 'chiselAngle', 0, 180);
   s.add(FEEL, 'speedThin', 0, 1);
   const t = gui.addFolder('Wall tooth');
-  t.add(FEEL, 'toothMode', { tooth: 0, halftone: 1, grain: 2, smooth: 3 }).name('mode (F9)');
+  t.add(FEEL, 'toothMode', { tooth: 0, halftone: 1, grain: 2, smooth: 3 }).name('mode (C)');
   t.add(FEEL, 'tooth', 0, 1);
   t.add(FEEL, 'toothScale', 0.3, 3);
   t.add(FEEL, 'grain', 0, 1);
   t.add(FEEL, 'relief', 0, 1);
   gui.hide();
   window.addEventListener('keydown', (e) => {
-    if (e.code === 'F7') {
-      e.preventDefault();
+    // Not while typing a number into the panel.
+    if (e.repeat || e.target instanceof HTMLInputElement) return;
+    if (e.code === 'KeyZ') {
       if (gui!._hidden) gui!.show();
       else gui!.hide();
-    } else if (e.code === 'F8') {
-      e.preventDefault();
+    } else if (e.code === 'KeyX') {
       FEEL.nib = NIBS[(NIBS.indexOf(FEEL.nib) + 1) % NIBS.length];
       flash(`NIB: ${FEEL.nib.toUpperCase()}`);
-    } else if (e.code === 'F9') {
-      e.preventDefault();
+    } else if (e.code === 'KeyC') {
       FEEL.toothMode = (FEEL.toothMode + 1) % TOOTH_MODES.length;
       flash(`WALL: ${TOOTH_MODES[FEEL.toothMode]}`);
     } else return;
