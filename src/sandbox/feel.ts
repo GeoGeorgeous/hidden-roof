@@ -188,7 +188,7 @@ export function initFeel() {
   });
   Object.assign(gaugeText.style, {
     position: 'fixed', left: '50%', top: '50%', transform: 'translate(-50%, 26px)', font: '11px monospace',
-    color: '#fff', textShadow: '0 0 2px #000', pointerEvents: 'none', zIndex: '9997', display: 'none',
+    color: '#000', textShadow: '0 0 2px rgba(255,255,255,0.6)', pointerEvents: 'none', zIndex: '9997', display: 'none',
   });
   document.body.append(gauge, gaugeDot, gaugeText);
   gui = new GUI({ title: 'ПЕСОЧНИЦА · баллон (Z)', width: 340 });
