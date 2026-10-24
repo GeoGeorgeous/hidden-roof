@@ -44,7 +44,7 @@ const SCOPE_TIP: Record<Scope, string> = {
 };
 const SCOPES: Partial<Record<string, Scope>> = {
   closeSoft: 'cap', farSoft: 'cap', closeSize: 'cap', farSize: 'cap', closeDrips: 'cap',
-  speedThin: 'particles', mist: 'particles', mistSize: 'particles', mistGrow: 'particles', mistOpacity: 'particles', mistCount: 'particles', mistCone: 'particles', mistSpeed: 'particles', mistDrag: 'particles', mistLife: 'particles',
+  speedThin: 'particles',
 };
 /** Settings without a dot (actions, the readout). */
 const NO_SCOPE = new Set(['copy', 'reset', 'showGap', 'aimTrue', 'aimSoft']);

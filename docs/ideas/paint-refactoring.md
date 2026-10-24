@@ -97,7 +97,7 @@ gaps and turns corners and edges. Particles still fly, but only for show
 
 Why: particles land late and sparse; a fast stroke left dotted gaps.
 
-Owner: particles stay in the game, for show only; the brush paints.
+Owner: particles stay in the game, for show only; the brush paints. How they look is module 12 (optional).
 
 ### 2. Pressure / opacity (Shift + wheel)
 
@@ -191,6 +191,18 @@ cap alike, scaled per cap, cap in hand only, particles only. There are copy-all
 belong in `config.ts`, perhaps the F3 debug panel. The goal for that panel
 (TASK-232): it shows which setting causes what, so tuning is systematic, not
 trial and error.
+
+### 12. Spray plume (optional)
+
+Optional: nice to have, not required for 1.7.0. With the brush painting,
+particles are only a plume at the nozzle: fine soft round specks in a cone
+toward the aim, slowed by the air, growing and fading out before the wall
+(never past it). One ray per frame for the whole plume, not one per
+particle; one draw call. Others' cans show the same plume. Off ("распыление"
+in Z → Частицы), the old square points fly to the wall.
+
+Tried first and replaced: a mist of specks flying to the wall and hanging
+there a moment. Owner: too few, too fast, and no haze at the brush wanted.
 
 ## Tried and removed
 
