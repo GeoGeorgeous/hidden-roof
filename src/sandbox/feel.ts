@@ -22,6 +22,8 @@ export type Nib = (typeof NIBS)[number];
 
 export const FEEL = {
   on: true,
+  /** Under the crosshair: the distance to the wall, bright inside the gap. */
+  showGap: false,
   nib: 'round' as Nib,
   // Brush (sandbox/brush.ts): paint at once, as a continuous stroke
   brush: true,
@@ -68,6 +70,9 @@ export const FEEL = {
   // Gesture
   speedThin: 0.12,
 };
+
+/** The values the panel starts with, for its reset. */
+const DEFAULTS = { ...FEEL };
 
 // --- Per particle ---
 
@@ -152,6 +157,7 @@ const label = document.createElement('div');
 /** Screen-space opacity gauge around the crosshair: an arc of the paint's color, a dot as dense as one pass. */
 const gauge = document.createElement('div');
 const gaugeDot = document.createElement('div');
+const gaugeText = document.createElement('div');
 let opacityChangedAt = -1;
 let gui: GUI | null = null;
 
@@ -180,11 +186,17 @@ export function initFeel() {
     position: 'fixed', left: '50%', top: '50%', width: '3px', height: '3px', margin: '-1.5px 0 0 -1.5px', borderRadius: '50%',
     pointerEvents: 'none', zIndex: '9997', display: 'none',
   });
-  document.body.append(gauge, gaugeDot);
+  Object.assign(gaugeText.style, {
+    position: 'fixed', left: '50%', top: '50%', transform: 'translate(-50%, 26px)', font: '11px monospace',
+    color: '#fff', textShadow: '0 0 2px #000', pointerEvents: 'none', zIndex: '9997', display: 'none',
+  });
+  document.body.append(gauge, gaugeDot, gaugeText);
   gui = new GUI({ title: 'ПЕСОЧНИЦА · баллон (Z)', width: 340 });
   gui.domElement.style.zIndex = '9998';
   gui.add(FEEL, 'on').name('включено');
   gui.add({ copy: copySettings }, 'copy').name('📋 Скопировать настройки');
+  gui.add({ reset: resetSettings }, 'reset').name('↺ Сбросить настройки');
+  gui.add(FEEL, 'showGap').name('прицел: дистанция');
   gui.add(FEEL, 'nib', NIBS as unknown as string[]).name('насадка (X)');
   // Smooth opacity, like a drawing app: the game's chunky alpha steps off (the panel brings them back).
   PAINT.alphaSteps = 0;
@@ -251,8 +263,15 @@ let gaugeKey = '';
  * the paint's color, a dot as dense as one pass; red when too close (runs).
  * `color` null hides it and gives the game's crosshair back.
  */
-export function showGauge(color: string | null, px = 16, close = false) {
+export function showGauge(color: string | null, px = 16, close = false, distance = -1) {
   const on = !!color && FEEL.on;
+  const text = on && FEEL.showGap && distance >= 0;
+  gaugeText.style.display = text ? 'block' : 'none';
+  if (text) {
+    const s = `${distance.toFixed(1)} м`;
+    if (gaugeText.textContent !== s) gaugeText.textContent = s;
+    gaugeText.style.opacity = distance <= FEEL.gap ? '0.85' : '0.35';
+  }
   const size = Math.round(THREE.MathUtils.clamp(px, 12, 40));
   const key = on ? `${color}|${FEEL.opacity}|${size}|${close}` : '';
   pulseGauge();
@@ -297,6 +316,8 @@ const TIPS: Record<string, string> = {
   farSize: 'Ширина пятна издалека. Больше — шире распыление.',
   closeFlow: 'Сколько краски вплотную. Больше — плотнее и быстрее течёт.',
   closeDrips: 'Насколько чаще течёт краска вплотную.',
+  reset: 'Вернуть все значения панели к начальным.',
+  showGap: 'Под прицелом — расстояние до стены. Светлое — ты в зазоре (рисует точно), тусклое — дальше (распыление).',
   copy: 'Кладёт все значения панели в буфер обмена — вставь в чат.',
   overspray: 'Мелкие крапинки пыли вокруг линии. 0 — чистый край.',
   oversprayCone: 'Как далеко от линии разлетается пыль.',
@@ -314,6 +335,14 @@ const TIPS: Record<string, string> = {
   chiselAngle: 'Наклон пера chisel на стене.',
   speedThin: 'Только для частиц: быстрый взмах сужает линию.',
 };
+
+/** Back to the values the game started with. */
+function resetSettings() {
+  Object.assign(FEEL, DEFAULTS);
+  PAINT.alphaSteps = 0;
+  refreshPanel();
+  flash('НАСТРОЙКИ СБРОШЕНЫ');
+}
 
 /** Every panel value as JSON, to the clipboard: to paste into a chat. */
 function copySettings() {

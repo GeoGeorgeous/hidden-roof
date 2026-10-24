@@ -124,7 +124,7 @@ export class SprayTool {
     const hit = this.particles.probe(eye, forward);
     const fov = (camera as THREE.PerspectiveCamera).fov ?? 70;
     const px = hit ? ((2 * dabRadius(cap, hit.distance)) / hit.distance / Math.tan((fov * Math.PI) / 360)) * (window.innerHeight / 2) : 16;
-    showGauge(COLORS[inv.color], px, !!hit && sprayDistance(hit.distance) < FEEL.closeAt * 1.3);
+    showGauge(COLORS[inv.color], px, !!hit && sprayDistance(hit.distance) < FEEL.closeAt * 1.3, hit ? hit.distance : -1);
   }
 
   /** `tail` (1..0): the release tail, weak flow and lots of spatter. */
