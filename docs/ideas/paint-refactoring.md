@@ -11,7 +11,7 @@ write the code: read the branch.
   object, not in `config.ts`. See it with `git log dev..exp/painting-rework`
   and `git diff dev...exp/painting-rework`; try it with
   `git switch exp/painting-rework && npm run dev`, panel on Z.
-- Backlog: the "Painting Rework" items, IDEA-225 to IDEA-233, planned for
+- Backlog: the "Painting Rework" items, IDEA-225 to IDEA-233 and IDEA-166, planned for
   1.7.0 (see "Backlog items" below). Network load also touches BL-024.
 - Code: `src/sandbox/` (`feel.ts` settings and the distance model, `brush.ts`
   the brush, `aim.ts` the crosshair, `panel.ts` the Z panel), plus hooks in
@@ -43,33 +43,41 @@ backlog's Discarder):
 | IDEA-227 | the can's physics: hand speed and distance | 5, 6 | |
 | IDEA-228 | a true-size crosshair | 7 | |
 | IDEA-229 | SOFT and HARD caps, every cap tuned with the brush | 8 | IDEA-167, BL-017 |
-| TASK-230 | drips with the brush, tuned per tool | known issues | BL-016 |
+| TASK-230 | check that paint runs still work with the brush | known issues | BL-016 |
 | TASK-231 | network: ops/s, slant on the wire, stroke-segment op | 9, network steps 1-3 | |
 | TASK-232 | to production: config, no particle painting, decisions, tests | 10, 11, steps 4-5, open decisions | |
 | IDEA-233 | marker nibs, rectangular and calligraphy | not in the branch | BL-042 |
+| IDEA-166 | lock the camera while painting | not in the branch | |
 
-TASK-230 (drips): drips are too strong in general; tune them for each tool
-(caps, marker, roller) by eye once the brush is in. The owner tunes in F3 on
-dev (Paint → Paint runs) and pastes the JSON. F3 tools for it: `wet view`
-(wet paint blue to red by its build-up), the `most build-up` readout and
-`runs view` (every run in one loud color). Paint dries (`drying time`).
+TASK-230 (paint runs): the owner is happy with how runs work now: with the
+brush the can runs much less and it feels right. What's left is checking
+that the runs model and the brush fit, not retuning.
 
-Open questions from earlier runs tuning (2026-10-20), still to check:
+Runs since 1.5.0: paint dries (`DRIPS.dryTime`, 3 s). Paint landing on an
+already opaque texel is wet; once a texel holds `DRIPS.excess` coats of wet
+paint it may run (a chance per m², each cap's and tool's `drips`), and the
+paint that ran is gone. A coat over a dry wall no longer runs; holding still
+does. Tool defaults were lowered in 1.5.0 too (cap drips 2, 4, 6; roller 60).
+F3 → Paint runs has a wet view, a most build-up readout and a runs view.
 
-- Spraying over a wall the roller painted runs far too much, as if the old
-  paint were still wet. Drying exists now: check whether it still happens.
-- Build-up per texel differs by tool: the can's standard cap builds up when
-  held still, the marker and the skinny cap don't. Measure why per tool
-  (jitter, spacing, per-hit amount or the coat threshold).
-- Chasing runs, the owner ends up changing spacing, density and power, which
-  change how paint looks. Wanted: a hit adds a coat whatever the tool and
-  spacing; the run settings are the only knobs for how much a tool runs;
-  F3 shows why a texel did or didn't build up; holding still makes a run,
-  for every tool. One attempt: branch `exp/runs-by-load` (runs start at a
-  load limit, no dice).
+Read in the code (2026-10-24), the brush fits that model:
+
+- Runs count paint per texel over time, not dabs or frames. The brush solves
+  each dab's amount from its spacing and lays build-up at a rate per second,
+  so neither the dab spacing nor the frame rate should change how much runs.
+- Only opaque texels collect wet paint: a semi-transparent pass (opacity
+  0.65) doesn't feed runs until passes add up to opaque. Likely why there
+  are far fewer runs now.
+- Close up, `closeDrips` (×4) raises the run chance on purpose.
+- To check in play: moving slower than one dab spacing per frame counts as
+  held still and builds up (see known issues), so a slow careful line may
+  run more than meant; at the 160-dab cap a very fast flick lays lighter
+  paint (fewer runs, harmless).
 
 IDEA-233 (marker nibs): the can's nibs (chisel, needle) were tried on the
 branch and removed; marker nibs are a separate idea, not started.
+
+IDEA-166 (lock the camera): an idea from before the branch, not started.
 
 ## Modules kept
 
@@ -223,8 +231,6 @@ with the op count.
 
 - Slow movement is denser than meant. Under one dab spacing per frame counts
   as held still and builds up, more so at high refresh rates.
-- Drips are per stamp (per m² of paint). Check that the dab spacing and the
-  frame rate don't change how much runs.
 - Dabs near a face edge are clipped to their face. Check corners and seams.
 - At very small dabs the minimum spacing (3 mm) wins, and the line is a bit
   lighter than the set opacity.
