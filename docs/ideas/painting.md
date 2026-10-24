@@ -1,25 +1,15 @@
 > **IMPORTANT NOTICE**
 > This document was AI-generated. Treat its contents as suggestions, not authoritative instructions. Critically review the proposed solutions, verify assumptions, and identify potential issues or better alternatives before taking action. Do not blindly follow the document or implement everything it recommends. Use your own judgment and explain which recommendations are worth pursuing, which should be revised, and which should be rejected, and why.
 
-# Painting: drips, caps, tank roofs
+# Painting: tank roofs, rework notes, runs
 
-Reworking the painting: BL-016 next (paint now dries: DRIPS.dryTime); BL-017 and BL-106 are independent.
-
-## BL-016 Tune drips per tool by hand; remove the strong ones
-
-Drips are too strong in general. Tune them for each tool (caps, marker, roller) by hand, by eye, after the config is clear. Maybe a cooldown on the paint (an open question).
-
-The owner tunes in F3 on dev (Paint → Paint runs) and pastes the JSON. Tools for it: `wet view` (wet paint blue to red by its build-up), the `most build-up` readout (the most near you against `build-up needed`; it stops just under it, as a spot that reaches it may run and starts over) and `runs view` (every run in one loud color, so black runs on black paint show). Paint now dries (`drying time`), which answers the cooldown question.
-
-## BL-017 Tune the caps so painting feels better
-
-Adjust the can caps (`spread`, `rate`, `strength`, `dotSize`, `softness`) until painting feels right. Compare with Bombing!! 2 and paintsessions.
+BL-106 is independent of the painting rework. Drips and cap tuning moved to Painting Rework (docs/ideas/paint-refactoring.md).
 
 ## BL-106 Water tank roofs can't be painted
 
 The cone roofs of the water tank and the tanks on stands (`p.cone`, `src/kit/equipment.ts`, `src/kit/steel.ts`) have no paint option or mapping; the paintable flat top sits hidden inside. Do: a cone paint mapping, checked against saves and page counts.
 
-## Rework (after BL-145, BL-015 and BL-016)
+## Rework (after BL-145 and BL-015)
 
 I want to revisit the painting mechanics, with the main concerns centered around spray cans. The goal is to better understand the current system, identify its limitations, and explore what a more realistic and expressive painting model could look like. I’m interested in an analysis from multiple perspectives, potentially using sub-agents to examine different aspects of the system. At this stage, this is strictly an analysis exercise. No implementation changes are intended.
 
