@@ -120,9 +120,10 @@ export class SprayTool {
     const hit = this.particles.probe(eye, forward);
     const fov = (camera as THREE.PerspectiveCamera).fov ?? 70;
     // The line the paint will leave right now (softness, distance, hand speed), or the dab's full reach.
-    const r = !hit ? 0 : FEEL.aimTrue ? lineRadius(dabLook(cap, hit.distance, this.brush.handSpeed)) : dabRadius(cap, hit.distance);
+    const look = hit ? dabLook(cap, hit.distance, this.brush.handSpeed) : null;
+    const r = !look ? 0 : FEEL.aimTrue ? lineRadius(look) : dabRadius(cap, hit!.distance);
     const px = hit ? ((2 * r) / hit.distance / Math.tan((fov * Math.PI) / 360)) * (window.innerHeight / 2) : 16;
-    showGauge(COLORS[inv.color], px, !!hit && sprayDistance(hit.distance) < FEEL.closeAt * 1.3, hit ? hit.distance : -1);
+    showGauge(COLORS[inv.color], px, !!hit && sprayDistance(hit.distance) < FEEL.closeAt * 1.3, hit ? hit.distance : -1, look && r > 0 ? look.radius / r : -1);
   }
 
   private emit(dt: number, camera: THREE.Camera, eye: THREE.Vector3, inv: Inventory) {
