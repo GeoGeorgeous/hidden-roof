@@ -18,8 +18,6 @@ export const FEEL = {
   showGap: false,
   /** The crosshair as wide as the line will be, as seen (else the dab's full reach, 12..40 px). */
   aimTrue: true,
-  /** The crosshair laid on the wall: an ellipse as the dab lands (the face's slant, the spray's stretch), else a circle on screen. */
-  aimWall: true,
   /** The can never loses pressure: no shaking. */
   endlessPressure: true,
   // Brush (sandbox/brush.ts): paint at once, as a continuous stroke

@@ -10,7 +10,7 @@ import { SprayParticles } from './particles';
 import { setHex } from '../hex-color';
 import { paintRandom } from '../lcg';
 import { FEEL, sprayDistance } from '../sandbox/feel';
-import { showGauge, wallEllipse } from '../sandbox/aim';
+import { showGauge } from '../sandbox/aim';
 import { setCapInHand } from '../sandbox/panel';
 import { dabLook, dabRadius, lineRadius, SprayBrush } from '../sandbox/brush';
 
@@ -122,8 +122,7 @@ export class SprayTool {
     // The line the paint will leave right now (softness, distance, hand speed), or the dab's full reach.
     const r = !hit ? 0 : FEEL.aimTrue ? lineRadius(dabLook(cap, hit.distance, this.brush.handSpeed)) : dabRadius(cap, hit.distance);
     const px = hit ? ((2 * r) / hit.distance / Math.tan((fov * Math.PI) / 360)) * (window.innerHeight / 2) : 16;
-    const shape = hit && FEEL.aimWall ? wallEllipse(camera, hit.point, hit.rect, forward, r) : null;
-    showGauge(COLORS[inv.color], px, !!hit && sprayDistance(hit.distance) < FEEL.closeAt * 1.3, hit ? hit.distance : -1, shape);
+    showGauge(COLORS[inv.color], px, !!hit && sprayDistance(hit.distance) < FEEL.closeAt * 1.3, hit ? hit.distance : -1);
   }
 
   private emit(dt: number, camera: THREE.Camera, eye: THREE.Vector3, inv: Inventory) {
