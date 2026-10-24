@@ -2,7 +2,6 @@ import * as THREE from 'three';
 import { ATMOS, INK, INK_TINT } from '../../config';
 import { lcg } from '../../lcg';
 import { LUM_GLSL } from '../light-tint';
-import { SBX_PAINT } from '../../sandbox/sandbox';
 
 // The ink look in the surface shader: every lit pixel gets a tone (how much
 // light reaches it x how dark its material is), and the tone picks the ink:
@@ -212,7 +211,6 @@ export const INK_FRAG = /* glsl */ `
   float pl = clamp(light * uPaintInk.x, uPaintInk.y, 1.0);
   float paintDark = step(light * uInkExposure * 0.7, uTones.y) * hatch.x * uPaintInk.z;
   vec3 paintCol = mix(paintTex.rgb * pl, uInkColor, paintDark);
-${SBX_PAINT}
   col = mix(col, mix(uPaper, paintCol, 0.4 + 0.6 * keep), pa);
   col = mix(col, uCloudInk, inkCloud(inkP, uCloudBase, uCloudFade));
   if (uShowPaintable > 0.5) {

@@ -1,4 +1,3 @@
-import { freshHit } from '../sandbox/sandbox';
 import * as THREE from 'three';
 import { SPRAY, type CapSpec } from '../config';
 import type { PaintSurface, PaintSystem, Rgb } from '../painting';
@@ -192,7 +191,6 @@ export class SprayParticles {
       p.pos.addScaledVector(p.vel, Math.min(step, p.life));
       p.life -= step;
       if (p.life <= 0) {
-        if (p.surface && p.epoch === this.paint.epoch) freshHit(p.pos);
         if (p.surface && p.epoch === this.paint.epoch) this.paint.stamp(p.surface, p.at, p.radius, p.amount, p.rgb, p.softness, p.drips);
         p.surface = null;
         this.free.push(p);

@@ -1,4 +1,3 @@
-import { initSandbox, syncSandbox } from './sandbox/sandbox';
 import './style.css';
 import * as THREE from 'three';
 import * as config from './config';
@@ -75,7 +74,6 @@ const gpu = readGpu(renderer.getContext());
 /** Settings → Performance test (perf-test.ts): the city view measured for a few seconds, on the player's request only. */
 const perfTest = new PerfTest(gpuTimer);
 const post = new PostPipeline(renderer, gpuTimer);
-initSandbox();
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(RENDER.fov, window.innerWidth / window.innerHeight, 0.05, 2000);
@@ -290,7 +288,6 @@ function step(time: number) {
   dev?.lap('player');
   updateSkyline(opened.city, at);
   syncSharedUniforms(time / 1000);
-  syncSandbox(time / 1000);
   syncTrackUniforms(at);
   environment.update({ time, dt, at, shown, eye, fov: camera.fov, frozen, building });
   syncCityLight(environment.lighting);

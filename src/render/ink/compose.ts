@@ -75,9 +75,6 @@ uniform float uOutlineFade;
 uniform float uGrain;
 uniform sampler2D tPaper;
 uniform float uExposure;
-uniform sampler2D tBloom;
-uniform float uBloom;
-uniform float uCoverInk;
 varying vec2 vUv;
 
 vec3 toSRGB(vec3 c) {
@@ -130,23 +127,7 @@ void main() {
   float e = edge(vUv, iz);
   // Alpha < 1: the city faded by SKYLINE.opacity; its outlines fade with it.
   e *= uOutline * exp(-1.0 / (iz * uOutlineFade)) * scene.a;
-  // Sandbox: saturated (= painted) pixels cover the ink lines.
-  float cmx = max(c.r, max(c.g, c.b));
-  float chroma = (cmx - min(c.r, min(c.g, c.b))) / max(cmx, 1e-3);
-  e *= 1.0 - uCoverInk * smoothstep(0.25, 0.55, chroma);
   c = mix(c, uInkColor, clamp(e, 0.0, 1.0));
-  // Over-bright paint keeps its hue instead of clipping to white.
-  float over = max(c.r, max(c.g, c.b));
-  if (over > 1.0 && chroma > 0.25) c /= over;
-  if (uBloom > 0.0) {
-    // Glow adds light in the dark and tints the paper where it's bright (white can't get brighter).
-    vec3 bl = texture2D(tBloom, vUv).rgb * uBloom;
-    float bm = max(bl.r, max(bl.g, bl.b));
-    vec3 hue = bl / max(bm, 1e-3);
-    float lum = max(c.r, max(c.g, c.b));
-    vec3 tinted = c * mix(vec3(1.0), hue, clamp(bm, 0.0, 1.0) * 0.7);
-    c = mix(c + bl, tinted, smoothstep(0.3, 0.8, lum));
-  }
 
   c *= exp2(uExposure);
   c = toSRGB(max(c, 0.0));
