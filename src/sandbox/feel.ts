@@ -23,6 +23,8 @@ export const FEEL = {
   on: true,
   /** Under the crosshair: the distance to the wall, bright inside the gap. */
   showGap: false,
+  /** The can never loses pressure: no shaking. */
+  endlessPressure: true,
   nib: 'round' as Nib,
   // Brush (sandbox/brush.ts): paint at once, as a continuous stroke
   brush: true,
