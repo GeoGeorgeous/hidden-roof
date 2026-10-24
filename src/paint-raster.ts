@@ -15,17 +15,7 @@ export interface RasterSurface {
   data: Uint8Array | null;
   /** Per texel, the paint clock time (PaintRaster.now) at which its wet paint on already-opaque paint is dry (created on first wet paint). */
   wet: Float32Array | null;
-  /** Sandbox (STROKE): per texel, the stroke that last painted it and the coverage it reached. */
-  strokeId?: Uint32Array;
-  strokeCov?: Float32Array;
 }
-
-/**
- * Sandbox: while `on`, dots paint as one stroke of a drawing app: each texel
- * takes the most any dot of stroke `id` gives it, not their sum, so a stroke
- * is as opaque as its dots and its edge is the dots' edge.
- */
-export const STROKE = { on: false, id: 1 };
 
 /**
  * Sandbox: an elliptic dot: stretched `elong` times along the texel-space
@@ -159,21 +149,8 @@ export class PaintRaster<S extends RasterSurface> {
           touched = true;
           continue;
         }
-        let add = amt;
-        if (STROKE.on) {
-          const k = y * w + x;
-          const ids = (s.strokeId ??= new Uint32Array(w * s.geo.atlasH));
-          const cov = (s.strokeCov ??= new Float32Array(w * s.geo.atlasH));
-          const had = ids[k] === STROKE.id ? cov[k] : 0;
-          if (amt <= had) continue;
-          ids[k] = STROKE.id;
-          cov[k] = amt;
-          // What makes `had` of this stroke into `amt`, painted over.
-          add = had < 1 ? (amt - had) / (1 - had) : 0;
-          if (add <= 0) continue;
-        }
-        if (runs && data[i + 3] >= 250) this.addWet(s, rect, x, y, add, runs);
-        blend(data, i, add, color);
+        if (runs && data[i + 3] >= 250) this.addWet(s, rect, x, y, amt, runs);
+        blend(data, i, amt, color);
         touched = true;
       }
     }

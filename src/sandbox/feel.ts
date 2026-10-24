@@ -41,7 +41,7 @@ export const FEEL = {
   closeFlow: 1.8,
   closeDrips: 4,
   // Overspray
-  overspray: 0.5,
+  overspray: 0,
   oversprayCone: 3.5,
   oversprayAmount: 0.12,
   // Spatter
