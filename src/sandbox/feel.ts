@@ -184,6 +184,7 @@ export function initFeel() {
   gui = new GUI({ title: 'ПЕСОЧНИЦА · баллон (Z)', width: 340 });
   gui.domElement.style.zIndex = '9998';
   gui.add(FEEL, 'on').name('включено');
+  gui.add({ copy: copySettings }, 'copy').name('📋 Скопировать настройки');
   gui.add(FEEL, 'nib', NIBS as unknown as string[]).name('насадка (X)');
   // Smooth opacity, like a drawing app: the game's chunky alpha steps off (the panel brings them back).
   PAINT.alphaSteps = 0;
@@ -296,6 +297,7 @@ const TIPS: Record<string, string> = {
   farSize: 'Ширина пятна издалека. Больше — шире распыление.',
   closeFlow: 'Сколько краски вплотную. Больше — плотнее и быстрее течёт.',
   closeDrips: 'Насколько чаще течёт краска вплотную.',
+  copy: 'Кладёт все значения панели в буфер обмена — вставь в чат.',
   overspray: 'Мелкие крапинки пыли вокруг линии. 0 — чистый край.',
   oversprayCone: 'Как далеко от линии разлетается пыль.',
   oversprayAmount: 'Насколько заметны крапинки пыли.',
@@ -312,6 +314,22 @@ const TIPS: Record<string, string> = {
   chiselAngle: 'Наклон пера chisel на стене.',
   speedThin: 'Только для частиц: быстрый взмах сужает линию.',
 };
+
+/** Every panel value as JSON, to the clipboard: to paste into a chat. */
+function copySettings() {
+  const text = JSON.stringify({ FEEL, PAINT: { alphaSteps: PAINT.alphaSteps } }, null, 1);
+  const done = () => flash('НАСТРОЙКИ СКОПИРОВАНЫ');
+  navigator.clipboard?.writeText(text).then(done, () => fallbackCopy(text, done)) ?? fallbackCopy(text, done);
+}
+function fallbackCopy(text: string, done: () => void) {
+  const area = document.createElement('textarea');
+  area.value = text;
+  document.body.appendChild(area);
+  area.select();
+  if (document.execCommand('copy')) done();
+  else flash('НЕ ВЫШЛО: СМ. КОНСОЛЬ'), console.log(text);
+  area.remove();
+}
 
 export function refreshPanel() {
   gui?.controllersRecursive().forEach((c) => c.updateDisplay());
