@@ -4,7 +4,7 @@ import { paintRandom } from '../lcg';
 import type { PaintSystem, Rgb } from '../painting';
 import type { DotShape } from '../paint-raster';
 import type { SprayParticles } from '../spray/particles';
-import { FEEL, farness, slantShape } from './feel';
+import { FEEL, farness, slantShape, sprayDistance } from './feel';
 
 // R&D sandbox: the can as a drawing app's brush (Procreate-like). Paint lands
 // at once where the aim meets the wall, as a continuous stroke: from the last
@@ -45,6 +45,7 @@ export interface BrushParams {
 /** Dab radius (m) at a distance: the cap's cone, plus its dot. */
 export function dabRadius(cap: CapSpec, distance: number) {
   const t = farness(distance);
+  distance = sprayDistance(distance);
   let r = distance * Math.tan(cap.spread / 2) * 0.8 + (cap.dotSize / 2) * THREE.MathUtils.lerp(FEEL.closeSize, FEEL.farSize, t);
   if (FEEL.nib === 'needle') r *= 0.4;
   if (FEEL.nib === 'chisel') r = (cap.dotSize / 2) * 0.45 + distance * Math.tan(cap.spread / 2) * 0.2;
@@ -138,7 +139,8 @@ export class SprayBrush {
     if (!hit) return;
     const t = farness(hit.distance);
     const radius = dabRadius(b.cap, hit.distance) * (1 + b.spit * 0.6) * (1 + FEEL.speedWiden * this.fast);
-    const fall = hit.distance <= SPRAY.falloffStart ? 1 : 1 - (hit.distance - SPRAY.falloffStart) / (SPRAY.reach - SPRAY.falloffStart);
+    const sd = sprayDistance(hit.distance);
+    const fall = sd <= SPRAY.falloffStart ? 1 : 1 - (sd - SPRAY.falloffStart) / (SPRAY.reach - SPRAY.falloffStart);
     // The cap's edge scales the brush's: soft caps fuzzier, hard caps crisp at any distance (standard = 0.35 = as set).
     const softness = FEEL.nib === 'round' ? Math.min(1, THREE.MathUtils.lerp(FEEL.closeSoft, FEEL.farSoft, t) * (b.cap.softness / 0.35) + FEEL.speedSoft * this.fast) : 0.1;
     // One pass reaches about `pass` along the stroke's middle (opacity is what it says, like a drawing app;

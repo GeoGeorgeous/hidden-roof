@@ -39,6 +39,8 @@ export const FEEL = {
   speedSoft: 0.4,
   farSoft: 0.95,
   // Distance
+  /** Up to this far from the wall (m) the spray acts as if close up: the near effects, the spread and the fade start past it. */
+  gap: 0.6,
   closeAt: 0.25,
   farAt: 1.5,
   closeSize: 0.55,
@@ -78,8 +80,11 @@ export interface Landing {
   shape: DotShape | undefined;
 }
 
+/** The distance the spray acts as if from: FEEL.gap less, so that far from the wall it's still as close up. */
+export const sprayDistance = (distance: number) => Math.max(0.05, distance - FEEL.gap);
+
 /** How far into the far range a hit at `distance` is: 0 close, 1 far. */
-export const farness = (distance: number) => THREE.MathUtils.clamp((distance - FEEL.closeAt) / (FEEL.farAt - FEEL.closeAt), 0, 1);
+export const farness = (distance: number) => THREE.MathUtils.clamp((sprayDistance(distance) - FEEL.closeAt) / (FEEL.farAt - FEEL.closeAt), 0, 1);
 
 /** Ellipse of a ray along `dir` meeting face `rect` (null: it has no plane). */
 export function slantShape(rect: Rect | undefined, dir: THREE.Vector3, out: { elong: number; ang: number; cos: number }) {
@@ -195,6 +200,7 @@ export function initFeel() {
   br.add(FEEL, 'speedWiden', 0, 2).name('скорость: шире');
   br.add(FEEL, 'speedSoft', 0, 1).name('скорость: мягче');
   const d = gui.addFolder('Дистанция');
+  d.add(FEEL, 'gap', 0, 2.5, 0.05).name('зазор, м');
   d.add(FEEL, 'closeAt', 0.05, 1).name('«вблизи» до, м');
   d.add(FEEL, 'farAt', 0.5, 4.6).name('«вдали» от, м');
   d.add(FEEL, 'closeSize', 0.2, 1.5).name('размер вблизи');

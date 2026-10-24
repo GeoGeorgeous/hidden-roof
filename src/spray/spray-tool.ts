@@ -9,7 +9,7 @@ import { CanModel } from './can-model';
 import { SprayParticles } from './particles';
 import { setHex } from '../hex-color';
 import { paintRandom } from '../lcg';
-import { FEEL, showGauge } from '../sandbox/feel';
+import { FEEL, showGauge, sprayDistance } from '../sandbox/feel';
 import { dabRadius, SprayBrush } from '../sandbox/brush';
 
 // Spraying: color and cap come from the inventory. Paint never runs out;
@@ -124,7 +124,7 @@ export class SprayTool {
     const hit = this.particles.probe(eye, forward);
     const fov = (camera as THREE.PerspectiveCamera).fov ?? 70;
     const px = hit ? ((2 * dabRadius(cap, hit.distance)) / hit.distance / Math.tan((fov * Math.PI) / 360)) * (window.innerHeight / 2) : 16;
-    showGauge(COLORS[inv.color], px, !!hit && hit.distance < FEEL.closeAt * 1.3);
+    showGauge(COLORS[inv.color], px, !!hit && sprayDistance(hit.distance) < FEEL.closeAt * 1.3);
   }
 
   /** `tail` (1..0): the release tail, weak flow and lots of spatter. */
