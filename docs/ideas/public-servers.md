@@ -5,29 +5,31 @@ The public server: see also docs/deploy.md. Order: BL-043 first; 044, 045 (needs
 ## Decisions for 1.6.0 (owner, 2026-10-25)
 
 - **Two session types.** Private: as today, joined with its code; up to 4 players. Public: open to all, no code; up to 20 players.
-- **Who creates them.** Public: the admin only, by a server command or the admin panel. Private: players' HOST stays in the code but is disabled in 1.6.0 (not removed).
+- **Who creates them.** The admin only, public or private, by a server command (`docker exec roof node admin.js create public "Name"`) or the admin panel; both use the same internal admin API. Players' HOST stays in the code but is disabled for everyone in 1.6.0 (no auth: the game can't tell the admin from a player). Admin in the game (spectator, IDEA-195) is 1.6.1.
 - **The server list** replaces HOST and JOIN and shows every session, public and private: type, name, players, ping, allowed tools. A private one asks for its code on click (the host and its players have it). The design is ready (DSGN-160, from the owner).
-- **Session names**, chosen at creation (e.g. "Drawing together").
-- **Tools off per session** (BL-154): the host turns off e.g. the sponge or the roller; those items leave the map and can't be picked up or used.
-- **Queue** (BL-046): a full session lets players wait for a free place, as in Minecraft.
-- **Public paint is kept**: stored and backed up, restored after a host outage (Hetzner may go down rarely). A change of the game version, the level or the protocol wipes it.
-- **Admin panel** (BL-047): minimal, stats and session management.
+- **Session names**: up to 32 characters, set by whoever creates the session; no word filter.
+- **Tools off per session** (BL-154), chosen only at creation: e.g. no sponge or roller; those items leave the map and can't be picked up or used.
+- **Queue** (BL-046): a full session, public or private, lets players wait for a free place, as in Minecraft.
+- **One public session in 1.6.0**: the roof at ULTRA (519 MB all painted).
+- **Public paint is kept** (TASK-238), the simplest version first: saved to the host's disk now and then (a config value, e.g. 30 min) and on shutdown, the last 3 saves kept, loaded at start, so a host outage loses at most one interval. Wiped only when the protocol, the surface table or the level changes, or on the admin's wipe (command or panel); a release that changes none of them keeps the paint.
+- **Anti-cheat** (BL-147) waits for 1.6.1: no real players are expected before 1.7.0, and a bad wall is fixed by a wipe.
+- **Admin panel** (BL-047): minimal, stats and session management (create, name, tools, wipe). Full stats from 1.6.0 (server counters, country, the client beacon); the privacy page and Terms are updated alongside.
 
 ## BL-043 One public server, running 24/7
 
 See `docs/deploy.md`.
 
-## BL-044 Disable host and join (don't remove them)
+## BL-044 Disable HOST for everyone (don't remove it)
 
 Blocked by: BL-043; Status: Blocked, priority Medium, size S
 
-Disable, with stubs, and switch them off on the server's side too.
+Disable HOST, with stubs, and switch it off on the server's side too. JOIN by code moves into the server list (BL-045).
 
-## BL-045 A window of public servers instead of host and join
+## BL-045 A list of all sessions instead of host and join
 
 Blocked by: BL-043, BL-044; Status: Blocked, priority Medium, size M
 
-Name, number of players and ping (one server for now). Build the UI of the new screen in Claude Code.
+Every session, public and private: type, name, players, ping, allowed tools (Decisions above). Build the UI from the owner's design (DSGN-160).
 
 ## BL-046 A queue to enter the server
 

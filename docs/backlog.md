@@ -132,13 +132,13 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 1. TEST [BL-035]: Fixed-step tests for walking, collisions, jumps and climbing
 2. TEST [BL-036]: Light baking and weather run on the wall clock; decide what a test would compare first
-3. [IDEA-195]: Spectator/god mode for admin @1.6.0
+3. [IDEA-195]: Spectator/god mode for admin @1.6.1
 
 ## Servers and deploy
 
 1. IDEA [BL-043]: One public server, running 24/7 (docs/ideas/public-servers.md) @1.6.0
-2. TASK [BL-044]: Disable host and join (don't remove them), after BL-043 (docs/ideas/public-servers.md) @1.6.0
-3. IDEA [BL-045]: A window of public servers instead of host and join (docs/ideas/public-servers.md) @1.6.0
+2. TASK [BL-044]: Disable HOST for everyone (don't remove it); JOIN by code moves into the server list, after BL-043 (docs/ideas/public-servers.md) @1.6.0
+3. IDEA [BL-045]: A list of all sessions, public and private, instead of host and join (docs/ideas/public-servers.md) @1.6.0
 4. [DSGN-160]: The lobby list for BL-045: allowed tools, players online, ping with a country flag @1.6.0
 5. IDEA [BL-046]: A queue to enter the server, after BL-043 (docs/ideas/public-servers.md) @1.6.0
 6. IDEA [BL-047]: Admin panel: servers stats (players online, perfomance, etc), players info (username, IP, ping), ban by IP, after BL-043 (docs/ideas/public-servers.md) @1.6.0
