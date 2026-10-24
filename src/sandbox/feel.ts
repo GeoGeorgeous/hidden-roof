@@ -16,6 +16,8 @@ export const FEEL = {
   on: true,
   /** Under the crosshair: the distance to the wall, bright inside the gap. */
   showGap: false,
+  /** The crosshair as wide as the line will be, as seen (else the dab's full reach, 12..40 px). */
+  aimTrue: true,
   /** The can never loses pressure: no shaking. */
   endlessPressure: true,
   // Brush (sandbox/brush.ts): paint at once, as a continuous stroke

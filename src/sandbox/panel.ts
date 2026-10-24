@@ -47,13 +47,14 @@ const SCOPES: Partial<Record<string, Scope>> = {
   speedThin: 'particles',
 };
 /** Settings without a dot (actions, the readout). */
-const NO_SCOPE = new Set(['copy', 'reset', 'showGap']);
+const NO_SCOPE = new Set(['copy', 'reset', 'showGap', 'aimTrue']);
 
 /** Hover tips: what each setting does to the paint, in plain words. */
 const TIPS: Record<string, string> = {
   on: 'Все эксперименты песочницы. Выключи — баллон как в игре.',
   copy: 'Кладёт все значения панели (и кэпы, и подтёки) в буфер обмена — вставь в чат.',
   reset: 'Вернуть все значения панели, кэпов и подтёков к начальным.',
+  aimTrue: 'Кольцо прицела — ширина линии, которая ляжет сейчас: с мягкостью, дистанцией и скоростью руки. Выкл — полный размер пятна (12–40 px).',
   showGap: 'Под прицелом — расстояние до стены. Светлое — ты в зазоре (рисует точно), тусклое — дальше (распыление).',
   endlessPressure: 'Баллон не теряет давление: трясти (ПКМ) не нужно.',
   brush: 'Вкл — краска ложится сразу сплошным мазком. Выкл — её кладут летящие частицы (с задержкой и пробелами).',
@@ -122,6 +123,7 @@ export function initFeel() {
   gui.add(FEEL, 'on').name('включено');
   gui.add({ copy: copySettings }, 'copy').name('📋 Скопировать настройки');
   gui.add({ reset: resetSettings }, 'reset').name('↺ Сбросить настройки');
+  gui.add(FEEL, 'aimTrue').name('прицел: реальный размер');
   gui.add(FEEL, 'showGap').name('прицел: дистанция');
   gui.add(FEEL, 'endlessPressure').name('давление не кончается');
   gui.add(FEEL, 'brush').name('кисть (иначе частицы)');

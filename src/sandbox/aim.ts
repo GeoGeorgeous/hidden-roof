@@ -62,7 +62,7 @@ export function showGauge(color: string | null, px = 16, close = false, distance
     if (gaugeText.textContent !== s) gaugeText.textContent = s;
     gaugeText.style.opacity = distance <= FEEL.gap ? '0.85' : '0.35';
   }
-  const size = Math.round(THREE.MathUtils.clamp(px, 12, 40));
+  const size = Math.round(FEEL.aimTrue ? THREE.MathUtils.clamp(px, 6, 2000) : THREE.MathUtils.clamp(px, 12, 40));
   const key = on ? `${color}|${FEEL.opacity}|${size}|${close}` : '';
   pulseGauge();
   if (key === gaugeKey) return;
