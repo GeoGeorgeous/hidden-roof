@@ -57,19 +57,18 @@ export const FEEL = {
   tail: 0.7,
   // Gesture
   speedThin: 0.12,
-  /** Particles as paint mist: soft round specks that grow and thin out in flight (sandbox/mist.ts), else square points. */
+  /** With the brush, particles are only a plume at the nozzle: atomized paint that slows and fades before the wall (sandbox/mist.ts); off, they fly to the wall as square points. */
   mist: true,
-  /** A speck's size at the nozzle (m), and how many times it grows by the wall. */
-  mistSize: 0.005,
-  mistGrow: 4,
-  mistOpacity: 0.5,
-  /** Specks per particle that paints (the extra ones only seen), their cone × the cap's, their speed (m/s). */
+  /** A speck's size at the nozzle (m), how many times it grows, how dense. */
+  mistSize: 0.003,
+  mistGrow: 5,
+  mistOpacity: 0.6,
+  /** Specks per particle the cap puts out, their cone × the cap's, their speed out of the nozzle (m/s), how fast the air slows them (1/s), and how long they last (s). */
   mistCount: 3,
-  mistCone: 1.8,
-  mistSpeed: 9,
-  /** Seconds a speck hangs in the air after the wall, drifting at up to this speed (m/s). */
-  mistLinger: 0.35,
-  mistDrift: 0.25,
+  mistCone: 5,
+  mistSpeed: 5,
+  mistDrag: 5,
+  mistLife: 0.45,
 };
 
 /** The values the panel starts with, for its reset. */

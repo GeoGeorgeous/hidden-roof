@@ -1,11 +1,10 @@
 import * as THREE from 'three';
 import { FEEL } from './feel';
 
-// Sandbox: spray particles drawn as paint mist instead of square points. Each
-// point is a soft round speck that starts tiny at the nozzle, grows as it
-// flies (the cloud spreads), thins out and hangs in the air a moment after the
-// wall; specks under a pixel fade rather than vanish, so the jet reads as a
-// haze. One draw call, as before.
+// Sandbox: the spray plume at the nozzle (particles.ts) drawn as atomized
+// paint instead of square points: soft round specks that start tiny, grow as
+// the cloud spreads and fade out; specks under a pixel fade rather than
+// vanish, so the plume reads as a haze. One draw call, as before.
 
 const vertex = /* glsl */ `
 attribute float age;
@@ -18,14 +17,12 @@ varying vec3 vColor;
 varying float vAlpha;
 void main() {
   vec4 mv = modelViewMatrix * vec4(position, 1.0);
-  // age: 0..1 flying to the wall, 1..2 hanging in the air after it.
-  float fly = min(age, 1.0);
-  float rest = max(age - 1.0, 0.0);
-  float px = size * (0.4 + 1.2 * seed) * mix(1.0, grow, fly) * (1.0 + 0.8 * rest) * scale / -mv.z;
+  // age: 0 at the nozzle, 1 when the speck is gone.
+  float px = size * (0.4 + 1.2 * seed) * mix(1.0, grow, age) * scale / -mv.z;
   gl_PointSize = max(px, 1.0);
   vColor = color;
   // Under a pixel: fainter by its area, not bigger.
-  vAlpha = opacity * (1.0 - 0.5 * fly) * (1.0 - rest) * min(px * px, 1.0);
+  vAlpha = opacity * (1.0 - age) * min(px * px, 1.0);
   gl_Position = projectionMatrix * mv;
 }
 `;

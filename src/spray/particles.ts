@@ -19,8 +19,10 @@ interface Particle {
   life: number;
   /** Its whole flight (s): how far along it is, for the mist (sandbox/mist.ts). */
   span: number;
-  /** Mist only: landed and now hanging in the air a moment, drifting, before it's gone. */
-  lingering: boolean;
+  /** Sandbox spray plume: only seen, slowing as it goes, gone after `limit` m (the wall) or its life. */
+  plume: boolean;
+  dist: number;
+  limit: number;
   /** Launched since the last update: drawn where it starts before it moves. */
   fresh: boolean;
   surface: PaintSurface | null;
@@ -113,7 +115,7 @@ export class SprayParticles {
     this.points.frustumCulled = false;
     scene.add(this.points);
     for (let i = 0; i < SPRAY.maxParticles; i++) {
-      this.free.push({ pos: new THREE.Vector3(), vel: new THREE.Vector3(), life: 0, span: 0, lingering: false, fresh: false, surface: null, epoch: 0, at: { rect: 0, u: 0, v: 0 }, amount: 0, radius: 0, softness: 0, drips: 0, rgb: [0, 0, 0], shape: undefined });
+      this.free.push({ pos: new THREE.Vector3(), vel: new THREE.Vector3(), life: 0, span: 0, plume: false, dist: 0, limit: 0, fresh: false, surface: null, epoch: 0, at: { rect: 0, u: 0, v: 0 }, amount: 0, radius: 0, softness: 0, drips: 0, rgb: [0, 0, 0], shape: undefined });
     }
   }
 
@@ -128,18 +130,15 @@ export class SprayParticles {
     const { cap } = e;
     let landed = 0;
     const feel = FEEL.on;
-    // Sandbox mist: extra specks in a wider cone, only seen (their own random, not the paint's).
-    const mist = feel && FEEL.brush && FEEL.mist;
-    const extra = mist ? Math.floor(e.count * (FEEL.mistCount - 1) + Math.random()) : 0;
-    for (let i = 0; i < e.count + extra; i++) {
+    if (plumeOn()) {
+      // One ray: the plume never goes past the wall.
+      const hit = this.cast(e.eye, e.forward);
+      this.plume(e, hit ? hit.distance : SPRAY.reach);
+      return 0;
+    }
+    for (let i = 0; i < e.count; i++) {
       const p = this.free.pop();
       if (!p) break;
-      if (i >= e.count) {
-        const hit = this.cast(e.eye, hitDir.copy(aim(e, Math.random, (e.cone ?? 1) * FEEL.mistCone)));
-        this.launch(p, e, hit ? hit.point : target.copy(e.eye).addScaledVector(hitDir, SPRAY.reach));
-        p.surface = null;
-        continue;
-      }
       const hit = this.cast(e.eye, hitDir.copy(aim(e, paintRandom.spray, e.cone ?? 1)));
       this.launch(p, e, hit ? hit.point : target.copy(e.eye).addScaledVector(hitDir, SPRAY.reach));
       p.surface = hit ? (this.paint.get(hit.object) ?? null) : null;
@@ -183,6 +182,7 @@ export class SprayParticles {
    * frame's batch reads as a stream, not a clump.
    */
   show(e: ShowParams) {
+    if (plumeOn()) return this.plume(e, Infinity);
     const m = e.memo;
     const o = SPRAY.others;
     m.age += e.dt;
@@ -226,21 +226,48 @@ export class SprayParticles {
     return this.candidates.length ? this.raycaster.intersectObjects(this.candidates, false)[0] : undefined;
   }
 
+  /**
+   * Sandbox: the spray as it leaves the nozzle, only seen (the brush paints):
+   * fine specks in a cone toward the aim, slowing in the air and fading out
+   * before they get far, never past `wall` (m along the aim from the eye).
+   */
+  private plume(e: Omit<EmitParams, 'flow' | 'rgb'>, wall: number) {
+    const axis = hitDir.copy(e.eye).addScaledVector(e.forward, Math.min(wall, SPRAY.reach)).sub(e.nozzle);
+    const limit = Number.isFinite(wall) ? axis.length() - 0.03 : Infinity;
+    axis.normalize();
+    const n = Math.floor(e.count * FEEL.mistCount + Math.random());
+    for (let i = 0; i < n; i++) {
+      const p = this.free.pop();
+      if (!p) break;
+      p.pos.copy(e.nozzle);
+      p.vel.copy(aim({ ...e, forward: axis }, Math.random, (e.cone ?? 1) * FEEL.mistCone)).multiplyScalar(FEEL.mistSpeed * (0.5 + Math.random()));
+      p.life = p.span = FEEL.mistLife * (0.4 + 0.6 * Math.random());
+      p.plume = true;
+      p.dist = 0;
+      p.limit = limit;
+      p.surface = null;
+      this.add(p, e.display);
+    }
+  }
+
   /** Sends `p` from the nozzle to `end`, in the display color. */
   private launch(p: Particle, e: Pick<EmitParams, 'nozzle' | 'display'>, end: THREE.Vector3) {
     p.pos.copy(e.nozzle);
     p.vel.subVectors(end, e.nozzle);
     const dist = p.vel.length();
-    const speed = FEEL.on && FEEL.brush && FEEL.mist ? FEEL.mistSpeed : SPRAY.particleSpeed;
-    p.life = dist / speed;
+    p.life = dist / SPRAY.particleSpeed;
     p.span = p.life;
-    p.lingering = false;
+    p.plume = false;
+    p.vel.multiplyScalar(SPRAY.particleSpeed / Math.max(dist, 1e-4));
+    this.add(p, e.display);
+  }
+
+  private add(p: Particle, display: THREE.Color) {
     p.fresh = true;
-    p.vel.multiplyScalar(speed / Math.max(dist, 1e-4));
     const k = this.live.length * 3;
-    this.colors[k] = e.display.r;
-    this.colors[k + 1] = e.display.g;
-    this.colors[k + 2] = e.display.b;
+    this.colors[k] = display.r;
+    this.colors[k + 1] = display.g;
+    this.colors[k + 2] = display.b;
     this.seeds[this.live.length] = Math.random();
     this.live.push(p);
   }
@@ -251,17 +278,16 @@ export class SprayParticles {
     for (let i = 0; i < list.length; i++) {
       const p = list[i];
       // Launched after the last update: its first frame shows it leaving the nozzle.
-      // Mist: each speck already on its way for part of the frame, so a frame's batch is a stream, not a bead.
-      const step = p.fresh ? (FEEL.on && FEEL.brush && FEEL.mist ? Math.random() * dt : 0) : dt;
+      // The plume: each speck already on its way for part of the frame, so a frame's batch is a stream, not a bead.
+      const step = p.fresh ? (p.plume ? Math.random() * dt : 0) : dt;
       p.fresh = false;
-      p.pos.addScaledVector(p.vel, Math.min(step, p.life));
-      p.life -= step;
-      if (p.life <= 0 && !p.lingering && !p.surface && FEEL.on && FEEL.brush && FEEL.mist && FEEL.mistLinger > 0) {
-        // Mist hangs in the air a moment, bouncing back off the wall and drifting.
-        p.lingering = true;
-        p.life = p.span = FEEL.mistLinger * (0.5 + Math.random());
-        p.vel.multiplyScalar(-0.02).add(target.randomDirection().multiplyScalar(FEEL.mistDrift));
+      if (p.plume) {
+        p.vel.multiplyScalar(Math.exp(-FEEL.mistDrag * step));
+        p.dist += p.vel.length() * step;
+        if (p.dist >= p.limit) p.life = 0;
       }
+      p.pos.addScaledVector(p.vel, Math.min(step, Math.max(p.life, 0)));
+      p.life -= step;
       if (p.life <= 0) {
         if (p.surface && p.epoch === this.paint.epoch) this.paint.stamp(p.surface, p.at, p.radius, p.amount, p.rgb, p.softness, p.drips, false, p.shape);
         p.surface = null;
@@ -273,7 +299,7 @@ export class SprayParticles {
         for (let c = 0; c < 3; c++) this.colors[n * 3 + c] = this.colors[i * 3 + c];
         this.seeds[n] = this.seeds[i];
       }
-      this.ages[n] = (p.lingering ? 2 : 1) - (p.span > 0 ? p.life / p.span : 0);
+      this.ages[n] = p.span > 0 ? 1 - p.life / p.span : 1;
       list[n] = p;
       this.positions[n * 3] = p.pos.x;
       this.positions[n * 3 + 1] = p.pos.y;
@@ -289,9 +315,12 @@ export class SprayParticles {
     g.attributes.color.needsUpdate = true;
     g.attributes.age.needsUpdate = true;
     g.attributes.seed.needsUpdate = true;
-    this.points.material = FEEL.on && FEEL.mist ? this.mist : this.plain;
+    this.points.material = plumeOn() ? this.mist : this.plain;
   }
 }
+
+/** Sandbox: the brush paints, so the particles are only a plume at the nozzle (sandbox/mist.ts). */
+const plumeOn = () => FEEL.on && FEEL.brush && FEEL.mist;
 
 function gauss(random: () => number) {
   return Math.sqrt(-2 * Math.log(1 - random())) * Math.cos(2 * Math.PI * random());
