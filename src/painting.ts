@@ -60,7 +60,7 @@ export class PaintSystem {
   }
 
   /** Called when heavy paint on a vertical face should start a run (see paint-drips.ts). */
-  onDrip: (s: PaintSurface, rect: Rect, x: number, y: number, rgb: Rgb) => void = () => {};
+  onDrip: (s: PaintSurface, rect: Rect, x: number, y: number, rgb: Rgb) => boolean = () => false;
   /** Surfaces scrubbed this frame and last, for settle(). */
   private scrubbed = new Set<PaintSurface>();
   private settling = new Set<PaintSurface>();
@@ -390,8 +390,9 @@ export class PaintSystem {
       const i = (y - y0) * bw;
       if (data) s.data!.set(data.subarray(i * 4, (i + bw) * 4), at * 4);
       else s.data!.fill(0, at * 4, (at + bw) * 4);
-      s.wet?.fill(0, at, at + bw);
     }
+    // Its puddles (cells, not texels) start over.
+    (s as Owned<'wet'>).wet = null;
     this.gpu.markDirty(s, x0, y0, x1, y1);
     this.freeIfClean(s);
     return true;

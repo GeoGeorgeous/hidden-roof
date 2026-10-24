@@ -177,7 +177,6 @@ export class SprayBrush {
   private dabAlong(b: BrushParams, d: THREE.Vector3, weight: number) {
     const hit = this.caster.probe(b.eye, d, false);
     if (!hit) return;
-    const t = farness(hit.distance);
     const { radius, softness, pass } = dabLook(b.cap, hit.distance, this.speed, b.flow);
     // Each texel along the middle is under about 2 / spacing dabs, softened by their edge.
     const overlap = (2 / FEEL.spacing) * (1 - softness * 0.6);
@@ -185,7 +184,8 @@ export class SprayBrush {
     let shape: DotShape | undefined;
     const s = slantShape(hit.rect, d, slant);
     if (s && FEEL.slant > 0) shape = [s.elong, s.ang, FEEL.tail * (1 - s.cos)];
-    const drips = b.cap.drips * THREE.MathUtils.lerp(FEEL.closeDrips, 1, t);
+    // Caps run by the paint they lay: wetness 1 (0 never runs).
+    const drips = b.cap.drips > 0 ? 1 : 0;
     this.paint.stamp(hit.surface, hit.at, radius, amount, b.rgb, softness, drips, false, shape);
   }
 }

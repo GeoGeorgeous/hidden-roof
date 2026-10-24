@@ -19,8 +19,6 @@ const capView = {
   set dotSize(v: number) { CAPS[capInHand].dotSize = v; },
   get softness() { return CAPS[capInHand].softness; },
   set softness(v: number) { CAPS[capInHand].softness = v; },
-  get drips() { return CAPS[capInHand].drips; },
-  set drips(v: number) { CAPS[capInHand].drips = v; },
   get drain() { return CAPS[capInHand].drain; },
   set drain(v: number) { CAPS[capInHand].drain = v; },
   get strength() { return CAPS[capInHand].strength; },
@@ -43,7 +41,7 @@ const SCOPE_TIP: Record<Scope, string> = {
   particles: 'Фиолетовый: только режим частиц (галка «кисть» снята).',
 };
 const SCOPES: Partial<Record<string, Scope>> = {
-  closeSoft: 'cap', farSoft: 'cap', closeSize: 'cap', farSize: 'cap', closeDrips: 'cap',
+  closeSoft: 'cap', farSoft: 'cap', closeSize: 'cap', farSize: 'cap',
   speedThin: 'particles',
 };
 /** Settings without a dot (actions, the readout). */
@@ -78,7 +76,6 @@ const TIPS: Record<string, string> = {
   speedFade: 'Насколько светлее мазок при быстром движении.',
   speedWiden: 'Насколько шире мазок при быстром движении.',
   speedSoft: 'Насколько мягче край при быстром движении.',
-  closeDrips: 'Насколько чаще течёт краска вплотную.',
   slant: 'Под углом к стене пятно вытягивается в эллипс. 0 — всегда круг.',
   maxElong: 'Насколько сильно может вытянуться пятно под углом.',
   tail: 'Дальний конец эллипса бледнее — для фэйдов поворотом.',
@@ -97,17 +94,17 @@ const CAP_TIPS: Record<string, string> = {
   spread: 'Угол конуса: насколько быстро пятно растёт с дистанцией. Больше — шире издалека.',
   dotSize: 'Базовая ширина пятна. Меньше — тоньше линия на любой дистанции.',
   softness: 'Мягкость края этого кэпа. Стандартный — 0.35 (ползунки мягкости как есть); больше — мягче, меньше — резче.',
-  drips: 'Как охотно течёт краска у этого кэпа.',
   drain: 'Как быстро падает давление (надо трясти, ПКМ).',
   strength: 'Плотность одной частицы. Кисть берёт плотность из «нажима», не отсюда.',
 };
 const DRIP_TIPS: Record<string, string> = {
-  excess: 'Сколько слоёв краски должно лечь в одно место, чтобы потекло. Меньше — течёт раньше.',
-  dryTime: 'Как быстро краска подсыхает и перестаёт течь, с.',
-  speed: 'Скорость потёка вниз, м/с.',
-  minLength: 'Самый короткий потёк, м.',
-  maxLength: 'Самый длинный потёк, м.',
-  strength: 'Насколько плотная полоска потёка.',
+  excess: 'Сколько лишних слоёв (поверх уже закрашенного) в среднем по лужице даёт подтёк — всегда, без шанса. Больше — дольше держать до подтёка и меньше подтёков.',
+  dryTime: 'За сколько секунд высыхает полная лужица. Меньше — сохнет быстрее, медленные проходы не текут.',
+  cell: 'Ширина лужицы, м: в ней копится лишняя краска, каждая течёт сама по себе. Меньше — подтёки чаще и ближе друг к другу.',
+  speed: 'Только вид: скорость потёка вниз, м/с.',
+  minLength: 'Только вид: самый короткий потёк, м.',
+  maxLength: 'Только вид: самый длинный потёк, м.',
+  strength: 'Только вид: насколько плотная полоска потёка.',
 };
 
 const dot = (scope: Scope) => {
@@ -168,19 +165,18 @@ export function initFeel() {
   capFolder.add(capView, 'spread', 0.002, 0.2).name('ширина конуса');
   capFolder.add(capView, 'dotSize', 0.005, 0.3).name('размер точки, м');
   capFolder.add(capView, 'softness', 0, 1).name('мягкость');
-  capFolder.add(capView, 'drips', 0, 100).name('подтёки');
   capFolder.add(capView, 'drain', 0, 0.3).name('расход давления');
   capFolder.add(capView, 'strength', 0, 1).name('плотность частицы');
   setCapInHand(capInHand, true);
 
   const dr = gui.addFolder('Подтёки').close();
-  dr.add(DRIPS, 'excess', 1, 20).name('течёт после слоёв');
-  dr.add(DRIPS, 'dryTime', 0.5, 10).name('высыхает, с');
-  dr.add(DRIPS, 'speed', 0.02, 1).name('скорость, м/с');
-  dr.add(DRIPS, 'minLength', 0.01, 0.5).name('длина от, м');
-  dr.add(DRIPS, 'maxLength', 0.05, 1.5).name('длина до, м');
-  dr.add(DRIPS, 'strength', 0.1, 1).name('плотность');
-  dr.add(FEEL, 'closeDrips', 0, 20).name('вблизи, ×');
+  dr.add(DRIPS, 'excess', 1, 20).name('лишних слоёв на подтёк');
+  dr.add(DRIPS, 'dryTime', 0.5, 10).name('высыхание, с');
+  dr.add(DRIPS, 'cell', 0.01, 0.1, 0.005).name('лужица, м');
+  dr.add(DRIPS, 'speed', 0.02, 1).name('вид: скорость, м/с');
+  dr.add(DRIPS, 'minLength', 0.01, 0.5).name('вид: длина от, м');
+  dr.add(DRIPS, 'maxLength', 0.05, 1.5).name('вид: длина до, м');
+  dr.add(DRIPS, 'strength', 0.1, 1).name('вид: плотность');
 
   const an = gui.addFolder('Угол').close();
   an.add(FEEL, 'slant', 0, 1).name('эллипс');

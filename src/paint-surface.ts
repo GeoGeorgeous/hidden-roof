@@ -36,7 +36,7 @@ interface PaintSurfaceFields {
   data: Uint8Array | null;
   /** Sizes of the texture's smaller levels for distant views (paint-mips.ts); empty while it has no paint. */
   mips: MipSize[];
-  /** When each texel's wet paint is dry (paint-raster.ts RasterSurface). */
+  /** When each puddle cell's wet paint is dry (paint-raster.ts RasterSurface, wetCell). */
   wet: Float32Array | null;
   /** Texel rects changed since the last upload (inclusive, paint-gpu.ts: its list, nobody else's). */
   dirty: DirtyRect[];

@@ -46,36 +46,27 @@ backlog's Discarder):
 | IDEA-227 | the can's physics: hand speed and distance | 5, 6 | |
 | IDEA-228 | a true-size crosshair | 7 | |
 | IDEA-229 | SOFT and HARD caps, every cap tuned with the brush | 8 | IDEA-167, BL-017 |
-| TASK-230 | check that paint runs still work with the brush | known issues | BL-016 |
+| TASK-230 | paint runs with the brush (measured: the 1.5.0 runs don't fit it) | 13, known issues | BL-016 |
 | TASK-231 | network: ops/s, slant on the wire, stroke-segment op | 9, network steps 1-3 | |
 | TASK-232 | to production: config, no particle painting, decisions, tests | 10, 11, steps 4-5, open decisions | |
 | IDEA-233 | marker nibs, rectangular and calligraphy (unconfirmed) | not in the branch | BL-042 |
 | IDEA-166 | lock the camera while painting (unconfirmed) | not in the branch | |
 
-TASK-230 (paint runs): the owner is happy with how runs work now: with the
-brush the can runs much less and it feels right. What's left is checking
-that the runs model and the brush fit, not retuning.
+TASK-230 (paint runs): owner (2026-10-25): the marker runs a lot, the can
+hardly ever, even held still. Measured, the earlier read of the code was
+wrong: the 1.5.0 runs don't fit the brush.
 
 Runs since 1.5.0: paint dries (`DRIPS.dryTime`, 3 s). Paint landing on an
 already opaque texel is wet; once a texel holds `DRIPS.excess` coats of wet
 paint it may run (a chance per m², each cap's and tool's `drips`), and the
-paint that ran is gone. A coat over a dry wall no longer runs; holding still
-does. Tool defaults were lowered in 1.5.0 too (cap drips 2, 4, 6; roller 60).
-F3 → Paint runs has a wet view, a most build-up readout and a runs view.
+paint that ran is gone. Cap drips 2, 4, 6 were tuned in 1.5.0 for particles.
 
-Read in the code (2026-10-24), the brush fits that model:
-
-- Runs count paint per texel over time, not dabs or frames. The brush solves
-  each dab's amount from its spacing and lays build-up at a rate per second,
-  so neither the dab spacing nor the frame rate should change how much runs.
-- Only opaque texels collect wet paint: a semi-transparent pass (opacity
-  0.65) doesn't feed runs until passes add up to opaque. Likely why there
-  are far fewer runs now.
-- Close up, `closeDrips` (×4) raises the run chance on purpose.
-- To check in play: moving slower than one dab spacing per frame counts as
-  held still and builds up (see known issues), so a slow careful line may
-  run more than meant; at the 160-dab cap a very fast flick lays lighter
-  paint (fewer runs, harmless).
+Measured on fixed steps (5 s, 1 m from the wall, standard cap held still):
+particles 17 runs, the brush 0. The brush lays 25-50× less paint than the
+particles did (they piled paint on paint), so wet paint rarely builds up and
+the per-m² chance almost never fires. The marker is unchanged (7 runs in 5 s
+of strokes); it only stood out. A ×30 on the caps' chance brought the can
+back to 1.5.0's numbers; module 13 (puddle runs) replaces that.
 
 IDEA-233 (marker nibs): the can's nibs (chisel, needle) were tried on the
 branch and removed; marker nibs are a separate idea, not started.
@@ -192,9 +183,10 @@ belong in `config.ts`, perhaps the F3 debug panel. The goal for that panel
 (TASK-232): it shows which setting causes what, so tuning is systematic, not
 trial and error.
 
-### 12. Spray plume (optional)
+### 12. Spray plume (optional, unconfirmed)
 
-Optional: nice to have, not required for 1.7.0. With the brush painting,
+Optional and unconfirmed: nice to have, not required for 1.7.0; the owner
+hasn't decided to keep it. With the brush painting,
 particles are only a plume at the nozzle: fine soft round specks in a cone
 toward the aim, slowed by the air, growing and fading out before the wall
 (never past it). One ray per frame for the whole plume, not one per
@@ -203,6 +195,34 @@ in Z → Частицы), the old square points fly to the wall.
 
 Tried first and replaced: a mist of specks flying to the wall and hanging
 there a moment. Owner: too few, too fast, and no haze at the brush wanted.
+
+### 13. Puddle runs (optional, unconfirmed)
+
+Optional and unconfirmed: the owner hasn't decided to keep it. Paint runs by
+how much paint landed, not by chance, so they are predictable:
+
+- Extra paint (landing on already opaque paint) pools in square cells about
+  3 cm wide (`DRIPS.cell`), spread over the cell, and dries as before.
+- A cell that holds `DRIPS.excess` (6) coats on average runs, always, from
+  the texel that tipped it, and the paint that ran is gone. If a run can't
+  start yet (too many, one in that column), it starts once it can.
+- A run's length and speed come from where it starts (a hash of the face
+  point), so the same spot runs the same way. Runs still travel as drip ops:
+  no protocol change.
+- Each tool has a wetness, the share of its extra paint that pools (its
+  `drips`): caps 1 (0 never runs), marker 0.4 (its stamps overlap 3×; at 1
+  it made 148 runs in 5 s of strokes), roller 1.
+- Knobs: extra coats per run, drying time, puddle size, wetness per tool.
+  The chance knobs are gone (per-cap chance, the ×30, close up ×4): close up,
+  the brush lays more paint, so it runs more by itself.
+
+Measured, the same every time (5 s, 1 m from the wall): standard held 14 runs,
+first after 0.77 s; fat held 70 (0.63 s); skinny held 3 (1.52 s); standard
+strokes 23; marker strokes 19, held 2. From 2-3 m the brush lays too thin a
+coat to outpace drying and doesn't run at all.
+
+In production: the golden paint test's run hashes will change; the wet view
+(F3) now shows cells.
 
 ## Tried and removed
 

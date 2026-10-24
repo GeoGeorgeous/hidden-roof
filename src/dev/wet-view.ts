@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { DRIPS, WET_VIEW } from '../config';
 import type { PaintSystem } from '../painting';
 import { texelToWorld } from '../paint-seams';
+import { wetCell } from '../paint-raster';
 import type { Rect } from '../surfaces';
 
 // F3's wet view: one Points object with a fixed buffer, rebuilt a few times a
@@ -56,7 +57,7 @@ export class WetView {
     const { reach, maxPoints, lift } = WET_VIEW;
     const at = this.at();
     const now = this.paint.now;
-    const faces: [Float32Array, number, Rect][] = [];
+    const faces: [Float32Array, ReturnType<typeof wetCell>, Rect][] = [];
     let texels = 0;
     for (const s of this.paint.surfaces) {
       if (!s.wet) continue;
@@ -64,7 +65,7 @@ export class WetView {
       if (s.geo.geometry.boundingBox!.distanceToPoint(at) > reach) continue;
       for (const r of s.geo.rects) {
         if (!r.upright || !r.face) continue;
-        faces.push([s.wet, s.geo.atlasW, r]);
+        faces.push([s.wet, wetCell(s.geo), r]);
         texels += r.w * r.h;
       }
     }
@@ -74,12 +75,12 @@ export class WetView {
     const ramp = new THREE.Color();
     let n = 0;
     let most = 0;
-    for (const [wet, w, r] of faces) {
+    for (const [wet, cell, r] of faces) {
       if (n === maxPoints) break;
       const nm = r.face!.normal;
       for (let y = r.y; y < r.y + r.h; y += stride) {
         for (let x = r.x; x < r.x + r.w; x += stride) {
-          const left = wet[y * w + x] - now;
+          const left = (wet[Math.floor(y / cell.size) * cell.cols + Math.floor(x / cell.size)] ?? 0) - now;
           if (left <= 0) continue;
           if (n === maxPoints) break;
           texelToWorld(r, x + 0.5, y + 0.5, p).addScaledVector(nm, lift).toArray(this.pos, n * 3);

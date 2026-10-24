@@ -1,6 +1,5 @@
 import type * as THREE from 'three';
 import { DRIPS } from './config';
-import { paintRandom } from './lcg';
 import type { Rgb } from './painting';
 import type { Rect, SurfaceGeometry } from './surfaces';
 
@@ -13,8 +12,19 @@ import type { Rect, SurfaceGeometry } from './surfaces';
 export interface RasterSurface {
   geo: SurfaceGeometry;
   data: Uint8Array | null;
-  /** Per texel, the paint clock time (PaintRaster.now) at which its wet paint on already-opaque paint is dry (created on first wet paint). */
+  /** Per puddle cell (wetCell), the paint clock time (PaintRaster.now) at which its wet paint on already-opaque paint is dry (created on first wet paint). */
   wet: Float32Array | null;
+}
+
+/**
+ * Sandbox: wet paint pools in square cells about DRIPS.cell wide (at least a
+ * texel): a run starts when a cell holds DRIPS.excess coats of it on average,
+ * so how much runs follows how much paint landed, not a dice roll. The cell
+ * size in texels and the cells per atlas row.
+ */
+export function wetCell(geo: SurfaceGeometry) {
+  const size = Math.max(1, Math.round(DRIPS.cell * geo.texelsPerMeter));
+  return { size, cols: Math.ceil(geo.atlasW / size), rows: Math.ceil(geo.atlasH / size) };
 }
 
 /**
@@ -48,8 +58,8 @@ export class PaintRaster<S extends RasterSurface> {
     private hooks: {
       /** Texels in this rect (inclusive) changed. */
       touched: (s: S, x0: number, y0: number, x1: number, y1: number) => void;
-      /** Heavy paint on a vertical face should start a run here (see paint-drips.ts). */
-      drip: (s: S, rect: Rect, x: number, y: number, rgb: Rgb) => void;
+      /** Heavy paint on a vertical face starts a run here (see paint-drips.ts); false if it can't now (too many, one there already). */
+      drip: (s: S, rect: Rect, x: number, y: number, rgb: Rgb) => boolean;
     },
   ) {}
 
@@ -87,7 +97,7 @@ export class PaintRaster<S extends RasterSurface> {
         const amt = fade > 0 ? b.amount * Math.min(1, (L - along) / fade) : b.amount;
         if (amt <= 0) continue;
         const i = (y * w + x) * 4;
-        if (runs && data[i + 3] >= 250) this.addWet(s, rect, x, y, amt, runs);
+        if (runs && data[i + 3] >= 250) this.addWet(s, rect, x, y, amt * runs);
         blend(data, i, amt, b.color);
         touched = true;
       }
@@ -149,7 +159,7 @@ export class PaintRaster<S extends RasterSurface> {
           touched = true;
           continue;
         }
-        if (runs && data[i + 3] >= 250) this.addWet(s, rect, x, y, amt, runs);
+        if (runs && data[i + 3] >= 250) this.addWet(s, rect, x, y, amt * runs);
         blend(data, i, amt, color);
         touched = true;
       }
@@ -185,23 +195,23 @@ export class PaintRaster<S extends RasterSurface> {
   }
 
   /**
-   * `amt` coats more on an opaque texel: wet paint is what is left to dry, and
-   * DRIPS.excess coats of it take DRIPS.dryTime to dry; at DRIPS.excess coats the
-   * texel may run, and the paint that ran is gone.
+   * `amt` coats more on an opaque texel (times the tool's wetness, its `drips`), into its puddle cell (wetCell), spread
+   * over the cell: wet paint is what is left to dry, and DRIPS.excess coats of
+   * it take DRIPS.dryTime to dry. At DRIPS.excess coats the cell runs, always,
+   * from this texel, and the paint that ran is gone.
    */
-  private addWet(s: S, rect: Rect, x: number, y: number, amt: number, rate: number) {
-    const wet = (s.wet ??= new Float32Array(s.geo.atlasW * s.geo.atlasH));
-    const k = y * s.geo.atlasW + x;
-    const until = Math.max(wet[k], this.now) + (amt / DRIPS.excess) * DRIPS.dryTime;
-    if (until - this.now < DRIPS.dryTime) {
-      wet[k] = until;
-      return;
-    }
-    wet[k] = this.now;
-    if (paintRandom.drips() >= rate / s.geo.texelsPerMeter ** 2) return;
-    const i = k * 4;
+  private addWet(s: S, rect: Rect, x: number, y: number, amt: number) {
+    const { size, cols, rows } = wetCell(s.geo);
+    if (s.wet?.length !== cols * rows) s.wet = new Float32Array(cols * rows);
+    const wet = s.wet;
+    const k = Math.floor(y / size) * cols + Math.floor(x / size);
+    const until = Math.max(wet[k], this.now) + (amt / (size * size) / DRIPS.excess) * DRIPS.dryTime;
+    // Held there while a run can't start: it starts once it can.
+    wet[k] = Math.min(until, this.now + 2 * DRIPS.dryTime);
+    if (until - this.now < DRIPS.dryTime) return;
+    const i = (y * s.geo.atlasW + x) * 4;
     const d = s.data!;
-    this.hooks.drip(s, rect, x, y, [d[i] / 255, d[i + 1] / 255, d[i + 2] / 255]);
+    if (this.hooks.drip(s, rect, x, y, [d[i] / 255, d[i + 1] / 255, d[i + 2] / 255])) wet[k] = until - DRIPS.dryTime;
   }
 }
 

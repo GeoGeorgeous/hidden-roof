@@ -553,11 +553,8 @@ export const MARKER = {
   /** Crosshair with the marker in hand (px): `crosshair` plus `crosshairPerMeter` x the nib width, so it follows the size keys. */
   crosshair: 4,
   crosshairPerMeter: 200,
-  /**
-   * Paint runs (with DRIPS on) from the marker, per m² of paint reaching DRIPS.excess:
-   * a nib covers little area but pumps a lot of paint into it.
-   */
-  drips: 50,
+  /** Sandbox: wetness, the share of its extra paint that pools into runs (DRIPS): a nib overlaps its stamps 3×, so less. */
+  drips: 0.4,
   strength: 0.95,
   /** Held still, the nib stamps the same spot every frame: let it add to runs this often (per s), whatever the frame rate. */
   stillRate: 30,
@@ -667,8 +664,8 @@ export const ROLLER = {
   crosshairPerMeter: 0,
   /** Opacity per press: a roller lays it on thick. */
   strength: 0.45,
-  /** Paint runs (with DRIPS on), per m² of paint reaching DRIPS.excess: a loaded roller runs easily. */
-  drips: 60,
+  /** Sandbox: wetness, the share of its extra paint that pools into runs (DRIPS): a loaded roller, all of it. */
+  drips: 1,
   /** Held still, presses add to runs this often (per s), whatever the frame rate. */
   stillRate: 20,
   /** Moves are filled with presses at most `spacing` x the press length apart at full reach, at most maxRays per frame. */
@@ -802,8 +799,10 @@ export const PLAYER_LIGHT = {
  */
 export const DRIPS = {
   enabled: true,
-  /** Wet paint (in full coats) a texel needs before it may run; the paint that ran is gone. How often it then runs is each cap's and tool's `drips` (per m², spread over its texels, so every paint detail runs alike). */
+  /** Wet paint (in full coats, on average over a puddle cell) that makes a run, always; the paint that ran is gone. Sandbox: a tool's `drips` is its wetness, the share of its extra paint that pools (caps: 0 never runs, else 1). */
   excess: 6,
+  /** Sandbox: wet paint pools in square cells this wide (m, at least a texel): each cell runs on its own (paint-raster.ts wetCell). */
+  cell: 0.03,
   /** How long paint stays wet (s): `excess` coats of wet paint are dry after this long, less paint sooner. A coat over a dry wall no longer runs; holding the can on one spot (hundreds of coats a second) still does. */
   dryTime: 3,
   /** Runs moving at the same time, level-wide. */

@@ -47,7 +47,6 @@ export const FEEL = {
   closeSize: 0.55,
   farSize: 2.2,
   closeFlow: 1.8,
-  closeDrips: 4,
   /** Past the gap, the brush fades from this distance (m) on, down to `fadeMin` of its opacity at the can's reach. */
   fadeStart: 0.5,
   fadeMin: 0.75,
@@ -112,7 +111,7 @@ export function landing(cap: CapSpec, base: number, distance: number, rect: Rect
   out.amount = Math.min(1, base * THREE.MathUtils.lerp(FEEL.closeFlow, 1, t));
   out.radius = (cap.dotSize / 2) * THREE.MathUtils.lerp(FEEL.closeSize, FEEL.farSize, t);
   out.softness = THREE.MathUtils.lerp(Math.min(cap.softness, 0.1), Math.max(cap.softness, 0.6), t);
-  out.drips = cap.drips * THREE.MathUtils.lerp(FEEL.closeDrips, 1, t);
+  out.drips = cap.drips;
   out.shape = s && FEEL.slant > 0 ? [s.elong, s.ang, FEEL.tail * (1 - s.cos)] : undefined;
   return out;
 }
