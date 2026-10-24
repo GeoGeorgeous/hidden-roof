@@ -4,9 +4,15 @@ A handoff for the agent who brings this into the game. It says what was tried,
 what the player liked, and what is left to decide. It doesn't say how to
 write the code: read the branch.
 
-- Branch: `exp/visual-sandbox` (from `dev`). R&D only, not for merging as is:
-  the architecture was bent on purpose, tests were neither run nor updated,
-  settings live in a sandbox object, not in `config.ts`.
+- Branch: `exp/painting-rework` (from `dev`), local on the owner's machine
+  (not on origin; ask for it to be pushed if you can't see it). Only this
+  doc is on `dev`. R&D only, not for merging as is: the architecture was bent
+  on purpose, tests were neither run nor updated, settings live in a sandbox
+  object, not in `config.ts`. See it with `git log dev..exp/painting-rework`
+  and `git diff dev...exp/painting-rework`; try it with
+  `git switch exp/painting-rework && npm run dev`, panel on Z.
+- Backlog: the "Painting Rework" items, IDEA-225 to IDEA-233, planned for
+  1.7.0 (see "Backlog items" below). Network load also touches BL-024.
 - Code: `src/sandbox/` (`feel.ts` settings and the distance model, `brush.ts`
   the brush, `aim.ts` the crosshair, `panel.ts` the Z panel), plus hooks in
   `src/spray/spray-tool.ts`, `src/spray/particles.ts`, `src/paint-raster.ts`
@@ -24,6 +30,33 @@ Spraying should feel like a drawing app (Procreate) and a real can at once:
 - The can's physics: the same paint per second, so speed and distance change
   the line's width, density and edge, as with a real can.
 - The crosshair tells the truth: the line's real size and the opacity.
+
+## Backlog items
+
+The rework is split by module. Each item replaces older ones (now in the
+backlog's Discarder):
+
+| Item | Painting Rework: | Modules | Replaces |
+|---|---|---|---|
+| IDEA-225 | the can as a continuous brush | 1, 3, 4 | IDEA-224 |
+| IDEA-226 | opacity on Shift + wheel | 2 | IDEA-165, BL-152 |
+| IDEA-227 | the can's physics: hand speed and distance | 5, 6 | |
+| IDEA-228 | a true-size crosshair | 7 | |
+| IDEA-229 | SOFT and HARD caps, every cap tuned with the brush | 8 | IDEA-167, BL-017 |
+| TASK-230 | drips with the brush, tuned per tool | known issues | BL-016 |
+| TASK-231 | network: ops/s, slant on the wire, stroke-segment op | 9, network steps 1-3 | |
+| TASK-232 | to production: config, no particle painting, decisions, tests | 10, 11, steps 4-5, open decisions | |
+| IDEA-233 | marker nibs, rectangular and calligraphy | not in the branch | BL-042 |
+
+TASK-230 (drips): drips are too strong in general; tune them for each tool
+(caps, marker, roller) by eye once the brush is in. The owner tunes in F3 on
+dev (Paint → Paint runs) and pastes the JSON. F3 tools for it: `wet view`
+(wet paint blue to red by its build-up), the `most build-up` readout and
+`runs view` (every run in one loud color). Paint dries (`drying time`). See
+also "Tuning paint runs by hand" in `docs/ideas/painting.md`.
+
+IDEA-233 (marker nibs): the can's nibs (chisel, needle) were tried on the
+branch and removed; marker nibs are a separate idea, not started.
 
 ## Modules kept
 
