@@ -10,6 +10,7 @@ import { SprayParticles } from './particles';
 import { setHex } from '../hex-color';
 import { paintRandom } from '../lcg';
 import { FEEL, SprayReticle } from '../sandbox/feel';
+import { SprayBrush } from '../sandbox/brush';
 
 // Spraying: color and cap come from the inventory. Paint never runs out;
 // pressure drains while spraying and is restored by shaking: hold the right
@@ -41,6 +42,7 @@ export class SprayTool {
   private tailT = 0;
   private aimSpeed = 0;
   private reticle: SprayReticle;
+  private brush: SprayBrush;
 
   constructor(
     scene: THREE.Scene,
@@ -51,6 +53,7 @@ export class SprayTool {
     this.particles = new SprayParticles(scene, paint, solids);
     this.others = new SprayParticles(scene, paint, solids);
     this.reticle = new SprayReticle(scene);
+    this.brush = new SprayBrush(paint, this.particles);
   }
 
   /** `inv` is null when the can is put away (particles still finish flying). */
@@ -106,7 +109,10 @@ export class SprayTool {
     this.model.update(dt, camera, spraying, this.flow > 0, this.shakeT >= 0 ? this.shakeT / PRESSURE.shakeDuration : -1);
     if (this.flow > 0) this.emit(dt, camera, eye, inv);
     else if (this.tailT > 0 && inv.pressure > 0) this.emit(dt, camera, eye, inv, this.tailT / Math.max(FEEL.releaseTail, 1e-3));
-    else this.landing = false;
+    else {
+      this.landing = false;
+      this.brush.end();
+    }
   }
 
   /** Shaking the can (RMB) right now. */
@@ -127,7 +133,6 @@ export class SprayTool {
     this.carry += cap.rate * flow * dt;
     const count = Math.floor(this.carry);
     this.carry -= count;
-    if (!count) return;
     camera.getWorldDirection(forward);
     right.set(1, 0, 0).applyQuaternion(camera.quaternion);
     up.crossVectors(right, forward);
@@ -137,7 +142,10 @@ export class SprayTool {
     const low = Math.max(0, 1 - inv.pressure / PRESSURE.thinThreshold);
     const spatter = feel ? low * FEEL.spatterLowPressure + (tail > 0 ? 0.5 : 0) : 0;
     const cone = feel ? 1 / (1 + this.aimSpeed * FEEL.speedThin) : 1;
-    this.landing = this.particles.emit({ count, eye, nozzle: this.model.nozzleWorld(nozzle), forward, right, up, cap, flow, rgb: rgbOf(inv.color), display, spit, spatter, cone }) > 0;
+    if (feel && FEEL.brush) this.landing = this.brush.stroke({ eye, forward, cap, rgb: rgbOf(inv.color), flow, spit, spatter, dt });
+    if (!count) return;
+    const shown = this.particles.emit({ count, eye, nozzle: this.model.nozzleWorld(nozzle), forward, right, up, cap, flow, rgb: rgbOf(inv.color), display, spit, spatter, cone }) > 0;
+    if (!(feel && FEEL.brush)) this.landing = shown;
   }
 
   private computeFlow(dt: number, p: number): number {

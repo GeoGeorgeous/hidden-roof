@@ -68,7 +68,6 @@ export type ShowParams = Omit<EmitParams, 'flow' | 'rgb'> & { dt: number; memo: 
 const dir = new THREE.Vector3();
 const target = new THREE.Vector3();
 const ray = new THREE.Ray();
-const probeAt: FacePoint = { rect: 0, u: 0, v: 0 };
 
 /** A particle's direction into `dir`: in the cap's cone around the aim, Gaussian-ish, clamped. */
 function aim(e: Pick<EmitParams, 'forward' | 'right' | 'up' | 'cap'>, random: () => number, cone = 1) {
@@ -127,6 +126,12 @@ export class SprayParticles {
       const hit = this.cast(e.eye, hitDir.copy(aim(e, paintRandom.spray, cone)));
       this.launch(p, e, hit ? hit.point : target.copy(e.eye).addScaledVector(hitDir, SPRAY.reach));
       p.surface = hit ? (this.paint.get(hit.object) ?? null) : null;
+      // Sandbox: the brush paints (sandbox/brush.ts); particles only show the spray.
+      if (feel && FEEL.brush) {
+        if (p.surface) landed++;
+        p.surface = null;
+        continue;
+      }
       if (hit && p.surface) {
         landed++;
         facePoint(p.surface.geo, hit.faceIndex!, hit.uv!, p.at);
@@ -191,13 +196,14 @@ export class SprayParticles {
   }
 
   /** Sandbox: what the aim meets (a paintable surface or not), for the reticle. */
-  probe(eye: THREE.Vector3, forward: THREE.Vector3) {
-    solidsNear(this.solids, eye, SPRAY.reach, this.candidates);
+  probe(eye: THREE.Vector3, forward: THREE.Vector3, near = true) {
+    // near false: the candidates of the last probe or emit from about here.
+    if (near) solidsNear(this.solids, eye, SPRAY.reach, this.candidates);
     const hit = this.cast(eye, forward);
     const surface = hit ? this.paint.get(hit.object) : undefined;
     if (!hit || !surface || !hit.face) return null;
-    facePoint(surface.geo, hit.faceIndex!, hit.uv!, probeAt);
-    return { point: hit.point, distance: hit.distance, normal: hit.face.normal, rect: surface.geo.rects[probeAt.rect] };
+    const at = facePoint(surface.geo, hit.faceIndex!, hit.uv!, { rect: 0, u: 0, v: 0 });
+    return { point: hit.point, distance: hit.distance, normal: hit.face.normal, rect: surface.geo.rects[at.rect], surface, at };
   }
 
   /** The first of the candidates (solidsNear) hit within SPRAY.reach. */

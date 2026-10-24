@@ -7,7 +7,6 @@ import { INK_FRAG, INK_PARS, inkUniforms, syncInkUniforms } from './render/ink/t
 import { LETTER_TEXTURES, textures, type TexName } from './textures';
 import { FACADE_GLSL, type Facade } from './render/ink/facade';
 import { GRIME_GLSL } from './render/ink/grime';
-import { feelUniforms, TOOTH_GLSL } from './sandbox/feel';
 
 export type { TexName } from './textures';
 
@@ -63,7 +62,6 @@ export const shared = {
   ...bakeUniforms,
   /** Paper, ink and tone steps (render/ink/tone.ts). */
   ...inkUniforms,
-  ...feelUniforms,
 };
 
 export function syncSharedUniforms(time: number) {
@@ -162,7 +160,6 @@ uniform float uShowPaintable;
 uniform float uPaintable;
 ${BAKE_FRAG_PARS}
 ${INK_PARS}
-${TOOTH_GLSL}
 ${FACADE_GLSL}
 ${GRIME_GLSL}
 varying vec4 vFacade;
@@ -182,16 +179,7 @@ float wet = smoothstep(0.5, 0.9, vWorldN.y) * uWet;
 vec3 baseCol = mix(baseTex.rgb * vTint, vec3(0.002), facadeInk(vFacade, vWorldPos, vWorldN)) * mix(1.0, 0.55, wet);
 vec4 paintTex = texture2D(uPaint, vPaintUv);
 float pa = paintTex.a;
-if (uTooth.y < 2.5 && pa > 0.0) {
-  // Sandbox (sandbox/feel.ts): paint on the wall's tooth instead of alpha steps.
-  vec3 tn = abs(vWorldN);
-  vec2 wallUv = tn.y > max(tn.x, tn.z) ? vWorldPos.xz : vec2(tn.x > tn.z ? vWorldPos.z : vWorldPos.x, vWorldPos.y);
-  float baseLum = dot(baseTex.rgb, vec3(0.333));
-  pa = toothCover(pa, vWorldPos, vWorldN, baseLum, wallUv);
-  // Thin paint shows the wall's relief through it.
-  float th = toothHeight(vWorldPos, vWorldN, baseLum);
-  paintTex.rgb *= 1.0 + uRelief * (th - 0.5) * (1.3 - paintTex.a);
-} else if (uAlphaSteps > 0.0) pa = ceil(pa * uAlphaSteps - 0.15) / uAlphaSteps;
+if (uAlphaSteps > 0.0) pa = ceil(pa * uAlphaSteps - 0.15) / uAlphaSteps;
 pa = clamp(pa, 0.0, 1.0);
 #ifdef GLASS_DEPTH
 if (pa < uGlassSolid) discard;

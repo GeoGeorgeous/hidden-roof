@@ -1,4 +1,4 @@
-import { initFeel, syncFeel } from './sandbox/feel';
+import { initFeel } from './sandbox/feel';
 import './style.css';
 import * as THREE from 'three';
 import * as config from './config';
@@ -290,7 +290,6 @@ function step(time: number) {
   dev?.lap('player');
   updateSkyline(opened.city, at);
   syncSharedUniforms(time / 1000);
-  syncFeel();
   syncTrackUniforms(at);
   environment.update({ time, dt, at, shown, eye, fov: camera.fov, frozen, building });
   syncCityLight(environment.lighting);

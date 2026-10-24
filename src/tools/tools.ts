@@ -1,3 +1,4 @@
+import { FEEL, stepOpacity } from '../sandbox/feel';
 import * as THREE from 'three';
 import type { Audio } from '../audio';
 import { CAPS, CROSSHAIR, type PaintColor } from '../config';
@@ -85,6 +86,11 @@ export class Tools {
       SLOTS.forEach((_, i) => slot(i) && inv.select(i));
       if (SLOTS.some((_, i) => slot(i))) this.audio.click();
       const t = inv.tool;
+      // Sandbox: Shift + wheel sets the can's opacity instead of the color.
+      if (t === 'can' && FEEL.on && input.shiftDown() && input.wheelSteps) {
+        stepOpacity(Math.sign(input.wheelSteps));
+        input.wheelSteps = 0;
+      }
       const wheel = input.step('prev', 'next');
       // Held, they keep stepping (the key's auto-repeat), as in build mode.
       const qe = input.step('sizeDown', 'sizeUp');

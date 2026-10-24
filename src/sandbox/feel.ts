@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import GUI from 'lil-gui';
-import type { CapSpec } from '../config';
+import { PAINT, type CapSpec } from '../config';
 import type { DotShape } from '../paint-raster';
 import type { Rect } from '../surfaces';
 
@@ -15,8 +15,7 @@ import type { Rect } from '../surfaces';
 //  - nibs: round (the cap as is), chisel (a 45° calligraphy nib), needle
 //  - fast aim thins the line (flicks taper)
 //  - a reticle on the wall: the real size and shape of the spot
-//  - the wall's tooth: paint grabs the bumps first (shader, materials.ts)
-// Z shows the panel, X cycles nibs, C cycles tooth modes.
+// Z shows the panel, X cycles nibs.
 
 export const NIBS = ['round', 'chisel', 'needle'] as const;
 export type Nib = (typeof NIBS)[number];
@@ -24,6 +23,16 @@ export type Nib = (typeof NIBS)[number];
 export const FEEL = {
   on: true,
   nib: 'round' as Nib,
+  // Brush (sandbox/brush.ts): paint at once, as a continuous stroke
+  brush: true,
+  /** One pass of a stroke reaches about this opacity (Shift + wheel). */
+  opacity: 0.85,
+  /** Dab spacing, a fraction of the dab's radius. */
+  spacing: 0.2,
+  /** Aim smoothing (StreamLine), 0 = off. */
+  streamline: 0.25,
+  closeSoft: 0.3,
+  farSoft: 0.95,
   // Distance
   closeAt: 0.25,
   farAt: 2.5,
@@ -53,63 +62,7 @@ export const FEEL = {
   speedThin: 0.12,
   // Reticle
   reticle: true,
-  // Tooth (shader)
-  tooth: 1,
-  toothMode: 0,
-  toothScale: 1,
-  grain: 0.35,
-  relief: 0.25,
 };
-
-const TOOTH_MODES = ['TOOTH (concrete)', 'HALFTONE', 'GRAIN (blue noise)', 'SMOOTH (game as is)'];
-
-export const feelUniforms = {
-  /** tooth strength, mode, scale, grain */
-  uTooth: { value: new THREE.Vector4() },
-  /** relief */
-  uRelief: { value: 0 },
-};
-
-export function syncFeel() {
-  const on = FEEL.on;
-  feelUniforms.uTooth.value.set(on ? FEEL.tooth : 0, on ? FEEL.toothMode : 3, FEEL.toothScale, FEEL.grain);
-  feelUniforms.uRelief.value = on ? FEEL.relief : 0;
-}
-
-/** Surface shader: paint coverage on the wall's tooth. Needs inkNoise (INK_PARS). */
-export const TOOTH_GLSL = /* glsl */ `
-uniform vec4 uTooth;
-uniform float uRelief;
-float toothHash(vec2 p) {
-  return fract(52.9829189 * fract(dot(p, vec2(0.06711056, 0.00583715))));
-}
-// Height of the wall at p (0..1): two octaves of noise + the base texture (mortar low).
-float toothHeight(vec3 p, vec3 n, float baseLum) {
-  float s = uTooth.z;
-  float h = inkNoise(p * 38.0 * s) * 0.55 + inkNoise(p * 110.0 * s + 7.0) * 0.3 + inkNoise(p * 9.0 * s + 3.0) * 0.15;
-  return clamp(mix(h, baseLum, 0.45), 0.0, 1.0);
-}
-// The paint alpha the wall shows for paint alpha a.
-float toothCover(float a, vec3 p, vec3 n, float baseLum, vec2 wallUv) {
-  if (uTooth.y > 2.5 || a <= 0.0 || a >= 1.0) return a;
-  float t;
-  if (uTooth.y < 0.5) {
-    t = toothHeight(p, n, baseLum);
-    t = mix(t, toothHash(gl_FragCoord.xy), uTooth.w * 0.4);
-  } else if (uTooth.y < 1.5) {
-    // Halftone dots on the wall, about 1.2 cm apart, rotated 15°.
-    vec2 q = mat2(0.966, -0.259, 0.259, 0.966) * wallUv * 85.0 * uTooth.z;
-    vec2 f = fract(q) - 0.5;
-    t = 1.0 - length(f) * 1.41;
-  } else {
-    t = toothHash(gl_FragCoord.xy);
-  }
-  // 1 - a of the wall stays bare: where it's lowest.
-  float w = 0.08;
-  float c = smoothstep(1.0 - a - w, 1.0 - a + w, t);
-  return mix(a, c, uTooth.x);
-}
-`;
 
 // --- Per particle ---
 
@@ -278,7 +231,7 @@ export class SprayReticle {
 const label = document.createElement('div');
 let gui: GUI | null = null;
 
-function flash(text: string) {
+export function flash(text: string) {
   label.textContent = text;
   label.style.opacity = '1';
   clearTimeout((flash as { t?: number }).t);
@@ -296,6 +249,16 @@ export function initFeel() {
   gui.add(FEEL, 'on');
   gui.add(FEEL, 'nib', NIBS as unknown as string[]).name('nib (X)');
   gui.add(FEEL, 'reticle');
+  // Smooth opacity, like a drawing app: the game's chunky alpha steps off (the panel brings them back).
+  PAINT.alphaSteps = 0;
+  gui.add(PAINT, 'alphaSteps', 0, 16, 1).name('alpha steps (game: 8)');
+  const br = gui.addFolder('Brush');
+  br.add(FEEL, 'brush').name('brush (else particles)');
+  br.add(FEEL, 'opacity', 0.02, 1).name('opacity (Shift+wheel)');
+  br.add(FEEL, 'spacing', 0.05, 1);
+  br.add(FEEL, 'streamline', 0, 1);
+  br.add(FEEL, 'closeSoft', 0, 1);
+  br.add(FEEL, 'farSoft', 0, 1);
   const d = gui.addFolder('Distance');
   d.add(FEEL, 'closeAt', 0.05, 1);
   d.add(FEEL, 'farAt', 0.5, 4.6);
@@ -320,12 +283,6 @@ export function initFeel() {
   s.add(FEEL, 'chiselRatio', 1.5, 10);
   s.add(FEEL, 'chiselAngle', 0, 180);
   s.add(FEEL, 'speedThin', 0, 1);
-  const t = gui.addFolder('Wall tooth');
-  t.add(FEEL, 'toothMode', { tooth: 0, halftone: 1, grain: 2, smooth: 3 }).name('mode (C)');
-  t.add(FEEL, 'tooth', 0, 1);
-  t.add(FEEL, 'toothScale', 0.3, 3);
-  t.add(FEEL, 'grain', 0, 1);
-  t.add(FEEL, 'relief', 0, 1);
   gui.hide();
   window.addEventListener('keydown', (e) => {
     // Not while typing a number into the panel.
@@ -336,10 +293,18 @@ export function initFeel() {
     } else if (e.code === 'KeyX') {
       FEEL.nib = NIBS[(NIBS.indexOf(FEEL.nib) + 1) % NIBS.length];
       flash(`NIB: ${FEEL.nib.toUpperCase()}`);
-    } else if (e.code === 'KeyC') {
-      FEEL.toothMode = (FEEL.toothMode + 1) % TOOTH_MODES.length;
-      flash(`WALL: ${TOOTH_MODES[FEEL.toothMode]}`);
     } else return;
-    gui!.controllersRecursive().forEach((c) => c.updateDisplay());
+    refreshPanel();
   });
+}
+
+export function refreshPanel() {
+  gui?.controllersRecursive().forEach((c) => c.updateDisplay());
+}
+
+/** Shift + wheel: the brush's opacity, in 5% steps. */
+export function stepOpacity(steps: number) {
+  FEEL.opacity = THREE.MathUtils.clamp(Math.round((FEEL.opacity - steps * 0.05) * 20) / 20, 0.05, 1);
+  flash(`OPACITY ${Math.round(FEEL.opacity * 100)}%`);
+  refreshPanel();
 }
