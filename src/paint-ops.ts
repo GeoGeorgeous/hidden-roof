@@ -1,5 +1,6 @@
 import type { PaintDrips } from './paint-drips';
 import type { PaintSystem, Rgb } from './painting';
+import type { DotShape } from './paint-raster';
 
 // Paint operations: each stamp and roll the tools make and each run they
 // start, as data. A surface by key and a face point (u, v across the face) are
@@ -23,6 +24,8 @@ export interface StampOp extends At {
   color: Rgb | null;
   softness: number;
   square: boolean;
+  /** Sandbox: an elliptic dot (see DotShape in paint-raster.ts). Local only, the wire drops it. */
+  shape?: DotShape;
 }
 
 export interface RollOp extends At {

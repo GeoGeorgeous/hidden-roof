@@ -5,7 +5,7 @@ import type { FacePoint, Rect, SurfaceGeometry } from './surfaces';
 import { SeamIndex, texelToWorld, worldToTexel, type SeamFace } from './paint-seams';
 import { PaintGpu } from './paint-gpu';
 import { hasPaint, type Owned, type PaintPatch, type PaintSurface, type Rgb } from './paint-surface';
-import { inRing, PaintRaster, type Band, type Box } from './paint-raster';
+import { inRing, PaintRaster, type Band, type Box, type DotShape } from './paint-raster';
 import type { PaintOp, RollOp, StampOp } from './paint-ops';
 import { rounded } from './op-wire';
 import { imageOnFace, type PaintImage } from './paint-image';
@@ -228,10 +228,11 @@ export class PaintSystem {
     softness = 0.5,
     drip = 0,
     square = false,
+    shape?: DotShape,
   ) {
     if (!this.live(s)) return;
     // Logged before it paints: the runs it starts are logged after it.
-    const op = this.record(rounded({ kind: 'stamp', key: s.key, rect: at.rect, u: at.u, v: at.v, radius, amount, color, softness, square }));
+    const op = this.record(rounded({ kind: 'stamp', key: s.key, rect: at.rect, u: at.u, v: at.v, radius, amount, color, softness, square, shape }));
     this.stampOp(s, op, drip);
   }
 
@@ -253,11 +254,11 @@ export class PaintSystem {
   private stampOp(s: PaintSurface, op: StampOp, drip: number) {
     const rect = faceTexel(s, op);
     const { x: cx, y: cy } = atTexel;
-    this.dot(s, rect, cx, cy, op.radius, op.amount, op.color, op.softness, drip, op.square);
+    this.dot(s, rect, cx, cy, op.radius, op.amount, op.color, op.softness, drip, op.square, op.shape);
     for (const n of this.pastEdge(s, rect, cx, cy, op.radius)) {
       if (!this.live(n.surface)) continue;
       worldToTexel(n.rect, seamPoint, seamTexel);
-      this.dot(n.surface, n.rect, seamTexel.x, seamTexel.y, op.radius, op.amount, op.color, op.softness, drip, op.square);
+      this.dot(n.surface, n.rect, seamTexel.x, seamTexel.y, op.radius, op.amount, op.color, op.softness, drip, op.square, op.shape);
     }
   }
 
@@ -315,12 +316,12 @@ export class PaintSystem {
     this.raster.band(s, rect, cx, cy, axis, b);
   }
 
-  private dot(s: PaintSurface, rect: Rect, cx: number, cy: number, radius: number, amount: number, color: Rgb | null, softness: number, drip: number, square: boolean) {
+  private dot(s: PaintSurface, rect: Rect, cx: number, cy: number, radius: number, amount: number, color: Rgb | null, softness: number, drip: number, square: boolean, shape?: DotShape) {
     // Nothing to scrub off a surface that was never painted.
     if (!color && !hasPaint(s)) return;
     this.ensureTexture(s);
     if (!color) this.scrubbed.add(s);
-    this.raster.dot(s, rect, cx, cy, radius, amount, color, softness, drip, square);
+    this.raster.dot(s, rect, cx, cy, radius, amount, color, softness, drip, square, shape);
   }
 
   /**

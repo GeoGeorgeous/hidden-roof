@@ -4,6 +4,8 @@ import type { PaintSurface, PaintSystem, Rgb } from '../painting';
 import { solidsNear } from '../level/solids';
 import { paintRandom } from '../lcg';
 import { facePoint, type FacePoint } from '../surfaces';
+import type { DotShape } from '../paint-raster';
+import { FEEL, farness, landing, type Landing, type ParticleKind } from '../sandbox/feel';
 
 // Visual spray particles. Each one raycasts once when emitted, flies from the
 // nozzle to its hit point, and stamps paint into the surface texture on arrival.
@@ -26,6 +28,7 @@ interface Particle {
   /** Paint runs it may start, per m² (its cap's). */
   drips: number;
   rgb: Rgb;
+  shape: DotShape | undefined;
 }
 
 export interface EmitParams {
@@ -40,7 +43,14 @@ export interface EmitParams {
   /** sRGB 0..1 for paint, and display color for the points. */
   rgb: Rgb;
   display: THREE.Color;
+  /** Sandbox (sandbox/feel.ts): blobs at the start of a press (0..), extra spatter odds, cone multiplier. */
+  spit?: number;
+  spatter?: number;
+  cone?: number;
 }
+
+const land: Landing = { amount: 0, radius: 0, softness: 0, drips: 0, shape: undefined };
+const hitDir = new THREE.Vector3();
 
 /** The wall one other player's spray found, kept while their aim holds (SPRAY.others): where and how it was cast, how long ago, and the wall's plane. */
 export class WallMemo {
@@ -58,10 +68,11 @@ export type ShowParams = Omit<EmitParams, 'flow' | 'rgb'> & { dt: number; memo: 
 const dir = new THREE.Vector3();
 const target = new THREE.Vector3();
 const ray = new THREE.Ray();
+const probeAt: FacePoint = { rect: 0, u: 0, v: 0 };
 
 /** A particle's direction into `dir`: in the cap's cone around the aim, Gaussian-ish, clamped. */
-function aim(e: Pick<EmitParams, 'forward' | 'right' | 'up' | 'cap'>, random: () => number) {
-  const r = Math.tan(Math.min(1, Math.abs(gauss(random)) * 0.5) * (e.cap.spread / 2));
+function aim(e: Pick<EmitParams, 'forward' | 'right' | 'up' | 'cap'>, random: () => number, cone = 1) {
+  const r = Math.tan(Math.min(1, Math.abs(gauss(random)) * 0.5) * ((e.cap.spread * cone) / 2));
   const a = random() * Math.PI * 2;
   return dir.copy(e.forward).addScaledVector(e.right, Math.cos(a) * r).addScaledVector(e.up, Math.sin(a) * r).normalize();
 }
@@ -90,7 +101,7 @@ export class SprayParticles {
     this.points.frustumCulled = false;
     scene.add(this.points);
     for (let i = 0; i < SPRAY.maxParticles; i++) {
-      this.free.push({ pos: new THREE.Vector3(), vel: new THREE.Vector3(), life: 0, fresh: false, surface: null, epoch: 0, at: { rect: 0, u: 0, v: 0 }, amount: 0, radius: 0, softness: 0, drips: 0, rgb: [0, 0, 0] });
+      this.free.push({ pos: new THREE.Vector3(), vel: new THREE.Vector3(), life: 0, fresh: false, surface: null, epoch: 0, at: { rect: 0, u: 0, v: 0 }, amount: 0, radius: 0, softness: 0, drips: 0, rgb: [0, 0, 0], shape: undefined });
     }
   }
 
@@ -103,26 +114,47 @@ export class SprayParticles {
     // Broad phase: only solids near the player can be hit.
     solidsNear(this.solids, e.eye, SPRAY.reach, this.candidates);
     const { cap } = e;
-    let landing = 0;
-    for (let i = 0; i < e.count; i++) {
+    let landed = 0;
+    const feel = FEEL.on;
+    const extra = feel ? Math.round(e.count * FEEL.overspray) : 0;
+    // A needle and a chisel spray a tight jet: the nib's shape, not the cone, makes the line.
+    const needle = feel && FEEL.nib === 'needle' ? 0.3 : feel && FEEL.nib === 'chisel' ? 0.2 : 1;
+    for (let i = 0; i < e.count + extra; i++) {
       const p = this.free.pop();
       if (!p) break;
-      const hit = this.cast(e.eye, aim(e, paintRandom.spray));
-      this.launch(p, e, hit ? hit.point : target.copy(e.eye).addScaledVector(dir, SPRAY.reach));
+      const over = i >= e.count;
+      const cone = over ? FEEL.oversprayCone : needle * (e.cone ?? 1);
+      const hit = this.cast(e.eye, hitDir.copy(aim(e, paintRandom.spray, cone)));
+      this.launch(p, e, hit ? hit.point : target.copy(e.eye).addScaledVector(hitDir, SPRAY.reach));
       p.surface = hit ? (this.paint.get(hit.object) ?? null) : null;
       if (hit && p.surface) {
-        landing++;
+        landed++;
         facePoint(p.surface.geo, hit.faceIndex!, hit.uv!, p.at);
         p.epoch = this.paint.epoch;
         const fall = hit.distance <= SPRAY.falloffStart ? 1 : 1 - (hit.distance - SPRAY.falloffStart) / (SPRAY.reach - SPRAY.falloffStart);
-        p.amount = cap.strength * Math.max(0.15, e.flow) * fall * (0.6 + paintRandom.spray() * 0.4);
-        p.radius = cap.dotSize / 2;
-        p.softness = cap.softness;
-        p.drips = cap.drips;
+        const base = cap.strength * Math.max(0.15, e.flow) * fall * (0.6 + paintRandom.spray() * 0.4);
         p.rgb = e.rgb;
+        if (!feel) {
+          p.amount = base;
+          p.radius = cap.dotSize / 2;
+          p.softness = cap.softness;
+          p.drips = cap.drips;
+          p.shape = undefined;
+          continue;
+        }
+        const t = farness(hit.distance);
+        const spatterOdds = FEEL.spatter * t * Math.sqrt(t) + (e.spatter ?? 0);
+        const kind: ParticleKind = over ? 'overspray' : paintRandom.spray() < spatterOdds ? 'spatter' : 'paint';
+        landing(kind, cap, base, hit.distance, p.surface.geo.rects[p.at.rect], hitDir, paintRandom.spray, land);
+        const spit = kind === 'paint' ? (e.spit ?? 0) : 0;
+        p.amount = Math.min(1, land.amount * (1 + spit));
+        p.radius = land.radius * (1 + spit * 0.6);
+        p.softness = land.softness;
+        p.drips = land.drips * (1 + spit * 3);
+        p.shape = land.shape;
       }
     }
-    return landing;
+    return landed;
   }
 
   /**
@@ -158,6 +190,16 @@ export class SprayParticles {
     }
   }
 
+  /** Sandbox: what the aim meets (a paintable surface or not), for the reticle. */
+  probe(eye: THREE.Vector3, forward: THREE.Vector3) {
+    solidsNear(this.solids, eye, SPRAY.reach, this.candidates);
+    const hit = this.cast(eye, forward);
+    const surface = hit ? this.paint.get(hit.object) : undefined;
+    if (!hit || !surface || !hit.face) return null;
+    facePoint(surface.geo, hit.faceIndex!, hit.uv!, probeAt);
+    return { point: hit.point, distance: hit.distance, normal: hit.face.normal, rect: surface.geo.rects[probeAt.rect] };
+  }
+
   /** The first of the candidates (solidsNear) hit within SPRAY.reach. */
   private cast(from: THREE.Vector3, along: THREE.Vector3) {
     this.raycaster.set(from, along);
@@ -191,7 +233,7 @@ export class SprayParticles {
       p.pos.addScaledVector(p.vel, Math.min(step, p.life));
       p.life -= step;
       if (p.life <= 0) {
-        if (p.surface && p.epoch === this.paint.epoch) this.paint.stamp(p.surface, p.at, p.radius, p.amount, p.rgb, p.softness, p.drips);
+        if (p.surface && p.epoch === this.paint.epoch) this.paint.stamp(p.surface, p.at, p.radius, p.amount, p.rgb, p.softness, p.drips, false, p.shape);
         p.surface = null;
         this.free.push(p);
         continue;

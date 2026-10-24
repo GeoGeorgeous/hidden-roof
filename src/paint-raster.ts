@@ -17,6 +17,13 @@ export interface RasterSurface {
   wet: Float32Array | null;
 }
 
+/**
+ * Sandbox: an elliptic dot: stretched `elong` times along the texel-space
+ * angle `ang` (radians), its paint fading by `tail` (0..1) toward the far end
+ * (+axis). A spray hitting a wall at a slant, or a chisel nib.
+ */
+export type DotShape = [elong: number, ang: number, tail: number];
+
 /** Atlas texels x0..x1, y0..y1, inclusive. */
 export type Box = [x0: number, y0: number, x1: number, y1: number];
 
@@ -100,13 +107,18 @@ export class PaintRaster<S extends RasterSurface> {
     softness: number,
     drip: number,
     square: boolean,
+    shape?: DotShape,
   ) {
     const w = s.geo.atlasW;
     const data = s.data!;
     const r = radius * s.geo.texelsPerMeter;
+    const elong = shape ? Math.max(1, shape[0]) : 1;
+    const ax = shape ? Math.cos(shape[1]) : 1;
+    const ay = shape ? Math.sin(shape[1]) : 0;
+    const tail = shape ? shape[2] : 0;
     // Under half a texel diagonal the dot could miss every texel center.
     const dot = r >= Math.SQRT1_2;
-    const reach = dot ? r - 0.5 : 0;
+    const reach = dot ? r * elong - 0.5 : 0;
     // Clip to the face rect plus its 1-texel padding so paint never bleeds onto another face.
     const x0 = Math.max(rect.x - 1, Math.floor(cx - reach));
     const x1 = Math.min(rect.x + rect.w, Math.floor(cx + reach));
@@ -117,12 +129,18 @@ export class PaintRaster<S extends RasterSurface> {
     let touched = false;
     for (let y = y0; y <= y1; y++) {
       for (let x = x0; x <= x1; x++) {
-        const dx = x + 0.5 - cx;
-        const dy = y + 0.5 - cy;
+        let dx = x + 0.5 - cx;
+        let dy = y + 0.5 - cy;
+        let along = 0;
+        if (shape) {
+          along = dx * ax + dy * ay;
+          dy = dy * ax - dx * ay;
+          dx = along / elong;
+        }
         const d2 = dx * dx + dy * dy;
         if (dot && (square ? Math.abs(dx) > r || Math.abs(dy) > r : d2 > r2)) continue;
         const falloff = dot && !square ? 1 - (d2 / r2) * softness : 1;
-        const amt = amount * falloff;
+        const amt = amount * falloff * (tail > 0 && along > 0 ? 1 - tail * Math.min(1, along / (r * elong)) : 1);
         if (amt <= 0) continue;
         const i = (y * w + x) * 4;
         if (!color) {
