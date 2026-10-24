@@ -2,6 +2,17 @@
 
 The public server: see also docs/deploy.md. Order: BL-043 first; 044, 045 (needs 044) and 046, 047 follow.
 
+## Decisions for 1.6.0 (owner, 2026-10-25)
+
+- **Two session types.** Private: as today, joined with its code; up to 4 players. Public: open to all, no code; up to 20 players.
+- **Who creates them.** Public: the admin only, by a server command or the admin panel. Private: players' HOST stays in the code but is disabled in 1.6.0 (not removed).
+- **The server list** replaces HOST and JOIN and shows every session, public and private: type, name, players, ping, allowed tools. A private one asks for its code on click (the host and its players have it). The design is ready (DSGN-160, from the owner).
+- **Session names**, chosen at creation (e.g. "Drawing together").
+- **Tools off per session** (BL-154): the host turns off e.g. the sponge or the roller; those items leave the map and can't be picked up or used.
+- **Queue** (BL-046): a full session lets players wait for a free place, as in Minecraft.
+- **Public paint is kept**: stored and backed up, restored after a host outage (Hetzner may go down rarely). A change of the game version, the level or the protocol wipes it.
+- **Admin panel** (BL-047): minimal, stats and session management.
+
 ## BL-043 One public server, running 24/7
 
 See `docs/deploy.md`.
