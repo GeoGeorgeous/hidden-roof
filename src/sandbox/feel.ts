@@ -35,7 +35,7 @@ export const FEEL = {
   farSoft: 0.95,
   // Distance
   closeAt: 0.25,
-  farAt: 2.5,
+  farAt: 1.5,
   closeSize: 0.55,
   farSize: 2.2,
   closeFlow: 1.8,
@@ -45,8 +45,8 @@ export const FEEL = {
   oversprayCone: 3.5,
   oversprayAmount: 0.12,
   // Spatter
-  spatter: 0.03,
-  spatterLowPressure: 0.25,
+  spatter: 0,
+  spatterLowPressure: 0,
   spatterSize: 0.7,
   spit: 1,
   spitTime: 0.09,

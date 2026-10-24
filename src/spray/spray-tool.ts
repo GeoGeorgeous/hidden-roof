@@ -141,7 +141,7 @@ export class SprayTool {
     const feel = FEEL.on;
     const spit = feel && FEEL.spitTime > 0 && this.holdT < FEEL.spitTime ? FEEL.spit * (1 - this.holdT / FEEL.spitTime) : 0;
     const low = Math.max(0, 1 - inv.pressure / PRESSURE.thinThreshold);
-    const spatter = feel ? low * FEEL.spatterLowPressure + (tail > 0 ? 0.5 : 0) : 0;
+    const spatter = feel ? (low + (tail > 0 ? 2 : 0)) * FEEL.spatterLowPressure : 0;
     const cone = feel ? 1 / (1 + this.aimSpeed * FEEL.speedThin) : 1;
     if (feel && FEEL.brush) this.landing = this.brush.stroke({ eye, forward, cap, rgb: rgbOf(inv.color), flow, spit, spatter, dt });
     if (!count) return;

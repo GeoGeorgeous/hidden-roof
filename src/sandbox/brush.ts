@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { SPRAY, type CapSpec } from '../config';
 import { paintRandom } from '../lcg';
 import type { PaintSystem, Rgb } from '../painting';
-import type { DotShape } from '../paint-raster';
+import { STROKE, type DotShape } from '../paint-raster';
 import type { SprayParticles } from '../spray/particles';
 import { FEEL, farness, slantShape } from './feel';
 
@@ -63,6 +63,7 @@ export class SprayBrush {
 
   /** The stroke ended (the button let go): the next one starts fresh. */
   end() {
+    STROKE.id++;
     this.has = false;
     this.smoothed = false;
   }
@@ -97,15 +98,15 @@ export class SprayBrush {
       for (let i = 1; i <= n; i++) {
         p.lerpVectors(lastPoint, curPoint, i / n);
         dir.subVectors(p, b.eye).normalize();
-        this.dabAlong(b, dir, 1);
+        this.dabAlong(b, dir, 1, true);
       }
       this.idle = 0;
       lastPoint.copy(curPoint);
     } else if (!this.has || gap >= 3) {
-      this.dabAlong(b, forward, 1);
+      this.dabAlong(b, forward, 1, true);
       lastPoint.copy(curPoint);
       this.idle = 0;
-    } else {
+    } else if (gap < spacing * 0.25) {
       // Held still: build up, like an airbrush.
       this.idle += b.dt * BUILD_RATE;
       while (this.idle >= 1) {
@@ -119,25 +120,32 @@ export class SprayBrush {
   }
 
 
-  /** One dab where a ray along `d` meets paintable surface. `weight` scales its paint. */
-  private dabAlong(b: BrushParams, d: THREE.Vector3, weight: number) {
+  /**
+   * One dab where a ray along `d` meets paintable surface. `stroke`: part of the
+   * stroke (each texel takes the most of its dabs, see STROKE); else it adds up
+   * (held still: an airbrush building up), `weight` of a stroke pass's share.
+   */
+  private dabAlong(b: BrushParams, d: THREE.Vector3, weight: number, stroke = false) {
     const hit = this.caster.probe(b.eye, d, false);
     if (!hit) return;
     const t = farness(hit.distance);
     const radius = dabRadius(b.cap, hit.distance) * (1 + b.spit * 0.6);
     const fall = hit.distance <= SPRAY.falloffStart ? 1 : 1 - (hit.distance - SPRAY.falloffStart) / (SPRAY.reach - SPRAY.falloffStart);
-    const softness = FEEL.nib === 'round' ? THREE.MathUtils.lerp(FEEL.closeSoft, FEEL.farSoft, t) : 0.1;
+    // The cap's edge scales the brush's: soft caps fuzzier, hard caps crisp at any distance (standard = 0.35 = as set).
+    const softness = FEEL.nib === 'round' ? Math.min(1, THREE.MathUtils.lerp(FEEL.closeSoft, FEEL.farSoft, t) * (b.cap.softness / 0.35)) : 0.1;
     // One pass reaches about `pass` along the stroke's middle (opacity is what it says, like a drawing app;
     // distance only thins it a little): each texel there is under about 2 / spacing dabs, softened by their edge.
     const pass = Math.min(0.999, FEEL.opacity * b.flow * Math.max(0.75, fall) * THREE.MathUtils.lerp(FEEL.closeFlow, 1, t) * (1 + b.spit));
     const overlap = (2 / FEEL.spacing) * (1 - softness * 0.6);
-    const amount = Math.min(1, (1 - Math.pow(1 - pass, 1 / overlap)) * weight);
+    const amount = stroke ? pass : Math.min(1, (1 - Math.pow(1 - pass, 1 / overlap)) * weight);
     let shape: DotShape | undefined;
     const s = slantShape(hit.rect, d, slant);
     if (s && FEEL.slant > 0) shape = [s.elong, s.ang, FEEL.tail * (1 - s.cos)];
     if (FEEL.nib === 'chisel' && hit.rect?.face) shape = [FEEL.chiselRatio * (s ? Math.sqrt(s.elong) : 1), (FEEL.chiselAngle * Math.PI) / 180, 0];
     const drips = b.cap.drips * THREE.MathUtils.lerp(FEEL.closeDrips, 1, t) * (1 + b.spit * 3);
+    STROKE.on = stroke;
     this.paint.stamp(hit.surface, hit.at, radius, amount, b.rgb, softness, drips, false, shape);
+    STROKE.on = false;
   }
 
   /** Overspray specks and spatter drops around the aim, landing at once. */

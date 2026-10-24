@@ -508,11 +508,14 @@ export interface CapSpec {
   nozzle: number;
 }
 
-export type CapId = 'skinny' | 'standard' | 'fat' | 'spray';
-export const CAP_ORDER: CapId[] = ['skinny', 'standard', 'fat', 'spray'];
+export type CapId = 'skinny' | 'standard' | 'soft' | 'hard' | 'fat' | 'spray';
+export const CAP_ORDER: CapId[] = ['skinny', 'standard', 'soft', 'hard', 'fat', 'spray'];
 export const CAPS: Record<CapId, CapSpec> = {
   skinny: { name: 'SKINNY', spread: 0.01, rate: 1900, strength: 0.9, dotSize: 0.036, softness: 0.15, hissGain: 0.5, hissTone: 0, crosshair: 10, drips: 2, drain: 0.015, color: '#7fb4f2', nozzle: 0.004 },
   standard: { name: 'STANDARD', spread: 0.03, rate: 1760, strength: 0.75, dotSize: 0.05, softness: 0.35, hissGain: 0.75, hissTone: 0.4, crosshair: 18, drips: 4, drain: 0.03, color: '#f4f4f4', nozzle: 0.006 },
+  /** Sandbox: the standard cap with a soft edge, and with a hard one. */
+  soft: { name: 'SOFT', spread: 0.024, rate: 1760, strength: 0.75, dotSize: 0.04, softness: 0.95, hissGain: 0.75, hissTone: 0.5, crosshair: 20, drips: 3, drain: 0.03, color: '#f29bc4', nozzle: 0.006 },
+  hard: { name: 'HARD', spread: 0.02, rate: 1760, strength: 0.75, dotSize: 0.034, softness: 0.03, hissGain: 0.75, hissTone: 0.3, crosshair: 18, drips: 4, drain: 0.03, color: '#33333d', nozzle: 0.006 },
   fat: { name: 'FAT', spread: 0.04, rate: 650, strength: 0.8, dotSize: 0.12, softness: 0.15, hissGain: 1, hissTone: 1, crosshair: 24, drips: 6, drain: 0.06, color: '#f2a04c', nozzle: 0.01 },
   /** Wide, soft mist for fades and backgrounds: lots of faint, fuzzy dots. */
   spray: { name: 'SPRAY', spread: 0.1, rate: 1100, strength: 0.12, dotSize: 0.158, softness: 0.55, hissGain: 0.9, hissTone: 0.8, crosshair: 32, drips: 50, drain: 0.1, color: '#b98cf2', nozzle: 0.013 },
@@ -937,7 +940,7 @@ export const SPRAY = {
   /** Max distance from the eye to the surface: how far paint travels. */
   reach: 4.6,
   /** Paint strength fades linearly from this distance to `reach`. */
-  falloffStart: 1,
+  falloffStart: 0.5,
   particleSpeed: 26,
   particleSize: 0.035,
   maxParticles: 3000,
