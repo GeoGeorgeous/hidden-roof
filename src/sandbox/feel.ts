@@ -14,7 +14,7 @@ import type { Rect } from '../surfaces';
 //    the aim, fading at the far end
 //  - nibs: round (the cap as is), chisel (a 45° calligraphy nib), needle
 //  - fast aim thins the line (flicks taper)
-//  - a reticle on the wall: the real size and shape of the spot
+//  - one crosshair for the can: the spot's real size, the opacity, too close
 // Z shows the panel, X cycles nibs.
 
 export const NIBS = ['round', 'chisel', 'needle'] as const;
@@ -60,13 +60,9 @@ export const FEEL = {
   chiselAngle: 45,
   // Gesture
   speedThin: 0.12,
-  // Reticle
-  reticle: true,
 };
 
 // --- Per particle ---
-
-const tmp = new THREE.Vector3();
 
 export interface Landing {
   /** Paint per particle, radius (m), softness, drips per m², shape. */
@@ -140,95 +136,13 @@ export function landing(kind: ParticleKind, cap: CapSpec, base: number, distance
   return out;
 }
 
-// --- Reticle: the spot as it will land ---
-
-const VS = 'varying vec2 vUv; void main() { vUv = uv * 2.0 - 1.0; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }';
-const FS = /* glsl */ `
-uniform vec3 uColor;
-uniform float uState;
-uniform float uTail;
-uniform float uTime;
-varying vec2 vUv;
-void main() {
-  float r = length(vUv);
-  float aa = fwidth(r) * 1.5;
-  float ring = smoothstep(0.86 - aa, 0.86, r) * (1.0 - smoothstep(1.0 - aa, 1.0, r));
-  // Far: dashed ring; close: solid.
-  float a = atan(vUv.y, vUv.x);
-  float dash = mix(step(0.0, sin(a * 18.0 + uTime * 2.0)), 1.0, step(uState, 1.5));
-  float fill = (1.0 - smoothstep(0.86 - aa, 0.86, r)) * 0.12 * (1.0 - uTail * max(vUv.x, 0.0));
-  float dot = 1.0 - smoothstep(0.05 - aa, 0.05, r);
-  vec3 c = uColor;
-  if (uState < 0.5) c = mix(c, vec3(1.0, 0.25, 0.1), 0.7);
-  float alpha = max(ring * dash * 0.85, max(fill, dot * 0.9));
-  if (alpha < 0.01) discard;
-  gl_FragColor = vec4(c, alpha);
-}`;
-
-const zAxis = new THREE.Vector3();
-const xAxis = new THREE.Vector3();
-const yAxis = new THREE.Vector3();
-const basis = new THREE.Matrix4();
-
-export class SprayReticle {
-  readonly mesh: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
-  private uniforms = { uColor: { value: new THREE.Color() }, uState: { value: 1 }, uTail: { value: 0 }, uTime: { value: 0 } };
-
-  constructor(scene: THREE.Scene) {
-    const m = new THREE.ShaderMaterial({ uniforms: this.uniforms, vertexShader: VS, fragmentShader: FS, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
-    this.mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), m);
-    this.mesh.visible = false;
-    this.mesh.frustumCulled = false;
-    this.mesh.renderOrder = 10;
-    scene.add(this.mesh);
-  }
-
-  hide() {
-    this.mesh.visible = false;
-  }
-
-  /** At `point` on face `rect` (normal `normal`), aimed along `dir` from `distance` m. */
-  show(point: THREE.Vector3, normal: THREE.Vector3, rect: Rect | undefined, dir: THREE.Vector3, distance: number, cap: CapSpec, color: string, time: number) {
-    if (!FEEL.on || !FEEL.reticle) return this.hide();
-    const n = zAxis.copy(normal);
-    if (n.dot(dir) > 0) n.negate();
-    // Where most particles land (see aim in particles.ts) + the dot.
-    const t = farness(distance);
-    let r = distance * Math.tan(cap.spread * 0.25) + (cap.dotSize / 2) * THREE.MathUtils.lerp(FEEL.closeSize, FEEL.farSize, t);
-    if (FEEL.nib === 'needle') r *= 0.5;
-    const s = slantShape(rect, dir, slant);
-    let elong = s && FEEL.slant > 0 ? s.elong : 1;
-    // The long axis along the aim, laid into the wall.
-    xAxis.copy(dir).addScaledVector(n, -dir.dot(n));
-    if (xAxis.lengthSq() < 1e-6) xAxis.set(0, 1, 0).cross(n);
-    if (xAxis.lengthSq() < 1e-6) xAxis.set(1, 0, 0);
-    xAxis.normalize();
-    if (FEEL.nib === 'chisel' && rect?.face) {
-      // The nib: fixed on the wall at its angle, from the face's u axis.
-      const u = tmp.copy(rect.face.uAxis).normalize();
-      const v = yAxis.copy(rect.face.vAxis).normalize();
-      const a = (FEEL.chiselAngle * Math.PI) / 180;
-      xAxis.copy(u).multiplyScalar(Math.cos(a)).addScaledVector(v, Math.sin(a)).normalize();
-      elong = FEEL.chiselRatio;
-      r = (cap.dotSize / 2) * 0.45 + distance * Math.tan(cap.spread * 0.25);
-    }
-    yAxis.crossVectors(n, xAxis);
-    basis.makeBasis(xAxis, yAxis, n);
-    this.mesh.quaternion.setFromRotationMatrix(basis);
-    this.mesh.position.copy(point).addScaledVector(n, 0.004).addScaledVector(xAxis, r * (elong - 1) * 0.35);
-    this.mesh.scale.set(2 * r * elong, 2 * r, 1);
-    this.uniforms.uColor.value.set(color);
-    // 0 too close (runs), 1 sweet, 2 far (speckled, weak).
-    this.uniforms.uState.value = distance < FEEL.closeAt * 1.3 ? 0 : distance < FEEL.farAt * 0.6 ? 1 : 2;
-    this.uniforms.uTail.value = s ? FEEL.tail * (1 - s.cos) : 0;
-    this.uniforms.uTime.value = time;
-    this.mesh.visible = true;
-  }
-}
-
 // --- Panel and hotkeys ---
 
 const label = document.createElement('div');
+/** Screen-space opacity gauge around the crosshair: an arc of the paint's color, a dot as dense as one pass. */
+const gauge = document.createElement('div');
+const gaugeDot = document.createElement('div');
+let opacityChangedAt = -1;
 let gui: GUI | null = null;
 
 export function flash(text: string) {
@@ -244,45 +158,57 @@ export function initFeel() {
     color: '#fff', textShadow: '0 0 6px #000, 0 0 2px #000', pointerEvents: 'none', opacity: '0', transition: 'opacity 0.3s', zIndex: '9999',
   });
   document.body.appendChild(label);
-  gui = new GUI({ title: 'SANDBOX · Spray feel (Z)' });
+  Object.assign(gauge.style, {
+    position: 'fixed', left: '50%', top: '50%', borderRadius: '50%',
+    pointerEvents: 'none', zIndex: '9997', display: 'none', transition: 'transform 0.15s, width 0.08s, height 0.08s, margin 0.08s',
+    // A hairline ring at any size: the conic fill shows only at the rim. Barely there, like the game's.
+    mask: 'radial-gradient(closest-side, transparent calc(100% - 1.6px), #000 calc(100% - 1px))',
+    webkitMask: 'radial-gradient(closest-side, transparent calc(100% - 1.6px), #000 calc(100% - 1px))',
+    opacity: '0.75',
+  });
+  Object.assign(gaugeDot.style, {
+    position: 'fixed', left: '50%', top: '50%', width: '3px', height: '3px', margin: '-1.5px 0 0 -1.5px', borderRadius: '50%',
+    pointerEvents: 'none', zIndex: '9997', display: 'none',
+  });
+  document.body.append(gauge, gaugeDot);
+  gui = new GUI({ title: 'ПЕСОЧНИЦА · баллон (Z)' });
   gui.domElement.style.zIndex = '9998';
-  gui.add(FEEL, 'on');
-  gui.add(FEEL, 'nib', NIBS as unknown as string[]).name('nib (X)');
-  gui.add(FEEL, 'reticle');
+  gui.add(FEEL, 'on').name('включено');
+  gui.add(FEEL, 'nib', NIBS as unknown as string[]).name('насадка (X)');
   // Smooth opacity, like a drawing app: the game's chunky alpha steps off (the panel brings them back).
   PAINT.alphaSteps = 0;
-  gui.add(PAINT, 'alphaSteps', 0, 16, 1).name('alpha steps (game: 8)');
-  const br = gui.addFolder('Brush');
-  br.add(FEEL, 'brush').name('brush (else particles)');
-  br.add(FEEL, 'opacity', 0.02, 1).name('opacity (Shift+wheel)');
-  br.add(FEEL, 'spacing', 0.05, 1);
-  br.add(FEEL, 'streamline', 0, 1);
-  br.add(FEEL, 'closeSoft', 0, 1);
-  br.add(FEEL, 'farSoft', 0, 1);
-  const d = gui.addFolder('Distance');
-  d.add(FEEL, 'closeAt', 0.05, 1);
-  d.add(FEEL, 'farAt', 0.5, 4.6);
-  d.add(FEEL, 'closeSize', 0.2, 1.5);
-  d.add(FEEL, 'farSize', 0.5, 5);
-  d.add(FEEL, 'closeFlow', 0.5, 4);
-  d.add(FEEL, 'closeDrips', 0, 20);
-  const o = gui.addFolder('Overspray / spatter');
-  o.add(FEEL, 'overspray', 0, 1.5);
-  o.add(FEEL, 'oversprayCone', 1, 8);
-  o.add(FEEL, 'oversprayAmount', 0, 0.3);
-  o.add(FEEL, 'spatter', 0, 0.4);
-  o.add(FEEL, 'spatterLowPressure', 0, 1);
-  o.add(FEEL, 'spatterSize', 0.1, 1.5);
-  o.add(FEEL, 'spit', 0, 3);
-  o.add(FEEL, 'spitTime', 0, 0.4);
-  o.add(FEEL, 'releaseTail', 0, 0.5);
-  const s = gui.addFolder('Slant / nib / gesture');
-  s.add(FEEL, 'slant', 0, 1);
-  s.add(FEEL, 'maxElong', 1, 8);
-  s.add(FEEL, 'tail', 0, 1);
-  s.add(FEEL, 'chiselRatio', 1.5, 10);
-  s.add(FEEL, 'chiselAngle', 0, 180);
-  s.add(FEEL, 'speedThin', 0, 1);
+  gui.add(PAINT, 'alphaSteps', 0, 16, 1).name('ступени прозрачности (в игре 8)');
+  const br = gui.addFolder('Кисть');
+  br.add(FEEL, 'brush').name('кисть (иначе частицы)');
+  br.add(FEEL, 'opacity', 0.02, 1).name('нажим (Shift+колесо)');
+  br.add(FEEL, 'spacing', 0.05, 1).name('шаг отпечатков');
+  br.add(FEEL, 'streamline', 0, 1).name('сглаживание линии');
+  br.add(FEEL, 'closeSoft', 0, 1).name('мягкость вблизи');
+  br.add(FEEL, 'farSoft', 0, 1).name('мягкость вдали');
+  const d = gui.addFolder('Дистанция');
+  d.add(FEEL, 'closeAt', 0.05, 1).name('«вблизи» до, м');
+  d.add(FEEL, 'farAt', 0.5, 4.6).name('«вдали» от, м');
+  d.add(FEEL, 'closeSize', 0.2, 1.5).name('размер вблизи');
+  d.add(FEEL, 'farSize', 0.5, 5).name('размер вдали');
+  d.add(FEEL, 'closeFlow', 0.5, 4).name('краски вблизи, ×');
+  d.add(FEEL, 'closeDrips', 0, 20).name('подтёков вблизи, ×');
+  const o = gui.addFolder('Пыль и брызги');
+  o.add(FEEL, 'overspray', 0, 1.5).name('пыль: сколько');
+  o.add(FEEL, 'oversprayCone', 1, 8).name('пыль: ширина');
+  o.add(FEEL, 'oversprayAmount', 0, 0.3).name('пыль: плотность (частицы)');
+  o.add(FEEL, 'spatter', 0, 0.4).name('брызги вдали');
+  o.add(FEEL, 'spatterLowPressure', 0, 1).name('брызги при слабом давлении');
+  o.add(FEEL, 'spatterSize', 0.1, 1.5).name('размер брызг');
+  o.add(FEEL, 'spit', 0, 3).name('плевок в начале');
+  o.add(FEEL, 'spitTime', 0, 0.4).name('плевок: длительность, с');
+  o.add(FEEL, 'releaseTail', 0, 0.5).name('хвост после отпускания, с');
+  const s = gui.addFolder('Угол, насадка, жест');
+  s.add(FEEL, 'slant', 0, 1).name('эллипс под углом');
+  s.add(FEEL, 'maxElong', 1, 8).name('макс. вытяжка эллипса');
+  s.add(FEEL, 'tail', 0, 1).name('затухание дальнего края');
+  s.add(FEEL, 'chiselRatio', 1.5, 10).name('chisel: вытянутость');
+  s.add(FEEL, 'chiselAngle', 0, 180).name('chisel: угол, °');
+  s.add(FEEL, 'speedThin', 0, 1).name('сужение на быстром жесте (частицы)');
   gui.hide();
   window.addEventListener('keydown', (e) => {
     // Not while typing a number into the panel.
@@ -298,6 +224,37 @@ export function initFeel() {
   });
 }
 
+let gaugeKey = '';
+/**
+ * The can's crosshair, in place of the game's while the can is out: as wide as
+ * the spot will land (`px`, screen diameter), its ring an arc of the opacity in
+ * the paint's color, a dot as dense as one pass; red when too close (runs).
+ * `color` null hides it and gives the game's crosshair back.
+ */
+export function showGauge(color: string | null, px = 16, close = false) {
+  const on = !!color && FEEL.on;
+  const size = Math.round(THREE.MathUtils.clamp(px, 12, 40));
+  const key = on ? `${color}|${FEEL.opacity}|${size}|${close}` : '';
+  pulseGauge();
+  if (key === gaugeKey) return;
+  gaugeKey = key;
+  gauge.style.display = gaugeDot.style.display = on ? 'block' : 'none';
+  const game = document.querySelector<HTMLElement>('.crosshair');
+  if (game) game.style.visibility = on ? 'hidden' : '';
+  if (!on) return;
+  gauge.style.width = gauge.style.height = `${size}px`;
+  gauge.style.margin = `${-size / 2}px 0 0 ${-size / 2}px`;
+  const deg = FEEL.opacity * 360;
+  const arc = close ? '#ff3a1a' : color!;
+  gauge.style.background = `conic-gradient(${arc} ${deg}deg, rgba(128,128,128,0.35) ${deg}deg)`;
+  gaugeDot.style.background = color!;
+  gaugeDot.style.opacity = String(0.2 + 0.6 * FEEL.opacity);
+}
+function pulseGauge() {
+  const t = performance.now() / 1000 - opacityChangedAt;
+  gauge.style.transform = t < 0.25 ? 'scale(1.1)' : 'scale(1)';
+}
+
 export function refreshPanel() {
   gui?.controllersRecursive().forEach((c) => c.updateDisplay());
 }
@@ -305,6 +262,6 @@ export function refreshPanel() {
 /** Shift + wheel: the brush's opacity, in 5% steps. */
 export function stepOpacity(steps: number) {
   FEEL.opacity = THREE.MathUtils.clamp(Math.round((FEEL.opacity - steps * 0.05) * 20) / 20, 0.05, 1);
-  flash(`OPACITY ${Math.round(FEEL.opacity * 100)}%`);
+  opacityChangedAt = performance.now() / 1000;
   refreshPanel();
 }

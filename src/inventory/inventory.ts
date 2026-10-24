@@ -52,6 +52,8 @@ export class Inventory {
     this.colorIndex = 0;
     this.capIndex = 0;
     this.version++;
+    // Sandbox: everything from the start.
+    this.unlockAll();
   }
 
   toJSON(): InventoryData {
@@ -67,6 +69,7 @@ export class Inventory {
     this.selected = Math.min(d.selected, SLOTS.length - 1);
     this.colorIndex = Math.max(0, this.colors.indexOf(d.color));
     this.capIndex = Math.max(0, this.caps.indexOf(d.cap));
+    this.unlockAll();
     this.version++;
   }
 

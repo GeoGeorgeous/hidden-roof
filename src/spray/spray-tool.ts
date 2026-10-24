@@ -9,8 +9,8 @@ import { CanModel } from './can-model';
 import { SprayParticles } from './particles';
 import { setHex } from '../hex-color';
 import { paintRandom } from '../lcg';
-import { FEEL, SprayReticle } from '../sandbox/feel';
-import { SprayBrush } from '../sandbox/brush';
+import { FEEL, showGauge } from '../sandbox/feel';
+import { dabRadius, SprayBrush } from '../sandbox/brush';
 
 // Spraying: color and cap come from the inventory. Paint never runs out;
 // pressure drains while spraying and is restored by shaking: hold the right
@@ -41,7 +41,6 @@ export class SprayTool {
   private holdT = 0;
   private tailT = 0;
   private aimSpeed = 0;
-  private reticle: SprayReticle;
   private brush: SprayBrush;
 
   constructor(
@@ -52,7 +51,6 @@ export class SprayTool {
   ) {
     this.particles = new SprayParticles(scene, paint, solids);
     this.others = new SprayParticles(scene, paint, solids);
-    this.reticle = new SprayReticle(scene);
     this.brush = new SprayBrush(paint, this.particles);
   }
 
@@ -66,7 +64,7 @@ export class SprayTool {
       this.landing = false;
       this.shakeT = -1;
       this.audio.setHiss(0, 0);
-      this.reticle.hide();
+      showGauge(null);
       return;
     }
     const cap = CAPS[inv.cap];
@@ -102,7 +100,7 @@ export class SprayTool {
     this.holdT = spraying ? this.holdT + dt : 0;
     this.tailT = spraying ? 0 : Math.max(0, this.tailT - dt);
     this.flow = spraying ? this.computeFlow(dt, inv.pressure) : 0;
-    this.aimReticle(eye, cap, inv);
+    this.aimGauge(camera, eye, cap, inv);
     if (spraying) inv.pressure = Math.max(0, inv.pressure - cap.drain * dt);
     this.audio.setHiss(this.flow * cap.hissGain, cap.hissTone);
 
@@ -120,10 +118,13 @@ export class SprayTool {
     return this.shakeT >= 0;
   }
 
-  private aimReticle(eye: THREE.Vector3, cap: (typeof CAPS)[keyof typeof CAPS], inv: Inventory) {
-    const hit = FEEL.on && FEEL.reticle ? this.particles.probe(eye, forward) : null;
-    if (hit) this.reticle.show(hit.point, hit.normal, hit.rect, forward, hit.distance, cap, COLORS[inv.color], performance.now() / 1000);
-    else this.reticle.hide();
+  /** The crosshair as wide as the spot will land where the aim meets the wall. */
+  private aimGauge(camera: THREE.Camera, eye: THREE.Vector3, cap: (typeof CAPS)[keyof typeof CAPS], inv: Inventory) {
+    if (!FEEL.on) return showGauge(null);
+    const hit = this.particles.probe(eye, forward);
+    const fov = (camera as THREE.PerspectiveCamera).fov ?? 70;
+    const px = hit ? ((2 * dabRadius(cap, hit.distance)) / hit.distance / Math.tan((fov * Math.PI) / 360)) * (window.innerHeight / 2) : 16;
+    showGauge(COLORS[inv.color], px, !!hit && hit.distance < FEEL.closeAt * 1.3);
   }
 
   /** `tail` (1..0): the release tail, weak flow and lots of spatter. */

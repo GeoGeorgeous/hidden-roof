@@ -42,6 +42,15 @@ export interface BrushParams {
   dt: number;
 }
 
+/** Dab radius (m) at a distance: the cap's cone, plus its dot. */
+export function dabRadius(cap: CapSpec, distance: number) {
+  const t = farness(distance);
+  let r = distance * Math.tan(cap.spread / 2) * 0.8 + (cap.dotSize / 2) * THREE.MathUtils.lerp(FEEL.closeSize, FEEL.farSize, t);
+  if (FEEL.nib === 'needle') r *= 0.4;
+  if (FEEL.nib === 'chisel') r = (cap.dotSize / 2) * 0.45 + distance * Math.tan(cap.spread / 2) * 0.2;
+  return r;
+}
+
 export class SprayBrush {
   private has = false;
   private idle = 0;
@@ -79,7 +88,7 @@ export class SprayBrush {
       return false;
     }
     curPoint.copy(hit.point);
-    const size = this.dabRadius(b.cap, hit.distance) * (1 + b.spit * 0.6);
+    const size = dabRadius(b.cap, hit.distance) * (1 + b.spit * 0.6);
     const spacing = Math.max(size * FEEL.spacing, 0.003);
     const gap = this.has ? lastPoint.distanceTo(curPoint) : 0;
     if (this.has && gap > spacing && gap < 3) {
@@ -109,21 +118,13 @@ export class SprayBrush {
     return true;
   }
 
-  /** Dab radius (m) at a distance: the cap's cone, plus its dot. */
-  private dabRadius(cap: CapSpec, distance: number) {
-    const t = farness(distance);
-    let r = distance * Math.tan(cap.spread / 2) * 0.8 + (cap.dotSize / 2) * THREE.MathUtils.lerp(FEEL.closeSize, FEEL.farSize, t);
-    if (FEEL.nib === 'needle') r *= 0.4;
-    if (FEEL.nib === 'chisel') r = (cap.dotSize / 2) * 0.45 + distance * Math.tan(cap.spread / 2) * 0.2;
-    return r;
-  }
 
   /** One dab where a ray along `d` meets paintable surface. `weight` scales its paint. */
   private dabAlong(b: BrushParams, d: THREE.Vector3, weight: number) {
     const hit = this.caster.probe(b.eye, d, false);
     if (!hit) return;
     const t = farness(hit.distance);
-    const radius = this.dabRadius(b.cap, hit.distance) * (1 + b.spit * 0.6);
+    const radius = dabRadius(b.cap, hit.distance) * (1 + b.spit * 0.6);
     const fall = hit.distance <= SPRAY.falloffStart ? 1 : 1 - (hit.distance - SPRAY.falloffStart) / (SPRAY.reach - SPRAY.falloffStart);
     const softness = FEEL.nib === 'round' ? THREE.MathUtils.lerp(FEEL.closeSoft, FEEL.farSoft, t) : 0.1;
     // One pass reaches about `pass` along the stroke's middle (opacity is what it says, like a drawing app;
