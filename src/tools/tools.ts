@@ -1,4 +1,5 @@
-import { FEEL, stepOpacity } from '../sandbox/feel';
+import { FEEL } from '../sandbox/feel';
+import { stepOpacity } from '../sandbox/panel';
 import * as THREE from 'three';
 import type { Audio } from '../audio';
 import { CAPS, CROSSHAIR, type PaintColor } from '../config';

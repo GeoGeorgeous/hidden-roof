@@ -9,7 +9,9 @@ import { CanModel } from './can-model';
 import { SprayParticles } from './particles';
 import { setHex } from '../hex-color';
 import { paintRandom } from '../lcg';
-import { FEEL, showGauge, sprayDistance } from '../sandbox/feel';
+import { FEEL, sprayDistance } from '../sandbox/feel';
+import { showGauge } from '../sandbox/aim';
+import { setCapInHand } from '../sandbox/panel';
 import { dabRadius, SprayBrush } from '../sandbox/brush';
 
 // Spraying: color and cap come from the inventory. Paint never runs out;
@@ -120,6 +122,7 @@ export class SprayTool {
 
   /** The crosshair as wide as the spot will land where the aim meets the wall. */
   private aimGauge(camera: THREE.Camera, eye: THREE.Vector3, cap: (typeof CAPS)[keyof typeof CAPS], inv: Inventory) {
+    setCapInHand(inv.cap);
     if (!FEEL.on) return showGauge(null);
     const hit = this.particles.probe(eye, forward);
     const fov = (camera as THREE.PerspectiveCamera).fov ?? 70;

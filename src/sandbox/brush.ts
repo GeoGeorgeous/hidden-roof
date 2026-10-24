@@ -15,7 +15,6 @@ import { FEEL, farness, slantShape, sprayDistance } from './feel';
 // Particles only show the spray.
 
 const MAX_DABS = 160;
-const BUILD_RATE = 40;
 
 const aimDir = new THREE.Vector3();
 const smoothDir = new THREE.Vector3();
@@ -121,7 +120,7 @@ export class SprayBrush {
       this.idle = 0;
     } else {
       // Held still: build up, like an airbrush.
-      this.idle += b.dt * BUILD_RATE;
+      this.idle += b.dt * FEEL.buildRate;
       while (this.idle >= 1) {
         this.idle -= 1;
         this.dabAlong(b, forward, 0.5);
@@ -140,14 +139,14 @@ export class SprayBrush {
     const t = farness(hit.distance);
     const radius = dabRadius(b.cap, hit.distance) * (1 + b.spit * 0.6) * (1 + FEEL.speedWiden * this.fast);
     const sd = sprayDistance(hit.distance);
-    const fall = sd <= SPRAY.falloffStart ? 1 : 1 - (sd - SPRAY.falloffStart) / (SPRAY.reach - SPRAY.falloffStart);
+    const fall = sd <= FEEL.fadeStart ? 1 : 1 - (sd - FEEL.fadeStart) / Math.max(0.1, SPRAY.reach - FEEL.fadeStart);
     // The cap's edge scales the brush's: soft caps fuzzier, hard caps crisp at any distance (standard = 0.35 = as set).
     const softness = FEEL.nib === 'round' ? Math.min(1, THREE.MathUtils.lerp(FEEL.closeSoft, FEEL.farSoft, t) * (b.cap.softness / 0.35) + FEEL.speedSoft * this.fast) : 0.1;
     // One pass reaches about `pass` along the stroke's middle (opacity is what it says, like a drawing app;
     // distance only thins it a little): each texel there is under about 2 / spacing dabs, softened by their edge.
     // Above speedRef the paint per second holds: per meter of line it thins as 1 / speed (speedFade 1), or less.
     const thin = this.speed > FEEL.speedRef && FEEL.speedRef > 0 ? Math.pow(FEEL.speedRef / this.speed, FEEL.speedFade) : 1;
-    const pass = Math.min(0.999, FEEL.opacity * b.flow * Math.max(0.75, fall) * THREE.MathUtils.lerp(FEEL.closeFlow, 1, t) * (1 + b.spit) * thin);
+    const pass = Math.min(0.999, FEEL.opacity * b.flow * Math.max(FEEL.fadeMin, fall) * THREE.MathUtils.lerp(FEEL.closeFlow, 1, t) * (1 + b.spit) * thin);
     const overlap = (2 / FEEL.spacing) * (1 - softness * 0.6);
     const amount = Math.min(1, (1 - Math.pow(1 - pass, 1 / overlap)) * weight);
     let shape: DotShape | undefined;

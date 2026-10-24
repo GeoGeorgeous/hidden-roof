@@ -1,4 +1,4 @@
-import { initFeel } from './sandbox/feel';
+import { initFeel } from './sandbox/panel';
 import './style.css';
 import * as THREE from 'three';
 import * as config from './config';
