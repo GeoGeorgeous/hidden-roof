@@ -238,9 +238,15 @@ export function initFeel() {
   s.add(FEEL, 'chiselAngle', 0, 180).name('chisel: угол, °');
   s.add(FEEL, 'speedThin', 0, 1).name('быстро: уже (частицы)');
   for (const c of gui.controllersRecursive()) {
-    const tip = TIPS[c.property];
+    const icon = ICONS[c.property];
+    if (icon) c.name(`${icon} ${c._name}`);
+    const tip = [TIPS[c.property], icon && ICON_TIPS[icon]].filter(Boolean).join('\n');
     if (tip) c.domElement.title = tip;
   }
+  const legend = document.createElement('div');
+  legend.textContent = '🌐 все кэпы · 🧢 зависит от кэпа · ✒️ chisel · ✨ частицы';
+  Object.assign(legend.style, { padding: '4px 8px', fontSize: '11px', opacity: '0.7' });
+  gui.domElement.querySelector(':scope > .children')?.prepend(legend);
   gui.hide();
   window.addEventListener('keydown', (e) => {
     // Not while typing a number into the panel.
@@ -293,6 +299,27 @@ function pulseGauge() {
   const t = performance.now() / 1000 - opacityChangedAt;
   gauge.style.transform = t < 0.25 ? 'scale(1.1)' : 'scale(1)';
 }
+
+/**
+ * What a setting acts on, before its name: 🌐 every cap alike, 🧢 scaled by the
+ * cap's own value (so it differs per cap), ✒️ only the chisel nib, ✨ only the
+ * particles (brush off).
+ */
+const ICONS: Record<string, string> = {
+  on: '🌐', nib: '🌐', alphaSteps: '🌐', brush: '🌐', opacity: '🌐', spacing: '🌐', streamline: '🌐',
+  closeSoft: '🧢', farSoft: '🧢',
+  speedRef: '🌐', speedFade: '🌐', speedWiden: '🌐', speedSoft: '🌐',
+  gap: '🌐', closeAt: '🌐', farAt: '🌐', closeSize: '🧢', farSize: '🧢', closeFlow: '🌐', closeDrips: '🧢',
+  overspray: '🌐', oversprayCone: '🧢', oversprayAmount: '✨', spatter: '🌐', spatterLowPressure: '🌐', spatterSize: '🧢',
+  spit: '🌐', spitTime: '🌐', releaseTail: '🌐',
+  slant: '🌐', maxElong: '🌐', tail: '🌐', chiselRatio: '✒️', chiselAngle: '✒️', speedThin: '✨',
+};
+const ICON_TIPS: Record<string, string> = {
+  '🌐': '🌐 Одинаково для всех кэпов.',
+  '🧢': '🧢 Умножается на свойство кэпа: у SOFT, HARD, FAT и других эффект разный.',
+  '✒️': '✒️ Только насадка chisel.',
+  '✨': '✨ Только режим частиц (галка «кисть» снята).',
+};
 
 /** Hover tips for the panel: what each setting does to the paint, in plain words. */
 const TIPS: Record<string, string> = {
