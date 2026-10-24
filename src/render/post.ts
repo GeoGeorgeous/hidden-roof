@@ -7,6 +7,7 @@ import type { Lighting } from './lighting';
 import { compileQuad, Volumetrics } from './volumetrics';
 import { composeShader, paperTexture, VIEW_DEPTH } from './ink/compose';
 import { inkUniforms } from './ink/tone';
+import { ChromaBloom, SBX } from '../sandbox/sandbox';
 
 // Frame pipeline at the internal (pixelated) resolution:
 //  1. scene -> linear HDR target with a depth texture (opaque draws front to back)
@@ -22,6 +23,7 @@ const bufferSize = new THREE.Vector2();
 export class PostPipeline {
   private target: THREE.WebGLRenderTarget;
   private volumetrics = new Volumetrics();
+  private bloom = new ChromaBloom();
   private grade: THREE.ShaderMaterial;
   private quad: FullScreenQuad;
   private size = new THREE.Vector2();
@@ -55,6 +57,9 @@ export class PostPipeline {
         uGrain: { value: 0 },
         tPaper: { value: paperTexture() },
         uExposure: { value: 0 },
+        tBloom: { value: this.bloom.a.texture },
+        uBloom: { value: 0 },
+        uCoverInk: { value: 0 },
       },
       vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }',
       fragmentShader: composeShader,
@@ -72,6 +77,7 @@ export class PostPipeline {
     this.volDownscale = VOLUMETRICS.downscale;
     this.target.setSize(s.x, s.y);
     this.volumetrics.setSize(s.x, s.y);
+    this.bloom.setSize(s.x, s.y);
     const t = this.volumetrics.target;
     this.grade.uniforms.uVolTexel.value.set(1 / t.width, 1 / t.height);
     this.grade.uniforms.uTexel.value.set(1 / s.x, 1 / s.y);
@@ -131,6 +137,10 @@ export class PostPipeline {
     r.render(viewScene, squashed(camera, this.viewCamera));
 
     const u = this.grade.uniforms;
+    const bloomOn = SBX.on && SBX.bloom > 0;
+    if (bloomOn) this.bloom.render(r, this.target.texture, u.uTexel.value);
+    u.uBloom.value = bloomOn ? SBX.bloom : 0;
+    u.uCoverInk.value = SBX.on ? SBX.paintCoversInk : 0;
     u.uVolOn.value = vol ? 1 : 0;
     u.uNear.value = camera.near;
     u.uFar.value = camera.far;

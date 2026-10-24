@@ -7,6 +7,7 @@ import { INK_FRAG, INK_PARS, inkUniforms, syncInkUniforms } from './render/ink/t
 import { LETTER_TEXTURES, textures, type TexName } from './textures';
 import { FACADE_GLSL, type Facade } from './render/ink/facade';
 import { GRIME_GLSL } from './render/ink/grime';
+import { SBX_PARS, sbxUniforms } from './sandbox/sandbox';
 
 export type { TexName } from './textures';
 
@@ -62,6 +63,7 @@ export const shared = {
   ...bakeUniforms,
   /** Paper, ink and tone steps (render/ink/tone.ts). */
   ...inkUniforms,
+  ...sbxUniforms,
 };
 
 export function syncSharedUniforms(time: number) {
@@ -160,6 +162,7 @@ uniform float uShowPaintable;
 uniform float uPaintable;
 ${BAKE_FRAG_PARS}
 ${INK_PARS}
+${SBX_PARS}
 ${FACADE_GLSL}
 ${GRIME_GLSL}
 varying vec4 vFacade;
