@@ -17,9 +17,12 @@ write the code: read the branch.
   the brush, `aim.ts` the crosshair, `panel.ts` the Z panel), plus hooks in
   `src/spray/spray-tool.ts`, `src/spray/particles.ts`, `src/paint-raster.ts`
   (elliptic dots), `src/painting.ts`, `src/paint-ops.ts`, `src/tools/tools.ts`.
-- The owner's verdict: "much more comfortable and smoother than before". Smooth,
-  semi-transparent strokes and a can that responds to speed and distance are
-  the point. Keep that feel; everything else is negotiable.
+- The owner's verdict (2026-10-24): "everything got much better; this is
+  exactly the painting I wanted for the game". The continuous stroke,
+  opacity and layers, speed and distance, and the crosshair all count. Keep
+  that feel; everything else is negotiable.
+- Facts vs estimates: the owner's answers are marked "Owner:"; network
+  numbers and anything "read in the code" are estimates, not measured.
 
 ## The goal
 
@@ -46,8 +49,8 @@ backlog's Discarder):
 | TASK-230 | check that paint runs still work with the brush | known issues | BL-016 |
 | TASK-231 | network: ops/s, slant on the wire, stroke-segment op | 9, network steps 1-3 | |
 | TASK-232 | to production: config, no particle painting, decisions, tests | 10, 11, steps 4-5, open decisions | |
-| IDEA-233 | marker nibs, rectangular and calligraphy | not in the branch | BL-042 |
-| IDEA-166 | lock the camera while painting | not in the branch | |
+| IDEA-233 | marker nibs, rectangular and calligraphy (unconfirmed) | not in the branch | BL-042 |
+| IDEA-166 | lock the camera while painting (unconfirmed) | not in the branch | |
 
 TASK-230 (paint runs): the owner is happy with how runs work now: with the
 brush the can runs much less and it feels right. What's left is checking
@@ -79,6 +82,9 @@ branch and removed; marker nibs are a separate idea, not started.
 
 IDEA-166 (lock the camera): an idea from before the branch, not started.
 
+Owner: IDEA-233 and IDEA-166 stay tagged 1.7.0 but unconfirmed (`?`): not
+sure yet that they belong in it. Ask before working on them.
+
 ## Modules kept
 
 ### 1. Brush (continuous stroke)
@@ -89,8 +95,9 @@ the dab's radius, each cast from the eye on its own, so a fast flick has no
 gaps and turns corners and edges. Particles still fly, but only for show
 (AGENTS.md already says they are visual only).
 
-Why: particles land late and sparse; a fast stroke left dotted gaps. This was
-the change the owner felt most.
+Why: particles land late and sparse; a fast stroke left dotted gaps.
+
+Owner: particles stay in the game, for show only; the brush paints.
 
 ### 2. Pressure / opacity (Shift + wheel)
 
@@ -110,7 +117,7 @@ then runs. Default 60 dabs/s.
 ### 4. Streamline
 
 The brush trails the aim slightly (exponential smoothing). Takes mouse jitter
-out of lines; costs a little lag. Default 0.25.
+out of lines. Default 0.25. Owner: the lag isn't noticeable, 0.25 is fine.
 
 ### 5. Hand speed
 
@@ -137,21 +144,25 @@ One crosshair replaces the game's while the can is out, a hairline ring:
 
 - Its size is the line the paint will leave right now (distance, cap, edge,
   hand speed, opacity): out to where the stroke is half as dense as in its
-  middle. A soft edge reads narrower than the dab's full reach. Toggle
-  "real size"; off, the old 12-40 px clamp.
+  middle. A soft edge reads narrower than the dab's full reach. Owner: real
+  size always in the game; drop the toggle and the old 12-40 px clamp.
 - The arc is the opacity; the middle dot is as dense as one pass.
-- Red when close enough to run (see open decisions).
-- Optional: the distance to the wall as text; an outer faint ring for how far
-  the softest paint reaches (off by default).
+- Red when close enough to run (owner: undecided, see open decisions).
+- Optional: the distance to the wall as text (owner: dev only, not for
+  players); an outer faint ring for how far the softest paint reaches (off by
+  default; owner: undecided, see open decisions).
 
-The owner wants it barely visible, like the game's own crosshair.
+Owner: barely visible, like the game's own crosshair.
 
 ### 8. SOFT and HARD caps
 
 Two new caps: a soft-edged medium one and a crisp narrow one. The cap's
 softness scales the brush's edge (standard is the reference), so caps feel
-different at any distance. Names are placeholders. Candidates: PINK DOT and
-OUTLINE.
+different at any distance.
+
+Owner: both ship as new pickup caps next to skinny, standard and fat (five
+caps). Names undecided; SOFT and HARD are placeholders (suggested: PINK DOT
+and OUTLINE).
 
 ### 9. Slant
 
@@ -159,14 +170,18 @@ Hitting the wall at an angle stretches the dab into an ellipse along the aim,
 fading at the far end. Stamp ops carry a `shape`, but the wire drops it, so
 other players see round dots.
 
+Owner: important, in 1.7.0, protocol bump included (step 2 below is required).
+
 ### 10. Endless pressure, everything unlocked, smooth alpha
 
 Sandbox conveniences that change the game beyond painting:
 
-- The can never loses pressure (no shaking).
-- All tools, colors and caps unlocked from the start.
+- The can never loses pressure (no shaking). Owner: undecided.
+- All tools, colors and caps unlocked from the start. Owner: a dev
+  convenience only (instead of F3 → Unlock all items each time); the game
+  keeps pickups as now. Don't ship it.
 - `PAINT.alphaSteps = 0`: smooth opacity instead of the ink style's 8 steps.
-  Steps band semi-transparent strokes badly.
+  Steps band semi-transparent strokes badly. Owner: keep smooth in the game.
 
 ### 11. Z panel
 
@@ -195,7 +210,7 @@ trial and error.
 
 The core rule holds: paint is still baked into the surface atlases and only
 dirty rects upload. No objects per stroke. A frame costs the same however
-much is painted. No FPS loss was seen. What scales is CPU rastering of
+much is painted. Owner: no lag seen in play (not measured). What scales is CPU rastering of
 incoming ops, by how many people paint now, as before.
 
 Up to 160 dabs per frame are raycast. Measure the frame cost of a fast
@@ -223,14 +238,16 @@ with the op count.
    clients and server ship together. ~half a day.
 3. Optional, the big win: a stroke-segment op (A to B on one surface; every
    client lays the dabs). Split at surface edges. Cuts traffic 5-15×. 2-3 days.
+   Owner: the agent decides after step 1's measurement.
 4. Move settings to `config.ts`. Drop particle painting (the brush paints,
    particles show). Keep only what's used. ~1 day.
 5. Golden paint tests and multiplayer tests will change: update them. ~1 day.
 
 ### Known issues
 
-- Slow movement is denser than meant. Under one dab spacing per frame counts
-  as held still and builds up, more so at high refresh rates.
+- Slow movement may be denser than meant: under one dab spacing per frame
+  counts as held still and builds up, more so at high refresh rates. Read in
+  the code; owner: not seen in play.
 - Dabs near a face edge are clipped to their face. Check corners and seams.
 - At very small dabs the minimum spacing (3 mm) wins, and the line is a bit
   lighter than the set opacity.
@@ -239,13 +256,18 @@ with the op count.
 
 ### Open decisions (the owner's)
 
-- Endless pressure: drop shaking, or keep it as an option?
-- Unlock-all: sandbox only, or a mode?
-- Smooth alpha (`alphaSteps 0`) for paint in the ink style, or bring the
-  steps back?
+Still open:
+
+- Endless pressure: drop shaking, keep it, or a player option?
 - Red "too close" turns on at ~0.93 m, which covers the whole precise gap.
-  Red only inside the gap, or no red?
+  Red only inside the gap, no red, or as is?
+- The crosshair's softness ring: dev only, a player option, or gone?
 - Cap names for SOFT and HARD.
+
+Decided (2026-10-24): smooth alpha stays; unlock-all is dev only; the
+crosshair is real size always; SOFT and HARD ship as pickup caps; slant goes
+on the wire in 1.7.0; particles stay for show; the stroke-segment op is the
+agent's call after measuring.
 
 ### Ideas not built
 

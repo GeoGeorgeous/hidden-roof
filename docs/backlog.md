@@ -66,8 +66,8 @@ Only `N.`, the id and the description are required. The optional parts appear in
 8. [TASK-230]: Painting Rework: check that paint runs (drying, since 1.5.0) still work with the brush; they already feel right (docs/ideas/paint-refactoring.md) @1.7.0
 9. [TASK-231]: Painting Rework: network: measure ops/s, the slant shape on the wire (protocol bump), maybe one op per stroke segment (see BL-024) (docs/ideas/paint-refactoring.md) @1.7.0
 10. [TASK-232]: Painting Rework: to production: settings into config.ts and F3, no painting by particles, decide endless pressure, unlock-all and smooth alpha, update golden and multiplayer tests (docs/ideas/paint-refactoring.md) @1.7.0
-11. [IDEA-233]: Painting Rework: marker nibs, rectangular and calligraphy (not in the branch) (docs/ideas/paint-refactoring.md) @1.7.0
-12. [IDEA-166]: Painting Rework: lock the camera while painting (not in the branch) (docs/ideas/paint-refactoring.md) @1.7.0
+11. [?IDEA-233]: Painting Rework: marker nibs, rectangular and calligraphy (not in the branch) (docs/ideas/paint-refactoring.md) @1.7.0
+12. [?IDEA-166]: Painting Rework: lock the camera while painting (not in the branch) (docs/ideas/paint-refactoring.md) @1.7.0
 
 ## Input
 
