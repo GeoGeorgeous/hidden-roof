@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 234
+The one list of what's left. Counter for new ids: next: 236
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -72,6 +72,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## Input
 
 1. BUGS [BL-010]: Rare huge mouse jumps snap the camera in Chrome on Windows; the fix is the owner's choice (docs/ideas/mouse-spikes.md) @1.6.1
+2. [BUGS-234]: on MacOS pressing F11 doesn't exit fullscreen instantlly
 
 ## Performance
 
@@ -98,6 +99,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 11. IDEA [BL-075]: Digital billboards
 12. IDEA [BL-106]: Paintable cone roofs on the water tanks (a cone paint mapping) (docs/ideas/props-and-level.md)
 13. [TASK-194]: Replace paintable walls that cannot be reached with standard walls. Optimize room on the main floor.
+14. [BUGS-235]: Placing ladder by other players can block pass through an open door or a scaffolding
 
 ## Tools
 
