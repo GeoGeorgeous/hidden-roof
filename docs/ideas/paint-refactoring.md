@@ -45,7 +45,7 @@ backlog's Discarder):
 | Item | Painting Rework: | Modules | Replaces |
 |---|---|---|---|
 | IDEA-225 | the can as a continuous brush | 1, 3, 4 | IDEA-224 |
-| IDEA-226 | opacity on Shift + wheel | 2 | IDEA-165, BL-152 |
+| IDEA-226 | opacity on Shift + wheel, smooth alpha | 2 | IDEA-165, BL-152 |
 | IDEA-227 | the can's physics: hand speed and distance | 5, 6 | |
 | IDEA-228 | a true-size crosshair | 7 | |
 | IDEA-229 | SOFT and HARD caps, every cap tuned with the brush | 8 | IDEA-167, BL-017 |
@@ -102,6 +102,10 @@ up, so a second pass darkens. Default 0.65.
 Lesson: a "stroke takes the max of its dabs" mode was tried for evenness and
 rejected; strokes no longer layered and the far spray died. Accumulation is
 what makes it feel like paint.
+
+Smooth alpha: `PAINT.alphaSteps = 0`, smooth opacity instead of the ink
+style's 8 steps, which band semi-transparent strokes badly. Owner: keep
+smooth in the game. It is global: every tool's paint, not only the can's.
 
 ### 3. Build-up when held still
 
@@ -166,7 +170,7 @@ other players see round dots.
 
 Owner: important, in 1.7.0, protocol bump included (step 2 below is required).
 
-### 10. Endless pressure, everything unlocked, smooth alpha
+### 10. Endless pressure, everything unlocked
 
 Sandbox conveniences that change the game beyond painting:
 
@@ -174,11 +178,10 @@ Sandbox conveniences that change the game beyond painting:
 - All tools, colors and caps unlocked from the start. Owner: a dev
   convenience only (instead of F3 → Unlock all items each time); the game
   keeps pickups as now. Don't ship it.
-- `PAINT.alphaSteps = 0`: smooth opacity instead of the ink style's 8 steps.
-  Steps band semi-transparent strokes badly. Owner: keep smooth in the game.
 
-### 11. Z panel
+### 11. Z panel (optional)
 
+Optional: owner: its settings most likely move to F3, and the panel goes.
 A lil-gui panel (Z) in Russian with hover tips. Colored dots show scope: every
 cap alike, scaled per cap, cap in hand only, particles only. There are copy-all
 (JSON to paste back) and reset. It's a dev tool; in production its settings
