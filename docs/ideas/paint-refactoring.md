@@ -4,9 +4,8 @@ A handoff for the agent who brings this into the game. It says what was tried,
 what the player liked, and what is left to decide. It doesn't say how to
 write the code: read the branch.
 
-- Branch: `exp/painting-rework` (from `dev`), local on the owner's machine
-  (not on origin; ask for it to be pushed if you can't see it). Only this
-  doc is on `dev`. R&D only, not for merging as is: the architecture was bent
+- Branch: `exp/painting-rework` (from `dev`), on origin. Only this doc is
+  on `dev`. R&D only, not for merging as is: the architecture was bent
   on purpose, tests were neither run nor updated, settings live in a sandbox
   object, not in `config.ts`. See it with `git log dev..exp/painting-rework`
   and `git diff dev...exp/painting-rework`; try it with
@@ -14,9 +13,13 @@ write the code: read the branch.
 - Backlog: the "Painting Rework" items, IDEA-225 to IDEA-233 and IDEA-166, planned for
   1.7.0 (see "Backlog items" below). Network load also touches BL-024.
 - Code: `src/sandbox/` (`feel.ts` settings and the distance model, `brush.ts`
-  the brush, `aim.ts` the crosshair, `panel.ts` the Z panel), plus hooks in
-  `src/spray/spray-tool.ts`, `src/spray/particles.ts`, `src/paint-raster.ts`
-  (elliptic dots), `src/painting.ts`, `src/paint-ops.ts`, `src/tools/tools.ts`.
+  the brush, `aim.ts` the crosshair, `panel.ts` the Z panel, `mist.ts` the
+  spray plume), plus hooks in `src/spray/spray-tool.ts`,
+  `src/spray/particles.ts` (the plume), `src/paint-raster.ts` (elliptic dots,
+  puddle cells), `src/paint-drips.ts` (runs by place), `src/painting.ts`,
+  `src/paint-ops.ts`, `src/tools/tools.ts`, `src/config.ts` (`DRIPS.cell`,
+  tools' wetness), and F3 (`src/debug/paint-sections.ts`, `hint-text.ts`,
+  `src/dev/wet-view.ts`).
 - The owner's verdict (2026-10-24): "everything got much better; this is
   exactly the painting I wanted for the game". The continuous stroke,
   opacity and layers, speed and distance, and the crosshair all count. Keep
