@@ -19,7 +19,7 @@ export const FEEL = {
   /** The crosshair as wide as the line will be, as seen (else the dab's full reach, 12..40 px). */
   aimTrue: true,
   /** A second ring around the crosshair: how far the softest paint reaches (on it when hard, further out the softer). */
-  aimSoft: true,
+  aimSoft: false,
   /** The can never loses pressure: no shaking. */
   endlessPressure: true,
   // Brush (sandbox/brush.ts): paint at once, as a continuous stroke
