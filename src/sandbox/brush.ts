@@ -54,6 +54,10 @@ export function dabRadius(cap: CapSpec, distance: number) {
 export class SprayBrush {
   private has = false;
   private idle = 0;
+  /** How fast the spot moves over the wall (m/s), smoothed. */
+  private speed = 0;
+  /** This frame's speed effect: 0 at FEEL.speedRef and below, toward 1 well above it. */
+  private fast = 0;
   private smoothed = false;
 
   constructor(
@@ -63,6 +67,7 @@ export class SprayBrush {
 
   /** The stroke ended (the button let go): the next one starts fresh. */
   end() {
+    this.speed = 0;
     this.has = false;
     this.smoothed = false;
   }
@@ -91,6 +96,10 @@ export class SprayBrush {
     const size = dabRadius(b.cap, hit.distance) * (1 + b.spit * 0.6);
     const spacing = Math.max(size * FEEL.spacing, 0.003);
     const gap = this.has ? lastPoint.distanceTo(curPoint) : 0;
+    // A can puts out the same paint per second: the faster the spot moves, the thinner, wider and softer the line.
+    const v = this.has && gap < 3 ? gap / Math.max(b.dt, 1e-3) : 0;
+    this.speed += (v - this.speed) * Math.min(1, b.dt * 15);
+    this.fast = FEEL.speedRef > 0 ? THREE.MathUtils.clamp((this.speed - FEEL.speedRef) / (FEEL.speedRef * 3), 0, 1) : 0;
     if (this.has && gap > spacing && gap < 3) {
       // Fill from the last point to this one: dabs along the way, each cast from the eye.
       const n = Math.min(MAX_DABS, Math.ceil(gap / spacing));
@@ -124,13 +133,15 @@ export class SprayBrush {
     const hit = this.caster.probe(b.eye, d, false);
     if (!hit) return;
     const t = farness(hit.distance);
-    const radius = dabRadius(b.cap, hit.distance) * (1 + b.spit * 0.6);
+    const radius = dabRadius(b.cap, hit.distance) * (1 + b.spit * 0.6) * (1 + FEEL.speedWiden * this.fast);
     const fall = hit.distance <= SPRAY.falloffStart ? 1 : 1 - (hit.distance - SPRAY.falloffStart) / (SPRAY.reach - SPRAY.falloffStart);
     // The cap's edge scales the brush's: soft caps fuzzier, hard caps crisp at any distance (standard = 0.35 = as set).
-    const softness = FEEL.nib === 'round' ? Math.min(1, THREE.MathUtils.lerp(FEEL.closeSoft, FEEL.farSoft, t) * (b.cap.softness / 0.35)) : 0.1;
+    const softness = FEEL.nib === 'round' ? Math.min(1, THREE.MathUtils.lerp(FEEL.closeSoft, FEEL.farSoft, t) * (b.cap.softness / 0.35) + FEEL.speedSoft * this.fast) : 0.1;
     // One pass reaches about `pass` along the stroke's middle (opacity is what it says, like a drawing app;
     // distance only thins it a little): each texel there is under about 2 / spacing dabs, softened by their edge.
-    const pass = Math.min(0.999, FEEL.opacity * b.flow * Math.max(0.75, fall) * THREE.MathUtils.lerp(FEEL.closeFlow, 1, t) * (1 + b.spit));
+    // Above speedRef the paint per second holds: per meter of line it thins as 1 / speed (speedFade 1), or less.
+    const thin = this.speed > FEEL.speedRef && FEEL.speedRef > 0 ? Math.pow(FEEL.speedRef / this.speed, FEEL.speedFade) : 1;
+    const pass = Math.min(0.999, FEEL.opacity * b.flow * Math.max(0.75, fall) * THREE.MathUtils.lerp(FEEL.closeFlow, 1, t) * (1 + b.spit) * thin);
     const overlap = (2 / FEEL.spacing) * (1 - softness * 0.6);
     const amount = Math.min(1, (1 - Math.pow(1 - pass, 1 / overlap)) * weight);
     let shape: DotShape | undefined;

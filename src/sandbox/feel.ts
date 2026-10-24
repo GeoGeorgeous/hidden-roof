@@ -32,6 +32,11 @@ export const FEEL = {
   /** Aim smoothing (StreamLine), 0 = off. */
   streamline: 0.25,
   closeSoft: 0.3,
+  /** Speed (m/s over the wall) up to which a line is as set; faster, it thins, widens and softens. */
+  speedRef: 0.8,
+  speedFade: 0.8,
+  speedWiden: 0.7,
+  speedSoft: 0.4,
   farSoft: 0.95,
   // Distance
   closeAt: 0.25,
@@ -185,6 +190,10 @@ export function initFeel() {
   br.add(FEEL, 'streamline', 0, 1).name('сглаживание линии');
   br.add(FEEL, 'closeSoft', 0, 1).name('мягкость вблизи');
   br.add(FEEL, 'farSoft', 0, 1).name('мягкость вдали');
+  br.add(FEEL, 'speedRef', 0, 4).name('скорость: с какой, м/с (0 = выкл)');
+  br.add(FEEL, 'speedFade', 0, 1.5).name('скорость: светлее');
+  br.add(FEEL, 'speedWiden', 0, 2).name('скорость: шире');
+  br.add(FEEL, 'speedSoft', 0, 1).name('скорость: мягче');
   const d = gui.addFolder('Дистанция');
   d.add(FEEL, 'closeAt', 0.05, 1).name('«вблизи» до, м');
   d.add(FEEL, 'farAt', 0.5, 4.6).name('«вдали» от, м');
