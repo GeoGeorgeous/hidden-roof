@@ -52,8 +52,21 @@ TASK-230 (drips): drips are too strong in general; tune them for each tool
 (caps, marker, roller) by eye once the brush is in. The owner tunes in F3 on
 dev (Paint → Paint runs) and pastes the JSON. F3 tools for it: `wet view`
 (wet paint blue to red by its build-up), the `most build-up` readout and
-`runs view` (every run in one loud color). Paint dries (`drying time`). See
-also "Tuning paint runs by hand" in `docs/ideas/painting.md`.
+`runs view` (every run in one loud color). Paint dries (`drying time`).
+
+Open questions from earlier runs tuning (2026-10-20), still to check:
+
+- Spraying over a wall the roller painted runs far too much, as if the old
+  paint were still wet. Drying exists now: check whether it still happens.
+- Build-up per texel differs by tool: the can's standard cap builds up when
+  held still, the marker and the skinny cap don't. Measure why per tool
+  (jitter, spacing, per-hit amount or the coat threshold).
+- Chasing runs, the owner ends up changing spacing, density and power, which
+  change how paint looks. Wanted: a hit adds a coat whatever the tool and
+  spacing; the run settings are the only knobs for how much a tool runs;
+  F3 shows why a texel did or didn't build up; holding still makes a run,
+  for every tool. One attempt: branch `exp/runs-by-load` (runs start at a
+  load limit, no dice).
 
 IDEA-233 (marker nibs): the can's nibs (chisel, needle) were tried on the
 branch and removed; marker nibs are a separate idea, not started.
@@ -152,7 +165,9 @@ Sandbox conveniences that change the game beyond painting:
 A lil-gui panel (Z) in Russian with hover tips. Colored dots show scope: every
 cap alike, scaled per cap, cap in hand only, particles only. There are copy-all
 (JSON to paste back) and reset. It's a dev tool; in production its settings
-belong in `config.ts`, perhaps the F3 debug panel.
+belong in `config.ts`, perhaps the F3 debug panel. The goal for that panel
+(TASK-232): it shows which setting causes what, so tuning is systematic, not
+trial and error.
 
 ## Tried and removed
 
@@ -228,8 +243,4 @@ with the op count.
 
 ### Ideas not built
 
-- Real pressure from a gamepad trigger or pen pressure.
 - A hiss that follows speed, distance and pressure.
-- Undo last stroke. Hard with baked paint and multiplayer.
-- Straight line (Shift + click).
-- Wet paint that blends with a fresh neighbor.

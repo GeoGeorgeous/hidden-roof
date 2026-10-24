@@ -29,3 +29,7 @@ From the audit of 2026-10-17 (module M7, skipped for 1.4.0). Nothing decided. â˜
 1. A design run on props and the level plan: one module for "what covers what"; where "instance â†’ pieces" lives and PropContext's defaults; placement as a discriminated union (may a variant change placement kind?); new type versus variant and the near-duplicates; sign text as variants or text; should saves match faces by geometry (decision only). Look, gameplay and painting unchanged.
 2. Prop categories in build mode (BL-055): the registry owns grouping; build-only categories split out; near-duplicates merged as decided; levels still load (RENAMED).
 3. Cover v2 and fuller pages (F7.3, F7.10, F7.11, F7.14), only after F7.4 is decided: page counts before and after at each paint detail, golden paint updated on purpose, saves still load.
+
+## BL-106 Water tank roofs can't be painted
+
+The cone roofs of the water tank and the tanks on stands (`p.cone`, `src/kit/equipment.ts`, `src/kit/steel.ts`) have no paint option or mapping; the paintable flat top sits hidden inside. Do: a cone paint mapping, checked against saves and page counts.
