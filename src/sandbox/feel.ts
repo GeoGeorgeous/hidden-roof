@@ -5,19 +5,12 @@ import type { Rect } from '../surfaces';
 
 // R&D sandbox (exp/visual-sandbox): how spraying feels. Not for production.
 //  - distance changes the dot's character: close = narrow, hard, heavy, runs;
-//    far = wide, soft, speckled
-//  - overspray: a halo of faint fine dust around every line
-//  - spatter: big hard droplets, more of them far away, at low pressure, at the
-//    start of a press (spit) and as it's let go (tail)
+//    far = wide, soft
 //  - slant: a dot hitting the wall at an angle stretches into an ellipse along
 //    the aim, fading at the far end
-//  - nibs: round (the cap as is), chisel (a 45° calligraphy nib), needle
 //  - fast aim thins the line (flicks taper)
 //  - one crosshair for the can: the spot's real size, the opacity, too close
 // The panel is sandbox/panel.ts (Z), the crosshair sandbox/aim.ts.
-
-export const NIBS = ['round', 'chisel', 'needle'] as const;
-export type Nib = (typeof NIBS)[number];
 
 export const FEEL = {
   on: true,
@@ -25,7 +18,6 @@ export const FEEL = {
   showGap: false,
   /** The can never loses pressure: no shaking. */
   endlessPressure: true,
-  nib: 'round' as Nib,
   // Brush (sandbox/brush.ts): paint at once, as a continuous stroke
   brush: true,
   /** One pass of a stroke reaches about this opacity (Shift + wheel). */
@@ -55,24 +47,10 @@ export const FEEL = {
   /** Past the gap, the brush fades from this distance (m) on, down to `fadeMin` of its opacity at the can's reach. */
   fadeStart: 0.5,
   fadeMin: 0.75,
-  // Overspray
-  overspray: 0,
-  oversprayCone: 3.5,
-  oversprayAmount: 0.12,
-  // Spatter
-  spatter: 0,
-  spatterLowPressure: 0,
-  spatterSize: 0.7,
-  spit: 0,
-  spitTime: 0.09,
-  releaseTail: 0.14,
   // Slant
   slant: 1,
   maxElong: 4,
   tail: 0.7,
-  // Chisel
-  chiselRatio: 7,
-  chiselAngle: 45,
   // Gesture
   speedThin: 0.12,
 };
@@ -111,48 +89,14 @@ export function slantShape(rect: Rect | undefined, dir: THREE.Vector3, out: { el
 }
 const slant = { elong: 1, ang: 0, cos: 1 };
 
-export type ParticleKind = 'paint' | 'overspray' | 'spatter';
-
-/** The paint one particle lands with, by kind, distance and slant. `base`: the cap's amount for this particle. */
-export function landing(kind: ParticleKind, cap: CapSpec, base: number, distance: number, rect: Rect | undefined, dir: THREE.Vector3, rnd: () => number, out: Landing) {
+/** The paint one particle lands with, by distance and slant. `base`: the cap's amount for this particle. */
+export function landing(cap: CapSpec, base: number, distance: number, rect: Rect | undefined, dir: THREE.Vector3, out: Landing) {
   const t = farness(distance);
-  let radius = (cap.dotSize / 2) * THREE.MathUtils.lerp(FEEL.closeSize, FEEL.farSize, t);
-  let softness = THREE.MathUtils.lerp(Math.min(cap.softness, 0.1), Math.max(cap.softness, 0.6), t);
-  let amount = base * THREE.MathUtils.lerp(FEEL.closeFlow, 1, t);
-  let drips = cap.drips * THREE.MathUtils.lerp(FEEL.closeDrips, 1, t);
-  if (FEEL.nib === 'needle') {
-    radius *= 0.4;
-    softness = 0.05;
-    amount = Math.min(1, amount * 1.4);
-  }
-  let shape: DotShape | undefined;
   const s = slantShape(rect, dir, slant);
-  if (s && FEEL.slant > 0) shape = [s.elong, s.ang, FEEL.tail * (1 - s.cos)];
-  if (FEEL.nib === 'chisel' && rect?.face) {
-    // A flat nib held at a fixed angle on the wall: its width depends on the stroke's direction.
-    shape = [FEEL.chiselRatio * (s ? Math.sqrt(s.elong) : 1), (FEEL.chiselAngle * Math.PI) / 180, 0];
-    radius = (cap.dotSize / 2) * 0.45;
-    softness = 0.08;
-  }
-  if (kind === 'overspray') {
-    // Overspray is single specks of paint, a texel or two, not a haze.
-    radius = 0.002 + rnd() * 0.004;
-    amount = rnd() < FEEL.oversprayAmount * 4 ? 0.5 + rnd() * 0.4 : 0;
-    softness = 0;
-    drips = 0;
-    shape = undefined;
-  } else if (kind === 'spatter') {
-    radius = (cap.dotSize / 2) * FEEL.spatterSize * (0.4 + rnd() * 1.2);
-    amount = 0.95;
-    softness = 0.05;
-    drips = cap.drips * 2;
-    // A drop at a slant still splats long.
-    if (s) shape = [Math.sqrt(s.elong) * (1 + rnd()), s.ang, 0.3];
-  }
-  out.amount = Math.min(1, amount);
-  out.radius = radius;
-  out.softness = softness;
-  out.drips = drips;
-  out.shape = shape;
+  out.amount = Math.min(1, base * THREE.MathUtils.lerp(FEEL.closeFlow, 1, t));
+  out.radius = (cap.dotSize / 2) * THREE.MathUtils.lerp(FEEL.closeSize, FEEL.farSize, t);
+  out.softness = THREE.MathUtils.lerp(Math.min(cap.softness, 0.1), Math.max(cap.softness, 0.6), t);
+  out.drips = cap.drips * THREE.MathUtils.lerp(FEEL.closeDrips, 1, t);
+  out.shape = s && FEEL.slant > 0 ? [s.elong, s.ang, FEEL.tail * (1 - s.cos)] : undefined;
   return out;
 }

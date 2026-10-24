@@ -25,9 +25,6 @@ interface Run {
   rgb: Rgb;
 }
 
-/** Sandbox: the drop at a run's end, a rounded bead (texel offsets from its tip and opacity). */
-const BEAD: [number, number, number][] = [[-1, 0, 0.9], [1, 0, 0.9], [-1, 1, 0.9], [1, 1, 0.9], [0, -1, 0.6], [-1, 2, 0.4], [1, 2, 0.4]];
-
 export class PaintDrips {
   private runs: Run[] = [];
   /** Dev tools only (dev/runs-view.ts): told each texel a run paints, null in play. */
@@ -79,9 +76,8 @@ export class PaintDrips {
       // Each row's paint by where it is in the run, not when a frame came: the same on every client.
       for (let row = row0 - 1; row >= row1; row--) this.lay(r, row, DRIPS.strength * (0.55 + 0.45 * Math.max(0, (row - r.end) / r.length)));
       if (r.y <= r.end + 1) {
-        // The drop at the end: sandbox, a bead wider than the trickle, hanging a texel low.
+        // The drop at the end.
         this.lay(r, row1, DRIPS.strength);
-        for (const [dx, dy, k] of BEAD) this.paint.dab(r.s, r.rect, r.x + dx, row1 + dy, DRIPS.strength * k, r.rgb);
         continue;
       }
       list[n++] = r;

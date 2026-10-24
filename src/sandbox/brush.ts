@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { SPRAY, type CapSpec } from '../config';
-import { paintRandom } from '../lcg';
 import type { PaintSystem, Rgb } from '../painting';
 import type { DotShape } from '../paint-raster';
 import type { SprayParticles } from '../spray/particles';
@@ -22,9 +21,6 @@ const lastPoint = new THREE.Vector3();
 const curPoint = new THREE.Vector3();
 const p = new THREE.Vector3();
 const dir = new THREE.Vector3();
-const jitter = new THREE.Vector3();
-const right = new THREE.Vector3();
-const up = new THREE.Vector3();
 const slant = { elong: 1, ang: 0, cos: 1 };
 
 export interface BrushParams {
@@ -32,12 +28,8 @@ export interface BrushParams {
   forward: THREE.Vector3;
   cap: CapSpec;
   rgb: Rgb;
-  /** 0..1 flow from the can's pressure, the release tail. */
+  /** 0..1 flow from the can's pressure. */
   flow: number;
-  /** Extra size and paint at the start of a press. */
-  spit: number;
-  /** Odds-ish of spatter drops this frame (low pressure, tail). */
-  spatter: number;
   dt: number;
 }
 
@@ -45,10 +37,7 @@ export interface BrushParams {
 export function dabRadius(cap: CapSpec, distance: number) {
   const t = farness(distance);
   distance = sprayDistance(distance);
-  let r = distance * Math.tan(cap.spread / 2) * 0.8 + (cap.dotSize / 2) * THREE.MathUtils.lerp(FEEL.closeSize, FEEL.farSize, t);
-  if (FEEL.nib === 'needle') r *= 0.4;
-  if (FEEL.nib === 'chisel') r = (cap.dotSize / 2) * 0.45 + distance * Math.tan(cap.spread / 2) * 0.2;
-  return r;
+  return distance * Math.tan(cap.spread / 2) * 0.8 + (cap.dotSize / 2) * THREE.MathUtils.lerp(FEEL.closeSize, FEEL.farSize, t);
 }
 
 export class SprayBrush {
@@ -95,7 +84,7 @@ export class SprayBrush {
       return false;
     }
     curPoint.copy(hit.point);
-    const size = dabRadius(b.cap, hit.distance) * (1 + b.spit * 0.6);
+    const size = dabRadius(b.cap, hit.distance);
     const spacing = Math.max(size * FEEL.spacing, 0.003);
     const gap = this.has ? lastPoint.distanceTo(curPoint) : 0;
     // A can puts out the same paint per second: the faster the spot moves, the thinner, wider and softer the line.
@@ -127,56 +116,30 @@ export class SprayBrush {
       }
     }
     this.has = true;
-    this.specks(b, forward, hit.distance);
     return true;
   }
-
 
   /** One dab where a ray along `d` meets paintable surface. `weight` scales its paint. */
   private dabAlong(b: BrushParams, d: THREE.Vector3, weight: number) {
     const hit = this.caster.probe(b.eye, d, false);
     if (!hit) return;
     const t = farness(hit.distance);
-    const radius = dabRadius(b.cap, hit.distance) * (1 + b.spit * 0.6) * (1 + FEEL.speedWiden * this.fast);
+    const radius = dabRadius(b.cap, hit.distance) * (1 + FEEL.speedWiden * this.fast);
     const sd = sprayDistance(hit.distance);
     const fall = sd <= FEEL.fadeStart ? 1 : 1 - (sd - FEEL.fadeStart) / Math.max(0.1, SPRAY.reach - FEEL.fadeStart);
     // The cap's edge scales the brush's: soft caps fuzzier, hard caps crisp at any distance (standard = 0.35 = as set).
-    const softness = FEEL.nib === 'round' ? Math.min(1, THREE.MathUtils.lerp(FEEL.closeSoft, FEEL.farSoft, t) * (b.cap.softness / 0.35) + FEEL.speedSoft * this.fast) : 0.1;
+    const softness = Math.min(1, THREE.MathUtils.lerp(FEEL.closeSoft, FEEL.farSoft, t) * (b.cap.softness / 0.35) + FEEL.speedSoft * this.fast);
     // One pass reaches about `pass` along the stroke's middle (opacity is what it says, like a drawing app;
     // distance only thins it a little): each texel there is under about 2 / spacing dabs, softened by their edge.
     // Above speedRef the paint per second holds: per meter of line it thins as 1 / speed (speedFade 1), or less.
     const thin = this.speed > FEEL.speedRef && FEEL.speedRef > 0 ? Math.pow(FEEL.speedRef / this.speed, FEEL.speedFade) : 1;
-    const pass = Math.min(0.999, FEEL.opacity * b.flow * Math.max(FEEL.fadeMin, fall) * THREE.MathUtils.lerp(FEEL.closeFlow, 1, t) * (1 + b.spit) * thin);
+    const pass = Math.min(0.999, FEEL.opacity * b.flow * Math.max(FEEL.fadeMin, fall) * THREE.MathUtils.lerp(FEEL.closeFlow, 1, t) * thin);
     const overlap = (2 / FEEL.spacing) * (1 - softness * 0.6);
     const amount = Math.min(1, (1 - Math.pow(1 - pass, 1 / overlap)) * weight);
     let shape: DotShape | undefined;
     const s = slantShape(hit.rect, d, slant);
     if (s && FEEL.slant > 0) shape = [s.elong, s.ang, FEEL.tail * (1 - s.cos)];
-    if (FEEL.nib === 'chisel' && hit.rect?.face) shape = [FEEL.chiselRatio * (s ? Math.sqrt(s.elong) : 1), (FEEL.chiselAngle * Math.PI) / 180, 0];
-    const drips = b.cap.drips * THREE.MathUtils.lerp(FEEL.closeDrips, 1, t) * (1 + b.spit * 3);
+    const drips = b.cap.drips * THREE.MathUtils.lerp(FEEL.closeDrips, 1, t);
     this.paint.stamp(hit.surface, hit.at, radius, amount, b.rgb, softness, drips, false, shape);
-  }
-
-  /** Overspray specks and spatter drops around the aim, landing at once. */
-  private specks(b: BrushParams, forward: THREE.Vector3, distance: number) {
-    const t = farness(distance);
-    const count = FEEL.overspray * 12 * b.flow * b.dt * 60 * (0.3 + t);
-    const drops = (FEEL.spatter * t + b.spatter) * b.dt * 60;
-    right.crossVectors(forward, THREE.Object3D.DEFAULT_UP).normalize();
-    up.crossVectors(right, forward);
-    const n = Math.floor(count + paintRandom.spray());
-    const m = Math.floor(drops + paintRandom.spray());
-    for (let i = 0; i < n + m; i++) {
-      const drop = i >= n;
-      const cone = b.cap.spread * (drop ? 1.5 : FEEL.oversprayCone) * 0.5;
-      const r = Math.tan(cone * Math.sqrt(paintRandom.spray()));
-      const a = paintRandom.spray() * Math.PI * 2;
-      jitter.copy(forward).addScaledVector(right, Math.cos(a) * r).addScaledVector(up, Math.sin(a) * r).normalize();
-      const hit = this.caster.probe(b.eye, jitter, false);
-      if (!hit) continue;
-      const radius = drop ? (b.cap.dotSize / 2) * FEEL.spatterSize * (0.4 + paintRandom.spray() * 1.2) : 0.002 + paintRandom.spray() * 0.004;
-      const amount = drop ? 0.95 : (0.4 + paintRandom.spray() * 0.4) * FEEL.opacity;
-      this.paint.stamp(hit.surface, hit.at, radius, amount, b.rgb, drop ? 0.05 : 0, drop ? b.cap.drips * 2 : 0);
-    }
   }
 }

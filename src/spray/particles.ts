@@ -5,7 +5,7 @@ import { solidsNear } from '../level/solids';
 import { paintRandom } from '../lcg';
 import { facePoint, type FacePoint } from '../surfaces';
 import type { DotShape } from '../paint-raster';
-import { FEEL, farness, landing, type Landing, type ParticleKind } from '../sandbox/feel';
+import { FEEL, landing, type Landing } from '../sandbox/feel';
 
 // Visual spray particles. Each one raycasts once when emitted, flies from the
 // nozzle to its hit point, and stamps paint into the surface texture on arrival.
@@ -43,9 +43,7 @@ export interface EmitParams {
   /** sRGB 0..1 for paint, and display color for the points. */
   rgb: Rgb;
   display: THREE.Color;
-  /** Sandbox (sandbox/feel.ts): blobs at the start of a press (0..), extra spatter odds, cone multiplier. */
-  spit?: number;
-  spatter?: number;
+  /** Sandbox (sandbox/feel.ts): cone multiplier. */
   cone?: number;
 }
 
@@ -115,15 +113,10 @@ export class SprayParticles {
     const { cap } = e;
     let landed = 0;
     const feel = FEEL.on;
-    const extra = feel ? Math.round(e.count * FEEL.overspray) : 0;
-    // A needle and a chisel spray a tight jet: the nib's shape, not the cone, makes the line.
-    const needle = feel && FEEL.nib === 'needle' ? 0.3 : feel && FEEL.nib === 'chisel' ? 0.2 : 1;
-    for (let i = 0; i < e.count + extra; i++) {
+    for (let i = 0; i < e.count; i++) {
       const p = this.free.pop();
       if (!p) break;
-      const over = i >= e.count;
-      const cone = over ? FEEL.oversprayCone : needle * (e.cone ?? 1);
-      const hit = this.cast(e.eye, hitDir.copy(aim(e, paintRandom.spray, cone)));
+      const hit = this.cast(e.eye, hitDir.copy(aim(e, paintRandom.spray, e.cone ?? 1)));
       this.launch(p, e, hit ? hit.point : target.copy(e.eye).addScaledVector(hitDir, SPRAY.reach));
       p.surface = hit ? (this.paint.get(hit.object) ?? null) : null;
       // Sandbox: the brush paints (sandbox/brush.ts); particles only show the spray.
@@ -147,15 +140,11 @@ export class SprayParticles {
           p.shape = undefined;
           continue;
         }
-        const t = farness(hit.distance);
-        const spatterOdds = FEEL.spatter * t * Math.sqrt(t) + (e.spatter ?? 0);
-        const kind: ParticleKind = over ? 'overspray' : paintRandom.spray() < spatterOdds ? 'spatter' : 'paint';
-        landing(kind, cap, base, hit.distance, p.surface.geo.rects[p.at.rect], hitDir, paintRandom.spray, land);
-        const spit = kind === 'paint' ? (e.spit ?? 0) : 0;
-        p.amount = Math.min(1, land.amount * (1 + spit));
-        p.radius = land.radius * (1 + spit * 0.6);
+        landing(cap, base, hit.distance, p.surface.geo.rects[p.at.rect], hitDir, land);
+        p.amount = land.amount;
+        p.radius = land.radius;
         p.softness = land.softness;
-        p.drips = land.drips * (1 + spit * 3);
+        p.drips = land.drips;
         p.shape = land.shape;
       }
     }

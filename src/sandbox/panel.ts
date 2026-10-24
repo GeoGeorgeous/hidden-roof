@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import GUI, { type Controller } from 'lil-gui';
 import { CAPS, DRIPS, PAINT, type CapId } from '../config';
 import { initAim, flash, opacityChanged } from './aim';
-import { DEFAULTS, FEEL, NIBS } from './feel';
+import { DEFAULTS, FEEL } from './feel';
 
 // R&D sandbox: the panel (Z). Every setting has a dot for what it acts on and
 // a tip in plain Russian. The cap group edits the cap in hand (config CAPS).
@@ -33,19 +33,18 @@ const CAP_DEFAULTS = structuredClone(CAPS);
 const DRIP_DEFAULTS = { ...DRIPS };
 
 /** What a setting acts on, as a dot before its name. */
-type Scope = 'all' | 'cap' | 'own' | 'chisel' | 'particles';
-const SCOPE_COLOR: Record<Scope, string> = { all: '#8a8a8a', cap: '#f2a04c', own: '#f0479a', chisel: '#36c2ea', particles: '#b98cf2' };
-const SCOPE_WORD: Record<Scope, string> = { all: 'все кэпы', cap: 'зависит от кэпа', own: 'только этот кэп', chisel: 'chisel', particles: 'частицы' };
+type Scope = 'all' | 'cap' | 'own' | 'particles';
+const SCOPE_COLOR: Record<Scope, string> = { all: '#8a8a8a', cap: '#f2a04c', own: '#f0479a', particles: '#b98cf2' };
+const SCOPE_WORD: Record<Scope, string> = { all: 'все кэпы', cap: 'зависит от кэпа', own: 'только этот кэп', particles: 'частицы' };
 const SCOPE_TIP: Record<Scope, string> = {
   all: 'Серый: одинаково для всех кэпов.',
   cap: 'Оранжевый: общая, но умножается на значение кэпа (группа «Кэп в руке») — у кэпов эффект разный.',
   own: 'Розовый: только кэп в руке. Смени кэп (Q/E) — увидишь его значения.',
-  chisel: 'Голубой: только насадка chisel.',
   particles: 'Фиолетовый: только режим частиц (галка «кисть» снята).',
 };
 const SCOPES: Partial<Record<string, Scope>> = {
-  closeSoft: 'cap', farSoft: 'cap', closeSize: 'cap', farSize: 'cap', closeDrips: 'cap', oversprayCone: 'cap', spatterSize: 'cap',
-  chiselRatio: 'chisel', chiselAngle: 'chisel', oversprayAmount: 'particles', speedThin: 'particles',
+  closeSoft: 'cap', farSoft: 'cap', closeSize: 'cap', farSize: 'cap', closeDrips: 'cap',
+  speedThin: 'particles',
 };
 /** Settings without a dot (actions, the readout). */
 const NO_SCOPE = new Set(['copy', 'reset', 'showGap']);
@@ -57,7 +56,6 @@ const TIPS: Record<string, string> = {
   reset: 'Вернуть все значения панели, кэпов и подтёков к начальным.',
   showGap: 'Под прицелом — расстояние до стены. Светлое — ты в зазоре (рисует точно), тусклое — дальше (распыление).',
   endlessPressure: 'Баллон не теряет давление: трясти (ПКМ) не нужно.',
-  nib: 'Форма струи. round — обычная, chisel — плоское перо под углом (толщина зависит от направления), needle — тонкая игла.',
   brush: 'Вкл — краска ложится сразу сплошным мазком. Выкл — её кладут летящие частицы (с задержкой и пробелами).',
   alphaSteps: 'Ступени прозрачности краски. 0 — плавно, 8 — «рубленые» края, как в игре.',
   opacity: 'Насколько плотный мазок за один проход. Меньше — прозрачнее, слои складываются. Shift + колесо.',
@@ -79,20 +77,9 @@ const TIPS: Record<string, string> = {
   speedWiden: 'Насколько шире мазок при быстром движении.',
   speedSoft: 'Насколько мягче край при быстром движении.',
   closeDrips: 'Насколько чаще течёт краска вплотную.',
-  spit: 'Клякса в самом начале нажатия. 0 — мазок начинается чисто.',
-  spitTime: 'Сколько длится клякса в начале.',
-  releaseTail: 'Сколько баллон ещё шипит после отпускания кнопки.',
-  spatter: 'Крупные капли издалека. 0 — без капель.',
-  spatterLowPressure: 'Капли, когда баллон почти пустой и ещё после отпускания. 0 — без них.',
-  spatterSize: 'Размер капель.',
-  overspray: 'Мелкие крапинки пыли вокруг линии. 0 — чистый край.',
-  oversprayCone: 'Как далеко от линии разлетается пыль.',
   slant: 'Под углом к стене пятно вытягивается в эллипс. 0 — всегда круг.',
   maxElong: 'Насколько сильно может вытянуться пятно под углом.',
   tail: 'Дальний конец эллипса бледнее — для фэйдов поворотом.',
-  chiselRatio: 'Насколько плоское перо chisel: больше — разница толстых и тонких линий сильнее.',
-  chiselAngle: 'Наклон пера chisel на стене.',
-  oversprayAmount: 'Насколько заметны крапинки пыли.',
   speedThin: 'Быстрый взмах сужает линию.',
 };
 const CAP_TIPS: Record<string, string> = {
@@ -137,7 +124,6 @@ export function initFeel() {
   gui.add({ reset: resetSettings }, 'reset').name('↺ Сбросить настройки');
   gui.add(FEEL, 'showGap').name('прицел: дистанция');
   gui.add(FEEL, 'endlessPressure').name('давление не кончается');
-  gui.add(FEEL, 'nib', NIBS as unknown as string[]).name('насадка (X)');
   gui.add(FEEL, 'brush').name('кисть (иначе частицы)');
   gui.add(PAINT, 'alphaSteps', 0, 16, 1).name('ступени альфы');
 
@@ -183,25 +169,12 @@ export function initFeel() {
   dr.add(DRIPS, 'strength', 0.1, 1).name('плотность');
   dr.add(FEEL, 'closeDrips', 0, 20).name('вблизи, ×');
 
-  const pr = gui.addFolder('Нажатие и брызги').close();
-  pr.add(FEEL, 'spit', 0, 3).name('плевок в начале');
-  pr.add(FEEL, 'spitTime', 0, 0.4).name('плевок, с');
-  pr.add(FEEL, 'releaseTail', 0, 0.5).name('хвост, с');
-  pr.add(FEEL, 'spatter', 0, 0.4).name('брызги вдали');
-  pr.add(FEEL, 'spatterLowPressure', 0, 1).name('брызги: мало давл.');
-  pr.add(FEEL, 'spatterSize', 0.1, 1.5).name('размер брызг');
-  pr.add(FEEL, 'overspray', 0, 1.5).name('пыль: сколько');
-  pr.add(FEEL, 'oversprayCone', 1, 8).name('пыль: ширина');
-
-  const an = gui.addFolder('Угол и chisel').close();
+  const an = gui.addFolder('Угол').close();
   an.add(FEEL, 'slant', 0, 1).name('эллипс');
   an.add(FEEL, 'maxElong', 1, 8).name('эллипс: макс.');
   an.add(FEEL, 'tail', 0, 1).name('дальний край');
-  an.add(FEEL, 'chiselRatio', 1.5, 10).name('chisel: вытянутость');
-  an.add(FEEL, 'chiselAngle', 0, 180).name('chisel: угол, °');
 
   const pa = gui.addFolder('Частицы').close();
-  pa.add(FEEL, 'oversprayAmount', 0, 0.3).name('пыль: плотность');
   pa.add(FEEL, 'speedThin', 0, 1).name('быстро: уже');
 
   for (const c of gui.controllersRecursive()) {
@@ -227,9 +200,6 @@ export function initFeel() {
     if (e.code === 'KeyZ') {
       if (gui!._hidden) gui!.show();
       else gui!.hide();
-    } else if (e.code === 'KeyX') {
-      FEEL.nib = NIBS[(NIBS.indexOf(FEEL.nib) + 1) % NIBS.length];
-      flash(`NIB: ${FEEL.nib.toUpperCase()}`);
     } else return;
     refreshPanel();
   });
