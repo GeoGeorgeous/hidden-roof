@@ -58,6 +58,7 @@ export class SprayBrush {
   private speed = 0;
   /** This frame's speed effect: 0 at FEEL.speedRef and below, toward 1 well above it. */
   private fast = 0;
+  private moved = false;
   private smoothed = false;
 
   constructor(
@@ -68,6 +69,7 @@ export class SprayBrush {
   /** The stroke ended (the button let go): the next one starts fresh. */
   end() {
     this.speed = 0;
+    this.moved = false;
     this.has = false;
     this.smoothed = false;
   }
@@ -98,7 +100,9 @@ export class SprayBrush {
     const gap = this.has ? lastPoint.distanceTo(curPoint) : 0;
     // A can puts out the same paint per second: the faster the spot moves, the thinner, wider and softer the line.
     const v = this.has && gap < 3 ? gap / Math.max(b.dt, 1e-3) : 0;
-    this.speed += (v - this.speed) * Math.min(1, b.dt * 15);
+    // The first move of a stroke sets the speed at once: smoothing it up from 0 made every start dense.
+    this.speed = this.moved ? this.speed + (v - this.speed) * Math.min(1, b.dt * 15) : v;
+    if (v > 0) this.moved = true;
     this.fast = FEEL.speedRef > 0 ? THREE.MathUtils.clamp((this.speed - FEEL.speedRef) / (FEEL.speedRef * 3), 0, 1) : 0;
     if (this.has && gap > spacing && gap < 3) {
       // Fill from the last point to this one: dabs along the way, each cast from the eye.

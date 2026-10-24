@@ -53,7 +53,7 @@ export const FEEL = {
   spatter: 0,
   spatterLowPressure: 0,
   spatterSize: 0.7,
-  spit: 1,
+  spit: 0,
   spitTime: 0.09,
   releaseTail: 0.14,
   // Slant
