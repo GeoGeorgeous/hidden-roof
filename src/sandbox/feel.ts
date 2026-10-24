@@ -181,24 +181,24 @@ export function initFeel() {
     pointerEvents: 'none', zIndex: '9997', display: 'none',
   });
   document.body.append(gauge, gaugeDot);
-  gui = new GUI({ title: 'ПЕСОЧНИЦА · баллон (Z)' });
+  gui = new GUI({ title: 'ПЕСОЧНИЦА · баллон (Z)', width: 340 });
   gui.domElement.style.zIndex = '9998';
   gui.add(FEEL, 'on').name('включено');
   gui.add(FEEL, 'nib', NIBS as unknown as string[]).name('насадка (X)');
   // Smooth opacity, like a drawing app: the game's chunky alpha steps off (the panel brings them back).
   PAINT.alphaSteps = 0;
-  gui.add(PAINT, 'alphaSteps', 0, 16, 1).name('ступени прозрачности (в игре 8)');
+  gui.add(PAINT, 'alphaSteps', 0, 16, 1).name('ступени альфы');
   const br = gui.addFolder('Кисть');
-  br.add(FEEL, 'brush').name('кисть (иначе частицы)');
+  br.add(FEEL, 'brush').name('кисть');
   br.add(FEEL, 'opacity', 0.02, 1).name('нажим (Shift+колесо)');
   br.add(FEEL, 'spacing', 0.05, 1).name('шаг отпечатков');
   br.add(FEEL, 'streamline', 0, 1).name('сглаживание линии');
   br.add(FEEL, 'closeSoft', 0, 1).name('мягкость вблизи');
   br.add(FEEL, 'farSoft', 0, 1).name('мягкость вдали');
-  br.add(FEEL, 'speedRef', 0, 4).name('скорость: с какой, м/с (0 = выкл)');
-  br.add(FEEL, 'speedFade', 0, 1.5).name('скорость: светлее');
-  br.add(FEEL, 'speedWiden', 0, 2).name('скорость: шире');
-  br.add(FEEL, 'speedSoft', 0, 1).name('скорость: мягче');
+  br.add(FEEL, 'speedRef', 0, 4).name('скорость от, м/с');
+  br.add(FEEL, 'speedFade', 0, 1.5).name('быстро: светлее');
+  br.add(FEEL, 'speedWiden', 0, 2).name('быстро: шире');
+  br.add(FEEL, 'speedSoft', 0, 1).name('быстро: мягче');
   const d = gui.addFolder('Дистанция');
   d.add(FEEL, 'gap', 0, 2.5, 0.05).name('зазор, м');
   d.add(FEEL, 'closeAt', 0.05, 1).name('«вблизи» до, м');
@@ -210,20 +210,20 @@ export function initFeel() {
   const o = gui.addFolder('Пыль и брызги');
   o.add(FEEL, 'overspray', 0, 1.5).name('пыль: сколько');
   o.add(FEEL, 'oversprayCone', 1, 8).name('пыль: ширина');
-  o.add(FEEL, 'oversprayAmount', 0, 0.3).name('пыль: плотность (частицы)');
+  o.add(FEEL, 'oversprayAmount', 0, 0.3).name('пыль: плотность');
   o.add(FEEL, 'spatter', 0, 0.4).name('брызги вдали');
-  o.add(FEEL, 'spatterLowPressure', 0, 1).name('брызги при слабом давлении');
+  o.add(FEEL, 'spatterLowPressure', 0, 1).name('брызги: мало давл.');
   o.add(FEEL, 'spatterSize', 0.1, 1.5).name('размер брызг');
   o.add(FEEL, 'spit', 0, 3).name('плевок в начале');
-  o.add(FEEL, 'spitTime', 0, 0.4).name('плевок: длительность, с');
-  o.add(FEEL, 'releaseTail', 0, 0.5).name('хвост после отпускания, с');
+  o.add(FEEL, 'spitTime', 0, 0.4).name('плевок, с');
+  o.add(FEEL, 'releaseTail', 0, 0.5).name('хвост, с');
   const s = gui.addFolder('Угол, насадка, жест');
-  s.add(FEEL, 'slant', 0, 1).name('эллипс под углом');
-  s.add(FEEL, 'maxElong', 1, 8).name('макс. вытяжка эллипса');
-  s.add(FEEL, 'tail', 0, 1).name('затухание дальнего края');
+  s.add(FEEL, 'slant', 0, 1).name('эллипс');
+  s.add(FEEL, 'maxElong', 1, 8).name('эллипс: макс.');
+  s.add(FEEL, 'tail', 0, 1).name('дальний край');
   s.add(FEEL, 'chiselRatio', 1.5, 10).name('chisel: вытянутость');
   s.add(FEEL, 'chiselAngle', 0, 180).name('chisel: угол, °');
-  s.add(FEEL, 'speedThin', 0, 1).name('сужение на быстром жесте (частицы)');
+  s.add(FEEL, 'speedThin', 0, 1).name('быстро: уже (частицы)');
   gui.hide();
   window.addEventListener('keydown', (e) => {
     // Not while typing a number into the panel.
