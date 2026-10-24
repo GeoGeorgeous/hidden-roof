@@ -26,7 +26,7 @@ export const FEEL = {
   // Brush (sandbox/brush.ts): paint at once, as a continuous stroke
   brush: true,
   /** One pass of a stroke reaches about this opacity (Shift + wheel). */
-  opacity: 0.85,
+  opacity: 0.5,
   /** Dab spacing, a fraction of the dab's radius. */
   spacing: 0.2,
   /** Aim smoothing (StreamLine), 0 = off. */
@@ -42,7 +42,7 @@ export const FEEL = {
   /** Up to this far from the wall (m) the spray acts as if close up: the near effects, the spread and the fade start past it. */
   gap: 0.6,
   closeAt: 0.25,
-  farAt: 1.5,
+  farAt: 2.5,
   closeSize: 0.55,
   farSize: 2.2,
   closeFlow: 1.8,
