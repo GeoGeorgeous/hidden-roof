@@ -89,8 +89,8 @@ for (const m of [host, join]) {
   refused({ ...m, protocol: '6', name: 'Anna K' });
 }
 // A socket's close code says the rejection it came with; any other close code says none.
-for (const r of ['version', 'no-session', 'ended', 'full', 'bad-save', 'bad-level', 'busy', 'replaced', 'too-many', 'no-host']) assert.equal(rejectionOf(closeCode(r)), r);
-for (const code of [1000, 1006, 1008, 1011, 4000, 4011]) assert.equal(rejectionOf(code), undefined, String(code));
+for (const r of ['version', 'no-session', 'ended', 'full', 'bad-save', 'bad-level', 'busy', 'replaced', 'too-many', 'no-host', 'kicked']) assert.equal(rejectionOf(closeCode(r)), r);
+for (const code of [1000, 1006, 1008, 1011, 4000, 4012]) assert.equal(rejectionOf(code), undefined, String(code));
 // A name saved by an older version is cleaned to what a name may be: letters and digits, at most NAME_MAX.
 assert.equal(cleanName('Geo Geo'), 'GeoGeo');
 assert.equal(cleanName('Гоша_7!'), '7');

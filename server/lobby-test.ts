@@ -12,7 +12,7 @@ import { Game, join, start } from './test-kit';
 // The server list and the limits per session (lobby-http.ts, lobby.ts), against the built server: the list over plain
 // HTTP (public and private sessions, their order, codes only for public ones), a lookup by code and its limit per
 // address, a hosted session turning the player over its limit away, the admin's private limit, a HOST with
-// fields it can't take, and HOST refused unless PLAYER_HOST. npm run test:server runs it.
+// fields it can't take, HOST refused unless PLAYER_HOST, and the admin's kick. npm run test:server runs it.
 
 const level = JSON.parse(fs.readFileSync('public/levels/demo.json', 'utf8'));
 const table = surfaceTable(levelPaintFaces(level, 48));
@@ -95,6 +95,37 @@ try {
   assert.deepEqual((await list()).sessions.map((e) => e.name), ['Wall', 'Friends', 'Crew']);
   assert.equal((await get(main.port, LOBBY_CODE + wa.code, '10.3.0.5')).status, 404);
 
+  // The admin's kick: the player is told and out at once, a dropped one's seat is let go, both may join again, the admin's feed has it.
+  const post = async (at: string) => {
+    const res = await fetch(`http://localhost:${main.adminPort}${at}`, { method: 'POST', headers: { authorization: 'Bearer test-key' } });
+    return { status: res.status, body: await res.json() };
+  };
+  const players = async () => ((await (await fetch(`http://localhost:${main.adminPort}/sessions`, { headers: { authorization: 'Bearer test-key' } })).json()) as { code: string; players: { id: number; name: string }[] }[]).find((s) => s.code === friends.body.code)!.players;
+  const kicked = await (await join(main.port, 'K', friends.body.code)).next('welcome');
+  const away = await join(main.port, 'L', friends.body.code);
+  const wl = await away.next('welcome');
+  away.ws.terminate();
+  await away.closed;
+  assert.deepEqual((await players()).map((p) => p.name), ['F', 'K', 'L']);
+  assert.equal((await post(`/sessions/${friends.body.code}/players/${kicked.you}/kick`)).status, 200);
+  assert.deepEqual((await players()).map((p) => p.name), ['F', 'L'], 'out at once');
+  assert.equal((await post(`/sessions/${friends.body.code}/players/${wl.you}/kick`)).status, 200);
+  assert.deepEqual((await players()).map((p) => p.name), ['F'], 'a dropped player\'s seat is let go');
+  const k = await join(main.port, 'K', friends.body.code, { token: kicked.token });
+  assert.notEqual((await k.next('welcome')).you, kicked.you, 'a new join: the old token is no seat');
+  const told = await join(main.port, 'M', friends.body.code);
+  const wm = await told.next('welcome');
+  assert.equal((await post(`/sessions/${friends.body.code}/players/${wm.you}/kick`)).status, 200);
+  assert.equal((await told.next('rejected')).reason, 'kicked');
+  assert.equal(await told.closed, closeCode('kicked'));
+  assert.equal(closeCode('kicked'), 4011);
+  for (const at of [`/sessions/${friends.body.code}/players/999/kick`, `/sessions/${friends.body.code}/players/x/kick`, `/sessions/ZZZZZ/players/${wm.you}/kick`]) assert.equal((await post(at)).status, 404, at);
+  const feed = new AbortController();
+  const stream = await fetch(`http://localhost:${main.adminPort}/events`, { headers: { authorization: 'Bearer test-key' }, signal: feed.signal });
+  const text = new TextDecoder().decode((await stream.body!.getReader().read()).value);
+  feed.abort();
+  assert.ok(/"type":"kicked"[^\n]*"player":"M"/.test(text), 'a kicked event with the name');
+
   // A HOST with a session it can't take is a bad message.
   for (const session of [undefined, { ...host.session, name: ' ' }, { ...host.session, limit: 1 }, { ...host.session, limit: SERVER.players.private + 1 }, { ...host.session, tools: ['can', 'can'] }, { ...host.session, tools: ['spoon'] }]) {
     const bad = await new Game(main.port).send({ ...host, session } as ToServer);
@@ -106,7 +137,7 @@ try {
   assert.equal((await no.next('rejected')).reason, 'no-host');
   assert.equal(await no.closed, 4010);
   assert.equal(closeCode('no-host'), 4010);
-  console.log('server list: ok (the list, a lookup by code and its limit, per-session limits, the admin\'s private limit, HOST only with PLAYER_HOST)');
+  console.log('server list: ok (the list, a lookup by code and its limit, per-session limits, the admin\'s private limit, HOST only with PLAYER_HOST, the admin\'s kick)');
 } finally {
   main.stop();
   refusing.stop();

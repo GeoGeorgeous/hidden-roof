@@ -28,15 +28,21 @@ import type { Session, SessionSetup } from './session';
 //                              limit: a private one's most players, SERVER.privateMin to SERVER.players.private)
 //   POST /sessions/CODE/wipe   its paint gone
 //   POST /sessions/CODE/close  ended for everyone in it
+//   POST /sessions/CODE/players/ID/kick
+//                              a player out at once (told why, no seat held; they may join again)
+//   GET  /sessions/CODE/paint  its paint as a paint file made now (not kept): application/octet-stream,
+//                              attachment named <code>-<UTC time>.rhhpaint; 503 when there's no memory for one
 
 /** Changes when what the API takes or answers does: the admin page lives in another repo. */
-const ADMIN_API = 2;
+const ADMIN_API = 3;
 const started = Date.now();
 
 const digest = (s: string) => createHash('sha256').update(s).digest();
 const detailName = (d: number) => Object.entries(PAINT_DETAIL).find(([, v]) => v === d)?.[0] ?? String(d);
 
 const iso = (ms: number) => new Date(ms).toISOString();
+/** A paint file's name: the session's code and the UTC time, 2026-10-26T12-30-00Z. */
+const paintName = (code: string) => `${code}-${iso(Date.now()).slice(0, 19).replaceAll(':', '-')}Z.rhhpaint`;
 
 /** A session as the admin sees it, but its saves. A dropped player's `ip` is their last link's; `held`: seconds left to come back. */
 function live(s: Session) {
@@ -103,6 +109,13 @@ export function adminApi(lobby: Lobby, kept: Kept, key: string) {
       }
       if (parts[0] !== 'sessions') return answer(404, { error: 'not found' });
       if (req.method === 'GET' && parts.length === 1) return answer(200, await Promise.all([...lobby.sessions.values()].map((s) => listing(s, kept))));
+      if (req.method === 'GET' && parts.length === 3 && parts[2] === 'paint') {
+        const session = lobby.sessions.get(parts[1]);
+        if (!session) return answer(404, { error: `no session ${parts[1]}` });
+        const bytes = await kept.download(session);
+        if (!bytes) return answer(503, { error: 'no memory for a paint file' });
+        return res.writeHead(200, { 'content-type': 'application/octet-stream', 'content-disposition': `attachment; filename="${paintName(session.code)}"`, 'cache-control': 'no-store' }).end(bytes);
+      }
       if (req.method !== 'POST') return answer(405, { error: 'POST' });
       if (parts.length === 1) {
         const m = newSession(await body(req));
@@ -112,7 +125,9 @@ export function adminApi(lobby: Lobby, kept: Kept, key: string) {
       }
       const session = lobby.sessions.get(parts[1]);
       if (!session) return answer(404, { error: `no session ${parts[1]}` });
-      if (parts[2] === 'wipe') await kept.wipe(session);
+      if (parts[2] === 'players' && parts[4] === 'kick' && parts.length === 5) {
+        if (!/^\d+$/.test(parts[3]) || !kept.kick(session, Number(parts[3]))) return answer(404, { error: `no player ${parts[3]} in ${session.code}` });
+      } else if (parts[2] === 'wipe') await kept.wipe(session);
       else if (parts[2] === 'close') await kept.end(session);
       else return answer(404, { error: 'not found' });
       return answer(200, { ok: true });

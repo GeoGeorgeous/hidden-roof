@@ -15,7 +15,7 @@ import { isNum, isObj, isV3, levelProblem, type LevelData, type PropData } from 
 // through checkToServer.
 
 /** Bumped when a message changes or anything the server runs for a session does (paint, drips, face keys, the save format). host and join carry it and the level's surface-table hash; a mismatch is answered 'version' and the game asks for a reload. */
-export const PROTOCOL = 8;
+export const PROTOCOL = 9;
 export const NAME_MAX = 16;
 /** A player's name: Latin letters and digits only (ASCII), 1 to NAME_MAX of them; the menu checks it before HOST or JOIN, the server refuses any other. */
 export const isName = (x: unknown): x is string => typeof x === 'string' && x.length <= NAME_MAX && /^[A-Za-z0-9]+$/.test(x);
@@ -51,10 +51,10 @@ const MAX_PROPS = 5000;
  * level it can't use, the server too full for another session, or the same
  * player come in from another tab (a duplicated tab carries the token along),
  * or too many links or sessions from one address (SERVER.linksPerIp, sessionsPerIp),
- * or HOST while players may not host (SERVER.playerHost).
+ * or HOST while players may not host (SERVER.playerHost), or the admin removed the player.
  * The socket then closes with closeCode(reason), for the logs.
  */
-const REJECTIONS = ['version', 'no-session', 'ended', 'full', 'bad-save', 'bad-level', 'busy', 'replaced', 'too-many', 'no-host'] as const;
+const REJECTIONS = ['version', 'no-session', 'ended', 'full', 'bad-save', 'bad-level', 'busy', 'replaced', 'too-many', 'no-host', 'kicked'] as const;
 export type Rejection = (typeof REJECTIONS)[number];
 export const closeCode = (r: Rejection) => 4001 + REJECTIONS.indexOf(r);
 /** The rejection a socket's close code says (see closeCode), if it does. */

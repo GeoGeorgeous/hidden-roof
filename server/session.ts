@@ -293,7 +293,7 @@ export class Session {
     return `after ${span(Date.now() - this.started)}, ${this.memory.now.toFixed(0)} MB of paint, ${this.nextId - 1} players: ${c.new} new, ${c.back} back, ${c.takeover} takeovers`;
   }
 
-  private remove(p: Player, why: string) {
+  remove(p: Player, why: string) {
     if (this.players.get(p.id) !== p) return;
     if (p.expires) clearTimeout(p.expires);
     this.players.delete(p.id);
