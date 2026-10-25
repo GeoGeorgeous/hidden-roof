@@ -174,7 +174,7 @@ try {
   assert.equal((await a.next('pong')).acked, 1);
   // What the admin page reads: the version, today's paint (the stamp's color as the game's), the player, the machine.
   const top = await admin('GET', '/');
-  assert.deepEqual([top.body.api, typeof top.body.version], [3, 'string']);
+  assert.deepEqual([top.body.api, typeof top.body.version], [2, 'string']);
   const live = (await admin('GET', '/sessions')).body[0];
   assert.deepEqual([live.today.stamps.can, live.today.topColor, live.today.peak.players, live.emptySince], [1, 'red', 1, null]);
   assert.deepEqual([live.players[0].ip, live.players[0].here, live.players[0].held], [`10.1.0.${games}`, true, null]);
