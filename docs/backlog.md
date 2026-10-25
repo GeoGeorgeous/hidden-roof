@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 243
+The one list of what's left. Counter for new ids: next: 245
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -138,11 +138,13 @@ Only `N.`, the id and the description are required. The optional parts appear in
 1. IDEA [BL-043]: One public server, running 24/7 (docs/ideas/public-servers.md) @1.6.0
 2. IDEA [BL-047]: Admin panel: servers stats (players online, perfomance, etc), players info (username, IP, ping), after BL-043; ban by IP is IDEA-240 (docs/ideas/public-servers.md) @1.6.0
 3. [TASK-239]: The admin's wipe keeps the last 3 paint saves, and a restart after it still starts from the empty wall @1.6.0
-4. [IDEA-240]: Admin: kick, ban by IP (with a reason the player is shown) and restore one of the 3 saves (docs/ideas/public-servers.md)
-5. [TASK-241]: Read Caddy's access log in a small process of its own on the host (not the game server): page views, referrers and UTM, the first funnel steps, as daily rollups for the admin page's Traffic tab (docs/ideas/public-servers.md)
-6. IDEA [?BL-147]: Anti-cheat: The server checks what players send (op reach and rate, ladder spot, jumps) before it goes public @1.6.1
-7. [TASK-189]: House rules before joining a public server: players are 18+, joining accepts the Terms, sessions may be recorded and published; the rules screen is in, left: the Terms' moderation section (docs/ideas/public-servers.md) @1.6.0
-8. [TASK-201]: Research itch.io Publishing Requirements, AI Policies, and Download Restrictions @1.6.3
+4. [IDEA-240]: Admin: ban by IP (with a reason the player is shown) and restore one of the 3 saves (docs/ideas/public-servers.md)
+5. [TASK-241]: Read Caddy's access log in a small process of its own on the host (not the game server): page views, referrers and UTM, the first funnel steps, as daily rollups for the admin page's Traffic tab; our own links carry `?ref=` (discord, ig, tg), counted with `utm_source` and the Referer as one Source (docs/ideas/public-servers.md)
+6. [TASK-243]: Admin actions from cctv: kick a player (the game says so), and save a session's paint now and download it (docs/ideas/public-servers.md) @1.6.0
+7. [TASK-244]: The beacon counts game events in its minute summary, solo too: the funnel (Play, level ready, first spray, joined a session), pickups by item, jumps, falls, the stepladder, time playing, idle and in menus, the tutorial step left at, settings, screenshots, Discord and Share clicks (docs/ideas/public-servers.md) @1.6.0
+8. IDEA [?BL-147]: Anti-cheat: The server checks what players send (op reach and rate, ladder spot, jumps) before it goes public @1.6.1
+9. [TASK-189]: House rules before joining a public server: players are 18+, joining accepts the Terms, sessions may be recorded and published; the rules screen is in, left: the Terms' moderation section (docs/ideas/public-servers.md) @1.6.0
+10. [TASK-201]: Research itch.io Publishing Requirements, AI Policies, and Download Restrictions @1.6.3
 
 ## Web and promotion
 
