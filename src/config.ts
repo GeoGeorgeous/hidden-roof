@@ -1039,6 +1039,8 @@ export const NET = {
   beaconErrorChars: 160,
   beaconIdle: 30,
   beaconStep: 2,
+  /** A setting changed again within this many seconds of its last change (a slider dragged) is the same change. */
+  beaconSettingGap: 2,
   /** Snapshots sent per second. */
   sendRate: 20,
   /**

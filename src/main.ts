@@ -177,7 +177,7 @@ let textAtlasSeen = textAtlasVersion();
 player.onLand = (speed) => audio.footstep(speed > PLAYER.hardLanding);
 player.onJump = () => beacon.count('jump');
 player.onFall = () => beacon.count('fall');
-settings.onChange = (key) => beacon.count(`setting.${key}`);
+settings.onChange = (key) => beacon.setting(key);
 
 const play = new PlayState(input, session, {
   release: () => document.exitPointerLock(),
@@ -207,7 +207,7 @@ input.onLockChange = (locked) => {
   }
 };
 input.onResume = hud.menu.onResume = () => play.resume();
-hud.menu.onStyle = (i) => (settings.setStyle(i), beacon.count('setting.graphics.style'));
+hud.menu.onStyle = (i) => (settings.setStyle(i), beacon.setting('graphics.style'));
 hud.menu.onSocial = (id) => id === 'discord' && beacon.count('discord');
 showMenu();
 const testPage = perfTestPage(hud.menu, perfTest, gpu, () => settings.tested());

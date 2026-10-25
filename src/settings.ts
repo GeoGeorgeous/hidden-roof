@@ -55,7 +55,7 @@ export class Settings {
   /** A setting was changed on the page (`section.row`, lowercase: the beacon counts them). */
   onChange: (key: string) => void = () => {};
   /** The page's rows with their keys, for `chosen`. */
-  private listed: [key: string, row: SettingRow][] = [];
+  private listed = new Map<string, SettingRow>();
 
   /**
    * `applyResolution` resizes the renderer after the pixel scale changed,
@@ -90,7 +90,7 @@ export class Settings {
     const saving = (section: string) => (row: SettingRow): SettingRow => {
       const key = `${section}.${row.label}`.toLowerCase().replace(/[^a-z0-9.]+/g, '-');
       const changed = () => (this.onChange(key), this.save());
-      this.listed.push([key, row]);
+      this.listed.set(key, row);
       if (row.kind === 'choice') return { ...row, step: (d) => (row.step(d), changed()) };
       if (row.kind === 'range') return { ...row, set: (v) => (row.set(v), changed()) };
       // Info and action rows change nothing.

@@ -66,6 +66,18 @@ assert.deepEqual(sent.pop().counts, { jump: 2, 'pickup.color.red': 1 });
 tick();
 assert.equal(sent.pop().counts, undefined);
 
+// A slider drag is one change: later steps within NET.beaconSettingGap of the last count nothing; after a pause it is a new one.
+let skew = 0;
+const real = performance.now.bind(performance);
+performance.now = () => real() + skew * 1000;
+for (let i = 0; i < 5; i++) (b.setting('sound.master'), (skew += NET.beaconSettingGap / 2));
+b.setting('gameplay.hints');
+skew += NET.beaconSettingGap + 1;
+b.setting('sound.master');
+tick();
+assert.deepEqual(sent.pop().counts, { 'setting.sound.master': 2, 'setting.gameplay.hints': 1 });
+performance.now = real;
+
 // Seconds: playing with recent input, idle without, menu when not playing or a dialog is up; a stall counts NET.beaconStep at most.
 b.frame(0.5, true, false, now());
 b.frame(0.2, true, false, now() - NET.beaconIdle - 1);

@@ -36,6 +36,8 @@ export class Beacon {
   private reached = new Set<string>();
   private steps: Step[] = [];
   private lessons: string[] = [];
+  /** When each setting last changed (s). */
+  private changed = new Map<string, number>();
   /** Events since the last send, by code. */
   private counts: Record<string, number> = {};
   /** Seconds since the last send. */
@@ -66,6 +68,13 @@ export class Beacon {
   /** A tutorial step reached (a hint learnt, or 'done'): counted the first time only. */
   lesson(id: string) {
     if (!this.reached.has(`t.${id}`)) (this.reached.add(`t.${id}`), this.lessons.push(id));
+  }
+
+  /** A setting changed (`key`: its row's): one change until it's left alone for NET.beaconSettingGap s, so a slider drag counts once. */
+  setting(key: string) {
+    const now = performance.now() / 1000;
+    if (now - (this.changed.get(key) ?? -Infinity) > NET.beaconSettingGap) this.count(`setting.${key}`);
+    this.changed.set(key, now);
   }
 
   /** Something happened in the game: a code of lowercase letters, digits, dots and dashes. */
