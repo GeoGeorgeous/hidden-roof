@@ -4,6 +4,7 @@ import type { InventoryData } from '../src/inventory/inventory';
 import { SLOTS, type Tool } from '../src/inventory/tool';
 import type { LevelData } from '../src/level/level-data';
 import { decodeOps, encodeOps, SurfaceIndex } from '../src/op-wire';
+import { opTool } from '../src/paint-ops';
 import { closeCode, encode, partFrames, partPieces, type Rejection, type SessionKind, type ToClient, type ToServer } from '../src/net/protocol';
 import { loadPaint } from '../src/save/load-paint';
 import { joinBytes } from '../src/save/paint-file';
@@ -45,6 +46,8 @@ export class Session {
   /** Its surfaces as paint ops name them (op-wire.ts). */
   private surfaces: SurfaceIndex;
   private world: ReturnType<typeof sessionPaint>;
+  /** The tools it turned off (setup.tools is what it allows): their ops and stepladders are dropped. */
+  private off: ReadonlySet<Tool>;
   private nextId = 1;
   readonly started = Date.now();
   private counts: Record<How, number> = { new: 0, back: 0, takeover: 0 };
@@ -71,6 +74,7 @@ export class Session {
     private onEmpty: (why: string) => void,
     readonly setup = HOSTED,
   ) {
+    this.off = new Set(SLOTS.filter((t) => !setup.tools.includes(t)));
     this.world = sessionPaint(level, detail);
     this.table = surfaceTable(this.world.paint.surfaces);
     this.surfaces = new SurfaceIndex([...this.world.paint.surfaces].map((s) => s.key));
@@ -164,9 +168,12 @@ export class Session {
       p.acked = m.seq;
       const batch = decodeOps(m.bytes, this.surfaces);
       if (!batch) return log(this.code, who(p), 'paint ops it could not read: dropped');
-      // Ops on a face their surface doesn't have are dropped.
+      // Ops on a face their surface doesn't have, and ops of a tool the session turned off, are dropped.
       const { paint, ops } = this.world;
-      const keep = batch.ops.map((op) => op.rect < (paint.find(op.key)?.geo.rects.length ?? 0));
+      const keep = batch.ops.map((op) => {
+        const tool = opTool(op);
+        return op.rect < (paint.find(op.key)?.geo.rects.length ?? 0) && !(tool && this.off.has(tool));
+      });
       const valid = batch.ops.filter((_, i) => keep[i]);
       this.paintNow(() => valid.forEach((op) => ops.apply(op)));
       if (!valid.length) return;
@@ -175,6 +182,8 @@ export class Session {
       this.broadcast({ type: 'ops', id: p.id, bytes }, p);
       this.snap?.log.push(encode({ type: 'paint', bytes }));
     } else if (m.type === 'ladder') {
+      // Putting one down with the stepladder off is dropped (picking it up is not).
+      if (m.data && this.off.has('ladder')) return;
       p.ladder = m.data;
       this.broadcast({ type: 'ladder', id: p.id, t: m.t, data: m.data }, p);
     } else if (m.type === 'save') void this.save(p);

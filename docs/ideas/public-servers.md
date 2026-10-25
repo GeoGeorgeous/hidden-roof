@@ -18,7 +18,7 @@ The public server: see also docs/deploy.md. Shipped: the server list, public and
 
 ## BL-043 One public server, running 24/7
 
-See `docs/deploy.md`. Server side done (2026-10-25): the admin API and command (`server/admin-api.ts`, `server/admin.mjs`), sessions the admin makes (public or private, a name, tools; they stay when empty), public ones kept in `DATA_DIR` with their paint (`server/kept.ts`), private sessions up to 4. Left: the deploy (`docs/ideas/vps.md` item 2). The tools a session allows are stored and listed, not yet applied in the game (BL-154).
+See `docs/deploy.md`. Server side done (2026-10-25): the admin API and command (`server/admin-api.ts`, `server/admin.mjs`), sessions the admin makes (public or private, a name, tools; they stay when empty), public ones kept in `DATA_DIR` with their paint (`server/kept.ts`), private sessions up to 4. Left: the deploy (`docs/ideas/vps.md` item 2). The tools a session allows are stored, listed and applied: a tool that's off has no pickups, can't be held (the slot stays an empty circle) and its ops and stepladders are dropped by the server (BL-154).
 
 ## BL-046 A queue to enter the server
 
