@@ -1,12 +1,10 @@
-import { COLORS, PAINT, PAINT_DETAIL, SERVER } from '../config';
-import { SLOTS } from '../inventory/tool';
-import { download, pickFile, stamp } from '../files';
+import { COLORS, PAINT, SERVER } from '../config';
+import { download, stamp } from '../files';
 import type { PauseMenu } from '../pause-menu';
 import { msg, type MessageId } from '../messages';
 import type { Notify } from '../notify';
-import { savePaint } from '../save/save-paint';
-import { cycle, paintDetailName } from '../settings';
-import { action, button, choice, div, pageHead, relabel, sentence, settingRow } from '../menu-ui';
+import { button, div, el, pageHead } from '../menu-ui';
+import { createDialog } from './create-dialog';
 import type { MultiplayerContext } from './game-context';
 import { JoinDialog, rulesSeen } from './join-dialog';
 import { LobbyPage } from './lobby-page';
@@ -20,15 +18,11 @@ import { Multiplayer, type Failure, type NetStatus } from './multiplayer';
 // The Multiplayer page of the ESC menu: the server's list of sessions (lobby-page.ts), the link's state under it.
 // A row opens the dialog for joining it (join-dialog.ts), and JOIN shows the screen while it loads
 // (loading-page.ts); a public session whose rules the player has seen skips the dialog. HOST, when players may
-// (SERVER.playerHost), is a form: a name, the session's PAINT DETAIL, the paint to start from: the level's own
-// (save/level-paint.ts, none for most levels), this level's as it is, or a paint file. In a session the pause
-// screen shows its live line (code, ping, players) and offers SAVE (the session's paint) and LEAVE SESSION.
+// (SERVER.playerHost), opens the new session dialog (create-dialog.ts): a private session at the host's PAINT
+// DETAIL, from an empty roof (the level's own paint, save/level-paint.ts, none for most levels) or a paint file.
+// In a session the pause screen shows its live line (code, ping, players) and offers SAVE (the session's paint)
+// and LEAVE SESSION.
 // Returns the game's Multiplayer.
-
-type Start = 'fresh' | 'mine' | 'file';
-const STARTS: Start[] = ['fresh', 'mine', 'file'];
-const START_LABEL: Record<Start, string> = { fresh: 'Fresh level', mine: 'This paint', file: 'A paint file' };
-const DETAILS = Object.entries(PAINT_DETAIL) as [keyof typeof PAINT_DETAIL, number][];
 
 /** What the player reads about the link: every failure has its text. */
 const STATUS: Record<Failure | 'connecting' | 'reconnecting', MessageId> & Partial<Record<NetStatus['state'], MessageId>> = {
@@ -54,16 +48,16 @@ const STATUS: Record<Failure | 'connecting' | 'reconnecting', MessageId> & Parti
   blocked: 'menu.netBlocked',
 };
 
-export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: MultiplayerContext, levelName: () => string) {
+export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: MultiplayerContext) {
   const net = new Multiplayer(ctx);
   const sub = div('page-sub');
-  const rows = div('rows');
+  const rows = div('rows lobby');
   const status = div('mp-status');
   // The network log, for a report: offered once the link failed.
   const log = button('Copy network log', () => copyLog(), 'net-log');
   const foot = div('mp-foot');
   foot.append(status, log);
-  const hostButton = shellButton(msg('lobby.host'), SERVER.playerHost ? () => host() : null, { icon: 'broadcast', key: 'H', title: SERVER.playerHost ? undefined : msg('lobby.hostUnavailable') });
+  const hostButton = shellButton(msg('lobby.host'), SERVER.playerHost ? () => hud.openPage('create') : null, { icon: 'broadcast', key: 'H', title: SERVER.playerHost ? undefined : msg('lobby.hostUnavailable') });
   hostButton.classList.add('host-button');
   const root = div('page mp-page');
   // The link's state is there before the page was ever opened (a session hosted by the page, a link lost).
@@ -71,10 +65,6 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
   root.append(pageHead(msg('lobby.title'), sub), hostButton, rows);
 
   const hostName = nameField(msg('lobby.yourName'));
-  let detail = 0;
-  let start: Start = 'fresh';
-  /** The HOST form is open (Back goes to the list). */
-  let inForm = false;
   /** The session being joined (a row of the list, where the server is, the code asked for) from JOIN until the player is in or it failed. */
   let joining: { entry: LobbyEntry; where: Where; code: string } | null = null;
   /** The row picked, while its dialog is open. */
@@ -86,16 +76,7 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
     status.classList.toggle('error', error);
     log.hidden = !failed;
   };
-  const named = () => {
-    const problem = nameProblem(hostName.input.value);
-    if (problem) say(msg(problem), true);
-    return problem ? null : hostName.input.value;
-  };
-  const show = (title: string, ...els: HTMLElement[]) => {
-    sub.textContent = title;
-    inForm = !!title;
-    hostButton.hidden = inForm;
-    rows.classList.toggle('lobby', !inForm);
+  const show = (...els: HTMLElement[]) => {
     rows.replaceChildren(...els, foot);
     say('');
   };
@@ -106,7 +87,7 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
     else dialog.ask({ entry, where });
   });
   const choose = () => {
-    show('', list.el);
+    show(list.el);
     void list.refresh();
   };
   /** From JOIN to the player being in: the loading screen, and the dialog or the list back if it fails. */
@@ -123,8 +104,6 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
     joining = null;
     void net.leave();
   };
-  /** NAME, with what it is for. */
-  const nameRow = (more = '') => settingRow('Name', hostName.input, { desc: `Your name as a player: everyone in the session sees it over you.${more}` });
   /** The network log to the clipboard; a file where the clipboard is out of reach (refused, or none: plain http, as on a LAN). */
   const copyLog = () => {
     const text = net.log.text();
@@ -134,34 +113,33 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
       () => (download(new Blob([text], { type: 'text/plain' }), `roof-network-${stamp(new Date())}.txt`), done(msg('menu.logSaved'))),
     );
   };
-  const host = () => {
-    detail = PAINT.texelsPerMeter;
-    const detailRow = settingRow('Paint detail', choice(() => paintDetailName(DETAILS.find(([, t]) => t === detail)![0]), (d) => (detail = cycle(DETAILS.map(([, t]) => t), detail, d))).el, { desc: 'Everyone in the session paints at this detail.' });
-    const startRow = settingRow('Start with', choice(() => START_LABEL[start], (d) => (start = cycle(STARTS, start, d))).el, { desc: "The paint level as it comes (its hints, if it has any), this level's paint as it is now, or a saved paint file." });
-    const go = action('Host', async () => {
-      const who = named();
-      if (!who) return;
-      try {
-        if (start === 'mine') relabel(go, 'Packing paint…');
-        const save = start === 'mine' ? await savePaint(ctx.paint, { name: levelName() }) : start === 'file' ? new Uint8Array(await (await pickFile('.rhhpaint')).arrayBuffer()) : (ctx.levelPaint() ?? undefined);
-        net.host(who, detail, { name: who, limit: SERVER.players.private, tools: [...SLOTS] }, save);
-      } catch (e) {
-        say(sentence((e as Error).message), true);
-      } finally {
-        relabel(go, 'Host');
-      }
-    }, { primary: true });
-    hostName.reload();
-    show('Host a session', nameRow(' Not the name of the session.'), detailRow, startRow, submit(go));
-  };
+  // HOST: a private session of the player's (their name, the dialog's choices), at their PAINT DETAIL; the loading screen while it opens.
+  const player = el('label', 'name-row');
+  player.append(el('span', '', msg('lobby.yourName')), hostName.input);
+  const create = createDialog({
+    player,
+    create: async (s) => {
+      const problem = nameProblem(hostName.input.value);
+      if (problem) throw new Error(msg(problem));
+      const save = s.file ? new Uint8Array(await s.file.arrayBuffer()) : (ctx.levelPaint() ?? undefined);
+      const entry: LobbyEntry = { kind: 'private', name: s.name, limit: s.limit, tools: s.tools, players: [hostName.input.value] };
+      picked = { entry, where: list.where ?? { region: SERVER.region, ping: 0 } };
+      joining = { ...picked, code: '' };
+      loading.show(entry, picked.where);
+      hud.openPage('loading');
+      net.host(hostName.input.value, PAINT.texelsPerMeter, { name: s.name, limit: s.limit, tools: s.tools }, save);
+    },
+    cancel: () => hud.openPage('mp'),
+  });
   // Back (and Esc) from here while JOIN or HOST is loading the session cancels it: the pause screen can't offer PLAY before the paint is in.
-  hud.addPage('mp', root, choose, () => (net.status.state === 'connecting' && net.leave(), inForm && (choose(), true)));
+  hud.addPage('mp', root, choose, () => (net.status.state === 'connecting' && net.leave(), false));
+  hud.addPage('create', create, () => hostName.reload(), () => (hud.openPage('mp'), true));
   hud.addPage('join', dialog.root, () => dialog.open(), () => (hud.openPage('mp'), true));
   hud.addPage('loading', loading.root, () => {}, () => (cancelJoin(), hud.openPage('mp'), true));
   addEventListener('keydown', (e) => {
-    if (e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.target instanceof HTMLInputElement || !root.checkVisibility() || inForm) return;
+    if (e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.target instanceof HTMLInputElement || !root.checkVisibility()) return;
     if (e.code === 'KeyR') void list.refresh();
-    else if (e.code === 'KeyH' && SERVER.playerHost) host();
+    else if (e.code === 'KeyH' && SERVER.playerHost) hud.openPage('create');
   });
 
   /** The state before this one. */
@@ -218,11 +196,4 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
 function short(progress: string) {
   const share = /\d+%$/.exec(progress);
   return share ? msg('menu.progressShort', { percent: share[0] }) : msg('menu.joining');
-}
-
-/** The form's button, centered under its rows (the status line under it). */
-function submit(go: HTMLElement) {
-  const box = div('submit');
-  box.append(go);
-  return box;
 }

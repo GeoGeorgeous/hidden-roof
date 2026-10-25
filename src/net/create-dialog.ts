@@ -6,8 +6,8 @@ import { aboutSize, action, button, div, el, popup, relabel, sentence } from '..
 import { SESSION_NAME_MAX } from './protocol';
 import { toolIcon, TOOLS, TOOL_NAMES } from './tool-icons';
 
-// The "new session" dialog: a name, how many players, the tools it allows and
-// what the roof starts from. The caller mounts the returned element like the
+// The "new session" dialog: the host's own name (`player`, the caller's field), the session's
+// name, how many players, the tools it allows and what the roof starts from. The caller mounts the returned element like the
 // other popups (menu.addPage) and answers Esc with `cancel`; Enter runs Create
 // (menu-ui.ts runPrimary). `create` gets the choices: `tools` are the ones left
 // on, in slot order; `file` the picked paint save, or null for an empty roof.
@@ -44,7 +44,7 @@ function labelRow(label: string) {
   return { row, state };
 }
 
-export function createDialog(opts: { create(s: NewSession): Promise<void>; cancel(): void }): HTMLElement {
+export function createDialog(opts: { player: HTMLElement; create(s: NewSession): Promise<void>; cancel(): void }): HTMLElement {
   const { min, max } = { min: SERVER.privateMin, max: SERVER.players.private };
   let limit = max;
   const off = new Set<Tool>();
@@ -171,7 +171,7 @@ export function createDialog(opts: { create(s: NewSession): Promise<void>; cance
   }, { primary: true });
   const ready = () => !busy && name.value.trim() !== '' && (!fromFile || file !== null);
 
-  ui.body.append(nameBox, players, toolsBox, startBox, failure);
+  ui.body.append(opts.player, nameBox, players, toolsBox, startBox, failure);
   ui.buttons.append(summary, action('Cancel', opts.cancel, { key: 'ESC' }), go);
   name.addEventListener('input', sync);
 

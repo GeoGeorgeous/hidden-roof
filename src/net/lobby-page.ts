@@ -14,6 +14,8 @@ export class LobbyPage {
   readonly el = div('lobby-list');
   /** Each refresh is a run; the answer of one that isn't the last is dropped. */
   private run = 0;
+  /** Where the server is and its ping, as the last answer said (null before one). */
+  where: Where | null = null;
 
   constructor(private pick: (entry: LobbyEntry, where: Where) => void) {}
 
@@ -24,7 +26,7 @@ export class LobbyPage {
     const answer = await fetchLobby();
     if (run !== this.run) return;
     if ('why' in answer) return this.el.replaceChildren(this.note(msg(answer.why), '', true));
-    const where = { region: answer.value.region, ping: answer.ping };
+    const where = (this.where = { region: answer.value.region, ping: answer.ping });
     const { sessions } = answer.value;
     this.el.replaceChildren(...(sessions.length ? sessions.map((s) => this.row(s, where)) : [this.note(msg('lobby.emptyTitle'), msg('lobby.emptyText'))]));
   }
