@@ -217,7 +217,7 @@ try {
   assert.equal((await admin('GET', `/sessions/ZZZZZ/paint`)).status, 404);
   assert.equal((await fetch(`http://localhost:${ADMIN_PORT}/sessions/${code}/paint`, { headers: { authorization: 'Bearer wrong' } })).status, 401);
 
-  // A wipe: the game's link closes as a drop; it comes back with its token to a clean wall, and the saves are gone.
+  // A wipe: the game's link closes as a drop; it comes back with its token to a clean wall, and the saves stay aside, marked wiped.
   assert.equal((await admin('POST', `/sessions/${code}/wipe`)).status, 200);
   assert.equal(await b.closed, 1012);
   const held = (await admin('GET', '/sessions')).body[0].players[0];
@@ -225,9 +225,32 @@ try {
   const again = await new Game().join(code, 'B', wb.token);
   assert.equal(again.you, wb.you);
   assert.ok(!(await painted(again.file!)), 'a clean wall');
-  assert.equal(saves().length, 0);
+  assert.deepEqual(saves().map((n) => n.endsWith('.wiped.rhhpaint')), [true], 'the save, kept as wiped');
+  assert.deepEqual((await admin('GET', '/sessions')).body[0].saves.map((s: { wiped: boolean }) => s.wiped), [true], 'listed as wiped');
+  // A restart after it: still the empty wall. A new save after it isn't wiped and is the one loaded; the wiped one stays.
+  await stop(server);
+  server = await start();
+  assert.ok(!out.includes('paint from'), 'a wiped save is never loaded');
+  const e = new Game();
+  assert.ok(!(await painted((await e.join(code, 'E')).file!)), 'empty after the restart');
+  e.send({ type: 'ops', seq: 1, bytes: encodeOps([1], [stamp], surfaces) });
+  e.send({ type: 'ping', t: 1 });
+  await e.next('pong');
+  await stop(server);
+  server = await start();
+  assert.match(out, new RegExp(`${code} paint from ${code}-\\d+\\.rhhpaint`));
+  assert.ok(await painted((await new Game().join(code, 'E')).file!), 'the new save is back');
+  assert.deepEqual((await admin('GET', '/sessions')).body[0].saves.map((s: { wiped: boolean }) => s.wiped), [false, true]);
+  // Newer saves around, then a second wipe: the newest keepFiles of all stay, the earlier wiped ones among them.
+  const [fresh] = saves().filter((n) => !n.includes('wiped'));
+  const [old] = saves().filter((n) => n.includes('wiped'));
+  for (let i = 1; i < SERVER.keepFiles; i++) fs.copyFileSync(path.join(dir, fresh), path.join(dir, fresh.replace(/-(\d+)/, (_, ms) => `-${Number(ms) + i}`)));
+  assert.equal((await admin('POST', `/sessions/${code}/wipe`)).status, 200);
+  assert.equal(saves().length, SERVER.keepFiles, 'at most keepFiles wiped saves');
+  assert.ok(saves().every((n) => n.endsWith('.wiped.rhhpaint')), 'all of them wiped');
+  assert.ok(!saves().includes(old), 'the oldest is gone');
 
-  // A new surface table (another version of the game) wipes the save at start.
+  // A new surface table (another version of the game) wipes the saves at start, the wiped ones too.
   const c = new Game();
   await c.join(code, 'C');
   c.send({ type: 'ops', seq: 1, bytes: encodeOps([1], [stamp], surfaces) });
@@ -258,16 +281,19 @@ try {
   const record = JSON.parse(fs.readFileSync(path.join(dir, 'sessions.json'), 'utf8'));
   assert.deepEqual([record.length, record[0].limit], [1, SERVER.players.public], 'only the public session is kept, with its limit');
 
-  // Closed: its players are told it has ended, and it's no longer kept.
+  // Closed: its players are told it has ended, and it's no longer kept; no save stays, wiped or not.
   const d = new Game();
   await d.join(code, 'D');
+  fs.writeFileSync(path.join(dir, `${code}-1.wiped.rhhpaint`), '');
+  fs.writeFileSync(path.join(dir, `${code}-2.rhhpaint`), '');
   assert.equal((await admin('POST', `/sessions/${code}/close`)).status, 200);
   assert.equal((await d.next('rejected')).reason, 'ended');
+  assert.equal(saves().length, 0);
   assert.deepEqual((await admin('GET', '/sessions')).body, []);
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(dir, 'sessions.json'), 'utf8')), []);
   // Plays that ended (seven left, one ended by the close), the paint still there after two restarts.
   const month = (await admin('GET', '/history?period=30d')).body;
-  assert.deepEqual([month.playLength, month.stamps.can], [{ under2m: 8, m2to10: 0, m10to30: 0, over30m: 0 }, 2]);
+  assert.deepEqual([month.playLength, month.stamps.can], [{ under2m: 8, m2to10: 0, m10to30: 0, over30m: 0 }, 3]);
   assert.equal(month.people.byDevice, 2, 'people, kept through restarts');
   assert.equal(month.client.n, 1, 'beacons, kept through restarts');
   assert.ok(!JSON.stringify(fs.readdirSync(path.join(dir, 'stats')).map((n) => fs.readFileSync(path.join(dir, 'stats', n), 'utf8'))).includes('10.2.0.'), 'no address on disk');

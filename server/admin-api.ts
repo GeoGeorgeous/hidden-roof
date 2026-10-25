@@ -23,6 +23,7 @@ import type { Session, SessionSetup } from './session';
 //                              and a `status` every second (the time, players, every session as listed but its saves)
 //   GET  /sessions             every session: its line (queue), players (address, ping, held seat),
 //                              today's paint and peak, ping, when it went empty, its saves
+//                              (newest first, with those a wipe kept aside: `wiped`)
 //   POST /sessions             a new one: { kind, name, level?, detail?, tools?, stay?, limit? }
 //                              (stay: a private one stays when empty; a public one always does;
 //                              limit: a private one's most players, SERVER.privateMin to SERVER.players.private)
