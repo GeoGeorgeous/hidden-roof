@@ -2,6 +2,7 @@ import { randomInt } from 'node:crypto';
 import { SERVER } from '../src/config';
 import { SLOTS } from '../src/inventory/tool';
 import { checkToServer, closeCode, CODE_LENGTH, CODE_LETTERS, decode, encode, PROTOCOL, type Rejection, type ToServer } from '../src/net/protocol';
+import { event } from './events';
 import { log, logNoisy, overMemory, who } from './log';
 import type { LevelData } from '../src/level/level-data';
 import type { Link, Player } from './player';
@@ -24,7 +25,7 @@ export interface LinkInput {
 type At = { session: Session; player: Player } | { session: Session; place: Place };
 
 /** What the line calls when a place is free for a link: brings it in as its JOIN would have. */
-type Seat = (session: Session, name: string) => () => Promise<void>;
+type Seat = (session: Session, name: string) => (waited: number) => Promise<void>;
 
 /** One more (or, `by` -1, one fewer) of an address's links in `counts`; how many it has now. */
 const count = (counts: Map<string, number>, ip: string, by: number) => {
@@ -52,7 +53,11 @@ export class Lobby {
   open(link: Link, host: boolean): LinkInput {
     const ip = link.ip;
     const reject = (reason: Rejection, m?: ToServer) => {
-      logNoisy(ip, m?.type === 'join' && typeof m.code === 'string' ? m.code.slice(0, CODE_LENGTH) : '-----', `${m?.type ?? 'link'} from ${ip} turned away: ${reason}`);
+      const code = m?.type === 'join' && typeof m.code === 'string' ? m.code.slice(0, CODE_LENGTH) : '-----';
+      const hello = m?.type === 'join' || m?.type === 'host' ? m : null;
+      // Only what the log takes: a stranger's flood of attempts doesn't flood the admin's feed either.
+      if (logNoisy(ip, code, `${m?.type ?? 'link'} from ${ip} turned away: ${reason}`))
+        event('turned-away', this.sessions.get(code) ?? null, hello?.name ?? null, reason === 'version' && hello ? { reason, client: hello.protocol, server: PROTOCOL } : { reason });
       link.send(encode({ type: 'rejected', reason }));
       link.close(closeCode(reason), reason);
     };
@@ -62,10 +67,10 @@ export class Lobby {
     let hello: ReturnType<typeof setTimeout> | undefined;
     /** Counted among its address's uploads (a HOST link let past the limit on links): given back when it closes. */
     let uploads = false;
-    const seat: Seat = (session, name) => async () => {
+    const seat: Seat = (session, name) => async (waited) => {
       at = 'waiting';
       try {
-        const r = await this.seated(session, link, name, ip);
+        const r = await this.seated(session, link, name, ip, undefined, waited);
         if (typeof r === 'string') {
           reject(r);
           return session.line.update();
@@ -189,11 +194,12 @@ export class Lobby {
     return r;
   }
 
-  /** `link` in `session` as a player (a JOIN's, or a place in the line's turn), logged; or why not. */
-  private async seated(session: Session, link: Link, name: string, ip: string, token?: string): Promise<{ session: Session; player: Player } | Rejection> {
+  /** `link` in `session` as a player (a JOIN's, or a place in the line's turn after `waited` ms), logged; or why not. */
+  private async seated(session: Session, link: Link, name: string, ip: string, token?: string, waited?: number): Promise<{ session: Session; player: Player } | Rejection> {
     const r = await session.admit(link, name, token);
     if (typeof r === 'string') return r;
     log(session.code, who(r.p), `in from ${ip} (${r.how}, ${session.players.size} players${r.note})`);
+    event('joined', session, r.p.name, waited === undefined ? { how: r.how } : { how: r.how, waited: Math.round(waited / 1000) });
     return { session, player: r.p };
   }
 
@@ -223,6 +229,7 @@ export class Lobby {
         this.hosts.delete(code);
         this.ended.set(code, Date.now());
         log(code, `closed: ${why}, ${session.summary}`);
+        event('session-closed', session, null, { why });
       },
       setup,
     );

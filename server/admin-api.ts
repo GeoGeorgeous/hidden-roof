@@ -4,6 +4,7 @@ import { PAINT_DETAIL, SERVER } from '../src/config';
 import { SLOTS } from '../src/inventory/tool';
 import { isPrivateLimit, isSessionName, isToolSet, PROTOCOL, SESSION_NAME_MAX } from '../src/net/protocol';
 import { VERSION } from '../src/version';
+import { stream } from './events';
 import { log, overMemory } from './log';
 import { machine } from './machine';
 import type { Kept } from './kept';
@@ -16,6 +17,8 @@ import type { Session, SessionSetup } from './session';
 // browser page only from ADMIN_ORIGIN. JSON in and out:
 //   GET  /                     the API's version, the game's and the protocol, uptime, the time now
 //   GET  /machine              CPU, RAM, the server's memory, disk, the paint saves, upload (machine.ts)
+//   GET  /events               the event stream (events.ts): `recent` events, then each `event` as it happens,
+//                              and a `status` every second (the time, players, every session as listed but its saves)
 //   GET  /sessions             every session: its line (queue), players (address, ping, held seat),
 //                              today's paint and peak, ping, when it went empty, its saves
 //   POST /sessions             a new one: { kind, name, level?, detail?, tools?, stay?, limit? }
@@ -33,8 +36,8 @@ const detailName = (d: number) => Object.entries(PAINT_DETAIL).find(([, v]) => v
 
 const iso = (ms: number) => new Date(ms).toISOString();
 
-/** A session as the admin sees it. A dropped player's `ip` is their last link's; `held`: seconds left to come back. */
-async function listing(s: Session, kept: Kept) {
+/** A session as the admin sees it, but its saves. A dropped player's `ip` is their last link's; `held`: seconds left to come back. */
+function live(s: Session) {
   const { kind, name, limit, tools, stays, admin } = s.setup;
   const now = Date.now();
   const players = [...s.players.values()].map(({ id, name, link, was, joined }) => ({
@@ -54,9 +57,11 @@ async function listing(s: Session, kept: Kept) {
     started: iso(s.started), paintMB: Math.round(s.memory.now), emptySince: s.emptySince === null ? null : iso(s.emptySince),
     today: { peak: today.peak, stamps: today.stamps, topColor: today.topColor },
     ping: { median: pings.length ? pings[pings.length >> 1] : null, slow: pings.filter((ms) => ms > SERVER.slowPing).length },
-    saves: await kept.savesOf(s.code),
   };
 }
+
+/** A session as the admin sees it, with its saves. */
+const listing = async (s: Session, kept: Kept) => ({ ...live(s), saves: await kept.savesOf(s.code) });
 
 /** POST /sessions's body as a session to make, or why not. */
 function newSession(b: unknown): string | { setup: Omit<SessionSetup, 'admin'>; level: string; detail: number } {
@@ -87,6 +92,8 @@ export function adminApi(lobby: Lobby, kept: Kept, key: string) {
     try {
       if (req.method === 'GET' && !parts.length) return answer(200, { api: ADMIN_API, version: VERSION, protocol: PROTOCOL, started: iso(started), now: iso(Date.now()), sessions: lobby.sessions.size, players: lobby.players });
       if (req.method === 'GET' && parts[0] === 'machine' && parts.length === 1) return answer(200, await machine(kept.dir));
+      if (req.method === 'GET' && parts[0] === 'events' && parts.length === 1)
+        return stream(res, () => ({ now: iso(Date.now()), players: lobby.players, sessions: [...lobby.sessions.values()].map(live) }));
       if (parts[0] !== 'sessions') return answer(404, { error: 'not found' });
       if (req.method === 'GET' && parts.length === 1) return answer(200, await Promise.all([...lobby.sessions.values()].map((s) => listing(s, kept))));
       if (req.method !== 'POST') return answer(405, { error: 'POST' });

@@ -51,6 +51,26 @@ const admin = async (method: string, at: string, body?: unknown, key = 'test-key
   return { status: res.status, body: await res.json() };
 };
 
+/** The admin's event stream: what it has got so far, as { type, data }. */
+async function feed() {
+  const res = await fetch(`http://localhost:${ADMIN_PORT}/events`, { headers: { authorization: 'Bearer test-key' } });
+  const got: { type: string; data: { type?: string; code?: string; players?: number } }[] = [];
+  const reader = res.body!.pipeThrough(new TextDecoderStream()).getReader();
+  let buf = '';
+  void (async () => {
+    for (let r = await reader.read(); !r.done; r = await reader.read()) {
+      buf += r.value;
+      for (let i = buf.indexOf('\n\n'); i >= 0; i = buf.indexOf('\n\n')) {
+        const [, type, data] = /^event: (.*)\ndata: (.*)$/.exec(buf.slice(0, i)) ?? [];
+        buf = buf.slice(i + 2);
+        if (type) got.push({ type, data: JSON.parse(data) });
+      }
+    }
+  })().catch(() => {});
+  return got;
+}
+const events = (got: Awaited<ReturnType<typeof feed>>, type: string) => got.filter((g) => g.type === 'event' && g.data.type === type);
+
 let games = 0;
 /** A game as server-test.ts's: what it got, and the next message of a type. */
 class Game {
@@ -98,6 +118,7 @@ try {
   assert.equal((await admin('POST', '/sessions', { kind: 'public', name: 'x', level: 'nope' })).status, 400);
   assert.equal((await admin('POST', '/sessions', { kind: 'public', name: 'x', tools: ['spoon'] })).status, 400);
 
+  const stream = await feed();
   const made = await admin('POST', '/sessions', { kind: 'public', name: ' Drawing together ', level: 'demo', detail: 'medium', tools: ['sponge', 'can'] });
   assert.equal(made.status, 200);
   const code: string = made.body.code;
@@ -114,6 +135,12 @@ try {
   assert.equal((await extra.next('queued')).position, 1);
   assert.equal((await admin('GET', '/sessions')).body[0].queue, 1);
   assert.match(await new Promise<string>((done, fail) => execFile(process.execPath, ['server/admin.mjs', 'list'], { env }, (e, so) => (e ? fail(e) : done(so)))), / queue: 1 /);
+  // The event stream: the recent events at once, then what happened as it happened, and the status every second.
+  await new Promise((w) => setTimeout(w, SERVER.adminStatus * 1000 + 200));
+  assert.deepEqual(stream[0].type, 'recent');
+  assert.equal(events(stream, 'session-made')[0].data.code, made.body.code);
+  assert.equal(events(stream, 'joined').length, SERVER.players.public);
+  assert.ok(stream.some((g) => g.type === 'status' && g.data.players === SERVER.players.public), 'a status with everyone in');
   await stop(server);
   server = await start();
   assert.deepEqual((await admin('GET', '/sessions')).body.map((s: { code: string }) => s.code), [code], 'kept through a restart, empty');
@@ -163,6 +190,9 @@ try {
   fs.writeFileSync(path.join(dir, 'sessions.json'), JSON.stringify(list.map((e: object) => ({ ...e, table: 'older' }))));
   server = await start();
   assert.match(out, new RegExp(`${code} paint wiped: a new surface table`));
+  const atStart = await feed();
+  for (let i = 0; !atStart.length; i++) await new Promise((w) => setTimeout(w, 20));
+  assert.deepEqual((atStart[0].data as unknown as { type: string; detail: object }[]).map((e) => [e.type, e.detail]), [['wiped-at-start', { cause: ['surface table'] }]], 'kept for a page that opens later');
   assert.equal(saves().length, 0);
 
   // A private session of the admin's closes once its players have gone, unless it stays; it isn't kept on disk.
@@ -187,7 +217,7 @@ try {
   assert.equal((await d.next('rejected')).reason, 'ended');
   assert.deepEqual((await admin('GET', '/sessions')).body, []);
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(dir, 'sessions.json'), 'utf8')), []);
-  console.log('kept sessions: ok (admin key and origin, a public session full at its limit with a line, kept empty, paint back after a restart, wipe, a new surface table wipes, private ones close when empty unless they stay, close, what the admin page reads)');
+  console.log('kept sessions: ok (admin key and origin, a public session full at its limit with a line, kept empty, paint back after a restart, wipe, a new surface table wipes, private ones close when empty unless they stay, close, what the admin page reads, the event stream)');
 } finally {
   server.kill();
   fs.rmSync(dir, { recursive: true, force: true });
