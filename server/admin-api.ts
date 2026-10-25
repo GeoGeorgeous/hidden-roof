@@ -34,7 +34,7 @@ import type { Session, SessionSetup } from './session';
 //                              attachment named <code>-<UTC time>.rhhpaint; 503 when there's no memory for one
 
 /** Changes when what the API takes or answers does: the admin page lives in another repo. */
-const ADMIN_API = 3;
+const ADMIN_API = 2;
 const started = Date.now();
 
 const digest = (s: string) => createHash('sha256').update(s).digest();
