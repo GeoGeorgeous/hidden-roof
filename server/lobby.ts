@@ -3,7 +3,8 @@ import { SERVER } from '../src/config';
 import { checkToServer, closeCode, CODE_LENGTH, CODE_LETTERS, decode, encode, PROTOCOL, type Rejection, type ToServer } from '../src/net/protocol';
 import { log, logNoisy, overMemory, who } from './log';
 import type { LevelData } from '../src/level/level-data';
-import { Session, type Link, type Player, type SessionSetup } from './session';
+import type { Link, Player } from './player';
+import { Session, type SessionSetup } from './session';
 
 // Who gets into which session: the live sessions by code, the codes of those
 // that ended, each address's links, uploads and hosted sessions
@@ -149,7 +150,7 @@ export class Lobby {
     const r = await session.admit(link, m.name, m.type === 'join' ? m.token : undefined);
     if (typeof r === 'string') {
       // A session turned down with its host has no one to close it.
-      if (m.type === 'host') session.close();
+      if (m.type === 'host') session.close('its host turned away');
       return r;
     }
     log(session.code, who(r.p), `in from ${ip} (${r.how}, ${session.players.size} players${r.note})`);
@@ -158,27 +159,30 @@ export class Lobby {
 
   /**
    * The admin's session (admin-api.ts), or one kept on disk under its `code`
-   * (kept.ts): open at once, it stays when empty. Throws if the level doesn't build.
+   * (kept.ts), open at once. One that doesn't stay closes when its players
+   * have gone, or if no one has come in SERVER.adminWait. Throws if the level doesn't build.
    */
   create(setup: Omit<SessionSetup, 'admin'>, levelName: string, level: LevelData, detail: number, code = this.newCode()) {
     const session = this.start(code, levelName, level, detail, { ...setup, admin: true });
     this.sessions.set(code, session);
-    log(code, `made by the admin: ${setup.kind} ${JSON.stringify(setup.name)}, ${JSON.stringify(levelName)} at ${detail} texels/m, tools ${setup.tools.join(' ')}`);
+    log(code, `made by the admin: ${setup.kind} ${JSON.stringify(setup.name)}, ${JSON.stringify(levelName)} at ${detail} texels/m, tools ${setup.tools.join(' ')}${setup.stays ? ', stays when empty' : ''}`);
+    if (!setup.stays) setTimeout(() => session.close(`no one came in ${SERVER.adminWait} s`), SERVER.adminWait * 1000).unref();
     return session;
   }
 
-  /** A session, closed when it's empty (one a player hosted) or by end() (the admin's). */
+  /** A session, closed when it's empty or by end(). */
   private start(code: string, levelName: string, level: LevelData, detail: number, setup?: SessionSetup) {
     const session = new Session(
       code,
       levelName,
       level,
       detail,
-      () => {
+      (why) => {
+        if (this.sessions.get(code) !== session) return;
         this.sessions.delete(code);
         this.hosts.delete(code);
         this.ended.set(code, Date.now());
-        log(code, `closed: ${setup?.admin ? 'by the admin' : 'no one left'}, ${session.summary}`);
+        log(code, `closed: ${why}, ${session.summary}`);
       },
       setup,
     );

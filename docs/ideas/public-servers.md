@@ -7,6 +7,7 @@ The public server: see also docs/deploy.md. Order: BL-043 first; 044, 045 (needs
 - **Two session types.** Private: as today, joined with its code; up to 4 players. Public: open to all, no code; up to 20 players.
 - **Who creates them.** The admin only, public or private, by a server command (`docker exec roof node admin.js create public "Name"`) or the admin panel; both use the same internal admin API. Players' HOST stays in the code but is disabled for everyone in 1.6.0 (no auth: the game can't tell the admin from a player). Admin in the game (spectator, IDEA-195) is 1.6.1.
 - **The server list** replaces HOST and JOIN and shows every session, public and private: type, name, players, ping, allowed tools. A private one asks for its code on click (the host and its players have it). The design is ready (DSGN-160, from the owner).
+- **Empty sessions**: a private one closes when no one is left, as today; the admin may make one that stays (`--stay`, admin only). A public one always stays.
 - **Session names**: up to 32 characters, set by whoever creates the session; no word filter.
 - **Tools off per session** (BL-154), chosen only at creation: e.g. no sponge or roller; those items leave the map and can't be picked up or used.
 - **Queue** (BL-046): a full session, public or private, lets players wait for a free place, as in Minecraft.

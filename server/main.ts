@@ -7,7 +7,7 @@ import { adminApi } from './admin-api';
 import { Kept } from './kept';
 import { liveMemory, log, logTo } from './log';
 import { Lobby } from './lobby';
-import type { Link } from './session';
+import type { Link } from './player';
 import { waiting } from './snapshot';
 
 // The multiplayer server: WebSocket sessions at /ws (net/protocol.ts), on
@@ -32,7 +32,8 @@ SERVER.keepEvery = Number(process.env.KEEP_EVERY) || SERVER.keepEvery;
 
 // The levels the admin's sessions are made of (the image has the repo's public/levels as levels/).
 const kept = new Kept(lobby, process.env.LEVELS_DIR ?? 'public/levels', process.env.DATA_DIR || null);
-await kept.restore();
+// A DATA_DIR it can't use is no reason to stay down: the game runs, and the log says why nothing is kept.
+await kept.restore().catch((e) => log('-----', 'kept sessions not restored:', e));
 setInterval(() => void kept.save(), SERVER.keepEvery * 1000);
 const adminPort = Number(process.env.ADMIN_PORT) || SERVER.adminPort;
 if (process.env.ADMIN_KEY) adminApi(lobby, kept, process.env.ADMIN_KEY).listen(adminPort, () => log('-----', `admin API on :${adminPort}`));

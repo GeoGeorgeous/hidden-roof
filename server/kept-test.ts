@@ -17,7 +17,7 @@ import { decodePaintFile } from '../src/save/paint-file';
 // disk (kept.ts), against the built server: the key, a public session made,
 // full at its limit and kept when empty, its paint saved at shutdown and back
 // after a restart, a wipe (games come back to a clean wall), a new surface table
-// wiping the save, and a close. npm run test:server runs it.
+// wiping the save, private ones that close when empty or stay, and a close. npm run test:server runs it.
 
 const freePort = () =>
   new Promise<number>((done) => {
@@ -152,6 +152,20 @@ try {
   assert.match(out, new RegExp(`${code} paint wiped: a new surface table`));
   assert.equal(saves().length, 0);
 
+  // A private session of the admin's closes once its players have gone, unless it stays; it isn't kept on disk.
+  for (const stay of [false, true]) {
+    const made = await admin('POST', '/sessions', { kind: 'private', name: 'Friends', level: 'demo', detail: 'low', stay });
+    assert.deepEqual([made.status, made.body.limit, made.body.stays], [200, SERVER.players.private, stay]);
+    const g = new Game();
+    await g.join(made.body.code, 'E');
+    g.send({ type: 'leave' });
+    await g.closed;
+    const codes = (await admin('GET', '/sessions')).body.map((s: { code: string }) => s.code);
+    assert.equal(codes.includes(made.body.code), stay, stay ? 'stays when empty' : 'closes when empty');
+    if (stay) assert.equal((await admin('POST', `/sessions/${made.body.code}/close`)).status, 200);
+  }
+  assert.equal(JSON.parse(fs.readFileSync(path.join(dir, 'sessions.json'), 'utf8')).length, 1, 'only the public session is kept');
+
   // Closed: its players are told it has ended, and it's no longer kept.
   const d = new Game();
   await d.join(code, 'D');
@@ -159,7 +173,7 @@ try {
   assert.equal((await d.next('rejected')).reason, 'ended');
   assert.deepEqual((await admin('GET', '/sessions')).body, []);
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(dir, 'sessions.json'), 'utf8')), []);
-  console.log('kept sessions: ok (admin key and origin, a public session full at its limit, kept empty, paint back after a restart, wipe, a new surface table wipes, close)');
+  console.log('kept sessions: ok (admin key and origin, a public session full at its limit, kept empty, paint back after a restart, wipe, a new surface table wipes, private ones close when empty unless they stay, close)');
 } finally {
   server.kill();
   fs.rmSync(dir, { recursive: true, force: true });

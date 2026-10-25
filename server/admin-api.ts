@@ -14,7 +14,8 @@ import type { Session, SessionSetup } from './session';
 // browser page only from ADMIN_ORIGIN. JSON in and out:
 //   GET  /                     the API's version, the protocol, uptime
 //   GET  /sessions             every session
-//   POST /sessions             a new one: { kind, name, level?, detail?, tools? }
+//   POST /sessions             a new one: { kind, name, level?, detail?, tools?, stay? }
+//                              (stay: a private one stays when empty; a public one always does)
 //   POST /sessions/CODE/wipe   its paint gone
 //   POST /sessions/CODE/close  ended for everyone in it
 
@@ -27,9 +28,9 @@ const detailName = (d: number) => Object.entries(PAINT_DETAIL).find(([, v]) => v
 
 /** A session as the admin sees it. */
 function listing(s: Session) {
-  const { kind, name, tools, admin } = s.setup;
+  const { kind, name, tools, stays, admin } = s.setup;
   const players = [...s.players.values()].map((p) => ({ id: p.id, name: p.name, here: !!p.link }));
-  return { code: s.code, kind, name, admin, tools, level: s.levelName, detail: detailName(s.detail), players, limit: SERVER.players[kind], started: new Date(s.started).toISOString(), paintMB: Math.round(s.memory.now) };
+  return { code: s.code, kind, name, admin, stays, tools, level: s.levelName, detail: detailName(s.detail), players, limit: SERVER.players[kind], started: new Date(s.started).toISOString(), paintMB: Math.round(s.memory.now) };
 }
 
 /** POST /sessions's body as a session to make, or why not. */
@@ -45,7 +46,8 @@ function newSession(b: unknown): string | { setup: Omit<SessionSetup, 'admin'>; 
   if (!Array.isArray(tools) || !tools.every((t) => SLOTS.includes(t)) || new Set(tools).size !== tools.length) return `tools: some of ${SLOTS.join(', ')}`;
   const level = o.level ?? 'roof';
   if (typeof level !== 'string') return 'level: a level name';
-  return { setup: { kind, name, tools: SLOTS.filter((t) => tools.includes(t)) }, level, detail };
+  if (o.stay !== undefined && typeof o.stay !== 'boolean') return 'stay: true or false';
+  return { setup: { kind, name, tools: SLOTS.filter((t) => tools.includes(t)), stays: kind === 'public' || o.stay === true }, level, detail };
 }
 
 export function adminApi(lobby: Lobby, kept: Kept, key: string) {

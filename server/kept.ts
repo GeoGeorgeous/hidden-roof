@@ -75,13 +75,20 @@ export class Kept {
   async restore() {
     if (!this.dir) return;
     await fs.mkdir(this.dir, { recursive: true });
-    const list: Entry[] = JSON.parse(await fs.readFile(this.file('sessions.json'), 'utf8').catch(() => '[]'));
+    let list: Entry[] = [];
+    try {
+      list = JSON.parse(await fs.readFile(this.file('sessions.json'), 'utf8').catch(() => '[]'));
+    } catch (e) {
+      // Kept aside for a look by hand: the paint files stay, the sessions are made again by the admin.
+      log('-----', 'sessions.json unreadable, kept as sessions.json.bad:', e);
+      await fs.rename(this.file('sessions.json'), this.file('sessions.json.bad'));
+    }
     for (const e of list) {
       let session: Session;
       let level: LevelData;
       try {
         level = await this.level(e.level);
-        session = this.lobby.create({ kind: e.kind, name: e.name, tools: e.tools }, e.level, level, e.detail, e.code);
+        session = this.lobby.create({ kind: e.kind, name: e.name, tools: e.tools, stays: true }, e.level, level, e.detail, e.code);
       } catch (err) {
         log(e.code, `kept session not made again: ${(err as Error).message}`);
         await this.forget(e.code);
@@ -112,12 +119,14 @@ export class Kept {
     try {
       for (const s of this.public())
         if (s.changed) {
+          const wipes = s.wipes;
           const bytes = await s.paintFile();
           if (!bytes) {
             log(s.code, 'paint not saved: no memory for a paint file');
             continue;
           }
-          if (this.lobby.sessions.get(s.code) !== s) continue;
+          // Wiped or closed while it was read: not the paint to keep.
+          if (s.wipes !== wipes || this.lobby.sessions.get(s.code) !== s) continue;
           const name = `${s.code}-${Date.now()}.rhhpaint`;
           await fs.writeFile(this.file(`${name}.tmp`), bytes);
           await fs.rename(this.file(`${name}.tmp`), this.file(name));
