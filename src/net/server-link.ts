@@ -63,7 +63,7 @@ export class ServerLink {
   private frame: Uint8Array<ArrayBuffer>;
   /** A HOST's save: the server sends no paint back, it's this. */
   private save?: Uint8Array;
-  /** What the server is doing once the hello is up. */
+  /** What the server is doing once the hello is up (none: back in a line, where nothing is under way). */
   private next: string;
   private parts = new PartsIn();
   private stop = () => {};
@@ -76,7 +76,7 @@ export class ServerLink {
     this.env = env;
     this.frame = encode(hello);
     this.save = hello.type === 'host' ? hello.bytes : undefined;
-    this.next = msg(hello.type === 'join' ? (hello.token ? 'menu.progressGoingBack' : 'menu.progressJoining') : this.save ? 'menu.progressCreatingSave' : 'menu.progressCreating');
+    this.next = hello.type === 'join' && hello.queue ? '' : msg(hello.type === 'join' ? (hello.token ? 'menu.progressGoingBack' : 'menu.progressJoining') : this.save ? 'menu.progressCreatingSave' : 'menu.progressCreating');
     this.started = this.heard = this.lastHeard = env.now();
     const ws = (this.socket = env.open(env.url));
     ws.binaryType = 'arraybuffer';
@@ -138,7 +138,7 @@ export class ServerLink {
     this.sent = this.env.now();
     // Only a save is worth a percentage (the rest goes in a blink).
     this.uploading = !!this.save && this.socket.bufferedAmount > 0;
-    this.on.progress(this.uploading ? msg('menu.progressUploading', { percent: '0%' }) : this.next);
+    if (this.next) this.on.progress(this.uploading ? msg('menu.progressUploading', { percent: '0%' }) : this.next);
   }
 
   private arrived(data: ArrayBuffer) {

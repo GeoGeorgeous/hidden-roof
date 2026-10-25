@@ -2490,6 +2490,17 @@
   right: 24px;
   bottom: 52px;
 }
+/* Waiting in line (net/queue-page.ts) is that screen with the link-lost notice above the place held. */
+.overlay .queue-page .loading-text .lost {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.overlay .queue-page .lost .notice {
+  flex: none;
+}
 
 /* Full pause sheet (not compact): no in-game UI behind it (hud.ts); display: none, so
    it isn't laid out or animated (the REC blink) while paused. */

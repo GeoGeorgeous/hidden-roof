@@ -1,7 +1,7 @@
 import { NET, SERVER } from '../config';
 import { msg } from '../messages';
 import type { Multiplayer } from './multiplayer';
-import { HELLO, PROTOCOL } from './protocol';
+import { HELLO, PROTOCOL, type ToServer } from './protocol';
 import { VERSION } from '../version';
 
 // For finding out what went wrong with the multiplayer link: a log of what
@@ -9,6 +9,12 @@ import { VERSION } from '../version';
 // menu, and, when the server can't be reached, a guess at why, from asking it
 // over plain HTTP at the same address (server/main.ts answers HELLO there).
 // Also the link's lines in the HUD's performance readout.
+
+/** What a HOST or JOIN asks of the server, for the log. */
+export function describeHello(hello: Extract<ToServer, { type: 'host' | 'join' }>) {
+  if (hello.type === 'join') return `JOIN ${hello.code}${hello.token || hello.queue ? ' (coming back)' : ''}`;
+  return `HOST at ${hello.detail} texels/m${hello.bytes ? ` with ${(hello.bytes.length / 1024).toFixed(0)} KB of paint` : ''}`;
+}
 
 export class NetLog {
   private lines: string[] = [];
