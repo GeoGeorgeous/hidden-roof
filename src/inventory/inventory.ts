@@ -35,6 +35,8 @@ export class Inventory {
   version = 0;
   /** Tools found so far (the can is always there). */
   private found = new Set<Tool>();
+  /** Tools the session turned off: gone from the hands whatever was found, and never found. Kept across resets. */
+  private off = new Set<Tool>();
   private colorIndex = 0;
   private capIndex = 0;
 
@@ -84,9 +86,20 @@ export class Inventory {
     return this.has(t) ? t : null;
   }
 
-  /** Has this tool been found? (The can is always there.) */
+  /** Is this tool in hand's reach: found (the can always is) and not turned off? */
   has(t: Tool) {
-    return t === 'can' || this.found.has(t);
+    return !this.off.has(t) && (t === 'can' || this.found.has(t));
+  }
+
+  /** May this tool be held at all (a session turns some off)? */
+  allows(t: Tool) {
+    return !this.off.has(t);
+  }
+
+  /** Only these tools may be held (a session's); the rest are off until this is called again. What was found stays found. */
+  allowOnly(tools: readonly Tool[]) {
+    this.off = new Set(SLOTS.filter((t) => !tools.includes(t)));
+    this.version++;
   }
 
   select(i: number) {
@@ -130,9 +143,9 @@ export class Inventory {
     return true;
   }
 
-  /** A tool found (a pickup); false if you already have it. */
+  /** A tool found (a pickup); false if you already have it, or it's off. */
   give(t: Tool) {
-    if (this.has(t)) return false;
+    if (this.off.has(t) || this.has(t)) return false;
     this.found.add(t);
     this.version++;
     return true;

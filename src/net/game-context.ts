@@ -56,13 +56,16 @@ export function playLevel(g: MultiplayerContext, data: LevelData, name: string, 
 
 /**
  * The welcome's level, at its PAINT DETAIL, from its spawn with the starting
- * kit (playLevel).
+ * kit (playLevel), without the tools the session turned off: none in the hands,
+ * their pickups gone from the map (solo.ts puts them back).
  * False: this game builds it differently from the server (another version).
  */
 export function playSessionLevel(g: MultiplayerContext, w: Extract<ToClient, { type: 'welcome' }>) {
   // Built at the session's detail too: the table doesn't say (its shapes are the same at every detail).
   const built = g.paint.texelsPerMeter;
   g.lockDetail(w.detail);
+  g.inventory.allowOnly(w.session.tools);
   playLevel(g, w.level, w.levelName, built, w.detail, () => surfaceTable(g.paint.surfaces) === w.table);
+  g.pickups.hideOff(g.inventory);
   return surfaceTable(g.paint.surfaces) === w.table;
 }

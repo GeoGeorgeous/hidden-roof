@@ -195,6 +195,16 @@ export class Pickups {
     }
   }
 
+  /** Pickups of the tools the inventory doesn't allow (a session turned them off) are gone: not drawn, no tag, never collected. */
+  hideOff(inv: Inventory) {
+    for (const p of this.list.values()) {
+      const c = parsePickup(p.kind)!;
+      if (!('tool' in c) || inv.allows(c.tool)) continue;
+      p.collected = true;
+      p.group.visible = this.editing;
+    }
+  }
+
   private tryCollect(p: Pickup, inv: Inventory) {
     const c = parsePickup(p.kind)!;
     const ok = 'color' in c ? inv.addColor(c.color) : 'cap' in c ? inv.addCap(c.cap) : inv.give(c.tool);
