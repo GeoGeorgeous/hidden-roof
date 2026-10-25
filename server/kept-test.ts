@@ -155,6 +155,19 @@ try {
   assert.equal((await admin('GET', '/')).body.peak.players, SERVER.players.public);
   assert.ok(fs.existsSync(path.join(dir, 'stats', `${new Date().toISOString().slice(0, 10)}.json`)), "the day's hours on disk");
   assert.equal((await admin('GET', '/history?period=week')).status, 400);
+  // The game's beacon: what it runs on and its load time, frames, a join, errors; a body that isn't one is refused.
+  const ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36';
+  const send = (body: unknown) => fetch(`http://localhost:${PORT}/ws?e`, { method: 'POST', headers: { 'user-agent': ua }, body: JSON.stringify(body) }).then((r) => r.status);
+  assert.equal(await send({ first: { gpu: 'NVIDIA GeForce RTX 3060', load: 3.1 } }), 204);
+  assert.equal(await send({ fps: { avg: 58.2, low1: 31 }, joins: [0.6], errors: ['WebGL context lost'], erred: true }), 204);
+  assert.equal(await send({ fps: { avg: 'fast' } }), 400);
+  assert.equal(await send({ errors: ['x'.repeat(1000)] }), 400);
+  const client = (await admin('GET', '/history')).body.client;
+  assert.deepEqual(client, {
+    n: 1, nGpu: 1, fps: { median: 58, low1: 31 }, load: { median: 3.1, p95: 3.1 }, join: { median: 0.6, p95: 0.6 },
+    browsers: { Chrome: 1 }, os: { Windows: 1 }, gpus: { 'NVIDIA GeForce RTX 3060': 1 },
+    errors: { count: 1, plays: 1, top: [{ message: 'WebGL context lost', count: 1 }] },
+  });
   // People: one device on two addresses, a second device on the second address, an IPv6 address changing within its /64: two people.
   const [d1, d2] = ['a'.repeat(32), 'b'.repeat(32)];
   for (const [ip, device] of [['10.2.0.1', d1], ['10.2.0.2', d1], ['10.2.0.2', d2], ['2001:db8:1:2::5', undefined], ['2001:db8:1:2:aaaa::9', undefined]] as const) {
@@ -246,8 +259,9 @@ try {
   const month = (await admin('GET', '/history?period=30d')).body;
   assert.deepEqual([month.playLength, month.stamps.can], [{ under2m: 8, m2to10: 0, m10to30: 0, over30m: 0 }, 2]);
   assert.equal(month.people.byDevice, 2, 'people, kept through restarts');
+  assert.equal(month.client.n, 1, 'beacons, kept through restarts');
   assert.ok(!JSON.stringify(fs.readdirSync(path.join(dir, 'stats')).map((n) => fs.readFileSync(path.join(dir, 'stats', n), 'utf8'))).includes('10.2.0.'), 'no address on disk');
-  console.log('kept sessions: ok (admin key and origin, a public session full at its limit with a line, kept empty, paint back after a restart, wipe, a new surface table wipes, private ones close when empty unless they stay, close, what the admin page reads, the event stream, history)');
+  console.log('kept sessions: ok (admin key and origin, a public session full at its limit with a line, kept empty, paint back after a restart, wipe, a new surface table wipes, private ones close when empty unless they stay, close, what the admin page reads, the event stream, history, the beacon)');
 } finally {
   server.kill();
   fs.rmSync(dir, { recursive: true, force: true });

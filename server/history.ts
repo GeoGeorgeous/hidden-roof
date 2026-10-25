@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { COLOR_ORDER, SERVER } from '../src/config';
 import type { Rejection } from '../src/net/protocol';
+import { addClient, clientReport, noClient, type ClientCounts } from './beacon';
 import { noPaint, type Paint } from './counts';
 import { log } from './log';
 import type { Link } from './player';
@@ -23,6 +24,8 @@ interface Hour extends Paint {
   withOthers: number;
   turnedAway: Partial<Record<Rejection, number>>;
   peak: { players: number; at: string } | null;
+  /** The games' beacons (beacon.ts). */
+  client: ClientCounts;
 }
 
 type Period = 'today' | '24h' | '7d' | '30d';
@@ -32,7 +35,7 @@ export const isPeriod = (p: string): p is Period => p === 'today' || p in HOURS;
 const HOUR = 3600e3;
 const iso = (ms: number) => new Date(ms).toISOString();
 const dayName = (day: number) => iso(day * 24 * HOUR).slice(0, 10);
-const blank = (): Hour => ({ plays: 0, lengths: [0, 0, 0, 0], seconds: 0, withOthers: 0, turnedAway: {}, ...noPaint(), peak: null });
+const blank = (): Hour => ({ plays: 0, lengths: [0, 0, 0, 0], seconds: 0, withOthers: 0, turnedAway: {}, ...noPaint(), peak: null, client: noClient() });
 
 /** `hours` added up. */
 function sum(hours: Iterable<Hour>) {
@@ -49,6 +52,7 @@ function sum(hours: Iterable<Hour>) {
     add(t.stamps, h.stamps);
     add(t.colors, h.colors);
     if (h.peak && h.peak.players > (t.peak?.players ?? 0)) t.peak = h.peak;
+    if (h.client) addClient(t.client, h.client);
   }
   return t;
 }
@@ -122,7 +126,7 @@ class History {
     return {
       period, from: iso(Math.max(first * HOUR, this.since)), to: iso(now),
       plays: t.plays, playLength: { under2m, m2to10, m10to30, over30m }, playSeconds: Math.round(t.seconds), withOthers: Math.round(t.withOthers),
-      joinsPerHour, turnedAway: t.turnedAway, stamps: t.stamps, colors, peak: t.peak, ...people.count(first),
+      joinsPerHour, turnedAway: t.turnedAway, stamps: t.stamps, colors, peak: t.peak, ...people.count(first), client: clientReport(t.client),
     };
   }
 
@@ -141,7 +145,8 @@ class History {
         await this.write(name, { total: sum(Object.values(file.hours)) });
         continue;
       }
-      for (const [k, v] of Object.entries(file.hours)) this.hours.set(day * 24 + Number(k), v);
+      // An hour written before a field was added gets it empty.
+      for (const [k, v] of Object.entries(file.hours)) this.hours.set(day * 24 + Number(k), { ...blank(), ...v });
     }
     this.since = Math.min(this.since, ...[...this.hours.keys()].map((k) => k * HOUR));
     await people.keepIn(this.dir);

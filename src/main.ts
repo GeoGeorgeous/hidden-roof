@@ -16,6 +16,7 @@ import { GpuTimer } from './debug/gpu-timer';
 import { captureDefaults } from './debug/defaults';
 import { pixelRatio, Settings } from './settings';
 import { readGpu } from './gpu-name';
+import { Beacon } from './beacon';
 import { PerfTest } from './perf-test';
 import { perfTestPage } from './perf-test-page';
 import { saveScreenshot } from './screenshot';
@@ -71,6 +72,7 @@ document.body.appendChild(renderer.domElement);
 const gpuTimer = new GpuTimer(renderer.getContext() as WebGL2RenderingContext);
 /** What the game draws with, read once (Settings, the perf lines). */
 const gpu = readGpu(renderer.getContext());
+const beacon = new Beacon(gpu.name, renderer.domElement);
 /** Settings → Performance test (perf-test.ts): the city view measured for a few seconds, on the player's request only. */
 const perfTest = new PerfTest(gpuTimer);
 const post = new PostPipeline(renderer, gpuTimer);
@@ -154,6 +156,7 @@ Promise.all([fetchLevel(opened.name), jpFontReady()])
     await loadStep(msg('menu.loadPaint'));
     await putLevelPaint(paint, drips, opened.name, data);
     loaded = true;
+    beacon.loaded();
     // A reload in a session goes back into it (multiplayer.ts), with the session's paint.
     net.resume();
   })
@@ -349,6 +352,8 @@ function step(time: number) {
   input.endFrame();
 
   meter.end(delta);
+  beacon.frame(delta, visible);
+  beacon.status(net.status);
   const { fps, frameMs } = meter;
   // The one writer of the timer, for the next frame: the HUD's GPU line or the dev tools (F3, profiling); the performance test turns it on for its run.
   gpuTimer.enabled = (HUD.perf && HUD.perfGpu) || !!dev?.timesGpu;

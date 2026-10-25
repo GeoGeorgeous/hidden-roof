@@ -5,6 +5,7 @@ import { SERVER } from '../src/config';
 import { HELLO, PROTOCOL } from '../src/net/protocol';
 import { adminApi } from './admin-api';
 import { traffic } from './counts';
+import { beacon } from './beacon';
 import { geoip, countryOf } from './geoip';
 import { history } from './history';
 import { Kept } from './kept';
@@ -17,7 +18,7 @@ import { waiting } from './snapshot';
 // The multiplayer server: WebSocket sessions at /ws (net/protocol.ts), on
 // SERVER.port (or PORT). A plain GET at /ws answers HELLO (the game asks it
 // when it can't connect, to tell a server that's down from a blocked socket);
-// /ws?list and /ws?code= answer the server list (lobby-http.ts);
+// /ws?list and /ws?code= answer the server list (lobby-http.ts); POST /ws?e takes the game's beacon (beacon.ts);
 // /healthz is for Docker. Caddy serves the game and passes /ws through
 // (docs/deploy.md). One process, everything in memory but the public sessions
 // kept in DATA_DIR (kept.ts) with the admin's history (history.ts); with ADMIN_KEY, the admin API on SERVER.adminPort
@@ -56,6 +57,8 @@ else log('-----', 'no ADMIN_KEY: no admin API');
 const lobbyHttp = new LobbyHttp(lobby);
 const server = http.createServer((req, res) => {
   const path = req.url?.split('?')[0];
+  if (path === '/ws' && req.method === 'POST' && req.url === '/ws?e')
+    return void beacon(req, addressOf(req), () => history.now().client).then((status) => res.writeHead(status, { 'cache-control': 'no-store' }).end(), () => res.writeHead(400).end());
   const listed = path === '/ws' && req.method === 'GET' ? lobbyHttp.reply(req) : null;
   if (listed) return void res.writeHead(listed.status, { 'content-type': 'application/json', 'cache-control': 'no-store' }).end(JSON.stringify(listed.body));
   const body = path === '/healthz' ? `ok, ${lobby.sessions.size} sessions\n` : path === '/ws' ? HELLO : null;
