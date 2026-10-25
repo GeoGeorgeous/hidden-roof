@@ -78,8 +78,11 @@ class Game {
   ws: Ws;
   got: (ToClient & { file?: Uint8Array })[] = [];
   closed: Promise<number>;
-  constructor() {
-    this.ws = new Ws(`ws://localhost:${PORT}/ws`, { headers: { 'x-forwarded-for': `10.1.0.${++games}` } });
+  constructor(
+    ip = `10.1.0.${++games}`,
+    readonly device?: string,
+  ) {
+    this.ws = new Ws(`ws://localhost:${PORT}/ws`, { headers: { 'x-forwarded-for': ip } });
     const parts = new PartsIn();
     this.ws.on('message', (d: Buffer) => {
       const done = parts.take(decode(new Uint8Array(d)) as ToClient);
@@ -89,7 +92,7 @@ class Game {
   }
   async hello(code: string, name: string, token?: string) {
     if (this.ws.readyState !== Ws.OPEN) await new Promise((w) => this.ws.once('open', w));
-    this.send({ type: 'join', protocol: PROTOCOL, name, code, token });
+    this.send({ type: 'join', protocol: PROTOCOL, device: this.device, name, code, token });
   }
   async join(code: string, name: string, token?: string) {
     await this.hello(code, name, token);
@@ -152,6 +155,16 @@ try {
   assert.equal((await admin('GET', '/')).body.peak.players, SERVER.players.public);
   assert.ok(fs.existsSync(path.join(dir, 'stats', `${new Date().toISOString().slice(0, 10)}.json`)), "the day's hours on disk");
   assert.equal((await admin('GET', '/history?period=week')).status, 400);
+  // People: one device on two addresses, a second device on the second address, an IPv6 address changing within its /64: two people.
+  const [d1, d2] = ['a'.repeat(32), 'b'.repeat(32)];
+  for (const [ip, device] of [['10.2.0.1', d1], ['10.2.0.2', d1], ['10.2.0.2', d2], ['2001:db8:1:2::5', undefined], ['2001:db8:1:2:aaaa::9', undefined]] as const) {
+    const g = new Game(ip, device);
+    await g.join(code, 'Someone');
+    g.send({ type: 'leave' });
+    await g.closed;
+  }
+  const seen = (await admin('GET', '/history')).body.people;
+  assert.deepEqual(seen, { merged: SERVER.players.public + 2, byDevice: 2, byIp: SERVER.players.public + 3 });
 
   // Paint, saved at shutdown, is back after the restart.
   const a = new Game();
@@ -229,9 +242,11 @@ try {
   assert.equal((await d.next('rejected')).reason, 'ended');
   assert.deepEqual((await admin('GET', '/sessions')).body, []);
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(dir, 'sessions.json'), 'utf8')), []);
-  // Plays that ended (two left, one ended by the close), the paint still there after two restarts.
+  // Plays that ended (seven left, one ended by the close), the paint still there after two restarts.
   const month = (await admin('GET', '/history?period=30d')).body;
-  assert.deepEqual([month.playLength, month.stamps.can], [{ under2m: 3, m2to10: 0, m10to30: 0, over30m: 0 }, 2]);
+  assert.deepEqual([month.playLength, month.stamps.can], [{ under2m: 8, m2to10: 0, m10to30: 0, over30m: 0 }, 2]);
+  assert.equal(month.people.byDevice, 2, 'people, kept through restarts');
+  assert.ok(!JSON.stringify(fs.readdirSync(path.join(dir, 'stats')).map((n) => fs.readFileSync(path.join(dir, 'stats', n), 'utf8'))).includes('10.2.0.'), 'no address on disk');
   console.log('kept sessions: ok (admin key and origin, a public session full at its limit with a line, kept empty, paint back after a restart, wipe, a new surface table wipes, private ones close when empty unless they stay, close, what the admin page reads, the event stream, history)');
 } finally {
   server.kill();

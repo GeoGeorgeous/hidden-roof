@@ -5,6 +5,7 @@ import { SERVER } from '../src/config';
 import { HELLO, PROTOCOL } from '../src/net/protocol';
 import { adminApi } from './admin-api';
 import { traffic } from './counts';
+import { geoip, countryOf } from './geoip';
 import { history } from './history';
 import { Kept } from './kept';
 import { addressOf, LobbyHttp } from './lobby-http';
@@ -42,6 +43,7 @@ const kept = new Kept(lobby, process.env.LEVELS_DIR ?? 'public/levels', process.
 // A DATA_DIR it can't use is no reason to stay down: the game runs, and the log says why nothing is kept.
 await kept.restore().catch((e) => log('-----', 'kept sessions not restored:', e));
 setInterval(() => void kept.save(), SERVER.keepEvery * 1000);
+if (process.env.GEOIP_DB) await geoip(process.env.GEOIP_DB);
 if (kept.dir) await history.keepIn(kept.dir).catch((e) => log('-----', 'history not read:', e));
 setInterval(() => {
   history.sample([...lobby.sessions.values()].map((s) => [...s.players.values()].filter((p) => p.link).length), SERVER.historyEvery);
@@ -86,6 +88,7 @@ function connected(ws: WebSocket, req: http.IncomingMessage, host: boolean) {
       return ws.readyState === ws.OPEN;
     },
     ip,
+    country: countryOf(ip),
     since: Date.now(),
   };
   // A message past the size limit and other socket errors close that link (ws does): unhandled, they'd end the process.

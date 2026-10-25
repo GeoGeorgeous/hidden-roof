@@ -220,7 +220,7 @@ export class Session {
     if (p.link !== link) return;
     p.link = null;
     p.live = false;
-    p.was = { ip: link.ip, lived: Date.now() - link.since, at: Date.now() };
+    p.was = { ip: link.ip, country: link.country ?? null, lived: Date.now() - link.since, at: Date.now() };
     event('dropped', this, p.name, { held: SERVER.rejoinWindow });
     this.broadcast({ type: 'presence', id: p.id, state: 'dropped' }, p);
     p.expires = setTimeout(() => this.remove(p, `didn't come back in ${SERVER.rejoinWindow} s`), SERVER.rejoinWindow * 1000);

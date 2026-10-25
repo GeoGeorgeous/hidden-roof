@@ -47,6 +47,7 @@ function live(s: Session) {
     name,
     here: !!link,
     ip: link?.ip ?? was?.ip ?? null,
+    country: link ? (link.country ?? null) : (was?.country ?? null),
     ping: link?.rtt ?? null,
     joined: iso(joined),
     held: link || !was ? null : Math.max(0, Math.round((was.at - now) / 1000 + SERVER.rejoinWindow)),

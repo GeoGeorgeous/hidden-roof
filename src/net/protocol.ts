@@ -96,10 +96,10 @@ export type Presence = Activity | 'dropped';
 
 /** Game -> server. */
 export type ToServer =
-  /** Start a private session on this level, at this PAINT DETAIL, from a paint save (`bytes`) or clean; `session`: its name, most players (SERVER.privateMin to SERVER.players.private) and tools. `table`: this client's surfaceTable of the level. */
-  | { type: 'host'; protocol: number; table: string; name: string; levelName: string; level: LevelData; detail: number; session: { name: string; limit: number; tools: Tool[] }; bytes?: Uint8Array }
+  /** Start a private session on this level, at this PAINT DETAIL, from a paint save (`bytes`) or clean; `session`: its name, most players (SERVER.privateMin to SERVER.players.private) and tools. `table`: this client's surfaceTable of the level. `device` (here and in JOIN): this browser's random id (stored.ts deviceId), for the admin's count of people. */
+  | { type: 'host'; protocol: number; device?: string; table: string; name: string; levelName: string; level: LevelData; detail: number; session: { name: string; limit: number; tools: Tool[] }; bytes?: Uint8Array }
   /** Join by code; with the `token` from an earlier welcome, as the same player (a reconnect); with the `queue` token of an earlier 'queued', back to that place in line. */
-  | { type: 'join'; protocol: number; name: string; code: string; token?: string; queue?: string }
+  | { type: 'join'; protocol: number; device?: string; name: string; code: string; token?: string; queue?: string }
   /** This player now (net/snapshot.ts). */
   | { type: 'state'; bytes: Uint8Array }
   /**
@@ -228,9 +228,9 @@ export function checkToServer(m: Message | null): ToServer | null {
   if ((m.type === 'host' || m.type === 'join') && isInt(v.protocol) && v.protocol !== PROTOCOL) return m as ToServer;
   switch (m.type) {
     case 'host':
-      return isInt(v.protocol) && typeof v.table === 'string' && isName(v.name) && typeof v.levelName === 'string' && v.levelName.length <= 64 && !levelProblem(v.level, MAX_PROPS) && DETAILS.includes(v.detail as number) && isHosting(v.session) ? (m as ToServer) : null;
+      return isInt(v.protocol) && isDevice(v.device) && typeof v.table === 'string' && isName(v.name) && typeof v.levelName === 'string' && v.levelName.length <= 64 && !levelProblem(v.level, MAX_PROPS) && DETAILS.includes(v.detail as number) && isHosting(v.session) ? (m as ToServer) : null;
     case 'join':
-      return isInt(v.protocol) && isName(v.name) && isCode(v.code) && (v.token === undefined || typeof v.token === 'string') && (v.queue === undefined || isQueueToken(v.queue)) && !m.bytes ? (m as ToServer) : null;
+      return isInt(v.protocol) && isDevice(v.device) && isName(v.name) && isCode(v.code) && (v.token === undefined || typeof v.token === 'string') && (v.queue === undefined || isQueueToken(v.queue)) && !m.bytes ? (m as ToServer) : null;
     case 'state':
       return m.bytes?.length === SNAPSHOT_BYTES ? (m as ToServer) : null;
     case 'ops':
@@ -255,6 +255,8 @@ const isHosting = (x: unknown) => isObj(x) && isSessionName(x.name) && isPrivate
 /** A queue token is a UUID; anything much longer is not one. */
 const isQueueToken = (x: unknown) => typeof x === 'string' && x.length <= QUEUE_TOKEN_MAX;
 const QUEUE_TOKEN_MAX = 64;
+/** HOST's and JOIN's `device`: the browser's random id (stored.ts deviceId), or none. */
+const isDevice = (x: unknown) => x === undefined || (typeof x === 'string' && /^[0-9a-f]{32}$/.test(x));
 const isCode = (x: unknown) => typeof x === 'string' && x.length === CODE_LENGTH && [...x].every((c) => CODE_LETTERS.includes(c));
 /** Shape and size only: the game takes from it what it knows (Inventory.restore). */
 const isWords = (x: unknown) => Array.isArray(x) && x.length <= 32 && x.every((w) => typeof w === 'string' && w.length <= 32);

@@ -98,6 +98,7 @@ export class Lobby {
           if (at && 'place' in at) return at.place.link === link ? at.session.line.receive(at.place, m) : undefined;
           if (at) return at.player.link === link ? at.session.receive(at.player, m) : undefined;
           if (m.type !== 'host' && m.type !== 'join') return;
+          link.device = m.device;
           at = 'waiting';
           const r = await this.enter(m, link, ip, seat);
           if (typeof r === 'string') return reject(r, m);
@@ -201,7 +202,7 @@ export class Lobby {
     const r = await session.admit(link, name, token);
     if (typeof r === 'string') return r;
     log(session.code, who(r.p), `in from ${ip} (${r.how}, ${session.players.size} players${r.note})`);
-    if (r.how === 'new') history.now().plays++;
+    if (r.how === 'new') history.started(link);
     history.players(this.players);
     event('joined', session, r.p.name, waited === undefined ? { how: r.how } : { how: r.how, waited: Math.round(waited / 1000) });
     return { session, player: r.p };

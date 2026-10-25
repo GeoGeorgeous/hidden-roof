@@ -4,6 +4,8 @@ import { COLOR_ORDER, SERVER } from '../src/config';
 import type { Rejection } from '../src/net/protocol';
 import { noPaint, type Paint } from './counts';
 import { log } from './log';
+import type { Link } from './player';
+import { people } from './people';
 
 // The admin page's history (GET /history): counts by UTC hour, added to on
 // paths that already run. Plays are counted when they start, their length when
@@ -23,7 +25,7 @@ interface Hour extends Paint {
   peak: { players: number; at: string } | null;
 }
 
-export type Period = 'today' | '24h' | '7d' | '30d';
+type Period = 'today' | '24h' | '7d' | '30d';
 const HOURS: Record<Exclude<Period, 'today'>, number> = { '24h': 24, '7d': 7 * 24, '30d': 30 * 24 };
 export const isPeriod = (p: string): p is Period => p === 'today' || p in HOURS;
 
@@ -72,6 +74,12 @@ class History {
     return hour;
   }
 
+  /** A new player came in on `link` (not one back, nor a new tab of theirs). */
+  started(link: Link) {
+    this.now().plays++;
+    people.played(link.device, link.ip, link.country ?? null);
+  }
+
   /** A play ended after `seconds`. */
   played(seconds: number) {
     const i = SERVER.playLengths.findIndex((s) => seconds < s);
@@ -114,7 +122,7 @@ class History {
     return {
       period, from: iso(Math.max(first * HOUR, this.since)), to: iso(now),
       plays: t.plays, playLength: { under2m, m2to10, m10to30, over30m }, playSeconds: Math.round(t.seconds), withOthers: Math.round(t.withOthers),
-      joinsPerHour, turnedAway: t.turnedAway, stamps: t.stamps, colors, peak: t.peak,
+      joinsPerHour, turnedAway: t.turnedAway, stamps: t.stamps, colors, peak: t.peak, ...people.count(first),
     };
   }
 
@@ -136,6 +144,7 @@ class History {
       for (const [k, v] of Object.entries(file.hours)) this.hours.set(day * 24 + Number(k), v);
     }
     this.since = Math.min(this.since, ...[...this.hours.keys()].map((k) => k * HOUR));
+    await people.keepIn(this.dir);
   }
 
   /** The days that changed, and the peak, written (once a minute); hours past SERVER.historyDays forgotten. */
@@ -152,6 +161,7 @@ class History {
         await this.write(`${dayName(day)}.json`, day < today - SERVER.historyDays ? { total: sum(Object.values(hours)) } : { hours });
       }
       if (this.everChanged) await this.write('peak.json', this.ever);
+      await people.save();
       this.everChanged = false;
     } catch (e) {
       for (const day of days) this.dirty.add(day);

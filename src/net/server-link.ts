@@ -1,5 +1,6 @@
 import { NET, SERVER } from '../config.ts';
 import { msg } from '../messages.ts';
+import { deviceId } from '../stored.ts';
 import { PartsIn } from './parts-in.ts';
 import { decode, encode, type ToClient, type ToServer } from './protocol.ts';
 
@@ -74,7 +75,7 @@ export class ServerLink {
   constructor(hello: Extract<ToServer, { type: 'host' | 'join' }>, on: LinkEvents, env: LinkEnv) {
     this.on = on;
     this.env = env;
-    this.frame = encode(hello);
+    this.frame = encode({ ...hello, device: deviceId() });
     this.save = hello.type === 'host' ? hello.bytes : undefined;
     this.next = hello.type === 'join' && hello.queue ? '' : msg(hello.type === 'join' ? (hello.token ? 'menu.progressGoingBack' : 'menu.progressJoining') : this.save ? 'menu.progressCreatingSave' : 'menu.progressCreating');
     this.started = this.heard = this.lastHeard = env.now();

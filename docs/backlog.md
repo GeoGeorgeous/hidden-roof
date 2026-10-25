@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 242
+The one list of what's left. Counter for new ids: next: 243
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -158,6 +158,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 1. [TASK-187]: Performance telemetry (feat/playtest-telemetry) needs opt-in consent in the EU before it ships; "on for everyone" breaks ePrivacy 5(3) and GDPR 7(4) (SECRET_legal.md) @1.6.0
 2. [IDEA-188]: Who plays and from where, counted on the server: country from the IP at connect, counts only, the IP not kept (SECRET_legal.md) @1.6.0
+3. [TASK-242]: The privacy page names what the admin's stats keep: a random device id in localStorage, the address as a salted hash (a new salt every 30 days), the country, plays kept 30 days and counts forever; why, and how to object; DB-IP's credit (CC BY 4.0) (docs/ideas/public-servers.md)
 
 ## Codebase
 

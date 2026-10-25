@@ -1163,6 +1163,9 @@ export const SERVER = {
   playLengths: [120, 600, 1800],
   historyEvery: 60,
   historyDays: 30,
+  /** Unique people's salt (server/people.ts) changes this often (days); the GeoIP base's file is checked for a new one this often (s). */
+  saltDays: 30,
+  geoipCheck: 3600,
   /** With DATA_DIR, a public session's paint is saved this often (s) when it changed, and at shutdown; the newest keepFiles saves stay (server/kept.ts). */
   keepEvery: 1800,
   keepFiles: 3,
