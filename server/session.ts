@@ -10,6 +10,7 @@ import { loadPaint } from '../src/save/load-paint';
 import { joinBytes } from '../src/save/paint-file';
 import { streamPaint } from '../src/save/save-paint';
 import { surfaceTable } from '../src/save/shape';
+import { DayCounts } from './counts';
 import { liveMemory, log, mb, overMemory, span, who } from './log';
 import { deliver, presence, uniqueName, type Link, type Player } from './player';
 import { Queue } from './queue';
@@ -68,6 +69,10 @@ export class Session {
   changed = false;
   /** The admin's wipes so far: a paint file read before the last one is not this paint. */
   wipes = 0;
+  /** Its paint and most players this UTC day, for the admin page. */
+  readonly today = new DayCounts();
+  /** When its last player went (ms), or null with players in it. */
+  emptySince: number | null = this.started;
 
   constructor(
     readonly code: string,
@@ -135,10 +140,12 @@ export class Session {
       p.activity = 'here';
     } else {
       const unique = uniqueName(name, all);
-      p = { id: this.nextId++, name: unique, asked: name, token: randomUUID(), link, acked: 0, live: false, saving: false, activity: 'here', inventory: this.carried.get(unique) ?? null, ladder: null, expires: null, was: null };
+      p = { id: this.nextId++, name: unique, asked: name, token: randomUUID(), link, joined: Date.now(), acked: 0, live: false, saving: false, activity: 'here', inventory: this.carried.get(unique) ?? null, ladder: null, expires: null, was: null };
       this.broadcast({ type: 'joined', id: p.id, name: p.name }, p);
       this.players.set(p.id, p);
     }
+    this.today.players(this.players.size);
+    this.emptySince = null;
     p.live = false;
     let frames;
     try {
@@ -182,6 +189,7 @@ export class Session {
       const valid = batch.ops.filter((_, i) => keep[i]);
       this.paintNow(() => valid.forEach((op) => ops.apply(op)));
       if (!valid.length) return;
+      this.today.paint(valid);
       this.changed = true;
       const bytes = valid.length === batch.ops.length ? m.bytes : encodeOps(batch.t.filter((_, i) => keep[i]), valid, this.surfaces);
       this.broadcast({ type: 'ops', id: p.id, bytes }, p);
@@ -253,6 +261,7 @@ export class Session {
       link?.close(closeCode('ended'), 'ended');
     }
     this.players.clear();
+    this.emptySince = Date.now();
     this.finish('by the admin');
   }
 
@@ -287,7 +296,9 @@ export class Session {
     link?.close(1000, why);
     this.broadcast({ type: 'left', id: p.id });
     this.line.update();
-    if (!this.players.size && !this.setup.stays) this.finish('no one left');
+    if (this.players.size) return;
+    this.emptySince = Date.now();
+    if (!this.setup.stays) this.finish('no one left');
   }
 
   /** It's over: those waiting are told, and the lobby forgets it. */

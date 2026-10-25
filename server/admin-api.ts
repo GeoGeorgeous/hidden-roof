@@ -3,7 +3,9 @@ import http from 'node:http';
 import { PAINT_DETAIL, SERVER } from '../src/config';
 import { SLOTS } from '../src/inventory/tool';
 import { isPrivateLimit, isSessionName, isToolSet, PROTOCOL, SESSION_NAME_MAX } from '../src/net/protocol';
+import { VERSION } from '../src/version';
 import { log, overMemory } from './log';
+import { machine } from './machine';
 import type { Kept } from './kept';
 import type { Lobby } from './lobby';
 import type { Session, SessionSetup } from './session';
@@ -12,8 +14,10 @@ import type { Session, SessionSetup } from './session';
 // command (server/admin.mjs, in the container) and later the admin page through
 // Caddy. Every request carries `Authorization: Bearer <ADMIN_KEY>`; one from a
 // browser page only from ADMIN_ORIGIN. JSON in and out:
-//   GET  /                     the API's version, the protocol, uptime
-//   GET  /sessions             every session, with how many wait in its line (queue)
+//   GET  /                     the API's version, the game's and the protocol, uptime, the time now
+//   GET  /machine              CPU, RAM, the server's memory, disk, the paint saves, upload (machine.ts)
+//   GET  /sessions             every session: its line (queue), players (address, ping, held seat),
+//                              today's paint and peak, ping, when it went empty, its saves
 //   POST /sessions             a new one: { kind, name, level?, detail?, tools?, stay?, limit? }
 //                              (stay: a private one stays when empty; a public one always does;
 //                              limit: a private one's most players, SERVER.privateMin to SERVER.players.private)
@@ -21,17 +25,37 @@ import type { Session, SessionSetup } from './session';
 //   POST /sessions/CODE/close  ended for everyone in it
 
 /** Changes when what the API takes or answers does: the admin page lives in another repo. */
-const ADMIN_API = 1;
+const ADMIN_API = 2;
 const started = Date.now();
 
 const digest = (s: string) => createHash('sha256').update(s).digest();
 const detailName = (d: number) => Object.entries(PAINT_DETAIL).find(([, v]) => v === d)?.[0] ?? String(d);
 
-/** A session as the admin sees it. */
-function listing(s: Session) {
+const iso = (ms: number) => new Date(ms).toISOString();
+
+/** A session as the admin sees it. A dropped player's `ip` is their last link's; `held`: seconds left to come back. */
+async function listing(s: Session, kept: Kept) {
   const { kind, name, limit, tools, stays, admin } = s.setup;
-  const players = [...s.players.values()].map((p) => ({ id: p.id, name: p.name, here: !!p.link }));
-  return { code: s.code, kind, name, admin, stays, tools, level: s.levelName, detail: detailName(s.detail), players, limit, queue: s.line.length, started: new Date(s.started).toISOString(), paintMB: Math.round(s.memory.now) };
+  const now = Date.now();
+  const players = [...s.players.values()].map(({ id, name, link, was, joined }) => ({
+    id,
+    name,
+    here: !!link,
+    ip: link?.ip ?? was?.ip ?? null,
+    ping: link?.rtt ?? null,
+    joined: iso(joined),
+    held: link || !was ? null : Math.max(0, Math.round((was.at - now) / 1000 + SERVER.rejoinWindow)),
+  }));
+  const pings = players.flatMap((p) => (p.ping === null ? [] : [p.ping])).sort((a, b) => a - b);
+  const { today } = s;
+  today.players(s.players.size);
+  return {
+    code: s.code, kind, name, admin, stays, tools, level: s.levelName, detail: detailName(s.detail), players, limit, queue: s.line.length,
+    started: iso(s.started), paintMB: Math.round(s.memory.now), emptySince: s.emptySince === null ? null : iso(s.emptySince),
+    today: { peak: today.peak, stamps: today.stamps, topColor: today.topColor },
+    ping: { median: pings.length ? pings[pings.length >> 1] : null, slow: pings.filter((ms) => ms > SERVER.slowPing).length },
+    saves: await kept.savesOf(s.code),
+  };
 }
 
 /** POST /sessions's body as a session to make, or why not. */
@@ -61,15 +85,16 @@ export function adminApi(lobby: Lobby, kept: Kept, key: string) {
     if (req.headers.origin && req.headers.origin !== process.env.ADMIN_ORIGIN) return answer(403, { error: 'origin' });
     const parts = (req.url ?? '/').split('?')[0].split('/').filter(Boolean);
     try {
-      if (req.method === 'GET' && !parts.length) return answer(200, { api: ADMIN_API, protocol: PROTOCOL, started: new Date(started).toISOString(), sessions: lobby.sessions.size, players: lobby.players });
+      if (req.method === 'GET' && !parts.length) return answer(200, { api: ADMIN_API, version: VERSION, protocol: PROTOCOL, started: iso(started), now: iso(Date.now()), sessions: lobby.sessions.size, players: lobby.players });
+      if (req.method === 'GET' && parts[0] === 'machine' && parts.length === 1) return answer(200, await machine(kept.dir));
       if (parts[0] !== 'sessions') return answer(404, { error: 'not found' });
-      if (req.method === 'GET' && parts.length === 1) return answer(200, [...lobby.sessions.values()].map(listing));
+      if (req.method === 'GET' && parts.length === 1) return answer(200, await Promise.all([...lobby.sessions.values()].map((s) => listing(s, kept))));
       if (req.method !== 'POST') return answer(405, { error: 'POST' });
       if (parts.length === 1) {
         const m = newSession(await body(req));
         if (typeof m === 'string') return answer(400, { error: m });
         if (overMemory(SERVER.hostMemory)) return answer(503, { error: 'the server is full' });
-        return answer(200, listing(await kept.create(m.setup, m.level, m.detail)));
+        return answer(200, await listing(await kept.create(m.setup, m.level, m.detail), kept));
       }
       const session = lobby.sessions.get(parts[1]);
       if (!session) return answer(404, { error: `no session ${parts[1]}` });

@@ -29,6 +29,8 @@ interface Entry {
   levelHash: string;
 }
 
+/** When a save was made (ms), from its name, <code>-<ms>.rhhpaint. */
+const savedAt = (code: string, name: string) => Number(name.slice(code.length + 1, -'.rhhpaint'.length));
 const hash = (level: LevelData) => createHash('sha256').update(JSON.stringify(level)).digest('hex').slice(0, 16);
 
 export class Kept {
@@ -38,7 +40,7 @@ export class Kept {
   constructor(
     private lobby: Lobby,
     private levels: string,
-    private dir: string | null,
+    readonly dir: string | null,
   ) {}
 
   /** levels/<name>.json, checked as a hosted level is. Throws with a message if there's none or it's no good. */
@@ -153,11 +155,16 @@ export class Kept {
     await fs.rename(this.file('sessions.json.tmp'), this.file('sessions.json'));
   }
 
+  /** A session's saves on disk, newest first: when (ISO) and how big, for the admin page. */
+  async savesOf(code: string) {
+    if (!this.dir) return [];
+    return Promise.all((await this.saves(code)).map(async (n) => ({ at: new Date(savedAt(code, n)).toISOString(), bytes: (await fs.stat(this.file(n))).size })));
+  }
+
   /** A session's saves, newest first. */
   private async saves(code: string) {
     const names = (await fs.readdir(this.dir!)).filter((n) => n.startsWith(`${code}-`) && n.endsWith('.rhhpaint'));
-    const at = (n: string) => Number(n.slice(code.length + 1, -'.rhhpaint'.length));
-    return names.sort((a, b) => at(b) - at(a));
+    return names.sort((a, b) => savedAt(code, b) - savedAt(code, a));
   }
 
   private async forget(code: string) {

@@ -13,6 +13,8 @@ export interface Link {
   /** Where it's from, and when it opened (ms), for the log. */
   readonly ip: string;
   readonly since: number;
+  /** Its last WebSocket ping's round trip (ms), for the admin page; none yet. */
+  rtt?: number;
 }
 
 export interface Player {
@@ -24,6 +26,8 @@ export interface Player {
   /** Lets them come back as themselves (welcome hands it out). */
   token: string;
   link: Link | null;
+  /** When they first came in (ms). */
+  joined: number;
   /** Their last op batch painted (ToServer ops `seq`): one resent after a rejoin is dropped. */
   acked: number;
   /** Their welcome has gone out on `link`: frames reach them. Until then what happens is in the welcome or after it. */
