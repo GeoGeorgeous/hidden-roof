@@ -1,14 +1,16 @@
 // The game under roof.hidden.haus's Content Security Policy (CSP in vite.config.ts,
 // sent by vite preview as by Caddy): the start screen, the color tag, spraying,
-// the hotbar icons, a download, SETTINGS, and HOST against a local server. The
-// build with the dev tools runs the same game code and lets the test drive it.
+// the hotbar icons, a download, SETTINGS, the Multiplayer page's server list, and HOST against a local server (through
+// the page: players can't HOST from the menu). The build with the dev tools runs the same game code and lets the test
+// drive it.
 // Usage: npm run test:csp (builds the game and the server first)
 import { spawn } from 'node:child_process';
 import { preview } from 'vite';
+import { hostSession } from './lobby-ui.mjs';
 import { fixedFrames, freePort, gameReady, noDrawing, openTestBrowser } from './test-browser.mjs';
 
 const PORT = await freePort();
-const server = spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(PORT) }, stdio: ['ignore', 'ignore', 'inherit'] });
+const server = spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(PORT), PLAYER_HOST: '1' }, stdio: ['ignore', 'ignore', 'inherit'] });
 process.env.WS_TARGET = `ws://localhost:${PORT}`;
 const site = await preview({ build: { outDir: 'dist-dev' }, logLevel: 'error' });
 const test = await openTestBrowser(site.resolvedUrls.local[0]);
@@ -48,10 +50,11 @@ try {
   const press = (text) => page.locator('.overlay button:visible', { hasText: text }).first().click();
   await press('Graphics');
   await press('Back');
+  // The server list is fetched from the page's own address (connect-src 'self'); no session yet.
   await press('MULTIPLAYER');
-  await press('HOST A SESSION');
-  await page.fill('.mp-page input >> nth=0', 'CSP');
-  await press('Host');
+  await page.waitForSelector('.mp-page .lobby-note');
+  await press('Back');
+  await hostSession(page, 'CSP');
   await page.waitForFunction(() => window.game.net.status.state === 'in', null, { timeout: 15000 });
 
   problems.push(...(await page.evaluate(() => window.violations)).map((v) => `CSP violation: ${v}`));

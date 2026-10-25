@@ -7,7 +7,8 @@ import type { Action } from './input.ts';
 // name (`{forward}`, `{use}`) is not filled here: the display swaps it for the key's name when it draws
 // (resolveLine below), so a rebound key shows as bound. No DOM: tested in Node (scripts/messages.test.mjs).
 // Not messages, so not here: menu labels and button captions, tooltips, the popups' body paragraphs (save, upload,
-// update notes), the HUD tags (CAP, NEW TOOL), the F3 panel's descriptions. Nothing player-facing comes from
+// update notes), the HUD tags (CAP, NEW TOOL), the F3 panel's descriptions. The server list and join screens are the
+// exception: all their words are here, captions included. Nothing player-facing comes from
 // server/: it sends a `rejected` reason code and the game words it (menu.net*).
 
 export const MESSAGES = {
@@ -96,6 +97,54 @@ export const MESSAGES = {
     noteLagging: 'Lagging',
     /** How far another player is, in whole meters. */
     distance: '{meters}m',
+  },
+
+  /** The Multiplayer page's server list, the dialogs for joining a session (public: the house rules; private: its code) and the screen while one loads (net/lobby-page.ts, join-dialog.ts, loading-page.ts). */
+  lobby: {
+    // The list
+    title: 'multiplayer',
+    host: 'Host',
+    hostUnavailable: 'Hosting is unavailable',
+    refresh: 'Refresh',
+    loadingList: 'Loading sessions',
+    emptyTitle: 'No sessions right now',
+    emptyText: 'Check back in a bit.',
+    public: 'Public',
+    private: 'Private',
+    ping: '{ms} ms',
+    toolOff: '{tool} · not allowed',
+    // The dialogs
+    publicTitle: 'house rules',
+    publicLead: "You're joining a public session with other players.",
+    privateTitle: 'private session',
+    privateLead: 'Type the {length}-letter code the host shared.',
+    codeBox: 'Letter {n} of the code',
+    noSession: 'No session with this code',
+    yourName: 'Your name',
+    do: 'Do',
+    dont: "Don't",
+    doItems: ["Share the walls, make room for everyone's art", 'Respect the time and effort behind every piece', "Add to the scene, don't ruin it"],
+    dontItems: ["Spam tags or deliberately ruin others' artwork", 'Paint ads, hate symbols, or hateful messages', 'Harass or target other players'],
+    toolsLabel: 'Tools in this session',
+    toolAllowed: 'Allowed',
+    toolNotInSession: 'Off in this session',
+    // {rules}, {terms} and {privacy} are links (the rules are no page)
+    consentPublic: "By joining you confirm you're 18+ and accept the {rules}, {terms} and {privacy}, and that sessions may be recorded and shared.",
+    consentPrivate: "By joining you confirm you're 18+ and accept the {terms} and {privacy}, and that sessions may be recorded and shared.",
+    rules: 'House Rules',
+    terms: 'Terms',
+    privacy: 'Privacy',
+    dontShow: "Don't show again",
+    players: '{n}/{limit} players',
+    cancel: 'Cancel',
+    join: 'Join',
+    // Loading a session
+    loadingTitle: 'loading paint',
+    loadingText: "Getting the roof ready. Everyone's paint shows up as it was left.",
+    stepJoining: 'Joining {session}',
+    stepDownloading: 'Downloading paint',
+    stepPutting: 'Putting paint on the walls',
+    stepDropping: 'Dropping you in',
   },
 
   /** The menu, its pages, and the screens before play: they keep their own places, and show until the next status or the step is done (a copy's flash: a few seconds). */

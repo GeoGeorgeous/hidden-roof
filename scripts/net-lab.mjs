@@ -6,17 +6,17 @@
 import { spawn } from 'node:child_process';
 import net from 'node:net';
 import { linkProxy } from './link-proxy.mjs';
+import { hostSession, joinFromList } from './lobby-ui.mjs';
 import { freePort, gameReady, noDrawing, openTestBrowser } from './test-browser.mjs';
 
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
-const press = (page, text) => page.locator('.overlay button:visible', { hasText: text }).first().click();
 
 /** A server (`env`: its settings, as REJOIN_WINDOW) and `names` playing, the first hosting, the others joining. */
 export async function openLab(names, env = {}) {
   const t0 = Date.now();
   const lab = { at: () => +((Date.now() - t0) / 1000).toFixed(1), players: {}, server: [], timeline: [] };
   const port = await freePort();
-  lab.process = spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(port), ...env }, stdio: ['ignore', 'pipe', 'inherit'] });
+  lab.process = spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(port), PLAYER_HOST: '1', ...env }, stdio: ['ignore', 'pipe', 'inherit'] });
   lab.process.stdout.on('data', (d) => String(d).split('\n').filter(Boolean).forEach((l) => lab.server.push({ t: lab.at(), line: l.replace(/^\S+Z /, '') })));
   while (!(await new Promise((done) => net.connect(port).on('connect', function () { this.destroy(); done(true); }).on('error', () => done(false))))) await sleep(100);
   for (const name of names) {
@@ -35,18 +35,12 @@ export async function openLab(names, env = {}) {
   }
   await Promise.all(Object.values(lab.players).map((p) => gameReady(p.page)));
   const [host, ...others] = Object.values(lab.players);
-  await press(host.page, 'MULTIPLAYER');
-  await press(host.page, 'HOST A SESSION');
-  await host.page.fill('.mp-page input >> nth=0', host.name);
-  await press(host.page, 'Host');
+  // Players can't HOST through the menu: the page does. The others JOIN through it.
+  await hostSession(host.page, host.name);
   await state(host, 'in');
   const code = await host.page.evaluate(() => window.game.net.status.code);
   for (const p of others) {
-    await press(p.page, 'MULTIPLAYER');
-    await press(p.page, 'JOIN A SESSION');
-    await p.page.fill('.mp-page input >> nth=0', p.name);
-    await p.page.fill('.mp-page input >> nth=1', code.toLowerCase());
-    await press(p.page, 'Join');
+    await joinFromList(p.page, p.name, code);
     await state(p, 'in');
   }
   for (const p of Object.values(lab.players)) await p.page.waitForFunction((n) => window.game.net.names.size === n, names.length - 1, { timeout: 15000 });

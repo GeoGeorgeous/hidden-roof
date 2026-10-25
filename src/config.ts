@@ -1173,6 +1173,18 @@ export const SERVER = {
   noisyIps: 1000,
 };
 
+/** The server list and the join dialogs of the Multiplayer page (net/lobby-page.ts). */
+export const LOBBY = {
+  /** The list, or a code's session, is asked for this long (s) before the server counts as not answering. */
+  fetchTimeout: 8,
+  /** Rows of the list's loading state. */
+  skeletonRows: 3,
+  /** Players shown by their initials in a session's line; the rest are a count. */
+  facesShown: 5,
+  /** The rings of those initials, in order: the lists don't know the players' paint colors. */
+  faceColors: ['red', 'cyan', 'yellow', 'green'] as PaintColor[],
+};
+
 /** F3 -> Ghost (src/dev/ghost.ts): the network it plays through, and how far behind it follows you. */
 export const GHOST = {
   /** One-way delay (s), random extra delay up to (s), and the share of packets held up by a hiccup (a lost packet resent: TCP holds everything behind it). */

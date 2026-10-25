@@ -1,12 +1,12 @@
 // Multiplayer: PLAY held until the welcome has loaded, a third player starting the level over, a message the game can't handle. Reads and adds to `w`, the players and what they share.
 import assert from 'node:assert/strict';
-import { open, status, paintHash, press } from './harness.mjs';
+import { open, status, paintHash, press, joinFromList } from './harness.mjs';
 
 export async function welcome(w) {
   const { a, b, code } = w;
   // BL-105: from JOIN (or HOST) until the session's paint has loaded the player can't resume: PLAY is a disabled note of
   // the progress, and neither it, Enter, Esc nor a click on the game starts play (the paint made meanwhile would be
-  // lost to the welcome's). LEAVE, Back on the MULTIPLAYER page and a failed join give PLAY back. B joins four times
+  // lost to the welcome's). LEAVE, CANCEL on the loading screen and a failed join give PLAY back. B joins four times
   // with its welcome held until the test lets it go: the welcome that takes a while to download and load.
   await b.evaluate(() => {
     window.resumes = 0;
@@ -61,20 +61,18 @@ export async function welcome(w) {
   await b.evaluate(() => window.game.net.join('B', 'QQQQQ'));
   await status(b, 'failed');
   assert.deepEqual(await menuNow(), { play: [false, 'Play'], other: 'Multiplayer', resumed: 4 }, 'a failed join: PLAY is back');
-  // 4. Back on the MULTIPLAYER page cancels the join.
+  // 4. CANCEL on the loading screen (the menu's JOIN, through the list and its dialog) cancels the join and shows the list.
   await holdWelcome();
-  await press(b, 'MULTIPLAYER');
-  await press(b, 'JOIN A SESSION');
-  await b.fill('.mp-page input >> nth=0', 'B');
-  await b.fill('.mp-page input >> nth=1', code.toLowerCase());
-  await press(b, 'Join');
+  await joinFromList(b, 'B', code);
   await welcomeHeld();
   assert.equal(await b.evaluate(() => window.game.session.joining), true);
-  await b.click('.overlay .back button');
+  assert.ok(await b.isVisible('.loading-page'), 'the loading screen shows while the session loads');
+  await b.click('.loading-page .loading-exit button');
   await status(b, 'off');
+  assert.ok(await b.isVisible('.mp-page .lobby-list'), 'CANCEL is back on the list');
   // On to the pause screen.
   await b.click('.overlay .back button');
-  assert.deepEqual(await menuNow(), { play: [false, 'Play'], other: 'Multiplayer', resumed: 4 }, 'Back cancels the join: PLAY is back');
+  assert.deepEqual(await menuNow(), { play: [false, 'Play'], other: 'Multiplayer', resumed: 4 }, 'CANCEL cancels the join: PLAY is back');
   await b.evaluate(() => window.releaseWelcome());
   await aloneAgain();
 

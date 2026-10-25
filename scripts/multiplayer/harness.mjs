@@ -2,10 +2,13 @@
 // and the helpers that wait for a network status or for a player's paint.
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import { joinFromList, hostSession, press } from '../lobby-ui.mjs';
 import { freePort, gameReady, noBrowserLock, noDrawing, openTestBrowser } from '../test-browser.mjs';
 
+export { joinFromList, hostSession, press };
+
 export const PORT = await freePort();
-const startServer = () => spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(PORT) }, stdio: ['ignore', 'ignore', 'inherit'] });
+const startServer = () => spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(PORT), PLAYER_HOST: '1' }, stdio: ['ignore', 'ignore', 'inherit'] });
 let server = startServer();
 process.env.WS_TARGET = `ws://localhost:${PORT}`;
 const test = await openTestBrowser();
@@ -93,9 +96,6 @@ export async function paintReaches(page, hash, what) {
   }
   assert.equal(await paintHash(page), hash, what);
 }
-
-/** Click the visible button with this text. */
-export const press = (page, text) => page.locator('.overlay button:visible', { hasText: text }).first().click();
 
 /** Eight stamps of `color` on the level's first surface with several faces, on face `rect` at height `v`. */
 export const stamp = (page, rect, v, color) =>

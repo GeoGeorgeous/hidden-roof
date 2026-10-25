@@ -5,26 +5,30 @@ import type { PauseMenu } from '../pause-menu';
 import { msg, type MessageId } from '../messages';
 import type { Notify } from '../notify';
 import { savePaint } from '../save/save-paint';
-import { store, stored } from '../stored';
 import { cycle, paintDetailName } from '../settings';
-import { action, button, choice, div, el, pageHead, relabel, sentence, settingRow } from '../menu-ui';
-import { cleanName, CODE_LENGTH, CODE_LETTERS, isName, NAME_MAX } from './protocol';
+import { action, button, choice, div, pageHead, relabel, sentence, settingRow } from '../menu-ui';
 import type { MultiplayerContext } from './game-context';
+import { JoinDialog, rulesSeen } from './join-dialog';
+import { LobbyPage } from './lobby-page';
+import { shellButton, type Where } from './lobby-view';
+import { LoadingPage } from './loading-page';
 import { lostDialog, type LostButton } from './lost-dialog';
+import { nameField, nameProblem, storedName } from './name-field';
+import type { LobbyEntry } from './protocol';
 import { Multiplayer, type Failure, type NetStatus } from './multiplayer';
 
-// The Multiplayer page of the ESC menu: HOST (a name, the session's PAINT
-// DETAIL, the paint to start from: the level's own (save/level-paint.ts, none
-// for most levels), this level's as it is, or a paint file) or JOIN (a name
-// and the code the host shares), the link's state under them. In a session
-// the pause screen shows its live line (code, ping, players) and offers SAVE
-// (the session's paint) and LEAVE SESSION. Returns the game's Multiplayer.
+// The Multiplayer page of the ESC menu: the server's list of sessions (lobby-page.ts), the link's state under it.
+// A row opens the dialog for joining it (join-dialog.ts), and JOIN shows the screen while it loads
+// (loading-page.ts); a public session whose rules the player has seen skips the dialog. HOST, when players may
+// (SERVER.playerHost), is a form: a name, the session's PAINT DETAIL, the paint to start from: the level's own
+// (save/level-paint.ts, none for most levels), this level's as it is, or a paint file. In a session the pause
+// screen shows its live line (code, ping, players) and offers SAVE (the session's paint) and LEAVE SESSION.
+// Returns the game's Multiplayer.
 
 type Start = 'fresh' | 'mine' | 'file';
 const STARTS: Start[] = ['fresh', 'mine', 'file'];
 const START_LABEL: Record<Start, string> = { fresh: 'Fresh level', mine: 'This paint', file: 'A paint file' };
 const DETAILS = Object.entries(PAINT_DETAIL) as [keyof typeof PAINT_DETAIL, number][];
-const NAME_KEY = 'roofhiddenhaus.name';
 
 /** What the player reads about the link: every failure has its text. */
 const STATUS: Record<Failure | 'connecting' | 'reconnecting', MessageId> & Partial<Record<NetStatus['state'], MessageId>> = {
@@ -59,21 +63,22 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
   const log = button('Copy network log', () => copyLog(), 'net-log');
   const foot = div('mp-foot');
   foot.append(status, log);
+  const hostButton = shellButton(msg('lobby.host'), SERVER.playerHost ? () => host() : null, { icon: 'broadcast', key: 'H', title: SERVER.playerHost ? undefined : msg('lobby.hostUnavailable') });
+  hostButton.classList.add('host-button');
   const root = div('page mp-page');
-  root.append(pageHead('multiplayer', sub), rows);
+  // The link's state is there before the page was ever opened (a session hosted by the page, a link lost).
+  rows.append(foot);
+  root.append(pageHead(msg('lobby.title'), sub), hostButton, rows);
 
-  let name = cleanName(stored(NAME_KEY) ?? '');
-  const nameInput = textInput(name, NAME_MAX, 'Your name', (v) => {
-    name = cleanName(v);
-    if (name !== v) nameInput.value = name;
-    store(NAME_KEY, name);
-  });
-  const codeInput = textInput('', CODE_LENGTH, 'A B C D E', () => (codeInput.value = codeInput.value.toUpperCase().replace(/[^A-Z]/g, '')));
-  codeInput.classList.add('code');
+  const hostName = nameField(msg('lobby.yourName'));
   let detail = 0;
   let start: Start = 'fresh';
-  /** HOST or JOIN is open (Back goes to the choice between them). */
+  /** The HOST form is open (Back goes to the list). */
   let inForm = false;
+  /** The session being joined (a row of the list, where the server is, the code asked for) from JOIN until the player is in or it failed. */
+  let joining: { entry: LobbyEntry; where: Where; code: string } | null = null;
+  /** The row picked, while its dialog is open. */
+  let picked: { entry: LobbyEntry; where: Where } | null = null;
 
   /** An error in red, progress (…) dimmer; after the link `failed`, COPY NETWORK LOG under it. */
   const say = (text: string, error = false, failed = false) => {
@@ -82,19 +87,44 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
     log.hidden = !failed;
   };
   const named = () => {
-    if (isName(name)) return name;
-    say(msg(name ? 'menu.nameLetters' : 'menu.typeName'), true);
-    return null;
+    const problem = nameProblem(hostName.input.value);
+    if (problem) say(msg(problem), true);
+    return problem ? null : hostName.input.value;
   };
   const show = (title: string, ...els: HTMLElement[]) => {
     sub.textContent = title;
     inForm = !!title;
+    hostButton.hidden = inForm;
+    rows.classList.toggle('lobby', !inForm);
     rows.replaceChildren(...els, foot);
     say('');
   };
-  const choose = () => show('', bigRow('Host a session', 'Open your roof and get a code to share.', host), bigRow('Join a session', "Paint on a friend's roof with their code.", join));
+  const list = new LobbyPage((entry, where) => {
+    picked = { entry, where };
+    // A public session's rules, once seen, are not asked again; a name is still needed.
+    if (entry.kind === 'public' && rulesSeen() && !nameProblem(storedName())) join(storedName(), entry.code ?? '', entry);
+    else dialog.ask({ entry, where });
+  });
+  const choose = () => {
+    show('', list.el);
+    void list.refresh();
+  };
+  /** From JOIN to the player being in: the loading screen, and the dialog or the list back if it fails. */
+  const join = (who: string, code: string, entry: LobbyEntry) => {
+    joining = { ...picked!, code };
+    say('');
+    loading.show(entry, joining.where);
+    hud.openPage('loading');
+    net.join(who, code);
+  };
+  const dialog = new JoinDialog({ show: () => hud.openPage('join'), join, cancel: () => hud.openPage('mp') });
+  const loading = new LoadingPage(() => (cancelJoin(), hud.openPage('mp')));
+  const cancelJoin = () => {
+    joining = null;
+    void net.leave();
+  };
   /** NAME, with what it is for. */
-  const nameRow = (more = '') => settingRow('Name', nameInput, { desc: `Your name as a player: everyone in the session sees it over you.${more}` });
+  const nameRow = (more = '') => settingRow('Name', hostName.input, { desc: `Your name as a player: everyone in the session sees it over you.${more}` });
   /** The network log to the clipboard; a file where the clipboard is out of reach (refused, or none: plain http, as on a LAN). */
   const copyLog = () => {
     const text = net.log.text();
@@ -121,19 +151,18 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
         relabel(go, 'Host');
       }
     }, { primary: true });
+    hostName.reload();
     show('Host a session', nameRow(' Not the name of the session.'), detailRow, startRow, submit(go));
-  };
-  const join = () => {
-    const go = action('Join', () => {
-      const who = named();
-      const code = codeInput.value.toUpperCase();
-      if (who && [...code].every((c) => CODE_LETTERS.includes(c)) && code.length === CODE_LENGTH) net.join(who, code);
-      else if (who) say(msg('menu.codeLength', { length: CODE_LENGTH }), true);
-    }, { primary: true });
-    show('Join a session', nameRow(), settingRow('Code', codeInput, { desc: `The ${CODE_LENGTH} letters the host shared.` }), submit(go));
   };
   // Back (and Esc) from here while JOIN or HOST is loading the session cancels it: the pause screen can't offer PLAY before the paint is in.
   hud.addPage('mp', root, choose, () => (net.status.state === 'connecting' && net.leave(), inForm && (choose(), true)));
+  hud.addPage('join', dialog.root, () => dialog.open(), () => (hud.openPage('mp'), true));
+  hud.addPage('loading', loading.root, () => {}, () => (cancelJoin(), hud.openPage('mp'), true));
+  addEventListener('keydown', (e) => {
+    if (e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.target instanceof HTMLInputElement || !root.checkVisibility() || inForm) return;
+    if (e.code === 'KeyR') void list.refresh();
+    else if (e.code === 'KeyH' && SERVER.playerHost) host();
+  });
 
   /** The state before this one. */
   let was: NetStatus['state'] = 'off';
@@ -152,6 +181,13 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
     const detail = s.state === 'failed' || s.state === 'reconnecting' ? s.detail : undefined;
     const text = known && detail ? `${known} (${detail})` : known;
     say(text ?? '', s.state === 'failed', s.state === 'failed');
+    // A failed JOIN goes back: to its dialog when the session is full (it may have room soon), else to the list, which is asked again.
+    if (s.state === 'failed' && !s.code && joining) {
+      const back = joining;
+      if (s.reason === 'full') dialog.ask({ ...back, error: text });
+      else (hud.openPage('mp'), say(text ?? '', true, true));
+    }
+    if (s.state !== 'connecting') joining = null;
     // In play the link's loss is a status, as long as it lasts; a session lost mid-play is a dialog in its place (the menu's line above says either with the page open). A failed JOIN or HOST stays on the page.
     if (s.state === 'reconnecting') notify.set({ key: 'net', kind: 'status', icon: 'cycle', text: msg('status.reconnecting', { n: s.tries }) });
     else if (s.state === 'failed' && s.code) {
@@ -173,6 +209,7 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
   net.onProgress = (text) => {
     if (text) (say(text), hud.notice(text, Infinity), net.status.state === 'connecting' && hud.setJoining(short(text)));
     else hud.notice('', 0);
+    if (joining) loading.update(text);
   };
   return net;
 }
@@ -183,24 +220,9 @@ function short(progress: string) {
   return share ? msg('menu.progressShort', { percent: share[0] }) : msg('menu.joining');
 }
 
-/** HOST A SESSION / JOIN A SESSION: a big row with what it's for. */
-function bigRow(title: string, desc: string, act: () => void) {
-  const b = button('', act, 'big-row');
-  const text = div('text');
-  text.append(el('b', '', title), el('span', '', desc));
-  b.append(text, el('i', '', '›'));
-  return b;
-}
-
 /** The form's button, centered under its rows (the status line under it). */
 function submit(go: HTMLElement) {
   const box = div('submit');
   box.append(go);
   return box;
-}
-
-function textInput(value: string, max: number, placeholder: string, onInput: (v: string) => void) {
-  const input = Object.assign(el('input'), { type: 'text', value, maxLength: max, placeholder, spellcheck: false });
-  input.addEventListener('input', () => onInput(input.value));
-  return input;
 }
