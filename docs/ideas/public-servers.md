@@ -15,6 +15,7 @@ The public server: see also docs/deploy.md. Shipped: the server list, public and
 - **Public paint is kept** (done: `docs/deploy.md` §6), the simplest version first: saved to the host's disk now and then (a config value, e.g. 30 min) and on shutdown, the last 3 saves kept, loaded at start, so a host outage loses at most one interval. Wiped only when the protocol, the surface table or the level changes, or on the admin's wipe (command or panel); a release that changes none of them keeps the paint.
 - **Anti-cheat** (BL-147) waits for 1.6.1: no real players are expected before 1.7.0, and a bad wall is fixed by a wipe.
 - **Admin panel** (BL-047): minimal, stats and session management (create, name, tools, wipe). Full stats from 1.6.0 (server counters, country, the client beacon); the privacy page and Terms are updated alongside.
+- **cctv data** (owner, 2026-10-25): no web analytics (no Umami): only what the game server counts itself. Times in UTC. A wipe keeps the last 3 saves (TASK-239). Kick, ban by IP and restore a save come later (IDEA-240). The designer's screens get edits, not a new brief.
 
 ## BL-043 One public server, running 24/7
 
