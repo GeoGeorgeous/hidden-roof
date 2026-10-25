@@ -6,7 +6,7 @@ import { SERVER } from '../src/config';
 // is open. No page open, no status built: only the last SERVER.adminEvents
 // events are kept, for the next page that opens.
 
-type EventType = 'joined' | 'left' | 'dropped' | 'turned-away' | 'session-made' | 'session-closed' | 'wiped' | 'wiped-at-start' | 'save-failed';
+type EventType = 'joined' | 'left' | 'kicked' | 'dropped' | 'turned-away' | 'session-made' | 'session-closed' | 'wiped' | 'wiped-at-start' | 'save-failed';
 
 interface AdminEvent {
   at: string;

@@ -51,10 +51,10 @@ const MAX_PROPS = 5000;
  * level it can't use, the server too full for another session, or the same
  * player come in from another tab (a duplicated tab carries the token along),
  * or too many links or sessions from one address (SERVER.linksPerIp, sessionsPerIp),
- * or HOST while players may not host (SERVER.playerHost).
+ * or HOST while players may not host (SERVER.playerHost), or the admin removed the player.
  * The socket then closes with closeCode(reason), for the logs.
  */
-const REJECTIONS = ['version', 'no-session', 'ended', 'full', 'bad-save', 'bad-level', 'busy', 'replaced', 'too-many', 'no-host'] as const;
+const REJECTIONS = ['version', 'no-session', 'ended', 'full', 'bad-save', 'bad-level', 'busy', 'replaced', 'too-many', 'no-host', 'kicked'] as const;
 export type Rejection = (typeof REJECTIONS)[number];
 export const closeCode = (r: Rejection) => 4001 + REJECTIONS.indexOf(r);
 /** The rejection a socket's close code says (see closeCode), if it does. */

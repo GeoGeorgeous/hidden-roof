@@ -187,7 +187,7 @@ try {
   assert.equal((await a.next('pong')).acked, 1);
   // What the admin page reads: the version, today's paint (the stamp's color as the game's), the player, the machine.
   const top = await admin('GET', '/');
-  assert.deepEqual([top.body.api, typeof top.body.version], [2, 'string']);
+  assert.deepEqual([top.body.api, typeof top.body.version], [3, 'string']);
   const live = (await admin('GET', '/sessions')).body[0];
   assert.deepEqual([live.today.stamps.can, live.today.topColor, live.today.peak.players, live.emptySince], [1, 'red', 1, null]);
   assert.deepEqual([live.players[0].ip, live.players[0].here, live.players[0].held], [`10.1.0.${games}`, true, null]);
@@ -206,6 +206,16 @@ try {
   const wb = await b.join(code, 'B');
   assert.ok(await painted(wb.file!), 'the paint is back');
   assert.equal((await admin('GET', '/sessions')).body[0].saves.length, 1, 'its save, listed');
+
+  // The paint now, for the admin to keep: a paint file made at the request, not written to disk; a session that isn't there, 404.
+  const download = await fetch(`http://localhost:${ADMIN_PORT}/sessions/${code}/paint`, { headers: { authorization: 'Bearer test-key' } });
+  const file = new Uint8Array(await download.arrayBuffer());
+  assert.deepEqual([download.status, download.headers.get('content-type')], [200, 'application/octet-stream']);
+  assert.match(download.headers.get('content-disposition')!, new RegExp(`^attachment; filename="${code}-\\d{4}-\\d\\d-\\d\\dT\\d\\d-\\d\\d-\\d\\dZ\\.rhhpaint"$`));
+  assert.ok(file.length > 0 && (await painted(file)), 'the paint, as a paint file');
+  assert.equal(saves().length, 1, 'not written to disk');
+  assert.equal((await admin('GET', `/sessions/ZZZZZ/paint`)).status, 404);
+  assert.equal((await fetch(`http://localhost:${ADMIN_PORT}/sessions/${code}/paint`, { headers: { authorization: 'Bearer wrong' } })).status, 401);
 
   // A wipe: the game's link closes as a drop; it comes back with its token to a clean wall, and the saves are gone.
   assert.equal((await admin('POST', `/sessions/${code}/wipe`)).status, 200);
@@ -261,7 +271,7 @@ try {
   assert.equal(month.people.byDevice, 2, 'people, kept through restarts');
   assert.equal(month.client.n, 1, 'beacons, kept through restarts');
   assert.ok(!JSON.stringify(fs.readdirSync(path.join(dir, 'stats')).map((n) => fs.readFileSync(path.join(dir, 'stats', n), 'utf8'))).includes('10.2.0.'), 'no address on disk');
-  console.log('kept sessions: ok (admin key and origin, a public session full at its limit with a line, kept empty, paint back after a restart, wipe, a new surface table wipes, private ones close when empty unless they stay, close, what the admin page reads, the event stream, history, the beacon)');
+  console.log('kept sessions: ok (admin key and origin, a public session full at its limit with a line, kept empty, paint back after a restart, the paint downloaded, wipe, a new surface table wipes, private ones close when empty unless they stay, close, what the admin page reads, the event stream, history, the beacon)');
 } finally {
   server.kill();
   fs.rmSync(dir, { recursive: true, force: true });

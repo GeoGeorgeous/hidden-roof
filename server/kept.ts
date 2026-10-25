@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { SERVER } from '../src/config';
 import { levelProblem, type LevelData } from '../src/level/level-data';
-import { PROTOCOL, type SessionKind } from '../src/net/protocol';
+import { closeCode, encode, PROTOCOL, type SessionKind } from '../src/net/protocol';
 import { event } from './events';
 import { log, mb } from './log';
 import type { Lobby } from './lobby';
@@ -75,6 +75,29 @@ export class Kept {
     session.end();
     await this.forget(session.code);
     await this.record();
+  }
+
+  /** The admin removed a player: told why, out at once with no seat held, free to join again. False if the session has no such player. */
+  kick(session: Session, id: number) {
+    const p = session.players.get(id);
+    if (!p) return false;
+    const link = p.link;
+    p.link = null;
+    link?.send(encode({ type: 'rejected', reason: 'kicked' }));
+    link?.close(closeCode('kicked'), 'kicked');
+    event('kicked', session, p.name);
+    session.remove(p, 'kicked by the admin');
+    return true;
+  }
+
+  /** The session's paint as a paint file, as of now and not kept: null when there's no memory for one. A kept save still sees what changed since the last one. */
+  async download(session: Session) {
+    const changed = session.changed;
+    try {
+      return await session.paintFile();
+    } finally {
+      session.changed ||= changed;
+    }
   }
 
   /** At start: every kept session again, with its paint unless what it was made for has changed. */
