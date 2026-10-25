@@ -29,6 +29,8 @@ export class LobbyPage {
     const run = ++this.run;
     let barsAt = 0;
     const timer = setTimeout(() => {
+      // A newer refresh may have answered already: its rows stay.
+      if (run !== this.run) return;
       barsAt = performance.now();
       this.el.replaceChildren(skeleton());
     }, LOBBY.skeletonDelay * 1000);

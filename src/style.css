@@ -2059,14 +2059,11 @@
   box-sizing: border-box;
   padding: 10px 12px;
   border: 1px solid var(--edge);
-  border-radius: 6px;
-  background: var(--hair);
+  border-radius: 8px;
+  background: var(--ink);
   font-size: 13px;
   color: var(--text-1);
   text-align: left;
-}
-.overlay .notice.error {
-  border-color: color-mix(in srgb, var(--error) 40%, transparent);
 }
 .overlay .notice-body {
   display: flex;
@@ -2078,8 +2075,22 @@
 .overlay .notice-title {
   font-weight: 500;
 }
+/* A failure as the in-game dialogs' label (.dialog .label): a dot in the error color before its first line, the title in it too. */
+.overlay .notice.error .notice-body > :first-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .overlay .notice.error .notice-title {
   color: var(--error);
+}
+.overlay .notice.error .notice-body > :first-child::before {
+  content: '';
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--error);
 }
 .overlay .net-log {
   font-size: 12px;
