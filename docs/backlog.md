@@ -160,7 +160,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## Codebase
 
-1. [RFCT-202]: Evaluate Organizing src/ into Feature-Based Modules
+1. [RFCT-202]: src/ root files into folders (paint, menu, input, boot, render), style.css split next to its code; paint after the Painting Rework (docs/ideas/src-folders.md) @1.8.0
 
 ## Done
 
