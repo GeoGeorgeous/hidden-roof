@@ -2395,6 +2395,9 @@
   text-align: center;
   color: var(--text-3);
 }
+.overlay .join-popup .consent .ban-note {
+  margin-top: 4px;
+}
 .overlay .join-popup .consent :is(a, b) {
   font-weight: 400;
   color: var(--text-1);

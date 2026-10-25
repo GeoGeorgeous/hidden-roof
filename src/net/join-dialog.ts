@@ -85,6 +85,7 @@ export class JoinDialog {
     consent.append(isPublic ? sentenceWith(msg('lobby.consentPublic'), { rules: el('b', '', msg('lobby.rules')), terms, privacy }) : sentenceWith(msg('lobby.consentPrivate'), { terms, privacy }));
     if (isPublic) {
       this.found.replaceChildren(sessionLine(entry, where));
+      consent.append(div('ban-note', msg('lobby.banNote')));
       this.body.replaceChildren(lead, this.found, nameRow, rules(), this.tools, consent, this.message);
       this.dontShow.checked = false;
       const label = el('label', 'link check');

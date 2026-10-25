@@ -130,6 +130,7 @@ export const MESSAGES = {
     toolNotInSession: 'Off in this session',
     // {rules}, {terms} and {privacy} are links (the rules are no page)
     consentPublic: "By joining you confirm you're 18+ and accept the {rules}, {terms} and {privacy}, and that sessions may be recorded and shared.",
+    banNote: 'Breaking the rules may result in a ban from public sessions.',
     consentPrivate: "By joining you confirm you're 18+ and accept the {terms} and {privacy}, and that sessions may be recorded and shared.",
     rules: 'House Rules',
     terms: 'Terms',

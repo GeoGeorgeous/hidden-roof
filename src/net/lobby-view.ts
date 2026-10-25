@@ -1,4 +1,4 @@
-import { COLORS, LOBBY } from '../config';
+import { LOBBY } from '../config';
 import type { Tool } from '../inventory/tool';
 import { msg } from '../messages';
 import { button, div, el, keyHint } from '../menu-ui';
@@ -44,10 +44,9 @@ export function whereTag({ region, ping }: Where) {
 /** The players' initials as small rings, the first few of them, then how many more. */
 function faces(players: string[]) {
   const box = el('span', 'faces');
-  players.slice(0, LOBBY.facesShown).forEach((name, i) => {
+  players.slice(0, LOBBY.facesShown).forEach((name) => {
     const face = el('span', '', [...name.trim()][0]?.toUpperCase() ?? '?');
     face.title = name;
-    face.style.borderColor = COLORS[LOBBY.faceColors[i % LOBBY.faceColors.length]];
     box.append(face);
   });
   if (players.length > LOBBY.facesShown) box.append(el('span', 'more', `+${players.length - LOBBY.facesShown}`));

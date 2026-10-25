@@ -1181,8 +1181,6 @@ export const LOBBY = {
   skeletonRows: 3,
   /** Players shown by their initials in a session's line; the rest are a count. */
   facesShown: 5,
-  /** The rings of those initials, in order: the lists don't know the players' paint colors. */
-  faceColors: ['red', 'cyan', 'yellow', 'green'] as PaintColor[],
 };
 
 /** F3 -> Ghost (src/dev/ghost.ts): the network it plays through, and how far behind it follows you. */
