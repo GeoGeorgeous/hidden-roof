@@ -1101,8 +1101,8 @@ export const NET = {
 /** The multiplayer server (server/, docs/deploy.md). */
 export const SERVER = {
   port: 3000,
-  /** Players in one session; each receives everyone's state and ops (no interest management), load-tested with 20 (docs/deploy.md, section 6). */
-  maxPlayers: 20,
+  /** Players in one session, by its kind; each receives everyone's state and ops (no interest management), load-tested with 20 (docs/deploy.md, section 6). */
+  players: { public: 20, private: 4 },
   /** A dropped player can come back as themselves for this long (s); then their stepladder goes, and a session with no one left closes. */
   rejoinWindow: 180,
   /** The server pings every game this often (s), so a game notices a dead link; a game pings the server as often, and each answer is a round trip for the link's status (NET.statusShow). */
@@ -1140,6 +1140,14 @@ export const SERVER = {
   uploads: 8,
   /** Live sessions hosted from one address. */
   sessionsPerIp: 2,
+  /** The admin API (server/admin-api.ts): its port (never published, ADMIN_PORT overrides it) and the largest request it reads (bytes). */
+  adminPort: 3001,
+  adminBody: 4096,
+  /** With DATA_DIR, a public session's paint is saved this often (s) when it changed, and at shutdown; the newest keepFiles saves stay (server/kept.ts). */
+  keepEvery: 1800,
+  keepFiles: 3,
+  /** A private session the admin made that doesn't stay closes if no one has come in this long (s). */
+  adminWait: 600,
   /** A link that hasn't sent HOST or JOIN by then is closed (s), so idle links hold no slot. */
   helloTimeout: 20,
   /** With LOG_DIR, the log's lines lose their IP addresses and nicknames after this many days, and are deleted after logKeepDays (the privacy page says so); checked every logCleanEvery (s). */

@@ -2,7 +2,9 @@ import { randomInt } from 'node:crypto';
 import { SERVER } from '../src/config';
 import { checkToServer, closeCode, CODE_LENGTH, CODE_LETTERS, decode, encode, PROTOCOL, type Rejection, type ToServer } from '../src/net/protocol';
 import { log, logNoisy, overMemory, who } from './log';
-import { Session, type Link, type Player } from './session';
+import type { LevelData } from '../src/level/level-data';
+import type { Link, Player } from './player';
+import { Session, type SessionSetup } from './session';
 
 // Who gets into which session: the live sessions by code, the codes of those
 // that ended, each address's links, uploads and hosted sessions
@@ -123,12 +125,7 @@ export class Lobby {
       if (overMemory(SERVER.hostMemory)) return 'busy';
       const code = this.newCode();
       try {
-        session = new Session(code, m.levelName, m.level, m.detail, () => {
-          this.sessions.delete(code);
-          this.hosts.delete(code);
-          this.ended.set(code, Date.now());
-          log(code, `closed: no one left, ${session.summary}`);
-        });
+        session = this.start(code, m.levelName, m.level, m.detail);
       } catch (e) {
         log('-----', `host from ${ip}: the level doesn't build`, e);
         return 'bad-level';
@@ -153,11 +150,43 @@ export class Lobby {
     const r = await session.admit(link, m.name, m.type === 'join' ? m.token : undefined);
     if (typeof r === 'string') {
       // A session turned down with its host has no one to close it.
-      if (m.type === 'host') session.close();
+      if (m.type === 'host') session.close('its host turned away');
       return r;
     }
     log(session.code, who(r.p), `in from ${ip} (${r.how}, ${session.players.size} players${r.note})`);
     return { session, player: r.p };
+  }
+
+  /**
+   * The admin's session (admin-api.ts), or one kept on disk under its `code`
+   * (kept.ts), open at once. One that doesn't stay closes when its players
+   * have gone, or if no one has come in SERVER.adminWait. Throws if the level doesn't build.
+   */
+  create(setup: Omit<SessionSetup, 'admin'>, levelName: string, level: LevelData, detail: number, code = this.newCode()) {
+    const session = this.start(code, levelName, level, detail, { ...setup, admin: true });
+    this.sessions.set(code, session);
+    log(code, `made by the admin: ${setup.kind} ${JSON.stringify(setup.name)}, ${JSON.stringify(levelName)} at ${detail} texels/m, tools ${setup.tools.join(' ')}${setup.stays ? ', stays when empty' : ''}`);
+    if (!setup.stays) setTimeout(() => session.close(`no one came in ${SERVER.adminWait} s`), SERVER.adminWait * 1000).unref();
+    return session;
+  }
+
+  /** A session, closed when it's empty or by end(). */
+  private start(code: string, levelName: string, level: LevelData, detail: number, setup?: SessionSetup) {
+    const session = new Session(
+      code,
+      levelName,
+      level,
+      detail,
+      (why) => {
+        if (this.sessions.get(code) !== session) return;
+        this.sessions.delete(code);
+        this.hosts.delete(code);
+        this.ended.set(code, Date.now());
+        log(code, `closed: ${why}, ${session.summary}`);
+      },
+      setup,
+    );
+    return session;
   }
 
   private newCode() {

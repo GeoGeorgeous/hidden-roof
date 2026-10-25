@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 236
+The one list of what's left. Counter for new ids: next: 239
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -51,7 +51,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 2. TASK [BL-076]: Run the next public playtest and verify that all bugs from the previous playtest have been fixed (docs/ideas/weak-links.md) @1.6.2
 3. IDEA [?BL-071]: Multiplayer View-Only sessions: past sessions are opened for viewing only (gallary)
 4. IDEA [?BL-153]: Find who painted something by player id, picked like the eyedropper (to spot bad paint)
-5. TASK [BL-154]: Limit some tools in multiplayer (e.g. the roller) @1.6.0
+5. TASK [BL-154]: Limit some tools in multiplayer (e.g. the roller): the host turns tools off per session, they leave the map (docs/ideas/public-servers.md) @1.6.0
 6. [BUGS-168]: Returning players recover their inventory but spawn at the default spawn instead of their last position. Restore both inventory and position. @1.6.1
 
 ## Painting
@@ -132,19 +132,21 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 1. TEST [BL-035]: Fixed-step tests for walking, collisions, jumps and climbing
 2. TEST [BL-036]: Light baking and weather run on the wall clock; decide what a test would compare first
-3. [IDEA-195]: Spectator/god mode for admin @1.6.0
+3. [IDEA-195]: Spectator/god mode for admin @1.6.1
 
 ## Servers and deploy
 
 1. IDEA [BL-043]: One public server, running 24/7 (docs/ideas/public-servers.md) @1.6.0
-2. TASK [BL-044]: Disable host and join (don't remove them), after BL-043 (docs/ideas/public-servers.md) @1.6.0
-3. IDEA [BL-045]: A window of public servers instead of host and join (docs/ideas/public-servers.md) @1.6.0
+2. TASK [BL-044]: Disable HOST for everyone (don't remove it); JOIN by code moves into the server list, after BL-043 (docs/ideas/public-servers.md) @1.6.0
+3. IDEA [BL-045]: A list of all sessions, public and private, instead of host and join (docs/ideas/public-servers.md) @1.6.0
 4. [DSGN-160]: The lobby list for BL-045: allowed tools, players online, ping with a country flag @1.6.0
 5. IDEA [BL-046]: A queue to enter the server, after BL-043 (docs/ideas/public-servers.md) @1.6.0
 6. IDEA [BL-047]: Admin panel: servers stats (players online, perfomance, etc), players info (username, IP, ping), ban by IP, after BL-043 (docs/ideas/public-servers.md) @1.6.0
 7. IDEA [?BL-147]: Anti-cheat: The server checks what players send (op reach and rate, ladder spot, jumps) before it goes public @1.6.1
 8. [TASK-189]: House rules before joining a public server: players are 18+, joining accepts the Terms, sessions may be recorded and published (docs/ideas/public-servers.md) @1.6.0
-9. [TASK-201]: Research itch.io Publishing Requirements, AI Policies, and Download Restrictions @1.6.3
+9. [TASK-236]: Private and public sessions: private joined by code (up to 4 players), public open to all (up to 20), created by the admin only (server command or admin panel) (docs/ideas/public-servers.md) @1.6.0
+10. [IDEA-237]: Session names chosen at creation, shown in the server list (docs/ideas/public-servers.md) @1.6.0
+11. [TASK-201]: Research itch.io Publishing Requirements, AI Policies, and Download Restrictions @1.6.3
 
 ## Web and promotion
 
@@ -168,6 +170,8 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## Done
 
 Shipped since the last release; the release commit empties this list.
+
+1. [TASK-238]: Public paint stored and backed up, restored after a host outage; wiped when the protocol, surface table or level changes, or by the admin
 
 ## Discarder
 

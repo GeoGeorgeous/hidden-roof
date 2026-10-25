@@ -10,7 +10,8 @@ import { planLevel } from '../src/level/prop-pieces';
 import { closeCode, decode, encode, PROTOCOL, type ToClient, type ToServer } from '../src/net/protocol';
 import { surfaceTable } from '../src/save/shape';
 import { Lobby, type LinkInput } from './lobby';
-import { Session, type Link } from './session';
+import type { Link } from './player';
+import { Session } from './session';
 import { sessionPaint } from './world';
 
 // The server in the process, no server running: the lobby with fake links, the level plan, a paint

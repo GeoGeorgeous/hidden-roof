@@ -1,13 +1,16 @@
 import { randomUUID } from 'node:crypto';
 import { SERVER } from '../src/config';
 import type { InventoryData } from '../src/inventory/inventory';
-import type { LevelData, PropData } from '../src/level/level-data';
+import { SLOTS, type Tool } from '../src/inventory/tool';
+import type { LevelData } from '../src/level/level-data';
 import { decodeOps, encodeOps, SurfaceIndex } from '../src/op-wire';
-import { closeCode, encode, NAME_MAX, partFrames, type Activity, type Presence, type Rejection, type ToClient, type ToServer } from '../src/net/protocol';
+import { closeCode, encode, partFrames, partPieces, type Rejection, type ToClient, type ToServer } from '../src/net/protocol';
 import { loadPaint } from '../src/save/load-paint';
+import { joinBytes } from '../src/save/paint-file';
 import { streamPaint } from '../src/save/save-paint';
 import { surfaceTable } from '../src/save/shape';
 import { liveMemory, log, mb, overMemory, span, who } from './log';
+import { deliver, presence, uniqueName, type Link, type Player } from './player';
 import { Snapshot, waiting } from './snapshot';
 import { sessionPaint } from './world';
 
@@ -15,45 +18,25 @@ import { sessionPaint } from './world';
 // paints every op it relays, so a joiner (or a player coming back) gets the
 // paint as one paint file in its welcome (snapshot.ts). A dropped player has
 // SERVER.rejoinWindow to come back with their token; after that they and their
-// stepladder go, and the session closes when no one is left. Nothing is
-// stored: a restart ends every session.
+// stepladder go, and the session closes when no one is left, unless it stays
+// (a public one, or a private one the admin made so) until the admin closes it.
+// Its paint is stored only if it's public and DATA_DIR is set (kept.ts): a
+// restart ends every other session.
 
-/** A player's socket. */
-export interface Link {
-  send(frame: Uint8Array): void;
-  close(code?: number, reason?: string): void;
-  readonly open: boolean;
-  /** Where it's from, and when it opened (ms), for the log. */
-  readonly ip: string;
-  readonly since: number;
-}
-
-export interface Player {
-  id: number;
-  /** The name they go by in the session: the one they asked for, numbered if it was taken. */
-  name: string;
-  /** The name they asked for, as the menu sent it: a new tab typing it takes their place back too. */
-  asked: string;
-  /** Lets them come back as themselves (welcome hands it out). */
-  token: string;
-  link: Link | null;
-  /** Their last op batch painted (ToServer ops `seq`): one resent after a rejoin is dropped. */
-  acked: number;
-  /** Their welcome has gone out on `link`: frames reach them. Until then what happens is in the welcome or after it. */
-  live: boolean;
-  /** A SAVE of theirs is under way. */
-  saving: boolean;
-  /** What they said they're doing (playing, hidden, paused, idle). */
-  activity: Activity;
-  /** What they carry, as they last said (null: the starting kit). */
-  inventory: InventoryData | null;
-  ladder: PropData | null;
-  expires: ReturnType<typeof setTimeout> | null;
-  /** Their last link that closed: from where, how long it lived, when (ms), for the log. */
-  was: { ip: string; lived: number; at: number } | null;
-}
 
 type How = 'new' | 'back' | 'takeover';
+
+/** What its creator made it: public (open to all) or private (by its code), its name, the tools it allows; `stays` when empty; `admin`: the admin made it. */
+export interface SessionSetup {
+  kind: 'public' | 'private';
+  name: string;
+  tools: readonly Tool[];
+  stays: boolean;
+  admin: boolean;
+}
+
+/** A session a player hosted: private, every tool, closed when empty. */
+const HOSTED: SessionSetup = { kind: 'private', name: '', tools: SLOTS, stays: false, admin: false };
 
 export class Session {
   readonly players = new Map<number, Player>();
@@ -62,7 +45,7 @@ export class Session {
   private surfaces: SurfaceIndex;
   private world: ReturnType<typeof sessionPaint>;
   private nextId = 1;
-  private readonly started = Date.now();
+  readonly started = Date.now();
   private counts: Record<How, number> = { new: 0, back: 0, takeover: 0 };
   /** The newest paint file whose paint has been read (made or being made), while it's kept; and one waiting for its turn. */
   private snap: Snapshot | null = null;
@@ -73,6 +56,10 @@ export class Session {
   private seed: Snapshot | null = null;
   /** What players gone carried, by name: one who comes back later under it gets it back. */
   private carried = new Map<string, InventoryData>();
+  /** Painted since its last paintFile(). */
+  changed = false;
+  /** The admin's wipes so far: a paint file read before the last one is not this paint. */
+  wipes = 0;
 
   constructor(
     readonly code: string,
@@ -80,20 +67,21 @@ export class Session {
     readonly level: LevelData,
     /** PAINT DETAIL, texels per meter, picked by the host. */
     readonly detail: number,
-    private onEmpty: () => void,
+    private onEmpty: (why: string) => void,
+    readonly setup = HOSTED,
   ) {
     this.world = sessionPaint(level, detail);
     this.table = surfaceTable(this.world.paint.surfaces);
     this.surfaces = new SurfaceIndex([...this.world.paint.surfaces].map((s) => s.key));
   }
 
-  /** Start from a paint save (HOST). Throws with a message if it's no good or doesn't fit the level. */
-  async load(save: Uint8Array) {
+  /** Start from a paint save (HOST's, or `host` false one kept on disk). Throws with a message if it's no good or doesn't fit the level. */
+  async load(save: Uint8Array, host = true) {
     // At most this level all painted, at the highest detail (a save may be made at any), with each face's ring.
     const most = this.memory.full * 2 ** 20 * (96 / this.detail) ** 2 * 1.25;
     await loadPaint(this.world.paint, this.world.drips, save, { name: this.levelName }, most);
     // The save is the paint now, as the players load it (the same faces fit, resampled the same way): the host's welcome.
-    this.keep((this.seed = new Snapshot(partFrames([save], SERVER.partBytes))));
+    if (host) this.keep((this.seed = new Snapshot(partFrames([save], SERVER.partBytes))));
   }
 
   /** Paint memory in MB now, and with every surface painted. */
@@ -120,7 +108,7 @@ export class Session {
     let p = token ? all.find((q) => q.token === token) : undefined;
     const dropped = all.filter((q) => !q.link);
     const how = p ? 'back' : (p = dropped.find((q) => q.name === name) ?? dropped.find((q) => q.asked === name)) ? 'takeover' : 'new';
-    if (!p && this.players.size >= SERVER.maxPlayers) return 'full';
+    if (!p && this.players.size >= SERVER.players[this.setup.kind]) return 'full';
     const snap = this.snapshot(() => p?.link === link && link.open);
     if (snap === 'busy') return 'busy';
     this.counts[how]++;
@@ -179,6 +167,7 @@ export class Session {
       const valid = batch.ops.filter((_, i) => keep[i]);
       this.paintNow(() => valid.forEach((op) => ops.apply(op)));
       if (!valid.length) return;
+      this.changed = true;
       const bytes = valid.length === batch.ops.length ? m.bytes : encodeOps(batch.t.filter((_, i) => keep[i]), valid, this.surfaces);
       this.broadcast({ type: 'ops', id: p.id, bytes }, p);
       this.snap?.log.push(encode({ type: 'paint', bytes }));
@@ -216,9 +205,51 @@ export class Session {
     for (const p of this.players.values()) p.link?.send(f);
   }
 
-  /** Ends it with no one in it (its host was turned away). */
-  close() {
-    if (!this.players.size) this.onEmpty();
+  /** Ends it with no one in it (its host was turned away, or no one came to the admin's). */
+  close(why: string) {
+    if (!this.players.size) this.onEmpty(why);
+  }
+
+  /**
+   * The admin's wipe: no paint. Every link closes as a drop, so each game comes
+   * back and its welcome brings the clean wall; after a paint file reading the
+   * paint now, so no game comes back to that one.
+   */
+  wipe() {
+    this.wipes++;
+    this.paintNow(() => {
+      this.world.paint.clear();
+      this.world.drips.clear();
+      this.snap = null;
+      for (const p of this.players.values()) p.link?.close(1012, 'wiped');
+    });
+  }
+
+  /** The admin closed it: everyone is told it has ended. */
+  end() {
+    for (const p of this.players.values()) {
+      if (p.expires) clearTimeout(p.expires);
+      const link = p.link;
+      p.link = null;
+      link?.send(encode({ type: 'rejected', reason: 'ended' }));
+      link?.close(closeCode('ended'), 'ended');
+    }
+    this.players.clear();
+    this.onEmpty('by the admin');
+  }
+
+  /** The paint now as a paint file (kept.ts saves it), made in turn as a welcome's is; null when there's no memory for one. */
+  async paintFile() {
+    const snap = this.snapshot(() => true, true);
+    if (snap === 'busy') return null;
+    this.changed = false;
+    try {
+      const frames = await snap.frames;
+      return frames && joinBytes(partPieces(frames));
+    } catch (e) {
+      this.changed = true;
+      throw e;
+    }
   }
 
   /** For the log when it closes. */
@@ -237,7 +268,7 @@ export class Session {
     p.link = null;
     link?.close(1000, why);
     this.broadcast({ type: 'left', id: p.id });
-    if (!this.players.size) this.onEmpty();
+    if (!this.players.size && !this.setup.stays) this.onEmpty('no one left');
   }
 
   /** SAVE: the paint as a paint file, for `p`. One at a time each. */
@@ -328,21 +359,4 @@ export class Session {
     for (const p of this.players.values()) if (p !== except) deliver(p, f);
   }
 
-}
-
-const presence = (p: Player): Presence => (p.link ? p.activity : 'dropped');
-
-function deliver(p: Player, f: Uint8Array) {
-  if (p.live) p.link?.send(f);
-}
-
-/** `name`, or with the lowest number free when another player has it: "geo (2)", which no player can type, so it never looks like a typed name. */
-function uniqueName(name: string, players: Player[]) {
-  const taken = new Set(players.map((p) => p.name));
-  if (!taken.has(name)) return name;
-  for (let n = 2; ; n++) {
-    const tag = ` (${n})`;
-    const s = name.slice(0, NAME_MAX - tag.length) + tag;
-    if (!taken.has(s)) return s;
-  }
 }

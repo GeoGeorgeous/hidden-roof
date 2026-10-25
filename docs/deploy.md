@@ -88,9 +88,16 @@ Design and limits: `docs/known-limits.md` (Multiplayer). Code: `server/`, messag
       SNAPSHOT_MEMORY: "2560"
       # The log's files, one a day: IP addresses and nicknames removed after 14 days, files deleted after 60 (the privacy page promises it).
       LOG_DIR: /logs
+      # Public sessions and their paint saves (server/kept.ts).
+      DATA_DIR: /data
+      # The admin API's key (section 6, Admin): a long random string, kept on the host only.
+      ADMIN_KEY: ${ROOF_ADMIN_KEY}
     volumes:
       # Writable by the image's user `node` (uid 1000), also under read_only.
       - ./roof/logs/server:/logs
+      - ./roof/data:/data
+    # Time to save the public sessions' paint on `docker compose stop` / a redeploy.
+    stop_grace_period: 60s
     logging:
       driver: json-file
       options: { max-size: 10m, max-file: "3" }
@@ -106,8 +113,10 @@ Design and limits: `docs/known-limits.md` (Multiplayer). Code: `server/`, messag
 - `/healthz` answers `ok, <n> sessions` (Docker). A plain GET at `/ws` answers `roof server · protocol <n>`: a game that can't open its socket asks there, to tell a server that's down (Caddy's 502) from a blocked socket or another version.
 - **The log:** with `LOG_DIR`, one file a day (`YYYY-MM-DD.log`, UTC), capped at `SERVER.logDayBytes` (20 MB: past it the day's lines are dropped after one "log full" line, as docker's rotation no longer applies to it); without it, stdout. One line per event, the session's code first (`-----` before there is one): start, host (IP, level, detail, paint memory), a player in (new, back or takeover, with IP) or turned away (why), paint files, drops (close code), out (left, or not back in 3 minutes), session closed, memory every 5 minutes while sessions are live, bad messages, errors with stacks. Lines a stranger can make at will (bad messages, links turned away or silent) are limited per address (`SERVER.noisyPerIp` a minute, then one "held back" line), so they can't fill the day's file. A `LOG_DIR` that can't be made is reported once and the log stays on stdout. IPs come from Caddy's `X-Forwarded-For`; nicknames are JSON strings. The server cleans every `*.log` in `LOG_DIR` at start and hourly (`server/log-files.ts`, in chunks of `SERVER.logChunkBytes` between which the relay runs; a `YYYY-MM-DD.log` is judged by its name and read only while its day is due, a file that fails is logged and skipped; an undated one is read again only if it changed or a day has passed): past 14 days a line keeps its time, code and player number but loses IP addresses and nicknames, past 60 it goes. Logs saved before (`docker logs -t`) can be moved there to be cleaned the same way.
 - **Close codes:** 4001–4009 (`closeCode` in `src/net/protocol.ts`: version, no-session, ended, full, bad-save, bad-level, busy, replaced, too-many), 1008 a bad message, 1009 too big, 1011 a server error. Players report their side with COPY NETWORK LOG (menu).
-- **State in RAM only:** no database, no accounts. Single instance.
-- **Sessions:** up to 20 players (`SERVER.maxPlayers`). Player state 20 times a second, paint ops packed (`src/op-wire.ts`, ~23 B a stamp), a ping every second (`SERVER.ping`); no socket compression. The host picks PAINT DETAIL, locked for the session. A dropped player has 3 minutes to come back (`SERVER.rejoinWindow`), then their stepladder goes; a session with no one left closes.
+- **State in RAM**, but the kept paint above: no database, no accounts. Single instance.
+- **Sessions:** public ones up to 20 players, private ones up to 4 (`SERVER.players`). Player state 20 times a second, paint ops packed (`src/op-wire.ts`, ~23 B a stamp), a ping every second (`SERVER.ping`); no socket compression. The host picks PAINT DETAIL, locked for the session. A dropped player has 3 minutes to come back (`SERVER.rejoinWindow`), then their stepladder goes; a private session closes when no one is left; a public one, or a private one the admin made with `--stay`, stays until the admin closes it (a private one of the admin's without it also closes if no one comes in 10 minutes, `SERVER.adminWait`).
+- **Admin** (`server/admin-api.ts`): with `ADMIN_KEY` set, a JSON API on port 3001 (`ADMIN_PORT`), never published; every request carries `Authorization: Bearer <ADMIN_KEY>`, and one with an `Origin` header only from `ADMIN_ORIGIN` (the admin page, later). The command in the container asks it: `docker compose exec roof node admin.mjs list`, `create public|private "Name" [--level roof] [--detail ultra] [--tools can,marker,ladder,roller,sponge] [--stay]`, `wipe CODE`, `close CODE`. A public one keeps its code, name and tools through restarts; players join by code until the server list lands (BL-045).
+- **Kept paint** (`server/kept.ts`): with `DATA_DIR`, every public session the admin made is listed in `sessions.json` and its paint saved there every 30 minutes when it changed (`SERVER.keepEvery`) and at shutdown, as `<code>-<ms>.rhhpaint`, the newest 3 kept. At start each is made again under its code from its newest save that loads, so a crash or a host outage loses at most the last interval. A new protocol, surface table or level wipes it; a release that changes none keeps the paint. Private sessions live in memory only.
 - **Paint files** (a joiner's paint, SAVE) are made one at a time for the whole process, deflated as read, sent in 32 KB parts; whoever joins or saves within 15 s of one gets the same file. Past `SNAPSHOT_MEMORY` of live data no new file is made (busy).
 - **Memory:** paint is `Uint8Array`, outside the V8 heap (no `--max-old-space-size`). The roof level all painted is 46 MB at LOW, 148 MEDIUM, 302 HIGH, 519 ULTRA; a session is ~15–25 MB before paint. Past `HOST_MEMORY` of live data (heap and paint, after a GC; not RSS) no new session starts ("the server is full").
 - **Limits:** a HOST link (`/ws?host`) takes messages up to 64 MiB (a save), any other up to 1 MiB; Caddy's `handle /ws` matches both. Per address (`X-Forwarded-For`): 24 open links, 2 HOST links (8 in all), 2 hosted sessions; a link must send HOST or JOIN within 20 s. Past a limit: TOO MANY CONNECTIONS FROM YOUR NETWORK (4009).
@@ -122,3 +131,23 @@ Design and limits: `docs/known-limits.md` (Multiplayer). Code: `server/`, messag
 - `curl https://roof.hidden.haus/ws` → `roof server · protocol <n>`, the `PROTOCOL` of the game deployed.
 - `docker compose ps roof` is healthy; in two browser windows, HOST shows a code that JOIN accepts; a new file appears in `LOG_DIR`.
 - In a browser: no 404s, the level and fonts load, the console is clean, the game starts at the spawn. (`scripts/smoke.mjs` needs `window.game`, so it works only against the dev server or `build:dev`.)
+- With `DATA_DIR`: the log shows each kept public session again (`made by the admin`, then `paint from <file>`, or `paint wiped: a new protocol` when the release changed it, which is expected); `node admin.mjs list` shows it.
+
+## 8. Sessions: what the owner may ask for
+
+Everything runs from `<apps>`, with the admin command in the running `roof` container (section 6, Admin). It needs `ADMIN_KEY` set on the service (`docs/ideas/vps.md`); without it the command answers `401: no key` or can't connect. Report back the line the command prints: it holds the code players join with.
+
+| The owner asks | Run |
+|---|---|
+| What's running | `docker compose exec roof node admin.mjs list` |
+| A public session "Name" | `docker compose exec roof node admin.mjs create public "Name"` (roof, ULTRA, every tool; up to 20 players; stays when empty; kept with its paint through restarts) |
+| A private session "Name" | `docker compose exec roof node admin.mjs create private "Name"` (up to 4 players, in memory only; closes when its players have gone, or if no one comes in 10 minutes). Add `--stay` if the owner wants it to stay when empty. Send the owner its code. |
+| Some tools off | add `--tools can,marker,ladder` (the tools it allows, of `can,marker,ladder,roller,sponge`); fixed at creation |
+| Another detail or level | add `--detail high` (low, medium, high or ultra), `--level roof` |
+| A clean wall | `docker compose exec roof node admin.mjs wipe CODE`: its paint and saves go; players are reconnected to the clean wall at once |
+| Stop a session | `docker compose exec roof node admin.mjs close CODE`: its players are told it has ended; a public one is no longer kept |
+| Back to an older save | `docker compose stop roof`, move the newer `CODE-<ms>.rhhpaint` files out of `<apps>/roof/data` (the newest 3 are kept, `<ms>` is when it was saved), `docker compose start roof`: it loads the newest one left |
+
+- A name is 1 to 32 characters, in quotes. The command never changes a live session: to change its name or tools, close it and create a new one (new code).
+- A restart or redeploy of `roof` saves the public sessions' paint first (`stop_grace_period`) and makes them again; private sessions end.
+- Errors print as `<status>: <why>`: `400` a bad name, kind, tool or level; `404` no such code; `503` the server is full (`HOST_MEMORY`).
