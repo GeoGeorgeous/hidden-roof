@@ -4,6 +4,7 @@ import { PAINT_DETAIL, SERVER } from '../src/config';
 import { SLOTS } from '../src/inventory/tool';
 import { isPrivateLimit, isSessionName, isToolSet, PROTOCOL, SESSION_NAME_MAX } from '../src/net/protocol';
 import { VERSION } from '../src/version';
+import { site } from './beacon';
 import { stream } from './events';
 import { history, isPeriod } from './history';
 import { log, overMemory } from './log';
@@ -20,7 +21,8 @@ import type { Session, SessionSetup } from './session';
 //   GET  /machine              CPU, RAM, the server's memory, disk, the paint saves, upload (machine.ts)
 //   GET  /history?period=P     counts for today (since 00:00 UTC), or the last 24h, 7d or 30d (history.ts)
 //   GET  /events               the event stream (events.ts): `recent` events, then each `event` as it happens,
-//                              and a `status` every second (the time, players, every session as listed but its saves)
+//                              and a `status` every second (the time, players, `site`, every session as listed but its saves);
+//                              `site`: the open pages by what they do (menu, solo, session, hidden), from the game's beacons of the last minute
 //   GET  /sessions             every session: its line (queue), players (address, ping, held seat),
 //                              today's paint and peak, ping, when it went empty, its saves
 //   POST /sessions             a new one: { kind, name, level?, detail?, tools?, stay?, limit? }
@@ -96,7 +98,7 @@ export function adminApi(lobby: Lobby, kept: Kept, key: string) {
       if (req.method === 'GET' && !parts.length) return answer(200, { api: ADMIN_API, version: VERSION, protocol: PROTOCOL, started: iso(started), now: iso(Date.now()), sessions: lobby.sessions.size, players: lobby.players, peak: history.ever });
       if (req.method === 'GET' && parts[0] === 'machine' && parts.length === 1) return answer(200, await machine(kept.dir));
       if (req.method === 'GET' && parts[0] === 'events' && parts.length === 1)
-        return stream(res, () => ({ now: iso(Date.now()), players: lobby.players, sessions: [...lobby.sessions.values()].map(live) }));
+        return stream(res, () => ({ now: iso(Date.now()), players: lobby.players, site: site(), sessions: [...lobby.sessions.values()].map(live) }));
       if (req.method === 'GET' && parts[0] === 'history' && parts.length === 1) {
         const period = new URL(req.url ?? '', 'http://admin').searchParams.get('period') ?? '24h';
         return isPeriod(period) ? answer(200, history.report(period)) : answer(400, { error: 'period: today, 24h, 7d or 30d' });

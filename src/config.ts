@@ -1176,15 +1176,16 @@ export const SERVER = {
   saltDays: 30,
   /**
    * The game's beacon (server/beacon.ts): a body up to beaconBytes, beaconsPerIp a minute from one address; up to
-   * beaconKinds names (GPUs, browsers, error messages) an hour, then Other; a GPU name up to beaconText characters,
-   * times up to beaconMostSeconds; /history lists the top beaconTopErrors errors.
+   * beaconKinds names (GPUs, browsers, error messages, event and tutorial codes, settings and their values) a map an hour,
+   * then Other; a GPU name or a setting value up to beaconText characters, times and seconds up to beaconMostSeconds,
+   * an event up to beaconMostEvents times a beacon.
    */
   beaconBytes: 4096,
   beaconsPerIp: 30,
   beaconKinds: 50,
   beaconText: 80,
   beaconMostSeconds: 600,
-  beaconTopErrors: 5,
+  beaconMostEvents: 1000,
   geoipCheck: 3600,
   /** With DATA_DIR, a public session's paint is saved this often (s) when it changed, and at shutdown; the newest keepFiles saves stay (server/kept.ts). */
   keepEvery: 1800,
