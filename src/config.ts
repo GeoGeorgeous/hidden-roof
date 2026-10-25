@@ -1103,6 +1103,15 @@ export const SERVER = {
   port: 3000,
   /** Players in one session, by its kind; each receives everyone's state and ops (no interest management), load-tested with 20 (docs/deploy.md, section 6). */
   players: { public: 20, private: 4 },
+  /** The fewest players a private session may be made for (its host included). */
+  privateMin: 2,
+  /** Players may HOST their own private sessions; off in 1.6.0, when only the admin makes sessions (the menu's Host is disabled too). */
+  playerHost: false,
+  /** Where the server is, a country code for the server list (REGION overrides it). */
+  region: 'DE',
+  /** Looking a session up by its code (GET /ws?code=, server/lobby-http.ts) is allowed this many times a minute from one address (then 429), and from lookupIps addresses at once: codes can't be tried one after another. */
+  lookupsPerIp: 30,
+  lookupIps: 10000,
   /** A dropped player can come back as themselves for this long (s); then their stepladder goes, and a session with no one left closes. */
   rejoinWindow: 180,
   /** The server pings every game this often (s), so a game notices a dead link; a game pings the server as often, and each answer is a round trip for the link's status (NET.statusShow). */
@@ -1162,6 +1171,20 @@ export const SERVER = {
   noisyPerIp: 10,
   noisyWindow: 60,
   noisyIps: 1000,
+};
+
+/** The server list and the join dialogs of the Multiplayer page (net/lobby-page.ts). */
+export const LOBBY = {
+  /** The list, or a code's session, is asked for this long (s) before the server counts as not answering. Shorter than NET.connectTimeout: this is a GET of a few hundred bytes, not a socket and its welcome. */
+  fetchTimeout: 8,
+  /** The list's loading bars show only when the answer is slower than this (s): the usual answer, tens of ms, would flash them for a frame or two. */
+  skeletonDelay: 0.15,
+  /** Once shown, the bars stay this long (s), so an answer just after them doesn't make them flicker. */
+  skeletonMin: 0.3,
+  /** The loading bars: a row for each, the width (px) of its name bar. */
+  skeletonNames: [168, 112, 140],
+  /** Players shown by their initials in a session's line; the rest are a count. */
+  facesShown: 5,
 };
 
 /** F3 -> Ghost (src/dev/ghost.ts): the network it plays through, and how far behind it follows you. */

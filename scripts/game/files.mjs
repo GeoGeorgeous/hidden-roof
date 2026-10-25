@@ -1,4 +1,4 @@
-// Game tests: The save and upload popups, COPY NETWORK LOG, the NAME field's cleaning and HOST without a name, and paint saves through level edits and spray at LOAD.
+// Game tests: The save and upload popups, COPY NETWORK LOG, the join dialog's NAME field cleaning and JOIN without a name, and paint saves through level edits and spray at LOAD.
 import fs from 'node:fs';
 import { gameReady } from '../test-browser.mjs';
 import { page, check, openPage, dot, paintedKeys, POPUP, SAVE, UPLOAD, tmp } from './harness.mjs';
@@ -66,14 +66,14 @@ await check('upload popup: a broken file says so in red, and the paint stays', a
   return kept ? null : 'paint changed';
 });
 
-await check('menu: after a failed link the multiplayer page says so in red and offers COPY NETWORK LOG, which saves a file where the page has no clipboard (plain http, as on a LAN)', async () => {
+await check('menu: after a failed link the multiplayer page says so in an error notice and offers COPY NETWORK LOG, which saves a file where the page has no clipboard (plain http, as on a LAN)', async () => {
   const p = await openPage(() => Object.defineProperty(navigator, 'clipboard', { value: undefined }));
   await p.evaluate(() => (window.game.input.setLocked(true), window.game.input.setLocked(false)));
   const press = (text) => p.locator('.overlay button:visible', { hasText: text }).first().click();
   await press('Multiplayer');
   const before = await p.isVisible('.net-log');
   await p.evaluate(() => window.game.net.onStatus({ state: 'failed', reason: 'timeout' }));
-  const said = await p.evaluate(() => { const s = document.querySelector('.mp-status'); return [s.textContent, s.classList.contains('error')]; });
+  const said = await p.evaluate(() => { const s = document.querySelector('.mp-status .notice'); return [s?.querySelector('.notice-text').textContent, s?.classList.contains('error')]; });
   const saved = p.waitForEvent('download', { timeout: 5000 });
   await press('Copy network log');
   const name = (await saved.catch(() => null))?.suggestedFilename();
@@ -81,13 +81,15 @@ await check('menu: after a failed link the multiplayer page says so in red and o
   return !before && said.join() === "The server didn't answer,true" && /^roof-network-.+\.txt$/.test(name) && !p.errors.length ? null : JSON.stringify({ before, said, name, errors: p.errors });
 });
 
-await check('menu: the NAME field keeps only Latin letters and digits as typed (a stored name too); HOST with it empty says so in red and does not connect', async () => {
+await check('menu: the NAME field of the join dialog keeps only Latin letters and digits as typed (a stored name too); JOIN with it empty says so in an error notice and does not connect', async () => {
   const p = await openPage((k) => localStorage.setItem(k, 'Anna K'), null, 'roofhiddenhaus.name');
+  // The server list, as the server would answer it: one public session.
+  await p.route(/\/ws\?list/, (r) => r.fulfill({ json: { region: 'DE', sessions: [{ kind: 'public', name: 'Test', limit: 20, tools: ['can', 'marker'], code: 'ABCDE', players: [] }] } }));
   const press = (text) => p.locator('.overlay button:visible', { hasText: text }).first().click();
   await p.evaluate(() => (window.game.input.setLocked(true), window.game.input.setLocked(false)));
   await press('Multiplayer');
-  await press('Host a session');
-  const field = p.locator('.mp-page input >> nth=0');
+  await p.locator('.mp-page .session:not(.skeleton-row)').first().click();
+  const field = p.locator('.join-popup .name-row input');
   const stored = await field.inputValue();
   const typed = [];
   for (const name of ['Geo Geo', 'Geo_', 'Geo.', 'Гоша', 'Geo!@#$%']) {
@@ -96,8 +98,8 @@ await check('menu: the NAME field keeps only Latin letters and digits as typed (
     typed.push(await field.inputValue());
   }
   await field.fill('');
-  await press('Host');
-  const said = await p.evaluate(() => { const s = document.querySelector('.mp-status'); return `${s.textContent}${s.classList.contains('error') ? '' : ' (not red)'}`; });
+  await p.locator('.join-popup .btn.primary').click();
+  const said = await p.evaluate(() => { const s = document.querySelector('.join-popup .join-message .notice'); return `${s.textContent}${s.classList.contains('error') ? '' : ' (not an error)'}`; });
   const state = await p.evaluate(() => window.game.net.status.state);
   await p.close();
   const ok = stored === 'AnnaK' && typed.join() === 'GeoGeo,Geo,Geo,,Geo' && said === 'Type a name first' && state !== 'connecting' && !p.errors.length;

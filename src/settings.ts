@@ -277,12 +277,12 @@ function drawnSize() {
   return `${Math.round(window.innerWidth / RENDER.pixelScale)}x${Math.round(window.innerHeight / RENDER.pixelScale)}`;
 }
 
-/** "Ultra  1.0 cm": a PAINT DETAIL with the size of one texel (the multiplayer page's too). */
-export function paintDetailName(d: PaintDetail) {
+/** "Ultra  1.0 cm": a PAINT DETAIL with the size of one texel. */
+function paintDetailName(d: PaintDetail) {
   return `${sentence(d)}  ${(100 / PAINT_DETAIL[d]).toFixed(1)} cm`;
 }
 
-export function cycle<T>(list: T[], cur: T, d: number): T {
+function cycle<T>(list: T[], cur: T, d: number): T {
   return list[(list.indexOf(cur) + d + list.length) % list.length];
 }
 

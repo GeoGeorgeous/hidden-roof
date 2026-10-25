@@ -4,7 +4,7 @@ import type { PaintOp } from '../paint-ops';
 import { loadPaint } from '../save/load-paint';
 import { surfaceTable } from '../save/shape';
 import { session } from '../session';
-import { cleanName, PROTOCOL, rejectionOf, type Rejection, type ToClient, type ToServer } from './protocol';
+import { cleanName, PROTOCOL, rejectionOf, type Rejection, type SessionInfo, type ToClient, type ToServer } from './protocol';
 import { diagnose, NetLog, Traffic } from './diagnostics';
 import { decodeOps, encodeOps, SurfaceIndex } from '../op-wire';
 import { playSessionLevel, type MultiplayerContext } from './game-context';
@@ -55,7 +55,7 @@ export class Multiplayer {
   private link: ServerLink | null = null;
   private remotes: Remotes;
   /** Who we are, once welcomed, and how to come back. */
-  private joined: { code: string; token: string; name: string; asked: string; you: number; levelName: string } | null = null;
+  private joined: { code: string; token: string; name: string; asked: string; you: number; levelName: string; session: SessionInfo } | null = null;
   /** Messages are handled one at a time, in order (a welcome loads paint before what follows it). */
   private queue = Promise.resolve();
   private t0 = 0;
@@ -111,16 +111,21 @@ export class Multiplayer {
     return this.joined ? [{ name: this.joined.name, color: this.g.inventory.color }, ...this.remotes.roster] : [];
   }
 
+  /** What the session we are in is (its kind, name, player limit and tools); null outside one. */
+  get session(): SessionInfo | null {
+    return this.joined?.session ?? null;
+  }
+
   /** The last round trip to the server (s), null before the first. */
   get ping() {
     return this.net.ping;
   }
 
-  /** Start a session on this level at this PAINT DETAIL, from a paint save or clean. */
-  host(name: string, detail: number, save?: Uint8Array) {
+  /** Start a private session (its name, most players, tools) on this level at this PAINT DETAIL, from a paint save or clean. */
+  host(name: string, detail: number, session: Extract<ToServer, { type: 'host' }>['session'], save?: Uint8Array) {
     this.afterRestore(() => {
       const { data, name: levelName } = this.g.levelData();
-      this.connect({ type: 'host', protocol: PROTOCOL, table: surfaceTable(this.g.paint.surfaces), name, levelName, level: data, detail, bytes: save });
+      this.connect({ type: 'host', protocol: PROTOCOL, table: surfaceTable(this.g.paint.surfaces), name, levelName, level: data, detail, session, bytes: save });
     });
   }
 
@@ -312,7 +317,7 @@ export class Multiplayer {
     const name = w.name;
     const asked = this.asked;
     this.log.add(`in session ${w.code} as #${w.you}, at ${w.detail} texels/m, with ${w.players.length} others, ${(file.length / 1024).toFixed(0)} KB of paint`);
-    this.joined = { code: w.code, token: w.token, name, asked, you: w.you, levelName: w.levelName };
+    this.joined = { code: w.code, token: w.token, name, asked, you: w.you, levelName: w.levelName, session: w.session };
     keepTabSession({ code: w.code, token: w.token, name, asked });
     session.multiplayer = true;
     session.player = ownerOf(w.you);

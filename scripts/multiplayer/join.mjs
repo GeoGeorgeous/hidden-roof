@@ -1,29 +1,21 @@
-// Multiplayer: HOST and JOIN from the menu, the host's PAINT DETAIL, SAVE of the session's paint. Reads and adds to `w`, the players and what they share.
+// Multiplayer: HOST (from the page) and JOIN from the menu's list, the host's PAINT DETAIL, SAVE of the session's paint. Reads and adds to `w`, the players and what they share.
 import assert from 'node:assert/strict';
-import { open, status, press } from './harness.mjs';
+import { open, status, hostSession, joinFromList } from './harness.mjs';
 
 export async function join(w) {
   const a = await open('ultra');
   const b = await open('low');
-  // A hosts at MEDIUM (its own is ULTRA), B joins with the code shown in A's menu.
-  await press(a, 'MULTIPLAYER');
-  await press(a, 'HOST A SESSION');
-  await a.fill('.mp-page input >> nth=0', 'A');
-  for (let i = 0; i < 2; i++) await a.click('.mp-page .choice button:text-is("‹") >> nth=0');
+  // A hosts at MEDIUM (its own is ULTRA: players can't HOST through the menu, the page does), B joins with the code shown in A's menu.
   // A was recording a ghost (F3, dev builds): the session stops it, and its frames go on (it used to put paint.log
   // back to null after the welcome, so every frame threw).
   await a.evaluate(() => window.game.ghost.record());
-  await press(a, 'Host');
+  await hostSession(a, 'A', 48);
   await status(a, 'in');
   await a.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
   assert.deepEqual(a.errors, [], 'a ghost recording before HOST breaks no frame');
   const code = (await a.textContent('.overlay .status')).match(/Session · ([A-Z]+)/)[1];
   assert.equal(code, await a.evaluate(() => window.game.net.status.code));
-  await press(b, 'MULTIPLAYER');
-  await press(b, 'JOIN A SESSION');
-  await b.fill('.mp-page input >> nth=0', 'B');
-  await b.fill('.mp-page input >> nth=1', code.toLowerCase());
-  await press(b, 'Join');
+  await joinFromList(b, 'B', code);
   await status(b, 'in');
   assert.ok(await b.isVisible('.overlay .start button:text-is("Leave session")'));
   assert.ok(!(await b.isVisible('.overlay .item:text-is("Upload")')));

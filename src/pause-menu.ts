@@ -30,7 +30,7 @@ const PREVIEW_SECONDS = 1.5;
 /** The session's live line (ping, players) is refreshed this often while it shows. */
 const LINE_SECONDS = 1;
 
-export type Page = 'settings' | 'mp' | 'credits' | 'updates' | 'save' | 'upload' | 'perf';
+export type Page = 'settings' | 'mp' | 'join' | 'create' | 'loading' | 'credits' | 'updates' | 'save' | 'upload' | 'perf';
 
 export class PauseMenu {
   onResume = () => {};
@@ -223,8 +223,8 @@ export class PauseMenu {
     this.el.classList.toggle('sub', !!page);
     this.screen.hidden = this.themes.el.hidden = this.hold.el.hidden = !!page;
     for (const [p, { el: e }] of this.pages) e.hidden = p !== page;
-    // Popups have their own buttons.
-    this.back.hidden = !shown || shown.classList.contains('popup-page');
+    // Popups and the loading screen have their own buttons.
+    this.back.hidden = !shown || shown.matches('.popup-page, .loading-page');
     if (page) this.pages.get(page)?.open();
     else this.themes.set(inkStyle());
   }

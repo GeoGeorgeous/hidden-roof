@@ -405,11 +405,13 @@
   z-index: 1;
 }
 .overlay .back button,
-.overlay .fs button {
+.overlay .fs button,
+.overlay .shell button {
   color: var(--text-1);
 }
 .overlay .back button:hover,
-.overlay .fs button:hover {
+.overlay .fs button:hover,
+.overlay .shell button:hover {
   background: var(--edge);
   color: var(--paper);
 }
@@ -579,10 +581,10 @@
   color: var(--paper);
   border-color: var(--text-2);
 }
-.overlay .live .faces {
+.overlay :is(.live, .session-line) .faces {
   display: flex;
 }
-.overlay .live .faces span {
+.overlay :is(.live, .session-line) .faces span {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -596,7 +598,7 @@
   font-size: 10px;
   color: var(--paper);
 }
-.overlay .live .faces span + span {
+.overlay :is(.live, .session-line) .faces span + span {
   margin-left: -6px;
 }
 /* PLAY and MULTIPLAYER, in the switcher's glass. */
@@ -1281,6 +1283,10 @@
   gap: 20px;
   width: 460px;
   max-width: calc(100% - 98px);
+  /* A short window scrolls a tall popup (a join dialog at 820×560) instead of cutting it off. */
+  max-height: calc(100% - 32px);
+  overflow-y: auto;
+  scrollbar-width: thin;
   padding: 30px 32px 26px;
   border: 1px solid var(--edge);
   border-radius: 8px;
@@ -1363,6 +1369,230 @@
 }
 .overlay .popup-buttons .link:hover {
   color: var(--paper);
+}
+
+/* The Create a session dialog (net/create-dialog.ts), in the popup surface. */
+.overlay .popup.create-popup {
+  width: 600px;
+  gap: 16px;
+  padding-inline: 40px;
+}
+.overlay .create-popup .popup-body {
+  gap: 18px;
+}
+.overlay .create-field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.overlay .field-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-2);
+}
+.overlay .field-label span:last-child {
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+/* A text field: the host's name, the session's name, a letter of the code. */
+.overlay :is(.create-name, .name-row input, .code-boxes input) {
+  pointer-events: auto;
+  box-sizing: border-box;
+  padding: 0 12px;
+  border: 1px solid var(--edge);
+  border-radius: 4px;
+  background: var(--hair);
+  color: var(--paper);
+  font: 14px var(--sans);
+  outline: none;
+  user-select: text;
+  transition: border-color 0.2s;
+}
+.overlay :is(.create-name, .name-row input, .code-boxes input):focus {
+  border-color: var(--text-2);
+}
+.overlay :is(.create-name, .name-row input)::placeholder {
+  color: var(--text-3);
+}
+.overlay .create-name {
+  width: 100%;
+  height: 40px;
+}
+.overlay .create-players,
+.overlay .create-ctl,
+.overlay .create-stepper {
+  display: flex;
+  align-items: center;
+}
+.overlay .create-players {
+  justify-content: space-between;
+  gap: 16px;
+}
+.overlay .create-note {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.overlay :is(.create-note, .create-card-text) b {
+  font-size: 14px;
+  font-weight: 500;
+}
+.overlay :is(.create-note span, .create-sub) {
+  font-size: 12px;
+  color: var(--text-2);
+}
+.overlay .create-ctl {
+  gap: 14px;
+}
+.overlay .create-dots {
+  display: flex;
+  gap: 4px;
+}
+.overlay .create-dots i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transition: opacity 0.2s;
+}
+.overlay .create-dots i.off {
+  opacity: 0.2;
+}
+.overlay .create-stepper {
+  border: 1px solid var(--edge);
+  border-radius: 6px;
+}
+.overlay .create-count {
+  width: 28px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.overlay .create-step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 32px;
+  border-radius: 5px;
+  color: var(--paper);
+  transition: background 0.2s;
+}
+.overlay .create-step:hover:enabled {
+  background: var(--hair);
+}
+.overlay .create-step:disabled {
+  color: var(--text-4);
+  cursor: not-allowed;
+}
+.overlay .create-tools {
+  display: flex;
+  align-self: flex-start;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--edge);
+  border-radius: 6px;
+}
+/* A tool by name (net/lobby-view.ts): lit, or struck through when off. */
+.overlay .tool-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  background: var(--hair);
+  color: var(--paper);
+  font-size: 12px;
+  transition: background 0.2s, color 0.2s;
+}
+.overlay .tool-chip.off {
+  background: none;
+  color: var(--text-4);
+  text-decoration: line-through;
+}
+.overlay .create-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.overlay .create-card {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--edge);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.overlay .create-card.on {
+  border-color: var(--text-1);
+  background: var(--hair);
+}
+.overlay .create-card.on.bad {
+  border-color: var(--error);
+}
+.overlay .create-radio {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  border: 1.5px solid var(--text-2);
+  border-radius: 50%;
+}
+.overlay .create-card.on .create-radio::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--paper);
+}
+.overlay .create-card-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.overlay .create-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.overlay .create-card.bad .create-sub {
+  color: var(--error);
+}
+.overlay .create-sub svg {
+  margin: -2px 6px 0 0;
+  vertical-align: middle;
+}
+.overlay .create-change {
+  align-self: center;
+  font-size: 12px;
+  color: var(--text-1);
+  text-decoration: underline;
+  text-decoration-color: var(--text-4);
+  text-underline-offset: 3px;
+  transition: color 0.2s;
+}
+.overlay .create-change:hover {
+  color: var(--paper);
+}
+.overlay .create-summary {
+  margin-right: auto;
+  font-size: 12px;
+  color: var(--text-3);
+}
+.overlay .btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.overlay .btn.primary:disabled:hover {
+  background: var(--paper);
 }
 
 /* The performance test (perf-test-page.ts): the score on the left, frame time on the right, what to change under them. */
@@ -1798,10 +2028,6 @@
 .overlay .mp-page input::placeholder {
   color: var(--text-3);
 }
-.overlay .mp-page input.code {
-  letter-spacing: 0.4em;
-  font-variant-numeric: tabular-nums;
-}
 .overlay .submit {
   display: flex;
   justify-content: center;
@@ -1819,12 +2045,52 @@
   margin-top: 14px;
 }
 .overlay .mp-status {
+  align-self: stretch;
   min-height: 18px;
   text-align: center;
   color: var(--text-2);
 }
-.overlay .mp-status.error {
+/* A message in a box (menu-ui.ts, notice): a failure has an error border and title; its buttons sit on the right. */
+.overlay .notice {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 12px;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--edge);
+  border-radius: 8px;
+  background: var(--ink);
+  font-size: 13px;
+  color: var(--text-1);
+  text-align: left;
+}
+.overlay .notice-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.overlay .notice-title {
+  font-weight: 500;
+}
+/* A failure as the in-game dialogs' label (.dialog .label): a dot in the error color before its first line, the title in it too. */
+.overlay .notice.error .notice-body > :first-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.overlay .notice.error .notice-title {
   color: var(--error);
+}
+.overlay .notice.error .notice-body > :first-child::before {
+  content: '';
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--error);
 }
 .overlay .net-log {
   font-size: 12px;
@@ -1834,6 +2100,397 @@
 .overlay .net-log:hover {
   color: var(--paper);
 }
+/* The server list (net/lobby-page.ts): its rows scroll, and reach past the column's sides with their hover. */
+.overlay .mp-page .rows.lobby {
+  bottom: 76px;
+  box-sizing: border-box;
+  width: min(668px, calc(100% - 32px));
+  padding: 0 14px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  mask: linear-gradient(to bottom, transparent 0, #000 16px, #000 calc(100% - 24px), transparent);
+}
+/* HOST, in the Back button's glass on the other side. Not available: dimmed, its key cap too. */
+.overlay .host-button {
+  position: absolute;
+  top: 18px;
+  right: 24px;
+  z-index: 1;
+}
+.overlay .shell button[aria-disabled='true'],
+.overlay .shell button[aria-disabled='true']:hover {
+  background: none;
+  color: var(--text-4);
+  cursor: not-allowed;
+}
+.overlay .shell button[aria-disabled='true'] kbd {
+  border-color: var(--hair);
+  color: var(--text-4);
+}
+.overlay .shell svg {
+  margin-right: -2px;
+}
+/* A row: name and kind, players, where and how far, the tools, the arrow. */
+.overlay .big-row.session {
+  padding: 14px;
+}
+.overlay .session .text {
+  gap: 5px;
+  min-width: 0;
+}
+.overlay .session .text b {
+  font-size: 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.overlay .session .kind {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.overlay .session .kind svg {
+  color: var(--text-1);
+}
+.overlay .session .count {
+  width: 56px;
+  text-align: right;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.overlay .session .count small {
+  font-size: inherit;
+  color: var(--text-3);
+}
+.overlay .session .where-col {
+  display: flex;
+  justify-content: flex-end;
+  width: 92px;
+  font-size: 13px;
+}
+.overlay :is(.session, .session-line) .where {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: inherit;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-1);
+}
+/* The country code; its name on hover. */
+.overlay :is(.session, .session-line) .region {
+  padding: 1px 4px;
+  border: 1px solid var(--text-4);
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--text-2);
+}
+.overlay .session .tool-icons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  width: 124px;
+  color: var(--paper);
+}
+.overlay .session .tool-icons span {
+  display: flex;
+  font-size: inherit;
+  color: inherit;
+}
+.overlay .session .tool-icons .off {
+  color: var(--text-4);
+}
+/* Bars in the rows' place while the server is asked: the group pulses, nothing spins. */
+.overlay .lobby-skeleton {
+  animation: lobby-pulse 1.8s ease-in-out infinite;
+}
+@keyframes lobby-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+.overlay .skeleton-row {
+  box-sizing: border-box;
+  pointer-events: none;
+}
+.overlay .skeleton-row .text {
+  gap: 9px;
+}
+.overlay .skeleton-row .bar {
+  height: 12px;
+  border-radius: 3px;
+  background: var(--hair);
+}
+.overlay .skeleton-row .bar.sub {
+  width: 64px;
+  height: 9px;
+}
+.overlay .skeleton-row :is(.count, .where-col, .tool-icons) .bar {
+  width: 72%;
+  margin-left: auto;
+}
+/* No sessions: a note between hairlines, and REFRESH. */
+.overlay .lobby-note {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 44px 0 40px;
+  border-top: 1px solid var(--hair);
+  border-bottom: 1px solid var(--hair);
+  text-align: center;
+}
+.overlay .lobby-note .note-title {
+  font-size: 15px;
+  font-weight: 500;
+}
+.overlay .lobby-note .text {
+  font-size: 13px;
+  color: var(--text-2);
+}
+.overlay .lobby-note .seg {
+  margin-top: 12px;
+}
+
+.overlay .lobby-list > .notice {
+  margin-top: 24px;
+}
+
+/* A session's line: name · who is in, how many · where. On the join dialogs and the loading screen. */
+.overlay .session-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+.overlay .session-line b {
+  font-weight: 500;
+  color: var(--paper);
+}
+.overlay .session-line i {
+  font-style: normal;
+  color: var(--text-4);
+}
+.overlay .session-line .players {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.overlay .session-line .faces .more {
+  border-color: var(--text-4);
+  color: var(--text-2);
+}
+
+/* Joining a session (net/join-dialog.ts): the popup wider, its words centered. */
+.overlay .join-popup .popup {
+  width: 640px;
+  gap: 18px;
+  padding: 34px 40px 22px;
+}
+.overlay .join-popup .popup-title {
+  padding-bottom: 8px;
+  font-size: 44px;
+  text-align: center;
+}
+.overlay .join-popup .popup-body {
+  align-items: stretch;
+  gap: 14px;
+}
+.overlay .join-popup .lead {
+  font-size: 14px;
+  color: var(--text-1);
+  text-align: center;
+}
+.overlay .join-popup .found {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22px;
+}
+.overlay .join-popup .found .none {
+  font-size: 12px;
+  color: var(--error);
+}
+.overlay .name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-top: 1px solid var(--hair);
+  font-size: 14px;
+  font-weight: 500;
+}
+.overlay .name-row input {
+  width: 220px;
+  height: 36px;
+}
+.overlay .join-popup .rules {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 28px;
+  padding: 12px 0;
+  border-top: 1px solid var(--hair);
+  border-bottom: 1px solid var(--hair);
+}
+.overlay .join-popup .rules-col {
+  display: flex;
+  flex-direction: column;
+}
+.overlay .join-popup .rules-col .field-label {
+  padding-bottom: 4px;
+}
+.overlay .join-popup .rule {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 6px 0;
+  font-size: 14px;
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+.overlay .join-popup .rule > :first-child {
+  display: flex;
+  margin-top: 2px;
+}
+.overlay .join-popup .rule.dont {
+  color: var(--text-2);
+}
+.overlay .join-popup .rule.dont > :first-child {
+  color: var(--text-3);
+}
+/* The tools by name, the allowed ones lit; the same at full strength whatever has the focus. */
+.overlay .join-popup .tools-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.overlay .join-popup .consent {
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--text-3);
+}
+.overlay .join-popup .consent .ban-note {
+  margin-top: 4px;
+}
+.overlay .join-popup .consent :is(a, b) {
+  font-weight: 400;
+  color: var(--text-1);
+}
+.overlay .join-popup .consent a {
+  text-decoration: underline 1px var(--text-4);
+  text-underline-offset: 3px;
+}
+.overlay .join-popup .consent a:hover {
+  color: var(--paper);
+}
+.overlay .join-popup .join-message:empty {
+  display: none;
+}
+/* "Don't show again", on the left of the buttons. */
+.overlay .join-popup .check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+.overlay .join-popup .check input {
+  pointer-events: auto;
+  margin: 0;
+  accent-color: var(--paper);
+}
+/* The code, a box a letter. */
+.overlay .code-boxes {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 4px 0;
+}
+.overlay .code-boxes input {
+  width: 52px;
+  height: 64px;
+  padding: 0;
+  border-radius: 6px;
+  caret-color: var(--paper);
+  font: 600 28px var(--sans);
+  text-align: center;
+  text-transform: uppercase;
+  transition: border-color 0.15s, background 0.15s;
+}
+.overlay .code-boxes input.filled {
+  border-color: var(--text-3);
+}
+.overlay .code-boxes input:focus {
+  border-color: var(--paper);
+}
+
+/* The screen while a session loads (net/loading-page.ts): at the bottom left over the lighter view, CANCEL on the right. */
+.overlay.sub:has(.loading-page:not([hidden])) {
+  background: linear-gradient(to top, #000 0%, rgba(0, 0, 0, 0.75) 35%, transparent 75%), rgba(10, 10, 12, 0.4);
+}
+.overlay:has(.loading-page:not([hidden])) .blur {
+  display: none;
+}
+.overlay .loading-text {
+  position: absolute;
+  left: 56px;
+  bottom: 52px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: min(600px, calc(100% - 112px));
+}
+.overlay .loading-title {
+  font-family: var(--display);
+  font-size: 64px;
+  line-height: 1;
+}
+.overlay .loading-lead {
+  font-size: 14px;
+  color: var(--text-1);
+}
+.overlay .loading-text .session-line {
+  color: var(--text-1);
+}
+.overlay .loading-text .progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 360px;
+  padding-top: 8px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.overlay .loading-text .step-line {
+  display: flex;
+  justify-content: space-between;
+}
+.overlay .loading-text .share {
+  color: var(--text-2);
+}
+.overlay .loading-text .bar {
+  height: 3px;
+  border-radius: 2px;
+  background: var(--edge);
+  overflow: hidden;
+}
+.overlay .loading-text .fill {
+  height: 100%;
+  background: var(--paper);
+  transition: width 0.3s linear;
+}
+.overlay .loading-exit {
+  position: absolute;
+  right: 24px;
+  bottom: 52px;
+}
+
 /* Full pause sheet (not compact): no in-game UI behind it (hud.ts); display: none, so
    it isn't laid out or animated (the REC blink) while paused. */
 body.paused .layer-world,

@@ -6,6 +6,7 @@ import net from 'node:net';
 import { SERVER } from '../src/config';
 import { levelPaintFaces } from '../src/level/prop-pieces';
 import type { InventoryData } from '../src/inventory/inventory';
+import { SLOTS } from '../src/inventory/tool';
 import { closeCode, decode, encode, HELLO, PROTOCOL, SNAPSHOT_BYTES, type ToClient, type ToServer } from '../src/net/protocol';
 import { decodePaintFile, encodePaintFile, joinBytes } from '../src/save/paint-file';
 import { surfaceTable } from '../src/save/shape';
@@ -39,7 +40,7 @@ const ops = (seq: number, t: number[], list: PaintOp[]) => ({ type: 'ops' as con
 const opsIn = (m: { bytes: Uint8Array }) => decodeOps(m.bytes, surfaces)!;
 const stamp = { kind: 'stamp' as const, key: faces[0].key, rect: 0, u: 0.5, v: 0.5, radius: 0.2, amount: 1, color: [1, 0, 0] as const, softness: 0, square: false };
 
-const server = spawn(process.execPath, ['--expose-gc', 'dist-server/server/main.js'], { env: { ...process.env, PORT: String(PORT), REJOIN_WINDOW: '1', HELLO_TIMEOUT: '2' }, stdio: ['ignore', 'pipe', 'inherit'] });
+const server = spawn(process.execPath, ['--expose-gc', 'dist-server/server/main.js'], { env: { ...process.env, PORT: String(PORT), PLAYER_HOST: '1', REJOIN_WINDOW: '1', HELLO_TIMEOUT: '2' }, stdio: ['ignore', 'pipe', 'inherit'] });
 if (process.env.SERVER_LOG) server.stdout!.pipe(process.stderr);
 const log: string[] = [];
 await new Promise<void>((ready) => server.stdout!.on('data', (d: Buffer) => (log.push(d.toString()), ready())));
@@ -93,7 +94,7 @@ class Game {
 }
 const game = (ip?: string, path?: string) => new Game(ip, path).open();
 const pick = <T extends object, K extends keyof T>(o: T, ...keys: K[]) => Object.fromEntries(keys.map((k) => [k, o[k]]));
-const host = { type: 'host' as const, protocol: PROTOCOL, table, name: 'A', levelName: 'demo', level, detail: 48 };
+const host = { type: 'host' as const, protocol: PROTOCOL, table, name: 'A', levelName: 'demo', level, detail: 48, session: { name: 'Test', limit: SERVER.players.private, tools: [...SLOTS] } };
 
 try {
   assert.equal((await fetch(`http://localhost:${PORT}/healthz`)).status, 200);
@@ -403,7 +404,7 @@ assert.doesNotMatch(lines, /"A" #1 out: left[^]*"A" #1 dropped/);
 // link has SERVER.helloTimeout: a game busy loading may send it a few beats late.
 {
   const port = await freePort();
-  const beating = spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(port), HEARTBEAT: '1' }, stdio: ['ignore', 'pipe', 'inherit'] });
+  const beating = spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(port), PLAYER_HOST: '1', HEARTBEAT: '1' }, stdio: ['ignore', 'pipe', 'inherit'] });
   try {
     await new Promise((ready) => beating.stdout!.once('data', ready));
     const open = (ip: string) => new Promise<Ws>((done) => new Ws(`ws://localhost:${port}/ws`, { autoPong: false, headers: { 'x-forwarded-for': ip } }).on('open', function (this: Ws) { done(this); }));

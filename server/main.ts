@@ -5,6 +5,7 @@ import { SERVER } from '../src/config';
 import { HELLO, PROTOCOL } from '../src/net/protocol';
 import { adminApi } from './admin-api';
 import { Kept } from './kept';
+import { addressOf, LobbyHttp } from './lobby-http';
 import { liveMemory, log, logTo } from './log';
 import { Lobby } from './lobby';
 import type { Link } from './player';
@@ -13,6 +14,7 @@ import { waiting } from './snapshot';
 // The multiplayer server: WebSocket sessions at /ws (net/protocol.ts), on
 // SERVER.port (or PORT). A plain GET at /ws answers HELLO (the game asks it
 // when it can't connect, to tell a server that's down from a blocked socket);
+// /ws?list and /ws?code= answer the server list (lobby-http.ts);
 // /healthz is for Docker. Caddy serves the game and passes /ws through
 // (docs/deploy.md). One process, everything in memory but the public sessions
 // kept in DATA_DIR (kept.ts); with ADMIN_KEY, the admin API on SERVER.adminPort
@@ -29,6 +31,9 @@ SERVER.heartbeat = Number(process.env.HEARTBEAT) || SERVER.heartbeat;
 SERVER.hostMemory = Number(process.env.HOST_MEMORY) || SERVER.hostMemory;
 SERVER.snapshotMemory = Number(process.env.SNAPSHOT_MEMORY) || SERVER.snapshotMemory;
 SERVER.keepEvery = Number(process.env.KEEP_EVERY) || SERVER.keepEvery;
+// PLAYER_HOST=1 lets players HOST their own private sessions; REGION is the server list's country code.
+SERVER.playerHost = process.env.PLAYER_HOST === '1' || SERVER.playerHost;
+SERVER.region = process.env.REGION || SERVER.region;
 
 // The levels the admin's sessions are made of (the image has the repo's public/levels as levels/).
 const kept = new Kept(lobby, process.env.LEVELS_DIR ?? 'public/levels', process.env.DATA_DIR || null);
@@ -39,8 +44,11 @@ const adminPort = Number(process.env.ADMIN_PORT) || SERVER.adminPort;
 if (process.env.ADMIN_KEY) adminApi(lobby, kept, process.env.ADMIN_KEY).listen(adminPort, () => log('-----', `admin API on :${adminPort}`));
 else log('-----', 'no ADMIN_KEY: no admin API');
 
+const lobbyHttp = new LobbyHttp(lobby);
 const server = http.createServer((req, res) => {
   const path = req.url?.split('?')[0];
+  const listed = path === '/ws' && req.method === 'GET' ? lobbyHttp.reply(req) : null;
+  if (listed) return void res.writeHead(listed.status, { 'content-type': 'application/json', 'cache-control': 'no-store' }).end(JSON.stringify(listed.body));
   const body = path === '/healthz' ? `ok, ${lobby.sessions.size} sessions\n` : path === '/ws' ? HELLO : null;
   // No caching: the game asks to learn whether the server is up now.
   res.writeHead(body ? 200 : 404, { 'content-type': 'text/plain', 'cache-control': 'no-store' }).end(body ?? '');
@@ -59,8 +67,7 @@ wss.on('connection', (ws, req) => connected(ws, req, false));
 hostWss.on('connection', (ws, req) => connected(ws, req, true));
 
 function connected(ws: WebSocket, req: http.IncomingMessage, host: boolean) {
-  // Behind Caddy the socket's address is Caddy's; it passes the player's on.
-  const ip = String(req.headers['x-forwarded-for'] ?? req.socket.remoteAddress).split(',')[0].trim();
+  const ip = addressOf(req);
   const link: Link = {
     send: (f) => ws.readyState === ws.OPEN && ws.send(f),
     close: (code, reason) => ws.close(code, reason),

@@ -69,15 +69,16 @@ export function segmented(labels: string[], pick: (i: number) => void) {
   return { el: box, set: (on: number) => items.forEach((b, i) => b.classList.toggle('on', i === on)) };
 }
 
-/** A popup over the blurred game (a page of the menu): its title, a body and a row of buttons, both refilled per state. */
+/** A popup over the blurred game (a page of the menu): its title (`head`), a body and a row of buttons, refilled per state. */
 export function popup(title: string) {
   const root = div('page popup-page');
   const box = div('popup');
+  const head = div('popup-title', title);
   const body = div('popup-body');
   const buttons = div('popup-buttons');
-  box.append(div('popup-title', title), body, buttons);
+  box.append(head, body, buttons);
   root.append(box);
-  return { root, body, buttons };
+  return { root, head, body, buttons };
 }
 
 /** A paragraph from text and highlighted bits (`[text]` elements made with `hl`); `className`: lead (larger), error. */
@@ -85,6 +86,16 @@ export function para(className: string, ...parts: (string | HTMLElement)[]) {
   const p = div(`para ${className}`);
   p.append(...parts);
   return p;
+}
+
+/** A message in a bordered box (style.css, .notice): a failure (`error`: red border, its `title` in red) or a plain note; `actions` (buttons) on its right. */
+export function notice(text: string, { error = false, title, actions = [] }: { error?: boolean; title?: string; actions?: HTMLElement[] } = {}) {
+  const box = div(error ? 'notice error' : 'notice');
+  const body = div('notice-body');
+  if (title) body.append(div('notice-title', title));
+  body.append(div('notice-text', text));
+  box.append(body, ...actions);
+  return box;
 }
 
 /** A highlighted bit of a paragraph: a file name, a menu path. */
