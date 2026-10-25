@@ -1365,6 +1365,235 @@
   color: var(--paper);
 }
 
+/* The Create a session dialog (net/create-dialog.ts), in the popup surface. */
+.overlay .popup.create-popup {
+  width: 600px;
+  gap: 16px;
+  padding-inline: 40px;
+}
+.overlay .create-popup .popup-body {
+  gap: 18px;
+}
+.overlay .create-field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.overlay .create-label,
+.overlay .create-title {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--text-2);
+}
+.overlay .create-label span:last-child {
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+.overlay .create-name {
+  box-sizing: border-box;
+  width: 100%;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--edge);
+  border-radius: 4px;
+  background: var(--hair);
+  color: var(--paper);
+  font: 14px var(--sans);
+  outline: none;
+  pointer-events: auto;
+  user-select: text;
+  transition: border-color 0.2s;
+}
+.overlay .create-name:focus {
+  border-color: var(--text-2);
+}
+.overlay .create-name::placeholder {
+  color: var(--text-3);
+}
+.overlay .create-players,
+.overlay .create-ctl,
+.overlay .create-stepper {
+  display: flex;
+  align-items: center;
+}
+.overlay .create-players {
+  justify-content: space-between;
+  gap: 16px;
+}
+.overlay .create-note {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.overlay .create-note b {
+  font-size: 14px;
+  font-weight: 500;
+}
+.overlay .create-note span {
+  font-size: 12px;
+  color: var(--text-2);
+}
+.overlay .create-ctl {
+  gap: 14px;
+}
+.overlay .create-dots {
+  display: flex;
+  gap: 4px;
+}
+.overlay .create-dots i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transition: opacity 0.2s;
+}
+.overlay .create-dots i.off {
+  opacity: 0.2;
+}
+.overlay .create-stepper {
+  border: 1px solid var(--edge);
+  border-radius: 6px;
+}
+.overlay .create-count {
+  width: 28px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.overlay .create-step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 32px;
+  border-radius: 5px;
+  color: var(--paper);
+  transition: background 0.2s;
+}
+.overlay .create-step:hover:enabled {
+  background: var(--hair);
+}
+.overlay .create-step:disabled {
+  color: var(--text-4);
+  cursor: not-allowed;
+}
+.overlay .create-tools {
+  display: flex;
+  align-self: flex-start;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--edge);
+  border-radius: 6px;
+}
+.overlay .create-tool {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  background: var(--hair);
+  color: var(--paper);
+  font-size: 12px;
+  transition: background 0.2s, color 0.2s;
+}
+.overlay .create-tool.off {
+  background: transparent;
+  color: var(--text-4);
+}
+.overlay .create-tool.off span {
+  text-decoration: line-through;
+}
+.overlay .create-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.overlay .create-card {
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid var(--edge);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+.overlay .create-card.on {
+  border-color: var(--text-1);
+  background: rgba(235, 229, 214, 0.07);
+}
+.overlay .create-card.on.bad {
+  border-color: var(--error);
+}
+.overlay .create-radio {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  border: 1.5px solid var(--text-2);
+  border-radius: 50%;
+}
+.overlay .create-card.on .create-radio::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--paper);
+}
+.overlay .create-card-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.overlay .create-card-text b {
+  font-size: 14px;
+  font-weight: 500;
+}
+.overlay .create-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--text-2);
+}
+.overlay .create-card.bad .create-sub {
+  color: var(--error);
+}
+.overlay .create-sub svg {
+  margin: -2px 6px 0 0;
+  vertical-align: middle;
+}
+.overlay .create-change {
+  align-self: center;
+  font-size: 12px;
+  color: var(--text-1);
+  text-decoration: underline;
+  text-decoration-color: var(--text-4);
+  text-underline-offset: 3px;
+  transition: color 0.2s;
+}
+.overlay .create-change:hover {
+  color: var(--paper);
+}
+.overlay .create-summary {
+  margin-right: auto;
+  font-size: 12px;
+  color: var(--text-3);
+}
+.overlay .btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.overlay .btn.primary:disabled:hover {
+  background: var(--paper);
+}
+
 /* The performance test (perf-test-page.ts): the score on the left, frame time on the right, what to change under them. */
 .overlay .popup.perf-popup {
   box-sizing: border-box;

@@ -162,6 +162,18 @@ export const MESSAGES = {
     paintOtherLevel: 'SAVED FOR {level}',
     paintNoFile: 'NO FILE CHOSEN',
     paintNoFit: 'That paint file doesn’t fit this level.',
+    // Create a session dialog (net/create-dialog.ts); the summary is `{players} players · ` and what it starts from
+    createPlayers: 'Including you, {min} to {max}',
+    createToolsAll: 'All tools on',
+    createToolsNone: 'All tools off',
+    createToolsOff: '{tools} off for everyone',
+    createSummary: '{players} players · {start}',
+    createStartEmpty: 'empty roof',
+    createStartFile: 'from file',
+    createStartNoFile: 'no file yet',
+    createFileHint: 'Pick a .rhhpaint you saved',
+    createNotPaint: "That isn't a .rhhpaint file.",
+    createBusy: 'Creating…',
     // Settings → Gameplay: the button's confirmation
     hintsReset: 'Done: hints will show again',
     // Settings → Controls
