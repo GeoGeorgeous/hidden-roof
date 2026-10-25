@@ -10,8 +10,9 @@ import { loadPaint } from '../src/save/load-paint';
 import { joinBytes } from '../src/save/paint-file';
 import { streamPaint } from '../src/save/save-paint';
 import { surfaceTable } from '../src/save/shape';
-import { DayCounts } from './counts';
+import { countPaint, DayCounts } from './counts';
 import { event } from './events';
+import { history } from './history';
 import { liveMemory, log, mb, overMemory, span, who } from './log';
 import { deliver, presence, uniqueName, type Link, type Player } from './player';
 import { Queue } from './queue';
@@ -135,7 +136,10 @@ export class Session {
       const was = p.was;
       note = p.link ? `; replaces its link from ${p.link.ip}, open ${span(Date.now() - p.link.since)}` : was ? `; its link from ${was.ip} closed ${span(Date.now() - was.at)} ago, open ${span(was.lived)}` : '';
       // Still there on another link (a duplicated tab carries the token along): that one goes, told why, so it doesn't come back.
-      if (p.link) event('turned-away', this, p.name, { reason: 'replaced' });
+      if (p.link) {
+        event('turned-away', this, p.name, { reason: 'replaced' });
+        history.turnedAway('replaced');
+      }
       p.link?.send(encode({ type: 'rejected', reason: 'replaced' }));
       p.link?.close(closeCode('replaced'), 'replaced');
       p.link = link;
@@ -191,7 +195,7 @@ export class Session {
       const valid = batch.ops.filter((_, i) => keep[i]);
       this.paintNow(() => valid.forEach((op) => ops.apply(op)));
       if (!valid.length) return;
-      this.today.paint(valid);
+      countPaint(valid, [this.today.paint, history.now()]);
       this.changed = true;
       const bytes = valid.length === batch.ops.length ? m.bytes : encodeOps(batch.t.filter((_, i) => keep[i]), valid, this.surfaces);
       this.broadcast({ type: 'ops', id: p.id, bytes }, p);
@@ -258,6 +262,7 @@ export class Session {
   end() {
     for (const p of this.players.values()) {
       if (p.expires) clearTimeout(p.expires);
+      history.played((Date.now() - p.joined) / 1000);
       const link = p.link;
       p.link = null;
       link?.send(encode({ type: 'rejected', reason: 'ended' }));
@@ -294,7 +299,9 @@ export class Session {
     this.players.delete(p.id);
     if (p.inventory) this.carried.set(p.name, p.inventory);
     log(this.code, who(p), `out: ${why} (${this.players.size} players)`);
-    event('left', this, p.name, { why, played: Math.round((Date.now() - p.joined) / 1000) });
+    const played = (Date.now() - p.joined) / 1000;
+    event('left', this, p.name, { why, played: Math.round(played) });
+    history.played(played);
     const link = p.link;
     p.link = null;
     link?.close(1000, why);

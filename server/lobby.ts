@@ -3,6 +3,7 @@ import { SERVER } from '../src/config';
 import { SLOTS } from '../src/inventory/tool';
 import { checkToServer, closeCode, CODE_LENGTH, CODE_LETTERS, decode, encode, PROTOCOL, type Rejection, type ToServer } from '../src/net/protocol';
 import { event } from './events';
+import { history } from './history';
 import { log, logNoisy, overMemory, who } from './log';
 import type { LevelData } from '../src/level/level-data';
 import type { Link, Player } from './player';
@@ -56,6 +57,7 @@ export class Lobby {
       const code = m?.type === 'join' && typeof m.code === 'string' ? m.code.slice(0, CODE_LENGTH) : '-----';
       const hello = m?.type === 'join' || m?.type === 'host' ? m : null;
       // Only what the log takes: a stranger's flood of attempts doesn't flood the admin's feed either.
+      history.turnedAway(reason);
       if (logNoisy(ip, code, `${m?.type ?? 'link'} from ${ip} turned away: ${reason}`))
         event('turned-away', this.sessions.get(code) ?? null, hello?.name ?? null, reason === 'version' && hello ? { reason, client: hello.protocol, server: PROTOCOL } : { reason });
       link.send(encode({ type: 'rejected', reason }));
@@ -199,6 +201,8 @@ export class Lobby {
     const r = await session.admit(link, name, token);
     if (typeof r === 'string') return r;
     log(session.code, who(r.p), `in from ${ip} (${r.how}, ${session.players.size} players${r.note})`);
+    if (r.how === 'new') history.now().plays++;
+    history.players(this.players);
     event('joined', session, r.p.name, waited === undefined ? { how: r.how } : { how: r.how, waited: Math.round(waited / 1000) });
     return { session, player: r.p };
   }

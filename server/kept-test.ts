@@ -8,7 +8,7 @@ import path from 'node:path';
 import { WebSocket as Ws } from 'ws';
 import { SERVER } from '../src/config';
 import { levelPaintFaces } from '../src/level/prop-pieces';
-import { decode, encode, PROTOCOL, type ToClient, type ToServer } from '../src/net/protocol';
+import { CODE_LENGTH, decode, encode, PROTOCOL, type ToClient, type ToServer } from '../src/net/protocol';
 import { PartsIn } from '../src/net/parts-in';
 import { encodeOps, SurfaceIndex } from '../src/op-wire';
 import { decodePaintFile } from '../src/save/paint-file';
@@ -17,7 +17,8 @@ import { decodePaintFile } from '../src/save/paint-file';
 // disk (kept.ts), against the built server: the key, a public session made,
 // full at its limit and kept when empty, its paint saved at shutdown and back
 // after a restart, a wipe (games come back to a clean wall), a new surface table
-// wiping the save, private ones that close when empty or stay, and a close. npm run test:server runs it.
+// wiping the save, private ones that close when empty or stay, and a close;
+// what the admin page reads: sessions, the machine, the event stream and history. npm run test:server runs it.
 
 const freePort = () =>
   new Promise<number>((done) => {
@@ -145,6 +146,12 @@ try {
   server = await start();
   assert.deepEqual((await admin('GET', '/sessions')).body.map((s: { code: string }) => s.code), [code], 'kept through a restart, empty');
   assert.equal(saves().length, 0, 'nothing painted: nothing saved');
+  // History, written at shutdown: everyone's play counted when it started, the most players at once, ever.
+  const day = await admin('GET', '/history?period=24h');
+  assert.deepEqual([day.body.plays, day.body.peak.players, day.body.joinsPerHour[new Date().getUTCHours()]], [SERVER.players.public, SERVER.players.public, SERVER.players.public]);
+  assert.equal((await admin('GET', '/')).body.peak.players, SERVER.players.public);
+  assert.ok(fs.existsSync(path.join(dir, 'stats', `${new Date().toISOString().slice(0, 10)}.json`)), "the day's hours on disk");
+  assert.equal((await admin('GET', '/history?period=week')).status, 400);
 
   // Paint, saved at shutdown, is back after the restart.
   const a = new Game();
@@ -158,6 +165,11 @@ try {
   const live = (await admin('GET', '/sessions')).body[0];
   assert.deepEqual([live.today.stamps.can, live.today.topColor, live.today.peak.players, live.emptySince], [1, 'red', 1, null]);
   assert.deepEqual([live.players[0].ip, live.players[0].here, live.players[0].held], [`10.1.0.${games}`, true, null]);
+  assert.deepEqual([(await admin('GET', '/history')).body.stamps.can, (await admin('GET', '/history')).body.colors], [1, { red: 1 }]);
+  const lost = new Game();
+  await lost.hello('Z'.repeat(CODE_LENGTH), 'Lost');
+  assert.equal((await lost.next('rejected')).reason, 'no-session');
+  assert.equal((await admin('GET', '/history?period=7d')).body.turnedAway['no-session'], 1);
   const box = (await admin('GET', '/machine')).body;
   assert.ok(box.cpu.vcpus > 0 && box.disk.total > 0 && box.memory.limit > 0, 'the machine');
   await stop(server);
@@ -217,7 +229,10 @@ try {
   assert.equal((await d.next('rejected')).reason, 'ended');
   assert.deepEqual((await admin('GET', '/sessions')).body, []);
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(dir, 'sessions.json'), 'utf8')), []);
-  console.log('kept sessions: ok (admin key and origin, a public session full at its limit with a line, kept empty, paint back after a restart, wipe, a new surface table wipes, private ones close when empty unless they stay, close, what the admin page reads, the event stream)');
+  // Plays that ended (two left, one ended by the close), the paint still there after two restarts.
+  const month = (await admin('GET', '/history?period=30d')).body;
+  assert.deepEqual([month.playLength, month.stamps.can], [{ under2m: 3, m2to10: 0, m10to30: 0, over30m: 0 }, 2]);
+  console.log('kept sessions: ok (admin key and origin, a public session full at its limit with a line, kept empty, paint back after a restart, wipe, a new surface table wipes, private ones close when empty unless they stay, close, what the admin page reads, the event stream, history)');
 } finally {
   server.kill();
   fs.rmSync(dir, { recursive: true, force: true });
