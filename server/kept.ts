@@ -4,6 +4,7 @@ import path from 'node:path';
 import { SERVER } from '../src/config';
 import { levelProblem, type LevelData } from '../src/level/level-data';
 import { PROTOCOL, type SessionKind } from '../src/net/protocol';
+import { event } from './events';
 import { log, mb } from './log';
 import type { Lobby } from './lobby';
 import type { Session, SessionSetup } from './session';
@@ -56,6 +57,7 @@ export class Kept {
   /** A new session of the admin's; a public one is kept. */
   async create(setup: Omit<SessionSetup, 'admin'>, levelName: string, detail: number) {
     const session = this.lobby.create(setup, levelName, await this.level(levelName), detail);
+    event('session-made', session, null, { kind: setup.kind, limit: setup.limit, stays: setup.stays });
     await this.record();
     return session;
   }
@@ -64,6 +66,7 @@ export class Kept {
   async wipe(session: Session) {
     session.wipe();
     log(session.code, 'wiped by the admin');
+    event('wiped', session);
     await this.forget(session.code);
   }
 
@@ -100,6 +103,7 @@ export class Kept {
       const changed = [e.protocol !== PROTOCOL && 'protocol', e.table !== session.table && 'surface table', e.levelHash !== hash(level) && 'level'].filter(Boolean);
       if (changed.length) {
         log(e.code, `paint wiped: a new ${changed.join(', ')}`);
+        event('wiped-at-start', session, null, { cause: changed });
         await this.forget(e.code);
         continue;
       }
@@ -126,6 +130,7 @@ export class Kept {
           const bytes = await s.paintFile();
           if (!bytes) {
             log(s.code, 'paint not saved: no memory for a paint file');
+            event('save-failed', s, null, { why: 'no memory for a paint file' });
             continue;
           }
           // Wiped or closed while it was read: not the paint to keep.
@@ -138,6 +143,7 @@ export class Kept {
         }
     } catch (e) {
       log('-----', 'paint save failed:', e);
+      event('save-failed', null, null, { why: (e as Error).message });
     } finally {
       this.saving = false;
     }

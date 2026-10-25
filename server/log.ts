@@ -65,18 +65,22 @@ export function log(...parts: unknown[]) {
 /** Each address's noisy lines in the window that began at `start`. */
 const noise = new Map<string, { start: number; n: number }>();
 
-/** `log` for lines a stranger can make at will: at most SERVER.noisyPerIp per SERVER.noisyWindow from one address, then one line says the rest are held back (until the window ends). */
+/** `log` for lines a stranger can make at will: at most SERVER.noisyPerIp per SERVER.noisyWindow from one address, then one line says the rest are held back (until the window ends). True if it logged. */
 export function logNoisy(ip: string, ...parts: unknown[]) {
   const now = Date.now();
   const window = SERVER.noisyWindow * 1000;
   if (noise.size >= SERVER.noisyIps) for (const [k, e] of noise) if (now - e.start >= window) noise.delete(k);
   let e = noise.get(ip);
   if (!e || now - e.start >= window) {
-    if (!e && noise.size >= SERVER.noisyIps) return;
+    if (!e && noise.size >= SERVER.noisyIps) return false;
     noise.set(ip, (e = { start: now, n: 0 }));
   }
-  if (++e.n <= SERVER.noisyPerIp) return log(...parts);
+  if (++e.n <= SERVER.noisyPerIp) {
+    log(...parts);
+    return true;
+  }
   if (e.n === SERVER.noisyPerIp + 1) log('-----', `more lines from ${ip} held back for ${SERVER.noisyWindow} s`);
+  return false;
 }
 
 /** A player as the log names them: the name as JSON, so a quote or a newline in it can't break the line. */

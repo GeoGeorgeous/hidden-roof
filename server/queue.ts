@@ -22,7 +22,7 @@ export interface Place {
   ip: string;
   since: number;
   /** Brings its link in as a JOIN would (lobby.ts), once a place is free. */
-  seat: () => Promise<void>;
+  seat: (waited: number) => Promise<void>;
   /** The position it was last told (0: none yet). */
   told: number;
   expires: ReturnType<typeof setTimeout> | null;
@@ -43,7 +43,7 @@ export class Queue {
   }
 
   /** A link to wait in line, or null when the line is full. Call `update` once it is placed. */
-  add(link: Link, name: string, seat: () => Promise<void>): Place | null {
+  add(link: Link, name: string, seat: Place['seat']): Place | null {
     if (this.places.length >= SERVER.queueMax) return null;
     const p: Place = { id: ++this.ids, name, token: randomUUID(), link, ip: link.ip, since: Date.now(), seat, told: 0, expires: null };
     this.places.push(p);
@@ -52,7 +52,7 @@ export class Queue {
   }
 
   /** The held entry with `token`, now on `link` (the one still on another link loses it, told why); undefined if there is none. Call `update` once it is placed. */
-  resume(token: string, link: Link, name: string, seat: () => Promise<void>): Place | undefined {
+  resume(token: string, link: Link, name: string, seat: Place['seat']): Place | undefined {
     const p = this.places.find((q) => q.token === token);
     if (!p) return;
     if (p.expires) clearTimeout(p.expires);
@@ -89,7 +89,7 @@ export class Queue {
       if (i < 0) break;
       const [p] = this.places.splice(i, 1);
       log(this.code, `${who(p)} from ${p.ip} admitted from the line: position ${i + 1}, waited ${span(Date.now() - p.since)}`);
-      void p.seat();
+      void p.seat(Date.now() - p.since);
     }
     this.places.forEach((p, i) => {
       if (!p.link || p.told === i + 1) return;

@@ -1156,6 +1156,9 @@ export const SERVER = {
   adminBody: 4096,
   /** The admin page calls a player's link slow past this round trip (ms). */
   slowPing: 150,
+  /** The admin's event stream (server/events.ts): the last this many events are kept for a page that opens; a status goes out this often (s) while one is open. */
+  adminEvents: 50,
+  adminStatus: 1,
   /** With DATA_DIR, a public session's paint is saved this often (s) when it changed, and at shutdown; the newest keepFiles saves stay (server/kept.ts). */
   keepEvery: 1800,
   keepFiles: 3,
