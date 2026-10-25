@@ -1,5 +1,6 @@
 import { randomInt } from 'node:crypto';
 import { SERVER } from '../src/config';
+import { SLOTS } from '../src/inventory/tool';
 import { checkToServer, closeCode, CODE_LENGTH, CODE_LETTERS, decode, encode, PROTOCOL, type Rejection, type ToServer } from '../src/net/protocol';
 import { log, logNoisy, overMemory, who } from './log';
 import type { LevelData } from '../src/level/level-data';
@@ -8,7 +9,7 @@ import { Session, type SessionSetup } from './session';
 
 // Who gets into which session: the live sessions by code, the codes of those
 // that ended, each address's links, uploads and hosted sessions
-// (SERVER.linksPerIp, uploadsPerIp, sessionsPerIp), HOST and JOIN, and each
+// (SERVER.linksPerIp, uploadsPerIp, sessionsPerIp), HOST (only if SERVER.playerHost) and JOIN, and each
 // link's messages to its session. main.ts gives it links (ws sockets); it
 // speaks only Link, so tests give it fake ones (server/world-test.ts).
 
@@ -121,11 +122,13 @@ export class Lobby {
     if (m.protocol !== PROTOCOL) return 'version';
     let session: Session;
     if (m.type === 'host') {
+      if (!SERVER.playerHost) return 'no-host';
       if ([...this.hosts.values()].filter((h) => h === ip).length >= SERVER.sessionsPerIp) return 'too-many';
       if (overMemory(SERVER.hostMemory)) return 'busy';
       const code = this.newCode();
       try {
-        session = this.start(code, m.levelName, m.level, m.detail);
+        const { name, limit, tools } = m.session;
+        session = this.start(code, m.levelName, m.level, m.detail, { kind: 'private', name: name.trim(), limit, tools: SLOTS.filter((t) => tools.includes(t)), stays: false, admin: false });
       } catch (e) {
         log('-----', `host from ${ip}: the level doesn't build`, e);
         return 'bad-level';

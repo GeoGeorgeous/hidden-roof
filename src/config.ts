@@ -1103,6 +1103,15 @@ export const SERVER = {
   port: 3000,
   /** Players in one session, by its kind; each receives everyone's state and ops (no interest management), load-tested with 20 (docs/deploy.md, section 6). */
   players: { public: 20, private: 4 },
+  /** The fewest players a private session may be made for (its host included). */
+  privateMin: 2,
+  /** Players may HOST their own private sessions; off in 1.6.0, when only the admin makes sessions (the menu's Host is disabled too). */
+  playerHost: false,
+  /** Where the server is, a country code for the server list (REGION overrides it). */
+  region: 'DE',
+  /** Looking a session up by its code (GET /ws?code=, server/lobby-http.ts) is allowed this many times a minute from one address (then 429), and from lookupIps addresses at once: codes can't be tried one after another. */
+  lookupsPerIp: 30,
+  lookupIps: 10000,
   /** A dropped player can come back as themselves for this long (s); then their stepladder goes, and a session with no one left closes. */
   rejoinWindow: 180,
   /** The server pings every game this often (s), so a game notices a dead link; a game pings the server as often, and each answer is a round trip for the link's status (NET.statusShow). */

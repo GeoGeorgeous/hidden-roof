@@ -114,8 +114,8 @@ class FakeLink implements Link {
 // The lobby, with fake links (no sockets): limits per address, HOST and JOIN, an unknown code and one that ended, a
 // message it can't take, and a link that says nothing.
 {
-  const was = { snapshotKeep: SERVER.snapshotKeep, helloTimeout: SERVER.helloTimeout };
-  Object.assign(SERVER, { snapshotKeep: 0, helloTimeout: 0.05 });
+  const was = { snapshotKeep: SERVER.snapshotKeep, helloTimeout: SERVER.helloTimeout, playerHost: SERVER.playerHost };
+  Object.assign(SERVER, { snapshotKeep: 0, helloTimeout: 0.05, playerHost: true });
   const say = console.log;
   console.log = () => {};
   try {
@@ -150,7 +150,7 @@ class FakeLink implements Link {
     assert.deepEqual([rest.filter(rejected).length, rejected(fake('10.0.4.1', true))], [0, 'too-many']);
     const table = surfaceTable(sessionPaint(level, 48).paint.surfaces);
     const host = fake('10.0.1.1');
-    await host.say({ type: 'host', protocol: PROTOCOL, table, name: 'A', levelName: 'demo', level, detail: 48 });
+    await host.say({ type: 'host', protocol: PROTOCOL, table, name: 'A', levelName: 'demo', level, detail: 48, session: { name: 'Test', limit: 2, tools: [] } });
     const code = host.got.find((m) => m.type === 'welcome')!.code;
     const nobody = fake('10.0.1.2');
     await nobody.say({ type: 'join', protocol: PROTOCOL, name: 'B', code: 'ZZZZZ' });

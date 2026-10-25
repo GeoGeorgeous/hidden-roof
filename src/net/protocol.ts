@@ -1,5 +1,6 @@
-import { PAINT_DETAIL } from '../config.ts';
+import { PAINT_DETAIL, SERVER } from '../config.ts';
 import type { InventoryData } from '../inventory/inventory';
+import { SLOTS, type Tool } from '../inventory/tool.ts';
 import { isNum, isObj, isV3, levelProblem, type LevelData, type PropData } from '../level/level-data.ts';
 
 // The messages between the game and the multiplayer server (server/), over a
@@ -14,7 +15,7 @@ import { isNum, isObj, isV3, levelProblem, type LevelData, type PropData } from 
 // through checkToServer.
 
 /** Bumped when a message changes or anything the server runs for a session does (paint, drips, face keys, the save format). host and join carry it and the level's surface-table hash; a mismatch is answered 'version' and the game asks for a reload. */
-export const PROTOCOL = 7;
+export const PROTOCOL = 8;
 export const NAME_MAX = 16;
 /** A player's name: Latin letters and digits only (ASCII), 1 to NAME_MAX of them; the menu checks it before HOST or JOIN, the server refuses any other. */
 export const isName = (x: unknown): x is string => typeof x === 'string' && x.length <= NAME_MAX && /^[A-Za-z0-9]+$/.test(x);
@@ -22,6 +23,16 @@ export const isName = (x: unknown): x is string => typeof x === 'string' && x.le
 export const cleanName = (x: string) => x.replace(/[^A-Za-z0-9]/g, '').slice(0, NAME_MAX);
 /** A session's name, as its creator typed it (server/admin-api.ts): at most this many characters. */
 export const SESSION_NAME_MAX = 32;
+/** A session's name as its creator typed it: 1 to SESSION_NAME_MAX characters once trimmed, no control characters; the server keeps it trimmed. */
+export const isSessionName = (x: unknown): x is string => {
+  if (typeof x !== 'string') return false;
+  const t = x.trim();
+  return t.length > 0 && t.length <= SESSION_NAME_MAX && !/\p{C}/u.test(t);
+};
+/** Players a session may be made for: SERVER.privateMin to SERVER.players.private. */
+export const isPrivateLimit = (x: unknown): x is number => Number.isInteger(x) && (x as number) >= SERVER.privateMin && (x as number) <= SERVER.players.private;
+/** Some of the tools, each once. */
+export const isToolSet = (x: unknown): x is Tool[] => Array.isArray(x) && new Set(x).size === x.length && x.every((t) => SLOTS.includes(t));
 /** Session codes: this many letters from CODE_LETTERS (no I or O, which read as 1 and 0). */
 export const CODE_LENGTH = 5;
 export const CODE_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -39,14 +50,41 @@ const MAX_PROPS = 5000;
  * back; the server remembers codes for SERVER.endedMemory), a full session, a paint file or
  * level it can't use, the server too full for another session, or the same
  * player come in from another tab (a duplicated tab carries the token along),
- * or too many links or sessions from one address (SERVER.linksPerIp, sessionsPerIp).
+ * or too many links or sessions from one address (SERVER.linksPerIp, sessionsPerIp),
+ * or HOST while players may not host (SERVER.playerHost).
  * The socket then closes with closeCode(reason), for the logs.
  */
-const REJECTIONS = ['version', 'no-session', 'ended', 'full', 'bad-save', 'bad-level', 'busy', 'replaced', 'too-many'] as const;
+const REJECTIONS = ['version', 'no-session', 'ended', 'full', 'bad-save', 'bad-level', 'busy', 'replaced', 'too-many', 'no-host'] as const;
 export type Rejection = (typeof REJECTIONS)[number];
 export const closeCode = (r: Rejection) => 4001 + REJECTIONS.indexOf(r);
 /** The rejection a socket's close code says (see closeCode), if it does. */
 export const rejectionOf = (code: number): Rejection | undefined => REJECTIONS[code - 4001];
+/** Public (anyone joins it from the list) or private (joined with its code). */
+export type SessionKind = 'public' | 'private';
+/** What a session is, as its creator made it: its kind, name (up to SESSION_NAME_MAX), most players, and the tools it allows. */
+export interface SessionInfo {
+  kind: SessionKind;
+  name: string;
+  limit: number;
+  tools: Tool[];
+}
+/** A session in the server list: its code only if it's public (a private one's is the host's to share), and its players' names. */
+export interface LobbyEntry extends SessionInfo {
+  code?: string;
+  players: string[];
+}
+/**
+ * The server list over plain HTTP, no WebSocket (Caddy passes /ws on): GET
+ * LOBBY_LIST answers `Lobby`; GET LOBBY_CODE + a code answers that session's
+ * LobbyEntry (with its code), or 404 when there's none. `region`: where the
+ * server is, a country code (SERVER.region, REGION).
+ */
+export interface Lobby {
+  region: string;
+  sessions: LobbyEntry[];
+}
+export const LOBBY_LIST = '/ws?list';
+export const LOBBY_CODE = '/ws?code=';
 /** What the server answers a plain GET at /ws (no WebSocket): the game asks when it can't connect (net/diagnostics.ts). */
 export const HELLO = `roof server · protocol ${PROTOCOL}`;
 
@@ -58,8 +96,8 @@ export type Presence = Activity | 'dropped';
 
 /** Game -> server. */
 export type ToServer =
-  /** Start a session on this level, at this PAINT DETAIL, from a paint save (`bytes`) or clean. `table`: this client's surfaceTable of the level. */
-  | { type: 'host'; protocol: number; table: string; name: string; levelName: string; level: LevelData; detail: number; bytes?: Uint8Array }
+  /** Start a private session on this level, at this PAINT DETAIL, from a paint save (`bytes`) or clean; `session`: its name, most players (SERVER.privateMin to SERVER.players.private) and tools. `table`: this client's surfaceTable of the level. */
+  | { type: 'host'; protocol: number; table: string; name: string; levelName: string; level: LevelData; detail: number; session: { name: string; limit: number; tools: Tool[] }; bytes?: Uint8Array }
   /** Join by code; with the `token` from an earlier welcome, as the same player (a reconnect). */
   | { type: 'join'; protocol: number; name: string; code: string; token?: string }
   /** This player now (net/snapshot.ts). */
@@ -91,7 +129,7 @@ export type ToClient =
    * starting kit); its paint as a paint file follows in `parts` parts (none:
    * it's the save this host sent). `acked`: their last op batch the server has (0: none), in the paint file.
    */
-  | { type: 'welcome'; code: string; you: number; name: string; token: string; levelName: string; level: LevelData; detail: number; table: string; players: { id: number; name: string; state: Presence }[]; ladders: { id: number; data: PropData }[]; inventory: InventoryData | null; parts: number; acked: number }
+  | { type: 'welcome'; code: string; you: number; name: string; token: string; session: SessionInfo; levelName: string; level: LevelData; detail: number; table: string; players: { id: number; name: string; state: Presence }[]; ladders: { id: number; data: PropData }[]; inventory: InventoryData | null; parts: number; acked: number }
   | { type: 'rejected'; reason: Rejection }
   | { type: 'joined'; id: number; name: string }
   | { type: 'left'; id: number }
@@ -184,7 +222,7 @@ export function checkToServer(m: Message | null): ToServer | null {
   if ((m.type === 'host' || m.type === 'join') && isInt(v.protocol) && v.protocol !== PROTOCOL) return m as ToServer;
   switch (m.type) {
     case 'host':
-      return isInt(v.protocol) && typeof v.table === 'string' && isName(v.name) && typeof v.levelName === 'string' && v.levelName.length <= 64 && !levelProblem(v.level, MAX_PROPS) && DETAILS.includes(v.detail as number) ? (m as ToServer) : null;
+      return isInt(v.protocol) && typeof v.table === 'string' && isName(v.name) && typeof v.levelName === 'string' && v.levelName.length <= 64 && !levelProblem(v.level, MAX_PROPS) && DETAILS.includes(v.detail as number) && isHosting(v.session) ? (m as ToServer) : null;
     case 'join':
       return isInt(v.protocol) && isName(v.name) && isCode(v.code) && (v.token === undefined || typeof v.token === 'string') && !m.bytes ? (m as ToServer) : null;
     case 'state':
@@ -207,6 +245,7 @@ export function checkToServer(m: Message | null): ToServer | null {
 }
 
 const isInt = (x: unknown): x is number => Number.isInteger(x) && (x as number) >= 0;
+const isHosting = (x: unknown) => isObj(x) && isSessionName(x.name) && isPrivateLimit(x.limit) && isToolSet(x.tools);
 const isCode = (x: unknown) => typeof x === 'string' && x.length === CODE_LENGTH && [...x].every((c) => CODE_LETTERS.includes(c));
 /** Shape and size only: the game takes from it what it knows (Inventory.restore). */
 const isWords = (x: unknown) => Array.isArray(x) && x.length <= 32 && x.every((w) => typeof w === 'string' && w.length <= 32);

@@ -115,6 +115,7 @@ export const MESSAGES = {
     netBusy: 'The server is full: try again later',
     netReplaced: 'This session was opened in another tab',
     netTooMany: 'Too many connections from your network: try again later',
+    netNoHost: "This server doesn't take new sessions from players",
     netEnded: 'The session has ended',
     netTimeout: "The server didn't answer",
     netBroken: 'The game hit an error in the session: copy the network log for a report',

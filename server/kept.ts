@@ -3,7 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { SERVER } from '../src/config';
 import { levelProblem, type LevelData } from '../src/level/level-data';
-import { PROTOCOL } from '../src/net/protocol';
+import { PROTOCOL, type SessionKind } from '../src/net/protocol';
 import { log, mb } from './log';
 import type { Lobby } from './lobby';
 import type { Session, SessionSetup } from './session';
@@ -18,8 +18,9 @@ import type { Session, SessionSetup } from './session';
 
 interface Entry {
   code: string;
-  kind: 'public' | 'private';
+  kind: SessionKind;
   name: string;
+  limit: number;
   tools: SessionSetup['tools'];
   level: string;
   detail: number;
@@ -88,7 +89,7 @@ export class Kept {
       let level: LevelData;
       try {
         level = await this.level(e.level);
-        session = this.lobby.create({ kind: e.kind, name: e.name, tools: e.tools, stays: true }, e.level, level, e.detail, e.code);
+        session = this.lobby.create({ kind: e.kind, name: e.name, limit: e.limit ?? SERVER.players[e.kind], tools: e.tools, stays: true }, e.level, level, e.detail, e.code);
       } catch (err) {
         log(e.code, `kept session not made again: ${(err as Error).message}`);
         await this.forget(e.code);
@@ -147,7 +148,7 @@ export class Kept {
   /** sessions.json from the live public sessions, as made now. */
   private async record() {
     if (!this.dir) return;
-    const list: Entry[] = this.public().map(({ code, setup: { kind, name, tools }, levelName, detail, table, level }) => ({ code, kind, name, tools, level: levelName, detail, protocol: PROTOCOL, table, levelHash: hash(level) }));
+    const list: Entry[] = this.public().map(({ code, setup: { kind, name, limit, tools }, levelName, detail, table, level }) => ({ code, kind, name, limit, tools, level: levelName, detail, protocol: PROTOCOL, table, levelHash: hash(level) }));
     await fs.writeFile(this.file('sessions.json.tmp'), JSON.stringify(list, null, 1));
     await fs.rename(this.file('sessions.json.tmp'), this.file('sessions.json'));
   }

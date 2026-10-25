@@ -164,7 +164,8 @@ try {
     assert.equal(codes.includes(made.body.code), stay, stay ? 'stays when empty' : 'closes when empty');
     if (stay) assert.equal((await admin('POST', `/sessions/${made.body.code}/close`)).status, 200);
   }
-  assert.equal(JSON.parse(fs.readFileSync(path.join(dir, 'sessions.json'), 'utf8')).length, 1, 'only the public session is kept');
+  const record = JSON.parse(fs.readFileSync(path.join(dir, 'sessions.json'), 'utf8'));
+  assert.deepEqual([record.length, record[0].limit], [1, SERVER.players.public], 'only the public session is kept, with its limit');
 
   // Closed: its players are told it has ended, and it's no longer kept.
   const d = new Game();
