@@ -127,6 +127,37 @@ Design and limits: `docs/known-limits.md` (Multiplayer). Code: `server/`, messag
 - **The line** (`server/queue.ts`): a JOIN that finds a session full waits instead of being turned away: the server answers `queued` (its `position`, 1 = next, and a `token`) and sends it again whenever the position changes; the welcome follows once a place is free. First come, first served: when a player is removed (left, or not back in `SERVER.rejoinWindow`) the first entry whose link is open comes in exactly as a JOIN would (the log says "admitted from the line", then the usual "in from ..."). At most `SERVER.queueMax` (20) entries per session, held ones included; one more is answered `full` (4004) as before. A waiting link is ignored but for `leave` (out of the line, the link closes 1000) and `ping` (answered `pong`); the server pings it like a player. A waiting link that closes keeps its entry, held, for `SERVER.rejoinWindow`: a JOIN with `queue` set to its token (same code) takes it back at the same place; the line goes past a held entry when a place frees, and its position counts it until it goes. After the window, or for a token the line does not know, a JOIN is a normal one (it may wait again at the back). A session that ends (admin close, or closing with no one left) answers every waiting link `ended`. Log lines about the line (waits, leaves, held, back, expired) are rate-limited per address like other lines a stranger can make; admitting is always logged. A wipe does not touch the line.
 - **Admin** (`server/admin-api.ts`): with `ADMIN_KEY` set, a JSON API on port 3001 (`ADMIN_PORT`), never published; every request carries `Authorization: Bearer <ADMIN_KEY>`, and one with an `Origin` header only from `ADMIN_ORIGIN` (the admin page's origin, e.g. `https://cctv.hidden.haus`; `http://localhost:5173` for its dev server on a local `ADMIN_KEY=… ADMIN_ORIGIN=… npm run server`; the server reads only its environment, no `.env` file). Its routes are listed at the top of `server/admin-api.ts`; `GET /machine` reads CPU, RAM, disk and the paint saves of the machine it runs on. The command in the container asks it: `docker compose exec roof node admin.mjs list`, `create public|private "Name" [--level roof] [--detail ultra] [--tools can,marker,ladder,roller,sponge] [--stay] [--players 3]`, `wipe CODE`, `close CODE`. A public one keeps its code, name and tools through restarts; players join by code until the server list lands (BL-045).
 - **Kept paint** (`server/kept.ts`): with `DATA_DIR`, every public session the admin made is listed in `sessions.json` and its paint saved there every 30 minutes when it changed (`SERVER.keepEvery`) and at shutdown, as `<code>-<ms>.rhhpaint`, the newest 3 kept; the admin's wipe renames the newest 3 to `<code>-<ms>.wiped.rhhpaint`, which are never loaded nor rotated away. At start each is made again under its code from its newest save that loads, so a crash or a host outage loses at most the last interval. A new protocol, surface table or level wipes it; a release that changes none keeps the paint. Private sessions live in memory only. The admin's history is there too, in `stats/`: a file a day (its hours for 30 days, then only its total, kept forever) and `peak.json`, written once a minute when it changed and at shutdown. Unique people (`server/people.ts`): each play's device id (the game's, from `localStorage`) and address (IPv6 by its /64), only as hashes salted with `stats/salt.json` (a new salt every 30 days, never logged or sent), and its country, a file a day (`people-<day>.json`), deleted after 30 days. Only the owner may read these files.
+- **Traffic** (`server/traffic*.ts`): its own container, `roof-traffic`, from the same image (`node traffic.js`), never inside the game. Every minute (`SERVER.trafficEvery`) it reads the new lines of Caddy's JSON access log (`CADDY_LOG`) from where it stopped, and counts per UTC day: page views (HTML, bots apart), distinct visitors (a salted hash of address and browser, a new salt every day, kept only for that day), bots, pages, sources (the first of `?ref=`, `utm_source`, the referring site, else direct), `utm_campaign`, countries (`GEOIP_DB`), and visitors per step (a page, the game's script, a beacon, a multiplayer link). Only requests to `TRAFFIC_HOSTS` count. Days go to `DATA_DIR/traffic/<day>.json`, kept forever; `traffic/state.json` holds where it stopped and the day's hashes (owner only). The game's admin API answers them at `GET /traffic?days=N`. A rolled log is followed to the new file; the old file's unread tail (at most a minute) is lost.
+
+```yaml
+  roof-traffic:
+    build: ./roof/repo
+    command: ["node", "traffic.js"]
+    restart: unless-stopped
+    environment:
+      CADDY_LOG: /caddy-logs/access.log
+      DATA_DIR: /data
+      TRAFFIC_HOSTS: roof.hidden.haus
+      GEOIP_DB: /geoip/dbip-country-lite.mmdb
+    volumes:
+      # The directory, not the file, so a rolled log shows up.
+      - ./caddy/logs:/caddy-logs:ro
+      - ./roof/data:/data
+      - ./roof/geoip:/geoip:ro
+```
+
+And in Caddy's site block, its access log as JSON to that directory:
+
+```
+log {
+  output file /var/log/caddy/access.log {
+    roll_size 100MiB
+    roll_keep 5
+  }
+  format json
+}
+```
+
 - **Paint files** (a joiner's paint, SAVE) are made one at a time for the whole process, deflated as read, sent in 32 KB parts; whoever joins or saves within 15 s of one gets the same file. Past `SNAPSHOT_MEMORY` of live data no new file is made (busy).
 - **Memory:** paint is `Uint8Array`, outside the V8 heap (no `--max-old-space-size`). The roof level all painted is 46 MB at LOW, 148 MEDIUM, 302 HIGH, 519 ULTRA; a session is ~15–25 MB before paint. Past `HOST_MEMORY` of live data (heap and paint, after a GC; not RSS) no new session starts ("the server is full").
 - **Limits:** a HOST link (`/ws?host`) takes messages up to 64 MiB (a save), any other up to 1 MiB; Caddy's `handle /ws` matches both. Per address (`X-Forwarded-For`): 24 open links, 2 HOST links (8 in all), 2 hosted sessions; a link must send HOST or JOIN within 20 s. Past a limit: TOO MANY CONNECTIONS FROM YOUR NETWORK (4009).
