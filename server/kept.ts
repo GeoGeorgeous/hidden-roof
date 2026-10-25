@@ -14,8 +14,10 @@ import type { Session, SessionSetup } from './session';
 // protocol, the surface table, the level). Each one's paint is saved every
 // SERVER.keepEvery when it changed, and at shutdown, as <code>-<ms>.rhhpaint;
 // the newest SERVER.keepFiles stay. At start each is made again under its code,
-// from its newest save that loads. A new protocol, surface table or level wipes
-// it: a release that changes none of them keeps the paint.
+// from its newest save that loads. The admin's wipe keeps the newest
+// SERVER.keepFiles saves aside, as <code>-<ms>.wiped.rhhpaint: never loaded,
+// never rotated away by new saves. A new protocol, surface table or level wipes
+// it for good, and so does a close: a release that changes none of them keeps the paint.
 
 interface Entry {
   code: string;
@@ -30,8 +32,9 @@ interface Entry {
   levelHash: string;
 }
 
-/** When a save was made (ms), from its name, <code>-<ms>.rhhpaint. */
-const savedAt = (code: string, name: string) => Number(name.slice(code.length + 1, -'.rhhpaint'.length));
+/** When a save was made (ms), from its name, <code>-<ms>.rhhpaint or <code>-<ms>.wiped.rhhpaint. */
+const savedAt = (code: string, name: string) => parseInt(name.slice(code.length + 1));
+const wiped = (name: string) => name.endsWith('.wiped.rhhpaint');
 const hash = (level: LevelData) => createHash('sha256').update(JSON.stringify(level)).digest('hex').slice(0, 16);
 
 export class Kept {
@@ -62,12 +65,15 @@ export class Kept {
     return session;
   }
 
-  /** The admin's wipe: no paint, in the session and on disk. */
+  /** The admin's wipe: no paint in the session; on disk its newest saves stay aside, wiped, and the rest go. */
   async wipe(session: Session) {
     session.wipe();
     log(session.code, 'wiped by the admin');
     event('wiped', session);
-    await this.forget(session.code);
+    if (!this.dir) return;
+    for (const [i, name] of (await this.saves(session.code)).entries())
+      if (i >= SERVER.keepFiles) await fs.rm(this.file(name), { force: true });
+      else if (!wiped(name)) await fs.rename(this.file(name), this.file(name.replace('.rhhpaint', '.wiped.rhhpaint')));
   }
 
   /** The admin closed it: gone, from disk too. */
@@ -107,7 +113,7 @@ export class Kept {
         await this.forget(e.code);
         continue;
       }
-      for (const name of await this.saves(e.code))
+      for (const name of (await this.saves(e.code)).filter((n) => !wiped(n)))
         try {
           await session.load(await fs.readFile(this.file(name)), false);
           log(e.code, `paint from ${name}: ${session.memory.now.toFixed(0)} MB`);
@@ -138,7 +144,7 @@ export class Kept {
           const name = `${s.code}-${Date.now()}.rhhpaint`;
           await fs.writeFile(this.file(`${name}.tmp`), bytes);
           await fs.rename(this.file(`${name}.tmp`), this.file(name));
-          for (const old of (await this.saves(s.code)).slice(SERVER.keepFiles)) await fs.rm(this.file(old), { force: true });
+          for (const old of (await this.saves(s.code)).filter((n) => !wiped(n)).slice(SERVER.keepFiles)) await fs.rm(this.file(old), { force: true });
           log(s.code, `paint saved: ${name}, ${mb(bytes.length)} MB`);
         }
     } catch (e) {
@@ -161,13 +167,13 @@ export class Kept {
     await fs.rename(this.file('sessions.json.tmp'), this.file('sessions.json'));
   }
 
-  /** A session's saves on disk, newest first: when (ISO) and how big, for the admin page. */
+  /** A session's saves on disk, the wiped ones too, newest first: when (ISO), how big and whether wiped, for the admin page. */
   async savesOf(code: string) {
     if (!this.dir) return [];
-    return Promise.all((await this.saves(code)).map(async (n) => ({ at: new Date(savedAt(code, n)).toISOString(), bytes: (await fs.stat(this.file(n))).size })));
+    return Promise.all((await this.saves(code)).map(async (n) => ({ at: new Date(savedAt(code, n)).toISOString(), bytes: (await fs.stat(this.file(n))).size, wiped: wiped(n) })));
   }
 
-  /** A session's saves, newest first. */
+  /** A session's saves, wiped ones included, newest first. */
   private async saves(code: string) {
     const names = (await fs.readdir(this.dir!)).filter((n) => n.startsWith(`${code}-`) && n.endsWith('.rhhpaint'));
     return names.sort((a, b) => savedAt(code, b) - savedAt(code, a));

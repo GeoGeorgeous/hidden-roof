@@ -33,7 +33,7 @@ export async function machine(dir: string | null) {
   const disk = await fs.statfs(dir ?? '.');
   const saves = dir ? (await fs.readdir(dir)).filter((n) => n.endsWith('.rhhpaint')) : [];
   const sizes = await Promise.all(saves.map(async (n) => (await fs.stat(path.join(dir!, n))).size));
-  const newest = Math.max(0, ...saves.map((n) => Number(n.slice(n.indexOf('-') + 1, -'.rhhpaint'.length))));
+  const newest = Math.max(0, ...saves.map((n) => parseInt(n.slice(n.indexOf('-') + 1))));
   return {
     cpu: { percent: cpu, vcpus: os.availableParallelism(), load1: os.loadavg()[0] },
     ram: { used: os.totalmem() - os.freemem(), total: os.totalmem() },
