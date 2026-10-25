@@ -13,7 +13,7 @@ import type { Session, SessionSetup } from './session';
 // Caddy. Every request carries `Authorization: Bearer <ADMIN_KEY>`; one from a
 // browser page only from ADMIN_ORIGIN. JSON in and out:
 //   GET  /                     the API's version, the protocol, uptime
-//   GET  /sessions             every session
+//   GET  /sessions             every session, with how many wait in its line (queue)
 //   POST /sessions             a new one: { kind, name, level?, detail?, tools?, stay?, limit? }
 //                              (stay: a private one stays when empty; a public one always does;
 //                              limit: a private one's most players, SERVER.privateMin to SERVER.players.private)
@@ -31,7 +31,7 @@ const detailName = (d: number) => Object.entries(PAINT_DETAIL).find(([, v]) => v
 function listing(s: Session) {
   const { kind, name, limit, tools, stays, admin } = s.setup;
   const players = [...s.players.values()].map((p) => ({ id: p.id, name: p.name, here: !!p.link }));
-  return { code: s.code, kind, name, admin, stays, tools, level: s.levelName, detail: detailName(s.detail), players, limit, started: new Date(s.started).toISOString(), paintMB: Math.round(s.memory.now) };
+  return { code: s.code, kind, name, admin, stays, tools, level: s.levelName, detail: detailName(s.detail), players, limit, queue: s.line.length, started: new Date(s.started).toISOString(), paintMB: Math.round(s.memory.now) };
 }
 
 /** POST /sessions's body as a session to make, or why not. */
