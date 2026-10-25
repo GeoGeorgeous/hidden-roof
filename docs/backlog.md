@@ -136,11 +136,10 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## Servers and deploy
 
 1. IDEA [BL-043]: One public server, running 24/7 (docs/ideas/public-servers.md) @1.6.0
-2. IDEA [BL-046]: A queue to enter the server, after BL-043 (docs/ideas/public-servers.md) @1.6.0
-3. IDEA [BL-047]: Admin panel: servers stats (players online, perfomance, etc), players info (username, IP, ping), ban by IP, after BL-043 (docs/ideas/public-servers.md) @1.6.0
-4. IDEA [?BL-147]: Anti-cheat: The server checks what players send (op reach and rate, ladder spot, jumps) before it goes public @1.6.1
-5. [TASK-189]: House rules before joining a public server: players are 18+, joining accepts the Terms, sessions may be recorded and published; the rules screen is in, left: the Terms' moderation section (docs/ideas/public-servers.md) @1.6.0
-6. [TASK-201]: Research itch.io Publishing Requirements, AI Policies, and Download Restrictions @1.6.3
+2. IDEA [BL-047]: Admin panel: servers stats (players online, perfomance, etc), players info (username, IP, ping), ban by IP, after BL-043 (docs/ideas/public-servers.md) @1.6.0
+3. IDEA [?BL-147]: Anti-cheat: The server checks what players send (op reach and rate, ladder spot, jumps) before it goes public @1.6.1
+4. [TASK-189]: House rules before joining a public server: players are 18+, joining accepts the Terms, sessions may be recorded and published; the rules screen is in, left: the Terms' moderation section (docs/ideas/public-servers.md) @1.6.0
+5. [TASK-201]: Research itch.io Publishing Requirements, AI Policies, and Download Restrictions @1.6.3
 
 ## Web and promotion
 
@@ -171,7 +170,8 @@ Shipped since the last release; the release commit empties this list.
 4. [TASK-236]: Private and public sessions: private joined by code (2 to 4 players), public open to all (up to 20), created by the admin (server command)
 5. [IDEA-237]: Session names chosen at creation, shown in the server list
 6. [TASK-238]: Public paint stored and backed up, restored after a host outage; wiped when the protocol, surface table or level changes, or by the admin
-7. TASK [BL-154]: Tools a session turns off at creation are gone from its map and hands (the server drops their ops and stepladders too)
+7. IDEA [BL-046]: A queue to enter a full session: your place in line, pushed by the server; held 3 minutes after a dropped link
+8. TASK [BL-154]: Tools a session turns off at creation are gone from its map and hands (the server drops their ops and stepladders too)
 
 ## Discarder
 
