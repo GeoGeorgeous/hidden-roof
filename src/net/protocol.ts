@@ -230,7 +230,7 @@ export function checkToServer(m: Message | null): ToServer | null {
     case 'host':
       return isInt(v.protocol) && typeof v.table === 'string' && isName(v.name) && typeof v.levelName === 'string' && v.levelName.length <= 64 && !levelProblem(v.level, MAX_PROPS) && DETAILS.includes(v.detail as number) && isHosting(v.session) ? (m as ToServer) : null;
     case 'join':
-      return isInt(v.protocol) && isName(v.name) && isCode(v.code) && (v.token === undefined || typeof v.token === 'string') && !m.bytes ? (m as ToServer) : null;
+      return isInt(v.protocol) && isName(v.name) && isCode(v.code) && (v.token === undefined || typeof v.token === 'string') && (v.queue === undefined || isQueueToken(v.queue)) && !m.bytes ? (m as ToServer) : null;
     case 'state':
       return m.bytes?.length === SNAPSHOT_BYTES ? (m as ToServer) : null;
     case 'ops':
@@ -252,6 +252,9 @@ export function checkToServer(m: Message | null): ToServer | null {
 
 const isInt = (x: unknown): x is number => Number.isInteger(x) && (x as number) >= 0;
 const isHosting = (x: unknown) => isObj(x) && isSessionName(x.name) && isPrivateLimit(x.limit) && isToolSet(x.tools);
+/** A queue token is a UUID; anything much longer is not one. */
+const isQueueToken = (x: unknown) => typeof x === 'string' && x.length <= QUEUE_TOKEN_MAX;
+const QUEUE_TOKEN_MAX = 64;
 const isCode = (x: unknown) => typeof x === 'string' && x.length === CODE_LENGTH && [...x].every((c) => CODE_LETTERS.includes(c));
 /** Shape and size only: the game takes from it what it knows (Inventory.restore). */
 const isWords = (x: unknown) => Array.isArray(x) && x.length <= 32 && x.every((w) => typeof w === 'string' && w.length <= 32);

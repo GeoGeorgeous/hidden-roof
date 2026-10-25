@@ -1,69 +1,22 @@
 import './headless';
 import assert from 'node:assert/strict';
-import { execFile, spawn } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import fs from 'node:fs';
-import net from 'node:net';
-import { WebSocket as Ws } from 'ws';
 import { SERVER } from '../src/config';
 import { SLOTS } from '../src/inventory/tool';
 import { levelPaintFaces } from '../src/level/prop-pieces';
-import { PartsIn } from '../src/net/parts-in';
-import { closeCode, decode, encode, HELLO, LOBBY_CODE, LOBBY_LIST, PROTOCOL, type Lobby, type ToClient, type ToServer } from '../src/net/protocol';
+import { closeCode, HELLO, LOBBY_CODE, LOBBY_LIST, PROTOCOL, type Lobby, type ToServer } from '../src/net/protocol';
 import { surfaceTable } from '../src/save/shape';
+import { Game, join, start } from './test-kit';
 
 // The server list and the limits per session (lobby-http.ts, lobby.ts), against the built server: the list over plain
 // HTTP (public and private sessions, their order, codes only for public ones), a lookup by code and its limit per
 // address, a hosted session turning the player over its limit away, the admin's private limit, a HOST with
 // fields it can't take, and HOST refused unless PLAYER_HOST. npm run test:server runs it.
 
-const freePort = () =>
-  new Promise<number>((done) => {
-    const s = net.createServer().listen(0, () => {
-      const { port } = s.address() as net.AddressInfo;
-      s.close(() => done(port));
-    });
-  });
 const level = JSON.parse(fs.readFileSync('public/levels/demo.json', 'utf8'));
 const table = surfaceTable(levelPaintFaces(level, 48));
 const host = { type: 'host' as const, protocol: PROTOCOL, table, name: 'A', levelName: 'demo', level, detail: 48, session: { name: 'Duo', limit: 2, tools: ['can', 'sponge'] as typeof SLOTS[number][] } };
-
-/** A server on a free port, ready; `env` adds to its environment. */
-async function start(env: Record<string, string>) {
-  const [port, adminPort] = [await freePort(), await freePort()];
-  const child = spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(port), ADMIN_PORT: String(adminPort), ...env }, stdio: ['ignore', 'pipe', 'inherit'] });
-  await new Promise((ready) => child.stdout!.once('data', ready));
-  return { port, adminPort, env: { ...process.env, ADMIN_PORT: String(adminPort), ...env }, stop: () => child.kill() };
-}
-
-let games = 0;
-/** A game from its own address: what it got, the next message of a type, how it closed. */
-class Game {
-  ws: Ws;
-  got: (ToClient & { file?: Uint8Array })[] = [];
-  closed: Promise<number>;
-  constructor(port: number) {
-    this.ws = new Ws(`ws://localhost:${port}/ws`, { headers: { 'x-forwarded-for': `10.2.0.${++games}` } });
-    const parts = new PartsIn();
-    this.ws.on('message', (d: Buffer) => {
-      const done = parts.take(decode(new Uint8Array(d)) as ToClient);
-      if (done) this.got.push(done.m);
-    });
-    this.closed = new Promise((done) => this.ws.once('close', done));
-  }
-  async send(m: ToServer) {
-    if (this.ws.readyState !== Ws.OPEN) await new Promise((w) => this.ws.once('open', w));
-    this.ws.send(encode(m));
-    return this;
-  }
-  async next<T extends ToClient['type']>(type: T) {
-    for (const end = Date.now() + 10000; ; await new Promise((w) => setTimeout(w, 20))) {
-      const i = this.got.findIndex((m) => m.type === type);
-      if (i >= 0) return this.got.splice(i, 1)[0] as Extract<ToClient, { type: T }>;
-      if (Date.now() > end) throw new Error(`no ${type} (got ${this.got.map((m) => m.type)})`);
-    }
-  }
-}
-const join = (port: number, name: string, code: string) => new Game(port).send({ type: 'join', protocol: PROTOCOL, name, code });
 
 const main = await start({ PLAYER_HOST: '1', ADMIN_KEY: 'test-key', REGION: 'FR' });
 const refusing = await start({});
@@ -93,15 +46,16 @@ try {
   const crew = await new Promise<string>((done, fail) => execFile(process.execPath, ['server/admin.mjs', 'create', 'private', 'Crew', '--level', 'demo', '--detail', 'low', '--players', '3'], { env: { ...main.env, ADMIN_KEY: 'test-key' } }, (e, out) => (e ? fail(e) : done(out))));
   assert.match(crew, /^[A-Z]{5} {2}private {2}0\/3 /);
 
-  // A player's own session (PLAYER_HOST), for two: the third is turned away, and the welcomes say what the session is.
+  // A player's own session (PLAYER_HOST), for two: the third waits in line (queue-test.ts) and leaves it, and the welcomes say what the session is.
   const a = await new Game(main.port).send(host);
   const wa = await a.next('welcome');
   assert.deepEqual(wa.session, { kind: 'private', name: 'Duo', limit: 2, tools: ['can', 'sponge'] });
   const b = await join(main.port, 'B', wa.code);
   assert.equal((await b.next('welcome')).session.limit, 2);
   const c = await join(main.port, 'C', wa.code);
-  assert.equal((await c.next('rejected')).reason, 'full');
-  assert.equal(await c.closed, closeCode('full'));
+  assert.equal((await c.next('queued')).position, 1);
+  c.send({ type: 'leave' });
+  assert.equal(await c.closed, 1000);
   const friend = await join(main.port, 'F', friends.body.code);
   assert.deepEqual((await friend.next('welcome')).session, { kind: 'private', name: 'Friends', limit: SERVER.players.private, tools: [...SLOTS] });
   const w = await (await join(main.port, 'W', wall.body.code)).next('welcome');

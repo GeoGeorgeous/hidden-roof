@@ -5,12 +5,13 @@ import { checkToServer, closeCode, CODE_LENGTH, CODE_LETTERS, decode, encode, PR
 import { log, logNoisy, overMemory, who } from './log';
 import type { LevelData } from '../src/level/level-data';
 import type { Link, Player } from './player';
+import type { Place } from './queue';
 import { Session, type SessionSetup } from './session';
 
 // Who gets into which session: the live sessions by code, the codes of those
 // that ended, each address's links, uploads and hosted sessions
 // (SERVER.linksPerIp, uploadsPerIp, sessionsPerIp), HOST (only if SERVER.playerHost) and JOIN, and each
-// link's messages to its session. main.ts gives it links (ws sockets); it
+// link's messages to its session; a JOIN that finds a session full waits in its line (queue.ts). main.ts gives it links (ws sockets); it
 // speaks only Link, so tests give it fake ones (server/world-test.ts).
 
 /** What a link's socket tells the lobby: a message, and its close. */
@@ -18,6 +19,12 @@ export interface LinkInput {
   message(data: Uint8Array): Promise<void>;
   closed(code: number, reason: string): void;
 }
+
+/** Where a link is once it is in: a session's player, or an entry in its line. */
+type At = { session: Session; player: Player } | { session: Session; place: Place };
+
+/** What the line calls when a place is free for a link: brings it in as its JOIN would have. */
+type Seat = (session: Session, name: string) => () => Promise<void>;
 
 /** One more (or, `by` -1, one fewer) of an address's links in `counts`; how many it has now. */
 const count = (counts: Map<string, number>, ip: string, by: number) => {
@@ -50,11 +57,26 @@ export class Lobby {
       link.close(closeCode(reason), reason);
     };
     const uploading = () => [...this.uploads.values()].reduce((n, c) => n + c, 0);
-    /** Their session and who they are in it, once welcomed; 'waiting' while a host or join is under way. */
-    let at: { session: Session; player: Player } | 'waiting' | null = null;
+    /** Their session and who they are in it, once welcomed, or their place in its line; 'waiting' while a host or join is under way. */
+    let at: At | 'waiting' | null = null;
     let hello: ReturnType<typeof setTimeout> | undefined;
     /** Counted among its address's uploads (a HOST link let past the limit on links): given back when it closes. */
     let uploads = false;
+    const seat: Seat = (session, name) => async () => {
+      at = 'waiting';
+      try {
+        const r = await this.seated(session, link, name, ip);
+        if (typeof r === 'string') {
+          reject(r);
+          return session.line.update();
+        }
+        at = r;
+        if (!link.open) r.session.dropped(r.player, link);
+      } catch (e) {
+        log(session.code, `server error with ${ip}: closed`, e);
+        link.close(1011, 'server error');
+      }
+    };
     const input: LinkInput = {
       message: async (data) => {
         // A message the server can't handle closes that one link, never the server and everyone's sessions.
@@ -66,12 +88,14 @@ export class Lobby {
           }
           if (at === 'waiting') return;
           // A link replaced by another (a reconnect, another tab) is no longer theirs.
+          if (at && 'place' in at) return at.place.link === link ? at.session.line.receive(at.place, m) : undefined;
           if (at) return at.player.link === link ? at.session.receive(at.player, m) : undefined;
           if (m.type !== 'host' && m.type !== 'join') return;
           at = 'waiting';
-          const r = await this.enter(m, link, ip);
+          const r = await this.enter(m, link, ip, seat);
           if (typeof r === 'string') return reject(r, m);
           at = r;
+          if ('place' in r) return link.open ? r.session.line.update() : r.session.line.dropped(r.place, link);
           if (!link.open) r.session.dropped(r.player, link);
         } catch (e) {
           log(at && at !== 'waiting' ? at.session.code : '-----', `server error with ${ip}: closed`, e);
@@ -82,7 +106,9 @@ export class Lobby {
         count(this.links, ip, -1);
         if (uploads) count(this.uploads, ip, -1);
         clearTimeout(hello);
-        if (!at || at === 'waiting' || at.player.link !== link) return;
+        if (!at || at === 'waiting') return;
+        if ('place' in at) return at.session.line.dropped(at.place, link);
+        if (at.player.link !== link) return;
         log(at.session.code, who(at.player), `dropped (${code}${reason.length ? ` ${reason}` : ''}): ${SERVER.rejoinWindow} s to come back`);
         at.session.dropped(at.player, link);
       },
@@ -117,8 +143,8 @@ export class Lobby {
     return [...this.sessions.values()].reduce((n, s) => n + s.players.size, 0);
   }
 
-  /** HOST or JOIN: the session and the player, or why not. */
-  private async enter(m: Extract<ToServer, { type: 'host' | 'join' }>, link: Link, ip: string): Promise<{ session: Session; player: Player } | Rejection> {
+  /** HOST or JOIN: the session and the player (or their place in its line), or why not. */
+  private async enter(m: Extract<ToServer, { type: 'host' | 'join' }>, link: Link, ip: string, seat: Seat): Promise<At | Rejection> {
     if (m.protocol !== PROTOCOL) return 'version';
     let session: Session;
     if (m.type === 'host') {
@@ -149,13 +175,24 @@ export class Lobby {
       const found = this.sessions.get(m.code);
       if (!found) return this.ended.has(m.code) ? 'ended' : 'no-session';
       session = found;
+      // A held place in the line, taken back.
+      const back = m.queue && session.line.resume(m.queue, link, m.name, seat(session, m.name));
+      if (back) return { session, place: back };
     }
-    const r = await session.admit(link, m.name, m.type === 'join' ? m.token : undefined);
-    if (typeof r === 'string') {
-      // A session turned down with its host has no one to close it.
-      if (m.type === 'host') session.close('its host turned away');
-      return r;
+    const r = await this.seated(session, link, m.name, ip, m.type === 'join' ? m.token : undefined);
+    if (r === 'full' && m.type === 'join') {
+      const place = session.line.add(link, m.name, seat(session, m.name));
+      return place ? { session, place } : r;
     }
+    // A session turned down with its host has no one to close it.
+    if (typeof r === 'string' && m.type === 'host') session.close('its host turned away');
+    return r;
+  }
+
+  /** `link` in `session` as a player (a JOIN's, or a place in the line's turn), logged; or why not. */
+  private async seated(session: Session, link: Link, name: string, ip: string, token?: string): Promise<{ session: Session; player: Player } | Rejection> {
+    const r = await session.admit(link, name, token);
+    if (typeof r === 'string') return r;
     log(session.code, who(r.p), `in from ${ip} (${r.how}, ${session.players.size} players${r.note})`);
     return { session, player: r.p };
   }

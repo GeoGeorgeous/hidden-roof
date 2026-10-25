@@ -11,6 +11,7 @@ import { streamPaint } from '../src/save/save-paint';
 import { surfaceTable } from '../src/save/shape';
 import { liveMemory, log, mb, overMemory, span, who } from './log';
 import { deliver, presence, uniqueName, type Link, type Player } from './player';
+import { Queue } from './queue';
 import { Snapshot, waiting } from './snapshot';
 import { sessionPaint } from './world';
 
@@ -20,6 +21,7 @@ import { sessionPaint } from './world';
 // SERVER.rejoinWindow to come back with their token; after that they and their
 // stepladder go, and the session closes when no one is left, unless it stays
 // (a public one, or a private one the admin made so) until the admin closes it.
+// A JOIN that finds it full waits in its line (queue.ts) and comes in as a place frees.
 // Its paint is stored only if it's public and DATA_DIR is set (kept.ts): a
 // restart ends every other session.
 
@@ -42,6 +44,8 @@ const HOSTED: SessionSetup = { kind: 'private', name: '', limit: SERVER.players.
 export class Session {
   readonly players = new Map<number, Player>();
   readonly table: string;
+  /** Who waits for a place, in order. */
+  readonly line: Queue;
   /** Its surfaces as paint ops name them (op-wire.ts). */
   private surfaces: SurfaceIndex;
   private world: ReturnType<typeof sessionPaint>;
@@ -71,6 +75,7 @@ export class Session {
     private onEmpty: (why: string) => void,
     readonly setup = HOSTED,
   ) {
+    this.line = new Queue(code, () => this.players.size < this.setup.limit);
     this.world = sessionPaint(level, detail);
     this.table = surfaceTable(this.world.paint.surfaces);
     this.surfaces = new SurfaceIndex([...this.world.paint.surfaces].map((s) => s.key));
@@ -206,11 +211,12 @@ export class Session {
   ping() {
     const f = encode({ type: 'ping' });
     for (const p of this.players.values()) p.link?.send(f);
+    this.line.ping(f);
   }
 
   /** Ends it with no one in it (its host was turned away, or no one came to the admin's). */
   close(why: string) {
-    if (!this.players.size) this.onEmpty(why);
+    if (!this.players.size) this.finish(why);
   }
 
   /**
@@ -238,7 +244,7 @@ export class Session {
       link?.close(closeCode('ended'), 'ended');
     }
     this.players.clear();
-    this.onEmpty('by the admin');
+    this.finish('by the admin');
   }
 
   /** The paint now as a paint file (kept.ts saves it), made in turn as a welcome's is; null when there's no memory for one. */
@@ -271,7 +277,14 @@ export class Session {
     p.link = null;
     link?.close(1000, why);
     this.broadcast({ type: 'left', id: p.id });
-    if (!this.players.size && !this.setup.stays) this.onEmpty('no one left');
+    this.line.update();
+    if (!this.players.size && !this.setup.stays) this.finish('no one left');
+  }
+
+  /** It's over: those waiting are told, and the lobby forgets it. */
+  private finish(why: string) {
+    this.line.end();
+    this.onEmpty(why);
   }
 
   /** SAVE: the paint as a paint file, for `p`. One at a time each. */

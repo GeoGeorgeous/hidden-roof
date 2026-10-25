@@ -20,7 +20,7 @@ async function call(method, path, body) {
   return out;
 }
 
-const line = (s) => `${s.code}  ${s.kind.padEnd(7)}  ${s.players.length}/${s.limit}  ${s.level} ${s.detail}  ${JSON.stringify(s.name)}  tools: ${s.tools.join(' ')}  ${s.stays ? 'stays' : 'closes when empty'}  paint ${s.paintMB} MB  since ${s.started}`;
+const line = (s) => `${s.code}  ${s.kind.padEnd(7)}  ${s.players.length}/${s.limit}  ${s.level} ${s.detail}  ${JSON.stringify(s.name)}  tools: ${s.tools.join(' ')}  ${s.stays ? 'stays' : 'closes when empty'}  paint ${s.paintMB} MB  queue: ${s.queue}  since ${s.started}`;
 
 try {
   if (what === 'list') {
