@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { COLOR_ORDER, SERVER } from '../src/config';
 import type { Rejection } from '../src/net/protocol';
-import { addClient, clientReport, noClient, type ClientCounts } from './beacon';
+import { addClient, clientReport, noClient, type ClientCounts } from './client-counts';
 import { noPaint, type Paint } from './counts';
 import { log } from './log';
 import type { Link } from './player';
@@ -145,8 +145,8 @@ class History {
         await this.write(name, { total: sum(Object.values(file.hours)) });
         continue;
       }
-      // An hour written before a field was added gets it empty.
-      for (const [k, v] of Object.entries(file.hours)) this.hours.set(day * 24 + Number(k), { ...blank(), ...v });
+      // An hour written before a field was added gets it empty (the beacons' too).
+      for (const [k, v] of Object.entries(file.hours)) this.hours.set(day * 24 + Number(k), { ...blank(), ...v, client: { ...noClient(), ...v.client } });
     }
     this.since = Math.min(this.since, ...[...this.hours.keys()].map((k) => k * HOUR));
     await people.keepIn(this.dir);
