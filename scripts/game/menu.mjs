@@ -13,7 +13,9 @@ await check('pickups: on the start screen, before the game first runs, they alre
 });
 
 await check('menu: Esc goes back from a page to the pause screen and there resumes once released (a press on a page doesn\'t); Game, Graphics and Audio open their tab; the style switcher is the settings STYLE', async () => {
-  const r = await page.evaluate(() => {
+  // The server list, as the server would answer it: one public session.
+  await page.route(/\/ws\?list/, (r) => r.fulfill({ json: { region: 'DE', sessions: [{ kind: 'public', name: 'Test', limit: 20, tools: ['can', 'marker'], code: 'ABCDE', players: [] }] } }));
+  const r = await page.evaluate(async () => {
     const { input } = window.game;
     // A real Esc, down or up: whether it asked to resume (the pointer lock).
     let resumed = 0;
@@ -41,19 +43,23 @@ await check('menu: Esc goes back from a page to the pause screen and there resum
     tap();
     document.querySelectorAll('.themes button')[0].click();
     const on = document.querySelector('.themes .on').textContent;
-    // Multiplayer: Esc goes from HOST back to its choice of HOST and JOIN, then to the pause screen.
+    // Multiplayer: Esc goes from a session's dialog back to the list, then to the pause screen.
     item('Multiplayer').click();
-    document.querySelector('.big-row').click();
-    const host = document.querySelector('.page-sub').textContent;
+    const row = async () => {
+      for (let i = 0; i < 100 && !document.querySelector('.mp-page .session:not(.skeleton-row)'); i++) await new Promise((r) => setTimeout(r, 50));
+      return document.querySelector('.mp-page .session:not(.skeleton-row)');
+    };
+    (await row()).click();
+    const dialog = !document.querySelector('.join-popup').hidden;
     tap();
-    const mp = [document.querySelector('.page-sub').textContent, document.querySelectorAll('.big-row').length];
+    const mp = [document.querySelector('.mp-page').hidden, document.querySelectorAll('.mp-page .session:not(.skeleton-row)').length];
     tap();
     const mpBack = shown();
     const resumes = tap();
     input.requestLock = requestLock;
-    return { audio, back, after, graphics, style, on, host, mp, mpBack, resumes };
+    return { audio, back, after, graphics, style, on, dialog, mp, mpBack, resumes };
   });
-  const ok = r.audio[0] === 'seg back | page settings-page' && /sound/i.test(r.audio[1]) && r.back.join() === 'false,false' && /pause/.test(r.after) && /graphics/i.test(r.graphics) && /old manga/i.test(r.style) && r.on === 'New manga' && r.host === 'Host a session' && r.mp.join() === ',2' && /pause/.test(r.mpBack) && r.resumes.join() === 'false,true';
+  const ok = r.audio[0] === 'seg back | page settings-page' && /sound/i.test(r.audio[1]) && r.back.join() === 'false,false' && /pause/.test(r.after) && /graphics/i.test(r.graphics) && /old manga/i.test(r.style) && r.on === 'New manga' && r.dialog && r.mp.join() === 'false,1' && /pause/.test(r.mpBack) && r.resumes.join() === 'false,true';
   return ok ? null : JSON.stringify(r);
 });
 

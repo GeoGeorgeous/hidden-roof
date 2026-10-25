@@ -1103,6 +1103,12 @@ export const SERVER = {
   port: 3000,
   /** Players in one session, by its kind; each receives everyone's state and ops (no interest management), load-tested with 20 (docs/deploy.md, section 6). */
   players: { public: 20, private: 4 },
+  /** The fewest players a private session may be made for (its host included). */
+  privateMin: 2,
+  /** Players may HOST their own private sessions; off in 1.6.0, when only the admin makes sessions (the menu's Host is disabled too). */
+  playerHost: false,
+  /** Where the server is, a country code for the server list (REGION overrides it). */
+  region: 'DE',
   /** A dropped player can come back as themselves for this long (s); then their stepladder goes, and a session with no one left closes. */
   rejoinWindow: 180,
   /** The server pings every game this often (s), so a game notices a dead link; a game pings the server as often, and each answer is a round trip for the link's status (NET.statusShow). */
@@ -1162,6 +1168,18 @@ export const SERVER = {
   noisyPerIp: 10,
   noisyWindow: 60,
   noisyIps: 1000,
+};
+
+/** The server list and the join dialogs of the Multiplayer page (net/lobby-page.ts). */
+export const LOBBY = {
+  /** The list, or a code's session, is asked for this long (s) before the server counts as not answering. */
+  fetchTimeout: 8,
+  /** Rows of the list's loading state. */
+  skeletonRows: 3,
+  /** Players shown by their initials in a session's line; the rest are a count. */
+  facesShown: 5,
+  /** The rings of those initials, in order: the lists don't know the players' paint colors. */
+  faceColors: ['red', 'cyan', 'yellow', 'green'] as PaintColor[],
 };
 
 /** F3 -> Ghost (src/dev/ghost.ts): the network it plays through, and how far behind it follows you. */

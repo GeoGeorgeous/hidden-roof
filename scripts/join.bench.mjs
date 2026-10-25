@@ -19,7 +19,7 @@ const SHARES = (process.env.SHARES ?? '0.1,0.5,1').split(',').map(Number);
 const sleep = (ms) => new Promise((done) => setTimeout(done, ms));
 
 const port = await freePort();
-const server = spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(port) }, stdio: ['ignore', 'ignore', 'inherit'] });
+const server = spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(port), PLAYER_HOST: '1' }, stdio: ['ignore', 'ignore', 'inherit'] });
 while (!(await new Promise((done) => net.connect(port).on('connect', function () { this.destroy(); done(true); }).on('error', () => done(false))))) await sleep(100);
 const proxyPort = await freePort();
 const proxy = linkProxy(proxyPort, port);
@@ -83,7 +83,7 @@ async function fill(share) {
       g.paint.putFace(s, i, crop, r.w, r.h);
       bytes += crop.length;
     });
-  g.net.host('A', g.config.PAINT.texelsPerMeter, await g.paintFile.save());
+  g.net.host('A', g.config.PAINT.texelsPerMeter, { name: 'Bench', limit: 4, tools: ['can', 'marker', 'ladder', 'roller', 'sponge'] }, await g.paintFile.save());
   return { mb: bytes / 2 ** 20 };
 }
 
