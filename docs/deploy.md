@@ -131,3 +131,23 @@ Design and limits: `docs/known-limits.md` (Multiplayer). Code: `server/`, messag
 - `curl https://roof.hidden.haus/ws` → `roof server · protocol <n>`, the `PROTOCOL` of the game deployed.
 - `docker compose ps roof` is healthy; in two browser windows, HOST shows a code that JOIN accepts; a new file appears in `LOG_DIR`.
 - In a browser: no 404s, the level and fonts load, the console is clean, the game starts at the spawn. (`scripts/smoke.mjs` needs `window.game`, so it works only against the dev server or `build:dev`.)
+- With `DATA_DIR`: the log shows each kept public session again (`made by the admin`, then `paint from <file>`, or `paint wiped: a new protocol` when the release changed it, which is expected); `node admin.mjs list` shows it.
+
+## 8. Sessions: what the owner may ask for
+
+Everything runs from `<apps>`, with the admin command in the running `roof` container (section 6, Admin). It needs `ADMIN_KEY` set on the service (`docs/ideas/vps.md`); without it the command answers `401: no key` or can't connect. Report back the line the command prints: it holds the code players join with.
+
+| The owner asks | Run |
+|---|---|
+| What's running | `docker compose exec roof node admin.mjs list` |
+| A public session "Name" | `docker compose exec roof node admin.mjs create public "Name"` (roof, ULTRA, every tool; up to 20 players; stays when empty; kept with its paint through restarts) |
+| A private session "Name" | `docker compose exec roof node admin.mjs create private "Name"` (up to 4 players, in memory only; closes when its players have gone, or if no one comes in 10 minutes). Add `--stay` if the owner wants it to stay when empty. Send the owner its code. |
+| Some tools off | add `--tools can,marker,ladder` (the tools it allows, of `can,marker,ladder,roller,sponge`); fixed at creation |
+| Another detail or level | add `--detail high` (low, medium, high or ultra), `--level roof` |
+| A clean wall | `docker compose exec roof node admin.mjs wipe CODE`: its paint and saves go; players are reconnected to the clean wall at once |
+| Stop a session | `docker compose exec roof node admin.mjs close CODE`: its players are told it has ended; a public one is no longer kept |
+| Back to an older save | `docker compose stop roof`, move the newer `CODE-<ms>.rhhpaint` files out of `<apps>/roof/data` (the newest 3 are kept, `<ms>` is when it was saved), `docker compose start roof`: it loads the newest one left |
+
+- A name is 1 to 32 characters, in quotes. The command never changes a live session: to change its name or tools, close it and create a new one (new code).
+- A restart or redeploy of `roof` saves the public sessions' paint first (`stop_grace_period`) and makes them again; private sessions end.
+- Errors print as `<status>: <why>`: `400` a bad name, kind, tool or level; `404` no such code; `503` the server is full (`HOST_MEMORY`).
