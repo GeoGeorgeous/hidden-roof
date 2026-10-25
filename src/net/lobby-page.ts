@@ -1,13 +1,14 @@
 import { LOBBY } from '../config';
-import { msg } from '../messages';
-import { button, div, el } from '../menu-ui';
+import { msg, type MessageId } from '../messages';
+import { button, div, el, notice } from '../menu-ui';
 import { lineIcon } from '../ui-icons';
 import { fetchLobby } from './lobby-list';
 import { shellButton, toolIcons, whereTag, type Where } from './lobby-view';
 import type { LobbyEntry } from './protocol';
 
 // The server list of the Multiplayer page (style.css, .lobby): a row for each session, public and private, or
-// bars in their place while the server is asked, or a note when there is none or the server can't be reached.
+// bars in their place while the server is asked (only when it is slow), a note when there is none, or a notice when
+// the server can't be reached.
 // A row picks its session (net-menu.ts opens the dialog for joining it).
 
 export class LobbyPage {
@@ -17,15 +18,29 @@ export class LobbyPage {
   /** Where the server is and its ping, as the last answer said (null before one). */
   where: Where | null = null;
 
-  constructor(private pick: (entry: LobbyEntry, where: Where) => void) {}
+  /** `failed`: the server can't be reached, for the reason given; it answers with the buttons to add to the notice (the page shows one failure, not two). */
+  constructor(
+    private pick: (entry: LobbyEntry, where: Where) => void,
+    private failed: (why: MessageId) => HTMLElement[],
+  ) {}
 
-  /** Asks the server again, bars meanwhile. */
+  /** Asks the server again. The old content stays while it answers; the bars come only when it is slow. */
   async refresh() {
     const run = ++this.run;
-    this.el.replaceChildren(skeleton());
+    let barsAt = 0;
+    const timer = setTimeout(() => {
+      barsAt = performance.now();
+      this.el.replaceChildren(skeleton());
+    }, LOBBY.skeletonDelay * 1000);
     const answer = await fetchLobby();
+    clearTimeout(timer);
+    // Bars on screen stay a while, so they never flicker.
+    if (barsAt) await new Promise((done) => setTimeout(done, LOBBY.skeletonMin * 1000 - (performance.now() - barsAt)));
     if (run !== this.run) return;
-    if ('why' in answer) return this.el.replaceChildren(this.note(msg(answer.why), '', true));
+    if ('why' in answer) {
+      const actions = [shellButton(msg('lobby.refresh'), () => void this.refresh(), { icon: 'refresh', key: 'R' }), ...this.failed(answer.why)];
+      return this.el.replaceChildren(notice(msg('lobby.listFailedHint'), { error: true, title: msg(answer.why), actions }));
+    }
     const where = (this.where = { region: answer.value.region, ping: answer.ping });
     const { sessions } = answer.value;
     this.el.replaceChildren(...(sessions.length ? sessions.map((s) => this.row(s, where)) : [this.note(msg('lobby.emptyTitle'), msg('lobby.emptyText'))]));
@@ -47,11 +62,10 @@ export class LobbyPage {
     return row;
   }
 
-  /** Nothing to pick from: a line (red when it is trouble), what to do about it, and REFRESH. */
-  private note(title: string, text: string, error = false) {
+  /** Nothing to pick from: a line, what to do about it, and REFRESH. */
+  private note(title: string, text: string) {
     const box = div('lobby-note');
-    box.append(div(error ? 'note-title error' : 'note-title', title));
-    if (text) box.append(div('text', text));
+    box.append(div('note-title', title), div('text', text));
     box.append(shellButton(msg('lobby.refresh'), () => void this.refresh(), { icon: 'refresh', key: 'R' }));
     return box;
   }
@@ -62,10 +76,12 @@ function skeleton() {
   const box = div('lobby-skeleton');
   box.setAttribute('aria-busy', 'true');
   box.setAttribute('aria-label', msg('lobby.loadingList'));
-  for (let i = 0; i < LOBBY.skeletonRows; i++) {
+  for (const width of LOBBY.skeletonNames) {
     const row = div('big-row session skeleton-row');
     const text = div('text');
-    text.append(div('bar name'), div('bar sub'));
+    const name = div('bar name');
+    name.style.width = `${width}px`;
+    text.append(name, div('bar sub'));
     const bar = (name: string) => {
       const col = div(name);
       col.append(div('bar'));

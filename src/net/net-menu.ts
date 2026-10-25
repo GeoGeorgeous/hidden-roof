@@ -3,7 +3,7 @@ import { download, stamp } from '../files';
 import type { PauseMenu } from '../pause-menu';
 import { msg, type MessageId } from '../messages';
 import type { Notify } from '../notify';
-import { button, div, el, pageHead } from '../menu-ui';
+import { button, div, el, notice, pageHead } from '../menu-ui';
 import { createDialog } from './create-dialog';
 import type { MultiplayerContext } from './game-context';
 import { JoinDialog, rulesSeen } from './join-dialog';
@@ -53,10 +53,10 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
   const sub = div('page-sub');
   const rows = div('rows lobby');
   const status = div('mp-status');
-  // The network log, for a report: offered once the link failed.
+  // The network log, for a report: the action of the notice of a failed link.
   const log = button('Copy network log', () => copyLog(), 'net-log');
   const foot = div('mp-foot');
-  foot.append(status, log);
+  foot.append(status);
   const hostButton = shellButton(msg('lobby.host'), SERVER.playerHost ? () => hud.openPage('create') : null, { icon: 'broadcast', key: 'H', title: SERVER.playerHost ? undefined : msg('lobby.hostUnavailable') });
   hostButton.classList.add('host-button');
   const root = div('page mp-page');
@@ -70,22 +70,27 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
   /** The row picked, while its dialog is open. */
   let picked: { entry: LobbyEntry; where: Where } | null = null;
 
-  /** An error in red, progress (…) dimmer; after the link `failed`, COPY NETWORK LOG under it. */
-  const say = (text: string, error = false, failed = false) => {
-    status.textContent = text;
-    status.classList.toggle('error', error);
-    log.hidden = !failed;
+  /** Why the link failed, while its notice is showing: the list, asked again, won't say it twice. */
+  let linkFailed: MessageId | undefined;
+  /** Progress (…) dimmer; a link that `failed` (for this reason) is a notice with COPY NETWORK LOG. */
+  const say = (text: string, failed?: MessageId) => {
+    status.replaceChildren(failed ? notice(text, { error: true, actions: [log] }) : text);
+    linkFailed = failed;
   };
   const show = (...els: HTMLElement[]) => {
     rows.replaceChildren(...els, foot);
     say('');
   };
-  const list = new LobbyPage((entry, where) => {
-    picked = { entry, where };
-    // A public session's rules, once seen, are not asked again; a name is still needed.
-    if (entry.kind === 'public' && rulesSeen() && !nameProblem(storedName())) join(storedName(), entry.code ?? '', entry);
-    else dialog.ask({ entry, where });
-  });
+  const list = new LobbyPage(
+    (entry, where) => {
+      picked = { entry, where };
+      // A public session's rules, once seen, are not asked again; a name is still needed.
+      if (entry.kind === 'public' && rulesSeen() && !nameProblem(storedName())) join(storedName(), entry.code ?? '', entry);
+      else dialog.ask({ entry, where });
+    },
+    // The server is down for the list too: its notice says so, with the log, and the link's notice goes.
+    (why) => (why === linkFailed ? (say(''), [log]) : []),
+  );
   /** Back from a dialog to the list as it was, without asking the server again. */
   let keep = false;
   const back = () => ((keep = true), hud.openPage('mp'));
@@ -162,12 +167,12 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
     // What was seen (a close code, an HTTP status, tries) goes along, for reports.
     const detail = s.state === 'failed' || s.state === 'reconnecting' ? s.detail : undefined;
     const text = known && detail ? `${known} (${detail})` : known;
-    say(text ?? '', s.state === 'failed', s.state === 'failed');
+    say(text ?? '', s.state === 'failed' ? id : undefined);
     // A failed JOIN goes back: to its dialog when the session is full (it may have room soon), else to the list, which is asked again.
     if (s.state === 'failed' && !s.code && joining) {
       const back = joining;
       if (s.reason === 'full') dialog.ask({ ...back, error: text });
-      else (hud.openPage('mp'), say(text ?? '', true, true));
+      else (hud.openPage('mp'), say(text ?? '', id));
     }
     if (s.state !== 'connecting') joining = null;
     // In play the link's loss is a status, as long as it lasts; a session lost mid-play is a dialog in its place (the menu's line above says either with the page open). A failed JOIN or HOST stays on the page.

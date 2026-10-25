@@ -1,6 +1,6 @@
 import { msg, msgLines } from '../messages';
 import { PRIVACY, TERMS } from '../links';
-import { action, div, el, popup } from '../menu-ui';
+import { action, div, el, notice, popup } from '../menu-ui';
 import { store, stored } from '../stored';
 import { codeBoxes } from './code-boxes';
 import { lookupCode } from './lobby-list';
@@ -96,23 +96,30 @@ export class JoinDialog {
       this.buttons.replaceChildren(this.cancel, this.join);
       this.boxes.set(code ?? '');
     }
-    this.message.textContent = error ?? '';
+    this.fail(error);
     this.sync();
     if (!isPublic && !code) this.boxes.focus();
     else if (!this.name.input.value) this.name.input.focus();
+  }
+
+  /** Shows what went wrong (a name that won't do, a join that came back failed) in a notice, or clears it. */
+  private fail(text?: string) {
+    this.message.replaceChildren(...(text ? [notice(text, { error: true })] : []));
   }
 
   /** The code in the boxes changed: with all its letters, ask the server which session it is. */
   private async lookup(code: string) {
     const run = ++this.lookups;
     this.session = null;
-    this.message.textContent = '';
+    this.fail();
     this.found.replaceChildren();
     this.sync();
     if (code.length < CODE_LENGTH) return;
     const answer = await lookupCode(code);
     if (run !== this.lookups) return;
-    if ('why' in answer || !answer.value) this.found.replaceChildren(div('none', msg('why' in answer ? answer.why : 'lobby.noSession')));
+    // No session is the answer to the code; a server that can't answer is a failure.
+    if ('why' in answer) this.found.replaceChildren(notice(msg(answer.why), { error: true }));
+    else if (!answer.value) this.found.replaceChildren(div('none', msg('lobby.noSession')));
     else {
       this.session = answer.value;
       this.found.replaceChildren(sessionLine(answer.value, { region: this.asked!.where.region, ping: answer.ping }));
@@ -131,7 +138,7 @@ export class JoinDialog {
     const name = this.name.input.value;
     const problem = nameProblem(name);
     if (problem) {
-      this.message.textContent = msg(problem);
+      this.fail(msg(problem));
       return this.name.input.focus();
     }
     if (entry.kind === 'public') {
@@ -152,7 +159,7 @@ function rules() {
   const grid = div('rules');
   for (const [allowed, label, items] of [[true, 'lobby.do', 'lobby.doItems'], [false, 'lobby.dont', 'lobby.dontItems']] as const) {
     const col = div('rules-col');
-    col.append(el('span', 'label', msg(label)), ...msgLines(items).map((text) => ruleItem(text, allowed)));
+    col.append(el('span', 'field-label', msg(label)), ...msgLines(items).map((text) => ruleItem(text, allowed)));
     grid.append(col);
   }
   return grid;

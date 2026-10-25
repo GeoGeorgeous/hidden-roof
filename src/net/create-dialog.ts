@@ -2,9 +2,11 @@ import { COLORS, SERVER } from '../config';
 import type { Tool } from '../inventory/tool';
 import { pickFile } from '../files';
 import { msg } from '../messages';
-import { aboutSize, action, button, div, el, popup, relabel, sentence } from '../menu-ui';
+import { aboutSize, action, button, div, el, notice, popup, relabel, sentence } from '../menu-ui';
+import { tablerIcon } from '../ui-icons';
+import { toolChip } from './lobby-view';
 import { SESSION_NAME_MAX } from './protocol';
-import { toolIcon, TOOLS, TOOL_NAMES } from './tool-icons';
+import { TOOLS, TOOL_NAMES } from './tool-icons';
 
 // The "new session" dialog: the host's own name (`player`, the caller's field), the session's
 // name, how many players, the tools it allows and what the roof starts from. The caller mounts the returned element like the
@@ -21,24 +23,12 @@ export interface NewSession {
   file: File | null;
 }
 
-// Tabler outline icons (MIT, Paweł Kuna; public/licenses/tabler-icons.txt) on a 24 px grid, drawn in the text color.
-const ICONS = {
-  minus: '<path d="M5 12l14 0"/>',
-  plus: '<path d="M12 5l0 14"/><path d="M5 12l14 0"/>',
-  'file-upload': '<path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/><path d="M12 11v6"/><path d="M9.5 13.5l2.5 -2.5l2.5 2.5"/>',
-  'file-check': '<path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/><path d="M9 15l2 2l4 -4"/>',
-};
-
-function icon(name: keyof typeof ICONS) {
-  return `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}</svg>`;
-}
-
 /** The dots' colors, one per seat. */
 const SEATS = [COLORS.red, COLORS.cyan, COLORS.yellow, COLORS.green];
 
 /** A label row: what it is on the left, its state on the right. */
 function labelRow(label: string) {
-  const row = div('create-label');
+  const row = div('field-label');
   const state = el('span');
   row.append(el('span', '', label), state);
   return { row, state };
@@ -76,7 +66,7 @@ export function createDialog(opts: { player: HTMLElement; create(s: NewSession):
       limit += sign;
       sync();
     }, 'create-step');
-    b.innerHTML = icon(sign < 0 ? 'minus' : 'plus');
+    b.innerHTML = tablerIcon(sign < 0 ? 'minus' : 'plus');
     return b;
   };
   const less = stepper(-1);
@@ -97,14 +87,14 @@ export function createDialog(opts: { player: HTMLElement; create(s: NewSession):
   const chips = new Map<Tool, HTMLElement>();
   const shelf = div('create-tools');
   for (const tool of TOOLS) {
-    const chip = button('', () => {
+    const chip = toolChip(tool, false);
+    const toggle = button('', () => {
       if (!off.delete(tool)) off.add(tool);
       sync();
-    }, 'create-tool');
-    chip.innerHTML = toolIcon(tool);
-    chip.append(el('span', '', TOOL_NAMES[tool]));
+    });
+    toggle.append(chip);
     chips.set(tool, chip);
-    shelf.append(chip);
+    shelf.append(toggle);
   }
   const toolsBox = div('create-field');
   toolsBox.append(toolsLabel.row, shelf);
@@ -149,29 +139,29 @@ export function createDialog(opts: { player: HTMLElement; create(s: NewSession):
   const startBox = div('create-field');
   const cards = div('create-cards');
   cards.append(empty.el, paint.el);
-  startBox.append(el('span', 'create-title', 'Start from'), cards);
+  startBox.append(el('span', 'field-label', 'Start from'), cards);
 
   // Footer
   const summary = div('create-summary');
-  const failure = div('para error');
-  failure.hidden = true;
+  /** The notice of a failed create, under the options. */
+  let failure: HTMLElement | null = null;
   const go = action('Create', async () => {
     if (!ready()) return;
     busy = true;
-    failure.hidden = true;
+    failure?.remove();
     sync();
     try {
       await opts.create({ name: name.value.trim(), limit, tools: TOOLS.filter((t) => !off.has(t)), file: fromFile ? file : null });
     } catch (e) {
-      failure.textContent = sentence((e as Error).message);
-      failure.hidden = false;
+      failure = notice(sentence((e as Error).message), { error: true });
+      ui.body.append(failure);
     }
     busy = false;
     sync();
   }, { primary: true });
   const ready = () => !busy && name.value.trim() !== '' && (!fromFile || file !== null);
 
-  ui.body.append(opts.player, nameBox, players, toolsBox, startBox, failure);
+  ui.body.append(opts.player, nameBox, players, toolsBox, startBox);
   ui.buttons.append(summary, action('Cancel', opts.cancel, { key: 'ESC' }), go);
   name.addEventListener('input', sync);
 
@@ -190,7 +180,7 @@ export function createDialog(opts: { player: HTMLElement; create(s: NewSession):
     paint.el.classList.toggle('on', fromFile);
     paint.el.classList.toggle('bad', fromFile && fileError);
     const sub = paint.sub;
-    sub.innerHTML = file ? icon('file-check') : fileError ? '' : icon('file-upload');
+    sub.innerHTML = file ? tablerIcon('file-check') : fileError ? '' : tablerIcon('file-upload');
     sub.append(file ? `${file.name} · ${aboutSize(file.size)}` : msg(fileError ? 'menu.createNotPaint' : 'menu.createFileHint'));
     change.hidden = !file;
 

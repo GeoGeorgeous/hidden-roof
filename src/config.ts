@@ -1175,10 +1175,14 @@ export const SERVER = {
 
 /** The server list and the join dialogs of the Multiplayer page (net/lobby-page.ts). */
 export const LOBBY = {
-  /** The list, or a code's session, is asked for this long (s) before the server counts as not answering. */
+  /** The list, or a code's session, is asked for this long (s) before the server counts as not answering. Shorter than NET.connectTimeout: this is a GET of a few hundred bytes, not a socket and its welcome. */
   fetchTimeout: 8,
-  /** Rows of the list's loading state. */
-  skeletonRows: 3,
+  /** The list's loading bars show only when the answer is slower than this (s): the usual answer, tens of ms, would flash them for a frame or two. */
+  skeletonDelay: 0.15,
+  /** Once shown, the bars stay this long (s), so an answer just after them doesn't make them flicker. */
+  skeletonMin: 0.3,
+  /** The loading bars: a row for each, the width (px) of its name bar. */
+  skeletonNames: [168, 112, 140],
   /** Players shown by their initials in a session's line; the rest are a count. */
   facesShown: 5,
 };

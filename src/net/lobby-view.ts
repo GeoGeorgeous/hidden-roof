@@ -76,19 +76,25 @@ export function toolIcons(tools: Tool[]) {
   return box;
 }
 
+/** A tool's icon and name in a chip: lit, or struck through when it is `off`. */
+export function toolChip(tool: Tool, off: boolean) {
+  const chip = el('span', off ? 'tool-chip off' : 'tool-chip');
+  chip.innerHTML = toolIcon(tool);
+  chip.append(el('span', '', TOOL_NAMES[tool]));
+  return chip;
+}
+
 /** "Tools in this session" over a segmented row of the tools by name: the allowed ones lit, the others struck through. */
 export function toolsRow(tools: Tool[]) {
   const row = div('tools-row');
   const seg = div('seg');
   for (const tool of TOOLS) {
     const on = tools.includes(tool);
-    const chip = el('span', on ? 'tool on' : 'tool off');
+    const chip = toolChip(tool, !on);
     chip.title = msg(on ? 'lobby.toolAllowed' : 'lobby.toolNotInSession');
-    chip.innerHTML = toolIcon(tool);
-    chip.append(el('span', '', TOOL_NAMES[tool]));
     seg.append(chip);
   }
-  row.append(el('span', 'label', msg('lobby.toolsLabel')), seg);
+  row.append(el('span', 'field-label', msg('lobby.toolsLabel')), seg);
   return row;
 }
 

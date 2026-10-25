@@ -1385,21 +1385,20 @@
   flex-direction: column;
   gap: 10px;
 }
-.overlay .create-label,
-.overlay .create-title {
+.overlay .field-label {
   display: flex;
   justify-content: space-between;
   font-size: 12px;
   color: var(--text-2);
 }
-.overlay .create-label span:last-child {
+.overlay .field-label span:last-child {
   color: var(--text-3);
   font-variant-numeric: tabular-nums;
 }
-.overlay .create-name {
+/* A text field: the host's name, the session's name, a letter of the code. */
+.overlay :is(.create-name, .name-row input, .code-boxes input) {
+  pointer-events: auto;
   box-sizing: border-box;
-  width: 100%;
-  height: 40px;
   padding: 0 12px;
   border: 1px solid var(--edge);
   border-radius: 4px;
@@ -1407,15 +1406,18 @@
   color: var(--paper);
   font: 14px var(--sans);
   outline: none;
-  pointer-events: auto;
   user-select: text;
   transition: border-color 0.2s;
 }
-.overlay .create-name:focus {
+.overlay :is(.create-name, .name-row input, .code-boxes input):focus {
   border-color: var(--text-2);
 }
-.overlay .create-name::placeholder {
+.overlay :is(.create-name, .name-row input)::placeholder {
   color: var(--text-3);
+}
+.overlay .create-name {
+  width: 100%;
+  height: 40px;
 }
 .overlay .create-players,
 .overlay .create-ctl,
@@ -1432,11 +1434,11 @@
   flex-direction: column;
   gap: 3px;
 }
-.overlay .create-note b {
+.overlay :is(.create-note, .create-card-text) b {
   font-size: 14px;
   font-weight: 500;
 }
-.overlay .create-note span {
+.overlay :is(.create-note span, .create-sub) {
   font-size: 12px;
   color: var(--text-2);
 }
@@ -1492,7 +1494,8 @@
   border: 1px solid var(--edge);
   border-radius: 6px;
 }
-.overlay .create-tool {
+/* A tool by name (net/lobby-view.ts): lit, or struck through when off. */
+.overlay .tool-chip {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1503,11 +1506,9 @@
   font-size: 12px;
   transition: background 0.2s, color 0.2s;
 }
-.overlay .create-tool.off {
-  background: transparent;
+.overlay .tool-chip.off {
+  background: none;
   color: var(--text-4);
-}
-.overlay .create-tool.off span {
   text-decoration: line-through;
 }
 .overlay .create-cards {
@@ -1526,7 +1527,7 @@
 }
 .overlay .create-card.on {
   border-color: var(--text-1);
-  background: rgba(235, 229, 214, 0.07);
+  background: var(--hair);
 }
 .overlay .create-card.on.bad {
   border-color: var(--error);
@@ -1557,16 +1558,10 @@
   gap: 3px;
   min-width: 0;
 }
-.overlay .create-card-text b {
-  font-size: 14px;
-  font-weight: 500;
-}
 .overlay .create-sub {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
-  color: var(--text-2);
 }
 .overlay .create-card.bad .create-sub {
   color: var(--error);
@@ -2050,11 +2045,40 @@
   margin-top: 14px;
 }
 .overlay .mp-status {
+  align-self: stretch;
   min-height: 18px;
   text-align: center;
   color: var(--text-2);
 }
-.overlay .mp-status.error {
+/* A message in a box (menu-ui.ts, notice): a failure has an error border and title; its buttons sit on the right. */
+.overlay .notice {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 12px;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--edge);
+  border-radius: 6px;
+  background: var(--hair);
+  font-size: 13px;
+  color: var(--text-1);
+  text-align: left;
+}
+.overlay .notice.error {
+  border-color: color-mix(in srgb, var(--error) 40%, transparent);
+}
+.overlay .notice-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.overlay .notice-title {
+  font-weight: 500;
+}
+.overlay .notice.error .notice-title {
   color: var(--error);
 }
 .overlay .net-log {
@@ -2188,36 +2212,15 @@
   border-radius: 3px;
   background: var(--hair);
 }
-.overlay .skeleton-row .bar.name {
-  width: 168px;
-}
 .overlay .skeleton-row .bar.sub {
   width: 64px;
   height: 9px;
 }
-.overlay .skeleton-row .count,
-.overlay .skeleton-row .where-col,
-.overlay .skeleton-row .tool-icons {
-  justify-content: flex-end;
-}
-.overlay .skeleton-row .count .bar {
-  width: 36px;
+.overlay .skeleton-row :is(.count, .where-col, .tool-icons) .bar {
+  width: 72%;
   margin-left: auto;
 }
-.overlay .skeleton-row .where-col .bar {
-  width: 64px;
-}
-.overlay .skeleton-row .tool-icons .bar {
-  width: 104px;
-  height: 14px;
-}
-.overlay .skeleton-row:nth-child(2) .bar.name {
-  width: 112px;
-}
-.overlay .skeleton-row:nth-child(3) .bar.name {
-  width: 140px;
-}
-/* No sessions, or no server: a note between hairlines, and REFRESH. */
+/* No sessions: a note between hairlines, and REFRESH. */
 .overlay .lobby-note {
   display: flex;
   flex-direction: column;
@@ -2232,15 +2235,16 @@
   font-size: 15px;
   font-weight: 500;
 }
-.overlay .lobby-note .note-title.error {
-  color: var(--error);
-}
 .overlay .lobby-note .text {
   font-size: 13px;
   color: var(--text-2);
 }
 .overlay .lobby-note .seg {
   margin-top: 12px;
+}
+
+.overlay .lobby-list > .notice {
+  margin-top: 24px;
 }
 
 /* A session's line: name · who is in, how many · where. On the join dialogs and the loading screen. */
@@ -2311,25 +2315,8 @@
   font-weight: 500;
 }
 .overlay .name-row input {
-  pointer-events: auto;
-  box-sizing: border-box;
   width: 220px;
   height: 36px;
-  padding: 0 12px;
-  border: 1px solid var(--edge);
-  border-radius: 4px;
-  background: rgba(235, 229, 214, 0.06);
-  color: var(--paper);
-  font: 14px var(--sans);
-  outline: none;
-  user-select: text;
-  transition: border-color 0.15s;
-}
-.overlay .name-row input:focus {
-  border-color: rgba(235, 229, 214, 0.5);
-}
-.overlay .name-row input::placeholder {
-  color: var(--text-3);
 }
 .overlay .join-popup .rules {
   display: grid;
@@ -2343,11 +2330,8 @@
   display: flex;
   flex-direction: column;
 }
-.overlay .join-popup .rules .label,
-.overlay .join-popup .tools-row .label {
+.overlay .join-popup .rules-col .field-label {
   padding-bottom: 4px;
-  font-size: 12px;
-  color: var(--text-3);
 }
 .overlay .join-popup .rule {
   display: flex;
@@ -2373,21 +2357,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-}
-.overlay .join-popup .tools-row .tool {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  border-radius: 4px;
-  background: var(--hair);
-  color: var(--paper);
-}
-.overlay .join-popup .tools-row .tool.off {
-  background: none;
-  color: var(--text-4);
-  text-decoration: line-through;
+  gap: 12px;
 }
 .overlay .join-popup .consent {
   font-size: 12px;
@@ -2409,12 +2379,6 @@
 .overlay .join-popup .consent a:hover {
   color: var(--paper);
 }
-.overlay .join-popup .join-message {
-  min-height: 0;
-  font-size: 12px;
-  text-align: center;
-  color: var(--error);
-}
 .overlay .join-popup .join-message:empty {
   display: none;
 }
@@ -2430,10 +2394,6 @@
   margin: 0;
   accent-color: var(--paper);
 }
-.overlay .join-popup .btn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
 /* The code, a box a letter. */
 .overlay .code-boxes {
   display: flex;
@@ -2442,29 +2402,21 @@
   margin: 4px 0;
 }
 .overlay .code-boxes input {
-  pointer-events: auto;
-  box-sizing: border-box;
   width: 52px;
   height: 64px;
   padding: 0;
-  border: 1px solid var(--edge);
   border-radius: 6px;
-  background: rgba(235, 229, 214, 0.04);
   caret-color: var(--paper);
-  color: var(--paper);
   font: 600 28px var(--sans);
   text-align: center;
   text-transform: uppercase;
-  outline: none;
-  user-select: text;
   transition: border-color 0.15s, background 0.15s;
 }
 .overlay .code-boxes input.filled {
-  border-color: rgba(235, 229, 214, 0.45);
+  border-color: var(--text-3);
 }
 .overlay .code-boxes input:focus {
   border-color: var(--paper);
-  background: rgba(235, 229, 214, 0.08);
 }
 
 /* The screen while a session loads (net/loading-page.ts): at the bottom left over the lighter view, CANCEL on the right. */
@@ -2514,7 +2466,7 @@
 .overlay .loading-text .bar {
   height: 3px;
   border-radius: 2px;
-  background: rgba(235, 229, 214, 0.15);
+  background: var(--edge);
   overflow: hidden;
 }
 .overlay .loading-text .fill {

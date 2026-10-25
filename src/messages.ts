@@ -109,6 +109,7 @@ export const MESSAGES = {
     loadingList: 'Loading sessions',
     emptyTitle: 'No sessions right now',
     emptyText: 'Check back in a bit.',
+    listFailedHint: 'Check your connection and try again in a moment.',
     public: 'Public',
     private: 'Private',
     ping: '{ms} ms',

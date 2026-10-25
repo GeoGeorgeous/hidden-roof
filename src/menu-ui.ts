@@ -88,6 +88,16 @@ export function para(className: string, ...parts: (string | HTMLElement)[]) {
   return p;
 }
 
+/** A message in a bordered box (style.css, .notice): a failure (`error`: red border, its `title` in red) or a plain note; `actions` (buttons) on its right. */
+export function notice(text: string, { error = false, title, actions = [] }: { error?: boolean; title?: string; actions?: HTMLElement[] } = {}) {
+  const box = div(error ? 'notice error' : 'notice');
+  const body = div('notice-body');
+  if (title) body.append(div('notice-title', title));
+  body.append(div('notice-text', text));
+  box.append(body, ...actions);
+  return box;
+}
+
 /** A highlighted bit of a paragraph: a file name, a menu path. */
 export function hl(text: string) {
   return el('span', 'hl', text);

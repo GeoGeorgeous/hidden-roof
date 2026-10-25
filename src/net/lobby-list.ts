@@ -9,7 +9,8 @@ import { LOBBY_CODE, LOBBY_LIST, type Lobby, type LobbyEntry } from './protocol'
 /** What the server said and how long it took (ms), or why there is no answer. */
 export type Answer<T> = { value: T; ping: number } | { why: MessageId };
 
-async function ask(url: string): Promise<{ body: unknown; ping: number } | { why: MessageId; missing?: true }> {
+/** `missing`: the words for a 404, which means one thing for the list (no game server there) and another for a code (no session). */
+async function ask(url: string, missing: MessageId): Promise<{ body: unknown; ping: number } | { why: MessageId; missing?: true }> {
   const t0 = performance.now();
   let res: Response;
   try {
@@ -17,7 +18,8 @@ async function ask(url: string): Promise<{ body: unknown; ping: number } | { why
   } catch (e) {
     return { why: (e as Error).name === 'TimeoutError' ? 'menu.netTimeout' : 'menu.netOffline' };
   }
-  if (res.status === 404) return { why: 'menu.netNoSession', missing: true };
+  if (res.status === 404) return { why: missing, missing: true };
+  if (res.status === 429) return { why: 'menu.netTooMany' };
   if (!res.ok) return { why: res.status >= 500 ? 'menu.netServerDown' : 'menu.netNoServer' };
   try {
     const body: unknown = await res.json();
@@ -30,7 +32,7 @@ async function ask(url: string): Promise<{ body: unknown; ping: number } | { why
 
 /** The server's sessions, public and private, and where it is. */
 export async function fetchLobby(): Promise<Answer<Lobby>> {
-  const a = await ask(LOBBY_LIST);
+  const a = await ask(LOBBY_LIST, 'menu.netNoServer');
   if ('why' in a) return a;
   const lobby = a.body as Lobby | null;
   if (!Array.isArray(lobby?.sessions)) return { why: 'menu.netNoServer' };
@@ -39,7 +41,7 @@ export async function fetchLobby(): Promise<Answer<Lobby>> {
 
 /** The session with this code, or null when there is none. */
 export async function lookupCode(code: string): Promise<Answer<LobbyEntry | null>> {
-  const a = await ask(LOBBY_CODE + code);
+  const a = await ask(LOBBY_CODE + code, 'menu.netNoSession');
   if ('why' in a) return a.missing ? { value: null, ping: 0 } : a;
   const entry = a.body as LobbyEntry | null;
   return Array.isArray(entry?.players) ? { value: entry, ping: a.ping } : { why: 'menu.netNoServer' };
