@@ -4,7 +4,8 @@ import type { PaintOps } from '../paint-ops';
 import type { Tools } from '../tools/tools';
 import type { NetLog } from './diagnostics';
 import { Nameplates, type Plate } from './nameplates';
-import type { Presence } from './protocol';
+import type { SurfaceIndex } from '../op-wire';
+import type { Presence, ToClient } from './protocol';
 import { RemotePlayer } from './remote-player';
 
 // The other players in a session, by id: their figures (remote-player.ts),
@@ -69,11 +70,33 @@ export class Remotes {
     for (const id of [...this.list.keys()]) this.remove(id);
   }
 
+  /** The session's players and their stepladders, as its welcome has them, in place of any before. */
+  fill(w: Extract<ToClient, { type: 'welcome' }>, now: number) {
+    this.clear();
+    for (const p of w.players) this.add(p.id, p.name, p.state, now);
+    for (const l of w.ladders) this.g.level.setRuntime(ownerOf(l.id), l.data);
+  }
+
   presence(id: number, state: Presence) {
     const r = this.list.get(id);
     if (!r || r.presence === state) return;
     r.presence = state;
     this.log.add(`#${id} "${this.names.get(id)}" ${state}`);
+  }
+
+  /** A message about the other players (their state, paint, stepladders, coming, going): done with it, true; any other, false. `arrived`: when it came (local s); `onPlayer`: someone joined or left. */
+  handle(m: ToClient, surfaces: SurfaceIndex, arrived: number, onPlayer: (name: string, joined: boolean) => void) {
+    if (m.type === 'state' || m.type === 'ops' || m.type === 'ladder') this.get(m.id)?.deliver(m, surfaces, arrived);
+    else if (m.type === 'joined') {
+      this.add(m.id, m.name, 'here', arrived);
+      onPlayer(m.name, true);
+    } else if (m.type === 'presence') this.presence(m.id, m.state);
+    else if (m.type === 'left') {
+      const name = this.names.get(m.id);
+      this.remove(m.id, true);
+      if (name !== undefined) onPlayer(name, false);
+    } else return false;
+    return true;
   }
 
   /** Once a frame, at local time `now` (s). */

@@ -30,7 +30,7 @@ const PREVIEW_SECONDS = 1.5;
 /** The session's live line (ping, players) is refreshed this often while it shows. */
 const LINE_SECONDS = 1;
 
-export type Page = 'settings' | 'mp' | 'join' | 'create' | 'loading' | 'credits' | 'updates' | 'save' | 'upload' | 'perf';
+export type Page = 'settings' | 'mp' | 'join' | 'create' | 'loading' | 'queue' | 'credits' | 'updates' | 'save' | 'upload' | 'perf';
 
 export class PauseMenu {
   onResume = () => {};

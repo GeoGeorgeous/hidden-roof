@@ -10,6 +10,7 @@ import { JoinDialog, rulesSeen } from './join-dialog';
 import { LobbyPage } from './lobby-page';
 import { shellButton, type Where } from './lobby-view';
 import { LoadingPage } from './loading-page';
+import { QueuePage } from './queue-page';
 import { lostDialog, type LostButton } from './lost-dialog';
 import { nameField, nameProblem, storedName } from './name-field';
 import type { LobbyEntry } from './protocol';
@@ -17,7 +18,7 @@ import { Multiplayer, type Failure, type NetStatus } from './multiplayer';
 
 // The Multiplayer page of the ESC menu: the server's list of sessions (lobby-page.ts), the link's state under it.
 // A row opens the dialog for joining it (join-dialog.ts), and JOIN shows the screen while it loads
-// (loading-page.ts); a public session whose rules the player has seen skips the dialog. HOST, when players may
+// (loading-page.ts), or the line (queue-page.ts) while a full session has no place; a public session whose rules the player has seen skips the dialog. HOST, when players may
 // (SERVER.playerHost), opens the new session dialog (create-dialog.ts): a private session at the host's PAINT
 // DETAIL, from an empty roof (the level's own paint, save/level-paint.ts, none for most levels) or a paint file.
 // In a session the pause screen shows its live line (code, ping, players) and offers SAVE (the session's paint)
@@ -109,6 +110,7 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
   };
   const dialog = new JoinDialog({ show: () => hud.openPage('join'), join, cancel: back });
   const loading = new LoadingPage(() => (cancelJoin(), hud.openPage('mp')));
+  const queue = new QueuePage(() => (cancelJoin(), hud.openPage('mp')), () => net.retryNow());
   const cancelJoin = () => {
     joining = null;
     void net.leave();
@@ -145,6 +147,7 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
   hud.addPage('create', create, () => hostName.reload(), () => (back(), true));
   hud.addPage('join', dialog.root, () => dialog.open(), () => (back(), true));
   hud.addPage('loading', loading.root, () => {}, () => (cancelJoin(), hud.openPage('mp'), true));
+  hud.addPage('queue', queue.root, () => {}, () => (cancelJoin(), hud.openPage('mp'), true));
   addEventListener('keydown', (e) => {
     if (e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.target instanceof HTMLInputElement || !root.checkVisibility()) return;
     if (e.code === 'KeyR') void list.refresh();
@@ -161,9 +164,9 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
   };
   net.onStatus = (s: NetStatus) => {
     hud.setSession(s.state === 'in' || s.state === 'reconnecting' ? s.code : null, s.state === 'in');
-    hud.setJoining(s.state === 'connecting' ? msg('menu.joining') : null);
+    hud.setJoining(s.state === 'connecting' || s.state === 'queued' ? msg('menu.joining') : null);
     const id = s.state === 'failed' ? STATUS[s.reason] : STATUS[s.state];
-    const known = id && msg(id);
+    const known = s.state === 'queued' ? msg(s.lost ? 'menu.netReconnecting' : 'menu.netQueued', { n: s.position }) : id && msg(id);
     // What was seen (a close code, an HTTP status, tries) goes along, for reports.
     const detail = s.state === 'failed' || s.state === 'reconnecting' ? s.detail : undefined;
     const text = known && detail ? `${known} (${detail})` : known;
@@ -174,7 +177,12 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
       if (s.reason === 'full') dialog.ask({ ...back, error: text });
       else (hud.openPage('mp'), say(text ?? '', id));
     }
-    if (s.state !== 'connecting') joining = null;
+    // The line is its own screen; the welcome from it goes on to the loading screen.
+    if (s.state === 'queued' && joining) {
+      if (was !== 'queued') (queue.show(joining), hud.openPage('queue'));
+      queue.update(s);
+    } else if (s.state === 'connecting' && was === 'queued' && joining) (loading.show(joining.entry, joining.where), hud.openPage('loading'));
+    if (s.state !== 'connecting' && s.state !== 'queued') joining = null;
     // In play the link's loss is a status, as long as it lasts; a session lost mid-play is a dialog in its place (the menu's line above says either with the page open). A failed JOIN or HOST stays on the page.
     if (s.state === 'reconnecting') notify.set({ key: 'net', kind: 'status', icon: 'cycle', text: msg('status.reconnecting', { n: s.tries }) });
     else if (s.state === 'failed' && s.code) {
@@ -183,7 +191,7 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
     } else if (s.state === 'in' && was === 'reconnecting') notify.succeed('net', msg('status.reconnected'));
     else notify.clear('net');
     was = s.state;
-    if (text) hud.notice(text, s.state === 'connecting' || s.state === 'reconnecting' ? Infinity : undefined);
+    if (text) hud.notice(text, s.state === 'connecting' || s.state === 'reconnecting' || s.state === 'queued' ? Infinity : undefined);
     else if (s.state === 'in') hud.notice(msg('menu.session', { code: s.code }), 0);
   };
   // Only the link-up, in-session check tells null: a link that went down resets the health silently, so null here is the trouble going away by itself.

@@ -4,7 +4,7 @@
 // DETAIL, paint and the stepladder reaching the other player, a reload coming
 // back into the session, paint while hidden, one that heard nothing for a while reconnecting, LEAVE
 // SESSION, one already playing the session's level starting it over, a message it can't handle ending its session as
-// broken, LEAVE bringing back the player's own paint, and a server restart ending the session. One scenario, in scripts/multiplayer/, one phase per module.
+// broken, LEAVE bringing back the player's own paint, a full session's next player waiting in line, and a server restart ending the session. One scenario, in scripts/multiplayer/, one phase per module.
 // Usage: npm run test:mp (builds the server first)
 import assert from 'node:assert/strict';
 import { stop } from './multiplayer/harness.mjs';
@@ -12,12 +12,13 @@ import { join } from './multiplayer/join.mjs';
 import { leave } from './multiplayer/leave.mjs';
 import { link } from './multiplayer/link.mjs';
 import { paint } from './multiplayer/paint.mjs';
+import { queue } from './multiplayer/queue.mjs';
 import { server } from './multiplayer/server.mjs';
 import { welcome } from './multiplayer/welcome.mjs';
 
 try {
   const w = {};
-  for (const phase of [join, paint, link, welcome, leave, server]) await phase(w);
+  for (const phase of [join, paint, link, welcome, leave, queue, server]) await phase(w);
   for (const p of [w.a, w.b, w.c]) assert.deepEqual(p.errors, []);
   console.log('multiplayer: ok');
 } finally {

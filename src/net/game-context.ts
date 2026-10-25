@@ -7,6 +7,7 @@ import type { PaintDrips } from '../paint-drips';
 import type { PaintOps } from '../paint-ops';
 import type { PaintSystem } from '../painting';
 import type { Player } from '../player';
+import { SurfaceIndex } from '../op-wire';
 import { surfaceTable } from '../save/shape';
 import type { Tools } from '../tools/tools';
 import type { ToClient } from './protocol';
@@ -56,16 +57,24 @@ export function playLevel(g: MultiplayerContext, data: LevelData, name: string, 
 
 /**
  * The welcome's level, at its PAINT DETAIL, from its spawn with the starting
- * kit (playLevel), without the tools the session turned off: none in the hands,
- * their pickups gone from the map (solo.ts puts them back).
- * False: this game builds it differently from the server (another version).
+ * kit (playLevel), without the tools the session turned off (none in the hands,
+ * their pickups gone from the map: solo.ts puts them back), and what the player
+ * carried here before (a reconnect keeps its own: call this for a session not
+ * yet open). Returns the level's surfaces as the paint ops name them, before
+ * anyone's stepladder is in it.
+ * Null: this game builds the level differently from the server (another version).
  */
-export function playSessionLevel(g: MultiplayerContext, w: Extract<ToClient, { type: 'welcome' }>) {
+export function enterSessionLevel(g: MultiplayerContext, w: Extract<ToClient, { type: 'welcome' }>) {
   // Built at the session's detail too: the table doesn't say (its shapes are the same at every detail).
   const built = g.paint.texelsPerMeter;
   g.lockDetail(w.detail);
   g.inventory.allowOnly(w.session.tools);
   playLevel(g, w.level, w.levelName, built, w.detail, () => surfaceTable(g.paint.surfaces) === w.table);
+  if (surfaceTable(g.paint.surfaces) !== w.table) return null;
+  if (w.inventory) {
+    g.inventory.restore(w.inventory);
+    g.pickups.collectOwned(g.inventory);
+  }
   g.pickups.hideOff(g.inventory);
-  return surfaceTable(g.paint.surfaces) === w.table;
+  return new SurfaceIndex([...g.paint.surfaces].map((s) => s.key));
 }
