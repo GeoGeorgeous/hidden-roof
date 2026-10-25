@@ -1193,6 +1193,11 @@ export const SERVER = {
   beaconMostSeconds: 600,
   beaconMostEvents: 1000,
   geoipCheck: 3600,
+  /** The traffic reader (server/traffic.ts), its own process: it reads Caddy's access log every trafficEvery s, trafficChunk bytes at a time; a day counts up to trafficKinds names (pages, sources, campaigns), then Other, each up to trafficText characters. */
+  trafficEvery: 60,
+  trafficChunk: 1 << 20,
+  trafficKinds: 50,
+  trafficText: 80,
   /** With DATA_DIR, a public session's paint is saved this often (s) when it changed, and at shutdown; the newest keepFiles saves stay (server/kept.ts). */
   keepEvery: 1800,
   keepFiles: 3,

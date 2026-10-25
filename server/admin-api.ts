@@ -12,6 +12,7 @@ import { machine } from './machine';
 import type { Kept } from './kept';
 import type { Lobby } from './lobby';
 import type { Session, SessionSetup } from './session';
+import { trafficDays } from './traffic-store';
 
 // The admin API, on its own port (SERVER.adminPort), never published: the admin
 // command (server/admin.mjs, in the container) and later the admin page through
@@ -20,6 +21,9 @@ import type { Session, SessionSetup } from './session';
 //   GET  /                     the API's version, the game's and the protocol, uptime, the time now, the most players ever
 //   GET  /machine              CPU, RAM, the server's memory, disk, the paint saves, upload (machine.ts)
 //   GET  /history?period=P     counts for today (since 00:00 UTC), or the last 24h, 7d or 30d (history.ts)
+//   GET  /traffic?days=N       the last N days (1 to 366, 30 by default) of the site's traffic, oldest first, a day with no
+//                              counts left out: { days: [{ day, views, visitors, bots, pages, sources, campaigns, countries, steps }] }
+//                              (the traffic reader's, traffic.ts; none without DATA_DIR)
 //   GET  /events               the event stream (events.ts): `recent` events, then each `event` as it happens,
 //                              and a `status` every second (the time, players, `site`, every session as listed but its saves);
 //                              `site`: the open pages by what they do (menu, solo, session, hidden), from the game's beacons of the last minute
@@ -109,6 +113,11 @@ export function adminApi(lobby: Lobby, kept: Kept, key: string) {
       if (req.method === 'GET' && parts[0] === 'history' && parts.length === 1) {
         const period = new URL(req.url ?? '', 'http://admin').searchParams.get('period') ?? '24h';
         return isPeriod(period) ? answer(200, history.report(period)) : answer(400, { error: 'period: today, 24h, 7d or 30d' });
+      }
+      if (req.method === 'GET' && parts[0] === 'traffic' && parts.length === 1) {
+        const days = new URL(req.url ?? '', 'http://admin').searchParams.get('days') ?? '30';
+        if (!/^\d{1,3}$/.test(days) || +days < 1 || +days > 366) return answer(400, { error: 'days: 1 to 366' });
+        return answer(200, kept.dir ? await trafficDays(kept.dir, +days) : { days: [] });
       }
       if (parts[0] !== 'sessions') return answer(404, { error: 'not found' });
       if (req.method === 'GET' && parts.length === 1) return answer(200, await Promise.all([...lobby.sessions.values()].map((s) => listing(s, kept))));
