@@ -50,7 +50,7 @@ export class Pickups {
   readonly list = new Map<number, Pickup>();
   /** In build mode everything is shown and nothing can be collected. */
   editing = false;
-  onCollect: (label: string) => void = () => {};
+  onCollect: (label: string, kind: PickupKind) => void = () => {};
   onBlocked: (label: string) => void = () => {};
   private nextId = 1;
   private time = 0;
@@ -214,6 +214,6 @@ export class Pickups {
     }
     p.collected = true;
     p.group.visible = false;
-    this.onCollect(pickupLabel(p.kind));
+    this.onCollect(pickupLabel(p.kind), p.kind);
   }
 }

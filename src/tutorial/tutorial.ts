@@ -45,6 +45,8 @@ export class Tutorial {
   private snap: Snapshot = { tool: null, tools: [], lowPressure: false, colors: 1, caps: 1, nearLadder: false, onLadder: false };
   /** What the message layer has: the hint's id and which of its texts. */
   private shown: { id: string; text: number } | null = null;
+  /** A hint was learnt (its id), or the last one was ('done'). */
+  onLearnt: (id: string) => void = () => {};
 
   constructor(notes: Notes, storage: Storage = browserStorage, hints: HintDef[] = HINTS) {
     this.notes = notes;
@@ -103,11 +105,13 @@ export class Tutorial {
     for (const s of wanted) {
       if (this.finished(s, s === pick)) {
         this.done.add(s.def.id);
+        this.onLearnt(s.def.id);
         learnt = true;
       }
     }
     if (learnt) {
       this.recount();
+      if (this.left === 0) this.onLearnt('done');
       this.save();
       this.show(this.pick(this.refresh()));
     } else this.show(pick);

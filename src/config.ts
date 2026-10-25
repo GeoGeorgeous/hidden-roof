@@ -1028,13 +1028,17 @@ export const AVATAR_TEST = {
 export const NET = {
   /**
    * The beacon (src/beacon.ts): sent this often (s); frames count once there are beaconMinPlay s of play, by whole ms up to
-   * beaconSlowFrame; at most beaconList errors a minute and join times a beacon, each error cut to beaconErrorChars.
+   * beaconSlowFrame; at most beaconList errors a minute and join times, funnel steps and tutorial steps a beacon, each error
+   * cut to beaconErrorChars. Time in the game counts as playing until there's been no input for beaconIdle s, then as idle;
+   * a frame adds at most beaconStep s to it (a stall, or a tab shown again, isn't time played).
    */
   beaconEvery: 60,
   beaconMinPlay: 10,
   beaconSlowFrame: 250,
   beaconList: 5,
   beaconErrorChars: 160,
+  beaconIdle: 30,
+  beaconStep: 2,
   /** Snapshots sent per second. */
   sendRate: 20,
   /**

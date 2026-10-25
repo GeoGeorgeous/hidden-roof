@@ -52,6 +52,10 @@ export class Settings {
   private locked: PaintDetail | null = null;
   /** The remembered fields' defaults, as they are when Settings starts: after main.ts turned the player build's performance lines off. */
   private defaults = defaultsOf(REMEMBERED);
+  /** A setting was changed on the page (`section.row`, lowercase: the beacon counts them). */
+  onChange: (key: string) => void = () => {};
+  /** The page's rows with their keys, for `chosen`. */
+  private listed: [key: string, row: SettingRow][] = [];
 
   /**
    * `applyResolution` resizes the renderer after the pixel scale changed,
@@ -83,18 +87,31 @@ export class Settings {
 
   /** The settings page (pause menu → SETTINGS): one section per tab. Every change is saved. `gpu`: what the game draws with; `runTest`: the performance test; `hints`: the tutorial. */
   sections(gpu: GpuInfo, runTest: () => void, hints: Hints): SettingSection[] {
-    const saving = (row: SettingRow): SettingRow => {
-      if (row.kind === 'choice') return { ...row, step: (d) => (row.step(d), this.save()) };
-      if (row.kind === 'range') return { ...row, set: (v) => (row.set(v), this.save()) };
+    const saving = (section: string) => (row: SettingRow): SettingRow => {
+      const key = `${section}.${row.label}`.toLowerCase().replace(/[^a-z0-9.]+/g, '-');
+      const changed = () => (this.onChange(key), this.save());
+      this.listed.push([key, row]);
+      if (row.kind === 'choice') return { ...row, step: (d) => (row.step(d), changed()) };
+      if (row.kind === 'range') return { ...row, set: (v) => (row.set(v), changed()) };
       // Info and action rows change nothing.
       return row;
     };
     return [
-      { title: 'Gameplay', rows: gameplayRows(hints).map(saving) },
-      { title: 'Sound', rows: soundRows().map(saving) },
-      { title: 'Controls', rows: [], tab: new ControlsTab(() => this.save()) },
-      { title: 'Graphics', rows: [{ kind: 'action', label: 'Performance test', desc: 'Flies over the roof for a few seconds at your current settings and shows how it ran.', button: 'Run', act: runTest }, ...this.graphicsRows(gpu).map(saving)] },
+      { title: 'Gameplay', rows: gameplayRows(hints).map(saving('gameplay')) },
+      { title: 'Sound', rows: soundRows().map(saving('sound')) },
+      { title: 'Controls', rows: [], tab: new ControlsTab(() => (this.onChange('controls.keys'), this.save())) },
+      { title: 'Graphics', rows: [{ kind: 'action', label: 'Performance test', desc: 'Flies over the roof for a few seconds at your current settings and shows how it ran.', button: 'Run', act: runTest }, ...this.graphicsRows(gpu).map(saving('graphics'))] },
     ];
+  }
+
+  /** What is chosen on the page, by row key, each as a short string (the beacon's): a choice by its name, a slider by its number to 2 decimals, the keys as default or custom. */
+  chosen() {
+    const out: Record<string, string> = { 'controls.keys': Object.keys(keyOverrides()).length ? 'custom' : 'default' };
+    for (const [key, row] of this.listed) {
+      if (row.kind === 'range') out[key] = String(Math.round(row.get() * 100) / 100);
+      else if (row.kind === 'choice') out[key] = row.value().split('  ')[0].toLowerCase();
+    }
+    return out;
   }
 
   private graphicsRows(gpu: GpuInfo): SettingRow[] {
