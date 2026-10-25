@@ -86,9 +86,13 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
     if (entry.kind === 'public' && rulesSeen() && !nameProblem(storedName())) join(storedName(), entry.code ?? '', entry);
     else dialog.ask({ entry, where });
   });
+  /** Back from a dialog to the list as it was, without asking the server again. */
+  let keep = false;
+  const back = () => ((keep = true), hud.openPage('mp'));
   const choose = () => {
     show(list.el);
-    void list.refresh();
+    if (!keep) void list.refresh();
+    keep = false;
   };
   /** From JOIN to the player being in: the loading screen, and the dialog or the list back if it fails. */
   const join = (who: string, code: string, entry: LobbyEntry) => {
@@ -98,7 +102,7 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
     hud.openPage('loading');
     net.join(who, code);
   };
-  const dialog = new JoinDialog({ show: () => hud.openPage('join'), join, cancel: () => hud.openPage('mp') });
+  const dialog = new JoinDialog({ show: () => hud.openPage('join'), join, cancel: back });
   const loading = new LoadingPage(() => (cancelJoin(), hud.openPage('mp')));
   const cancelJoin = () => {
     joining = null;
@@ -129,12 +133,12 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
       hud.openPage('loading');
       net.host(hostName.input.value, PAINT.texelsPerMeter, { name: s.name, limit: s.limit, tools: s.tools }, save);
     },
-    cancel: () => hud.openPage('mp'),
+    cancel: back,
   });
   // Back (and Esc) from here while JOIN or HOST is loading the session cancels it: the pause screen can't offer PLAY before the paint is in.
   hud.addPage('mp', root, choose, () => (net.status.state === 'connecting' && net.leave(), false));
-  hud.addPage('create', create, () => hostName.reload(), () => (hud.openPage('mp'), true));
-  hud.addPage('join', dialog.root, () => dialog.open(), () => (hud.openPage('mp'), true));
+  hud.addPage('create', create, () => hostName.reload(), () => (back(), true));
+  hud.addPage('join', dialog.root, () => dialog.open(), () => (back(), true));
   hud.addPage('loading', loading.root, () => {}, () => (cancelJoin(), hud.openPage('mp'), true));
   addEventListener('keydown', (e) => {
     if (e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.target instanceof HTMLInputElement || !root.checkVisibility()) return;
