@@ -125,6 +125,14 @@ try {
   a.send({ type: 'ops', seq: 1, bytes: encodeOps([1], [stamp], surfaces) });
   a.send({ type: 'ping', t: 1 });
   assert.equal((await a.next('pong')).acked, 1);
+  // What the admin page reads: the version, today's paint (the stamp's color as the game's), the player, the machine.
+  const top = await admin('GET', '/');
+  assert.deepEqual([top.body.api, typeof top.body.version], [2, 'string']);
+  const live = (await admin('GET', '/sessions')).body[0];
+  assert.deepEqual([live.today.stamps.can, live.today.topColor, live.today.peak.players, live.emptySince], [1, 'red', 1, null]);
+  assert.deepEqual([live.players[0].ip, live.players[0].here, live.players[0].held], [`10.1.0.${games}`, true, null]);
+  const box = (await admin('GET', '/machine')).body;
+  assert.ok(box.cpu.vcpus > 0 && box.disk.total > 0 && box.memory.limit > 0, 'the machine');
   await stop(server);
   assert.equal(saves().length, 1);
   server = await start();
@@ -132,10 +140,13 @@ try {
   const b = new Game();
   const wb = await b.join(code, 'B');
   assert.ok(await painted(wb.file!), 'the paint is back');
+  assert.equal((await admin('GET', '/sessions')).body[0].saves.length, 1, 'its save, listed');
 
   // A wipe: the game's link closes as a drop; it comes back with its token to a clean wall, and the saves are gone.
   assert.equal((await admin('POST', `/sessions/${code}/wipe`)).status, 200);
   assert.equal(await b.closed, 1012);
+  const held = (await admin('GET', '/sessions')).body[0].players[0];
+  assert.ok(!held.here && held.held > 0 && held.held <= 5, 'a dropped seat, held');
   const again = await new Game().join(code, 'B', wb.token);
   assert.equal(again.you, wb.you);
   assert.ok(!(await painted(again.file!)), 'a clean wall');
@@ -176,7 +187,7 @@ try {
   assert.equal((await d.next('rejected')).reason, 'ended');
   assert.deepEqual((await admin('GET', '/sessions')).body, []);
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(dir, 'sessions.json'), 'utf8')), []);
-  console.log('kept sessions: ok (admin key and origin, a public session full at its limit with a line, kept empty, paint back after a restart, wipe, a new surface table wipes, private ones close when empty unless they stay, close)');
+  console.log('kept sessions: ok (admin key and origin, a public session full at its limit with a line, kept empty, paint back after a restart, wipe, a new surface table wipes, private ones close when empty unless they stay, close, what the admin page reads)');
 } finally {
   server.kill();
   fs.rmSync(dir, { recursive: true, force: true });

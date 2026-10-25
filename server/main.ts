@@ -4,6 +4,7 @@ import { WebSocketServer, type WebSocket } from 'ws';
 import { SERVER } from '../src/config';
 import { HELLO, PROTOCOL } from '../src/net/protocol';
 import { adminApi } from './admin-api';
+import { traffic } from './counts';
 import { Kept } from './kept';
 import { addressOf, LobbyHttp } from './lobby-http';
 import { liveMemory, log, logTo } from './log';
@@ -69,7 +70,11 @@ hostWss.on('connection', (ws, req) => connected(ws, req, true));
 function connected(ws: WebSocket, req: http.IncomingMessage, host: boolean) {
   const ip = addressOf(req);
   const link: Link = {
-    send: (f) => ws.readyState === ws.OPEN && ws.send(f),
+    send: (f) => {
+      if (ws.readyState !== ws.OPEN) return;
+      ws.send(f);
+      traffic.sent += f.length;
+    },
     close: (code, reason) => ws.close(code, reason),
     get open() {
       return ws.readyState === ws.OPEN;
@@ -84,11 +89,14 @@ function connected(ws: WebSocket, req: http.IncomingMessage, host: boolean) {
   // Before its first message the lobby gives it SERVER.helloTimeout: a game busy loading may send its hello late.
   let read = req.socket.bytesRead;
   let greeted = false;
+  let pinged = 0;
   ws.once('message', () => (greeted = true));
+  ws.on('pong', () => (link.rtt = Math.round(performance.now() - pinged)));
   const beat = setInterval(() => {
     if (!greeted) return;
     if (req.socket.bytesRead === read) return ws.terminate();
     read = req.socket.bytesRead;
+    pinged = performance.now();
     ws.ping();
   }, SERVER.heartbeat * 1000);
   ws.on('message', (data: Buffer) => void input.message(new Uint8Array(data.buffer, data.byteOffset, data.byteLength)));

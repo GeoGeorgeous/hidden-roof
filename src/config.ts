@@ -1154,6 +1154,8 @@ export const SERVER = {
   /** The admin API (server/admin-api.ts): its port (never published, ADMIN_PORT overrides it) and the largest request it reads (bytes). */
   adminPort: 3001,
   adminBody: 4096,
+  /** The admin page calls a player's link slow past this round trip (ms). */
+  slowPing: 150,
   /** With DATA_DIR, a public session's paint is saved this often (s) when it changed, and at shutdown; the newest keepFiles saves stay (server/kept.ts). */
   keepEvery: 1800,
   keepFiles: 3,

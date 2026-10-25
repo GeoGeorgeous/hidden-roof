@@ -24,9 +24,13 @@ See `docs/deploy.md`. Server side done (2026-10-25): the admin API and command (
 
 ## BL-047 Admin panel: players online, ban by IP
 
-Blocked by: BL-043; Status: Blocked, priority Medium, size L
+Status: in progress, priority Medium, size L. Ban by IP moved to IDEA-240.
 
-See who is online; block by IP forever or for a time.
+See who is online and how the server does. The page lives in its own private repo (cctv), served apart from the game; it reads the server's admin API (`server/admin-api.ts`) through Caddy, which adds the key.
+
+- Done: admin API 2 (feat/admin-api-v2): the game's version and the server's clock; the machine (CPU, RAM, the server's memory against its limit, disk, paint saves, upload); per session its players (address, ping, time in, seconds left on a held seat), today's paint by tool and its top color, today's peak, its median ping and slow links, when it went empty, its saves. The page: sessions with create, wipe and close, a session's page, Main and Stats on mock data, a main / next switch.
+- Left, server: history rolled up once a minute (plays, play length, joins per hour, turned away, paint by period, peak ever), unique players (a device id and a salted IP hash, merged), country from a local GeoIP base, the event stream (SSE), client stats (the beacon), web traffic from Caddy's log (TASK-241).
+- Left, host: the page deployed, Caddy's two admin routes (main and next, a key each), `roof-next` with its own data and key (`docs/ideas/vps.md` item 1).
 
 ## TASK-189 House rules before joining a public server
 
