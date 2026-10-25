@@ -38,6 +38,8 @@ export class PauseMenu {
   onLeave = () => {};
   /** A style picked on the switcher (INK_STYLES index). */
   onStyle = (_i: number) => {};
+  /** A social link in the footer clicked (SOCIAL_LINKS id). */
+  onSocial = (_id: string) => {};
   /** In a session: what its live line shows (net/net-menu.ts). */
   sessionInfo: () => SessionInfo = () => ({ ping: null, players: [] });
   readonly el: HTMLElement;
@@ -113,7 +115,12 @@ export class PauseMenu {
     const stack = div('stack');
     stack.append(hero, menu);
     this.screen = div('pause');
-    this.screen.append(stack, footer());
+    const foot = footer();
+    foot.addEventListener('click', (e) => {
+      const id = (e.target as Element).closest<HTMLElement>('[data-social]')?.dataset.social;
+      if (id) this.onSocial(id);
+    });
+    this.screen.append(stack, foot);
     this.el.append(div('blur'), this.themes.el, this.hold.el, this.screen, this.back);
     parent.append(this.el);
     this.addPage('credits', creditsPage(), () => {});
@@ -304,7 +311,7 @@ function footer() {
   const foot = div('pause-foot');
   const icons = SOCIAL_LINKS.map((s) =>
     s.live
-      ? `<a href="${s.url}" target="_blank" rel="noopener noreferrer" title="${s.label}" aria-label="${s.label}">${socialIcon(s.icon)}</a>`
+      ? `<a href="${s.url}" data-social="${s.id}" target="_blank" rel="noopener noreferrer" title="${s.label}" aria-label="${s.label}">${socialIcon(s.icon)}</a>`
       : `<span class="soon" role="img" title="${s.label} — coming soon" aria-label="${s.label} (coming soon)">${socialIcon(s.icon)}</span>`,
   );
   const link = (href: string, text: string) => `<a href="${href}" target="_blank" rel="noopener">${text}</a>`;

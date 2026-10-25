@@ -34,6 +34,10 @@ export class Player {
   /** Distance walked, for footsteps. */
   stride = 0;
   onLand: (speed: number) => void = () => {};
+  /** Left the ground with a jump. */
+  onJump: () => void = () => {};
+  /** Fell out of the level (below PLAYER.killY) and went back to the spawn. */
+  onFall: () => void = () => {};
 
   /** Build mode: free-fly without collisions. */
   fly = false;
@@ -164,6 +168,7 @@ export class Player {
     if (this.onGround && !ladder && input.justPressed('jump')) {
       this.velocity.y = Math.sqrt(2 * PLAYER.gravity * PLAYER.jumpHeight);
       this.onGround = false;
+      this.onJump();
     }
 
     const wasGround = this.onGround;
@@ -191,7 +196,7 @@ export class Player {
       this.stride += Math.hypot(dx, dz);
     }
 
-    if (this.position.y < PLAYER.killY) this.respawn();
+    if (this.position.y < PLAYER.killY) (this.respawn(), this.onFall());
   }
 
   private updateBox() {

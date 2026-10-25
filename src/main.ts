@@ -117,13 +117,20 @@ const notify = new Notify();
 const notifyView = new NotifyView(notify);
 const tutorial = new Tutorial(notify);
 const tools = new Tools(scene, viewScene, paint, level.solids, audio, inventory, level);
-tools.onFact = (f) => tutorial.fact(f);
+tools.onFact = (f) => {
+  tutorial.fact(f);
+  if (f.type !== 'used') return;
+  if (f.tool === 'ladder') beacon.count('ladder');
+  else if (f.tool !== 'sponge') beacon.step('sprayed');
+};
+tutorial.onLearnt = (id) => beacon.lesson(id);
 const tutorialWire = new TutorialWire(tutorial, player, inventory, level.ladders);
 tools.ladder.onBlocked = () => notify.toast(msg('toast.ladderBlocked'));
 const wallHand = new WallHand(level.solids);
 viewScene.add(wallHand.group);
 const pickups = new Pickups(scene, camera, level.solids);
-pickups.onCollect = (label) => {
+pickups.onCollect = (label, kind) => {
+  beacon.count(`pickup.${kind.replace(':', '.')}`);
   audio.pickup();
   notify.toast(msg('toast.pickedUp', { item: sentence(label) }));
 };
@@ -156,7 +163,7 @@ Promise.all([fetchLevel(opened.name), jpFontReady()])
     await loadStep(msg('menu.loadPaint'));
     await putLevelPaint(paint, drips, opened.name, data);
     loaded = true;
-    beacon.loaded();
+    beacon.loaded(settings.chosen());
     // A reload in a session goes back into it (multiplayer.ts), with the session's paint.
     net.resume();
   })
@@ -168,6 +175,9 @@ Promise.all([fetchLevel(opened.name), jpFontReady()])
 let lastStride = 0;
 let textAtlasSeen = textAtlasVersion();
 player.onLand = (speed) => audio.footstep(speed > PLAYER.hardLanding);
+player.onJump = () => beacon.count('jump');
+player.onFall = () => beacon.count('fall');
+settings.onChange = (key) => beacon.setting(key);
 
 const play = new PlayState(input, session, {
   release: () => document.exitPointerLock(),
@@ -188,6 +198,7 @@ play.onPanel = showMenu;
 input.onLockChange = (locked) => {
   showMenu();
   if (locked) {
+    beacon.step('play');
     settings.applyPending();
     audio.start();
   } else {
@@ -196,7 +207,8 @@ input.onLockChange = (locked) => {
   }
 };
 input.onResume = hud.menu.onResume = () => play.resume();
-hud.menu.onStyle = (i) => settings.setStyle(i);
+hud.menu.onStyle = (i) => (settings.setStyle(i), beacon.setting('graphics.style'));
+hud.menu.onSocial = (id) => id === 'discord' && beacon.count('discord');
 showMenu();
 const testPage = perfTestPage(hud.menu, perfTest, gpu, () => settings.tested());
 hud.menu.setSettings(settings.sections(gpu, testPage.run, tutorial));
@@ -344,7 +356,7 @@ function step(time: number) {
   frameDrawn();
   dev?.lap('render');
   // Same frame as the render: the canvas still holds it (see screenshot.ts). Only while playing: not on the title or pause screen, nor with F3 open.
-  if (yours.justPressed('screenshot')) saveScreenshot(renderer.domElement, () => (notify.toast(msg('toast.screenshot')), tutorial.fact({ type: 'screenshot' })));
+  if (yours.justPressed('screenshot')) saveScreenshot(renderer.domElement, () => (notify.toast(msg('toast.screenshot')), tutorial.fact({ type: 'screenshot' }), beacon.count('screenshot')));
   gpuTimer.poll();
   const { calls, triangles } = post.sceneStats;
   perfTest.frame(time, beforeDraw, calls);
@@ -352,7 +364,7 @@ function step(time: number) {
   input.endFrame();
 
   meter.end(delta);
-  beacon.frame(delta, visible);
+  beacon.frame(delta, visible, notify.blocked, input.lastActive);
   beacon.status(net.status);
   const { fps, frameMs } = meter;
   // The one writer of the timer, for the next frame: the HUD's GPU line or the dev tools (F3, profiling); the performance test turns it on for its run.
