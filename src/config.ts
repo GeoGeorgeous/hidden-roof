@@ -1026,6 +1026,15 @@ export const AVATAR_TEST = {
 
 /** Multiplayer: player snapshots and how a remote player is shown from them (src/net). */
 export const NET = {
+  /**
+   * The beacon (src/beacon.ts): sent this often (s); frames count once there are beaconMinPlay s of play, by whole ms up to
+   * beaconSlowFrame; at most beaconList errors a minute and join times a beacon, each error cut to beaconErrorChars.
+   */
+  beaconEvery: 60,
+  beaconMinPlay: 10,
+  beaconSlowFrame: 250,
+  beaconList: 5,
+  beaconErrorChars: 160,
   /** Snapshots sent per second. */
   sendRate: 20,
   /**
@@ -1159,6 +1168,24 @@ export const SERVER = {
   /** The admin's event stream (server/events.ts): the last this many events are kept for a page that opens; a status goes out this often (s) while one is open. */
   adminEvents: 50,
   adminStatus: 1,
+  /** The admin's history (server/history.ts): plays are bucketed by these lengths (s), play time is sampled this often (s), and each hour is kept this many days (then only each day's total, forever). */
+  playLengths: [120, 600, 1800],
+  historyEvery: 60,
+  historyDays: 30,
+  /** Unique people's salt (server/people.ts) changes this often (days); the GeoIP base's file is checked for a new one this often (s). */
+  saltDays: 30,
+  /**
+   * The game's beacon (server/beacon.ts): a body up to beaconBytes, beaconsPerIp a minute from one address; up to
+   * beaconKinds names (GPUs, browsers, error messages) an hour, then Other; a GPU name up to beaconText characters,
+   * times up to beaconMostSeconds; /history lists the top beaconTopErrors errors.
+   */
+  beaconBytes: 4096,
+  beaconsPerIp: 30,
+  beaconKinds: 50,
+  beaconText: 80,
+  beaconMostSeconds: 600,
+  beaconTopErrors: 5,
+  geoipCheck: 3600,
   /** With DATA_DIR, a public session's paint is saved this often (s) when it changed, and at shutdown; the newest keepFiles saves stay (server/kept.ts). */
   keepEvery: 1800,
   keepFiles: 3,

@@ -28,24 +28,37 @@ function colorOf(c: Rgb): PaintColor {
   return best!;
 }
 
+/** Stamps by tool (the sponge's are paint cleaned) and ops by color. */
+export interface Paint {
+  stamps: { can: number; marker: number; roller: number; sponge: number };
+  colors: Partial<Record<PaintColor, number>>;
+}
+
+export const noPaint = (): Paint => ({ stamps: { can: 0, marker: 0, roller: 0, sponge: 0 }, colors: {} });
+
+/** Ops a player painted, counted into each of `into` (a run is no one's stamp). */
+export function countPaint(ops: readonly PaintOp[], into: Paint[]) {
+  for (const op of ops) {
+    const tool = opTool(op);
+    const stamp = tool === 'can' || tool === 'marker' || tool === 'roller' || tool === 'sponge' ? tool : null;
+    const c = op.kind !== 'drip' && op.color ? colorOf(op.color) : null;
+    for (const p of into) {
+      if (stamp) p.stamps[stamp]++;
+      if (c) p.colors[c] = (p.colors[c] ?? 0) + 1;
+    }
+  }
+}
+
 /** A session's paint and most players at once, this UTC day. */
 export class DayCounts {
   private until = midnight();
-  stamps = { can: 0, marker: 0, roller: 0, sponge: 0 };
-  colors: Partial<Record<PaintColor, number>> = {};
+  private kept = noPaint();
   peak = { players: 0, at: new Date().toISOString() };
 
-  /** Ops a player painted (a run is no one's stamp). */
-  paint(ops: readonly PaintOp[]) {
+  /** Today's paint, to count into (countPaint). */
+  get paint() {
     this.roll();
-    for (const op of ops) {
-      const tool = opTool(op);
-      if (tool === 'can' || tool === 'marker' || tool === 'roller' || tool === 'sponge') this.stamps[tool]++;
-      if (op.kind !== 'drip' && op.color) {
-        const c = colorOf(op.color);
-        this.colors[c] = (this.colors[c] ?? 0) + 1;
-      }
-    }
+    return this.kept;
   }
 
   /** `n` players in it now. */
@@ -56,16 +69,16 @@ export class DayCounts {
 
   /** The color painted most today, or null. */
   get topColor() {
+    const { colors } = this.paint;
     let top: PaintColor | null = null;
-    for (const c of COLOR_ORDER) if ((this.colors[c] ?? 0) > (top ? this.colors[top]! : 0)) top = c;
+    for (const c of COLOR_ORDER) if ((colors[c] ?? 0) > (top ? colors[top]! : 0)) top = c;
     return top;
   }
 
   private roll() {
     if (Date.now() < this.until) return;
     this.until = midnight();
-    this.stamps = { can: 0, marker: 0, roller: 0, sponge: 0 };
-    this.colors = {};
+    this.kept = noPaint();
     this.peak = { players: 0, at: new Date().toISOString() };
   }
 }

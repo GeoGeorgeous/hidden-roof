@@ -8,7 +8,7 @@ import path from 'node:path';
 import { WebSocket as Ws } from 'ws';
 import { SERVER } from '../src/config';
 import { levelPaintFaces } from '../src/level/prop-pieces';
-import { decode, encode, PROTOCOL, type ToClient, type ToServer } from '../src/net/protocol';
+import { CODE_LENGTH, decode, encode, PROTOCOL, type ToClient, type ToServer } from '../src/net/protocol';
 import { PartsIn } from '../src/net/parts-in';
 import { encodeOps, SurfaceIndex } from '../src/op-wire';
 import { decodePaintFile } from '../src/save/paint-file';
@@ -17,7 +17,8 @@ import { decodePaintFile } from '../src/save/paint-file';
 // disk (kept.ts), against the built server: the key, a public session made,
 // full at its limit and kept when empty, its paint saved at shutdown and back
 // after a restart, a wipe (games come back to a clean wall), a new surface table
-// wiping the save, private ones that close when empty or stay, and a close. npm run test:server runs it.
+// wiping the save, private ones that close when empty or stay, and a close;
+// what the admin page reads: sessions, the machine, the event stream and history. npm run test:server runs it.
 
 const freePort = () =>
   new Promise<number>((done) => {
@@ -77,8 +78,11 @@ class Game {
   ws: Ws;
   got: (ToClient & { file?: Uint8Array })[] = [];
   closed: Promise<number>;
-  constructor() {
-    this.ws = new Ws(`ws://localhost:${PORT}/ws`, { headers: { 'x-forwarded-for': `10.1.0.${++games}` } });
+  constructor(
+    ip = `10.1.0.${++games}`,
+    readonly device?: string,
+  ) {
+    this.ws = new Ws(`ws://localhost:${PORT}/ws`, { headers: { 'x-forwarded-for': ip } });
     const parts = new PartsIn();
     this.ws.on('message', (d: Buffer) => {
       const done = parts.take(decode(new Uint8Array(d)) as ToClient);
@@ -88,7 +92,7 @@ class Game {
   }
   async hello(code: string, name: string, token?: string) {
     if (this.ws.readyState !== Ws.OPEN) await new Promise((w) => this.ws.once('open', w));
-    this.send({ type: 'join', protocol: PROTOCOL, name, code, token });
+    this.send({ type: 'join', protocol: PROTOCOL, device: this.device, name, code, token });
   }
   async join(code: string, name: string, token?: string) {
     await this.hello(code, name, token);
@@ -145,6 +149,35 @@ try {
   server = await start();
   assert.deepEqual((await admin('GET', '/sessions')).body.map((s: { code: string }) => s.code), [code], 'kept through a restart, empty');
   assert.equal(saves().length, 0, 'nothing painted: nothing saved');
+  // History, written at shutdown: everyone's play counted when it started, the most players at once, ever.
+  const day = await admin('GET', '/history?period=24h');
+  assert.deepEqual([day.body.plays, day.body.peak.players, day.body.joinsPerHour[new Date().getUTCHours()]], [SERVER.players.public, SERVER.players.public, SERVER.players.public]);
+  assert.equal((await admin('GET', '/')).body.peak.players, SERVER.players.public);
+  assert.ok(fs.existsSync(path.join(dir, 'stats', `${new Date().toISOString().slice(0, 10)}.json`)), "the day's hours on disk");
+  assert.equal((await admin('GET', '/history?period=week')).status, 400);
+  // The game's beacon: what it runs on and its load time, frames, a join, errors; a body that isn't one is refused.
+  const ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36';
+  const send = (body: unknown) => fetch(`http://localhost:${PORT}/ws?e`, { method: 'POST', headers: { 'user-agent': ua }, body: JSON.stringify(body) }).then((r) => r.status);
+  assert.equal(await send({ first: { gpu: 'NVIDIA GeForce RTX 3060', load: 3.1 } }), 204);
+  assert.equal(await send({ fps: { avg: 58.2, low1: 31 }, joins: [0.6], errors: ['WebGL context lost'], erred: true }), 204);
+  assert.equal(await send({ fps: { avg: 'fast' } }), 400);
+  assert.equal(await send({ errors: ['x'.repeat(1000)] }), 400);
+  const client = (await admin('GET', '/history')).body.client;
+  assert.deepEqual(client, {
+    n: 1, nGpu: 1, fps: { median: 58, low1: 31 }, load: { median: 3.1, p95: 3.1 }, join: { median: 0.6, p95: 0.6 },
+    browsers: { Chrome: 1 }, os: { Windows: 1 }, gpus: { 'NVIDIA GeForce RTX 3060': 1 },
+    errors: { count: 1, plays: 1, top: [{ message: 'WebGL context lost', count: 1 }] },
+  });
+  // People: one device on two addresses, a second device on the second address, an IPv6 address changing within its /64: two people.
+  const [d1, d2] = ['a'.repeat(32), 'b'.repeat(32)];
+  for (const [ip, device] of [['10.2.0.1', d1], ['10.2.0.2', d1], ['10.2.0.2', d2], ['2001:db8:1:2::5', undefined], ['2001:db8:1:2:aaaa::9', undefined]] as const) {
+    const g = new Game(ip, device);
+    await g.join(code, 'Someone');
+    g.send({ type: 'leave' });
+    await g.closed;
+  }
+  const seen = (await admin('GET', '/history')).body.people;
+  assert.deepEqual(seen, { merged: SERVER.players.public + 2, byDevice: 2, byIp: SERVER.players.public + 3 });
 
   // Paint, saved at shutdown, is back after the restart.
   const a = new Game();
@@ -158,6 +191,11 @@ try {
   const live = (await admin('GET', '/sessions')).body[0];
   assert.deepEqual([live.today.stamps.can, live.today.topColor, live.today.peak.players, live.emptySince], [1, 'red', 1, null]);
   assert.deepEqual([live.players[0].ip, live.players[0].here, live.players[0].held], [`10.1.0.${games}`, true, null]);
+  assert.deepEqual([(await admin('GET', '/history')).body.stamps.can, (await admin('GET', '/history')).body.colors], [1, { red: 1 }]);
+  const lost = new Game();
+  await lost.hello('Z'.repeat(CODE_LENGTH), 'Lost');
+  assert.equal((await lost.next('rejected')).reason, 'no-session');
+  assert.equal((await admin('GET', '/history?period=7d')).body.turnedAway['no-session'], 1);
   const box = (await admin('GET', '/machine')).body;
   assert.ok(box.cpu.vcpus > 0 && box.disk.total > 0 && box.memory.limit > 0, 'the machine');
   await stop(server);
@@ -217,7 +255,13 @@ try {
   assert.equal((await d.next('rejected')).reason, 'ended');
   assert.deepEqual((await admin('GET', '/sessions')).body, []);
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(dir, 'sessions.json'), 'utf8')), []);
-  console.log('kept sessions: ok (admin key and origin, a public session full at its limit with a line, kept empty, paint back after a restart, wipe, a new surface table wipes, private ones close when empty unless they stay, close, what the admin page reads, the event stream)');
+  // Plays that ended (seven left, one ended by the close), the paint still there after two restarts.
+  const month = (await admin('GET', '/history?period=30d')).body;
+  assert.deepEqual([month.playLength, month.stamps.can], [{ under2m: 8, m2to10: 0, m10to30: 0, over30m: 0 }, 2]);
+  assert.equal(month.people.byDevice, 2, 'people, kept through restarts');
+  assert.equal(month.client.n, 1, 'beacons, kept through restarts');
+  assert.ok(!JSON.stringify(fs.readdirSync(path.join(dir, 'stats')).map((n) => fs.readFileSync(path.join(dir, 'stats', n), 'utf8'))).includes('10.2.0.'), 'no address on disk');
+  console.log('kept sessions: ok (admin key and origin, a public session full at its limit with a line, kept empty, paint back after a restart, wipe, a new surface table wipes, private ones close when empty unless they stay, close, what the admin page reads, the event stream, history, the beacon)');
 } finally {
   server.kill();
   fs.rmSync(dir, { recursive: true, force: true });

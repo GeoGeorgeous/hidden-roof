@@ -5,6 +5,9 @@ import { SERVER } from '../src/config';
 import { HELLO, PROTOCOL } from '../src/net/protocol';
 import { adminApi } from './admin-api';
 import { traffic } from './counts';
+import { beacon } from './beacon';
+import { geoip, countryOf } from './geoip';
+import { history } from './history';
 import { Kept } from './kept';
 import { addressOf, LobbyHttp } from './lobby-http';
 import { liveMemory, log, logTo } from './log';
@@ -15,10 +18,10 @@ import { waiting } from './snapshot';
 // The multiplayer server: WebSocket sessions at /ws (net/protocol.ts), on
 // SERVER.port (or PORT). A plain GET at /ws answers HELLO (the game asks it
 // when it can't connect, to tell a server that's down from a blocked socket);
-// /ws?list and /ws?code= answer the server list (lobby-http.ts);
+// /ws?list and /ws?code= answer the server list (lobby-http.ts); POST /ws?e takes the game's beacon (beacon.ts);
 // /healthz is for Docker. Caddy serves the game and passes /ws through
 // (docs/deploy.md). One process, everything in memory but the public sessions
-// kept in DATA_DIR (kept.ts); with ADMIN_KEY, the admin API on SERVER.adminPort
+// kept in DATA_DIR (kept.ts) with the admin's history (history.ts); with ADMIN_KEY, the admin API on SERVER.adminPort
 // (admin-api.ts). Every event is a log line.
 
 // LOG_DIR: the log goes to files there, one a day, cleaned of IP addresses and nicknames as they age (server/log-files.ts).
@@ -41,6 +44,12 @@ const kept = new Kept(lobby, process.env.LEVELS_DIR ?? 'public/levels', process.
 // A DATA_DIR it can't use is no reason to stay down: the game runs, and the log says why nothing is kept.
 await kept.restore().catch((e) => log('-----', 'kept sessions not restored:', e));
 setInterval(() => void kept.save(), SERVER.keepEvery * 1000);
+if (process.env.GEOIP_DB) await geoip(process.env.GEOIP_DB);
+if (kept.dir) await history.keepIn(kept.dir).catch((e) => log('-----', 'history not read:', e));
+setInterval(() => {
+  history.sample([...lobby.sessions.values()].map((s) => [...s.players.values()].filter((p) => p.link).length), SERVER.historyEvery);
+  void history.save();
+}, SERVER.historyEvery * 1000);
 const adminPort = Number(process.env.ADMIN_PORT) || SERVER.adminPort;
 if (process.env.ADMIN_KEY) adminApi(lobby, kept, process.env.ADMIN_KEY).listen(adminPort, () => log('-----', `admin API on :${adminPort}`));
 else log('-----', 'no ADMIN_KEY: no admin API');
@@ -48,6 +57,8 @@ else log('-----', 'no ADMIN_KEY: no admin API');
 const lobbyHttp = new LobbyHttp(lobby);
 const server = http.createServer((req, res) => {
   const path = req.url?.split('?')[0];
+  if (path === '/ws' && req.method === 'POST' && req.url === '/ws?e')
+    return void beacon(req, addressOf(req), () => history.now().client).then((status) => res.writeHead(status, { 'cache-control': 'no-store' }).end(), () => res.writeHead(400).end());
   const listed = path === '/ws' && req.method === 'GET' ? lobbyHttp.reply(req) : null;
   if (listed) return void res.writeHead(listed.status, { 'content-type': 'application/json', 'cache-control': 'no-store' }).end(JSON.stringify(listed.body));
   const body = path === '/healthz' ? `ok, ${lobby.sessions.size} sessions\n` : path === '/ws' ? HELLO : null;
@@ -80,6 +91,7 @@ function connected(ws: WebSocket, req: http.IncomingMessage, host: boolean) {
       return ws.readyState === ws.OPEN;
     },
     ip,
+    country: countryOf(ip),
     since: Date.now(),
   };
   // A message past the size limit and other socket errors close that link (ws does): unhandled, they'd end the process.
@@ -110,13 +122,13 @@ setInterval(() => {
   log('-----', `memory: ${liveMemory().toFixed(0)} MB live, ${(process.memoryUsage.rss() / 2 ** 20).toFixed(0)} MB rss; ${lobby.sessions.size} sessions, ${lobby.players} players, ${waiting()} paint files in line`);
 }, SERVER.statsEvery * 1000);
 process.on('unhandledRejection', (e) => log('-----', 'unhandled', e));
-// In a container this is PID 1, which has no default signal handlers. The kept sessions' paint is saved first; a second signal doesn't wait.
+// In a container this is PID 1, which has no default signal handlers. The kept sessions' paint and the history are saved first; a second signal doesn't wait.
 let stopping = false;
 for (const sig of ['SIGTERM', 'SIGINT'])
   process.on(sig, () => {
     if (stopping) process.exit(0);
     stopping = true;
-    void kept.save().finally(() => process.exit(0));
+    void Promise.all([kept.save(), history.save()]).finally(() => process.exit(0));
   });
 
 const port = Number(process.env.PORT) || SERVER.port;

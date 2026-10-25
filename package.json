@@ -31,6 +31,7 @@
     "audit": "knip; jscpd src"
   },
   "dependencies": {
+    "mmdb-lib": "^3.0.3",
     "three": "^0.186.1",
     "ws": "^8.22.0"
   },

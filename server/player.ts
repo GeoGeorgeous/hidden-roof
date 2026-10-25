@@ -13,6 +13,9 @@ export interface Link {
   /** Where it's from, and when it opened (ms), for the log. */
   readonly ip: string;
   readonly since: number;
+  /** Its country (geoip.ts) and the game's device id (its HOST or JOIN), for the admin page. */
+  readonly country?: string | null;
+  device?: string;
   /** Its last WebSocket ping's round trip (ms), for the admin page; none yet. */
   rtt?: number;
 }
@@ -41,7 +44,7 @@ export interface Player {
   ladder: PropData | null;
   expires: ReturnType<typeof setTimeout> | null;
   /** Their last link that closed: from where, how long it lived, when (ms), for the log. */
-  was: { ip: string; lived: number; at: number } | null;
+  was: { ip: string; country: string | null; lived: number; at: number } | null;
 }
 
 export const presence = (p: Player): Presence => (p.link ? p.activity : 'dropped');
