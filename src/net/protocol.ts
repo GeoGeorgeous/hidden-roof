@@ -98,8 +98,8 @@ export type Presence = Activity | 'dropped';
 export type ToServer =
   /** Start a private session on this level, at this PAINT DETAIL, from a paint save (`bytes`) or clean; `session`: its name, most players (SERVER.privateMin to SERVER.players.private) and tools. `table`: this client's surfaceTable of the level. */
   | { type: 'host'; protocol: number; table: string; name: string; levelName: string; level: LevelData; detail: number; session: { name: string; limit: number; tools: Tool[] }; bytes?: Uint8Array }
-  /** Join by code; with the `token` from an earlier welcome, as the same player (a reconnect). */
-  | { type: 'join'; protocol: number; name: string; code: string; token?: string }
+  /** Join by code; with the `token` from an earlier welcome, as the same player (a reconnect); with the `queue` token of an earlier 'queued', back to that place in line. */
+  | { type: 'join'; protocol: number; name: string; code: string; token?: string; queue?: string }
   /** This player now (net/snapshot.ts). */
   | { type: 'state'; bytes: Uint8Array }
   /**
@@ -131,6 +131,12 @@ export type ToClient =
    */
   | { type: 'welcome'; code: string; you: number; name: string; token: string; session: SessionInfo; levelName: string; level: LevelData; detail: number; table: string; players: { id: number; name: string; state: Presence }[]; ladders: { id: number; data: PropData }[]; inventory: InventoryData | null; parts: number; acked: number }
   | { type: 'rejected'; reason: Rejection }
+  /**
+   * The session is full: this link waits in line, `position` 1 next (SERVER.queueMax at most; past it, 'full').
+   * Sent again whenever the position changes; the welcome follows once a place is free. A JOIN with `token` after
+   * a dropped link keeps the place for SERVER.rejoinWindow.
+   */
+  | { type: 'queued'; position: number; token: string }
   | { type: 'joined'; id: number; name: string }
   | { type: 'left'; id: number }
   | { type: 'presence'; id: number; state: Presence }
