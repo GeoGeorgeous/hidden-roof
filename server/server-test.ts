@@ -127,7 +127,7 @@ try {
   const wb = await b.next('welcome');
   assert.deepEqual([wb.you, wb.players, wb.levelName, wb.inventory], [2, [{ id: 1, name: 'A', state: 'here' }], 'demo', null]);
   assert.deepEqual(await a.next('joined'), { type: 'joined', id: 2, name: 'B' });
-  // The rest of a full session joins all at once; one more is turned away; they go again.
+  // The rest of a full session joins all at once; one more waits in line and leaves it; they go again.
   const rest = await Promise.all(Array.from({ length: SERVER.players.private - 2 }, () => game()));
   rest.forEach((x, i) => x.send({ type: 'join', protocol: PROTOCOL, name: `C${i}`, code: wa.code }));
   const ids = new Set<number>();
@@ -135,7 +135,9 @@ try {
   assert.equal(ids.size, rest.length);
   const c = await game();
   c.send({ type: 'join', protocol: PROTOCOL, name: 'C', code: wa.code });
-  assert.equal((await c.next('rejected')).reason, 'full');
+  assert.equal((await c.next('queued')).position, 1);
+  c.send({ type: 'leave' });
+  assert.equal(await c.closed, 1000);
   for (const x of rest) x.send({ type: 'leave' });
   for (let i = 0; i < rest.length; i++) (await a.next('joined'), await a.next('left'), await b.next('joined'), await b.next('left'));
 

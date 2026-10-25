@@ -9,10 +9,10 @@ export const press = (page, text) => page.locator('.overlay button:visible', { h
 export const hostSession = (page, name, detail) =>
   page.evaluate(([name, detail]) => window.game.net.host(name, detail ?? window.game.config.PAINT.texelsPerMeter, { name: 'Test', limit: 4, tools: ['can', 'marker', 'ladder', 'roller', 'sponge'] }), [name, detail]);
 
-/** The Multiplayer page's list, up on `page`, and its first row of this kind ('private' or 'public'), clicked. */
-async function pickSession(page, kind = 'private') {
+/** The Multiplayer page's list, up on `page`, and its first row of this kind ('private' or 'public'), clicked; `title`: the one with this name. */
+async function pickSession(page, kind = 'private', title) {
   await press(page, 'MULTIPLAYER');
-  await page.locator('.mp-page .session:not(.skeleton-row)', { hasText: kind === 'private' ? 'Private' : 'Public' }).first().click();
+  await page.locator('.mp-page .session:not(.skeleton-row)', { hasText: kind === 'private' ? 'Private' : 'Public' }).filter({ hasText: title }).first().click();
 }
 
 /** The open dialog: the name in it, the code of a private session in its boxes, and JOIN (pressed, once it is enabled). */
@@ -26,8 +26,8 @@ async function joinDialog(page, name, code) {
   await dialog.locator('.btn.primary:not([disabled])').click();
 }
 
-/** JOIN through the menu: the list, the row, the dialog. */
-export async function joinFromList(page, name, code, kind = 'private') {
-  await pickSession(page, kind);
+/** JOIN through the menu: the list, the row (of the session named `title`, if given), the dialog. */
+export async function joinFromList(page, name, code, kind = 'private', title) {
+  await pickSession(page, kind, title);
   await joinDialog(page, name, kind === 'private' ? code : undefined);
 }

@@ -147,6 +147,19 @@ export const MESSAGES = {
     stepDownloading: 'Downloading paint',
     stepPutting: 'Putting paint on the walls',
     stepDropping: 'Dropping you in',
+    // Waiting in line for a full session; {time} is m:ss, {s} whole seconds
+    queueTitle: "you're #{n} in line",
+    queueText: "The roof is full. You'll drop in as soon as a spot opens.",
+    queueAhead: '{n} ahead of you',
+    queueNext: "You're next",
+    queueLostTitle: 'reconnecting',
+    queueLost: 'Connection lost.',
+    queueHeld: 'Your place #{n} is held for {time}.',
+    queueAttempt: 'Attempt {n}',
+    queueRetry: 'retry in {s} s',
+    queueRetrying: 'trying now…',
+    queueReconnect: 'Reconnect now',
+    queueLeave: 'Leave queue',
   },
 
   /** The menu, its pages, and the screens before play: they keep their own places, and show until the next status or the step is done (a copy's flash: a few seconds). */
@@ -161,6 +174,7 @@ export const MESSAGES = {
     netVersion: 'A new version is out: reload the page',
     netNoSession: 'No session with that code',
     netFull: 'That session is full',
+    netQueued: 'Waiting in line · #{n}',
     netBadSave: "That paint file doesn't fit this level",
     netBadLevel: "This level can't be hosted",
     netBusy: 'The server is full: try again later',

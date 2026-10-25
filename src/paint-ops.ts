@@ -1,3 +1,4 @@
+import type { Tool } from './inventory/tool';
 import type { PaintDrips } from './paint-drips';
 import type { PaintSystem, Rgb } from './painting';
 
@@ -45,6 +46,16 @@ export interface DripOp extends At {
 }
 
 export type PaintOp = StampOp | RollOp | DripOp;
+
+/**
+ * The tool that makes this op: the roller rolls, the marker stamps a square nib, the sponge stamps no color (it scrubs), the
+ * can stamps round dots. null: a run, which any stamp or roll may start.
+ */
+export function opTool(op: PaintOp): Tool | null {
+  if (op.kind === 'roll') return 'roller';
+  if (op.kind === 'drip') return null;
+  return op.square ? 'marker' : op.color ? 'can' : 'sponge';
+}
 
 export class PaintOps {
   constructor(

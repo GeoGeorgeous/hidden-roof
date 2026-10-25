@@ -107,11 +107,13 @@ try {
   const listed = await new Promise<string>((done, fail) => execFile(process.execPath, ['server/admin.mjs', 'list'], { env }, (e, so) => (e ? fail(e) : done(so))));
   assert.match(listed, new RegExp(`^${code}  public .* "Drawing together"`));
 
-  // Full at the public limit; kept when everyone has left.
+  // Full at the public limit, the next one waits in line; kept when everyone has left.
   await Promise.all(Array.from({ length: SERVER.players.public }, (_, i) => new Game().join(code, `P${i}`)));
   const extra = new Game();
   await extra.hello(code, 'Late');
-  assert.equal((await extra.next('rejected')).reason, 'full');
+  assert.equal((await extra.next('queued')).position, 1);
+  assert.equal((await admin('GET', '/sessions')).body[0].queue, 1);
+  assert.match(await new Promise<string>((done, fail) => execFile(process.execPath, ['server/admin.mjs', 'list'], { env }, (e, so) => (e ? fail(e) : done(so)))), / queue: 1 /);
   await stop(server);
   server = await start();
   assert.deepEqual((await admin('GET', '/sessions')).body.map((s: { code: string }) => s.code), [code], 'kept through a restart, empty');
@@ -174,7 +176,7 @@ try {
   assert.equal((await d.next('rejected')).reason, 'ended');
   assert.deepEqual((await admin('GET', '/sessions')).body, []);
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(dir, 'sessions.json'), 'utf8')), []);
-  console.log('kept sessions: ok (admin key and origin, a public session full at its limit, kept empty, paint back after a restart, wipe, a new surface table wipes, private ones close when empty unless they stay, close)');
+  console.log('kept sessions: ok (admin key and origin, a public session full at its limit with a line, kept empty, paint back after a restart, wipe, a new surface table wipes, private ones close when empty unless they stay, close)');
 } finally {
   server.kill();
   fs.rmSync(dir, { recursive: true, force: true });

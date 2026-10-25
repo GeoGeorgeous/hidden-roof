@@ -1,4 +1,4 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
-  "entry": ["server/main.ts", "server/paint-check.ts", "server/server-test.ts", "server/world-test.ts", "server/kept-test.ts", "server/lobby-test.ts", "server/admin.mjs", "scripts/release-notes.mjs", "scripts/release-picture.mjs", "scripts/release-discord.mjs"]
+  "entry": ["server/main.ts", "server/paint-check.ts", "server/server-test.ts", "server/world-test.ts", "server/kept-test.ts", "server/lobby-test.ts", "server/tools-test.ts", "server/queue-test.ts", "server/admin.mjs", "scripts/release-notes.mjs", "scripts/release-picture.mjs", "scripts/release-discord.mjs"]
 }

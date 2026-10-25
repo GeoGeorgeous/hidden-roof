@@ -1112,6 +1112,8 @@ export const SERVER = {
   /** Looking a session up by its code (GET /ws?code=, server/lobby-http.ts) is allowed this many times a minute from one address (then 429), and from lookupIps addresses at once: codes can't be tried one after another. */
   lookupsPerIp: 30,
   lookupIps: 10000,
+  /** Players waiting in line for a full session, at most (net/protocol.ts 'queued'); one more is turned away as 'full'. */
+  queueMax: 20,
   /** A dropped player can come back as themselves for this long (s); then their stepladder goes, and a session with no one left closes. */
   rejoinWindow: 180,
   /** The server pings every game this often (s), so a game notices a dead link; a game pings the server as often, and each answer is a round trip for the link's status (NET.statusShow). */

@@ -98,8 +98,8 @@ export type Presence = Activity | 'dropped';
 export type ToServer =
   /** Start a private session on this level, at this PAINT DETAIL, from a paint save (`bytes`) or clean; `session`: its name, most players (SERVER.privateMin to SERVER.players.private) and tools. `table`: this client's surfaceTable of the level. */
   | { type: 'host'; protocol: number; table: string; name: string; levelName: string; level: LevelData; detail: number; session: { name: string; limit: number; tools: Tool[] }; bytes?: Uint8Array }
-  /** Join by code; with the `token` from an earlier welcome, as the same player (a reconnect). */
-  | { type: 'join'; protocol: number; name: string; code: string; token?: string }
+  /** Join by code; with the `token` from an earlier welcome, as the same player (a reconnect); with the `queue` token of an earlier 'queued', back to that place in line. */
+  | { type: 'join'; protocol: number; name: string; code: string; token?: string; queue?: string }
   /** This player now (net/snapshot.ts). */
   | { type: 'state'; bytes: Uint8Array }
   /**
@@ -131,6 +131,12 @@ export type ToClient =
    */
   | { type: 'welcome'; code: string; you: number; name: string; token: string; session: SessionInfo; levelName: string; level: LevelData; detail: number; table: string; players: { id: number; name: string; state: Presence }[]; ladders: { id: number; data: PropData }[]; inventory: InventoryData | null; parts: number; acked: number }
   | { type: 'rejected'; reason: Rejection }
+  /**
+   * The session is full: this link waits in line, `position` 1 next (SERVER.queueMax at most; past it, 'full').
+   * Sent again whenever the position changes; the welcome follows once a place is free. A JOIN with `token` after
+   * a dropped link keeps the place for SERVER.rejoinWindow.
+   */
+  | { type: 'queued'; position: number; token: string }
   | { type: 'joined'; id: number; name: string }
   | { type: 'left'; id: number }
   | { type: 'presence'; id: number; state: Presence }
@@ -224,7 +230,7 @@ export function checkToServer(m: Message | null): ToServer | null {
     case 'host':
       return isInt(v.protocol) && typeof v.table === 'string' && isName(v.name) && typeof v.levelName === 'string' && v.levelName.length <= 64 && !levelProblem(v.level, MAX_PROPS) && DETAILS.includes(v.detail as number) && isHosting(v.session) ? (m as ToServer) : null;
     case 'join':
-      return isInt(v.protocol) && isName(v.name) && isCode(v.code) && (v.token === undefined || typeof v.token === 'string') && !m.bytes ? (m as ToServer) : null;
+      return isInt(v.protocol) && isName(v.name) && isCode(v.code) && (v.token === undefined || typeof v.token === 'string') && (v.queue === undefined || isQueueToken(v.queue)) && !m.bytes ? (m as ToServer) : null;
     case 'state':
       return m.bytes?.length === SNAPSHOT_BYTES ? (m as ToServer) : null;
     case 'ops':
@@ -246,6 +252,9 @@ export function checkToServer(m: Message | null): ToServer | null {
 
 const isInt = (x: unknown): x is number => Number.isInteger(x) && (x as number) >= 0;
 const isHosting = (x: unknown) => isObj(x) && isSessionName(x.name) && isPrivateLimit(x.limit) && isToolSet(x.tools);
+/** A queue token is a UUID; anything much longer is not one. */
+const isQueueToken = (x: unknown) => typeof x === 'string' && x.length <= QUEUE_TOKEN_MAX;
+const QUEUE_TOKEN_MAX = 64;
 const isCode = (x: unknown) => typeof x === 'string' && x.length === CODE_LENGTH && [...x].every((c) => CODE_LETTERS.includes(c));
 /** Shape and size only: the game takes from it what it knows (Inventory.restore). */
 const isWords = (x: unknown) => Array.isArray(x) && x.length <= 32 && x.every((w) => typeof w === 'string' && w.length <= 32);

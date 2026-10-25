@@ -1,4 +1,5 @@
 import { PAINT } from '../config';
+import { SLOTS } from '../inventory/tool';
 import { download, stamp } from '../files';
 import type { LevelData } from '../level/level-data';
 import { hasPaint } from '../paint-surface';
@@ -36,6 +37,7 @@ export async function keepSolo(g: MultiplayerContext, log: (line: string) => voi
 async function restoreSolo(g: MultiplayerContext, solo: Solo) {
   const built = g.paint.texelsPerMeter;
   g.ownDetail();
+  g.inventory.allowOnly(SLOTS);
   playLevel(g, solo.data, solo.name, built, PAINT.texelsPerMeter);
   if (solo.paint) await loadPaint(g.paint, g.drips, solo.paint, { name: solo.name });
 }

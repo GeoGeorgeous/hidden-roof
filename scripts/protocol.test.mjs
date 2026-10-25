@@ -115,6 +115,9 @@ refused({ ...join, code: 'ABCD' });
 refused({ ...join, code: 'ABCDI' });
 refused({ ...join, code: 'abcde' });
 refused({ ...join, protocol: -1 });
+// A join may carry the queue token of an earlier 'queued': a short string, or none.
+assert.ok(checkToServer(decode(encode({ ...join, queue: '4f0d1c3e-9a52-4c0e-8d4e-0a1b2c3d4e5f' }))));
+for (const queue of [7, null, ['x'], 'x'.repeat(65)]) refused({ ...join, queue });
 refused({ type: 'state', bytes: snap.subarray(1) });
 refused({ type: 'state' });
 // Op batches are numbered from 1, and packed.
