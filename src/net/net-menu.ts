@@ -1,4 +1,5 @@
-import { COLORS, PAINT, PAINT_DETAIL } from '../config';
+import { COLORS, PAINT, PAINT_DETAIL, SERVER } from '../config';
+import { SLOTS } from '../inventory/tool';
 import { download, pickFile, stamp } from '../files';
 import type { PauseMenu } from '../pause-menu';
 import { msg, type MessageId } from '../messages';
@@ -37,6 +38,7 @@ const STATUS: Record<Failure | 'connecting' | 'reconnecting', MessageId> & Parti
   busy: 'menu.netBusy',
   replaced: 'menu.netReplaced',
   'too-many': 'menu.netTooMany',
+  'no-host': 'menu.netNoHost',
   ended: 'menu.netEnded',
   restarted: 'menu.netEnded',
   expired: 'menu.netEnded',
@@ -112,7 +114,7 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
       try {
         if (start === 'mine') relabel(go, 'Packing paint…');
         const save = start === 'mine' ? await savePaint(ctx.paint, { name: levelName() }) : start === 'file' ? new Uint8Array(await (await pickFile('.rhhpaint')).arrayBuffer()) : (ctx.levelPaint() ?? undefined);
-        net.host(who, detail, save);
+        net.host(who, detail, { name: who, limit: SERVER.players.private, tools: [...SLOTS] }, save);
       } catch (e) {
         say(sentence((e as Error).message), true);
       } finally {

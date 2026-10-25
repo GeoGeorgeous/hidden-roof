@@ -4,7 +4,7 @@ import type { InventoryData } from '../src/inventory/inventory';
 import { SLOTS, type Tool } from '../src/inventory/tool';
 import type { LevelData } from '../src/level/level-data';
 import { decodeOps, encodeOps, SurfaceIndex } from '../src/op-wire';
-import { closeCode, encode, partFrames, partPieces, type Rejection, type ToClient, type ToServer } from '../src/net/protocol';
+import { closeCode, encode, partFrames, partPieces, type Rejection, type SessionKind, type ToClient, type ToServer } from '../src/net/protocol';
 import { loadPaint } from '../src/save/load-paint';
 import { joinBytes } from '../src/save/paint-file';
 import { streamPaint } from '../src/save/save-paint';
@@ -26,17 +26,18 @@ import { sessionPaint } from './world';
 
 type How = 'new' | 'back' | 'takeover';
 
-/** What its creator made it: public (open to all) or private (by its code), its name, the tools it allows; `stays` when empty; `admin`: the admin made it. */
+/** What its creator made it: public (open to all) or private (by its code), its name, most players, the tools it allows; `stays` when empty; `admin`: the admin made it. */
 export interface SessionSetup {
-  kind: 'public' | 'private';
+  kind: SessionKind;
   name: string;
+  limit: number;
   tools: readonly Tool[];
   stays: boolean;
   admin: boolean;
 }
 
-/** A session a player hosted: private, every tool, closed when empty. */
-const HOSTED: SessionSetup = { kind: 'private', name: '', tools: SLOTS, stays: false, admin: false };
+/** A session made without a setup (the paint tests'): private, every tool, closed when empty. */
+const HOSTED: SessionSetup = { kind: 'private', name: '', limit: SERVER.players.private, tools: SLOTS, stays: false, admin: false };
 
 export class Session {
   readonly players = new Map<number, Player>();
@@ -108,7 +109,7 @@ export class Session {
     let p = token ? all.find((q) => q.token === token) : undefined;
     const dropped = all.filter((q) => !q.link);
     const how = p ? 'back' : (p = dropped.find((q) => q.name === name) ?? dropped.find((q) => q.asked === name)) ? 'takeover' : 'new';
-    if (!p && this.players.size >= SERVER.players[this.setup.kind]) return 'full';
+    if (!p && this.players.size >= this.setup.limit) return 'full';
     const snap = this.snapshot(() => p?.link === link && link.open);
     if (snap === 'busy') return 'busy';
     this.counts[how]++;
@@ -145,7 +146,9 @@ export class Session {
     const others = [...this.players.values()].filter((q) => q !== p);
     const ladders = [...this.players.values()].filter((q) => q.ladder).map((q) => ({ id: q.id, data: q.ladder! }));
     const players = others.map((q) => ({ id: q.id, name: q.name, state: presence(q) }));
-    link.send(encode({ type: 'welcome', code: this.code, you: p.id, name: p.name, token: p.token, levelName: this.levelName, level: this.level, detail: this.detail, table: this.table, players, ladders, inventory: p.inventory, parts: own ? 0 : frames.length, acked: p.acked }));
+    const { kind, limit, tools } = this.setup;
+    const session = { kind, name: this.setup.name, limit, tools: [...tools] };
+    link.send(encode({ type: 'welcome', code: this.code, you: p.id, name: p.name, token: p.token, session, levelName: this.levelName, level: this.level, detail: this.detail, table: this.table, players, ladders, inventory: p.inventory, parts: own ? 0 : frames.length, acked: p.acked }));
     if (!own) for (const f of frames) link.send(f);
     for (const f of snap.log) link.send(f);
     p.live = true;

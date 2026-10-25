@@ -3,11 +3,11 @@
 // turns down. Then the op batches a game keeps until the server has them (net/outbox.ts).
 // Usage: node scripts/protocol.test.mjs
 import assert from 'node:assert/strict';
-import { PAINT, PAINT_DETAIL } from '../src/config.ts';
+import { PAINT, PAINT_DETAIL, SERVER } from '../src/config.ts';
 import { Outbox } from '../src/net/outbox.ts';
 import { decodeOps, encodeOps, rounded, SurfaceIndex } from '../src/op-wire.ts';
 import { LEVEL_VERSION, levelProblem } from '../src/level/level-data.ts';
-import { checkToServer, cleanName, closeCode, decode, encode, isName, partFrames, PROTOCOL, rejectionOf, SNAPSHOT_BYTES } from '../src/net/protocol.ts';
+import { checkToServer, cleanName, closeCode, decode, encode, isName, isSessionName, partFrames, PROTOCOL, rejectionOf, SNAPSHOT_BYTES } from '../src/net/protocol.ts';
 
 const level = { version: 4, spawn: { pos: [0, 0, 0], yaw: 0 }, props: [{ id: 1, type: 'slab', pos: [0, 0, 0] }] };
 const stamp = { kind: 'stamp', key: 'p12#0', rect: 3, u: 0.1 + 0.2, v: 1 / 3, radius: 0.0125, amount: 0.35, color: [1, 0.2, 0.1], softness: 0.5, square: false };
@@ -17,7 +17,7 @@ const surfaces = new SurfaceIndex([drip.key, stamp.key, roll.key, 'p1#0']);
 const snap = new Uint8Array(SNAPSHOT_BYTES).map((_, i) => i * 11);
 const save = new Uint8Array(1000).map((_, i) => (i * 7) & 255);
 
-const host = { type: 'host', protocol: PROTOCOL, table: '00a1b2c3d4e5f6', name: 'geo', levelName: 'demo', level, detail: 96, bytes: save };
+const host = { type: 'host', protocol: PROTOCOL, table: '00a1b2c3d4e5f6', name: 'geo', levelName: 'demo', level, detail: 96, session: { name: 'Friends', limit: 3, tools: ['can', 'sponge'] }, bytes: save };
 const join = { type: 'join', protocol: PROTOCOL, name: 'ghost', code: 'ABCDE', token: 'x1' };
 const sent = [
   host,
@@ -75,6 +75,12 @@ for (const name of ['', '   ', 'Geo Geo', ' Geo', 'Geo ', 'Geo_', 'Geo.', 'Geo-1
   refused({ ...host, name });
   refused({ ...join, name });
 }
+// A hosted session: a name (trimmed, 1 to SESSION_NAME_MAX, no control characters), a limit from privateMin to the private limit, some tools each once.
+const hosting = (session) => ({ ...host, session: { ...host.session, ...session } });
+for (const session of [{ name: ' Friends ' }, { name: 'x'.repeat(32) }, { name: 'Ünï cöde ✓' }, { limit: SERVER.privateMin }, { limit: SERVER.players.private }, { tools: [] }, { tools: ['sponge', 'can', 'marker', 'ladder', 'roller'] }]) assert.ok(checkToServer(decode(encode(hosting(session)))), JSON.stringify(session));
+for (const session of [{ name: '' }, { name: '   ' }, { name: 'x'.repeat(33) }, { name: 'a\nb' }, { name: 'a\u0000b' }, { name: 'a\u200bb' }, { name: 7 }, { name: null }, { limit: SERVER.privateMin - 1 }, { limit: SERVER.players.private + 1 }, { limit: 2.5 }, { limit: '3' }, { limit: null }, { tools: ['can', 'can'] }, { tools: ['spoon'] }, { tools: 'can' }, { tools: [1] }, { tools: null }]) refused(hosting(session));
+for (const session of [undefined, null, 'Friends', ['Friends', 3, []]]) refused({ ...host, session });
+assert.ok(isSessionName('  trimmed ') && !isSessionName('   ') && !isSessionName(undefined));
 // Another protocol passes whatever else is in it (a name or fields an older game sent), so the server can answer 'version'; the current one keeps every check.
 for (const m of [host, join]) {
   assert.ok(checkToServer(decode(encode({ ...m, protocol: PROTOCOL - 1, name: 'Anna K', code: 'x', level: 1 }))));
@@ -83,8 +89,8 @@ for (const m of [host, join]) {
   refused({ ...m, protocol: '6', name: 'Anna K' });
 }
 // A socket's close code says the rejection it came with; any other close code says none.
-for (const r of ['version', 'no-session', 'ended', 'full', 'bad-save', 'bad-level', 'busy', 'replaced', 'too-many']) assert.equal(rejectionOf(closeCode(r)), r);
-for (const code of [1000, 1006, 1008, 1011, 4000, 4010]) assert.equal(rejectionOf(code), undefined, String(code));
+for (const r of ['version', 'no-session', 'ended', 'full', 'bad-save', 'bad-level', 'busy', 'replaced', 'too-many', 'no-host']) assert.equal(rejectionOf(closeCode(r)), r);
+for (const code of [1000, 1006, 1008, 1011, 4000, 4011]) assert.equal(rejectionOf(code), undefined, String(code));
 // A name saved by an older version is cleaned to what a name may be: letters and digits, at most NAME_MAX.
 assert.equal(cleanName('Geo Geo'), 'GeoGeo');
 assert.equal(cleanName('Гоша_7!'), '7');

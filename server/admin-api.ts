@@ -1,8 +1,8 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import http from 'node:http';
 import { PAINT_DETAIL, SERVER } from '../src/config';
-import { SLOTS, type Tool } from '../src/inventory/tool';
-import { PROTOCOL, SESSION_NAME_MAX } from '../src/net/protocol';
+import { SLOTS } from '../src/inventory/tool';
+import { isPrivateLimit, isSessionName, isToolSet, PROTOCOL, SESSION_NAME_MAX } from '../src/net/protocol';
 import { log, overMemory } from './log';
 import type { Kept } from './kept';
 import type { Lobby } from './lobby';
@@ -14,8 +14,9 @@ import type { Session, SessionSetup } from './session';
 // browser page only from ADMIN_ORIGIN. JSON in and out:
 //   GET  /                     the API's version, the protocol, uptime
 //   GET  /sessions             every session
-//   POST /sessions             a new one: { kind, name, level?, detail?, tools?, stay? }
-//                              (stay: a private one stays when empty; a public one always does)
+//   POST /sessions             a new one: { kind, name, level?, detail?, tools?, stay?, limit? }
+//                              (stay: a private one stays when empty; a public one always does;
+//                              limit: a private one's most players, SERVER.privateMin to SERVER.players.private)
 //   POST /sessions/CODE/wipe   its paint gone
 //   POST /sessions/CODE/close  ended for everyone in it
 
@@ -28,9 +29,9 @@ const detailName = (d: number) => Object.entries(PAINT_DETAIL).find(([, v]) => v
 
 /** A session as the admin sees it. */
 function listing(s: Session) {
-  const { kind, name, tools, stays, admin } = s.setup;
+  const { kind, name, limit, tools, stays, admin } = s.setup;
   const players = [...s.players.values()].map((p) => ({ id: p.id, name: p.name, here: !!p.link }));
-  return { code: s.code, kind, name, admin, stays, tools, level: s.levelName, detail: detailName(s.detail), players, limit: SERVER.players[kind], started: new Date(s.started).toISOString(), paintMB: Math.round(s.memory.now) };
+  return { code: s.code, kind, name, admin, stays, tools, level: s.levelName, detail: detailName(s.detail), players, limit, started: new Date(s.started).toISOString(), paintMB: Math.round(s.memory.now) };
 }
 
 /** POST /sessions's body as a session to make, or why not. */
@@ -38,16 +39,17 @@ function newSession(b: unknown): string | { setup: Omit<SessionSetup, 'admin'>; 
   const o = (typeof b === 'object' && b ? b : {}) as Record<string, unknown>;
   const kind = o.kind;
   if (kind !== 'public' && kind !== 'private') return 'kind: public or private';
-  const name = typeof o.name === 'string' ? o.name.trim() : '';
-  if (!name || name.length > SESSION_NAME_MAX || /\p{C}/u.test(name)) return `name: 1 to ${SESSION_NAME_MAX} characters`;
+  if (!isSessionName(o.name)) return `name: 1 to ${SESSION_NAME_MAX} characters`;
   const detail = PAINT_DETAIL[(o.detail ?? 'ultra') as keyof typeof PAINT_DETAIL];
   if (!detail) return `detail: one of ${Object.keys(PAINT_DETAIL).join(', ')}`;
-  const tools = (o.tools ?? SLOTS) as Tool[];
-  if (!Array.isArray(tools) || !tools.every((t) => SLOTS.includes(t)) || new Set(tools).size !== tools.length) return `tools: some of ${SLOTS.join(', ')}`;
+  const tools = o.tools ?? SLOTS;
+  if (!isToolSet(tools)) return `tools: some of ${SLOTS.join(', ')}`;
   const level = o.level ?? 'roof';
   if (typeof level !== 'string') return 'level: a level name';
   if (o.stay !== undefined && typeof o.stay !== 'boolean') return 'stay: true or false';
-  return { setup: { kind, name, tools: SLOTS.filter((t) => tools.includes(t)), stays: kind === 'public' || o.stay === true }, level, detail };
+  if (o.limit !== undefined && (kind !== 'private' || !isPrivateLimit(o.limit))) return `limit: a private session's players, ${SERVER.privateMin} to ${SERVER.players.private}`;
+  const limit = kind === 'public' ? SERVER.players.public : ((o.limit as number | undefined) ?? SERVER.players.private);
+  return { setup: { kind, name: o.name.trim(), limit, tools: SLOTS.filter((t) => tools.includes(t)), stays: kind === 'public' || o.stay === true }, level, detail };
 }
 
 export function adminApi(lobby: Lobby, kept: Kept, key: string) {
