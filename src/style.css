@@ -1283,6 +1283,10 @@
   gap: 20px;
   width: 460px;
   max-width: calc(100% - 98px);
+  /* A short window scrolls a tall popup (a join dialog at 820×560) instead of cutting it off. */
+  max-height: calc(100% - 32px);
+  overflow-y: auto;
+  scrollbar-width: thin;
   padding: 30px 32px 26px;
   border: 1px solid var(--edge);
   border-radius: 8px;
@@ -2296,7 +2300,7 @@
   font-size: 12px;
   color: var(--error);
 }
-.overlay .join-popup .name-row {
+.overlay .name-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2306,7 +2310,7 @@
   font-size: 14px;
   font-weight: 500;
 }
-.overlay .join-popup .name-row input {
+.overlay .name-row input {
   pointer-events: auto;
   box-sizing: border-box;
   width: 220px;
@@ -2321,10 +2325,10 @@
   user-select: text;
   transition: border-color 0.15s;
 }
-.overlay .join-popup .name-row input:focus {
+.overlay .name-row input:focus {
   border-color: rgba(235, 229, 214, 0.5);
 }
-.overlay .join-popup .name-row input::placeholder {
+.overlay .name-row input::placeholder {
   color: var(--text-3);
 }
 .overlay .join-popup .rules {
