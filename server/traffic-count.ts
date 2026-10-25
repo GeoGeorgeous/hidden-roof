@@ -73,7 +73,7 @@ const bare = (host: string) => host.replace(/^www\./, '');
 /** `key` counted in `to`; past SERVER.trafficKinds keys a new name is Other. */
 function count(to: Counts, key: string) {
   key = key.slice(0, SERVER.trafficText);
-  const k = key in to || Object.keys(to).length < SERVER.trafficKinds ? key : 'Other';
+  const k = Object.hasOwn(to, key) || Object.keys(to).length < SERVER.trafficKinds ? key : 'Other';
   to[k] = (to[k] ?? 0) + 1;
 }
 
