@@ -20,7 +20,7 @@ The public server: see also docs/deploy.md. Shipped: the server list, public and
 
 ## BL-043 One public server, running 24/7
 
-See `docs/deploy.md`. Server side done (2026-10-25): the admin API and command (`server/admin-api.ts`, `server/admin.mjs`), sessions the admin makes (public or private, a name, tools; they stay when empty), public ones kept in `DATA_DIR` with their paint (`server/kept.ts`), private sessions up to 4. Left: the deploy (`docs/ideas/vps.md` item 2). The tools a session allows are stored, listed and applied: a tool that's off has no pickups, can't be held (the slot stays an empty circle) and its ops and stepladders are dropped by the server (BL-154).
+See `docs/deploy.md`. Server side done (2026-10-25): the admin API and command (`server/admin-api.ts`, `server/admin.mjs`), sessions the admin makes (public or private, a name, tools; they stay when empty), public ones kept in `DATA_DIR` with their paint (`server/kept.ts`), private sessions up to 4. Left: the deploy (`docs/ideas/vps.md` item 1). The tools a session allows are stored, listed and applied: a tool that's off has no pickups, can't be held (the slot stays an empty circle) and its ops and stepladders are dropped by the server (BL-154).
 
 ## BL-047 Admin panel: players online, ban by IP
 
@@ -30,7 +30,7 @@ See who is online and how the server does. The page lives in its own private rep
 
 - Done: the admin API (version 2: sessions with their players, the machine, history, unique people and country, the event stream, kick, a session's paint downloaded, the wipe keeping saves aside), the game's beacon with its game events and who is on the site now, and web traffic from Caddy's log in its own container, `roof-traffic` (`GET /traffic`; TASK-243, TASK-244, TASK-241 are in the backlog's Done). The code (`server/admin-api.ts` and its header) and `docs/deploy.md` §6 describe them. The page (cctv, a private repo): sessions with create, wipe and close, a session's page, Main and Stats on mock data, a main / next switch.
 - The API's data (owner, 2026-10-25): data, not views. Counts, not shares; codes and ids (iso2, color names, reasons, tools), not labels; objects keyed by them, so a new key needs no new API version and the page ignores keys it doesn't know; times ISO UTC, durations in seconds, sizes in bytes; no top-N cuts or sorting (caps that bound memory fold into Other); a quantile only where the raw data is big, its histogram beside it when small. The page builds every view itself.
-- Left, host: staging, `roof-next` and the page deployed (`docs/ideas/vps.md` item 1, `docs/deploy.md` §9), Caddy's admin route for main once prod runs 1.6.0 (item 2), the GeoIP base downloaded monthly (item 3), Caddy's access logs and the traffic readers (item 4). Left, legal: the privacy page names what's counted (TASK-242).
+- Staging live (2026-10-26, `docs/deploy.md` §9): `next.roof.hidden.haus` with `roof-next`, its traffic reader and GeoIP, and the page at `cctv.hidden.haus` behind tinyauth; the owner tested it in a browser. Left, host: prod, once it runs 1.6.0: Caddy's admin route for main (`docs/ideas/vps.md` item 1), the GeoIP base downloaded monthly (item 2), `roof`'s access log and traffic reader (item 3). Left, legal: the privacy page names what's counted (TASK-242).
 
 ## TASK-189 House rules before joining a public server
 
