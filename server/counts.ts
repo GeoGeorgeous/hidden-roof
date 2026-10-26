@@ -9,6 +9,9 @@ import type { Rgb } from '../src/painting';
 /** The next midnight UTC (ms) after `t`: the day's counts start again then. */
 const midnight = (t = Date.now()) => (Math.floor(t / 864e5) + 1) * 864e5;
 
+/** The median of `sorted` (ascending): the middle one, or the mean of the two in the middle; null for none. */
+export const median = (sorted: number[]) => (sorted.length ? (sorted[(sorted.length - 1) >> 1] + sorted[sorted.length >> 1]) / 2 : null);
+
 /** Bytes sent to games since the start (main.ts adds each frame), for the upload rate. */
 export const traffic = { sent: 0 };
 

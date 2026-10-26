@@ -2,6 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { SERVER } from '../src/config';
+import { log } from './log';
 
 // Unique people for the admin's history (history.ts). Each play that starts is
 // kept as its hour, its device id (the game's, stored.ts) and its address (an
@@ -54,7 +55,7 @@ class People {
     this.dirty.add(Math.floor(p.h / 24));
   }
 
-  /** People since hour `first`: merged, by device (plays that carried one), by address; and merged people by country (their last one known). */
+  /** People since hour `first` (distinct within one salt period: a person seen before and after a salt change counts twice): merged, by device (plays that carried one), by address; and merged people by country (their last one known). */
   count(first: number) {
     const up = new Map<string, string>();
     const root = (x: string): string => {
@@ -87,15 +88,19 @@ class People {
   /** Keep them in `dir` (stats/): the salt and the last SERVER.historyDays read back, older days deleted. */
   async keepIn(dir: string) {
     this.dir = dir;
-    const salt = JSON.parse(await fs.readFile(path.join(dir, 'salt.json'), 'utf8').catch(() => 'null')) as People['salt'] | null;
+    const salt = await fs.readFile(path.join(dir, 'salt.json'), 'utf8').then((t) => JSON.parse(t) as People['salt'] | null).catch(() => null);
     if (salt) this.salt = salt;
     else this.saltChanged = true;
     const keep = Math.floor(Date.now() / DAY) - SERVER.historyDays;
     for (const name of await fs.readdir(dir)) {
       const day = dayOf(name);
       if (day === null) continue;
-      if (day < keep) await fs.rm(path.join(dir, name));
-      else for (const p of JSON.parse(await fs.readFile(path.join(dir, name), 'utf8')) as Play[]) this.add(p);
+      try {
+        if (day < keep) await fs.rm(path.join(dir, name));
+        else for (const p of JSON.parse(await fs.readFile(path.join(dir, name), 'utf8')) as Play[]) this.add(p);
+      } catch (e) {
+        log('-----', `stats ${name} skipped:`, e);
+      }
     }
     this.plays.sort((a, b) => a.h - b.h);
   }
