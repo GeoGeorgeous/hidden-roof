@@ -14,7 +14,8 @@ import { QueuePage } from './queue-page';
 import { lostDialog, type LostButton } from './lost-dialog';
 import { nameField, nameProblem, storedName } from './name-field';
 import type { LobbyEntry } from './protocol';
-import { Multiplayer, type Failure, type NetStatus } from './multiplayer';
+import { Multiplayer } from './multiplayer';
+import type { Failure, NetStatus } from './status';
 
 // The Multiplayer page of the ESC menu: the server's list of sessions (lobby-page.ts), the link's state under it.
 // A row opens the dialog for joining it (join-dialog.ts), and JOIN shows the screen while it loads
