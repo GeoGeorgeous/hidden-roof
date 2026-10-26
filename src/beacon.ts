@@ -1,5 +1,5 @@
 import { NET, SERVER } from './config';
-import type { NetStatus } from './net/multiplayer';
+import type { NetStatus } from './net/status';
 
 // The game's beacon for the admin page's Stats (server/beacon.ts), solo and in a
 // session: once a minute the frames played (while the mouse is the game's and

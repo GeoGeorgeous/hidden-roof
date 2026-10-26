@@ -4,14 +4,14 @@ import type { PaintOp } from '../paint-ops';
 import { loadPaint } from '../save/load-paint';
 import { surfaceTable } from '../save/shape';
 import { session } from '../session';
-import { cleanName, PROTOCOL, type Rejection, type SessionInfo, type ToClient, type ToServer } from './protocol';
+import { cleanName, PROTOCOL, rejectionOf, type Rejection, type SessionInfo, type ToClient, type ToServer } from './protocol';
 import { describeHello, diagnose, NetLog, Traffic } from './diagnostics';
 import { decodeOps, encodeOps, SurfaceIndex } from '../op-wire';
 import { enterSessionLevel, type MultiplayerContext } from './game-context';
 import { keepSolo, SoloReturn, type Solo } from './solo';
 import { LinkHealth, type LinkStatus } from './link-health';
 import { Outbox } from './outbox';
-import { Reconnect, refusedForNow, type Tries, type Way } from './reconnect';
+import { endedBy, Reconnect, type Way } from './reconnect';
 import { SaveRequest } from './save-request';
 import { Sender } from './sender';
 import { ServerLink } from './server-link';
@@ -19,6 +19,7 @@ import { OwnStatus } from './own-status';
 import { ownerOf, Remotes } from './remotes';
 import { keepTabSession, tabSession } from './tab-session';
 import { capture, encodeSnapshot } from './snapshot';
+import type { NetStatus } from './status';
 
 // This game in a multiplayer session (server/, protocol.ts): HOST or JOIN, then what this player sends
 // (sender.ts: NET.sendRate times a second their snapshot and the paint ops they made since, their stepladder when it
@@ -27,12 +28,6 @@ import { capture, encodeSnapshot } from './snapshot';
 // with the player's token, or the place in line's, for as long as the server keeps them (SERVER.rejoinWindow); the
 // token is kept in sessionStorage, so a reload comes back too, and each tab is its own player. The server keeps what
 // the player carries, and hears what they're doing (own-status.ts).
-
-/** Why the game isn't in a session: the server said so (Rejection), it never answered, it couldn't handle a message (broken), the time to rejoin ran out (expired), the server came back without the session (restarted: it said `no-session` to a rejoin), or diagnose's guess at why it can't be reached. */
-export type Failure = Rejection | 'timeout' | 'broken' | 'expired' | 'restarted' | Awaited<ReturnType<typeof diagnose>>['reason'];
-
-/** What the player sees of the link, shown on the menus (`queued`: the session is full and this link waits in line, `lost`: the link dropped meanwhile and is being tried again); `detail`: what was seen (a close code, an HTTP status, tries), for reports. */
-export type NetStatus = { state: 'off' } | { state: 'connecting' } | { state: 'in'; code: string } | { state: 'reconnecting'; code: string; detail: string; tries: number } | { state: 'queued'; code: string; position: number; lost?: Tries } | { state: 'failed'; reason: Failure; detail?: string; code?: string };
 
 const now = () => performance.now() / 1000;
 
@@ -226,6 +221,8 @@ export class Multiplayer {
         closed: (code, timedOut) => {
           if (this.link === link) this.link = null;
           if (timedOut && !this.joined && !this.line) return this.end({ state: 'failed', reason: 'timeout', detail: msg('menu.detailNoAnswer', { seconds: NET.connectTimeout }) });
+          const why = rejectionOf(code);
+          if (why && this.turnedAway(why)) return;
           this.dropped(code);
         },
       },
@@ -255,18 +252,13 @@ export class Multiplayer {
   private async receive(m: ToClient, arrived: number, link: ServerLink, file?: Uint8Array) {
     if (m.type === 'welcome') return this.welcome(m, link, file!);
     if (m.type === 'queued' && this.link === link) {
+      // Back into a full session that lost our seat: the line has no page for a game that is in one, so it ends as full.
+      if (this.joined) return this.send({ type: 'leave' }), this.end({ state: 'failed', reason: 'full' });
       this.log.add(`in line, #${m.position}`);
       this.line = { code: this.wanted, token: m.token, position: m.position };
       return this.setStatus({ state: 'queued', code: this.wanted, position: m.position });
     }
-    if (m.type === 'rejected') {
-      this.log.add(`turned away by the server: ${m.reason}`);
-      // Coming back, too busy a server isn't the end: its close (this message is followed by one) is a failed try (dropped).
-      const back = this.joined || this.line;
-      if (back && refusedForNow(m.reason)) return;
-      // A session that's gone while we were coming back is the server's restart: it has none of its sessions.
-      return this.end({ state: 'failed', reason: back && m.reason === 'no-session' ? 'restarted' : m.reason });
-    }
+    if (m.type === 'rejected') return void (this.link === link && this.turnedAway(m.reason)); // no-op once its close code told
     if (!this.joined) return;
     if (this.remotes.handle(m, this.surfaces, arrived, this.onPlayer)) return;
     if (m.type === 'paint') decodeOps(m.bytes, this.surfaces)?.ops.forEach((op) => this.g.paintOps.apply(op));
@@ -278,6 +270,13 @@ export class Multiplayer {
       this.net.ping = now() - m.t;
       this.outbox.acked(m.acked);
     }
+  }
+
+  /** The server turned this game away (by a message, or by its close code when the message still waits in the queue): the session ends, true; false when it's a failed try (dropped). */
+  private turnedAway(reason: Rejection) {
+    this.log.add(`turned away by the server: ${reason}`);
+    const failed = endedBy(reason, Boolean(this.joined || this.line));
+    return failed ? (this.end({ state: 'failed', reason: failed }), true) : false;
   }
 
   private async welcome(w: Extract<ToClient, { type: 'welcome' }>, link: ServerLink, file: Uint8Array) {

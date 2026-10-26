@@ -1,7 +1,7 @@
 import { msg } from '../messages';
 import { div, notice } from '../menu-ui';
 import { sessionLine, shellButton, type Where } from './lobby-view';
-import type { NetStatus } from './multiplayer';
+import type { NetStatus } from './status';
 import type { LobbyEntry } from './protocol';
 
 // The screen while the player waits in line for a full session (style.css, .loading-page: the loading screen's

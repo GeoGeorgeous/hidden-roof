@@ -1,7 +1,7 @@
 import { SERVER } from '../config';
 import { dialogOf, type DialogId } from '../messages';
 import type { Dialog } from '../notify';
-import type { Failure } from './multiplayer';
+import type { Failure } from './status';
 
 // The dialog for a session the player was in and lost: which message by why it failed, and what its button does
 // (Esc always leaves without it: net-menu.ts). The texts are messages.ts's. A session the server closed because no
