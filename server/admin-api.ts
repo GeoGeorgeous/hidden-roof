@@ -9,9 +9,10 @@ import { stream } from './events';
 import { history, isPeriod } from './history';
 import { log, overMemory } from './log';
 import { machine } from './machine';
-import type { Kept } from './kept';
+import { Refused, type Kept } from './kept';
 import type { Lobby } from './lobby';
-import type { Session, SessionSetup } from './session';
+import type { Session } from './session';
+import type { SessionSetup } from './setup';
 import { trafficDays } from './traffic-store';
 
 // The admin API, on its own port (SERVER.adminPort), never published: the admin
@@ -36,7 +37,8 @@ import { trafficDays } from './traffic-store';
 //   POST /sessions/CODE/wipe   its paint gone
 //   POST /sessions/CODE/close  ended for everyone in it
 //   POST /sessions/CODE/players/ID/kick
-//                              a player out at once (told why, no seat held; they may join again)
+//                              a player out at once (told why, no seat held; a new join may come in, but a reconnect
+//                              with their token is told 'kicked' for SERVER.rejoinWindow)
 //   GET  /sessions/CODE/paint  its paint as a paint file made now (not kept): application/octet-stream,
 //                              attachment named <code>-<UTC time>.rhhpaint; 503 when there's no memory for one
 
@@ -124,7 +126,7 @@ export function adminApi(lobby: Lobby, kept: Kept, key: string) {
       if (req.method === 'GET' && parts.length === 3 && parts[2] === 'paint') {
         const session = lobby.sessions.get(parts[1]);
         if (!session) return answer(404, { error: `no session ${parts[1]}` });
-        const bytes = await kept.download(session);
+        const bytes = await session.paintFile();
         if (!bytes) return answer(503, { error: 'no memory for a paint file' });
         return res.writeHead(200, { 'content-type': 'application/octet-stream', 'content-disposition': `attachment; filename="${paintName(session.code)}"`, 'cache-control': 'no-store' }).end(bytes);
       }
@@ -138,14 +140,14 @@ export function adminApi(lobby: Lobby, kept: Kept, key: string) {
       const session = lobby.sessions.get(parts[1]);
       if (!session) return answer(404, { error: `no session ${parts[1]}` });
       if (parts[2] === 'players' && parts[4] === 'kick' && parts.length === 5) {
-        if (!/^\d+$/.test(parts[3]) || !kept.kick(session, Number(parts[3]))) return answer(404, { error: `no player ${parts[3]} in ${session.code}` });
-      } else if (parts[2] === 'wipe') await kept.wipe(session);
-      else if (parts[2] === 'close') await kept.end(session);
+        if (!/^\d+$/.test(parts[3]) || !lobby.kick(session, Number(parts[3]))) return answer(404, { error: `no player ${parts[3]} in ${session.code}` });
+      } else if (parts[2] === 'wipe' && parts.length === 3) await kept.wipe(session);
+      else if (parts[2] === 'close' && parts.length === 3) await kept.end(session);
       else return answer(404, { error: 'not found' });
       return answer(200, { ok: true });
     } catch (e) {
       log('-----', `admin ${req.method} ${req.url}:`, e);
-      answer(400, { error: (e as Error).message });
+      answer(e instanceof Refused ? 400 : 500, { error: (e as Error).message });
     }
   });
 }
@@ -155,7 +157,11 @@ async function body(req: http.IncomingMessage) {
   let text = '';
   for await (const chunk of req) {
     text += chunk;
-    if (text.length > SERVER.adminBody) throw new Error('too big');
+    if (text.length > SERVER.adminBody) throw new Refused('too big');
   }
-  return JSON.parse(text || '{}') as unknown;
+  try {
+    return JSON.parse(text || '{}') as unknown;
+  } catch {
+    throw new Refused('not JSON');
+  }
 }

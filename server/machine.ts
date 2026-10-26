@@ -7,7 +7,8 @@ import { liveMemory } from './log';
 
 // The machine the server runs on, for the admin page (GET /machine): read when
 // asked, never sampled in the background. CPU and upload are averages since the
-// last ask.
+// last ask. The paint saves' bytes count every file; their `last` is the newest
+// that isn't one a wipe set aside.
 
 const cpuTimes = () => {
   let busy = 0;
@@ -32,8 +33,9 @@ export async function machine(dir: string | null) {
   last = now;
   const disk = await fs.statfs(dir ?? '.');
   const saves = dir ? (await fs.readdir(dir)).filter((n) => n.endsWith('.rhhpaint')) : [];
-  const sizes = await Promise.all(saves.map(async (n) => (await fs.stat(path.join(dir!, n))).size));
-  const newest = Math.max(0, ...saves.map((n) => parseInt(n.slice(n.indexOf('-') + 1))));
+  // A save rotated away since the listing counts for nothing.
+  const sizes = await Promise.all(saves.map((n) => fs.stat(path.join(dir!, n)).then((f) => f.size, () => 0)));
+  const newest = Math.max(0, ...saves.filter((n) => !n.endsWith('.wiped.rhhpaint')).map((n) => parseInt(n.slice(n.indexOf('-') + 1))));
   return {
     cpu: { percent: cpu, vcpus: os.availableParallelism(), load1: os.loadavg()[0] },
     ram: { used: os.totalmem() - os.freemem(), total: os.totalmem() },
