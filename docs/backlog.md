@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 246
+The one list of what's left. Counter for new ids: next: 250
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -52,6 +52,9 @@ Only `N.`, the id and the description are required. The optional parts appear in
 3. IDEA [?BL-071]: Multiplayer View-Only sessions: past sessions are opened for viewing only (gallary)
 4. IDEA [?BL-153]: Find who painted something by player id, picked like the eyedropper (to spot bad paint)
 5. [BUGS-168]: Returning players recover their inventory but spawn at the default spawn instead of their last position. Restore both inventory and position. @1.6.1
+6. [BUGS-246]: The queue and the paint loading screen show the player's last view; show the server's roof, as the ESC menu does at first start or after leaving a session @1.6.0
+7. [BUGS-247]: A session closed by the admin (cctv) gives the wrong reason in the game's dialog; say briefly that the admin ended the session @1.6.0
+8. [?TEST-248]: Closing the tab without leaving: check that it counts as leaving the site, the session and the solo game, as far as the page can tell (the beacon on hide, the socket's close, the site's 90 s window) @1.6.0
 
 ## Painting
 
@@ -142,6 +145,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 5. [TASK-245]: Public sessions: at most N seats and places in line per address, a JOIN rate per address, and a dropped seat taken back only with its token (not by the same name) @1.6.1
 6. [TASK-189]: House rules before joining a public server: players are 18+, joining accepts the Terms, sessions may be recorded and published; the rules screen is in, left: the Terms' moderation section (docs/ideas/public-servers.md) @1.6.0
 7. [TASK-201]: Research itch.io Publishing Requirements, AI Policies, and Download Restrictions @1.6.3
+8. [?BUGS-249]: cctv shows a session's time as -1:-1: a page display bug or a bad value from the admin API; find which, fix that side @1.6.0
 
 ## Web and promotion
 
