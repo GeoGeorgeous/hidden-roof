@@ -210,17 +210,17 @@ Everything runs from `<apps>`, with the admin command in the running `roof` cont
 ```yaml
   roof-next:
     build: ./roof-next/repo
-    mem_limit: <set it: staging shares the host>
+    mem_limit: 2g   # staging shares the host
     environment:
-      HOST_MEMORY: "<lower than roof's, under mem_limit>"
-      SNAPSHOT_MEMORY: "<same>"
+      HOST_MEMORY: "1200"
+      SNAPSHOT_MEMORY: "1500"
       LOG_DIR: /logs
       DATA_DIR: /data
       ADMIN_KEY: ${ROOF_NEXT_ADMIN_KEY}   # in <apps>/.env, mode 600; never roof's key
       ADMIN_ORIGIN: https://cctv.hidden.haus
       GEOIP_DB: /geoip/dbip-country-lite.mmdb
     volumes:
-      - ./roof-next/logs/server:/logs
+      - ./roof-next/logs:/logs   # its own directory, never roof's
       - ./roof-next/data:/data
       - ./roof/geoip:/geoip:ro   # shared with roof, read-only
     stop_grace_period: 60s
@@ -252,19 +252,19 @@ cctv.hidden.haus {
     }
   }
   handle {
-    reverse_proxy cctv-web:80
+    reverse_proxy cctv-web:8080
   }
 }
 ```
 
   Caddy needs `ROOF_NEXT_ADMIN_KEY` in its own environment (from `<apps>/.env`), so it is **recreated** (`docker compose up -d caddy`), not reloaded, when the key is first added or changes. There is no `/api/main` yet: production 1.5.0 has no admin API. Once prod runs 1.6.0, add `/api/main/*` to `roof:3001` with `roof`'s key and `main` to `CCTV_SERVERS`.
-- **`cctv-web`:** a small Caddy container serving cctv's `dist/`: `/assets/*` with `Cache-Control: public, max-age=31536000, immutable`, `/` with `no-cache`, and the CSP `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'`.
+- **`cctv-web`:** a small Caddy container like `roof-next-web`, on `:8080` (with `cap_drop: [ALL]` a port under 1024 needs `NET_BIND_SERVICE`), serving cctv's `dist/`: `/assets/*` with `Cache-Control: public, max-age=31536000, immutable`, `/` with `no-cache`, and the CSP `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'`.
 - **Building cctv:** on the host, from a read-only deploy-key clone (`<apps>/cctv/repo`), in a throwaway `node:24-slim` container: `npm ci && CCTV_SERVERS=next npm run build`, then `dist/` is what `cctv-web` serves. cctv is a private repo; its own `docs/deploy.md` has the details.
 
 **After a deploy (staging):**
 
 - `https://next.roof.hidden.haus` loads (behind tinyauth).
-- `https://cctv.hidden.haus` asks for the tinyauth login and shows the `next` server as "Up".
+- `https://cctv.hidden.haus` shows the `next` server as "Up" once signed in. tinyauth answers a request without its cookie with `401` (JSON, no redirect), the page included: sign in at `auth.hidden.haus` first; its cookie covers `*.hidden.haus`.
 - Creating a public session from cctv works. It is a POST, so this proves `ADMIN_ORIGIN` is right (wrong or missing: 403 `origin`, while the page still lists sessions).
 - A page view of `next.roof.hidden.haus` makes `<apps>/roof-next/data/traffic/<today>.json` appear within a minute, and the Traffic tab shows it.
 - `docker compose logs roof-next` (or its `LOG_DIR`) says `GeoIP base`, not `not read`.
