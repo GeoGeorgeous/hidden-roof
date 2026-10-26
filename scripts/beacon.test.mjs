@@ -12,7 +12,7 @@ Object.defineProperty(globalThis, 'document', { value: { get visibilityState() {
 Object.defineProperty(globalThis, 'navigator', { value: { sendBeacon: (_url, text) => sent.push(JSON.parse(text)) }, configurable: true });
 globalThis.setInterval = (f) => (tick = f);
 
-const { NET } = await import('../src/config.ts');
+const { NET, SERVER } = await import('../src/config.ts');
 const { Beacon } = await import('../src/beacon.ts');
 const canvas = { addEventListener: () => {} };
 const now = () => performance.now() / 1000;
@@ -106,5 +106,29 @@ assert.deepEqual(body.steps, ['joined']);
 b.status({ state: 'off' });
 tick();
 assert.deepEqual(sent.pop(), { beat: 'solo' });
+
+// What the server would refuse is cut here, so a minute isn't lost whole: a GPU name, codes (long, and too many kinds), a long load.
+const c = new Beacon('G'.repeat(SERVER.beaconText + 20), canvas);
+const long = 'a'.repeat(60);
+c.count(long);
+c.count(long);
+for (let i = 0; i < SERVER.beaconKinds + 10; i++) c.count(`k${i}`);
+c.count('k0');
+performance.now = () => (SERVER.beaconMostSeconds + 500) * 1000;
+c.loaded({});
+body = sent.pop();
+assert.equal(body.first.gpu.length, SERVER.beaconText);
+assert.equal(body.first.load, SERVER.beaconMostSeconds);
+assert.deepEqual([Object.keys(body.counts).length, body.counts['a'.repeat(40)]], [SERVER.beaconKinds, 2], 'cut to 40, and no more kinds than the server takes');
+assert.equal(body.counts.k0, 2, 'a kind already there still counts');
+assert.equal(body.counts[`k${SERVER.beaconKinds}`], undefined);
+for (const code of Object.keys(body.counts)) assert.ok(code.length <= 40);
+performance.now = real;
+
+// Where storage is blocked the device id is made once, not on every call.
+Object.defineProperty(globalThis, 'localStorage', { get: () => { throw new Error('blocked'); }, configurable: true });
+const { deviceId } = await import('../src/stored.ts');
+assert.match(deviceId(), /^[0-9a-f]{32}$/);
+assert.equal(deviceId(), deviceId());
 
 console.log('beacon: ok');

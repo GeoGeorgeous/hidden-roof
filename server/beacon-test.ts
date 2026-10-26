@@ -29,6 +29,9 @@ fs.writeFileSync(
     },
   }),
 );
+// An old day (past SERVER.historyDays), saved the same way: it is folded to its total at start without throwing.
+const old = new Date(Date.now() - (SERVER.historyDays + 10) * 864e5).toISOString().slice(0, 10);
+fs.writeFileSync(path.join(dir, 'stats', `${old}.json`), JSON.stringify({ hours: { 3: { plays: 1, client: { n: 1, browsers: { Chrome: 1 } } } } }));
 const main = await start({ ADMIN_KEY: 'test-key', DATA_DIR: dir });
 try {
   const ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36';
@@ -55,6 +58,9 @@ try {
     void reader.cancel();
     return JSON.parse(/event: status\ndata: (.*)\n\n/.exec(text)![1]).site;
   };
+
+  const folded = JSON.parse(fs.readFileSync(path.join(dir, 'stats', `${old}.json`), 'utf8')).total;
+  assert.deepEqual([folded.plays, folded.client.n, folded.client.browsers, folded.client.events.counts], [1, 1, { Chrome: 1 }, {}], 'an old day without events folds');
 
   // An hour saved before the events: it loads, with the events empty and the errors by message.
   assert.deepEqual((await history()).events, { steps: { play: 0, ready: 0, sprayed: 0, joined: 0 }, tutorial: {}, counts: {}, seconds: { playing: 0, idle: 0, menu: 0 }, settings: {} });
@@ -133,6 +139,21 @@ try {
   for (let i = 0; i < SERVER.beaconsPerIp + 2; i++) codes.add(await send({}, '10.4.0.1'));
   assert.deepEqual([...codes], [204, 429]);
 
+  // Hours add up with the biggest names kept: a common name that comes after the first SERVER.beaconKinds is not lost to Other.
+  const hour = (names: Record<string, number>) => Object.assign(noClient(), { gpus: names, events: { ...noClient().events, counts: names, settings: { zoom: names } } });
+  const first = Object.fromEntries(Array.from({ length: SERVER.beaconKinds }, (_, i) => [`small${i}`, 1 + (i % 2)]));
+  const sums = noClient();
+  addClient(sums, hour(first));
+  addClient(sums, hour({ common: 40, small0: 1 }));
+  addClient(sums, hour({ rare: 1 }));
+  for (const names of [sums.gpus, sums.events.counts, sums.events.settings.zoom]) {
+    assert.equal(names.common, 40, 'a big name is named');
+    assert.equal(Object.keys(names).length, SERVER.beaconKinds + 1);
+    assert.equal(names.Other, 2, 'the two smallest folded');
+    assert.equal(names.small1, 2);
+    assert.equal(Object.values(names).reduce((a, b) => a + b, 0), 25 + 50 + 41 + 1, 'nothing lost');
+  }
+
   // Past SERVER.beaconKinds settings, and values of one, are Other; the hours add up the same way.
   const c = noClient();
   for (let i = 0; i < SERVER.beaconKinds + 3; i++) (countSetting(c, `s${i}`, 'on'), countSetting(c, 'zoom', `v${i}`));
@@ -148,10 +169,10 @@ try {
   // Who is on the site: a beat counts for NET.beaconEvery s.
   const realNow = Date.now;
   try {
-    const post = (body: unknown, at: number) => {
+    const post = (body: unknown, at: number, ip = `10.5.0.${++games}`) => {
       Date.now = () => at;
       const req = Object.assign((async function* () { yield JSON.stringify(body); })(), { headers: {} });
-      return beacon(req as unknown as http.IncomingMessage, `10.5.0.${++games}`, noClient);
+      return beacon(req as unknown as http.IncomingMessage, ip, noClient);
     };
     const t = realNow() + 1e7;
     await post({ beat: 'solo' }, t);
@@ -160,9 +181,23 @@ try {
     Date.now = () => t + 50e3;
     assert.deepEqual(site(), { menu: 1, solo: 2, session: 0, hidden: 0 });
     Date.now = () => t + NET.beaconEvery * 1000 + 1e3;
+    assert.deepEqual(site(), { menu: 1, solo: 2, session: 0, hidden: 0 }, 'a late minute beacon still counts');
+    Date.now = () => t + SERVER.beaconSiteSeconds * 1000 + 1e3;
     assert.deepEqual(site(), { menu: 1, solo: 1, session: 0, hidden: 0 }, 'the first is gone');
     Date.now = () => t + 200e3;
     assert.deepEqual(site(), { menu: 0, solo: 0, session: 0, hidden: 0 });
+
+    // At most SERVER.beaconIps addresses a minute: a new one past that is turned away, one already counted is not.
+    const cap = SERVER.beaconIps;
+    try {
+      SERVER.beaconIps = 5; // three addresses are counted already
+      const codes = [];
+      for (let i = 0; i < 4; i++) codes.push(await post({}, t, `10.6.0.${i}`));
+      codes.push(await post({}, t, '10.6.0.0'));
+      assert.deepEqual(codes, [204, 204, 429, 429, 204]);
+    } finally {
+      SERVER.beaconIps = cap;
+    }
   } finally {
     Date.now = realNow;
   }
