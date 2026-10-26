@@ -264,7 +264,7 @@ cctv.hidden.haus {
 **After a deploy (staging):**
 
 - `https://next.roof.hidden.haus` loads (behind tinyauth).
-- `https://cctv.hidden.haus` shows the `next` server as "Up" once signed in. tinyauth answers a request without its cookie with `401` (JSON, no redirect), the page included: sign in at `auth.hidden.haus` first; its cookie covers `*.hidden.haus`.
+- `https://cctv.hidden.haus` shows the `next` server as "Up" once signed in. Without tinyauth's cookie, a browser (its User-Agent says Chrome, Gecko, AppleWebKit, Opera or Edge) is redirected (302) to `auth.hidden.haus/login` and back after signing in; anything else (curl) gets `401` JSON with an `x-tinyauth-location` header. The page's own fetches carry the browser's User-Agent too, so an expired sign-in shows to cctv as a redirect it doesn't follow (`redirect: 'manual'`): a reload goes through the login.
 - Creating a public session from cctv works. It is a POST, so this proves `ADMIN_ORIGIN` is right (wrong or missing: 403 `origin`, while the page still lists sessions).
 - A page view of `next.roof.hidden.haus` makes `<apps>/roof-next/data/traffic/<today>.json` appear within a minute, and the Traffic tab shows it.
 - `docker compose logs roof-next` (or its `LOG_DIR`) says `GeoIP base`, not `not read`.
