@@ -85,16 +85,17 @@ append(whole.slice(60));
 await pass(opts);
 assert.deepEqual([read(names[0]).views, read(names[0]).sources.ig, read(names[0]).visitors], [6, 1, 4]);
 
-// A log cut short, and one replaced by a new file (another inode), is read from its start.
+// A log cut short is read from its start; one rolled (renamed, a new file in its place) too, after the old file's rest.
 fs.writeFileSync(log, line({ ts: t0 + 40, ip: C, uri: '/?ref=tg' }));
 await pass(opts);
 assert.deepEqual([read(names[0]).views, read(names[0]).sources.tg, read(names[0]).visitors], [7, 1, 4], 'a truncated log');
 const inode = state().inode;
+append(line({ ts: t0 + 45, ip: C, uri: '/?ref=tg' }));
 fs.renameSync(log, `${log}.1`);
 append(line({ ts: t0 + 50, ip: C, uri: '/?ref=tg' }));
 await pass(opts);
 assert.notEqual(state().inode, inode);
-assert.deepEqual([read(names[0]).views, read(names[0]).sources.tg], [8, 2], 'a rotated log');
+assert.deepEqual([read(names[0]).views, read(names[0]).sources.tg], [9, 3], 'a rolled log, with the rest of the old file');
 
 // The next day, by the line's time: the first day stays as it was, the visitors start again, and a late line of the first day is dropped.
 const before = read(names[0]);
@@ -135,12 +136,13 @@ const api = async (at: string, headers: Record<string, string> = { authorization
 };
 try {
   fs.writeFileSync(path.join(traffic, `${names[1]}.json`), JSON.stringify(second));
+  fs.writeFileSync(path.join(traffic, `${new Date().toISOString().slice(0, 10)}.json`), '{"views":');
   const all = await api('/traffic?days=3');
   assert.deepEqual(all.body.days.map((d: { day: string }) => d.day), names);
   assert.deepEqual(Object.keys(all.body.days[1]), ['day', 'views', 'visitors', 'bots', 'pages', 'sources', 'campaigns', 'countries', 'steps']);
   assert.deepEqual((await api('/traffic?days=2')).body.days.map((d: { day: string }) => d.day), [names[1]], 'only the last two days');
   assert.deepEqual((await api('/traffic')).body.days.length, 2, '30 days by default');
-  assert.deepEqual((await api('/traffic?days=1')).body, { days: [] }, 'a day with no file is left out');
+  assert.deepEqual((await api('/traffic?days=1')).body, { days: [] }, 'a day whose file does not read is left out');
   for (const bad of ['0', '367', 'x', '-1', '1.5', '']) assert.equal((await api(`/traffic?days=${bad}`)).status, 400, `days=${bad}`);
   assert.equal((await api('/traffic', { authorization: 'Bearer no' })).status, 401);
   console.log('GET /traffic', JSON.stringify(all.body.days[0]));

@@ -13,7 +13,14 @@ export interface State {
 }
 
 const DAY = /^(\d{4}-\d\d-\d\d)\.json$/;
-const read = async <T>(file: string) => JSON.parse(await fs.readFile(file, 'utf8').catch(() => 'null')) as T | null;
+/** A JSON file, or null if it's missing or not JSON. */
+async function read<T>(file: string) {
+  try {
+    return JSON.parse(await fs.readFile(file, 'utf8')) as T;
+  } catch {
+    return null;
+  }
+}
 
 /** `data` as JSON in `file`, whole or not at all. */
 export async function write(file: string, data: unknown, mode = 0o644) {
@@ -23,7 +30,7 @@ export async function write(file: string, data: unknown, mode = 0o644) {
 
 export const readState = async (dir: string) => {
   const s = await read<State>(path.join(dir, 'state.json'));
-  return s && s.today && STEPS.every((k) => Array.isArray(s.today!.seen[k])) ? s : null;
+  return s && Number.isFinite(s.offset) && (s.today === null || STEPS.every((k) => Array.isArray(s.today!.seen[k]))) ? s : null;
 };
 export const readDay = (dir: string, name: string) => read<Day>(path.join(dir, `${name}.json`));
 
@@ -31,6 +38,7 @@ export const readDay = (dir: string, name: string) => read<Day>(path.join(dir, `
 export async function trafficDays(dir: string, n: number) {
   const first = new Date(Date.now() - (n - 1) * 864e5).toISOString().slice(0, 10);
   const names = (await fs.readdir(path.join(dir, 'traffic')).catch(() => [] as string[])).flatMap((f) => DAY.exec(f)?.[1] ?? []).filter((d) => d >= first).sort();
-  const days = await Promise.all(names.map(async (day) => ({ day, ...(await readDay(path.join(dir, 'traffic'), day)) })));
-  return { days };
+  // A day whose file doesn't read is left out, as a day without one.
+  const days = await Promise.all(names.map(async (day) => ({ day, counts: await readDay(path.join(dir, 'traffic'), day) })));
+  return { days: days.flatMap(({ day, counts }) => (counts ? [{ day, ...counts }] : [])) };
 }

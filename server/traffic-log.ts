@@ -6,8 +6,8 @@ import { readDay, readState, write, type State } from './traffic-store';
 
 // One pass of the traffic reader (traffic.ts): the lines Caddy added to its access log since the last pass, counted
 // (traffic-count.ts) into the day files. A last line still being written waits for the next pass. A log that was
-// rotated (a new inode, or shorter than where we were) is read from its start: whatever the old file got after
-// the last pass is lost, at most a minute of lines.
+// rolled (a new inode) is read from its start, after the rest of the old file if it is still beside it (Caddy
+// renames it there); one cut shorter than where we were is read from its start.
 
 export interface Options {
   /** Caddy's access log. */
@@ -29,8 +29,7 @@ export async function pass(o: Options) {
   try {
     await fs.mkdir(o.dir, { recursive: true });
     const { ino, size } = await file.stat();
-    let state = await readState(o.dir);
-    if (state && (state.inode !== ino || size < state.offset)) state = { ...state, offset: 0 };
+    const state = await readState(o.dir);
     let today: Today | null = null;
     if (state?.today) {
       const { name, salt, seen } = state.today;
@@ -54,26 +53,46 @@ export async function pass(o: Options) {
       changed = add(today, hit, o.hosts, o.country ?? (() => null)) || changed;
     };
 
-    let pos = state?.offset ?? 0;
-    let rest = Buffer.alloc(0);
-    for (const buf = Buffer.alloc(SERVER.trafficChunk); pos < size; ) {
-      const { bytesRead } = await file.read(buf, 0, Math.min(buf.length, size - pos), pos);
-      if (!bytesRead) break;
-      pos += bytesRead;
-      rest = Buffer.concat([rest, buf.subarray(0, bytesRead)]);
-      const end = rest.lastIndexOf(10);
-      if (end < 0) continue;
-      for (const text of rest.subarray(0, end).toString().split('\n')) await line(text);
-      rest = rest.subarray(end + 1);
-    }
+    /** `f`'s whole lines from `pos` to `size`: where the last whole one ends. */
+    const read = async (f: fs.FileHandle, pos: number, size: number) => {
+      let rest = Buffer.alloc(0);
+      for (const buf = Buffer.alloc(SERVER.trafficChunk); pos < size; ) {
+        const { bytesRead } = await f.read(buf, 0, Math.min(buf.length, size - pos), pos);
+        if (!bytesRead) break;
+        pos += bytesRead;
+        rest = Buffer.concat([rest, buf.subarray(0, bytesRead)]);
+        const end = rest.lastIndexOf(10);
+        if (end < 0) continue;
+        for (const text of rest.subarray(0, end).toString().split('\n')) await line(text);
+        rest = rest.subarray(end + 1);
+      }
+      return pos - rest.length;
+    };
+
+    let from = state?.offset ?? 0;
+    if (state && state.inode !== ino) {
+      const old = await rolled(path.dirname(o.log), state.inode);
+      if (old) await read(old, state.offset, (await old.stat()).size).finally(() => old.close());
+      from = 0;
+    } else if (size < from) from = 0;
+    const offset = await read(file, from, size);
     await flush();
     const next: State = {
       inode: ino,
-      offset: pos - rest.length,
+      offset,
       today: today && { name: today.name, salt: today.salt, seen: each(today.seen, (hashes) => [...hashes]) },
     };
     await write(path.join(o.dir, 'state.json'), next, 0o600);
   } finally {
     await file.close();
   }
+}
+
+/** The file in `dir` with inode `ino` (the log as it was before it rolled), open, or null. */
+async function rolled(dir: string, ino: number) {
+  for (const name of await fs.readdir(dir).catch(() => [] as string[])) {
+    const f = path.join(dir, name);
+    if ((await fs.stat(f).catch(() => null))?.ino === ino) return fs.open(f, 'r').catch(() => null);
+  }
+  return null;
 }
