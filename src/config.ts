@@ -1129,7 +1129,7 @@ export const SERVER = {
   lookupIps: 10000,
   /** Players waiting in line for a full session, at most (net/protocol.ts 'queued'); one more is turned away as 'full'. */
   queueMax: 20,
-  /** A dropped player can come back as themselves for this long (s); then their stepladder goes, and a session with no one left closes. */
+  /** A dropped player can come back as themselves for this long (s); then their stepladder goes, and a private session with no one left closes (a public one, or one the admin made with --stay, stays). */
   rejoinWindow: 180,
   /** The server pings every game this often (s), so a game notices a dead link; a game pings the server as often, and each answer is a round trip for the link's status (NET.statusShow). */
   ping: 1,
@@ -1145,7 +1145,7 @@ export const SERVER = {
   maxPayload: 64 * 2 ** 20,
   /** The largest message on any other link (bytes): JOIN, state, a frame's paint ops are KBs. */
   maxMessage: 2 ** 20,
-  /** No new session once the server's live data (JS objects and paint) takes this much memory (MB); its container may use 1536 (docs/deploy.md). HOST_MEMORY overrides it. */
+  /** No new session once the server's live data (JS objects and paint) takes this much memory (MB); its container may use 3 GB (mem_limit, docs/deploy.md). HOST_MEMORY overrides it. */
   hostMemory: 1024,
   /** No new paint file (a welcome, SAVE) past this much (MB): the player is told the server is busy. SNAPSHOT_MEMORY overrides it. */
   snapshotMemory: 1280,
@@ -1174,12 +1174,14 @@ export const SERVER = {
   /** The admin's event stream (server/events.ts): the last this many events are kept for a page that opens; a status goes out this often (s) while one is open. */
   adminEvents: 50,
   adminStatus: 1,
-  /** The admin's history (server/history.ts): plays are bucketed by these lengths (s), play time is sampled this often (s), and each hour is kept this many days (then only each day's total, forever). */
+  /** The admin's history (server/history.ts): plays are bucketed by these lengths (s), play time is sampled this often (s), and each hour is kept this many days (then only each day's total, forever); the unique people's day files (people-<day>.json) are deleted after as many. */
   playLengths: [120, 600, 1800],
   historyEvery: 60,
   historyDays: 30,
-  /** Unique people's salt (server/people.ts) changes this often (days); the GeoIP base's file is checked for a new one this often (s). */
+  /** Unique people's salt (server/people.ts) changes this often (days). */
   saltDays: 30,
+  /** The GeoIP base's file (server/geoip.ts) is checked for a new one this often (s). */
+  geoipCheck: 3600,
   /**
    * The game's beacon (server/beacon.ts): a body up to beaconBytes, beaconsPerIp a minute from one address (a school or an
    * office is one address with many pages open), from at most beaconIps addresses a minute; up to
@@ -1196,7 +1198,6 @@ export const SERVER = {
   beaconMostEvents: 1000,
   /** Who is on the site now counts a page's minute beacon this long (s): beaconEvery and a half, as timers jitter and a hidden tab's are throttled. */
   beaconSiteSeconds: NET.beaconEvery * 1.5,
-  geoipCheck: 3600,
   /** The traffic reader (server/traffic.ts), its own process: it reads Caddy's access log every trafficEvery s, trafficChunk bytes at a time; a day counts up to trafficKinds names (pages, sources, campaigns), then Other, each up to trafficText characters. */
   trafficEvery: 60,
   trafficChunk: 1 << 20,
