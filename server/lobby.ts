@@ -27,8 +27,8 @@ export interface LinkInput {
 /** Where a link is once it is in: a session's player, or an entry in its line. */
 type At = { session: Session; player: Player } | { session: Session; place: Place };
 
-/** What the line calls when a place is free for a link: brings it in as its JOIN would have. */
-type Seat = (session: Session, name: string) => (waited: number) => Promise<void>;
+/** What the line calls when a place is free for a link: brings it in as its JOIN would have; true if the server had no memory for it (turned away, it keeps its place). */
+type Seat = (session: Session, name: string) => (waited: number) => Promise<boolean>;
 
 /** One more (or, `by` -1, one fewer) of an address's links in `counts`; how many it has now. */
 const count = (counts: Map<string, number>, ip: string, by: number) => {
@@ -73,20 +73,27 @@ export class Lobby {
     let hello: ReturnType<typeof setTimeout> | undefined;
     /** Counted among its address's uploads (a HOST link let past the limit on links): given back when it closes. */
     let uploads = false;
+    /** A LEAVE that came while the seat was being made: carried out as soon as it is. */
+    let left = false;
+    const bye = (r: At) => ('place' in r ? r.session.line.receive(r.place, { type: 'leave' }) : r.session.remove(r.player, 'left'));
     const seat: Seat = (session, name) => async (waited) => {
       at = 'waiting';
       try {
         const r = await this.seated(session, link, name, ip, undefined, waited);
         if (typeof r === 'string') {
           reject(r);
-          return session.line.update();
+          if (r === 'busy' && !left) return true;
+          session.line.update();
+          return false;
         }
         at = r;
-        if (!link.open) r.session.dropped(r.player, link);
+        if (left) bye(r);
+        else if (!link.open) r.session.dropped(r.player, link);
       } catch (e) {
         log(session.code, `server error with ${ip}: closed`, e);
         link.close(1011, 'server error');
       }
+      return false;
     };
     const input: LinkInput = {
       message: async (data) => {
@@ -97,7 +104,10 @@ export class Lobby {
             logNoisy(ip, at && at !== 'waiting' ? at.session.code : '-----', `bad message from ${ip}: closed`);
             return link.close(1008, 'bad message');
           }
-          if (at === 'waiting') return;
+          if (at === 'waiting') {
+            if (m.type === 'leave') left = true;
+            return;
+          }
           // A link replaced by another (a reconnect, another tab) is no longer theirs.
           if (at && 'place' in at) return at.place.link === link ? at.session.line.receive(at.place, m) : undefined;
           if (at) return at.player.link === link ? at.session.receive(at.player, m) : undefined;
@@ -107,6 +117,7 @@ export class Lobby {
           const r = await this.enter(m, link, ip, seat);
           if (typeof r === 'string') return reject(r, m);
           at = r;
+          if (left) return bye(r);
           if ('place' in r) return link.open ? r.session.line.update() : r.session.line.dropped(r.place, link);
           if (!link.open) r.session.dropped(r.player, link);
         } catch (e) {

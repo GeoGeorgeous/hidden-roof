@@ -1,14 +1,17 @@
 import './headless';
 import assert from 'node:assert/strict';
 import { SERVER } from '../src/config';
-import { closeCode } from '../src/net/protocol';
+import { closeCode, decode, type ToClient } from '../src/net/protocol';
+import type { Link } from './player';
+import { Queue, type Place } from './queue';
 import { Game, join, start } from './test-kit';
 
 // The line for a full session (queue.ts), against the built server: private sessions for two, made through the admin
 // API. The 3rd and 4th joiners get positions 1 and 2; a place that frees goes to the first, and the next is told its
 // new position; leaving the line; a waiting link that drops keeps its place for REJOIN_WINDOW, is skipped while
 // another is admitted, comes back with its token, and goes after the window; the line's limit; a session that
-// ends tells everyone waiting. npm run test:server runs it.
+// ends tells everyone waiting; a LEAVE that comes while the seat is being made (a JOIN's, or a place's turn in the
+// line) leaves at once and holds no seat; a place the server has no memory to seat keeps its order. npm run test:server runs it.
 
 const WINDOW = 2;
 const main = await start({ ADMIN_KEY: 'test-key', REJOIN_WINDOW: String(WINDOW) });
@@ -25,6 +28,7 @@ try {
     for (const p of players) await p.next('welcome');
     return { code, a: players[0], b: players[1] };
   };
+  const players = async (code: string) => (await admin('/sessions')).find((s: { code: string }) => s.code === code).players.length as number;
   const waiting = async (code: string) => (await admin('/sessions')).find((s: { code: string }) => s.code === code).queue as number;
   /** Nothing new about the line reached `g` in `ms`. */
   const quiet = async (g: Game, ms = 400) => {
@@ -127,7 +131,50 @@ try {
   await s3.a.send({ type: 'leave' });
   assert.equal((await line[0].next('welcome')).name, 'W');
   assert.equal((await line[1].next('queued')).position, 1);
-  console.log('queue: ok (positions, a free place goes to the first, leaving, held places and their token, the limit, an ended session)');
+
+  // A LEAVE sent right behind a JOIN, or behind the place's turn, arrives while the seat is being made: the link
+  // closes as a leave, and no seat is held for it (it would block the line for REJOIN_WINDOW).
+  const { code: c4 } = await admin('/sessions', { kind: 'private', name: 'Four', level: 'demo', detail: 'low', limit: 2, stay: true });
+  const quick = await join(main.port, 'Q', c4);
+  await quick.send({ type: 'leave' });
+  assert.equal(await quick.closed, 1000);
+  await pause(300);
+  assert.equal(await players(c4), 0);
+  const s4 = { code: c4, a: await join(main.port, 'A', c4), b: await join(main.port, 'B', c4) };
+  for (const p of [s4.a, s4.b]) await p.next('welcome');
+  const lining = await join(main.port, 'L', s4.code);
+  assert.equal((await lining.next('queued')).position, 1);
+  await s4.a.send({ type: 'leave' });
+  await lining.send({ type: 'leave' });
+  assert.equal(await lining.closed, 1000);
+  await pause(300);
+  assert.deepEqual([await players(s4.code), await waiting(s4.code)], [1, 0]);
+
+  // The line keeps its order when the server has no memory for the places it admits: each is put back where it was.
+  const sent = (l: { frames: ToClient[] }) => l.frames.filter((m) => m.type === 'queued').map((m) => (m as Extract<ToClient, { type: 'queued' }>).position);
+  const link = (ip: string) => {
+    const l = { frames: [] as ToClient[], isOpen: true, ip, since: 0, send: (f: Uint8Array) => l.frames.push(decode(f) as ToClient), close: () => (l.isOpen = false), get open() { return l.isOpen; } };
+    return l;
+  };
+  let room = false;
+  const waits = new Queue('TESTS', () => room);
+  const busy = async () => true;
+  const marks = ['a', 'b', 'c'].map((n) => ({ link: link(n), place: null as Place | null }));
+  for (const m of marks) m.place = waits.add(m.link as unknown as Link, 'x', async () => (m.link.isOpen = false, true));
+  waits.update();
+  assert.deepEqual(marks.map((m) => sent(m.link)), [[1], [2], [3]]);
+  room = true;
+  waits.update();
+  await pause(50);
+  assert.equal(waits.length, 3);
+  room = false;
+  for (const m of [marks[2], marks[0], marks[1]]) {
+    m.link = link(m.link.ip);
+    waits.resume(m.place!.token, m.link as unknown as Link, 'x', busy);
+    waits.update();
+  }
+  assert.deepEqual(marks.map((m) => sent(m.link)), [[1], [2], [3]]);
+  console.log('queue: ok (positions, a free place goes to the first, leaving, held places and their token, the limit, an ended session, a leave while seating, the order when busy)');
 } finally {
   main.stop();
 }
