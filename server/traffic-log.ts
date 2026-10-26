@@ -1,13 +1,18 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { SERVER } from '../src/config';
+import { log } from './log';
 import { add, blank, dayName, fresh, parse, STEPS, type Step, type Today } from './traffic-count';
 import { readDay, readState, write, type State } from './traffic-store';
 
 // One pass of the traffic reader (traffic.ts): the lines Caddy added to its access log since the last pass, counted
 // (traffic-count.ts) into the day files. A last line still being written waits for the next pass. A log that was
-// rotated (a new inode, or shorter than where we were) is read from its start: whatever the old file got after
-// the last pass is lost, at most a minute of lines.
+// rolled (a new inode) is read from its start, after the rest of the old file if it is still beside it (Caddy
+// renames it there); one cut shorter than where we were is read from its start. When the day ends, its visitors'
+// hashes go from state.json with the first pass after midnight, not with the first line of the next day.
+//
+// A crash between a day file and state.json counts the lines of that pass twice on the next one: rare, and a few
+// views over, never lost; making the two one write would cost more than it is worth.
 
 export interface Options {
   /** Caddy's access log. */
@@ -23,22 +28,32 @@ export interface Options {
 /** `from`'s steps, each changed by `f`. */
 const each = <A, B>(from: Record<Step, A>, f: (a: A) => B) => Object.fromEntries(STEPS.map((k) => [k, f(from[k])])) as Record<Step, B>;
 
+/** Whether the log was missing at the last pass: said once when it goes, and once when it is back. */
+let missing = false;
+
 export async function pass(o: Options) {
   const file = await fs.open(o.log, 'r').catch(() => null);
-  if (!file) return;
+  if (!file) {
+    if (!missing) log('-----', `traffic: ${o.log} can't be read, waiting for it`);
+    missing = true;
+    return;
+  }
+  if (missing) log('-----', `traffic: ${o.log} is back`);
+  missing = false;
   try {
     await fs.mkdir(o.dir, { recursive: true });
     const { ino, size } = await file.stat();
-    let state = await readState(o.dir);
-    if (state && (state.inode !== ino || size < state.offset)) state = { ...state, offset: 0 };
+    const state = await readState(o.dir);
     let today: Today | null = null;
     if (state?.today) {
       const { name, salt, seen } = state.today;
       today = { name, salt, seen: each(seen, (hashes) => new Set(hashes)), day: { ...blank(), ...(await readDay(o.dir, name)) } };
     }
     let changed = false;
+    /** Views of the day's file when the day was started here from nothing (no state for it): a recount of what the log still holds is kept only if it isn't less. */
+    let had = 0;
     const flush = async () => {
-      if (today && changed) await write(path.join(o.dir, `${today.name}.json`), today.day);
+      if (today && changed && today.day.views >= had) await write(path.join(o.dir, `${today.name}.json`), today.day);
       changed = false;
     };
     const line = async (text: string) => {
@@ -50,30 +65,53 @@ export async function pass(o: Options) {
       if (!today || name > today.name) {
         await flush();
         today = fresh(name);
+        had = (await readDay(o.dir, name))?.views ?? 0;
       }
       changed = add(today, hit, o.hosts, o.country ?? (() => null)) || changed;
     };
 
-    let pos = state?.offset ?? 0;
-    let rest = Buffer.alloc(0);
-    for (const buf = Buffer.alloc(SERVER.trafficChunk); pos < size; ) {
-      const { bytesRead } = await file.read(buf, 0, Math.min(buf.length, size - pos), pos);
-      if (!bytesRead) break;
-      pos += bytesRead;
-      rest = Buffer.concat([rest, buf.subarray(0, bytesRead)]);
-      const end = rest.lastIndexOf(10);
-      if (end < 0) continue;
-      for (const text of rest.subarray(0, end).toString().split('\n')) await line(text);
-      rest = rest.subarray(end + 1);
-    }
+    /** `f`'s whole lines from `pos` to `size`: where the last whole one ends. */
+    const read = async (f: fs.FileHandle, pos: number, size: number) => {
+      let rest = Buffer.alloc(0);
+      for (const buf = Buffer.alloc(SERVER.trafficChunk); pos < size; ) {
+        const { bytesRead } = await f.read(buf, 0, Math.min(buf.length, size - pos), pos);
+        if (!bytesRead) break;
+        pos += bytesRead;
+        rest = Buffer.concat([rest, buf.subarray(0, bytesRead)]);
+        const end = rest.lastIndexOf(10);
+        if (end < 0) continue;
+        for (const text of rest.subarray(0, end).toString().split('\n')) await line(text);
+        rest = rest.subarray(end + 1);
+      }
+      return pos - rest.length;
+    };
+
+    let from = state?.offset ?? 0;
+    if (state && state.inode !== ino) {
+      const old = await rolled(path.dirname(o.log), state.inode);
+      if (old) await read(old, state.offset, (await old.stat()).size).finally(() => old.close());
+      from = 0;
+    } else if (size < from) from = 0;
+    const offset = await read(file, from, size);
     await flush();
+    // The day is over: its hashes are not kept past the first pass that sees it.
+    if (today && dayName(Date.now() / 1000) > today.name) today = null;
     const next: State = {
       inode: ino,
-      offset: pos - rest.length,
+      offset,
       today: today && { name: today.name, salt: today.salt, seen: each(today.seen, (hashes) => [...hashes]) },
     };
     await write(path.join(o.dir, 'state.json'), next, 0o600);
   } finally {
     await file.close();
   }
+}
+
+/** The file in `dir` with inode `ino` (the log as it was before it rolled), open, or null. */
+async function rolled(dir: string, ino: number) {
+  for (const name of await fs.readdir(dir).catch(() => [] as string[])) {
+    const f = path.join(dir, name);
+    if ((await fs.stat(f).catch(() => null))?.ino === ino) return fs.open(f, 'r').catch(() => null);
+  }
+  return null;
 }

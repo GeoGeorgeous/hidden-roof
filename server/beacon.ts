@@ -1,10 +1,10 @@
 import type http from 'node:http';
-import { NET, SERVER } from '../src/config';
+import { SERVER } from '../src/config';
 import { BEATS, check } from './beacon-body';
 import { count, countSetting, type ClientCounts } from './client-counts';
 
 // The game's beacon (src/beacon.ts) at POST /ws?e: checked (beacon-body.ts), limited in size
-// (SERVER.beaconBytes) and per address (SERVER.beaconsPerIp a minute), and
+// (SERVER.beaconBytes) and per address (SERVER.beaconsPerIp a minute, from SERVER.beaconIps addresses), and
 // added to the hour's counts (client-counts.ts, history.ts). Only the counts are kept: the
 // address is used for the limit, the User-Agent for the browser and OS.
 
@@ -27,23 +27,24 @@ function osOf(ua: string) {
   return 'Other';
 }
 
-/** When the beacons of each `beat` came in the last NET.beaconEvery s: pages open by what they're doing. */
+/** When the beacons of each `beat` came in the last SERVER.beaconSiteSeconds: pages open by what they're doing. */
 const beats = Object.fromEntries(BEATS.map((k) => [k, [] as number[]])) as Record<(typeof BEATS)[number], number[]>;
 const recent = (at: number[], now = Date.now()) => {
-  while (at.length && at[0] <= now - NET.beaconEvery * 1000) at.shift();
+  while (at.length && at[0] <= now - SERVER.beaconSiteSeconds * 1000) at.shift();
   return at.length;
 };
 
-/** Who is on the site now: the pages that sent a beacon in the last NET.beaconEvery s, by what they're doing. */
+/** Who is on the site now: the pages that sent a beacon in the last SERVER.beaconSiteSeconds, by what they're doing. */
 export const site = () => Object.fromEntries(BEATS.map((k) => [k, recent(beats[k])])) as Record<(typeof BEATS)[number], number>;
 
-/** Beacons this minute, by address. */
+/** Beacons this minute, by address: at most SERVER.beaconIps addresses, so a flood of them can't grow it. */
 let sent = new Map<string, number>();
 setInterval(() => (sent = new Map()), 60e3).unref();
 
 /** POST /ws?e from `ip`, counted into `into()`: the status to answer. */
 export async function beacon(req: http.IncomingMessage, ip: string, into: () => ClientCounts) {
   const n = (sent.get(ip) ?? 0) + 1;
+  if (n === 1 && sent.size >= SERVER.beaconIps) return 429;
   sent.set(ip, n);
   if (n > SERVER.beaconsPerIp) return 429;
   let text = '';

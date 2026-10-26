@@ -1,5 +1,5 @@
-import { NET } from './config';
-import type { NetStatus } from './net/multiplayer';
+import { NET, SERVER } from './config';
+import type { NetStatus } from './net/status';
 
 // The game's beacon for the admin page's Stats (server/beacon.ts), solo and in a
 // session: once a minute the frames played (while the mouse is the game's and
@@ -15,6 +15,9 @@ import type { NetStatus } from './net/multiplayer';
 
 /** The funnel: the Play button (the first time the mouse is the game's), the level ready, the first paint, in a session. */
 type Step = 'play' | 'ready' | 'sprayed' | 'joined';
+
+/** The longest code the server takes (server/beacon-body.ts). */
+const CODE_CHARS = 40;
 
 /** One: its text, cut to NET.beaconErrorChars. */
 const said = (e: unknown) => String(e instanceof Error ? e.message : e).slice(0, NET.beaconErrorChars);
@@ -42,11 +45,14 @@ export class Beacon {
   private counts: Record<string, number> = {};
   /** Seconds since the last send. */
   private time = { playing: 0, idle: 0, menu: 0 };
+  /** The GPU's name, cut to what the server takes: a beacon it refuses is lost whole. */
+  private gpu: string | null;
 
   constructor(
-    private gpu: string | null,
+    gpu: string | null,
     canvas: HTMLCanvasElement,
   ) {
+    this.gpu = gpu?.slice(0, SERVER.beaconText) ?? null;
     addEventListener('error', (e) => this.error(e.error ?? e.message));
     addEventListener('unhandledrejection', (e) => this.error(e.reason));
     canvas.addEventListener('webglcontextlost', () => this.error('WebGL context lost'));
@@ -57,7 +63,7 @@ export class Beacon {
   /** The level is ready: the first beacon, with the load time and the settings chosen (`settings`: each as a short string). */
   loaded(settings: Record<string, string>) {
     this.step('ready');
-    this.send(false, { gpu: this.gpu, load: round(performance.now() / 1000), settings });
+    this.send(false, { gpu: this.gpu, load: Math.min(SERVER.beaconMostSeconds, round(performance.now() / 1000)), settings });
   }
 
   /** A funnel step reached: counted the first time only. */
@@ -77,8 +83,10 @@ export class Beacon {
     this.changed.set(key, now);
   }
 
-  /** Something happened in the game: a code of lowercase letters, digits, dots and dashes. */
+  /** Something happened in the game: a code of lowercase letters, digits, dots and dashes (cut to CODE_CHARS; SERVER.beaconKinds a minute, the rest dropped). */
   count(code: string) {
+    code = code.slice(0, CODE_CHARS);
+    if (!Object.hasOwn(this.counts, code) && Object.keys(this.counts).length >= SERVER.beaconKinds) return;
     this.counts[code] = (this.counts[code] ?? 0) + 1;
   }
 
@@ -103,7 +111,7 @@ export class Beacon {
     this.linked = s.state === 'in' || s.state === 'reconnecting';
     if (s.state === 'in') this.step('joined');
     if (s.state === 'connecting') this.joining ??= now;
-    else if (s.state === 'in' && this.joining !== null && this.joins.length < NET.beaconList) this.joins.push(round(now - this.joining));
+    else if (s.state === 'in' && this.joining !== null && this.joins.length < NET.beaconList) this.joins.push(Math.min(SERVER.beaconMostSeconds, round(now - this.joining)));
     if (s.state !== 'connecting') this.joining = null;
   }
 

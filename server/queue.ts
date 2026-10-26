@@ -21,8 +21,8 @@ export interface Place {
   link: Link | null;
   ip: string;
   since: number;
-  /** Brings its link in as a JOIN would (lobby.ts), once a place is free. */
-  seat: (waited: number) => Promise<void>;
+  /** Brings its link in as a JOIN would (lobby.ts), once a place is free; true: the server had no memory for it now (its link is closed, it keeps its place). */
+  seat: (waited: number) => Promise<boolean>;
   /** The position it was last told (0: none yet). */
   told: number;
   expires: ReturnType<typeof setTimeout> | null;
@@ -31,6 +31,7 @@ export interface Place {
 export class Queue {
   private places: Place[] = [];
   private ids = 0;
+  private over = false;
 
   /** `room`: the session has a place free. */
   constructor(
@@ -89,13 +90,22 @@ export class Queue {
       if (i < 0) break;
       const [p] = this.places.splice(i, 1);
       log(this.code, `${who(p)} from ${p.ip} admitted from the line: position ${i + 1}, waited ${span(Date.now() - p.since)}`);
-      void p.seat(Date.now() - p.since);
+      void p.seat(Date.now() - p.since).then((busy) => busy && this.putBack(p));
     }
     this.places.forEach((p, i) => {
       if (!p.link || p.told === i + 1) return;
       p.told = i + 1;
       p.link.send(encode({ type: 'queued', position: i + 1, token: p.token }));
     });
+  }
+
+  /** An entry the server had no memory to seat is back where it was (the entries are in the order they came), held as its closed link is. */
+  private putBack(p: Place) {
+    if (this.over) return;
+    const i = this.places.findIndex((q) => q.id > p.id);
+    this.places.splice(i < 0 ? this.places.length : i, 0, p);
+    if (p.link && !p.link.open) this.dropped(p, p.link);
+    this.update();
   }
 
   /** The session pings: the waiting too, so their game knows the link is alive. */
@@ -105,6 +115,7 @@ export class Queue {
 
   /** The session has ended: everyone waiting is told. */
   end() {
+    this.over = true;
     for (const p of this.places) {
       if (p.expires) clearTimeout(p.expires);
       p.link?.send(encode({ type: 'rejected', reason: 'ended' }));

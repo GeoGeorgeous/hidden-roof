@@ -8,12 +8,14 @@ import { log, logNoisy, overMemory, who } from './log';
 import type { LevelData } from '../src/level/level-data';
 import type { Link, Player } from './player';
 import type { Place } from './queue';
-import { Session, type SessionSetup } from './session';
+import { Session } from './session';
+import type { SessionSetup } from './setup';
 
 // Who gets into which session: the live sessions by code, the codes of those
 // that ended, each address's links, uploads and hosted sessions
 // (SERVER.linksPerIp, uploadsPerIp, sessionsPerIp), HOST (only if SERVER.playerHost) and JOIN, and each
-// link's messages to its session; a JOIN that finds a session full waits in its line (queue.ts). main.ts gives it links (ws sockets); it
+// link's messages to its session; a JOIN with the token of a player the admin kicked is refused for SERVER.rejoinWindow;
+// a JOIN that finds a session full waits in its line (queue.ts). main.ts gives it links (ws sockets); it
 // speaks only Link, so tests give it fake ones (server/world-test.ts).
 
 /** What a link's socket tells the lobby: a message, and its close. */
@@ -25,8 +27,8 @@ export interface LinkInput {
 /** Where a link is once it is in: a session's player, or an entry in its line. */
 type At = { session: Session; player: Player } | { session: Session; place: Place };
 
-/** What the line calls when a place is free for a link: brings it in as its JOIN would have. */
-type Seat = (session: Session, name: string) => (waited: number) => Promise<void>;
+/** What the line calls when a place is free for a link: brings it in as its JOIN would have; true if the server had no memory for it (turned away, it keeps its place). */
+type Seat = (session: Session, name: string) => (waited: number) => Promise<boolean>;
 
 /** One more (or, `by` -1, one fewer) of an address's links in `counts`; how many it has now. */
 const count = (counts: Map<string, number>, ip: string, by: number) => {
@@ -44,6 +46,8 @@ export class Lobby {
   private links = new Map<string, number>();
   private uploads = new Map<string, number>();
   private hosts = new Map<string, string>();
+  /** Tokens of players the admin kicked, and when (ms): a JOIN with one is a reconnect and is told so, for SERVER.rejoinWindow. */
+  private kicked = new Map<string, number>();
 
   /**
    * A link that opened (`host`: on /ws?host, where saves come up): turned away
@@ -69,20 +73,27 @@ export class Lobby {
     let hello: ReturnType<typeof setTimeout> | undefined;
     /** Counted among its address's uploads (a HOST link let past the limit on links): given back when it closes. */
     let uploads = false;
+    /** A LEAVE that came while the seat was being made: carried out as soon as it is. */
+    let left = false;
+    const bye = (r: At) => ('place' in r ? r.session.line.receive(r.place, { type: 'leave' }) : r.session.remove(r.player, 'left'));
     const seat: Seat = (session, name) => async (waited) => {
       at = 'waiting';
       try {
         const r = await this.seated(session, link, name, ip, undefined, waited);
         if (typeof r === 'string') {
           reject(r);
-          return session.line.update();
+          if (r === 'busy' && !left) return true;
+          session.line.update();
+          return false;
         }
         at = r;
-        if (!link.open) r.session.dropped(r.player, link);
+        if (left) bye(r);
+        else if (!link.open) r.session.dropped(r.player, link);
       } catch (e) {
         log(session.code, `server error with ${ip}: closed`, e);
         link.close(1011, 'server error');
       }
+      return false;
     };
     const input: LinkInput = {
       message: async (data) => {
@@ -93,7 +104,10 @@ export class Lobby {
             logNoisy(ip, at && at !== 'waiting' ? at.session.code : '-----', `bad message from ${ip}: closed`);
             return link.close(1008, 'bad message');
           }
-          if (at === 'waiting') return;
+          if (at === 'waiting') {
+            if (m.type === 'leave') left = true;
+            return;
+          }
           // A link replaced by another (a reconnect, another tab) is no longer theirs.
           if (at && 'place' in at) return at.place.link === link ? at.session.line.receive(at.place, m) : undefined;
           if (at) return at.player.link === link ? at.session.receive(at.player, m) : undefined;
@@ -103,6 +117,7 @@ export class Lobby {
           const r = await this.enter(m, link, ip, seat);
           if (typeof r === 'string') return reject(r, m);
           at = r;
+          if (left) return bye(r);
           if ('place' in r) return link.open ? r.session.line.update() : r.session.line.dropped(r.place, link);
           if (!link.open) r.session.dropped(r.player, link);
         } catch (e) {
@@ -145,6 +160,15 @@ export class Lobby {
   ping() {
     this.sessions.forEach((s) => s.ping());
     for (const [code, at] of this.ended) if (Date.now() - at > SERVER.endedMemory * 1000) this.ended.delete(code);
+    for (const [token, at] of this.kicked) if (Date.now() - at > SERVER.rejoinWindow * 1000) this.kicked.delete(token);
+  }
+
+  /** The admin removes a player of `session` (session.ts); false if it has no such player. A new JOIN (without their token) may come in. */
+  kick(session: Session, id: number) {
+    const token = session.players.get(id)?.token;
+    if (!token || !session.kick(id)) return false;
+    this.kicked.set(token, Date.now());
+    return true;
   }
 
   get players() {
@@ -154,6 +178,7 @@ export class Lobby {
   /** HOST or JOIN: the session and the player (or their place in its line), or why not. */
   private async enter(m: Extract<ToServer, { type: 'host' | 'join' }>, link: Link, ip: string, seat: Seat): Promise<At | Rejection> {
     if (m.protocol !== PROTOCOL) return 'version';
+    if (m.type === 'join' && m.token && (this.kicked.get(m.token) ?? 0) + SERVER.rejoinWindow * 1000 > Date.now()) return 'kicked';
     let session: Session;
     if (m.type === 'host') {
       if (!SERVER.playerHost) return 'no-host';

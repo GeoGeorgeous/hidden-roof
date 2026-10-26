@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 245
+The one list of what's left. Counter for new ids: next: 246
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -139,8 +139,9 @@ Only `N.`, the id and the description are required. The optional parts appear in
 2. IDEA [BL-047]: Admin panel: servers stats (players online, perfomance, etc), players info (username, IP, ping), after BL-043; ban by IP is IDEA-240 (docs/ideas/public-servers.md) @1.6.0
 3. [IDEA-240]: Admin: ban by IP (with a reason the player is shown) and restore one of the 3 saves (docs/ideas/public-servers.md)
 4. IDEA [?BL-147]: Anti-cheat: The server checks what players send (op reach and rate, ladder spot, jumps) before it goes public @1.6.1
-5. [TASK-189]: House rules before joining a public server: players are 18+, joining accepts the Terms, sessions may be recorded and published; the rules screen is in, left: the Terms' moderation section (docs/ideas/public-servers.md) @1.6.0
-6. [TASK-201]: Research itch.io Publishing Requirements, AI Policies, and Download Restrictions @1.6.3
+5. [TASK-245]: Public sessions: at most N seats and places in line per address, a JOIN rate per address, and a dropped seat taken back only with its token (not by the same name) @1.6.1
+6. [TASK-189]: House rules before joining a public server: players are 18+, joining accepts the Terms, sessions may be recorded and published; the rules screen is in, left: the Terms' moderation section (docs/ideas/public-servers.md) @1.6.0
+7. [TASK-201]: Research itch.io Publishing Requirements, AI Policies, and Download Restrictions @1.6.3
 
 ## Web and promotion
 
@@ -154,9 +155,8 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## Legal
 
-1. [TASK-187]: Performance telemetry (feat/playtest-telemetry) needs opt-in consent in the EU before it ships; "on for everyone" breaks ePrivacy 5(3) and GDPR 7(4) (SECRET_legal.md) @1.6.0
-2. [IDEA-188]: Who plays and from where, counted on the server: country from the IP at connect, counts only, the IP not kept (SECRET_legal.md) @1.6.0
-3. [TASK-242]: The privacy page names what the admin's stats keep: a random device id in localStorage, the address as a salted hash (a new salt every 30 days), the country, plays kept 30 days and counts forever, the web traffic read from the server's access log (a visitor as a salted hash of address and browser, kept one day); why, and how to object; DB-IP's credit (CC BY 4.0) (docs/ideas/public-servers.md)
+1. [TASK-187]: The beacon, the device id and the address hash run without a consent dialog (the owner's decision and risk, recorded in SECRET_legal.md); the privacy page names them (TASK-242) @1.6.0
+2. [TASK-242]: The privacy page names what the admin's stats keep: a random device id in localStorage, the address as a salted hash (a new salt every 30 days), the country, plays kept 30 days and counts forever, the web traffic read from the server's access log (a visitor as a salted hash of address and browser, kept one day); why, and how to object; DB-IP's credit (CC BY 4.0) (docs/ideas/public-servers.md) @1.6.0
 
 ## Codebase
 
@@ -174,10 +174,11 @@ Shipped since the last release; the release commit empties this list.
 6. [TASK-238]: Public paint stored and backed up, restored after a host outage; wiped when the protocol, surface table or level changes, or by the admin
 7. IDEA [BL-046]: A queue to enter a full session: your place in line, pushed by the server; held 3 minutes after a dropped link
 8. TASK [BL-154]: Tools a session turns off at creation are gone from its map and hands (the server drops their ops and stepladders too)
-9. [TASK-243]: Admin actions from cctv: kick a player (the game says so), and download a session's paint as of now (any session, not kept on disk) (docs/ideas/public-servers.md)
+9. [TASK-243]: Admin actions from cctv: kick a player (the game says so), and download a session's paint as of now (any session, not kept on disk)
 10. [TASK-239]: The admin's wipe keeps the last 3 paint saves, and a restart after it still starts from the empty wall
-11. [TASK-244]: The beacon counts game events in its minute summary, solo too: the funnel (Play, level ready, first spray, joined a session), pickups by item, jumps, falls, the stepladder, time playing, idle and in menus, the tutorial steps learnt, settings chosen and changed, screenshots and Discord clicks (the game has no Share); who is on the site now (a beacon every minute, even an empty one, saying menu, solo, in a session or hidden: on the site and solo counted from the last minute's beacons, public and private from the server itself, in `/events` status); /history's `client` sends counts by key, not a top 5 cut (errors by message, fps, load and join times as histograms beside their median and p95) (docs/ideas/public-servers.md)
-12. [TASK-241]: Read Caddy's access log in a container of its own on the host, `roof-traffic` (not the game server): page views, referrers and UTM, the first funnel steps, as daily rollups for the admin page's Traffic tab; our own links carry `?ref=` (discord, ig, tg), counted with `utm_source` and the Referer as one Source (docs/ideas/public-servers.md)
+11. [TASK-244]: The beacon counts game events in its minute summary, solo too: the funnel (Play, level ready, first spray, joined a session), pickups by item, jumps, falls, the stepladder, time playing, idle and in menus, the tutorial steps learnt, settings chosen and changed, screenshots and Discord clicks (the game has no Share); who is on the site now (a beacon every minute, even an empty one, saying menu, solo, in a session or hidden: on the site and solo counted from the last minute's beacons, public and private from the server itself, in `/events` status); /history's `client` sends counts by key, not a top 5 cut (errors by message, fps, load and join times as histograms beside their median and p95)
+12. [TASK-241]: Read Caddy's access log in a container of its own on the host, `roof-traffic` (not the game server): page views, referrers and UTM, the first funnel steps, as daily rollups for the admin page's Traffic tab; our own links carry `?ref=` (discord, ig, tg), counted with `utm_source` and the Referer as one Source
+13. [IDEA-188]: Who plays and from where, counted on the server: country from the IP at connect, counts only, the IP not kept (SECRET_legal.md)
 
 ## Discarder
 

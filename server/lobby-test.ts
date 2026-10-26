@@ -12,7 +12,7 @@ import { Game, join, start } from './test-kit';
 // The server list and the limits per session (lobby-http.ts, lobby.ts), against the built server: the list over plain
 // HTTP (public and private sessions, their order, codes only for public ones), a lookup by code and its limit per
 // address, a hosted session turning the player over its limit away, the admin's private limit, a HOST with
-// fields it can't take, HOST refused unless PLAYER_HOST, and the admin's kick. npm run test:server runs it.
+// fields it can't take, HOST refused unless PLAYER_HOST, and the admin's kick (a reconnect with a kicked player's token is told so, a new join comes in). npm run test:server runs it.
 
 const level = JSON.parse(fs.readFileSync('public/levels/demo.json', 'utf8'));
 const table = surfaceTable(levelPaintFaces(level, 48));
@@ -111,8 +111,10 @@ try {
   assert.deepEqual((await players()).map((p) => p.name), ['F', 'L'], 'out at once');
   assert.equal((await post(`/sessions/${friends.body.code}/players/${wl.you}/kick`)).status, 200);
   assert.deepEqual((await players()).map((p) => p.name), ['F'], 'a dropped player\'s seat is let go');
-  const k = await join(main.port, 'K', friends.body.code, { token: kicked.token });
-  assert.notEqual((await k.next('welcome')).you, kicked.you, 'a new join: the old token is no seat');
+  const again = await join(main.port, 'K', friends.body.code, { token: kicked.token });
+  assert.equal((await again.next('rejected')).reason, 'kicked', 'a reconnect with their token is told they were kicked');
+  const k = await join(main.port, 'K', friends.body.code);
+  assert.notEqual((await k.next('welcome')).you, kicked.you, 'a new join, without the token, comes in: kick is not a ban');
   const told = await join(main.port, 'M', friends.body.code);
   const wm = await told.next('welcome');
   assert.equal((await post(`/sessions/${friends.body.code}/players/${wm.you}/kick`)).status, 200);

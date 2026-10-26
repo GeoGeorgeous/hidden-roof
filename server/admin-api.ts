@@ -5,20 +5,25 @@ import { SLOTS } from '../src/inventory/tool';
 import { isPrivateLimit, isSessionName, isToolSet, PROTOCOL, SESSION_NAME_MAX } from '../src/net/protocol';
 import { VERSION } from '../src/version';
 import { site } from './beacon';
+import { median } from './counts';
 import { stream } from './events';
 import { history, isPeriod } from './history';
 import { log, overMemory } from './log';
 import { machine } from './machine';
-import type { Kept } from './kept';
+import { Refused, type Kept } from './kept';
 import type { Lobby } from './lobby';
-import type { Session, SessionSetup } from './session';
+import type { Session } from './session';
+import type { SessionSetup } from './setup';
 import { trafficDays } from './traffic-store';
 
 // The admin API, on its own port (SERVER.adminPort), never published: the admin
 // command (server/admin.mjs, in the container) and later the admin page through
-// Caddy. Every request carries `Authorization: Bearer <ADMIN_KEY>`; one from a
-// browser page only from ADMIN_ORIGIN. JSON in and out:
-//   GET  /                     the API's version, the game's and the protocol, uptime, the time now, the most players ever
+// Caddy. Every request carries `Authorization: Bearer <ADMIN_KEY>`; any request that
+// carries an Origin (a browser page's) is refused unless it is ADMIN_ORIGIN's (unset or not a URL: refused).
+// JSON in and out; a request that's wrong answers 400 { error }, 413 for a body past SERVER.adminBody bytes,
+// and any other failure 500 { error }:
+//   GET  /                     the API's version, the game's and the protocol, when the server started (`started`), the time now,
+//                              sessions and players, the most players ever (`peak`), and `slowPing` (ms): what counts as a slow ping
 //   GET  /machine              CPU, RAM, the server's memory, disk, the paint saves, upload (machine.ts)
 //   GET  /history?period=P     counts for today (since 00:00 UTC), or the last 24h, 7d or 30d (history.ts)
 //   GET  /traffic?days=N       the last N days (1 to 366, 30 by default) of the site's traffic, oldest first, a day with no
@@ -28,7 +33,8 @@ import { trafficDays } from './traffic-store';
 //                              and a `status` every second (the time, players, `site`, every session as listed but its saves);
 //                              `site`: the open pages by what they do (menu, solo, session, hidden), from the game's beacons of the last minute
 //   GET  /sessions             every session: its line (queue), players (address, ping, held seat),
-//                              today's paint and peak, ping, when it went empty, its saves
+//                              today's paint (`stamps` by tool, `colors`: ops by color code, `topColor` the most painted, for older pages) and peak,
+//                              ping (`median` ms, `slow`: players over `slowPing`), when it went empty, its saves
 //                              (newest first, with those a wipe kept aside: `wiped`)
 //   POST /sessions             a new one: { kind, name, level?, detail?, tools?, stay?, limit? }
 //                              (stay: a private one stays when empty; a public one always does;
@@ -36,7 +42,8 @@ import { trafficDays } from './traffic-store';
 //   POST /sessions/CODE/wipe   its paint gone
 //   POST /sessions/CODE/close  ended for everyone in it
 //   POST /sessions/CODE/players/ID/kick
-//                              a player out at once (told why, no seat held; they may join again)
+//                              a player out at once (told why, no seat held; a new join may come in, but a reconnect
+//                              with their token is told 'kicked' for SERVER.rejoinWindow)
 //   GET  /sessions/CODE/paint  its paint as a paint file made now (not kept): application/octet-stream,
 //                              attachment named <code>-<UTC time>.rhhpaint; 503 when there's no memory for one
 
@@ -71,8 +78,8 @@ function live(s: Session) {
   return {
     code: s.code, kind, name, admin, stays, tools, level: s.levelName, detail: detailName(s.detail), players, limit, queue: s.line.length,
     started: iso(s.started), paintMB: Math.round(s.memory.now), emptySince: s.emptySince === null ? null : iso(s.emptySince),
-    today: { peak: today.peak, stamps: today.paint.stamps, topColor: today.topColor },
-    ping: { median: pings.length ? pings[pings.length >> 1] : null, slow: pings.filter((ms) => ms > SERVER.slowPing).length },
+    today: { peak: today.peak, stamps: today.paint.stamps, colors: { ...today.paint.colors }, topColor: today.topColor },
+    ping: { median: median(pings), slow: pings.filter((ms) => ms > SERVER.slowPing).length },
   };
 }
 
@@ -85,7 +92,8 @@ function newSession(b: unknown): string | { setup: Omit<SessionSetup, 'admin'>; 
   const kind = o.kind;
   if (kind !== 'public' && kind !== 'private') return 'kind: public or private';
   if (!isSessionName(o.name)) return `name: 1 to ${SESSION_NAME_MAX} characters`;
-  const detail = PAINT_DETAIL[(o.detail ?? 'ultra') as keyof typeof PAINT_DETAIL];
+  const name = o.detail ?? 'ultra';
+  const detail = typeof name === 'string' && Object.hasOwn(PAINT_DETAIL, name) ? PAINT_DETAIL[name as keyof typeof PAINT_DETAIL] : 0;
   if (!detail) return `detail: one of ${Object.keys(PAINT_DETAIL).join(', ')}`;
   const tools = o.tools ?? SLOTS;
   if (!isToolSet(tools)) return `tools: some of ${SLOTS.join(', ')}`;
@@ -97,16 +105,27 @@ function newSession(b: unknown): string | { setup: Omit<SessionSetup, 'admin'>; 
   return { setup: { kind, name: o.name.trim(), limit, tools: SLOTS.filter((t) => tools.includes(t)), stays: kind === 'public' || o.stay === true }, level, detail };
 }
 
+/** ADMIN_ORIGIN as an origin (a trailing slash or a path in it is no matter), or null if unset or not one. */
+function adminOrigin() {
+  try {
+    const { origin } = new URL(process.env.ADMIN_ORIGIN ?? '');
+    return origin === 'null' ? null : origin;
+  } catch {
+    return null;
+  }
+}
+
 export function adminApi(lobby: Lobby, kept: Kept, key: string) {
   const want = digest(key);
+  const allowed = adminOrigin();
   return http.createServer(async (req, res) => {
     const answer = (status: number, body: unknown) => res.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store' }).end(JSON.stringify(body));
     const auth = String(req.headers.authorization ?? '').replace(/^Bearer /, '');
     if (!timingSafeEqual(digest(auth), want)) return answer(401, { error: 'no key' });
-    if (req.headers.origin && req.headers.origin !== process.env.ADMIN_ORIGIN) return answer(403, { error: 'origin' });
+    if (req.headers.origin && req.headers.origin !== allowed) return answer(403, { error: 'origin' });
     const parts = (req.url ?? '/').split('?')[0].split('/').filter(Boolean);
     try {
-      if (req.method === 'GET' && !parts.length) return answer(200, { api: ADMIN_API, version: VERSION, protocol: PROTOCOL, started: iso(started), now: iso(Date.now()), sessions: lobby.sessions.size, players: lobby.players, peak: history.ever });
+      if (req.method === 'GET' && !parts.length) return answer(200, { api: ADMIN_API, version: VERSION, protocol: PROTOCOL, started: iso(started), now: iso(Date.now()), sessions: lobby.sessions.size, players: lobby.players, peak: history.ever, slowPing: SERVER.slowPing });
       if (req.method === 'GET' && parts[0] === 'machine' && parts.length === 1) return answer(200, await machine(kept.dir));
       if (req.method === 'GET' && parts[0] === 'events' && parts.length === 1)
         return stream(res, () => ({ now: iso(Date.now()), players: lobby.players, site: site(), sessions: [...lobby.sessions.values()].map(live) }));
@@ -124,7 +143,7 @@ export function adminApi(lobby: Lobby, kept: Kept, key: string) {
       if (req.method === 'GET' && parts.length === 3 && parts[2] === 'paint') {
         const session = lobby.sessions.get(parts[1]);
         if (!session) return answer(404, { error: `no session ${parts[1]}` });
-        const bytes = await kept.download(session);
+        const bytes = await session.paintFile();
         if (!bytes) return answer(503, { error: 'no memory for a paint file' });
         return res.writeHead(200, { 'content-type': 'application/octet-stream', 'content-disposition': `attachment; filename="${paintName(session.code)}"`, 'cache-control': 'no-store' }).end(bytes);
       }
@@ -138,24 +157,37 @@ export function adminApi(lobby: Lobby, kept: Kept, key: string) {
       const session = lobby.sessions.get(parts[1]);
       if (!session) return answer(404, { error: `no session ${parts[1]}` });
       if (parts[2] === 'players' && parts[4] === 'kick' && parts.length === 5) {
-        if (!/^\d+$/.test(parts[3]) || !kept.kick(session, Number(parts[3]))) return answer(404, { error: `no player ${parts[3]} in ${session.code}` });
-      } else if (parts[2] === 'wipe') await kept.wipe(session);
-      else if (parts[2] === 'close') await kept.end(session);
+        if (!/^\d+$/.test(parts[3]) || !lobby.kick(session, Number(parts[3]))) return answer(404, { error: `no player ${parts[3]} in ${session.code}` });
+      } else if (parts[2] === 'wipe' && parts.length === 3) await kept.wipe(session);
+      else if (parts[2] === 'close' && parts.length === 3) await kept.end(session);
       else return answer(404, { error: 'not found' });
       return answer(200, { ok: true });
     } catch (e) {
       log('-----', `admin ${req.method} ${req.url}:`, e);
-      answer(400, { error: (e as Error).message });
+      answer(e instanceof TooBig ? 413 : e instanceof Refused ? 400 : 500, { error: (e as Error).message });
     }
   });
 }
 
-/** A request's JSON body, at most SERVER.adminBody bytes. */
-async function body(req: http.IncomingMessage) {
-  let text = '';
-  for await (const chunk of req) {
-    text += chunk;
-    if (text.length > SERVER.adminBody) throw new Error('too big');
+/** A body past SERVER.adminBody (answered 413). */
+class TooBig extends Refused {
+  constructor() {
+    super('too big');
   }
-  return JSON.parse(text || '{}') as unknown;
+}
+
+/** A request's JSON body, at most SERVER.adminBody bytes. A bigger one is read to its end and dropped, so the connection stays good. */
+async function body(req: http.IncomingMessage) {
+  const chunks: Buffer[] = [];
+  let size = 0;
+  for await (const chunk of req as AsyncIterable<Buffer>) {
+    size += chunk.length;
+    if (size <= SERVER.adminBody) chunks.push(chunk);
+  }
+  if (size > SERVER.adminBody) throw new TooBig();
+  try {
+    return JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}') as unknown;
+  } catch {
+    throw new Refused('not JSON');
+  }
 }

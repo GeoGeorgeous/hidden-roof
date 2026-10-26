@@ -10,11 +10,13 @@ export function stored(key: string): string | null {
   }
 }
 
-/** This browser's random id, sent with HOST and JOIN: the admin's history counts people by it (and by address). */
+let device: string | undefined;
+
+/** This browser's random id, sent with HOST and JOIN: the admin's history counts people by it (and by address). Kept for the session where storage is blocked. */
 export function deviceId() {
-  let id = stored('roofhiddenhaus.device');
-  if (!id) store('roofhiddenhaus.device', (id = Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join('')));
-  return id;
+  device ??= stored('roofhiddenhaus.device') || undefined;
+  if (!device) store('roofhiddenhaus.device', (device = Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join('')));
+  return device;
 }
 
 export function store(key: string, value: string) {

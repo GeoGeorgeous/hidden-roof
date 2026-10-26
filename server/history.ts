@@ -30,12 +30,15 @@ interface Hour extends Paint {
 
 type Period = 'today' | '24h' | '7d' | '30d';
 const HOURS: Record<Exclude<Period, 'today'>, number> = { '24h': 24, '7d': 7 * 24, '30d': 30 * 24 };
-export const isPeriod = (p: string): p is Period => p === 'today' || p in HOURS;
+export const isPeriod = (p: string): p is Period => p === 'today' || Object.hasOwn(HOURS, p);
 
 const HOUR = 3600e3;
 const iso = (ms: number) => new Date(ms).toISOString();
 const dayName = (day: number) => iso(day * 24 * HOUR).slice(0, 10);
 const blank = (): Hour => ({ plays: 0, lengths: [0, 0, 0, 0], seconds: 0, withOthers: 0, turnedAway: {}, ...noPaint(), peak: null, client: noClient() });
+
+/** An hour as saved: one written before a field was added gets it empty (the beacons' too). */
+const loaded = (h: Hour): Hour => ({ ...blank(), ...h, client: { ...noClient(), ...h.client, events: { ...noClient().events, ...h.client?.events } } });
 
 /** `hours` added up. */
 function sum(hours: Iterable<Hour>) {
@@ -52,7 +55,7 @@ function sum(hours: Iterable<Hour>) {
     add(t.stamps, h.stamps);
     add(t.colors, h.colors);
     if (h.peak && h.peak.players > (t.peak?.players ?? 0)) t.peak = h.peak;
-    if (h.client) addClient(t.client, h.client);
+    addClient(t.client, h.client);
   }
   return t;
 }
@@ -68,6 +71,8 @@ class History {
   /** The most players at once, ever (with a directory). */
   ever: Hour['peak'] = null;
   private everChanged = false;
+  /** The save under way (saveAll never throws). */
+  private running: Promise<void> | null = null;
 
   /** The hour now's counts, to add to. */
   now() {
@@ -134,26 +139,31 @@ class History {
   async keepIn(dir: string) {
     this.dir = path.join(dir, 'stats');
     await fs.mkdir(this.dir, { recursive: true });
-    this.ever = JSON.parse(await fs.readFile(path.join(this.dir, 'peak.json'), 'utf8').catch(() => 'null')) as Hour['peak'];
+    this.ever = await fs.readFile(path.join(this.dir, 'peak.json'), 'utf8').then((t) => JSON.parse(t) as Hour['peak']).catch(() => null);
     const today = Math.floor(Date.now() / HOUR / 24);
     for (const name of await fs.readdir(this.dir)) {
       const day = Date.parse(name.slice(0, 10)) / HOUR / 24;
       if (!name.endsWith('.json') || !Number.isInteger(day)) continue;
-      const file = JSON.parse(await fs.readFile(path.join(this.dir, name), 'utf8')) as { hours?: Record<string, Hour>; total?: Hour };
-      if (!file.hours) continue;
-      if (day < today - SERVER.historyDays) {
-        await this.write(name, { total: sum(Object.values(file.hours)) });
-        continue;
+      try {
+        const file = JSON.parse(await fs.readFile(path.join(this.dir, name), 'utf8')) as { hours?: Record<string, Hour>; total?: Hour };
+        if (!file.hours) continue;
+        if (day < today - SERVER.historyDays) await this.write(name, { total: sum(Object.values(file.hours).map(loaded)) });
+        else for (const [k, v] of Object.entries(file.hours)) this.hours.set(day * 24 + Number(k), loaded(v));
+      } catch (e) {
+        log('-----', `stats ${name} skipped:`, e);
       }
-      // An hour written before a field was added gets it empty (the beacons' too).
-      for (const [k, v] of Object.entries(file.hours)) this.hours.set(day * 24 + Number(k), { ...blank(), ...v, client: { ...noClient(), ...v.client } });
     }
     this.since = Math.min(this.since, ...[...this.hours.keys()].map((k) => k * HOUR));
     await people.keepIn(this.dir);
   }
 
-  /** The days that changed, and the peak, written (once a minute); hours past SERVER.historyDays forgotten. */
+  /** The days that changed, and the peak, written (once a minute); hours past SERVER.historyDays forgotten. A save under way is waited for: the shutdown's is the last. */
   async save() {
+    while (this.running) await this.running;
+    await (this.running = this.saveAll().finally(() => (this.running = null)));
+  }
+
+  private async saveAll() {
     const today = Math.floor(Date.now() / HOUR / 24);
     for (const k of this.hours.keys()) if (k < (today - SERVER.historyDays) * 24) this.hours.delete(k);
     if (!this.dir) return this.dirty.clear();

@@ -103,7 +103,11 @@ function connected(ws: WebSocket, req: http.IncomingMessage, host: boolean) {
   let greeted = false;
   let pinged = 0;
   ws.once('message', () => (greeted = true));
-  ws.on('pong', () => (link.rtt = Math.round(performance.now() - pinged)));
+  ws.on('pong', () => {
+    if (!pinged) return;
+    link.rtt = Math.round(performance.now() - pinged);
+    pinged = 0;
+  });
   const beat = setInterval(() => {
     if (!greeted) return;
     if (req.socket.bytesRead === read) return ws.terminate();

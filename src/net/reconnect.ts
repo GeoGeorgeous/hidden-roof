@@ -1,7 +1,7 @@
-import { NET, SERVER } from '../config';
-import { msg } from '../messages';
-import { rejectionOf, type Rejection, type ToServer } from './protocol';
-import type { NetStatus } from './multiplayer';
+import { NET, SERVER } from '../config.ts';
+import { msg } from '../messages.ts';
+import { rejectionOf, type Rejection, type ToServer } from './protocol.ts';
+import type { Failure, NetStatus } from './status';
 
 // Coming back after a link dropped, in a session or in the line for one: tries again after a wait that doubles
 // (NET.retryFirst up to NET.retryMost) for as long as the server keeps the place (SERVER.rejoinWindow). The server
@@ -42,7 +42,10 @@ interface Env {
 }
 
 /** The rejections that are a server's trouble of the moment, not an answer: a player coming back tries again for as long as the server keeps them. */
-export const refusedForNow = (r?: Rejection) => (r === 'busy' || r === 'too-many' ? r : undefined);
+const refusedForNow = (r?: Rejection) => (r === 'busy' || r === 'too-many' ? r : undefined);
+
+/** How a game ends when the server turns it away (`back`: it is coming back to a session or its line); undefined if it doesn't: a server too busy is a failed try, and a session gone while coming back is the server's restart. */
+export const endedBy = (r: Rejection, back: boolean): Failure | undefined => (back && refusedForNow(r) ? undefined : back && r === 'no-session' ? 'restarted' : r);
 
 export class Reconnect {
   private retry: { until: number; wait: number; tries: number } | null = null;
