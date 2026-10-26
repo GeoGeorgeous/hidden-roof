@@ -71,9 +71,13 @@ export async function openTestBrowser(url, { uncapped = false, level = 'demo', g
     page.on('pageerror', (e) => page.loadLog.push(`pageerror: ${e.message}`));
     page.on('requestfailed', (q) => page.loadLog.push(`requestfailed: ${q.url()} ${q.failure()?.errorText}`));
   };
+  // The game's beacon (src/beacon.ts) is answered here: with no game server behind the /ws proxy it would be a 502, a
+  // console error, and no test reads it.
+  const noBeacon = (r) => r.fulfill({ status: 204 });
   const open = browser.newPage.bind(browser);
   browser.newPage = async (options) => {
     const page = await open(options);
+    await page.route('**/ws?e', noBeacon);
     // The game loads more than the default 250 resource entries: tests look their modules' URLs up there.
     await page.addInitScript(() => performance.setResourceTimingBufferSize(5000));
     page.setDefaultNavigationTimeout(120_000);
@@ -83,6 +87,7 @@ export async function openTestBrowser(url, { uncapped = false, level = 'demo', g
   const context = browser.newContext.bind(browser);
   browser.newContext = async (options) => {
     const c = await context(options);
+    await c.route('**/ws?e', noBeacon);
     c.setDefaultNavigationTimeout(120_000);
     await c.addInitScript(() => performance.setResourceTimingBufferSize(5000));
     c.on('page', keepLoadLog);
@@ -147,7 +152,8 @@ export async function startPlaying(page, url) {
   const errors = [];
   const warnings = [];
   page.on('console', (m) => {
-    if (m.type() === 'error') errors.push(`error: ${m.text()}`);
+    // A failed request's error names no address: where it came from does.
+    if (m.type() === 'error') errors.push(`error: ${m.text()}${m.location().url ? ` (${m.location().url})` : ''}`);
     else if (m.type() === 'warning') warnings.push(`warning: ${m.text()}`);
   });
   page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
