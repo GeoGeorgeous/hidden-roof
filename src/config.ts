@@ -1181,17 +1181,21 @@ export const SERVER = {
   /** Unique people's salt (server/people.ts) changes this often (days); the GeoIP base's file is checked for a new one this often (s). */
   saltDays: 30,
   /**
-   * The game's beacon (server/beacon.ts): a body up to beaconBytes, beaconsPerIp a minute from one address; up to
+   * The game's beacon (server/beacon.ts): a body up to beaconBytes, beaconsPerIp a minute from one address (a school or an
+   * office is one address with many pages open), from at most beaconIps addresses a minute; up to
    * beaconKinds names (GPUs, browsers, error messages, event and tutorial codes, settings and their values) a map an hour,
    * then Other; a GPU name or a setting value up to beaconText characters, times and seconds up to beaconMostSeconds,
    * an event up to beaconMostEvents times a beacon.
    */
   beaconBytes: 4096,
-  beaconsPerIp: 30,
+  beaconsPerIp: 120,
+  beaconIps: 100000,
   beaconKinds: 50,
   beaconText: 80,
   beaconMostSeconds: 600,
   beaconMostEvents: 1000,
+  /** Who is on the site now counts a page's minute beacon this long (s): beaconEvery and a half, as timers jitter and a hidden tab's are throttled. */
+  beaconSiteSeconds: NET.beaconEvery * 1.5,
   geoipCheck: 3600,
   /** The traffic reader (server/traffic.ts), its own process: it reads Caddy's access log every trafficEvery s, trafficChunk bytes at a time; a day counts up to trafficKinds names (pages, sources, campaigns), then Other, each up to trafficText characters. */
   trafficEvery: 60,

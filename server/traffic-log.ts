@@ -1,13 +1,18 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { SERVER } from '../src/config';
+import { log } from './log';
 import { add, blank, dayName, fresh, parse, STEPS, type Step, type Today } from './traffic-count';
 import { readDay, readState, write, type State } from './traffic-store';
 
 // One pass of the traffic reader (traffic.ts): the lines Caddy added to its access log since the last pass, counted
 // (traffic-count.ts) into the day files. A last line still being written waits for the next pass. A log that was
 // rolled (a new inode) is read from its start, after the rest of the old file if it is still beside it (Caddy
-// renames it there); one cut shorter than where we were is read from its start.
+// renames it there); one cut shorter than where we were is read from its start. When the day ends, its visitors'
+// hashes go from state.json with the first pass after midnight, not with the first line of the next day.
+//
+// A crash between a day file and state.json counts the lines of that pass twice on the next one: rare, and a few
+// views over, never lost; making the two one write would cost more than it is worth.
 
 export interface Options {
   /** Caddy's access log. */
@@ -23,9 +28,18 @@ export interface Options {
 /** `from`'s steps, each changed by `f`. */
 const each = <A, B>(from: Record<Step, A>, f: (a: A) => B) => Object.fromEntries(STEPS.map((k) => [k, f(from[k])])) as Record<Step, B>;
 
+/** Whether the log was missing at the last pass: said once when it goes, and once when it is back. */
+let missing = false;
+
 export async function pass(o: Options) {
   const file = await fs.open(o.log, 'r').catch(() => null);
-  if (!file) return;
+  if (!file) {
+    if (!missing) log('-----', `traffic: ${o.log} can't be read, waiting for it`);
+    missing = true;
+    return;
+  }
+  if (missing) log('-----', `traffic: ${o.log} is back`);
+  missing = false;
   try {
     await fs.mkdir(o.dir, { recursive: true });
     const { ino, size } = await file.stat();
@@ -36,8 +50,10 @@ export async function pass(o: Options) {
       today = { name, salt, seen: each(seen, (hashes) => new Set(hashes)), day: { ...blank(), ...(await readDay(o.dir, name)) } };
     }
     let changed = false;
+    /** Views of the day's file when the day was started here from nothing (no state for it): a recount of what the log still holds is kept only if it isn't less. */
+    let had = 0;
     const flush = async () => {
-      if (today && changed) await write(path.join(o.dir, `${today.name}.json`), today.day);
+      if (today && changed && today.day.views >= had) await write(path.join(o.dir, `${today.name}.json`), today.day);
       changed = false;
     };
     const line = async (text: string) => {
@@ -49,6 +65,7 @@ export async function pass(o: Options) {
       if (!today || name > today.name) {
         await flush();
         today = fresh(name);
+        had = (await readDay(o.dir, name))?.views ?? 0;
       }
       changed = add(today, hit, o.hosts, o.country ?? (() => null)) || changed;
     };
@@ -77,6 +94,8 @@ export async function pass(o: Options) {
     } else if (size < from) from = 0;
     const offset = await read(file, from, size);
     await flush();
+    // The day is over: its hashes are not kept past the first pass that sees it.
+    if (today && dayName(Date.now() / 1000) > today.name) today = null;
     const next: State = {
       inode: ino,
       offset,

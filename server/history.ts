@@ -37,6 +37,9 @@ const iso = (ms: number) => new Date(ms).toISOString();
 const dayName = (day: number) => iso(day * 24 * HOUR).slice(0, 10);
 const blank = (): Hour => ({ plays: 0, lengths: [0, 0, 0, 0], seconds: 0, withOthers: 0, turnedAway: {}, ...noPaint(), peak: null, client: noClient() });
 
+/** An hour as saved: one written before a field was added gets it empty (the beacons' too). */
+const loaded = (h: Hour): Hour => ({ ...blank(), ...h, client: { ...noClient(), ...h.client, events: { ...noClient().events, ...h.client?.events } } });
+
 /** `hours` added up. */
 function sum(hours: Iterable<Hour>) {
   const t = blank();
@@ -52,7 +55,7 @@ function sum(hours: Iterable<Hour>) {
     add(t.stamps, h.stamps);
     add(t.colors, h.colors);
     if (h.peak && h.peak.players > (t.peak?.players ?? 0)) t.peak = h.peak;
-    if (h.client) addClient(t.client, h.client);
+    addClient(t.client, h.client);
   }
   return t;
 }
@@ -142,11 +145,10 @@ class History {
       const file = JSON.parse(await fs.readFile(path.join(this.dir, name), 'utf8')) as { hours?: Record<string, Hour>; total?: Hour };
       if (!file.hours) continue;
       if (day < today - SERVER.historyDays) {
-        await this.write(name, { total: sum(Object.values(file.hours)) });
+        await this.write(name, { total: sum(Object.values(file.hours).map(loaded)) });
         continue;
       }
-      // An hour written before a field was added gets it empty (the beacons' too).
-      for (const [k, v] of Object.entries(file.hours)) this.hours.set(day * 24 + Number(k), { ...blank(), ...v, client: { ...noClient(), ...v.client } });
+      for (const [k, v] of Object.entries(file.hours)) this.hours.set(day * 24 + Number(k), loaded(v));
     }
     this.since = Math.min(this.since, ...[...this.hours.keys()].map((k) => k * HOUR));
     await people.keepIn(this.dir);

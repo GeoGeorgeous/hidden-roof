@@ -1,9 +1,10 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { SERVER } from '../src/config';
+import { prefix } from './people';
 
 // What the traffic reader (traffic.ts) makes of a line of Caddy's access log (its JSON format) and of a day's
-// counts. Bots are counted and nothing else about them. A visitor is a salted hash of address and browser, a new
-// salt every day: the hashes of the day are all that is kept of them, and only until the day ends.
+// counts. Bots are counted and nothing else about them. A visitor is a salted hash of address (an IPv6 one by its
+// /64) and browser, a new salt every day: the hashes of the day are all that is kept of them, and only until the day ends.
 
 export const STEPS = ['view', 'script', 'beacon', 'socket'] as const;
 export type Step = (typeof STEPS)[number];
@@ -66,6 +67,9 @@ export function parse(line: string): Hit | null {
   }
 }
 
+/** A path that is a page: no file extension, or .html, and not an asset. */
+const isPage = (path: string) => !path.startsWith('/assets/') && /^[^.]*$|\.html$/.test(path.slice(path.lastIndexOf('/') + 1));
+
 /** The host a request was for, without its port. */
 const hostOf = (host: string) => host.replace(/:\d+$/, '').toLowerCase();
 const bare = (host: string) => host.replace(/^www\./, '');
@@ -94,7 +98,8 @@ function source(q: URLSearchParams, h: Hit, hosts: string[]) {
 export function add(t: Today, h: Hit, hosts: string[], country: (ip: string) => string | null) {
   if (hosts.length && !hosts.includes(hostOf(h.host))) return false;
   const { url } = h;
-  const page = h.method === 'GET' && h.status === 200 && h.type.toLowerCase().startsWith('text/html');
+  // A page is served as text/html; to a returning visitor it is a 304 (Go's ServeContent) with no type, so the path says.
+  const page = h.method === 'GET' && ((h.status === 200 && h.type.toLowerCase().startsWith('text/html')) || (h.status === 304 && isPage(url.pathname)));
   if (BOT.test(h.agent)) {
     if (page) t.day.bots++;
     return page;
@@ -103,13 +108,13 @@ export function add(t: Today, h: Hit, hosts: string[], country: (ip: string) => 
     ? 'view'
     : h.method === 'GET' && (h.status === 200 || h.status === 304) && url.pathname.startsWith('/assets/') && url.pathname.endsWith('.js')
       ? 'script'
-      : h.method === 'POST' && h.uri === '/ws?e'
+      : h.method === 'POST' && h.uri === '/ws?e' && h.status === 204
         ? 'beacon'
         : h.method === 'GET' && url.pathname === '/ws' && h.status === 101
           ? 'socket'
           : null;
   if (!step) return false;
-  t.seen[step].add(createHash('sha256').update(t.salt).update(h.ip).update('\0').update(h.agent).digest('base64url').slice(0, 16));
+  t.seen[step].add(createHash('sha256').update(t.salt).update(prefix(h.ip)).update('\0').update(h.agent).digest('base64url').slice(0, 16));
   if (step === 'view') {
     t.day.views++;
     count(t.day.pages, url.pathname);

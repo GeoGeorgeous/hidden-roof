@@ -24,7 +24,7 @@ const fileOf = (day: number) => `people-${new Date(day * DAY).toISOString().slic
 const dayOf = (name: string) => (/^people-(\d{4}-\d\d-\d\d)\.json$/.test(name) ? Date.parse(name.slice(7, 17)) / DAY : null);
 
 /** `ip` as counted: an IPv6 address by its first 64 bits. */
-function prefix(ip: string) {
+export function prefix(ip: string) {
   ip = ip.replace(/^::ffff:/, '').replace(/%.*$/, '');
   if (!ip.includes(':')) return ip;
   const [head, tail] = ip.split('::');

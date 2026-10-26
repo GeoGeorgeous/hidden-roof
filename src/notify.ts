@@ -103,7 +103,8 @@ export class Notify {
 
   /** A dialog is up: play is blocked until it's confirmed. */
   get blocked() {
-    return this.notes.some((n) => n.kind === 'dialog');
+    for (const n of this.notes) if (n.kind === 'dialog') return true;
+    return false;
   }
 
   /** The player answered the dialog on screen: it goes, its `answer` hears how, and the next dialog, if any, comes. */

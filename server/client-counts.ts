@@ -46,16 +46,38 @@ export function count(to: Counts, key: string, n = 1, capped = true) {
   to[k] = (Object.hasOwn(to, k) ? to[k] : 0) + n;
 }
 
+/** `from`'s counts added to `to`'s; past SERVER.beaconKinds names the smallest go to Other, whichever hour they came from (`capped`: names, not a histogram's bins). */
+function merge(to: Counts, from: Counts, capped = true) {
+  for (const [key, n] of Object.entries(from)) to[key] = (Object.hasOwn(to, key) ? to[key] : 0) + n;
+  if (capped) trim(to, (n) => n, (other, n) => (other ?? 0) + n);
+}
+
+/** The keys of `to` past SERVER.beaconKinds, the lightest first to go, folded into Other by `fold`. */
+function trim<T>(to: Record<string, T>, weight: (v: T) => number, fold: (other: T | undefined, v: T) => T) {
+  const names = Object.keys(to).filter((k) => k !== 'Other');
+  if (names.length <= SERVER.beaconKinds) return;
+  names.sort((a, b) => weight(to[b]) - weight(to[a]));
+  for (const k of names.slice(SERVER.beaconKinds)) {
+    to.Other = fold(Object.hasOwn(to, 'Other') ? to.Other : undefined, to[k]);
+    delete to[k];
+  }
+}
+
 export function addClient(to: ClientCounts, from: ClientCounts) {
   to.n += from.n;
   to.nGpu += from.nGpu;
   to.errors += from.errors;
   to.erred += from.erred;
-  for (const k of ['browsers', 'os', 'gpus', 'messages'] as const) for (const [key, n] of Object.entries(from[k])) count(to[k], key, n);
-  for (const k of ['fps', 'low1', 'load', 'join'] as const) for (const [key, n] of Object.entries(from[k])) count(to[k], key, n, false);
-  for (const k of ['steps', 'seconds'] as const) for (const [key, n] of Object.entries(from.events[k])) count(to.events[k], key, n, false);
-  for (const k of ['tutorial', 'counts'] as const) for (const [key, n] of Object.entries(from.events[k])) count(to.events[k], key, n);
-  for (const [key, values] of Object.entries(from.events.settings)) for (const [value, n] of Object.entries(values)) countSetting(to, key, value, n);
+  for (const k of ['browsers', 'os', 'gpus', 'messages'] as const) merge(to[k], from[k]);
+  for (const k of ['fps', 'low1', 'load', 'join'] as const) merge(to[k], from[k], false);
+  for (const k of ['steps', 'seconds'] as const) merge(to.events[k], from.events[k], false);
+  for (const k of ['tutorial', 'counts'] as const) merge(to.events[k], from.events[k]);
+  const [mine, theirs] = [to.events.settings, from.events.settings];
+  for (const [key, values] of Object.entries(theirs)) merge((mine[key] = Object.hasOwn(mine, key) ? mine[key] : {}), values);
+  trim(mine, (v) => Object.values(v).reduce((s, n) => s + n, 0), (other, v) => {
+    merge((other ??= {}), v);
+    return other;
+  });
 }
 
 /** `n` page loads with `key` set to `value`; Other past SERVER.beaconKinds settings, and per setting past as many values. */

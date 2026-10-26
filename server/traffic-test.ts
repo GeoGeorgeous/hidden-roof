@@ -36,10 +36,15 @@ const append = (...lines: string[]) => fs.appendFileSync(log, lines.join(''));
 const read = (day: string) => JSON.parse(fs.readFileSync(path.join(traffic, `${day}.json`), 'utf8'));
 const state = () => JSON.parse(fs.readFileSync(path.join(traffic, 'state.json'), 'utf8'));
 
+// The days being counted are past ones, so the reader's clock is set to just after the lines it reads.
+const realNow = Date.now;
+const clock = (s: number) => (Date.now = () => s * 1000);
+
 const A = '10.1.0.1';
 const B = '10.1.0.2';
 const C = '10.9.0.3';
 const t0 = noon(d0);
+clock(t0 + 100);
 append(
   // A: ?ref= beats utm_source and the referrer; the whole funnel.
   line({ ts: t0, ip: A, uri: '/?ref=Discord&utm_source=x', ref: 'https://www.reddit.com/r/y' }),
@@ -59,6 +64,8 @@ append(
   line({ ts: t0 + 10, ip: A, status: 404 }),
   line({ ts: t0 + 11, ip: A, uri: '/favicon.ico', type: 'image/x-icon' }),
   line({ ts: t0 + 12, ip: '10.4.0.1', ua: 'Opera/9', uri: '/assets/index-abc.js', status: 304, type: null }),
+  // A beacon that was refused (429) is not a beacon step.
+  line({ ts: t0 + 13, ip: '10.4.0.2', ua: 'Opera/9', method: 'POST', uri: '/ws?e', status: 429, type: null }),
   'not json\n',
   JSON.stringify({ ts: t0, request: { client_ip: A } }) + '\n',
 );
@@ -115,17 +122,60 @@ const crowd = read(names[1]).sources;
 assert.equal(Object.keys(crowd).length, SERVER.trafficKinds + 1);
 assert.equal(crowd.Other, 10 + 1, 'the rest');
 
+// The day over (the clock is past it): the first pass after midnight drops its visitors from the state, and the file stays.
+assert.equal(state().today.name, names[1]);
+const ended = read(names[1]);
+clock(Date.now() / 1000 + 864e3);
+await pass(opts);
+assert.equal(state().today, null, 'no hashes kept past the day');
+assert.deepEqual(read(names[1]), ended);
+// A late line of that day starts it again from nothing: the file keeps what it had, being the bigger.
+append(line({ ts: t1 + 300, ip: '10.6.0.1' }));
+await pass(opts);
+assert.deepEqual(read(names[1]), ended, 'a smaller recount does not replace the day');
+clock(t1 + 1000);
+
 // No address or browser name in anything written.
 for (const name of fs.readdirSync(traffic)) {
   const text = fs.readFileSync(path.join(traffic, name), 'utf8');
   assert.ok(!/10\.\d+\.\d+\.\d+|Firefox|Chrome|Googlebot|curl|Opera/.test(text), `no address or browser in ${name}`);
 }
 
+// State lost: the log is read again from its start, and a day that has a file keeps the fuller of that and the recount.
+const full = read(names[0]);
+fs.rmSync(path.join(traffic, 'state.json'));
+fs.writeFileSync(log, line({ ts: t0, ip: A }));
+clock(t0 + 100);
+await pass(opts);
+assert.deepEqual(read(names[0]), full, 'a day with a file is not cut down to a recount');
+fs.rmSync(path.join(traffic, 'state.json'));
+fs.writeFileSync(log, Array.from({ length: full.views + 1 }, (_, i) => line({ ts: t0 + i, ip: `10.7.0.${i}` })).join(''));
+await pass(opts);
+assert.equal(read(names[0]).views, full.views + 1, 'a recount that is fuller replaces it');
+clock(Date.now() / 1000 + 864e3);
+
 // Without TRAFFIC_HOSTS every host counts.
 fs.rmSync(traffic, { recursive: true });
 fs.writeFileSync(log, line({ ts: t0, ip: A, host: 'one.example' }) + line({ ts: t0 + 1, ip: B, host: 'Two.example:443' }));
+clock(t0 + 100);
 await pass({ ...opts, hosts: [] });
 assert.equal(read(names[0]).views, 2);
+
+// A returning visitor's page is a 304 with no type: a view for a page path, not for a file or an asset. An IPv6 visitor is its /64.
+append(
+  line({ ts: t0 + 10, ip: '10.8.0.1', status: 304, type: null }),
+  line({ ts: t0 + 11, ip: '10.8.0.1', uri: '/privacy.html', status: 304, type: null }),
+  line({ ts: t0 + 12, ip: '10.8.0.1', uri: '/favicon.ico', status: 304, type: null }),
+  line({ ts: t0 + 13, ip: '10.8.0.1', uri: '/assets/index-abc.css', status: 304, type: null }),
+  line({ ts: t0 + 14, ip: '10.8.0.1', method: 'POST', status: 304, type: null }),
+  line({ ts: t0 + 15, ip: '2001:db8:1:2:aaaa::1' }),
+  line({ ts: t0 + 16, ip: '2001:db8:1:2:bbbb::2' }),
+  line({ ts: t0 + 17, ip: '2001:db8:1:3::1' }),
+);
+await pass({ ...opts, hosts: [] });
+const back = read(names[0]);
+assert.deepEqual([back.views, back.pages, back.visitors], [7, { '/': 6, '/privacy.html': 1 }, 5], 'a 304 for a page is a view; two addresses of a /64 are one visitor');
+Date.now = realNow;
 
 // GET /traffic: the days with a file, oldest first.
 fs.writeFileSync(path.join(traffic, 'not-a-day.json'), '{}');
@@ -157,4 +207,4 @@ try {
   bare.stop();
   fs.rmSync(dir, { recursive: true, force: true });
 }
-console.log('traffic: ok (views, pages, sources in their order, bots, visitors, the funnel, resuming, a partial line, truncation and rotation, the day changing, no address or browser kept, GET /traffic)');
+console.log('traffic: ok (views, pages, sources in their order, bots, visitors, the funnel, resuming, a partial line, truncation and rotation, the day changing and ending, a lost state, 304 pages, IPv6, no address or browser kept, GET /traffic)');
