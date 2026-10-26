@@ -15,12 +15,17 @@ const freePort = () =>
       s.close(() => done(port));
     });
   });
-/** A server on a free port, ready; `env` adds to its environment. */
+/** A server on a free port, listening; `env` adds to its environment. `stop` waits for it to exit (it saves first); `out()`: what it logged. */
 export async function start(env: Record<string, string>) {
   const [port, adminPort] = [await freePort(), await freePort()];
   const child = spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(port), ADMIN_PORT: String(adminPort), ...env }, stdio: ['ignore', 'pipe', 'inherit'] });
-  await new Promise((ready) => child.stdout!.once('data', ready));
-  return { port, adminPort, env: { ...process.env, ADMIN_PORT: String(adminPort), ...env }, stop: () => child.kill() };
+  let out = '';
+  child.stdout!.on('data', (d: Buffer) => (out += d.toString()));
+  for (let i = 0; !out.includes('roof server on'); i++) {
+    if (i > 500) throw new Error('the server does not start');
+    await new Promise((w) => setTimeout(w, 20));
+  }
+  return { port, adminPort, env: { ...process.env, ADMIN_PORT: String(adminPort), ...env }, out: () => out, stop: () => new Promise((done) => (child.once('exit', done), child.kill())) };
 }
 
 let games = 0;

@@ -5,7 +5,7 @@ import { SLOTS, type Tool } from '../src/inventory/tool';
 import type { LevelData } from '../src/level/level-data';
 import { decodeOps, encodeOps, SurfaceIndex } from '../src/op-wire';
 import { opTool } from '../src/paint-ops';
-import { closeCode, encode, partFrames, partPieces, type Rejection, type SessionKind, type ToClient, type ToServer } from '../src/net/protocol';
+import { closeCode, encode, partFrames, partPieces, type Rejection, type ToClient, type ToServer } from '../src/net/protocol';
 import { loadPaint } from '../src/save/load-paint';
 import { joinBytes } from '../src/save/paint-file';
 import { streamPaint } from '../src/save/save-paint';
@@ -16,8 +16,9 @@ import { history } from './history';
 import { liveMemory, log, mb, overMemory, span, who } from './log';
 import { deliver, presence, uniqueName, type Link, type Player } from './player';
 import { Queue } from './queue';
+import { HOSTED } from './setup';
 import { Snapshot, waiting } from './snapshot';
-import { sessionPaint } from './world';
+import { paintMemory, sessionPaint } from './world';
 
 // One live session: its level, PAINT DETAIL and paint, and its players. It
 // paints every op it relays, so a joiner (or a player coming back) gets the
@@ -29,21 +30,7 @@ import { sessionPaint } from './world';
 // Its paint is stored only if it's public and DATA_DIR is set (kept.ts): a
 // restart ends every other session.
 
-
 type How = 'new' | 'back' | 'takeover';
-
-/** What its creator made it: public (open to all) or private (by its code), its name, most players, the tools it allows; `stays` when empty; `admin`: the admin made it. */
-export interface SessionSetup {
-  kind: SessionKind;
-  name: string;
-  limit: number;
-  tools: readonly Tool[];
-  stays: boolean;
-  admin: boolean;
-}
-
-/** A session made without a setup (the paint tests'): private, every tool, closed when empty. */
-const HOSTED: SessionSetup = { kind: 'private', name: '', limit: SERVER.players.private, tools: SLOTS, stays: false, admin: false };
 
 export class Session {
   readonly players = new Map<number, Player>();
@@ -103,13 +90,7 @@ export class Session {
 
   /** Paint memory in MB now, and with every surface painted. */
   get memory() {
-    let now = 0;
-    let full = 0;
-    for (const s of this.world.paint.surfaces) {
-      now += s.data?.length ?? 0;
-      full += s.geo.atlasW * s.geo.atlasH * 4;
-    }
-    return { now: now / 2 ** 20, full: full / 2 ** 20 };
+    return paintMemory(this.world.paint);
   }
 
   /**
@@ -261,30 +242,30 @@ export class Session {
   /** The admin closed it: everyone is told it has ended. */
   end() {
     for (const p of this.players.values()) {
-      if (p.expires) clearTimeout(p.expires);
       history.played((Date.now() - p.joined) / 1000);
-      const link = p.link;
-      p.link = null;
-      link?.send(encode({ type: 'rejected', reason: 'ended' }));
-      link?.close(closeCode('ended'), 'ended');
+      this.eject(p, 'ended');
     }
     this.players.clear();
     this.emptySince = Date.now();
     this.finish('by the admin');
   }
 
+  /** The admin removed a player: told why, out at once with no seat held, free to join again (the lobby refuses their token for a while). False if there's no such player. */
+  kick(id: number) {
+    const p = this.players.get(id);
+    if (!p) return false;
+    this.eject(p, 'kicked');
+    event('kicked', this, p.name);
+    this.remove(p, 'kicked by the admin');
+    return true;
+  }
+
   /** The paint now as a paint file (kept.ts saves it), made in turn as a welcome's is; null when there's no memory for one. */
   async paintFile() {
     const snap = this.snapshot(() => true, true);
     if (snap === 'busy') return null;
-    this.changed = false;
-    try {
-      const frames = await snap.frames;
-      return frames && joinBytes(partPieces(frames));
-    } catch (e) {
-      this.changed = true;
-      throw e;
-    }
+    const frames = await snap.frames;
+    return frames && joinBytes(partPieces(frames));
   }
 
   /** For the log when it closes. */
@@ -310,6 +291,15 @@ export class Session {
     if (this.players.size) return;
     this.emptySince = Date.now();
     if (!this.setup.stays) this.finish('no one left');
+  }
+
+  /** `p` is told why and their link closed; no seat held. */
+  private eject(p: Player, reason: 'kicked' | 'ended') {
+    if (p.expires) clearTimeout(p.expires);
+    const link = p.link;
+    p.link = null;
+    link?.send(encode({ type: 'rejected', reason }));
+    link?.close(closeCode(reason), reason);
   }
 
   /** It's over: those waiting are told, and the lobby forgets it. */
@@ -405,5 +395,4 @@ export class Session {
     const f = encode(m);
     for (const p of this.players.values()) if (p !== except) deliver(p, f);
   }
-
 }

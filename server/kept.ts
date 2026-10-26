@@ -3,11 +3,12 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { SERVER } from '../src/config';
 import { levelProblem, type LevelData } from '../src/level/level-data';
-import { closeCode, encode, PROTOCOL, type SessionKind } from '../src/net/protocol';
+import { CODE_LENGTH, CODE_LETTERS, isSessionName, isToolSet, PROTOCOL, type SessionKind } from '../src/net/protocol';
 import { event } from './events';
 import { log, mb } from './log';
 import type { Lobby } from './lobby';
-import type { Session, SessionSetup } from './session';
+import type { Session } from './session';
+import type { SessionSetup } from './setup';
 
 // The admin's sessions (admin-api.ts), and the public ones kept on disk in
 // `dir` (DATA_DIR): sessions.json lists them with what they were made for (the
@@ -18,6 +19,11 @@ import type { Session, SessionSetup } from './session';
 // SERVER.keepFiles saves aside, as <code>-<ms>.wiped.rhhpaint: never loaded,
 // never rotated away by new saves. A new protocol, surface table or level wipes
 // it for good, and so does a close: a release that changes none of them keeps the paint.
+// The disk work of a write, a wipe, a close and sessions.json goes one task at a time, in
+// order, and a failed task is logged: the change it follows has happened (a save that
+// failed is tried again at the next one). A session whose level file can't be read for
+// another reason than that it isn't there (too many open files, a wrong LEVELS_DIR) is
+// left in sessions.json and on disk for the next start.
 
 interface Entry {
   code: string;
@@ -32,13 +38,28 @@ interface Entry {
   levelHash: string;
 }
 
+/** A request the admin got wrong (admin-api.ts answers 400); any other error is the server's. */
+export class Refused extends Error {}
+
+const CODE = new RegExp(`^[${CODE_LETTERS}]{${CODE_LENGTH}}$`);
+const isEntry = (e: unknown): e is Entry => {
+  const o = (typeof e === 'object' && e ? e : {}) as Record<string, unknown>;
+  return typeof o.code === 'string' && CODE.test(o.code) && (o.kind === 'public' || o.kind === 'private') && isSessionName(o.name) && isToolSet(o.tools) && typeof o.level === 'string' && Number.isFinite(o.detail) && typeof o.protocol === 'number' && typeof o.table === 'string' && typeof o.levelHash === 'string';
+};
+/** What a crash can leave half written. */
+const leftover = (name: string) => name === 'sessions.json.tmp' || name.endsWith('.rhhpaint.tmp');
+
 /** When a save was made (ms), from its name, <code>-<ms>.rhhpaint or <code>-<ms>.wiped.rhhpaint. */
 const savedAt = (code: string, name: string) => parseInt(name.slice(code.length + 1));
 const wiped = (name: string) => name.endsWith('.wiped.rhhpaint');
 const hash = (level: LevelData) => createHash('sha256').update(JSON.stringify(level)).digest('hex').slice(0, 16);
 
 export class Kept {
-  private saving = false;
+  /** The save under way (save() never throws), and the disk work in line. */
+  private running: Promise<void> | null = null;
+  private chain: Promise<unknown> = Promise.resolve();
+  /** Kept sessions not made again at start for a reason that may pass: still listed. */
+  private unmade: Entry[] = [];
 
   /** `levels`: where the level files are (LEVELS_DIR); `dir`: null keeps nothing on disk. */
   constructor(
@@ -47,13 +68,21 @@ export class Kept {
     readonly dir: string | null,
   ) {}
 
-  /** levels/<name>.json, checked as a hosted level is. Throws with a message if there's none or it's no good. */
+  /** levels/<name>.json, checked as a hosted level is. Throws Refused if there's none or it's no good; any other error is the server's. */
   async level(name: string): Promise<LevelData> {
-    if (!/^[a-z0-9-]{1,40}$/.test(name)) throw new Error(`no level ${JSON.stringify(name)}`);
-    const data: unknown = JSON.parse(await fs.readFile(path.join(this.levels, `${name}.json`), 'utf8').catch(() => 'null'));
-    if (data === null) throw new Error(`no level ${JSON.stringify(name)}`);
+    const none = new Refused(`no level ${JSON.stringify(name)}`);
+    if (!/^[a-z0-9-]{1,40}$/.test(name)) throw none;
+    const text = await fs.readFile(path.join(this.levels, `${name}.json`), 'utf8').catch((e) => {
+      throw e.code === 'ENOENT' ? none : e;
+    });
+    let data: unknown;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new Refused(`level ${name}: not JSON`);
+    }
     const problem = levelProblem(data);
-    if (problem) throw new Error(`level ${name}: ${problem}`);
+    if (problem) throw new Refused(`level ${name}: ${problem}`);
     return data as LevelData;
   }
 
@@ -71,58 +100,52 @@ export class Kept {
     log(session.code, 'wiped by the admin');
     event('wiped', session);
     if (!this.dir) return;
-    for (const [i, name] of (await this.saves(session.code)).entries())
-      if (i >= SERVER.keepFiles) await fs.rm(this.file(name), { force: true });
-      else if (!wiped(name)) await fs.rename(this.file(name), this.file(name.replace('.rhhpaint', '.wiped.rhhpaint')));
+    await this.serial(`wipe of ${session.code}`, async () => {
+      for (const [i, name] of (await this.saves(session.code)).entries())
+        if (i >= SERVER.keepFiles) await fs.rm(this.file(name), { force: true });
+        else if (!wiped(name)) await fs.rename(this.file(name), this.file(name.replace('.rhhpaint', '.wiped.rhhpaint')));
+    });
   }
 
   /** The admin closed it: gone, from disk too. */
   async end(session: Session) {
     session.end();
-    await this.forget(session.code);
+    await this.serial(`close of ${session.code}`, () => this.forget(session.code));
     await this.record();
-  }
-
-  /** The admin removed a player: told why, out at once with no seat held, free to join again. False if the session has no such player. */
-  kick(session: Session, id: number) {
-    const p = session.players.get(id);
-    if (!p) return false;
-    const link = p.link;
-    p.link = null;
-    link?.send(encode({ type: 'rejected', reason: 'kicked' }));
-    link?.close(closeCode('kicked'), 'kicked');
-    event('kicked', session, p.name);
-    session.remove(p, 'kicked by the admin');
-    return true;
-  }
-
-  /** The session's paint as a paint file, as of now and not kept: null when there's no memory for one. A kept save still sees what changed since the last one. */
-  async download(session: Session) {
-    const changed = session.changed;
-    try {
-      return await session.paintFile();
-    } finally {
-      session.changed ||= changed;
-    }
   }
 
   /** At start: every kept session again, with its paint unless what it was made for has changed. */
   async restore() {
     if (!this.dir) return;
     await fs.mkdir(this.dir, { recursive: true });
+    for (const name of (await fs.readdir(this.dir)).filter(leftover)) await fs.rm(this.file(name), { force: true });
     let list: Entry[] = [];
     try {
-      list = JSON.parse(await fs.readFile(this.file('sessions.json'), 'utf8').catch(() => '[]'));
+      const kept: unknown = JSON.parse(await fs.readFile(this.file('sessions.json'), 'utf8').catch(() => '[]'));
+      if (!Array.isArray(kept)) throw new Error('not a list');
+      list = kept.filter((e, i) => isEntry(e) || (log('-----', `sessions.json: entry ${i} skipped`), false));
     } catch (e) {
-      // Kept aside for a look by hand: the paint files stay, the sessions are made again by the admin.
-      log('-----', 'sessions.json unreadable, kept as sessions.json.bad:', e);
-      await fs.rename(this.file('sessions.json'), this.file('sessions.json.bad'));
+      // Kept aside for a look by hand (each under a name of its own): the paint files stay, the sessions are made again by the admin.
+      const bad = `sessions.json.${Date.now()}.bad`;
+      log('-----', `sessions.json unreadable, kept as ${bad}:`, e);
+      await fs.rename(this.file('sessions.json'), this.file(bad));
     }
     for (const e of list) {
       let session: Session;
       let level: LevelData;
       try {
         level = await this.level(e.level);
+      } catch (err) {
+        if (err instanceof Refused) {
+          log(e.code, `kept session not made again: ${err.message}`);
+          await this.forget(e.code);
+        } else {
+          log(e.code, 'kept session left for the next start:', err);
+          this.unmade.push(e);
+        }
+        continue;
+      }
+      try {
         session = this.lobby.create({ kind: e.kind, name: e.name, limit: e.limit ?? SERVER.players[e.kind], tools: e.tools, stays: true }, e.level, level, e.detail, e.code);
       } catch (err) {
         log(e.code, `kept session not made again: ${(err as Error).message}`);
@@ -148,52 +171,79 @@ export class Kept {
     await this.record();
   }
 
-  /** Every kept session's paint that changed since its last save (every SERVER.keepEvery, and at shutdown). */
+  /** Every kept session's paint that changed since its last save (every SERVER.keepEvery, and at shutdown, after a save under way). */
   async save() {
-    if (!this.dir || this.saving) return;
-    this.saving = true;
+    if (!this.dir) return;
+    while (this.running) await this.running;
+    await (this.running = this.saveAll().finally(() => (this.running = null)));
+  }
+
+  private async saveAll() {
+    for (const s of this.public()) if (s.changed) await this.saveOne(s);
+  }
+
+  /** `s`'s paint as a new save. `changed` goes down before the paint is read and comes back if no save was made: the next one tries again. */
+  private async saveOne(s: Session) {
+    const wipes = s.wipes;
+    s.changed = false;
+    let name = '';
+    let size = 0;
     try {
-      for (const s of this.public())
-        if (s.changed) {
-          const wipes = s.wipes;
-          const bytes = await s.paintFile();
-          if (!bytes) {
-            log(s.code, 'paint not saved: no memory for a paint file');
-            event('save-failed', s, null, { why: 'no memory for a paint file' });
-            continue;
-          }
-          // Wiped or closed while it was read: not the paint to keep.
-          if (s.wipes !== wipes || this.lobby.sessions.get(s.code) !== s) continue;
-          const name = `${s.code}-${Date.now()}.rhhpaint`;
-          await fs.writeFile(this.file(`${name}.tmp`), bytes);
-          await fs.rename(this.file(`${name}.tmp`), this.file(name));
-          for (const old of (await this.saves(s.code)).filter((n) => !wiped(n)).slice(SERVER.keepFiles)) await fs.rm(this.file(old), { force: true });
-          log(s.code, `paint saved: ${name}, ${mb(bytes.length)} MB`);
+      const bytes = await s.paintFile();
+      if (!bytes) throw new Error('no memory for a paint file');
+      size = bytes.length;
+      const ok = await this.serial(`paint save of ${s.code}`, async () => {
+        // Wiped or closed meanwhile: not the paint to keep.
+        if (s.wipes !== wipes || this.lobby.sessions.get(s.code) !== s) return;
+        const at = `${s.code}-${Date.now()}.rhhpaint`;
+        try {
+          await fs.writeFile(this.file(`${at}.tmp`), bytes);
+          await fs.rename(this.file(`${at}.tmp`), this.file(at));
+        } catch (e) {
+          await fs.rm(this.file(`${at}.tmp`), { force: true });
+          throw e;
         }
+        name = at;
+        for (const old of (await this.saves(s.code)).filter((n) => !wiped(n)).slice(SERVER.keepFiles)) await fs.rm(this.file(old), { force: true });
+      });
+      if (!ok) throw new Error('disk');
     } catch (e) {
-      log('-----', 'paint save failed:', e);
-      event('save-failed', null, null, { why: (e as Error).message });
-    } finally {
-      this.saving = false;
+      s.changed = true;
+      log(s.code, 'paint not saved:', e);
+      event('save-failed', s, null, { why: (e as Error).message });
     }
+    if (name) log(s.code, `paint saved: ${name}, ${mb(size)} MB`);
   }
 
   private public() {
     return [...this.lobby.sessions.values()].filter((s) => s.setup.admin && s.setup.kind === 'public');
   }
 
-  /** sessions.json from the live public sessions, as made now. */
-  private async record() {
-    if (!this.dir) return;
-    const list: Entry[] = this.public().map(({ code, setup: { kind, name, limit, tools }, levelName, detail, table, level }) => ({ code, kind, name, limit, tools, level: levelName, detail, protocol: PROTOCOL, table, levelHash: hash(level) }));
-    await fs.writeFile(this.file('sessions.json.tmp'), JSON.stringify(list, null, 1));
-    await fs.rename(this.file('sessions.json.tmp'), this.file('sessions.json'));
+  /** `task` after the earlier ones; a failure is logged. Whether it went through. */
+  private serial(what: string, task: () => Promise<void>) {
+    const done = this.chain.then(task).then(
+      () => true,
+      (e) => (log('-----', `${what} failed:`, e), false),
+    );
+    this.chain = done;
+    return done;
   }
 
-  /** A session's saves on disk, the wiped ones too, newest first: when (ISO), how big and whether wiped, for the admin page. */
+  /** sessions.json from the live public sessions, as made now (and those not made again at start). */
+  private record() {
+    if (!this.dir) return;
+    return this.serial('sessions.json', async () => {
+      const list: Entry[] = this.public().map(({ code, setup: { kind, name, limit, tools }, levelName, detail, table, level }) => ({ code, kind, name, limit, tools, level: levelName, detail, protocol: PROTOCOL, table, levelHash: hash(level) }));
+      await fs.writeFile(this.file('sessions.json.tmp'), JSON.stringify([...list, ...this.unmade], null, 1));
+      await fs.rename(this.file('sessions.json.tmp'), this.file('sessions.json'));
+    });
+  }
+
+  /** A session's saves on disk, the wiped ones too, newest first: when (ISO), how big and whether wiped, for the admin page. One rotated away meanwhile is left out. */
   async savesOf(code: string) {
     if (!this.dir) return [];
-    return Promise.all((await this.saves(code)).map(async (n) => ({ at: new Date(savedAt(code, n)).toISOString(), bytes: (await fs.stat(this.file(n))).size, wiped: wiped(n) })));
+    const list = await Promise.all((await this.saves(code)).map((n) => fs.stat(this.file(n)).then(({ size }) => ({ at: new Date(savedAt(code, n)).toISOString(), bytes: size, wiped: wiped(n) }), () => null)));
+    return list.filter((s) => s !== null);
   }
 
   /** A session's saves, wiped ones included, newest first. */
@@ -202,8 +252,9 @@ export class Kept {
     return names.sort((a, b) => savedAt(code, b) - savedAt(code, a));
   }
 
+  /** Every file of a session's, saves and what a crash left of one. */
   private async forget(code: string) {
-    if (this.dir) for (const name of await this.saves(code)) await fs.rm(this.file(name), { force: true });
+    if (this.dir) for (const name of (await fs.readdir(this.dir)).filter((n) => n.startsWith(`${code}-`) && n.includes('.rhhpaint'))) await fs.rm(this.file(name), { force: true });
   }
 
   private file(name: string) {

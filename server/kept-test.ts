@@ -213,6 +213,8 @@ try {
   assert.equal(again.you, wb.you);
   assert.ok(!(await painted(again.file!)), 'a clean wall');
   assert.deepEqual(saves().map((n) => n.endsWith('.wiped.rhhpaint')), [true], 'the save, kept as wiped');
+  const wipedBox = (await admin('GET', '/machine')).body;
+  assert.deepEqual([wipedBox.saves.last, wipedBox.saves.bytes > 0], [null, true], 'a wiped save counts for the disk, not as the last save');
   assert.deepEqual((await admin('GET', '/sessions')).body[0].saves.map((s: { wiped: boolean }) => s.wiped), [true], 'listed as wiped');
   // A restart after it: still the empty wall. A new save after it isn't wiped and is the one loaded; the wiped one stays.
   await stop(server);
@@ -228,6 +230,7 @@ try {
   assert.match(out, new RegExp(`${code} paint from ${code}-\\d+\\.rhhpaint`));
   assert.ok(await painted((await new Game().join(code, 'E')).file!), 'the new save is back');
   assert.deepEqual((await admin('GET', '/sessions')).body[0].saves.map((s: { wiped: boolean }) => s.wiped), [false, true]);
+  assert.equal((await admin('GET', '/machine')).body.saves.last, new Date(Number(/-(\d+)\.rhhpaint$/.exec(saves().find((n) => !n.includes('wiped'))!)![1])).toISOString(), 'the last save is the newest that is not wiped');
   // Newer saves around, then a second wipe: the newest keepFiles of all stay, the earlier wiped ones among them.
   const [fresh] = saves().filter((n) => !n.includes('wiped'));
   const [old] = saves().filter((n) => n.includes('wiped'));

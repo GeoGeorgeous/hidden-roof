@@ -8,12 +8,14 @@ import { log, logNoisy, overMemory, who } from './log';
 import type { LevelData } from '../src/level/level-data';
 import type { Link, Player } from './player';
 import type { Place } from './queue';
-import { Session, type SessionSetup } from './session';
+import { Session } from './session';
+import type { SessionSetup } from './setup';
 
 // Who gets into which session: the live sessions by code, the codes of those
 // that ended, each address's links, uploads and hosted sessions
 // (SERVER.linksPerIp, uploadsPerIp, sessionsPerIp), HOST (only if SERVER.playerHost) and JOIN, and each
-// link's messages to its session; a JOIN that finds a session full waits in its line (queue.ts). main.ts gives it links (ws sockets); it
+// link's messages to its session; a JOIN with the token of a player the admin kicked is refused for SERVER.rejoinWindow;
+// a JOIN that finds a session full waits in its line (queue.ts). main.ts gives it links (ws sockets); it
 // speaks only Link, so tests give it fake ones (server/world-test.ts).
 
 /** What a link's socket tells the lobby: a message, and its close. */
@@ -44,6 +46,8 @@ export class Lobby {
   private links = new Map<string, number>();
   private uploads = new Map<string, number>();
   private hosts = new Map<string, string>();
+  /** Tokens of players the admin kicked, and when (ms): a JOIN with one is a reconnect and is told so, for SERVER.rejoinWindow. */
+  private kicked = new Map<string, number>();
 
   /**
    * A link that opened (`host`: on /ws?host, where saves come up): turned away
@@ -145,6 +149,15 @@ export class Lobby {
   ping() {
     this.sessions.forEach((s) => s.ping());
     for (const [code, at] of this.ended) if (Date.now() - at > SERVER.endedMemory * 1000) this.ended.delete(code);
+    for (const [token, at] of this.kicked) if (Date.now() - at > SERVER.rejoinWindow * 1000) this.kicked.delete(token);
+  }
+
+  /** The admin removes a player of `session` (session.ts); false if it has no such player. A new JOIN (without their token) may come in. */
+  kick(session: Session, id: number) {
+    const token = session.players.get(id)?.token;
+    if (!token || !session.kick(id)) return false;
+    this.kicked.set(token, Date.now());
+    return true;
   }
 
   get players() {
@@ -154,6 +167,7 @@ export class Lobby {
   /** HOST or JOIN: the session and the player (or their place in its line), or why not. */
   private async enter(m: Extract<ToServer, { type: 'host' | 'join' }>, link: Link, ip: string, seat: Seat): Promise<At | Rejection> {
     if (m.protocol !== PROTOCOL) return 'version';
+    if (m.type === 'join' && m.token && (this.kicked.get(m.token) ?? 0) + SERVER.rejoinWindow * 1000 > Date.now()) return 'kicked';
     let session: Session;
     if (m.type === 'host') {
       if (!SERVER.playerHost) return 'no-host';

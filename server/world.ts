@@ -16,3 +16,14 @@ export function sessionPaint(level: LevelData, texelsPerMeter: number) {
   const drips = new PaintDrips(paint);
   return { paint, drips, ops: new PaintOps(paint, drips) };
 }
+
+/** Paint memory in MB now, and with every surface painted. */
+export function paintMemory(paint: PaintSystem) {
+  let now = 0;
+  let full = 0;
+  for (const s of paint.surfaces) {
+    now += s.data?.length ?? 0;
+    full += s.geo.atlasW * s.geo.atlasH * 4;
+  }
+  return { now: now / 2 ** 20, full: full / 2 ** 20 };
+}

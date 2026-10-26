@@ -9,7 +9,8 @@ import { decode, type ToClient, type ToServer } from '../src/net/protocol';
 import { decodeOps, encodeOps, SurfaceIndex } from '../src/op-wire';
 import { opTool, type PaintOp } from '../src/paint-ops';
 import type { Link } from './player';
-import { Session, type SessionSetup } from './session';
+import { Session } from './session';
+import type { SessionSetup } from './setup';
 import type { sessionPaint } from './world';
 
 // Tools a session turns off: the inventory never holds them (and gives them back when they are allowed again), each op
