@@ -9,8 +9,9 @@ import { nameField, nameProblem } from './name-field';
 import { CODE_LENGTH, type LobbyEntry } from './protocol';
 
 // The dialog for joining a session, over the Multiplayer page (style.css, .join-popup). A public session takes two
-// steps: its line, the tools it allows and the player's name; then its house rules and what joining means (the Terms
-// and Privacy), where the player can ask not to be shown them again, which skips only this step. A private one asks
+// steps of one size (both laid in the same cell, the other one hidden): its line, the tools it allows and the player's
+// name, large; then its house rules and what joining means (the Terms and Privacy), where the player can ask not to be
+// shown them again, which skips only this step. A private one asks
 // for its code, five boxes, and shows the session once the code finds one, then the name and what joining means.
 // Esc goes back a step, CANCEL back to the list (net-menu.ts).
 
@@ -95,20 +96,31 @@ export class JoinDialog {
     else if (!this.name.input.value) this.name.input.focus();
   }
 
-  /** A public session's step on screen: its line, the tools and the name, or the house rules and the consent. */
+  /** A public session's step on screen: its line, the tools and the name, or the house rules and the consent; the other one under it, hidden, so both take the size of the larger. */
   private show() {
     const { entry, where } = this.asked!;
     const first = this.step === 1;
     this.head.textContent = msg(first ? 'lobby.publicNameTitle' : 'lobby.publicTitle');
-    this.found.replaceChildren(sessionLine(entry, where));
     this.fail();
+    const line = () => {
+      const found = div('found');
+      found.append(sessionLine(entry, where));
+      return found;
+    };
+    const name = el('label', 'name-big');
+    name.append(el('span', 'field-label', msg('lobby.yourName')), this.name.input);
+    const steps = [div('step'), div('step')];
+    steps[0].append(div('lead', msg('lobby.publicLead')), line(), this.tools, name);
+    steps[1].append(line(), rules(), this.consent(true));
+    steps[first ? 1 : 0].inert = true;
+    const stack = div('steps');
+    stack.append(...steps);
+    this.body.replaceChildren(stack, this.message);
     if (first) {
-      this.body.replaceChildren(div('lead', msg('lobby.publicLead')), this.found, this.nameRow(), this.tools, this.message);
       // The rules seen once are not shown again: JOIN comes straight from the name.
       this.buttons.replaceChildren(this.cancel, rulesSeen() ? this.join : this.next);
       return;
     }
-    this.body.replaceChildren(this.found, rules(), this.consent(true), this.message);
     this.dontShow.checked = false;
     const label = el('label', 'link check');
     label.append(this.dontShow, msg('lobby.dontShow'));
