@@ -46,7 +46,8 @@ try {
   const game = await join(server.port, 'A', code);
   await game.next('welcome');
   game.send(ops(1));
-  await until('the periodic save', () => saves().length === 1);
+  // Its stats are written after its paint: the directory is locked only once both are there.
+  await until('the periodic save', () => saves().length === 1 && names().includes(saves()[0].replace(/\.rhhpaint$/, '.json')));
   const first = saves()[0];
   if (process.getuid?.() !== 0) {
     fs.chmodSync(dir, 0o555);

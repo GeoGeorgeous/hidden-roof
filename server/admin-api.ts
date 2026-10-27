@@ -42,7 +42,8 @@ import { trafficDays } from './traffic-store';
 //   GET  /logs/DAY             that day's file as a download (text); ?session=CODE only that session's lines
 //   GET  /history?period=P     counts for today (since 00:00 UTC), or the last 24h, 7d or 30d (history.ts): plays, `players` and
 //                              `inSessions` { device, address } (distinct over the period; players are who joined or reached the level),
-//                              `playerCountries` (players by device, each by their last country), and the older `people`, `countries`
+//                              `playerCountries` (players by device, each by their last country), and `client`: the beacons' counts and
+//                              histograms keyed in their unit (fps whole, seconds to a tenth, ping by 10 ms), no medians (client-counts.ts)
 //   GET  /traffic?days=N       the last N days (1 to 366, 30 by default) of the site's traffic, oldest first, a day with no
 //                              counts left out: { days: [{ day, views, visitors, bots, pages, sources, campaigns, countries, steps }] }
 //                              (the traffic reader's, traffic.ts; none without DATA_DIR)
@@ -58,7 +59,7 @@ import { trafficDays } from './traffic-store';
 //                              the page after, or null. From the files in DATA_DIR/events (event-log.ts), without DATA_DIR from the last few in memory.
 //                              Every event has an `id`, `<ms>-<n>`, compared as numbers (ms, then n)
 //   GET  /sessions             every session: its line (queue), players (address, ping, held seat),
-//                              today's paint (`stamps` by tool, `colors`: ops by color code, `topColor` the most painted, for older pages) and peak,
+//                              today's paint (`stamps` by tool, `colors`: ops by color code) and peak,
 //                              `stats`: its counts since its paint began (counts.ts SessionStats; also in the event stream's status): `since`,
 //                              `began` (made, wiped, restored; `restoredAt` with the last), `stamps` by tool, `colors`, `painters` (distinct
 //                              nicknames that painted), `playSeconds`, `joins` (new players), `peak` ({ players, at } or null),
@@ -89,7 +90,7 @@ import { trafficDays } from './traffic-store';
 //                              attachment named <code>-<UTC time>.rhhpaint; 503 when there's no memory for one
 
 /** Changes when what the API takes or answers does: the admin page lives in another repo. */
-const ADMIN_API = 2;
+const ADMIN_API = 3;
 const started = Date.now();
 
 const digest = (s: string) => createHash('sha256').update(s).digest();
@@ -122,7 +123,7 @@ function live(s: Session) {
     code: s.code, kind, name, admin, stays, tools, level: s.levelName, detail: detailName(s.detail), players, limit, queue: s.line.length,
     started: iso(s.started), paintMB: Math.round(s.memory.now), emptySince: s.emptySince === null ? null : iso(s.emptySince),
     stats: s.stats.report(s.joinedAt()),
-    today: { peak: today.peak, stamps: today.paint.stamps, colors: { ...today.paint.colors }, topColor: today.topColor },
+    today: { peak: today.peak, stamps: today.paint.stamps, colors: { ...today.paint.colors } },
     ping: { median: median(pings), slow: pings.filter((ms) => ms > SERVER.slowPing).length },
   };
 }

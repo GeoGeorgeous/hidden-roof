@@ -25,7 +25,7 @@ const savedHour = (plays: number, client: Partial<ClientCounts>) => ({ plays, le
 fs.mkdirSync(path.join(dir, 'stats'));
 fs.writeFileSync(
   path.join(dir, 'stats', `${new Date(before).toISOString().slice(0, 10)}.json`),
-  JSON.stringify({ hours: { [new Date(before).getUTCHours()]: savedHour(0, { n: 2, nGpu: 1, browsers: { Chrome: 2 }, os: { Windows: 2 }, gpus: { 'GPU old': 1 }, fps: { 60: 2 }, low1: { 40: 2 }, load: { 30: 2 }, errors: 1, erred: 1, messages: { 'old error': 1 } }) } }),
+  JSON.stringify({ hours: { [new Date(before).getUTCHours()]: savedHour(0, { n: 2, nGpu: 1, browsers: { Chrome: 2 }, os: { Windows: 2 }, gpus: { 'GPU old': 1 }, fps: { 60: 2 }, low1: { 40: 2 }, load: { 3: 2 }, errors: 1, erred: 1, messages: { 'old error': 1 } }) } }),
 );
 // An old day (past SERVER.historyDays): it is folded to its total at start.
 const old = new Date(Date.now() - (SERVER.historyDays + 10) * 864e5).toISOString().slice(0, 10);
@@ -82,9 +82,10 @@ try {
   const client = await history();
   assert.deepEqual(client, {
     n: 5, nGpu: 2,
-    fps: { median: 60, low1: 40, hist: { 58: 1, 60: 3 }, low1Hist: { 31: 1, 40: 2, 41: 1 } },
-    load: { median: 3, p95: 3.1, hist: { 1.2: 2, 3: 2, 3.1: 1 } },
-    join: { median: 0.6, p95: 0.6, hist: { 0.6: 1 } },
+    fps: { 58: 1, 60: 3 },
+    low1: { 31: 1, 40: 2, 41: 1 },
+    load: { 1.2: 2, 3: 2, 3.1: 1 },
+    join: { 0.6: 1 },
     browsers: { Chrome: 5 }, os: { Windows: 5 }, gpus: { 'GPU old': 1, 'NVIDIA GeForce RTX 3060': 1 },
     errors: { count: 2, plays: 2, byMessage: { 'old error': 1, 'WebGL context lost': 1 } },
     events: {

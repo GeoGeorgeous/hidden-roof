@@ -70,7 +70,7 @@ try {
   assert.match(main.out(), new RegExp(`stats ${day(2)}.json skipped`));
   assert.match(main.out(), new RegExp(`stats people-${day(2)}.json skipped`));
   const week = (await ask(main, 'GET', '/history?period=7d')).body;
-  assert.deepEqual([week.plays, week.people.byIp, week.countries], [3, 1, { FR: 1 }]);
+  assert.deepEqual([week.plays, week.inSessions.address, 'people' in week, 'countries' in week], [3, 1, false, false]);
   assert.deepEqual([week.players, week.inSessions, week.playerCountries], [{ device: 0, address: 1 }, { device: 0, address: 1 }, {}], 'a play saved before pages were kept was a JOIN; no device, no country by device');
 
   // How fresh each figure is: the sources' cadences and when each last came (null: never).
@@ -143,8 +143,8 @@ try {
   await game.send({ type: 'ops', seq: 1, bytes: encodeOps([1], [stamp], new SurfaceIndex(faces.map((f) => f.key))) });
   await game.send({ type: 'ping', t: 1 });
   await game.next('pong');
-  const wall = ((await ask(main, 'GET', '/sessions')).body as { code: string; today: { colors: object; topColor: string } }[]).find((s) => s.code === code)!;
-  assert.deepEqual([wall.today.colors, wall.today.topColor], [{ red: 1 }, 'red']);
+  const wall = ((await ask(main, 'GET', '/sessions')).body as { code: string; today: { colors: object } }[]).find((s) => s.code === code)!;
+  assert.deepEqual([wall.today.colors, 'topColor' in wall.today], [{ red: 1 }, false]);
   const root = (await ask(main, 'GET', '/')).body;
   assert.deepEqual([root.slowPing, root.saveEvery, root.saveAges], [SERVER.slowPing, SERVER.keepEvery, SERVER.keepAges.filter(Boolean)]);
   assert.deepEqual([median([]), median([7]), median([1, 2, 3]), median([10, 20]), median([10, 20, 30, 50])], [null, 7, 2, 15, 25]);

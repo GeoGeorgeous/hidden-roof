@@ -4,7 +4,7 @@ import { SERVER } from '../src/config';
 
 type Counts = Record<string, number>;
 
-/** An hour's beacons: plays (page loads), by GPU, browser and OS; frame rates, load and join times as histograms (fps by whole frames, times by tenths of a second); errors by message; the game's events. */
+/** An hour's beacons: plays (page loads), by GPU, browser and OS; frame rates, load and join times as histograms keyed in their unit (`bin`); errors by message; the game's events. */
 export interface ClientCounts {
   n: number;
   nGpu: number;
@@ -30,7 +30,7 @@ export interface ClientCounts {
     /** Page loads by the value each setting had at load. */
     settings: Record<string, Counts>;
   };
-  /** The session links' minutes (src/net/net-minute.ts): seconds in tenths; each minute's ping (p50, p95, max) by 10 ms; drops by close code; reconnect and stall times in tenths; KB/s each way. */
+  /** The session links' minutes (src/net/net-minute.ts): seconds in tenths; each minute's ping (p50, p95, max) by 10 ms; drops by close code; reconnect and stall times in seconds; KB/s each way. */
   net: { seconds: number; ping50: Counts; ping95: Counts; pingMax: Counts; drops: Counts; back: Counts; stalls: number; stallLong: Counts; down: Counts; up: Counts };
 }
 
@@ -41,6 +41,13 @@ export const noClient = (): ClientCounts => ({
   events: { steps: {}, tutorial: {}, counts: {}, seconds: {}, settings: {} },
   net: noNet(),
 });
+
+/** A histogram's key for `x`, in its unit, as each is counted (beacon.ts) and reported: whole frames a second or KB/s, seconds to a tenth, ms to 10. */
+export const bin = {
+  whole: (x: number) => String(Math.round(x)),
+  tenth: (x: number) => String(Math.round(x * 10) / 10),
+  tenMs: (x: number) => String(Math.round(x / 10) * 10),
+};
 
 /** `key` in `to`, or Other past SERVER.beaconKinds keys (`capped`: names, not a histogram's bins). */
 const slot = (to: object, key: string, capped = true) => (!capped || Object.hasOwn(to, key) || Object.keys(to).length < SERVER.beaconKinds ? key : 'Other');
@@ -97,27 +104,16 @@ export function countSetting(c: ClientCounts, key: string, value: string, n = 1)
   count((to[k] = Object.hasOwn(to, k) ? to[k] : {}), value, n);
 }
 
-/** The value below which `share` of a histogram's counts are, or null if it's empty. */
-function quantile(h: Counts, share: number, scale: number) {
-  const bins = Object.entries(h).map(([k, n]) => [Number(k), n] as const).sort((a, b) => a[0] - b[0]);
-  const all = bins.reduce((s, [, n]) => s + n, 0);
-  let past = 0;
-  for (const [k, n] of bins) if ((past += n) >= all * share) return k / scale;
-  return null;
-}
-
-/** A histogram's bins in tenths as seconds. */
-const inSeconds = (h: Counts) => Object.fromEntries(Object.entries(h).map(([k, n]) => [String(Number(k) / 10), n]));
-
-/** As /history answers it. */
+/** As /history answers it: counts and histograms, no medians (the admin page makes them). */
 export function clientReport(c: ClientCounts) {
   const { steps, tutorial, counts, seconds, settings } = c.events;
   return {
     n: c.n,
     nGpu: c.nGpu,
-    fps: { median: quantile(c.fps, 0.5, 1), low1: quantile(c.low1, 0.5, 1), hist: c.fps, low1Hist: c.low1 },
-    load: { median: quantile(c.load, 0.5, 10), p95: quantile(c.load, 0.95, 10), hist: inSeconds(c.load) },
-    join: { median: quantile(c.join, 0.5, 10), p95: quantile(c.join, 0.95, 10), hist: inSeconds(c.join) },
+    fps: c.fps,
+    low1: c.low1,
+    load: c.load,
+    join: c.join,
     browsers: c.browsers,
     os: c.os,
     gpus: c.gpus,
@@ -133,8 +129,7 @@ export function clientReport(c: ClientCounts) {
   };
 }
 
-/** The session links' counts as /history answers them: minutes in sessions, times in seconds. */
-function netReport(n: ClientCounts['net']) {
-  const { ping50, ping95, pingMax, drops, stalls, down, up } = n;
-  return { minutes: Math.round(n.seconds / 60) / 10, ping50, ping95, pingMax, drops, back: inSeconds(n.back), stalls, stallLong: inSeconds(n.stallLong), down, up };
+/** The session links' counts as /history answers them: minutes in sessions. */
+function netReport({ seconds, ...rest }: ClientCounts['net']) {
+  return { minutes: Math.round(seconds / 60) / 10, ...rest };
 }

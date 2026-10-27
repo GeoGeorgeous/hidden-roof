@@ -70,14 +70,6 @@ export class DayCounts {
     this.peak = raised(this.peak, n)!;
   }
 
-  /** The color painted most today, or null. */
-  get topColor() {
-    const { colors } = this.paint;
-    let top: PaintColor | null = null;
-    for (const c of COLOR_ORDER) if ((colors[c] ?? 0) > (top ? colors[top]! : 0)) top = c;
-    return top;
-  }
-
   private roll() {
     if (Date.now() < this.until) return;
     this.until = midnight();
