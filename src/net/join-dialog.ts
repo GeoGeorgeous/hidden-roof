@@ -110,7 +110,10 @@ export class JoinDialog {
     const name = el('label', 'name-big');
     name.append(el('span', 'field-label', msg('lobby.yourName')), this.name.input);
     const steps = [div('step'), div('step')];
-    steps[0].append(div('lead', msg('lobby.publicLead')), line(), this.tools, name);
+    // Both steps: the line, then under a rule what the step is about.
+    const about = div('about');
+    about.append(div('lead', msg('lobby.publicLead')), this.tools);
+    steps[0].append(line(), about, name);
     steps[1].append(line(), rules(), this.consent(true));
     steps[first ? 1 : 0].inert = true;
     const stack = div('steps');

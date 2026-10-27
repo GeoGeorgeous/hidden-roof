@@ -2342,6 +2342,14 @@
 .overlay .join-popup .step[inert] {
   visibility: hidden;
 }
+/* The name step's lead and tools, under a rule as the house rules are. */
+.overlay .join-popup .about {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--hair);
+}
 /* A public session's name, at the bottom of its step: large, as the private one's code. */
 .overlay .join-popup .name-big {
   display: flex;
