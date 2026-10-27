@@ -1242,6 +1242,8 @@ export const SERVER = {
   keepAges: [0, 6 * 3600, 24 * 3600, 3 * 24 * 3600, 7 * 24 * 3600],
   /** A session's stats (server/counts.ts) keep the names of this many painters, no more. */
   statsPainters: 1000,
+  /** A session keeps what this many names of players gone carried (and where they stood), the newest: one who comes back under one gets it back. */
+  carriedNames: 1000,
   /** The admin's uploaded paint files (server/uploads.ts): up to uploadBytes each (a paint file is deflated: the roof at ULTRA all painted is 519 MB of paint, and a file never holds more than the level can), kept uploadMinutes, expired ones cleaned every uploadCheck s. Caddy's request limit for /api/* must let one through (docs/deploy.md). */
   uploadBytes: 128 * 2 ** 20,
   uploadMinutes: 60,

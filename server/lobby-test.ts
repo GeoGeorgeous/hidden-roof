@@ -137,7 +137,8 @@ try {
   const stream = await fetch(`http://localhost:${main.adminPort}/events`, { headers: { authorization: 'Bearer test-key' }, signal: feed.signal });
   const text = new TextDecoder().decode((await stream.body!.getReader().read()).value);
   feed.abort();
-  assert.ok(/"type":"kicked"[^\n]*"player":"M"/.test(text), 'a kicked event with the name');
+  assert.ok(/"type":"left"[^\n]*"player":"M"[^\n]*"why":"kicked by the admin"/.test(text), 'one left event, kicked, with the name');
+  assert.ok(!text.includes('"type":"kicked"'), 'no event of its own for the kick');
 
   // A HOST with a session it can't take is a bad message.
   for (const session of [undefined, { ...host.session, name: ' ' }, { ...host.session, limit: 1 }, { ...host.session, limit: SERVER.players.private + 1 }, { ...host.session, tools: ['can', 'can'] }, { ...host.session, tools: ['spoon'] }]) {

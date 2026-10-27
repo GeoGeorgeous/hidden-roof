@@ -8,7 +8,7 @@ import { log } from './log';
 // SERVER.eventDayBytes, past it events are counted, not written, and the count is reported when the day ends
 // (events.ts writes it as one event of the next day). A write that fails is logged once and never thrown.
 
-export type EventType = 'joined' | 'left' | 'kicked' | 'dropped' | 'turned-away' | 'session-made' | 'session-closed' | 'wiped' | 'wiped-at-start' | 'save-failed' | 'restored' | 'events-dropped';
+export type EventType = 'joined' | 'left' | 'dropped' | 'turned-away' | 'session-made' | 'session-closed' | 'wiped' | 'wiped-at-start' | 'save-failed' | 'restored' | 'events-dropped';
 
 export interface AdminEvent {
   /** `<ms>-<n>`: the time and a counter within that ms. Compare with `later`, as numbers. */
