@@ -26,11 +26,11 @@ export async function trafficPeriod(dir: string | null, period: Period) {
   return { period, from: new Date(Math.max(first * HOUR, await begun(dir, first))).toISOString(), to: new Date(now).toISOString(), views, bots, visitors: steps.view, steps };
 }
 
-/** When the hours begin (ms): the first hour with traffic of the oldest day kept, or now if there is none; before `first` if the oldest day is. */
+/** When the hours begin (ms): the first hour with traffic of the oldest day kept, or now if there is none; 0 if the oldest day ended before `first`. */
 async function begun(dir: string | null, first: number) {
   const days = (await (dir ? fs.readdir(dir) : Promise.resolve([])).catch(() => [] as string[])).flatMap((n) => /^hours-(\d{4}-\d\d-\d\d)\.json$/.exec(n)?.[1] ?? []).sort();
   if (!days.length) return Date.now();
   const day = Date.parse(days[0]) / 864e5;
-  if (day * 24 <= first) return 0;
+  if (day * 24 + 24 <= first) return 0;
   return (day * 24 + Math.min(...(await readHours(dir!, days[0])).keys())) * HOUR;
 }

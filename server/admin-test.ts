@@ -55,7 +55,7 @@ try {
   const fresh = async (s: typeof main) => (await ask(s, 'GET', '/')).body.sources;
   let src = await fresh(main);
   assert.deepEqual(Object.keys(src), ['status', 'beacon', 'history', 'traffic', 'geoip']);
-  assert.deepEqual([src.status.every, src.beacon.every, src.history.every, src.traffic.every, src.geoip.every], [SERVER.adminStatus, NET.beaconEvery, 3600, SERVER.trafficEvery, SERVER.geoipEvery]);
+  assert.deepEqual([src.status.every, src.beacon.every, src.history.every, src.traffic.every, src.geoip.every], [SERVER.adminStatus, NET.beaconEvery, SERVER.historyEvery, SERVER.trafficEvery, SERVER.geoipEvery]);
   assert.ok(Math.abs(Date.parse(src.status.at) - Date.now()) < 5000);
   assert.deepEqual([src.beacon.at, src.history.at, src.traffic.at, src.geoip.at], [null, null, passed.toISOString(), null]);
   assert.equal((await fetch(`http://localhost:${main.port}/ws?e`, { method: 'POST', body: '{}' })).status, 204);

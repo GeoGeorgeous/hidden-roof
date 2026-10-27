@@ -260,6 +260,9 @@ try {
   fs.rmSync(path.join(traffic, `hours-${ago(40)}.json`));
   fs.rmSync(path.join(traffic, `hours-${ago(6)}.json`));
   assert.equal(Date.parse((await api('/traffic?period=30d')).body.from), Date.parse(`${ago(3)}T12:00:00Z`), 'the first hour with traffic of the oldest day');
+  // The period starts before the first hour kept, today's too: from is that hour.
+  fs.rmSync(path.join(traffic, `hours-${ago(3)}.json`));
+  for (const p of ['today', '24h', '7d', '30d']) assert.equal((await api(`/traffic?period=${p}`)).body.from, hour(0), `${p} begins with the hours`);
   assert.equal((await api('/traffic?period=week')).status, 400);
   assert.deepEqual(Object.keys((await api('/traffic?days=1')).body), ['days'], '?days is as it was');
   console.log('GET /traffic', JSON.stringify(all.body.days[0]));

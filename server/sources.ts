@@ -15,8 +15,8 @@ export async function sources(dir: string | null) {
     // The stream's status is built each time it goes out.
     status: { every: SERVER.adminStatus, at: iso(Date.now()) },
     beacon: { every: NET.beaconEvery, at: iso(lastBeacon()) },
-    // The hours are counted as they happen and written each SERVER.historyEvery s; the figures are by the hour.
-    history: { every: 3600, at: iso(history.savedAt) },
+    // The hours are counted as they happen and written each SERVER.historyEvery s.
+    history: { every: SERVER.historyEvery, at: iso(history.savedAt) },
     traffic: { every: SERVER.trafficEvery, at: iso(dir ? await trafficAt(dir) : null) },
     geoip: { every: SERVER.geoipEvery, at: iso(geoipBuilt()) },
   };
