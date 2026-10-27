@@ -1049,6 +1049,9 @@ export const NET = {
   tabRetryGap: 0.15,
   /** Snapshots sent per second. */
   sendRate: 20,
+  /** A player standing still (their feet within stillMove m, everything else the same) sends this many a second instead. */
+  stillRate: 2,
+  stillMove: 0.001,
   /**
    * A remote player is shown at least this far behind their newest snapshot
    * (s): two snapshots and some jitter, so there's always one to move toward.
