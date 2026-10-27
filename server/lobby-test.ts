@@ -169,28 +169,30 @@ try {
   assert.equal(await refused(await join(main.port, 'other', crowd.body.code, {}, house)), 'seats', 'a dropped seat still counts');
   assert.equal((await (await join(main.port, 'h0', crowd.body.code, {}, house)).next('welcome')).you, welcomed[0].you, 'its nickname takes it back');
   const rest = [];
-  for (let n = 2; n <= 5; n++) for (let i = 0; i < SERVER.seatsPerIp; i++) rest.push(await join(main.port, `n${n}x${i}`, crowd.body.code, {}, `10.4.0.${n}`));
+  const addresses = SERVER.players.public / SERVER.seatsPerIp;
+  for (let n = 2; n <= addresses; n++) for (let i = 0; i < SERVER.seatsPerIp; i++) rest.push(await join(main.port, `n${n}x${i}`, crowd.body.code, {}, `10.4.0.${n}`));
   for (const g of rest) await g.next('welcome');
   assert.equal((await list()).sessions.find((e) => e.name === 'Crowd')!.players.length, SERVER.players.public, 'the session is full');
   // Full: an address waits in line with as many places, and no more; one with all its seats doesn't wait for another.
   const line = [];
-  for (let i = 0; i < SERVER.seatsPerIp; i++) line.push(await join(main.port, `w${i}`, crowd.body.code, {}, '10.4.0.6'));
+  const waiting = `10.4.0.${addresses + 1}`;
+  for (let i = 0; i < SERVER.seatsPerIp; i++) line.push(await join(main.port, `w${i}`, crowd.body.code, {}, waiting));
   for (const [i, g] of line.entries()) assert.equal((await g.next('queued')).position, i + 1);
-  assert.equal(await refused(await join(main.port, 'w9', crowd.body.code, {}, '10.4.0.6')), 'seats');
+  assert.equal(await refused(await join(main.port, 'w9', crowd.body.code, {}, waiting)), 'seats');
   assert.equal(await refused(await join(main.port, 'h9', crowd.body.code, {}, house)), 'seats');
   rest[0].send({ type: 'leave' });
   await line[0].next('welcome');
 
   // JOINs to a public session are limited per address a minute, whether they seat or not; the token of a seat is a reconnect, which isn't counted.
   const open = await admin({ kind: 'public', name: 'Open', level: 'demo', detail: 'low' });
-  const busy = '10.4.0.7';
+  const busy = '10.5.0.1';
   const tries = [];
   for (let i = 0; i < SERVER.joinsPerIp; i++) tries.push(await join(main.port, `r${i}`, open.body.code, {}, busy));
   const opener = await tries[0].next('welcome');
   assert.deepEqual(await Promise.all(tries.slice(SERVER.seatsPerIp).map(refused)), tries.slice(SERVER.seatsPerIp).map(() => 'seats'));
   assert.equal(await refused(await join(main.port, 'late', open.body.code, {}, busy)), 'rate');
   assert.equal((await (await join(main.port, 'r0', open.body.code, { token: opener.token }, busy)).next('welcome')).you, opener.you, 'a reconnect is not held up');
-  assert.equal((await (await join(main.port, 'calm', open.body.code, {}, '10.4.0.8')).next('welcome')).name, 'calm', 'another address is not');
+  assert.equal((await (await join(main.port, 'calm', open.body.code, {}, '10.5.0.2')).next('welcome')).name, 'calm', 'another address is not');
   assert.ok(await (await join(main.port, 'p', friends.body.code, {}, busy)).next('welcome'), 'a private session is not limited this way: it has its own few seats');
   assert.equal(closeCode('seats'), 4013);
   assert.equal(closeCode('rate'), 4014);

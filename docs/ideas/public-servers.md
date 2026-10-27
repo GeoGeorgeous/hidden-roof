@@ -4,7 +4,7 @@ The public server: see also docs/deploy.md. Shipped: the server list, public and
 
 ## Decisions for 1.6.0 (owner, 2026-10-25)
 
-- **Two session types.** Private: as today, joined with its code; up to 4 players. Public: open to all, no code; up to 20 players.
+- **Two session types.** Private: as today, joined with its code; up to 4 players. Public: open to all, no code; up to 40 players (20 until 2026-10-27; the server takes 80 since PERF-264).
 - **Who creates them.** The admin only, public or private, by a server command (`docker compose exec roof node admin.mjs create public "Name"`) or the admin panel; both use the same internal admin API. Players' HOST stays in the code but is disabled for everyone in 1.6.0 (no auth: the game can't tell the admin from a player). Admin in the game (spectator, IDEA-195) is 1.6.1.
 - **The server list** replaces HOST and JOIN and shows every session, public and private: type, name, players, ping, allowed tools. A private one asks for its code on click (the host and its players have it). Built from the designer's screens 15, 17, 17b, 20, 21, 22.
 - **Empty sessions**: a private one closes when no one is left, as today; the admin may make one that stays (`--stay`, admin only). A public one always stays.
