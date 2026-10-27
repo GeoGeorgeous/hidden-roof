@@ -2536,12 +2536,10 @@
   align-items: center;
   gap: 12px;
 }
-/* The player is in (net/loading-page.ts): no progress, and CLICK TO PLAY beside CANCEL (any click on the screen starts play). */
-.overlay .loading-page .loading-click {
+/* The player is in (net/loading-page.ts): no progress, LEAVE for CANCEL, and CLICK TO PLAY beside it (any click on the screen starts play). */
+.overlay .loading-page:not(.ready) :is(.loading-click, .loading-leave),
+.overlay .loading-page.ready .loading-cancel {
   display: none;
-}
-.overlay .loading-page.ready .loading-click {
-  display: flex;
 }
 .overlay .loading-page.ready :is(.loading-title, .loading-lead, .progress) {
   display: none;

@@ -19,6 +19,7 @@ export async function join(w) {
   await status(b, 'in');
   // Loaded: the loading screen stays over the city view, without its progress, and asks for a click (the test's lock does nothing, as a browser that wants a click would).
   assert.ok(await b.isVisible('.loading-page.ready .loading-click'), 'CLICK TO PLAY shows once the session is loaded');
+  assert.ok(await b.isVisible('.loading-page.ready .loading-leave') && !(await b.isVisible('.loading-page .loading-cancel')), 'LEAVE for CANCEL once in');
   assert.ok(!(await b.isVisible('.loading-page .progress')), 'the progress is gone');
   assert.ok(!(await b.isVisible('.overlay .start')), 'the pause screen is not opened');
   assert.equal(await b.evaluate(() => window.game.hud.cityView), true, 'the city under the screen');
