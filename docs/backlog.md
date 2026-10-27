@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 264
+The one list of what's left. Counter for new ids: next: 265
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -47,10 +47,11 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## Multiplayer
 
-1. BUGS [BL-024]: Paint ops are most of the downstream bytes: measure how the bytes each way grow with paint and players, find the bottleneck, say whether 20, 40, 60 or 80 players work as is; then merge stamps, shed load on slow links where it's needed; last in 1.6.0, after the admin data changes (docs/ideas/weak-links.md) @1.6.0
+1. BUGS [BL-024]: Paint ops are most of the downstream bytes: measured (2026-10-27, `npm run study:load`): 20 players work as is, 40 on the server but heavy painting sends ~360 KB/s to each, 60 is the server's one thread full (by frames, PERF-264), 80 doesn't; left: merge stamps, shed load on slow links (~170 KB/s to each at 20 with heavy painting); whether they stay in 1.6.0 is the owner's call (docs/ideas/weak-links.md) @1.6.0
 2. TASK [BL-076]: Run the next public playtest and verify that all bugs from the previous playtest have been fixed (docs/ideas/weak-links.md) @1.6.2
 3. IDEA [?BL-071]: Multiplayer View-Only sessions: past sessions are opened for viewing only (gallary)
 4. IDEA [?BL-153]: Find who painted something by player id, picked like the eyedropper (to spot bad paint)
+5. [PERF-264]: One frame per player per tick: every state and ops batch of a tick to a player in one frame, so frames out grow with the players, not their square; the server's one thread is full at ~60 players, by frames (measured in BL-024); a protocol change (docs/ideas/weak-links.md)
 
 ## Painting
 
