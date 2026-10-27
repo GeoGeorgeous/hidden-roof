@@ -7,7 +7,7 @@ import type { LobbyEntry } from './protocol';
 // what is happening and how far along the paint's download is, and CANCEL. It follows the network's progress lines
 // (net/multiplayer.ts, onProgress): connecting and joining, the paint coming down with its percent, the paint going
 // onto the walls, and the moment before the game takes over. Once the player is in, the same screen stays without its
-// progress, over the city view, and asks for a click: that click takes the pointer lock (net/net-menu.ts).
+// progress, over the city view, and asks for a click (CLICK TO PLAY beside LEAVE, or anywhere): that click takes the pointer lock (net/net-menu.ts).
 
 const STEP = { joining: 'lobby.stepJoining', downloading: 'lobby.stepDownloading', putting: 'lobby.stepPutting', dropping: 'lobby.stepDropping' } as const;
 
@@ -29,11 +29,15 @@ export class LoadingPage {
     progress.append(line, bar);
     text.append(this.session, div('loading-title', msg('lobby.loadingTitle')), div('loading-lead', msg('lobby.loadingText')), progress);
     const exit = div('loading-exit');
-    exit.append(shellButton(msg('lobby.cancel'), cancel, { key: 'ESC' }));
-    // Enter runs the button (menu-ui.ts), a click anywhere else on the screen too; it shows once the player is in (`ready`).
+    // Once the player is in (`ready`), CANCEL says LEAVE, and CLICK TO PLAY is beside it: Enter runs it (menu-ui.ts), a click anywhere else on the screen too.
+    const stop = shellButton(msg('lobby.cancel'), cancel, { key: 'ESC' });
+    const leave = shellButton(msg('lobby.leave'), cancel, { key: 'ESC' });
+    stop.classList.add('loading-cancel');
+    leave.classList.add('loading-leave');
     const click = action(msg('lobby.clickToPlay'), play, { primary: true, key: '' });
     click.classList.add('loading-click');
-    this.root.append(text, exit, click);
+    exit.append(stop, leave, click);
+    this.root.append(text, exit);
     this.root.addEventListener('click', (e) => !(e.target as Element).closest('button') && this.root.classList.contains('ready') && play());
   }
 

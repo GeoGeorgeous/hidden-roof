@@ -155,6 +155,7 @@ export const MESSAGES = {
     stepPutting: 'Putting paint on the walls',
     stepDropping: 'Dropping you in',
     clickToPlay: 'Click to play',
+    leave: 'Leave',
     // Waiting in line for a full session; {time} is m:ss, {s} whole seconds
     queueTitle: "you're #{n} in line",
     queueText: "The roof is full. You'll drop in as soon as a spot opens.",

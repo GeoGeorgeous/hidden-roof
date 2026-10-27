@@ -14,11 +14,11 @@ What the admin page (cctv) gets from the server next, after the owner's list of 
 
 ## CCTV-253 Events on disk, in pages
 
-- Each event gets an `id`, ordered (the ms time and a counter: `<ms>-<n>`), in the stream too.
-- With DATA_DIR, each is appended as a JSON line to `events/<YYYY-MM-DD>.jsonl` (UTC day). Files older than `SERVER.eventDays` (30) go at start and once a day. A day's file stops at `SERVER.eventDayBytes`; past it events are counted, not written, and the count is written as one `events-dropped` line when the day ends.
+- Each event gets an `id`, `<ms>-<n>` (the ms time and a counter), in the stream's `recent` and `event` too; ids compare as numbers (ms, then n), never as strings. `before` takes any id, even one no longer on disk, and is exclusive.
+- With DATA_DIR, each is appended as a JSON line to `events/<YYYY-MM-DD>.jsonl` (UTC day). Files older than `SERVER.eventDays` (30) go at start and once a day. A day's file stops at `SERVER.eventDayBytes`; past it events are counted, not written, and the count is written as one event when the day ends: `{ type: 'events-dropped', code: null, name: null, player: null, detail: { count, day } }`.
 - `GET /events/page?before=<id>&limit=<n>` (n up to `SERVER.eventPage` 50, the default): the events before `id` (none: the newest), newest first, and `next`, the id to ask with for the page after, or null. Without DATA_DIR, from the ones in memory.
-- The stream (`GET /events`) is unchanged: the recent ones at once, then live ones.
-- cctv: 50 a page with prev and next; live events go on top of the first page only.
+- The stream (`GET /events`) is unchanged: the recent ones at once (at least a page: `SERVER.adminEvents` >= `SERVER.eventPage`), then live ones.
+- cctv: 50 a page with prev and next; page 1 is the stream's (deduped by id), page 2 asks `before` the oldest shown; prev is a stack of the `before`s used.
 
 ## CCTV-258 On the site: pages, not heartbeats
 
@@ -27,8 +27,8 @@ What the admin page (cctv) gets from the server next, after the owner's list of 
 
 ## CCTV-259 How fresh each figure is
 
-- `GET /` gains `sources`: per source its `every` (s) and `at` (ISO, the last update), e.g. `status` (the stream's, every second), `beacon` (each page's minute), `history` (when its hour is written), `traffic` (when the web log was last read), `geoip` (the base's date).
-- cctv: a badge per figure (live, beacon with the next one due, hourly, daily) and a tooltip on where it comes from: the game server's own counts, the game page's beacon, the web server's log, the GeoIP base.
+- `GET /` gains `sources: { status, beacon, history, traffic, geoip }`, each `{ every: s, at: ISO | null }` (null: never, e.g. traffic without DATA_DIR, geoip without a base):  `status` (the stream's, every second), `beacon` (each page's minute), `history` (when its hour is written), `traffic` (when the web log was last read), `geoip` (the base's date).
+- The server sends no words. cctv: a badge per figure (live, beacon with the next one due, hourly, daily) and a tooltip on where it comes from: the game server's own counts, the game page's beacon, the web server's log, the GeoIP base.
 
 ## CCTV-260 People in one model
 
@@ -41,6 +41,7 @@ What the admin page (cctv) gets from the server next, after the owner's list of 
 | Now | page id | beacon (menu, solo, session, hidden) and the sessions' players |
 
 - The beacon's first message carries the device id; the server keeps it as JOIN's is (`server/people.ts`: a salted hash, 30 days), with what it was: a page that reached the level or a JOIN.
-- People count each one once over the period (24 h, 7 d, 30 d), by device and by address; "merged" goes (a household on one address counted as one).
-- Visitors count once over the period too: the web log's hashes are kept with a 30-day salt, as people's are, instead of one day.
+- `/history` gains `players: { device, address }` (a page that reached the level, or a JOIN) and `inSessions: { device, address }` (a JOIN), each one once over the period (24 h, 7 d, 30 d). `playerCountries`: players by device, each by their last country (the old `countries`, by merged people, goes with the bump to 3). "merged" goes (a household on one address counted as one).
+- Visitors count once over the period too: the web log's hashes are kept with a 30-day salt, as people's are, instead of one day. The traffic reader keeps hourly buckets (views, bots, and each hour's visitor hashes), so its periods are the history's: `/traffic?period=today|24h|7d|30d` (rolling hours, as `/history`) answers `period`, `from` and `to` (as `/history` does) and the period's `views`, `bots`, `visitors` and `steps`, each visitor once over it (owner, 2026-10-27). `/traffic?days=N` stays for the day bars, as it is.
+- Compatibility: the new fields come beside the old at ADMIN_API 2; once cctv reads only the new ones, one change removes `people.merged`, `byDevice`, `byIp`, `countries` and the like and bumps it to 3, deployed with that cctv.
 - Main: the funnel Visitors > Views > Players > In sessions for today, and Now beside it; Stats: the same per period. The tile that mixed the beacon's count and the sessions' players goes.

@@ -1396,7 +1396,7 @@
   font-variant-numeric: tabular-nums;
 }
 /* A text field: the host's name, the session's name, a letter of the code. */
-.overlay :is(.create-name, .name-row input, .code-boxes input) {
+.overlay :is(.create-name, .name-row input, .name-big input, .code-boxes input) {
   pointer-events: auto;
   box-sizing: border-box;
   padding: 0 12px;
@@ -1409,10 +1409,10 @@
   user-select: text;
   transition: border-color 0.2s;
 }
-.overlay :is(.create-name, .name-row input, .code-boxes input):focus {
+.overlay :is(.create-name, .name-row input, .name-big input, .code-boxes input):focus {
   border-color: var(--text-2);
 }
-.overlay :is(.create-name, .name-row input)::placeholder {
+.overlay :is(.create-name, .name-row input, .name-big input)::placeholder {
   color: var(--text-3);
 }
 .overlay .create-name {
@@ -2329,6 +2329,49 @@
   width: 220px;
   height: 36px;
 }
+.overlay .join-popup .steps {
+  display: grid;
+}
+/* A public session's two steps in one cell: the hidden one holds its size, so both are as large. */
+.overlay .join-popup .step {
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.overlay .join-popup .step[inert] {
+  visibility: hidden;
+}
+/* The name step's lead and tools, under a rule as the house rules are. */
+.overlay .join-popup .about {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--hair);
+}
+/* A public session's name, at the bottom of its step: large, as the private one's code. */
+.overlay .join-popup .name-big {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--hair);
+}
+.overlay .join-popup .name-big input {
+  width: 100%;
+  max-width: 360px;
+  height: 64px;
+  border-radius: 6px;
+  caret-color: var(--paper);
+  font: 600 28px var(--sans);
+  text-align: center;
+}
+.overlay .join-popup .name-big input:focus {
+  border-color: var(--paper);
+}
 .overlay .join-popup .rules {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -2489,18 +2532,14 @@
   position: absolute;
   right: 24px;
   bottom: 52px;
-}
-/* The player is in (net/loading-page.ts): no progress, and CLICK TO PLAY in the middle (any click on the screen starts play). */
-.overlay .loading-page .loading-click {
-  display: none;
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  padding: 12px 28px;
-  transform: translate(-50%, -50%);
-}
-.overlay .loading-page.ready .loading-click {
   display: flex;
+  align-items: center;
+  gap: 12px;
+}
+/* The player is in (net/loading-page.ts): no progress, LEAVE for CANCEL, and CLICK TO PLAY beside it (any click on the screen starts play). */
+.overlay .loading-page:not(.ready) :is(.loading-click, .loading-leave),
+.overlay .loading-page.ready .loading-cancel {
+  display: none;
 }
 .overlay .loading-page.ready :is(.loading-title, .loading-lead, .progress) {
   display: none;
