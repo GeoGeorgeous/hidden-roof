@@ -18,6 +18,7 @@ The game's words, as the code uses them.
 - **Line** (queue): the players waiting for a place in a full session, in order (`server/queue.ts`); a dropped link keeps its place for `SERVER.rejoinWindow`.
 - **Kept paint**: a public session's paint saved on the server's disk (`server/kept.ts`) and made again at start; the admin's wipe sets the newest saves aside, never loaded.
 - **Server link**: one WebSocket to the server for one HOST or JOIN (`ServerLink`, `src/net/server-link.ts`): the hello, keepalive, giving up before the welcome, a paint file's parts. A dropped player comes back on a new link with their token.
+- **Relay frame**: what the server sends a game of the others' states and paint ops, many in one WebSocket frame (`server/relay.ts`, `relayEntry` in `src/net/protocol.ts`), one per turn of the server's event loop; any other message to that game sends it first, so the order never changes.
 - **Lobby**: who gets into which session on the server (`server/lobby.ts`): live and ended session codes, each address's links and uploads, HOST and JOIN, and each link's messages to its session. It speaks only `Link`; `server/main.ts` gives it WebSocket links, the tests fake ones.
 - **Welcome**: the server's answer to HOST or JOIN: the level, its paint detail, the players, and the session's paint as a paint file in parts.
 

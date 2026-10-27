@@ -34,6 +34,8 @@ After PERF-264 (2026-10-27, the same runs): one relay frame per player per turn 
 
 The frame's head (`{"type":"relay"}`, 20 B) costs ~6 KB/s a player at 20; a state is 34 B in it (was 53). At 80 with heavy painting the server is near its core again, now by the bytes: what is left past that is the players' own downlinks (~700 KB/s each).
 
+With PERF-265 too (a still player sends 2 states a second), `npm run test:weak-link` `bytes`: 28 B down per stamp (35 before both), 140 B/s down with nothing painted (223 before). Every scenario passes as before; the short `silent` stretches in their timelines (1–2 s) were there before too (the lab's pages draw unevenly), not from the lower rate.
+
 Found (2026-10-18, T1.13): in a live session the players' paint and the server's save were not identical: ~100 of ~6,000 painted texels apart after every tool on one wall (Chromium, Firefox and WebKit alike; identical with drips off). A run's paint per row depended on the frame times of the client running it; now it depends on the row (`paint-drips.ts`, golden hashes changed once): ~50–80 texels apart. The rest is order: a run trickles in real time, so it meets the next strokes (and the sponge) at another moment on each client. Bit-exact would need a run painted whole when it starts (no trickle). Decided (owner, 2026-10-18): runs keep flowing down slowly; the drift stays. A fix would have to keep the flow on screen (e.g. the run whole in the shared paint, animated only in what's drawn).
 
 ## BL-076 The next playtest
