@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 264
+The one list of what's left. Counter for new ids: next: 268
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -47,10 +47,11 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## Multiplayer
 
-1. BUGS [BL-024]: Paint ops are most of the downstream bytes: measure how the bytes each way grow with paint and players, find the bottleneck, say whether 20, 40, 60 or 80 players work as is; then merge stamps, shed load on slow links where it's needed; last in 1.6.0, after the admin data changes (docs/ideas/weak-links.md) @1.6.0
-2. TASK [BL-076]: Run the next public playtest and verify that all bugs from the previous playtest have been fixed (docs/ideas/weak-links.md) @1.6.2
-3. IDEA [?BL-071]: Multiplayer View-Only sessions: past sessions are opened for viewing only (gallary)
-4. IDEA [?BL-153]: Find who painted something by player id, picked like the eyedropper (to spot bad paint)
+1. [PERF-264]: One frame per player per tick: every state and ops batch of a tick to a player in one frame, with a binary header in place of the JSON one (a state 53 → ~30 B), so frames out grow with the players, not their square; the server's one thread was full at ~60 players, by frames (BL-024); protocol 9; `npm run study:load` before and after (docs/ideas/weak-links.md) @1.6.0
+2. [PERF-265]: A player standing still sends no state, but one a second, so the others' timelines and the links' health still see them; the server relays what comes (docs/ideas/weak-links.md) @1.6.0
+3. TASK [BL-076]: Run the next public playtest and verify that all bugs from the previous playtest have been fixed (docs/ideas/weak-links.md) @1.6.2
+4. IDEA [?BL-071]: Multiplayer View-Only sessions: past sessions are opened for viewing only (gallary)
+5. IDEA [?BL-153]: Find who painted something by player id, picked like the eyedropper (to spot bad paint)
 
 ## Painting
 
@@ -143,6 +144,8 @@ Only `N.`, the id and the description are required. The optional parts appear in
 The admin page (the cctv repo) and the server side it reads (server/admin-api.ts). Specs: docs/ideas/admin-data.md.
 
 1. [CCTV-261]: ADMIN_API 3, once cctv reads only the new fields: `people` (merged, byDevice, byIp) and `countries` leave /history (players, inSessions and playerCountries replace them); `/traffic?days=N` stays for the day bars; deployed with that cctv (docs/ideas/admin-data.md)
+2. [CCTV-266]: The server's log of a day, downloadable from the admin page: `GET /logs/DAY` (the day's file of `LOG_DIR`, as it is: addresses and nicknames for 14 days), `?session=CODE` keeps that session's lines only; a Download on the page @1.6.0
+3. [CCTV-267]: Network health in the beacon, as the first playtest's telemetry had it: each minute in a session the app ping (p50, p95, max), drops by close code, reconnects and their time, stalls (no message for over 1 s), bytes received; a Network widget on the admin page (by hour, the worst links first) @1.6.0
 
 ## Web and promotion
 
@@ -200,6 +203,7 @@ Shipped since the last release; the release commit empties this list.
 30. [TEST-248]: Closing the tab, checked in browsers against a server: the goodbye beacon on pagehide takes the page off the site count at once (menu, solo and session alike); the session sees the link close with 1001 and holds the seat as for a drop (TASK-262) @1.6.0
 31. [TASK-262]: A closed tab in a session (the browser closes the link with 1001, a lost connection gives 1006) holds the seat 15 s (`SERVER.closedHold`), not the 180 s rejoin window: it frees a seat and the line soon, while a reload (or a proxy closing links the same way) is back by then; tested in lobby-test @1.6.0
 32. [CCTV-263]: The session's saves note follows the server: `GET /` says `saveEvery` (s, `KEEP_EVERY`) and `saveAges` (s), and the page words them (it said every 30 minutes, whatever the server did) @1.6.0
+33. BUGS [BL-024]: Paint ops are most of the downstream bytes: measured (2026-10-27, `npm run study:load`): 20 players work as is, 40 on the server but heavy painting sends ~360 KB/s to each, 60 is the server's one thread full (by frames), 80 doesn't; follow-ups PERF-264 and PERF-265; merging stamps and shedding load on slow links not taken (owner: shedding could make weak links less smooth; maps are small, so no rate by distance) (docs/ideas/weak-links.md) @1.6.0
 
 ## Discarder
 
