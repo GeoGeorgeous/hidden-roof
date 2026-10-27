@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 275
+The one list of what's left. Counter for new ids: next: 278
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -137,6 +137,8 @@ Only `N.`, the id and the description are required. The optional parts appear in
 2. [IDEA-240]: Admin: ban by IP (with a reason the player is shown); restoring a save is CCTV-255 (docs/ideas/public-servers.md)
 3. IDEA [?BL-147]: Anti-cheat: The server checks what players send (op reach and rate, ladder spot, jumps) before it goes public @1.6.1
 4. [TASK-201]: Research itch.io Publishing Requirements, AI Policies, and Download Restrictions @1.6.3
+5. [TASK-275]: Staging on 1.6.0 as dev has it (protocol 9, ADMIN_API 3): its `stats/` (people files in it) and `traffic/` wiped first, since formats only staging wrote are no longer read; the cctv page deployed with it (cctv a608340); then the owner plays a session and checks the admin page there (docs/ideas/vps.md) @1.6.0
+6. [TASK-276]: Production on 1.6.0 once it is released: the server's data, admin key and the public session, GeoIP each month, roof-traffic (docs/ideas/vps.md items 1-3), and Caddy's `/api/main` for the admin page (docs/deploy.md §9) @1.6.0
 
 ## CCTV
 
@@ -149,6 +151,7 @@ The admin page (the cctv repo) and the server side it reads (server/admin-api.ts
 1. TASK [BL-067]: Posts on Reddit with technical decription @1.6.3
 2. [TASK-169]: Creating and posting instagram reels @1.7.0
 3. IDEA [BL-065]: A minimal tool to record gameplay as GIFs and short videos
+4. [TASK-277]: The 1.6.0 release: its picture (`public/updates/v1.6.0.webp`, 1280×720 WebP up to 300 KB, from a screenshot through scripts/release-picture.mjs) and its notes trimmed from the draft to about 8 items under 3000 characters (docs/releases/AGENTS.md) @1.6.0
 
 ## Auth
 
