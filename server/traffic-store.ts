@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { SERVER } from '../src/config';
+import { writeAtomic } from './atomic';
 import type { Day, Hour } from './traffic-count';
 
 // The traffic reader's files (traffic.ts), in DATA_DIR/traffic: <day>.json, a day's counts, kept forever (they
@@ -26,10 +27,7 @@ async function read<T>(file: string) {
 }
 
 /** `data` as JSON in `file`, whole or not at all. */
-export async function write(file: string, data: unknown, mode = 0o644) {
-  await fs.writeFile(`${file}.tmp`, JSON.stringify(data), { mode });
-  await fs.rename(`${file}.tmp`, file);
-}
+export const write = (file: string, data: unknown, mode = 0o644) => writeAtomic(file, JSON.stringify(data), mode);
 
 /** The state, or null (none, or not readable). One written before the hours were kept has the day's hashes in `today`: only its name is taken, and no salt. */
 export async function readState(dir: string): Promise<State | null> {

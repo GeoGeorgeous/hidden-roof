@@ -1,6 +1,6 @@
 import type http from 'node:http';
 import { SERVER } from '../src/config';
-import { CODE_LENGTH, CODE_LETTERS, type Lobby as LobbyList, type LobbyEntry } from '../src/net/protocol';
+import { type Lobby as LobbyList, type LobbyEntry } from '../src/net/protocol';
 import type { Lobby } from './lobby';
 import { PerMinute } from './per-minute';
 import type { Session } from './session';
@@ -31,7 +31,7 @@ export class LobbyHttp {
     if (!query.has('code')) return null;
     if (!this.lookups.allow(addressOf(req))) return { status: 429, body: {} };
     const code = query.get('code') ?? '';
-    const found = code.length === CODE_LENGTH && [...code].every((c) => CODE_LETTERS.includes(c)) ? this.lobby.sessions.get(code) : undefined;
+    const found = this.lobby.sessions.get(code);
     return found ? { status: 200, body: entry(found, true) } : { status: 404, body: {} };
   }
 

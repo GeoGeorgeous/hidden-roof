@@ -2,6 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { SERVER } from '../src/config';
+import { writeAtomic } from './atomic';
 import { log } from './log';
 
 // Unique people for the admin's history (history.ts). Each play that starts (a
@@ -164,9 +165,6 @@ class People {
 }
 
 /** `data` as JSON in `file`, only the owner may read it, whole or not at all. */
-async function write(file: string, data: unknown) {
-  await fs.writeFile(`${file}.tmp`, JSON.stringify(data), { mode: 0o600 });
-  await fs.rename(`${file}.tmp`, file);
-}
+const write = (file: string, data: unknown) => writeAtomic(file, JSON.stringify(data), 0o600);
 
 export const people = new People();

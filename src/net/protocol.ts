@@ -169,9 +169,12 @@ export type ToClient =
 
 type Message = { type: string; bytes?: Uint8Array };
 
+const utf8 = new TextEncoder();
+const unutf8 = new TextDecoder();
+
 export function encode(msg: ToServer | ToClient): Uint8Array<ArrayBuffer> {
   const { bytes, ...rest } = msg as Message;
-  const json = new TextEncoder().encode(JSON.stringify(rest));
+  const json = utf8.encode(JSON.stringify(rest));
   const out = new Uint8Array(4 + json.length + (bytes?.length ?? 0));
   new DataView(out.buffer).setUint32(0, json.length, true);
   out.set(json, 4);
@@ -179,13 +182,17 @@ export function encode(msg: ToServer | ToClient): Uint8Array<ArrayBuffer> {
   return out;
 }
 
+/** The heads of a 'part' and a 'relay' frame, made once. */
+const PART_HEAD = encode({ type: 'part', bytes: new Uint8Array(0) });
+const RELAY_FRAME_HEAD = encode({ type: 'relay', bytes: new Uint8Array(0) });
+
 /**
  * A paint file (in pieces) as 'part' frames of about `size` bytes: in one
  * frame a big file is one long silence for the game while it downloads, and
  * frames made once can go to every player who wants the file.
  */
 export function partFrames(pieces: Uint8Array[], size: number): Uint8Array[] {
-  const head = encode({ type: 'part', bytes: new Uint8Array(0) });
+  const head = PART_HEAD;
   const frames: Uint8Array[] = [];
   let left = pieces.reduce((n, p) => n + p.length, 0);
   let frame = new Uint8Array(0);
@@ -207,8 +214,7 @@ export function partFrames(pieces: Uint8Array[], size: number): Uint8Array[] {
 
 /** The pieces of a paint file in its 'part' frames (partFrames), without their headers. */
 export function partPieces(frames: Uint8Array[]) {
-  const head = encode({ type: 'part', bytes: new Uint8Array(0) }).length;
-  return frames.map((f) => f.subarray(head));
+  return frames.map((f) => f.subarray(PART_HEAD.length));
 }
 
 /** A relay entry's head: its kind (0 a state, 1 ops), the player's id (u32) and the length of its bytes (u32), little-endian. */
@@ -228,7 +234,7 @@ export function relayEntry(type: 'state' | 'ops', id: number, bytes: Uint8Array)
 
 /** Relay entries as one frame. */
 export function relayFrame(entries: Uint8Array[]): Uint8Array {
-  const head = encode({ type: 'relay', bytes: new Uint8Array(0) });
+  const head = RELAY_FRAME_HEAD;
   const out = new Uint8Array(head.length + entries.reduce((n, e) => n + e.length, 0));
   out.set(head);
   let o = head.length;
@@ -266,7 +272,7 @@ export function decode(frame: Uint8Array): Message | null {
   if (4 + n > frame.length) return null;
   let msg: unknown;
   try {
-    msg = JSON.parse(new TextDecoder().decode(frame.subarray(4, 4 + n)));
+    msg = JSON.parse(unutf8.decode(frame.subarray(4, 4 + n)));
   } catch {
     return null;
   }
@@ -317,7 +323,8 @@ const isQueueToken = (x: unknown) => typeof x === 'string' && x.length <= QUEUE_
 const QUEUE_TOKEN_MAX = 64;
 /** HOST's and JOIN's `device`: the browser's random id (stored.ts deviceId), or none. */
 export const isDevice = (x: unknown) => x === undefined || (typeof x === 'string' && /^[0-9a-f]{32}$/.test(x));
-const isCode = (x: unknown) => typeof x === 'string' && x.length === CODE_LENGTH && [...x].every((c) => CODE_LETTERS.includes(c));
+/** A session's code: CODE_LENGTH of CODE_LETTERS. */
+export const isCode = (x: unknown): x is string => typeof x === 'string' && x.length === CODE_LENGTH && [...x].every((c) => CODE_LETTERS.includes(c));
 /** Shape and size only: the game takes from it what it knows (Inventory.restore). */
 const isWords = (x: unknown) => Array.isArray(x) && x.length <= 32 && x.every((w) => typeof w === 'string' && w.length <= 32);
 const isInventory = (x: unknown) => isObj(x) && isWords(x.tools) && isWords(x.colors) && isWords(x.caps) && isInt(x.selected) && isWords([x.color, x.cap]);

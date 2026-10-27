@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { SERVER } from '../src/config';
+import { writeAtomic } from './atomic';
 import { SessionStats } from './counts';
 
 // A kept session's saves in DATA_DIR (kept.ts decides which, this is how they lie on disk):
@@ -9,8 +10,8 @@ import { SessionStats } from './counts';
 
 /** The stats file of a save, from its paint file's name. */
 const statsName = (name: string) => name.replace(/\.rhhpaint$/, '.json');
-/** When a save was made (ms), from its name. */
-const savedAt = (code: string, name: string) => parseInt(name.slice(code.length + 1));
+/** When a save was made (ms), from its name (<code>-<ms>...). */
+export const savedAt = (name: string) => parseInt(name.slice(name.indexOf('-') + 1));
 export const isWiped = (name: string) => name.endsWith('.wiped.rhhpaint');
 /** What a crash can leave half written. */
 export const leftover = (name: string) => name === 'sessions.json.tmp' || name.endsWith('.rhhpaint.tmp') || /-\d+(\.wiped)?\.json\.tmp$/.test(name);
@@ -35,23 +36,13 @@ export class Saves {
   /** A session's saves, wiped ones included, newest first. */
   async list(code: string) {
     const names = (await fs.readdir(this.dir)).filter((n) => n.startsWith(`${code}-`) && n.endsWith('.rhhpaint'));
-    return names.sort((a, b) => savedAt(code, b) - savedAt(code, a));
+    return names.sort((a, b) => savedAt(b) - savedAt(a));
   }
 
   /** `bytes` and `stats` as the save `name`, paint first: a stats file with no paint is never left behind, a paint file with no stats just has none. */
   async write(name: string, bytes: Uint8Array, stats: object) {
-    await this.atomic(name, bytes);
-    await this.atomic(statsName(name), JSON.stringify(stats));
-  }
-
-  private async atomic(name: string, data: Uint8Array | string) {
-    try {
-      await fs.writeFile(this.file(`${name}.tmp`), data);
-      await fs.rename(this.file(`${name}.tmp`), this.file(name));
-    } catch (e) {
-      await fs.rm(this.file(`${name}.tmp`), { force: true });
-      throw e;
-    }
+    await writeAtomic(this.file(name), bytes);
+    await writeAtomic(this.file(statsName(name)), JSON.stringify(stats));
   }
 
   /** The stats a save was written with, or null (none, or not good); `restoredAt` (ms): as restored then. */
@@ -80,13 +71,13 @@ export class Saves {
   /** After a save, the ones not worth keeping gone (`keepers`); `pinned` stays too. */
   async tidy(code: string, pinned?: number) {
     const now = (await this.list(code)).filter((n) => !isWiped(n));
-    const keep = keepers(now.map((n) => savedAt(code, n)), Date.now(), SERVER.keepAges);
-    for (const n of now) if (!keep.has(savedAt(code, n)) && savedAt(code, n) !== pinned) await this.remove(n);
+    const keep = keepers(now.map((n) => savedAt(n)), Date.now(), SERVER.keepAges);
+    for (const n of now) if (!keep.has(savedAt(n)) && savedAt(n) !== pinned) await this.remove(n);
   }
 
   /** The save made at `ms`, wiped or not, or null. */
   async find(code: string, ms: number) {
-    return (await this.list(code)).find((n) => savedAt(code, n) === ms) ?? null;
+    return (await this.list(code)).find((n) => savedAt(n) === ms) ?? null;
   }
 
   /** A session's saves for the admin page, newest first: when (ISO), how big, whether wiped, and the stats' stamps (all tools but the sponge) and painters. One rotated away meanwhile is left out. */
@@ -96,7 +87,7 @@ export class Saves {
         const size = await fs.stat(this.file(n)).then((f) => f.size, () => null);
         if (size === null) return null;
         const s = (await this.stats(n))?.report([]);
-        return { at: new Date(savedAt(code, n)).toISOString(), bytes: size, wiped: isWiped(n), stats: s ? { stamps: s.stamps.can + s.stamps.marker + s.stamps.roller, painters: s.painters } : null };
+        return { at: new Date(savedAt(n)).toISOString(), bytes: size, wiped: isWiped(n), stats: s ? { stamps: s.stamps.can + s.stamps.marker + s.stamps.roller, painters: s.painters } : null };
       }),
     );
     return list.filter((s) => s !== null);

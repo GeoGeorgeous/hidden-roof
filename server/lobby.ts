@@ -1,12 +1,12 @@
 import { randomInt } from 'node:crypto';
 import { SERVER } from '../src/config';
 import { SLOTS } from '../src/inventory/tool';
-import { checkToServer, closeCode, CODE_LENGTH, CODE_LETTERS, decode, encode, PROTOCOL, type Rejection, type ToServer } from '../src/net/protocol';
+import { checkToServer, CODE_LENGTH, CODE_LETTERS, decode, PROTOCOL, type Rejection, type ToServer } from '../src/net/protocol';
 import { event } from './events';
 import { history } from './history';
 import { log, logNoisy, overMemory, who } from './log';
 import type { LevelData } from '../src/level/level-data';
-import type { Link, Player } from './player';
+import { turnAway, type Link, type Player } from './player';
 import type { Place } from './queue';
 import { PerMinute } from './per-minute';
 import { Session } from './session';
@@ -68,8 +68,7 @@ export class Lobby {
       history.turnedAway(reason);
       if (logNoisy(ip, code, `${m?.type ?? 'link'} from ${ip} turned away: ${reason}`))
         event('turned-away', this.sessions.get(code) ?? null, hello?.name ?? null, reason === 'version' && hello ? { reason, client: hello.protocol, server: PROTOCOL } : { reason });
-      link.send(encode({ type: 'rejected', reason }));
-      link.close(closeCode(reason), reason);
+      turnAway(link, reason);
     };
     const uploading = () => [...this.uploads.values()].reduce((n, c) => n + c, 0);
     /** Their session and who they are in it, once welcomed, or their place in its line; 'waiting' while a host or join is under way. */

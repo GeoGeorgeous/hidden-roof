@@ -88,9 +88,9 @@ export class PaintFiles {
     else fn();
   }
 
-  /** `frame`, a paint op relayed, goes in the newest paint file's log. */
-  log(frame: Uint8Array) {
-    this.snap?.log.push(frame);
+  /** `frame()`, a paint op relayed, goes in the newest paint file's log: made only if one is open. */
+  log(frame: () => Uint8Array) {
+    this.snap?.log.push(frame());
   }
 
   /** The newest paint file is not this paint (it was wiped). */

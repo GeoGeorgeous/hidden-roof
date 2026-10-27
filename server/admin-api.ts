@@ -96,6 +96,8 @@ const digest = (s: string) => createHash('sha256').update(s).digest();
 const detailName = (d: number) => Object.entries(PAINT_DETAIL).find(([, v]) => v === d)?.[0] ?? String(d);
 
 const iso = (ms: number) => new Date(ms).toISOString();
+/** `x` is a whole number from 1 to `most` (at most 999). */
+const upTo = (x: string, most: number) => /^\d{1,3}$/.test(x) && +x >= 1 && +x <= most;
 /** A paint file's name: the session's code and the UTC time (now, or the save's), 2026-10-26T12-30-00Z. */
 const paintName = (code: string, at = Date.now()) => `${code}-${iso(at).slice(0, 19).replaceAll(':', '-')}Z.rhhpaint`;
 
@@ -169,35 +171,34 @@ export function adminApi(lobby: Lobby, kept: Kept, key: string) {
     if (req.headers.origin && req.headers.origin !== allowed) return answer(403, { error: 'origin' });
     const parts = (req.url ?? '/').split('?')[0].split('/').filter(Boolean);
     try {
+      const q = new URL(req.url ?? '', 'http://admin').searchParams;
       if (req.method === 'GET' && !parts.length) return answer(200, { api: ADMIN_API, version: VERSION, protocol: PROTOCOL, started: iso(started), now: iso(Date.now()), sessions: lobby.sessions.size, players: lobby.players, peak: history.ever, slowPing: SERVER.slowPing, saveEvery: SERVER.keepEvery, saveAges: SERVER.keepAges.filter(Boolean), sources: await sources(kept.dir) });
       if (req.method === 'GET' && parts[0] === 'machine' && parts.length === 1) return answer(200, await machine(kept.dir));
       if (req.method === 'GET' && parts[0] === 'events' && parts.length === 1)
         return stream(res, () => ({ now: iso(Date.now()), players: lobby.players, site: site(), sessions: [...lobby.sessions.values()].map(live) }));
       if (req.method === 'GET' && parts[0] === 'events' && parts[1] === 'page' && parts.length === 2) {
-        const q = new URL(req.url ?? '', 'http://admin').searchParams;
         const [before, limit] = [q.get('before'), q.get('limit') ?? String(SERVER.eventPage)];
         if (before !== null && !parseId(before)) return answer(400, { error: 'before: an event id, <ms>-<n>' });
-        if (!/^\d{1,3}$/.test(limit) || +limit < 1 || +limit > SERVER.eventPage) return answer(400, { error: `limit: 1 to ${SERVER.eventPage}` });
+        if (!upTo(limit, SERVER.eventPage)) return answer(400, { error: `limit: 1 to ${SERVER.eventPage}` });
         return answer(200, await eventPage(before, +limit));
       }
       if (req.method === 'GET' && parts[0] === 'history' && parts.length === 1) {
-        const period = new URL(req.url ?? '', 'http://admin').searchParams.get('period') ?? '24h';
+        const period = q.get('period') ?? '24h';
         return isPeriod(period) ? answer(200, history.report(period)) : answer(400, { error: 'period: today, 24h, 7d or 30d' });
       }
       if (req.method === 'GET' && parts[0] === 'traffic' && parts.length === 1) {
-        const q = new URL(req.url ?? '', 'http://admin').searchParams;
         const period = q.get('period');
         if (period !== null) {
           if (!isPeriod(period)) return answer(400, { error: 'period: today, 24h, 7d or 30d' });
           return answer(200, await trafficPeriod(kept.dir && path.join(kept.dir, 'traffic'), period));
         }
         const days = q.get('days') ?? '30';
-        if (!/^\d{1,3}$/.test(days) || +days < 1 || +days > 366) return answer(400, { error: 'days: 1 to 366' });
+        if (!upTo(days, 366)) return answer(400, { error: 'days: 1 to 366' });
         return answer(200, kept.dir ? await trafficDays(kept.dir, +days) : { days: [] });
       }
       if (req.method === 'GET' && parts[0] === 'logs' && parts.length === 1) return answer(200, await logDays());
       if (req.method === 'GET' && parts[0] === 'logs' && parts.length === 2) {
-        const sent = await sendLog(res, parts[1], new URL(req.url ?? '', 'http://admin').searchParams.get('session'));
+        const sent = await sendLog(res, parts[1], q.get('session'));
         if (sent === false) return answer(400, { error: 'a day, YYYY-MM-DD, and a session code' });
         if (sent === null) return answer(404, { error: `no log for ${parts[1]}` });
         return;

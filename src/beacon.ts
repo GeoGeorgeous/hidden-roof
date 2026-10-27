@@ -1,5 +1,5 @@
 import { NET, SERVER } from './config';
-import type { NetReport } from './net/net-minute';
+import { tenths, type NetReport } from './net/net-minute';
 import type { NetStatus } from './net/status';
 import { deviceId } from './stored';
 
@@ -74,7 +74,7 @@ export class Beacon {
   /** The level is ready: the first beacon, with the load time and the settings chosen (`settings`: each as a short string). */
   loaded(settings: Record<string, string>) {
     this.step('ready');
-    this.send(false, { gpu: this.gpu, load: Math.min(SERVER.beaconMostSeconds, round(performance.now() / 1000)), settings, device: deviceId() });
+    this.send(false, { gpu: this.gpu, load: Math.min(SERVER.beaconMostSeconds, tenths(performance.now() / 1000)), settings, device: deviceId() });
   }
 
   /** A funnel step reached: counted the first time only. */
@@ -122,7 +122,7 @@ export class Beacon {
     this.linked = s.state === 'in' || s.state === 'reconnecting';
     if (s.state === 'in') this.step('joined');
     if (s.state === 'connecting') this.joining ??= now;
-    else if (s.state === 'in' && this.joining !== null && this.joins.length < NET.beaconList) this.joins.push(Math.min(SERVER.beaconMostSeconds, round(now - this.joining)));
+    else if (s.state === 'in' && this.joining !== null && this.joins.length < NET.beaconList) this.joins.push(Math.min(SERVER.beaconMostSeconds, tenths(now - this.joining)));
     if (s.state !== 'connecting') this.joining = null;
   }
 
@@ -170,7 +170,7 @@ export class Beacon {
   /** The time spent, to 0.1 s, without what was none; undefined when all was. */
   private seconds() {
     const out: Record<string, number> = {};
-    for (const [k, v] of Object.entries(this.time)) if (round(v) > 0) out[k] = round(v);
+    for (const [k, v] of Object.entries(this.time)) if (tenths(v) > 0) out[k] = tenths(v);
     return Object.keys(out).length ? out : undefined;
   }
 
@@ -180,7 +180,7 @@ export class Beacon {
     for (const c of this.frames) n += c;
     let slow = this.frames.length - 1;
     for (let past = 0; slow > 0 && (past += this.frames[slow]) < n / 100; ) slow--;
-    return { avg: round(n / this.played), low1: round(1000 / Math.max(1, slow)) };
+    return { avg: tenths(n / this.played), low1: tenths(1000 / Math.max(1, slow)) };
   }
 
   private post(body: object) {
@@ -192,4 +192,3 @@ export class Beacon {
   }
 }
 
-const round = (x: number) => Math.round(x * 10) / 10;

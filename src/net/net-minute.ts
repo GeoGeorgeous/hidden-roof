@@ -54,7 +54,7 @@ export class NetMinute {
 
   /** In the session again at `t` (s), after a drop or not. */
   in(t: number) {
-    if (this.droppedAt !== null && this.back.length < NET.beaconList) this.back.push(round(t - this.droppedAt));
+    if (this.droppedAt !== null && this.back.length < NET.beaconList) this.back.push(tenths(t - this.droppedAt));
     this.droppedAt = null;
   }
 
@@ -65,7 +65,7 @@ export class NetMinute {
     const sorted = this.pings.sort((a, b) => a - b);
     const at = (q: number) => Math.round(sorted[Math.min(sorted.length - 1, Math.floor(q * sorted.length))]);
     const report: NetReport = {
-      seconds: round(s),
+      seconds: tenths(s),
       ping: sorted.length ? { p50: at(0.5), p95: at(0.95), max: at(1) } : undefined,
       drops: Object.keys(this.drops).length ? this.drops : undefined,
       back: this.back.length ? this.back : undefined,
@@ -79,9 +79,10 @@ export class NetMinute {
   }
 
   private stalled() {
-    this.stalls.push(round(this.gap));
+    this.stalls.push(tenths(this.gap));
     this.gap = 0;
   }
 }
 
-const round = (x: number) => Math.round(x * 10) / 10;
+/** `x` to a tenth, as the beacon sends times. */
+export const tenths = (x: number) => Math.round(x * 10) / 10;

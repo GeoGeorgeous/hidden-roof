@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { SERVER } from '../src/config';
-import { closeCode, encode, type ToServer } from '../src/net/protocol';
+import { encode, type ToServer } from '../src/net/protocol';
 import { log, logNoisy, span, who } from './log';
-import type { Link } from './player';
+import { turnAway, type Link } from './player';
 
 // A session's line for its places: a JOIN that finds it full waits here (SERVER.queueMax at most), first come, first
 // served. When a place frees (session.ts) the first entry whose link is open comes in as a JOIN would, and everyone
@@ -63,8 +63,7 @@ export class Queue {
     if (!p) return;
     if (p.expires) clearTimeout(p.expires);
     p.expires = null;
-    p.link?.send(encode({ type: 'rejected', reason: 'replaced' }));
-    p.link?.close(closeCode('replaced'), 'replaced');
+    turnAway(p.link, 'replaced');
     Object.assign(p, { link, ip: link.ip, name, seat, told: 0 });
     logNoisy(p.ip, this.code, `${who(p)} from ${p.ip} is back in line: position ${this.places.indexOf(p) + 1}`);
     return p;
@@ -123,8 +122,7 @@ export class Queue {
     this.over = true;
     for (const p of this.places) {
       if (p.expires) clearTimeout(p.expires);
-      p.link?.send(encode({ type: 'rejected', reason }));
-      p.link?.close(closeCode(reason), reason);
+      turnAway(p.link, reason);
     }
     this.places = [];
   }

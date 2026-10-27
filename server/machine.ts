@@ -4,6 +4,7 @@ import path from 'node:path';
 import { SERVER } from '../src/config';
 import { traffic } from './counts';
 import { liveMemory } from './log';
+import { isWiped, savedAt } from './saves';
 
 // The machine the server runs on, for the admin page (GET /machine): read when
 // asked, never sampled in the background. CPU and upload are averages since the
@@ -35,7 +36,7 @@ export async function machine(dir: string | null) {
   const saves = dir ? (await fs.readdir(dir)).filter((n) => n.endsWith('.rhhpaint')) : [];
   // A save rotated away since the listing counts for nothing.
   const sizes = await Promise.all(saves.map((n) => fs.stat(path.join(dir!, n)).then((f) => f.size, () => 0)));
-  const newest = Math.max(0, ...saves.filter((n) => !n.endsWith('.wiped.rhhpaint')).map((n) => parseInt(n.slice(n.indexOf('-') + 1))));
+  const newest = Math.max(0, ...saves.filter((n) => !isWiped(n)).map(savedAt));
   return {
     cpu: { percent: cpu, vcpus: os.availableParallelism(), load1: os.loadavg()[0] },
     ram: { used: os.totalmem() - os.freemem(), total: os.totalmem() },

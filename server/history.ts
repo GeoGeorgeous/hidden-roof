@@ -2,8 +2,9 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { COLOR_ORDER, SERVER } from '../src/config';
 import type { Rejection } from '../src/net/protocol';
+import { writeAtomic } from './atomic';
 import { addClient, clientReport, noClient, type ClientCounts } from './client-counts';
-import { noPaint, type Paint } from './counts';
+import { noPaint, raised, type Paint } from './counts';
 import { log } from './log';
 import type { Link } from './player';
 import { people } from './people';
@@ -111,13 +112,14 @@ class History {
   /** `n` players on the server now. */
   players(n: number) {
     const hour = this.now();
-    const at = iso(Date.now());
-    if (n > (hour.peak?.players ?? 0)) hour.peak = { players: n, at };
-    if (n > (this.ever?.players ?? 0)) [this.ever, this.everChanged] = [{ players: n, at }, true];
+    hour.peak = raised(hour.peak, n);
+    if (n > (this.ever?.players ?? 0)) [this.ever, this.everChanged] = [hour.peak, true];
   }
 
   /** `dt` s of play: each session's players here now. */
   sample(sessions: number[], dt: number) {
+    // No one playing adds nothing: the day isn't written again for it.
+    if (!sessions.some((n) => n > 0)) return;
     const hour = this.now();
     for (const n of sessions) {
       hour.seconds += n * dt;
@@ -192,10 +194,8 @@ class History {
     }
   }
 
-  private async write(name: string, data: unknown) {
-    const file = path.join(this.dir!, name);
-    await fs.writeFile(`${file}.tmp`, JSON.stringify(data));
-    await fs.rename(`${file}.tmp`, file);
+  private write(name: string, data: unknown) {
+    return writeAtomic(path.join(this.dir!, name), JSON.stringify(data));
   }
 }
 

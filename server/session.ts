@@ -4,14 +4,14 @@ import { SLOTS, type Tool } from '../src/inventory/tool';
 import type { LevelData } from '../src/level/level-data';
 import { decodeOps, encodeOps, SurfaceIndex } from '../src/op-wire';
 import { opTool } from '../src/paint-ops';
-import { closeCode, encode, partFrames, relayEntry, type Rejection, type ToClient, type ToServer } from '../src/net/protocol';
+import { encode, partFrames, relayEntry, type Rejection, type ToClient, type ToServer } from '../src/net/protocol';
 import { loadPaint } from '../src/save/load-paint';
 import { surfaceTable } from '../src/save/shape';
 import { countPaint, DayCounts, SessionStats } from './counts';
 import { event } from './events';
 import { history } from './history';
-import { log, span, who } from './log';
-import { deliver, presence, uniqueName, type Link, type Player } from './player';
+import { log, logNoisy, span, who } from './log';
+import { deliver, presence, turnAway, uniqueName, type Link, type Player } from './player';
 import { Queue } from './queue';
 import { forget, relay } from './relay';
 import { HOSTED } from './setup';
@@ -131,8 +131,7 @@ export class Session {
         event('turned-away', this, p.name, { reason: 'replaced' });
         history.turnedAway('replaced');
       }
-      p.link?.send(encode({ type: 'rejected', reason: 'replaced' }));
-      p.link?.close(closeCode('replaced'), 'replaced');
+      turnAway(p.link, 'replaced');
       forget(p);
       p.link = link;
       p.device = link.device ?? p.device;
@@ -183,7 +182,8 @@ export class Session {
       if (this.restoring || m.seq <= p.acked) return;
       p.acked = m.seq;
       const batch = decodeOps(m.bytes, this.surfaces);
-      if (!batch) return log(this.code, who(p), 'paint ops it could not read: dropped');
+      // A game can send these at its rate: logged as a stranger's lines are.
+      if (!batch) return void logNoisy(p.link?.ip ?? '-', this.code, who(p), 'paint ops it could not read: dropped');
       // Ops on a face their surface doesn't have, and ops of a tool the session turned off, are dropped.
       const { paint, ops } = this.world;
       const keep = batch.ops.map((op) => {
@@ -198,7 +198,7 @@ export class Session {
       this.changed = true;
       const bytes = valid.length === batch.ops.length ? m.bytes : encodeOps(batch.t.filter((_, i) => keep[i]), valid, this.surfaces);
       this.relay(relayEntry('ops', p.id, bytes), p);
-      this.files.log(encode({ type: 'paint', bytes }));
+      this.files.log(() => encode({ type: 'paint', bytes }));
     } else if (m.type === 'ladder') {
       // Putting one down with the stepladder off is dropped (picking it up is not).
       if (m.data && this.off.has('ladder')) return;
@@ -343,8 +343,7 @@ export class Session {
     if (p.expires) clearTimeout(p.expires);
     const link = p.link;
     p.link = null;
-    link?.send(encode({ type: 'rejected', reason }));
-    link?.close(closeCode(reason), reason);
+    turnAway(link, reason);
   }
 
   /** It's over: those waiting are told, and the lobby forgets it. */

@@ -4,7 +4,7 @@ import type http from 'node:http';
 import path from 'node:path';
 import { createInterface } from 'node:readline';
 import { SERVER } from '../src/config';
-import { CODE_LENGTH, CODE_LETTERS } from '../src/net/protocol';
+import { isCode } from '../src/net/protocol';
 import { logDir } from './log';
 
 // The server's log for the admin page: its day files (LOG_DIR, log.ts) and one
@@ -12,7 +12,6 @@ import { logDir } from './log';
 // time, and the indented lines of the same entry (a stack).
 
 const DAY = /^\d{4}-\d\d-\d\d$/;
-const CODE = new RegExp(`^[${CODE_LETTERS}]{${CODE_LENGTH}}$`);
 /** A day of the calendar as YYYY-MM-DD (not 2026-13-01, nor 2026-02-30). */
 const isDay = (d: string) => DAY.test(d) && !Number.isNaN(Date.parse(`${d}T00:00:00Z`)) && new Date(`${d}T00:00:00Z`).toISOString().startsWith(d);
 
@@ -29,7 +28,7 @@ export async function logDays() {
 /** Answers a day's file as a download (`code`: only that session's lines); false for a bad day or code, null when there's no such file. */
 export async function sendLog(res: http.ServerResponse, day: string, code: string | null): Promise<boolean | null> {
   const dir = logDir();
-  if (!isDay(day) || (code !== null && !CODE.test(code))) return false;
+  if (!isDay(day) || (code !== null && !isCode(code))) return false;
   const file = dir && path.join(dir, `${day}.log`);
   if (!file || !(await fs.stat(file).catch(() => null))?.isFile()) return null;
   res.writeHead(200, { 'content-type': 'text/plain; charset=utf-8', 'cache-control': 'no-store', 'content-disposition': `attachment; filename="roof-${day}${code ? `-${code}` : ''}.log"` });
