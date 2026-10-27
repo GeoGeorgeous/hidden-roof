@@ -1186,6 +1186,8 @@ export const SERVER = {
   saltDays: 30,
   /** The GeoIP base's file (server/geoip.ts) is checked for a new one this often (s). */
   geoipCheck: 3600,
+  /** The host replaces the GeoIP base this often (s; monthly, docs/ideas/vps.md): the admin page shows its date as a figure's freshness. */
+  geoipEvery: 30 * 86400,
   /**
    * The game's beacon (server/beacon.ts): a body up to beaconBytes, beaconsPerIp a minute from one address (a school or an
    * office is one address with many pages open), from at most beaconIps addresses a minute; up to

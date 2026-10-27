@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
-import { SERVER } from '../src/config';
+import { NET, SERVER } from '../src/config';
 import { levelPaintFaces } from '../src/level/prop-pieces';
 import { encodeOps, SurfaceIndex } from '../src/op-wire';
 import { median } from './counts';
@@ -27,6 +27,11 @@ put(`${day(1)}.json`, JSON.stringify({ hours: { 12: { plays: 3 } } }));
 put(`people-${day(2)}.json`, '[{"h":');
 put(`people-${day(1)}.json`, JSON.stringify([{ h: (Math.floor(Date.now() / DAY) - 1) * 24 + 12, d: null, i: 'x', c: 'FR' }]));
 put('peak.json', '{not json');
+// The traffic reader's last pass: state.json's time.
+const passed = new Date('2026-10-26T08:00:00Z');
+fs.mkdirSync(path.join(dir, 'traffic'));
+fs.writeFileSync(path.join(dir, 'traffic', 'state.json'), '{}');
+fs.utimesSync(path.join(dir, 'traffic', 'state.json'), passed, passed);
 
 const faces = levelPaintFaces(JSON.parse(fs.readFileSync('public/levels/demo.json', 'utf8')), 48);
 const stamp = { kind: 'stamp' as const, key: faces[0].key, rect: 0, u: 0.5, v: 0.5, radius: 0.2, amount: 1, color: [1, 0, 0] as const, softness: 0, square: false };
@@ -44,6 +49,18 @@ try {
   assert.match(main.out(), new RegExp(`stats people-${day(2)}.json skipped`));
   const week = (await ask(main, 'GET', '/history?period=7d')).body;
   assert.deepEqual([week.plays, week.people.byIp, week.countries], [3, 1, { FR: 1 }]);
+
+  // How fresh each figure is: the sources' cadences and when each last came (null: never).
+  const fresh = async (s: typeof main) => (await ask(s, 'GET', '/')).body.sources;
+  let src = await fresh(main);
+  assert.deepEqual(Object.keys(src), ['status', 'beacon', 'history', 'traffic', 'geoip']);
+  assert.deepEqual([src.status.every, src.beacon.every, src.history.every, src.traffic.every, src.geoip.every], [SERVER.adminStatus, NET.beaconEvery, 3600, SERVER.trafficEvery, SERVER.geoipEvery]);
+  assert.ok(Math.abs(Date.parse(src.status.at) - Date.now()) < 5000);
+  assert.deepEqual([src.beacon.at, src.history.at, src.traffic.at, src.geoip.at], [null, null, passed.toISOString(), null]);
+  assert.equal((await fetch(`http://localhost:${main.port}/ws?e`, { method: 'POST', body: '{}' })).status, 204);
+  src = await fresh(main);
+  assert.ok(Math.abs(Date.parse(src.beacon.at) - Date.now()) < 5000);
+  assert.equal((await fresh(strict)).traffic.at, null, 'no DATA_DIR, no traffic');
 
   // Inherited keys are no detail and no period.
   for (const detail of ['constructor', '__proto__', 'toString', 7]) assert.equal((await make({ detail })).status, 400, String(detail));
@@ -115,7 +132,7 @@ try {
   await game.next('pong');
   await game.next('pong');
   assert.equal(((await ask(main, 'GET', '/sessions')).body as { code: string; players: { ping: number | null }[] }[]).find((s) => s.code === code)!.players[0].ping, null);
-  console.log('admin API: ok (inherited keys, ADMIN_ORIGIN, bytes in a body, paint by color, the slow ping, the median, an unasked pong, a corrupt stats file, event ids and pages)');
+  console.log('admin API: ok (inherited keys, ADMIN_ORIGIN, bytes in a body, paint by color, the slow ping, the median, an unasked pong, a corrupt stats file, event ids and pages, the freshness of the sources)');
 } finally {
   await Promise.all([main.stop(), strict.stop()]);
   fs.rmSync(dir, { recursive: true, force: true });

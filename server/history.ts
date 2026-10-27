@@ -71,6 +71,8 @@ class History {
   /** The most players at once, ever (with a directory). */
   ever: Hour['peak'] = null;
   private everChanged = false;
+  /** When the days last went to disk (ms), or null (no directory, or not yet). */
+  savedAt: number | null = null;
   /** The save under way (saveAll never throws). */
   private running: Promise<void> | null = null;
 
@@ -178,6 +180,7 @@ class History {
       if (this.everChanged) await this.write('peak.json', this.ever);
       await people.save();
       this.everChanged = false;
+      this.savedAt = Date.now();
     } catch (e) {
       for (const day of days) this.dirty.add(day);
       log('-----', 'history not saved:', e);

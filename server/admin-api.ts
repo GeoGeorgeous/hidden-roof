@@ -15,6 +15,7 @@ import { Refused, type Kept } from './kept';
 import type { Lobby } from './lobby';
 import type { Session } from './session';
 import type { SessionSetup } from './setup';
+import { sources } from './sources';
 import { trafficDays } from './traffic-store';
 
 // The admin API, on its own port (SERVER.adminPort), never published: the admin
@@ -24,7 +25,9 @@ import { trafficDays } from './traffic-store';
 // JSON in and out; a request that's wrong answers 400 { error }, 413 for a body past SERVER.adminBody bytes,
 // and any other failure 500 { error }:
 //   GET  /                     the API's version, the game's and the protocol, when the server started (`started`), the time now,
-//                              sessions and players, the most players ever (`peak`), and `slowPing` (ms): what counts as a slow ping
+//                              sessions and players, the most players ever (`peak`), `slowPing` (ms): what counts as a slow ping, and
+//                              `sources`: { status, beacon, history, traffic, geoip }, each { every (s), at (ISO or null) }: how often that
+//                              source comes and when the last one did (sources.ts)
 //   GET  /machine              CPU, RAM, the server's memory, disk, the paint saves, upload (machine.ts)
 //   GET  /history?period=P     counts for today (since 00:00 UTC), or the last 24h, 7d or 30d (history.ts)
 //   GET  /traffic?days=N       the last N days (1 to 366, 30 by default) of the site's traffic, oldest first, a day with no
@@ -131,7 +134,7 @@ export function adminApi(lobby: Lobby, kept: Kept, key: string) {
     if (req.headers.origin && req.headers.origin !== allowed) return answer(403, { error: 'origin' });
     const parts = (req.url ?? '/').split('?')[0].split('/').filter(Boolean);
     try {
-      if (req.method === 'GET' && !parts.length) return answer(200, { api: ADMIN_API, version: VERSION, protocol: PROTOCOL, started: iso(started), now: iso(Date.now()), sessions: lobby.sessions.size, players: lobby.players, peak: history.ever, slowPing: SERVER.slowPing });
+      if (req.method === 'GET' && !parts.length) return answer(200, { api: ADMIN_API, version: VERSION, protocol: PROTOCOL, started: iso(started), now: iso(Date.now()), sessions: lobby.sessions.size, players: lobby.players, peak: history.ever, slowPing: SERVER.slowPing, sources: await sources(kept.dir) });
       if (req.method === 'GET' && parts[0] === 'machine' && parts.length === 1) return answer(200, await machine(kept.dir));
       if (req.method === 'GET' && parts[0] === 'events' && parts.length === 1)
         return stream(res, () => ({ now: iso(Date.now()), players: lobby.players, site: site(), sessions: [...lobby.sessions.values()].map(live) }));

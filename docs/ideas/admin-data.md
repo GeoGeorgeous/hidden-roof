@@ -34,11 +34,6 @@ What the admin page (cctv) gets from the server next, after the owner's list of 
 - `POST /sessions` takes `"upload": "<id>"` as well: made on that level at that detail, with its paint. Without it, empty as now; an unknown or expired upload is 404 `{ error }`.
 - Caddy's request size limit for `/api/*` must let the file through (`docs/ideas/vps.md`).
 
-## CCTV-259 How fresh each figure is
-
-- `GET /` gains `sources: { status, beacon, history, traffic, geoip }`, each `{ every: s, at: ISO | null }` (null: never, e.g. traffic without DATA_DIR, geoip without a base):  `status` (the stream's, every second), `beacon` (each page's minute), `history` (when its hour is written), `traffic` (when the web log was last read), `geoip` (the base's date).
-- The server sends no words. cctv: a badge per figure (live, beacon with the next one due, hourly, daily) and a tooltip on where it comes from: the game server's own counts, the game page's beacon, the web server's log, the GeoIP base.
-
 ## CCTV-260 People in one model
 
 | Figure | Unique by | Source |

@@ -34,6 +34,9 @@ export const readState = async (dir: string) => {
 };
 export const readDay = (dir: string, name: string) => read<Day>(path.join(dir, `${name}.json`));
 
+/** When the reader last finished a pass (ms): state.json is written at the end of each, or null (none). */
+export const trafficAt = (dir: string) => fs.stat(path.join(dir, 'traffic', 'state.json')).then((s) => s.mtimeMs, () => null);
+
 /** The last `n` days up to today with a file, oldest first (GET /traffic). */
 export async function trafficDays(dir: string, n: number) {
   const first = new Date(Date.now() - (n - 1) * 864e5).toISOString().slice(0, 10);

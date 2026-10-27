@@ -53,6 +53,10 @@ export function site() {
   return { ...open };
 }
 
+/** When the last beacon came in (ms), or null since the server started. */
+let last: number | null = null;
+export const lastBeacon = () => last;
+
 /** Beacons this minute, by address: at most SERVER.beaconIps addresses, so a flood of them can't grow it. */
 let sent = new Map<string, number>();
 setInterval(() => (sent = new Map()), 60e3).unref();
@@ -72,6 +76,7 @@ export async function beacon(req: http.IncomingMessage, ip: string, into: () => 
     b = null;
   }
   if (!b) return 400;
+  last = Date.now();
   if (b.bye && b.page) leave(b.page);
   else if (b.beat) {
     const now = Date.now();
