@@ -35,6 +35,7 @@ SERVER.heartbeat = Number(process.env.HEARTBEAT) || SERVER.heartbeat;
 SERVER.hostMemory = Number(process.env.HOST_MEMORY) || SERVER.hostMemory;
 SERVER.snapshotMemory = Number(process.env.SNAPSHOT_MEMORY) || SERVER.snapshotMemory;
 SERVER.keepEvery = Number(process.env.KEEP_EVERY) || SERVER.keepEvery;
+SERVER.uploadBytes = Number(process.env.UPLOAD_BYTES) || SERVER.uploadBytes;
 // PLAYER_HOST=1 lets players HOST their own private sessions; REGION is the server list's country code.
 SERVER.playerHost = process.env.PLAYER_HOST === '1' || SERVER.playerHost;
 SERVER.region = process.env.REGION || SERVER.region;

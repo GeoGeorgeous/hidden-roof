@@ -12,6 +12,7 @@ import { Busy, Missing, Refused } from './refused';
 import { isWiped, leftover, Saves } from './saves';
 import type { Session } from './session';
 import type { SessionSetup } from './setup';
+import { Uploads, type Upload } from './uploads';
 
 // The admin's sessions (admin-api.ts), and the public ones kept on disk in
 // `dir` (DATA_DIR): sessions.json lists them with what they were made for (the
@@ -57,6 +58,8 @@ export class Kept {
   private unmade: Entry[] = [];
   /** Where the saves lie (saves.ts); null keeps nothing on disk. */
   private disk: Saves | null;
+  /** The admin's uploaded paint files (uploads.ts); null without DATA_DIR. */
+  readonly uploads: Uploads | null;
   /** Disk tasks under way per session (a save, a wipe, a close, a restore); a restore waits for none, and a wipe or close refuses one under way. */
   private working = new Map<string, number>();
   private restoring = new Set<string>();
@@ -70,6 +73,7 @@ export class Kept {
     readonly dir: string | null,
   ) {
     this.disk = dir ? new Saves(dir) : null;
+    this.uploads = dir ? new Uploads(path.join(dir, 'uploads'), (name) => this.level(name)) : null;
   }
 
   /** levels/<name>.json, checked as a hosted level is. Throws Refused if there's none or it's no good; any other error is the server's. */
@@ -90,10 +94,27 @@ export class Kept {
     return data as LevelData;
   }
 
-  /** A new session of the admin's; a public one is kept. */
-  async create(setup: Omit<SessionSetup, 'admin'>, levelName: string, detail: number) {
+  /** An upload of the admin's by its id, which must be for `asked`'s level and detail if it names them: Missing if there is none, Refused if it isn't for them. */
+  async upload(id: string, asked: { level?: string; detail?: number }) {
+    if (!this.uploads) throw new Refused('uploads need DATA_DIR on the server');
+    const up = await this.uploads.read(id);
+    if (asked.level !== undefined && asked.level !== up.level) throw new Refused(`level: the upload is for ${JSON.stringify(up.level)}`);
+    if (asked.detail !== undefined && asked.detail !== up.detail) throw new Refused(`detail: the upload is at ${up.detail} texels per meter`);
+    return up;
+  }
+
+  /** A new session of the admin's, with the paint of `from` (an upload) if given; a public one is kept. */
+  async create(setup: Omit<SessionSetup, 'admin'>, levelName: string, detail: number, from?: Upload) {
     const session = this.lobby.create(setup, levelName, await this.level(levelName), detail);
-    event('session-made', session, null, { kind: setup.kind, limit: setup.limit, stays: setup.stays });
+    if (from)
+      try {
+        await session.load(from.bytes, false);
+        session.changed = true;
+      } catch (e) {
+        session.close('its paint was refused');
+        throw new Refused((e as Error).message);
+      }
+    event('session-made', session, null, { kind: setup.kind, limit: setup.limit, stays: setup.stays, ...(from && { upload: from.id }) });
     await this.record();
     return session;
   }
@@ -123,6 +144,7 @@ export class Kept {
   async restore() {
     if (!this.dir) return;
     await fs.mkdir(this.dir, { recursive: true });
+    await this.uploads!.start();
     for (const name of (await fs.readdir(this.dir)).filter(leftover)) await fs.rm(this.disk!.file(name), { force: true });
     let list: Entry[] = [];
     try {
@@ -237,13 +259,13 @@ export class Kept {
    * saved first (the undo, kept apart from the age rule until the next restore), the restored paint after, so a
    * restart is not back to the paint before. Its players reconnect onto it (session.ts). The ms of the undo.
    */
-  async restoreFrom(session: Session, from: { save: number }) {
+  async restoreFrom(session: Session, from: { save: number } | { upload: string }) {
     const { code } = session;
     if (!this.disk) throw new Refused('restore: nothing is kept without DATA_DIR');
     if (!this.public().includes(session)) throw new Refused('restore: a public session only; a private one is never kept');
     return this.hold(code, true, async () => {
       // Read in the disk line: never a save half written or rotated away.
-      const { bytes, stats } = await this.line(`read for the restore of ${code}`, async () => {
+      const { bytes, stats } = 'upload' in from ? { bytes: (await this.upload(from.upload, { level: session.levelName, detail: session.detail })).bytes, stats: null } : await this.line(`read for the restore of ${code}`, async () => {
         const name = await this.disk!.find(code, from.save);
         if (!name) throw new Missing(`no save ${from.save} of ${code}`);
         return { bytes: await fs.readFile(this.file(name)), stats: await this.disk!.stats(name, Date.now()) };
@@ -259,8 +281,8 @@ export class Kept {
         await this.disk!.write(`${code}-${at}.rhhpaint`, bytes, restored.toJSON(session.joinedAt()));
         await this.disk!.tidy(code, undo);
       });
-      log(code, `paint restored from the save of ${new Date(from.save).toISOString()}; undo ${undo}`);
-      event('restored', session, null, { from: 'save', save: from.save, undo });
+      log(code, `paint restored from ${'upload' in from ? `upload ${from.upload}` : `the save of ${new Date(from.save).toISOString()}`}; undo ${undo}`);
+      event('restored', session, null, { ...('upload' in from ? { from: 'upload', upload: from.upload } : { from: 'save', save: from.save }), undo });
       return undo;
     });
   }

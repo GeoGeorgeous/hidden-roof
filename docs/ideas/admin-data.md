@@ -20,13 +20,6 @@ What the admin page (cctv) gets from the server next, after the owner's list of 
 - The stream (`GET /events`) is unchanged: the recent ones at once, then live ones.
 - cctv: 50 a page with prev and next; live events go on top of the first page only.
 
-## CCTV-256 A new session from a save
-
-- `POST /sessions/CODE/restore` also takes `{ "upload": "<id>" }`: the upload's paint becomes the session's, refused with 400 if its level or detail is not the session's (a save restored this way starts its stats afresh, as restored). Same undo save and event as a save's.
-- `POST /uploads` with the raw paint file (up to `SERVER.uploadBytes`, the ULTRA roof fully painted fits): checked as a save is loaded (`server/paint-check.ts`: level, protocol, surface table, detail); kept in `DATA_DIR/uploads` for `SERVER.uploadMinutes`. The answer: `{ upload, level, detail, bytes }`, or 400 and why.
-- `POST /sessions` takes `"upload": "<id>"` as well: made on that level at that detail, with its paint. Without it, empty as now.
-- Caddy's request size limit for `/api/*` must let the file through (`docs/ideas/vps.md`).
-
 ## CCTV-258 On the site: pages, not heartbeats
 
 - Bug: the server counts the minute's beacons of the last 90 s, so a page counts twice for half of each minute (2 players showed as up to 5).

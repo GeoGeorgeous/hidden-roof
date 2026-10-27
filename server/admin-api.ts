@@ -15,6 +15,7 @@ import { log, overMemory } from './log';
 import { machine } from './machine';
 import type { Kept } from './kept';
 import { Busy, Missing, Refused } from './refused';
+import { isUploadId } from './uploads';
 import type { Lobby } from './lobby';
 import type { Session } from './session';
 import type { SessionSetup } from './setup';
@@ -43,9 +44,14 @@ import { trafficDays } from './traffic-store';
 //                              nicknames that painted), `playSeconds`, `joins` (new players), `peak` ({ players, at } or null),
 //                              ping (`median` ms, `slow`: players over `slowPing`), when it went empty, its saves
 //                              (`saves`, newest first: `at`, `bytes`, `wiped` for those a wipe kept aside, and `stats` { stamps (all tools but the sponge), painters } or null)
-//   POST /sessions             a new one: { kind, name, level?, detail?, tools?, stay?, limit? }
+//   POST /uploads              a paint file (the body, application/octet-stream, up to SERVER.uploadBytes, streamed to DATA_DIR/uploads),
+//                              checked as a save is loaded and kept SERVER.uploadMinutes: { upload, level, detail, bytes, expires }; 400 { error }
+//                              if it is no good or not for a level of ours (or without DATA_DIR), 409 while another is being checked
+//   POST /sessions             a new one: { kind, name, level?, detail?, tools?, stay?, limit?, upload? }
 //                              (stay: a private one stays when empty; a public one always does;
-//                              limit: a private one's most players, SERVER.privateMin to SERVER.players.private)
+//                              limit: a private one's most players, SERVER.privateMin to SERVER.players.private;
+//                              upload: an id from POST /uploads: made on its level at its detail with its paint, and its stats start as made;
+//                              a level or detail named too must be the upload's, else 400; an unknown or expired upload is 404)
 //   POST /sessions/CODE/wipe   its paint gone (a public session's saves are put aside as wiped, replacing the last wipe's; its stats start again)
 //   POST /sessions/CODE/close  closed for everyone in it (told `closed`)
 //   POST /sessions/CODE/players/ID/kick
@@ -54,10 +60,11 @@ import { trafficDays } from './traffic-store';
 //   GET  /sessions/CODE/saves/MS
 //                              a kept save's paint file (MS: its time, as the listing's `at` in ms): as the next, named by the save's time; 404 if none
 //   POST /sessions/CODE/restore
-//                              { save: MS }: its paint and stats become that save's (a public session of the admin's only). First a save of
+//                              { save: MS } or { upload: ID }: its paint becomes that save's (and its stats; an upload has none: they start as
+//                              restored), or the upload's, which must be for its level and detail (a public session of the admin's only). First a save of
 //                              its paint now is made (the undo); its players are dropped as a wipe does and come back to the restored paint.
 //                              Answers { undo: MS }; 404 for a save or session that isn't there, 409 while a restore or another disk
-//                              task of that session is under way, 400 if the save doesn't fit it
+//                              task of that session is under way, 400 if the save or upload doesn't fit it (another level, detail or surface table)
 //   GET  /sessions/CODE/paint  its paint as a paint file made now (not kept): application/octet-stream,
 //                              attachment named <code>-<UTC time>.rhhpaint; 503 when there's no memory for one
 
@@ -102,22 +109,24 @@ function live(s: Session) {
 const listing = async (s: Session, kept: Kept) => ({ ...live(s), saves: await kept.savesOf(s.code) });
 
 /** POST /sessions's body as a session to make, or why not. */
-function newSession(b: unknown): string | { setup: Omit<SessionSetup, 'admin'>; level: string; detail: number } {
+function newSession(b: unknown): string | { setup: Omit<SessionSetup, 'admin'>; level?: string; detail?: number; upload?: string } {
   const o = (typeof b === 'object' && b ? b : {}) as Record<string, unknown>;
   const kind = o.kind;
   if (kind !== 'public' && kind !== 'private') return 'kind: public or private';
   if (!isSessionName(o.name)) return `name: 1 to ${SESSION_NAME_MAX} characters`;
-  const name = o.detail ?? 'ultra';
-  const detail = typeof name === 'string' && Object.hasOwn(PAINT_DETAIL, name) ? PAINT_DETAIL[name as keyof typeof PAINT_DETAIL] : 0;
-  if (!detail) return `detail: one of ${Object.keys(PAINT_DETAIL).join(', ')}`;
+  if (o.upload !== undefined && !isUploadId(o.upload)) return 'upload: the id POST /uploads answered';
+  // With an upload, the level and detail are its own; naming them is allowed if they agree.
+  const name = o.detail ?? (o.upload ? undefined : 'ultra');
+  const detail = name === undefined ? undefined : typeof name === 'string' && Object.hasOwn(PAINT_DETAIL, name) ? PAINT_DETAIL[name as keyof typeof PAINT_DETAIL] : 0;
+  if (detail === 0) return `detail: one of ${Object.keys(PAINT_DETAIL).join(', ')}`;
   const tools = o.tools ?? SLOTS;
   if (!isToolSet(tools)) return `tools: some of ${SLOTS.join(', ')}`;
-  const level = o.level ?? 'roof';
-  if (typeof level !== 'string') return 'level: a level name';
+  const level = o.level ?? (o.upload ? undefined : 'roof');
+  if (level !== undefined && typeof level !== 'string') return 'level: a level name';
   if (o.stay !== undefined && typeof o.stay !== 'boolean') return 'stay: true or false';
   if (o.limit !== undefined && (kind !== 'private' || !isPrivateLimit(o.limit))) return `limit: a private session's players, ${SERVER.privateMin} to ${SERVER.players.private}`;
   const limit = kind === 'public' ? SERVER.players.public : ((o.limit as number | undefined) ?? SERVER.players.private);
-  return { setup: { kind, name: o.name.trim(), limit, tools: SLOTS.filter((t) => tools.includes(t)), stays: kind === 'public' || o.stay === true }, level, detail };
+  return { setup: { kind, name: o.name.trim(), limit, tools: SLOTS.filter((t) => tools.includes(t)), stays: kind === 'public' || o.stay === true }, level, detail, upload: o.upload };
 }
 
 /** ADMIN_ORIGIN as an origin (a trailing slash or a path in it is no matter), or null if unset or not one. */
@@ -153,6 +162,12 @@ export function adminApi(lobby: Lobby, kept: Kept, key: string) {
         if (!/^\d{1,3}$/.test(days) || +days < 1 || +days > 366) return answer(400, { error: 'days: 1 to 366' });
         return answer(200, kept.dir ? await trafficDays(kept.dir, +days) : { days: [] });
       }
+      if (req.method === 'POST' && parts[0] === 'uploads' && parts.length === 1) {
+        if (!kept.uploads) return answer(400, { error: 'uploads need DATA_DIR on the server' });
+        if (overMemory(SERVER.hostMemory)) return answer(503, { error: 'the server is full' });
+        const up = await kept.uploads.put(req);
+        return answer(200, { upload: up.id, level: up.level, detail: detailName(up.detail), bytes: up.bytes, expires: iso(up.expires) });
+      }
       if (parts[0] !== 'sessions') return answer(404, { error: 'not found' });
       if (req.method === 'GET' && parts.length === 1) return answer(200, await Promise.all([...lobby.sessions.values()].map((s) => listing(s, kept))));
       if (req.method === 'GET' && parts.length === 3 && parts[2] === 'paint') {
@@ -176,17 +191,19 @@ export function adminApi(lobby: Lobby, kept: Kept, key: string) {
         const m = newSession(await body(req));
         if (typeof m === 'string') return answer(400, { error: m });
         if (overMemory(SERVER.hostMemory)) return answer(503, { error: 'the server is full' });
-        return answer(200, await listing(await kept.create(m.setup, m.level, m.detail), kept));
+        const up = m.upload ? await kept.upload(m.upload, m) : undefined;
+        return answer(200, await listing(await kept.create(m.setup, up?.level ?? m.level!, up?.detail ?? m.detail!, up), kept));
       }
       const session = lobby.sessions.get(parts[1]);
       if (!session) return answer(404, { error: `no session ${parts[1]}` });
       if (parts[2] === 'players' && parts[4] === 'kick' && parts.length === 5) {
         if (!/^\d+$/.test(parts[3]) || !lobby.kick(session, Number(parts[3]))) return answer(404, { error: `no player ${parts[3]} in ${session.code}` });
       } else if (parts[2] === 'restore' && parts.length === 3) {
-        const o = (await body(req)) as { save?: unknown };
-        if (!Number.isSafeInteger(o.save)) return answer(400, { error: 'save: the ms of one of its saves' });
+        const o = (await body(req)) as { save?: unknown; upload?: unknown };
+        const one = (o.save === undefined) !== (o.upload === undefined);
+        if (!one || (o.save !== undefined && !Number.isSafeInteger(o.save)) || (o.upload !== undefined && !isUploadId(o.upload))) return answer(400, { error: 'save: the ms of one of its saves, or upload: the id of one, not both' });
         if (overMemory(SERVER.hostMemory)) return answer(503, { error: 'the server is full' });
-        return answer(200, { undo: await kept.restoreFrom(session, { save: o.save as number }) });
+        return answer(200, { undo: await kept.restoreFrom(session, o.upload === undefined ? { save: o.save as number } : { upload: o.upload as string }) });
       } else if (parts[2] === 'wipe' && parts.length === 3) await kept.wipe(session);
       else if (parts[2] === 'close' && parts.length === 3) await kept.end(session);
       else return answer(404, { error: 'not found' });

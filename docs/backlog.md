@@ -146,11 +146,10 @@ The admin page (the cctv repo) and the server side it reads (server/admin-api.ts
 
 1. [CCTV-252]: Session > Players: one placeholder for a field not there yet (ping in a player's first 10 s or while dropped, time, country); time in game as H:MM:SS on a 1 s clock, never below 0 (it showed -1:-1); Kick keeps its place @1.6.0
 2. [CCTV-253]: Events kept on disk (a file a day, 30 days, capped in size) and read in pages; the page shows 50 a page with prev and next (docs/ideas/admin-data.md) @1.6.0
-3. [CCTV-256]: A new session, public or private, starts empty or from an uploaded save, checked first: one for another level, protocol or surface table is refused (docs/ideas/admin-data.md) @1.6.0
-4. [CCTV-257]: One switch for every time on the page: UTC or the browser's local time; days still count in UTC @1.6.0
-5. [CCTV-258]: "On the site" counts each open page once, not each heartbeat in its 90 s window (2 players showed up to 5): a page id in the beacon (docs/ideas/admin-data.md) @1.6.0
-6. [CCTV-259]: A badge for how fresh each figure is (live, the minute's beacon with the next one due, hourly, daily), its tooltip saying where the data comes from; the server sends each source's time and interval (docs/ideas/admin-data.md) @1.6.0
-7. [CCTV-260]: People in one model: Visitors (unique, from the web log) > Views (page loads) > Players (solo and multiplayer, unique by the device id, now in the beacon) > in sessions, with Now beside it; by address behind a switch, merged dropped; Main rebuilt on it (docs/ideas/admin-data.md) @1.6.0
+3. [CCTV-257]: One switch for every time on the page: UTC or the browser's local time; days still count in UTC @1.6.0
+4. [CCTV-258]: "On the site" counts each open page once, not each heartbeat in its 90 s window (2 players showed up to 5): a page id in the beacon (docs/ideas/admin-data.md) @1.6.0
+5. [CCTV-259]: A badge for how fresh each figure is (live, the minute's beacon with the next one due, hourly, daily), its tooltip saying where the data comes from; the server sends each source's time and interval (docs/ideas/admin-data.md) @1.6.0
+6. [CCTV-260]: People in one model: Visitors (unique, from the web log) > Views (page loads) > Players (solo and multiplayer, unique by the device id, now in the beacon) > in sessions, with Now beside it; by address behind a switch, merged dropped; Main rebuilt on it (docs/ideas/admin-data.md) @1.6.0
 
 ## Web and promotion
 
@@ -197,6 +196,7 @@ Shipped since the last release; the release commit empties this list.
 19. [TASK-245]: A public session gives one address at most 4 seats and 4 places in its line (a household shares one), and takes 10 JOINs a minute from one address; refused with their own reasons and texts; a dropped seat is still taken back by its nickname
 20. [CCTV-254]: Stats per session, since its paint began (made, wiped or restored): stamps by tool, colors, painters, play seconds, joins, most players at once, counted where the day's are; GET /sessions and the event stream carry them as `stats`, each public save keeps its own beside it, a wipe zeroes them; the server's history is as it was
 21. [CCTV-255]: A public session's saves kept by age (the newest, and the newest at least 6 h, 1 day, 3 days and 7 days old; a wipe puts the current ones aside, replacing the last wipe's), listed with their stats, each downloadable (`GET /sessions/CODE/saves/MS`) and restorable into the live session (`POST /sessions/CODE/restore`: an undo save first, the players dropped and back on the restored paint, event `restored`); a private session's paint downloads as it is now, never kept
+22. [CCTV-256]: A new session, public or private, starts empty or from an uploaded save: `POST /uploads` takes the paint file (streamed to disk, up to 128 MB, kept 60 min) and checks it as a save is loaded, `POST /sessions` takes its id (made on its level at its detail, with its paint), and a restore takes it too; one for another level, detail or surface table is refused
 
 ## Discarder
 
