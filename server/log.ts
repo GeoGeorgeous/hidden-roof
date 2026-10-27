@@ -35,6 +35,9 @@ export function logTo(to: string) {
   setInterval(tidy, SERVER.logCleanEvery * 1000).unref();
 }
 
+/** Where the day files go (LOG_DIR); null: stdout. */
+export const logDir = () => dir;
+
 export function log(...parts: unknown[]) {
   const now = new Date().toISOString();
   const line = oneEntry(format(`${now.slice(0, 19)}Z`, ...parts));
