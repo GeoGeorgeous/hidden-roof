@@ -2524,15 +2524,13 @@
   position: absolute;
   right: 24px;
   bottom: 52px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
-/* The player is in (net/loading-page.ts): no progress, and CLICK TO PLAY in the middle (any click on the screen starts play). */
+/* The player is in (net/loading-page.ts): no progress, and CLICK TO PLAY beside CANCEL (any click on the screen starts play). */
 .overlay .loading-page .loading-click {
   display: none;
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  padding: 12px 28px;
-  transform: translate(-50%, -50%);
 }
 .overlay .loading-page.ready .loading-click {
   display: flex;
