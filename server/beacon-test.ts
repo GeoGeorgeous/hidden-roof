@@ -1,5 +1,6 @@
 import './headless';
 import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import type http from 'node:http';
 import os from 'node:os';
@@ -7,6 +8,7 @@ import path from 'node:path';
 import { NET, SERVER } from '../src/config';
 import { beacon, site } from './beacon';
 import { addClient, countSetting, noClient } from './client-counts';
+import { people } from './people';
 import { start } from './test-kit';
 
 // The game's beacon (beacon.ts, beacon-body.ts, client-counts.ts), against the built server: what it runs on, load and
@@ -123,6 +125,23 @@ try {
   assert.deepEqual(await onSite(), now, 'refused beacons are not on the site');
   assert.deepEqual((await history()).events, client.events, 'nor counted');
 
+  // The first message's device id makes a player: once by device and once by address, over the period; a bad one refuses the body.
+  const players = async () => {
+    const h = await (await fetch(`http://localhost:${main.adminPort}/history?period=24h`, { headers: { authorization: 'Bearer test-key' } })).json();
+    return [h.players, h.inSessions];
+  };
+  const [d1, d2] = ['1'.repeat(32), '2'.repeat(32)];
+  const [before1, joined] = await players();
+  assert.equal(await send({ first: { gpu: null, load: 1, device: d1 } }, '10.4.0.1'), 204);
+  assert.equal(await send({ first: { gpu: null, load: 1, device: d1 } }, '10.4.0.2'), 204);
+  assert.equal(await send({ first: { gpu: null, load: 1, device: d1 } }, '10.4.0.1'), 204);
+  assert.equal(await send({ first: { gpu: null, load: 1, device: d2 } }, '10.4.0.2'), 204);
+  assert.equal(await send({ first: { gpu: null, load: 1 } }, '10.4.0.3'), 204);
+  const [reached, inSessions] = await players();
+  assert.deepEqual([reached.device - before1.device, reached.address - before1.address], [2, 3], 'two devices, three addresses; the same page twice in an hour is one');
+  assert.deepEqual(inSessions, joined, 'a page that reached the level did not join');
+  for (const device of ['x', 5, 'A'.repeat(32), '1'.repeat(33)]) assert.equal(await send({ first: { gpu: null, load: 1, device } }), 400, String(device));
+
   // The most is fine: an empty body, the limits.
   assert.equal(await send({}), 204);
   assert.equal(await send({ counts: { 'a-b.c9': SERVER.beaconMostEvents }, seconds: { idle: SERVER.beaconMostSeconds }, tutorial: Array(NET.beaconList).fill('done'), steps: ['play', 'ready', 'sprayed', 'joined'], first: { gpu: null, load: 1, settings: { detail: 'x'.repeat(SERVER.beaconText) } } }), 204);
@@ -166,6 +185,25 @@ try {
   addClient(total, c);
   assert.deepEqual([total.events.settings.Other, total.events.settings.zoom.Other, total.events.settings.s0], [{ on: 8 }, 6, { on: 2 }]);
 
+  // New people from pages are limited an hour (SERVER.peoplePages); a JOIN is not, and a page that joins is both.
+  {
+    const was = SERVER.peoplePages;
+    SERVER.peoplePages = 3;
+    try {
+      const count = () => people.count(0);
+      const [n0, j0] = [count().players.device, count().inSessions.device];
+      for (let i = 0; i < 5; i++) people.played(`${i}`.repeat(32), '10.9.9.9', null, 'page');
+      assert.equal(count().players.device - n0, 3);
+      people.played('9'.repeat(32), '10.9.9.9', 'DE', 'join');
+      people.played('0'.repeat(32), '10.9.9.9', 'FR', 'join');
+      const c = count();
+      assert.deepEqual([c.players.device - n0, c.inSessions.device - j0], [4, 2]);
+      assert.equal(c.playerCountries.FR, 1, 'a page without a country takes the next one');
+    } finally {
+      SERVER.peoplePages = was;
+    }
+  }
+
   // Who is on the site: a beat counts for NET.beaconEvery s.
   const realNow = Date.now;
   try {
@@ -198,10 +236,50 @@ try {
     } finally {
       SERVER.beaconIps = cap;
     }
+
+    // A page counts once, by its id, whatever its beats: two pages beating every minute are 2 at every moment (the 90 s window
+    // used to count a page twice for half of each minute), a page that changes what it does counts once.
+    const total = () => Object.values(site()).reduce((a, b) => a + b, 0);
+    const u = t + 1e6;
+    const [p1, p2] = [randomUUID(), randomUUID()];
+    for (let s = 0; s <= 600; s += 5) {
+      if (s % 60 === 0) await post({ page: p1, beat: s < 300 ? 'menu' : 'solo' }, u + s * 1e3);
+      if (s % 60 === 30) await post({ page: p2, beat: 'session' }, u + s * 1e3);
+      Date.now = () => u + s * 1e3;
+      if (s >= 30) assert.equal(total(), 2, `2 pages at ${s} s`);
+    }
+    assert.deepEqual(site(), { menu: 0, solo: 1, session: 1, hidden: 0 }, 'the first went from the menu to solo: counted once');
+    // A page that is gone is counted until its window ends, or its goodbye comes.
+    const v = u + 1e6;
+    await post({ page: p1, beat: 'solo' }, v);
+    await post({ page: p2, beat: 'hidden' }, v + 1e3);
+    Date.now = () => v + 2e3;
+    assert.equal(total(), 2);
+    await post({ page: p1, bye: true, counts: { jump: 1 }, beat: 'solo' }, v + 3e3);
+    assert.deepEqual(site(), { menu: 0, solo: 0, session: 0, hidden: 1 }, 'a goodbye takes the page off at once, and wins over a beat');
+    await post({ page: randomUUID(), bye: true }, v + 4e3);
+    assert.equal(total(), 1, 'the goodbye of a page not counted changes nothing');
+    await post({ page: p1, beat: 'solo' }, v + 5e3);
+    assert.equal(total(), 2, 'a page back from the cache beats again');
+    // The old game: no id, each beat is a page of its own.
+    await post({ beat: 'menu' }, v + 6e3);
+    await post({ beat: 'menu' }, v + 7e3);
+    assert.deepEqual(site(), { menu: 2, solo: 1, session: 0, hidden: 1 });
+    // A wrong id or goodbye refuses the whole body; the page list stays within SERVER.beaconPages.
+    for (const body of [{ page: 'x' }, { page: 5 }, { page: p1.toUpperCase() }, { page: `${p1}0` }, { bye: false }, { bye: 'yes' }]) assert.equal(await post({ beat: 'menu', ...body }, v + 8e3), 400, JSON.stringify(body));
+    const most = SERVER.beaconPages;
+    try {
+      SERVER.beaconPages = 3;
+      for (let i = 0; i < 5; i++) await post({ page: randomUUID(), beat: 'hidden' }, v + 10e3 + i);
+      Date.now = () => v + 11e3;
+      assert.equal(total(), 3, 'at most beaconPages');
+    } finally {
+      SERVER.beaconPages = most;
+    }
   } finally {
     Date.now = realNow;
   }
-  console.log('beacon: ok (first-version bodies, the events, refused bodies, Other, an old hour, the report, who is on the site)');
+  console.log('beacon: ok (first-version bodies, the events, refused bodies, Other, an old hour, the report, who is on the site by page, goodbyes and old games)');
 } finally {
   main.stop();
   fs.rmSync(dir, { recursive: true, force: true });

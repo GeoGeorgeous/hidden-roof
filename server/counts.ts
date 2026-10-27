@@ -1,4 +1,4 @@
-import { COLOR_ORDER, type PaintColor } from '../src/config';
+import { COLOR_ORDER, SERVER, type PaintColor } from '../src/config';
 import { rgbOf } from '../src/inventory/items';
 import { opTool, type PaintOp } from '../src/paint-ops';
 import type { Rgb } from '../src/painting';
@@ -83,5 +83,99 @@ export class DayCounts {
     this.until = midnight();
     this.kept = noPaint();
     this.peak = { players: 0, at: new Date().toISOString() };
+  }
+}
+
+/** How a session's paint began. */
+export type Began = 'made' | 'wiped' | 'restored';
+
+/** What `SessionStats.toJSON` writes beside a save (kept.ts). */
+export interface StoredStats {
+  since: number;
+  began: Began;
+  restoredAt: number | null;
+  stamps: Paint['stamps'];
+  colors: Paint['colors'];
+  painters: string[];
+  played: number;
+  joins: number;
+  peak: { players: number; at: string } | null;
+}
+
+const isCount = (n: unknown) => typeof n === 'number' && Number.isFinite(n) && n >= 0;
+
+/**
+ * A session's counts since its paint began (made, wiped or restored), counted
+ * where the day's are: the admin page's `stats`. Each save has them beside it on
+ * disk (kept.ts); a wipe zeroes them and a restore brings the save's back.
+ */
+export class SessionStats {
+  /** Stamps by tool and ops by color (countPaint). */
+  readonly paint = noPaint();
+  private names = new Set<string>();
+  /** Player-seconds of players gone, from when the paint began. */
+  private played = 0;
+  joins = 0;
+  peak: { players: number; at: string } | null = null;
+  restoredAt: number | null = null;
+
+  constructor(
+    readonly began: Began = 'made',
+    readonly since = Date.now(),
+  ) {}
+
+  /** `name` painted (SERVER.statsPainters names are kept). */
+  painter(name: string) {
+    if (this.names.size < SERVER.statsPainters) this.names.add(name);
+  }
+
+  /** `n` players in it now. */
+  players(n: number) {
+    if (n > (this.peak?.players ?? 0)) this.peak = { players: n, at: new Date().toISOString() };
+  }
+
+  /** A player who joined at `joined` (ms) stayed till `until`: only the time since the paint began counts. */
+  stay(joined: number, until: number) {
+    this.played += Math.max(0, until - Math.max(joined, this.since)) / 1000;
+  }
+
+  /** As the admin page gets them; `here`: when (ms) the players now in the session joined. */
+  report(here: number[]) {
+    const now = Date.now();
+    const live = here.reduce((n, joined) => n + Math.max(0, now - Math.max(joined, this.since)) / 1000, 0);
+    return {
+      since: new Date(this.since).toISOString(),
+      began: this.began,
+      ...(this.restoredAt === null ? {} : { restoredAt: new Date(this.restoredAt).toISOString() }),
+      stamps: { ...this.paint.stamps },
+      colors: { ...this.paint.colors },
+      painters: this.names.size,
+      playSeconds: Math.round(this.played + live),
+      joins: this.joins,
+      peak: this.peak,
+    };
+  }
+
+  /** What is written beside a save: painters as names, the players now in it counted till now. */
+  toJSON(here: number[] = []): StoredStats {
+    const { began, since, joins, peak, restoredAt } = this;
+    const live = here.reduce((n, joined) => n + Math.max(0, Date.now() - Math.max(joined, since)) / 1000, 0);
+    return { since, began, restoredAt, stamps: { ...this.paint.stamps }, colors: { ...this.paint.colors }, painters: [...this.names], played: this.played + live, joins, peak };
+  }
+
+  /** The stats a save was written with, or null if they are not good. */
+  static from(j: unknown, began?: Began, restoredAt: number | null = null): SessionStats | null {
+    const o = (typeof j === 'object' && j ? j : {}) as Partial<StoredStats>;
+    const ok = isCount(o.since) && (o.began === 'made' || o.began === 'wiped' || o.began === 'restored') && Array.isArray(o.painters) && o.painters.every((n) => typeof n === 'string') && isCount(o.played) && isCount(o.joins) && !!o.stamps && !!o.colors && Object.values(o.stamps).every(isCount) && Object.values(o.colors).every(isCount);
+    if (!ok) return null;
+    const s = new SessionStats(began ?? o.began, o.since);
+    Object.assign(s.paint.stamps, o.stamps);
+    Object.assign(s.paint.colors, o.colors);
+    o.painters!.slice(0, SERVER.statsPainters).forEach((n) => s.names.add(n));
+    s.played = o.played!;
+    s.joins = o.joins!;
+    s.peak = o.peak && isCount(o.peak.players) && typeof o.peak.at === 'string' ? o.peak : null;
+    s.restoredAt = began ? restoredAt : isCount(o.restoredAt) ? o.restoredAt! : null;
+    return s;
   }
 }

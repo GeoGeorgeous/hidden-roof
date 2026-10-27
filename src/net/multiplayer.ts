@@ -4,14 +4,15 @@ import type { PaintOp } from '../paint-ops';
 import { loadPaint } from '../save/load-paint';
 import { surfaceTable } from '../save/shape';
 import { session } from '../session';
-import { cleanName, PROTOCOL, rejectionOf, type Rejection, type SessionInfo, type ToClient, type ToServer } from './protocol';
-import { describeHello, diagnose, NetLog, Traffic } from './diagnostics';
+import { cleanName, PROTOCOL, type SessionInfo, type ToClient, type ToServer } from './protocol';
+import { describeHello, NetLog, Traffic } from './diagnostics';
 import { decodeOps, encodeOps, SurfaceIndex } from '../op-wire';
 import { enterSessionLevel, type MultiplayerContext } from './game-context';
 import { keepSolo, SoloReturn, type Solo } from './solo';
 import { LinkHealth, type LinkStatus } from './link-health';
 import { Outbox } from './outbox';
-import { endedBy, Reconnect, type Way } from './reconnect';
+import { LinkClosed } from './link-closed';
+import { Reconnect } from './reconnect';
 import { SaveRequest } from './save-request';
 import { Sender } from './sender';
 import { ServerLink } from './server-link';
@@ -77,6 +78,8 @@ export class Multiplayer {
   private own: OwnStatus;
   /** Coming back after a dropped link (reconnect.ts). */
   private reconnect: Reconnect;
+  /** What happens when a link closes (link-closed.ts). */
+  private closing: LinkClosed;
 
   constructor(private g: MultiplayerContext) {
     this.remotes = new Remotes(g, this.log);
@@ -96,6 +99,7 @@ export class Multiplayer {
       fail: (reason, detail) => this.end({ state: 'failed', reason, detail }),
       set: (s) => this.setStatus(s),
     });
+    this.closing = new LinkClosed({ joined: () => this.joined, line: () => this.line, status: () => this.status, linked: () => Boolean(this.link), asked: () => this.asked, end: (s) => this.end(s) }, this.reconnect, this.log);
     addEventListener('online', () => this.retryNow());
     this.own = new OwnStatus(g, (status) => this.send({ type: 'status', status }), () => Boolean(this.link?.live), () => this.health.troubled);
   }
@@ -220,32 +224,11 @@ export class Multiplayer {
         traffic: (up, down) => ((this.net.up += up), (this.net.down += down)),
         closed: (code, timedOut) => {
           if (this.link === link) this.link = null;
-          if (timedOut && !this.joined && !this.line) return this.end({ state: 'failed', reason: 'timeout', detail: msg('menu.detailNoAnswer', { seconds: NET.connectTimeout }) });
-          const why = rejectionOf(code);
-          if (why && this.turnedAway(why)) return;
-          this.dropped(code);
+          this.closing.closed(code, timedOut);
         },
       },
       { url, open: (u) => new WebSocket(u), now, every: (tick, ms) => ((id) => () => clearInterval(id))(setInterval(tick, ms)) },
     ));
-  }
-
-  /**
-   * The link closed (WebSocket close code `code`): while the server keeps us,
-   * try again with our token; never welcomed, give up. Either way, ask the
-   * server over HTTP what's wrong (diagnostics.ts), for the message.
-   */
-  private dropped(code: number) {
-    const j = this.joined;
-    const l = this.line;
-    const why = diagnose().then((d) => (this.log.add(`asked the server over HTTP: ${d.reason} (${d.detail})`), d));
-    const hello = { type: 'join', protocol: PROTOCOL, name: this.asked } as const;
-    // Back with the player's token, or the place in line's; the place is held as long as the player's own would be.
-    const way: Way | null = j
-      ? { hello: () => ({ ...hello, name: j.asked, code: j.code, token: j.token }), held: () => this.joined === j, trying: () => this.status.state === 'reconnecting', status: (t) => ({ state: 'reconnecting', code: j.code, detail: t.detail, tries: t.tries }) }
-      : l && { hello: () => ({ ...hello, code: l.code, queue: l.token }), held: () => this.line === l, trying: () => this.status.state === 'queued' && !!this.status.lost, status: (lost) => ({ state: 'queued', code: l.code, position: l.position, lost }) };
-    if (way) return this.reconnect.dropped(code, way, why);
-    void why.then((d) => !this.link && !this.joined && this.end({ state: 'failed', reason: d.reason, detail: `${d.detail} · ${msg('menu.detailWs', { code })}` }));
   }
 
   /** `arrived`: when it came (local s); `link`: the link it came on; `file`: the paint file of a welcome or a save. */
@@ -258,7 +241,7 @@ export class Multiplayer {
       this.line = { code: this.wanted, token: m.token, position: m.position };
       return this.setStatus({ state: 'queued', code: this.wanted, position: m.position });
     }
-    if (m.type === 'rejected') return void (this.link === link && this.turnedAway(m.reason)); // no-op once its close code told
+    if (m.type === 'rejected') return void (this.link === link && this.closing.turnedAway(m.reason)); // no-op once its close code told
     if (!this.joined) return;
     if (this.remotes.handle(m, this.surfaces, arrived, this.onPlayer)) return;
     if (m.type === 'paint') decodeOps(m.bytes, this.surfaces)?.ops.forEach((op) => this.g.paintOps.apply(op));
@@ -270,13 +253,6 @@ export class Multiplayer {
       this.net.ping = now() - m.t;
       this.outbox.acked(m.acked);
     }
-  }
-
-  /** The server turned this game away (by a message, or by its close code when the message still waits in the queue): the session ends, true; false when it's a failed try (dropped). */
-  private turnedAway(reason: Rejection) {
-    this.log.add(`turned away by the server: ${reason}`);
-    const failed = endedBy(reason, Boolean(this.joined || this.line));
-    return failed ? (this.end({ state: 'failed', reason: failed }), true) : false;
   }
 
   private async welcome(w: Extract<ToClient, { type: 'welcome' }>, link: ServerLink, file: Uint8Array) {

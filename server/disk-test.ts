@@ -47,13 +47,15 @@ try {
   await game.next('welcome');
   game.send(ops(1));
   await until('the periodic save', () => saves().length === 1);
+  const first = saves()[0];
   if (process.getuid?.() !== 0) {
     fs.chmodSync(dir, 0o555);
     game.send(ops(2));
     await until('the failed save is logged', () => server.out().includes('paint not saved'));
     assert.deepEqual([saves().length, names().filter((n) => n.endsWith('.tmp')).length], [1, 0], 'no new save, no half-written file');
     fs.chmodSync(dir, 0o755);
-    await until('the save tried again', () => saves().length === 2);
+    // Within the hour only the newest stays.
+    await until('the save tried again', () => saves().length === 1 && saves()[0] !== first);
   }
   game.send({ type: 'leave' });
 

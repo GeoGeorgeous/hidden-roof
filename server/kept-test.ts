@@ -12,13 +12,14 @@ import { CODE_LENGTH, decode, encode, PROTOCOL, type ToClient, type ToServer } f
 import { PartsIn } from '../src/net/parts-in';
 import { encodeOps, SurfaceIndex } from '../src/op-wire';
 import { decodePaintFile } from '../src/save/paint-file';
+import { keepers } from './saves';
 
 // The admin's sessions (admin-api.ts, admin.mjs) and the public ones kept on
 // disk (kept.ts), against the built server: the key, a public session made,
 // full at its limit and kept when empty, its paint saved at shutdown and back
 // after a restart, a wipe (games come back to a clean wall), a new surface table
 // wiping the save, private ones that close when empty or stay, and a close;
-// what the admin page reads: sessions, the machine, the event stream and history. npm run test:server runs it.
+// stats, saves kept by age, a save downloaded and restored; what the admin page reads: sessions, the machine, the event stream and history. npm run test:server runs it.
 
 const freePort = () =>
   new Promise<number>((done) => {
@@ -165,6 +166,9 @@ try {
   }
   const seen = (await admin('GET', '/history')).body.people;
   assert.deepEqual(seen, { merged: SERVER.players.public + 2, byDevice: 2, byIp: SERVER.players.public + 3 });
+  const counted = (await admin('GET', '/history')).body;
+  const byAddress = SERVER.players.public + 3;
+  assert.deepEqual([counted.players, counted.inSessions, counted.playerCountries], [{ device: 2, address: byAddress }, { device: 2, address: byAddress }, {}], 'players and those who joined, by device and by address');
 
   // Paint, saved at shutdown, is back after the restart.
   const a = new Game();
@@ -193,6 +197,11 @@ try {
   const wb = await b.join(code, 'B');
   assert.ok(await painted(wb.file!), 'the paint is back');
   assert.equal((await admin('GET', '/sessions')).body[0].saves.length, 1, 'its save, listed');
+  // Its stats came back with the paint, from the file beside the save: A's stamp, the people before (each a new join), B now.
+  assert.equal(fs.readdirSync(dir).filter((n) => /^\w+-\d+\.json$/.test(n) && n.startsWith(code)).length, 1, 'stats beside the save');
+  const back = (await admin('GET', '/sessions')).body[0].stats;
+  assert.deepEqual([back.began, back.restoredAt, back.stamps, back.colors, back.painters, back.joins, back.peak.players], ['made', undefined, { can: 1, marker: 0, roller: 0, sponge: 0 }, { red: 1 }, 1, 7, 1]);
+  assert.ok(back.playSeconds >= 0 && Date.parse(back.since) <= Date.now(), 'play seconds, and since');
 
   // The paint now, for the admin to keep: a paint file made at the request, not written to disk; a session that isn't there, 404.
   const download = await fetch(`http://localhost:${ADMIN_PORT}/sessions/${code}/paint`, { headers: { authorization: 'Bearer test-key' } });
@@ -213,6 +222,9 @@ try {
   assert.equal(again.you, wb.you);
   assert.ok(!(await painted(again.file!)), 'a clean wall');
   assert.deepEqual(saves().map((n) => n.endsWith('.wiped.rhhpaint')), [true], 'the save, kept as wiped');
+  assert.ok(fs.readdirSync(dir).some((n) => n.startsWith(code) && n.endsWith('.wiped.json')), 'its stats too');
+  const zero = (await admin('GET', '/sessions')).body[0].stats;
+  assert.deepEqual([zero.began, zero.stamps, zero.colors, zero.painters, zero.joins, zero.peak?.players], ['wiped', { can: 0, marker: 0, roller: 0, sponge: 0 }, {}, 0, 0, 1], 'a wipe zeroes the stats (B came back to its seat: no new join, one player)');
   const wipedBox = (await admin('GET', '/machine')).body;
   assert.deepEqual([wipedBox.saves.last, wipedBox.saves.bytes > 0], [null, true], 'a wiped save counts for the disk, not as the last save');
   assert.deepEqual((await admin('GET', '/sessions')).body[0].saves.map((s: { wiped: boolean }) => s.wiped), [true], 'listed as wiped');
@@ -231,14 +243,83 @@ try {
   assert.ok(await painted((await new Game().join(code, 'E')).file!), 'the new save is back');
   assert.deepEqual((await admin('GET', '/sessions')).body[0].saves.map((s: { wiped: boolean }) => s.wiped), [false, true]);
   assert.equal((await admin('GET', '/machine')).body.saves.last, new Date(Number(/-(\d+)\.rhhpaint$/.exec(saves().find((n) => !n.includes('wiped'))!)![1])).toISOString(), 'the last save is the newest that is not wiped');
-  // Newer saves around, then a second wipe: the newest keepFiles of all stay, the earlier wiped ones among them.
+  // A second wipe puts the saves aside as wiped and replaces the first wipe's; one with nothing to put aside keeps them.
   const [fresh] = saves().filter((n) => !n.includes('wiped'));
   const [old] = saves().filter((n) => n.includes('wiped'));
-  for (let i = 1; i < SERVER.keepFiles; i++) fs.copyFileSync(path.join(dir, fresh), path.join(dir, fresh.replace(/-(\d+)/, (_, ms) => `-${Number(ms) + i}`)));
   assert.equal((await admin('POST', `/sessions/${code}/wipe`)).status, 200);
-  assert.equal(saves().length, SERVER.keepFiles, 'at most keepFiles wiped saves');
-  assert.ok(saves().every((n) => n.endsWith('.wiped.rhhpaint')), 'all of them wiped');
-  assert.ok(!saves().includes(old), 'the oldest is gone');
+  assert.deepEqual(saves().map((n) => n.endsWith('.wiped.rhhpaint')), [true], 'one wiped save: the newest, the first wipe\'s gone');
+  assert.ok(!saves().includes(old) && saves().includes(fresh.replace('.rhhpaint', '.wiped.rhhpaint')));
+  assert.equal((await admin('POST', `/sessions/${code}/wipe`)).status, 200);
+  assert.deepEqual(saves(), [fresh.replace('.rhhpaint', '.wiped.rhhpaint')], 'a wipe with nothing to put aside keeps the earlier');
+
+  // A save downloaded: its file, named by its time; one that isn't there is 404, a bad time 400.
+  const [wipedSave] = (await admin('GET', '/sessions')).body[0].saves;
+  const wipedMs = Date.parse(wipedSave.at);
+  assert.deepEqual([wipedSave.wiped, wipedSave.stats], [true, { stamps: 1, painters: 1 }]);
+  const got = await fetch(`http://localhost:${ADMIN_PORT}/sessions/${code}/saves/${wipedMs}`, { headers: { authorization: 'Bearer test-key' } });
+  const gotFile = new Uint8Array(await got.arrayBuffer());
+  assert.deepEqual([got.status, got.headers.get('content-type'), gotFile.length], [200, 'application/octet-stream', wipedSave.bytes]);
+  assert.match(got.headers.get('content-disposition')!, new RegExp(`^attachment; filename="${code}-${wipedSave.at.slice(0, 19).replaceAll(':', '-')}Z\\.rhhpaint"$`));
+  assert.ok(await painted(gotFile), 'the save, as a paint file');
+  assert.equal((await admin('GET', `/sessions/${code}/saves/1`)).status, 404);
+  assert.equal((await admin('GET', `/sessions/${code}/saves/soon`)).status, 400);
+  assert.equal((await admin('GET', `/sessions/ZZZZZ/saves/${wipedMs}`)).status, 404);
+
+  // A restore: F paints, the admin restores the wiped save (the stats come back as restored); the paint before is saved first, as the undo.
+  const restores = await feed();
+  const f = new Game();
+  const wf = await f.join(code, 'F');
+  assert.ok(!(await painted(wf.file!)), 'a clean wall');
+  f.send({ type: 'ops', seq: 1, bytes: encodeOps([1], [{ ...stamp, key: faces[1].key }], surfaces) });
+  f.send({ type: 'ping', t: 1 });
+  await f.next('pong');
+  for (const [body, status] of [[{}, 400], [{ save: 'x' }, 400], [{ save: 1 }, 404]] as const) assert.equal((await admin('POST', `/sessions/${code}/restore`, body)).status, status, JSON.stringify(body));
+  assert.equal((await admin('POST', `/sessions/ZZZZZ/restore`, { save: wipedMs })).status, 404);
+  const both = await Promise.all([admin('POST', `/sessions/${code}/restore`, { save: wipedMs }), admin('POST', `/sessions/${code}/restore`, { save: wipedMs })]);
+  assert.deepEqual(both.map((r) => r.status).sort(), [200, 409], 'while one restore is under way, another is 409');
+  const { undo } = both.find((r) => r.status === 200)!.body;
+  assert.equal(typeof undo, 'number');
+  assert.equal(await f.closed, 1012, 'its players are dropped, as a wipe does');
+  const back2 = await new Game().join(code, 'F', wf.token);
+  assert.equal(back2.you, wf.you);
+  assert.ok(await painted(back2.file!), 'back to the restored paint');
+  const after = (await admin('GET', '/sessions')).body[0];
+  assert.deepEqual([after.stats.began, typeof after.stats.restoredAt, after.stats.stamps.can], ['restored', 'string', 1], 'the save\'s stats, as restored');
+  const undone = after.saves.find((v: { at: string }) => Date.parse(v.at) === undo);
+  assert.deepEqual([undone.wiped, undone.stats], [false, { stamps: 1, painters: 1 }], 'the undo: the paint before, with its stats');
+  assert.ok(after.saves.length >= 3, 'the undo, the restored paint and the wiped save');
+  await new Promise((w) => setTimeout(w, 100));
+  const done = events(restores, 'restored');
+  assert.equal(done.length, 1);
+  assert.deepEqual((done[0].data as unknown as { detail: object }).detail, { from: 'save', save: wipedMs, undo });
+  // It is the paint after a restart too, not the paint before it.
+  await stop(server);
+  server = await start();
+  assert.ok(await painted((await new Game().join(code, 'G')).file!), 'the restored paint, kept');
+  assert.equal((await admin('GET', '/sessions')).body[0].stats.began, 'restored');
+
+  // Kept by age: the newest, and the newest at least 6 h, 1 day, 3 days and 7 days old; a save and its stats go together, wiped ones stay.
+  const [real] = saves().filter((n) => !n.includes('wiped'));
+  const H = 36e5;
+  const t0 = Date.now();
+  const young = [1, 7, 8, 48, 96, 192, 216].map((h) => t0 - h * H);
+  for (const ms of young) for (const ext of ['rhhpaint', 'json']) fs.copyFileSync(path.join(dir, real.replace('.rhhpaint', `.${ext}`)), path.join(dir, `${code}-${ms}.${ext}`));
+  const g2 = new Game();
+  await g2.join(code, 'G2');
+  g2.send({ type: 'ops', seq: 1, bytes: encodeOps([1], [{ ...stamp, key: faces[2].key }], surfaces) });
+  g2.send({ type: 'ping', t: 1 });
+  await g2.next('pong');
+  await stop(server);
+  const kept = saves().filter((n) => !n.includes('wiped')).map((n) => Number(/-(\d+)\.rhhpaint$/.exec(n)![1])).sort((x, y) => y - x);
+  assert.equal(kept.length, 5, 'five kept');
+  assert.ok(kept[0] >= t0, 'the newest is the one just saved');
+  assert.deepEqual(kept.slice(1), [t0 - 7 * H, t0 - 48 * H, t0 - 96 * H, t0 - 192 * H], '6 h, 1 day, 3 days and 7 days');
+  assert.deepEqual(fs.readdirSync(dir).filter((n) => n.startsWith(code) && n.endsWith('.json') && !fs.existsSync(path.join(dir, n.replace('.json', '.rhhpaint')))), [], 'no stats without their save');
+  assert.equal(saves().filter((n) => n.includes('wiped')).length, 1, 'the wiped save stays');
+  server = await start();
+  assert.deepEqual([...keepers([1000, 9000], 10000, [0, 4, 9])].sort(), [1000, 9000], 'the newest, and the oldest fills the 4 s and 9 s slots once');
+  assert.deepEqual([...keepers([], 10000, [0, 4])], [], 'none');
+  assert.deepEqual([...keepers([9000], 10000, SERVER.keepAges)], [9000], 'one save fills every slot it can');
 
   // A new surface table (another version of the game) wipes the saves at start, the wiped ones too.
   const c = new Game();
@@ -253,7 +334,8 @@ try {
   assert.match(out, new RegExp(`${code} paint wiped: a new surface table`));
   const atStart = await feed();
   for (let i = 0; !atStart.length; i++) await new Promise((w) => setTimeout(w, 20));
-  assert.deepEqual((atStart[0].data as unknown as { type: string; detail: object }[]).map((e) => [e.type, e.detail]), [['wiped-at-start', { cause: ['surface table'] }]], 'kept for a page that opens later');
+  // The events before the restart are on disk, and read back for the stream: the wipe is the newest.
+  assert.deepEqual((atStart[0].data as unknown as { type: string; detail: object }[]).map((e) => [e.type, e.detail]).at(-1), ['wiped-at-start', { cause: ['surface table'] }], 'kept for a page that opens later');
   assert.equal(saves().length, 0);
 
   // A private session of the admin's closes once its players have gone, unless it stays; it isn't kept on disk.
@@ -276,17 +358,20 @@ try {
   await d.join(code, 'D');
   fs.writeFileSync(path.join(dir, `${code}-1.wiped.rhhpaint`), '');
   fs.writeFileSync(path.join(dir, `${code}-2.rhhpaint`), '');
+  fs.writeFileSync(path.join(dir, `${code}-2.json`), '{}');
+  fs.writeFileSync(path.join(dir, `${code}-1.wiped.json`), '{}');
   assert.equal((await admin('POST', `/sessions/${code}/close`)).status, 200);
   assert.equal((await d.next('rejected')).reason, 'closed');
   assert.equal(saves().length, 0);
+  assert.deepEqual(fs.readdirSync(dir).filter((n) => n.startsWith(code)), [], 'no file of the session stays, stats included');
   assert.deepEqual((await admin('GET', '/sessions')).body, []);
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(dir, 'sessions.json'), 'utf8')), []);
   // Plays that ended (seven left, one ended by the close), the paint still there after two restarts.
   const month = (await admin('GET', '/history?period=30d')).body;
-  assert.deepEqual([month.playLength, month.stamps.can], [{ under2m: 8, m2to10: 0, m10to30: 0, over30m: 0 }, 3]);
+  assert.deepEqual([month.playLength, month.stamps.can], [{ under2m: 8, m2to10: 0, m10to30: 0, over30m: 0 }, 5]);
   assert.equal(month.people.byDevice, 2, 'people, kept through restarts');
   assert.ok(!JSON.stringify(fs.readdirSync(path.join(dir, 'stats')).map((n) => fs.readFileSync(path.join(dir, 'stats', n), 'utf8'))).includes('10.2.0.'), 'no address on disk');
-  console.log('kept sessions: ok (admin key and origin, a public session full at its limit with a line, kept empty, paint back after a restart, the paint downloaded, wipe, saves kept aside, a new surface table wipes, private ones close when empty unless they stay, close, what the admin page reads, the event stream, history)');
+  console.log('kept sessions: ok (admin key and origin, a public session full at its limit with a line, kept empty, paint back after a restart, its stats, the paint downloaded, wipe, saves kept aside and replaced, a save downloaded, restore with its undo and 409, saves kept by age, a new surface table wipes, private ones close when empty unless they stay, close, what the admin page reads, the event stream, history)');
 } finally {
   server.kill();
   fs.rmSync(dir, { recursive: true, force: true });

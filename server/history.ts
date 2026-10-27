@@ -28,17 +28,23 @@ interface Hour extends Paint {
   client: ClientCounts;
 }
 
-type Period = 'today' | '24h' | '7d' | '30d';
+export type Period = 'today' | '24h' | '7d' | '30d';
 const HOURS: Record<Exclude<Period, 'today'>, number> = { '24h': 24, '7d': 7 * 24, '30d': 30 * 24 };
 export const isPeriod = (p: string): p is Period => p === 'today' || Object.hasOwn(HOURS, p);
 
-const HOUR = 3600e3;
+export const HOUR = 3600e3;
 const iso = (ms: number) => new Date(ms).toISOString();
 const dayName = (day: number) => iso(day * 24 * HOUR).slice(0, 10);
 const blank = (): Hour => ({ plays: 0, lengths: [0, 0, 0, 0], seconds: 0, withOthers: 0, turnedAway: {}, ...noPaint(), peak: null, client: noClient() });
 
 /** An hour as saved: one written before a field was added gets it empty (the beacons' too). */
 const loaded = (h: Hour): Hour => ({ ...blank(), ...h, client: { ...noClient(), ...h.client, events: { ...noClient().events, ...h.client?.events } } });
+
+/** The first hour (since 1970) of `period`, up to `now` (ms): today since 00:00 UTC, or the last 24, 7 x 24 or 30 x 24 hours counting this one. */
+export function firstHour(period: Period, now: number) {
+  const h = Math.floor(now / HOUR);
+  return period === 'today' ? Math.floor(h / 24) * 24 : h - HOURS[period] + 1;
+}
 
 /** `hours` added up. */
 function sum(hours: Iterable<Hour>) {
@@ -71,6 +77,8 @@ class History {
   /** The most players at once, ever (with a directory). */
   ever: Hour['peak'] = null;
   private everChanged = false;
+  /** When the days last went to disk (ms), or null (no directory, or not yet). */
+  savedAt: number | null = null;
   /** The save under way (saveAll never throws). */
   private running: Promise<void> | null = null;
 
@@ -86,7 +94,7 @@ class History {
   /** A new player came in on `link` (not one back, nor a new tab of theirs). */
   started(link: Link) {
     this.now().plays++;
-    people.played(link.device, link.ip, link.country ?? null);
+    people.played(link.device, link.ip, link.country ?? null, 'join');
   }
 
   /** A play ended after `seconds`. */
@@ -120,8 +128,7 @@ class History {
   /** The counts in `period`, up to now. `from`: its start, or when the counts start if that's later. */
   report(period: Period) {
     const now = Date.now();
-    const h = Math.floor(now / HOUR);
-    const first = period === 'today' ? Math.floor(h / 24) * 24 : h - HOURS[period] + 1;
+    const first = firstHour(period, now);
     const kept = [...this.hours].filter(([k]) => k >= first);
     const t = sum(kept.map(([, v]) => v));
     const joinsPerHour = Array<number>(24).fill(0);
@@ -178,6 +185,7 @@ class History {
       if (this.everChanged) await this.write('peak.json', this.ever);
       await people.save();
       this.everChanged = false;
+      this.savedAt = Date.now();
     } catch (e) {
       for (const day of days) this.dirty.add(day);
       log('-----', 'history not saved:', e);

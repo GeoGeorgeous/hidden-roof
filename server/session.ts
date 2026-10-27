@@ -4,19 +4,19 @@ import { SLOTS, type Tool } from '../src/inventory/tool';
 import type { LevelData } from '../src/level/level-data';
 import { decodeOps, encodeOps, SurfaceIndex } from '../src/op-wire';
 import { opTool } from '../src/paint-ops';
-import { closeCode, encode, partFrames, partPieces, type Rejection, type ToClient, type ToServer } from '../src/net/protocol';
+import { closeCode, encode, partFrames, type Rejection, type ToClient, type ToServer } from '../src/net/protocol';
 import { loadPaint } from '../src/save/load-paint';
-import { joinBytes } from '../src/save/paint-file';
-import { streamPaint } from '../src/save/save-paint';
 import { surfaceTable } from '../src/save/shape';
-import { countPaint, DayCounts } from './counts';
+import { countPaint, DayCounts, SessionStats } from './counts';
 import { event } from './events';
 import { history } from './history';
-import { liveMemory, log, mb, overMemory, span, who } from './log';
+import { log, span, who } from './log';
 import { deliver, presence, uniqueName, type Link, type Player } from './player';
 import { Queue } from './queue';
 import { HOSTED } from './setup';
-import { Snapshot, waiting } from './snapshot';
+import { PaintFiles } from './paint-files';
+import { fit, mostPaint } from './paint-fit';
+import { inTurn, Snapshot } from './snapshot';
 import { levelRange, spotIn, type Range } from './spot';
 import { paintMemory, sessionPaint } from './world';
 
@@ -45,11 +45,10 @@ export class Session {
   private nextId = 1;
   readonly started = Date.now();
   private counts: Record<How, number> = { new: 0, back: 0, takeover: 0 };
-  /** The newest paint file whose paint has been read (made or being made), while it's kept; and one waiting for its turn. */
-  private snap: Snapshot | null = null;
-  private next: Snapshot | null = null;
-  /** Paint changes held back while a paint file reads the paint (null: none is), in order. */
-  private frozen: (() => void)[] | null = null;
+  /** Its paint files (paint-files.ts). */
+  private files: PaintFiles;
+  /** The paint being replaced by a restore, until it is loaded. */
+  private restoring: Promise<void> | null = null;
   /** The save HOST sent, as its paint file: the host has its paint already. */
   private seed: Snapshot | null = null;
   /** What players gone carried and where they stood, by name: one who comes back later under it gets it back. */
@@ -62,6 +61,8 @@ export class Session {
   wipes = 0;
   /** Its paint and most players this UTC day, for the admin page. */
   readonly today = new DayCounts();
+  /** Its counts since its paint began (a wipe zeroes them, kept.ts brings a save's back). */
+  stats = new SessionStats();
   /** When its last player went (ms), or null with players in it. */
   emptySince: number | null = this.started;
 
@@ -78,17 +79,16 @@ export class Session {
     this.line = new Queue(code, () => this.players.size < this.setup.limit);
     this.range = levelRange(level);
     this.world = sessionPaint(level, detail);
+    this.files = new PaintFiles(code, this.world.paint, levelName);
     this.table = surfaceTable(this.world.paint.surfaces);
     this.surfaces = new SurfaceIndex([...this.world.paint.surfaces].map((s) => s.key));
   }
 
   /** Start from a paint save (HOST's, or `host` false one kept on disk). Throws with a message if it's no good or doesn't fit the level. */
   async load(save: Uint8Array, host = true) {
-    // At most this level all painted, at the highest detail (a save may be made at any), with each face's ring.
-    const most = this.memory.full * 2 ** 20 * (96 / this.detail) ** 2 * 1.25;
-    await loadPaint(this.world.paint, this.world.drips, save, { name: this.levelName }, most);
+    await loadPaint(this.world.paint, this.world.drips, save, { name: this.levelName }, mostPaint(this.world.paint, this.detail));
     // The save is the paint now, as the players load it (the same faces fit, resampled the same way): the host's welcome.
-    if (host) this.keep((this.seed = new Snapshot(partFrames([save], SERVER.partBytes))));
+    if (host) this.files.keep((this.seed = new Snapshot(partFrames([save], SERVER.partBytes))));
   }
 
   /** Paint memory in MB now, and with every surface painted. */
@@ -105,6 +105,8 @@ export class Session {
    * session is full or there's no memory for a paint file. `note`: for the log.
    */
   async admit(link: Link, name: string, token?: string): Promise<{ p: Player; how: How; note: string } | Rejection> {
+    // Players dropped by a restore come back to the restored paint.
+    if (this.restoring) await this.restoring.catch(() => {});
     const all = [...this.players.values()];
     let p = token ? all.find((q) => q.token === token) : undefined;
     // No token, but the device of a player whose link is still open (a tab whose session storage is gone, a second tab): the same player.
@@ -113,9 +115,10 @@ export class Session {
     const how = p ? 'back' : (p = dropped.find((q) => q.name === name) ?? dropped.find((q) => q.asked === name)) ? 'takeover' : 'new';
     if (!p && this.setup.kind === 'public' && all.filter((q) => (q.link ?? q.was)?.ip === link.ip).length >= SERVER.seatsPerIp) return 'seats';
     if (!p && this.players.size >= this.setup.limit) return 'full';
-    const snap = this.snapshot(() => p?.link === link && link.open);
+    const snap = this.files.get(() => p?.link === link && link.open);
     if (snap === 'busy') return 'busy';
     this.counts[how]++;
+    if (how === 'new') this.stats.joins++;
     let note = '';
     if (p) {
       if (p.expires) clearTimeout(p.expires);
@@ -139,6 +142,7 @@ export class Session {
       this.players.set(p.id, p);
     }
     this.today.players(this.players.size);
+    this.stats.players(this.players.size);
     this.emptySince = null;
     p.live = false;
     let frames;
@@ -173,7 +177,8 @@ export class Session {
       this.broadcast({ type: 'state', id: p.id, bytes: m.bytes }, p);
     }
     else if (m.type === 'ops') {
-      if (m.seq <= p.acked) return;
+      // Not acked: the game sends them again, to the restored paint.
+      if (this.restoring || m.seq <= p.acked) return;
       p.acked = m.seq;
       const batch = decodeOps(m.bytes, this.surfaces);
       if (!batch) return log(this.code, who(p), 'paint ops it could not read: dropped');
@@ -184,13 +189,14 @@ export class Session {
         return op.rect < (paint.find(op.key)?.geo.rects.length ?? 0) && !(tool && this.off.has(tool));
       });
       const valid = batch.ops.filter((_, i) => keep[i]);
-      this.paintNow(() => valid.forEach((op) => ops.apply(op)));
+      this.files.now(() => valid.forEach((op) => ops.apply(op)));
       if (!valid.length) return;
-      countPaint(valid, [this.today.paint, history.now()]);
+      countPaint(valid, [this.today.paint, history.now(), this.stats.paint]);
+      this.stats.painter(p.name);
       this.changed = true;
       const bytes = valid.length === batch.ops.length ? m.bytes : encodeOps(batch.t.filter((_, i) => keep[i]), valid, this.surfaces);
       this.broadcast({ type: 'ops', id: p.id, bytes }, p);
-      this.snap?.log.push(encode({ type: 'paint', bytes }));
+      this.files.log(encode({ type: 'paint', bytes }));
     } else if (m.type === 'ladder') {
       // Putting one down with the stepladder off is dropped (picking it up is not).
       if (m.data && this.off.has('ladder')) return;
@@ -219,7 +225,8 @@ export class Session {
 
   /** Paint runs move on (`dt` s). */
   tick(dt: number) {
-    this.paintNow(() => this.world.drips.update(dt));
+    if (this.restoring) return;
+    this.files.now(() => this.world.drips.update(dt));
   }
 
   /** To players waiting for their welcome too: their link is alive. */
@@ -241,18 +248,41 @@ export class Session {
    */
   wipe() {
     this.wipes++;
-    this.paintNow(() => {
+    this.stats = new SessionStats('wiped');
+    this.files.now(() => {
       this.world.paint.clear();
       this.world.drips.clear();
-      this.snap = null;
+      this.files.forget();
       for (const p of this.players.values()) p.link?.close(1012, 'wiped');
     });
+  }
+
+  /** Throws Refused with why unless `file` is a paint file this session can take as its paint (paint-fit.ts). */
+  fits(file: Uint8Array) {
+    return fit(file, this.levelName, this.detail, this.world.paint, this.world.drips);
+  }
+
+  /** The admin's restore: its paint and stats become `file`'s (fits()). As a wipe's, every link closes as a drop; a game that comes back waits for the paint to load, and paint sent meanwhile is dropped. */
+  async restore(file: Uint8Array, stats: SessionStats) {
+    this.wipes++;
+    const loading = (this.restoring = inTurn(async () => {
+      this.files.forget();
+      await this.load(file, false);
+      this.stats = stats;
+    }));
+    for (const p of this.players.values()) p.link?.close(1012, 'restored');
+    try {
+      await loading;
+    } finally {
+      this.restoring = null;
+    }
   }
 
   /** The admin closed it: everyone, those in line too, is told so (`closed`, not `ended`: nobody ran out of time). */
   end() {
     for (const p of this.players.values()) {
       history.played((Date.now() - p.joined) / 1000);
+      this.stats.stay(p.joined, Date.now());
       this.eject(p, 'closed');
     }
     this.players.clear();
@@ -271,11 +301,13 @@ export class Session {
   }
 
   /** The paint now as a paint file (kept.ts saves it), made in turn as a welcome's is; null when there's no memory for one. */
-  async paintFile() {
-    const snap = this.snapshot(() => true, true);
-    if (snap === 'busy') return null;
-    const frames = await snap.frames;
-    return frames && joinBytes(partPieces(frames));
+  paintFile() {
+    return this.files.file();
+  }
+
+  /** When (ms) the players now in it joined: the stats count their time so far. */
+  joinedAt() {
+    return [...this.players.values()].map((p) => p.joined);
   }
 
   /** For the log when it closes. */
@@ -293,6 +325,7 @@ export class Session {
     const played = (Date.now() - p.joined) / 1000;
     event('left', this, p.name, { why, played: Math.round(played) });
     history.played(played);
+    this.stats.stay(p.joined, Date.now());
     const link = p.link;
     p.link = null;
     link?.close(1000, why);
@@ -322,7 +355,7 @@ export class Session {
   private async save(p: Player) {
     if (p.saving) return;
     const link = p.link;
-    const snap = this.snapshot(() => p.link === link && !!link?.open, true);
+    const snap = this.files.get(() => p.link === link && !!link?.open, true);
     if (snap === 'busy') return this.send(p, { type: 'save', parts: 0 });
     p.saving = true;
     try {
@@ -337,64 +370,6 @@ export class Session {
     } finally {
       p.saving = false;
     }
-  }
-
-  /**
-   * A paint file for someone who wants it while `still()`: the newest one (for
-   * SAVE only with nothing painted since: SAVE is the paint now), else the one
-   * waiting for its turn, else a new one (none when there's no memory for it). While it reads the paint, the paint
-   * holds still: what's painted meanwhile is applied after it, and its ops go
-   * in the file's log.
-   */
-  private snapshot(still: () => boolean, save = false): Snapshot | 'busy' {
-    if (this.snap && !(save && this.snap.log.length)) return this.snap.want(still);
-    if (this.next) return this.next.want(still);
-    if (overMemory(SERVER.snapshotMemory)) {
-      log(this.code, `no memory for a paint file (${liveMemory().toFixed(0)} MB live)`);
-      return 'busy';
-    }
-    const s = (this.next = new Snapshot().want(still));
-    const gone = () => this.next === s && (this.next = null);
-    s.frames.then(gone, gone);
-    s.queue(async () => {
-      this.next = null;
-      this.snap = s;
-      this.frozen = [];
-      const t = performance.now();
-      try {
-        const { pieces, raw } = await streamPaint(this.world.paint, { name: this.levelName }, SERVER.snapshotChunk);
-        const frames = partFrames(pieces, SERVER.partBytes);
-        const size = frames.reduce((n, f) => n + f.length, 0);
-        log(this.code, `paint file: ${mb(raw)} MB of paint, ${mb(size)} MB packed, in ${((performance.now() - t) / 1000).toFixed(1)} s (${waiting()} more in line)`);
-        this.keep(s);
-        return frames;
-      } catch (e) {
-        // Only who waited for it goes without: the next one who wants a paint file gets a new one.
-        if (this.snap === s) this.snap = null;
-        log(this.code, `paint file failed: ${(e as Error).message}`);
-        throw e;
-      } finally {
-        const held = this.frozen;
-        this.frozen = null;
-        held!.forEach((f) => f());
-      }
-    });
-    return s;
-  }
-
-  /** `s` is the newest paint file, for SERVER.snapshotKeep. */
-  private keep(s: Snapshot) {
-    this.snap = s;
-    setTimeout(() => {
-      if (this.snap === s) this.snap = null;
-      if (s.served > 1) log(this.code, `paint file served ${s.served}`);
-    }, SERVER.snapshotKeep * 1000);
-  }
-
-  /** A change to the paint now, or after the paint file that's reading it. */
-  private paintNow(fn: () => void) {
-    if (this.frozen) this.frozen.push(fn);
-    else fn();
   }
 
   private send(p: Player, m: ToClient) {
