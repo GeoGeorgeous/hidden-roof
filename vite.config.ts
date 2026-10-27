@@ -20,6 +20,9 @@ function version(): string {
   }
 }
 
+// The releases with a picture (public/updates/<tag>.webp): a patch may have none (docs/releases/AGENTS.md).
+const pictures = () => readdirSync('public/updates').filter((f) => f.endsWith('.webp')).map((f) => f.slice(0, -5));
+
 // The player build ships only the release levels (LEVELS.release in config.ts), each with its own paint if it has some (src/save/level-paint.ts).
 const releaseLevels = {
   name: 'release-levels',
@@ -176,7 +179,7 @@ const gamePreload = () => {
 // npm run build:dev; npm run build, the player build, leaves them out.
 export default defineConfig(({ mode, isSsrBuild }) => ({
   plugins: [releaseLevels, stripComments, gamePreload(), precompress()],
-  define: { __VERSION__: JSON.stringify(version()), __DEV_TOOLS__: JSON.stringify(mode !== 'production'), __MIN_VIEWPORT__: JSON.stringify(RENDER.minViewport) },
+  define: { __VERSION__: JSON.stringify(version()), __DEV_TOOLS__: JSON.stringify(mode !== 'production'), __MIN_VIEWPORT__: JSON.stringify(RENDER.minViewport), __PICTURES__: JSON.stringify(pictures()) },
   ssr: { noExternal: true },
   build: { copyPublicDir: !isSsrBuild },
   server: { proxy: { '/ws': { target: process.env.WS_TARGET ?? 'ws://localhost:3000', ws: true } } },

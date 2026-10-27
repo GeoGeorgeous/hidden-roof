@@ -104,7 +104,6 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 1. IDEA [BL-062]: Photo mode with Polaroid-like cards for photos
 2. IDEA [BL-061]: A player in the style of an old iPod Classic
-3. [TEST-177]: Allow releasing small patch versions with no image at all @1.6.0
 
 ## UI
 
@@ -198,6 +197,7 @@ Shipped since the last release; the release commit empties this list.
 26. [CCTV-260]: People in one model: Visitors (unique, from the web log) > Views (page loads) > Players (solo and multiplayer, unique by the device id, now in the beacon) > in sessions, with Now beside it; by address behind a switch, merged dropped; Main rebuilt on it
 27. [CCTV-252]: Session > Players: one placeholder for a field not there yet (ping in a player's first 10 s or while dropped, time, country); time in game as H:MM:SS on a 1 s clock, never below 0 (it showed -1:-1); Kick keeps its place @1.6.0
 28. [CCTV-257]: One switch for every time on the page: UTC or the browser's local time; days still count in UTC @1.6.0
+29. [TEST-177]: A patch release may have no picture: nothing shows in its place in the game, on GitHub or on Discord; a minor or major release still needs one (docs/releases/AGENTS.md) @1.6.0
 
 ## Discarder
 

@@ -1,6 +1,6 @@
 // The release notes (docs/releases, format and rules in docs/releases/AGENTS.md):
-// each parses, follows the rules a script can check, has its picture, and the
-// version in package.json has its note.
+// each parses, follows the rules a script can check, has its picture (a patch
+// may have none), and the version in package.json has its note.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { SITE } from '../src/links.ts';
@@ -30,6 +30,7 @@ see [Terms](/terms.html) and [Privacy](/privacy.html).
 `;
 const github = githubNotes(fixture, 'URL');
 assert.ok(!github.includes('](/') && github.includes('](https://roof.hidden.haus/terms.html)'), 'GitHub: root-relative links made absolute');
+assert.ok(github.includes('src="URL"') && !githubNotes(fixture).includes('<img'), 'GitHub: the picture, none without one');
 const discord = discordNotes('v9.9.9', fixture).join('');
 assert.ok(!discord.includes('](/') && !/\]\((?!<)/.test(discord), 'Discord: every link target absolute and wrapped in <>');
 assert.ok(discord.includes('[Privacy](<https://roof.hidden.haus/privacy.html>)') && discord.includes('[Ko-fi](<https://ko-fi.com/D0Q7296HCP>)'), 'Discord: the links');
@@ -61,10 +62,15 @@ for (const file of files) {
     assert.ok(m[1].trim(), `${at}: link ${m[0]} has text`);
     assert.ok(linkable(m[2]), `${at}: link ${m[0]} leads to a page of the game (/terms.html) or an allowed site, not ${SITE}`);
   }
-  const [w, h, size] = webpSize(`public/updates/${tag}.webp`);
-  assert.ok(w === 1280 && h === 720 && size <= MAX_PICTURE, `public/updates/${tag}.webp: ${w}×${h}, ${size} bytes; want 1280×720, at most ${MAX_PICTURE}`);
-  const github = githubNotes(md, 'URL');
-  assert.ok(github.startsWith(text.trim().slice(0, 20)) && github.includes('src="URL"'), `${at}: renders for GitHub`);
+  const picture = `public/updates/${tag}.webp`;
+  const patch = !tag.endsWith('.0');
+  assert.ok(patch || fs.existsSync(picture), `${picture}: a minor or major release has its picture`);
+  if (fs.existsSync(picture)) {
+    const [w, h, size] = webpSize(picture);
+    assert.ok(w === 1280 && h === 720 && size <= MAX_PICTURE, `${picture}: ${w}×${h}, ${size} bytes; want 1280×720, at most ${MAX_PICTURE}`);
+  }
+  const github = githubNotes(md, fs.existsSync(picture) ? 'URL' : undefined);
+  assert.ok(github.startsWith(text.trim().slice(0, 20)) && github.includes('src="URL"') === fs.existsSync(picture), `${at}: renders for GitHub`);
   assert.ok(discordNotes(tag, md).every((m) => m.length <= 2000), `${at}: each Discord message fits 2000 characters`);
   releases.push(r);
 }
