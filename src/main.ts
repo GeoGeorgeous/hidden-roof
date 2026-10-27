@@ -56,7 +56,6 @@ import { multiplayerMenu } from './net/net-menu';
 import { seedPaintRandom } from './lcg';
 import { fanLevel, metalDrops } from './emitter-sounds';
 import { guarded } from './frame-guard';
-import { onTakeover } from './one-tab';
 
 // F3's defaults before anything changes config (the panel isn't in the player build).
 if (__DEV_TOOLS__) captureDefaults();
@@ -216,8 +215,6 @@ hud.menu.setSettings(settings.sections(gpu, testPage.run, tutorial));
 // SAVE in a session downloads the session's paint, from the server.
 const paintFile = paintMenu(hud.menu, paint, drips, () => opened.name, () => net.savePaint());
 const net = multiplayerMenu(hud.menu, notify, { scene, camera, level, paint, paintOps, drips, player, inventory, pickups, tools, paused: () => play.paused, lastActive: () => input.lastActive, levelData: () => ({ data: opened.toJSON(), name: opened.name }), levelPaint: () => levelPaintOf(opened.name), openLevel: (d, n) => opened.open(d, n), restartLevel: () => opened.restart(), lockDetail: (tpm) => settings.lockPaintDetail(tpm), ownDetail: () => settings.useOwnDetail() });
-// Another tab takes the game over: this one leaves its session first and reloads (one-tab.ts).
-onTakeover(() => net.depart());
 // A stepladder can't stand where the session's players or F3's figures (the ghost) are.
 tools.ladder.others = () => [...net.shown, ...(dev?.figures ?? [])];
 tools.onCapChange = (name) => hud.showCapTag(name);
