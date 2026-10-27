@@ -142,8 +142,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 1. IDEA [BL-047]: Admin panel: servers stats (players online, perfomance, etc), players info (username, IP, ping), after BL-043; ban by IP is IDEA-240 (docs/ideas/public-servers.md) @1.6.0
 2. [IDEA-240]: Admin: ban by IP (with a reason the player is shown); restoring a save is CCTV-255 (docs/ideas/public-servers.md)
 3. IDEA [?BL-147]: Anti-cheat: The server checks what players send (op reach and rate, ladder spot, jumps) before it goes public @1.6.1
-4. [TASK-245]: Public sessions: at most N seats and places in line per address (N 2 or more: a household shares one), a JOIN rate per address; a dropped seat is still taken back by its nickname @1.6.0
-5. [TASK-201]: Research itch.io Publishing Requirements, AI Policies, and Download Restrictions @1.6.3
+4. [TASK-201]: Research itch.io Publishing Requirements, AI Policies, and Download Restrictions @1.6.3
 
 ## CCTV
 
@@ -197,6 +196,7 @@ Shipped since the last release; the release commit empties this list.
 12. [TASK-241]: Read Caddy's access log in a container of its own on the host, `roof-traffic` (not the game server): page views, referrers and UTM, the first funnel steps, as daily rollups for the admin page's Traffic tab; our own links carry `?ref=` (discord, ig, tg), counted with `utm_source` and the Referer as one Source
 13. [IDEA-188]: Who plays and from where, counted on the server: country from the IP at connect, counts only, the IP not kept (SECRET_legal.md)
 14. [BUGS-168]: A player who comes back under the same nickname gets their inventory and their last position back (the server keeps the last position from the state it relays, checks it against the level, and the welcome carries it)
+15. [TASK-245]: A public session gives one address at most 4 seats and 4 places in its line (a household shares one), and takes 10 JOINs a minute from one address; refused with their own reasons and texts; a dropped seat is still taken back by its nickname
 
 ## Discarder
 

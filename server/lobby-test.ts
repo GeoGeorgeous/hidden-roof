@@ -11,7 +11,7 @@ import { Game, join, start } from './test-kit';
 
 // The server list and the limits per session (lobby-http.ts, lobby.ts), against the built server: the list over plain
 // HTTP (public and private sessions, their order, codes only for public ones), a lookup by code and its limit per
-// address, a hosted session turning the player over its limit away, the admin's private limit, a HOST with
+// address, a hosted session turning the player over its limit away, a public session's seats, places in line and JOINs per address, the admin's private limit, a HOST with
 // fields it can't take, HOST refused unless PLAYER_HOST, and the admin's kick (a reconnect with a kicked player's token is told so, a new join comes in). npm run test:server runs it.
 
 const level = JSON.parse(fs.readFileSync('public/levels/demo.json', 'utf8'));
@@ -139,7 +139,50 @@ try {
   assert.equal((await no.next('rejected')).reason, 'no-host');
   assert.equal(await no.closed, 4010);
   assert.equal(closeCode('no-host'), 4010);
-  console.log('server list: ok (the list, a lookup by code and its limit, per-session limits, the admin\'s private limit, HOST only with PLAYER_HOST, the admin\'s kick)');
+
+  // A public session gives one address SERVER.seatsPerIp seats, and the same many places in its line; a seat it dropped is
+  // still taken back by its nickname. Another address is not held up by it.
+  const crowd = await admin({ kind: 'public', name: 'Crowd', level: 'demo', detail: 'low' });
+  const refused = async (g: Game) => {
+    const reason = (await g.next('rejected')).reason;
+    assert.equal(await g.closed, closeCode(reason));
+    return reason;
+  };
+  const house = '10.4.0.1';
+  const seated = await Promise.all(Array.from({ length: SERVER.seatsPerIp }, (_, i) => join(main.port, `h${i}`, crowd.body.code, {}, house)));
+  const welcomed = await Promise.all(seated.map((g) => g.next('welcome')));
+  assert.equal(await refused(await join(main.port, 'extra', crowd.body.code, {}, house)), 'seats');
+  seated[0].ws.terminate();
+  await seated[0].closed;
+  assert.equal(await refused(await join(main.port, 'other', crowd.body.code, {}, house)), 'seats', 'a dropped seat still counts');
+  assert.equal((await (await join(main.port, 'h0', crowd.body.code, {}, house)).next('welcome')).you, welcomed[0].you, 'its nickname takes it back');
+  const rest = [];
+  for (let n = 2; n <= 5; n++) for (let i = 0; i < SERVER.seatsPerIp; i++) rest.push(await join(main.port, `n${n}x${i}`, crowd.body.code, {}, `10.4.0.${n}`));
+  for (const g of rest) await g.next('welcome');
+  assert.equal((await list()).sessions.find((e) => e.name === 'Crowd')!.players.length, SERVER.players.public, 'the session is full');
+  // Full: an address waits in line with as many places, and no more; one with all its seats doesn't wait for another.
+  const line = [];
+  for (let i = 0; i < SERVER.seatsPerIp; i++) line.push(await join(main.port, `w${i}`, crowd.body.code, {}, '10.4.0.6'));
+  for (const [i, g] of line.entries()) assert.equal((await g.next('queued')).position, i + 1);
+  assert.equal(await refused(await join(main.port, 'w9', crowd.body.code, {}, '10.4.0.6')), 'seats');
+  assert.equal(await refused(await join(main.port, 'h9', crowd.body.code, {}, house)), 'seats');
+  rest[0].send({ type: 'leave' });
+  await line[0].next('welcome');
+
+  // JOINs to a public session are limited per address a minute, whether they seat or not; the token of a seat is a reconnect, which isn't counted.
+  const open = await admin({ kind: 'public', name: 'Open', level: 'demo', detail: 'low' });
+  const busy = '10.4.0.7';
+  const tries = [];
+  for (let i = 0; i < SERVER.joinsPerIp; i++) tries.push(await join(main.port, `r${i}`, open.body.code, {}, busy));
+  const opener = await tries[0].next('welcome');
+  assert.deepEqual(await Promise.all(tries.slice(SERVER.seatsPerIp).map(refused)), tries.slice(SERVER.seatsPerIp).map(() => 'seats'));
+  assert.equal(await refused(await join(main.port, 'late', open.body.code, {}, busy)), 'rate');
+  assert.equal((await (await join(main.port, 'r0', open.body.code, { token: opener.token }, busy)).next('welcome')).you, opener.you, 'a reconnect is not held up');
+  assert.equal((await (await join(main.port, 'calm', open.body.code, {}, '10.4.0.8')).next('welcome')).name, 'calm', 'another address is not');
+  assert.ok(await (await join(main.port, 'p', friends.body.code, {}, busy)).next('welcome'), 'a private session is not limited this way: it has its own few seats');
+  assert.equal(closeCode('seats'), 4012);
+  assert.equal(closeCode('rate'), 4013);
+  console.log('server list: ok (the list, a lookup by code and its limit, per-session limits, the admin\'s private limit, HOST only with PLAYER_HOST, the admin\'s kick, seats and joins per address)');
 } finally {
   main.stop();
   refusing.stop();

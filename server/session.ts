@@ -109,6 +109,7 @@ export class Session {
     let p = token ? all.find((q) => q.token === token) : undefined;
     const dropped = all.filter((q) => !q.link);
     const how = p ? 'back' : (p = dropped.find((q) => q.name === name) ?? dropped.find((q) => q.asked === name)) ? 'takeover' : 'new';
+    if (!p && this.setup.kind === 'public' && all.filter((q) => (q.link ?? q.was)?.ip === link.ip).length >= SERVER.seatsPerIp) return 'seats';
     if (!p && this.players.size >= this.setup.limit) return 'full';
     const snap = this.snapshot(() => p?.link === link && link.open);
     if (snap === 'busy') return 'busy';

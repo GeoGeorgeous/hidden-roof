@@ -43,6 +43,11 @@ export class Queue {
     return this.places.length;
   }
 
+  /** How many places in the line are from `ip`, held ones too. */
+  held(ip: string) {
+    return this.places.filter((p) => p.ip === ip).length;
+  }
+
   /** A link to wait in line, or null when the line is full. Call `update` once it is placed. */
   add(link: Link, name: string, seat: Place['seat']): Place | null {
     if (this.places.length >= SERVER.queueMax) return null;
