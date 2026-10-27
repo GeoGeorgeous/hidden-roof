@@ -2490,6 +2490,21 @@
   right: 24px;
   bottom: 52px;
 }
+/* The player is in (net/loading-page.ts): no progress, and CLICK TO PLAY in the middle (any click on the screen starts play). */
+.overlay .loading-page .loading-click {
+  display: none;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  padding: 12px 28px;
+  transform: translate(-50%, -50%);
+}
+.overlay .loading-page.ready .loading-click {
+  display: flex;
+}
+.overlay .loading-page.ready :is(.loading-title, .loading-lead, .progress) {
+  display: none;
+}
 /* Waiting in line (net/queue-page.ts) is that screen with the link-lost notice above the place held. */
 .overlay .queue-page .loading-text .lost {
   display: flex;

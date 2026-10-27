@@ -111,7 +111,7 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
     net.join(who, code);
   };
   const dialog = new JoinDialog({ show: () => hud.openPage('join'), join, cancel: back });
-  const loading = new LoadingPage(() => (cancelJoin(), hud.openPage('mp')));
+  const loading = new LoadingPage(() => (cancelJoin(), hud.openPage('mp')), () => hud.onResume());
   const queue = new QueuePage(() => (cancelJoin(), hud.openPage('mp')), () => net.retryNow());
   const cancelJoin = () => {
     joining = null;
@@ -185,6 +185,8 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
       queue.update(s);
     } else if (s.state === 'connecting' && was === 'queued' && joining) (loading.show(joining.entry, joining.where), hud.openPage('loading'));
     if (s.state !== 'connecting' && s.state !== 'queued') joining = null;
+    // In from the loading screen: it stays, asking for the click that starts play; the lock is tried too, which a browser that wants a click refuses.
+    if (s.state === 'in' && loading.root.checkVisibility()) (loading.ready(), hud.onResume());
     // In play the link's loss is a status, as long as it lasts; a session lost mid-play is a dialog in its place (the menu's line above says either with the page open). A failed JOIN or HOST stays on the page.
     if (s.state === 'reconnecting') notify.set({ key: 'net', kind: 'status', icon: 'cycle', text: msg('status.reconnecting', { n: s.tries }) });
     else if (s.state === 'failed' && s.code) {

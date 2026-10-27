@@ -52,11 +52,10 @@ Only `N.`, the id and the description are required. The optional parts appear in
 3. IDEA [?BL-071]: Multiplayer View-Only sessions: past sessions are opened for viewing only (gallary)
 4. IDEA [?BL-153]: Find who painted something by player id, picked like the eyedropper (to spot bad paint)
 5. [BUGS-168]: Returning players recover their inventory but spawn at the default spawn instead of their last position. Restore both inventory and position, matched by nickname as the inventory is. @1.6.0
-6. [BUGS-246]: The queue and the paint loading screen show the player's last view; show the server's roof, as the ESC menu does at first start or after leaving a session; once loaded, no ESC menu: the same screen without its loading line, the city under the overlay and a centered "Click to play" @1.6.0
-7. [BUGS-247]: A session closed by the admin (cctv) gives the wrong reason in the game's dialog; say briefly that the admin ended the session @1.6.0
-8. [?TEST-248]: Closing the tab without leaving: check that it counts as leaving the site, the session and the solo game, as far as the page can tell (the beacon on hide, the socket's close, the site's 90 s window) @1.6.0
-9. [TASK-250]: The public join dialog in two steps, the name first, then the house rules ("Don't show again" skips only the rules), so the name can always be changed; the owner compares it with the dialog as is @1.6.0
-10. [TASK-251]: One game tab per browser: a second tab, solo or in a session, says the game is open in another tab and offers "Play here"; the server gives a JOIN from a device already seated in the session that seat, the old link goes @1.6.0
+6. [BUGS-247]: A session closed by the admin (cctv) gives the wrong reason in the game's dialog; say briefly that the admin ended the session @1.6.0
+7. [?TEST-248]: Closing the tab without leaving: check that it counts as leaving the site, the session and the solo game, as far as the page can tell (the beacon on hide, the socket's close, the site's 90 s window) @1.6.0
+8. [TASK-250]: The public join dialog in two steps, the name first, then the house rules ("Don't show again" skips only the rules), so the name can always be changed; the owner compares it with the dialog as is @1.6.0
+9. [TASK-251]: One game tab per browser: a second tab, solo or in a session, says the game is open in another tab and offers "Play here"; the server gives a JOIN from a device already seated in the session that seat, the old link goes @1.6.0
 
 ## Painting
 
@@ -197,6 +196,7 @@ Shipped since the last release; the release commit empties this list.
 11. [TASK-244]: The beacon counts game events in its minute summary, solo too: the funnel (Play, level ready, first spray, joined a session), pickups by item, jumps, falls, the stepladder, time playing, idle and in menus, the tutorial steps learnt, settings chosen and changed, screenshots and Discord clicks (the game has no Share); who is on the site now (a beacon every minute, even an empty one, saying menu, solo, in a session or hidden: on the site and solo counted from the last minute's beacons, public and private from the server itself, in `/events` status); /history's `client` sends counts by key, not a top 5 cut (errors by message, fps, load and join times as histograms beside their median and p95)
 12. [TASK-241]: Read Caddy's access log in a container of its own on the host, `roof-traffic` (not the game server): page views, referrers and UTM, the first funnel steps, as daily rollups for the admin page's Traffic tab; our own links carry `?ref=` (discord, ig, tg), counted with `utm_source` and the Referer as one Source
 13. [IDEA-188]: Who plays and from where, counted on the server: country from the IP at connect, counts only, the IP not kept (SECRET_legal.md)
+14. [BUGS-246]: The queue and the paint loading screen show the server's roof, as the title screen does, not the player's last view; once loaded the same screen stays, without its progress, and asks for a click ("Click to play") instead of opening the ESC menu; the pointer lock is also tried at once, for a browser that allows it
 
 ## Discarder
 

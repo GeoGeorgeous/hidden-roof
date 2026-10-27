@@ -1,12 +1,13 @@
 import { msg } from '../messages';
-import { div } from '../menu-ui';
+import { action, div } from '../menu-ui';
 import { sessionLine, shellButton, type Where } from './lobby-view';
 import type { LobbyEntry } from './protocol';
 
 // The screen while a session loads (style.css, .loading-page), from JOIN until the player is in: the session's line,
 // what is happening and how far along the paint's download is, and CANCEL. It follows the network's progress lines
 // (net/multiplayer.ts, onProgress): connecting and joining, the paint coming down with its percent, the paint going
-// onto the walls, and the moment before the game takes over.
+// onto the walls, and the moment before the game takes over. Once the player is in, the same screen stays without its
+// progress, over the city view, and asks for a click: that click takes the pointer lock (net/net-menu.ts).
 
 const STEP = { joining: 'lobby.stepJoining', downloading: 'lobby.stepDownloading', putting: 'lobby.stepPutting', dropping: 'lobby.stepDropping' } as const;
 
@@ -18,7 +19,7 @@ export class LoadingPage {
   private fill = div('fill');
   private name = '';
 
-  constructor(cancel: () => void) {
+  constructor(cancel: () => void, play: () => void) {
     const text = div('loading-text');
     const bar = div('bar');
     bar.append(this.fill);
@@ -29,11 +30,16 @@ export class LoadingPage {
     text.append(this.session, div('loading-title', msg('lobby.loadingTitle')), div('loading-lead', msg('lobby.loadingText')), progress);
     const exit = div('loading-exit');
     exit.append(shellButton(msg('lobby.cancel'), cancel, { key: 'ESC' }));
-    this.root.append(text, exit);
+    // Enter runs the button (menu-ui.ts), a click anywhere else on the screen too; it shows once the player is in (`ready`).
+    const click = action(msg('lobby.clickToPlay'), play, { primary: true, key: '' });
+    click.classList.add('loading-click');
+    this.root.append(text, exit, click);
+    this.root.addEventListener('click', (e) => !(e.target as Element).closest('button') && this.root.classList.contains('ready') && play());
   }
 
   /** Starts over for this session. */
   show(entry: LobbyEntry, where: Where) {
+    this.root.classList.remove('ready');
     this.name = entry.name;
     this.session.replaceChildren(sessionLine(entry, where, false));
     this.go('joining');
@@ -46,6 +52,11 @@ export class LoadingPage {
     else if (share) this.go('downloading', Number(share[1]));
     else if (text === msg('menu.progressLoading')) this.go('putting', 100);
     else this.go('joining');
+  }
+
+  /** The player is in: the progress goes, CLICK TO PLAY shows. */
+  ready() {
+    this.root.classList.add('ready');
   }
 
   private go(step: keyof typeof STEP, percent = 0) {
