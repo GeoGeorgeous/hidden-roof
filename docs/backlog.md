@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 268
+The one list of what's left. Counter for new ids: next: 275
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -75,6 +75,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 1. BUGS [BL-034]: Paint pages at ULTRA can reach ~1 GB of GPU memory: measured, 1045 MB is the ceiling (all 49 pages, 72% full); the lossless fix is BL-144 (docs/ideas/performance.md)
 2. [PERF-200]: Reduce Ladder Shadow Update Delay Without Frequent Rebaking @1.7.0
+3. [PERF-269]: The server's thread spared on admin reads and logging: /traffic?period=30d reads and parses up to 31 hours files one after another (MBs of JSON), /history?period=30d sums 720 hours each time (closed hours never change), /events/page parses today's whole file for 50 events; the log appends each line with appendFileSync
 
 ## Rendering
 
@@ -141,7 +142,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 The admin page (the cctv repo) and the server side it reads (server/admin-api.ts). Specs: docs/ideas/admin-data.md.
 
-1. [CCTV-261]: ADMIN_API 3, once cctv reads only the new fields: `people` (merged, byDevice, byIp) and `countries` leave /history (players, inSessions and playerCountries replace them); `/traffic?days=N` stays for the day bars; deployed with that cctv (docs/ideas/admin-data.md)
+1. [CCTV-271]: A save's `stats` in GET /sessions in the shape of the session's `stats` (stamps by tool, painters), the page sums them; and one of a session's `today` and `stats` for the page, not both
 
 ## Web and promotion
 
@@ -162,6 +163,10 @@ The admin page (the cctv repo) and the server side it reads (server/admin-api.ts
 ## Codebase
 
 1. [RFCT-202]: src/ root files into folders (paint, menu, input, boot, render), style.css split next to its code; paint after the Painting Rework (docs/ideas/src-folders.md) @1.8.0
+2. [RFCT-268]: server/time.ts with DAY, HOUR, dayName and iso once (dayName is in 5 files, 864e5 in 7), and one day-files helper (days changed, read back at start, pruned past SERVER.historyDays) for history, people, traffic and events
+3. [RFCT-270]: The beacon's limit per address through PerMinute, the third copy of "N a minute per address" (logNoisy is another); PerMinute reads its SERVER limits when asked, so a test can still change them
+4. [RFCT-272]: A session's today peak seeded at midnight without a read writing state: the admin API's live() calls today.players() on every read for that
+5. [RFCT-273]: The still player's "same stance" check next to encodeSnapshot (sender.ts reads the snapshot's byte offsets itself)
 
 ## Done
 
@@ -204,6 +209,8 @@ Shipped since the last release; the release commit empties this list.
 35. [PERF-265]: A player standing still (feet within 1 mm, the rest the same) sends two states a second, not 20 (`NET.stillRate`), once two alike have gone, so the others see no speed to guess on; moving again sends the one held back first, so the move starts when it began (scripts/sender.test.mjs) @1.6.0
 36. [CCTV-266]: The server's log of a day, downloadable from the admin page: `GET /logs` (the day files with their size, `keepDays`, `redactDays`), `GET /logs/DAY` as it is, `?session=CODE` that session's lines with the stack lines under them; a Server log panel on Main and Download log on a session (cctv 4f34852) @1.6.0
 37. [CCTV-267]: Network health in the beacon, as the first playtest's telemetry had it: each minute in a session the app ping (p50, p95, max), closes by code (`timeout`: the game gave up on a silent link), reconnect times, stalls (nothing from the server for over 1.5 s), KB/s each way; counted per hour as `client.net` in /history; a Network block on Stats (lost links an hour of session time: 1006 and timeout) (cctv 4c498f1) @1.6.0
+38. [CCTV-261]: ADMIN_API 3: /history's `people` and `countries` gone (players, inSessions and playerCountries), a session's `today.topColor` gone (the page takes the most painted of `colors`), `client`'s fps, low1, load and join plain histograms keyed in their unit with no medians (the page makes them); deployed with cctv a608340 @1.6.0
+39. [RFCT-274]: 1.6.0's network and admin code made simpler (review of 2026-10-27): a rejection is the link's close code alone (no `rejected` message; protocol stays 9), every way out of a session is one path with one `left` event (a kick wrote two, a close none), one lock per kept session and the saves chained, one atomic write, progress as a step and a percent, Reconnect keeps its own tries, HOST in lobby-host.ts, no fixups for formats only staging wrote (its stats, people and traffic files are wiped before the release) @1.6.0
 
 ## Discarder
 
