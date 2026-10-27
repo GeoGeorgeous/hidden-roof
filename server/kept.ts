@@ -51,8 +51,8 @@ const isEntry = (e: unknown): e is Entry => {
 const hash = (level: LevelData) => createHash('sha256').update(JSON.stringify(level)).digest('hex').slice(0, 16);
 
 export class Kept {
-  /** The save under way (save() never throws), and the disk work in line. */
-  private running: Promise<void> | null = null;
+  /** The saves of every kept session, one after another (saveAll never throws), and all the disk work in line. */
+  private saving: Promise<void> = Promise.resolve();
   private chain: Promise<unknown> = Promise.resolve();
   /** Kept sessions not made again at start for a reason that may pass: still listed. */
   private unmade: Entry[] = [];
@@ -60,9 +60,8 @@ export class Kept {
   private disk: Saves | null;
   /** The admin's uploaded paint files (uploads.ts); null without DATA_DIR. */
   readonly uploads: Uploads | null;
-  /** Disk tasks under way per session (a save, a wipe, a close, a restore); a restore waits for none, and a wipe or close refuses one under way. */
-  private working = new Map<string, number>();
-  private restoring = new Set<string>();
+  /** Disk tasks under way per session (a save, a wipe, a close, a restore), and whether one is a restore: it runs alone. */
+  private working = new Map<string, { n: number; alone: boolean }>();
   /** The save made of a session's paint before its last restore (the undo), kept besides the age rule until the next restore or a wipe. */
   private undos = new Map<string, number>();
 
@@ -200,10 +199,9 @@ export class Kept {
   }
 
   /** Every kept session's paint that changed since its last save (every SERVER.keepEvery, and at shutdown, after a save under way). */
-  async save() {
-    if (!this.dir) return;
-    while (this.running) await this.running;
-    await (this.running = this.saveAll().finally(() => (this.running = null)));
+  save() {
+    if (!this.dir) return Promise.resolve();
+    return (this.saving = this.saving.then(() => this.saveAll()));
   }
 
   private async saveAll() {
@@ -241,16 +239,14 @@ export class Kept {
 
   /** `work` as a disk task of `code`: Busy if a restore is under way, or (`alone`) any other task. */
   private async hold<T>(code: string, alone: boolean, work: () => Promise<T>) {
-    const n = this.working.get(code) ?? 0;
-    if (this.restoring.has(code) || (alone && n)) throw new Busy(`${code}: a restore or another disk task is under way`);
-    this.working.set(code, n + 1);
-    if (alone) this.restoring.add(code);
+    const w = this.working.get(code) ?? { n: 0, alone };
+    if (w.alone !== alone || (alone && w.n)) throw new Busy(`${code}: a restore or another disk task is under way`);
+    w.n++;
+    this.working.set(code, w);
     try {
       return await work();
     } finally {
-      if (this.working.get(code) === 1) this.working.delete(code);
-      else this.working.set(code, this.working.get(code)! - 1);
-      if (alone) this.restoring.delete(code);
+      if (!--w.n) this.working.delete(code);
     }
   }
 
