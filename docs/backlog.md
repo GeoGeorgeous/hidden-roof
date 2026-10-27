@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 250
+The one list of what's left. Counter for new ids: next: 261
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -17,7 +17,7 @@ The one list of what's left. Counter for new ids: next: 250
 
 Only `N.`, the id and the description are required. The optional parts appear in this order:
 
-- **TYPE:** `BUGS`, `IDEA`, `TASK`, `DSGN` (designer's work comes first), `PERF` (frame time, memory, load time), `RFCT` (refactor, same behavior), `TEST` (tests and tooling), `DOCS` (docs only).
+- **TYPE:** `BUGS`, `IDEA`, `TASK`, `DSGN` (designer's work comes first), `PERF` (frame time, memory, load time), `RFCT` (refactor, same behavior), `TEST` (tests and tooling), `DOCS` (docs only), `CCTV` (the admin page, in the cctv repo, with its server side here; in the CCTV section).
 - **ID:** two formats exist. Both took their numbers from the same counter, so a number appears only once across all of them.
   - **Current format** `[TYPE-NNN]`, for every new item. No separate type word; the type is the id prefix. Example: `3. [BUGS-165]: Lamps flicker after a reload`
   - **Legacy format** `[BL-NNN]`, for items created before the change. These keep a type word in front, because the id carries no type. Example: `1. TASK [BL-013]: Device checks before the release`
@@ -47,14 +47,16 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## Multiplayer
 
-1. BUGS [BL-024]: Paint ops are most of the downstream bytes; merge stamps, shed load on slow links, after the playtest (docs/ideas/weak-links.md) @1.6.0
+1. BUGS [BL-024]: Paint ops are most of the downstream bytes: measure how the bytes each way grow with paint and players, find the bottleneck, say whether 20, 40, 60 or 80 players work as is; then merge stamps, shed load on slow links where it's needed; last in 1.6.0, after the admin data changes (docs/ideas/weak-links.md) @1.6.0
 2. TASK [BL-076]: Run the next public playtest and verify that all bugs from the previous playtest have been fixed (docs/ideas/weak-links.md) @1.6.2
 3. IDEA [?BL-071]: Multiplayer View-Only sessions: past sessions are opened for viewing only (gallary)
 4. IDEA [?BL-153]: Find who painted something by player id, picked like the eyedropper (to spot bad paint)
-5. [BUGS-168]: Returning players recover their inventory but spawn at the default spawn instead of their last position. Restore both inventory and position. @1.6.1
-6. [BUGS-246]: The queue and the paint loading screen show the player's last view; show the server's roof, as the ESC menu does at first start or after leaving a session @1.6.0
+5. [BUGS-168]: Returning players recover their inventory but spawn at the default spawn instead of their last position. Restore both inventory and position, matched by nickname as the inventory is. @1.6.0
+6. [BUGS-246]: The queue and the paint loading screen show the player's last view; show the server's roof, as the ESC menu does at first start or after leaving a session; once loaded, no ESC menu: the same screen without its loading line, the city under the overlay and a centered "Click to play" @1.6.0
 7. [BUGS-247]: A session closed by the admin (cctv) gives the wrong reason in the game's dialog; say briefly that the admin ended the session @1.6.0
 8. [?TEST-248]: Closing the tab without leaving: check that it counts as leaving the site, the session and the solo game, as far as the page can tell (the beacon on hide, the socket's close, the site's 90 s window) @1.6.0
+9. [TASK-250]: The public join dialog in two steps, the name first, then the house rules ("Don't show again" skips only the rules), so the name can always be changed; the owner compares it with the dialog as is @1.6.0
+10. [TASK-251]: One game tab per browser: a second tab, solo or in a session, says the game is open in another tab and offers "Play here"; the server gives a JOIN from a device already seated in the session that seat, the old link goes @1.6.0
 
 ## Painting
 
@@ -138,14 +140,25 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## Servers and deploy
 
-1. IDEA [BL-043]: One public server, running 24/7 (docs/ideas/public-servers.md) @1.6.0
-2. IDEA [BL-047]: Admin panel: servers stats (players online, perfomance, etc), players info (username, IP, ping), after BL-043; ban by IP is IDEA-240 (docs/ideas/public-servers.md) @1.6.0
-3. [IDEA-240]: Admin: ban by IP (with a reason the player is shown) and restore one of the 3 saves (docs/ideas/public-servers.md)
-4. IDEA [?BL-147]: Anti-cheat: The server checks what players send (op reach and rate, ladder spot, jumps) before it goes public @1.6.1
-5. [TASK-245]: Public sessions: at most N seats and places in line per address, a JOIN rate per address, and a dropped seat taken back only with its token (not by the same name) @1.6.1
-6. [TASK-189]: House rules before joining a public server: players are 18+, joining accepts the Terms, sessions may be recorded and published; the rules screen is in, left: the Terms' moderation section (docs/ideas/public-servers.md) @1.6.0
-7. [TASK-201]: Research itch.io Publishing Requirements, AI Policies, and Download Restrictions @1.6.3
-8. [?BUGS-249]: cctv shows a session's time as -1:-1: a page display bug or a bad value from the admin API; find which, fix that side @1.6.0
+1. IDEA [BL-047]: Admin panel: servers stats (players online, perfomance, etc), players info (username, IP, ping), after BL-043; ban by IP is IDEA-240 (docs/ideas/public-servers.md) @1.6.0
+2. [IDEA-240]: Admin: ban by IP (with a reason the player is shown); restoring a save is CCTV-255 (docs/ideas/public-servers.md)
+3. IDEA [?BL-147]: Anti-cheat: The server checks what players send (op reach and rate, ladder spot, jumps) before it goes public @1.6.1
+4. [TASK-245]: Public sessions: at most N seats and places in line per address (N 2 or more: a household shares one), a JOIN rate per address; a dropped seat is still taken back by its nickname @1.6.0
+5. [TASK-201]: Research itch.io Publishing Requirements, AI Policies, and Download Restrictions @1.6.3
+
+## CCTV
+
+The admin page (the cctv repo) and the server side it reads (server/admin-api.ts). Specs: docs/ideas/admin-data.md.
+
+1. [CCTV-252]: Session > Players: one placeholder for a field not there yet (ping in a player's first 10 s or while dropped, time, country); time in game as H:MM:SS on a 1 s clock, never below 0 (it showed -1:-1); Kick keeps its place @1.6.0
+2. [CCTV-253]: Events kept on disk (a file a day, 30 days, capped in size) and read in pages; the page shows 50 a page with prev and next (docs/ideas/admin-data.md) @1.6.0
+3. [CCTV-254]: Stats per session, from its paint: stamps by tool, colors, cleaned, painters, play time, joins, most at once; a wipe resets them, each save keeps its own and a restore brings them back; the server's history stays as it is (docs/ideas/admin-data.md) @1.6.0
+4. [CCTV-255]: A public session's saves: 5 kept by age (the newest, and the newest at least 6 h, 1 day, 3 days and 7 days old), listed, each downloadable and restorable into the live session (its players reconnect onto it); a private session's paint downloads as it is now, never kept (docs/ideas/admin-data.md) @1.6.0
+5. [CCTV-256]: A new session, public or private, starts empty or from an uploaded save, checked first: one for another level, protocol or surface table is refused (docs/ideas/admin-data.md) @1.6.0
+6. [CCTV-257]: One switch for every time on the page: UTC or the browser's local time; days still count in UTC @1.6.0
+7. [CCTV-258]: "On the site" counts each open page once, not each heartbeat in its 90 s window (2 players showed up to 5): a page id in the beacon (docs/ideas/admin-data.md) @1.6.0
+8. [CCTV-259]: A badge for how fresh each figure is (live, the minute's beacon with the next one due, hourly, daily), its tooltip saying where the data comes from; the server sends each source's time and interval (docs/ideas/admin-data.md) @1.6.0
+9. [CCTV-260]: People in one model: Visitors (unique, from the web log) > Views (page loads) > Players (solo and multiplayer, unique by the device id, now in the beacon) > in sessions, with Now beside it; by address behind a switch, merged dropped; Main rebuilt on it (docs/ideas/admin-data.md) @1.6.0
 
 ## Web and promotion
 
@@ -159,8 +172,9 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## Legal
 
-1. [TASK-187]: The beacon, the device id and the address hash run without a consent dialog (the owner's decision and risk, recorded in SECRET_legal.md); the privacy page names them (TASK-242) @1.6.0
-2. [TASK-242]: The privacy page names what the admin's stats keep: a random device id in localStorage, the address as a salted hash (a new salt every 30 days), the country, plays kept 30 days and counts forever, the web traffic read from the server's access log (a visitor as a salted hash of address and browser, kept one day); why, and how to object; DB-IP's credit (CC BY 4.0) (docs/ideas/public-servers.md) @1.6.0
+1. [TASK-187]: The beacon, the device id and the address hash run without a consent dialog (the owner's decision and risk, recorded in SECRET_legal.md); the privacy page names them (TASK-242)
+2. [TASK-242]: The privacy page names what the admin's stats keep: a random device id in localStorage, the address as a salted hash (a new salt every 30 days), the country, plays kept 30 days and counts forever, the web traffic read from the server's access log (a visitor as a salted hash of address and browser, kept one day); why, and how to object; DB-IP's credit (CC BY 4.0) (docs/ideas/public-servers.md)
+3. [TASK-189]: The Terms' moderation section (DSA: grounds and measures, reports by email, a restricted player told what and why); the house rules screen is in (docs/ideas/public-servers.md)
 
 ## Codebase
 
@@ -209,3 +223,5 @@ Dropped items, kept for the record; don't work on them.
 19. ~~[IDEA-165]: Reword the painting: pressure (replaced by Painting Rework: IDEA-226)~~
 20. ~~[IDEA-167]: Reword the painting: different brushes (soft / hard) (replaced by Painting Rework: IDEA-229)~~
 21. ~~[IDEA-224]: The can as a brush (continuous stroke, opacity, speed and distance feel): bring the R&D branch exp/visual-sandbox into the game (docs/ideas/paint-refactoring.md) (replaced by Painting Rework: IDEA-225 to IDEA-232)~~
+22. ~~IDEA [BL-043]: One public server, running 24/7 (the owner's own step once 1.6.0 is deployed)~~
+23. ~~[?BUGS-249]: cctv shows a session's time as -1:-1 (cctv's 60 s clock, not the server: in CCTV-252)~~
