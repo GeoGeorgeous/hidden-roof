@@ -20,16 +20,9 @@ What the admin page (cctv) gets from the server next, after the owner's list of 
 - The stream (`GET /events`) is unchanged: the recent ones at once, then live ones.
 - cctv: 50 a page with prev and next; live events go on top of the first page only.
 
-## CCTV-255 Saves: kept by age, downloaded, restored
-
-- Retention, after each save: the newest, and the newest at least 6 h, 1 day, 3 days and 7 days old (`SERVER.keepAges`, replaces `keepFiles`); the rest go. A save that fills two slots is kept once, so there may be fewer than 5.
-- A wipe keeps the session's saves aside as wiped, as now (the last wipe's only); they are listed and can be restored.
-- `GET /sessions/CODE/saves/<ms>`: that save's paint file. `GET /sessions/CODE/paint` stays: a fresh paint file of any session, private ones too.
-- `POST /sessions/CODE/restore` with `{ "save": <ms> }` or `{ "upload": "<id>" }` (CCTV-256): the session's paint and stats become that save's. Its players reconnect onto it, with the loading screen; a save is made of the paint before, so a restore can be undone. In the disk work's line (`kept.ts`), so it never meets a save half written. Event `restored`.
-- If the game needs a new message for it, PROTOCOL goes up, and a deploy then wipes the kept paint (as any protocol change does): say so before merging.
-
 ## CCTV-256 A new session from a save
 
+- `POST /sessions/CODE/restore` also takes `{ "upload": "<id>" }`: the upload's paint becomes the session's, refused with 400 if its level or detail is not the session's (a save restored this way starts its stats afresh, as restored). Same undo save and event as a save's.
 - `POST /uploads` with the raw paint file (up to `SERVER.uploadBytes`, the ULTRA roof fully painted fits): checked as a save is loaded (`server/paint-check.ts`: level, protocol, surface table, detail); kept in `DATA_DIR/uploads` for `SERVER.uploadMinutes`. The answer: `{ upload, level, detail, bytes }`, or 400 and why.
 - `POST /sessions` takes `"upload": "<id>"` as well: made on that level at that detail, with its paint. Without it, empty as now.
 - Caddy's request size limit for `/api/*` must let the file through (`docs/ideas/vps.md`).

@@ -1,5 +1,8 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
+import { createReadStream } from 'node:fs';
+import fs from 'node:fs/promises';
 import http from 'node:http';
+import { pipeline } from 'node:stream/promises';
 import { PAINT_DETAIL, SERVER } from '../src/config';
 import { SLOTS } from '../src/inventory/tool';
 import { isPrivateLimit, isSessionName, isToolSet, PROTOCOL, SESSION_NAME_MAX } from '../src/net/protocol';
@@ -10,7 +13,8 @@ import { stream } from './events';
 import { history, isPeriod } from './history';
 import { log, overMemory } from './log';
 import { machine } from './machine';
-import { Refused, type Kept } from './kept';
+import type { Kept } from './kept';
+import { Busy, Missing, Refused } from './refused';
 import type { Lobby } from './lobby';
 import type { Session } from './session';
 import type { SessionSetup } from './setup';
@@ -20,8 +24,8 @@ import { trafficDays } from './traffic-store';
 // command (server/admin.mjs, in the container) and later the admin page through
 // Caddy. Every request carries `Authorization: Bearer <ADMIN_KEY>`; any request that
 // carries an Origin (a browser page's) is refused unless it is ADMIN_ORIGIN's (unset or not a URL: refused).
-// JSON in and out; a request that's wrong answers 400 { error }, 413 for a body past SERVER.adminBody bytes,
-// and any other failure 500 { error }:
+// JSON in and out; a request that's wrong answers 400 { error }, 404 for something that isn't there, 409 for something busy,
+// 413 for a body past SERVER.adminBody bytes, and any other failure 500 { error }:
 //   GET  /                     the API's version, the game's and the protocol, when the server started (`started`), the time now,
 //                              sessions and players, the most players ever (`peak`), and `slowPing` (ms): what counts as a slow ping
 //   GET  /machine              CPU, RAM, the server's memory, disk, the paint saves, upload (machine.ts)
@@ -38,15 +42,22 @@ import { trafficDays } from './traffic-store';
 //                              `began` (made, wiped, restored; `restoredAt` with the last), `stamps` by tool, `colors`, `painters` (distinct
 //                              nicknames that painted), `playSeconds`, `joins` (new players), `peak` ({ players, at } or null),
 //                              ping (`median` ms, `slow`: players over `slowPing`), when it went empty, its saves
-//                              (newest first, with those a wipe kept aside: `wiped`)
+//                              (`saves`, newest first: `at`, `bytes`, `wiped` for those a wipe kept aside, and `stats` { stamps (all tools but the sponge), painters } or null)
 //   POST /sessions             a new one: { kind, name, level?, detail?, tools?, stay?, limit? }
 //                              (stay: a private one stays when empty; a public one always does;
 //                              limit: a private one's most players, SERVER.privateMin to SERVER.players.private)
-//   POST /sessions/CODE/wipe   its paint gone
+//   POST /sessions/CODE/wipe   its paint gone (a public session's saves are put aside as wiped, replacing the last wipe's; its stats start again)
 //   POST /sessions/CODE/close  closed for everyone in it (told `closed`)
 //   POST /sessions/CODE/players/ID/kick
 //                              a player out at once (told why, no seat held; a new join may come in, but a reconnect
 //                              with their token is told 'kicked' for SERVER.rejoinWindow)
+//   GET  /sessions/CODE/saves/MS
+//                              a kept save's paint file (MS: its time, as the listing's `at` in ms): as the next, named by the save's time; 404 if none
+//   POST /sessions/CODE/restore
+//                              { save: MS }: its paint and stats become that save's (a public session of the admin's only). First a save of
+//                              its paint now is made (the undo); its players are dropped as a wipe does and come back to the restored paint.
+//                              Answers { undo: MS }; 404 for a save or session that isn't there, 409 while a restore or another disk
+//                              task of that session is under way, 400 if the save doesn't fit it
 //   GET  /sessions/CODE/paint  its paint as a paint file made now (not kept): application/octet-stream,
 //                              attachment named <code>-<UTC time>.rhhpaint; 503 when there's no memory for one
 
@@ -58,8 +69,8 @@ const digest = (s: string) => createHash('sha256').update(s).digest();
 const detailName = (d: number) => Object.entries(PAINT_DETAIL).find(([, v]) => v === d)?.[0] ?? String(d);
 
 const iso = (ms: number) => new Date(ms).toISOString();
-/** A paint file's name: the session's code and the UTC time, 2026-10-26T12-30-00Z. */
-const paintName = (code: string) => `${code}-${iso(Date.now()).slice(0, 19).replaceAll(':', '-')}Z.rhhpaint`;
+/** A paint file's name: the session's code and the UTC time (now, or the save's), 2026-10-26T12-30-00Z. */
+const paintName = (code: string, at = Date.now()) => `${code}-${iso(at).slice(0, 19).replaceAll(':', '-')}Z.rhhpaint`;
 
 /** A session as the admin sees it, but its saves. A dropped player's `ip` is their last link's; `held`: seconds left to come back. */
 function live(s: Session) {
@@ -151,6 +162,15 @@ export function adminApi(lobby: Lobby, kept: Kept, key: string) {
         if (!bytes) return answer(503, { error: 'no memory for a paint file' });
         return res.writeHead(200, { 'content-type': 'application/octet-stream', 'content-disposition': `attachment; filename="${paintName(session.code)}"`, 'cache-control': 'no-store' }).end(bytes);
       }
+      if (req.method === 'GET' && parts.length === 4 && parts[2] === 'saves') {
+        if (!lobby.sessions.has(parts[1])) return answer(404, { error: `no session ${parts[1]}` });
+        if (!/^\d{1,16}$/.test(parts[3])) return answer(400, { error: 'save: its time in ms' });
+        const file = await kept.saveFile(parts[1], Number(parts[3]));
+        const size = file && (await fs.stat(file).then((f) => f.size, () => null));
+        if (!file || size === null) return answer(404, { error: `no save ${parts[3]} of ${parts[1]}` });
+        res.writeHead(200, { 'content-type': 'application/octet-stream', 'content-length': size, 'content-disposition': `attachment; filename="${paintName(parts[1], Number(parts[3]))}"`, 'cache-control': 'no-store' });
+        return void pipeline(createReadStream(file), res).catch(() => res.destroy());
+      }
       if (req.method !== 'POST') return answer(405, { error: 'POST' });
       if (parts.length === 1) {
         const m = newSession(await body(req));
@@ -162,13 +182,18 @@ export function adminApi(lobby: Lobby, kept: Kept, key: string) {
       if (!session) return answer(404, { error: `no session ${parts[1]}` });
       if (parts[2] === 'players' && parts[4] === 'kick' && parts.length === 5) {
         if (!/^\d+$/.test(parts[3]) || !lobby.kick(session, Number(parts[3]))) return answer(404, { error: `no player ${parts[3]} in ${session.code}` });
+      } else if (parts[2] === 'restore' && parts.length === 3) {
+        const o = (await body(req)) as { save?: unknown };
+        if (!Number.isSafeInteger(o.save)) return answer(400, { error: 'save: the ms of one of its saves' });
+        if (overMemory(SERVER.hostMemory)) return answer(503, { error: 'the server is full' });
+        return answer(200, { undo: await kept.restoreFrom(session, { save: o.save as number }) });
       } else if (parts[2] === 'wipe' && parts.length === 3) await kept.wipe(session);
       else if (parts[2] === 'close' && parts.length === 3) await kept.end(session);
       else return answer(404, { error: 'not found' });
       return answer(200, { ok: true });
     } catch (e) {
       log('-----', `admin ${req.method} ${req.url}:`, e);
-      answer(e instanceof TooBig ? 413 : e instanceof Refused ? 400 : 500, { error: (e as Error).message });
+      answer(e instanceof TooBig ? 413 : e instanceof Missing ? 404 : e instanceof Busy ? 409 : e instanceof Refused ? 400 : 500, { error: (e as Error).message });
     }
   });
 }

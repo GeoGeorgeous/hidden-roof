@@ -10,10 +10,20 @@ import { SessionStats } from './counts';
 /** The stats file of a save, from its paint file's name. */
 const statsName = (name: string) => name.replace(/\.rhhpaint$/, '.json');
 /** When a save was made (ms), from its name. */
-export const savedAt = (code: string, name: string) => parseInt(name.slice(code.length + 1));
+const savedAt = (code: string, name: string) => parseInt(name.slice(code.length + 1));
 export const isWiped = (name: string) => name.endsWith('.wiped.rhhpaint');
 /** What a crash can leave half written. */
 export const leftover = (name: string) => name === 'sessions.json.tmp' || name.endsWith('.rhhpaint.tmp') || /-\d+(\.wiped)?\.json\.tmp$/.test(name);
+
+/** Of saves made at `times` (ms), the ones to keep at `now`: the newest, and for each of `ages` (s) the newest at least that old (age 0 is the newest of all). One that fills two slots is kept once. */
+export function keepers(times: number[], now: number, ages: readonly number[]) {
+  const keep = new Set<number>();
+  for (const age of ages) {
+    const old = times.filter((t) => age === 0 || now - t >= age * 1000);
+    if (old.length) keep.add(Math.max(...old));
+  }
+  return keep;
+}
 
 export class Saves {
   constructor(readonly dir: string) {}
@@ -44,9 +54,9 @@ export class Saves {
     }
   }
 
-  /** The stats a save was written with, or null (none, or not good). */
-  async stats(name: string) {
-    return SessionStats.from(await fs.readFile(this.file(statsName(name)), 'utf8').then(JSON.parse, () => null));
+  /** The stats a save was written with, or null (none, or not good); `restoredAt` (ms): as restored then. */
+  async stats(name: string, restoredAt?: number) {
+    return SessionStats.from(await fs.readFile(this.file(statsName(name)), 'utf8').then(JSON.parse, () => null), restoredAt === undefined ? undefined : 'restored', restoredAt);
   }
 
   /** A save and its stats gone. */
@@ -54,16 +64,42 @@ export class Saves {
     await Promise.all([fs.rm(this.file(name), { force: true }), fs.rm(this.file(statsName(name)), { force: true })]);
   }
 
-  /** A session's newest SERVER.keepFiles saves put aside as wiped, and the rest gone. */
+  /** A session's saves put aside as wiped, replacing the ones put aside before; none to put aside leaves those. */
   async aside(code: string) {
-    for (const [i, n] of (await this.list(code)).entries()) {
-      if (i >= SERVER.keepFiles) await this.remove(n);
-      else if (!isWiped(n)) {
-        const to = n.replace('.rhhpaint', '.wiped.rhhpaint');
-        await fs.rename(this.file(n), this.file(to));
-        await fs.rename(this.file(statsName(n)), this.file(statsName(to))).catch(() => {});
-      }
+    const all = await this.list(code);
+    const now = all.filter((n) => !isWiped(n));
+    if (!now.length) return;
+    for (const n of all.filter(isWiped)) await this.remove(n);
+    for (const n of now) {
+      const to = n.replace('.rhhpaint', '.wiped.rhhpaint');
+      await fs.rename(this.file(n), this.file(to));
+      await fs.rename(this.file(statsName(n)), this.file(statsName(to))).catch(() => {});
     }
+  }
+
+  /** After a save, the ones not worth keeping gone (`keepers`); `pinned` stays too. */
+  async tidy(code: string, pinned?: number) {
+    const now = (await this.list(code)).filter((n) => !isWiped(n));
+    const keep = keepers(now.map((n) => savedAt(code, n)), Date.now(), SERVER.keepAges);
+    for (const n of now) if (!keep.has(savedAt(code, n)) && savedAt(code, n) !== pinned) await this.remove(n);
+  }
+
+  /** The save made at `ms`, wiped or not, or null. */
+  async find(code: string, ms: number) {
+    return (await this.list(code)).find((n) => savedAt(code, n) === ms) ?? null;
+  }
+
+  /** A session's saves for the admin page, newest first: when (ISO), how big, whether wiped, and the stats' stamps (all tools but the sponge) and painters. One rotated away meanwhile is left out. */
+  async info(code: string) {
+    const list = await Promise.all(
+      (await this.list(code)).map(async (n) => {
+        const size = await fs.stat(this.file(n)).then((f) => f.size, () => null);
+        if (size === null) return null;
+        const s = (await this.stats(n))?.report([]);
+        return { at: new Date(savedAt(code, n)).toISOString(), bytes: size, wiped: isWiped(n), stats: s ? { stamps: s.stamps.can + s.stamps.marker + s.stamps.roller, painters: s.painters } : null };
+      }),
+    );
+    return list.filter((s) => s !== null);
   }
 
   /** Every file of a session's, saves and what a crash left of one. */

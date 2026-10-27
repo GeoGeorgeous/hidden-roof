@@ -1,6 +1,7 @@
 import { SERVER } from '../src/config';
-import { partFrames } from '../src/net/protocol';
+import { partFrames, partPieces } from '../src/net/protocol';
 import type { PaintSystem } from '../src/painting';
+import { joinBytes } from '../src/save/paint-file';
 import { streamPaint } from '../src/save/save-paint';
 import { liveMemory, log, mb, overMemory } from './log';
 import { Snapshot, waiting } from './snapshot';
@@ -62,6 +63,14 @@ export class PaintFiles {
       }
     });
     return s;
+  }
+
+  /** The paint now as one paint file, made in turn; null when there's no memory for one. */
+  async file() {
+    const snap = this.get(() => true, true);
+    if (snap === 'busy') return null;
+    const frames = await snap.frames;
+    return frames && joinBytes(partPieces(frames));
   }
 
   /** `s` is the newest paint file, for SERVER.snapshotKeep. */

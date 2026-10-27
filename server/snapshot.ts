@@ -39,5 +39,12 @@ export class Snapshot {
 let turn = Promise.resolve();
 let queued = 0;
 
+/** `task` in the same line as the paint files: after those before it, before those after (a paint is read or replaced one at a time in the whole process). */
+export function inTurn<T>(task: () => Promise<T>): Promise<T> {
+  const done = turn.then(task);
+  turn = done.then(() => {}, () => {});
+  return done;
+}
+
 /** Paint files waiting for their turn. */
 export const waiting = () => queued;

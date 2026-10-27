@@ -1216,9 +1216,9 @@ export const SERVER = {
   trafficChunk: 1 << 20,
   trafficKinds: 50,
   trafficText: 80,
-  /** With DATA_DIR, a public session's paint is saved this often (s) when it changed, and at shutdown; the newest keepFiles saves stay (server/kept.ts). */
+  /** With DATA_DIR, a public session's paint is saved this often (s) when it changed, and at shutdown; after each save the newest stays and, for each of keepAges (s), the newest save at least that old: the rest go (server/saves.ts). */
   keepEvery: 1800,
-  keepFiles: 3,
+  keepAges: [0, 6 * 3600, 24 * 3600, 3 * 24 * 3600, 7 * 24 * 3600],
   /** A session's stats (server/counts.ts) keep the names of this many painters, no more. */
   statsPainters: 1000,
   /** A private session the admin made that doesn't stay closes if no one has come in this long (s). */

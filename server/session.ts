@@ -4,9 +4,8 @@ import { SLOTS, type Tool } from '../src/inventory/tool';
 import type { LevelData } from '../src/level/level-data';
 import { decodeOps, encodeOps, SurfaceIndex } from '../src/op-wire';
 import { opTool } from '../src/paint-ops';
-import { closeCode, encode, partFrames, partPieces, type Rejection, type ToClient, type ToServer } from '../src/net/protocol';
+import { closeCode, encode, partFrames, type Rejection, type ToClient, type ToServer } from '../src/net/protocol';
 import { loadPaint } from '../src/save/load-paint';
-import { joinBytes } from '../src/save/paint-file';
 import { surfaceTable } from '../src/save/shape';
 import { countPaint, DayCounts, SessionStats } from './counts';
 import { event } from './events';
@@ -16,7 +15,8 @@ import { deliver, presence, uniqueName, type Link, type Player } from './player'
 import { Queue } from './queue';
 import { HOSTED } from './setup';
 import { PaintFiles } from './paint-files';
-import { Snapshot } from './snapshot';
+import { fit, mostPaint } from './paint-fit';
+import { inTurn, Snapshot } from './snapshot';
 import { levelRange, spotIn, type Range } from './spot';
 import { paintMemory, sessionPaint } from './world';
 
@@ -47,6 +47,8 @@ export class Session {
   private counts: Record<How, number> = { new: 0, back: 0, takeover: 0 };
   /** Its paint files (paint-files.ts). */
   private files: PaintFiles;
+  /** The paint being replaced by a restore, until it is loaded. */
+  private restoring: Promise<void> | null = null;
   /** The save HOST sent, as its paint file: the host has its paint already. */
   private seed: Snapshot | null = null;
   /** What players gone carried and where they stood, by name: one who comes back later under it gets it back. */
@@ -84,9 +86,7 @@ export class Session {
 
   /** Start from a paint save (HOST's, or `host` false one kept on disk). Throws with a message if it's no good or doesn't fit the level. */
   async load(save: Uint8Array, host = true) {
-    // At most this level all painted, at the highest detail (a save may be made at any), with each face's ring.
-    const most = this.memory.full * 2 ** 20 * (96 / this.detail) ** 2 * 1.25;
-    await loadPaint(this.world.paint, this.world.drips, save, { name: this.levelName }, most);
+    await loadPaint(this.world.paint, this.world.drips, save, { name: this.levelName }, mostPaint(this.world.paint, this.detail));
     // The save is the paint now, as the players load it (the same faces fit, resampled the same way): the host's welcome.
     if (host) this.files.keep((this.seed = new Snapshot(partFrames([save], SERVER.partBytes))));
   }
@@ -105,6 +105,8 @@ export class Session {
    * session is full or there's no memory for a paint file. `note`: for the log.
    */
   async admit(link: Link, name: string, token?: string): Promise<{ p: Player; how: How; note: string } | Rejection> {
+    // Players dropped by a restore come back to the restored paint.
+    if (this.restoring) await this.restoring.catch(() => {});
     const all = [...this.players.values()];
     let p = token ? all.find((q) => q.token === token) : undefined;
     // No token, but the device of a player whose link is still open (a tab whose session storage is gone, a second tab): the same player.
@@ -175,7 +177,8 @@ export class Session {
       this.broadcast({ type: 'state', id: p.id, bytes: m.bytes }, p);
     }
     else if (m.type === 'ops') {
-      if (m.seq <= p.acked) return;
+      // Not acked: the game sends them again, to the restored paint.
+      if (this.restoring || m.seq <= p.acked) return;
       p.acked = m.seq;
       const batch = decodeOps(m.bytes, this.surfaces);
       if (!batch) return log(this.code, who(p), 'paint ops it could not read: dropped');
@@ -222,6 +225,7 @@ export class Session {
 
   /** Paint runs move on (`dt` s). */
   tick(dt: number) {
+    if (this.restoring) return;
     this.files.now(() => this.world.drips.update(dt));
   }
 
@@ -253,6 +257,27 @@ export class Session {
     });
   }
 
+  /** Throws Refused with why unless `file` is a paint file this session can take as its paint (paint-fit.ts). */
+  fits(file: Uint8Array) {
+    return fit(file, this.levelName, this.detail, this.world.paint, this.world.drips);
+  }
+
+  /** The admin's restore: its paint and stats become `file`'s (fits()). As a wipe's, every link closes as a drop; a game that comes back waits for the paint to load, and paint sent meanwhile is dropped. */
+  async restore(file: Uint8Array, stats: SessionStats) {
+    this.wipes++;
+    const loading = (this.restoring = inTurn(async () => {
+      this.files.forget();
+      await this.load(file, false);
+      this.stats = stats;
+    }));
+    for (const p of this.players.values()) p.link?.close(1012, 'restored');
+    try {
+      await loading;
+    } finally {
+      this.restoring = null;
+    }
+  }
+
   /** The admin closed it: everyone, those in line too, is told so (`closed`, not `ended`: nobody ran out of time). */
   end() {
     for (const p of this.players.values()) {
@@ -276,11 +301,8 @@ export class Session {
   }
 
   /** The paint now as a paint file (kept.ts saves it), made in turn as a welcome's is; null when there's no memory for one. */
-  async paintFile() {
-    const snap = this.files.get(() => true, true);
-    if (snap === 'busy') return null;
-    const frames = await snap.frames;
-    return frames && joinBytes(partPieces(frames));
+  paintFile() {
+    return this.files.file();
   }
 
   /** When (ms) the players now in it joined: the stats count their time so far. */
