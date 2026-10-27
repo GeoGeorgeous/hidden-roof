@@ -12,6 +12,7 @@ import { decodePaintFile, encodePaintFile, joinBytes } from '../src/save/paint-f
 import { surfaceTable } from '../src/save/shape';
 import { WebSocket as Ws } from 'ws';
 import { PartsIn } from '../src/net/parts-in';
+import { rejected } from './test-kit';
 import { overMemory } from './log';
 import { decodeOps, encodeOps, SurfaceIndex } from '../src/op-wire';
 import type { PaintOp } from '../src/paint-ops';
@@ -91,6 +92,9 @@ class Game {
   send(m: ToServer) {
     this.ws.send(encode(m));
   }
+  rejected() {
+    return rejected(this);
+  }
   /** Waits up to `ms`: the server answers in milliseconds, but a machine busy with other tests can hold it up for seconds. */
   async next<T extends ToClient['type']>(type: T, ms = 10000): Promise<Extract<Got, { type: T }>> {
     const end = Date.now() + ms;
@@ -127,7 +131,7 @@ try {
   ] as const) {
     const g = await game();
     g.send(m as ToServer);
-    assert.equal((await g.next('rejected')).reason, reason);
+    assert.equal(await g.rejected(), reason);
     // The socket closes with the reason's own code, for the logs.
     assert.equal(await g.closed, closeCode(reason));
   }
@@ -215,7 +219,7 @@ try {
   const device = '0123456789abcdef0123456789abcdef';
   b3.send({ type: 'join', protocol: PROTOCOL, device, name: 'B', code: wa.code, token: wb.token });
   assert.equal((await b3.next('welcome')).you, 2);
-  assert.equal((await b2.next('rejected')).reason, 'replaced');
+  assert.equal(await b2.rejected(), 'replaced');
   await b2.closed;
   await a.none('left');
   // The same device on another link, with no token (a tab whose session storage is gone): it gets the seat, and the old link is told it was replaced.
@@ -223,7 +227,7 @@ try {
   b4.send({ type: 'join', protocol: PROTOCOL, device, name: 'Other', code: wa.code });
   const seat = await b4.next('welcome');
   assert.deepEqual([seat.you, seat.token, seat.name], [2, wb.token, 'B'], 'the device found its seat: same player, same token');
-  assert.equal((await b3.next('rejected')).reason, 'replaced');
+  assert.equal(await b3.rejected(), 'replaced');
   await b3.closed;
   await a.none('joined');
   await a.none('left');
@@ -236,12 +240,12 @@ try {
   // Its code now says the session has ended (an unknown code says there's none, above).
   const late = await game();
   late.send({ type: 'join', protocol: PROTOCOL, name: 'B', code: wa.code });
-  assert.equal((await late.next('rejected')).reason, 'ended');
+  assert.equal(await late.rejected(), 'ended');
   assert.equal(await late.closed, closeCode('ended'));
   // A player coming back with their token after everyone's time ran out is told the same (not "no session": that is a server that restarted).
   const tooLate = await game();
   tooLate.send({ type: 'join', protocol: PROTOCOL, name: 'B', code: wa.code, token: wb.token });
-  assert.equal((await tooLate.next('rejected')).reason, 'ended');
+  assert.equal(await tooLate.rejected(), 'ended');
   assert.equal(await tooLate.closed, closeCode('ended'));
 
   // The same name twice gets a number. The host drops and comes back from a new tab (no token) while the other is
@@ -334,7 +338,7 @@ try {
   const bomb = await encodePaintFile({ created: '', level: { name: 'demo' }, density: 48, surfaces: { [stamp.key]: 'x' }, faces: [{ surface: stamp.key, rect: 0, w: 60000, h: 60000 }] }, []);
   const g = await game();
   g.send({ ...host, bytes: joinBytes(bomb) });
-  assert.equal((await g.next('rejected')).reason, 'bad-save');
+  assert.equal(await g.rejected(), 'bad-save');
   assert.equal((await fetch(`http://localhost:${PORT}/healthz`)).status, 200);
 
   // Sessions at different PAINT DETAILs side by side (each session's surfaces keep their own): one's paint never
@@ -355,7 +359,7 @@ try {
   // Limits per address: links (the next one is turned away, another address isn't), hosted sessions, silent links.
   const crowd = await Promise.all(Array.from({ length: SERVER.linksPerIp }, () => game('10.9.9.9')));
   const extra = await game('10.9.9.9');
-  assert.equal((await extra.next('rejected')).reason, 'too-many');
+  assert.equal(await extra.rejected(), 'too-many');
   assert.equal(await extra.closed, closeCode('too-many'));
   const neighbor = await game('10.9.9.10');
   neighbor.send(host);
@@ -365,7 +369,7 @@ try {
   const hosts = await Promise.all(Array.from({ length: SERVER.sessionsPerIp + 1 }, () => game('10.8.8.8')));
   for (const x of hosts.slice(0, -1)) (x.send(host), await x.next('welcome'));
   hosts.at(-1)!.send(host);
-  assert.equal((await hosts.at(-1)!.next('rejected')).reason, 'too-many');
+  assert.equal(await hosts.at(-1)!.rejected(), 'too-many');
   const silent = await game();
   assert.equal(await silent.closed, 1008);
 
@@ -383,9 +387,9 @@ try {
   const uploaders = [];
   for (let i = 0; i < SERVER.uploadsPerIp; i++) uploaders.push(await game('10.7.7.7', '/ws?host'));
   const oneMore = await game('10.7.7.7', '/ws?host');
-  assert.equal((await oneMore.next('rejected')).reason, 'too-many');
+  assert.equal(await oneMore.rejected(), 'too-many');
   uploaders[0].send({ ...host, bytes: new Uint8Array(SERVER.maxMessage + 1) });
-  assert.equal((await uploaders[0].next('rejected')).reason, 'bad-save');
+  assert.equal(await uploaders[0].rejected(), 'bad-save');
   uploaders.forEach((x) => x.ws.close());
 
   // Pings keep coming; a message that isn't one closes the socket.

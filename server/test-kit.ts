@@ -5,7 +5,7 @@ import net from 'node:net';
 import path from 'node:path';
 import { WebSocket as Ws } from 'ws';
 import { PartsIn } from '../src/net/parts-in';
-import { encode, PROTOCOL, received, type ToClient, type ToServer } from '../src/net/protocol';
+import { encode, PROTOCOL, received, rejectionOf, type ToClient, type ToServer } from '../src/net/protocol';
 
 // What the tests that run the built server share (lobby-test.ts, queue-test.ts): a server on a free port, and a game
 // from its own address (or the one given) that keeps what the server sends.
@@ -33,6 +33,12 @@ export async function start(env: Record<string, string>) {
   return { port, adminPort, env: { ...process.env, ADMIN_PORT: String(adminPort), ...env }, out: () => out, stop: () => new Promise((done) => (child.once('exit', done), child.kill())) };
 }
 
+/** Why the server turned a game away: its link's close code, within 10 s. */
+export async function rejected(g: { closed: Promise<number>; got: { type: string }[] }) {
+  const late = new Promise<never>((_, no) => setTimeout(() => no(new Error(`not turned away (got ${g.got.map((m) => m.type)})`)), 10000).unref());
+  return rejectionOf(await Promise.race([g.closed, late]));
+}
+
 let games = 0;
 /** A game from its own address: what it got, the next message of a type, how it closed. */
 export class Game {
@@ -54,6 +60,9 @@ export class Game {
     if (this.ws.readyState !== Ws.OPEN) await new Promise((w) => this.ws.once('open', w));
     this.ws.send(encode(m));
     return this;
+  }
+  rejected() {
+    return rejected(this);
   }
   async next<T extends ToClient['type']>(type: T) {
     for (const end = Date.now() + 10000; ; await new Promise((w) => setTimeout(w, 20))) {

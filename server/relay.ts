@@ -38,5 +38,5 @@ export function forget(p: Player) {
 
 function flushAll() {
   due = false;
-  for (const p of [...pending.keys()]) flush(p);
+  for (const p of pending.keys()) flush(p);
 }

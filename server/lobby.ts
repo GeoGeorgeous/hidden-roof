@@ -1,20 +1,20 @@
 import { randomInt } from 'node:crypto';
 import { SERVER } from '../src/config';
-import { SLOTS } from '../src/inventory/tool';
-import { checkToServer, closeCode, CODE_LENGTH, CODE_LETTERS, decode, encode, PROTOCOL, type Rejection, type ToServer } from '../src/net/protocol';
+import { checkToServer, CODE_LENGTH, CODE_LETTERS, decode, PROTOCOL, type Rejection, type ToServer } from '../src/net/protocol';
 import { event } from './events';
 import { history } from './history';
-import { log, logNoisy, overMemory, who } from './log';
+import { log, logNoisy, who } from './log';
 import type { LevelData } from '../src/level/level-data';
-import type { Link, Player } from './player';
+import { turnAway, type Link, type Player } from './player';
 import type { Place } from './queue';
 import { PerMinute } from './per-minute';
+import { host } from './lobby-host';
 import { Session } from './session';
 import type { SessionSetup } from './setup';
 
 // Who gets into which session: the live sessions by code, the codes of those
 // that ended, each address's links, uploads and hosted sessions
-// (SERVER.linksPerIp, uploadsPerIp, sessionsPerIp), HOST (only if SERVER.playerHost) and JOIN (to a public session, SERVER.joinsPerIp a minute
+// (SERVER.linksPerIp, uploadsPerIp, sessionsPerIp), HOST (lobby-host.ts, only if SERVER.playerHost) and JOIN (to a public session, SERVER.joinsPerIp a minute
 // and SERVER.seatsPerIp seats or places in line per address), and each
 // link's messages to its session; a JOIN with the token of a player the admin kicked is refused for SERVER.rejoinWindow;
 // a JOIN that finds a session full waits in its line (queue.ts). main.ts gives it links (ws sockets); it
@@ -68,8 +68,7 @@ export class Lobby {
       history.turnedAway(reason);
       if (logNoisy(ip, code, `${m?.type ?? 'link'} from ${ip} turned away: ${reason}`))
         event('turned-away', this.sessions.get(code) ?? null, hello?.name ?? null, reason === 'version' && hello ? { reason, client: hello.protocol, server: PROTOCOL } : { reason });
-      link.send(encode({ type: 'rejected', reason }));
-      link.close(closeCode(reason), reason);
+      turnAway(link, reason);
     };
     const uploading = () => [...this.uploads.values()].reduce((n, c) => n + c, 0);
     /** Their session and who they are in it, once welcomed, or their place in its line; 'waiting' while a host or join is under way. */
@@ -187,29 +186,14 @@ export class Lobby {
     if (m.type === 'join' && m.token && (this.kicked.get(m.token) ?? 0) + SERVER.rejoinWindow * 1000 > Date.now()) return 'kicked';
     let session: Session;
     if (m.type === 'host') {
-      if (!SERVER.playerHost) return 'no-host';
-      if ([...this.hosts.values()].filter((h) => h === ip).length >= SERVER.sessionsPerIp) return 'too-many';
-      if (overMemory(SERVER.hostMemory)) return 'busy';
-      const code = this.newCode();
-      try {
-        const { name, limit, tools } = m.session;
-        session = this.start(code, m.levelName, m.level, m.detail, { kind: 'private', name: name.trim(), limit, tools: SLOTS.filter((t) => tools.includes(t)), stays: false, admin: false });
-      } catch (e) {
-        log('-----', `host from ${ip}: the level doesn't build`, e);
-        return 'bad-level';
-      }
-      if (session.table !== m.table) return 'version';
-      if (m.bytes)
-        try {
-          await session.load(m.bytes);
-        } catch (e) {
-          log('-----', `host from ${ip}: paint file refused: ${(e as Error).message}`);
-          return 'bad-save';
-        }
-      this.sessions.set(code, session);
-      this.hosts.set(code, ip);
-      const mb = session.memory;
-      log(code, `hosted by ${ip}: ${JSON.stringify(m.levelName)} at ${m.detail} texels/m, ${mb.now.toFixed(0)} MB of paint (${mb.full.toFixed(0)} MB if all painted), ${this.sessions.size} sessions`);
+      const hosted = await host(m, ip, {
+        sessions: this.sessions,
+        hostedFrom: (a) => [...this.hosts.values()].filter((h) => h === a).length,
+        start: (...made) => this.start(this.newCode(), ...made),
+        list: (s, a) => (this.sessions.set(s.code, s), this.hosts.set(s.code, a)),
+      });
+      if (typeof hosted === 'string') return hosted;
+      session = hosted;
     } else {
       const found = this.sessions.get(m.code);
       if (!found) return this.ended.has(m.code) ? 'ended' : 'no-session';

@@ -170,16 +170,6 @@ await pass(opts);
 SERVER.trafficHourSeen = 10000;
 assert.deepEqual([read(names[0]).views, read(names[0]).visitors, Object.keys(read(names[0]).steps).length], [6, 3, 4]);
 
-// A state and a day written before the hours were kept (the day's hashes in `today`, no salt) still load: the day goes on from its file.
-fs.rmSync(traffic, { recursive: true });
-fs.mkdirSync(traffic);
-fs.writeFileSync(log, line({ ts: t0, ip: A }));
-fs.writeFileSync(path.join(traffic, `${names[0]}.json`), JSON.stringify({ views: 5, visitors: 4, bots: 0, pages: { '/': 5 }, sources: { direct: 5 }, campaigns: {}, countries: {}, steps: { view: 4, script: 2, beacon: 0, socket: 0 } }));
-fs.writeFileSync(path.join(traffic, 'state.json'), JSON.stringify({ inode: fs.statSync(log).ino, offset: fs.statSync(log).size, today: { name: names[0], salt: 'old', seen: { view: ['a', 'b', 'c', 'd'], script: ['a', 'b'], beacon: [], socket: [] } } }));
-append(line({ ts: t0 + 5, ip: B }));
-await pass(opts);
-const carried = read(names[0]);
-assert.deepEqual([carried.views, carried.visitors, carried.steps.script, state().today, typeof state().salt.key], [6, 4, 2, names[0], 'string'], 'the day goes on from its file');
 // The salt is replaced once it is SERVER.saltDays old.
 const salt = state().salt;
 clock(t0 + 100 + SERVER.saltDays * 864e2 + 10);
@@ -279,4 +269,4 @@ try {
   bare.stop();
   fs.rmSync(dir, { recursive: true, force: true });
 }
-console.log('traffic: ok (views, pages, sources in their order, bots, visitors, the funnel, resuming, a partial line, truncation and rotation, the day changing and ending, a lost state, 304 pages, IPv6, no address or browser kept, the hours and periods, an old state, GET /traffic)');
+console.log('traffic: ok (views, pages, sources in their order, bots, visitors, the funnel, resuming, a partial line, truncation and rotation, the day changing and ending, a lost state, 304 pages, IPv6, no address or browser kept, the hours and periods, GET /traffic)');

@@ -2,8 +2,9 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { COLOR_ORDER, SERVER } from '../src/config';
 import type { Rejection } from '../src/net/protocol';
+import { writeAtomic } from './atomic';
 import { addClient, clientReport, noClient, type ClientCounts } from './client-counts';
-import { noPaint, type Paint } from './counts';
+import { noPaint, raised, type Paint } from './counts';
 import { log } from './log';
 import type { Link } from './player';
 import { people } from './people';
@@ -36,9 +37,6 @@ export const HOUR = 3600e3;
 const iso = (ms: number) => new Date(ms).toISOString();
 const dayName = (day: number) => iso(day * 24 * HOUR).slice(0, 10);
 const blank = (): Hour => ({ plays: 0, lengths: [0, 0, 0, 0], seconds: 0, withOthers: 0, turnedAway: {}, ...noPaint(), peak: null, client: noClient() });
-
-/** An hour as saved: one written before a field was added gets it empty (the beacons' too). */
-const loaded = (h: Hour): Hour => ({ ...blank(), ...h, client: { ...noClient(), ...h.client, events: { ...noClient().events, ...h.client?.events } } });
 
 /** The first hour (since 1970) of `period`, up to `now` (ms): today since 00:00 UTC, or the last 24, 7 x 24 or 30 x 24 hours counting this one. */
 export function firstHour(period: Period, now: number) {
@@ -111,13 +109,14 @@ class History {
   /** `n` players on the server now. */
   players(n: number) {
     const hour = this.now();
-    const at = iso(Date.now());
-    if (n > (hour.peak?.players ?? 0)) hour.peak = { players: n, at };
-    if (n > (this.ever?.players ?? 0)) [this.ever, this.everChanged] = [{ players: n, at }, true];
+    hour.peak = raised(hour.peak, n);
+    if (n > (this.ever?.players ?? 0)) [this.ever, this.everChanged] = [hour.peak, true];
   }
 
   /** `dt` s of play: each session's players here now. */
   sample(sessions: number[], dt: number) {
+    // No one playing adds nothing: the day isn't written again for it.
+    if (!sessions.some((n) => n > 0)) return;
     const hour = this.now();
     for (const n of sessions) {
       hour.seconds += n * dt;
@@ -154,8 +153,8 @@ class History {
       try {
         const file = JSON.parse(await fs.readFile(path.join(this.dir, name), 'utf8')) as { hours?: Record<string, Hour>; total?: Hour };
         if (!file.hours) continue;
-        if (day < today - SERVER.historyDays) await this.write(name, { total: sum(Object.values(file.hours).map(loaded)) });
-        else for (const [k, v] of Object.entries(file.hours)) this.hours.set(day * 24 + Number(k), loaded(v));
+        if (day < today - SERVER.historyDays) await this.write(name, { total: sum(Object.values(file.hours)) });
+        else for (const [k, v] of Object.entries(file.hours)) this.hours.set(day * 24 + Number(k), v);
       } catch (e) {
         log('-----', `stats ${name} skipped:`, e);
       }
@@ -192,10 +191,8 @@ class History {
     }
   }
 
-  private async write(name: string, data: unknown) {
-    const file = path.join(this.dir!, name);
-    await fs.writeFile(`${file}.tmp`, JSON.stringify(data));
-    await fs.rename(`${file}.tmp`, file);
+  private write(name: string, data: unknown) {
+    return writeAtomic(path.join(this.dir!, name), JSON.stringify(data));
   }
 }
 

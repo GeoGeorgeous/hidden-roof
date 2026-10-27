@@ -7,7 +7,7 @@ import type { Owned } from '../src/paint-surface';
 import { loadPaint } from '../src/save/load-paint';
 import { savePaint } from '../src/save/save-paint';
 import { planLevel } from '../src/level/prop-pieces';
-import { closeCode, decode, encode, PROTOCOL, type ToClient, type ToServer } from '../src/net/protocol';
+import { closeCode, decode, encode, PROTOCOL, rejectionOf, type ToClient, type ToServer } from '../src/net/protocol';
 import { surfaceTable } from '../src/save/shape';
 import { Lobby, type LinkInput } from './lobby';
 import type { Link } from './player';
@@ -127,7 +127,7 @@ class FakeLink implements Link {
       all.push(l);
       return l;
     };
-    const rejected = (l: FakeLink) => l.got.find((m) => m.type === 'rejected')?.reason;
+    const rejected = (l: FakeLink) => rejectionOf(l.closedWith);
     const crowd = Array.from({ length: SERVER.linksPerIp }, () => fake('10.0.0.1'));
     const extra = fake('10.0.0.1');
     assert.deepEqual([rejected(crowd[0]), rejected(extra), extra.closedWith, rejected(fake('10.0.0.2'))], [undefined, 'too-many', closeCode('too-many'), undefined]);

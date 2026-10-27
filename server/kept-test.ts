@@ -10,6 +10,7 @@ import { SERVER } from '../src/config';
 import { levelPaintFaces } from '../src/level/prop-pieces';
 import { CODE_LENGTH, encode, PROTOCOL, received, type ToClient, type ToServer } from '../src/net/protocol';
 import { PartsIn } from '../src/net/parts-in';
+import { rejected } from './test-kit';
 import { encodeOps, SurfaceIndex } from '../src/op-wire';
 import { decodePaintFile } from '../src/save/paint-file';
 import { keepers } from './saves';
@@ -104,6 +105,9 @@ class Game {
   send(m: ToServer) {
     this.ws.send(encode(m));
   }
+  rejected() {
+    return rejected(this);
+  }
   async next<T extends ToClient['type']>(type: T, ms = 10000) {
     for (const end = Date.now() + ms; ; await new Promise((w) => setTimeout(w, 20))) {
       const i = this.got.findIndex((m) => m.type === type);
@@ -158,7 +162,7 @@ try {
   assert.equal((await admin('GET', '/')).body.peak.players, SERVER.players.public);
   assert.ok(fs.existsSync(path.join(dir, 'stats', `${new Date().toISOString().slice(0, 10)}.json`)), "the day's hours on disk");
   assert.equal((await admin('GET', '/history?period=week')).status, 400);
-  // People: one device on two addresses, a second device on the second address, an IPv6 address changing within its /64: two people.
+  // Players in sessions: one device on two addresses, a second device on the second address, an IPv6 address changing within its /64: two devices, the IPv6 ones one address.
   const [d1, d2] = ['a'.repeat(32), 'b'.repeat(32)];
   for (const [ip, device] of [['10.2.0.1', d1], ['10.2.0.2', d1], ['10.2.0.2', d2], ['2001:db8:1:2::5', undefined], ['2001:db8:1:2:aaaa::9', undefined]] as const) {
     const g = new Game(ip, device);
@@ -166,8 +170,8 @@ try {
     g.send({ type: 'leave' });
     await g.closed;
   }
-  const seen = (await admin('GET', '/history')).body.people;
-  assert.deepEqual(seen, { merged: SERVER.players.public + 2, byDevice: 2, byIp: SERVER.players.public + 3 });
+  const seen = (await admin('GET', '/history')).body.inSessions;
+  assert.deepEqual(seen, { device: 2, address: SERVER.players.public + 3 });
   const counted = (await admin('GET', '/history')).body;
   const byAddress = SERVER.players.public + 3;
   assert.deepEqual([counted.players, counted.inSessions, counted.playerCountries], [{ device: 2, address: byAddress }, { device: 2, address: byAddress }, {}], 'players and those who joined, by device and by address');
@@ -180,14 +184,14 @@ try {
   assert.equal((await a.next('pong')).acked, 1);
   // What the admin page reads: the version, today's paint (the stamp's color as the game's), the player, the machine.
   const top = await admin('GET', '/');
-  assert.deepEqual([top.body.api, typeof top.body.version], [2, 'string']);
+  assert.deepEqual([top.body.api, typeof top.body.version], [3, 'string']);
   const live = (await admin('GET', '/sessions')).body[0];
-  assert.deepEqual([live.today.stamps.can, live.today.topColor, live.today.peak.players, live.emptySince], [1, 'red', 1, null]);
+  assert.deepEqual([live.today.stamps.can, live.today.colors, live.today.peak.players, live.emptySince], [1, { red: 1 }, 1, null]);
   assert.deepEqual([live.players[0].ip, live.players[0].here, live.players[0].held], [`10.1.0.${games}`, true, null]);
   assert.deepEqual([(await admin('GET', '/history')).body.stamps.can, (await admin('GET', '/history')).body.colors], [1, { red: 1 }]);
   const lost = new Game();
   await lost.hello('Z'.repeat(CODE_LENGTH), 'Lost');
-  assert.equal((await lost.next('rejected')).reason, 'no-session');
+  assert.equal(await lost.rejected(), 'no-session');
   assert.equal((await admin('GET', '/history?period=7d')).body.turnedAway['no-session'], 1);
   const box = (await admin('GET', '/machine')).body;
   assert.ok(box.cpu.vcpus > 0 && box.disk.total > 0 && box.memory.limit > 0, 'the machine');
@@ -363,7 +367,7 @@ try {
   fs.writeFileSync(path.join(dir, `${code}-2.json`), '{}');
   fs.writeFileSync(path.join(dir, `${code}-1.wiped.json`), '{}');
   assert.equal((await admin('POST', `/sessions/${code}/close`)).status, 200);
-  assert.equal((await d.next('rejected')).reason, 'closed');
+  assert.equal(await d.rejected(), 'closed');
   assert.equal(saves().length, 0);
   assert.deepEqual(fs.readdirSync(dir).filter((n) => n.startsWith(code)), [], 'no file of the session stays, stats included');
   assert.deepEqual((await admin('GET', '/sessions')).body, []);
@@ -371,7 +375,7 @@ try {
   // Plays that ended (seven left, one ended by the close), the paint still there after two restarts.
   const month = (await admin('GET', '/history?period=30d')).body;
   assert.deepEqual([month.playLength, month.stamps.can], [{ under2m: 8, m2to10: 0, m10to30: 0, over30m: 0 }, 5]);
-  assert.equal(month.people.byDevice, 2, 'people, kept through restarts');
+  assert.equal(month.inSessions.device, 2, 'players, kept through restarts');
   assert.ok(!JSON.stringify(fs.readdirSync(path.join(dir, 'stats')).map((n) => fs.readFileSync(path.join(dir, 'stats', n), 'utf8'))).includes('10.2.0.'), 'no address on disk');
   console.log('kept sessions: ok (admin key and origin, a public session full at its limit with a line, kept empty, paint back after a restart, its stats, the paint downloaded, wipe, saves kept aside and replaced, a save downloaded, restore with its undo and 409, saves kept by age, a new surface table wipes, private ones close when empty unless they stay, close, what the admin page reads, the event stream, history)');
 } finally {

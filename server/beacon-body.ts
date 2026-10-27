@@ -30,10 +30,10 @@ const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object
 const isPage = (x: unknown) => typeof x === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(x);
 const isNum = (x: unknown, most: number) => typeof x === 'number' && Number.isFinite(x) && x >= 0 && x <= most;
 const isText = (x: unknown) => typeof x === 'string' && x.length <= SERVER.beaconText;
-const isCode = (x: unknown) => typeof x === 'string' && /^[a-z0-9.-]{1,40}$/.test(x);
+const isEventCode = (x: unknown) => typeof x === 'string' && /^[a-z0-9.-]{1,40}$/.test(x);
 const isList = (x: unknown, ok: (v: unknown) => boolean) => x === undefined || (Array.isArray(x) && x.length <= NET.beaconList && x.every(ok));
 /** A map of at most SERVER.beaconKinds keys, each a code, each value `ok`. */
-const isMap = (x: unknown, ok: (v: unknown) => boolean) => isObj(x) && Object.keys(x).length <= SERVER.beaconKinds && Object.entries(x).every(([k, v]) => isCode(k) && ok(v));
+const isMap = (x: unknown, ok: (v: unknown) => boolean) => isObj(x) && Object.keys(x).length <= SERVER.beaconKinds && Object.entries(x).every(([k, v]) => isEventCode(k) && ok(v));
 const isCount = (n: unknown) => typeof n === 'number' && Number.isInteger(n) && n >= 1 && n <= SERVER.beaconMostEvents;
 
 /** `b` as a Body, or null. */
@@ -47,7 +47,7 @@ export function check(b: unknown) {
   if (fps !== undefined && (!isObj(fps) || !isNum(fps.avg, 1000) || !isNum(fps.low1, 1000))) return null;
   if (!isList(joins, (j) => isNum(j, SERVER.beaconMostSeconds)) || !isList(errors, (e) => typeof e === 'string' && e.length <= NET.beaconErrorChars)) return null;
   if (erred !== undefined && erred !== true) return null;
-  if (!isList(steps, (s) => STEPS.includes(s as never)) || !isList(tutorial, isCode)) return null;
+  if (!isList(steps, (s) => STEPS.includes(s as never)) || !isList(tutorial, isEventCode)) return null;
   if (counts !== undefined && !isMap(counts, isCount)) return null;
   if (seconds !== undefined && (!isObj(seconds) || !Object.entries(seconds).every(([k, v]) => SECONDS.includes(k as never) && isNum(v, SERVER.beaconMostSeconds)))) return null;
   if (net !== undefined && !isNet(net)) return null;

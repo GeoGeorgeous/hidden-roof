@@ -41,12 +41,14 @@ export async function keepEvents(dir: string) {
   await log.init();
   recent.unshift(...(await log.page(null, SERVER.adminEvents)).events.reverse());
   disk = log;
+  // Just past each midnight UTC: a new day's file, and the old ones pruned.
+  const atMidnight = () => setTimeout(daily, 864e5 - (Date.now() % 864e5) + 1000).unref();
   const daily = () => {
     log.roll(Date.now());
     void log.prune().catch(() => {});
-    setTimeout(daily, 864e5 - (Date.now() % 864e5) + 1000).unref();
+    atMidnight();
   };
-  setTimeout(daily, 864e5 - (Date.now() % 864e5) + 1000).unref();
+  atMidnight();
 }
 
 /** The events before id `before` (none: the newest), at most `limit`, newest first, and `next`: the id to ask for the page after, or null. */

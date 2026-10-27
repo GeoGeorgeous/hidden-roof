@@ -42,7 +42,8 @@ import { trafficDays } from './traffic-store';
 //   GET  /logs/DAY             that day's file as a download (text); ?session=CODE only that session's lines
 //   GET  /history?period=P     counts for today (since 00:00 UTC), or the last 24h, 7d or 30d (history.ts): plays, `players` and
 //                              `inSessions` { device, address } (distinct over the period; players are who joined or reached the level),
-//                              `playerCountries` (players by device, each by their last country), and the older `people`, `countries`
+//                              `playerCountries` (players by device, each by their last country), and `client`: the beacons' counts and
+//                              histograms keyed in their unit (fps whole, seconds to a tenth, ping by 10 ms), no medians (client-counts.ts)
 //   GET  /traffic?days=N       the last N days (1 to 366, 30 by default) of the site's traffic, oldest first, a day with no
 //                              counts left out: { days: [{ day, views, visitors, bots, pages, sources, campaigns, countries, steps }] }
 //                              (the traffic reader's, traffic.ts; none without DATA_DIR)
@@ -58,7 +59,7 @@ import { trafficDays } from './traffic-store';
 //                              the page after, or null. From the files in DATA_DIR/events (event-log.ts), without DATA_DIR from the last few in memory.
 //                              Every event has an `id`, `<ms>-<n>`, compared as numbers (ms, then n)
 //   GET  /sessions             every session: its line (queue), players (address, ping, held seat),
-//                              today's paint (`stamps` by tool, `colors`: ops by color code, `topColor` the most painted, for older pages) and peak,
+//                              today's paint (`stamps` by tool, `colors`: ops by color code) and peak,
 //                              `stats`: its counts since its paint began (counts.ts SessionStats; also in the event stream's status): `since`,
 //                              `began` (made, wiped, restored; `restoredAt` with the last), `stamps` by tool, `colors`, `painters` (distinct
 //                              nicknames that painted), `playSeconds`, `joins` (new players), `peak` ({ players, at } or null),
@@ -89,13 +90,15 @@ import { trafficDays } from './traffic-store';
 //                              attachment named <code>-<UTC time>.rhhpaint; 503 when there's no memory for one
 
 /** Changes when what the API takes or answers does: the admin page lives in another repo. */
-const ADMIN_API = 2;
+const ADMIN_API = 3;
 const started = Date.now();
 
 const digest = (s: string) => createHash('sha256').update(s).digest();
 const detailName = (d: number) => Object.entries(PAINT_DETAIL).find(([, v]) => v === d)?.[0] ?? String(d);
 
 const iso = (ms: number) => new Date(ms).toISOString();
+/** `x` is a whole number from 1 to `most` (at most 999). */
+const upTo = (x: string, most: number) => /^\d{1,3}$/.test(x) && +x >= 1 && +x <= most;
 /** A paint file's name: the session's code and the UTC time (now, or the save's), 2026-10-26T12-30-00Z. */
 const paintName = (code: string, at = Date.now()) => `${code}-${iso(at).slice(0, 19).replaceAll(':', '-')}Z.rhhpaint`;
 
@@ -120,7 +123,7 @@ function live(s: Session) {
     code: s.code, kind, name, admin, stays, tools, level: s.levelName, detail: detailName(s.detail), players, limit, queue: s.line.length,
     started: iso(s.started), paintMB: Math.round(s.memory.now), emptySince: s.emptySince === null ? null : iso(s.emptySince),
     stats: s.stats.report(s.joinedAt()),
-    today: { peak: today.peak, stamps: today.paint.stamps, colors: { ...today.paint.colors }, topColor: today.topColor },
+    today: { peak: today.peak, stamps: today.paint.stamps, colors: { ...today.paint.colors } },
     ping: { median: median(pings), slow: pings.filter((ms) => ms > SERVER.slowPing).length },
   };
 }
@@ -169,35 +172,34 @@ export function adminApi(lobby: Lobby, kept: Kept, key: string) {
     if (req.headers.origin && req.headers.origin !== allowed) return answer(403, { error: 'origin' });
     const parts = (req.url ?? '/').split('?')[0].split('/').filter(Boolean);
     try {
+      const q = new URL(req.url ?? '', 'http://admin').searchParams;
       if (req.method === 'GET' && !parts.length) return answer(200, { api: ADMIN_API, version: VERSION, protocol: PROTOCOL, started: iso(started), now: iso(Date.now()), sessions: lobby.sessions.size, players: lobby.players, peak: history.ever, slowPing: SERVER.slowPing, saveEvery: SERVER.keepEvery, saveAges: SERVER.keepAges.filter(Boolean), sources: await sources(kept.dir) });
       if (req.method === 'GET' && parts[0] === 'machine' && parts.length === 1) return answer(200, await machine(kept.dir));
       if (req.method === 'GET' && parts[0] === 'events' && parts.length === 1)
         return stream(res, () => ({ now: iso(Date.now()), players: lobby.players, site: site(), sessions: [...lobby.sessions.values()].map(live) }));
       if (req.method === 'GET' && parts[0] === 'events' && parts[1] === 'page' && parts.length === 2) {
-        const q = new URL(req.url ?? '', 'http://admin').searchParams;
         const [before, limit] = [q.get('before'), q.get('limit') ?? String(SERVER.eventPage)];
         if (before !== null && !parseId(before)) return answer(400, { error: 'before: an event id, <ms>-<n>' });
-        if (!/^\d{1,3}$/.test(limit) || +limit < 1 || +limit > SERVER.eventPage) return answer(400, { error: `limit: 1 to ${SERVER.eventPage}` });
+        if (!upTo(limit, SERVER.eventPage)) return answer(400, { error: `limit: 1 to ${SERVER.eventPage}` });
         return answer(200, await eventPage(before, +limit));
       }
       if (req.method === 'GET' && parts[0] === 'history' && parts.length === 1) {
-        const period = new URL(req.url ?? '', 'http://admin').searchParams.get('period') ?? '24h';
+        const period = q.get('period') ?? '24h';
         return isPeriod(period) ? answer(200, history.report(period)) : answer(400, { error: 'period: today, 24h, 7d or 30d' });
       }
       if (req.method === 'GET' && parts[0] === 'traffic' && parts.length === 1) {
-        const q = new URL(req.url ?? '', 'http://admin').searchParams;
         const period = q.get('period');
         if (period !== null) {
           if (!isPeriod(period)) return answer(400, { error: 'period: today, 24h, 7d or 30d' });
           return answer(200, await trafficPeriod(kept.dir && path.join(kept.dir, 'traffic'), period));
         }
         const days = q.get('days') ?? '30';
-        if (!/^\d{1,3}$/.test(days) || +days < 1 || +days > 366) return answer(400, { error: 'days: 1 to 366' });
+        if (!upTo(days, 366)) return answer(400, { error: 'days: 1 to 366' });
         return answer(200, kept.dir ? await trafficDays(kept.dir, +days) : { days: [] });
       }
       if (req.method === 'GET' && parts[0] === 'logs' && parts.length === 1) return answer(200, await logDays());
       if (req.method === 'GET' && parts[0] === 'logs' && parts.length === 2) {
-        const sent = await sendLog(res, parts[1], new URL(req.url ?? '', 'http://admin').searchParams.get('session'));
+        const sent = await sendLog(res, parts[1], q.get('session'));
         if (sent === false) return answer(400, { error: 'a day, YYYY-MM-DD, and a session code' });
         if (sent === null) return answer(404, { error: `no log for ${parts[1]}` });
         return;

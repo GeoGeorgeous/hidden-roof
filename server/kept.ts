@@ -3,7 +3,8 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { SERVER } from '../src/config';
 import { levelProblem, type LevelData } from '../src/level/level-data';
-import { CODE_LENGTH, CODE_LETTERS, isSessionName, isToolSet, PROTOCOL, type SessionKind } from '../src/net/protocol';
+import { isCode, isSessionName, isToolSet, PROTOCOL, type SessionKind } from '../src/net/protocol';
+import { writeAtomic } from './atomic';
 import { SessionStats } from './counts';
 import { event } from './events';
 import { log, mb } from './log';
@@ -43,16 +44,15 @@ interface Entry {
   levelHash: string;
 }
 
-const CODE = new RegExp(`^[${CODE_LETTERS}]{${CODE_LENGTH}}$`);
 const isEntry = (e: unknown): e is Entry => {
   const o = (typeof e === 'object' && e ? e : {}) as Record<string, unknown>;
-  return typeof o.code === 'string' && CODE.test(o.code) && (o.kind === 'public' || o.kind === 'private') && isSessionName(o.name) && isToolSet(o.tools) && typeof o.level === 'string' && Number.isFinite(o.detail) && typeof o.protocol === 'number' && typeof o.table === 'string' && typeof o.levelHash === 'string';
+  return isCode(o.code) && (o.kind === 'public' || o.kind === 'private') && isSessionName(o.name) && isToolSet(o.tools) && typeof o.level === 'string' && Number.isFinite(o.detail) && typeof o.protocol === 'number' && typeof o.table === 'string' && typeof o.levelHash === 'string';
 };
 const hash = (level: LevelData) => createHash('sha256').update(JSON.stringify(level)).digest('hex').slice(0, 16);
 
 export class Kept {
-  /** The save under way (save() never throws), and the disk work in line. */
-  private running: Promise<void> | null = null;
+  /** The saves of every kept session, one after another (saveAll never throws), and all the disk work in line. */
+  private saving: Promise<void> = Promise.resolve();
   private chain: Promise<unknown> = Promise.resolve();
   /** Kept sessions not made again at start for a reason that may pass: still listed. */
   private unmade: Entry[] = [];
@@ -60,9 +60,8 @@ export class Kept {
   private disk: Saves | null;
   /** The admin's uploaded paint files (uploads.ts); null without DATA_DIR. */
   readonly uploads: Uploads | null;
-  /** Disk tasks under way per session (a save, a wipe, a close, a restore); a restore waits for none, and a wipe or close refuses one under way. */
-  private working = new Map<string, number>();
-  private restoring = new Set<string>();
+  /** Disk tasks under way per session (a save, a wipe, a close, a restore), and whether one is a restore: it runs alone. */
+  private working = new Map<string, { n: number; alone: boolean }>();
   /** The save made of a session's paint before its last restore (the undo), kept besides the age rule until the next restore or a wipe. */
   private undos = new Map<string, number>();
 
@@ -135,7 +134,7 @@ export class Kept {
     await this.hold(session.code, false, async () => {
       session.end();
       this.undos.delete(session.code);
-      await this.serial(`close of ${session.code}`, () => this.forget(session.code));
+      await this.serial(`close of ${session.code}`, async () => this.disk?.forget(session.code));
     });
     await this.record();
   }
@@ -165,7 +164,7 @@ export class Kept {
       } catch (err) {
         if (err instanceof Refused) {
           log(e.code, `kept session not made again: ${err.message}`);
-          await this.forget(e.code);
+          await this.disk?.forget(e.code);
         } else {
           log(e.code, 'kept session left for the next start:', err);
           this.unmade.push(e);
@@ -176,14 +175,14 @@ export class Kept {
         session = this.lobby.create({ kind: e.kind, name: e.name, limit: e.limit ?? SERVER.players[e.kind], tools: e.tools, stays: true }, e.level, level, e.detail, e.code);
       } catch (err) {
         log(e.code, `kept session not made again: ${(err as Error).message}`);
-        await this.forget(e.code);
+        await this.disk?.forget(e.code);
         continue;
       }
       const changed = [e.protocol !== PROTOCOL && 'protocol', e.table !== session.table && 'surface table', e.levelHash !== hash(level) && 'level'].filter(Boolean);
       if (changed.length) {
         log(e.code, `paint wiped: a new ${changed.join(', ')}`);
         event('wiped-at-start', session, null, { cause: changed });
-        await this.forget(e.code);
+        await this.disk?.forget(e.code);
         continue;
       }
       for (const name of (await this.disk!.list(e.code)).filter((n) => !isWiped(n)))
@@ -200,10 +199,9 @@ export class Kept {
   }
 
   /** Every kept session's paint that changed since its last save (every SERVER.keepEvery, and at shutdown, after a save under way). */
-  async save() {
-    if (!this.dir) return;
-    while (this.running) await this.running;
-    await (this.running = this.saveAll().finally(() => (this.running = null)));
+  save() {
+    if (!this.dir) return Promise.resolve();
+    return (this.saving = this.saving.then(() => this.saveAll()));
   }
 
   private async saveAll() {
@@ -241,16 +239,14 @@ export class Kept {
 
   /** `work` as a disk task of `code`: Busy if a restore is under way, or (`alone`) any other task. */
   private async hold<T>(code: string, alone: boolean, work: () => Promise<T>) {
-    const n = this.working.get(code) ?? 0;
-    if (this.restoring.has(code) || (alone && n)) throw new Busy(`${code}: a restore or another disk task is under way`);
-    this.working.set(code, n + 1);
-    if (alone) this.restoring.add(code);
+    const w = this.working.get(code) ?? { n: 0, alone };
+    if (w.alone !== alone || (alone && w.n)) throw new Busy(`${code}: a restore or another disk task is under way`);
+    w.n++;
+    this.working.set(code, w);
     try {
       return await work();
     } finally {
-      if (this.working.get(code) === 1) this.working.delete(code);
-      else this.working.set(code, this.working.get(code)! - 1);
-      if (alone) this.restoring.delete(code);
+      if (!--w.n) this.working.delete(code);
     }
   }
 
@@ -308,8 +304,7 @@ export class Kept {
     if (!this.dir) return;
     return this.serial('sessions.json', async () => {
       const list: Entry[] = this.public().map(({ code, setup: { kind, name, limit, tools }, levelName, detail, table, level }) => ({ code, kind, name, limit, tools, level: levelName, detail, protocol: PROTOCOL, table, levelHash: hash(level) }));
-      await fs.writeFile(this.file('sessions.json.tmp'), JSON.stringify([...list, ...this.unmade], null, 1));
-      await fs.rename(this.file('sessions.json.tmp'), this.file('sessions.json'));
+      await writeAtomic(this.file('sessions.json'), JSON.stringify([...list, ...this.unmade], null, 1));
     });
   }
 
@@ -322,11 +317,6 @@ export class Kept {
   async saveFile(code: string, ms: number) {
     const name = await this.disk?.find(code, ms);
     return name ? this.file(name) : null;
-  }
-
-  /** Every file of a session's, saves and what a crash left of one. */
-  private async forget(code: string) {
-    await this.disk?.forget(code);
   }
 
   private file(name: string) {

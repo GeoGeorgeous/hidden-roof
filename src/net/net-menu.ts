@@ -2,6 +2,7 @@ import { COLORS, PAINT, SERVER } from '../config';
 import { download, stamp } from '../files';
 import type { PauseMenu } from '../pause-menu';
 import { msg, type MessageId } from '../messages';
+import { progressText } from './progress';
 import type { Notify } from '../notify';
 import { button, div, el, notice, pageHead } from '../menu-ui';
 import { createDialog } from './create-dialog';
@@ -206,16 +207,14 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
   hud.onLeave = () => net.leave();
   hud.sessionInfo = () => ({ ping: net.ping, players: net.players.map((p) => ({ name: p.name, color: p.color && COLORS[p.color] })) });
   // Each step of HOST, JOIN or SAVE as it goes, with how far along an upload or download is.
-  net.onProgress = (text) => {
-    if (text) (say(text), hud.notice(text, Infinity), net.status.state === 'connecting' && hud.setJoining(short(text)));
-    else hud.notice('', 0);
-    if (joining) loading.update(text);
+  net.onProgress = (p) => {
+    if (p) {
+      const text = progressText(p);
+      say(text);
+      hud.notice(text, Infinity);
+      if (net.status.state === 'connecting') hud.setJoining('percent' in p ? msg('menu.progressShort', { percent: `${p.percent}%` }) : msg('menu.joining'));
+    } else hud.notice('', 0);
+    if (joining) loading.update(p);
   };
   return net;
-}
-
-/** PLAY's short form of a progress line while joining: 'Loading 40%', or 'Joining…' before there's a share. */
-function short(progress: string) {
-  const share = /\d+%$/.exec(progress);
-  return share ? msg('menu.progressShort', { percent: share[0] }) : msg('menu.joining');
 }

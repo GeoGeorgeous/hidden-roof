@@ -1,10 +1,11 @@
 import { msg } from '../messages';
 import { action, div } from '../menu-ui';
 import { sessionLine, shellButton, type Where } from './lobby-view';
+import type { Progress } from './progress';
 import type { LobbyEntry } from './protocol';
 
 // The screen while a session loads (style.css, .loading-page), from JOIN until the player is in: the session's line,
-// what is happening and how far along the paint's download is, and CANCEL. It follows the network's progress lines
+// what is happening and how far along the paint's download is, and CANCEL. It follows the network's progress
 // (net/multiplayer.ts, onProgress): connecting and joining, the paint coming down with its percent, the paint going
 // onto the walls, and the moment before the game takes over. Once the player is in, the same screen stays without its
 // progress, over the city view, and asks for a click (CLICK TO PLAY beside LEAVE, or anywhere): that click takes the pointer lock (net/net-menu.ts).
@@ -49,12 +50,11 @@ export class LoadingPage {
     this.go('joining');
   }
 
-  /** The network's progress line (null: none, the game is about to take over once the paint is on). */
-  update(text: string | null) {
-    const share = text && /(\d+)%$/.exec(text);
-    if (text === null) this.go('dropping', 100);
-    else if (share) this.go('downloading', Number(share[1]));
-    else if (text === msg('menu.progressLoading')) this.go('putting', 100);
+  /** The network's progress (null: none, the game is about to take over once the paint is on). */
+  update(p: Progress | null) {
+    if (p === null) this.go('dropping', 100);
+    else if ('percent' in p) this.go('downloading', p.percent);
+    else if (p.step === 'loading') this.go('putting', 100);
     else this.go('joining');
   }
 

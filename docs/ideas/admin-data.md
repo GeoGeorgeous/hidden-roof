@@ -1,6 +1,6 @@
 # Admin data for 1.6.0 (CCTV-253 to CCTV-260)
 
-What the admin page (cctv) gets from the server next, after the owner's list of 2026-10-27. The page's own items (CCTV-252, CCTV-257) need nothing here. The API's rules stay as in `docs/ideas/public-servers.md` (data, not views; times ISO UTC, durations in seconds, sizes in bytes). ADMIN_API stays 2 for additions; a field removed, renamed or with a new meaning bumps it (cctv checks for an exact match). Each change goes to cctv as a diff before it's merged.
+What the admin page (cctv) gets from the server next, after the owner's list of 2026-10-27. The page's own items (CCTV-252, CCTV-257) need nothing here. The API's rules stay as in `docs/ideas/public-servers.md` (data, not views; times ISO UTC, durations in seconds, sizes in bytes). ADMIN_API is 3 since CCTV-261; additions keep it, and a field removed, renamed or with a new meaning bumps it (cctv checks for an exact match). Each change goes to cctv as a diff before it's merged.
 
 All built for 1.6.0 (the items are in the backlog's Done). The API as it is now: `docs/deploy.md` (Admin, Kept paint, Traffic) and the header of `server/admin-api.ts`. What stays here is why it is so.
 

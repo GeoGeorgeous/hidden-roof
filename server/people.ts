@@ -2,6 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { SERVER } from '../src/config';
+import { writeAtomic } from './atomic';
 import { log } from './log';
 
 // Unique people for the admin's history (history.ts). Each play that starts (a
@@ -11,8 +12,7 @@ import { log } from './log';
 // hashes, and its country, and whether it was a JOIN, a page or both. The salt
 // changes every SERVER.saltDays and is never logged or sent. They are kept
 // SERVER.historyDays, a file a day (stats/people-<day>.json), then deleted.
-// Players are counted by device and by address; the older `people` merge plays that
-// share a device or an address, so a cleared storage or a new address still counts once.
+// Players are counted by device and by address.
 
 interface Play {
   h: number;
@@ -73,41 +73,16 @@ class People {
   }
 
   /** People since hour `first` (distinct within one salt period: a person seen before and after a salt change counts twice).
-   * `people`, `countries`: of those who joined, merged (plays that share a device or an address are one person): merged, by device (plays that carried one), by address; and merged people by country (their last one known).
    * `players`: who joined or reached the level, once by device and once by address; `inSessions`: who joined; `playerCountries`: players by device, each by their last country known. */
   count(first: number) {
-    const up = new Map<string, string>();
-    const root = (x: string): string => {
-      const u = up.get(x) ?? x;
-      if (u === x) return x;
-      const r = root(u);
-      up.set(x, r);
-      return r;
-    };
     const all = this.plays.filter((p) => p.h >= first);
     const plays = all.filter((p) => p.j);
-    const devices = new Set<string>();
-    const ips = new Set<string>();
-    for (const p of plays) {
-      ips.add(p.i);
-      if (!p.d) continue;
-      devices.add(p.d);
-      const [a, b] = [root(`i${p.i}`), root(`d${p.d}`)];
-      if (a !== b) up.set(b, a);
-    }
-    const country = new Map<string, string | null>();
-    for (const p of plays) {
-      const who = root(`i${p.i}`);
-      if (p.c || !country.has(who)) country.set(who, p.c);
-    }
-    const countries: Record<string, number> = {};
-    for (const c of country.values()) if (c) countries[c] = (countries[c] ?? 0) + 1;
     const distinct = (list: Play[]) => ({ device: new Set(list.flatMap((p) => (p.d ? [p.d] : []))).size, address: new Set(list.map((p) => p.i)).size });
     const last = new Map<string, string | null>();
     for (const p of all) if (p.d && (p.c || !last.has(p.d))) last.set(p.d, p.c);
     const playerCountries: Record<string, number> = {};
     for (const c of last.values()) if (c) playerCountries[c] = (playerCountries[c] ?? 0) + 1;
-    return { people: { merged: country.size, byDevice: devices.size, byIp: ips.size }, countries, players: distinct(all), inSessions: distinct(plays), playerCountries };
+    return { players: distinct(all), inSessions: distinct(plays), playerCountries };
   }
 
   /** Keep them in `dir` (stats/): the salt and the last SERVER.historyDays read back, older days deleted. */
@@ -153,7 +128,6 @@ class People {
   }
 
   private add(p: Play) {
-    if (!p.j && !p.p) p.j = true;
     this.seen.set(`${p.h} ${p.d} ${p.i}`, p);
     this.plays.push(p);
   }
@@ -164,9 +138,6 @@ class People {
 }
 
 /** `data` as JSON in `file`, only the owner may read it, whole or not at all. */
-async function write(file: string, data: unknown) {
-  await fs.writeFile(`${file}.tmp`, JSON.stringify(data), { mode: 0o600 });
-  await fs.rename(`${file}.tmp`, file);
-}
+const write = (file: string, data: unknown) => writeAtomic(file, JSON.stringify(data), 0o600);
 
 export const people = new People();

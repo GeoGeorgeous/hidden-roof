@@ -67,15 +67,7 @@ export class DayCounts {
   /** `n` players in it now. */
   players(n: number) {
     this.roll();
-    if (n > this.peak.players) this.peak = { players: n, at: new Date().toISOString() };
-  }
-
-  /** The color painted most today, or null. */
-  get topColor() {
-    const { colors } = this.paint;
-    let top: PaintColor | null = null;
-    for (const c of COLOR_ORDER) if ((colors[c] ?? 0) > (top ? colors[top]! : 0)) top = c;
-    return top;
+    this.peak = raised(this.peak, n)!;
   }
 
   private roll() {
@@ -101,6 +93,9 @@ export interface StoredStats {
   joins: number;
   peak: { players: number; at: string } | null;
 }
+
+/** `peak` or `n` players now, whichever is more. */
+export const raised = (peak: { players: number; at: string } | null, n: number) => (n > (peak?.players ?? 0) ? { players: n, at: new Date().toISOString() } : peak);
 
 const isCount = (n: unknown) => typeof n === 'number' && Number.isFinite(n) && n >= 0;
 
@@ -131,7 +126,7 @@ export class SessionStats {
 
   /** `n` players in it now. */
   players(n: number) {
-    if (n > (this.peak?.players ?? 0)) this.peak = { players: n, at: new Date().toISOString() };
+    this.peak = raised(this.peak, n);
   }
 
   /** A player who joined at `joined` (ms) stayed till `until`: only the time since the paint began counts. */
@@ -139,10 +134,14 @@ export class SessionStats {
     this.played += Math.max(0, until - Math.max(joined, this.since)) / 1000;
   }
 
+  /** Player-seconds till now, the players here (`here`: when (ms) each joined) counted too. */
+  private playedNow(here: number[]) {
+    const now = Date.now();
+    return here.reduce((n, joined) => n + Math.max(0, now - Math.max(joined, this.since)) / 1000, this.played);
+  }
+
   /** As the admin page gets them; `here`: when (ms) the players now in the session joined. */
   report(here: number[]) {
-    const now = Date.now();
-    const live = here.reduce((n, joined) => n + Math.max(0, now - Math.max(joined, this.since)) / 1000, 0);
     return {
       since: new Date(this.since).toISOString(),
       began: this.began,
@@ -150,7 +149,7 @@ export class SessionStats {
       stamps: { ...this.paint.stamps },
       colors: { ...this.paint.colors },
       painters: this.names.size,
-      playSeconds: Math.round(this.played + live),
+      playSeconds: Math.round(this.playedNow(here)),
       joins: this.joins,
       peak: this.peak,
     };
@@ -159,8 +158,7 @@ export class SessionStats {
   /** What is written beside a save: painters as names, the players now in it counted till now. */
   toJSON(here: number[] = []): StoredStats {
     const { began, since, joins, peak, restoredAt } = this;
-    const live = here.reduce((n, joined) => n + Math.max(0, Date.now() - Math.max(joined, since)) / 1000, 0);
-    return { since, began, restoredAt, stamps: { ...this.paint.stamps }, colors: { ...this.paint.colors }, painters: [...this.names], played: this.played + live, joins, peak };
+    return { since, began, restoredAt, stamps: { ...this.paint.stamps }, colors: { ...this.paint.colors }, painters: [...this.names], played: this.playedNow(here), joins, peak };
   }
 
   /** The stats a save was written with, or null if they are not good. */

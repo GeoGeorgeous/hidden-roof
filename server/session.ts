@@ -4,14 +4,14 @@ import { SLOTS, type Tool } from '../src/inventory/tool';
 import type { LevelData } from '../src/level/level-data';
 import { decodeOps, encodeOps, SurfaceIndex } from '../src/op-wire';
 import { opTool } from '../src/paint-ops';
-import { closeCode, encode, partFrames, relayEntry, type Rejection, type ToClient, type ToServer } from '../src/net/protocol';
+import { encode, partFrames, relayEntry, type Rejection, type ToClient, type ToServer } from '../src/net/protocol';
 import { loadPaint } from '../src/save/load-paint';
 import { surfaceTable } from '../src/save/shape';
 import { countPaint, DayCounts, SessionStats } from './counts';
 import { event } from './events';
 import { history } from './history';
-import { log, span, who } from './log';
-import { deliver, presence, uniqueName, type Link, type Player } from './player';
+import { log, logNoisy, span, who } from './log';
+import { deliver, presence, turnAway, uniqueName, type Link, type Player } from './player';
 import { Queue } from './queue';
 import { forget, relay } from './relay';
 import { HOSTED } from './setup';
@@ -131,8 +131,7 @@ export class Session {
         event('turned-away', this, p.name, { reason: 'replaced' });
         history.turnedAway('replaced');
       }
-      p.link?.send(encode({ type: 'rejected', reason: 'replaced' }));
-      p.link?.close(closeCode('replaced'), 'replaced');
+      turnAway(p.link, 'replaced');
       forget(p);
       p.link = link;
       p.device = link.device ?? p.device;
@@ -183,7 +182,8 @@ export class Session {
       if (this.restoring || m.seq <= p.acked) return;
       p.acked = m.seq;
       const batch = decodeOps(m.bytes, this.surfaces);
-      if (!batch) return log(this.code, who(p), 'paint ops it could not read: dropped');
+      // A game can send these at its rate: logged as a stranger's lines are.
+      if (!batch) return void logNoisy(p.link?.ip ?? '-', this.code, who(p), 'paint ops it could not read: dropped');
       // Ops on a face their surface doesn't have, and ops of a tool the session turned off, are dropped.
       const { paint, ops } = this.world;
       const keep = batch.ops.map((op) => {
@@ -198,7 +198,7 @@ export class Session {
       this.changed = true;
       const bytes = valid.length === batch.ops.length ? m.bytes : encodeOps(batch.t.filter((_, i) => keep[i]), valid, this.surfaces);
       this.relay(relayEntry('ops', p.id, bytes), p);
-      this.files.log(encode({ type: 'paint', bytes }));
+      this.files.log(() => encode({ type: 'paint', bytes }));
     } else if (m.type === 'ladder') {
       // Putting one down with the stepladder off is dropped (picking it up is not).
       if (m.data && this.off.has('ladder')) return;
@@ -282,12 +282,7 @@ export class Session {
 
   /** The admin closed it: everyone, those in line too, is told so (`closed`, not `ended`: nobody ran out of time). */
   end() {
-    for (const p of this.players.values()) {
-      history.played((Date.now() - p.joined) / 1000);
-      this.stats.stay(p.joined, Date.now());
-      this.eject(p, 'closed');
-    }
-    this.players.clear();
+    for (const p of [...this.players.values()]) this.out(p, 'the session was closed', 'closed');
     this.emptySince = Date.now();
     this.finish('by the admin', 'closed');
   }
@@ -296,9 +291,7 @@ export class Session {
   kick(id: number) {
     const p = this.players.get(id);
     if (!p) return false;
-    this.eject(p, 'kicked');
-    event('kicked', this, p.name);
-    this.remove(p, 'kicked by the admin');
+    this.remove(p, 'kicked by the admin', 'kicked');
     return true;
   }
 
@@ -318,19 +311,9 @@ export class Session {
     return `after ${span(Date.now() - this.started)}, ${this.memory.now.toFixed(0)} MB of paint, ${this.nextId - 1} players: ${c.new} new, ${c.back} back, ${c.takeover} takeovers`;
   }
 
-  remove(p: Player, why: string) {
-    if (this.players.get(p.id) !== p) return;
-    if (p.expires) clearTimeout(p.expires);
-    this.players.delete(p.id);
-    if (p.inventory || p.at) this.carried.set(p.name, { inventory: p.inventory, at: p.at });
-    log(this.code, who(p), `out: ${why} (${this.players.size} players)`);
-    const played = (Date.now() - p.joined) / 1000;
-    event('left', this, p.name, { why, played: Math.round(played) });
-    history.played(played);
-    this.stats.stay(p.joined, Date.now());
-    const link = p.link;
-    p.link = null;
-    link?.close(1000, why);
+  /** `p` leaves for `why`; `told`: turned away with it, no seat held (the admin's kick). */
+  remove(p: Player, why: string, told?: 'kicked') {
+    if (!this.out(p, why, told)) return;
     this.broadcast({ type: 'left', id: p.id });
     this.line.update();
     if (this.players.size) return;
@@ -338,13 +321,33 @@ export class Session {
     if (!this.setup.stays) this.finish('no one left');
   }
 
-  /** `p` is told why and their link closed; no seat held. */
-  private eject(p: Player, reason: 'kicked' | 'closed') {
+  /**
+   * Every way out of the session (leaving, a seat not taken back, a kick, the admin's close): `p` is gone, logged, one
+   * `left` event, their time counted in the hour and the stats, and their link closed (`told`: turned away with that
+   * rejection). False if they weren't in it.
+   */
+  private out(p: Player, why: string, told?: 'kicked' | 'closed') {
+    if (this.players.get(p.id) !== p) return false;
     if (p.expires) clearTimeout(p.expires);
+    this.players.delete(p.id);
+    if (p.inventory || p.at) this.carry(p);
+    log(this.code, who(p), `out: ${why} (${this.players.size} players)`);
+    const played = (Date.now() - p.joined) / 1000;
+    event('left', this, p.name, { why, played: Math.round(played) });
+    history.played(played);
+    this.stats.stay(p.joined, Date.now());
     const link = p.link;
     p.link = null;
-    link?.send(encode({ type: 'rejected', reason }));
-    link?.close(closeCode(reason), reason);
+    if (told) turnAway(link, told);
+    else link?.close(1000, why);
+    return true;
+  }
+
+  /** What `p` carried and where they stood, kept under their name: the newest SERVER.carriedNames names. */
+  private carry(p: Player) {
+    this.carried.delete(p.name);
+    this.carried.set(p.name, { inventory: p.inventory, at: p.at });
+    if (this.carried.size > SERVER.carriedNames) this.carried.delete(this.carried.keys().next().value!);
   }
 
   /** It's over: those waiting are told, and the lobby forgets it. */

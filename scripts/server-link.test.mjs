@@ -7,6 +7,7 @@
 import assert from 'node:assert/strict';
 import { NET, SERVER } from '../src/config.ts';
 import { decode, encode, PROTOCOL } from '../src/net/protocol.ts';
+import { progressText } from '../src/net/progress.ts';
 import { ServerLink } from '../src/net/server-link.ts';
 
 class FakeSocket {
@@ -41,7 +42,7 @@ function link(hello) {
   const said = [];
   const l = new ServerLink(
     hello,
-    { message: (m, _, file) => said.push(`message ${m.type}${file ? ` ${file.length} B` : ''}`), progress: (p) => said.push(p), log: () => {}, traffic: () => {}, closed: (_, timedOut) => said.push(`closed${timedOut ? ' (timed out)' : ''}`) },
+    { message: (m, _, file) => said.push(`message ${m.type}${file ? ` ${file.length} B` : ''}`), progress: (p) => said.push(progressText(p)), log: () => {}, traffic: () => {}, closed: (_, timedOut) => said.push(`closed${timedOut ? ' (timed out)' : ''}`) },
     { url: 'ws://test/ws', open: () => (socket = new FakeSocket()), now: () => t },
   );
   return { l, socket, said, at: (s) => ((t = s), l.tick()) };
