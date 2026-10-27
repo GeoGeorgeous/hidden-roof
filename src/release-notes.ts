@@ -100,11 +100,12 @@ export function discordNotes(tag: string, md: string): string[] {
   return messages.map((m) => `${m}\n`);
 }
 
-/** The GitHub release's notes: the intro, the picture at `pictureUrl`, then the items (GitHub shows the release's title above them). */
-export function githubNotes(md: string, pictureUrl: string): string {
+/** The GitHub release's notes: the intro, the picture at `pictureUrl` (none for a patch without one), then the items (GitHub shows the release's title above them). */
+export function githubNotes(md: string, pictureUrl?: string): string {
   const text = mapLinks(body(md), absolute).trim();
   const at = text.search(/^-/m);
   const intro = (at < 0 ? text : text.slice(0, at)).trim();
   const items = at < 0 ? '' : text.slice(at).trim();
-  return `${intro}\n\n  <img width="1200" src="${pictureUrl}" />\n\n${items}\n`;
+  const picture = pictureUrl ? `  <img width="1200" src="${pictureUrl}" />\n\n` : '';
+  return `${intro}\n\n${picture}${items}\n`;
 }

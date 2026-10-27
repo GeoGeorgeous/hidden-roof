@@ -136,7 +136,7 @@ await check('credits: every license the page links to ships with the game', asyn
   return r.count === files && !r.bad.length ? null : JSON.stringify({ ...r, files });
 });
 
-await check('updates: the releases newest first, the newest marked Latest; each has its picture and its date; lists under a heading keep their terms', async () => {
+await check('updates: the releases newest first, the newest marked Latest; each has its picture (a patch may have none) and its date; lists under a heading keep their terms', async () => {
   const r = await page.evaluate(async () => {
     const { menu } = window.game.hud;
     menu.openPage('updates');
@@ -144,8 +144,9 @@ await check('updates: the releases newest first, the newest marked Latest; each 
     const missing = [];
     for (const b of document.querySelectorAll('.rail .ver')) {
       b.click();
-      const res = await fetch(document.querySelector('.pane .shot img').src);
-      if (!res.ok || res.headers.get('content-type') !== 'image/webp') missing.push(b.textContent);
+      const img = document.querySelector('.pane .shot img');
+      const res = img && (await fetch(img.src));
+      if (img ? !res.ok || res.headers.get('content-type') !== 'image/webp' : b.querySelector('b').textContent.endsWith('.0')) missing.push(b.textContent);
       if (!/^[A-Z][a-z]+ \d{1,2}, \d{4}$/.test(document.querySelector('.pane .release span')?.textContent)) missing.push(`${b.textContent} date`);
     }
     const tools = [...document.querySelectorAll('.pane .item-note')].find((n) => n.querySelector('.item-title').textContent === 'tools');

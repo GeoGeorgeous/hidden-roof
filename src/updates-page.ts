@@ -6,7 +6,7 @@ import { VERSION } from './version';
 // The Updates popup of the ESC menu: the release notes, newest first, with
 // their dates. They're bundled from docs/releases/<tag>.md (never fetched);
 // each release's picture is public/updates/<tag>.webp (the CSP takes images
-// from the game's own site only).
+// from the game's own site only); a patch may have none.
 
 const RELEASES = 'https://github.com/GeoGeorgeous/hidden-roof/releases';
 
@@ -70,7 +70,7 @@ export function updatesPage(menu: PauseMenu) {
     }
     const title = div('release', `Hidden Roof ${r.tag.replace(/^v/, '')}`);
     if (r.date) title.append(el('span', '', day(r.date)));
-    pane.replaceChildren(title, rich('div', 'intro', r.intro), shot, items);
+    pane.replaceChildren(title, rich('div', 'intro', r.intro), ...(__PICTURES__.includes(r.tag) ? [shot] : []), items);
     pane.scrollTop = 0;
   };
   menu.addPage('updates', root, () => show(0));
