@@ -7,7 +7,7 @@ import { PAINT, PAINT_DETAIL, SERVER } from '../src/config.ts';
 import { Outbox } from '../src/net/outbox.ts';
 import { decodeOps, encodeOps, rounded, SurfaceIndex } from '../src/op-wire.ts';
 import { LEVEL_VERSION, levelProblem } from '../src/level/level-data.ts';
-import { checkToServer, cleanName, closeCode, decode, encode, isName, isSessionName, partFrames, PROTOCOL, rejectionOf, SNAPSHOT_BYTES } from '../src/net/protocol.ts';
+import { checkToServer, cleanName, closeCode, decode, encode, isName, isSessionName, partFrames, PROTOCOL, rejectionOf, relayEntry, relayFrame, SNAPSHOT_BYTES, unrelay } from '../src/net/protocol.ts';
 
 const level = { version: 4, spawn: { pos: [0, 0, 0], yaw: 0 }, props: [{ id: 1, type: 'slab', pos: [0, 0, 0] }] };
 const stamp = { kind: 'stamp', key: 'p12#0', rect: 3, u: 0.1 + 0.2, v: 1 / 3, radius: 0.0125, amount: 0.35, color: [1, 0.2, 0.1], softness: 0.5, square: false };
@@ -184,5 +184,13 @@ const texels = PAINT.texelsPerMeter;
 const byDetail = Object.values(PAINT_DETAIL).map((d) => ((PAINT.texelsPerMeter = d), wire()));
 PAINT.texelsPerMeter = texels;
 for (const w of byDetail) assert.deepEqual(w, byDetail[0]);
+
+// The others' states and ops in one relay frame, in their order; a cut-off entry ends it.
+const opsBytes = encodeOps([1.5], [stamp], surfaces);
+const relayed = decode(relayFrame([relayEntry('state', 7, snap), relayEntry('ops', 70000, opsBytes), relayEntry('state', 2, snap)]));
+assert.equal(relayed.type, 'relay');
+assert.deepEqual(unrelay(relayed.bytes).map((e) => [e.type, e.id, [...e.bytes]]), [['state', 7, [...snap]], ['ops', 70000, [...opsBytes]], ['state', 2, [...snap]]]);
+assert.deepEqual(unrelay(relayed.bytes.subarray(0, relayed.bytes.length - 1)).map((e) => e.id), [7, 70000], 'a cut-off entry ends it');
+assert.equal(relayEntry('state', 1, snap).length - SNAPSHOT_BYTES, 9, 'a state costs 9 bytes over its snapshot');
 
 console.log(`protocol: ok (${sent.length} messages round trip; a stroke of ${encode(sent[4]).length} bytes for 3 ops, a stamp ${encodeOps([0], [stamp], surfaces).length - 8})`);

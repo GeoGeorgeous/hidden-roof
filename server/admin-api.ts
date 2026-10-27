@@ -8,6 +8,7 @@ import { PAINT_DETAIL, SERVER } from '../src/config';
 import { SLOTS } from '../src/inventory/tool';
 import { isPrivateLimit, isSessionName, isToolSet, PROTOCOL, SESSION_NAME_MAX } from '../src/net/protocol';
 import { VERSION } from '../src/version';
+import { logDays, sendLog } from './admin-logs';
 import { site } from './beacon';
 import { median } from './counts';
 import { eventPage, stream } from './events';
@@ -37,6 +38,8 @@ import { trafficDays } from './traffic-store';
 //                              is kept for beside the newest (saves.ts), and `sources`: { status, beacon, history, traffic, geoip }, each { every (s), at (ISO or null) }: how often that
 //                              source comes and when the last one did (sources.ts)
 //   GET  /machine              CPU, RAM, the server's memory, disk, the paint saves, upload (machine.ts)
+//   GET  /logs                 the log's day files (LOG_DIR), newest first, { days: [{ day, bytes }], keepDays, redactDays } (admin-logs.ts)
+//   GET  /logs/DAY             that day's file as a download (text); ?session=CODE only that session's lines
 //   GET  /history?period=P     counts for today (since 00:00 UTC), or the last 24h, 7d or 30d (history.ts): plays, `players` and
 //                              `inSessions` { device, address } (distinct over the period; players are who joined or reached the level),
 //                              `playerCountries` (players by device, each by their last country), and the older `people`, `countries`
@@ -191,6 +194,13 @@ export function adminApi(lobby: Lobby, kept: Kept, key: string) {
         const days = q.get('days') ?? '30';
         if (!/^\d{1,3}$/.test(days) || +days < 1 || +days > 366) return answer(400, { error: 'days: 1 to 366' });
         return answer(200, kept.dir ? await trafficDays(kept.dir, +days) : { days: [] });
+      }
+      if (req.method === 'GET' && parts[0] === 'logs' && parts.length === 1) return answer(200, await logDays());
+      if (req.method === 'GET' && parts[0] === 'logs' && parts.length === 2) {
+        const sent = await sendLog(res, parts[1], new URL(req.url ?? '', 'http://admin').searchParams.get('session'));
+        if (sent === false) return answer(400, { error: 'a day, YYYY-MM-DD, and a session code' });
+        if (sent === null) return answer(404, { error: `no log for ${parts[1]}` });
+        return;
       }
       if (req.method === 'POST' && parts[0] === 'uploads' && parts.length === 1) {
         if (!kept.uploads) return answer(400, { error: 'uploads need DATA_DIR on the server' });

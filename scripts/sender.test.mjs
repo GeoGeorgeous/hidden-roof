@@ -38,6 +38,35 @@ const op = (u) => ({ kind: 'stamp', key: 'a', rect: 0, u, v: 0.5, radius: 0.1, a
   assert.ok(Math.abs(ticks - NET.sendRate) <= 1, `${ticks} snapshots in a second at ${NET.sendRate} a second`);
 }
 
+// Standing still: two alike, then NET.stillRate a second; moving again sends the one held back first, then the new one.
+{
+  const { sender, game } = setup();
+  let x = 0;
+  game.capture = (at) => {
+    const b = new Uint8Array(25);
+    const v = new DataView(b.buffer);
+    v.setFloat32(0, at, true);
+    v.setFloat32(4, x, true);
+    return b;
+  };
+  const dt = 1 / NET.sendRate;
+  const states = (from, to) => {
+    const out = [];
+    for (let i = from; i < to; i++) out.push(...sender.update(i * dt, i * dt).messages.filter((m) => m.type === 'state').map((m) => new DataView(m.bytes.buffer).getFloat32(0, true)));
+    return out;
+  };
+  assert.equal(states(0, 3).length, 2, 'two alike, then held back');
+  assert.equal(states(3, 3 + NET.sendRate).length, NET.stillRate, `${NET.stillRate} a second standing still`);
+  x = NET.stillMove / 2;
+  assert.equal(states(23, 25).length, 0, 'a move within stillMove is standing still');
+  x = 1;
+  const moved = states(25, 26);
+  assert.deepEqual(moved.map((t) => Math.round(t / dt)), [24, 25], 'the one held back, then the move');
+  let sent = 0;
+  for (let i = 26; i < 30; i++) (x += 0.1), (sent += states(i, i + 1).length);
+  assert.equal(sent, 4, 'moving: every tick');
+}
+
 // A late frame doesn't owe the snapshots it missed: the clock catches up, and they go on at the rate.
 {
   const { sender } = setup();

@@ -1,6 +1,7 @@
 import type { InventoryData } from '../src/inventory/inventory';
 import type { PropData } from '../src/level/level-data';
 import { NAME_MAX, type Activity, type Presence, type Spot } from '../src/net/protocol';
+import { flush } from './relay';
 
 // A player of a session (session.ts) and their socket: what the session keeps
 // of them, how others see them, and the name they go by in it.
@@ -54,7 +55,9 @@ export interface Player {
 export const presence = (p: Player): Presence => (p.link ? p.activity : 'dropped');
 
 export function deliver(p: Player, f: Uint8Array) {
-  if (p.live) p.link?.send(f);
+  if (!p.live) return;
+  flush(p);
+  p.link?.send(f);
 }
 
 /** `name`, or with the lowest number free when another player has it: "geo (2)", which no player can type, so it never looks like a typed name. */

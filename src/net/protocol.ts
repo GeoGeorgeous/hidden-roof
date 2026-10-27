@@ -7,7 +7,9 @@ import type { V3 } from '../kit/pieces.ts';
 // The messages between the game and the multiplayer server (server/), over a
 // WebSocket. Each is one binary frame: a u32 (little-endian) length, that many
 // bytes of JSON, then the message's `bytes`, if any (a player snapshot, a paint
-// file, paint ops). Paint ops travel packed (op-wire.ts), ~23 bytes a stamp, each
+// file, paint ops). The others' states and paint ops come to a game in `relay`
+// frames, many in one (relayFrame), so the server's frames grow with the players,
+// not with their square. Paint ops travel packed (op-wire.ts), ~23 bytes a stamp, each
 // number rounded as the painter painted it, so every client paints the very same
 // texels. Nothing is compressed by the socket: the server would deflate every op
 // once per player (with 20 painting, more than a core). Node runs this file as is
@@ -16,7 +18,7 @@ import type { V3 } from '../kit/pieces.ts';
 // through checkToServer.
 
 /** Bumped when a message changes or anything the server runs for a session does (paint, drips, face keys, the save format). host and join carry it and the level's surface-table hash; a mismatch is answered 'version' and the game asks for a reload. */
-export const PROTOCOL = 8;
+export const PROTOCOL = 9;
 export const NAME_MAX = 16;
 /** A player's name: Latin letters and digits only (ASCII), 1 to NAME_MAX of them; the menu checks it before HOST or JOIN, the server refuses any other. */
 export const isName = (x: unknown): x is string => typeof x === 'string' && x.length <= NAME_MAX && /^[A-Za-z0-9]+$/.test(x);
@@ -148,9 +150,11 @@ export type ToClient =
   | { type: 'joined'; id: number; name: string }
   | { type: 'left'; id: number }
   | { type: 'presence'; id: number; state: Presence }
+  /** A player's snapshot, and their paint ops packed as they sent them: from the server only inside a relay frame (unrelay gives them back). */
   | { type: 'state'; id: number; bytes: Uint8Array }
-  /** A player's paint ops, packed as they sent them. */
   | { type: 'ops'; id: number; bytes: Uint8Array }
+  /** States and ops of the others, one after another (relayEntry): what came for this game since its last frame. */
+  | { type: 'relay'; bytes: Uint8Array }
   /** Ops painted since the paint file of this welcome was read, packed: painted at once, after it. */
   | { type: 'paint'; bytes: Uint8Array }
   | { type: 'ladder'; id: number; t: number; data: PropData | null }
@@ -205,6 +209,54 @@ export function partFrames(pieces: Uint8Array[], size: number): Uint8Array[] {
 export function partPieces(frames: Uint8Array[]) {
   const head = encode({ type: 'part', bytes: new Uint8Array(0) }).length;
   return frames.map((f) => f.subarray(head));
+}
+
+/** A relay entry's head: its kind (0 a state, 1 ops), the player's id (u32) and the length of its bytes (u32), little-endian. */
+const RELAY_HEAD = 9;
+const RELAY_KINDS = ['state', 'ops'] as const;
+
+/** A player's state or ops as one entry of a relay frame: made once, sent to each of the others. */
+export function relayEntry(type: 'state' | 'ops', id: number, bytes: Uint8Array): Uint8Array {
+  const e = new Uint8Array(RELAY_HEAD + bytes.length);
+  const v = new DataView(e.buffer);
+  v.setUint8(0, RELAY_KINDS.indexOf(type));
+  v.setUint32(1, id, true);
+  v.setUint32(5, bytes.length, true);
+  e.set(bytes, RELAY_HEAD);
+  return e;
+}
+
+/** Relay entries as one frame. */
+export function relayFrame(entries: Uint8Array[]): Uint8Array {
+  const head = encode({ type: 'relay', bytes: new Uint8Array(0) });
+  const out = new Uint8Array(head.length + entries.reduce((n, e) => n + e.length, 0));
+  out.set(head);
+  let o = head.length;
+  for (const e of entries) {
+    out.set(e, o);
+    o += e.length;
+  }
+  return out;
+}
+
+/** A relay frame's states and ops, in their order (views into `bytes`); a cut-off entry ends it. */
+export function unrelay(bytes: Uint8Array): Extract<ToClient, { type: 'state' | 'ops' }>[] {
+  const v = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const out: Extract<ToClient, { type: 'state' | 'ops' }>[] = [];
+  for (let o = 0; o + RELAY_HEAD <= bytes.length; ) {
+    const type = RELAY_KINDS[v.getUint8(o)];
+    const n = v.getUint32(o + 5, true);
+    if (!type || o + RELAY_HEAD + n > bytes.length) break;
+    out.push({ type, id: v.getUint32(o + 1, true), bytes: bytes.subarray(o + RELAY_HEAD, o + RELAY_HEAD + n) });
+    o += RELAY_HEAD + n;
+  }
+  return out;
+}
+
+/** What a frame from the server says: its message, or a relay frame's states and ops; none if it isn't a message. */
+export function received(frame: Uint8Array): ToClient[] {
+  const m = decode(frame) as ToClient | null;
+  return !m ? [] : m.type === 'relay' ? unrelay(m.bytes) : [m];
 }
 
 /** A message as sent, or null if it isn't one; its fields still need checking if the sender isn't trusted. */

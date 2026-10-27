@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import type http from 'node:http';
 import { SERVER } from '../src/config';
 import { BEATS, check } from './beacon-body';
-import { count, countSetting, type ClientCounts } from './client-counts';
+import { count, countSetting, noNet, type ClientCounts } from './client-counts';
 import { countryOf } from './geoip';
 import { people } from './people';
 
@@ -109,5 +109,18 @@ export async function beacon(req: http.IncomingMessage, ip: string, into: () => 
   for (const step of new Set(b.tutorial)) count(e.tutorial, step);
   for (const [code, n] of Object.entries(b.counts ?? {})) count(e.counts, code, n);
   for (const [kind, s] of Object.entries(b.seconds ?? {})) count(e.seconds, kind, Math.round(s * 10), false);
+  if (b.net) {
+    // An hour kept before 1.6.0's network counts has none yet.
+    const [n, m] = [(c.net ??= noNet()), b.net];
+    n.seconds += Math.round(m.seconds * 10);
+    const ms = (x: number) => String(Math.round(x / 10) * 10);
+    if (m.ping) (count(n.ping50, ms(m.ping.p50), 1, false), count(n.ping95, ms(m.ping.p95), 1, false), count(n.pingMax, ms(m.ping.max), 1, false));
+    for (const [code, k] of Object.entries(m.drops ?? {})) count(n.drops, code, k);
+    for (const s of m.back ?? []) count(n.back, String(Math.round(s * 10)), 1, false);
+    n.stalls += m.stalls ?? 0;
+    for (const s of m.stallLong ?? []) count(n.stallLong, String(Math.round(s * 10)), 1, false);
+    count(n.down, String(m.down), 1, false);
+    count(n.up, String(m.up), 1, false);
+  }
   return 204;
 }

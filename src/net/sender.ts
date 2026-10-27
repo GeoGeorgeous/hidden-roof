@@ -5,7 +5,8 @@ import type { PaintOp } from '../paint-ops';
 import type { ToServer } from './protocol.ts';
 
 // What this player sends (multiplayer.ts puts it on the link, the ghost in
-// dev/ghost.ts records it): their snapshot NET.sendRate times a second, their
+// dev/ghost.ts records it): their snapshot NET.sendRate times a second (NET.stillRate
+// while they stand still), their
 // stepladder when it moves, what they carry when it changes, and the paint ops
 // they made. It owns paint.log: the one place it's begun and ended, and a
 // second owner is refused, so a recording can't put back to null a log a
@@ -23,7 +24,7 @@ export interface SenderGame {
   inventory: { version: number; toJSON(): InventoryData };
 }
 
-/** What a frame gives out: `messages` in the order they go, the paint `ops` made since the last frame, and whether it was time for a snapshot (the last of the messages). */
+/** What a frame gives out: `messages` in the order they go, the paint `ops` made since the last frame, and whether it was time for a snapshot (the last of the messages, unless the player stands still). */
 export interface Sent {
   messages: ToServer[];
   ops: PaintOp[];
@@ -37,6 +38,11 @@ export class Sender {
   private ladderId: number | undefined;
   /** The inventory's version last sent (the multiplayer test waits for it). */
   carried = -1;
+  /** The last snapshot sent and when (`now`'s clock); one taken but not sent; whether the last two sent were alike. */
+  private sent: Uint8Array | null = null;
+  private sentAt = 0;
+  private held: Uint8Array | null = null;
+  private repeated = false;
 
   private g: SenderGame;
 
@@ -71,6 +77,7 @@ export class Sender {
     this.nextSend = 0;
     this.carried = -1;
     this.ladderId = ladder;
+    [this.sent, this.held, this.repeated] = [null, null, false];
   }
 
   /** The paint ops made since last taken; the log is emptied. */
@@ -96,8 +103,34 @@ export class Sender {
     const tick = now >= this.nextSend;
     if (tick) {
       this.nextSend = Math.max(this.nextSend + 1 / NET.sendRate, now);
-      messages.push({ type: 'state', bytes: g.capture(at) });
+      messages.push(...this.snapshots(g.capture(at), now));
     }
     return { messages, ops, tick };
   }
+
+  /**
+   * The snapshots to send at a tick: while the player stands still, none but NET.stillRate a second, once two alike
+   * have gone (so the others see no speed to guess on with); when they move again, the one held back goes first, so
+   * the others' timeline starts the move when it began.
+   */
+  private snapshots(s: Uint8Array, now: number): ToServer[] {
+    const still = !!this.sent && stillAs(this.sent, s);
+    if (still && this.repeated && now - this.sentAt < 1 / NET.stillRate) {
+      this.held = s;
+      return [];
+    }
+    const out: ToServer[] = this.held && !still ? [{ type: 'state', bytes: this.held }] : [];
+    out.push({ type: 'state', bytes: s });
+    [this.sent, this.sentAt, this.held, this.repeated] = [s, now, null, still];
+    return out;
+  }
+}
+
+/** Whether snapshot `b` shows its player as `a` did (net/snapshot.ts: the time first, the feet within NET.stillMove, the rest exactly). */
+function stillAs(a: Uint8Array, b: Uint8Array) {
+  if (a.length !== b.length || a.length < 16) return false;
+  const [va, vb] = [new DataView(a.buffer, a.byteOffset, a.length), new DataView(b.buffer, b.byteOffset, b.length)];
+  for (let o = 4; o < 16; o += 4) if (Math.abs(va.getFloat32(o, true) - vb.getFloat32(o, true)) > NET.stillMove) return false;
+  for (let i = 16; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
 }

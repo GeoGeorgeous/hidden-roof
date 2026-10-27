@@ -14,7 +14,8 @@ import { join, start } from './test-kit';
 // keys are no paint detail and no period, ADMIN_ORIGIN as written with a trailing slash or not at all, a body
 // counted in bytes (413, and the server answers the next request), a multibyte character split across chunks,
 // today's paint by color and the slow ping in the answers, the median of an even count, a pong nobody asked
-// for, and a corrupt stats file skipped while the days after it load. npm run test:server runs it.
+// for, a corrupt stats file skipped while the days after it load, and the log's days, a day downloaded whole or one
+// session's lines. npm run test:server runs it.
 
 const DAY = 864e5;
 const day = (back: number) => new Date((Math.floor(Date.now() / DAY) - back) * DAY).toISOString().slice(0, 10);
@@ -37,11 +38,31 @@ const faces = levelPaintFaces(JSON.parse(fs.readFileSync('public/levels/demo.jso
 const stamp = { kind: 'stamp' as const, key: faces[0].key, rect: 0, u: 0.5, v: 0.5, radius: 0.2, amount: 1, color: [1, 0, 0] as const, softness: 0, square: false };
 const main = await start({ ADMIN_KEY: 'test-key', ADMIN_ORIGIN: 'https://admin.example/page', DATA_DIR: dir, HEARTBEAT: '3600' });
 const strict = await start({ ADMIN_KEY: 'test-key', ADMIN_ORIGIN: 'not a url' });
+// Yesterday's log, with a stack under one of its entries; today's is the server's own.
+const logs = path.join(dir, 'logs');
+fs.mkdirSync(logs);
+fs.writeFileSync(path.join(logs, `${day(1)}.log`), `${day(1)}T10:00:00Z ABCDE "geo" #1 in\n${day(1)}T10:00:01Z ----- memory\n${day(1)}T10:00:02Z ABCDE error\n  at here\n${day(1)}T10:00:03Z FGHJK "x" #1 in\n`);
+const logged = await start({ ADMIN_KEY: 'test-key', LOG_DIR: logs });
 try {
   const ask = async (s: typeof main, method: string, at: string, body?: unknown, origin?: string) => {
     const res = await fetch(`http://localhost:${s.adminPort}${at}`, { method, headers: { authorization: 'Bearer test-key', ...(origin ? { origin } : {}) }, body: typeof body === 'string' ? body : body === undefined ? undefined : JSON.stringify(body) });
     return { status: res.status, body: await res.json() };
   };
+  // The log's days, newest first; a day as it is, or a session's lines with the stack under them; bad days and codes, and days with no file.
+  const list = (await ask(logged, 'GET', '/logs')).body;
+  assert.deepEqual([list.days.map((d: { day: string }) => d.day), list.keepDays, list.redactDays], [[day(0), day(1)], SERVER.logKeepDays, SERVER.logRedactDays]);
+  assert.ok(list.days.every((d: { bytes: number }) => d.bytes > 0));
+  const text = async (at: string) => {
+    const res = await fetch(`http://localhost:${logged.adminPort}${at}`, { headers: { authorization: 'Bearer test-key' } });
+    return { status: res.status, disposition: res.headers.get('content-disposition'), body: await res.text() };
+  };
+  const whole = await text(`/logs/${day(1)}`);
+  assert.deepEqual([whole.status, whole.disposition, whole.body.split('\n').length], [200, `attachment; filename="roof-${day(1)}.log"`, 6]);
+  const one = await text(`/logs/${day(1)}?session=ABCDE`);
+  assert.deepEqual([one.disposition, one.body.split('\n').map((l) => l.replace(/^\S+ /, ''))], [`attachment; filename="roof-${day(1)}-ABCDE.log"`, ['ABCDE "geo" #1 in', 'ABCDE error', '  at here', '']]);
+  assert.deepEqual([(await text('/logs/yesterday')).status, (await text('/logs/2026-13-01')).status, (await text('/logs/2026-02-30')).status, (await text(`/logs/${day(1)}?session=abc`)).status, (await text(`/logs/${day(3)}`)).status], [400, 400, 400, 400, 404]);
+  assert.deepEqual((await ask(strict, 'GET', '/logs')).body.days, [], 'no LOG_DIR: no days');
+
   const make = (body: object, origin?: string) => ask(main, 'POST', '/sessions', { kind: 'private', name: 'T', level: 'demo', detail: 'low', ...body }, origin);
 
   // A corrupt stats file is skipped and logged; the days after it, the people and the rest of the directory load.
@@ -134,8 +155,8 @@ try {
   await game.next('pong');
   await game.next('pong');
   assert.equal(((await ask(main, 'GET', '/sessions')).body as { code: string; players: { ping: number | null }[] }[]).find((s) => s.code === code)!.players[0].ping, null);
-  console.log('admin API: ok (inherited keys, ADMIN_ORIGIN, bytes in a body, paint by color, the slow ping, the median, an unasked pong, a corrupt stats file, event ids and pages, the freshness of the sources)');
+  console.log('admin API: ok (inherited keys, ADMIN_ORIGIN, bytes in a body, paint by color, the slow ping, the median, an unasked pong, a corrupt stats file, event ids and pages, the freshness of the sources, the log by day and session)');
 } finally {
-  await Promise.all([main.stop(), strict.stop()]);
+  await Promise.all([main.stop(), strict.stop(), logged.stop()]);
   fs.rmSync(dir, { recursive: true, force: true });
 }

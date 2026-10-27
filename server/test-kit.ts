@@ -1,9 +1,11 @@
 import './headless';
 import { spawn } from 'node:child_process';
+import fs from 'node:fs';
 import net from 'node:net';
+import path from 'node:path';
 import { WebSocket as Ws } from 'ws';
 import { PartsIn } from '../src/net/parts-in';
-import { decode, encode, PROTOCOL, type ToClient, type ToServer } from '../src/net/protocol';
+import { encode, PROTOCOL, received, type ToClient, type ToServer } from '../src/net/protocol';
 
 // What the tests that run the built server share (lobby-test.ts, queue-test.ts): a server on a free port, and a game
 // from its own address (or the one given) that keeps what the server sends.
@@ -21,7 +23,10 @@ export async function start(env: Record<string, string>) {
   const child = spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(port), ADMIN_PORT: String(adminPort), ...env }, stdio: ['ignore', 'pipe', 'inherit'] });
   let out = '';
   child.stdout!.on('data', (d: Buffer) => (out += d.toString()));
-  for (let i = 0; !out.includes('roof server on'); i++) {
+  // With LOG_DIR it says so in today's file instead.
+  const file = env.LOG_DIR && path.join(env.LOG_DIR, `${new Date().toISOString().slice(0, 10)}.log`);
+  const said = () => out + (file && fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '');
+  for (let i = 0; !said().includes('roof server on'); i++) {
     if (i > 500) throw new Error('the server does not start');
     await new Promise((w) => setTimeout(w, 20));
   }
@@ -38,8 +43,10 @@ export class Game {
     this.ws = new Ws(`ws://localhost:${port}/ws`, { headers: { 'x-forwarded-for': ip } });
     const parts = new PartsIn();
     this.ws.on('message', (d: Buffer) => {
-      const done = parts.take(decode(new Uint8Array(d)) as ToClient);
-      if (done) this.got.push(done.m);
+      for (const m of received(new Uint8Array(d))) {
+        const done = parts.take(m);
+        if (done) this.got.push(done.m);
+      }
     });
     this.closed = new Promise((done) => this.ws.once('close', done));
   }

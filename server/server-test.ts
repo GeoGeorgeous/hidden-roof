@@ -7,7 +7,7 @@ import { SERVER } from '../src/config';
 import { levelPaintFaces } from '../src/level/prop-pieces';
 import type { InventoryData } from '../src/inventory/inventory';
 import { SLOTS } from '../src/inventory/tool';
-import { closeCode, decode, encode, HELLO, PROTOCOL, SNAPSHOT_BYTES, type ToClient, type ToServer } from '../src/net/protocol';
+import { closeCode, decode, encode, HELLO, received, PROTOCOL, SNAPSHOT_BYTES, type ToClient, type ToServer } from '../src/net/protocol';
 import { decodePaintFile, encodePaintFile, joinBytes } from '../src/save/paint-file';
 import { surfaceTable } from '../src/save/shape';
 import { WebSocket as Ws } from 'ws';
@@ -76,8 +76,10 @@ class Game {
     // A welcome or a save comes once its paint file's parts have (`file`).
     const parts = new PartsIn();
     this.ws.onmessage = (e) => {
-      const done = parts.take(decode(new Uint8Array(e.data as ArrayBuffer)) as ToClient);
-      if (done) this.got.push(done.file ? { ...done.m, file: done.file } : done.m);
+      for (const m of received(new Uint8Array(e.data as ArrayBuffer))) {
+        const done = parts.take(m);
+        if (done) this.got.push(done.file ? { ...done.m, file: done.file } : done.m);
+      }
       this.waiters.splice(0).forEach((w) => w());
     };
     this.closed = new Promise((done) => (this.ws.onclose = (e) => done(e.code)));
