@@ -1171,9 +1171,13 @@ export const SERVER = {
   adminBody: 4096,
   /** The admin page calls a player's link slow past this round trip (ms). */
   slowPing: 150,
-  /** The admin's event stream (server/events.ts): the last this many events are kept for a page that opens; a status goes out this often (s) while one is open. */
+  /** The admin's event stream (server/events.ts): the last this many events are kept for a page that opens (at least eventPage); a status goes out this often (s) while one is open. */
   adminEvents: 50,
   adminStatus: 1,
+  /** With DATA_DIR, events are kept a file a day (server/event-log.ts) for eventDays days, a file up to eventDayBytes (30 days, 150 MB at most); the page shows and asks for eventPage events at a time. */
+  eventDays: 30,
+  eventDayBytes: 5e6,
+  eventPage: 50,
   /** The admin's history (server/history.ts): plays are bucketed by these lengths (s), play time is sampled this often (s), and each hour is kept this many days (then only each day's total, forever); the unique people's day files (people-<day>.json) are deleted after as many. */
   playLengths: [120, 600, 1800],
   historyEvery: 60,

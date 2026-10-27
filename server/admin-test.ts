@@ -81,6 +81,21 @@ try {
   });
   assert.equal(made.name, 'Café');
 
+  // Events have ids, on disk (DATA_DIR/events) and in pages: the stream's too.
+  const paged = (await ask(main, 'GET', '/events/page?limit=2')).body as { events: { id: string; type: string }[]; next: string | null };
+  assert.equal(paged.events.length, 2);
+  assert.equal(paged.next, paged.events[1].id, 'more before them');
+  assert.ok(paged.events.every((e) => /^\d+-\d+$/.test(e.id)) && paged.events[0].type === 'session-made');
+  assert.equal((await ask(main, 'GET', `/events/page?before=${paged.next}&limit=3`)).body.events.length, 1);
+  assert.deepEqual((await ask(main, 'GET', '/events/page?before=1-0')).body, { events: [], next: null });
+  for (const query of ['before=x', 'before=1-2-3', 'limit=0', 'limit=51', 'limit=1.5']) assert.equal((await ask(main, 'GET', `/events/page?${query}`)).status, 400, query);
+  assert.ok(fs.readFileSync(path.join(dir, 'events', `${new Date().toISOString().slice(0, 10)}.jsonl`), 'utf8').includes(paged.events[0].id));
+  const live = await fetch(`http://localhost:${main.adminPort}/events`, { headers: { authorization: 'Bearer test-key' } });
+  const reader = live.body!.getReader();
+  const first = new TextDecoder().decode((await reader.read()).value);
+  void reader.cancel();
+  assert.ok(JSON.parse(/event: recent\ndata: (.*)\n/.exec(first)![1])[0].id.match(/^\d+-\d+$/));
+
   // Today's paint by color, and the slow ping a page measures against.
   const code = (await make({ kind: 'public', name: 'Wall' })).body.code as string;
   const game = await join(main.port, 'A', code);
@@ -100,7 +115,7 @@ try {
   await game.next('pong');
   await game.next('pong');
   assert.equal(((await ask(main, 'GET', '/sessions')).body as { code: string; players: { ping: number | null }[] }[]).find((s) => s.code === code)!.players[0].ping, null);
-  console.log('admin API: ok (inherited keys, ADMIN_ORIGIN, bytes in a body, paint by color, the slow ping, the median, an unasked pong, a corrupt stats file)');
+  console.log('admin API: ok (inherited keys, ADMIN_ORIGIN, bytes in a body, paint by color, the slow ping, the median, an unasked pong, a corrupt stats file, event ids and pages)');
 } finally {
   await Promise.all([main.stop(), strict.stop()]);
   fs.rmSync(dir, { recursive: true, force: true });

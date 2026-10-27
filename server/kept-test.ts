@@ -253,7 +253,8 @@ try {
   assert.match(out, new RegExp(`${code} paint wiped: a new surface table`));
   const atStart = await feed();
   for (let i = 0; !atStart.length; i++) await new Promise((w) => setTimeout(w, 20));
-  assert.deepEqual((atStart[0].data as unknown as { type: string; detail: object }[]).map((e) => [e.type, e.detail]), [['wiped-at-start', { cause: ['surface table'] }]], 'kept for a page that opens later');
+  // The events before the restart are on disk, and read back for the stream: the wipe is the newest.
+  assert.deepEqual((atStart[0].data as unknown as { type: string; detail: object }[]).map((e) => [e.type, e.detail]).at(-1), ['wiped-at-start', { cause: ['surface table'] }], 'kept for a page that opens later');
   assert.equal(saves().length, 0);
 
   // A private session of the admin's closes once its players have gone, unless it stays; it isn't kept on disk.

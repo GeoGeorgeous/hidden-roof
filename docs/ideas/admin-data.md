@@ -12,14 +12,6 @@ What the admin page (cctv) gets from the server next, after the owner's list of 
 - People in one model (CCTV-260); the owner reviews it live.
 - Each figure on the page says how fresh it is, and the tooltip says where it comes from.
 
-## CCTV-253 Events on disk, in pages
-
-- Each event gets an `id`, `<ms>-<n>` (the ms time and a counter), in the stream's `recent` and `event` too; ids compare as numbers (ms, then n), never as strings. `before` takes any id, even one no longer on disk, and is exclusive.
-- With DATA_DIR, each is appended as a JSON line to `events/<YYYY-MM-DD>.jsonl` (UTC day). Files older than `SERVER.eventDays` (30) go at start and once a day. A day's file stops at `SERVER.eventDayBytes`; past it events are counted, not written, and the count is written as one event when the day ends: `{ type: 'events-dropped', code: null, name: null, player: null, detail: { count, day } }`.
-- `GET /events/page?before=<id>&limit=<n>` (n up to `SERVER.eventPage` 50, the default): the events before `id` (none: the newest), newest first, and `next`, the id to ask with for the page after, or null. Without DATA_DIR, from the ones in memory.
-- The stream (`GET /events`) is unchanged: the recent ones at once (at least a page: `SERVER.adminEvents` >= `SERVER.eventPage`), then live ones.
-- cctv: 50 a page with prev and next; page 1 is the stream's (deduped by id), page 2 asks `before` the oldest shown; prev is a stack of the `before`s used.
-
 ## CCTV-254 Stats per session
 
 - A session counts, since its paint began (made, wiped or restored): stamps by tool, colors, painters (distinct nicknames that painted), player-seconds, joins, most players at once and when. Counted where the history counts them (`server/counts.ts`), never in a pass of its own.
