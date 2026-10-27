@@ -73,9 +73,14 @@ export class Player {
   }
 
   respawn() {
-    this.position.copy(this.spawn);
+    this.place(this.spawn.toArray(), this.spawnYaw);
+  }
+
+  /** Stand at `pos` (feet) facing `yaw`, standing still. */
+  place(pos: readonly [number, number, number], yaw: number) {
+    this.position.set(...pos);
     this.velocity.set(0, 0, 0);
-    this.yaw = this.spawnYaw;
+    this.yaw = yaw;
     this.pitch = 0;
     this.stepOffset = 0;
     this.ladder = null;

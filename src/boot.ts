@@ -6,7 +6,7 @@ import { sayLoading } from './loading-line';
 // only once chosen, so a phone loads none of the game: no three.js, level,
 // textures, audio or WebSocket. ?force=1 loads the game anyway (the tests'
 // small windows). index.html's inline script decides the same, to fetch the
-// game's files with the page: change both together.
+// game's files with the page: change both together. The game starts in one tab only (one-tab.ts).
 
 const force = new URLSearchParams(location.search).has('force');
 
@@ -24,5 +24,5 @@ function failed() {
 }
 
 // Fails when a file of the game doesn't load, or the game can't start (no WebGL: three.js throws).
-if (force || playable()) import('./main').catch(failed);
+if (force || playable()) import('./one-tab').then((t) => t.oneTab(() => import('./main'))).catch(failed);
 else import('./small-screen').then((s) => s.smallScreen(playable));

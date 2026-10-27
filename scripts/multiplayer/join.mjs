@@ -17,6 +17,13 @@ export async function join(w) {
   assert.equal(code, await a.evaluate(() => window.game.net.status.code));
   await joinFromList(b, 'B', code);
   await status(b, 'in');
+  // Loaded: the loading screen stays over the city view, without its progress, and asks for a click (the test's lock does nothing, as a browser that wants a click would).
+  assert.ok(await b.isVisible('.loading-page.ready .loading-click'), 'CLICK TO PLAY shows once the session is loaded');
+  assert.ok(await b.isVisible('.loading-page.ready .loading-leave') && !(await b.isVisible('.loading-page .loading-cancel')), 'LEAVE for CANCEL once in');
+  assert.ok(!(await b.isVisible('.loading-page .progress')), 'the progress is gone');
+  assert.ok(!(await b.isVisible('.overlay .start')), 'the pause screen is not opened');
+  assert.equal(await b.evaluate(() => window.game.hud.cityView), true, 'the city under the screen');
+  await b.evaluate(() => window.game.hud.menu.openPage(null));
   assert.ok(await b.isVisible('.overlay .start button:text-is("Leave session")'));
   assert.ok(!(await b.isVisible('.overlay .item:text-is("Upload")')));
   // Both play at the host's PAINT DETAIL, whatever their own; B's settings show it as the host's, its arrows doing nothing.

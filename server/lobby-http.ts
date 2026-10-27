@@ -2,6 +2,7 @@ import type http from 'node:http';
 import { SERVER } from '../src/config';
 import { CODE_LENGTH, CODE_LETTERS, type Lobby as LobbyList, type LobbyEntry } from '../src/net/protocol';
 import type { Lobby } from './lobby';
+import { PerMinute } from './per-minute';
 import type { Session } from './session';
 
 // The server list over plain HTTP at /ws (protocol.ts LOBBY_LIST, LOBBY_CODE): every live session, and one session by
@@ -18,8 +19,8 @@ function entry(s: Session, withCode: boolean): LobbyEntry {
 }
 
 export class LobbyHttp {
-  /** Code lookups so far in the current minute, by address. */
-  private lookups = new Map<string, { since: number; n: number }>();
+  /** Code lookups by address, SERVER.lookupsPerIp a minute. */
+  private lookups = new PerMinute(SERVER.lookupsPerIp, SERVER.lookupIps);
 
   constructor(private lobby: Lobby) {}
 
@@ -28,7 +29,7 @@ export class LobbyHttp {
     const query = new URL(req.url ?? '', 'http://roof').searchParams;
     if (query.has('list')) return { status: 200, body: this.list() };
     if (!query.has('code')) return null;
-    if (!this.allow(addressOf(req))) return { status: 429, body: {} };
+    if (!this.lookups.allow(addressOf(req))) return { status: 429, body: {} };
     const code = query.get('code') ?? '';
     const found = code.length === CODE_LENGTH && [...code].every((c) => CODE_LETTERS.includes(c)) ? this.lobby.sessions.get(code) : undefined;
     return found ? { status: 200, body: entry(found, true) } : { status: 404, body: {} };
@@ -38,18 +39,5 @@ export class LobbyHttp {
   private list(): LobbyList {
     const sessions = [...this.lobby.sessions.values()].sort((a, b) => Number(b.setup.kind === 'public') - Number(a.setup.kind === 'public') || b.players.size - a.players.size);
     return { region: SERVER.region, sessions: sessions.map((s) => entry(s, s.setup.kind === 'public')) };
-  }
-
-  /** One more lookup from `ip`: false past SERVER.lookupsPerIp in the minute. */
-  private allow(ip: string) {
-    const now = Date.now();
-    if (this.lookups.size >= SERVER.lookupIps) for (const [a, l] of this.lookups) if (now - l.since >= 60_000) this.lookups.delete(a);
-    let l = this.lookups.get(ip);
-    if (!l || now - l.since >= 60_000) {
-      // Every address is tracked, or none new: past lookupIps live addresses the rest wait for the minute to turn.
-      if (!l && this.lookups.size >= SERVER.lookupIps) return false;
-      this.lookups.set(ip, (l = { since: now, n: 0 }));
-    }
-    return ++l.n <= SERVER.lookupsPerIp;
   }
 }

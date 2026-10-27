@@ -141,9 +141,9 @@ export class PauseMenu {
     this.sync();
   }
 
-  /** The title screen (before START) shows a fixed view of the city (PAUSE_MENU.view); ESC later shows where you are. */
+  /** The title screen (before START) shows a fixed view of the city (PAUSE_MENU.view); so do the queue and the loading screen; ESC later shows where you are. */
   get cityView() {
-    return PAUSE_MENU.view && this.sheetUp && !this.started;
+    return PAUSE_MENU.view && this.sheetUp && (!this.started || this.page === 'loading' || this.page === 'queue');
   }
 
   /** Back to the title screen (START, the city view): a session that ended took the level and paint the player had with it. */
@@ -184,8 +184,8 @@ export class PauseMenu {
 
   /** In a multiplayer session (its code; `live`: its link is up) or not (null): the menu offers BACK TO SESSION and LEAVE SESSION, and no UPLOAD. */
   setSession(code: string | null, live = true) {
-    // The menu returns to the pause screen when the session starts, not on each status after (reconnecting must not close SAVE or SETTINGS).
-    if (code && !this.session) this.openPage(null);
+    // The menu returns to the pause screen when the session starts, not on each status after (reconnecting must not close SAVE or SETTINGS). The loading screen stays: it asks for the click that starts play.
+    if (code && !this.session && this.page !== 'loading') this.openPage(null);
     this.session = code;
     this.live = !!code && live;
     if (code) this.line.session = code;

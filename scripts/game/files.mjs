@@ -89,7 +89,7 @@ await check('menu: the NAME field of the join dialog keeps only Latin letters an
   await p.evaluate(() => (window.game.input.setLocked(true), window.game.input.setLocked(false)));
   await press('Multiplayer');
   await p.locator('.mp-page .session:not(.skeleton-row)').first().click();
-  const field = p.locator('.join-popup .name-row input');
+  const field = p.locator('.join-popup :is(.name-row, .name-big) input');
   const stored = await field.inputValue();
   const typed = [];
   for (const name of ['Geo Geo', 'Geo_', 'Geo.', 'Гоша', 'Geo!@#$%']) {

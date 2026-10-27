@@ -72,6 +72,8 @@ export const MESSAGES = {
     sessionEnded: { label: 'SESSION ENDED', title: 'The session has ended', text: 'The server restarted and the session closed with it.', button: 'Save paint and leave', esc: 'Leave without saving' },
     /** The server closed the session: every player had left or lost their link, and none came back within {minutes}. */
     sessionEmpty: { label: 'SESSION ENDED', title: 'The session has ended', text: 'Everyone left or lost their connection, and no one came back within {minutes} minutes, so the session closed.', button: 'Save paint and leave', esc: 'Leave without saving' },
+    /** The admin closed the session. */
+    sessionClosed: { label: 'SESSION ENDED', title: 'The session has ended', text: 'The admin ended this session.', button: 'Save paint and leave', esc: 'Leave without saving' },
     /** The admin removed the player from the session. */
     removedByAdmin: { label: 'REMOVED', title: 'Removed from the session', text: 'The admin removed you from this session.', button: 'Save paint and leave', esc: 'Leave without saving' },
     openedElsewhere: { label: 'OPENED ELSEWHERE', title: 'Opened in another tab', text: 'You joined this session from another tab, so this one left it.', button: 'Got it' },
@@ -117,6 +119,7 @@ export const MESSAGES = {
     ping: '{ms} ms',
     toolOff: '{tool} · not allowed',
     // The dialogs
+    publicNameTitle: 'public session',
     publicTitle: 'house rules',
     publicLead: "You're joining a public session with other players.",
     privateTitle: 'private session',
@@ -141,6 +144,8 @@ export const MESSAGES = {
     dontShow: "Don't show again",
     players: '{n}/{limit} players',
     cancel: 'Cancel',
+    next: 'Next',
+    back: 'Back',
     join: 'Join',
     // Loading a session
     loadingTitle: 'loading paint',
@@ -149,6 +154,8 @@ export const MESSAGES = {
     stepDownloading: 'Downloading paint',
     stepPutting: 'Putting paint on the walls',
     stepDropping: 'Dropping you in',
+    clickToPlay: 'Click to play',
+    leave: 'Leave',
     // Waiting in line for a full session; {time} is m:ss, {s} whole seconds
     queueTitle: "you're #{n} in line",
     queueText: "The roof is full. You'll drop in as soon as a spot opens.",
@@ -184,7 +191,10 @@ export const MESSAGES = {
     netTooMany: 'Too many connections from your network: try again later',
     netNoHost: "This server doesn't take new sessions from players",
     netEnded: 'The session has ended',
+    netClosed: 'The admin ended this session',
     netKicked: 'The admin removed you from this session',
+    netSeats: 'Too many players from your network are in this session already',
+    netRate: 'Too many joins from your network: wait a minute and try again',
     netTimeout: "The server didn't answer",
     netBroken: 'The game hit an error in the session: copy the network log for a report',
     netOffline: "Can't reach the site: check your connection",
@@ -267,6 +277,9 @@ export const MESSAGES = {
     smallHint: 'Send it to yourself for later.',
     smallCopied: 'Paste it on your computer to play.',
     smallWide: 'Wide enough to play now.',
+    // Screen for a second tab of the game (other-tab.ts)
+    otherTabTitle: 'The game is open in another tab',
+    otherTabText: 'Hidden Roof runs in one tab at a time. Close this one and play on in the other.',
   },
 } as const;
 

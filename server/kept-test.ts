@@ -271,13 +271,13 @@ try {
   const record = JSON.parse(fs.readFileSync(path.join(dir, 'sessions.json'), 'utf8'));
   assert.deepEqual([record.length, record[0].limit], [1, SERVER.players.public], 'only the public session is kept, with its limit');
 
-  // Closed: its players are told it has ended, and it's no longer kept; no save stays, wiped or not.
+  // Closed: its players are told it was closed, and it's no longer kept; no save stays, wiped or not.
   const d = new Game();
   await d.join(code, 'D');
   fs.writeFileSync(path.join(dir, `${code}-1.wiped.rhhpaint`), '');
   fs.writeFileSync(path.join(dir, `${code}-2.rhhpaint`), '');
   assert.equal((await admin('POST', `/sessions/${code}/close`)).status, 200);
-  assert.equal((await d.next('rejected')).reason, 'ended');
+  assert.equal((await d.next('rejected')).reason, 'closed');
   assert.equal(saves().length, 0);
   assert.deepEqual((await admin('GET', '/sessions')).body, []);
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(dir, 'sessions.json'), 'utf8')), []);

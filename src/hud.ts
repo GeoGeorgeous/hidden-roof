@@ -103,7 +103,7 @@ export class Hud {
     this.menu.setLocked(locked, debugOpen);
   }
 
-  /** The title screen (before START) shows a fixed view of the city; ESC later shows where you are. */
+  /** The title screen (before START), the queue and the loading screen show a fixed view of the city; ESC later shows where you are. */
   get cityView() {
     return this.menu.cityView;
   }

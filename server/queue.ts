@@ -43,6 +43,11 @@ export class Queue {
     return this.places.length;
   }
 
+  /** How many places in the line are from `ip`, held ones too. */
+  held(ip: string) {
+    return this.places.filter((p) => p.ip === ip).length;
+  }
+
   /** A link to wait in line, or null when the line is full. Call `update` once it is placed. */
   add(link: Link, name: string, seat: Place['seat']): Place | null {
     if (this.places.length >= SERVER.queueMax) return null;
@@ -113,13 +118,13 @@ export class Queue {
     for (const p of this.places) p.link?.send(frame);
   }
 
-  /** The session has ended: everyone waiting is told. */
-  end() {
+  /** The session has ended (`closed`: by the admin): everyone waiting is told. */
+  end(reason: 'ended' | 'closed' = 'ended') {
     this.over = true;
     for (const p of this.places) {
       if (p.expires) clearTimeout(p.expires);
-      p.link?.send(encode({ type: 'rejected', reason: 'ended' }));
-      p.link?.close(closeCode('ended'), 'ended');
+      p.link?.send(encode({ type: 'rejected', reason }));
+      p.link?.close(closeCode(reason), reason);
     }
     this.places = [];
   }

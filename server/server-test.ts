@@ -35,6 +35,19 @@ const level = JSON.parse(fs.readFileSync('public/levels/demo.json', 'utf8'));
 const faces = levelPaintFaces(level, 48);
 const table = surfaceTable(faces);
 const surfaces = new SurfaceIndex(faces.map((f) => f.key));
+/** A player's state snapshot at `pos` (feet), facing `yaw`: the rest of it zero (net/snapshot.ts has the layout). */
+const stateAt = (pos: number[], yaw = 0) => {
+  const bytes = new Uint8Array(SNAPSHOT_BYTES);
+  const v = new DataView(bytes.buffer);
+  pos.forEach((x, i) => v.setFloat32(4 + 4 * i, x, true));
+  v.setUint16(16, Math.round(yaw * (65535 / (Math.PI * 2))), true);
+  return { type: 'state' as const, bytes };
+};
+const near = (spot: { pos: number[]; yaw: number } | null, pos: number[], yaw: number) => !!spot && spot.pos.every((v, i) => Math.abs(v - pos[i]) < 1e-4) && Math.abs(spot.yaw - yaw) < 1e-3;
+/** A place inside the demo level, and ones that are not: past its range, below the kill height, not a number. */
+const start: number[] = level.spawn.pos;
+const spotA = [start[0] + 1.5, start[1], start[2] - 2.25];
+const nowhere = [[start[0] + 1e6, start[1], start[2]], [start[0], -1000, start[2]], [NaN, start[1], start[2]], [start[0], Infinity, start[2]]];
 /** Paint ops as a game sends them (op-wire.ts), and as they come out of a message (`m.bytes`). */
 const ops = (seq: number, t: number[], list: PaintOp[]) => ({ type: 'ops' as const, seq, bytes: encodeOps(t, list, surfaces) });
 const opsIn = (m: { bytes: Uint8Array }) => decodeOps(m.bytes, surfaces)!;
@@ -125,7 +138,7 @@ try {
   const b = await game();
   b.send({ type: 'join', protocol: PROTOCOL, name: 'B', code: wa.code });
   const wb = await b.next('welcome');
-  assert.deepEqual([wb.you, wb.players, wb.levelName, wb.inventory], [2, [{ id: 1, name: 'A', state: 'here' }], 'demo', null]);
+  assert.deepEqual([wb.you, wb.players, wb.levelName, wb.inventory, wb.at], [2, [{ id: 1, name: 'A', state: 'here' }], 'demo', null, null]);
   assert.deepEqual(await a.next('joined'), { type: 'joined', id: 2, name: 'B' });
   // The rest of a full session joins all at once; one more waits in line and leaves it; they go again.
   const rest = await Promise.all(Array.from({ length: SERVER.players.private - 2 }, () => game()));
@@ -173,6 +186,9 @@ try {
   // carried in its welcome; A hears B dropped and is back, never that B left or joined.
   const carried = { tools: ['marker'], colors: ['black', 'red'], caps: ['standard'], selected: 1, color: 'red', cap: 'standard' } as InventoryData;
   b.send({ type: 'inventory', data: carried });
+  // And stands somewhere: a state outside the level, or not numbers, doesn't move it.
+  b.send(stateAt(spotA, 1));
+  for (const bad of nowhere) b.send(stateAt(bad, 2));
   b.send(ops(1, [4], [stamp]));
   assert.deepEqual(opsIn(await a.next('ops')).t, [4]);
   b.ws.close();
@@ -182,6 +198,7 @@ try {
   b2.send({ type: 'join', protocol: PROTOCOL, name: 'B', code: wa.code, token: wb.token });
   const back = await b2.next('welcome');
   assert.deepEqual([back.you, back.ladders, back.inventory, back.acked], [2, [{ id: 1, data: ladder }], carried, 1]);
+  assert.ok(near(back.at, spotA, 1), `back at ${JSON.stringify(back.at)}`);
   assert.deepEqual((await decodePaintFile(back.file!)).header.faces, header.faces);
   assert.deepEqual(await a.next('presence'), { type: 'presence', id: 2, state: 'here' });
   await a.none('joined');
@@ -193,14 +210,24 @@ try {
 
   // The same player again from another tab (a duplicated tab carries the token): the old tab is told, and goes.
   const b3 = await game();
-  b3.send({ type: 'join', protocol: PROTOCOL, name: 'B', code: wa.code, token: wb.token });
+  const device = '0123456789abcdef0123456789abcdef';
+  b3.send({ type: 'join', protocol: PROTOCOL, device, name: 'B', code: wa.code, token: wb.token });
   assert.equal((await b3.next('welcome')).you, 2);
   assert.equal((await b2.next('rejected')).reason, 'replaced');
   await b2.closed;
   await a.none('left');
+  // The same device on another link, with no token (a tab whose session storage is gone): it gets the seat, and the old link is told it was replaced.
+  const b4 = await game();
+  b4.send({ type: 'join', protocol: PROTOCOL, device, name: 'Other', code: wa.code });
+  const seat = await b4.next('welcome');
+  assert.deepEqual([seat.you, seat.token, seat.name], [2, wb.token, 'B'], 'the device found its seat: same player, same token');
+  assert.equal((await b3.next('rejected')).reason, 'replaced');
+  await b3.closed;
+  await a.none('joined');
+  await a.none('left');
 
   // B drops for good: after the rejoin window (1 s here) A hears it left; when A leaves, the session closes.
-  b3.ws.close();
+  b4.ws.close();
   assert.deepEqual(await a.next('left'), { type: 'left', id: 2 });
   a.send({ type: 'leave' });
   await a.closed;
@@ -227,23 +254,30 @@ try {
   assert.equal((await twin.next('welcome')).name, 'geo (2)');
   assert.equal((await geo.next('joined')).name, 'geo (2)');
   geo.send(ops(1, [1], [stamp]));
+  geo.send(stateAt(spotA, 0.5));
   await twin.next('ops');
   geo.ws.close();
   await geo.closed;
   const newTab = await game();
   newTab.send({ type: 'join', protocol: PROTOCOL, name: 'geo', code: wg.code });
-  // The welcome says the last batch the server has from this player; the new tab numbers on from there.
-  assert.deepEqual(pick(await newTab.next('welcome'), 'you', 'acked'), { you: wg.you, acked: 1 });
+  // The welcome says the last batch the server has from this player, and where they stood; the new tab numbers on from there.
+  const wn = await newTab.next('welcome');
+  assert.deepEqual(pick(wn, 'you', 'acked'), { you: wg.you, acked: 1 });
+  assert.ok(near(wn.at, spotA, 0.5), `takeover at ${JSON.stringify(wn.at)}`);
   newTab.send(ops(2, [2], [stamp]));
   await twin.next('ops');
   await twin.none('joined');
-  // One who left and comes in again later under the same name gets back what they carried.
+  // One who left and comes in again later under the same name gets back what they carried, and where they stood (one who never moved, only the kit).
+  const spotB = [start[0] - 3, start[1] + 0.5, start[2] + 4];
   twin.send({ type: 'inventory', data: carried });
+  twin.send(stateAt(spotB, 4));
   twin.send({ type: 'leave' });
   await twin.closed;
   const again = await game();
   again.send({ type: 'join', protocol: PROTOCOL, name: 'geo', code: wg.code });
-  assert.deepEqual((await again.next('welcome')).inventory, carried);
+  const wa2 = await again.next('welcome');
+  assert.deepEqual(wa2.inventory, carried);
+  assert.ok(near(wa2.at, spotB, 4), `again at ${JSON.stringify(wa2.at)}`);
 
   // A numbered player who drops and comes back from a new tab typing the name they first asked for takes their own place back, not a new number.
   const tom = await game();

@@ -5,7 +5,7 @@ import type { Inventory } from '../inventory/inventory';
 import { SLOTS, type Tool } from '../inventory/tool';
 import type { Player } from '../player';
 import type { Tools } from '../tools/tools';
-import { SNAPSHOT_BYTES } from './protocol';
+import { SNAPSHOT_BYTES, type Spot } from './protocol';
 
 // What a player sends about themselves, NET.sendRate times a second:
 // where their feet are, where they look, a few
@@ -58,13 +58,20 @@ export function encodeSnapshot(s: Snapshot) {
   return b;
 }
 
+/** Where a snapshot puts its sender (the server keeps it for a player who comes back). */
+export function snapshotSpot(b: Uint8Array): Spot {
+  const v = new DataView(b.buffer, b.byteOffset, b.byteLength);
+  return { pos: [v.getFloat32(4, true), v.getFloat32(8, true), v.getFloat32(12, true)], yaw: v.getUint16(16, true) * (TAU / 65535) };
+}
+
 export function decodeSnapshot(b: Uint8Array): Snapshot {
   const v = new DataView(b.buffer, b.byteOffset, b.byteLength);
   const tool = b[21] & 7;
+  const { pos, yaw } = snapshotSpot(b);
   return {
     t: v.getFloat32(0, true),
-    pos: new THREE.Vector3(v.getFloat32(4, true), v.getFloat32(8, true), v.getFloat32(12, true)),
-    yaw: v.getUint16(16, true) * (TAU / 65535),
+    pos: new THREE.Vector3(...pos),
+    yaw,
     pitch: v.getInt16(18, true) * (Math.PI / 2 / 32767),
     onGround: !!(b[20] & 1),
     onLadder: !!(b[20] & 2),

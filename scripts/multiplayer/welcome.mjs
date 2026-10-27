@@ -67,7 +67,7 @@ export async function welcome(w) {
   await welcomeHeld();
   assert.equal(await b.evaluate(() => window.game.session.joining), true);
   assert.ok(await b.isVisible('.loading-page'), 'the loading screen shows while the session loads');
-  await b.click('.loading-page .loading-exit button');
+  await b.click('.loading-page .loading-cancel button');
   await status(b, 'off');
   assert.ok(await b.isVisible('.mp-page .lobby-list'), 'CANCEL is back on the list');
   // On to the pause screen.

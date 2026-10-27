@@ -18,7 +18,7 @@ async function pickSession(page, kind = 'private', title) {
 /** The open dialog: the name in it, the code of a private session in its boxes, and JOIN (pressed, once it is enabled). */
 async function joinDialog(page, name, code) {
   const dialog = page.locator('.join-popup:not([hidden])');
-  await dialog.locator('.name-row input').fill(name);
+  await dialog.locator(':is(.name-row, .name-big) input').fill(name);
   if (code) {
     await dialog.locator('.code-boxes input').first().click();
     await page.keyboard.type(code.toLowerCase());
