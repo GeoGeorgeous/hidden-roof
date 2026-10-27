@@ -1,4 +1,5 @@
 import { NET, SERVER } from '../src/config';
+import { isDevice } from '../src/net/protocol';
 
 // A beacon's body as the game sends it (src/beacon.ts), checked: any field of the wrong type, a code that isn't one
 // (a-z, 0-9, . and -), a list or a map over its limit, or a number out of range, and it's refused whole.
@@ -12,7 +13,7 @@ interface Body {
   page?: string;
   bye?: true;
   beat?: (typeof BEATS)[number];
-  first?: { gpu: string | null; load: number; settings?: Record<string, string> };
+  first?: { gpu: string | null; load: number; settings?: Record<string, string>; device?: string };
   fps?: { avg: number; low1: number };
   joins?: number[];
   errors?: string[];
@@ -40,7 +41,7 @@ export function check(b: unknown) {
   if (page !== undefined && !isPage(page)) return null;
   if (bye !== undefined && bye !== true) return null;
   if (beat !== undefined && !BEATS.includes(beat as never)) return null;
-  if (first !== undefined && (!isObj(first) || !(first.gpu === null || isText(first.gpu)) || !isNum(first.load, SERVER.beaconMostSeconds) || (first.settings !== undefined && !isMap(first.settings, isText)))) return null;
+  if (first !== undefined && (!isObj(first) || !(first.gpu === null || isText(first.gpu)) || !isNum(first.load, SERVER.beaconMostSeconds) || (first.settings !== undefined && !isMap(first.settings, isText)) || !isDevice(first.device))) return null;
   if (fps !== undefined && (!isObj(fps) || !isNum(fps.avg, 1000) || !isNum(fps.low1, 1000))) return null;
   if (!isList(joins, (j) => isNum(j, SERVER.beaconMostSeconds)) || !isList(errors, (e) => typeof e === 'string' && e.length <= NET.beaconErrorChars)) return null;
   if (erred !== undefined && erred !== true) return null;

@@ -3,6 +3,8 @@ import type http from 'node:http';
 import { SERVER } from '../src/config';
 import { BEATS, check } from './beacon-body';
 import { count, countSetting, type ClientCounts } from './client-counts';
+import { countryOf } from './geoip';
+import { people } from './people';
 
 // The game's beacon (src/beacon.ts) at POST /ws?e: checked (beacon-body.ts), limited in size
 // (SERVER.beaconBytes) and per address (SERVER.beaconsPerIp a minute, from SERVER.beaconIps addresses), and
@@ -90,6 +92,7 @@ export async function beacon(req: http.IncomingMessage, ip: string, into: () => 
   const c = into();
   const ua = String(req.headers['user-agent'] ?? '');
   if (b.first) {
+    people.played(b.first.device, ip, countryOf(ip), 'page');
     c.n++;
     count(c.browsers, browserOf(ua));
     count(c.os, osOf(ua));

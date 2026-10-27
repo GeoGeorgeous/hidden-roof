@@ -49,6 +49,7 @@ try {
   assert.match(main.out(), new RegExp(`stats people-${day(2)}.json skipped`));
   const week = (await ask(main, 'GET', '/history?period=7d')).body;
   assert.deepEqual([week.plays, week.people.byIp, week.countries], [3, 1, { FR: 1 }]);
+  assert.deepEqual([week.players, week.inSessions, week.playerCountries], [{ device: 0, address: 1 }, { device: 0, address: 1 }, {}], 'a play saved before pages were kept was a JOIN; no device, no country by device');
 
   // How fresh each figure is: the sources' cadences and when each last came (null: never).
   const fresh = async (s: typeof main) => (await ask(s, 'GET', '/')).body.sources;

@@ -256,7 +256,7 @@ const isHosting = (x: unknown) => isObj(x) && isSessionName(x.name) && isPrivate
 const isQueueToken = (x: unknown) => typeof x === 'string' && x.length <= QUEUE_TOKEN_MAX;
 const QUEUE_TOKEN_MAX = 64;
 /** HOST's and JOIN's `device`: the browser's random id (stored.ts deviceId), or none. */
-const isDevice = (x: unknown) => x === undefined || (typeof x === 'string' && /^[0-9a-f]{32}$/.test(x));
+export const isDevice = (x: unknown) => x === undefined || (typeof x === 'string' && /^[0-9a-f]{32}$/.test(x));
 const isCode = (x: unknown) => typeof x === 'string' && x.length === CODE_LENGTH && [...x].every((c) => CODE_LETTERS.includes(c));
 /** Shape and size only: the game takes from it what it knows (Inventory.restore). */
 const isWords = (x: unknown) => Array.isArray(x) && x.length <= 32 && x.every((w) => typeof w === 'string' && w.length <= 32);

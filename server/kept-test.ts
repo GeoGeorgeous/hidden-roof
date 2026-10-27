@@ -165,6 +165,9 @@ try {
   }
   const seen = (await admin('GET', '/history')).body.people;
   assert.deepEqual(seen, { merged: SERVER.players.public + 2, byDevice: 2, byIp: SERVER.players.public + 3 });
+  const counted = (await admin('GET', '/history')).body;
+  const byAddress = SERVER.players.public + 3;
+  assert.deepEqual([counted.players, counted.inSessions, counted.playerCountries], [{ device: 2, address: byAddress }, { device: 2, address: byAddress }, {}], 'players and those who joined, by device and by address');
 
   // Paint, saved at shutdown, is back after the restart.
   const a = new Game();

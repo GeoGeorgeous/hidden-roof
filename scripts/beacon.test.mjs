@@ -34,6 +34,7 @@ assert.equal(body.beat, undefined);
 assert.equal(body.first.gpu, 'Test GPU');
 assert.deepEqual(body.first.settings, { 'graphics.rain': 'on' });
 assert.deepEqual(body.steps, ['play', 'ready']);
+assert.match(body.first.device, /^[0-9a-f]{32}$/);
 
 // Steps and tutorial steps count once per page load.
 b.step('play');

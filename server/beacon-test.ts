@@ -8,6 +8,7 @@ import path from 'node:path';
 import { NET, SERVER } from '../src/config';
 import { beacon, site } from './beacon';
 import { addClient, countSetting, noClient } from './client-counts';
+import { people } from './people';
 import { start } from './test-kit';
 
 // The game's beacon (beacon.ts, beacon-body.ts, client-counts.ts), against the built server: what it runs on, load and
@@ -124,6 +125,23 @@ try {
   assert.deepEqual(await onSite(), now, 'refused beacons are not on the site');
   assert.deepEqual((await history()).events, client.events, 'nor counted');
 
+  // The first message's device id makes a player: once by device and once by address, over the period; a bad one refuses the body.
+  const players = async () => {
+    const h = await (await fetch(`http://localhost:${main.adminPort}/history?period=24h`, { headers: { authorization: 'Bearer test-key' } })).json();
+    return [h.players, h.inSessions];
+  };
+  const [d1, d2] = ['1'.repeat(32), '2'.repeat(32)];
+  const [before1, joined] = await players();
+  assert.equal(await send({ first: { gpu: null, load: 1, device: d1 } }, '10.4.0.1'), 204);
+  assert.equal(await send({ first: { gpu: null, load: 1, device: d1 } }, '10.4.0.2'), 204);
+  assert.equal(await send({ first: { gpu: null, load: 1, device: d1 } }, '10.4.0.1'), 204);
+  assert.equal(await send({ first: { gpu: null, load: 1, device: d2 } }, '10.4.0.2'), 204);
+  assert.equal(await send({ first: { gpu: null, load: 1 } }, '10.4.0.3'), 204);
+  const [reached, inSessions] = await players();
+  assert.deepEqual([reached.device - before1.device, reached.address - before1.address], [2, 3], 'two devices, three addresses; the same page twice in an hour is one');
+  assert.deepEqual(inSessions, joined, 'a page that reached the level did not join');
+  for (const device of ['x', 5, 'A'.repeat(32), '1'.repeat(33)]) assert.equal(await send({ first: { gpu: null, load: 1, device } }), 400, String(device));
+
   // The most is fine: an empty body, the limits.
   assert.equal(await send({}), 204);
   assert.equal(await send({ counts: { 'a-b.c9': SERVER.beaconMostEvents }, seconds: { idle: SERVER.beaconMostSeconds }, tutorial: Array(NET.beaconList).fill('done'), steps: ['play', 'ready', 'sprayed', 'joined'], first: { gpu: null, load: 1, settings: { detail: 'x'.repeat(SERVER.beaconText) } } }), 204);
@@ -166,6 +184,25 @@ try {
   addClient(total, c);
   addClient(total, c);
   assert.deepEqual([total.events.settings.Other, total.events.settings.zoom.Other, total.events.settings.s0], [{ on: 8 }, 6, { on: 2 }]);
+
+  // New people from pages are limited an hour (SERVER.peoplePages); a JOIN is not, and a page that joins is both.
+  {
+    const was = SERVER.peoplePages;
+    SERVER.peoplePages = 3;
+    try {
+      const count = () => people.count(0);
+      const [n0, j0] = [count().players.device, count().inSessions.device];
+      for (let i = 0; i < 5; i++) people.played(`${i}`.repeat(32), '10.9.9.9', null, 'page');
+      assert.equal(count().players.device - n0, 3);
+      people.played('9'.repeat(32), '10.9.9.9', 'DE', 'join');
+      people.played('0'.repeat(32), '10.9.9.9', 'FR', 'join');
+      const c = count();
+      assert.deepEqual([c.players.device - n0, c.inSessions.device - j0], [4, 2]);
+      assert.equal(c.playerCountries.FR, 1, 'a page without a country takes the next one');
+    } finally {
+      SERVER.peoplePages = was;
+    }
+  }
 
   // Who is on the site: a beat counts for NET.beaconEvery s.
   const realNow = Date.now;

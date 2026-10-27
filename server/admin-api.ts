@@ -1,5 +1,6 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import http from 'node:http';
+import path from 'node:path';
 import { PAINT_DETAIL, SERVER } from '../src/config';
 import { SLOTS } from '../src/inventory/tool';
 import { isPrivateLimit, isSessionName, isToolSet, PROTOCOL, SESSION_NAME_MAX } from '../src/net/protocol';
@@ -16,6 +17,7 @@ import type { Lobby } from './lobby';
 import type { Session } from './session';
 import type { SessionSetup } from './setup';
 import { sources } from './sources';
+import { trafficPeriod } from './traffic-period';
 import { trafficDays } from './traffic-store';
 
 // The admin API, on its own port (SERVER.adminPort), never published: the admin
@@ -29,10 +31,15 @@ import { trafficDays } from './traffic-store';
 //                              `sources`: { status, beacon, history, traffic, geoip }, each { every (s), at (ISO or null) }: how often that
 //                              source comes and when the last one did (sources.ts)
 //   GET  /machine              CPU, RAM, the server's memory, disk, the paint saves, upload (machine.ts)
-//   GET  /history?period=P     counts for today (since 00:00 UTC), or the last 24h, 7d or 30d (history.ts)
+//   GET  /history?period=P     counts for today (since 00:00 UTC), or the last 24h, 7d or 30d (history.ts): plays, `players` and
+//                              `inSessions` { device, address } (distinct over the period; players are who joined or reached the level),
+//                              `playerCountries` (players by device, each by their last country), and the older `people`, `countries`
 //   GET  /traffic?days=N       the last N days (1 to 366, 30 by default) of the site's traffic, oldest first, a day with no
 //                              counts left out: { days: [{ day, views, visitors, bots, pages, sources, campaigns, countries, steps }] }
 //                              (the traffic reader's, traffic.ts; none without DATA_DIR)
+//   GET  /traffic?period=P     the same over the last hours of /history's periods (today, 24h, 7d, 30d), each visitor once over it:
+//                              { period, from, to, views, bots, visitors, steps: { view, script, beacon, socket } }; `from`: the period's
+//                              start, or when the hours begin if later (traffic-period.ts); zeros without DATA_DIR
 //   GET  /events               the event stream (events.ts): `recent` events, then each `event` as it happens,
 //                              and a `status` every second (the time, players, `site`, every session as listed but its saves);
 //                              `site`: the open pages by what they do (menu, solo, session, hidden), each page once by its last beat in the last SERVER.beaconSiteSeconds (the game's beacons carry a page id)
@@ -150,7 +157,13 @@ export function adminApi(lobby: Lobby, kept: Kept, key: string) {
         return isPeriod(period) ? answer(200, history.report(period)) : answer(400, { error: 'period: today, 24h, 7d or 30d' });
       }
       if (req.method === 'GET' && parts[0] === 'traffic' && parts.length === 1) {
-        const days = new URL(req.url ?? '', 'http://admin').searchParams.get('days') ?? '30';
+        const q = new URL(req.url ?? '', 'http://admin').searchParams;
+        const period = q.get('period');
+        if (period !== null) {
+          if (!isPeriod(period)) return answer(400, { error: 'period: today, 24h, 7d or 30d' });
+          return answer(200, await trafficPeriod(kept.dir && path.join(kept.dir, 'traffic'), period));
+        }
+        const days = q.get('days') ?? '30';
         if (!/^\d{1,3}$/.test(days) || +days < 1 || +days > 366) return answer(400, { error: 'days: 1 to 366' });
         return answer(200, kept.dir ? await trafficDays(kept.dir, +days) : { days: [] });
       }

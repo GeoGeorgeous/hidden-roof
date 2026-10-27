@@ -1184,6 +1184,8 @@ export const SERVER = {
   historyDays: 30,
   /** Unique people's salt (server/people.ts) changes this often (days). */
   saltDays: 30,
+  /** The page loads that reached the level (the beacon's first message) add at most this many new people an hour to the history's players (server/people.ts), so made-up device ids can't grow it. */
+  peoplePages: 20000,
   /** The GeoIP base's file (server/geoip.ts) is checked for a new one this often (s). */
   geoipCheck: 3600,
   /** The host replaces the GeoIP base this often (s; monthly, docs/ideas/vps.md): the admin page shows its date as a figure's freshness. */
@@ -1210,6 +1212,8 @@ export const SERVER = {
   trafficChunk: 1 << 20,
   trafficKinds: 50,
   trafficText: 80,
+  /** Each hour of a day keeps at most this many visitors' hashes (server/traffic-count.ts), kept SERVER.historyDays days for the period's unique visitors: past it a visitor's views count, the visitor does not. */
+  trafficHourSeen: 10000,
   /** With DATA_DIR, a public session's paint is saved this often (s) when it changed, and at shutdown; the newest keepFiles saves stay (server/kept.ts). */
   keepEvery: 1800,
   keepFiles: 3,

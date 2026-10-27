@@ -112,8 +112,15 @@ await pass(opts);
 assert.deepEqual(read(names[0]), before);
 const second = read(names[1]);
 assert.deepEqual([second.views, second.visitors, second.steps], [2, 1, { view: 1, script: 1, beacon: 0, socket: 0 }]);
-assert.equal(state().today.name, names[1]);
-assert.equal(state().today.seen.view.length, 1);
+assert.equal(state().today, names[1]);
+// The hours of a day: counts by hour, and each visitor as a hash with the steps they got to; the same visitor has the same hash on another day (the salt lasts SERVER.saltDays), not their address.
+const hours = JSON.parse(fs.readFileSync(path.join(traffic, `hours-${names[0]}.json`), 'utf8'));
+const hours1 = JSON.parse(fs.readFileSync(path.join(traffic, `hours-${names[1]}.json`), 'utf8'));
+assert.deepEqual(Object.keys(hours), ['12']);
+assert.deepEqual([hours[12].views, hours[12].bots, Object.keys(hours[12].seen).length], [before.views, before.bots, before.steps.view + 1], 'the views of the day; the visitor of a script alone is in too');
+assert.deepEqual([hours1[12].views, Object.keys(hours1[12].seen).length], [2, 2], 'a visitor and the script of another');
+assert.ok(Object.keys(hours[12].seen).some((id) => id in hours1[12].seen), 'one salt for both days');
+assert.equal(fs.statSync(path.join(traffic, `hours-${names[0]}.json`)).mode & 0o777, 0o600, 'hours for their owner only');
 
 // A day names at most SERVER.trafficKinds sources, then Other.
 append(...Array.from({ length: SERVER.trafficKinds + 10 }, (_, i) => line({ ts: t1 + 100 + i, ip: `10.5.0.${i}`, uri: `/?ref=r${i}` })));
@@ -123,11 +130,11 @@ assert.equal(Object.keys(crowd).length, SERVER.trafficKinds + 1);
 assert.equal(crowd.Other, 10 + 1, 'the rest');
 
 // The day over (the clock is past it): the first pass after midnight drops its visitors from the state, and the file stays.
-assert.equal(state().today.name, names[1]);
+assert.equal(state().today, names[1]);
 const ended = read(names[1]);
 clock(Date.now() / 1000 + 864e3);
 await pass(opts);
-assert.equal(state().today, null, 'no hashes kept past the day');
+assert.equal(state().today, null, 'the day is over');
 assert.deepEqual(read(names[1]), ended);
 // A late line of that day starts it again from nothing: the file keeps what it had, being the bigger.
 append(line({ ts: t1 + 300, ip: '10.6.0.1' }));
@@ -153,6 +160,39 @@ fs.writeFileSync(log, Array.from({ length: full.views + 1 }, (_, i) => line({ ts
 await pass(opts);
 assert.equal(read(names[0]).views, full.views + 1, 'a recount that is fuller replaces it');
 clock(Date.now() / 1000 + 864e3);
+
+// Past SERVER.trafficHourSeen visitors in an hour the rest are not remembered, but their views count.
+fs.rmSync(traffic, { recursive: true });
+fs.writeFileSync(log, Array.from({ length: 6 }, (_, i) => line({ ts: t0 + i, ip: `10.7.1.${i}` })).join(''));
+clock(t0 + 100);
+SERVER.trafficHourSeen = 3;
+await pass(opts);
+SERVER.trafficHourSeen = 10000;
+assert.deepEqual([read(names[0]).views, read(names[0]).visitors, Object.keys(read(names[0]).steps).length], [6, 3, 4]);
+
+// A state and a day written before the hours were kept (the day's hashes in `today`, no salt) still load: the day goes on from its file.
+fs.rmSync(traffic, { recursive: true });
+fs.mkdirSync(traffic);
+fs.writeFileSync(log, line({ ts: t0, ip: A }));
+fs.writeFileSync(path.join(traffic, `${names[0]}.json`), JSON.stringify({ views: 5, visitors: 4, bots: 0, pages: { '/': 5 }, sources: { direct: 5 }, campaigns: {}, countries: {}, steps: { view: 4, script: 2, beacon: 0, socket: 0 } }));
+fs.writeFileSync(path.join(traffic, 'state.json'), JSON.stringify({ inode: fs.statSync(log).ino, offset: fs.statSync(log).size, today: { name: names[0], salt: 'old', seen: { view: ['a', 'b', 'c', 'd'], script: ['a', 'b'], beacon: [], socket: [] } } }));
+append(line({ ts: t0 + 5, ip: B }));
+await pass(opts);
+const carried = read(names[0]);
+assert.deepEqual([carried.views, carried.visitors, carried.steps.script, state().today, typeof state().salt.key], [6, 4, 2, names[0], 'string'], 'the day goes on from its file');
+// The salt is replaced once it is SERVER.saltDays old.
+const salt = state().salt;
+clock(t0 + 100 + SERVER.saltDays * 864e2 + 10);
+fs.writeFileSync(path.join(traffic, 'state.json'), JSON.stringify({ ...state(), salt: { ...salt, since: Date.now() - SERVER.saltDays * 864e5 - 1000 } }));
+await pass(opts);
+assert.notEqual(state().salt.key, salt.key);
+clock(t0 + 100);
+
+// Hours files past SERVER.historyDays are deleted by a pass.
+const oldDay = new Date(Date.now() - (SERVER.historyDays + 2) * 864e5).toISOString().slice(0, 10);
+fs.writeFileSync(path.join(traffic, `hours-${oldDay}.json`), '{}');
+await pass(opts);
+assert.ok(!fs.existsSync(path.join(traffic, `hours-${oldDay}.json`)), 'old hours deleted');
 
 // Without TRAFFIC_HOSTS every host counts.
 fs.rmSync(traffic, { recursive: true });
@@ -195,6 +235,33 @@ try {
   assert.deepEqual((await api('/traffic?days=1')).body, { days: [] }, 'a day whose file does not read is left out');
   for (const bad of ['0', '367', 'x', '-1', '1.5', '']) assert.equal((await api(`/traffic?days=${bad}`)).status, 400, `days=${bad}`);
   assert.equal((await api('/traffic', { authorization: 'Bearer no' })).status, 401);
+
+  // ?period=: the hours of the last 24 h, 7 or 30 days (or today's), each visitor once over it, at the steps they reached.
+  for (const name of fs.readdirSync(traffic)) if (name.startsWith('hours-')) fs.rmSync(path.join(traffic, name));
+  const [nowHour, nowDay] = [new Date().getUTCHours(), new Date().toISOString().slice(0, 10)];
+  const put = (day: string, h: Record<number, object>) => fs.writeFileSync(path.join(traffic, `hours-${day}.json`), JSON.stringify(h));
+  const ago = (days: number) => new Date(Date.now() - days * 864e5).toISOString().slice(0, 10);
+  // Visitors a to d; a is 1 (a view), b 3 (view, script), c 15 (all four), d 1.
+  put(nowDay, { [nowHour]: { views: 5, bots: 1, seen: { a: 1, b: 3 } } });
+  put(ago(3), { 12: { views: 2, bots: 0, seen: { a: 1, c: 15 } } });
+  put(ago(6), { 12: { views: 1, bots: 2, seen: { c: 1, d: 1 } } });
+  put(ago(40), { 12: { views: 100, bots: 100, seen: { z: 1 } } });
+  const hour = (n: number) => new Date(Math.floor(Date.now() / 36e5) * 36e5 - n * 36e5).toISOString();
+  const today = (await api('/traffic?period=today')).body;
+  assert.deepEqual(today, { period: 'today', from: today.from, to: today.to, views: 5, bots: 1, visitors: 2, steps: { view: 2, script: 1, beacon: 0, socket: 0 } });
+  const week = (await api('/traffic?period=7d')).body;
+  assert.deepEqual([week.views, week.bots, week.visitors, week.steps], [8, 3, 4, { view: 4, script: 2, beacon: 1, socket: 1 }], 'a once over the week, c at every step');
+  assert.equal(week.from, hour(7 * 24 - 1), 'the week starts 168 hours back, this one included');
+  assert.ok(Math.abs(Date.parse(week.to) - Date.now()) < 5000);
+  const month = (await api('/traffic?period=30d')).body;
+  assert.deepEqual([month.views, month.visitors, month.from], [8, 4, hour(30 * 24 - 1)], 'the file of 40 days ago is out of the period');
+  assert.equal((await api('/traffic?period=24h')).body.views >= 5, true);
+  // The hours begin after the period does: from is when they begin.
+  fs.rmSync(path.join(traffic, `hours-${ago(40)}.json`));
+  fs.rmSync(path.join(traffic, `hours-${ago(6)}.json`));
+  assert.equal(Date.parse((await api('/traffic?period=30d')).body.from), Date.parse(`${ago(3)}T12:00:00Z`), 'the first hour with traffic of the oldest day');
+  assert.equal((await api('/traffic?period=week')).status, 400);
+  assert.deepEqual(Object.keys((await api('/traffic?days=1')).body), ['days'], '?days is as it was');
   console.log('GET /traffic', JSON.stringify(all.body.days[0]));
 } finally {
   server.stop();
@@ -203,8 +270,10 @@ const bare = await start({ ADMIN_KEY: 'test-key' });
 try {
   const res = await fetch(`http://localhost:${bare.adminPort}/traffic`, { headers: { authorization: 'Bearer test-key' } });
   assert.deepEqual(await res.json(), { days: [] }, 'without DATA_DIR');
+  const none = await (await fetch(`http://localhost:${bare.adminPort}/traffic?period=7d`, { headers: { authorization: 'Bearer test-key' } })).json();
+  assert.deepEqual([none.views, none.bots, none.visitors, none.steps], [0, 0, 0, { view: 0, script: 0, beacon: 0, socket: 0 }]);
 } finally {
   bare.stop();
   fs.rmSync(dir, { recursive: true, force: true });
 }
-console.log('traffic: ok (views, pages, sources in their order, bots, visitors, the funnel, resuming, a partial line, truncation and rotation, the day changing and ending, a lost state, 304 pages, IPv6, no address or browser kept, GET /traffic)');
+console.log('traffic: ok (views, pages, sources in their order, bots, visitors, the funnel, resuming, a partial line, truncation and rotation, the day changing and ending, a lost state, 304 pages, IPv6, no address or browser kept, the hours and periods, an old state, GET /traffic)');
