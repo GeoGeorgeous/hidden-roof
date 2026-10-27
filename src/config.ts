@@ -1200,8 +1200,9 @@ export const SERVER = {
   beaconText: 80,
   beaconMostSeconds: 600,
   beaconMostEvents: 1000,
-  /** Who is on the site now counts a page's minute beacon this long (s): beaconEvery and a half, as timers jitter and a hidden tab's are throttled. */
+  /** Who is on the site now counts a page by its last minute beacon for this long (s): beaconEvery and a half, as timers jitter and a hidden tab's are throttled. At most beaconPages pages are kept; past it the one that beat longest ago goes. */
   beaconSiteSeconds: NET.beaconEvery * 1.5,
+  beaconPages: 100000,
   /** The traffic reader (server/traffic.ts), its own process: it reads Caddy's access log every trafficEvery s, trafficChunk bytes at a time; a day counts up to trafficKinds names (pages, sources, campaigns), then Other, each up to trafficText characters. */
   trafficEvery: 60,
   trafficChunk: 1 << 20,

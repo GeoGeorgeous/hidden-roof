@@ -155,9 +155,8 @@ The admin page (the cctv repo) and the server side it reads (server/admin-api.ts
 3. [CCTV-255]: A public session's saves: 5 kept by age (the newest, and the newest at least 6 h, 1 day, 3 days and 7 days old), listed, each downloadable and restorable into the live session (its players reconnect onto it); a private session's paint downloads as it is now, never kept (docs/ideas/admin-data.md) @1.6.0
 4. [CCTV-256]: A new session, public or private, starts empty or from an uploaded save, checked first: one for another level, protocol or surface table is refused (docs/ideas/admin-data.md) @1.6.0
 5. [CCTV-257]: One switch for every time on the page: UTC or the browser's local time; days still count in UTC @1.6.0
-6. [CCTV-258]: "On the site" counts each open page once, not each heartbeat in its 90 s window (2 players showed up to 5): a page id in the beacon (docs/ideas/admin-data.md) @1.6.0
-7. [CCTV-259]: A badge for how fresh each figure is (live, the minute's beacon with the next one due, hourly, daily), its tooltip saying where the data comes from; the server sends each source's time and interval (docs/ideas/admin-data.md) @1.6.0
-8. [CCTV-260]: People in one model: Visitors (unique, from the web log) > Views (page loads) > Players (solo and multiplayer, unique by the device id, now in the beacon) > in sessions, with Now beside it; by address behind a switch, merged dropped; Main rebuilt on it (docs/ideas/admin-data.md) @1.6.0
+6. [CCTV-259]: A badge for how fresh each figure is (live, the minute's beacon with the next one due, hourly, daily), its tooltip saying where the data comes from; the server sends each source's time and interval (docs/ideas/admin-data.md) @1.6.0
+7. [CCTV-260]: People in one model: Visitors (unique, from the web log) > Views (page loads) > Players (solo and multiplayer, unique by the device id, now in the beacon) > in sessions, with Now beside it; by address behind a switch, merged dropped; Main rebuilt on it (docs/ideas/admin-data.md) @1.6.0
 
 ## Web and promotion
 
@@ -197,6 +196,7 @@ Shipped since the last release; the release commit empties this list.
 12. [TASK-241]: Read Caddy's access log in a container of its own on the host, `roof-traffic` (not the game server): page views, referrers and UTM, the first funnel steps, as daily rollups for the admin page's Traffic tab; our own links carry `?ref=` (discord, ig, tg), counted with `utm_source` and the Referer as one Source
 13. [IDEA-188]: Who plays and from where, counted on the server: country from the IP at connect, counts only, the IP not kept (SECRET_legal.md)
 14. [CCTV-253]: Events kept on disk (a file a day, 30 days, capped in size) and read in pages; the page shows 50 a page with prev and next
+15. [CCTV-258]: "On the site" counts each open page once, not each heartbeat in its 90 s window (2 players showed up to 5): a page id in the beacon, and a goodbye beacon when the page is left
 
 ## Discarder
 

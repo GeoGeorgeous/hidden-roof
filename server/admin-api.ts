@@ -32,7 +32,7 @@ import { trafficDays } from './traffic-store';
 //                              (the traffic reader's, traffic.ts; none without DATA_DIR)
 //   GET  /events               the event stream (events.ts): `recent` events, then each `event` as it happens,
 //                              and a `status` every second (the time, players, `site`, every session as listed but its saves);
-//                              `site`: the open pages by what they do (menu, solo, session, hidden), from the game's beacons of the last minute
+//                              `site`: the open pages by what they do (menu, solo, session, hidden), each page once by its last beat in the last SERVER.beaconSiteSeconds (the game's beacons carry a page id)
 //   GET  /events/page?before=ID&limit=N
 //                              older events in pages: { events, next }, the events before event id ID (none: the newest; ID may be one no longer
 //                              kept), newest first, N of them (1 to SERVER.eventPage, which is the default); `next`: the id to ask `before` for

@@ -8,10 +8,11 @@ import type { NetStatus } from './net/status';
 // the seconds spent playing, idle and in menus; errors as they happen
 // (NET.beaconList a minute at most), by sendBeacon to /ws?e, where Caddy
 // already passes the game's server. The minute one also says where the page
-// is (`beat`), so the server counts the pages open now. The first one, when
-// the level is ready, says how long it took, the GPU and the settings chosen.
-// No id and no name: the server counts page loads, and reads the browser and
-// OS from the request.
+// is (`beat`), so the server counts the pages open now, each once by the random
+// id this page load made (in memory only, sent in every beacon); a last one,
+// `bye`, goes when the page is left. The first one, when the level is ready,
+// says how long it took, the GPU and the settings chosen. No name: the server
+// counts page loads, and reads the browser and OS from the request.
 
 /** The funnel: the Play button (the first time the mouse is the game's), the level ready, the first paint, in a session. */
 type Step = 'play' | 'ready' | 'sprayed' | 'joined';
@@ -47,6 +48,8 @@ export class Beacon {
   private time = { playing: 0, idle: 0, menu: 0 };
   /** The GPU's name, cut to what the server takes: a beacon it refuses is lost whole. */
   private gpu: string | null;
+  /** This page load's id: its beats are one page for the server. Missing where the browser has no randomUUID (a plain http page): each beat then counts as a page of its own. */
+  private page = crypto.randomUUID?.();
 
   constructor(
     gpu: string | null,
@@ -57,6 +60,9 @@ export class Beacon {
     addEventListener('unhandledrejection', (e) => this.error(e.reason));
     canvas.addEventListener('webglcontextlost', () => this.error('WebGL context lost'));
     addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && this.send());
+    // Left: one last beacon (not visibilitychange: that is a hidden tab); a page restored from the back-forward cache beats again.
+    addEventListener('pagehide', () => this.send(false, undefined, true));
+    addEventListener('pageshow', (e) => e.persisted && this.send(true));
     setInterval(() => ((this.errorsNow = 0), this.send(true)), NET.beaconEvery * 1000);
   }
 
@@ -126,15 +132,16 @@ export class Beacon {
     return document.visibilityState === 'hidden' ? 'hidden' : this.linked ? 'session' : this.reached.has('play') ? 'solo' : 'menu';
   }
 
-  /** What's gathered, if anything (`beat`: the minute's, always): frames only past NET.beaconMinPlay s of play. */
-  private send(beat = false, first?: object) {
+  /** What's gathered, if anything (`beat`: the minute's, always; `bye`: the page is gone, always): frames only past NET.beaconMinPlay s of play. */
+  private send(beat = false, first?: object, bye = false) {
     const fps = this.played >= NET.beaconMinPlay ? this.fps() : undefined;
     const lessons = this.lessons.splice(0, NET.beaconList);
     const steps = this.steps.splice(0, NET.beaconList);
     const counts = Object.keys(this.counts).length ? this.counts : undefined;
     const seconds = this.seconds();
-    if (!beat && !first && !fps && !this.joins.length && !this.errors.length && !lessons.length && !steps.length && !counts && !seconds) return;
+    if (!beat && !bye && !first && !fps && !this.joins.length && !this.errors.length && !lessons.length && !steps.length && !counts && !seconds) return;
     this.post({
+      bye: bye ? true : undefined,
       beat: beat ? this.beat() : undefined,
       first,
       fps,
@@ -171,7 +178,7 @@ export class Beacon {
 
   private post(body: object) {
     try {
-      navigator.sendBeacon('/ws?e', JSON.stringify(body));
+      navigator.sendBeacon('/ws?e', JSON.stringify({ page: this.page, ...body }));
     } catch {
       // Not sent: the page may be closing, or the browser blocks it. Stats only.
     }

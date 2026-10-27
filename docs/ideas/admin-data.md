@@ -34,11 +34,6 @@ What the admin page (cctv) gets from the server next, after the owner's list of 
 - `POST /sessions` takes `"upload": "<id>"` as well: made on that level at that detail, with its paint. Without it, empty as now; an unknown or expired upload is 404 `{ error }`.
 - Caddy's request size limit for `/api/*` must let the file through (`docs/ideas/vps.md`).
 
-## CCTV-258 On the site: pages, not heartbeats
-
-- Bug: the server counts the minute's beacons of the last 90 s, so a page counts twice for half of each minute (2 players showed as up to 5).
-- Each page load makes a random `page` id (`crypto.randomUUID()`, in memory only), sent in every beacon. The server keeps each page's last beat and when (bounded as the per-address limit is), and `site` counts pages by their last beat in the window.
-
 ## CCTV-259 How fresh each figure is
 
 - `GET /` gains `sources: { status, beacon, history, traffic, geoip }`, each `{ every: s, at: ISO | null }` (null: never, e.g. traffic without DATA_DIR, geoip without a base):  `status` (the stream's, every second), `beacon` (each page's minute), `history` (when its hour is written), `traffic` (when the web log was last read), `geoip` (the base's date).
