@@ -96,10 +96,10 @@ async function join(code) {
   const t0 = performance.now();
   const at = () => (performance.now() - t0) / 1000;
   const progress = g.net.onProgress;
-  g.net.onProgress = (text) => {
-    if (text?.startsWith('Downloading') || text === 'Loading paint…') r.welcome ??= at();
-    if (text === 'Loading paint…') r.down = at();
-    progress(text);
+  g.net.onProgress = (p) => {
+    if (p?.step === 'downloading' || p?.step === 'loading') r.welcome ??= at();
+    if (p?.step === 'loading') r.down = at();
+    progress(p);
   };
   g.net.join('B', code);
   await new Promise((done) => {

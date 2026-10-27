@@ -1,5 +1,6 @@
 import { NET } from '../config';
 import { msg } from '../messages';
+import type { Progress } from './progress';
 import type { PaintOp } from '../paint-ops';
 import { loadPaint } from '../save/load-paint';
 import { surfaceTable } from '../save/shape';
@@ -43,7 +44,7 @@ export class Multiplayer {
   /** The link's state worth telling the player (slow, quiet), or null; called when it changes, while in a session. */
   onHealth: (h: LinkStatus | null) => void = () => {};
   /** What's under way, for the player to watch (UPLOADING PAINT 40%…); null when it's done. */
-  onProgress: (text: string | null) => void = () => {};
+  onProgress: (p: Progress | null) => void = () => {};
   /** What happened to the link (COPY NETWORK LOG). */
   readonly log = new NetLog();
   /** The session link's minute, for the beacon. */
@@ -104,7 +105,7 @@ export class Multiplayer {
       fail: (reason, detail) => this.end({ state: 'failed', reason, detail }),
       set: (s) => this.setStatus(s),
     });
-    this.closing = new LinkClosed({ joined: () => this.joined, line: () => this.line, status: () => this.status, linked: () => Boolean(this.link), asked: () => this.asked, end: (s) => this.end(s) }, this.reconnect, this.log);
+    this.closing = new LinkClosed({ joined: () => this.joined, line: () => this.line, linked: () => Boolean(this.link), asked: () => this.asked, end: (s) => this.end(s) }, this.reconnect, this.log);
     addEventListener('online', () => this.retryNow());
     this.own = new OwnStatus(g, (status) => this.send({ type: 'status', status }), () => Boolean(this.link?.live), () => this.health.troubled);
   }
@@ -167,7 +168,7 @@ export class Multiplayer {
   /** SAVE in a session: the session's paint, as a file the server makes. One request at a time; none while the link is down (nothing would answer it). */
   savePaint() {
     if (!this.saving.active && !this.link?.live) return Promise.reject(new Error(msg('menu.saveReconnecting')));
-    return this.saving.request(() => (this.onProgress(msg('menu.progressSaving')), this.send({ type: 'save' })));
+    return this.saving.request(() => (this.onProgress({ step: 'saving' }), this.send({ type: 'save' })));
   }
 
   /** Tries the link again now, instead of when the wait is over (the player is reconnecting in the line). */
@@ -226,7 +227,7 @@ export class Multiplayer {
       hello,
       {
         message: handle,
-        progress: (text) => (this.fromLine(), this.onProgress(text)),
+        progress: (p) => (this.fromLine(), this.onProgress(p)),
         log: (line) => this.log.add(line),
         traffic: (up, down) => {
           this.net.up += up;
@@ -253,6 +254,7 @@ export class Multiplayer {
       if (this.joined) return this.send({ type: 'leave' }), this.end({ state: 'failed', reason: 'full' });
       this.log.add(`in line, #${m.position}`);
       this.line = { code: this.wanted, token: m.token, position: m.position };
+      this.reconnect.reset();
       return this.setStatus({ state: 'queued', code: this.wanted, position: m.position });
     }
     if (!this.joined) return;
@@ -290,7 +292,7 @@ export class Multiplayer {
       this.t0 = now();
     }
     const back = this.joined?.code === w.code;
-    this.onProgress(msg('menu.progressLoading'));
+    this.onProgress({ step: 'loading' });
     // The session's paint replaces ours: what the server doesn't have yet is painted again on top (and sent again, below).
     const loading = now();
     await loadPaint(g.paint, g.drips, file, { name: w.levelName });
@@ -316,6 +318,7 @@ export class Multiplayer {
     for (const b of resend) this.sendOps(b);
     this.own.restart(now());
     this.onProgress(null);
+    this.reconnect.reset();
     this.setStatus({ state: 'in', code: w.code });
   }
 
@@ -332,6 +335,7 @@ export class Multiplayer {
     if (status.state === 'failed' && this.joined) status = { ...status, code: this.joined.code };
     this.attempt++;
     this.line = null;
+    this.reconnect.reset();
     this.link?.abandon();
     this.link = null;
     this.onProgress(null);

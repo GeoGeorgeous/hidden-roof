@@ -23,8 +23,6 @@ export interface Way {
   hello(): Join;
   /** The place is still the one wanted (not left, not replaced). */
   held(): boolean;
-  /** The status is already that of tries to come back to it. */
-  trying(): boolean;
   /** The status while trying. */
   status(t: Tries): NetStatus;
 }
@@ -48,6 +46,7 @@ const refusedForNow = (r?: Rejection) => (r === 'busy' || r === 'too-many' ? r :
 export const endedBy = (r: Rejection, back: boolean): Failure | undefined => (back && refusedForNow(r) ? undefined : back && r === 'no-session' ? 'restarted' : r);
 
 export class Reconnect {
+  /** The tries since the place was lost: the window, the next wait, how many; null while it is held on a link. */
   private retry: { until: number; wait: number; tries: number } | null = null;
   private env: Env;
   /** Tries the link again now, instead of when the wait is over (the browser came back online); null when none is waiting. */
@@ -57,11 +56,15 @@ export class Reconnect {
     this.env = env;
   }
 
+  /** The place is held on a link again (welcomed, or in line), or the game is over: a drop starts its window anew. */
+  reset() {
+    this.retry = null;
+  }
+
   /** The link closed (WebSocket close code `code`; `why`: what the server's trouble seems to be, asked over HTTP): another try after the wait, or the end. */
   dropped(code: number, way: Way, why: Promise<{ detail: string }>) {
     const env = this.env;
-    if (!way.trying()) this.retry = { until: env.now() + SERVER.rejoinWindow, wait: NET.retryFirst, tries: 0 };
-    const r = this.retry!;
+    const r = (this.retry ??= { until: env.now() + SERVER.rejoinWindow, wait: NET.retryFirst, tries: 0 });
     // A server too busy to take us back (busy, too-many) is a failed try like a dropped link; once the window is over that is what the player is told.
     const busy = refusedForNow(rejectionOf(code));
     if (env.now() > r.until) return env.fail(busy ?? 'expired', msg('menu.detailNoWayBack', { seconds: SERVER.rejoinWindow }));
@@ -70,7 +73,7 @@ export class Reconnect {
     const seen = (detail: string) => way.status({ detail, tries: r.tries, until: r.until, retryAt });
     const tried = msg('menu.detailTry', { code, n: r.tries });
     env.set(seen(tried));
-    void why.then((d) => way.trying() && way.held() && env.set(seen(`${d.detail} · ${tried}`)));
+    void why.then((d) => this.retry === r && way.held() && env.set(seen(`${d.detail} · ${tried}`)));
     env.log(`trying again in ${r.wait} s (try ${r.tries})`);
     // After the wait, or at once when the browser says it is back online.
     const timer = setTimeout(() => this.now?.(), r.wait * 1000);

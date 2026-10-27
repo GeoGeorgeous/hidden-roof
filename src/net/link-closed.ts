@@ -12,7 +12,6 @@ import type { NetStatus } from './status';
 export interface Place {
   joined(): { code: string; token: string; asked: string } | null;
   line(): { code: string; token: string; position: number } | null;
-  status(): NetStatus;
   /** There is a link (a new try's). */
   linked(): boolean;
   /** The name the last JOIN or HOST asked for. */
@@ -20,9 +19,6 @@ export interface Place {
   /** Ends the game's session with `status`. */
   end(status: NetStatus): void;
 }
-
-/** The status is that of a place in line lost and being tried for. */
-const queuedLost = (s: NetStatus) => s.state === 'queued' && !!s.lost;
 
 export class LinkClosed {
   constructor(
@@ -59,8 +55,8 @@ export class LinkClosed {
     const hello = { type: 'join', protocol: PROTOCOL, name: p.asked() } as const;
     // Back with the player's token, or the place in line's; the place is held as long as the player's own would be.
     const way: Way | null = j
-      ? { hello: () => ({ ...hello, name: j.asked, code: j.code, token: j.token }), held: () => p.joined() === j, trying: () => p.status().state === 'reconnecting', status: (t) => ({ state: 'reconnecting', code: j.code, detail: t.detail, tries: t.tries }) }
-      : l && { hello: () => ({ ...hello, code: l.code, queue: l.token }), held: () => p.line() === l, trying: () => queuedLost(p.status()), status: (lost) => ({ state: 'queued', code: l.code, position: l.position, lost }) };
+      ? { hello: () => ({ ...hello, name: j.asked, code: j.code, token: j.token }), held: () => p.joined() === j, status: (t) => ({ state: 'reconnecting', code: j.code, detail: t.detail, tries: t.tries }) }
+      : l && { hello: () => ({ ...hello, code: l.code, queue: l.token }), held: () => p.line() === l, status: (lost) => ({ state: 'queued', code: l.code, position: l.position, lost }) };
     if (way) return this.reconnect.dropped(code, way, why);
     void why.then((d) => !p.linked() && !p.joined() && p.end({ state: 'failed', reason: d.reason, detail: `${d.detail} · ${msg('menu.detailWs', { code })}` }));
   }
