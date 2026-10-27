@@ -1144,6 +1144,8 @@ export const SERVER = {
   spotMargin: 30,
   /** A dropped player can come back as themselves for this long (s); then their stepladder goes, and a private session with no one left closes (a public one, or one the admin made with --stay, stays). */
   rejoinWindow: 180,
+  /** A link the page closed as it went (1001: the tab closed, or a reload) keeps its seat this long (s) instead, never longer: a reload is back by then. */
+  closedHold: 15,
   /** The server pings every game this often (s), so a game notices a dead link; a game pings the server as often, and each answer is a round trip for the link's status (NET.statusShow). */
   ping: 1,
   /**

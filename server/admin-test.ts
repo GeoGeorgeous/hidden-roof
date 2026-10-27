@@ -123,7 +123,8 @@ try {
   await game.next('pong');
   const wall = ((await ask(main, 'GET', '/sessions')).body as { code: string; today: { colors: object; topColor: string } }[]).find((s) => s.code === code)!;
   assert.deepEqual([wall.today.colors, wall.today.topColor], [{ red: 1 }, 'red']);
-  assert.equal((await ask(main, 'GET', '/')).body.slowPing, SERVER.slowPing);
+  const root = (await ask(main, 'GET', '/')).body;
+  assert.deepEqual([root.slowPing, root.saveEvery, root.saveAges], [SERVER.slowPing, SERVER.keepEvery, SERVER.keepAges.filter(Boolean)]);
   assert.deepEqual([median([]), median([7]), median([1, 2, 3]), median([10, 20]), median([10, 20, 30, 50])], [null, 7, 2, 15, 25]);
 
   // A pong nobody asked for (the heartbeat is an hour away) is no ping.

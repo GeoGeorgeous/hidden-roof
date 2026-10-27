@@ -12,7 +12,7 @@ import { Game, join, start } from './test-kit';
 // The server list and the limits per session (lobby-http.ts, lobby.ts), against the built server: the list over plain
 // HTTP (public and private sessions, their order, codes only for public ones), a lookup by code and its limit per
 // address, a hosted session turning the player over its limit away, a public session's seats, places in line and JOINs per address, the admin's private limit, a HOST with
-// fields it can't take, HOST refused unless PLAYER_HOST, and the admin's kick (a reconnect with a kicked player's token is told so, a new join comes in). npm run test:server runs it.
+// fields it can't take, HOST refused unless PLAYER_HOST, a closed tab's seat held for less than a lost link's, and the admin's kick (a reconnect with a kicked player's token is told so, a new join comes in). npm run test:server runs it.
 
 const level = JSON.parse(fs.readFileSync('public/levels/demo.json', 'utf8'));
 const table = surfaceTable(levelPaintFaces(level, 48));
@@ -111,6 +111,17 @@ try {
   assert.deepEqual((await players()).map((p) => p.name), ['F', 'L'], 'out at once');
   assert.equal((await post(`/sessions/${friends.body.code}/players/${wl.you}/kick`)).status, 200);
   assert.deepEqual((await players()).map((p) => p.name), ['F'], 'a dropped player\'s seat is let go');
+  // A tab closed (1001) holds its seat for SERVER.closedHold, a lost link (1006) for the rejoin window.
+  const held = async (name: string) => ((await (await fetch(`http://localhost:${main.adminPort}/sessions`, { headers: { authorization: 'Bearer test-key' } })).json()) as { code: string; players: { name: string; held: number | null }[] }[]).find((s) => s.code === friends.body.code)!.players.find((p) => p.name === name)!.held!;
+  const [tab, lost] = [await join(main.port, 'T', friends.body.code), await join(main.port, 'U', friends.body.code)];
+  const ids = (await Promise.all([tab.next('welcome'), lost.next('welcome')])).map((w) => w.you);
+  tab.ws.close(1001);
+  lost.ws.terminate();
+  await Promise.all([tab.closed, lost.closed]);
+  // The server sees a terminated link go a moment later.
+  for (let i = 0; i < 40 && (await held('U')) === null; i++) await new Promise((r) => setTimeout(r, 50));
+  assert.ok((await held('T')) <= SERVER.closedHold && (await held('U')) > SERVER.closedHold, 'a closed tab is held for less');
+  for (const id of ids) await post(`/sessions/${friends.body.code}/players/${id}/kick`);
   const again = await join(main.port, 'K', friends.body.code, { token: kicked.token });
   assert.equal((await again.next('rejected')).reason, 'kicked', 'a reconnect with their token is told they were kicked');
   const k = await join(main.port, 'K', friends.body.code);
