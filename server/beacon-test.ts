@@ -81,7 +81,7 @@ try {
   assert.equal(await send({ beat: 'menu', first: { gpu: null, load: 1.2, settings: { detail: 'high', music: 'on', volume: '0.5' } }, steps: ['play', 'ready'], tutorial: ['move', 'look'], counts: { jump: 3, 'pickup.can': 1 }, seconds: { playing: 12.3, idle: 4, menu: 1.1 } }), 204);
   assert.equal(await send({ beat: 'menu', first: { gpu: null, load: 1.2, settings: { detail: 'low', music: 'on' } }, fps: { avg: 59.6, low1: 41 }, steps: ['play', 'sprayed'], tutorial: ['move'], counts: { jump: 2, fall: 1 }, seconds: { playing: 30.2 } }), 204);
   assert.equal(await send({ beat: 'solo' }), 204);
-  assert.equal(await send({ beat: 'session', steps: ['joined', 'joined'], counts: { 'setting.detail': 1 } }), 204);
+  assert.equal(await send({ beat: 'session', steps: ['joined', 'joined'], counts: { 'setting.detail': 1 }, net: { seconds: 58.2, ping: { p50: 64, p95: 121, max: 900 }, drops: { 1006: 1 }, back: [2.4], stalls: 2, stallLong: [3.1, 1.6], down: 37, up: 2 } }), 204);
   assert.equal(await send({ beat: 'hidden', seconds: {} }), 204);
   const client = await history();
   assert.deepEqual(client, {
@@ -98,6 +98,7 @@ try {
       seconds: { playing: 42.5, idle: 4, menu: 1.1 },
       settings: { detail: { high: 1, low: 1 }, music: { on: 2 }, volume: { '0.5': 1 } },
     },
+    net: { minutes: 1, ping50: { 60: 1 }, ping95: { 120: 1 }, pingMax: { 900: 1 }, drops: { 1006: 1 }, back: { 2.4: 1 }, stalls: 2, stallLong: { 3.1: 1, 1.6: 1 }, down: { 37: 1 }, up: { 2: 1 } },
   });
   console.log('client', JSON.stringify(client));
   const now = await onSite();
@@ -119,6 +120,8 @@ try {
     { tutorial: ['Move'] }, { tutorial: [''] }, { tutorial: ['a'.repeat(41)] }, { tutorial: [3] }, { tutorial: 'move' }, { tutorial: Array(NET.beaconList + 1).fill('move') },
     { counts: [] }, { counts: null }, { counts: { jump: 0 } }, { counts: { jump: 1.5 } }, { counts: { jump: SERVER.beaconMostEvents + 1 } }, { counts: { jump: '1' } },
     { counts: { Jump: 1 } }, { counts: { 'a b': 1 } }, { counts: { ['a'.repeat(41)]: 1 } }, { counts: { '': 1 } }, { counts: many(1, SERVER.beaconKinds + 1) },
+    { net: { seconds: 1, down: 0 } }, { net: { seconds: 1, down: 0, up: 0, ping: { p50: 1, p95: 2 } } }, { net: { seconds: 1, down: 0, up: 0, ping: { p50: 1, p95: 2, max: SERVER.beaconMostPing + 1 } } },
+    { net: { seconds: 1, down: 0, up: 0, drops: { 1006: 0 } } }, { net: { seconds: 1, down: 0, up: 0, back: Array(NET.beaconList + 1).fill(1) } }, { net: { seconds: 1, down: 0, up: 0, stalls: 1.5 } }, { net: [] },
     { seconds: { playing: -1 } }, { seconds: { playing: SERVER.beaconMostSeconds + 1 } }, { seconds: { playing: '3' } }, { seconds: { sleeping: 1 } }, { seconds: [] }, { seconds: null },
   ];
   for (const body of wrong) assert.equal(await send({ beat: 'menu', ...body }), 400, JSON.stringify(body).slice(0, 80));

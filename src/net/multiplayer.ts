@@ -10,6 +10,7 @@ import { decodeOps, encodeOps, SurfaceIndex } from '../op-wire';
 import { enterSessionLevel, type MultiplayerContext } from './game-context';
 import { keepSolo, SoloReturn, type Solo } from './solo';
 import { LinkHealth, type LinkStatus } from './link-health';
+import { NetMinute } from './net-minute';
 import { Outbox } from './outbox';
 import { LinkClosed } from './link-closed';
 import { Reconnect } from './reconnect';
@@ -45,6 +46,8 @@ export class Multiplayer {
   onProgress: (text: string | null) => void = () => {};
   /** What happened to the link (COPY NETWORK LOG). */
   readonly log = new NetLog();
+  /** The session link's minute, for the beacon. */
+  readonly minute = new NetMinute();
   /** The link to the server, while there's one. */
   private link: ServerLink | null = null;
   private remotes: Remotes;
@@ -54,6 +57,8 @@ export class Multiplayer {
   private line: { code: string; token: string; position: number } | null = null;
   /** The code of the session the last JOIN asked for. */
   private wanted = '';
+  /** The link this game closed for its silence (NET.serverSilence): its close is a timeout. */
+  private silenced: ServerLink | null = null;
   /** Messages are handled one at a time, in order (a welcome loads paint before what follows it). */
   private queue = Promise.resolve();
   private t0 = 0;
@@ -186,8 +191,10 @@ export class Multiplayer {
     if (!this.joined || !link?.live || !link.open) return;
     if (t - link.lastHeard > NET.serverSilence) {
       this.log.add(`nothing from the server for ${NET.serverSilence} s: closing to reconnect`);
+      this.silenced = link;
       return link.close();
     }
+    this.minute.frame(dt, t - link.lastHeard);
     this.own.update(t);
     if (this.health.due(t)) this.health.report({ t, ping: this.net.ping, silence: t - link.lastHeard }, this.onHealth);
     if (this.net.measure(t)) this.send({ type: 'ping', t });
@@ -221,8 +228,15 @@ export class Multiplayer {
         message: handle,
         progress: (text) => (this.fromLine(), this.onProgress(text)),
         log: (line) => this.log.add(line),
-        traffic: (up, down) => ((this.net.up += up), (this.net.down += down)),
+        traffic: (up, down) => {
+          this.net.up += up;
+          this.net.down += down;
+          // A hidden tab draws no frames, so it counts no seconds: its bytes don't count either.
+          if (this.joined && link.live && document.visibilityState === 'visible') this.minute.carried(up, down);
+        },
         closed: (code, timedOut) => {
+          // A link of the session that died (not a leave: 1000).
+          if (this.joined && link.live && code !== 1000) this.minute.dropped(timedOut || this.silenced === link ? 'timeout' : String(code), now());
           if (this.link === link) this.link = null;
           this.closing.closed(code, timedOut);
         },
@@ -251,6 +265,7 @@ export class Multiplayer {
     }
     else if (m.type === 'pong') {
       this.net.ping = now() - m.t;
+      this.minute.pinged(this.net.ping * 1000);
       this.outbox.acked(m.acked);
     }
   }
@@ -368,6 +383,7 @@ export class Multiplayer {
     if (s.state === 'failed' || s.state === 'off') this.log.add(`status: ${s.state}${s.state === 'failed' ? ` ${s.reason}${s.detail ? ` (${s.detail})` : ''}` : ''}`);
     // From JOIN or HOST until the welcome's paint has loaded the game can't be played (a reconnect, or a welcome for the session we are in, doesn't count).
     this.status = s;
+    if (s.state === 'in') this.minute.in(now());
     session.joining = this.waiting();
     // The status of a slow link starts over with the link; the status handler owns the status from here.
     if (s.state !== 'in') this.health.reset();

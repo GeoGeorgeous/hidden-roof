@@ -1,4 +1,5 @@
 import { NET, SERVER } from './config';
+import type { NetReport } from './net/net-minute';
 import type { NetStatus } from './net/status';
 import { deviceId } from './stored';
 
@@ -6,7 +7,7 @@ import { deviceId } from './stored';
 // session: once a minute the frames played (while the mouse is the game's and
 // the tab is shown), join times, the funnel steps and tutorial steps reached,
 // the game's events counted (pickups, jumps, falls, settings changed...), and
-// the seconds spent playing, idle and in menus; errors as they happen
+// the seconds spent playing, idle and in menus, the session link's (net/net-minute.ts); errors as they happen
 // (NET.beaconList a minute at most), by sendBeacon to /ws?e, where Caddy
 // already passes the game's server. The minute one also says where the page
 // is (`beat`), so the server counts the pages open now, each once by the random
@@ -52,6 +53,8 @@ export class Beacon {
   private gpu: string | null;
   /** This page load's id: its beats are one page for the server. Missing where the browser has no randomUUID (a plain http page): each beat then counts as a page of its own. */
   private page = crypto.randomUUID?.();
+  /** The session link's minute (net/net-minute.ts), once the game has one. */
+  net: () => NetReport | undefined = () => undefined;
 
   constructor(
     gpu: string | null,
@@ -141,7 +144,8 @@ export class Beacon {
     const steps = this.steps.splice(0, NET.beaconList);
     const counts = Object.keys(this.counts).length ? this.counts : undefined;
     const seconds = this.seconds();
-    if (!beat && !bye && !first && !fps && !this.joins.length && !this.errors.length && !lessons.length && !steps.length && !counts && !seconds) return;
+    const net = this.net();
+    if (!beat && !bye && !first && !fps && !this.joins.length && !this.errors.length && !lessons.length && !steps.length && !counts && !seconds && !net) return;
     this.post({
       bye: bye ? true : undefined,
       beat: beat ? this.beat() : undefined,
@@ -154,6 +158,7 @@ export class Beacon {
       tutorial: lessons.length ? lessons : undefined,
       counts,
       seconds,
+      net,
     });
     if (this.errors.length) this.erred = true;
     if (fps) [this.frames, this.played] = [new Uint32Array(NET.beaconSlowFrame + 1), 0];

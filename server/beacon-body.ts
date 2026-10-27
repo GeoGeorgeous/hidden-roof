@@ -1,4 +1,5 @@
 import { NET, SERVER } from '../src/config';
+import type { NetReport } from '../src/net/net-minute';
 import { isDevice } from '../src/net/protocol';
 
 // A beacon's body as the game sends it (src/beacon.ts), checked: any field of the wrong type, a code that isn't one
@@ -22,6 +23,7 @@ interface Body {
   tutorial?: string[];
   counts?: Record<string, number>;
   seconds?: Partial<Record<(typeof SECONDS)[number], number>>;
+  net?: NetReport;
 }
 
 const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && !!x && !Array.isArray(x);
@@ -37,7 +39,7 @@ const isCount = (n: unknown) => typeof n === 'number' && Number.isInteger(n) && 
 /** `b` as a Body, or null. */
 export function check(b: unknown) {
   if (!isObj(b)) return null;
-  const { page, bye, beat, first, fps, joins, errors, erred, steps, tutorial, counts, seconds } = b;
+  const { page, bye, beat, first, fps, joins, errors, erred, steps, tutorial, counts, seconds, net } = b;
   if (page !== undefined && !isPage(page)) return null;
   if (bye !== undefined && bye !== true) return null;
   if (beat !== undefined && !BEATS.includes(beat as never)) return null;
@@ -48,5 +50,16 @@ export function check(b: unknown) {
   if (!isList(steps, (s) => STEPS.includes(s as never)) || !isList(tutorial, isCode)) return null;
   if (counts !== undefined && !isMap(counts, isCount)) return null;
   if (seconds !== undefined && (!isObj(seconds) || !Object.entries(seconds).every(([k, v]) => SECONDS.includes(k as never) && isNum(v, SERVER.beaconMostSeconds)))) return null;
+  if (net !== undefined && !isNet(net)) return null;
   return b as Body;
+}
+
+/** The session link's minute (src/net/net-minute.ts). */
+function isNet(n: unknown) {
+  if (!isObj(n) || !isNum(n.seconds, SERVER.beaconMostSeconds) || !isNum(n.down, SERVER.beaconMostRate) || !isNum(n.up, SERVER.beaconMostRate)) return false;
+  const ping = n.ping;
+  if (ping !== undefined && (!isObj(ping) || !['p50', 'p95', 'max'].every((k) => isNum(ping[k], SERVER.beaconMostPing)))) return false;
+  if (n.drops !== undefined && !isMap(n.drops, isCount)) return false;
+  if (n.stalls !== undefined && !isCount(n.stalls)) return false;
+  return isList(n.back, (s) => isNum(s, SERVER.beaconMostSeconds)) && isList(n.stallLong, (s) => isNum(s, SERVER.beaconMostSeconds));
 }

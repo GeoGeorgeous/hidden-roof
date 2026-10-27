@@ -142,8 +142,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 The admin page (the cctv repo) and the server side it reads (server/admin-api.ts). Specs: docs/ideas/admin-data.md.
 
 1. [CCTV-261]: ADMIN_API 3, once cctv reads only the new fields: `people` (merged, byDevice, byIp) and `countries` leave /history (players, inSessions and playerCountries replace them); `/traffic?days=N` stays for the day bars; deployed with that cctv (docs/ideas/admin-data.md)
-2. [CCTV-266]: The server's log of a day, downloadable from the admin page: `GET /logs/DAY` (the day's file of `LOG_DIR`, as it is: addresses and nicknames for 14 days), `?session=CODE` keeps that session's lines only; a Download on the page @1.6.0
-3. [CCTV-267]: Network health in the beacon, as the first playtest's telemetry had it: each minute in a session the app ping (p50, p95, max), drops by close code, reconnects and their time, stalls (no message for over 1 s), bytes received; a Network widget on the admin page (by hour, the worst links first) @1.6.0
+2. [CCTV-267]: Network health in the beacon, as the first playtest's telemetry had it: each minute in a session the app ping (p50, p95, max), closes by code (`timeout`: the game gave up on a silent link), reconnect times, stalls (nothing from the server for over 1.5 s), KB/s each way; counted per hour as `client.net` in /history; a Network block on Stats (lost links an hour of session time: 1006 and timeout) @1.6.0
 
 ## Web and promotion
 
@@ -158,7 +157,7 @@ The admin page (the cctv repo) and the server side it reads (server/admin-api.ts
 ## Legal
 
 1. [TASK-187]: The beacon, the device id and the address hash run without a consent dialog (the owner's decision and risk, recorded in SECRET_legal.md); the privacy page names them (TASK-242)
-2. [TASK-242]: The privacy page names what the admin's stats keep: a random device id in localStorage, the address as a salted hash (a new salt every 30 days), the country, plays kept 30 days and counts forever, the web traffic read from the server's access log (a visitor as a salted hash of address and browser, a new salt every 30 days, the hashes kept by the hour for 30 days); why, and how to object; DB-IP's credit (CC BY 4.0) (docs/ideas/public-servers.md)
+2. [TASK-242]: The privacy page names what the admin's stats keep: a random device id in localStorage, the address as a salted hash (a new salt every 30 days), the country, plays kept 30 days and counts forever, the web traffic read from the server's access log (a visitor as a salted hash of address and browser, a new salt every 30 days, the hashes kept by the hour for 30 days); why, and how to object; DB-IP's credit (CC BY 4.0) (docs/ideas/public-servers.md); the beacon's session-link minute too (ping, closes, KB/s: no ids)
 3. [TASK-189]: The Terms' moderation section (DSA: grounds and measures, reports by email, a restricted player told what and why); the house rules screen is in (docs/ideas/public-servers.md)
 
 ## Codebase
@@ -204,6 +203,7 @@ Shipped since the last release; the release commit empties this list.
 33. BUGS [BL-024]: Paint ops are most of the downstream bytes: measured (2026-10-27, `npm run study:load`): 20 players work as is, 40 on the server but heavy painting sends ~360 KB/s to each, 60 is the server's one thread full (by frames), 80 doesn't; follow-ups PERF-264 and PERF-265; merging stamps and shedding load on slow links not taken (owner: shedding could make weak links less smooth; maps are small, so no rate by distance) (docs/ideas/weak-links.md) @1.6.0
 34. [PERF-264]: The others' states and ops reach a game in one relay frame per turn of the server's event loop (nothing waits longer than what came in with it), 9 B a state or ops over its bytes; protocol 9. Measured (`npm run study:load`, typical / heavy painting): 60 players 51% / 80% of the server's core (was 100% / 100%), 80 players 55% / 90% with ping p99 13 / 10 ms (was 12 / 17 s); bytes a player receives as before or less (docs/ideas/weak-links.md) @1.6.0
 35. [PERF-265]: A player standing still (feet within 1 mm, the rest the same) sends two states a second, not 20 (`NET.stillRate`), once two alike have gone, so the others see no speed to guess on; moving again sends the one held back first, so the move starts when it began (scripts/sender.test.mjs) @1.6.0
+36. [CCTV-266]: The server's log of a day, downloadable from the admin page: `GET /logs` (the day files with their size, `keepDays`, `redactDays`), `GET /logs/DAY` as it is, `?session=CODE` that session's lines with the stack lines under them; a Server log panel on Main and Download log on a session (cctv 4f34852) @1.6.0
 
 ## Discarder
 

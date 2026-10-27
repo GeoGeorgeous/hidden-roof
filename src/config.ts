@@ -1104,6 +1104,8 @@ export const NET = {
   retryMost: 8,
   /** In a session, nothing from the server for this long (s): the game closes the link and comes back in. The server pings every SERVER.ping, so this is a stall, not a slow link; a link that stalls for seconds and recovers is cheaper kept than rejoined (the paint file comes down again). */
   serverSilence: 15,
+  /** The beacon counts a stall when nothing came from the server for this long (s): past its ping (SERVER.ping). */
+  stallGap: 1.5,
   /** Asking the server over HTTP why the link failed gives up after this long (s, net/diagnostics.ts). */
   diagnoseTimeout: 5,
   /** Network log entries kept for COPY NETWORK LOG (net/diagnostics.ts). */
@@ -1222,6 +1224,9 @@ export const SERVER = {
   beaconText: 80,
   beaconMostSeconds: 600,
   beaconMostEvents: 1000,
+  /** A beacon's session link: pings up to beaconMostPing ms, rates up to beaconMostRate KB/s. */
+  beaconMostPing: 10000,
+  beaconMostRate: 100000,
   /** Who is on the site now counts a page by its last minute beacon for this long (s): beaconEvery and a half, as timers jitter and a hidden tab's are throttled. At most beaconPages pages are kept; past it the one that beat longest ago goes. */
   beaconSiteSeconds: NET.beaconEvery * 1.5,
   beaconPages: 100000,
