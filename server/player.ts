@@ -47,8 +47,8 @@ export interface Player {
   at: Spot | null;
   ladder: PropData | null;
   expires: ReturnType<typeof setTimeout> | null;
-  /** Their last link that closed: from where, how long it lived, when (ms), for the log. */
-  was: { ip: string; country: string | null; lived: number; at: number } | null;
+  /** Their last link that closed: from where, how long it lived, when (ms), for the log; how long (s) the seat is held. */
+  was: { ip: string; country: string | null; lived: number; at: number; hold: number } | null;
 }
 
 export const presence = (p: Player): Presence => (p.link ? p.activity : 'dropped');

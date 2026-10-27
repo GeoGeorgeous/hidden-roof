@@ -136,8 +136,10 @@ export class Lobby {
         if (!at || at === 'waiting') return;
         if ('place' in at) return at.session.line.dropped(at.place, link);
         if (at.player.link !== link) return;
-        log(at.session.code, who(at.player), `dropped (${code}${reason.length ? ` ${reason}` : ''}): ${SERVER.rejoinWindow} s to come back`);
-        at.session.dropped(at.player, link);
+        // A closed tab (1001) lets its seat go soon; a lost link (1006) is held as long as it takes to come back.
+        const hold = code === 1001 ? Math.min(SERVER.closedHold, SERVER.rejoinWindow) : SERVER.rejoinWindow;
+        log(at.session.code, who(at.player), `dropped (${code}${reason.length ? ` ${reason}` : ''}): ${hold} s to come back`);
+        at.session.dropped(at.player, link, hold);
       },
     };
     // Turned away: what it still sends is ignored; its close is counted.

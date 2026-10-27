@@ -32,8 +32,9 @@ import { trafficDays } from './traffic-store';
 // JSON in and out; a request that's wrong answers 400 { error }, 404 for something that isn't there, 409 for something busy,
 // 413 for a body past SERVER.adminBody bytes, and any other failure 500 { error }:
 //   GET  /                     the API's version, the game's and the protocol, when the server started (`started`), the time now,
-//                              sessions and players, the most players ever (`peak`), `slowPing` (ms): what counts as a slow ping, and
-//                              `sources`: { status, beacon, history, traffic, geoip }, each { every (s), at (ISO or null) }: how often that
+//                              sessions and players, the most players ever (`peak`), `slowPing` (ms): what counts as a slow ping,
+//                              `saveEvery` (s): how often a public session's changed paint is saved, `saveAges` (s): the ages a save
+//                              is kept for beside the newest (saves.ts), and `sources`: { status, beacon, history, traffic, geoip }, each { every (s), at (ISO or null) }: how often that
 //                              source comes and when the last one did (sources.ts)
 //   GET  /machine              CPU, RAM, the server's memory, disk, the paint saves, upload (machine.ts)
 //   GET  /history?period=P     counts for today (since 00:00 UTC), or the last 24h, 7d or 30d (history.ts): plays, `players` and
@@ -107,7 +108,7 @@ function live(s: Session) {
     country: link ? (link.country ?? null) : (was?.country ?? null),
     ping: link?.rtt ?? null,
     joined: iso(joined),
-    held: link || !was ? null : Math.max(0, Math.round((was.at - now) / 1000 + SERVER.rejoinWindow)),
+    held: link || !was ? null : Math.max(0, Math.round((was.at - now) / 1000 + was.hold)),
   }));
   const pings = players.flatMap((p) => (p.ping === null ? [] : [p.ping])).sort((a, b) => a - b);
   const { today } = s;
@@ -165,7 +166,7 @@ export function adminApi(lobby: Lobby, kept: Kept, key: string) {
     if (req.headers.origin && req.headers.origin !== allowed) return answer(403, { error: 'origin' });
     const parts = (req.url ?? '/').split('?')[0].split('/').filter(Boolean);
     try {
-      if (req.method === 'GET' && !parts.length) return answer(200, { api: ADMIN_API, version: VERSION, protocol: PROTOCOL, started: iso(started), now: iso(Date.now()), sessions: lobby.sessions.size, players: lobby.players, peak: history.ever, slowPing: SERVER.slowPing, sources: await sources(kept.dir) });
+      if (req.method === 'GET' && !parts.length) return answer(200, { api: ADMIN_API, version: VERSION, protocol: PROTOCOL, started: iso(started), now: iso(Date.now()), sessions: lobby.sessions.size, players: lobby.players, peak: history.ever, slowPing: SERVER.slowPing, saveEvery: SERVER.keepEvery, saveAges: SERVER.keepAges.filter(Boolean), sources: await sources(kept.dir) });
       if (req.method === 'GET' && parts[0] === 'machine' && parts.length === 1) return answer(200, await machine(kept.dir));
       if (req.method === 'GET' && parts[0] === 'events' && parts.length === 1)
         return stream(res, () => ({ now: iso(Date.now()), players: lobby.players, site: site(), sessions: [...lobby.sessions.values()].map(live) }));

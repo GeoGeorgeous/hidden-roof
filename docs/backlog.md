@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 263
+The one list of what's left. Counter for new ids: next: 264
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -51,7 +51,6 @@ Only `N.`, the id and the description are required. The optional parts appear in
 2. TASK [BL-076]: Run the next public playtest and verify that all bugs from the previous playtest have been fixed (docs/ideas/weak-links.md) @1.6.2
 3. IDEA [?BL-071]: Multiplayer View-Only sessions: past sessions are opened for viewing only (gallary)
 4. IDEA [?BL-153]: Find who painted something by player id, picked like the eyedropper (to spot bad paint)
-5. [TASK-262]: A closed tab in a session (the browser closes the link with 1001, a lost connection gives 1006) holds the seat for the 180 s rejoin window as a drop does, counted in players and blocking the line; whether 1001 should leave at once (a reload sends 1001 too, and would then rejoin through the dialog)
 
 ## Painting
 
@@ -199,6 +198,8 @@ Shipped since the last release; the release commit empties this list.
 28. [CCTV-257]: One switch for every time on the page: UTC or the browser's local time; days still count in UTC @1.6.0
 29. [TEST-177]: A patch release may have no picture: nothing shows in its place in the game, on GitHub or on Discord; a minor or major release still needs one (docs/releases/AGENTS.md) @1.6.0
 30. [TEST-248]: Closing the tab, checked in browsers against a server: the goodbye beacon on pagehide takes the page off the site count at once (menu, solo and session alike); the session sees the link close with 1001 and holds the seat as for a drop (TASK-262) @1.6.0
+31. [TASK-262]: A closed tab in a session (the browser closes the link with 1001, a lost connection gives 1006) holds the seat 15 s (`SERVER.closedHold`), not the 180 s rejoin window: it frees a seat and the line soon, while a reload (or a proxy closing links the same way) is back by then; tested in lobby-test @1.6.0
+32. [CCTV-263]: The session's saves note follows the server: `GET /` says `saveEvery` (s, `KEEP_EVERY`) and `saveAges` (s), and the page words them (it said every 30 minutes, whatever the server did) @1.6.0
 
 ## Discarder
 

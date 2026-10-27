@@ -212,15 +212,15 @@ export class Session {
     else if (m.type === 'leave') this.remove(p, 'left');
   }
 
-  /** Their link closed: they have SERVER.rejoinWindow to come back. */
-  dropped(p: Player, link: Link) {
+  /** Their link closed: they have `hold` s to come back. */
+  dropped(p: Player, link: Link, hold = SERVER.rejoinWindow) {
     if (p.link !== link) return;
     p.link = null;
     p.live = false;
-    p.was = { ip: link.ip, country: link.country ?? null, lived: Date.now() - link.since, at: Date.now() };
-    event('dropped', this, p.name, { held: SERVER.rejoinWindow });
+    p.was = { ip: link.ip, country: link.country ?? null, lived: Date.now() - link.since, at: Date.now(), hold };
+    event('dropped', this, p.name, { held: hold });
     this.broadcast({ type: 'presence', id: p.id, state: 'dropped' }, p);
-    p.expires = setTimeout(() => this.remove(p, `didn't come back in ${SERVER.rejoinWindow} s`), SERVER.rejoinWindow * 1000);
+    p.expires = setTimeout(() => this.remove(p, `didn't come back in ${hold} s`), hold * 1000);
   }
 
   /** Paint runs move on (`dt` s). */
