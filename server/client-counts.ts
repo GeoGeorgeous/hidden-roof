@@ -34,7 +34,7 @@ export interface ClientCounts {
   net: { seconds: number; ping50: Counts; ping95: Counts; pingMax: Counts; drops: Counts; back: Counts; stalls: number; stallLong: Counts; down: Counts; up: Counts };
 }
 
-export const noNet = (): ClientCounts['net'] => ({ seconds: 0, ping50: {}, ping95: {}, pingMax: {}, drops: {}, back: {}, stalls: 0, stallLong: {}, down: {}, up: {} });
+const noNet = (): ClientCounts['net'] => ({ seconds: 0, ping50: {}, ping95: {}, pingMax: {}, drops: {}, back: {}, stalls: 0, stallLong: {}, down: {}, up: {} });
 
 export const noClient = (): ClientCounts => ({
   n: 0, nGpu: 0, browsers: {}, os: {}, gpus: {}, fps: {}, low1: {}, load: {}, join: {}, errors: 0, erred: 0, messages: {},
@@ -77,8 +77,7 @@ export function addClient(to: ClientCounts, from: ClientCounts) {
   for (const k of ['fps', 'low1', 'load', 'join'] as const) merge(to[k], from[k], false);
   for (const k of ['steps', 'seconds'] as const) merge(to.events[k], from.events[k], false);
   for (const k of ['tutorial', 'counts'] as const) merge(to.events[k], from.events[k]);
-  // Hours kept before 1.6.0's network counts have none.
-  const [net, more] = [(to.net ??= noNet()), from.net ?? noNet()];
+  const [net, more] = [to.net, from.net];
   net.seconds += more.seconds;
   net.stalls += more.stalls;
   for (const k of ['ping50', 'ping95', 'pingMax', 'back', 'stallLong', 'down', 'up'] as const) merge(net[k], more[k], false);
@@ -130,7 +129,7 @@ export function clientReport(c: ClientCounts) {
       seconds: { playing: (seconds.playing ?? 0) / 10, idle: (seconds.idle ?? 0) / 10, menu: (seconds.menu ?? 0) / 10 },
       settings,
     },
-    net: netReport(c.net ?? noNet()),
+    net: netReport(c.net),
   };
 }
 

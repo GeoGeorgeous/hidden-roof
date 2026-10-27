@@ -7,7 +7,8 @@ import path from 'node:path';
 import { NET, SERVER } from '../src/config';
 import { levelPaintFaces } from '../src/level/prop-pieces';
 import { encodeOps, SurfaceIndex } from '../src/op-wire';
-import { median } from './counts';
+import { noClient } from './client-counts';
+import { median, noPaint } from './counts';
 import { join, start } from './test-kit';
 
 // What the admin API holds to (admin-api.ts, history.ts, people.ts, main.ts), against the built server: inherited
@@ -24,9 +25,9 @@ fs.mkdirSync(path.join(dir, 'stats'));
 const put = (name: string, text: string) => fs.writeFileSync(path.join(dir, 'stats', name), text);
 // Two days back is corrupt, yesterday is good: 3 plays at 12:00 UTC from one address.
 put(`${day(2)}.json`, '{not json');
-put(`${day(1)}.json`, JSON.stringify({ hours: { 12: { plays: 3 } } }));
+put(`${day(1)}.json`, JSON.stringify({ hours: { 12: { plays: 3, lengths: [0, 0, 0, 0], seconds: 0, withOthers: 0, turnedAway: {}, ...noPaint(), peak: null, client: noClient() } } }));
 put(`people-${day(2)}.json`, '[{"h":');
-put(`people-${day(1)}.json`, JSON.stringify([{ h: (Math.floor(Date.now() / DAY) - 1) * 24 + 12, d: null, i: 'x', c: 'FR' }]));
+put(`people-${day(1)}.json`, JSON.stringify([{ h: (Math.floor(Date.now() / DAY) - 1) * 24 + 12, d: null, i: 'x', c: 'FR', j: true }]));
 put('peak.json', '{not json');
 // The traffic reader's last pass: state.json's time.
 const passed = new Date('2026-10-26T08:00:00Z');

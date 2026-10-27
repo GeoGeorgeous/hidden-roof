@@ -38,9 +38,6 @@ const iso = (ms: number) => new Date(ms).toISOString();
 const dayName = (day: number) => iso(day * 24 * HOUR).slice(0, 10);
 const blank = (): Hour => ({ plays: 0, lengths: [0, 0, 0, 0], seconds: 0, withOthers: 0, turnedAway: {}, ...noPaint(), peak: null, client: noClient() });
 
-/** An hour as saved: one written before a field was added gets it empty (the beacons' too). */
-const loaded = (h: Hour): Hour => ({ ...blank(), ...h, client: { ...noClient(), ...h.client, events: { ...noClient().events, ...h.client?.events } } });
-
 /** The first hour (since 1970) of `period`, up to `now` (ms): today since 00:00 UTC, or the last 24, 7 x 24 or 30 x 24 hours counting this one. */
 export function firstHour(period: Period, now: number) {
   const h = Math.floor(now / HOUR);
@@ -156,8 +153,8 @@ class History {
       try {
         const file = JSON.parse(await fs.readFile(path.join(this.dir, name), 'utf8')) as { hours?: Record<string, Hour>; total?: Hour };
         if (!file.hours) continue;
-        if (day < today - SERVER.historyDays) await this.write(name, { total: sum(Object.values(file.hours).map(loaded)) });
-        else for (const [k, v] of Object.entries(file.hours)) this.hours.set(day * 24 + Number(k), loaded(v));
+        if (day < today - SERVER.historyDays) await this.write(name, { total: sum(Object.values(file.hours)) });
+        else for (const [k, v] of Object.entries(file.hours)) this.hours.set(day * 24 + Number(k), v);
       } catch (e) {
         log('-----', `stats ${name} skipped:`, e);
       }

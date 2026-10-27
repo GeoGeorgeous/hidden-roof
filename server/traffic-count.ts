@@ -153,7 +153,7 @@ export function add(t: Today, h: Hit, hosts: string[], country: (ip: string) => 
     const c = country(h.ip);
     if (c) count(t.day.countries, c);
   }
-  // A day started before the hours were kept has its visitors in its file, not in the sets.
+  // A day's file ahead of its hours file (one write of the two failed) never counts down.
   for (const s of STEPS) t.day.steps[s] = Math.max(t.day.steps[s], t.seen[s].size);
   t.day.visitors = Math.max(t.day.visitors, t.seen.view.size);
   return true;

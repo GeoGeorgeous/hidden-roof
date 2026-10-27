@@ -154,7 +154,6 @@ class People {
   }
 
   private add(p: Play) {
-    if (!p.j && !p.p) p.j = true;
     this.seen.set(`${p.h} ${p.d} ${p.i}`, p);
     this.plays.push(p);
   }

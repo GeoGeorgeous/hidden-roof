@@ -7,33 +7,29 @@ import os from 'node:os';
 import path from 'node:path';
 import { NET, SERVER } from '../src/config';
 import { beacon, site } from './beacon';
-import { addClient, countSetting, noClient } from './client-counts';
+import { addClient, countSetting, noClient, type ClientCounts } from './client-counts';
+import { noPaint } from './counts';
 import { people } from './people';
 import { start } from './test-kit';
 
 // The game's beacon (beacon.ts, beacon-body.ts, client-counts.ts), against the built server: what it runs on, load and
 // join times, frames, errors, then the game's events (funnel and tutorial steps, counts, seconds, settings); a body that
-// isn't one is refused whole; Other past SERVER.beaconKinds names; an hour saved before the events still loads; /history's
+// isn't one is refused whole; Other past SERVER.beaconKinds names; an hour saved on disk loads; /history's
 // `client`, and /events's `site`: who is on the site now. npm run test:server runs it.
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'roof-beacon-'));
-// An hour saved with the first beacons (before the events), the hour before this one.
+// An hour saved by an earlier run, the hour before this one: beacons, no events yet.
 const before = Date.now() - 3600e3;
+/** An hour as history.ts saves it, with `plays` and these beacon counts. */
+const savedHour = (plays: number, client: Partial<ClientCounts>) => ({ plays, lengths: [0, 0, 0, 0], seconds: 0, withOthers: 0, turnedAway: {}, ...noPaint(), peak: null, client: { ...noClient(), ...client } });
 fs.mkdirSync(path.join(dir, 'stats'));
 fs.writeFileSync(
   path.join(dir, 'stats', `${new Date(before).toISOString().slice(0, 10)}.json`),
-  JSON.stringify({
-    hours: {
-      [new Date(before).getUTCHours()]: {
-        plays: 0,
-        client: { n: 2, nGpu: 1, browsers: { Chrome: 2 }, os: { Windows: 2 }, gpus: { 'GPU old': 1 }, fps: { 60: 2 }, low1: { 40: 2 }, load: { 30: 2 }, join: {}, errors: 1, erred: 1, messages: { 'old error': 1 } },
-      },
-    },
-  }),
+  JSON.stringify({ hours: { [new Date(before).getUTCHours()]: savedHour(0, { n: 2, nGpu: 1, browsers: { Chrome: 2 }, os: { Windows: 2 }, gpus: { 'GPU old': 1 }, fps: { 60: 2 }, low1: { 40: 2 }, load: { 30: 2 }, errors: 1, erred: 1, messages: { 'old error': 1 } }) } }),
 );
-// An old day (past SERVER.historyDays), saved the same way: it is folded to its total at start without throwing.
+// An old day (past SERVER.historyDays): it is folded to its total at start.
 const old = new Date(Date.now() - (SERVER.historyDays + 10) * 864e5).toISOString().slice(0, 10);
-fs.writeFileSync(path.join(dir, 'stats', `${old}.json`), JSON.stringify({ hours: { 3: { plays: 1, client: { n: 1, browsers: { Chrome: 1 } } } } }));
+fs.writeFileSync(path.join(dir, 'stats', `${old}.json`), JSON.stringify({ hours: { 3: savedHour(1, { n: 1, browsers: { Chrome: 1 } }) } }));
 const main = await start({ ADMIN_KEY: 'test-key', DATA_DIR: dir });
 try {
   const ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36';
@@ -62,9 +58,9 @@ try {
   };
 
   const folded = JSON.parse(fs.readFileSync(path.join(dir, 'stats', `${old}.json`), 'utf8')).total;
-  assert.deepEqual([folded.plays, folded.client.n, folded.client.browsers, folded.client.events.counts], [1, 1, { Chrome: 1 }, {}], 'an old day without events folds');
+  assert.deepEqual([folded.plays, folded.client.n, folded.client.browsers, folded.client.events.counts], [1, 1, { Chrome: 1 }, {}], 'an old day folds');
 
-  // An hour saved before the events: it loads, with the events empty and the errors by message.
+  // The saved hour loads: no events, the errors by message.
   assert.deepEqual((await history()).events, { steps: { play: 0, ready: 0, sprayed: 0, joined: 0 }, tutorial: {}, counts: {}, seconds: { playing: 0, idle: 0, menu: 0 }, settings: {} });
   assert.deepEqual((await history()).errors, { count: 1, plays: 1, byMessage: { 'old error': 1 } });
   assert.deepEqual(await onSite(), { menu: 0, solo: 0, session: 0, hidden: 0 });
@@ -283,7 +279,7 @@ try {
   } finally {
     Date.now = realNow;
   }
-  console.log('beacon: ok (first-version bodies, the events, refused bodies, Other, an old hour, the report, who is on the site by page, goodbyes and old games)');
+  console.log('beacon: ok (first-version bodies, the events, refused bodies, Other, a saved hour, the report, who is on the site by page, goodbyes and old games)');
 } finally {
   main.stop();
   fs.rmSync(dir, { recursive: true, force: true });
