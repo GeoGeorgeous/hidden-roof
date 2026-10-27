@@ -239,15 +239,15 @@ export class Session {
     });
   }
 
-  /** The admin closed it: everyone is told it has ended. */
+  /** The admin closed it: everyone, those in line too, is told so (`closed`, not `ended`: nobody ran out of time). */
   end() {
     for (const p of this.players.values()) {
       history.played((Date.now() - p.joined) / 1000);
-      this.eject(p, 'ended');
+      this.eject(p, 'closed');
     }
     this.players.clear();
     this.emptySince = Date.now();
-    this.finish('by the admin');
+    this.finish('by the admin', 'closed');
   }
 
   /** The admin removed a player: told why, out at once with no seat held, free to join again (the lobby refuses their token for a while). False if there's no such player. */
@@ -294,7 +294,7 @@ export class Session {
   }
 
   /** `p` is told why and their link closed; no seat held. */
-  private eject(p: Player, reason: 'kicked' | 'ended') {
+  private eject(p: Player, reason: 'kicked' | 'closed') {
     if (p.expires) clearTimeout(p.expires);
     const link = p.link;
     p.link = null;
@@ -303,8 +303,8 @@ export class Session {
   }
 
   /** It's over: those waiting are told, and the lobby forgets it. */
-  private finish(why: string) {
-    this.line.end();
+  private finish(why: string, told: 'ended' | 'closed' = 'ended') {
+    this.line.end(told);
     this.onEmpty(why);
   }
 

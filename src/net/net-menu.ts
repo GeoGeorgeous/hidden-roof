@@ -40,6 +40,7 @@ const STATUS: Record<Failure | 'connecting' | 'reconnecting', MessageId> & Parti
   'too-many': 'menu.netTooMany',
   'no-host': 'menu.netNoHost',
   kicked: 'menu.netKicked',
+  closed: 'menu.netClosed',
   ended: 'menu.netEnded',
   restarted: 'menu.netEnded',
   expired: 'menu.netEnded',

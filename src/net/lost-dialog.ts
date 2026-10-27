@@ -16,6 +16,7 @@ const LOST: Partial<Record<Failure, { id: DialogId; button: LostButton }>> = {
   ended: { id: 'sessionEmpty', button: 'save' },
   replaced: { id: 'openedElsewhere', button: 'leave' },
   kicked: { id: 'removedByAdmin', button: 'save' },
+  closed: { id: 'sessionClosed', button: 'save' },
   version: { id: 'updated', button: 'reload' },
   full: { id: 'sessionFull', button: 'save' },
   busy: { id: 'serverBusy', button: 'save' },

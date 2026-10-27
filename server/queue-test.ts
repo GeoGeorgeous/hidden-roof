@@ -72,11 +72,11 @@ try {
   assert.equal((await e.next('queued')).position, 1);
   assert.equal((await f.next('queued')).position, 2);
 
-  // The session ends: everyone waiting is told.
+  // The admin closes the session: everyone waiting is told.
   await admin(`/sessions/${s1.code}/close`, {});
   for (const g of [e, f]) {
-    assert.equal((await g.next('rejected')).reason, 'ended');
-    assert.equal(await g.closed, closeCode('ended'));
+    assert.equal((await g.next('rejected')).reason, 'closed');
+    assert.equal(await g.closed, closeCode('closed'));
   }
 
   // A waiting link that drops keeps its place: those behind keep theirs, and it comes back by its token to the same place.

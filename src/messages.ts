@@ -72,6 +72,8 @@ export const MESSAGES = {
     sessionEnded: { label: 'SESSION ENDED', title: 'The session has ended', text: 'The server restarted and the session closed with it.', button: 'Save paint and leave', esc: 'Leave without saving' },
     /** The server closed the session: every player had left or lost their link, and none came back within {minutes}. */
     sessionEmpty: { label: 'SESSION ENDED', title: 'The session has ended', text: 'Everyone left or lost their connection, and no one came back within {minutes} minutes, so the session closed.', button: 'Save paint and leave', esc: 'Leave without saving' },
+    /** The admin closed the session. */
+    sessionClosed: { label: 'SESSION ENDED', title: 'The session has ended', text: 'The admin ended this session.', button: 'Save paint and leave', esc: 'Leave without saving' },
     /** The admin removed the player from the session. */
     removedByAdmin: { label: 'REMOVED', title: 'Removed from the session', text: 'The admin removed you from this session.', button: 'Save paint and leave', esc: 'Leave without saving' },
     openedElsewhere: { label: 'OPENED ELSEWHERE', title: 'Opened in another tab', text: 'You joined this session from another tab, so this one left it.', button: 'Got it' },
@@ -185,6 +187,7 @@ export const MESSAGES = {
     netTooMany: 'Too many connections from your network: try again later',
     netNoHost: "This server doesn't take new sessions from players",
     netEnded: 'The session has ended',
+    netClosed: 'The admin ended this session',
     netKicked: 'The admin removed you from this session',
     netTimeout: "The server didn't answer",
     netBroken: 'The game hit an error in the session: copy the network log for a report',

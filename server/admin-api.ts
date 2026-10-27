@@ -40,7 +40,7 @@ import { trafficDays } from './traffic-store';
 //                              (stay: a private one stays when empty; a public one always does;
 //                              limit: a private one's most players, SERVER.privateMin to SERVER.players.private)
 //   POST /sessions/CODE/wipe   its paint gone
-//   POST /sessions/CODE/close  ended for everyone in it
+//   POST /sessions/CODE/close  closed for everyone in it (told `closed`)
 //   POST /sessions/CODE/players/ID/kick
 //                              a player out at once (told why, no seat held; a new join may come in, but a reconnect
 //                              with their token is told 'kicked' for SERVER.rejoinWindow)

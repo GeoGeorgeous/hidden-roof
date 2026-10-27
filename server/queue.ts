@@ -113,13 +113,13 @@ export class Queue {
     for (const p of this.places) p.link?.send(frame);
   }
 
-  /** The session has ended: everyone waiting is told. */
-  end() {
+  /** The session has ended (`closed`: by the admin): everyone waiting is told. */
+  end(reason: 'ended' | 'closed' = 'ended') {
     this.over = true;
     for (const p of this.places) {
       if (p.expires) clearTimeout(p.expires);
-      p.link?.send(encode({ type: 'rejected', reason: 'ended' }));
-      p.link?.close(closeCode('ended'), 'ended');
+      p.link?.send(encode({ type: 'rejected', reason }));
+      p.link?.close(closeCode(reason), reason);
     }
     this.places = [];
   }
