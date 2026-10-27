@@ -1137,6 +1137,13 @@ export const SERVER = {
   lookupIps: 10000,
   /** Players waiting in line for a full session, at most (net/protocol.ts 'queued'); one more is turned away as 'full'. */
   queueMax: 20,
+  /** A public session gives one address at most this many seats, and its line this many places (a household shares one address); past either, 'seats'. A dropped seat is still taken back by its nickname; a private session has its own small limit. */
+  seatsPerIp: 4,
+  /** JOINs to public sessions from one address a minute, from joinIps addresses at once; past it, 'rate'. A reconnect with a token, or back to a place in line, doesn't count. */
+  joinsPerIp: 10,
+  joinIps: 10000,
+  /** Where a returning player may be put (server/spot.ts): around the level's props and spawn, this far (m). */
+  spotMargin: 30,
   /** A dropped player can come back as themselves for this long (s); then their stepladder goes, and a private session with no one left closes (a public one, or one the admin made with --stay, stays). */
   rejoinWindow: 180,
   /** The server pings every game this often (s), so a game notices a dead link; a game pings the server as often, and each answer is a round trip for the link's status (NET.statusShow). */

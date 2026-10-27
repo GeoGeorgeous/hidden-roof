@@ -51,8 +51,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 2. TASK [BL-076]: Run the next public playtest and verify that all bugs from the previous playtest have been fixed (docs/ideas/weak-links.md) @1.6.2
 3. IDEA [?BL-071]: Multiplayer View-Only sessions: past sessions are opened for viewing only (gallary)
 4. IDEA [?BL-153]: Find who painted something by player id, picked like the eyedropper (to spot bad paint)
-5. [BUGS-168]: Returning players recover their inventory but spawn at the default spawn instead of their last position. Restore both inventory and position, matched by nickname as the inventory is. @1.6.0
-6. [?TEST-248]: Closing the tab without leaving: check that it counts as leaving the site, the session and the solo game, as far as the page can tell (the beacon on hide, the socket's close, the site's 90 s window) @1.6.0
+5. [?TEST-248]: Closing the tab without leaving: check that it counts as leaving the site, the session and the solo game, as far as the page can tell (the beacon on hide, the socket's close, the site's 90 s window) @1.6.0
 
 ## Painting
 
@@ -136,11 +135,10 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## Servers and deploy
 
-1. IDEA [BL-047]: Admin panel: servers stats (players online, perfomance, etc), players info (username, IP, ping), after BL-043; ban by IP is IDEA-240 (docs/ideas/public-servers.md) @1.6.0
+1. IDEA [BL-047]: Admin panel: servers stats (players online, perfomance, etc), players info (username, IP, ping); ban by IP is IDEA-240 (docs/ideas/public-servers.md) @1.6.0
 2. [IDEA-240]: Admin: ban by IP (with a reason the player is shown); restoring a save is CCTV-255 (docs/ideas/public-servers.md)
 3. IDEA [?BL-147]: Anti-cheat: The server checks what players send (op reach and rate, ladder spot, jumps) before it goes public @1.6.1
-4. [TASK-245]: Public sessions: at most N seats and places in line per address (N 2 or more: a household shares one), a JOIN rate per address; a dropped seat is still taken back by its nickname @1.6.0
-5. [TASK-201]: Research itch.io Publishing Requirements, AI Policies, and Download Restrictions @1.6.3
+4. [TASK-201]: Research itch.io Publishing Requirements, AI Policies, and Download Restrictions @1.6.3
 
 ## CCTV
 
@@ -197,6 +195,8 @@ Shipped since the last release; the release commit empties this list.
 15. [BUGS-247]: A session the admin closes says so in the game's dialog ("The admin ended this session"), not that everyone left; a new close reason `closed` (code 4012) beside `ended`, added in protocol 8 as the kick was, no bump; those waiting in line are told the same
 16. [TASK-250]: The public join dialog in two steps: the session and the name (always asked), then the house rules and the consent, where "Don't show again" skips only that step, so the name can always be changed; Esc goes back a step; private sessions are as before
 17. [TASK-251]: One game tab per browser (Web Locks, decided before the level loads): a second tab shows "The game is open in another tab" with "Play here", which makes the other tab leave its session and let go; and the server seats a JOIN from the device of a player whose link is still open in that player's seat (the old link is closed as replaced)
+18. [BUGS-168]: A player who comes back under the same nickname gets their inventory and their last position back (the server keeps the last position from the state it relays, checks it against the level, and the welcome carries it)
+19. [TASK-245]: A public session gives one address at most 4 seats and 4 places in its line (a household shares one), and takes 10 JOINs a minute from one address; refused with their own reasons and texts; a dropped seat is still taken back by its nickname
 
 ## Discarder
 

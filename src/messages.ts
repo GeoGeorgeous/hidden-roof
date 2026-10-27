@@ -192,6 +192,8 @@ export const MESSAGES = {
     netEnded: 'The session has ended',
     netClosed: 'The admin ended this session',
     netKicked: 'The admin removed you from this session',
+    netSeats: 'Too many players from your network are in this session already',
+    netRate: 'Too many joins from your network: wait a minute and try again',
     netTimeout: "The server didn't answer",
     netBroken: 'The game hit an error in the session: copy the network log for a report',
     netOffline: "Can't reach the site: check your connection",

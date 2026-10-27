@@ -6,7 +6,7 @@ import { PartsIn } from '../src/net/parts-in';
 import { decode, encode, PROTOCOL, type ToClient, type ToServer } from '../src/net/protocol';
 
 // What the tests that run the built server share (lobby-test.ts, queue-test.ts): a server on a free port, and a game
-// from its own address that keeps what the server sends.
+// from its own address (or the one given) that keeps what the server sends.
 
 const freePort = () =>
   new Promise<number>((done) => {
@@ -34,8 +34,8 @@ export class Game {
   ws: Ws;
   got: (ToClient & { file?: Uint8Array })[] = [];
   closed: Promise<number>;
-  constructor(port: number) {
-    this.ws = new Ws(`ws://localhost:${port}/ws`, { headers: { 'x-forwarded-for': `10.2.0.${++games}` } });
+  constructor(port: number, ip = `10.2.0.${++games}`) {
+    this.ws = new Ws(`ws://localhost:${port}/ws`, { headers: { 'x-forwarded-for': ip } });
     const parts = new PartsIn();
     this.ws.on('message', (d: Buffer) => {
       const done = parts.take(decode(new Uint8Array(d)) as ToClient);
@@ -57,5 +57,5 @@ export class Game {
   }
 }
 
-/** A game that joins `code` as `name`; `more`: its token or queue token. */
-export const join = (port: number, name: string, code: string, more: { token?: string; queue?: string } = {}) => new Game(port).send({ type: 'join', protocol: PROTOCOL, name, code, ...more });
+/** A game that joins `code` as `name`; `more`: its token or queue token; `ip`: its address (another one of its own by default). */
+export const join = (port: number, name: string, code: string, more: { token?: string; queue?: string } = {}, ip?: string) => new Game(port, ip).send({ type: 'join', protocol: PROTOCOL, name, code, ...more });

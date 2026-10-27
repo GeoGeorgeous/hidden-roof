@@ -59,8 +59,8 @@ export function playLevel(g: MultiplayerContext, data: LevelData, name: string, 
  * The welcome's level, at its PAINT DETAIL, from its spawn with the starting
  * kit (playLevel), without the tools the session turned off (none in the hands,
  * their pickups gone from the map: solo.ts puts them back), and what the player
- * carried here before (a reconnect keeps its own: call this for a session not
- * yet open). Returns the level's surfaces as the paint ops name them, before
+ * carried here before and where they stood (a reconnect keeps its own: call this
+ * for a session not yet open). Returns the level's surfaces as the paint ops name them, before
  * anyone's stepladder is in it.
  * Null: this game builds the level differently from the server (another version).
  */
@@ -75,6 +75,7 @@ export function enterSessionLevel(g: MultiplayerContext, w: Extract<ToClient, { 
     g.inventory.restore(w.inventory);
     g.pickups.collectOwned(g.inventory);
   }
+  if (w.at) g.player.place(w.at.pos, w.at.yaw);
   g.pickups.hideOff(g.inventory);
   return new SurfaceIndex([...g.paint.surfaces].map((s) => s.key));
 }

@@ -1,6 +1,6 @@
 import type { InventoryData } from '../src/inventory/inventory';
 import type { PropData } from '../src/level/level-data';
-import { NAME_MAX, type Activity, type Presence } from '../src/net/protocol';
+import { NAME_MAX, type Activity, type Presence, type Spot } from '../src/net/protocol';
 
 // A player of a session (session.ts) and their socket: what the session keeps
 // of them, how others see them, and the name they go by in it.
@@ -43,6 +43,8 @@ export interface Player {
   activity: Activity;
   /** What they carry, as they last said (null: the starting kit). */
   inventory: InventoryData | null;
+  /** Where they last stood, as their state said (null: not yet): given back when they come back. */
+  at: Spot | null;
   ladder: PropData | null;
   expires: ReturnType<typeof setTimeout> | null;
   /** Their last link that closed: from where, how long it lived, when (ms), for the log. */

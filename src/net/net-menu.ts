@@ -41,6 +41,8 @@ const STATUS: Record<Failure | 'connecting' | 'reconnecting', MessageId> & Parti
   'no-host': 'menu.netNoHost',
   kicked: 'menu.netKicked',
   closed: 'menu.netClosed',
+  seats: 'menu.netSeats',
+  rate: 'menu.netRate',
   ended: 'menu.netEnded',
   restarted: 'menu.netEnded',
   expired: 'menu.netEnded',

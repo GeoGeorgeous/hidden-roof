@@ -8,12 +8,14 @@ import { log, logNoisy, overMemory, who } from './log';
 import type { LevelData } from '../src/level/level-data';
 import type { Link, Player } from './player';
 import type { Place } from './queue';
+import { PerMinute } from './per-minute';
 import { Session } from './session';
 import type { SessionSetup } from './setup';
 
 // Who gets into which session: the live sessions by code, the codes of those
 // that ended, each address's links, uploads and hosted sessions
-// (SERVER.linksPerIp, uploadsPerIp, sessionsPerIp), HOST (only if SERVER.playerHost) and JOIN, and each
+// (SERVER.linksPerIp, uploadsPerIp, sessionsPerIp), HOST (only if SERVER.playerHost) and JOIN (to a public session, SERVER.joinsPerIp a minute
+// and SERVER.seatsPerIp seats or places in line per address), and each
 // link's messages to its session; a JOIN with the token of a player the admin kicked is refused for SERVER.rejoinWindow;
 // a JOIN that finds a session full waits in its line (queue.ts). main.ts gives it links (ws sockets); it
 // speaks only Link, so tests give it fake ones (server/world-test.ts).
@@ -48,6 +50,8 @@ export class Lobby {
   private hosts = new Map<string, string>();
   /** Tokens of players the admin kicked, and when (ms): a JOIN with one is a reconnect and is told so, for SERVER.rejoinWindow. */
   private kicked = new Map<string, number>();
+  /** JOINs to public sessions by address, SERVER.joinsPerIp a minute. */
+  private joins = new PerMinute(SERVER.joinsPerIp, SERVER.joinIps);
 
   /**
    * A link that opened (`host`: on /ws?host, where saves come up): turned away
@@ -211,9 +215,12 @@ export class Lobby {
       // A held place in the line, taken back.
       const back = m.queue && session.line.resume(m.queue, link, m.name, seat(session, m.name));
       if (back) return { session, place: back };
+      // A public session takes few JOINs from one address (not a reconnect, which has its token).
+      if (session.setup.kind === 'public' && !m.token && !this.joins.allow(ip)) return 'rate';
     }
     const r = await this.seated(session, link, m.name, ip, m.type === 'join' ? m.token : undefined);
     if (r === 'full' && m.type === 'join') {
+      if (session.setup.kind === 'public' && session.line.held(ip) >= SERVER.seatsPerIp) return 'seats';
       const place = session.line.add(link, m.name, seat(session, m.name));
       return place ? { session, place } : r;
     }
