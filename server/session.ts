@@ -94,7 +94,7 @@ export class Session {
   }
 
   /**
-   * A player on `link`: with the token of one still here, that player again (a
+   * A player on `link`: with the token of one still here, or the device of one whose link is open, that player again (a
    * reconnect, `back`); without, one who dropped under the same name (a new
    * tab, `takeover`: their stepladder and slot); else a new one, numbered if
    * the name is taken. Their welcome carries the paint as a paint file and the
@@ -104,6 +104,8 @@ export class Session {
   async admit(link: Link, name: string, token?: string): Promise<{ p: Player; how: How; note: string } | Rejection> {
     const all = [...this.players.values()];
     let p = token ? all.find((q) => q.token === token) : undefined;
+    // No token, but the device of a player whose link is still open (a tab whose session storage is gone, a second tab): the same player.
+    if (!p && link.device) p = all.find((q) => q.device === link.device && q.link?.open);
     const dropped = all.filter((q) => !q.link);
     const how = p ? 'back' : (p = dropped.find((q) => q.name === name) ?? dropped.find((q) => q.asked === name)) ? 'takeover' : 'new';
     if (!p && this.players.size >= this.setup.limit) return 'full';
@@ -124,10 +126,11 @@ export class Session {
       p.link?.send(encode({ type: 'rejected', reason: 'replaced' }));
       p.link?.close(closeCode('replaced'), 'replaced');
       p.link = link;
+      p.device = link.device ?? p.device;
       p.activity = 'here';
     } else {
       const unique = uniqueName(name, all);
-      p = { id: this.nextId++, name: unique, asked: name, token: randomUUID(), link, joined: Date.now(), acked: 0, live: false, saving: false, activity: 'here', inventory: this.carried.get(unique) ?? null, ladder: null, expires: null, was: null };
+      p = { id: this.nextId++, name: unique, asked: name, token: randomUUID(), device: link.device, link, joined: Date.now(), acked: 0, live: false, saving: false, activity: 'here', inventory: this.carried.get(unique) ?? null, ladder: null, expires: null, was: null };
       this.broadcast({ type: 'joined', id: p.id, name: p.name }, p);
       this.players.set(p.id, p);
     }

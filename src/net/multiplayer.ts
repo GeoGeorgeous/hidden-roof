@@ -166,6 +166,14 @@ export class Multiplayer {
     this.reconnect.now?.();
   }
 
+  /** Another tab takes the game over (one-tab.ts) and this page reloads: the session is left for good, as LEAVE does, but nothing of the player's own game is restored. */
+  depart() {
+    this.send({ type: 'leave' });
+    keepTabSession(null);
+    this.link?.abandon();
+    this.link = null;
+  }
+
   /** Resolves once the player's own paint is back. */
   leave() {
     this.log.add('LEAVE SESSION');

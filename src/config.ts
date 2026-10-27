@@ -1041,6 +1041,14 @@ export const NET = {
   beaconStep: 2,
   /** A setting changed again within this many seconds of its last change (a slider dragged) is the same change. */
   beaconSettingGap: 2,
+  /**
+   * One game tab per browser (src/one-tab.ts): a tab that is taken over leaves its session and lets go of the tab lock, then
+   * reloads, tabLetGo s later (the server gets its goodbye first); a tab that finds the lock held asks again tabRetries
+   * times, tabRetryGap s apart, before it says the game is open elsewhere (a reload's old page may not have let go yet).
+   */
+  tabLetGo: 0.15,
+  tabRetries: 3,
+  tabRetryGap: 0.15,
   /** Snapshots sent per second. */
   sendRate: 20,
   /**

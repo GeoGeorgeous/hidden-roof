@@ -274,6 +274,10 @@ export const MESSAGES = {
     smallHint: 'Send it to yourself for later.',
     smallCopied: 'Paste it on your computer to play.',
     smallWide: 'Wide enough to play now.',
+    // Screen for a second tab of the game (other-tab.ts)
+    otherTabTitle: 'The game is open in another tab',
+    otherTabText: 'Hidden Roof runs in one tab at a time. Play here and the other tab stops.',
+    playHere: 'Play here',
   },
 } as const;
 

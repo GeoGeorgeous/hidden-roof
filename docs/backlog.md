@@ -53,7 +53,6 @@ Only `N.`, the id and the description are required. The optional parts appear in
 4. IDEA [?BL-153]: Find who painted something by player id, picked like the eyedropper (to spot bad paint)
 5. [BUGS-168]: Returning players recover their inventory but spawn at the default spawn instead of their last position. Restore both inventory and position, matched by nickname as the inventory is. @1.6.0
 6. [?TEST-248]: Closing the tab without leaving: check that it counts as leaving the site, the session and the solo game, as far as the page can tell (the beacon on hide, the socket's close, the site's 90 s window) @1.6.0
-7. [TASK-251]: One game tab per browser: a second tab, solo or in a session, says the game is open in another tab and offers "Play here"; the server gives a JOIN from a device already seated in the session that seat, the old link goes @1.6.0
 
 ## Painting
 
@@ -197,6 +196,7 @@ Shipped since the last release; the release commit empties this list.
 14. [BUGS-246]: The queue and the paint loading screen show the server's roof, as the title screen does, not the player's last view; once loaded the same screen stays, without its progress, and asks for a click ("Click to play") instead of opening the ESC menu; the pointer lock is also tried at once, for a browser that allows it
 15. [BUGS-247]: A session the admin closes says so in the game's dialog ("The admin ended this session"), not that everyone left; a new close reason `closed` (code 4012) beside `ended`, added in protocol 8 as the kick was, no bump; those waiting in line are told the same
 16. [TASK-250]: The public join dialog in two steps: the session and the name (always asked), then the house rules and the consent, where "Don't show again" skips only that step, so the name can always be changed; Esc goes back a step; private sessions are as before
+17. [TASK-251]: One game tab per browser (Web Locks, decided before the level loads): a second tab shows "The game is open in another tab" with "Play here", which makes the other tab leave its session and let go; and the server seats a JOIN from the device of a player whose link is still open in that player's seat (the old link is closed as replaced)
 
 ## Discarder
 

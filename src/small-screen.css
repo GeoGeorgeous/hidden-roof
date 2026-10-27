@@ -12,6 +12,9 @@
   letter-spacing: 0.01em;
   user-select: text;
 }
+.small.again {
+  z-index: var(--z-dialog);
+}
 .small::before,
 .small::after {
   content: '';

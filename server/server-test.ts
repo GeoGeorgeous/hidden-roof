@@ -193,14 +193,24 @@ try {
 
   // The same player again from another tab (a duplicated tab carries the token): the old tab is told, and goes.
   const b3 = await game();
-  b3.send({ type: 'join', protocol: PROTOCOL, name: 'B', code: wa.code, token: wb.token });
+  const device = '0123456789abcdef0123456789abcdef';
+  b3.send({ type: 'join', protocol: PROTOCOL, device, name: 'B', code: wa.code, token: wb.token });
   assert.equal((await b3.next('welcome')).you, 2);
   assert.equal((await b2.next('rejected')).reason, 'replaced');
   await b2.closed;
   await a.none('left');
+  // The same device on another link, with no token (a tab whose session storage is gone): it gets the seat, and the old link is told it was replaced.
+  const b4 = await game();
+  b4.send({ type: 'join', protocol: PROTOCOL, device, name: 'Other', code: wa.code });
+  const seat = await b4.next('welcome');
+  assert.deepEqual([seat.you, seat.token, seat.name], [2, wb.token, 'B'], 'the device found its seat: same player, same token');
+  assert.equal((await b3.next('rejected')).reason, 'replaced');
+  await b3.closed;
+  await a.none('joined');
+  await a.none('left');
 
   // B drops for good: after the rejoin window (1 s here) A hears it left; when A leaves, the session closes.
-  b3.ws.close();
+  b4.ws.close();
   assert.deepEqual(await a.next('left'), { type: 'left', id: 2 });
   a.send({ type: 'leave' });
   await a.closed;

@@ -28,6 +28,8 @@ export interface Player {
   asked: string;
   /** Lets them come back as themselves (welcome hands it out). */
   token: string;
+  /** The game's device id (its last JOIN's), if it sent one: a JOIN from the same device while their link is open takes their seat. */
+  device?: string;
   link: Link | null;
   /** When they first came in (ms). */
   joined: number;
