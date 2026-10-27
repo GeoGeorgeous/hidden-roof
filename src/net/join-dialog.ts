@@ -8,14 +8,15 @@ import { ruleItem, sentenceWith, sessionLine, toolsRow, type Where } from './lob
 import { nameField, nameProblem } from './name-field';
 import { CODE_LENGTH, type LobbyEntry } from './protocol';
 
-// The dialog for joining a session, over the Multiplayer page (style.css, .join-popup). A public session shows its
-// house rules and the tools it allows, and the player can ask not to be shown them again; a private one asks for its
-// code, five boxes, and shows the session once the code finds one. Both ask for the player's name first and say what
-// joining means (the Terms and Privacy). Esc and CANCEL go back to the list (net-menu.ts).
+// The dialog for joining a session, over the Multiplayer page (style.css, .join-popup). A public session takes two
+// steps: its line, the tools it allows and the player's name; then its house rules and what joining means (the Terms
+// and Privacy), where the player can ask not to be shown them again, which skips only this step. A private one asks
+// for its code, five boxes, and shows the session once the code finds one, then the name and what joining means.
+// Esc goes back a step, CANCEL back to the list (net-menu.ts).
 
 const RULES_KEY = 'roofhiddenhaus.rulesSeen';
 /** The player asked not to see the house rules again. */
-export const rulesSeen = () => stored(RULES_KEY) === '1';
+const rulesSeen = () => stored(RULES_KEY) === '1';
 
 export interface JoinHooks {
   /** The dialog is wanted on screen (its page opens and calls `open`). */
@@ -41,7 +42,9 @@ export class JoinDialog {
   private buttons: HTMLElement;
   private name = nameField(msg('lobby.yourName'));
   private join = action(msg('lobby.join'), () => this.submit(), { primary: true });
+  private next = action(msg('lobby.next'), () => this.submit(), { primary: true });
   private cancel = action(msg('lobby.cancel'), () => this.on.cancel(), { key: 'ESC' });
+  private previous = action(msg('lobby.back'), () => void this.back(), { key: 'ESC' });
   private dontShow = Object.assign(el('input'), { type: 'checkbox' });
   private boxes = codeBoxes((code) => void this.lookup(code));
   private message = div('join-message');
@@ -49,6 +52,8 @@ export class JoinDialog {
   private found = div('found');
   private tools = div('tools-slot');
   private asked: Ask | null = null;
+  /** A public session's step: the name (1), or the house rules (2). */
+  private step: 1 | 2 = 1;
   /** The session the code in the boxes found. */
   private session: LobbyEntry | null = null;
   /** Counts the codes looked up, so an answer that is not for the last one is dropped. */
@@ -68,31 +73,19 @@ export class JoinDialog {
 
   /** The page is open: fill it for the session asked about. */
   open() {
-    const { entry, where, code, error } = this.asked!;
+    const { entry, code, error } = this.asked!;
     const isPublic = entry.kind === 'public';
-    this.head.textContent = msg(isPublic ? 'lobby.publicTitle' : 'lobby.privateTitle');
     this.name.reload();
     this.session = null;
     this.found.replaceChildren();
     this.tools.replaceChildren(toolsRow(entry.tools));
     this.lookups++;
-    const lead = div('lead', isPublic ? msg('lobby.publicLead') : msg('lobby.privateLead', { length: CODE_LENGTH }));
-    const nameRow = el('label', 'name-row');
-    nameRow.append(el('span', '', msg('lobby.yourName')), this.name.input);
-    const terms = link(TERMS, msg('lobby.terms'));
-    const privacy = link(PRIVACY, msg('lobby.privacy'));
-    const consent = div('consent');
-    consent.append(isPublic ? sentenceWith(msg('lobby.consentPublic'), { rules: el('b', '', msg('lobby.rules')), terms, privacy }) : sentenceWith(msg('lobby.consentPrivate'), { terms, privacy }));
     if (isPublic) {
-      this.found.replaceChildren(sessionLine(entry, where));
-      consent.append(div('ban-note', msg('lobby.banNote')));
-      this.body.replaceChildren(lead, this.found, nameRow, rules(), this.tools, consent, this.message);
-      this.dontShow.checked = false;
-      const label = el('label', 'link check');
-      label.append(this.dontShow, msg('lobby.dontShow'));
-      this.buttons.replaceChildren(label, this.cancel, this.join);
+      this.step = 1;
+      this.show();
     } else {
-      this.body.replaceChildren(lead, this.boxes.el, this.found, nameRow, this.tools, consent, this.message);
+      this.head.textContent = msg('lobby.privateTitle');
+      this.body.replaceChildren(div('lead', msg('lobby.privateLead', { length: CODE_LENGTH })), this.boxes.el, this.found, this.nameRow(), this.tools, this.consent(false), this.message);
       this.buttons.replaceChildren(this.cancel, this.join);
       this.boxes.set(code ?? '');
     }
@@ -100,6 +93,50 @@ export class JoinDialog {
     this.sync();
     if (!isPublic && !code) this.boxes.focus();
     else if (!this.name.input.value) this.name.input.focus();
+  }
+
+  /** A public session's step on screen: its line, the tools and the name, or the house rules and the consent. */
+  private show() {
+    const { entry, where } = this.asked!;
+    const first = this.step === 1;
+    this.head.textContent = msg(first ? 'lobby.publicNameTitle' : 'lobby.publicTitle');
+    this.found.replaceChildren(sessionLine(entry, where));
+    this.fail();
+    if (first) {
+      this.body.replaceChildren(div('lead', msg('lobby.publicLead')), this.found, this.nameRow(), this.tools, this.message);
+      // The rules seen once are not shown again: JOIN comes straight from the name.
+      this.buttons.replaceChildren(this.cancel, rulesSeen() ? this.join : this.next);
+      return;
+    }
+    this.body.replaceChildren(this.found, rules(), this.consent(true), this.message);
+    this.dontShow.checked = false;
+    const label = el('label', 'link check');
+    label.append(this.dontShow, msg('lobby.dontShow'));
+    this.buttons.replaceChildren(label, this.previous, this.join);
+  }
+
+  /** Esc: from the house rules back to the name; false when there is no step to go back to (the dialog closes). */
+  back() {
+    if (this.asked?.entry.kind !== 'public' || this.step === 1) return false;
+    this.step = 1;
+    this.show();
+    return true;
+  }
+
+  private nameRow() {
+    const row = el('label', 'name-row');
+    row.append(el('span', '', msg('lobby.yourName')), this.name.input);
+    return row;
+  }
+
+  /** What joining means: the rules too, for a public session, with the note on bans. */
+  private consent(isPublic: boolean) {
+    const terms = link(TERMS, msg('lobby.terms'));
+    const privacy = link(PRIVACY, msg('lobby.privacy'));
+    const consent = div('consent');
+    consent.append(isPublic ? sentenceWith(msg('lobby.consentPublic'), { rules: el('b', '', msg('lobby.rules')), terms, privacy }) : sentenceWith(msg('lobby.consentPrivate'), { terms, privacy }));
+    if (isPublic) consent.append(div('ban-note', msg('lobby.banNote')));
+    return consent;
   }
 
   /** Shows what went wrong (a name that won't do, a join that came back failed) in a notice, or clears it. */
@@ -142,6 +179,10 @@ export class JoinDialog {
       return this.name.input.focus();
     }
     if (entry.kind === 'public') {
+      if (this.step === 1 && !rulesSeen()) {
+        this.step = 2;
+        return this.show();
+      }
       if (this.dontShow.checked) store(RULES_KEY, '1');
       return this.on.join(name, entry.code ?? '', entry);
     }

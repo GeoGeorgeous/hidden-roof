@@ -6,13 +6,13 @@ import type { Notify } from '../notify';
 import { button, div, el, notice, pageHead } from '../menu-ui';
 import { createDialog } from './create-dialog';
 import type { MultiplayerContext } from './game-context';
-import { JoinDialog, rulesSeen } from './join-dialog';
+import { JoinDialog } from './join-dialog';
 import { LobbyPage } from './lobby-page';
 import { shellButton, type Where } from './lobby-view';
 import { LoadingPage } from './loading-page';
 import { QueuePage } from './queue-page';
 import { lostDialog, type LostButton } from './lost-dialog';
-import { nameField, nameProblem, storedName } from './name-field';
+import { nameField, nameProblem } from './name-field';
 import type { LobbyEntry } from './protocol';
 import { Multiplayer } from './multiplayer';
 import type { Failure, NetStatus } from './status';
@@ -88,9 +88,7 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
   const list = new LobbyPage(
     (entry, where) => {
       picked = { entry, where };
-      // A public session's rules, once seen, are not asked again; a name is still needed.
-      if (entry.kind === 'public' && rulesSeen() && !nameProblem(storedName())) join(storedName(), entry.code ?? '', entry);
-      else dialog.ask({ entry, where });
+      dialog.ask({ entry, where });
     },
     // The server is down for the list too: its notice says so, with the log, and the link's notice goes.
     (why) => (why === linkFailed ? (say(''), [log]) : []),
@@ -148,7 +146,7 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
   // Back (and Esc) from here while JOIN or HOST is loading the session cancels it: the pause screen can't offer PLAY before the paint is in.
   hud.addPage('mp', root, choose, () => (net.status.state === 'connecting' && net.leave(), false));
   hud.addPage('create', create, () => hostName.reload(), () => (back(), true));
-  hud.addPage('join', dialog.root, () => dialog.open(), () => (back(), true));
+  hud.addPage('join', dialog.root, () => dialog.open(), () => dialog.back() || (back(), true));
   hud.addPage('loading', loading.root, () => {}, () => (cancelJoin(), hud.openPage('mp'), true));
   hud.addPage('queue', queue.root, () => {}, () => (cancelJoin(), hud.openPage('mp'), true));
   addEventListener('keydown', (e) => {

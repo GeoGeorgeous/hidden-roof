@@ -9,7 +9,7 @@ import { cleanName, isName, NAME_MAX } from './protocol';
 const NAME_KEY = 'roofhiddenhaus.name';
 
 /** The name kept from the last time. */
-export const storedName = () => cleanName(stored(NAME_KEY) ?? '');
+const storedName = () => cleanName(stored(NAME_KEY) ?? '');
 
 /** A field for the name: what is typed is cleaned as it goes and kept. `reload` puts the kept name in it (another form may have changed it). */
 export function nameField(placeholder: string) {

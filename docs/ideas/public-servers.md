@@ -30,6 +30,6 @@ See who is online and how the server does. The page lives in its own private rep
 
 ## TASK-189 House rules before joining a public server
 
-Status: the rules screen is in (the public join dialog: house rules, 18+, Terms and Privacy linked, recorded sessions; "Don't show again" per device; TASK-250 splits the name from the rules). Left: the Terms' moderation section, untagged until the core multiplayer is done (owner, 2026-10-27).
+Status: the rules screen is in (the public join dialog: house rules, 18+, Terms and Privacy linked, recorded sessions; the name first, then the rules; "Don't show again" per device skips the rules only). Left: the Terms' moderation section, untagged until the core multiplayer is done (owner, 2026-10-27).
 
 On the way into a public server, the house rules and one action to accept them (joining is the action): players are 18+; joining accepts the Terms and the Privacy Policy, linked; sessions may be recorded and published, nicknames included. Remembered per device in `localStorage` (strictly necessary: no consent needed). Why: playing alone binds no one to the Terms. The Terms get their moderation section with it (SECRET_legal.md).

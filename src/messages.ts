@@ -119,6 +119,7 @@ export const MESSAGES = {
     ping: '{ms} ms',
     toolOff: '{tool} · not allowed',
     // The dialogs
+    publicNameTitle: 'public session',
     publicTitle: 'house rules',
     publicLead: "You're joining a public session with other players.",
     privateTitle: 'private session',
@@ -143,6 +144,8 @@ export const MESSAGES = {
     dontShow: "Don't show again",
     players: '{n}/{limit} players',
     cancel: 'Cancel',
+    next: 'Next',
+    back: 'Back',
     join: 'Join',
     // Loading a session
     loadingTitle: 'loading paint',
