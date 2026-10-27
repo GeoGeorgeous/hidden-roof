@@ -4,10 +4,11 @@ import { prefix } from './people';
 
 // What the traffic reader (traffic.ts) makes of a line of Caddy's access log (its JSON format) and of a day's
 // counts. Bots are counted and nothing else about them. A visitor is a salted hash of address (an IPv6 one by its
-// /64) and browser, a new salt every day: the hashes of the day are all that is kept of them, and only until the day ends.
+// /64) and browser, a new salt every SERVER.saltDays: the hashes are all that is kept of them, by the hour they
+// were seen in (up to SERVER.trafficHourSeen an hour), for SERVER.historyDays days, so a period's visitors count once.
 
 export const STEPS = ['view', 'script', 'beacon', 'socket'] as const;
-export type Step = (typeof STEPS)[number];
+type Step = (typeof STEPS)[number];
 type Counts = Record<string, number>;
 
 /** One UTC day, as GET /traffic answers it (but its date). */
@@ -23,10 +24,18 @@ export interface Day {
   steps: Record<Step, number>;
 }
 
-/** The day being counted: its date, its salt and who has been seen at each step (hashes). */
+/** One UTC hour: its views and bots, and each visitor seen (a hash) with the steps they got to (a bit each, in STEPS order). */
+export interface Hour {
+  views: number;
+  bots: number;
+  seen: Map<string, number>;
+}
+
+/** The day being counted: its date, its salt, its hours, who has been seen at each step in the day (hashes, from the hours) and its counts. */
 export interface Today {
   name: string;
   salt: string;
+  hours: Map<number, Hour>;
   seen: Record<Step, Set<string>>;
   day: Day;
 }
@@ -48,7 +57,12 @@ const BOT = /bot|crawl|spider|slurp|preview|facebookexternalhit|curl|wget|python
 
 export const dayName = (ts: number) => new Date(ts * 1000).toISOString().slice(0, 10);
 export const blank = (): Day => ({ views: 0, visitors: 0, bots: 0, pages: {}, sources: {}, campaigns: {}, countries: {}, steps: { view: 0, script: 0, beacon: 0, socket: 0 } });
-export const fresh = (name: string): Today => ({ name, salt: randomBytes(16).toString('hex'), seen: { view: new Set(), script: new Set(), beacon: new Set(), socket: new Set() }, day: blank() });
+export const newSalt = () => randomBytes(16).toString('hex');
+export const fresh = (name: string, salt: string, hours = new Map<number, Hour>()): Today => {
+  const seen = { view: new Set<string>(), script: new Set<string>(), beacon: new Set<string>(), socket: new Set<string>() };
+  for (const h of hours.values()) for (const [id, mask] of h.seen) STEPS.forEach((step, i) => mask & (1 << i) && seen[step].add(id));
+  return { name, salt, hours, seen, day: blank() };
+};
 
 /** A line as a hit, or null if it isn't JSON or lacks what is counted. */
 export function parse(line: string): Hit | null {
@@ -94,6 +108,14 @@ function source(q: URLSearchParams, h: Hit, hosts: string[]) {
   return 'direct';
 }
 
+/** The hour of `ts` (s) in the day being counted. */
+function hourOf(t: Today, ts: number) {
+  const k = new Date(ts * 1000).getUTCHours();
+  let hour = t.hours.get(k);
+  if (!hour) t.hours.set(k, (hour = { views: 0, bots: 0, seen: new Map() }));
+  return hour;
+}
+
 /** `h` counted into `t`: true if anything changed. `hosts`: our own (empty: every host counts); `country`: the address's country, if known. */
 export function add(t: Today, h: Hit, hosts: string[], country: (ip: string) => string | null) {
   if (hosts.length && !hosts.includes(hostOf(h.host))) return false;
@@ -101,7 +123,7 @@ export function add(t: Today, h: Hit, hosts: string[], country: (ip: string) => 
   // A page is served as text/html; to a returning visitor it is a 304 (Go's ServeContent) with no type, so the path says.
   const page = h.method === 'GET' && ((h.status === 200 && h.type.toLowerCase().startsWith('text/html')) || (h.status === 304 && isPage(url.pathname)));
   if (BOT.test(h.agent)) {
-    if (page) t.day.bots++;
+    if (page) (t.day.bots++, hourOf(t, h.ts).bots++);
     return page;
   }
   const step: Step | null = page
@@ -114,9 +136,16 @@ export function add(t: Today, h: Hit, hosts: string[], country: (ip: string) => 
           ? 'socket'
           : null;
   if (!step) return false;
-  t.seen[step].add(createHash('sha256').update(t.salt).update(prefix(h.ip)).update('\0').update(h.agent).digest('base64url').slice(0, 16));
+  const hour = hourOf(t, h.ts);
+  const id = createHash('sha256').update(t.salt).update(prefix(h.ip)).update('\0').update(h.agent).digest('base64url').slice(0, 16);
+  // Past SERVER.trafficHourSeen visitors in an hour the rest are not remembered (their views still count).
+  if (hour.seen.has(id) || hour.seen.size < SERVER.trafficHourSeen) {
+    hour.seen.set(id, (hour.seen.get(id) ?? 0) | (1 << STEPS.indexOf(step)));
+    t.seen[step].add(id);
+  }
   if (step === 'view') {
     t.day.views++;
+    hour.views++;
     count(t.day.pages, url.pathname);
     count(t.day.sources, source(url.searchParams, h, hosts));
     const campaign = url.searchParams.get('utm_campaign')?.trim().toLowerCase();
@@ -124,7 +153,8 @@ export function add(t: Today, h: Hit, hosts: string[], country: (ip: string) => 
     const c = country(h.ip);
     if (c) count(t.day.countries, c);
   }
-  for (const s of STEPS) t.day.steps[s] = t.seen[s].size;
-  t.day.visitors = t.seen.view.size;
+  // A day started before the hours were kept has its visitors in its file, not in the sets.
+  for (const s of STEPS) t.day.steps[s] = Math.max(t.day.steps[s], t.seen[s].size);
+  t.day.visitors = Math.max(t.day.visitors, t.seen.view.size);
   return true;
 }

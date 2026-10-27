@@ -1,4 +1,5 @@
 import { NET, SERVER } from '../src/config';
+import { isDevice } from '../src/net/protocol';
 
 // A beacon's body as the game sends it (src/beacon.ts), checked: any field of the wrong type, a code that isn't one
 // (a-z, 0-9, . and -), a list or a map over its limit, or a number out of range, and it's refused whole.
@@ -8,8 +9,11 @@ const STEPS = ['play', 'ready', 'sprayed', 'joined'] as const;
 const SECONDS = ['playing', 'idle', 'menu'] as const;
 
 interface Body {
+  /** The page load's random id (crypto.randomUUID), and `bye`: the page is gone (pagehide). */
+  page?: string;
+  bye?: true;
   beat?: (typeof BEATS)[number];
-  first?: { gpu: string | null; load: number; settings?: Record<string, string> };
+  first?: { gpu: string | null; load: number; settings?: Record<string, string>; device?: string };
   fps?: { avg: number; low1: number };
   joins?: number[];
   errors?: string[];
@@ -21,6 +25,7 @@ interface Body {
 }
 
 const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && !!x && !Array.isArray(x);
+const isPage = (x: unknown) => typeof x === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(x);
 const isNum = (x: unknown, most: number) => typeof x === 'number' && Number.isFinite(x) && x >= 0 && x <= most;
 const isText = (x: unknown) => typeof x === 'string' && x.length <= SERVER.beaconText;
 const isCode = (x: unknown) => typeof x === 'string' && /^[a-z0-9.-]{1,40}$/.test(x);
@@ -32,9 +37,11 @@ const isCount = (n: unknown) => typeof n === 'number' && Number.isInteger(n) && 
 /** `b` as a Body, or null. */
 export function check(b: unknown) {
   if (!isObj(b)) return null;
-  const { beat, first, fps, joins, errors, erred, steps, tutorial, counts, seconds } = b;
+  const { page, bye, beat, first, fps, joins, errors, erred, steps, tutorial, counts, seconds } = b;
+  if (page !== undefined && !isPage(page)) return null;
+  if (bye !== undefined && bye !== true) return null;
   if (beat !== undefined && !BEATS.includes(beat as never)) return null;
-  if (first !== undefined && (!isObj(first) || !(first.gpu === null || isText(first.gpu)) || !isNum(first.load, SERVER.beaconMostSeconds) || (first.settings !== undefined && !isMap(first.settings, isText)))) return null;
+  if (first !== undefined && (!isObj(first) || !(first.gpu === null || isText(first.gpu)) || !isNum(first.load, SERVER.beaconMostSeconds) || (first.settings !== undefined && !isMap(first.settings, isText)) || !isDevice(first.device))) return null;
   if (fps !== undefined && (!isObj(fps) || !isNum(fps.avg, 1000) || !isNum(fps.low1, 1000))) return null;
   if (!isList(joins, (j) => isNum(j, SERVER.beaconMostSeconds)) || !isList(errors, (e) => typeof e === 'string' && e.length <= NET.beaconErrorChars)) return null;
   if (erred !== undefined && erred !== true) return null;

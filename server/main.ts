@@ -6,6 +6,7 @@ import { HELLO, PROTOCOL } from '../src/net/protocol';
 import { adminApi } from './admin-api';
 import { traffic } from './counts';
 import { beacon } from './beacon';
+import { keepEvents } from './events';
 import { geoip, countryOf } from './geoip';
 import { history } from './history';
 import { Kept } from './kept';
@@ -42,6 +43,8 @@ SERVER.region = process.env.REGION || SERVER.region;
 
 // The levels the admin's sessions are made of (the image has the repo's public/levels as levels/).
 const kept = new Kept(lobby, process.env.LEVELS_DIR ?? 'public/levels', process.env.DATA_DIR || null);
+// Events are kept first, so those of the restore below are too.
+if (kept.dir) await keepEvents(kept.dir).catch((e) => log('-----', 'events not kept:', e));
 // A DATA_DIR it can't use is no reason to stay down: the game runs, and the log says why nothing is kept.
 await kept.restore().catch((e) => log('-----', 'kept sessions not restored:', e));
 setInterval(() => void kept.save(), SERVER.keepEvery * 1000);

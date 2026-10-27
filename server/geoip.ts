@@ -29,6 +29,9 @@ export async function geoip(file: string) {
   setInterval(() => void read(file), SERVER.geoipCheck * 1000).unref();
 }
 
+/** When the base in use was built, or null (no base). */
+export const geoipBuilt = () => reader?.metadata.buildEpoch.getTime() ?? null;
+
 /** The two-letter country code of `ip`, or null. */
 export function countryOf(ip: string): string | null {
   try {

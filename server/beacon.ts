@@ -1,12 +1,16 @@
+import { randomUUID } from 'node:crypto';
 import type http from 'node:http';
 import { SERVER } from '../src/config';
 import { BEATS, check } from './beacon-body';
 import { count, countSetting, type ClientCounts } from './client-counts';
+import { countryOf } from './geoip';
+import { people } from './people';
 
 // The game's beacon (src/beacon.ts) at POST /ws?e: checked (beacon-body.ts), limited in size
 // (SERVER.beaconBytes) and per address (SERVER.beaconsPerIp a minute, from SERVER.beaconIps addresses), and
 // added to the hour's counts (client-counts.ts, history.ts). Only the counts are kept: the
-// address is used for the limit, the User-Agent for the browser and OS.
+// address is used for the limit, the User-Agent for the browser and OS. The pages open now are kept
+// by their random id, in memory, only as long as they beat (SERVER.beaconSiteSeconds).
 
 function browserOf(ua: string) {
   if (/\bEdg\//.test(ua)) return 'Edge';
@@ -27,15 +31,33 @@ function osOf(ua: string) {
   return 'Other';
 }
 
-/** When the beacons of each `beat` came in the last SERVER.beaconSiteSeconds: pages open by what they're doing. */
-const beats = Object.fromEntries(BEATS.map((k) => [k, [] as number[]])) as Record<(typeof BEATS)[number], number[]>;
-const recent = (at: number[], now = Date.now()) => {
-  while (at.length && at[0] <= now - SERVER.beaconSiteSeconds * 1000) at.shift();
-  return at.length;
-};
+type Beat = (typeof BEATS)[number];
+/** Each open page by its id: what its last beat said and when, the oldest beat first (a page that beats again moves to the end). A beacon without an id (an older game) is a page of its own each time. */
+const pages = new Map<string, { beat: Beat; at: number }>();
+const open = Object.fromEntries(BEATS.map((k) => [k, 0])) as Record<Beat, number>;
 
-/** Who is on the site now: the pages that sent a beacon in the last SERVER.beaconSiteSeconds, by what they're doing. */
-export const site = () => Object.fromEntries(BEATS.map((k) => [k, recent(beats[k])])) as Record<(typeof BEATS)[number], number>;
+function leave(id: string) {
+  const p = pages.get(id);
+  if (p) (open[p.beat]--, pages.delete(id));
+}
+
+/** Pages whose last beat is older than SERVER.beaconSiteSeconds are gone. */
+function expire(now: number) {
+  for (const [id, p] of pages) {
+    if (p.at > now - SERVER.beaconSiteSeconds * 1000) break;
+    leave(id);
+  }
+}
+
+/** Who is on the site now: the pages that beat in the last SERVER.beaconSiteSeconds, each once, by what its last beat said (the game's beat or goodbye, beacon-body.ts). */
+export function site() {
+  expire(Date.now());
+  return { ...open };
+}
+
+/** When the last beacon came in (ms), or null since the server started. */
+let last: number | null = null;
+export const lastBeacon = () => last;
 
 /** Beacons this minute, by address: at most SERVER.beaconIps addresses, so a flood of them can't grow it. */
 let sent = new Map<string, number>();
@@ -56,10 +78,21 @@ export async function beacon(req: http.IncomingMessage, ip: string, into: () => 
     b = null;
   }
   if (!b) return 400;
-  if (b.beat) (recent(beats[b.beat]), beats[b.beat].push(Date.now()));
+  last = Date.now();
+  if (b.bye && b.page) leave(b.page);
+  else if (b.beat) {
+    const now = Date.now();
+    expire(now);
+    const id = b.page ?? randomUUID();
+    leave(id);
+    while (pages.size >= SERVER.beaconPages) leave(pages.keys().next().value!);
+    pages.set(id, { beat: b.beat, at: now });
+    open[b.beat]++;
+  }
   const c = into();
   const ua = String(req.headers['user-agent'] ?? '');
   if (b.first) {
+    people.played(b.first.device, ip, countryOf(ip), 'page');
     c.n++;
     count(c.browsers, browserOf(ua));
     count(c.os, osOf(ua));

@@ -5,11 +5,13 @@ import './ts-imports.mjs';
 import assert from 'node:assert/strict';
 
 const sent = [];
+const pages = [];
 let tick = null;
 let visibility = 'visible';
-globalThis.addEventListener = () => {};
+const handlers = {};
+globalThis.addEventListener = (type, f) => (handlers[type] = f);
 Object.defineProperty(globalThis, 'document', { value: { get visibilityState() { return visibility; } }, configurable: true });
-Object.defineProperty(globalThis, 'navigator', { value: { sendBeacon: (_url, text) => sent.push(JSON.parse(text)) }, configurable: true });
+Object.defineProperty(globalThis, 'navigator', { value: { sendBeacon: (_url, text) => { const { page, ...body } = JSON.parse(text); pages.push(page); sent.push(body); } }, configurable: true });
 globalThis.setInterval = (f) => (tick = f);
 
 const { NET, SERVER } = await import('../src/config.ts');
@@ -18,6 +20,7 @@ const canvas = { addEventListener: () => {} };
 const now = () => performance.now() / 1000;
 
 const b = new Beacon('Test GPU', canvas);
+const mine = { ...handlers };
 
 // Nothing gathered: a minute beacon still goes, with only its beat.
 tick();
@@ -31,6 +34,7 @@ assert.equal(body.beat, undefined);
 assert.equal(body.first.gpu, 'Test GPU');
 assert.deepEqual(body.first.settings, { 'graphics.rain': 'on' });
 assert.deepEqual(body.steps, ['play', 'ready']);
+assert.match(body.first.device, /^[0-9a-f]{32}$/);
 
 // Steps and tutorial steps count once per page load.
 b.step('play');
@@ -124,6 +128,22 @@ assert.equal(body.counts.k0, 2, 'a kind already there still counts');
 assert.equal(body.counts[`k${SERVER.beaconKinds}`], undefined);
 for (const code of Object.keys(body.counts)) assert.ok(code.length <= 40);
 performance.now = real;
+
+// The page id: made once per page load, in every beacon, and another page load has its own.
+assert.match(pages[0], /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+assert.equal(new Set(pages).size, 2, 'one id for each page, in every beacon');
+
+// Left (pagehide): a goodbye with what was gathered; shown again from the back-forward cache: a beat. A tab that is only hidden says nothing of leaving.
+b.count('jump');
+mine.pagehide();
+assert.deepEqual(sent.pop(), { bye: true, counts: { jump: 1 } });
+mine.pagehide();
+assert.deepEqual(sent.pop(), { bye: true });
+mine.pageshow({ persisted: false });
+assert.equal(sent.length, 0);
+mine.pageshow({ persisted: true });
+assert.deepEqual(sent.pop(), { beat: 'solo' });
+assert.equal(pages.at(-1), pages[0]);
 
 // Where storage is blocked the device id is made once, not on every call.
 Object.defineProperty(globalThis, 'localStorage', { get: () => { throw new Error('blocked'); }, configurable: true });

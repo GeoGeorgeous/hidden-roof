@@ -4,19 +4,24 @@ import path from 'node:path';
 import { SERVER } from '../src/config';
 import { log } from './log';
 
-// Unique people for the admin's history (history.ts). Each play that starts is
-// kept as its hour, its device id (the game's, stored.ts) and its address (an
-// IPv6 one by its /64, which a device keeps while the rest changes), both only
-// as salted hashes, and its country. The salt changes every SERVER.saltDays and
-// is never logged or sent. Plays are kept SERVER.historyDays, a file a day
-// (stats/people-<day>.json), then deleted. One person: plays that share a
-// device or an address, so a cleared storage or a new address still counts once.
+// Unique people for the admin's history (history.ts). Each play that starts (a
+// JOIN) or page that reaches the level (the beacon's first message) is kept as
+// its hour, its device id (the game's, stored.ts) and its address (an IPv6 one by
+// its /64, which a device keeps while the rest changes), both only as salted
+// hashes, and its country, and whether it was a JOIN, a page or both. The salt
+// changes every SERVER.saltDays and is never logged or sent. They are kept
+// SERVER.historyDays, a file a day (stats/people-<day>.json), then deleted.
+// Players are counted by device and by address; the older `people` merge plays that
+// share a device or an address, so a cleared storage or a new address still counts once.
 
 interface Play {
   h: number;
   d: string | null;
   i: string;
   c: string | null;
+  /** A JOIN, and a page that reached the level: one or both (a play saved before the pages were kept has neither: it was a JOIN). */
+  j?: true;
+  p?: true;
 }
 
 const DAY = 864e5;
@@ -38,24 +43,38 @@ export function prefix(ip: string) {
 class People {
   private plays: Play[] = [];
   /** A play in the same hour from the same device and address is the same. */
-  private seen = new Set<string>();
+  private seen = new Map<string, Play>();
+  /** New people from pages this hour (SERVER.peoplePages at most). */
+  private pages = { h: 0, n: 0 };
   private salt = { key: randomBytes(32).toString('hex'), since: Date.now() };
   private saltChanged = false;
   private dir: string | null = null;
   private dirty = new Set<number>();
 
-  /** A play started, from `device` (none from an older game) at `ip`. */
-  played(device: string | undefined, ip: string, country: string | null) {
+  /** A play started (`how`: 'join'), or a page reached the level ('page'), from `device` (none from an older game) at `ip`. */
+  played(device: string | undefined, ip: string, country: string | null, how: 'join' | 'page') {
     if (Date.now() - this.salt.since > SERVER.saltDays * DAY) [this.salt, this.saltChanged] = [{ key: randomBytes(32).toString('hex'), since: Date.now() }, true];
     const p: Play = { h: Math.floor(Date.now() / HOUR), d: device ? this.hash(`d${device}`) : null, i: this.hash(`i${prefix(ip)}`), c: country };
     const key = `${p.h} ${p.d} ${p.i}`;
-    if (this.seen.has(key)) return;
-    this.seen.add(key);
+    const had = this.seen.get(key);
+    const flag = how === 'join' ? 'j' : 'p';
+    if (had) {
+      if (!had[flag]) (had[flag] = true), (had.c ??= p.c), this.dirty.add(Math.floor(p.h / 24));
+      return;
+    }
+    if (how === 'page') {
+      if (this.pages.h !== p.h) this.pages = { h: p.h, n: 0 };
+      if (++this.pages.n > SERVER.peoplePages) return;
+    }
+    p[flag] = true;
+    this.seen.set(key, p);
     this.plays.push(p);
     this.dirty.add(Math.floor(p.h / 24));
   }
 
-  /** People since hour `first` (distinct within one salt period: a person seen before and after a salt change counts twice): merged, by device (plays that carried one), by address; and merged people by country (their last one known). */
+  /** People since hour `first` (distinct within one salt period: a person seen before and after a salt change counts twice).
+   * `people`, `countries`: of those who joined, merged (plays that share a device or an address are one person): merged, by device (plays that carried one), by address; and merged people by country (their last one known).
+   * `players`: who joined or reached the level, once by device and once by address; `inSessions`: who joined; `playerCountries`: players by device, each by their last country known. */
   count(first: number) {
     const up = new Map<string, string>();
     const root = (x: string): string => {
@@ -65,7 +84,8 @@ class People {
       up.set(x, r);
       return r;
     };
-    const plays = this.plays.filter((p) => p.h >= first);
+    const all = this.plays.filter((p) => p.h >= first);
+    const plays = all.filter((p) => p.j);
     const devices = new Set<string>();
     const ips = new Set<string>();
     for (const p of plays) {
@@ -82,7 +102,12 @@ class People {
     }
     const countries: Record<string, number> = {};
     for (const c of country.values()) if (c) countries[c] = (countries[c] ?? 0) + 1;
-    return { people: { merged: country.size, byDevice: devices.size, byIp: ips.size }, countries };
+    const distinct = (list: Play[]) => ({ device: new Set(list.flatMap((p) => (p.d ? [p.d] : []))).size, address: new Set(list.map((p) => p.i)).size });
+    const last = new Map<string, string | null>();
+    for (const p of all) if (p.d && (p.c || !last.has(p.d))) last.set(p.d, p.c);
+    const playerCountries: Record<string, number> = {};
+    for (const c of last.values()) if (c) playerCountries[c] = (playerCountries[c] ?? 0) + 1;
+    return { people: { merged: country.size, byDevice: devices.size, byIp: ips.size }, countries, players: distinct(all), inSessions: distinct(plays), playerCountries };
   }
 
   /** Keep them in `dir` (stats/): the salt and the last SERVER.historyDays read back, older days deleted. */
@@ -128,7 +153,8 @@ class People {
   }
 
   private add(p: Play) {
-    this.seen.add(`${p.h} ${p.d} ${p.i}`);
+    if (!p.j && !p.p) p.j = true;
+    this.seen.set(`${p.h} ${p.d} ${p.i}`, p);
     this.plays.push(p);
   }
 

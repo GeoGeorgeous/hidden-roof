@@ -442,7 +442,11 @@ assert.doesNotMatch(lines, /"A" #1 out: left[^]*"A" #1 dropped/);
   const port = await freePort();
   const beating = spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(port), PLAYER_HOST: '1', HEARTBEAT: '1' }, stdio: ['ignore', 'pipe', 'inherit'] });
   try {
-    await new Promise((ready) => beating.stdout!.once('data', ready));
+    // Listening, not just started: the first line is logged before the port opens.
+    await new Promise<void>((ready) => {
+      let text = '';
+      beating.stdout!.on('data', (d: Buffer) => (text += d).includes('roof server on') && ready());
+    });
     const open = (ip: string) => new Promise<Ws>((done) => new Ws(`ws://localhost:${port}/ws`, { autoPong: false, headers: { 'x-forwarded-for': ip } }).on('open', function (this: Ws) { done(this); }));
     const [talking, silent, late] = await Promise.all(['10.9.0.1', '10.9.0.2', '10.9.0.3'].map(open));
     const welcomed = (ws: Ws) => new Promise((done) => ws.on('message', (d: Buffer) => (decode(new Uint8Array(d)) as ToClient | null)?.type === 'welcome' && done(true)));

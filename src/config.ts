@@ -1184,17 +1184,25 @@ export const SERVER = {
   adminBody: 4096,
   /** The admin page calls a player's link slow past this round trip (ms). */
   slowPing: 150,
-  /** The admin's event stream (server/events.ts): the last this many events are kept for a page that opens; a status goes out this often (s) while one is open. */
+  /** The admin's event stream (server/events.ts): the last this many events are kept for a page that opens (at least eventPage); a status goes out this often (s) while one is open. */
   adminEvents: 50,
   adminStatus: 1,
+  /** With DATA_DIR, events are kept a file a day (server/event-log.ts) for eventDays days, a file up to eventDayBytes (30 days, 150 MB at most); the page shows and asks for eventPage events at a time. */
+  eventDays: 30,
+  eventDayBytes: 5e6,
+  eventPage: 50,
   /** The admin's history (server/history.ts): plays are bucketed by these lengths (s), play time is sampled this often (s), and each hour is kept this many days (then only each day's total, forever); the unique people's day files (people-<day>.json) are deleted after as many. */
   playLengths: [120, 600, 1800],
   historyEvery: 60,
   historyDays: 30,
   /** Unique people's salt (server/people.ts) changes this often (days). */
   saltDays: 30,
+  /** The page loads that reached the level (the beacon's first message) add at most this many new people an hour to the history's players (server/people.ts), so made-up device ids can't grow it. */
+  peoplePages: 20000,
   /** The GeoIP base's file (server/geoip.ts) is checked for a new one this often (s). */
   geoipCheck: 3600,
+  /** The host replaces the GeoIP base this often (s; monthly, docs/ideas/vps.md): the admin page shows its date as a figure's freshness. */
+  geoipEvery: 30 * 86400,
   /**
    * The game's beacon (server/beacon.ts): a body up to beaconBytes, beaconsPerIp a minute from one address (a school or an
    * office is one address with many pages open), from at most beaconIps addresses a minute; up to
@@ -1209,13 +1217,16 @@ export const SERVER = {
   beaconText: 80,
   beaconMostSeconds: 600,
   beaconMostEvents: 1000,
-  /** Who is on the site now counts a page's minute beacon this long (s): beaconEvery and a half, as timers jitter and a hidden tab's are throttled. */
+  /** Who is on the site now counts a page by its last minute beacon for this long (s): beaconEvery and a half, as timers jitter and a hidden tab's are throttled. At most beaconPages pages are kept; past it the one that beat longest ago goes. */
   beaconSiteSeconds: NET.beaconEvery * 1.5,
+  beaconPages: 100000,
   /** The traffic reader (server/traffic.ts), its own process: it reads Caddy's access log every trafficEvery s, trafficChunk bytes at a time; a day counts up to trafficKinds names (pages, sources, campaigns), then Other, each up to trafficText characters. */
   trafficEvery: 60,
   trafficChunk: 1 << 20,
   trafficKinds: 50,
   trafficText: 80,
+  /** Each hour of a day keeps at most this many visitors' hashes (server/traffic-count.ts), kept SERVER.historyDays days for the period's unique visitors: past it a visitor's views count, the visitor does not. */
+  trafficHourSeen: 10000,
   /** With DATA_DIR, a public session's paint is saved this often (s) when it changed, and at shutdown; after each save the newest stays and, for each of keepAges (s), the newest save at least that old: the rest go (server/saves.ts). */
   keepEvery: 1800,
   keepAges: [0, 6 * 3600, 24 * 3600, 3 * 24 * 3600, 7 * 24 * 3600],

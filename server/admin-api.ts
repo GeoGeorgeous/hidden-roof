@@ -2,6 +2,7 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import fs from 'node:fs/promises';
 import http from 'node:http';
+import path from 'node:path';
 import { pipeline } from 'node:stream/promises';
 import { PAINT_DETAIL, SERVER } from '../src/config';
 import { SLOTS } from '../src/inventory/tool';
@@ -9,7 +10,8 @@ import { isPrivateLimit, isSessionName, isToolSet, PROTOCOL, SESSION_NAME_MAX } 
 import { VERSION } from '../src/version';
 import { site } from './beacon';
 import { median } from './counts';
-import { stream } from './events';
+import { eventPage, stream } from './events';
+import { parseId } from './event-log';
 import { history, isPeriod } from './history';
 import { log, overMemory } from './log';
 import { machine } from './machine';
@@ -19,6 +21,8 @@ import { isUploadId } from './uploads';
 import type { Lobby } from './lobby';
 import type { Session } from './session';
 import type { SessionSetup } from './setup';
+import { sources } from './sources';
+import { trafficPeriod } from './traffic-period';
 import { trafficDays } from './traffic-store';
 
 // The admin API, on its own port (SERVER.adminPort), never published: the admin
@@ -28,15 +32,27 @@ import { trafficDays } from './traffic-store';
 // JSON in and out; a request that's wrong answers 400 { error }, 404 for something that isn't there, 409 for something busy,
 // 413 for a body past SERVER.adminBody bytes, and any other failure 500 { error }:
 //   GET  /                     the API's version, the game's and the protocol, when the server started (`started`), the time now,
-//                              sessions and players, the most players ever (`peak`), and `slowPing` (ms): what counts as a slow ping
+//                              sessions and players, the most players ever (`peak`), `slowPing` (ms): what counts as a slow ping, and
+//                              `sources`: { status, beacon, history, traffic, geoip }, each { every (s), at (ISO or null) }: how often that
+//                              source comes and when the last one did (sources.ts)
 //   GET  /machine              CPU, RAM, the server's memory, disk, the paint saves, upload (machine.ts)
-//   GET  /history?period=P     counts for today (since 00:00 UTC), or the last 24h, 7d or 30d (history.ts)
+//   GET  /history?period=P     counts for today (since 00:00 UTC), or the last 24h, 7d or 30d (history.ts): plays, `players` and
+//                              `inSessions` { device, address } (distinct over the period; players are who joined or reached the level),
+//                              `playerCountries` (players by device, each by their last country), and the older `people`, `countries`
 //   GET  /traffic?days=N       the last N days (1 to 366, 30 by default) of the site's traffic, oldest first, a day with no
 //                              counts left out: { days: [{ day, views, visitors, bots, pages, sources, campaigns, countries, steps }] }
 //                              (the traffic reader's, traffic.ts; none without DATA_DIR)
+//   GET  /traffic?period=P     the same over the last hours of /history's periods (today, 24h, 7d, 30d), each visitor once over it:
+//                              { period, from, to, views, bots, visitors, steps: { view, script, beacon, socket } }; `from`: the period's
+//                              start, or when the hours begin if later (traffic-period.ts); zeros without DATA_DIR
 //   GET  /events               the event stream (events.ts): `recent` events, then each `event` as it happens,
 //                              and a `status` every second (the time, players, `site`, every session as listed but its saves);
-//                              `site`: the open pages by what they do (menu, solo, session, hidden), from the game's beacons of the last minute
+//                              `site`: the open pages by what they do (menu, solo, session, hidden), each page once by its last beat in the last SERVER.beaconSiteSeconds (the game's beacons carry a page id)
+//   GET  /events/page?before=ID&limit=N
+//                              older events in pages: { events, next }, the events before event id ID (none: the newest; ID may be one no longer
+//                              kept), newest first, N of them (1 to SERVER.eventPage, which is the default); `next`: the id to ask `before` for
+//                              the page after, or null. From the files in DATA_DIR/events (event-log.ts), without DATA_DIR from the last few in memory.
+//                              Every event has an `id`, `<ms>-<n>`, compared as numbers (ms, then n)
 //   GET  /sessions             every session: its line (queue), players (address, ping, held seat),
 //                              today's paint (`stamps` by tool, `colors`: ops by color code, `topColor` the most painted, for older pages) and peak,
 //                              `stats`: its counts since its paint began (counts.ts SessionStats; also in the event stream's status): `since`,
@@ -149,16 +165,29 @@ export function adminApi(lobby: Lobby, kept: Kept, key: string) {
     if (req.headers.origin && req.headers.origin !== allowed) return answer(403, { error: 'origin' });
     const parts = (req.url ?? '/').split('?')[0].split('/').filter(Boolean);
     try {
-      if (req.method === 'GET' && !parts.length) return answer(200, { api: ADMIN_API, version: VERSION, protocol: PROTOCOL, started: iso(started), now: iso(Date.now()), sessions: lobby.sessions.size, players: lobby.players, peak: history.ever, slowPing: SERVER.slowPing });
+      if (req.method === 'GET' && !parts.length) return answer(200, { api: ADMIN_API, version: VERSION, protocol: PROTOCOL, started: iso(started), now: iso(Date.now()), sessions: lobby.sessions.size, players: lobby.players, peak: history.ever, slowPing: SERVER.slowPing, sources: await sources(kept.dir) });
       if (req.method === 'GET' && parts[0] === 'machine' && parts.length === 1) return answer(200, await machine(kept.dir));
       if (req.method === 'GET' && parts[0] === 'events' && parts.length === 1)
         return stream(res, () => ({ now: iso(Date.now()), players: lobby.players, site: site(), sessions: [...lobby.sessions.values()].map(live) }));
+      if (req.method === 'GET' && parts[0] === 'events' && parts[1] === 'page' && parts.length === 2) {
+        const q = new URL(req.url ?? '', 'http://admin').searchParams;
+        const [before, limit] = [q.get('before'), q.get('limit') ?? String(SERVER.eventPage)];
+        if (before !== null && !parseId(before)) return answer(400, { error: 'before: an event id, <ms>-<n>' });
+        if (!/^\d{1,3}$/.test(limit) || +limit < 1 || +limit > SERVER.eventPage) return answer(400, { error: `limit: 1 to ${SERVER.eventPage}` });
+        return answer(200, await eventPage(before, +limit));
+      }
       if (req.method === 'GET' && parts[0] === 'history' && parts.length === 1) {
         const period = new URL(req.url ?? '', 'http://admin').searchParams.get('period') ?? '24h';
         return isPeriod(period) ? answer(200, history.report(period)) : answer(400, { error: 'period: today, 24h, 7d or 30d' });
       }
       if (req.method === 'GET' && parts[0] === 'traffic' && parts.length === 1) {
-        const days = new URL(req.url ?? '', 'http://admin').searchParams.get('days') ?? '30';
+        const q = new URL(req.url ?? '', 'http://admin').searchParams;
+        const period = q.get('period');
+        if (period !== null) {
+          if (!isPeriod(period)) return answer(400, { error: 'period: today, 24h, 7d or 30d' });
+          return answer(200, await trafficPeriod(kept.dir && path.join(kept.dir, 'traffic'), period));
+        }
+        const days = q.get('days') ?? '30';
         if (!/^\d{1,3}$/.test(days) || +days < 1 || +days > 366) return answer(400, { error: 'days: 1 to 366' });
         return answer(200, kept.dir ? await trafficDays(kept.dir, +days) : { days: [] });
       }

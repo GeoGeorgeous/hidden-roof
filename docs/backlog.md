@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 261
+The one list of what's left. Counter for new ids: next: 262
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -144,12 +144,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 The admin page (the cctv repo) and the server side it reads (server/admin-api.ts). Specs: docs/ideas/admin-data.md.
 
-1. [CCTV-252]: Session > Players: one placeholder for a field not there yet (ping in a player's first 10 s or while dropped, time, country); time in game as H:MM:SS on a 1 s clock, never below 0 (it showed -1:-1); Kick keeps its place @1.6.0
-2. [CCTV-253]: Events kept on disk (a file a day, 30 days, capped in size) and read in pages; the page shows 50 a page with prev and next (docs/ideas/admin-data.md) @1.6.0
-3. [CCTV-257]: One switch for every time on the page: UTC or the browser's local time; days still count in UTC @1.6.0
-4. [CCTV-258]: "On the site" counts each open page once, not each heartbeat in its 90 s window (2 players showed up to 5): a page id in the beacon (docs/ideas/admin-data.md) @1.6.0
-5. [CCTV-259]: A badge for how fresh each figure is (live, the minute's beacon with the next one due, hourly, daily), its tooltip saying where the data comes from; the server sends each source's time and interval (docs/ideas/admin-data.md) @1.6.0
-6. [CCTV-260]: People in one model: Visitors (unique, from the web log) > Views (page loads) > Players (solo and multiplayer, unique by the device id, now in the beacon) > in sessions, with Now beside it; by address behind a switch, merged dropped; Main rebuilt on it (docs/ideas/admin-data.md) @1.6.0
+1. [CCTV-261]: ADMIN_API 3, once cctv reads only the new fields: `people` (merged, byDevice, byIp) and `countries` leave /history (players, inSessions and playerCountries replace them); `/traffic?days=N` stays for the day bars; deployed with that cctv (docs/ideas/admin-data.md)
 
 ## Web and promotion
 
@@ -164,7 +159,7 @@ The admin page (the cctv repo) and the server side it reads (server/admin-api.ts
 ## Legal
 
 1. [TASK-187]: The beacon, the device id and the address hash run without a consent dialog (the owner's decision and risk, recorded in SECRET_legal.md); the privacy page names them (TASK-242)
-2. [TASK-242]: The privacy page names what the admin's stats keep: a random device id in localStorage, the address as a salted hash (a new salt every 30 days), the country, plays kept 30 days and counts forever, the web traffic read from the server's access log (a visitor as a salted hash of address and browser, kept one day); why, and how to object; DB-IP's credit (CC BY 4.0) (docs/ideas/public-servers.md)
+2. [TASK-242]: The privacy page names what the admin's stats keep: a random device id in localStorage, the address as a salted hash (a new salt every 30 days), the country, plays kept 30 days and counts forever, the web traffic read from the server's access log (a visitor as a salted hash of address and browser, a new salt every 30 days, the hashes kept by the hour for 30 days); why, and how to object; DB-IP's credit (CC BY 4.0) (docs/ideas/public-servers.md)
 3. [TASK-189]: The Terms' moderation section (DSA: grounds and measures, reports by email, a restricted player told what and why); the house rules screen is in (docs/ideas/public-servers.md)
 
 ## Codebase
@@ -197,6 +192,12 @@ Shipped since the last release; the release commit empties this list.
 20. [CCTV-254]: Stats per session, since its paint began (made, wiped or restored): stamps by tool, colors, painters, play seconds, joins, most players at once, counted where the day's are; GET /sessions and the event stream carry them as `stats`, each public save keeps its own beside it, a wipe zeroes them; the server's history is as it was
 21. [CCTV-255]: A public session's saves kept by age (the newest, and the newest at least 6 h, 1 day, 3 days and 7 days old; a wipe puts the current ones aside, replacing the last wipe's), listed with their stats, each downloadable (`GET /sessions/CODE/saves/MS`) and restorable into the live session (`POST /sessions/CODE/restore`: an undo save first, the players dropped and back on the restored paint, event `restored`); a private session's paint downloads as it is now, never kept
 22. [CCTV-256]: A new session, public or private, starts empty or from an uploaded save: `POST /uploads` takes the paint file (streamed to disk, up to 128 MB, kept 60 min) and checks it as a save is loaded, `POST /sessions` takes its id (made on its level at its detail, with its paint), and a restore takes it too; one for another level, detail or surface table is refused
+23. [CCTV-253]: Events kept on disk (a file a day, 30 days, capped in size) and read in pages; the page shows 50 a page with prev and next
+24. [CCTV-258]: "On the site" counts each open page once, not each heartbeat in its 90 s window (2 players showed up to 5): a page id in the beacon, and a goodbye beacon when the page is left
+25. [CCTV-259]: A badge for how fresh each figure is (live, the minute's beacon with the next one due, hourly, daily), its tooltip saying where the data comes from; the server sends each source's time and interval
+26. [CCTV-260]: People in one model: Visitors (unique, from the web log) > Views (page loads) > Players (solo and multiplayer, unique by the device id, now in the beacon) > in sessions, with Now beside it; by address behind a switch, merged dropped; Main rebuilt on it
+27. [CCTV-252]: Session > Players: one placeholder for a field not there yet (ping in a player's first 10 s or while dropped, time, country); time in game as H:MM:SS on a 1 s clock, never below 0 (it showed -1:-1); Kick keeps its place @1.6.0
+28. [CCTV-257]: One switch for every time on the page: UTC or the browser's local time; days still count in UTC @1.6.0
 
 ## Discarder
 
