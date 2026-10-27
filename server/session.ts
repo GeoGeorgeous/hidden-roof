@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto';
 import { SERVER } from '../src/config';
-import type { InventoryData } from '../src/inventory/inventory';
 import { SLOTS, type Tool } from '../src/inventory/tool';
 import type { LevelData } from '../src/level/level-data';
 import { decodeOps, encodeOps, SurfaceIndex } from '../src/op-wire';
@@ -18,6 +17,7 @@ import { deliver, presence, uniqueName, type Link, type Player } from './player'
 import { Queue } from './queue';
 import { HOSTED } from './setup';
 import { Snapshot, waiting } from './snapshot';
+import { levelRange, spotIn, type Range } from './spot';
 import { paintMemory, sessionPaint } from './world';
 
 // One live session: its level, PAINT DETAIL and paint, and its players. It
@@ -52,8 +52,10 @@ export class Session {
   private frozen: (() => void)[] | null = null;
   /** The save HOST sent, as its paint file: the host has its paint already. */
   private seed: Snapshot | null = null;
-  /** What players gone carried, by name: one who comes back later under it gets it back. */
-  private carried = new Map<string, InventoryData>();
+  /** What players gone carried and where they stood, by name: one who comes back later under it gets it back. */
+  private carried = new Map<string, Pick<Player, 'inventory' | 'at'>>();
+  /** Where a player may stand (spot.ts). */
+  private range: Range;
   /** Painted since its last paintFile(). */
   changed = false;
   /** The admin's wipes so far: a paint file read before the last one is not this paint. */
@@ -74,6 +76,7 @@ export class Session {
   ) {
     this.off = new Set(SLOTS.filter((t) => !setup.tools.includes(t)));
     this.line = new Queue(code, () => this.players.size < this.setup.limit);
+    this.range = levelRange(level);
     this.world = sessionPaint(level, detail);
     this.table = surfaceTable(this.world.paint.surfaces);
     this.surfaces = new SurfaceIndex([...this.world.paint.surfaces].map((s) => s.key));
@@ -127,7 +130,7 @@ export class Session {
       p.activity = 'here';
     } else {
       const unique = uniqueName(name, all);
-      p = { id: this.nextId++, name: unique, asked: name, token: randomUUID(), link, joined: Date.now(), acked: 0, live: false, saving: false, activity: 'here', inventory: this.carried.get(unique) ?? null, ladder: null, expires: null, was: null };
+      p = { id: this.nextId++, name: unique, asked: name, token: randomUUID(), link, joined: Date.now(), acked: 0, live: false, saving: false, activity: 'here', inventory: null, at: null, ...this.carried.get(unique), ladder: null, expires: null, was: null };
       this.broadcast({ type: 'joined', id: p.id, name: p.name }, p);
       this.players.set(p.id, p);
     }
@@ -151,7 +154,7 @@ export class Session {
     const players = others.map((q) => ({ id: q.id, name: q.name, state: presence(q) }));
     const { kind, limit, tools } = this.setup;
     const session = { kind, name: this.setup.name, limit, tools: [...tools] };
-    link.send(encode({ type: 'welcome', code: this.code, you: p.id, name: p.name, token: p.token, session, levelName: this.levelName, level: this.level, detail: this.detail, table: this.table, players, ladders, inventory: p.inventory, parts: own ? 0 : frames.length, acked: p.acked }));
+    link.send(encode({ type: 'welcome', code: this.code, you: p.id, name: p.name, token: p.token, session, levelName: this.levelName, level: this.level, detail: this.detail, table: this.table, players, ladders, inventory: p.inventory, at: p.at, parts: own ? 0 : frames.length, acked: p.acked }));
     if (!own) for (const f of frames) link.send(f);
     for (const f of snap.log) link.send(f);
     p.live = true;
@@ -161,7 +164,10 @@ export class Session {
   }
 
   receive(p: Player, m: ToServer) {
-    if (m.type === 'state') this.broadcast({ type: 'state', id: p.id, bytes: m.bytes }, p);
+    if (m.type === 'state') {
+      p.at = spotIn(m.bytes, this.range) ?? p.at;
+      this.broadcast({ type: 'state', id: p.id, bytes: m.bytes }, p);
+    }
     else if (m.type === 'ops') {
       if (m.seq <= p.acked) return;
       p.acked = m.seq;
@@ -278,7 +284,7 @@ export class Session {
     if (this.players.get(p.id) !== p) return;
     if (p.expires) clearTimeout(p.expires);
     this.players.delete(p.id);
-    if (p.inventory) this.carried.set(p.name, p.inventory);
+    if (p.inventory || p.at) this.carried.set(p.name, { inventory: p.inventory, at: p.at });
     log(this.code, who(p), `out: ${why} (${this.players.size} players)`);
     const played = (Date.now() - p.joined) / 1000;
     event('left', this, p.name, { why, played: Math.round(played) });

@@ -2,6 +2,7 @@ import { PAINT_DETAIL, SERVER } from '../config.ts';
 import type { InventoryData } from '../inventory/inventory';
 import { SLOTS, type Tool } from '../inventory/tool.ts';
 import { isNum, isObj, isV3, levelProblem, type LevelData, type PropData } from '../level/level-data.ts';
+import type { V3 } from '../kit/pieces.ts';
 
 // The messages between the game and the multiplayer server (server/), over a
 // WebSocket. Each is one binary frame: a u32 (little-endian) length, that many
@@ -38,6 +39,11 @@ export const CODE_LENGTH = 5;
 export const CODE_LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 /** The PAINT DETAILs a host may pick (texels per meter). */
 const DETAILS = Object.values(PAINT_DETAIL);
+/** Where a player stood (feet) and faced (radians): the server keeps the last for a player who comes back, and the welcome puts them there. */
+export interface Spot {
+  pos: V3;
+  yaw: number;
+}
 /** Player snapshot size (net/snapshot.ts). */
 export const SNAPSHOT_BYTES = 25;
 /** Most props a hosted level may have (the roof has 1340): each costs the server building it. */
@@ -126,10 +132,10 @@ export type ToClient =
    * In the session (also after a reconnect): its level, PAINT DETAIL and
    * surfaceTable (the client checks its own against it), the players and
    * their stepladders, what this player carried when here before (null: the
-   * starting kit); its paint as a paint file follows in `parts` parts (none:
+   * starting kit) and where they last stood (`at`; null: the level's spawn); its paint as a paint file follows in `parts` parts (none:
    * it's the save this host sent). `acked`: their last op batch the server has (0: none), in the paint file.
    */
-  | { type: 'welcome'; code: string; you: number; name: string; token: string; session: SessionInfo; levelName: string; level: LevelData; detail: number; table: string; players: { id: number; name: string; state: Presence }[]; ladders: { id: number; data: PropData }[]; inventory: InventoryData | null; parts: number; acked: number }
+  | { type: 'welcome'; code: string; you: number; name: string; token: string; session: SessionInfo; levelName: string; level: LevelData; detail: number; table: string; players: { id: number; name: string; state: Presence }[]; ladders: { id: number; data: PropData }[]; inventory: InventoryData | null; at: Spot | null; parts: number; acked: number }
   | { type: 'rejected'; reason: Rejection }
   /**
    * The session is full: this link waits in line, `position` 1 next (SERVER.queueMax at most; past it, 'full').
