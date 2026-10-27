@@ -2,7 +2,7 @@ import { NET, SERVER } from '../config.ts';
 import { msg } from '../messages.ts';
 import { deviceId } from '../stored.ts';
 import { PartsIn } from './parts-in.ts';
-import { decode, encode, type ToClient, type ToServer } from './protocol.ts';
+import { encode, received, type ToClient, type ToServer } from './protocol.ts';
 
 // One WebSocket to the game server, for one HOST or JOIN (multiplayer.ts
 // opens a new one to come back): it sends the hello, says how its upload and
@@ -147,8 +147,11 @@ export class ServerLink {
     const t = (this.lastHeard = this.heard = this.env.now());
     this.uploading = false;
     this.on.traffic(0, data.byteLength);
-    const m = decode(new Uint8Array(data)) as ToClient | null;
-    if (!m) return;
+    for (const m of received(new Uint8Array(data))) this.take(m, t);
+  }
+
+  /** One message of a frame that came at `t`. */
+  private take(m: ToClient, t: number) {
     if (m.type === 'welcome' && m.parts) this.on.log(`welcome: the paint comes in ${m.parts} parts`);
     const done = this.parts.take(m);
     const of = this.parts.coming ?? (done?.file && done.m);

@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process';
 import net from 'node:net';
 import { WebSocket as Ws } from 'ws';
 import { PartsIn } from '../src/net/parts-in';
-import { decode, encode, PROTOCOL, type ToClient, type ToServer } from '../src/net/protocol';
+import { encode, PROTOCOL, received, type ToClient, type ToServer } from '../src/net/protocol';
 
 // What the tests that run the built server share (lobby-test.ts, queue-test.ts): a server on a free port, and a game
 // from its own address (or the one given) that keeps what the server sends.
@@ -38,8 +38,10 @@ export class Game {
     this.ws = new Ws(`ws://localhost:${port}/ws`, { headers: { 'x-forwarded-for': ip } });
     const parts = new PartsIn();
     this.ws.on('message', (d: Buffer) => {
-      const done = parts.take(decode(new Uint8Array(d)) as ToClient);
-      if (done) this.got.push(done.m);
+      for (const m of received(new Uint8Array(d))) {
+        const done = parts.take(m);
+        if (done) this.got.push(done.m);
+      }
     });
     this.closed = new Promise((done) => this.ws.once('close', done));
   }

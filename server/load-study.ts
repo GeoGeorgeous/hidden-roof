@@ -16,7 +16,7 @@ import { encode, PROTOCOL, SNAPSHOT_BYTES } from '../src/net/protocol';
 // Not part of npm run check: npm run study:load [players ...] (PAINTERS share, OPS a painter's stamps a second).
 
 type Plan = { port: number; code: string; bots: { name: string; ip: string; paints: boolean }[]; ops: number; seconds: number };
-type Report = { welcomed: number; down: Record<string, { bytes: number; frames: number }>; up: number; upFrames: number; pings: number[]; closed: number };
+type Report = { welcomed: number; down: Record<string, number>; frames: number; up: number; upFrames: number; pings: number[]; closed: number };
 
 const level = JSON.parse(fs.readFileSync('public/levels/roof.json', 'utf8'));
 const faces = levelPaintFaces(level, PAINT_DETAIL.ultra);
@@ -24,14 +24,9 @@ const surfaces = new SurfaceIndex(faces.map((f) => f.key));
 
 /** A worker's bots: joined, then a game's sends for `seconds`; what they got, by the header's type. */
 async function bots(plan: Plan): Promise<Report> {
-  const r: Report = { welcomed: 0, down: {}, up: 0, upFrames: 0, pings: [], closed: 0 };
+  const r: Report = { welcomed: 0, down: {}, frames: 0, up: 0, upFrames: 0, pings: [], closed: 0 };
   let measuring = false;
-  const got = (type: string, n: number) => {
-    if (!measuring) return;
-    const d = (r.down[type] ??= { bytes: 0, frames: 0 });
-    d.bytes += n;
-    d.frames++;
-  };
+  const got = (type: string, n: number) => void (measuring && (r.down[type] = (r.down[type] ?? 0) + n));
   const games = plan.bots.map((b, i) => {
     const ws = new Ws(`ws://localhost:${plan.port}/ws`, { headers: { 'x-forwarded-for': b.ip }, perMessageDeflate: false });
     const sent: Map<number, number> = new Map();
@@ -40,7 +35,13 @@ async function bots(plan: Plan): Promise<Report> {
     ws.on('message', (d: Buffer) => {
       const head = d.readUInt32LE(0);
       const type = /"type":"(\w+)"/.exec(d.toString('latin1', 4, 4 + Math.min(head, 64)))?.[1] ?? '?';
-      got(type, d.length);
+      if (measuring) r.frames++;
+      // A relay frame's bytes by its entries (protocol.ts relayEntry), its head as other.
+      if (type === 'relay') {
+        let o = 4 + head;
+        got('other', o);
+        for (let n; o + 9 <= d.length; o += 9 + n) got(d[o] ? 'ops' : 'state', 9 + (n = d.readUInt32LE(o + 5)));
+      } else got(type, d.length);
       if (type === 'welcome') welcome();
       if (type === 'pong') {
         const t = Number(/"t":(\d+)/.exec(d.toString('latin1', 4, 4 + head))?.[1]);
@@ -118,12 +119,12 @@ if (process.argv[2] === 'bots') {
     clearInterval(sampling);
     const after = { at: performance.now(), u: usage(server.pid!) };
     server.kill();
-    const down: Record<string, { bytes: number; frames: number }> = {};
-    for (const r of reports) for (const [t, d] of Object.entries(r.down)) (down[t] ??= { bytes: 0, frames: 0 }), (down[t].bytes += d.bytes), (down[t].frames += d.frames);
+    const down: Record<string, number> = {};
+    for (const r of reports) for (const [t, b] of Object.entries(r.down)) down[t] = (down[t] ?? 0) + b;
     const per = (b: number) => (b / seconds / n / 1024).toFixed(1);
-    const of = (t: string) => down[t]?.bytes ?? 0;
-    const all = Object.values(down).reduce((s, d) => s + d.bytes, 0);
-    const frames = Object.values(down).reduce((s, d) => s + d.frames, 0);
+    const of = (t: string) => down[t] ?? 0;
+    const all = Object.values(down).reduce((s, b) => s + b, 0);
+    const frames = reports.reduce((s, r) => s + r.frames, 0);
     const pings = reports.flatMap((r) => r.pings);
     // CPU over the whole run (joins and the measured window): the window's share is close to it once joins are done.
     const cpu = (after.u.cpu - before.u.cpu) / ((after.at - before.at) / 1000);

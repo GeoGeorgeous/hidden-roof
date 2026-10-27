@@ -8,7 +8,7 @@ import path from 'node:path';
 import { WebSocket as Ws } from 'ws';
 import { SERVER } from '../src/config';
 import { levelPaintFaces } from '../src/level/prop-pieces';
-import { CODE_LENGTH, decode, encode, PROTOCOL, type ToClient, type ToServer } from '../src/net/protocol';
+import { CODE_LENGTH, encode, PROTOCOL, received, type ToClient, type ToServer } from '../src/net/protocol';
 import { PartsIn } from '../src/net/parts-in';
 import { encodeOps, SurfaceIndex } from '../src/op-wire';
 import { decodePaintFile } from '../src/save/paint-file';
@@ -86,8 +86,10 @@ class Game {
     this.ws = new Ws(`ws://localhost:${PORT}/ws`, { headers: { 'x-forwarded-for': ip } });
     const parts = new PartsIn();
     this.ws.on('message', (d: Buffer) => {
-      const done = parts.take(decode(new Uint8Array(d)) as ToClient);
-      if (done) this.got.push(done.file ? { ...done.m, file: done.file } : done.m);
+      for (const m of received(new Uint8Array(d))) {
+        const done = parts.take(m);
+        if (done) this.got.push(done.file ? { ...done.m, file: done.file } : done.m);
+      }
     });
     this.closed = new Promise((done) => this.ws.once('close', done));
   }

@@ -4,7 +4,7 @@ import { SLOTS, type Tool } from '../src/inventory/tool';
 import type { LevelData } from '../src/level/level-data';
 import { decodeOps, encodeOps, SurfaceIndex } from '../src/op-wire';
 import { opTool } from '../src/paint-ops';
-import { closeCode, encode, partFrames, type Rejection, type ToClient, type ToServer } from '../src/net/protocol';
+import { closeCode, encode, partFrames, relayEntry, type Rejection, type ToClient, type ToServer } from '../src/net/protocol';
 import { loadPaint } from '../src/save/load-paint';
 import { surfaceTable } from '../src/save/shape';
 import { countPaint, DayCounts, SessionStats } from './counts';
@@ -13,6 +13,7 @@ import { history } from './history';
 import { log, span, who } from './log';
 import { deliver, presence, uniqueName, type Link, type Player } from './player';
 import { Queue } from './queue';
+import { forget, relay } from './relay';
 import { HOSTED } from './setup';
 import { PaintFiles } from './paint-files';
 import { fit, mostPaint } from './paint-fit';
@@ -132,6 +133,7 @@ export class Session {
       }
       p.link?.send(encode({ type: 'rejected', reason: 'replaced' }));
       p.link?.close(closeCode('replaced'), 'replaced');
+      forget(p);
       p.link = link;
       p.device = link.device ?? p.device;
       p.activity = 'here';
@@ -174,7 +176,7 @@ export class Session {
   receive(p: Player, m: ToServer) {
     if (m.type === 'state') {
       p.at = spotIn(m.bytes, this.range) ?? p.at;
-      this.broadcast({ type: 'state', id: p.id, bytes: m.bytes }, p);
+      this.relay(relayEntry('state', p.id, m.bytes), p);
     }
     else if (m.type === 'ops') {
       // Not acked: the game sends them again, to the restored paint.
@@ -195,7 +197,7 @@ export class Session {
       this.stats.painter(p.name);
       this.changed = true;
       const bytes = valid.length === batch.ops.length ? m.bytes : encodeOps(batch.t.filter((_, i) => keep[i]), valid, this.surfaces);
-      this.broadcast({ type: 'ops', id: p.id, bytes }, p);
+      this.relay(relayEntry('ops', p.id, bytes), p);
       this.files.log(encode({ type: 'paint', bytes }));
     } else if (m.type === 'ladder') {
       // Putting one down with the stepladder off is dropped (picking it up is not).
@@ -374,6 +376,11 @@ export class Session {
 
   private send(p: Player, m: ToClient) {
     deliver(p, encode(m));
+  }
+
+  /** A state or ops to every player but `except`, in their next relay frame (relay.ts). */
+  private relay(entry: Uint8Array, except: Player) {
+    for (const p of this.players.values()) if (p !== except) relay(p, entry);
   }
 
   private broadcast(m: ToClient, except?: Player) {

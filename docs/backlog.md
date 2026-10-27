@@ -47,11 +47,10 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## Multiplayer
 
-1. [PERF-264]: One frame per player per tick: every state and ops batch of a tick to a player in one frame, with a binary header in place of the JSON one (a state 53 → ~30 B), so frames out grow with the players, not their square; the server's one thread was full at ~60 players, by frames (BL-024); protocol 9; `npm run study:load` before and after (docs/ideas/weak-links.md) @1.6.0
-2. [PERF-265]: A player standing still sends no state, but one a second, so the others' timelines and the links' health still see them; the server relays what comes (docs/ideas/weak-links.md) @1.6.0
-3. TASK [BL-076]: Run the next public playtest and verify that all bugs from the previous playtest have been fixed (docs/ideas/weak-links.md) @1.6.2
-4. IDEA [?BL-071]: Multiplayer View-Only sessions: past sessions are opened for viewing only (gallary)
-5. IDEA [?BL-153]: Find who painted something by player id, picked like the eyedropper (to spot bad paint)
+1. [PERF-265]: A player standing still sends no state, but two a second (`NET.stillRate`), so the others' timelines and the links' health still see them; the server relays what comes (docs/ideas/weak-links.md) @1.6.0
+2. TASK [BL-076]: Run the next public playtest and verify that all bugs from the previous playtest have been fixed (docs/ideas/weak-links.md) @1.6.2
+3. IDEA [?BL-071]: Multiplayer View-Only sessions: past sessions are opened for viewing only (gallary)
+4. IDEA [?BL-153]: Find who painted something by player id, picked like the eyedropper (to spot bad paint)
 
 ## Painting
 
@@ -204,6 +203,7 @@ Shipped since the last release; the release commit empties this list.
 31. [TASK-262]: A closed tab in a session (the browser closes the link with 1001, a lost connection gives 1006) holds the seat 15 s (`SERVER.closedHold`), not the 180 s rejoin window: it frees a seat and the line soon, while a reload (or a proxy closing links the same way) is back by then; tested in lobby-test @1.6.0
 32. [CCTV-263]: The session's saves note follows the server: `GET /` says `saveEvery` (s, `KEEP_EVERY`) and `saveAges` (s), and the page words them (it said every 30 minutes, whatever the server did) @1.6.0
 33. BUGS [BL-024]: Paint ops are most of the downstream bytes: measured (2026-10-27, `npm run study:load`): 20 players work as is, 40 on the server but heavy painting sends ~360 KB/s to each, 60 is the server's one thread full (by frames), 80 doesn't; follow-ups PERF-264 and PERF-265; merging stamps and shedding load on slow links not taken (owner: shedding could make weak links less smooth; maps are small, so no rate by distance) (docs/ideas/weak-links.md) @1.6.0
+34. [PERF-264]: The others' states and ops reach a game in one relay frame per turn of the server's event loop (nothing waits longer than what came in with it), 9 B a state or ops over its bytes; protocol 9. Measured (`npm run study:load`, typical / heavy painting): 60 players 51% / 80% of the server's core (was 100% / 100%), 80 players 55% / 90% with ping p99 13 / 10 ms (was 12 / 17 s); bytes a player receives as before or less (docs/ideas/weak-links.md) @1.6.0
 
 ## Discarder
 

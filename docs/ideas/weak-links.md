@@ -21,7 +21,18 @@ Measured (2026-10-27, `npm run study:load`, `server/load-study.ts`): bots join o
 - **Players' links:** a state frame is 53 B for a 25 B snapshot (a 4 B length and a ~24 B JSON header). With heavy painting a player at 20 receives ~170 KB/s, the band where the first playtest's weak links dropped (100–200 KB/s: 4.8% of windows followed by a drop); typical painting is ~40 KB/s.
 - **Paint doesn't grow the stream:** the ops bytes follow the painting, not the paint already there. A joiner's paint file does grow with the paint (3.3 MB at 58% in the first playtest: ~50 s at 70 KB/s, seconds on a good link); not measured here.
 - **Answer:** 20 players work as is, with room; 40 work on the server, but heavy painting sends 360 KB/s to every player; 60 is the server's limit; 80 doesn't work as is. Past 40, the fix is one frame per player per tick (every state and ops batch of that tick in it: frames grow with the players, not their square, and the header goes once), a protocol change. Shedding on slow links (step 3) is what keeps weak links in at 20 with heavy painting.
-- **Decided (owner, 2026-10-27), for 1.6.0:** one frame per player per tick with a binary header (PERF-264) and no state from a player standing still but one a second (PERF-265). Not taken: merging stamps, shedding on slow links (it could make play on weak links less smooth), a lower rate for far players (the maps are small). The next playtest's network data comes from the beacon (CCTV-267).
+- **Decided (owner, 2026-10-27), for 1.6.0:** one frame per player per tick with a binary header (PERF-264) and no state from a player standing still but two a second (PERF-265). Not taken: merging stamps, shedding on slow links (it could make play on weak links less smooth), a lower rate for far players (the maps are small). The next playtest's network data comes from the beacon (CCTV-267).
+
+After PERF-264 (2026-10-27, the same runs): one relay frame per player per turn of the event loop.
+
+| Players | Typical | Heavy |
+|---|---|---|
+| 20 | CPU 21%, ping p99 3 ms; 35 KB/s down a player, 311 frames/s | CPU 32%, ping p99 3 ms; 171 KB/s, 312 frames/s |
+| 40 | | CPU 51%, ping p99 11 ms; 342 KB/s |
+| 60 | CPU 51%, ping p99 8 ms; 99 KB/s, 482 frames/s | CPU 80%, ping p99 7 ms; 521 KB/s |
+| 80 | CPU 55%, ping p99 13 ms; 127 KB/s, 359 frames/s | CPU 90%, ping p99 10 ms; 692 KB/s |
+
+The frame's head (`{"type":"relay"}`, 20 B) costs ~6 KB/s a player at 20; a state is 34 B in it (was 53). At 80 with heavy painting the server is near its core again, now by the bytes: what is left past that is the players' own downlinks (~700 KB/s each).
 
 Found (2026-10-18, T1.13): in a live session the players' paint and the server's save were not identical: ~100 of ~6,000 painted texels apart after every tool on one wall (Chromium, Firefox and WebKit alike; identical with drips off). A run's paint per row depended on the frame times of the client running it; now it depends on the row (`paint-drips.ts`, golden hashes changed once): ~50–80 texels apart. The rest is order: a run trickles in real time, so it meets the next strokes (and the sponge) at another moment on each client. Bit-exact would need a run painted whole when it starts (no trickle). Decided (owner, 2026-10-18): runs keep flowing down slowly; the drift stays. A fix would have to keep the flow on screen (e.g. the run whole in the shared paint, animated only in what's drawn).
 

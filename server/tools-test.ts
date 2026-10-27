@@ -5,7 +5,7 @@ import { SERVER } from '../src/config';
 import { Inventory } from '../src/inventory/inventory';
 import { SLOTS, type Tool } from '../src/inventory/tool';
 import type { LevelData } from '../src/level/level-data';
-import { decode, type ToClient, type ToServer } from '../src/net/protocol';
+import { received, type ToClient, type ToServer } from '../src/net/protocol';
 import { decodeOps, encodeOps, SurfaceIndex } from '../src/op-wire';
 import { opTool, type PaintOp } from '../src/paint-ops';
 import type { Link } from './player';
@@ -50,7 +50,16 @@ const by: [string, PaintOp, Tool | null][] = [
 for (const [name, op, tool] of by) assert.equal(opTool(op), tool, name);
 
 /** A link recording what it was sent. */
-const link = (): Link & { got: ToClient[] } => ({ got: [], send(f) { this.got.push(decode(f) as ToClient); }, close() {}, open: true, ip: 'test', since: Date.now() });
+const link = (): Link & { got: ToClient[] } => ({
+  got: [],
+  send(f) {
+    this.got.push(...received(f));
+  },
+  close() {},
+  open: true,
+  ip: 'test',
+  since: Date.now(),
+});
 
 // The session: with the roller, the sponge and the stepladder off, their ops and stepladders are dropped, the others
 // relayed; a batch of only dropped ops is acked all the same (a resend is not painted twice).
@@ -71,14 +80,18 @@ const link = (): Link & { got: ToClient[] } => ({ got: [], send(f) { this.got.pu
     const from = (pa as { p: Parameters<Session['receive']>[0] }).p;
     await new Promise((done) => setTimeout(done, 10));
     const at = (op: PaintOp) => ({ ...op, key }) as PaintOp;
-    const send = (seq: number, list: PaintOp[]) => s.receive(from, { type: 'ops', seq, bytes: encodeOps(list.map((_, i) => i + 1), list.map(at), surfaces) } as ToServer);
+    // Relayed ops go out once the event loop's turn is done (relay.ts).
+    const send = async (seq: number, list: PaintOp[]) => {
+      s.receive(from, { type: 'ops', seq, bytes: encodeOps(list.map((_, i) => i + 1), list.map(at), surfaces) } as ToServer);
+      await new Promise(setImmediate);
+    };
     const relayed = () => b.got.filter((m) => m.type === 'ops').map((m) => decodeOps((m as Extract<ToClient, { type: 'ops' }>).bytes, surfaces)!.ops.map((o) => opTool(o)));
-    send(1, [stamp, { ...stamp, square: true }, { ...stamp, color: null }, roll, drip]);
+    await send(1, [stamp, { ...stamp, square: true }, { ...stamp, color: null }, roll, drip]);
     assert.deepEqual(relayed(), [['can', 'marker', null]], 'only the ops of tools it allows (and runs) are relayed');
-    send(2, [roll, { ...stamp, color: null }]);
+    await send(2, [roll, { ...stamp, color: null }]);
     assert.equal(relayed().length, 1, 'a batch of only dropped ops is not relayed');
     assert.equal(from.acked, 2, 'but it is acked');
-    send(3, [stamp]);
+    await send(3, [stamp]);
     assert.equal(relayed().length, 2);
     const ladder = { type: 'prop', id: 1 } as unknown as NonNullable<Extract<ToServer, { type: 'ladder' }>['data']>;
     s.receive(from, { type: 'ladder', t: 1, data: ladder });
