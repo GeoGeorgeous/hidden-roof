@@ -8,7 +8,7 @@ import { closeCode, encode, partFrames, partPieces, type Rejection, type ToClien
 import { loadPaint } from '../src/save/load-paint';
 import { joinBytes } from '../src/save/paint-file';
 import { surfaceTable } from '../src/save/shape';
-import { countPaint, DayCounts } from './counts';
+import { countPaint, DayCounts, SessionStats } from './counts';
 import { event } from './events';
 import { history } from './history';
 import { log, span, who } from './log';
@@ -59,6 +59,8 @@ export class Session {
   wipes = 0;
   /** Its paint and most players this UTC day, for the admin page. */
   readonly today = new DayCounts();
+  /** Its counts since its paint began (a wipe zeroes them, kept.ts brings a save's back). */
+  stats = new SessionStats();
   /** When its last player went (ms), or null with players in it. */
   emptySince: number | null = this.started;
 
@@ -114,6 +116,7 @@ export class Session {
     const snap = this.files.get(() => p?.link === link && link.open);
     if (snap === 'busy') return 'busy';
     this.counts[how]++;
+    if (how === 'new') this.stats.joins++;
     let note = '';
     if (p) {
       if (p.expires) clearTimeout(p.expires);
@@ -137,6 +140,7 @@ export class Session {
       this.players.set(p.id, p);
     }
     this.today.players(this.players.size);
+    this.stats.players(this.players.size);
     this.emptySince = null;
     p.live = false;
     let frames;
@@ -184,7 +188,8 @@ export class Session {
       const valid = batch.ops.filter((_, i) => keep[i]);
       this.files.now(() => valid.forEach((op) => ops.apply(op)));
       if (!valid.length) return;
-      countPaint(valid, [this.today.paint, history.now()]);
+      countPaint(valid, [this.today.paint, history.now(), this.stats.paint]);
+      this.stats.painter(p.name);
       this.changed = true;
       const bytes = valid.length === batch.ops.length ? m.bytes : encodeOps(batch.t.filter((_, i) => keep[i]), valid, this.surfaces);
       this.broadcast({ type: 'ops', id: p.id, bytes }, p);
@@ -239,6 +244,7 @@ export class Session {
    */
   wipe() {
     this.wipes++;
+    this.stats = new SessionStats('wiped');
     this.files.now(() => {
       this.world.paint.clear();
       this.world.drips.clear();
@@ -251,6 +257,7 @@ export class Session {
   end() {
     for (const p of this.players.values()) {
       history.played((Date.now() - p.joined) / 1000);
+      this.stats.stay(p.joined, Date.now());
       this.eject(p, 'closed');
     }
     this.players.clear();
@@ -276,6 +283,11 @@ export class Session {
     return frames && joinBytes(partPieces(frames));
   }
 
+  /** When (ms) the players now in it joined: the stats count their time so far. */
+  joinedAt() {
+    return [...this.players.values()].map((p) => p.joined);
+  }
+
   /** For the log when it closes. */
   get summary() {
     const c = this.counts;
@@ -291,6 +303,7 @@ export class Session {
     const played = (Date.now() - p.joined) / 1000;
     event('left', this, p.name, { why, played: Math.round(played) });
     history.played(played);
+    this.stats.stay(p.joined, Date.now());
     const link = p.link;
     p.link = null;
     link?.close(1000, why);

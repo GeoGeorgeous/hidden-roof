@@ -1219,6 +1219,8 @@ export const SERVER = {
   /** With DATA_DIR, a public session's paint is saved this often (s) when it changed, and at shutdown; the newest keepFiles saves stay (server/kept.ts). */
   keepEvery: 1800,
   keepFiles: 3,
+  /** A session's stats (server/counts.ts) keep the names of this many painters, no more. */
+  statsPainters: 1000,
   /** A private session the admin made that doesn't stay closes if no one has come in this long (s). */
   adminWait: 600,
   /** A link that hasn't sent HOST or JOIN by then is closed (s), so idle links hold no slot. */

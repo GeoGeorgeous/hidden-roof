@@ -20,13 +20,6 @@ What the admin page (cctv) gets from the server next, after the owner's list of 
 - The stream (`GET /events`) is unchanged: the recent ones at once, then live ones.
 - cctv: 50 a page with prev and next; live events go on top of the first page only.
 
-## CCTV-254 Stats per session
-
-- A session counts, since its paint began (made, wiped or restored): stamps by tool, colors, painters (distinct nicknames that painted), player-seconds, joins, most players at once and when. Counted where the history counts them (`server/counts.ts`), never in a pass of its own.
-- In `GET /sessions` as `stats`, with `since` and how it began (`made`, `wiped`, `restored`).
-- Kept sessions: each save has its stats beside it (`<code>-<ms>.json`, painters as names), loaded with it at start or on a restore. A wipe zeroes them.
-- The history (`/history`) is unchanged: it counts every session, wipes or not.
-
 ## CCTV-255 Saves: kept by age, downloaded, restored
 
 - Retention, after each save: the newest, and the newest at least 6 h, 1 day, 3 days and 7 days old (`SERVER.keepAges`, replaces `keepFiles`); the rest go. A save that fills two slots is kept once, so there may be fewer than 5.

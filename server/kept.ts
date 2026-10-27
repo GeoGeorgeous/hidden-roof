@@ -7,16 +7,17 @@ import { CODE_LENGTH, CODE_LETTERS, isSessionName, isToolSet, PROTOCOL, type Ses
 import { event } from './events';
 import { log, mb } from './log';
 import type { Lobby } from './lobby';
+import { isWiped, leftover, Saves, savedAt } from './saves';
 import type { Session } from './session';
 import type { SessionSetup } from './setup';
 
 // The admin's sessions (admin-api.ts), and the public ones kept on disk in
 // `dir` (DATA_DIR): sessions.json lists them with what they were made for (the
 // protocol, the surface table, the level). Each one's paint is saved every
-// SERVER.keepEvery when it changed, and at shutdown, as <code>-<ms>.rhhpaint;
-// the newest SERVER.keepFiles stay. At start each is made again under its code,
-// from its newest save that loads. The admin's wipe keeps the newest
-// SERVER.keepFiles saves aside, as <code>-<ms>.wiped.rhhpaint: never loaded,
+// SERVER.keepEvery when it changed, and at shutdown, as <code>-<ms>.rhhpaint
+// with its stats beside it (saves.ts); the newest SERVER.keepFiles stay. At start each is made again under its code,
+// from its newest save that loads, with its stats. The admin's wipe keeps the session's
+// saves aside, as <code>-<ms>.wiped.rhhpaint, replacing the last wipe's: never loaded,
 // never rotated away by new saves. A new protocol, surface table or level wipes
 // it for good, and so does a close: a release that changes none of them keeps the paint.
 // The disk work of a write, a wipe, a close and sessions.json goes one task at a time, in
@@ -46,12 +47,6 @@ const isEntry = (e: unknown): e is Entry => {
   const o = (typeof e === 'object' && e ? e : {}) as Record<string, unknown>;
   return typeof o.code === 'string' && CODE.test(o.code) && (o.kind === 'public' || o.kind === 'private') && isSessionName(o.name) && isToolSet(o.tools) && typeof o.level === 'string' && Number.isFinite(o.detail) && typeof o.protocol === 'number' && typeof o.table === 'string' && typeof o.levelHash === 'string';
 };
-/** What a crash can leave half written. */
-const leftover = (name: string) => name === 'sessions.json.tmp' || name.endsWith('.rhhpaint.tmp');
-
-/** When a save was made (ms), from its name, <code>-<ms>.rhhpaint or <code>-<ms>.wiped.rhhpaint. */
-const savedAt = (code: string, name: string) => parseInt(name.slice(code.length + 1));
-const wiped = (name: string) => name.endsWith('.wiped.rhhpaint');
 const hash = (level: LevelData) => createHash('sha256').update(JSON.stringify(level)).digest('hex').slice(0, 16);
 
 export class Kept {
@@ -60,13 +55,17 @@ export class Kept {
   private chain: Promise<unknown> = Promise.resolve();
   /** Kept sessions not made again at start for a reason that may pass: still listed. */
   private unmade: Entry[] = [];
+  /** Where the saves lie (saves.ts); null keeps nothing on disk. */
+  private disk: Saves | null;
 
   /** `levels`: where the level files are (LEVELS_DIR); `dir`: null keeps nothing on disk. */
   constructor(
     private lobby: Lobby,
     private levels: string,
     readonly dir: string | null,
-  ) {}
+  ) {
+    this.disk = dir ? new Saves(dir) : null;
+  }
 
   /** levels/<name>.json, checked as a hosted level is. Throws Refused if there's none or it's no good; any other error is the server's. */
   async level(name: string): Promise<LevelData> {
@@ -94,17 +93,12 @@ export class Kept {
     return session;
   }
 
-  /** The admin's wipe: no paint in the session; on disk its newest saves stay aside, wiped, and the rest go. */
+  /** The admin's wipe: no paint in the session; on disk its saves stay aside, wiped, replacing the last wipe's. */
   async wipe(session: Session) {
     session.wipe();
     log(session.code, 'wiped by the admin');
     event('wiped', session);
-    if (!this.dir) return;
-    await this.serial(`wipe of ${session.code}`, async () => {
-      for (const [i, name] of (await this.saves(session.code)).entries())
-        if (i >= SERVER.keepFiles) await fs.rm(this.file(name), { force: true });
-        else if (!wiped(name)) await fs.rename(this.file(name), this.file(name.replace('.rhhpaint', '.wiped.rhhpaint')));
-    });
+    if (this.disk) await this.serial(`wipe of ${session.code}`, () => this.disk!.aside(session.code));
   }
 
   /** The admin closed it: gone, from disk too. */
@@ -118,7 +112,7 @@ export class Kept {
   async restore() {
     if (!this.dir) return;
     await fs.mkdir(this.dir, { recursive: true });
-    for (const name of (await fs.readdir(this.dir)).filter(leftover)) await fs.rm(this.file(name), { force: true });
+    for (const name of (await fs.readdir(this.dir)).filter(leftover)) await fs.rm(this.disk!.file(name), { force: true });
     let list: Entry[] = [];
     try {
       const kept: unknown = JSON.parse(await fs.readFile(this.file('sessions.json'), 'utf8').catch(() => '[]'));
@@ -159,9 +153,10 @@ export class Kept {
         await this.forget(e.code);
         continue;
       }
-      for (const name of (await this.saves(e.code)).filter((n) => !wiped(n)))
+      for (const name of (await this.disk!.list(e.code)).filter((n) => !isWiped(n)))
         try {
-          await session.load(await fs.readFile(this.file(name)), false);
+          await session.load(await fs.readFile(this.disk!.file(name)), false);
+          session.stats = (await this.disk!.stats(name)) ?? session.stats;
           log(e.code, `paint from ${name}: ${session.memory.now.toFixed(0)} MB`);
           break;
         } catch (err) {
@@ -192,19 +187,13 @@ export class Kept {
       const bytes = await s.paintFile();
       if (!bytes) throw new Error('no memory for a paint file');
       size = bytes.length;
+      const stats = s.stats.toJSON(s.joinedAt());
       const ok = await this.serial(`paint save of ${s.code}`, async () => {
         // Wiped or closed meanwhile: not the paint to keep.
         if (s.wipes !== wipes || this.lobby.sessions.get(s.code) !== s) return;
-        const at = `${s.code}-${Date.now()}.rhhpaint`;
-        try {
-          await fs.writeFile(this.file(`${at}.tmp`), bytes);
-          await fs.rename(this.file(`${at}.tmp`), this.file(at));
-        } catch (e) {
-          await fs.rm(this.file(`${at}.tmp`), { force: true });
-          throw e;
-        }
-        name = at;
-        for (const old of (await this.saves(s.code)).filter((n) => !wiped(n)).slice(SERVER.keepFiles)) await fs.rm(this.file(old), { force: true });
+        name = `${s.code}-${Date.now()}.rhhpaint`;
+        await this.disk!.write(name, bytes, stats);
+        for (const old of (await this.disk!.list(s.code)).filter((n) => !isWiped(n)).slice(SERVER.keepFiles)) await this.disk!.remove(old);
       });
       if (!ok) throw new Error('disk');
     } catch (e) {
@@ -241,20 +230,14 @@ export class Kept {
 
   /** A session's saves on disk, the wiped ones too, newest first: when (ISO), how big and whether wiped, for the admin page. One rotated away meanwhile is left out. */
   async savesOf(code: string) {
-    if (!this.dir) return [];
-    const list = await Promise.all((await this.saves(code)).map((n) => fs.stat(this.file(n)).then(({ size }) => ({ at: new Date(savedAt(code, n)).toISOString(), bytes: size, wiped: wiped(n) }), () => null)));
+    if (!this.disk) return [];
+    const list = await Promise.all((await this.disk.list(code)).map((n) => fs.stat(this.file(n)).then(({ size }) => ({ at: new Date(savedAt(code, n)).toISOString(), bytes: size, wiped: isWiped(n) }), () => null)));
     return list.filter((s) => s !== null);
-  }
-
-  /** A session's saves, wiped ones included, newest first. */
-  private async saves(code: string) {
-    const names = (await fs.readdir(this.dir!)).filter((n) => n.startsWith(`${code}-`) && n.endsWith('.rhhpaint'));
-    return names.sort((a, b) => savedAt(code, b) - savedAt(code, a));
   }
 
   /** Every file of a session's, saves and what a crash left of one. */
   private async forget(code: string) {
-    if (this.dir) for (const name of (await fs.readdir(this.dir)).filter((n) => n.startsWith(`${code}-`) && n.includes('.rhhpaint'))) await fs.rm(this.file(name), { force: true });
+    await this.disk?.forget(code);
   }
 
   private file(name: string) {

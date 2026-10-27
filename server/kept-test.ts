@@ -193,6 +193,11 @@ try {
   const wb = await b.join(code, 'B');
   assert.ok(await painted(wb.file!), 'the paint is back');
   assert.equal((await admin('GET', '/sessions')).body[0].saves.length, 1, 'its save, listed');
+  // Its stats came back with the paint, from the file beside the save: A's stamp, the people before (each a new join), B now.
+  assert.equal(fs.readdirSync(dir).filter((n) => /^\w+-\d+\.json$/.test(n) && n.startsWith(code)).length, 1, 'stats beside the save');
+  const back = (await admin('GET', '/sessions')).body[0].stats;
+  assert.deepEqual([back.began, back.restoredAt, back.stamps, back.colors, back.painters, back.joins, back.peak.players], ['made', undefined, { can: 1, marker: 0, roller: 0, sponge: 0 }, { red: 1 }, 1, 7, 1]);
+  assert.ok(back.playSeconds >= 0 && Date.parse(back.since) <= Date.now(), 'play seconds, and since');
 
   // The paint now, for the admin to keep: a paint file made at the request, not written to disk; a session that isn't there, 404.
   const download = await fetch(`http://localhost:${ADMIN_PORT}/sessions/${code}/paint`, { headers: { authorization: 'Bearer test-key' } });
@@ -213,6 +218,9 @@ try {
   assert.equal(again.you, wb.you);
   assert.ok(!(await painted(again.file!)), 'a clean wall');
   assert.deepEqual(saves().map((n) => n.endsWith('.wiped.rhhpaint')), [true], 'the save, kept as wiped');
+  assert.ok(fs.readdirSync(dir).some((n) => n.startsWith(code) && n.endsWith('.wiped.json')), 'its stats too');
+  const zero = (await admin('GET', '/sessions')).body[0].stats;
+  assert.deepEqual([zero.began, zero.stamps, zero.colors, zero.painters, zero.joins, zero.peak?.players], ['wiped', { can: 0, marker: 0, roller: 0, sponge: 0 }, {}, 0, 0, 1], 'a wipe zeroes the stats (B came back to its seat: no new join, one player)');
   const wipedBox = (await admin('GET', '/machine')).body;
   assert.deepEqual([wipedBox.saves.last, wipedBox.saves.bytes > 0], [null, true], 'a wiped save counts for the disk, not as the last save');
   assert.deepEqual((await admin('GET', '/sessions')).body[0].saves.map((s: { wiped: boolean }) => s.wiped), [true], 'listed as wiped');
@@ -276,9 +284,12 @@ try {
   await d.join(code, 'D');
   fs.writeFileSync(path.join(dir, `${code}-1.wiped.rhhpaint`), '');
   fs.writeFileSync(path.join(dir, `${code}-2.rhhpaint`), '');
+  fs.writeFileSync(path.join(dir, `${code}-2.json`), '{}');
+  fs.writeFileSync(path.join(dir, `${code}-1.wiped.json`), '{}');
   assert.equal((await admin('POST', `/sessions/${code}/close`)).status, 200);
   assert.equal((await d.next('rejected')).reason, 'closed');
   assert.equal(saves().length, 0);
+  assert.deepEqual(fs.readdirSync(dir).filter((n) => n.startsWith(code)), [], 'no file of the session stays, stats included');
   assert.deepEqual((await admin('GET', '/sessions')).body, []);
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(dir, 'sessions.json'), 'utf8')), []);
   // Plays that ended (seven left, one ended by the close), the paint still there after two restarts.

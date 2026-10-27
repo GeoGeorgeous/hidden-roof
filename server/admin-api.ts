@@ -34,6 +34,9 @@ import { trafficDays } from './traffic-store';
 //                              `site`: the open pages by what they do (menu, solo, session, hidden), from the game's beacons of the last minute
 //   GET  /sessions             every session: its line (queue), players (address, ping, held seat),
 //                              today's paint (`stamps` by tool, `colors`: ops by color code, `topColor` the most painted, for older pages) and peak,
+//                              `stats`: its counts since its paint began (counts.ts SessionStats; also in the event stream's status): `since`,
+//                              `began` (made, wiped, restored; `restoredAt` with the last), `stamps` by tool, `colors`, `painters` (distinct
+//                              nicknames that painted), `playSeconds`, `joins` (new players), `peak` ({ players, at } or null),
 //                              ping (`median` ms, `slow`: players over `slowPing`), when it went empty, its saves
 //                              (newest first, with those a wipe kept aside: `wiped`)
 //   POST /sessions             a new one: { kind, name, level?, detail?, tools?, stay?, limit? }
@@ -78,6 +81,7 @@ function live(s: Session) {
   return {
     code: s.code, kind, name, admin, stays, tools, level: s.levelName, detail: detailName(s.detail), players, limit, queue: s.line.length,
     started: iso(s.started), paintMB: Math.round(s.memory.now), emptySince: s.emptySince === null ? null : iso(s.emptySince),
+    stats: s.stats.report(s.joinedAt()),
     today: { peak: today.peak, stamps: today.paint.stamps, colors: { ...today.paint.colors }, topColor: today.topColor },
     ping: { median: median(pings), slow: pings.filter((ms) => ms > SERVER.slowPing).length },
   };
