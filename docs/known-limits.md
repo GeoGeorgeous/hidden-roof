@@ -21,4 +21,4 @@ How sessions work on purpose (decided 2026-10-04 to 10-08; details in `server/`,
 - **Pickups are personal:** each player collects their own; the server keeps what a player carried under their name to give it back when they return.
 - **Ladders go with their owner:** a dropped player's stepladder stays for `SERVER.rejoinWindow` (3 min), then goes, and is never saved; a climber on a ladder that is moved just drops.
 - **Thin paint is coarse at LOW:** a texel is 4 cm at 24 texels/m, so the thinnest marker line and drips are 4 cm wide; a save loaded at a lower detail is averaged down, at a higher one enlarged by nearest texel.
-- **Rejected:** host-client (WebRTC) authority; an op log (unbounded, ~24 MB/h per sprayer); texture deltas on the wire (~400 KB/s at ULTRA); interest management (not needed for 20 players on one roof).
+- **Rejected:** host-client (WebRTC) authority; an op log (unbounded, ~24 MB/h per sprayer); texture deltas on the wire (~400 KB/s at ULTRA); interest management (not needed for 40 players on one roof).

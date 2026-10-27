@@ -14,7 +14,7 @@ Hidden Roof is a first-person graffiti game. You climb onto the rooftops of a ci
 ## The game
 
 - **Tools:** a spray can with four caps, a marker, a stepladder, a paint roller and a sponge. You start with the can and black; the other twelve colors, the caps and the tools are hidden around the roof.
-- **Multiplayer:** pick a session from the server list: a public one open to all (up to 20 players), or a private one with its five-letter code (up to 4). Hosting your own is off for now.
+- **Multiplayer:** pick a session from the server list: a public one open to all (up to 40 players), or a private one with its five-letter code (up to 4). Hosting your own is off for now.
 - **Inspired by** [Bombing!!: A Graffiti Sandbox and Bombing!! 2](https://store.steampowered.com/app/1527520/), [Marc Eckō's Getting Up: Contents Under Pressure](https://store.steampowered.com/app/260190/) and Daisuke Tajima's [*Beyond the Lines*](https://www.seigensha.com/books/978-4-86152-902-3/).
 
 ## How it's built

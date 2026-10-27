@@ -1127,8 +1127,8 @@ export const NET = {
 /** The multiplayer server (server/, docs/deploy.md). */
 export const SERVER = {
   port: 3000,
-  /** Players in one session, by its kind; each receives everyone's state and ops (no interest management), load-tested with 20 (docs/deploy.md, section 6). */
-  players: { public: 20, private: 4 },
+  /** Players in one session, by its kind; each receives everyone's state and ops (no interest management), load-tested up to 80 (`npm run study:load`, docs/ideas/weak-links.md). */
+  players: { public: 40, private: 4 },
   /** The fewest players a private session may be made for (its host included). */
   privateMin: 2,
   /** Players may HOST their own private sessions; off in 1.6.0, when only the admin makes sessions (the menu's Host is disabled too). */
