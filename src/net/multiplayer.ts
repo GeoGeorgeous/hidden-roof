@@ -255,7 +255,6 @@ export class Multiplayer {
       this.line = { code: this.wanted, token: m.token, position: m.position };
       return this.setStatus({ state: 'queued', code: this.wanted, position: m.position });
     }
-    if (m.type === 'rejected') return void (this.link === link && this.closing.turnedAway(m.reason)); // no-op once its close code told
     if (!this.joined) return;
     if (this.remotes.handle(m, this.surfaces, arrived, this.onPlayer)) return;
     if (m.type === 'paint') decodeOps(m.bytes, this.surfaces)?.ops.forEach((op) => this.g.paintOps.apply(op));

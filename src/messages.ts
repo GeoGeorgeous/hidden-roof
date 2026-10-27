@@ -9,7 +9,7 @@ import type { Action } from './input.ts';
 // Not messages, so not here: menu labels and button captions, tooltips, the popups' body paragraphs (save, upload,
 // update notes), the HUD tags (CAP, NEW TOOL), the F3 panel's descriptions. The server list and join screens are the
 // exception: all their words are here, captions included. Nothing player-facing comes from
-// server/: it sends a `rejected` reason code and the game words it (menu.net*).
+// server/: it closes the link with a rejection's code (protocol.ts closeCode) and the game words it (menu.net*).
 
 export const MESSAGES = {
   /** Subtitles at the bottom center: a control being taught (tutorial/hints.ts picks which, and for how long). Up to 3 lines, each its own entry line. */

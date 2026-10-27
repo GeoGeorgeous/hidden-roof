@@ -40,8 +40,8 @@ export class LinkClosed {
     this.dropped(code);
   }
 
-  /** The server turned this game away (by a message, or by its close code when the message still waits in the queue): the session ends, true; false when it's a failed try (dropped). */
-  turnedAway(reason: Rejection) {
+  /** The server turned this game away (its close code): the session ends, true; false when it's a failed try (dropped). */
+  private turnedAway(reason: Rejection) {
     this.log.add(`turned away by the server: ${reason}`);
     const failed = endedBy(reason, Boolean(this.place.joined() || this.place.line()));
     return failed ? (this.place.end({ state: 'failed', reason: failed }), true) : false;

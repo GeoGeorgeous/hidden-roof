@@ -62,7 +62,7 @@ const MAX_PROPS = 5000;
  * or HOST while players may not host (SERVER.playerHost), or the admin removed the player or closed the session ('closed'),
  * or a public session has all the seats or places in line (SERVER.seatsPerIp) one address may have ('seats'),
  * or an address JOINs public sessions too often (SERVER.joinsPerIp a minute: 'rate').
- * The socket then closes with closeCode(reason), for the logs.
+ * The socket closes with closeCode(reason): the code alone says it (rejectionOf), and the reason is for the logs.
  */
 const REJECTIONS = ['version', 'no-session', 'ended', 'full', 'bad-save', 'bad-level', 'busy', 'replaced', 'too-many', 'no-host', 'kicked', 'closed', 'seats', 'rate'] as const;
 export type Rejection = (typeof REJECTIONS)[number];
@@ -140,7 +140,6 @@ export type ToClient =
    * it's the save this host sent). `acked`: their last op batch the server has (0: none), in the paint file.
    */
   | { type: 'welcome'; code: string; you: number; name: string; token: string; session: SessionInfo; levelName: string; level: LevelData; detail: number; table: string; players: { id: number; name: string; state: Presence }[]; ladders: { id: number; data: PropData }[]; inventory: InventoryData | null; at: Spot | null; parts: number; acked: number }
-  | { type: 'rejected'; reason: Rejection }
   /**
    * The session is full: this link waits in line, `position` 1 next (SERVER.queueMax at most; past it, 'full').
    * Sent again whenever the position changes; the welcome follows once a place is free. A JOIN with `token` after

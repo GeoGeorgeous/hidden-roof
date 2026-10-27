@@ -1,6 +1,6 @@
 import type { InventoryData } from '../src/inventory/inventory';
 import type { PropData } from '../src/level/level-data';
-import { closeCode, encode, NAME_MAX, type Activity, type Presence, type Rejection, type Spot } from '../src/net/protocol';
+import { closeCode, NAME_MAX, type Activity, type Presence, type Rejection, type Spot } from '../src/net/protocol';
 import { flush } from './relay';
 
 // A player of a session (session.ts) and their socket: what the session keeps
@@ -52,11 +52,8 @@ export interface Player {
   was: { ip: string; country: string | null; lived: number; at: number; hold: number } | null;
 }
 
-/** `link` told why it is turned away, and closed with the reason's code. */
-export function turnAway(link: Link | null | undefined, reason: Rejection) {
-  link?.send(encode({ type: 'rejected', reason }));
-  link?.close(closeCode(reason), reason);
-}
+/** `link` turned away: closed with the reason's code, which tells the game why. */
+export const turnAway = (link: Link | null | undefined, reason: Rejection) => link?.close(closeCode(reason), reason);
 
 export const presence = (p: Player): Presence => (p.link ? p.activity : 'dropped');
 

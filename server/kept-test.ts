@@ -10,6 +10,7 @@ import { SERVER } from '../src/config';
 import { levelPaintFaces } from '../src/level/prop-pieces';
 import { CODE_LENGTH, encode, PROTOCOL, received, type ToClient, type ToServer } from '../src/net/protocol';
 import { PartsIn } from '../src/net/parts-in';
+import { rejected } from './test-kit';
 import { encodeOps, SurfaceIndex } from '../src/op-wire';
 import { decodePaintFile } from '../src/save/paint-file';
 import { keepers } from './saves';
@@ -104,6 +105,9 @@ class Game {
   send(m: ToServer) {
     this.ws.send(encode(m));
   }
+  rejected() {
+    return rejected(this);
+  }
   async next<T extends ToClient['type']>(type: T, ms = 10000) {
     for (const end = Date.now() + ms; ; await new Promise((w) => setTimeout(w, 20))) {
       const i = this.got.findIndex((m) => m.type === type);
@@ -187,7 +191,7 @@ try {
   assert.deepEqual([(await admin('GET', '/history')).body.stamps.can, (await admin('GET', '/history')).body.colors], [1, { red: 1 }]);
   const lost = new Game();
   await lost.hello('Z'.repeat(CODE_LENGTH), 'Lost');
-  assert.equal((await lost.next('rejected')).reason, 'no-session');
+  assert.equal(await lost.rejected(), 'no-session');
   assert.equal((await admin('GET', '/history?period=7d')).body.turnedAway['no-session'], 1);
   const box = (await admin('GET', '/machine')).body;
   assert.ok(box.cpu.vcpus > 0 && box.disk.total > 0 && box.memory.limit > 0, 'the machine');
@@ -363,7 +367,7 @@ try {
   fs.writeFileSync(path.join(dir, `${code}-2.json`), '{}');
   fs.writeFileSync(path.join(dir, `${code}-1.wiped.json`), '{}');
   assert.equal((await admin('POST', `/sessions/${code}/close`)).status, 200);
-  assert.equal((await d.next('rejected')).reason, 'closed');
+  assert.equal(await d.rejected(), 'closed');
   assert.equal(saves().length, 0);
   assert.deepEqual(fs.readdirSync(dir).filter((n) => n.startsWith(code)), [], 'no file of the session stays, stats included');
   assert.deepEqual((await admin('GET', '/sessions')).body, []);

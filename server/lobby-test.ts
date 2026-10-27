@@ -123,13 +123,13 @@ try {
   assert.ok((await held('T')) <= SERVER.closedHold && (await held('U')) > SERVER.closedHold, 'a closed tab is held for less');
   for (const id of ids) await post(`/sessions/${friends.body.code}/players/${id}/kick`);
   const again = await join(main.port, 'K', friends.body.code, { token: kicked.token });
-  assert.equal((await again.next('rejected')).reason, 'kicked', 'a reconnect with their token is told they were kicked');
+  assert.equal(await again.rejected(), 'kicked', 'a reconnect with their token is told they were kicked');
   const k = await join(main.port, 'K', friends.body.code);
   assert.notEqual((await k.next('welcome')).you, kicked.you, 'a new join, without the token, comes in: kick is not a ban');
   const told = await join(main.port, 'M', friends.body.code);
   const wm = await told.next('welcome');
   assert.equal((await post(`/sessions/${friends.body.code}/players/${wm.you}/kick`)).status, 200);
-  assert.equal((await told.next('rejected')).reason, 'kicked');
+  assert.equal(await told.rejected(), 'kicked');
   assert.equal(await told.closed, closeCode('kicked'));
   assert.equal(closeCode('kicked'), 4011);
   for (const at of [`/sessions/${friends.body.code}/players/999/kick`, `/sessions/${friends.body.code}/players/x/kick`, `/sessions/ZZZZZ/players/${wm.you}/kick`]) assert.equal((await post(at)).status, 404, at);
@@ -147,7 +147,7 @@ try {
 
   // Players HOST only where PLAYER_HOST says: the other server turns them away, with the reason's own close code.
   const no = await new Game(refusing.port).send(host);
-  assert.equal((await no.next('rejected')).reason, 'no-host');
+  assert.equal(await no.rejected(), 'no-host');
   assert.equal(await no.closed, 4010);
   assert.equal(closeCode('no-host'), 4010);
 
@@ -155,8 +155,8 @@ try {
   // still taken back by its nickname. Another address is not held up by it.
   const crowd = await admin({ kind: 'public', name: 'Crowd', level: 'demo', detail: 'low' });
   const refused = async (g: Game) => {
-    const reason = (await g.next('rejected')).reason;
-    assert.equal(await g.closed, closeCode(reason));
+    const reason = await g.rejected();
+    assert.ok(reason, 'turned away with a rejection code');
     return reason;
   };
   const house = '10.4.0.1';

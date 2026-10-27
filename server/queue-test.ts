@@ -75,7 +75,7 @@ try {
   // The admin closes the session: everyone waiting is told.
   await admin(`/sessions/${s1.code}/close`, {});
   for (const g of [e, f]) {
-    assert.equal((await g.next('rejected')).reason, 'closed');
+    assert.equal(await g.rejected(), 'closed');
     assert.equal(await g.closed, closeCode('closed'));
   }
 
@@ -121,7 +121,7 @@ try {
     assert.equal((await line[i].next('queued')).position, i + 1);
   }
   const over = await join(main.port, 'W', s3.code);
-  assert.equal((await over.next('rejected')).reason, 'full');
+  assert.equal(await over.rejected(), 'full');
   assert.equal(await over.closed, closeCode('full'));
   assert.equal(await waiting(s3.code), SERVER.queueMax);
 
