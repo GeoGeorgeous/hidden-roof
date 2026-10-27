@@ -60,7 +60,7 @@ try {
   assert.deepEqual([whole.status, whole.disposition, whole.body.split('\n').length], [200, `attachment; filename="roof-${day(1)}.log"`, 6]);
   const one = await text(`/logs/${day(1)}?session=ABCDE`);
   assert.deepEqual([one.disposition, one.body.split('\n').map((l) => l.replace(/^\S+ /, ''))], [`attachment; filename="roof-${day(1)}-ABCDE.log"`, ['ABCDE "geo" #1 in', 'ABCDE error', '  at here', '']]);
-  assert.deepEqual([(await text('/logs/yesterday')).status, (await text(`/logs/${day(1)}?session=abc`)).status, (await text(`/logs/${day(3)}`)).status], [400, 400, 404]);
+  assert.deepEqual([(await text('/logs/yesterday')).status, (await text('/logs/2026-13-01')).status, (await text('/logs/2026-02-30')).status, (await text(`/logs/${day(1)}?session=abc`)).status, (await text(`/logs/${day(3)}`)).status], [400, 400, 400, 400, 404]);
   assert.deepEqual((await ask(strict, 'GET', '/logs')).body.days, [], 'no LOG_DIR: no days');
 
   const make = (body: object, origin?: string) => ask(main, 'POST', '/sessions', { kind: 'private', name: 'T', level: 'demo', detail: 'low', ...body }, origin);
