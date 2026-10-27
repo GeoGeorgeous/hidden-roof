@@ -121,11 +121,12 @@ try {
     { counts: [] }, { counts: null }, { counts: { jump: 0 } }, { counts: { jump: 1.5 } }, { counts: { jump: SERVER.beaconMostEvents + 1 } }, { counts: { jump: '1' } },
     { counts: { Jump: 1 } }, { counts: { 'a b': 1 } }, { counts: { ['a'.repeat(41)]: 1 } }, { counts: { '': 1 } }, { counts: many(1, SERVER.beaconKinds + 1) },
     { net: { seconds: 1, down: 0 } }, { net: { seconds: 1, down: 0, up: 0, ping: { p50: 1, p95: 2 } } }, { net: { seconds: 1, down: 0, up: 0, ping: { p50: 1, p95: 2, max: SERVER.beaconMostPing + 1 } } },
-    { net: { seconds: 1, down: 0, up: 0, drops: { 1006: 0 } } }, { net: { seconds: 1, down: 0, up: 0, back: Array(NET.beaconList + 1).fill(1) } }, { net: { seconds: 1, down: 0, up: 0, stalls: 1.5 } }, { net: [] },
+    { net: { seconds: 1, down: 0, up: 0, drops: { 1006: 0 } } }, { net: { seconds: 1, down: 0, up: 0, back: Array(NET.beaconList + 1).fill(1) } }, { net: { seconds: 1, down: 0, up: 0, stalls: 1.5 } }, { net: { seconds: 1, down: 0, up: 0, stalls: -1 } }, { net: [] },
     { seconds: { playing: -1 } }, { seconds: { playing: SERVER.beaconMostSeconds + 1 } }, { seconds: { playing: '3' } }, { seconds: { sleeping: 1 } }, { seconds: [] }, { seconds: null },
   ];
   for (const body of wrong) assert.equal(await send({ beat: 'menu', ...body }), 400, JSON.stringify(body).slice(0, 80));
   assert.deepEqual(await onSite(), now, 'refused beacons are not on the site');
+  assert.equal(await send({ net: { seconds: 0, down: 0, up: 0, stalls: 0 } }), 204, 'a minute with no stalls');
   assert.deepEqual((await history()).events, client.events, 'nor counted');
 
   // The first message's device id makes a player: once by device and once by address, over the period; a bad one refuses the body.

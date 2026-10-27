@@ -142,7 +142,6 @@ Only `N.`, the id and the description are required. The optional parts appear in
 The admin page (the cctv repo) and the server side it reads (server/admin-api.ts). Specs: docs/ideas/admin-data.md.
 
 1. [CCTV-261]: ADMIN_API 3, once cctv reads only the new fields: `people` (merged, byDevice, byIp) and `countries` leave /history (players, inSessions and playerCountries replace them); `/traffic?days=N` stays for the day bars; deployed with that cctv (docs/ideas/admin-data.md)
-2. [CCTV-267]: Network health in the beacon, as the first playtest's telemetry had it: each minute in a session the app ping (p50, p95, max), closes by code (`timeout`: the game gave up on a silent link), reconnect times, stalls (nothing from the server for over 1.5 s), KB/s each way; counted per hour as `client.net` in /history; a Network block on Stats (lost links an hour of session time: 1006 and timeout) @1.6.0
 
 ## Web and promotion
 
@@ -204,6 +203,7 @@ Shipped since the last release; the release commit empties this list.
 34. [PERF-264]: The others' states and ops reach a game in one relay frame per turn of the server's event loop (nothing waits longer than what came in with it), 9 B a state or ops over its bytes; protocol 9. Measured (`npm run study:load`, typical / heavy painting): 60 players 51% / 80% of the server's core (was 100% / 100%), 80 players 55% / 90% with ping p99 13 / 10 ms (was 12 / 17 s); bytes a player receives as before or less (docs/ideas/weak-links.md) @1.6.0
 35. [PERF-265]: A player standing still (feet within 1 mm, the rest the same) sends two states a second, not 20 (`NET.stillRate`), once two alike have gone, so the others see no speed to guess on; moving again sends the one held back first, so the move starts when it began (scripts/sender.test.mjs) @1.6.0
 36. [CCTV-266]: The server's log of a day, downloadable from the admin page: `GET /logs` (the day files with their size, `keepDays`, `redactDays`), `GET /logs/DAY` as it is, `?session=CODE` that session's lines with the stack lines under them; a Server log panel on Main and Download log on a session (cctv 4f34852) @1.6.0
+37. [CCTV-267]: Network health in the beacon, as the first playtest's telemetry had it: each minute in a session the app ping (p50, p95, max), closes by code (`timeout`: the game gave up on a silent link), reconnect times, stalls (nothing from the server for over 1.5 s), KB/s each way; counted per hour as `client.net` in /history; a Network block on Stats (lost links an hour of session time: 1006 and timeout) (cctv 4c498f1) @1.6.0
 
 ## Discarder
 

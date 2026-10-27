@@ -60,6 +60,6 @@ function isNet(n: unknown) {
   const ping = n.ping;
   if (ping !== undefined && (!isObj(ping) || !['p50', 'p95', 'max'].every((k) => isNum(ping[k], SERVER.beaconMostPing)))) return false;
   if (n.drops !== undefined && !isMap(n.drops, isCount)) return false;
-  if (n.stalls !== undefined && !isCount(n.stalls)) return false;
+  if (n.stalls !== undefined && !(Number.isInteger(n.stalls) && isNum(n.stalls, SERVER.beaconMostEvents))) return false;
   return isList(n.back, (s) => isNum(s, SERVER.beaconMostSeconds)) && isList(n.stallLong, (s) => isNum(s, SERVER.beaconMostSeconds));
 }
