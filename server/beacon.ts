@@ -100,7 +100,7 @@ export async function beacon(req: http.IncomingMessage, ip: string, into: () => 
   const c = into();
   const ua = String(req.headers['user-agent'] ?? '');
   if (b.first) {
-    people.played(b.first.device, ip, countryOf(ip), 'page');
+    people.played(b.first.device, ip, countryOf(ip), 'page', b.first.days);
     c.n++;
     count(c.browsers, browserOf(ua));
     count(c.os, osOf(ua));

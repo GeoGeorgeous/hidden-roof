@@ -33,7 +33,7 @@ export const root: Route = async (c) => {
       eventDays: SERVER.eventDays,
       eventDayBytes: SERVER.eventDayBytes,
       historyDays: SERVER.historyDays,
-      saltDays: SERVER.saltDays,
+      saltEvery: 'month',
       pageIdle: NET.beaconIdle,
       playerIdle: NET.idleAfter,
       lengthMinutesMost: SERVER.lengthMinutesMost,

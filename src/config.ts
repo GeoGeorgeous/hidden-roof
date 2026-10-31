@@ -1205,8 +1205,9 @@ export const SERVER = {
   historyDays: 91,
   /** Play lengths are counted by whole minutes up to this one, which counts every play as long or longer (GET /stats/play `lengthMinutes`). */
   lengthMinutesMost: 120,
-  /** Unique people's salt (server/people.ts) changes this often (days). */
-  saltDays: 30,
+  /** The History routes (server/admin/stats.ts) answer at most this many days, and months. */
+  statsDaysMost: 366,
+  statsMonthsMost: 120,
   /** The page loads that reached the level (the beacon's first message) add at most this many new people an hour to the history's players (server/people.ts), so made-up device ids can't grow it. */
   peoplePages: 20000,
   /** The GeoIP base's file (server/geoip.ts) is checked for a new one this often (s). */

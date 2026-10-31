@@ -2,7 +2,9 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { SERVER } from '../src/config';
 import { log } from './log';
+import { monthOfDay } from './stats-period';
 import { add, blank, dayName, fresh, newSalt, parse, type Today } from './traffic-count';
+import { closeMonths } from './traffic-months';
 import { pruneHours, readDay, readHours, readState, write, writeHours, type State } from './traffic-store';
 
 // One pass of the traffic reader (traffic.ts): the lines Caddy added to its access log since the last pass, counted
@@ -11,6 +13,8 @@ import { pruneHours, readDay, readHours, readState, write, writeHours, type Stat
 // renames it there); one cut shorter than where we were is read from its start. The day being counted is
 // today's: its hours (their visitors' hashes) are written beside its counts, and when it is over it is forgotten
 // with the first pass after midnight, not with the first line of the next day.
+//
+// With no state (a new directory) it counts from today's UTC day on: the log's earlier days are skipped.
 //
 // A crash between a day file and state.json counts the lines of that pass twice on the next one: rare, and a few
 // views over, never lost; making the two one write would cost more than it is worth.
@@ -42,8 +46,10 @@ export async function pass(o: Options) {
     await fs.mkdir(o.dir, { recursive: true });
     const { ino, size } = await file.stat();
     const state = await readState(o.dir);
-    // The visitors' salt lasts SERVER.saltDays; a new one starts the visitors again (as people.ts's does).
-    const salt = state?.salt && Date.now() - state.salt.since <= SERVER.saltDays * 864e5 ? state.salt : { key: newSalt(), since: Date.now() };
+    // The visitors' salt lasts a month (UTC); a new one starts the visitors again (as people.ts's does).
+    const month = (ms: number) => monthOfDay(Math.floor(ms / 864e5));
+    const kept = state?.salt && month(state.salt.since) === month(Date.now());
+    const salt = kept ? state!.salt! : { key: newSalt(), since: Date.now() };
     let today: Today | null = null;
     if (state?.today) {
       today = fresh(state.today, salt.key, await readHours(o.dir, state.today));
@@ -63,6 +69,8 @@ export async function pass(o: Options) {
       const hit = parse(text);
       if (!hit) return;
       const name = dayName(hit.ts);
+      // A reader with no state starts from today: the log's earlier days are not counted.
+      if (!state && name < dayName(Date.now() / 1000)) return;
       // A line from before the day being counted (out of order at midnight) is dropped: its visitors are gone.
       if (today && name < today.name) return;
       if (!today || name > today.name) {
@@ -99,6 +107,8 @@ export async function pass(o: Options) {
     await flush();
     // The day is over: it is not counted past the first pass that sees it.
     if (today && dayName(Date.now() / 1000) > today.name) today = null;
+    // The months the old salt covered are written once the log is read, while their hours are still there.
+    if (!kept && state?.salt) await closeMonths(o.dir, state.salt.since, Date.now());
     await pruneHours(o.dir);
     const next: State = { inode: ino, offset, salt, today: today?.name ?? null };
     await write(path.join(o.dir, 'state.json'), next, 0o600);

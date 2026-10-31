@@ -66,3 +66,38 @@ export async function answer<F extends object, D extends object>(period: Period,
   const before = prev.end * HOUR <= begin ? null : { from: iso(then.from), to: iso(then.to), ...(await figures(then)) };
   return { period, from: iso(current.from), to: iso(now), ...here, ...days, before };
 }
+
+const DAY_RE = /^\d{4}-\d\d-\d\d$/;
+const MONTH_RE = /^\d{4}-\d\d$/;
+/** `s` as days since 1970 (a real date), or null. */
+const dayOf = (s: string) => (DAY_RE.test(s) && dayName(Date.parse(s) / 864e5) === s ? Date.parse(s) / 864e5 : null);
+/** `s` as months since 1970 (YYYY-MM), or null. */
+const monthOf = (s: string) => (MONTH_RE.test(s) && +s.slice(5) >= 1 && +s.slice(5) <= 12 ? (+s.slice(0, 4) - 1970) * 12 + +s.slice(5) - 1 : null);
+export const monthName = (m: number) => `${1970 + Math.floor(m / 12)}-${String((m % 12) + 1).padStart(2, '0')}`;
+/** The month (since 1970) of `day` (days since 1970). */
+export const monthOfDay = (day: number) => {
+  const d = new Date(day * 864e5);
+  return (d.getUTCFullYear() - 1970) * 12 + d.getUTCMonth();
+};
+/** The first day (since 1970) of `month` (months since 1970). */
+export const monthStart = (month: number) => Date.UTC(1970 + Math.floor(month / 12), month % 12, 1) / 864e5;
+
+/** A History route's days (docs/admin-api.md, History): `?from=&to=` as days since 1970, both included; `most` days at most. Throws Refused (400). */
+export function dayRange(q: URLSearchParams, now: number, most: number) {
+  const to = q.has('to') ? dayOf(q.get('to')!) : Math.floor(now / 864e5);
+  if (to === null) throw new Refused('to: YYYY-MM-DD');
+  const from = q.has('from') ? dayOf(q.get('from')!) : to - 29;
+  if (from === null) throw new Refused('from: YYYY-MM-DD');
+  if (from > to || to - from + 1 > most) throw new Refused(`from to to: 1 to ${most} days`);
+  return { from, to };
+}
+
+/** A History route's months (`?from=YYYY-MM&to=YYYY-MM`) as months since 1970, both included; `most` months at most. Throws Refused (400). */
+export function monthRange(q: URLSearchParams, now: number, most: number) {
+  const to = q.has('to') ? monthOf(q.get('to')!) : monthOfDay(Math.floor(now / 864e5));
+  if (to === null) throw new Refused('to: YYYY-MM');
+  const from = q.has('from') ? monthOf(q.get('from')!) : to - 11;
+  if (from === null) throw new Refused('from: YYYY-MM');
+  if (from > to || to - from + 1 > most) throw new Refused(`from to to: 1 to ${most} months`);
+  return { from, to };
+}

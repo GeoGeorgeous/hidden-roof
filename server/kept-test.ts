@@ -189,7 +189,7 @@ try {
   const top = await admin('GET', '/');
   assert.deepEqual([top.body.api, typeof top.body.version], [4, 'string']);
   assert.deepEqual(top.body.limits, { public: SERVER.players.public, private: { min: SERVER.privateMin, max: SERVER.players.private }, name: SESSION_NAME_MAX });
-  assert.deepEqual(top.body.settings, { slowPing: SERVER.slowPing, saveEvery: SERVER.keepEvery, saveAges: SERVER.keepAges.filter(Boolean), eventDays: SERVER.eventDays, eventDayBytes: SERVER.eventDayBytes, historyDays: SERVER.historyDays, saltDays: SERVER.saltDays, pageIdle: NET.beaconIdle, playerIdle: NET.idleAfter, lengthMinutesMost: SERVER.lengthMinutesMost });
+  assert.deepEqual(top.body.settings, { slowPing: SERVER.slowPing, saveEvery: SERVER.keepEvery, saveAges: SERVER.keepAges.filter(Boolean), eventDays: SERVER.eventDays, eventDayBytes: SERVER.eventDayBytes, historyDays: SERVER.historyDays, saltEvery: 'month', pageIdle: NET.beaconIdle, playerIdle: NET.idleAfter, lengthMinutesMost: SERVER.lengthMinutesMost });
   assert.deepEqual(['slowPing', 'saveEvery', 'saveAges'].filter((k) => k in top.body), [], 'they are in settings now');
   const live = (await admin('GET', '/sessions')).body[0];
   assert.deepEqual([live.stats.stamps.can, live.stats.colors, live.stats.peak.players, live.emptySince, 'today' in live], [1, { red: 1 }, 1, null, false]);

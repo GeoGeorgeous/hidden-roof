@@ -1,5 +1,5 @@
 import fs from 'node:fs/promises';
-import { answer, dayName, HOUR, iso, type Frame, type Period } from './stats-period';
+import { answer, dayName, HOUR, iso, type Period, type Span } from './stats-period';
 import { STEPS } from './traffic-count';
 import { readHours } from './traffic-store';
 
@@ -7,7 +7,7 @@ import { readHours } from './traffic-store';
 // reader's hours files (traffic-store.ts). Each visitor counts once over the period, at each step they got to.
 
 /** The traffic of `f`: views, bots, visitors, the visitors at each step and by the country of their first view in it; with `hours`, each hour's views and visitors too. `dir`: DATA_DIR/traffic (none: no traffic). */
-async function figures(dir: string | null, f: Frame, hours: boolean) {
+export async function figures(dir: string | null, f: Span, hours = false) {
   const seen = new Map<string, number>();
   const from = new Map<string, string>();
   const each = new Map<number, { views: number; visitors: number }>();

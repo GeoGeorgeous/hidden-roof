@@ -1,7 +1,7 @@
 import { NET, SERVER } from './config';
 import { tenths, type NetReport } from './net/net-minute';
 import type { NetStatus } from './net/status';
-import { deviceId } from './stored';
+import { deviceId, playDays } from './stored';
 
 // The game's beacon for the admin page's Stats (server/beacon.ts), solo and in a
 // session: once a minute the frames played (while the mouse is the game's and
@@ -15,7 +15,8 @@ import { deviceId } from './stored';
 // (in memory only, sent in every beacon); a last one,
 // `bye`, goes when the page is left. The first one, when the level is ready,
 // says how long it took, the GPU and the settings chosen, and this browser's
-// device id (stored.ts), as JOIN does, for the admin's count of players. No
+// device id (stored.ts), as JOIN does, for the admin's count of players, and the days it first
+// played and played before. No
 // name: the server reads the browser and OS from the request.
 
 /** The funnel: the Play button (the first time the mouse is the game's), the level ready, the first paint, in a session. */
@@ -80,7 +81,7 @@ export class Beacon {
   /** The level is ready: the first beacon, with the load time and the settings chosen (`settings`: each as a short string). */
   loaded(settings: Record<string, string>) {
     this.step('ready');
-    this.send(false, { gpu: this.gpu, load: Math.min(SERVER.beaconMostSeconds, tenths(performance.now() / 1000)), settings, device: deviceId() });
+    this.send(false, { gpu: this.gpu, load: Math.min(SERVER.beaconMostSeconds, tenths(performance.now() / 1000)), settings, device: deviceId(), days: playDays() });
   }
 
   /** A funnel step reached: counted the first time only. */

@@ -9,7 +9,7 @@ key, Caddy) is in `docs/deploy.md` §6 and §9; why the data is as it is: `docs/
 - **Data, not views.** Counts, histograms and ids; the page makes medians, shares, labels and charts.
 - **Units.** Times are ISO 8601 UTC strings, durations are seconds, sizes are bytes, rates are bits a second, pings are ms. A day is a UTC day, `YYYY-MM-DD`.
 - **Histograms** are `{ "<bin>": count }`, each bin key in the histogram's unit (whole minutes, whole fps, seconds to a tenth, ms by 10). Bins with nothing are left out. A histogram with an open last bin says so in `settings` (`lengthMinutesMost`: that bin counts everything from it up).
-- **People** are always counted `{ device, address }`, never merged: device is the game's random id (`localStorage`), address is the IP (IPv6 by its /64). Both are kept only as salted hashes, and a distinct count is distinct inside one answer, or one day, never added across them.
+- **People** are always counted `{ device, address }`, never merged: device is the game's random id (`localStorage`), address is the IP (IPv6 by its /64). Both are kept only as salted hashes, and a distinct count is distinct inside one answer, or one day, never added across them. The salt changes at the start of each month (UTC), so a period with a month's start in it may count a person twice by hash. The game also keeps on the device the day it first played and the day it last played, and the beacon sends them: the history's new players and its counts over any range of days (History, below) come from those, never from matching hashes.
 - **Versions.** `GET /` says `api: 4`; cctv checks for an exact match. A field or route added keeps the version; one removed, renamed or with a new meaning bumps it. Each change reaches cctv as a diff of this file before it's merged.
 - **Errors:** `400 { error }` a bad request, `401` no key, `403 { error: 'origin' }` a browser request from another origin, `404 { error }` a session, save, upload or route that isn't there, `405 { error: 'GET' }` the wrong method (the one it takes), `409 { error }` a restore or another disk task of that session under way, `413 { error }` a body over `SERVER.adminBody` bytes, `503 { error }` no memory for it, `500 { error }` a server failure.
 - **Auth.** Every request carries `Authorization: Bearer <ADMIN_KEY>`; a request with an `Origin` header is refused unless it is `ADMIN_ORIGIN`.
@@ -20,15 +20,17 @@ key, Caddy) is in `docs/deploy.md` §6 and §9; why the data is as it is: `docs/
 |---|---|---|
 | Hours (plays, play time, paint, beacons, bytes) | `stats/<day>.json` | `historyDays` (91), then each day's total, forever |
 | People's hashes | `stats/people-<day>.json` | `historyDays` (91) |
-| Salt of people's hashes | `stats/salt.json` | a new one every `saltDays` (30); the old key is gone at once, the times it changed are kept |
+| Salt of people's hashes | `stats/salt.json` | a new one at each month's start (UTC); the old key is gone at once |
+| People by day (counts only) | `stats/audience-<YYYY>.json` | forever |
+| Traffic months (visitors, counts only) | `traffic/months.json` | forever |
 | Traffic days | `traffic/<day>.json` | forever (counts only) |
 | Traffic hours with visitors' hashes (and each one's country) | `traffic/hours-<day>.json` | `historyDays` (91) |
 | Events | `events/<day>.jsonl` | `eventDays` (30), each day's file up to `eventDayBytes` (5 MB) |
 | The last 60 minutes | memory | lost on restart |
 | Who's on the site | memory | each page by its last beat, `beaconSiteSeconds` (90 s) |
 
-A person seen before and after a salt change can't be matched: distinct counts over a period with a change in it may
-count them twice, and figures that need the match (`returningPlayers`, `seenDays`) are `null` there (below).
+A person seen before and after a salt change can't be matched: distinct counts by hash over a period with a month's start
+in it may count them twice, and `seenDays` counts from the month's start. The History routes' counts don't match hashes and have no such limit.
 
 ## Routes
 
@@ -41,7 +43,7 @@ count them twice, and figures that need the match (`returningPlayers`, `seenDays
   sessions, players,                       // live now
   peak: { players, at } | null,            // the most players at once, ever
   limits: { public: 40, private: { min: 2, max: 4 }, name: 32 },
-  settings: { slowPing, saveEvery, saveAges: [s], eventDays, eventDayBytes, historyDays, saltDays,
+  settings: { slowPing, saveEvery, saveAges: [s], eventDays, eventDayBytes, historyDays, saltEvery: 'month',
               pageIdle, playerIdle, lengthMinutesMost },
   sources: { status, beacon, history, traffic, geoip } }   // each { every: s, at: ISO | null }
 ```
@@ -118,7 +120,7 @@ then n. Types and their `detail`:
 
 ### Stats
 
-Every `/stats/*` route but `traffic/days` takes `?period=today|24h|7d|30d` and answers:
+Every `/stats/*` route but the History ones (below) takes `?period=today|24h|7d|30d` and answers:
 
 ```
 { period, from, to, ...figures, days?: [{ day, ...day figures }], before: { from, to, ...figures } | null }
@@ -151,14 +153,16 @@ Solo play isn't seen by the server: everything here is sessions. For solo, see `
 ```
 players: { device, address },            // joined a session or reached the level (the beacon's first message)
 inSessions: { device, address },         // joined a session
-newPlayers, returningPlayers,            // by device: first seen in the period, or seen before it too; null (below)
+newPlayers, returningPlayers,            // by device: first played in the period (by the day it says), or before it
+unknownPlayers,                          // by device: didn't say its first day (a game from before it kept one); new + returning + unknown = players.device
 countries: { CC: players },              // players by device, each by their last known country
 networks: { shared, devicesOnShared, devicesPerNetwork: { "1", "2-4", "5+" } }   // by address; shared: more than one device
-days: [{ day, players, inSessions, newPlayers, returningPlayers }]
+days: [{ day, players, inSessions, newPlayers, returningPlayers, unknownPlayers }]
 ```
 
-"Seen before" looks back to when the salt the period is in began (at most `saltDays`, and never past `historyDays`).
-`returningPlayers` and `newPlayers` are `null` for a period or a day a salt change falls inside (the first salt, with nothing kept before it, is no change). An IPv4 address is
+A device's first day is the one its game keeps (`localStorage`, beside the device id), so new players are new for good, not
+since a salt: a device that played the period's first day before the period began counts returning (the day is the unit). A device that
+doesn't say (a game from before this, or one that only joined from an older game) is unknown, in neither. An IPv4 address is
 a whole address: phones behind a carrier's NAT show as shared networks.
 
 `GET /stats/paint`
@@ -191,14 +195,75 @@ visitorCountries: { CC: visitors },       // each visitor once, by the country o
 hours: [{ at, views, visitors }]          // today and 24h only: each hour, oldest first, visitors distinct within it
 ```
 
-`GET /stats/traffic/days?n=N`: the last N days (1 to 366, 30 by default), oldest first, a day with no counts left out:
+`GET /stats/traffic/days`: the site's days (History: `?from=&to=`, or `?n=N` the last N days), oldest first, a day with no counts left out:
 
 ```
-{ days: [{ day, views, visitors, bots, pages, sources, campaigns, countries, visitorCountries, steps, botKinds, botPages }] }
+{ from, to, days: [{ day, views, visitors, bots, pages, sources, campaigns, countries, visitorCountries, steps, botKinds, botPages }] }
 ```
 
 `countries` is views by country, `visitorCountries` visitors (each once a day, by their first view's); `botKinds`
 bot page loads by the bot's name, `botPages` by path. Names past `SERVER.trafficKinds` count as Other.
+
+### History
+
+Kept forever, as counts only, by UTC day or month: the audience over any range, retention, the site's months.
+
+- `?from=YYYY-MM-DD&to=YYYY-MM-DD` on `*/days`: both days included, `to` today by default, `from` 29 days before `to`;
+  at most `SERVER.statsDaysMost` (366) days, `from` after `to` or a bad date is a 400. Oldest first, today's row live,
+  a day with no counts left out. `/stats/traffic/days` also still takes `?n=N` (the last N days).
+- `?from=YYYY-MM&to=YYYY-MM` on `*/months`: the same, by month (this month by default, `from` 11 months before; at most 120).
+
+`GET /stats/play/days`, `GET /stats/paint/days`: the history's days (their hours for `historyDays`, then their totals).
+
+```
+{ from, to, days: [{ day, plays, playSeconds, withOthers, lengthMinutes, turnedAway, peak }] }   // play
+{ from, to, days: [{ day, stamps, colors }] }                                                     // paint
+```
+
+`GET /stats/people/days`: players by device over the range, and each day's players.
+
+```
+{ from, to,
+  players, newPlayers, returningPlayers, unknownPlayers,   // devices over the whole range, each once (below); new + returning + unknown = players
+  unmatched,                               // of unknownPlayers, device-days that said nothing at all: each may count once a day
+  days: [{ day,
+    players: { device, address }, inSessions: { device, address },   // distinct within the day, by hash
+    newPlayers, returningPlayers, unknownPlayers,   // by device: first played that day (ages["0"]), before it, didn't say
+    countries: { CC: players },            // by device, each by their last known country that day
+    ages: { "<days>": devices },           // devices that said their first day: days since it
+    gaps: { "<days>": devices }, gapsNone, // those devices: days since their play before; none before
+    unknownGaps: { "<days>": devices }, unknownGapsNone,   // the same for devices that didn't say their first day
+    unmatched }] }                         // devices that said no days at all (an older game, a join alone)
+```
+
+How the counts work. The game keeps on the device (`localStorage`, beside the device id) the UTC day it first played
+and the last day it played, and the beacon's first message sends the first and the one before today (a game from before
+this keeps no first day: it sends none, and is never new). A player of a day is a device that reached the level or joined,
+once a day by its hash; each day keeps how many came how many days after their first play (`ages`) and after their play
+before (`gaps`). So, with no hash matched across days:
+
+- a device counts over the range on the one day of it that its play before is older than the range's start: on day d,
+  the `gaps` past d − `from`, and `gapsNone` (likewise `unknownGaps` and `unknownGapsNone` for `unknownPlayers`), plus
+  `unmatched` on every day (it can't be told apart);
+- `newPlayers` is the sum of `ages["0"]`; `returningPlayers` is the devices that said their first day, less it;
+- retention: of the devices whose first day is X (`ages["0"]` of X), those that played N days later are `ages["N"]` of day X+N.
+
+Retention by first-play week is the page's, from these days: a cohort's devices are `ages["0"]` over its days, and
+those back on day N are `ages["N"]` N days after each. A day up to today missing from `days` had no players (every count 0);
+the days after today aren't there yet. `ages` and `gaps` are by device only.
+
+A cleared site or a private window is a new device, as it is for the device id. The days come from the game: a game that
+lies about them changes counts, never anything else.
+
+`GET /stats/traffic/months`: the site's visitors by month (the traffic reader writes each month's when it ends; this month, and
+months whose hours are still kept, come from the hours).
+
+```
+{ from, to, months: [{ month, views, bots, visitors, visitorCountries, steps, exact }] }
+```
+
+`visitors` is each visitor once in the month; `exact` is false for a month whose salt changed inside it (before the salt
+began at months' starts), where a visitor may count twice.
 
 ### Sessions
 

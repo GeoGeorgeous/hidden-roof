@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { SERVER } from '../src/config';
 import { statsRoute } from './admin/stats';
+import { Refused } from './refused';
 import { pass } from './traffic-log';
 
 // The traffic reader (traffic.ts, traffic-log.ts, traffic-count.ts) on a sample of Caddy's access log, and the admin
@@ -116,7 +117,7 @@ assert.deepEqual(read(names[0]), before);
 const second = read(names[1]);
 assert.deepEqual([second.views, second.visitors, second.steps], [2, 1, { view: 1, script: 1, beacon: 0, socket: 0 }]);
 assert.equal(state().today, names[1]);
-// The hours of a day: counts by hour, and each visitor as a hash with the steps they got to; the same visitor has the same hash on another day (the salt lasts SERVER.saltDays), not their address.
+// The hours of a day: counts by hour, and each visitor as a hash with the steps they got to; the same visitor has the same hash on another day (the salt lasts the month), not their address.
 const hours = JSON.parse(fs.readFileSync(path.join(traffic, `hours-${names[0]}.json`), 'utf8'));
 const hours1 = JSON.parse(fs.readFileSync(path.join(traffic, `hours-${names[1]}.json`), 'utf8'));
 assert.deepEqual(Object.keys(hours), ['12']);
@@ -173,19 +174,73 @@ await pass(opts);
 SERVER.trafficHourSeen = 10000;
 assert.deepEqual([read(names[0]).views, read(names[0]).visitors, Object.keys(read(names[0]).steps).length], [6, 3, 4]);
 
-// The salt is replaced once it is SERVER.saltDays old.
-const salt = state().salt;
-clock(t0 + 100 + SERVER.saltDays * 864e2 + 10);
-fs.writeFileSync(path.join(traffic, 'state.json'), JSON.stringify({ ...state(), salt: { ...salt, since: Date.now() - SERVER.saltDays * 864e5 - 1000 } }));
-await pass(opts);
-assert.notEqual(state().salt.key, salt.key);
-clock(t0 + 100);
-
 // Hours files past SERVER.historyDays are deleted by a pass.
 const oldDay = new Date(Date.now() - (SERVER.historyDays + 2) * 864e5).toISOString().slice(0, 10);
 fs.writeFileSync(path.join(traffic, `hours-${oldDay}.json`), '{}');
 await pass(opts);
 assert.ok(!fs.existsSync(path.join(traffic, `hours-${oldDay}.json`)), 'old hours deleted');
+
+// The salt lasts a month (UTC). When it is replaced, the months it covered are written to months.json: inexact for a month
+// the salt began inside of, exact for one it began at the start of. Its own data directory and clock.
+{
+  const [dir2, at] = [fs.mkdtempSync(path.join(os.tmpdir(), 'roof-months-')), (t: string) => Date.parse(t) / 1000];
+  const [log2, traffic2] = [path.join(dir2, 'access.log'), path.join(dir2, 'traffic')];
+  const run = (now: string, ...lines: string[]) => (clock(at(now)), fs.appendFileSync(log2, lines.join('')), pass({ ...opts, log: log2, dir: traffic2 }));
+  const salt = () => state2().salt;
+  const state2 = () => JSON.parse(fs.readFileSync(path.join(traffic2, 'state.json'), 'utf8'));
+  const months = () => JSON.parse(fs.readFileSync(path.join(traffic2, 'months.json'), 'utf8'));
+  const [bot, ua] = ['Mozilla/5.0 (compatible; Googlebot/2.1)', CHROME];
+  await run('2026-01-10T12:01:00Z', line({ ts: at('2026-01-10T12:00:00Z'), ip: A }), line({ ts: at('2026-01-10T12:00:01Z'), ip: A, uri: '/assets/index-abc.js', type: 'text/javascript' }), line({ ts: at('2026-01-10T12:00:02Z'), ip: B, ua }), line({ ts: at('2026-01-10T12:00:03Z'), ip: '10.3.0.1', ua: bot }));
+  const january = salt();
+  await run('2026-01-31T12:01:00Z', line({ ts: at('2026-01-31T12:00:00Z'), ip: A }), line({ ts: at('2026-01-31T12:00:01Z'), ip: C }));
+  assert.equal(salt().key, january.key, 'one salt inside the month');
+  assert.ok(!fs.existsSync(path.join(traffic2, 'months.json')), 'nothing written inside the month');
+  await run('2026-02-01T00:00:10Z', line({ ts: at('2026-02-01T00:00:05Z'), ip: A }));
+  assert.notEqual(salt().key, january.key, 'a new salt at the month\'s start');
+  const jan = { views: 4, bots: 1, visitors: 3, visitorCountries: { DE: 2 }, steps: { view: 3, script: 1, beacon: 0, socket: 0 }, exact: false };
+  assert.deepEqual(months(), { '2026-01': jan }, 'January written, each visitor once; its salt began on the 10th');
+  await run('2026-02-15T12:01:00Z', line({ ts: at('2026-02-15T12:00:00Z'), ip: A }), line({ ts: at('2026-02-15T12:00:01Z'), ip: B, ua }));
+  await run('2026-03-01T00:00:10Z', line({ ts: at('2026-03-01T00:00:05Z'), ip: A }));
+  const feb = { views: 3, bots: 0, visitors: 2, visitorCountries: { DE: 2 }, steps: { view: 2, script: 0, beacon: 0, socket: 0 }, exact: true };
+  assert.deepEqual(months(), { '2026-01': jan, '2026-02': feb }, 'February: one salt began at its start');
+  assert.equal(fs.statSync(path.join(traffic2, 'months.json')).mode & 0o777, 0o644);
+  await run('2026-03-01T00:30:00Z');
+  assert.deepEqual(Object.keys(months()), ['2026-01', '2026-02'], 'nothing more inside March');
+
+  // GET /stats/traffic/months: from the file for the months ended, live for this one; a month with no hours and no file is left out.
+  const get = (query: string) => statsRoute(['traffic', 'months'], new URLSearchParams(query), dir2) as Promise<{ from: string; to: string; months: any[] }>;
+  const march = { month: '2026-03', views: 1, bots: 0, visitors: 1, visitorCountries: { DE: 1 }, steps: { view: 1, script: 0, beacon: 0, socket: 0 }, exact: true };
+  for (const name of fs.readdirSync(traffic2)) if (/^hours-2026-0[12]/.test(name)) fs.rmSync(path.join(traffic2, name));
+  const kept = await get('from=2025-12&to=2026-04');
+  assert.deepEqual([kept.from, kept.to, kept.months.map((m) => m.month)], ['2025-12', '2026-04', ['2026-01', '2026-02', '2026-03']], 'the months ended from the file, this one live');
+  assert.deepEqual(kept.months, [{ month: '2026-01', ...jan }, { month: '2026-02', ...feb }, march], 'March from its hours: its salt began in its first minute');
+  assert.deepEqual(Object.keys(kept.months[0]), ['month', 'views', 'bots', 'visitors', 'visitorCountries', 'steps', 'exact']);
+  assert.equal((await get('')).months.length, 3, 'twelve months by default, to this one');
+  // Months not in the file are counted from their hours if those are kept: its salt is March's, so they are inexact.
+  fs.rmSync(path.join(traffic2, 'months.json'));
+  for (const name of fs.readdirSync(traffic2)) if (/^(hours-)?2026-0[12]/.test(name)) fs.rmSync(path.join(traffic2, name));
+  assert.deepEqual((await get('from=2026-01&to=2026-02')).months, [], 'no file and no counts');
+  fs.writeFileSync(path.join(traffic2, 'hours-2026-02-15.json'), JSON.stringify({ 12: { views: 2, bots: 0, seen: { a: 1, b: 3 }, countries: { a: 'FR' } } }));
+  fs.writeFileSync(path.join(traffic2, '2026-02-15.json'), JSON.stringify({ views: 2, bots: 1 }));
+  assert.deepEqual((await get('from=2026-02&to=2026-02')).months, [{ month: '2026-02', views: 2, bots: 1, visitors: 2, visitorCountries: { FR: 1 }, steps: { view: 2, script: 1, beacon: 0, socket: 0 }, exact: false }]);
+  assert.deepEqual((await get('from=2020-01&to=2020-02')).months, [], 'long ago, nothing kept');
+  await assert.rejects(get('from=2026-03&to=2026-01'), Refused);
+  assert.deepEqual(await statsRoute(['traffic', 'months'], new URLSearchParams('from=2026-01&to=2026-02'), null), { from: '2026-01', to: '2026-02', months: [] }, 'without DATA_DIR');
+  fs.rmSync(dir2, { recursive: true, force: true });
+  clock(t0 + 100);
+}
+
+// A reader with no state counts from today on: the log's earlier days are skipped (the tests above, with a state, read days before today).
+{
+  fs.rmSync(traffic, { recursive: true });
+  const [today, yesterday] = [noon(d1), noon(d1) - 86400];
+  fs.writeFileSync(log, line({ ts: yesterday, ip: A }) + line({ ts: today, ip: A }) + line({ ts: today + 1, ip: B }));
+  clock(today + 100);
+  await pass(opts);
+  assert.ok(!fs.existsSync(path.join(traffic, `${names[0]}.json`)), 'yesterday is not counted');
+  assert.deepEqual([read(names[1]).views, read(names[1]).visitors], [2, 2], 'today is');
+  clock(t0 + 100);
+}
 
 // Without TRAFFIC_HOSTS every host counts.
 fs.rmSync(traffic, { recursive: true });
@@ -234,7 +289,14 @@ assert.deepEqual(Object.keys(all.days[1]), dayKeys);
 assert.deepEqual([all.days[1].botKinds, all.days[1].botPages, all.days[1].visitorCountries], [{}, {}, {}], 'a day counted before these were has none');
 assert.deepEqual((await stats('traffic/days', 'n=2')).days.map((d: { day: string }) => d.day), [names[1]], 'only the last two days');
 assert.equal((await stats('traffic/days')).days.length, 2, '30 days by default');
-assert.deepEqual(await stats('traffic/days', 'n=1'), { days: [] }, 'a day whose file does not read is left out');
+const today1 = new Date().toISOString().slice(0, 10);
+assert.deepEqual(await stats('traffic/days', 'n=1'), { from: today1, to: today1, days: [] }, 'a day whose file does not read is left out');
+assert.deepEqual([all.from, all.to], [names[0], today1], 'n=3: the last three days');
+const one = await stats('traffic/days', `from=${names[0]}&to=${names[0]}`);
+assert.deepEqual([one.from, one.to, one.days.map((d: { day: string }) => d.day)], [names[0], names[0], [names[0]]], 'one day by range');
+assert.deepEqual((await stats('traffic/days', `from=${names[1]}&to=${today1}`)).days.map((d: { day: string }) => d.day), [names[1]], 'a range to today');
+assert.deepEqual((await stats('traffic/days', 'from=2020-01-01&to=2020-01-31')).days, [], 'a range with no files');
+await assert.rejects(stats('traffic/days', `from=${names[1]}&to=${names[0]}`), Refused);
 
 // The periods: the hours of the last 24 h, 7 or 30 days (or today's), each visitor once over it, at the steps they reached; and the period before.
 for (const name of fs.readdirSync(traffic)) if (name.startsWith('hours-')) fs.rmSync(path.join(traffic, name));
@@ -283,7 +345,7 @@ assert.deepEqual((await stats('traffic', 'period=24h')).hours.length, 24);
 console.log('GET /stats/traffic/days', JSON.stringify(all.days[0]));
 
 // Without DATA_DIR: no days, no traffic.
-assert.deepEqual(await statsRoute(['traffic', 'days'], new URLSearchParams(), null), { days: [] }, 'without DATA_DIR');
+assert.deepEqual(((await statsRoute(['traffic', 'days'], new URLSearchParams('n=3'), null)) as { days: unknown[] }).days, [], 'without DATA_DIR');
 const none = (await statsRoute(['traffic'], new URLSearchParams('period=7d'), null)) as Record<string, any>;
 assert.deepEqual([none.views, none.bots, none.visitors, none.steps, none.before], [0, 0, 0, noSteps, null]);
 fs.rmSync(dir, { recursive: true, force: true });

@@ -4,7 +4,7 @@ import { prefix } from './people';
 
 // What the traffic reader (traffic.ts) makes of a line of Caddy's access log (its JSON format) and of a day's
 // counts. Bots are counted and nothing else about them. A visitor is a salted hash of address (an IPv6 one by its
-// /64) and browser, a new salt every SERVER.saltDays: the hashes are all that is kept of them, by the hour they
+// /64) and browser, a new salt each month (UTC): the hashes are all that is kept of them, by the hour they
 // were seen in (up to SERVER.trafficHourSeen an hour), for SERVER.historyDays days, so a period's visitors count once.
 // A bot is kept by its name (the User-Agent's word that made it one) and the page it loaded.
 

@@ -2,13 +2,15 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { SERVER } from '../src/config';
 import { writeAtomic } from './atomic';
+import { dayName } from './stats-period';
 import { blank, type Day, type Hour } from './traffic-count';
 
 // The traffic reader's files (traffic.ts), in DATA_DIR/traffic: <day>.json, a day's counts, kept forever (they
 // are small); hours-<day>.json, the day's hours with their visitors' hashes, kept SERVER.historyDays days (owner-only);
-// state.json, where in the log it is, the salt of the hashes and the day being counted (owner-only).
+// months.json, the months ended with their visitors, kept forever; state.json, where in the log it is, the salt of the
+// hashes and the day being counted (owner-only).
 
-/** Where the reader is: the log file (its inode) and how far in it, the visitors' salt (changed every SERVER.saltDays), and the name of the day being counted. */
+/** Where the reader is: the log file (its inode) and how far in it, the visitors' salt (replaced at each month's start, UTC), and the name of the day being counted. */
 export interface State {
   inode: number;
   offset: number;
@@ -67,11 +69,29 @@ export async function pruneHours(dir: string) {
   }
 }
 
-/** The last `n` days up to today with a file, oldest first (GET /stats/traffic/days). A day counted before a figure was has none of it. */
-export async function trafficDays(dir: string, n: number) {
-  const first = new Date(Date.now() - (n - 1) * 864e5).toISOString().slice(0, 10);
-  const names = (await fs.readdir(path.join(dir, 'traffic')).catch(() => [] as string[])).flatMap((f) => DAY.exec(f)?.[1] ?? []).filter((d) => d >= first).sort();
+/** The days from `range.from` to `range.to` (days since 1970) that have a file, oldest first (GET /stats/traffic/days). `dir`: DATA_DIR/traffic (none: no days). A day counted before a figure was has none of it. */
+export async function trafficDays(dir: string | null, range: { from: number; to: number }) {
+  const [from, to] = [dayName(range.from), dayName(range.to)];
+  const names = dir ? (await fs.readdir(dir).catch(() => [] as string[])).flatMap((f) => DAY.exec(f)?.[1] ?? []).filter((d) => d >= from && d <= to).sort() : [];
   // A day whose file doesn't read is left out, as a day without one.
-  const days = await Promise.all(names.map(async (day) => ({ day, counts: await readDay(path.join(dir, 'traffic'), day) })));
-  return { days: days.flatMap(({ day, counts }) => (counts ? [{ day, ...blank(), ...counts }] : [])) };
+  const days = await Promise.all(names.map(async (day) => ({ day, counts: await readDay(dir!, day) })));
+  return { from, to, days: days.flatMap(({ day, counts }) => (counts ? [{ day, ...blank(), ...counts }] : [])) };
 }
+
+/** A month's counts (GET /stats/traffic/months), as months.json keeps them. */
+export interface Month {
+  views: number;
+  bots: number;
+  visitors: number;
+  visitorCountries: Record<string, number>;
+  steps: Record<string, number>;
+  /** One salt covered the month: a visitor is counted once. */
+  exact: boolean;
+}
+
+/** months.json: the months ended, by YYYY-MM, kept forever. None if missing. */
+export async function readMonths(dir: string) {
+  const months = await read<Record<string, Month>>(path.join(dir, 'months.json'));
+  return months && typeof months === 'object' ? months : {};
+}
+export const writeMonths = (dir: string, months: Record<string, Month>) => write(path.join(dir, 'months.json'), months);

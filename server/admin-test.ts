@@ -11,6 +11,7 @@ import { noClient } from './client-counts';
 import { SESSION_NAME_MAX } from '../src/net/protocol';
 import { median, noPaint } from './counts';
 import { join, start } from './test-kit';
+import { dayName } from './stats-period';
 
 // What the admin API holds to (admin/, history.ts, people.ts, main.ts), against the built server: inherited
 // keys are no paint detail and no period, ADMIN_ORIGIN as written with a trailing slash or not at all, a body
@@ -92,7 +93,7 @@ try {
   for (const detail of ['constructor', '__proto__', 'toString', 7]) assert.equal((await make({ detail })).status, 400, String(detail));
   assert.equal((await make({ detail: 'low' })).status, 200);
   for (const period of ['constructor', '__proto__', 'toString']) for (const route of ['play', 'people', 'paint', 'client', 'traffic']) assert.equal((await ask(main, 'GET', `/stats/${route}?period=${period}`)).status, 400, `${route} ${period}`);
-  assert.deepEqual([(await ask(main, 'GET', '/stats/nothing')).status, (await ask(main, 'GET', '/stats/traffic/days?n=0')).status, (await ask(main, 'GET', '/stats/traffic/days')).body, (await ask(main, 'GET', '/stats/traffic?period=today')).body.views], [404, 400, { days: [] }, 0]);
+  assert.deepEqual([(await ask(main, 'GET', '/stats/nothing')).status, (await ask(main, 'GET', '/stats/traffic/days?n=0')).status, (await ask(main, 'GET', '/stats/traffic/days')).body, (await ask(main, 'GET', '/stats/traffic?period=today')).body.views], [404, 400, { from: dayName(Math.floor(Date.now() / 864e5) - 29), to: dayName(Math.floor(Date.now() / 864e5)), days: [] }, 0]);
 
   // ADMIN_ORIGIN's origin is what counts: its trailing slash and path don't matter. Unset or not a URL: any Origin is refused, none is fine.
   assert.equal((await make({}, 'https://admin.example')).status, 200);

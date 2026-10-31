@@ -35,6 +35,8 @@ assert.equal(body.first.gpu, 'Test GPU');
 assert.deepEqual(body.first.settings, { 'graphics.rain': 'on' });
 assert.deepEqual(body.steps, ['play', 'ready']);
 assert.match(body.first.device, /^[0-9a-f]{32}$/);
+// The days the device keeps: made on this load, it first played today and has played no day before.
+assert.deepEqual(body.first.days, { first: Math.floor(Date.now() / 864e5), prev: null });
 
 // Steps and tutorial steps count once per page load.
 b.step('play');
@@ -157,5 +159,26 @@ Object.defineProperty(globalThis, 'localStorage', { get: () => { throw new Error
 const { deviceId } = await import('../src/stored.ts');
 assert.match(deviceId(), /^[0-9a-f]{32}$/);
 assert.equal(deviceId(), deviceId());
+
+// The days kept on the device (UTC days since 1970): the first, the last, and the one before.
+const { nextDays } = await import('../src/stored.ts');
+let kept = nextDays(null, 100, true);
+assert.deepEqual([kept.keep, kept.send], [{ first: 100, last: 100, prev: null }, { first: 100, prev: null }], 'a device made on this load');
+kept = nextDays(kept.keep, 100, false);
+assert.deepEqual(kept.send, { first: 100, prev: null }, 'a reload the same day');
+kept = nextDays(kept.keep, 103, false);
+assert.deepEqual([kept.keep, kept.send], [{ first: 100, last: 103, prev: 100 }, { first: 100, prev: 100 }], 'three days later: the day before is the last');
+kept = nextDays(kept.keep, 103, false);
+assert.deepEqual(kept.send, { first: 100, prev: 100 }, 'a reload that day keeps the day before');
+kept = nextDays(kept.keep, 104, false);
+assert.deepEqual(kept.send, { first: 100, prev: 103 });
+// A device from before the days were kept never gets a first day; it still says its day before.
+kept = nextDays(null, 100, false);
+assert.deepEqual(kept.send, { first: null, prev: null });
+kept = nextDays(nextDays(kept.keep, 100, false).keep, 101, false);
+assert.deepEqual(kept.send, { first: null, prev: 100 });
+// A clock set back never sends a day to come.
+assert.deepEqual(nextDays({ first: 100, last: 200, prev: 150 }, 120, false).send, { first: 100, prev: 120 });
+assert.deepEqual(nextDays({ first: 300, last: 300, prev: null }, 120, false).send, { first: 120, prev: null });
 
 console.log('beacon: ok');

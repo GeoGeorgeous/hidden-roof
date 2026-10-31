@@ -148,6 +148,21 @@ try {
   assert.deepEqual(inSessions, joined, 'a page that reached the level did not join');
   for (const device of ['x', 5, 'A'.repeat(32), '1'.repeat(33)]) assert.equal(await send({ first: { gpu: null, load: 1, device } }), 400, String(device));
 
+  // The days the game keeps on the device (first, and the day before today: each none or a day up to tomorrow) make the day's row; a bad one refuses the body.
+  {
+    const today = Math.floor(Date.now() / 864e5);
+    const [d3, d4, d5, d6] = ['3', '4', '5', '6'].map((c) => c.repeat(32));
+    const days = (device: string, days: unknown) => send({ first: { gpu: null, load: 1, device, days } });
+    assert.equal(await days(d3, { first: today - 3, prev: today - 1 }), 204);
+    assert.equal(await days(d4, { first: today, prev: null }), 204);
+    assert.equal(await days(d5, { first: null, prev: today - 2 }), 204);
+    assert.equal(await days(d6, { first: today + 1, prev: null }), 204, 'tomorrow, for a clock ahead');
+    for (const bad of [5, [], null, {}, { first: 1 }, { prev: 1 }, { first: -1, prev: null }, { first: 1.5, prev: null }, { first: 'x', prev: null }, { first: today + 2, prev: null }, { first: null, prev: today + 2 }]) assert.equal(await days(d3, bad), 400, JSON.stringify(bad));
+    const { days: rows } = await (await fetch(`http://localhost:${main.adminPort}/stats/people/days`, { headers: { authorization: 'Bearer test-key' } })).json();
+    const row = rows.at(-1);
+    assert.deepEqual([row.day, row.ages, row.gaps, row.gapsNone, row.unknownGaps, row.unknownGapsNone, row.unmatched, row.newPlayers, row.returningPlayers, row.unknownPlayers], [new Date(today * 864e5).toISOString().slice(0, 10), { 0: 1, 3: 1 }, { 1: 1 }, 1, { 2: 1 }, 1, 2, 1, 1, 4]);
+  }
+
   // The most is fine: an empty body, the limits.
   assert.equal(await send({}), 204);
   assert.equal(await send({ counts: { 'a-b.c9': SERVER.beaconMostEvents }, seconds: { idle: SERVER.beaconMostSeconds }, tutorial: Array(NET.beaconList).fill('done'), steps: ['play', 'ready', 'sprayed', 'joined'], first: { gpu: null, load: 1, settings: { detail: 'x'.repeat(SERVER.beaconText) } } }), 204);

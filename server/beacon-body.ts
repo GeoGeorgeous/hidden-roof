@@ -17,7 +17,7 @@ interface Body {
   bye?: true;
   beat?: (typeof BEATS)[number];
   doing?: (typeof DOINGS)[number];
-  first?: { gpu: string | null; load: number; settings?: Record<string, string>; device?: string };
+  first?: { gpu: string | null; load: number; settings?: Record<string, string>; device?: string; days?: { first: number | null; prev: number | null } };
   fps?: { avg: number; low1: number };
   joins?: number[];
   errors?: string[];
@@ -34,6 +34,11 @@ const isPage = (x: unknown) => typeof x === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4
 const isNum = (x: unknown, most: number) => typeof x === 'number' && Number.isFinite(x) && x >= 0 && x <= most;
 const isText = (x: unknown) => typeof x === 'string' && x.length <= SERVER.beaconText;
 const isEventCode = (x: unknown) => typeof x === 'string' && /^[a-z0-9.-]{1,40}$/.test(x);
+/** The days (since 1970) the game says of its device: the first it played and the one before today, each none or a day up to tomorrow (the server's clock may be behind). */
+const isDays = (x: unknown) => {
+  const most = Math.floor(Date.now() / 864e5) + 1;
+  return isObj(x) && [x.first, x.prev].every((d) => d === null || (typeof d === 'number' && Number.isInteger(d) && d >= 0 && d <= most));
+};
 const isList = (x: unknown, ok: (v: unknown) => boolean) => x === undefined || (Array.isArray(x) && x.length <= NET.beaconList && x.every(ok));
 /** A map of at most SERVER.beaconKinds keys, each a code, each value `ok`. */
 const isMap = (x: unknown, ok: (v: unknown) => boolean) => isObj(x) && Object.keys(x).length <= SERVER.beaconKinds && Object.entries(x).every(([k, v]) => isEventCode(k) && ok(v));
@@ -47,7 +52,7 @@ export function check(b: unknown) {
   if (bye !== undefined && bye !== true) return null;
   if (beat !== undefined && !BEATS.includes(beat as never)) return null;
   if (doing !== undefined && !DOINGS.includes(doing as never)) return null;
-  if (first !== undefined && (!isObj(first) || !(first.gpu === null || isText(first.gpu)) || !isNum(first.load, SERVER.beaconMostSeconds) || (first.settings !== undefined && !isMap(first.settings, isText)) || !isDevice(first.device))) return null;
+  if (first !== undefined && (!isObj(first) || !(first.gpu === null || isText(first.gpu)) || !isNum(first.load, SERVER.beaconMostSeconds) || (first.settings !== undefined && !isMap(first.settings, isText)) || !isDevice(first.device) || (first.days !== undefined && !isDays(first.days)))) return null;
   if (fps !== undefined && (!isObj(fps) || !isNum(fps.avg, 1000) || !isNum(fps.low1, 1000))) return null;
   if (!isList(joins, (j) => isNum(j, SERVER.beaconMostSeconds)) || !isList(errors, (e) => typeof e === 'string' && e.length <= NET.beaconErrorChars)) return null;
   if (erred !== undefined && erred !== true) return null;

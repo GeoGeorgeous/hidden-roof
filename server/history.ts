@@ -35,7 +35,7 @@ export interface Hour extends Paint {
 const blank = (): Hour => ({ plays: 0, minutes: {}, seconds: 0, withOthers: 0, turnedAway: {}, ...noPaint(), peak: null, bytes: { up: 0, down: 0 }, client: noClient() });
 
 /** An hour as a file has it: what an older file lacks is none. */
-function read(file: Hour): Hour {
+export function read(file: Hour): Hour {
   const h = { ...blank(), ...file } as Hour & { lengths?: unknown };
   delete h.lengths;
   return h;
@@ -166,7 +166,7 @@ class History {
     const today = Math.floor(Date.now() / HOUR / 24);
     for (const name of await fs.readdir(this.dir)) {
       const day = Date.parse(name.slice(0, 10)) / HOUR / 24;
-      if (!name.endsWith('.json') || !Number.isInteger(day)) continue;
+      if (!/^\d{4}-\d\d-\d\d\.json$/.test(name) || !Number.isInteger(day)) continue;
       try {
         const file = JSON.parse(await fs.readFile(path.join(this.dir, name), 'utf8')) as { hours?: Record<string, Hour>; total?: Hour };
         if (!file.hours) continue;
