@@ -145,7 +145,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 The admin page (the cctv repo) and the server side it reads (server/admin/). The API: docs/admin-api.md; why: docs/ideas/admin-data.md.
 
 1. [CCTV-271]: A save's `stats` in GET /sessions in the shape of the session's `stats` (stamps by tool, painters), the page sums them; and one of a session's `today` and `stats` for the page, not both (in CCTV-278: `today` goes) @1.6.0
-2. [CCTV-278]: ADMIN_API 4 for the page's redesign, one contract in docs/admin-api.md: routes by resource (server, live, events, /stats/play|people|paint|client|traffic with `before` and `days`, sessions) in server/admin/; limits and settings in GET /; the last 60 minutes in memory; pages split by what they do (idle from the beat); players' state and seen days; new and returning players, networks; traffic's before, hours, bots and visitors by country; bytes down and today; session-closed detail; events paged by type and since; every pause-menu link counted; history and hashes kept 91 days (docs/ideas/admin-data.md) @1.6.0
+2. [CCTV-278]: ADMIN_API 4 for the page's redesign, one contract in docs/admin-api.md: routes by resource (server, live, events, /stats/play|people|paint|client|traffic with `before` and `days`, sessions) in server/admin/; limits and settings in GET /; the last 60 minutes in memory; pages split by what they do (idle from the beat); players' state and seen days; new and returning players, networks; traffic's before, hours, bots, and visitors by country a day and over a period (a country kept beside each visitor's hash, the owner); bytes down and today; session-closed detail; events paged by type and since; every pause-menu link counted; history and hashes kept 91 days (docs/ideas/admin-data.md) @1.6.0
 
 ## Web and promotion
 
@@ -161,7 +161,7 @@ The admin page (the cctv repo) and the server side it reads (server/admin/). The
 ## Legal
 
 1. [TASK-187]: The beacon, the device id and the address hash run without a consent dialog (the owner's decision and risk, recorded in SECRET_legal.md); the privacy page names them (TASK-242)
-2. [TASK-242]: The privacy page names what the admin's stats keep: a random device id in localStorage, the address as a salted hash (a new salt every 30 days), the country, plays kept 91 days and counts forever, the web traffic read from the server's access log (a visitor as a salted hash of address and browser, a new salt every 30 days, the hashes kept by the hour for 91 days); why, and how to object; DB-IP's credit (CC BY 4.0) (docs/ideas/public-servers.md); the beacon's session-link minute too (ping, closes, KB/s: no ids)
+2. [TASK-242]: The privacy page names what the admin's stats keep: a random device id in localStorage, the address as a salted hash (a new salt every 30 days), the country, plays kept 91 days and counts forever, the web traffic read from the server's access log (a visitor as a salted hash of address and browser, a new salt every 30 days, the hashes kept by the hour for 91 days, each with the country of its first view in that hour); why, and how to object; DB-IP's credit (CC BY 4.0) (docs/ideas/public-servers.md); the beacon's session-link minute too (ping, closes, KB/s: no ids)
 3. [TASK-189]: The Terms' moderation section (DSA: grounds and measures, reports by email, a restricted player told what and why); the house rules screen is in (docs/ideas/public-servers.md)
 
 ## Codebase

@@ -44,19 +44,19 @@ export const trafficAt = (dir: string) => fs.stat(path.join(dir, 'traffic', 'sta
 
 /** The hours file of a day. */
 const hoursFile = (dir: string, day: string) => path.join(dir, `hours-${day}.json`);
-type HoursJson = Record<string, { views?: number; bots?: number; seen?: Record<string, number> }>;
+type HoursJson = Record<string, { views?: number; bots?: number; seen?: Record<string, number>; countries?: Record<string, string> }>;
 
 /** A day's hours as written, or none. */
 export async function readHours(dir: string, day: string) {
   const json = (await read<HoursJson>(hoursFile(dir, day))) ?? {};
   const hours = new Map<number, Hour>();
-  for (const [k, h] of Object.entries(json)) if (Number.isInteger(+k) && h && typeof h === 'object') hours.set(+k, { views: h.views ?? 0, bots: h.bots ?? 0, seen: new Map(Object.entries(h.seen ?? {})) });
+  for (const [k, h] of Object.entries(json)) if (Number.isInteger(+k) && h && typeof h === 'object') hours.set(+k, { views: h.views ?? 0, bots: h.bots ?? 0, seen: new Map(Object.entries(h.seen ?? {})), countries: new Map(Object.entries(h.countries ?? {})) });
   return hours;
 }
 
 /** A day's hours written, for its owner only. */
 export const writeHours = (dir: string, day: string, hours: Map<number, Hour>) =>
-  write(hoursFile(dir, day), Object.fromEntries([...hours].map(([k, h]) => [k, { views: h.views, bots: h.bots, seen: Object.fromEntries(h.seen) }])), 0o600);
+  write(hoursFile(dir, day), Object.fromEntries([...hours].map(([k, h]) => [k, { views: h.views, bots: h.bots, seen: Object.fromEntries(h.seen), countries: Object.fromEntries(h.countries) }])), 0o600);
 
 /** Hours files past SERVER.historyDays deleted: a period of that many days has no use for them. */
 export async function pruneHours(dir: string) {

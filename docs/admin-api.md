@@ -22,7 +22,7 @@ key, Caddy) is in `docs/deploy.md` §6 and §9; why the data is as it is: `docs/
 | People's hashes | `stats/people-<day>.json` | `historyDays` (91) |
 | Salt of people's hashes | `stats/salt.json` | a new one every `saltDays` (30); the old key is gone at once, the times it changed are kept |
 | Traffic days | `traffic/<day>.json` | forever (counts only) |
-| Traffic hours with visitors' hashes | `traffic/hours-<day>.json` | `historyDays` (91) |
+| Traffic hours with visitors' hashes (and each one's country) | `traffic/hours-<day>.json` | `historyDays` (91) |
 | Events | `events/<day>.jsonl` | `eventDays` (30), each day's file up to `eventDayBytes` (5 MB) |
 | The last 60 minutes | memory | lost on restart |
 | Who's on the site | memory | each page by its last beat, `beaconSiteSeconds` (90 s) |
@@ -187,6 +187,7 @@ net: { minutes, ping50, ping95, pingMax, drops, back, stalls, stallLong, down, u
 ```
 views, bots, visitors,
 steps: { view, script, beacon, socket },  // visitors who got that far
+visitorCountries: { CC: visitors },       // each visitor once, by the country of their first view in the period
 hours: [{ at, views, visitors }]          // today and 24h only: each hour, oldest first, visitors distinct within it
 ```
 

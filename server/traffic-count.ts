@@ -30,11 +30,12 @@ export interface Day {
   botPages: Counts;
 }
 
-/** One UTC hour: its views and bots, and each visitor seen (a hash) with the steps they got to (a bit each, in STEPS order). */
+/** One UTC hour: its views and bots, each visitor seen (a hash) with the steps they got to (a bit each, in STEPS order), and the country of each one's first view in it, if known. */
 export interface Hour {
   views: number;
   bots: number;
   seen: Map<string, number>;
+  countries: Map<string, string>;
 }
 
 /** The day being counted: its date, its salt, its hours, who has been seen at each step in the day (hashes, from the hours) and its counts. */
@@ -121,7 +122,7 @@ function source(q: URLSearchParams, h: Hit, hosts: string[]) {
 function hourOf(t: Today, ts: number) {
   const k = new Date(ts * 1000).getUTCHours();
   let hour = t.hours.get(k);
-  if (!hour) t.hours.set(k, (hour = { views: 0, bots: 0, seen: new Map() }));
+  if (!hour) t.hours.set(k, (hour = { views: 0, bots: 0, seen: new Map(), countries: new Map() }));
   return hour;
 }
 
@@ -148,8 +149,8 @@ export function add(t: Today, h: Hit, hosts: string[], country: (ip: string) => 
   const hour = hourOf(t, h.ts);
   const id = createHash('sha256').update(t.salt).update(prefix(h.ip)).update('\0').update(h.agent).digest('base64url').slice(0, 16);
   // Past SERVER.trafficHourSeen visitors in an hour the rest are not remembered (their views still count).
-  let first = false;
-  if (hour.seen.has(id) || hour.seen.size < SERVER.trafficHourSeen) {
+  let [first, kept] = [false, false];
+  if ((kept = hour.seen.has(id) || hour.seen.size < SERVER.trafficHourSeen)) {
     first = step === 'view' && !t.seen.view.has(id);
     hour.seen.set(id, (hour.seen.get(id) ?? 0) | (1 << STEPS.indexOf(step)));
     t.seen[step].add(id);
@@ -163,6 +164,7 @@ export function add(t: Today, h: Hit, hosts: string[], country: (ip: string) => 
     if (campaign) count(t.day.campaigns, campaign);
     const c = country(h.ip);
     if (c) (count(t.day.countries, c), first && count(t.day.visitorCountries, c));
+    if (c && kept && !hour.countries.has(id)) hour.countries.set(id, c);
   }
   // A day's file ahead of its hours file (one write of the two failed) never counts down.
   for (const s of STEPS) t.day.steps[s] = Math.max(t.day.steps[s], t.seen[s].size);

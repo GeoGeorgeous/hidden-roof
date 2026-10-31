@@ -20,6 +20,7 @@ The 1.6.0 items (CCTV-253 to CCTV-260) are in the backlog's Done; ADMIN_API 4 re
 - The history, people's hashes and traffic's hourly hashes are kept 91 days (`SERVER.historyDays`, was 30), so a 30-day period has one to compare with.
 - The salt still changes every 30 days and its key is gone at once: a person can't be matched across a change. Figures that need the match (`newPlayers`, `returningPlayers`) are null for a period or a day with a change inside it, rather than wrong. No cohorts.
 - The last 60 minutes are kept in memory (pages, players, bytes each way, turned away), so the page's minute lines don't depend on it being open; lost on restart.
+- Visitors by country over a period: each visitor's hash keeps the country of their first view in an hour (owner), so a period counts each visitor once by country.
 - No medians from the server: play lengths come as a histogram by minute.
 - An idle page (no input for `NET.beaconIdle` s) is told by the game's beat, so it's as fresh as the beat (a minute); a player's state in a session comes from their link, live.
 
