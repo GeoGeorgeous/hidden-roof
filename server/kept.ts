@@ -15,7 +15,7 @@ import type { Session } from './session';
 import type { SessionSetup } from './setup';
 import { Uploads, type Upload } from './uploads';
 
-// The admin's sessions (admin-api.ts), and the public ones kept on disk in
+// The admin's sessions (admin/), and the public ones kept on disk in
 // `dir` (DATA_DIR): sessions.json lists them with what they were made for (the
 // protocol, the surface table, the level). Each one's paint is saved every
 // SERVER.keepEvery when it changed, and at shutdown, as <code>-<ms>.rhhpaint
@@ -132,7 +132,8 @@ export class Kept {
   /** The admin closed it: gone, from disk too. */
   async end(session: Session) {
     await this.hold(session.code, false, async () => {
-      session.end();
+      // Counted before they go: the event says how many were deleted with it.
+      session.end((await this.disk?.list(session.code))?.length ?? 0);
       this.undos.delete(session.code);
       await this.serial(`close of ${session.code}`, async () => this.disk?.forget(session.code));
     });
@@ -310,7 +311,7 @@ export class Kept {
 
   /** A session's saves on disk, the wiped ones too, newest first, for the admin page (saves.ts info). */
   async savesOf(code: string) {
-    return this.disk ? this.disk.info(code) : [];
+    return this.disk ? this.disk.info(code, this.undos.get(code)) : [];
   }
 
   /** The path of the save made at `ms` (wiped or not), or null. */

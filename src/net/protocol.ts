@@ -24,7 +24,7 @@ export const NAME_MAX = 16;
 export const isName = (x: unknown): x is string => typeof x === 'string' && x.length <= NAME_MAX && /^[A-Za-z0-9]+$/.test(x);
 /** What is left of `x` as a name: the letters and digits of it, at most NAME_MAX (a name saved by an older version, or typed). */
 export const cleanName = (x: string) => x.replace(/[^A-Za-z0-9]/g, '').slice(0, NAME_MAX);
-/** A session's name, as its creator typed it (server/admin-api.ts): at most this many characters. */
+/** A session's name, as its creator typed it (server/admin/sessions.ts): at most this many characters. */
 export const SESSION_NAME_MAX = 32;
 /** A session's name as its creator typed it: 1 to SESSION_NAME_MAX characters once trimmed, no control characters; the server keeps it trimmed. */
 export const isSessionName = (x: unknown): x is string => {

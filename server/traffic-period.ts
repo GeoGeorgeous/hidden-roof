@@ -1,36 +1,46 @@
 import fs from 'node:fs/promises';
-import { firstHour, HOUR, type Period } from './history';
+import { answer, dayName, HOUR, iso, type Period, type Span } from './stats-period';
 import { STEPS } from './traffic-count';
 import { readHours } from './traffic-store';
 
-// GET /traffic?period=P (admin-api.ts): the web traffic over the same rolling hours as /history, from the reader's
-// hours files (traffic-store.ts). Each visitor counts once over the period, at each step they got to.
+// GET /stats/traffic?period=P (server/admin/stats.ts): the web traffic over the same hours as the other stats, from the
+// reader's hours files (traffic-store.ts). Each visitor counts once over the period, at each step they got to.
 
-const dayName = (day: number) => new Date(day * 864e5).toISOString().slice(0, 10);
-
-/** The traffic in `period` up to now: { period, from, to, views, bots, visitors, steps }. `dir`: DATA_DIR/traffic (none: no traffic). `from`: the period's start, or when the hours begin if that's later. */
-export async function trafficPeriod(dir: string | null, period: Period) {
-  const now = Date.now();
-  const first = firstHour(period, now);
+/** The traffic of `f`: views, bots, visitors, the visitors at each step and by the country of their first view in it; with `hours`, each hour's views and visitors too. `dir`: DATA_DIR/traffic (none: no traffic). */
+export async function figures(dir: string | null, f: Span, hours = false) {
   const seen = new Map<string, number>();
+  const from = new Map<string, string>();
+  const each = new Map<number, { views: number; visitors: number }>();
   let [views, bots] = [0, 0];
-  for (let day = Math.floor(first / 24); day <= Math.floor(now / HOUR / 24); day++) {
+  for (let day = Math.floor(f.first / 24); day <= Math.floor((f.end - 1) / 24); day++) {
     for (const [k, h] of dir ? await readHours(dir, dayName(day)) : []) {
-      if (day * 24 + k < first) continue;
+      const at = day * 24 + k;
+      if (at < f.first || at >= f.end) continue;
       views += h.views;
       bots += h.bots;
       for (const [id, mask] of h.seen) seen.set(id, (seen.get(id) ?? 0) | mask);
+      // The hours come oldest first: a visitor's first country stays.
+      for (const [id, c] of h.countries) if (!from.has(id)) from.set(id, c);
+      each.set(at, { views: h.views, visitors: [...h.seen.values()].filter((m) => m & 1).length });
     }
   }
   const steps = Object.fromEntries(STEPS.map((step, i) => [step, [...seen.values()].filter((m) => m & (1 << i)).length])) as Record<(typeof STEPS)[number], number>;
-  return { period, from: new Date(Math.max(first * HOUR, await begun(dir, first))).toISOString(), to: new Date(now).toISOString(), views, bots, visitors: steps.view, steps };
+  const list = Array.from({ length: f.end - f.first }, (_, i) => ({ at: iso((f.first + i) * HOUR), ...(each.get(f.first + i) ?? { views: 0, visitors: 0 }) }));
+  const visitorCountries: Record<string, number> = {};
+  for (const c of from.values()) visitorCountries[c] = (visitorCountries[c] ?? 0) + 1;
+  return { views, bots, visitors: steps.view, steps, visitorCountries, ...(hours ? { hours: list } : {}) };
 }
 
-/** When the hours begin (ms): the first hour with traffic of the oldest day kept, or now if there is none; 0 if the oldest day ended before `first`. */
-async function begun(dir: string | null, first: number) {
+/** The traffic in `period` at `now`, as GET /stats/traffic answers it. `dir`: DATA_DIR/traffic. */
+export const trafficPeriod = async (dir: string | null, period: Period, now = Date.now()) =>
+  answer(period, now, await begun(dir, now), (f) => figures(dir, f, !f.before && (period === 'today' || period === '24h')));
+
+/** When the hours begin (ms): the first hour with traffic of the oldest day kept, or now if there is none. */
+async function begun(dir: string | null, now: number) {
   const days = (await (dir ? fs.readdir(dir) : Promise.resolve([])).catch(() => [] as string[])).flatMap((n) => /^hours-(\d{4}-\d\d-\d\d)\.json$/.exec(n)?.[1] ?? []).sort();
-  if (!days.length) return Date.now();
-  const day = Date.parse(days[0]) / 864e5;
-  if (day * 24 + 24 <= first) return 0;
-  return (day * 24 + Math.min(...(await readHours(dir!, days[0])).keys())) * HOUR;
+  for (const day of days) {
+    const first = Math.min(...(await readHours(dir!, day)).keys());
+    if (Number.isFinite(first)) return Date.parse(day) + first * HOUR;
+  }
+  return now;
 }

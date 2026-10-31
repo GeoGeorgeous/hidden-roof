@@ -80,14 +80,13 @@ export class Saves {
     return (await this.list(code)).find((n) => savedAt(n) === ms) ?? null;
   }
 
-  /** A session's saves for the admin page, newest first: when (ISO), how big, whether wiped, and the stats' stamps (all tools but the sponge) and painters. One rotated away meanwhile is left out. */
-  async info(code: string) {
+  /** A session's saves for the admin page, newest first: when (ISO), how big, whether wiped, its stats (as the session's, null if none), and whether it is the session's current undo (`undo`: its time in ms, kept.ts). One rotated away meanwhile is left out. */
+  async info(code: string, undo?: number) {
     const list = await Promise.all(
       (await this.list(code)).map(async (n) => {
         const size = await fs.stat(this.file(n)).then((f) => f.size, () => null);
         if (size === null) return null;
-        const s = (await this.stats(n))?.report([]);
-        return { at: new Date(savedAt(n)).toISOString(), bytes: size, wiped: isWiped(n), stats: s ? { stamps: s.stamps.can + s.stamps.marker + s.stamps.roller, painters: s.painters } : null };
+        return { at: new Date(savedAt(n)).toISOString(), bytes: size, wiped: isWiped(n), undo: savedAt(n) === undo, stats: (await this.stats(n))?.report([]) ?? null };
       }),
     );
     return list.filter((s) => s !== null);

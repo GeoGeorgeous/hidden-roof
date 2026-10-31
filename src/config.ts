@@ -1186,7 +1186,7 @@ export const SERVER = {
   uploads: 8,
   /** Live sessions hosted from one address. */
   sessionsPerIp: 2,
-  /** The admin API (server/admin-api.ts): its port (never published, ADMIN_PORT overrides it) and the largest request it reads (bytes). */
+  /** The admin API (server/admin/): its port (never published, ADMIN_PORT overrides it) and the largest request it reads (bytes). */
   adminPort: 3001,
   adminBody: 4096,
   /** The admin page calls a player's link slow past this round trip (ms). */
@@ -1194,16 +1194,20 @@ export const SERVER = {
   /** The admin's event stream (server/events.ts): the last this many events are kept for a page that opens (at least eventPage); a status goes out this often (s) while one is open. */
   adminEvents: 50,
   adminStatus: 1,
+  /** The admin's live minutes (server/minutes.ts): the last this many are kept, in memory. */
+  liveMinutes: 60,
   /** With DATA_DIR, events are kept a file a day (server/event-log.ts) for eventDays days, a file up to eventDayBytes (30 days, 150 MB at most); the page shows and asks for eventPage events at a time. */
   eventDays: 30,
   eventDayBytes: 5e6,
   eventPage: 50,
-  /** The admin's history (server/history.ts): plays are bucketed by these lengths (s), play time is sampled this often (s), and each hour is kept this many days (then only each day's total, forever); the unique people's day files (people-<day>.json) are deleted after as many. */
-  playLengths: [120, 600, 1800],
+  /** The admin's history (server/history.ts): play time and bytes are sampled this often (s), and each hour is kept this many days (then only each day's total, forever); the unique people's day files (people-<day>.json) and the hours of the traffic reader (server/traffic-store.ts) are deleted after as many. */
   historyEvery: 60,
-  historyDays: 30,
-  /** Unique people's salt (server/people.ts) changes this often (days). */
-  saltDays: 30,
+  historyDays: 91,
+  /** Play lengths are counted by whole minutes up to this one, which counts every play as long or longer (GET /stats/play `lengthMinutes`). */
+  lengthMinutesMost: 120,
+  /** The History routes (server/admin/stats.ts) answer at most this many days, and months. */
+  statsDaysMost: 366,
+  statsMonthsMost: 120,
   /** The page loads that reached the level (the beacon's first message) add at most this many new people an hour to the history's players (server/people.ts), so made-up device ids can't grow it. */
   peoplePages: 20000,
   /** The GeoIP base's file (server/geoip.ts) is checked for a new one this often (s). */
@@ -1230,7 +1234,7 @@ export const SERVER = {
   /** Who is on the site now counts a page by its last minute beacon for this long (s): beaconEvery and a half, as timers jitter and a hidden tab's are throttled. At most beaconPages pages are kept; past it the one that beat longest ago goes. */
   beaconSiteSeconds: NET.beaconEvery * 1.5,
   beaconPages: 100000,
-  /** The traffic reader (server/traffic.ts), its own process: it reads Caddy's access log every trafficEvery s, trafficChunk bytes at a time; a day counts up to trafficKinds names (pages, sources, campaigns), then Other, each up to trafficText characters. */
+  /** The traffic reader (server/traffic.ts), its own process: it reads Caddy's access log every trafficEvery s, trafficChunk bytes at a time; a day counts up to trafficKinds names (pages, sources, campaigns, bots and their pages, countries), then Other, each up to trafficText characters. */
   trafficEvery: 60,
   trafficChunk: 1 << 20,
   trafficKinds: 50,

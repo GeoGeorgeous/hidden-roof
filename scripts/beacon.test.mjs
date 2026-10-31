@@ -24,7 +24,7 @@ const mine = { ...handlers };
 
 // Nothing gathered: a minute beacon still goes, with only its beat.
 tick();
-assert.deepEqual(sent.pop(), { beat: 'menu' });
+assert.deepEqual(sent.pop(), { beat: 'menu', doing: 'menu' }, 'before Play: in the menu');
 
 // The first one: GPU, load time, settings, and the funnel step it completes; no beat.
 b.step('play');
@@ -35,6 +35,8 @@ assert.equal(body.first.gpu, 'Test GPU');
 assert.deepEqual(body.first.settings, { 'graphics.rain': 'on' });
 assert.deepEqual(body.steps, ['play', 'ready']);
 assert.match(body.first.device, /^[0-9a-f]{32}$/);
+// The days the device keeps: made on this load, it first played today and has played no day before.
+assert.deepEqual(body.first.days, { first: Math.floor(Date.now() / 864e5), prev: null });
 
 // Steps and tutorial steps count once per page load.
 b.step('play');
@@ -51,7 +53,7 @@ assert.deepEqual(body.tutorial, ['move', 'done']);
 b.step('sprayed');
 b.lesson('move');
 tick();
-assert.deepEqual(sent.pop(), { beat: 'solo' });
+assert.deepEqual(sent.pop(), { beat: 'solo', doing: 'menu' }, 'no frame yet: in the menu');
 
 // At most NET.beaconList steps a beacon; the rest go with the next.
 const many = Array.from({ length: NET.beaconList + 2 }, (_, i) => `t${i}`);
@@ -93,11 +95,18 @@ assert.deepEqual(sent.pop().seconds, { playing: 0.5 + NET.beaconStep, idle: 0.2,
 tick();
 assert.equal(sent.pop().seconds, undefined);
 
+// What the page does, in each minute beat: what its last frame was; playing, idle (no input for NET.beaconIdle s), in a menu (not playing, or a dialog up).
+for (const [frame, doing] of [[[true, false, now() - NET.beaconIdle - 1], 'idle'], [[false, false, 0], 'menu'], [[true, true, now()], 'menu'], [[true, false, now()], 'playing']]) {
+  b.frame(0.1, ...frame);
+  tick();
+  assert.equal(sent.pop().doing, doing);
+}
+
 // A hidden tab counts nothing, and says so.
 visibility = 'hidden';
 b.frame(1, true, false, now());
 tick();
-assert.deepEqual(sent.pop(), { beat: 'hidden' });
+assert.deepEqual(sent.pop(), { beat: 'hidden', doing: 'hidden' });
 visibility = 'visible';
 
 // In a session: the beat says so, and the first time in is a step.
@@ -109,7 +118,7 @@ assert.equal(body.beat, 'session');
 assert.deepEqual(body.steps, ['joined']);
 b.status({ state: 'off' });
 tick();
-assert.deepEqual(sent.pop(), { beat: 'solo' });
+assert.deepEqual(sent.pop(), { beat: 'solo', doing: 'playing' });
 
 // What the server would refuse is cut here, so a minute isn't lost whole: a GPU name, codes (long, and too many kinds), a long load.
 const c = new Beacon('G'.repeat(SERVER.beaconText + 20), canvas);
@@ -142,7 +151,7 @@ assert.deepEqual(sent.pop(), { bye: true });
 mine.pageshow({ persisted: false });
 assert.equal(sent.length, 0);
 mine.pageshow({ persisted: true });
-assert.deepEqual(sent.pop(), { beat: 'solo' });
+assert.deepEqual(sent.pop(), { beat: 'solo', doing: 'playing' });
 assert.equal(pages.at(-1), pages[0]);
 
 // Where storage is blocked the device id is made once, not on every call.
@@ -150,5 +159,26 @@ Object.defineProperty(globalThis, 'localStorage', { get: () => { throw new Error
 const { deviceId } = await import('../src/stored.ts');
 assert.match(deviceId(), /^[0-9a-f]{32}$/);
 assert.equal(deviceId(), deviceId());
+
+// The days kept on the device (UTC days since 1970): the first, the last, and the one before.
+const { nextDays } = await import('../src/stored.ts');
+let kept = nextDays(null, 100, true);
+assert.deepEqual([kept.keep, kept.send], [{ first: 100, last: 100, prev: null }, { first: 100, prev: null }], 'a device made on this load');
+kept = nextDays(kept.keep, 100, false);
+assert.deepEqual(kept.send, { first: 100, prev: null }, 'a reload the same day');
+kept = nextDays(kept.keep, 103, false);
+assert.deepEqual([kept.keep, kept.send], [{ first: 100, last: 103, prev: 100 }, { first: 100, prev: 100 }], 'three days later: the day before is the last');
+kept = nextDays(kept.keep, 103, false);
+assert.deepEqual(kept.send, { first: 100, prev: 100 }, 'a reload that day keeps the day before');
+kept = nextDays(kept.keep, 104, false);
+assert.deepEqual(kept.send, { first: 100, prev: 103 });
+// A device from before the days were kept never gets a first day; it still says its day before.
+kept = nextDays(null, 100, false);
+assert.deepEqual(kept.send, { first: null, prev: null });
+kept = nextDays(nextDays(kept.keep, 100, false).keep, 101, false);
+assert.deepEqual(kept.send, { first: null, prev: 100 });
+// A clock set back never sends a day to come.
+assert.deepEqual(nextDays({ first: 100, last: 200, prev: 150 }, 120, false).send, { first: 100, prev: 120 });
+assert.deepEqual(nextDays({ first: 300, last: 300, prev: null }, 120, false).send, { first: 120, prev: null });
 
 console.log('beacon: ok');

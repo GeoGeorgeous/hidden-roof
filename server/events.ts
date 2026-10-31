@@ -1,8 +1,8 @@
 import type { ServerResponse } from 'node:http';
 import { SERVER } from '../src/config';
-import { EventLog, later, pageOf, type AdminEvent, type EventType } from './event-log';
+import { EventLog, pageOf, wanted, type AdminEvent, type EventType, type Only } from './event-log';
 
-// The admin page's event stream (GET /events, admin-api.ts): what happens on
+// The admin page's event stream (GET /events, admin/live.ts): what happens on
 // the server, pushed when it happens, and a status every second while a page
 // is open. No page open, no status built: only the last SERVER.adminEvents
 // events are kept in memory, for the next page that opens. With a directory
@@ -51,10 +51,10 @@ export async function keepEvents(dir: string) {
   atMidnight();
 }
 
-/** The events before id `before` (none: the newest), at most `limit`, newest first, and `next`: the id to ask for the page after, or null. */
-export async function eventPage(before: string | null, limit: number) {
-  if (disk) return disk.page(before, limit);
-  return pageOf([...recent].reverse().filter((e) => !before || later(before, e.id)), limit);
+/** The events before id `before` (none: the newest), at most `limit`, newest first, and `next`: the id to ask for the page after, or null at the end. `only`: after an id, or of these types. */
+export async function eventPage(before: string | null, limit: number, only: Only = {}) {
+  if (disk) return disk.page(before, limit, only);
+  return pageOf([...recent].reverse().filter((e) => wanted(e, before, only)), limit);
 }
 
 /** `res` as an open stream: the recent events at once, then each new one, and `now()` every SERVER.adminStatus s until it closes. */

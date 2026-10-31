@@ -14,8 +14,8 @@ import { start } from './test-kit';
 
 // The game's beacon (beacon.ts, beacon-body.ts, client-counts.ts), against the built server: what it runs on, load and
 // join times, frames, errors, then the game's events (funnel and tutorial steps, counts, seconds, settings); a body that
-// isn't one is refused whole; Other past SERVER.beaconKinds names; an hour saved on disk loads; /history's
-// `client`, and /events's `site`: who is on the site now. npm run test:server runs it.
+// isn't one is refused whole; Other past SERVER.beaconKinds names; an hour saved on disk loads; /stats/client,
+// and /events's `pages`: who is on the site now, and what they do. npm run test:server runs it.
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'roof-beacon-'));
 // An hour saved by an earlier run, the hour before this one: beacons, no events yet.
@@ -40,30 +40,33 @@ try {
   const history = async () => {
     for (let i = 0; ; i++) {
       try {
-        return (await (await fetch(`http://localhost:${main.adminPort}/history?period=24h`, { headers: { authorization: 'Bearer test-key' } })).json()).client;
+        const { period, from, to, before, ...figures } = await (await fetch(`http://localhost:${main.adminPort}/stats/client?period=24h`, { headers: { authorization: 'Bearer test-key' } })).json();
+        return figures;
       } catch (e) {
         if (i > 100) throw e;
         await new Promise((w) => setTimeout(w, 50));
       }
     }
   };
-  /** `site` in the first status of the event stream. */
+  /** `pages` in the first status of the event stream, as the site() of the server is. */
   const onSite = async () => {
     const res = await fetch(`http://localhost:${main.adminPort}/events`, { headers: { authorization: 'Bearer test-key' } });
     const reader = res.body!.pipeThrough(new TextDecoderStream()).getReader();
     let text = '';
     while (!/event: status\ndata: (.*)\n\n/.test(text)) text += (await reader.read()).value ?? '';
     void reader.cancel();
-    return JSON.parse(/event: status\ndata: (.*)\n\n/.exec(text)![1]).site;
+    return JSON.parse(/event: status\ndata: (.*)\n\n/.exec(text)![1]).pages;
   };
 
+  /** The pages by their beat, without what they do. */
+  const flat = ({ by, ...top }: ReturnType<typeof site>) => top;
   const folded = JSON.parse(fs.readFileSync(path.join(dir, 'stats', `${old}.json`), 'utf8')).total;
   assert.deepEqual([folded.plays, folded.client.n, folded.client.browsers, folded.client.events.counts], [1, 1, { Chrome: 1 }, {}], 'an old day folds');
 
   // The saved hour loads: no events, the errors by message.
   assert.deepEqual((await history()).events, { steps: { play: 0, ready: 0, sprayed: 0, joined: 0 }, tutorial: {}, counts: {}, seconds: { playing: 0, idle: 0, menu: 0 }, settings: {} });
   assert.deepEqual((await history()).errors, { count: 1, plays: 1, byMessage: { 'old error': 1 } });
-  assert.deepEqual(await onSite(), { menu: 0, solo: 0, session: 0, hidden: 0 });
+  assert.deepEqual(flat(await onSite()), { menu: 0, solo: 0, session: 0, hidden: 0 });
 
   // A beacon of the first version: no events, no beat.
   assert.equal(await send({ first: { gpu: 'NVIDIA GeForce RTX 3060', load: 3.1 } }), 204);
@@ -71,7 +74,7 @@ try {
   assert.equal(await send({ fps: { avg: 'fast' } }), 400);
   assert.equal(await send({ errors: ['x'.repeat(1000)] }), 400);
   assert.deepEqual((await history()).events.counts, {});
-  assert.deepEqual(await onSite(), { menu: 0, solo: 0, session: 0, hidden: 0 });
+  assert.deepEqual(flat(await onSite()), { menu: 0, solo: 0, session: 0, hidden: 0 });
 
   // Beacons with the events.
   assert.equal(await send({ beat: 'menu', first: { gpu: null, load: 1.2, settings: { detail: 'high', music: 'on', volume: '0.5' } }, steps: ['play', 'ready'], tutorial: ['move', 'look'], counts: { jump: 3, 'pickup.can': 1 }, seconds: { playing: 12.3, idle: 4, menu: 1.1 } }), 204);
@@ -99,13 +102,15 @@ try {
   });
   console.log('client', JSON.stringify(client));
   const now = await onSite();
-  assert.deepEqual(now, { menu: 2, solo: 1, session: 1, hidden: 1 });
+  assert.deepEqual(flat(now), { menu: 2, solo: 1, session: 1, hidden: 1 });
+  // Beacons of this game say nothing of what the page does: an older game's pages, playing unless in the menu or hidden.
+  assert.deepEqual(now.by, { playing: { session: 1, alone: 1 }, idle: { session: 0, alone: 0 }, menu: { session: 0, alone: 2 }, hidden: { session: 0, alone: 1 } });
   console.log('site', JSON.stringify(now));
 
   // A body that isn't one is refused whole: nothing of it is counted, not even its beat.
   const many = (value: unknown, n: number) => Object.fromEntries(Array.from({ length: n }, (_, i) => [`k${i}`, value]));
   const wrong: Record<string, unknown>[] = [
-    { beat: 'lobby' }, { beat: 1 }, { beat: null },
+    { beat: 'lobby' }, { beat: 1 }, { beat: null }, { doing: 'sleeping' }, { doing: 1 }, { doing: null },
     { first: { gpu: null, load: 1, settings: [] } },
     { first: { gpu: null, load: 1, settings: null } },
     { first: { gpu: null, load: 1, settings: { Detail: 'high' } } },
@@ -128,7 +133,7 @@ try {
 
   // The first message's device id makes a player: once by device and once by address, over the period; a bad one refuses the body.
   const players = async () => {
-    const h = await (await fetch(`http://localhost:${main.adminPort}/history?period=24h`, { headers: { authorization: 'Bearer test-key' } })).json();
+    const h = await (await fetch(`http://localhost:${main.adminPort}/stats/people?period=24h`, { headers: { authorization: 'Bearer test-key' } })).json();
     return [h.players, h.inSessions];
   };
   const [d1, d2] = ['1'.repeat(32), '2'.repeat(32)];
@@ -142,6 +147,21 @@ try {
   assert.deepEqual([reached.device - before1.device, reached.address - before1.address], [2, 3], 'two devices, three addresses; the same page twice in an hour is one');
   assert.deepEqual(inSessions, joined, 'a page that reached the level did not join');
   for (const device of ['x', 5, 'A'.repeat(32), '1'.repeat(33)]) assert.equal(await send({ first: { gpu: null, load: 1, device } }), 400, String(device));
+
+  // The days the game keeps on the device (first, and the day before today: each none or a day up to tomorrow) make the day's row; a bad one refuses the body.
+  {
+    const today = Math.floor(Date.now() / 864e5);
+    const [d3, d4, d5, d6] = ['3', '4', '5', '6'].map((c) => c.repeat(32));
+    const days = (device: string, days: unknown) => send({ first: { gpu: null, load: 1, device, days } });
+    assert.equal(await days(d3, { first: today - 3, prev: today - 1 }), 204);
+    assert.equal(await days(d4, { first: today, prev: null }), 204);
+    assert.equal(await days(d5, { first: null, prev: today - 2 }), 204);
+    assert.equal(await days(d6, { first: today + 1, prev: null }), 204, 'tomorrow, for a clock ahead');
+    for (const bad of [5, [], null, {}, { first: 1 }, { prev: 1 }, { first: -1, prev: null }, { first: 1.5, prev: null }, { first: 'x', prev: null }, { first: today + 2, prev: null }, { first: null, prev: today + 2 }]) assert.equal(await days(d3, bad), 400, JSON.stringify(bad));
+    const { days: rows } = await (await fetch(`http://localhost:${main.adminPort}/stats/people/days`, { headers: { authorization: 'Bearer test-key' } })).json();
+    const row = rows.at(-1);
+    assert.deepEqual([row.day, row.ages, row.gaps, row.gapsNone, row.unknownGaps, row.unknownGapsNone, row.unmatched, row.newPlayers, row.returningPlayers, row.unknownPlayers], [new Date(today * 864e5).toISOString().slice(0, 10), { 0: 1, 3: 1 }, { 1: 1 }, 1, { 2: 1 }, 1, 2, 1, 1, 4]);
+  }
 
   // The most is fine: an empty body, the limits.
   assert.equal(await send({}), 204);
@@ -191,7 +211,7 @@ try {
     const was = SERVER.peoplePages;
     SERVER.peoplePages = 3;
     try {
-      const count = () => people.count(0);
+      const count = () => people.count(0, Infinity);
       const [n0, j0] = [count().players.device, count().inSessions.device];
       for (let i = 0; i < 5; i++) people.played(`${i}`.repeat(32), '10.9.9.9', null, 'page');
       assert.equal(count().players.device - n0, 3);
@@ -199,7 +219,7 @@ try {
       people.played('0'.repeat(32), '10.9.9.9', 'FR', 'join');
       const c = count();
       assert.deepEqual([c.players.device - n0, c.inSessions.device - j0], [4, 2]);
-      assert.equal(c.playerCountries.FR, 1, 'a page without a country takes the next one');
+      assert.equal(c.countries.FR, 1, 'a page without a country takes the next one');
     } finally {
       SERVER.peoplePages = was;
     }
@@ -218,13 +238,14 @@ try {
     await post({ beat: 'solo' }, t + 20e3);
     await post({ beat: 'menu' }, t + 50e3);
     Date.now = () => t + 50e3;
-    assert.deepEqual(site(), { menu: 1, solo: 2, session: 0, hidden: 0 });
+    assert.deepEqual(flat(site()), { menu: 1, solo: 2, session: 0, hidden: 0 });
     Date.now = () => t + NET.beaconEvery * 1000 + 1e3;
-    assert.deepEqual(site(), { menu: 1, solo: 2, session: 0, hidden: 0 }, 'a late minute beacon still counts');
+    assert.deepEqual(flat(site()), { menu: 1, solo: 2, session: 0, hidden: 0 }, 'a late minute beacon still counts');
     Date.now = () => t + SERVER.beaconSiteSeconds * 1000 + 1e3;
-    assert.deepEqual(site(), { menu: 1, solo: 1, session: 0, hidden: 0 }, 'the first is gone');
+    assert.deepEqual(flat(site()), { menu: 1, solo: 1, session: 0, hidden: 0 }, 'the first is gone');
     Date.now = () => t + 200e3;
-    assert.deepEqual(site(), { menu: 0, solo: 0, session: 0, hidden: 0 });
+    assert.deepEqual(flat(site()), { menu: 0, solo: 0, session: 0, hidden: 0 });
+    assert.deepEqual(site().by.playing, { session: 0, alone: 0 }, 'and out of what they did');
 
     // At most SERVER.beaconIps addresses a minute: a new one past that is turned away, one already counted is not.
     const cap = SERVER.beaconIps;
@@ -240,7 +261,7 @@ try {
 
     // A page counts once, by its id, whatever its beats: two pages beating every minute are 2 at every moment (the 90 s window
     // used to count a page twice for half of each minute), a page that changes what it does counts once.
-    const total = () => Object.values(site()).reduce((a, b) => a + b, 0);
+    const total = () => Object.values(flat(site())).reduce((a, b) => a + b, 0);
     const u = t + 1e6;
     const [p1, p2] = [randomUUID(), randomUUID()];
     for (let s = 0; s <= 600; s += 5) {
@@ -249,7 +270,7 @@ try {
       Date.now = () => u + s * 1e3;
       if (s >= 30) assert.equal(total(), 2, `2 pages at ${s} s`);
     }
-    assert.deepEqual(site(), { menu: 0, solo: 1, session: 1, hidden: 0 }, 'the first went from the menu to solo: counted once');
+    assert.deepEqual(flat(site()), { menu: 0, solo: 1, session: 1, hidden: 0 }, 'the first went from the menu to solo: counted once');
     // A page that is gone is counted until its window ends, or its goodbye comes.
     const v = u + 1e6;
     await post({ page: p1, beat: 'solo' }, v);
@@ -257,7 +278,7 @@ try {
     Date.now = () => v + 2e3;
     assert.equal(total(), 2);
     await post({ page: p1, bye: true, counts: { jump: 1 }, beat: 'solo' }, v + 3e3);
-    assert.deepEqual(site(), { menu: 0, solo: 0, session: 0, hidden: 1 }, 'a goodbye takes the page off at once, and wins over a beat');
+    assert.deepEqual(flat(site()), { menu: 0, solo: 0, session: 0, hidden: 1 }, 'a goodbye takes the page off at once, and wins over a beat');
     await post({ page: randomUUID(), bye: true }, v + 4e3);
     assert.equal(total(), 1, 'the goodbye of a page not counted changes nothing');
     await post({ page: p1, beat: 'solo' }, v + 5e3);
@@ -265,7 +286,25 @@ try {
     // The old game: no id, each beat is a page of its own.
     await post({ beat: 'menu' }, v + 6e3);
     await post({ beat: 'menu' }, v + 7e3);
-    assert.deepEqual(site(), { menu: 2, solo: 1, session: 0, hidden: 1 });
+    assert.deepEqual(flat(site()), { menu: 2, solo: 1, session: 0, hidden: 1 });
+    // What the pages do (`doing`), each in a session or alone; an older game's beat has none: playing, unless it is in the menu or hidden. A hidden page stays where its last beat put it.
+    const x = v + 1e6;
+    const [a, b, c, d, e] = [randomUUID(), randomUUID(), randomUUID(), randomUUID(), randomUUID()];
+    await post({ page: a, beat: 'solo', doing: 'playing' }, x);
+    await post({ page: b, beat: 'session', doing: 'idle' }, x + 1e3);
+    await post({ page: c, beat: 'session', doing: 'playing' }, x + 2e3);
+    await post({ page: d, beat: 'menu', doing: 'menu' }, x + 3e3);
+    await post({ page: e, beat: 'hidden', doing: 'hidden' }, x + 4e3);
+    await post({ page: randomUUID(), beat: 'solo' }, x + 5e3);
+    await post({ page: randomUUID(), beat: 'menu' }, x + 5e3);
+    await post({ beat: 'hidden' }, x + 5e3);
+    Date.now = () => x + 6e3;
+    assert.deepEqual(site().by, { playing: { session: 1, alone: 2 }, idle: { session: 1, alone: 0 }, menu: { session: 0, alone: 2 }, hidden: { session: 0, alone: 2 } });
+    await post({ page: b, beat: 'hidden', doing: 'hidden' }, x + 7e3);
+    Date.now = () => x + 8e3;
+    assert.deepEqual([flat(site()), site().by], [{ menu: 2, solo: 2, session: 1, hidden: 3 }, { playing: { session: 1, alone: 2 }, idle: { session: 0, alone: 0 }, menu: { session: 0, alone: 2 }, hidden: { session: 1, alone: 2 } }]);
+    Date.now = () => x + 200e3;
+    assert.deepEqual(site().by, { playing: { session: 0, alone: 0 }, idle: { session: 0, alone: 0 }, menu: { session: 0, alone: 0 }, hidden: { session: 0, alone: 0 } }, 'all gone');
     // A wrong id or goodbye refuses the whole body; the page list stays within SERVER.beaconPages.
     for (const body of [{ page: 'x' }, { page: 5 }, { page: p1.toUpperCase() }, { page: `${p1}0` }, { bye: false }, { bye: 'yes' }]) assert.equal(await post({ beat: 'menu', ...body }, v + 8e3), 400, JSON.stringify(body));
     const most = SERVER.beaconPages;
@@ -280,7 +319,7 @@ try {
   } finally {
     Date.now = realNow;
   }
-  console.log('beacon: ok (first-version bodies, the events, refused bodies, Other, a saved hour, the report, who is on the site by page, goodbyes and old games)');
+  console.log('beacon: ok (first-version bodies, the events, refused bodies, Other, a saved hour, the report, who is on the site by page and by what it does, goodbyes and old games)');
 } finally {
   main.stop();
   fs.rmSync(dir, { recursive: true, force: true });

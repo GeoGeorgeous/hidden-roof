@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 278
+The one list of what's left. Counter for new ids: next: 280
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -75,7 +75,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 1. BUGS [BL-034]: Paint pages at ULTRA can reach ~1 GB of GPU memory: measured, 1045 MB is the ceiling (all 49 pages, 72% full); the lossless fix is BL-144 (docs/ideas/performance.md)
 2. [PERF-200]: Reduce Ladder Shadow Update Delay Without Frequent Rebaking @1.7.0
-3. [PERF-269]: The server's thread spared on admin reads and logging: /traffic?period=30d reads and parses up to 31 hours files one after another (MBs of JSON), /history?period=30d sums 720 hours each time (closed hours never change), /events/page parses today's whole file for 50 events; the log appends each line with appendFileSync
+3. [PERF-269]: The server's thread spared on admin reads and logging: /stats/traffic?period=30d reads and parses up to 61 hours files one after another with its `before` (MBs of JSON), /stats/*?period=30d sum 1440 hours each time with theirs (closed hours never change), /events/page parses today's whole file for 50 events; the log appends each line with appendFileSync
 
 ## Rendering
 
@@ -137,14 +137,14 @@ Only `N.`, the id and the description are required. The optional parts appear in
 2. [IDEA-240]: Admin: ban by IP (with a reason the player is shown); restoring a save is CCTV-255 (docs/ideas/public-servers.md)
 3. IDEA [?BL-147]: Anti-cheat: The server checks what players send (op reach and rate, ladder spot, jumps) before it goes public @1.6.1
 4. [TASK-201]: Research itch.io Publishing Requirements, AI Policies, and Download Restrictions @1.6.3
-5. [TASK-275]: Staging on 1.6.0 as dev has it (protocol 9, ADMIN_API 3): its `stats/` (people files in it) and `traffic/` wiped first, since formats only staging wrote are no longer read; the cctv page deployed with it (cctv a608340); then the owner plays a session and checks the admin page there (docs/ideas/vps.md) @1.6.0
-6. [TASK-276]: Production on 1.6.0 once it is released: the server's data, admin key and the public session, GeoIP each month, roof-traffic (docs/ideas/vps.md items 1-3), and Caddy's `/api/main` for the admin page (docs/deploy.md §9) @1.6.0
+5. [TASK-275]: Staging on 1.6.0 as dev has it (protocol 9, ADMIN_API 4): its `stats/`, `traffic/` and `events/` wiped first (the owner: the stats start from a clean slate with 1.6.0, on 2026-11-01); the cctv page deployed with it (its ADMIN_API 4 build, CCTV-278); then the owner plays a session and checks the admin page there (docs/ideas/vps.md) @1.6.0
+6. [TASK-276]: Production on 1.6.0 once it is released (2026-11-01; its stats start then, from an empty DATA_DIR): the server's data, admin key and the public session, GeoIP each month, roof-traffic (docs/ideas/vps.md items 1-3), and Caddy's `/api/main` for the admin page (docs/deploy.md §9) @1.6.0
 
 ## CCTV
 
-The admin page (the cctv repo) and the server side it reads (server/admin-api.ts). Specs: docs/ideas/admin-data.md.
+The admin page (the cctv repo) and the server side it reads (server/admin/). The API: docs/admin-api.md; why: docs/ideas/admin-data.md.
 
-1. [CCTV-271]: A save's `stats` in GET /sessions in the shape of the session's `stats` (stamps by tool, painters), the page sums them; and one of a session's `today` and `stats` for the page, not both
+1. [CCTV-271]: A save's `stats` in GET /sessions in the shape of the session's `stats` (stamps by tool, painters), the page sums them; and one of a session's `today` and `stats` for the page, not both (in CCTV-278: `today` goes) @1.6.0
 
 ## Web and promotion
 
@@ -160,7 +160,7 @@ The admin page (the cctv repo) and the server side it reads (server/admin-api.ts
 ## Legal
 
 1. [TASK-187]: The beacon, the device id and the address hash run without a consent dialog (the owner's decision and risk, recorded in SECRET_legal.md); the privacy page names them (TASK-242)
-2. [TASK-242]: The privacy page names what the admin's stats keep: a random device id in localStorage, the address as a salted hash (a new salt every 30 days), the country, plays kept 30 days and counts forever, the web traffic read from the server's access log (a visitor as a salted hash of address and browser, a new salt every 30 days, the hashes kept by the hour for 30 days); why, and how to object; DB-IP's credit (CC BY 4.0) (docs/ideas/public-servers.md); the beacon's session-link minute too (ping, closes, KB/s: no ids)
+2. [TASK-242]: The privacy page names what the admin's stats keep: a random device id in localStorage, the address as a salted hash (a new salt each month), the country, the day the device first played and its last play day (in localStorage, sent with the beacon; the server keeps only counts by day), plays kept 91 days and counts forever, the web traffic read from the server's access log (a visitor as a salted hash of address and browser, a new salt each month, the hashes kept by the hour for 91 days, each with the country of its first view in that hour); why, and how to object; DB-IP's credit (CC BY 4.0) (docs/ideas/public-servers.md); the beacon's session-link minute too (ping, closes, KB/s: no ids) @1.6.0
 3. [TASK-189]: The Terms' moderation section (DSA: grounds and measures, reports by email, a restricted player told what and why); the house rules screen is in (docs/ideas/public-servers.md)
 
 ## Codebase
@@ -214,6 +214,8 @@ Shipped since the last release; the release commit empties this list.
 37. [CCTV-267]: Network health in the beacon, as the first playtest's telemetry had it: each minute in a session the app ping (p50, p95, max), closes by code (`timeout`: the game gave up on a silent link), reconnect times, stalls (nothing from the server for over 1.5 s), KB/s each way; counted per hour as `client.net` in /history; a Network block on Stats (lost links an hour of session time: 1006 and timeout) (cctv 4c498f1) @1.6.0
 38. [CCTV-261]: ADMIN_API 3: /history's `people` and `countries` gone (players, inSessions and playerCountries), a session's `today.topColor` gone (the page takes the most painted of `colors`), `client`'s fps, low1, load and join plain histograms keyed in their unit with no medians (the page makes them); deployed with cctv a608340 @1.6.0
 39. [RFCT-274]: 1.6.0's network and admin code made simpler (review of 2026-10-27): a rejection is the link's close code alone (no `rejected` message; protocol stays 9), every way out of a session is one path with one `left` event (a kick wrote two, a close none), one lock per kept session and the saves chained, one atomic write, progress as a step and a percent, Reconnect keeps its own tries, HOST in lobby-host.ts, no fixups for formats only staging wrote (its stats, people and traffic files are wiped before the release) @1.6.0
+40. [CCTV-278]: ADMIN_API 4 for the page's redesign, one contract in docs/admin-api.md: routes by resource (server, live, events, /stats/play|people|paint|client|traffic with `before` and `days`, sessions) in server/admin/; limits and settings in GET /; the last 60 minutes in memory; pages split by what they do (idle from the beat); players' state and seen days; new and returning players, networks; traffic's before, hours, bots, and visitors by country a day and over a period (a country kept beside each visitor's hash, the owner); bytes down and today; session-closed detail; events paged by type and since; every pause-menu link counted; history and hashes kept 91 days (docs/ideas/admin-data.md) @1.6.0
+41. [CCTV-279]: History forever as counts (owner: "days on the device"): the game keeps its first and last play day beside the device id and the beacon sends them; each day's people (new, returning, devices by days since first play and since the play before) in stats/audience-<YYYY>.json, so players over any range, new and returning (never null) and retention by first-play day, without matching hashes; /stats/play|paint|people|traffic/days by date range, /stats/traffic/months (visitors each once a month); salts change at each month's start (docs/admin-api.md, History) @1.6.0
 
 ## Discarder
 

@@ -1,60 +1,59 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { COLOR_ORDER, SERVER } from '../src/config';
+import { SERVER } from '../src/config';
 import type { Rejection } from '../src/net/protocol';
 import { writeAtomic } from './atomic';
-import { addClient, clientReport, noClient, type ClientCounts } from './client-counts';
+import { addClient, noClient, type ClientCounts } from './client-counts';
 import { noPaint, raised, type Paint } from './counts';
 import { log } from './log';
 import type { Link } from './player';
 import { people } from './people';
+import { dayName, HOUR, type Span } from './stats-period';
 
-// The admin page's history (GET /history): counts by UTC hour, added to on
-// paths that already run. Plays are counted when they start, their length when
-// they end; play seconds are sampled once a minute. With a directory (DATA_DIR)
+// The admin page's history (GET /stats, server/admin/stats.ts): counts by UTC hour,
+// added to on paths that already run. Plays are counted when they start, their length
+// when they end; play seconds and the bytes each way are sampled once a minute. With a directory (DATA_DIR)
 // each day's hours are written to stats/<day>.json once a minute when they
 // changed; past SERVER.historyDays a day keeps only its total, forever. The most
 // players ever is in stats/peak.json. Without one, history starts with the server.
 
-interface Hour extends Paint {
+export interface Hour extends Paint {
   plays: number;
-  /** Plays that ended, by length (SERVER.playLengths). */
-  lengths: number[];
+  /** Plays that ended, by whole minutes; the last bin is SERVER.lengthMinutesMost and up. */
+  minutes: Record<string, number>;
   /** Play seconds, and those with someone else in the same session. */
   seconds: number;
   withOthers: number;
   turnedAway: Partial<Record<Rejection, number>>;
   peak: { players: number; at: string } | null;
+  /** Bytes sent to the games and received from them. */
+  bytes: { up: number; down: number };
   /** The games' beacons (beacon.ts). */
   client: ClientCounts;
 }
 
-export type Period = 'today' | '24h' | '7d' | '30d';
-const HOURS: Record<Exclude<Period, 'today'>, number> = { '24h': 24, '7d': 7 * 24, '30d': 30 * 24 };
-export const isPeriod = (p: string): p is Period => p === 'today' || Object.hasOwn(HOURS, p);
+const blank = (): Hour => ({ plays: 0, minutes: {}, seconds: 0, withOthers: 0, turnedAway: {}, ...noPaint(), peak: null, bytes: { up: 0, down: 0 }, client: noClient() });
 
-export const HOUR = 3600e3;
-const iso = (ms: number) => new Date(ms).toISOString();
-const dayName = (day: number) => iso(day * 24 * HOUR).slice(0, 10);
-const blank = (): Hour => ({ plays: 0, lengths: [0, 0, 0, 0], seconds: 0, withOthers: 0, turnedAway: {}, ...noPaint(), peak: null, client: noClient() });
-
-/** The first hour (since 1970) of `period`, up to `now` (ms): today since 00:00 UTC, or the last 24, 7 x 24 or 30 x 24 hours counting this one. */
-export function firstHour(period: Period, now: number) {
-  const h = Math.floor(now / HOUR);
-  return period === 'today' ? Math.floor(h / 24) * 24 : h - HOURS[period] + 1;
+/** An hour as a file has it: what an older file lacks is none. */
+export function read(file: Hour): Hour {
+  const h = { ...blank(), ...file } as Hour & { lengths?: unknown };
+  delete h.lengths;
+  return h;
 }
 
 /** `hours` added up. */
-function sum(hours: Iterable<Hour>) {
+export function sum(hours: Iterable<Hour>) {
   const t = blank();
   const add = <K extends string>(to: Partial<Record<K, number>>, from: Partial<Record<K, number>>) => {
     for (const k in from) to[k] = (to[k] ?? 0) + from[k]!;
   };
   for (const h of hours) {
     t.plays += h.plays;
-    h.lengths.forEach((n, i) => (t.lengths[i] += n));
+    add(t.minutes, h.minutes);
     t.seconds += h.seconds;
     t.withOthers += h.withOthers;
+    t.bytes.up += h.bytes.up;
+    t.bytes.down += h.bytes.down;
     add(t.turnedAway, h.turnedAway);
     add(t.stamps, h.stamps);
     add(t.colors, h.colors);
@@ -72,6 +71,8 @@ class History {
   /** When the counts start: the oldest hour kept, or the server's start. */
   private since = Date.now();
   private dir: string | null = null;
+  /** The bytes totals at the last `bytes`. */
+  private sent = { up: 0, down: 0 };
   /** The most players at once, ever (with a directory). */
   ever: Hour['peak'] = null;
   private everChanged = false;
@@ -97,8 +98,9 @@ class History {
 
   /** A play ended after `seconds`. */
   played(seconds: number) {
-    const i = SERVER.playLengths.findIndex((s) => seconds < s);
-    this.now().lengths[i < 0 ? SERVER.playLengths.length : i]++;
+    const m = String(Math.min(Math.floor(seconds / 60), SERVER.lengthMinutesMost));
+    const minutes = this.now().minutes;
+    minutes[m] = (minutes[m] ?? 0) + 1;
   }
 
   turnedAway(why: Rejection) {
@@ -124,21 +126,36 @@ class History {
     }
   }
 
-  /** The counts in `period`, up to now. `from`: its start, or when the counts start if that's later. */
-  report(period: Period) {
-    const now = Date.now();
-    const first = firstHour(period, now);
-    const kept = [...this.hours].filter(([k]) => k >= first);
-    const t = sum(kept.map(([, v]) => v));
-    const joinsPerHour = Array<number>(24).fill(0);
-    for (const [k, v] of kept) joinsPerHour[k % 24] += v.plays;
-    const [under2m, m2to10, m10to30, over30m] = t.lengths;
-    const colors = Object.fromEntries(COLOR_ORDER.flatMap((c) => (t.colors[c] ? [[c, t.colors[c]]] : [])));
-    return {
-      period, from: iso(Math.max(first * HOUR, this.since)), to: iso(now),
-      plays: t.plays, playLength: { under2m, m2to10, m10to30, over30m }, playSeconds: Math.round(t.seconds), withOthers: Math.round(t.withOthers),
-      joinsPerHour, turnedAway: t.turnedAway, stamps: t.stamps, colors, peak: t.peak, ...people.count(first), client: clientReport(t.client),
-    };
+  /** The bytes sent and received since the last ask (`up`, `down`: totals since the start, counts.ts traffic), added to this hour. An hour with none isn't written again. */
+  bytes(up: number, down: number) {
+    const [dUp, dDown] = [up - this.sent.up, down - this.sent.down];
+    this.sent = { up, down };
+    if (!dUp && !dDown) return;
+    const bytes = this.now().bytes;
+    bytes.up += dUp;
+    bytes.down += dDown;
+  }
+
+  /** The hours of `s` kept, as [hour since 1970, counts], oldest first. */
+  within(s: Span) {
+    const kept: [number, Hour][] = [];
+    for (let k = s.first; k < s.end; k++) {
+      const hour = this.hours.get(k);
+      if (hour) kept.push([k, hour]);
+    }
+    return kept;
+  }
+
+  /** The bytes each way since 00:00 UTC. */
+  bytesToday() {
+    const end = Math.floor(Date.now() / HOUR) + 1;
+    const { up, down } = sum(this.within({ first: Math.floor(end / 24) * 24, end }).map(([, h]) => h)).bytes;
+    return { upBytes: up, downBytes: down };
+  }
+
+  /** When the counts begin (ms): the oldest hour kept, or the server's start. */
+  get begin() {
+    return this.since;
   }
 
   /** Keep it in `dir`/stats: the last SERVER.historyDays read back, older days down to their totals. */
@@ -149,12 +166,12 @@ class History {
     const today = Math.floor(Date.now() / HOUR / 24);
     for (const name of await fs.readdir(this.dir)) {
       const day = Date.parse(name.slice(0, 10)) / HOUR / 24;
-      if (!name.endsWith('.json') || !Number.isInteger(day)) continue;
+      if (!/^\d{4}-\d\d-\d\d\.json$/.test(name) || !Number.isInteger(day)) continue;
       try {
         const file = JSON.parse(await fs.readFile(path.join(this.dir, name), 'utf8')) as { hours?: Record<string, Hour>; total?: Hour };
         if (!file.hours) continue;
-        if (day < today - SERVER.historyDays) await this.write(name, { total: sum(Object.values(file.hours)) });
-        else for (const [k, v] of Object.entries(file.hours)) this.hours.set(day * 24 + Number(k), v);
+        if (day < today - SERVER.historyDays) await this.write(name, { total: sum(Object.values(file.hours).map(read)) });
+        else for (const [k, v] of Object.entries(file.hours)) this.hours.set(day * 24 + Number(k), read(v));
       } catch (e) {
         log('-----', `stats ${name} skipped:`, e);
       }

@@ -4,11 +4,12 @@ import { SERVER } from '../src/config';
 import { log } from './log';
 
 // The admin's events on disk (DATA_DIR/events/<YYYY-MM-DD>.jsonl, a JSON line each, the UTC day of its id), read back in
-// pages (GET /events/page, admin-api.ts). Files older than SERVER.eventDays go; a day's file stops at
+// pages (GET /events/page, admin/live.ts). Files older than SERVER.eventDays go; a day's file stops at
 // SERVER.eventDayBytes, past it events are counted, not written, and the count is reported when the day ends
 // (events.ts writes it as one event of the next day). A write that fails is logged once and never thrown.
 
-export type EventType = 'joined' | 'left' | 'dropped' | 'turned-away' | 'session-made' | 'session-closed' | 'wiped' | 'wiped-at-start' | 'save-failed' | 'restored' | 'events-dropped';
+export const EVENT_TYPES = ['joined', 'left', 'dropped', 'turned-away', 'session-made', 'session-closed', 'wiped', 'wiped-at-start', 'save-failed', 'restored', 'events-dropped'] as const;
+export type EventType = (typeof EVENT_TYPES)[number];
 
 export interface AdminEvent {
   /** `<ms>-<n>`: the time and a counter within that ms. Compare with `later`, as numbers. */
@@ -38,6 +39,22 @@ export function later(a: string, b: string) {
   const [x, y] = [parseId(a)!, parseId(b)!];
   return x[0] !== y[0] ? x[0] > y[0] : x[1] > y[1];
 }
+
+/** `s` (an event id, or a UTC time as ISO 8601) as an id: the events after the time are the ones after this id. Null if it is neither. */
+export function sinceId(s: string) {
+  if (parseId(s)) return s;
+  const ms = /^\d{4}-\d\d-\d\dT.*Z$/.test(s) ? Date.parse(s) : NaN;
+  return ms >= 0 && ms < 1e15 ? `${ms}-999999999` : null;
+}
+
+/** Besides `before`, which events a page is of: those after the id `since`, and of `types` (none: all). */
+export interface Only {
+  since?: string | null;
+  types?: readonly EventType[];
+}
+
+/** Whether `e` is one of those asked for: before the id `before`, and `only`. */
+export const wanted = (e: AdminEvent, before: string | null, { since, types }: Only = {}) => (!before || later(before, e.id)) && (!since || later(e.id, since)) && (!types?.length || types.includes(e.type));
 
 /** A page of `events` (newest first, as many as asked for and perhaps one more): the first `limit`, and `next`, the id to ask `before` for the page after, or null. */
 export function pageOf(events: AdminEvent[], limit: number) {
@@ -101,11 +118,12 @@ export class EventLog {
       );
   }
 
-  /** The events before id `before` (none: from the newest), newest first. `before` may be an id no longer on disk. */
-  async page(before: string | null, limit: number) {
+  /** The events before id `before` (none: from the newest), and `only` those asked for, newest first. `before` may be an id no longer on disk; files of days before `since`'s aren't read. */
+  async page(before: string | null, limit: number, only: Only = {}) {
     await this.tail;
     const upto = before ? dayName(parseId(before)![0]) : '9999-12-31';
-    const files = await fs.readdir(this.dir).then((names) => names.filter((n) => FILE.test(n) && n.slice(0, 10) <= upto).sort().reverse(), () => []);
+    const from = only.since ? dayName(parseId(only.since)![0]) : '';
+    const files = await fs.readdir(this.dir).then((names) => names.filter((n) => FILE.test(n) && n.slice(0, 10) <= upto && n.slice(0, 10) >= from).sort().reverse(), () => []);
     const out: AdminEvent[] = [];
     for (const name of files) {
       const text = await fs.readFile(path.join(this.dir, name), 'utf8').catch(() => '');
@@ -113,7 +131,7 @@ export class EventLog {
       for (const line of text.split('\n')) {
         try {
           const e = JSON.parse(line) as AdminEvent;
-          if (typeof e.id === 'string' && parseId(e.id) && (!before || later(before, e.id))) day.push(e);
+          if (typeof e.id === 'string' && parseId(e.id) && wanted(e, before, only)) day.push(e);
         } catch {
           // a line half written, or not ours
         }

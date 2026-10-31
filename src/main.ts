@@ -208,7 +208,7 @@ input.onLockChange = (locked) => {
 };
 input.onResume = hud.menu.onResume = () => play.resume();
 hud.menu.onStyle = (i) => (settings.setStyle(i), beacon.setting('graphics.style'));
-hud.menu.onSocial = (id) => id === 'discord' && beacon.count('discord');
+hud.menu.onSocial = (id) => beacon.count(id);
 showMenu();
 const testPage = perfTestPage(hud.menu, perfTest, gpu, () => settings.tested());
 hud.menu.setSettings(settings.sections(gpu, testPage.run, tutorial));

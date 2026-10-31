@@ -4,7 +4,7 @@
 //     (--stay: a private session stays when empty; a public one always does; --players: a private one's most players, 2 to 4)
 //   node admin.mjs wipe CODE
 //   node admin.mjs close CODE
-// It asks the admin API (server/admin-api.ts) on ADMIN_PORT (SERVER.adminPort) with ADMIN_KEY, both from the container's env.
+// It asks the admin API (server/admin/) on ADMIN_PORT (SERVER.adminPort) with ADMIN_KEY, both from the container's env.
 
 const [what, ...args] = process.argv.slice(2);
 const api = `http://localhost:${process.env.ADMIN_PORT || 3001}`;

@@ -104,7 +104,7 @@ export function countSetting(c: ClientCounts, key: string, value: string, n = 1)
   count((to[k] = Object.hasOwn(to, k) ? to[k] : {}), value, n);
 }
 
-/** As /history answers it: counts and histograms, no medians (the admin page makes them). */
+/** As /stats/client answers it: counts and histograms, no medians (the admin page makes them). */
 export function clientReport(c: ClientCounts) {
   const { steps, tutorial, counts, seconds, settings } = c.events;
   return {
@@ -129,7 +129,7 @@ export function clientReport(c: ClientCounts) {
   };
 }
 
-/** The session links' counts as /history answers them: minutes in sessions. */
+/** The session links' counts as /stats/client answers them: minutes in sessions. */
 function netReport({ seconds, ...rest }: ClientCounts['net']) {
   return { minutes: Math.round(seconds / 60) / 10, ...rest };
 }
