@@ -7,10 +7,11 @@ import { opTool } from '../src/paint-ops';
 import { encode, partFrames, relayEntry, type Rejection, type ToClient, type ToServer } from '../src/net/protocol';
 import { loadPaint } from '../src/save/load-paint';
 import { surfaceTable } from '../src/save/shape';
-import { countPaint, DayCounts, SessionStats } from './counts';
+import { countPaint, SessionStats } from './counts';
 import { event } from './events';
 import { history } from './history';
 import { log, logNoisy, span, who } from './log';
+import { turnedAway } from './minutes';
 import { deliver, presence, turnAway, uniqueName, type Link, type Player } from './player';
 import { Queue } from './queue';
 import { forget, relay } from './relay';
@@ -60,8 +61,6 @@ export class Session {
   changed = false;
   /** The admin's wipes so far: a paint file read before the last one is not this paint. */
   wipes = 0;
-  /** Its paint and most players this UTC day, for the admin page. */
-  readonly today = new DayCounts();
   /** Its counts since its paint began (a wipe zeroes them, kept.ts brings a save's back). */
   stats = new SessionStats();
   /** When its last player went (ms), or null with players in it. */
@@ -73,7 +72,7 @@ export class Session {
     readonly level: LevelData,
     /** PAINT DETAIL, texels per meter, picked by the host. */
     readonly detail: number,
-    private onEmpty: (why: string) => void,
+    private onEmpty: (why: string, saves: number) => void,
     readonly setup = HOSTED,
   ) {
     this.off = new Set(SLOTS.filter((t) => !setup.tools.includes(t)));
@@ -130,19 +129,21 @@ export class Session {
       if (p.link) {
         event('turned-away', this, p.name, { reason: 'replaced' });
         history.turnedAway('replaced');
+        turnedAway('replaced');
       }
       turnAway(p.link, 'replaced');
       forget(p);
+      const before = presence(p);
       p.link = link;
       p.device = link.device ?? p.device;
       p.activity = 'here';
+      if (presence(p) !== before) p.since = Date.now();
     } else {
       const unique = uniqueName(name, all);
-      p = { id: this.nextId++, name: unique, asked: name, token: randomUUID(), device: link.device, link, joined: Date.now(), acked: 0, live: false, saving: false, activity: 'here', inventory: null, at: null, ...this.carried.get(unique), ladder: null, expires: null, was: null };
+      p = { id: this.nextId++, name: unique, asked: name, token: randomUUID(), device: link.device, link, joined: Date.now(), acked: 0, live: false, saving: false, activity: 'here', since: Date.now(), inventory: null, at: null, ...this.carried.get(unique), ladder: null, expires: null, was: null };
       this.broadcast({ type: 'joined', id: p.id, name: p.name }, p);
       this.players.set(p.id, p);
     }
-    this.today.players(this.players.size);
     this.stats.players(this.players.size);
     this.emptySince = null;
     p.live = false;
@@ -193,7 +194,7 @@ export class Session {
       const valid = batch.ops.filter((_, i) => keep[i]);
       this.files.now(() => valid.forEach((op) => ops.apply(op)));
       if (!valid.length) return;
-      countPaint(valid, [this.today.paint, history.now(), this.stats.paint]);
+      countPaint(valid, [history.now(), this.stats.paint]);
       this.stats.painter(p.name);
       this.changed = true;
       const bytes = valid.length === batch.ops.length ? m.bytes : encodeOps(batch.t.filter((_, i) => keep[i]), valid, this.surfaces);
@@ -207,7 +208,9 @@ export class Session {
     } else if (m.type === 'save') void this.save(p);
     else if (m.type === 'inventory') p.inventory = m.data;
     else if (m.type === 'status') {
+      const before = presence(p);
       p.activity = m.status;
+      if (presence(p) !== before) p.since = Date.now();
       this.broadcast({ type: 'presence', id: p.id, state: presence(p) }, p);
     }
     else if (m.type === 'ping') this.send(p, { type: 'pong', t: m.t, acked: p.acked });
@@ -219,6 +222,7 @@ export class Session {
     if (p.link !== link) return;
     p.link = null;
     p.live = false;
+    p.since = Date.now();
     p.was = { ip: link.ip, country: link.country ?? null, lived: Date.now() - link.since, at: Date.now(), hold };
     event('dropped', this, p.name, { held: hold });
     this.broadcast({ type: 'presence', id: p.id, state: 'dropped' }, p);
@@ -280,11 +284,11 @@ export class Session {
     }
   }
 
-  /** The admin closed it: everyone, those in line too, is told so (`closed`, not `ended`: nobody ran out of time). */
-  end() {
+  /** The admin closed it: everyone, those in line too, is told so (`closed`, not `ended`: nobody ran out of time). `saves`: how many saves go with it (kept.ts). */
+  end(saves = 0) {
     for (const p of [...this.players.values()]) this.out(p, 'the session was closed', 'closed');
     this.emptySince = Date.now();
-    this.finish('by the admin', 'closed');
+    this.finish('by the admin', 'closed', saves);
   }
 
   /** The admin removed a player: told why, out at once with no seat held, free to join again (the lobby refuses their token for a while). False if there's no such player. */
@@ -351,9 +355,9 @@ export class Session {
   }
 
   /** It's over: those waiting are told, and the lobby forgets it. */
-  private finish(why: string, told: 'ended' | 'closed' = 'ended') {
+  private finish(why: string, told: 'ended' | 'closed' = 'ended', saves = 0) {
     this.line.end(told);
-    this.onEmpty(why);
+    this.onEmpty(why, saves);
   }
 
   /** SAVE: the paint as a paint file, for `p`. One at a time each. */

@@ -3,17 +3,14 @@ import { rgbOf } from '../src/inventory/items';
 import { opTool, type PaintOp } from '../src/paint-ops';
 import type { Rgb } from '../src/painting';
 
-// What the admin page counts (admin-api.ts): plain additions on paths that
+// What the admin page counts (admin/): plain additions on paths that
 // already run, never a pass of their own over the paint.
-
-/** The next midnight UTC (ms) after `t`: the day's counts start again then. */
-const midnight = (t = Date.now()) => (Math.floor(t / 864e5) + 1) * 864e5;
 
 /** The median of `sorted` (ascending): the middle one, or the mean of the two in the middle; null for none. */
 export const median = (sorted: number[]) => (sorted.length ? (sorted[(sorted.length - 1) >> 1] + sorted[sorted.length >> 1]) / 2 : null);
 
-/** Bytes sent to games since the start (main.ts adds each frame), for the upload rate. */
-export const traffic = { sent: 0 };
+/** Bytes sent to games and received from them since the start (main.ts adds each frame and message), for the rates each way. */
+export const traffic = { sent: 0, received: 0 };
 
 const nearest = new Map<number, PaintColor>();
 /** The game color an op's color is (ops carry it rounded on the wire). */
@@ -49,32 +46,6 @@ export function countPaint(ops: readonly PaintOp[], into: Paint[]) {
       if (stamp) p.stamps[stamp]++;
       if (c) p.colors[c] = (p.colors[c] ?? 0) + 1;
     }
-  }
-}
-
-/** A session's paint and most players at once, this UTC day. */
-export class DayCounts {
-  private until = midnight();
-  private kept = noPaint();
-  peak = { players: 0, at: new Date().toISOString() };
-
-  /** Today's paint, to count into (countPaint). */
-  get paint() {
-    this.roll();
-    return this.kept;
-  }
-
-  /** `n` players in it now. */
-  players(n: number) {
-    this.roll();
-    this.peak = raised(this.peak, n)!;
-  }
-
-  private roll() {
-    if (Date.now() < this.until) return;
-    this.until = midnight();
-    this.kept = noPaint();
-    this.peak = { players: 0, at: new Date().toISOString() };
   }
 }
 

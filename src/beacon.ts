@@ -10,8 +10,9 @@ import { deviceId } from './stored';
 // the seconds spent playing, idle and in menus, the session link's (net/net-minute.ts); errors as they happen
 // (NET.beaconList a minute at most), by sendBeacon to /ws?e, where Caddy
 // already passes the game's server. The minute one also says where the page
-// is (`beat`), so the server counts the pages open now, each once by the random
-// id this page load made (in memory only, sent in every beacon); a last one,
+// is (`beat`) and what it does (`doing`: playing, idle, menu or hidden), so the server
+// counts the pages open now, each once by the random id this page load made
+// (in memory only, sent in every beacon); a last one,
 // `bye`, goes when the page is left. The first one, when the level is ready,
 // says how long it took, the GPU and the settings chosen, and this browser's
 // device id (stored.ts), as JOIN does, for the admin's count of players. No
@@ -19,6 +20,9 @@ import { deviceId } from './stored';
 
 /** The funnel: the Play button (the first time the mouse is the game's), the level ready, the first paint, in a session. */
 type Step = 'play' | 'ready' | 'sprayed' | 'joined';
+
+/** What the page does: the seconds spent (`time`) are kept by it too. */
+type Doing = 'playing' | 'idle' | 'menu' | 'hidden';
 
 /** The longest code the server takes (server/beacon-body.ts). */
 const CODE_CHARS = 40;
@@ -49,6 +53,8 @@ export class Beacon {
   private counts: Record<string, number> = {};
   /** Seconds since the last send. */
   private time = { playing: 0, idle: 0, menu: 0 };
+  /** What the last frame was: in a menu (the main menu before Play, paused, a dialog), idle, or playing. */
+  private doing: Exclude<Doing, 'hidden'> = 'menu';
   /** The GPU's name, cut to what the server takes: a beacon it refuses is lost whole. */
   private gpu: string | null;
   /** This page load's id: its beats are one page for the server. Missing where the browser has no randomUUID (a plain http page): each beat then counts as a page of its own. */
@@ -108,9 +114,8 @@ export class Beacon {
   frame(delta: number, playing: boolean, covered: boolean, active: number) {
     if (document.visibilityState !== 'visible') return;
     const s = Math.min(delta, NET.beaconStep);
-    if (!playing || covered) this.time.menu += s;
-    else if (performance.now() / 1000 - active >= NET.beaconIdle) this.time.idle += s;
-    else this.time.playing += s;
+    this.doing = !playing || covered ? 'menu' : performance.now() / 1000 - active >= NET.beaconIdle ? 'idle' : 'playing';
+    this.time[this.doing] += s;
     if (!playing) return;
     this.frames[Math.min(NET.beaconSlowFrame, Math.round(delta * 1000))]++;
     this.played += delta;
@@ -137,6 +142,11 @@ export class Beacon {
     return document.visibilityState === 'hidden' ? 'hidden' : this.linked ? 'session' : this.reached.has('play') ? 'solo' : 'menu';
   }
 
+  /** What the page does: hidden, or what the last frame was. */
+  private mood(): Doing {
+    return document.visibilityState === 'hidden' ? 'hidden' : this.doing;
+  }
+
   /** What's gathered, if anything (`beat`: the minute's, always; `bye`: the page is gone, always): frames only past NET.beaconMinPlay s of play. */
   private send(beat = false, first?: object, bye = false) {
     const fps = this.played >= NET.beaconMinPlay ? this.fps() : undefined;
@@ -149,6 +159,7 @@ export class Beacon {
     this.post({
       bye: bye ? true : undefined,
       beat: beat ? this.beat() : undefined,
+      doing: beat ? this.mood() : undefined,
       first,
       fps,
       joins: this.joins.length ? this.joins : undefined,

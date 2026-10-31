@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 278
+The one list of what's left. Counter for new ids: next: 279
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -75,7 +75,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 1. BUGS [BL-034]: Paint pages at ULTRA can reach ~1 GB of GPU memory: measured, 1045 MB is the ceiling (all 49 pages, 72% full); the lossless fix is BL-144 (docs/ideas/performance.md)
 2. [PERF-200]: Reduce Ladder Shadow Update Delay Without Frequent Rebaking @1.7.0
-3. [PERF-269]: The server's thread spared on admin reads and logging: /traffic?period=30d reads and parses up to 31 hours files one after another (MBs of JSON), /history?period=30d sums 720 hours each time (closed hours never change), /events/page parses today's whole file for 50 events; the log appends each line with appendFileSync
+3. [PERF-269]: The server's thread spared on admin reads and logging: /stats/traffic?period=30d reads and parses up to 61 hours files one after another with its `before` (MBs of JSON), /stats/*?period=30d sum 1440 hours each time with theirs (closed hours never change), /events/page parses today's whole file for 50 events; the log appends each line with appendFileSync
 
 ## Rendering
 
@@ -137,14 +137,15 @@ Only `N.`, the id and the description are required. The optional parts appear in
 2. [IDEA-240]: Admin: ban by IP (with a reason the player is shown); restoring a save is CCTV-255 (docs/ideas/public-servers.md)
 3. IDEA [?BL-147]: Anti-cheat: The server checks what players send (op reach and rate, ladder spot, jumps) before it goes public @1.6.1
 4. [TASK-201]: Research itch.io Publishing Requirements, AI Policies, and Download Restrictions @1.6.3
-5. [TASK-275]: Staging on 1.6.0 as dev has it (protocol 9, ADMIN_API 3): its `stats/` (people files in it) and `traffic/` wiped first, since formats only staging wrote are no longer read; the cctv page deployed with it (cctv a608340); then the owner plays a session and checks the admin page there (docs/ideas/vps.md) @1.6.0
+5. [TASK-275]: Staging on 1.6.0 as dev has it (protocol 9, ADMIN_API 4): its `stats/` (people files in it) and `traffic/` wiped first, since formats only staging wrote are no longer read; the cctv page deployed with it (its ADMIN_API 4 build, CCTV-278); then the owner plays a session and checks the admin page there (docs/ideas/vps.md) @1.6.0
 6. [TASK-276]: Production on 1.6.0 once it is released: the server's data, admin key and the public session, GeoIP each month, roof-traffic (docs/ideas/vps.md items 1-3), and Caddy's `/api/main` for the admin page (docs/deploy.md §9) @1.6.0
 
 ## CCTV
 
-The admin page (the cctv repo) and the server side it reads (server/admin-api.ts). Specs: docs/ideas/admin-data.md.
+The admin page (the cctv repo) and the server side it reads (server/admin/). The API: docs/admin-api.md; why: docs/ideas/admin-data.md.
 
-1. [CCTV-271]: A save's `stats` in GET /sessions in the shape of the session's `stats` (stamps by tool, painters), the page sums them; and one of a session's `today` and `stats` for the page, not both
+1. [CCTV-271]: A save's `stats` in GET /sessions in the shape of the session's `stats` (stamps by tool, painters), the page sums them; and one of a session's `today` and `stats` for the page, not both (in CCTV-278: `today` goes) @1.6.0
+2. [CCTV-278]: ADMIN_API 4 for the page's redesign, one contract in docs/admin-api.md: routes by resource (server, live, events, /stats/play|people|paint|client|traffic with `before` and `days`, sessions) in server/admin/; limits and settings in GET /; the last 60 minutes in memory; pages split by what they do (idle from the beat); players' state and seen days; new and returning players, networks; traffic's before, hours, bots and visitors by country; bytes down and today; session-closed detail; events paged by type and since; every pause-menu link counted; history and hashes kept 91 days (docs/ideas/admin-data.md) @1.6.0
 
 ## Web and promotion
 
@@ -160,7 +161,7 @@ The admin page (the cctv repo) and the server side it reads (server/admin-api.ts
 ## Legal
 
 1. [TASK-187]: The beacon, the device id and the address hash run without a consent dialog (the owner's decision and risk, recorded in SECRET_legal.md); the privacy page names them (TASK-242)
-2. [TASK-242]: The privacy page names what the admin's stats keep: a random device id in localStorage, the address as a salted hash (a new salt every 30 days), the country, plays kept 30 days and counts forever, the web traffic read from the server's access log (a visitor as a salted hash of address and browser, a new salt every 30 days, the hashes kept by the hour for 30 days); why, and how to object; DB-IP's credit (CC BY 4.0) (docs/ideas/public-servers.md); the beacon's session-link minute too (ping, closes, KB/s: no ids)
+2. [TASK-242]: The privacy page names what the admin's stats keep: a random device id in localStorage, the address as a salted hash (a new salt every 30 days), the country, plays kept 91 days and counts forever, the web traffic read from the server's access log (a visitor as a salted hash of address and browser, a new salt every 30 days, the hashes kept by the hour for 91 days); why, and how to object; DB-IP's credit (CC BY 4.0) (docs/ideas/public-servers.md); the beacon's session-link minute too (ping, closes, KB/s: no ids)
 3. [TASK-189]: The Terms' moderation section (DSA: grounds and measures, reports by email, a restricted player told what and why); the house rules screen is in (docs/ideas/public-servers.md)
 
 ## Codebase

@@ -4,24 +4,22 @@ import path from 'node:path';
 import { SERVER } from '../src/config';
 import { writeAtomic } from './atomic';
 import { log } from './log';
+import { count, dayFigures, type Play } from './people-count';
 
 // Unique people for the admin's history (history.ts). Each play that starts (a
 // JOIN) or page that reaches the level (the beacon's first message) is kept as
 // its hour, its device id (the game's, stored.ts) and its address (an IPv6 one by
 // its /64, which a device keeps while the rest changes), both only as salted
 // hashes, and its country, and whether it was a JOIN, a page or both. The salt
-// changes every SERVER.saltDays and is never logged or sent. They are kept
+// changes every SERVER.saltDays and is never logged or sent; the times it began
+// are kept (stats/salt.json), for SERVER.historyDays. The plays are kept
 // SERVER.historyDays, a file a day (stats/people-<day>.json), then deleted.
-// Players are counted by device and by address.
+// Players are counted by device and by address (people-count.ts).
 
-interface Play {
-  h: number;
-  d: string | null;
-  i: string;
-  c: string | null;
-  /** A JOIN, and a page that reached the level: one or both (a play saved before the pages were kept has neither: it was a JOIN). */
-  j?: true;
-  p?: true;
+/** The key of the hashes, and when each key began (ms), the one in use last. */
+interface Salt {
+  key: string;
+  starts: number[];
 }
 
 const DAY = 864e5;
@@ -46,20 +44,25 @@ class People {
   private seen = new Map<string, Play>();
   /** New people from pages this hour (SERVER.peoplePages at most). */
   private pages = { h: 0, n: 0 };
-  private salt = { key: randomBytes(32).toString('hex'), since: Date.now() };
+  private salt: Salt = { key: randomBytes(32).toString('hex'), starts: [Date.now()] };
   private saltChanged = false;
+  /** The days (since 1970) each device joined a session since the salt began, by its hash: for seenDays. */
+  private days = new Map<string, Set<number>>();
   private dir: string | null = null;
   private dirty = new Set<number>();
 
   /** A play started (`how`: 'join'), or a page reached the level ('page'), from `device` (none from an older game) at `ip`. */
   played(device: string | undefined, ip: string, country: string | null, how: 'join' | 'page') {
-    if (Date.now() - this.salt.since > SERVER.saltDays * DAY) [this.salt, this.saltChanged] = [{ key: randomBytes(32).toString('hex'), since: Date.now() }, true];
+    if (Date.now() - this.salt.starts[this.salt.starts.length - 1] > SERVER.saltDays * DAY) {
+      this.salt = { key: randomBytes(32).toString('hex'), starts: [...this.salt.starts, Date.now()] };
+      [this.saltChanged, this.days] = [true, new Map()];
+    }
     const p: Play = { h: Math.floor(Date.now() / HOUR), d: device ? this.hash(`d${device}`) : null, i: this.hash(`i${prefix(ip)}`), c: country };
     const key = `${p.h} ${p.d} ${p.i}`;
     const had = this.seen.get(key);
     const flag = how === 'join' ? 'j' : 'p';
     if (had) {
-      if (!had[flag]) (had[flag] = true), (had.c ??= p.c), this.dirty.add(Math.floor(p.h / 24));
+      if (!had[flag]) (had[flag] = true), (had.c ??= p.c), this.dirty.add(Math.floor(p.h / 24)), this.index(had);
       return;
     }
     if (how === 'page') {
@@ -69,28 +72,35 @@ class People {
     p[flag] = true;
     this.seen.set(key, p);
     this.plays.push(p);
+    this.index(p);
     this.dirty.add(Math.floor(p.h / 24));
   }
 
-  /** People since hour `first` (distinct within one salt period: a person seen before and after a salt change counts twice).
-   * `players`: who joined or reached the level, once by device and once by address; `inSessions`: who joined; `playerCountries`: players by device, each by their last country known. */
-  count(first: number) {
-    const all = this.plays.filter((p) => p.h >= first);
-    const plays = all.filter((p) => p.j);
-    const distinct = (list: Play[]) => ({ device: new Set(list.flatMap((p) => (p.d ? [p.d] : []))).size, address: new Set(list.map((p) => p.i)).size });
-    const last = new Map<string, string | null>();
-    for (const p of all) if (p.d && (p.c || !last.has(p.d))) last.set(p.d, p.c);
-    const playerCountries: Record<string, number> = {};
-    for (const c of last.values()) if (c) playerCountries[c] = (playerCountries[c] ?? 0) + 1;
-    return { players: distinct(all), inSessions: distinct(plays), playerCountries };
+  /** The people of hours `first` up to `end` (distinct within one range: a person seen before and after a salt change counts twice there). */
+  count(first: number, end: number) {
+    return count(this.plays, this.salt.starts, first, end);
+  }
+
+  /** The people of one day (hours `first` up to `end`): players and those who joined, new and returning. */
+  day(first: number, end: number) {
+    return dayFigures(this.plays, this.salt.starts, first, end);
+  }
+
+  /** The days this device (as the game knows it) joined a session since the salt began, or null without one. */
+  seenDays(device: string | undefined) {
+    return device ? (this.days.get(this.hash(`d${device}`))?.size ?? 0) : null;
   }
 
   /** Keep them in `dir` (stats/): the salt and the last SERVER.historyDays read back, older days deleted. */
   async keepIn(dir: string) {
     this.dir = dir;
-    const salt = await fs.readFile(path.join(dir, 'salt.json'), 'utf8').then((t) => JSON.parse(t) as People['salt'] | null).catch(() => null);
-    if (salt) this.salt = salt;
-    else this.saltChanged = true;
+    const salt = await fs.readFile(path.join(dir, 'salt.json'), 'utf8').then((t) => JSON.parse(t) as { key?: unknown; starts?: unknown; since?: unknown }).catch(() => null);
+    // A file from before the starts were kept has only when its key began.
+    const starts = Array.isArray(salt?.starts) ? salt.starts : [salt?.since];
+    if (typeof salt?.key === 'string' && starts.length && starts.every((s) => Number.isFinite(s))) {
+      this.salt = { key: salt.key, starts };
+      this.saltChanged = !Array.isArray(salt.starts);
+    } else this.saltChanged = true;
     const keep = Math.floor(Date.now() / DAY) - SERVER.historyDays;
     for (const name of await fs.readdir(dir)) {
       const day = dayOf(name);
@@ -111,9 +121,12 @@ class People {
     const old = this.plays.findIndex((p) => p.h >= keep * 24);
     if (old !== 0) {
       const gone = this.plays.splice(0, old < 0 ? this.plays.length : old);
-      for (const p of gone) this.seen.delete(`${p.h} ${p.d} ${p.i}`);
+      for (const p of gone) (this.seen.delete(`${p.h} ${p.d} ${p.i}`), this.unindex(p));
       if (this.dir) for (const day of new Set(gone.map((p) => Math.floor(p.h / 24)))) await fs.rm(path.join(this.dir, fileOf(day)), { force: true });
     }
+    // The starts of salts past SERVER.historyDays are forgotten, the one in use never.
+    const starts = this.salt.starts.filter((s, i, all) => s >= keep * DAY || i === all.length - 1);
+    if (starts.length !== this.salt.starts.length) [this.salt.starts, this.saltChanged] = [starts, true];
     if (!this.dir) return this.dirty.clear();
     if (this.saltChanged) await write(path.join(this.dir, 'salt.json'), this.salt);
     this.saltChanged = false;
@@ -130,6 +143,21 @@ class People {
   private add(p: Play) {
     this.seen.set(`${p.h} ${p.d} ${p.i}`, p);
     this.plays.push(p);
+    this.index(p);
+  }
+
+  /** A join of a device with the salt in use is a day it played. */
+  private index(p: Play) {
+    if (!p.d || (!p.j && p.p) || (p.h + 1) * HOUR <= this.salt.starts[this.salt.starts.length - 1]) return;
+    const days = this.days.get(p.d) ?? new Set<number>();
+    this.days.set(p.d, days.add(Math.floor(p.h / 24)));
+  }
+
+  private unindex(p: Play) {
+    const days = p.d ? this.days.get(p.d) : undefined;
+    if (!days) return;
+    days.delete(Math.floor(p.h / 24));
+    if (!days.size) this.days.delete(p.d!);
   }
 
   private hash(s: string) {

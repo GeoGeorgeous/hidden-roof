@@ -3,7 +3,7 @@ import http from 'node:http';
 import { WebSocketServer, type WebSocket } from 'ws';
 import { SERVER } from '../src/config';
 import { HELLO, PROTOCOL } from '../src/net/protocol';
-import { adminApi } from './admin-api';
+import { adminApi } from './admin/index';
 import { traffic } from './counts';
 import { beacon } from './beacon';
 import { keepEvents } from './events';
@@ -23,7 +23,7 @@ import { waiting } from './snapshot';
 // /healthz is for Docker. Caddy serves the game and passes /ws through
 // (docs/deploy.md). One process, everything in memory but the public sessions
 // kept in DATA_DIR (kept.ts) with the admin's history (history.ts); with ADMIN_KEY, the admin API on SERVER.adminPort
-// (admin-api.ts). Every event is a log line.
+// (admin/). Every event is a log line.
 
 // LOG_DIR: the log goes to files there, one a day, cleaned of IP addresses and nicknames as they age (server/log-files.ts).
 if (process.env.LOG_DIR) logTo(process.env.LOG_DIR);
@@ -54,6 +54,7 @@ if (process.env.GEOIP_DB) await geoip(process.env.GEOIP_DB);
 if (kept.dir) await history.keepIn(kept.dir).catch((e) => log('-----', 'history not read:', e));
 setInterval(() => {
   history.sample([...lobby.sessions.values()].map((s) => [...s.players.values()].filter((p) => p.link).length), SERVER.historyEvery);
+  history.bytes(traffic.sent, traffic.received);
   void history.save();
 }, SERVER.historyEvery * 1000);
 const adminPort = Number(process.env.ADMIN_PORT) || SERVER.adminPort;
@@ -121,7 +122,10 @@ function connected(ws: WebSocket, req: http.IncomingMessage, host: boolean) {
     pinged = performance.now();
     ws.ping();
   }, SERVER.heartbeat * 1000);
-  ws.on('message', (data: Buffer) => void input.message(new Uint8Array(data.buffer, data.byteOffset, data.byteLength)));
+  ws.on('message', (data: Buffer) => {
+    traffic.received += data.byteLength;
+    void input.message(new Uint8Array(data.buffer, data.byteOffset, data.byteLength));
+  });
   ws.on('close', (code, reason) => (clearInterval(beat), input.closed(code, reason.toString())));
 }
 

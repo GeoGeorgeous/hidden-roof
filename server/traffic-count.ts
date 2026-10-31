@@ -6,6 +6,7 @@ import { prefix } from './people';
 // counts. Bots are counted and nothing else about them. A visitor is a salted hash of address (an IPv6 one by its
 // /64) and browser, a new salt every SERVER.saltDays: the hashes are all that is kept of them, by the hour they
 // were seen in (up to SERVER.trafficHourSeen an hour), for SERVER.historyDays days, so a period's visitors count once.
+// A bot is kept by its name (the User-Agent's word that made it one) and the page it loaded.
 
 export const STEPS = ['view', 'script', 'beacon', 'socket'] as const;
 type Step = (typeof STEPS)[number];
@@ -20,8 +21,13 @@ export interface Day {
   sources: Counts;
   campaigns: Counts;
   countries: Counts;
+  /** Visitors by the country of their first view of the day. */
+  visitorCountries: Counts;
   /** Visitors who got this far. */
   steps: Record<Step, number>;
+  /** Bot page loads, by the bot's name (lowercase) and by path. */
+  botKinds: Counts;
+  botPages: Counts;
 }
 
 /** One UTC hour: its views and bots, and each visitor seen (a hash) with the steps they got to (a bit each, in STEPS order). */
@@ -55,8 +61,11 @@ export interface Hit {
 
 const BOT = /bot|crawl|spider|slurp|preview|facebookexternalhit|curl|wget|python|go-http|headless/i;
 
+/** The bot's name: the first word of the User-Agent that makes it a bot (Googlebot/2.1 is googlebot), lowercase. */
+const botName = (agent: string) => (agent.match(/[^\s;()/,]+/g)?.find((w) => BOT.test(w)) ?? 'other').toLowerCase();
+
 export const dayName = (ts: number) => new Date(ts * 1000).toISOString().slice(0, 10);
-export const blank = (): Day => ({ views: 0, visitors: 0, bots: 0, pages: {}, sources: {}, campaigns: {}, countries: {}, steps: { view: 0, script: 0, beacon: 0, socket: 0 } });
+export const blank = (): Day => ({ views: 0, visitors: 0, bots: 0, pages: {}, sources: {}, campaigns: {}, countries: {}, visitorCountries: {}, steps: { view: 0, script: 0, beacon: 0, socket: 0 }, botKinds: {}, botPages: {} });
 export const newSalt = () => randomBytes(16).toString('hex');
 export const fresh = (name: string, salt: string, hours = new Map<number, Hour>()): Today => {
   const seen = { view: new Set<string>(), script: new Set<string>(), beacon: new Set<string>(), socket: new Set<string>() };
@@ -123,7 +132,7 @@ export function add(t: Today, h: Hit, hosts: string[], country: (ip: string) => 
   // A page is served as text/html; to a returning visitor it is a 304 (Go's ServeContent) with no type, so the path says.
   const page = h.method === 'GET' && ((h.status === 200 && h.type.toLowerCase().startsWith('text/html')) || (h.status === 304 && isPage(url.pathname)));
   if (BOT.test(h.agent)) {
-    if (page) (t.day.bots++, hourOf(t, h.ts).bots++);
+    if (page) (t.day.bots++, hourOf(t, h.ts).bots++, count(t.day.botKinds, botName(h.agent)), count(t.day.botPages, url.pathname));
     return page;
   }
   const step: Step | null = page
@@ -139,7 +148,9 @@ export function add(t: Today, h: Hit, hosts: string[], country: (ip: string) => 
   const hour = hourOf(t, h.ts);
   const id = createHash('sha256').update(t.salt).update(prefix(h.ip)).update('\0').update(h.agent).digest('base64url').slice(0, 16);
   // Past SERVER.trafficHourSeen visitors in an hour the rest are not remembered (their views still count).
+  let first = false;
   if (hour.seen.has(id) || hour.seen.size < SERVER.trafficHourSeen) {
+    first = step === 'view' && !t.seen.view.has(id);
     hour.seen.set(id, (hour.seen.get(id) ?? 0) | (1 << STEPS.indexOf(step)));
     t.seen[step].add(id);
   }
@@ -151,7 +162,7 @@ export function add(t: Today, h: Hit, hosts: string[], country: (ip: string) => 
     const campaign = url.searchParams.get('utm_campaign')?.trim().toLowerCase();
     if (campaign) count(t.day.campaigns, campaign);
     const c = country(h.ip);
-    if (c) count(t.day.countries, c);
+    if (c) (count(t.day.countries, c), first && count(t.day.visitorCountries, c));
   }
   // A day's file ahead of its hours file (one write of the two failed) never counts down.
   for (const s of STEPS) t.day.steps[s] = Math.max(t.day.steps[s], t.seen[s].size);

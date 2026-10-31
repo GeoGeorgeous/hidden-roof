@@ -3,9 +3,9 @@ import fs from 'node:fs/promises';
 import type http from 'node:http';
 import path from 'node:path';
 import { createInterface } from 'node:readline';
-import { SERVER } from '../src/config';
-import { isCode } from '../src/net/protocol';
-import { logDir } from './log';
+import { SERVER } from '../../src/config';
+import { isCode } from '../../src/net/protocol';
+import { logDir } from '../log';
 
 // The server's log for the admin page: its day files (LOG_DIR, log.ts) and one
 // of them as it is, or only a session's lines: those with its code after the

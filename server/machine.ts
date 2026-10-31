@@ -3,12 +3,13 @@ import os from 'node:os';
 import path from 'node:path';
 import { SERVER } from '../src/config';
 import { traffic } from './counts';
+import { history } from './history';
 import { liveMemory } from './log';
 import { isWiped, savedAt } from './saves';
 
 // The machine the server runs on, for the admin page (GET /machine): read when
-// asked, never sampled in the background. CPU and upload are averages since the
-// last ask. The paint saves' bytes count every file; their `last` is the newest
+// asked, never sampled in the background. CPU and the bits each way are averages
+// since the last ask; today's bytes are the history's. The paint saves' bytes count every file; their `last` is the newest
 // that isn't one a wipe set aside.
 
 const cpuTimes = () => {
@@ -22,15 +23,16 @@ const cpuTimes = () => {
   return { busy, all };
 };
 
-let last = { at: Date.now(), cpu: cpuTimes(), sent: 0 };
+let last = { at: Date.now(), cpu: cpuTimes(), sent: 0, received: 0 };
 
 /** `dir`: where the paint saves are (DATA_DIR), or null. */
 export async function machine(dir: string | null) {
-  const now = { at: Date.now(), cpu: cpuTimes(), sent: traffic.sent };
+  const now = { at: Date.now(), cpu: cpuTimes(), sent: traffic.sent, received: traffic.received };
   const all = now.cpu.all - last.cpu.all;
   const secs = (now.at - last.at) / 1000;
-  const up = secs > 0 ? Math.round(((now.sent - last.sent) * 8) / secs) : 0;
+  const bits = (bytes: number) => (secs > 0 ? Math.round((bytes * 8) / secs) : 0);
   const cpu = all > 0 ? Math.round(((now.cpu.busy - last.cpu.busy) / all) * 100) : 0;
+  const [upBits, downBits] = [bits(now.sent - last.sent), bits(now.received - last.received)];
   last = now;
   const disk = await fs.statfs(dir ?? '.');
   const saves = dir ? (await fs.readdir(dir)).filter((n) => n.endsWith('.rhhpaint')) : [];
@@ -43,6 +45,8 @@ export async function machine(dir: string | null) {
     memory: { live: Math.round(liveMemory() * 2 ** 20), limit: SERVER.hostMemory * 2 ** 20 },
     disk: { used: (disk.blocks - disk.bfree) * disk.bsize, total: disk.blocks * disk.bsize },
     saves: { bytes: sizes.reduce((n, b) => n + b, 0), last: newest ? new Date(newest).toISOString() : null },
-    upBits: up,
+    upBits,
+    downBits,
+    today: history.bytesToday(),
   };
 }

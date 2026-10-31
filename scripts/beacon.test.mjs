@@ -24,7 +24,7 @@ const mine = { ...handlers };
 
 // Nothing gathered: a minute beacon still goes, with only its beat.
 tick();
-assert.deepEqual(sent.pop(), { beat: 'menu' });
+assert.deepEqual(sent.pop(), { beat: 'menu', doing: 'menu' }, 'before Play: in the menu');
 
 // The first one: GPU, load time, settings, and the funnel step it completes; no beat.
 b.step('play');
@@ -51,7 +51,7 @@ assert.deepEqual(body.tutorial, ['move', 'done']);
 b.step('sprayed');
 b.lesson('move');
 tick();
-assert.deepEqual(sent.pop(), { beat: 'solo' });
+assert.deepEqual(sent.pop(), { beat: 'solo', doing: 'menu' }, 'no frame yet: in the menu');
 
 // At most NET.beaconList steps a beacon; the rest go with the next.
 const many = Array.from({ length: NET.beaconList + 2 }, (_, i) => `t${i}`);
@@ -93,11 +93,18 @@ assert.deepEqual(sent.pop().seconds, { playing: 0.5 + NET.beaconStep, idle: 0.2,
 tick();
 assert.equal(sent.pop().seconds, undefined);
 
+// What the page does, in each minute beat: what its last frame was; playing, idle (no input for NET.beaconIdle s), in a menu (not playing, or a dialog up).
+for (const [frame, doing] of [[[true, false, now() - NET.beaconIdle - 1], 'idle'], [[false, false, 0], 'menu'], [[true, true, now()], 'menu'], [[true, false, now()], 'playing']]) {
+  b.frame(0.1, ...frame);
+  tick();
+  assert.equal(sent.pop().doing, doing);
+}
+
 // A hidden tab counts nothing, and says so.
 visibility = 'hidden';
 b.frame(1, true, false, now());
 tick();
-assert.deepEqual(sent.pop(), { beat: 'hidden' });
+assert.deepEqual(sent.pop(), { beat: 'hidden', doing: 'hidden' });
 visibility = 'visible';
 
 // In a session: the beat says so, and the first time in is a step.
@@ -109,7 +116,7 @@ assert.equal(body.beat, 'session');
 assert.deepEqual(body.steps, ['joined']);
 b.status({ state: 'off' });
 tick();
-assert.deepEqual(sent.pop(), { beat: 'solo' });
+assert.deepEqual(sent.pop(), { beat: 'solo', doing: 'playing' });
 
 // What the server would refuse is cut here, so a minute isn't lost whole: a GPU name, codes (long, and too many kinds), a long load.
 const c = new Beacon('G'.repeat(SERVER.beaconText + 20), canvas);
@@ -142,7 +149,7 @@ assert.deepEqual(sent.pop(), { bye: true });
 mine.pageshow({ persisted: false });
 assert.equal(sent.length, 0);
 mine.pageshow({ persisted: true });
-assert.deepEqual(sent.pop(), { beat: 'solo' });
+assert.deepEqual(sent.pop(), { beat: 'solo', doing: 'playing' });
 assert.equal(pages.at(-1), pages[0]);
 
 // Where storage is blocked the device id is made once, not on every call.

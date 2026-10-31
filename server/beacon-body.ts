@@ -6,6 +6,8 @@ import { isDevice } from '../src/net/protocol';
 // (a-z, 0-9, . and -), a list or a map over its limit, or a number out of range, and it's refused whole.
 
 export const BEATS = ['menu', 'solo', 'session', 'hidden'] as const;
+/** What the page does, beside its beat: playing, idle (no input for NET.beaconIdle s), in a menu (the main menu or paused), or hidden. */
+export const DOINGS = ['playing', 'idle', 'menu', 'hidden'] as const;
 const STEPS = ['play', 'ready', 'sprayed', 'joined'] as const;
 const SECONDS = ['playing', 'idle', 'menu'] as const;
 
@@ -14,6 +16,7 @@ interface Body {
   page?: string;
   bye?: true;
   beat?: (typeof BEATS)[number];
+  doing?: (typeof DOINGS)[number];
   first?: { gpu: string | null; load: number; settings?: Record<string, string>; device?: string };
   fps?: { avg: number; low1: number };
   joins?: number[];
@@ -39,10 +42,11 @@ const isCount = (n: unknown) => typeof n === 'number' && Number.isInteger(n) && 
 /** `b` as a Body, or null. */
 export function check(b: unknown) {
   if (!isObj(b)) return null;
-  const { page, bye, beat, first, fps, joins, errors, erred, steps, tutorial, counts, seconds, net } = b;
+  const { page, bye, beat, doing, first, fps, joins, errors, erred, steps, tutorial, counts, seconds, net } = b;
   if (page !== undefined && !isPage(page)) return null;
   if (bye !== undefined && bye !== true) return null;
   if (beat !== undefined && !BEATS.includes(beat as never)) return null;
+  if (doing !== undefined && !DOINGS.includes(doing as never)) return null;
   if (first !== undefined && (!isObj(first) || !(first.gpu === null || isText(first.gpu)) || !isNum(first.load, SERVER.beaconMostSeconds) || (first.settings !== undefined && !isMap(first.settings, isText)) || !isDevice(first.device))) return null;
   if (fps !== undefined && (!isObj(fps) || !isNum(fps.avg, 1000) || !isNum(fps.low1, 1000))) return null;
   if (!isList(joins, (j) => isNum(j, SERVER.beaconMostSeconds)) || !isList(errors, (e) => typeof e === 'string' && e.length <= NET.beaconErrorChars)) return null;

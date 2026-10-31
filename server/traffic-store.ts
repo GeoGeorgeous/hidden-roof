@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { SERVER } from '../src/config';
 import { writeAtomic } from './atomic';
-import type { Day, Hour } from './traffic-count';
+import { blank, type Day, type Hour } from './traffic-count';
 
 // The traffic reader's files (traffic.ts), in DATA_DIR/traffic: <day>.json, a day's counts, kept forever (they
 // are small); hours-<day>.json, the day's hours with their visitors' hashes, kept SERVER.historyDays days (owner-only);
@@ -67,11 +67,11 @@ export async function pruneHours(dir: string) {
   }
 }
 
-/** The last `n` days up to today with a file, oldest first (GET /traffic). */
+/** The last `n` days up to today with a file, oldest first (GET /stats/traffic/days). A day counted before a figure was has none of it. */
 export async function trafficDays(dir: string, n: number) {
   const first = new Date(Date.now() - (n - 1) * 864e5).toISOString().slice(0, 10);
   const names = (await fs.readdir(path.join(dir, 'traffic')).catch(() => [] as string[])).flatMap((f) => DAY.exec(f)?.[1] ?? []).filter((d) => d >= first).sort();
   // A day whose file doesn't read is left out, as a day without one.
   const days = await Promise.all(names.map(async (day) => ({ day, counts: await readDay(path.join(dir, 'traffic'), day) })));
-  return { days: days.flatMap(({ day, counts }) => (counts ? [{ day, ...counts }] : [])) };
+  return { days: days.flatMap(({ day, counts }) => (counts ? [{ day, ...blank(), ...counts }] : [])) };
 }

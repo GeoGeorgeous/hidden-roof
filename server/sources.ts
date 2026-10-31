@@ -4,7 +4,7 @@ import { geoipBuilt } from './geoip';
 import { history } from './history';
 import { trafficAt } from './traffic-store';
 
-// How fresh each figure on the admin page is (GET /, admin-api.ts): for each source, how often it comes (s) and when
+// How fresh each figure on the admin page is (GET /, admin/server.ts): for each source, how often it comes (s) and when
 // the last one did (ISO, null: never). The page makes the words.
 
 const iso = (ms: number | null) => (ms === null ? null : new Date(ms).toISOString());

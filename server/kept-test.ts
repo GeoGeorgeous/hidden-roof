@@ -6,16 +6,16 @@ import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import { WebSocket as Ws } from 'ws';
-import { SERVER } from '../src/config';
 import { levelPaintFaces } from '../src/level/prop-pieces';
-import { CODE_LENGTH, encode, PROTOCOL, received, type ToClient, type ToServer } from '../src/net/protocol';
+import { NET, SERVER } from '../src/config';
+import { CODE_LENGTH, encode, PROTOCOL, SESSION_NAME_MAX, received, type ToClient, type ToServer } from '../src/net/protocol';
 import { PartsIn } from '../src/net/parts-in';
 import { rejected } from './test-kit';
 import { encodeOps, SurfaceIndex } from '../src/op-wire';
 import { decodePaintFile } from '../src/save/paint-file';
 import { keepers } from './saves';
 
-// The admin's sessions (admin-api.ts, admin.mjs) and the public ones kept on
+// The admin's sessions (admin/, admin.mjs) and the public ones kept on
 // disk (kept.ts), against the built server: the key, a public session made,
 // full at its limit and kept when empty, its paint saved at shutdown and back
 // after a restart, a wipe (games come back to a clean wall), a new surface table
@@ -152,16 +152,20 @@ try {
   assert.equal(events(stream, 'session-made')[0].data.code, made.body.code);
   assert.equal(events(stream, 'joined').length, SERVER.players.public);
   assert.ok(stream.some((g) => g.type === 'status' && g.data.players === SERVER.players.public), 'a status with everyone in');
+  const status = stream.find((g) => g.type === 'status' && g.data.players === SERVER.players.public)!.data as unknown as { pages: { by: object }; site?: unknown; sessions: { saves?: unknown; today?: unknown }[] };
+  assert.deepEqual([Object.keys(status.pages), 'site' in status, 'saves' in status.sessions[0], 'today' in status.sessions[0]], [['menu', 'solo', 'session', 'hidden', 'by'], false, false, false], 'the status: the pages, sessions without their saves');
   await stop(server);
   server = await start();
   assert.deepEqual((await admin('GET', '/sessions')).body.map((s: { code: string }) => s.code), [code], 'kept through a restart, empty');
   assert.equal(saves().length, 0, 'nothing painted: nothing saved');
   // History, written at shutdown: everyone's play counted when it started, the most players at once, ever.
-  const day = await admin('GET', '/history?period=24h');
-  assert.deepEqual([day.body.plays, day.body.peak.players, day.body.joinsPerHour[new Date().getUTCHours()]], [SERVER.players.public, SERVER.players.public, SERVER.players.public]);
+  const day = await admin('GET', '/stats/play?period=24h');
+  const [weekday, hour] = [(new Date().getUTCDay() + 6) % 7, new Date().getUTCHours()];
+  assert.deepEqual([day.body.plays, day.body.peak.players, day.body.joinsByWeekHour[weekday][hour]], [SERVER.players.public, SERVER.players.public, SERVER.players.public]);
+  assert.equal(day.body.before, null, 'the counts begin with the server: nothing kept before the period');
   assert.equal((await admin('GET', '/')).body.peak.players, SERVER.players.public);
   assert.ok(fs.existsSync(path.join(dir, 'stats', `${new Date().toISOString().slice(0, 10)}.json`)), "the day's hours on disk");
-  assert.equal((await admin('GET', '/history?period=week')).status, 400);
+  assert.equal((await admin('GET', '/stats/play?period=week')).status, 400);
   // Players in sessions: one device on two addresses, a second device on the second address, an IPv6 address changing within its /64: two devices, the IPv6 ones one address.
   const [d1, d2] = ['a'.repeat(32), 'b'.repeat(32)];
   for (const [ip, device] of [['10.2.0.1', d1], ['10.2.0.2', d1], ['10.2.0.2', d2], ['2001:db8:1:2::5', undefined], ['2001:db8:1:2:aaaa::9', undefined]] as const) {
@@ -170,11 +174,10 @@ try {
     g.send({ type: 'leave' });
     await g.closed;
   }
-  const seen = (await admin('GET', '/history')).body.inSessions;
-  assert.deepEqual(seen, { device: 2, address: SERVER.players.public + 3 });
-  const counted = (await admin('GET', '/history')).body;
+  const counted = (await admin('GET', '/stats/people')).body;
+  assert.deepEqual(counted.inSessions, { device: 2, address: SERVER.players.public + 3 });
   const byAddress = SERVER.players.public + 3;
-  assert.deepEqual([counted.players, counted.inSessions, counted.playerCountries], [{ device: 2, address: byAddress }, { device: 2, address: byAddress }, {}], 'players and those who joined, by device and by address');
+  assert.deepEqual([counted.players, counted.inSessions, counted.countries], [{ device: 2, address: byAddress }, { device: 2, address: byAddress }, {}], 'players and those who joined, by device and by address');
 
   // Paint, saved at shutdown, is back after the restart.
   const a = new Game();
@@ -182,19 +185,42 @@ try {
   a.send({ type: 'ops', seq: 1, bytes: encodeOps([1], [stamp], surfaces) });
   a.send({ type: 'ping', t: 1 });
   assert.equal((await a.next('pong')).acked, 1);
-  // What the admin page reads: the version, today's paint (the stamp's color as the game's), the player, the machine.
+  // What the admin page reads: the version, the session's paint (the stamp's color as the game's), the player, the machine.
   const top = await admin('GET', '/');
-  assert.deepEqual([top.body.api, typeof top.body.version], [3, 'string']);
+  assert.deepEqual([top.body.api, typeof top.body.version], [4, 'string']);
+  assert.deepEqual(top.body.limits, { public: SERVER.players.public, private: { min: SERVER.privateMin, max: SERVER.players.private }, name: SESSION_NAME_MAX });
+  assert.deepEqual(top.body.settings, { slowPing: SERVER.slowPing, saveEvery: SERVER.keepEvery, saveAges: SERVER.keepAges.filter(Boolean), eventDays: SERVER.eventDays, eventDayBytes: SERVER.eventDayBytes, historyDays: SERVER.historyDays, saltDays: SERVER.saltDays, pageIdle: NET.beaconIdle, playerIdle: NET.idleAfter, lengthMinutesMost: SERVER.lengthMinutesMost });
+  assert.deepEqual(['slowPing', 'saveEvery', 'saveAges'].filter((k) => k in top.body), [], 'they are in settings now');
   const live = (await admin('GET', '/sessions')).body[0];
-  assert.deepEqual([live.today.stamps.can, live.today.colors, live.today.peak.players, live.emptySince], [1, { red: 1 }, 1, null]);
+  assert.deepEqual([live.stats.stamps.can, live.stats.colors, live.stats.peak.players, live.emptySince, 'today' in live], [1, { red: 1 }, 1, null, false]);
   assert.deepEqual([live.players[0].ip, live.players[0].here, live.players[0].held], [`10.1.0.${games}`, true, null]);
-  assert.deepEqual([(await admin('GET', '/history')).body.stamps.can, (await admin('GET', '/history')).body.colors], [1, { red: 1 }]);
+  assert.deepEqual([live.players[0].state, live.players[0].seenDays, Math.abs(Date.parse(live.players[0].since) - Date.now()) < 10000], ['here', null, true]);
+  // A player's state follows what the game says it is doing (the others see it too), and `since` moves only when it changes.
+  const sinceHere = live.players[0].since;
+  await new Promise((w) => setTimeout(w, 20));
+  a.send({ type: 'status', status: 'here' });
+  a.send({ type: 'ping', t: 9 });
+  await a.next('pong');
+  assert.equal((await admin('GET', '/sessions')).body[0].players[0].since, sinceHere, 'the same state again: not a change');
+  a.send({ type: 'status', status: 'menu' });
+  a.send({ type: 'ping', t: 10 });
+  await a.next('pong');
+  const paused = (await admin('GET', '/sessions')).body[0].players[0];
+  assert.deepEqual([paused.state, paused.since > sinceHere], ['menu', true]);
+  for (const path of ['/history', '/history?period=7d', '/traffic', '/traffic?days=3']) assert.equal((await admin('GET', path)).status, 404, `${path} is gone`);
+  assert.equal((await admin('POST', '/')).status, 405);
+  assert.equal((await admin('POST', '/live/minutes')).status, 405);
+  assert.equal((await admin('GET', '/sessions/' + live.code + '/wipe')).status, 405);
+  assert.deepEqual((await admin('GET', '/live/minutes')).body, [], 'no minute has ended yet');
+  const ink = (await admin('GET', '/stats/paint')).body;
+  assert.deepEqual([ink.stamps.can, ink.colors], [1, { red: 1 }]);
   const lost = new Game();
   await lost.hello('Z'.repeat(CODE_LENGTH), 'Lost');
   assert.equal(await lost.rejected(), 'no-session');
-  assert.equal((await admin('GET', '/history?period=7d')).body.turnedAway['no-session'], 1);
+  assert.equal((await admin('GET', '/stats/play?period=7d')).body.turnedAway['no-session'], 1);
   const box = (await admin('GET', '/machine')).body;
   assert.ok(box.cpu.vcpus > 0 && box.disk.total > 0 && box.memory.limit > 0, 'the machine');
+  assert.ok(box.downBits >= 0 && box.today.upBytes >= 0 && box.today.downBytes >= 0, 'the bits each way, and the bytes today');
   await stop(server);
   assert.equal(saves().length, 1);
   server = await start();
@@ -261,7 +287,7 @@ try {
   // A save downloaded: its file, named by its time; one that isn't there is 404, a bad time 400.
   const [wipedSave] = (await admin('GET', '/sessions')).body[0].saves;
   const wipedMs = Date.parse(wipedSave.at);
-  assert.deepEqual([wipedSave.wiped, wipedSave.stats], [true, { stamps: 1, painters: 1 }]);
+  assert.deepEqual([wipedSave.wiped, wipedSave.undo, wipedSave.stats.stamps.can, wipedSave.stats.painters, wipedSave.stats.began], [true, false, 1, 1, 'made'], 'a save lists its stats as the session does');
   const got = await fetch(`http://localhost:${ADMIN_PORT}/sessions/${code}/saves/${wipedMs}`, { headers: { authorization: 'Bearer test-key' } });
   const gotFile = new Uint8Array(await got.arrayBuffer());
   assert.deepEqual([got.status, got.headers.get('content-type'), gotFile.length], [200, 'application/octet-stream', wipedSave.bytes]);
@@ -292,7 +318,8 @@ try {
   const after = (await admin('GET', '/sessions')).body[0];
   assert.deepEqual([after.stats.began, typeof after.stats.restoredAt, after.stats.stamps.can], ['restored', 'string', 1], 'the save\'s stats, as restored');
   const undone = after.saves.find((v: { at: string }) => Date.parse(v.at) === undo);
-  assert.deepEqual([undone.wiped, undone.stats], [false, { stamps: 1, painters: 1 }], 'the undo: the paint before, with its stats');
+  assert.deepEqual([undone.wiped, undone.stats.stamps.can, undone.stats.painters], [false, 1, 1], 'the undo: the paint before, with its stats');
+  assert.deepEqual(after.saves.filter((v: { undo: boolean }) => v.undo), [undone], 'and the only one that is');
   assert.ok(after.saves.length >= 3, 'the undo, the restored paint and the wiped save');
   await new Promise((w) => setTimeout(w, 100));
   const done = events(restores, 'restored');
@@ -366,16 +393,25 @@ try {
   fs.writeFileSync(path.join(dir, `${code}-2.rhhpaint`), '');
   fs.writeFileSync(path.join(dir, `${code}-2.json`), '{}');
   fs.writeFileSync(path.join(dir, `${code}-1.wiped.json`), '{}');
+  const closing = await feed();
   assert.equal((await admin('POST', `/sessions/${code}/close`)).status, 200);
   assert.equal(await d.rejected(), 'closed');
+  await new Promise((w) => setTimeout(w, 100));
+  const closed = events(closing, 'session-closed').map((g) => g.data as unknown as { detail: Record<string, unknown> });
+  assert.equal(closed.length, 1);
+  const { started, ...closedWith } = closed[0].detail;
+  assert.deepEqual(closedWith, { why: 'by the admin', kind: 'public', stays: true, admin: true, saves: 2 }, 'the saves deleted with it are counted');
+  assert.ok(Math.abs(Date.parse(started as string) - Date.now()) < 3600e3 && typeof started === 'string' && started.endsWith('Z'));
   assert.equal(saves().length, 0);
   assert.deepEqual(fs.readdirSync(dir).filter((n) => n.startsWith(code)), [], 'no file of the session stays, stats included');
   assert.deepEqual((await admin('GET', '/sessions')).body, []);
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(dir, 'sessions.json'), 'utf8')), []);
   // Plays that ended (seven left, one ended by the close), the paint still there after two restarts.
-  const month = (await admin('GET', '/history?period=30d')).body;
-  assert.deepEqual([month.playLength, month.stamps.can], [{ under2m: 8, m2to10: 0, m10to30: 0, over30m: 0 }, 5]);
-  assert.equal(month.inSessions.device, 2, 'players, kept through restarts');
+  const month = (await admin('GET', '/stats/play?period=30d')).body;
+  assert.equal((Object.values(month.lengthMinutes) as number[]).reduce((a, b) => a + b, 0), 8);
+  assert.ok(Object.keys(month.lengthMinutes).every((m) => +m < 2), 'all under two minutes');
+  assert.equal((await admin('GET', '/stats/paint?period=30d')).body.stamps.can, 5);
+  assert.equal((await admin('GET', '/stats/people?period=30d')).body.inSessions.device, 2, 'players, kept through restarts');
   assert.ok(!JSON.stringify(fs.readdirSync(path.join(dir, 'stats')).map((n) => fs.readFileSync(path.join(dir, 'stats', n), 'utf8'))).includes('10.2.0.'), 'no address on disk');
   console.log('kept sessions: ok (admin key and origin, a public session full at its limit with a line, kept empty, paint back after a restart, its stats, the paint downloaded, wipe, saves kept aside and replaced, a save downloaded, restore with its undo and 409, saves kept by age, a new surface table wipes, private ones close when empty unless they stay, close, what the admin page reads, the event stream, history)');
 } finally {

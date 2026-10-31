@@ -42,6 +42,8 @@ export interface Player {
   saving: boolean;
   /** What they said they're doing (playing, hidden, paused, idle). */
   activity: Activity;
+  /** When (ms) `presence` last changed, for the admin page. */
+  since: number;
   /** What they carry, as they last said (null: the starting kit). */
   inventory: InventoryData | null;
   /** Where they last stood, as their state said (null: not yet): given back when they come back. */

@@ -7,7 +7,7 @@ import type { Session } from './session';
 import type { SessionSetup } from './setup';
 
 // HOST: a player's own private session from their level, and their save's paint if they sent one (lobby.ts enter).
-// Off unless SERVER.playerHost: the admin makes the sessions (admin-api.ts). Each one's address counts for
+// Off unless SERVER.playerHost: the admin makes the sessions (admin/). Each one's address counts for
 // SERVER.sessionsPerIp.
 
 /** What HOST needs of the lobby. */

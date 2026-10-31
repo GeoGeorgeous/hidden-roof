@@ -4,6 +4,7 @@ import { checkToServer, CODE_LENGTH, CODE_LETTERS, decode, PROTOCOL, type Reject
 import { event } from './events';
 import { history } from './history';
 import { log, logNoisy, who } from './log';
+import { turnedAway } from './minutes';
 import type { LevelData } from '../src/level/level-data';
 import { turnAway, type Link, type Player } from './player';
 import type { Place } from './queue';
@@ -66,6 +67,7 @@ export class Lobby {
       const hello = m?.type === 'join' || m?.type === 'host' ? m : null;
       // Only what the log takes: a stranger's flood of attempts doesn't flood the admin's feed either.
       history.turnedAway(reason);
+      turnedAway(reason);
       if (logNoisy(ip, code, `${m?.type ?? 'link'} from ${ip} turned away: ${reason}`))
         event('turned-away', this.sessions.get(code) ?? null, hello?.name ?? null, reason === 'version' && hello ? { reason, client: hello.protocol, server: PROTOCOL } : { reason });
       turnAway(link, reason);
@@ -227,7 +229,7 @@ export class Lobby {
   }
 
   /**
-   * The admin's session (admin-api.ts), or one kept on disk under its `code`
+   * The admin's session (admin/sessions.ts), or one kept on disk under its `code`
    * (kept.ts), open at once. One that doesn't stay closes when its players
    * have gone, or if no one has come in SERVER.adminWait. Throws if the level doesn't build.
    */
@@ -246,13 +248,13 @@ export class Lobby {
       levelName,
       level,
       detail,
-      (why) => {
+      (why, saves) => {
         if (this.sessions.get(code) !== session) return;
         this.sessions.delete(code);
         this.hosts.delete(code);
         this.ended.set(code, Date.now());
         log(code, `closed: ${why}, ${session.summary}`);
-        event('session-closed', session, null, { why });
+        event('session-closed', session, null, { why, kind: session.setup.kind, stays: session.setup.stays, admin: session.setup.admin, started: new Date(session.started).toISOString(), saves });
       },
       setup,
     );

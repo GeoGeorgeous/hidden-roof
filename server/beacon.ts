@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type http from 'node:http';
 import { SERVER } from '../src/config';
-import { BEATS, check } from './beacon-body';
+import { BEATS, check, DOINGS } from './beacon-body';
 import { bin, count, countSetting, type ClientCounts } from './client-counts';
 import { countryOf } from './geoip';
 import { people } from './people';
@@ -32,13 +32,16 @@ function osOf(ua: string) {
 }
 
 type Beat = (typeof BEATS)[number];
-/** Each open page by its id: what its last beat said and when, the oldest beat first (a page that beats again moves to the end). A beacon without an id (an older game) is a page of its own each time. */
-const pages = new Map<string, { beat: Beat; at: number }>();
+type Doing = (typeof DOINGS)[number];
+/** Each open page by its id: what its last beat said and when, the oldest beat first (a page that beats again moves to the end). `doing`: what it does, `session`: it is in a session. A beacon without an id (an older game) is a page of its own each time. */
+const pages = new Map<string, { beat: Beat; doing: Doing; session: boolean; at: number }>();
 const open = Object.fromEntries(BEATS.map((k) => [k, 0])) as Record<Beat, number>;
+const noPlace = () => ({ session: 0, alone: 0 });
+const by = Object.fromEntries(DOINGS.map((k) => [k, noPlace()])) as Record<Doing, ReturnType<typeof noPlace>>;
 
 function leave(id: string) {
   const p = pages.get(id);
-  if (p) (open[p.beat]--, pages.delete(id));
+  if (p) (open[p.beat]--, by[p.doing][p.session ? 'session' : 'alone']--, pages.delete(id));
 }
 
 /** Pages whose last beat is older than SERVER.beaconSiteSeconds are gone. */
@@ -49,10 +52,10 @@ function expire(now: number) {
   }
 }
 
-/** Who is on the site now: the pages that beat in the last SERVER.beaconSiteSeconds, each once, by what its last beat said (the game's beat or goodbye, beacon-body.ts). */
+/** Who is on the site now: the pages that beat in the last SERVER.beaconSiteSeconds, each once, by what its last beat said (the game's beat or goodbye, beacon-body.ts) and by what it does, in a session or alone. */
 export function site() {
   expire(Date.now());
-  return { ...open };
+  return { ...open, by: Object.fromEntries(DOINGS.map((k) => [k, { ...by[k] }])) as typeof by };
 }
 
 /** When the last beacon came in (ms), or null since the server started. */
@@ -84,10 +87,15 @@ export async function beacon(req: http.IncomingMessage, ip: string, into: () => 
     const now = Date.now();
     expire(now);
     const id = b.page ?? randomUUID();
+    // A hidden page doesn't say where it is: it stays where its last beat put it.
+    const session = b.beat === 'session' || (b.beat === 'hidden' && pages.get(id)?.session === true);
     leave(id);
     while (pages.size >= SERVER.beaconPages) leave(pages.keys().next().value!);
-    pages.set(id, { beat: b.beat, at: now });
+    // An older game's beat has no `doing`: playing, unless it is in a menu or hidden.
+    const doing = b.doing ?? (b.beat === 'menu' || b.beat === 'hidden' ? b.beat : 'playing');
+    pages.set(id, { beat: b.beat, doing, session, at: now });
     open[b.beat]++;
+    by[doing][session ? 'session' : 'alone']++;
   }
   const c = into();
   const ua = String(req.headers['user-agent'] ?? '');

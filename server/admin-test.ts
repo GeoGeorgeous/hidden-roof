@@ -8,13 +8,14 @@ import { NET, SERVER } from '../src/config';
 import { levelPaintFaces } from '../src/level/prop-pieces';
 import { encodeOps, SurfaceIndex } from '../src/op-wire';
 import { noClient } from './client-counts';
+import { SESSION_NAME_MAX } from '../src/net/protocol';
 import { median, noPaint } from './counts';
 import { join, start } from './test-kit';
 
-// What the admin API holds to (admin-api.ts, history.ts, people.ts, main.ts), against the built server: inherited
+// What the admin API holds to (admin/, history.ts, people.ts, main.ts), against the built server: inherited
 // keys are no paint detail and no period, ADMIN_ORIGIN as written with a trailing slash or not at all, a body
 // counted in bytes (413, and the server answers the next request), a multibyte character split across chunks,
-// today's paint by color and the slow ping in the answers, the median of an even count, a pong nobody asked
+// the session's paint by color and the settings in the answers, a wrong method (405), the events in pages since a time and by type, the median of an even count, a pong nobody asked
 // for, a corrupt stats file skipped while the days after it load, and the log's days, a day downloaded whole or one
 // session's lines. npm run test:server runs it.
 
@@ -69,9 +70,11 @@ try {
   // A corrupt stats file is skipped and logged; the days after it, the people and the rest of the directory load.
   assert.match(main.out(), new RegExp(`stats ${day(2)}.json skipped`));
   assert.match(main.out(), new RegExp(`stats people-${day(2)}.json skipped`));
-  const week = (await ask(main, 'GET', '/history?period=7d')).body;
-  assert.deepEqual([week.plays, week.inSessions.address, 'people' in week, 'countries' in week], [3, 1, false, false]);
-  assert.deepEqual([week.players, week.inSessions, week.playerCountries], [{ device: 0, address: 1 }, { device: 0, address: 1 }, {}], 'a play saved before pages were kept was a JOIN; no device, no country by device');
+  // The hour file is from before the minutes and the bytes were kept: it reads as none of them.
+  const week = (await ask(main, 'GET', '/stats/play?period=7d')).body;
+  assert.deepEqual([week.plays, week.lengthMinutes, 'lengths' in week, week.before], [3, {}, false, null], 'nothing kept before yesterday: no period before');
+  const folks = (await ask(main, 'GET', '/stats/people?period=7d')).body;
+  assert.deepEqual([folks.players, folks.inSessions, folks.countries, folks.networks.devicesPerNetwork], [{ device: 0, address: 1 }, { device: 0, address: 1 }, {}, { 1: 0, '2-4': 0, '5+': 0 }], 'a play saved before pages were kept was a JOIN; no device, no country by device, no network of devices');
 
   // How fresh each figure is: the sources' cadences and when each last came (null: never).
   const fresh = async (s: typeof main) => (await ask(s, 'GET', '/')).body.sources;
@@ -88,7 +91,8 @@ try {
   // Inherited keys are no detail and no period.
   for (const detail of ['constructor', '__proto__', 'toString', 7]) assert.equal((await make({ detail })).status, 400, String(detail));
   assert.equal((await make({ detail: 'low' })).status, 200);
-  for (const period of ['constructor', '__proto__', 'toString']) assert.equal((await ask(main, 'GET', `/history?period=${period}`)).status, 400, period);
+  for (const period of ['constructor', '__proto__', 'toString']) for (const route of ['play', 'people', 'paint', 'client', 'traffic']) assert.equal((await ask(main, 'GET', `/stats/${route}?period=${period}`)).status, 400, `${route} ${period}`);
+  assert.deepEqual([(await ask(main, 'GET', '/stats/nothing')).status, (await ask(main, 'GET', '/stats/traffic/days?n=0')).status, (await ask(main, 'GET', '/stats/traffic/days')).body, (await ask(main, 'GET', '/stats/traffic?period=today')).body.views], [404, 400, { days: [] }, 0]);
 
   // ADMIN_ORIGIN's origin is what counts: its trailing slash and path don't matter. Unset or not a URL: any Origin is refused, none is fine.
   assert.equal((await make({}, 'https://admin.example')).status, 200);
@@ -128,7 +132,21 @@ try {
   assert.ok(paged.events.every((e) => /^\d+-\d+$/.test(e.id)) && paged.events[0].type === 'session-made');
   assert.equal((await ask(main, 'GET', `/events/page?before=${paged.next}&limit=3`)).body.events.length, 1);
   assert.deepEqual((await ask(main, 'GET', '/events/page?before=1-0')).body, { events: [], next: null });
-  for (const query of ['before=x', 'before=1-2-3', 'limit=0', 'limit=51', 'limit=1.5']) assert.equal((await ask(main, 'GET', `/events/page?${query}`)).status, 400, query);
+  for (const query of ['before=x', 'before=1-2-3', 'limit=0', 'limit=51', 'limit=1.5', 'since=x', 'since=2026-10-27', 'since=2026-10-27T12:00:00', 'type=nope', 'type=joined&type=nope']) assert.equal((await ask(main, 'GET', `/events/page?${query}`)).status, 400, query);
+  // since: an event id or a time, only events after it; type, repeated: only those types; next is null at the end or at since.
+  const ofType = (await ask(main, 'GET', '/events/page?type=session-made')).body as { events: { id: string; type: string; at: string }[]; next: string | null };
+  assert.ok(ofType.events.length >= 2 && ofType.events.every((e) => e.type === 'session-made') && ofType.next === null);
+  const [newest, older] = ofType.events;
+  const after = (await ask(main, 'GET', `/events/page?since=${older.id}`)).body as { events: { id: string }[]; next: string | null };
+  assert.ok(after.events.length >= 1 && after.events.every((e) => Number(e.id.split('-')[0]) >= Number(older.id.split('-')[0]) && e.id !== older.id) && after.next === null);
+  assert.ok(after.events.some((e) => e.id === newest.id), 'the newer one is after');
+  assert.deepEqual((await ask(main, 'GET', `/events/page?since=${newest.id}`)).body.events.filter((e: { type: string }) => e.type === 'session-made'), [], 'nothing after the newest');
+  assert.ok((await ask(main, 'GET', `/events/page?since=${new Date(Date.parse(newest.at) - 1).toISOString()}`)).body.events.some((e: { id: string }) => e.id === newest.id), 'after a time');
+  assert.deepEqual((await ask(main, 'GET', `/events/page?since=${newest.at}&type=session-made`)).body.events, [], 'and not the event of that time itself');
+  const two = (await ask(main, 'GET', `/events/page?since=${older.id}&limit=1`)).body as { events: { id: string }[]; next: string | null };
+  assert.deepEqual([two.events.length, two.next === two.events[0].id], [1, after.events.length > 1]);
+  const mixed = (await ask(main, 'GET', '/events/page?type=session-made&type=joined&limit=50')).body.events as { type: string }[];
+  assert.ok(mixed.every((e) => e.type === 'session-made' || e.type === 'joined') && mixed.some((e) => e.type === 'session-made'));
   assert.ok(fs.readFileSync(path.join(dir, 'events', `${new Date().toISOString().slice(0, 10)}.jsonl`), 'utf8').includes(paged.events[0].id));
   const live = await fetch(`http://localhost:${main.adminPort}/events`, { headers: { authorization: 'Bearer test-key' } });
   const reader = live.body!.getReader();
@@ -143,10 +161,17 @@ try {
   await game.send({ type: 'ops', seq: 1, bytes: encodeOps([1], [stamp], new SurfaceIndex(faces.map((f) => f.key))) });
   await game.send({ type: 'ping', t: 1 });
   await game.next('pong');
-  const wall = ((await ask(main, 'GET', '/sessions')).body as { code: string; today: { colors: object } }[]).find((s) => s.code === code)!;
-  assert.deepEqual([wall.today.colors, 'topColor' in wall.today], [{ red: 1 }, false]);
+  const wall = ((await ask(main, 'GET', '/sessions')).body as { code: string; stats: { colors: object }; today?: unknown; players: { state: string; since: string; seenDays: null }[]; saves: unknown[] }[]).find((s) => s.code === code)!;
+  assert.deepEqual([wall.stats.colors, 'today' in wall, wall.saves], [{ red: 1 }, false, []]);
+  assert.deepEqual([wall.players[0].state, wall.players[0].seenDays, wall.players[0].since.endsWith('Z')], ['here', null, true]);
   const root = (await ask(main, 'GET', '/')).body;
-  assert.deepEqual([root.slowPing, root.saveEvery, root.saveAges], [SERVER.slowPing, SERVER.keepEvery, SERVER.keepAges.filter(Boolean)]);
+  assert.deepEqual([root.api, root.settings.slowPing, root.settings.saveEvery, root.settings.saveAges, root.settings.pageIdle, root.settings.playerIdle, root.limits], [4, SERVER.slowPing, SERVER.keepEvery, SERVER.keepAges.filter(Boolean), NET.beaconIdle, NET.idleAfter, { public: SERVER.players.public, private: { min: SERVER.privateMin, max: SERVER.players.private }, name: SESSION_NAME_MAX }]);
+  assert.ok(!('slowPing' in root) && !('saveEvery' in root) && !('saveAges' in root), 'only in settings');
+  // The routes of ADMIN_API 3 for the stats are gone; a route with another method is 405, one that is not there 404; the live minutes are a list.
+  for (const gone of ['/history', '/history?period=7d', '/traffic', '/traffic?days=3', '/nothing']) assert.equal((await ask(main, 'GET', gone)).status, 404, gone);
+  assert.deepEqual([(await ask(main, 'POST', '/')).status, (await ask(main, 'POST', '/machine')).status, (await ask(main, 'POST', '/events')).status, (await ask(main, 'POST', '/live/minutes')).status, (await ask(main, 'GET', '/uploads')).status, (await ask(main, 'GET', `/sessions/${code}/wipe`)).status, (await ask(main, 'POST', `/sessions/${code}/paint`)).status], [405, 405, 405, 405, 405, 405, 405]);
+  assert.deepEqual((await ask(main, 'GET', '/live/minutes')).body, []);
+  assert.equal((await ask(main, 'GET', '/live/hours')).status, 404);
   assert.deepEqual([median([]), median([7]), median([1, 2, 3]), median([10, 20]), median([10, 20, 30, 50])], [null, 7, 2, 15, 25]);
 
   // A pong nobody asked for (the heartbeat is an hour away) is no ping.
@@ -156,7 +181,7 @@ try {
   await game.next('pong');
   await game.next('pong');
   assert.equal(((await ask(main, 'GET', '/sessions')).body as { code: string; players: { ping: number | null }[] }[]).find((s) => s.code === code)!.players[0].ping, null);
-  console.log('admin API: ok (inherited keys, ADMIN_ORIGIN, bytes in a body, paint by color, the slow ping, the median, an unasked pong, a corrupt stats file, event ids and pages, the freshness of the sources, the log by day and session)');
+  console.log('admin API: ok (inherited keys, ADMIN_ORIGIN, bytes in a body, paint by color, the settings, 405 and 404, events since a time and by type, the slow ping, the median, an unasked pong, a corrupt stats file, event ids and pages, the freshness of the sources, the log by day and session)');
 } finally {
   await Promise.all([main.stop(), strict.stop(), logged.stop()]);
   fs.rmSync(dir, { recursive: true, force: true });
