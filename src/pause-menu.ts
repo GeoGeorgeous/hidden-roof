@@ -306,7 +306,7 @@ function column(title: string, ...items: HTMLElement[]) {
   return box;
 }
 
-/** The pause screen's footer: the social icons, then the legal pages (in a new tab: the paint stays), the version, the author and Ko-fi. */
+/** The pause screen's footer: the social icons, then the legal pages (in a new tab: the paint stays), the version, the author and Ko-fi (counted with the icons, data-social). */
 function footer() {
   const foot = div('pause-foot');
   const icons = SOCIAL_LINKS.map((s) =>
@@ -315,6 +315,6 @@ function footer() {
       : `<span class="soon" role="img" title="${s.label} — coming soon" aria-label="${s.label} (coming soon)">${socialIcon(s.icon)}</span>`,
   );
   const link = (href: string, text: string) => `<a href="${href}" target="_blank" rel="noopener">${text}</a>`;
-  foot.innerHTML = `<div class="social">${icons.join('')}</div><div class="meta">${link(TERMS, 'Terms')}<i>·</i>${link(PRIVACY, 'Privacy')}<i>·</i><span>${VERSION}</span><i>·</i><span>built by ${link(AUTHOR, 'GeoGeorgeous')}</span><i>·</i><a class="kofi" href="${KOFI}" target="_blank" rel="noopener">${kofiCup()}Buy me a coffee</a></div>`;
+  foot.innerHTML = `<div class="social">${icons.join('')}</div><div class="meta">${link(TERMS, 'Terms')}<i>·</i>${link(PRIVACY, 'Privacy')}<i>·</i><span>${VERSION}</span><i>·</i><span>built by ${link(AUTHOR, 'GeoGeorgeous')}</span><i>·</i><a class="kofi" href="${KOFI}" data-social="kofi" target="_blank" rel="noopener">${kofiCup()}Buy me a coffee</a></div>`;
   return foot;
 }

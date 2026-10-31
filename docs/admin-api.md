@@ -180,7 +180,7 @@ events: { steps: { play, ready, sprayed, joined }, tutorial, counts, seconds: { 
 net: { minutes, ping50, ping95, pingMax, drops, back, stalls, stallLong, down, up }
 ```
 
-`events.counts` by code; the pause menu's links count as `discord`, `github`, `youtube`, `instagram`, `tiktok`.
+`events.counts` by code; the pause menu's links count as `discord`, `github`, `youtube`, `instagram`, `tiktok`, `kofi`.
 
 `GET /stats/traffic`: the site's traffic from Caddy's log (the traffic reader). Each visitor once over the period.
 
