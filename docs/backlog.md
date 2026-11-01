@@ -137,8 +137,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 2. [IDEA-240]: Admin: ban by IP (with a reason the player is shown); restoring a save is CCTV-255 (docs/ideas/public-servers.md)
 3. IDEA [?BL-147]: Anti-cheat: The server checks what players send (op reach and rate, ladder spot, jumps) before it goes public @1.6.1
 4. [TASK-201]: Research itch.io Publishing Requirements, AI Policies, and Download Restrictions @1.6.3
-5. [TASK-275]: Staging on 1.6.0 as dev has it (protocol 9, ADMIN_API 4): its `stats/`, `traffic/` and `events/` wiped first (the owner: the stats start from a clean slate with 1.6.0, on 2026-11-01); the cctv page deployed with it (its ADMIN_API 4 build, CCTV-278); then the owner plays a session and checks the admin page there (docs/ideas/vps.md) @1.6.0
-6. [TASK-276]: Production on 1.6.0 once it is released (2026-11-01; its stats start then, from an empty DATA_DIR): the server's data, admin key and the public session, GeoIP each month, roof-traffic (docs/ideas/vps.md items 1-3), and Caddy's `/api/main` for the admin page (docs/deploy.md §9) @1.6.0
+5. [TASK-276]: Production on 1.6.0 once it is released (2026-11-01; its stats start then, from an empty DATA_DIR): the server's data, admin key and the public session, GeoIP each month, roof-traffic (docs/ideas/vps.md items 1-3), and Caddy's `/api/main` for the admin page (docs/deploy.md §9) @1.6.0
 
 ## CCTV
 
@@ -156,9 +155,8 @@ The admin page (the cctv repo) and the server side it reads (server/admin/). The
 
 ## Legal
 
-1. [TASK-187]: The beacon, the device id and the address hash run without a consent dialog (the owner's decision and risk, recorded in SECRET_legal.md); the privacy page names them (TASK-242)
-2. [TASK-242]: The privacy page names what the admin's stats keep: a random device id in localStorage, the address as a salted hash (a new salt each month), the country, the day the device first played and its last play day (in localStorage, sent with the beacon; the server keeps only counts by day), plays kept 91 days and counts forever, the web traffic read from the server's access log (a visitor as a salted hash of address and browser, a new salt each month, the hashes kept by the hour for 91 days, each with the country of its first view in that hour); why, and how to object; DB-IP's credit (CC BY 4.0) (docs/ideas/public-servers.md); the beacon's session-link minute too (ping, closes, KB/s: no ids) @1.6.0
-3. [TASK-189]: The Terms' moderation section (DSA: grounds and measures, reports by email, a restricted player told what and why); the house rules screen is in (docs/ideas/public-servers.md)
+1. [TASK-187]: The beacon, the device id and the address hash run without a consent dialog (the owner's decision and risk, recorded in SECRET_legal.md; confirmed 2026-11-01: no switch either); the privacy page names them (TASK-242, done)
+2. [TASK-189]: The Terms' moderation section (DSA: grounds and measures, reports by email, a restricted player told what and why); the house rules screen is in (docs/ideas/public-servers.md)
 
 ## Codebase
 
@@ -217,6 +215,8 @@ Shipped since the last release; the release commit empties this list.
 43. [CCTV-271]: A save's `stats` in GET /sessions in the shape of the session's `stats` (stamps by tool, painters), the page sums them; and one of a session's `today` and `stats` for the page, not both (in CCTV-278: `today` goes) @1.6.0
 44. [DOCS-281]: Docs for 1.6.0: deploy.md cut by a third (36 → 24 KB; the data's detail lives in admin-api.md) and brought up to date (protocol 9, public sessions take 40, saves 5 by age, restore from the admin page, the link budget, a corrupt salt kept aside); stale save counts fixed in known-limits.md and ideas/public-servers.md; measurements of discarded items out of ideas/performance.md; ideas/server-ops.md gone @1.6.0
 45. [TASK-277]: The 1.6.0 release notes, trimmed by the owner (2026-11-01: 5 items, ~1.5k characters; public and private sessions each with a sentence under the heading) and its picture, `public/updates/v1.6.0.webp`, the Multiplayer page with a public and a private session (docs/releases/AGENTS.md) @1.6.0
+46. [TASK-275]: Staging on 1.6.0 as dev has it (protocol 9, ADMIN_API 4): its `stats/`, `traffic/` and `events/` wiped first (the owner: the stats start from a clean slate with 1.6.0, on 2026-11-01); the cctv page deployed with it (its ADMIN_API 4 build, CCTV-278); then the owner plays a session and checks the admin page there (docs/ideas/vps.md) (2026-11-01: the owner says done; cctv and devops on it) @1.6.0
+47. [TASK-242]: The privacy page names what 1.6.0's statistics keep, short: the device id and play days in localStorage, the beacon, the web access log and visitors, the events list, public sessions' saves with painters' nicknames, pseudonymous hashes (monthly key) kept 91 days and counts forever, the country from DB-IP on our server (credited), reading from Georgia; reviewed by a legal-analysis agent; no switch to turn statistics off (TASK-187) @1.6.0
 
 ## Discarder
 
