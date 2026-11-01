@@ -126,10 +126,11 @@ const stripComments = {
 const csp = (hash: string) => `default-src 'self'; script-src 'self' ${hash}; img-src 'self' data: blob:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'`;
 const HASH_FILE = 'csp-hash.txt';
 
-// index.html's inline script starts the game's files coming with the page
-// (src/boot.ts would ask for them only once it runs): the build names them in
-// its meta tag, with RENDER.minViewport, and writes the script's CSP hash to
-// csp-hash.txt; vite preview sends the CSP with it, as Caddy does.
+// index.html's inline script decides with RENDER.minViewport whether the game
+// loads (html.game, before the first paint) and starts its files coming with the
+// page (src/boot.ts would ask for them only once it runs): its meta tag gets the
+// size (the dev server too) and, from the build, the files; the build writes the
+// script's CSP hash to csp-hash.txt; vite preview sends the CSP with it, as Caddy does.
 type Chunk = { type: string; fileName: string; facadeModuleId?: string | null; imports?: string[]; viteMetadata?: { importedCss: Set<string> } };
 const gamePreload = () => {
   let hash = '';
@@ -138,7 +139,11 @@ const gamePreload = () => {
     transformIndexHtml: {
       order: 'post' as const,
       handler(html: string, ctx: { bundle?: Record<string, Chunk> }) {
-        if (!ctx.bundle) return html;
+        const meta = '<meta name="game-files" content="" />';
+        if (!html.includes(meta)) throw new Error('game-preload: no game-files meta in index.html');
+        const min = `data-min='${JSON.stringify(RENDER.minViewport)}'`;
+        // The dev server: no files to name, but the page decides with the size all the same.
+        if (!ctx.bundle) return html.replace(meta, `<meta name="game-files" content="" ${min} />`);
         const bundle = ctx.bundle;
         html = html.replace(/[ \t]*<!--[\s\S]*?-->[ \t]*\n?/g, '');
         const main = Object.values(bundle).find((c) => c.type === 'chunk' && c.facadeModuleId?.endsWith('/src/main.ts'));
@@ -152,9 +157,7 @@ const gamePreload = () => {
           c.imports?.forEach((f) => add(bundle[f]));
         };
         add(main);
-        const meta = '<meta name="game-files" content="" />';
-        if (!html.includes(meta)) throw new Error('game-preload: no game-files meta in index.html');
-        html = html.replace(meta, `<meta name="game-files" content="${[...files].map((f) => `/${f}`).join(' ')}" data-min='${JSON.stringify(RENDER.minViewport)}' />`);
+        html = html.replace(meta, `<meta name="game-files" content="${[...files].map((f) => `/${f}`).join(' ')}" ${min} />`);
         const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)];
         if (scripts.length !== 1) throw new Error(`game-preload: ${scripts.length} inline scripts in index.html, the CSP allows one`);
         hash = `'sha256-${createHash('sha256').update(scripts[0][1]).digest('base64')}'`;

@@ -1,10 +1,10 @@
 import { msg } from './messages';
-import './small-screen.css';
-import city from './small-screen.webp';
+import './other-tab.css';
+import city from './other-tab.webp';
 import { el } from './menu-ui';
 
-// The screen of a tab that doesn't run the game because another does (one-tab.ts), in screen 10's look
-// (small-screen.ts): the title over the still of the city, and what is going on.
+// The screen of a tab that doesn't run the game because another does (one-tab.ts): the title over a still
+// of the title view (other-tab.webp, no WebGL), and what is going on.
 
 export function otherTab() {
   const root = el('div', 'small again');

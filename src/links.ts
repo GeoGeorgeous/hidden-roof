@@ -1,4 +1,4 @@
-// Where the menus' links lead: the pause screen's footer (pause-menu.ts; its social icons in SOCIAL_LINKS, config.ts) and screen 10 (small-screen.ts).
+// Where the menus' links lead: the pause screen's footer (pause-menu.ts; its social icons in SOCIAL_LINKS, config.ts) and the page about the game (index.html; scripts/seo.test.mjs checks its links).
 
 /** The game's address: the canonical URL of index.html, and what a root-relative link in a release note becomes outside the game (GitHub, Discord). */
 export const SITE = 'https://roof.hidden.haus';

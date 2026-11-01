@@ -1,7 +1,7 @@
 {
   "name": "Hidden Roof",
   "short_name": "Hidden Roof",
-  "description": "Climb onto a dystopian rooftop city drawn in ink, where the only color is the paint you bring. A creative first-person graffiti sandbox — solo or with friends.",
+  "description": "Free online graffiti game in your browser. The city is ink, the color is yours: spray paint solo or in multiplayer with friends.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",

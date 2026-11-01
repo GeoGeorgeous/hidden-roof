@@ -274,17 +274,12 @@ export const MESSAGES = {
     perfTested: 'Tested at your current settings',
     // Small copy flashes
     copied: 'Copied',
-    linkCopied: 'Link copied',
     // Loading screen
     loadRoof: 'Building the roof',
     loadLamps: 'Lighting the lamps',
     loadPaint: 'Putting up the paint',
     loadFailed: "The level didn't load: reload the page",
-    // Not here: the texts before the game's code runs stay where they run, as the entry must stay tiny (a phone loads none of the game): boot.ts ("The game didn't load", "The game needs WebGL") and index.html's noscript line.
-    // Screen for small windows and touch devices
-    smallHint: 'Send it to yourself for later.',
-    smallCopied: 'Paste it on your computer to play.',
-    smallWide: 'Wide enough to play now.',
+    // Not here: the texts before the game's code runs stay where they run, as the entry must stay tiny (a phone loads none of the game): boot.ts ("The game didn't load", "The game needs WebGL2") and index.html's page about the game.
     // Screen for a second tab of the game (other-tab.ts)
     otherTabTitle: 'The game is open in another tab',
     otherTabText: 'Hidden Roof runs in one tab at a time. Close this one and play on in the other.',

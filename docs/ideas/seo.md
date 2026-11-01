@@ -7,7 +7,18 @@ what is still open. The research behind it (sources,
 crawler behavior, query clusters, FAQ drafts) is the owner's study "SEO для полноэкранной браузерной игры", not in
 the repo; its facts are checked against the code before they go on a page.
 
-## Leaning (2026-11-01, not approved)
+## Approved for 1.6.1 (2026-11-01, TASK-291)
+
+- **The page about the game** in place of screen 10: static in `index.html`, in the look of the Terms and Privacy
+  pages, with the one h1, the definition, what you need, how to play, multiplayer, a FAQ and the links; no portal, no
+  way to it from the game, no Copy link. Where the game loads, `html.game` hides it before the first paint (the
+  inline script, the dev server too); when the game fails to start it shows, saying why.
+- **In search results:** the site name from `WebSite` (`@graph` with the game), the title and the description
+  below; the game's structured data gets `GameApplication`, `browserRequirements` and the definition.
+- **llms.txt** opens with the definition; **sitemap** gets a `lastmod`, set at each release that changes the page.
+- After the deploy: submit the sitemap in Search Console and ask for the page to be indexed again.
+
+## Leaning for 1.7.2 (2026-11-01, not approved)
 
 - **The landing:** a real landing at roof.hidden.haus, static markup in `index.html`, the same bytes for every client.
   Where the game starts fine it never shows, not even for a frame (no flash on load): before the first paint the inline

@@ -1,6 +1,6 @@
 // The ESC menu's building blocks (style.css): elements, buttons, key hints,
 // the segmented control, a page's head, setting rows and sentence case; the
-// build mode, the F3 panel and screen 10 make their elements here too.
+// build mode, the F3 panel and the second tab's screen (other-tab.ts) make their elements here too.
 // Primary buttons answer Enter: the visible one on the open page (pause-menu.ts).
 
 /** An element: its class (none when empty) and text. */

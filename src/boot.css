@@ -1,6 +1,6 @@
 /* What the page shows before any game code: the fonts, the colors, the page
-   itself and the loading screen (index.html). The game's own styles
-   (style.css) come with the game (main.ts), screen 10's with it (small-screen.css). */
+   itself, the loading screen and the page about the game (index.html). The
+   game's own styles (style.css) come with the game (main.ts). */
 
 /* The titles' graffiti font and the menus' sans (public/fonts/README.txt). */
 @font-face {
@@ -88,6 +88,22 @@ canvas {
   display: none !important;
 }
 
+/* --- Where the game doesn't load (no html.game: src/boot.ts) the page about the game is all there is: it scrolls,
+   and nothing of the game shows, not even what a game that failed to start left behind. --- */
+
+html:not(.game),
+html:not(.game) body {
+  height: auto;
+  overflow: auto;
+  user-select: text;
+}
+html:not(.game) body > :not(.about) {
+  display: none !important;
+}
+.game .about {
+  display: none;
+}
+
 /* --- Loading screen (index.html, main.ts): over everything until the game is ready --- */
 
 .loading {
@@ -102,7 +118,7 @@ canvas {
   background: #000;
   color: var(--paper);
 }
-.loading h1 {
+.loading .title {
   /* The pause menu's title (.overlay .title). */
   margin: 0;
   font-family: var(--display);
@@ -130,14 +146,195 @@ canvas {
 .loading span.on {
   opacity: 1;
 }
-/* Without JavaScript the game can't start: the noscript line says so in place of Loading. */
-.loading noscript {
+
+/* --- The page about the game (index.html): the look of the Terms and Privacy pages (public/legal.css) --- */
+
+.about {
   font-family: var(--sans);
+  font-size: 16px;
+  letter-spacing: normal;
+  color: var(--paper);
+}
+.about a {
+  color: var(--paper);
+  text-decoration: none;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+.about a:focus-visible {
+  outline: 2px solid var(--paper);
+  outline-offset: 3px;
+}
+.about .top {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 40px;
+  border-bottom: 1px solid var(--hair);
+  background: #000;
+}
+.about .mark {
+  font: 400 26px / 1 var(--display);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.about .top nav {
+  display: flex;
+  align-items: center;
+  gap: 24px;
   font-size: 13px;
+}
+.about .top nav a {
+  padding: 3px 0;
   color: var(--text-2);
 }
-@media (scripting: none) {
-  .loading p {
+.about .top nav a:hover {
+  color: var(--paper);
+}
+.about .top nav .play {
+  padding: 7px 14px;
+  border-radius: 4px;
+  background: var(--paper);
+  color: var(--ink);
+  font-weight: 600;
+}
+.about .top nav .play:hover {
+  background: #fff;
+  color: var(--ink);
+}
+/* A phone can't play: no Play there. */
+@media (pointer: coarse) and (hover: none) {
+  .about .top nav .play {
     display: none;
+  }
+}
+.about .column {
+  width: 600px;
+  margin: 0 auto;
+  padding: 72px 0 96px;
+}
+.about h1 {
+  margin: 0;
+  padding-bottom: 20px;
+  font: 400 56px / 1.05 var(--display);
+  letter-spacing: 0.02em;
+}
+.about p {
+  margin: 0;
+}
+.about .failed {
+  margin-top: 8px;
+  padding: 12px 16px;
+  border: 1px solid var(--edge);
+  border-radius: 4px;
+  font-size: 15px;
+  color: var(--error);
+}
+.about .intro {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px 0 36px;
+  border-bottom: 1px solid var(--hair);
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-1);
+  text-wrap: pretty;
+}
+.about .intro p:first-child {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--paper);
+}
+.about section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 36px;
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--text-1);
+  text-wrap: pretty;
+}
+.about h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: normal;
+  color: var(--paper);
+}
+.about h3 {
+  margin: 8px 0 -6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--paper);
+}
+.about ul {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.about li {
+  position: relative;
+  padding-left: 20px;
+}
+.about li::before {
+  content: '–';
+  position: absolute;
+  left: 0;
+  color: var(--text-4);
+}
+.about strong {
+  font-weight: 600;
+  color: var(--paper);
+}
+.about kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--edge);
+  border-radius: 3px;
+  font: 0.88em var(--mono);
+  color: var(--paper);
+}
+.about :is(p, li) a {
+  border-bottom: 1px solid var(--text-4);
+}
+.about :is(p, li) a:hover {
+  color: #fff;
+  border-bottom-color: var(--paper);
+}
+.about footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 24px;
+  margin-top: 56px;
+  padding-top: 18px;
+  border-top: 1px solid var(--hair);
+  font-size: 12px;
+  color: var(--text-3);
+}
+.about footer a {
+  color: var(--text-2);
+}
+.about footer a:hover {
+  color: var(--paper);
+}
+@media (max-width: 720px) {
+  .about .top {
+    padding: 18px 24px;
+  }
+  .about .column {
+    width: auto;
+    padding: 56px 24px 96px;
+  }
+  .about h1 {
+    font-size: 40px;
   }
 }

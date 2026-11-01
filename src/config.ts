@@ -23,7 +23,7 @@ export const RENDER = {
   jpFontWait: 3000,
   /**
    * The smallest window the game loads in (CSS px); below it, or on a
-   * touch-only device, screen 10 shows instead (src/boot.ts; ?force=1 loads
+   * touch-only device, the page about the game shows instead (src/boot.ts; ?force=1 loads
    * the game anyway). Measured on the ESC menu, the widest UI: the Updates
    * popup is 780 px plus its 16 px margins (812; the Settings column is 640,
    * the pause screen's widest row, its title, 468). The pause screen's title
