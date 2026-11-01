@@ -668,14 +668,31 @@ html:not(.game) .about .hero {
   max-width: 560px;
   padding-bottom: 16px;
 }
-/* The gallery: the first shot across the column, the others two to a row; each with its caption. */
+/* The gallery, on six columns: the first shot four wide and two rows high (cropped to fill them), the two beside it,
+   then three across and two across; every shot 16:9 with its caption under it. */
 .about .gallery {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 28px 20px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 24px 16px;
+}
+.about .gallery figure {
+  grid-column: span 2;
 }
 .about .gallery figure:first-child {
-  grid-column: 1 / -1;
+  grid-column: span 4;
+  grid-row: span 2;
+}
+.about .gallery figure:nth-last-child(-n + 2) {
+  grid-column: span 3;
+}
+.about .gallery img {
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+.about .gallery figure:first-child img {
+  flex: 1;
+  min-height: 0;
+  aspect-ratio: auto;
 }
 .about figure {
   display: flex;
@@ -695,7 +712,8 @@ html:not(.game) .about .hero {
   color: var(--text-2);
 }
 .about figcaption strong {
-  margin-right: 6px;
+  display: block;
+  margin-bottom: 2px;
 }
 .about time {
   color: var(--text-2);
@@ -746,6 +764,13 @@ html:not(.game) .about .hero {
   }
   .about .gallery {
     grid-template-columns: 1fr;
+  }
+  .about .gallery figure:is(*, :first-child, :nth-last-child(-n + 2)) {
+    grid-column: auto;
+    grid-row: auto;
+  }
+  .about .gallery figure:first-child img {
+    aspect-ratio: 16 / 9;
   }
   .about .facts {
     grid-template-columns: repeat(2, 1fr);

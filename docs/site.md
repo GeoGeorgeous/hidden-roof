@@ -21,6 +21,9 @@ what's served: `docs/deploy.md`; the release steps that touch the page: `docs/re
 - The painting of 1.7.0 is described as fact before it ships (the owner's call: a site takes weeks to be read). Every
   other claim is true of the game as it is: check it against the code before it goes on the page, and keep the FAQ
   true with each release. Not "legal wall" (the owner's no).
+- The gallery: eight shots on a six-column grid (the first large), a caption under each. Its pictures are
+  `public/gallery/*.webp` (and three release pictures), 1280×720: made with `scripts/release-picture.mjs`, which
+  writes `public/updates/<tag>.webp`, moved there.
 - The FAQ: each question phrased as players ask it, each answer starting with the direct answer. Questions sit in
   groups (Playing, Painting, Multiplayer, Performance, The game), each a `<details>` that opens in place: the answers
   stay in the markup for crawlers. A new question goes in its group.
