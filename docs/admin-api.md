@@ -310,7 +310,9 @@ too must be its own; an unknown or expired one is 404).
 
 A ban keeps a player out of every session, by their address (an IPv6 one by its /64) and their game's device id:
 anyone from either is turned away (`banned`) at HOST and JOIN, and the server list shows them their ban and no
-sessions. Made, everyone of that address or device leaves every session and line at once, told the reason and the end.
+sessions. Made, everyone of that address or device leaves every session and line at once, told the reason and the end:
+a player in a session as a `left` event (`why`: banned by the admin), a place in line as a `turned-away` (`banned`),
+counted as a refused JOIN.
 
 `GET /bans` → the bans in force, newest first: `[{ id, name, reason, made, until | null }]` (`name`: the nickname
 then; `until` null: for good). No address or device: the server keeps only their hashes.

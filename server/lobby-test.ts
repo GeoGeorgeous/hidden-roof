@@ -16,7 +16,7 @@ import { Game, join, start } from './test-kit';
 // The server list and the limits per session (lobby-http.ts, lobby.ts), against the built server: the list over plain
 // HTTP (public and private sessions, their order, codes only for public ones), a lookup by code and its limit per
 // address, a hosted session turning the player over its limit away, a public session's seats, places in line and JOINs per address, the admin's private limit, a HOST with
-// fields it can't take, HOST refused unless PLAYER_HOST, a closed tab's seat held for less than a lost link's, and the admin's kick (a reconnect with a kicked player's token is told so, a new join comes in) and ban (by address, its /64, and device, out of every session; the list shows it; changed, lifted; kept on disk, ended). npm run test:server runs it.
+// fields it can't take, HOST refused unless PLAYER_HOST, a closed tab's seat held for less than a lost link's, and the admin's kick (a reconnect with a kicked player's token is told so, a new join comes in) and ban (by address, its /64, and device, out of every session and its line, the place turned away; the list shows it; changed, lifted; kept on disk, ended). npm run test:server runs it.
 
 const level = JSON.parse(fs.readFileSync('public/levels/demo.json', 'utf8'));
 const table = surfaceTable(levelPaintFaces(level, 48));
@@ -239,10 +239,14 @@ try {
   };
   const [devX, devZ] = ['a'.repeat(32), 'b'.repeat(32)];
   const enter = (name: string, code: string, ip: string, device?: string) => new Game(main.port, ip).send({ type: 'join', protocol: PROTOCOL, name, code, device });
-  // It stays when its banned player leaves it empty.
-  const room = (await admin({ kind: 'private', name: 'Bans', level: 'demo', detail: 'low', stay: true })).body.code as string;
+  // It stays when its banned players leave it empty; full, its third waits in line.
+  const room = (await admin({ kind: 'private', name: 'Bans', level: 'demo', detail: 'low', stay: true, limit: 2 })).body.code as string;
   const x = await enter('X', room, '10.9.0.1', devX);
   const wx = await x.next('welcome');
+  const sameIp = await enter('W', room, '10.9.0.1', 'd'.repeat(32));
+  await sameIp.next('welcome');
+  const q = await enter('Q', room, '10.9.0.1', 'e'.repeat(32));
+  await q.next('queued');
   const y = await enter('Y', wall.body.code, '10.9.0.1', devZ);
   const z = await enter('Z', wall.body.code, '10.9.0.2', devX);
   const bystander = await enter('N', wall.body.code, '10.9.0.3', devZ.replace(/b/g, 'c'));
@@ -253,7 +257,13 @@ try {
   assert.equal((await api('/bans', { code: 'ZZZZZ', player: wx.you, days: 7, reason: 'x' })).status, 404);
   const ban = await api('/bans', { code: room, player: wx.you, days: 7, reason: ' Tag spamming ' });
   assert.deepEqual([ban.status, ban.body.name, ban.body.reason, Date.parse(ban.body.until) - Date.parse(ban.body.made)], [200, 'X', 'Tag spamming', 7 * DAY]);
-  for (const g of [x, y, z]) assert.equal(await g.rejected(), 'banned', 'out of every session: by its address and by its device');
+  for (const g of [x, y, z, sameIp, q]) assert.equal(await g.rejected(), 'banned', 'out of every session and its line: by its address and by its device');
+  const events = await fetch(`http://localhost:${main.adminPort}/events`, { headers: { authorization: 'Bearer test-key' }, signal: AbortSignal.timeout(5000) });
+  const reader = events.body!.getReader();
+  let feedText = '';
+  while (!/"type":"turned-away"[^\n]*"player":"Q"[^\n]*"reason":"banned"/.test(feedText)) feedText += new TextDecoder().decode((await reader.read()).value);
+  void reader.cancel();
+  assert.ok(/"type":"left"[^\n]*"player":"W"[^\n]*"why":"banned by the admin"/.test(feedText), 'a player out: left; a place in line: turned away');
   assert.equal(x.reason, `${Date.parse(ban.body.until)} Tag spamming`, 'the game is told its end and reason');
   assert.equal(closeCode('banned'), 4015);
   assert.equal(bystander.ws.readyState, bystander.ws.OPEN, 'another player stays');
