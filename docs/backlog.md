@@ -77,8 +77,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## Rendering
 
-1. BUGS [BL-011]: Title-screen pickup rings are sized for where the player stands, not the title view (confirmed: Pickups.ringSize reads the player's camera; big rings high up in build mode are PICKUP.ring.minSize, as designed; the owner: fix the title only) @1.6.1
-2. IDEA [BL-066]: A camera mode for trailers and cinematics
+1. IDEA [BL-066]: A camera mode for trailers and cinematics
 
 ## Props and level
 
@@ -170,6 +169,7 @@ Shipped since the last release; the release commit empties this list.
 4. [RFCT-273]: The snapshot's layout in one place: SNAPSHOT_FEET and SNAPSHOT_REST beside SNAPSHOT_BYTES (net/protocol.ts), read by encodeSnapshot, snapshotSpot and the sender's still check (sender.ts stays loadable in Node for its test)
 5. [PERF-269]: The server's thread spared on admin reads: a /stats period sums each whole day before today from that day's total, made once (history.total); measured over 91 days of full hours: /stats/play?period=30d 325 → 23 ms, paint 324 → 22, client 219 → 14 (the first ask after a start makes the days, ~200 ms); the log's appendFileSync left as it is (2.2 µs a line against 0.6 on an open file)
 6. [BUGS-234]: Holding Esc in fullscreen on a Mac says ⌃ ⌘ F leaves at once, not F11: Chrome on a Mac has no F11 for fullscreen, and Fn+F11 shows the desktop (checked by the owner: ⌃⌘F leaves)
+7. BUGS [BL-011]: Title-screen pickup rings sized for the title view, not where the player stands: Pickups.view takes the camera the frame is drawn from and places the rings again when it changes, the game stopped or not; big rings high up in build mode are PICKUP.ring.minSize, as designed (the owner)
 
 ## Discarder
 

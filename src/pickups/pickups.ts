@@ -55,9 +55,12 @@ export class Pickups {
   private nextId = 1;
   private time = 0;
   private labels: PickupLabels;
+  /** The camera the frame is drawn from (view). */
+  private shown: THREE.PerspectiveCamera;
 
-  /** `camera`: rings keep their shape readable on its screen (PICKUP.ring.minSize); tags hide behind `solids`. */
-  constructor(scene: THREE.Scene, private camera: THREE.PerspectiveCamera, solids: readonly THREE.Mesh[]) {
+  /** `camera`: rings keep their shape readable on its screen (PICKUP.ring.minSize) until view says another is shown; tags hide behind `solids`. */
+  constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera, solids: readonly THREE.Mesh[]) {
+    this.shown = camera;
     scene.add(this.root);
     this.labels = new PickupLabels(camera, solids);
   }
@@ -127,10 +130,17 @@ export class Pickups {
     setGlow(p.glow, g.strength * (1 + g.pulse * Math.sin(this.time * g.pulseRate + p.phase)));
   }
 
-  /** PICKUP.ring.size, but never under ring.minSize of the screen's height, so its shape reads from far away. */
+  /** Rings sized for `camera`, the one the frame is drawn from (the title view has its own): placed again when it changes, also while the game is stopped. */
+  view(camera: THREE.PerspectiveCamera) {
+    if (camera === this.shown) return;
+    this.shown = camera;
+    for (const p of this.list.values()) if (p.group.visible) this.place(p);
+  }
+
+  /** PICKUP.ring.size, but never under ring.minSize of the screen's height of the camera shown, so its shape reads from far away. */
   private ringSize(p: Pickup) {
     const { size, minSize } = PICKUP.ring;
-    const c = this.camera;
+    const c = this.shown;
     const far = Math.hypot(c.position.x - p.pos[0], c.position.y - p.pos[1] - p.halo.position.y, c.position.z - p.pos[2]);
     return Math.max(size, minSize * far * 2 * Math.tan((c.fov * Math.PI) / 360));
   }
