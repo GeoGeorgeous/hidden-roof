@@ -16,7 +16,7 @@ export type PickupKind = string;
 /** A tool that is found as a pickup: all but the can, which you always have. */
 export type FoundTool = Exclude<Tool, 'can'>;
 
-export type PickupContent = { color: PaintColor } | { cap: CapId } | { tool: FoundTool };
+type PickupContent = { color: PaintColor } | { cap: CapId } | { tool: FoundTool };
 
 /** Tools you find as pickups, and what a pickup calls them. */
 const FOUND_TOOLS: FoundTool[] = SLOTS.filter((t) => t !== 'can');

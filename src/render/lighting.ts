@@ -44,7 +44,7 @@ const shadowY = new THREE.Vector3();
 const UP = new THREE.Vector3(0, 1, 0);
 
 /** A light the volumetric pass scatters. */
-export interface ScatterLight {
+interface ScatterLight {
   pos: THREE.Vector3;
   dir: THREE.Vector3;
   /** Color x strength; black = unused. */

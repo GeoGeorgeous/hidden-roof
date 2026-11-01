@@ -21,7 +21,7 @@ const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'roof-beacon-'));
 // An hour saved by an earlier run, the hour before this one: beacons, no events yet.
 const before = Date.now() - 3600e3;
 /** An hour as history.ts saves it, with `plays` and these beacon counts. */
-const savedHour = (plays: number, client: Partial<ClientCounts>) => ({ plays, lengths: [0, 0, 0, 0], seconds: 0, withOthers: 0, turnedAway: {}, ...noPaint(), peak: null, client: { ...noClient(), ...client } });
+const savedHour = (plays: number, client: Partial<ClientCounts>) => ({ plays, seconds: 0, withOthers: 0, turnedAway: {}, ...noPaint(), peak: null, client: { ...noClient(), ...client } });
 fs.mkdirSync(path.join(dir, 'stats'));
 fs.writeFileSync(
   path.join(dir, 'stats', `${new Date(before).toISOString().slice(0, 10)}.json`),

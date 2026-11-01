@@ -23,7 +23,7 @@ export interface PaintFileFace {
   h: number;
 }
 
-export interface PaintFileHeader {
+interface PaintFileHeader {
   format: 'rhh-paint';
   version: number;
   created: string;

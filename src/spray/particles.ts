@@ -28,7 +28,7 @@ interface Particle {
   rgb: Rgb;
 }
 
-export interface EmitParams {
+interface EmitParams {
   count: number;
   eye: THREE.Vector3;
   nozzle: THREE.Vector3;
@@ -53,7 +53,7 @@ export class WallMemo {
 }
 
 /** Another player's spray, to be seen only; `dt`: the frame it came out over. */
-export type ShowParams = Omit<EmitParams, 'flow' | 'rgb'> & { dt: number; memo: WallMemo };
+type ShowParams = Omit<EmitParams, 'flow' | 'rgb'> & { dt: number; memo: WallMemo };
 
 const dir = new THREE.Vector3();
 const target = new THREE.Vector3();

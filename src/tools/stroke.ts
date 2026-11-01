@@ -18,7 +18,7 @@ const at: FacePoint = { rect: 0, u: 0, v: 0 };
 const STILL_ANGLE = 0.0005;
 const STILL_MOVE = 0.001;
 
-export interface StrokeSpec {
+interface StrokeSpec {
   reach: number;
   /** Most distance between two stamps on a surface at full reach (m; never under half a paint texel, so no texel is skipped), and most stamps per frame. */
   spacing: number;

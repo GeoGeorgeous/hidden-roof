@@ -11,7 +11,7 @@ import { shapeOf } from './shape';
 // paint fits is refused before anything changes.
 
 /** What a LOAD did: faces painted, and faces skipped (their surface is gone or changed). */
-export interface LoadedPaint {
+interface LoadedPaint {
   faces: number;
   skipped: number;
 }

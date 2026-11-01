@@ -27,7 +27,7 @@ import { SimLink } from './sim-link';
 // paint (yours is already there). Dev tools only. It runs on game time (the
 // frames' dt), so the game tests can play it frame by frame.
 
-export interface GhostContext {
+interface GhostContext {
   scene: THREE.Scene;
   level: Level;
   paint: PaintSystem;

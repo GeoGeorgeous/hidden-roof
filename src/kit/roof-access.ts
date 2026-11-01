@@ -11,18 +11,18 @@ const HW = 0.5; // half width
 /** Every railing stands this far out, the stair rails and the landing's alike, so they line up where they meet. */
 const RAIL_X = HW + 0.04;
 
-/** A flight of `n` treads from (z0, y0) going up toward `dir` (-1: -z, 1: +z): treads, stringers, handrails. */
-function flight(p: Parts, z0: number, y0: number, n: number, dir: number) {
+/** A flight of `n` treads from z0 on the floor going up toward `dir` (-1: -z, 1: +z): treads, stringers, handrails. */
+function flight(p: Parts, z0: number, n: number, dir: number) {
   for (let i = 1; i <= n; i++) {
     const z = z0 + dir * TREAD * (i - 1);
-    const y = y0 + RISE * i;
+    const y = RISE * i;
     p.box([-HW, y - 0.04, Math.min(z, z + dir * TREAD)], [HW, y, Math.max(z, z + dir * TREAD)], M.metal);
   }
-  const top: V3 = [0, y0 + RISE * n, z0 + dir * TREAD * n];
+  const top: V3 = [0, RISE * n, z0 + dir * TREAD * n];
   for (const x of [-RAIL_X, RAIL_X]) {
-    p.rod([x, y0, z0], [x, top[1] - 0.05, top[2]], 0.05, M.steel);
+    p.rod([x, 0, z0], [x, top[1] - 0.05, top[2]], 0.05, M.steel);
     p.detail([x - 0.08, 0, z0 - 0.08], [x + 0.08, 0.02, z0 + 0.08], M.steel, false);
-    p.stairRail([x, y0 + RISE, z0 + (dir * TREAD) / 2], [x, top[1], top[2] - (dir * TREAD) / 2]);
+    p.stairRail([x, RISE, z0 + (dir * TREAD) / 2], [x, top[1], top[2] - (dir * TREAD) / 2]);
   }
 }
 
@@ -41,7 +41,7 @@ function landing(p: Parts, z0: number, z1: number, h: number, zPost: number) {
 const storey: Variant['build'] = () => {
   const p = new Parts();
   const n = 4 / RISE;
-  flight(p, 3, 0, n, -1);
+  flight(p, 3, n, -1);
   landing(p, 3 - n * TREAD, -3, 4, -2.9);
   return p.list;
 };
@@ -50,7 +50,7 @@ const storey: Variant['build'] = () => {
 const half: Variant['build'] = () => {
   const p = new Parts();
   const n = 2 / RISE;
-  flight(p, 1.6, 0, n, -1);
+  flight(p, 1.6, n, -1);
   landing(p, 1.6 - n * TREAD, -2, 2, -1.9);
   return p.list;
 };
@@ -60,8 +60,8 @@ const crossover: Variant['build'] = () => {
   const p = new Parts();
   const n = 1.2 / RISE;
   const run = n * TREAD;
-  flight(p, 0.35 + run, 0, n, -1);
-  flight(p, -0.35 - run, 0, n, 1);
+  flight(p, 0.35 + run, n, -1);
+  flight(p, -0.35 - run, n, 1);
   p.box([-HW - 0.04, 1.15, -0.35], [HW + 0.04, 1.2, 0.35], M.metal);
   for (const z of [-0.3, 0.3]) for (const x of [-HW + 0.04, HW - 0.04]) p.detail([x - 0.04, 0.02, z - 0.04], [x + 0.04, 1.15, z + 0.04], M.steel);
   for (const x of [-RAIL_X, RAIL_X]) p.railing([x, -0.29], [x, 0.29], 1.2);

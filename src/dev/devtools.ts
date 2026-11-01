@@ -42,7 +42,7 @@ import type { Tools } from '../tools/tools';
 // the keys do nothing and both are closed.
 
 /** What the dev tools reach into. Main passes all of window.game, which holds more. */
-export interface DevContext {
+interface DevContext {
   scene: THREE.Scene;
   renderer: THREE.WebGLRenderer;
   input: Input;

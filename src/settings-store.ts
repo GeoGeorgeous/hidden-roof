@@ -6,10 +6,6 @@ import { store, stored } from './stored';
 // touched it. Unavailable storage (private mode) keeps them for the session.
 
 const KEY = 'roofhiddenhaus.settings';
-/** Settings saved under the old name (taggin): read once, so nothing resets with the rename. */
-const RENAMED_KEY = 'taggin.settings.v2';
-/** Settings saved before v2: their paint detail and volumetrics are dropped, so the defaults (ULTRA, off) apply once. */
-const OLD_KEY = 'taggin.settings';
 
 export interface Saved {
   /** INK_STYLES name. */
@@ -27,10 +23,8 @@ export interface Saved {
 
 export function loadSaved(): Saved {
   try {
-    const saved = stored(KEY) ?? stored(RENAMED_KEY);
-    if (saved) return JSON.parse(saved) as Saved;
-    const old = JSON.parse(stored(OLD_KEY) ?? '{}') as Saved;
-    return { pixelScale: old.pixelScale, cityDetail: old.cityDetail };
+    const saved = stored(KEY);
+    return saved ? (JSON.parse(saved) as Saved) : {};
   } catch {
     // Not JSON: the defaults.
     return {};

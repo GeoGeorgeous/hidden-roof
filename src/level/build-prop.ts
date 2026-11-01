@@ -89,7 +89,7 @@ export interface Emitter {
   dir: THREE.Vector3;
 }
 
-export interface Expanded {
+interface Expanded {
   paint: { geo: SurfaceGeometry; mat: Mat }[];
   decor: { geo: THREE.BufferGeometry; mat: Mat }[];
   colliders: THREE.Box3[];

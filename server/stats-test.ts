@@ -62,8 +62,8 @@ const stats = path.join(dir, 'stats');
 fs.mkdirSync(stats);
 const hour = (h: Partial<Record<string, unknown>>) => ({ plays: 0, minutes: {}, seconds: 0, withOthers: 0, turnedAway: {}, stamps: { can: 0, marker: 0, roller: 0, sponge: 0 }, colors: {}, peak: null, bytes: { up: 0, down: 0 }, client: noClient(), ...h });
 const hours: Record<number, object> = {
-  [H - 400]: { plays: 4, seconds: 0, withOthers: 0, turnedAway: {}, stamps: { can: 0, marker: 0, roller: 0, sponge: 0 }, colors: {}, peak: null, client: noClient(), lengths: [1, 0, 0, 0] },
-  [H - 2400]: { plays: 4, seconds: 0, withOthers: 0, turnedAway: {}, stamps: { can: 0, marker: 0, roller: 0, sponge: 0 }, colors: {}, peak: null, client: noClient(), lengths: [1, 0, 0, 0] },
+  [H - 400]: { plays: 4, seconds: 0, withOthers: 0, turnedAway: {}, stamps: { can: 0, marker: 0, roller: 0, sponge: 0 }, colors: {}, peak: null, client: noClient() },
+  [H - 2400]: { plays: 4, seconds: 0, withOthers: 0, turnedAway: {}, stamps: { can: 0, marker: 0, roller: 0, sponge: 0 }, colors: {}, peak: null, client: noClient() },
   [H - 170]: hour({ plays: 1, seconds: 600 }),
   [H - 26]: hour({ plays: 3, seconds: 7200, withOthers: 3600, minutes: { 2: 2, 5: 1 }, turnedAway: { full: 1 }, peak: { players: 3, at: 'x' }, bytes: { up: 1000, down: 500 } }),
   [H - 5]: hour({ plays: 2, seconds: 1800, minutes: { 0: 2 }, stamps: { can: 4, marker: 0, roller: 0, sponge: 1 }, colors: { blue: 3, red: 2 }, peak: { players: 5, at: 'y' }, bytes: { up: 200, down: 100 }, client: { ...noClient(), n: 3 } }),
@@ -132,7 +132,6 @@ assert.deepEqual([week.plays, week.days.map((d: { plays: number }) => d.plays), 
 const month = await stat('play', 'period=30d');
 assert.deepEqual([month.from, month.plays, month.before], [iso(H - 400), 11, null], 'the counts begin at the oldest hour, 400 hours back: nothing before the month is kept');
 assert.deepEqual(month.lengthMinutes, { 0: 3, 1: 1, 2: 2, 5: 1, [SERVER.lengthMinutesMost]: 2 }, 'an hour file from before the minutes reads as none');
-assert.equal(JSON.stringify(month).includes('lengths'), false);
 
 // Paint: stamps and colors in the game's order; the days' stamps.
 const paint = await stat('paint');

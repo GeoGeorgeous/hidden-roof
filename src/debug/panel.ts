@@ -261,7 +261,7 @@ function copyButton(label: string, text: () => string) {
 
 function loadOpen(): Set<string> | null {
   try {
-    const v = stored(OPEN_KEY) ?? stored('taggin.debug.open');
+    const v = stored(OPEN_KEY);
     return v ? new Set(JSON.parse(v) as string[]) : null;
   } catch {
     return null;

@@ -19,6 +19,8 @@ export const RENDER = {
    * what waited on them (the hotbar icons' read back). Then nothing stalls.
    */
   loadFrames: 3,
+  /** How long the loading screen waits for the Japanese font before drawing lettering with the fallbacks (ms). */
+  jpFontWait: 3000,
   /**
    * The smallest window the game loads in (CSS px); below it, or on a
    * touch-only device, screen 10 shows instead (src/boot.ts; ?force=1 loads
@@ -93,7 +95,7 @@ export const ATMOS = {
 /** Practical light kinds; every light prop uses one (see kit/lights.ts). */
 export type LightKind = 'wallLamp' | 'floodlight' | 'neon' | 'billboardLamp' | 'cctv' | 'bulkhead' | 'lightPanel' | 'aviation';
 
-export interface LightSpec {
+interface LightSpec {
   /** Light color (the lens takes it too, after a rebuild). Neon signs have one each instead (NEON_COLORS). */
   color: string;
   /** How much of `color` shows in the light on walls (INK.tint scales it): 0 = only its brightness (neutral), 1 = its full hue, above 1 = deeper than its own hue (walls near it take the color, down to INK_TINT.deep). Baked lamps only: with LIGHTMAP.enabled off the walls get no hue. Also how colored its glow is (above 0: tinted, at 1 and up: fully). */
@@ -330,7 +332,7 @@ export const PAUSE_MENU = {
 };
 
 /** A social channel in the pause screen's footer (pause-menu.ts). */
-export interface SocialLink {
+interface SocialLink {
   id: string;
   /** Its name: the icon's tooltip and accessible name. */
   label: string;

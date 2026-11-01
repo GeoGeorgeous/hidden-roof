@@ -106,11 +106,11 @@ export function addClient(to: ClientCounts, from: ClientCounts) {
   });
 }
 
-/** `n` page loads with `key` set to `value`; Other past SERVER.beaconKinds settings, and per setting past as many values. */
-export function countSetting(c: ClientCounts, key: string, value: string, n = 1) {
+/** A page load with `key` set to `value`; Other past SERVER.beaconKinds settings, and per setting past as many values. */
+export function countSetting(c: ClientCounts, key: string, value: string) {
   const to = c.events.settings;
   const k = slot(to, key);
-  count((to[k] = Object.hasOwn(to, k) ? to[k] : {}), value, n);
+  count((to[k] = Object.hasOwn(to, k) ? to[k] : {}), value);
 }
 
 /** As /stats/client answers it: counts and histograms, no medians (the admin page makes them). */
