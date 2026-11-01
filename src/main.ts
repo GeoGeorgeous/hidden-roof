@@ -302,6 +302,7 @@ function step(time: number) {
   else flyAround = null;
   const shown = !cityView ? camera : flyAround ? flyCamera(camera, perfTest.progress(time), flyAround) : titleCamera(camera);
   const at = shown.position;
+  pickups.view(shown);
   dev?.lap('player');
   updateSkyline(opened.city, at);
   syncSharedUniforms(time / 1000);
