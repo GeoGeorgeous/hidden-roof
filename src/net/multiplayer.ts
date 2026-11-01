@@ -1,4 +1,3 @@
-import { NET } from '../config';
 import { msg } from '../messages';
 import type { Progress } from './progress';
 import type { PaintOp } from '../paint-ops';
@@ -90,7 +89,7 @@ export class Multiplayer {
 
   constructor(private g: MultiplayerContext) {
     this.remotes = new Remotes(g, this.log);
-    this.silence = new Silence((line) => this.log.add(line), (link) => this.lost(link));
+    this.silence = new Silence({ log: (line) => this.log.add(line), link: () => this.link, closed: (link, code, timedOut) => this.closed(link, code, timedOut) });
     this.tail = new SoloReturn(g, {
       enqueue: (job) => (this.queue = this.queue.then(job).catch(console.error)),
       log: (line) => this.log.add(line),
@@ -123,11 +122,6 @@ export class Multiplayer {
   /** In a session: everyone in it, us first, with their paint colors (null: not known yet). */
   get players() {
     return this.joined ? [{ name: this.joined.name, color: this.g.inventory.color }, ...this.remotes.roster] : [];
-  }
-
-  /** What the session we are in is (its kind, name, player limit and tools); null outside one. */
-  get session(): SessionInfo | null {
-    return this.joined?.session ?? null;
   }
 
   /** The last round trip to the server (s), null before the first. */
@@ -239,14 +233,6 @@ export class Multiplayer {
     if (this.joined && link.live && code !== 1000) this.minute.dropped(timedOut || this.silence.was(link) ? 'timeout' : String(code), now());
     if (this.link === link) this.link = null;
     this.closing.closed(code, timedOut);
-  }
-
-  /** A silenced link the browser has not reported closed: let go of it and come back as for any lost link. */
-  private lost(link: ServerLink) {
-    if (this.link !== link) return;
-    this.log.add(`the browser has not closed the silent link in ${NET.closeWait} s: reconnecting`);
-    link.abandon();
-    this.closed(link, 1006, false);
   }
 
   /** Out of the session for `reason`, the server told they leave. */
