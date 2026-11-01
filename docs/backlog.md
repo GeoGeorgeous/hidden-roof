@@ -69,7 +69,6 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## Input
 
 1. BUGS [BL-010]: Rare huge mouse jumps snap the camera in Chrome on Windows; the fix is the owner's choice (docs/ideas/mouse-spikes.md) @1.6.1
-2. [BUGS-234]: on MacOS pressing F11 doesn't exit fullscreen instantlly @1.6.1
 
 ## Performance
 
@@ -170,6 +169,7 @@ Shipped since the last release; the release commit empties this list.
 3. [RFCT-270]: The beacon's limit per address through PerMinute, the third copy of "N a minute per address" (logNoisy is another); PerMinute reads its SERVER limits when asked, so a test can still change them (done in BUGS-280: beacon.ts and log.ts use PerMinute, its limits read when asked)
 4. [RFCT-273]: The snapshot's layout in one place: SNAPSHOT_FEET and SNAPSHOT_REST beside SNAPSHOT_BYTES (net/protocol.ts), read by encodeSnapshot, snapshotSpot and the sender's still check (sender.ts stays loadable in Node for its test)
 5. [PERF-269]: The server's thread spared on admin reads: a /stats period sums each whole day before today from that day's total, made once (history.total); measured over 91 days of full hours: /stats/play?period=30d 325 → 23 ms, paint 324 → 22, client 219 → 14 (the first ask after a start makes the days, ~200 ms); the log's appendFileSync left as it is (2.2 µs a line against 0.6 on an open file)
+6. [BUGS-234]: Holding Esc in fullscreen on a Mac says ⌃ ⌘ F leaves at once, not F11: Chrome on a Mac has no F11 for fullscreen, and Fn+F11 shows the desktop (checked by the owner: ⌃⌘F leaves)
 
 ## Discarder
 
