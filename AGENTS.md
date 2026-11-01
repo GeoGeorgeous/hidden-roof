@@ -47,7 +47,7 @@ Pick the check by what changed:
 ## Git workflow
 
 - Branch flow: topic branches → `dev` → `next` → `main`. `next` is the tested branch; only a release moves `main` (`docs/releases/AGENTS.md`).
-- Start new work (features, fixes, docs) on a topic branch from `dev`. Merge it into `dev` only when I explicitly approve ("works, merge it"). Never move `next` or `main` except through promotion.
+- Start new work (features, fixes) on a topic branch from `dev`. Docs-only changes (Markdown) go straight on `dev`, no topic branch, pushed at once. Merge it into `dev` only when I explicitly approve ("works, merge it"). Never move `next` or `main` except through promotion.
 - Before promoting `dev` to `next`, run the full `npm run check` on `dev` and confirm it passes (unless it already passed on the same code, Verify).
 - On a topic branch, commit each change once its check passes, without asking.
 - After merging a topic branch into `dev`, delete it with `git branch -d`, unless I ask to keep it. Push merges into `dev` and `next` immediately; keep topic branches local unless I ask otherwise.
