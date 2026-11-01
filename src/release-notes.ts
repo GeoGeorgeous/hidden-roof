@@ -77,6 +77,9 @@ export function parseRelease(tag: string, md: string): Release {
   return release;
 }
 
+/** 2026-10-09 → October 9, 2026, the same in every time zone. */
+export const releaseDay = (date: string) => new Date(`${date}T00:00:00Z`).toLocaleDateString('en', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+
 /** v1.10.0 after v1.9.0. */
 export const newestFirst = (a: Release, b: Release) => b.tag.localeCompare(a.tag, 'en', { numeric: true });
 

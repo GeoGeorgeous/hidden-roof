@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 291
+The one list of what's left. Counter for new ids: next: 293
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -144,7 +144,9 @@ The API and why it is so: docs/admin-api.md.
 1. TASK [BL-067]: Posts on Reddit with technical decription @1.6.3
 2. [TASK-169]: Creating and posting instagram reels @1.7.0
 3. IDEA [BL-065]: A minimal tool to record gameplay as GIFs and short videos @1.6.2
-4. [TASK-287]: Better SEO: large; needs a discussion and the owner's decisions first, done last in the release, not touched until then; being discussed, nothing approved yet (docs/ideas/seo.md) @1.7.2
+4. [TASK-291]: SEO basics: the page about the game in place of screen 10 (static in index.html, the Terms page look; hidden where the game loads; in the game, About → Game opens it over the paused game through a portal, its button back in; a loop of the game in the hero, six fact cards, How to start playing with Send the link to yourself, Play now once the window is big enough, and in the game a note when the window gets too small), the site name, title and description in search results, the structured data, llms.txt and sitemap (docs/ideas/seo.md) @1.6.1
+5. [TASK-292]: The Updates page (/updates.html): every release note as plain HTML a crawler reads, written by the build from docs/releases with the game's own parser, in the Terms page look; linked from the page about the game, Terms, Privacy, the sitemap and llms.txt (docs/ideas/seo.md) @1.6.1
+6. [TASK-287]: Better SEO: large; needs a discussion and the owner's decisions first, done last in the release, not touched until then; being discussed, nothing approved yet (docs/ideas/seo.md) @1.7.2
 
 ## Auth
 

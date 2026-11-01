@@ -182,6 +182,9 @@ export const MESSAGES = {
     // ESC menu status line
     pauseIdle: 'Paused',
     pauseStart: 'Click to start',
+    // Over the game while the window is smaller than RENDER.minViewport (small-window.ts)
+    smallWindow: 'Make the window bigger',
+    smallWindowText: 'Hidden Roof needs a window at least {w}×{h}. The game waits here; it goes on once the window is big enough.',
     session: 'Session · {code}',
     // MULTIPLAYER page status; a failure appends its detail: "text (detail)"
     netConnecting: 'Connecting…',
@@ -262,7 +265,7 @@ export const MESSAGES = {
     createFileHint: 'Pick a .rhhpaint you saved',
     createNotPaint: "That isn't a .rhhpaint file.",
     createBusy: 'Creating…',
-    // Settings → Gameplay: the button's confirmation
+    // Settings → General: the button's confirmation
     hintsReset: 'Done: hints will show again',
     // Settings → Controls
     bindPrompt: 'Press a key, click a mouse button or scroll to bind {action}. Esc cancels.',
@@ -275,17 +278,12 @@ export const MESSAGES = {
     perfTested: 'Tested at your current settings',
     // Small copy flashes
     copied: 'Copied',
-    linkCopied: 'Link copied',
     // Loading screen
     loadRoof: 'Building the roof',
     loadLamps: 'Lighting the lamps',
     loadPaint: 'Putting up the paint',
     loadFailed: "The level didn't load: reload the page",
-    // Not here: the texts before the game's code runs stay where they run, as the entry must stay tiny (a phone loads none of the game): boot.ts ("The game didn't load", "The game needs WebGL") and index.html's noscript line.
-    // Screen for small windows and touch devices
-    smallHint: 'Send it to yourself for later.',
-    smallCopied: 'Paste it on your computer to play.',
-    smallWide: 'Wide enough to play now.',
+    // Not here: the texts before the game's code runs stay where they run, as the entry must stay tiny (a phone loads none of the game): boot.ts ("The game didn't load", "The game needs WebGL2") and index.html's page about the game.
     // Screen for a second tab of the game (other-tab.ts)
     otherTabTitle: 'The game is open in another tab',
     otherTabText: 'Hidden Roof runs in one tab at a time. Close this one and play on in the other.',

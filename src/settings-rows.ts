@@ -2,7 +2,7 @@ import { AUDIO, PLAYER, RENDER, TUTORIAL, WALL_HAND } from './config';
 import { msg } from './messages';
 import type { Cost, SettingRow } from './settings';
 
-// The rows of Settings → Gameplay and Sound (settings.ts builds the rest and saves them).
+// The rows of Settings → General and Audio (settings.ts builds the rest and saves them).
 
 /** Mouse sensitivity is shown as a multiple of config's (1.00x). */
 const BASE_SENSITIVITY = PLAYER.mouseSensitivity;

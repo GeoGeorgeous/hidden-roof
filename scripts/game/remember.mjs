@@ -2,13 +2,13 @@
 import { gameReady } from '../test-browser.mjs';
 import { check, openPage } from './harness.mjs';
 
-/** Every control on Gameplay, Graphics and Sound as the menu shows it (a choice's value, a slider's position), the Controls tab's modes and keys, and what the game applies from them. */
+/** Every control on General, Graphics and Audio as the menu shows it (a choice's value, a slider's position), the Controls tab's modes and keys, and what the game applies from them. */
 const snapshot = (p) =>
   p.evaluate(() => {
     const g = window.game;
     const { BINDINGS, PAINT, RENDER, SKYLINE, VOLUMETRICS } = g.config;
     const out = {};
-    for (const tab of ['Gameplay', 'Graphics', 'Sound']) {
+    for (const tab of ['General', 'Graphics', 'Audio']) {
       g.hud.menu.openSettings(tab);
       for (const r of document.querySelectorAll('.settings-page .setting-row')) {
         const input = r.querySelector('input');
@@ -22,14 +22,14 @@ const snapshot = (p) =>
     return { shown: out, applied: { bindings: JSON.stringify(BINDINGS), tpm: PAINT.texelsPerMeter, sky: SKYLINE.radius, vol: VOLUMETRICS.steps + VOLUMETRICS.downscale, scale: RENDER.pixelScale, fps: RENDER.maxFps, fov: [RENDER.fov, RENDER.sprintFovBoost, RENDER.fullscreen, RENDER.propMotion].join() } };
   });
 
-await check('settings: every control of Gameplay, Controls, Graphics and Sound is remembered after a reload', async () => {
+await check('settings: every control of General, Controls, Graphics and Audio is remembered after a reload', async () => {
   const p = await openPage();
   try {
     const before = await snapshot(p);
     // Each control changed as the menu does: a choice stepped once, a slider moved off its default, two keys bound, and Tap twice to run flipped (Crouch's mode is Controls').
     await p.evaluate(() => {
       const g = window.game;
-      for (const tab of ['Gameplay', 'Graphics', 'Sound']) {
+      for (const tab of ['General', 'Graphics', 'Audio']) {
         g.hud.menu.openSettings(tab);
         for (const r of document.querySelectorAll('.settings-page .setting-row')) {
           const input = r.querySelector('input');

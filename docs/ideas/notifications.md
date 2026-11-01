@@ -4,7 +4,7 @@ What is left of the 2026-10-17 audit (module M4) after the notify model shipped 
 
 ## Open
 
-- **Other surfaces.** Only play draws notify's notes. The menu keeps its own status line (`PauseMenu.notice`, `NOTICE_SECONDS` inline in `src/pause-menu.ts`), the MULTIPLAYER page its status, the loading screen its steps, and three "Copy → Copied" flashes their own timers (`COPIED_MS` in `src/session-line.ts` and `src/small-screen.ts`, the F3 panel's). One queue across surfaces would show a join that happened in Settings when the player is back, and could put a badge in the tab title while it is hidden.
+- **Other surfaces.** Only play draws notify's notes. The menu keeps its own status line (`PauseMenu.notice`, `NOTICE_SECONDS` inline in `src/pause-menu.ts`), the MULTIPLAYER page its status, the loading screen its steps, and two "Copy → Copied" flashes their own timers (`COPIED_MS` in `src/session-line.ts`, the F3 panel's). One queue across surfaces would show a join that happened in Settings when the player is back, and could put a badge in the tab title while it is hidden.
 - **Screen readers.** No `aria-live` or `role` anywhere in src. One polite `role="status"` and one `role="alert"` region, made at boot; announce phases, not every percent; respect reduced motion.
 - **More events.** Away, dropped and back (a `Remotes.onPresence` hook: toast "**{user}** is back"), WebGL context lost, online and offline, a refused pointer lock, fullscreen or clipboard, "updated to vX". `src/net/remotes.ts`, `src/main.ts`.
 - **Battery.** `navigator.getBattery` works in Chromium only and needs HTTPS (no LAN http testing); Firefox removed it, Safari never had it. Its useful signal is "unplugged" (Energy Saver's 30 Hz cap). An optional Chromium-only extra, or no.

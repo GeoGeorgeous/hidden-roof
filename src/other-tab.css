@@ -1,4 +1,4 @@
-/* Screen 10 (small-screen.ts): where the game can't be played. The city still
+/* The screen of a tab that doesn't run the game (other-tab.ts): the city still
    in the top 62%, the pause sheet's tint, then black up from the bottom. */
 
 .small {
@@ -81,73 +81,5 @@
   font-weight: 600;
   font-size: 18px;
   line-height: 1.35;
-  color: var(--paper);
-}
-.small-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 240px;
-  margin-top: 32px;
-}
-.small .hint {
-  min-height: 16px;
-  margin-bottom: -2px;
-  font-size: 12px;
-  color: var(--text-2);
-}
-.small-buttons button,
-.small-buttons a {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  min-height: 48px;
-  border-radius: 5px;
-  font: 500 15px var(--sans);
-  letter-spacing: inherit;
-  white-space: nowrap;
-  text-decoration: none;
-  cursor: pointer;
-  transition: background 0.2s, border-color 0.2s, color 0.2s;
-}
-.small .primary {
-  border: 0;
-  background: var(--paper);
-  color: var(--ink);
-  font-weight: 600;
-}
-.small .primary:hover {
-  background: #fff;
-}
-.small .outline {
-  border: 1px solid var(--text-3);
-  background: var(--veil);
-  color: var(--paper);
-}
-.small .outline:hover {
-  border-color: var(--text-2);
-  background: var(--hair);
-  color: #fff;
-}
-.small footer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 28px 0;
-  color: var(--text-3);
-}
-.small footer i {
-  margin: 0 16px;
-  font-style: normal;
-  color: var(--text-4);
-}
-.small footer a {
-  color: var(--text-2);
-  text-decoration: none;
-  transition: color 0.2s;
-}
-.small footer a:hover {
   color: var(--paper);
 }

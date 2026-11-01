@@ -13,7 +13,7 @@
 // On machines missing Chromium's system libraries, copies extracted to
 // ~/.local/pwlibs are used (see docs/testing.md). The tests play the demo
 // level, whose layout they know (`level`: another, or null for LEVELS.start),
-// in windows of any size (?force=1: no small-screen gate, src/boot.ts).
+// in windows of any size (?force=1: the game whatever the window's size, src/boot.ts).
 // `flags`: more Chromium switches (the boot test turns WebGL off).
 // Several agents may test at once: servers take free ports (freePort).
 import fs from 'node:fs';

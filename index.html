@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Hidden Roof · browser-based graffiti game · every rooftop is a blank canvas</title>
-    <meta name="description" content="Climb onto a dystopian rooftop city drawn in ink, where the only color is the paint you bring. A creative first-person graffiti sandbox — solo or with friends." />
+    <title>Hidden Roof — free browser graffiti game</title>
+    <meta name="description" content="Free online graffiti game in your browser. The city is ink, the color is yours: spray paint solo or in multiplayer with friends." />
     <link rel="canonical" href="https://roof.hidden.haus/" />
     <meta name="robots" content="index, follow" />
     <meta name="author" content="GeoGeorgeous" />
@@ -14,58 +14,75 @@
     <meta property="og:site_name" content="Hidden Roof" />
     <meta property="og:locale" content="en_US" />
     <meta property="og:url" content="https://roof.hidden.haus/" />
-    <meta property="og:title" content="Hidden Roof · browser-based graffiti game · every rooftop is a blank canvas" />
-    <meta property="og:description" content="Climb onto a dystopian rooftop city drawn in ink, where the only color is the paint you bring. A creative first-person graffiti sandbox — solo or with friends." />
+    <meta property="og:title" content="Hidden Roof — free browser graffiti game" />
+    <meta property="og:description" content="Free online graffiti game in your browser. The city is ink, the color is yours: spray paint solo or in multiplayer with friends." />
     <meta property="og:image" content="https://roof.hidden.haus/og-image.jpg" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="Hidden Roof: a first-person graffiti sandbox in a pen-and-ink rooftop city" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Hidden Roof · browser-based graffiti game · every rooftop is a blank canvas" />
-    <meta name="twitter:description" content="Climb onto a dystopian rooftop city drawn in ink, where the only color is the paint you bring. A creative first-person graffiti sandbox — solo or with friends." />
+    <meta name="twitter:title" content="Hidden Roof — free browser graffiti game" />
+    <meta name="twitter:description" content="Free online graffiti game in your browser. The city is ink, the color is yours: spray paint solo or in multiplayer with friends." />
     <meta name="twitter:image" content="https://roof.hidden.haus/og-image.jpg" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
-    <!-- Structured data: a data block, not run, so the CSP and the one-inline-script check leave it alone.
+    <!-- Structured data: the site (its name in search results) and the game. A data block, not run, so the CSP and the one-inline-script check leave it alone.
          Its urls are src/links.ts's (scripts/seo.test.mjs checks them). -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": ["VideoGame", "WebApplication"],
-        "name": "Hidden Roof",
-        "url": "https://roof.hidden.haus/",
-        "description": "Hidden Roof is a first-person graffiti game in your browser. You climb onto the rooftops of a city drawn in ink, and the only color in it is the paint you bring. There are no enemies and no goals: find your tools, paint whatever you like, scrub it off, paint again. Play alone, or bring friends into a multiplayer session and paint the same roof together.",
-        "image": "https://roof.hidden.haus/og-image.jpg",
-        "screenshot": "https://roof.hidden.haus/screenshot.webp",
-        "inLanguage": "en",
-        "applicationCategory": "Game",
-        "genre": ["Sandbox", "Simulation", "Art", "Graffiti"],
-        "gamePlatform": "Web browser (desktop)",
-        "operatingSystem": "Any desktop browser with WebGL2",
-        "playMode": ["SinglePlayer", "MultiPlayer"],
-        "isAccessibleForFree": true,
-        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-        "author": { "@type": "Person", "name": "GeoGeorgeous", "url": "https://github.com/GeoGeorgeous" },
-        "sameAs": ["https://github.com/GeoGeorgeous/hidden-roof", "https://discord.gg/CMG9tT5Q4u", "https://www.youtube.com/channel/UCIN2OeR6_IqEivP1uALkpJQ", "https://www.instagram.com/roof.hidden/", "https://www.tiktok.com/@roof.hidden"]
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "name": "Hidden Roof",
+            "alternateName": ["roof.hidden.haus"],
+            "url": "https://roof.hidden.haus/"
+          },
+          {
+            "@type": ["VideoGame", "WebApplication"],
+            "name": "Hidden Roof",
+            "url": "https://roof.hidden.haus/",
+            "description": "Hidden Roof is a free multiplayer graffiti game in your browser — paint ink-drawn rooftops alone or with your friends.",
+            "image": "https://roof.hidden.haus/og-image.jpg",
+            "screenshot": "https://roof.hidden.haus/screenshot.webp",
+            "inLanguage": "en",
+            "applicationCategory": "GameApplication",
+            "browserRequirements": "Requires WebGL2",
+            "genre": ["Sandbox", "Simulation", "Art", "Painting", "Graffiti"],
+            "numberOfPlayers": { "@type": "QuantitativeValue", "minValue": 1, "maxValue": 40 },
+            "featureList": ["Free, in the browser, no download or account", "Multiplayer: public sessions of up to 40 players, private ones by code", "A spray can with continuous strokes, layered opacity and paint that drips", "Line width, density and softness from the can's distance and hand speed", "Skinny to wide caps, hard and soft caps", "Thirteen colors, a marker, a roller, a sponge and a stepladder", "A pen-and-ink rooftop city where the only color is the paint you bring"],
+            "gamePlatform": "Web browser (desktop)",
+            "operatingSystem": "Any desktop browser with WebGL2",
+            "playMode": ["SinglePlayer", "MultiPlayer"],
+            "isAccessibleForFree": true,
+            "datePublished": "2026-10-09",
+            "dateModified": "2026-11-01",
+            "publisher": { "@type": "Organization", "name": "Hidden Haus" },
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+            "author": { "@type": "Person", "name": "GeoGeorgeous", "url": "https://github.com/GeoGeorgeous" },
+            "sameAs": ["https://github.com/GeoGeorgeous/hidden-roof", "https://discord.gg/CMG9tT5Q4u", "https://www.youtube.com/channel/UCIN2OeR6_IqEivP1uALkpJQ", "https://www.instagram.com/roof.hidden/", "https://www.tiktok.com/@roof.hidden"]
+          }
+        ]
       }
     </script>
     <link rel="stylesheet" href="/src/boot.css" />
     <!-- The title's font and the menus' (Archivo), fetched with the page: the loading screen shows both. -->
     <link rel="preload" href="/fonts/sedgwick-ave-display.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/archivo.woff2" as="font" type="font/woff2" crossorigin />
-    <!-- The game's files and RENDER.minViewport, filled in by the build (vite.config.ts); empty in dev. -->
+    <!-- RENDER.minViewport, and the game's files, filled in by vite.config.ts (no files in dev). -->
     <meta name="game-files" content="" />
-    <!-- Where the game will load (src/boot.ts decides the same), its files start coming now, with the page, not after
-         boot.ts. Allowed by its hash in the CSP (csp-hash.txt, vite.config.ts): keep it a classic script, and blocked
-         it only costs the head start. -->
+    <!-- Where the game will load (src/boot.ts decides the same), html.game before the first paint (the page about the
+         game never flashes there), and its files start coming now, with the page, not after boot.ts. Allowed by its
+         hash in the CSP (csp-hash.txt, vite.config.ts): keep it a classic script; blocked, boot.ts still sets the class. -->
     <script>
       (function () {
         var meta = document.querySelector('meta[name="game-files"]');
-        var min = JSON.parse(meta.getAttribute('data-min') || 'null');
-        if (!min) return;
+        var min = JSON.parse(meta.getAttribute('data-min'));
         var small = matchMedia('(pointer: coarse) and (hover: none)').matches || !('requestPointerLock' in Element.prototype) || innerWidth < min.w || innerHeight < min.h;
         if (small && !/[?&]force\b/.test(location.search)) return;
+        document.documentElement.classList.add('game');
+        if (!meta.content) return;
         meta.content.split(' ').forEach(function (href) {
           var link = document.createElement('link');
           var css = /\.css$/.test(href);
@@ -79,28 +96,194 @@
     </script>
   </head>
   <body>
-    <!-- Up from the first paint until the game is ready to play (src/loading.ts). Two status lines, crossfaded
-         (src/loading-line.ts); without JavaScript, the noscript line in their place (boot.css). -->
-    <div class="loading"><h1>Hidden Roof</h1><p role="status"><span class="on">Loading</span><span></span></p><noscript>Hidden Roof needs JavaScript and a desktop browser with WebGL2.</noscript></div>
-    <!-- What the page is, for search engines and link readers; the game's own screens are drawn on the canvas. -->
-    <main hidden>
-      <h2>Hidden Roof, a browser-based first-person graffiti game</h2>
-      <p>
-        Hidden Roof is a free first-person graffiti game for desktop browsers. You climb onto the rooftops of a city drawn in ink, and the only color in it is the paint you bring. There are no enemies and no goals: find your tools, paint whatever you like, scrub it off, paint again. Play alone, or bring friends into a multiplayer session and paint the same roof together.
-      </p>
-      <nav aria-label="Links">
-        <ul>
-          <li><a href="https://roof.hidden.haus/">Play Hidden Roof</a></li>
-          <li><a href="https://github.com/GeoGeorgeous">GeoGeorgeous, the author</a></li>
-          <li><a href="https://github.com/GeoGeorgeous/hidden-roof">Source code on GitHub</a></li>
-          <li><a href="https://discord.gg/CMG9tT5Q4u">Discord</a></li>
-          <li><a href="https://www.youtube.com/channel/UCIN2OeR6_IqEivP1uALkpJQ">YouTube</a></li>
-          <li><a href="https://www.instagram.com/roof.hidden/">Instagram</a></li>
-          <li><a href="https://www.tiktok.com/@roof.hidden">TikTok</a></li>
-        </ul>
-      </nav>
-    </main>
-    <!-- Loads the game, or on a phone or a small window screen 10 instead (src/boot.ts). -->
+    <!-- Up from the first paint until the game is ready to play (src/loading.ts), where the game loads (html.game). Two
+         status lines, crossfaded (src/loading-line.ts). -->
+    <div class="loading"><div class="title">Hidden Roof</div><p role="status"><span class="on">Loading</span><span></span></p></div>
+    <!-- The page about the game: what a phone, a small window, a browser without WebGL or JavaScript, and every crawler
+         get in place of the game (src/boot.ts). Where the game loads, html.game hides it before the first paint; the
+         pause menu's About → Game shows it over the paused game (src/about-portal.ts), the game itself in its hero. -->
+    <div class="about">
+      <header class="top">
+        <span class="mark">Hidden Roof</span>
+        <nav aria-label="Page">
+          <a href="#how-to-play">How to play</a>
+          <a href="#faq">FAQ</a>
+          <a class="play" href="/">Play</a>
+        </nav>
+      </header>
+      <main>
+        <div class="hero">
+          <!-- The title view, raining, where there is no game (src/boot.ts starts it; its still is the background). -->
+          <video class="hero-video" muted loop playsinline preload="none" aria-hidden="true"></video>
+          <div class="hero-text">
+            <!-- One sentence, the definition, read as one (search engines, assistants); shown as the name, large, then the rest. -->
+            <h1><span class="name">Hidden Roof</span> <span class="def">is a free multiplayer graffiti game in your browser — paint ink-drawn rooftops alone or with your friends.</span></h1>
+            <p class="failed" role="alert" hidden></p>
+            <p>The city is drawn in pen and ink. The only color is the paint you bring.</p>
+            <!-- Only over the paused game (src/about-portal.ts). -->
+            <a class="enter" href="/">Back to the game</a>
+            <!-- Where the window grew big enough to play, with a mouse (src/boot.ts). -->
+            <a class="play-now" href="/" hidden>Play now</a>
+          </div>
+        </div>
+        <div class="column">
+          <dl class="facts">
+            <div><dt>Price</dt><dd><strong>100% Free</strong> No ads. No purchases. No paywalls.</dd></div>
+            <div><dt>Multiplayer</dt><dd><strong>Up to 40 Players</strong> Play solo or join a public session.</dd></div>
+            <div><dt>Platform</dt><dd><strong>Browser-Based</strong> No download or installation required.</dd></div>
+            <div><dt>Access</dt><dd><strong>Instant Play</strong> No sign-up. Just open and play.</dd></div>
+            <div><dt>Technology</dt><dd><strong>WebGL 2</strong> Powered by modern browser technology.</dd></div>
+            <div><dt>Experience</dt><dd><strong>Multiplayer World</strong> Share the game world with other players.</dd></div>
+          </dl>
+
+          <section id="start">
+            <p class="label">How to start playing</p>
+            <h2>Play on a computer</h2>
+            <p class="desc">Hidden Roof needs a keyboard, a mouse and a window at least 820×560. Phones and tablets can&rsquo;t play it yet.</p>
+            <ol class="steps">
+              <li>Open roof.hidden.haus on a desktop or laptop computer.</li>
+              <li>Use a desktop browser with WebGL2; no download, no account.</li>
+              <li>Click the page: the game takes the mouse, and <kbd>Esc</kbd> pauses it.</li>
+            </ol>
+            <p class="actions"><button class="send" type="button" hidden>Send the link to yourself</button></p>
+          </section>
+
+          <section id="painting">
+            <p class="label">Painting</p>
+            <h2>Spray paint that behaves like a can</h2>
+            <p class="desc">Strokes stay continuous at any hand speed, and passes add up. Build color in layers, fade it out, mist a background.</p>
+            <ul class="cols">
+              <li><strong>Distance</strong>: the closer you are to the wall, the narrower and denser your line becomes. As you move back, the line grows wider and softer.</li>
+              <li><strong>Hand speed</strong>: slow strokes are dense and crisp, fast ones are light and wide.</li>
+              <li><strong>Opacity</strong>: control the pressure to adjust the paint&rsquo;s opacity.</li>
+              <li><strong>Caps</strong>: from needle and skinny caps for tags, details, and crisp outlines, to NY fats and sprays for fills and big throws.</li>
+              <li><strong>Drips</strong>: hold the can still and the paint pools and runs. The closer the can, the more it runs.</li>
+              <li><strong>Crosshair</strong>: shows the width and strength of the line before you paint it.</li>
+            </ul>
+          </section>
+
+          <section id="gallery">
+            <p class="label">Gallery</p>
+            <h2>Screenshots</h2>
+            <p class="desc">Explore the rooftop, check out the artwork, and see what other players have been up to.</p>
+            <div class="gallery">
+              <figure>
+                <img src="/updates/v1.5.0.webp" width="1280" height="720" loading="lazy" alt="A panda sprayed in black on a rooftop door, paint dripping down, a pen-and-ink city at night behind it" />
+                <figcaption><strong>Drips</strong> Black paint held still on a door pools and runs.</figcaption>
+              </figure>
+              <figure>
+                <img src="/updates/v1.2.0.webp" width="1280" height="720" loading="lazy" alt="A roller painting a brick wall cyan next to a window full of colored paint" />
+                <figcaption><strong>Roller</strong> A brick wall covered in seconds.</figcaption>
+              </figure>
+              <figure>
+                <img src="/updates/v1.0.0.webp" width="1280" height="720" loading="lazy" alt="A marker writing 1.0.0 Release in black and red around a rooftop exit door" />
+                <figcaption><strong>Marker</strong> Letters and outlines around an exit door.</figcaption>
+              </figure>
+            </div>
+          </section>
+
+          <section id="how-to-play">
+            <p class="label">How to play</p>
+            <h2>Explore the map &amp; find new tools</h2>
+            <p class="desc">You start with a spray can and black paint. Twelve more colors, the caps and four extra tools are hidden around the roof. Paint never runs out.</p>
+            <dl class="tools">
+              <div><dt>Marker</dt><dd>Crisp lines and letters</dd></div>
+              <div><dt>Roller</dt><dd>Large areas, fast</dd></div>
+              <div><dt>Sponge</dt><dd>Scrapes paint off</dd></div>
+              <div><dt>Stepladder</dt><dd>Reaches high walls</dd></div>
+            </dl>
+          </section>
+
+          <section id="multiplayer">
+            <p class="label">Multiplayer</p>
+            <h2>Paint on the same roof together</h2>
+            <p class="desc">Paint with your friends and meet new people. Everyone shares the same walls, and every stroke appears in real time.</p>
+            <ul class="cols">
+              <li><strong>Public sessions</strong>: open to everyone, with up to 40 players.</li>
+              <li><strong>Private sessions</strong>: for up to 4 players. Only your crew gets in, no outsiders.</li>
+            </ul>
+          </section>
+
+          <section id="updates">
+            <p class="label">Updates</p>
+            <h2>Latest updates</h2>
+            <p class="desc">The rooftop never stays the same. New features keep dropping, and your feedback helps decide what comes next.</p>
+            <ul class="updates">
+              <li><time datetime="2026-11-01">1 November 2026</time> <strong><a href="/updates.html#v1.6.0">Hidden Roof 1.6</a></strong> Public sessions for up to 40 players, a session list, lighter busy sessions.</li>
+              <li><time datetime="2026-10-23">23 October 2026</time> <strong><a href="/updates.html#v1.5.0">Hidden Roof 1.5</a></strong> Paint dries, so paint over dry paint runs less; hints teach the controls as you play.</li>
+              <li><time datetime="2026-10-19">19 October 2026</time> <strong><a href="/updates.html#v1.4.0">Hidden Roof 1.4</a></strong> Rebindable keys, a color picker, faster frames.</li>
+            </ul>
+            <p class="more"><a href="/updates.html">All updates →</a></p>
+          </section>
+
+          <section id="faq">
+            <p class="label">FAQ</p>
+            <h2>Questions &amp; answers</h2>
+            <h3>What do you do in Hidden Roof?</h3>
+            <p>Climb a rooftop, find your tools and colors, and paint anything on any surface: walls, floors, doors, pipes, and signs. There are no enemies, no score and no timer.</p>
+            <h3>Is it free?</h3>
+            <p>Yes, with no ads or purchases. If you like it, you can buy the developer a coffee on <a href="https://ko-fi.com/D0Q7296HCP">Ko-fi</a>.</p>
+            <h3>Do I need to download anything or make an account?</h3>
+            <p>No. Open roof.hidden.haus and play: no install, no sign-up.</p>
+            <h3>What are the system requirements?</h3>
+            <p>A desktop or laptop computer, a browser with WebGL2, a keyboard and a mouse, and a window at least 820×560. Settings → Graphics lowers the load for weaker graphics cards, and its performance test measures your frame rate.</p>
+            <h3>Can I play on a phone or tablet?</h3>
+            <p>Not yet. The game needs a keyboard, a mouse and a window at least 820×560, so please open roof.hidden.haus on a computer.</p>
+            <h3>Can I play with a controller?</h3>
+            <p>No, you can only play with a keyboard and a mouse.</p>
+            <h3>Can I play with friends?</h3>
+            <p>Yes. Open the server list and join a public session with up to 40 players, or a private session with a five-letter code for up to 4. Multiplayer is for players 18 and over.</p>
+            <h3>Can my friends and I paint at the same time?</h3>
+            <p>Yes. Everyone in a session paints on the same roof at the same time and can see each paint stroke as it appears, even on the same wall.</p>
+            <h3>Is there a free online graffiti wall where anyone can paint?</h3>
+            <p>Yes. Public sessions are open to everyone, up to 40 players at a time. The paint is kept on the server, so the walls fill up over days.</p>
+            <h3>Can other players erase my work?</h3>
+            <p>It&rsquo;s a shared rooftop, not a private gallery. Your work can be painted over or scraped off, just like real graffiti. We ask everyone to respect each other&rsquo;s pieces, and the admin may ban repeat offenders.</p>
+            <h3>What tools are there?</h3>
+            <p>There are five tools: a spray can, a marker for crisp lines and letters, a roller for big areas, a sponge that scrubs paint off, and a stepladder to reach high walls. You start with the can, and the others are hidden around the roof.</p>
+            <h3>What caps does the spray can have?</h3>
+            <p>Skinny for tags and outlines, standard for most work, fat and soft for fills and fades, and hard for crisp edges. Change them with <kbd>Q</kbd> and <kbd>E</kbd>.</p>
+            <h3>Can I change the color?</h3>
+            <p>Yes. You start with black, and there are twelve more colors hidden on the roof. Switch colors with the mouse wheel, and pick the color with the middle button.</p>
+            <h3>Does the paint drip?</h3>
+            <p>Yes. If you hold a spray can still, the paint pools and runs down the wall. The closer you are, the more it runs. Paint dries, so a coat over dry paint will run less.</p>
+            <h3>Does the spray can run out?</h3>
+            <p>No, paint never runs out. The can loses pressure as you spray, so shake it with the right mouse button.</p>
+            <h3>Is it a realistic spray paint simulator?</h3>
+            <p>It&rsquo;s a game, but the spray can follows real rules. Distance, hand speed and the cap you use all affect the line, and the paint drips. It works for practicing letters, fills and outlines.</p>
+            <h3>Do I need to be good at drawing?</h3>
+            <p>No. Start with a tag or a fat outline and use the sponge to scrape off anything you don&rsquo;t like.</p>
+            <h3>What is the level like?</h3>
+            <p>A hidden rooftop high above a city drawn in pen and ink, at night, in the rain. It has brick walls, windows, ducts, air conditioners, skylights, a water tower, billboards, neon signs, scaffolding and fire escapes, with security cameras that turn to follow you.</p>
+            <h3>How many levels are there?</h3>
+            <p>There&rsquo;s just one level: a large rooftop, the same in solo and multiplayer. It gets new walls, windows, signs and props with each update.</p>
+            <h3>Can I climb?</h3>
+            <p>Use <kbd>Space</kbd> to jump and climb ledges, go up ladders and fire escapes, and place the stepladder under any wall you can&rsquo;t reach.</p>
+            <h3>Can I change the controls?</h3>
+            <p>Every key can be rebound in Settings → Controls.</p>
+            <h3>Is there sound?</h3>
+            <p>You&rsquo;ll hear rain, thunder, your footsteps, the whirr of air conditioners and the hiss of your spray can. Adjust the volume in Settings → Audio.</p>
+            <h3>Can I take screenshots?</h3>
+            <p>Press <kbd>K</kbd> to take a screenshot. The picture has no menus or crosshair, and shows other players&rsquo; name tags.</p>
+            <h3>Can I save my painting?</h3>
+            <p>Yes, you can download your roof&rsquo;s paint as a file and upload it back later for a new session. Public sessions keep their paint on the server, but private sessions lose their paint once the last player leaves.</p>
+            <h3>When was Hidden Roof released?</h3>
+            <p>Hidden Roof was released on <time datetime="2026-10-09">9 October 2026</time>.</p>
+            <h3>Is the game still being developed?</h3>
+            <p>Yes. Seven versions were released in the first three weeks, and every one is listed in the game menu: Esc → About → Updates.</p>
+            <h3>What inspired it?</h3>
+            <p>Bombing!! 2, Marc Ecko&rsquo;s Getting Up and Daisuke Tajima&rsquo;s pen-and-ink cities in Beyond the Lines.</p>
+            <h3>Who makes it?</h3>
+            <p>One developer, GeoGeorgeous, under the Hidden Haus name, using three.js. The source code is on <a href="https://github.com/GeoGeorgeous/hidden-roof">GitHub</a> under the Hidden Roof Source-Available License.</p>
+          </section>
+        </div>
+      </main>
+      <footer>
+        <span><a href="https://discord.gg/CMG9tT5Q4u">Discord</a> · <a href="https://www.youtube.com/channel/UCIN2OeR6_IqEivP1uALkpJQ">YouTube</a> · <a href="https://www.instagram.com/roof.hidden/">Instagram</a> · <a href="https://www.tiktok.com/@roof.hidden">TikTok</a></span>
+        <span><a href="/updates.html">Updates</a> · <a href="/terms.html">Terms</a> · <a href="/privacy.html">Privacy</a> · built by <a href="https://github.com/GeoGeorgeous">GeoGeorgeous</a></span>
+      </footer>
+    </div>
+    <!-- Loads the game where it can be played (src/boot.ts). -->
     <script type="module" src="/src/boot.ts"></script>
   </body>
 </html>

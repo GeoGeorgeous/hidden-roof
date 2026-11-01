@@ -1,6 +1,6 @@
 /* What the page shows before any game code: the fonts, the colors, the page
-   itself and the loading screen (index.html). The game's own styles
-   (style.css) come with the game (main.ts), screen 10's with it (small-screen.css). */
+   itself, the loading screen and the page about the game (index.html). The
+   game's own styles (style.css) come with the game (main.ts). */
 
 /* The titles' graffiti font and the menus' sans (public/fonts/README.txt). */
 @font-face {
@@ -88,6 +88,43 @@ canvas {
   display: none !important;
 }
 
+/* --- Where the game doesn't load (no html.game: src/boot.ts) the page about the game is all there is: it scrolls,
+   and nothing of the game shows, not even what a game that failed to start left behind. --- */
+
+html:not(.game),
+html:not(.game) body {
+  height: auto;
+  overflow: auto;
+  user-select: text;
+}
+html:not(.game) body > :not(.about) {
+  display: none !important;
+}
+.game .about {
+  display: none;
+}
+/* The pause menu's About → Game (src/about-portal.ts): the page over the paused game, a circle growing from --portal,
+   shrinking back into it to close. */
+.game.about-open .about {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-dialog);
+  overflow: auto;
+  overscroll-behavior: contain;
+  user-select: text;
+  clip-path: circle(0 at var(--portal, 50% 50%));
+  transition: clip-path 0.55s cubic-bezier(0.65, 0, 0.35, 1);
+}
+.game.about-open .about.open {
+  clip-path: circle(150% at var(--portal, 50% 50%));
+}
+@media (prefers-reduced-motion: reduce) {
+  .game.about-open .about {
+    transition: none;
+  }
+}
+
 /* --- Loading screen (index.html, main.ts): over everything until the game is ready --- */
 
 .loading {
@@ -102,7 +139,7 @@ canvas {
   background: #000;
   color: var(--paper);
 }
-.loading h1 {
+.loading .title {
   /* The pause menu's title (.overlay .title). */
   margin: 0;
   font-family: var(--display);
@@ -130,14 +167,477 @@ canvas {
 .loading span.on {
   opacity: 1;
 }
-/* Without JavaScript the game can't start: the noscript line says so in place of Loading. */
-.loading noscript {
+
+/* --- The page about the game (index.html): the look of the Terms and Privacy pages (public/legal.css) --- */
+
+.about {
   font-family: var(--sans);
+  font-size: 16px;
+  letter-spacing: normal;
+  color: var(--paper);
+}
+.about a {
+  color: var(--paper);
+  text-decoration: none;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+.about a:focus-visible {
+  outline: 2px solid var(--paper);
+  outline-offset: 3px;
+}
+.about .top {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 40px;
+  border-bottom: 1px solid var(--hair);
+  background: #000;
+}
+.about .mark {
+  font: 400 26px / 1 var(--display);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+.about .top nav {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  font-size: 13px;
+}
+.about .top nav a {
+  padding: 3px 0;
+  color: var(--text-2);
+}
+.about .top nav a:hover {
+  color: var(--paper);
+}
+.about .top nav .play,
+.about .enter {
+  padding: 7px 14px;
+  border-radius: 4px;
+  background: var(--paper);
+  color: var(--ink);
+  font-weight: 600;
+}
+.about .play-now {
+  padding: 7px 14px;
+  border-radius: 4px;
+  background: var(--paper);
+  color: var(--ink);
+  font-weight: 600;
+}
+.about .top nav .play:hover,
+.about .play-now:hover,
+.about .enter:hover {
+  background: #fff;
+  color: var(--ink);
+}
+/* A phone can't play: no Play there. */
+@media (pointer: coarse) and (hover: none) {
+  .about .top nav .play {
+    display: none;
+  }
+}
+.about p,
+.about dl,
+.about dd,
+.about figure {
+  margin: 0;
+}
+
+/* The hero: the game's title view where there is no game, a still (no download on a desktop that plays: html.game)
+   under its raining loop (src/boot.ts); the paused game itself over it (html.about-open: the page's background is clear
+   there); black from the bottom up. */
+/* The column: 800 px wide in the middle, 24 px from the edges on a phone; its padding, not a width, so a background
+   spans the page. */
+.about .hero,
+.about .column,
+.about > footer {
+  padding-inline: max(24px, calc(50% - 400px));
+}
+.about .hero {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  min-height: min(72vh, 680px);
+  padding-block: 96px 40px;
+  isolation: isolate;
+}
+html:not(.game) .about .hero {
+  background: url('/about/roof.webp') 50% 40% / cover no-repeat;
+}
+/* A phone held upright: the loop's middle, cut upright (src/boot.ts picks its video the same way). */
+@media (orientation: portrait) {
+  html:not(.game) .about .hero {
+    background-image: url('/about/roof-portrait.webp');
+  }
+}
+.about .hero-video {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 40%;
+}
+.game .about .hero-video {
+  display: none;
+}
+.about .hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(to top, #000 0%, rgba(0, 0, 0, 0.8) 35%, rgba(0, 0, 0, 0.25) 75%, rgba(0, 0, 0, 0.1) 100%);
+}
+.about .hero-text {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 680px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-1);
+  text-wrap: pretty;
+}
+/* The h1 is the definition: the name large in the titles' hand, the rest of the sentence under it as the lead. */
+.about h1 {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--paper);
+}
+.about h1 .name {
+  font: 400 88px / 1 var(--display);
+  letter-spacing: 0.02em;
+}
+.about .failed {
+  padding: 12px 16px;
+  border: 1px solid var(--edge);
+  border-radius: 4px;
+  background: #000;
+  color: var(--error);
+}
+/* Back into the game: only over the paused game, where it takes Play's place. */
+.about .enter {
+  display: none;
+  align-self: flex-start;
+  margin-top: 10px;
+  padding: 13px 22px;
+  border-radius: 5px;
+  font-size: 15px;
+}
+.about-open .about .enter {
+  display: inline-block;
+}
+.about .play-now:not([hidden]) {
+  display: inline-block;
+  align-self: flex-start;
+  margin-top: 10px;
+  padding: 13px 22px;
+  border-radius: 5px;
+  font-size: 15px;
+}
+/* How to start playing: for where the game doesn't start (and crawlers), not over the paused game. */
+.game .about #start {
+  display: none;
+}
+.about .steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding-left: 22px;
+  list-style: decimal;
+  color: var(--text-1);
+}
+.about .steps li {
+  padding-left: 4px;
+}
+.about .steps li::marker {
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+.about .send:not([hidden]) {
+  padding: 11px 18px;
+  border: 1px solid var(--edge);
+  border-radius: 5px;
+  background: none;
+  color: var(--paper);
+  font: 600 14px var(--sans);
+  cursor: pointer;
+}
+.about .send:hover {
+  border-color: var(--paper);
+}
+/* Latest updates: the last three releases as cards, the day over the version, a line on what it brought. */
+.about .updates {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px 32px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-2);
+}
+.about .updates time {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.about .updates strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.about .updates strong a {
+  border: 0;
+  color: var(--paper);
+}
+.about-open .about .top .play {
+  display: none;
+}
+
+.about .column {
+  padding-bottom: 56px;
+}
+/* Facts and tools: a grid of short cards, the term over its value. */
+.about .facts,
+.about .tools {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 24px 32px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.about .facts {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px 32px;
+  padding: 32px 0 8px;
+}
+/* A fact: its label, the fact in short, a line under it. */
+.about .facts dd {
   font-size: 13px;
   color: var(--text-2);
 }
-@media (scripting: none) {
-  .loading p {
-    display: none;
+.about .facts dd strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--paper);
+}
+.about .tools {
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+}
+.about :is(.facts, .tools) > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.about .facts dt {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.about .tools dt {
+  font-weight: 600;
+  color: var(--paper);
+}
+.about dd {
+  color: var(--text-1);
+}
+/* A section: its label, its title in the titles' hand, a line on what it holds, then the content. */
+.about section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 56px;
+  padding-top: 40px;
+  border-top: 1px solid var(--hair);
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--text-1);
+  text-wrap: pretty;
+}
+.about .label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.about h2 {
+  margin: -6px 0 0;
+  font: 400 40px / 1.05 var(--display);
+  letter-spacing: 0.02em;
+  color: var(--paper);
+}
+.about .desc {
+  max-width: 600px;
+  margin-bottom: 10px;
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--text-1);
+}
+.about h3 {
+  margin: 14px 0 -4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--paper);
+}
+.about ul {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* Two columns of short points, where the column is wide enough. */
+.about ul.cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px 40px;
+}
+.about li {
+  position: relative;
+  padding-left: 20px;
+}
+.about li::before {
+  content: '–';
+  position: absolute;
+  left: 0;
+  color: var(--text-4);
+}
+/* Cards and numbered steps: no dash. */
+.about :is(.updates, .steps) li {
+  padding-left: 0;
+}
+.about :is(.updates, .steps) li::before {
+  content: none;
+}
+.about strong {
+  font-weight: 600;
+  color: var(--paper);
+}
+.about kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--edge);
+  border-radius: 3px;
+  font: 0.88em var(--mono);
+  color: var(--paper);
+}
+.about :is(p, li) a {
+  border-bottom: 1px solid var(--text-4);
+}
+.about :is(p, li) a:hover {
+  color: #fff;
+  border-bottom-color: var(--paper);
+}
+/* The gallery: the first shot across the column, the others two to a row; each with its caption. */
+.about .gallery {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 28px 20px;
+}
+.about .gallery figure:first-child {
+  grid-column: 1 / -1;
+}
+.about figure {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.about figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 4px;
+  background: var(--hair);
+}
+.about figcaption {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-2);
+}
+.about figcaption strong {
+  margin-right: 6px;
+}
+.about time {
+  color: var(--text-2);
+}
+.about > footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 24px;
+  padding-block: 18px 96px;
+  border-top: 1px solid var(--hair);
+  font-size: 12px;
+  color: var(--text-3);
+}
+.about > footer a {
+  color: var(--text-2);
+}
+.about > footer a:hover {
+  color: var(--paper);
+}
+
+/* Over the paused game the page has no background: the game itself shows through the hero (the pause menu hides
+   meanwhile); the column and the footer are black. */
+.about .column,
+.about > footer {
+  background: #000;
+}
+.about-open .overlay {
+  visibility: hidden;
+}
+
+@media (max-width: 720px) {
+  .about .top {
+    padding: 18px 24px;
+  }
+  .about .hero {
+    min-height: min(80vh, 560px);
+    padding-block: 72px 32px;
+  }
+  .about h1 {
+    font-size: 18px;
+  }
+  .about h1 .name {
+    font-size: 64px;
+  }
+  .about h2 {
+    font-size: 32px;
+  }
+  .about .gallery {
+    grid-template-columns: 1fr;
+  }
+  .about .facts {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .about .updates {
+    grid-template-columns: 1fr;
   }
 }

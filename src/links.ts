@@ -1,4 +1,4 @@
-// Where the menus' links lead: the pause screen's footer (pause-menu.ts; its social icons in SOCIAL_LINKS, config.ts) and screen 10 (small-screen.ts).
+// Where the menus' links lead: the pause screen's footer (pause-menu.ts; its social icons in SOCIAL_LINKS, config.ts) and the page about the game (index.html; scripts/seo.test.mjs checks its links).
 
 /** The game's address: the canonical URL of index.html, and what a root-relative link in a release note becomes outside the game (GitHub, Discord). */
 export const SITE = 'https://roof.hidden.haus';
@@ -14,3 +14,5 @@ export const KOFI = 'https://ko-fi.com/D0Q7296HCP';
 /** The static legal pages (public/terms.html, public/privacy.html). */
 export const TERMS = '/terms.html';
 export const PRIVACY = '/privacy.html';
+/** Every release note as a page of the site, written by the build (src/updates-html.ts). */
+export const UPDATES = '/updates.html';

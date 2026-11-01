@@ -1,4 +1,5 @@
-/* The Terms and Privacy pages (terms.html, privacy.html): paper on black, as
+/* The Terms, Privacy and Updates pages (terms.html, privacy.html, and updates.html, which the build writes from the
+   release notes: src/updates-html.ts): paper on black, as
    in the ESC menu, in the game's own fonts (public/fonts/README.txt). One file
    for both, since the site's CSP allows no inline styles. Greys are paper at
    an opacity. Section numbers come from a CSS counter, so they aren't text. */
@@ -240,6 +241,55 @@ code {
   border-bottom-color: var(--paper);
 }
 
+/* Updates: one article a release, newest first; its picture as wide as the column. */
+.updates article {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 48px;
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--body);
+  text-wrap: pretty;
+}
+
+.updates article h2 {
+  font: 400 40px / 1 var(--display);
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+}
+
+.updates article h2 a:hover {
+  color: #fff;
+}
+
+.updates article + article {
+  margin-top: 48px;
+  border-top: 1px solid var(--rule);
+}
+
+.updates article .updated {
+  margin-top: 0;
+}
+
+.updates .lead {
+  font-size: 15px;
+  color: var(--intro);
+}
+
+.updates article img {
+  width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+.updates h3 {
+  margin: 12px 0 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--paper);
+}
+
 /* Page footer: the other page, and back to the game. */
 main > footer {
   display: flex;
@@ -267,6 +317,11 @@ main > footer a:not(.other):hover {
 @media (max-width: 720px) {
   .top {
     padding: 18px 24px;
+  }
+
+  /* A phone's header holds the page it's on and Play; the other pages are in the footer. */
+  .top nav a:not(.play, [aria-current='page']) {
+    display: none;
   }
 
   main {

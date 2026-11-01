@@ -1,21 +1,19 @@
 import { action, button, div, el } from './menu-ui';
 import type { PauseMenu } from './pause-menu';
-import { newestFirst, parseRelease, splitLinks } from './release-notes';
+import { newestFirst, parseRelease, releaseDay, splitLinks } from './release-notes';
 import { VERSION } from './version';
 
 // The Updates popup of the ESC menu: the release notes, newest first, with
 // their dates. They're bundled from docs/releases/<tag>.md (never fetched);
 // each release's picture is public/updates/<tag>.webp (the CSP takes images
-// from the game's own site only); a patch may have none.
+// from the game's own site only); a patch may have none. The site has them as
+// a page too (updates-html.ts).
 
 const RELEASES = 'https://github.com/GeoGeorgeous/hidden-roof/releases';
 
 const notes = Object.entries(import.meta.glob<string>('../docs/releases/v*.md', { query: '?raw', import: 'default', eager: true }))
   .map(([path, md]) => parseRelease(path.replace(/^.*\/|\.md$/g, ''), md))
   .sort(newestFirst);
-
-/** 2026-10-09 → October 9, 2026, the same in every time zone. */
-const day = (date: string) => new Date(`${date}T00:00:00Z`).toLocaleDateString('en', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 
 /** A line of a note with its [text](url) links as anchors; a new tab, so the game and its paint stay. */
 function rich(tag: 'div' | 'span', className: string, text: string) {
@@ -79,7 +77,7 @@ export function updatesPage(menu: PauseMenu) {
       items.append(box);
     }
     const title = div('release', `Hidden Roof ${r.tag.replace(/^v/, '')}`);
-    if (r.date) title.append(el('span', '', day(r.date)));
+    if (r.date) title.append(el('span', '', releaseDay(r.date)));
     pane.replaceChildren(title, rich('div', 'intro', r.intro), ...(__PICTURES__.includes(r.tag) ? [shot] : []), items);
     pane.scrollTop = 0;
   };

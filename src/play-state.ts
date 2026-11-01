@@ -10,8 +10,8 @@
 interface MenuActions {
   /** Frees the mouse (with the keyboard locked the browser no longer does it on Esc). */
   release(): void;
-  /** Back to the game: pointer lock, fullscreen. From a user gesture. */
-  resume(): void;
+  /** Back to the game: pointer lock, fullscreen (unless `fullscreen` is false). From a user gesture. */
+  resume(fullscreen?: boolean): void;
   /** The pause menu shows a page (SAVE, SETTINGS…), not the pause screen. */
   page(): boolean;
   /** Back a step within the page, or to the pause screen. */
@@ -59,8 +59,8 @@ export class PlayState {
    * Back to the game, unless a join or HOST is still loading the session: the paint that lands replaces the one made
    * meanwhile. Every way to resume comes here (Enter, Esc, PLAY, a click on the game).
    */
-  resume() {
-    if (!this.session.joining) this.menu.resume();
+  resume(fullscreen?: boolean) {
+    if (!this.session.joining) this.menu.resume(fullscreen);
   }
 
   /** For the profiler. */
