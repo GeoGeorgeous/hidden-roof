@@ -519,25 +519,20 @@ html:not(.game) .about .hero {
   padding-top: 32px;
   border-top: 0;
 }
-/* The game: its four parts two to a row, each a title and a paragraph; the tools' icons under Tools. */
-.about .blocks {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 28px 40px;
+/* The game: running text, its parts under titles in the titles' hand, smaller than a section's. */
+.about .prose > p:not(.label, .desc) {
+  max-width: 640px;
+  font-size: 15px;
 }
-.about .blocks > div {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.about .blocks h3 {
-  margin: 0;
-  font-size: 17px;
+.about .prose h3 {
+  margin: 18px 0 -6px;
+  font: 400 26px / 1.1 var(--display);
+  letter-spacing: 0.02em;
 }
 .about ul.tool-icons {
   flex-flow: row wrap;
   gap: 8px 14px;
-  margin-top: 6px;
+  margin-top: 2px;
   font-size: 13px;
   color: var(--paper);
 }
@@ -549,11 +544,6 @@ html:not(.game) .about .hero {
 }
 .about .tool-icons li::before {
   content: none;
-}
-.about .note {
-  max-width: 600px;
-  margin-top: 14px;
-  color: var(--text-2);
 }
 /* Two columns of short points, where the column is wide enough. */
 .about ul.cols {
@@ -672,7 +662,7 @@ html:not(.game) .about .hero {
   .about h2 {
     font-size: 32px;
   }
-  .about :is(.gallery, .blocks) {
+  .about .gallery {
     grid-template-columns: 1fr;
   }
   .about .facts {
