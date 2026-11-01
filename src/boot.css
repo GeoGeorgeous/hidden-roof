@@ -430,7 +430,6 @@ html:not(.game) .about .hero {
 .about .facts {
   grid-template-columns: repeat(3, 1fr);
   gap: 28px 32px;
-  padding: 32px 0 8px;
 }
 /* A fact: its label, the fact in short, a line under it. */
 .about .facts dd {
@@ -513,6 +512,48 @@ html:not(.game) .about .hero {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+/* The first section, About, right under the hero: no rule over it. */
+.about .column > section:first-child {
+  margin-top: 0;
+  padding-top: 32px;
+  border-top: 0;
+}
+/* The game: its four parts two to a row, each a title and a paragraph; the tools' icons under Tools. */
+.about .blocks {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 28px 40px;
+}
+.about .blocks > div {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.about .blocks h3 {
+  margin: 0;
+  font-size: 17px;
+}
+.about ul.tool-icons {
+  flex-flow: row wrap;
+  gap: 8px 14px;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--paper);
+}
+.about .tool-icons li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 0;
+}
+.about .tool-icons li::before {
+  content: none;
+}
+.about .note {
+  max-width: 600px;
+  margin-top: 14px;
+  color: var(--text-2);
 }
 /* Two columns of short points, where the column is wide enough. */
 .about ul.cols {
@@ -631,7 +672,7 @@ html:not(.game) .about .hero {
   .about h2 {
     font-size: 32px;
   }
-  .about .gallery {
+  .about :is(.gallery, .blocks) {
     grid-template-columns: 1fr;
   }
   .about .facts {

@@ -19,6 +19,11 @@ what's served: `docs/deploy.md`; the release steps that touch the page: `docs/re
   other claim is true of the game as it is: check it against the code before it goes on the page, and keep the FAQ
   true with each release. Not "legal wall" (the owner's no).
 - The FAQ: each question phrased as players ask it, each answer starting with the direct answer.
+- Order: the hero, About (the fact cards), The game (the owner's text on what the game is; its "legal walls" is the
+  owner's own, saying the game isn't one), How to start playing, then the rest. The tools' icons in The game are the
+  server list's (`src/net/tool-icons.ts`), copied as markup; `scripts/seo.test.mjs` checks they match.
+- The FAQ on a slow game says what the performance test says (`perfTip` in `src/perf-test.ts`, `fasterGpuHow` in
+  `src/gpu-name.ts`): change one, change the other.
 
 ## Search
 

@@ -106,6 +106,7 @@
       <header class="top">
         <span class="mark">Hidden Roof</span>
         <nav aria-label="Page">
+          <a href="#about">About</a>
           <a href="#how-to-play">How to play</a>
           <a href="#faq">FAQ</a>
           <a class="play" href="/">Play</a>
@@ -127,14 +128,52 @@
           </div>
         </div>
         <div class="column">
-          <dl class="facts">
-            <div><dt>Price</dt><dd><strong>100% Free</strong> No ads. No purchases. No paywalls.</dd></div>
-            <div><dt>Multiplayer</dt><dd><strong>Up to 40 Players</strong> Play solo or join a public session.</dd></div>
-            <div><dt>Platform</dt><dd><strong>Browser-Based</strong> No download or installation required.</dd></div>
-            <div><dt>Access</dt><dd><strong>Instant Play</strong> No sign-up. Just open and play.</dd></div>
-            <div><dt>Technology</dt><dd><strong>WebGL 2</strong> Powered by modern browser technology.</dd></div>
-            <div><dt>Experience</dt><dd><strong>Multiplayer World</strong> Share the game world with other players.</dd></div>
-          </dl>
+          <section id="about">
+            <p class="label">About</p>
+            <h2>Graffiti in your browser</h2>
+            <p class="desc">Open the page on a computer and you&rsquo;re on the roof: nothing to install, nothing to pay, no account. Paint alone, or with everyone else in a public session.</p>
+            <dl class="facts">
+              <div><dt>Price</dt><dd><strong>100% Free</strong> No ads. No purchases. No paywalls.</dd></div>
+              <div><dt>Multiplayer</dt><dd><strong>Up to 40 Players</strong> Play solo or join a public session.</dd></div>
+              <div><dt>Platform</dt><dd><strong>Browser-Based</strong> No download or installation required.</dd></div>
+              <div><dt>Access</dt><dd><strong>Instant Play</strong> No sign-up. Just open and play.</dd></div>
+              <div><dt>Technology</dt><dd><strong>WebGL 2</strong> Powered by modern browser technology.</dd></div>
+              <div><dt>Experience</dt><dd><strong>Multiplayer World</strong> Share the game world with other players.</dd></div>
+            </dl>
+          </section>
+
+          <section id="the-game">
+            <p class="label">The game</p>
+            <h2>Hidden Roof is a game about graffiti</h2>
+            <p class="desc">You explore the rainy rooftops of Hidden City, find paint, caps, markers, and rollers, and just paint whatever you want, wherever you want.</p>
+            <div class="blocks">
+              <div>
+                <h3>Paint anything</h3>
+                <p>You aren&rsquo;t restricted to a flat, designated canvas or &ldquo;legal walls&rdquo;. If you can reach it, you can paint it: brick walls, windows, ventilation shafts, AC units, metal doors, staircases, and even the floor.</p>
+              </div>
+              <div>
+                <h3>Painting mechanics</h3>
+                <p>I put a lot of work into making the process feel as realistic as possible for mouse controls. The paint doesn&rsquo;t lay down perfectly evenly, and it will drip if you spray in one place for too long. The softness of the spray also shifts depending on your distance from the wall and the speed of your hand. I wanted the drawing to feel physical.</p>
+              </div>
+              <div>
+                <h3>Tools</h3>
+                <p>You can switch between different caps, and they actually change how the painting feels. A needle cap works well for sharp, precise details, while an NY fat cap gives you those classic, solid lines. You also have markers and rollers to experiment with different textures and styles.</p>
+                <!-- The tools' icons of the server list (src/net/tool-icons.ts; scripts/seo.test.mjs checks they're the same). -->
+                <ul class="tool-icons">
+                  <li><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="can"><rect x="4.5" y="5.5" width="6" height="8.5" rx="1.5"/><path d="M6 5.5V3.5h3v2"/><path d="M10.5 3.2l2-.8M10.5 4.4l2 .2"/></svg>Can</li>
+                  <li><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="marker"><path d="M3 13l.8-2.8 6.6-6.6 2 2-6.6 6.6z"/><path d="M9.2 4.8l2 2"/></svg>Marker</li>
+                  <li><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="roller"><rect x="2.5" y="2.5" width="9" height="3.5" rx="1"/><path d="M11.5 4.2h1.7v3.3H7.5v2"/><path d="M7.5 9.5v4"/></svg>Roller</li>
+                  <li><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="sponge"><rect x="2" y="6" width="9.5" height="7" rx="2.5"/><circle cx="4.8" cy="8.6" r="0.6" fill="currentColor" stroke="none"/><circle cx="7.6" cy="10.6" r="0.6" fill="currentColor" stroke="none"/><circle cx="8.4" cy="8.2" r="0.5" fill="currentColor" stroke="none"/><path d="M13 2.2c.9 1.2 1.4 2 1.4 2.6a1.4 1.4 0 0 1-2.8 0c0-.6.5-1.4 1.4-2.6z"/></svg>Sponge</li>
+                  <li><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="ladder"><path d="M5 2v12M11 2v12M5 5h6M5 8h6M5 11h6"/></svg>Stepladder</li>
+                </ul>
+              </div>
+              <div>
+                <h3>Vibes</h3>
+                <p>The game is set in a fictional but deeply dystopian city. It is gray, brutalist, and not very friendly. There are no rules, just rainy rooftops, heavy concrete, and finding a good spot to leave a piece.</p>
+              </div>
+            </div>
+            <p class="note">I am building Hidden Roof as a solo developer, and the game is completely free and available to everyone. I would be incredibly grateful if you support the project on <a href="https://ko-fi.com/D0Q7296HCP">Ko-fi</a>, share your feedback in our <a href="https://discord.gg/CMG9tT5Q4u">Discord</a>, and follow our socials (<a href="https://www.youtube.com/channel/UCIN2OeR6_IqEivP1uALkpJQ">YouTube</a>, <a href="https://www.instagram.com/roof.hidden/">Instagram</a>, <a href="https://www.tiktok.com/@roof.hidden">TikTok</a>) to see what comes next.</p>
+          </section>
 
           <section id="start">
             <p class="label">How to start playing</p>
@@ -227,6 +266,14 @@
             <p>No. Open roof.hidden.haus and play: no install, no sign-up.</p>
             <h3>What are the system requirements?</h3>
             <p>A desktop or laptop computer, a browser with WebGL2, a keyboard and a mouse, and a window at least 820×560. Settings → Graphics lowers the load for weaker graphics cards, and its performance test measures your frame rate.</p>
+            <h3>The game lags or has a low frame rate. What can I do?</h3>
+            <p>Run the performance test in Settings → Graphics. It flies over the roof for a few seconds, shows whether the processor or the video card holds the game back, and says what to change. Most often that&rsquo;s Volumetrics first, then Resolution or City detail. If the processor is the limit, closing other browser tabs helps too.</p>
+            <h3>Why is the game slow on my laptop?</h3>
+            <p>Most often it&rsquo;s a power saver. On battery, Chrome&rsquo;s Energy Saver, Edge&rsquo;s efficiency mode or a Mac&rsquo;s Low Power Mode hold the game at about 30 FPS, even when the computer has power to spare. Plug in, or turn the power saver off: in Chrome at chrome://settings/performance, in Edge at edge://settings/system, on a Mac in System Settings → Battery. The performance test tells you when something holds the frame rate like this.</p>
+            <h3>My laptop has a fast video card, but the game still runs slowly. Why?</h3>
+            <p>The browser may be drawing the game on the graphics chip built into the processor while the faster card sits idle. Settings → Graphics → GPU shows which one the game uses. On Windows, go to Settings → System → Display → Graphics, pick your browser, choose High performance and restart the browser. On a Mac, turn off Automatic graphics switching in System Settings → Battery → Options.</p>
+            <h3>Why is the frame rate stuck at one number?</h3>
+            <p>Check Frame rate in Settings → Graphics: a number there holds the game at it, and Max runs it as fast as your display refreshes. If it&rsquo;s on Max and the game still sits at about 30 FPS, it&rsquo;s likely a power saver (see above).</p>
             <h3>Can I play on a phone or tablet?</h3>
             <p>Not yet. The game needs a keyboard, a mouse and a window at least 820×560, so please open roof.hidden.haus on a computer.</p>
             <h3>Can I play with a controller?</h3>
