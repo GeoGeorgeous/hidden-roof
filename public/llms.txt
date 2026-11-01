@@ -9,6 +9,7 @@ There are no enemies and no goals: find your tools, paint whatever you like, scr
 - Play: https://roof.hidden.haus/
 - Creator: GeoGeorgeous
 - Free, in the browser: no account, no install.
+- The spray can paints like a brush: continuous strokes, layered opacity, caps from skinny to wide soft, and paint that drips; distance and hand speed change the line as with a real can.
 - Needs a desktop browser with WebGL2, a keyboard and a mouse. Phones and tablets are not supported.
 - Solo, or multiplayer: pick a session from the server list, a public one (up to 40 players) or a private one by its code (up to 4).
 - Inspired by Bombing!!, Marc Ecko's Getting Up and Daisuke Tajima's Beyond the Lines.

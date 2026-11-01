@@ -49,7 +49,9 @@
             "inLanguage": "en",
             "applicationCategory": "GameApplication",
             "browserRequirements": "Requires WebGL2",
-            "genre": ["Sandbox", "Simulation", "Art", "Graffiti"],
+            "genre": ["Sandbox", "Simulation", "Art", "Painting", "Graffiti"],
+            "numberOfPlayers": { "@type": "QuantitativeValue", "minValue": 1, "maxValue": 40 },
+            "featureList": ["Free, in the browser, no download or account", "Multiplayer: public sessions of up to 40 players, private ones by code", "A spray can with continuous strokes, layered opacity and paint that drips", "Line width, density and softness from the can's distance and hand speed", "Skinny to wide caps, hard and soft caps", "Thirteen colors, a marker, a roller, a sponge and a stepladder", "A pen-and-ink rooftop city where the only color is the paint you bring"],
             "gamePlatform": "Web browser (desktop)",
             "operatingSystem": "Any desktop browser with WebGL2",
             "playMode": ["SinglePlayer", "MultiPlayer"],
@@ -115,6 +117,19 @@
         <!-- Shows only over the paused game, opened from the pause menu (src/about-portal.ts): back into the game. -->
         <a class="enter" href="/">Back to the game</a>
 
+        <section id="painting">
+          <h2>Paint like a real can</h2>
+          <p>The spray can paints like a brush and behaves like a can. Every stroke is continuous, however fast your hand moves, and passes build up, so you can lay down layers, fades and soft backgrounds.</p>
+          <ul>
+            <li><strong>Distance and hand speed</strong>: close to the wall the line is narrow, crisp and heavy; far away it&rsquo;s a wide, soft mist. Move slowly for dense color, quickly for a light, airy line</li>
+            <li><strong>Opacity</strong>: set how strong each pass is and build color up layer by layer</li>
+            <li><strong>Caps</strong>: from skinny caps for tags and outlines to wide soft ones for fills, plus hard and soft caps with their own edge</li>
+            <li><strong>Drips</strong>: hold the can still and the paint pools and runs down the wall; the closer you are, the more it runs</li>
+            <li><strong>A true crosshair</strong>: it shows the size of the line you are about to paint, and how strong it is</li>
+            <li><strong>Thirteen colors</strong>, a marker for crisp lines, a roller for big areas and a sponge to scrub it all off</li>
+          </ul>
+        </section>
+
         <section>
           <h2>What you need</h2>
           <ul>
@@ -153,10 +168,14 @@
 
         <section id="faq">
           <h2>FAQ</h2>
+          <h3>Is there a free online graffiti wall where anyone can paint?</h3>
+          <p>Yes. Join a public session and paint the same rooftop with up to 40 people, live. The paint stays on the server, so the walls keep growing as people come and go.</p>
+          <h3>Is it a realistic spray paint simulator?</h3>
+          <p>Close to one, in a game: distance, hand speed, caps and opacity shape every line as they would with a real can, and the paint drips. It&rsquo;s a place to practice letters, fills and outlines on big walls, with no risk and no cleanup.</p>
           <h3>Is it free?</h3>
           <p>Yes. Free to play, with no ads and no in-game purchases. If you like it, you can buy the author a coffee on <a href="https://ko-fi.com/D0Q7296HCP">Ko-fi</a>.</p>
           <h3>Does the paint drip?</h3>
-          <p>Yes. Hold the can in one spot too long and the paint runs down the wall: use it for a raw look, or keep the can moving for clean lines.</p>
+          <p>Yes. Hold the can still and the paint pools and runs down the wall: use it for a raw look, or keep the can moving for clean lines.</p>
           <h3>Does my art stay?</h3>
           <p>In a public session, paint is kept on the server, so the roof keeps growing as people come and go. You can also save your paint to a file and load it back later.</p>
           <h3>What inspired it?</h3>

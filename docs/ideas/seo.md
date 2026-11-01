@@ -17,6 +17,10 @@ the repo; its facts are checked against the code before they go on a page.
   inline script, the dev server too); when the game fails to start it shows, saying why.
 - **In search results:** the site name from `WebSite` (`@graph` with the game), the title and the description
   below; the game's structured data gets `GameApplication`, `browserRequirements` and the definition.
+- **The painting of 1.7.0** (the Painting Rework) is on the page, in llms.txt and in the structured data now, said as
+  fact: the owner's call, as the site takes weeks to be read and 1.7.0 comes soon. The controls list stays as the game is
+  until 1.7.0 ships (no Shift + wheel yet). Also now: `numberOfPlayers` (1 to 40), `featureList`, the genre Painting,
+  and a FAQ on a free online wall anyone can paint. Not "legal wall" (the owner's no).
 - **llms.txt** opens with the definition; **sitemap** gets a `lastmod`, set at each release that changes the page.
 - After the deploy: submit the sitemap in Search Console and ask for the page to be indexed again.
 
