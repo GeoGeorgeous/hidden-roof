@@ -33,7 +33,7 @@ export const isSessionName = (x: unknown): x is string => {
   return t.length > 0 && t.length <= SESSION_NAME_MAX && !/\p{C}/u.test(t);
 };
 /** Players a session may be made for: SERVER.privateMin to SERVER.players.private. */
-export const isPrivateLimit = (x: unknown): x is number => Number.isInteger(x) && (x as number) >= SERVER.privateMin && (x as number) <= SERVER.players.private;
+const isPrivateLimit = (x: unknown): x is number => Number.isInteger(x) && (x as number) >= SERVER.privateMin && (x as number) <= SERVER.players.private;
 /** Some of the tools, each once. */
 export const isToolSet = (x: unknown): x is Tool[] => Array.isArray(x) && new Set(x).size === x.length && x.every((t) => SLOTS.includes(t));
 /** Session codes: this many letters from CODE_LETTERS (no I or O, which read as 1 and 0). */

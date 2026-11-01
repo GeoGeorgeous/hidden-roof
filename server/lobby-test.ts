@@ -42,7 +42,7 @@ try {
   const friends = await admin({ kind: 'private', name: 'Friends', level: 'demo', detail: 'low' });
   assert.deepEqual([wall.status, wall.body.limit, wall.body.name, friends.status, friends.body.limit], [200, SERVER.players.public, 'Wall', 200, SERVER.players.private]);
   for (const limit of [SERVER.privateMin - 1, SERVER.players.private + 1, 2.5, '3', null]) assert.equal((await admin({ kind: 'private', name: 'x', level: 'demo', limit })).status, 400, String(limit));
-  assert.equal((await admin({ kind: 'public', name: 'x', level: 'demo', limit: 3 })).status, 400, 'a public session has the public limit');
+  assert.equal((await admin({ kind: 'public', name: 'x', level: 'demo', limit: SERVER.players.public + 1 })).status, 400, 'a public session takes at most the public limit');
   const crew = await new Promise<string>((done, fail) => execFile(process.execPath, ['server/admin.mjs', 'create', 'private', 'Crew', '--level', 'demo', '--detail', 'low', '--players', '3'], { env: { ...main.env, ADMIN_KEY: 'test-key' } }, (e, out) => (e ? fail(e) : done(out))));
   assert.match(crew, /^[A-Z]{5} {2}private {2}0\/3 /);
 
