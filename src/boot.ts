@@ -74,7 +74,11 @@ function failed() {
   root.classList.remove('game');
   const note = document.querySelector<HTMLElement>('.about .failed');
   if (!note) return;
-  note.textContent = webgl ? "The game didn't load: reload the page." : 'The game needs WebGL2, and this browser has it turned off.';
+  const [head, how] = webgl
+    ? ["The game didn't load", 'Check your connection, then reload the page.']
+    : ['The game needs WebGL2, and this browser has it turned off', "Most often it's hardware acceleration: turn it on in the browser's settings, restart the browser and reload this page."];
+  note.querySelector('.failed-head')!.textContent = head;
+  note.querySelector('.failed-how')!.textContent = how;
   note.hidden = false;
   heroLoop();
 }

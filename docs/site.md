@@ -7,7 +7,8 @@ what's served: `docs/deploy.md`; the release steps that touch the page: `docs/re
 ## The page about the game
 
 - Where the game loads, `html.game` (set by the inline script before the first paint) hides the page: no flash. When
-  the game fails to start (`failed()` in `src/boot.ts`), the page shows, saying why.
+  the game fails to start (`failed()` in `src/boot.ts`), the page shows, saying why in a note under the h1: what
+  went wrong, what to do (WebGL2 off: hardware acceleration, most often), and Reload the page.
 - In the game, the pause menu's About → Game opens it over the paused game through a portal; its button (Start the
   game on the title screen, Back to the game after) and Esc close it. Nothing reloads.
 - Phones and small windows get How to start playing (a computer, a keyboard, a mouse, `RENDER.minViewport`) with Send
