@@ -75,7 +75,6 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 1. BUGS [BL-034]: Paint pages at ULTRA can reach ~1 GB of GPU memory: measured, 1045 MB is the ceiling (all 49 pages, 72% full); the lossless fix is BL-144 (docs/ideas/performance.md)
 2. [PERF-200]: Reduce Ladder Shadow Update Delay Without Frequent Rebaking @1.7.0
-3. [PERF-269]: The server's thread spared on admin reads and logging: /stats/*?period=30d sum 1440 hours each time (closed hours never change); the log appends each line with appendFileSync (traffic hours files and event day files are cached by mtime since BUGS-280) @1.6.1
 
 ## Rendering
 
@@ -169,6 +168,7 @@ Shipped since the last release; the release commit empties this list.
 2. [TASK-187]: The beacon, the device id and the address hash run without a consent dialog (the owner's decision and risk, recorded in SECRET_legal.md; confirmed 2026-11-01: no switch either); the privacy page names them (TASK-242, done); nothing left to build (the owner, 2026-11-01)
 3. [RFCT-270]: The beacon's limit per address through PerMinute, the third copy of "N a minute per address" (logNoisy is another); PerMinute reads its SERVER limits when asked, so a test can still change them (done in BUGS-280: beacon.ts and log.ts use PerMinute, its limits read when asked)
 4. [RFCT-273]: The snapshot's layout in one place: SNAPSHOT_FEET and SNAPSHOT_REST beside SNAPSHOT_BYTES (net/protocol.ts), read by encodeSnapshot, snapshotSpot and the sender's still check (sender.ts stays loadable in Node for its test)
+5. [PERF-269]: The server's thread spared on admin reads: a /stats period sums each whole day before today from that day's total, made once (history.total); measured over 91 days of full hours: /stats/play?period=30d 325 → 23 ms, paint 324 → 22, client 219 → 14 (the first ask after a start makes the days, ~200 ms); the log's appendFileSync left as it is (2.2 µs a line against 0.6 on an open file)
 
 ## Discarder
 

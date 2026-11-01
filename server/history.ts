@@ -67,6 +67,8 @@ class History {
   private hours = new Map<number, Hour>();
   /** Days whose hours changed since they were written. */
   private dirty = new Set<number>();
+  /** Days before today added up (total), each made when first asked: their hours no longer change. */
+  private days = new Map<number, Hour>();
   /** When the counts start: the oldest hour kept, or the server's start. */
   private since = Date.now();
   private dir: string | null = null;
@@ -86,6 +88,7 @@ class History {
     let hour = this.hours.get(h);
     if (!hour) this.hours.set(h, (hour = blank()));
     this.dirty.add(Math.floor(h / 24));
+    this.days.delete(Math.floor(h / 24));
     return hour;
   }
 
@@ -142,9 +145,27 @@ class History {
     return kept;
   }
 
+  /** The counts of `s` added up: each whole day of it before today from that day's total, so a long span sums days, not hours. */
+  total(s: Span) {
+    const [parts, closed] = [[] as Hour[], today()];
+    for (let k = s.first; k < s.end; ) {
+      const day = Math.floor(k / 24);
+      if (k === day * 24 && k + 24 <= s.end && day < closed) {
+        let t = this.days.get(day);
+        if (!t) this.days.set(day, (t = sum(this.within({ first: k, end: k + 24 }).map(([, h]) => h))));
+        parts.push(t);
+        k += 24;
+      } else {
+        const hour = this.hours.get(k++);
+        if (hour) parts.push(hour);
+      }
+    }
+    return sum(parts);
+  }
+
   /** The bytes each way since 00:00 UTC. */
   bytesToday() {
-    const { up, down } = sum(this.within(todaySpan(Date.now())).map(([, h]) => h)).bytes;
+    const { up, down } = this.total(todaySpan(Date.now())).bytes;
     return { upBytes: up, downBytes: down };
   }
 
@@ -172,6 +193,7 @@ class History {
       }
     }
     this.since = Math.min(this.since, ...[...this.hours.keys()].map((k) => k * HOUR));
+    this.days.clear();
     await people.keepIn(this.dir);
   }
 
@@ -183,6 +205,7 @@ class History {
 
   private async saveAll() {
     for (const k of this.hours.keys()) if (k < (today() - SERVER.historyDays) * 24) this.hours.delete(k);
+    for (const d of this.days.keys()) if (d < today() - SERVER.historyDays) this.days.delete(d);
     if (!this.dir) return this.dirty.clear();
     const days = [...this.dirty];
     this.dirty.clear();

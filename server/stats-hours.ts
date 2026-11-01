@@ -1,14 +1,14 @@
 import { COLOR_ORDER } from '../src/config';
 import { clientReport } from './client-counts';
 import { paintSecondsOf } from './counts';
-import { history, sum } from './history';
+import { history } from './history';
 import { HOUR } from './days';
 import { daysIn, weekdayOf, type Frame, type Span } from './stats-period';
 
 // What the history's hours (history.ts) add up to over a range: the figures of GET /stats/play, /paint and /client.
 
 const grid = () => Array.from({ length: 7 }, () => Array<number>(24).fill(0));
-const totals = (s: Span) => sum(history.within(s).map(([, h]) => h));
+const totals = (s: Span) => history.total(s);
 
 /** The play in `f`: plays and their lengths, play time, and the week by weekday (Monday first) and hour, UTC. */
 export function play(f: Frame) {
