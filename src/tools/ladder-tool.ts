@@ -20,7 +20,8 @@ import { session } from '../session';
 // to face you; the mouse wheel turns it a quarter turn from there (quarter
 // turns: prop colliders stay axis-aligned). Green when it
 // can stand there: all four feet on one flat floor, nothing in its way or in
-// you, and room in front to walk up and climb it. LMB places it; each player
+// you, not in an open door's way (Level.passages: it would block it for
+// everyone), and room in front to walk up and climb it. LMB places it; each player
 // has one, so placing it again moves it. It's a level prop while it stands
 // (colliders, climbing), kept by its owner (Level.setRuntime) and never saved
 // with the level. In hand, the view model shows the folded ladder
@@ -28,9 +29,12 @@ import { session } from '../session';
 
 const NO_STACK = { above: false, below: false };
 
+/** Why it can't stand somewhere: in a doorway, or anything else. */
+export type LadderBlock = 'doorway' | 'place';
+
 export class LadderTool {
   /** Called when LMB can't place it (shown as a toast). */
-  onBlocked: () => void = () => {};
+  onBlocked: (why: LadderBlock) => void = () => {};
   /** Called when it's put down. */
   onPlaced: () => void = () => {};
   readonly model = new LadderModel();
@@ -40,7 +44,8 @@ export class LadderTool {
   private ray = new THREE.Raycaster();
   private def = defOf('stepladder')!;
   private target: { pos: V3; rot: number } | null = null;
-  private valid = false;
+  /** Why it can't stand at `target` (null: it can). */
+  private blocked: LadderBlock | null = 'place';
   /** Quarter turns added with the mouse wheel to "facing you". */
   private turn = 0;
 
@@ -64,8 +69,8 @@ export class LadderTool {
     if (turn) this.turn = (this.turn + turn + 4) % 4;
     this.aim(camera, player);
     if (!input.justPressed('use') || !this.target) return;
-    if (this.valid) this.put(this.target);
-    else this.onBlocked();
+    if (!this.blocked) this.put(this.target);
+    else this.onBlocked(this.blocked);
   }
 
   /** Our ladder standing in the level now, if any. */
@@ -89,14 +94,21 @@ export class LadderTool {
     const rot = (facing(hit.point, camera.position) + this.turn) % 4;
     const floorAt = (x: number, y: number, z: number) => floorBelow(this.level.root, x, y, z, 6, this.isPlaced);
     const pl = place(this.def, { point: hit.point, normal: axisNormal(againstRay(hit.face!.normal.clone(), this.ray.ray.direction)) }, rot, floorAt, extentOf(this.def, rot));
-    this.ghost.showProp(this.def, pl.pos, pl.rot, NO_STACK);
-    this.valid = pl.ok && this.canStand(pl.pos, pl.rot, player);
-    this.ghost.setValid(this.valid);
+    this.blocked = this.blockedAt(pl.pos, pl.rot, player, pl.ok);
+    this.ghost.setValid(!this.blocked);
     this.ghost.visible = true;
     this.target = { pos: pl.pos, rot: pl.rot };
   }
 
-  /** Can the ladder physically stand at `pos` turned `rot`, and can the player use it there? */
+  /** Shows the ghost at `pos` turned `rot` and says why the ladder can't stand there, or null if it can. `fits`: placement found a spot. */
+  private blockedAt(pos: V3, rot: number, player: THREE.Vector3, fits = true): LadderBlock | null {
+    this.ghost.showProp(this.def, pos, rot, NO_STACK);
+    if (!fits) return 'place';
+    if (this.level.inPassage(this.ghost.colliders)) return 'doorway';
+    return this.canStand(pos, rot, player) ? null : 'place';
+  }
+
+  /** Can the ladder physically stand at `pos` turned `rot` (the ghost shows it there), and can the player use it there? */
   private canStand(pos: V3, rot: number, player: THREE.Vector3) {
     const { foot: f, halfWidth: w } = STEPLADDER;
     const base = pos[1];
@@ -126,7 +138,7 @@ export class LadderTool {
   private put(t: { pos: V3; rot: number }) {
     this.level.setRuntime(session.player, { type: this.def.type, pos: t.pos, rot: t.rot });
     this.onPlaced();
-    this.valid = false; // re-checked next frame against the new ladder
+    this.blocked = 'place'; // re-checked next frame against the new ladder
   }
 }
 

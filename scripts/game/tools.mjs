@@ -1,4 +1,4 @@
-// Game tests: Tool sizes and the wheel, and ladders: one per player, climbed, stood on and jumped from.
+// Game tests: Tool sizes and the wheel, and ladders: one per player, never in a doorway, climbed, stood on and jumped from.
 import { page, check } from './harness.mjs';
 
 await check('tools: Q/E change the player\'s nib, roller and patch width, not the config', async () => {
@@ -118,6 +118,27 @@ await check('ladders: one per player, moved with one rebuild; each owner\'s stay
     return { moved, both, saved: saved - props, left, yours, back: level.props.size - props };
   });
   return r.moved === 2 && r.both === 'a@2,b@4' && r.saved === 0 && r.left === 'b@4' && r.yours === 'local@8' && r.back === 0 ? null : JSON.stringify(r);
+});
+
+await check('ladders: never in an open door\'s way: not in its opening, nor close in front of the wall or behind it; beside it, farther out and at a closed door it stands', async () => {
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    const { level, config } = g;
+    const t = g.tools.ladder;
+    const far = { x: 100, y: 0, z: 100 };
+    // A wall at z = 2 (front -z, 0.3 m thick) on the roof, the ladder facing away from it (behind it: turned round); each spot is free with no wall.
+    const [x, z, d] = [-2, 2, config.STEPLADDER_PLACE.doorwayDepth];
+    const spots = [[x, z, 0], [x, z - 0.65, 0], [x, z + 0.65, 2], [x - 1.2, z - 0.7, 0], [x, z - 0.15 - d - 0.6, 0], [x, z + 0.15 + d + 0.6, 2]];
+    const at = (variant) => {
+      const door = variant && level.add({ type: 'wall', variant, pos: [x, 0, z], rot: 0 });
+      const out = spots.map(([sx, sz, rot]) => t.blockedAt([sx, 0, sz], rot, far) ?? 'ok').join();
+      if (door) level.remove(door.id);
+      return out;
+    };
+    return { none: at(null), open: at('open'), closed: at('door').split(',')[1], passages: level.passages.length };
+  });
+  const ok = r.none === 'ok,ok,ok,ok,ok,ok' && r.open === 'doorway,doorway,doorway,ok,ok,ok' && r.closed === 'ok' && r.passages === 0;
+  return ok ? null : JSON.stringify(r);
 });
 
 await check('ladders: climbed to the top (each in the level, a scaffolding bay, a stepladder) you land close by, stand there off it and jump as from any floor; into the bay\'s hatch or off the stepladder\'s front you slide down', async () => {

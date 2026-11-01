@@ -95,7 +95,6 @@ Only `N.`, the id and the description are required. The optional parts appear in
 11. IDEA [BL-075]: Digital billboards
 12. IDEA [BL-106]: Paintable cone roofs on the water tanks (a cone paint mapping) (docs/ideas/props-and-level.md)
 13. [TASK-194]: Replace paintable walls that cannot be reached with standard walls. Optimize room on the main floor.
-14. [BUGS-235]: Placing ladder by other players can block pass through an open door or a scaffolding; needs a discussion with the owner first @1.6.1
 
 ## Tools
 
@@ -173,6 +172,7 @@ Shipped since the last release; the release commit empties this list.
 8. [TASK-189]: The Terms' moderation section (Rules): by hand, on reasonable belief, in proportion: erase paint, change the nickname, remove from a session, ban by address and device for a time or for good; a ban's reason and end shown in the game, any other measure's reason by email; reports (what and why) and appeals by email, a ban that blocks someone else included; read by a Sonnet legal review; the Privacy Policy names bans' legal basis
 9. [IDEA-240]: Admin: ban a player by address (/64) and device id, for 1 day to 6 months or for good, with a reason (presets or the admin's own) the player is shown in the game and in place of the server list; shorten, change the reason, lift (`docs/admin-api.md`, Bans); a place in line put out is a turned-away event, and goes before seats free; cctv's Ban action and Bans page (cctv PRs #10, #11); checked on cctv's fake server, on the real one when dev reaches next
 10. [CCTV-286]: A public session made from the admin page with the number of players chosen, as a private one's: `POST /sessions` takes `limit` for a public session too, `limits.private.min` to `limits.public`; cctv's Players stepper (cctv PR #10)
+11. [BUGS-235]: A stepladder can't stand in an open door's way, so nobody can block it in a public session: not in its opening, nor within 0.9 m in front of the wall or behind it (`STEPLADDER_PLACE.doorwayWidth` and `doorwayDepth`, 0.9 m each) (the door prop's `passage` piece, `Level.inPassage`); the toast says "Not in a doorway"; checked by the placer's game only, as the rest of where it stands; scaffolding left out (the owner, 2026-11-01)
 
 ## Discarder
 
