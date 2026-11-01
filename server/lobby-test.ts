@@ -2,17 +2,21 @@ import './headless';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { SERVER } from '../src/config';
 import { SLOTS } from '../src/inventory/tool';
 import { levelPaintFaces } from '../src/level/prop-pieces';
 import { closeCode, encode, HELLO, LOBBY_CODE, LOBBY_LIST, PROTOCOL, type Lobby, type ToServer } from '../src/net/protocol';
 import { surfaceTable } from '../src/save/shape';
+import { Bans } from './bans';
+import { DAY } from './days';
 import { Game, join, start } from './test-kit';
 
 // The server list and the limits per session (lobby-http.ts, lobby.ts), against the built server: the list over plain
 // HTTP (public and private sessions, their order, codes only for public ones), a lookup by code and its limit per
 // address, a hosted session turning the player over its limit away, a public session's seats, places in line and JOINs per address, the admin's private limit, a HOST with
-// fields it can't take, HOST refused unless PLAYER_HOST, a closed tab's seat held for less than a lost link's, and the admin's kick (a reconnect with a kicked player's token is told so, a new join comes in). npm run test:server runs it.
+// fields it can't take, HOST refused unless PLAYER_HOST, a closed tab's seat held for less than a lost link's, and the admin's kick (a reconnect with a kicked player's token is told so, a new join comes in) and ban (by address, its /64, and device, out of every session; the list shows it; changed, lifted; kept on disk, ended). npm run test:server runs it.
 
 const level = JSON.parse(fs.readFileSync('public/levels/demo.json', 'utf8'));
 const table = surfaceTable(levelPaintFaces(level, 48));
@@ -228,7 +232,71 @@ try {
   await other.closed;
   const comeback = await join(main.port, 'Other', rules.body.code, { token: wo.token });
   assert.deepEqual((await comeback.next('welcome')).inventory, { tools: ['can'], colors: ['black'], caps: ['standard'], selected: 0, color: 'black', cap: 'standard' });
-  console.log('server list: ok (the list, a lookup by code and its limit, per-session limits, the admin\'s private limit, HOST only with PLAYER_HOST, the admin\'s kick, seats and joins per address, a HOST link starts with HOST, the budget of a link, the time of a stepladder and the fields of an inventory cut)');
+  // The admin's ban: out of every session at once by address and by device, refused while it lasts, the list shows it, changed and lifted.
+  const api = async (at: string, body?: unknown) => {
+    const res = await fetch(`http://localhost:${main.adminPort}${at}`, { method: body === undefined ? 'GET' : 'POST', headers: { authorization: 'Bearer test-key' }, body: body === undefined ? undefined : JSON.stringify(body) });
+    return { status: res.status, body: await res.json() };
+  };
+  const [devX, devZ] = ['a'.repeat(32), 'b'.repeat(32)];
+  const enter = (name: string, code: string, ip: string, device?: string) => new Game(main.port, ip).send({ type: 'join', protocol: PROTOCOL, name, code, device });
+  // It stays when its banned player leaves it empty.
+  const room = (await admin({ kind: 'private', name: 'Bans', level: 'demo', detail: 'low', stay: true })).body.code as string;
+  const x = await enter('X', room, '10.9.0.1', devX);
+  const wx = await x.next('welcome');
+  const y = await enter('Y', wall.body.code, '10.9.0.1', devZ);
+  const z = await enter('Z', wall.body.code, '10.9.0.2', devX);
+  const bystander = await enter('N', wall.body.code, '10.9.0.3', devZ.replace(/b/g, 'c'));
+  await Promise.all([y.next('welcome'), z.next('welcome'), bystander.next('welcome')]);
+  for (const body of [{ code: room, player: wx.you, days: 3, reason: 'x' }, { code: room, player: wx.you, days: 7, reason: ' ' }, { code: room, player: wx.you, days: 7, reason: 'é'.repeat(51) }, { code: room, player: '1', days: 7, reason: 'x' }])
+    assert.equal((await api('/bans', body)).status, 400, JSON.stringify(body));
+  assert.equal((await api('/bans', { code: room, player: 999, days: 7, reason: 'x' })).status, 404);
+  assert.equal((await api('/bans', { code: 'ZZZZZ', player: wx.you, days: 7, reason: 'x' })).status, 404);
+  const ban = await api('/bans', { code: room, player: wx.you, days: 7, reason: ' Tag spamming ' });
+  assert.deepEqual([ban.status, ban.body.name, ban.body.reason, Date.parse(ban.body.until) - Date.parse(ban.body.made)], [200, 'X', 'Tag spamming', 7 * DAY]);
+  for (const g of [x, y, z]) assert.equal(await g.rejected(), 'banned', 'out of every session: by its address and by its device');
+  assert.equal(x.reason, `${Date.parse(ban.body.until)} Tag spamming`, 'the game is told its end and reason');
+  assert.equal(closeCode('banned'), 4015);
+  assert.equal(bystander.ws.readyState, bystander.ws.OPEN, 'another player stays');
+  assert.equal(await (await enter('X2', room, '10.9.0.1')).rejected(), 'banned', 'a JOIN from their address, without the device');
+  assert.equal(await (await enter('X3', room, '10.9.9.9', devX)).rejected(), 'banned', 'a JOIN from their device, at another address');
+  const banned = JSON.parse((await get(main.port, `${LOBBY_LIST}&device=${devX}`, '10.9.9.8')).text) as Lobby;
+  assert.deepEqual(banned, { region: 'FR', sessions: [], ban: { reason: 'Tag spamming', until: Date.parse(ban.body.until) } }, 'the list shows a banned player their ban, no sessions');
+  assert.ok((await list()).sessions.length && !(await list()).ban, 'and everyone else the sessions');
+  // By an IPv6 address's /64, for good.
+  const v6 = await enter('V', room, '2001:db8:1:2::5');
+  const forever = await api('/bans', { code: room, player: (await v6.next('welcome')).you, days: null, reason: 'Griefing' });
+  assert.equal(forever.body.until, null);
+  assert.equal(await (await enter('V2', room, '2001:db8:1:2:aaaa::9')).rejected(), 'banned', 'the same /64');
+  const other64 = await enter('V3', room, '2001:db8:1:3::5');
+  await other64.next('welcome');
+  assert.deepEqual((await api('/bans')).body.map((b: { name: string }) => b.name), ['V', 'X'], 'the bans, newest first');
+  // Changed: sooner and another reason, never later; lifted.
+  assert.equal((await api(`/bans/${ban.body.id}`, { days: 30 })).status, 400, 'a ban only ends sooner');
+  assert.equal((await api(`/bans/${forever.body.id}`, { days: null, reason: 'Hateful or offensive paint' })).body.reason, 'Hateful or offensive paint');
+  const sooner = await api(`/bans/${ban.body.id}`, { days: 1, reason: 'Griefing' });
+  assert.deepEqual([sooner.body.reason, Date.parse(sooner.body.until) - Date.parse(sooner.body.made)], ['Griefing', DAY]);
+  assert.equal((await api(`/bans/${ban.body.id}/lift`, {})).status, 200);
+  assert.equal((await api(`/bans/${ban.body.id}/lift`, {})).status, 404, 'lifted once');
+  assert.equal((await api('/bans/nope', { days: 1 })).status, 404);
+  await (await enter('X', room, '10.9.0.1', devX)).next('welcome');
+  // Kept on disk with their key; a ban that ended is gone; a file of no use is set aside.
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bans-'));
+  const kept = new Bans();
+  await kept.keepIn(dir);
+  await kept.add('10.8.0.1', devX, 'K', 'Spam', 1);
+  const back = new Bans();
+  await back.keepIn(dir);
+  assert.equal(back.of('10.8.0.1')?.reason, 'Spam', 'read back with its key');
+  const realNow = Date.now;
+  Date.now = () => realNow() + 2 * DAY;
+  assert.equal(back.of('10.8.0.1'), undefined, 'over after its days');
+  Date.now = realNow;
+  fs.writeFileSync(path.join(dir, 'bans.json'), '{');
+  const fresh = new Bans();
+  await fresh.keepIn(dir);
+  assert.deepEqual([fresh.all.length, fs.existsSync(path.join(dir, 'bans.json.bad'))], [0, true]);
+  fs.rmSync(dir, { recursive: true });
+  console.log('server list: ok (the list, a lookup by code and its limit, per-session limits, the admin\'s private limit, HOST only with PLAYER_HOST, the admin\'s kick and ban, seats and joins per address, a HOST link starts with HOST, the budget of a link, the time of a stepladder and the fields of an inventory cut)');
 } finally {
   main.stop();
   refusing.stop();

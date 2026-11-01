@@ -1159,6 +1159,18 @@ export const SERVER = {
   spotMargin: 30,
   /** A dropped player can come back as themselves for this long (s); then their stepladder goes, and a private session with no one left closes (a public one, or one the admin made with --stay, stays). */
   rejoinWindow: 180,
+  /** The admin's bans (server/bans.ts): the terms one may have (days; null for good), the most bytes of its reason (the player's game is told it in the close frame, at most 123 bytes with the end), and the reasons the admin page offers (one of its own may be typed instead). */
+  banDays: [1, 7, 14, 30, 182, null] as (number | null)[],
+  banReasonBytes: 100,
+  banReasons: [
+    "Griefing: painting over or wiping other players' work",
+    'Tag spamming: the same tag again and again',
+    'Hateful or offensive paint',
+    'Sexual or explicit paint',
+    'Harassing other players',
+    'Offensive or misleading nickname',
+    'Cheating or abusing a bug',
+  ],
   /** A link the page closed as it went (1001: the tab closed, or a reload) keeps its seat this long (s) instead, never longer: a reload is back by then. */
   closedHold: 15,
   /** The server pings every game this often (s), so a game notices a dead link; a game pings the server as often, and each answer is a round trip for the link's status (NET.statusShow). */

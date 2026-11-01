@@ -75,6 +75,7 @@ export const LABEL_HINTS: Record<string, string> = {
   'session empty': 'The dialog of a session the server closed because everyone left and no one came back in time. Test only: its button just closes it.',
   'session closed': 'The dialog of a session the admin closed (cctv). Test only: its button just closes it.',
   'removed by admin': 'The dialog of a player the admin removed from the session. Test only: its button just closes it.',
+  banned: 'The dialog of a player the admin banned from the server, with a made-up reason and end as its callout. Test only: its button just closes it.',
   'opened elsewhere': 'The dialog of the same player joining from another tab. Test only: its button just closes it.',
   updated: 'The dialog of a new version on the server. Test only: its button just closes it, no reload.',
   'session full': 'The dialog of a session that filled up while you reconnected. Test only: its button just closes it.',

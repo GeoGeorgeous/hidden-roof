@@ -1,5 +1,6 @@
 import { LOBBY } from '../config';
 import type { MessageId } from '../messages';
+import { deviceId } from '../stored';
 import { LOBBY_CODE, LOBBY_LIST, type Lobby, type LobbyEntry } from './protocol';
 
 // Asking the server which sessions there are (protocol.ts, Lobby): over plain HTTP, no WebSocket. The round trip
@@ -30,9 +31,9 @@ async function ask(url: string, missing: MessageId): Promise<{ body: unknown; pi
   }
 }
 
-/** The server's sessions, public and private, and where it is. */
+/** The server's sessions, public and private, and where it is; none, but the ban, for a player who is banned. */
 export async function fetchLobby(): Promise<Answer<Lobby>> {
-  const a = await ask(LOBBY_LIST, 'menu.netNoServer');
+  const a = await ask(`${LOBBY_LIST}&device=${deviceId()}`, 'menu.netNoServer');
   if ('why' in a) return a;
   const lobby = a.body as Lobby | null;
   if (!Array.isArray(lobby?.sessions)) return { why: 'menu.netNoServer' };

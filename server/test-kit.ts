@@ -46,6 +46,8 @@ export class Game {
   ws: Ws;
   got: (ToClient & { file?: Uint8Array })[] = [];
   closed: Promise<number>;
+  /** The close frame's text, once closed. */
+  reason = '';
   constructor(port: number, ip = `10.2.0.${++games}`, path = '/ws') {
     this.ws = new Ws(`ws://localhost:${port}${path}`, { headers: { 'x-forwarded-for': ip } });
     const parts = new PartsIn();
@@ -55,7 +57,7 @@ export class Game {
         if (done) this.got.push(done.m);
       }
     });
-    this.closed = new Promise((done) => this.ws.once('close', done));
+    this.closed = new Promise((done) => this.ws.once('close', (code: number, why: Buffer) => ((this.reason = why.toString()), done(code))));
   }
   async send(m: ToServer) {
     if (this.ws.readyState !== Ws.OPEN) await new Promise((w) => this.ws.once('open', w));

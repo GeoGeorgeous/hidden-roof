@@ -33,7 +33,8 @@ interface LinkEvents {
   /** Bytes sent and received, for the HUD's traffic. */
   traffic(up: number, down: number): void;
   /** The socket closed (code, as the browser says); `timedOut`: no answer in NET.connectTimeout before the welcome. */
-  closed(code: number, timedOut: boolean): void;
+  /** `reason`: the close frame's text (a ban's end and reason). */
+  closed(code: number, timedOut: boolean, reason?: string): void;
 }
 
 interface LinkEnv {
@@ -164,6 +165,6 @@ export class ServerLink {
     if (this.gone) return;
     this.gone = true;
     this.on.log(`closed: ${code}${reason ? ` ${reason}` : ''}${clean ? '' : ', not clean'}, after ${(this.env.now() - this.started).toFixed(1)} s`);
-    this.on.closed(code, this.timedOut);
+    this.on.closed(code, this.timedOut, reason);
   }
 }

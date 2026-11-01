@@ -1,5 +1,6 @@
 import { NET } from '../config';
 import { msg } from '../messages';
+import { banDetail } from './ban-words';
 import { diagnose, type NetLog } from './diagnostics';
 import { PROTOCOL, rejectionOf, type Rejection } from './protocol';
 import { endedBy, type Reconnect, type Way } from './reconnect';
@@ -27,20 +28,20 @@ export class LinkClosed {
     private log: NetLog,
   ) {}
 
-  /** The link closed (WebSocket close code `code`; `timedOut`: no answer in NET.connectTimeout before the welcome): the game ends or tries to come back. */
-  closed(code: number, timedOut: boolean) {
+  /** The link closed (WebSocket close code `code`, its frame's `text`; `timedOut`: no answer in NET.connectTimeout before the welcome): the game ends or tries to come back. */
+  closed(code: number, timedOut: boolean, text = '') {
     const p = this.place;
     if (timedOut && !p.joined() && !p.line()) return p.end({ state: 'failed', reason: 'timeout', detail: msg('menu.detailNoAnswer', { seconds: NET.connectTimeout }) });
     const why = rejectionOf(code);
-    if (why && this.turnedAway(why)) return;
+    if (why && this.turnedAway(why, text)) return;
     this.dropped(code);
   }
 
   /** The server turned this game away (its close code): the session ends, true; false when it's a failed try (dropped). */
-  private turnedAway(reason: Rejection) {
+  private turnedAway(reason: Rejection, text: string) {
     this.log.add(`turned away by the server: ${reason}`);
     const failed = endedBy(reason, Boolean(this.place.joined() || this.place.line()));
-    return failed ? (this.place.end({ state: 'failed', reason: failed }), true) : false;
+    return failed ? (this.place.end({ state: 'failed', reason: failed, detail: failed === 'banned' ? banDetail(text) : undefined }), true) : false;
   }
 
   /**

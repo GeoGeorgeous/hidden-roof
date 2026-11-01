@@ -226,18 +226,18 @@ export class Multiplayer {
           // A hidden tab draws no frames, so it counts no seconds: its bytes don't count either.
           if (this.joined && link.live && document.visibilityState === 'visible') this.minute.carried(up, down);
         },
-        closed: (code, timedOut) => this.closed(link, code, timedOut),
+        closed: (code, timedOut, reason) => this.closed(link, code, timedOut, reason),
       },
       { url, open: (u) => new WebSocket(u), now, every: (tick, ms) => ((id) => () => clearInterval(id))(setInterval(tick, ms)) },
     ));
   }
 
   /** `link` closed (WebSocket close code `code`): the game ends or comes back. */
-  private closed(link: ServerLink, code: number, timedOut: boolean) {
+  private closed(link: ServerLink, code: number, timedOut: boolean, reason?: string) {
     // A link of the session that died (not a leave: 1000).
     if (this.joined && link.live && code !== 1000) this.minute.dropped(timedOut || this.silence.was(link) ? 'timeout' : String(code), now());
     if (this.link === link) this.link = null;
-    this.closing.closed(code, timedOut);
+    this.closing.closed(code, timedOut, reason);
   }
 
   /** Out of the session for `reason`, the server told they leave. */

@@ -7,6 +7,7 @@ import type { Lobby } from '../lobby';
 import { log } from '../log';
 import { keepMinutes } from '../minutes';
 import { Busy, Missing, Refused } from '../refused';
+import { bans } from './bans';
 import { events, minutes } from './live';
 import { Full, only, TooBig, WrongMethod, type Ctx, type Route } from './route';
 import { logs, machineRoute, root } from './server';
@@ -28,6 +29,7 @@ const routes: Record<string, Route> = {
   live: minutes,
   sessions,
   uploads,
+  bans,
   stats: async (c) => {
     only(c, 'GET');
     return statsRoute(c.rest, c.q, c.kept.dir);

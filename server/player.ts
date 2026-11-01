@@ -56,8 +56,8 @@ export interface Player extends Held {
   was: { ip: string; country: string | null; lived: number; at: number; hold: number } | null;
 }
 
-/** `link` turned away: closed with the reason's code, which tells the game why. */
-export const turnAway = (link: Link | null | undefined, reason: Rejection) => link?.close(closeCode(reason), reason);
+/** `link` turned away: closed with the reason's code, which tells the game why (`text`: more for the game, a ban's end and reason). */
+export const turnAway = (link: Link | null | undefined, reason: Rejection, text: string = reason) => link?.close(closeCode(reason), text);
 
 export const presence = (p: Player): Presence => (p.link ? p.activity : 'dropped');
 

@@ -3,6 +3,7 @@ import { SERVER } from '../src/config';
 import { checkToServer, CODE_LENGTH, CODE_LETTERS, decode, isCode, isName, PROTOCOL, type Rejection, type ToServer } from '../src/net/protocol';
 import { event } from './events';
 import { history } from './history';
+import { Bans, banText } from './bans';
 import { Budget } from './budget';
 import { holdFor } from './held';
 import { log, logNoisy, who } from './log';
@@ -19,7 +20,7 @@ import type { SessionSetup } from './setup';
 // that ended, each address's links, uploads and hosted sessions
 // (SERVER.linksPerIp, uploadsPerIp, sessionsPerIp), HOST (lobby-host.ts, only if SERVER.playerHost) and JOIN (to a public session, SERVER.joinsPerIp a minute
 // and SERVER.seatsPerIp seats or places in line per address), and each
-// link's messages to its session; a JOIN with the token of a player the admin kicked is refused for SERVER.rejoinWindow;
+// link's messages to its session; a JOIN with the token of a player the admin kicked is refused for SERVER.rejoinWindow, and a HOST or JOIN of one they banned (bans.ts) while the ban lasts;
 // a JOIN that finds a session full waits in its line (queue.ts). main.ts gives it links (ws sockets); it
 // speaks only Link, so tests give it fake ones (server/world-test.ts).
 
@@ -57,6 +58,8 @@ export class Lobby {
   private kicked = new Map<string, number>();
   /** JOINs to public sessions by address, SERVER.joinsPerIp a minute. */
   private joins = new PerMinute(SERVER.joinsPerIp, SERVER.joinIps);
+  /** The admin's bans (main.ts keeps them in DATA_DIR). */
+  readonly bans = new Bans();
 
   /**
    * A link that opened (`host`: on /ws?host, where saves come up): turned away
@@ -66,7 +69,7 @@ export class Lobby {
    */
   open(link: Link, host: boolean): LinkInput {
     const ip = link.ip;
-    const reject = (reason: Rejection, m?: ToServer) => {
+    const reject = (reason: Rejection, m?: ToServer, text?: string) => {
       // A hello of another version skipped the field checks: only what passes them goes into the log and the events.
       const code = m?.type === 'join' && isCode(m.code) ? m.code : '-----';
       const hello = m?.type === 'join' || m?.type === 'host' ? m : null;
@@ -76,7 +79,7 @@ export class Lobby {
       turnedAway(reason);
       if (logNoisy(ip, code, `${m?.type ?? 'link'} from ${ip} turned away: ${reason}`))
         event('turned-away', this.sessions.get(code) ?? null, name, reason === 'version' && hello ? { reason, client: hello.protocol, server: PROTOCOL } : { reason });
-      turnAway(link, reason);
+      turnAway(link, reason, text);
     };
     const uploading = () => [...this.uploads.values()].reduce((n, c) => n + c, 0);
     /** Their session and who they are in it, once welcomed, or their place in its line; 'waiting' while a host or join is under way. */
@@ -140,6 +143,9 @@ export class Lobby {
           if (at) return at.player.link === link ? at.session.receive(at.player, m) : undefined;
           if (m.type !== 'host' && m.type !== 'join') return;
           link.device = m.device;
+          // A game of another version is told that first: it may not know this close code.
+          const ban = m.protocol === PROTOCOL && this.bans.of(ip, m.device);
+          if (ban) return reject('banned', m, banText(ban));
           at = 'waiting';
           const r = await this.enter(m, link, ip, seat);
           if (typeof r === 'string') return reject(r, m);
@@ -196,6 +202,24 @@ export class Lobby {
     if (!token || !session.kick(id)) return false;
     this.kicked.set(token, Date.now());
     return true;
+  }
+
+  /**
+   * The admin bans a player of `session` for `days` (null: for good): their address and device are kept out (bans.ts),
+   * and everyone of them is turned away from every session and line at once. Null if it has no such player.
+   */
+  async ban(session: Session, id: number, days: number | null, reason: string) {
+    const p = session.players.get(id);
+    const ip = p && (p.link?.ip ?? p.was?.ip);
+    if (!p || !ip) return null;
+    const ban = await this.bans.add(ip, p.device, p.name, reason, days);
+    const text = banText(ban);
+    const banned = (ip: string | undefined, device?: string) => !!ip && !!this.bans.of(ip, device);
+    for (const s of this.sessions.values()) {
+      for (const q of [...s.players.values()]) if (banned(q.link?.ip ?? q.was?.ip, q.device)) s.remove(q, 'banned by the admin', 'banned', text);
+      s.line.ban((place) => banned(place.ip, place.link?.device), text);
+    }
+    return ban;
   }
 
   get players() {
