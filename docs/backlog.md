@@ -142,8 +142,6 @@ The admin page (the cctv repo) and the server side it reads (server/admin/).
 The API: docs/admin-api.md; why: docs/ideas/admin-data.md.
 
 1. [IDEA-240]: Admin: ban by IP (with a reason the player is shown); restoring a save is CCTV-255 (docs/ideas/public-servers.md) @1.6.1
-2. [CCTV-283]: Paint time instead of stamps (the owner, 2026-11-01): seconds painting by tool, sponge included, from the ops' own times (a run: one player's ops with one tool at most SERVER.paintGap apart; trigger-held time not counted), as `paintSeconds` in a session's and a save's stats, /stats/paint and its days; the page shows `1h 12m 29s` on the session's paint card and the Overview KPI. Server side on feat/paint-time-pickups; the page in cctv
-3. [CCTV-284]: Pickups found, zeros shown (the owner, 2026-11-01): globally from the beacon (each pickup once a page load; `events.pickups` lists every one), in a session the nicknames that found each (`stats.pickups`, `stats.players`, `levelPickups`; "off" for a tool the session has off). Server side on feat/paint-time-pickups; the page in cctv
 
 ## Web and promotion
 
