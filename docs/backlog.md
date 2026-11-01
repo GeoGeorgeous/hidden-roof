@@ -79,7 +79,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## Rendering
 
-1. BUGS [?BL-011]: Title-screen pickup rings are sized for where the player stands, not the title view @1.6.1
+1. BUGS [BL-011]: Title-screen pickup rings are sized for where the player stands, not the title view (confirmed: Pickups.ringSize reads the player's camera; big rings high up in build mode are PICKUP.ring.minSize, as designed; the owner: fix the title only) @1.6.1
 2. IDEA [BL-066]: A camera mode for trailers and cinematics
 
 ## Props and level
@@ -141,7 +141,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 The admin page (the cctv repo) and the server side it reads (server/admin/). 
 The API: docs/admin-api.md; why: docs/ideas/admin-data.md.
 
-1. [IDEA-240]: Admin: ban by IP (with a reason the player is shown); restoring a save is CCTV-255 (docs/ideas/public-servers.md) @1.6.1
+1. [IDEA-240]: Admin: ban by IP (with a reason the player is shown); restoring a save is CCTV-255; a ban survives the monthly salt (the owner, 2026-11-01): keyed on a secret of its own that never rotates (the address by /64, and the device id), for a term the admin picks (docs/ideas/public-servers.md) @1.6.1
 
 ## Web and promotion
 
@@ -155,22 +155,20 @@ The API: docs/admin-api.md; why: docs/ideas/admin-data.md.
 
 ## Legal
 
-1. [TASK-187]: The beacon, the device id and the address hash run without a consent dialog (the owner's decision and risk, recorded in SECRET_legal.md; confirmed 2026-11-01: no switch either); the privacy page names them (TASK-242, done) @1.6.1
-2. [TASK-189]: The Terms' moderation section (DSA: grounds and measures, reports by email, a restricted player told what and why); the house rules screen is in (docs/ideas/public-servers.md) @1.6.1
+1. [TASK-189]: The Terms' moderation section (DSA: grounds and measures, reports by email, a restricted player told what and why); the house rules screen is in (docs/ideas/public-servers.md) @1.6.1
 
 ## Codebase
 
 1. [RFCT-202]: src/ root files into folders (paint, menu, input, boot, render), style.css split next to its code; paint after the Painting Rework (docs/ideas/src-folders.md) @1.8.0
-2. [RFCT-268]: server/time.ts with DAY, HOUR, dayName and iso once (dayName is in 5 files, 864e5 in 7), and one day-files helper (days changed, read back at start, pruned past SERVER.historyDays) for history, people, traffic and events @1.6.1
-3. [RFCT-270]: The beacon's limit per address through PerMinute, the third copy of "N a minute per address" (logNoisy is another); PerMinute reads its SERVER limits when asked, so a test can still change them @1.6.1
-4. [RFCT-272]: A session's today peak seeded at midnight without a read writing state: the admin API's live() calls today.players() on every read for that @1.6.1
-5. [RFCT-273]: The still player's "same stance" check next to encodeSnapshot (sender.ts reads the snapshot's byte offsets itself) @1.6.1
+2. [RFCT-273]: The still player's "same stance" check next to encodeSnapshot (sender.ts reads the snapshot's byte offsets itself) @1.6.1
 
 ## Done
 
 Shipped since the last release; the release commit empties this list.
 
 1. [TASK-276]: Production on 1.6.0, deployed 2026-11-01 (docs/deploy.md §1): the server's data, admin key and the public session, the GeoIP base with its monthly cron, roof-traffic, Caddy's `/api/main` for the admin page; then a full wipe of DATA_DIR and LOG_DIR on main and next (the owner), the public sessions made again; the owner checked it in a browser (version, cctv main and next, a session made and closed) @1.6.0
+2. [TASK-187]: The beacon, the device id and the address hash run without a consent dialog (the owner's decision and risk, recorded in SECRET_legal.md; confirmed 2026-11-01: no switch either); the privacy page names them (TASK-242, done); nothing left to build (the owner, 2026-11-01)
+3. [RFCT-270]: The beacon's limit per address through PerMinute, the third copy of "N a minute per address" (logNoisy is another); PerMinute reads its SERVER limits when asked, so a test can still change them (done in BUGS-280: beacon.ts and log.ts use PerMinute, its limits read when asked)
 
 ## Discarder
 
@@ -199,3 +197,5 @@ Dropped items, kept for the record; don't work on them.
 21. ~~[IDEA-224]: The can as a brush (continuous stroke, opacity, speed and distance feel): bring the R&D branch exp/visual-sandbox into the game (docs/ideas/paint-refactoring.md) (replaced by Painting Rework: IDEA-225 to IDEA-232)~~
 22. ~~IDEA [BL-043]: One public server, running 24/7 (the owner's own step once 1.6.0 is deployed)~~
 23. ~~[?BUGS-249]: cctv shows a session's time as -1:-1 (cctv's 60 s clock, not the server: in CCTV-252)~~
+24. ~~[RFCT-268]: server/time.ts with DAY, HOUR, dayName and iso once (dayName is in 5 files, 864e5 in 7), and one day-files helper (days changed, read back at start, pruned past SERVER.historyDays) for history, people, traffic and events (done in BUGS-280: server/days.ts has DAY, HOUR, iso and dayName once; a day-files helper not worth it: history, people, events and traffic keep and prune their days differently)~~
+25. ~~[RFCT-272]: A session's today peak seeded at midnight without a read writing state: the admin API's live() calls today.players() on every read for that (obsolete: a session's `today` went in CCTV-278; its peak is raised on a join, and live() writes nothing)~~
