@@ -12,19 +12,30 @@ are built.
 
 - **Entry:** a "Join as admin" button on a session in cctv opens the game with a one-time link. The server makes a
   random pass for that session's code: valid 60 s, works once, kept in memory only. It rides after `#` in the URL, so
-  Caddy's access log and the Referer never see it, and the game wipes it from the address bar. Reconnects use the
-  welcome's usual token. The game's console can't make anyone an admin.
+  Caddy's access log and the Referer never see it, and the game wipes it from the address bar. The game's console
+  can't make anyone an admin. cctv's own server list (`CCTV_SERVERS`) gives each server its game's address; the game
+  server answers only the pass.
+- **The pass beats bans and limits:** checked first, a valid pass comes in from a banned address and past the limits
+  per address (seats, JOINs a minute). Only the open links per address (`SERVER.linksPerIp`, 24) are counted as the
+  socket opens, before the JOIN that carries the pass: that one stays.
+- **No reconnect:** any closed link ends admin mode at once, a reload, a lost link and the admin's own wipe or restore
+  from cctv included (they close every link). The server holds no place for an admin; the game says the admin mode
+  has ended (`src/messages.ts`) and goes to the menu. A new link from cctv brings them back.
 - **Apart from the players:** the server keeps admins out of the session's players (a map of their own). So an admin
   comes into a full session without waiting in line or taking a seat, past the limits per address, counts in no
   stats, and is unseen: no state, presence or name reaches the others, the server list included. Several admins fit
   one session, each on their own link.
-- **No trace:** an admin's coming and going leave no event and no count. Bans and kicks keep their own events, as now.
+- **No trace:** an admin's coming and going leave no event and no count, and their game sends no beacon once the
+  welcome says admin. Their paint, seen, is relayed and painted but counts in no stat (stamps, paint seconds, colors,
+  painters). Bans and kicks keep their own events, as now. The server's log (the security record, addresses gone
+  after 14 days) keeps one line, marked admin, as an admin comes and goes: who was inside, if a pass ever leaks.
 - **Seen on demand:** a key makes the admin seen; to the others they are then an ordinary player. Their nameplate reads
   `<name> (Admin)` in red: a nameplate class (the HUD, not the world, so the ink rule holds). The name is tinyauth's
   signed-in user (Remote-User), which Caddy passes to the server with cctv's request for the link: a host change for
   devops when built (`docs/deploy.md`), to be checked then; without it the plate reads plain `Admin`. Players type
   only letters and digits, so no one can fake the plate, and no nickname needs reserving. Becoming seen and unseen
   shows to the others as a join and a leave, toasts included.
+- **Admins see each other:** every admin sees the others, seen or not, by their `(Admin)` plate (unseen ones faint).
 - **Never a seat:** seen or not, the admin takes no seat and no place in line: no one is pushed out or kept waiting,
   and the server list still counts only the players (20/20). In the game the others see one more player.
 - **Holds a private session:** any admin inside, seen or not, keeps a private session open as a player would; when
@@ -33,8 +44,10 @@ are built.
   from a player they don't know, `src/net/remotes.ts`).
 - **Fly:** build mode's fly (`player.fly`: no gravity, no collisions) on a key. Movement is the game's own anyway:
   nothing for the server to guard.
-- **Key hints:** the admin's keys listed on screen (H unseen and seen, J fly, ...), texts in `src/messages.ts`.
-- **Inventory:** every tool, color and cap at once; nothing to pick up, and the session's pickups stay as they are.
+- **Keys** (in `config.ts`), listed on screen, texts in `src/messages.ts`: H seen and unseen, J fly, L lock or unlock
+  the face pointed at, O lock outlines, Tab the player list.
+- **Inventory:** every color and cap at once, and every tool the session allows (`setup.tools`: the server drops ops
+  of tools that are off anyway); nothing to pick up, and the session's pickups stay as they are.
 - **Kicks and bans stay on cctv:** in the game the admin watches; cctv's session page kicks and bans, as now.
 - **Player list:** a key lists the session's players (dropped ones too); picking one puts the admin beside them
   (where the server last had them).
@@ -46,13 +59,19 @@ are built.
 
 ### Locks
 
-- **One surface per click:** a face of a wall, or one paintable surface of a prop. Its paint stays as it is, and no
-  one can change it: spray, marker, roller, sponge and runs all stop at it. The server refuses new paint there, and
-  every game refuses it too (otherwise the painter would see paint the others don't).
+- **One face per click:** the face pointed at, as a paint surface and its face rect (the pair every paint op carries).
+  Not the whole surface: one holds 1 to 134 faces (roof: 1219 surfaces, many of 10 faces or more). Its paint stays as
+  it is, and no one can change it: spray, marker, roller, sponge and runs all stop at it. The server refuses new paint
+  there, and every game refuses it too (otherwise the painter would see paint the others don't).
+- **A known limit, accepted:** a player painting the face as its lock arrives keeps the few stamps of that moment
+  (about one ping's worth) that the server dropped, seen only by them until they reload or rejoin. Into
+  `docs/known-limits.md` when built.
 - **Per session:** set live, sent in the welcome and on each change, kept with the session on disk; another session
   on the same level is free.
-- **A wipe clears them too:** an admin wipe clears all paint and drops every lock.
-- **Outlines on a key:** a key draws every locked surface's outline (one line mesh, the admin's only).
+- **A wipe or a restore clears them:** either is a new paint, with no locks (saves carry none).
+- **Outlines on a key:** O draws every locked face's outline in red (one line mesh, the admin's only: players never
+  see it, so the ink rule holds for them).
+- **Players see nothing** of a lock until they paint the face.
 - **Players are told:** paint that won't stick to a locked surface shows the HUD line pickups use ("You picked up
   ..."): "I won't spoil this masterpiece" (`src/messages.ts`).
 
