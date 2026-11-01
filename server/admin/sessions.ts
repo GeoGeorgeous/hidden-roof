@@ -4,7 +4,7 @@ import { pipeline } from 'node:stream/promises';
 import { PAINT_DETAIL, SERVER } from '../../src/config';
 import { pickupCode } from '../../src/inventory/items';
 import { SLOTS } from '../../src/inventory/tool';
-import { isPrivateLimit, isSessionName, isToolSet, SESSION_NAME_MAX } from '../../src/net/protocol';
+import { isSessionName, isToolSet, SESSION_NAME_MAX } from '../../src/net/protocol';
 import { median } from '../counts';
 import type { Kept } from '../kept';
 import { overMemory } from '../log';
@@ -72,8 +72,9 @@ function newSession(b: unknown): string | { setup: Omit<SessionSetup, 'admin'>; 
   const level = o.level ?? (o.upload ? undefined : 'roof');
   if (level !== undefined && typeof level !== 'string') return 'level: a level name';
   if (o.stay !== undefined && typeof o.stay !== 'boolean') return 'stay: true or false';
-  if (o.limit !== undefined && (kind !== 'private' || !isPrivateLimit(o.limit))) return `limit: a private session's players, ${SERVER.privateMin} to ${SERVER.players.private}`;
-  const limit = kind === 'public' ? SERVER.players.public : ((o.limit as number | undefined) ?? SERVER.players.private);
+  const most = SERVER.players[kind];
+  if (o.limit !== undefined && !(Number.isInteger(o.limit) && (o.limit as number) >= SERVER.privateMin && (o.limit as number) <= most)) return `limit: a ${kind} session's players, ${SERVER.privateMin} to ${most}`;
+  const limit = (o.limit as number | undefined) ?? most;
   return { setup: { kind, name: o.name.trim(), limit, tools: SLOTS.filter((t) => tools.includes(t)), stays: kind === 'public' || o.stay === true }, level, detail, upload: o.upload };
 }
 

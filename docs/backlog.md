@@ -139,7 +139,7 @@ The admin page (the cctv repo) and the server side it reads (server/admin/).
 The API: docs/admin-api.md; why: docs/ideas/admin-data.md.
 
 1. [IDEA-240]: Admin: ban by IP (with a reason the player is shown); restoring a save is CCTV-255; a ban survives the monthly salt (the owner, 2026-11-01): keyed on a secret of its own that never rotates (the address by /64, and the device id), for a term the admin picks (docs/ideas/public-servers.md) @1.6.1
-2. [CCTV-286]: A public session made from the admin page with the number of players chosen, as a private one's: `POST /sessions` takes `limit` for a public session too (2 to SERVER.players.public), GET / `limits.public` a range; the page's New session form in cctv @1.6.1
+2. [CCTV-286]: A public session made from the admin page with the number of players chosen, as a private one's: `POST /sessions` takes `limit` for a public session too, `limits.private.min` to `limits.public` (GET / as it was, so the page keeps working); server side done; the page's New session form in cctv @1.6.1
 
 ## Web and promotion
 

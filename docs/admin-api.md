@@ -295,9 +295,10 @@ was kept with it); `undo`: the save a restore made first.
 
 `POST /sessions` `{ kind, name, level?, detail?, tools?, stay?, limit?, upload? }` → the new session. `name` up to
 `limits.name` characters; `level` roof by default, `detail` ultra; `tools` some of can, marker, ladder, roller, sponge
-(all by default); `stay`: a private one stays when empty (a public one always does); `limit`: a private one's most
-players, `limits.private`; `upload`: an id from `POST /uploads`, made on its level at its detail with its paint (a
-level or detail named too must be its own; an unknown or expired one is 404).
+(all by default); `stay`: a private one stays when empty (a public one always does); `limit`: its most players, from
+`limits.private.min` up to `limits.private.max` for a private one or `limits.public` for a public one (that most if
+none); `upload`: an id from `POST /uploads`, made on its level at its detail with its paint (a level or detail named
+too must be its own; an unknown or expired one is 404).
 `POST /sessions/CODE/wipe`, `POST /sessions/CODE/close`, `POST /sessions/CODE/players/ID/kick` → `{ ok: true }`.
 `POST /sessions/CODE/restore` `{ save: MS } | { upload: ID }` → `{ undo: MS }`.
 `GET /sessions/CODE/paint`: its paint as a paint file made now. `GET /sessions/CODE/saves/MS`: a kept save.

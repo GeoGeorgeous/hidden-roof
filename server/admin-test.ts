@@ -168,6 +168,14 @@ try {
   const root = (await ask(main, 'GET', '/')).body;
   assert.deepEqual([root.api, root.settings.slowPing, root.settings.saveEvery, root.settings.saveAges, root.settings.pageIdle, root.settings.playerIdle, root.limits], [4, SERVER.slowPing, SERVER.keepEvery, SERVER.keepAges.filter(Boolean), NET.beaconIdle, NET.idleAfter, { public: SERVER.players.public, private: { min: SERVER.privateMin, max: SERVER.players.private }, name: SESSION_NAME_MAX }]);
   assert.ok(!('slowPing' in root) && !('saveEvery' in root) && !('saveAges' in root), 'only in settings');
+  // A session's players: a private one's up to SERVER.players.private, a public one's up to SERVER.players.public; none given, the most.
+  for (const [kind, limit, status] of [['public', 12, 200], ['public', SERVER.privateMin, 200], ['public', SERVER.players.public + 1, 400], ['public', 1, 400], ['public', 2.5, 400], ['public', '8', 400], ['private', SERVER.players.private + 1, 400]] as const) {
+    const res = await make({ kind, limit });
+    assert.equal(res.status, status, `${kind} ${limit}`);
+    if (status === 200) assert.equal(res.body.limit, limit, `${kind} ${limit}`);
+  }
+  assert.equal((await make({ kind: 'public' })).body.limit, SERVER.players.public);
+
   // The routes of ADMIN_API 3 for the stats are gone; a route with another method is 405, one that is not there 404; the live minutes are a list.
   for (const gone of ['/history', '/history?period=7d', '/traffic', '/traffic?days=3', '/nothing']) assert.equal((await ask(main, 'GET', gone)).status, 404, gone);
   assert.deepEqual([(await ask(main, 'POST', '/')).status, (await ask(main, 'POST', '/machine')).status, (await ask(main, 'POST', '/events')).status, (await ask(main, 'POST', '/live/minutes')).status, (await ask(main, 'GET', '/uploads')).status, (await ask(main, 'GET', `/sessions/${code}/wipe`)).status, (await ask(main, 'POST', `/sessions/${code}/paint`)).status], [405, 405, 405, 405, 405, 405, 405]);
