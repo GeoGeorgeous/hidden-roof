@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { COLOR_ORDER } from '../src/config';
+import { paintSecondsOf } from './counts';
 import { dayName } from './days';
 import { history, read, sum, type Hour } from './history';
 import { readJson } from './json-file';
@@ -34,7 +35,7 @@ export async function historyDays(group: 'play' | 'paint', range: { from: number
     if (group === 'play') {
       if (t.plays || t.seconds || !none(t.minutes) || !none(t.turnedAway)) days.push({ day, plays: t.plays, playSeconds: Math.round(t.seconds), withOthers: Math.round(t.withOthers), lengthMinutes: t.minutes, turnedAway: t.turnedAway, peak: t.peak });
     } else if (Object.values(t.stamps).some(Boolean) || !none(t.colors)) {
-      days.push({ day, stamps: t.stamps, colors: Object.fromEntries(COLOR_ORDER.flatMap((c) => (t.colors[c] ? [[c, t.colors[c]]] : []))) });
+      days.push({ day, stamps: t.stamps, paintSeconds: paintSecondsOf(t.paintSeconds), colors: Object.fromEntries(COLOR_ORDER.flatMap((c) => (t.colors[c] ? [[c, t.colors[c]]] : []))) });
     }
   }
   return { from: dayName(range.from), to: dayName(range.to), days };

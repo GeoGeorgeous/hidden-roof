@@ -25,7 +25,7 @@ const stats = path.join(dir, 'stats');
 fs.mkdirSync(stats);
 const put = (d: number, file: object) => fs.writeFileSync(path.join(stats, `${name(d)}.json`), JSON.stringify(file));
 // Yesterday: two hours of play and paint; three days ago: paint only; a day long past: a total.
-put(day - 1, { hours: { 9: hour({ plays: 2, seconds: 100.4, withOthers: 50.6, minutes: { 3: 1, 120: 1 }, turnedAway: { full: 1 }, peak: { players: 3, at: 'x' }, stamps: { can: 4, marker: 0, roller: 0, sponge: 1 }, colors: { red: 2, blue: 3 } }), 10: hour({ plays: 1, seconds: 20, peak: { players: 5, at: 'y' }, colors: { red: 1 } }) } });
+put(day - 1, { hours: { 9: hour({ plays: 2, seconds: 100.4, withOthers: 50.6, minutes: { 3: 1, 120: 1 }, turnedAway: { full: 1 }, peak: { players: 3, at: 'x' }, stamps: { can: 4, marker: 0, roller: 0, sponge: 1 }, paintSeconds: { can: 12.34, marker: 0, roller: 0, sponge: 2 }, colors: { red: 2, blue: 3 } }), 10: hour({ plays: 1, seconds: 20, peak: { players: 5, at: 'y' }, colors: { red: 1 } }) } });
 put(day - 3, { hours: { 4: hour({ stamps: { can: 0, marker: 2, roller: 0, sponge: 0 }, colors: { green: 2 } }) } });
 put(day - 5, { hours: { 4: hour({ client: { ...noClient(), n: 2 } }) } });
 put(day - 200, { total: hour({ plays: 7, seconds: 700.5, withOthers: 70.4, minutes: { 1: 7 }, peak: { players: 4, at: 'z' }, stamps: { can: 9, marker: 0, roller: 1, sponge: 0 }, colors: { blue: 9 } }) });
@@ -50,16 +50,17 @@ assert.deepEqual(
 assert.deepEqual(Object.keys(play.days[2]), ['day', 'plays', 'playSeconds', 'withOthers', 'lengthMinutes', 'turnedAway', 'peak']);
 
 const paint = await historyDays('paint', range, dir);
+const none = { can: 0, marker: 0, roller: 0, sponge: 0 };
 assert.deepEqual(
   paint.days,
   [
-    { day: name(day - 200), stamps: { can: 9, marker: 0, roller: 1, sponge: 0 }, colors: { blue: 9 } },
-    { day: name(day - 3), stamps: { can: 0, marker: 2, roller: 0, sponge: 0 }, colors: { green: 2 } },
-    { day: name(day - 1), stamps: { can: 4, marker: 0, roller: 0, sponge: 1 }, colors: { red: 3, blue: 3 } },
+    { day: name(day - 200), stamps: { can: 9, marker: 0, roller: 1, sponge: 0 }, paintSeconds: none, colors: { blue: 9 } },
+    { day: name(day - 3), stamps: { can: 0, marker: 2, roller: 0, sponge: 0 }, paintSeconds: none, colors: { green: 2 } },
+    { day: name(day - 1), stamps: { can: 4, marker: 0, roller: 0, sponge: 1 }, paintSeconds: { can: 12.3, marker: 0, roller: 0, sponge: 2 }, colors: { red: 3, blue: 3 } },
   ],
-  'colors in the game\'s order, the days with none left out',
+  'colors in the game\'s order, paint seconds to a tenth (none in a day from before them), the days with none left out',
 );
-assert.deepEqual(Object.keys(paint.days[0]), ['day', 'stamps', 'colors']);
+assert.deepEqual(Object.keys(paint.days[0]), ['day', 'stamps', 'paintSeconds', 'colors']);
 assert.deepEqual((await historyDays('paint', { from: day - 1, to: day - 1 }, null)).days.map((d) => (d as { day: string }).day), [name(day - 1)], 'a day kept in memory without a directory');
 assert.deepEqual((await historyDays('play', { from: day - 200, to: day - 200 }, null)).days, [], 'without a directory: memory only');
 

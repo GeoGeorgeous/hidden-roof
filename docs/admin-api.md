@@ -169,9 +169,14 @@ a whole address: phones behind a carrier's NAT show as shared networks.
 
 ```
 stamps: { can, marker, roller, sponge },  // sponge: paint cleaned
+paintSeconds: { can, marker, roller, sponge },   // seconds painting, to a tenth
 colors: { colorCode: ops },
-days: [{ day, stamps }]
+days: [{ day, stamps, paintSeconds }]
 ```
+
+`paintSeconds` is time paint landed, measured from the ops' own times: one player's ops with one tool at most
+`SERVER.paintGap` (0.5 s) apart are one run, and the run's span counts; a longer gap starts another. Spraying into
+the air or out of reach, or holding a still marker, counts nothing. Hours from before it read as 0.
 
 `GET /stats/client`: the game's beacons (solo and in sessions). No `days`.
 
@@ -180,11 +185,13 @@ n, nGpu,                                  // page loads that reached the level, 
 fps, low1, load, join,                    // histograms: whole fps (open last bin: fpsMost), seconds to a tenth (secondsMost)
 browsers, os, gpus: { name: n },          // up to SERVER.beaconKinds names, then Other
 errors: { count, plays, byMessage },
-events: { steps: { play, ready, sprayed, joined }, tutorial, counts, seconds: { playing, idle, menu }, settings },
+events: { steps: { play, ready, sprayed, joined }, tutorial, counts, seconds: { playing, idle, menu }, settings, pickups },
 net: { minutes, ping50, ping95, pingMax, drops, back, stalls, stallLong, down, up }
 ```
 
 `events.counts` by code; the pause menu's links count as `discord`, `github`, `youtube`, `instagram`, `tiktok`, `kofi`.
+A pickup counts as `pickup.<code>` once a page load (found again after a restart, not again). `events.pickups` lists every
+pickup code in the game, the starting kit's left out: tools (`marker`), then caps (`cap.fat`), then colors (`color.red`).
 
 `GET /stats/traffic`: the site's traffic from Caddy's log (the traffic reader). Each visitor once over the period.
 
@@ -217,7 +224,7 @@ Kept forever, as counts only, by UTC day or month: the audience over any range, 
 
 ```
 { from, to, days: [{ day, plays, playSeconds, withOthers, lengthMinutes, turnedAway, peak }] }   // play
-{ from, to, days: [{ day, stamps, colors }] }                                                     // paint
+{ from, to, days: [{ day, stamps, paintSeconds, colors }] }                                       // paint
 ```
 
 `GET /stats/people/days`: players by device over the range, and each day's players.
@@ -270,9 +277,9 @@ began at months' starts), where a visitor may count twice.
 `GET /sessions` → every live session:
 
 ```
-{ code, kind, name, admin, stays, tools, level, detail, limit, queue, started, paintMB, emptySince | null,
+{ code, kind, name, admin, stays, tools, level, levelPickups, detail, limit, queue, started, paintMB, emptySince | null,
   players: [{ id, name, here, ip | null, country | null, ping | null, joined, held | null, state, since, seenDays | null }],
-  stats: { since, began, restoredAt?, stamps, colors, painters, playSeconds, joins, peak },
+  stats: { since, began, restoredAt?, stamps, paintSeconds, colors, painters, players, pickups, playSeconds, joins, peak },
   ping: { median | null, slow },
   saves: [{ at, bytes, wiped, undo, stats | null }] }
 ```
@@ -280,7 +287,10 @@ began at months' starts), where a visitor may count twice.
 A player's `state`: `here`, `away` (the game is hidden), `menu` (paused), `idle` (nothing pressed for `playerIdle`
 s), `lagging`, or `dropped` (gone; `held` s left to come back); `since` when it last changed. `seenDays`: the days
 this device has played in a session, since the salt began; `null` without a device. `stats`: the session's counts
-since its paint began (made, wiped or restored). A save's `stats` has the same shape as the session's (null if none
+since its paint began (made, wiped or restored): `paintSeconds` as in `GET /stats/paint`; `players` the nicknames that
+were in it; `pickups: { code: players }` the nicknames that found each (the starting kit and what one carried back in
+don't count). `levelPickups`: the codes of the session level's pickups, in its order, each once. A save from before
+paint seconds, players and pickups were kept has them as 0 and `{}`. A save's `stats` has the same shape as the session's (null if none
 was kept with it); `undo`: the save a restore made first.
 
 `POST /sessions` `{ kind, name, level?, detail?, tools?, stay?, limit?, upload? }` → the new session. `name` up to

@@ -1,4 +1,5 @@
 import { SERVER } from '../src/config';
+import { PICKUP_CODES } from '../src/inventory/items';
 import { addMaps, bump } from './tally';
 
 // What an hour's beacons add up to (beacon.ts adds, history.ts keeps and reports): counts, never a person.
@@ -133,6 +134,7 @@ export function clientReport(c: ClientCounts) {
       counts,
       seconds: { playing: (seconds.playing ?? 0) / 10, idle: (seconds.idle ?? 0) / 10, menu: (seconds.menu ?? 0) / 10 },
       settings,
+      pickups: PICKUP_CODES,
     },
     net: netReport(c.net),
   };

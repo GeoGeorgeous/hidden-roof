@@ -54,6 +54,7 @@ export function sum(hours: Iterable<Hour>) {
     t.bytes.down += h.bytes.down;
     addMaps(t.turnedAway, h.turnedAway);
     addMaps(t.stamps, h.stamps);
+    addMaps(t.paintSeconds, h.paintSeconds);
     addMaps(t.colors, h.colors);
     if (h.peak && h.peak.players > (t.peak?.players ?? 0)) t.peak = h.peak;
     addClient(t.client, h.client);

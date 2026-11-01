@@ -7,7 +7,9 @@ import path from 'node:path';
 import { COLOR_ORDER, SERVER } from '../src/config';
 import { statsRoute } from './admin/stats';
 import { noClient } from './client-counts';
-import { traffic } from './counts';
+import type { InventoryData } from '../src/inventory/inventory';
+import type { PaintOp } from '../src/paint-ops';
+import { countPaint, SessionStats, traffic } from './counts';
 import { history } from './history';
 import { machine, sampleMachine } from './machine';
 import { prefix } from './address';
@@ -22,7 +24,7 @@ import { answer, dayRange, daysIn, monthName, monthRange, spans, weekdayOf } fro
 // process: a period and the one before it, null when nothing is kept that far back, days cut to the period, plays by
 // whole minutes with the open last bin, the week by weekday and hour, new, returning and unknown players by the days the game
 // says, the salt at each month's start, each ended day's row kept and the History's days over a range, networks, the days a device
-// played, bytes each way, and the machine's rates. npm run test:server runs it.
+// played, bytes each way, the machine's rates, and a session's paint time and pickups (counts.ts). npm run test:server runs it.
 
 const T = Date.parse('2026-03-11T14:30:00Z'); // a Wednesday
 const H = Math.floor(T / HOUR);
@@ -66,7 +68,7 @@ const hours: Record<number, object> = {
   [H - 2400]: { plays: 4, seconds: 0, withOthers: 0, turnedAway: {}, stamps: { can: 0, marker: 0, roller: 0, sponge: 0 }, colors: {}, peak: null, client: noClient() },
   [H - 170]: hour({ plays: 1, seconds: 600 }),
   [H - 26]: hour({ plays: 3, seconds: 7200, withOthers: 3600, minutes: { 2: 2, 5: 1 }, turnedAway: { full: 1 }, peak: { players: 3, at: 'x' }, bytes: { up: 1000, down: 500 } }),
-  [H - 5]: hour({ plays: 2, seconds: 1800, minutes: { 0: 2 }, stamps: { can: 4, marker: 0, roller: 0, sponge: 1 }, colors: { blue: 3, red: 2 }, peak: { players: 5, at: 'y' }, bytes: { up: 200, down: 100 }, client: { ...noClient(), n: 3 } }),
+  [H - 5]: hour({ plays: 2, seconds: 1800, minutes: { 0: 2 }, stamps: { can: 4, marker: 0, roller: 0, sponge: 1 }, paintSeconds: { can: 30.04, marker: 0, roller: 0, sponge: 3 }, colors: { blue: 3, red: 2 }, peak: { players: 5, at: 'y' }, bytes: { up: 200, down: 100 }, client: { ...noClient(), n: 3 } }),
 };
 const byDay = (items: [number, object][]) => {
   const days = new Map<number, [number, object][]>();
@@ -137,9 +139,36 @@ assert.deepEqual(month.lengthMinutes, { 0: 3, 1: 1, 2: 2, 5: 1, [SERVER.lengthMi
 const paint = await stat('paint');
 assert.deepEqual([paint.stamps, Object.keys(paint.colors), paint.days.map((d: { stamps: { can: number } }) => d.stamps.can), 'before' in paint, paint.before.stamps.can], [{ can: 4, marker: 0, roller: 0, sponge: 1 }, COLOR_ORDER.filter((c) => c === 'red' || c === 'blue'), [0, 4], true, 0]);
 assert.deepEqual(paint.colors, { red: 2, blue: 3 });
+assert.deepEqual([paint.paintSeconds, paint.days.map((d: { paintSeconds: { can: number } }) => d.paintSeconds.can), paint.before.paintSeconds.can], [{ can: 30, marker: 0, roller: 0, sponge: 3 }, [0, 30], 0], 'paint seconds to a tenth; an hour from before them reads as none');
 // The beacons: no days.
 const client = await stat('client');
 assert.deepEqual([client.n, 'days' in client, client.before.n, client.errors], [3, false, 0, { count: 0, plays: 0, byMessage: {} }]);
+assert.deepEqual(client.events.pickups, ['marker', 'ladder', 'roller', 'sponge', 'cap.skinny', 'cap.fat', 'cap.spray', ...COLOR_ORDER.filter((c) => c !== 'black').map((c) => `color.${c}`)], 'every pickup, the starting kit\'s left out');
+
+// A session's paint time: one painter's ops with a tool SERVER.paintGap apart or closer are one run, a longer gap starts
+// another, each tool and painter on its own; drips are no one's. Pickups: the names who found each, the starting kit and
+// what they carried before left out; it all goes beside a save and comes back, a save from before it reads as none.
+const ink = new SessionStats();
+const [can, sponge] = [{ kind: 'stamp', color: [1, 0, 0], square: false }, { kind: 'stamp', color: null, square: false }] as unknown as PaintOp[];
+const [p1, p2] = [{}, {}];
+countPaint([can, can, sponge, can, can], [1, 1.25, 1.3, 1.5, 3], p1, [ink.paint]);
+countPaint([can, sponge], [3.2, 1.6], p1, [ink.paint]);
+countPaint([can, can], [1.1, 1.4], p2, [ink.paint]);
+assert.deepEqual([ink.paint.stamps, ink.report([]).paintSeconds], [{ can: 7, marker: 0, roller: 0, sponge: 2 }, { can: 1, marker: 0, roller: 0, sponge: 0.3 }]);
+const kit = { tools: [], colors: ['black'], caps: ['standard'], selected: 0, color: 'black', cap: 'standard' } as unknown as InventoryData;
+ink.players(1, 'A');
+ink.carries('A', null, { ...kit, tools: ['marker'], colors: ['black', 'red'] });
+ink.carries('A', { ...kit, tools: ['marker'], colors: ['black', 'red'] }, { ...kit, tools: ['marker'], colors: ['black', 'red'], caps: ['standard', 'fat'] });
+ink.players(2, 'B');
+ink.carries('B', null, { ...kit, tools: ['marker'] });
+ink.carries('B', null, { ...kit, tools: ['marker'] });
+const told = ink.report([]);
+assert.deepEqual([told.players, told.pickups], [2, { marker: 2, 'color.red': 1, 'cap.fat': 1 }]);
+const back = SessionStats.from(JSON.parse(JSON.stringify(ink.toJSON())))!.report([]);
+assert.deepEqual([back.paintSeconds, back.players, back.pickups], [told.paintSeconds, 2, told.pickups]);
+const { paintSeconds: _, players: __, pickups: ___, ...older } = ink.toJSON();
+const fromOlder = SessionStats.from(JSON.parse(JSON.stringify(older)))!.report([]);
+assert.deepEqual([fromOlder.stamps.can, fromOlder.paintSeconds, fromOlder.players, fromOlder.pickups], [7, { can: 0, marker: 0, roller: 0, sponge: 0 }, 0, {}]);
 
 // People: over 24h A (a join), B (a page) and D, from two addresses; B and A are on i1, so it is a shared network of two.
 const folks = await stat('people');
@@ -259,4 +288,4 @@ assert.deepEqual(['2001:db8:1:2:3:4:5:6', '2001:DB8:1:2::9', '::ffff:10.0.0.1', 
 
 Date.now = realNow;
 fs.rmSync(dir, { recursive: true, force: true });
-console.log('stats: ok (periods and the one before, null before the counts, days cut, minutes with an open last bin, the week by weekday and hour, new, returning and unknown by the days said, the salt by month, the audience rows kept and read over a range, networks, the days played, bytes, the machine)');
+console.log('stats: ok (periods and the one before, null before the counts, days cut, minutes with an open last bin, the week by weekday and hour, new, returning and unknown by the days said, the salt by month, the audience rows kept and read over a range, networks, the days played, bytes, the machine, paint time and pickups in a session)');

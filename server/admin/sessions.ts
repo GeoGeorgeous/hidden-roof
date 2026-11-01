@@ -2,6 +2,7 @@ import { createReadStream } from 'node:fs';
 import fs from 'node:fs/promises';
 import { pipeline } from 'node:stream/promises';
 import { PAINT_DETAIL, SERVER } from '../../src/config';
+import { pickupCode } from '../../src/inventory/items';
 import { SLOTS } from '../../src/inventory/tool';
 import { isPrivateLimit, isSessionName, isToolSet, SESSION_NAME_MAX } from '../../src/net/protocol';
 import { median } from '../counts';
@@ -45,6 +46,7 @@ export function live(s: Session) {
   const pings = players.flatMap((p) => (p.ping === null ? [] : [p.ping])).sort((a, b) => a - b);
   return {
     code: s.code, kind, name, admin, stays, tools, level: s.levelName, detail: detailName(s.detail), players, limit, queue: s.line.length,
+    levelPickups: [...new Set(((s.level.pickups ?? []) as { kind: string }[]).map((p) => pickupCode(p.kind)))],
     started: iso(s.started), paintMB: Math.round(s.memory.now), emptySince: s.emptySince === null ? null : iso(s.emptySince),
     stats: s.stats.report(s.joinedAt()),
     ping: { median: median(pings), slow: pings.filter((ms) => ms > SERVER.slowPing).length },

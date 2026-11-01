@@ -6,6 +6,7 @@ import type http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import { NET, SERVER } from '../src/config';
+import { PICKUP_CODES } from '../src/inventory/items';
 import { beacon, site } from './beacon';
 import { addClient, bin, countSetting, noClient, type ClientCounts } from './client-counts';
 import { noPaint } from './counts';
@@ -64,7 +65,7 @@ try {
   assert.deepEqual([folded.plays, folded.client.n, folded.client.browsers, folded.client.events.counts], [1, 1, { Chrome: 1 }, {}], 'an old day folds');
 
   // The saved hour loads: no events, the errors by message.
-  assert.deepEqual((await history()).events, { steps: { play: 0, ready: 0, sprayed: 0, joined: 0 }, tutorial: {}, counts: {}, seconds: { playing: 0, idle: 0, menu: 0 }, settings: {} });
+  assert.deepEqual((await history()).events, { steps: { play: 0, ready: 0, sprayed: 0, joined: 0 }, tutorial: {}, counts: {}, seconds: { playing: 0, idle: 0, menu: 0 }, settings: {}, pickups: PICKUP_CODES });
   assert.deepEqual((await history()).errors, { count: 1, plays: 1, byMessage: { 'old error': 1 } });
   assert.deepEqual(flat(await onSite()), { menu: 0, solo: 0, session: 0, hidden: 0 });
 
@@ -97,6 +98,7 @@ try {
       counts: { jump: 5, 'pickup.can': 1, fall: 1, 'setting.detail': 1 },
       seconds: { playing: 42.5, idle: 4, menu: 1.1 },
       settings: { detail: { high: 1, low: 1 }, music: { on: 2 }, volume: { '0.5': 1 } },
+      pickups: PICKUP_CODES,
     },
     net: { minutes: 1, ping50: { 60: 1 }, ping95: { 120: 1 }, pingMax: { 900: 1 }, drops: { 1006: 1 }, back: { 2.4: 1 }, stalls: 2, stallLong: { 3.1: 1, 1.6: 1 }, down: { 37: 1 }, up: { 2: 1 } },
   });

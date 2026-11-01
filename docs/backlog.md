@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 283
+The one list of what's left. Counter for new ids: next: 286
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -144,6 +144,8 @@ The admin page (the cctv repo) and the server side it reads (server/admin/).
 The API: docs/admin-api.md; why: docs/ideas/admin-data.md.
 
 1. [IDEA-240]: Admin: ban by IP (with a reason the player is shown); restoring a save is CCTV-255 (docs/ideas/public-servers.md) @1.6.1
+2. [CCTV-283]: Paint time instead of stamps (the owner, 2026-11-01): seconds painting by tool, sponge included, from the ops' own times (a run: one player's ops with one tool at most SERVER.paintGap apart; trigger-held time not counted), as `paintSeconds` in a session's and a save's stats, /stats/paint and its days; the page shows `1h 12m 29s` on the session's paint card and the Overview KPI. Server side on feat/paint-time-pickups; the page in cctv
+3. [CCTV-284]: Pickups found, zeros shown (the owner, 2026-11-01): globally from the beacon (each pickup once a page load; `events.pickups` lists every one), in a session the nicknames that found each (`stats.pickups`, `stats.players`, `levelPickups`; "off" for a tool the session has off). Server side on feat/paint-time-pickups; the page in cctv
 
 ## Web and promotion
 
@@ -220,6 +222,7 @@ Shipped since the last release; the release commit empties this list.
 46. [TASK-275]: Staging on 1.6.0 as dev has it (protocol 9, ADMIN_API 4): its `stats/`, `traffic/` and `events/` wiped first (the owner: the stats start from a clean slate with 1.6.0, on 2026-11-01); the cctv page deployed with it (its ADMIN_API 4 build, CCTV-278); then the owner plays a session and checks the admin page there (docs/ideas/vps.md) (deployed 2026-11-01; the owner is testing it) @1.6.0
 47. [TASK-242]: The privacy page names what 1.6.0's statistics keep, short: the device id and play days in localStorage, the beacon, the web access log and visitors, the events list, public sessions' saves with painters' nicknames, pseudonymous hashes (monthly key) kept 91 days and counts forever, the country from DB-IP on our server (credited), reading from Georgia; reviewed by a legal-analysis agent; no switch to turn statistics off (TASK-187) @1.6.0
 48. [TASK-282]: Release notes: an item may open with a lead, a sentence a line under its heading, before its list: each line its own in the game (in paper, the list's size), on GitHub (hard breaks) and on Discord; **bold** only where the note writes it (docs/releases/AGENTS.md) @1.6.0
+49. [CCTV-285]: The Tutorial card lists every hint, zeros included, so a missing All learnt shows which hint no one learnt (cctv PR #6)
 
 ## Discarder
 
