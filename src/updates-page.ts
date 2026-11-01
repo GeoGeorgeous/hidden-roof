@@ -20,9 +20,18 @@ const day = (date: string) => new Date(`${date}T00:00:00Z`).toLocaleDateString('
 /** A line of a note with its [text](url) links as anchors; a new tab, so the game and its paint stay. */
 function rich(tag: 'div' | 'span', className: string, text: string) {
   const e = el(tag, className);
-  e.append(...splitLinks(text).map((p) => (typeof p === 'string' ? p : Object.assign(el('a', '', p.text), { href: p.href, target: '_blank', rel: 'noopener' }))));
+  text.split('\n').forEach((line, i) => {
+    if (i) e.append(el('br'));
+    // **bold** as the note writes it: odd parts are bold.
+    line.split(/\*\*(.+?)\*\*/).forEach((part, k) => {
+      if (part) (k % 2 ? e.appendChild(el('b')) : e).append(...links(part));
+    });
+  });
   return e;
 }
+
+/** Text with its [text](url) links as anchors in a new tab. */
+const links = (text: string) => splitLinks(text).map((p) => (typeof p === 'string' ? p : Object.assign(el('a', '', p.text), { href: p.href, target: '_blank', rel: 'noopener' })));
 
 export function updatesPage(menu: PauseMenu) {
   const head = div('updates-head');
@@ -55,7 +64,7 @@ export function updatesPage(menu: PauseMenu) {
     for (const it of r.items) {
       const box = div('item-note');
       box.append(div('item-title', it.title));
-      // Text over a list is its lead, bold; a heading's text alone (older notes) stays plain.
+      // Text over a list is its lead, brighter than the list; a heading's text alone (older notes) stays as it was.
       if (it.text) box.append(rich('div', it.list.length ? 'item-text lead' : 'item-text', it.text));
       if (it.list.length) {
         const list = div('terms');
