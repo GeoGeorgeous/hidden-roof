@@ -1,6 +1,6 @@
 # Public servers (BL-047, TASK-189)
 
-The public server: see also docs/deploy.md. Shipped: the server list, public and private join, HOST off, the queue, tools off (the backlog's Done). Left: the admin page (BL-047; its 1.6.0 data in `docs/ideas/admin-data.md`), the Terms' moderation section (TASK-189). The public server itself is the owner's step once 1.6.0 is deployed.
+The public server: see also docs/deploy.md. Shipped: the server list, public and private join, HOST off, the queue, tools off, the admin page (BL-047; its 1.6.0 data in `docs/ideas/admin-data.md`) (the backlog's Done). Left: the Terms' moderation section (TASK-189). The public server itself is the owner's step once 1.6.0 is deployed.
 
 ## Decisions for 1.6.0 (owner, 2026-10-25)
 
@@ -26,7 +26,7 @@ See who is online and how the server does. The page lives in its own private rep
 
 - Done for 1.6.0: the admin API (ADMIN_API 4, `docs/admin-api.md`): sessions, players, kick, wipe, saves, uploads and restore, the event stream, history and people, the game's beacon, web traffic from Caddy's log (`roof-traffic`). The page (cctv, a private repo) on all of it, with a main / next switch.
 - The API's data (owner, 2026-10-25): data, not views. Counts, not shares; codes and ids (iso2, color names, reasons, tools), not labels; objects keyed by them, so a new key needs no new API version and the page ignores keys it doesn't know; times ISO UTC, durations in seconds, sizes in bytes; no top-N cuts or sorting (caps that bound memory fold into Other); a quantile only where the raw data is big, its histogram beside it when small. The page builds every view itself.
-- Staging live (2026-10-26, `docs/deploy.md` §9): `next.roof.hidden.haus` with `roof-next`, its traffic reader and GeoIP, and the page at `cctv.hidden.haus` behind tinyauth; the owner tested it in a browser. Left, host: prod, once it runs 1.6.0: Caddy's admin route for main (`docs/ideas/vps.md` item 1), the GeoIP base downloaded monthly (item 2), `roof`'s access log and traffic reader (item 3). Left, legal: the privacy page names what's counted (TASK-242).
+- Staging live (2026-10-26, `docs/deploy.md` §9): `next.roof.hidden.haus` with `roof-next`, its traffic reader and GeoIP, and the page at `cctv.hidden.haus` behind tinyauth; the owner tested it in a browser. Left, host: prod, once it runs 1.6.0: Caddy's admin route for main (`docs/ideas/vps.md` item 1), the GeoIP base downloaded monthly (item 2), `roof`'s access log and traffic reader (item 3). The privacy page names what's counted (TASK-242, done).
 
 ## TASK-189 House rules before joining a public server
 
