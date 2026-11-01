@@ -30,12 +30,10 @@ are built.
   painters). Bans and kicks keep their own events, as now. The server's log (the security record, addresses gone
   after 14 days) keeps one line, marked admin, as an admin comes and goes: who was inside, if a pass ever leaks.
 - **Seen on demand:** a key makes the admin seen; to the others they are then an ordinary player. Their nameplate reads
-  `<name> (Admin)` in red: a nameplate class (the HUD, not the world, so the ink rule holds). The name is tinyauth's
-  signed-in user (Remote-User), which Caddy passes to the server with cctv's request for the link: a host change for
-  devops when built (`docs/deploy.md`), to be checked then; without it the plate reads plain `Admin`. Players type
-  only letters and digits, so no one can fake the plate, and no nickname needs reserving. Becoming seen and unseen
-  shows to the others as a join and a leave, toasts included.
-- **Admins see each other:** every admin sees the others, seen or not, by their `(Admin)` plate (unseen ones faint).
+  `Admin` in red (numbered as any name when two are seen at once): a nameplate class (the HUD, not the world, so the
+  ink rule holds). Plain `Admin`, no one's own name: no header from tinyauth, nothing for cctv or devops (simplified
+  2026-11-01). Becoming seen and unseen shows to the others as a join and a leave, toasts included.
+- **Admins see each other only while seen,** as everyone does: seen means in the broadcasts, unseen in none.
 - **Never a seat:** seen or not, the admin takes no seat and no place in line: no one is pushed out or kept waiting,
   and the server list still counts only the players (20/20). In the game the others see one more player.
 - **Holds a private session:** any admin inside, seen or not, keeps a private session open as a player would; when
@@ -50,8 +48,9 @@ are built.
 - **Inventory:** every color and cap at once, and every tool the session allows (`setup.tools`: the server drops ops
   of tools that are off anyway); nothing to pick up, and the session's pickups stay as they are.
 - **Kicks and bans stay on cctv:** in the game the admin watches; cctv's session page kicks and bans, as now.
-- **Player list:** a key lists the session's players (dropped ones too); picking one puts the admin beside them
-  (where the server last had them).
+- **Player list:** a key lists the session's players (dropped ones too); picking one puts the admin beside them,
+  where the admin's game last showed them (the others' states already come; no new field). A player who dropped
+  before the admin came was never shown: listed, without go-to.
 - **One game tab per browser** (`src/one-tab.ts`): playing and being the admin at once takes another browser or
   profile. Accepted.
 - **The server decides:** every power is the server's to grant and check; the game only shows it.
