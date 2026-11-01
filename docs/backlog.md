@@ -138,9 +138,6 @@ Only `N.`, the id and the description are required. The optional parts appear in
 The admin page (the cctv repo) and the server side it reads (server/admin/). 
 The API and why it is so: docs/admin-api.md.
 
-1. [IDEA-240]: Admin: ban a player by address (/64) and device id, for 1 day to 6 months or for good, with a reason (presets or the admin's own) the player is shown in the game and in place of the server list; shorten, change the reason, lift. Server side done (`docs/admin-api.md`, Bans); the page's ban button and Banned players tab in cctv (`SECRET_cctv-handoff.md`) @1.6.1
-2. [CCTV-286]: A public session made from the admin page with the number of players chosen, as a private one's: `POST /sessions` takes `limit` for a public session too, `limits.private.min` to `limits.public` (GET / as it was, so the page keeps working); server side done; the page's New session form in cctv @1.6.1
-
 ## Web and promotion
 
 1. TASK [BL-067]: Posts on Reddit with technical decription @1.6.3
@@ -170,6 +167,8 @@ Shipped since the last release; the release commit empties this list.
 6. [BUGS-234]: Holding Esc in fullscreen on a Mac says ⌃ ⌘ F leaves at once, not F11: Chrome on a Mac has no F11 for fullscreen, and Fn+F11 shows the desktop (checked by the owner: ⌃⌘F leaves)
 7. BUGS [BL-011]: Title-screen pickup rings sized for the title view, not where the player stands: Pickups.view takes the camera the frame is drawn from and places the rings again when it changes, the game stopped or not; big rings high up in build mode are PICKUP.ring.minSize, as designed (the owner)
 8. [TASK-189]: The Terms' moderation section (Rules): by hand, on reasonable belief, in proportion: erase paint, change the nickname, remove from a session, ban by address and device for a time or for good; a ban's reason and end shown in the game, any other measure's reason by email; reports (what and why) and appeals by email, a ban that blocks someone else included; read by a Sonnet legal review; the Privacy Policy names bans' legal basis
+9. [IDEA-240]: Admin: ban a player by address (/64) and device id, for 1 day to 6 months or for good, with a reason (presets or the admin's own) the player is shown in the game and in place of the server list; shorten, change the reason, lift (`docs/admin-api.md`, Bans); a place in line put out is a turned-away event, and goes before seats free; cctv's Ban action and Bans page (cctv PRs #10, #11); checked on cctv's fake server, on the real one when dev reaches next
+10. [CCTV-286]: A public session made from the admin page with the number of players chosen, as a private one's: `POST /sessions` takes `limit` for a public session too, `limits.private.min` to `limits.public`; cctv's Players stepper (cctv PR #10)
 
 ## Discarder
 
