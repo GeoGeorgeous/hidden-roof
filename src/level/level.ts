@@ -27,6 +27,8 @@ export class Level {
   readonly root = new THREE.Group();
   readonly colliders: THREE.Box3[] = [];
   readonly ladders: Ladder[] = [];
+  /** Doorways: a stepladder can't stand in them (inPassage). */
+  readonly passages: THREE.Box3[] = [];
   readonly solids: THREE.Mesh[] = [];
   readonly lights: LightAnchor[] = [];
   readonly emitters: Emitter[] = [];
@@ -254,6 +256,14 @@ export class Level {
     return false;
   }
 
+  /** Does any box reach into a doorway (`passages`)? `margin` as in overlaps. */
+  inPassage(boxes: THREE.Box3[], margin = 0.02) {
+    return boxes.some((b) => {
+      const s = b.clone().expandByScalar(-margin);
+      return this.passages.some((p) => s.intersectsBox(p));
+    });
+  }
+
   /** Stacking neighbors (PropContext.above / below) of a prop (a def resolved by defOf) at `pos`. */
   stackContext(def: PropDef, pos: V3, rot: number) {
     return stackContext(this.props.values(), def, pos, rot);
@@ -348,6 +358,7 @@ export class Level {
     }
     this.colliders.length = 0;
     this.ladders.length = 0;
+    this.passages.length = 0;
     this.solids.length = 0;
     this.lights.length = 0;
     this.emitters.length = 0;
@@ -355,6 +366,7 @@ export class Level {
     for (const b of all) {
       this.colliders.push(...b.colliders);
       this.ladders.push(...b.ladders);
+      this.passages.push(...b.passages);
       this.solids.push(...b.solids);
       this.lights.push(...b.lights);
       this.emitters.push(...b.emitters);

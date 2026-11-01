@@ -2,6 +2,7 @@ import { withVariants, type PropDef, type Variant } from './def';
 import { finishOf, type Finish } from './finishes';
 import { GRAY, M, Parts, type Mat } from './pieces';
 import { FACADES } from '../render/ink/facade';
+import { STEPLADDER_PLACE } from '../config';
 
 // Modular architecture on the 2 m x 4 m grid.
 // Edge pieces (walls, parapets) are 1.7 m long and centered on a grid line;
@@ -119,7 +120,7 @@ const door: Variant = {
   },
 };
 
-/** Wall with its door standing open outward (toward the front, -z): a way inside. */
+/** Wall with its door standing open outward (toward the front, -z): a way inside, kept clear of stepladders. */
 const doorOpen: Variant = {
   id: 'open',
   label: 'open door',
@@ -130,6 +131,8 @@ const doorOpen: Variant = {
     // Hinged at the -x jamb, swung 90° out.
     p.box([-w, 0.02, -T - leaf], [-w + 0.08, DOOR_H - 0.02, -T], M.door, { paint: true });
     p.detail([-w + 0.08, 1.0, -T - leaf + 0.1], [-w + 0.13, 1.05, -T - leaf + 0.2], M.steel, false);
+    const { doorwayWidth: pw, doorwayDepth: d } = STEPLADDER_PLACE;
+    p.passage([-pw / 2, 0, -T - d], [pw / 2, DOOR_H, T + d]);
     return p.list;
   },
 };
