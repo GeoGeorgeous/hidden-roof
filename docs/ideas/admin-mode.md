@@ -30,6 +30,9 @@ are built.
   nothing for the server to guard.
 - **Key hints:** the admin's keys listed on screen (H unseen and seen, J fly, ...), texts in `src/messages.ts`.
 - **Inventory:** every tool, color and cap at once; nothing to pick up, and the session's pickups stay as they are.
+- **Kicks and bans stay on cctv:** in the game the admin watches; cctv's session page kicks and bans, as now.
+- **Player list:** a key lists the session's players (dropped ones too); picking one puts the admin beside them
+  (where the server last had them).
 - **The server decides:** every power is the server's to grant and check; the game only shows it.
 - **Lightweight:** in the game's one build, its code in `src/admin/`, loaded with `import()` only when the welcome
   says admin: players download and run none of it. Plain to look at; as little code as it can be.
