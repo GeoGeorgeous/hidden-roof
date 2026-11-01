@@ -11,7 +11,7 @@ import { noClient } from './client-counts';
 import { SESSION_NAME_MAX } from '../src/net/protocol';
 import { median, noPaint } from './counts';
 import { join, start } from './test-kit';
-import { dayName } from './stats-period';
+import { dayName } from './days';
 
 // What the admin API holds to (admin/, history.ts, people.ts, main.ts), against the built server: inherited
 // keys are no paint detail and no period, ADMIN_ORIGIN as written with a trailing slash or not at all, a body

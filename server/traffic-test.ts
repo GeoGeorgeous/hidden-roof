@@ -230,6 +230,20 @@ assert.ok(!fs.existsSync(path.join(traffic, `hours-${oldDay}.json`)), 'old hours
   clock(t0 + 100);
 }
 
+// A source or a campaign named like an Object property is counted as any other name.
+{
+  const dir4 = fs.mkdtempSync(path.join(os.tmpdir(), 'roof-proto-'));
+  const [log4, traffic4] = [path.join(dir4, 'access.log'), path.join(dir4, 'traffic')];
+  const at = t0 + 1000;
+  clock(at + 100);
+  fs.writeFileSync(log4, line({ ts: at, ip: A, uri: '/?ref=constructor&utm_campaign=Constructor' }) + line({ ts: at + 1, ip: B, uri: '/?ref=constructor' }));
+  await pass({ ...opts, log: log4, dir: traffic4 });
+  const day4 = JSON.parse(fs.readFileSync(path.join(traffic4, `${names[0]}.json`), 'utf8'));
+  assert.equal(JSON.stringify([day4.sources, day4.campaigns]), '[{"constructor":2},{"constructor":1}]');
+  fs.rmSync(dir4, { recursive: true, force: true });
+  clock(t0 + 100);
+}
+
 // A reader with no state counts from today on: the log's earlier days are skipped (the tests above, with a state, read days before today).
 {
   fs.rmSync(traffic, { recursive: true });

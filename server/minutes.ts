@@ -1,9 +1,12 @@
 import { SERVER } from '../src/config';
 import type { site } from './beacon';
 import { traffic } from './counts';
+import { sampleMachine } from './machine';
+import { bump } from './tally';
 
 // The admin's live minutes (GET /live/minutes, admin/live.ts): at the end of each minute one entry, kept in memory
-// for SERVER.liveMinutes, lost on restart. Rates are the minute's average from the bytes sent and received.
+// for SERVER.liveMinutes, lost on restart. Rates are the minute's average from the bytes sent and received. The same tick
+// samples the machine's CPU and rates (machine.ts).
 
 interface Minute {
   at: string;
@@ -20,7 +23,7 @@ let turned: Record<string, number> = {};
 let mark = { at: Date.now(), sent: traffic.sent, received: traffic.received };
 
 /** A link turned away for `reason` (a close code's name), counted in this minute. */
-export const turnedAway = (reason: string) => void (turned[reason] = (turned[reason] ?? 0) + 1);
+export const turnedAway = (reason: string) => bump(turned, reason);
 
 /** The minute that ends at `now` is added: `players` are in sessions, `pages` the site's, now. */
 export function closeMinute(now: number, players: number, pages: Minute['pages']) {
@@ -44,5 +47,5 @@ export const lastMinutes = () => [...ring];
 /** Starts the minutes: `players` counts those in sessions, `pages` the site's. */
 export function keepMinutes(players: () => number, pages: () => Minute['pages']) {
   mark = { at: Date.now(), sent: traffic.sent, received: traffic.received };
-  setInterval(() => closeMinute(Date.now(), players(), pages()), 60e3).unref();
+  setInterval(() => (closeMinute(Date.now(), players(), pages()), sampleMachine()), 60e3).unref();
 }

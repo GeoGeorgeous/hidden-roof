@@ -1,5 +1,6 @@
 import type { ServerResponse } from 'node:http';
 import { SERVER } from '../src/config';
+import { DAY } from './days';
 import { EventLog, pageOf, wanted, type AdminEvent, type EventType, type Only } from './event-log';
 
 // The admin page's event stream (GET /events, admin/live.ts): what happens on
@@ -42,7 +43,7 @@ export async function keepEvents(dir: string) {
   recent.unshift(...(await log.page(null, SERVER.adminEvents)).events.reverse());
   disk = log;
   // Just past each midnight UTC: a new day's file, and the old ones pruned.
-  const atMidnight = () => setTimeout(daily, 864e5 - (Date.now() % 864e5) + 1000).unref();
+  const atMidnight = () => setTimeout(daily, DAY - (Date.now() % DAY) + 1000).unref();
   const daily = () => {
     log.roll(Date.now());
     void log.prune().catch(() => {});

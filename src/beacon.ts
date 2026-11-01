@@ -25,9 +25,6 @@ type Step = 'play' | 'ready' | 'sprayed' | 'joined';
 /** What the page does: the seconds spent (`time`) are kept by it too. */
 type Doing = 'playing' | 'idle' | 'menu' | 'hidden';
 
-/** The longest code the server takes (server/beacon-body.ts). */
-const CODE_CHARS = 40;
-
 /** One: its text, cut to NET.beaconErrorChars. */
 const said = (e: unknown) => String(e instanceof Error ? e.message : e).slice(0, NET.beaconErrorChars);
 
@@ -101,9 +98,9 @@ export class Beacon {
     this.changed.set(key, now);
   }
 
-  /** Something happened in the game: a code of lowercase letters, digits, dots and dashes (cut to CODE_CHARS; SERVER.beaconKinds a minute, the rest dropped). */
+  /** Something happened in the game: a code of lowercase letters, digits, dots and dashes (cut to NET.beaconCodeChars; SERVER.beaconKinds a minute, the rest dropped). */
   count(code: string) {
-    code = code.slice(0, CODE_CHARS);
+    code = code.slice(0, NET.beaconCodeChars);
     if (!Object.hasOwn(this.counts, code) && Object.keys(this.counts).length >= SERVER.beaconKinds) return;
     this.counts[code] = (this.counts[code] ?? 0) + 1;
   }

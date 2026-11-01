@@ -1,3 +1,5 @@
+import { bump } from './tally';
+
 // What people.ts's plays add up to over a range of hours (GET /stats/people): who, from where, on how many devices an
 // address, and who is new; and a day's row for the audience history (audience.ts). Everything is distinct inside one range or
 // day, by device and by address, never added across them.
@@ -30,6 +32,12 @@ export interface Row {
   unknownGapsNone: number;
   unmatched: number;
 }
+
+/** A day's row with nobody in it: what a row read from a file lacks is this. */
+export const noRow = (): Row => ({
+  players: { device: 0, address: 0 }, inSessions: { device: 0, address: 0 }, newPlayers: 0, returningPlayers: 0, unknownPlayers: 0,
+  countries: {}, ages: {}, gaps: {}, gapsNone: 0, unknownGaps: {}, unknownGapsNone: 0, unmatched: 0,
+});
 
 /** The plays of hours `first` up to `end`, from `plays` (oldest first). */
 function between(plays: Play[], first: number, end: number) {
@@ -97,7 +105,7 @@ export function count(plays: Play[], first: number, end: number) {
   return { players, inSessions, countries: countriesOf(all), networks: networks(all), newPlayers, returningPlayers, unknownPlayers };
 }
 
-const add = (m: Record<string, number>, k: number) => (m[k] = (m[k] ?? 0) + 1);
+const add = (m: Record<string, number>, k: number) => bump(m, String(k));
 
 /**
  * The row of `day` (since 1970), or null with nobody in it. A device counts once, with the days of its first play that day that has them:
@@ -110,7 +118,7 @@ export function dayRow(plays: Play[], day: number): Row | null {
   if (!players.device && !players.address) return null;
   const said = new Map<string, Play>();
   for (const p of all) if (p.d && p.f !== undefined && !said.has(p.d)) said.set(p.d, p);
-  const row: Row = { players, inSessions: distinct(all.filter((p) => p.j)), newPlayers: 0, returningPlayers: 0, unknownPlayers: 0, countries: countriesOf(all), ages: {}, gaps: {}, gapsNone: 0, unknownGaps: {}, unknownGapsNone: 0, unmatched: 0 };
+  const row: Row = { ...noRow(), players, inSessions: distinct(all.filter((p) => p.j)), countries: countriesOf(all) };
   let known = 0;
   for (const d of devices(all)) {
     const p = said.get(d);

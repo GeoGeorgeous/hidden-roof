@@ -1,20 +1,22 @@
-import fs from 'node:fs/promises';
 import path from 'node:path';
 import { COLOR_ORDER } from '../src/config';
+import { dayName } from './days';
 import { history, read, sum, type Hour } from './history';
-import { dayName } from './stats-period';
+import { readJson } from './json-file';
 
 // GET /stats/play/days and /stats/paint/days (docs/admin-api.md, History): the history's days. A day's figures come from
-// its hours while they are kept (history.ts), then from the total its file keeps (stats/<day>.json) forever.
+// its hours while they are kept (history.ts), then from its file (stats/<day>.json): the total it keeps forever, or the
+// hours it still has (a long-running server turns a day into a total only at its next start).
 
-/** Day `d` (since 1970) added up: from its hours in memory, else from the total of its file in `dir`/stats, else none. */
+/** Day `d` (since 1970) added up: from its hours in memory, else from its file in `dir`/stats (its total, or its hours added up), else none. */
 async function totalOf(d: number, dir: string | null): Promise<Hour | null> {
   const hours = history.within({ first: d * 24, end: d * 24 + 24 });
   if (hours.length) return sum(hours.map(([, h]) => h));
   if (!dir) return null;
   try {
-    const file = JSON.parse(await fs.readFile(path.join(dir, 'stats', `${dayName(d)}.json`), 'utf8')) as { total?: Hour };
-    return file.total ? read(file.total) : null;
+    const file = await readJson<{ total?: Hour; hours?: Record<string, Hour> }>(path.join(dir, 'stats', `${dayName(d)}.json`));
+    if (file?.total) return read(file.total);
+    return file?.hours ? sum(Object.values(file.hours).map(read)) : null;
   } catch {
     return null;
   }

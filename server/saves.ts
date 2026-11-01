@@ -14,7 +14,7 @@ const statsName = (name: string) => name.replace(/\.rhhpaint$/, '.json');
 export const savedAt = (name: string) => parseInt(name.slice(name.indexOf('-') + 1));
 export const isWiped = (name: string) => name.endsWith('.wiped.rhhpaint');
 /** What a crash can leave half written. */
-export const leftover = (name: string) => name === 'sessions.json.tmp' || name.endsWith('.rhhpaint.tmp') || /-\d+(\.wiped)?\.json\.tmp$/.test(name);
+export const leftover = (name: string) => /^sessions\.json(\.[0-9a-f]{8})?\.tmp$|(\.rhhpaint|-\d+(\.wiped)?\.json)(\.[0-9a-f]{8})?\.tmp$/.test(name);
 
 /** Of saves made at `times` (ms), the ones to keep at `now`: the newest, and for each of `ages` (s) the newest at least that old (age 0 is the newest of all). One that fills two slots is kept once. */
 export function keepers(times: number[], now: number, ages: readonly number[]) {

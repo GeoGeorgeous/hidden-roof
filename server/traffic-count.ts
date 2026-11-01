@@ -1,6 +1,7 @@
-import { createHash, randomBytes } from 'node:crypto';
 import { SERVER } from '../src/config';
-import { prefix } from './people';
+import { prefix } from './address';
+import type { MonthSalt } from './month-salt';
+import { bump } from './tally';
 
 // What the traffic reader (traffic.ts) makes of a line of Caddy's access log (its JSON format) and of a day's
 // counts. Bots are counted and nothing else about them. A visitor is a salted hash of address (an IPv6 one by its
@@ -38,10 +39,10 @@ export interface Hour {
   countries: Map<string, string>;
 }
 
-/** The day being counted: its date, its salt, its hours, who has been seen at each step in the day (hashes, from the hours) and its counts. */
+/** The day being counted: its date, the month's salt, its hours, who has been seen at each step in the day (hashes, from the hours) and its counts. */
 export interface Today {
   name: string;
-  salt: string;
+  salt: MonthSalt;
   hours: Map<number, Hour>;
   seen: Record<Step, Set<string>>;
   day: Day;
@@ -65,10 +66,8 @@ const BOT = /bot|crawl|spider|slurp|preview|facebookexternalhit|curl|wget|python
 /** The bot's name: the first word of the User-Agent that makes it a bot (Googlebot/2.1 is googlebot), lowercase. */
 const botName = (agent: string) => (agent.match(/[^\s;()/,]+/g)?.find((w) => BOT.test(w)) ?? 'other').toLowerCase();
 
-export const dayName = (ts: number) => new Date(ts * 1000).toISOString().slice(0, 10);
 export const blank = (): Day => ({ views: 0, visitors: 0, bots: 0, pages: {}, sources: {}, campaigns: {}, countries: {}, visitorCountries: {}, steps: { view: 0, script: 0, beacon: 0, socket: 0 }, botKinds: {}, botPages: {} });
-export const newSalt = () => randomBytes(16).toString('hex');
-export const fresh = (name: string, salt: string, hours = new Map<number, Hour>()): Today => {
+export const fresh = (name: string, salt: MonthSalt, hours = new Map<number, Hour>()): Today => {
   const seen = { view: new Set<string>(), script: new Set<string>(), beacon: new Set<string>(), socket: new Set<string>() };
   for (const h of hours.values()) for (const [id, mask] of h.seen) STEPS.forEach((step, i) => mask & (1 << i) && seen[step].add(id));
   return { name, salt, hours, seen, day: blank() };
@@ -101,8 +100,7 @@ const bare = (host: string) => host.replace(/^www\./, '');
 /** `key` counted in `to`; past SERVER.trafficKinds keys a new name is Other. */
 function count(to: Counts, key: string) {
   key = key.slice(0, SERVER.trafficText);
-  const k = Object.hasOwn(to, key) || Object.keys(to).length < SERVER.trafficKinds ? key : 'Other';
-  to[k] = (to[k] ?? 0) + 1;
+  bump(to, Object.hasOwn(to, key) || Object.keys(to).length < SERVER.trafficKinds ? key : 'Other');
 }
 
 /** Where a view came from: ?ref=, ?utm_source=, the referring site if it isn't ours, else direct. */
@@ -147,7 +145,7 @@ export function add(t: Today, h: Hit, hosts: string[], country: (ip: string) => 
           : null;
   if (!step) return false;
   const hour = hourOf(t, h.ts);
-  const id = createHash('sha256').update(t.salt).update(prefix(h.ip)).update('\0').update(h.agent).digest('base64url').slice(0, 16);
+  const id = t.salt.id(prefix(h.ip), '\0', h.agent);
   // Past SERVER.trafficHourSeen visitors in an hour the rest are not remembered (their views still count).
   let [first, kept] = [false, false];
   if ((kept = hour.seen.has(id) || hour.seen.size < SERVER.trafficHourSeen)) {
