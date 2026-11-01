@@ -1578,6 +1578,9 @@ export const STEPLADDER_PLACE = {
   footTolerance: 0.04,
   /** The spot in front of it must be floor within this step of its base (m), so you can walk up and climb. */
   standStep: 0.45,
+  /** It can't stand in an open door's way (it would block it): this wide, centered on the opening (m, the opening is 1 m), and this far in front of the wall and behind it (m). */
+  doorwayWidth: 0.9,
+  doorwayDepth: 0.9,
 };
 
 /** Levels (public/levels/<name>.json). */

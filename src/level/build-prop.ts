@@ -96,6 +96,8 @@ interface Expanded {
   /** Colliders that block light (see-through pieces like chain-link don't). */
   occluders: THREE.Box3[];
   ladders: Ladder[];
+  /** Doorways (Parts.passage): a stepladder can't stand in them. */
+  passages: THREE.Box3[];
   lights: LightAnchor[];
   emitters: Emitter[];
 }
@@ -109,6 +111,7 @@ export interface BuiltProp {
   /** Colliders that cast baked shadows. */
   occluders: THREE.Box3[];
   ladders: Ladder[];
+  passages: THREE.Box3[];
   lights: LightAnchor[];
   emitters: Emitter[];
   solids: THREE.Mesh[];
@@ -217,7 +220,7 @@ export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint =
   const origin = new THREE.Vector3(...pos);
   const at = (v: V3) => rotate(v, r).add(origin);
   const restFacing = rotate([0, 0, -1], r); // tracking heads face out of the wall at rest
-  const out: Expanded = { paint: [], decor: [], colliders: [], occluders: [], ladders: [], lights: [], emitters: [] };
+  const out: Expanded = { paint: [], decor: [], colliders: [], occluders: [], ladders: [], passages: [], lights: [], emitters: [] };
   const collide = (mat: Mat, boxes: THREE.Box3[]) => {
     out.colliders.push(...boxes);
     if (mat.alpha === undefined) out.occluders.push(...boxes);
@@ -306,6 +309,8 @@ export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint =
       out.lights.push(a);
     } else if (p.k === 'emitter') {
       out.emitters.push({ kind: p.kind, pos: at(p.pos), dir: rotate(p.dir ?? [0, 0, 0], r) });
+    } else if (p.k === 'passage') {
+      out.passages.push(new THREE.Box3().setFromPoints([at(p.min), at(p.max)]));
     } else {
       out.ladders.push({ volume: new THREE.Box3().setFromPoints([at(p.min), at(p.max)]), normal: rotate(p.normal, r) });
     }
@@ -333,7 +338,7 @@ function mergeDecor(decor: Expanded['decor']) {
 /** `owner`: the first part of the prop's paint surface keys (PaintSurface.key); `cover`: the level's solid boxes (covered faces are decor). */
 export function buildProp(id: number, owner: string, pieces: Piece[], pos: V3, rot: number, paint: PaintSystem, cover: CoverIndex | null = null): BuiltProp {
   const ex = expandPieces(pieces, pos, rot, true, cover);
-  const out: BuiltProp = { group: new THREE.Group(), decor: [], colliders: ex.colliders, occluders: ex.occluders, ladders: ex.ladders, lights: ex.lights, emitters: ex.emitters, solids: [], paint: [], bounds: new THREE.Box3() };
+  const out: BuiltProp = { group: new THREE.Group(), decor: [], colliders: ex.colliders, occluders: ex.occluders, ladders: ex.ladders, passages: ex.passages, lights: ex.lights, emitters: ex.emitters, solids: [], paint: [], bounds: new THREE.Box3() };
   const add = (g: THREE.BufferGeometry, m: THREE.Material) => {
     const mesh = new THREE.Mesh(g, m);
     mesh.matrixAutoUpdate = false;

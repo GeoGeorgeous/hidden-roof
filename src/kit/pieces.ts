@@ -118,6 +118,12 @@ interface ClimbPiece {
   max: V3;
   normal: V3;
 }
+/** Space players walk through (a doorway, prop-local box): no geometry; a stepladder can't stand in it. */
+interface PassagePiece {
+  k: 'passage';
+  min: V3;
+  max: V3;
+}
 /**
  * A light emitter on the lens surface. Everything else (color, aim,
  * strength, spread, range, glow, beam) comes from LIGHTS[kind] in config.ts
@@ -143,7 +149,7 @@ export interface LightPiece {
   /** Set by `swinging`: a tracking light turns with its head (Swing.track). */
   swing?: Swing;
 }
-export type Piece = BoxPiece | CylPiece | RodPiece | ConePiece | ClimbPiece | LightPiece | EmitterPiece;
+export type Piece = BoxPiece | CylPiece | RodPiece | ConePiece | ClimbPiece | PassagePiece | LightPiece | EmitterPiece;
 
 // --- Palette ---------------------------------------------------------------
 // Mirror's Edge-like: four neutral grays on flat materials for all architecture
@@ -225,6 +231,10 @@ export class Parts {
 
   emitter(kind: EmitterPiece['kind'], pos: V3, dir?: V3) {
     this.list.push({ k: 'emitter', kind, pos, dir });
+  }
+
+  passage(min: V3, max: V3) {
+    this.list.push({ k: 'passage', min, max });
   }
 
   light(l: Omit<LightPiece, 'k'>) {
@@ -317,6 +327,8 @@ export function mirrored(pieces: Piece[]): Piece[] {
         return { ...p, base: flipV(p.base), swing: flipSwing(p.swing) };
       case 'climb':
         return { ...p, min: [-p.max[0], p.min[1], p.min[2]], max: [-p.min[0], p.max[1], p.max[2]], normal: flipV(p.normal) };
+      case 'passage':
+        return { ...p, min: [-p.max[0], p.min[1], p.min[2]], max: [-p.min[0], p.max[1], p.max[2]] };
       case 'light':
         // mirrorX flips its aim (its own dir or LIGHTS[kind].dir) across x.
         return { ...p, pos: flipV(p.pos), mirrorX: !p.mirrorX, glows: p.glows?.map(flipV), swing: flipSwing(p.swing) };

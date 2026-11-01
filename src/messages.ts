@@ -39,6 +39,7 @@ export const MESSAGES = {
     pickedUp: 'You picked up **{item}**',
     alreadyHave: 'You already have **{item}**',
     ladderBlocked: "The ladder can't stand there",
+    ladderDoorway: 'Not in a doorway',
     screenshot: 'Screenshot saved',
     joined: '**{user}** joined',
     left: '**{user}** left',

@@ -126,7 +126,7 @@ tools.onFact = (f) => {
 };
 tutorial.onLearnt = (id) => beacon.lesson(id);
 const tutorialWire = new TutorialWire(tutorial, player, inventory, level.ladders);
-tools.ladder.onBlocked = () => notify.toast(msg('toast.ladderBlocked'));
+tools.ladder.onBlocked = (why) => notify.toast(msg(why === 'doorway' ? 'toast.ladderDoorway' : 'toast.ladderBlocked'));
 const wallHand = new WallHand(level.solids);
 viewScene.add(wallHand.group);
 const pickups = new Pickups(scene, camera, level.solids);
