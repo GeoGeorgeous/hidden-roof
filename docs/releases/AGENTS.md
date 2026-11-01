@@ -26,6 +26,7 @@ date: 2026-10-09
 one or two sentences: what this release is about.
 
 - **heading**
+  a lead, if the item needs one: what it's about.
   - what changed and what you do with it
 
 - **heading**
@@ -46,7 +47,7 @@ From `v1.0.0.md`, the model to follow:
 
 - English, all lowercase except keys and names the game spells out (RMB, W, Minecraft). Second person, a player's words.
 - Intro: one or two sentences. It promises only what the items say.
-- Items: a heading of 1–3 lowercase words, then a list, also for a single line: `**term**: what it is` or plain lines, without a final period or comma. Older notes have sentences under the heading; the test still takes them (each ends with a period), but new notes use lists.
+- Items: a heading of 1–3 lowercase words, then a list, also for a single line: `**term**: what it is` or plain lines, without a final period or comma. An item may open with a lead: a sentence or two on the lines under its heading, before its list, each sentence on its own line, ending with a period or `!`. It says what the item is about, not a change ("hosting your own session is off for now: we'll say on Discord when it's back."). Each line shows on its own line in the game (in paper, brighter than the list), on GitHub and on Discord; `**bold**` only where written so. Older notes have a sentence under a heading with no list.
 - Order: the biggest new thing first, then the world and tools, then performance, fixes last. At most about 8 items; the text stays under 3000 characters.
 - Only what a player sees or feels. Leave out F3, build mode, tests, refactors, file names and config keys; keep changed defaults a player notices. No line for a protocol bump (`src/net/protocol.ts`), such as "players on an older version can't join".
 

@@ -2,7 +2,8 @@
 // the Updates popup (updates-page.ts), the GitHub release (scripts/release-notes.mjs)
 // and their test. Format and rules: docs/releases/AGENTS.md. A note is a
 // frontmatter date, the intro, then - **heading** items with their text, and
-// lists under some (- **term**: what it is, or plain - lines). A link is
+// lists under some (- **term**: what it is, or plain - lines). An item's text
+// keeps its lines, each shown on its own line, and **bold** where it's written so. A link is
 // markdown, [text](url): the game's own pages root-relative ([Terms](/terms.html)),
 // other sites absolute.
 
@@ -69,7 +70,7 @@ export function parseRelease(tag: string, md: string): Release {
     else if (bullet && item) {
       const term = /^\*\*(.+?)\*\*:?\s*(.*)$/.exec(bullet[1]);
       item.list.push(term ? [term[1], term[2]] : ['', plain(bullet[1])]);
-    } else if (item) item.text = `${item.text} ${plain(t)}`.trim();
+    } else if (item) item.text = item.text ? `${item.text}\n${t}` : t;
     else release.intro = `${release.intro} ${plain(t)}`.trim();
   }
   return release;
@@ -100,9 +101,22 @@ export function discordNotes(tag: string, md: string): string[] {
   return messages.map((m) => `${m}\n`);
 }
 
+/** The note's body for GitHub: an item's heading and each line of its text end in a hard break, but the last, so each starts its own line as in the game. */
+function hardBreaks(text: string) {
+  return text
+    .split(/\n(?=- )/)
+    .map((block) => {
+      const lines = block.split('\n');
+      const text = (l: string, i: number) => i > 0 && !!l.trim() && !l.trim().startsWith('-');
+      const last = lines.reduce((at, l, i) => (text(l, i) ? i : at), -1);
+      return lines.map((l, i) => (i < last && (i === 0 || text(l, i)) ? `${l}\\` : l)).join('\n');
+    })
+    .join('\n');
+}
+
 /** The GitHub release's notes: the intro, the picture at `pictureUrl` (none for a patch without one), then the items (GitHub shows the release's title above them). */
 export function githubNotes(md: string, pictureUrl?: string): string {
-  const text = mapLinks(body(md), absolute).trim();
+  const text = hardBreaks(mapLinks(body(md), absolute).trim());
   const at = text.search(/^-/m);
   const intro = (at < 0 ? text : text.slice(0, at)).trim();
   const items = at < 0 ? '' : text.slice(at).trim();

@@ -34,6 +34,11 @@ assert.ok(github.includes('src="URL"') && !githubNotes(fixture).includes('<img')
 const discord = discordNotes('v9.9.9', fixture).join('');
 assert.ok(!discord.includes('](/') && !/\]\((?!<)/.test(discord), 'Discord: every link target absolute and wrapped in <>');
 assert.ok(discord.includes('[Privacy](<https://roof.hidden.haus/privacy.html>)') && discord.includes('[Ko-fi](<https://ko-fi.com/D0Q7296HCP>)'), 'Discord: the links');
+// An item's text keeps its lines (each its own line everywhere: GitHub by hard breaks) and is bold only where written so.
+const leads = `---\ndate: 2026-10-09\n---\nintro.\n\n- **public**\n  open all day.\n  follow **our** [Discord](https://discord.gg/x)!\n  - one\n\n- **old**\n  a sentence.\n`;
+assert.ok(githubNotes(leads).includes('- **public**\\\n  open all day.\\\n  follow **our** [Discord](https://discord.gg/x)!\n  - one\n\n- **old**\\\n  a sentence.'), 'GitHub: each line of an item its own, bold only as written');
+assert.ok(discordNotes('v9.9.9', leads)[0].includes('- **public**\n  open all day.\n  follow **our** [Discord](<https://discord.gg/x>)!\n  - one'), 'Discord: the lines as written');
+assert.equal(parseRelease('v9.9.9', leads).items[0].text, 'open all day.\nfollow **our** [Discord](https://discord.gg/x)!', 'the game: the lines, ** kept for bold');
 assert.deepEqual(splitLinks('see [Terms](/terms.html) now'), ['see ', { text: 'Terms', href: '/terms.html' }, ' now']);
 assert.deepEqual(splitLinks('[x](https://evil.example/a) and [y](//evil.example) and [z](javascript:alert(1))'), ['x', ' and ', 'y', ' and ', 'z', ')'], 'other targets stay text');
 assert.ok(linkable('/terms.html') && linkable('https://ko-fi.com/D0Q7296HCP') && !linkable('https://roof.hidden.haus/terms.html') && !linkable('//evil.example') && !linkable('https://ko-fi.com.evil.example'));
