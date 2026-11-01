@@ -135,7 +135,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 1. IDEA [?BL-147]: Anti-cheat: The server checks what players send (op reach and rate, ladder spot, jumps) before it goes public @1.6.1
 2. [TASK-201]: Research itch.io Publishing Requirements, AI Policies, and Download Restrictions @1.6.3
-3. [TASK-276]: Production on 1.6.0 once it is released (2026-11-01; its stats start then, from an empty DATA_DIR): the server's data, admin key and the public session, GeoIP each month, roof-traffic (docs/ideas/vps.md items 1-3), and Caddy's `/api/main` for the admin page (docs/deploy.md §9) @1.6.0
+3. [TASK-276]: Production on 1.6.0: deployed 2026-11-01 (the server's data, admin key and the public session, the GeoIP base, roof-traffic, Caddy's `/api/main` for the admin page, docs/deploy.md §1); left: the GeoIP base's monthly schedule (the owner, docs/ideas/vps.md), then, last, a full wipe of DATA_DIR and LOG_DIR on main and next with the public session made again (the owner confirms to devops) @1.6.0
 
 ## CCTV
 

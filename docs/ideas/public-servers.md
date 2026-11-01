@@ -20,7 +20,7 @@ The public server: see also docs/deploy.md. Shipped: the server list, public and
 
 ## BL-047 Admin panel: players online, ban by IP
 
-Status: done for 1.6.0 on staging; prod once 1.6.0 is released (TASK-276). Ban by IP moved to IDEA-240.
+Status: done for 1.6.0, on staging and prod (2026-11-01). Ban by IP moved to IDEA-240.
 
 See who is online and how the server does. The page lives in its own private repo (cctv), served apart from the game; it reads the server's admin API (`server/admin/`, `docs/admin-api.md`) through Caddy, which adds the key.
 
