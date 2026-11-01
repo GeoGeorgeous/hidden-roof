@@ -172,7 +172,7 @@ The API: docs/admin-api.md; why: docs/ideas/admin-data.md.
 
 Shipped since the last release; the release commit empties this list.
 
-1. [TASK-276]: Production on 1.6.0, deployed 2026-11-01 (docs/deploy.md §1): the server's data, admin key and the public session, the GeoIP base with its monthly cron, roof-traffic, Caddy's `/api/main` for the admin page; then a full wipe of DATA_DIR and LOG_DIR on main and next (the owner), the public sessions made again @1.6.0
+1. [TASK-276]: Production on 1.6.0, deployed 2026-11-01 (docs/deploy.md §1): the server's data, admin key and the public session, the GeoIP base with its monthly cron, roof-traffic, Caddy's `/api/main` for the admin page; then a full wipe of DATA_DIR and LOG_DIR on main and next (the owner), the public sessions made again; the owner checked it in a browser (version, cctv main and next, a session made and closed) @1.6.0
 
 ## Discarder
 
