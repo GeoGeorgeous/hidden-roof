@@ -2,7 +2,7 @@
 
 The contract between the game server and the admin page (cctv, its own repo). This file is the reference: the code
 (`server/admin/`) follows it, and cctv's own `docs/admin-api.md` covers only the page side. The host side (port,
-key, Caddy) is in `docs/deploy.md` §6 and §9; why the data is as it is: `docs/ideas/admin-data.md`.
+key, Caddy) is in `docs/deploy.md` §6 and §9; why the data is as it is: the last section.
 
 ## Rules
 
@@ -319,3 +319,15 @@ one too); `days` one of `limits.ban.days`; `reason` 1 to `limits.ban.reasonBytes
 the admin's own (the player reads it). An unknown session or player is 404.
 `POST /bans/ID` `{ days?, reason? }` → the ban changed: `days` counted from `made`, only sooner (a later end is 400).
 `POST /bans/ID/lift` → `{ ok: true }`. An unknown or ended ban is 404.
+
+## Why it is so (the owner's decisions, 2026-10-25 to 2026-11-01)
+
+- **No outside analytics service.** The game server counts players and sessions, the client beacon reports how the game runs, and a small process of our own reads Caddy's log for page views (`roof-traffic`).
+- **Unique people** by a random device id (`localStorage`) and a salted address hash, shown apart, so a cleared storage or a new address still counts once. The salt changes each month and its key goes at once: no one is matched across months by hash. Long-range counts (new, returning, retention) come from the days the device keeps (first and last play, the usual install date of game analytics), never from hashes.
+- **History and people kept 91 days** (`SERVER.historyDays`), so a 30-day period has one to compare with; each day's counts forever. The stats started clean with 1.6.0 on 2026-11-01.
+- **Events on disk, bounded** so they can never fill it; the page shows 50 a page. The last 60 minutes stay in memory, so the minute lines don't depend on the page being open.
+- **A session's stats belong to its paint:** a wipe resets them (the history keeps counting), a restored save brings its own. Saves: 5 kept by age for public sessions; a private one's paint only downloads.
+- **Abuse limits** per address (an IPv6 one by its /64): rate limits, the people quota, new people from pages an hour (`SERVER.peoplePagesPerIp`); the beacon's histograms have a top bin and `down`/`up` two significant digits, so an hour holds a bounded number of keys.
+- **No medians from the server:** play lengths come as a histogram by minute. Each figure on the page says how fresh it is and where it comes from.
+- **ADMIN_API 4 broke once** instead of adding to 3 (prod had no admin API yet, the page's redesign replaced its mock data); since then, additions keep the version.
+- **Bans** have a key of their own that never rotates, so a ban outlasts the month's salt; an ended or lifted ban is deleted at once (no history).

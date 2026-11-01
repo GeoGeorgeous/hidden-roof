@@ -85,7 +85,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 2. IDEA [BL-144]: Cover v2: drop hidden paint faces and pack pages fuller, after BL-143; up to 28% less paint memory at ULTRA (BL-034) (docs/ideas/props-and-level.md)
 3. TASK [BL-055]: Group the props better in build mode: decide which prop goes into which category (docs/ideas/props-and-level.md)
 4. [BUGS-161]: A wall prop overlaps a fence
-5. IDEA [BL-039]: More marker types, placed on the map @1.7.0
+5. IDEA [BL-039]: More marker types, placed on the map; a per-tool variant module first, as caps are (docs/ideas/tools.md) @1.7.0
 6. IDEA [BL-050]: Wire cutting
 7. IDEA [BL-051]: Dynamic wire length
 8. IDEA [BL-052]: Lamps that can be fixed to the floor or the ceiling
@@ -136,7 +136,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## CCTV
 
 The admin page (the cctv repo) and the server side it reads (server/admin/). 
-The API: docs/admin-api.md; why: docs/ideas/admin-data.md.
+The API and why it is so: docs/admin-api.md.
 
 1. [IDEA-240]: Admin: ban a player by address (/64) and device id, for 1 day to 6 months or for good, with a reason (presets or the admin's own) the player is shown in the game and in place of the server list; shorten, change the reason, lift. Server side done (`docs/admin-api.md`, Bans); the page's ban button and Banned players tab in cctv (`SECRET_cctv-handoff.md`) @1.6.1
 2. [CCTV-286]: A public session made from the admin page with the number of players chosen, as a private one's: `POST /sessions` takes `limit` for a public session too, `limits.private.min` to `limits.public` (GET / as it was, so the page keeps working); server side done; the page's New session form in cctv @1.6.1
