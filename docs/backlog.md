@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 287
+The one list of what's left. Counter for new ids: next: 288
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -146,6 +146,7 @@ The API: docs/admin-api.md; why: docs/ideas/admin-data.md.
 1. TASK [BL-067]: Posts on Reddit with technical decription @1.6.3
 2. [TASK-169]: Creating and posting instagram reels @1.7.0
 3. IDEA [BL-065]: A minimal tool to record gameplay as GIFs and short videos @1.6.2
+4. [TASK-287]: Better SEO: large; needs a discussion and the owner's decisions first, done last in the release, not touched until then @1.6.1
 
 ## Auth
 
