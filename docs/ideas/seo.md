@@ -18,10 +18,10 @@ the repo; its facts are checked against the code before they go on a page.
 - **In search results:** the site name from `WebSite` (`@graph` with the game), the title and the description
   below; the game's structured data gets `GameApplication`, `browserRequirements` and the definition.
 - **The painting of 1.7.0** (the Painting Rework) is on the page, in llms.txt and in the structured data now, said as
-  fact: the owner's call, as the site takes weeks to be read and 1.7.0 comes soon. The controls list stays as the game is
-  until 1.7.0 ships (no Shift + wheel yet). Also now: `numberOfPlayers` (1 to 40), `featureList`, the genre Painting,
+  fact: the owner's call, as the site takes weeks to be read and 1.7.0 comes soon. No controls list on the page (the
+  owner took it out, 2026-11-02): the keys are in the FAQ answers. Also now: `numberOfPlayers` (1 to 40), `featureList`, the genre Painting,
   and a FAQ on a free online wall anyone can paint. Not "legal wall" (the owner's no).
-- **The FAQ** ("Questions & answers") holds 29 questions, each phrased as players ask it (friends, painting at once,
+- **The FAQ** ("Questions & answers") holds 28 questions, each phrased as players ask it (friends, painting at once,
   tools, caps, colors, drips, the level, how many levels, phone or tablet, requirements, controller, updates, release
   date), each answer starting with the direct answer: for search and assistants. Every answer is true of the game as it
   is, the 1.7.0 painting aside; keep them true with each release.
@@ -29,7 +29,13 @@ the repo; its facts are checked against the code before they go on a page.
   the game's Updates popup uses, so it can't fall behind; one page with an anchor per version (not a page each: seven
   short pages are thin), in the Terms look, in the sitemap with the newest release's date.
 - **The facts** under the hero: six cards (price, multiplayer, platform, access, technology, experience), the owner's
-  design and words. The release dates and the author are in Latest updates, the footer, the FAQ and the structured data.
+  design and words. The release dates and the author are in Latest updates (the last three releases as cards, then
+  All updates), the footer, the FAQ and the structured data.
+- **The words** on the page are the owner's (2026-11-02, through a temporary editor): only grammar and punctuation
+  are fixed without asking. The cap names in Painting and the FAQ (needle, NY fats, soft, hard) are graffiti slang,
+  not the game's caps (skinny, standard, fat, spray): kept, the owner's call.
+- **Phones and small windows** get How to start playing (a computer, a keyboard, a mouse, 820×560) with Send the link
+  to yourself; a window made big enough shows Play now. Hidden over the game, kept for crawlers.
 - **llms.txt** opens with the definition; **sitemap** gets a `lastmod`, set at each release that changes the page.
 - After the deploy: submit the sitemap in Search Console and ask for the page to be indexed again.
 
@@ -46,7 +52,7 @@ the repo; its facts are checked against the code before they go on a page.
   alt, constraints). Until then everything that doesn't depend on it is built, and the landing stays plain and
   unstyled, never shipped as final.
 - **The words:** the one definition, said the same everywhere (landing, FAQ, JSON-LD, llms.txt, README, portals):
-  "Hidden Roof is a free multiplayer graffiti game in your browser — paint ink-drawn rooftops alone or with friends."
+  "Hidden Roof is a free multiplayer graffiti game in your browser — paint ink-drawn rooftops alone or with your friends."
   The h1 (1.6.1: the owner's change, the h1 and the lead said the same twice): the definition itself, shown as the
   name large and the rest of the sentence under it; seo.test checks it word for word. The title (og and twitter too): "Hidden
   Roof — free browser graffiti game".

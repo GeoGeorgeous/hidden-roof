@@ -1,6 +1,6 @@
 # Hidden Roof
 
-> Hidden Roof is a free multiplayer graffiti game in your browser — paint ink-drawn rooftops alone or with friends.
+> Hidden Roof is a free multiplayer graffiti game in your browser — paint ink-drawn rooftops alone or with your friends.
 
 A first-person game: you climb onto the rooftops of a city drawn in ink, and the only color in it is the paint you bring.
 
