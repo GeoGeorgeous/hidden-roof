@@ -8,11 +8,12 @@ what's served: `docs/deploy.md`; the release steps that touch the page: `docs/re
 
 - Where the game loads, `html.game` (set by the inline script before the first paint) hides the page: no flash. When
   the game fails to start (`failed()` in `src/boot.ts`), the page shows, saying why.
-- In the game, the pause menu's About → Game opens it over the paused game through a portal; Back to the game (and
-  Esc) closes it. Nothing reloads.
+- In the game, the pause menu's About → Game opens it over the paused game through a portal; its button (Start the
+  game on the title screen, Back to the game after) and Esc close it. Nothing reloads.
 - Phones and small windows get How to start playing (a computer, a keyboard, a mouse, `RENDER.minViewport`) with Send
   the link to yourself; a window made big enough shows Play now. The game's window made too small shows a note and
-  lets the mouse go. The section is hidden over the game but stays in the markup for crawlers.
+  lets the mouse go. The section is hidden where the game can be played (over the game, and once Play now shows) but
+  stays in the markup for crawlers.
 - The words are the owner's: fix grammar and punctuation without asking, never the wording. The cap names in Painting
   and the FAQ (needle, NY fats, soft, hard) are graffiti slang, not the game's caps: kept, the owner's call.
 - The painting of 1.7.0 is described as fact before it ships (the owner's call: a site takes weeks to be read). Every
@@ -21,7 +22,7 @@ what's served: `docs/deploy.md`; the release steps that touch the page: `docs/re
 - The FAQ: each question phrased as players ask it, each answer starting with the direct answer. Questions sit in
   groups (Playing, Painting, Multiplayer, Performance, The game), each a `<details>` that opens in place: the answers
   stay in the markup for crawlers. A new question goes in its group.
-- Order: the hero, About (the fact cards), The game (the owner's text on what the game is, the owner's word to players
+- Order: the hero, the fact cards, About (the owner's text on what the game is, the owner's word to players
   under P.S.; its "legal walls" is the owner's own, saying the game isn't one), How to start playing, then the rest.
   How to play lists every tool with the server list's icon (`src/net/tool-icons.ts`), copied as markup;
   `scripts/seo.test.mjs` checks they match.

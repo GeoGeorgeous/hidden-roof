@@ -347,8 +347,10 @@ html:not(.game) .about .hero {
   border-radius: 5px;
   font-size: 15px;
 }
-/* How to start playing: for where the game doesn't start (and crawlers), not over the paused game. */
-.game .about #start {
+/* How to start playing: for where the game doesn't start (and crawlers); not where it can: over the game, nor once
+   the window grew big enough for Play now. */
+.game .about #start,
+.about:has(.play-now:not([hidden])) #start {
   display: none;
 }
 .about .steps {

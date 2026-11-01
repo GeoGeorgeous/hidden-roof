@@ -182,6 +182,9 @@ export const MESSAGES = {
     // ESC menu status line
     pauseIdle: 'Paused',
     pauseStart: 'Click to start',
+    // About → Game: the page's button into the game, before the first start and after it
+    aboutStart: 'Start the game',
+    aboutBack: 'Back to the game',
     // Over the game while the window is smaller than RENDER.minViewport (small-window.ts)
     smallWindow: 'Make the window bigger',
     smallWindowText: 'Hidden Roof needs a window at least {w}×{h}. The game waits here; it goes on once the window is big enough.',
