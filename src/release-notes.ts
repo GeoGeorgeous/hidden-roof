@@ -24,7 +24,8 @@ interface Release {
 }
 
 /** The sites a note may link to besides the game's own pages (root-relative); the Updates page makes links of nothing else. */
-const LINK_SITES = ['https://ko-fi.com/', `${AUTHOR}/`, 'https://discord.gg/'];
+const DISCORD_INVITE = 'https://discord.gg/';
+const LINK_SITES = ['https://ko-fi.com/', `${AUTHOR}/`, DISCORD_INVITE];
 
 const LINK = /\[([^\]]+)\]\(([^)\s]+)\)/g;
 const LOCAL = /^\/(?!\/)[\w./#-]*$/;
@@ -90,8 +91,9 @@ const DISCORD_MAX = 2000;
  */
 export function discordNotes(tag: string, md: string): string[] {
   const { date } = parseRelease(tag, md);
-  // <...> around a target: Discord shows no preview card.
-  const [intro, ...items] = mapLinks(body(md), (href) => `<${absolute(href)}>`).trim().split(/\n(?=- )/);
+  // <...> around a target: Discord shows no preview card. An invite shows its card all the same, and the reader is on Discord already: its text alone.
+  const note = body(md).replace(LINK, (link, text, href) => (href.startsWith(DISCORD_INVITE) ? text : link));
+  const [intro, ...items] = mapLinks(note, (href) => `<${absolute(href)}>`).trim().split(/\n(?=- )/);
   const messages = [`# Hidden Roof ${tag.slice(1)}\n-# ${date} · [GitHub](<https://github.com/${REPO}/releases/tag/${tag}>)\n\n${intro.trim()}`];
   for (const item of items) {
     const joined = `${messages[messages.length - 1]}\n\n${item.trim()}`;
