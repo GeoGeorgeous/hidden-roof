@@ -149,7 +149,6 @@ The admin page (the cctv repo) and the server side it reads (server/admin/). The
 1. TASK [BL-067]: Posts on Reddit with technical decription @1.6.3
 2. [TASK-169]: Creating and posting instagram reels @1.7.0
 3. IDEA [BL-065]: A minimal tool to record gameplay as GIFs and short videos
-4. [TASK-277]: The 1.6.0 release notes: the owner trims the draft (now 8 items, ~2.9k characters, within the limits) at the release; the picture is in, `public/updates/v1.6.0.webp`, the Multiplayer page with a public and a private session (2026-11-01) (docs/releases/AGENTS.md) @1.6.0
 
 ## Auth
 
@@ -217,6 +216,7 @@ Shipped since the last release; the release commit empties this list.
 42. [BUGS-280]: 1.6.0 fixed before release (review of 2026-10-31): "today" not empty in UTC hour 23; a `?ref=constructor` no longer corrupts a day file; a bad upgrade URL or an uncaught exception no longer stops the server; the log download ends on a gone client or file; the wipe reports a failed disk step; a cancelled join is not counted; the line admits no more than the free seats; a held place in line is held as a seat (15 s for a closed tab); a dropped seat taken by nickname only from its device or /64; a budget per link, known fields only, relayed times clamped; rate limits and the page quota per /64; histograms capped; atomic writes flushed; one day module, one monthly salt, hasOwn-safe counting, one held-seat module, shared test helpers; dead code gone (unused members and parameters, exports used only in their file, pre-1.0 settings keys, a fixup for history files only staging wrote) @1.6.0
 43. [CCTV-271]: A save's `stats` in GET /sessions in the shape of the session's `stats` (stamps by tool, painters), the page sums them; and one of a session's `today` and `stats` for the page, not both (in CCTV-278: `today` goes) @1.6.0
 44. [DOCS-281]: Docs for 1.6.0: deploy.md cut by a third (36 → 24 KB; the data's detail lives in admin-api.md) and brought up to date (protocol 9, public sessions take 40, saves 5 by age, restore from the admin page, the link budget, a corrupt salt kept aside); stale save counts fixed in known-limits.md and ideas/public-servers.md; measurements of discarded items out of ideas/performance.md; ideas/server-ops.md gone @1.6.0
+45. [TASK-277]: The 1.6.0 release notes, trimmed by the owner (2026-11-01: 5 items, ~1.5k characters; public and private sessions each with a sentence under the heading) and its picture, `public/updates/v1.6.0.webp`, the Multiplayer page with a public and a private session (docs/releases/AGENTS.md) @1.6.0
 
 ## Discarder
 
