@@ -9,6 +9,7 @@ Context for the agent that deploys and runs the game on the VPS: read it before 
 - **Next release:** `v1.6.1`. Before a release `next` is deployed to staging, `next.roof.hidden.haus` (section 9), and tested there end to end first. For every release, check its changes for a new protocol or surface table: if there is one, deploy the server and the game together (section 6, then the static files); live sessions end, and tabs still open on the old version are told to reload. Then section 7.
 - **Repo:** public, `https://github.com/GeoGeorgeous/hidden-roof.git`, cloned over HTTPS (the host holds no GitHub credentials). Deploy releases only: a `vX.Y.Z` tag, never a branch tip. Branches and releases: `AGENTS.md`.
 - **Version:** the pause menu shows the build's `git describe` (`src/version.ts`); built without git (the image has none), `package.json`'s version, which matches the tag on a release commit.
+- **Waiting for devops:** nothing. What the repo needs from the host goes here when its repo part lands, and leaves once devops reports it done.
 
 ## 2. The game (stable)
 
@@ -176,7 +177,7 @@ log {
 
 ## 8. Sessions: what the owner may ask for
 
-Everything runs from `<apps>`, with the admin command in the running `roof` container (section 6, Admin). It needs `ADMIN_KEY` set on the service (`docs/ideas/vps.md`); without it the command answers `401: no key` or can't connect. Report back the line the command prints: it holds the code players join with.
+Everything runs from `<apps>`, with the admin command in the running `roof` container (section 6, Admin). It needs `ADMIN_KEY` set on the service (section 6, Admin); without it the command answers `401: no key` or can't connect. Report back the line the command prints: it holds the code players join with.
 
 | The owner asks | Run |
 |---|---|

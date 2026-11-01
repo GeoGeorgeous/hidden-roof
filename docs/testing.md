@@ -6,8 +6,8 @@ How a change is verified (AGENTS.md, Verify), what each test covers, and how the
 
 | Command | What | Time |
 |---|---|---|
-| `npm run check:quick` | Type check (game and server), the player build (`npm run build`, what's deployed), `npm test`, knip. After every change. | ~5 s |
-| `npm run check` | `check:quick`, then every test below, golden paint last. Before saying a change is done, and before a merge. Stops at the first failure, then prints each step's time (`scripts/check.mjs`). | ~4–5 min |
+| `npm run check:quick` | Type check (game and server), the player build (`npm run build`, what's deployed), `npm test`, knip. For UI, texts, public pages, code off the core runtime paths, and release notes (which check to run: AGENTS.md, Verify). | ~5 s |
+| `npm run check` | `check:quick`, then every test below, golden paint last. For changes to the core runtime paths, before saying they're done; once per state of the code, not again for a Markdown-only change after it. Stops at the first failure, then prints each step's time (`scripts/check.mjs`). | ~4–5 min |
 | `npm run shots` | The real game on the real GPU (below). For every visual change. | ~15 s |
 
 ## Running the full check
