@@ -104,7 +104,8 @@ export const sessions: Route = async (c) => {
   if (what === 'players' && more[1] === 'kick' && more.length === 2) {
     if (!/^\d+$/.test(more[0]) || !c.lobby.kick(session, Number(more[0]))) throw new Missing(`no player ${more[0]} in ${session.code}`);
   } else if (what === 'restore' && !more.length) {
-    const o = (await c.body()) as { save?: unknown; upload?: unknown };
+    const b = await c.body();
+    const o = (typeof b === 'object' && b && !Array.isArray(b) ? b : {}) as { save?: unknown; upload?: unknown };
     const one = (o.save === undefined) !== (o.upload === undefined);
     if (!one || (o.save !== undefined && !Number.isSafeInteger(o.save)) || (o.upload !== undefined && !isUploadId(o.upload))) throw new Refused('save: the ms of one of its saves, or upload: the id of one, not both');
     if (overMemory(SERVER.hostMemory)) throw new Full('the server is full');

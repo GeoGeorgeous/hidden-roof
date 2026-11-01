@@ -55,12 +55,17 @@ export class Saves {
     await Promise.all([fs.rm(this.file(name), { force: true }), fs.rm(this.file(statsName(name)), { force: true })]);
   }
 
-  /** A session's saves put aside as wiped, replacing the ones put aside before; none to put aside leaves those. */
+  /**
+   * A session's saves put aside as wiped, replacing the ones put aside before; none to put aside leaves those. Safe to
+   * run again after a failure: the wiped ones it replaces are those older than every save still to put aside, and the
+   * newest go first, so what a failed run put aside already is never taken for the last wipe's.
+   */
   async aside(code: string) {
     const all = await this.list(code);
     const now = all.filter((n) => !isWiped(n));
     if (!now.length) return;
-    for (const n of all.filter(isWiped)) await this.remove(n);
+    const oldest = savedAt(now[now.length - 1]);
+    for (const n of all.filter((w) => isWiped(w) && savedAt(w) < oldest)) await this.remove(n);
     for (const n of now) {
       const to = n.replace('.rhhpaint', '.wiped.rhhpaint');
       await fs.rename(this.file(n), this.file(to));

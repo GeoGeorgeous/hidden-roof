@@ -80,10 +80,15 @@ export class RemoteTimeline {
    * which draws no frames: queued, all they did for as long as it's hidden
    * would wait (memory) and land in one frame when it's shown again. What
    * still waited from before goes first, so it all lands in their order (a
-   * stepladder they took away stays away).
+   * stepladder they took away stays away). No more than NET.eventsKept wait.
    */
   schedule(t: number, run: () => void, hidden: boolean) {
-    if (!hidden) return void this.events.push({ t, run });
+    if (!hidden) {
+      this.events.push({ t, run });
+      // A clock far ahead (or a game that stopped drawing) must not pile them up for ever: the oldest run now, in order.
+      if (this.events.length > NET.eventsKept) this.events.shift()!.run();
+      return;
+    }
     this.flush();
     run();
   }

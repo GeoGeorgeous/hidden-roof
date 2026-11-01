@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import { SERVER } from '../src/config';
 import { SLOTS } from '../src/inventory/tool';
 import { levelPaintFaces } from '../src/level/prop-pieces';
-import { closeCode, HELLO, LOBBY_CODE, LOBBY_LIST, PROTOCOL, type Lobby, type ToServer } from '../src/net/protocol';
+import { closeCode, encode, HELLO, LOBBY_CODE, LOBBY_LIST, PROTOCOL, type Lobby, type ToServer } from '../src/net/protocol';
 import { surfaceTable } from '../src/save/shape';
 import { Game, join, start } from './test-kit';
 
@@ -56,6 +56,13 @@ try {
   assert.equal((await c.next('queued')).position, 1);
   c.send({ type: 'leave' });
   assert.equal(await c.closed, 1000);
+  // A place in line is held as a seat is: a closed tab (1001) lets it go sooner than a lost link.
+  const gone = await join(main.port, 'G', wa.code);
+  await gone.next('queued');
+  gone.ws.close(1001);
+  await gone.closed;
+  await new Promise((w) => setTimeout(w, 300));
+  assert.match(main.out(), new RegExp(`dropped from the line: ${SERVER.closedHold} s to come back`));
   const friend = await join(main.port, 'F', friends.body.code);
   assert.deepEqual((await friend.next('welcome')).session, { kind: 'private', name: 'Friends', limit: SERVER.players.private, tools: [...SLOTS] });
   const w = await (await join(main.port, 'W', wall.body.code)).next('welcome');
@@ -196,7 +203,32 @@ try {
   assert.ok(await (await join(main.port, 'p', friends.body.code, {}, busy)).next('welcome'), 'a private session is not limited this way: it has its own few seats');
   assert.equal(closeCode('seats'), 4013);
   assert.equal(closeCode('rate'), 4014);
-  console.log('server list: ok (the list, a lookup by code and its limit, per-session limits, the admin\'s private limit, HOST only with PLAYER_HOST, the admin\'s kick, seats and joins per address)');
+  const rules = await admin({ kind: 'private', name: 'Rules', level: 'demo', detail: 'low' });
+  // Only a HOST comes first on a HOST link (its message may be a save of 64 MB): anything else closes it.
+  const stray = new Game(main.port, '10.3.1.1', '/ws?host');
+  await stray.send({ type: 'ping', t: 1 });
+  assert.equal(await stray.closed, 1008);
+
+  // Once in, a link has a budget: past its burst of messages it is closed (a game sends a tenth of that in a second).
+  const flood = await join(main.port, 'Flood', rules.body.code);
+  await flood.next('welcome');
+  for (let i = 0; i < SERVER.linkBurst.messages + SERVER.linkRate.messages; i++) flood.ws.send(encode({ type: 'ping', t: i }));
+  assert.equal(await flood.closed, 1008);
+
+  // What a player stamps their stepladder with is cut to the time since they joined (a far-future time would hold it in every game); an inventory keeps its known fields only.
+  const [mate, other] = [await join(main.port, 'Mate', rules.body.code), await join(main.port, 'Other', rules.body.code)];
+  await mate.next('welcome');
+  const wo = await other.next('welcome');
+  await mate.send({ type: 'ladder', t: 1e12, data: { type: 'stepladder', pos: [1, 0, 1], rot: 2, extra: 'x' } as never });
+  const placed = await other.next('ladder');
+  assert.ok(placed.t < 60, `the ladder's time ${placed.t}`);
+  assert.deepEqual(placed.data, { type: 'stepladder', pos: [1, 0, 1], rot: 2 });
+  await other.send({ type: 'inventory', data: { tools: ['can'], colors: ['black'], caps: ['standard'], selected: 0, color: 'black', cap: 'standard', extra: 'x' } as never });
+  other.ws.close();
+  await other.closed;
+  const comeback = await join(main.port, 'Other', rules.body.code, { token: wo.token });
+  assert.deepEqual((await comeback.next('welcome')).inventory, { tools: ['can'], colors: ['black'], caps: ['standard'], selected: 0, color: 'black', cap: 'standard' });
+  console.log('server list: ok (the list, a lookup by code and its limit, per-session limits, the admin\'s private limit, HOST only with PLAYER_HOST, the admin\'s kick, seats and joins per address, a HOST link starts with HOST, the budget of a link, the time of a stepladder and the fields of an inventory cut)');
 } finally {
   main.stop();
   refusing.stop();

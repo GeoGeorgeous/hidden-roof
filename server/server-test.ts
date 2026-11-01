@@ -2,7 +2,6 @@ import './headless';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
-import net from 'node:net';
 import { SERVER } from '../src/config';
 import { levelPaintFaces } from '../src/level/prop-pieces';
 import type { InventoryData } from '../src/inventory/inventory';
@@ -12,7 +11,7 @@ import { decodePaintFile, encodePaintFile, joinBytes } from '../src/save/paint-f
 import { surfaceTable } from '../src/save/shape';
 import { WebSocket as Ws } from 'ws';
 import { PartsIn } from '../src/net/parts-in';
-import { rejected } from './test-kit';
+import { freePort, rejected } from './test-kit';
 import { overMemory } from './log';
 import { decodeOps, encodeOps, SurfaceIndex } from '../src/op-wire';
 import type { PaintOp } from '../src/paint-ops';
@@ -24,13 +23,6 @@ import type { PaintOp } from '../src/paint-ops';
 // the process: world-test.ts. npm run test:server builds both and the server.
 
 // A free port: other agents may be testing on this machine at the same time.
-const freePort = () =>
-  new Promise<number>((done) => {
-    const s = net.createServer().listen(0, () => {
-      const { port } = s.address() as net.AddressInfo;
-      s.close(() => done(port));
-    });
-  });
 const PORT = await freePort();
 const level = JSON.parse(fs.readFileSync('public/levels/demo.json', 'utf8'));
 const faces = levelPaintFaces(level, 48);
@@ -250,7 +242,8 @@ try {
 
   // The same name twice gets a number. The host drops and comes back from a new tab (no token) while the other is
   // still in a full session: under the same name it takes its own place back, not "full".
-  const geo = await game();
+  const home = '10.9.0.1';
+  const geo = await game(home);
   geo.send({ ...host, name: 'geo' });
   const wg = await geo.next('welcome');
   const twin = await game();
@@ -264,7 +257,15 @@ try {
   await twin.next('ops');
   geo.ws.close();
   await geo.closed;
-  const newTab = await game();
+  // Typing their nickname does not take a dropped player's seat from another address (or device): it gets a name of its own.
+  const stranger = await game();
+  stranger.send({ type: 'join', protocol: PROTOCOL, name: 'geo', code: wg.code });
+  assert.equal((await stranger.next('welcome')).name, 'geo (3)');
+  assert.equal((await twin.next('joined')).name, 'geo (3)');
+  stranger.send({ type: 'leave' });
+  await stranger.closed;
+  assert.deepEqual(await twin.next('left'), { type: 'left', id: 3 });
+  const newTab = await game(home);
   newTab.send({ type: 'join', protocol: PROTOCOL, name: 'geo', code: wg.code });
   // The welcome says the last batch the server has from this player, and where they stood; the new tab numbers on from there.
   const wn = await newTab.next('welcome');
@@ -289,14 +290,15 @@ try {
   const tom = await game();
   tom.send({ ...host, name: 'tom' });
   const wt = await tom.next('welcome');
-  const tom2 = await game();
+  const tabs = '10.9.0.2';
+  const tom2 = await game(tabs);
   tom2.send({ type: 'join', protocol: PROTOCOL, name: 'tom', code: wt.code });
   const wt2 = await tom2.next('welcome');
   assert.equal(wt2.name, 'tom (2)');
   assert.equal((await tom.next('joined')).name, 'tom (2)');
   tom2.ws.close();
   await tom2.closed;
-  const tomAgain = await game();
+  const tomAgain = await game(tabs);
   tomAgain.send({ type: 'join', protocol: PROTOCOL, name: 'tom', code: wt.code });
   const wt3 = await tomAgain.next('welcome');
   assert.deepEqual(pick(wt3, 'you', 'name'), { you: wt2.you, name: 'tom (2)' });

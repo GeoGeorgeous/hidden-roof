@@ -1,8 +1,10 @@
 import { randomInt } from 'node:crypto';
 import { SERVER } from '../src/config';
-import { checkToServer, CODE_LENGTH, CODE_LETTERS, decode, PROTOCOL, type Rejection, type ToServer } from '../src/net/protocol';
+import { checkToServer, CODE_LENGTH, CODE_LETTERS, decode, isCode, isName, PROTOCOL, type Rejection, type ToServer } from '../src/net/protocol';
 import { event } from './events';
 import { history } from './history';
+import { Budget } from './budget';
+import { holdFor } from './held';
 import { log, logNoisy, who } from './log';
 import { turnedAway } from './minutes';
 import type { LevelData } from '../src/level/level-data';
@@ -49,6 +51,8 @@ export class Lobby {
   private links = new Map<string, number>();
   private uploads = new Map<string, number>();
   private hosts = new Map<string, string>();
+  /** HOSTs under way per address (lobby-host.ts): their sessions are not listed yet. */
+  private hosting = new Map<string, number>();
   /** Tokens of players the admin kicked, and when (ms): a JOIN with one is a reconnect and is told so, for SERVER.rejoinWindow. */
   private kicked = new Map<string, number>();
   /** JOINs to public sessions by address, SERVER.joinsPerIp a minute. */
@@ -63,13 +67,15 @@ export class Lobby {
   open(link: Link, host: boolean): LinkInput {
     const ip = link.ip;
     const reject = (reason: Rejection, m?: ToServer) => {
-      const code = m?.type === 'join' && typeof m.code === 'string' ? m.code.slice(0, CODE_LENGTH) : '-----';
+      // A hello of another version skipped the field checks: only what passes them goes into the log and the events.
+      const code = m?.type === 'join' && isCode(m.code) ? m.code : '-----';
       const hello = m?.type === 'join' || m?.type === 'host' ? m : null;
+      const name = hello && isName(hello.name) ? hello.name : null;
       // Only what the log takes: a stranger's flood of attempts doesn't flood the admin's feed either.
       history.turnedAway(reason);
       turnedAway(reason);
       if (logNoisy(ip, code, `${m?.type ?? 'link'} from ${ip} turned away: ${reason}`))
-        event('turned-away', this.sessions.get(code) ?? null, hello?.name ?? null, reason === 'version' && hello ? { reason, client: hello.protocol, server: PROTOCOL } : { reason });
+        event('turned-away', this.sessions.get(code) ?? null, name, reason === 'version' && hello ? { reason, client: hello.protocol, server: PROTOCOL } : { reason });
       turnAway(link, reason);
     };
     const uploading = () => [...this.uploads.values()].reduce((n, c) => n + c, 0);
@@ -80,6 +86,13 @@ export class Lobby {
     let uploads = false;
     /** A LEAVE that came while the seat was being made: carried out as soon as it is. */
     let left = false;
+    const budget = new Budget();
+    /** An exception on this link: it is closed, and a player of it is held as any dropped one, not left with a dead link. */
+    const failed = (e: unknown, code = at && at !== 'waiting' ? at.session.code : '-----') => {
+      log(code, `server error with ${ip}: closed`, e);
+      if (at && at !== 'waiting' && 'player' in at) at.session.dropped(at.player, link);
+      link.close(1011, 'server error');
+    };
     const bye = (r: At) => ('place' in r ? r.session.line.receive(r.place, { type: 'leave' }) : r.session.remove(r.player, 'left'));
     const seat: Seat = (session, name) => async (waited) => {
       at = 'waiting';
@@ -95,8 +108,7 @@ export class Lobby {
         if (left) bye(r);
         else if (!link.open) r.session.dropped(r.player, link);
       } catch (e) {
-        log(session.code, `server error with ${ip}: closed`, e);
-        link.close(1011, 'server error');
+        failed(e, session.code);
       }
       return false;
     };
@@ -104,9 +116,19 @@ export class Lobby {
       message: async (data) => {
         // A message the server can't handle closes that one link, never the server and everyone's sessions.
         try {
+          // Once its hello is in, a link has a budget (a HOST's save is the one big message).
+          if (at && !budget.take(data.byteLength)) {
+            logNoisy(ip, at !== 'waiting' ? at.session.code : '-----', `link from ${ip} over its budget: closed`);
+            return link.close(1008, 'over budget');
+          }
           const m = checkToServer(decode(data));
           if (!m) {
             logNoisy(ip, at && at !== 'waiting' ? at.session.code : '-----', `bad message from ${ip}: closed`);
+            return link.close(1008, 'bad message');
+          }
+          // A HOST link takes a big message to carry a save, so its first must be that.
+          if (host && !at && m.type !== 'host') {
+            logNoisy(ip, '-----', `link from ${ip}: ${m.type} first on a HOST link: closed`);
             return link.close(1008, 'bad message');
           }
           if (at === 'waiting') {
@@ -126,8 +148,7 @@ export class Lobby {
           if ('place' in r) return link.open ? r.session.line.update() : r.session.line.dropped(r.place, link);
           if (!link.open) r.session.dropped(r.player, link);
         } catch (e) {
-          log(at && at !== 'waiting' ? at.session.code : '-----', `server error with ${ip}: closed`, e);
-          link.close(1011, 'server error');
+          failed(e);
         }
       },
       closed: (code, reason) => {
@@ -135,10 +156,9 @@ export class Lobby {
         if (uploads) count(this.uploads, ip, -1);
         clearTimeout(hello);
         if (!at || at === 'waiting') return;
-        if ('place' in at) return at.session.line.dropped(at.place, link);
+        const hold = holdFor(code);
+        if ('place' in at) return at.session.line.dropped(at.place, link, hold);
         if (at.player.link !== link) return;
-        // A closed tab (1001) lets its seat go soon; a lost link (1006) is held as long as it takes to come back.
-        const hold = code === 1001 ? Math.min(SERVER.closedHold, SERVER.rejoinWindow) : SERVER.rejoinWindow;
         log(at.session.code, who(at.player), `dropped (${code}${reason.length ? ` ${reason}` : ''}): ${hold} s to come back`);
         at.session.dropped(at.player, link, hold);
       },
@@ -190,7 +210,8 @@ export class Lobby {
     if (m.type === 'host') {
       const hosted = await host(m, ip, {
         sessions: this.sessions,
-        hostedFrom: (a) => [...this.hosts.values()].filter((h) => h === a).length,
+        hostedFrom: (a) => [...this.hosts.values()].filter((h) => h === a).length + (this.hosting.get(a) ?? 0),
+        reserve: (a) => (count(this.hosting, a, 1), () => void count(this.hosting, a, -1)),
         start: (...made) => this.start(this.newCode(), ...made),
         list: (s, a) => (this.sessions.set(s.code, s), this.hosts.set(s.code, a)),
       });
@@ -221,24 +242,40 @@ export class Lobby {
   private async seated(session: Session, link: Link, name: string, ip: string, token?: string, waited?: number): Promise<{ session: Session; player: Player } | Rejection> {
     const r = await session.admit(link, name, token);
     if (typeof r === 'string') return r;
-    log(session.code, who(r.p), `in from ${ip} (${r.how}, ${session.players.size} players${r.note})`);
-    if (r.how === 'new') history.started(link);
-    history.players(this.players);
-    event('joined', session, r.p.name, waited === undefined ? { how: r.how } : { how: r.how, waited: Math.round(waited / 1000) });
+    if (!r.welcomed) return { session, player: r.p };
+    try {
+      log(session.code, who(r.p), `in from ${ip} (${r.how}, ${session.players.size} players${r.note})`);
+      if (r.how === 'new') history.started(link);
+      history.players(this.players);
+      event('joined', session, r.p.name, waited === undefined ? { how: r.how } : { how: r.how, waited: Math.round(waited / 1000) });
+    } catch (e) {
+      // The player is in: held as any dropped one is, not left with a dead link.
+      session.dropped(r.p, link);
+      throw e;
+    }
     return { session, player: r.p };
   }
 
+  /** The admin's session (admin/sessions.ts), or one kept on disk under its `code` (kept.ts), not listed yet (`list`). Throws if the level doesn't build. */
+  make(setup: Omit<SessionSetup, 'admin'>, levelName: string, level: LevelData, detail: number, code = this.newCode()) {
+    return this.start(code, levelName, level, detail, { ...setup, admin: true });
+  }
+
   /**
-   * The admin's session (admin/sessions.ts), or one kept on disk under its `code`
-   * (kept.ts), open at once. One that doesn't stay closes when its players
-   * have gone, or if no one has come in SERVER.adminWait. Throws if the level doesn't build.
+   * The admin's session `make` made, open at once. One that doesn't stay closes when its players
+   * have gone, or if no one has come in SERVER.adminWait.
    */
-  create(setup: Omit<SessionSetup, 'admin'>, levelName: string, level: LevelData, detail: number, code = this.newCode()) {
-    const session = this.start(code, levelName, level, detail, { ...setup, admin: true });
+  list(session: Session) {
+    const { code, setup, levelName, detail } = session;
     this.sessions.set(code, session);
     log(code, `made by the admin: ${setup.kind} ${JSON.stringify(setup.name)}, ${JSON.stringify(levelName)} at ${detail} texels/m, tools ${setup.tools.join(' ')}${setup.stays ? ', stays when empty' : ''}`);
     if (!setup.stays) setTimeout(() => session.close(`no one came in ${SERVER.adminWait} s`), SERVER.adminWait * 1000).unref();
     return session;
+  }
+
+  /** `make` and `list` at once: a session of the admin's that is open now. */
+  create(setup: Omit<SessionSetup, 'admin'>, levelName: string, level: LevelData, detail: number, code?: string) {
+    return this.list(this.make(setup, levelName, level, detail, code));
   }
 
   /** A session, closed when it's empty or by end(). */

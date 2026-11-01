@@ -1,3 +1,4 @@
+import { NET } from '../config';
 import { msg } from '../messages';
 import { div, notice } from '../menu-ui';
 import { sessionLine, shellButton, type Where } from './lobby-view';
@@ -59,7 +60,7 @@ export class QueuePage {
     this.position = s.position || this.position;
     this.lost = s.lost;
     clearInterval(this.timer);
-    if (s.lost) this.timer = window.setInterval(() => this.draw(), 500);
+    if (s.lost) this.timer = window.setInterval(() => this.draw(), NET.queueRedraw);
     this.draw();
   }
 

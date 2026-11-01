@@ -77,8 +77,9 @@ const server = http.createServer((req, res) => {
 const hostWss = new WebSocketServer({ noServer: true, maxPayload: SERVER.maxPayload, perMessageDeflate: false });
 const wss = new WebSocketServer({ noServer: true, maxPayload: SERVER.maxMessage, perMessageDeflate: false });
 server.on('upgrade', (req, socket, head) => {
-  const url = new URL(req.url ?? '', 'http://roof');
-  if (url.pathname !== '/ws') return socket.destroy();
+  // A request target the URL class can't read is no /ws.
+  const url = URL.parse(req.url ?? '', 'http://roof');
+  if (url?.pathname !== '/ws') return socket.destroy();
   const to = url.searchParams.has('host') ? hostWss : wss;
   to.handleUpgrade(req, socket, head, (ws) => to.emit('connection', ws, req));
 });
@@ -136,6 +137,7 @@ setInterval(() => {
   log('-----', `memory: ${liveMemory().toFixed(0)} MB live, ${(process.memoryUsage.rss() / 2 ** 20).toFixed(0)} MB rss; ${lobby.sessions.size} sessions, ${lobby.players} players, ${waiting()} paint files in line`);
 }, SERVER.statsEvery * 1000);
 process.on('unhandledRejection', (e) => log('-----', 'unhandled', e));
+process.on('uncaughtException', (e) => log('-----', 'uncaught', e));
 // In a container this is PID 1, which has no default signal handlers. The kept sessions' paint and the history are saved first; a second signal doesn't wait.
 let stopping = false;
 for (const sig of ['SIGTERM', 'SIGINT'])
