@@ -3,7 +3,7 @@ import type { InventoryData } from '../src/inventory/inventory';
 import type { PropData } from '../src/level/level-data';
 import { closeCode, NAME_MAX, type Activity, type Presence, type Rejection, type Spot } from '../src/net/protocol';
 import type { Held } from './held';
-import { prefix } from './people';
+import { prefix } from './address';
 import { flush } from './relay';
 
 // A player of a session (session.ts) and their socket: what the session keeps

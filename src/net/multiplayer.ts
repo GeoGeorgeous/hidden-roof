@@ -114,6 +114,11 @@ export class Multiplayer {
   /** A HOST or JOIN is under way, or waits in line. */
   private waiting = () => this.status.state === 'connecting' || this.status.state === 'queued';
 
+  /** The other players' names, by id (the browser tests read it). */
+  get names() {
+    return this.remotes.names;
+  }
+
   /** Where the other players shown stand (a stepladder can't go there). */
   get shown() {
     return this.remotes.shown;
