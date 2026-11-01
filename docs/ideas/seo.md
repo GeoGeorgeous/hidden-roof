@@ -6,33 +6,41 @@ text). This file holds only the owner's approved decisions and what is still ope
 crawler behavior, query clusters, FAQ drafts) is the owner's study "SEO для полноэкранной браузерной игры", not in
 the repo; its facts are checked against the code before they go on a page.
 
-## Approved
+## Approved (2026-11-01)
 
-<!-- None yet. Each decision moves here from Open once the owner confirms it, with the date. -->
+- **The landing:** a real landing at roof.hidden.haus, static markup in `index.html`, the same bytes for every client.
+  Where the game starts fine it never shows, not even for a frame (no flash on load): before the first paint the inline
+  script sets `html.game`, and CSS hides the landing. Without WebGL, or when the game fails to start (`failed()`),
+  the player sees the landing instead of the game; so do phones, small windows, clients without JS and bots. Screen
+  10 becomes this landing. Its header is a portal into the game, and the game has a way back out to the landing.
+- **What ships in 1.6.1:** phases 1 to 3: the landing and its gating, the head (title, JSON-LD), sitemap, robots,
+  IndexNow, and the extra pages. The outside presence is not in it.
+- **The landing's design:** the owner designs it from a content spec (blocks in order, texts, images with sizes and
+  alt, constraints). Until then everything that doesn't depend on it is built, and the landing stays plain and
+  unstyled, never shipped as final.
+- **The words:** the one definition, said the same everywhere (landing, FAQ, JSON-LD, llms.txt, README, portals):
+  "Hidden Roof is a free multiplayer graffiti game in your browser — paint ink-drawn rooftops alone or with friends."
+  The h1: "Hidden Roof — a free multiplayer graffiti game in your browser". The title (og and twitter too): "Hidden
+  Roof — free browser graffiti game".
+- **Out to the landing from the game:** an item in the pause menu shows the landing over the paused game; its
+  portal takes the player straight back (no reload: session and paint stay). One class (`html.game`) does it; bots
+  never meet it (they see the static landing, or keep it in the DOM under `display:none`, reachable from the menu).
+- **Structured data:** one `@graph`: `WebSite` (the site name in results), the author `Person`, and the
+  `VideoGame`/`WebApplication` with `applicationCategory: GameApplication`, `browserRequirements: Requires WebGL2` and
+  `dateModified`. No `aggregateRating` (no real ratings), no `FAQPage` (no rich result since 2026-05-07).
+- **Sitemap, robots, IndexNow:** every page in the sitemap with `lastmod` from git at build time; robots stays as it is
+  (all bots, AI ones too, allowed); an IndexNow key in `public/` and one ping after each release (a release step).
+- **Extra pages in 1.6.1:** `/about` and `/how-to-play` only; `/press` and `/updates/<slug>` later.
+- **How the pages are built:** Vite multi-page, the same build as the game; the header and footer are shared with
+  the landing through partials a small build plugin puts in. No new dependency, no JS on the pages. No SvelteKit or
+  router: it would take over the Vite build, and static pages need no router (Astro only once there are dozens).
+- **Claims the FAQ makes:** free with no ads and no in-game purchases, and the Ko-fi named ("if you like it, you can
+  buy the author a coffee on Ko-fi"). Private sessions with a caveat ("or a private one by its five-letter code, if
+  you have one"): players can't make one in 1.6 (`SERVER.playerHost` is false). Every other claim is checked against
+  the code before it goes on a page.
+- **Not in the backlog:** the outside presence (itch.io, Reddit, Show HN, YouTube, listicles) and the monthly AI-prompt
+  check are the owner's, outside the repo.
 
 ## Open (to confirm)
 
-1. **The landing:** a real landing as static markup in `index.html`, the same bytes for every client. Before the
-   first paint the inline script sets `html.game` where the game will load, and CSS hides the landing there: the
-   desktop starts the game at once, as now. Phones, browsers without WebGL, clients without JS and bots see the
-   landing. Screen 10 becomes that landing (`small-screen.ts` only wires its buttons). Alternatives: keep screen 10
-   and only unhide the text; a separate `/play` path.
-2. **What ships in 1.6.1:** the landing and the head (phases 1 and 2: `html.game`, one h1, `failed()` shows the
-   landing, title and JSON-LD, sitemap, robots, IndexNow); the extra pages and the outside work as items of their own.
-3. **The landing's design:** the owner designs it from a content spec; until then a plain, unstyled landing that
-   isn't shipped as final.
-4. **The words:** the one definition used everywhere, the h1 and the title (the study's candidates: "Hidden Roof is a
-   free multiplayer graffiti game in your browser — paint ink-drawn rooftops alone or with friends."; h1 "Hidden Roof
-   — a free multiplayer graffiti game in your browser"; title "Hidden Roof — free browser graffiti game").
-5. **About in the menu:** an About item in the pause menu's about column opens the same landing over the game.
-6. **Structured data:** one `@graph` with `WebSite`, the author `Person`, and the `VideoGame`/`WebApplication` with
-   `applicationCategory: GameApplication`, `browserRequirements` and `dateModified`; no `aggregateRating` (no real
-   ratings), no `FAQPage` (no rich result since 2026-05-07).
-7. **Sitemap, robots, IndexNow:** `lastmod` from git at build time; robots as it is (all bots allowed, `/levels/` and
-   `/licenses/` disallowed); an IndexNow key and a post-deploy ping.
-8. **Extra pages** (`/about`, `/how-to-play`, `/press`, `/updates/<slug>`): when, and built how (static HTML in
-   `public/` like `terms.html`, or Vite multi-page).
-9. **Claims the FAQ makes:** "no ads, no in-game purchases" (there is a Ko-fi link); "a private session with its
-   five-letter code for you and up to three friends" (players can't make one in 1.6: `SERVER.playerHost` is false).
-10. **Outside presence** (itch.io, Reddit, Show HN, YouTube, listicles) and the monthly AI-prompt check: backlog items
-    of their own, the owner's work.
+None.
