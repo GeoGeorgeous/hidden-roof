@@ -57,6 +57,7 @@ import { multiplayerMenu } from './net/net-menu';
 import { seedPaintRandom } from './lcg';
 import { fanLevel, metalDrops } from './emitter-sounds';
 import { guarded } from './frame-guard';
+import { smallWindow } from './small-window';
 
 // F3's defaults before anything changes config (the panel isn't in the player build).
 if (__DEV_TOOLS__) captureDefaults();
@@ -182,7 +183,7 @@ settings.onChange = (key) => beacon.setting(key);
 
 const play = new PlayState(input, session, {
   release: () => document.exitPointerLock(),
-  resume: () => input.requestLock(),
+  resume: (fullscreen) => input.requestLock(fullscreen),
   page: () => hud.menu.onPage,
   back: () => hud.menu.goBack(),
   primary: () => hud.menu.primary(),
@@ -207,7 +208,7 @@ input.onLockChange = (locked) => {
     audio.setScribble(0);
   }
 };
-input.onResume = hud.menu.onResume = () => play.resume();
+input.onResume = hud.menu.onResume = (fullscreen) => play.resume(fullscreen);
 hud.menu.onStyle = (i) => (settings.setStyle(i), beacon.setting('graphics.style'));
 hud.menu.onSocial = (id) => beacon.count(id);
 showMenu();
@@ -222,6 +223,7 @@ tools.ladder.others = () => [...net.shown, ...(dev?.figures ?? [])];
 tools.onCapChange = (name) => hud.showCapTag(name);
 tools.onColorChange = (color) => hud.showColorTag(color, COLORS[color]);
 
+smallWindow();
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();

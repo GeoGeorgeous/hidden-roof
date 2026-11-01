@@ -2957,3 +2957,33 @@ body.paused .layer-toast {
 .dialog button.esc:hover {
   color: var(--paper);
 }
+
+/* The window smaller than the game needs (small-window.ts): a note over everything until it is big enough. */
+.small-window {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 24px;
+  background: rgba(0, 0, 0, 0.88);
+  color: var(--paper);
+  font-family: var(--sans);
+  text-align: center;
+}
+.small-window[hidden] {
+  display: none;
+}
+.small-window b {
+  font: 400 40px / 1 var(--display);
+}
+.small-window p {
+  max-width: 420px;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-1);
+}

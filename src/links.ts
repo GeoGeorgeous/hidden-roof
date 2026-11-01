@@ -14,3 +14,5 @@ export const KOFI = 'https://ko-fi.com/D0Q7296HCP';
 /** The static legal pages (public/terms.html, public/privacy.html). */
 export const TERMS = '/terms.html';
 export const PRIVACY = '/privacy.html';
+/** Every release note as a page of the site, written by the build (src/updates-html.ts). */
+export const UPDATES = '/updates.html';

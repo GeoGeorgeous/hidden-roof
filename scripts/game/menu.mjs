@@ -59,7 +59,7 @@ await check('menu: Esc goes back from a page to the pause screen and there resum
     input.requestLock = requestLock;
     return { audio, back, after, graphics, style, on, dialog, mp, mpBack, resumes };
   });
-  const ok = r.audio[0] === 'seg back | page settings-page' && /sound/i.test(r.audio[1]) && r.back.join() === 'false,false' && /pause/.test(r.after) && /graphics/i.test(r.graphics) && /old manga/i.test(r.style) && r.on === 'New manga' && r.dialog && r.mp.join() === 'false,1' && /pause/.test(r.mpBack) && r.resumes.join() === 'false,true';
+  const ok = r.audio[0] === 'seg back | page settings-page' && /audio/i.test(r.audio[1]) && r.back.join() === 'false,false' && /pause/.test(r.after) && /graphics/i.test(r.graphics) && /old manga/i.test(r.style) && r.on === 'New manga' && r.dialog && r.mp.join() === 'false,1' && /pause/.test(r.mpBack) && r.resumes.join() === 'false,true';
   return ok ? null : JSON.stringify(r);
 });
 
@@ -67,7 +67,7 @@ await check('settings: Shift + click puts a slider back to its default; PAINT an
   const r = await page.evaluate(() => {
     const { menu } = window.game.hud;
     const row = (name) => [...document.querySelectorAll('.settings-page .setting-row')].find((r) => r.querySelector('.label').textContent.startsWith(name));
-    menu.openSettings('Sound');
+    menu.openSettings('Audio');
     const input = row('Master').querySelector('input');
     input.value = '150';
     input.dispatchEvent(new Event('input'));
@@ -186,11 +186,11 @@ await check('performance test: first on Graphics, its Run button on the values b
   return ok ? null : JSON.stringify(r);
 });
 
-await check('settings: no description runs under its control: 16px clear of it on Gameplay, Graphics and Sound (the widest control), and of the first key slot on Controls', async () => {
+await check('settings: no description runs under its control: 16px clear of it on General, Graphics and Audio (the widest control), and of the first key slot on Controls', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
     const bad = [];
-    for (const tab of ['Gameplay', 'Graphics', 'Sound', 'Controls']) {
+    for (const tab of ['General', 'Graphics', 'Audio', 'Controls']) {
       g.hud.menu.openSettings(tab);
       for (const row of document.querySelectorAll('.settings-page .setting-row, .settings-page .control-row')) {
         for (const desc of row.querySelectorAll('.desc')) {
@@ -246,14 +246,14 @@ await check('settings: gameplay, sound and on/off settings are remembered after 
       input.value = String(v);
       input.dispatchEvent(new Event('input'));
     };
-    menu.openSettings('Gameplay');
+    menu.openSettings('General');
     row('Show left hand').querySelectorAll('.choice button')[1].click();
-    menu.openSettings('Sound');
+    menu.openSettings('Audio');
     slide('Master', 150);
     const saved = localStorage.getItem('roofhiddenhaus.settings');
     // Back to the defaults: nothing left to save.
     slide('Master', 100);
-    menu.openSettings('Gameplay');
+    menu.openSettings('General');
     row('Show left hand').querySelectorAll('.choice button')[1].click();
     menu.openPage(null);
     return { saved: JSON.parse(saved).values, after: JSON.parse(localStorage.getItem('roofhiddenhaus.settings')).values };

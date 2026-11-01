@@ -12,8 +12,8 @@ the repo; its facts are checked against the code before they go on a page.
 - **The page about the game** in place of screen 10: static in `index.html`, in the look of the Terms and Privacy
   pages, with the one h1, the definition, what you need, how to play, multiplayer, a FAQ and the links; no Copy link.
   In the game, the pause menu's About → Game opens it over the paused game, a circle growing from the item; its
-  "Back to the game" button (and Esc) closes it, the circle shrinking back. The label "Game" is the owner's, beside
-  Settings → Game. Where the game loads, `html.game` hides it before the first paint (the
+  "Back to the game" button (and Esc) closes it, the circle shrinking back. The label "Game" is the owner's; Settings → Game
+  became Settings → General beside it, and the settings' tabs took the menu's names (General, Audio). Where the game loads, `html.game` hides it before the first paint (the
   inline script, the dev server too); when the game fails to start it shows, saying why.
 - **In search results:** the site name from `WebSite` (`@graph` with the game), the title and the description
   below; the game's structured data gets `GameApplication`, `browserRequirements` and the definition.
@@ -21,6 +21,15 @@ the repo; its facts are checked against the code before they go on a page.
   fact: the owner's call, as the site takes weeks to be read and 1.7.0 comes soon. The controls list stays as the game is
   until 1.7.0 ships (no Shift + wheel yet). Also now: `numberOfPlayers` (1 to 40), `featureList`, the genre Painting,
   and a FAQ on a free online wall anyone can paint. Not "legal wall" (the owner's no).
+- **The FAQ** ("Questions & answers") holds 29 questions, each phrased as players ask it (friends, painting at once,
+  tools, caps, colors, drips, the level, how many levels, phone or tablet, requirements, controller, updates, release
+  date), each answer starting with the direct answer: for search and assistants. Every answer is true of the game as it
+  is, the 1.7.0 painting aside; keep them true with each release.
+- **The Updates page** (`/updates.html`, 1.6.1): the release notes as plain HTML, written by the build with the parser
+  the game's Updates popup uses, so it can't fall behind; one page with an anchor per version (not a page each: seven
+  short pages are thin), in the Terms look, in the sitemap with the newest release's date.
+- **The facts** under the hero: six cards (price, multiplayer, platform, access, technology, experience), the owner's
+  design and words. The release dates and the author are in Latest updates, the footer, the FAQ and the structured data.
 - **llms.txt** opens with the definition; **sitemap** gets a `lastmod`, set at each release that changes the page.
 - After the deploy: submit the sitemap in Search Console and ask for the page to be indexed again.
 
@@ -38,7 +47,8 @@ the repo; its facts are checked against the code before they go on a page.
   unstyled, never shipped as final.
 - **The words:** the one definition, said the same everywhere (landing, FAQ, JSON-LD, llms.txt, README, portals):
   "Hidden Roof is a free multiplayer graffiti game in your browser — paint ink-drawn rooftops alone or with friends."
-  The h1: "Hidden Roof — a free multiplayer graffiti game in your browser". The title (og and twitter too): "Hidden
+  The h1 (1.6.1: the owner's change, the h1 and the lead said the same twice): the definition itself, shown as the
+  name large and the rest of the sentence under it; seo.test checks it word for word. The title (og and twitter too): "Hidden
   Roof — free browser graffiti game".
 - **The description** (meta, og, twitter and the manifest, 128 characters: Google cuts it near 120 on phones, 155
   on desktops, so the keywords come first): "Free online graffiti game in your browser. The city is ink, the color is

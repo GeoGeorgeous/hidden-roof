@@ -32,6 +32,13 @@ export const RENDER = {
    * (vite.config.ts).
    */
   minViewport: { w: 820, h: 560 },
+  /**
+   * A resize is checked against minViewport at most this often (ms): the game covers itself with a note while the
+   * window is smaller (small-window.ts), the page about the game offers Play now once it is big enough (boot.ts).
+   */
+  minViewportCheck: 250,
+  /** The page about the game's Send link button says the link was copied this long (ms; boot.ts). */
+  linkCopied: 2500,
   /** Go fullscreen when the game takes the mouse (off: play in the browser window). */
   fullscreen: true,
   /** Moving prop parts: CCTV heads pan and follow, AC fans spin. Off: they stay at rest. */
@@ -1690,7 +1697,7 @@ export const CCTV = {
 
 /** Hints in play (src/tutorial). Times are visible play seconds: paused, F3, build mode and a hidden tab don't count. */
 export const TUTORIAL = {
-  /** Hints on (Settings → Gameplay → Hints). Off: none show and none are learnt. */
+  /** Hints on (Settings → General → Hints). Off: none show and none are learnt. */
   enabled: true,
   /** The first hint (move, run, jump) waits this long after play starts (s). */
   moveDelay: 1.5,

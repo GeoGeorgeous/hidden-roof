@@ -3,9 +3,11 @@ import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { extname, join } from 'node:path';
 import { brotliCompressSync, constants, gzipSync } from 'node:zlib';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import pkg from './package.json' with { type: 'json' };
 import { LEVELS, PRECOMPRESS, RENDER } from './src/config.ts';
+import { UPDATES } from './src/links.ts';
+import { updatesHtml } from './src/updates-html.ts';
 
 // The build's version (src/version.ts): git describe from the last release tag,
 // prefixed with package.json's version until the first tag exists; just that
@@ -22,6 +24,24 @@ function version(): string {
 
 // The releases with a picture (public/updates/<tag>.webp): a patch may have none (docs/releases/AGENTS.md).
 const pictures = () => readdirSync('public/updates').filter((f) => f.endsWith('.webp')).map((f) => f.slice(0, -5));
+
+// The site's Updates page (src/updates-html.ts), written from the release notes as they are: by the build next to
+// index.html, by the dev server on each request.
+const notes = () => readdirSync('docs/releases').filter((f) => /^v.*\.md$/.test(f)).map((f) => ({ tag: f.slice(0, -3), md: readFileSync(`docs/releases/${f}`, 'utf8') }));
+const updatesPage: Plugin = {
+  name: 'updates-page',
+  apply: (_, env) => !env.isSsrBuild,
+  configureServer(server) {
+    server.middlewares.use((req, res, next) => {
+      if (req.url?.split('?')[0] !== UPDATES) return next();
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.end(updatesHtml(notes(), pictures()));
+    });
+  },
+  generateBundle() {
+    this.emitFile({ type: 'asset', fileName: UPDATES.slice(1), source: updatesHtml(notes(), pictures()) });
+  },
+};
 
 // The player build ships only the release levels (LEVELS.release in config.ts), each with its own paint if it has some (src/save/level-paint.ts).
 const releaseLevels = {
@@ -181,8 +201,8 @@ const gamePreload = () => {
 // The dev tools (src/dev: build mode, F3, window.game) are in the dev server and
 // npm run build:dev; npm run build, the player build, leaves them out.
 export default defineConfig(({ mode, isSsrBuild }) => ({
-  plugins: [releaseLevels, stripComments, gamePreload(), precompress()],
-  define: { __VERSION__: JSON.stringify(version()), __DEV_TOOLS__: JSON.stringify(mode !== 'production'), __MIN_VIEWPORT__: JSON.stringify(RENDER.minViewport), __PICTURES__: JSON.stringify(pictures()) },
+  plugins: [releaseLevels, stripComments, gamePreload(), updatesPage, precompress()],
+  define: { __VERSION__: JSON.stringify(version()), __DEV_TOOLS__: JSON.stringify(mode !== 'production'), __MIN_VIEWPORT__: JSON.stringify(RENDER.minViewport), __BOOT_TIMES__: JSON.stringify({ check: RENDER.minViewportCheck, copied: RENDER.linkCopied }), __PICTURES__: JSON.stringify(pictures()) },
   ssr: { noExternal: true },
   build: { copyPublicDir: !isSsrBuild },
   server: { proxy: { '/ws': { target: process.env.WS_TARGET ?? 'ws://localhost:3000', ws: true } } },

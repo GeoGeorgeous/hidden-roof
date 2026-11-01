@@ -100,7 +100,7 @@ export class Input {
   lastActive = performance.now() / 1000;
   onLockChange: (locked: boolean) => void = () => {};
   /** A click on the game while paused: resume (main.ts routes it through the play state). */
-  onResume: () => void = () => this.requestLock();
+  onResume: (fullscreen?: boolean) => void = (fullscreen) => this.requestLock(fullscreen);
   /** A key went down or up: true when it's the menu's (Esc; Enter on the pause menu, play-state.ts), so it isn't a game key. */
   onMenuKey: (code: string, down: boolean, repeat: boolean) => boolean = () => false;
 
@@ -213,9 +213,11 @@ export class Input {
   /**
    * Resume: pointer lock, fullscreen and keyboard lock. Call from a user gesture.
    * Chromium refuses pointer lock for about a second after Esc released it; the
-   * pause menu simply stays up and the next click tries again.
+   * pause menu simply stays up and the next click tries again. `fullscreen`
+   * false: no fullscreen, whatever FORCED FULLSCREEN says (the page about the
+   * game's way back keeps a windowed game windowed, about-portal.ts).
    */
-  requestLock() {
+  requestLock(fullscreen = true) {
     // Raw: without OS acceleration. A browser without it rejects (NotSupportedError), and the plain lock follows.
     this.rawLocked = PLAYER.rawMouse;
     try {
@@ -228,7 +230,7 @@ export class Input {
     } catch {
       // Refused (see above).
     }
-    if (RENDER.fullscreen) void enterGameFullscreen();
+    if (fullscreen && RENDER.fullscreen) void enterGameFullscreen();
   }
 
   /** Any of the action's bindings held (the left and right buttons as tests set them). */

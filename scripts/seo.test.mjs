@@ -3,7 +3,7 @@
 // bare <script> (the CSP allows one, vite.config.ts).
 // Usage: npm test
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 const html = read('index.html');
@@ -45,14 +45,24 @@ assert.deepEqual(ld.sameAs, SOCIAL.map((name) => links[name]));
 // The page about the game is what a phone, Google's phone crawler and every crawler without JavaScript read: the
 // page's one h1 is its title, and it says the one definition of the game, word for word as the structured data and
 // llms.txt do. Nothing in it is hidden by markup (only html.game hides it, where the game loads).
-const about = live.match(/<main class="about">[\s\S]*?<\/main>/)?.[0];
-assert.ok(about, 'index.html: no <main class="about">');
+const about = live.match(/<div class="about">[\s\S]*?(?=<script type="module")/)?.[0];
+assert.ok(about, 'index.html: no <div class="about">');
+assert.match(about, /<main>[\s\S]*<h1>/, 'index.html: the h1 in the page about the game\'s <main>');
 assert.equal(live.match(/<h1[\s>]/g)?.length, 1, 'index.html: one h1');
-assert.match(about, /<h1>[^<]+<\/h1>/);
+const h1 = about.match(/<h1>([\s\S]*?)<\/h1>/)?.[1].replace(/<[^>]+>/g, '');
+assert.ok(h1, 'index.html: no h1 in the page about the game');
 assert.ok(!/<main[^>]*\shidden/.test(live), 'index.html: the page about the game is not hidden');
+// Fresh as the last release: its version and day lead Latest updates, and the structured data's dateModified is the
+// sitemap's lastmod (docs/releases/AGENTS.md: both set at a release that changes the page).
+const releases = readdirSync(new URL('../docs/releases', import.meta.url)).filter((f) => /^v\d+\.\d+\.\d+\.md$/.test(f));
+const newest = releases.map((f) => f.slice(1, -3).split('.').map(Number)).sort((a, b) => b[0] - a[0] || b[1] - a[1] || b[2] - a[2])[0];
+const released = read(`docs/releases/v${newest.join('.')}.md`).match(/^date: (\S+)/m)[1];
+const short = newest[2] ? newest.join('.') : newest.slice(0, 2).join('.');
+assert.match(about, new RegExp(`<ul class="updates">\\s*<li><time datetime="${released}">[^<]+</time> <strong><a href="/updates.html#v${newest.join('\\.')}">Hidden Roof ${short.replace(/\./g, '\\.')}</a></strong>`), `index.html: Latest updates starts with ${short} of ${released}`);
+assert.equal(read('public/sitemap.xml').match(/<lastmod>([^<]+)<\/lastmod>/)?.[1], ld.dateModified, 'the sitemap\'s lastmod is the structured data\'s dateModified');
 const definition = ld.description;
 assert.match(definition, /^Hidden Roof is /);
-assert.ok(about.includes(definition), 'index.html: the page about the game says the definition');
+assert.equal(h1, definition, 'index.html: the h1 is the definition');
 assert.ok(read('public/llms.txt').includes(`> ${definition}`), 'public/llms.txt: the definition as its summary');
 
 assert.equal(html.replace(/<!--[\s\S]*?-->/g, '').match(/<script>/g)?.length, 1, 'index.html: one bare <script>');
@@ -60,7 +70,7 @@ assert.equal(html.replace(/<!--[\s\S]*?-->/g, '').match(/<script>/g)?.length, 1,
 // Every project link in the page about the game and in llms.txt is one of links.ts's, and each of them is there.
 const project = [links.AUTHOR, ...SOCIAL.map((name) => links[name])];
 const mine = (text) => text.match(/https?:\/\/(?:github\.com\/GeoGeorgeous|discord\.gg|(?:www\.)?(?:youtube|instagram|tiktok)\.com)[^\s"')<]*/g) ?? [];
-for (const [file, text] of [['index.html <main class="about">', about], ['public/llms.txt', read('public/llms.txt')]]) {
+for (const [file, text] of [['index.html <div class="about">', about], ['public/llms.txt', read('public/llms.txt')]]) {
   const found = mine(text);
   assert.deepEqual([...new Set(found)].sort(), [...project].sort(), `${file}: the project links`);
 }

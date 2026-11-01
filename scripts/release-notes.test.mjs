@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { SITE } from '../src/links.ts';
 import { body, discordNotes, githubNotes, linkable, newestFirst, parseRelease, splitLinks } from '../src/release-notes.ts';
+import { updatesHtml } from '../src/updates-html.ts';
 
 const dir = 'docs/releases';
 const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
@@ -82,4 +83,16 @@ for (const file of files) {
 assert.ok(files.includes(`v${pkg.version}.md`), `package.json's version ${pkg.version} has its note`);
 const sorted = [...releases].sort(newestFirst);
 for (let i = 1; i < sorted.length; i++) assert.ok(sorted[i - 1].date >= sorted[i].date, `${sorted[i - 1].tag} is dated on or after ${sorted[i].tag}`);
-console.log(`release notes: ${files.length} ok`);
+
+// The site's Updates page (src/updates-html.ts, written by the build): every release, newest first, its markdown made HTML.
+const notes = files.map((f) => ({ tag: f.slice(0, -3), md: fs.readFileSync(`${dir}/${f}`, 'utf8') }));
+const pictured = notes.map((n) => n.tag).filter((tag) => fs.existsSync(`public/updates/${tag}.webp`));
+const page = updatesHtml(notes, pictured);
+const order = [...page.matchAll(/<article id="([^"]+)">/g)].map((m) => m[1]);
+assert.deepEqual(order, sorted.map((r) => r.tag), 'the Updates page: every release, newest first');
+for (const tag of pictured) assert.ok(page.includes(`src="/updates/${tag}.webp"`), `the Updates page: ${tag}'s picture`);
+assert.ok(!/\*\*|\]\(/.test(page), 'the Updates page: no markdown left');
+assert.equal(page.match(/<h1>/g)?.length, 1, 'the Updates page: one h1');
+const sitemap = fs.readFileSync('public/sitemap.xml', 'utf8');
+assert.equal(sitemap.match(new RegExp(`<loc>${SITE}/updates.html</loc>\\s*<lastmod>([^<]+)</lastmod>`))?.[1], sorted[0].date, "the sitemap: the Updates page's lastmod is the newest release's date");
+console.log(`release notes: ${files.length} ok (and the Updates page)`);

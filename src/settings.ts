@@ -97,8 +97,8 @@ export class Settings {
       return row;
     };
     return [
-      { title: 'Gameplay', rows: gameplayRows(hints).map(saving('gameplay')) },
-      { title: 'Sound', rows: soundRows().map(saving('sound')) },
+      { title: 'General', rows: gameplayRows(hints).map(saving('gameplay')) },
+      { title: 'Audio', rows: soundRows().map(saving('sound')) },
       { title: 'Controls', rows: [], tab: new ControlsTab(() => (this.onChange('controls.keys'), this.save())) },
       { title: 'Graphics', rows: [{ kind: 'action', label: 'Performance test', desc: 'Flies over the roof for a few seconds at your current settings and shows how it ran.', button: 'Run', act: runTest }, ...this.graphicsRows(gpu).map(saving('graphics'))] },
     ];

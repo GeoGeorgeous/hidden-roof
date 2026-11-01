@@ -181,6 +181,9 @@ export const MESSAGES = {
     // ESC menu status line
     pauseIdle: 'Paused',
     pauseStart: 'Click to start',
+    // Over the game while the window is smaller than RENDER.minViewport (small-window.ts)
+    smallWindow: 'Make the window bigger',
+    smallWindowText: 'Hidden Roof needs a window at least {w}×{h}. The game waits here; it goes on once the window is big enough.',
     session: 'Session · {code}',
     // MULTIPLAYER page status; a failure appends its detail: "text (detail)"
     netConnecting: 'Connecting…',
@@ -261,7 +264,7 @@ export const MESSAGES = {
     createFileHint: 'Pick a .rhhpaint you saved',
     createNotPaint: "That isn't a .rhhpaint file.",
     createBusy: 'Creating…',
-    // Settings → Gameplay: the button's confirmation
+    // Settings → General: the button's confirmation
     hintsReset: 'Done: hints will show again',
     // Settings → Controls
     bindPrompt: 'Press a key, click a mouse button or scroll to bind {action}. Esc cancels.',

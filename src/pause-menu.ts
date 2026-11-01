@@ -3,6 +3,7 @@ import { AboutPortal } from './about-portal';
 import { INK_STYLES, PAUSE_MENU, SOCIAL_LINKS } from './config';
 import { creditsPage } from './credits-page';
 import { EscHold, ring } from './esc-hold';
+import { isFullscreen } from './fullscreen';
 import { currentOs } from './gpu-name';
 import { button, div, el, keyHint, runPrimary, segmented, sentence } from './menu-ui';
 import { AUTHOR, KOFI, PRIVACY, TERMS } from './links';
@@ -38,7 +39,8 @@ const LINE_SECONDS = 1;
 export type Page = 'settings' | 'mp' | 'join' | 'create' | 'loading' | 'queue' | 'credits' | 'updates' | 'save' | 'upload' | 'perf' | 'game';
 
 export class PauseMenu {
-  onResume = () => {};
+  /** Back to the game; `fullscreen` false: as it is, windowed or not (input.ts requestLock). */
+  onResume = (_fullscreen?: boolean) => {};
   /** LEAVE SESSION, in a multiplayer session (net/net-menu.ts). */
   onLeave = () => {};
   /** A style picked on the switcher (INK_STYLES index). */
@@ -110,13 +112,13 @@ export class PauseMenu {
     hero.append(div('title', 'Hidden Roof'), this.status, this.line.el, start);
     this.savePaint = item('Save', () => this.openPage('save'));
     this.loadPaint = item('Upload', () => this.openPage('upload'));
-    // About → Game: the page about the game, through the portal; its button goes back into the game.
-    const portal = new AboutPortal(() => (this.openPage(null), this.onResume()));
+    // About → Game: the page about the game, through the portal; its button goes back into the game as it was, a windowed game windowed.
+    const portal = new AboutPortal(() => (this.openPage(null), this.onResume(isFullscreen())));
     const game = item('Game', () => (portal.aim(game), this.openPage('game')));
     const menu = div('menu');
     menu.append(
       column('paint', this.savePaint, this.loadPaint),
-      column('settings', ...Object.entries({ Game: 'Gameplay', Audio: 'Sound', Controls: 'Controls', Graphics: 'Graphics' }).map(([t, tab]) => item(t, () => this.openSettings(tab)))),
+      column('settings', ...['General', 'Audio', 'Controls', 'Graphics'].map((tab) => item(tab, () => this.openSettings(tab)))),
       column('about', game, item('Updates', () => this.openPage('updates')), item('Credits', () => this.openPage('credits'))),
     );
     // The title group stands on the menu, both on the menu's line from the bottom.
@@ -225,7 +227,7 @@ export class PauseMenu {
     el.hidden = this.page !== page;
   }
 
-  /** The settings page on the tab with this title (Gameplay, Sound, Controls, Graphics); `row`: scrolled to the row with this label. */
+  /** The settings page on the tab with this title (General, Audio, Controls, Graphics); `row`: scrolled to the row with this label. */
   openSettings(tab: string, row?: string) {
     this.openPage('settings');
     this.settingsPage?.showTab(tab, row);
