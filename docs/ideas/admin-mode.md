@@ -45,7 +45,8 @@ are built.
 - **Fly:** build mode's fly (`player.fly`: no gravity, no collisions) on a key. Movement is the game's own anyway:
   nothing for the server to guard.
 - **Keys** (in `config.ts`), listed on screen, texts in `src/messages.ts`: H seen and unseen, J fly, L lock or unlock
-  the face pointed at, O lock outlines, Tab the player list.
+  the face pointed at, O lock outlines, G the player list (go to). In play, none of them is taken (H, L and O are build mode's
+  and the paint editor's only; Tab is build mode's, so not Tab).
 - **Inventory:** every color and cap at once, and every tool the session allows (`setup.tools`: the server drops ops
   of tools that are off anyway); nothing to pick up, and the session's pickups stay as they are.
 - **Kicks and bans stay on cctv:** in the game the admin watches; cctv's session page kicks and bans, as now.
@@ -80,8 +81,12 @@ are built.
 - **Stays in 1.6.1**, though its notes say a patch; the notes are rewritten for it.
 - **A protocol bump** (new messages: `PROTOCOL` 9 to 10) wipes the public sessions' paint at deploy, as a new protocol
   does today (`server/kept.ts`). Accepted.
-- **Files at the size limit** first: `server/session.ts` (393 lines) and `src/net/multiplayer.ts` (399) split by
-  responsibility, behavior the same, before the work.
+- **Files at the size limit** (`server/session.ts` 393 lines, `src/net/multiplayer.ts` 399): split only where it is
+  logical. The new parts go in modules of their own (the passes, the locks, the admins' map on the server;
+  `src/admin/` and the locks in the game), so these two get only their hooks. If they still pass ~400: helpers, types
+  and config out, e.g. the session's SAVE serving into `server/paint-files.ts` and admit's matching of a link to a
+  player (token, device, a dropped nickname) into `server/player.ts`. Behavior the same, `npm run check` before and
+  after.
 
 ## 1.7.1: who painted what (IDEA-288) and a timelapse (IDEA-289)
 
