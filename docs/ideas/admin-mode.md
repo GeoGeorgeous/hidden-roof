@@ -88,6 +88,40 @@ are built.
   player (token, device, a dropped nickname) into `server/player.ts`. Behavior the same, `npm run check` before and
   after.
 
+### How it is built (the design checked against the code, 2026-11-01)
+
+The same behavior as above, at the least code; each is where the code already does most of it.
+
+- **Server, admins:** their map, and one `everyone()` (players, then admins) for the six loops that reach everyone
+  (ping, wipe, restore, end, relay, broadcast in `server/session.ts`). Admitting, receiving and removing an admin is a
+  short path of its own (`server/admins.ts`) that never reaches the sites that count, list, log events or hold seats:
+  "no trace" and "never a seat" are that path, not checks scattered over the session.
+- **The pass:** one branch first in the link's message handler (`server/lobby.ts`), before the ban check: a JOIN with
+  a valid pass goes to the admin path and never through the bans, the rate, the seats or the line, so none of them
+  knows about admins. A `Map` in the same process as the admin API, deleted on use, the expired dropped at the next
+  pass made: no timer. An HMAC would not make it work once.
+- **Unseen is tools off:** the game takes every tool away with the session's existing `inventory.allowOnly`, and the
+  server drops an unseen admin's state, ops and inventory first thing; seen, the session's tools come back.
+- **Every color and cap:** `inventory.unlockAll()` once, from `src/admin/` (it already skips the tools a session
+  turned off). Not the F3 wrapper, nor the welcome's `inventory`: both run `pickups.collectOwned`, which takes the
+  session's pickups.
+- **No beacon:** one flag, set at boot when the URL carries the pass, read where the beacon sends: the first beacon
+  goes as the level is ready, before any welcome.
+- **No reconnect:** the server closes an admin's link on a wipe or restore with an existing rejection (`closed`), not
+  the players' reconnect code (1012); the game ends admin mode on any closed link with its own text, and never keeps
+  the token in the tab's session.
+- **Locks:** a `locked` flag on the face rect (`Rect`, `src/surfaces.ts`), the same object on the server and in the
+  game. Read where paint is written in `src/painting.ts`: `stamp()` and `roll()` (so the op isn't sent), `dot()` and
+  `band()` (which also catch a stroke spilling over a seam onto a locked neighbor face), and the runs' `dab`. The
+  server paints with the same code, so it refuses there too; `takenOps` gets one clause so the ops stay out of the
+  stats and the relay. On the wire: pairs of the surface's index (`SurfaceIndex`, `src/op-wire.ts`) and the rect,
+  all in the welcome, one pair on each change.
+- **The locked line:** painting sets a flag, read once a frame, shown as a toast no more often than a toast lasts.
+- **Outlines:** build mode's `PaintedSpots` (`src/build/painted-spots.ts`) is already one line mesh of face boxes
+  (`texelToWorld`): fed the locked faces, in red, made on the first O, gone when O is off.
+- **Plates:** one role field on the `joined` entries and the welcome's players. `admin` is taken (`SessionSetup.admin`:
+  a session cctv made), so the role gets another word (e.g. watcher), in `CONTEXT.md` when built.
+
 ## 1.7.1: who painted what (IDEA-288) and a timelapse (IDEA-289)
 
 Decided 2026-11-01: not before the Painting Rework (TASK-231), which should bring a painter's ops from ~1760 a second
