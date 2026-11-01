@@ -22,6 +22,11 @@ the repo; its facts are checked against the code before they go on a page.
   "Hidden Roof is a free multiplayer graffiti game in your browser — paint ink-drawn rooftops alone or with friends."
   The h1: "Hidden Roof — a free multiplayer graffiti game in your browser". The title (og and twitter too): "Hidden
   Roof — free browser graffiti game".
+- **The description** (meta, og, twitter and the manifest, 128 characters: Google cuts it near 120 on phones, 155
+  on desktops, so the keywords come first): "Free online graffiti game in your browser. The city is ink, the color is
+  yours: spray paint solo or in multiplayer with friends."
+- **The site name** in results ("hidden.haus" today) comes from the `WebSite` in the structured data below: its
+  `name` "Hidden Roof"; `og:site_name` alone doesn't set it.
 - **Out to the landing from the game:** an item in the pause menu shows the landing over the paused game; its
   portal takes the player straight back (no reload: session and paint stay). One class (`html.game`) does it; bots
   never meet it (they see the static landing, or keep it in the DOM under `display:none`, reachable from the menu).
