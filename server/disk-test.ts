@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { levelPaintFaces } from '../src/level/prop-pieces';
 import { encodeOps, SurfaceIndex } from '../src/op-wire';
+import { Saves } from './saves';
 import { join, start } from './test-kit';
 
 // What the kept sessions' disk work survives (kept.ts), against the built server: a save that fails is tried
@@ -107,7 +108,13 @@ try {
   await restart({ LEVELS_DIR: levels });
   assert.match(server.out(), /not made again: no level/);
   assert.deepEqual([record(), saves().filter((n) => n.startsWith(fresh))], [[], []]);
-  console.log('kept disk work: ok (a failed save tried again, leftovers cleaned, sessions.json not a list or with bad entries, wipes and closes at once, a level that does not read)');
+  // A wipe's disk step that failed halfway is safe to run again: what it had put aside is not taken for the last wipe's and replaced.
+  const half = fs.mkdtempSync(path.join(os.tmpdir(), 'roof-aside-'));
+  for (const n of ['AAAAA-50.wiped.rhhpaint', 'AAAAA-50.wiped.json', 'AAAAA-200.wiped.rhhpaint', 'AAAAA-200.wiped.json', 'AAAAA-100.rhhpaint', 'AAAAA-100.json']) fs.writeFileSync(path.join(half, n), n);
+  await new Saves(half).aside('AAAAA');
+  assert.deepEqual(fs.readdirSync(half).sort(), ['AAAAA-100.wiped.json', 'AAAAA-100.wiped.rhhpaint', 'AAAAA-200.wiped.json', 'AAAAA-200.wiped.rhhpaint']);
+  fs.rmSync(half, { recursive: true });
+  console.log('kept disk work: ok (a failed save tried again, a wipe\'s put-aside run again, leftovers cleaned, sessions.json not a list or with bad entries, wipes and closes at once, a level that does not read)');
 } finally {
   fs.chmodSync(dir, 0o755);
   await server.stop();

@@ -2,20 +2,21 @@ import { randomUUID } from 'node:crypto';
 import { SERVER } from '../src/config';
 import { SLOTS, type Tool } from '../src/inventory/tool';
 import type { LevelData } from '../src/level/level-data';
-import { decodeOps, encodeOps, SurfaceIndex } from '../src/op-wire';
-import { opTool } from '../src/paint-ops';
+import { decodeOps, SurfaceIndex } from '../src/op-wire';
 import { encode, partFrames, relayEntry, type Rejection, type ToClient, type ToServer } from '../src/net/protocol';
 import { loadPaint } from '../src/save/load-paint';
 import { surfaceTable } from '../src/save/shape';
 import { countPaint, SessionStats } from './counts';
 import { event } from './events';
 import { history } from './history';
+import { hold, release } from './held';
 import { log, logNoisy, span, who } from './log';
 import { turnedAway } from './minutes';
-import { deliver, presence, turnAway, uniqueName, type Link, type Player } from './player';
+import { deliver, presence, stampedBy, theirs, turnAway, uniqueName, type Link, type Player } from './player';
 import { Queue } from './queue';
 import { forget, relay } from './relay';
 import { HOSTED } from './setup';
+import { takenOps } from './ops-in';
 import { PaintFiles } from './paint-files';
 import { fit, mostPaint } from './paint-fit';
 import { inTurn, Snapshot } from './snapshot';
@@ -76,7 +77,7 @@ export class Session {
     readonly setup = HOSTED,
   ) {
     this.off = new Set(SLOTS.filter((t) => !setup.tools.includes(t)));
-    this.line = new Queue(code, () => this.players.size < this.setup.limit);
+    this.line = new Queue(code, () => this.setup.limit - this.players.size);
     this.range = levelRange(level);
     this.world = sessionPaint(level, detail);
     this.files = new PaintFiles(code, this.world.paint, levelName);
@@ -98,31 +99,29 @@ export class Session {
 
   /**
    * A player on `link`: with the token of one still here, or the device of one whose link is open, that player again (a
-   * reconnect, `back`); without, one who dropped under the same name (a new
+   * reconnect, `back`); without, one who dropped under the same name, from their device or address (a new
    * tab, `takeover`: their stepladder and slot); else a new one, numbered if
    * the name is taken. Their welcome carries the paint as a paint file and the
    * ops painted since it was read; then they're live. Turned away when the
-   * session is full or there's no memory for a paint file. `note`: for the log.
+   * session is full or there's no memory for a paint file. `note`: for the log; `welcomed`: false if their link was gone before the welcome was made (they are counted as nothing).
    */
-  async admit(link: Link, name: string, token?: string): Promise<{ p: Player; how: How; note: string } | Rejection> {
+  async admit(link: Link, name: string, token?: string): Promise<{ p: Player; how: How; note: string; welcomed: boolean } | Rejection> {
     // Players dropped by a restore come back to the restored paint.
     if (this.restoring) await this.restoring.catch(() => {});
     const all = [...this.players.values()];
     let p = token ? all.find((q) => q.token === token) : undefined;
     // No token, but the device of a player whose link is still open (a tab whose session storage is gone, a second tab): the same player.
     if (!p && link.device) p = all.find((q) => q.device === link.device && q.link?.open);
-    const dropped = all.filter((q) => !q.link);
+    // A dropped player's seat is taken back by typing their nickname, but only from their device or address.
+    const dropped = all.filter((q) => !q.link && theirs(q, link));
     const how = p ? 'back' : (p = dropped.find((q) => q.name === name) ?? dropped.find((q) => q.asked === name)) ? 'takeover' : 'new';
     if (!p && this.setup.kind === 'public' && all.filter((q) => (q.link ?? q.was)?.ip === link.ip).length >= SERVER.seatsPerIp) return 'seats';
     if (!p && this.players.size >= this.setup.limit) return 'full';
     const snap = this.files.get(() => p?.link === link && link.open);
     if (snap === 'busy') return 'busy';
-    this.counts[how]++;
-    if (how === 'new') this.stats.joins++;
     let note = '';
     if (p) {
-      if (p.expires) clearTimeout(p.expires);
-      p.expires = null;
+      release(p);
       const was = p.was;
       note = p.link ? `; replaces its link from ${p.link.ip}, open ${span(Date.now() - p.link.since)}` : was ? `; its link from ${was.ip} closed ${span(Date.now() - was.at)} ago, open ${span(was.lived)}` : '';
       // Still there on another link (a duplicated tab carries the token along): that one goes, told why, so it doesn't come back.
@@ -155,7 +154,8 @@ export class Session {
       this.dropped(p, link);
       throw e;
     }
-    if (!frames || p.link !== link) return { p, how, note };
+    // No welcome was made (their link is gone): the lobby drops them, and this was no join to count.
+    if (!frames || p.link !== link) return { p, how, note, welcomed: false };
     // The host from a save: that save is its paint.
     const own = snap === this.seed;
     this.seed = null;
@@ -170,7 +170,9 @@ export class Session {
     p.live = true;
     if (how !== 'new') this.broadcast({ type: 'presence', id: p.id, state: 'here' }, p);
     snap.served++;
-    return { p, how, note: `${note}${snap.served > 1 ? `; paint file shared (${snap.served})` : ''}` };
+    this.counts[how]++;
+    if (how === 'new') this.stats.joins++;
+    return { p, how, welcomed: true, note: `${note}${snap.served > 1 ? `; paint file shared (${snap.served})` : ''}` };
   }
 
   receive(p: Player, m: ToServer) {
@@ -185,26 +187,20 @@ export class Session {
       const batch = decodeOps(m.bytes, this.surfaces);
       // A game can send these at its rate: logged as a stranger's lines are.
       if (!batch) return void logNoisy(p.link?.ip ?? '-', this.code, who(p), 'paint ops it could not read: dropped');
-      // Ops on a face their surface doesn't have, and ops of a tool the session turned off, are dropped.
-      const { paint, ops } = this.world;
-      const keep = batch.ops.map((op) => {
-        const tool = opTool(op);
-        return op.rect < (paint.find(op.key)?.geo.rects.length ?? 0) && !(tool && this.off.has(tool));
-      });
-      const valid = batch.ops.filter((_, i) => keep[i]);
-      this.files.now(() => valid.forEach((op) => ops.apply(op)));
+      const { paint, ops: painter } = this.world;
+      const { ops: valid, bytes } = takenOps(batch, m.bytes, p, paint, this.off, this.surfaces);
+      this.files.now(() => valid.forEach((op) => painter.apply(op)));
       if (!valid.length) return;
       countPaint(valid, [history.now(), this.stats.paint]);
       this.stats.painter(p.name);
       this.changed = true;
-      const bytes = valid.length === batch.ops.length ? m.bytes : encodeOps(batch.t.filter((_, i) => keep[i]), valid, this.surfaces);
       this.relay(relayEntry('ops', p.id, bytes), p);
       this.files.log(() => encode({ type: 'paint', bytes }));
     } else if (m.type === 'ladder') {
       // Putting one down with the stepladder off is dropped (picking it up is not).
       if (m.data && this.off.has('ladder')) return;
       p.ladder = m.data;
-      this.broadcast({ type: 'ladder', id: p.id, t: m.t, data: m.data }, p);
+      this.broadcast({ type: 'ladder', id: p.id, t: stampedBy(p, m.t), data: m.data }, p);
     } else if (m.type === 'save') void this.save(p);
     else if (m.type === 'inventory') p.inventory = m.data;
     else if (m.type === 'status') {
@@ -217,16 +213,16 @@ export class Session {
     else if (m.type === 'leave') this.remove(p, 'left');
   }
 
-  /** Their link closed: they have `hold` s to come back. */
-  dropped(p: Player, link: Link, hold = SERVER.rejoinWindow) {
+  /** Their link closed: they have `held` s to come back. */
+  dropped(p: Player, link: Link, held = SERVER.rejoinWindow) {
     if (p.link !== link) return;
     p.link = null;
     p.live = false;
     p.since = Date.now();
-    p.was = { ip: link.ip, country: link.country ?? null, lived: Date.now() - link.since, at: Date.now(), hold };
-    event('dropped', this, p.name, { held: hold });
+    p.was = { ip: link.ip, country: link.country ?? null, lived: Date.now() - link.since, at: Date.now(), hold: held };
+    event('dropped', this, p.name, { held });
     this.broadcast({ type: 'presence', id: p.id, state: 'dropped' }, p);
-    p.expires = setTimeout(() => this.remove(p, `didn't come back in ${hold} s`), hold * 1000);
+    hold(p, held, () => this.remove(p, `didn't come back in ${held} s`));
   }
 
   /** Paint runs move on (`dt` s). */
@@ -332,7 +328,7 @@ export class Session {
    */
   private out(p: Player, why: string, told?: 'kicked' | 'closed') {
     if (this.players.get(p.id) !== p) return false;
-    if (p.expires) clearTimeout(p.expires);
+    release(p);
     this.players.delete(p.id);
     if (p.inventory || p.at) this.carry(p);
     log(this.code, who(p), `out: ${why} (${this.players.size} players)`);

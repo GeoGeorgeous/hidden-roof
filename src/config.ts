@@ -1049,6 +1049,12 @@ export const NET = {
    */
   tabRetries: 3,
   tabRetryGap: 0.15,
+  /** The queue page redraws this often (ms) while the link is lost, for its countdown. */
+  queueRedraw: 500,
+  /** A link closed for its silence (serverSilence) that the browser has not reported closed in this long (s) is given up on: the game reconnects without waiting for it. */
+  closeWait: 3,
+  /** Paint ops and stepladders of another player wait for their time; past this many waiting (a clock far ahead), the oldest run at once. */
+  eventsKept: 4096,
   /** Snapshots sent per second. */
   sendRate: 20,
   /** A player standing still (their feet within stillMove m, everything else the same) sends this many a second instead. */
@@ -1167,6 +1173,21 @@ export const SERVER = {
   maxPayload: 64 * 2 ** 20,
   /** The largest message on any other link (bytes): JOIN, state, a frame's paint ops are KBs. */
   maxMessage: 2 ** 20,
+  /** What a game may send (net/protocol.ts checkToServer): the props of a hosted level (the roof has 1340; each costs the server building it), a level's name, a queue token (a UUID), and an inventory's lists (how many words, how long). */
+  maxProps: 5000,
+  levelNameMax: 64,
+  queueTokenMax: 64,
+  inventoryWords: 32,
+  inventoryWordMax: 32,
+  /**
+   * What a link may send its session once it is in (server/budget.ts): linkRate messages and bytes a second, and linkBurst
+   * saved up; past it the link is closed. A game sends ~45 messages (states at NET.sendRate, paint ops, a ping) and a few
+   * KB a second; the burst covers the paint ops it sends again after a drop (a message is maxMessage at most).
+   */
+  linkRate: { messages: 100, bytes: 64 * 2 ** 10 },
+  linkBurst: { messages: 300, bytes: 2 * 2 ** 20 },
+  /** The time a player stamps their paint ops and stepladder with (s, from when they joined) may be this far ahead of the time since they joined (server/session.ts): later is cut to it. */
+  timeSlack: 10,
   /** No new session once the server's live data (JS objects and paint) takes this much memory (MB); its container may use 3 GB (mem_limit, docs/deploy.md). HOST_MEMORY overrides it. */
   hostMemory: 1024,
   /** No new paint file (a welcome, SAVE) past this much (MB): the player is told the server is busy. SNAPSHOT_MEMORY overrides it. */

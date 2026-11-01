@@ -48,8 +48,6 @@ export interface Spot {
 }
 /** Player snapshot size (net/snapshot.ts). */
 export const SNAPSHOT_BYTES = 25;
-/** Most props a hosted level may have (the roof has 1340): each costs the server building it. */
-const MAX_PROPS = 5000;
 
 /**
  * Why the server turned a player away (the game says it in its own words):
@@ -293,7 +291,7 @@ export function checkToServer(m: Message | null): ToServer | null {
   if ((m.type === 'host' || m.type === 'join') && isInt(v.protocol) && v.protocol !== PROTOCOL) return m as ToServer;
   switch (m.type) {
     case 'host':
-      return isInt(v.protocol) && isDevice(v.device) && typeof v.table === 'string' && isName(v.name) && typeof v.levelName === 'string' && v.levelName.length <= 64 && !levelProblem(v.level, MAX_PROPS) && DETAILS.includes(v.detail as number) && isHosting(v.session) ? (m as ToServer) : null;
+      return isInt(v.protocol) && isDevice(v.device) && typeof v.table === 'string' && isName(v.name) && typeof v.levelName === 'string' && v.levelName.length <= SERVER.levelNameMax && !levelProblem(v.level, SERVER.maxProps) && DETAILS.includes(v.detail as number) && isHosting(v.session) ? (m as ToServer) : null;
     case 'join':
       return isInt(v.protocol) && isDevice(v.device) && isName(v.name) && isCode(v.code) && (v.token === undefined || typeof v.token === 'string') && (v.queue === undefined || isQueueToken(v.queue)) && !m.bytes ? (m as ToServer) : null;
     case 'state':
@@ -301,11 +299,11 @@ export function checkToServer(m: Message | null): ToServer | null {
     case 'ops':
       return isInt(v.seq) && v.seq > 0 && !!m.bytes ? (m as ToServer) : null;
     case 'ladder':
-      return isNum(v.t) && (v.data === null || isLadder(v.data)) ? (m as ToServer) : null;
+      return isNum(v.t) && (v.data === null || isLadder(v.data)) ? { type: 'ladder', t: v.t, data: v.data === null ? null : ladderOf(v.data) } : null;
     case 'ping':
       return isNum(v.t) ? (m as ToServer) : null;
     case 'inventory':
-      return isInventory(v.data) ? (m as ToServer) : null;
+      return isInventory(v.data) ? { type: 'inventory', data: inventoryOf(v.data) } : null;
     case 'status':
       return ACTIVITIES.includes(v.status as Activity) ? (m as ToServer) : null;
     case 'save':
@@ -318,14 +316,24 @@ export function checkToServer(m: Message | null): ToServer | null {
 const isInt = (x: unknown): x is number => Number.isInteger(x) && (x as number) >= 0;
 const isHosting = (x: unknown) => isObj(x) && isSessionName(x.name) && isPrivateLimit(x.limit) && isToolSet(x.tools);
 /** A queue token is a UUID; anything much longer is not one. */
-const isQueueToken = (x: unknown) => typeof x === 'string' && x.length <= QUEUE_TOKEN_MAX;
-const QUEUE_TOKEN_MAX = 64;
+const isQueueToken = (x: unknown) => typeof x === 'string' && x.length <= SERVER.queueTokenMax;
 /** HOST's and JOIN's `device`: the browser's random id (stored.ts deviceId), or none. */
 export const isDevice = (x: unknown) => x === undefined || (typeof x === 'string' && /^[0-9a-f]{32}$/.test(x));
 /** A session's code: CODE_LENGTH of CODE_LETTERS. */
 export const isCode = (x: unknown): x is string => typeof x === 'string' && x.length === CODE_LENGTH && [...x].every((c) => CODE_LETTERS.includes(c));
 /** Shape and size only: the game takes from it what it knows (Inventory.restore). */
-const isWords = (x: unknown) => Array.isArray(x) && x.length <= 32 && x.every((w) => typeof w === 'string' && w.length <= 32);
+const isWords = (x: unknown) => Array.isArray(x) && x.length <= SERVER.inventoryWords && x.every((w) => typeof w === 'string' && w.length <= SERVER.inventoryWordMax);
 const isInventory = (x: unknown) => isObj(x) && isWords(x.tools) && isWords(x.colors) && isWords(x.caps) && isInt(x.selected) && isWords([x.color, x.cap]);
 /** Only a stepladder: a player places nothing else while playing. */
 const isLadder = (x: unknown) => isObj(x) && x.type === 'stepladder' && isV3(x.pos) && (x.rot === undefined || isInt(x.rot));
+
+/** A checked inventory's known fields only: what else it carried goes no further. */
+const inventoryOf = (x: unknown): InventoryData => {
+  const d = x as InventoryData;
+  return { tools: [...d.tools], colors: [...d.colors], caps: [...d.caps], selected: d.selected, color: d.color, cap: d.cap };
+};
+/** A checked stepladder's known fields only. */
+const ladderOf = (x: unknown): PropData => {
+  const d = x as PropData;
+  return { type: d.type, pos: [...d.pos], ...(d.rot !== undefined && { rot: d.rot }) };
+};

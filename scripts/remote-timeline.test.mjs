@@ -122,6 +122,15 @@ function started() {
 }
 
 {
+  // A clock far ahead holds only NET.eventsKept of what they did: past it the oldest run at once, in order.
+  const tl = started();
+  const log = [];
+  for (let i = 0; i < NET.eventsKept + 3; i++) tl.schedule(1e9 + i, () => log.push(i), false);
+  assert.deepEqual(log, [0, 1, 2], 'the oldest ran');
+  assert.equal(tl.waiting, NET.eventsKept);
+}
+
+{
   // A slow start (5 s behind), then a burst of fresher snapshots, more than are kept: shown from the burst at once.
   const tl = new RemoteTimeline();
   tl.receive(snap(0, 0), 5);

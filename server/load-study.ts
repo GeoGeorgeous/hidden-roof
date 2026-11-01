@@ -1,13 +1,13 @@
 import './headless';
-import { fork, spawn, type ChildProcess } from 'node:child_process';
+import { fork } from 'node:child_process';
 import fs from 'node:fs';
-import net from 'node:net';
 import { setTimeout as sleep } from 'node:timers/promises';
 import Ws from 'ws';
 import { NET, PAINT_DETAIL } from '../src/config';
 import { levelPaintFaces } from '../src/level/prop-pieces';
 import { encodeOps, SurfaceIndex } from '../src/op-wire';
 import { encode, PROTOCOL, SNAPSHOT_BYTES } from '../src/net/protocol';
+import { start } from './test-kit';
 
 // One public session's load as its players grow (docs/ideas/weak-links.md): bots join the roof at ULTRA from
 // addresses of their own and send their state NET.sendRate times a second as a game does; a share of them paint, a
@@ -87,7 +87,6 @@ async function bots(plan: Plan): Promise<Report> {
 if (process.argv[2] === 'bots') {
   process.once('message', async (plan: Plan) => process.send!(await bots(plan), () => process.exit(0)));
 } else {
-  const free = () => new Promise<number>((done) => { const s = net.createServer().listen(0, () => { const { port } = s.address() as net.AddressInfo; s.close(() => done(port)); }); });
   /** /proc's utime + stime (s) and rss (MB) of `pid`. */
   const usage = (pid: number) => {
     const stat = fs.readFileSync(`/proc/${pid}/stat`, 'utf8').split(') ')[1].split(' ');
@@ -102,23 +101,22 @@ if (process.argv[2] === 'bots') {
   console.log(`roof ULTRA, ${share * 100}% painting at ${ops} stamps/s each, ${seconds} s a run, ${workers} bot processes`);
   console.log('players | server CPU | rss MB | ping p50/p99/max ms | down per player KB/s (state / ops / other) | frames per player/s | server out MB/s | up per player KB/s | welcomed | closed');
   for (const n of counts) {
-    const [port, adminPort] = [await free(), await free()];
-    const server: ChildProcess = spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(port), ADMIN_PORT: String(adminPort), ADMIN_KEY: 'k', PUBLIC_PLAYERS: String(n) }, stdio: ['ignore', 'ignore', 'inherit'] });
-    await sleep(1500);
+    const server = await start({ ADMIN_KEY: 'k', PUBLIC_PLAYERS: String(n) });
+    const { port, adminPort } = server;
     const made = await (await fetch(`http://localhost:${adminPort}/sessions`, { method: 'POST', headers: { authorization: 'Bearer k' }, body: JSON.stringify({ kind: 'public', name: 'Load', level: 'roof', detail: 'ultra' }) })).json();
     const names = Array.from({ length: n }, (_, i) => ({ name: `bot${i}`, ip: `10.${8 + (i >> 8)}.${i & 255}.1`, paints: i < Math.round(n * share) }));
     const plans = Array.from({ length: workers }, (_, w) => ({ port, code: made.code, bots: names.filter((_, i) => i % workers === w), ops, seconds }));
-    const before = { at: performance.now(), u: usage(server.pid!) };
+    const before = { at: performance.now(), u: usage(server.pid) };
     let peak = 0;
-    const sampling = setInterval(() => (peak = Math.max(peak, usage(server.pid!).rss)), 500);
+    const sampling = setInterval(() => (peak = Math.max(peak, usage(server.pid).rss)), 500);
     const reports = await Promise.all(plans.map((plan) => new Promise<Report>((done) => {
       const child = fork(process.argv[1], ['bots']);
       child.once('message', (m) => done(m as Report));
       child.send(plan);
     })));
     clearInterval(sampling);
-    const after = { at: performance.now(), u: usage(server.pid!) };
-    server.kill();
+    const after = { at: performance.now(), u: usage(server.pid) };
+    await server.stop();
     const down: Record<string, number> = {};
     for (const r of reports) for (const [t, b] of Object.entries(r.down)) down[t] = (down[t] ?? 0) + b;
     const per = (b: number) => (b / seconds / n / 1024).toFixed(1);
