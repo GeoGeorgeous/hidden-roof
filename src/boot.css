@@ -347,8 +347,10 @@ html:not(.game) .about .hero {
   border-radius: 5px;
   font-size: 15px;
 }
-/* How to start playing: for where the game doesn't start (and crawlers), not over the paused game. */
-.game .about #start {
+/* How to start playing: for where the game doesn't start (and crawlers); not where it can: over the game, nor once
+   the window grew big enough for Play now. */
+.game .about #start,
+.about:has(.play-now:not([hidden])) #start {
   display: none;
 }
 .about .steps {
@@ -430,7 +432,6 @@ html:not(.game) .about .hero {
 .about .facts {
   grid-template-columns: repeat(3, 1fr);
   gap: 28px 32px;
-  padding: 32px 0 8px;
 }
 /* A fact: its label, the fact in short, a line under it. */
 .about .facts dd {
@@ -446,7 +447,8 @@ html:not(.game) .about .hero {
   color: var(--paper);
 }
 .about .tools {
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(5, 1fr);
+  gap: 24px;
 }
 .about :is(.facts, .tools) > div {
   display: flex;
@@ -461,6 +463,9 @@ html:not(.game) .about .hero {
   color: var(--text-3);
 }
 .about .tools dt {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   font-weight: 600;
   color: var(--paper);
 }
@@ -514,6 +519,22 @@ html:not(.game) .about .hero {
   padding: 0;
   list-style: none;
 }
+/* The first section, About, right under the hero: no rule over it. */
+.about .column > section:first-child {
+  margin-top: 0;
+  padding-top: 32px;
+  border-top: 0;
+}
+/* The game: running text, its parts under titles in the titles' hand, smaller than a section's. */
+.about .prose > p:not(.label, .desc) {
+  max-width: 640px;
+  font-size: 15px;
+}
+.about .prose h3 {
+  margin: 18px 0 -6px;
+  font: 400 26px / 1.1 var(--display);
+  letter-spacing: 0.02em;
+}
 /* Two columns of short points, where the column is wide enough. */
 .about ul.cols {
   display: grid;
@@ -554,6 +575,61 @@ html:not(.game) .about .hero {
 .about :is(p, li) a:hover {
   color: #fff;
   border-bottom-color: var(--paper);
+}
+/* The FAQ: each group's name on the left (it stays while its questions scroll), its questions on the right, each
+   opening in place. */
+.about .faq-group {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 32px;
+  padding: 12px 0;
+  border-top: 1px solid var(--hair);
+}
+.about .faq-group h3 {
+  position: sticky;
+  top: 90px;
+  align-self: start;
+  margin: 0;
+  padding-top: 9px;
+  font: 400 26px / 1.1 var(--display);
+  letter-spacing: 0.02em;
+}
+.about details + details {
+  border-top: 1px solid var(--hair);
+}
+.about summary {
+  position: relative;
+  padding: 12px 28px 12px 0;
+  font-weight: 600;
+  color: var(--paper);
+  list-style: none;
+  cursor: pointer;
+}
+.about summary::-webkit-details-marker {
+  display: none;
+}
+.about summary::after {
+  content: '+';
+  position: absolute;
+  top: 10px;
+  right: 0;
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--text-3);
+}
+.about details[open] summary::after {
+  content: '–';
+}
+.about summary:hover::after {
+  color: var(--paper);
+}
+.about summary:focus-visible {
+  outline: 2px solid var(--paper);
+  outline-offset: 2px;
+}
+.about details p {
+  max-width: 560px;
+  padding-bottom: 16px;
 }
 /* The gallery: the first shot across the column, the others two to a row; each with its caption. */
 .about .gallery {
@@ -636,6 +712,16 @@ html:not(.game) .about .hero {
   }
   .about .facts {
     grid-template-columns: repeat(2, 1fr);
+  }
+  .about .tools {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .about .faq-group {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .about .faq-group h3 {
+    position: static;
   }
   .about .updates {
     grid-template-columns: 1fr;

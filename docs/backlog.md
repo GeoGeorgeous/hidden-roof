@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 294
+The one list of what's left. Counter for new ids: next: 295
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -173,6 +173,7 @@ Shipped since the last release; the release commit empties this list.
 12. [TASK-291]: SEO basics: the page about the game in place of screen 10 (static in index.html, the Terms page look; hidden where the game loads; in the game, About → Game opens it over the paused game through a portal, its button back in; a loop of the game in the hero, six fact cards, How to start playing with Send the link to yourself, Play now once the window is big enough, and in the game a note when the window gets too small), the site name, title and description in search results, the structured data, llms.txt and sitemap
 13. [TASK-292]: The Updates page (/updates.html): every release note as plain HTML a crawler reads, written by the build from docs/releases with the game's own parser, in the Terms page look; linked from the page about the game, Terms, Privacy, the sitemap and llms.txt
 14. [TASK-293]: The sitemap's lastmod and the structured data's dateModified written by the build from git (the day each page's source last changed), not by hand at a release; an IndexNow key in public/ and scripts/indexnow.mjs, run once after each deploy; Caddy checked: crawlers (Googlebot, bingbot, GPTBot, ClaudeBot, PerplexityBot) get 200, unknown paths a real 404
+15. [TASK-294]: The page about the game: an About section (the six fact cards, About in the top bar), The game right after it (the owner's words on what the game is: paint anything, painting, tools, vibes, and under P.S. a solo developer's ask for Ko-fi, Discord and the socials), How to play listing every tool with the server list's icon, and the FAQ on a slow game: the performance test, a laptop's power saver, the built-in GPU, the Frame rate setting; the FAQ in five groups, each question opening in place; About → Game's button says Start the game on the title screen, Back to the game after; How to start playing hidden once Play now shows
 
 ## Discarder
 

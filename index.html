@@ -106,6 +106,7 @@
       <header class="top">
         <span class="mark">Hidden Roof</span>
         <nav aria-label="Page">
+          <a href="#about">About</a>
           <a href="#how-to-play">How to play</a>
           <a href="#faq">FAQ</a>
           <a class="play" href="/">Play</a>
@@ -127,14 +128,32 @@
           </div>
         </div>
         <div class="column">
-          <dl class="facts">
-            <div><dt>Price</dt><dd><strong>100% Free</strong> No ads. No purchases. No paywalls.</dd></div>
-            <div><dt>Multiplayer</dt><dd><strong>Up to 40 Players</strong> Play solo or join a public session.</dd></div>
-            <div><dt>Platform</dt><dd><strong>Browser-Based</strong> No download or installation required.</dd></div>
-            <div><dt>Access</dt><dd><strong>Instant Play</strong> No sign-up. Just open and play.</dd></div>
-            <div><dt>Technology</dt><dd><strong>WebGL 2</strong> Powered by modern browser technology.</dd></div>
-            <div><dt>Experience</dt><dd><strong>Multiplayer World</strong> Share the game world with other players.</dd></div>
-          </dl>
+          <section id="about" aria-label="About">
+            <dl class="facts">
+              <div><dt>Free</dt><dd><strong>Free</strong> No in-game purchases, no ads.</dd></div>
+              <div><dt>Multiplayer</dt><dd><strong>Up to 40 on one roof</strong> Paint alone, with your crew, or next to strangers in a public session.</dd></div>
+              <div><dt>Access</dt><dd><strong>No download or sign-up</strong> Open the page and you&rsquo;re on the roof.</dd></div>
+              <div><dt>Painting</dt><dd><strong>Paint that drips</strong> It runs, fades and builds up in layers. Distance and hand speed change every line.</dd></div>
+              <div><dt>Open world</dt><dd><strong>Every surface is a wall</strong> Brick, glass, metal doors, the floor. If you can reach it, you can paint it.</dd></div>
+              <div><dt>Exploration</dt><dd><strong>Tools to find</strong> Twelve colors, the caps, a marker, a roller and more are hidden around the roof.</dd></div>
+            </dl>
+          </section>
+
+          <section id="the-game" class="prose">
+            <p class="label">About</p>
+            <h2>Hidden Roof is a game about graffiti</h2>
+            <p class="desc">You explore the rainy rooftops of Hidden City, find paint, caps, markers, and rollers, and just paint whatever you want, wherever you want.</p>
+            <h3>Paint anything</h3>
+            <p>You aren&rsquo;t restricted to a flat, designated canvas or &ldquo;legal walls&rdquo;. If you can reach it, you can paint it: brick walls, windows, ventilation shafts, AC units, metal doors, staircases, and even the floor.</p>
+            <h3>Painting</h3>
+            <p>I put a lot of work into making spray paint feel real with just a mouse. The paint doesn&rsquo;t lay down perfectly evenly, and it will drip if you spray in one place for too long. How soft the spray is depends on how far you are from the wall and how fast your hand moves. I wanted the drawing to feel physical.</p>
+            <h3>Tools</h3>
+            <p>You can switch between different caps, and they actually change how the painting feels. A needle cap works well for sharp, precise details, while an NY fat cap gives you those classic, solid lines. You also have markers and rollers to experiment with different textures and styles.</p>
+            <h3>Vibes</h3>
+            <p>The game is set in a fictional but deeply dystopian city. It is gray, brutalist, and not very friendly. There are no rules, just rainy rooftops, heavy concrete, and finding a good spot to leave a piece.</p>
+            <h3>P.S.</h3>
+            <p>I&rsquo;m making Hidden Roof alone, and it&rsquo;s free for everyone. If you like it, you can support it on <a href="https://ko-fi.com/D0Q7296HCP">Ko-fi</a>, tell me what you think in <a href="https://discord.gg/CMG9tT5Q4u">Discord</a>, and follow along on <a href="https://www.youtube.com/channel/UCIN2OeR6_IqEivP1uALkpJQ">YouTube</a>, <a href="https://www.instagram.com/roof.hidden/">Instagram</a> and <a href="https://www.tiktok.com/@roof.hidden">TikTok</a>.</p>
+          </section>
 
           <section id="start">
             <p class="label">How to start playing</p>
@@ -150,7 +169,7 @@
 
           <section id="painting">
             <p class="label">Painting</p>
-            <h2>Spray paint that behaves like a can</h2>
+            <h2>Spray paint that feels like a real can</h2>
             <p class="desc">Strokes stay continuous at any hand speed, and passes add up. Build color in layers, fade it out, mist a background.</p>
             <ul class="cols">
               <li><strong>Distance</strong>: the closer you are to the wall, the narrower and denser your line becomes. As you move back, the line grows wider and softer.</li>
@@ -186,11 +205,13 @@
             <p class="label">How to play</p>
             <h2>Explore the map &amp; find new tools</h2>
             <p class="desc">You start with a spray can and black paint. Twelve more colors, the caps and four extra tools are hidden around the roof. Paint never runs out.</p>
+            <!-- Every tool, with its icon from the server list (src/net/tool-icons.ts; scripts/seo.test.mjs checks they're the same). -->
             <dl class="tools">
-              <div><dt>Marker</dt><dd>Crisp lines and letters</dd></div>
-              <div><dt>Roller</dt><dd>Large areas, fast</dd></div>
-              <div><dt>Sponge</dt><dd>Scrapes paint off</dd></div>
-              <div><dt>Stepladder</dt><dd>Reaches high walls</dd></div>
+              <div><dt><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="can"><rect x="4.5" y="5.5" width="6" height="8.5" rx="1.5"/><path d="M6 5.5V3.5h3v2"/><path d="M10.5 3.2l2-.8M10.5 4.4l2 .2"/></svg>Spray can</dt><dd>Tags, fills and fades</dd></div>
+              <div><dt><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="marker"><path d="M3 13l.8-2.8 6.6-6.6 2 2-6.6 6.6z"/><path d="M9.2 4.8l2 2"/></svg>Marker</dt><dd>Crisp lines and letters</dd></div>
+              <div><dt><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="roller"><rect x="2.5" y="2.5" width="9" height="3.5" rx="1"/><path d="M11.5 4.2h1.7v3.3H7.5v2"/><path d="M7.5 9.5v4"/></svg>Roller</dt><dd>Large areas, fast</dd></div>
+              <div><dt><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="sponge"><rect x="2" y="6" width="9.5" height="7" rx="2.5"/><circle cx="4.8" cy="8.6" r="0.6" fill="currentColor" stroke="none"/><circle cx="7.6" cy="10.6" r="0.6" fill="currentColor" stroke="none"/><circle cx="8.4" cy="8.2" r="0.5" fill="currentColor" stroke="none"/><path d="M13 2.2c.9 1.2 1.4 2 1.4 2.6a1.4 1.4 0 0 1-2.8 0c0-.6.5-1.4 1.4-2.6z"/></svg>Sponge</dt><dd>Scrapes paint off</dd></div>
+              <div><dt><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="ladder"><path d="M5 2v12M11 2v12M5 5h6M5 8h6M5 11h6"/></svg>Stepladder</dt><dd>Reaches high walls</dd></div>
             </dl>
           </section>
 
@@ -216,65 +237,67 @@
             <p class="more"><a href="/updates.html">All updates →</a></p>
           </section>
 
+          <!-- The FAQ in groups, each question opening in place (the answers are in the markup for crawlers). -->
           <section id="faq">
             <p class="label">FAQ</p>
             <h2>Questions &amp; answers</h2>
-            <h3>What do you do in Hidden Roof?</h3>
-            <p>Climb a rooftop, find your tools and colors, and paint anything on any surface: walls, floors, doors, pipes, and signs. There are no enemies, no score and no timer.</p>
-            <h3>Is it free?</h3>
-            <p>Yes, with no ads or purchases. If you like it, you can buy the developer a coffee on <a href="https://ko-fi.com/D0Q7296HCP">Ko-fi</a>.</p>
-            <h3>Do I need to download anything or make an account?</h3>
-            <p>No. Open roof.hidden.haus and play: no install, no sign-up.</p>
-            <h3>What are the system requirements?</h3>
-            <p>A desktop or laptop computer, a browser with WebGL2, a keyboard and a mouse, and a window at least 820×560. Settings → Graphics lowers the load for weaker graphics cards, and its performance test measures your frame rate.</p>
-            <h3>Can I play on a phone or tablet?</h3>
-            <p>Not yet. The game needs a keyboard, a mouse and a window at least 820×560, so please open roof.hidden.haus on a computer.</p>
-            <h3>Can I play with a controller?</h3>
-            <p>No, you can only play with a keyboard and a mouse.</p>
-            <h3>Can I play with friends?</h3>
-            <p>Yes. Open the server list and join a public session with up to 40 players, or a private session with a five-letter code for up to 4. Multiplayer is for players 18 and over.</p>
-            <h3>Can my friends and I paint at the same time?</h3>
-            <p>Yes. Everyone in a session paints on the same roof at the same time and can see each paint stroke as it appears, even on the same wall.</p>
-            <h3>Is there a free online graffiti wall where anyone can paint?</h3>
-            <p>Yes. Public sessions are open to everyone, up to 40 players at a time. The paint is kept on the server, so the walls fill up over days.</p>
-            <h3>Can other players erase my work?</h3>
-            <p>It&rsquo;s a shared rooftop, not a private gallery. Your work can be painted over or scraped off, just like real graffiti. We ask everyone to respect each other&rsquo;s pieces, and the admin may ban repeat offenders.</p>
-            <h3>What tools are there?</h3>
-            <p>There are five tools: a spray can, a marker for crisp lines and letters, a roller for big areas, a sponge that scrubs paint off, and a stepladder to reach high walls. You start with the can, and the others are hidden around the roof.</p>
-            <h3>What caps does the spray can have?</h3>
-            <p>Skinny for tags and outlines, standard for most work, fat and soft for fills and fades, and hard for crisp edges. Change them with <kbd>Q</kbd> and <kbd>E</kbd>.</p>
-            <h3>Can I change the color?</h3>
-            <p>Yes. You start with black, and there are twelve more colors hidden on the roof. Switch colors with the mouse wheel, and pick the color with the middle button.</p>
-            <h3>Does the paint drip?</h3>
-            <p>Yes. If you hold a spray can still, the paint pools and runs down the wall. The closer you are, the more it runs. Paint dries, so a coat over dry paint will run less.</p>
-            <h3>Does the spray can run out?</h3>
-            <p>No, paint never runs out. The can loses pressure as you spray, so shake it with the right mouse button.</p>
-            <h3>Is it a realistic spray paint simulator?</h3>
-            <p>It&rsquo;s a game, but the spray can follows real rules. Distance, hand speed and the cap you use all affect the line, and the paint drips. It works for practicing letters, fills and outlines.</p>
-            <h3>Do I need to be good at drawing?</h3>
-            <p>No. Start with a tag or a fat outline and use the sponge to scrape off anything you don&rsquo;t like.</p>
-            <h3>What is the level like?</h3>
-            <p>A hidden rooftop high above a city drawn in pen and ink, at night, in the rain. It has brick walls, windows, ducts, air conditioners, skylights, a water tower, billboards, neon signs, scaffolding and fire escapes, with security cameras that turn to follow you.</p>
-            <h3>How many levels are there?</h3>
-            <p>There&rsquo;s just one level: a large rooftop, the same in solo and multiplayer. It gets new walls, windows, signs and props with each update.</p>
-            <h3>Can I climb?</h3>
-            <p>Use <kbd>Space</kbd> to jump and climb ledges, go up ladders and fire escapes, and place the stepladder under any wall you can&rsquo;t reach.</p>
-            <h3>Can I change the controls?</h3>
-            <p>Every key can be rebound in Settings → Controls.</p>
-            <h3>Is there sound?</h3>
-            <p>You&rsquo;ll hear rain, thunder, your footsteps, the whirr of air conditioners and the hiss of your spray can. Adjust the volume in Settings → Audio.</p>
-            <h3>Can I take screenshots?</h3>
-            <p>Press <kbd>K</kbd> to take a screenshot. The picture has no menus or crosshair, and shows other players&rsquo; name tags.</p>
-            <h3>Can I save my painting?</h3>
-            <p>Yes, you can download your roof&rsquo;s paint as a file and upload it back later for a new session. Public sessions keep their paint on the server, but private sessions lose their paint once the last player leaves.</p>
-            <h3>When was Hidden Roof released?</h3>
-            <p>Hidden Roof was released on <time datetime="2026-10-09">9 October 2026</time>.</p>
-            <h3>Is the game still being developed?</h3>
-            <p>Yes. Seven versions were released in the first three weeks, and every one is listed in the game menu: Esc → About → Updates.</p>
-            <h3>What inspired it?</h3>
-            <p>Bombing!! 2, Marc Ecko&rsquo;s Getting Up and Daisuke Tajima&rsquo;s pen-and-ink cities in Beyond the Lines.</p>
-            <h3>Who makes it?</h3>
-            <p>One developer, GeoGeorgeous, under the Hidden Haus name, using three.js. The source code is on <a href="https://github.com/GeoGeorgeous/hidden-roof">GitHub</a> under the Hidden Roof Source-Available License.</p>
+            <div class="faq-group">
+              <h3>Playing</h3>
+              <div>
+                <details><summary>What do you do in Hidden Roof?</summary><p>Climb a rooftop, find your tools and colors, and paint anything on any surface: walls, floors, doors, pipes, and signs. There are no enemies, no score and no timer.</p></details>
+                <details><summary>Is it free?</summary><p>Yes, with no ads or purchases. If you like it, you can buy me a coffee on <a href="https://ko-fi.com/D0Q7296HCP">Ko-fi</a>.</p></details>
+                <details><summary>Do I need to download anything or make an account?</summary><p>No. Open roof.hidden.haus and play: no install, no sign-up.</p></details>
+                <details><summary>Can I play on a phone or tablet?</summary><p>Not yet. The game needs a keyboard, a mouse and a window at least 820×560, so please open roof.hidden.haus on a computer.</p></details>
+                <details><summary>Can I play with a controller?</summary><p>No, you can only play with a keyboard and a mouse.</p></details>
+                <details><summary>What is the level like?</summary><p>A hidden rooftop high above a city drawn in pen and ink, at night, in the rain. It has brick walls, windows, ducts, air conditioners, skylights, a water tower, billboards, neon signs, scaffolding and fire escapes, with security cameras that turn to follow you.</p></details>
+                <details><summary>How many levels are there?</summary><p>There&rsquo;s just one level: a large rooftop, the same in solo and multiplayer. It gets new walls, windows, signs and props with each update.</p></details>
+                <details><summary>Can I climb?</summary><p>Use <kbd>Space</kbd> to jump and climb ledges, go up ladders and fire escapes, and place the stepladder under any wall you can&rsquo;t reach.</p></details>
+                <details><summary>Can I change the controls?</summary><p>Every key can be rebound in Settings → Controls.</p></details>
+                <details><summary>Is there sound?</summary><p>You&rsquo;ll hear rain, thunder, your footsteps, the whirr of air conditioners and the hiss of your spray can. Adjust the volume in Settings → Audio.</p></details>
+                <details><summary>Can I take screenshots?</summary><p>Press <kbd>K</kbd> to take a screenshot. The picture has no menus or crosshair, and shows other players&rsquo; name tags.</p></details>
+              </div>
+            </div>
+            <div class="faq-group">
+              <h3>Painting</h3>
+              <div>
+                <details><summary>What tools are there?</summary><p>There are five tools: a spray can, a marker for crisp lines and letters, a roller for big areas, a sponge that scrubs paint off, and a stepladder to reach high walls. You start with the can, and the others are hidden around the roof.</p></details>
+                <details><summary>What caps does the spray can have?</summary><p>Skinny for tags and outlines, standard for most work, fat and soft for fills and fades, and hard for crisp edges. Change them with <kbd>Q</kbd> and <kbd>E</kbd>.</p></details>
+                <details><summary>Can I change the color?</summary><p>Yes. You start with black, and there are twelve more colors hidden on the roof. Switch colors with the mouse wheel, and pick the color with the middle button.</p></details>
+                <details><summary>Does the paint drip?</summary><p>Yes. If you hold a spray can still, the paint pools and runs down the wall. The closer you are, the more it runs. Paint dries, so a coat over dry paint will run less.</p></details>
+                <details><summary>Does the spray can run out?</summary><p>No, paint never runs out. The can loses pressure as you spray, so shake it with the right mouse button.</p></details>
+                <details><summary>Is it a realistic spray paint simulator?</summary><p>It&rsquo;s a game, but the spray can follows real rules. Distance, hand speed and the cap you use all affect the line, and the paint drips. It works for practicing letters, fills and outlines.</p></details>
+                <details><summary>Do I need to be good at drawing?</summary><p>No. Start with a tag or a fat outline and use the sponge to scrape off anything you don&rsquo;t like.</p></details>
+                <details><summary>Can I save my painting?</summary><p>Yes, you can download your roof&rsquo;s paint as a file and upload it back later for a new session. Public sessions keep their paint on the server, but private sessions lose their paint once the last player leaves.</p></details>
+              </div>
+            </div>
+            <div class="faq-group">
+              <h3>Multiplayer</h3>
+              <div>
+                <details><summary>Can I play with friends?</summary><p>Yes. Open the server list and join a public session with up to 40 players, or a private session with a five-letter code for up to 4. Multiplayer is for players 18 and over.</p></details>
+                <details><summary>Can my friends and I paint at the same time?</summary><p>Yes. Everyone in a session paints on the same roof at the same time and can see each paint stroke as it appears, even on the same wall.</p></details>
+                <details><summary>Is there a free online graffiti wall where anyone can paint?</summary><p>Yes. Public sessions are open to everyone, up to 40 players at a time. The paint is kept on the server, so the walls fill up over days.</p></details>
+                <details><summary>Can other players erase my work?</summary><p>It&rsquo;s a shared rooftop, not a private gallery. Your work can be painted over or scraped off, just like real graffiti. We ask everyone to respect each other&rsquo;s pieces, and the admin may ban repeat offenders.</p></details>
+              </div>
+            </div>
+            <div class="faq-group">
+              <h3>Performance</h3>
+              <div>
+                <details><summary>What are the system requirements?</summary><p>A desktop or laptop computer, a browser with WebGL2, a keyboard and a mouse, and a window at least 820×560. Settings → Graphics lowers the load for weaker graphics cards, and its performance test measures your frame rate.</p></details>
+                <details><summary>The game lags or has a low frame rate. What can I do?</summary><p>Run the performance test in Settings → Graphics. It flies over the roof for a few seconds, shows whether the processor or the video card holds the game back, and says what to change. Most often that&rsquo;s Volumetrics first, then Resolution or City detail. If the processor is the limit, closing other browser tabs helps too.</p></details>
+                <details><summary>Why is the game slow on my laptop?</summary><p>Most often it&rsquo;s a power saver. On battery, Chrome&rsquo;s Energy Saver, Edge&rsquo;s efficiency mode or a Mac&rsquo;s Low Power Mode hold the game at about 30 FPS, even when the computer has power to spare. Plug in, or turn the power saver off: in Chrome at chrome://settings/performance, in Edge at edge://settings/system, on a Mac in System Settings → Battery. The performance test tells you when something holds the frame rate like this.</p></details>
+                <details><summary>My laptop has a fast video card, but the game still runs slowly. Why?</summary><p>The browser may be drawing the game on the graphics chip built into the processor while the faster card sits idle. Settings → Graphics → GPU shows which one the game uses. On Windows, go to Settings → System → Display → Graphics, pick your browser, choose High performance and restart the browser. On a Mac, turn off Automatic graphics switching in System Settings → Battery → Options.</p></details>
+                <details><summary>Why is the frame rate stuck at one number?</summary><p>Check Frame rate in Settings → Graphics: a number there holds the game at it, and Max runs it as fast as your display refreshes. If it&rsquo;s on Max and the game still sits at about 30 FPS, it&rsquo;s likely a power saver (see above).</p></details>
+              </div>
+            </div>
+            <div class="faq-group">
+              <h3>The game</h3>
+              <div>
+                <details><summary>When was Hidden Roof released?</summary><p>Hidden Roof was released on <time datetime="2026-10-09">9 October 2026</time>.</p></details>
+                <details><summary>Is the game still being developed?</summary><p>Yes. Seven versions were released in the first three weeks, and every one is listed in the game menu: Esc → About → Updates.</p></details>
+                <details><summary>What inspired it?</summary><p>Bombing!! 2, Marc Ecko&rsquo;s Getting Up and Daisuke Tajima&rsquo;s pen-and-ink cities in Beyond the Lines.</p></details>
+                <details><summary>Who makes it?</summary><p>One developer, GeoGeorgeous, under the Hidden Haus name, using three.js. The source code is on <a href="https://github.com/GeoGeorgeous/hidden-roof">GitHub</a> under the Hidden Roof Source-Available License.</p></details>
+              </div>
+            </div>
           </section>
         </div>
       </main>

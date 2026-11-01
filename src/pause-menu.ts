@@ -134,7 +134,7 @@ export class PauseMenu {
     this.el.append(div('blur'), this.themes.el, this.hold.el, this.screen, this.back);
     parent.append(this.el);
     this.addPage('credits', creditsPage(), () => {});
-    this.addPage('game', portal.el, () => portal.open(), undefined, () => portal.close());
+    this.addPage('game', portal.el, () => portal.open(this.started), undefined, () => portal.close());
     updatesPage(this);
     this.openPage(null);
   }
