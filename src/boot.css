@@ -387,27 +387,24 @@ html:not(.game) .about .hero {
   border-radius: 5px;
   font-size: 15px;
 }
-/* How to start playing: for where the game doesn't start (and crawlers); not where it can: over the game, nor once
-   the window grew big enough for Play now. */
+/* How to start playing: only where the game can't start, saying what to do: a phone, a window too small (html.needs-room).
+   Not over the game, nor once Play now shows, nor when the game failed (the hero's note says why). */
 .game .about #start,
-.about:has(.play-now:not([hidden])) #start {
+.about:has(.play-now:not([hidden])) #start,
+.about:has(.failed:not([hidden])) #start {
   display: none;
 }
-.about .steps {
+.about #start > div {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin: 0;
-  padding-left: 22px;
-  list-style: decimal;
-  color: var(--text-1);
+  gap: 14px;
 }
-.about .steps li {
-  padding-left: 4px;
+.about #start > .start-window,
+.needs-room .about #start > .start-device {
+  display: none;
 }
-.about .steps li::marker {
-  color: var(--text-3);
-  font-variant-numeric: tabular-nums;
+.needs-room .about #start > .start-window {
+  display: flex;
 }
 .about .send:not([hidden]) {
   padding: 11px 18px;
@@ -591,11 +588,11 @@ html:not(.game) .about .hero {
   left: 0;
   color: var(--text-4);
 }
-/* Cards and numbered steps: no dash. */
-.about :is(.updates, .steps) li {
+/* Cards: no dash. */
+.about .updates li {
   padding-left: 0;
 }
-.about :is(.updates, .steps) li::before {
+.about .updates li::before {
   content: none;
 }
 .about strong {

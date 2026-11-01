@@ -144,6 +144,22 @@
             </dl>
           </section>
 
+          <!-- Only where the game can't be played: what to do. A phone (and crawlers, no JavaScript) gets Play on a computer;
+               a desktop window too small, Make the window bigger (html.needs-room, src/boot.ts). Hidden where the game can
+               start, and when it failed (the hero's note says why). -->
+          <section id="start">
+            <p class="label">How to start playing</p>
+            <div class="start-device">
+              <h2>Play on a computer</h2>
+              <p class="desc">Hidden Roof needs a keyboard and a mouse, so phones and tablets can&rsquo;t play it yet. Open roof.hidden.haus on a desktop or laptop.</p>
+              <p class="actions"><button class="send" type="button" hidden>Send the link to yourself</button></p>
+            </div>
+            <div class="start-window">
+              <h2>Make the window bigger</h2>
+              <p class="desc">The game needs a window at least 820×560. Make this one bigger or go fullscreen, and Play now appears at the top.</p>
+            </div>
+          </section>
+
           <section id="the-game" class="prose">
             <p class="label">About</p>
             <h2>Hidden Roof is a game about graffiti</h2>
@@ -158,18 +174,6 @@
             <p>The game is set in a fictional but deeply dystopian city. It is gray, brutalist, and not very friendly. There are no rules, just rainy rooftops, heavy concrete, and finding a good spot to leave a piece.</p>
             <h3>P.S.</h3>
             <p>I&rsquo;m making Hidden Roof alone, and it&rsquo;s free for everyone. If you like it, you can support it on <a href="https://ko-fi.com/D0Q7296HCP">Ko-fi</a>, tell me what you think in <a href="https://discord.gg/CMG9tT5Q4u">Discord</a>, and follow along on <a href="https://www.youtube.com/channel/UCIN2OeR6_IqEivP1uALkpJQ">YouTube</a>, <a href="https://www.instagram.com/roof.hidden/">Instagram</a> and <a href="https://www.tiktok.com/@roof.hidden">TikTok</a>.</p>
-          </section>
-
-          <section id="start">
-            <p class="label">How to start playing</p>
-            <h2>Play on a computer</h2>
-            <p class="desc">Hidden Roof needs a keyboard, a mouse and a window at least 820×560. Phones and tablets can&rsquo;t play it yet.</p>
-            <ol class="steps">
-              <li>Open roof.hidden.haus on a desktop or laptop computer.</li>
-              <li>Use a desktop browser with WebGL2; no download, no account.</li>
-              <li>Click the page: the game takes the mouse, and <kbd>Esc</kbd> pauses it.</li>
-            </ol>
-            <p class="actions"><button class="send" type="button" hidden>Send the link to yourself</button></p>
           </section>
 
           <section id="painting">

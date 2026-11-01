@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 296
+The one list of what's left. Counter for new ids: next: 297
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -175,6 +175,7 @@ Shipped since the last release; the release commit empties this list.
 14. [TASK-293]: The sitemap's lastmod and the structured data's dateModified written by the build from git (the day each page's source last changed), not by hand at a release; an IndexNow key in public/ and scripts/indexnow.mjs, run once after each deploy; Caddy checked: crawlers (Googlebot, bingbot, GPTBot, ClaudeBot, PerplexityBot) get 200, unknown paths a real 404
 15. [TASK-294]: The page about the game: an About section (the six fact cards, About in the top bar), The game right after it (the owner's words on what the game is: paint anything, painting, tools, vibes, and under P.S. a solo developer's ask for Ko-fi, Discord and the socials), How to play listing every tool with the server list's icon, and the FAQ on a slow game: the performance test, a laptop's power saver, the built-in GPU, the Frame rate setting; the FAQ in five groups, each question opening in place; About → Game's button says Start the game on the title screen, Back to the game after; How to start playing hidden once Play now shows
 16. [TASK-295]: The page about the game's note when the game can't start, in the page's look: a red dot by what went wrong, what to do (WebGL2 off: most often hardware acceleration; a file that didn't load: the connection), and Reload the page
+17. [TASK-296]: How to start playing only where the game can't start, saying what to do, right after the fact cards: a phone gets Play on a computer with Send the link to yourself, a desktop window too small Make the window bigger; gone over the game, once Play now shows, and when the game failed
 
 ## Discarder
 
