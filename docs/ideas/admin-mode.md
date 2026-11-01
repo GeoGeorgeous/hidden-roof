@@ -39,7 +39,13 @@ are built.
   the server), so only the red plate reads Admin.
 - **Admins see each other only while seen,** as everyone does: seen means in the broadcasts, unseen in none.
 - **Never a seat:** seen or not, the admin takes no seat and no place in line: no one is pushed out or kept waiting,
-  and the server list still counts only the players (20/20). In the game the others see one more player.
+  and the server list still counts only the players (20/20). In the game the others see one more player, a 21st in a
+  full session: nothing counts figures (seats, the line and the limit count players only; ids come from the
+  session's one counter), and one more figure and state stream is nothing next to the load study's 60 to 80 bots. The
+  pause screen's line counts figures, so it says 21 there.
+- **Leaving** (LEAVE, or any closed link) ends admin mode: the game goes back to the player's own level and paint as
+  after any session. The admin's kit goes with the session's level (a level load resets the inventory), fly is off,
+  the admin's keys do nothing; the page sends no beacon until it is reloaded. Seen, the others get a leave.
 - **Holds a private session:** any admin inside, seen or not, keeps a private session open as a player would; when
   the admin leaves it empty, it closes as usual.
 - **Paint only when seen:** unseen, the admin's tools are off and the server drops their ops (other games drop ops
