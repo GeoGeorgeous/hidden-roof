@@ -2,7 +2,7 @@ import { NET } from '../config.ts';
 import type { InventoryData } from '../inventory/inventory';
 import type { PropData } from '../level/level-data.ts';
 import type { PaintOp } from '../paint-ops';
-import type { ToServer } from './protocol.ts';
+import { SNAPSHOT_FEET, SNAPSHOT_REST, type ToServer } from './protocol.ts';
 
 // What this player sends (multiplayer.ts puts it on the link, the ghost in
 // dev/ghost.ts records it): their snapshot NET.sendRate times a second (NET.stillRate
@@ -128,9 +128,9 @@ export class Sender {
 
 /** Whether snapshot `b` shows its player as `a` did (net/snapshot.ts: the time first, the feet within NET.stillMove, the rest exactly). */
 function stillAs(a: Uint8Array, b: Uint8Array) {
-  if (a.length !== b.length || a.length < 16) return false;
+  if (a.length !== b.length || a.length < SNAPSHOT_REST) return false;
   const [va, vb] = [new DataView(a.buffer, a.byteOffset, a.length), new DataView(b.buffer, b.byteOffset, b.length)];
-  for (let o = 4; o < 16; o += 4) if (Math.abs(va.getFloat32(o, true) - vb.getFloat32(o, true)) > NET.stillMove) return false;
-  for (let i = 16; i < a.length; i++) if (a[i] !== b[i]) return false;
+  for (let o = SNAPSHOT_FEET; o < SNAPSHOT_REST; o += 4) if (Math.abs(va.getFloat32(o, true) - vb.getFloat32(o, true)) > NET.stillMove) return false;
+  for (let i = SNAPSHOT_REST; i < a.length; i++) if (a[i] !== b[i]) return false;
   return true;
 }

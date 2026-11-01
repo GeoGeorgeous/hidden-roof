@@ -2,6 +2,7 @@ import { msg } from './messages';
 import { INK_STYLES, PAUSE_MENU, SOCIAL_LINKS } from './config';
 import { creditsPage } from './credits-page';
 import { EscHold, ring } from './esc-hold';
+import { currentOs } from './gpu-name';
 import { button, div, el, keyHint, runPrimary, segmented, sentence } from './menu-ui';
 import { AUTHOR, KOFI, PRIVACY, TERMS } from './links';
 import { inkStyle } from './render/ink/styles';
@@ -11,6 +12,9 @@ import { SettingsPage } from './settings-page';
 import { kofiCup, socialIcon } from './social-icons';
 import { updatesPage } from './updates-page';
 import { VERSION } from './version';
+
+/** The browser's own key out of fullscreen: F11, but ⌃⌘F in Chrome on a Mac (where Fn+F11 shows the desktop). */
+const LEAVE_KEY = currentOs() === 'mac' ? '⌃ ⌘ F' : 'F11';
 
 // The ESC menu (style.css): the start / pause screen over the live game view
 // (the title view before START, hud.cityView), with the style switcher, the
@@ -266,7 +270,7 @@ export class PauseMenu {
     const idle = this.session ? msg('menu.session', { code: this.session }) : msg(this.started ? 'menu.pauseIdle' : 'menu.pauseStart');
     const notice = performance.now() < this.noticeUntil;
     const text = this.status.lastChild as HTMLElement;
-    if (this.hold.held) text.replaceChildren('Keep holding ', keyHint('ESC'), ' to leave fullscreen, or press ', keyHint('F11'), ' to leave instantly');
+    if (this.hold.held) text.replaceChildren('Keep holding ', keyHint('ESC'), ' to leave fullscreen, or press ', keyHint(LEAVE_KEY), ' to leave instantly');
     else text.textContent = notice ? this.message : idle;
     // The live line, unless a message has the status line (reconnecting, the hold, a notice).
     this.line.el.hidden = !this.live || this.hold.held || notice;
