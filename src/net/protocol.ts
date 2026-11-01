@@ -65,7 +65,7 @@ export const SNAPSHOT_REST = 16;
  * or an address JOINs public sessions too often (SERVER.joinsPerIp a minute: 'rate').
  * The socket closes with closeCode(reason): the code alone says it (rejectionOf), and the reason is for the logs.
  */
-const REJECTIONS = ['version', 'no-session', 'ended', 'full', 'bad-save', 'bad-level', 'busy', 'replaced', 'too-many', 'no-host', 'kicked', 'closed', 'seats', 'rate'] as const;
+const REJECTIONS = ['version', 'no-session', 'ended', 'full', 'bad-save', 'bad-level', 'busy', 'replaced', 'too-many', 'no-host', 'kicked', 'closed', 'seats', 'rate', 'banned'] as const;
 export type Rejection = (typeof REJECTIONS)[number];
 export const closeCode = (r: Rejection) => 4001 + REJECTIONS.indexOf(r);
 /** The rejection a socket's close code says (see closeCode), if it does. */
@@ -88,11 +88,13 @@ export interface LobbyEntry extends SessionInfo {
  * The server list over plain HTTP, no WebSocket (Caddy passes /ws on): GET
  * LOBBY_LIST answers `Lobby`; GET LOBBY_CODE + a code answers that session's
  * LobbyEntry (with its code), or 404 when there's none. `region`: where the
- * server is, a country code (SERVER.region, REGION).
+ * server is, a country code (SERVER.region, REGION). LOBBY_LIST takes `&device=` (stored.ts deviceId): a player
+ * the admin banned (by it or their address) gets no sessions but their ban's `reason` and end (`until`, ms; null for good).
  */
 export interface Lobby {
   region: string;
   sessions: LobbyEntry[];
+  ban?: { reason: string; until: number | null };
 }
 export const LOBBY_LIST = '/ws?list';
 export const LOBBY_CODE = '/ws?code=';

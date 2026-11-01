@@ -51,6 +51,7 @@ if (kept.dir) await keepEvents(kept.dir).catch((e) => log('-----', 'events not k
 await kept.restore().catch((e) => log('-----', 'kept sessions not restored:', e));
 setInterval(() => void kept.save(), SERVER.keepEvery * 1000);
 if (process.env.GEOIP_DB) await geoip(process.env.GEOIP_DB);
+if (kept.dir) await lobby.bans.keepIn(kept.dir).catch((e) => log('-----', 'bans not kept:', e));
 if (kept.dir) await history.keepIn(kept.dir).catch((e) => log('-----', 'history not read:', e));
 setInterval(() => {
   history.sample([...lobby.sessions.values()].map((s) => [...s.players.values()].filter((p) => p.link).length), SERVER.historyEvery);

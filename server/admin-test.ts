@@ -166,7 +166,7 @@ try {
   assert.deepEqual([wall.stats.colors, 'today' in wall, wall.saves], [{ red: 1 }, false, []]);
   assert.deepEqual([wall.players[0].state, wall.players[0].seenDays, wall.players[0].since.endsWith('Z')], ['here', null, true]);
   const root = (await ask(main, 'GET', '/')).body;
-  assert.deepEqual([root.api, root.settings.slowPing, root.settings.saveEvery, root.settings.saveAges, root.settings.pageIdle, root.settings.playerIdle, root.limits], [4, SERVER.slowPing, SERVER.keepEvery, SERVER.keepAges.filter(Boolean), NET.beaconIdle, NET.idleAfter, { public: SERVER.players.public, private: { min: SERVER.privateMin, max: SERVER.players.private }, name: SESSION_NAME_MAX }]);
+  assert.deepEqual([root.api, root.settings.slowPing, root.settings.saveEvery, root.settings.saveAges, root.settings.pageIdle, root.settings.playerIdle, root.limits], [4, SERVER.slowPing, SERVER.keepEvery, SERVER.keepAges.filter(Boolean), NET.beaconIdle, NET.idleAfter, { public: SERVER.players.public, private: { min: SERVER.privateMin, max: SERVER.players.private }, name: SESSION_NAME_MAX, ban: { days: SERVER.banDays, reasonBytes: SERVER.banReasonBytes, reasons: SERVER.banReasons } }]);
   assert.ok(!('slowPing' in root) && !('saveEvery' in root) && !('saveAges' in root), 'only in settings');
   // A session's players: a private one's up to SERVER.players.private, a public one's up to SERVER.players.public; none given, the most.
   for (const [kind, limit, status] of [['public', 12, 200], ['public', SERVER.privateMin, 200], ['public', SERVER.players.public + 1, 400], ['public', 1, 400], ['public', 2.5, 400], ['public', '8', 400], ['private', SERVER.players.private + 1, 400]] as const) {

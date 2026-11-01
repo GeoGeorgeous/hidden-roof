@@ -136,6 +136,14 @@ export class Queue {
     this.places = [];
   }
 
+  /** The places `banned` picks turned away, banned (`text`: the ban's, banText). */
+  ban(banned: (p: Place) => boolean, text: string) {
+    for (const p of this.places.filter(banned)) {
+      turnAway(p.link, 'banned', text);
+      this.remove(p, 'banned by the admin');
+    }
+  }
+
   private remove(p: Place, why: string) {
     const i = this.places.indexOf(p);
     if (i < 0) return;

@@ -41,6 +41,7 @@ const STATUS: Record<Failure | 'connecting' | 'reconnecting', MessageId> & Parti
   'too-many': 'menu.netTooMany',
   'no-host': 'menu.netNoHost',
   kicked: 'menu.netKicked',
+  banned: 'menu.netBanned',
   closed: 'menu.netClosed',
   seats: 'menu.netSeats',
   rate: 'menu.netRate',

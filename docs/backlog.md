@@ -138,7 +138,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 The admin page (the cctv repo) and the server side it reads (server/admin/). 
 The API: docs/admin-api.md; why: docs/ideas/admin-data.md.
 
-1. [IDEA-240]: Admin: ban by IP (with a reason the player is shown); restoring a save is CCTV-255; a ban survives the monthly salt (the owner, 2026-11-01): keyed on a secret of its own that never rotates (the address by /64, and the device id), for a term the admin picks (docs/ideas/public-servers.md) @1.6.1
+1. [IDEA-240]: Admin: ban a player by address (/64) and device id, for 1 day to 6 months or for good, with a reason (presets or the admin's own) the player is shown in the game and in place of the server list; shorten, change the reason, lift. Server side done (`docs/admin-api.md`, Bans); the page's ban button and Banned players tab in cctv (`SECRET_cctv-handoff.md`) @1.6.1
 2. [CCTV-286]: A public session made from the admin page with the number of players chosen, as a private one's: `POST /sessions` takes `limit` for a public session too, `limits.private.min` to `limits.public` (GET / as it was, so the page keeps working); server side done; the page's New session form in cctv @1.6.1
 
 ## Web and promotion

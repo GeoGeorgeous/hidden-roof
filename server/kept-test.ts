@@ -170,7 +170,7 @@ try {
   // What the admin page reads: the version, the session's paint (the stamp's color as the game's), the player, the machine.
   const top = await admin('GET', '/');
   assert.deepEqual([top.body.api, typeof top.body.version], [4, 'string']);
-  assert.deepEqual(top.body.limits, { public: SERVER.players.public, private: { min: SERVER.privateMin, max: SERVER.players.private }, name: SESSION_NAME_MAX });
+  assert.deepEqual(top.body.limits, { public: SERVER.players.public, private: { min: SERVER.privateMin, max: SERVER.players.private }, name: SESSION_NAME_MAX, ban: { days: SERVER.banDays, reasonBytes: SERVER.banReasonBytes, reasons: SERVER.banReasons } });
   assert.deepEqual(top.body.settings, { slowPing: SERVER.slowPing, saveEvery: SERVER.keepEvery, saveAges: SERVER.keepAges.filter(Boolean), eventDays: SERVER.eventDays, eventDayBytes: SERVER.eventDayBytes, historyDays: SERVER.historyDays, saltEvery: 'month', pageIdle: NET.beaconIdle, playerIdle: NET.idleAfter, lengthMinutesMost: SERVER.lengthMinutesMost, fpsMost: SERVER.beaconBinFps, secondsMost: SERVER.beaconBinSeconds, pingMost: SERVER.beaconBinPing });
   assert.deepEqual(['slowPing', 'saveEvery', 'saveAges'].filter((k) => k in top.body), [], 'they are in settings now');
   const live = (await admin('GET', '/sessions')).body[0];

@@ -16,6 +16,7 @@ const LOST: Partial<Record<Failure, { id: DialogId; button: LostButton }>> = {
   ended: { id: 'sessionEmpty', button: 'save' },
   replaced: { id: 'openedElsewhere', button: 'leave' },
   kicked: { id: 'removedByAdmin', button: 'save' },
+  banned: { id: 'banned', button: 'save' },
   closed: { id: 'sessionClosed', button: 'save' },
   version: { id: 'updated', button: 'reload' },
   full: { id: 'sessionFull', button: 'save' },
@@ -24,11 +25,11 @@ const LOST: Partial<Record<Failure, { id: DialogId; button: LostButton }>> = {
   broken: { id: 'networkError', button: 'menu' },
 };
 
-/** The card for a session lost because of `reason` (`detail`: what was seen, shown for a network error); any other reason is a session that ended. */
+/** The card for a session lost because of `reason` (`detail`: what was seen, shown for a network error; a ban's end and reason); any other reason is a session that ended. */
 export function lostDialog(reason: Failure, detail?: string): { dialog: Dialog; button: LostButton } {
   const { id, button } = LOST[reason] ?? LOST.ended!;
   const dialog: Dialog = { ...dialogOf(id, { minutes: Math.round(SERVER.rejoinWindow / 60) }) };
-  if (id === 'networkError') dialog.callout = detail;
+  if (id === 'networkError' || id === 'banned') dialog.callout = detail;
   // Only this one comes from the reconnecting status.
   if (id === 'serverLost') dialog.grow = 'net';
   return { dialog, button };

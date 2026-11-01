@@ -311,9 +311,9 @@ export class Session {
     return `after ${span(Date.now() - this.started)}, ${this.memory.now.toFixed(0)} MB of paint, ${this.nextId - 1} players: ${c.new} new, ${c.back} back, ${c.takeover} takeovers`;
   }
 
-  /** `p` leaves for `why`; `told`: turned away with it, no seat held (the admin's kick). */
-  remove(p: Player, why: string, told?: 'kicked') {
-    if (!this.out(p, why, told)) return;
+  /** `p` leaves for `why`; `told`: turned away with it, no seat held (the admin's kick or ban; `text`: the ban's, banText). */
+  remove(p: Player, why: string, told?: 'kicked' | 'banned', text?: string) {
+    if (!this.out(p, why, told, text)) return;
     this.broadcast({ type: 'left', id: p.id });
     this.line.update();
     if (this.players.size) return;
@@ -326,7 +326,7 @@ export class Session {
    * `left` event, their time counted in the hour and the stats, and their link closed (`told`: turned away with that
    * rejection). False if they weren't in it.
    */
-  private out(p: Player, why: string, told?: 'kicked' | 'closed') {
+  private out(p: Player, why: string, told?: 'kicked' | 'closed' | 'banned', text?: string) {
     if (this.players.get(p.id) !== p) return false;
     release(p);
     this.players.delete(p.id);
@@ -338,7 +338,7 @@ export class Session {
     this.stats.stay(p.joined, Date.now());
     const link = p.link;
     p.link = null;
-    if (told) turnAway(link, told);
+    if (told) turnAway(link, told, text);
     else link?.close(1000, why);
     return true;
   }

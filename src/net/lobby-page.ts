@@ -2,6 +2,7 @@ import { LOBBY } from '../config';
 import { msg, type MessageId } from '../messages';
 import { button, div, el, notice } from '../menu-ui';
 import { lineIcon } from '../ui-icons';
+import { banWords } from './ban-words';
 import { fetchLobby } from './lobby-list';
 import { shellButton, toolIcons, whereTag, type Where } from './lobby-view';
 import type { LobbyEntry } from './protocol';
@@ -44,7 +45,8 @@ export class LobbyPage {
       return this.el.replaceChildren(notice(msg('lobby.listFailedHint'), { error: true, title: msg(answer.why), actions }));
     }
     const where = (this.where = { region: answer.value.region, ping: answer.ping });
-    const { sessions } = answer.value;
+    const { sessions, ban } = answer.value;
+    if (ban) return this.el.replaceChildren(notice(`${banWords(ban.reason, ban.until)} ${msg('lobby.bannedHint')}`, { error: true, title: msg('lobby.bannedTitle') }));
     this.el.replaceChildren(...(sessions.length ? sessions.map((s) => this.row(s, where)) : [this.note(msg('lobby.emptyTitle'), msg('lobby.emptyText'))]));
   }
 

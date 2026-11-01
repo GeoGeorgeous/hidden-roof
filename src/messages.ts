@@ -76,6 +76,8 @@ export const MESSAGES = {
     sessionClosed: { label: 'SESSION ENDED', title: 'The session has ended', text: 'The admin ended this session.', button: 'Save paint and leave', esc: 'Leave without saving' },
     /** The admin removed the player from the session. */
     removedByAdmin: { label: 'REMOVED', title: 'Removed from the session', text: 'The admin removed you from this session.', button: 'Save paint and leave', esc: 'Leave without saving' },
+    /** The admin banned the player from the server; shown with its end and reason as a callout. */
+    banned: { label: 'BANNED', title: 'Banned from this server', text: 'The admin banned you from this server, for the reason below. To appeal, email roof@hidden.haus.', button: 'Save paint and leave', esc: 'Leave without saving' },
     openedElsewhere: { label: 'OPENED ELSEWHERE', title: 'Opened in another tab', text: 'You joined this session from another tab, so this one left it.', button: 'Got it' },
     updated: { label: 'UPDATE', title: 'A new version is out', text: 'The game was updated while you were away. Reload the page to play together again.', button: 'Reload page', esc: 'Leave without reloading' },
     sessionFull: { label: 'SESSION FULL', title: 'The session is full', text: 'Someone took your place while you were reconnecting.', button: 'Save paint and leave', esc: 'Leave without saving' },
@@ -114,6 +116,9 @@ export const MESSAGES = {
     emptyTitle: 'No sessions right now',
     emptyText: 'Check back in a bit.',
     listFailedHint: 'Check your connection and try again in a moment.',
+    // In place of the list for a player the admin banned: single player stays open
+    bannedTitle: 'Banned from multiplayer',
+    bannedHint: 'You can still play on your own. To appeal, email roof@hidden.haus.',
     public: 'Public',
     private: 'Private',
     ping: '{ms} ms',
@@ -193,6 +198,7 @@ export const MESSAGES = {
     netEnded: 'The session has ended',
     netClosed: 'The admin ended this session',
     netKicked: 'The admin removed you from this session',
+    netBanned: 'The admin banned you from this server: email roof@hidden.haus to appeal',
     netSeats: 'Too many players from your network are in this session already',
     netRate: 'Too many joins from your network: wait a minute and try again',
     netTimeout: "The server didn't answer",
@@ -222,6 +228,9 @@ export const MESSAGES = {
     progressShort: 'Loading {percent}',
     /** What was seen when a link failed, for reports (technical). */
     detailWs: 'WS {code}',
+    // A ban's reason and end: the Multiplayer page's notice in place of the list, with netBanned, and in the banned dialog
+    detailBanned: 'You were banned for: {reason}. The ban ends {date}.',
+    detailBannedForever: 'You were banned for good, for: {reason}.',
     detailTry: 'WS {code} · TRY {n}',
     detailOffline: 'BROWSER OFFLINE',
     detailNoHttp: 'NO HTTP ANSWER IN {seconds} S',

@@ -1,3 +1,4 @@
+import { banWords } from '../net/ban-words';
 import { dialogOf, MESSAGES, msg, msgLines, type DialogId } from '../messages';
 import type { Dialog, Notify } from '../notify';
 
@@ -64,6 +65,7 @@ export class MessageTools {
         const dialog: Dialog = dialogOf(id, { minutes: 3 });
         if (id === 'clientError') dialog.callout = FAKE_STACK;
         if (id === 'networkError') dialog.callout = FAKE_NETWORK;
+        if (id === 'banned') dialog.callout = banWords('Tag spamming: the same tag again and again', Date.now() + 7 * 86400e3);
         // As in play: out of the reconnecting status, when one shows.
         if (id === 'serverLost') dialog.grow = 'net';
         return n.set({ key: 'test.dialog', kind: 'dialog', dialog });

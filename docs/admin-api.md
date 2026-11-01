@@ -25,6 +25,7 @@ key, Caddy) is in `docs/deploy.md` §6 and §9; why the data is as it is: `docs/
 | Traffic months (visitors, counts only) | `traffic/months.json` | forever |
 | Traffic days | `traffic/<day>.json` | forever (counts only) |
 | Traffic hours with visitors' hashes (and each one's country) | `traffic/hours-<day>.json` | `historyDays` (91) |
+| Bans (hashes of the address and device, nickname, reason, end) and their key | `bans.json` | until each ends or is lifted; the key never changes (a ban outlasts the month's salt). A file that can't be read is logged and kept aside as `bans.json.bad`, and no one is banned |
 | Events | `events/<day>.jsonl` | `eventDays` (30), each day's file up to `eventDayBytes` (5 MB) |
 | The last 60 minutes | memory | lost on restart |
 | Who's on the site | memory | each page by its last beat, `beaconSiteSeconds` (90 s) |
@@ -42,7 +43,8 @@ in it may count them twice, and `seenDays` counts from the month's start. The Hi
 { api: 4, version, protocol, started, now,
   sessions, players,                       // live now
   peak: { players, at } | null,            // the most players at once, ever
-  limits: { public: 40, private: { min: 2, max: 4 }, name: 32 },
+  limits: { public: 40, private: { min: 2, max: 4 }, name: 32,
+            ban: { days: [1, 7, 14, 30, 182, null], reasonBytes: 100, reasons: [text] } },   // null: for good
   settings: { slowPing, saveEvery, saveAges: [s], eventDays, eventDayBytes, historyDays, saltEvery: 'month',
               pageIdle, playerIdle, lengthMinutesMost, fpsMost, secondsMost, pingMost },
   sources: { status, beacon, history, traffic, geoip } }   // each { every: s, at: ISO | null }
@@ -303,3 +305,17 @@ too must be its own; an unknown or expired one is 404).
 `POST /sessions/CODE/restore` `{ save: MS } | { upload: ID }` → `{ undo: MS }`.
 `GET /sessions/CODE/paint`: its paint as a paint file made now. `GET /sessions/CODE/saves/MS`: a kept save.
 `POST /uploads` (a paint file as the body) → `{ upload, level, detail, bytes, expires }`.
+
+### Bans
+
+A ban keeps a player out of every session, by their address (an IPv6 one by its /64) and their game's device id:
+anyone from either is turned away (`banned`) at HOST and JOIN, and the server list shows them their ban and no
+sessions. Made, everyone of that address or device leaves every session and line at once, told the reason and the end.
+
+`GET /bans` → the bans in force, newest first: `[{ id, name, reason, made, until | null }]` (`name`: the nickname
+then; `until` null: for good). No address or device: the server keeps only their hashes.
+`POST /bans` `{ code, player, days, reason }` → the ban: `player` the id of one of session `code`'s players (a dropped
+one too); `days` one of `limits.ban.days`; `reason` 1 to `limits.ban.reasonBytes` bytes, one of `limits.ban.reasons` or
+the admin's own (the player reads it). An unknown session or player is 404.
+`POST /bans/ID` `{ days?, reason? }` → the ban changed: `days` counted from `made`, only sooner (a later end is 400).
+`POST /bans/ID/lift` → `{ ok: true }`. An unknown or ended ban is 404.
