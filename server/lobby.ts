@@ -215,10 +215,15 @@ export class Lobby {
     const ban = await this.bans.add(ip, p.device, p.name, reason, days);
     const text = banText(ban);
     const banned = (ip: string | undefined, device?: string) => !!ip && !!this.bans.of(ip, device);
-    for (const s of this.sessions.values()) {
+    // The lines first: a seat a banned player frees must not go to a banned place. A place put out is turned away, as a JOIN of theirs would be.
+    for (const s of this.sessions.values())
+      for (const place of s.line.ban((q) => banned(q.ip, q.link?.device), text)) {
+        history.turnedAway('banned');
+        turnedAway('banned');
+        event('turned-away', s, place.name, { reason: 'banned' });
+      }
+    for (const s of this.sessions.values())
       for (const q of [...s.players.values()]) if (banned(q.link?.ip ?? q.was?.ip, q.device)) s.remove(q, 'banned by the admin', 'banned', text);
-      s.line.ban((place) => banned(place.ip, place.link?.device), text);
-    }
     return ban;
   }
 
