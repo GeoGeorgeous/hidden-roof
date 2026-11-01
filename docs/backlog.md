@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 282
+The one list of what's left. Counter for new ids: next: 283
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -215,8 +215,9 @@ Shipped since the last release; the release commit empties this list.
 43. [CCTV-271]: A save's `stats` in GET /sessions in the shape of the session's `stats` (stamps by tool, painters), the page sums them; and one of a session's `today` and `stats` for the page, not both (in CCTV-278: `today` goes) @1.6.0
 44. [DOCS-281]: Docs for 1.6.0: deploy.md cut by a third (36 → 24 KB; the data's detail lives in admin-api.md) and brought up to date (protocol 9, public sessions take 40, saves 5 by age, restore from the admin page, the link budget, a corrupt salt kept aside); stale save counts fixed in known-limits.md and ideas/public-servers.md; measurements of discarded items out of ideas/performance.md; ideas/server-ops.md gone @1.6.0
 45. [TASK-277]: The 1.6.0 release notes, trimmed by the owner (2026-11-01: 5 items, ~1.5k characters; public and private sessions each with a sentence under the heading) and its picture, `public/updates/v1.6.0.webp`, the Multiplayer page with a public and a private session (docs/releases/AGENTS.md) @1.6.0
-46. [TASK-275]: Staging on 1.6.0 as dev has it (protocol 9, ADMIN_API 4): its `stats/`, `traffic/` and `events/` wiped first (the owner: the stats start from a clean slate with 1.6.0, on 2026-11-01); the cctv page deployed with it (its ADMIN_API 4 build, CCTV-278); then the owner plays a session and checks the admin page there (docs/ideas/vps.md) (2026-11-01: the owner says done; cctv and devops on it) @1.6.0
+46. [TASK-275]: Staging on 1.6.0 as dev has it (protocol 9, ADMIN_API 4): its `stats/`, `traffic/` and `events/` wiped first (the owner: the stats start from a clean slate with 1.6.0, on 2026-11-01); the cctv page deployed with it (its ADMIN_API 4 build, CCTV-278); then the owner plays a session and checks the admin page there (docs/ideas/vps.md) (deployed 2026-11-01; the owner is testing it) @1.6.0
 47. [TASK-242]: The privacy page names what 1.6.0's statistics keep, short: the device id and play days in localStorage, the beacon, the web access log and visitors, the events list, public sessions' saves with painters' nicknames, pseudonymous hashes (monthly key) kept 91 days and counts forever, the country from DB-IP on our server (credited), reading from Georgia; reviewed by a legal-analysis agent; no switch to turn statistics off (TASK-187) @1.6.0
+48. [TASK-282]: Release notes: an item may open with a lead, a sentence a line under its heading, before its list: each line its own in the game (in paper, the list's size), on GitHub (hard breaks) and on Discord; **bold** only where the note writes it (docs/releases/AGENTS.md) @1.6.0
 
 ## Discarder
 
