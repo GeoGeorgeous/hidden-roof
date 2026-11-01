@@ -1002,7 +1002,7 @@ export const PLAYER = {
   /** A climb carries on this far (m) over a ladder's top, so you step onto the floor it leads to (a stepladder's cap, a roof, over a parapet). */
   climbOver: 0.3,
   mouseSensitivity: 0.0022,
-  /** Take the mouse without the OS's pointer acceleration (the pointer lock's `unadjustedMovement`), at the next lock. For finding what makes mouse spikes (docs/ideas/mouse-spikes.md); F3 only. */
+  /** Take the mouse without the OS's pointer acceleration (the pointer lock's `unadjustedMovement`), at the next lock. For finding what makes rare mouse spikes; F3 only. */
   rawMouse: false,
   /** Falling below this height respawns the player. */
   killY: -25,
@@ -1137,7 +1137,7 @@ export const NET = {
 /** The multiplayer server (server/, docs/deploy.md). */
 export const SERVER = {
   port: 3000,
-  /** Players in one session, by its kind; each receives everyone's state and ops (no interest management), load-tested up to 80 (`npm run study:load`, docs/ideas/weak-links.md). */
+  /** Players in one session, by its kind; each receives everyone's state and ops (no interest management), load-tested up to 80 (`npm run study:load`, docs/testing.md). */
   players: { public: 40, private: 4 },
   /** The fewest players a private session may be made for (its host included). */
   privateMin: 2,
