@@ -66,6 +66,7 @@ Plain `docs/*.md` and the AGENTS.md files are standing context: kept true with t
 - Deployment, the VPS, multiplayer hosting, host changes waiting for devops: `docs/deploy.md`
 - The admin API (the contract with the cctv page): `docs/admin-api.md`
 - Releases: `docs/releases/AGENTS.md`; domain terms: `CONTEXT.md`
+- The site, the page about the game and search (sitemap, IndexNow, structured data): `docs/site.md`
 - Props, colliders, grid, and paintable faces: `src/kit/AGENTS.md`
 - Ink style, materials, color, and signs: `src/render/ink/AGENTS.md`
 - Debug panel (F3): tabs, naming, tooltips, and values: `src/debug/AGENTS.md`

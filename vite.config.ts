@@ -7,6 +7,7 @@ import { defineConfig, type Plugin } from 'vite';
 import pkg from './package.json' with { type: 'json' };
 import { LEVELS, PRECOMPRESS, RENDER } from './src/config.ts';
 import { UPDATES } from './src/links.ts';
+import { sitemapXml } from './src/sitemap.ts';
 import { updatesHtml } from './src/updates-html.ts';
 
 // The build's version (src/version.ts): git describe from the last release tag,
@@ -25,11 +26,22 @@ function version(): string {
 // The releases with a picture (public/updates/<tag>.webp): a patch may have none (docs/releases/AGENTS.md).
 const pictures = () => readdirSync('public/updates').filter((f) => f.endsWith('.webp')).map((f) => f.slice(0, -5));
 
-// The site's Updates page (src/updates-html.ts), written from the release notes as they are: by the build next to
-// index.html, by the dev server on each request.
+// The day a page's source last changed in git (YYYY-MM-DD): the sitemap's lastmod and the structured data's
+// dateModified. Today where there's no git (a copy of the files), or the files aren't committed yet.
+function changed(...paths: string[]): string {
+  try {
+    const day = execSync(`git log -1 --format=%cs -- ${paths.map((p) => `'${p}'`).join(' ')}`, { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+    if (day) return day;
+  } catch {}
+  return new Date().toISOString().slice(0, 10);
+}
+
+// The site's own files, written from the repo as it is: the Updates page (src/updates-html.ts) from the release
+// notes, the sitemap (src/sitemap.ts) with each page's last change, and index.html's dateModified the same day as
+// its lastmod. The dev server writes the Updates page on each request.
 const notes = () => readdirSync('docs/releases').filter((f) => /^v.*\.md$/.test(f)).map((f) => ({ tag: f.slice(0, -3), md: readFileSync(`docs/releases/${f}`, 'utf8') }));
-const updatesPage: Plugin = {
-  name: 'updates-page',
+const sitePages: Plugin = {
+  name: 'site-pages',
   apply: (_, env) => !env.isSsrBuild,
   configureServer(server) {
     server.middlewares.use((req, res, next) => {
@@ -38,8 +50,16 @@ const updatesPage: Plugin = {
       res.end(updatesHtml(notes(), pictures()));
     });
   },
+  transformIndexHtml(html) {
+    return html.replace(/("dateModified": )"[^"]*"/, `$1"${changed('index.html')}"`);
+  },
   generateBundle() {
     this.emitFile({ type: 'asset', fileName: UPDATES.slice(1), source: updatesHtml(notes(), pictures()) });
+    const pages = [
+      { path: '/', lastmod: changed('index.html') },
+      { path: UPDATES, lastmod: changed('docs/releases/v*.md') },
+    ];
+    this.emitFile({ type: 'asset', fileName: 'sitemap.xml', source: sitemapXml(pages) });
   },
 };
 
@@ -201,7 +221,7 @@ const gamePreload = () => {
 // The dev tools (src/dev: build mode, F3, window.game) are in the dev server and
 // npm run build:dev; npm run build, the player build, leaves them out.
 export default defineConfig(({ mode, isSsrBuild }) => ({
-  plugins: [releaseLevels, stripComments, gamePreload(), updatesPage, precompress()],
+  plugins: [releaseLevels, stripComments, gamePreload(), sitePages, precompress()],
   define: { __VERSION__: JSON.stringify(version()), __DEV_TOOLS__: JSON.stringify(mode !== 'production'), __MIN_VIEWPORT__: JSON.stringify(RENDER.minViewport), __BOOT_TIMES__: JSON.stringify({ check: RENDER.minViewportCheck, copied: RENDER.linkCopied }), __PICTURES__: JSON.stringify(pictures()) },
   ssr: { noExternal: true },
   build: { copyPublicDir: !isSsrBuild },

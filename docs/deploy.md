@@ -14,7 +14,7 @@ Context for the agent that deploys and runs the game on the VPS: read it before 
 ## 2. The game (stable)
 
 - three.js + TypeScript + Vite. Purely static: no API, no env secrets, no external services or CDNs, no WASM, Workers or SharedArrayBuffer (so no COOP/COEP headers). Everything is generated in code: no models, textures or audio files.
-- What's served: the JS/CSS bundle, the fonts (`fonts/*.woff2`), the levels (`levels/*.json`), the release pictures (`updates/*.webp`), the licenses (`licenses/*.txt`), `favicon.svg`, the Terms, Privacy and Updates pages (`updates.html`, written by the build from the release notes), and the files crawlers read (`robots.txt`, `sitemap.xml`, `llms.txt`, `site.webmanifest`).
+- What's served: the JS/CSS bundle, the fonts (`fonts/*.woff2`), the levels (`levels/*.json`), the release pictures (`updates/*.webp`), the licenses (`licenses/*.txt`), `favicon.svg`, the Terms, Privacy and Updates pages (`updates.html`, written by the build from the release notes), and the files crawlers read (`robots.txt`, `sitemap.xml` written by the build, `llms.txt`, `site.webmanifest`, the IndexNow key `<key>.txt`: `docs/site.md`).
 - **Paths are absolute** (`/assets`, `/fonts`), so the game is served from the root of its domain.
 - `?level=name` fetches `/levels/name.json`; the player build ships only `LEVELS.release` (`src/config.ts`). A missing level must be a real 404: **no SPA fallback** (an `index.html` in its place breaks JSON parsing).
 - Settings live in `localStorage`, per origin: changing the domain or the scheme resets them.
@@ -168,7 +168,8 @@ log {
 
 - `curl -I https://roof.hidden.haus/` → 200, `cache-control: no-cache`.
 - `curl -I` on a file under `/assets/` → `immutable`; with `-H 'Accept-Encoding: br'` → `content-encoding: br`.
-- `curl -I https://roof.hidden.haus/levels/nope.json` → 404, not `index.html`.
+- `curl -I https://roof.hidden.haus/levels/nope.json` → 404, not `index.html`; with `-A Googlebot` (or GPTBot) on `/` → 200, not 403 or 429.
+- `node scripts/indexnow.mjs` → `IndexNow: 200` (or 202): the sitemap's pages to Bing and the other IndexNow engines.
 - `curl -sI https://roof.hidden.haus/ | grep -o "script-src[^;]*"` shows the hash in `<apps>/roof/www/csp-hash.txt`; the browser console shows no CSP error.
 - `curl https://roof.hidden.haus/ws` → `roof server · protocol <n>`, the `PROTOCOL` of the game deployed.
 - `docker compose ps roof` is healthy; in two browser windows, HOST shows a code that JOIN accepts; a new file appears in `LOG_DIR`.

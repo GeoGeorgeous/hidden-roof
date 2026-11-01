@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 293
+The one list of what's left. Counter for new ids: next: 294
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -144,9 +144,6 @@ The API and why it is so: docs/admin-api.md.
 1. TASK [BL-067]: Posts on Reddit with technical decription @1.6.3
 2. [TASK-169]: Creating and posting instagram reels @1.7.0
 3. IDEA [BL-065]: A minimal tool to record gameplay as GIFs and short videos @1.6.2
-4. [TASK-291]: SEO basics: the page about the game in place of screen 10 (static in index.html, the Terms page look; hidden where the game loads; in the game, About → Game opens it over the paused game through a portal, its button back in; a loop of the game in the hero, six fact cards, How to start playing with Send the link to yourself, Play now once the window is big enough, and in the game a note when the window gets too small), the site name, title and description in search results, the structured data, llms.txt and sitemap (docs/ideas/seo.md) @1.6.1
-5. [TASK-292]: The Updates page (/updates.html): every release note as plain HTML a crawler reads, written by the build from docs/releases with the game's own parser, in the Terms page look; linked from the page about the game, Terms, Privacy, the sitemap and llms.txt (docs/ideas/seo.md) @1.6.1
-6. [TASK-287]: Better SEO: large; needs a discussion and the owner's decisions first, done last in the release, not touched until then; being discussed, nothing approved yet (docs/ideas/seo.md) @1.7.2
 
 ## Auth
 
@@ -173,6 +170,9 @@ Shipped since the last release; the release commit empties this list.
 9. [IDEA-240]: Admin: ban a player by address (/64) and device id, for 1 day to 6 months or for good, with a reason (presets or the admin's own) the player is shown in the game and in place of the server list; shorten, change the reason, lift (`docs/admin-api.md`, Bans); a place in line put out is a turned-away event, and goes before seats free; cctv's Ban action and Bans page (cctv PRs #10, #11); checked on cctv's fake server, on the real one when dev reaches next
 10. [CCTV-286]: A public session made from the admin page with the number of players chosen, as a private one's: `POST /sessions` takes `limit` for a public session too, `limits.private.min` to `limits.public`; cctv's Players stepper (cctv PR #10)
 11. [BUGS-235]: A stepladder can't stand in an open door's way, so nobody can block it in a public session: not in its opening, nor within 0.9 m in front of the wall or behind it (`STEPLADDER_PLACE.doorwayWidth` and `doorwayDepth`, 0.9 m each) (the door prop's `passage` piece, `Level.inPassage`); the toast says "Not in a doorway"; checked by the placer's game only, as the rest of where it stands; scaffolding left out (the owner, 2026-11-01)
+12. [TASK-291]: SEO basics: the page about the game in place of screen 10 (static in index.html, the Terms page look; hidden where the game loads; in the game, About → Game opens it over the paused game through a portal, its button back in; a loop of the game in the hero, six fact cards, How to start playing with Send the link to yourself, Play now once the window is big enough, and in the game a note when the window gets too small), the site name, title and description in search results, the structured data, llms.txt and sitemap
+13. [TASK-292]: The Updates page (/updates.html): every release note as plain HTML a crawler reads, written by the build from docs/releases with the game's own parser, in the Terms page look; linked from the page about the game, Terms, Privacy, the sitemap and llms.txt
+14. [TASK-293]: The sitemap's lastmod and the structured data's dateModified written by the build from git (the day each page's source last changed), not by hand at a release; an IndexNow key in public/ and scripts/indexnow.mjs, run once after each deploy; Caddy checked: crawlers (Googlebot, bingbot, GPTBot, ClaudeBot, PerplexityBot) get 200, unknown paths a real 404
 
 ## Discarder
 
@@ -205,3 +205,4 @@ Dropped items, kept for the record; don't work on them.
 25. ~~[RFCT-272]: A session's today peak seeded at midnight without a read writing state: the admin API's live() calls today.players() on every read for that (obsolete: a session's `today` went in CCTV-278; its peak is raised on a join, and live() writes nothing)~~
 26. ~~[IDEA-193]: Function to lock some some parts of the wall with paintings from changes (admin control) (merged into IDEA-195)~~
 27. ~~IDEA [?BL-153]: Find who painted something by player id, picked like the eyedropper (to spot bad paint) (merged into IDEA-195)~~
+28. ~~[TASK-287]: Better SEO: large; needs a discussion and the owner's decisions first, done last in the release, not touched until then; being discussed, nothing approved yet (dropped 2026-11-02: what it held is done in TASK-291, TASK-292 and TASK-293)~~
