@@ -14,7 +14,9 @@ are built.
   random pass for that session's code: valid 60 s, works once, kept in memory only. It rides after `#` in the URL, so
   Caddy's access log and the Referer never see it, and the game wipes it from the address bar. The game's console
   can't make anyone an admin. cctv's own server list (`CCTV_SERVERS`) gives each server its game's address; the game
-  server answers only the pass.
+  server answers only the pass. The route: `POST /sessions/CODE/admin-pass` → `{ pass, expires }` (ADMIN_API stays 4:
+  a route added); the link: `<game address>/#join=CODE&admin=PASS`, the code after `#` too, so no log has either
+  (CCTV-290).
 - **The pass beats bans and limits:** checked first, a valid pass comes in from a banned address and past the limits
   per address (seats, JOINs a minute). Only the open links per address (`SERVER.linksPerIp`, 24) are counted as the
   socket opens, before the JOIN that carries the pass: that one stays.
@@ -33,6 +35,8 @@ are built.
   `Admin` in red (numbered as any name when two are seen at once): a nameplate class (the HUD, not the world, so the
   ink rule holds). Plain `Admin`, no one's own name: no header from tinyauth, nothing for cctv or devops (simplified
   2026-11-01). Becoming seen and unseen shows to the others as a join and a leave, toasts included.
+- **Admin is reserved:** no player may take the nickname Admin, in any case (`src/net/ban-words.ts`, the menu and
+  the server), so only the red plate reads Admin.
 - **Admins see each other only while seen,** as everyone does: seen means in the broadcasts, unseen in none.
 - **Never a seat:** seen or not, the admin takes no seat and no place in line: no one is pushed out or kept waiting,
   and the server list still counts only the players (20/20). In the game the others see one more player.

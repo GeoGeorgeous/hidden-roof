@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 290
+The one list of what's left. Counter for new ids: next: 291
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -137,6 +137,8 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 The admin page (the cctv repo) and the server side it reads (server/admin/). 
 The API and why it is so: docs/admin-api.md.
+
+1. [CCTV-290]: "Join as admin" on a session: ask the server for a one-time pass, open the game at its server's address with it (IDEA-195, docs/ideas/admin-mode.md) @1.6.1
 
 ## Web and promotion
 
