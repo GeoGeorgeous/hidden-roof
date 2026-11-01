@@ -2,9 +2,11 @@
 // sent by vite preview as by Caddy): the start screen, the color tag, spraying,
 // the hotbar icons, a download, SETTINGS, the Multiplayer page's server list, and HOST against a local server (through
 // the page: players can't HOST from the menu). The build with the dev tools runs the same game code and lets the test
-// drive it.
+// drive it. Also the site's own files as the build writes them: the sitemap, dateModified, the IndexNow key.
 // Usage: npm run test:csp (builds the game and the server first)
-import { spawn } from 'node:child_process';
+import { execSync, spawn } from 'node:child_process';
+import { readdirSync, readFileSync } from 'node:fs';
+import { SITE, UPDATES } from '../src/links.ts';
 import { preview } from 'vite';
 import { hostSession } from './lobby-ui.mjs';
 import { fixedFrames, freePort, gameReady, noDrawing, openTestBrowser } from './test-browser.mjs';
@@ -32,6 +34,17 @@ try {
   // index.html's inline script ran (its hash allowed it) and started the game's files with the page.
   const preloads = await page.evaluate(() => document.querySelectorAll('link[rel="modulepreload"]').length);
   if (!preloads) problems.push('the inline script preloaded nothing');
+  // The sitemap: each page's lastmod the day its source last changed in git, and index.html's dateModified its
+  // lastmod (vite.config.ts); the IndexNow key served where scripts/indexnow.mjs says it is.
+  const get = (path) => fetch(new URL(path, test.url)).then((r) => r.text());
+  const changed = (path) => execSync(`git log -1 --format=%cs -- '${path}'`).toString().trim();
+  const sitemap = [...(await get('/sitemap.xml')).matchAll(/<loc>([^<]+)<\/loc>\s*<lastmod>([^<]+)<\/lastmod>/g)].map((m) => `${m[1]} ${m[2]}`);
+  const expected = [`${SITE}/ ${changed('index.html')}`, `${SITE}${UPDATES} ${changed('docs/releases/v*.md')}`];
+  if (sitemap.join() !== expected.join()) problems.push(`sitemap: ${sitemap.join(', ')}, not ${expected.join(', ')}`);
+  const modified = (await get('/')).match(/"dateModified": "([^"]+)"/)?.[1];
+  if (modified !== changed('index.html')) problems.push(`index.html's dateModified ${modified}, not ${changed('index.html')}`);
+  const key = readdirSync('public').find((f) => /^[0-9a-f]{32}\.txt$/.test(f));
+  if (!key || (await get(`/${key}`)) !== readFileSync(`public/${key}`, 'utf8')) problems.push(`the IndexNow key isn't served: ${key}`);
 
   await page.evaluate(async () => {
     const g = window.game;

@@ -29,7 +29,6 @@ assert.equal(tag(/<meta name="twitter:title" content="([^"]+)"/), title);
 const url = tag(/<link rel="canonical" href="([^"]+)"/);
 assert.equal(`${links.SITE}/`, url, 'src/links.ts: SITE is the canonical address');
 assert.equal(tag(/<meta property="og:url" content="([^"]+)"/), url);
-assert.equal(read('public/sitemap.xml').match(/<loc>([^<]+)<\/loc>/)?.[1], url);
 assert.equal(read('public/robots.txt').match(/^Sitemap: (\S+)/m)?.[1], new URL('sitemap.xml', url).href);
 
 // The site (its name in search results: WebSite's, not og:site_name's) and the game, in one graph.
@@ -52,14 +51,13 @@ assert.equal(live.match(/<h1[\s>]/g)?.length, 1, 'index.html: one h1');
 const h1 = about.match(/<h1>([\s\S]*?)<\/h1>/)?.[1].replace(/<[^>]+>/g, '');
 assert.ok(h1, 'index.html: no h1 in the page about the game');
 assert.ok(!/<main[^>]*\shidden/.test(live), 'index.html: the page about the game is not hidden');
-// Fresh as the last release: its version and day lead Latest updates, and the structured data's dateModified is the
-// sitemap's lastmod (docs/releases/AGENTS.md: both set at a release that changes the page).
+// Fresh as the last release: its version and day lead Latest updates (docs/releases/AGENTS.md). The structured data's
+// dateModified and the sitemap's lastmod the build sets (vite.config.ts; scripts/csp.test.mjs checks the built site).
 const releases = readdirSync(new URL('../docs/releases', import.meta.url)).filter((f) => /^v\d+\.\d+\.\d+\.md$/.test(f));
 const newest = releases.map((f) => f.slice(1, -3).split('.').map(Number)).sort((a, b) => b[0] - a[0] || b[1] - a[1] || b[2] - a[2])[0];
 const released = read(`docs/releases/v${newest.join('.')}.md`).match(/^date: (\S+)/m)[1];
 const short = newest[2] ? newest.join('.') : newest.slice(0, 2).join('.');
 assert.match(about, new RegExp(`<ul class="updates">\\s*<li><time datetime="${released}">[^<]+</time> <strong><a href="/updates.html#v${newest.join('\\.')}">Hidden Roof ${short.replace(/\./g, '\\.')}</a></strong>`), `index.html: Latest updates starts with ${short} of ${released}`);
-assert.equal(read('public/sitemap.xml').match(/<lastmod>([^<]+)<\/lastmod>/)?.[1], ld.dateModified, 'the sitemap\'s lastmod is the structured data\'s dateModified');
 const definition = ld.description;
 assert.match(definition, /^Hidden Roof is /);
 assert.equal(h1, definition, 'index.html: the h1 is the definition');

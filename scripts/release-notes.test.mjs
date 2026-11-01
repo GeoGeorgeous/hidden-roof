@@ -93,6 +93,4 @@ assert.deepEqual(order, sorted.map((r) => r.tag), 'the Updates page: every relea
 for (const tag of pictured) assert.ok(page.includes(`src="/updates/${tag}.webp"`), `the Updates page: ${tag}'s picture`);
 assert.ok(!/\*\*|\]\(/.test(page), 'the Updates page: no markdown left');
 assert.equal(page.match(/<h1>/g)?.length, 1, 'the Updates page: one h1');
-const sitemap = fs.readFileSync('public/sitemap.xml', 'utf8');
-assert.equal(sitemap.match(new RegExp(`<loc>${SITE}/updates.html</loc>\\s*<lastmod>([^<]+)</lastmod>`))?.[1], sorted[0].date, "the sitemap: the Updates page's lastmod is the newest release's date");
 console.log(`release notes: ${files.length} ok (and the Updates page)`);
