@@ -119,7 +119,12 @@
           <div class="hero-text">
             <!-- One sentence, the definition, read as one (search engines, assistants); shown as the name, large, then the rest. -->
             <h1><span class="name">Hidden Roof</span> <span class="def">is a free multiplayer graffiti game in your browser — paint ink-drawn rooftops alone or with your friends.</span></h1>
-            <p class="failed" role="alert" hidden></p>
+            <!-- Why the game didn't start, and what to do (src/boot.ts writes it). -->
+            <div class="failed" role="alert" hidden>
+              <p class="failed-head"></p>
+              <p class="failed-how"></p>
+              <a class="reload" href="/">Reload the page</a>
+            </div>
             <p>The city is drawn in pen and ink. The only color is the paint you bring.</p>
             <!-- Only over the paused game (src/about-portal.ts). -->
             <a class="enter" href="/">Back to the game</a>
@@ -139,6 +144,22 @@
             </dl>
           </section>
 
+          <!-- Only where the game can't be played: what to do. A phone (and crawlers, no JavaScript) gets Play on a computer;
+               a desktop window too small, Make the window bigger (html.needs-room, src/boot.ts). Hidden where the game can
+               start, and when it failed (the hero's note says why). -->
+          <section id="start">
+            <p class="label">How to start playing</p>
+            <div class="start-device">
+              <h2>Play on a computer</h2>
+              <p class="desc">Hidden Roof needs a keyboard and a mouse, so phones and tablets can&rsquo;t play it yet. Open roof.hidden.haus on a desktop or laptop.</p>
+              <p class="actions"><button class="send" type="button" hidden>Send the link to yourself</button></p>
+            </div>
+            <div class="start-window">
+              <h2>Make the window bigger</h2>
+              <p class="desc">The game needs a window at least 820×560. Make this one bigger or go fullscreen, and Play now appears at the top.</p>
+            </div>
+          </section>
+
           <section id="the-game" class="prose">
             <p class="label">About</p>
             <h2>Hidden Roof is a game about graffiti</h2>
@@ -153,18 +174,6 @@
             <p>The game is set in a fictional but deeply dystopian city. It is gray, brutalist, and not very friendly. There are no rules, just rainy rooftops, heavy concrete, and finding a good spot to leave a piece.</p>
             <h3>P.S.</h3>
             <p>I&rsquo;m making Hidden Roof alone, and it&rsquo;s free for everyone. If you like it, you can support it on <a href="https://ko-fi.com/D0Q7296HCP">Ko-fi</a>, tell me what you think in <a href="https://discord.gg/CMG9tT5Q4u">Discord</a>, and follow along on <a href="https://www.youtube.com/channel/UCIN2OeR6_IqEivP1uALkpJQ">YouTube</a>, <a href="https://www.instagram.com/roof.hidden/">Instagram</a> and <a href="https://www.tiktok.com/@roof.hidden">TikTok</a>.</p>
-          </section>
-
-          <section id="start">
-            <p class="label">How to start playing</p>
-            <h2>Play on a computer</h2>
-            <p class="desc">Hidden Roof needs a keyboard, a mouse and a window at least 820×560. Phones and tablets can&rsquo;t play it yet.</p>
-            <ol class="steps">
-              <li>Open roof.hidden.haus on a desktop or laptop computer.</li>
-              <li>Use a desktop browser with WebGL2; no download, no account.</li>
-              <li>Click the page: the game takes the mouse, and <kbd>Esc</kbd> pauses it.</li>
-            </ol>
-            <p class="actions"><button class="send" type="button" hidden>Send the link to yourself</button></p>
           </section>
 
           <section id="painting">
@@ -185,18 +194,39 @@
             <p class="label">Gallery</p>
             <h2>Screenshots</h2>
             <p class="desc">Explore the rooftop, check out the artwork, and see what other players have been up to.</p>
+            <!-- The first shot large, two beside it, then three, then two; a caption under each. -->
             <div class="gallery">
               <figure>
+                <img src="/gallery/bubble-letters.webp" width="1280" height="720" loading="lazy" alt="A long wall sprayed pink with black bubble letters, a yellow wall with a piece and a player behind it" />
+                <figcaption><strong>Bubble letters</strong> A pink wall of bubble letters, and a yellow one behind it.</figcaption>
+              </figure>
+              <figure>
+                <img src="/gallery/crew.webp" width="1280" height="720" loading="lazy" alt="Four players spraying purple and black on the brick walls of a small room" />
+                <figcaption><strong>Crew</strong> Players spraying the same brick room.</figcaption>
+              </figure>
+              <figure>
+                <img src="/gallery/billboard.webp" width="1280" height="720" loading="lazy" alt="A billboard painted red, a player on its walkway, the ink-drawn city around it at night" />
+                <figcaption><strong>Up high</strong> A billboard painted red, high above the city.</figcaption>
+              </figure>
+              <figure>
                 <img src="/updates/v1.5.0.webp" width="1280" height="720" loading="lazy" alt="A panda sprayed in black on a rooftop door, paint dripping down, a pen-and-ink city at night behind it" />
-                <figcaption><strong>Drips</strong> Black paint held still on a door pools and runs.</figcaption>
+                <figcaption><strong>Drips</strong> Hold the can still and the paint runs.</figcaption>
               </figure>
               <figure>
                 <img src="/updates/v1.2.0.webp" width="1280" height="720" loading="lazy" alt="A roller painting a brick wall cyan next to a window full of colored paint" />
                 <figcaption><strong>Roller</strong> A brick wall covered in seconds.</figcaption>
               </figure>
               <figure>
+                <img src="/gallery/characters.webp" width="1280" height="720" loading="lazy" alt="A green and an orange face with drips on a wall, an AC unit painted as a cow, a player next to them" />
+                <figcaption><strong>Characters</strong> Faces with drips, and an AC unit painted as a cow.</figcaption>
+              </figure>
+              <figure>
+                <img src="/gallery/line-work.webp" width="1280" height="720" loading="lazy" alt="A white marker drawing of a teapot on a black wall between AC units" />
+                <figcaption><strong>Line work</strong> A marker drawing between the AC units.</figcaption>
+              </figure>
+              <figure>
                 <img src="/updates/v1.0.0.webp" width="1280" height="720" loading="lazy" alt="A marker writing 1.0.0 Release in black and red around a rooftop exit door" />
-                <figcaption><strong>Marker</strong> Letters and outlines around an exit door.</figcaption>
+                <figcaption><strong>Marker</strong> Letters around an exit door.</figcaption>
               </figure>
             </div>
           </section>

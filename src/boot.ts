@@ -13,11 +13,14 @@
 const force = new URLSearchParams(location.search).has('force');
 const root = document.documentElement;
 
+/** A mouse to lock: not a phone, nor a tablet without one. */
+function pointer() {
+  return !matchMedia('(pointer: coarse) and (hover: none)').matches && 'requestPointerLock' in Element.prototype;
+}
+
 /** The game can be played here: a pointer to lock, and a window big enough. */
 function playable() {
-  const touchOnly = matchMedia('(pointer: coarse) and (hover: none)').matches;
-  const lock = 'requestPointerLock' in Element.prototype;
-  return !touchOnly && lock && innerWidth >= __MIN_VIEWPORT__.w && innerHeight >= __MIN_VIEWPORT__.h;
+  return pointer() && innerWidth >= __MIN_VIEWPORT__.w && innerHeight >= __MIN_VIEWPORT__.h;
 }
 
 /** The page about the game shows: its hero's loop plays, unless the player asked for less motion or less data. */
@@ -74,7 +77,11 @@ function failed() {
   root.classList.remove('game');
   const note = document.querySelector<HTMLElement>('.about .failed');
   if (!note) return;
-  note.textContent = webgl ? "The game didn't load: reload the page." : 'The game needs WebGL2, and this browser has it turned off.';
+  const [head, how] = webgl
+    ? ["The game didn't load", 'Check your connection, then reload the page.']
+    : ['The game needs WebGL2, and this browser has it turned off', "Most often it's hardware acceleration: turn it on in the browser's settings, restart the browser and reload this page."];
+  note.querySelector('.failed-head')!.textContent = head;
+  note.querySelector('.failed-how')!.textContent = how;
   note.hidden = false;
   heroLoop();
 }
@@ -85,6 +92,8 @@ if (force || playable()) {
   root.classList.add('game');
   import('./one-tab').then((t) => t.oneTab(() => import('./main'))).catch(failed);
 } else {
+  // How to start playing: Make the window bigger where only the room is missing, else Play on a computer.
+  root.classList.toggle('needs-room', pointer());
   heroLoop();
   watchRoom();
 }
