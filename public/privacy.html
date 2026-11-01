@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Privacy Policy · Hidden Roof</title>
-    <meta name="description" content="What Hidden Roof, the graffiti game in your browser, stores and sends: no cookies, no analytics, no accounts, and what multiplayer needs." />
+    <meta name="description" content="What Hidden Roof, the graffiti game in your browser, stores and sends: no cookies, no accounts, no third-party analytics; our own usage statistics, and what multiplayer needs." />
     <link rel="canonical" href="https://roof.hidden.haus/privacy.html" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="stylesheet" href="/legal.css" />
@@ -20,10 +20,10 @@
     </header>
     <main>
       <h1>Privacy Policy</h1>
-      <p class="updated">Last updated October 22, 2026</p>
+      <p class="updated">Last updated November 1, 2026</p>
 
       <div class="intro">
-        <p>Like any website, our server sees your IP address when your browser downloads the game&rsquo;s files. Beyond that, single player sends nothing about you; multiplayer needs a nickname. No cookies, accounts, analytics, ads or third-party resources, and we never sell data.</p>
+        <p>Like any website, our server sees your IP address. The game sends us usage statistics, tied to a random device id that we keep only as a pseudonymous hash; multiplayer needs a nickname. No cookies, accounts, third-party analytics, ads or third-party resources, and we never sell data.</p>
       </div>
 
       <section>
@@ -34,9 +34,10 @@
       <section>
         <h2>What We Process</h2>
         <ul>
-          <li><strong>On your device:</strong> the game keeps its own state on your device in localStorage (your settings, last nickname and progress, such as which hints you have already seen), so that the game works and shows you relevant hints, until you clear the site&rsquo;s data; while you are in a multiplayer session, its code, a rejoin token and your nickname in sessionStorage, deleted when you leave or close the tab. This is strictly necessary for features you ask for, so it needs no consent (Article 5(3) ePrivacy Directive). <strong>Save</strong> and <strong>Upload</strong> work with files on your device only.</li>
+          <li><strong>On your device:</strong> the game keeps its own state on your device in localStorage (your settings, last nickname and progress, such as which hints you have already seen), so that the game works and shows you relevant hints, and a random device id with the first and last day you played, until you clear the site&rsquo;s data; while you are in a multiplayer session, its code, a rejoin token and your nickname in sessionStorage, deleted when you leave or close the tab. The device id also lets you take your seat back in a session. <strong>Save</strong> and <strong>Upload</strong> work with files on your device only.</li>
           <li><strong>In multiplayer:</strong> your nickname, the session code, your position, view, tool, color and movement (about 20 times a second), the tools you carry, your paint and stepladder, and, when you host, the level and starting paint. Everyone in the session sees your nickname, avatar and paint. Do not put personal data in them.</li>
-          <li><strong>On the server:</strong> your IP address with each connection, and the browser&rsquo;s user agent with each request. The game server&rsquo;s log records the time, session code, nickname, IP address and event (joined, left, dropped, turned away, error). The web server keeps no access log; its error log can hold an IP address.</li>
+          <li><strong>Usage statistics:</strong> about once a minute while the game is open, it sends the device id (as the page loads), the first and last day you played, your browser, system and graphics card, load times, frame rates, settings, errors, what you do in the game (such as tutorial steps, pickups, time playing) and, in multiplayer, your connection&rsquo;s quality. We keep counts by hour and day. The device id and your IP address are kept only as pseudonymous hashes (with a key that changes every month, the old key deleted at once), with the country found from the IP address; in a session, the server also holds the device id in memory for as long as the session lasts.</li>
+          <li><strong>On the server:</strong> your IP address with each connection, and the browser&rsquo;s user agent with each request. The web server&rsquo;s access log records the time, IP address, user agent, page and referring site of each request; we count page views and visitors from it, each visitor kept only as a pseudonymous hash of the IP address and user agent, with a key that changes every month, and the country. The game server&rsquo;s log records the time, session code, nickname, IP address and event (joined, left, dropped, turned away, error); a separate list of these events keeps the nickname but no IP address.</li>
         </ul>
       </section>
 
@@ -44,10 +45,10 @@
         <h2>Why, and on What Legal Basis</h2>
         <ul>
           <li><strong>To run the game you ask for</strong> (Article 6(1)(b) GDPR): settings, session data and multiplayer.</li>
-          <li><strong>Our legitimate interests</strong> (Article 6(1)(f) GDPR): IP addresses and logs to keep the server secure, limit connections per address, block abuse and fix faults; and recordings to promote the game (next section).</li>
+          <li><strong>Our legitimate interests</strong> (Article 6(1)(f) GDPR): IP addresses and logs to keep the server secure, limit connections per address, block abuse and fix faults; usage statistics to see how the game is played and runs, and to make it better; and recordings to promote the game (next section).</li>
           <li><strong>Legal obligations</strong> (Article 6(1)(c) GDPR): answering lawful requests from authorities.</li>
         </ul>
-        <p>You are not required to give us any data; multiplayer just cannot work without a nickname and a connection. We make no automated decisions about you.</p>
+        <p>The game sends usage statistics while it is open, and multiplayer cannot work without a nickname and a connection. We make no automated decisions about you.</p>
       </section>
 
       <section>
@@ -58,8 +59,10 @@
       <section>
         <h2>How Long We Keep It</h2>
         <ul>
-          <li><strong>Sessions</strong> exist only in the server&rsquo;s memory. A dropped player&rsquo;s place is kept for 3 minutes; a session and its paint are deleted when the last player leaves or 3 minutes after the last one drops. An ended session&rsquo;s code alone is kept for 1 hour.</li>
-          <li><strong>The game server&rsquo;s logs</strong> lose IP addresses and nicknames after 14 days and are deleted after 60 days. The web server&rsquo;s error log is deleted after 14 days.</li>
+          <li><strong>Private sessions</strong> exist only in the server&rsquo;s memory. A dropped player&rsquo;s place is kept for 3 minutes; a session and its paint are deleted when the last player leaves or 3 minutes after the last one drops. An ended session&rsquo;s code alone is kept for 1 hour.</li>
+          <li><strong>Public sessions</strong> are saved on the server with their paint and the nicknames of who painted, for as long as the session runs, with older copies up to about a week back.</li>
+          <li><strong>The game server&rsquo;s logs</strong> lose IP addresses and nicknames after 14 days and are deleted after 60 days; its list of events is deleted after 30 days. The web server&rsquo;s access and error logs are deleted after 14 days.</li>
+          <li><strong>Usage statistics:</strong> hashes (from the game and from page visits) and hourly counts are deleted after 91 days; counts with no hash in them (such as daily totals, and new and returning players by country) are kept.</li>
           <li><strong>IP addresses blocked for abuse</strong> are kept for as long as the block is needed.</li>
           <li><strong>Recordings</strong> stay published; if you object, we remove your nickname from new material and, where we reasonably can, from our own posts (see below).</li>
           <li><strong>Copies others make</strong>, such as a paint file a player saves or a recording of a session, are theirs, not ours. Our deletion does not reach them.</li>
@@ -68,7 +71,7 @@
 
       <section>
         <h2>Who Receives It</h2>
-        <p>Other players in your session; our hosting provider, Hetzner Online GmbH, which runs the server in Nuremberg, Germany; the platforms where we publish recordings; and authorities where the law requires it. Players outside the EU receive your game data, and we run the server from the country of Georgia, both because it is needed to provide the game you asked for (Article 49(1)(b) GDPR).</p>
+        <p>Other players in your session; our hosting provider, Hetzner Online GmbH, which runs the server in Nuremberg, Germany; the platforms where we publish recordings; and authorities where the law requires it. The data is stored on the server in Germany; we read logs and statistics from the country of Georgia, which the EU has not found to offer adequate protection. Players outside the EU receive your game data because it is needed to provide the game you asked for (Article 49(1)(b) GDPR). The country comes from a database on our own server (<a href="https://db-ip.com">IP Geolocation by DB-IP</a>, <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>): your IP address is not sent to anyone for it.</p>
       </section>
 
       <section>
@@ -78,12 +81,12 @@
 
       <section>
         <h2>Your Right to Object</h2>
-        <p><strong>You may object at any time to processing based on our legitimate interests (Article 21 GDPR), including the use of your nickname in recordings.</strong> Email us the nickname and, if you can, the recording. We will keep it out of new material and, where we reasonably can, remove it from our own posts. We cannot remove copies that others have made or shared.</p>
+        <p><strong>You may object at any time to processing based on our legitimate interests (Article 21 GDPR), including the use of your nickname in recordings.</strong> Email us the nickname and, if you can, the recording. We will keep it out of new material and, where we reasonably can, remove it from our own posts. We cannot remove copies that others have made or shared. Usage statistics have no switch in the game: clearing the site&rsquo;s data deletes the device id and the days you played from your device, and as we keep only hashes, we can find your statistics only in the month their key lasts.</p>
       </section>
 
       <section>
         <h2>Age and Changes</h2>
-        <p>The game is for people aged 18 and over. Before it processes anything this page does not describe, such as analytics or telemetry, we will update this page and announce it in the game.</p>
+        <p>The game is for people aged 18 and over. Before it processes anything this page does not describe, we will update this page and announce it in the game.</p>
       </section>
 
       <footer><a class="other" href="/terms.html">Terms of Service →</a><a href="/">Back to the game →</a></footer>
