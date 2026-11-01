@@ -94,7 +94,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 11. IDEA [BL-075]: Digital billboards
 12. IDEA [BL-106]: Paintable cone roofs on the water tanks (a cone paint mapping) (docs/ideas/props-and-level.md)
 13. [TASK-194]: Replace paintable walls that cannot be reached with standard walls. Optimize room on the main floor.
-14. [BUGS-235]: Placing ladder by other players can block pass through an open door or a scaffolding
+14. [BUGS-235]: Placing ladder by other players can block pass through an open door or a scaffolding; needs a discussion with the owner first @1.6.1
 
 ## Tools
 
