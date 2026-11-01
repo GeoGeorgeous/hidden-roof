@@ -1924,6 +1924,11 @@
   color: var(--text-2);
   text-wrap: pretty;
 }
+/* An item's lead, the sentence over its list (release-notes.ts). */
+.overlay .item-text.lead {
+  color: var(--paper);
+  font-weight: 600;
+}
 .overlay .terms {
   display: flex;
   flex-direction: column;

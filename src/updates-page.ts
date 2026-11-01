@@ -55,7 +55,8 @@ export function updatesPage(menu: PauseMenu) {
     for (const it of r.items) {
       const box = div('item-note');
       box.append(div('item-title', it.title));
-      if (it.text) box.append(rich('div', 'item-text', it.text));
+      // Text over a list is its lead, bold; a heading's text alone (older notes) stays plain.
+      if (it.text) box.append(rich('div', it.list.length ? 'item-text lead' : 'item-text', it.text));
       if (it.list.length) {
         const list = div('terms');
         for (const [term, desc] of it.list) {
