@@ -586,6 +586,61 @@ html:not(.game) .about .hero {
   color: #fff;
   border-bottom-color: var(--paper);
 }
+/* The FAQ: each group's name on the left (it stays while its questions scroll), its questions on the right, each
+   opening in place. */
+.about .faq-group {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 32px;
+  padding: 12px 0;
+  border-top: 1px solid var(--hair);
+}
+.about .faq-group h3 {
+  position: sticky;
+  top: 90px;
+  align-self: start;
+  margin: 0;
+  padding-top: 9px;
+  font: 400 26px / 1.1 var(--display);
+  letter-spacing: 0.02em;
+}
+.about details + details {
+  border-top: 1px solid var(--hair);
+}
+.about summary {
+  position: relative;
+  padding: 12px 28px 12px 0;
+  font-weight: 600;
+  color: var(--paper);
+  list-style: none;
+  cursor: pointer;
+}
+.about summary::-webkit-details-marker {
+  display: none;
+}
+.about summary::after {
+  content: '+';
+  position: absolute;
+  top: 10px;
+  right: 0;
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--text-3);
+}
+.about details[open] summary::after {
+  content: '–';
+}
+.about summary:hover::after {
+  color: var(--paper);
+}
+.about summary:focus-visible {
+  outline: 2px solid var(--paper);
+  outline-offset: 2px;
+}
+.about details p {
+  max-width: 560px;
+  padding-bottom: 16px;
+}
 /* The gallery: the first shot across the column, the others two to a row; each with its caption. */
 .about .gallery {
   display: grid;
@@ -667,6 +722,13 @@ html:not(.game) .about .hero {
   }
   .about .facts {
     grid-template-columns: repeat(2, 1fr);
+  }
+  .about .faq-group {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .about .faq-group h3 {
+    position: static;
   }
   .about .updates {
     grid-template-columns: 1fr;

@@ -18,7 +18,9 @@ what's served: `docs/deploy.md`; the release steps that touch the page: `docs/re
 - The painting of 1.7.0 is described as fact before it ships (the owner's call: a site takes weeks to be read). Every
   other claim is true of the game as it is: check it against the code before it goes on the page, and keep the FAQ
   true with each release. Not "legal wall" (the owner's no).
-- The FAQ: each question phrased as players ask it, each answer starting with the direct answer.
+- The FAQ: each question phrased as players ask it, each answer starting with the direct answer. Questions sit in
+  groups (Playing, Painting, Multiplayer, Performance, The game), each a `<details>` that opens in place: the answers
+  stay in the markup for crawlers. A new question goes in its group.
 - Order: the hero, About (the fact cards), The game (the owner's text on what the game is; its "legal walls" is the
   owner's own, saying the game isn't one), How to start playing, then the rest. The tools' icons in The game are the
   server list's (`src/net/tool-icons.ts`), copied as markup; `scripts/seo.test.mjs` checks they match.
