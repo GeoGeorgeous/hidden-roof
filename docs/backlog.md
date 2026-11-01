@@ -54,7 +54,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## Painting
 
 1. IDEA [BL-074]: Stencils
-2. [IDEA-193]: Function to lock some some parts of the wall with paintings from changes (admin control)
+2. [IDEA-193]: Function to lock some some parts of the wall with paintings from changes (admin control) @1.6.1
 3. [IDEA-225]: Painting Rework: the can as a continuous brush (dabs between frames, build-up when held still, streamline; particles only for show) (docs/ideas/paint-refactoring.md) @1.7.0
 4. [IDEA-226]: Painting Rework: opacity on Shift + wheel, passes add up, smooth alpha (docs/ideas/paint-refactoring.md) @1.7.0
 5. [IDEA-227]: Painting Rework: the can's physics: hand speed and distance (gap, close, far) (docs/ideas/paint-refactoring.md) @1.7.0
@@ -69,13 +69,13 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## Input
 
 1. BUGS [BL-010]: Rare huge mouse jumps snap the camera in Chrome on Windows; the fix is the owner's choice (docs/ideas/mouse-spikes.md) @1.6.1
-2. [BUGS-234]: on MacOS pressing F11 doesn't exit fullscreen instantlly
+2. [BUGS-234]: on MacOS pressing F11 doesn't exit fullscreen instantlly @1.6.1
 
 ## Performance
 
 1. BUGS [BL-034]: Paint pages at ULTRA can reach ~1 GB of GPU memory: measured, 1045 MB is the ceiling (all 49 pages, 72% full); the lossless fix is BL-144 (docs/ideas/performance.md)
 2. [PERF-200]: Reduce Ladder Shadow Update Delay Without Frequent Rebaking @1.7.0
-3. [PERF-269]: The server's thread spared on admin reads and logging: /stats/*?period=30d sum 1440 hours each time (closed hours never change); the log appends each line with appendFileSync (traffic hours files and event day files are cached by mtime since BUGS-280)
+3. [PERF-269]: The server's thread spared on admin reads and logging: /stats/*?period=30d sum 1440 hours each time (closed hours never change); the log appends each line with appendFileSync (traffic hours files and event day files are cached by mtime since BUGS-280) @1.6.1
 
 ## Rendering
 
@@ -134,20 +134,22 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## Servers and deploy
 
 1. IDEA [BL-047]: Admin panel: servers stats (players online, perfomance, etc), players info (username, IP, ping); ban by IP is IDEA-240 (docs/ideas/public-servers.md) @1.6.0
-2. [IDEA-240]: Admin: ban by IP (with a reason the player is shown); restoring a save is CCTV-255 (docs/ideas/public-servers.md)
-3. IDEA [?BL-147]: Anti-cheat: The server checks what players send (op reach and rate, ladder spot, jumps) before it goes public @1.6.1
-4. [TASK-201]: Research itch.io Publishing Requirements, AI Policies, and Download Restrictions @1.6.3
-5. [TASK-276]: Production on 1.6.0 once it is released (2026-11-01; its stats start then, from an empty DATA_DIR): the server's data, admin key and the public session, GeoIP each month, roof-traffic (docs/ideas/vps.md items 1-3), and Caddy's `/api/main` for the admin page (docs/deploy.md §9) @1.6.0
+2. IDEA [?BL-147]: Anti-cheat: The server checks what players send (op reach and rate, ladder spot, jumps) before it goes public @1.6.1
+3. [TASK-201]: Research itch.io Publishing Requirements, AI Policies, and Download Restrictions @1.6.3
+4. [TASK-276]: Production on 1.6.0 once it is released (2026-11-01; its stats start then, from an empty DATA_DIR): the server's data, admin key and the public session, GeoIP each month, roof-traffic (docs/ideas/vps.md items 1-3), and Caddy's `/api/main` for the admin page (docs/deploy.md §9) @1.6.0
 
 ## CCTV
 
-The admin page (the cctv repo) and the server side it reads (server/admin/). The API: docs/admin-api.md; why: docs/ideas/admin-data.md.
+The admin page (the cctv repo) and the server side it reads (server/admin/). 
+The API: docs/admin-api.md; why: docs/ideas/admin-data.md.
+
+1. [IDEA-240]: Admin: ban by IP (with a reason the player is shown); restoring a save is CCTV-255 (docs/ideas/public-servers.md) @1.6.1
 
 ## Web and promotion
 
 1. TASK [BL-067]: Posts on Reddit with technical decription @1.6.3
 2. [TASK-169]: Creating and posting instagram reels @1.7.0
-3. IDEA [BL-065]: A minimal tool to record gameplay as GIFs and short videos
+3. IDEA [BL-065]: A minimal tool to record gameplay as GIFs and short videos @1.6.2
 
 ## Auth
 
@@ -155,16 +157,16 @@ The admin page (the cctv repo) and the server side it reads (server/admin/). The
 
 ## Legal
 
-1. [TASK-187]: The beacon, the device id and the address hash run without a consent dialog (the owner's decision and risk, recorded in SECRET_legal.md; confirmed 2026-11-01: no switch either); the privacy page names them (TASK-242, done)
-2. [TASK-189]: The Terms' moderation section (DSA: grounds and measures, reports by email, a restricted player told what and why); the house rules screen is in (docs/ideas/public-servers.md)
+1. [TASK-187]: The beacon, the device id and the address hash run without a consent dialog (the owner's decision and risk, recorded in SECRET_legal.md; confirmed 2026-11-01: no switch either); the privacy page names them (TASK-242, done) @1.6.1
+2. [TASK-189]: The Terms' moderation section (DSA: grounds and measures, reports by email, a restricted player told what and why); the house rules screen is in (docs/ideas/public-servers.md) @1.6.1
 
 ## Codebase
 
 1. [RFCT-202]: src/ root files into folders (paint, menu, input, boot, render), style.css split next to its code; paint after the Painting Rework (docs/ideas/src-folders.md) @1.8.0
-2. [RFCT-268]: server/time.ts with DAY, HOUR, dayName and iso once (dayName is in 5 files, 864e5 in 7), and one day-files helper (days changed, read back at start, pruned past SERVER.historyDays) for history, people, traffic and events
-3. [RFCT-270]: The beacon's limit per address through PerMinute, the third copy of "N a minute per address" (logNoisy is another); PerMinute reads its SERVER limits when asked, so a test can still change them
-4. [RFCT-272]: A session's today peak seeded at midnight without a read writing state: the admin API's live() calls today.players() on every read for that
-5. [RFCT-273]: The still player's "same stance" check next to encodeSnapshot (sender.ts reads the snapshot's byte offsets itself)
+2. [RFCT-268]: server/time.ts with DAY, HOUR, dayName and iso once (dayName is in 5 files, 864e5 in 7), and one day-files helper (days changed, read back at start, pruned past SERVER.historyDays) for history, people, traffic and events @1.6.1
+3. [RFCT-270]: The beacon's limit per address through PerMinute, the third copy of "N a minute per address" (logNoisy is another); PerMinute reads its SERVER limits when asked, so a test can still change them @1.6.1
+4. [RFCT-272]: A session's today peak seeded at midnight without a read writing state: the admin API's live() calls today.players() on every read for that @1.6.1
+5. [RFCT-273]: The still player's "same stance" check next to encodeSnapshot (sender.ts reads the snapshot's byte offsets itself) @1.6.1
 
 ## Done
 
