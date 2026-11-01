@@ -22,8 +22,13 @@ are built.
 - **Seen on demand:** a key makes the admin seen; to the others they are then an ordinary player. Their nameplate reads
   `<name> (Admin)` in red: a nameplate class (the HUD, not the world, so the ink rule holds). The name is tinyauth's
   signed-in user (Remote-User), which Caddy passes to the server with cctv's request for the link: a host change for
-  devops when built (`docs/deploy.md`). Players type only letters and digits, so no one can fake the plate, and no
-  nickname needs reserving.
+  devops when built (`docs/deploy.md`), to be checked then; without it the plate reads plain `Admin`. Players type
+  only letters and digits, so no one can fake the plate, and no nickname needs reserving. Becoming seen and unseen
+  shows to the others as a join and a leave, toasts included.
+- **Never a seat:** seen or not, the admin takes no seat and no place in line: no one is pushed out or kept waiting,
+  and the server list still counts only the players (20/20). In the game the others see one more player.
+- **Holds a private session:** any admin inside, seen or not, keeps a private session open as a player would; when
+  the admin leaves it empty, it closes as usual.
 - **Paint only when seen:** unseen, the admin's tools are off and the server drops their ops (other games drop ops
   from a player they don't know, `src/net/remotes.ts`).
 - **Fly:** build mode's fly (`player.fly`: no gravity, no collisions) on a key. Movement is the game's own anyway:
@@ -33,6 +38,8 @@ are built.
 - **Kicks and bans stay on cctv:** in the game the admin watches; cctv's session page kicks and bans, as now.
 - **Player list:** a key lists the session's players (dropped ones too); picking one puts the admin beside them
   (where the server last had them).
+- **One game tab per browser** (`src/one-tab.ts`): playing and being the admin at once takes another browser or
+  profile. Accepted.
 - **The server decides:** every power is the server's to grant and check; the game only shows it.
 - **Lightweight:** in the game's one build, its code in `src/admin/`, loaded with `import()` only when the welcome
   says admin: players download and run none of it. Plain to look at; as little code as it can be.
@@ -46,6 +53,16 @@ are built.
   on the same level is free.
 - **A wipe clears them too:** an admin wipe clears all paint and drops every lock.
 - **Outlines on a key:** a key draws every locked surface's outline (one line mesh, the admin's only).
+- **Players are told:** paint that won't stick to a locked surface shows the HUD line pickups use ("You picked up
+  ..."): "I won't spoil this masterpiece" (`src/messages.ts`).
+
+### The release
+
+- **Stays in 1.6.1**, though its notes say a patch; the notes are rewritten for it.
+- **A protocol bump** (new messages: `PROTOCOL` 9 to 10) wipes the public sessions' paint at deploy, as a new protocol
+  does today (`server/kept.ts`). Accepted.
+- **Files at the size limit** first: `server/session.ts` (393 lines) and `src/net/multiplayer.ts` (399) split by
+  responsibility, behavior the same, before the work.
 
 ## 1.7.1: who painted what (IDEA-288) and a timelapse (IDEA-289)
 
