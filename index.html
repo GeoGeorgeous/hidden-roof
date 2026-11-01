@@ -152,16 +152,9 @@
             <p>I put a lot of work into making the process feel as realistic as possible for mouse controls. The paint doesn&rsquo;t lay down perfectly evenly, and it will drip if you spray in one place for too long. The softness of the spray also shifts depending on your distance from the wall and the speed of your hand. I wanted the drawing to feel physical.</p>
             <h3>Tools</h3>
             <p>You can switch between different caps, and they actually change how the painting feels. A needle cap works well for sharp, precise details, while an NY fat cap gives you those classic, solid lines. You also have markers and rollers to experiment with different textures and styles.</p>
-            <!-- The tools' icons of the server list (src/net/tool-icons.ts; scripts/seo.test.mjs checks they're the same). -->
-            <ul class="tool-icons">
-              <li><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="can"><rect x="4.5" y="5.5" width="6" height="8.5" rx="1.5"/><path d="M6 5.5V3.5h3v2"/><path d="M10.5 3.2l2-.8M10.5 4.4l2 .2"/></svg>Can</li>
-              <li><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="marker"><path d="M3 13l.8-2.8 6.6-6.6 2 2-6.6 6.6z"/><path d="M9.2 4.8l2 2"/></svg>Marker</li>
-              <li><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="roller"><rect x="2.5" y="2.5" width="9" height="3.5" rx="1"/><path d="M11.5 4.2h1.7v3.3H7.5v2"/><path d="M7.5 9.5v4"/></svg>Roller</li>
-              <li><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="sponge"><rect x="2" y="6" width="9.5" height="7" rx="2.5"/><circle cx="4.8" cy="8.6" r="0.6" fill="currentColor" stroke="none"/><circle cx="7.6" cy="10.6" r="0.6" fill="currentColor" stroke="none"/><circle cx="8.4" cy="8.2" r="0.5" fill="currentColor" stroke="none"/><path d="M13 2.2c.9 1.2 1.4 2 1.4 2.6a1.4 1.4 0 0 1-2.8 0c0-.6.5-1.4 1.4-2.6z"/></svg>Sponge</li>
-              <li><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="ladder"><path d="M5 2v12M11 2v12M5 5h6M5 8h6M5 11h6"/></svg>Stepladder</li>
-            </ul>
             <h3>Vibes</h3>
             <p>The game is set in a fictional but deeply dystopian city. It is gray, brutalist, and not very friendly. There are no rules, just rainy rooftops, heavy concrete, and finding a good spot to leave a piece.</p>
+            <h3>P.S.</h3>
             <p>I am building Hidden Roof as a solo developer, and the game is completely free and available to everyone. I would be incredibly grateful if you support the project on <a href="https://ko-fi.com/D0Q7296HCP">Ko-fi</a>, share your feedback in our <a href="https://discord.gg/CMG9tT5Q4u">Discord</a>, and follow our socials (<a href="https://www.youtube.com/channel/UCIN2OeR6_IqEivP1uALkpJQ">YouTube</a>, <a href="https://www.instagram.com/roof.hidden/">Instagram</a>, <a href="https://www.tiktok.com/@roof.hidden">TikTok</a>) to see what comes next.</p>
           </section>
 
@@ -215,11 +208,13 @@
             <p class="label">How to play</p>
             <h2>Explore the map &amp; find new tools</h2>
             <p class="desc">You start with a spray can and black paint. Twelve more colors, the caps and four extra tools are hidden around the roof. Paint never runs out.</p>
+            <!-- Every tool, with its icon from the server list (src/net/tool-icons.ts; scripts/seo.test.mjs checks they're the same). -->
             <dl class="tools">
-              <div><dt>Marker</dt><dd>Crisp lines and letters</dd></div>
-              <div><dt>Roller</dt><dd>Large areas, fast</dd></div>
-              <div><dt>Sponge</dt><dd>Scrapes paint off</dd></div>
-              <div><dt>Stepladder</dt><dd>Reaches high walls</dd></div>
+              <div><dt><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="can"><rect x="4.5" y="5.5" width="6" height="8.5" rx="1.5"/><path d="M6 5.5V3.5h3v2"/><path d="M10.5 3.2l2-.8M10.5 4.4l2 .2"/></svg>Spray can</dt><dd>Tags, fills and fades</dd></div>
+              <div><dt><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="marker"><path d="M3 13l.8-2.8 6.6-6.6 2 2-6.6 6.6z"/><path d="M9.2 4.8l2 2"/></svg>Marker</dt><dd>Crisp lines and letters</dd></div>
+              <div><dt><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="roller"><rect x="2.5" y="2.5" width="9" height="3.5" rx="1"/><path d="M11.5 4.2h1.7v3.3H7.5v2"/><path d="M7.5 9.5v4"/></svg>Roller</dt><dd>Large areas, fast</dd></div>
+              <div><dt><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="sponge"><rect x="2" y="6" width="9.5" height="7" rx="2.5"/><circle cx="4.8" cy="8.6" r="0.6" fill="currentColor" stroke="none"/><circle cx="7.6" cy="10.6" r="0.6" fill="currentColor" stroke="none"/><circle cx="8.4" cy="8.2" r="0.5" fill="currentColor" stroke="none"/><path d="M13 2.2c.9 1.2 1.4 2 1.4 2.6a1.4 1.4 0 0 1-2.8 0c0-.6.5-1.4 1.4-2.6z"/></svg>Sponge</dt><dd>Scrapes paint off</dd></div>
+              <div><dt><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="ladder"><path d="M5 2v12M11 2v12M5 5h6M5 8h6M5 11h6"/></svg>Stepladder</dt><dd>Reaches high walls</dd></div>
             </dl>
           </section>
 

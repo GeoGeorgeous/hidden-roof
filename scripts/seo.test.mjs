@@ -72,7 +72,7 @@ for (const [file, text] of [['index.html <div class="about">', about], ['public/
   const found = mine(text);
   assert.deepEqual([...new Set(found)].sort(), [...project].sort(), `${file}: the project links`);
 }
-// The tools' icons in The game are the server list's (src/net/tool-icons.ts), shape for shape.
+// The tools' icons in How to play are the server list's (src/net/tool-icons.ts), shape for shape.
 const shapes = read('src/net/tool-icons.ts').match(/const SHAPES[^{]*\{([\s\S]*?)\n\};/)?.[1];
 assert.ok(shapes, 'src/net/tool-icons.ts: no SHAPES');
 for (const [, tool, shape] of shapes.matchAll(/(\w+): '([^']+)'/g)) assert.ok(about.includes(`data-tool="${tool}">${shape}</svg>`), `index.html: the ${tool} icon is src/net/tool-icons.ts's`);

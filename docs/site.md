@@ -21,9 +21,10 @@ what's served: `docs/deploy.md`; the release steps that touch the page: `docs/re
 - The FAQ: each question phrased as players ask it, each answer starting with the direct answer. Questions sit in
   groups (Playing, Painting, Multiplayer, Performance, The game), each a `<details>` that opens in place: the answers
   stay in the markup for crawlers. A new question goes in its group.
-- Order: the hero, About (the fact cards), The game (the owner's text on what the game is; its "legal walls" is the
-  owner's own, saying the game isn't one), How to start playing, then the rest. The tools' icons in The game are the
-  server list's (`src/net/tool-icons.ts`), copied as markup; `scripts/seo.test.mjs` checks they match.
+- Order: the hero, About (the fact cards), The game (the owner's text on what the game is, the owner's word to players
+  under P.S.; its "legal walls" is the owner's own, saying the game isn't one), How to start playing, then the rest.
+  How to play lists every tool with the server list's icon (`src/net/tool-icons.ts`), copied as markup;
+  `scripts/seo.test.mjs` checks they match.
 - The FAQ on a slow game says what the performance test says (`perfTip` in `src/perf-test.ts`, `fasterGpuHow` in
   `src/gpu-name.ts`): change one, change the other.
 

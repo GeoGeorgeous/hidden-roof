@@ -445,7 +445,8 @@ html:not(.game) .about .hero {
   color: var(--paper);
 }
 .about .tools {
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(5, 1fr);
+  gap: 24px;
 }
 .about :is(.facts, .tools) > div {
   display: flex;
@@ -460,6 +461,9 @@ html:not(.game) .about .hero {
   color: var(--text-3);
 }
 .about .tools dt {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   font-weight: 600;
   color: var(--paper);
 }
@@ -528,22 +532,6 @@ html:not(.game) .about .hero {
   margin: 18px 0 -6px;
   font: 400 26px / 1.1 var(--display);
   letter-spacing: 0.02em;
-}
-.about ul.tool-icons {
-  flex-flow: row wrap;
-  gap: 8px 14px;
-  margin-top: 2px;
-  font-size: 13px;
-  color: var(--paper);
-}
-.about .tool-icons li {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding-left: 0;
-}
-.about .tool-icons li::before {
-  content: none;
 }
 /* Two columns of short points, where the column is wide enough. */
 .about ul.cols {
@@ -721,6 +709,9 @@ html:not(.game) .about .hero {
     grid-template-columns: 1fr;
   }
   .about .facts {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .about .tools {
     grid-template-columns: repeat(2, 1fr);
   }
   .about .faq-group {
