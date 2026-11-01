@@ -24,6 +24,7 @@ The 1.6.0 items (CCTV-253 to CCTV-260) are in the backlog's Done; ADMIN_API 4 re
 - A clean slate (owner): the stats start with 1.6.0 on 2026-11-01; whatever staging counted before is deleted, and a traffic reader with no state counts only from its first day.
 - The last 60 minutes are kept in memory (pages, players, bytes each way, turned away), so the page's minute lines don't depend on it being open; lost on restart.
 - Visitors by country over a period: each visitor's hash keeps the country of their first view in an hour (owner), so a period counts each visitor once by country.
+- Abuse limits (review of 2026-10-31): rate limits and the people quota are per address, an IPv6 one by its /64; new people from pages are capped per address an hour (`SERVER.peoplePagesPerIp`) beside the total; the beacon's histograms have a top bin and `down`/`up` are binned to two significant digits, so an hour holds a bounded number of keys.
 - No medians from the server: play lengths come as a histogram by minute.
 - An idle page (no input for `NET.beaconIdle` s) is told by the game's beat, so it's as fresh as the beat (a minute); a player's state in a session comes from their link, live.
 

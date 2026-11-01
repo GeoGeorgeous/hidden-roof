@@ -1037,6 +1037,8 @@ export const NET = {
   beaconSlowFrame: 250,
   beaconList: 5,
   beaconErrorChars: 160,
+  /** The longest event or tutorial code the beacon sends, and the server takes (server/beacon-body.ts). */
+  beaconCodeChars: 40,
   beaconIdle: 30,
   beaconStep: 2,
   /** A setting changed again within this many seconds of its last change (a slider dragged) is the same change. */
@@ -1210,6 +1212,8 @@ export const SERVER = {
   statsMonthsMost: 120,
   /** The page loads that reached the level (the beacon's first message) add at most this many new people an hour to the history's players (server/people.ts), so made-up device ids can't grow it. */
   peoplePages: 20000,
+  /** ... and at most this many from one address (its /64) an hour: a school's classroom is a few dozen devices. */
+  peoplePagesPerIp: 500,
   /** The GeoIP base's file (server/geoip.ts) is checked for a new one this often (s). */
   geoipCheck: 3600,
   /** The host replaces the GeoIP base this often (s; monthly, docs/ideas/vps.md): the admin page shows its date as a figure's freshness. */
@@ -1231,6 +1235,10 @@ export const SERVER = {
   /** A beacon's session link: pings up to beaconMostPing ms, rates up to beaconMostRate KB/s. */
   beaconMostPing: 10000,
   beaconMostRate: 100000,
+  /** The beacon's histograms keep an hour to a bounded number of bins (server/client-counts.ts bin): a frame rate counts as beaconBinFps and a time (load, join, reconnect, stall) as beaconBinSeconds at most, a ping as beaconBinPing ms at most. */
+  beaconBinFps: 240,
+  beaconBinSeconds: 60,
+  beaconBinPing: 2000,
   /** Who is on the site now counts a page by its last minute beacon for this long (s): beaconEvery and a half, as timers jitter and a hidden tab's are throttled. At most beaconPages pages are kept; past it the one that beat longest ago goes. */
   beaconSiteSeconds: NET.beaconEvery * 1.5,
   beaconPages: 100000,
@@ -1241,6 +1249,10 @@ export const SERVER = {
   trafficText: 80,
   /** Each hour of a day keeps at most this many visitors' hashes (server/traffic-count.ts), kept SERVER.historyDays days for the period's unique visitors: past it a visitor's views count, the visitor does not. */
   trafficHourSeen: 10000,
+  /** The visitors' hashes of the hours files read back for GET /stats/traffic (server/traffic-store.ts) are kept in memory up to this many, the oldest files going first, so a request doesn't parse the same files as the last. */
+  trafficCacheSeen: 300000,
+  /** The event files parsed for GET /events/page (server/event-log.ts) are kept in memory, this many days' at most. */
+  eventCacheDays: 4,
   /** With DATA_DIR, a public session's paint is saved this often (s) when it changed, and at shutdown; after each save the newest stays and, for each of keepAges (s), the newest save at least that old: the rest go (server/saves.ts). */
   keepEvery: 1800,
   keepAges: [0, 6 * 3600, 24 * 3600, 3 * 24 * 3600, 7 * 24 * 3600],

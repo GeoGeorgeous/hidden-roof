@@ -45,5 +45,3 @@ export function only(c: Ctx, method: 'GET' | 'POST') {
 
 /** `x` is a whole number from 1 to `most` (at most 999). */
 export const upTo = (x: string, most: number) => /^\d{1,3}$/.test(x) && +x >= 1 && +x <= most;
-
-export const iso = (ms: number) => new Date(ms).toISOString();

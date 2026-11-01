@@ -7,7 +7,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { NET, SERVER } from '../src/config';
 import { beacon, site } from './beacon';
-import { addClient, countSetting, noClient, type ClientCounts } from './client-counts';
+import { addClient, bin, countSetting, noClient, type ClientCounts } from './client-counts';
 import { noPaint } from './counts';
 import { people } from './people';
 import { start } from './test-kit';
@@ -179,6 +179,19 @@ try {
   for (let i = 0; i < SERVER.beaconsPerIp + 2; i++) codes.add(await send({}, '10.4.0.1'));
   assert.deepEqual([...codes], [204, 429]);
 
+  // An IPv6 address is limited by its /64.
+  const v6 = new Set<number>();
+  for (let i = 0; i < SERVER.beaconsPerIp + 2; i++) v6.add(await send({}, `2001:db8:1:2::${i + 1}`));
+  assert.deepEqual([...v6], [204, 429]);
+
+  // Histograms have a bounded number of bins: a top bin takes the rest; KB/s to two significant digits.
+  assert.equal(await send({ fps: { avg: 1000, low1: 3 }, joins: [599.9], net: { seconds: 1, ping: { p50: 9000, p95: 9000, max: 9000 }, down: 12345, up: 99999 } }), 204);
+  {
+    const c = await history();
+    assert.deepEqual([c.fps[bin.fps(1000)], c.join[bin.tenth(599.9)], c.net.pingMax[bin.tenMs(9000)], c.net.down['12000'], c.net.up['100000']], [1, 1, 1, 1, 1]);
+    assert.deepEqual([bin.fps(1000), bin.tenth(599.9), bin.tenMs(9000), bin.rate(0), bin.rate(37), bin.rate(123), bin.rate(98765)], [String(SERVER.beaconBinFps), String(SERVER.beaconBinSeconds), String(SERVER.beaconBinPing), '0', '37', '120', '99000']);
+  }
+
   // Hours add up with the biggest names kept: a common name that comes after the first SERVER.beaconKinds is not lost to Other.
   const hour = (names: Record<string, number>) => Object.assign(noClient(), { gpus: names, events: { ...noClient().events, counts: names, settings: { zoom: names } } });
   const first = Object.fromEntries(Array.from({ length: SERVER.beaconKinds }, (_, i) => [`small${i}`, 1 + (i % 2)]));
@@ -222,6 +235,21 @@ try {
       assert.equal(c.countries.FR, 1, 'a page without a country takes the next one');
     } finally {
       SERVER.peoplePages = was;
+    }
+  }
+
+  // ... and from one address (its /64) at most SERVER.peoplePagesPerIp of them.
+  {
+    const was = SERVER.peoplePagesPerIp;
+    SERVER.peoplePagesPerIp = 2;
+    try {
+      const n0 = people.count(0, Infinity).players.device;
+      for (let i = 0; i < 5; i++) people.played('abcde'[i].repeat(32), `2001:db8:7:7::${i + 1}`, null, 'page');
+      assert.equal(people.count(0, Infinity).players.device - n0, 2);
+      people.played('f'.repeat(32), '10.9.8.7', null, 'page');
+      assert.equal(people.count(0, Infinity).players.device - n0, 3, 'another address still counts');
+    } finally {
+      SERVER.peoplePagesPerIp = was;
     }
   }
 

@@ -1,9 +1,10 @@
-import fs from 'node:fs/promises';
 import path from 'node:path';
 import { writeAtomic } from './atomic';
+import { dayName, dayOf } from './days';
+import { readJson } from './json-file';
 import { log } from './log';
-import type { Row } from './people-count';
-import { dayName } from './stats-period';
+import { noRow, type Row } from './people-count';
+import { filled } from './tally';
 
 // The audience by day, kept forever as counts only (docs/admin-api.md, Kept for how long): a file a year,
 // stats/audience-<YYYY>.json, an object of each ended day's row by its day. Only the owner may read them.
@@ -12,32 +13,25 @@ const fileOf = (year: string) => `audience-${year}.json`;
 
 /** The rows of `year` (YYYY) in `dir`, by day (YYYY-MM-DD); {} without the file, null if it can't be read (it is then left alone). */
 async function readYear(dir: string, year: string): Promise<Record<string, Row> | null> {
-  let text: string;
   try {
-    text = await fs.readFile(path.join(dir, fileOf(year)), 'utf8');
+    const rows = await readJson<unknown>(path.join(dir, fileOf(year)));
+    if (rows === null) return {};
+    if (typeof rows === 'object' && !Array.isArray(rows)) return rows as Record<string, Row>;
+    log('-----', `stats ${fileOf(year)} skipped: not an object of rows`);
   } catch (e) {
-    if ((e as NodeJS.ErrnoException).code === 'ENOENT') return {};
     log('-----', `stats ${fileOf(year)} skipped:`, e);
-    return null;
   }
-  try {
-    const rows = JSON.parse(text) as unknown;
-    if (typeof rows === 'object' && rows && !Array.isArray(rows)) return rows as Record<string, Row>;
-  } catch {
-    // Not JSON: below.
-  }
-  log('-----', `stats ${fileOf(year)} skipped: not an object of rows`);
   return null;
 }
 
-/** Every row of the days `from` to `to` (since 1970) that `dir` has, by day. */
+/** Every row of the days `from` to `to` (since 1970) that `dir` has, by day: a row lacks nothing, at any depth (a file from before a figure was kept). */
 export async function readDays(dir: string, from: number, to: number) {
   const rows = new Map<number, Row>();
   for (let year = +dayName(from).slice(0, 4); year <= +dayName(to).slice(0, 4); year++) {
     const kept = await readYear(dir, String(year));
     for (const [name, row] of Object.entries(kept ?? {})) {
-      const day = Date.parse(name) / 864e5;
-      if (day >= from && day <= to) rows.set(day, row);
+      const day = dayOf(name);
+      if (day !== null && day >= from && day <= to) rows.set(day, filled(noRow(), row));
     }
   }
   return rows;

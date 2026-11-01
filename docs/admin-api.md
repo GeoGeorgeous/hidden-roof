@@ -8,7 +8,7 @@ key, Caddy) is in `docs/deploy.md` §6 and §9; why the data is as it is: `docs/
 
 - **Data, not views.** Counts, histograms and ids; the page makes medians, shares, labels and charts.
 - **Units.** Times are ISO 8601 UTC strings, durations are seconds, sizes are bytes, rates are bits a second, pings are ms. A day is a UTC day, `YYYY-MM-DD`.
-- **Histograms** are `{ "<bin>": count }`, each bin key in the histogram's unit (whole minutes, whole fps, seconds to a tenth, ms by 10). Bins with nothing are left out. A histogram with an open last bin says so in `settings` (`lengthMinutesMost`: that bin counts everything from it up).
+- **Histograms** are `{ "<bin>": count }`, each bin key in the histogram's unit (whole minutes, whole fps, seconds to a tenth, ms by 10, KB/s to two significant digits). Bins with nothing are left out. A histogram with an open last bin says so in `settings` (`lengthMinutesMost`: that bin counts everything from it up; likewise `fpsMost` for `fps` and `low1`, `secondsMost` for `load`, `join`, `back` and `stallLong`, `pingMost` for the pings). `down` and `up` have no open bin: their bins are two significant digits (37, 120, 12000), at most about 400.
 - **People** are always counted `{ device, address }`, never merged: device is the game's random id (`localStorage`), address is the IP (IPv6 by its /64). Both are kept only as salted hashes, and a distinct count is distinct inside one answer, or one day, never added across them. The salt changes at the start of each month (UTC), so a period with a month's start in it may count a person twice by hash. The game also keeps on the device the day it first played and the day it last played, and the beacon sends them: the history's new players and its counts over any range of days (History, below) come from those, never from matching hashes.
 - **Versions.** `GET /` says `api: 4`; cctv checks for an exact match. A field or route added keeps the version; one removed, renamed or with a new meaning bumps it. Each change reaches cctv as a diff of this file before it's merged.
 - **Errors:** `400 { error }` a bad request, `401` no key, `403 { error: 'origin' }` a browser request from another origin, `404 { error }` a session, save, upload or route that isn't there, `405 { error: 'GET' }` the wrong method (the one it takes), `409 { error }` a restore or another disk task of that session under way, `413 { error }` a body over `SERVER.adminBody` bytes, `503 { error }` no memory for it, `500 { error }` a server failure.
@@ -20,7 +20,7 @@ key, Caddy) is in `docs/deploy.md` §6 and §9; why the data is as it is: `docs/
 |---|---|---|
 | Hours (plays, play time, paint, beacons, bytes) | `stats/<day>.json` | `historyDays` (91), then each day's total, forever |
 | People's hashes | `stats/people-<day>.json` | `historyDays` (91) |
-| Salt of people's hashes | `stats/salt.json` | a new one at each month's start (UTC); the old key is gone at once |
+| Salt of people's hashes | `stats/salt.json` | a new one at each month's start (UTC); the old key is gone at once. A file that can't be read is logged and kept aside as `salt.json.bad` |
 | People by day (counts only) | `stats/audience-<YYYY>.json` | forever |
 | Traffic months (visitors, counts only) | `traffic/months.json` | forever |
 | Traffic days | `traffic/<day>.json` | forever (counts only) |
@@ -44,14 +44,14 @@ in it may count them twice, and `seenDays` counts from the month's start. The Hi
   peak: { players, at } | null,            // the most players at once, ever
   limits: { public: 40, private: { min: 2, max: 4 }, name: 32 },
   settings: { slowPing, saveEvery, saveAges: [s], eventDays, eventDayBytes, historyDays, saltEvery: 'month',
-              pageIdle, playerIdle, lengthMinutesMost },
+              pageIdle, playerIdle, lengthMinutesMost, fpsMost, secondsMost, pingMost },
   sources: { status, beacon, history, traffic, geoip } }   // each { every: s, at: ISO | null }
 ```
 
 `settings`: `slowPing` (ms) is what a session's `ping.slow` counts past; `saveEvery` (s) how often a public session's
 changed paint is saved; `saveAges` (s) the ages a save is kept for beside the newest; `pageIdle` (s) no input for
 that long and a page counts as idle in `pages.by`; `playerIdle` (s) the same for a player's `state` in a session (what
-the other players see); `lengthMinutesMost` the open last bin of `lengthMinutes`. `sources`: how often each source
+the other players see); `lengthMinutesMost` the open last bin of `lengthMinutes`, `fpsMost`, `secondsMost` and `pingMost` those of the beacon's histograms (`/stats/client`). `sources`: how often each source
 comes and when the last one did: the stream's status, the game's beacon, the history's write, the traffic reader's
 last pass, the GeoIP base's build.
 
@@ -177,7 +177,7 @@ days: [{ day, stamps }]
 
 ```
 n, nGpu,                                  // page loads that reached the level, and those that named their GPU
-fps, low1, load, join,                    // histograms: whole fps, seconds to a tenth
+fps, low1, load, join,                    // histograms: whole fps (open last bin: fpsMost), seconds to a tenth (secondsMost)
 browsers, os, gpus: { name: n },          // up to SERVER.beaconKinds names, then Other
 errors: { count, plays, byMessage },
 events: { steps: { play, ready, sprayed, joined }, tutorial, counts, seconds: { playing, idle, menu }, settings },

@@ -1,13 +1,11 @@
 import { randomBytes } from 'node:crypto';
-import { createWriteStream } from 'node:fs';
 import fs from 'node:fs/promises';
 import type http from 'node:http';
 import path from 'node:path';
-import { Readable } from 'node:stream';
-import { pipeline } from 'node:stream/promises';
 import { PAINT_DETAIL, SERVER } from '../src/config';
 import type { LevelData } from '../src/level/level-data';
 import { readPaintHeader } from '../src/save/paint-file';
+import { writeAtomic } from './atomic';
 import { log, mb } from './log';
 import { fit } from './paint-fit';
 import { Busy, Missing, Refused } from './refused';
@@ -53,36 +51,33 @@ export class Uploads {
     if (this.checking) throw new Busy('an upload is being checked');
     this.checking = true;
     const id = randomBytes(8).toString('hex');
-    const tmp = this.file(`${id}.rhhpaint.tmp`);
     try {
-      // Past the limit the rest is read and dropped, so the connection stays good for the answer.
       let size = 0;
-      await pipeline(
-        Readable.from(
-          (async function* () {
-            for await (const chunk of req as AsyncIterable<Buffer>) if ((size += chunk.length) <= SERVER.uploadBytes) yield chunk;
-          })(),
-        ),
-        createWriteStream(tmp),
-      );
-      if (size > SERVER.uploadBytes) throw new Refused(`too big: up to ${SERVER.uploadBytes / 2 ** 20} MB`);
-      const bytes = await fs.readFile(tmp);
-      let header;
-      try {
-        header = readPaintHeader(bytes).header;
-      } catch (e) {
-        throw new Refused((e as Error).message);
-      }
-      const { name: level } = header.level;
-      if (!Object.values(PAINT_DETAIL).includes(header.density)) throw new Refused(`detail: ${header.density} texels per meter is none of ${Object.keys(PAINT_DETAIL).join(', ')}`);
-      const { paint, drips } = sessionPaint(await this.levelOf(level), header.density);
-      await fit(bytes, level, header.density, paint, drips);
-      await fs.rename(tmp, this.file(`${id}.rhhpaint`));
-      log('-----', `upload ${id}: ${level} at ${header.density} texels/m, ${mb(bytes.length)} MB`);
-      return { id, level, detail: header.density, bytes: bytes.length, expires: Date.now() + SERVER.uploadMinutes * 60000 };
+      let made: { level: string; detail: number; bytes: number } | undefined;
+      // The file is made aside and given its name only once it passes: written, read back, checked.
+      await writeAtomic(this.file(`${id}.rhhpaint`), async (out) => {
+        // Past the limit the rest is read and dropped, so the connection stays good for the answer.
+        for await (const chunk of req as AsyncIterable<Buffer>) if ((size += chunk.length) <= SERVER.uploadBytes) await out.write(chunk);
+        if (size > SERVER.uploadBytes) throw new Refused(`too big: up to ${SERVER.uploadBytes / 2 ** 20} MB`);
+        const bytes = Buffer.alloc(size);
+        await out.read(bytes, 0, size, 0);
+        let header;
+        try {
+          header = readPaintHeader(bytes).header;
+        } catch (e) {
+          throw new Refused((e as Error).message);
+        }
+        const { name: level } = header.level;
+        if (!Object.values(PAINT_DETAIL).includes(header.density)) throw new Refused(`detail: ${header.density} texels per meter is none of ${Object.keys(PAINT_DETAIL).join(', ')}`);
+        const { paint, drips } = sessionPaint(await this.levelOf(level), header.density);
+        await fit(bytes, level, header.density, paint, drips);
+        made = { level, detail: header.density, bytes: bytes.length };
+      });
+      const { level, detail, bytes } = made!;
+      log('-----', `upload ${id}: ${level} at ${detail} texels/m, ${mb(bytes)} MB`);
+      return { id, level, detail, bytes, expires: Date.now() + SERVER.uploadMinutes * 60000 };
     } finally {
       this.checking = false;
-      await fs.rm(tmp, { force: true });
     }
   }
 
