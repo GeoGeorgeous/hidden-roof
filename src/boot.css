@@ -103,6 +103,28 @@ html:not(.game) body > :not(.about) {
 .game .about {
   display: none;
 }
+/* The pause menu's About → Game (src/about-portal.ts): the page over the paused game, a circle growing from --portal,
+   shrinking back into it to close. */
+.game.about-open .about {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-dialog);
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: #000;
+  user-select: text;
+  clip-path: circle(0 at var(--portal, 50% 50%));
+  transition: clip-path 0.55s cubic-bezier(0.65, 0, 0.35, 1);
+}
+.game.about-open .about.open {
+  clip-path: circle(150% at var(--portal, 50% 50%));
+}
+@media (prefers-reduced-motion: reduce) {
+  .game.about-open .about {
+    transition: none;
+  }
+}
 
 /* --- Loading screen (index.html, main.ts): over everything until the game is ready --- */
 
@@ -201,9 +223,27 @@ html:not(.game) body > :not(.about) {
   color: var(--ink);
   font-weight: 600;
 }
-.about .top nav .play:hover {
+.about .top nav .play:hover,
+.about .enter:hover {
   background: #fff;
   color: var(--ink);
+}
+/* Back into the game: only over the paused game, where it takes Play's place. */
+.about .enter {
+  display: none;
+  margin-top: 28px;
+  padding: 13px 22px;
+  border-radius: 5px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 600;
+}
+.about-open .about .enter {
+  display: inline-block;
+}
+.about-open .about .top .play {
+  display: none;
 }
 /* A phone can't play: no Play there. */
 @media (pointer: coarse) and (hover: none) {

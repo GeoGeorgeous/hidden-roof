@@ -10,8 +10,10 @@ the repo; its facts are checked against the code before they go on a page.
 ## Approved for 1.6.1 (2026-11-01, TASK-291)
 
 - **The page about the game** in place of screen 10: static in `index.html`, in the look of the Terms and Privacy
-  pages, with the one h1, the definition, what you need, how to play, multiplayer, a FAQ and the links; no portal, no
-  way to it from the game, no Copy link. Where the game loads, `html.game` hides it before the first paint (the
+  pages, with the one h1, the definition, what you need, how to play, multiplayer, a FAQ and the links; no Copy link.
+  In the game, the pause menu's About → Game opens it over the paused game, a circle growing from the item; its
+  "Back to the game" button (and Esc) closes it, the circle shrinking back. The label "Game" is the owner's, beside
+  Settings → Game. Where the game loads, `html.game` hides it before the first paint (the
   inline script, the dev server too); when the game fails to start it shows, saying why.
 - **In search results:** the site name from `WebSite` (`@graph` with the game), the title and the description
   below; the game's structured data gets `GameApplication`, `browserRequirements` and the definition.

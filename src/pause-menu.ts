@@ -1,4 +1,5 @@
 import { msg } from './messages';
+import { AboutPortal } from './about-portal';
 import { INK_STYLES, PAUSE_MENU, SOCIAL_LINKS } from './config';
 import { creditsPage } from './credits-page';
 import { EscHold, ring } from './esc-hold';
@@ -20,7 +21,7 @@ const LEAVE_KEY = currentOs() === 'mac' ? '⌃ ⌘ F' : 'F11';
 // (the title view before START, hud.cityView), with the style switcher, the
 // fullscreen control (esc-hold.ts), PLAY and MULTIPLAYER under the title (in a
 // session: its live line, session-line.ts, BACK TO SESSION and LEAVE SESSION), the
-// menu in three columns (paint, settings, about) and the footer under it (the
+// menu in three columns (paint, settings, about: the page about the game, about-portal.ts) and the footer under it (the
 // social icons, SOCIAL_LINKS; the legal pages, the version, the author and Ko-fi);
 // and the pages and popups it opens over a blurred view: Settings,
 // Multiplayer and the rest. Esc goes back to the pause screen, and there
@@ -34,7 +35,7 @@ const PREVIEW_SECONDS = 1.5;
 /** The session's live line (ping, players) is refreshed this often while it shows. */
 const LINE_SECONDS = 1;
 
-export type Page = 'settings' | 'mp' | 'join' | 'create' | 'loading' | 'queue' | 'credits' | 'updates' | 'save' | 'upload' | 'perf';
+export type Page = 'settings' | 'mp' | 'join' | 'create' | 'loading' | 'queue' | 'credits' | 'updates' | 'save' | 'upload' | 'perf' | 'game';
 
 export class PauseMenu {
   onResume = () => {};
@@ -109,11 +110,14 @@ export class PauseMenu {
     hero.append(div('title', 'Hidden Roof'), this.status, this.line.el, start);
     this.savePaint = item('Save', () => this.openPage('save'));
     this.loadPaint = item('Upload', () => this.openPage('upload'));
+    // About → Game: the page about the game, through the portal; its button goes back into the game.
+    const portal = new AboutPortal(() => (this.openPage(null), this.onResume()));
+    const game = item('Game', () => (portal.aim(game), this.openPage('game')));
     const menu = div('menu');
     menu.append(
       column('paint', this.savePaint, this.loadPaint),
       column('settings', ...Object.entries({ Game: 'Gameplay', Audio: 'Sound', Controls: 'Controls', Graphics: 'Graphics' }).map(([t, tab]) => item(t, () => this.openSettings(tab)))),
-      column('about', item('Updates', () => this.openPage('updates')), item('Credits', () => this.openPage('credits'))),
+      column('about', game, item('Updates', () => this.openPage('updates')), item('Credits', () => this.openPage('credits'))),
     );
     // The title group stands on the menu, both on the menu's line from the bottom.
     const stack = div('stack');
@@ -128,6 +132,7 @@ export class PauseMenu {
     this.el.append(div('blur'), this.themes.el, this.hold.el, this.screen, this.back);
     parent.append(this.el);
     this.addPage('credits', creditsPage(), () => {});
+    this.addPage('game', portal.el, () => portal.open(), undefined, () => portal.close());
     updatesPage(this);
     this.openPage(null);
   }
