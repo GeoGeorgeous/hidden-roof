@@ -13,15 +13,14 @@ const R = 0.1;
 const SEG = 10;
 
 /** Bend: a knuckle where two pipe ends meet. */
-function knuckle(p: Parts, x: number, y: number, z: number) {
+function knuckle(p: Parts, y: number, z: number) {
   const k = R + 0.03;
-  p.detail([x - k, y - k, z - k], [x + k, y + k, z + k], M.steel);
+  p.detail([-k, y - k, z - k], [k, y + k, z + k], M.steel);
 }
 
-/** Low saddle support under the pipe at (x, z), across x or z. */
-function support(p: Parts, x: number, z: number, acrossZ = true) {
-  const [hx, hz] = acrossZ ? [0.04, 0.12] : [0.12, 0.04];
-  p.detail([x - hx, 0, z - hz], [x + hx, Y - R, z + hz], M.steel);
+/** Low saddle support under the pipe at (x, z), across z. */
+function support(p: Parts, x: number, z: number) {
+  p.detail([x - 0.04, 0, z - 0.12], [x + 0.04, Y - R, z + 0.12], M.steel);
 }
 
 /** 2 m straight pipe along x on small supports; chain them. */
@@ -44,7 +43,7 @@ const pipeCorner: Variant = {
     const p = new Parts();
     p.cyl([-1, Y, 0], 'x', 1, R, M.rust, { seg: SEG });
     p.cyl([0, Y, -1], 'z', 1, R, M.rust, { seg: SEG });
-    knuckle(p, 0, Y, 0);
+    knuckle(p, Y, 0);
     support(p, 0, 0);
     return p.list;
   },
@@ -59,7 +58,7 @@ const pipeFloor: Variant = {
     p.cyl([0, 0, 0], 'y', 0.04, R + 0.08, M.steel, { paint: false, seg: SEG });
     p.cyl([0, 0, 0], 'y', Y, R, M.rust, { seg: SEG });
     p.cyl([0, Y, 0], 'x', 1, R, M.rust, { seg: SEG });
-    knuckle(p, 0, Y, 0);
+    knuckle(p, Y, 0);
     return p.list;
   },
 };
@@ -90,7 +89,7 @@ const pipeWall: Variant = {
     p.cyl([0, Y, -0.04], 'z', 0.04, R + 0.08, M.steel, { paint: false, seg: SEG });
     p.cyl([0, Y, z], 'z', -z, R, M.rust, { seg: SEG });
     p.cyl([0, Y, z], 'x', 1, R, M.rust, { seg: SEG });
-    knuckle(p, 0, Y, z);
+    knuckle(p, Y, z);
     support(p, 0, z);
     return p.list;
   },
@@ -104,7 +103,7 @@ const pipeUp: Variant = {
     const p = new Parts();
     p.cyl([-1, Y, 0], 'x', 1, R, M.rust, { seg: SEG });
     p.cyl([0, Y, 0], 'y', WALL_H - Y, R, M.rust, { seg: SEG });
-    knuckle(p, 0, Y, 0);
+    knuckle(p, Y, 0);
     support(p, 0, 0);
     p.cyl([0, WALL_H - 0.04, 0], 'y', 0.04, R + 0.08, M.steel, { paint: false, seg: SEG });
     for (const y of [1.4, 2.6]) p.detail([-0.03, y, -R - 0.02], [0.03, y + 0.06, R + 0.02], M.steel, false);

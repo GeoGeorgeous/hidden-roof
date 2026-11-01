@@ -3,6 +3,7 @@ import path from 'node:path';
 import { format } from 'node:util';
 import { SERVER } from '../src/config';
 import { cleanDir, oneEntry } from './log-files';
+import { PerMinute } from './per-minute';
 
 // The server's log: one line per event, with the time first (UTC), the session's
 // code next when there is one. With a directory set (LOG_DIR) it goes to one file
@@ -65,24 +66,18 @@ export function log(...parts: unknown[]) {
   }
 }
 
-/** Each address's noisy lines in the window that began at `start`. */
-const noise = new Map<string, { start: number; n: number }>();
+/** Each address's (an IPv6 one by its /64) noisy lines in its window. */
+const noise = new PerMinute(() => SERVER.noisyPerIp, () => SERVER.noisyIps, () => SERVER.noisyWindow);
 
 /** `log` for lines a stranger can make at will: at most SERVER.noisyPerIp per SERVER.noisyWindow from one address, then one line says the rest are held back (until the window ends). True if it logged. */
 export function logNoisy(ip: string, ...parts: unknown[]) {
-  const now = Date.now();
-  const window = SERVER.noisyWindow * 1000;
-  if (noise.size >= SERVER.noisyIps) for (const [k, e] of noise) if (now - e.start >= window) noise.delete(k);
-  let e = noise.get(ip);
-  if (!e || now - e.start >= window) {
-    if (!e && noise.size >= SERVER.noisyIps) return false;
-    noise.set(ip, (e = { start: now, n: 0 }));
-  }
-  if (++e.n <= SERVER.noisyPerIp) {
+  const n = noise.hit(ip);
+  if (!n) return false;
+  if (n <= SERVER.noisyPerIp) {
     log(...parts);
     return true;
   }
-  if (e.n === SERVER.noisyPerIp + 1) log('-----', `more lines from ${ip} held back for ${SERVER.noisyWindow} s`);
+  if (n === SERVER.noisyPerIp + 1) log('-----', `more lines from ${ip} held back for ${SERVER.noisyWindow} s`);
   return false;
 }
 

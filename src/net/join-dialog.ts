@@ -19,7 +19,7 @@ const RULES_KEY = 'roofhiddenhaus.rulesSeen';
 /** The player asked not to see the house rules again. */
 const rulesSeen = () => stored(RULES_KEY) === '1';
 
-export interface JoinHooks {
+interface JoinHooks {
   /** The dialog is wanted on screen (its page opens and calls `open`). */
   show(): void;
   /** JOIN for this session, with the name and the code to ask for. */

@@ -2,6 +2,8 @@
 // site data blocked), reads give null and writes are dropped: whatever it
 // keeps lasts for this session only.
 
+import { isDevice } from './net/protocol.ts';
+
 export function stored(key: string): string | null {
   try {
     return localStorage.getItem(key);
@@ -16,7 +18,9 @@ let made = false;
 
 /** This browser's random id, sent with HOST and JOIN: the admin's history counts people by it (and by address). Kept for the session where storage is blocked. */
 export function deviceId() {
-  device ??= stored('roofhiddenhaus.device') || undefined;
+  const kept = stored('roofhiddenhaus.device');
+  // A value that is no device id (edited by hand, or an older form) would fail every HOST, JOIN and beacon: a new device.
+  device ??= typeof kept === 'string' && isDevice(kept) ? kept : undefined;
   if (!device) store('roofhiddenhaus.device', ((made = true), (device = Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, '0')).join(''))));
   return device;
 }

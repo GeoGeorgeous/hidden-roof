@@ -204,7 +204,6 @@ export const MESSAGES = {
     joining: 'Joining…',
     typeName: 'Type a name first',
     nameLetters: 'A name is Latin letters A–Z and digits 0–9 only',
-    codeLength: 'The code is {length} letters',
     logCopied: 'Network log copied',
     logSaved: 'Network log saved as a file',
     saveBusy: 'The server is busy: save again later',
@@ -287,7 +286,7 @@ type Messages = typeof MESSAGES;
 /** `group.name`: 'toast.joined'. The dialog's messages have several fields: see dialogOf. */
 export type MessageId = { [G in Exclude<keyof Messages, 'dialog'>]: `${G}.${keyof Messages[G] & string}` }[Exclude<keyof Messages, 'dialog'>];
 export type DialogId = keyof Messages['dialog'];
-export type Vars = Record<string, string | number>;
+type Vars = Record<string, string | number>;
 
 /** A dialog's text: `esc` is what Esc does when that isn't what the button does. */
 export interface DialogText {

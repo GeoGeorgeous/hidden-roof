@@ -1,7 +1,8 @@
 import { COLOR_ORDER } from '../src/config';
 import { clientReport } from './client-counts';
 import { history, sum } from './history';
-import { daysIn, HOUR, weekdayOf, type Frame, type Span } from './stats-period';
+import { HOUR } from './days';
+import { daysIn, weekdayOf, type Frame, type Span } from './stats-period';
 
 // What the history's hours (history.ts) add up to over a range: the figures of GET /stats/play, /paint and /client.
 

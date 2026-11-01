@@ -1,6 +1,7 @@
 import { NET, SERVER } from '../src/config';
 import type { NetReport } from '../src/net/net-minute';
 import { isDevice } from '../src/net/protocol';
+import { today } from './days';
 
 // A beacon's body as the game sends it (src/beacon.ts), checked: any field of the wrong type, a code that isn't one
 // (a-z, 0-9, . and -), a list or a map over its limit, or a number out of range, and it's refused whole.
@@ -33,10 +34,10 @@ const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object
 const isPage = (x: unknown) => typeof x === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(x);
 const isNum = (x: unknown, most: number) => typeof x === 'number' && Number.isFinite(x) && x >= 0 && x <= most;
 const isText = (x: unknown) => typeof x === 'string' && x.length <= SERVER.beaconText;
-const isEventCode = (x: unknown) => typeof x === 'string' && /^[a-z0-9.-]{1,40}$/.test(x);
+const isEventCode = (x: unknown) => typeof x === 'string' && x.length <= NET.beaconCodeChars && /^[a-z0-9.-]+$/.test(x);
 /** The days (since 1970) the game says of its device: the first it played and the one before today, each none or a day up to tomorrow (the server's clock may be behind). */
 const isDays = (x: unknown) => {
-  const most = Math.floor(Date.now() / 864e5) + 1;
+  const most = today() + 1;
   return isObj(x) && [x.first, x.prev].every((d) => d === null || (typeof d === 'number' && Number.isInteger(d) && d >= 0 && d <= most));
 };
 const isList = (x: unknown, ok: (v: unknown) => boolean) => x === undefined || (Array.isArray(x) && x.length <= NET.beaconList && x.every(ok));

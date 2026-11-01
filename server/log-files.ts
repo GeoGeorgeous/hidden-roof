@@ -2,6 +2,8 @@ import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { SERVER } from '../src/config.ts';
+import { writeAtomic } from './atomic.ts';
+import { DAY } from './days.ts';
 
 // The log's files (LOG_DIR, server/log.ts): one a day. Each line starts with
 // its time; past `days.redact` its IP addresses and nicknames are removed,
@@ -10,10 +12,8 @@ import { SERVER } from '../src/config.ts';
 // LOG_DIR existed (docker logs -t: two times, the first counts) can go there.
 // A file named YYYY-MM-DD.log is judged by its name: not read while young or once cleaned, deleted unread when old.
 // An undated one is read again only when it has changed since the last cleaning, or once a day (its lines keep aging).
-// A file is read and rewritten in chunks (SERVER.logChunkBytes) so the cleaning never holds up the relay.
+// A file is read and rewritten (written aside, flushed, renamed) in chunks (SERVER.logChunkBytes) so the cleaning never holds up the relay.
 // (Node runs this file as is in scripts/server-log.test.mjs: imports with their .ts extension.)
-
-const DAY = 86_400_000;
 
 /** Ages in days: lines older than `redact` lose IP addresses and nicknames, older than `keep` go. */
 interface Ages {
@@ -106,13 +106,9 @@ async function cleanFile(file: string, now: number, days: Ages) {
   if (rest) take(rest);
   if (!kept.length) return fsp.rm(file);
   if (changed) {
-    const out = await fsp.open(`${file}.tmp`, 'w');
-    try {
+    await writeAtomic(file, async (out) => {
       for (const text of kept) await out.write(text);
-    } finally {
-      await out.close();
-    }
-    await fsp.rename(`${file}.tmp`, file);
+    });
   }
   await fsp.utimes(file, new Date(now), new Date(now)); // cleaned at `now`: a dated file isn't read again
 }
@@ -136,7 +132,6 @@ export async function cleanDir(dir: string, days: Ages, now = Date.now(), fail: 
       }
     } catch (e) {
       fail(name, e);
-      await fsp.rm(`${file}.tmp`, { force: true }).catch(() => {});
     }
   }
 }

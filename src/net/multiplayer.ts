@@ -1,4 +1,3 @@
-import { NET } from '../config';
 import { msg } from '../messages';
 import type { Progress } from './progress';
 import type { PaintOp } from '../paint-ops';
@@ -14,6 +13,7 @@ import { LinkHealth, type LinkStatus } from './link-health';
 import { NetMinute } from './net-minute';
 import { Outbox } from './outbox';
 import { LinkClosed } from './link-closed';
+import { Silence } from './link-silence';
 import { Reconnect } from './reconnect';
 import { SaveRequest } from './save-request';
 import { Sender } from './sender';
@@ -22,7 +22,7 @@ import { OwnStatus } from './own-status';
 import { ownerOf, Remotes } from './remotes';
 import { keepTabSession, tabSession } from './tab-session';
 import { capture, encodeSnapshot } from './snapshot';
-import type { NetStatus } from './status';
+import type { Failure, NetStatus } from './status';
 
 // This game in a multiplayer session (server/, protocol.ts): HOST or JOIN, then what this player sends
 // (sender.ts: NET.sendRate times a second their snapshot and the paint ops they made since, their stepladder when it
@@ -58,8 +58,8 @@ export class Multiplayer {
   private line: { code: string; token: string; position: number } | null = null;
   /** The code of the session the last JOIN asked for. */
   private wanted = '';
-  /** The link this game closed for its silence (NET.serverSilence): its close is a timeout. */
-  private silenced: ServerLink | null = null;
+  /** Closes a link that went silent (link-silence.ts). */
+  private silence: Silence;
   /** Messages are handled one at a time, in order (a welcome loads paint before what follows it). */
   private queue = Promise.resolve();
   private t0 = 0;
@@ -89,6 +89,7 @@ export class Multiplayer {
 
   constructor(private g: MultiplayerContext) {
     this.remotes = new Remotes(g, this.log);
+    this.silence = new Silence({ log: (line) => this.log.add(line), link: () => this.link, closed: (link, code, timedOut) => this.closed(link, code, timedOut) });
     this.tail = new SoloReturn(g, {
       enqueue: (job) => (this.queue = this.queue.then(job).catch(console.error)),
       log: (line) => this.log.add(line),
@@ -113,7 +114,7 @@ export class Multiplayer {
   /** A HOST or JOIN is under way, or waits in line. */
   private waiting = () => this.status.state === 'connecting' || this.status.state === 'queued';
 
-  /** The other players' names, by id. */
+  /** The other players' names, by id (the browser tests read it). */
   get names() {
     return this.remotes.names;
   }
@@ -126,11 +127,6 @@ export class Multiplayer {
   /** In a session: everyone in it, us first, with their paint colors (null: not known yet). */
   get players() {
     return this.joined ? [{ name: this.joined.name, color: this.g.inventory.color }, ...this.remotes.roster] : [];
-  }
-
-  /** What the session we are in is (its kind, name, player limit and tools); null outside one. */
-  get session(): SessionInfo | null {
-    return this.joined?.session ?? null;
   }
 
   /** The last round trip to the server (s), null before the first. */
@@ -190,11 +186,7 @@ export class Multiplayer {
     this.remotes.update(this.g.camera, t, dt);
     const link = this.link;
     if (!this.joined || !link?.live || !link.open) return;
-    if (t - link.lastHeard > NET.serverSilence) {
-      this.log.add(`nothing from the server for ${NET.serverSilence} s: closing to reconnect`);
-      this.silenced = link;
-      return link.close();
-    }
+    if (this.silence.check(link, t)) return;
     this.minute.frame(dt, t - link.lastHeard);
     this.own.update(t);
     if (this.health.due(t)) this.health.report({ t, ping: this.net.ping, silence: t - link.lastHeard }, this.onHealth);
@@ -220,8 +212,7 @@ export class Multiplayer {
       (this.queue = this.queue.then(() => this.receive(m, arrived, link, file)).catch((err) => {
         console.error(err);
         this.log.add(`couldn't handle ${m.type}: ${err}`);
-        this.send({ type: 'leave' });
-        this.end({ state: 'failed', reason: 'broken', detail: err instanceof Error ? err.message : String(err) });
+        this.fail('broken', err instanceof Error ? err.message : String(err));
       }));
     const link: ServerLink = (this.link = new ServerLink(
       hello,
@@ -235,15 +226,31 @@ export class Multiplayer {
           // A hidden tab draws no frames, so it counts no seconds: its bytes don't count either.
           if (this.joined && link.live && document.visibilityState === 'visible') this.minute.carried(up, down);
         },
-        closed: (code, timedOut) => {
-          // A link of the session that died (not a leave: 1000).
-          if (this.joined && link.live && code !== 1000) this.minute.dropped(timedOut || this.silenced === link ? 'timeout' : String(code), now());
-          if (this.link === link) this.link = null;
-          this.closing.closed(code, timedOut);
-        },
+        closed: (code, timedOut) => this.closed(link, code, timedOut),
       },
       { url, open: (u) => new WebSocket(u), now, every: (tick, ms) => ((id) => () => clearInterval(id))(setInterval(tick, ms)) },
     ));
+  }
+
+  /** `link` closed (WebSocket close code `code`): the game ends or comes back. */
+  private closed(link: ServerLink, code: number, timedOut: boolean) {
+    // A link of the session that died (not a leave: 1000).
+    if (this.joined && link.live && code !== 1000) this.minute.dropped(timedOut || this.silence.was(link) ? 'timeout' : String(code), now());
+    if (this.link === link) this.link = null;
+    this.closing.closed(code, timedOut);
+  }
+
+  /** Out of the session for `reason`, the server told they leave. */
+  private fail(reason: Failure, detail?: string) {
+    this.send({ type: 'leave' });
+    this.end({ state: 'failed', reason, ...(detail !== undefined && { detail }) });
+  }
+
+  /** A welcome whose link is gone (LEAVE, or it dropped) has nothing to open or lock. */
+  private stale(link: ServerLink) {
+    if (this.link === link) return false;
+    this.log.add('welcome dropped: its link is gone');
+    return true;
   }
 
   /** `arrived`: when it came (local s); `link`: the link it came on; `file`: the paint file of a welcome or a save. */
@@ -251,7 +258,7 @@ export class Multiplayer {
     if (m.type === 'welcome') return this.welcome(m, link, file!);
     if (m.type === 'queued' && this.link === link) {
       // Back into a full session that lost our seat: the line has no page for a game that is in one, so it ends as full.
-      if (this.joined) return this.send({ type: 'leave' }), this.end({ state: 'failed', reason: 'full' });
+      if (this.joined) return this.fail('full');
       this.log.add(`in line, #${m.position}`);
       this.line = { code: this.wanted, token: m.token, position: m.position };
       this.reconnect.reset();
@@ -272,22 +279,19 @@ export class Multiplayer {
   }
 
   private async welcome(w: Extract<ToClient, { type: 'welcome' }>, link: ServerLink, file: Uint8Array) {
-    // LEAVE, or the link dropped, before it was handled (it waited behind other messages): nothing to open or lock.
-    if (this.link !== link) return this.log.add('welcome dropped: its link is gone');
+    // LEAVE, or the link dropped, before it was handled (it waited behind other messages).
+    if (this.stale(link)) return;
     this.fromLine();
     const g = this.g;
     if (this.joined?.code !== w.code) {
       // Their own level and paint come back when the session ends: kept before the session's replaces them.
       if (!this.solo) {
         const solo = await keepSolo(g, (line) => this.log.add(line));
-        if (this.link !== link) return this.log.add('welcome dropped: its link is gone');
+        if (this.stale(link)) return;
         this.solo = solo;
       }
       const surfaces = enterSessionLevel(g, w);
-      if (!surfaces) {
-        this.send({ type: 'leave' });
-        return this.end({ state: 'failed', reason: 'version' });
-      }
+      if (!surfaces) return this.fail('version');
       this.surfaces = surfaces;
       this.t0 = now();
     }
@@ -298,7 +302,7 @@ export class Multiplayer {
     await loadPaint(g.paint, g.drips, file, { name: w.levelName });
     this.log.add(`paint loaded in ${Math.round((now() - loading) * 1000)} ms`);
     // LEAVE, or the link dropped, while it loaded: this welcome is over (a retry gets its own).
-    if (this.link !== link) return this.log.add('welcome dropped: its link is gone');
+    if (this.stale(link)) return;
     if (back) this.outbox.take(this.sender.take(), now() - this.t0);
     else this.outbox.clear(w.acked);
     const resend = back ? this.outbox.rejoined(w.acked, (op) => g.paintOps.apply(op)) : [];

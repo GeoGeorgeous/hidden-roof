@@ -1,9 +1,10 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { SERVER } from '../src/config';
+import { dayAt, dayName } from './days';
 import { log } from './log';
-import { monthOfDay } from './stats-period';
-import { add, blank, dayName, fresh, newSalt, parse, type Today } from './traffic-count';
+import { MonthSalt } from './month-salt';
+import { add, blank, fresh, parse, type Today } from './traffic-count';
 import { closeMonths } from './traffic-months';
 import { pruneHours, readDay, readHours, readState, write, writeHours, type State } from './traffic-store';
 
@@ -12,7 +13,9 @@ import { pruneHours, readDay, readHours, readState, write, writeHours, type Stat
 // rolled (a new inode) is read from its start, after the rest of the old file if it is still beside it (Caddy
 // renames it there); one cut shorter than where we were is read from its start. The day being counted is
 // today's: its hours (their visitors' hashes) are written beside its counts, and when it is over it is forgotten
-// with the first pass after midnight, not with the first line of the next day.
+// with the first pass after midnight, not with the first line of the next day. The visitors' salt changes with the
+// first day of a new UTC month, once the last day of the month before has been written: a line of that day is hashed with
+// the old salt wherever its pass is.
 //
 // With no state (a new directory) it counts from today's UTC day on: the log's earlier days are skipped.
 //
@@ -47,12 +50,16 @@ export async function pass(o: Options) {
     const { ino, size } = await file.stat();
     const state = await readState(o.dir);
     // The visitors' salt lasts a month (UTC); a new one starts the visitors again (as people.ts's does).
-    const month = (ms: number) => monthOfDay(Math.floor(ms / 864e5));
-    const kept = state?.salt && month(state.salt.since) === month(Date.now());
-    const salt = kept ? state!.salt! : { key: newSalt(), since: Date.now() };
+    const salt = state?.salt ?? new MonthSalt();
+    /** When the salt that was replaced in this pass began. */
+    let replaced: number | null = null;
+    const renew = (ms: number) => {
+      const was = salt.since;
+      if (salt.renew(ms)) replaced ??= was;
+    };
     let today: Today | null = null;
     if (state?.today) {
-      today = fresh(state.today, salt.key, await readHours(o.dir, state.today));
+      today = fresh(state.today, salt, await readHours(o.dir, state.today));
       today.day = { ...blank(), ...(await readDay(o.dir, state.today)) };
     }
     let changed = false;
@@ -68,14 +75,15 @@ export async function pass(o: Options) {
     const line = async (text: string) => {
       const hit = parse(text);
       if (!hit) return;
-      const name = dayName(hit.ts);
+      const name = dayName(dayAt(hit.ts * 1000));
       // A reader with no state starts from today: the log's earlier days are not counted.
-      if (!state && name < dayName(Date.now() / 1000)) return;
+      if (!state && name < dayName(dayAt(Date.now()))) return;
       // A line from before the day being counted (out of order at midnight) is dropped: its visitors are gone.
       if (today && name < today.name) return;
       if (!today || name > today.name) {
         await flush();
-        today = fresh(name, salt.key);
+        renew(Date.parse(name));
+        today = fresh(name, salt);
         had = (await readDay(o.dir, name))?.views ?? 0;
       }
       changed = add(today, hit, o.hosts, o.country ?? (() => null)) || changed;
@@ -106,9 +114,11 @@ export async function pass(o: Options) {
     const offset = await read(file, from, size);
     await flush();
     // The day is over: it is not counted past the first pass that sees it.
-    if (today && dayName(Date.now() / 1000) > today.name) today = null;
+    if (today && dayName(dayAt(Date.now())) > today.name) today = null;
+    // With the last day of the month written the salt can go, though no line of the new month has come.
+    if (!today) renew(Date.now());
     // The months the old salt covered are written once the log is read, while their hours are still there.
-    if (!kept && state?.salt) await closeMonths(o.dir, state.salt.since, Date.now());
+    if (replaced !== null && state?.salt) await closeMonths(o.dir, replaced, Date.now());
     await pruneHours(o.dir);
     const next: State = { inode: ino, offset, salt, today: today?.name ?? null };
     await write(path.join(o.dir, 'state.json'), next, 0o600);

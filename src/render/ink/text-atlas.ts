@@ -33,7 +33,7 @@ export function letteringTexture(canvas: HTMLCanvasElement) {
   return t;
 }
 
-export interface AtlasCell<T = void> {
+interface AtlasCell<T = void> {
   x: number;
   y: number;
   w: number;

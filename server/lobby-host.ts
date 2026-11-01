@@ -11,10 +11,12 @@ import type { SessionSetup } from './setup';
 // SERVER.sessionsPerIp.
 
 /** What HOST needs of the lobby. */
-export interface HostLobby {
+interface HostLobby {
   sessions: { size: number };
-  /** Sessions hosted from `ip` now. */
+  /** Sessions hosted from `ip` now, and those on their way (`reserve`). */
   hostedFrom(ip: string): number;
+  /** One more session counts for `ip` until the returned release is called, so hosts under way at once are counted too. */
+  reserve(ip: string): () => void;
   /** A new session under a new code, not listed yet; throws if the level doesn't build. */
   start(levelName: string, level: LevelData, detail: number, setup: SessionSetup): Session;
   /** `session` listed, hosted from `ip`. */
@@ -26,24 +28,32 @@ export async function host(m: Extract<ToServer, { type: 'host' }>, ip: string, l
   if (!SERVER.playerHost) return 'no-host';
   if (lobby.hostedFrom(ip) >= SERVER.sessionsPerIp) return 'too-many';
   if (overMemory(SERVER.hostMemory)) return 'busy';
-  let session: Session;
+  // Counted from here to the end, the save's loading (an await) included: a second HOST meanwhile sees it.
+  const release = lobby.reserve(ip);
   try {
-    const { name, limit, tools } = m.session;
-    session = lobby.start(m.levelName, m.level, m.detail, { kind: 'private', name: name.trim(), limit, tools: SLOTS.filter((t) => tools.includes(t)), stays: false, admin: false });
-  } catch (e) {
-    log('-----', `host from ${ip}: the level doesn't build`, e);
-    return 'bad-level';
-  }
-  if (session.table !== m.table) return 'version';
-  if (m.bytes)
+    let session: Session;
     try {
-      await session.load(m.bytes);
+      const { name, limit, tools } = m.session;
+      session = lobby.start(m.levelName, m.level, m.detail, { kind: 'private', name: name.trim(), limit, tools: SLOTS.filter((t) => tools.includes(t)), stays: false, admin: false });
     } catch (e) {
-      log('-----', `host from ${ip}: paint file refused: ${(e as Error).message}`);
-      return 'bad-save';
+      log('-----', `host from ${ip}: the level doesn't build`, e);
+      return 'bad-level';
     }
-  lobby.list(session, ip);
-  const mb = session.memory;
-  log(session.code, `hosted by ${ip}: ${JSON.stringify(m.levelName)} at ${m.detail} texels/m, ${mb.now.toFixed(0)} MB of paint (${mb.full.toFixed(0)} MB if all painted), ${lobby.sessions.size} sessions`);
-  return session;
+    if (session.table !== m.table) return 'version';
+    if (m.bytes)
+      try {
+        await session.load(m.bytes);
+      } catch (e) {
+        log('-----', `host from ${ip}: paint file refused: ${(e as Error).message}`);
+        return 'bad-save';
+      }
+    // The paint is in memory now: a server that filled up meanwhile takes no more.
+    if (overMemory(SERVER.hostMemory)) return 'busy';
+    lobby.list(session, ip);
+    const mb = session.memory;
+    log(session.code, `hosted by ${ip}: ${JSON.stringify(m.levelName)} at ${m.detail} texels/m, ${mb.now.toFixed(0)} MB of paint (${mb.full.toFixed(0)} MB if all painted), ${lobby.sessions.size} sessions`);
+    return session;
+  } finally {
+    release();
+  }
 }

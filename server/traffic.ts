@@ -7,7 +7,7 @@ import { pass } from './traffic-log';
 // The traffic reader: its own process and container (roof-traffic, from the game's image: node traffic.js), never in
 // the game server. Every SERVER.trafficEvery s it counts what Caddy added to its access log into daily counts in
 // DATA_DIR/traffic, which the game's admin API serves (GET /stats/traffic, admin/stats.ts). Only counts are kept, and
-// hashes of the day's visitors until the day ends (traffic-count.ts); no address, no browser name.
+// hashes of the visitors by hour, kept SERVER.historyDays days in hours-<day>.json (traffic-count.ts); no address, no browser name.
 //   CADDY_LOG     Caddy's access log, JSON, one object per line
 //   DATA_DIR      where the counts go (traffic/), shared with the game server
 //   TRAFFIC_HOSTS comma-separated: only requests to these hosts count; none: every host

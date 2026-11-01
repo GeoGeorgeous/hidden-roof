@@ -19,6 +19,8 @@ export const RENDER = {
    * what waited on them (the hotbar icons' read back). Then nothing stalls.
    */
   loadFrames: 3,
+  /** How long the loading screen waits for the Japanese font before drawing lettering with the fallbacks (ms). */
+  jpFontWait: 3000,
   /**
    * The smallest window the game loads in (CSS px); below it, or on a
    * touch-only device, screen 10 shows instead (src/boot.ts; ?force=1 loads
@@ -93,7 +95,7 @@ export const ATMOS = {
 /** Practical light kinds; every light prop uses one (see kit/lights.ts). */
 export type LightKind = 'wallLamp' | 'floodlight' | 'neon' | 'billboardLamp' | 'cctv' | 'bulkhead' | 'lightPanel' | 'aviation';
 
-export interface LightSpec {
+interface LightSpec {
   /** Light color (the lens takes it too, after a rebuild). Neon signs have one each instead (NEON_COLORS). */
   color: string;
   /** How much of `color` shows in the light on walls (INK.tint scales it): 0 = only its brightness (neutral), 1 = its full hue, above 1 = deeper than its own hue (walls near it take the color, down to INK_TINT.deep). Baked lamps only: with LIGHTMAP.enabled off the walls get no hue. Also how colored its glow is (above 0: tinted, at 1 and up: fully). */
@@ -330,7 +332,7 @@ export const PAUSE_MENU = {
 };
 
 /** A social channel in the pause screen's footer (pause-menu.ts). */
-export interface SocialLink {
+interface SocialLink {
   id: string;
   /** Its name: the icon's tooltip and accessible name. */
   label: string;
@@ -1037,6 +1039,8 @@ export const NET = {
   beaconSlowFrame: 250,
   beaconList: 5,
   beaconErrorChars: 160,
+  /** The longest event or tutorial code the beacon sends, and the server takes (server/beacon-body.ts). */
+  beaconCodeChars: 40,
   beaconIdle: 30,
   beaconStep: 2,
   /** A setting changed again within this many seconds of its last change (a slider dragged) is the same change. */
@@ -1047,6 +1051,12 @@ export const NET = {
    */
   tabRetries: 3,
   tabRetryGap: 0.15,
+  /** The queue page redraws this often (ms) while the link is lost, for its countdown. */
+  queueRedraw: 500,
+  /** A link closed for its silence (serverSilence) that the browser has not reported closed in this long (s) is given up on: the game reconnects without waiting for it. */
+  closeWait: 3,
+  /** Paint ops and stepladders of another player wait for their time; past this many waiting (a clock far ahead), the oldest run at once. */
+  eventsKept: 4096,
   /** Snapshots sent per second. */
   sendRate: 20,
   /** A player standing still (their feet within stillMove m, everything else the same) sends this many a second instead. */
@@ -1165,6 +1175,21 @@ export const SERVER = {
   maxPayload: 64 * 2 ** 20,
   /** The largest message on any other link (bytes): JOIN, state, a frame's paint ops are KBs. */
   maxMessage: 2 ** 20,
+  /** What a game may send (net/protocol.ts checkToServer): the props of a hosted level (the roof has 1340; each costs the server building it), a level's name, a queue token (a UUID), and an inventory's lists (how many words, how long). */
+  maxProps: 5000,
+  levelNameMax: 64,
+  queueTokenMax: 64,
+  inventoryWords: 32,
+  inventoryWordMax: 32,
+  /**
+   * What a link may send its session once it is in (server/budget.ts): linkRate messages and bytes a second, and linkBurst
+   * saved up; past it the link is closed. A game sends ~45 messages (states at NET.sendRate, paint ops, a ping) and a few
+   * KB a second; the burst covers the paint ops it sends again after a drop (a message is maxMessage at most).
+   */
+  linkRate: { messages: 100, bytes: 64 * 2 ** 10 },
+  linkBurst: { messages: 300, bytes: 2 * 2 ** 20 },
+  /** The time a player stamps their paint ops and stepladder with (s, from when they joined) may be this far ahead of the time since they joined (server/session.ts): later is cut to it. */
+  timeSlack: 10,
   /** No new session once the server's live data (JS objects and paint) takes this much memory (MB); its container may use 3 GB (mem_limit, docs/deploy.md). HOST_MEMORY overrides it. */
   hostMemory: 1024,
   /** No new paint file (a welcome, SAVE) past this much (MB): the player is told the server is busy. SNAPSHOT_MEMORY overrides it. */
@@ -1210,6 +1235,8 @@ export const SERVER = {
   statsMonthsMost: 120,
   /** The page loads that reached the level (the beacon's first message) add at most this many new people an hour to the history's players (server/people.ts), so made-up device ids can't grow it. */
   peoplePages: 20000,
+  /** ... and at most this many from one address (its /64) an hour: a school's classroom is a few dozen devices. */
+  peoplePagesPerIp: 500,
   /** The GeoIP base's file (server/geoip.ts) is checked for a new one this often (s). */
   geoipCheck: 3600,
   /** The host replaces the GeoIP base this often (s; monthly, docs/ideas/vps.md): the admin page shows its date as a figure's freshness. */
@@ -1231,6 +1258,10 @@ export const SERVER = {
   /** A beacon's session link: pings up to beaconMostPing ms, rates up to beaconMostRate KB/s. */
   beaconMostPing: 10000,
   beaconMostRate: 100000,
+  /** The beacon's histograms keep an hour to a bounded number of bins (server/client-counts.ts bin): a frame rate counts as beaconBinFps and a time (load, join, reconnect, stall) as beaconBinSeconds at most, a ping as beaconBinPing ms at most. */
+  beaconBinFps: 240,
+  beaconBinSeconds: 60,
+  beaconBinPing: 2000,
   /** Who is on the site now counts a page by its last minute beacon for this long (s): beaconEvery and a half, as timers jitter and a hidden tab's are throttled. At most beaconPages pages are kept; past it the one that beat longest ago goes. */
   beaconSiteSeconds: NET.beaconEvery * 1.5,
   beaconPages: 100000,
@@ -1241,6 +1272,10 @@ export const SERVER = {
   trafficText: 80,
   /** Each hour of a day keeps at most this many visitors' hashes (server/traffic-count.ts), kept SERVER.historyDays days for the period's unique visitors: past it a visitor's views count, the visitor does not. */
   trafficHourSeen: 10000,
+  /** The visitors' hashes of the hours files read back for GET /stats/traffic (server/traffic-store.ts) are kept in memory up to this many, the oldest files going first, so a request doesn't parse the same files as the last. */
+  trafficCacheSeen: 300000,
+  /** The event files parsed for GET /events/page (server/event-log.ts) are kept in memory, this many days' at most. */
+  eventCacheDays: 4,
   /** With DATA_DIR, a public session's paint is saved this often (s) when it changed, and at shutdown; after each save the newest stays and, for each of keepAges (s), the newest save at least that old: the rest go (server/saves.ts). */
   keepEvery: 1800,
   keepAges: [0, 6 * 3600, 24 * 3600, 3 * 24 * 3600, 7 * 24 * 3600],

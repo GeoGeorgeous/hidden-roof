@@ -10,7 +10,7 @@ export async function queue(w) {
   await b.evaluate(() => window.game.net.host('B', window.game.config.PAINT.texelsPerMeter, { name: 'Line', limit: 2, tools: ['can', 'marker'] }));
   await status(b, 'in');
   const code = await b.evaluate(() => window.game.net.status.code);
-  await joinFromList(d, 'D', code, 'private', 'Line');
+  await joinFromList(d, 'D', code, 'Line');
   await status(d, 'in');
   await e.evaluate(() => {
     const n = window.game.net;
@@ -18,7 +18,7 @@ export async function queue(w) {
     window.lost = [];
     n.onStatus = (s) => (s.lost && window.lost.push(s.lost.tries), onStatus(s));
   });
-  await joinFromList(e, 'E', code, 'private', 'Line');
+  await joinFromList(e, 'E', code, 'Line');
   await status(e, 'queued');
 
   // Screen 20: the place, who waits for what, and no way to play meanwhile.
@@ -43,7 +43,7 @@ export async function queue(w) {
   assert.deepEqual(await e.evaluate(() => window.game.net.status), { state: 'in', code });
 
   // Leaving the line: D joins the full session again, queued, and leaves it; the session lets it go.
-  await joinFromList(d, 'D', code, 'private', 'Line');
+  await joinFromList(d, 'D', code, 'Line');
   await status(d, 'queued');
   await d.keyboard.press('Escape');
   await status(d, 'off');

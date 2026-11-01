@@ -8,7 +8,7 @@ import { noClient } from './client-counts';
 import { history } from './history';
 import { historyDays } from './history-days';
 import { Refused } from './refused';
-import { HOUR } from './stats-period';
+import { HOUR } from './days';
 
 // GET /stats/play/days and /stats/paint/days (history-days.ts): a day from its hours while they are kept, then from the
 // total its file keeps, in the order of the range, a day with no counts left out. npm run test:server runs it.
@@ -69,6 +69,13 @@ const week = await get('play/days', `from=${name(day - 6)}&to=${name(day)}`);
 assert.deepEqual([week.from, week.to, week.days.map((d) => d.day)], [name(day - 6), name(day), [name(day - 1), name(day)]]);
 assert.equal((await get('paint/days', '')).from, name(day - 29), '30 days by default, to today');
 await assert.rejects(get('play/days', `from=${name(day)}&to=${name(day - 1)}`), Refused);
+
+// A day that has aged out of a long-running server's memory still answers, from the hours its file keeps (a restart makes it a total).
+Date.now = () => T + 100 * 864e5;
+await history.save();
+assert.deepEqual(history.within({ first: (day - 1) * 24, end: day * 24 }), [], 'out of memory');
+const aged = await historyDays('play', { from: day - 1, to: day - 1 }, dir);
+assert.deepEqual(aged.days.map((d) => [(d as { day: string }).day, (d as { plays: number }).plays]), [[name(day - 1), 3]]);
 
 Date.now = realNow;
 fs.rmSync(dir, { recursive: true, force: true });

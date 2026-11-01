@@ -29,7 +29,7 @@ export interface Placement {
 }
 
 /** Top surface height below a point, or null. */
-export type FloorAt = (x: number, y: number, z: number) => number | null;
+type FloorAt = (x: number, y: number, z: number) => number | null;
 
 const snap = (v: number, s: number) => +(Math.round(v / s) * s).toFixed(3);
 

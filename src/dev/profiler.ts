@@ -21,7 +21,7 @@ import { SpikeCatcher } from './spikes';
 // system costs from where you stand (probe.ts). Recording costs a few clock
 // reads and one small object a frame.
 
-export interface ProfilerWorld {
+interface ProfilerWorld {
   scene: THREE.Scene;
   renderer: THREE.WebGLRenderer;
   level: Level;
@@ -35,7 +35,7 @@ export interface ProfilerWorld {
 }
 
 /** What a frame told the profiler, at its end. */
-export interface ProfiledFrame {
+interface ProfiledFrame {
   /** Real time since the last frame (ms). */
   interval: number;
   calls: number;

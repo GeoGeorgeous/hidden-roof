@@ -6,7 +6,8 @@ import { machine } from '../machine';
 import { sources } from '../sources';
 import { logDays, sendLog } from './logs';
 import { Missing, Refused } from '../refused';
-import { iso, only, type Route } from './route';
+import { iso } from '../days';
+import { only, type Route } from './route';
 
 // The server itself (docs/admin-api.md, Server): GET /, GET /machine and the log.
 
@@ -37,6 +38,9 @@ export const root: Route = async (c) => {
       pageIdle: NET.beaconIdle,
       playerIdle: NET.idleAfter,
       lengthMinutesMost: SERVER.lengthMinutesMost,
+      fpsMost: SERVER.beaconBinFps,
+      secondsMost: SERVER.beaconBinSeconds,
+      pingMost: SERVER.beaconBinPing,
     },
     sources: await sources(c.kept.dir),
   };

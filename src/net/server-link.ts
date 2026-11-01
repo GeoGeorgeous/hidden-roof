@@ -13,7 +13,7 @@ import { encode, received, type ToClient, type ToServer } from './protocol.ts';
 // so Node runs it with fakes (scripts/server-link.test.mjs).
 
 /** What it needs of a WebSocket. */
-export interface SocketLike {
+interface SocketLike {
   readonly readyState: number;
   readonly bufferedAmount: number;
   binaryType: string;
@@ -24,7 +24,7 @@ export interface SocketLike {
   onclose: ((e: CloseEvent) => void) | null;
 }
 
-export interface LinkEvents {
+interface LinkEvents {
   /** A message as it came (a welcome or a save once its paint file has: `file`), at time `arrived` (s). */
   message(m: ToClient, arrived: number, file?: Uint8Array): void;
   /** What's under way, for the player (UPLOADING PAINT 40%…). */
@@ -36,7 +36,7 @@ export interface LinkEvents {
   closed(code: number, timedOut: boolean): void;
 }
 
-export interface LinkEnv {
+interface LinkEnv {
   url: string;
   open(url: string): SocketLike;
   /** Seconds. */

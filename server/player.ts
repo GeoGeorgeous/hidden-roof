@@ -1,6 +1,9 @@
+import { SERVER } from '../src/config';
 import type { InventoryData } from '../src/inventory/inventory';
 import type { PropData } from '../src/level/level-data';
 import { closeCode, NAME_MAX, type Activity, type Presence, type Rejection, type Spot } from '../src/net/protocol';
+import type { Held } from './held';
+import { prefix } from './address';
 import { flush } from './relay';
 
 // A player of a session (session.ts) and their socket: what the session keeps
@@ -21,7 +24,7 @@ export interface Link {
   rtt?: number;
 }
 
-export interface Player {
+export interface Player extends Held {
   id: number;
   /** The name they go by in the session: the one they asked for, numbered if it was taken. */
   name: string;
@@ -49,7 +52,6 @@ export interface Player {
   /** Where they last stood, as their state said (null: not yet): given back when they come back. */
   at: Spot | null;
   ladder: PropData | null;
-  expires: ReturnType<typeof setTimeout> | null;
   /** Their last link that closed: from where, how long it lived, when (ms), for the log; how long (s) the seat is held. */
   was: { ip: string; country: string | null; lived: number; at: number; hold: number } | null;
 }
@@ -64,6 +66,15 @@ export function deliver(p: Player, f: Uint8Array) {
   flush(p);
   p.link?.send(f);
 }
+
+/** `t`, a time (s) a player stamped what they did with, kept within the clock they run since they joined (SERVER.timeSlack ahead of it at most). */
+export const stampedBy = (p: Player, t: number) => {
+  const latest = (Date.now() - p.joined) / 1000 + SERVER.timeSlack;
+  return Number.isFinite(t) ? Math.min(t, latest) : latest;
+};
+
+/** Whether `link` may take the seat of the dropped player `p` by typing their nickname: it is from their device, or from their address (the same IPv6 /64). */
+export const theirs = (p: Player, link: Link) => (!!link.device && p.device === link.device) || (!!p.was && prefix(p.was.ip) === prefix(link.ip));
 
 /** `name`, or with the lowest number free when another player has it: "geo (2)", which no player can type, so it never looks like a typed name. */
 export function uniqueName(name: string, players: Player[]) {

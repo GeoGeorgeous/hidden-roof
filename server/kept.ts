@@ -104,28 +104,30 @@ export class Kept {
 
   /** A new session of the admin's, with the paint of `from` (an upload) if given; a public one is kept. */
   async create(setup: Omit<SessionSetup, 'admin'>, levelName: string, detail: number, from?: Upload) {
-    const session = this.lobby.create(setup, levelName, await this.level(levelName), detail);
+    const session = this.lobby.make(setup, levelName, await this.level(levelName), detail);
+    // Listed once its paint is in: no one joins a clean wall meanwhile, and a refused paint leaves nothing to close.
     if (from)
       try {
         await session.load(from.bytes, false);
         session.changed = true;
       } catch (e) {
-        session.close('its paint was refused');
         throw new Refused((e as Error).message);
       }
+    this.lobby.list(session);
     event('session-made', session, null, { kind: setup.kind, limit: setup.limit, stays: setup.stays, ...(from && { upload: from.id }) });
     await this.record();
     return session;
   }
 
-  /** The admin's wipe: no paint in the session; on disk its saves stay aside, wiped, replacing the last wipe's. */
+  /** The admin's wipe: no paint in the session; on disk its saves stay aside, wiped, replacing the last wipe's. Throws if that fails (the paint is wiped already). */
   async wipe(session: Session) {
     await this.hold(session.code, false, async () => {
       session.wipe();
       this.undos.delete(session.code);
       log(session.code, 'wiped by the admin');
       event('wiped', session);
-      if (this.disk) await this.serial(`wipe of ${session.code}`, () => this.disk!.aside(session.code));
+      // A disk step that fails is the admin's to hear (and to try again: aside can be repeated).
+      if (this.disk) await this.line(`wipe of ${session.code}`, () => this.disk!.aside(session.code));
     });
   }
 

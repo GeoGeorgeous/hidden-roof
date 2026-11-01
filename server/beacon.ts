@@ -5,9 +5,10 @@ import { BEATS, check, DOINGS } from './beacon-body';
 import { bin, count, countSetting, type ClientCounts } from './client-counts';
 import { countryOf } from './geoip';
 import { people } from './people';
+import { PerMinute } from './per-minute';
 
 // The game's beacon (src/beacon.ts) at POST /ws?e: checked (beacon-body.ts), limited in size
-// (SERVER.beaconBytes) and per address (SERVER.beaconsPerIp a minute, from SERVER.beaconIps addresses), and
+// (SERVER.beaconBytes) and per address (SERVER.beaconsPerIp a minute, from SERVER.beaconIps addresses; an IPv6 one by its /64), and
 // added to the hour's counts (client-counts.ts, history.ts). Only the counts are kept: the
 // address is used for the limit, the User-Agent for the browser and OS. The pages open now are kept
 // by their random id, in memory, only as long as they beat (SERVER.beaconSiteSeconds).
@@ -62,16 +63,12 @@ export function site() {
 let last: number | null = null;
 export const lastBeacon = () => last;
 
-/** Beacons this minute, by address: at most SERVER.beaconIps addresses, so a flood of them can't grow it. */
-let sent = new Map<string, number>();
-setInterval(() => (sent = new Map()), 60e3).unref();
+/** Beacons by address (its /64), SERVER.beaconsPerIp a minute from at most SERVER.beaconIps addresses, so a flood of them can't grow it. */
+const sent = new PerMinute(() => SERVER.beaconsPerIp, () => SERVER.beaconIps);
 
 /** POST /ws?e from `ip`, counted into `into()`: the status to answer. */
 export async function beacon(req: http.IncomingMessage, ip: string, into: () => ClientCounts) {
-  const n = (sent.get(ip) ?? 0) + 1;
-  if (n === 1 && sent.size >= SERVER.beaconIps) return 429;
-  sent.set(ip, n);
-  if (n > SERVER.beaconsPerIp) return 429;
+  if (!sent.allow(ip)) return 429;
   let text = '';
   for await (const chunk of req) if ((text += chunk).length > SERVER.beaconBytes) return 413;
   let b;
@@ -108,7 +105,7 @@ export async function beacon(req: http.IncomingMessage, ip: string, into: () => 
     if (b.first.gpu) (c.nGpu++, count(c.gpus, b.first.gpu));
     for (const [key, value] of Object.entries(b.first.settings ?? {})) countSetting(c, key, value);
   }
-  if (b.fps) (count(c.fps, bin.whole(b.fps.avg), 1, false), count(c.low1, bin.whole(b.fps.low1), 1, false));
+  if (b.fps) (count(c.fps, bin.fps(b.fps.avg), 1, false), count(c.low1, bin.fps(b.fps.low1), 1, false));
   for (const j of b.joins ?? []) count(c.join, bin.tenth(j), 1, false);
   for (const e of b.errors ?? []) (c.errors++, count(c.messages, e));
   if (b.erred) c.erred++;
@@ -125,8 +122,8 @@ export async function beacon(req: http.IncomingMessage, ip: string, into: () => 
     for (const s of m.back ?? []) count(n.back, bin.tenth(s), 1, false);
     n.stalls += m.stalls ?? 0;
     for (const s of m.stallLong ?? []) count(n.stallLong, bin.tenth(s), 1, false);
-    count(n.down, bin.whole(m.down), 1, false);
-    count(n.up, bin.whole(m.up), 1, false);
+    count(n.down, bin.rate(m.down), 1, false);
+    count(n.up, bin.rate(m.up), 1, false);
   }
   return 204;
 }

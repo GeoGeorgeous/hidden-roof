@@ -1,4 +1,4 @@
-import type { TagFont } from '../../config';
+import { RENDER, type TagFont } from '../../config';
 
 // The Japanese font that ships with the game (public/fonts/neon-jp.woff2: Noto
 // Sans JP Black, SIL OFL, a subset of kana, ASCII and some kanji). The system
@@ -50,11 +50,11 @@ function start() {
 }
 
 /**
- * Resolves once the font has loaded (or failed, or after `timeout` ms): lettering
+ * Resolves once the font has loaded (or failed, or after RENDER.jpFontWait ms): lettering
  * that measures its text (small signs, shop signs) is drawn after this, so its
  * layout is final.
  */
-export function jpFontReady(timeout = 3000) {
+export function jpFontReady() {
   start();
   if (state !== 'loading') return Promise.resolve();
   return new Promise<void>((resolve) => {
@@ -64,7 +64,7 @@ export function jpFontReady(timeout = 3000) {
       if (i >= 0) settled.splice(i, 1);
       resolve();
     };
-    const timer = setTimeout(done, timeout);
+    const timer = setTimeout(done, RENDER.jpFontWait);
     settled.push(done);
   });
 }

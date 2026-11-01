@@ -1,4 +1,5 @@
 import { SERVER } from '../src/config';
+import { addMaps, bump } from './tally';
 
 // What an hour's beacons add up to (beacon.ts adds, history.ts keeps and reports): counts, never a person.
 
@@ -42,11 +43,20 @@ export const noClient = (): ClientCounts => ({
   net: noNet(),
 });
 
-/** A histogram's key for `x`, in its unit, as each is counted (beacon.ts) and reported: whole frames a second or KB/s, seconds to a tenth, ms to 10. */
+/**
+ * A histogram's key for `x`, in its unit, as each is counted (beacon.ts) and reported, so an hour has a bounded number of bins whoever sends:
+ * whole frames a second up to SERVER.beaconBinFps, seconds to a tenth up to SERVER.beaconBinSeconds, ms to 10 up to SERVER.beaconBinPing (each
+ * bin is the number of its key and, for the last, more); KB/s to two significant digits.
+ */
 export const bin = {
-  whole: (x: number) => String(Math.round(x)),
-  tenth: (x: number) => String(Math.round(x * 10) / 10),
-  tenMs: (x: number) => String(Math.round(x / 10) * 10),
+  fps: (x: number) => String(Math.round(Math.min(x, SERVER.beaconBinFps))),
+  tenth: (x: number) => String(Math.round(Math.min(x, SERVER.beaconBinSeconds) * 10) / 10),
+  tenMs: (x: number) => String(Math.round(Math.min(x, SERVER.beaconBinPing) / 10) * 10),
+  rate: (x: number) => {
+    const whole = Math.round(x);
+    const tens = 10 ** Math.max(0, String(whole).length - 2);
+    return String(Math.round(whole / tens) * tens);
+  },
 };
 
 /** `key` in `to`, or Other past SERVER.beaconKinds keys (`capped`: names, not a histogram's bins). */
@@ -54,13 +64,12 @@ const slot = (to: object, key: string, capped = true) => (!capped || Object.hasO
 
 /** `key` counted in `to`. */
 export function count(to: Counts, key: string, n = 1, capped = true) {
-  const k = slot(to, key, capped);
-  to[k] = (Object.hasOwn(to, k) ? to[k] : 0) + n;
+  bump(to, slot(to, key, capped), n);
 }
 
 /** `from`'s counts added to `to`'s; past SERVER.beaconKinds names the smallest go to Other, whichever hour they came from (`capped`: names, not a histogram's bins). */
 function merge(to: Counts, from: Counts, capped = true) {
-  for (const [key, n] of Object.entries(from)) to[key] = (Object.hasOwn(to, key) ? to[key] : 0) + n;
+  addMaps(to, from);
   if (capped) trim(to, (n) => n, (other, n) => (other ?? 0) + n);
 }
 
@@ -97,11 +106,11 @@ export function addClient(to: ClientCounts, from: ClientCounts) {
   });
 }
 
-/** `n` page loads with `key` set to `value`; Other past SERVER.beaconKinds settings, and per setting past as many values. */
-export function countSetting(c: ClientCounts, key: string, value: string, n = 1) {
+/** A page load with `key` set to `value`; Other past SERVER.beaconKinds settings, and per setting past as many values. */
+export function countSetting(c: ClientCounts, key: string, value: string) {
   const to = c.events.settings;
   const k = slot(to, key);
-  count((to[k] = Object.hasOwn(to, k) ? to[k] : {}), value, n);
+  count((to[k] = Object.hasOwn(to, k) ? to[k] : {}), value);
 }
 
 /** As /stats/client answers it: counts and histograms, no medians (the admin page makes them). */

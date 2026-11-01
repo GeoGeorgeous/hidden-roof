@@ -16,7 +16,7 @@ import { TOOLS, TOOL_NAMES } from './tool-icons';
 // While it runs the button reads "Creating…"; if it rejects, the message shows
 // under the options and the dialog stays open for another try.
 
-export interface NewSession {
+interface NewSession {
   name: string;
   limit: number;
   tools: Tool[];

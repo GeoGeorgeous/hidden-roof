@@ -1,6 +1,6 @@
 import { people } from './people';
 import type { Row } from './people-count';
-import { dayName } from './stats-period';
+import { dayName } from './days';
 
 // GET /stats/people/days (docs/admin-api.md, History): each day's row as kept (audience.ts), and the devices over the range, each counted once.
 

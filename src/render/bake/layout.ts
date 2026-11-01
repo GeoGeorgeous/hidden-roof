@@ -20,7 +20,7 @@ export interface LightLayout {
   texels: LightTexels | null;
 }
 
-export interface LightTexels {
+interface LightTexels {
   /** Per covered texel: world position xyz, then normal xyz. */
   points: Float32Array;
   /** Per covered texel: its pixel (y * w + x). */

@@ -156,24 +156,41 @@ try {
     const l = { frames: [] as ToClient[], isOpen: true, ip, since: 0, send: (f: Uint8Array) => l.frames.push(decode(f) as ToClient), close: () => (l.isOpen = false), get open() { return l.isOpen; } };
     return l;
   };
-  let room = false;
+  let room = 0;
   const waits = new Queue('TESTS', () => room);
   const busy = async () => true;
   const marks = ['a', 'b', 'c'].map((n) => ({ link: link(n), place: null as Place | null }));
   for (const m of marks) m.place = waits.add(m.link as unknown as Link, 'x', async () => (m.link.isOpen = false, true));
   waits.update();
   assert.deepEqual(marks.map((m) => sent(m.link)), [[1], [2], [3]]);
-  room = true;
+  room = 1;
   waits.update();
   await pause(50);
   assert.equal(waits.length, 3);
-  room = false;
+  room = 0;
   for (const m of [marks[2], marks[0], marks[1]]) {
     m.link = link(m.link.ip);
     waits.resume(m.place!.token, m.link as unknown as Link, 'x', busy);
     waits.update();
   }
   assert.deepEqual(marks.map((m) => sent(m.link)), [[1], [2], [3]]);
+
+  // Places are not admitted past the seats free while admits are under way (a restore holds them up): one seat, one admit.
+  let free = 1;
+  const turns: (() => void)[] = [];
+  const crowd = new Queue('TESTS', () => free);
+  for (const n of ['p', 'q', 'r']) crowd.add(link(n) as unknown as Link, n, () => new Promise((done) => turns.push(() => done(false))));
+  crowd.update();
+  crowd.update();
+  assert.equal(turns.length, 1, 'the one seat is being filled: no one else is admitted');
+  free = 0;
+  turns[0]();
+  await pause(20);
+  assert.deepEqual([turns.length, crowd.length], [1, 2], 'the seat is taken');
+  free = 2;
+  crowd.update();
+  assert.equal(turns.length, 3, 'two seats free, two admits more');
+  turns.forEach((done) => done());
   console.log('queue: ok (positions, a free place goes to the first, leaving, held places and their token, the limit, an ended session, a leave while seating, the order when busy)');
 } finally {
   main.stop();

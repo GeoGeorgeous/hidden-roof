@@ -33,7 +33,7 @@ export interface PerfResult {
 }
 
 /** What the test needs of the GPU timer (src/debug/gpu-timer.ts). */
-export interface FrameTimer {
+interface FrameTimer {
   readonly supported: boolean;
   enabled: boolean;
   readonly frame: number;
@@ -201,7 +201,7 @@ export interface TestedSettings {
 }
 
 /** Where the test ran: the GPU, the OS and browser, FRAME RATE (0 = Max) and the settings. */
-export interface PerfContext {
+interface PerfContext {
   gpu: GpuInfo;
   os: Os;
   browser: Browser;

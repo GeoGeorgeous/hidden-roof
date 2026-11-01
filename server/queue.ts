@@ -1,17 +1,18 @@
 import { randomUUID } from 'node:crypto';
 import { SERVER } from '../src/config';
 import { encode, type ToServer } from '../src/net/protocol';
+import { hold, release, type Held } from './held';
 import { log, logNoisy, span, who } from './log';
 import { turnAway, type Link } from './player';
 
 // A session's line for its places: a JOIN that finds it full waits here (SERVER.queueMax at most), first come, first
 // served. When a place frees (session.ts) the first entry whose link is open comes in as a JOIN would, and everyone
-// is told their position again if it changed. A link that closes keeps its entry, held, for SERVER.rejoinWindow:
+// is told their position again if it changed. A link that closes keeps its entry, held as a seat is (held.ts):
 // a JOIN with its token takes it back; meanwhile the line goes past it. Waiting links send nothing the session
 // takes but ping and leave.
 
 /** One entry in the line. */
-export interface Place {
+export interface Place extends Held {
   /** Numbers the entries in the log (a nickname is logged with it, as a player's is). */
   id: number;
   name: string;
@@ -25,7 +26,6 @@ export interface Place {
   seat: (waited: number) => Promise<boolean>;
   /** The position it was last told (0: none yet). */
   told: number;
-  expires: ReturnType<typeof setTimeout> | null;
 }
 
 export class Queue {
@@ -33,10 +33,13 @@ export class Queue {
   private ids = 0;
   private over = false;
 
-  /** `room`: the session has a place free. */
+  /** Places being filled (an admit under way): they are not free any more, though the session does not count them yet. */
+  private admitting = 0;
+
+  /** `room`: how many places the session has free. */
   constructor(
     private code: string,
-    private room: () => boolean,
+    private room: () => number,
   ) {}
 
   get length() {
@@ -61,20 +64,19 @@ export class Queue {
   resume(token: string, link: Link, name: string, seat: Place['seat']): Place | undefined {
     const p = this.places.find((q) => q.token === token);
     if (!p) return;
-    if (p.expires) clearTimeout(p.expires);
-    p.expires = null;
+    release(p);
     turnAway(p.link, 'replaced');
     Object.assign(p, { link, ip: link.ip, name, seat, told: 0 });
     logNoisy(p.ip, this.code, `${who(p)} from ${p.ip} is back in line: position ${this.places.indexOf(p) + 1}`);
     return p;
   }
 
-  /** Its link closed: the entry stays for SERVER.rejoinWindow. */
-  dropped(p: Place, link: Link) {
+  /** Its link closed: the entry stays for `held` s. */
+  dropped(p: Place, link: Link, held = SERVER.rejoinWindow) {
     if (p.link !== link) return;
     p.link = null;
-    logNoisy(p.ip, this.code, `${who(p)} dropped from the line: ${SERVER.rejoinWindow} s to come back`);
-    p.expires = setTimeout(() => this.remove(p, `held place expired (${SERVER.rejoinWindow} s)`), SERVER.rejoinWindow * 1000);
+    logNoisy(p.ip, this.code, `${who(p)} dropped from the line: ${held} s to come back`);
+    hold(p, held, () => this.remove(p, `held place expired (${held} s)`));
   }
 
   /** A message from a waiting link: it may leave, or ping. */
@@ -87,14 +89,21 @@ export class Queue {
     }
   }
 
-  /** The line moves on: places free are taken, and whoever's position changed is told. */
+  /** The line moves on: the places free are taken (no more than there are, with admits under way), and whoever's position changed is told. */
   update() {
-    while (this.places.length && this.room()) {
+    while (this.places.length && this.room() > this.admitting) {
       const i = this.places.findIndex((p) => p.link?.open);
       if (i < 0) break;
       const [p] = this.places.splice(i, 1);
       log(this.code, `${who(p)} from ${p.ip} admitted from the line: position ${i + 1}, waited ${span(Date.now() - p.since)}`);
-      void p.seat(Date.now() - p.since).then((busy) => busy && this.putBack(p));
+      this.admitting++;
+      void p.seat(Date.now() - p.since)
+        .catch(() => false)
+        .then((busy) => {
+          this.admitting--;
+          if (busy) this.putBack(p);
+          else this.update();
+        });
     }
     this.places.forEach((p, i) => {
       if (!p.link || p.told === i + 1) return;
@@ -121,7 +130,7 @@ export class Queue {
   end(reason: 'ended' | 'closed' = 'ended') {
     this.over = true;
     for (const p of this.places) {
-      if (p.expires) clearTimeout(p.expires);
+      release(p);
       turnAway(p.link, reason);
     }
     this.places = [];
@@ -130,7 +139,7 @@ export class Queue {
   private remove(p: Place, why: string) {
     const i = this.places.indexOf(p);
     if (i < 0) return;
-    if (p.expires) clearTimeout(p.expires);
+    release(p);
     this.places.splice(i, 1);
     logNoisy(p.ip, this.code, `${who(p)} from ${p.ip} out of the line: ${why} (${this.places.length} waiting)`);
     this.update();

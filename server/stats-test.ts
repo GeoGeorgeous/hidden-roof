@@ -9,11 +9,14 @@ import { statsRoute } from './admin/stats';
 import { noClient } from './client-counts';
 import { traffic } from './counts';
 import { history } from './history';
-import { machine } from './machine';
+import { machine, sampleMachine } from './machine';
+import { prefix } from './address';
 import { people } from './people';
+import { PerMinute } from './per-minute';
 import { peopleDays } from './people-days';
 import { Missing, Refused } from './refused';
-import { answer, dayName, daysIn, spans, weekdayOf, HOUR } from './stats-period';
+import { dayName, HOUR } from './days';
+import { answer, dayRange, daysIn, monthName, monthRange, spans, weekdayOf } from './stats-period';
 
 // The admin API's stats (stats-period.ts, stats-hours.ts, history.ts, people.ts, people-count.ts, machine.ts), in this
 // process: a period and the one before it, null when nothing is kept that far back, days cut to the period, plays by
@@ -34,6 +37,18 @@ assert.deepEqual(spans('24h', T), [{ first: H - 23, end: H + 1 }, { first: H - 4
 assert.deepEqual(spans('7d', T)[1], { first: H - 335, end: H - 167 });
 assert.deepEqual(daysIn({ first: H - 23, end: H + 1 }).map((d) => [d.day, d.first, d.end]), [['2026-03-10', H - 23, H - 14], ['2026-03-11', H - 14, H + 1]], 'the days cut to the period');
 assert.deepEqual([weekdayOf(H), weekdayOf(H - 24 * 3), weekdayOf(0)], [2, 6, 3], 'Monday first: Wednesday, Sunday, 1 January 1970 a Thursday');
+// In the day's last hour 'today' is the whole day so far, not nothing.
+{
+  const late = Date.parse('2026-03-11T23:30:00Z');
+  const first = Math.floor(late / HOUR) - 23;
+  assert.deepEqual(spans('today', late), [{ first, end: first + 24 }, { first: first - 24, end: first }], 'today in hour 23: 24 hours, against yesterday');
+}
+// Months and days before 1970 are refused; a month before 1 is none.
+assert.throws(() => monthRange(new URLSearchParams('from=1969-12&to=1970-01'), T, 12), Refused);
+assert.throws(() => dayRange(new URLSearchParams('from=1969-12-31&to=1970-01-01'), T, 5), Refused);
+assert.equal(monthName(-1), '1970-01');
+assert.deepEqual(monthRange(new URLSearchParams('to=1970-03'), T, 12), { from: 0, to: 2 }, 'twelve months by default, none before 1970');
+
 // Before is null when it ended before the counts begin; the period starts where they begin if later.
 const figures = (f: { from: number; to: number }) => ({ ms: f.to - f.from });
 const young = await answer('24h', T, T - 2 * HOUR, figures);
@@ -47,8 +62,8 @@ const stats = path.join(dir, 'stats');
 fs.mkdirSync(stats);
 const hour = (h: Partial<Record<string, unknown>>) => ({ plays: 0, minutes: {}, seconds: 0, withOthers: 0, turnedAway: {}, stamps: { can: 0, marker: 0, roller: 0, sponge: 0 }, colors: {}, peak: null, bytes: { up: 0, down: 0 }, client: noClient(), ...h });
 const hours: Record<number, object> = {
-  [H - 400]: { plays: 4, seconds: 0, withOthers: 0, turnedAway: {}, stamps: { can: 0, marker: 0, roller: 0, sponge: 0 }, colors: {}, peak: null, client: noClient(), lengths: [1, 0, 0, 0] },
-  [H - 2400]: { plays: 4, seconds: 0, withOthers: 0, turnedAway: {}, stamps: { can: 0, marker: 0, roller: 0, sponge: 0 }, colors: {}, peak: null, client: noClient(), lengths: [1, 0, 0, 0] },
+  [H - 400]: { plays: 4, seconds: 0, withOthers: 0, turnedAway: {}, stamps: { can: 0, marker: 0, roller: 0, sponge: 0 }, colors: {}, peak: null, client: noClient() },
+  [H - 2400]: { plays: 4, seconds: 0, withOthers: 0, turnedAway: {}, stamps: { can: 0, marker: 0, roller: 0, sponge: 0 }, colors: {}, peak: null, client: noClient() },
   [H - 170]: hour({ plays: 1, seconds: 600 }),
   [H - 26]: hour({ plays: 3, seconds: 7200, withOthers: 3600, minutes: { 2: 2, 5: 1 }, turnedAway: { full: 1 }, peak: { players: 3, at: 'x' }, bytes: { up: 1000, down: 500 } }),
   [H - 5]: hour({ plays: 2, seconds: 1800, minutes: { 0: 2 }, stamps: { can: 4, marker: 0, roller: 0, sponge: 1 }, colors: { blue: 3, red: 2 }, peak: { players: 5, at: 'y' }, bytes: { up: 200, down: 100 }, client: { ...noClient(), n: 3 } }),
@@ -117,7 +132,6 @@ assert.deepEqual([week.plays, week.days.map((d: { plays: number }) => d.plays), 
 const month = await stat('play', 'period=30d');
 assert.deepEqual([month.from, month.plays, month.before], [iso(H - 400), 11, null], 'the counts begin at the oldest hour, 400 hours back: nothing before the month is kept');
 assert.deepEqual(month.lengthMinutes, { 0: 3, 1: 1, 2: 2, 5: 1, [SERVER.lengthMinutesMost]: 2 }, 'an hour file from before the minutes reads as none');
-assert.equal(JSON.stringify(month).includes('lengths'), false);
 
 // Paint: stamps and colors in the game's order; the days' stamps.
 const paint = await stat('paint');
@@ -185,11 +199,18 @@ assert.deepEqual([(await sequence(0, 0)).days[0].ages[2], (await sequence(0, 0))
 
 // Bytes each way, and the machine's rates and day.
 assert.deepEqual(history.bytesToday(), { upBytes: 1200, downBytes: 500 });
+Date.now = () => Date.parse('2026-03-11T23:30:00Z');
+assert.deepEqual(history.bytesToday(), { upBytes: 1200, downBytes: 500 }, 'the same in the last hour of the day');
+Date.now = () => T;
 const box = await machine(null);
+sampleMachine();
 traffic.sent += 4000;
 traffic.received += 8000;
 Date.now = () => T + 10000;
+sampleMachine();
 const rates = await machine(null);
+traffic.sent += 4000;
+assert.equal((await machine(null)).upBits, 3200, 'the sample is the same for every caller, until the next');
 assert.deepEqual([box.today, rates.upBits, rates.downBits, rates.today], [{ upBytes: 1200, downBytes: 500 }, 3200, 6400, { upBytes: 1200, downBytes: 500 }]);
 Date.now = () => T;
 
@@ -219,6 +240,22 @@ assert.deepEqual(await stat('traffic/days'), noDays);
 assert.deepEqual(await statsRoute(['traffic', 'days'], new URLSearchParams(), null), noDays, 'without a directory');
 const none = await statsRoute(['traffic'], new URLSearchParams('period=today'), null);
 assert.deepEqual([(none as any).views, (none as any).steps, (none as any).hours.length, (none as any).before], [0, { view: 0, script: 0, beacon: 0, socket: 0 }, 15, null], 'without a directory: no traffic, an hour of zeros each, nothing before');
+
+// An address is counted by its /64 and a malformed one never throws; one address, its /64, is one for a limit.
+assert.deepEqual(['2001:db8:1:2:3:4:5:6', '2001:DB8:1:2::9', '::ffff:10.0.0.1', '10.0.0.1', '1:2:3:4:5:6:7:8:9', '::1::', 'x'.repeat(100), '::', ' fe80::1%eth0 '].map(prefix), ['2001:db8:1:2::/64', '2001:db8:1:2::/64', '10.0.0.1', '10.0.0.1', '1:2:3:4:5:6:7:8:9', '::1::', 'x'.repeat(64), '0:0:0:0::/64', 'fe80:0:0:0::/64']);
+{
+  const limit = new PerMinute(2, 10);
+  assert.deepEqual(['2001:db8::1', '2001:db8::2', '2001:db8::3', '10.0.0.1'].map((ip) => limit.allow(ip)), [true, true, false, true]);
+}
+
+// A salt that can't be read is logged and kept aside, and a new one begins; a missing one is just new.
+{
+  const salty = fs.mkdtempSync(path.join(os.tmpdir(), 'roof-salt-'));
+  fs.writeFileSync(path.join(salty, 'salt.json'), '{"key": ');
+  await people.keepIn(salty);
+  assert.deepEqual([fs.existsSync(path.join(salty, 'salt.json')), fs.readFileSync(path.join(salty, 'salt.json.bad'), 'utf8')], [false, '{"key": ']);
+  fs.rmSync(salty, { recursive: true, force: true });
+}
 
 Date.now = realNow;
 fs.rmSync(dir, { recursive: true, force: true });

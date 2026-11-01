@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { SERVER } from '../src/config';
+import { dayAt, dayName, dayOfFile } from './days';
 import { log } from './log';
 
 // The admin's events on disk (DATA_DIR/events/<YYYY-MM-DD>.jsonl, a JSON line each, the UTC day of its id), read back in
@@ -23,10 +24,9 @@ export interface AdminEvent {
   detail: Record<string, unknown>;
 }
 
-const DAY = 864e5;
 const ID = /^(\d{1,15})-(\d{1,9})$/;
-const FILE = /^(\d{4}-\d\d-\d\d)\.jsonl$/;
-const dayName = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+/** The UTC day of `ms` as YYYY-MM-DD. */
+const dayOfMs = (ms: number) => dayName(dayAt(ms));
 
 /** An id as [ms, n], or null if it isn't one. */
 export function parseId(id: string) {
@@ -65,12 +65,14 @@ const newestFirst = (a: AdminEvent, b: AdminEvent) => (a.id === b.id ? 0 : later
 
 export class EventLog {
   /** The UTC day being written (YYYY-MM-DD), the bytes written to its file, and the events past the limit since. */
-  private day = dayName(Date.now());
+  private day = dayOfMs(Date.now());
   private bytes = 0;
   private dropped = 0;
   /** Appends in the order they came; a failed one is logged once until one works. */
   private tail: Promise<void> = Promise.resolve();
   private failed = false;
+  /** The day files read for a page, by name, as they were (their inode, time and size). */
+  private parsed = new Map<string, { sig: string; events: AdminEvent[] }>();
 
   /** `report(count, day)`: events a day's file had no room for, once that day is over. */
   constructor(private dir: string, private report: (count: number, day: string) => void) {}
@@ -84,16 +86,16 @@ export class EventLog {
 
   /** Files older than SERVER.eventDays deleted (a file is its day: 30 days, today's included). */
   async prune() {
-    const keep = Math.floor(Date.now() / DAY) - SERVER.eventDays;
+    const keep = dayAt(Date.now()) - SERVER.eventDays;
     for (const name of await fs.readdir(this.dir)) {
-      const m = FILE.exec(name);
-      if (m && Date.parse(m[1]) / DAY <= keep) await fs.rm(path.join(this.dir, name), { force: true }).catch((e) => log('-----', `events ${name} not deleted:`, e));
+      const day = dayOfFile(name, '', '.jsonl');
+      if (day !== null && day <= keep) await fs.rm(path.join(this.dir, name), { force: true }).catch((e) => log('-----', `events ${name} not deleted:`, e));
     }
   }
 
   /** A new UTC day starts at `now`: the last day's dropped events are reported (as an event of the new day). */
   roll(now: number) {
-    const day = dayName(now);
+    const day = dayOfMs(now);
     if (day === this.day) return;
     const [old, count] = [this.day, this.dropped];
     [this.day, this.bytes, this.dropped] = [day, 0, 0];
@@ -118,25 +120,39 @@ export class EventLog {
       );
   }
 
+  /** The events of a day's file, newest first, valid ones only (a line half written, or not ours, is left out). A file as it was when last read is not read again: the last SERVER.eventCacheDays days' are kept. */
+  private async events(name: string) {
+    const file = path.join(this.dir, name);
+    const st = await fs.stat(file).catch(() => null);
+    if (!st) return [];
+    const sig = `${st.ino} ${st.mtimeMs} ${st.size}`;
+    const had = this.parsed.get(name);
+    if (had?.sig === sig) return had.events;
+    const events: AdminEvent[] = [];
+    for (const line of (await fs.readFile(file, 'utf8').catch(() => '')).split('\n')) {
+      try {
+        const e = JSON.parse(line) as AdminEvent;
+        if (typeof e.id === 'string' && parseId(e.id)) events.push(e);
+      } catch {
+        // a line half written, or not ours
+      }
+    }
+    events.sort(newestFirst);
+    this.parsed.delete(name);
+    this.parsed.set(name, { sig, events });
+    while (this.parsed.size > SERVER.eventCacheDays) this.parsed.delete(this.parsed.keys().next().value!);
+    return events;
+  }
+
   /** The events before id `before` (none: from the newest), and `only` those asked for, newest first. `before` may be an id no longer on disk; files of days before `since`'s aren't read. */
   async page(before: string | null, limit: number, only: Only = {}) {
     await this.tail;
-    const upto = before ? dayName(parseId(before)![0]) : '9999-12-31';
-    const from = only.since ? dayName(parseId(only.since)![0]) : '';
-    const files = await fs.readdir(this.dir).then((names) => names.filter((n) => FILE.test(n) && n.slice(0, 10) <= upto && n.slice(0, 10) >= from).sort().reverse(), () => []);
+    const upto = before ? dayOfMs(parseId(before)![0]) : '9999-12-31';
+    const from = only.since ? dayOfMs(parseId(only.since)![0]) : '';
+    const files = await fs.readdir(this.dir).then((names) => names.filter((n) => dayOfFile(n, '', '.jsonl') !== null && n.slice(0, 10) <= upto && n.slice(0, 10) >= from).sort().reverse(), () => []);
     const out: AdminEvent[] = [];
     for (const name of files) {
-      const text = await fs.readFile(path.join(this.dir, name), 'utf8').catch(() => '');
-      const day: AdminEvent[] = [];
-      for (const line of text.split('\n')) {
-        try {
-          const e = JSON.parse(line) as AdminEvent;
-          if (typeof e.id === 'string' && parseId(e.id) && wanted(e, before, only)) day.push(e);
-        } catch {
-          // a line half written, or not ours
-        }
-      }
-      out.push(...day.sort(newestFirst));
+      for (const e of await this.events(name)) if (wanted(e, before, only)) out.push(e);
       if (out.length > limit) break;
     }
     return pageOf(out, limit);

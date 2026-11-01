@@ -9,25 +9,23 @@ export const press = (page, text) => page.locator('.overlay button:visible', { h
 export const hostSession = (page, name, detail) =>
   page.evaluate(([name, detail]) => window.game.net.host(name, detail ?? window.game.config.PAINT.texelsPerMeter, { name: 'Test', limit: 4, tools: ['can', 'marker', 'ladder', 'roller', 'sponge'] }), [name, detail]);
 
-/** The Multiplayer page's list, up on `page`, and its first row of this kind ('private' or 'public'), clicked; `title`: the one with this name. */
-async function pickSession(page, kind = 'private', title) {
+/** The Multiplayer page's list, up on `page`, and its first private row, clicked; `title`: the one with this name. */
+async function pickSession(page, title) {
   await press(page, 'MULTIPLAYER');
-  await page.locator('.mp-page .session:not(.skeleton-row)', { hasText: kind === 'private' ? 'Private' : 'Public' }).filter({ hasText: title }).first().click();
+  await page.locator('.mp-page .session:not(.skeleton-row)', { hasText: 'Private' }).filter({ hasText: title }).first().click();
 }
 
-/** The open dialog: the name in it, the code of a private session in its boxes, and JOIN (pressed, once it is enabled). */
+/** The open dialog: the name in it, the session's code in its boxes, and JOIN (pressed, once it is enabled). */
 async function joinDialog(page, name, code) {
   const dialog = page.locator('.join-popup:not([hidden])');
   await dialog.locator(':is(.name-row, .name-big) input').fill(name);
-  if (code) {
-    await dialog.locator('.code-boxes input').first().click();
-    await page.keyboard.type(code.toLowerCase());
-  }
+  await dialog.locator('.code-boxes input').first().click();
+  await page.keyboard.type(code.toLowerCase());
   await dialog.locator('.btn.primary:not([disabled])').click();
 }
 
 /** JOIN through the menu: the list, the row (of the session named `title`, if given), the dialog. */
-export async function joinFromList(page, name, code, kind = 'private', title) {
-  await pickSession(page, kind, title);
-  await joinDialog(page, name, kind === 'private' ? code : undefined);
+export async function joinFromList(page, name, code, title) {
+  await pickSession(page, title);
+  await joinDialog(page, name, code);
 }

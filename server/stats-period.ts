@@ -1,3 +1,4 @@
+import { dayAt, dayName, DAY, dayOf, HOUR, hourAt, iso, todaySpan } from './days';
 import { Refused } from './refused';
 
 // The period every /stats route answers over (docs/admin-api.md, Stats): hours since 1970, the period just before it, and
@@ -7,10 +8,6 @@ import { Refused } from './refused';
 export type Period = 'today' | '24h' | '7d' | '30d';
 const HOURS: Record<Exclude<Period, 'today'>, number> = { '24h': 24, '7d': 7 * 24, '30d': 30 * 24 };
 const isPeriod = (p: string): p is Period => p === 'today' || Object.hasOwn(HOURS, p);
-
-export const HOUR = 3600e3;
-export const iso = (ms: number) => new Date(ms).toISOString();
-export const dayName = (day: number) => iso(day * 24 * HOUR).slice(0, 10);
 
 /** The hours from `first` up to `end` (hours since 1970): the last of them is `end - 1`. */
 export interface Span {
@@ -34,11 +31,11 @@ export function periodOf(q: URLSearchParams) {
 
 /** The hours of `period` at `now` (ms), this one included, and those of the period before: today since 00:00 UTC against yesterday from 00:00 through the same hour, the others against the same length just before. */
 export function spans(period: Period, now: number): [Span, Span] {
-  const end = Math.floor(now / HOUR) + 1;
   if (period === 'today') {
-    const first = Math.floor(end / 24) * 24;
-    return [{ first, end }, { first: first - 24, end: end - 24 }];
+    const t = todaySpan(now);
+    return [t, { first: t.first - 24, end: t.end - 24 }];
   }
+  const end = hourAt(now) + 1;
   const n = HOURS[period];
   return [{ first: end - n, end }, { first: end - 2 * n, end: end - n }];
 }
@@ -67,26 +64,30 @@ export async function answer<F extends object, D extends object>(period: Period,
   return { period, from: iso(current.from), to: iso(now), ...here, ...days, before };
 }
 
-const DAY_RE = /^\d{4}-\d\d-\d\d$/;
-const MONTH_RE = /^\d{4}-\d\d$/;
-/** `s` as days since 1970 (a real date), or null. */
-const dayOf = (s: string) => (DAY_RE.test(s) && dayName(Date.parse(s) / 864e5) === s ? Date.parse(s) / 864e5 : null);
-/** `s` as months since 1970 (YYYY-MM), or null. */
-const monthOf = (s: string) => (MONTH_RE.test(s) && +s.slice(5) >= 1 && +s.slice(5) <= 12 ? (+s.slice(0, 4) - 1970) * 12 + +s.slice(5) - 1 : null);
-export const monthName = (m: number) => `${1970 + Math.floor(m / 12)}-${String((m % 12) + 1).padStart(2, '0')}`;
+const MONTH_RE = /^(\d{4})-(\d\d)$/;
+/** `s` as months since 1970 (YYYY-MM, 1970 on), or null. */
+function monthOf(s: string) {
+  const m = MONTH_RE.exec(s);
+  return m && +m[1] >= 1970 && +m[2] >= 1 && +m[2] <= 12 ? (+m[1] - 1970) * 12 + +m[2] - 1 : null;
+}
+/** `month` (months since 1970) as YYYY-MM; none before 1970. */
+export const monthName = (month: number) => {
+  const m = Math.max(0, month);
+  return `${1970 + Math.floor(m / 12)}-${String((m % 12) + 1).padStart(2, '0')}`;
+};
 /** The month (since 1970) of `day` (days since 1970). */
 export const monthOfDay = (day: number) => {
-  const d = new Date(day * 864e5);
+  const d = new Date(day * DAY);
   return (d.getUTCFullYear() - 1970) * 12 + d.getUTCMonth();
 };
 /** The first day (since 1970) of `month` (months since 1970). */
-export const monthStart = (month: number) => Date.UTC(1970 + Math.floor(month / 12), month % 12, 1) / 864e5;
+export const monthStart = (month: number) => Date.UTC(1970 + Math.floor(month / 12), month % 12, 1) / DAY;
 
 /** A History route's days (docs/admin-api.md, History): `?from=&to=` as days since 1970, both included; `most` days at most. Throws Refused (400). */
 export function dayRange(q: URLSearchParams, now: number, most: number) {
-  const to = q.has('to') ? dayOf(q.get('to')!) : Math.floor(now / 864e5);
+  const to = q.has('to') ? dayOf(q.get('to')!) : dayAt(now);
   if (to === null) throw new Refused('to: YYYY-MM-DD');
-  const from = q.has('from') ? dayOf(q.get('from')!) : to - 29;
+  const from = q.has('from') ? dayOf(q.get('from')!) : Math.max(0, to - 29);
   if (from === null) throw new Refused('from: YYYY-MM-DD');
   if (from > to || to - from + 1 > most) throw new Refused(`from to to: 1 to ${most} days`);
   return { from, to };
@@ -94,9 +95,9 @@ export function dayRange(q: URLSearchParams, now: number, most: number) {
 
 /** A History route's months (`?from=YYYY-MM&to=YYYY-MM`) as months since 1970, both included; `most` months at most. Throws Refused (400). */
 export function monthRange(q: URLSearchParams, now: number, most: number) {
-  const to = q.has('to') ? monthOf(q.get('to')!) : monthOfDay(Math.floor(now / 864e5));
+  const to = q.has('to') ? monthOf(q.get('to')!) : monthOfDay(dayAt(now));
   if (to === null) throw new Refused('to: YYYY-MM');
-  const from = q.has('from') ? monthOf(q.get('from')!) : to - 11;
+  const from = q.has('from') ? monthOf(q.get('from')!) : Math.max(0, to - 11);
   if (from === null) throw new Refused('from: YYYY-MM');
   if (from > to || to - from + 1 > most) throw new Refused(`from to to: 1 to ${most} months`);
   return { from, to };

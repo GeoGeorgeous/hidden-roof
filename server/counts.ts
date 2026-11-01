@@ -50,10 +50,10 @@ export function countPaint(ops: readonly PaintOp[], into: Paint[]) {
 }
 
 /** How a session's paint began. */
-export type Began = 'made' | 'wiped' | 'restored';
+type Began = 'made' | 'wiped' | 'restored';
 
 /** What `SessionStats.toJSON` writes beside a save (kept.ts). */
-export interface StoredStats {
+interface StoredStats {
   since: number;
   began: Began;
   restoredAt: number | null;

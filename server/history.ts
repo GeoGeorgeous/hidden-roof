@@ -5,10 +5,13 @@ import type { Rejection } from '../src/net/protocol';
 import { writeAtomic } from './atomic';
 import { addClient, noClient, type ClientCounts } from './client-counts';
 import { noPaint, raised, type Paint } from './counts';
+import { dayName, dayOfFile, hourAt, HOUR, today, todaySpan } from './days';
+import { readJson } from './json-file';
 import { log } from './log';
 import type { Link } from './player';
 import { people } from './people';
-import { dayName, HOUR, type Span } from './stats-period';
+import type { Span } from './stats-period';
+import { addMaps, bump, filled } from './tally';
 
 // The admin page's history (GET /stats, server/admin/stats.ts): counts by UTC hour,
 // added to on paths that already run. Plays are counted when they start, their length
@@ -34,29 +37,24 @@ export interface Hour extends Paint {
 
 const blank = (): Hour => ({ plays: 0, minutes: {}, seconds: 0, withOthers: 0, turnedAway: {}, ...noPaint(), peak: null, bytes: { up: 0, down: 0 }, client: noClient() });
 
-/** An hour as a file has it: what an older file lacks is none. */
+/** An hour as a file has it: what an older file lacks, at any depth, is none. */
 export function read(file: Hour): Hour {
-  const h = { ...blank(), ...file } as Hour & { lengths?: unknown };
-  delete h.lengths;
-  return h;
+  return filled(blank(), file) as Hour;
 }
 
 /** `hours` added up. */
 export function sum(hours: Iterable<Hour>) {
   const t = blank();
-  const add = <K extends string>(to: Partial<Record<K, number>>, from: Partial<Record<K, number>>) => {
-    for (const k in from) to[k] = (to[k] ?? 0) + from[k]!;
-  };
   for (const h of hours) {
     t.plays += h.plays;
-    add(t.minutes, h.minutes);
+    addMaps(t.minutes, h.minutes);
     t.seconds += h.seconds;
     t.withOthers += h.withOthers;
     t.bytes.up += h.bytes.up;
     t.bytes.down += h.bytes.down;
-    add(t.turnedAway, h.turnedAway);
-    add(t.stamps, h.stamps);
-    add(t.colors, h.colors);
+    addMaps(t.turnedAway, h.turnedAway);
+    addMaps(t.stamps, h.stamps);
+    addMaps(t.colors, h.colors);
     if (h.peak && h.peak.players > (t.peak?.players ?? 0)) t.peak = h.peak;
     addClient(t.client, h.client);
   }
@@ -83,7 +81,7 @@ class History {
 
   /** The hour now's counts, to add to. */
   now() {
-    const h = Math.floor(Date.now() / HOUR);
+    const h = hourAt(Date.now());
     let hour = this.hours.get(h);
     if (!hour) this.hours.set(h, (hour = blank()));
     this.dirty.add(Math.floor(h / 24));
@@ -98,14 +96,11 @@ class History {
 
   /** A play ended after `seconds`. */
   played(seconds: number) {
-    const m = String(Math.min(Math.floor(seconds / 60), SERVER.lengthMinutesMost));
-    const minutes = this.now().minutes;
-    minutes[m] = (minutes[m] ?? 0) + 1;
+    bump(this.now().minutes, String(Math.min(Math.floor(seconds / 60), SERVER.lengthMinutesMost)));
   }
 
   turnedAway(why: Rejection) {
-    const t = this.now().turnedAway;
-    t[why] = (t[why] ?? 0) + 1;
+    bump(this.now().turnedAway, why);
   }
 
   /** `n` players on the server now. */
@@ -148,8 +143,7 @@ class History {
 
   /** The bytes each way since 00:00 UTC. */
   bytesToday() {
-    const end = Math.floor(Date.now() / HOUR) + 1;
-    const { up, down } = sum(this.within({ first: Math.floor(end / 24) * 24, end }).map(([, h]) => h)).bytes;
+    const { up, down } = sum(this.within(todaySpan(Date.now())).map(([, h]) => h)).bytes;
     return { upBytes: up, downBytes: down };
   }
 
@@ -162,15 +156,15 @@ class History {
   async keepIn(dir: string) {
     this.dir = path.join(dir, 'stats');
     await fs.mkdir(this.dir, { recursive: true });
-    this.ever = await fs.readFile(path.join(this.dir, 'peak.json'), 'utf8').then((t) => JSON.parse(t) as Hour['peak']).catch(() => null);
-    const today = Math.floor(Date.now() / HOUR / 24);
+    this.ever = await readJson<Hour['peak']>(path.join(this.dir, 'peak.json')).catch(() => null);
+    const now = today();
     for (const name of await fs.readdir(this.dir)) {
-      const day = Date.parse(name.slice(0, 10)) / HOUR / 24;
-      if (!/^\d{4}-\d\d-\d\d\.json$/.test(name) || !Number.isInteger(day)) continue;
+      const day = dayOfFile(name, '', '.json');
+      if (day === null) continue;
       try {
-        const file = JSON.parse(await fs.readFile(path.join(this.dir, name), 'utf8')) as { hours?: Record<string, Hour>; total?: Hour };
-        if (!file.hours) continue;
-        if (day < today - SERVER.historyDays) await this.write(name, { total: sum(Object.values(file.hours).map(read)) });
+        const file = await readJson<{ hours?: Record<string, Hour>; total?: Hour }>(path.join(this.dir, name));
+        if (!file?.hours) continue;
+        if (day < now - SERVER.historyDays) await this.write(name, { total: sum(Object.values(file.hours).map(read)) });
         else for (const [k, v] of Object.entries(file.hours)) this.hours.set(day * 24 + Number(k), read(v));
       } catch (e) {
         log('-----', `stats ${name} skipped:`, e);
@@ -187,16 +181,14 @@ class History {
   }
 
   private async saveAll() {
-    const today = Math.floor(Date.now() / HOUR / 24);
-    for (const k of this.hours.keys()) if (k < (today - SERVER.historyDays) * 24) this.hours.delete(k);
+    for (const k of this.hours.keys()) if (k < (today() - SERVER.historyDays) * 24) this.hours.delete(k);
     if (!this.dir) return this.dirty.clear();
     const days = [...this.dirty];
     this.dirty.clear();
     try {
       for (const day of days) {
         const hours = Object.fromEntries([...this.hours].filter(([k]) => Math.floor(k / 24) === day).map(([k, v]) => [k % 24, v]));
-        // A day past SERVER.historyDays (a long-running server's) keeps its total only.
-        await this.write(`${dayName(day)}.json`, day < today - SERVER.historyDays ? { total: sum(Object.values(hours)) } : { hours });
+        await this.write(`${dayName(day)}.json`, { hours });
       }
       if (this.everChanged) await this.write('peak.json', this.ever);
       await people.save();

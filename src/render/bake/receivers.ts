@@ -21,7 +21,7 @@ export interface SurfaceReceiver {
   slot: LightSlot;
 }
 
-export interface DecorReceiver {
+interface DecorReceiver {
   kind: 'decor';
   owner: number;
   bounds: THREE.Box3;

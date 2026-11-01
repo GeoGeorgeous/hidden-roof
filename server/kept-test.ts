@@ -1,8 +1,7 @@
 import './headless';
 import assert from 'node:assert/strict';
-import { execFile, spawn, type ChildProcess } from 'node:child_process';
+import { execFile } from 'node:child_process';
 import fs from 'node:fs';
-import net from 'node:net';
 import os from 'node:os';
 import path from 'node:path';
 import { WebSocket as Ws } from 'ws';
@@ -10,7 +9,7 @@ import { levelPaintFaces } from '../src/level/prop-pieces';
 import { NET, SERVER } from '../src/config';
 import { CODE_LENGTH, encode, PROTOCOL, SESSION_NAME_MAX, received, type ToClient, type ToServer } from '../src/net/protocol';
 import { PartsIn } from '../src/net/parts-in';
-import { rejected } from './test-kit';
+import { freePort, rejected, start } from './test-kit';
 import { encodeOps, SurfaceIndex } from '../src/op-wire';
 import { decodePaintFile } from '../src/save/paint-file';
 import { keepers } from './saves';
@@ -22,32 +21,15 @@ import { keepers } from './saves';
 // wiping the save, private ones that close when empty or stay, and a close;
 // stats, saves kept by age, a save downloaded and restored; what the admin page reads: sessions, the machine, the event stream and history. npm run test:server runs it.
 
-const freePort = () =>
-  new Promise<number>((done) => {
-    const s = net.createServer().listen(0, () => {
-      const { port } = s.address() as net.AddressInfo;
-      s.close(() => done(port));
-    });
-  });
 const [PORT, ADMIN_PORT] = [await freePort(), await freePort()];
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'roof-kept-'));
-const env = { ...process.env, PORT: String(PORT), ADMIN_PORT: String(ADMIN_PORT), ADMIN_KEY: 'test-key', DATA_DIR: dir, REJOIN_WINDOW: '5' };
+const config = { PORT: String(PORT), ADMIN_PORT: String(ADMIN_PORT), ADMIN_KEY: 'test-key', DATA_DIR: dir, REJOIN_WINDOW: '5' };
+const env = { ...process.env, ...config };
 const faces = levelPaintFaces(JSON.parse(fs.readFileSync('public/levels/demo.json', 'utf8')), 48);
 const surfaces = new SurfaceIndex(faces.map((f) => f.key));
 const stamp = { kind: 'stamp' as const, key: faces[0].key, rect: 0, u: 0.5, v: 0.5, radius: 0.2, amount: 1, color: [1, 0, 0] as const, softness: 0, square: false };
 
-let out = '';
-async function start() {
-  out = '';
-  const server = spawn(process.execPath, ['--expose-gc', 'dist-server/server/main.js'], { env, stdio: ['ignore', 'pipe', 'inherit'] });
-  server.stdout!.on('data', (d: Buffer) => (out += d.toString()));
-  for (let i = 0; !out.includes('roof server on'); i++) {
-    assert.ok(i < 200, 'the server starts');
-    await new Promise((w) => setTimeout(w, 50));
-  }
-  return server;
-}
-const stop = (server: ChildProcess) => new Promise((done) => (server.once('exit', done), server.kill('SIGTERM')));
+const launch = () => start(config, ['--expose-gc']);
 
 const admin = async (method: string, at: string, body?: unknown, key = 'test-key', headers = {}) => {
   const res = await fetch(`http://localhost:${ADMIN_PORT}${at}`, { method, headers: { authorization: `Bearer ${key}`, ...headers }, body: body === undefined ? undefined : JSON.stringify(body) });
@@ -119,7 +101,7 @@ class Game {
 const painted = async (file: Uint8Array) => (await decodePaintFile(file)).header.faces.length > 0;
 const saves = () => fs.readdirSync(dir).filter((n) => n.endsWith('.rhhpaint'));
 
-let server = await start();
+let server = await launch();
 try {
   // The key, the origin, and what a new session must say.
   assert.equal((await admin('GET', '/sessions', undefined, 'wrong')).status, 401);
@@ -154,8 +136,8 @@ try {
   assert.ok(stream.some((g) => g.type === 'status' && g.data.players === SERVER.players.public), 'a status with everyone in');
   const status = stream.find((g) => g.type === 'status' && g.data.players === SERVER.players.public)!.data as unknown as { pages: { by: object }; site?: unknown; sessions: { saves?: unknown; today?: unknown }[] };
   assert.deepEqual([Object.keys(status.pages), 'site' in status, 'saves' in status.sessions[0], 'today' in status.sessions[0]], [['menu', 'solo', 'session', 'hidden', 'by'], false, false, false], 'the status: the pages, sessions without their saves');
-  await stop(server);
-  server = await start();
+  await server.stop();
+  server = await launch();
   assert.deepEqual((await admin('GET', '/sessions')).body.map((s: { code: string }) => s.code), [code], 'kept through a restart, empty');
   assert.equal(saves().length, 0, 'nothing painted: nothing saved');
   // History, written at shutdown: everyone's play counted when it started, the most players at once, ever.
@@ -189,7 +171,7 @@ try {
   const top = await admin('GET', '/');
   assert.deepEqual([top.body.api, typeof top.body.version], [4, 'string']);
   assert.deepEqual(top.body.limits, { public: SERVER.players.public, private: { min: SERVER.privateMin, max: SERVER.players.private }, name: SESSION_NAME_MAX });
-  assert.deepEqual(top.body.settings, { slowPing: SERVER.slowPing, saveEvery: SERVER.keepEvery, saveAges: SERVER.keepAges.filter(Boolean), eventDays: SERVER.eventDays, eventDayBytes: SERVER.eventDayBytes, historyDays: SERVER.historyDays, saltEvery: 'month', pageIdle: NET.beaconIdle, playerIdle: NET.idleAfter, lengthMinutesMost: SERVER.lengthMinutesMost });
+  assert.deepEqual(top.body.settings, { slowPing: SERVER.slowPing, saveEvery: SERVER.keepEvery, saveAges: SERVER.keepAges.filter(Boolean), eventDays: SERVER.eventDays, eventDayBytes: SERVER.eventDayBytes, historyDays: SERVER.historyDays, saltEvery: 'month', pageIdle: NET.beaconIdle, playerIdle: NET.idleAfter, lengthMinutesMost: SERVER.lengthMinutesMost, fpsMost: SERVER.beaconBinFps, secondsMost: SERVER.beaconBinSeconds, pingMost: SERVER.beaconBinPing });
   assert.deepEqual(['slowPing', 'saveEvery', 'saveAges'].filter((k) => k in top.body), [], 'they are in settings now');
   const live = (await admin('GET', '/sessions')).body[0];
   assert.deepEqual([live.stats.stamps.can, live.stats.colors, live.stats.peak.players, live.emptySince, 'today' in live], [1, { red: 1 }, 1, null, false]);
@@ -221,10 +203,10 @@ try {
   const box = (await admin('GET', '/machine')).body;
   assert.ok(box.cpu.vcpus > 0 && box.disk.total > 0 && box.memory.limit > 0, 'the machine');
   assert.ok(box.downBits >= 0 && box.today.upBytes >= 0 && box.today.downBytes >= 0, 'the bits each way, and the bytes today');
-  await stop(server);
+  await server.stop();
   assert.equal(saves().length, 1);
-  server = await start();
-  assert.match(out, new RegExp(`${code} paint from ${code}-\\d+\\.rhhpaint`));
+  server = await launch();
+  assert.match(server.out(), new RegExp(`${code} paint from ${code}-\\d+\\.rhhpaint`));
   const b = new Game();
   const wb = await b.join(code, 'B');
   assert.ok(await painted(wb.file!), 'the paint is back');
@@ -261,17 +243,17 @@ try {
   assert.deepEqual([wipedBox.saves.last, wipedBox.saves.bytes > 0], [null, true], 'a wiped save counts for the disk, not as the last save');
   assert.deepEqual((await admin('GET', '/sessions')).body[0].saves.map((s: { wiped: boolean }) => s.wiped), [true], 'listed as wiped');
   // A restart after it: still the empty wall. A new save after it isn't wiped and is the one loaded; the wiped one stays.
-  await stop(server);
-  server = await start();
-  assert.ok(!out.includes('paint from'), 'a wiped save is never loaded');
+  await server.stop();
+  server = await launch();
+  assert.ok(!server.out().includes('paint from'), 'a wiped save is never loaded');
   const e = new Game();
   assert.ok(!(await painted((await e.join(code, 'E')).file!)), 'empty after the restart');
   e.send({ type: 'ops', seq: 1, bytes: encodeOps([1], [stamp], surfaces) });
   e.send({ type: 'ping', t: 1 });
   await e.next('pong');
-  await stop(server);
-  server = await start();
-  assert.match(out, new RegExp(`${code} paint from ${code}-\\d+\\.rhhpaint`));
+  await server.stop();
+  server = await launch();
+  assert.match(server.out(), new RegExp(`${code} paint from ${code}-\\d+\\.rhhpaint`));
   assert.ok(await painted((await new Game().join(code, 'E')).file!), 'the new save is back');
   assert.deepEqual((await admin('GET', '/sessions')).body[0].saves.map((s: { wiped: boolean }) => s.wiped), [false, true]);
   assert.equal((await admin('GET', '/machine')).body.saves.last, new Date(Number(/-(\d+)\.rhhpaint$/.exec(saves().find((n) => !n.includes('wiped'))!)![1])).toISOString(), 'the last save is the newest that is not wiped');
@@ -305,7 +287,7 @@ try {
   f.send({ type: 'ops', seq: 1, bytes: encodeOps([1], [{ ...stamp, key: faces[1].key }], surfaces) });
   f.send({ type: 'ping', t: 1 });
   await f.next('pong');
-  for (const [body, status] of [[{}, 400], [{ save: 'x' }, 400], [{ save: 1 }, 404]] as const) assert.equal((await admin('POST', `/sessions/${code}/restore`, body)).status, status, JSON.stringify(body));
+  for (const [body, status] of [[{}, 400], [null, 400], [5, 400], [[], 400], [{ save: 'x' }, 400], [{ save: 1 }, 404]] as const) assert.equal((await admin('POST', `/sessions/${code}/restore`, body)).status, status, JSON.stringify(body));
   assert.equal((await admin('POST', `/sessions/ZZZZZ/restore`, { save: wipedMs })).status, 404);
   const both = await Promise.all([admin('POST', `/sessions/${code}/restore`, { save: wipedMs }), admin('POST', `/sessions/${code}/restore`, { save: wipedMs })]);
   assert.deepEqual(both.map((r) => r.status).sort(), [200, 409], 'while one restore is under way, another is 409');
@@ -326,8 +308,8 @@ try {
   assert.equal(done.length, 1);
   assert.deepEqual((done[0].data as unknown as { detail: object }).detail, { from: 'save', save: wipedMs, undo });
   // It is the paint after a restart too, not the paint before it.
-  await stop(server);
-  server = await start();
+  await server.stop();
+  server = await launch();
   assert.ok(await painted((await new Game().join(code, 'G')).file!), 'the restored paint, kept');
   assert.equal((await admin('GET', '/sessions')).body[0].stats.began, 'restored');
 
@@ -342,14 +324,14 @@ try {
   g2.send({ type: 'ops', seq: 1, bytes: encodeOps([1], [{ ...stamp, key: faces[2].key }], surfaces) });
   g2.send({ type: 'ping', t: 1 });
   await g2.next('pong');
-  await stop(server);
+  await server.stop();
   const kept = saves().filter((n) => !n.includes('wiped')).map((n) => Number(/-(\d+)\.rhhpaint$/.exec(n)![1])).sort((x, y) => y - x);
   assert.equal(kept.length, 5, 'five kept');
   assert.ok(kept[0] >= t0, 'the newest is the one just saved');
   assert.deepEqual(kept.slice(1), [t0 - 7 * H, t0 - 48 * H, t0 - 96 * H, t0 - 192 * H], '6 h, 1 day, 3 days and 7 days');
   assert.deepEqual(fs.readdirSync(dir).filter((n) => n.startsWith(code) && n.endsWith('.json') && !fs.existsSync(path.join(dir, n.replace('.json', '.rhhpaint')))), [], 'no stats without their save');
   assert.equal(saves().filter((n) => n.includes('wiped')).length, 1, 'the wiped save stays');
-  server = await start();
+  server = await launch();
   assert.deepEqual([...keepers([1000, 9000], 10000, [0, 4, 9])].sort(), [1000, 9000], 'the newest, and the oldest fills the 4 s and 9 s slots once');
   assert.deepEqual([...keepers([], 10000, [0, 4])], [], 'none');
   assert.deepEqual([...keepers([9000], 10000, SERVER.keepAges)], [9000], 'one save fills every slot it can');
@@ -360,11 +342,11 @@ try {
   c.send({ type: 'ops', seq: 1, bytes: encodeOps([1], [stamp], surfaces) });
   c.send({ type: 'ping', t: 1 });
   await c.next('pong');
-  await stop(server);
+  await server.stop();
   const list = JSON.parse(fs.readFileSync(path.join(dir, 'sessions.json'), 'utf8'));
   fs.writeFileSync(path.join(dir, 'sessions.json'), JSON.stringify(list.map((e: object) => ({ ...e, table: 'older' }))));
-  server = await start();
-  assert.match(out, new RegExp(`${code} paint wiped: a new surface table`));
+  server = await launch();
+  assert.match(server.out(), new RegExp(`${code} paint wiped: a new surface table`));
   const atStart = await feed();
   for (let i = 0; !atStart.length; i++) await new Promise((w) => setTimeout(w, 20));
   // The events before the restart are on disk, and read back for the stream: the wipe is the newest.
@@ -415,6 +397,6 @@ try {
   assert.ok(!JSON.stringify(fs.readdirSync(path.join(dir, 'stats')).map((n) => fs.readFileSync(path.join(dir, 'stats', n), 'utf8'))).includes('10.2.0.'), 'no address on disk');
   console.log('kept sessions: ok (admin key and origin, a public session full at its limit with a line, kept empty, paint back after a restart, its stats, the paint downloaded, wipe, saves kept aside and replaced, a save downloaded, restore with its undo and 409, saves kept by age, a new surface table wipes, private ones close when empty unless they stay, close, what the admin page reads, the event stream, history)');
 } finally {
-  server.kill();
+  await server.stop();
   fs.rmSync(dir, { recursive: true, force: true });
 }

@@ -15,7 +15,7 @@ const TUTORIAL_KEY = 'roofhiddenhaus.tutorial';
 const RANK: Record<Rank, number> = { tool: 3, context: 2, basic: 1 };
 
 /** Where progress lives: the browser's storage (stored.ts), or a test's. */
-export interface Storage {
+interface Storage {
   read(): string | null;
   write(text: string): void;
 }

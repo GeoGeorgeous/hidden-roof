@@ -13,7 +13,7 @@ import { PROFILE } from '../config';
 // OS from one the browser made.
 
 /** One frame, as the spike buffer keeps it. */
-export interface FrameRecord {
+interface FrameRecord {
   t: number;
   /** Real time since the last frame, and the frame's CPU time (ms). */
   ms: number;

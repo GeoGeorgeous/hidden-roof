@@ -160,6 +160,17 @@ const { deviceId } = await import('../src/stored.ts');
 assert.match(deviceId(), /^[0-9a-f]{32}$/);
 assert.equal(deviceId(), deviceId());
 
+// A stored value that is no device id is replaced by a new one (kept), a good one is kept.
+const bin = new Map([['roofhiddenhaus.device', 'not-a-device']]);
+Object.defineProperty(globalThis, 'localStorage', { value: { getItem: (k) => bin.get(k) ?? null, setItem: (k, v) => bin.set(k, v) }, configurable: true });
+const fresh = await import('../src/stored.ts?bad-device');
+assert.match(fresh.deviceId(), /^[0-9a-f]{32}$/);
+assert.equal(bin.get('roofhiddenhaus.device'), fresh.deviceId());
+const good = 'ab'.repeat(16);
+bin.set('roofhiddenhaus.device', good);
+assert.equal((await import('../src/stored.ts?good-device')).deviceId(), good);
+Object.defineProperty(globalThis, 'localStorage', { get: () => { throw new Error('blocked'); }, configurable: true });
+
 // The days kept on the device (UTC days since 1970): the first, the last, and the one before.
 const { nextDays } = await import('../src/stored.ts');
 let kept = nextDays(null, 100, true);

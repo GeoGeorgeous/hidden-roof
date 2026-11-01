@@ -14,7 +14,7 @@ const statsName = (name: string) => name.replace(/\.rhhpaint$/, '.json');
 export const savedAt = (name: string) => parseInt(name.slice(name.indexOf('-') + 1));
 export const isWiped = (name: string) => name.endsWith('.wiped.rhhpaint');
 /** What a crash can leave half written. */
-export const leftover = (name: string) => name === 'sessions.json.tmp' || name.endsWith('.rhhpaint.tmp') || /-\d+(\.wiped)?\.json\.tmp$/.test(name);
+export const leftover = (name: string) => /^sessions\.json(\.[0-9a-f]{8})?\.tmp$|(\.rhhpaint|-\d+(\.wiped)?\.json)(\.[0-9a-f]{8})?\.tmp$/.test(name);
 
 /** Of saves made at `times` (ms), the ones to keep at `now`: the newest, and for each of `ages` (s) the newest at least that old (age 0 is the newest of all). One that fills two slots is kept once. */
 export function keepers(times: number[], now: number, ages: readonly number[]) {
@@ -55,12 +55,17 @@ export class Saves {
     await Promise.all([fs.rm(this.file(name), { force: true }), fs.rm(this.file(statsName(name)), { force: true })]);
   }
 
-  /** A session's saves put aside as wiped, replacing the ones put aside before; none to put aside leaves those. */
+  /**
+   * A session's saves put aside as wiped, replacing the ones put aside before; none to put aside leaves those. Safe to
+   * run again after a failure: the wiped ones it replaces are those older than every save still to put aside, and the
+   * newest go first, so what a failed run put aside already is never taken for the last wipe's.
+   */
   async aside(code: string) {
     const all = await this.list(code);
     const now = all.filter((n) => !isWiped(n));
     if (!now.length) return;
-    for (const n of all.filter(isWiped)) await this.remove(n);
+    const oldest = savedAt(now[now.length - 1]);
+    for (const n of all.filter((w) => isWiped(w) && savedAt(w) < oldest)) await this.remove(n);
     for (const n of now) {
       const to = n.replace('.rhhpaint', '.wiped.rhhpaint');
       await fs.rename(this.file(n), this.file(to));

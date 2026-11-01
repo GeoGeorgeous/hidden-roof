@@ -199,7 +199,7 @@ const FRAG_EMISSIVE = /* glsl */ `
 totalEmissiveRadiance += diffuseColor.rgb * vEmissiveV * uEmissiveBoost;
 `;
 
-export interface SurfaceMaterialOptions {
+interface SurfaceMaterialOptions {
   tex: TexName;
   /** Meters covered by one repeat of the base texture. */
   tileMeters?: number;
@@ -266,11 +266,6 @@ export class SurfaceMaterial extends THREE.MeshPhongMaterial {
   /** All surfaces share one program (alpha-tested ones and lettering their own, by their define); only uniforms differ. */
   customProgramCacheKey() {
     return 'surface-ink-2';
-  }
-
-  /** Meters covered by one repeat of the base texture (live). */
-  setTileMeters(m: number) {
-    this.baseScaleUniform.value = 1 / Math.max(0.01, m);
   }
 
   /** Marks the material of a paintable mesh (for the build-mode overlay). */

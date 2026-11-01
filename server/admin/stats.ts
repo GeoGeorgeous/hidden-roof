@@ -6,6 +6,7 @@ import { client, paint, paintDay, play, playDay } from '../stats-hours';
 import { answer, periodOf, type Frame, type Span } from '../stats-period';
 import { trafficPeriod } from '../traffic-period';
 import { SERVER } from '../../src/config';
+import { dayAt } from '../days';
 import { historyDays } from '../history-days';
 import { peopleDays } from '../people-days';
 import { dayRange, monthRange } from '../stats-period';
@@ -46,7 +47,7 @@ async function historyRoute(group: string, more: string, q: URLSearchParams, dir
   if (group === 'traffic' && q.has('n')) {
     const n = q.get('n')!;
     if (!upTo(n, SERVER.statsDaysMost)) throw new Refused(`n: 1 to ${SERVER.statsDaysMost}`);
-    const to = Math.floor(now / 864e5);
+    const to = dayAt(now);
     return trafficDays(traffic, { from: to - +n + 1, to });
   }
   const range = dayRange(q, now, SERVER.statsDaysMost);
