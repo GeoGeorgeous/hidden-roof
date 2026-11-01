@@ -175,6 +175,8 @@ try {
   assert.deepEqual(['slowPing', 'saveEvery', 'saveAges'].filter((k) => k in top.body), [], 'they are in settings now');
   const live = (await admin('GET', '/sessions')).body[0];
   assert.deepEqual([live.stats.stamps.can, live.stats.colors, live.stats.peak.players, live.emptySince, 'today' in live], [1, { red: 1 }, 1, null, false]);
+  const demoPickups = [...new Set((JSON.parse(fs.readFileSync('public/levels/demo.json', 'utf8')).pickups as { kind: string }[]).map((p) => p.kind.replace(':', '.')))];
+  assert.deepEqual([live.levelPickups, live.stats.pickups, Object.keys(live.stats.paintSeconds), typeof live.stats.players], [demoPickups, {}, ['can', 'marker', 'roller', 'sponge'], 'number'], 'the level\'s pickups; none found, paint time by tool');
   assert.deepEqual([live.players[0].ip, live.players[0].here, live.players[0].held], [`10.1.0.${games}`, true, null]);
   assert.deepEqual([live.players[0].state, live.players[0].seenDays, Math.abs(Date.parse(live.players[0].since) - Date.now()) < 10000], ['here', null, true]);
   // A player's state follows what the game says it is doing (the others see it too), and `since` moves only when it changes.

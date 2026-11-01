@@ -71,6 +71,14 @@ tick();
 assert.deepEqual(sent.pop().counts, { jump: 2, 'pickup.color.red': 1 });
 tick();
 assert.equal(sent.pop().counts, undefined);
+// Counted once a page load: a pickup found again after a restart is not a second one.
+b.countOnce('pickup.marker');
+b.countOnce('pickup.marker');
+tick();
+assert.deepEqual(sent.pop().counts, { 'pickup.marker': 1 });
+b.countOnce('pickup.marker');
+tick();
+assert.equal(sent.pop().counts, undefined);
 
 // A slider drag is one change: later steps within NET.beaconSettingGap of the last count nothing; after a pause it is a new one.
 let skew = 0;

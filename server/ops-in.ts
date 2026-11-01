@@ -18,5 +18,6 @@ export function takenOps(batch: { t: number[]; ops: PaintOp[] }, bytes: Uint8Arr
   const ops = batch.ops.filter((_, i) => keep[i]);
   const t = batch.t.map((x) => stampedBy(p, x));
   const same = ops.length === batch.ops.length && t.every((x, i) => x === batch.t[i]);
-  return { ops, bytes: same ? bytes : encodeOps(t.filter((_, i) => keep[i]), ops, surfaces) };
+  const kept = t.filter((_, i) => keep[i]);
+  return { ops, t: kept, bytes: same ? bytes : encodeOps(kept, ops, surfaces) };
 }

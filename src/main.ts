@@ -41,6 +41,7 @@ import { Tutorial } from './tutorial/tutorial';
 import { TutorialWire } from './tutorial/wire';
 import { Thumbnails } from './inventory/thumbnails';
 import { Pickups } from './pickups/pickups';
+import { pickupCode } from './inventory/items';
 import { OpenLevel } from './level/open-level';
 import { Audio } from './audio';
 import { Hud } from './hud';
@@ -130,7 +131,7 @@ const wallHand = new WallHand(level.solids);
 viewScene.add(wallHand.group);
 const pickups = new Pickups(scene, camera, level.solids);
 pickups.onCollect = (label, kind) => {
-  beacon.count(`pickup.${kind.replace(':', '.')}`);
+  beacon.countOnce(`pickup.${pickupCode(kind)}`);
   audio.pickup();
   notify.toast(msg('toast.pickedUp', { item: sentence(label) }));
 };

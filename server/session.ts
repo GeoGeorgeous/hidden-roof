@@ -143,7 +143,7 @@ export class Session {
       this.broadcast({ type: 'joined', id: p.id, name: p.name }, p);
       this.players.set(p.id, p);
     }
-    this.stats.players(this.players.size);
+    this.stats.players(this.players.size, p.name);
     this.emptySince = null;
     p.live = false;
     let frames;
@@ -188,10 +188,10 @@ export class Session {
       // A game can send these at its rate: logged as a stranger's lines are.
       if (!batch) return void logNoisy(p.link?.ip ?? '-', this.code, who(p), 'paint ops it could not read: dropped');
       const { paint, ops: painter } = this.world;
-      const { ops: valid, bytes } = takenOps(batch, m.bytes, p, paint, this.off, this.surfaces);
+      const { ops: valid, t, bytes } = takenOps(batch, m.bytes, p, paint, this.off, this.surfaces);
       this.files.now(() => valid.forEach((op) => painter.apply(op)));
       if (!valid.length) return;
-      countPaint(valid, [history.now(), this.stats.paint]);
+      countPaint(valid, t, p, [history.now(), this.stats.paint]);
       this.stats.painter(p.name);
       this.changed = true;
       this.relay(relayEntry('ops', p.id, bytes), p);
@@ -202,7 +202,7 @@ export class Session {
       p.ladder = m.data;
       this.broadcast({ type: 'ladder', id: p.id, t: stampedBy(p, m.t), data: m.data }, p);
     } else if (m.type === 'save') void this.save(p);
-    else if (m.type === 'inventory') p.inventory = m.data;
+    else if (m.type === 'inventory') (this.stats.carries(p.name, p.inventory, m.data), (p.inventory = m.data));
     else if (m.type === 'status') {
       const before = presence(p);
       p.activity = m.status;

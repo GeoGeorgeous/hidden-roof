@@ -1,5 +1,6 @@
 import { COLOR_ORDER } from '../src/config';
 import { clientReport } from './client-counts';
+import { paintSecondsOf } from './counts';
 import { history, sum } from './history';
 import { HOUR } from './days';
 import { daysIn, weekdayOf, type Frame, type Span } from './stats-period';
@@ -35,14 +36,17 @@ export function playDay(s: Span) {
   return { plays: t.plays, playSeconds: Math.round(t.seconds) };
 }
 
-/** The paint in `s`: stamps by tool, ops by color (in the game's order, those with none left out). */
+/** The paint in `s`: stamps and seconds painting by tool, ops by color (in the game's order, those with none left out). */
 export function paint(s: Span) {
   const t = totals(s);
-  return { stamps: t.stamps, colors: Object.fromEntries(COLOR_ORDER.flatMap((c) => (t.colors[c] ? [[c, t.colors[c]]] : []))) };
+  return { stamps: t.stamps, paintSeconds: paintSecondsOf(t.paintSeconds), colors: Object.fromEntries(COLOR_ORDER.flatMap((c) => (t.colors[c] ? [[c, t.colors[c]]] : []))) };
 }
 
-/** A day of paint: its stamps. */
-export const paintDay = (s: Span) => ({ stamps: totals(s).stamps });
+/** A day of paint: its stamps and seconds painting. */
+export function paintDay(s: Span) {
+  const t = totals(s);
+  return { stamps: t.stamps, paintSeconds: paintSecondsOf(t.paintSeconds) };
+}
 
 /** The games' beacons in `s`. */
 export const client = (s: Span) => clientReport(totals(s).client);

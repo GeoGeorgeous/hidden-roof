@@ -1,4 +1,5 @@
 import { CAP_ORDER, CAPS, COLOR_ORDER, COLORS, type CapId, type PaintColor } from '../config';
+import type { InventoryData } from './inventory';
 import { SLOTS, type Tool } from './tool';
 import type { Rgb } from '../painting';
 
@@ -22,7 +23,20 @@ type PickupContent = { color: PaintColor } | { cap: CapId } | { tool: FoundTool 
 const FOUND_TOOLS: FoundTool[] = SLOTS.filter((t) => t !== 'can');
 const TOOL_LABEL: Record<FoundTool, string> = { marker: 'marker', ladder: 'stepladder', roller: 'paint roller', sponge: 'sponge' };
 
-const PICKUP_KINDS: PickupKind[] = [...COLOR_ORDER.filter((c) => c !== 'black').map((c) => `color:${c}`), ...CAP_ORDER.map((c) => `cap:${c}`), ...FOUND_TOOLS];
+/** A pickup kind as the stats name it: `color.red`, `cap.fat`, `marker`. */
+export const pickupCode = (kind: PickupKind) => kind.replace(':', '.');
+
+/** What `d` found, as the stats name it: tools, caps, colors, the starting kit's left out. */
+export const foundCodes = (d: Pick<InventoryData, 'tools' | 'caps' | 'colors'>) => [
+  ...d.tools.filter((t) => t !== 'can'),
+  ...d.caps.filter((c) => c !== 'standard').map((c) => `cap.${c}`),
+  ...d.colors.filter((c) => c !== 'black').map((c) => `color.${c}`),
+];
+
+/** Every pickup there is, as the stats name them, in the order the admin page lists them. */
+export const PICKUP_CODES = foundCodes({ tools: FOUND_TOOLS, caps: CAP_ORDER, colors: COLOR_ORDER });
+
+const PICKUP_KINDS: PickupKind[] =[...COLOR_ORDER.filter((c) => c !== 'black').map((c) => `color:${c}`), ...CAP_ORDER.map((c) => `cap:${c}`), ...FOUND_TOOLS];
 
 export function parsePickup(kind: PickupKind): PickupContent | null {
   const [k, a] = kind.split(':');

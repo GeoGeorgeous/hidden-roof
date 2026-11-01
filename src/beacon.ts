@@ -91,6 +91,11 @@ export class Beacon {
     if (!this.reached.has(`t.${id}`)) (this.reached.add(`t.${id}`), this.lessons.push(id));
   }
 
+  /** Something that counts once a page load, however often it happens (a pickup found again after a restart). */
+  countOnce(code: string) {
+    if (!this.reached.has(code)) (this.reached.add(code), this.count(code));
+  }
+
   /** A setting changed (`key`: its row's): one change until it's left alone for NET.beaconSettingGap s, so a slider drag counts once. */
   setting(key: string) {
     const now = performance.now() / 1000;
