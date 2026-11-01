@@ -3,8 +3,8 @@ import type { Player } from './player';
 
 // The others' states and paint ops go to a player as one relay frame per flush,
 // not as a frame each: the server's frames out then grow with the players, not
-// with their square (its one thread was full at ~60 players by its frames,
-// docs/ideas/weak-links.md). A flush comes once the event loop's turn is done,
+// with their square (its one thread was full at ~60 players by its frames in
+// `npm run study:load`). A flush comes once the event loop's turn is done,
 // so nothing waits longer than what came in with it; any other frame to a player
 // sends theirs first (player.ts deliver), so what they get keeps its order.
 

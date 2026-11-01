@@ -9,7 +9,7 @@ import { encodeOps, SurfaceIndex } from '../src/op-wire';
 import { encode, PROTOCOL, SNAPSHOT_BYTES } from '../src/net/protocol';
 import { start } from './test-kit';
 
-// One public session's load as its players grow (docs/ideas/weak-links.md): bots join the roof at ULTRA from
+// One public session's load as its players grow (docs/testing.md): bots join the roof at ULTRA from
 // addresses of their own and send their state NET.sendRate times a second as a game does; a share of them paint, a
 // batch of stamps with each state. Measured over a window: the server's CPU and memory, the bots' app ping, bytes and
 // frames each way, by message type. The bots run in worker processes, so they don't hold up each other's pings.
