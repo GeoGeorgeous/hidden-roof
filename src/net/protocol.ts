@@ -48,6 +48,9 @@ export interface Spot {
 }
 /** Player snapshot size (net/snapshot.ts). */
 export const SNAPSHOT_BYTES = 25;
+/** Where a snapshot's feet start (three float32, after the sender's clock) and where the rest starts, the yaw first. */
+export const SNAPSHOT_FEET = 4;
+export const SNAPSHOT_REST = 16;
 
 /**
  * Why the server turned a player away (the game says it in its own words):

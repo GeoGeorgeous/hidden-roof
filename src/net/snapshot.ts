@@ -5,7 +5,7 @@ import type { Inventory } from '../inventory/inventory';
 import { SLOTS, type Tool } from '../inventory/tool';
 import type { Player } from '../player';
 import type { Tools } from '../tools/tools';
-import { SNAPSHOT_BYTES, type Spot } from './protocol';
+import { SNAPSHOT_BYTES, SNAPSHOT_FEET as FEET, SNAPSHOT_REST as YAW, type Spot } from './protocol';
 
 // What a player sends about themselves, NET.sendRate times a second:
 // where their feet are, where they look, a few
@@ -43,11 +43,11 @@ export function encodeSnapshot(s: Snapshot) {
   const b = new Uint8Array(SNAPSHOT_BYTES);
   const v = new DataView(b.buffer);
   v.setFloat32(0, s.t, true);
-  v.setFloat32(4, s.pos.x, true);
-  v.setFloat32(8, s.pos.y, true);
-  v.setFloat32(12, s.pos.z, true);
+  v.setFloat32(FEET, s.pos.x, true);
+  v.setFloat32(FEET + 4, s.pos.y, true);
+  v.setFloat32(FEET + 8, s.pos.z, true);
   // Yaw all the way round in 16 bits, pitch (-90..90 degrees) in 16 signed bits.
-  v.setUint16(16, Math.round((((s.yaw % TAU) + TAU) % TAU) * (65535 / TAU)), true);
+  v.setUint16(YAW, Math.round((((s.yaw % TAU) + TAU) % TAU) * (65535 / TAU)), true);
   v.setInt16(18, Math.round((s.pitch / (Math.PI / 2)) * 32767), true);
   b[20] = (s.onGround ? 1 : 0) | (s.onLadder ? 2 : 0) | (s.crouched ? 4 : 0);
   // The tool in 3 bits: SLOTS has at most 7 (inventory/tool.ts).
@@ -61,7 +61,7 @@ export function encodeSnapshot(s: Snapshot) {
 /** Where a snapshot puts its sender (the server keeps it for a player who comes back). */
 export function snapshotSpot(b: Uint8Array): Spot {
   const v = new DataView(b.buffer, b.byteOffset, b.byteLength);
-  return { pos: [v.getFloat32(4, true), v.getFloat32(8, true), v.getFloat32(12, true)], yaw: v.getUint16(16, true) * (TAU / 65535) };
+  return { pos: [v.getFloat32(FEET, true), v.getFloat32(FEET + 4, true), v.getFloat32(FEET + 8, true)], yaw: v.getUint16(YAW, true) * (TAU / 65535) };
 }
 
 export function decodeSnapshot(b: Uint8Array): Snapshot {

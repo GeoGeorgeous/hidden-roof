@@ -160,7 +160,6 @@ The API: docs/admin-api.md; why: docs/ideas/admin-data.md.
 ## Codebase
 
 1. [RFCT-202]: src/ root files into folders (paint, menu, input, boot, render), style.css split next to its code; paint after the Painting Rework (docs/ideas/src-folders.md) @1.8.0
-2. [RFCT-273]: The still player's "same stance" check next to encodeSnapshot (sender.ts reads the snapshot's byte offsets itself) @1.6.1
 
 ## Done
 
@@ -169,6 +168,7 @@ Shipped since the last release; the release commit empties this list.
 1. [TASK-276]: Production on 1.6.0, deployed 2026-11-01 (docs/deploy.md §1): the server's data, admin key and the public session, the GeoIP base with its monthly cron, roof-traffic, Caddy's `/api/main` for the admin page; then a full wipe of DATA_DIR and LOG_DIR on main and next (the owner), the public sessions made again; the owner checked it in a browser (version, cctv main and next, a session made and closed) @1.6.0
 2. [TASK-187]: The beacon, the device id and the address hash run without a consent dialog (the owner's decision and risk, recorded in SECRET_legal.md; confirmed 2026-11-01: no switch either); the privacy page names them (TASK-242, done); nothing left to build (the owner, 2026-11-01)
 3. [RFCT-270]: The beacon's limit per address through PerMinute, the third copy of "N a minute per address" (logNoisy is another); PerMinute reads its SERVER limits when asked, so a test can still change them (done in BUGS-280: beacon.ts and log.ts use PerMinute, its limits read when asked)
+4. [RFCT-273]: The snapshot's layout in one place: SNAPSHOT_FEET and SNAPSHOT_REST beside SNAPSHOT_BYTES (net/protocol.ts), read by encodeSnapshot, snapshotSpot and the sender's still check (sender.ts stays loadable in Node for its test)
 
 ## Discarder
 
