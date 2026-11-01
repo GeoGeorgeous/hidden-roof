@@ -14,7 +14,7 @@ import type { ToServer } from './protocol.ts';
 // so Node tests it (scripts/sender.test.mjs).
 
 /** What the sender reads of the game. */
-export interface SenderGame {
+interface SenderGame {
   /** This player now, as a snapshot's bytes (net/snapshot.ts), stamped `at`. */
   capture(at: number): Uint8Array;
   paint: { log: PaintOp[] | null };

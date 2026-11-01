@@ -8,7 +8,7 @@ import { NET } from '../config.ts';
 
 export type LinkStatus = { id: 'noSignal' | 'badConnection' };
 
-export interface LinkSample {
+interface LinkSample {
   /** Local time (s). */
   t: number;
   /** The last round trip (s), null before the first. */

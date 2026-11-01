@@ -7,7 +7,7 @@
 // Node (scripts/play-state.test.mjs).
 
 /** What Esc and Enter can do: the pointer lock, the pause menu and a dialog. */
-export interface MenuActions {
+interface MenuActions {
   /** Frees the mouse (with the keyboard locked the browser no longer does it on Esc). */
   release(): void;
   /** Back to the game: pointer lock, fullscreen. From a user gesture. */

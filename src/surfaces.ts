@@ -55,7 +55,7 @@ const PAD = 1;
 /** Paint atlases are laid out in cells the size of a texel of their smallest level (PAINT.mipLevels), so distant paint never mixes faces. */
 const PAINT_CELL = 2 ** (PAINT.mipLevels - 1);
 
-export interface FaceSpec {
+interface FaceSpec {
   /** World-space corners: origin, +u edge, +v edge (u = right, v = up when facing the face). */
   origin: THREE.Vector3;
   uAxis: THREE.Vector3; // full length vector

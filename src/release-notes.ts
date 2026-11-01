@@ -14,7 +14,7 @@ interface Item {
   /** Term and description; plain lines have no term. */
   list: [term: string, desc: string][];
 }
-export interface Release {
+interface Release {
   tag: string;
   /** The release date, YYYY-MM-DD; '' when the note has none. */
   date: string;

@@ -19,7 +19,7 @@ import { Smoke } from './smoke';
 // changes and `update` once a frame; F3 reaches the parts through it.
 
 /** What the environment needs to know of a frame. */
-export interface EnvView {
+interface EnvView {
   /** The frame's clock (ms). */
   time: number;
   dt: number;

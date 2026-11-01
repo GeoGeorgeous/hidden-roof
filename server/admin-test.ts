@@ -27,7 +27,7 @@ fs.mkdirSync(path.join(dir, 'stats'));
 const put = (name: string, text: string) => fs.writeFileSync(path.join(dir, 'stats', name), text);
 // Two days back is corrupt, yesterday is good: 3 plays at 12:00 UTC from one address.
 put(`${day(2)}.json`, '{not json');
-put(`${day(1)}.json`, JSON.stringify({ hours: { 12: { plays: 3, lengths: [0, 0, 0, 0], seconds: 0, withOthers: 0, turnedAway: {}, ...noPaint(), peak: null, client: noClient() } } }));
+put(`${day(1)}.json`, JSON.stringify({ hours: { 12: { plays: 3, seconds: 0, withOthers: 0, turnedAway: {}, ...noPaint(), peak: null, client: noClient() } } }));
 put(`people-${day(2)}.json`, '[{"h":');
 put(`people-${day(1)}.json`, JSON.stringify([{ h: (Math.floor(Date.now() / DAY) - 1) * 24 + 12, d: null, i: 'x', c: 'FR', j: true }]));
 put('peak.json', '{not json');
@@ -73,7 +73,7 @@ try {
   assert.match(main.out(), new RegExp(`stats people-${day(2)}.json skipped`));
   // The hour file is from before the minutes and the bytes were kept: it reads as none of them.
   const week = (await ask(main, 'GET', '/stats/play?period=7d')).body;
-  assert.deepEqual([week.plays, week.lengthMinutes, 'lengths' in week, week.before], [3, {}, false, null], 'nothing kept before yesterday: no period before');
+  assert.deepEqual([week.plays, week.lengthMinutes, week.before], [3, {}, null], 'nothing kept before yesterday: no period before');
   const folks = (await ask(main, 'GET', '/stats/people?period=7d')).body;
   assert.deepEqual([folks.players, folks.inSessions, folks.countries, folks.networks.devicesPerNetwork], [{ device: 0, address: 1 }, { device: 0, address: 1 }, {}, { 1: 0, '2-4': 0, '5+': 0 }], 'a play saved before pages were kept was a JOIN; no device, no country by device, no network of devices');
 

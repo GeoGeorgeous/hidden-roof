@@ -12,7 +12,7 @@ import { neonAtlas } from './render/ink/neon-text';
 
 type Painter = (ctx: CanvasRenderingContext2D, w: number, h: number, rnd: () => number) => void;
 
-function canvasTexture(w: number, h: number, seed: number, paint: Painter, srgb = true): THREE.Texture {
+function canvasTexture(w: number, h: number, seed: number, paint: Painter): THREE.Texture {
   const c = document.createElement('canvas');
   c.width = w;
   c.height = h;
@@ -22,7 +22,7 @@ function canvasTexture(w: number, h: number, seed: number, paint: Painter, srgb 
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.magFilter = THREE.NearestFilter;
   t.minFilter = THREE.NearestMipmapLinearFilter;
-  if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+  t.colorSpace = THREE.SRGBColorSpace;
   return t;
 }
 

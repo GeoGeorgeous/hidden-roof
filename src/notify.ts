@@ -54,7 +54,7 @@ interface Held extends Note {
  * What `set` takes: a keyed message of any kind but toast. All kinds share one key space: a key set under another
  * kind replaces that message (the reconnecting status becomes the lost session's dialog, which grows out of it).
  */
-export type Keyed =
+type Keyed =
   | { key: string; kind: 'hint'; lines: string[]; rank?: number }
   | { key: string; kind: 'status'; text: string; icon?: StatusIcon }
   | { key: string; kind: 'dialog'; dialog: Dialog; answer?: Answer };

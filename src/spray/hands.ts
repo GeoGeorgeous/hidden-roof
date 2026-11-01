@@ -28,9 +28,9 @@ export function segment(a: THREE.Vector3, b: THREE.Vector3, thick: number, mat: 
 }
 
 /** Chain of segments through the points. */
-export function chain(points: THREE.Vector3[], thick: number, mat = glove) {
+export function chain(points: THREE.Vector3[], thick: number) {
   const g = new THREE.Group();
-  for (let i = 1; i < points.length; i++) g.add(segment(points[i - 1], points[i], thick, mat));
+  for (let i = 1; i < points.length; i++) g.add(segment(points[i - 1], points[i], thick, glove));
   return g;
 }
 

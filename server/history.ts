@@ -39,9 +39,7 @@ const blank = (): Hour => ({ plays: 0, minutes: {}, seconds: 0, withOthers: 0, t
 
 /** An hour as a file has it: what an older file lacks, at any depth, is none. */
 export function read(file: Hour): Hour {
-  const h = filled(blank(), file) as Hour & { lengths?: unknown };
-  delete h.lengths;
-  return h;
+  return filled(blank(), file) as Hour;
 }
 
 /** `hours` added up. */

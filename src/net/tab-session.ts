@@ -4,7 +4,7 @@
 
 const KEY = 'roofhiddenhaus.session';
 
-export interface TabSession {
+interface TabSession {
   code: string;
   token: string;
   /** The name they go by in the session (numbered if it was taken). */

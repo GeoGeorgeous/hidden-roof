@@ -5,10 +5,10 @@ import { M, Parts, type V3 } from './pieces';
 // window cleaner's gondola hanging off a roof's edge. Both are placed on the
 // roof at its edge (their origin on the edge line), facing out (-z).
 
-/** Rope sagging between two points, in `n` rods. */
-function rope(p: Parts, a: V3, b: V3, sag: number, n = 8) {
+/** Rope sagging between two points, in 8 rods. */
+function rope(p: Parts, a: V3, b: V3, sag: number) {
   const at = (t: number): V3 => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t - sag * 4 * t * (1 - t), a[2] + (b[2] - a[2]) * t];
-  for (let i = 0; i < n; i++) p.rod(at(i / n), at((i + 1) / n), 0.012, M.cable);
+  for (let i = 0; i < 8; i++) p.rod(at(i / 8), at((i + 1) / 8), 0.012, M.cable);
 }
 
 /**

@@ -11,7 +11,7 @@ import type { SessionSetup } from './setup';
 // SERVER.sessionsPerIp.
 
 /** What HOST needs of the lobby. */
-export interface HostLobby {
+interface HostLobby {
   sessions: { size: number };
   /** Sessions hosted from `ip` now, and those on their way (`reserve`). */
   hostedFrom(ip: string): number;
