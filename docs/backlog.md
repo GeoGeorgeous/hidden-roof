@@ -133,10 +133,9 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## Servers and deploy
 
-1. IDEA [BL-047]: Admin panel: servers stats (players online, perfomance, etc), players info (username, IP, ping); ban by IP is IDEA-240 (docs/ideas/public-servers.md) @1.6.0
-2. IDEA [?BL-147]: Anti-cheat: The server checks what players send (op reach and rate, ladder spot, jumps) before it goes public @1.6.1
-3. [TASK-201]: Research itch.io Publishing Requirements, AI Policies, and Download Restrictions @1.6.3
-4. [TASK-276]: Production on 1.6.0 once it is released (2026-11-01; its stats start then, from an empty DATA_DIR): the server's data, admin key and the public session, GeoIP each month, roof-traffic (docs/ideas/vps.md items 1-3), and Caddy's `/api/main` for the admin page (docs/deploy.md §9) @1.6.0
+1. IDEA [?BL-147]: Anti-cheat: The server checks what players send (op reach and rate, ladder spot, jumps) before it goes public @1.6.1
+2. [TASK-201]: Research itch.io Publishing Requirements, AI Policies, and Download Restrictions @1.6.3
+3. [TASK-276]: Production on 1.6.0 once it is released (2026-11-01; its stats start then, from an empty DATA_DIR): the server's data, admin key and the public session, GeoIP each month, roof-traffic (docs/ideas/vps.md items 1-3), and Caddy's `/api/main` for the admin page (docs/deploy.md §9) @1.6.0
 
 ## CCTV
 
@@ -223,6 +222,7 @@ Shipped since the last release; the release commit empties this list.
 47. [TASK-242]: The privacy page names what 1.6.0's statistics keep, short: the device id and play days in localStorage, the beacon, the web access log and visitors, the events list, public sessions' saves with painters' nicknames, pseudonymous hashes (monthly key) kept 91 days and counts forever, the country from DB-IP on our server (credited), reading from Georgia; reviewed by a legal-analysis agent; no switch to turn statistics off (TASK-187) @1.6.0
 48. [TASK-282]: Release notes: an item may open with a lead, a sentence a line under its heading, before its list: each line its own in the game (in paper, the list's size), on GitHub (hard breaks) and on Discord; **bold** only where the note writes it (docs/releases/AGENTS.md) @1.6.0
 49. [CCTV-285]: The Tutorial card lists every hint, zeros included, so a missing All learnt shows which hint no one learnt (cctv PR #6)
+50. IDEA [BL-047]: Admin panel: servers stats (players online, perfomance, etc), players info (username, IP, ping), done as the cctv page on ADMIN_API 4 (CCTV items above); ban by IP is IDEA-240 (docs/ideas/public-servers.md) @1.6.0
 
 ## Discarder
 
