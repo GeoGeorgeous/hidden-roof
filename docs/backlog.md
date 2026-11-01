@@ -154,8 +154,6 @@ The API: docs/admin-api.md; why: docs/ideas/admin-data.md.
 
 ## Legal
 
-1. [TASK-189]: The Terms' moderation section (DSA: grounds and measures, reports by email, a restricted player told what and why); the house rules screen is in (docs/ideas/public-servers.md) @1.6.1
-
 ## Codebase
 
 1. [RFCT-202]: src/ root files into folders (paint, menu, input, boot, render), style.css split next to its code; paint after the Painting Rework (docs/ideas/src-folders.md) @1.8.0
@@ -171,6 +169,7 @@ Shipped since the last release; the release commit empties this list.
 5. [PERF-269]: The server's thread spared on admin reads: a /stats period sums each whole day before today from that day's total, made once (history.total); measured over 91 days of full hours: /stats/play?period=30d 325 → 23 ms, paint 324 → 22, client 219 → 14 (the first ask after a start makes the days, ~200 ms); the log's appendFileSync left as it is (2.2 µs a line against 0.6 on an open file)
 6. [BUGS-234]: Holding Esc in fullscreen on a Mac says ⌃ ⌘ F leaves at once, not F11: Chrome on a Mac has no F11 for fullscreen, and Fn+F11 shows the desktop (checked by the owner: ⌃⌘F leaves)
 7. BUGS [BL-011]: Title-screen pickup rings sized for the title view, not where the player stands: Pickups.view takes the camera the frame is drawn from and places the rings again when it changes, the game stopped or not; big rings high up in build mode are PICKUP.ring.minSize, as designed (the owner)
+8. [TASK-189]: The Terms' moderation section (Rules): by hand, on reasonable belief, in proportion: erase paint, change the nickname, remove from a session, ban by address and device for a time or for good; a ban's reason and end shown in the game, any other measure's reason by email; reports (what and why) and appeals by email, a ban that blocks someone else included; read by a Sonnet legal review; the Privacy Policy names bans' legal basis
 
 ## Discarder
 
