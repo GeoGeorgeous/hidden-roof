@@ -49,7 +49,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 1. TASK [BL-076]: Run the next public playtest and verify that all bugs from the previous playtest have been fixed (docs/ideas/weak-links.md) @1.6.2
 2. IDEA [?BL-071]: Multiplayer View-Only sessions: past sessions are opened for viewing only (gallary)
-3. [IDEA-195]: Admin mode in the game: a one-time link from cctv into any session, unseen, past its limits and stats, flying, with every tool; lock surfaces against paint (docs/ideas/admin-mode.md) @1.6.1
+3. [IDEA-195]: Admin mode in the game: a one-time link from cctv into any session, unseen, past its limits and stats, flying, with every tool; lock wall faces against paint (docs/ideas/admin-mode.md) @1.6.1
 4. [IDEA-288]: Admin mode: who painted what, and erasing one player's paint with what it covered back, within the last ~15 minutes (the server's ring of op batches); after the Painting Rework cuts ops/s (TASK-231) (docs/ideas/admin-mode.md) @1.7.1
 5. [IDEA-289]: A 15-minute timelapse of a wall's painting, from IDEA-288's ring of op batches; only if it comes nearly free (docs/ideas/admin-mode.md) @1.7.1
 
