@@ -1,15 +1,15 @@
-# Admin mode in the game (IDEA-195)
+# Admin mode in the game (IDEA-195, IDEA-288, IDEA-289)
 
-The admin inside a live session: unseen, past every limit, flying, with every tool; finds who painted what, kicks,
-bans, erases one player's paint and locks surfaces against paint. IDEA-193 (locks) and BL-153 (who painted it) are
-merged into it. This file holds only the owner's approved decisions and what is still open; the server's routes go
-into `docs/admin-api.md` once they are built.
+The admin inside a live session: unseen, past every limit, flying, with every tool, locking surfaces against paint
+(IDEA-195, 1.6.1). Who painted what and erasing one player's paint (IDEA-288), and a timelapse (IDEA-289), come in
+1.7.1, after the Painting Rework. IDEA-193 (locks) and BL-153 (who painted it) are merged in. This file holds only
+the owner's approved decisions and what is still open; the server's routes go into `docs/admin-api.md` once they
+are built.
 
-## Approved (2026-11-01)
+## 1.6.1: approved (2026-11-01)
 
 ### Entry and presence
 
-- **Release:** 1.6.1.
 - **Entry:** a "Join as admin" button on a session in cctv opens the game with a one-time link. The server makes a
   random pass for that session's code: valid 60 s, works once, kept in memory only. It rides after `#` in the URL, so
   Caddy's access log and the Referer never see it, and the game wipes it from the address bar. Reconnects use the
@@ -34,12 +34,6 @@ into `docs/admin-api.md` once they are built.
 - **Lightweight:** in the game's one build, its code in `src/admin/`, loaded with `import()` only when the welcome
   says admin: players download and run none of it. Plain to look at; as little code as it can be.
 
-### Who painted it
-
-- **Pointing** at paint shows who painted what is seen there now (the last painter), no layers.
-- **A small panel:** a key (or click) on the paint opens it: the painter's nickname, in the session or gone, then
-  Kick, Ban (cctv's days and reason presets, or the admin's own reason) and Erase their paint; Esc closes it.
-
 ### Locks
 
 - **One surface per click:** a face of a wall, or one paintable surface of a prop. Its paint stays as it is, and no
@@ -50,28 +44,37 @@ into `docs/admin-api.md` once they are built.
 - **A wipe clears them too:** an admin wipe clears all paint and drops every lock.
 - **Outlines on a key:** a key draws every locked surface's outline (one line mesh, the admin's only).
 
-## Open (to discuss in detail)
+## 1.7.1: who painted what (IDEA-288) and a timelapse (IDEA-289)
 
-How the server keeps a player's paint apart, all server side (clients unchanged). The candidate, to be talked
-through: a grid of last painters per surface (cells a few cm in meters), plus a copy of what a cell held when another
-painter covered it, so erasing a player puts back exactly what their strokes covered, one layer back. Measured: roof
-fully painted at ultra is 565 MB of paint (the server's limit, `hostMemory`, 1024 MB); the copies can grow up to as
-much again, so they need a cap.
+Decided 2026-11-01: not before the Painting Rework (TASK-231), which should bring a painter's ops from ~1760 a second
+(the can's particles, each an op) to ~60 (`docs/ideas/paint-refactoring.md`, Network). Today a 15-minute ring with 20
+painters would hold ~720 MB (the server's limit, `hostMemory`, is 1024 MB); after it, ~36 MB.
 
-- **The model:** grid and one copy under; grid only (erasing leaves paper); or a journal of ops (exact, every layer,
-  unbounded memory, replaying drips a risk).
-- **Cell size:** 4 cm (~+3.5% of paint memory) or 2 cm (~+14%).
-- **The copies' cap:** fixed per session, a share of its paint, or none; past it the oldest go.
-- **Copies in saves:** kept on disk with the grid (saves up to twice as big), or lost on a restart (an erase there
-  leaves paper; who painted it still works).
-- **Painters' records**, to ban one who left: the owner's idea is one table of everyone who played, kept for good
-  with the bans' hashes only. Against it: a hash on the bans' fixed key, kept on the same disk, is pseudonymous
-  personal data, and an IPv4 one reverses in minutes; the Privacy Policy promises monthly keys and 91 days. The
-  candidate: a record per painter beside the paint, while their paint is on the wall, hashes for at most 30 (or 14)
-  days since their last stroke; the Privacy Policy to say so.
-- **The sponge:** the sponger as the cell's painter (erasing them brings back what they scrubbed), or no one.
-- **Sending an erase:** as a restore (every game reconnects and loads the server's paint; no new client code) or a
-  message of its own.
-- **Banning from paint:** `POST /bans` by a painter's record, not only a player in the session.
-- **One player's paint alone** (cctv's "see paint"): the server makes a paint file of only their cells, opened solo
-  in the game by a one-time pass like the admin's.
+- **Approved direction:** a rolling window, ~15 minutes (a number in `config.ts`), all in the server's memory, nothing
+  on disk. Spoiled within the window, it can be undone; older, it can't: anarchy, as on a real wall.
+- **Approved:** pointing shows who painted what is seen there now (the last painter), no layers; a small panel on the
+  paint (nickname, in the session or gone, Kick, Ban with cctv's presets or the admin's reason, Erase their paint;
+  Esc closes it).
+
+Candidate, to measure then decide:
+
+- **A ring of op batches** for the window: the packed bytes the server relays already, who sent them and when, and
+  the tiles (a few cm square, in meters) they touch. The oldest fall out.
+- **A base to roll back to:** epochs of a few minutes; a tile is copied the first time it is touched in an epoch, so
+  only tiles painted in the window cost memory.
+- **Who painted it:** the newest op in the ring that covers the point, exact to the op.
+- **Erasing a player:** each tile they touched in the window starts from its oldest copy and replays the ring without
+  their ops: every layer inside the window comes back.
+- **Banning one who left:** a painter's record (nickname, the bans' hashes) lives while their ops are in the ring:
+  minutes, in memory only.
+- **Timelapse (IDEA-289):** the same ring replayed over a wall's copies, if that costs next to nothing.
+
+Open:
+
+- Measure first: ops per painting second by tool (`GET /stats/paint`: `stamps` / `paintSeconds`), the ring's memory
+  at 5, 10 and 20 painters (`npm run study:load` with that rate), and how long a rollback replays.
+- Always recording (with a cap: under load the window shrinks), or only while an admin is in the session.
+- Paint older than the window: nothing at all, or a cheap last painter per tile (~8 MB) to still see and ban.
+- Sending an erase: as a restore (every game reconnects) or as tile patches (`PaintPatch`, `src/paint-surface.ts`, not
+  yet checked).
+- The ring's drips and wet times on replay: a likely result, not the very same.
