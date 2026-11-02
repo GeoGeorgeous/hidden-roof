@@ -19,6 +19,8 @@ export interface Rect {
   face?: FaceSpec;
   /** The face's size in meters (w, h are texels at the paint detail): the same at every detail. */
   meters?: [number, number];
+  /** Locked against paint (paint-locks.ts): nothing paints it. */
+  locked?: boolean;
 }
 
 export interface SurfaceGeometry {

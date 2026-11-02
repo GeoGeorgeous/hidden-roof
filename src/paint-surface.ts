@@ -4,7 +4,7 @@ import type { MipSize } from './paint-mips';
 import type { PageSlot } from './page-packer';
 import type { Box } from './paint-raster';
 import type { LightSlot } from './render/bake/light-pages';
-import type { SurfaceGeometry } from './surfaces';
+import type { Rect, SurfaceGeometry } from './surfaces';
 
 // A paint surface's data, as PaintSystem (painting.ts) and the modules it
 // hands surfaces to (paint-gpu.ts, render/bake, level/batches.ts) share it.
@@ -56,4 +56,16 @@ export interface PaintPatch {
   rects: number[];
   box: Box;
   data: Uint8Array | null;
+}
+
+/** A surface's face rects as numbers (x, y, w, h each), to tell a rebuilt surface from the one a patch was made on. */
+export function rectsOf(s: PaintSurface) {
+  return s.geo.rects.flatMap((r) => [r.x, r.y, r.w, r.h]);
+}
+
+/** Where a face is, to match it across rebuilds: a flat face by its corners (to the mm), a curved one by its place in its surface. */
+export function faceKey(s: PaintSurface, r: Rect, i: number) {
+  const f = r.face;
+  if (!f) return `${s.key.slice(s.key.indexOf('#'))}:${i}`;
+  return [f.origin, f.uAxis, f.vAxis].flatMap((v) => [v.x, v.y, v.z]).map((n) => Math.round(n * 1000)).join(',');
 }

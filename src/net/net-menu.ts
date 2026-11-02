@@ -45,6 +45,7 @@ const STATUS: Record<Failure | 'connecting' | 'reconnecting', MessageId> & Parti
   closed: 'menu.netClosed',
   seats: 'menu.netSeats',
   rate: 'menu.netRate',
+  pass: 'menu.netPass',
   ended: 'menu.netEnded',
   restarted: 'menu.netEnded',
   expired: 'menu.netEnded',
@@ -204,6 +205,16 @@ export function multiplayerMenu(hud: PauseMenu, notify: Notify, ctx: Multiplayer
   // Only the link-up, in-session check tells null: a link that went down resets the health silently, so null here is the trouble going away by itself.
   net.onHealth = (h) => (h ? notify.set({ key: 'net', kind: 'status', icon: h.id === 'noSignal' ? 'ring' : 'bars', text: msg(`status.${h.id}`) }) : notify.succeed('net', msg('status.reconnected')));
   net.onEnd = () => hud.toTitle();
+  // Admin mode (src/admin) is loaded only for an admin's welcome.
+  let admin: { dispose(): void } | null = null;
+  net.onAdmin = (a) => {
+    admin?.dispose();
+    admin = null;
+    if (!a) return notify.toast(msg('admin.ended'));
+    void import('../admin/admin-mode').then(({ AdminMode }) => {
+      if (net.admin === a) admin = new AdminMode(a, { ...ctx, notify, menu: hud });
+    });
+  };
   net.onPlayer = (who, joined) => notify.toast(msg(joined ? 'toast.joined' : 'toast.left', { user: who.replaceAll('*', '') }));
   hud.onLeave = () => net.leave();
   hud.sessionInfo = () => ({ ping: net.ping, players: net.players.map((p) => ({ name: p.name, color: p.color && COLORS[p.color] })) });

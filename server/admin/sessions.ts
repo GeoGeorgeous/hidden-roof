@@ -105,6 +105,11 @@ export const sessions: Route = async (c) => {
   if (what === 'paint' && !more.length) return paint(c, session);
   if (what === 'saves' && more.length === 1) return save(c, session, more[0]);
   only(c, 'POST');
+  // A one-time pass for CCTV's Join as admin (admins.ts).
+  if (what === 'admin-pass' && !more.length) {
+    const { pass, expires } = c.lobby.passes.make(session.code);
+    return { pass, expires: iso(expires) };
+  }
   if (what === 'players' && more[1] === 'kick' && more.length === 2) {
     if (!/^\d+$/.test(more[0]) || !c.lobby.kick(session, Number(more[0]))) throw new Missing(`no player ${more[0]} in ${session.code}`);
   } else if (what === 'restore' && !more.length) {

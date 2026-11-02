@@ -45,6 +45,8 @@ export const MESSAGES = {
     left: '**{user}** left',
     /** Dev only (F3, unlock all). */
     unlockedAll: 'You picked up **everything**',
+    /** Paint met a face an admin locked (paint-locks.ts): once while it shows (main.ts). */
+    locked: "I won't spoil this masterpiece",
   },
 
   /**
@@ -104,6 +106,36 @@ export const MESSAGES = {
     noteLagging: 'Lagging',
     /** How far another player is, in whole meters. */
     distance: '{meters}m',
+  },
+
+  /**
+   * Admin mode in a session (src/admin, joined from CCTV's Join as admin): the panel of its keys at the top left,
+   * a toast for each key's change, and the players page (G).
+   */
+  admin: {
+    panelTitle: 'ADMIN',
+    panelSeen: 'Seen',
+    panelUnseen: 'Unseen',
+    keySeen: 'Seen by players',
+    keyFly: 'Fly',
+    keyLock: 'Lock or unlock a face',
+    keyOutlines: 'Locked faces',
+    keyList: 'Players',
+    nowSeen: 'Players see you now',
+    nowUnseen: 'Players no longer see you',
+    flyOn: 'Flying',
+    flyOff: 'Walking',
+    locked: 'Face locked',
+    unlocked: 'Face unlocked',
+    noFace: 'No paintable face there',
+    outlinesOff: 'Locked faces hidden',
+    outlinesOn: 'Locked faces: {n}',
+    /** Any closed link ends it (LEAVE, a lost link, a wipe or restore from CCTV): the game goes back to the player's own level. */
+    ended: 'Admin mode ended: join again from CCTV',
+    listTitle: 'Players',
+    listSub: 'Pick a player to go where they were last seen',
+    listEmpty: 'No players in this session',
+    listNotSeen: 'Not seen yet',
   },
 
   /** The Multiplayer page's server list, the dialogs for joining a session (public: the house rules; private: its code) and the screen while one loads (net/lobby-page.ts, join-dialog.ts, loading-page.ts). */
@@ -208,6 +240,7 @@ export const MESSAGES = {
     netBanned: 'The admin banned you from this server: email roof@hidden.haus to appeal',
     netSeats: 'Too many players from your network are in this session already',
     netRate: 'Too many joins from your network: wait a minute and try again',
+    netPass: 'This admin link was used or has expired: join again from CCTV',
     netTimeout: "The server didn't answer",
     netBroken: 'The game hit an error in the session: copy the network log for a report',
     netOffline: "Can't reach the site: check your connection",
@@ -217,6 +250,7 @@ export const MESSAGES = {
     joining: 'Joining…',
     typeName: 'Type a name first',
     nameLetters: 'A name is Latin letters A–Z and digits 0–9 only',
+    nameReserved: 'Admin is taken: pick another name',
     logCopied: 'Network log copied',
     logSaved: 'Network log saved as a file',
     saveBusy: 'The server is busy: save again later',

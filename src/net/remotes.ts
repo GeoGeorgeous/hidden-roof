@@ -5,7 +5,7 @@ import type { Tools } from '../tools/tools';
 import type { NetLog } from './diagnostics';
 import { Nameplates, type Plate } from './nameplates';
 import type { SurfaceIndex } from '../op-wire';
-import type { Presence, ToClient } from './protocol';
+import type { Presence, Role, ToClient } from './protocol';
 import { RemotePlayer } from './remote-player';
 
 // The other players in a session, by id: their figures (remote-player.ts),
@@ -24,6 +24,8 @@ export class Remotes {
   private plates: Plate[] = [];
   /** Players not shown yet, and since when (s), for the log. */
   private unseen = new Map<number, number>();
+  /** The seen admins among them (server/admins.ts). */
+  private watchers = new Set<number>();
 
   constructor(
     private g: { scene: THREE.Scene; camera: THREE.Camera; level: Level; paintOps: PaintOps; tools: Tools },
@@ -44,8 +46,9 @@ export class Remotes {
     return [...this.list.values()].filter((r) => r.avatar.group.visible).map((r) => r.position);
   }
 
-  add(id: number, name: string, presence: Presence, now: number) {
+  add(id: number, name: string, presence: Presence, now: number, role?: Role) {
     this.remove(id);
+    if (role === 'watcher') this.watchers.add(id);
     const r = new RemotePlayer(this.g.scene, this.g.level, this.g.paintOps, ownerOf(id), this.g.tools.spray.others);
     r.presence = presence;
     this.names.set(id, name);
@@ -64,6 +67,7 @@ export class Remotes {
     this.list.delete(id);
     this.names.delete(id);
     this.unseen.delete(id);
+    this.watchers.delete(id);
   }
 
   clear() {
@@ -73,7 +77,7 @@ export class Remotes {
   /** The session's players and their stepladders, as its welcome has them, in place of any before. */
   fill(w: Extract<ToClient, { type: 'welcome' }>, now: number) {
     this.clear();
-    for (const p of w.players) this.add(p.id, p.name, p.state, now);
+    for (const p of w.players) this.add(p.id, p.name, p.state, now, p.role);
     for (const l of w.ladders) this.g.level.setRuntime(ownerOf(l.id), l.data);
   }
 
@@ -88,7 +92,7 @@ export class Remotes {
   handle(m: ToClient, surfaces: SurfaceIndex, arrived: number, onPlayer: (name: string, joined: boolean) => void) {
     if (m.type === 'state' || m.type === 'ops' || m.type === 'ladder') this.get(m.id)?.deliver(m, surfaces, arrived);
     else if (m.type === 'joined') {
-      this.add(m.id, m.name, 'here', arrived);
+      this.add(m.id, m.name, 'here', arrived, m.role);
       onPlayer(m.name, true);
     } else if (m.type === 'presence') this.presence(m.id, m.state);
     else if (m.type === 'left') {
@@ -105,8 +109,9 @@ export class Remotes {
     for (const [id, r] of this.list) {
       r.update(now, dt);
       if (!r.avatar.group.visible) continue;
-      const plate = (this.plates[shown++] ??= { id, name: '', note: null, feet: r.position });
+      const plate = (this.plates[shown++] ??= { id, name: '', admin: false, note: null, feet: r.position });
       plate.id = id;
+      plate.admin = this.watchers.has(id);
       plate.name = this.names.get(id) ?? '';
       plate.note = r.look !== 'here' ? r.look : null;
       plate.feet = r.position;
@@ -119,9 +124,14 @@ export class Remotes {
     this.nameplates.update(camera, this.plates);
   }
 
-  /** Who's in the session besides us, and their paint colors (the pause screen's live line). */
+  /** Who's in the session besides us, and their paint colors (the pause screen's live line): admins never count. */
   get roster() {
-    return [...this.list].map(([id, r]) => ({ name: this.names.get(id) ?? '', color: r.color }));
+    return [...this.list].filter(([id]) => !this.watchers.has(id)).map(([id, r]) => ({ name: this.names.get(id) ?? '', color: r.color }));
+  }
+
+  /** The players (admins not), dropped ones too, and where each was last shown: null if never (admin mode's list). */
+  get whereabouts() {
+    return [...this.list].filter(([id]) => !this.watchers.has(id)).map(([id, r]) => ({ id, name: this.names.get(id) ?? '', presence: r.presence, at: this.unseen.has(id) ? null : r.position.clone() }));
   }
 
   /** For the HUD: how far behind each is shown, and the jitter of their snapshots. */

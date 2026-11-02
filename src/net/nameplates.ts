@@ -21,10 +21,11 @@ const WORD: Record<Note, string> = {
   dropped: msg('hud.noteDropped'),
 };
 
-/** One player's tag, as the nameplates are told each frame: id, name, note and feet position. */
+/** One player's tag, as the nameplates are told each frame: id, name, note and feet position; `admin`: a seen admin's (server/admins.ts), its name in red. */
 export interface Plate {
   id: number;
   name: string;
+  admin: boolean;
   note: Note | null;
   feet: THREE.Vector3;
 }
@@ -66,6 +67,7 @@ export class Nameplates {
     for (const p of players) {
       const tag = this.tags.get(p.id) ?? this.add(p.id);
       if (tag.name.textContent !== p.name) tag.name.textContent = p.name;
+      tag.root.classList.toggle('admin', p.admin);
       if (tag.shows !== p.note) {
         tag.shows = p.note;
         tag.note.hidden = !p.note;

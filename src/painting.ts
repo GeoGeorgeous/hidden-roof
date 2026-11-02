@@ -4,7 +4,8 @@ import { painted, resampleRect } from './paint-resample';
 import type { FacePoint, Rect, SurfaceGeometry } from './surfaces';
 import { SeamIndex, texelToWorld, worldToTexel, type SeamFace } from './paint-seams';
 import { PaintGpu } from './paint-gpu';
-import { hasPaint, type Owned, type PaintPatch, type PaintSurface, type Rgb } from './paint-surface';
+import { faceKey, hasPaint, rectsOf, type Owned, type PaintPatch, type PaintSurface, type Rgb } from './paint-surface';
+import { PaintLocks } from './paint-locks';
 import { inRing, PaintRaster, type Band, type Box } from './paint-raster';
 import type { PaintOp, RollOp, StampOp } from './paint-ops';
 import { rounded } from './op-wire';
@@ -47,6 +48,8 @@ export class PaintSystem {
   epoch = 0;
   /** While set, every op this player makes (stamps, rolls, the runs they start) is appended (paint-ops.ts). */
   log: PaintOp[] | null = null;
+  /** Faces locked against paint (paint-locks.ts). */
+  readonly locks = new PaintLocks((key) => this.byKey.get(key)?.geo.rects);
   /** Ops painted so far (stamps, rolls and runs made here, stamps and rolls replayed): what saves and the network carry (F3). */
   opCount = 0;
   /** The paint clock moves on by the game's frame time: wet paint dries by it (paint-raster.ts). */
@@ -83,6 +86,7 @@ export class PaintSystem {
     this.bySurfaceMesh.set(mesh, s);
     this.byKey.set(key, s);
     this.seams.add(s, geo.rects);
+    this.locks.mark(key, geo.rects);
     mesh.userData.paintable = true;
     return s;
   }
@@ -229,10 +233,17 @@ export class PaintSystem {
     drip = 0,
     square = false,
   ) {
-    if (!this.live(s)) return;
+    if (!this.live(s) || this.stopped(s, at.rect)) return;
     // Logged before it paints: the runs it starts are logged after it.
     const op = this.record(rounded({ kind: 'stamp', key: s.key, rect: at.rect, u: at.u, v: at.v, radius, amount, color, softness, square }));
     this.stampOp(s, op, drip);
+  }
+
+  /** Face `rect` of `s` is locked: this player's paint on it is stopped, and not sent. */
+  private stopped(s: PaintSurface, rect: number) {
+    if (!s.geo.rects[rect]?.locked) return false;
+    this.locks.stopped();
+    return true;
   }
 
   /** An op made here (a stamp, a roll, a run it starts): counted, and logged as this player's. */
@@ -280,7 +291,7 @@ export class PaintSystem {
     color: Rgb,
     drip = 0,
   ) {
-    if (!this.live(s)) return;
+    if (!this.live(s) || this.stopped(s, at.rect)) return;
     const op = this.record(rounded({ kind: 'roll', key: s.key, rect: at.rect, u: at.u, v: at.v, axis: axis.toArray(), halfLength, halfWidth, edge, amount, color }));
     this.rollOp(s, op, drip);
   }
@@ -311,13 +322,14 @@ export class PaintSystem {
   }
 
   private band(s: PaintSurface, rect: Rect, cx: number, cy: number, axis: THREE.Vector3, b: Band) {
+    if (rect.locked) return;
     this.ensureTexture(s);
     this.raster.band(s, rect, cx, cy, axis, b);
   }
 
   private dot(s: PaintSurface, rect: Rect, cx: number, cy: number, radius: number, amount: number, color: Rgb | null, softness: number, drip: number, square: boolean) {
-    // Nothing to scrub off a surface that was never painted.
-    if (!color && !hasPaint(s)) return;
+    // Nothing to scrub off a surface that was never painted; nothing changes a locked face (a seam's spill onto one either).
+    if ((!color && !hasPaint(s)) || rect.locked) return;
     this.ensureTexture(s);
     if (!color) this.scrubbed.add(s);
     this.raster.dot(s, rect, cx, cy, radius, amount, color, softness, drip, square);
@@ -398,20 +410,8 @@ export class PaintSystem {
 
   /** Paint a single texel (paint runs), clipped to its face rect. */
   dab(s: PaintSurface, rect: Rect, x: number, y: number, amount: number, color: Rgb) {
-    if (x < rect.x || y < rect.y || x >= rect.x + rect.w || y >= rect.y + rect.h || !this.live(s)) return;
+    if (x < rect.x || y < rect.y || x >= rect.x + rect.w || y >= rect.y + rect.h || rect.locked || !this.live(s)) return;
     this.ensureTexture(s);
     this.raster.texel(s, x, y, amount, color);
   }
-}
-
-/** A surface's face rects as numbers (x, y, w, h each), to tell a rebuilt surface from the one a patch was made on. */
-function rectsOf(s: PaintSurface) {
-  return s.geo.rects.flatMap((r) => [r.x, r.y, r.w, r.h]);
-}
-
-/** Where a face is, to match it across rebuilds: a flat face by its corners (to the mm), a curved one by its place in its surface. */
-function faceKey(s: PaintSurface, r: Rect, i: number) {
-  const f = r.face;
-  if (!f) return `${s.key.slice(s.key.indexOf('#'))}:${i}`;
-  return [f.origin, f.uAxis, f.vAxis].flatMap((v) => [v.x, v.y, v.z]).map((n) => Math.round(n * 1000)).join(',');
 }

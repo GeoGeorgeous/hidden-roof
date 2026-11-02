@@ -1,9 +1,10 @@
 import { SERVER } from '../src/config';
-import { partFrames, partPieces } from '../src/net/protocol';
 import type { PaintSystem } from '../src/painting';
 import { joinBytes } from '../src/save/paint-file';
 import { streamPaint } from '../src/save/save-paint';
+import { encode, partFrames, partPieces } from '../src/net/protocol';
 import { liveMemory, log, mb, overMemory } from './log';
+import { deliver, type Player } from './player';
 import { Snapshot, waiting } from './snapshot';
 
 // A session's paint files (session.ts): the newest one kept for SERVER.snapshotKeep,
@@ -96,5 +97,27 @@ export class PaintFiles {
   /** The newest paint file is not this paint (it was wiped). */
   forget() {
     this.snap = null;
+  }
+
+  /** SAVE: the paint as a paint file, for `p`. One at a time each. */
+  async save(p: Player) {
+    if (p.saving) return;
+    const link = p.link;
+    const snap = this.get(() => p.link === link && !!link?.open, true);
+    const none = encode({ type: 'save', parts: 0 });
+    if (snap === 'busy') return deliver(p, none);
+    p.saving = true;
+    try {
+      const frames = await snap.frames;
+      if (!frames || p.link !== link) return;
+      deliver(p, encode({ type: 'save', parts: frames.length }));
+      for (const f of frames) deliver(p, f);
+      snap.served++;
+    } catch {
+      // Told as when there's no memory for one, so the game doesn't wait for it.
+      deliver(p, none);
+    } finally {
+      p.saving = false;
+    }
   }
 }

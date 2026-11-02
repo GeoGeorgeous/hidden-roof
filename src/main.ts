@@ -54,6 +54,7 @@ import { staticTextureBytes } from './render/texture-bytes';
 import type { DevTools } from './dev/devtools';
 import { session } from './session';
 import { multiplayerMenu } from './net/net-menu';
+import { adminLink } from './net/admin-link';
 import { seedPaintRandom } from './lcg';
 import { fanLevel, metalDrops } from './emitter-sounds';
 import { guarded } from './frame-guard';
@@ -166,8 +167,9 @@ Promise.all([fetchLevel(opened.name), jpFontReady()])
     await putLevelPaint(paint, drips, opened.name, data);
     loaded = true;
     beacon.loaded(settings.chosen());
-    // A reload in a session goes back into it (multiplayer.ts), with the session's paint.
-    net.resume();
+    // CCTV's Join as admin (net/admin-link.ts) goes into its session; else a reload in a session goes back into it (multiplayer.ts), with the session's paint.
+    if (adminLink) net.watch(adminLink.code, adminLink.pass);
+    else net.resume();
   })
   .catch((e) => {
     console.error(e);
@@ -329,6 +331,8 @@ function step(time: number) {
     if (play.panel) pickups.update(dt, player.position, inventory);
   }
   net.update(dt);
+  // Paint stopped by a locked face: said once while the toast shows.
+  if (paint.locks.takeHit() && !notify.shown().some((n) => n.lines[0] === msg('toast.locked'))) notify.toast(msg('toast.locked'));
   const tool = building ? null : inventory.tool;
   hud.setCrosshair(tools.crosshair(tool));
   const anchor = tools.labelAnchor(tagPos);

@@ -42,12 +42,15 @@ interface Entry {
   protocol: number;
   table: string;
   levelHash: string;
+  /** Its faces locked against paint (locks.ts), by surface key and face; none when missing. */
+  locks?: [string, number][];
 }
 
 const isEntry = (e: unknown): e is Entry => {
   const o = (typeof e === 'object' && e ? e : {}) as Record<string, unknown>;
-  return isCode(o.code) && (o.kind === 'public' || o.kind === 'private') && isSessionName(o.name) && isToolSet(o.tools) && typeof o.level === 'string' && Number.isFinite(o.detail) && typeof o.protocol === 'number' && typeof o.table === 'string' && typeof o.levelHash === 'string';
+  return isCode(o.code) && (o.kind === 'public' || o.kind === 'private') && isSessionName(o.name) && isToolSet(o.tools) && typeof o.level === 'string' && Number.isFinite(o.detail) && typeof o.protocol === 'number' && typeof o.table === 'string' && typeof o.levelHash === 'string' && (o.locks === undefined || isLocks(o.locks));
 };
+const isLocks = (x: unknown) => Array.isArray(x) && x.every((l) => Array.isArray(l) && l.length === 2 && typeof l[0] === 'string' && Number.isInteger(l[1]) && l[1] >= 0);
 const hash = (level: LevelData) => createHash('sha256').update(JSON.stringify(level)).digest('hex').slice(0, 16);
 
 export class Kept {
@@ -114,6 +117,7 @@ export class Kept {
         throw new Refused((e as Error).message);
       }
     this.lobby.list(session);
+    this.keepLocks(session);
     event('session-made', session, null, { kind: setup.kind, limit: setup.limit, stays: setup.stays, ...(from && { upload: from.id }) });
     await this.record();
     return session;
@@ -188,11 +192,14 @@ export class Kept {
         await this.disk?.forget(e.code);
         continue;
       }
+      this.keepLocks(session);
       for (const name of (await this.disk!.list(e.code)).filter((n) => !isWiped(n)))
         try {
           await session.load(await fs.readFile(this.disk!.file(name)), false);
           session.stats = (await this.disk!.stats(name)) ?? session.stats;
           log(e.code, `paint from ${name}: ${session.memory.now.toFixed(0)} MB`);
+          // The locks go with the paint: none on a session that lost it.
+          session.locks.restore(e.locks ?? []);
           break;
         } catch (err) {
           log(e.code, `paint file ${name} refused: ${(err as Error).message}`);
@@ -286,6 +293,11 @@ export class Kept {
     });
   }
 
+  /** A public session's locks are written down as they change. */
+  private keepLocks(s: Session) {
+    if (s.setup.kind === 'public') s.locks.onChange = () => void this.record();
+  }
+
   private public() {
     return [...this.lobby.sessions.values()].filter((s) => s.setup.admin && s.setup.kind === 'public');
   }
@@ -306,7 +318,7 @@ export class Kept {
   private record() {
     if (!this.dir) return;
     return this.serial('sessions.json', async () => {
-      const list: Entry[] = this.public().map(({ code, setup: { kind, name, limit, tools }, levelName, detail, table, level }) => ({ code, kind, name, limit, tools, level: levelName, detail, protocol: PROTOCOL, table, levelHash: hash(level) }));
+      const list: Entry[] = this.public().map(({ code, setup: { kind, name, limit, tools }, levelName, detail, table, level, locks }) => ({ code, kind, name, limit, tools, level: levelName, detail, protocol: PROTOCOL, table, levelHash: hash(level), ...(locks.keys.length && { locks: locks.keys }) }));
       await writeAtomic(this.file('sessions.json'), JSON.stringify([...list, ...this.unmade], null, 1));
     });
   }

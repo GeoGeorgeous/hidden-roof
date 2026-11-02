@@ -44,7 +44,8 @@ in it may count them twice, and `seenDays` counts from the month's start. The Hi
   sessions, players,                       // live now
   peak: { players, at } | null,            // the most players at once, ever
   limits: { public: 40, private: { min: 2, max: 4 }, name: 32,
-            ban: { days: [1, 7, 14, 30, 182, null], reasonBytes: 100, reasons: [text] } },   // null: for good
+            ban: { days: [1, 7, 14, 30, 182, null], reasonBytes: 100, reasons: [text] },   // null: for good
+            adminPass: { seconds: 60 } },          // POST /sessions/CODE/admin-pass is there; a pass lives this long
   settings: { slowPing, saveEvery, saveAges: [s], eventDays, eventDayBytes, historyDays, saltEvery: 'month',
               pageIdle, playerIdle, lengthMinutesMost, fpsMost, secondsMost, pingMost },
   sources: { status, beacon, history, traffic, geoip } }   // each { every: s, at: ISO | null }
@@ -303,6 +304,11 @@ none); `upload`: an id from `POST /uploads`, made on its level at its detail wit
 too must be its own; an unknown or expired one is 404).
 `POST /sessions/CODE/wipe`, `POST /sessions/CODE/close`, `POST /sessions/CODE/players/ID/kick` → `{ ok: true }`.
 `POST /sessions/CODE/restore` `{ save: MS } | { upload: ID }` → `{ undo: MS }`.
+`POST /sessions/CODE/admin-pass` (no body) → `{ pass, expires }`: a one-time pass into that session for Join as admin
+(`server/admins.ts`), good once, for `limits.adminPass.seconds` (`expires` ISO), in the server's memory only. Open
+`<game address>/#join=CODE&admin=PASS`: both after `#`, so no access log or Referer has them, and the game wipes them
+from the address bar. Admins are in no listing, status, count or event; a wipe, a restore or a close ends their admin
+mode (closed with `closed`), and getting back in takes a new pass.
 `GET /sessions/CODE/paint`: its paint as a paint file made now. `GET /sessions/CODE/saves/MS`: a kept save.
 `POST /uploads` (a paint file as the body) → `{ upload, level, detail, bytes, expires }`.
 

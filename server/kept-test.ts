@@ -170,7 +170,7 @@ try {
   // What the admin page reads: the version, the session's paint (the stamp's color as the game's), the player, the machine.
   const top = await admin('GET', '/');
   assert.deepEqual([top.body.api, typeof top.body.version], [4, 'string']);
-  assert.deepEqual(top.body.limits, { public: SERVER.players.public, private: { min: SERVER.privateMin, max: SERVER.players.private }, name: SESSION_NAME_MAX, ban: { days: SERVER.banDays, reasonBytes: SERVER.banReasonBytes, reasons: SERVER.banReasons } });
+  assert.deepEqual(top.body.limits, { public: SERVER.players.public, private: { min: SERVER.privateMin, max: SERVER.players.private }, name: SESSION_NAME_MAX, ban: { days: SERVER.banDays, reasonBytes: SERVER.banReasonBytes, reasons: SERVER.banReasons }, adminPass: { seconds: SERVER.adminPassLife } });
   assert.deepEqual(top.body.settings, { slowPing: SERVER.slowPing, saveEvery: SERVER.keepEvery, saveAges: SERVER.keepAges.filter(Boolean), eventDays: SERVER.eventDays, eventDayBytes: SERVER.eventDayBytes, historyDays: SERVER.historyDays, saltEvery: 'month', pageIdle: NET.beaconIdle, playerIdle: NET.idleAfter, lengthMinutesMost: SERVER.lengthMinutesMost, fpsMost: SERVER.beaconBinFps, secondsMost: SERVER.beaconBinSeconds, pingMost: SERVER.beaconBinPing });
   assert.deepEqual(['slowPing', 'saveEvery', 'saveAges'].filter((k) => k in top.body), [], 'they are in settings now');
   const live = (await admin('GET', '/sessions')).body[0];
@@ -205,6 +205,16 @@ try {
   const box = (await admin('GET', '/machine')).body;
   assert.ok(box.cpu.vcpus > 0 && box.disk.total > 0 && box.memory.limit > 0, 'the machine');
   assert.ok(box.downBits >= 0 && box.today.upBytes >= 0 && box.today.downBytes >= 0, 'the bits each way, and the bytes today');
+  // An admin's lock is kept with the session (sessions.json), and its welcome brings it after the restart.
+  const locked: [number, number] = [surfaces.indexOf(faces[0].key)!, 0];
+  const watcher = new Game();
+  if (watcher.ws.readyState !== Ws.OPEN) await new Promise((w) => watcher.ws.once('open', w));
+  watcher.send({ type: 'join', protocol: PROTOCOL, name: 'Admin', code, pass: (await admin('POST', `/sessions/${code}/admin-pass`)).body.pass });
+  await watcher.next('welcome');
+  watcher.send({ type: 'lock', surface: locked[0], rect: locked[1], on: true });
+  await a.next('lock');
+  await new Promise((w) => setTimeout(w, 200));
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(dir, 'sessions.json'), 'utf8'))[0].locks, [[faces[0].key, 0]]);
   await server.stop();
   assert.equal(saves().length, 1);
   server = await launch();
@@ -212,6 +222,7 @@ try {
   const b = new Game();
   const wb = await b.join(code, 'B');
   assert.ok(await painted(wb.file!), 'the paint is back');
+  assert.deepEqual(wb.locks, [locked], 'the lock is back');
   assert.equal((await admin('GET', '/sessions')).body[0].saves.length, 1, 'its save, listed');
   // Its stats came back with the paint, from the file beside the save: A's stamp, the people before (each a new join), B now.
   assert.equal(fs.readdirSync(dir).filter((n) => /^\w+-\d+\.json$/.test(n) && n.startsWith(code)).length, 1, 'stats beside the save');

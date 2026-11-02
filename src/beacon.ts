@@ -1,4 +1,5 @@
 import { NET, SERVER } from './config';
+import { adminPage } from './net/admin-link';
 import { tenths, type NetReport } from './net/net-minute';
 import type { NetStatus } from './net/status';
 import { deviceId, playDays } from './stored';
@@ -198,6 +199,8 @@ export class Beacon {
   }
 
   private post(body: object) {
+    // An admin's page (net/admin-link.ts) is not a player's.
+    if (adminPage) return;
     try {
       navigator.sendBeacon('/ws?e', JSON.stringify({ page: this.page, ...body }));
     } catch {
