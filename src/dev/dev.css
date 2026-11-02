@@ -406,7 +406,7 @@ body.paused .build-help {
 .debug-panel label > span:first-child {
   color: var(--dim);
 }
-/* When a change shows, if not at once (rows.ts): LET GO, BAKE, BUILD, PAUSED. */
+/* When a change shows, if not at once (rows.ts): LET GO, BAKE, BUILD, RESUME, BAKE OFF. */
 .debug-panel label .when {
   margin-left: 5px;
   font-style: normal;

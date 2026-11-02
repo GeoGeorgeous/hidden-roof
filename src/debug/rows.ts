@@ -23,6 +23,7 @@ export const WHEN: Record<When, [tag: string, note: string]> = {
   bake: ['BAKE', 'With baked light on, shows once the lamp light rebakes (a moment).'],
   build: ['BUILD', 'Shows only in build mode (B).'],
   resume: ['RESUME', 'Applies the next time the game takes the mouse: close F3 and click to resume.'],
+  unbaked: ['BAKE OFF', 'Only with baked light off (BAKED LIGHT → on): with it on, only moving lights (CCTV) are real.'],
 };
 
 /** When a row's change shows, if not at once. */
