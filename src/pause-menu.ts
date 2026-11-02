@@ -76,13 +76,12 @@ export class PauseMenu {
   private joining: string | null = null;
   /** The game was started (past the title screen). */
   started = false;
-  /** The full pause sheet is up (paused without F3, or F3 previewing it). */
-  private sheetUp = false;
   private debugOpen = false;
   /** A message shows in the status line until this time (notice). */
   private noticeUntil = 0;
-  /** The full sheet shows until this time (previewSheet). */
+  /** The full sheet shows until this time (previewSheet); `previewPage`: a page's sheet. */
   private previewUntil = 0;
+  private previewPage = false;
   /** The PAUSE_MENU look last applied (rewritten only on change). */
   private sheet = '';
 
@@ -154,7 +153,7 @@ export class PauseMenu {
 
   /** The title screen (before START) shows a fixed view of the city (PAUSE_MENU.view); so do the queue and the loading screen; ESC later shows where you are. */
   get cityView() {
-    return PAUSE_MENU.view && this.sheetUp && (!this.started || this.page === 'loading' || this.page === 'queue');
+    return PAUSE_MENU.view && !this.el.hidden && (!this.started || this.page === 'loading' || this.page === 'queue');
   }
 
   /** Back to the title screen (START, the city view): a session that ended took the level and paint the player had with it. */
@@ -180,9 +179,10 @@ export class PauseMenu {
     if (!this.page || !this.pages.get(this.page)?.back?.()) this.openPage(null);
   }
 
-  /** Show the full pause sheet (as without F3) for a moment: F3 is tuning it (PAUSE_MENU). */
-  previewSheet() {
+  /** Show the full pause sheet (as without F3) for a moment, or with `page` the sheet under a page: F3 is tuning it (PAUSE_MENU). */
+  previewSheet(page = false) {
     this.previewUntil = performance.now() + PREVIEW_SECONDS * 1000;
+    this.previewPage = page;
     this.syncCompact();
   }
 
@@ -264,13 +264,15 @@ export class PauseMenu {
     }
   }
 
-  /** With F3 open the sheet is compact and lighter, unless it's being previewed. Paused without F3: no in-game UI. */
+  /** With F3 open the sheet is compact and lighter (or gone: PAUSE_MENU.debugMenu), unless it's being previewed. Paused without F3: no in-game UI. */
   private syncCompact() {
-    const compact = this.debugOpen && performance.now() >= this.previewUntil;
+    const previewing = performance.now() < this.previewUntil;
+    const compact = this.debugOpen && !previewing;
     this.el.classList.toggle('compact', compact);
+    this.el.classList.toggle('bare', compact && !PAUSE_MENU.debugMenu);
+    this.el.classList.toggle('preview-page', previewing && this.previewPage);
     // The full sheet hides the in-game UI (style.css); with F3 it stays, to tune it.
-    this.sheetUp = !this.el.hidden && !compact;
-    document.body.classList.toggle('paused', this.sheetUp);
+    document.body.classList.toggle('paused', !this.el.hidden && !compact);
   }
 
   private sync() {
@@ -293,15 +295,19 @@ export class PauseMenu {
   /** The sheet's color and opacities, and the menu's size, from PAUSE_MENU. */
   private syncSheet() {
     const m = PAUSE_MENU;
-    const sheet = `${m.color}|${m.opacity}|${m.pageOpacity}|${m.debugOpacity}|${m.scale}|${m.escHoldMs}`;
+    const sheet = `${m.color}|${m.opacity}|${m.pageOpacity}|${m.debugOpacity}|${m.shade}|${m.debugShade}|${m.debugMenu}|${m.scale}|${m.escHoldMs}`;
     if (sheet === this.sheet) return;
     this.sheet = sheet;
-    const mix = (a: number) => `color-mix(in srgb, ${m.color} ${Math.round(Math.min(1, Math.max(0, a)) * 100)}%, transparent)`;
+    const unit = (a: number) => Math.min(1, Math.max(0, a));
+    const mix = (a: number) => `color-mix(in srgb, ${m.color} ${Math.round(unit(a) * 100)}%, transparent)`;
     this.el.style.setProperty('--sheet', mix(m.opacity));
     this.el.style.setProperty('--sheet-page', mix(m.pageOpacity));
     this.el.style.setProperty('--sheet-debug', mix(m.debugOpacity));
+    this.el.style.setProperty('--shade', String(unit(m.shade)));
+    this.el.style.setProperty('--shade-debug', String(unit(m.debugShade)));
     this.el.style.setProperty('--menu-scale', String(m.scale));
     this.el.style.setProperty('--hold-ms', `${m.escHoldMs}ms`);
+    this.syncCompact();
   }
 }
 

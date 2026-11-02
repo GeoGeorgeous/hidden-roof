@@ -323,6 +323,11 @@ export const PAUSE_MENU = {
   opacity: 0.35,
   pageOpacity: 0.72,
   debugOpacity: 0,
+  /** How dark the gradient at the bottom, under the menu, gets (0 none, 1 as designed): on the pause screen and its pages, and while the F3 panel is open. */
+  shade: 1,
+  debugShade: 1,
+  /** The menu shows with the F3 panel open (compact); off, the panel has the game to itself. */
+  debugMenu: true,
   /** Size of everything on the sheet (1 = as styled in style.css). */
   scale: 1,
   /** How long Esc is held before the browser leaves fullscreen with the keyboard locked (Chromium's own hold, measured in Chromium 153): the pause screen's rings fill over it, and holding EXIT FULLSCREEN takes as long. */
