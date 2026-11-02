@@ -123,7 +123,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## Servers and deploy
 
-1. [TASK-201]: Research itch.io Publishing Requirements, AI Policies, and Download Restrictions @1.7.1
+1. [TASK-201]: The game on itch.io and CrazyGames, played from roof.hidden.haus in their iframe: itch as an HTML upload whose index.html is that iframe (a link-only page is never indexed), CrazyGames' Basic Launch from our own domain (no SDK); the CSP's `frame-ancestors` (now `'none'`, in `vite.config.ts` and Caddy on the host) opened to itch's and CrazyGames' domains; pointer lock, fullscreen and the window size checked inside both; the AI disclosure answered (docs/ideas/web-portals.md) @1.7.1
 
 ## CCTV
 
