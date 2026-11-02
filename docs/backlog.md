@@ -47,10 +47,10 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## Multiplayer
 
-1. TASK [BL-076]: Run the next public playtest and verify that all bugs from the previous playtest have been fixed (docs/ideas/weak-links.md) @1.6.2
+1. TASK [BL-076]: Run the next public playtest and verify that all bugs from the previous playtest have been fixed (docs/ideas/weak-links.md) @1.7.2
 2. IDEA [?BL-071]: Multiplayer View-Only sessions: past sessions are opened for viewing only (gallary)
-3. [IDEA-288]: Admin mode: who painted what, and erasing one player's paint with what it covered back, within the last ~15 minutes (the server's ring of op batches); after the Painting Rework cuts ops/s (TASK-231) (docs/ideas/admin-mode.md) @1.7.1
-4. [IDEA-289]: A 15-minute timelapse of a wall's painting, from IDEA-288's ring of op batches; only if it comes nearly free (docs/ideas/admin-mode.md) @1.7.1
+3. [IDEA-288]: Admin mode: who painted what, and erasing one player's paint with what it covered back, within the last ~15 minutes (the server's ring of op batches); after the Painting Rework cuts ops/s (TASK-231) (docs/ideas/admin-mode.md) @1.9.0
+4. [IDEA-289]: A 15-minute timelapse of a wall's painting, from IDEA-288's ring of op batches; only if it comes nearly free (docs/ideas/admin-mode.md)
 
 ## Painting
 
@@ -68,7 +68,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## Input
 
-1. BUGS [BL-010]: Rare huge mouse jumps snap the camera in Chrome on Windows; the fix is the owner's choice (docs/ideas/mouse-spikes.md) @1.6.2
+1. BUGS [BL-010]: Rare huge mouse jumps snap the camera in Chrome on Windows; the fix is the owner's choice (docs/ideas/mouse-spikes.md) @1.7.1
 
 ## Performance
 
@@ -118,7 +118,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## Audio
 
 1. IDEA [BL-063]: License-free background music: drum and bass, jungle @1.8.0
-2. IDEA [BL-064]: A sound editor for the synthesized sounds (dev mode) @1.8.0
+2. IDEA [BL-064]: A sound editor for the synthesized sounds (dev mode)
 3. IDEA [BL-148]: Other players' sounds: spray hiss, marker, footsteps, landing as positional voices @1.8.0
 
 ## Tests and tooling
@@ -129,19 +129,18 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## Servers and deploy
 
-1. [TASK-201]: Research itch.io Publishing Requirements, AI Policies, and Download Restrictions @1.6.3
+1. [TASK-201]: Research itch.io Publishing Requirements, AI Policies, and Download Restrictions @1.7.1
 
 ## CCTV
 
-The admin page (the cctv repo) and the server side it reads (server/admin/). 
+The admin page (the cctv repo) and the server side it reads (server/admin/).
 The API and why it is so: docs/admin-api.md.
-
 
 ## Web and promotion
 
-1. TASK [BL-067]: Posts on Reddit with technical decription @1.6.3
-2. [TASK-169]: Creating and posting instagram reels @1.7.0
-3. IDEA [BL-065]: A minimal tool to record gameplay as GIFs and short videos @1.6.2
+1. TASK [BL-067]: Posts on Reddit with technical decription @1.7.2
+2. [TASK-169]: Creating and posting instagram reels @1.7.1
+3. IDEA [BL-065]: A minimal tool to record gameplay as GIFs and short videos @1.7.1
 
 ## Auth
 
@@ -151,7 +150,7 @@ The API and why it is so: docs/admin-api.md.
 
 ## Codebase
 
-1. [RFCT-202]: src/ root files into folders (paint, menu, input, boot, render), style.css split next to its code; paint after the Painting Rework (docs/ideas/src-folders.md) @1.8.0
+1. [RFCT-202]: src/ root files into folders (paint, menu, input, boot, render), style.css split next to its code; paint after the Painting Rework (docs/ideas/src-folders.md) @1.9.0
 
 ## Done
 
