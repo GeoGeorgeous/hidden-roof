@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 300
+The one list of what's left. Counter for new ids: next: 301
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -171,6 +171,7 @@ Shipped since the last release; the release commit empties this list.
 19. [IDEA-195]: Admin mode in a session (server/admins.ts, src/admin): in from cctv with a one-time pass (POST /sessions/CODE/admin-pass, 60 s, once), outside the players (no seat, line, stats, events or listing; one server log line per come and go), past bans and the limits per address; unseen with tools off, or seen (H) as a player named Admin in red, numbered when two are; fly (J), every color and cap and the session's tools; lock or unlock the face pointed at (L: kept with a public session on disk, in every welcome, a toast for players who paint it), the locked faces' outlines (O), the players page (G) to go where one was last seen; any closed link ends it (no reconnect, no tab session, no beacon); the nickname Admin is reserved; PROTOCOL 10 (wipes public paint at deploy); checked by server tests, on a real server when dev reaches next
 20. [CCTV-290]: "Join as admin" on a session's page, shown when GET / has limits.adminPass: a fresh pass each click, the tab opened on the click (cctv PR #12, merged); checked on cctv's fake server, on the real one when IDEA-195 reaches next
 21. [BUGS-298]: traffic-test's "one salt for both days" failed on the 1st and 2nd of each month (its two days straddle a month, and the salt is a month's): it expects a salt a month then
+22. [BUGS-300]: F3 → UI → Pause menu after the ESC menu's redesign: the bottom gradient now has rows (shade, shade: with F3; it was fixed in CSS, so opacity changed only the top), MENU: WITH F3 off hides the menu while F3 is open, opacity: pages previews the pages' sheet (it showed the pause screen's), the title view stays behind F3 (it showed only in 1.5 s flashes)
 
 ## Discarder
 

@@ -1,7 +1,7 @@
 // Game tests: The debug panel, perf lines, Rain, and the checks that open pages of their own (signs, a throwing frame, the probe).
 import { page, check, openPage, fail } from './harness.mjs';
 
-await check('debug panel: hooks run from the rows: a Models slider rebuilds the model, a pause menu row shows its sheet; a section RESET asks SURE? first', async () => {
+await check('debug panel: hooks run from the rows: a Models slider rebuilds the model, a pause menu row shows its sheet (the pages\' sheet for theirs), MENU: WITH F3 off hides the menu; a section RESET asks SURE? first', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
     const frame = () => new Promise((d) => requestAnimationFrame(() => requestAnimationFrame(d)));
@@ -35,17 +35,29 @@ await check('debug panel: hooks run from the rows: a Models slider rebuilds the 
     await frame();
     const restored = length() === before;
     tab('UI');
+    const overlay = document.querySelector('.overlay');
+    const menuRow = row('menu: with F3');
+    menuRow.click();
+    await frame();
+    const bare = overlay.classList.contains('bare') && getComputedStyle(overlay).visibility === 'hidden';
+    menuRow.click();
+    await frame();
+    const menuBack = !overlay.classList.contains('bare');
+    const pages = row('opacity: pages');
+    pages.value = '0.3';
+    pages.dispatchEvent(new Event('input'));
+    const pagePreview = overlay.classList.contains('preview-page') && !overlay.classList.contains('compact');
     const pause = row('opacity');
     pause.value = '0.3';
     pause.dispatchEvent(new Event('input'));
-    const compact = document.querySelector('.overlay').classList.contains('compact');
+    const compact = overlay.classList.contains('compact') || overlay.classList.contains('preview-page');
     const pauseReset = pause.closest('section').querySelector('.head .reset');
     pauseReset.click();
     pauseReset.click();
     if (!open) (g.debug.toggle(), g.play.setPanel(false));
-    return { before, after, asked, restored, previewed: !compact };
+    return { before, after, asked, restored, bare, menuBack, pagePreview, previewed: !compact };
   });
-  return r.before === 0.13 && r.after === 0.2 && r.asked && r.restored && r.previewed ? null : JSON.stringify(r);
+  return r.before === 0.13 && r.after === 0.2 && r.asked && r.restored && r.bare && r.menuBack && r.pagePreview && r.previewed ? null : JSON.stringify(r);
 });
 
 await check('debug panel: Items → UNLOCK ALL gives every tool, color and cap, and their pickups go', async () => {

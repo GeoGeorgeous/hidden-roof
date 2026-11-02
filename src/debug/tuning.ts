@@ -100,8 +100,8 @@ export interface Hooks {
   rebuildLightProps(): void;
   /** Redraw the HUD vignette (VIGNETTE changed). */
   syncVignette(): void;
-  /** Show the full pause sheet behind the panel for a moment (F3 → UI → Pause menu). */
-  previewPause(): void;
+  /** Show the full pause sheet behind the panel for a moment, or with `page` the sheet under a page (F3 → UI → Pause menu). */
+  previewPause(page?: boolean): void;
   /** Push ATMOS colors / moon direction into fog, sky and lights. */
   syncAtmosphere(): void;
   /** Re-apply DAYLIGHT if build mode is showing it. */

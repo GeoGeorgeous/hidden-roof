@@ -24,7 +24,7 @@ await check('session: B and F3 open build mode and the panel in single player; a
   return r.solo === 'build panel' && r.entered === '- -' && r.inSession === '- -' ? null : JSON.stringify(r);
 });
 
-await check('title view: before START the title screen shows the city, without hands; once started, ESC shows where you are, in build mode too', async () => {
+await check('title view: before START the title screen shows the city, without hands, with the F3 panel open too; once started, ESC shows where you are, in build mode too', async () => {
   const fresh = await openPage();
   const r = await fresh.evaluate(async () => {
     const g = window.game;
@@ -34,6 +34,10 @@ await check('title view: before START the title screen shows the city, without h
     const state = () => `${g.hud.cityView ? 'city' : 'you'} ${g.viewScene.visible ? 'hands' : '-'}`;
     await frame();
     const title = state();
+    g.play.setPanel(true);
+    await frame();
+    const titlePanel = state();
+    g.play.setPanel(false);
     await lock(true);
     const playing = state();
     await lock(false);
@@ -42,10 +46,10 @@ await check('title view: before START the title screen shows the city, without h
     await press('KeyB');
     await lock(false);
     const buildPaused = state();
-    return { title, playing, paused, buildPaused };
+    return { title, titlePanel, playing, paused, buildPaused };
   });
   await fresh.close();
-  return r.title === 'city -' && r.playing === 'you hands' && r.paused === 'you hands' && r.buildPaused === 'you hands' ? null : JSON.stringify(r);
+  return r.title === 'city -' && r.titlePanel === 'city -' && r.playing === 'you hands' && r.paused === 'you hands' && r.buildPaused === 'you hands' ? null : JSON.stringify(r);
 });
 
 await check('session: paused, the world goes on (you fall, paint runs run) and keys don\'t move you; paused in single player, it stops', async () => {
