@@ -13,9 +13,9 @@ type Obj = Record<string, unknown>;
 /**
  * When a value row's change shows, if not at once while dragging (rows.ts tags
  * the row): `release` when the slider is let go, `bake` once the lamp light
- * rebakes (a moment), `build` only in build mode.
+ * rebakes (a moment), `build` only in build mode, `unbaked` only with baked light off.
  */
-export type When = 'release' | 'bake' | 'build' | 'resume';
+export type When = 'release' | 'bake' | 'build' | 'resume' | 'unbaked';
 
 export type Item =
   /** `onRelease`: runs when the slider is let go (and on reset), for work too slow for every tick. */

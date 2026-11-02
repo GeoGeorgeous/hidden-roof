@@ -38,7 +38,7 @@ function lightItems(h: Hooks): Item[] {
     return [
       { kind: 'heading', label: LIGHT_LABELS[k] } as Item,
       ...(cctv ? light : when('bake', light)),
-      ...(cctv ? [] : [r('glow size', ['LIGHTS', k, 'glow'], 0, 3, 0.05, fx), r('beam length', ['LIGHTS', k, 'beam'], 0, 20, 0.5, fx)]),
+      ...(cctv ? [] : [r('glow size', ['LIGHTS', k, 'glow'], 0, 3, 0.01, fx), r('beam length', ['LIGHTS', k, 'beam'], 0, 20, 0.1, fx)]),
     ];
   });
 }
@@ -162,8 +162,7 @@ export function renderSections(h: Hooks): Section[] {
         r('bake time', ['LIGHTMAP', 'budgetMs'], 0.5, 16, 0.5),
         r('ladder delay', ['LIGHTMAP', 'ladderRest'], 0, 3, 0.1),
         { kind: 'heading', label: 'REAL LIGHTS' },
-        t('spot shadows', ['ATMOS', 'spotShadows']),
-        r('light budget', ['ATMOS', 'lightBudget'], 0, 8, 1),
+        ...when('unbaked', [t('spot shadows', ['ATMOS', 'spotShadows']), r('light budget', ['ATMOS', 'lightBudget'], 0, 8, 1)]),
         ...lightItems(h),
       ],
     },
@@ -178,7 +177,7 @@ export function renderSections(h: Hooks): Section[] {
         r('steps', ['VOLUMETRICS', 'steps'], 4, 32, 1),
         r('reach', ['VOLUMETRICS', 'maxDistance'], 5, 120, 1),
         r('density', ['VOLUMETRICS', 'density'], 0, 0.2, 0.001),
-        r('moon: strength', ['VOLUMETRICS', 'moon'], 0, 3, 0.05),
+        r('moon: strength', ['VOLUMETRICS', 'moon'], 0, 3, 0.01),
         r('lamps: strength', ['VOLUMETRICS', 'lights'], 0, 5, 0.05),
         r('forward scatter', ['VOLUMETRICS', 'anisotropy'], 0, 0.9, 0.01),
         { kind: 'heading', label: 'VIGNETTE' },
@@ -230,7 +229,7 @@ export function uiSections(h: Hooks): Section[] {
         r('shade: with F3', ['PAUSE_MENU', 'debugShade'], 0, 1, 0.05),
         // Seen only without F3: changing them shows that sheet behind the panel for a moment.
         r('opacity', ['PAUSE_MENU', 'opacity'], 0, 1, 0.05, () => h.previewPause()),
-        r('opacity: pages', ['PAUSE_MENU', 'pageOpacity'], 0, 1, 0.05, () => h.previewPause(true)),
+        r('opacity: pages', ['PAUSE_MENU', 'pageOpacity'], 0, 1, 0.01, () => h.previewPause(true)),
         r('shade', ['PAUSE_MENU', 'shade'], 0, 1, 0.05, () => h.previewPause()),
         r('size', ['PAUSE_MENU', 'scale'], 0.8, 2, 0.05, () => h.previewPause()),
         t('view', ['PAUSE_MENU', 'view']),

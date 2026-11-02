@@ -3,7 +3,6 @@
 
 export const WORLD_HINTS: Record<string, string> = {
   // Rendering
-  'RENDER.pixelScale': 'Render resolution divisor: 2 = half resolution, upscaled with chunky pixels. Higher = faster.',
   'ATMOS.rain': 'Falling rain (also its sound, lightning and drops on metal).',
   'ATMOS.rainDensity': 'Fraction of the maximum number of raindrops.',
   'ATMOS.rainSpeed': 'Fall speed of the rain (m/s).',
@@ -16,11 +15,11 @@ export const WORLD_HINTS: Record<string, string> = {
   'ATMOS.cloudFade': 'Height over which things fade fully into the clouds (m).',
   'ATMOS.wetness': 'Wet look on up-facing surfaces: darker with highlights.',
   'ATMOS.shadows': 'Moonlight shadows around the player.',
-  'ATMOS.spotShadows': 'Only with baked light off: the nearest lamps of kinds that cast shadows get real shadow maps (2 slots).',
+  'ATMOS.spotShadows': 'The nearest lamps of kinds that cast shadows get real shadow maps (2 slots).',
   'ATMOS.shadowDetail': 'Moon shadow map size (px per side). Higher = sharper moon shadows over the same range; costs GPU memory and time.',
   'ATMOS.shadowRange': 'Size of the moon shadow area around the player (m). Bigger = blurrier shadows.',
   'ATMOS.practical': 'Brightness of every light prop: multiplies each kind\'s intensity.',
-  'ATMOS.lightBudget': 'Only with baked light off: real lights handed to the nearest light props. Others only glow.',
+  'ATMOS.lightBudget': 'Real lights handed to the nearest light props. Others only glow.',
   'ATMOS.emissiveBoost': 'Brightness of glowing surfaces: lamp lenses, neon tubes.',
   'ATMOS.moonHeight': 'How high the moon (the sun in daylight) is above the horizon (degrees): lower = longer shadows.',
   'ATMOS.moonHeading': 'Which way the moon (the sun in daylight) is, round the level (degrees, 0 = +z, 90 = +x): turns the shadows.',
@@ -98,7 +97,6 @@ export const WORLD_HINTS: Record<string, string> = {
   'NOTIFY.padX': 'Space left and right of the text inside a hint or toast box (px).',
   'NOTIFY.padY': 'Space above and below the text inside a hint or toast box (px).',
   'NOTIFY.boxOpacity': 'How solid every message box is: hints, toasts, statuses and the dialog. Overlapping hint lines never darken.',
-  'NOTIFY.shade': 'The dark gradient at the bottom behind a hint: auto shows it only while a hint shows, always and never override that.',
   'NOTIFY.shadeHeight': 'How tall the gradient behind a hint is (px).',
   'NOTIFY.shadeStrength': 'How dark the gradient is at the bottom edge: 0 none, 1 black.',
   'NOTIFY.toastGap': 'The gap between the hint\'s top line and the toasts above it, and between toasts (px).',

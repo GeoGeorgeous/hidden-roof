@@ -9,8 +9,8 @@ function holdItems(): Item[] {
   return (Object.keys(HOLD) as (keyof typeof HOLD)[]).flatMap((tool) => [
     { kind: 'heading', label: tool.toUpperCase() } as Item,
     r('distance', ['HOLD', tool, 'distance'], 0.15, 1.2, 0.01),
-    r('right', ['HOLD', tool, 'x'], -1, 1, 0.005),
-    r('up', ['HOLD', tool, 'y'], -1, 0.5, 0.005),
+    r('right', ['HOLD', tool, 'x'], -1, 1, 0.001),
+    r('up', ['HOLD', tool, 'y'], -1, 0.5, 0.001),
     r('size', ['HOLD', tool, 'scale'], 0.3, 2.5, 0.05),
     r('tilt', ['HOLD', tool, 'pitch'], -3.14, 3.14, 0.01),
     r('turn', ['HOLD', tool, 'yaw'], -3.14, 3.14, 0.01),
