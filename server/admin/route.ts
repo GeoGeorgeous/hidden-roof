@@ -43,5 +43,11 @@ export function only(c: Ctx, method: 'GET' | 'POST') {
   if (c.method !== method) throw new WrongMethod(method);
 }
 
+/** The request's JSON body as an object's fields: none for a body that is no object. */
+export async function fields(c: Ctx): Promise<Record<string, unknown>> {
+  const b = await c.body();
+  return typeof b === 'object' && b && !Array.isArray(b) ? (b as Record<string, unknown>) : {};
+}
+
 /** `x` is a whole number from 1 to `most` (at most 999). */
 export const upTo = (x: string, most: number) => /^\d{1,3}$/.test(x) && +x >= 1 && +x <= most;

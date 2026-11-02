@@ -11,7 +11,8 @@ import { sessionPaint } from './world';
 // Admins in sessions (admins.ts), against the built server: a one-time pass from the admin API (once, for its
 // session only), an admin past a full session's limit and outside its players (the listings, the list), unseen
 // until seen (then joined and left as a player named Admin), locks (every game told, a locked face's ops dropped,
-// in the welcome), a wipe ending admin mode, and an admin keeping a private session open. npm run test:server runs it.
+// in the welcome, in order with the paint), a wipe ending admin mode, an admin keeping a private session open, and one
+// no one has come to yet left open after an admin looked in. npm run test:server runs it.
 
 const level = JSON.parse(fs.readFileSync('public/levels/demo.json', 'utf8'));
 const main = await start({ ADMIN_KEY: 'test-key' });
@@ -78,7 +79,22 @@ try {
   a.send({ type: 'ops', seq: 2, bytes: encodeOps([1], [stamp(1)], surfaces) });
   await b.next('ops');
   const late = await watch(duo.code, (await pass(duo.code)).pass);
-  assert.deepEqual((await late.next('welcome')).locks, [[0, 0]]);
+  // Its paint file was read before the lock (kept SERVER.snapshotKeep s): the lock comes in its log, after the welcome.
+  assert.deepEqual([(await late.next('welcome')).locks, await late.next('lock')], [[], { type: 'lock', surface: 0, rect: 0, on: true }]);
+  // In order with the paint: a joiner whose paint file was read before the lock gets that paint's locks, then what came since as it came.
+  const trio = (await api('POST', '/sessions', { kind: 'private', name: 'Trio', level: 'demo', detail: 'low' })).body;
+  const first3 = await join(main.port, 'C', trio.code);
+  await first3.next('welcome');
+  const locker = await watch(trio.code, (await pass(trio.code)).pass);
+  await locker.next('welcome');
+  first3.send({ type: 'ops', seq: 1, bytes: encodeOps([1], [stamp(0)], surfaces) });
+  await quiet();
+  locker.send({ type: 'lock', surface: 0, rect: 0, on: true });
+  await first3.next('lock');
+  const joiner = await join(main.port, 'D', trio.code);
+  assert.deepEqual((await joiner.next('welcome')).locks, [], 'the locks of its paint file');
+  await quiet();
+  assert.deepEqual(joiner.got.filter((m) => m.type === 'paint' || m.type === 'lock').map((m) => m.type), ['paint', 'lock'], 'the paint, then the lock');
 
   // A wipe ends admin mode (closed: an admin doesn't come back), and the locks with it.
   assert.equal((await api('POST', `/sessions/${duo.code}/wipe`)).status, 200);
@@ -95,14 +111,22 @@ try {
   p.send({ type: 'leave' });
   await p.closed;
   await quiet();
-  const live = async () => ((await api('GET', '/sessions')).body as { code: string }[]).some((s) => s.code === solo.code);
-  assert.ok(await live(), 'kept open by its admin');
+  const live = async (code: string) => ((await api('GET', '/sessions')).body as { code: string }[]).some((s) => s.code === code);
+  assert.ok(await live(solo.code), 'kept open by its admin');
   keeper.send({ type: 'leave' });
   await keeper.closed;
   await quiet();
-  assert.ok(!(await live()), 'closed with its admin gone');
+  assert.ok(!(await live(solo.code)), 'closed with its admin gone');
+  // One no one has come to yet waits for its players still (SERVER.adminWait) after an admin looked in.
+  const fresh = (await api('POST', '/sessions', { kind: 'private', name: 'Fresh', level: 'demo', detail: 'low' })).body;
+  const visit = await watch(fresh.code, (await pass(fresh.code)).pass);
+  await visit.next('welcome');
+  visit.send({ type: 'leave' });
+  await visit.closed;
+  await quiet();
+  assert.ok(await live(fresh.code), 'open for the players still to come');
   assert.match(main.out(), /admin #\d+ out: left/);
-  console.log('admins: ok (a pass once, for its session; outside the players; unseen, then seen; locks; a wipe ends it; it keeps a session open)');
+  console.log('admins: ok (a pass once, for its session; outside the players; unseen, then seen; locks, in order with the paint; a wipe ends it; it keeps a session open; a look in closes no new one)');
 } finally {
   await main.stop();
 }

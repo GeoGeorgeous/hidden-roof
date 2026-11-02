@@ -89,10 +89,10 @@ export class Session {
     this.line = new Queue(code, () => this.setup.limit - this.players.size);
     this.range = levelRange(level);
     this.world = sessionPaint(level, detail);
-    this.files = new PaintFiles(code, this.world.paint, levelName);
+    this.files = new PaintFiles(code, this.world.paint, levelName, () => this.locks.wire());
     this.table = surfaceTable(this.world.paint.surfaces);
     this.surfaces = new SurfaceIndex([...this.world.paint.surfaces].map((s) => s.key));
-    this.locks = new SessionLocks(this.world.paint, this.surfaces, (m) => this.broadcast(m));
+    this.locks = new SessionLocks(this.world.paint, this.surfaces, this.files, (m) => this.broadcast(m));
   }
 
   /** Start from a paint save (HOST's, or `host` false one kept on disk). Throws with a message if it's no good or doesn't fit the level. */
@@ -189,7 +189,7 @@ export class Session {
     const players = shown.filter((q) => q !== p).map((q) => ({ id: q.id, name: q.name, state: presence(q), ...(q.watcher && { role: 'watcher' as const }) }));
     const { kind, limit, tools } = this.setup;
     const session = { kind, name: this.setup.name, limit, tools: [...tools] };
-    link.send(encode({ type: 'welcome', code: this.code, you: p.id, name: p.name, token: p.token, session, levelName: this.levelName, level: this.level, detail: this.detail, table: this.table, players, ladders, inventory: p.inventory, at: p.at, parts: own ? 0 : frames.length, acked: p.acked, ...(p.watcher && { admin: true as const }), locks: this.locks.wire() }));
+    link.send(encode({ type: 'welcome', code: this.code, you: p.id, name: p.name, token: p.token, session, levelName: this.levelName, level: this.level, detail: this.detail, table: this.table, players, ladders, inventory: p.inventory, at: p.at, parts: own ? 0 : frames.length, acked: p.acked, ...(p.watcher && { admin: true as const }), locks: snap.locks }));
     if (!own) for (const f of frames) link.send(f);
     for (const f of snap.log) link.send(f);
     p.live = true;
@@ -262,6 +262,11 @@ export class Session {
   /** Ends it with no one in it, admins neither (its host was turned away, no one came to the admin's, its last admin went). */
   close(why: string) {
     if (!this.players.size && !this.admins.all.size) this.finish(why);
+  }
+
+  /** With no one left, one that doesn't stay may end: someone played in it, or SERVER.adminWait is over (until then, the lobby's timer is what ends one no one came to). */
+  get canEnd() {
+    return this.nextId > 1 || Date.now() - this.started >= SERVER.adminWait * 1000;
   }
 
   /** Its players, then its admins: everyone its frames reach. */

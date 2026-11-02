@@ -365,6 +365,22 @@ try {
   // The events before the restart are on disk, and read back for the stream: the wipe is the newest.
   assert.deepEqual((atStart[0].data as unknown as { type: string; detail: object }[]).map((e) => [e.type, e.detail]).at(-1), ['wiped-at-start', { cause: ['surface table'] }], 'kept for a page that opens later');
   assert.equal(saves().length, 0);
+  // A lock after that wipe is written down too, and back after a restart with no paint file to carry it.
+  const adminIn = async () => {
+    const g = new Game();
+    if (g.ws.readyState !== Ws.OPEN) await new Promise((w) => g.ws.once('open', w));
+    g.send({ type: 'join', protocol: PROTOCOL, name: 'Admin', code, pass: (await admin('POST', `/sessions/${code}/admin-pass`)).body.pass });
+    return [g, await g.next('welcome')] as const;
+  };
+  const [relocker] = await adminIn();
+  relocker.send({ type: 'lock', surface: locked[0], rect: locked[1], on: true });
+  await relocker.next('lock');
+  await new Promise((w) => setTimeout(w, 200));
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(dir, 'sessions.json'), 'utf8'))[0].locks, [[faces[0].key, 0]], 'written down after a wipe at start');
+  await server.stop();
+  assert.equal(saves().length, 0, 'nothing painted: no paint file');
+  server = await launch();
+  assert.deepEqual((await adminIn())[1].locks, [locked], 'back with no paint file');
 
   // A private session of the admin's closes once its players have gone, unless it stays; it isn't kept on disk.
   for (const stay of [false, true]) {
@@ -408,7 +424,7 @@ try {
   assert.equal((await admin('GET', '/stats/paint?period=30d')).body.stamps.can, 5);
   assert.equal((await admin('GET', '/stats/people?period=30d')).body.inSessions.device, 2, 'players, kept through restarts');
   assert.ok(!JSON.stringify(fs.readdirSync(path.join(dir, 'stats')).map((n) => fs.readFileSync(path.join(dir, 'stats', n), 'utf8'))).includes('10.2.0.'), 'no address on disk');
-  console.log('kept sessions: ok (admin key and origin, a public session full at its limit with a line, kept empty, paint back after a restart, its stats, the paint downloaded, wipe, saves kept aside and replaced, a save downloaded, restore with its undo and 409, saves kept by age, a new surface table wipes, private ones close when empty unless they stay, close, what the admin page reads, the event stream, history)');
+  console.log('kept sessions: ok (admin key and origin, a public session full at its limit with a line, kept empty, paint back after a restart, its stats, the paint downloaded, wipe, saves kept aside and replaced, a save downloaded, restore with its undo and 409, saves kept by age, a new surface table wipes, locks kept after it with no paint, private ones close when empty unless they stay, close, what the admin page reads, the event stream, history)');
 } finally {
   await server.stop();
   fs.rmSync(dir, { recursive: true, force: true });

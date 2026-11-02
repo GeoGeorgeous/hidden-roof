@@ -185,6 +185,7 @@ export class Kept {
         await this.disk?.forget(e.code);
         continue;
       }
+      this.keepLocks(session);
       const changed = [e.protocol !== PROTOCOL && 'protocol', e.table !== session.table && 'surface table', e.levelHash !== hash(level) && 'level'].filter(Boolean);
       if (changed.length) {
         log(e.code, `paint wiped: a new ${changed.join(', ')}`);
@@ -192,13 +193,14 @@ export class Kept {
         await this.disk?.forget(e.code);
         continue;
       }
-      this.keepLocks(session);
-      for (const name of (await this.disk!.list(e.code)).filter((n) => !isWiped(n)))
+      const names = (await this.disk!.list(e.code)).filter((n) => !isWiped(n));
+      // The locks go with the paint: none on a session that lost it (one never painted had none to lose).
+      if (!names.length) session.locks.restore(e.locks ?? []);
+      for (const name of names)
         try {
           await session.load(await fs.readFile(this.disk!.file(name)), false);
           session.stats = (await this.disk!.stats(name)) ?? session.stats;
           log(e.code, `paint from ${name}: ${session.memory.now.toFixed(0)} MB`);
-          // The locks go with the paint: none on a session that lost it.
           session.locks.restore(e.locks ?? []);
           break;
         } catch (err) {
