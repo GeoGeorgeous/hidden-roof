@@ -116,8 +116,15 @@ export function keyOverrides() {
 
 /** Applies saved bindings: known actions, two slots each, no reserved keys. */
 export function applyKeys(saved: Record<string, Slots> = {}) {
+  const applied = new Set<Action>();
   for (const [a, s] of Object.entries(saved)) {
-    if (a in bound && Array.isArray(s) && s.length === 2 && s.every((c) => c === null || (typeof c === 'string' && !refusal(c, a as Action)))) bound[a as Action] = [...s];
+    if (a in bound && Array.isArray(s) && s.length === 2 && s.every((c) => c === null || (typeof c === 'string' && !refusal(c, a as Action)))) {
+      bound[a as Action] = [...s];
+      applied.add(a as Action);
+    }
   }
+  // A key saved for one action leaves a default that came later with it (a new action's): a key is in one slot only.
+  const taken = new Set([...applied].flatMap((a) => bound[a]));
+  for (const a of ACTIONS) if (!applied.has(a)) bound[a] = bound[a].map((c) => (c && taken.has(c) ? null : c));
   apply();
 }
