@@ -10,8 +10,6 @@ From the audit of 2026-10-17 (module M7, skipped for 1.4.0). Nothing decided. �
 
 ## Findings
 
-- **F7.1 Files over the 400-line limit** (refactor). `src/debug/hint-text.ts` is 419 lines (build-prop.ts was split since). BL-038's list is out of date.
-- **F7.2 BL-034's memory estimate** (docs). Every page is laid out at load and made on the first hit, so the ceiling is the page count: 49 × 21.25 MiB = 1041 MB at ULTRA (what the playtest measured at 58% painted), not 1.5–2 GB. `src/page-packer.ts`; `src/paint-gpu.ts`.
 - **F7.3 Hidden faces stay paintable (cover.ts gaps)** (perf, S–M). A strict inside test misses faces on block seams; joints never cover; cylinders neither cover nor get covered. Fixing all three takes pages 49 → 46 (−64 MB), but 26–28% of the paintable area changes shape and saved paint there is skipped. `src/level/cover.ts:9,69-71`; `src/level/build-prop.ts:203`; `src/kit/pieces.ts:83-95`. Do it after F7.4.
 - **F7.4 Saves match surfaces by shape, not by face** (decision, M). Load paint by face geometry (faceKey, as carry does) instead of a hash of the surface's shape, so improving the level plan stops invalidating saves. Touches the painting system: the owner's call. `src/save/shape.ts`; `src/painting.ts:382`.
 - **F7.5 PropContext is built four ways** (refactor). Level plan, build ghost (seed 0, no finish), extent (no rot/adjust/text/mirror, cached per type|variant|rot) and icon (below: true) build it with different defaults. One "instance → pieces" function. `src/level/prop-pieces.ts:32`; `src/build/ghost.ts:43`; `src/build/extent.ts:15`; `src/build/prop-icon.ts:15`.

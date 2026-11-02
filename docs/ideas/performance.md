@@ -2,9 +2,9 @@
 
 Performance measurements and what to do next.
 
-## BL-034 Paint pages at ULTRA use ~0.95 GB of GPU memory
+## BL-034 Paint pages at ULTRA use up to ~1 GB of GPU memory
 
-After 40 minutes of painting at ULTRA a profile counted 45 more GPU textures (~0.95 GB if paint pages). Confirmed by the playtest of 2026-10-12: 49 paint pages, 1041 MB of GPU memory at 58% of the level painted; all painted would be an estimated 1.5–2 GB. Already so in 1.1.0.
+After 40 minutes of painting at ULTRA a profile counted 45 more GPU textures (~0.95 GB if paint pages). Confirmed by the playtest of 2026-10-12: 49 paint pages, 1041 MB of GPU memory at 58% of the level painted. That is the ceiling, not a step on the way to 1.5–2 GB: every page is laid out at load and made on the first hit, so the most is the page count, 49 × 21.25 MiB at ULTRA. Already so in 1.1.0.
 
 Owner (2026-10-20): no change that lowers paint quality or detail (no fewer texels, no lossy compression, no fewer mip levels); skip the task if there's no such way.
 
