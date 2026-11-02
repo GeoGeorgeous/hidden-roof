@@ -69,7 +69,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## Input
 
-1. BUGS [BL-010]: Rare huge mouse jumps snap the camera in Chrome on Windows; the fix is the owner's choice (docs/ideas/mouse-spikes.md) @1.6.1
+1. BUGS [BL-010]: Rare huge mouse jumps snap the camera in Chrome on Windows; the fix is the owner's choice (docs/ideas/mouse-spikes.md) @1.6.2
 
 ## Performance
 
