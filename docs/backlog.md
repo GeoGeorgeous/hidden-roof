@@ -63,8 +63,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 7. [TASK-230]: Painting Rework: paint runs with the brush: the 1.5.0 runs don't fit it (measured: the can barely runs); puddle runs (by paint volume, no dice) are the candidate (docs/ideas/paint-refactoring.md) @1.7.0
 8. [TASK-231]: Painting Rework: network: measure ops/s, the slant shape on the wire (protocol bump), maybe one op per stroke segment (see BL-024) (docs/ideas/paint-refactoring.md) @1.7.0
 9. [TASK-232]: Painting Rework: to production: settings into config.ts and F3, no painting by particles, decide endless pressure (unlock-all stays dev only), update golden and multiplayer tests (docs/ideas/paint-refactoring.md) @1.7.0
-10. [?IDEA-233]: Painting Rework: marker nibs, rectangular and calligraphy (not in the branch) (docs/ideas/paint-refactoring.md) @1.7.0
-11. [?IDEA-166]: Painting Rework: lock the camera while painting (not in the branch) (docs/ideas/paint-refactoring.md) @1.7.0
+10. [?IDEA-166]: Painting Rework: lock the camera while painting (not in the branch) (docs/ideas/paint-refactoring.md) @1.7.0
 
 ## Input
 
@@ -82,10 +81,10 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## Props and level
 
 1. TASK [BL-143]: A design run on props and the level plan: PropContext, placement, sign text, saves by face (docs/ideas/props-and-level.md)
-2. IDEA [BL-144]: Cover v2: drop hidden paint faces and pack pages fuller, after BL-143; up to 28% less paint memory at ULTRA (BL-034) (docs/ideas/props-and-level.md)
+2. IDEA [BL-144]: Cover v2: drop hidden paint faces, make paintable walls nobody can reach plain walls and trim the room on the main floor (TASK-194 merged in), and pack pages fuller, after BL-143; up to 28% less paint memory at ULTRA (BL-034) (docs/ideas/props-and-level.md)
 3. TASK [BL-055]: Group the props better in build mode: decide which prop goes into which category (docs/ideas/props-and-level.md)
-4. [BUGS-161]: A wall prop overlaps a fence
-5. IDEA [BL-039]: More marker types, placed on the map; a per-tool variant module first, as caps are (docs/ideas/tools.md) @1.7.0
+4. [?BUGS-161]: A wall prop overlaps a fence
+5. IDEA [BL-039]: More marker types (rectangular and calligraphy nibs among them, IDEA-233 merged in), placed on the map; a per-tool variant module first, as caps are (docs/ideas/tools.md) @1.7.0
 6. IDEA [BL-050]: Wire cutting
 7. IDEA [BL-051]: Dynamic wire length
 8. IDEA [BL-052]: Lamps that can be fixed to the floor or the ceiling
@@ -93,7 +92,6 @@ Only `N.`, the id and the description are required. The optional parts appear in
 10. IDEA [BL-054]: New sign sizes, including big rectangular and square ones
 11. IDEA [BL-075]: Digital billboards
 12. IDEA [BL-106]: Paintable cone roofs on the water tanks (a cone paint mapping) (docs/ideas/props-and-level.md)
-13. [TASK-194]: Replace paintable walls that cannot be reached with standard walls. Optimize room on the main floor.
 
 ## Tools
 
@@ -102,10 +100,8 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## UI
 
-1. [TASK-203]: The HUD scales with the window and the DPR: tiny at 4K at 100%, crowded at 820×560 (docs/ideas/hud-scale.md)
-2. [BUGS-198]: With F3 open the compact pause menu is under the pickup tags, nameplates, hotbar and toast (docs/ideas/hud-scale.md)
-3. [BUGS-199]: LOW PRESSURE runs off the right edge in narrow windows (820×560) (docs/ideas/hud-scale.md)
-4. [IDEA-204]: Notifications beyond play: the menu, pages, loading and a hidden tab on the same model; screen-reader announcements; more events (away and back, context lost, online, refused pointer lock or clipboard); battery (docs/ideas/notifications.md)
+1. [?TASK-203]: The HUD fits every window: it scales with the window and the DPR (tiny at 4K at 100%, crowded at 820×560), LOW PRESSURE stays on screen at 820×560 (BUGS-199 merged in), the compact pause menu with F3 open stays above the HUD (BUGS-198 merged in, likely fixed by the `--z-*` layers); all three checked on shots first (docs/ideas/hud-scale.md)
+2. [IDEA-204]: Notifications beyond play: the menu, pages, loading and a hidden tab on the same model; screen-reader announcements; more events (away and back, context lost, online, refused pointer lock or clipboard); battery (docs/ideas/notifications.md)
 
 ## Avatar
 
@@ -118,14 +114,12 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## Audio
 
 1. IDEA [BL-063]: License-free background music: drum and bass, jungle @1.8.0
-2. IDEA [BL-064]: A sound editor for the synthesized sounds (dev mode)
-3. IDEA [BL-148]: Other players' sounds: spray hiss, marker, footsteps, landing as positional voices @1.8.0
+2. IDEA [BL-148]: Other players' sounds: spray hiss, marker, footsteps, landing as positional voices @1.8.0
 
 ## Tests and tooling
 
 1. TEST [BL-035]: Fixed-step tests for walking, collisions, jumps and climbing
-2. TEST [BL-036]: Light baking and weather run on the wall clock; decide what a test would compare first
-3. [TEST-299]: Heavy runs (check, test:server, test:game, test:mp, golden) under a memory cap, e.g. `systemd-run --user --scope -p MemoryMax=9G`: a runaway test is killed, not WSL (an assert on a paint atlas, diffed byte by byte, took 11 GB and WSL with it three times on 2026-11-02)
+2. [TEST-299]: Heavy runs (check, test:server, test:game, test:mp, golden) under a memory cap, e.g. `systemd-run --user --scope -p MemoryMax=9G`: a runaway test is killed, not WSL (an assert on a paint atlas, diffed byte by byte, took 11 GB and WSL with it three times on 2026-11-02)
 
 ## Servers and deploy
 
@@ -156,7 +150,7 @@ The API and why it is so: docs/admin-api.md.
 
 Shipped since the last release; the release commit empties this list.
 
-1. [TASK-276]: Production on 1.6.0, deployed 2026-11-01 (docs/deploy.md §1): the server's data, admin key and the public session, the GeoIP base with its monthly cron, roof-traffic, Caddy's `/api/main` for the admin page; then a full wipe of DATA_DIR and LOG_DIR on main and next (the owner), the public sessions made again; the owner checked it in a browser (version, cctv main and next, a session made and closed) @1.6.0
+1. [TASK-276]: Production on 1.6.0, deployed 2026-11-01 (docs/deploy.md §1): the server's data, admin key and the public session, the GeoIP base with its monthly cron, roof-traffic, Caddy's `/api/main` for the admin page; then a full wipe of DATA_DIR and LOG_DIR on main and next (the owner), the public sessions made again; the owner checked it in a browser (version, cctv main and next, a session made and closed)
 2. [TASK-187]: The beacon, the device id and the address hash run without a consent dialog (the owner's decision and risk, recorded in SECRET_legal.md; confirmed 2026-11-01: no switch either); the privacy page names them (TASK-242, done); nothing left to build (the owner, 2026-11-01)
 3. [RFCT-270]: The beacon's limit per address through PerMinute, the third copy of "N a minute per address" (logNoisy is another); PerMinute reads its SERVER limits when asked, so a test can still change them (done in BUGS-280: beacon.ts and log.ts use PerMinute, its limits read when asked)
 4. [RFCT-273]: The snapshot's layout in one place: SNAPSHOT_FEET and SNAPSHOT_REST beside SNAPSHOT_BYTES (net/protocol.ts), read by encodeSnapshot, snapshotSpot and the sender's still check (sender.ts stays loadable in Node for its test)
@@ -211,3 +205,9 @@ Dropped items, kept for the record; don't work on them.
 27. ~~IDEA [?BL-153]: Find who painted something by player id, picked like the eyedropper (to spot bad paint) (merged into IDEA-195)~~
 28. ~~[TASK-287]: Better SEO: large; needs a discussion and the owner's decisions first, done last in the release, not touched until then; being discussed, nothing approved yet (dropped 2026-11-02: what it held is done in TASK-291, TASK-292 and TASK-293)~~
 29. ~~IDEA [?BL-147]: Anti-cheat: The server checks what players send (op reach and rate, ladder spot, jumps) before it goes public (dropped 2026-11-02: nothing in the game is worth cheating at; what matters is already there: a bad or oversized message, or an error, closes only that link, a budget per link and limits per address, kick and ban only through the admin API (unpublished port, ADMIN_KEY, CCTV behind tinyauth), admin only with a one-time pass, a player's lock ignored)~~
+30. ~~IDEA [BL-064]: A sound editor for the synthesized sounds (dev mode) (dropped 2026-11-02: F3's Sound tab tunes the mix, weather, each cap's hiss and the props)~~
+31. ~~TEST [BL-036]: Light baking and weather run on the wall clock; decide what a test would compare first (dropped 2026-11-02: no criterion to test against)~~
+32. ~~[?IDEA-233]: Painting Rework: marker nibs, rectangular and calligraphy (not in the branch) (docs/ideas/paint-refactoring.md) (merged into BL-039)~~
+33. ~~[TASK-194]: Replace paintable walls that cannot be reached with standard walls. Optimize room on the main floor. (merged into BL-144)~~
+34. ~~[BUGS-198]: With F3 open the compact pause menu is under the pickup tags, nameplates, hotbar and toast (docs/ideas/hud-scale.md) (merged into TASK-203)~~
+35. ~~[BUGS-199]: LOW PRESSURE runs off the right edge in narrow windows (820×560) (docs/ideas/hud-scale.md) (merged into TASK-203)~~

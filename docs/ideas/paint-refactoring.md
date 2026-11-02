@@ -10,7 +10,7 @@ write the code: read the branch.
   object, not in `config.ts`. See it with `git log dev..exp/painting-rework`
   and `git diff dev...exp/painting-rework`; try it with
   `git switch exp/painting-rework && npm run dev`, panel on Z.
-- Backlog: the "Painting Rework" items, IDEA-225 to IDEA-233 and IDEA-166, planned for
+- Backlog: the "Painting Rework" items, IDEA-225 to TASK-232 and IDEA-166, planned for
   1.7.0 (see "Backlog items" below). Network load also touches BL-024.
 - Code: `src/sandbox/` (`feel.ts` settings and the distance model, `brush.ts`
   the brush, `aim.ts` the crosshair, `panel.ts` the Z panel, `mist.ts` the
@@ -52,7 +52,6 @@ backlog's Discarder):
 | TASK-230 | paint runs with the brush (measured: the 1.5.0 runs don't fit it) | 13, known issues | BL-016 |
 | TASK-231 | network: ops/s, slant on the wire, stroke-segment op | 9, network steps 1-3 | |
 | TASK-232 | to production: config, no particle painting, decisions, tests | 10, 11, steps 4-5, open decisions | |
-| IDEA-233 | marker nibs, rectangular and calligraphy (unconfirmed) | not in the branch | BL-042 |
 | IDEA-166 | lock the camera while painting (unconfirmed) | not in the branch | |
 
 TASK-230 (paint runs): owner (2026-10-25): the marker runs a lot, the can
@@ -71,12 +70,13 @@ the per-m² chance almost never fires. The marker is unchanged (7 runs in 5 s
 of strokes); it only stood out. A ×30 on the caps' chance brought the can
 back to 1.5.0's numbers; module 13 (puddle runs) replaces that.
 
-IDEA-233 (marker nibs): the can's nibs (chisel, needle) were tried on the
-branch and removed; marker nibs are a separate idea, not started.
+Marker nibs (IDEA-233, merged into BL-039 on 2026-11-02): the can's nibs
+(chisel, needle) were tried on the branch and removed; marker nibs are a
+separate idea, not started.
 
 IDEA-166 (lock the camera): an idea from before the branch, not started.
 
-Owner: IDEA-233 and IDEA-166 stay tagged 1.7.0 but unconfirmed (`?`): not
+Owner: IDEA-166 stays tagged 1.7.0 but unconfirmed (`?`): not
 sure yet that they belong in it. Ask before working on them.
 
 ## Modules kept
