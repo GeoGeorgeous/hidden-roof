@@ -130,7 +130,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 The admin page (the cctv repo) and the server side it reads (server/admin/).
 The API and why it is so: docs/admin-api.md.
 
-1. [CCTV-302]: A player's state `capture` (filming with capture mode's free camera, standing still; `docs/admin-api.md`, a session's players) on the session page beside `menu` and `idle`; reaches the server with PROTOCOL 11 (1.6.2)
+1. [CCTV-302]: A player's state `capture` (filming with capture mode's free camera, standing still; `docs/admin-api.md`, a session's players) on the session page beside `menu` and `idle`; reaches the server with PROTOCOL 11 (1.6.2). Done in cctv PR #13 (a Capture tab and label after In menu, a neutral pill; the fake server's ana in capture), waiting for the owner's merge; a real-server check when 1.6.2 is on staging
 
 ## Web and promotion
 

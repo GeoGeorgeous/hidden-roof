@@ -1,4 +1,4 @@
-// Multiplayer: A link that goes quiet and reconnects, LEAVE, and a welcome that takes a while or finds the player gone. Reads and adds to `w`, the players and what they share.
+// Multiplayer: A link that goes quiet and reconnects, LEAVE, capture mode as the others see it, and a welcome that takes a while or finds the player gone. Reads and adds to `w`, the players and what they share.
 import assert from 'node:assert/strict';
 import { status, paintHash, press, stamp } from './harness.mjs';
 
@@ -90,6 +90,29 @@ export async function link(w) {
   assert.equal(await b.textContent('.nameplate .name'), 'A');
   assert.equal(await b.textContent('.nameplate .note'), 'In menu', 'A, paused, is shown in the menu');
   assert.match(await b.textContent('.nameplate .far'), /^\d+m$/);
+
+  // A films with capture mode's free camera (N): B sees Capture by A's name, and A's figure stands still while A's
+  // camera flies (W held); in first person (V) A plays and is shown as here; leaving capture mode, paused again, in menu.
+  const note = () => b.evaluate(() => (document.querySelector('.nameplate .note').hidden ? '' : document.querySelector('.nameplate .note').textContent));
+  const seenAt = () => b.evaluate(() => [...window.game.net.remotes.players.values()][0].avatar.group.position.toArray());
+  const hold = (key, ms) => a.evaluate(([k, t]) => (window.game.input.key(k, true), new Promise((r) => setTimeout(r, t))).then(() => window.game.input.key(k, false)), [key, ms]);
+  await a.evaluate(() => (window.game.input.setLocked(true), window.game.input.key('KeyN', true)));
+  await a.evaluate(() => window.game.input.key('KeyN', false));
+  await b.waitForFunction(() => document.querySelector('.nameplate .note')?.textContent === 'Capture', null, { timeout: 10000 });
+  const before = await seenAt();
+  await hold('KeyW', 600);
+  await new Promise((r) => setTimeout(r, 500));
+  assert.deepEqual(await seenAt(), before, 'A in the free camera: its figure stands still');
+  assert.equal(await note(), 'Capture');
+  await hold('KeyV', 50);
+  await b.waitForFunction(() => document.querySelector('.nameplate .note').hidden, null, { timeout: 10000 });
+  await hold('KeyW', 600);
+  await b.waitForFunction((p) => [...window.game.net.remotes.players.values()][0].avatar.group.position.distanceTo({ x: p[0], y: p[1], z: p[2] }) > 0.3, before, { timeout: 5000 });
+  // Back where A stood, for the phases after.
+  await hold('KeyS', 600);
+  await hold('KeyN', 50);
+  await a.evaluate(() => window.game.input.setLocked(false));
+  await b.waitForFunction(() => document.querySelector('.nameplate .note').textContent === 'In menu', null, { timeout: 10000 });
   await b.evaluate(() => window.game.net.leave());
 
   // B joins and presses LEAVE while the welcome's paint loads (its own paint kept, the session's level open, the paint
