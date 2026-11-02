@@ -21,6 +21,8 @@ export class PaintFiles {
     private code: string,
     private paint: PaintSystem,
     private levelName: string,
+    /** The locked faces of the paint now (locks.ts wire). */
+    private locks: () => [number, number][],
   ) {}
 
   /**
@@ -44,6 +46,7 @@ export class PaintFiles {
       this.next = null;
       this.snap = s;
       this.frozen = [];
+      s.locks = this.locks();
       const t = performance.now();
       try {
         const { pieces, raw } = await streamPaint(this.paint, { name: this.levelName }, SERVER.snapshotChunk);
@@ -89,7 +92,7 @@ export class PaintFiles {
     else fn();
   }
 
-  /** `frame()`, a paint op relayed, goes in the newest paint file's log: made only if one is open. */
+  /** `frame()`, a paint op relayed or a lock, goes in the newest paint file's log: made only if one is open. */
   log(frame: () => Uint8Array) {
     this.snap?.log.push(frame());
   }

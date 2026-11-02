@@ -297,6 +297,11 @@ try {
   const back = new Bans();
   await back.keepIn(dir);
   assert.equal(back.of('10.8.0.1')?.reason, 'Spam', 'read back with its key');
+  // Changes at once are written in turn, each on the one before: all of them are back.
+  await Promise.all([kept.add('10.8.0.2', undefined, 'L', 'Spam', 1), kept.add('10.8.0.3', undefined, 'M', 'Spam', 1), kept.lift(kept.of('10.8.0.1')!.id)]);
+  const both = new Bans();
+  await both.keepIn(dir);
+  assert.deepEqual([!!both.of('10.8.0.1'), !!both.of('10.8.0.2'), !!both.of('10.8.0.3')], [false, true, true], 'every change written');
   const realNow = Date.now;
   Date.now = () => realNow() + 2 * DAY;
   assert.equal(back.of('10.8.0.1'), undefined, 'over after its days');
@@ -305,7 +310,10 @@ try {
   const fresh = new Bans();
   await fresh.keepIn(dir);
   assert.deepEqual([fresh.all.length, fs.existsSync(path.join(dir, 'bans.json.bad'))], [0, true]);
+  // A change whose write fails is not in force: the admin's error is the whole story.
   fs.rmSync(dir, { recursive: true });
+  await assert.rejects(fresh.add('10.8.0.4', undefined, 'N', 'Spam', 1));
+  assert.equal(fresh.of('10.8.0.4'), undefined, 'not banned when not written');
   console.log('server list: ok (the list, a lookup by code and its limit, per-session limits, the admin\'s private limit, HOST only with PLAYER_HOST, the admin\'s kick and ban, seats and joins per address, a HOST link starts with HOST, the budget of a link, the time of a stepladder and the fields of an inventory cut)');
 } finally {
   main.stop();

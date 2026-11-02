@@ -2,7 +2,7 @@ import { SERVER } from '../../src/config';
 import type { Ban } from '../bans';
 import { iso } from '../days';
 import { Missing, Refused } from '../refused';
-import { only, type Route } from './route';
+import { fields, only, type Route } from './route';
 
 // The bans (docs/admin-api.md, Bans): the list, a player of a session banned, a ban lifted.
 
@@ -18,8 +18,7 @@ export const bans: Route = async (c) => {
   if (id === undefined) {
     if (c.method === 'GET') return c.lobby.bans.all.map(shown);
     only(c, 'POST');
-    const b = await c.body();
-    const o = (typeof b === 'object' && b && !Array.isArray(b) ? b : {}) as Record<string, unknown>;
+    const o = await fields(c);
     if (typeof o.code !== 'string' || !Number.isInteger(o.player)) throw new Refused('code: a session, player: the id of one of its players');
     if (!daysOk(o.days)) throw new Refused(DAYS);
     if (!reasonOk(o.reason)) throw new Refused(REASON);
@@ -35,8 +34,7 @@ export const bans: Route = async (c) => {
     if (!(await c.lobby.bans.lift(id))) throw new Missing(`no ban ${id}`);
     return { ok: true };
   }
-  const b = await c.body();
-  const o = (typeof b === 'object' && b && !Array.isArray(b) ? b : {}) as Record<string, unknown>;
+  const o = await fields(c);
   if (o.days !== undefined && !daysOk(o.days)) throw new Refused(DAYS);
   if (o.reason !== undefined && !reasonOk(o.reason)) throw new Refused(REASON);
   const ban = await c.lobby.bans.change(id, { days: o.days as number | null | undefined, reason: (o.reason as string | undefined)?.trim() });

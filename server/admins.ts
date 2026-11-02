@@ -94,7 +94,7 @@ export class Admins {
     return [...this.all.values()].filter((a) => a.watcher!.seen);
   }
 
-  /** `a` is out for `why` (logged), their link closed (`told`: turned away with it); a session that doesn't stay closes with no one left. */
+  /** `a` is out for `why` (logged), their link closed (`told`: turned away with it); a session that doesn't stay closes with no one left (once it can end). */
   remove(a: Player, why: string, told?: Rejection) {
     if (this.all.get(a.id) !== a) return;
     this.see(a, false);
@@ -106,7 +106,7 @@ export class Admins {
     forget(a);
     if (told) turnAway(link, told);
     else link?.close(1000, why);
-    if (!this.s.setup.stays) this.s.close('no one left');
+    if (!this.s.setup.stays && this.s.canEnd) this.s.close('no one left');
   }
 
   /** Every admin out, told `told` (a wipe, a restore, the session's end): admin mode ends in their games. */

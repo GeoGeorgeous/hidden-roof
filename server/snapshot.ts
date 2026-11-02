@@ -5,8 +5,10 @@
 // its own is waiting to be made shares that one.
 
 export class Snapshot {
-  /** 'paint' frames of the ops relayed since its paint was read: a joiner gets them after the file. */
+  /** 'paint' frames of the ops relayed since its paint was read, and 'lock' frames: a joiner gets them after the file. */
   readonly log: Uint8Array[] = [];
+  /** The locked faces when its paint was read (locks.ts wire): a joiner's welcome carries them, its log the changes since. */
+  locks: [number, number][] = [];
   /** Players who got it, joins and SAVEs. */
   served = 0;
   /** Its frames; null when no one still wanted it once its turn came (it wasn't made). */

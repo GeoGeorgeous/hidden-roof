@@ -298,7 +298,8 @@ was kept with it); `undo`: the save a restore made first.
 
 `POST /sessions` `{ kind, name, level?, detail?, tools?, stay?, limit?, upload? }` → the new session. `name` up to
 `limits.name` characters; `level` roof by default, `detail` ultra; `tools` some of can, marker, ladder, roller, sponge
-(all by default); `stay`: a private one stays when empty (a public one always does); `limit`: its most players, from
+(all by default); `stay`: a private one stays when empty (a public one always does; one that doesn't closes once its
+players have gone, or when no one came in `SERVER.adminWait` s: an admin looking in first doesn't close it); `limit`: its most players, from
 `limits.private.min` up to `limits.private.max` for a private one or `limits.public` for a public one (that most if
 none); `upload`: an id from `POST /uploads`, made on its level at its detail with its paint (a level or detail named
 too must be its own; an unknown or expired one is 404).
@@ -327,6 +328,7 @@ one too); `days` one of `limits.ban.days`; `reason` 1 to `limits.ban.reasonBytes
 the admin's own (the player reads it). An unknown session or player is 404.
 `POST /bans/ID` `{ days?, reason? }` → the ban changed: `days` counted from `made`, only sooner (a later end is 400).
 `POST /bans/ID/lift` → `{ ok: true }`. An unknown or ended ban is 404.
+A ban, a change or a lift is in force once `bans.json` has it, one at a time: a `500` changed nothing.
 
 ## Why it is so (the owner's decisions, 2026-10-25 to 2026-11-01)
 
