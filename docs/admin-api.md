@@ -287,7 +287,8 @@ began at months' starts), where a visitor may count twice.
   saves: [{ at, bytes, wiped, undo, stats | null }] }
 ```
 
-A player's `state`: `here`, `away` (the game is hidden), `menu` (paused), `idle` (nothing pressed for `playerIdle`
+A player's `state`: `here`, `away` (the game is hidden), `menu` (paused), `capture` (filming with capture mode's free
+camera, standing still), `idle` (nothing pressed for `playerIdle`
 s), `lagging`, or `dropped` (gone; `held` s left to come back); `since` when it last changed. `seenDays`: the days
 this device has played in a session, since the salt began; `null` without a device. `stats`: the session's counts
 since its paint began (made, wiped or restored): `paintSeconds` as in `GET /stats/paint`; `players` the nicknames that

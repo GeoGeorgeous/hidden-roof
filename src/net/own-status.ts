@@ -3,7 +3,8 @@ import type { Activity } from './protocol';
 
 // What this player is doing, for the icon by their name in the others' games
 // (nameplates.ts): away while the game is hidden (minimized, another tab), in
-// the menu while paused, idle after NET.idleAfter s with nothing pressed, lagging
+// the menu while paused, capture while filming with capture mode's free camera
+// (standing still), idle after NET.idleAfter s with nothing pressed, lagging
 // while the player's own link is in trouble (bad connection or no signal, the
 // flags of their own status chip: link-health.ts), else here. Sent when it
 // changes, while the link is live (multiplayer.ts); a hidden tab draws no
@@ -12,6 +13,7 @@ import type { Activity } from './protocol';
 export interface Doing {
   hidden: boolean;
   paused: boolean;
+  filming: boolean;
   /** Since anything was pressed (s). */
   idleFor: number;
   /** The player's own link is in trouble. */
@@ -19,14 +21,14 @@ export interface Doing {
 }
 
 export function activity(d: Doing): Activity {
-  return d.hidden ? 'away' : d.paused ? 'menu' : d.idleFor > NET.idleAfter ? 'idle' : d.trouble ? 'lagging' : 'here';
+  return d.hidden ? 'away' : d.paused ? 'menu' : d.filming ? 'capture' : d.idleFor > NET.idleAfter ? 'idle' : d.trouble ? 'lagging' : 'here';
 }
 
 export class OwnStatus {
   private sent: Activity = 'here';
 
   constructor(
-    private game: { paused(): boolean; lastActive(): number },
+    private game: { paused(): boolean; filming(): boolean; lastActive(): number },
     private send: (status: Activity) => void,
     live: () => boolean,
     private trouble: () => boolean,
@@ -41,7 +43,7 @@ export class OwnStatus {
   }
 
   update(t: number) {
-    const now = activity({ hidden: document.hidden, paused: this.game.paused(), idleFor: t - this.game.lastActive(), trouble: this.trouble() });
+    const now = activity({ hidden: document.hidden, paused: this.game.paused(), filming: this.game.filming(), idleFor: t - this.game.lastActive(), trouble: this.trouble() });
     if (now === this.sent) return;
     this.sent = now;
     this.send(now);

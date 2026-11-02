@@ -6,6 +6,7 @@ Not tasks: how the game behaves on purpose, and what it would take to change it.
 - **Snapshot time is float32 seconds:** 2 ms steps after 8 hours of a session.
 - **TCP head-of-line blocking:** one lost packet holds the ones behind it; smoothing and the adaptive delay hide it. WebTransport datagrams (Chromium) would remove it, if it ever shows.
 - **Props turn in quarter turns only** (BL-022, rejected 2026-10-14). A prop's `rot` is a whole number of quarter turns everywhere (level files, placement, the network's ladder message), and the player's colliders are boxes aligned to the world's axes (`THREE.Box3`). A stepladder turned 7.5° or 45° fits no such box: the player would bump into air beside it, and climbing a turned ladder isn't supported. Turning it in small steps would need colliders, climbing and placement rebuilt for free rotation: not worth it.
+- **Capture mode's videos** (`src/capture`) are the canvas only: no sound, and nothing of the page's HTML (the HUD, the name tags, capture mode's own plate). A recording is held in memory until it stops, about 225 MB a minute at the high quality (30 Mbit/s), 450 MB at max, so a take of many minutes can run a tab out of memory. Where the browser records only webm (Firefox), the file has no duration in it: some players can't seek it.
 
 ## Multiplayer
 

@@ -27,3 +27,4 @@ The game's words, as the code uses them.
 ## Play
 
 - **Play state**: playing (the pointer locked to the game), paused behind the menu, F3's panel open, build mode, in a session (`PlayState`, `src/play-state.ts`): whether the game is **frozen** (paused in single player) and what Esc and Enter do. The lock itself is Input's (`Input.setLocked`: the browser's pointer lock, or a test's).
+- **Capture mode**: filming the game (`src/capture`), in first person (the game as played, the HUD but hints and hotbar) or with the **free camera** (no HUD, the game without input, flights through points; others see the player as `capture`). Its plate and marks are HTML, never in the video; the video is the canvas, at a fixed **frame** size if one is chosen (`src/view-rect.ts`). Off unless its key (N) or `?capture=1` turns it on.

@@ -4,7 +4,7 @@
 // DETAIL, paint and the stepladder reaching the other player, a reload coming
 // back into the session, paint while hidden, one that heard nothing for a while reconnecting, LEAVE
 // SESSION, one already playing the session's level starting it over, a message it can't handle ending its session as
-// broken, LEAVE bringing back the player's own paint, a full session's next player waiting in line, a second tab of one browser taking the game over, an admin from CCTV's Join as admin, and a server restart ending the session. One scenario, in scripts/multiplayer/, one phase per module.
+// broken, LEAVE bringing back the player's own paint, a full session's next player waiting in line, a second tab of one browser taking the game over, a player filming in capture mode (Capture by their name, their figure still), an admin from CCTV's Join as admin, and a server restart ending the session. One scenario, in scripts/multiplayer/, one phase per module.
 // Usage: npm run test:mp (builds the server first)
 import assert from 'node:assert/strict';
 import { admin } from './multiplayer/admin.mjs';

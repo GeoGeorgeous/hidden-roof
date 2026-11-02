@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { NET } from '../config';
 import { msg } from '../messages';
+import { onPage } from '../view-rect';
 
 // The other players' names over their heads: a tag each, in the HUD (style.css
 // .nameplate: on a dark box, readable on paper and on paint), placed every
@@ -10,11 +11,12 @@ import { msg } from '../messages';
 // What they're doing (away, in the menu…) goes after the name, colored by how bad it is.
 
 /** What a nameplate notes after the name. */
-type Note = 'away' | 'menu' | 'idle' | 'lagging' | 'silent' | 'dropped';
+type Note = 'away' | 'menu' | 'capture' | 'idle' | 'lagging' | 'silent' | 'dropped';
 
 const WORD: Record<Note, string> = {
   away: msg('hud.noteAway'),
   menu: msg('hud.noteMenu'),
+  capture: msg('hud.noteCapture'),
   idle: msg('hud.noteIdle'),
   lagging: msg('hud.noteLagging'),
   silent: msg('hud.noteSilent'),
@@ -63,7 +65,6 @@ export class Nameplates {
     }
     eye.setFromMatrixPosition(camera.matrixWorld);
     const { near, far, faintest } = NET.nameplateFade;
-    const { innerWidth, innerHeight } = window;
     for (const p of players) {
       const tag = this.tags.get(p.id) ?? this.add(p.id);
       if (tag.name.textContent !== p.name) tag.name.textContent = p.name;
@@ -86,7 +87,10 @@ export class Nameplates {
       if (opacity !== tag.opacity) tag.root.style.opacity = String((tag.opacity = opacity));
       at.project(camera);
       tag.root.hidden = at.z > 1;
-      if (!tag.root.hidden) tag.root.style.transform = `translate(${Math.round((at.x * 0.5 + 0.5) * innerWidth)}px, ${Math.round((0.5 - at.y * 0.5) * innerHeight)}px) translate(-50%, -100%)`;
+      if (!tag.root.hidden) {
+        const spot = onPage(at.x, at.y);
+        tag.root.style.transform = `translate(${Math.round(spot.x)}px, ${Math.round(spot.y)}px) translate(-50%, -100%)`;
+      }
     }
   }
 
