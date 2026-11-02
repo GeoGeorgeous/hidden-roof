@@ -123,7 +123,9 @@ const hours1 = JSON.parse(fs.readFileSync(path.join(traffic, `hours-${names[1]}.
 assert.deepEqual(Object.keys(hours), ['12']);
 assert.deepEqual([hours[12].views, hours[12].bots, Object.keys(hours[12].seen).length], [before.views, before.bots, before.steps.view + 1], 'the views of the day; the visitor of a script alone is in too');
 assert.deepEqual([hours1[12].views, Object.keys(hours1[12].seen).length], [2, 2], 'a visitor and the script of another');
-assert.ok(Object.keys(hours[12].seen).some((id) => id in hours1[12].seen), 'one salt for both days');
+// The two days straddle a month on the 1st and 2nd of one: then each has its own salt.
+const oneMonth = names[0].slice(0, 7) === names[1].slice(0, 7);
+assert.equal(Object.keys(hours[12].seen).some((id) => id in hours1[12].seen), oneMonth, oneMonth ? 'one salt for both days' : 'a salt a month');
 assert.equal(fs.statSync(path.join(traffic, `hours-${names[0]}.json`)).mode & 0o777, 0o600, 'hours for their owner only');
 
 // A day names at most SERVER.trafficKinds sources, then Other.
