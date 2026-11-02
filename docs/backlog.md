@@ -129,8 +129,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## Servers and deploy
 
-1. IDEA [?BL-147]: Anti-cheat: The server checks what players send (op reach and rate, ladder spot, jumps) before it goes public @1.6.1
-2. [TASK-201]: Research itch.io Publishing Requirements, AI Policies, and Download Restrictions @1.6.3
+1. [TASK-201]: Research itch.io Publishing Requirements, AI Policies, and Download Restrictions @1.6.3
 
 ## CCTV
 
@@ -212,3 +211,4 @@ Dropped items, kept for the record; don't work on them.
 26. ~~[IDEA-193]: Function to lock some some parts of the wall with paintings from changes (admin control) (merged into IDEA-195)~~
 27. ~~IDEA [?BL-153]: Find who painted something by player id, picked like the eyedropper (to spot bad paint) (merged into IDEA-195)~~
 28. ~~[TASK-287]: Better SEO: large; needs a discussion and the owner's decisions first, done last in the release, not touched until then; being discussed, nothing approved yet (dropped 2026-11-02: what it held is done in TASK-291, TASK-292 and TASK-293)~~
+29. ~~IDEA [?BL-147]: Anti-cheat: The server checks what players send (op reach and rate, ladder spot, jumps) before it goes public (dropped 2026-11-02: nothing in the game is worth cheating at; what matters is already there: a bad or oversized message, or an error, closes only that link, a budget per link and limits per address, kick and ban only through the admin API (unpublished port, ADMIN_KEY, CCTV behind tinyauth), admin only with a one-time pass, a player's lock ignored)~~
