@@ -1,9 +1,9 @@
-# Admin mode: who painted what and a timelapse (IDEA-288, IDEA-289 @1.7.1)
+# Admin mode: who painted what and a timelapse (IDEA-288 @1.9.0, IDEA-289)
 
 Admin mode itself shipped in 1.6.1 (`server/admins.ts`, `src/admin`; its limits in `docs/known-limits.md`). What
 follows is the owner's approved plan for its next part (2026-11-01).
 
-## 1.7.1: who painted what (IDEA-288) and a timelapse (IDEA-289)
+## 1.9.0: who painted what (IDEA-288) and a timelapse (IDEA-289)
 
 - **When:** after the Painting Rework (TASK-231). A painter makes ~1760 ops a second now (one per particle) and should
   make ~60 after it (`docs/ideas/paint-refactoring.md`). A 15-minute ring for 20 painters is ~720 MB now and ~36 MB

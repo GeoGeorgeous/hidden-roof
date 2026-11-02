@@ -1,6 +1,6 @@
 # src/ in folders (RFCT-202)
 
-Planned for 1.8.0 (owner, 2026-10-25). On 2026-10-25 `src/` had 69 loose files next to 15 folders. A plain move into folders, with no barrel `index.ts` and no new module layer; behavior identical, full `npm run check` before and after.
+Planned for 1.9.0 (owner, 2026-11-02; first 1.8.0, 2026-10-25). On 2026-10-25 `src/` had 69 loose files next to 15 folders. A plain move into folders, with no barrel `index.ts` and no new module layer; behavior identical, full `npm run check` before and after.
 
 ## Where the root files go
 
