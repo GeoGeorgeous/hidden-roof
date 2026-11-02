@@ -54,6 +54,8 @@ export interface Player extends Held {
   ladder: PropData | null;
   /** Their last link that closed: from where, how long it lived, when (ms), for the log; how long (s) the seat is held. */
   was: { ip: string; country: string | null; lived: number; at: number; hold: number } | null;
+  /** An admin (admins.ts), not a player: whether the players see them. */
+  watcher?: { seen: boolean };
 }
 
 /** `link` turned away: closed with the reason's code, which tells the game why (`text`: more for the game, a ban's end and reason). */
@@ -74,7 +76,7 @@ export const stampedBy = (p: Player, t: number) => {
 };
 
 /** Whether `link` may take the seat of the dropped player `p` by typing their nickname: it is from their device, or from their address (the same IPv6 /64). */
-export const theirs = (p: Player, link: Link) => (!!link.device && p.device === link.device) || (!!p.was && prefix(p.was.ip) === prefix(link.ip));
+const theirs = (p: Player, link: Link) => (!!link.device && p.device === link.device) || (!!p.was && prefix(p.was.ip) === prefix(link.ip));
 
 /** `name`, or with the lowest number free when another player has it: "geo (2)", which no player can type, so it never looks like a typed name. */
 export function uniqueName(name: string, players: Player[]) {
@@ -85,4 +87,19 @@ export function uniqueName(name: string, players: Player[]) {
     const s = name.slice(0, NAME_MAX - tag.length) + tag;
     if (!taken.has(s)) return s;
   }
+}
+
+/**
+ * The player of `all` that `link` is: with the token of one still here, or the device of one whose link is open (a tab
+ * whose session storage is gone, a second tab), that player again (`back`); else one who dropped under the same name,
+ * from their device or address (`takeover`); else none (`new`).
+ */
+export function match(all: Player[], link: Link, name: string, token?: string): { p: Player | undefined; how: 'back' | 'takeover' | 'new' } {
+  let p = token ? all.find((q) => q.token === token) : undefined;
+  if (!p && link.device) p = all.find((q) => q.device === link.device && q.link?.open);
+  if (p) return { p, how: 'back' };
+  // A dropped player's seat is taken back by typing their nickname, but only from their device or address.
+  const dropped = all.filter((q) => !q.link && theirs(q, link));
+  p = dropped.find((q) => q.name === name) ?? dropped.find((q) => q.asked === name);
+  return { p, how: p ? 'takeover' : 'new' };
 }

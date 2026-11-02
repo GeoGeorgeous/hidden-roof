@@ -18,12 +18,17 @@ import type { V3 } from '../kit/pieces.ts';
 // through checkToServer.
 
 /** Bumped when a message changes or anything the server runs for a session does (paint, drips, face keys, the save format). host and join carry it and the level's surface-table hash; a mismatch is answered 'version' and the game asks for a reload. */
-export const PROTOCOL = 9;
+export const PROTOCOL = 10;
 export const NAME_MAX = 16;
 /** A player's name: Latin letters and digits only (ASCII), 1 to NAME_MAX of them; the menu checks it before HOST or JOIN, the server refuses any other. */
 export const isName = (x: unknown): x is string => typeof x === 'string' && x.length <= NAME_MAX && /^[A-Za-z0-9]+$/.test(x);
 /** What is left of `x` as a name: the letters and digits of it, at most NAME_MAX (a name saved by an older version, or typed). */
 export const cleanName = (x: string) => x.replace(/[^A-Za-z0-9]/g, '').slice(0, NAME_MAX);
+/** The name a seen admin goes by (server/admins.ts): no player may take it, in any case. */
+export const ADMIN_NAME = 'Admin';
+export const isReservedName = (x: string) => x.toLowerCase() === ADMIN_NAME.toLowerCase();
+/** An admin's one-time pass (server/admins.ts): base64url, as the server makes it. */
+const isPass = (x: unknown) => typeof x === 'string' && /^[A-Za-z0-9_-]{1,64}$/.test(x);
 /** A session's name, as its creator typed it (server/admin/sessions.ts): at most this many characters. */
 export const SESSION_NAME_MAX = 32;
 /** A session's name as its creator typed it: 1 to SESSION_NAME_MAX characters once trimmed, no control characters; the server keeps it trimmed. */
@@ -62,10 +67,11 @@ export const SNAPSHOT_REST = 16;
  * or too many links or sessions from one address (SERVER.linksPerIp, sessionsPerIp),
  * or HOST while players may not host (SERVER.playerHost), or the admin removed the player or closed the session ('closed'),
  * or a public session has all the seats or places in line (SERVER.seatsPerIp) one address may have ('seats'),
- * or an address JOINs public sessions too often (SERVER.joinsPerIp a minute: 'rate').
+ * or an address JOINs public sessions too often (SERVER.joinsPerIp a minute: 'rate'),
+ * or an admin's JOIN came with a pass that is unknown, used, expired or for another session ('pass').
  * The socket closes with closeCode(reason): the code alone says it (rejectionOf), and the reason is for the logs.
  */
-const REJECTIONS = ['version', 'no-session', 'ended', 'full', 'bad-save', 'bad-level', 'busy', 'replaced', 'too-many', 'no-host', 'kicked', 'closed', 'seats', 'rate', 'banned'] as const;
+const REJECTIONS = ['version', 'no-session', 'ended', 'full', 'bad-save', 'bad-level', 'busy', 'replaced', 'too-many', 'no-host', 'kicked', 'closed', 'seats', 'rate', 'banned', 'pass'] as const;
 export type Rejection = (typeof REJECTIONS)[number];
 export const closeCode = (r: Rejection) => 4001 + REJECTIONS.indexOf(r);
 /** The rejection a socket's close code says (see closeCode), if it does. */
@@ -111,8 +117,8 @@ export type Presence = Activity | 'dropped';
 export type ToServer =
   /** Start a private session on this level, at this PAINT DETAIL, from a paint save (`bytes`) or clean; `session`: its name, most players (SERVER.privateMin to SERVER.players.private) and tools. `table`: this client's surfaceTable of the level. `device` (here and in JOIN): this browser's random id (stored.ts deviceId), for the admin's count of people. */
   | { type: 'host'; protocol: number; device?: string; table: string; name: string; levelName: string; level: LevelData; detail: number; session: { name: string; limit: number; tools: Tool[] }; bytes?: Uint8Array }
-  /** Join by code; with the `token` from an earlier welcome, as the same player (a reconnect); with the `queue` token of an earlier 'queued', back to that place in line. */
-  | { type: 'join'; protocol: number; device?: string; name: string; code: string; token?: string; queue?: string }
+  /** Join by code; with the `token` from an earlier welcome, as the same player (a reconnect); with the `queue` token of an earlier 'queued', back to that place in line; with an admin's one-time `pass`, as an admin (server/admins.ts). */
+  | { type: 'join'; protocol: number; device?: string; name: string; code: string; token?: string; queue?: string; pass?: string }
   /** This player now (net/snapshot.ts). */
   | { type: 'state'; bytes: Uint8Array }
   /**
@@ -131,6 +137,10 @@ export type ToServer =
   | { type: 'status'; status: Activity }
   /** Answered with a pong carrying the same `t`: the round trip, for the HUD. */
   | { type: 'ping'; t: number }
+  /** An admin's: seen by the others as a player, or not (unseen, the start). */
+  | { type: 'seen'; on: boolean }
+  /** An admin's: face `rect` of surface `surface` (its SurfaceIndex number) locked against paint, or unlocked. */
+  | { type: 'lock'; surface: number; rect: number; on: boolean }
   | { type: 'leave' };
 
 /** Server -> game. */
@@ -141,15 +151,17 @@ export type ToClient =
    * their stepladders, what this player carried when here before (null: the
    * starting kit) and where they last stood (`at`; null: the level's spawn); its paint as a paint file follows in `parts` parts (none:
    * it's the save this host sent). `acked`: their last op batch the server has (0: none), in the paint file.
+   * `admin`: this link is an admin's (server/admins.ts). `locks`: the faces locked against paint, as SurfaceIndex
+   * numbers and face rects. A player's `role` is there for a seen admin.
    */
-  | { type: 'welcome'; code: string; you: number; name: string; token: string; session: SessionInfo; levelName: string; level: LevelData; detail: number; table: string; players: { id: number; name: string; state: Presence }[]; ladders: { id: number; data: PropData }[]; inventory: InventoryData | null; at: Spot | null; parts: number; acked: number }
+  | { type: 'welcome'; code: string; you: number; name: string; token: string; session: SessionInfo; levelName: string; level: LevelData; detail: number; table: string; players: { id: number; name: string; state: Presence; role?: Role }[]; ladders: { id: number; data: PropData }[]; inventory: InventoryData | null; at: Spot | null; parts: number; acked: number; admin?: true; locks: [number, number][] }
   /**
    * The session is full: this link waits in line, `position` 1 next (SERVER.queueMax at most; past it, 'full').
    * Sent again whenever the position changes; the welcome follows once a place is free. A JOIN with `token` after
    * a dropped link keeps the place for SERVER.rejoinWindow.
    */
   | { type: 'queued'; position: number; token: string }
-  | { type: 'joined'; id: number; name: string }
+  | { type: 'joined'; id: number; name: string; role?: Role }
   | { type: 'left'; id: number }
   | { type: 'presence'; id: number; state: Presence }
   /** A player's snapshot, and their paint ops packed as they sent them: from the server only inside a relay frame (unrelay gives them back). */
@@ -167,7 +179,12 @@ export type ToClient =
   /** Sent every few seconds, so a client notices a dead link. */
   | { type: 'ping' }
   /** The ping's `t` back, and the last op batch of theirs the server has. */
-  | { type: 'pong'; t: number; acked: number };
+  | { type: 'pong'; t: number; acked: number }
+  /** A face locked against paint, or unlocked, as in the welcome's `locks`. */
+  | { type: 'lock'; surface: number; rect: number; on: boolean };
+
+/** What else a player in the session is: a seen admin (the word `admin` is SessionSetup's). */
+export type Role = 'watcher';
 
 type Message = { type: string; bytes?: Uint8Array };
 
@@ -296,9 +313,9 @@ export function checkToServer(m: Message | null): ToServer | null {
   if ((m.type === 'host' || m.type === 'join') && isInt(v.protocol) && v.protocol !== PROTOCOL) return m as ToServer;
   switch (m.type) {
     case 'host':
-      return isInt(v.protocol) && isDevice(v.device) && typeof v.table === 'string' && isName(v.name) && typeof v.levelName === 'string' && v.levelName.length <= SERVER.levelNameMax && !levelProblem(v.level, SERVER.maxProps) && DETAILS.includes(v.detail as number) && isHosting(v.session) ? (m as ToServer) : null;
+      return isInt(v.protocol) && isDevice(v.device) && typeof v.table === 'string' && isPlayerName(v.name) && typeof v.levelName === 'string' && v.levelName.length <= SERVER.levelNameMax && !levelProblem(v.level, SERVER.maxProps) && DETAILS.includes(v.detail as number) && isHosting(v.session) ? (m as ToServer) : null;
     case 'join':
-      return isInt(v.protocol) && isDevice(v.device) && isName(v.name) && isCode(v.code) && (v.token === undefined || typeof v.token === 'string') && (v.queue === undefined || isQueueToken(v.queue)) && !m.bytes ? (m as ToServer) : null;
+      return isInt(v.protocol) && isDevice(v.device) && (v.pass === undefined ? isPlayerName(v.name) : isName(v.name) && isPass(v.pass)) && isCode(v.code) && (v.token === undefined || typeof v.token === 'string') && (v.queue === undefined || isQueueToken(v.queue)) && !m.bytes ? (m as ToServer) : null;
     case 'state':
       return m.bytes?.length === SNAPSHOT_BYTES ? (m as ToServer) : null;
     case 'ops':
@@ -311,6 +328,10 @@ export function checkToServer(m: Message | null): ToServer | null {
       return isInventory(v.data) ? { type: 'inventory', data: inventoryOf(v.data) } : null;
     case 'status':
       return ACTIVITIES.includes(v.status as Activity) ? (m as ToServer) : null;
+    case 'seen':
+      return typeof v.on === 'boolean' ? { type: 'seen', on: v.on } : null;
+    case 'lock':
+      return isInt(v.surface) && isInt(v.rect) && typeof v.on === 'boolean' ? { type: 'lock', surface: v.surface, rect: v.rect, on: v.on } : null;
     case 'save':
     case 'leave':
       return m as ToServer;
@@ -319,6 +340,8 @@ export function checkToServer(m: Message | null): ToServer | null {
 }
 
 const isInt = (x: unknown): x is number => Number.isInteger(x) && (x as number) >= 0;
+/** A name a player may go by: not the admin's. */
+const isPlayerName = (x: unknown) => isName(x) && !isReservedName(x);
 const isHosting = (x: unknown) => isObj(x) && isSessionName(x.name) && isPrivateLimit(x.limit) && isToolSet(x.tools);
 /** A queue token is a UUID; anything much longer is not one. */
 const isQueueToken = (x: unknown) => typeof x === 'string' && x.length <= SERVER.queueTokenMax;

@@ -1,12 +1,13 @@
 import './headless';
 import assert from 'node:assert/strict';
+import * as THREE from 'three';
 import fs from 'node:fs';
 import { PAINT, SERVER } from '../src/config';
 import type { LevelData } from '../src/level/level-data';
 import type { Owned } from '../src/paint-surface';
 import { loadPaint } from '../src/save/load-paint';
 import { savePaint } from '../src/save/save-paint';
-import { planLevel } from '../src/level/prop-pieces';
+import { levelPaintFaces, planLevel } from '../src/level/prop-pieces';
 import { closeCode, decode, encode, PROTOCOL, rejectionOf, type ToClient, type ToServer } from '../src/net/protocol';
 import { surfaceTable } from '../src/save/shape';
 import { Lobby, type LinkInput } from './lobby';
@@ -59,6 +60,35 @@ const level: LevelData = JSON.parse(fs.readFileSync('public/levels/demo.json', '
   assert.deepEqual([[...plan.props.keys()], plan.next], [[5, 6, 7], 8]);
   assert.ok([5, 6, 7].every((id) => plan.cover.boxesOf(id).length > 0));
   console.log('level plan: ok (ids kept, numbered after, solid boxes listed)');
+}
+
+// A locked face takes no paint: no stamp of this player's (not logged; the toast's flag is up, once), no replayed
+// op, no run's dab; unlocked, it does again. A surface built again (a prop rebuilt) is locked again.
+{
+  const { paint, ops } = sessionPaint(level, 48);
+  const s = paint.surfaces[0];
+  const r = s.geo.rects[0];
+  paint.locks.set(s.key, 0, true);
+  paint.log = [];
+  paint.stamp(s, { rect: 0, u: 0.5, v: 0.5 }, 0.2, 1, [1, 0, 0]);
+  ops.apply({ kind: 'stamp', key: s.key, rect: 0, u: 0.5, v: 0.5, radius: 0.2, amount: 1, color: [0, 0, 1], softness: 0, square: false });
+  paint.dab(s, r, r.x, r.y, 1, [1, 0, 0]);
+  // Never the paint itself in an assertion: a failing one prints and diffs the whole atlas (megabytes) and runs out of memory.
+  const onFace = () => {
+    for (let y = r.y; y < r.y + r.h; y++) for (let x = r.x; x < r.x + r.w; x++) if (s.data?.[(y * s.geo.atlasW + x) * 4 + 3]) return true;
+    return false;
+  };
+  assert.ok(!onFace(), 'the locked face takes no paint');
+  assert.deepEqual([paint.log.length, paint.locks.takeHit(), paint.locks.takeHit()], [0, true, false], 'nothing logged, the toast told once');
+  paint.locks.set(s.key, 0, false);
+  paint.stamp(s, { rect: 0, u: 0.5, v: 0.5 }, 0.2, 1, [1, 0, 0]);
+  assert.ok(onFace() && paint.log.length === 1, 'unlocked, it takes paint');
+  paint.locks.set(s.key, 0, true);
+  paint.unregister(s.mesh);
+  const again = levelPaintFaces(level, 48).find((f) => f.key === s.key)!.geo;
+  paint.register(s.key, new THREE.Mesh(), again, '');
+  assert.deepEqual([again.rects[0].locked, paint.locks.list()], [true, [[s.key, 0]]]);
+  console.log('locked faces: ok (no stamp, replay or run paints one; unlocked it does; locked again when rebuilt)');
 }
 
 // Ops replayed (another player's) are painted and never logged; this player's are logged.

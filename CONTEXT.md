@@ -15,6 +15,8 @@ The game's words, as the code uses them.
 ## Multiplayer
 
 - **Session**: a game on one level shared through the server, under a code. The admin makes it, **public** (open to all from the server list, up to 20 players, kept with its paint) or **private** (joined with its code, up to 4, in memory only); players JOIN it (HOST, their own private one, is off: `SERVER.playerHost`). `src/net/multiplayer.ts`, `server/session.ts`.
+- **Admin** (in a session): the owner in a session through CCTV's Join as admin (`server/admins.ts`, `src/admin`), outside its players; unseen, or seen by them as a player named Admin. On the wire their role is `watcher`: `admin` is already `SessionSetup.admin`, a session the admin made.
+- **Lock**: a face kept from paint by an admin (`src/paint-locks.ts`, `server/locks.ts`); players who paint it are told "I won't spoil this masterpiece".
 - **Line** (queue): the players waiting for a place in a full session, in order (`server/queue.ts`); a dropped link keeps its place for `SERVER.rejoinWindow`.
 - **Kept paint**: a public session's paint saved on the server's disk (`server/kept.ts`) and made again at start; the admin's wipe sets the newest saves aside, never loaded.
 - **Server link**: one WebSocket to the server for one HOST or JOIN (`ServerLink`, `src/net/server-link.ts`): the hello, keepalive, giving up before the welcome, a paint file's parts. A dropped player comes back on a new link with their token.

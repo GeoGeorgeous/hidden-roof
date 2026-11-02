@@ -36,7 +36,7 @@ const PREVIEW_SECONDS = 1.5;
 /** The session's live line (ping, players) is refreshed this often while it shows. */
 const LINE_SECONDS = 1;
 
-export type Page = 'settings' | 'mp' | 'join' | 'create' | 'loading' | 'queue' | 'credits' | 'updates' | 'save' | 'upload' | 'perf' | 'game';
+export type Page = 'settings' | 'mp' | 'join' | 'create' | 'loading' | 'queue' | 'credits' | 'updates' | 'save' | 'upload' | 'perf' | 'game' | 'admin';
 
 export class PauseMenu {
   /** Back to the game; `fullscreen` false: as it is, windowed or not (input.ts requestLock). */

@@ -8,7 +8,10 @@ import { freePort, gameReady, noBrowserLock, noDrawing, openTestBrowser } from '
 export { joinFromList, hostSession, press };
 
 export const PORT = await freePort();
-const startServer = () => spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(PORT), PLAYER_HOST: '1' }, stdio: ['ignore', 'ignore', 'inherit'] });
+/** The admin API's port, with ADMIN_KEY (admin.mjs asks it for passes). */
+export const ADMIN_PORT = await freePort();
+export const ADMIN_KEY = 'test-key';
+const startServer = () => spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(PORT), ADMIN_PORT: String(ADMIN_PORT), ADMIN_KEY, PLAYER_HOST: '1' }, stdio: ['ignore', 'ignore', 'inherit'] });
 let server = startServer();
 process.env.WS_TARGET = `ws://localhost:${PORT}`;
 const test = await openTestBrowser();
@@ -25,8 +28,8 @@ export async function stop() {
   server.kill();
 }
 
-/** A player in a browser context of its own (its own sessionStorage, like an incognito window). */
-export async function open(detail) {
+/** A player in a browser context of its own (its own sessionStorage, like an incognito window); `hash`: the address's #part (an admin's link). */
+export async function open(detail, hash = '') {
   const ctx = await test.browser.newContext({ viewport: { width: 1280, height: 720 } });
   // Nothing drawn: the test is about the network.
   await ctx.addInitScript(noDrawing);
@@ -45,7 +48,7 @@ export async function open(detail) {
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.goto(test.url);
+  await page.goto(test.url + hash);
   await gameReady(page);
   page.errors = errors;
   await watchStatus(page);

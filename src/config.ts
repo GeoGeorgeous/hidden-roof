@@ -1310,6 +1310,9 @@ export const SERVER = {
   uploadCheck: 300,
   /** A private session the admin made that doesn't stay closes if no one has come in this long (s). */
   adminWait: 600,
+  /** An admin's one-time pass into a session (server/admins.ts): this many random bytes, good for adminPassLife s, once. */
+  adminPassBytes: 24,
+  adminPassLife: 60,
   /** A link that hasn't sent HOST or JOIN by then is closed (s), so idle links hold no slot. */
   helloTimeout: 20,
   /** With LOG_DIR, the log's lines lose their IP addresses and nicknames after this many days, and are deleted after logKeepDays (the privacy page says so); checked every logCleanEvery (s). */
@@ -1684,6 +1687,14 @@ export const HINT = {
   supersample: 2,
   /** Hints are best made at this PAINT DETAIL (ULTRA, texels per meter): lower ones blur their letters, and P says so. */
   detail: 96,
+};
+
+/** Admin mode in a session (src/admin): its keys (KeyboardEvent codes; none of them is play's, Tab is build mode's), how far L reaches for a face (m), and the locked faces' outlines (O). */
+export const ADMIN = {
+  keys: { seen: 'KeyH', fly: 'KeyJ', lock: 'KeyL', outlines: 'KeyO', list: 'KeyG' },
+  reach: 120,
+  outlineColor: '#d4261c',
+  outlineOpacity: 0.9,
 };
 
 /** CCTV cameras follow the player when they come near, and switch on their light (LIGHTS.cctv). */

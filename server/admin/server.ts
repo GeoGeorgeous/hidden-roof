@@ -26,7 +26,7 @@ export const root: Route = async (c) => {
     sessions: c.lobby.sessions.size,
     players: c.lobby.players,
     peak: history.ever,
-    limits: { public: SERVER.players.public, private: { min: SERVER.privateMin, max: SERVER.players.private }, name: SESSION_NAME_MAX, ban: { days: SERVER.banDays, reasonBytes: SERVER.banReasonBytes, reasons: SERVER.banReasons } },
+    limits: { public: SERVER.players.public, private: { min: SERVER.privateMin, max: SERVER.players.private }, name: SESSION_NAME_MAX, ban: { days: SERVER.banDays, reasonBytes: SERVER.banReasonBytes, reasons: SERVER.banReasons }, adminPass: { seconds: SERVER.adminPassLife } },
     settings: {
       slowPing: SERVER.slowPing,
       saveEvery: SERVER.keepEvery,

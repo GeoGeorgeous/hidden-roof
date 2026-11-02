@@ -10,6 +10,7 @@ import { log, logNoisy, who } from './log';
 import { turnedAway } from './minutes';
 import type { LevelData } from '../src/level/level-data';
 import { turnAway, type Link, type Player } from './player';
+import { Passes } from './admins';
 import type { Place } from './queue';
 import { PerMinute } from './per-minute';
 import { host } from './lobby-host';
@@ -30,8 +31,9 @@ export interface LinkInput {
   closed(code: number, reason: string): void;
 }
 
-/** Where a link is once it is in: a session's player, or an entry in its line. */
-type At = { session: Session; player: Player } | { session: Session; place: Place };
+/** Where a link is once it is in: a session's player, an entry in its line, or one of its admins (admins.ts). */
+type In = { session: Session; player: Player } | { session: Session; place: Place };
+type At = In | { session: Session; admin: Player };
 
 /** What the line calls when a place is free for a link: brings it in as its JOIN would have; true if the server had no memory for it (turned away, it keeps its place). */
 type Seat = (session: Session, name: string) => (waited: number) => Promise<boolean>;
@@ -60,6 +62,8 @@ export class Lobby {
   private joins = new PerMinute(SERVER.joinsPerIp, SERVER.joinIps);
   /** The admin's bans (main.ts keeps them in DATA_DIR). */
   readonly bans = new Bans();
+  /** One-time passes for admins into sessions (admins.ts), made by the admin API. */
+  readonly passes = new Passes();
 
   /**
    * A link that opened (`host`: on /ws?host, where saves come up): turned away
@@ -94,9 +98,10 @@ export class Lobby {
     const failed = (e: unknown, code = at && at !== 'waiting' ? at.session.code : '-----') => {
       log(code, `server error with ${ip}: closed`, e);
       if (at && at !== 'waiting' && 'player' in at) at.session.dropped(at.player, link);
+      if (at && at !== 'waiting' && 'admin' in at) at.session.admins.remove(at.admin, 'server error');
       link.close(1011, 'server error');
     };
-    const bye = (r: At) => ('place' in r ? r.session.line.receive(r.place, { type: 'leave' }) : r.session.remove(r.player, 'left'));
+    const bye = (r: In) => ('place' in r ? r.session.line.receive(r.place, { type: 'leave' }) : r.session.remove(r.player, 'left'));
     const seat: Seat = (session, name) => async (waited) => {
       at = 'waiting';
       try {
@@ -140,9 +145,19 @@ export class Lobby {
           }
           // A link replaced by another (a reconnect, another tab) is no longer theirs.
           if (at && 'place' in at) return at.place.link === link ? at.session.line.receive(at.place, m) : undefined;
+          if (at && 'admin' in at) return at.admin.link === link ? at.session.admins.receive(at.admin, m) : undefined;
           if (at) return at.player.link === link ? at.session.receive(at.player, m) : undefined;
           if (m.type !== 'host' && m.type !== 'join') return;
           link.device = m.device;
+          // An admin's pass beats bans and the limits per address (not the links per address: counted as it opened).
+          if (m.type === 'join' && m.pass !== undefined && m.protocol === PROTOCOL) {
+            at = 'waiting';
+            const r = await this.watch(m.code, m.pass, link);
+            at = typeof r === 'string' ? null : r;
+            if (typeof r === 'string') return r === 'pass' ? turnAway(link, r) : undefined;
+            if (left || !link.open) r.session.admins.remove(r.admin, left ? 'left' : 'its link closed');
+            return;
+          }
           // A game of another version is told that first: it may not know this close code.
           const ban = m.protocol === PROTOCOL && this.bans.of(ip, m.device);
           if (ban) return reject('banned', m, banText(ban));
@@ -162,6 +177,7 @@ export class Lobby {
         if (uploads) count(this.uploads, ip, -1);
         clearTimeout(hello);
         if (!at || at === 'waiting') return;
+        if ('admin' in at) return at.session.admins.remove(at.admin, `its link closed (${code})`);
         const hold = holdFor(code);
         if ('place' in at) return at.session.line.dropped(at.place, link, hold);
         if (at.player.link !== link) return;
@@ -231,8 +247,19 @@ export class Lobby {
     return [...this.sessions.values()].reduce((n, s) => n + s.players.size, 0);
   }
 
+  /** An admin's JOIN with `pass` (admins.ts): in session `code`, outside its players; or 'pass' (logged as a stranger's lines are), or 'busy' (turned away already). */
+  private async watch(code: string, pass: string, link: Link): Promise<{ session: Session; admin: Player } | Rejection> {
+    const session = this.sessions.get(code);
+    if (!this.passes.take(pass, code) || !session) {
+      logNoisy(link.ip, code, `admin JOIN from ${link.ip} turned away: no such pass`);
+      return 'pass';
+    }
+    const admin = await session.admins.admit(link);
+    return typeof admin === 'string' ? admin : { session, admin };
+  }
+
   /** HOST or JOIN: the session and the player (or their place in its line), or why not. */
-  private async enter(m: Extract<ToServer, { type: 'host' | 'join' }>, link: Link, ip: string, seat: Seat): Promise<At | Rejection> {
+  private async enter(m: Extract<ToServer, { type: 'host' | 'join' }>, link: Link, ip: string, seat: Seat): Promise<In | Rejection> {
     if (m.protocol !== PROTOCOL) return 'version';
     if (m.type === 'join' && m.token && (this.kicked.get(m.token) ?? 0) + SERVER.rejoinWindow * 1000 > Date.now()) return 'kicked';
     let session: Session;

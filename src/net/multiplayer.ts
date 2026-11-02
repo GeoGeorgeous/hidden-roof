@@ -4,7 +4,8 @@ import type { PaintOp } from '../paint-ops';
 import { loadPaint } from '../save/load-paint';
 import { surfaceTable } from '../save/shape';
 import { session } from '../session';
-import { cleanName, PROTOCOL, type SessionInfo, type ToClient, type ToServer } from './protocol';
+import { ADMIN_NAME, cleanName, PROTOCOL, type SessionInfo, type ToClient, type ToServer } from './protocol';
+import { lockOf, welcomeLocks, type AdminSession } from './watching';
 import { describeHello, NetLog, Traffic } from './diagnostics';
 import { decodeOps, encodeOps, SurfaceIndex } from '../op-wire';
 import { enterSessionLevel, type MultiplayerContext } from './game-context';
@@ -43,6 +44,8 @@ export class Multiplayer {
   onEnd: () => void = () => {};
   /** The link's state worth telling the player (slow, quiet), or null; called when it changes, while in a session. */
   onHealth: (h: LinkStatus | null) => void = () => {};
+  /** The welcome said admin (server/admins.ts): admin mode starts with its session; null: it's over (any closed link ends it). */
+  onAdmin: (a: AdminSession | null) => void = () => {};
   /** What's under way, for the player to watch (UPLOADING PAINT 40%…); null when it's done. */
   onProgress: (p: Progress | null) => void = () => {};
   /** What happened to the link (COPY NETWORK LOG). */
@@ -51,6 +54,8 @@ export class Multiplayer {
   readonly minute = new NetMinute();
   /** The link to the server, while there's one. */
   private link: ServerLink | null = null;
+  /** Admin mode's session, while this game is an admin's. */
+  admin: AdminSession | null = null;
   private remotes: Remotes;
   /** Who we are, once welcomed, and how to come back. */
   private joined: { code: string; token: string; name: string; asked: string; you: number; levelName: string; session: SessionInfo } | null = null;
@@ -126,7 +131,8 @@ export class Multiplayer {
 
   /** In a session: everyone in it, us first, with their paint colors (null: not known yet). */
   get players() {
-    return this.joined ? [{ name: this.joined.name, color: this.g.inventory.color }, ...this.remotes.roster] : [];
+    // An admin counts in no player line.
+    return this.joined ? [...(this.admin ? [] : [{ name: this.joined.name, color: this.g.inventory.color }]), ...this.remotes.roster] : [];
   }
 
   /** The last round trip to the server (s), null before the first. */
@@ -153,6 +159,11 @@ export class Multiplayer {
     const attempt = this.attempt;
     if (!this.joined) this.setStatus({ state: 'connecting' });
     void this.tail.restoring.then(() => attempt === this.attempt && start());
+  }
+
+  /** Into session `code` as an admin, with CCTV's one-time pass (net/admin-link.ts). */
+  watch(code: string, pass: string) {
+    this.afterRestore(() => this.connect({ type: 'join', protocol: PROTOCOL, name: ADMIN_NAME, code, pass }));
   }
 
   /** Back into the session this tab was in before a reload, if the server may still have it. */
@@ -236,8 +247,11 @@ export class Multiplayer {
   private closed(link: ServerLink, code: number, timedOut: boolean, reason?: string) {
     // A link of the session that died (not a leave: 1000).
     if (this.joined && link.live && code !== 1000) this.minute.dropped(timedOut || this.silence.was(link) ? 'timeout' : String(code), now());
-    if (this.link === link) this.link = null;
-    this.closing.closed(code, timedOut, reason);
+    if (this.link !== link) return this.closing.closed(code, timedOut, reason);
+    this.link = null;
+    // An admin never comes back.
+    if (this.admin) this.end({ state: 'off' });
+    else this.closing.closed(code, timedOut, reason);
   }
 
   /** Out of the session for `reason`, the server told they leave. */
@@ -267,6 +281,7 @@ export class Multiplayer {
     if (!this.joined) return;
     if (this.remotes.handle(m, this.surfaces, arrived, this.onPlayer)) return;
     if (m.type === 'paint') decodeOps(m.bytes, this.surfaces)?.ops.forEach((op) => this.g.paintOps.apply(op));
+    else if (m.type === 'lock') (lockOf(this.g.paint, this.surfaces, m), this.admin?.onLocks());
     else if (m.type === 'save') {
       this.onProgress(null);
       this.saving.settle(file ?? null, msg('menu.saveBusy'));
@@ -303,13 +318,15 @@ export class Multiplayer {
     this.log.add(`paint loaded in ${Math.round((now() - loading) * 1000)} ms`);
     // LEAVE, or the link dropped, while it loaded: this welcome is over (a retry gets its own).
     if (this.stale(link)) return;
+    welcomeLocks(g.paint, this.surfaces, w);
     if (back) this.outbox.take(this.sender.take(), now() - this.t0);
     else this.outbox.clear(w.acked);
     const resend = back ? this.outbox.rejoined(w.acked, (op) => g.paintOps.apply(op)) : [];
     // The session may have numbered it ("geo (2)" when geo was taken): the player goes by that, but every join sends what they typed (a numbered name is not one a player can type).
     this.log.add(`in session ${w.code} as #${w.you}, at ${w.detail} texels/m, with ${w.players.length} others, ${(file.length / 1024).toFixed(0)} KB of paint`);
     this.joined = { code: w.code, token: w.token, name: w.name, asked: this.asked, you: w.you, levelName: w.levelName, session: w.session };
-    keepTabSession({ code: w.code, token: w.token, name: w.name, asked: this.asked });
+    // An admin's tab never comes back on a reload.
+    if (!w.admin) keepTabSession({ code: w.code, token: w.token, name: w.name, asked: this.asked });
     session.multiplayer = true;
     session.player = ownerOf(w.you);
     this.remotes.fill(w, now());
@@ -324,6 +341,7 @@ export class Multiplayer {
     this.onProgress(null);
     this.reconnect.reset();
     this.setStatus({ state: 'in', code: w.code });
+    if (w.admin && !this.admin) this.onAdmin((this.admin = { tools: w.session.tools, surfaces: this.surfaces, send: (m) => this.send(m), players: () => this.remotes.whereabouts, onLocks: () => {} }));
   }
 
   /** The welcome is coming: the line is over, the join goes on as any other. */
@@ -346,6 +364,8 @@ export class Multiplayer {
     // A welcome locks it before the player is in (its paint still loading): unlocked whatever the stage.
     this.g.lockDetail(null);
     const was = this.joined;
+    this.g.paint.locks.reset([]);
+    if (this.admin) (this.admin = null, this.onAdmin(null));
     if (was) {
       this.remotes.clear();
       this.g.level.setRuntime(session.player, null);

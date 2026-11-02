@@ -230,6 +230,10 @@
   letter-spacing: 0.02em;
   color: var(--paper);
 }
+/* A seen admin's (server/admins.ts): the alert color, brightened to read on the plate's dark box. */
+.nameplate.admin .name {
+  color: #ff5a4a;
+}
 /* Colored by how bad it is: the link lost, far behind, or just not playing. */
 .nameplate .note {
   color: var(--text-2);
@@ -244,6 +248,28 @@
   padding: 0 4px;
   font-size: 10px;
   color: var(--text-1);
+}
+
+/* Admin mode's keys (admin/admin-mode.ts), top left: ADMIN and whether the players see you (red when they do), then a key a line. */
+.admin-panel {
+  position: absolute;
+  top: 24px;
+  left: 30px;
+  padding: 6px 10px;
+  background: rgba(20, 20, 22, 0.78);
+  color: var(--paper);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.6;
+  white-space: pre;
+}
+.admin-panel > :first-child {
+  font-family: var(--sans);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+.admin-panel.seen > :first-child span {
+  color: var(--alert);
 }
 
 /* PSI gauge above the tags, shown while spraying or shaking: label, a horizontal line, the value. */
@@ -2986,4 +3012,17 @@ body.paused .layer-toast {
   font-size: 14px;
   line-height: 1.5;
   color: var(--text-1);
+}
+
+/* Admin mode's players page (admin/players-page.ts): a row a player; one never seen here can't be picked. */
+.overlay .admin-players {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.overlay .admin-player {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 14px;
+  text-align: left;
 }

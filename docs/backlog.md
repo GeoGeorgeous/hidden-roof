@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 298
+The one list of what's left. Counter for new ids: next: 300
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -49,9 +49,8 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 1. TASK [BL-076]: Run the next public playtest and verify that all bugs from the previous playtest have been fixed (docs/ideas/weak-links.md) @1.6.2
 2. IDEA [?BL-071]: Multiplayer View-Only sessions: past sessions are opened for viewing only (gallary)
-3. [IDEA-195]: Admin mode in the game: a one-time link from cctv into any session, unseen, past its limits and stats, flying, with every tool; lock wall faces against paint (docs/ideas/admin-mode.md) @1.6.1
-4. [IDEA-288]: Admin mode: who painted what, and erasing one player's paint with what it covered back, within the last ~15 minutes (the server's ring of op batches); after the Painting Rework cuts ops/s (TASK-231) (docs/ideas/admin-mode.md) @1.7.1
-5. [IDEA-289]: A 15-minute timelapse of a wall's painting, from IDEA-288's ring of op batches; only if it comes nearly free (docs/ideas/admin-mode.md) @1.7.1
+3. [IDEA-288]: Admin mode: who painted what, and erasing one player's paint with what it covered back, within the last ~15 minutes (the server's ring of op batches); after the Painting Rework cuts ops/s (TASK-231) (docs/ideas/admin-mode.md) @1.7.1
+4. [IDEA-289]: A 15-minute timelapse of a wall's painting, from IDEA-288's ring of op batches; only if it comes nearly free (docs/ideas/admin-mode.md) @1.7.1
 
 ## Painting
 
@@ -126,6 +125,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 1. TEST [BL-035]: Fixed-step tests for walking, collisions, jumps and climbing
 2. TEST [BL-036]: Light baking and weather run on the wall clock; decide what a test would compare first
+3. [TEST-299]: Heavy runs (check, test:server, test:game, test:mp, golden) under a memory cap, e.g. `systemd-run --user --scope -p MemoryMax=9G`: a runaway test is killed, not WSL (an assert on a paint atlas, diffed byte by byte, took 11 GB and WSL with it three times on 2026-11-02)
 
 ## Servers and deploy
 
@@ -137,7 +137,6 @@ Only `N.`, the id and the description are required. The optional parts appear in
 The admin page (the cctv repo) and the server side it reads (server/admin/). 
 The API and why it is so: docs/admin-api.md.
 
-1. [CCTV-290]: "Join as admin" on a session: ask the server for a one-time pass, open the game at its server's address with it (IDEA-195, docs/ideas/admin-mode.md) @1.6.1
 
 ## Web and promotion
 
@@ -177,6 +176,9 @@ Shipped since the last release; the release commit empties this list.
 16. [TASK-295]: The page about the game's note when the game can't start, in the page's look: a red dot by what went wrong, what to do (WebGL2 off: most often hardware acceleration; a file that didn't load: the connection), and Reload the page
 17. [TASK-296]: How to start playing only where the game can't start, saying what to do, right after the fact cards: a phone gets Play on a computer with Send the link to yourself, a desktop window too small Make the window bigger; gone over the game, once Play now shows, and when the game failed
 18. [TASK-297]: The page's gallery: eight shots (five new from the owner) on a six-column grid, the first large, a caption under each; one column on a phone
+19. [IDEA-195]: Admin mode in a session (server/admins.ts, src/admin): in from cctv with a one-time pass (POST /sessions/CODE/admin-pass, 60 s, once), outside the players (no seat, line, stats, events or listing; one server log line per come and go), past bans and the limits per address; unseen with tools off, or seen (H) as a player named Admin in red, numbered when two are; fly (J), every color and cap and the session's tools; lock or unlock the face pointed at (L: kept with a public session on disk, in every welcome, a toast for players who paint it), the locked faces' outlines (O), the players page (G) to go where one was last seen; any closed link ends it (no reconnect, no tab session, no beacon); the nickname Admin is reserved; PROTOCOL 10 (wipes public paint at deploy); checked by server tests, on a real server when dev reaches next
+20. [CCTV-290]: "Join as admin" on a session's page, shown when GET / has limits.adminPass: a fresh pass each click, the tab opened on the click (cctv PR #12, merged); checked on cctv's fake server, on the real one when IDEA-195 reaches next
+21. [BUGS-298]: traffic-test's "one salt for both days" failed on the 1st and 2nd of each month (its two days straddle a month, and the salt is a month's): it expects a salt a month then
 
 ## Discarder
 

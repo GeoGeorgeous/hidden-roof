@@ -2,13 +2,13 @@ import * as THREE from 'three';
 import { BUILD } from '../config';
 import { texelToWorld } from '../paint-seams';
 import type { PaintSystem } from '../painting';
-import { hasPaint } from '../paint-surface';
+import { hasPaint, type PaintSurface } from '../paint-surface';
 import type { Rect } from '../surfaces';
 
 // Build mode's view of the paint on the walls (H): a box around the paint on
 // each painted face, drawn over everything, so the level's own paint (hints,
 // save/level-paint.ts) is found from anywhere. One line mesh for all of it,
-// made only while building.
+// made only while building. Admin mode (src/admin) draws the locked faces with it.
 
 const p = new THREE.Vector3();
 
@@ -17,7 +17,7 @@ export class PaintedSpots {
   /** Painted faces in the last show(). */
   count = 0;
 
-  constructor(scene: THREE.Scene) {
+  constructor(private scene: THREE.Scene) {
     const material = new THREE.LineBasicMaterial({ transparent: true, depthTest: false, depthWrite: false });
     this.lines = new THREE.LineSegments(new THREE.BufferGeometry(), material);
     this.lines.renderOrder = 10;
@@ -27,11 +27,11 @@ export class PaintedSpots {
     this.syncLook();
   }
 
-  /** BUILD.spot* changed (F3). */
-  syncLook() {
+  /** BUILD.spot* changed (F3), or another look. */
+  syncLook(color = BUILD.spotColor, opacity = BUILD.spotOpacity) {
     const m = this.lines.material as THREE.LineBasicMaterial;
-    m.color.set(BUILD.spotColor);
-    m.opacity = BUILD.spotOpacity;
+    m.color.set(color);
+    m.opacity = opacity;
   }
 
   get visible() {
@@ -52,17 +52,42 @@ export class PaintedSpots {
         const box = paintBox(s.data!, s.geo.atlasW, r);
         if (!box) return;
         this.count++;
-        if (r.face) {
-          const corners = [[box[0], box[1]], [box[2], box[1]], [box[2], box[3]], [box[0], box[3]]].map(([x, y]) => texelToWorld(r, x, y, p).toArray());
-          corners.forEach((c, i) => v.push(...c, ...corners[(i + 1) % 4]));
-        } else edges(s.geo.geometry, v);
+        outline(s, r, box, v);
       });
     }
+    this.draw(v);
+  }
+
+  /** A box around each of these whole faces. */
+  frame(faces: Iterable<{ s: PaintSurface; r: Rect }>) {
+    const v: number[] = [];
+    this.count = 0;
+    for (const { s, r } of faces) {
+      this.count++;
+      outline(s, r, [r.x, r.y, r.x + r.w, r.y + r.h], v);
+    }
+    this.draw(v);
+  }
+
+  dispose() {
+    this.scene.remove(this.lines);
+    this.lines.geometry.dispose();
+    (this.lines.material as THREE.Material).dispose();
+  }
+
+  private draw(v: number[]) {
     const geo = this.lines.geometry;
     geo.setAttribute('position', new THREE.Float32BufferAttribute(v, 3));
     geo.computeBoundingSphere();
     this.lines.visible = true;
   }
+}
+
+/** Box `box` (texels) on face `r` of `s` as line pairs into `v`; a curved face's whole surface. */
+function outline(s: PaintSurface, r: Rect, box: [number, number, number, number], v: number[]) {
+  if (!r.face) return edges(s.geo.geometry, v);
+  const corners = [[box[0], box[1]], [box[2], box[1]], [box[2], box[3]], [box[0], box[3]]].map(([x, y]) => texelToWorld(r, x, y, p).toArray());
+  corners.forEach((c, i) => v.push(...c, ...corners[(i + 1) % 4]));
 }
 
 /** The texel box around a face's paint (x0, y0 inclusive, x1, y1 exclusive), or null if it has none. */

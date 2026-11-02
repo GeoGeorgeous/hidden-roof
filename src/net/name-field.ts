@@ -1,7 +1,7 @@
 import type { MessageId } from '../messages';
 import { el } from '../menu-ui';
 import { store, stored } from '../stored';
-import { cleanName, isName, NAME_MAX } from './protocol';
+import { cleanName, isName, isReservedName, NAME_MAX } from './protocol';
 
 // The player's name for a session, kept between visits: a field in each form that needs it (the join dialogs, HOST),
 // all of them the same name. Only Latin letters and digits can be typed in (protocol.ts, isName).
@@ -23,4 +23,4 @@ export function nameField(placeholder: string) {
 }
 
 /** What is wrong with the name, in words, or null when it's good for the server. */
-export const nameProblem = (name: string): MessageId | null => (isName(name) ? null : name ? 'menu.nameLetters' : 'menu.typeName');
+export const nameProblem = (name: string): MessageId | null => (isReservedName(name) ? 'menu.nameReserved' : isName(name) ? null : name ? 'menu.nameLetters' : 'menu.typeName');

@@ -89,8 +89,15 @@ for (const m of [host, join]) {
   refused({ ...m, protocol: '6', name: 'Anna K' });
 }
 // A socket's close code says the rejection it came with; any other close code says none.
-for (const r of ['version', 'no-session', 'ended', 'full', 'bad-save', 'bad-level', 'busy', 'replaced', 'too-many', 'no-host', 'kicked', 'closed', 'seats', 'rate', 'banned']) assert.equal(rejectionOf(closeCode(r)), r);
-for (const code of [1000, 1006, 1008, 1011, 4000, 4016]) assert.equal(rejectionOf(code), undefined, String(code));
+for (const r of ['version', 'no-session', 'ended', 'full', 'bad-save', 'bad-level', 'busy', 'replaced', 'too-many', 'no-host', 'kicked', 'closed', 'seats', 'rate', 'banned', 'pass']) assert.equal(rejectionOf(closeCode(r)), r);
+for (const code of [1000, 1006, 1008, 1011, 4000, 4017]) assert.equal(rejectionOf(code), undefined, String(code));
+// The admin's name is no player's, in any case; an admin's JOIN (with a pass) goes by it. Seen and lock are checked.
+for (const name of ['Admin', 'admin', 'ADMIN']) (refused({ ...join, name }), refused({ ...host, name }));
+assert.ok(checkToServer(decode(encode({ ...join, name: 'Admin', pass: 'aZ09_-' }))));
+for (const pass of ['', 'a b', 'x'.repeat(65), 7, null]) refused({ ...join, name: 'Admin', pass });
+assert.deepEqual(checkToServer(decode(encode({ type: 'seen', on: true, more: 1 }))), { type: 'seen', on: true });
+for (const m of [{ type: 'seen' }, { type: 'seen', on: 1 }, { type: 'lock', surface: -1, rect: 0, on: true }, { type: 'lock', surface: 0, rect: 1.5, on: true }, { type: 'lock', surface: 0, rect: 0 }]) refused(m);
+assert.deepEqual(checkToServer(decode(encode({ type: 'lock', surface: 3, rect: 2, on: false }))), { type: 'lock', surface: 3, rect: 2, on: false });
 // A name saved by an older version is cleaned to what a name may be: letters and digits, at most NAME_MAX.
 assert.equal(cleanName('Geo Geo'), 'GeoGeo');
 assert.equal(cleanName('Гоша_7!'), '7');

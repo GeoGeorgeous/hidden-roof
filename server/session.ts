@@ -4,6 +4,8 @@ import { SLOTS, type Tool } from '../src/inventory/tool';
 import type { LevelData } from '../src/level/level-data';
 import { decodeOps, SurfaceIndex } from '../src/op-wire';
 import { encode, partFrames, relayEntry, type Rejection, type ToClient, type ToServer } from '../src/net/protocol';
+import { Admins } from './admins';
+import { SessionLocks } from './locks';
 import { loadPaint } from '../src/save/load-paint';
 import { surfaceTable } from '../src/save/shape';
 import { countPaint, SessionStats } from './counts';
@@ -12,7 +14,7 @@ import { history } from './history';
 import { hold, release } from './held';
 import { log, logNoisy, span, who } from './log';
 import { turnedAway } from './minutes';
-import { deliver, presence, stampedBy, theirs, turnAway, uniqueName, type Link, type Player } from './player';
+import { deliver, match, presence, stampedBy, turnAway, uniqueName, type Link, type Player } from './player';
 import { Queue } from './queue';
 import { forget, relay } from './relay';
 import { HOSTED } from './setup';
@@ -34,9 +36,16 @@ import { paintMemory, sessionPaint } from './world';
 // restart ends every other session.
 
 type How = 'new' | 'back' | 'takeover';
+type Snap = Exclude<ReturnType<PaintFiles['get']>, 'busy'>;
 
 export class Session {
   readonly players = new Map<number, Player>();
+  /** Its admins (admins.ts), outside the players. */
+  readonly admins = new Admins(this);
+  /** Its faces locked against paint (locks.ts). */
+  readonly locks: SessionLocks;
+  /** It has finished: closing again is nothing. */
+  private over = false;
   readonly table: string;
   /** Who waits for a place, in order. */
   readonly line: Queue;
@@ -83,6 +92,7 @@ export class Session {
     this.files = new PaintFiles(code, this.world.paint, levelName);
     this.table = surfaceTable(this.world.paint.surfaces);
     this.surfaces = new SurfaceIndex([...this.world.paint.surfaces].map((s) => s.key));
+    this.locks = new SessionLocks(this.world.paint, this.surfaces, (m) => this.broadcast(m));
   }
 
   /** Start from a paint save (HOST's, or `host` false one kept on disk). Throws with a message if it's no good or doesn't fit the level. */
@@ -109,12 +119,7 @@ export class Session {
     // Players dropped by a restore come back to the restored paint.
     if (this.restoring) await this.restoring.catch(() => {});
     const all = [...this.players.values()];
-    let p = token ? all.find((q) => q.token === token) : undefined;
-    // No token, but the device of a player whose link is still open (a tab whose session storage is gone, a second tab): the same player.
-    if (!p && link.device) p = all.find((q) => q.device === link.device && q.link?.open);
-    // A dropped player's seat is taken back by typing their nickname, but only from their device or address.
-    const dropped = all.filter((q) => !q.link && theirs(q, link));
-    const how = p ? 'back' : (p = dropped.find((q) => q.name === name) ?? dropped.find((q) => q.asked === name)) ? 'takeover' : 'new';
+    let { p, how } = match(all, link, name, token);
     if (!p && this.setup.kind === 'public' && all.filter((q) => (q.link ?? q.was)?.ip === link.ip).length >= SERVER.seatsPerIp) return 'seats';
     if (!p && this.players.size >= this.setup.limit) return 'full';
     const snap = this.files.get(() => p?.link === link && link.open);
@@ -159,20 +164,36 @@ export class Session {
     // The host from a save: that save is its paint.
     const own = snap === this.seed;
     this.seed = null;
-    const others = [...this.players.values()].filter((q) => q !== p);
-    const ladders = [...this.players.values()].filter((q) => q.ladder).map((q) => ({ id: q.id, data: q.ladder! }));
-    const players = others.map((q) => ({ id: q.id, name: q.name, state: presence(q) }));
-    const { kind, limit, tools } = this.setup;
-    const session = { kind, name: this.setup.name, limit, tools: [...tools] };
-    link.send(encode({ type: 'welcome', code: this.code, you: p.id, name: p.name, token: p.token, session, levelName: this.levelName, level: this.level, detail: this.detail, table: this.table, players, ladders, inventory: p.inventory, at: p.at, parts: own ? 0 : frames.length, acked: p.acked }));
-    if (!own) for (const f of frames) link.send(f);
-    for (const f of snap.log) link.send(f);
-    p.live = true;
+    this.welcome(p, link, snap, frames, own);
     if (how !== 'new') this.broadcast({ type: 'presence', id: p.id, state: 'here' }, p);
-    snap.served++;
     this.counts[how]++;
     if (how === 'new') this.stats.joins++;
     return { p, how, welcomed: true, note: `${note}${snap.served > 1 ? `; paint file shared (${snap.served})` : ''}` };
+  }
+
+  /** Admin `a` in on `link` (admins.ts): welcomed as a player is; 'busy' with no memory for a paint file, false if their link went first. */
+  async watch(a: Player, link: Link) {
+    if (this.restoring) await this.restoring.catch(() => {});
+    const snap = this.files.get(() => a.link === link && link.open);
+    if (snap === 'busy') return 'busy';
+    const frames = await snap.frames;
+    if (!frames || a.link !== link) return false;
+    this.welcome(a, link, snap, frames, false);
+    return true;
+  }
+
+  /** `p`'s welcome on `link`: who else is in it (seen admins too), the stepladders and locks, then the paint (`own`: they have it, the host's save) and what was painted since; they're live. */
+  private welcome(p: Player, link: Link, snap: Snap, frames: Uint8Array[], own: boolean) {
+    const shown = this.everyone().filter((q) => !q.watcher || q.watcher.seen);
+    const ladders = shown.filter((q) => q.ladder).map((q) => ({ id: q.id, data: q.ladder! }));
+    const players = shown.filter((q) => q !== p).map((q) => ({ id: q.id, name: q.name, state: presence(q), ...(q.watcher && { role: 'watcher' as const }) }));
+    const { kind, limit, tools } = this.setup;
+    const session = { kind, name: this.setup.name, limit, tools: [...tools] };
+    link.send(encode({ type: 'welcome', code: this.code, you: p.id, name: p.name, token: p.token, session, levelName: this.levelName, level: this.level, detail: this.detail, table: this.table, players, ladders, inventory: p.inventory, at: p.at, parts: own ? 0 : frames.length, acked: p.acked, ...(p.watcher && { admin: true as const }), locks: this.locks.wire() }));
+    if (!own) for (const f of frames) link.send(f);
+    for (const f of snap.log) link.send(f);
+    p.live = true;
+    snap.served++;
   }
 
   receive(p: Player, m: ToServer) {
@@ -191,8 +212,8 @@ export class Session {
       const { ops: valid, t, bytes } = takenOps(batch, m.bytes, p, paint, this.off, this.surfaces);
       this.files.now(() => valid.forEach((op) => painter.apply(op)));
       if (!valid.length) return;
-      countPaint(valid, t, p, [history.now(), this.stats.paint]);
-      this.stats.painter(p.name);
+      // An admin's paint counts in no stat.
+      if (!p.watcher) (countPaint(valid, t, p, [history.now(), this.stats.paint]), this.stats.painter(p.name));
       this.changed = true;
       this.relay(relayEntry('ops', p.id, bytes), p);
       this.files.log(() => encode({ type: 'paint', bytes }));
@@ -201,7 +222,7 @@ export class Session {
       if (m.data && this.off.has('ladder')) return;
       p.ladder = m.data;
       this.broadcast({ type: 'ladder', id: p.id, t: stampedBy(p, m.t), data: m.data }, p);
-    } else if (m.type === 'save') void this.save(p);
+    } else if (m.type === 'save') void this.files.save(p);
     else if (m.type === 'inventory') (this.stats.carries(p.name, p.inventory, m.data), (p.inventory = m.data));
     else if (m.type === 'status') {
       const before = presence(p);
@@ -234,13 +255,24 @@ export class Session {
   /** To players waiting for their welcome too: their link is alive. */
   ping() {
     const f = encode({ type: 'ping' });
-    for (const p of this.players.values()) p.link?.send(f);
+    for (const p of this.everyone()) p.link?.send(f);
     this.line.ping(f);
   }
 
-  /** Ends it with no one in it (its host was turned away, or no one came to the admin's). */
+  /** Ends it with no one in it, admins neither (its host was turned away, no one came to the admin's, its last admin went). */
   close(why: string) {
-    if (!this.players.size) this.finish(why);
+    if (!this.players.size && !this.admins.all.size) this.finish(why);
+  }
+
+  /** Its players, then its admins: everyone its frames reach. */
+  everyone() {
+    return [...this.players.values(), ...this.admins.all.values()];
+  }
+
+  /** No locks after a wipe or a restore; admins are told it's over (they don't come back as players do). */
+  private reset(why: string) {
+    this.locks.clear();
+    this.admins.closeAll(why, 'closed');
   }
 
   /**
@@ -255,6 +287,7 @@ export class Session {
       this.world.paint.clear();
       this.world.drips.clear();
       this.files.forget();
+      this.reset('wiped');
       for (const p of this.players.values()) p.link?.close(1012, 'wiped');
     });
   }
@@ -272,6 +305,7 @@ export class Session {
       await this.load(file, false);
       this.stats = stats;
     }));
+    this.reset('restored');
     for (const p of this.players.values()) p.link?.close(1012, 'restored');
     try {
       await loading;
@@ -285,6 +319,7 @@ export class Session {
     for (const p of [...this.players.values()]) this.out(p, 'the session was closed', 'closed');
     this.emptySince = Date.now();
     this.finish('by the admin', 'closed', saves);
+    this.admins.closeAll('the session was closed', 'closed');
   }
 
   /** The admin removed a player: told why, out at once with no seat held, free to join again (the lobby refuses their token for a while). False if there's no such player. */
@@ -318,7 +353,8 @@ export class Session {
     this.line.update();
     if (this.players.size) return;
     this.emptySince = Date.now();
-    if (!this.setup.stays) this.finish('no one left');
+    // An admin inside keeps it open.
+    if (!this.setup.stays) this.close('no one left');
   }
 
   /**
@@ -352,29 +388,10 @@ export class Session {
 
   /** It's over: those waiting are told, and the lobby forgets it. */
   private finish(why: string, told: 'ended' | 'closed' = 'ended', saves = 0) {
+    if (this.over) return;
+    this.over = true;
     this.line.end(told);
     this.onEmpty(why, saves);
-  }
-
-  /** SAVE: the paint as a paint file, for `p`. One at a time each. */
-  private async save(p: Player) {
-    if (p.saving) return;
-    const link = p.link;
-    const snap = this.files.get(() => p.link === link && !!link?.open, true);
-    if (snap === 'busy') return this.send(p, { type: 'save', parts: 0 });
-    p.saving = true;
-    try {
-      const frames = await snap.frames;
-      if (!frames || p.link !== link) return;
-      this.send(p, { type: 'save', parts: frames.length });
-      for (const f of frames) deliver(p, f);
-      snap.served++;
-    } catch {
-      // Told as when there's no memory for one, so the game doesn't wait for it.
-      this.send(p, { type: 'save', parts: 0 });
-    } finally {
-      p.saving = false;
-    }
   }
 
   private send(p: Player, m: ToClient) {
@@ -383,11 +400,12 @@ export class Session {
 
   /** A state or ops to every player but `except`, in their next relay frame (relay.ts). */
   private relay(entry: Uint8Array, except: Player) {
-    for (const p of this.players.values()) if (p !== except) relay(p, entry);
+    for (const p of this.everyone()) if (p !== except) relay(p, entry);
   }
 
-  private broadcast(m: ToClient, except?: Player) {
+  /** `m` to everyone but `except` (admins.ts tells of a seen admin). */
+  broadcast(m: ToClient, except?: Player) {
     const f = encode(m);
-    for (const p of this.players.values()) if (p !== except) deliver(p, f);
+    for (const p of this.everyone()) if (p !== except) deliver(p, f);
   }
 }
