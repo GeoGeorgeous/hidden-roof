@@ -230,9 +230,9 @@
   letter-spacing: 0.02em;
   color: var(--paper);
 }
-/* A seen admin's (server/admins.ts): the alert color, the HUD's one. */
+/* A seen admin's (server/admins.ts): the alert color, brightened to read on the plate's dark box. */
 .nameplate.admin .name {
-  color: var(--alert);
+  color: #ff5a4a;
 }
 /* Colored by how bad it is: the link lost, far behind, or just not playing. */
 .nameplate .note {
