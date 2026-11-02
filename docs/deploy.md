@@ -24,6 +24,7 @@ Context for the agent that deploys and runs the game on the VPS: read it before 
 - `npm run build` → `dist/`, the player build: **deploy this one.** It leaves out the dev tools (`__DEV_TOOLS__` in `vite.config.ts`).
 - `npm run build:dev` → `dist-dev/`, with the dev tools. Never deploy it.
 - Building needs Node `^20.19 || >=22.12` and the devDependencies: `npm ci`, without `--omit=dev`.
+- **Build from a full git clone** (not `--depth 1`, git in the build container): the sitemap's `lastmod` and the page's `dateModified` are each page's last change in git (`docs/site.md`), so a shallow clone gives every page the tag's day; the version shown is `git describe`.
 - **Precompressed files:** the build writes a `.br` and a `.gz` next to each text file of `dist/` over 1 KB that gets smaller (`PRECOMPRESS` in `src/config.ts`): the main bundle is ~950 KB raw, ~280 KB gz, ~230 KB br. Caddy serves them (section 5).
 
 ## 4. The host
