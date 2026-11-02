@@ -4,6 +4,7 @@ import { parsePickup, type FoundTool } from '../inventory/items';
 import { solidsNear } from '../level/solids';
 import { FONT_FAMILIES, JP_FAMILY } from '../render/ink/jp-font';
 import type { Pickup } from './pickups';
+import { onPage, viewRect } from '../view-rect';
 
 // Each pickup's tag by its ring, in the HUD, manga-style (style.css
 // .pickup-tag): outlined letters with katakana under them, NEW TOOL along the
@@ -89,7 +90,7 @@ export class PickupLabels {
     const cam = this.camera.position;
     up.setFromMatrixColumn(this.camera.matrixWorld, 1);
     // Screen px per m at 1 m from the camera.
-    const scale = window.innerHeight / (2 * Math.tan((this.camera.fov * Math.PI) / 360));
+    const scale = viewRect().height / (2 * Math.tan((this.camera.fov * Math.PI) / 360));
     const now = performance.now();
     for (const p of pickups) {
       const tag = this.tags.get(p.id) ?? this.make(p);
@@ -116,7 +117,8 @@ export class PickupLabels {
       if (tag.el.hidden) continue;
       center.project(this.camera);
       const s = tag.el.style;
-      s.transform = `translate(${Math.round((center.x * 0.5 + 0.5) * window.innerWidth)}px, ${Math.round((0.5 - center.y * 0.5) * window.innerHeight)}px)`;
+      const spot = onPage(center.x, center.y);
+      s.transform = `translate(${Math.round(spot.x)}px, ${Math.round(spot.y)}px)`;
       s.setProperty('--ring', `${((size * scale) / depth).toFixed(1)}px`);
       if (tag.shape === 'color') s.setProperty('--ay', String(PICKUP.label.color.up));
       else {

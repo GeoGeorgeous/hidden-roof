@@ -52,6 +52,8 @@ import { jpFontReady } from './render/ink/jp-font';
 import { textAtlasVersion } from './render/ink/text-atlas';
 import { staticTextureBytes } from './render/texture-bytes';
 import type { DevTools } from './dev/devtools';
+import { capture } from './capture/hook';
+import { onPage } from './view-rect';
 import { session } from './session';
 import { multiplayerMenu } from './net/net-menu';
 import { adminLink } from './net/admin-link';
@@ -139,7 +141,7 @@ pickups.onCollect = (label, kind) => {
 };
 pickups.onBlocked = (label) => notify.toast(msg('toast.alreadyHave', { item: sentence(label) }));
 function applyPixelScale() {
-  renderer.setPixelRatio(pixelRatio());
+  renderer.setPixelRatio(capture.size ? 1 : pixelRatio());
   syncViewSize();
 }
 
@@ -218,7 +220,7 @@ const testPage = perfTestPage(hud.menu, perfTest, gpu, () => settings.tested());
 hud.menu.setSettings(settings.sections(gpu, testPage.run, tutorial));
 // SAVE in a session downloads the session's paint, from the server.
 const paintFile = paintMenu(hud.menu, paint, drips, () => opened.name, () => net.savePaint());
-const net = multiplayerMenu(hud.menu, notify, { scene, camera, level, paint, paintOps, drips, player, inventory, pickups, tools, paused: () => play.paused, lastActive: () => input.lastActive, levelData: () => ({ data: opened.toJSON(), name: opened.name }), levelPaint: () => levelPaintOf(opened.name), openLevel: (d, n) => opened.open(d, n), restartLevel: () => opened.restart(), lockDetail: (tpm) => settings.lockPaintDetail(tpm), ownDetail: () => settings.useOwnDetail() });
+const net = multiplayerMenu(hud.menu, notify, { scene, camera, level, paint, paintOps, drips, player, inventory, pickups, tools, paused: () => play.paused, filming: () => capture.shot === 'free', lastActive: () => input.lastActive, levelData: () => ({ data: opened.toJSON(), name: opened.name }), levelPaint: () => levelPaintOf(opened.name), openLevel: (d, n) => opened.open(d, n), restartLevel: () => opened.restart(), lockDetail: (tpm) => settings.lockPaintDetail(tpm), ownDetail: () => settings.useOwnDetail() });
 beacon.net = () => net.minute.take();
 // A stepladder can't stand where the session's players or F3's figures (the ghost) are.
 tools.ladder.others = () => [...net.shown, ...(dev?.figures ?? [])];
@@ -226,12 +228,14 @@ tools.onCapChange = (name) => hud.showCapTag(name);
 tools.onColorChange = (color) => hud.showColorTag(color, COLORS[color]);
 
 smallWindow();
-window.addEventListener('resize', () => {
+function fitWindow() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
   applyPixelScale(); // a zoom changes devicePixelRatio
-});
+}
+window.addEventListener('resize', () => capture.fit() || fitWindow());
+capture.attach({ renderer, camera, restore: fitWindow, resized: syncViewSize });
 
 const eye = new THREE.Vector3();
 /** The level's middle while the performance test flies around it (render/title-view.ts). */
@@ -269,7 +273,11 @@ function step(time: number) {
   fixedStep.script?.();
   const dt = fixedStep.dt || Math.min(delta, 1 / 20);
 
-  dev?.frame(input, dt);
+  // Capture mode: no dev keys, no hints taught; in the free camera's view it has the keys and the mouse, the game gets none and the toasts wait.
+  capture.keys(input);
+  const shot = capture.shot;
+  const free = shot === 'free';
+  dev?.frame(shot ? noInput : input, dt);
   const building = play.building;
 
   // Paused (pointer not locked) in single player the game stops: you, your tools,
@@ -279,7 +287,7 @@ function step(time: number) {
   // you stand still, but you still fall, your spray lands and paint runs, as
   // others see it.
   const { paused, frozen } = play;
-  const yours = paused || notify.blocked ? noInput : input;
+  const yours = paused || notify.blocked || free ? noInput : input;
   tutorialWire.before();
   if (!frozen) player.update(dt, yours);
   if (player.onGround && player.stride - lastStride > PLAYER.footstepStride) {
@@ -298,10 +306,11 @@ function step(time: number) {
     camera.updateProjectionMatrix();
   }
   camera.updateMatrixWorld();
+  capture.update(dt, input, camera);
   // The title screen shows a fixed view of the city, without hands or tools; the performance test
   // flies from it around the level. They draw from a camera of their own; play (aim, tools) keeps yours.
   const cityView = (hud.cityView || perfTest.running) && !drawsFromPlayer();
-  viewScene.visible = !cityView;
+  viewScene.visible = !cityView && !free;
   if (perfTest.running) flyAround ??= level.totalBounds().getCenter(new THREE.Vector3());
   else flyAround = null;
   const shown = !cityView ? camera : flyAround ? flyCamera(camera, perfTest.progress(time), flyAround) : titleCamera(camera);
@@ -321,7 +330,7 @@ function step(time: number) {
 
   if (!frozen) {
     if (building) dev!.update(input, camera);
-    tools.update(dt, yours, camera, eye, player, !building);
+    tools.update(dt, yours, camera, eye, player, !building && !free);
     wallHand.update(dt, camera, eye, WALL_HAND.enabled && !building, tools.spray.model.sway);
     drips.update(dt);
     pickups.update(dt, player.position, inventory);
@@ -353,8 +362,8 @@ function step(time: number) {
   hotbar.update(inventory);
   hud.update();
   const visible = input.locked && !play.panel && !building && document.visibilityState === 'visible';
-  notify.update(dt, visible);
-  tutorialWire.frame(dt, visible, yours);
+  notify.update(dt, visible && !free);
+  tutorialWire.frame(dt, visible && !shot, yours);
   notifyView.update();
   dev?.lap('paint + hud');
 
@@ -386,7 +395,7 @@ requestAnimationFrame(frame);
 
 function toScreen(p: THREE.Vector3) {
   p.project(camera);
-  return { x: (p.x * 0.5 + 0.5) * window.innerWidth, y: (0.5 - p.y * 0.5) * window.innerHeight };
+  return onPage(p.x, p.y);
 }
 
 // Dev tools (build mode, F3, window.game): single player only, and not in the player build (npm run build).

@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 300
+The one list of what's left. Counter for new ids: next: 302
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -130,11 +130,13 @@ Only `N.`, the id and the description are required. The optional parts appear in
 The admin page (the cctv repo) and the server side it reads (server/admin/).
 The API and why it is so: docs/admin-api.md.
 
+1. [CCTV-301]: A player's state `capture` (filming with capture mode's free camera, standing still; `docs/admin-api.md`, a session's players) on the session page beside `menu` and `idle`; reaches the server with PROTOCOL 11 (1.6.2)
+
 ## Web and promotion
 
 1. TASK [BL-067]: Posts on Reddit with technical decription @1.7.2
 2. [TASK-169]: Creating and posting instagram reels @1.7.1
-3. IDEA [BL-065]: A minimal tool to record gameplay as GIFs and short videos @1.7.1
+3. [IDEA-300]: Capture mode, part 2: the flight's points saved as JSON, and game time at 0.1x-8x (the points and the flight themselves are in BL-065) @1.7.1
 
 ## Auth
 
@@ -171,6 +173,7 @@ Shipped since the last release; the release commit empties this list.
 19. [IDEA-195]: Admin mode in a session (server/admins.ts, src/admin): in from cctv with a one-time pass (POST /sessions/CODE/admin-pass, 60 s, once), outside the players (no seat, line, stats, events or listing; one server log line per come and go), past bans and the limits per address; unseen with tools off, or seen (H) as a player named Admin in red, numbered when two are; fly (J), every color and cap and the session's tools; lock or unlock the face pointed at (L: kept with a public session on disk, in every welcome, a toast for players who paint it), the locked faces' outlines (O), the players page (G) to go where one was last seen; any closed link ends it (no reconnect, no tab session, no beacon); the nickname Admin is reserved; PROTOCOL 10 (wipes public paint at deploy); checked by server tests, on a real server when dev reaches next
 20. [CCTV-290]: "Join as admin" on a session's page, shown when GET / has limits.adminPass: a fresh pass each click, the tab opened on the click (cctv PR #12, merged); checked on cctv's fake server, on the real one when IDEA-195 reaches next
 21. [BUGS-298]: traffic-test's "one salt for both days" failed on the 1st and 2nd of each month (its two days straddle a month, and the salt is a month's): it expects a salt a month then
+22. IDEA [BL-065]: Capture mode for filming (`src/capture`), on and off with N or on from the start with `?capture=1`; its keys rebindable in Settings → Controls → Other (N, V view, M record, F frame, B quality; not R, which game fullscreen's keyboard lock would take with Ctrl+R); loaded on first use, so the game doesn't carry it otherwise. Two views: first person, the game as played with the HUD but the hints and the hotbar; and the free camera (the game gets no input, nothing of the game's over the view, the stepladder's preview put away): W A S D, Q down, E up, the mouse with smoothing Z / X, the wheel for speed; K adds a point where the camera is (a numbered mark on screen), Backspace removes the last, P flies through them (Catmull-Rom path at an even speed, easing in and out, the view slerped without tilt), - / = its seconds. A plate at the left edge's middle shows the keys of the view, never in the video. M records the canvas (mp4 where the browser can, else webm VP9) at the quality B picks (low 8, medium 16, high 30, max 60 Mbit/s; high at the start) and it downloads when it stops; F goes through 1920×1080, 1080×1920 and 1080×1080 at pixel ratio 1, fitted into the window, with name tags, pickup tags and tool tags placed in that frame (`src/view-rect.ts`), back to the window's size on leaving. In a session the free camera's player stands still and the others see Capture after their name (PROTOCOL 11, wipes public paint at deploy); no hints are taught while filming; a saved key that a new default takes is no longer bound twice. GIFs left out; part 2: IDEA-300
 
 ## Discarder
 

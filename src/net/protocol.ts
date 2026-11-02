@@ -18,7 +18,7 @@ import type { V3 } from '../kit/pieces.ts';
 // through checkToServer.
 
 /** Bumped when a message changes or anything the server runs for a session does (paint, drips, face keys, the save format). host and join carry it and the level's surface-table hash; a mismatch is answered 'version' and the game asks for a reload. */
-export const PROTOCOL = 10;
+export const PROTOCOL = 11;
 export const NAME_MAX = 16;
 /** A player's name: Latin letters and digits only (ASCII), 1 to NAME_MAX of them; the menu checks it before HOST or JOIN, the server refuses any other. */
 export const isName = (x: unknown): x is string => typeof x === 'string' && x.length <= NAME_MAX && /^[A-Za-z0-9]+$/.test(x);
@@ -107,8 +107,8 @@ export const LOBBY_CODE = '/ws?code=';
 /** What the server answers a plain GET at /ws (no WebSocket): the game asks when it can't connect (net/diagnostics.ts). */
 export const HELLO = `roof server · protocol ${PROTOCOL}`;
 
-/** What a player is doing, as they say: playing, away (their game is hidden: minimized, another tab), in the menu (paused), or idle (nothing pressed for NET.idleAfter s). */
-const ACTIVITIES = ['here', 'away', 'menu', 'idle', 'lagging'] as const;
+/** What a player is doing, as they say: playing, away (their game is hidden: minimized, another tab), in the menu (paused), filming with capture mode's free camera (standing still), or idle (nothing pressed for NET.idleAfter s). */
+const ACTIVITIES = ['here', 'away', 'menu', 'capture', 'idle', 'lagging'] as const;
 export type Activity = (typeof ACTIVITIES)[number];
 /** A player as the others see them: what they're doing, or dropped (their link is gone; they may come back). */
 export type Presence = Activity | 'dropped';

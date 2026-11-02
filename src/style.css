@@ -3026,3 +3026,63 @@ body.paused .layer-toast {
   padding: 8px 14px;
   text-align: left;
 }
+
+/* Capture mode (src/capture) while playing. In first person the HUD stays, but the hints
+   and the hotbar; with the free camera nothing of the game's is over the view, the name
+   tags included. Its own plate and the flight's points (capture/overlay.ts) show in both,
+   and the video never has them. Paused, the pause menu shows as ever. */
+html.capture .layer-hint,
+html.capture .hotbar,
+html.capture-free body > :not(canvas, .capture-ui) {
+  display: none !important;
+}
+html:not(.capture) .capture-ui {
+  display: none;
+}
+/* At the left edge's middle: clear of the HUD's REC line and clock in first person. */
+.capture-plate {
+  position: fixed;
+  left: 30px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: var(--z-frame);
+  padding: 8px 10px;
+  background: var(--glass);
+  color: var(--text-1);
+  font: 11px/1.6 var(--sans);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.capture-plate b {
+  color: var(--paper);
+  font-weight: 600;
+}
+.capture-plate > :first-child {
+  margin-bottom: 4px;
+  color: var(--paper);
+}
+/* Not .rec: that's the HUD's REC line, placed on its own. */
+.capture-plate .recording,
+.capture-plate .recording b {
+  color: var(--error);
+}
+/* A point of the flight: a numbered ring where it is, its middle on the spot. */
+.capture-mark {
+  position: fixed;
+  left: -11px;
+  top: -11px;
+  z-index: var(--z-world);
+  width: 22px;
+  height: 22px;
+  border: 2px solid var(--paper);
+  border-radius: 50%;
+  background: var(--glass);
+  color: var(--paper);
+  font: 600 11px/22px var(--sans);
+  font-style: normal;
+  text-align: center;
+  box-sizing: border-box;
+  line-height: 18px;
+  pointer-events: none;
+}

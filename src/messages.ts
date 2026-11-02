@@ -91,11 +91,31 @@ export const MESSAGES = {
     clientError: { label: 'CLIENT ERROR', title: 'The game crashed', text: 'Something broke on your side. Reload the page to keep playing; copy the error below to report it.', button: 'Reload page' },
   },
 
+  /** Capture mode's plate (capture/overlay.ts), top left while filming; never in the video. Keys and values come in bold. */
+  capture: {
+    title: 'CAPTURE MODE · {exit} leaves',
+    player: 'First person · {view} free camera',
+    free: 'Free camera · {view} first person',
+    move: '{keys} fly · {down} / {up} down / up · mouse looks',
+    speed: 'Wheel: speed {speed} m/s',
+    smoothing: '{less} / {more}: mouse smoothing {smoothing} s',
+    points: '{add} adds a point · {remove} removes the last · points: {n}',
+    fly: '{fly} flies through them in {seconds} s · {shorter} / {longer} changes it',
+    flying: 'Flying: {t} / {seconds} s · {fly} stops',
+    frame: '{frame} frame: {size}',
+    quality: '{quality} quality: {name}, {mbps} Mbit/s',
+    qualities: ['low', 'medium', 'high', 'max'],
+    window: 'the window',
+    record: '{record} records a video',
+    recording: '● REC {time} · {record} stops and saves it',
+  },
+
   /** Play's own HUD text that is not one of the four: the tool-hand alert (hud.ts, while the can is low) and the other players' nameplates (net/nameplates.ts: what each is doing, while true, and how far they are). */
   hud: {
     lowPressure: 'LOW PRESSURE — HOLD [{shake}] TO SHAKE',
     noteAway: 'Away',
     noteMenu: 'In menu',
+    noteCapture: 'Capture',
     noteIdle: 'Idle',
     noteDropped: 'Disconnected',
     noteSilent: 'No signal',

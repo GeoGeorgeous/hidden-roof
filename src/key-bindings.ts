@@ -1,4 +1,4 @@
-import { BINDINGS, BROWSER_KEYS } from './config';
+import { BINDINGS, BROWSER_KEYS, CAPTURE } from './config';
 import { type Action, keyName, keysChanged, sideless } from './input';
 
 // Rebinding play's actions (Settings → Controls) writes BINDINGS, as the other
@@ -48,7 +48,17 @@ export const CONTROL_GROUPS: { name: string; rows: { action: Action; name: strin
     ],
   },
   { name: 'tools', rows: ([1, 2, 3, 4, 5] as const).map((n) => ({ action: `slot${n}` as const, name: `Tool ${n}` })) },
-  { name: 'other', rows: [{ action: 'screenshot', name: 'Screenshot' }] },
+  {
+    name: 'other',
+    rows: [
+      { action: 'screenshot', name: 'Screenshot' },
+      { action: 'capture', name: 'Capture mode', desc: 'For filming the game: in first person or with a free camera. Its keys show on screen, never in the video.' },
+      { action: 'captureView', name: 'Capture: view', desc: 'In capture mode, first person or the free camera.' },
+      { action: 'captureRecord', name: 'Capture: record', desc: 'In capture mode, starts a video, and stops it: the file downloads.' },
+      { action: 'captureSize', name: 'Capture: frame', desc: 'In capture mode, the next frame size: the window, 16:9, 9:16, 1:1.' },
+      { action: 'captureQuality', name: 'Capture: quality', desc: 'In capture mode, the next video quality: low, medium, high, max. For the next recording.' },
+    ],
+  },
 ];
 
 function apply() {
@@ -62,11 +72,12 @@ export const nameOf = (action: Action) => CONTROL_GROUPS.flatMap((g) => g.rows).
 /** Actions played by holding (Input.held): a wheel step can't be held, so it isn't bound to them. */
 const HELD: readonly Action[] = ['forward', 'back', 'left', 'right', 'jump', 'crouch', 'sprint', 'use', 'shake'];
 
-/** Why `code` can't be bound to `action`: the menus' (Enter), the F3 panel's, the system's (Cmd, Win), the browser's, or a wheel step for a held action; null when it can. Esc cancels. */
+/** Why `code` can't be bound to `action`: the menus' (Enter), the F3 panel's, the free camera's (for capture mode's), the system's (Cmd, Win), the browser's, or a wheel step for a held action; null when it can. Esc cancels. */
 export function refusal(code: string, action: Action) {
   if (code.startsWith('Wheel') && HELD.includes(action)) return `${nameOf(action)} is held down, and a wheel step can't be.`;
   if (code === 'Enter' || code === 'NumpadEnter') return 'Enter is for the menus.';
   if (code === 'F3' || code === 'Backquote') return `${keyName(code)} opens the debug panel.`;
+  if (action.startsWith('capture') && Object.values(CAPTURE.keys).includes(code)) return `${keyName(code)} is one of the free camera's keys.`;
   if (code === 'MetaLeft' || code === 'MetaRight') return keyName(code) === 'Win' ? 'The Windows key belongs to the system.' : `${keyName(code)} belongs to the system.`;
   if (BROWSER_KEYS.includes(code) && code !== 'Escape') return `${code} belongs to the browser.`;
   return null;

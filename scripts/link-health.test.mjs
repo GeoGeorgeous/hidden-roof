@@ -119,13 +119,14 @@ assert.equal(setup().run(30), null);
   h.reset();
   assert.equal(h.troubled, false);
 }
-// What the player tells the others (src/net/own-status.ts): away > menu > idle > lagging > here.
+// What the player tells the others (src/net/own-status.ts): away > menu > capture > idle > lagging > here.
 {
-  const d = { hidden: false, paused: false, idleFor: 0, trouble: false };
+  const d = { hidden: false, paused: false, filming: false, idleFor: 0, trouble: false };
   assert.equal(activity(d), 'here');
   assert.equal(activity({ ...d, trouble: true }), 'lagging');
   assert.equal(activity({ ...d, trouble: true, idleFor: NET.idleAfter + 1 }), 'idle');
-  assert.equal(activity({ ...d, trouble: true, paused: true }), 'menu');
+  assert.equal(activity({ ...d, trouble: true, filming: true, idleFor: NET.idleAfter + 1 }), 'capture');
+  assert.equal(activity({ ...d, trouble: true, paused: true, filming: true }), 'menu');
   assert.equal(activity({ ...d, trouble: true, paused: true, hidden: true }), 'away');
 }
 console.log('link-health: ok');

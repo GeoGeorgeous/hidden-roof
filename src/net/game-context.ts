@@ -26,8 +26,10 @@ export interface MultiplayerContext {
   inventory: Inventory;
   pickups: Pickups;
   tools: Tools;
-  /** Paused behind the menu, and when the player last pressed or moved anything (s): what the others see them doing (own-status.ts). */
+  /** Paused behind the menu, filming, and when the player last pressed or moved anything (s): what the others see them doing (own-status.ts). */
   paused(): boolean;
+  /** Filming with capture mode's free camera: standing still (own-status.ts). */
+  filming(): boolean;
   lastActive(): number;
   /** The level as a file, and its name (what HOST starts the session on). */
   levelData(): { data: LevelData; name: string };

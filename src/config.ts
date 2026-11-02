@@ -613,9 +613,61 @@ export const BINDINGS = {
   slot4: ['Digit4'],
   slot5: ['Digit5'],
   screenshot: ['KeyK'],
+  /** Capture mode (CAPTURE): on and off; first person or the free camera; start and stop a recording (it downloads when it stops); the next frame size; the next video quality. Not R: game fullscreen locks the keys play binds, and Ctrl+R would go with it. */
+  capture: ['KeyN'],
+  captureView: ['KeyV'],
+  captureRecord: ['KeyM'],
+  captureSize: ['KeyF'],
+  captureQuality: ['KeyB'],
   /** The eyedropper: the color of the paint under the crosshair (src/tools/eyedropper.ts). */
   pick: ['Mouse1'],
 } satisfies Record<string, string[]>;
+
+/** Capture mode (src/capture): filming the game. On and off with BINDINGS.capture (Settings → Controls) or ?capture=1; its view, recording, frame size and video quality on BINDINGS.captureView, captureRecord, captureSize and captureQuality. */
+export const CAPTURE = {
+  /** The free camera's keys, by code (fixed, past the bindings, as the game gets no input then; shown on its plate). */
+  keys: {
+    forward: 'KeyW',
+    back: 'KeyS',
+    left: 'KeyA',
+    right: 'KeyD',
+    down: 'KeyQ',
+    up: 'KeyE',
+    smoothLess: 'KeyZ',
+    smoothMore: 'KeyX',
+    addPoint: 'KeyK',
+    removePoint: 'Backspace',
+    fly: 'KeyP',
+    shorter: 'Minus',
+    longer: 'Equal',
+  },
+  /** Frames a second asked of the canvas's stream. */
+  fps: 60,
+  /** The video qualities BINDINGS.captureQuality goes through (bit rate, Mbit/s; named in messages.ts capture.qualities), and the one it starts at. */
+  qualities: [8, 16, 30, 60],
+  qualityStart: 2,
+  /** The first the browser records: mp4, else webm. */
+  videoTypes: ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9'],
+  /** The frame sizes BINDINGS.captureSize goes through after the window's: drawn at pixel ratio 1 (16:9, 9:16, 1:1), fitted into the window. */
+  sizes: [
+    [1920, 1080],
+    [1080, 1920],
+    [1080, 1080],
+  ] as (readonly [number, number])[],
+  /** The free camera's speed (m/s) at the start, its range, and the factor a wheel step changes it by (up faster). */
+  speed: 4,
+  speedMin: 0.25,
+  speedMax: 60,
+  speedStep: 1.25,
+  /** Mouse smoothing's steps (s: how long the view takes to catch most of the way up to the mouse; 0 none), and the one it starts at. */
+  smoothing: [0, 0.05, 0.1, 0.2, 0.35, 0.5, 0.8],
+  smoothingStart: 2,
+  /** The flight through the points (s): at the start, the step, the range. */
+  flightSeconds: 6,
+  flightStep: 1,
+  flightMin: 1,
+  flightMax: 120,
+};
 
 /** The eyedropper (BINDINGS.pick): how far it reads paint (m), and the least cover (0..1) a texel needs to count as painted. */
 export const EYEDROPPER = { reach: 40, minCover: 0.25 };
