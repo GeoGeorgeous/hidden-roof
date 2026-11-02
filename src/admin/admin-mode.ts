@@ -30,6 +30,8 @@ export interface AdminGame {
   inventory: Inventory;
   notify: Notify;
   menu: PauseMenu;
+  /** Paused behind the menu: the keys work in play only. */
+  paused(): boolean;
 }
 
 const KEYS: [keyof typeof ADMIN.keys, MessageId][] = [
@@ -79,9 +81,9 @@ export class AdminMode {
     this.g.player.fly = false;
   }
 
-  /** The keys work in play only (the mouse is the game's). */
+  /** The keys work in play only. */
   private key = (e: KeyboardEvent) => {
-    if (e.repeat || e.ctrlKey || e.metaKey || e.altKey || !document.pointerLockElement) return;
+    if (e.repeat || e.ctrlKey || e.metaKey || e.altKey || this.g.paused()) return;
     const k = ADMIN.keys;
     if (e.code === k.seen) this.see(!this.seen);
     else if (e.code === k.fly) this.fly();
