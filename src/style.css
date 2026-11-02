@@ -325,12 +325,13 @@
   font-family: var(--sans);
   font-size: 13px;
   letter-spacing: 0.01em;
-  /* The live game under PAUSE_MENU's sheet (--sheet, --sheet-page, hud.ts), darker toward the menu at the bottom. */
-  background: linear-gradient(to top, #000 0%, rgba(0, 0, 0, 0.94) 28%, rgba(0, 0, 0, 0.55) 52%, transparent 78%), var(--sheet, var(--veil));
+  /* The live game under PAUSE_MENU's sheet (--sheet, --sheet-page, pause-menu.ts), darker toward the menu at the bottom (--k: PAUSE_MENU.shade). */
+  --k: var(--shade, 1);
+  background: linear-gradient(to top, rgba(0, 0, 0, var(--k)) 0%, rgba(0, 0, 0, calc(0.94 * var(--k))) 28%, rgba(0, 0, 0, calc(0.55 * var(--k))) 52%, transparent 78%), var(--sheet, var(--veil));
 }
-/* A page or popup: the game blurred under a darker sheet. */
-.overlay.sub {
-  background: linear-gradient(to top, #000 0%, rgba(0, 0, 0, 0.6) 30%, transparent 70%), var(--sheet-page, rgba(14, 14, 16, 0.72));
+/* A page or popup: the game blurred under a darker sheet. Also while F3 previews that sheet (preview-page). */
+.overlay:is(.sub, .preview-page) {
+  background: linear-gradient(to top, rgba(0, 0, 0, var(--k)) 0%, rgba(0, 0, 0, calc(0.6 * var(--k))) 30%, transparent 70%), var(--sheet-page, rgba(14, 14, 16, 0.72));
 }
 /* Blurs the game under the menu, fading out upward; all of it under a page. */
 .overlay .blur {
@@ -342,7 +343,7 @@
   backdrop-filter: blur(6px);
   mask: linear-gradient(to top, #000 55%, transparent);
 }
-.overlay.sub .blur {
+.overlay:is(.sub, .preview-page) .blur {
   top: 0;
   height: auto;
   backdrop-filter: blur(8px);
@@ -776,14 +777,19 @@
   font-style: normal;
   color: var(--text-4);
 }
-/* Debug panel open: the menu stays, on a lighter sheet (still dark under the menu), without the title and its status line. */
+/* Debug panel open: the menu stays, on a lighter sheet (still dark under the menu: PAUSE_MENU.debugShade), without the title and its status line. */
 .overlay.compact {
-  background: linear-gradient(to top, #000 0%, rgba(0, 0, 0, 0.94) 28%, rgba(0, 0, 0, 0.55) 52%, transparent 78%), var(--sheet-debug, transparent);
+  --k: var(--shade-debug, 1);
+  background: linear-gradient(to top, rgba(0, 0, 0, var(--k)) 0%, rgba(0, 0, 0, calc(0.94 * var(--k))) 28%, rgba(0, 0, 0, calc(0.55 * var(--k))) 52%, transparent 78%), var(--sheet-debug, transparent);
 }
 .overlay.compact .blur,
 .overlay.compact .title,
 .overlay.compact .status {
   display: none;
+}
+/* PAUSE_MENU.debugMenu off: with F3 open no menu at all, and no clicks on it. */
+.overlay.bare {
+  visibility: hidden;
 }
 
 /* A page (settings, multiplayer, credits): the title at the top, then a column of rows. */

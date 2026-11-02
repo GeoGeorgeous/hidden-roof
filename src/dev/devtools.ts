@@ -122,7 +122,7 @@ export class DevTools {
       rebuildLightProps: () => g.level.rebuildLit(),
       syncAtmosphere: () => g.environment.atmosphere.syncColors(),
       syncVignette: () => g.hud.syncVignette(),
-      previewPause: () => g.hud.menu.previewSheet(),
+      previewPause: (page) => g.hud.menu.previewSheet(page),
       applyDaylight: () => g.environment.atmosphere.reapplyDaylight(),
       syncBuildLook: () => this.build.syncLook(),
       rebuildCity: g.rebuildCity,

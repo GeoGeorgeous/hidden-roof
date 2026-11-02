@@ -4,9 +4,9 @@ Context for the agent that deploys and runs the game on the VPS: read it before 
 
 ## 1. Status *(changes)*
 
-- **Now:** `v1.6.0` is deployed, game and server (2026-11-01; protocol 9, admin API 4), with `DATA_DIR`, the admin key, the public session, GeoIP, `roof-traffic` and the admin page's `/api/main` (sections 6 and 9), the log in `LOG_DIR`. The server runs with `node --expose-gc`, the Dockerfile's CMD, so no compose `command:` may override it.
-- **Staging:** `v1.6.0` since 2026-11-01; the next deploy there is `next`.
-- **Next release:** `v1.6.1`. Before a release `next` is deployed to staging, `next.roof.hidden.haus` (section 9), and tested there end to end first. For every release, check its changes for a new protocol or surface table: if there is one, deploy the server and the game together (section 6, then the static files); live sessions end, and tabs still open on the old version are told to reload. Then section 7.
+- **Now:** `v1.6.1` is deployed, game and server (2026-11-02; protocol 10, admin API 4), with `DATA_DIR`, the admin key, the public session, GeoIP, `roof-traffic` and the admin page's `/api/main` (sections 6 and 9), the log in `LOG_DIR`. The server runs with `node --expose-gc`, the Dockerfile's CMD, so no compose `command:` may override it.
+- **Staging:** `v1.6.1` since 2026-11-02; the next deploy there is `next`. The admin page (cctv) is built for both servers, `main` and `next`.
+- **Next release:** `v1.6.2`. Before a release `next` is deployed to staging, `next.roof.hidden.haus` (section 9), and tested there end to end first. For every release, check its changes for a new protocol or surface table: if there is one, deploy the server and the game together (section 6, then the static files); live sessions end, and tabs still open on the old version are told to reload. Then section 7.
 - **Repo:** public, `https://github.com/GeoGeorgeous/hidden-roof.git`, cloned over HTTPS (the host holds no GitHub credentials). Deploy releases only: a `vX.Y.Z` tag, never a branch tip. Branches and releases: `AGENTS.md`.
 - **Version:** the pause menu shows the build's `git describe` (`src/version.ts`); built without git (the image has none), `package.json`'s version, which matches the tag on a release commit.
 - **Waiting for devops:** nothing. What the repo needs from the host goes here when its repo part lands, and leaves once devops reports it done.
@@ -24,6 +24,7 @@ Context for the agent that deploys and runs the game on the VPS: read it before 
 - `npm run build` → `dist/`, the player build: **deploy this one.** It leaves out the dev tools (`__DEV_TOOLS__` in `vite.config.ts`).
 - `npm run build:dev` → `dist-dev/`, with the dev tools. Never deploy it.
 - Building needs Node `^20.19 || >=22.12` and the devDependencies: `npm ci`, without `--omit=dev`.
+- **Build from a full git clone** (not `--depth 1`, git in the build container): the sitemap's `lastmod` and the page's `dateModified` are each page's last change in git (`docs/site.md`), so a shallow clone gives every page the tag's day; the version shown is `git describe`.
 - **Precompressed files:** the build writes a `.br` and a `.gz` next to each text file of `dist/` over 1 KB that gets smaller (`PRECOMPRESS` in `src/config.ts`): the main bundle is ~950 KB raw, ~280 KB gz, ~230 KB br. Caddy serves them (section 5).
 
 ## 4. The host
@@ -259,9 +260,9 @@ cctv.hidden.haus {
 
   `request_body` lets a paint file through (the admin's uploads, `SERVER.uploadBytes`, 128 MB); a lower limit refuses it with 413 before the server sees it.
 
-  Caddy needs `ROOF_NEXT_ADMIN_KEY` in its own environment (from `<apps>/.env`), so it is **recreated** (`docker compose up -d caddy`), not reloaded, when the key is first added or changes. There is no `/api/main` yet: production 1.5.0 has no admin API. Once prod runs 1.6.0, add `/api/main/*` to `roof:3001` with `roof`'s key and `main` to `CCTV_SERVERS`.
+  Caddy needs `ROOF_NEXT_ADMIN_KEY` in its own environment (from `<apps>/.env`), so it is **recreated** (`docker compose up -d caddy`), not reloaded, when the key is first added or changes. `/api/main/*` is the same block to `roof:3001` with `roof`'s own key (`ROOF_ADMIN_KEY`, in `<apps>/.env`), since 1.6.0.
 - **`cctv-web`:** a small Caddy container like `roof-next-web`, on `:8080` (with `cap_drop: [ALL]` a port under 1024 needs `NET_BIND_SERVICE`), serving cctv's `dist/`: `/assets/*` with `Cache-Control: public, max-age=31536000, immutable`, `/` with `no-cache`, and the CSP `default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'`.
-- **Building cctv:** on the host, from a read-only deploy-key clone (`<apps>/cctv/repo`), in a throwaway `node:24-slim` container: `npm ci && CCTV_SERVERS=next npm run build`, then `dist/` is what `cctv-web` serves. cctv is a private repo; its own `docs/deploy.md` has the details.
+- **Building cctv:** on the host, from a read-only deploy-key clone (`<apps>/cctv/repo`), in a throwaway `node:24-slim` container: `npm ci && CCTV_SERVERS=main,next npm run build` (both servers on the page), then `dist/` is what `cctv-web` serves. cctv is a private repo; its own `docs/deploy.md` has the details.
 
 **After a deploy (staging):**
 
