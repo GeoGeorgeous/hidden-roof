@@ -31,6 +31,12 @@ what's served: `docs/deploy.md`; the release steps that touch the page: `docs/re
   the owner's word to players under P.S.; its "legal walls" is the owner's own, saying the game isn't one), then the
   rest. How to play lists every tool with the server list's icon (`src/net/tool-icons.ts`), copied as markup;
   `scripts/seo.test.mjs` checks they match.
+- The hero's loop (`public/about/roof.mp4`, `roof-portrait.mp4`) starts after the page and its fonts have loaded
+  (`src/boot.ts`), so it never competes with them. Filmed from the title view on a real GPU, 1920x1080 and 1080x1920 (the
+  canvas only, so no menu). Encode as H.264 High, Level 4.0 or lower (the Level 6.2 files didn't play on an iPhone), 30 fps,
+  `yuv420p` in TV range, `+faststart`, one keyframe a loop with `ipratio=1.1:pbratio=1.1` (a keyframe a second made the
+  hatching pulse), crf 18-19; the loop's last second fades into its first, so the rain doesn't jump. The `.webp` posters are
+  its first frame, smaller than the video, as they're the page's largest paint.
 - The FAQ on a slow game says what the performance test says (`perfTip` in `src/perf-test.ts`, `fasterGpuHow` in
   `src/gpu-name.ts`): change one, change the other.
 

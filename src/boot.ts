@@ -23,7 +23,7 @@ function playable() {
   return pointer() && innerWidth >= __MIN_VIEWPORT__.w && innerHeight >= __MIN_VIEWPORT__.h;
 }
 
-/** The page about the game shows: its hero's loop plays, unless the player asked for less motion or less data. */
+/** The page about the game shows: its hero's loop plays once the page and its fonts have loaded, as nothing else may wait for the page's heaviest file, unless the player asked for less motion or less data. */
 function heroLoop() {
   const video = document.querySelector<HTMLVideoElement>('.about .hero-video');
   const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
@@ -35,8 +35,13 @@ function heroLoop() {
     video.src = upright.matches ? '/about/roof-portrait.mp4' : '/about/roof.mp4';
     video.play().catch(() => {});
   };
-  upright.addEventListener('change', load);
-  load();
+  const start = () =>
+    document.fonts.ready.then(() => {
+      upright.addEventListener('change', load);
+      load();
+    });
+  if (document.readyState === 'complete') start();
+  else addEventListener('load', start, { once: true });
 }
 
 /** The page shows for want of room, not of WebGL: Play now appears once the window is big enough, with a mouse (a reload, as html.game is decided before the first paint). */
