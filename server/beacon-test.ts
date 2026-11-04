@@ -351,6 +351,6 @@ try {
   }
   console.log('beacon: ok (first-version bodies, the events, refused bodies, Other, a saved hour, the report, who is on the site by page and by what it does, goodbyes and old games)');
 } finally {
-  main.stop();
+  await main.stop();
   fs.rmSync(dir, { recursive: true, force: true });
 }

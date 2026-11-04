@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 326
+The one list of what's left. Counter for new ids: next: 327
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -176,6 +176,7 @@ Shipped since the last release; the release commit empties this list.
 18. [BUGS-319]: Capture mode's webm types named no sound, which a browser recording webm may refuse now that a recording has sound (Firefox; not tried there): they name Opus, plain webm last, and a recording that can't start says so on the plate instead of only in the console
 19. [TASK-324]: The page about the game with the editor's text: fact cards reordered and rewritten (Atmosphere in, Exploration out), About, Painting and the FAQ polished, eleven FAQ questions cut (the owner's call); the performance test's answer stays as it was
 20. [BUGS-325]: A game that read another player's first snapshot while busy loading showed them seconds late, making it up at 0.1 s a second: past NET.clockSkip their time skips there at once
+21. [TEST-326]: The beacon check removed its folder while the server it hadn't waited for still saved there (ENOTEMPTY in CI)
 
 ## Discarder
 
