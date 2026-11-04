@@ -324,6 +324,8 @@ export class Multiplayer {
     const resend = back ? this.outbox.rejoined(w.acked, (op) => g.paintOps.apply(op)) : [];
     // The session may have numbered it ("geo (2)" when geo was taken): the player goes by that, but every join sends what they typed (a numbered name is not one a player can type).
     this.log.add(`in session ${w.code} as #${w.you}, at ${w.detail} texels/m, with ${w.players.length} others, ${(file.length / 1024).toFixed(0)} KB of paint`);
+    // Back as another player (the seat went, or the server restarted): the stepladder went with the seat.
+    if (back && this.joined?.you !== w.you) g.level.setRuntime(session.player, null);
     this.joined = { code: w.code, token: w.token, name: w.name, asked: this.asked, you: w.you, levelName: w.levelName, session: w.session };
     // An admin's tab never comes back on a reload.
     if (!w.admin) keepTabSession({ code: w.code, token: w.token, name: w.name, asked: this.asked });

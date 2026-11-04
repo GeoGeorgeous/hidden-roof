@@ -163,6 +163,7 @@ Shipped since the last release; the release commit empties this list.
 9. [BUGS-310]: More paint made with the link down than one message holds (1 MiB, about 39,000 stamps) closed the link on every return, for ever, the paint file coming down each time; and over 300 batches from a stalled link cost one more drop (`over budget`): what goes again is packed into few batches (NET.resendOps), numbered on from what the server has
 10. [BUGS-311]: A reload that took over 15 s lost the seat (the roof takes up to 14 s on a weak GPU), and alone in a private session that doesn't stay, the session and its paint: SERVER.closedHold is 30 s
 11. [BUGS-312]: A stepladder placed, moved or taken away with the link down: the others never heard (one taken away came back): the game keeps its own through a return and tells the server when it differs from the welcome's
+12. [BUGS-313]: Back as another player (after a server restart, or a seat that ran out), the game kept the old seat's stepladder, seen by no one else and impossible to pick up: it goes with the seat
 
 ## Discarder
 

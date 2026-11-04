@@ -154,6 +154,7 @@ const SCENARIOS = {
     const how = lab.server.filter((s) => /"B" #\d+ in from/.test(s.line)).at(-1)?.line.match(/\((new|back|takeover)/)?.[1];
     const marker = await B.page.evaluate(() => window.game.inventory.has('marker'));
     r.facts.push(`B came back as: ${how}; still has the marker: ${marker}`);
+    if (await B.page.evaluate(() => window.game.level.runtimeOf('player2') !== undefined)) r.fail.push('the stepladder of the seat B lost still stands in its game');
     if (how !== 'new') r.fail.push(`B came back as ${how}, not new: the window didn't run out`);
     if (!marker) r.fail.push('what B carried is not back by name');
   },
