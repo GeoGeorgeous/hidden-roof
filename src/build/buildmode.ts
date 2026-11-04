@@ -110,8 +110,9 @@ export class BuildMode {
   }
 
   setActive(on: boolean) {
+    // Flight changes only when build mode does: building must not end an admin's flight.
+    if (on !== this.active) this.player.fly = on;
     this.active = on;
-    this.player.fly = on;
     this.pickerView.visible = on;
     this.hud.hidden = !on;
     this.ghost.visible = on;

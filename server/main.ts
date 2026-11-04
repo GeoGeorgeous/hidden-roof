@@ -59,7 +59,13 @@ setInterval(() => {
   void history.save();
 }, SERVER.historyEvery * 1000);
 const adminPort = Number(process.env.ADMIN_PORT) || SERVER.adminPort;
-if (process.env.ADMIN_KEY) adminApi(lobby, kept, process.env.ADMIN_KEY).listen(adminPort, () => log('-----', `admin API on :${adminPort}`));
+/** `s` listening on `port`; a listen that fails (the port is taken) says why and ends the process, since nothing else could be served. */
+function listenOrExit(s: http.Server, port: number, what: string, ready: () => void) {
+  const failed = (e: Error) => (log('-----', `${what} cannot listen on :${port}:`, e), process.exit(1));
+  s.once('error', failed);
+  s.listen(port, () => (s.off('error', failed), ready()));
+}
+if (process.env.ADMIN_KEY) listenOrExit(adminApi(lobby, kept, process.env.ADMIN_KEY), adminPort, 'admin API', () => log('-----', `admin API on :${adminPort}`));
 else log('-----', 'no ADMIN_KEY: no admin API');
 
 const lobbyHttp = new LobbyHttp(lobby);
@@ -149,4 +155,4 @@ for (const sig of ['SIGTERM', 'SIGINT'])
   });
 
 const port = Number(process.env.PORT) || SERVER.port;
-server.listen(port, () => log('-----', `roof server on :${port} (protocol ${PROTOCOL})`));
+listenOrExit(server, port, 'roof server', () => log('-----', `roof server on :${port} (protocol ${PROTOCOL})`));

@@ -103,6 +103,9 @@ const saves = () => fs.readdirSync(dir).filter((n) => n.endsWith('.rhhpaint'));
 
 let server = await launch();
 try {
+  // A server whose port is taken (its own, or the admin API's) says so and exits with 1.
+  for (const taken of [{ PORT: String(PORT) }, { ADMIN_PORT: String(ADMIN_PORT) }] as Record<string, string>[])
+    await assert.rejects(start({ ADMIN_KEY: 'test-key', ...taken }), /exited with 1: .*cannot listen on :\d+: .*EADDRINUSE/s);
   // The key, the origin, and what a new session must say.
   assert.equal((await admin('GET', '/sessions', undefined, 'wrong')).status, 401);
   assert.equal((await admin('GET', '/sessions', undefined, 'test-key', { origin: 'https://elsewhere' })).status, 403);

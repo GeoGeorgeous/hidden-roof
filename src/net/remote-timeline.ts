@@ -37,7 +37,7 @@ export class RemoteTimeline {
    * plus the interpolation delay. `target` follows the least delayed packet,
    * `jitter` how much later than that packets come on average; `lag` eases
    * toward both (NET.clockRate), so a change speeds their time up or slows it
-   * a little instead of skipping.
+   * a little instead of skipping, unless it's more than NET.clockSkip.
    */
   private lag: number | null = null;
   private target = 0;
@@ -113,9 +113,9 @@ export class RemoteTimeline {
     const delay = Math.min(NET.maxDelay, Math.max(NET.interpDelay, 1 / NET.sendRate + NET.jitterCover * this.jitter));
     const ease = NET.clockRate * dt;
     this.lag += Math.min(ease, Math.max(-ease, this.target + delay - this.lag));
+    // Far behind (their first snapshot was read while this game was busy loading, or they piled up while it was hidden): catch up at once, not over a minute.
+    if (this.lag > this.target + delay + NET.clockSkip) this.lag = this.target + delay;
     const s = this.snaps;
-    // Far behind every snapshot kept (they piled up while this game was busy or hidden): catch up at once, not over a minute.
-    if (s.length && now - this.lag < s[0].t - NET.maxDelay) this.lag = Math.min(this.lag, this.target + delay);
     const at = Math.max(now - this.lag, this.shown);
     this.shown = at;
     let n = 0;

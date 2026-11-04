@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 325
+The one list of what's left. Counter for new ids: next: 330
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -175,6 +175,11 @@ Shipped since the last release; the release commit empties this list.
 17. [BUGS-318]: A stepladder placed, moved or taken away with the link down stayed unheard if the tab was hidden when the link came back, and the inventory with it: the game says all of it with its welcome, not on the next frame
 18. [BUGS-319]: Capture mode's webm types named no sound, which a browser recording webm may refuse now that a recording has sound (Firefox; not tried there): they name Opus, plain webm last, and a recording that can't start says so on the plate instead of only in the console
 19. [TASK-324]: The page about the game with the editor's text: fact cards reordered and rewritten (Atmosphere in, Exploration out), About, Painting and the FAQ polished, eleven FAQ questions cut (the owner's call); the performance test's answer stays as it was
+20. [BUGS-325]: A game that read another player's first snapshot while busy loading showed them seconds late, making it up at 0.1 s a second: past NET.clockSkip their time skips there at once
+21. [TEST-326]: The beacon check removed its folder while the server it hadn't waited for still saved there (ENOTEMPTY in CI)
+22. [BUGS-327]: A server that couldn't listen on its port kept running without saying so: it says why and exits with 1
+23. [TEST-328]: Two free ports drawn for one test server could be the same one, and it never started: a test's free ports never repeat, and a server that doesn't start says why
+24. [TEST-329]: Dev tools loading after an admin's join turned the admin's flight off (the multiplayer check, dev builds only): build mode sets flying only when it turns on or off
 
 ## Discarder
 

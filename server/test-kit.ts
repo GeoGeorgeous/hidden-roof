@@ -15,25 +15,30 @@ process.once('exit', () => children.forEach((c) => c.kill()));
 /** `c`, killed when this test ends however it ends: left running, it holds the pipes `npm run check` waits on. */
 export const stopsWithUs = (c: ChildProcess) => (children.add(c), c);
 
-/** A port nothing listens on. */
-export const freePort = () =>
-  new Promise<number>((done) => {
+const given = new Set<number>();
+/** A port nothing listens on, and none this process gave before: a port is free again once closed, so two draws can meet. */
+export async function freePort(): Promise<number> {
+  const port = await new Promise<number>((done) => {
     const s = net.createServer().listen(0, () => {
       const { port } = s.address() as net.AddressInfo;
       s.close(() => done(port));
     });
   });
+  return given.has(port) ? freePort() : (given.add(port), port);
+}
 /** A server on a free port (or the PORT and ADMIN_PORT `env` names), listening; `env` adds to its environment, `args` to node's. `stop` waits for it to exit (it saves first); `out()`: what it logged. */
 export async function start(env: Record<string, string>, args: string[] = []) {
   const [port, adminPort] = [Number(env.PORT) || (await freePort()), Number(env.ADMIN_PORT) || (await freePort())];
   const child = stopsWithUs(spawn(process.execPath, [...args, 'dist-server/server/main.js'], { env: { ...process.env, PORT: String(port), ADMIN_PORT: String(adminPort), ...env }, stdio: ['ignore', 'pipe', 'inherit'] }));
   let out = '';
+  let ended = false;
+  child.once('close', () => (ended = true));
   child.stdout!.on('data', (d: Buffer) => (out += d.toString()));
   // With LOG_DIR it says so in today's file instead.
   const file = env.LOG_DIR && path.join(env.LOG_DIR, `${new Date().toISOString().slice(0, 10)}.log`);
   const said = () => out + (file && fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '');
   for (let i = 0; !said().includes('roof server on'); i++) {
-    if (i > 500) throw new Error('the server does not start');
+    if (ended || i > 500) throw new Error(`the server ${ended ? `exited with ${child.exitCode}` : 'does not start'}: ${said()}`);
     await new Promise((w) => setTimeout(w, 20));
   }
   return { port, adminPort, pid: child.pid!, env: { ...process.env, ADMIN_PORT: String(adminPort), ...env }, out: () => out, stop: () => new Promise((done) => (child.exitCode === null ? (child.once('exit', done), child.kill()) : done(null))) };
