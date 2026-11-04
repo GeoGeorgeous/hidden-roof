@@ -2320,9 +2320,10 @@
   align-items: center;
   gap: 8px;
 }
-.overlay :is(.live, .session-line) .faces .more {
-  border-color: var(--text-4);
-  color: var(--text-2);
+/* The font's + sits lower than figures. */
+.overlay :is(.live, .session-line) .faces .more::before {
+  content: '+';
+  transform: translateY(-1px);
 }
 
 /* Joining a session (net/join-dialog.ts): the popup wider, its words centered. */

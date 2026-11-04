@@ -52,7 +52,7 @@ export function faces(players: { name: string; color?: string | null }[]) {
   }
   const rest = players.slice(LOBBY.facesShown);
   if (rest.length) {
-    const more = el('span', 'more', `+${rest.length}`);
+    const more = el('span', 'more', String(rest.length));
     more.title = rest.map((p) => p.name).join(', ');
     box.append(more);
   }
