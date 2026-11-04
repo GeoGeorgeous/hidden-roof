@@ -1236,8 +1236,8 @@ export const SERVER = {
     'Offensive or misleading nickname',
     'Cheating or abusing a bug',
   ],
-  /** A link the page closed as it went (1001: the tab closed, or a reload) keeps its seat this long (s) instead, never longer: a reload is back by then. */
-  closedHold: 15,
+  /** A link the page closed as it went (1001: the tab closed, or a reload) keeps its seat this long (s) instead, never longer: a reload is back by then (the roof takes 8 to 14 s to load again, on a weak GPU; a slower computer or a cold cache more). */
+  closedHold: 30,
   /** The server pings every game this often (s), so a game notices a dead link; a game pings the server as often, and each answer is a round trip for the link's status (NET.statusShow). */
   ping: 1,
   /**

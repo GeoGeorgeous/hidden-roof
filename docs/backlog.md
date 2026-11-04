@@ -161,6 +161,7 @@ Shipped since the last release; the release commit empties this list.
 7. [TEST-308]: The multiplayer check read how far behind A shows B once, after a fixed wait, and failed by timing: it waits for A to catch up
 8. [BUGS-309]: A player hidden as they came in (a background tab, or minimized while the paint loaded) drew no frame, so sent no state, and nobody saw their figure, though they were in the ESC menu: the game sends one state with its welcome
 9. [BUGS-310]: More paint made with the link down than one message holds (1 MiB, about 39,000 stamps) closed the link on every return, for ever, the paint file coming down each time; and over 300 batches from a stalled link cost one more drop (`over budget`): what goes again is packed into few batches (NET.resendOps), numbered on from what the server has
+10. [BUGS-311]: A reload that took over 15 s lost the seat (the roof takes up to 14 s on a weak GPU), and alone in a private session that doesn't stay, the session and its paint: SERVER.closedHold is 30 s
 
 ## Discarder
 
