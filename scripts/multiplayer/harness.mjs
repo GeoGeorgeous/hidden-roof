@@ -13,6 +13,8 @@ export const ADMIN_PORT = await freePort();
 export const ADMIN_KEY = 'test-key';
 const startServer = () => spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(PORT), ADMIN_PORT: String(ADMIN_PORT), ADMIN_KEY, PLAYER_HOST: '1' }, stdio: ['ignore', 'ignore', 'inherit'] });
 let server = startServer();
+// However the test ends: left running, it holds the pipes `npm run check` waits on.
+process.once('exit', () => server.kill());
 process.env.WS_TARGET = `ws://localhost:${PORT}`;
 const test = await openTestBrowser();
 

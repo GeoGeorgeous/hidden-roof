@@ -13,6 +13,8 @@ import { fixedFrames, freePort, gameReady, noDrawing, openTestBrowser } from './
 
 const PORT = await freePort();
 const server = spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(PORT), PLAYER_HOST: '1' }, stdio: ['ignore', 'ignore', 'inherit'] });
+// However the test ends: left running, it holds the pipes `npm run check` waits on.
+process.once('exit', () => server.kill());
 process.env.WS_TARGET = `ws://localhost:${PORT}`;
 const site = await preview({ build: { outDir: 'dist-dev' }, logLevel: 'error' });
 const test = await openTestBrowser(site.resolvedUrls.local[0]);
