@@ -160,6 +160,7 @@ Shipped since the last release; the release commit empties this list.
 6. [BUGS-307]: Pickup rings grew in the world past about 24 m to keep PICKUP.ring.minSize of the screen, which looked wrong in panoramas: the minimum is gone, with its F3 row and Pickups.view, so a ring is its size from any distance, the title view's too
 7. [TEST-308]: The multiplayer check read how far behind A shows B once, after a fixed wait, and failed by timing: it waits for A to catch up
 8. [BUGS-309]: A player hidden as they came in (a background tab, or minimized while the paint loaded) drew no frame, so sent no state, and nobody saw their figure, though they were in the ESC menu: the game sends one state with its welcome
+9. [BUGS-310]: More paint made with the link down than one message holds (1 MiB, about 39,000 stamps) closed the link on every return, for ever, the paint file coming down each time; and over 300 batches from a stalled link cost one more drop (`over budget`): what goes again is packed into few batches (NET.resendOps), numbered on from what the server has
 
 ## Discarder
 

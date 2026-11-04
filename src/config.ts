@@ -1118,6 +1118,8 @@ export const NET = {
   queueRedraw: 500,
   /** A link closed for its silence (serverSilence) that the browser has not reported closed in this long (s) is given up on: the game reconnects without waiting for it. */
   closeWait: 3,
+  /** Paint ops sent again after a drop go in batches of at most this many (net/outbox.ts): an op is 31 bytes at most, so a batch stays well under SERVER.maxMessage. */
+  resendOps: 8000,
   /** Paint ops and stepladders of another player wait for their time; past this many waiting (a clock far ahead), the oldest run at once. */
   eventsKept: 4096,
   /** Snapshots sent per second. */
