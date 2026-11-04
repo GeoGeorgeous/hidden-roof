@@ -92,13 +92,13 @@ export class Hud {
     return this.menu.cityView;
   }
 
-  /** The arc beside the crosshair: the can's opacity 0..1; null: none. When it changes, the percent shows beside the arc for HUD.tagTime. */
+  /** The arc beside the crosshair: the can's opacity 0..1; null: none. When it changes, the percent shows beside the arc for as long as the arc answers. */
   setArc(opacity: number | null) {
     const now = performance.now();
     if (opacity !== this.arc) {
       if (opacity !== null && this.arc !== null) {
         this.percent.textContent = `${Math.round(opacity * 100)}%`;
-        this.percentUntil = now + HUD.tagTime * 1000;
+        this.percentUntil = now + Math.max(CROSSHAIR.arc.flowMs, CROSSHAIR.arc.lineMs);
         this.answer(this.arc, opacity);
       }
       this.arc = opacity;
