@@ -329,10 +329,10 @@ export class Multiplayer {
     if (!w.admin) keepTabSession({ code: w.code, token: w.token, name: w.name, asked: this.asked });
     session.multiplayer = true;
     session.player = ownerOf(w.you);
-    this.remotes.fill(w, now());
+    this.remotes.fill(w, now(), back);
     // The session's log counts: a ghost recording (F3) that had it is left without paint ops.
     this.sender.begin(true);
-    this.sender.restart(g.level.runtimeOf(session.player));
+    this.sender.restart(w.ladders.find((l) => l.id === w.you)?.data);
     this.net = new Traffic();
     // Its welcome has come: it sends, and a silence on it means it's dead.
     Object.assign(link, { live: true, lastHeard: now() });

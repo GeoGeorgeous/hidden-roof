@@ -162,6 +162,7 @@ Shipped since the last release; the release commit empties this list.
 8. [BUGS-309]: A player hidden as they came in (a background tab, or minimized while the paint loaded) drew no frame, so sent no state, and nobody saw their figure, though they were in the ESC menu: the game sends one state with its welcome
 9. [BUGS-310]: More paint made with the link down than one message holds (1 MiB, about 39,000 stamps) closed the link on every return, for ever, the paint file coming down each time; and over 300 batches from a stalled link cost one more drop (`over budget`): what goes again is packed into few batches (NET.resendOps), numbered on from what the server has
 10. [BUGS-311]: A reload that took over 15 s lost the seat (the roof takes up to 14 s on a weak GPU), and alone in a private session that doesn't stay, the session and its paint: SERVER.closedHold is 30 s
+11. [BUGS-312]: A stepladder placed, moved or taken away with the link down: the others never heard (one taken away came back): the game keeps its own through a return and tells the server when it differs from the welcome's
 
 ## Discarder
 

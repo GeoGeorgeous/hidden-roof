@@ -74,11 +74,11 @@ export class Remotes {
     for (const id of [...this.list.keys()]) this.remove(id);
   }
 
-  /** The session's players and their stepladders, as its welcome has them, in place of any before. */
-  fill(w: Extract<ToClient, { type: 'welcome' }>, now: number) {
+  /** The session's players and their stepladders, as its welcome has them, in place of any before; `back`: this game's own stepladder stays as it is (it may have moved it with its link down: the sender tells). */
+  fill(w: Extract<ToClient, { type: 'welcome' }>, now: number, back: boolean) {
     this.clear();
     for (const p of w.players) this.add(p.id, p.name, p.state, now, p.role);
-    for (const l of w.ladders) this.g.level.setRuntime(ownerOf(l.id), l.data);
+    for (const l of w.ladders) if (!back || l.id !== w.you) this.g.level.setRuntime(ownerOf(l.id), l.data);
   }
 
   presence(id: number, state: Presence) {
