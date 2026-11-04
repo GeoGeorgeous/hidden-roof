@@ -70,9 +70,6 @@ export function slantOf(face: Rect['face'], ray: Vector3): Slant | undefined {
   return { stretch, turn, tail: BRUSH.slantTail * (1 - cos) };
 }
 
-/** A dab's opacity once `slant` has spread it (BRUSH.slantThin). */
-export const thinned = (amount: number, slant?: Slant) => (slant ? 1 - (1 - amount) ** (slant.stretch ** -BRUSH.slantThin) : amount);
-
 /** The set opacity a step up (+1) or down (-1), in whole percents, so it comes back to the same numbers. */
 export const stepOpacity = (opacity: number, dir: number) => Math.round(MathUtils.clamp(opacity + dir * BRUSH.opacityStep, BRUSH.opacityMin, BRUSH.opacityMax) * 100) / 100;
 

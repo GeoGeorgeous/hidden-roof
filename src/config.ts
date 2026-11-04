@@ -1078,8 +1078,6 @@ export const BRUSH = {
   slantMax: 4,
   /** How much of its paint a dab along the wall loses toward its far end. */
   slantTail: 0.7,
-  /** How far stretching thins a dab: 0 = its paint stays as dense, so a line along the aim darkens; 1 = the same paint spread over more wall. */
-  slantThin: 0,
 };
 
 export const PLAYER = {

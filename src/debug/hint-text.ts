@@ -120,7 +120,6 @@ export const HINTS: Record<string, string> = {
   'BRUSH.slantFrom': 'A dab stretched less than this stays round, and its op three bytes shorter.',
   'BRUSH.slantMax': 'The longest a dab hitting the wall at an angle stretches, times its width. 1 = always round.',
   'BRUSH.slantTail': 'How much of its paint a dab along the wall loses toward its far end. 0 = even.',
-  'BRUSH.slantThin': 'How far stretching thins a dab. 0 = as dense, so a line along the aim darkens at an angle. 1 = the same paint over more wall, so that line stays as set and a line across the aim gets lighter.',
   'SPRAY.particleSpeed': 'Flight speed of the visible spray particles (m/s). Paint lands when they arrive.',
   'SPRAY.shakeDuration': 'Length of one shake (s): its motion and rattle, repeated while RMB is held. Only that: it does nothing to the paint.',
   'PAINT.alphaSteps': 'Paint opacity is shown in this many steps for a chunky look; 0 = smooth. Only how paint is drawn: the paint itself keeps every value.',

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { PaintSystem, Rgb } from '../painting';
-import { slantOf, thinned, type Dab } from './dab';
+import { slantOf, type Dab } from './dab';
 import { SprayStroke, type Canvas, type StrokeFrame } from './stroke';
 import type { WallProbe, WallSpot } from './wall-probe';
 
@@ -50,6 +50,6 @@ export class Brush implements Canvas<WallSpot> {
 
   lay(hit: WallSpot, dab: Dab) {
     const slant = slantOf(hit.surface.geo.rects[hit.at.rect].face, ray.subVectors(hit.point, this.eye).normalize());
-    this.paint.stamp(hit.surface, hit.at, dab.radius, thinned(dab.amount, slant), this.rgb, dab.softness, this.drips, false, slant);
+    this.paint.stamp(hit.surface, hit.at, dab.radius, dab.amount, this.rgb, dab.softness, this.drips, false, slant);
   }
 }

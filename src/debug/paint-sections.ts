@@ -95,7 +95,6 @@ export function paintSections(h: Hooks): Section[] {
         r('from', ['BRUSH', 'slantFrom'], 1, 2, 0.01),
         r('most', ['BRUSH', 'slantMax'], 1, 8, 0.1),
         r('tail', ['BRUSH', 'slantTail'], 0, 1, 0.05),
-        r('thinning', ['BRUSH', 'slantThin'], 0, 1, 0.05),
       ],
     },
     {
