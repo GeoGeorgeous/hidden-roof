@@ -428,10 +428,13 @@ only): cut it before the branch reaches `dev`, on the owner's word.
 | 3 | In module 1 (one function sizes a dab; its number stays free so the others keep theirs) | |
 | 4 | Done on `feat/paint-crosshair`. The game's crosshair sized to the line (`lineWidth`), no PSI gauge, one ray a frame shared with the brush. The opacity: a 120° arc on the crosshair's right, the percent beside it for a moment after a change. A sight glass on the can was tried against the arc: owner chose the arc | IDEA-228 |
 | 5 | Done on `feat/paint-slant-wire`. The sandbox's slant ported (it was never in the game) and put on the wire: protocol 12, 3 bytes behind a flag, rounded like an op's other numbers; seams; the load read again | TASK-231 |
-| 6 | Done on `feat/paint-caps`, but for the places of the three new pickups on the maps. Today's four caps as they are, with real names, colors and a dot on each; NEEDLE, BLUE DOT and TRANSVERSAL new | IDEA-229 |
-| 7 | Paint runs: the design talked over first, the marker's kept as they are if nothing asks otherwise | TASK-230 |
+| 6 | Done on `feat/paint-caps`. Today's four caps as they are, with real names, colors and a dot on each; NEEDLE, BLUE DOT and TRANSVERSAL new, on the roof | IDEA-229 |
+| 9 | Spray plume, next after module 6: from the sandbox's, then by the cap (cone, specks, haze), TRANSVERSAL's a flat fan; the old square points go | |
 | 8 | Dead code, load tests, docs | TASK-232 |
-| 9 | Spray plume, then this doc gone | |
+| | The owner tests and thinks about paint runs | |
+| 7 | Paint runs: the design talked over first, the marker's kept as they are if nothing asks otherwise; then `ALL_PAINT` cut and this doc gone | TASK-230 |
+
+Order (owner, 2026-11-04): 6, 9, 8, a pause, 7.
 
 Bar for all of it (owner, 2026-11-04): this is the game's core feature, so
 robust, modular, typed, testable code. What doesn't fit the architecture and
@@ -476,7 +479,6 @@ Found in the branch, to fix on the way:
 
 Still open:
 
-- The three new caps' places on the maps: module 6.
 - How paint runs work with the brush: module 7.
 
 Decided (2026-11-04): the opacity shows on an arc at the crosshair, as set, not as dense as it lands at this distance; no gauge on the can. The line reads wider at a higher opacity (saturation, not a rule of its own): kept.
