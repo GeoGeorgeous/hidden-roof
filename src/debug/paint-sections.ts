@@ -1,4 +1,4 @@
-import { CAP_ORDER, CAPS, CROSSHAIR } from '../config';
+import { CAP_ORDER, CAPS } from '../config';
 import { c, r, t, type Hooks, type Item, type Section } from './tuning';
 
 // F3 panel contents for painting (tuning.ts has the helpers): what each tool
@@ -155,8 +155,12 @@ export function paintSections(h: Hooks): Section[] {
       title: 'Cursor',
       items: [
         r('no sized tool', ['CROSSHAIR', 'plain'], 0, 30, 1),
-        { kind: 'choice', label: 'arc effect', options: ['GROWS', 'THICKENS', 'FLOWS'], get: () => CROSSHAIR.arcEffect, pick: (i) => (CROSSHAIR.arcEffect = i) },
-        r('arc effect: time', ['CROSSHAIR', 'arcMs'], 60, 800, 20),
+        { kind: 'heading', label: 'OPACITY ARC' },
+        r('flow: time', ['CROSSHAIR', 'arc', 'flowMs'], 0, 1000, 10),
+        r('flow: bounce', ['CROSSHAIR', 'arc', 'bounce'], 1, 3, 0.05),
+        r('line', ['CROSSHAIR', 'arc', 'line'], 0.5, 4, 0.1),
+        r('line: peak', ['CROSSHAIR', 'arc', 'peak'], 0.5, 8, 0.1),
+        r('line: time', ['CROSSHAIR', 'arc', 'lineMs'], 0, 1000, 10),
         ...cursorItems('MARKER', 0.4, 0.002, 1000),
         ...cursorItems('ROLLER', 1.2, 0.02, 200),
         ...cursorItems('SPONGE', 0.8, 0.01, 500),
