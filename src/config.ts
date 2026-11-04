@@ -651,14 +651,18 @@ export const CAPTURE = {
   /** The video qualities BINDINGS.captureQuality goes through (bit rate, Mbit/s; named in messages.ts capture.qualities), and the one it starts at. */
   qualities: [8, 16, 30, 60],
   qualityStart: 2,
-  /** The first the browser records: mp4, else webm. */
-  videoTypes: ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9'],
+  /** The sound's bit rate (bit/s). */
+  audioBitrate: 256_000,
+  /** The first the browser records: mp4 with AAC (what editors open), else mp4, else webm. */
+  videoTypes: ['video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9'],
   /** The frame sizes BINDINGS.captureSize goes through after the window's: drawn at pixel ratio 1 (16:9, 9:16, 1:1), fitted into the window. */
   sizes: [
     [1920, 1080],
     [1080, 1920],
     [1080, 1080],
   ] as (readonly [number, number])[],
+  /** The frame height (px) drawn with INK.hatchPx as it is: a taller frame's hatching grows with it, so 9:16 looks like 16:9. */
+  hatchHeight: 1080,
   /** The free camera's speed (m/s) at the start, its range, and the factor a wheel step changes it by (up faster). */
   speed: 4,
   speedMin: 0.25,

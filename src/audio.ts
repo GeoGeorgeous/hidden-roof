@@ -19,6 +19,7 @@ export class Audio {
   private rainFilter!: BiquadFilterNode;
   private fanGain!: GainNode;
   private fanLevel = 0;
+  private recorded: MediaStreamAudioDestinationNode | null = null;
 
   /** Must be called from a user gesture. */
   start() {
@@ -115,6 +116,13 @@ export class Audio {
     airBp.Q.value = 0.7;
     air.connect(airBp).connect(this.fanGain);
     this.fanGain.connect(this.master);
+  }
+
+  /** All of the game's sound as a track for a recording (capture/recorder.ts), as loud as it's heard; null before the first gesture starts the sound. */
+  track() {
+    if (!this.ctx) return null;
+    if (!this.recorded) this.master.connect((this.recorded = this.ctx.createMediaStreamDestination()));
+    return this.recorded.stream.getAudioTracks()[0];
   }
 
   /** Once per frame: apply AUDIO gains and the rain level; `paused` turns everything down. */

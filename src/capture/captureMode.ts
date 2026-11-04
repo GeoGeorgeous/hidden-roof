@@ -1,5 +1,5 @@
 import type * as THREE from 'three';
-import { CAPTURE } from '../config';
+import { CAPTURE, INK } from '../config';
 import type { Input } from '../input';
 import { setFrame } from '../view-rect';
 import { Flight } from './flight';
@@ -13,7 +13,7 @@ import { Recorder } from './recorder';
 // nothing of the game's over the view, the game without input (main.ts), the
 // camera flying free (freeCam.ts) or through the points set (flight.ts). In
 // both, its plate (overlay.ts) shows its keys, never in the video; the record
-// key films the canvas (recorder.ts) at the quality chosen, the frame key draws at a fixed size at
+// key films the canvas and its sound (recorder.ts) at the quality chosen, the frame key draws at a fixed size at
 // pixel ratio 1. Leaving puts the window's size back. While paused, the pause
 // menu as ever.
 
@@ -27,6 +27,8 @@ export interface CaptureView {
   restore: () => void;
   /** The drawing buffer changed size. */
   resized: () => void;
+  /** The game's sound, for a recording. */
+  sound: () => MediaStreamTrack | null;
 }
 
 export class CaptureMode {
@@ -42,6 +44,8 @@ export class CaptureMode {
   private quality = CAPTURE.qualityStart;
   /** The free camera takes the player's view on its next frame. */
   private fresh = false;
+  /** INK.hatchPx outside a fixed frame. */
+  private hatchPx = INK.hatchPx;
 
   constructor(private view: CaptureView) {}
 
@@ -70,7 +74,7 @@ export class CaptureMode {
     if (free) this.fly(playing ? dt : 0, input, camera);
     if (!playing) return;
     if (input.justPressed('captureQuality')) this.quality = (this.quality + 1) % CAPTURE.qualities.length;
-    if (input.justPressed('captureRecord')) this.recorder.toggle(this.view.renderer.domElement, CAPTURE.qualities[this.quality]);
+    if (input.justPressed('captureRecord')) this.recorder.toggle(this.view.renderer.domElement, CAPTURE.qualities[this.quality], this.view.sound());
     if (input.justPressed('captureSize')) this.setSize(CAPTURE.sizes[this.size ? CAPTURE.sizes.indexOf(this.size) + 1 : 0] ?? null);
     this.overlay.update({ shot: this.shot, speed: this.cam.speed, smoothing: this.cam.smoothing, size: this.size, quality: this.quality, recording: this.recorder.startedAt }, this.flight, camera, this.view.renderer.domElement);
   }
@@ -103,6 +107,9 @@ export class CaptureMode {
 
   private setSize(size: readonly [number, number] | null) {
     if (size === this.size) return;
+    if (!this.size) this.hatchPx = INK.hatchPx;
+    // The view is as tall in degrees in any frame: a taller frame has things bigger in pixels, and its hatching grows with them.
+    INK.hatchPx = this.hatchPx * (size ? size[1] / CAPTURE.hatchHeight : 1);
     this.size = size;
     const { renderer, camera } = this.view;
     if (!size) {
