@@ -58,6 +58,14 @@ export function encodeSnapshot(s: Snapshot) {
   return b;
 }
 
+/** Snapshot `b`, a copy, with its time moved on by `s` seconds. */
+export function snapshotLater(b: Uint8Array, s: number) {
+  const later = new Uint8Array(b);
+  const v = new DataView(later.buffer);
+  v.setFloat32(0, v.getFloat32(0, true) + s, true);
+  return later;
+}
+
 /** Where a snapshot puts its sender (the server keeps it for a player who comes back). */
 export function snapshotSpot(b: Uint8Array): Spot {
   const v = new DataView(b.buffer, b.byteOffset, b.byteLength);

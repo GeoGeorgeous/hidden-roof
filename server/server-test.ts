@@ -6,6 +6,7 @@ import { SERVER } from '../src/config';
 import { levelPaintFaces } from '../src/level/prop-pieces';
 import type { InventoryData } from '../src/inventory/inventory';
 import { SLOTS } from '../src/inventory/tool';
+import { snapshotSpot } from '../src/net/snapshot';
 import { closeCode, decode, encode, HELLO, received, PROTOCOL, SNAPSHOT_BYTES, type ToClient, type ToServer } from '../src/net/protocol';
 import { decodePaintFile, encodePaintFile, joinBytes } from '../src/save/paint-file';
 import { surfaceTable } from '../src/save/shape';
@@ -260,6 +261,11 @@ try {
   // Typing their nickname does not take a dropped player's seat from another address (or device): it gets a name of its own.
   const stranger = await game();
   stranger.send({ type: 'join', protocol: PROTOCOL, name: 'geo', code: wg.code });
+  // A player who sends nothing now is still shown to one who comes in: from their last state, moved on to their clock now.
+  const last = await stranger.next('state');
+  assert.equal(last.id, wg.you);
+  assert.ok(near(snapshotSpot(last.bytes), spotA, 0.5));
+  assert.ok(new DataView(last.bytes.buffer, last.bytes.byteOffset).getFloat32(0, true) > 0, 'stamped later than it was sent');
   assert.equal((await stranger.next('welcome')).name, 'geo (3)');
   assert.equal((await twin.next('joined')).name, 'geo (3)');
   stranger.send({ type: 'leave' });

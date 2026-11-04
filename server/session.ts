@@ -14,7 +14,7 @@ import { history } from './history';
 import { hold, release } from './held';
 import { log, logNoisy, span, who } from './log';
 import { turnedAway } from './minutes';
-import { deliver, match, presence, stampedBy, turnAway, uniqueName, type Link, type Player } from './player';
+import { deliver, latestStates, match, presence, stampedBy, turnAway, uniqueName, type Link, type Player } from './player';
 import { Queue } from './queue';
 import { forget, relay } from './relay';
 import { HOSTED } from './setup';
@@ -144,7 +144,7 @@ export class Session {
       if (presence(p) !== before) p.since = Date.now();
     } else {
       const unique = uniqueName(name, all);
-      p = { id: this.nextId++, name: unique, asked: name, token: randomUUID(), device: link.device, link, joined: Date.now(), acked: 0, live: false, saving: false, activity: 'here', since: Date.now(), inventory: null, at: null, ...this.carried.get(unique), ladder: null, expires: null, was: null };
+      p = { id: this.nextId++, name: unique, asked: name, token: randomUUID(), device: link.device, link, joined: Date.now(), acked: 0, live: false, saving: false, activity: 'here', since: Date.now(), inventory: null, at: null, ...this.carried.get(unique), last: null, ladder: null, expires: null, was: null };
       this.broadcast({ type: 'joined', id: p.id, name: p.name }, p);
       this.players.set(p.id, p);
     }
@@ -192,6 +192,9 @@ export class Session {
     link.send(encode({ type: 'welcome', code: this.code, you: p.id, name: p.name, token: p.token, session, levelName: this.levelName, level: this.level, detail: this.detail, table: this.table, players, ladders, inventory: p.inventory, at: p.at, parts: own ? 0 : frames.length, acked: p.acked, ...(p.watcher && { admin: true as const }), locks: snap.locks }));
     if (!own) for (const f of frames) link.send(f);
     for (const f of snap.log) link.send(f);
+    // A figure shows once a state comes, and a hidden game or a dropped player sends none.
+    const states = latestStates(shown.filter((q) => q !== p));
+    if (states) link.send(states);
     p.live = true;
     snap.served++;
   }
@@ -199,6 +202,7 @@ export class Session {
   receive(p: Player, m: ToServer) {
     if (m.type === 'state') {
       p.at = spotIn(m.bytes, this.range) ?? p.at;
+      p.last = { bytes: new Uint8Array(m.bytes), at: Date.now() };
       this.relay(relayEntry('state', p.id, m.bytes), p);
     }
     else if (m.type === 'ops') {
