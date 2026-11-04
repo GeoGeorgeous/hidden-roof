@@ -579,7 +579,7 @@ export const CROSSHAIR = {
    * The opacity arc answers a change: it flows to the new value in `flowMs`, past it by `bounce` (1 = not past it, the
    * easing's overshoot), and its line (px) starts `peak` thick and comes back to `line` in `lineMs`.
    */
-  arc: { flowMs: 240, bounce: 1.7, line: 1.5, peak: 3, lineMs: 240 },
+  arc: { flowMs: 240, bounce: 1.7, line: 1.5, peak: 3, lineMs: 600 },
 };
 
 /** Hotbar circles shown from the start (empty until their tool is found); at least one per tool. */
