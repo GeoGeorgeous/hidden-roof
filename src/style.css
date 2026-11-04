@@ -171,6 +171,17 @@
   line-height: 14px;
   white-space: nowrap;
 }
+/* The cap's: over the game view, inverting what's under it, as the crosshair does. */
+.cap-tag.on-view {
+  position: fixed;
+  left: 0;
+  top: 0;
+  color: #fff;
+  border-left-color: #fff;
+  mix-blend-mode: difference;
+  z-index: var(--z-aim);
+  pointer-events: none;
+}
 /*
  * Pickups' tags by their rings (pickups/labels.ts), manga-style, faded in and
  * out: outlined letters with katakana under them, NEW TOOL ending at the ring's
@@ -2612,6 +2623,7 @@
 body.paused .layer-world,
 body.paused .layer-frame > :not(.vignette),
 body.paused .layer-tool,
+body.paused .cap-tag.on-view,
 body.paused .hotbar,
 body.paused .layer-shade,
 body.paused .layer-hint,

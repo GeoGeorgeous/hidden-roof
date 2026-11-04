@@ -46,7 +46,6 @@ export class Hud {
     tools.className = 'layer layer-tool';
     tools.innerHTML = `
       <div class="tool-stack" hidden>
-        <div class="cap-tag" hidden></div>
         <div class="cap-tag color-tag" hidden></div>
       </div>`;
     const world = document.createElement('div');
@@ -62,7 +61,9 @@ export class Hud {
     this.crosshair.hidden = true;
     this.percent = this.crosshair.appendChild(document.createElement('span'));
     this.percent.hidden = true;
-    document.body.append(this.crosshair);
+    // The cap's tag inverts too, so it's a layer of its own as well; the color's stays, for its swatch.
+    this.capTag = Object.assign(document.createElement('div'), { className: 'cap-tag on-view', hidden: true });
+    document.body.append(this.crosshair, this.capTag);
     this.vignette = frame.querySelector('.vignette')!;
     this.perf = frame.querySelector('.perf')!;
     this.syncVignette();
@@ -75,7 +76,6 @@ export class Hud {
       ['clock', [this.clock]],
     ];
     this.stack = tools.querySelector('.tool-stack')!;
-    this.capTag = tools.querySelector('.cap-tag')!;
     this.colorTag = tools.querySelector('.color-tag')!;
     this.menu = new PauseMenu(menu);
   }
@@ -153,8 +153,12 @@ export class Hud {
   placeToolTags(at: { x: number; y: number } | null) {
     const now = performance.now();
     this.stack.hidden = !at;
-    if (at) this.stack.style.transform = `translate(${Math.round(at.x)}px, ${Math.round(at.y)}px)`;
-    this.capTag.hidden = now >= this.capTagUntil;
+    if (at) {
+      const [x, y] = [Math.round(at.x), Math.round(at.y)];
+      this.capTag.style.transform = `translate(${x}px, ${y}px)`;
+      this.stack.style.transform = `translate(${x}px, ${y + HUD.tagStep}px)`;
+    }
+    this.capTag.hidden = !at || now >= this.capTagUntil;
     this.colorTag.hidden = now >= this.colorTagUntil;
   }
 

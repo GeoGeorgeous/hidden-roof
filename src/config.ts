@@ -382,6 +382,8 @@ export const HUD = {
   perfGpu: false,
   /** How long the cap and color tags show after a change (s). */
   tagTime: 2.5,
+  /** The color's tag sits this far (px) under the cap's. */
+  tagStep: 22,
   /** Hotbar slots: size and the gap between them (CSS px), roundness (0 = square, 1 = circle), icon size (share of the slot). */
   slotSize: 30,
   slotGap: 10,
