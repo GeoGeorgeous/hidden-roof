@@ -279,7 +279,7 @@ await check('caps: each sprays, NEEDLE from its tube\'s tip; the crosshair fades
     };
     out.needleTip = await tip('needle');
     out.skinnyTip = await tip('skinny');
-    const far = () => document.querySelector('.crosshair').classList.contains('far');
+    const far = () => document.querySelector('.crosshair').style.opacity === `${g.config.CROSSHAIR.far}`;
     await steps((f) => ((player.pitch = 0), f === 3));
     out.onWall = far();
     await steps((f) => ((player.pitch = 1.4), f === 3));

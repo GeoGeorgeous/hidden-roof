@@ -172,6 +172,7 @@ export function paintSections(h: Hooks): Section[] {
       title: 'Cursor',
       items: [
         r('no sized tool', ['CROSSHAIR', 'plain'], 0, 30, 1),
+        r('out of reach: strength', ['CROSSHAIR', 'far'], 0, 1, 0.05),
         { kind: 'heading', label: 'OPACITY ARC' },
         r('flow: time', ['CROSSHAIR', 'arc', 'flowMs'], 0, 1000, 10),
         r('flow: bounce', ['CROSSHAIR', 'arc', 'bounce'], 1, 3, 0.05),
