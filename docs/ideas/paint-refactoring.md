@@ -198,14 +198,14 @@ bytes on the wire behind a flag, so other players see what the painter painted.
 
 Measured in module 5, one pass at 3 m, 65%, the standard cap (head on 0.50, 10 cm):
 
-| Angle | Line along the aim | Line across the aim | Same, `slantThin` 1 |
-|---|---|---|---|
-| 30° | 0.55 | 0.50, 13 cm | 0.49 / 0.45 |
-| 60° | 0.73 | 0.50, 22 cm | 0.48 / 0.29 |
-| 75° | 0.91 | 0.50, 40 cm | 0.47 / 0.16 |
+| Angle | Line along the aim | Line across the aim |
+|---|---|---|
+| 30° | 0.55 | 0.50, 13 cm |
+| 60° | 0.73 | 0.50, 22 cm |
+| 75° | 0.91 | 0.50, 40 cm |
 
-Ported as the sandbox had it (`slantThin` 0): dabs overlap more along the aim,
-so that line darkens. At 1 the paint is conserved, as with a real can.
+As the sandbox had it: dabs overlap more along the aim, so that line darkens.
+Thinning a dab as it stretches was tried in F3; owner (2026-11-04): stays as is.
 
 Owner: important, in 1.7.0, protocol bump included (step 2 below is required).
 
@@ -459,8 +459,6 @@ Still open:
 
 - Which test caps ship, and the new caps' places on the maps: module 6.
 - How paint runs work with the brush: module 7.
-- Whether a dab's paint thins as it stretches (`BRUSH.slantThin`, F3 → Brush →
-  SLANT): module 5 kept the sandbox's 0. Once decided, the number goes.
 
 Decided (2026-11-04): the opacity shows on an arc at the crosshair, as set, not as dense as it lands at this distance; no gauge on the can. The line reads wider at a higher opacity (saturation, not a rule of its own): kept.
 

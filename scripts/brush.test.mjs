@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import './ts-imports.mjs';
 
 const { BRUSH, CAPS, SPRAY } = await import('../src/config.ts');
-const { dabAt, dabSpacing, lineWidth, slantOf, stepOpacity, thinned } = await import('../src/spray/dab.ts');
+const { dabAt, dabSpacing, lineWidth, slantOf, stepOpacity } = await import('../src/spray/dab.ts');
 const { PaintRaster } = await import('../src/paint-raster.ts');
 const { SprayStroke } = await import('../src/spray/stroke.ts');
 
@@ -66,15 +66,12 @@ const reach = (s, x, y, dx, dy) => {
   assert.equal(alpha(tailed, 355, 400), alpha(long, 355, 400), 'the near end keeps its paint');
   assert.ok(alpha(long, 355, 400) > 0 && alpha(tailed, 445, 400) < alpha(long, 445, 400) * 0.75, 'the far end loses it');
 
-  // A line of them: along the aim dabs overlap more, so it darkens unless stretching thins them (BRUSH.slantThin).
-  const line = (turn, thin) => {
-    const was = BRUSH.slantThin;
-    BRUSH.slantThin = thin;
+  // A line of them: across the aim as dense and wider; along it dabs overlap more, so it darkens.
+  const line = (turn) => {
     const d = dab('standard', 3);
     const slant = { stretch: 2, turn, tail: 0 };
     const s = wall();
-    for (let x = 100; x < 700; x += dabSpacing(CAPS.standard, 3) * TEXELS) raster.dot(s, whole, x, 400, { ...d, amount: thinned(d.amount, slant), color: [1, 0, 0], square: false, slant }, 0);
-    BRUSH.slantThin = was;
+    for (let x = 100; x < 700; x += dabSpacing(CAPS.standard, 3) * TEXELS) raster.dot(s, whole, x, 400, { ...d, color: [1, 0, 0], square: false, slant }, 0);
     return alpha(s, 400, 400);
   };
   const flat = (() => {
@@ -83,10 +80,8 @@ const reach = (s, x, y, dx, dy) => {
     for (let x = 100; x < 700; x += dabSpacing(CAPS.standard, 3) * TEXELS) raster.dot(s, whole, x, 400, { ...d, color: [1, 0, 0], square: false }, 0);
     return alpha(s, 400, 400);
   })();
-  near(line(0.25, 0), flat, 0.03, 'not thinned, a line across the aim is as dense');
-  assert.ok(line(0, 0) > flat * 1.3, 'not thinned, a line along the aim darkens');
-  near(line(0, 1), flat, 0.05, 'thinned, a line along the aim is as dense');
-  near(line(0.25, 1), 1 - (1 - flat) ** 0.5, 0.05, 'thinned, a line across the aim is lighter');
+  near(line(0.25), flat, 0.03, 'a line across the aim is as dense');
+  assert.ok(line(0) > flat * 1.3, 'a line along the aim darkens');
 }
 
 // Distance.
