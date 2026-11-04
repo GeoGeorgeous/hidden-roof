@@ -7,6 +7,7 @@ import { rgbOf } from '../inventory/items';
 import type { PaintSystem } from '../painting';
 import { CanModel } from './can-model';
 import { Brush } from './brush';
+import { lineWidth } from './dab';
 import { SprayParticles, WallMemo } from './particles';
 import { WallProbe } from './wall-probe';
 import { setHex } from '../hex-color';
@@ -26,6 +27,8 @@ export class SprayTool {
   flow = 0;
   /** The spray is landing on paintable surface (not the sky, not out of reach): as of the last frame that sprayed. */
   landing = false;
+  /** How wide the line would land now, on screen (CSS px): the crosshair's size. */
+  linePx = 0;
   readonly model = new CanModel();
   readonly particles: SprayParticles;
   /** Other players' spray (net/remote-player.ts): seen only, their paint comes as paint ops. */
@@ -50,7 +53,7 @@ export class SprayTool {
   }
 
   /** `inv` is null when the can is put away (particles still finish flying). */
-  update(dt: number, input: Input, camera: THREE.Camera, eye: THREE.Vector3, inv: Inventory | null) {
+  update(dt: number, input: Input, camera: THREE.PerspectiveCamera, eye: THREE.Vector3, inv: Inventory | null) {
     this.model.group.visible = !!inv;
     this.particles.update(dt);
     this.others.update(dt);
@@ -87,8 +90,17 @@ export class SprayTool {
     this.audio.setHiss(this.flow * cap.hissGain, cap.hissTone);
 
     this.model.update(dt, camera, spraying, spraying, this.shakeT >= 0 ? this.shakeT / SPRAY.shakeDuration : -1);
+    camera.getWorldDirection(forward);
     if (spraying) this.emit(dt, camera, eye, inv);
     else this.stop();
+    this.measure(camera, eye, inv);
+  }
+
+  /** The line on screen: a wall square-on at the aim's distance, or at the can's reach with none. */
+  private measure(camera: THREE.PerspectiveCamera, eye: THREE.Vector3, inv: Inventory) {
+    const distance = this.brush.distance({ eye, forward }, this.flow > 0) ?? SPRAY.reach;
+    const view = 2 * distance * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
+    this.linePx = Math.round((lineWidth(CAPS[inv.cap], distance, this.brush.speed) / view) * window.innerHeight);
   }
 
   /** Nothing comes out of the can. */
@@ -105,7 +117,6 @@ export class SprayTool {
 
   private emit(dt: number, camera: THREE.Camera, eye: THREE.Vector3, inv: Inventory) {
     const cap = CAPS[inv.cap];
-    camera.getWorldDirection(forward);
     this.landing = this.brush.spray({ eye, forward, cap, dt }, rgbOf(inv.color));
     this.carry += cap.rate * dt;
     const count = Math.floor(this.carry);

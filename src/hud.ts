@@ -3,13 +3,10 @@ import { netLines, type NetStats } from './net/diagnostics';
 import { PauseMenu } from './pause-menu';
 
 // Body-cam style HUD: vignette, corner brackets, REC indicator with elapsed
-// time, clock, crosshair, the PSI gauge, cap and color tags beside the tool in
+// time, clock, crosshair, cap and color tags beside the tool in
 // hand, performance numbers, and over it all the ESC menu (pause-menu.ts).
 // Each part is a layer of its own under body (style.css, the --z-* tokens in boot.css).
 // The tool readout lives in inventory/hotbar.ts, the debug panel in debug/panel.ts.
-
-/** The tool stack starts this many CSS px above the cap tag: the PSI gauge, then the cap tag (style.css .tool-stack). */
-const STACK_TOP = -22;
 
 export class Hud {
   /** The start / pause screen and its pages. */
@@ -26,15 +23,10 @@ export class Hud {
   private capTagUntil = 0;
   private colorTag: HTMLElement;
   private colorTagUntil = 0;
-  private gauge: HTMLElement;
-  private gaugeFill: HTMLElement;
-  private gaugeText: HTMLElement;
-  /** What the gauge shows now, so it's rewritten only on change. */
-  private gaugeShown = -1;
-  private gaugeUntil = 0;
-  private gaugeOn = false;
-  private lastOpacity = -1;
   private crosshairSize = -1;
+  private arc: number | null = null;
+  private percent: HTMLElement;
+  private percentUntil = 0;
   private start = performance.now();
   private lastSecond = -1;
   /** The parts HUD switches on and off, and which were shown last (rewritten only on change). */
@@ -54,7 +46,6 @@ export class Hud {
     tools.className = 'layer layer-tool';
     tools.innerHTML = `
       <div class="tool-stack" hidden>
-        <div class="cap-tag psi-gauge"><span>PSI</span><div class="line"><i></i></div><b></b></div>
         <div class="cap-tag" hidden></div>
         <div class="cap-tag color-tag" hidden></div>
       </div>`;
@@ -69,6 +60,8 @@ export class Hud {
     this.crosshair = document.createElement('div');
     this.crosshair.className = 'crosshair';
     this.crosshair.hidden = true;
+    this.percent = this.crosshair.appendChild(document.createElement('span'));
+    this.percent.hidden = true;
     document.body.append(this.crosshair);
     this.vignette = frame.querySelector('.vignette')!;
     this.perf = frame.querySelector('.perf')!;
@@ -82,11 +75,8 @@ export class Hud {
       ['clock', [this.clock]],
     ];
     this.stack = tools.querySelector('.tool-stack')!;
-    this.capTag = tools.querySelector('.cap-tag:not(.psi-gauge)')!;
+    this.capTag = tools.querySelector('.cap-tag')!;
     this.colorTag = tools.querySelector('.color-tag')!;
-    this.gauge = tools.querySelector('.psi-gauge')!;
-    this.gaugeFill = tools.querySelector('.psi-gauge i')!;
-    this.gaugeText = tools.querySelector('.psi-gauge b')!;
     this.menu = new PauseMenu(menu);
   }
 
@@ -100,6 +90,21 @@ export class Hud {
   /** The title screen (before START), the queue and the loading screen show a fixed view of the city; ESC later shows where you are. */
   get cityView() {
     return this.menu.cityView;
+  }
+
+  /** The arc beside the crosshair: the can's opacity 0..1; null: none. When it changes, the percent shows beside the arc for HUD.tagTime. */
+  setArc(opacity: number | null) {
+    const now = performance.now();
+    if (opacity !== this.arc) {
+      if (opacity !== null && this.arc !== null) {
+        this.percent.textContent = `${Math.round(opacity * 100)}%`;
+        this.percentUntil = now + HUD.tagTime * 1000;
+      }
+      this.arc = opacity;
+      this.crosshair.classList.toggle('arc', opacity !== null);
+      if (opacity !== null) this.crosshair.style.setProperty('--opacity', `${opacity}`);
+    }
+    this.percent.hidden = opacity === null || now >= this.percentUntil;
   }
 
   /** Crosshair circle diameter in CSS pixels. */
@@ -126,24 +131,12 @@ export class Hud {
 
   /**
    * Screen position (CSS px) next to the tool in hand (can, marker or roller), or null
-   * with no tool. Places the cap and color tags, and above them the PSI gauge
-   * (`opacity` 0..1 with the can in hand, else null): it fades in when the
-   * opacity changes and out a moment after.
+   * with no tool. Places the cap and color tags.
    */
-  placeToolTags(at: { x: number; y: number } | null, opacity: number | null) {
+  placeToolTags(at: { x: number; y: number } | null) {
     const now = performance.now();
-    if (opacity !== null && opacity !== this.lastOpacity && this.lastOpacity >= 0) this.gaugeUntil = now + HUD.gaugeTime * 1000;
-    this.lastOpacity = opacity ?? -1;
-    const on = !!at && opacity !== null && now < this.gaugeUntil;
-    if (on !== this.gaugeOn) this.gauge.classList.toggle('show', (this.gaugeOn = on));
-    if (on && opacity !== this.gaugeShown) {
-      this.gaugeShown = opacity;
-      this.gaugeFill.style.width = `${opacity * 100}%`;
-      this.gaugeText.textContent = `${Math.round(opacity * 100)}%`;
-    }
-    // Keeps following the can while the gauge fades out.
     this.stack.hidden = !at;
-    if (at) this.stack.style.transform = `translate(${Math.round(at.x)}px, ${Math.round(at.y + STACK_TOP)}px)`;
+    if (at) this.stack.style.transform = `translate(${Math.round(at.x)}px, ${Math.round(at.y)}px)`;
     this.capTag.hidden = now >= this.capTagUntil;
     this.colorTag.hidden = now >= this.colorTagUntil;
   }

@@ -205,7 +205,6 @@ export function uiSections(h: Hooks): Section[] {
         t('performance: gpu', ['HUD', 'perfGpu']),
         { kind: 'heading', label: 'TIMING' },
         r('tags', ['HUD', 'tagTime'], 0.5, 8, 0.1),
-        r('opacity gauge', ['HUD', 'gaugeTime'], 0.2, 5, 0.1),
         { kind: 'heading', label: 'HOTBAR' },
         r('size', ['HUD', 'slotSize'], 16, 60, 1),
         r('gap', ['HUD', 'slotGap'], 0, 40, 1),

@@ -70,7 +70,7 @@ export class Tools {
   }
 
   /** `enabled` is false in build mode: tools are put away but particles finish flying. */
-  update(dt: number, input: Input, camera: THREE.Camera, eye: THREE.Vector3, motion: Motion & { position: THREE.Vector3; crouched: boolean }, enabled: boolean) {
+  update(dt: number, input: Input, camera: THREE.PerspectiveCamera, eye: THREE.Vector3, motion: Motion & { position: THREE.Vector3; crouched: boolean }, enabled: boolean) {
     const inv = this.inventory;
     this.sway.update(dt, input.mouseDX, input.mouseDY, motion, this.spray.model.sway);
     this.marker.sway.position.copy(this.spray.model.sway.position);
@@ -132,7 +132,7 @@ export class Tools {
 
   /** Crosshair size (px) for the tool in hand (null: none, or build mode). */
   crosshair(tool: Tool | null) {
-    if (tool === 'can') return CAPS[this.inventory.cap].crosshair;
+    if (tool === 'can') return this.spray.linePx;
     return isSized(tool) ? sizedCrosshair(SIZED[tool], this.inventory.size[tool]) : CROSSHAIR.plain;
   }
 

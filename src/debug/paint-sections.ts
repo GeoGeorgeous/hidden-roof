@@ -155,8 +155,6 @@ export function paintSections(h: Hooks): Section[] {
       title: 'Cursor',
       items: [
         r('no sized tool', ['CROSSHAIR', 'plain'], 0, 30, 1),
-        { kind: 'heading', label: 'CAN' },
-        ...CAP_ORDER.map((cap) => r(`${CAPS[cap].name.toLowerCase()} cap`, ['CAPS', cap, 'crosshair'], 2, 60, 1)),
         ...cursorItems('MARKER', 0.4, 0.002, 1000),
         ...cursorItems('ROLLER', 1.2, 0.02, 200),
         ...cursorItems('SPONGE', 0.8, 0.01, 500),

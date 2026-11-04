@@ -89,6 +89,7 @@
 /* White, inverting what's under it: white over ink and night, dark over paper, the opposite color over paint. */
 .crosshair {
   --size: 14px;
+  --opacity: 0;
   position: fixed;
   left: 50%;
   top: 50%;
@@ -103,8 +104,30 @@
   pointer-events: none;
   transition: width 0.12s, height 0.12s;
 }
+/* The opacity in numbers, right of the arc, a moment after it changes. */
+.crosshair span {
+  position: absolute;
+  left: calc(100% + 11px);
+  top: 50%;
+  transform: translateY(-50%);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+/* The can's opacity: a third of a ring on the crosshair's right, filling from the bottom over a faint track. */
+.crosshair.arc::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  transform: scaleX(-1);
+  background: conic-gradient(from 210deg, #fff calc(var(--opacity) * 120deg), rgb(255 255 255 / 0.3) 0 120deg, transparent 0);
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1.5px));
+}
 
-/* What's beside the tool in hand, top to bottom: PSI gauge, cap, color. One stack, placed from JS (hud.ts). */
+/* What's beside the tool in hand, top to bottom: cap, color. One stack, placed from JS (hud.ts). */
 .tool-stack {
   position: absolute;
   left: 0;
@@ -265,31 +288,6 @@
 }
 .admin-panel.seen > :first-child span {
   color: var(--alert);
-}
-
-/* PSI gauge above the tags, shown when the opacity changes: label, a horizontal line, the value. It keeps its row while off, so the cap tag stays put. */
-.psi-gauge {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-.psi-gauge.show {
-  opacity: 1;
-}
-.psi-gauge span {
-  color: var(--dim);
-}
-.psi-gauge .line {
-  width: 64px;
-  height: 5px;
-  border: var(--line);
-}
-.psi-gauge .line i {
-  display: block;
-  height: 100%;
-  background: var(--ui);
 }
 
 /* --- ESC menu (pause-menu.ts): the start / pause screen, its pages and popups --- */

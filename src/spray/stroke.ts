@@ -40,6 +40,8 @@ const dab: Dab = { radius: 0, softness: 0, amount: 0 };
 export class SprayStroke<H extends WallHit> {
   /** How fast the spot moves over the wall (m/s), smoothed; 0 between strokes. */
   speed = 0;
+  /** How far the wall under the aim was (m) this frame; null: none. */
+  distance: number | null = null;
   private aim = new THREE.Vector3();
   private aiming = false;
   /** Where the aim met the wall last frame, and the stroke's last dab. */
@@ -66,6 +68,7 @@ export class SprayStroke<H extends WallHit> {
   /** Lays this frame's dabs; returns whether the aim is on paintable wall. */
   update(f: StrokeFrame) {
     const hit = this.wall.find(f.eye, this.smoothed(f));
+    this.distance = hit?.distance ?? null;
     if (!hit) {
       this.onWall = false;
       return false;
