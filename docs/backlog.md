@@ -160,6 +160,12 @@ Shipped since the last release; the release commit empties this list.
 6. [BUGS-307]: Pickup rings grew in the world past about 24 m to keep PICKUP.ring.minSize of the screen, which looked wrong in panoramas: the minimum is gone, with its F3 row and Pickups.view, so a ring is its size from any distance, the title view's too
 7. [TEST-308]: The multiplayer check read how far behind A shows B once, after a fixed wait, and failed by timing: it waits for A to catch up
 8. [BUGS-315]: The ESC menu's live line drew every player's initials, so a public session of 40 made a row about 650 px long that left the screen in a small window: the line shows the first few and +N, as the session list does (LOBBY.facesShown, one function for both), the rest named on hover
+9. [BUGS-309]: A player hidden as they came in (a background tab, or minimized while the paint loaded) drew no frame, so sent no state, and nobody saw their figure, though they were in the ESC menu: the game sends one state with its welcome
+10. [BUGS-310]: More paint made with the link down than one message holds (1 MiB, about 39,000 stamps) closed the link on every return, for ever, the paint file coming down each time; and over 300 batches from a stalled link cost one more drop (`over budget`): what goes again is packed into few batches (NET.resendOps), numbered on from what the server has
+11. [BUGS-311]: A reload that took over 15 s lost the seat (the roof takes up to 14 s on a weak GPU), and alone in a private session that doesn't stay, the session and its paint: SERVER.closedHold is 30 s
+12. [BUGS-312]: A stepladder placed, moved or taken away with the link down: the others never heard (one taken away came back): the game keeps its own through a return and tells the server when it differs from the welcome's
+13. [BUGS-313]: Back as another player (after a server restart, or a seat that ran out), the game kept the old seat's stepladder, seen by no one else and impossible to pick up: it goes with the seat
+14. [TEST-314]: `test:mp` phase `rejoin` (hidden as it joins, a stepladder and paint from while the link was down, a seat gone); weak-link `stall` no longer opens the link just before the game gives up on it, which left the stroke unmade and failed the scenario now and then
 
 ## Discarder
 

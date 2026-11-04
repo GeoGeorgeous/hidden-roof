@@ -3,7 +3,7 @@
 // turns down. Then the op batches a game keeps until the server has them (net/outbox.ts).
 // Usage: node scripts/protocol.test.mjs
 import assert from 'node:assert/strict';
-import { PAINT, PAINT_DETAIL, SERVER } from '../src/config.ts';
+import { NET, PAINT, PAINT_DETAIL, SERVER } from '../src/config.ts';
 import { Outbox } from '../src/net/outbox.ts';
 import { decodeOps, encodeOps, rounded, SurfaceIndex } from '../src/op-wire.ts';
 import { LEVEL_VERSION, levelProblem } from '../src/level/level-data.ts';
@@ -174,10 +174,18 @@ out.batch();
 out.acked(1);
 out.take([stamp], 4);
 const painted = [];
-assert.deepEqual(out.rejoined(2, (op) => painted.push(op)).map((b) => [b.seq, b.t]), [[3, [3]], [4, [4]]]);
+assert.deepEqual(out.rejoined(2, (op) => painted.push(op)).map((b) => [b.seq, b.t]), [[3, [3, 4]]]);
 assert.deepEqual(painted, [drip, stamp]);
-out.acked(4);
-assert.deepEqual(out.rejoined(4, () => assert.fail('nothing to paint again')), []);
+out.acked(3);
+assert.deepEqual(out.rejoined(3, () => assert.fail('nothing to paint again')), []);
+// A stalled link's batches, one a tick, and what was made with it down go again as few batches of at most NET.resendOps, numbered on from what the server has.
+for (let i = 0; i < 400; i++) (out.take(Array(50).fill(stamp), i), out.batch());
+out.take(Array(NET.resendOps).fill(stamp), 400);
+const again = out.rejoined(3, () => {});
+assert.deepEqual(again.map((b) => b.seq), [4, 5, 6, 7]);
+assert.equal(again.reduce((n, b) => n + b.ops.length, 0), 400 * 50 + NET.resendOps);
+assert.ok(again.every((b) => b.ops.length <= NET.resendOps && b.t.length === b.ops.length));
+assert.ok(encodeOps(again[0].t, again[0].ops, new SurfaceIndex([stamp.key])).length < SERVER.maxMessage, 'a batch sent again is a message the server takes');
 out.clear();
 out.take([roll], 5);
 assert.equal(out.batch().seq, 1);

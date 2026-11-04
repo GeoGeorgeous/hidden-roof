@@ -96,10 +96,22 @@ const op = (u) => ({ kind: 'stamp', key: 'a', rect: 0, u, v: 0.5, radius: 0.1, a
 {
   const { sender, game } = setup();
   game.ladder = 7;
-  sender.restart(7);
+  sender.restart({ pos: [1, 2, 3], rot: 1 });
   assert.deepEqual(types(sender.update(0, 0)), ['inventory', 'state'], 'a ladder the others know is not sent again');
   sender.restart();
   assert.deepEqual(types(sender.update(0.001, 0.001)), ['ladder', 'inventory', 'state'], 'restarted knowing none: the ladder, what they carry, a snapshot');
+  // Moved with the link down: they know it elsewhere.
+  sender.restart({ pos: [9, 2, 3], rot: 1 });
+  assert.equal(sender.update(0.002, 0.002).messages[0].data.pos[0], 1, 'a ladder moved meanwhile goes');
+  // Taken away with the link down: they still know one.
+  game.ladder = undefined;
+  sender.restart({ pos: [1, 2, 3], rot: 1 });
+  assert.deepEqual(sender.update(0.003, 0.003).messages[0], { type: 'ladder', t: 0.003, data: null }, 'a ladder taken meanwhile is said gone');
+  // Neither has one.
+  sender.restart();
+  assert.deepEqual(types(sender.update(0.004, 0.004)), ['inventory', 'state']);
+  // The snapshot of now, without a frame.
+  assert.deepEqual(sender.now(0.5), { type: 'state', bytes: new Uint8Array([50]) });
 }
 
 // paint.log: begun by one, refused to a second, taken over by a session; an ended owner leaves what isn't its own.

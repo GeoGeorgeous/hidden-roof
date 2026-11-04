@@ -24,6 +24,11 @@ interface SenderGame {
   inventory: { version: number; toJSON(): InventoryData };
 }
 
+/** Where a stepladder stands. */
+type Spot = Pick<PropData, 'pos' | 'rot'>;
+/** No stepladder's id: the one standing, or none, is sent. */
+const UNTOLD = -1;
+
 /** What a frame gives out: `messages` in the order they go, the paint `ops` made since the last frame, and whether it was time for a snapshot (the last of the messages, unless the player stands still). */
 export interface Sent {
   messages: ToServer[];
@@ -72,12 +77,18 @@ export class Sender {
     this.mine = null;
   }
 
-  /** Starts sending from the top: a snapshot now, the inventory again, the stepladder `ladder` already known to the others (none: sent when there is one). */
-  restart(ladder?: number) {
+  /** Starts sending from the top: a snapshot now, the inventory again, and the stepladder unless it is `told`, the one the others know of (a game back from a lost link may have placed or taken it meanwhile). */
+  restart(told?: Spot | null) {
+    const id = this.g.level.runtimeOf(this.g.owner());
     this.nextSend = 0;
     this.carried = -1;
-    this.ladderId = ladder;
+    this.ladderId = sameSpot(id === undefined ? undefined : this.g.level.props.get(id), told) ? id : UNTOLD;
     [this.sent, this.held, this.repeated] = [null, null, false];
+  }
+
+  /** The snapshot of now, stamped `at`, for a game that may draw no frame for long (a hidden one): the others have nothing else to show it from. */
+  now(at: number): ToServer {
+    return { type: 'state', bytes: this.g.capture(at) };
   }
 
   /** The paint ops made since last taken; the log is emptied. */
@@ -125,6 +136,9 @@ export class Sender {
     return out;
   }
 }
+
+/** Whether stepladders `a` and `b` stand in the same place, or there is neither. */
+const sameSpot = (a?: Spot | null, b?: Spot | null) => (a && b ? a.pos.every((v, i) => v === b.pos[i]) && (a.rot ?? 0) === (b.rot ?? 0) : !a && !b);
 
 /** Whether snapshot `b` shows its player as `a` did (net/snapshot.ts: the time first, the feet within NET.stillMove, the rest exactly). */
 function stillAs(a: Uint8Array, b: Uint8Array) {

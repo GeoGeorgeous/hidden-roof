@@ -49,7 +49,8 @@ const SCENARIOS = {
     B.proxy.down.rate = B.proxy.up.rate = 0;
     await stroke(B, inFlight);
     await stroke(B, lost, 'down');
-    await sleep(15);
+    // Until its game gives up on the link: it has made the stroke then (a proxy opened a moment before that would be no drop).
+    await state(B, 'reconnecting', 30000).catch(() => r.fail.push("B's game never saw its link go"));
     B.proxy.open();
     await painting.stop();
     await state(B, 'in', 60000).catch(() => r.fail.push('B never got back in'));
@@ -154,6 +155,7 @@ const SCENARIOS = {
     const how = lab.server.filter((s) => /"B" #\d+ in from/.test(s.line)).at(-1)?.line.match(/\((new|back|takeover)/)?.[1];
     const marker = await B.page.evaluate(() => window.game.inventory.has('marker'));
     r.facts.push(`B came back as: ${how}; still has the marker: ${marker}`);
+    if (await B.page.evaluate(() => window.game.level.runtimeOf('player2') !== undefined)) r.fail.push('the stepladder of the seat B lost still stands in its game');
     if (how !== 'new') r.fail.push(`B came back as ${how}, not new: the window didn't run out`);
     if (!marker) r.fail.push('what B carried is not back by name');
   },

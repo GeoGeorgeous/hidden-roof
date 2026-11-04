@@ -1,3 +1,4 @@
+import { NET } from '../config.ts';
 import type { PaintOp } from '../paint-ops';
 
 // This player's paint ops on their way to the server (BL-003): gathered from
@@ -5,7 +6,11 @@ import type { PaintOp } from '../paint-ops';
 // kept until the server says it has them (pong, welcome). A link that dies
 // takes what was in flight with it: when the game comes back, the welcome's
 // paint file replaces its paint, so what the server never had is painted
-// again on top and sent again. The server drops a batch it already has.
+// again on top and sent again, in few batches (NET.resendOps ops each at most):
+// a batch a tick since the link stalled would be past what a link may send at
+// once, and all the ops of a long absence past what one message may hold, each a
+// closed link that would come back to the same. The server drops a batch it
+// already has.
 
 /** A batch: its number, and its ops with when each was made (the snapshots' clock). */
 type Batch = { seq: number; t: number[]; ops: PaintOp[] };
@@ -41,12 +46,18 @@ export class Outbox {
 
   /**
    * Back in the session, its paint file loaded, the server having batches up to `acked`: what it doesn't have
-   * (lost with the link, or made since) painted again with `paint`; the batches to send again, oldest first.
+   * (lost with the link, or made since) painted again with `paint`; the batches to send again, oldest first, numbered
+   * on from `acked`.
    */
   rejoined(acked: number, paint: (op: PaintOp) => void): readonly Batch[] {
     this.batch();
     this.acked(acked);
-    for (const b of this.batches) b.ops.forEach(paint);
+    const ops = this.batches.flatMap((b) => b.ops);
+    const t = this.batches.flatMap((b) => b.t);
+    ops.forEach(paint);
+    this.seq = acked;
+    this.batches = [];
+    for (let i = 0; i < ops.length; i += NET.resendOps) this.batches.push({ seq: ++this.seq, t: t.slice(i, i + NET.resendOps), ops: ops.slice(i, i + NET.resendOps) });
     return this.batches;
   }
 

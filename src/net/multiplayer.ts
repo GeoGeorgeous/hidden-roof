@@ -324,19 +324,23 @@ export class Multiplayer {
     const resend = back ? this.outbox.rejoined(w.acked, (op) => g.paintOps.apply(op)) : [];
     // The session may have numbered it ("geo (2)" when geo was taken): the player goes by that, but every join sends what they typed (a numbered name is not one a player can type).
     this.log.add(`in session ${w.code} as #${w.you}, at ${w.detail} texels/m, with ${w.players.length} others, ${(file.length / 1024).toFixed(0)} KB of paint`);
+    // Back as another player (the seat went, or the server restarted): the stepladder went with the seat.
+    if (back && this.joined?.you !== w.you) g.level.setRuntime(session.player, null);
     this.joined = { code: w.code, token: w.token, name: w.name, asked: this.asked, you: w.you, levelName: w.levelName, session: w.session };
     // An admin's tab never comes back on a reload.
     if (!w.admin) keepTabSession({ code: w.code, token: w.token, name: w.name, asked: this.asked });
     session.multiplayer = true;
     session.player = ownerOf(w.you);
-    this.remotes.fill(w, now());
+    this.remotes.fill(w, now(), back);
     // The session's log counts: a ghost recording (F3) that had it is left without paint ops.
     this.sender.begin(true);
-    this.sender.restart(g.level.runtimeOf(session.player));
+    this.sender.restart(w.ladders.find((l) => l.id === w.you)?.data);
     this.net = new Traffic();
     // Its welcome has come: it sends, and a silence on it means it's dead.
     Object.assign(link, { live: true, lastHeard: now() });
     for (const b of resend) this.sendOps(b);
+    // A hidden game draws no frames, so the others would have no state to show it from.
+    this.send(this.sender.now(now() - this.t0));
     this.own.restart(now());
     this.onProgress(null);
     this.reconnect.reset();

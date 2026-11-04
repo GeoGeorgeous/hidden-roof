@@ -1118,6 +1118,8 @@ export const NET = {
   queueRedraw: 500,
   /** A link closed for its silence (serverSilence) that the browser has not reported closed in this long (s) is given up on: the game reconnects without waiting for it. */
   closeWait: 3,
+  /** Paint ops sent again after a drop go in batches of at most this many (net/outbox.ts): an op is 31 bytes at most, so a batch stays well under SERVER.maxMessage. */
+  resendOps: 8000,
   /** Paint ops and stepladders of another player wait for their time; past this many waiting (a clock far ahead), the oldest run at once. */
   eventsKept: 4096,
   /** Snapshots sent per second. */
@@ -1234,8 +1236,8 @@ export const SERVER = {
     'Offensive or misleading nickname',
     'Cheating or abusing a bug',
   ],
-  /** A link the page closed as it went (1001: the tab closed, or a reload) keeps its seat this long (s) instead, never longer: a reload is back by then. */
-  closedHold: 15,
+  /** A link the page closed as it went (1001: the tab closed, or a reload) keeps its seat this long (s) instead, never longer: a reload is back by then (the roof takes 8 to 14 s to load again, on a weak GPU; a slower computer or a cold cache more). */
+  closedHold: 30,
   /** The server pings every game this often (s), so a game notices a dead link; a game pings the server as often, and each answer is a round trip for the link's status (NET.statusShow). */
   ping: 1,
   /**
