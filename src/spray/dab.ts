@@ -34,24 +34,27 @@ export function dabSpacing(cap: CapSpec, distance: number) {
   return Math.max(restWidth(cap, distance) * BRUSH.spacing, BRUSH.minSpacing);
 }
 
+/** The set opacity a step up (+1) or down (-1), in whole percents, so it comes back to the same numbers. */
+export const stepOpacity = (opacity: number, dir: number) => Math.round(MathUtils.clamp(opacity + dir * BRUSH.opacityStep, BRUSH.opacityMin, BRUSH.opacityMax) * 100) / 100;
+
 /** The opacity one pass of a stroke reaches along its middle: the set one, a little less far away, more close up, and thinned as a hand above BRUSH.speedRef spreads the same paint per second over more line. */
-function passOpacity(flow: number, distance: number, speed: number) {
+function passOpacity(distance: number, speed: number) {
   const past = sprayDistance(distance) - BRUSH.fadeStart;
   const fade = Math.max(BRUSH.fadeMin, past <= 0 ? 1 : 1 - past / (SPRAY.reach - BRUSH.fadeStart));
   const thin = speed > BRUSH.speedRef && BRUSH.speedRef > 0 ? (BRUSH.speedRef / speed) ** BRUSH.speedFade : 1;
-  return Math.min(0.999, BRUSH.opacity * flow * fade * MathUtils.lerp(BRUSH.closeFlow, 1, farness(distance)) * thin);
+  return Math.min(0.999, BRUSH.opacity * fade * MathUtils.lerp(BRUSH.closeFlow, 1, farness(distance)) * thin);
 }
 
-/** The dab a can lays into `out`: `flow` 0..1 out of the can, a wall at `distance`, the hand at `speed` (m/s over the wall). */
-export function dabAt(cap: CapSpec, flow: number, distance: number, speed: number, out: Dab) {
+/** The dab a can lays into `out`: a wall at `distance`, the hand at `speed` (m/s over the wall). */
+export function dabAt(cap: CapSpec, distance: number, speed: number, out: Dab) {
   const fast = fastness(speed);
   const width = restWidth(cap, distance);
   out.radius = (width / 2) * (1 + BRUSH.speedWiden * fast);
   // The cap's edge scales the brush's, so caps feel different at any distance.
   const edge = MathUtils.lerp(BRUSH.closeSoft, BRUSH.farSoft, farness(distance)) * (cap.softness / BRUSH.softnessRef);
   out.softness = Math.min(1, edge + BRUSH.speedSoft * fast);
-  // A texel along the middle is under width / spacing dabs, less for their soft edges: each lays what adds up to one pass.
-  const overlap = Math.max(1, (width / dabSpacing(cap, distance)) * (1 - out.softness * BRUSH.edgeShare));
-  out.amount = 1 - (1 - passOpacity(flow, distance, speed)) ** (1 / overlap);
+  // A texel along the middle is under width / spacing dabs, and a dab's falloff (1 - s d²/r²) means 1 - s / 3 across it: each lays what adds up to one pass.
+  const overlap = Math.max(1, (width / dabSpacing(cap, distance)) * (1 - out.softness / 3));
+  out.amount = 1 - (1 - passOpacity(distance, speed)) ** (1 / overlap);
   return out;
 }

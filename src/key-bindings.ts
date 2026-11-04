@@ -32,7 +32,7 @@ export const CONTROL_GROUPS: { name: string; rows: { action: Action; name: strin
       { action: 'right', name: 'Right' },
       { action: 'jump', name: 'Jump / climb', desc: 'Also climbs a ladder.' },
       { action: 'crouch', name: 'Crouch', desc: 'Also holds you on a ladder.' },
-      { action: 'sprint', name: 'Run' },
+      { action: 'sprint', name: 'Run', desc: 'With the can in hand, also sets the opacity with the color keys.' },
     ],
   },
   {
@@ -40,8 +40,8 @@ export const CONTROL_GROUPS: { name: string; rows: { action: Action; name: strin
     rows: [
       { action: 'use', name: 'Spray / use', desc: 'Spray, draw, roll or scrub. Also places the stepladder.' },
       { action: 'shake', name: 'Shake the can' },
-      { action: 'next', name: 'Next color', desc: 'Also turns the stepladder.' },
-      { action: 'prev', name: 'Previous color', desc: 'Also turns the stepladder.' },
+      { action: 'next', name: 'Next color', desc: 'With Run held and the can in hand, less opacity. Also turns the stepladder.' },
+      { action: 'prev', name: 'Previous color', desc: 'With Run held and the can in hand, more opacity. Also turns the stepladder.' },
       { action: 'sizeUp', name: 'Bigger cap / tool', desc: 'Next cap or a wider tool. Holding it repeats.' },
       { action: 'sizeDown', name: 'Smaller cap / tool', desc: 'Previous cap or a narrower tool. Holding it repeats.' },
       { action: 'pick', name: 'Pick a color', desc: 'Switch to the color you carry that is closest to the paint under the crosshair.' },

@@ -10,7 +10,7 @@ import { itemIcon, type Thumbnails } from './thumbnails';
 // found the tool for yet stays an empty circle, so every tool always sits under
 // its own key. The selected slot has a solid ring, the others a faint one. No
 // numbers, no labels.
-// Pressure, color and cap stay by the tool in hand (hud.ts).
+// The opacity gauge, color and cap stay by the tool in hand (hud.ts).
 
 /** The icon of each tool: its pickup model (the can's label in the current color). */
 const ICON: Record<Tool, (inv: Inventory) => string> = {

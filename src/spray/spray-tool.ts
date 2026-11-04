@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { CAPS, COLORS, PRESSURE } from '../config';
+import { CAPS, COLORS, SPRAY } from '../config';
 import type { Audio } from '../audio';
 import type { Input } from '../input';
 import type { Inventory } from '../inventory/inventory';
@@ -10,11 +10,10 @@ import { Brush } from './brush';
 import { SprayParticles, WallMemo } from './particles';
 import { WallProbe } from './wall-probe';
 import { setHex } from '../hex-color';
-import { paintRandom } from '../lcg';
 
-// Spraying: color and cap come from the inventory. Paint never runs out;
-// pressure drains while spraying and is restored by shaking: hold the right
-// mouse button (a press alone gives back only a little).
+// Spraying: color and cap come from the inventory, the opacity from the player
+// (BRUSH.opacity), and nothing runs out. Shaking (the right mouse button) is
+// only its motion and sound.
 
 const forward = new THREE.Vector3();
 const right = new THREE.Vector3();
@@ -23,7 +22,7 @@ const nozzle = new THREE.Vector3();
 const display = new THREE.Color();
 
 export class SprayTool {
-  /** 0..1 flow actually coming out this frame. */
+  /** 1 while paint comes out of the can, else 0. */
   flow = 0;
   /** The spray is landing on paintable surface (not the sky, not out of reach): as of the last frame that sprayed. */
   landing = false;
@@ -37,8 +36,6 @@ export class SprayTool {
   private carry = 0;
   /** Time into the current shake (s); -1 = not shaking. */
   private shakeT = -1;
-  private sputterOn = true;
-  private sputterTimer = 0;
 
   constructor(
     scene: THREE.Scene,
@@ -74,26 +71,23 @@ export class SprayTool {
     if (lmb && !holding) this.shakeT = -1;
     if (holding && this.shakeT < 0) {
       this.shakeT = 0;
-      inv.pressure = Math.min(1, inv.pressure + PRESSURE.shakeTap);
       this.audio.rattle();
     }
     if (this.shakeT >= 0) {
-      if (holding) inv.pressure = Math.min(1, inv.pressure + PRESSURE.shakeRate * dt);
       this.shakeT += dt;
       // A shake ends its motion after RMB is let go; held, the next one starts.
-      if (this.shakeT >= PRESSURE.shakeDuration) {
-        this.shakeT = holding ? this.shakeT - PRESSURE.shakeDuration : -1;
+      if (this.shakeT >= SPRAY.shakeDuration) {
+        this.shakeT = holding ? this.shakeT - SPRAY.shakeDuration : -1;
         if (holding) this.audio.rattle();
       }
     }
 
     const spraying = lmb && !holding;
-    this.flow = spraying ? this.computeFlow(dt, inv.pressure) : 0;
-    if (spraying) inv.pressure = Math.max(0, inv.pressure - cap.drain * dt);
+    this.flow = spraying ? 1 : 0;
     this.audio.setHiss(this.flow * cap.hissGain, cap.hissTone);
 
-    this.model.update(dt, camera, spraying, this.flow > 0, this.shakeT >= 0 ? this.shakeT / PRESSURE.shakeDuration : -1);
-    if (this.flow > 0) this.emit(dt, camera, eye, inv);
+    this.model.update(dt, camera, spraying, spraying, this.shakeT >= 0 ? this.shakeT / SPRAY.shakeDuration : -1);
+    if (spraying) this.emit(dt, camera, eye, inv);
     else this.stop();
   }
 
@@ -112,8 +106,8 @@ export class SprayTool {
   private emit(dt: number, camera: THREE.Camera, eye: THREE.Vector3, inv: Inventory) {
     const cap = CAPS[inv.cap];
     camera.getWorldDirection(forward);
-    this.landing = this.brush.spray({ eye, forward, cap, flow: this.flow, dt }, rgbOf(inv.color));
-    this.carry += cap.rate * this.flow * dt;
+    this.landing = this.brush.spray({ eye, forward, cap, dt }, rgbOf(inv.color));
+    this.carry += cap.rate * dt;
     const count = Math.floor(this.carry);
     this.carry -= count;
     if (!count) return;
@@ -121,23 +115,5 @@ export class SprayTool {
     up.crossVectors(right, forward);
     setHex(display, COLORS[inv.color]);
     this.particles.show({ count, eye, nozzle: this.model.nozzleWorld(nozzle), forward, right, up, cap, display, dt, memo: this.wall });
-  }
-
-  private computeFlow(dt: number, p: number): number {
-    if (p <= 0) return 0;
-    if (p < PRESSURE.sputterThreshold) {
-      this.sputterTimer -= dt;
-      if (this.sputterTimer <= 0) {
-        this.sputterOn = paintRandom.sputter() < PRESSURE.sputterDuty;
-        this.sputterTimer = 0.03 + paintRandom.sputter() * 0.12;
-      }
-      const weak = 0.5 + 0.5 * (p / PRESSURE.sputterThreshold);
-      return this.sputterOn ? PRESSURE.minSteadyFlow * weak : 0;
-    }
-    if (p < PRESSURE.thinThreshold) {
-      const t = (p - PRESSURE.sputterThreshold) / (PRESSURE.thinThreshold - PRESSURE.sputterThreshold);
-      return PRESSURE.minSteadyFlow + (1 - PRESSURE.minSteadyFlow) * t;
-    }
-    return 1;
   }
 }

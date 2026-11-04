@@ -104,7 +104,7 @@
   transition: width 0.12s, height 0.12s;
 }
 
-/* What's beside the tool in hand, top to bottom: low-pressure alert, PSI gauge, cap, color. One stack, placed from JS (hud.ts). */
+/* What's beside the tool in hand, top to bottom: PSI gauge, cap, color. One stack, placed from JS (hud.ts). */
 .tool-stack {
   position: absolute;
   left: 0;
@@ -122,11 +122,6 @@
   line-height: 14px;
   white-space: nowrap;
 }
-/* The alert and the gauge keep their rows while off, so the cap tag stays put. */
-.psi-alert.off {
-  visibility: hidden;
-}
-
 /*
  * Pickups' tags by their rings (pickups/labels.ts), manga-style, faded in and
  * out: outlined letters with katakana under them, NEW TOOL ending at the ring's
@@ -272,7 +267,7 @@
   color: var(--alert);
 }
 
-/* PSI gauge above the tags, shown while spraying or shaking: label, a horizontal line, the value. */
+/* PSI gauge above the tags, shown when the opacity changes: label, a horizontal line, the value. It keeps its row while off, so the cap tag stays put. */
 .psi-gauge {
   display: flex;
   align-items: center;
@@ -295,21 +290,6 @@
   display: block;
   height: 100%;
   background: var(--ui);
-}
-.psi-gauge.low,
-.psi-gauge.low span {
-  color: var(--alert);
-}
-.psi-gauge.low .line {
-  border-color: var(--alert);
-}
-.psi-gauge.low .line i {
-  background: var(--alert);
-}
-.psi-alert {
-  color: var(--alert);
-  border-color: var(--alert);
-  animation: blink 0.8s steps(2) infinite;
 }
 
 /* --- ESC menu (pause-menu.ts): the start / pause screen, its pages and popups --- */

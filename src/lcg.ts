@@ -7,14 +7,12 @@ export function lcg(seed: number) {
 }
 
 /**
- * Random sources for everything that decides paint: Math.random in play, seeded
- * in the golden paint test. One per purpose, so the draws of one never shift
- * another's: drip decisions draw per saturated texel, which depends on the
- * paint detail, while the sputter doesn't.
+ * The random source of everything that decides paint: Math.random in play,
+ * seeded in the golden paint test. One per purpose, so the draws of one would
+ * never shift another's.
  */
-export const paintRandom: Record<'sputter' | 'drips', () => number> = { sputter: Math.random, drips: Math.random };
+export const paintRandom: Record<'drips', () => number> = { drips: Math.random };
 
 export function seedPaintRandom(seed: number) {
-  paintRandom.sputter = lcg(seed * 7919 + 2);
   paintRandom.drips = lcg(seed * 7919 + 3);
 }

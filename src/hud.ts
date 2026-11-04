@@ -1,7 +1,5 @@
 import { HUD, VIGNETTE } from './config';
-import { keysVersion, label } from './input';
 import { netLines, type NetStats } from './net/diagnostics';
-import { msg } from './messages';
 import { PauseMenu } from './pause-menu';
 
 // Body-cam style HUD: vignette, corner brackets, REC indicator with elapsed
@@ -10,8 +8,8 @@ import { PauseMenu } from './pause-menu';
 // Each part is a layer of its own under body (style.css, the --z-* tokens in boot.css).
 // The tool readout lives in inventory/hotbar.ts, the debug panel in debug/panel.ts.
 
-/** The tool stack starts this many CSS px above the cap tag: the low-pressure alert, then the PSI gauge, then the cap tag (style.css .tool-stack). */
-const STACK_TOP = -44;
+/** The tool stack starts this many CSS px above the cap tag: the PSI gauge, then the cap tag (style.css .tool-stack). */
+const STACK_TOP = -22;
 
 export class Hud {
   /** The start / pause screen and its pages. */
@@ -31,13 +29,11 @@ export class Hud {
   private gauge: HTMLElement;
   private gaugeFill: HTMLElement;
   private gaugeText: HTMLElement;
-  private alert: HTMLElement;
   /** What the gauge shows now, so it's rewritten only on change. */
-  private gaugeShown = '';
-  private alertKeys = -1;
+  private gaugeShown = -1;
   private gaugeUntil = 0;
   private gaugeOn = false;
-  private lastPressure = -1;
+  private lastOpacity = -1;
   private crosshairSize = -1;
   private start = performance.now();
   private lastSecond = -1;
@@ -58,7 +54,6 @@ export class Hud {
     tools.className = 'layer layer-tool';
     tools.innerHTML = `
       <div class="tool-stack" hidden>
-        <div class="cap-tag psi-alert off">${msg('hud.lowPressure', { shake: label('shake') })}</div>
         <div class="cap-tag psi-gauge"><span>PSI</span><div class="line"><i></i></div><b></b></div>
         <div class="cap-tag" hidden></div>
         <div class="cap-tag color-tag" hidden></div>
@@ -87,12 +82,11 @@ export class Hud {
       ['clock', [this.clock]],
     ];
     this.stack = tools.querySelector('.tool-stack')!;
-    this.capTag = tools.querySelector('.cap-tag:not(.psi-alert, .psi-gauge)')!;
+    this.capTag = tools.querySelector('.cap-tag:not(.psi-gauge)')!;
     this.colorTag = tools.querySelector('.color-tag')!;
     this.gauge = tools.querySelector('.psi-gauge')!;
     this.gaugeFill = tools.querySelector('.psi-gauge i')!;
     this.gaugeText = tools.querySelector('.psi-gauge b')!;
-    this.alert = tools.querySelector('.psi-alert')!;
     this.menu = new PauseMenu(menu);
   }
 
@@ -133,37 +127,23 @@ export class Hud {
   /**
    * Screen position (CSS px) next to the tool in hand (can, marker or roller), or null
    * with no tool. Places the cap and color tags, and above them the PSI gauge
-   * (`pressure` 0..1 with the can in hand, else null): it fades in while the
-   * pressure changes (spraying, shaking) and out a moment after, but stays up
-   * while the pressure is low, with the low-pressure alert above it.
+   * (`opacity` 0..1 with the can in hand, else null): it fades in when the
+   * opacity changes and out a moment after.
    */
-  placeToolTags(at: { x: number; y: number } | null, pressure: number | null, low: boolean) {
+  placeToolTags(at: { x: number; y: number } | null, opacity: number | null) {
     const now = performance.now();
-    if (pressure !== null && pressure !== this.lastPressure && this.lastPressure >= 0) this.gaugeUntil = now + HUD.gaugeTime * 1000;
-    this.lastPressure = pressure ?? -1;
-    const on = !!at && pressure !== null && (low || now < this.gaugeUntil);
+    if (opacity !== null && opacity !== this.lastOpacity && this.lastOpacity >= 0) this.gaugeUntil = now + HUD.gaugeTime * 1000;
+    this.lastOpacity = opacity ?? -1;
+    const on = !!at && opacity !== null && now < this.gaugeUntil;
     if (on !== this.gaugeOn) this.gauge.classList.toggle('show', (this.gaugeOn = on));
-    if (on) {
-      const shown = `${Math.round(pressure * 100)}|${low}`;
-      if (shown !== this.gaugeShown) {
-        this.gaugeShown = shown;
-        this.gaugeFill.style.width = `${pressure * 100}%`;
-        this.gaugeText.textContent = `${Math.round(pressure * 100)}%`;
-        this.gauge.classList.toggle('low', low);
-      }
+    if (on && opacity !== this.gaugeShown) {
+      this.gaugeShown = opacity;
+      this.gaugeFill.style.width = `${opacity * 100}%`;
+      this.gaugeText.textContent = `${Math.round(opacity * 100)}%`;
     }
     // Keeps following the can while the gauge fades out.
     this.stack.hidden = !at;
     if (at) this.stack.style.transform = `translate(${Math.round(at.x)}px, ${Math.round(at.y + STACK_TOP)}px)`;
-    const alert = !!at && pressure !== null && low;
-    this.alert.classList.toggle('off', !alert);
-    if (alert) {
-      // The shake key may have been rebound (Settings → Controls).
-      if (keysVersion !== this.alertKeys) {
-        this.alertKeys = keysVersion;
-        this.alert.textContent = msg('hud.lowPressure', { shake: label('shake') });
-      }
-    }
     this.capTag.hidden = now >= this.capTagUntil;
     this.colorTag.hidden = now >= this.colorTagUntil;
   }
