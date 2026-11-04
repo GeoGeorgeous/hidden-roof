@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 309
+The one list of what's left. Counter for new ids: next: 316
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -159,6 +159,7 @@ Shipped since the last release; the release commit empties this list.
 5. [BUGS-306]: The page's hero loop didn't play on an iPhone, not even opened directly (both files were H.264 Level 6.2), and looked pixelated everywhere: both filmed again at 1920x1080 and 1080x1920, Level 4.0, the loop's seam faded, posters from its first frame; it starts only after the page and its fonts have loaded
 6. [BUGS-307]: Pickup rings grew in the world past about 24 m to keep PICKUP.ring.minSize of the screen, which looked wrong in panoramas: the minimum is gone, with its F3 row and Pickups.view, so a ring is its size from any distance, the title view's too
 7. [TEST-308]: The multiplayer check read how far behind A shows B once, after a fixed wait, and failed by timing: it waits for A to catch up
+8. [BUGS-315]: The ESC menu's live line drew every player's initials, so a public session of 40 made a row about 650 px long that left the screen in a small window: the line shows the first few and +N, as the session list does (LOBBY.facesShown, one function for both), the rest named on hover
 
 ## Discarder
 

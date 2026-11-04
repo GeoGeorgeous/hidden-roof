@@ -1,8 +1,9 @@
 import { msg } from './messages';
 import { button, div, el } from './menu-ui';
+import { faces } from './net/lobby-view';
 
 // The pause screen's status line in a live multiplayer session (pause-menu.ts):
-// a live dot, your ping, the session's code with Copy, everyone's initials
+// a live dot, your ping, the session's code with Copy, the first few initials
 // ringed in their paint colors, and how many are in. refresh() changes only
 // what changed, so the menu around it isn't rebuilt.
 
@@ -41,14 +42,7 @@ export class SessionLine {
     const key = players.map((p) => `${p.name}|${p.color}`).join('\n');
     if (key === this.shown.players) return;
     this.shown.players = key;
-    this.faces.replaceChildren(
-      ...players.map((p) => {
-        const face = el('span', '', [...p.name.trim()][0]?.toUpperCase() ?? '?');
-        face.title = p.name;
-        if (p.color) face.style.borderColor = p.color;
-        return face;
-      }),
-    );
+    this.faces.replaceChildren(...faces(players).children);
     this.count.textContent = `${players.length} ${players.length === 1 ? 'player' : 'players'}`;
   }
 
