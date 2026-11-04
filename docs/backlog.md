@@ -55,7 +55,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## Painting
 
 1. IDEA [BL-074]: Stencils
-2. [IDEA-229]: Painting Rework: today's four caps stay as tuned; test caps beside them (NEEDLE, SOFT, HARD and others), the owner keeps the ones chosen (docs/ideas/paint-refactoring.md) @1.7.0
+2. [IDEA-229]: Painting Rework: seven caps with real names, colors and a dot each (NEEDLE, BLUE DOT, TRANSVERSAL new), done on the test branch; left: the three new pickups' places on the maps (docs/ideas/paint-refactoring.md) @1.7.0
 3. [TASK-230]: Painting Rework: paint runs with the brush: the 1.5.0 runs don't fit it (measured: the can barely runs); the design talked over in the plan's module 7 (the marker's runs are good today; puddle runs are only a candidate) (docs/ideas/paint-refactoring.md) @1.7.0
 4. [TASK-232]: Painting Rework: to production: settings into config.ts and F3, no painting by particles, pressure no longer runs out and shaking is only an animation (unlock-all stays dev only), update golden and multiplayer tests (docs/ideas/paint-refactoring.md) @1.7.0
 5. [?IDEA-166]: Painting Rework: lock the camera while painting (not in the branch) (docs/ideas/paint-refactoring.md)

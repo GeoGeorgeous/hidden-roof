@@ -70,15 +70,16 @@ export function canShape(look: Look) {
 /** A cap in its color, standing on y = 0, the nozzle at its front; `tip` is where paint leaves. */
 export function capShape(cap: CapId, look: Look) {
   const { width, height } = MODELS.cap;
-  const n = CAPS[cap].nozzle;
+  const { nozzle: n, dot, tube = 0, nib, color } = CAPS[cap];
   const group = new THREE.Group();
-  const nozzle = mesh(new THREE.BoxGeometry(n, n, 0.006), look.tone('#202020'), height / 2 + 0.002);
-  nozzle.position.z = -width / 2;
+  // A flat nib's nozzle is a slit, a needle's a tube reaching out toward the wall.
+  const nozzle = mesh(new THREE.BoxGeometry(n, nib ? n / 4 : n, 0.006 + tube), look.color(dot), height / 2 + 0.002);
+  nozzle.position.z = -width / 2 - tube / 2;
   const tip = new THREE.Object3D();
   // Named, so a figure's can finds it in the pickup model (avatar/held.ts).
   tip.name = 'tip';
-  tip.position.set(0, nozzle.position.y, -width / 2 - 0.003);
-  group.add(mesh(new THREE.CylinderGeometry(width / 2, width / 2, height, 8), look.color(CAPS[cap].color), height / 2), nozzle, tip);
+  tip.position.set(0, nozzle.position.y, -width / 2 - 0.003 - tube);
+  group.add(mesh(new THREE.CylinderGeometry(width / 2, width / 2, height, 8), look.color(color), height / 2), nozzle, tip);
   return { group, tip };
 }
 

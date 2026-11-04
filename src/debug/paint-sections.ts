@@ -103,8 +103,9 @@ export function paintSections(h: Hooks): Section[] {
       items: perCap((cap) => [
         r('dot size', ['CAPS', cap, 'dotSize'], 0, 0.4, 0.002),
         r('softness', ['CAPS', cap, 'softness'], 0, 1, 0.05),
-        r('spread', ['CAPS', cap, 'spread'], 0.01, 0.6, 0.01),
+        r('spread', ['CAPS', cap, 'spread'], 0, 0.6, 0.001),
         r('density', ['CAPS', cap, 'rate'], 50, 2000, 10),
+        ...(CAPS[cap].nib ? [r('nib: stretch', ['CAPS', cap, 'nib', 'stretch'], 1, 8, 0.1), r('nib: angle', ['CAPS', cap, 'nib', 'angle'], -90, 90, 5)] : []),
       ]),
     },
     {

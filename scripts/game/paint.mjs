@@ -254,6 +254,49 @@ await check('field of view: painting: it narrows while a tool paints and comes b
   return Math.abs(r.painting - (r.full - 10)) < 0.1 && Math.abs(r.after - r.full) < 0.1 ? null : JSON.stringify(r);
 });
 
+await check('caps: each sprays; TRANSVERSAL lays its nib whichever way one stands, its crosshair a bar, and NEEDLE paints from its tube\'s tip', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { input, inventory: inv, player, tools, config } = g;
+    input.setLocked(true);
+    inv.unlockAll();
+    inv.select(0);
+    const out = { sprayed: {} };
+    const spray = async (cap, turn) => {
+      while (inv.cap !== cap) inv.cycleCap(1);
+      g.paint.clear();
+      g.paint.log = [];
+      player.setSpawn(player.position.clone().set(2.4, 0, 2.95), -Math.PI / 2);
+      player.respawn();
+      await steps((f) => ((player.yaw = -Math.PI / 2 + turn), (player.pitch = 0), f === 0 && input.button(0, true), f === 8 && input.button(0, false), f === 10));
+      const stamps = g.paint.log.filter((o) => o.kind === 'stamp');
+      g.paint.log = null;
+      return stamps;
+    };
+    for (const cap of config.CAP_ORDER) out.sprayed[cap] = (await spray(cap, 0)).length;
+    const nib = await spray('transversal', 0.7);
+    out.turns = [...new Set(nib.map((o) => o.slant?.turn))];
+    out.stretch = nib[0]?.slant?.stretch;
+    await steps((f) => f === 1);
+    const bar = document.querySelector('.crosshair');
+    out.bar = bar.classList.contains('nib') && getComputedStyle(bar, '::before').height !== 'auto';
+    const tip = (cap) => {
+      while (inv.cap !== cap) inv.cycleCap(1);
+      return steps((f) => f === 2).then(() => tools.spray.model.nozzleWorld(player.position.clone()).distanceTo(g.scene.children.find((o) => o.isPerspectiveCamera).position));
+    };
+    out.needleTip = await tip('needle');
+    out.skinnyTip = await tip('skinny');
+    await steps((f) => f === 2);
+    out.round = !bar.classList.contains('nib');
+    g.paint.clear();
+    g.fixedStep.dt = 0;
+    input.setLocked(false);
+    return out;
+  });
+  const every = Object.values(r.sprayed).every((n) => n > 0);
+  return every && r.turns.length === 1 && r.stretch === 4 && r.bar && r.round && r.needleTip !== r.skinnyTip ? null : JSON.stringify(r);
+});
+
 await check('render: never more pixels than the screen has (a page zoomed out to 50%), as many at 100%', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
