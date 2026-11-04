@@ -89,10 +89,11 @@ await check('opacity: Run + the color keys set it with the can in hand, the colo
     inv.select(0);
     const color = inv.color;
     const saved = () => JSON.parse(localStorage.getItem('roofhiddenhaus.settings') ?? '{}').values?.['BRUSH.opacity'];
-    const gauge = document.querySelector('.psi-gauge');
+    const cross = document.querySelector('.crosshair');
+    const shown = () => [cross.classList.contains('arc'), cross.style.getPropertyValue('--opacity'), cross.querySelector('span').hidden, cross.querySelector('span').textContent];
     shift('keydown');
     await scroll(-1);
-    const up = [BRUSH.opacity, inv.color === color, gauge.classList.contains('show'), gauge.querySelector('b').textContent];
+    const up = [BRUSH.opacity, inv.color === color, ...shown()];
     await scroll(1);
     await scroll(1);
     const down = [BRUSH.opacity, inv.color === color, saved()];
@@ -129,8 +130,39 @@ await check('opacity: Run + the color keys set it with the can in hand, the colo
     localStorage.setItem('roofhiddenhaus.settings', JSON.stringify(left));
     return { up, down, plain, faint, dense };
   });
-  const ok = JSON.stringify([r.up, r.down, r.plain]) === JSON.stringify([[0.75, true, true, '75%'], [0.55, true, 0.55], [0.55, true]]);
+  const ok = JSON.stringify([r.up, r.down, r.plain]) === JSON.stringify([[0.75, true, true, '0.75', false, '75%'], [0.55, true, 0.55], [0.55, true]]);
   return ok && r.faint[0] < r.dense[0] / 2 && r.faint[1] === 1 && r.dense[1] === 1 ? null : JSON.stringify(r);
+});
+
+await check('crosshair: follows the line it would leave: distance, cap, and with no wall the can\'s reach', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { input, inventory: inv, player, tools } = g;
+    input.setLocked(true);
+    inv.unlockAll();
+    inv.select(0);
+    const stand = async (d, cap) => {
+      while (inv.cap !== cap) inv.cycleCap(1);
+      player.setSpawn(player.position.clone().set(3.4 - d, 0, 2.95), -Math.PI / 2);
+      player.respawn();
+      await steps((f) => ((player.yaw = -Math.PI / 2), (player.pitch = 0), f === 3));
+      return tools.crosshair('can');
+    };
+    const near = await stand(1, 'standard');
+    const far = await stand(3, 'standard');
+    const wide = await stand(3, 'spray');
+    const sky = await (async () => {
+      player.pitch = 1.5;
+      await steps((f) => ((player.pitch = 1.5), f === 3));
+      return tools.crosshair('can');
+    })();
+    await stand(1, 'standard');
+    g.paint.clear();
+    g.fixedStep.dt = 0;
+    input.setLocked(false);
+    return { near, far, wide, sky };
+  });
+  return r.near > 8 && r.far > 8 && r.wide > r.far && r.sky > 0 ? null : JSON.stringify(r);
 });
 
 await check('render: never more pixels than the screen has (a page zoomed out to 50%), as many at 100%', async () => {

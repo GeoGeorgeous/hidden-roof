@@ -250,6 +250,5 @@ export const HINTS: Record<string, string> = {
   'CAPS.*.spread': 'Spray cone width, its full angle (rad). Wider = a line that widens faster with distance.',
   'CAPS.*.color': 'Color of this cap on the can, its pickup and hotbar icon (the pickup ring stays ink).',
   'CAPS.*.drips': 'With paint runs on: how readily this cap starts runs (runs per m² of paint that reaches the build-up limit).',
-  'CAPS.*.crosshair': 'Crosshair circle diameter for this cap (px).',
   ...WORLD_HINTS,
 };

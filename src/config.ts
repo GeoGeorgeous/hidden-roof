@@ -378,9 +378,8 @@ export const HUD = {
   perf: false,
   /** GPU time per frame in it too (timer queries: desktop Chromium; a few queries a frame while shown). */
   perfGpu: false,
-  /** How long the cap and color tags show after a change, and the PSI gauge after the opacity last changed (s). */
+  /** How long the cap and color tags show after a change (s). */
   tagTime: 2.5,
-  gaugeTime: 1.2,
   /** Hotbar slots: size and the gap between them (CSS px), roundness (0 = square, 1 = circle), icon size (share of the slot). */
   slotSize: 30,
   slotGap: 10,
@@ -510,8 +509,6 @@ export interface CapSpec {
   /** Hiss loudness multiplier and tone (0 = bright, 1 = deep). */
   hissGain: number;
   hissTone: number;
-  /** Crosshair circle diameter on screen, in CSS pixels. */
-  crosshair: number;
   /** Paint runs (with DRIPS on), per m² of paint reaching DRIPS.excess. */
   drips: number;
   /** Color of the cap on the can, its pickup and hotbar icon. */
@@ -523,11 +520,11 @@ export interface CapSpec {
 export type CapId = 'skinny' | 'standard' | 'fat' | 'spray';
 export const CAP_ORDER: CapId[] = ['skinny', 'standard', 'fat', 'spray'];
 export const CAPS: Record<CapId, CapSpec> = {
-  skinny: { name: 'SKINNY', spread: 0.01, rate: 1900, dotSize: 0.036, softness: 0.15, hissGain: 0.5, hissTone: 0, crosshair: 10, drips: 60, color: '#7fb4f2', nozzle: 0.004 },
-  standard: { name: 'STANDARD', spread: 0.03, rate: 1760, dotSize: 0.05, softness: 0.35, hissGain: 0.75, hissTone: 0.4, crosshair: 18, drips: 120, color: '#f4f4f4', nozzle: 0.006 },
-  fat: { name: 'FAT', spread: 0.04, rate: 650, dotSize: 0.12, softness: 0.15, hissGain: 1, hissTone: 1, crosshair: 24, drips: 180, color: '#f2a04c', nozzle: 0.01 },
+  skinny: { name: 'SKINNY', spread: 0.01, rate: 1900, dotSize: 0.036, softness: 0.15, hissGain: 0.5, hissTone: 0, drips: 60, color: '#7fb4f2', nozzle: 0.004 },
+  standard: { name: 'STANDARD', spread: 0.03, rate: 1760, dotSize: 0.05, softness: 0.35, hissGain: 0.75, hissTone: 0.4, drips: 120, color: '#f4f4f4', nozzle: 0.006 },
+  fat: { name: 'FAT', spread: 0.04, rate: 650, dotSize: 0.12, softness: 0.15, hissGain: 1, hissTone: 1, drips: 180, color: '#f2a04c', nozzle: 0.01 },
   /** Wide, soft mist for fades and backgrounds: lots of faint, fuzzy dots. */
-  spray: { name: 'SPRAY', spread: 0.1, rate: 1100, dotSize: 0.158, softness: 0.55, hissGain: 0.9, hissTone: 0.8, crosshair: 32, drips: 50, color: '#b98cf2', nozzle: 0.013 },
+  spray: { name: 'SPRAY', spread: 0.1, rate: 1100, dotSize: 0.158, softness: 0.55, hissGain: 0.9, hissTone: 0.8, drips: 50, color: '#b98cf2', nozzle: 0.013 },
 };
 
 /** Paint colors, in the mouse wheel's cycling order. Black is always owned. Paint never runs out. */

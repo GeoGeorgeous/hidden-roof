@@ -34,6 +34,30 @@ export function dabSpacing(cap: CapSpec, distance: number) {
   return Math.max(restWidth(cap, distance) * BRUSH.spacing, BRUSH.minSpacing);
 }
 
+const widest: Dab = { radius: 0, softness: 0, amount: 0 };
+
+/**
+ * The width (m) of the line a stroke leaves: out to where it's half as dense as along its middle, so a soft edge
+ * reads narrower than a dab's reach. At `y` from the middle, a line of dabs adds up to 1 - exp(-paint over the chord).
+ */
+export function lineWidth(cap: CapSpec, distance: number, speed: number) {
+  const { radius: r, softness: s, amount } = dabAt(cap, distance, speed, widest);
+  const perMeter = -Math.log(1 - amount) / dabSpacing(cap, distance);
+  const density = (y: number) => {
+    const half = Math.sqrt(r * r - y * y);
+    return 1 - Math.exp(-perMeter * 2 * half * (1 - (s * (half * half / 3 + y * y)) / (r * r)));
+  };
+  const target = density(0) / 2;
+  let inside = 0;
+  let outside = r;
+  for (let i = 0; i < 12; i++) {
+    const y = (inside + outside) / 2;
+    if (density(y) > target) inside = y;
+    else outside = y;
+  }
+  return inside + outside;
+}
+
 /** The set opacity a step up (+1) or down (-1), in whole percents, so it comes back to the same numbers. */
 export const stepOpacity = (opacity: number, dir: number) => Math.round(MathUtils.clamp(opacity + dir * BRUSH.opacityStep, BRUSH.opacityMin, BRUSH.opacityMax) * 100) / 100;
 

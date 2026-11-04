@@ -26,6 +26,18 @@ export class Brush implements Canvas<WallSpot> {
     return this.stroke.update(frame);
   }
 
+  /** How far the wall under the aim is (m), spraying or not: a spraying stroke's ray, else one of its own. null: none. */
+  distance(frame: Pick<StrokeFrame, 'eye' | 'forward'>, spraying: boolean) {
+    if (spraying) return this.stroke.distance;
+    this.probe.near(frame.eye);
+    return this.probe.cast(frame.eye, frame.forward)?.distance ?? null;
+  }
+
+  /** How fast the hand moves over the wall (m/s). */
+  get speed() {
+    return this.stroke.speed;
+  }
+
   /** The spray stopped. */
   end() {
     this.stroke.end();

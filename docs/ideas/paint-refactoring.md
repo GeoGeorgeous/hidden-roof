@@ -383,7 +383,7 @@ only): cut it before the branch reaches `dev`, on the owner's word.
 | 1 | Done on `feat/paint-brush`. Brush: dabs between frames, build-up, streamline, hand speed and distance, a test at 60, 144 and 240 Hz; the old particles only for show | IDEA-225, IDEA-227 |
 | 2 | Done on `feat/paint-opacity`. Opacity: Run + the color keys on the can only (Shift + wheel by default, both wheel axes; a key holds one action, so no action of its own, and Controls says so); step 10% in config, 5-100%, 65% by default, kept in the local settings, never on the wire; smooth alpha; pressure no longer runs out, the PSI gauge shows the setting until module 4; one tutorial hint | IDEA-226 |
 | 3 | In module 1 (one function sizes a dab; its number stays free so the others keep theirs) | |
-| 4 | The game's crosshair sized to the line, an opacity arc, no PSI gauge, one ray a frame shared with the brush | IDEA-228 |
+| 4 | Done on `feat/paint-crosshair`. The game's crosshair sized to the line (`lineWidth`), no PSI gauge, one ray a frame shared with the brush. The opacity: a 120° arc on the crosshair's right, the percent beside it for a moment after a change. A sight glass on the can was tried against the arc: owner chose the arc | IDEA-228 |
 | 5 | Slant on the wire (protocol 12, 3 bytes, a flag), rounded like an op's other numbers; seams; the load read again | TASK-231 |
 | 6 | Six caps with real names (NEEDLE and BLUE DOT new), every cap tuned | IDEA-229 |
 | 7 | Paint runs: the design talked over first, the marker's kept as they are if nothing asks otherwise | TASK-230 |
@@ -432,9 +432,10 @@ Found in the branch, to fix on the way:
 
 Still open:
 
-- An opacity arc on the crosshair, its shape, or a gauge on the can: compared in module 4.
 - The new caps' places on the maps: module 6.
 - How paint runs work with the brush: module 7.
+
+Decided (2026-11-04): the opacity shows on an arc at the crosshair, as set, not as dense as it lands at this distance; no gauge on the can. The line reads wider at a higher opacity (saturation, not a rule of its own): kept.
 
 Decided (2026-11-04): pressure the player sets replaces pressure that runs
 out; shaking stays as an animation only; no PSI gauge; opacity on the can only;

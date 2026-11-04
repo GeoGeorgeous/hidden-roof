@@ -90,7 +90,6 @@ export const WORLD_HINTS: Record<string, string> = {
   'HUD.perf': 'Show fps, draw calls, triangles and texture memory at the bottom left of the screen.',
   'HUD.perfGpu': 'Adds GPU time per frame (scene, volumetrics, hands + post) to the readout. Needs timer queries (desktop Chromium; elsewhere n/a); runs a few queries a frame while shown.',
   'HUD.tagTime': 'How long the cap and color tags beside the tool show after a change (s).',
-  'HUD.gaugeTime': 'How long the PSI gauge stays up after the opacity last changed (s).',
   'NOTIFY.hintBottom': 'How far the lowest hint box sits above the bottom of the screen (px). Toasts rise with it.',
   'NOTIFY.fontSize': 'Text size of hints and toasts (px).',
   'NOTIFY.lineHeight': 'Line height of hints and toasts (px); a box is this plus its padding down, twice.',

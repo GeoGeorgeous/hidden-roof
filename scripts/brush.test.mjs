@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import './ts-imports.mjs';
 
 const { BRUSH, CAPS, SPRAY } = await import('../src/config.ts');
-const { dabAt, dabSpacing, stepOpacity } = await import('../src/spray/dab.ts');
+const { dabAt, dabSpacing, lineWidth, stepOpacity } = await import('../src/spray/dab.ts');
 const { SprayStroke } = await import('../src/spray/stroke.ts');
 
 const RATES = [60, 144, 240];
@@ -40,6 +40,23 @@ const fast = dab('standard', 1, BRUSH.speedRef * 4);
 assert.deepEqual(dab('standard', 1, 0), slow, 'up to the reference speed a line is as set');
 near(fast.radius, slow.radius * (1 + BRUSH.speedWiden), 1e-9, 'fast is wider');
 assert.ok(fast.softness > slow.softness && fast.amount < slow.amount, 'fast is softer and thinner');
+
+// The line's width: out to half the density of its middle, counted from a line of real dabs.
+for (const [cap, distance] of [['skinny', 1], ['standard', 2.5], ['spray', 3]]) {
+  const d = dab(cap, distance);
+  const spacing = dabSpacing(CAPS[cap], distance);
+  const density = (y) => {
+    let left = 1;
+    for (let x = -d.radius; x <= d.radius; x += spacing) if (x * x + y * y < d.radius ** 2) left *= 1 - d.amount * (1 - d.softness * ((x * x + y * y) / d.radius ** 2));
+    return 1 - left;
+  };
+  const width = lineWidth(CAPS[cap], distance, 0);
+  assert.ok(density(width * 0.45) > density(0) / 2 && density(width * 0.55) < density(0) / 2, `${cap}: half as dense at the line's edge`);
+  assert.ok(width <= d.radius * 2, `${cap}: never past a dab's reach`);
+}
+assert.ok(lineWidth(CAPS.spray, 3, 0) < dab('spray', 3).radius * 1.8, 'a soft line reads narrower than its reach');
+assert.ok(lineWidth(CAPS.standard, 3, 0) > lineWidth(CAPS.standard, 1, 0), 'far is wider');
+assert.ok(lineWidth(CAPS.standard, 1, BRUSH.speedRef * 4) > lineWidth(CAPS.standard, 1, 0), 'fast is wider');
 
 // The set opacity.
 {
