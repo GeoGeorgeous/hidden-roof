@@ -364,6 +364,12 @@ with the op count.
 One module at a time on its topic branch, each with `npm run check` and the
 owner's in-game test. Paint reaches `next` after 1.6.2 is released.
 
+Owner (2026-11-04): modules merge into `test/paint-rework`, not `dev`: a temporary
+branch from `dev`, where the owner tests them together. Each module's topic
+branch starts from it. It holds one test-only change, `ALL_PAINT` in
+`src/inventory/inventory.ts` (every color and cap from the start, in `npm run dev`
+only): cut it before the branch reaches `dev`, on the owner's word.
+
 | # | Module | Items |
 |---|---|---|
 | 1 | Done on `feat/paint-brush`. Brush: dabs between frames, build-up, streamline, hand speed and distance, a test at 60, 144 and 240 Hz; the old particles only for show | IDEA-225, IDEA-227 |
