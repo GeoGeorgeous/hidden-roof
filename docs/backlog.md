@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 307
+The one list of what's left. Counter for new ids: next: 308
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -157,6 +157,7 @@ Shipped since the last release; the release commit empties this list.
 3. [BUGS-304]: A player whose game sends no snapshots (hidden tab, dropped) was invisible to anyone who got a welcome after that, though listed in the ESC menu, until they came back: the server keeps each player's last state and sends it after the welcome, its time moved on to now so the figure's clock is right (no PROTOCOL change)
 4. [BUGS-305]: A server whose stdout is gone took a whole core for ever (the write's EPIPE went to uncaughtException, which logged, which failed again): the error is heard and the line lost. A test that crashed left its server running, holding the pipes `npm run check` waits on: test servers now go with their test
 5. [BUGS-306]: The page's hero loop didn't play on an iPhone, not even opened directly (both files were H.264 Level 6.2), and looked pixelated everywhere: both filmed again at 1920x1080 and 1080x1920, Level 4.0, the loop's seam faded, posters from its first frame; it starts only after the page and its fonts have loaded
+6. [BUGS-307]: Pickup rings grew in the world past about 24 m to keep PICKUP.ring.minSize of the screen, which looked wrong in panoramas: the minimum is gone, with its F3 row and Pickups.view, so a ring is its size from any distance, the title view's too
 
 ## Discarder
 

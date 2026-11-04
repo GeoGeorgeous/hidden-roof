@@ -924,12 +924,11 @@ export const PICKUP = {
   bob: 0.08,
   /**
    * The drawn ring around every pickup, its shape by kind (pickups/visuals.ts):
-   * size (x the item's hover box), never smaller on screen than `minSize` of
-   * its height, so its shape reads from far away (0 = it shrinks with distance).
+   * size (x the item's hover box), the same in the world from any distance.
    * Paint's is in its color at `opacity`, darkened to black by `paint` (1 = its
    * color, 0 = black); a cap's and a tool's are solid, in their shade of ink (`cap`, `tool`).
    */
-  ring: { size: 1, opacity: 1, minSize: 0.025, paint: 0.8, cap: '#3d3d3d', tool: '#3d3d3d' },
+  ring: { size: 1, opacity: 1, paint: 0.8, cap: '#3d3d3d', tool: '#3d3d3d' },
   /**
    * Every pickup glows, as pickups do in GTA: paint in its color, the rest
    * white. A soft light around the item (`size`, m) and a pool of it on the
