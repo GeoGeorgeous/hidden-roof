@@ -1,5 +1,5 @@
 import './headless';
-import { spawn } from 'node:child_process';
+import { spawn, type ChildProcess } from 'node:child_process';
 import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
@@ -9,6 +9,11 @@ import { encode, PROTOCOL, received, rejectionOf, type ToClient, type ToServer }
 
 // What the tests that run the built server share (lobby-test.ts, queue-test.ts): a server on a free port, and a game
 // from its own address (or the one given) that keeps what the server sends.
+
+const children = new Set<ChildProcess>();
+process.once('exit', () => children.forEach((c) => c.kill()));
+/** `c`, killed when this test ends however it ends: left running, it holds the pipes `npm run check` waits on. */
+export const stopsWithUs = (c: ChildProcess) => (children.add(c), c);
 
 /** A port nothing listens on. */
 export const freePort = () =>
@@ -21,7 +26,7 @@ export const freePort = () =>
 /** A server on a free port (or the PORT and ADMIN_PORT `env` names), listening; `env` adds to its environment, `args` to node's. `stop` waits for it to exit (it saves first); `out()`: what it logged. */
 export async function start(env: Record<string, string>, args: string[] = []) {
   const [port, adminPort] = [Number(env.PORT) || (await freePort()), Number(env.ADMIN_PORT) || (await freePort())];
-  const child = spawn(process.execPath, [...args, 'dist-server/server/main.js'], { env: { ...process.env, PORT: String(port), ADMIN_PORT: String(adminPort), ...env }, stdio: ['ignore', 'pipe', 'inherit'] });
+  const child = stopsWithUs(spawn(process.execPath, [...args, 'dist-server/server/main.js'], { env: { ...process.env, PORT: String(port), ADMIN_PORT: String(adminPort), ...env }, stdio: ['ignore', 'pipe', 'inherit'] }));
   let out = '';
   child.stdout!.on('data', (d: Buffer) => (out += d.toString()));
   // With LOG_DIR it says so in today's file instead.

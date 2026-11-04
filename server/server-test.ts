@@ -12,7 +12,7 @@ import { decodePaintFile, encodePaintFile, joinBytes } from '../src/save/paint-f
 import { surfaceTable } from '../src/save/shape';
 import { WebSocket as Ws } from 'ws';
 import { PartsIn } from '../src/net/parts-in';
-import { freePort, rejected } from './test-kit';
+import { freePort, rejected, stopsWithUs } from './test-kit';
 import { overMemory } from './log';
 import { decodeOps, encodeOps, SurfaceIndex } from '../src/op-wire';
 import type { PaintOp } from '../src/paint-ops';
@@ -47,7 +47,7 @@ const ops = (seq: number, t: number[], list: PaintOp[]) => ({ type: 'ops' as con
 const opsIn = (m: { bytes: Uint8Array }) => decodeOps(m.bytes, surfaces)!;
 const stamp = { kind: 'stamp' as const, key: faces[0].key, rect: 0, u: 0.5, v: 0.5, radius: 0.2, amount: 1, color: [1, 0, 0] as const, softness: 0, square: false };
 
-const server = spawn(process.execPath, ['--expose-gc', 'dist-server/server/main.js'], { env: { ...process.env, PORT: String(PORT), PLAYER_HOST: '1', REJOIN_WINDOW: '1', HELLO_TIMEOUT: '2' }, stdio: ['ignore', 'pipe', 'inherit'] });
+const server = stopsWithUs(spawn(process.execPath, ['--expose-gc', 'dist-server/server/main.js'], { env: { ...process.env, PORT: String(PORT), PLAYER_HOST: '1', REJOIN_WINDOW: '1', HELLO_TIMEOUT: '2' }, stdio: ['ignore', 'pipe', 'inherit'] }));
 if (process.env.SERVER_LOG) server.stdout!.pipe(process.stderr);
 const log: string[] = [];
 await new Promise<void>((ready) => server.stdout!.on('data', (d: Buffer) => (log.push(d.toString()), ready())));
@@ -435,7 +435,7 @@ assert.doesNotMatch(lines, /"A" #1 out: left[^]*"A" #1 dropped/);
 {
   const port = await freePort();
   const out: string[] = [];
-  const bare = spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(port), LOG_DIR: '/dev/null/logs' }, stdio: ['ignore', 'pipe', 'inherit'] });
+  const bare = stopsWithUs(spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(port), LOG_DIR: '/dev/null/logs' }, stdio: ['ignore', 'pipe', 'inherit'] }));
   try {
     bare.stdout!.on('data', (d: Buffer) => out.push(d.toString()));
     for (let i = 0; !out.join('').includes('roof server on'); i++) {
@@ -449,12 +449,41 @@ assert.doesNotMatch(lines, /"A" #1 out: left[^]*"A" #1 dropped/);
   }
 }
 
+// Whoever started the server is gone, and its stdout with them: the line is lost, and the server stays quiet.
+{
+  const port = await freePort();
+  const orphan = stopsWithUs(spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(port) }, stdio: ['ignore', 'pipe', 'inherit'] }));
+  try {
+    await new Promise<void>((ready) => {
+      let text = '';
+      orphan.stdout!.on('data', (d: Buffer) => (text += d).includes('roof server on') && ready());
+    });
+    orphan.stdout!.destroy();
+    // Two lines: console takes the first failed write on itself, the next goes uncaught.
+    for (let i = 0; i < 2; i++) {
+      const ws = new Ws(`ws://localhost:${port}/ws`);
+      await new Promise((open) => ws.once('open', open));
+      ws.send(Buffer.from('not a message'));
+      await new Promise((closed) => ws.once('close', closed));
+    }
+    await new Promise((w) => setTimeout(w, 300));
+    /** Its CPU time so far, in ticks of 10 ms (/proc/<pid>/stat: utime, stime). */
+    const ticks = () => fs.readFileSync(`/proc/${orphan.pid}/stat`, 'utf8').split(' ').slice(13, 15).reduce((n, t) => n + Number(t), 0);
+    const before = ticks();
+    await new Promise((w) => setTimeout(w, 1000));
+    assert.ok(ticks() - before < 50, 'a server with no stdout does not spin');
+    assert.equal((await fetch(`http://localhost:${port}/healthz`)).status, 200);
+  } finally {
+    orphan.kill();
+  }
+}
+
 // The heartbeat (BL-004), on a server of its own beating every second: a game that keeps sending stays though it never
 // answers a ping (on a slow link the ping waits behind what's coming down); a silent one is dropped. Before its hello a
 // link has SERVER.helloTimeout: a game busy loading may send it a few beats late.
 {
   const port = await freePort();
-  const beating = spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(port), PLAYER_HOST: '1', HEARTBEAT: '1' }, stdio: ['ignore', 'pipe', 'inherit'] });
+  const beating = stopsWithUs(spawn(process.execPath, ['dist-server/server/main.js'], { env: { ...process.env, PORT: String(port), PLAYER_HOST: '1', HEARTBEAT: '1' }, stdio: ['ignore', 'pipe', 'inherit'] }));
   try {
     // Listening, not just started: the first line is logged before the port opens.
     await new Promise<void>((ready) => {

@@ -9,6 +9,9 @@ import { PerMinute } from './per-minute';
 // code next when there is one. With a directory set (LOG_DIR) it goes to one file
 // a day there (capped in size), cleaned as server/log-files.ts says; without one, to stdout.
 
+// Whoever read stdout is gone: its lines are lost. Unheard, that error would be uncaught, logged, and fail the same way, a core busy for ever.
+process.stdout.on('error', () => {});
+
 let dir: string | null = null;
 /** The day file being written, and its size; `full` once the cap (SERVER.logDayBytes) is reached. */
 const today = { name: '', bytes: 0, full: false };
