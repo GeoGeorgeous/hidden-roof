@@ -131,10 +131,6 @@
   transform: translateY(-50%) rotate(calc(-1 * var(--nib-angle)));
 }
 */
-/* Where the can's paint wouldn't land. */
-.crosshair.far {
-  opacity: 0.35;
-}
 /* The opacity in numbers, right of the arc, a moment after it changes. */
 .crosshair span {
   position: absolute;

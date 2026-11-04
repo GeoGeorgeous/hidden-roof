@@ -163,7 +163,7 @@ Shipped since the last release; the release commit empties this list.
 10. [IDEA-229]: Painting Rework: six caps with real names, colors and a dot each (NEEDLE, BLUE DOT new), on the roof
 11. [IDEA-334]: The cap's and color's tags sit beside the cap and invert what's under them, as the crosshair does; the swatch stays true
 12. [IDEA-335]: Painting Rework: the spray is a plume at the nozzle, each cap's own (cone, specks, haze); the old square points are gone
-13. [IDEA-337]: The can's crosshair fades where the paint wouldn't land, from the ray it already casts
+13. [IDEA-337]: The can's crosshair fades where the paint wouldn't land, from the ray it already casts; how faint is a row in F3 (Cursor)
 
 ## Discarder
 

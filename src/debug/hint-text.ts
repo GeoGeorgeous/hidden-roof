@@ -245,6 +245,7 @@ export const HINTS: Record<string, string> = {
   'CROSSHAIR.arc.peak': 'The arc\'s line when the opacity changes (px), before it comes back.',
   'CROSSHAIR.arc.lineMs': 'How long the arc\'s line takes to come back after a change (ms). 0 = no swell.',
   'CROSSHAIR.plain': 'Crosshair with no sized tool in hand: the stepladder, empty hands, build mode (px).',
+  'CROSSHAIR.far': 'How visible the crosshair stays with the can in hand where the paint wouldn\'t land: too far, or a surface that takes none. 1 = no fade, lower = fainter.',
   'HOLD.*.distance': 'How far in front of the eye the tool is held (m). Its spot on screen stays put.',
   'HOLD.*.x': 'Right (+) or left (-) of the view center, per meter of distance.',
   'HOLD.*.y': 'Up (+) or down (-) from the view center, per meter of distance.',

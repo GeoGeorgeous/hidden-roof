@@ -427,7 +427,7 @@ only): cut it before the branch reaches `dev`, on the owner's word.
 | 3 | In module 1 (one function sizes a dab; its number stays free so the others keep theirs) | |
 | 4 | Done on `feat/paint-crosshair`. The game's crosshair sized to the line (`lineWidth`), no PSI gauge, one ray a frame shared with the brush. The opacity: a 120° arc on the crosshair's right, the percent beside it for a moment after a change. A sight glass on the can was tried against the arc: owner chose the arc | IDEA-228 |
 | 5 | Done on `feat/paint-slant-wire`. The sandbox's slant ported (it was never in the game) and put on the wire: protocol 12, 3 bytes behind a flag, rounded like an op's other numbers; seams; the load read again | TASK-231 |
-| 6 | Done on `feat/paint-caps`. Today's four caps as they are, with real names, colors and a dot on each; NEEDLE and BLUE DOT new, on the roof | IDEA-229 |
+| 6 | Done on `feat/paint-caps`. Today's four caps as they are, with real names, colors and a dot on each; NEEDLE and BLUE DOT new, on the roof. Beside it: the can's crosshair fades where the paint wouldn't land, how faint in F3 (Cursor) | IDEA-229, IDEA-337 |
 | 9 | Done on `feat/spray-plume`. Spray plume from the sandbox's, then by the cap (cone, specks, haze); the old square points gone | |
 | 8 | Dead code, load tests, docs | TASK-232 |
 | | The owner tests and thinks about paint runs | |

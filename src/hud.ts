@@ -128,7 +128,7 @@ export class Hud {
 
   /** The crosshair fades where the can's paint wouldn't land. */
   setReach(reaches: boolean) {
-    this.crosshair.classList.toggle('far', !reaches);
+    this.crosshair.style.opacity = reaches ? '' : `${CROSSHAIR.far}`;
   }
 
   // Kept for a flat nib on the marker, a later version.

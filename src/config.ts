@@ -593,6 +593,8 @@ export const MARKER = {
 /** Crosshair (px) with no sized tool in hand: the stepladder, empty hands, build mode. The others set their own. */
 export const CROSSHAIR = {
   plain: 6,
+  /** Its opacity with the can in hand where the paint wouldn't land (0..1). */
+  far: 0.35,
   /**
    * The opacity arc answers a change: it flows to the new value in `flowMs`, past it by `bounce` (1 = not past it, the
    * easing's overshoot), and its line (px) starts `peak` thick and comes back to `line` in `lineMs`.
