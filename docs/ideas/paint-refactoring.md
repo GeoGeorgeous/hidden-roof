@@ -364,6 +364,26 @@ owner's in-game test. Paint reaches `next` after 1.6.2 is released.
 | 8 | Dead code, load tests, docs | TASK-232 |
 | 9 | Spray plume, then this doc gone | |
 
+Bar for all of it (owner, 2026-11-04): this is the game's core feature, so
+robust, modular, typed, testable code. What doesn't fit the architecture and
+needs an exception, a flag or a special case is talked over with the owner
+first. Nothing is ported from `src/sandbox` as it is: no `FEEL.on`, no old and
+new mode side by side; painting by particles is deleted, not turned off.
+
+Module 1's shape, a sketch that may change:
+
+| File | Does | Checked by |
+|---|---|---|
+| `src/spray/dab.ts` | Pure: a dab's size, edge and density from cap, distance and speed | Node tests |
+| `src/spray/stroke.ts` | A stroke's state: smoothing, hand speed, where dabs go | Node tests with a fake wall, at 60, 144 and 240 Hz |
+| `src/spray/wall-probe.ts` | Finds the wall along a ray | Game tests |
+| `src/spray/brush.ts` | Joins stroke, probe and `PaintSystem` | Game tests, golden |
+| `src/spray/particles.ts` | Only shows particles | Game tests |
+
+Settings in `BRUSH` in `config.ts`, each with its F3 row. Classes where there is
+state; the stroke gets the probe and the painting through small typed
+interfaces, so its logic runs without a browser.
+
 Found in the branch, to fix on the way:
 
 - A slanted dab's seams: `pastEdge` takes the round radius, and the neighbor
