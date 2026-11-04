@@ -84,7 +84,7 @@ function failed() {
   if (!note) return;
   const [head, how] = webgl
     ? ["The game didn't load", 'Check your connection, then reload the page.']
-    : ['The game needs WebGL2, and this browser has it turned off', "Most often it's hardware acceleration: turn it on in the browser's settings, restart the browser and reload this page."];
+    : ['The game needs WebGL2, and this browser has it turned off', "Most often it's hardware acceleration: turn it on in the browser's settings, restart the browser, and reload this page."];
   note.querySelector('.failed-head')!.textContent = head;
   note.querySelector('.failed-how')!.textContent = how;
   note.hidden = false;
