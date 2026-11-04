@@ -31,6 +31,8 @@ what's served: `docs/deploy.md`; the release steps that touch the page: `docs/re
   the owner's word to players under P.S.; its "legal walls" is the owner's own, saying the game isn't one), then the
   rest. How to play lists every tool with the server list's icon (`src/net/tool-icons.ts`), copied as markup;
   `scripts/seo.test.mjs` checks they match.
+- The hero's loop (`public/about/roof.mp4`, `roof-portrait.mp4`) starts after the page and its fonts have loaded
+  (`src/boot.ts`), so it never competes with them. Encode it as H.264 Level 4.0 or lower: the Level 6.2 files didn't play on an iPhone.
 - The FAQ on a slow game says what the performance test says (`perfTip` in `src/perf-test.ts`, `fasterGpuHow` in
   `src/gpu-name.ts`): change one, change the other.
 
