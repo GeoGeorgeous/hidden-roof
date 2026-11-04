@@ -220,6 +220,7 @@ export const HINTS: Record<string, string> = {
   'AVATAR.crouchSprayLean': 'Lean while crouched and spraying (rad); below 0 leans back.',
   'AVATAR.sprintLean': 'Forward lean when sprinting (rad).',
   'AVATAR.blend': 'How fast the figure blends from one pose to the next (1/s).',
+  'CROSSHAIR.arcMs': 'How long the arc answers a change of opacity (ms).',
   'CROSSHAIR.plain': 'Crosshair with no sized tool in hand: the stepladder, empty hands, build mode (px).',
   'HOLD.*.distance': 'How far in front of the eye the tool is held (m). Its spot on screen stays put.',
   'HOLD.*.x': 'Right (+) or left (-) of the view center, per meter of distance.',

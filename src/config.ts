@@ -573,7 +573,13 @@ export const MARKER = {
 };
 
 /** Crosshair (px) with no sized tool in hand: the stepladder, empty hands, build mode. The others set their own. */
-export const CROSSHAIR = { plain: 6 };
+export const CROSSHAIR = {
+  plain: 6,
+  /** How long the arc answers a change of opacity (ms). */
+  arcMs: 240,
+  /** On trial, the owner picks one: 0 grows, 1 thickens, 2 flows to the new value. */
+  arcEffect: 0,
+};
 
 /** Hotbar circles shown from the start (empty until their tool is found); at least one per tool. */
 export const HOTBAR = { slots: 5 };

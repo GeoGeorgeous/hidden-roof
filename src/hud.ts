@@ -1,4 +1,4 @@
-import { HUD, VIGNETTE } from './config';
+import { CROSSHAIR, HUD, VIGNETTE } from './config';
 import { netLines, type NetStats } from './net/diagnostics';
 import { PauseMenu } from './pause-menu';
 
@@ -99,12 +99,21 @@ export class Hud {
       if (opacity !== null && this.arc !== null) {
         this.percent.textContent = `${Math.round(opacity * 100)}%`;
         this.percentUntil = now + HUD.tagTime * 1000;
+        this.answer(this.arc, opacity);
       }
       this.arc = opacity;
       this.crosshair.classList.toggle('arc', opacity !== null);
       if (opacity !== null) this.crosshair.style.setProperty('--opacity', `${opacity}`);
     }
     this.percent.hidden = opacity === null || now >= this.percentUntil;
+  }
+
+  /** The arc answers a change, for a moment and off the frame's work (the browser runs it). */
+  private answer(from: number, to: number) {
+    const time = { duration: CROSSHAIR.arcMs, easing: 'ease-out' };
+    if (CROSSHAIR.arcEffect === 0) this.crosshair.animate([{ inset: '-8px' }, { inset: '-6px' }], { ...time, pseudoElement: '::after' });
+    if (CROSSHAIR.arcEffect === 1) this.crosshair.animate([{ '--arc-line': '3px' }, { '--arc-line': '1.5px' }], { ...time, pseudoElement: '::after' });
+    if (CROSSHAIR.arcEffect === 2) this.crosshair.animate([{ '--opacity': `${from}` }, { '--opacity': `${to}` }], { ...time, easing: 'cubic-bezier(0.3, 1.7, 0.5, 1)' });
   }
 
   /** Crosshair circle diameter in CSS pixels. */
