@@ -1,4 +1,5 @@
 import { action, choice, div, el, pageHead, relabel, segmented, settingRow, withDefaultTick } from './menu-ui';
+import { ResetCorner } from './reset-corner';
 import type { OwnTab, SettingRow, SettingSection } from './settings';
 
 /** An action's confirmation shows on its button this long (ms), like "Copied". */
@@ -21,6 +22,7 @@ export class SettingsPage {
   private foot: HTMLElement;
   private costs: HTMLElement[];
   private corner = div('page-corner');
+  private reset: ResetCorner | null = null;
   /** The open tab's own page, if it has one. */
   private own: OwnTab | undefined;
   private syncs: (() => void)[] = [];
@@ -49,12 +51,14 @@ export class SettingsPage {
   /** Re-read every value (the debug panel may have changed them). */
   sync() {
     for (const s of this.syncs) s();
+    this.reset?.sync();
   }
 
   show(i: number) {
     this.tabs.set(i);
     this.own?.close();
     this.own = this.sections[i].tab;
+    this.reset = null;
     this.body.replaceChildren();
     this.body.scrollTop = 0;
     this.body.classList.toggle('own', !!this.own);
@@ -67,7 +71,9 @@ export class SettingsPage {
       this.own.open();
     } else {
       this.foot.replaceChildren(...this.costs);
-      this.corner.replaceChildren();
+      const r = this.sections[i].reset;
+      this.reset = r ? new ResetCorner(r.what, r.isDefault, () => (r.reset(), this.sync())) : null;
+      this.corner.replaceChildren(...(this.reset ? [this.reset.el] : []));
     }
     this.sync();
   }

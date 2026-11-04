@@ -3,6 +3,7 @@ import { msg } from './messages';
 import { type Action, keyName } from './input';
 import { allDefault, bind, type Bound, CONTROL_GROUPS, defaultSlot, nameOf, refusal, resetKeys, restore, slots, snapshot } from './key-bindings';
 import { button, choice, div, el } from './menu-ui';
+import { ResetCorner } from './reset-corner';
 import type { OwnTab } from './settings';
 
 // Settings → Controls: every play action's two slots (key-bindings.ts), in
@@ -20,7 +21,14 @@ const EVENTS = ['keydown', 'keyup', 'mousedown', 'mouseup', 'click', 'auxclick',
 export class ControlsTab implements OwnTab {
   readonly rows = div('controls');
   readonly foot = div('controls-foot');
-  readonly corner = div('seg reset-all');
+  private reset = new ResetCorner('controls', allDefault, () => {
+    const before = snapshot();
+    resetKeys();
+    this.say(msg('menu.bindReset'), before);
+    this.changed();
+    this.sync();
+  });
+  readonly corner = this.reset.el;
   private status = el('span', 'status');
   private undoLink = button('Undo', () => this.undo(), 'undo');
   private syncs: (() => void)[] = [];
@@ -31,8 +39,6 @@ export class ControlsTab implements OwnTab {
   /** A moved key's or Reset all's message, and the slots to undo to. */
   private notice: { text: string; undo: Bound } | null = null;
   private noticeTimer = 0;
-  /** Reset all asks first. */
-  private asking = false;
 
   /** `changed`: a binding or a setting changed, to save. */
   constructor(private changed: () => void) {
@@ -45,13 +51,13 @@ export class ControlsTab implements OwnTab {
     }
     this.undoLink.hidden = true;
     this.foot.append(this.status, this.undoLink);
-    this.syncs.push(() => this.syncCorner());
+    this.syncs.push(() => this.reset.sync());
     for (const type of EVENTS) window.addEventListener(type, this.take, { capture: true, passive: false });
   }
 
   open() {
     this.stopListening();
-    this.asking = false;
+    this.reset.close();
     this.notice = null;
     this.sync();
   }
@@ -108,7 +114,7 @@ export class ControlsTab implements OwnTab {
   }
 
   private click(action: Action, i: number, shift: boolean) {
-    this.asking = false;
+    this.reset.close();
     if (shift) this.commit(action, i, defaultSlot(action, i));
     else this.listening = { action, i, refused: null };
     this.sync();
@@ -178,30 +184,6 @@ export class ControlsTab implements OwnTab {
     this.notice = null;
     this.changed();
     this.sync();
-  }
-
-  /** Reset all: dimmed when everything is default; asks first. */
-  private syncCorner() {
-    if (this.asking) {
-      const ask = el('span', 'ask', 'Reset all controls?');
-      const reset = button('Reset', () => {
-        const before = snapshot();
-        this.asking = false;
-        resetKeys();
-        this.say(msg('menu.bindReset'), before);
-        this.changed();
-        this.sync();
-      }, 'confirm');
-      this.corner.replaceChildren(ask, reset, button('Cancel', () => ((this.asking = false), this.sync()), 'cancel'));
-      return;
-    }
-    const all = button('Reset all', () => {
-      if (allDefault()) return;
-      this.asking = true;
-      this.sync();
-    });
-    all.classList.toggle('dim', allDefault());
-    this.corner.replaceChildren(all);
   }
 
   private sync() {
