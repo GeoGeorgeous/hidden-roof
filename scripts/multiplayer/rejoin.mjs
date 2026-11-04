@@ -46,6 +46,13 @@ export async function rejoin() {
   await place(q, 5);
   await mend(q);
   await seen(5);
+  // Moved, and hidden by the time it's back: no frame tells them, the welcome does.
+  await cut(q);
+  await place(q, 6);
+  await q.evaluate(() => window.hide());
+  await mend(q);
+  await seen(6);
+  await q.evaluate(() => window.show());
   await cut(q);
   await place(q, null);
   await mend(q);
@@ -60,9 +67,9 @@ export async function rejoin() {
     for (let i = 0; i < 60000; i++) g.paint.stamp(s, { rect: 0, u: 0.2 + (i % 50) * 0.01, v: 0.5 }, 0.05, 0.6, [1, 0, 0]);
   });
   await mend(q);
-  await paintReaches(p, await paintHash(q), 'P has what Q painted with its link down');
+  await paintReaches(p, await paintHash(q), 'P has what Q painted with its link down', 30000);
   // Each time back is one welcome, however many tries failed with the link cut: more would be the server closing the link on what it was sent.
-  assert.equal((await q.evaluate(() => window.game.net.log.text())).match(/welcome:/g).length, 5, 'in, and back once each time');
+  assert.equal((await q.evaluate(() => window.game.net.log.text())).match(/welcome:/g).length, 6, 'in, and back once each time');
 
   // Back as another player (as after a restart): the seat's stepladder went with it.
   await q.evaluate(() => {

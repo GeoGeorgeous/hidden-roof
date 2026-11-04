@@ -32,6 +32,8 @@ interface LinkEvents {
   log(line: string): void;
   /** Bytes sent and received, for the HUD's traffic. */
   traffic(up: number, down: number): void;
+  /** A link check of a live link, in a hidden tab too, where no frame runs. */
+  tick?(): void;
   /** The socket closed (code, as the browser says); `timedOut`: no answer in NET.connectTimeout before the welcome. */
   /** `reason`: the close frame's text (a ban's end and reason). */
   closed(code: number, timedOut: boolean, reason?: string): void;
@@ -118,7 +120,7 @@ export class ServerLink {
     if (this.gone) return;
     const now = this.env.now();
     if (!this.uploading && this.open && now - this.sent > SERVER.ping) this.send({ type: 'ping', t: now });
-    if (this.live) return;
+    if (this.live) return this.on.tick?.();
     if (this.uploading && this.socket.bufferedAmount) {
       this.heard = now;
       this.on.progress({ step: 'uploading', percent: percent(this.frame.length - this.socket.bufferedAmount, this.frame.length) });
