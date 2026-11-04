@@ -61,6 +61,9 @@ function aim(e: ShowParams) {
 export class SprayParticles {
   private live: Particle[] = [];
   private free: Particle[] = [];
+  /** Cans shown since the last update, and what each may take: a crowd thins every plume alike and blanks none. */
+  private showing = 0;
+  private share = SPRAY.maxParticles;
   private points: THREE.Points;
   private positions: Float32Array;
   private colors: Float32Array;
@@ -122,10 +125,10 @@ export class SprayParticles {
     if (axis.dot(e.forward) <= 0) return;
     const limit = axis.length() - p.short;
     axis.normalize();
-    const n = Math.floor(e.count * p.count + Math.random());
+    this.showing++;
+    const n = Math.min(Math.floor(e.count * p.count + Math.random()), this.share, this.free.length);
     for (let i = 0; i < n; i++) {
-      const s = this.free.pop();
-      if (!s) break;
+      const s = this.free.pop()!;
       s.pos.copy(e.nozzle);
       s.vel.copy(aim(e)).multiplyScalar(p.speed * (0.5 + Math.random()));
       s.life = s.span = p.life * (0.4 + 0.6 * Math.random());
@@ -172,11 +175,19 @@ export class SprayParticles {
       n++;
     }
     list.length = n;
+    this.share = Math.ceil(this.free.length / Math.max(1, this.showing));
+    this.showing = 0;
     const g = this.points.geometry;
     // Nothing in flight: no draw call.
     this.points.visible = n > 0;
     g.setDrawRange(0, n);
-    for (const a of ['position', 'color', 'age', 'size', 'grow']) g.attributes[a].needsUpdate = true;
+    if (!n) return;
+    for (const name of ['position', 'color', 'age', 'size', 'grow']) {
+      const a = g.attributes[name] as THREE.BufferAttribute;
+      a.clearUpdateRanges();
+      a.addUpdateRange(0, n * a.itemSize);
+      a.needsUpdate = true;
+    }
   }
 }
 

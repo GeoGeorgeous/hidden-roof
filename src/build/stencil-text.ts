@@ -4,8 +4,7 @@ import { hintCss } from './hint-fonts';
 
 // A hint as an image to paint (PaintSystem.imprint): text in one of the
 // hint fonts (hint-fonts.ts; loaded before it's drawn), where
-// <k>KEY</k> is a key cap and <br> starts a new line, e.g. "<k>RMB</k> Shake
-// your can<br>to release pressure". Lines line up left, center or right.
+// <k>KEY</k> is a key cap and <br> starts a new line, e.g. "<k>LMB</k> Spray<br>your name". Lines line up left, center or right.
 // Drawn white on clear, with the font's overspray around the letters
 // (HINT.looks); only alpha is kept.
 

@@ -4,8 +4,9 @@ A handoff for the agent who brings this into the game. It says what was tried,
 what the player liked, and what is left to decide. It doesn't say how to
 write the code: read the branch.
 
-- Branch: `exp/painting-rework` (from `dev`), on origin. Only this doc is
-  on `dev`. R&D only, not for merging as is: the architecture was bent
+- Status: ported by hand, module by module, into `test/paint-rework` (table below); what follows on
+  the branch and the sandbox is how it started.
+- Branch: `exp/painting-rework` (from `dev`), on origin. R&D only, not for merging as is: the architecture was bent
   on purpose, tests were neither run nor updated, settings live in a sandbox
   object, not in `config.ts`. See it with `git log dev..exp/painting-rework`
   and `git diff dev...exp/painting-rework`; try it with
@@ -429,7 +430,7 @@ only): cut it before the branch reaches `dev`, on the owner's word.
 | 5 | Done on `feat/paint-slant-wire`. The sandbox's slant ported (it was never in the game) and put on the wire: protocol 12, 3 bytes behind a flag, rounded like an op's other numbers; seams; the load read again | TASK-231 |
 | 6 | Done on `feat/paint-caps`. Today's four caps as they are, with real names, colors and a dot on each; NEEDLE and BLUE DOT new, on the roof. Beside it: the can's crosshair fades where the paint wouldn't land, how faint in F3 (Cursor) | IDEA-229, IDEA-337 |
 | 9 | Done on `feat/spray-plume`. Spray plume from the sandbox's, then by the cap (cone, specks, haze); the old square points gone | |
-| 8 | Dead code, load tests, docs | TASK-232 |
+| 8 | Done on `feat/paint-audit`. Dead code, three reviews, load and client measures against 1.6.2 (`docs/known-limits.md`), docs; found: a slow line's backlog under 60 fps, plumes blanked in a crowd | TASK-232 |
 | | The owner tests and thinks about paint runs | |
 | 7 | Paint runs: the design talked over first, the marker's kept as they are if nothing asks otherwise; then `ALL_PAINT` cut and this doc gone | TASK-230 |
 

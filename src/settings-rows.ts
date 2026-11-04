@@ -1,6 +1,6 @@
 import { AUDIO, BRUSH, PLAYER, RENDER, TUTORIAL, WALL_HAND } from './config';
 import { msg } from './messages';
-import type { Cost, SettingRow } from './settings';
+import type { Cost, SettingRow } from './settings-types';
 
 // The rows of Settings → General and Audio (settings.ts builds the rest and saves them).
 
@@ -12,6 +12,7 @@ const BASE_RUN_FOV = RENDER.sprintFovBoost;
 /** config's streamline and sensitivity while painting: their sliders' default ticks. */
 const BASE_STREAMLINE = BRUSH.streamline;
 const BASE_PAINT_SENSITIVITY = PLAYER.paintSensitivity;
+const BASE_PAINT_FOV_CUT = RENDER.paintFovCut;
 
 /** What Settings needs of the tutorial: forgetting what was learnt, and whether there is any. */
 export interface Hints {
@@ -82,7 +83,7 @@ export function gameplayRows(hints: Hints): SettingRow[] {
       min: 0,
       max: 30,
       step: 1,
-      def: 0,
+      def: BASE_PAINT_FOV_CUT,
       get: () => RENDER.paintFovCut,
       set: (v) => (RENDER.paintFovCut = v),
       format: (v) => (v ? `-${v}°` : 'Off'),

@@ -1,6 +1,6 @@
 import { action, choice, div, el, pageHead, relabel, segmented, settingRow, withDefaultTick } from './menu-ui';
 import { ResetCorner } from './reset-corner';
-import type { OwnTab, SettingRow, SettingSection } from './settings';
+import type { OwnTab, SettingRow, SettingSection } from './settings-types';
 
 /** An action's confirmation shows on its button this long (ms), like "Copied". */
 const DONE_MS = 2500;

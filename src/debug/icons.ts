@@ -2,6 +2,8 @@
 // 10x10 grid in currentColor, so they sit at the 11px text size and follow its
 // color. Group icons are named after the group's id.
 
+import { CAPS } from '../config';
+
 const CUBE = '<path d="M5 .5 9 2.8v4.4L5 9.5 1 7.2V2.8zM1 2.8l4 2.3 4-2.3M5 5.1v4.4"/>';
 const HAND = '<path d="M2.5 9.5V4a1 1 0 0 1 2 0V2a1 1 0 0 1 2 0v2.5a1 1 0 0 1 2 0V7a2.5 2.5 0 0 1-2.5 2.5z"/>';
 const CAP = '<path d="M.5 5h2M2.5 3.5h2v3h-2zM5.5 4 9 2M5.5 5h3.5M5.5 6 9 8"/>';
@@ -87,7 +89,7 @@ const SECTIONS: [RegExp, string][] = [
   [/^roller/, 'roller'],
   [/^paint runs/, 'runs'],
   [/^paint/, 'paint'],
-  [/^(skinny|standard|fat|spray)$/, 'cap'],
+  [new RegExp(`^(${Object.values(CAPS).map((c) => c.name).join('|')})$`, 'i'), 'cap'],
   [/^frequency/, 'runs'],
   [/^lightning|^thunder/, 'lightning'],
   [/^rain|^drops/, 'weather'],

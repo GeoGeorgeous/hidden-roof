@@ -9,7 +9,7 @@ import { button, div, el, keyHint, runPrimary, segmented, sentence } from './men
 import { AUTHOR, KOFI, PRIVACY, TERMS } from './links';
 import { inkStyle } from './render/ink/styles';
 import { SessionLine, type SessionInfo } from './session-line';
-import type { SettingSection } from './settings';
+import type { SettingSection } from './settings-types';
 import { SettingsPage } from './settings-page';
 import { kofiCup, socialIcon } from './social-icons';
 import { updatesPage } from './updates-page';

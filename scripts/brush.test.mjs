@@ -203,6 +203,16 @@ for (const hz of RATES) {
 }
 
 // The same stroke paints the same at every rate: moving, slow, held still, on any cap.
+// Under 60 frames a second a slow line owes no backlog: when it stops, the can builds up as if held still all along.
+{
+  const r = rig(2);
+  const perFrame = dabSpacing(CAPS.standard, 2) * 1.2;
+  play(r, 30, 3, 2, 'standard', (t) => t * 30 * perFrame);
+  const before = r.dabs.length;
+  play(r, 30, 0.5, 2, 'standard', () => 90 * perFrame);
+  assert.ok(r.dabs.length - before <= 0.5 * BRUSH.buildRate + 4, `a slow line's stop laid ${r.dabs.length - before} dabs`);
+}
+
 const strokes = [
   ['slow', 'standard', 1, (t) => t * 0.05, 3],
   ['walking pace', 'skinny', 1, (t) => t * 0.4, 2],
