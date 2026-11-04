@@ -50,3 +50,61 @@ await check('capture: N films with the free camera (no HUD, the game without inp
     !after.cls && !after.plate && after.buffer === windowSize && after.hand;
   return ok ? null : JSON.stringify(r);
 });
+
+await check("capture: M records the game's sound with the canvas, on a second take too, and the free camera hears the fan by it, not by the player", async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const press = async (code) => {
+      g.input.key(code, true);
+      await window.frames(1);
+      g.input.key(code, false);
+      await window.frames(1);
+    };
+    const takes = [];
+    const real = window.MediaRecorder;
+    window.MediaRecorder = class {
+      static isTypeSupported = () => true;
+      constructor(stream) {
+        takes.push(stream);
+      }
+      start() {}
+      stop() {
+        this.onstop();
+      }
+    };
+    const setFan = g.audio.setFan;
+    let fan = 0;
+    g.audio.setFan = (level) => (fan = level);
+    const start = g.player.position.clone();
+    g.audio.start();
+    g.input.setLocked(true);
+    await press('KeyN');
+    // The check before left it in first person.
+    await press('KeyV');
+    const free = document.documentElement.classList.contains('capture-free');
+    const seen = [];
+    for (let i = 0; i < 2; i++) {
+      await press('KeyM');
+      const stream = takes[i];
+      const sound = stream?.getAudioTracks()[0];
+      await press('KeyM');
+      seen.push({ video: stream?.getVideoTracks().length, sound: sound?.readyState });
+    }
+    const camera = g.scene.children.find((o) => o.isCamera);
+    const emitter = { kind: 'fan', pos: camera.position.clone() };
+    g.level.emitters.push(emitter);
+    g.player.position.x += 50;
+    await window.frames(2);
+    const heard = fan;
+    g.level.emitters.pop();
+    g.player.position.copy(start);
+    await press('KeyN');
+    g.audio.setFan = setFan;
+    window.MediaRecorder = real;
+    g.input.setLocked(false);
+    g.fixedStep.dt = 0;
+    return { free, seen, heard };
+  });
+  const ok = r.free && r.seen.length === 2 && r.seen.every((s) => s.video === 1 && s.sound === 'live') && r.heard > 0.9;
+  return ok ? null : JSON.stringify(r);
+});

@@ -651,8 +651,10 @@ export const CAPTURE = {
   /** The video qualities BINDINGS.captureQuality goes through (bit rate, Mbit/s; named in messages.ts capture.qualities), and the one it starts at. */
   qualities: [8, 16, 30, 60],
   qualityStart: 2,
-  /** The first the browser records: mp4, else webm. */
-  videoTypes: ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9'],
+  /** The sound's bit rate (bit/s). */
+  audioBitrate: 256_000,
+  /** The first the browser records: mp4 with AAC (what editors open), else mp4, else webm. */
+  videoTypes: ['video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9'],
   /** The frame sizes BINDINGS.captureSize goes through after the window's: drawn at pixel ratio 1 (16:9, 9:16, 1:1), fitted into the window. */
   sizes: [
     [1920, 1080],

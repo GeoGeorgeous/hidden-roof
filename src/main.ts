@@ -235,7 +235,7 @@ function fitWindow() {
   applyPixelScale(); // a zoom changes devicePixelRatio
 }
 window.addEventListener('resize', () => capture.fit() || fitWindow());
-capture.attach({ renderer, camera, restore: fitWindow, resized: syncViewSize });
+capture.attach({ renderer, camera, restore: fitWindow, resized: syncViewSize, sound: () => audio.track() });
 
 const eye = new THREE.Vector3();
 /** The level's middle while the performance test flies around it (render/title-view.ts). */
@@ -322,8 +322,10 @@ function step(time: number) {
   environment.update({ time, dt, at, shown, eye, fov: camera.fov, frozen, building });
   syncCityLight(environment.lighting);
   dev?.lap('environment');
-  audio.setFan(fanLevel(level.emitters, eye));
-  if (ATMOS.rain && !building) metalDrops(audio, level.emitters, environment.heightmap, camera, dt, eye);
+  // Heard from where the view is: the free camera's film has the sounds around it.
+  const ears = free ? camera.position : eye;
+  audio.setFan(fanLevel(level.emitters, ears));
+  if (ATMOS.rain && !building) metalDrops(audio, level.emitters, environment.heightmap, camera, dt, ears);
   audio.update(paused && !play.panel);
   dev?.lap('audio');
 
