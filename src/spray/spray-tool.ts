@@ -6,7 +6,9 @@ import type { Inventory } from '../inventory/inventory';
 import { rgbOf } from '../inventory/items';
 import type { PaintSystem } from '../painting';
 import { CanModel } from './can-model';
-import { SprayParticles } from './particles';
+import { Brush } from './brush';
+import { SprayParticles, WallMemo } from './particles';
+import { WallProbe } from './wall-probe';
 import { setHex } from '../hex-color';
 import { paintRandom } from '../lcg';
 
@@ -29,6 +31,9 @@ export class SprayTool {
   readonly particles: SprayParticles;
   /** Other players' spray (net/remote-player.ts): seen only, their paint comes as paint ops. */
   readonly others: SprayParticles;
+  private brush: Brush;
+  /** The wall this can's own particles fly to. */
+  private wall = new WallMemo();
   private carry = 0;
   /** Time into the current shake (s); -1 = not shaking. */
   private shakeT = -1;
@@ -41,8 +46,10 @@ export class SprayTool {
     solids: THREE.Mesh[],
     private audio: Audio,
   ) {
-    this.particles = new SprayParticles(scene, paint, solids);
-    this.others = new SprayParticles(scene, paint, solids);
+    const probe = new WallProbe(solids, paint);
+    this.brush = new Brush(probe, paint);
+    this.particles = new SprayParticles(scene, probe);
+    this.others = new SprayParticles(scene, probe);
   }
 
   /** `inv` is null when the can is put away (particles still finish flying). */
@@ -52,7 +59,7 @@ export class SprayTool {
     this.others.update(dt);
     if (!inv) {
       this.flow = 0;
-      this.landing = false;
+      this.stop();
       this.shakeT = -1;
       this.audio.setHiss(0, 0);
       return;
@@ -87,7 +94,14 @@ export class SprayTool {
 
     this.model.update(dt, camera, spraying, this.flow > 0, this.shakeT >= 0 ? this.shakeT / PRESSURE.shakeDuration : -1);
     if (this.flow > 0) this.emit(dt, camera, eye, inv);
-    else this.landing = false;
+    else this.stop();
+  }
+
+  /** Nothing comes out of the can. */
+  private stop() {
+    this.landing = false;
+    this.brush.end();
+    this.wall.age = Infinity;
   }
 
   /** Shaking the can (RMB) right now. */
@@ -97,15 +111,16 @@ export class SprayTool {
 
   private emit(dt: number, camera: THREE.Camera, eye: THREE.Vector3, inv: Inventory) {
     const cap = CAPS[inv.cap];
+    camera.getWorldDirection(forward);
+    this.landing = this.brush.spray({ eye, forward, cap, flow: this.flow, dt }, rgbOf(inv.color));
     this.carry += cap.rate * this.flow * dt;
     const count = Math.floor(this.carry);
     this.carry -= count;
     if (!count) return;
-    camera.getWorldDirection(forward);
     right.set(1, 0, 0).applyQuaternion(camera.quaternion);
     up.crossVectors(right, forward);
     setHex(display, COLORS[inv.color]);
-    this.landing = this.particles.emit({ count, eye, nozzle: this.model.nozzleWorld(nozzle), forward, right, up, cap, flow: this.flow, rgb: rgbOf(inv.color), display }) > 0;
+    this.particles.show({ count, eye, nozzle: this.model.nozzleWorld(nozzle), forward, right, up, cap, display, dt, memo: this.wall });
   }
 
   private computeFlow(dt: number, p: number): number {
