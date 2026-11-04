@@ -5,7 +5,7 @@ Context for the agent that deploys and runs the game on the VPS: read it before 
 ## 1. Status *(changes)*
 
 - **Now:** `v1.6.1` is deployed, game and server (2026-11-02; protocol 10, admin API 4), with `DATA_DIR`, the admin key, the public session, GeoIP, `roof-traffic` and the admin page's `/api/main` (sections 6 and 9), the log in `LOG_DIR`. The server runs with `node --expose-gc`, the Dockerfile's CMD, so no compose `command:` may override it.
-- **Staging:** `v1.6.1` since 2026-11-02; the next deploy there is `next`. The admin page (cctv) is built for both servers, `main` and `next`.
+- **Staging:** `next` at `5d7e63e` since 2026-11-04 (protocol 11, admin API 4), public session HFUYW; the next deploy there is `next`. The admin page (cctv) is built for both servers, `main` and `next`.
 - **Next release:** `v1.6.2`. Before a release `next` is deployed to staging, `next.roof.hidden.haus` (section 9), and tested there end to end first. For every release, check its changes for a new protocol or surface table: if there is one, deploy the server and the game together (section 6, then the static files); live sessions end, and tabs still open on the old version are told to reload. Then section 7.
 - **Repo:** public, `https://github.com/GeoGeorgeous/hidden-roof.git`, cloned over HTTPS (the host holds no GitHub credentials). Deploy releases only: a `vX.Y.Z` tag, never a branch tip. Branches and releases: `AGENTS.md`.
 - **Version:** the pause menu shows the build's `git describe` (`src/version.ts`); built without git (the image has none), `package.json`'s version, which matches the tag on a release commit.
