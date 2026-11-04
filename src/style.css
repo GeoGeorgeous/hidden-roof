@@ -814,12 +814,14 @@
   bottom: 76px;
   left: 50%;
   transform: translateX(-50%);
-  /* 640 px of rows, and the thin scrollbar beside them, always there so the rows don't move. */
+  /* 640 px of rows, a gap, and the thin scrollbar beside them: its place always kept so the rows don't move, it shows on hover. */
   width: min(650px, calc(100% - 32px));
+  padding-right: 10px;
   overflow-y: auto;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
-  scrollbar-color: var(--text-4) transparent;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.25s ease;
   mask: linear-gradient(to bottom, transparent 0, #000 16px, #000 calc(100% - 24px), transparent);
 }
 .overlay .setting-row {
@@ -935,9 +937,11 @@
   cursor: default;
 }
 /* Settings → Controls (controls-tab.ts): groups of rows, each with two key slots. General's groups look the same. */
+.overlay .rows:hover {
+  scrollbar-color: var(--text-4) transparent;
+}
 .overlay .rows.own {
   width: min(680px, calc(100% - 32px));
-  padding-right: 10px;
   padding-bottom: 32px;
 }
 .overlay .controls .group,
@@ -2000,6 +2004,7 @@
 .overlay .mp-page .rows {
   bottom: auto;
   width: min(640px, calc(100% - 32px));
+  padding-right: 0;
   overflow: visible;
   scrollbar-gutter: auto;
   mask: none;
