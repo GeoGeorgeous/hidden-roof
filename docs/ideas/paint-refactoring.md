@@ -213,7 +213,8 @@ trial and error.
 
 ### 12. Spray plume (optional, unconfirmed)
 
-Optional: decided after plan module 8 (2026-11-04). With the brush painting,
+Owner (2026-11-04): last, module 9, after the painting itself; until then the
+old square points fly, only for show. With the brush painting,
 particles are only a plume at the nozzle: fine soft round specks in a cone
 toward the aim, slowed by the air, growing and fading out before the wall
 (never past it). One ray per frame for the whole plume, not one per
@@ -353,14 +354,15 @@ owner's in-game test. Paint reaches `next` after 1.6.2 is released.
 
 | # | Module | Items |
 |---|---|---|
-| 1 | Brush: dabs between frames, build-up, streamline; particles only for show | IDEA-225 |
-| 2 | Opacity: Shift + wheel on the can only, rebindable, both wheel axes; smooth alpha; pressure no longer runs out, the PSI gauge shows the setting until module 4 | IDEA-226 |
-| 3 | Hand speed and distance, a test at 60, 144 and 240 Hz | IDEA-227 |
+| 1 | Brush: dabs between frames, build-up, streamline, hand speed and distance, a test at 60, 144 and 240 Hz; the old particles only for show | IDEA-225, IDEA-227 |
+| 2 | Opacity: Run + the color keys on the can only (Shift + wheel by default, both wheel axes; a key holds one action, so no action of its own, and Controls says so); step 10% in config, 5-100%, 65% by default, kept in the local settings, never on the wire; smooth alpha; pressure no longer runs out, the PSI gauge shows the setting until module 4; one tutorial hint | IDEA-226 |
+| 3 | In module 1 (one function sizes a dab; its number stays free so the others keep theirs) | |
 | 4 | The game's crosshair sized to the line, an opacity arc, no PSI gauge, one ray a frame shared with the brush | IDEA-228 |
 | 5 | Slant on the wire (protocol 12, 3 bytes, a flag), rounded like an op's other numbers; seams; the load read again | TASK-231 |
 | 6 | Six caps with real names (NEEDLE and BLUE DOT new), every cap tuned | IDEA-229 |
 | 7 | Paint runs: the design talked over first, the marker's kept as they are if nothing asks otherwise | TASK-230 |
-| 8 | Dead code, load tests, docs, this doc gone | TASK-232 |
+| 8 | Dead code, load tests, docs | TASK-232 |
+| 9 | Spray plume, then this doc gone | |
 
 Found in the branch, to fix on the way:
 
@@ -384,7 +386,6 @@ Still open:
 - An opacity arc on the crosshair, its shape, or a gauge on the can: compared in module 4.
 - The new caps' places on the maps: module 6.
 - How paint runs work with the brush: module 7.
-- The spray plume: after module 8.
 
 Decided (2026-11-04): pressure the player sets replaces pressure that runs
 out; shaking stays as an animation only; no PSI gauge; opacity on the can only;
