@@ -575,10 +575,11 @@ export const MARKER = {
 /** Crosshair (px) with no sized tool in hand: the stepladder, empty hands, build mode. The others set their own. */
 export const CROSSHAIR = {
   plain: 6,
-  /** How long the arc answers a change of opacity (ms). */
-  arcMs: 240,
-  /** On trial, the owner picks one: 0 grows, 1 thickens, 2 flows to the new value. */
-  arcEffect: 0,
+  /**
+   * The opacity arc answers a change: it flows to the new value in `flowMs`, past it by `bounce` (1 = not past it, the
+   * easing's overshoot), and its line (px) starts `peak` thick and comes back to `line` in `lineMs`.
+   */
+  arc: { flowMs: 240, bounce: 1.7, line: 1.5, peak: 3, lineMs: 240 },
 };
 
 /** Hotbar circles shown from the start (empty until their tool is found); at least one per tool. */

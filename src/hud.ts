@@ -108,12 +108,12 @@ export class Hud {
     this.percent.hidden = opacity === null || now >= this.percentUntil;
   }
 
-  /** The arc answers a change, for a moment and off the frame's work (the browser runs it). */
+  /** The arc answers a change: it flows to the new value and its line swells, for a moment and off the frame's work (the browser runs it). */
   private answer(from: number, to: number) {
-    const time = { duration: CROSSHAIR.arcMs, easing: 'ease-out' };
-    if (CROSSHAIR.arcEffect === 0) this.crosshair.animate([{ inset: '-8px' }, { inset: '-6px' }], { ...time, pseudoElement: '::after' });
-    if (CROSSHAIR.arcEffect === 1) this.crosshair.animate([{ '--arc-line': '3px' }, { '--arc-line': '1.5px' }], { ...time, pseudoElement: '::after' });
-    if (CROSSHAIR.arcEffect === 2) this.crosshair.animate([{ '--opacity': `${from}` }, { '--opacity': `${to}` }], { ...time, easing: 'cubic-bezier(0.3, 1.7, 0.5, 1)' });
+    const { flowMs, bounce, line, peak, lineMs } = CROSSHAIR.arc;
+    this.crosshair.style.setProperty('--arc-line', `${line}px`);
+    this.crosshair.animate([{ '--opacity': `${from}` }, { '--opacity': `${to}` }], { duration: flowMs, easing: `cubic-bezier(0.3, ${bounce}, 0.5, 1)` });
+    this.crosshair.animate([{ '--arc-line': `${peak}px` }, { '--arc-line': `${line}px` }], { duration: lineMs, easing: 'ease-out' });
   }
 
   /** Crosshair circle diameter in CSS pixels. */
