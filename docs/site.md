@@ -16,8 +16,8 @@ what's served: `docs/deploy.md`; the release steps that touch the page: `docs/re
   bigger (`html.needs-room`, `src/boot.ts`), and once it's big enough, Play now, the section gone. Hidden over the
   game and when the game failed (the hero's note says why). The game's window made too small shows a note and lets the
   mouse go.
-- The words are the owner's: fix grammar and punctuation without asking, never the wording. The cap names in Painting
-  and the FAQ (needle, NY fats, soft, hard) are graffiti slang, not the game's caps: kept, the owner's call.
+- The words are the owner's: fix grammar and punctuation without asking, never the wording. The cap names in About
+  and Painting (needle, NY fats) are graffiti slang, not the game's caps: kept, the owner's call.
 - The painting of 1.7.0 is described as fact before it ships (the owner's call: a site takes weeks to be read). Every
   other claim is true of the game as it is: check it against the code before it goes on the page, and keep the FAQ
   true with each release. Not "legal wall" (the owner's no).

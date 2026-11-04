@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 316
+The one list of what's left. Counter for new ids: next: 325
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -166,6 +166,7 @@ Shipped since the last release; the release commit empties this list.
 12. [BUGS-312]: A stepladder placed, moved or taken away with the link down: the others never heard (one taken away came back): the game keeps its own through a return and tells the server when it differs from the welcome's
 13. [BUGS-313]: Back as another player (after a server restart, or a seat that ran out), the game kept the old seat's stepladder, seen by no one else and impossible to pick up: it goes with the seat
 14. [TEST-314]: `test:mp` phase `rejoin` (hidden as it joins, a stepladder and paint from while the link was down, a seat gone); weak-link `stall` no longer opens the link just before the game gives up on it, which left the stroke unmade and failed the scenario now and then
+15. [TASK-324]: The page about the game with the editor's text: fact cards reordered and rewritten (Atmosphere in, Exploration out), About, Painting and the FAQ polished, eleven FAQ questions cut (the owner's call); the performance test's answer stays as it was
 
 ## Discarder
 
