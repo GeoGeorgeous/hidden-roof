@@ -29,6 +29,8 @@ export interface PlateState {
   quality: number;
   /** When the recording started (performance.now() ms), or null. */
   recording: number | null;
+  /** The last try to record didn't start. */
+  failed: boolean;
 }
 
 export class CaptureOverlay {
@@ -48,7 +50,7 @@ export class CaptureOverlay {
     this.place(state.shot === 'free' ? flight.points : [], camera, canvas);
   }
 
-  private text({ shot, speed, smoothing, size, quality, recording }: PlateState, flight: Flight) {
+  private text({ shot, speed, smoothing, size, quality, recording, failed }: PlateState, flight: Flight) {
     const seconds = b(flight.seconds);
     const time = recording === null ? '' : new Date(performance.now() - recording).toISOString().slice(14, 19);
     const lines = [
@@ -67,7 +69,7 @@ export class CaptureOverlay {
         : []),
       msg('capture.frame', { frame: bound('captureSize'), size: b(size ? `${ratio(size)} ${size[0]}×${size[1]}` : msg('capture.window')) }),
       msg('capture.quality', { quality: bound('captureQuality'), name: b(msgLines('capture.qualities')[quality]), mbps: b(CAPTURE.qualities[quality]) }),
-      time ? msg('capture.recording', { time: b(time), record: bound('captureRecord') }) : msg('capture.record', { record: bound('captureRecord') }),
+      msg(time ? 'capture.recording' : failed ? 'capture.recordFailed' : 'capture.record', { time: b(time), record: bound('captureRecord') }),
     ];
     const text = lines.join('\n');
     if (text === this.shown) return;

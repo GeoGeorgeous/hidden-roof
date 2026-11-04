@@ -52,6 +52,45 @@ await check('capture: N films with the free camera (no HUD, the game without inp
   return ok ? null : JSON.stringify(r);
 });
 
+await check("capture: a recording the browser refuses says so on the plate, and M tries again", async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const press = async (code) => {
+      g.input.key(code, true);
+      await window.frames(1);
+      g.input.key(code, false);
+      await window.frames(1);
+    };
+    const real = window.MediaRecorder;
+    const plate = () => document.querySelector('.capture-plate').textContent;
+    let refuse = true;
+    window.MediaRecorder = class {
+      static isTypeSupported = () => true;
+      start() {
+        if (refuse) throw new DOMException('no', 'NotSupportedError');
+      }
+      stop() {
+        this.onstop();
+      }
+    };
+    g.input.setLocked(true);
+    await press('KeyN');
+    await press('KeyM');
+    const refused = plate();
+    refuse = false;
+    await press('KeyM');
+    const recording = plate();
+    await press('KeyM');
+    const stopped = plate();
+    await press('KeyN');
+    window.MediaRecorder = real;
+    g.input.setLocked(false);
+    g.fixedStep.dt = 0;
+    return { refused, recording, stopped };
+  });
+  return r.refused.includes("can't record") && r.recording.includes('REC') && !r.stopped.includes("can't record") ? null : JSON.stringify(r);
+});
+
 await check("capture: M records the game's sound with the canvas, on a second take too, and the free camera hears the fan by it, not by the player", async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;

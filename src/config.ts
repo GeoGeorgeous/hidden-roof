@@ -653,8 +653,8 @@ export const CAPTURE = {
   qualityStart: 2,
   /** The sound's bit rate (bit/s). */
   audioBitrate: 256_000,
-  /** The first the browser records: mp4 with AAC (what editors open), else mp4, else webm. */
-  videoTypes: ['video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9'],
+  /** The first the browser records: mp4 with AAC (what editors open), else mp4, else webm; each webm names its sound, or a browser may refuse the sound's track. */
+  videoTypes: ['video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'],
   /** The frame sizes BINDINGS.captureSize goes through after the window's: drawn at pixel ratio 1 (16:9, 9:16, 1:1), fitted into the window. */
   sizes: [
     [1920, 1080],
