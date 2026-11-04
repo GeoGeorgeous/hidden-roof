@@ -31,12 +31,14 @@ export async function start(env: Record<string, string>, args: string[] = []) {
   const [port, adminPort] = [Number(env.PORT) || (await freePort()), Number(env.ADMIN_PORT) || (await freePort())];
   const child = stopsWithUs(spawn(process.execPath, [...args, 'dist-server/server/main.js'], { env: { ...process.env, PORT: String(port), ADMIN_PORT: String(adminPort), ...env }, stdio: ['ignore', 'pipe', 'inherit'] }));
   let out = '';
+  let ended = false;
+  child.once('close', () => (ended = true));
   child.stdout!.on('data', (d: Buffer) => (out += d.toString()));
   // With LOG_DIR it says so in today's file instead.
   const file = env.LOG_DIR && path.join(env.LOG_DIR, `${new Date().toISOString().slice(0, 10)}.log`);
   const said = () => out + (file && fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '');
   for (let i = 0; !said().includes('roof server on'); i++) {
-    if (i > 500) throw new Error('the server does not start');
+    if (ended || i > 500) throw new Error(`the server ${ended ? `exited with ${child.exitCode}` : 'does not start'}: ${said()}`);
     await new Promise((w) => setTimeout(w, 20));
   }
   return { port, adminPort, pid: child.pid!, env: { ...process.env, ADMIN_PORT: String(adminPort), ...env }, out: () => out, stop: () => new Promise((done) => (child.exitCode === null ? (child.once('exit', done), child.kill()) : done(null))) };
