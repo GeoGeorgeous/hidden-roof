@@ -2320,7 +2320,7 @@
   align-items: center;
   gap: 8px;
 }
-.overlay .session-line .faces .more {
+.overlay :is(.live, .session-line) .faces .more {
   border-color: var(--text-4);
   color: var(--text-2);
 }

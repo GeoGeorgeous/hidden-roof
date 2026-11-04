@@ -41,15 +41,21 @@ export function whereTag({ region, ping }: Where) {
   return box;
 }
 
-/** The players' initials as small rings, the first few of them, then how many more. */
-function faces(players: string[]) {
+/** The players' initials as small rings, in their paint colors when known: the first few of them, then how many more (their names on hover). */
+export function faces(players: { name: string; color?: string | null }[]) {
   const box = el('span', 'faces');
-  players.slice(0, LOBBY.facesShown).forEach((name) => {
+  for (const { name, color } of players.slice(0, LOBBY.facesShown)) {
     const face = el('span', '', [...name.trim()][0]?.toUpperCase() ?? '?');
     face.title = name;
+    if (color) face.style.borderColor = color;
     box.append(face);
-  });
-  if (players.length > LOBBY.facesShown) box.append(el('span', 'more', `+${players.length - LOBBY.facesShown}`));
+  }
+  const rest = players.slice(LOBBY.facesShown);
+  if (rest.length) {
+    const more = el('span', 'more', `+${rest.length}`);
+    more.title = rest.map((p) => p.name).join(', ');
+    box.append(more);
+  }
   return box;
 }
 
@@ -57,7 +63,7 @@ function faces(players: string[]) {
 export function sessionLine(entry: LobbyEntry, where: Where, withFaces = true) {
   const line = div('session-line');
   const players = el('span', 'players');
-  if (withFaces) players.append(faces(entry.players));
+  if (withFaces) players.append(faces(entry.players.map((name) => ({ name }))));
   players.append(msg('lobby.players', { n: entry.players.length, limit: entry.limit }));
   line.append(el('b', '', entry.name), el('i', '', '·'), players, el('i', '', '·'), whereTag(where));
   return line;
