@@ -1,4 +1,4 @@
-// Game tests: Loading, the can, paint pages and their draw calls, the sponge, the wheel's color pick, prop ids and decor faces.
+// Game tests: Loading, the can, its brush, paint pages and their draw calls, the sponge, the wheel's color pick, prop ids and decor faces.
 import { page, check, openPage } from './harness.mjs';
 
 await check('loading: a hidden tab, given no animation frames, still goes through the load steps', async () => {
@@ -37,6 +37,45 @@ await check('can: shaking and spraying exclude each other, the one pressed first
     return out;
   });
   return r.shookFirst && !r.sprayedWhileShaking && r.sprayedFirst && !r.shookWhileSpraying ? null : JSON.stringify(r);
+});
+
+await check('brush: paint lands at once, a fast flick leaves no gaps, and particles paint nothing', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { input, player } = g;
+    input.setLocked(true);
+    g.inventory.select(0);
+    g.inventory.pressure = 1;
+    g.paint.clear();
+    player.setSpawn(player.position.clone().set(2.4, 0, 2.95), -Math.PI / 2);
+    player.respawn();
+    g.paint.log = [];
+    const out = {};
+    await steps((f) => {
+      player.yaw = -Math.PI / 2 + 0.5 - f * 0.05;
+      player.pitch = -0.1;
+      if (f === 0) input.button(0, true);
+      if (f === 1) out.firstFrame = g.paint.log.length;
+      if (f === 20) (input.button(0, false), (out.inAir = g.tools.spray.particles.count), (out.atRelease = g.paint.log.length));
+      return f === 60;
+    });
+    const stamps = g.paint.log.filter((o) => o.kind === 'stamp');
+    out.afterRelease = stamps.length - out.atRelease;
+    // The widest step between dabs on the wall (m).
+    const { paint, config } = g;
+    const onFace = (o) => {
+      const rect = paint.find(o.key).geo.rects[o.rect];
+      return [(o.u * rect.w) / config.PAINT.texelsPerMeter, (o.v * rect.h) / config.PAINT.texelsPerMeter, o.key + o.rect];
+    };
+    const faces = stamps.map(onFace);
+    out.widest = Math.max(...faces.slice(1).map((p, i) => (p[2] === faces[i][2] ? Math.hypot(p[0] - faces[i][0], p[1] - faces[i][1]) : 0)));
+    out.radius = Math.min(...stamps.map((o) => o.radius));
+    g.paint.log = null;
+    g.fixedStep.dt = 0;
+    input.setLocked(false);
+    return out;
+  });
+  return r.firstFrame > 0 && r.inAir > 0 && r.afterRelease === 0 && r.widest > 0 && r.widest < r.radius ? null : JSON.stringify(r);
 });
 
 await check('render: never more pixels than the screen has (a page zoomed out to 50%), as many at 100%', async () => {

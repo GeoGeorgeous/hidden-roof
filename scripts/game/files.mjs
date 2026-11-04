@@ -1,4 +1,4 @@
-// Game tests: The save and upload popups, COPY NETWORK LOG, the join dialog's NAME field cleaning and JOIN without a name, and paint saves through level edits and spray at LOAD.
+// Game tests: The save and upload popups, COPY NETWORK LOG, the join dialog's NAME field cleaning and JOIN without a name, and paint saves through level edits.
 import fs from 'node:fs';
 import { gameReady } from '../test-browser.mjs';
 import { page, check, openPage, dot, paintedKeys, POPUP, SAVE, UPLOAD, tmp } from './harness.mjs';
@@ -122,26 +122,3 @@ await check('saves: a sign whose text changed loses its paint (changed shape), t
   return r.loaded.skipped > 0 && r.loaded.faces > 0 && !r.signPainted ? null : JSON.stringify(r);
 });
 
-await check('saves: spray in the air at LOAD lands without paint', async () => {
-  const r = await page.evaluate(async () => {
-    const g = window.game;
-    g.input.setLocked(true);
-    g.player.setSpawn(g.player.position.clone().set(2.4, 0, 2.95), -Math.PI / 2);
-    g.player.respawn();
-    g.player.pitch = -0.3;
-    g.inventory.select(0);
-    g.paint.clear();
-    const empty = await g.paintFile.save();
-    let inAir = 0;
-    await steps((f) => {
-      if (f === 0) g.input.button(0, true);
-      if (f === 8) g.input.button(0, false);
-      if (f === 8) (inAir = g.tools.spray.particles.count), g.paintFile.load(empty);
-      return f === 59;
-    });
-    g.fixedStep.dt = 0;
-    g.input.setLocked(false);
-    return { inAir, painted: g.paint.surfaces.filter((s) => s.data).length };
-  });
-  return r.inAir > 0 && r.painted === 0 ? null : JSON.stringify(r);
-});

@@ -70,6 +70,10 @@ the per-m² chance almost never fires. The marker is unchanged (7 runs in 5 s
 of strokes); it only stood out. A ×30 on the caps' chance brought the can
 back to 1.5.0's numbers; module 13 (puddle runs) replaces that.
 
+Until module 7 (2026-11-04): the caps' `drips` are the old ones ×30 (skinny 60,
+standard 120, fat 180; spray stays 50), the stopgap measured above: 5 s held at
+1 m gives 1, 6, 10 and 6 runs. Only numbers, no code; module 7 replaces them.
+
 Marker nibs (IDEA-233, merged into BL-039 on 2026-11-02): the can's nibs
 (chisel, needle) were tried on the branch and removed; marker nibs are a
 separate idea, not started.
@@ -303,6 +307,13 @@ Ops/s, what they send, and the tool's mean frame time:
   it from last frame's point, not the last dab's. The owner tuned the feel at
   60 Hz, so the defaults stand.
 
+Module 1 on `feat/paint-brush`, the same strokes (ops/s, KB/s, mean tool ms):
+at 12 m/s skinny 1832, 41, 2.0; standard 1810, 41, 2.1; fat 930, 21, 0.9; spray
+625, 14, 0.8. Slowest frame of the tool 11.5 ms (today's 10.6), 19.2 once, on
+the first stroke of the page. Held 60 ops/s, 1.3 KB/s, 0.2 ms. The fastest
+stroke sends at most 41 KB/s, under today's 43; fat (930 against 650) and
+standard (1810 against 1760) pass their own rate only above about 8 and 12 m/s.
+
 The agent's call on step 3: no stroke-segment op in 1.7.0. Per-dab stamps stay,
 with the dab spacing held to at least half a texel, so a small cap's flick
 doesn't pass today's rate (3 mm is under a third of a texel at ULTRA). The load
@@ -338,12 +349,13 @@ with the op count.
 
 ### Known issues
 
-- Slow movement may be denser than meant: under one dab spacing per frame
-  counts as held still and builds up, more so at high refresh rates. Read in
-  the code; owner: not seen in play.
+- Fixed in module 1: slow lines come out the same at every frame rate. Dabs
+  go exactly a spacing apart, the rest carried to the next frame, and the can
+  lays at least `BRUSH.buildRate` dabs a second, a line's own counting.
 - Dabs near a face edge are clipped to their face. Check corners and seams.
-- At very small dabs the minimum spacing (3 mm) wins, and the line is a bit
-  lighter than the set opacity.
+- Fixed in module 1: the minimum spacing is `BRUSH.minSpacing` (5.2 mm, half a
+  texel at ULTRA, in meters so every PAINT DETAIL sends alike), and a dab's
+  amount comes from the real spacing, so small caps keep the set opacity.
 - `package-lock.json` wasn't updated for lil-gui (devDependency): `npm ci`
   fails on the branch.
 
@@ -354,7 +366,7 @@ owner's in-game test. Paint reaches `next` after 1.6.2 is released.
 
 | # | Module | Items |
 |---|---|---|
-| 1 | Brush: dabs between frames, build-up, streamline, hand speed and distance, a test at 60, 144 and 240 Hz; the old particles only for show | IDEA-225, IDEA-227 |
+| 1 | Done on `feat/paint-brush`. Brush: dabs between frames, build-up, streamline, hand speed and distance, a test at 60, 144 and 240 Hz; the old particles only for show | IDEA-225, IDEA-227 |
 | 2 | Opacity: Run + the color keys on the can only (Shift + wheel by default, both wheel axes; a key holds one action, so no action of its own, and Controls says so); step 10% in config, 5-100%, 65% by default, kept in the local settings, never on the wire; smooth alpha; pressure no longer runs out, the PSI gauge shows the setting until module 4; one tutorial hint | IDEA-226 |
 | 3 | In module 1 (one function sizes a dab; its number stays free so the others keep theirs) | |
 | 4 | The game's crosshair sized to the line, an opacity arc, no PSI gauge, one ray a frame shared with the brush | IDEA-228 |

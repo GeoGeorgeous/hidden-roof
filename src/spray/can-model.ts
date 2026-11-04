@@ -4,7 +4,6 @@ import { Hand } from './hands';
 import { setHex } from '../hex-color';
 import { inkify } from '../render/ink/tone';
 import { applyHold } from '../tools/hold';
-import { paintRandom } from '../lcg';
 import { canShape, capSeat, capShape, disposeShape, inkLook } from '../tools/shapes';
 
 // First-person spray can in a gloved hand (drawn in the view-model pass).
@@ -67,8 +66,7 @@ export class CanModel {
     this.recoil += ((flowing ? 1 : 0) - this.recoil) * Math.min(1, dt * 20);
     this.press += ((pressing ? 1 : 0) - this.press) * Math.min(1, dt * VIEWMODEL.pressSpeed);
     const sh = shake >= 0 ? Math.sin(shake * Math.PI * 8) * Math.sin(shake * Math.PI) : 0;
-    // Seeded with the paint: particles leave from the nozzle, so the jitter changes when they land.
-    const j = flowing ? (paintRandom.spray() - 0.5) * 0.0015 : 0;
+    const j = flowing ? (Math.random() - 0.5) * 0.0015 : 0;
     // Held at HOLD.can, plus shaking, recoil and jitter while spraying.
     const h = HOLD.can;
     applyHold(this.body, h, j, sh * 0.06 + j, this.recoil * 0.006);

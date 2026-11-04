@@ -499,13 +499,11 @@ export interface CapSpec {
   name: string;
   /** Spread: the spray cone's full angle (radians, horizontal on screen). */
   spread: number;
-  /** Particles per second at full flow. */
+  /** Particles shown per second at full flow. */
   rate: number;
-  /** Opacity each particle adds where it lands (0..1). */
-  strength: number;
-  /** Width of each particle's dot, in meters (the same at every paint detail; a dot smaller than a texel paints one texel). */
+  /** A dab's width up close, before BRUSH scales it, in meters (the same at every paint detail; a dab smaller than a texel paints one texel). */
   dotSize: number;
-  /** Edge softness of each dot: 0 = hard edge, 1 = fades to nothing at the rim. */
+  /** A dab's edge, against BRUSH.softnessRef: 0 = hard at any distance, higher = softer. */
   softness: number;
   /** Hiss loudness multiplier and tone (0 = bright, 1 = deep). */
   hissGain: number;
@@ -525,11 +523,11 @@ export interface CapSpec {
 export type CapId = 'skinny' | 'standard' | 'fat' | 'spray';
 export const CAP_ORDER: CapId[] = ['skinny', 'standard', 'fat', 'spray'];
 export const CAPS: Record<CapId, CapSpec> = {
-  skinny: { name: 'SKINNY', spread: 0.01, rate: 1900, strength: 0.9, dotSize: 0.036, softness: 0.15, hissGain: 0.5, hissTone: 0, crosshair: 10, drips: 2, drain: 0.015, color: '#7fb4f2', nozzle: 0.004 },
-  standard: { name: 'STANDARD', spread: 0.03, rate: 1760, strength: 0.75, dotSize: 0.05, softness: 0.35, hissGain: 0.75, hissTone: 0.4, crosshair: 18, drips: 4, drain: 0.03, color: '#f4f4f4', nozzle: 0.006 },
-  fat: { name: 'FAT', spread: 0.04, rate: 650, strength: 0.8, dotSize: 0.12, softness: 0.15, hissGain: 1, hissTone: 1, crosshair: 24, drips: 6, drain: 0.06, color: '#f2a04c', nozzle: 0.01 },
+  skinny: { name: 'SKINNY', spread: 0.01, rate: 1900, dotSize: 0.036, softness: 0.15, hissGain: 0.5, hissTone: 0, crosshair: 10, drips: 60, drain: 0.015, color: '#7fb4f2', nozzle: 0.004 },
+  standard: { name: 'STANDARD', spread: 0.03, rate: 1760, dotSize: 0.05, softness: 0.35, hissGain: 0.75, hissTone: 0.4, crosshair: 18, drips: 120, drain: 0.03, color: '#f4f4f4', nozzle: 0.006 },
+  fat: { name: 'FAT', spread: 0.04, rate: 650, dotSize: 0.12, softness: 0.15, hissGain: 1, hissTone: 1, crosshair: 24, drips: 180, drain: 0.06, color: '#f2a04c', nozzle: 0.01 },
   /** Wide, soft mist for fades and backgrounds: lots of faint, fuzzy dots. */
-  spray: { name: 'SPRAY', spread: 0.1, rate: 1100, strength: 0.12, dotSize: 0.158, softness: 0.55, hissGain: 0.9, hissTone: 0.8, crosshair: 32, drips: 50, drain: 0.1, color: '#b98cf2', nozzle: 0.013 },
+  spray: { name: 'SPRAY', spread: 0.1, rate: 1100, dotSize: 0.158, softness: 0.55, hissGain: 0.9, hissTone: 0.8, crosshair: 32, drips: 50, drain: 0.1, color: '#b98cf2', nozzle: 0.013 },
 };
 
 /** Paint colors, in the mouse wheel's cycling order. Black is always owned. Paint never runs out. */
@@ -1005,17 +1003,69 @@ export const MODELS = {
 export const SPRAY = {
   /** Max distance from the eye to the surface: how far paint travels. */
   reach: 4.6,
-  /** Paint strength fades linearly from this distance to `reach`. */
-  falloffStart: 1,
   particleSpeed: 26,
   particleSize: 0.035,
   maxParticles: 3000,
   /**
-   * Other players' spray finds its wall with one ray, reused while it still holds: for at most `reuse` seconds,
+   * A can's particles find their wall with one ray, reused while it still holds: for at most `reuse` seconds,
    * while the eye moved less than `move` (m) and the aim turned less than `aim` (degrees) since the ray was cast.
-   * 0 casts every frame. Only what is seen: the paint comes as paint ops.
+   * 0 casts every frame. Only what is seen: the paint comes from the brush, or as paint ops.
    */
-  others: { reuse: 0.25, move: 0.05, aim: 1.5 },
+  wall: { reuse: 0.25, move: 0.05, aim: 1.5 },
+};
+
+/**
+ * The can as a brush (spray/stroke.ts, spray/dab.ts): paint lands at once where the aim meets the wall,
+ * and the can's physics shape the line: the same paint per second, so speed and distance change its width, density and edge.
+ */
+export const BRUSH = {
+  /** One pass of a stroke reaches about this opacity along its middle; passes add up. */
+  opacity: 0.65,
+  /** Dabs along a stroke, this share of a dab's width apart. */
+  spacing: 0.1,
+  /** But never closer (m): half a texel at ULTRA, whatever this player's PAINT DETAIL, so a small cap's flick doesn't flood the network. */
+  minSpacing: 0.0052,
+  /** Most dabs in a frame; past it they spread out to keep up with the aim. */
+  maxDabs: 160,
+  /** A spot this much further on (m) in a frame starts the stroke anew. */
+  maxJump: 3,
+  /** How long the brush trails the aim (s), taking the mouse's jitter out of lines. 0 = none. */
+  streamline: 0.02,
+  /** Held still, dabs per second, each with `buildAmount` of a moving dab's paint: the spot darkens and then runs. */
+  buildRate: 60,
+  buildAmount: 0.5,
+  /** The hand speed (m/s over the wall) up to which a line is as set; four times it is as fast as a line changes. */
+  speedRef: 2.4,
+  /** Above it the opacity falls as (speedRef / speed) ^ speedFade, the width grows by up to `speedWiden`, the edge softens by up to `speedSoft`. */
+  speedFade: 0.4,
+  speedWiden: 0.7,
+  speedSoft: 0.8,
+  /** How fast the hand speed follows the hand (1/s). */
+  speedFollow: 15,
+  /** Up to this far from the wall (m) the can acts as close up: the distance model starts past it. */
+  gap: 0.6,
+  /** The nearest the spray acts as if from (m). */
+  minDistance: 0.05,
+  /** Past the gap (m): the close range ends here and the far range is full here. */
+  closeAt: 0.25,
+  farAt: 2.5,
+  /** The cap's dot, scaled: close up and far. */
+  closeSize: 0.55,
+  farSize: 2.2,
+  /** Close up, a stroke holds this much more paint. */
+  closeFlow: 1.8,
+  /** The edge of a cap as soft as `softnessRef`: close up and far. */
+  closeSoft: 0.3,
+  farSoft: 0.95,
+  /** The cap softness the two above are for: other caps scale them. */
+  softnessRef: 0.35,
+  /** Share of the cap's cone a dab takes up. */
+  coneShare: 0.8,
+  /** How much of a dab's paint its soft edge takes away, for softness 1. */
+  edgeShare: 0.6,
+  /** Past the gap (m) the opacity fades from here to the can's reach, never below `fadeMin` of it. */
+  fadeStart: 0.5,
+  fadeMin: 0.75,
 };
 
 export const PRESSURE = {

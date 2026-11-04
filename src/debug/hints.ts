@@ -12,7 +12,7 @@ export function hintFor(path: string[]): string | undefined {
   }
   const exact = HINTS[keys.join('.')];
   if (exact) return exact;
-  // A name after the first may be `*` (CAPS.*.strength, PICKUP.models.*.size, NEON_COLORS.*).
+  // A name after the first may be `*` (CAPS.*.dotSize, PICKUP.models.*.size, NEON_COLORS.*).
   for (let i = 1; i < keys.length; i++) {
     const h = HINTS[[...keys.slice(0, i), '*', ...keys.slice(i + 1)].join('.')];
     if (h) return h;

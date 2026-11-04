@@ -1,0 +1,57 @@
+import { MathUtils } from 'three';
+import { BRUSH, SPRAY, type CapSpec } from '../config';
+
+// One dab of the can's brush, from what makes a real can's line: the cap, how
+// far the wall is and how fast the hand moves. Pure numbers, so Node tests it
+// (scripts/brush.test.mjs), and the one place that sizes a dab.
+
+export interface Dab {
+  /** Meters, as PaintSystem.stamp takes it. */
+  radius: number;
+  /** 0 = hard edge, 1 = fades to nothing at the rim. */
+  softness: number;
+  /** Opacity at its middle. */
+  amount: number;
+}
+
+/** The distance the spray acts as if from: inside BRUSH.gap the can is as close up. */
+const sprayDistance = (distance: number) => Math.max(BRUSH.minDistance, distance - BRUSH.gap);
+
+/** How far into the far range a wall at `distance` is: 0 close, 1 far. */
+const farness = (distance: number) => MathUtils.clamp((sprayDistance(distance) - BRUSH.closeAt) / (BRUSH.farAt - BRUSH.closeAt), 0, 1);
+
+/** How far above BRUSH.speedRef the hand is: 0 at it and below, 1 at four times it and above. */
+const fastness = (speed: number) => (BRUSH.speedRef > 0 ? MathUtils.clamp((speed - BRUSH.speedRef) / (BRUSH.speedRef * 3), 0, 1) : 0);
+
+/** A dab's width (m) with the hand at rest: the cap's cone at this distance, plus its dot. */
+function restWidth(cap: CapSpec, distance: number) {
+  const cone = 2 * sprayDistance(distance) * Math.tan(cap.spread / 2) * BRUSH.coneShare;
+  return cone + cap.dotSize * MathUtils.lerp(BRUSH.closeSize, BRUSH.farSize, farness(distance));
+}
+
+/** How far apart (m) a stroke lays its dabs on a wall at `distance`. */
+export function dabSpacing(cap: CapSpec, distance: number) {
+  return Math.max(restWidth(cap, distance) * BRUSH.spacing, BRUSH.minSpacing);
+}
+
+/** The opacity one pass of a stroke reaches along its middle: the set one, a little less far away, more close up, and thinned as a hand above BRUSH.speedRef spreads the same paint per second over more line. */
+function passOpacity(flow: number, distance: number, speed: number) {
+  const past = sprayDistance(distance) - BRUSH.fadeStart;
+  const fade = Math.max(BRUSH.fadeMin, past <= 0 ? 1 : 1 - past / (SPRAY.reach - BRUSH.fadeStart));
+  const thin = speed > BRUSH.speedRef && BRUSH.speedRef > 0 ? (BRUSH.speedRef / speed) ** BRUSH.speedFade : 1;
+  return Math.min(0.999, BRUSH.opacity * flow * fade * MathUtils.lerp(BRUSH.closeFlow, 1, farness(distance)) * thin);
+}
+
+/** The dab a can lays into `out`: `flow` 0..1 out of the can, a wall at `distance`, the hand at `speed` (m/s over the wall). */
+export function dabAt(cap: CapSpec, flow: number, distance: number, speed: number, out: Dab) {
+  const fast = fastness(speed);
+  const width = restWidth(cap, distance);
+  out.radius = (width / 2) * (1 + BRUSH.speedWiden * fast);
+  // The cap's edge scales the brush's, so caps feel different at any distance.
+  const edge = MathUtils.lerp(BRUSH.closeSoft, BRUSH.farSoft, farness(distance)) * (cap.softness / BRUSH.softnessRef);
+  out.softness = Math.min(1, edge + BRUSH.speedSoft * fast);
+  // A texel along the middle is under width / spacing dabs, less for their soft edges: each lays what adds up to one pass.
+  const overlap = Math.max(1, (width / dabSpacing(cap, distance)) * (1 - out.softness * BRUSH.edgeShare));
+  out.amount = 1 - (1 - passOpacity(flow, distance, speed)) ** (1 / overlap);
+  return out;
+}

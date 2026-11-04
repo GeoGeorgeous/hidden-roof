@@ -21,7 +21,7 @@
 ## Tooltips
 
 - **Every value row has one** (`hints.ts`): what it does in play terms, its unit, which way is more ("higher = …"), and any gotcha ("only shows past 1.5 m"). The panel adds the config.ts value itself.
-- **Keyed by config path,** `*` for instances (`CAPS.*.strength`). Renaming a config key renames its tooltip in the same commit.
+- **Keyed by config path,** `*` for instances (`CAPS.*.dotSize`). Renaming a config key renames its tooltip in the same commit.
 
 ## Values
 

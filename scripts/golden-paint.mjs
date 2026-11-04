@@ -47,7 +47,7 @@ const RUNS = [
   { name: 'sponge', slot: 4, width: 0.18, frames: 90, aim: (t) => [0.4 - 0.5 * t, -0.45 + 0.1 * Math.sin(t * 20)] },
   { name: 'sponge widest', slot: 4, width: 0.6, frames: 40, aim: (t) => [0.25, -0.55 + 0.2 * t] },
 ];
-const GAP = 12; // frames with the button up between runs (particles land, tools swap)
+const GAP = 12; // frames with the button up between runs (tools swap)
 const SETTLE = 240; // frames at the end for runs to finish dripping
 
 // Frames aren't capped at 60 Hz: pages here don't draw (setUp), and the game runs on fixed steps, so faster frames paint the same.
