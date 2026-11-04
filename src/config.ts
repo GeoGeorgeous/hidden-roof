@@ -1115,6 +1115,8 @@ export const PLAYER = {
   /** A climb carries on this far (m) over a ladder's top, so you step onto the floor it leads to (a stepladder's cap, a roof, over a parapet). */
   climbOver: 0.3,
   mouseSensitivity: 0.0022,
+  /** Mouse sensitivity is scaled by this while a tool paints: slower for steadier lines. */
+  paintSensitivity: 1,
   /** Take the mouse without the OS's pointer acceleration (the pointer lock's `unadjustedMovement`), at the next lock. For finding what makes rare mouse spikes; F3 only. */
   rawMouse: false,
   /** Falling below this height respawns the player. */

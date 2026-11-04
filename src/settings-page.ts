@@ -73,6 +73,7 @@ export class SettingsPage {
   }
 
   private rowEl(row: SettingRow) {
+    if (row.kind === 'heading') return div('group', row.label);
     if (row.kind === 'choice') {
       const c = choice(row.value, (d) => (row.step(d), this.sync()), row.locked);
       this.syncs.push(c.sync);

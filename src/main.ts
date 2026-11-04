@@ -290,7 +290,7 @@ function step(time: number) {
   const { paused, frozen } = play;
   const yours = paused || notify.blocked || free ? noInput : input;
   tutorialWire.before();
-  if (!frozen) player.update(dt, yours);
+  if (!frozen) player.update(dt, yours, tools.painting);
   if (player.onGround && player.stride - lastStride > PLAYER.footstepStride) {
     lastStride = player.stride;
     audio.footstep();

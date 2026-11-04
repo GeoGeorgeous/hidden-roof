@@ -110,9 +110,11 @@ export class Player {
     this.eyeLevel += (target - this.eyeLevel) * (1 - Math.exp(-PLAYER.crouchTransition * dt));
   }
 
-  update(dt: number, input: Input) {
-    this.yaw -= input.mouseDX * PLAYER.mouseSensitivity;
-    this.pitch -= input.mouseDY * PLAYER.mouseSensitivity;
+  /** `painting`: a tool is painting, so the mouse turns at PLAYER.paintSensitivity. */
+  update(dt: number, input: Input, painting = false) {
+    const turn = PLAYER.mouseSensitivity * (painting ? PLAYER.paintSensitivity : 1);
+    this.yaw -= input.mouseDX * turn;
+    this.pitch -= input.mouseDY * turn;
     this.pitch = Math.max(-1.55, Math.min(1.55, this.pitch));
 
     let fwd = 0;
