@@ -76,8 +76,7 @@ separate idea, not started.
 
 IDEA-166 (lock the camera): an idea from before the branch, not started.
 
-Owner: IDEA-166 stays tagged 1.7.0 but unconfirmed (`?`): not
-sure yet that they belong in it. Ask before working on them.
+Owner (2026-11-04): IDEA-166 is off 1.7.0, still unconfirmed (`?`).
 
 ## Modules kept
 
@@ -145,10 +144,10 @@ One crosshair replaces the game's while the can is out, a hairline ring:
   middle. A soft edge reads narrower than the dab's full reach. Owner: real
   size always in the game; drop the toggle and the old 12-40 px clamp.
 - The arc is the opacity; the middle dot is as dense as one pass.
-- Red when close enough to run (owner: undecided, see open decisions).
+- Red when close enough to run: dropped (owner, 2026-11-04).
 - Optional: the distance to the wall as text (owner: dev only, not for
-  players); an outer faint ring for how far the softest paint reaches (off by
-  default; owner: undecided, see open decisions).
+  players). The outer ring for how far the softest paint reaches: dropped
+  (owner, 2026-11-04).
 
 Owner: barely visible, like the game's own crosshair.
 
@@ -158,9 +157,10 @@ Two new caps: a soft-edged medium one and a crisp narrow one. The cap's
 softness scales the brush's edge (standard is the reference), so caps feel
 different at any distance.
 
-Owner: both ship as new pickup caps next to skinny, standard and fat (five
-caps). Names undecided; SOFT and HARD are placeholders (suggested: PINK DOT
-and OUTLINE).
+Owner: both ship as new pickup caps next to skinny, standard, fat and spray
+(six caps, 2026-11-04). Names and places on the maps undecided, asked in
+module 6 of the plan; SOFT and HARD are placeholders (suggested: PINK DOT and
+OUTLINE).
 
 ### 9. Slant
 
@@ -174,14 +174,16 @@ Owner: important, in 1.7.0, protocol bump included (step 2 below is required).
 
 Sandbox conveniences that change the game beyond painting:
 
-- The can never loses pressure (no shaking). Owner: undecided.
+- The can never loses pressure. Owner (2026-11-04): most likely dropped for a
+  pressure the player sets with Shift + wheel, and the PSI gauge goes.
+  Shaking itself is decided after the in-game test of plan module 1.
 - All tools, colors and caps unlocked from the start. Owner: a dev
   convenience only (instead of F3 → Unlock all items each time); the game
   keeps pickups as now. Don't ship it.
 
 ### 11. Z panel (optional)
 
-Optional: owner: its settings most likely move to F3, and the panel goes.
+Owner (2026-11-04): its settings move to F3, and the panel goes.
 A lil-gui panel (Z) in Russian with hover tips. Colored dots show scope: every
 cap alike, scaled per cap, cap in hand only, particles only. There are copy-all
 (JSON to paste back) and reset. It's a dev tool; in production its settings
@@ -191,8 +193,7 @@ trial and error.
 
 ### 12. Spray plume (optional, unconfirmed)
 
-Optional and unconfirmed: nice to have, not required for 1.7.0; the owner
-hasn't decided to keep it. With the brush painting,
+Optional: decided after plan module 8 (2026-11-04). With the brush painting,
 particles are only a plume at the nozzle: fine soft round specks in a cone
 toward the aim, slowed by the air, growing and fading out before the wall
 (never past it). One ray per frame for the whole plume, not one per
@@ -204,8 +205,8 @@ there a moment. Owner: too few, too fast, and no haze at the brush wanted.
 
 ### 13. Puddle runs (optional, unconfirmed)
 
-Optional and unconfirmed: the owner hasn't decided to keep it. Paint runs by
-how much paint landed, not by chance, so they are predictable:
+Owner (2026-11-04): in 1.7.0. Paint runs by how much paint landed, not by
+chance, so they are predictable:
 
 - Extra paint (landing on already opaque paint) pools in square cells about
   3 cm wide (`DRIPS.cell`), spread over the cell, and dries as before.
@@ -251,12 +252,43 @@ dirty rects upload. No objects per stroke. A frame costs the same however
 much is painted. Owner: no lag seen in play (not measured). What scales is CPU rastering of
 incoming ops, by how many people paint now, as before.
 
-Up to 160 dabs per frame are raycast. Measure the frame cost of a fast
-stroke before shipping.
+Measured 2026-11-04 (below): a fast stroke costs 3.3 ms of tool time at most,
+a ray 40 µs on the roof (168 meshes near the player). No BVH needed.
+
+### Measured (2026-11-04)
+
+`dev` e0ce90a against the branch de4d1f4 on fixed 60 Hz steps, in the browser
+at ULTRA on the demo level, nothing drawn: the same 2 s sweeps along a wall.
+Ops/s, what they send, and the tool's mean frame time:
+
+| Cap, distance | Today | Held | 1 m/s | 2.4 m/s | 6 m/s | 12 m/s |
+|---|---|---|---|---|---|---|
+| skinny, 1 m | 1900, 43 KB/s, 1.3-1.8 ms | 60 | 338 | 776 | 1740 | 3102, 71 KB/s, 3.2 ms |
+| standard, 1 m | 1760, 40 KB/s, 1.2 ms | 60 | 226 | 513 | 1152 | 2032, 47 KB/s, 1.7 ms |
+| fat, 1 m | 650, 15 KB/s, 0.5 ms | 60 | 119 | 259 | 558 | 967, 23 KB/s, 1.2 ms |
+| spray, 1 m | 1100, 25 KB/s, 0.9 ms | 60 | 109 | 174 | 387 | 667, 16 KB/s, 1.1 ms |
+| skinny, 0.6 m | 1900, 43 KB/s | 60 | 353 | 808 | 1798 | 3061, 69 KB/s |
+
+- The brush is lighter than today's particles up to about 6 m/s on every cap;
+  only the small caps pass them, at about 10 m/s and up. Today's ~1760 ops/s
+  holds for spraying a wall without a pause.
+- Worst tool time 7.9 ms in a frame (skinny, 12 m/s, 0.6 m), today's 4.1 ms;
+  at most 64 dabs in a frame, so `MAX_DABS` (160) was never reached.
+- Uploads stay small: at most 5.6k texels a frame (spray, far, fast).
+- Hand speed depends on the frame rate. Read for a true 1 m/s with the spray
+  cap at 2.4 m: 1.91 m/s at 60 Hz, 3.62 at 144, 5.49 at 240. The brush must take
+  it from last frame's point, not the last dab's. The owner tuned the feel at
+  60 Hz, so the defaults stand.
+
+The agent's call on step 3: no stroke-segment op in 1.7.0. Per-dab stamps stay,
+with the dab spacing held to at least half a texel, so a small cap's flick
+doesn't pass today's rate (3 mm is under a third of a texel at ULTRA). The load
+is read again in plan module 5; if it fails there, the op is back on the table.
 
 ### Network (20 players)
 
-A stamp op is 23 bytes. Estimates from the code, not measured:
+A stamp op is 23 bytes. Estimates from the code, made before the measurements
+above:
 
 | | Ops/s per painter | Up | Down, 19 painting |
 |---|---|---|---|
@@ -271,12 +303,12 @@ with the op count.
 
 ### Steps, rough size
 
-1. Measure real ops/s, brush vs particles, on the same stroke. ~20 min.
+1. Measure real ops/s, brush vs particles, on the same stroke. Done, above.
 2. Put the slant shape on the wire (+3 bytes). That's a protocol bump:
    clients and server ship together. ~half a day.
 3. Optional, the big win: a stroke-segment op (A to B on one surface; every
    client lays the dabs). Split at surface edges. Cuts traffic 5-15×. 2-3 days.
-   Owner: the agent decides after step 1's measurement.
+   Decided after step 1: not in 1.7.0 (see Measured).
 4. Move settings to `config.ts`. Drop particle painting (the brush paints,
    particles show). Keep only what's used. ~1 day.
 5. Golden paint tests and multiplayer tests will change: update them. ~1 day.
@@ -292,20 +324,53 @@ with the op count.
 - `package-lock.json` wasn't updated for lil-gui (devDependency): `npm ci`
   fails on the branch.
 
+### Plan (2026-11-04)
+
+One module at a time on its topic branch, each with `npm run check` and the
+owner's in-game test. Paint reaches `next` after 1.6.2 is released.
+
+| # | Module | Items |
+|---|---|---|
+| 1 | Brush: dabs between frames, build-up, streamline; particles only for show | IDEA-225 |
+| 2 | Opacity: Shift + wheel on the can only, rebindable, both wheel axes; smooth alpha; PSI gauge gone | IDEA-226 |
+| 3 | Hand speed and distance, a test at 60, 144 and 240 Hz | IDEA-227 |
+| 4 | Crosshair in the HUD, one ray a frame shared with the brush | IDEA-228 |
+| 5 | Slant on the wire (protocol 12, 3 bytes, a flag), rounded like an op's other numbers; seams; the load read again | TASK-231 |
+| 6 | Caps SOFT and HARD, every cap tuned | IDEA-229 |
+| 7 | Puddle runs | TASK-230 |
+| 8 | Dead code, load tests, docs, this doc gone | TASK-232 |
+
+Found in the branch, to fix on the way:
+
+- A slanted dab's seams: `pastEdge` takes the round radius, and the neighbor
+  face gets the angle in the first face's axes (module 5).
+- `rounded()` leaves `shape` as it is, so the painter and the others would
+  differ once it travels (module 5).
+- A slanted dab walks a square of `r * elong` (up to 16× the texels), and
+  `wetCell()` makes an object per wet texel (modules 5, 7).
+- The per-dab amount takes the edge's mean as `1 - 0.6 s`; it is `1 - s / 3`, so
+  very soft paint lands about 1.5× as dense as the opacity says (module 2).
+- `toward()` moves a channel by at least one step: under about 0.05 opacity a
+  soft edge keeps a faint halo (module 2).
+- Some browsers may send Shift + wheel as `deltaX`, which `input.ts` skips
+  (module 2).
+
 ### Open decisions (the owner's)
 
 Still open:
 
-- Endless pressure: drop shaking, keep it, or a player option?
-- Red "too close" turns on at ~0.93 m, which covers the whole precise gap.
-  Red only inside the gap, no red, or as is?
-- The crosshair's softness ring: dev only, a player option, or gone?
-- Cap names for SOFT and HARD.
+- Shaking: after the in-game test of module 1.
+- Cap names and their places on the maps: module 6.
+- The spray plume: after module 8.
+
+Decided (2026-11-04): pressure the player sets replaces pressure that runs
+out (most likely); no PSI gauge; opacity on the can only; no red crosshair; no
+softness ring; six caps; puddle runs in 1.7.0; settings in `config.ts` and F3,
+no Z panel; the owner's screen is 1920x1080 at 60 Hz.
 
 Decided (2026-10-24): smooth alpha stays; unlock-all is dev only; the
 crosshair is real size always; SOFT and HARD ship as pickup caps; slant goes
-on the wire in 1.7.0; particles stay for show; the stroke-segment op is the
-agent's call after measuring.
+on the wire in 1.7.0; particles stay for show.
 
 ### Ideas not built
 
