@@ -110,8 +110,6 @@ const op = (u) => ({ kind: 'stamp', key: 'a', rect: 0, u, v: 0.5, radius: 0.1, a
   // Neither has one.
   sender.restart();
   assert.deepEqual(types(sender.update(0.004, 0.004)), ['inventory', 'state']);
-  // The snapshot of now, without a frame.
-  assert.deepEqual(sender.now(0.5), { type: 'state', bytes: new Uint8Array([50]) });
 }
 
 // paint.log: begun by one, refused to a second, taken over by a session; an ended owner leaves what isn't its own.

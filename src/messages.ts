@@ -107,6 +107,7 @@ export const MESSAGES = {
     qualities: ['low', 'medium', 'high', 'max'],
     window: 'the window',
     record: '{record} records a video',
+    recordFailed: "This browser can't record a video · {record} tries again",
     recording: '● REC {time} · {record} stops and saves it',
   },
 

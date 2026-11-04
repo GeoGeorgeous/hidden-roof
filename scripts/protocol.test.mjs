@@ -178,14 +178,33 @@ assert.deepEqual(out.rejoined(2, (op) => painted.push(op)).map((b) => [b.seq, b.
 assert.deepEqual(painted, [drip, stamp]);
 out.acked(3);
 assert.deepEqual(out.rejoined(3, () => assert.fail('nothing to paint again')), []);
-// A stalled link's batches, one a tick, and what was made with it down go again as few batches of at most NET.resendOps, numbered on from what the server has.
-for (let i = 0; i < 400; i++) (out.take(Array(50).fill(stamp), i), out.batch());
-out.take(Array(NET.resendOps).fill(stamp), 400);
+// A stalled link's batches, one a tick, and what was made with it down go again as batches of at most NET.batchOps, within
+// NET.batchSpan s, numbered on from what the server has: NET.resendBurst at once, the rest one by one, new paint behind them.
+const stalled = NET.resendBurst * NET.batchOps + 3 * NET.batchOps;
+for (let i = 0; i < stalled / 50; i++) (out.take(Array(50).fill(stamp), i / 20), out.batch());
+out.take([stamp], stalled / 1000 + 100);
 const again = out.rejoined(3, () => {});
-assert.deepEqual(again.map((b) => b.seq), [4, 5, 6, 7]);
-assert.equal(again.reduce((n, b) => n + b.ops.length, 0), 400 * 50 + NET.resendOps);
-assert.ok(again.every((b) => b.ops.length <= NET.resendOps && b.t.length === b.ops.length));
+assert.equal(again.length, NET.resendBurst);
+out.take([roll], 500);
+assert.equal(out.batch(), null, 'new paint waits behind what is due');
+const paced = [];
+for (let b; (b = out.due()); ) paced.push(b);
+const gone = [...again, ...paced];
+assert.deepEqual(gone.map((b) => b.seq), gone.map((_, i) => 4 + i));
+assert.equal(gone.reduce((n, b) => n + b.ops.length, 0), stalled + 1);
+assert.ok(gone.every((b) => b.ops.length <= NET.batchOps && b.t.length === b.ops.length && b.t.at(-1) - b.t[0] <= NET.batchSpan));
+assert.ok(NET.batchSpan * 1000 < 65535, 'a batch fits the time of an op');
+assert.deepEqual(out.batch(), { seq: gone.length + 4, t: [500], ops: [roll] }, 'then it goes');
+// What a link may send: an op is 31 bytes at most.
 assert.ok(encodeOps(again[0].t, again[0].ops, new SurfaceIndex([stamp.key])).length < SERVER.maxMessage, 'a batch sent again is a message the server takes');
+assert.ok(NET.resendBurst * NET.batchOps * 31 <= SERVER.linkBurst.bytes / 2 && NET.resendBurst <= SERVER.linkBurst.messages / 2, 'what goes at once leaves the link some of its budget');
+assert.ok((NET.batchOps * 31) / NET.linkCheck < SERVER.linkRate.bytes, 'what goes one by one is under what a link may send');
+// Back again with batches still due: they go with the rest.
+out.take(Array(NET.batchOps * (NET.resendBurst + 2)).fill(stamp), 501);
+out.batch();
+const twice = out.rejoined(gone.length + 4, () => {});
+assert.equal(twice.length + [out.due(), out.due()].filter(Boolean).length, NET.resendBurst + 2);
+assert.equal(out.due(), null);
 out.clear();
 out.take([roll], 5);
 assert.equal(out.batch().seq, 1);

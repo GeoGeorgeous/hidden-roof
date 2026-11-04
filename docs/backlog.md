@@ -73,10 +73,12 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 1. BUGS [BL-034]: Paint pages at ULTRA can reach ~1 GB of GPU memory: measured, 1045 MB is the ceiling (all 49 pages, 72% full); the lossless fix is BL-144 (docs/ideas/performance.md)
 2. [PERF-200]: Reduce Ladder Shadow Update Delay Without Frequent Rebaking @1.7.0
+3. [PERF-322]: The server allocates a new buffer for every state it keeps as a player's last (`p.last`, server/session.ts): one buffer a player would do, as SNAPSHOT_BYTES is fixed
 
 ## Rendering
 
 1. IDEA [BL-066]: A camera mode for trailers and cinematics
+2. [RFCT-320]: Capture mode's fixed frames scale the hatching by writing INK.hatchPx, so F3's spacing shows 3.56 in 9:16 and what is set there inside a frame is lost: a scale of its own, apart from the tunable
 
 ## Props and level
 
@@ -120,6 +122,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 1. TEST [BL-035]: Fixed-step tests for walking, collisions, jumps and climbing
 2. [TEST-299]: Heavy runs (check, test:server, test:game, test:mp, golden) under a memory cap, e.g. `systemd-run --user --scope -p MemoryMax=9G`: a runaway test is killed, not WSL (an assert on a paint atlas, diffed byte by byte, took 11 GB and WSL with it three times on 2026-11-02)
+3. [TEST-321]: `scripts/net-lab.mjs` (test:weak-link) and `join.bench.mjs` leave their server running when they crash; csp.test and multiplayer/harness each have their own `exit` hook: one helper in test-browser.mjs for all four
 
 ## Servers and deploy
 
@@ -147,6 +150,7 @@ The API and why it is so: docs/admin-api.md.
 ## Codebase
 
 1. [RFCT-202]: src/ root files into folders (paint, menu, input, boot, render), style.css split next to its code; paint after the Painting Rework (docs/ideas/src-folders.md) @1.9.0
+2. [RFCT-323]: server/session.ts, src/net/multiplayer.ts and src/main.ts are past the ~400 lines of AGENTS.md: split by responsibility
 
 ## Done
 
@@ -161,12 +165,16 @@ Shipped since the last release; the release commit empties this list.
 7. [TEST-308]: The multiplayer check read how far behind A shows B once, after a fixed wait, and failed by timing: it waits for A to catch up
 8. [BUGS-315]: The ESC menu's live line drew every player's initials, so a public session of 40 made a row about 650 px long that left the screen in a small window: the line shows the first few and +N, as the session list does (LOBBY.facesShown, one function for both), the rest named on hover
 9. [BUGS-309]: A player hidden as they came in (a background tab, or minimized while the paint loaded) drew no frame, so sent no state, and nobody saw their figure, though they were in the ESC menu: the game sends one state with its welcome
-10. [BUGS-310]: More paint made with the link down than one message holds (1 MiB, about 39,000 stamps) closed the link on every return, for ever, the paint file coming down each time; and over 300 batches from a stalled link cost one more drop (`over budget`): what goes again is packed into few batches (NET.resendOps), numbered on from what the server has
+10. [BUGS-310]: More paint made with the link down than one message holds (1 MiB, about 39,000 stamps) closed the link on every return, for ever, the paint file coming down each time; and over 300 batches from a stalled link cost one more drop (`over budget`): what goes again is repacked into batches (NET.batchOps), numbered on from what the server has
 11. [BUGS-311]: A reload that took over 15 s lost the seat (the roof takes up to 14 s on a weak GPU), and alone in a private session that doesn't stay, the session and its paint: SERVER.closedHold is 30 s
 12. [BUGS-312]: A stepladder placed, moved or taken away with the link down: the others never heard (one taken away came back): the game keeps its own through a return and tells the server when it differs from the welcome's
 13. [BUGS-313]: Back as another player (after a server restart, or a seat that ran out), the game kept the old seat's stepladder, seen by no one else and impossible to pick up: it goes with the seat
 14. [TEST-314]: `test:mp` phase `rejoin` (hidden as it joins, a stepladder and paint from while the link was down, a seat gone); weak-link `stall` no longer opens the link just before the game gives up on it, which left the stroke unmade and failed the scenario now and then
-15. [TASK-324]: The page about the game with the editor's text: fact cards reordered and rewritten (Atmosphere in, Exploration out), About, Painting and the FAQ polished, eleven FAQ questions cut (the owner's call); the performance test's answer stays as it was
+15. [BUGS-316]: Paint sent again after a drop went out at once, so past SERVER.linkBurst (2 MiB) the server closed the link as over budget and the paint file came down again: NET.resendBurst batches go at once, then one each link check (a hidden tab too), new paint waiting behind them so the server never sees a batch out of order
+16. [BUGS-317]: Paint sent again in one batch could span the whole drop, past what an op's time holds (65.5 s after the batch's first), so it reached the others and the paint-time stats up to two minutes early: a batch stays within NET.batchSpan
+17. [BUGS-318]: A stepladder placed, moved or taken away with the link down stayed unheard if the tab was hidden when the link came back, and the inventory with it: the game says all of it with its welcome, not on the next frame
+18. [BUGS-319]: Capture mode's webm types named no sound, which a browser recording webm may refuse now that a recording has sound (Firefox; not tried there): they name Opus, plain webm last, and a recording that can't start says so on the plate instead of only in the console
+19. [TASK-324]: The page about the game with the editor's text: fact cards reordered and rewritten (Atmosphere in, Exploration out), About, Painting and the FAQ polished, eleven FAQ questions cut (the owner's call); the performance test's answer stays as it was
 
 ## Discarder
 

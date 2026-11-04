@@ -653,8 +653,8 @@ export const CAPTURE = {
   qualityStart: 2,
   /** The sound's bit rate (bit/s). */
   audioBitrate: 256_000,
-  /** The first the browser records: mp4 with AAC (what editors open), else mp4, else webm. */
-  videoTypes: ['video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9'],
+  /** The first the browser records: mp4 with AAC (what editors open), else mp4, else webm; each webm names its sound, or a browser may refuse the sound's track. */
+  videoTypes: ['video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm'],
   /** The frame sizes BINDINGS.captureSize goes through after the window's: drawn at pixel ratio 1 (16:9, 9:16, 1:1), fitted into the window. */
   sizes: [
     [1920, 1080],
@@ -1122,8 +1122,12 @@ export const NET = {
   queueRedraw: 500,
   /** A link closed for its silence (serverSilence) that the browser has not reported closed in this long (s) is given up on: the game reconnects without waiting for it. */
   closeWait: 3,
-  /** Paint ops sent again after a drop go in batches of at most this many (net/outbox.ts): an op is 31 bytes at most, so a batch stays well under SERVER.maxMessage. */
-  resendOps: 8000,
+  /** A batch of paint ops holds at most this many (net/outbox.ts): an op is 31 bytes at most, and past resendBurst one batch goes every linkCheck, so what goes again after a drop stays under SERVER.linkRate.bytes. */
+  batchOps: 500,
+  /** A batch's ops are at most this far apart (s): an op's time is a u16 of ms after the batch's first (op-wire.ts). */
+  batchSpan: 60,
+  /** Batches sent at once after a drop, the rest one by one: under half of SERVER.linkBurst.bytes, so the link keeps some of its budget. */
+  resendBurst: 64,
   /** Paint ops and stepladders of another player wait for their time; past this many waiting (a clock far ahead), the oldest run at once. */
   eventsKept: 4096,
   /** Snapshots sent per second. */
@@ -1265,7 +1269,7 @@ export const SERVER = {
   /**
    * What a link may send its session once it is in (server/budget.ts): linkRate messages and bytes a second, and linkBurst
    * saved up; past it the link is closed. A game sends ~45 messages (states at NET.sendRate, paint ops, a ping) and a few
-   * KB a second; the burst covers the paint ops it sends again after a drop (a message is maxMessage at most).
+   * KB a second; the burst covers the paint ops it sends again after a drop, which it paces to stay within these (net/outbox.ts).
    */
   linkRate: { messages: 100, bytes: 64 * 2 ** 10 },
   linkBurst: { messages: 300, bytes: 2 * 2 ** 20 },

@@ -202,6 +202,11 @@ export class Multiplayer {
     this.own.update(t);
     if (this.health.due(t)) this.health.report({ t, ping: this.net.ping, silence: t - link.lastHeard }, this.onHealth);
     if (this.net.measure(t)) this.send({ type: 'ping', t });
+    this.tell(t);
+  }
+
+  /** What this game has to say at `t`: its stepladder, inventory and state, the paint made. */
+  private tell(t: number) {
     const at = t - this.t0;
     const out = this.sender.update(t, at);
     this.outbox.take(out.ops, at);
@@ -238,6 +243,10 @@ export class Multiplayer {
           if (this.joined && link.live && document.visibilityState === 'visible') this.minute.carried(up, down);
         },
         closed: (code, timedOut, reason) => this.closed(link, code, timedOut, reason),
+        tick: () => {
+          const b = this.outbox.due();
+          if (b) this.sendOps(b);
+        },
       },
       { url, open: (u) => new WebSocket(u), now, every: (tick, ms) => ((id) => () => clearInterval(id))(setInterval(tick, ms)) },
     ));
@@ -339,8 +348,8 @@ export class Multiplayer {
     // Its welcome has come: it sends, and a silence on it means it's dead.
     Object.assign(link, { live: true, lastHeard: now() });
     for (const b of resend) this.sendOps(b);
-    // A hidden game draws no frames, so the others would have no state to show it from.
-    this.send(this.sender.now(now() - this.t0));
+    // Now, not on the next frame: a hidden game draws none, and the others would have no state to show it from, nor its stepladder.
+    this.tell(now());
     this.own.restart(now());
     this.onProgress(null);
     this.reconnect.reset();

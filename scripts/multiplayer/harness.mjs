@@ -94,8 +94,8 @@ export const paintHash = (page) =>
     return (h >>> 0).toString(16);
   });
 /** Waits until `page`'s paint hashes to `hash` (another player's strokes land when their figure gets there); fails after 10 s. */
-export async function paintReaches(page, hash, what) {
-  for (const until = Date.now() + 10000; Date.now() < until; ) {
+export async function paintReaches(page, hash, what, timeout = 10000) {
+  for (const until = Date.now() + timeout; Date.now() < until; ) {
     if ((await paintHash(page)) === hash) return;
     await page.waitForTimeout(100);
   }
