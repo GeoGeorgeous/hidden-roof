@@ -225,8 +225,10 @@ there a moment. Owner: too few, too fast, and no haze at the brush wanted.
 
 ### 13. Puddle runs (optional, unconfirmed)
 
-Owner (2026-11-04): in 1.7.0. Paint runs by how much paint landed, not by
-chance, so they are predictable:
+Owner (2026-11-04): not to be copied as it is; talked over in module 7. On the
+branch runs got more right but are far from ideal; today the marker's are good,
+the can's so-so. What the branch does: paint runs by how much paint landed, not
+by chance, so they are predictable:
 
 - Extra paint (landing on already opaque paint) pools in square cells about
   3 cm wide (`DRIPS.cell`), spread over the cell, and dries as before.
@@ -357,7 +359,7 @@ owner's in-game test. Paint reaches `next` after 1.6.2 is released.
 | 4 | The game's crosshair sized to the line, an opacity arc, no PSI gauge, one ray a frame shared with the brush | IDEA-228 |
 | 5 | Slant on the wire (protocol 12, 3 bytes, a flag), rounded like an op's other numbers; seams; the load read again | TASK-231 |
 | 6 | Six caps with real names (NEEDLE and BLUE DOT new), every cap tuned | IDEA-229 |
-| 7 | Puddle runs | TASK-230 |
+| 7 | Paint runs: the design talked over first, the marker's kept as they are if nothing asks otherwise | TASK-230 |
 | 8 | Dead code, load tests, docs, this doc gone | TASK-232 |
 
 Found in the branch, to fix on the way:
@@ -381,12 +383,13 @@ Still open:
 
 - An opacity arc on the crosshair, its shape, or a gauge on the can: compared in module 4.
 - The new caps' places on the maps: module 6.
+- How paint runs work with the brush: module 7.
 - The spray plume: after module 8.
 
 Decided (2026-11-04): pressure the player sets replaces pressure that runs
 out; shaking stays as an animation only; no PSI gauge; opacity on the can only;
 the game's crosshair stays; no red crosshair; no softness ring; six caps with
-real names; puddle runs in 1.7.0; settings in `config.ts` and F3,
+real names; settings in `config.ts` and F3,
 no Z panel; the owner's screen is 1920x1080 at 60 Hz.
 
 Decided (2026-10-24): smooth alpha stays; unlock-all is dev only; the
