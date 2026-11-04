@@ -370,6 +370,15 @@ needs an exception, a flag or a special case is talked over with the owner
 first. Nothing is ported from `src/sandbox` as it is: no `FEEL.on`, no old and
 new mode side by side; painting by particles is deleted, not turned off.
 
+Simple here means a good design: the same behavior from shorter, cleaner code
+that is easy to maintain and extend, and a hard thing explained in plain words.
+It doesn't mean the shortest function. Performance comes first.
+
+At the end of each module, the agent reports to the owner in plain technical
+words: what was done, why this design and not another, what it costs in
+performance (measured), and every place that left the architecture or looks
+hacky, with the reason. Nothing of that kind stays unsaid.
+
 Module 1's shape, a sketch that may change:
 
 | File | Does | Checked by |
