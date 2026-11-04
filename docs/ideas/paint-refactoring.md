@@ -251,15 +251,15 @@ belong in `config.ts`, perhaps the F3 debug panel. The goal for that panel
 (TASK-232): it shows which setting causes what, so tuning is systematic, not
 trial and error.
 
-### 12. Spray plume (optional, unconfirmed)
+### 12. Spray plume
 
-Owner (2026-11-04): last, module 9, after the painting itself; until then the
-old square points fly, only for show. With the brush painting,
-particles are only a plume at the nozzle: fine soft round specks in a cone
-toward the aim, slowed by the air, growing and fading out before the wall
-(never past it). One ray per frame for the whole plume, not one per
-particle; one draw call. Others' cans show the same plume. Off ("распыление"
-in Z → Частицы), the old square points fly to the wall.
+Module 9. With the brush painting, particles are only a plume at the nozzle:
+fine soft round specks in a cone toward the aim, slowed by the air, growing and
+fading out before the wall (never past it). One ray at most per frame for the whole
+plume, one draw call. Others' cans show the same plume. The old square points
+are gone. Owner (2026-11-04): it follows the cap: `spray/plume.ts` makes a cap's
+cone, specks and haze from its spread, dot and softness (BANANA's are the
+sandbox's numbers), F3 scales each; TRANSVERSAL's is a flat fan at its nib's angle.
 
 Tried first and replaced: a mist of specks flying to the wall and hanging
 there a moment. Owner: too few, too fast, and no haze at the brush wanted.
@@ -429,7 +429,7 @@ only): cut it before the branch reaches `dev`, on the owner's word.
 | 4 | Done on `feat/paint-crosshair`. The game's crosshair sized to the line (`lineWidth`), no PSI gauge, one ray a frame shared with the brush. The opacity: a 120° arc on the crosshair's right, the percent beside it for a moment after a change. A sight glass on the can was tried against the arc: owner chose the arc | IDEA-228 |
 | 5 | Done on `feat/paint-slant-wire`. The sandbox's slant ported (it was never in the game) and put on the wire: protocol 12, 3 bytes behind a flag, rounded like an op's other numbers; seams; the load read again | TASK-231 |
 | 6 | Done on `feat/paint-caps`. Today's four caps as they are, with real names, colors and a dot on each; NEEDLE, BLUE DOT and TRANSVERSAL new, on the roof | IDEA-229 |
-| 9 | Spray plume, next after module 6: from the sandbox's, then by the cap (cone, specks, haze), TRANSVERSAL's a flat fan; the old square points go | |
+| 9 | Done on `feat/spray-plume`. Spray plume from the sandbox's, then by the cap (cone, specks, haze), TRANSVERSAL's a flat fan; the old square points gone | |
 | 8 | Dead code, load tests, docs | TASK-232 |
 | | The owner tests and thinks about paint runs | |
 | 7 | Paint runs: the design talked over first, the marker's kept as they are if nothing asks otherwise; then `ALL_PAINT` cut and this doc gone | TASK-230 |

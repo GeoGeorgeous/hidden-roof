@@ -7,6 +7,7 @@ import './ts-imports.mjs';
 const { BRUSH, CAPS, SPRAY } = await import('../src/config.ts');
 const { dabAt, dabSpacing, lineWidth, nibOf, slantOf, stepOpacity } = await import('../src/spray/dab.ts');
 const { PaintRaster } = await import('../src/paint-raster.ts');
+const { plumeLook } = await import('../src/spray/plume.ts');
 const { SprayStroke } = await import('../src/spray/stroke.ts');
 
 const RATES = [60, 144, 240];
@@ -124,6 +125,19 @@ const reach = (s, x, y, dx, dy) => {
 for (const d of [0.5, 1.5, 3]) assert.ok(lineWidth(CAPS.needle, d, 0) < lineWidth(CAPS.skinny, d, 0), `needle under skinny at ${d} m`);
 near(lineWidth(CAPS.needle, 1.5, 0), 0.035, 0.05, 'needle at 1.5 m');
 assert.ok(dab('standard', 1).softness < dab('soft', 1).softness, 'blue dot is softer');
+
+// A plume by its cap: BANANA's as the sandbox had it; cones wide as the caps, specks with them, a soft cap's a haze, a flat nib's a fan.
+{
+  const plume = (cap) => plumeLook(CAPS[cap], { cone: 0, fan: 1, angle: 0, size: 0, grow: 1 });
+  near(plume('standard').cone, 0.09, 0.03, 'BANANA: the cone');
+  near(plume('standard').size, 0.01, 1e-9, 'BANANA: a speck');
+  near(plume('standard').grow, 1.5, 1e-9, 'BANANA: how it grows');
+  const order = ['needle', 'skinny', 'standard', 'fat', 'spray'].map(plume);
+  order.slice(1).forEach((p, i) => assert.ok(p.cone > order[i].cone && p.size > order[i].size, 'thin to wide'));
+  assert.ok(plume('soft').grow > plume('standard').grow && plume('standard').grow > plume('needle').grow, 'the softer the hazier');
+  assert.deepEqual([plume('transversal').fan, plume('standard').fan], [CAPS.transversal.nib.stretch, 1], 'a flat nib fans');
+  near(plume('transversal').angle, Math.PI / 4, 1e-9, 'at its angle');
+}
 
 // Distance.
 for (const cap of Object.keys(CAPS)) {
