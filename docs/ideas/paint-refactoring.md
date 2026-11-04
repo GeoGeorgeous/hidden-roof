@@ -140,8 +140,9 @@ smoothed up from zero: the first move now sets the speed at once.
 Owner (2026-11-04): the game's own crosshair stays (`.crosshair`, its
 `mix-blend-mode: difference` turns it light on dark and dark on light) and only
 its size follows the line; the branch's element isn't ported. An opacity arc
-is added to it, perhaps a half arc at its side: its shape is decided in module
-4. What the branch's crosshair showed:
+is added to it, perhaps a half arc at its side. Unconfirmed idea, compared with
+the arc in module 4: a gauge on the first-person can itself, a slot filled up to
+the pressure, perhaps in the paint's color. What the branch's crosshair showed:
 
 - Its size is the line the paint will leave right now (distance, cap, edge,
   hand speed, opacity): out to where the stroke is half as dense as in its
@@ -378,7 +379,7 @@ Found in the branch, to fix on the way:
 
 Still open:
 
-- The opacity arc's shape: module 4.
+- An opacity arc on the crosshair, its shape, or a gauge on the can: compared in module 4.
 - The new caps' places on the maps: module 6.
 - The spray plume: after module 8.
 
