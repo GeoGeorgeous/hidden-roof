@@ -166,7 +166,13 @@ Two new caps: a soft-edged medium one and a crisp narrow one. The cap's
 softness scales the brush's edge (standard is the reference), so caps feel
 different at any distance.
 
-Owner (2026-11-04): the caps take real caps' names, six in all, thin to wide.
+Owner (2026-11-04, later the same day): the four caps of today stay as they are,
+tuned by hand: their numbers don't change. Test caps come beside them, about as
+many again (NEEDLE, SOFT, HARD and others), for the owner to play with; only the
+ones chosen ship, the rest go. The table below is what to try, no longer a
+decision: which caps ship and under which names is the owner's, after that.
+
+Before that (2026-11-04): the caps take real caps' names, six in all, thin to wide.
 Ids stay simple: a player reads `CapSpec.name`, saves, maps and stats keep the id.
 
 | Player sees | Id | Real cap | Its line |
@@ -187,8 +193,19 @@ and each cap's `color` follow the names.
 ### 9. Slant
 
 Hitting the wall at an angle stretches the dab into an ellipse along the aim,
-fading at the far end. Stamp ops carry a `shape`, but the wire drops it, so
-other players see round dots.
+fading at the far end. Stamp ops carry a `slant` (stretch, turn, tail), three
+bytes on the wire behind a flag, so other players see what the painter painted.
+
+Measured in module 5, one pass at 3 m, 65%, the standard cap (head on 0.50, 10 cm):
+
+| Angle | Line along the aim | Line across the aim | Same, `slantThin` 1 |
+|---|---|---|---|
+| 30° | 0.55 | 0.50, 13 cm | 0.49 / 0.45 |
+| 60° | 0.73 | 0.50, 22 cm | 0.48 / 0.29 |
+| 75° | 0.91 | 0.50, 40 cm | 0.47 / 0.16 |
+
+Ported as the sandbox had it (`slantThin` 0): dabs overlap more along the aim,
+so that line darkens. At 1 the paint is conserved, as with a real can.
 
 Owner: important, in 1.7.0, protocol bump included (step 2 below is required).
 
@@ -314,6 +331,13 @@ the first stroke of the page. Held 60 ops/s, 1.3 KB/s, 0.2 ms. The fastest
 stroke sends at most 41 KB/s, under today's 43; fat (930 against 650) and
 standard (1810 against 1760) pass their own rate only above about 8 and 12 m/s.
 
+Read again in module 5 (`npm run study:load 40`, stamps at stretch 1.3, against
+round ones): typical play CPU 38% and 38%, ops down 37.8 KB/s against 33.8;
+heavy play CPU 74% against 66%, ping p99 8 ms against 4, 386 KB/s against 346,
+no one dropped. In the golden strokes 93% of the can's stamps are slanted, so a
+real stroke costs 26 bytes a stamp, not 23: about 12% more traffic. The load
+passes: no stroke-segment op.
+
 The agent's call on step 3: no stroke-segment op in 1.7.0. Per-dab stamps stay,
 with the dab spacing held to at least half a texel, so a small cap's flick
 doesn't pass today's rate (3 mm is under a third of a texel at ULTRA). The load
@@ -321,7 +345,7 @@ is read again in plan module 5; if it fails there, the op is back on the table.
 
 ### Network (20 players)
 
-A stamp op is 23 bytes. Estimates from the code, made before the measurements
+A stamp op is 23 bytes (26 at a slant, module 5). Estimates from the code, made before the measurements
 above:
 
 | | Ops/s per painter | Up | Down, 19 painting |
@@ -384,8 +408,8 @@ only): cut it before the branch reaches `dev`, on the owner's word.
 | 2 | Done on `feat/paint-opacity`. Opacity: Run + the color keys on the can only (Shift + wheel by default, both wheel axes; a key holds one action, so no action of its own, and Controls says so); step 10% in config, 5-100%, 65% by default, kept in the local settings, never on the wire; smooth alpha; pressure no longer runs out, the PSI gauge shows the setting until module 4; one tutorial hint | IDEA-226 |
 | 3 | In module 1 (one function sizes a dab; its number stays free so the others keep theirs) | |
 | 4 | Done on `feat/paint-crosshair`. The game's crosshair sized to the line (`lineWidth`), no PSI gauge, one ray a frame shared with the brush. The opacity: a 120° arc on the crosshair's right, the percent beside it for a moment after a change. A sight glass on the can was tried against the arc: owner chose the arc | IDEA-228 |
-| 5 | Slant on the wire (protocol 12, 3 bytes, a flag), rounded like an op's other numbers; seams; the load read again | TASK-231 |
-| 6 | Six caps with real names (NEEDLE and BLUE DOT new), every cap tuned | IDEA-229 |
+| 5 | Done on `feat/paint-slant-wire`. The sandbox's slant ported (it was never in the game) and put on the wire: protocol 12, 3 bytes behind a flag, rounded like an op's other numbers; seams; the load read again | TASK-231 |
+| 6 | Today's four caps kept as they are, test caps beside them (NEEDLE, SOFT, HARD and others) for the owner to choose from; the ones not chosen go | IDEA-229 |
 | 7 | Paint runs: the design talked over first, the marker's kept as they are if nothing asks otherwise | TASK-230 |
 | 8 | Dead code, load tests, docs | TASK-232 |
 | 9 | Spray plume, then this doc gone | |
@@ -421,19 +445,22 @@ interfaces, so its logic runs without a browser.
 
 Found in the branch, to fix on the way:
 
-- A slanted dab's seams: `pastEdge` takes the round radius, and the neighbor
-  face gets the angle in the first face's axes (module 5).
-- `rounded()` leaves `shape` as it is, so the painter and the others would
-  differ once it travels (module 5).
-- A slanted dab walks a square of `r * elong` (up to 16× the texels), and
-  `wetCell()` makes an object per wet texel (modules 5, 7).
+- Fixed in module 5: a slanted dab's seams. `pastEdge` takes its length, and the
+  neighbor face gets the turn in its own axes (`turnOnto`).
+- Fixed in module 5: `rounded()` rounds the slant, so painter and others agree.
+- Fixed in module 5: a slanted dab walks the box around its ellipse, not a
+  square of its length. At the longest and on a diagonal 5.7× a round dab's
+  time, where the square was 16×; along an axis 4×.
+- `wetCell()` makes an object per wet texel, in the branch only (module 7).
 
 ### Open decisions (the owner's)
 
 Still open:
 
-- The new caps' places on the maps: module 6.
+- Which test caps ship, and the new caps' places on the maps: module 6.
 - How paint runs work with the brush: module 7.
+- Whether a dab's paint thins as it stretches (`BRUSH.slantThin`, F3 → Brush →
+  SLANT): module 5 kept the sandbox's 0. Once decided, the number goes.
 
 Decided (2026-11-04): the opacity shows on an arc at the crosshair, as set, not as dense as it lands at this distance; no gauge on the can. The line reads wider at a higher opacity (saturation, not a rule of its own): kept.
 

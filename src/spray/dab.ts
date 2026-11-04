@@ -1,5 +1,7 @@
-import { MathUtils } from 'three';
+import { MathUtils, type Vector3 } from 'three';
 import { BRUSH, SPRAY, type CapSpec } from '../config';
+import type { Slant } from '../paint-ops';
+import type { Rect } from '../surfaces';
 
 // One dab of the can's brush, from what makes a real can's line: the cap, how
 // far the wall is and how fast the hand moves. Pure numbers, so Node tests it
@@ -57,6 +59,19 @@ export function lineWidth(cap: CapSpec, distance: number, speed: number) {
   }
   return inside + outside;
 }
+
+/** How a ray along `ray` (unit) lands on `face`: the far end is where the ray goes on to. None: head on, or a curved face. */
+export function slantOf(face: Rect['face'], ray: Vector3): Slant | undefined {
+  if (!face) return undefined;
+  const cos = Math.abs(face.normal.dot(ray));
+  const stretch = 1 / Math.max(cos, 1 / BRUSH.slantMax);
+  if (stretch < BRUSH.slantFrom) return undefined;
+  const turn = Math.atan2(ray.dot(face.vAxis) / face.vAxis.length(), ray.dot(face.uAxis) / face.uAxis.length()) / (Math.PI * 2);
+  return { stretch, turn, tail: BRUSH.slantTail * (1 - cos) };
+}
+
+/** A dab's opacity once `slant` has spread it (BRUSH.slantThin). */
+export const thinned = (amount: number, slant?: Slant) => (slant ? 1 - (1 - amount) ** (slant.stretch ** -BRUSH.slantThin) : amount);
 
 /** The set opacity a step up (+1) or down (-1), in whole percents, so it comes back to the same numbers. */
 export const stepOpacity = (opacity: number, dir: number) => Math.round(MathUtils.clamp(opacity + dir * BRUSH.opacityStep, BRUSH.opacityMin, BRUSH.opacityMax) * 100) / 100;

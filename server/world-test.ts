@@ -5,11 +5,13 @@ import fs from 'node:fs';
 import { PAINT, SERVER } from '../src/config';
 import type { LevelData } from '../src/level/level-data';
 import type { Owned } from '../src/paint-surface';
+import { PaintSystem } from '../src/painting';
 import { loadPaint } from '../src/save/load-paint';
 import { savePaint } from '../src/save/save-paint';
 import { levelPaintFaces, planLevel } from '../src/level/prop-pieces';
 import { closeCode, decode, encode, PROTOCOL, rejectionOf, type ToClient, type ToServer } from '../src/net/protocol';
 import { surfaceTable } from '../src/save/shape';
+import { SurfaceBuilder } from '../src/surfaces';
 import { Lobby, type LinkInput } from './lobby';
 import type { Link } from './player';
 import { Session } from './session';
@@ -102,6 +104,39 @@ const level: LevelData = JSON.parse(fs.readFileSync('public/levels/demo.json', '
   assert.ok(replayed > 0, 'a replayed op paints');
   assert.deepEqual(paint.log.map((op) => op.kind), ['stamp'], 'only the stamp made here is logged');
   console.log('replayed ops: ok (painted, not logged)');
+}
+
+// A slanted dab past a face's edge goes on over the seam as long as it is, and the way it points, whichever way the
+// next face's atlas lies: over a seam it paints what it paints on one wide face, here with the next face a quarter turn round.
+{
+  const V = (x: number, y: number, z = 0) => new THREE.Vector3(x, y, z);
+  const normal = V(0, 0, 1);
+  const wall = (...faces: { origin: THREE.Vector3; uAxis: THREE.Vector3; vAxis: THREE.Vector3 }[]) => {
+    const b = new SurfaceBuilder(48);
+    for (const f of faces) b.quad({ ...f, normal });
+    const paint = new PaintSystem(48);
+    return { paint, s: paint.register('wall', new THREE.Mesh(), b.build(), '') };
+  };
+  const one = wall({ origin: V(0, 0), uAxis: V(4, 0), vAxis: V(0, 2) });
+  const two = wall({ origin: V(0, 0), uAxis: V(2, 0), vAxis: V(0, 2) }, { origin: V(2, 2), uAxis: V(0, -2), vAxis: V(2, 0) });
+  const slant = { stretch: 4, turn: 0.04, tail: 0.5 };
+  one.paint.stamp(one.s, { rect: 0, u: 0.45, v: 0.5 }, 0.1, 0.8, [1, 0, 0], 0.4, 0, false, slant);
+  two.paint.stamp(two.s, { rect: 0, u: 0.9, v: 0.5 }, 0.1, 0.8, [1, 0, 0], 0.4, 0, false, slant);
+  const alpha = ({ s }: { s: typeof one.s }, x: number, y: number) => s.data![(y * s.geo.atlasW + x) * 4 + 3];
+  const [r1, r2] = [one.s.geo.rects[0], two.s.geo.rects[1]];
+  let far = 0;
+  let off = 0;
+  // World texel (i, j) past the seam: on the wide face at x + 96 + i, y + j; on the turned one its u runs down the wall, its v along it.
+  for (let i = 0; i < r2.h; i++) {
+    for (let j = 0; j < r2.w; j++) {
+      const wide = alpha(one, r1.x + 96 + i, r1.y + j);
+      if (wide) far = Math.max(far, i);
+      off = Math.max(off, Math.abs(wide - alpha(two, r2.x + r2.w - 1 - j, r2.y + i)));
+    }
+  }
+  assert.ok(far > 4, `it reaches past the seam: ${far}`);
+  assert.ok(off <= 1, `it paints the same past the seam: ${off}`);
+  console.log('slant over a seam: ok (as long, the same way round on a face turned from the first)');
 }
 
 // A run paints the same texels whatever the frames it runs in: every client (and the server) runs it at its own frame rate.

@@ -31,6 +31,8 @@ How sessions work on purpose (decided 2026-10-04 to 10-08; details in `server/`,
   | 60 | CPU 51%, ping p99 8 ms; 99 KB/s | CPU 80%, ping p99 7 ms; 521 KB/s |
   | 80 | CPU 55%, ping p99 13 ms; 127 KB/s | CPU 90%, ping p99 10 ms; 692 KB/s |
 
+  Read before stamps could be slanted. With slanted stamps (2026-11-04, the study sends them now) 40 players at heavy play take CPU 74%, ping p99 8 ms, 386 KB/s, against 66%, 4 ms, 346 KB/s with round ones the same day.
+
   The public limit is 40. Past it, what runs out is the players' own downlinks: heavy painting at 40 sends ~340 KB/s to each, past the 100–200 KB/s at which the first playtest's weak links began to drop (4.8% of 5 s windows followed by a drop). The paint already on the walls doesn't grow the stream, only a joiner's paint file. Not taken (owner, 2026-10-27): merging stamps, shedding on slow links (play on weak links would be less smooth), a lower rate for far players (the maps are small); fewer ops a second come with the Painting Rework (TASK-231).
 - **Runs drift between clients** (decided 2026-10-18): a run trickles down in real time, so it meets the next strokes (and the sponge) at another moment on each client; the players' paint and the server's save end ~50–80 of ~6,000 painted texels apart after every tool on one wall (identical with drips off). Bit-exact would need a run painted whole when it starts; runs keep flowing slowly instead. A fix would have to keep the flow on screen (the run whole in the shared paint, animated only in what's drawn).
 - **Rejected:** host-client (WebRTC) authority; an op log (unbounded, ~24 MB/h per sprayer); texture deltas on the wire (~400 KB/s at ULTRA); interest management (not needed for 40 players on one roof).

@@ -165,6 +165,34 @@ await check('crosshair: follows the line it would leave: distance, cap, and with
   return r.near > 8 && r.far > 8 && r.wide > r.far && r.sky > 0 ? null : JSON.stringify(r);
 });
 
+await check('slant: the can at an angle to a wall lays dabs stretched along the aim, head on round ones', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { input, inventory: inv, player } = g;
+    input.setLocked(true);
+    inv.unlockAll();
+    inv.select(0);
+    const spray = async (turn) => {
+      g.paint.clear();
+      g.paint.log = [];
+      player.setSpawn(player.position.clone().set(2.4, 0, 2.95), -Math.PI / 2);
+      player.respawn();
+      await steps((f) => ((player.yaw = -Math.PI / 2 + turn), (player.pitch = 0), f === 0 && input.button(0, true), f === 12 && input.button(0, false), f === 14));
+      return g.paint.log.filter((o) => o.kind === 'stamp');
+    };
+    const head = await spray(0);
+    const side = await spray(0.7);
+    g.paint.log = null;
+    g.paint.clear();
+    await steps((f) => ((player.yaw = -Math.PI / 2), f === 1));
+    input.setLocked(false);
+    return { head: head.length, round: head.filter((o) => !o.slant).length, side: side.length, slants: side.map((o) => o.slant).filter(Boolean) };
+  });
+  const want = 1 / Math.cos(0.7);
+  const off = r.slants.filter((s) => Math.abs(s.stretch - want) > 0.05 || !(s.tail > 0));
+  return r.head > 0 && r.round === r.head && r.side > 0 && r.slants.length === r.side && !off.length ? null : JSON.stringify({ ...r, slants: r.slants.slice(0, 2), want });
+});
+
 await check('render: never more pixels than the screen has (a page zoomed out to 50%), as many at 100%', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;

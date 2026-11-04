@@ -1,15 +1,19 @@
+import * as THREE from 'three';
 import type { PaintSystem, Rgb } from '../painting';
-import type { Dab } from './dab';
+import { slantOf, thinned, type Dab } from './dab';
 import { SprayStroke, type Canvas, type StrokeFrame } from './stroke';
 import type { WallProbe, WallSpot } from './wall-probe';
 
 // The can's brush: what paints. A stroke (stroke.ts) on real walls (wall-probe.ts),
 // its dabs stamped into the paint at once, where the aim meets the wall.
 
+const ray = new THREE.Vector3();
+
 export class Brush implements Canvas<WallSpot> {
   private stroke: SprayStroke<WallSpot>;
   private rgb: Rgb = [0, 0, 0];
   private drips = 0;
+  private eye = new THREE.Vector3();
 
   constructor(
     private probe: WallProbe,
@@ -22,6 +26,7 @@ export class Brush implements Canvas<WallSpot> {
   spray(frame: StrokeFrame, rgb: Rgb) {
     this.rgb = rgb;
     this.drips = frame.cap.drips;
+    this.eye.copy(frame.eye);
     this.probe.near(frame.eye);
     return this.stroke.update(frame);
   }
@@ -44,6 +49,7 @@ export class Brush implements Canvas<WallSpot> {
   }
 
   lay(hit: WallSpot, dab: Dab) {
-    this.paint.stamp(hit.surface, hit.at, dab.radius, dab.amount, this.rgb, dab.softness, this.drips);
+    const slant = slantOf(hit.surface.geo.rects[hit.at.rect].face, ray.subVectors(hit.point, this.eye).normalize());
+    this.paint.stamp(hit.surface, hit.at, dab.radius, thinned(dab.amount, slant), this.rgb, dab.softness, this.drips, false, slant);
   }
 }
