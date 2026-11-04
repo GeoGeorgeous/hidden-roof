@@ -352,6 +352,14 @@ with the op count.
 - Fixed in module 1: slow lines come out the same at every frame rate. Dabs
   go exactly a spacing apart, the rest carried to the next frame, and the can
   lays at least `BRUSH.buildRate` dabs a second, a line's own counting.
+- Fixed in module 2: a dab's falloff means `1 - s / 3` across it, so every cap's
+  pass at 3 m reaches the same 0.50-0.53 at 65% (the fade takes the rest).
+- Fixed in module 2: a coat under `PAINT.faintest` leaves a texel as it is, so a
+  dab's far rim keeps no 8-bit step. Measured: the halo was 0.4% alpha at the rim.
+- Fixed in module 2: with Shift held, a sideways wheel event counts as a step.
+- The set opacity is what a pass reaches at the far end of the close range: at
+  1.5 m a 65% pass reaches 92% (`BRUSH.closeFlow`), at 3 m 50%. Module 4's arc
+  has to say which one it shows.
 - Dabs near a face edge are clipped to their face. Check corners and seams.
 - Fixed in module 1: the minimum spacing is `BRUSH.minSpacing` (5.2 mm, half a
   texel at ULTRA, in meters so every PAINT DETAIL sends alike), and a dab's
@@ -373,7 +381,7 @@ only): cut it before the branch reaches `dev`, on the owner's word.
 | # | Module | Items |
 |---|---|---|
 | 1 | Done on `feat/paint-brush`. Brush: dabs between frames, build-up, streamline, hand speed and distance, a test at 60, 144 and 240 Hz; the old particles only for show | IDEA-225, IDEA-227 |
-| 2 | Opacity: Run + the color keys on the can only (Shift + wheel by default, both wheel axes; a key holds one action, so no action of its own, and Controls says so); step 10% in config, 5-100%, 65% by default, kept in the local settings, never on the wire; smooth alpha; pressure no longer runs out, the PSI gauge shows the setting until module 4; one tutorial hint | IDEA-226 |
+| 2 | Done on `feat/paint-opacity`. Opacity: Run + the color keys on the can only (Shift + wheel by default, both wheel axes; a key holds one action, so no action of its own, and Controls says so); step 10% in config, 5-100%, 65% by default, kept in the local settings, never on the wire; smooth alpha; pressure no longer runs out, the PSI gauge shows the setting until module 4; one tutorial hint | IDEA-226 |
 | 3 | In module 1 (one function sizes a dab; its number stays free so the others keep theirs) | |
 | 4 | The game's crosshair sized to the line, an opacity arc, no PSI gauge, one ray a frame shared with the brush | IDEA-228 |
 | 5 | Slant on the wire (protocol 12, 3 bytes, a flag), rounded like an op's other numbers; seams; the load read again | TASK-231 |
@@ -419,12 +427,6 @@ Found in the branch, to fix on the way:
   differ once it travels (module 5).
 - A slanted dab walks a square of `r * elong` (up to 16× the texels), and
   `wetCell()` makes an object per wet texel (modules 5, 7).
-- The per-dab amount takes the edge's mean as `1 - 0.6 s`; it is `1 - s / 3`, so
-  very soft paint lands about 1.5× as dense as the opacity says (module 2).
-- `toward()` moves a channel by at least one step: under about 0.05 opacity a
-  soft edge keeps a faint halo (module 2).
-- Some browsers may send Shift + wheel as `deltaX`, which `input.ts` skips
-  (module 2).
 
 ### Open decisions (the owner's)
 

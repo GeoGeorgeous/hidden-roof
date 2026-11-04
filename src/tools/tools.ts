@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import type { Audio } from '../audio';
-import { CAPS, CROSSHAIR, type PaintColor } from '../config';
+import { BRUSH, CAPS, CROSSHAIR, type PaintColor } from '../config';
 import type { Action, Input } from '../input';
 import { SIZED, type Inventory, type SizedTool } from '../inventory/inventory';
 import { SLOTS, type Tool } from '../inventory/tool';
 import type { PaintSystem } from '../painting';
+import { stepOpacity } from '../spray/dab';
 import { SprayTool } from '../spray/spray-tool';
 import { LadderTool } from './ladder-tool';
 import { Eyedropper } from './eyedropper';
@@ -89,7 +90,9 @@ export class Tools {
       // Held, they keep stepping (the key's auto-repeat), as in build mode.
       const qe = input.step('sizeDown', 'sizeUp');
       const colored = t !== null && COLORED[t];
-      if (wheel && colored && inv.cycleColor(wheel)) (this.audio.click(), this.onFact({ type: 'colorCycled' }));
+      // Run + the color keys set the can's opacity: up (prev) is more. A key holds one action, so this is no action of its own.
+      if (wheel && t === 'can' && input.held('sprint')) this.setOpacity(stepOpacity(BRUSH.opacity, -wheel));
+      else if (wheel && colored && inv.cycleColor(wheel)) (this.audio.click(), this.onFact({ type: 'colorCycled' }));
       if (colored && input.justPressed('pick')) {
         const picked = this.eyedropper.pick(camera, eye, inv.colors);
         if (picked && inv.pickColor(picked)) (this.audio.click(), this.onFact({ type: 'colorPicked' }));
@@ -155,6 +158,14 @@ export class Tools {
       if (now > this.drawn[tool]) this.onFact({ type: 'used', tool, amount: now - this.drawn[tool], crouched });
       this.drawn[tool] = now;
     }
+  }
+
+  /** The player set the can's opacity; at either end of the range nothing changes. */
+  private setOpacity(opacity: number) {
+    if (opacity === BRUSH.opacity) return;
+    BRUSH.opacity = opacity;
+    this.audio.click();
+    this.onFact({ type: 'opacitySet' });
   }
 
   private reportChanges(tool: Tool | null) {

@@ -1,5 +1,5 @@
 import type * as THREE from 'three';
-import { DRIPS } from './config';
+import { DRIPS, PAINT } from './config';
 import { paintRandom } from './lcg';
 import type { Rgb } from './painting';
 import type { Rect, SurfaceGeometry } from './surfaces';
@@ -203,13 +203,15 @@ function blend(data: Uint8Array, i: number, amt: number, color: Rgb) {
 }
 
 /**
- * Move an 8-bit channel toward `target` by fraction k, always by at least one
- * step, so repeated light coats converge on the new color instead of stalling
- * a few values short because of rounding.
+ * Move an 8-bit channel toward `target` by fraction k, by at least one step, so
+ * repeated light coats converge on the new color instead of stalling a few
+ * values short because of rounding. Under PAINT.faintest there's no coat to
+ * speak of: a step would be a dab's far rim showing as a halo.
  */
 function toward(cur: number, target: number, k: number) {
   const t = Math.round(target);
   if (cur === t) return cur;
   const next = Math.round(cur + (t - cur) * k);
+  if (next === cur && k < PAINT.faintest) return cur;
   return t > cur ? Math.min(t, Math.max(cur + 1, next)) : Math.max(t, Math.min(cur - 1, next));
 }

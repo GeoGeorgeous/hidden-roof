@@ -30,8 +30,6 @@ export interface StrokeFrame {
   eye: THREE.Vector3;
   forward: THREE.Vector3;
   cap: CapSpec;
-  /** 0..1 out of the can. */
-  flow: number;
   dt: number;
 }
 
@@ -120,7 +118,7 @@ export class SprayStroke<H extends WallHit> {
   }
 
   private lay(f: StrokeFrame, hit: H, weight: number) {
-    dabAt(f.cap, f.flow, hit.distance, this.speed, dab).amount *= weight;
+    dabAt(f.cap, hit.distance, this.speed, dab).amount *= weight;
     this.canvas.lay(hit, dab);
   }
 }

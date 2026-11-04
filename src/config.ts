@@ -378,7 +378,7 @@ export const HUD = {
   perf: false,
   /** GPU time per frame in it too (timer queries: desktop Chromium; a few queries a frame while shown). */
   perfGpu: false,
-  /** How long the cap and color tags show after a change, and the PSI gauge after the pressure last changed (s). */
+  /** How long the cap and color tags show after a change, and the PSI gauge after the opacity last changed (s). */
   tagTime: 2.5,
   gaugeTime: 1.2,
   /** Hotbar slots: size and the gap between them (CSS px), roundness (0 = square, 1 = circle), icon size (share of the slot). */
@@ -464,8 +464,10 @@ export const PAINT = {
    */
   coverStep: 0.25,
   coverGap: 0.02,
-  /** Alpha is quantized to this many steps in the shader for a chunky look (0 = off). */
-  alphaSteps: 8,
+  /** Alpha is quantized to this many steps in the shader for a chunky look (0 = off: layers of a set opacity would band). */
+  alphaSteps: 0,
+  /** A coat under this share leaves a texel as it is, else every dab's rim would keep the one 8-bit step a thin coat moves. */
+  faintest: 0.001,
   /** Hard cap on a single surface atlas side, in texels. */
   maxTextureSize: 2048,
   /**
@@ -512,8 +514,6 @@ export interface CapSpec {
   crosshair: number;
   /** Paint runs (with DRIPS on), per m² of paint reaching DRIPS.excess. */
   drips: number;
-  /** Pressure lost per second of spraying with this cap (1 = a full can). */
-  drain: number;
   /** Color of the cap on the can, its pickup and hotbar icon. */
   color: string;
   /** Width of the cap's nozzle (m): it hints at the cap. */
@@ -523,11 +523,11 @@ export interface CapSpec {
 export type CapId = 'skinny' | 'standard' | 'fat' | 'spray';
 export const CAP_ORDER: CapId[] = ['skinny', 'standard', 'fat', 'spray'];
 export const CAPS: Record<CapId, CapSpec> = {
-  skinny: { name: 'SKINNY', spread: 0.01, rate: 1900, dotSize: 0.036, softness: 0.15, hissGain: 0.5, hissTone: 0, crosshair: 10, drips: 60, drain: 0.015, color: '#7fb4f2', nozzle: 0.004 },
-  standard: { name: 'STANDARD', spread: 0.03, rate: 1760, dotSize: 0.05, softness: 0.35, hissGain: 0.75, hissTone: 0.4, crosshair: 18, drips: 120, drain: 0.03, color: '#f4f4f4', nozzle: 0.006 },
-  fat: { name: 'FAT', spread: 0.04, rate: 650, dotSize: 0.12, softness: 0.15, hissGain: 1, hissTone: 1, crosshair: 24, drips: 180, drain: 0.06, color: '#f2a04c', nozzle: 0.01 },
+  skinny: { name: 'SKINNY', spread: 0.01, rate: 1900, dotSize: 0.036, softness: 0.15, hissGain: 0.5, hissTone: 0, crosshair: 10, drips: 60, color: '#7fb4f2', nozzle: 0.004 },
+  standard: { name: 'STANDARD', spread: 0.03, rate: 1760, dotSize: 0.05, softness: 0.35, hissGain: 0.75, hissTone: 0.4, crosshair: 18, drips: 120, color: '#f4f4f4', nozzle: 0.006 },
+  fat: { name: 'FAT', spread: 0.04, rate: 650, dotSize: 0.12, softness: 0.15, hissGain: 1, hissTone: 1, crosshair: 24, drips: 180, color: '#f2a04c', nozzle: 0.01 },
   /** Wide, soft mist for fades and backgrounds: lots of faint, fuzzy dots. */
-  spray: { name: 'SPRAY', spread: 0.1, rate: 1100, dotSize: 0.158, softness: 0.55, hissGain: 0.9, hissTone: 0.8, crosshair: 32, drips: 50, drain: 0.1, color: '#b98cf2', nozzle: 0.013 },
+  spray: { name: 'SPRAY', spread: 0.1, rate: 1100, dotSize: 0.158, softness: 0.55, hissGain: 0.9, hissTone: 0.8, crosshair: 32, drips: 50, color: '#b98cf2', nozzle: 0.013 },
 };
 
 /** Paint colors, in the mouse wheel's cycling order. Black is always owned. Paint never runs out. */
@@ -1006,6 +1006,8 @@ export const SPRAY = {
   particleSpeed: 26,
   particleSize: 0.035,
   maxParticles: 3000,
+  /** One shake's motion and rattle (s), repeated while RMB is held: only that, it does nothing to the paint. */
+  shakeDuration: 0.55,
   /**
    * A can's particles find their wall with one ray, reused while it still holds: for at most `reuse` seconds,
    * while the eye moved less than `move` (m) and the aim turned less than `aim` (degrees) since the ray was cast.
@@ -1019,8 +1021,11 @@ export const SPRAY = {
  * and the can's physics shape the line: the same paint per second, so speed and distance change its width, density and edge.
  */
 export const BRUSH = {
-  /** One pass of a stroke reaches about this opacity along its middle; passes add up. */
+  /** One pass of a stroke reaches about this opacity along its middle; passes add up. The player's own: Run + the color keys, a step at a time within the range, kept in this browser and never sent. */
   opacity: 0.65,
+  opacityMin: 0.05,
+  opacityMax: 1,
+  opacityStep: 0.1,
   /** Dabs along a stroke, this share of a dab's width apart. */
   spacing: 0.1,
   /** But never closer (m): half a texel at ULTRA, whatever this player's PAINT DETAIL, so a small cap's flick doesn't flood the network. */
@@ -1061,27 +1066,9 @@ export const BRUSH = {
   softnessRef: 0.35,
   /** Share of the cap's cone a dab takes up. */
   coneShare: 0.8,
-  /** How much of a dab's paint its soft edge takes away, for softness 1. */
-  edgeShare: 0.6,
   /** Past the gap (m) the opacity fades from here to the can's reach, never below `fadeMin` of it. */
   fadeStart: 0.5,
   fadeMin: 0.75,
-};
-
-export const PRESSURE = {
-  /** Below this, paint gets thinner. */
-  thinThreshold: 0.5,
-  /** Below this, the can sputters. */
-  sputterThreshold: 0.25,
-  /** Flow at the sputter threshold (flow ramps 1 -> this between the thresholds). */
-  minSteadyFlow: 0.4,
-  /** Fraction of time the can actually fires while sputtering. */
-  sputterDuty: 0.45,
-  /** Shaking the can (hold RMB): pressure restored at once on the press, then per second while held (clamped to 1). */
-  shakeTap: 0.03,
-  shakeRate: 0.5,
-  /** One shake's motion and rattle (s), repeated while RMB is held. */
-  shakeDuration: 0.55,
 };
 
 export const PLAYER = {

@@ -14,6 +14,7 @@ export type Fact =
   | { type: 'colorCycled' }
   | { type: 'colorPicked' }
   | { type: 'capCycled' }
+  | { type: 'opacitySet' }
   | { type: 'sized'; tool: Tool }
   | { type: 'climbed'; meters: number }
   /** Any bound action, from Input.justPressed. */
@@ -26,8 +27,6 @@ export interface Snapshot {
   tool: Tool | null;
   /** In the inventory. */
   tools: readonly Tool[];
-  /** The can's pressure is under PRESSURE.sputterThreshold (in hand or not). */
-  lowPressure: boolean;
   colors: number;
   caps: number;
   /** Within TUTORIAL.ladderRadius of a level ladder's climb volume, not on it. */
@@ -51,8 +50,6 @@ export type Cond =
   | { near: 'ladder' }
   /** Summed over the facts since the hint was wanted. */
   | { total: 'moved' | 'sprinted' | 'used' | 'climbed'; tool?: Tool; crouched?: true; atLeast: Amount }
-  /** The can is low on pressure. */
-  | { low: 'pressure' }
   /** A fact of this type since the hint was wanted. */
   | { event: Fact['type'] }
   /** Visible seconds of play. */

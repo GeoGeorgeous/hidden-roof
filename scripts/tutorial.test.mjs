@@ -18,7 +18,7 @@ function setup(saved = null) {
   const disk = { text: saved };
   const storage = { read: () => disk.text, write: (t) => (disk.text = t) };
   const t = new Tutorial(notes, storage);
-  const snap = { tool: 'can', tools: ['can'], lowPressure: false, colors: 1, caps: 1, nearLadder: false, onLadder: false };
+  const snap = { tool: 'can', tools: ['can'], colors: 1, caps: 1, nearLadder: false, onLadder: false };
   let visible = true;
   const play = (seconds) => {
     for (let i = 0; i < Math.round(seconds * 10); i++) t.update(0.1, visible, snap);
@@ -61,7 +61,7 @@ assert.equal(resolveLine('Press {use} to draw, {sizeDown} / {sizeUp} to change n
   assert.deepEqual(keys(), ['hint:spray']);
 }
 
-// The spray hint waits for move, then goes on the can's use.
+// The spray hint waits for move, then goes on the can's use, and opacity follows.
 {
   const { t, play, keys } = setup();
   play(2);
@@ -70,12 +70,12 @@ assert.equal(resolveLine('Press {use} to draw, {sizeDown} / {sizeUp} to change n
   assert.deepEqual(keys(), ['hint:spray']);
   t.fact({ type: 'used', tool: 'can', amount: 0.6 });
   play(2.1);
-  assert.deepEqual(keys(), []);
+  assert.deepEqual(keys(), ['hint:opacity']);
 }
 
 // A color hint is learnt by time, 5 visible seconds, and not while paused.
 {
-  const { play, keys, learnt, snap, pause } = setup('{"v":1,"done":["move","spray","cap"]}');
+  const { play, keys, learnt, snap, pause } = setup('{"v":1,"done":["move","spray","opacity","cap"]}');
   snap.colors = 2;
   play(0.1);
   assert.deepEqual(keys(), ['hint:color']);
@@ -88,12 +88,12 @@ assert.equal(resolveLine('Press {use} to draw, {sizeDown} / {sizeUp} to change n
   assert.deepEqual(keys(), ['hint:color']);
   play(0.4);
   assert.deepEqual(keys(), []);
-  assert.deepEqual(learnt().sort(), ['cap', 'color', 'move', 'spray']);
+  assert.deepEqual(learnt().sort(), ['cap', 'color', 'move', 'opacity', 'spray']);
 }
 
 // A color switch learns it earlier (after minShown).
 {
-  const { t, play, keys, snap } = setup('{"v":1,"done":["move","spray","cap"]}');
+  const { t, play, keys, snap } = setup('{"v":1,"done":["move","spray","opacity","cap"]}');
   snap.colors = 3;
   play(0.1);
   t.fact({ type: 'colorCycled' });
@@ -131,7 +131,7 @@ assert.equal(resolveLine('Press {use} to draw, {sizeDown} / {sizeUp} to change n
 // The stepladder's two info hints follow every tool hint's rule: in order, after the ladder hint; with the ladder away they
 // show its take step; the info time counts only while the hint itself shows.
 {
-  const { play, keys, snap, board, learnt } = setup('{"v":1,"done":["move","spray","tool.ladder"]}');
+  const { play, keys, snap, board, learnt } = setup('{"v":1,"done":["move","spray","opacity","tool.ladder"]}');
   snap.tools = ['can', 'ladder'];
   snap.tool = 'can';
   play(1);
@@ -151,10 +151,10 @@ assert.equal(resolveLine('Press {use} to draw, {sizeDown} / {sizeUp} to change n
   assert.deepEqual(keys(), ['hint:ladder.shared']);
   play(TUTORIAL.infoSeconds + 0.2);
   assert.deepEqual(keys(), []);
-  assert.deepEqual(learnt(), ['move', 'spray', 'tool.ladder', 'ladder.move', 'ladder.shared']);
+  assert.deepEqual(learnt(), ['move', 'spray', 'opacity', 'tool.ladder', 'ladder.move', 'ladder.shared']);
 }
 {
-  const { play, keys, snap } = setup('{"v":1,"done":["move","spray"]}');
+  const { play, keys, snap } = setup('{"v":1,"done":["move","spray","opacity"]}');
   snap.tools = ['can', 'ladder'];
   snap.tool = 'ladder';
   play(0.2);
@@ -163,7 +163,7 @@ assert.equal(resolveLine('Press {use} to draw, {sizeDown} / {sizeUp} to change n
 
 // The sponge's crouch hint: after the sponge hint; take step with the sponge away; learnt by scrubbing crouched, not standing.
 {
-  const { t, play, keys, snap, board, learnt } = setup('{"v":1,"done":["move","spray","tool.sponge"]}');
+  const { t, play, keys, snap, board, learnt } = setup('{"v":1,"done":["move","spray","opacity","tool.sponge"]}');
   snap.tools = ['can', 'sponge'];
   play(0.2);
   assert.deepEqual(board.get('hint:sponge.crouch').lines, ['Press {slot5} to take the sponge']);
@@ -179,39 +179,25 @@ assert.equal(resolveLine('Press {use} to draw, {sizeDown} / {sizeUp} to change n
   assert.ok(learnt().includes('sponge.crouch'));
 }
 
-// Low pressure is about the can: with the can away it shows "take the can"; learnt by shaking; leaves unlearnt when the pressure is back.
+// Opacity follows the spray hint, with the can in hand; learnt by setting it.
 {
   const { t, play, keys, snap, board, learnt } = setup('{"v":1,"done":["move","spray"]}');
-  snap.lowPressure = true;
-  snap.tool = 'marker';
-  snap.tools = ['can', 'marker'];
-  play(0.2);
-  assert.deepEqual(keys(), ['hint:tool.marker']);
-  snap.tool = 'roller';
-  snap.tools = ['can', 'roller'];
-  play(0.1);
-  snap.tools = ['can'];
   snap.tool = null;
   play(0.2);
-  assert.deepEqual(board.get('hint:pressure').lines, ['Press {slot1} to take the can']);
+  assert.deepEqual(board.get('hint:opacity').lines, ['Press {slot1} to take the can']);
   snap.tool = 'can';
   play(0.2);
-  assert.deepEqual(board.get('hint:pressure').lines, ['Low pressure: hold {shake} to shake the can']);
-  snap.lowPressure = false;
-  play(0.2);
-  assert.deepEqual(keys(), []);
-  assert.ok(!learnt().includes('pressure'));
-  snap.lowPressure = true;
+  assert.deepEqual(board.get('hint:opacity').lines, ['Hold {sprint} and scroll {prev} / {next} to change opacity']);
   play(2.1);
-  t.fact({ type: 'pressed', action: 'shake' });
+  t.fact({ type: 'opacitySet' });
   play(0.2);
   assert.deepEqual(keys(), []);
-  assert.ok(learnt().includes('pressure'));
+  assert.ok(learnt().includes('opacity'));
 }
 
 // A context hint leaves unlearnt when away from the ladder, and starts over.
 {
-  const { t, play, keys, snap, learnt } = setup('{"v":1,"done":["move","spray"]}');
+  const { t, play, keys, snap, learnt } = setup('{"v":1,"done":["move","spray","opacity"]}');
   snap.nearLadder = true;
   play(0.5);
   assert.deepEqual(keys(), ['hint:ladder.climb']);
@@ -219,7 +205,7 @@ assert.equal(resolveLine('Press {use} to draw, {sizeDown} / {sizeUp} to change n
   snap.nearLadder = false;
   play(0.5);
   assert.deepEqual(keys(), []);
-  assert.deepEqual(learnt(), ['move', 'spray']);
+  assert.deepEqual(learnt(), ['move', 'spray', 'opacity']);
   snap.nearLadder = true;
   play(0.1);
   t.fact({ type: 'climbed', meters: 1 });
@@ -271,7 +257,7 @@ assert.equal(resolveLine('Press {use} to draw, {sizeDown} / {sizeUp} to change n
 // No storage at all: in memory, no errors.
 {
   const t = new Tutorial({ set() {}, clear() {} });
-  t.update(2, true, { tool: 'can', tools: ['can'], lowPressure: false, colors: 1, caps: 1, nearLadder: false, onLadder: false });
+  t.update(2, true, { tool: 'can', tools: ['can'], colors: 1, caps: 1, nearLadder: false, onLadder: false });
 }
 
 console.log('tutorial: ok');

@@ -2,7 +2,7 @@ import './style.css';
 import * as THREE from 'three';
 import * as config from './config';
 import { flyCamera, titleCamera } from './render/title-view';
-import { ATMOS, COLORS, HUD, LEVELS, PLAYER, PRESSURE, RENDER, VOLUMETRICS, WALL_HAND } from './config';
+import { ATMOS, BRUSH, COLORS, HUD, LEVELS, PLAYER, RENDER, VOLUMETRICS, WALL_HAND } from './config';
 import { syncSharedUniforms } from './materials';
 import { syncTrackUniforms } from './render/cctv-track';
 import { LightBaker } from './render/bake/baker';
@@ -124,6 +124,7 @@ const tutorial = new Tutorial(notify);
 const tools = new Tools(scene, viewScene, paint, level.solids, audio, inventory, level);
 tools.onFact = (f) => {
   tutorial.fact(f);
+  if (f.type === 'opacitySet') settings.save();
   if (f.type !== 'used') return;
   if (f.tool === 'ladder') beacon.count('ladder');
   else if (f.tool !== 'sponge') beacon.step('sprayed');
@@ -346,8 +347,7 @@ function step(time: number) {
   const tool = building ? null : inventory.tool;
   hud.setCrosshair(tools.crosshair(tool));
   const anchor = tools.labelAnchor(tagPos);
-  const pressure = tool === 'can' ? inventory.pressure : null;
-  hud.placeToolTags(anchor ? toScreen(anchor) : null, pressure, pressure !== null && pressure < PRESSURE.sputterThreshold);
+  hud.placeToolTags(anchor ? toScreen(anchor) : null, tool === 'can' ? BRUSH.opacity : null);
   // A lettering atlas grew or started over: the signs ask for their rects again.
   if (textAtlasVersion() !== textAtlasSeen) {
     textAtlasSeen = textAtlasVersion();

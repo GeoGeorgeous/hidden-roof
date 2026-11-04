@@ -1,4 +1,4 @@
-import { AUDIO, HUD, INK_STYLES, PAINT, PAINT_DETAIL, PLAYER, RENDER, SKYLINE, SMOKE, TUTORIAL, VOLUMETRICS, WALL_HAND } from './config';
+import { AUDIO, BRUSH, HUD, INK_STYLES, PAINT, PAINT_DETAIL, PLAYER, RENDER, SKYLINE, SMOKE, TUTORIAL, VOLUMETRICS, WALL_HAND } from './config';
 import { exitGameFullscreen } from './fullscreen';
 import { sentence } from './menu-ui';
 import { DEFAULT_STYLE, inkStyle, setInkStyle } from './render/ink/styles';
@@ -270,7 +270,8 @@ export class Settings {
     PAINT.texelsPerMeter = PAINT_DETAIL[this.detail];
   }
 
-  private save() {
+  /** Remember what play changed (the can's opacity), from outside the page. */
+  save() {
     save({ style: INK_STYLES[inkStyle()]?.name, pixelScale: RENDER.pixelScale, maxFps: RENDER.maxFps, volumetrics: this.vol, paintDetail: this.detail, cityDetail: this.city, values: changedValues(REMEMBERED, this.defaults), controls: keyOverrides() });
   }
 }
@@ -343,6 +344,7 @@ const REMEMBERED: Remembered[] = [
   { name: 'HUD.perf', obj: HUD, field: 'perf' },
   { name: 'WALL_HAND.enabled', obj: WALL_HAND, field: 'enabled' },
   { name: 'TUTORIAL.enabled', obj: TUTORIAL, field: 'enabled' },
+  { name: 'BRUSH.opacity', obj: BRUSH, field: 'opacity' },
   ...SOUNDS.map(([, field]) => ({ name: `AUDIO.${field}`, obj: AUDIO, field })),
 ];
 

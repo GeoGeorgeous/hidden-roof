@@ -38,7 +38,6 @@ const RUNS = [
   { name: 'can standard', slot: 0, cap: 'standard', color: 'red', frames: 90, aim: (t) => [0.5 - t, -0.35 + 0.15 * Math.sin(t * 12)] },
   { name: 'can fat, held for runs', slot: 0, cap: 'fat', color: 'yellow', frames: 150, aim: () => [0.25, -0.55] },
   { name: 'can spray', slot: 0, cap: 'spray', color: 'blue', frames: 90, aim: (t) => [-0.6 + 1.2 * t, -0.75] },
-  { name: 'can sputtering', slot: 0, cap: 'standard', color: 'green', pressure: 0.15, frames: 90, aim: (t) => [-0.5 + t, -0.05] },
   { name: 'marker', slot: 1, color: 'black', width: 0.024, frames: 90, aim: (t) => [0.6 - 1.2 * t, -0.3 + 0.15 * Math.sin(t * 9)] },
   { name: 'marker thinnest', slot: 1, color: 'white', width: 0, frames: 60, aim: (t) => [-0.4 + 0.8 * t, -0.35] },
   { name: 'marker widest, held for runs', slot: 1, color: 'pink', width: 0.1, frames: 90, aim: (t) => [-0.5 + 0.5 * Math.min(1, 2 * t), -0.2] },
@@ -338,7 +337,6 @@ async function play({ runs, stand, faceYaw, gap, settle }) {
       inv.select(run.slot);
       while (run.color && inv.color !== run.color) inv.cycleColor(1);
       while (run.cap && inv.cap !== run.cap) inv.cycleCap(1);
-      inv.pressure = run.pressure ?? 1;
       if (run.width !== undefined) inv.size[inv.tool] = run.width;
     }
     const [yaw, pitch] = run.aim(t);

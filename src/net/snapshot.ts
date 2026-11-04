@@ -27,7 +27,7 @@ export interface Snapshot {
   action: AvatarAction;
   color: PaintColor;
   cap: CapId;
-  /** The can's flow (SprayTool.flow): 0 when nothing comes out (another tool, not spraying, no pressure). */
+  /** The can's flow (SprayTool.flow): 0 when nothing comes out (another tool, not spraying). */
   flow: number;
 }
 

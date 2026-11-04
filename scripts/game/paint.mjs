@@ -25,7 +25,6 @@ await check('can: shaking and spraying exclude each other, the one pressed first
     const spray = g.tools.spray;
     input.setLocked(true);
     g.inventory.select(0);
-    g.inventory.pressure = 0.5;
     const out = {};
     // RMB first, then LMB as well: it shakes, and nothing sprays.
     await steps((f) => (f === 0 && input.button(2, true), f === 5 && input.button(0, true), f === 20 && (input.button(0, false), input.button(2, false)), f === 15 && ((out.shookFirst = spray.shaking), (out.sprayedWhileShaking = spray.flow > 0)), f === 30));
@@ -45,7 +44,6 @@ await check('brush: paint lands at once, a fast flick leaves no gaps, and partic
     const { input, player } = g;
     input.setLocked(true);
     g.inventory.select(0);
-    g.inventory.pressure = 1;
     g.paint.clear();
     player.setSpawn(player.position.clone().set(2.4, 0, 2.95), -Math.PI / 2);
     player.respawn();
@@ -76,6 +74,63 @@ await check('brush: paint lands at once, a fast flick leaves no gaps, and partic
     return out;
   });
   return r.firstFrame > 0 && r.inAir > 0 && r.afterRelease === 0 && r.widest > 0 && r.widest < r.radius ? null : JSON.stringify(r);
+});
+
+await check('opacity: Run + the color keys set it with the can in hand, the color stays; the paint follows, it stays in this browser, and flow still says only that paint comes out', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { input, inventory: inv, player, config } = g;
+    const { BRUSH } = config;
+    const shift = (type) => window.dispatchEvent(new KeyboardEvent(type, { code: 'ShiftLeft' }));
+    const scroll = (dir) => steps((f) => (f === 0 && input.wheel(dir), f === 2));
+    const was = BRUSH.opacity;
+    input.setLocked(true);
+    inv.addColor('red');
+    inv.select(0);
+    const color = inv.color;
+    const saved = () => JSON.parse(localStorage.getItem('roofhiddenhaus.settings') ?? '{}').values?.['BRUSH.opacity'];
+    const gauge = document.querySelector('.psi-gauge');
+    shift('keydown');
+    await scroll(-1);
+    const up = [BRUSH.opacity, inv.color === color, gauge.classList.contains('show'), gauge.querySelector('b').textContent];
+    await scroll(1);
+    await scroll(1);
+    const down = [BRUSH.opacity, inv.color === color, saved()];
+    shift('keyup');
+    await scroll(1);
+    const plain = [BRUSH.opacity, inv.color !== color];
+    // A dab at two opacities, on the same spot.
+    player.setSpawn(player.position.clone().set(2.4, 0, 2.95), -Math.PI / 2);
+    player.respawn();
+    const amount = async (opacity) => {
+      BRUSH.opacity = opacity;
+      g.paint.clear();
+      g.paint.log = [];
+      let flow = 0;
+      await steps((f) => {
+        player.yaw = -Math.PI / 2;
+        player.pitch = -0.1;
+        if (f === 0) input.button(0, true);
+        if (f === 3) (flow = g.tools.spray.flow), input.button(0, false);
+        return f === 5;
+      });
+      const stamp = g.paint.log.find((o) => o.kind === 'stamp');
+      g.paint.log = null;
+      return [stamp?.amount, flow];
+    };
+    const faint = await amount(0.15);
+    const dense = await amount(0.65);
+    BRUSH.opacity = was;
+    g.paint.clear();
+    g.fixedStep.dt = 0;
+    input.setLocked(false);
+    const left = JSON.parse(localStorage.getItem('roofhiddenhaus.settings'));
+    delete left.values['BRUSH.opacity'];
+    localStorage.setItem('roofhiddenhaus.settings', JSON.stringify(left));
+    return { up, down, plain, faint, dense };
+  });
+  const ok = JSON.stringify([r.up, r.down, r.plain]) === JSON.stringify([[0.75, true, true, '75%'], [0.55, true, 0.55], [0.55, true]]);
+  return ok && r.faint[0] < r.dense[0] / 2 && r.faint[1] === 1 && r.dense[1] === 1 ? null : JSON.stringify(r);
 });
 
 await check('render: never more pixels than the screen has (a page zoomed out to 50%), as many at 100%', async () => {
@@ -310,7 +365,6 @@ await check('tools: the wheel\'s click picks the color of the paint under the cr
     const yaws = [0, 1, 2, 3].map((k) => g.player.yaw + (k * Math.PI) / 2);
     g.player.yaw = yaws.reduce((a, b) => (wallAt(b) < wallAt(a) ? b : a));
     inv.select(0);
-    inv.pressure = 1;
     inv.pickColor('red');
     await steps((f) => (f === 0 && input.button(0, true), f === 20 && input.button(0, false), f === 39));
     inv.pickColor('blue');

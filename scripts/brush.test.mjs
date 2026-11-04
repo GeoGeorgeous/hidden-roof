@@ -5,12 +5,12 @@ import * as THREE from 'three';
 import './ts-imports.mjs';
 
 const { BRUSH, CAPS, SPRAY } = await import('../src/config.ts');
-const { dabAt, dabSpacing } = await import('../src/spray/dab.ts');
+const { dabAt, dabSpacing, stepOpacity } = await import('../src/spray/dab.ts');
 const { SprayStroke } = await import('../src/spray/stroke.ts');
 
 const RATES = [60, 144, 240];
 const near = (a, b, share, what) => assert.ok(Math.abs(a - b) <= share * Math.abs(b), `${what}: ${a} against ${b}`);
-const dab = (cap, distance, speed = 0, flow = 1) => dabAt(CAPS[cap], flow, distance, speed, { radius: 0, softness: 0, amount: 0 });
+const dab = (cap, distance, speed = 0) => dabAt(CAPS[cap], distance, speed, { radius: 0, softness: 0, amount: 0 });
 
 /** One pass's opacity along the middle of a straight line of such dabs. */
 function pass(cap, distance, speed) {
@@ -26,8 +26,8 @@ for (const cap of Object.keys(CAPS)) {
   assert.equal(dab(cap, 0.2).radius, dab(cap, BRUSH.gap).radius, `${cap}: up to the gap the can acts as close up`);
   assert.ok(dab(cap, 2.5).radius > dab(cap, 1).radius, `${cap}: far is wider`);
   assert.ok(dab(cap, 3).softness >= dab(cap, 0.5).softness, `${cap}: far is softer`);
-  // A pass reaches about the opacity set, whatever the spacing: the small caps' spacing is the minimum, the big ones' a share of the dab.
-  near(pass(cap, 3, 0), BRUSH.opacity * 0.85, 0.35, `${cap}: one pass far away`);
+  // A pass reaches the opacity set, less the fade with distance, whatever the spacing and the edge: the small caps' spacing is the minimum, the big ones' a share of the dab.
+  near(pass(cap, 3, 0), BRUSH.opacity * 0.78, 0.06, `${cap}: one pass far away`);
   assert.ok(dabSpacing(CAPS[cap], 0.5) >= BRUSH.minSpacing, `${cap}: spacing has a floor`);
 }
 assert.ok(dabSpacing(CAPS.skinny, 0.5) === BRUSH.minSpacing, 'skinny is on the floor up close');
@@ -40,7 +40,20 @@ const fast = dab('standard', 1, BRUSH.speedRef * 4);
 assert.deepEqual(dab('standard', 1, 0), slow, 'up to the reference speed a line is as set');
 near(fast.radius, slow.radius * (1 + BRUSH.speedWiden), 1e-9, 'fast is wider');
 assert.ok(fast.softness > slow.softness && fast.amount < slow.amount, 'fast is softer and thinner');
-assert.ok(dab('standard', 1, 0, 0.5).amount < slow.amount, 'less out of the can is less paint');
+
+// The set opacity.
+{
+  const set = BRUSH.opacity;
+  const walk = (from, dir, steps) => Array.from({ length: steps }).reduce((v) => stepOpacity(v, dir), from);
+  assert.deepEqual([1, 2, 3, 4, 5].map((n) => walk(set, 1, n)), [0.75, 0.85, 0.95, 1, 1], 'up, stopping at 100%');
+  assert.deepEqual([6, 7, 8].map((n) => walk(set, -1, n)), [0.05, 0.05, 0.05], 'down, stopping at 5%');
+  assert.equal(walk(walk(set, 1, 2), -1, 2), set, 'steps back to the same number');
+  for (const cap of Object.keys(CAPS)) {
+    BRUSH.opacity = 0.2;
+    near(pass(cap, 3, 0), 0.2 * 0.78, 0.06, `${cap}: a faint pass`);
+    BRUSH.opacity = set;
+  }
+}
 
 /** A wall at z = -depth, painted where x is under `end`; a stroke over it, with what it lays. */
 function rig(depth, end = Infinity) {
@@ -65,7 +78,7 @@ function play(r, hz, seconds, depth, cap, x, y = () => 0) {
   const speeds = [];
   for (let i = 0; i < Math.round(seconds * hz); i++) {
     forward.set(x(i * dt), y(i * dt), -depth).normalize();
-    r.stroke.update({ eye, forward, cap: CAPS[cap], flow: 1, dt });
+    r.stroke.update({ eye, forward, cap: CAPS[cap], dt });
     speeds.push(r.stroke.speed);
   }
   return speeds;
@@ -149,11 +162,11 @@ for (const hz of RATES) {
   const forward = new THREE.Vector3(BRUSH.maxJump + 1, 0, -1).normalize();
   const fresh = new THREE.Vector3().copy(forward);
   BRUSH.streamline = 0;
-  r.stroke.update({ eye, forward: fresh, cap: CAPS.skinny, flow: 1, dt: 1 / 60 });
+  r.stroke.update({ eye, forward: fresh, cap: CAPS.skinny, dt: 1 / 60 });
   assert.equal(r.dabs.length, before + 1, 'a jump leaves no line between');
   const far = rig(1);
   play(far, 60, 1 / 60, 1, 'skinny', () => 0);
-  far.stroke.update({ eye, forward: new THREE.Vector3(2.5, 0, -1).normalize(), cap: CAPS.skinny, flow: 1, dt: 1 / 60 });
+  far.stroke.update({ eye, forward: new THREE.Vector3(2.5, 0, -1).normalize(), cap: CAPS.skinny, dt: 1 / 60 });
   assert.equal(far.dabs.length, 1 + BRUSH.maxDabs, 'at most maxDabs in a frame');
   near(far.dabs.at(-1).x, 2.5, 1e-6, 'and they still reach the spot');
 }

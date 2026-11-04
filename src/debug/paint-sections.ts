@@ -3,7 +3,7 @@ import { c, r, t, type Hooks, type Item, type Section } from './tuning';
 
 // F3 panel contents for painting (tuning.ts has the helpers): what each tool
 // does (one vocabulary: reach, width, opacity, softness), the caps, paint
-// runs, pressure, quality (smoothness against cost), the cursor (size keys'
+// runs, quality (smoothness against cost), the cursor (size keys'
 // range and crosshair).
 
 /** One heading per cap, its own items under each. */
@@ -43,6 +43,7 @@ export function paintSections(h: Hooks): Section[] {
         { kind: 'heading', label: 'CAN' },
         r('reach', ['SPRAY', 'reach'], 1, 8, 0.1),
         r('spray speed', ['SPRAY', 'particleSpeed'], 2, 40, 0.5),
+        r('shake time', ['SPRAY', 'shakeDuration'], 0.1, 2, 0.05),
         { kind: 'heading', label: 'MARKER' },
         r('reach', ['MARKER', 'reach'], 0.5, 4, 0.1),
         r('width', ['MARKER', 'width'], 0, 0.4, 0.002, sizes),
@@ -64,6 +65,9 @@ export function paintSections(h: Hooks): Section[] {
       title: 'Brush',
       items: [
         r('opacity', ['BRUSH', 'opacity'], 0.05, 1, 0.01),
+        r('opacity: least', ['BRUSH', 'opacityMin'], 0.01, 0.5, 0.01),
+        r('opacity: most', ['BRUSH', 'opacityMax'], 0.5, 1, 0.01),
+        r('opacity: step', ['BRUSH', 'opacityStep'], 0.01, 0.5, 0.01),
         r('streamline', ['BRUSH', 'streamline'], 0, 0.1, 0.005),
         r('held: rate', ['BRUSH', 'buildRate'], 0, 200, 1),
         r('held: opacity', ['BRUSH', 'buildAmount'], 0, 1, 0.05),
@@ -85,7 +89,6 @@ export function paintSections(h: Hooks): Section[] {
         r('softness: far', ['BRUSH', 'farSoft'], 0, 1, 0.05),
         r('softness: cap at par', ['BRUSH', 'softnessRef'], 0.05, 1, 0.05),
         r('spread share', ['BRUSH', 'coneShare'], 0, 1, 0.05),
-        r('soft edge share', ['BRUSH', 'edgeShare'], 0, 0.9, 0.05),
         r('fade start', ['BRUSH', 'fadeStart'], 0, 0.9, 0.05),
         r('fade: min', ['BRUSH', 'fadeMin'], 0, 1, 0.05),
       ],
@@ -127,23 +130,6 @@ export function paintSections(h: Hooks): Section[] {
         t('runs view', ['RUNS_VIEW', 'enabled']),
         r('runs view: size', ['RUNS_VIEW', 'size'], 1, 12, 0.5),
         c('runs view: color', ['RUNS_VIEW', 'color']),
-      ],
-    },
-    {
-      id: 'pressure',
-      title: 'Pressure',
-      items: [
-        { kind: 'heading', label: 'DRAIN PER CAP' },
-        ...CAP_ORDER.map((cap) => r(`${CAPS[cap].name.toLowerCase()} cap`, ['CAPS', cap, 'drain'], 0, 0.3, 0.005)),
-        { kind: 'heading', label: 'SPUTTER' },
-        r('thinning from', ['PRESSURE', 'thinThreshold'], 0, 1, 0.01),
-        r('from', ['PRESSURE', 'sputterThreshold'], 0, 1, 0.01),
-        r('flow', ['PRESSURE', 'minSteadyFlow'], 0, 1, 0.01),
-        r('bursts', ['PRESSURE', 'sputterDuty'], 0, 1, 0.01),
-        { kind: 'heading', label: 'SHAKE' },
-        r('refill: press', ['PRESSURE', 'shakeTap'], 0, 0.3, 0.01),
-        r('refill: per second', ['PRESSURE', 'shakeRate'], 0, 2, 0.05),
-        r('time', ['PRESSURE', 'shakeDuration'], 0.1, 2, 0.05),
       ],
     },
     {

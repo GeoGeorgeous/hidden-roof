@@ -96,13 +96,18 @@ await check('input: play actions answer for every key, button and wheel step bou
     for (const code of ['ControlRight', 'KeyE']) key('keyup', code);
     window.dispatchEvent(new MouseEvent('mouseup', { button: 2 }));
     out.released = [input.held('crouch'), input.held('shake')];
+    // Shift + wheel comes sideways in some browsers, and it's still a wheel step; a swipe's sideways part isn't.
+    input.endFrame();
+    window.dispatchEvent(new WheelEvent('wheel', { deltaX: -100, shiftKey: true }));
+    out.sideways = [input.step('prev', 'next')];
+    input.endFrame();
+    window.dispatchEvent(new WheelEvent('wheel', { deltaX: -100 }));
+    out.sideways.push(input.step('prev', 'next'));
     input.setLocked(false);
     input.endFrame();
-    // Labels come from the bindings.
-    out.alert = document.querySelector('.psi-alert').textContent;
     return out;
   });
-  const want = { crouch: [true, true], size: [true, true, 1], shake: [true, true, false], wheel: [1, false], repeat: [false, 1], released: [false, false], alert: 'LOW PRESSURE — HOLD [RMB] TO SHAKE' };
+  const want = { crouch: [true, true], size: [true, true, 1], shake: [true, true, false], wheel: [1, false], repeat: [false, 1], released: [false, false], sideways: [-1, 0] };
   return JSON.stringify(r) === JSON.stringify(want) ? null : JSON.stringify(r);
 });
 
