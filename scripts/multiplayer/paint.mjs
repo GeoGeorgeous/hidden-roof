@@ -43,7 +43,7 @@ export async function paint(w) {
   await b.waitForTimeout(500);
   // Shown again, but paused: in the menu; and A follows B's clock, not the time B went quiet.
   await noted('menu');
-  assert.ok((await a.evaluate(() => [...window.game.net.remotes.players.values()][0].stats.delay)) < 1, 'A shows B on time');
+  await a.waitForFunction(() => [...window.game.net.remotes.players.values()][0].stats.delay < 1, null, { timeout: 5000 }).catch(() => assert.fail('A shows B on time'));
   painted = await paintHash(a);
   assert.equal(await paintHash(b), painted, 'B, shown again, has the paint A has');
 

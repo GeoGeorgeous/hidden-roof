@@ -78,7 +78,6 @@ export function itemSections(h: Hooks): Section[] {
         r('ring: paint color', ['PICKUP', 'ring', 'paint'], 0, 1, 0.05),
         gray('ring: cap color', ['PICKUP', 'ring', 'cap']),
         gray('ring: tool color', ['PICKUP', 'ring', 'tool']),
-        r('ring: min size', ['PICKUP', 'ring', 'minSize'], 0, 0.1, 0.005),
         r('glow: size', ['PICKUP', 'glow', 'size'], 0, 4, 0.05),
         r('glow: floor size', ['PICKUP', 'glow', 'floor'], 0, 5, 0.05),
         r('glow: strength', ['PICKUP', 'glow', 'strength'], 0, 2, 0.05),

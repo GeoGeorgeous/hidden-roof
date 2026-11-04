@@ -32,7 +32,6 @@ export const HINTS: Record<string, string> = {
   'PICKUP.ring.paint': 'A paint pickup\'s ring, from black (0) to its paint color (1).',
   'PICKUP.ring.cap': 'Shade of a cap pickup\'s ring, from white to black. It\'s solid: black is black.',
   'PICKUP.ring.tool': 'Shade of a tool pickup\'s ring, from white to black. It\'s solid: black is black.',
-  'PICKUP.ring.minSize': 'Smallest the ring gets on screen, as a share of its height, so its shape reads from far away (it grows upward from there). 0 = it shrinks with distance.',
   'PICKUP.glow.size': 'Width of the soft light around a pickup (m): paint in its color, the rest white.',
   'PICKUP.glow.floor': 'Width of the pool of light on the floor under a pickup (m).',
   'PICKUP.glow.strength': 'How bright pickups glow. 0 = no glow.',

@@ -59,7 +59,6 @@ interface Tag {
 
 const center = new THREE.Vector3();
 const view = new THREE.Vector3();
-const up = new THREE.Vector3();
 const dir = new THREE.Vector3();
 const mid = new THREE.Vector3();
 
@@ -88,15 +87,13 @@ export class PickupLabels {
     const sight = this.sightClock >= 1 / sightRate;
     if (sight) this.sightClock = 0;
     const cam = this.camera.position;
-    up.setFromMatrixColumn(this.camera.matrixWorld, 1);
     // Screen px per m at 1 m from the camera.
     const scale = viewRect().height / (2 * Math.tan((this.camera.fov * Math.PI) / 360));
     const now = performance.now();
     for (const p of pickups) {
       const tag = this.tags.get(p.id) ?? this.make(p);
       const size = p.halo.scale.y;
-      // The ring's middle: it grows upward from its anchor (Pickups.place).
-      center.set(p.pos[0], p.pos[1] + p.halo.position.y, p.pos[2]).addScaledVector(up, size * (0.5 - p.halo.center.y));
+      center.set(p.pos[0], p.pos[1] + p.halo.position.y, p.pos[2]);
       const far = cam.distanceTo(center);
       const close = p.group.visible && far < reach && PICKUP.label[tag.shape].on;
       if (close && sight) tag.seen = this.inSight(center, far);
