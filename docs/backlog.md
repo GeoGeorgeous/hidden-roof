@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 330
+The one list of what's left. Counter for new ids: next: 331
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -155,6 +155,8 @@ The API and why it is so: docs/admin-api.md.
 Shipped since the last release; the release commit empties this list.
 1. [IDEA-225]: Painting Rework: the can as a continuous brush (dabs between frames, build-up when held still, streamline; particles only for show)
 2. [IDEA-227]: Painting Rework: the can's physics: hand speed and distance (gap, close, far)
+
+1. [BUGS-330]: Lightning with the Thunder slider at 0 stopped the game with an error (an exponential ramp to 0): it is silent now
 
 ## Discarder
 
