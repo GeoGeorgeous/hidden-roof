@@ -252,8 +252,8 @@ dirty rects upload. No objects per stroke. A frame costs the same however
 much is painted. Owner: no lag seen in play (not measured). What scales is CPU rastering of
 incoming ops, by how many people paint now, as before.
 
-Measured 2026-11-04 (below): a fast stroke costs 3.3 ms of tool time at most,
-a ray 40 µs on the roof (168 meshes near the player). No BVH needed.
+Measured 2026-11-04 (below): the fastest stroke costs 3.3 ms of tool time on
+average, a ray 40 µs on the roof (168 meshes near the player). No BVH needed.
 
 ### Measured (2026-11-04)
 
@@ -269,12 +269,12 @@ Ops/s, what they send, and the tool's mean frame time:
 | spray, 1 m | 1100, 25 KB/s, 0.9 ms | 60 | 109 | 174 | 387 | 667, 16 KB/s, 1.1 ms |
 | skinny, 0.6 m | 1900, 43 KB/s | 60 | 353 | 808 | 1798 | 3061, 69 KB/s |
 
-- The brush is lighter than today's particles up to about 6 m/s on every cap;
-  only the small caps pass them, at about 10 m/s and up. Today's ~1760 ops/s
-  holds for spraying a wall without a pause.
-- Worst tool time 7.9 ms in a frame (skinny, 12 m/s, 0.6 m), today's 4.1 ms;
+- Up to about 5 m/s the brush is lighter than today's particles on every cap;
+  above it skinny, standard and fat can pass today's rate, spray doesn't.
+  Today's ~1760 ops/s holds for spraying a wall without a pause.
+- Slowest frame of the tool: 7.9 ms (skinny, 12 m/s, 0.6 m), today's 10.6 ms;
   at most 64 dabs in a frame, so `MAX_DABS` (160) was never reached.
-- Uploads stay small: at most 5.6k texels a frame (spray, far, fast).
+- Uploads stay small: 5.6k texels a frame on average at most (spray, far, fast).
 - Hand speed depends on the frame rate. Read for a true 1 m/s with the spray
   cap at 2.4 m: 1.91 m/s at 60 Hz, 3.62 at 144, 5.49 at 240. The brush must take
   it from last frame's point, not the last dab's. The owner tuned the feel at
