@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 338
+The one list of what's left. Counter for new ids: next: 341
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -49,16 +49,17 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 1. TASK [BL-076]: Run the next public playtest and verify that all bugs from the previous playtest have been fixed (docs/ideas/weak-links.md) @1.7.2
 2. IDEA [?BL-071]: Multiplayer View-Only sessions: past sessions are opened for viewing only (gallary)
-3. [IDEA-288]: Admin mode: who painted what, and erasing one player's paint with what it covered back, within the last ~15 minutes (the server's ring of op batches); after the Painting Rework cuts ops/s (TASK-231) (docs/ideas/admin-mode.md) @1.9.0
+3. [IDEA-288]: Admin mode: who painted what, and erasing one player's paint with what it covered back, within the last ~15 minutes (the server's ring of op batches) (docs/ideas/admin-mode.md) @1.9.0
 4. [IDEA-289]: A 15-minute timelapse of a wall's painting, from IDEA-288's ring of op batches; only if it comes nearly free (docs/ideas/admin-mode.md)
 
 ## Painting
 
 1. IDEA [BL-074]: Stencils
 2. [TASK-230]: Painting Rework: paint runs with the brush: the 1.5.0 runs don't fit it (measured: the can barely runs); the design talked over in the plan's module 7 (the marker's runs are good today; puddle runs are only a candidate) (docs/ideas/paint-refactoring.md) @1.7.0
-3. [TASK-232]: Painting Rework: to production: settings into config.ts and F3, no painting by particles, pressure no longer runs out and shaking is only an animation (unlock-all stays dev only), update golden and multiplayer tests (docs/ideas/paint-refactoring.md) @1.7.0
+3. [TASK-232]: Painting Rework: to production: what's left once the runs are in: cut unlock-all (`ALL_PAINT`), delete the plan (docs/ideas/paint-refactoring.md) @1.7.0
 4. [?IDEA-166]: Painting Rework: lock the camera while painting (not in the branch) (docs/ideas/paint-refactoring.md)
-5. [IDEA-336]: Marker: a flat nib, wide across and thin along, for calligraphy: tried on a can cap (TRANSVERSAL), its code kept commented out in src/spray/dab.ts, src/hud.ts and src/config.ts
+5. [IDEA-336]: Marker: a flat nib, wide across and thin along, for calligraphy: tried on a can cap (TRANSVERSAL), its code kept commented out, each place marked "Kept for a flat nib on the marker, a later version." (grep it)
+6. [?IDEA-339]: The plume follows the opacity you set: today it looks the same at 5% and 100%, for you and for others (others would need it in the snapshot)
 
 ## Input
 
@@ -69,6 +70,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 1. BUGS [BL-034]: Paint pages at ULTRA can reach ~1 GB of GPU memory: measured, 1045 MB is the ceiling (all 49 pages, 72% full); the lossless fix is BL-144 (docs/ideas/performance.md)
 2. [PERF-200]: Reduce Ladder Shadow Update Delay Without Frequent Rebaking @1.7.0
 3. [PERF-322]: The server allocates a new buffer for every state it keeps as a player's last (`p.last`, server/session.ts): one buffer a player would do, as SNAPSHOT_BYTES is fixed
+4. [PERF-340]: A client among 40 players holds 40 fps on a good GPU, 20 on Intel UHD, before and after the Painting Rework: the frame's CPU is the 40 figures (about 100 draw calls)
 
 ## Rendering
 
@@ -97,7 +99,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## UI
 
-1. [?TASK-203]: The HUD fits every window: it scales with the window and the DPR (tiny at 4K at 100%, crowded at 820×560), LOW PRESSURE stays on screen at 820×560 (BUGS-199 merged in), the compact pause menu with F3 open stays above the HUD (BUGS-198 merged in, likely fixed by the `--z-*` layers); all three checked on shots first (docs/ideas/hud-scale.md)
+1. [?TASK-203]: The HUD fits every window: it scales with the window and the DPR (tiny at 4K at 100%, crowded at 820×560), the compact pause menu with F3 open stays above the HUD (BUGS-198 merged in, likely fixed by the `--z-*` layers); all three checked on shots first (docs/ideas/hud-scale.md)
 2. [IDEA-204]: Notifications beyond play: the menu, pages, loading and a hidden tab on the same model; screen-reader announcements; more events (away and back, context lost, online, refused pointer lock or clipboard); battery (docs/ideas/notifications.md)
 
 ## Avatar
@@ -122,6 +124,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## Servers and deploy
 
 1. [TASK-201]: The game on itch.io and CrazyGames, played from roof.hidden.haus in their iframe: itch as an HTML upload whose index.html is that iframe (a link-only page is never indexed), CrazyGames' Basic Launch from our own domain (no SDK); the CSP's `frame-ancestors` (now `'none'`, in `vite.config.ts` and Caddy on the host) opened to itch's and CrazyGames' domains; pointer lock, fullscreen and the window size checked inside both; the AI disclosure answered (docs/ideas/web-portals.md) @1.7.1
+2. [IDEA-338]: The server limits a stamp's reach (radius × stretch) when it takes an op: a modified client's huge slanted stamps search ~80 times the seam cells of a round one
 
 ## CCTV
 

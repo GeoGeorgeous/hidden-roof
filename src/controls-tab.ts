@@ -4,7 +4,7 @@ import { type Action, keyName } from './input';
 import { allDefault, bind, type Bound, CONTROL_GROUPS, defaultSlot, nameOf, refusal, resetKeys, restore, slots, snapshot } from './key-bindings';
 import { button, choice, div, el } from './menu-ui';
 import { ResetCorner } from './reset-corner';
-import type { OwnTab } from './settings';
+import type { OwnTab } from './settings-types';
 
 // Settings → Controls: every play action's two slots (key-bindings.ts), in
 // groups, with Crouch's mode and Forward's tap twice to run inside their rows.

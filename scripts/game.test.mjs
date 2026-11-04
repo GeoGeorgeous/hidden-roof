@@ -10,6 +10,7 @@ await import('./game/remember.mjs');
 await import('./game/files.mjs');
 await import('./game/input.mjs');
 await import('./game/capture.mjs');
+await import('./game/brush.mjs');
 await import('./game/paint.mjs');
 await import('./game/hints.mjs');
 await import('./game/tools.mjs');

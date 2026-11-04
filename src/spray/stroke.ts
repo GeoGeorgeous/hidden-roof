@@ -85,7 +85,8 @@ export class SprayStroke<H extends WallHit> {
       this.owed = 0;
       this.lay(f, hit, 1);
     } else if (this.lastDab.distanceTo(hit.point) >= spacing) {
-      this.owed = Math.max(-1, this.owed - this.fill(f, spacing));
+      // At most one owed on: under 60 frames a second a slow line would pile them up for the moment it stops.
+      this.owed = THREE.MathUtils.clamp(this.owed - this.fill(f, spacing), -1, 1);
     } else {
       for (; this.owed >= 1; this.owed--) this.lay(f, hit, BRUSH.buildAmount);
     }
