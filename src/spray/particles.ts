@@ -1,16 +1,24 @@
 import * as THREE from 'three';
 import { SPRAY, type CapSpec } from '../config';
+import { plumeMaterial, updatePlume } from './plume-material';
+import { plumeLook, type PlumeLook } from './plume';
 import type { WallProbe } from './wall-probe';
 
-// Spray particles, only to be seen: paint comes from the brush (brush.ts), and
-// other players' as paint ops. They fly from the nozzle to the wall and are
-// gone. Particles never persist: the pool is fixed size.
+// A can's plume, only to be seen: paint comes from the brush (brush.ts), and
+// other players' as paint ops. Fine specks leave the nozzle in a cone toward
+// the aim, slow in the air and fade out, never past the wall. Specks never
+// persist: the pool is fixed size.
 
 interface Particle {
   pos: THREE.Vector3;
   vel: THREE.Vector3;
   life: number;
-  /** Launched since the last update: drawn where it starts before it moves. */
+  /** Its whole life (s): how far along it is, for its look. */
+  span: number;
+  /** How far it went, and how far it may: the wall. */
+  dist: number;
+  limit: number;
+  /** Launched since the last update: it starts a part of the frame on its way, so a frame's batch is a stream, not a bead. */
   fresh: boolean;
 }
 
@@ -18,10 +26,10 @@ interface Particle {
 export class WallMemo {
   readonly eye = new THREE.Vector3();
   readonly forward = new THREE.Vector3();
-  readonly plane = new THREE.Plane();
   /** Seconds sprayed since the cast; Infinity: none kept. */
   age = Infinity;
-  onWall = false;
+  /** How far the wall is along the aim (m); SPRAY.reach: none. */
+  distance = 0;
 }
 
 interface ShowParams {
@@ -39,14 +47,17 @@ interface ShowParams {
 }
 
 const dir = new THREE.Vector3();
-const target = new THREE.Vector3();
-const ray = new THREE.Ray();
+const axis = new THREE.Vector3();
+const look: PlumeLook = { cone: 0, fan: 1, angle: 0, size: 0, grow: 1 };
 
-/** A particle's direction into `dir`: in the cap's cone around the aim, Gaussian-ish, clamped. */
+/** A speck's direction into `dir`: around `axis` within the cap's cone, Gaussian-ish, clamped; a flat nib's cone is a fan. */
 function aim(e: ShowParams) {
-  const r = Math.tan(Math.min(1, Math.abs(gauss()) * 0.5) * (e.cap.spread / 2));
+  const r = Math.tan(Math.min(1, Math.abs(gauss()) * 0.5) * (look.cone / 2));
   const a = Math.random() * Math.PI * 2;
-  return dir.copy(e.forward).addScaledVector(e.right, Math.cos(a) * r).addScaledVector(e.up, Math.sin(a) * r).normalize();
+  const x = Math.cos(a) * r * look.fan;
+  const y = Math.sin(a) * r;
+  const [c, s] = [Math.cos(look.angle), Math.sin(look.angle)];
+  return dir.copy(axis).addScaledVector(e.right, x * c - y * s).addScaledVector(e.up, x * s + y * c).normalize();
 }
 
 export class SprayParticles {
@@ -55,6 +66,9 @@ export class SprayParticles {
   private points: THREE.Points;
   private positions: Float32Array;
   private colors: Float32Array;
+  private ages: Float32Array;
+  private sizes: Float32Array;
+  private grows: Float32Array;
 
   constructor(
     scene: THREE.Scene,
@@ -62,15 +76,24 @@ export class SprayParticles {
   ) {
     this.positions = new Float32Array(SPRAY.maxParticles * 3);
     this.colors = new Float32Array(SPRAY.maxParticles * 3);
+    this.ages = new Float32Array(SPRAY.maxParticles);
+    this.sizes = new Float32Array(SPRAY.maxParticles);
+    this.grows = new Float32Array(SPRAY.maxParticles);
     const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.BufferAttribute(this.positions, 3).setUsage(THREE.DynamicDrawUsage));
-    g.setAttribute('color', new THREE.BufferAttribute(this.colors, 3).setUsage(THREE.DynamicDrawUsage));
+    const dynamic = (a: Float32Array, n: number) => new THREE.BufferAttribute(a, n).setUsage(THREE.DynamicDrawUsage);
+    g.setAttribute('position', dynamic(this.positions, 3));
+    g.setAttribute('color', dynamic(this.colors, 3));
+    g.setAttribute('age', dynamic(this.ages, 1));
+    g.setAttribute('size', dynamic(this.sizes, 1));
+    g.setAttribute('grow', dynamic(this.grows, 1));
     g.setDrawRange(0, 0);
-    this.points = new THREE.Points(g, new THREE.PointsMaterial({ vertexColors: true, size: SPRAY.particleSize, sizeAttenuation: true }));
+    const material = plumeMaterial();
+    this.points = new THREE.Points(g, material);
+    this.points.onBeforeRender = (renderer) => updatePlume(material, renderer);
     this.points.frustumCulled = false;
     scene.add(this.points);
     for (let i = 0; i < SPRAY.maxParticles; i++) {
-      this.free.push({ pos: new THREE.Vector3(), vel: new THREE.Vector3(), life: 0, fresh: false });
+      this.free.push({ pos: new THREE.Vector3(), vel: new THREE.Vector3(), life: 0, span: 0, dist: 0, limit: 0, fresh: false });
     }
   }
 
@@ -80,10 +103,8 @@ export class SprayParticles {
 
   /**
    * One frame of a can's spray: one ray along its aim finds the wall (kept in
-   * `memo` while the eye and aim hold, SPRAY.wall), and each particle flies to
-   * where its own ray meets that wall's plane (or SPRAY.reach), with no ray of
-   * its own. Each is already on its way for part of the frame, so the frame's
-   * batch reads as a stream, not a clump.
+   * `memo` while the eye and aim hold, SPRAY.wall), and its specks leave the
+   * nozzle toward where the aim meets it, with no ray of their own.
    */
   show(e: ShowParams) {
     const m = e.memo;
@@ -91,39 +112,36 @@ export class SprayParticles {
     m.age += e.dt;
     if (m.age > o.reuse || m.eye.distanceToSquared(e.eye) > o.move * o.move || m.forward.dot(e.forward) < Math.cos((o.aim * Math.PI) / 180)) {
       this.probe.near(e.eye);
-      const hit = this.probe.cast(e.eye, e.forward);
-      m.onWall = !!hit?.face;
-      // Level meshes sit at the origin: the face normal is in world space.
-      if (hit?.face) m.plane.setFromNormalAndCoplanarPoint(hit.face.normal, hit.point);
+      m.distance = this.probe.cast(e.eye, e.forward)?.distance ?? SPRAY.reach;
       m.eye.copy(e.eye);
       m.forward.copy(e.forward);
       m.age = 0;
     }
-    for (let i = 0; i < e.count; i++) {
-      const p = this.free.pop();
-      if (!p) break;
-      ray.set(e.eye, aim(e));
-      const onWall = m.onWall && ray.intersectPlane(m.plane, target) && target.distanceTo(e.eye) < SPRAY.reach;
-      this.launch(p, e, onWall ? target : ray.at(SPRAY.reach, target));
-      const early = Math.min(Math.random() * e.dt, p.life);
-      p.pos.addScaledVector(p.vel, early);
-      p.life -= early;
+    const p = SPRAY.plume;
+    plumeLook(e.cap, look);
+    axis.copy(e.eye).addScaledVector(e.forward, m.distance).sub(e.nozzle);
+    // Up against a wall the can in hand reaches through it: nothing to show.
+    if (axis.dot(e.forward) <= 0) return;
+    const limit = axis.length() - p.short;
+    axis.normalize();
+    const n = Math.floor(e.count * p.count + Math.random());
+    for (let i = 0; i < n; i++) {
+      const s = this.free.pop();
+      if (!s) break;
+      s.pos.copy(e.nozzle);
+      s.vel.copy(aim(e)).multiplyScalar(p.speed * (0.5 + Math.random()));
+      s.life = s.span = p.life * (0.4 + 0.6 * Math.random());
+      s.dist = 0;
+      s.limit = limit;
+      s.fresh = true;
+      const k = this.live.length;
+      this.colors[k * 3] = e.display.r;
+      this.colors[k * 3 + 1] = e.display.g;
+      this.colors[k * 3 + 2] = e.display.b;
+      this.sizes[k] = look.size * (0.4 + 1.2 * Math.random());
+      this.grows[k] = look.grow;
+      this.live.push(s);
     }
-  }
-
-  /** Sends `p` from the nozzle to `end`, in the display color. */
-  private launch(p: Particle, e: ShowParams, end: THREE.Vector3) {
-    p.pos.copy(e.nozzle);
-    p.vel.subVectors(end, e.nozzle);
-    const dist = p.vel.length();
-    p.life = dist / SPRAY.particleSpeed;
-    p.fresh = true;
-    p.vel.multiplyScalar(SPRAY.particleSpeed / Math.max(dist, 1e-4));
-    const k = this.live.length * 3;
-    this.colors[k] = e.display.r;
-    this.colors[k + 1] = e.display.g;
-    this.colors[k + 2] = e.display.b;
-    this.live.push(p);
   }
 
   update(dt: number) {
@@ -131,17 +149,24 @@ export class SprayParticles {
     let n = 0;
     for (let i = 0; i < list.length; i++) {
       const p = list[i];
-      // Launched after the last update: its first frame shows it leaving the nozzle.
-      const step = p.fresh ? 0 : dt;
+      const step = p.fresh ? Math.random() * dt : dt;
       p.fresh = false;
-      p.pos.addScaledVector(p.vel, Math.min(step, p.life));
+      p.vel.multiplyScalar(Math.exp(-SPRAY.plume.drag * step));
+      p.dist += p.vel.length() * step;
+      if (p.dist >= p.limit) p.life = 0;
+      p.pos.addScaledVector(p.vel, Math.min(step, Math.max(p.life, 0)));
       p.life -= step;
       if (p.life <= 0) {
         this.free.push(p);
         continue;
       }
-      // Compact in place, carrying colors along.
-      if (n !== i) for (let c = 0; c < 3; c++) this.colors[n * 3 + c] = this.colors[i * 3 + c];
+      // Compact in place, carrying its look along.
+      if (n !== i) {
+        for (let c = 0; c < 3; c++) this.colors[n * 3 + c] = this.colors[i * 3 + c];
+        this.sizes[n] = this.sizes[i];
+        this.grows[n] = this.grows[i];
+      }
+      this.ages[n] = 1 - p.life / p.span;
       list[n] = p;
       this.positions[n * 3] = p.pos.x;
       this.positions[n * 3 + 1] = p.pos.y;
@@ -153,8 +178,7 @@ export class SprayParticles {
     // Nothing in flight: no draw call.
     this.points.visible = n > 0;
     g.setDrawRange(0, n);
-    g.attributes.position.needsUpdate = true;
-    g.attributes.color.needsUpdate = true;
+    for (const a of ['position', 'color', 'age', 'size', 'grow']) g.attributes[a].needsUpdate = true;
   }
 }
 

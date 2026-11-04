@@ -297,6 +297,47 @@ await check('caps: each sprays; TRANSVERSAL lays its nib whichever way one stand
   return every && r.turns.length === 1 && r.stretch === 4 && r.bar && r.round && r.needleTip !== r.skinnyTip ? null : JSON.stringify(r);
 });
 
+await check('plume: specks leave the nozzle and never pass the wall, and are gone soon after the spray stops', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { input, inventory: inv, player, tools } = g;
+    input.setLocked(true);
+    inv.select(0);
+    g.paint.clear();
+    const out = { most: 0, past: 0 };
+    // Up against the wall the can in hand reaches through it: no specks there either.
+    player.setSpawn(player.position.clone().set(3.1, 0, 2.95), -Math.PI / 2);
+    player.respawn();
+    await steps((f) => {
+      player.yaw = -Math.PI / 2;
+      player.pitch = 0;
+      if (f === 0) input.button(0, true);
+      for (const p of tools.spray.particles.live) if (p.pos.x > 3.4) out.past++;
+      if (f === 20) input.button(0, false);
+      return f === 60;
+    });
+    player.setSpawn(player.position.clone().set(2.2, 0, 2.95), -Math.PI / 2);
+    player.respawn();
+    await steps((f) => {
+      player.yaw = -Math.PI / 2;
+      player.pitch = 0;
+      if (f === 0) input.button(0, true);
+      for (const p of tools.spray.particles.live) {
+        out.most = Math.max(out.most, p.pos.x);
+        if (p.pos.x > 3.4) out.past++;
+      }
+      if (f === 40) ((out.flying = tools.spray.particles.count), input.button(0, false));
+      return f === 110;
+    });
+    out.after = tools.spray.particles.count;
+    g.paint.clear();
+    g.fixedStep.dt = 0;
+    input.setLocked(false);
+    return out;
+  });
+  return r.flying > 100 && r.past === 0 && r.most > 2.9 && r.after === 0 ? null : JSON.stringify(r);
+});
+
 await check('render: never more pixels than the screen has (a page zoomed out to 50%), as many at 100%', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
