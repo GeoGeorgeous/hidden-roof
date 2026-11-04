@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 336
+The one list of what's left. Counter for new ids: next: 338
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -58,6 +58,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 2. [TASK-230]: Painting Rework: paint runs with the brush: the 1.5.0 runs don't fit it (measured: the can barely runs); the design talked over in the plan's module 7 (the marker's runs are good today; puddle runs are only a candidate) (docs/ideas/paint-refactoring.md) @1.7.0
 3. [TASK-232]: Painting Rework: to production: settings into config.ts and F3, no painting by particles, pressure no longer runs out and shaking is only an animation (unlock-all stays dev only), update golden and multiplayer tests (docs/ideas/paint-refactoring.md) @1.7.0
 4. [?IDEA-166]: Painting Rework: lock the camera while painting (not in the branch) (docs/ideas/paint-refactoring.md)
+5. [IDEA-336]: Marker: a flat nib, wide across and thin along, for calligraphy: tried on a can cap (TRANSVERSAL), its code kept commented out in src/spray/dab.ts, src/hud.ts and src/config.ts
 
 ## Input
 
@@ -159,9 +160,10 @@ Shipped since the last release; the release commit empties this list.
 7. [IDEA-331]: Settings → General in groups (painting, view, help, left hand); Sensitivity while painting and Streamline for every player
 8. [IDEA-332]: Settings → General: Field of view: painting, degrees taken off the view while a tool paints
 9. [IDEA-333]: Settings: Reset all on General, Audio and Graphics, each for its own tab
-10. [IDEA-229]: Painting Rework: seven caps with real names, colors and a dot each (NEEDLE, BLUE DOT, TRANSVERSAL new), on the roof
-11. [IDEA-334]: The cap's tag sits beside the cap, and inverts what's under it, as the crosshair does
-12. [IDEA-335]: Painting Rework: the spray is a plume at the nozzle, each cap's own (cone, specks, haze, TRANSVERSAL's flat fan); the old square points are gone
+10. [IDEA-229]: Painting Rework: six caps with real names, colors and a dot each (NEEDLE, BLUE DOT new), on the roof
+11. [IDEA-334]: The cap's and color's tags sit beside the cap and invert what's under them, as the crosshair does; the swatch stays true
+12. [IDEA-335]: Painting Rework: the spray is a plume at the nozzle, each cap's own (cone, specks, haze); the old square points are gone
+13. [IDEA-337]: The can's crosshair fades where the paint wouldn't land, from the ray it already casts
 
 ## Discarder
 

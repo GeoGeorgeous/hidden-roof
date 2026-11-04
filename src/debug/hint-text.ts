@@ -175,8 +175,6 @@ export const HINTS: Record<string, string> = {
   'MODELS.cap.height': 'Height of every cap (m).',
   'CAPS.*.dot': 'Color of this cap\'s nozzle, the dot a real cap is known by. Seen on its pickup and on others\' cans.',
   'CAPS.*.tube': 'How far this cap\'s nozzle reaches out as a thin tube (m).',
-  'CAPS.*.nib.stretch': 'How many times longer than wide this flat nib\'s dabs are.',
-  'CAPS.*.nib.angle': 'The flat nib\'s angle from the wall\'s horizon, in degrees.',
   'CAPS.*.nozzle': 'Width of this cap\'s nozzle (m): bigger reads as a fatter spray.',
   'MODELS.marker.width': 'Width of the marker\'s barrel (m).',
   'MODELS.marker.length': 'Length of the barrel, without the nib (m).',

@@ -136,7 +136,7 @@ export class Tools {
 
   /** Crosshair size (px) for the tool in hand (null: none, or build mode). */
   crosshair(tool: Tool | null) {
-    if (tool === 'can') return this.spray.linePx * (CAPS[this.inventory.cap].nib?.stretch ?? 1);
+    if (tool === 'can') return this.spray.linePx;
     return isSized(tool) ? sizedCrosshair(SIZED[tool], this.inventory.size[tool]) : CROSSHAIR.plain;
   }
 

@@ -118,7 +118,6 @@ export function paintSections(h: Hooks): Section[] {
         r('plume: cone', ['CAPS', cap, 'plume', 'cone'], 0, 4, 0.05),
         r('plume: specks', ['CAPS', cap, 'plume', 'size'], 0, 4, 0.05),
         r('plume: haze', ['CAPS', cap, 'plume', 'grow'], 0, 4, 0.05),
-        ...(CAPS[cap].nib ? [r('nib: stretch', ['CAPS', cap, 'nib', 'stretch'], 1, 8, 0.1), r('nib: angle', ['CAPS', cap, 'nib', 'angle'], -90, 90, 5)] : []),
       ]),
     },
     {

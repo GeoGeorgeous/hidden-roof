@@ -48,16 +48,14 @@ interface ShowParams {
 
 const dir = new THREE.Vector3();
 const axis = new THREE.Vector3();
-const look: PlumeLook = { cone: 0, fan: 1, angle: 0, size: 0, grow: 1 };
+const look: PlumeLook = { cone: 0, size: 0, grow: 1 };
 
-/** A speck's direction into `dir`: around `axis` within the cap's cone, Gaussian-ish, clamped; a flat nib's cone is a fan. */
+/** A speck's direction into `dir`: around `axis` within the cap's cone, Gaussian-ish, clamped. */
 function aim(e: ShowParams) {
   const r = Math.tan(Math.min(1, Math.abs(gauss()) * 0.5) * (look.cone / 2));
   const a = Math.random() * Math.PI * 2;
-  const x = Math.cos(a) * r * look.fan;
-  const y = Math.sin(a) * r;
-  const [c, s] = [Math.cos(look.angle), Math.sin(look.angle)];
-  return dir.copy(axis).addScaledVector(e.right, x * c - y * s).addScaledVector(e.up, x * s + y * c).normalize();
+  // Kept for a flat nib on the marker, a later version. A flat fan: x = cos(a) * r * fan, y = sin(a) * r, turned by its angle.
+  return dir.copy(axis).addScaledVector(e.right, Math.cos(a) * r).addScaledVector(e.up, Math.sin(a) * r).normalize();
 }
 
 export class SprayParticles {

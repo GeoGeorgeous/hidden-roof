@@ -167,7 +167,7 @@ softness scales the brush's edge (standard is the reference), so caps feel
 different at any distance.
 
 Owner (2026-11-04, later the same day): the four caps of today stay as they are,
-tuned by hand: their numbers don't change. Three new ones come beside them.
+tuned by hand: their numbers don't change. Two new ones come beside them.
 
 | Cap | Line at 0.5 / 1.5 / 3 m, cm | What it is | Body, dot |
 |---|---|---|---|
@@ -177,17 +177,16 @@ tuned by hand: their numbers don't change. Three new ones come beside them.
 | ASTRO FAT (`spray`, today's) | 9.0 / 20.3 / 35.2 | | gray-white, dark |
 | NEEDLE | 1.7 / 3.5 / 6.9 | thinner than SKINNY, as the default marker at 1.5 m | red, its nozzle a thin white tube toward the wall |
 | BLUE DOT (`soft`) | 2.7 / 5.7 / 10.9 | `standard` with the softest edge | gray, blue |
-| TRANSVERSAL | about 7 wide at 1.5 m | a flat nib: wide across it, thin and dense along it | white, a wide dark slit |
 
-Owner's choice (2026-11-04): these seven ship. A HARD cap and a middle soft one were
-tried and dropped: BANANA keeps the clean line, BLUE DOT is the softest.
+Owner's choice (2026-11-04): these six ship. A HARD cap and a middle soft one were
+tried and dropped: BANANA keeps the clean line, BLUE DOT is the softest. A flat nib
+(TRANSVERSAL) worked but is not the can's: its code stays commented out for the
+marker, a later version (IDEA-336).
 
-Every cap gets a dot color (`CapSpec`; the nozzle, seen on pickups). TRANSVERSAL's
-nib is a fixed ellipse, in F3, at 45° from the wall's horizon: it goes as a stamp's
-`slant`, so no protocol change, and it takes the place of the wall's angle for that
-cap (owner: fine). Its crosshair is a rectangle at the nib's angle, as long and as
-wide as the line, flat on the screen; the arc and the percent don't turn with it.
-Turning the nib with keys: after the test.
+Every cap gets a dot color (`CapSpec`; the nozzle, seen on pickups). A flat nib, as
+tried: a fixed ellipse at 45° from the wall's horizon, going as a stamp's `slant`, so
+no protocol change, in place of the wall's angle; a rectangle for a crosshair and a
+flat fan for a plume.
 
 The table below came first and is what the names came from:
 
@@ -259,7 +258,7 @@ fading out before the wall (never past it). One ray at most per frame for the wh
 plume, one draw call. Others' cans show the same plume. The old square points
 are gone. Owner (2026-11-04): it follows the cap: `spray/plume.ts` makes a cap's
 cone, specks and haze from its spread, dot and softness (BANANA's are the
-sandbox's numbers), F3 scales each; TRANSVERSAL's is a flat fan at its nib's angle.
+sandbox's numbers), F3 scales each.
 
 Tried first and replaced: a mist of specks flying to the wall and hanging
 there a moment. Owner: too few, too fast, and no haze at the brush wanted.
@@ -428,8 +427,8 @@ only): cut it before the branch reaches `dev`, on the owner's word.
 | 3 | In module 1 (one function sizes a dab; its number stays free so the others keep theirs) | |
 | 4 | Done on `feat/paint-crosshair`. The game's crosshair sized to the line (`lineWidth`), no PSI gauge, one ray a frame shared with the brush. The opacity: a 120° arc on the crosshair's right, the percent beside it for a moment after a change. A sight glass on the can was tried against the arc: owner chose the arc | IDEA-228 |
 | 5 | Done on `feat/paint-slant-wire`. The sandbox's slant ported (it was never in the game) and put on the wire: protocol 12, 3 bytes behind a flag, rounded like an op's other numbers; seams; the load read again | TASK-231 |
-| 6 | Done on `feat/paint-caps`. Today's four caps as they are, with real names, colors and a dot on each; NEEDLE, BLUE DOT and TRANSVERSAL new, on the roof | IDEA-229 |
-| 9 | Done on `feat/spray-plume`. Spray plume from the sandbox's, then by the cap (cone, specks, haze), TRANSVERSAL's a flat fan; the old square points gone | |
+| 6 | Done on `feat/paint-caps`. Today's four caps as they are, with real names, colors and a dot on each; NEEDLE and BLUE DOT new, on the roof | IDEA-229 |
+| 9 | Done on `feat/spray-plume`. Spray plume from the sandbox's, then by the cap (cone, specks, haze); the old square points gone | |
 | 8 | Dead code, load tests, docs | TASK-232 |
 | | The owner tests and thinks about paint runs | |
 | 7 | Paint runs: the design talked over first, the marker's kept as they are if nothing asks otherwise; then `ALL_PAINT` cut and this doc gone | TASK-230 |
