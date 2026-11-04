@@ -178,17 +178,31 @@ export async function freePort() {
   return given.has(port) ? freePort() : (given.add(port), port);
 }
 
+/** A load the machine's network dropped: Chrome gives up on what's loading when an interface changes, even from localhost (Wi-Fi under WSL). */
+const NETWORK_CHANGED = 'ERR_NETWORK_CHANGED';
+/** Times a load dropped that way starts over: such a page never loads, and only says so at the end of its wait. */
+const LOAD_AGAIN = 3;
+const LOAD_WAIT = 120000;
+
 /**
  * Waits until the game has loaded (slow while other tests share the CPU), then `frames` frames (text atlases settle in
  * the first ones). A load that never ends fails naming where it stood: the loading screen's step and the page's log.
  */
 export async function gameReady(page, frames = 10) {
-  await page.waitForFunction(() => window.game?.loaded(), null, { timeout: 120000 }).catch(async (e) => {
-    const at = await page
-      .evaluate(() => ({ ready: document.readyState, game: !!window.game, step: document.querySelector('.loading .on')?.textContent }))
-      .catch((err) => err.message);
-    throw new Error(`${e.message}; the load stood at ${JSON.stringify(at)}; log: ${JSON.stringify(page.loadLog?.slice(-10) ?? [])}`);
-  });
+  const until = Date.now() + LOAD_WAIT;
+  for (let again = LOAD_AGAIN; !(await page.evaluate(() => window.game?.loaded()).catch(() => false)); await page.waitForTimeout(100)) {
+    if (again && page.loadLog?.some((l) => l.includes(NETWORK_CHANGED))) {
+      again--;
+      console.log(`the network changed under a load: loading again (${LOAD_AGAIN - again} of ${LOAD_AGAIN})`);
+      page.loadLog.length = 0;
+      await page.reload();
+    } else if (Date.now() > until) {
+      const at = await page
+        .evaluate(() => ({ ready: document.readyState, game: !!window.game, step: document.querySelector('.loading .on')?.textContent }))
+        .catch((err) => err.message);
+      throw new Error(`the game didn't load in ${LOAD_WAIT / 1000} s; the load stood at ${JSON.stringify(at)}; log: ${JSON.stringify(page.loadLog?.slice(-10) ?? [])}`);
+    }
+  }
   await page.evaluate(
     (frames) =>
       new Promise((done) => {

@@ -10,6 +10,8 @@ export const RENDER = {
   /** Extra FOV (degrees) while sprinting, eased in and out. */
   sprintFovBoost: 10,
   sprintFovEase: 6,
+  /** Degrees of FOV taken off while a tool paints, eased like the sprint's. 0 = none. A player setting. */
+  paintFovCut: 0,
   /** Frame rate limit (frames per second); 0 = none, as fast as the display refreshes. A player setting (FRAME RATE). */
   maxFps: 0,
   /**

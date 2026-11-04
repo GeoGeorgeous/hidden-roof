@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 332
+The one list of what's left. Counter for new ids: next: 333
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -158,6 +158,7 @@ Shipped since the last release; the release commit empties this list.
 5. [IDEA-228]: Painting Rework: the game's crosshair at true size (the line it would leave), the opacity on an arc beside it with its percent; no PSI gauge
 6. [TASK-231]: Painting Rework: a dab at an angle stretches along the aim and fades at the far end, and others see it: protocol 12, 3 bytes a slanted stamp; over seams too; the load read again, no op per stroke segment
 7. [IDEA-331]: Settings → General in groups (painting, view, help, left hand); Sensitivity while painting and Streamline for every player
+8. [IDEA-332]: Settings → General: Field of view: painting, degrees taken off the view while a tool paints
 
 ## Discarder
 
