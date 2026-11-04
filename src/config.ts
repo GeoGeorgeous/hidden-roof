@@ -1148,6 +1148,8 @@ export const NET = {
   extrapolate: 0.25,
   /** How much faster or slower a remote player's time may run while it catches up with a better clock estimate or delay (0.1 = 10%). */
   clockRate: 0.1,
+  /** Shown more than this far behind where a remote player should be (s), their time skips there at once: at clockRate a few seconds would take a minute. */
+  clockSkip: 0.5,
   /**
    * A jump in where they're shown (a late snapshot correcting a guess) is smoothed out at this rate (1/s), but no
    * faster than `glideSpeed` (m/s, on top of how they move: a big correction on a bad link would race them along);

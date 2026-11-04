@@ -1,5 +1,5 @@
 // Tests of another player's clock (src/net/remote-timeline.ts) in Node: where they are between snapshots, how far a
-// guess goes, a clock that starts over, what they did in its order, a hidden tab, the catch-up after a pile-up.
+// guess goes, a clock that starts over, what they did in its order, a hidden tab, the catch-up after a pile-up or a late first reading.
 // Usage: npm test (node --experimental-transform-types scripts/remote-timeline.test.mjs)
 import assert from 'node:assert/strict';
 import './ts-imports.mjs';
@@ -157,6 +157,24 @@ function started() {
   const wanted = 1 / NET.sendRate + NET.jitterCover * tl.stats.jitter;
   assert.ok(wanted > NET.interpDelay + 0.01, `a delay beyond the usual is called for: ${wanted}`);
   assert.ok(Math.abs(tl.stats.delay - wanted) < 0.02, `the delay eased to it: ${tl.stats.delay}, not ${wanted}`);
+}
+
+{
+  // Their first snapshot read 3 s late (this game was busy loading), and they stand still, so few come: on time at once.
+  const tl = new RemoteTimeline();
+  tl.receive(snap(1, 0), 4);
+  tl.receive(snap(4.5, 0), 4.55);
+  tl.sample(4.6, 0.016);
+  assert.ok(tl.stats.delay < 0.2, `caught up: ${tl.stats.delay}`);
+}
+
+{
+  // A small change is no skip: their time runs a little faster until it's made up.
+  const tl = new RemoteTimeline();
+  tl.receive(snap(1, 0), 1.3);
+  tl.receive(snap(1.5, 0), 1.55);
+  tl.sample(1.6, 0.016);
+  assert.ok(tl.stats.delay > 0.3, `eased, not skipped: ${tl.stats.delay}`);
 }
 
 console.log('remote timeline: ok');
