@@ -300,7 +300,7 @@ function step(time: number) {
   camera.position.copy(eye);
   camera.rotation.set(player.pitch, player.yaw, 0, 'YXZ');
   // FOV widens a little while sprinting.
-  const fovTarget = RENDER.fov + (player.sprinting ? RENDER.sprintFovBoost : 0);
+  const fovTarget = RENDER.fov + (player.sprinting ? RENDER.sprintFovBoost : 0) - (tools.painting ? RENDER.paintFovCut : 0);
   fov += (fovTarget - fov) * (1 - Math.exp(-RENDER.sprintFovEase * dt));
   if (Math.abs(camera.fov - fov) > 0.01) {
     camera.fov = fov;

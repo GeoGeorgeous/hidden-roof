@@ -226,9 +226,32 @@ await check('settings: General is in groups, and the mouse turns slower only whi
     input.setLocked(false);
     return { page, free, painting };
   });
-  const want = ['# painting', 'Sensitivity', 'Sensitivity while painting', 'Streamline', '# view', 'Field of view', 'Field of view: running', '# help', 'Hints', 'Show hints again', '# left hand', 'Show left hand'];
+  const want = ['# painting', 'Sensitivity', 'Sensitivity while painting', 'Streamline', '# view', 'Field of view', 'Field of view: running', 'Field of view: painting', '# help', 'Hints', 'Show hints again', '# left hand', 'Show left hand'];
   const close = (a, b) => Math.abs(a - b) < 1e-6;
   return JSON.stringify(r.page) === JSON.stringify(want) && close(r.free, 1) && close(r.painting, 0.5) ? null : JSON.stringify(r);
+});
+
+await check('field of view: painting: it narrows while a tool paints and comes back', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { input, inventory: inv, config } = g;
+    const camera = g.scene.children.find((o) => o.isPerspectiveCamera);
+    input.setLocked(true);
+    inv.select(0);
+    config.RENDER.paintFovCut = 10;
+    const out = { full: camera.fov };
+    await steps((f) => (f === 0 && input.button(0, true), f === 120));
+    out.painting = camera.fov;
+    input.button(0, false);
+    await steps((f) => f === 120);
+    out.after = camera.fov;
+    config.RENDER.paintFovCut = 0;
+    g.paint.clear();
+    g.fixedStep.dt = 0;
+    input.setLocked(false);
+    return out;
+  });
+  return Math.abs(r.painting - (r.full - 10)) < 0.1 && Math.abs(r.after - r.full) < 0.1 ? null : JSON.stringify(r);
 });
 
 await check('render: never more pixels than the screen has (a page zoomed out to 50%), as many at 100%', async () => {

@@ -149,6 +149,7 @@ export function playSections(h: Hooks): Section[] {
         ...when('resume', [t('raw mouse', ['PLAYER', 'rawMouse'])]),
         r('fov', ['RENDER', 'fov'], 50, 110, 1),
         r('sprint: fov boost', ['RENDER', 'sprintFovBoost'], 0, 20, 0.5),
+        r('painting: fov cut', ['RENDER', 'paintFovCut'], 0, 30, 1),
         r('sprint: fov speed', ['RENDER', 'sprintFovEase'], 1, 30, 0.5),
       ],
     },

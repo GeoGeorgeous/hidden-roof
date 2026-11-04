@@ -340,7 +340,7 @@ export interface SettingSection {
 /** The gameplay, sound and on/off settings, saved as overrides (settings-store.ts). */
 const REMEMBERED: Remembered[] = [
   ...(['mouseSensitivity', 'paintSensitivity', 'crouchToggle', 'tapToRun'] as const).map((field) => ({ name: `PLAYER.${field}`, obj: PLAYER, field })),
-  ...(['fov', 'sprintFovBoost', 'fullscreen', 'propMotion'] as const).map((field) => ({ name: `RENDER.${field}`, obj: RENDER, field })),
+  ...(['fov', 'sprintFovBoost', 'paintFovCut', 'fullscreen', 'propMotion'] as const).map((field) => ({ name: `RENDER.${field}`, obj: RENDER, field })),
   { name: 'ATMOS.rain', obj: NIGHT, field: 'rain' },
   { name: 'SMOKE.enabled', obj: SMOKE, field: 'enabled' },
   { name: 'HUD.perf', obj: HUD, field: 'perf' },
