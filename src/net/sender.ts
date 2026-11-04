@@ -80,6 +80,11 @@ export class Sender {
     [this.sent, this.held, this.repeated] = [null, null, false];
   }
 
+  /** The snapshot of now, stamped `at`, for a game that may draw no frame for long (a hidden one): the others have nothing else to show it from. */
+  now(at: number): ToServer {
+    return { type: 'state', bytes: this.g.capture(at) };
+  }
+
   /** The paint ops made since last taken; the log is emptied. */
   take(): PaintOp[] {
     return this.logging ? this.g.paint.log!.splice(0) : [];

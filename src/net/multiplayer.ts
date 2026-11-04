@@ -337,6 +337,8 @@ export class Multiplayer {
     // Its welcome has come: it sends, and a silence on it means it's dead.
     Object.assign(link, { live: true, lastHeard: now() });
     for (const b of resend) this.sendOps(b);
+    // A hidden game draws no frames, so the others would have no state to show it from.
+    this.send(this.sender.now(now() - this.t0));
     this.own.restart(now());
     this.onProgress(null);
     this.reconnect.reset();

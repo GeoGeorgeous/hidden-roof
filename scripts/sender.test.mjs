@@ -100,6 +100,8 @@ const op = (u) => ({ kind: 'stamp', key: 'a', rect: 0, u, v: 0.5, radius: 0.1, a
   assert.deepEqual(types(sender.update(0, 0)), ['inventory', 'state'], 'a ladder the others know is not sent again');
   sender.restart();
   assert.deepEqual(types(sender.update(0.001, 0.001)), ['ladder', 'inventory', 'state'], 'restarted knowing none: the ladder, what they carry, a snapshot');
+  // The snapshot of now, without a frame.
+  assert.deepEqual(sender.now(0.5), { type: 'state', bytes: new Uint8Array([50]) });
 }
 
 // paint.log: begun by one, refused to a second, taken over by a session; an ended owner leaves what isn't its own.
