@@ -35,7 +35,6 @@ const KANA: Record<Exclude<PaintColor, 'black'> | CapId | FoundTool, string> = {
   skinny: 'スキニー',
   standard: 'バナナ',
   soft: 'ブルードット',
-  transversal: 'トランスバーサル',
   fat: 'NYファット',
   spray: 'アストロファット',
   marker: 'マーカー',

@@ -8,6 +8,8 @@ import { PauseMenu } from './pause-menu';
 // Each part is a layer of its own under body (style.css, the --z-* tokens in boot.css).
 // The tool readout lives in inventory/hotbar.ts, the debug panel in debug/panel.ts.
 
+const TAGS = '<div class="cap-tag" hidden></div><div class="cap-tag color-tag" hidden></div>';
+
 export class Hud {
   /** The start / pause screen and its pages. */
   readonly menu: PauseMenu;
@@ -18,10 +20,11 @@ export class Hud {
   private perfShown = '';
   private perfAt = 0;
   private vignette: HTMLElement;
-  private stack: HTMLElement;
-  private capTag: HTMLElement;
+  /** The tags that invert, and under them their swatches. */
+  private stacks: HTMLElement[];
+  private capTags: HTMLElement[];
   private capTagUntil = 0;
-  private colorTag: HTMLElement;
+  private colorTags: HTMLElement[];
   private colorTagUntil = 0;
   private crosshairSize = -1;
   private arc: number | null = null;
@@ -45,9 +48,7 @@ export class Hud {
     const tools = document.createElement('div');
     tools.className = 'layer layer-tool';
     tools.innerHTML = `
-      <div class="tool-stack" hidden>
-        <div class="cap-tag color-tag" hidden></div>
-      </div>`;
+      <div class="tool-stack swatches" hidden>${TAGS}</div>`;
     const world = document.createElement('div');
     world.className = 'layer layer-world';
     const menu = document.createElement('div');
@@ -61,9 +62,10 @@ export class Hud {
     this.crosshair.hidden = true;
     this.percent = this.crosshair.appendChild(document.createElement('span'));
     this.percent.hidden = true;
-    // The cap's tag inverts too, so it's a layer of its own as well; the color's stays, for its swatch.
-    this.capTag = Object.assign(document.createElement('div'), { className: 'cap-tag on-view', hidden: true });
-    document.body.append(this.crosshair, this.capTag);
+    // The tags invert too, so they're a layer of their own as well. A swatch can't, it would show the wrong color: it
+    // stays in the tool layer, at the same place in tags of nothing else.
+    const view = Object.assign(document.createElement('div'), { className: 'tool-stack on-view', hidden: true, innerHTML: TAGS });
+    document.body.append(this.crosshair, view);
     this.vignette = frame.querySelector('.vignette')!;
     this.perf = frame.querySelector('.perf')!;
     this.syncVignette();
@@ -75,8 +77,9 @@ export class Hud {
       ['cam', [frame.querySelector('.rec .dim')!]],
       ['clock', [this.clock]],
     ];
-    this.stack = tools.querySelector('.tool-stack')!;
-    this.colorTag = tools.querySelector('.color-tag')!;
+    this.stacks = [view, tools.querySelector<HTMLElement>('.tool-stack')!];
+    this.capTags = this.stacks.map((s) => s.querySelector<HTMLElement>('.cap-tag')!);
+    this.colorTags = this.stacks.map((s) => s.querySelector<HTMLElement>('.color-tag')!);
     this.menu = new PauseMenu(menu);
   }
 
@@ -123,26 +126,34 @@ export class Hud {
     this.crosshair.style.setProperty('--size', `${px}px`);
   }
 
-  /** A flat nib's crosshair, a bar turned as the nib is: as long as setCrosshair's size, and `stretch` times thinner. None: round. */
-  setNib(nib?: { stretch: number; angle: number }) {
-    this.crosshair.classList.toggle('nib', !!nib);
-    if (!nib) return;
-    this.crosshair.style.setProperty('--nib-stretch', `${nib.stretch}`);
-    this.crosshair.style.setProperty('--nib-angle', `${nib.angle}deg`);
+  /** The crosshair fades where the can's paint wouldn't land. */
+  setReach(reaches: boolean) {
+    this.crosshair.classList.toggle('far', !reaches);
   }
+
+  // Kept for a flat nib on the marker, a later version.
+  // /** A flat nib's crosshair, a bar turned as the nib is: as long as setCrosshair's size, and `stretch` times thinner. None: round. */
+  // setNib(nib?: { stretch: number; angle: number }) {
+  //   this.crosshair.classList.toggle('nib', !!nib);
+  //   if (!nib) return;
+  //   this.crosshair.style.setProperty('--nib-stretch', `${nib.stretch}`);
+  //   this.crosshair.style.setProperty('--nib-angle', `${nib.angle}deg`);
+  // }
 
   /** Shows the cap name for a few seconds; place it with `placeToolTags`. */
   showCapTag(name: string) {
-    this.capTag.textContent = `CAP · ${name}`;
+    for (const t of this.capTags) t.textContent = `CAP · ${name}`;
     this.capTagUntil = performance.now() + HUD.tagTime * 1000;
   }
 
   /** Shows the paint color (swatch + name) for a few seconds, just below the cap tag. */
   showColorTag(name: string, hex: string) {
     // The swatch's color through the DOM, not a style attribute: a CSP without 'unsafe-inline' allows it.
-    const swatch = Object.assign(document.createElement('i'), { className: 'swatch' });
-    swatch.style.background = hex;
-    this.colorTag.replaceChildren('COLOR · ', swatch, name.toUpperCase());
+    for (const t of this.colorTags) {
+      const swatch = Object.assign(document.createElement('i'), { className: 'swatch' });
+      swatch.style.background = hex;
+      t.replaceChildren('COLOR · ', swatch, name.toUpperCase());
+    }
     this.colorTagUntil = performance.now() + HUD.tagTime * 1000;
   }
 
@@ -152,14 +163,12 @@ export class Hud {
    */
   placeToolTags(at: { x: number; y: number } | null) {
     const now = performance.now();
-    this.stack.hidden = !at;
-    if (at) {
-      const [x, y] = [Math.round(at.x), Math.round(at.y)];
-      this.capTag.style.transform = `translate(${x}px, ${y}px)`;
-      this.stack.style.transform = `translate(${x}px, ${y + HUD.tagStep}px)`;
+    for (const s of this.stacks) {
+      s.hidden = !at;
+      if (at) s.style.transform = `translate(${Math.round(at.x)}px, ${Math.round(at.y)}px)`;
     }
-    this.capTag.hidden = !at || now >= this.capTagUntil;
-    this.colorTag.hidden = now >= this.colorTagUntil;
+    for (const t of this.capTags) t.hidden = now >= this.capTagUntil;
+    for (const t of this.colorTags) t.hidden = now >= this.colorTagUntil;
   }
 
   /** The performance readout, bottom left: written a few times a second. `gpuName`: what draws (null: hidden by the browser); `gpu`: ms per frame, null = not measurable, undefined = not shown. */

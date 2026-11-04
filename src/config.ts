@@ -382,8 +382,6 @@ export const HUD = {
   perfGpu: false,
   /** How long the cap and color tags show after a change (s). */
   tagTime: 2.5,
-  /** The color's tag sits this far (px) under the cap's. */
-  tagStep: 22,
   /** Hotbar slots: size and the gap between them (CSS px), roundness (0 = square, 1 = circle), icon size (share of the slot). */
   slotSize: 30,
   slotGap: 10,
@@ -525,12 +523,13 @@ export interface CapSpec {
   tube?: number;
   /** Its plume (spray/plume.ts) scaled: 1 is what its numbers make. */
   plume: { cone: number; size: number; grow: number };
-  /** A flat nib: dabs `stretch` times longer than wide, always at `angle` degrees from the wall's horizon, in place of the wall's slant. */
-  nib?: { stretch: number; angle: number };
+  // Kept for a flat nib on the marker, a later version.
+  // /** A flat nib: dabs `stretch` times longer than wide, always at `angle` degrees from the wall's horizon, in place of the wall's slant. */
+  // nib?: { stretch: number; angle: number };
 }
 
-export type CapId = 'needle' | 'skinny' | 'standard' | 'soft' | 'transversal' | 'fat' | 'spray';
-export const CAP_ORDER: CapId[] = ['needle', 'skinny', 'standard', 'soft', 'transversal', 'fat', 'spray'];
+export type CapId = 'needle' | 'skinny' | 'standard' | 'soft' | 'fat' | 'spray';
+export const CAP_ORDER: CapId[] = ['needle', 'skinny', 'standard', 'soft', 'fat', 'spray'];
 const PLUME_AS_MADE = { cone: 1, size: 1, grow: 1 };
 export const CAPS: Record<CapId, CapSpec> = {
   /** Thinner than SKINNY, as wide as the default marker at 1.5 m. */
@@ -539,8 +538,8 @@ export const CAPS: Record<CapId, CapSpec> = {
   standard: { name: 'BANANA', spread: 0.03, rate: 1760, dotSize: 0.05, softness: 0.35, hissGain: 0.75, hissTone: 0.4, drips: 120, color: '#f5d33a', nozzle: 0.006, dot: '#202020', plume: { ...PLUME_AS_MADE } },
   /** BANANA with the softest edge, for fades. */
   soft: { name: 'BLUE DOT', spread: 0.03, rate: 1760, dotSize: 0.05, softness: 1, hissGain: 0.7, hissTone: 0.6, drips: 70, color: '#aeb2b6', nozzle: 0.006, dot: '#3f8fe0', plume: { ...PLUME_AS_MADE } },
-  /** A flat nib. Its numbers are a dab's narrow side, about 1.7 cm at 1.5 m, so 7 cm the long way. */
-  transversal: { name: 'TRANSVERSAL', spread: 0.004, rate: 1400, dotSize: 0.014, softness: 0.15, hissGain: 0.7, hissTone: 0.2, drips: 60, color: '#f1efe8', nozzle: 0.012, dot: '#202020', nib: { stretch: 4, angle: 45 }, plume: { ...PLUME_AS_MADE, cone: 3 } },
+  // Kept for a flat nib on the marker, a later version. Its numbers are a dab's narrow side: 1.7 cm at 1.5 m, so 7 cm the long way.
+  // transversal: { name: 'TRANSVERSAL', spread: 0.004, rate: 1400, dotSize: 0.014, softness: 0.15, hissGain: 0.7, hissTone: 0.2, drips: 60, color: '#f1efe8', nozzle: 0.012, dot: '#202020', nib: { stretch: 4, angle: 45 }, plume: { ...PLUME_AS_MADE, cone: 3 } },
   fat: { name: 'NY FAT', spread: 0.04, rate: 650, dotSize: 0.12, softness: 0.15, hissGain: 1, hissTone: 1, drips: 180, color: '#f1efe8', nozzle: 0.01, dot: '#202020', plume: { ...PLUME_AS_MADE } },
   /** Wide, soft mist for fades and backgrounds: lots of faint, fuzzy dots. */
   spray: { name: 'ASTRO FAT', spread: 0.1, rate: 1100, dotSize: 0.158, softness: 0.55, hissGain: 0.9, hissTone: 0.8, drips: 50, color: '#c9ccce', nozzle: 0.013, dot: '#202020', plume: { ...PLUME_AS_MADE } },
@@ -1033,7 +1032,7 @@ export const SPRAY = {
    * they fly. `short`: how far before the wall they stop (m). `size` (m) and `grow`: a speck of a cap of `dotAtPar`
    * (m) and softness at par (BRUSH.softnessRef). `opacity`: all of them.
    */
-  plume: { count: 3, cone: 1.6, speed: 10, drag: 2, life: 0.35, short: 0.03, size: 0.01, grow: 1.5, dotAtPar: 0.05, opacity: 0.9 },
+  plume: { count: 3, cone: 1.6, speed: 15, drag: 2, life: 0.35, short: 0.03, size: 0.01, grow: 1.5, dotAtPar: 0.05, opacity: 0.9 },
   /** One shake's motion and rattle (s), repeated while RMB is held: only that, it does nothing to the paint. */
   shakeDuration: 0.55,
   /**

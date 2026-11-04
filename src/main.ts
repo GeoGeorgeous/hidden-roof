@@ -2,7 +2,7 @@ import './style.css';
 import * as THREE from 'three';
 import * as config from './config';
 import { flyCamera, titleCamera } from './render/title-view';
-import { ATMOS, BRUSH, CAPS, COLORS, HUD, LEVELS, PLAYER, RENDER, VOLUMETRICS, WALL_HAND } from './config';
+import { ATMOS, BRUSH, COLORS, HUD, LEVELS, PLAYER, RENDER, VOLUMETRICS, WALL_HAND } from './config';
 import { syncSharedUniforms } from './materials';
 import { syncTrackUniforms } from './render/cctv-track';
 import { LightBaker } from './render/bake/baker';
@@ -346,7 +346,7 @@ function step(time: number) {
   if (paint.locks.takeHit() && !notify.shown().some((n) => n.lines[0] === msg('toast.locked'))) notify.toast(msg('toast.locked'));
   const tool = building ? null : inventory.tool;
   hud.setCrosshair(tools.crosshair(tool));
-  hud.setNib(tool === 'can' ? CAPS[inventory.cap].nib : undefined);
+  hud.setReach(tool !== 'can' || tools.spray.reaches);
   hud.setArc(tool === 'can' ? BRUSH.opacity : null);
   const anchor = tools.labelAnchor(tagPos);
   hud.placeToolTags(anchor ? toScreen(anchor) : null);

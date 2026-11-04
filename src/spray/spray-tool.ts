@@ -110,6 +110,11 @@ export class SprayTool {
     this.wall.age = Infinity;
   }
 
+  /** Paint would land under the aim. */
+  get reaches() {
+    return this.brush.reaches;
+  }
+
   /** Shaking the can (RMB) right now. */
   get shaking() {
     return this.shakeT >= 0;

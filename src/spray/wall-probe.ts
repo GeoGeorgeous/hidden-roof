@@ -34,6 +34,11 @@ export class WallProbe implements Wall<WallSpot> {
     return this.candidates.length ? this.raycaster.intersectObjects(this.candidates, false)[0] : undefined;
   }
 
+  /** Whether what a ray hit takes paint. */
+  takes(hit: THREE.Intersection | undefined) {
+    return !!hit && !!this.paint.get(hit.object);
+  }
+
   /** Where the ray meets paint-taking surface; anything else in the way stops it. */
   find(from: THREE.Vector3, along: THREE.Vector3): WallSpot | null {
     const hit = this.cast(from, along);

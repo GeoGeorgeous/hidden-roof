@@ -113,9 +113,9 @@
   mix-blend-mode: difference;
   z-index: var(--z-aim);
   pointer-events: none;
-  transition: width 0.12s, height 0.12s;
+  transition: width 0.12s, height 0.12s, opacity 0.12s;
 }
-/* A flat nib's: a bar at the nib's angle in place of the ring. It turns alone, so the arc and the percent stay put. */
+/* Kept for a flat nib on the marker, a later version. A flat nib's crosshair: a bar at its angle in place of the ring, turning alone so the arc and the percent stay put.
 .crosshair.nib {
   border-color: transparent;
 }
@@ -129,6 +129,11 @@
   box-sizing: border-box;
   border: 1px solid #fff;
   transform: translateY(-50%) rotate(calc(-1 * var(--nib-angle)));
+}
+*/
+/* Where the can's paint wouldn't land. */
+.crosshair.far {
+  opacity: 0.35;
 }
 /* The opacity in numbers, right of the arc, a moment after it changes. */
 .crosshair span {
@@ -171,16 +176,23 @@
   line-height: 14px;
   white-space: nowrap;
 }
-/* The cap's: over the game view, inverting what's under it, as the crosshair does. */
-.cap-tag.on-view {
+/* Over the game view, inverting what's under it, as the crosshair does; their swatches stay true, in the tool layer. */
+.tool-stack.on-view {
   position: fixed;
-  left: 0;
-  top: 0;
   color: #fff;
-  border-left-color: #fff;
   mix-blend-mode: difference;
   z-index: var(--z-aim);
   pointer-events: none;
+}
+.tool-stack.on-view .cap-tag {
+  border-left-color: #fff;
+}
+.tool-stack.on-view .swatch {
+  visibility: hidden;
+}
+.tool-stack.swatches .cap-tag {
+  color: transparent;
+  border-left-color: transparent;
 }
 /*
  * Pickups' tags by their rings (pickups/labels.ts), manga-style, faded in and
@@ -2623,7 +2635,7 @@
 body.paused .layer-world,
 body.paused .layer-frame > :not(.vignette),
 body.paused .layer-tool,
-body.paused .cap-tag.on-view,
+body.paused .tool-stack.on-view,
 body.paused .hotbar,
 body.paused .layer-shade,
 body.paused .layer-hint,

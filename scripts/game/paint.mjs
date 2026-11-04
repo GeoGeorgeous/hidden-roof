@@ -254,7 +254,7 @@ await check('field of view: painting: it narrows while a tool paints and comes b
   return Math.abs(r.painting - (r.full - 10)) < 0.1 && Math.abs(r.after - r.full) < 0.1 ? null : JSON.stringify(r);
 });
 
-await check('caps: each sprays; TRANSVERSAL lays its nib whichever way one stands, its crosshair a bar, and NEEDLE paints from its tube\'s tip', async () => {
+await check('caps: each sprays, NEEDLE from its tube\'s tip; the crosshair fades where paint wouldn\'t land', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
     const { input, inventory: inv, player, tools, config } = g;
@@ -262,39 +262,36 @@ await check('caps: each sprays; TRANSVERSAL lays its nib whichever way one stand
     inv.unlockAll();
     inv.select(0);
     const out = { sprayed: {} };
-    const spray = async (cap, turn) => {
+    player.setSpawn(player.position.clone().set(2.4, 0, 2.95), -Math.PI / 2);
+    player.respawn();
+    for (const cap of config.CAP_ORDER) {
       while (inv.cap !== cap) inv.cycleCap(1);
       g.paint.clear();
       g.paint.log = [];
-      player.setSpawn(player.position.clone().set(2.4, 0, 2.95), -Math.PI / 2);
-      player.respawn();
-      await steps((f) => ((player.yaw = -Math.PI / 2 + turn), (player.pitch = 0), f === 0 && input.button(0, true), f === 8 && input.button(0, false), f === 10));
-      const stamps = g.paint.log.filter((o) => o.kind === 'stamp');
+      await steps((f) => ((player.yaw = -Math.PI / 2), (player.pitch = 0), f === 0 && input.button(0, true), f === 8 && input.button(0, false), f === 10));
+      out.sprayed[cap] = g.paint.log.filter((o) => o.kind === 'stamp').length;
       g.paint.log = null;
-      return stamps;
-    };
-    for (const cap of config.CAP_ORDER) out.sprayed[cap] = (await spray(cap, 0)).length;
-    const nib = await spray('transversal', 0.7);
-    out.turns = [...new Set(nib.map((o) => o.slant?.turn))];
-    out.stretch = nib[0]?.slant?.stretch;
-    await steps((f) => f === 1);
-    const bar = document.querySelector('.crosshair');
-    out.bar = bar.classList.contains('nib') && getComputedStyle(bar, '::before').height !== 'auto';
-    const tip = (cap) => {
+    }
+    const tip = async (cap) => {
       while (inv.cap !== cap) inv.cycleCap(1);
-      return steps((f) => f === 2).then(() => tools.spray.model.nozzleWorld(player.position.clone()).distanceTo(g.scene.children.find((o) => o.isPerspectiveCamera).position));
+      await steps((f) => f === 2);
+      return tools.spray.model.nozzleWorld(player.position.clone()).distanceTo(g.scene.children.find((o) => o.isPerspectiveCamera).position);
     };
     out.needleTip = await tip('needle');
     out.skinnyTip = await tip('skinny');
-    await steps((f) => f === 2);
-    out.round = !bar.classList.contains('nib');
+    const far = () => document.querySelector('.crosshair').classList.contains('far');
+    await steps((f) => ((player.pitch = 0), f === 3));
+    out.onWall = far();
+    await steps((f) => ((player.pitch = 1.4), f === 3));
+    out.sky = far();
+    await steps((f) => ((player.pitch = 0), f === 3));
     g.paint.clear();
     g.fixedStep.dt = 0;
     input.setLocked(false);
     return out;
   });
   const every = Object.values(r.sprayed).every((n) => n > 0);
-  return every && r.turns.length === 1 && r.stretch === 4 && r.bar && r.round && r.needleTip !== r.skinnyTip ? null : JSON.stringify(r);
+  return every && r.needleTip !== r.skinnyTip && !r.onWall && r.sky ? null : JSON.stringify(r);
 });
 
 await check('plume: specks leave the nozzle and never pass the wall, and are gone soon after the spray stops', async () => {
