@@ -47,7 +47,7 @@ export class Admins {
   /** An admin on `link`, unseen, welcomed; 'busy' with no memory for a paint file. One whose link went before the welcome is out already. */
   async admit(link: Link): Promise<Player | Rejection> {
     const now = Date.now();
-    const a: Player = { id: this.next++, name: ADMIN_NAME, asked: ADMIN_NAME, token: '', device: link.device, link, joined: now, acked: 0, live: false, saving: false, activity: 'here', since: now, inventory: null, at: null, ladder: null, expires: null, was: null, watcher: { seen: false } };
+    const a: Player = { id: this.next++, name: ADMIN_NAME, asked: ADMIN_NAME, token: '', device: link.device, link, joined: now, acked: 0, live: false, saving: false, activity: 'here', since: now, inventory: null, at: null, last: null, ladder: null, expires: null, was: null, watcher: { seen: false } };
     this.all.set(a.id, a);
     log(this.s.code, `admin #${a.id} in from ${link.ip}`);
     let r: boolean | 'busy';

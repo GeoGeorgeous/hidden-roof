@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 304
+The one list of what's left. Counter for new ids: next: 305
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -154,6 +154,7 @@ Shipped since the last release; the release commit empties this list.
 
 1. IDEA [BL-065]: Capture mode for filming (`src/capture`), on and off with N or on from the start with `?capture=1`; its keys rebindable in Settings → Controls → Other (N, V view, M record, F frame, B quality; not R, which game fullscreen's keyboard lock would take with Ctrl+R); loaded on first use, so the game doesn't carry it otherwise. Two views: first person, the game as played with the HUD but the hints and the hotbar; and the free camera (the game gets no input, nothing of the game's over the view, the stepladder's preview put away): W A S D, Q down, E up, the mouse with smoothing Z / X, the wheel for speed; K adds a point where the camera is (a numbered mark on screen), Backspace removes the last, P flies through them (Catmull-Rom path at an even speed, easing in and out, the view slerped without tilt), - / = its seconds. A plate at the left edge's middle shows the keys of the view, never in the video. M records the canvas (mp4 where the browser can, else webm VP9) at the quality B picks (low 8, medium 16, high 30, max 60 Mbit/s; high at the start) and it downloads when it stops; F goes through 1920×1080, 1080×1920 and 1080×1080 at pixel ratio 1, fitted into the window, with name tags, pickup tags and tool tags placed in that frame (`src/view-rect.ts`), back to the window's size on leaving. In a session the free camera's player stands still and the others see Capture after their name (PROTOCOL 11, wipes public paint at deploy); no hints are taught while filming; a saved key that a new default takes is no longer bound twice. GIFs left out; part 2: IDEA-301
 2. [TASK-303]: F3 audit fixes (every row changed in the game and read back; none dead or stuck): two tooltips of removed rows gone (RENDER.pixelScale, NOTIFY.shade), six sliders step onto config.ts's value (held marker right/up, billboard beam, bulkhead glow, volumetrics moon, pages opacity), BAKE OFF on REAL LIGHTS (spot shadows, light budget: nothing with baked light on), Paint runs' wet and runs views under VIEWS
+3. [BUGS-304]: A player whose game sends no snapshots (hidden tab, dropped) was invisible to anyone who got a welcome after that, though listed in the ESC menu, until they came back: the server keeps each player's last state and sends it after the welcome, its time moved on to now so the figure's clock is right (no PROTOCOL change)
 
 ## Discarder
 

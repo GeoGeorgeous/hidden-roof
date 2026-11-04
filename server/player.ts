@@ -1,7 +1,8 @@
 import { SERVER } from '../src/config';
 import type { InventoryData } from '../src/inventory/inventory';
 import type { PropData } from '../src/level/level-data';
-import { closeCode, NAME_MAX, type Activity, type Presence, type Rejection, type Spot } from '../src/net/protocol';
+import { closeCode, NAME_MAX, relayEntry, relayFrame, type Activity, type Presence, type Rejection, type Spot } from '../src/net/protocol';
+import { snapshotLater } from '../src/net/snapshot';
 import type { Held } from './held';
 import { prefix } from './address';
 import { flush } from './relay';
@@ -51,6 +52,8 @@ export interface Player extends Held {
   inventory: InventoryData | null;
   /** Where they last stood, as their state said (null: not yet): given back when they come back. */
   at: Spot | null;
+  /** Their last state and when it came (ms): a game that joins sees them from it (`latestStates`). */
+  last: { bytes: Uint8Array; at: number } | null;
   ladder: PropData | null;
   /** Their last link that closed: from where, how long it lived, when (ms), for the log; how long (s) the seat is held. */
   was: { ip: string; country: string | null; lived: number; at: number; hold: number } | null;
@@ -67,6 +70,12 @@ export function deliver(p: Player, f: Uint8Array) {
   if (!p.live) return;
   flush(p);
   p.link?.send(f);
+}
+
+/** The last states of `players`, as one relay frame (null with none: a game can't read an empty one), each as they'd stamp it now: a figure shown from it runs on their clock, however long their game has been sending none. */
+export function latestStates(players: Player[]) {
+  const states = players.flatMap((p) => (p.last ? [relayEntry('state', p.id, snapshotLater(p.last.bytes, (Date.now() - p.last.at) / 1000))] : []));
+  return states.length ? relayFrame(states) : null;
 }
 
 /** `t`, a time (s) a player stamped what they did with, kept within the clock they run since they joined (SERVER.timeSlack ahead of it at most). */

@@ -33,10 +33,17 @@ export async function paint(w) {
   for (const until = Date.now() + 5000; Date.now() < until && (await paintHash(b)) === hidden; ) await b.waitForTimeout(100);
   assert.notEqual(await paintHash(b), hidden, 'B paints what A paints while B is hidden');
   assert.equal(await b.evaluate(() => [...window.game.net.remotes.players.values()][0].timeline.waiting), 0, 'nothing waits for B to be shown');
+  // A reloads meanwhile: B sends no snapshots, and A still sees it where it stood, away.
+  await a.reload();
+  await gameReady(a);
+  await watchStatus(a);
+  await status(a, 'in');
+  await noted('away');
   await b.evaluate(() => window.show());
   await b.waitForTimeout(500);
-  // Shown again, but paused: in the menu.
+  // Shown again, but paused: in the menu; and A follows B's clock, not the time B went quiet.
   await noted('menu');
+  assert.ok((await a.evaluate(() => [...window.game.net.remotes.players.values()][0].stats.delay)) < 1, 'A shows B on time');
   painted = await paintHash(a);
   assert.equal(await paintHash(b), painted, 'B, shown again, has the paint A has');
 
