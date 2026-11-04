@@ -193,6 +193,44 @@ await check('slant: the can at an angle to a wall lays dabs stretched along the 
   return r.head > 0 && r.round === r.head && r.side > 0 && r.slants.length === r.side && !off.length ? null : JSON.stringify({ ...r, slants: r.slants.slice(0, 2), want });
 });
 
+await check('settings: General is in groups, and the mouse turns slower only while a tool paints', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { input, inventory: inv, player, config } = g;
+    g.hud.menu.openSettings('General');
+    const page = [...document.querySelectorAll('.settings-page .rows > *')].map((e) => (e.classList.contains('group') ? `# ${e.textContent}` : e.querySelector('.label span').textContent));
+    g.hud.menu.openPage(null);
+    input.setLocked(true);
+    inv.select(0);
+    const was = config.PLAYER.paintSensitivity;
+    config.PLAYER.paintSensitivity = 0.5;
+    /** How far a mouse move of 100 px turns the player, in sensitivities. */
+    const turned = async (pressed) => {
+      let from = 0;
+      let got = 0;
+      await steps((f) => {
+        if (f === 0) input.button(0, pressed);
+        if (f === 3) ((from = player.yaw), (input.mouseDX = 100));
+        if (f === 4) got = (from - player.yaw) / (100 * config.PLAYER.mouseSensitivity);
+        return f === 4;
+      });
+      input.button(0, false);
+      return got;
+    };
+    const free = await turned(false);
+    const painting = await turned(true);
+    await steps((f) => f === 2);
+    config.PLAYER.paintSensitivity = was;
+    g.paint.clear();
+    g.fixedStep.dt = 0;
+    input.setLocked(false);
+    return { page, free, painting };
+  });
+  const want = ['# painting', 'Sensitivity', 'Sensitivity while painting', 'Streamline', '# view', 'Field of view', 'Field of view: running', '# help', 'Hints', 'Show hints again', '# left hand', 'Show left hand'];
+  const close = (a, b) => Math.abs(a - b) < 1e-6;
+  return JSON.stringify(r.page) === JSON.stringify(want) && close(r.free, 1) && close(r.painting, 0.5) ? null : JSON.stringify(r);
+});
+
 await check('render: never more pixels than the screen has (a page zoomed out to 50%), as many at 100%', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;

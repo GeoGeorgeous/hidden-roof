@@ -167,10 +167,30 @@ softness scales the brush's edge (standard is the reference), so caps feel
 different at any distance.
 
 Owner (2026-11-04, later the same day): the four caps of today stay as they are,
-tuned by hand: their numbers don't change. Test caps come beside them, about as
-many again (NEEDLE, SOFT, HARD and others), for the owner to play with; only the
-ones chosen ship, the rest go. The table below is what to try, no longer a
-decision: which caps ship and under which names is the owner's, after that.
+tuned by hand: their numbers don't change. Test caps come beside them for the
+owner to play with; only the ones chosen ship, the rest go. Which ship is the
+owner's, after that.
+
+| Cap | Line at 0.5 / 1.5 / 3 m, cm | What it is | Body, dot |
+|---|---|---|---|
+| SKINNY (today's) | 2.0 / 4.2 / 8.1 | | cream, dark |
+| BANANA (`standard`, today's) | 2.8 / 6.8 / 11.4 | | yellow, dark |
+| NY FAT (`fat`, today's) | 6.7 / 14.6 / 28.2 | | white, dark |
+| ASTRO FAT (`spray`, today's) | 9.0 / 20.3 / 35.2 | | gray-white, dark |
+| NEEDLE | 1.7 / 3.5 / 6.9 | thinner than SKINNY, as the default marker at 1.5 m | red, its nozzle a thin white tube toward the wall |
+| HARD | 2.9 / 7.1 / 14.7 | `standard` with almost no soft edge | black, dark |
+| BLUE DOT (`soft`) | 2.8 / 5.8 / 10.9 | `standard` with a soft edge | gray, blue |
+| SOFTEST | 2.7 / 5.7 / 10.9 | the softest edge | light gray, the owner's pick |
+| TRANSVERSAL | about 4.5 wide | a flat nib: wide across it, thin and dense along it | white, a wide dark slit |
+
+Every cap gets a dot color (`CapSpec`; the nozzle, seen on pickups). TRANSVERSAL's
+nib is a fixed ellipse, in F3, at 45° from the wall's horizon: it goes as a stamp's
+`slant`, so no protocol change, and it takes the place of the wall's angle for that
+cap (owner: fine). Its crosshair is a rectangle at the nib's angle, as long and as
+wide as the line, flat on the screen; the arc and the percent don't turn with it.
+Turning the nib with keys: after the test.
+
+The table below came first and is what the names came from:
 
 Before that (2026-11-04): the caps take real caps' names, six in all, thin to wide.
 Ids stay simple: a player reads `CapSpec.name`, saves, maps and stats keep the id.
@@ -409,7 +429,7 @@ only): cut it before the branch reaches `dev`, on the owner's word.
 | 3 | In module 1 (one function sizes a dab; its number stays free so the others keep theirs) | |
 | 4 | Done on `feat/paint-crosshair`. The game's crosshair sized to the line (`lineWidth`), no PSI gauge, one ray a frame shared with the brush. The opacity: a 120° arc on the crosshair's right, the percent beside it for a moment after a change. A sight glass on the can was tried against the arc: owner chose the arc | IDEA-228 |
 | 5 | Done on `feat/paint-slant-wire`. The sandbox's slant ported (it was never in the game) and put on the wire: protocol 12, 3 bytes behind a flag, rounded like an op's other numbers; seams; the load read again | TASK-231 |
-| 6 | Today's four caps kept as they are, test caps beside them (NEEDLE, SOFT, HARD and others) for the owner to choose from; the ones not chosen go | IDEA-229 |
+| 6 | Today's four caps kept as they are, five test caps beside them for the owner to choose from, the ones not chosen go; real names, colors, a dot on each cap | IDEA-229 |
 | 7 | Paint runs: the design talked over first, the marker's kept as they are if nothing asks otherwise | TASK-230 |
 | 8 | Dead code, load tests, docs | TASK-232 |
 | 9 | Spray plume, then this doc gone | |

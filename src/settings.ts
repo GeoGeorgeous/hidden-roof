@@ -88,6 +88,7 @@ export class Settings {
   /** The settings page (pause menu → SETTINGS): one section per tab. Every change is saved. `gpu`: what the game draws with; `runTest`: the performance test; `hints`: the tutorial. */
   sections(gpu: GpuInfo, runTest: () => void, hints: Hints): SettingSection[] {
     const saving = (section: string) => (row: SettingRow): SettingRow => {
+      if (row.kind === 'heading') return row;
       const key = `${section}.${row.label}`.toLowerCase().replace(/[^a-z0-9.]+/g, '-');
       const changed = () => (this.onChange(key), this.save());
       this.listed.set(key, row);
@@ -317,6 +318,7 @@ function nearest(list: number[], v: number) {
 type RowBase = { label: string; desc?: string; note?: string; cost?: Cost };
 export type Cost = 'LOW' | 'MEDIUM' | 'HIGH';
 export type SettingRow =
+  | { kind: 'heading'; label: string }
   | (RowBase & { kind: 'choice'; value: () => string; step: (d: number) => void; locked?: () => boolean })
   | (RowBase & { kind: 'info'; value: () => string })
   | (RowBase & { kind: 'action'; button: string; act: () => void; /** The button says this for a moment after it's pressed. */ done?: string; /** The button can be pressed. */ enabled?: () => boolean })
@@ -337,7 +339,7 @@ export interface SettingSection {
 
 /** The gameplay, sound and on/off settings, saved as overrides (settings-store.ts). */
 const REMEMBERED: Remembered[] = [
-  ...(['mouseSensitivity', 'crouchToggle', 'tapToRun'] as const).map((field) => ({ name: `PLAYER.${field}`, obj: PLAYER, field })),
+  ...(['mouseSensitivity', 'paintSensitivity', 'crouchToggle', 'tapToRun'] as const).map((field) => ({ name: `PLAYER.${field}`, obj: PLAYER, field })),
   ...(['fov', 'sprintFovBoost', 'fullscreen', 'propMotion'] as const).map((field) => ({ name: `RENDER.${field}`, obj: RENDER, field })),
   { name: 'ATMOS.rain', obj: NIGHT, field: 'rain' },
   { name: 'SMOKE.enabled', obj: SMOKE, field: 'enabled' },
@@ -345,6 +347,7 @@ const REMEMBERED: Remembered[] = [
   { name: 'WALL_HAND.enabled', obj: WALL_HAND, field: 'enabled' },
   { name: 'TUTORIAL.enabled', obj: TUTORIAL, field: 'enabled' },
   { name: 'BRUSH.opacity', obj: BRUSH, field: 'opacity' },
+  { name: 'BRUSH.streamline', obj: BRUSH, field: 'streamline' },
   ...SOUNDS.map(([, field]) => ({ name: `AUDIO.${field}`, obj: AUDIO, field })),
 ];
 

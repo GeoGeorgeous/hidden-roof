@@ -49,6 +49,10 @@ export class Tools {
   private last: { tool: Tool | null; color: string; cap: string } | null = null;
   /** What the tool in hand is doing this frame, as others see it (net/snapshot.ts): pressing LMB with it, or shaking the can. */
   action: AvatarAction = null;
+  /** A tool in hand is laying paint or taking it off, as of the last frame. */
+  get painting() {
+    return this.action !== null && this.action !== 'shake';
+  }
 
   constructor(
     scene: THREE.Scene,
