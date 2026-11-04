@@ -661,6 +661,8 @@ export const CAPTURE = {
     [1080, 1920],
     [1080, 1080],
   ] as (readonly [number, number])[],
+  /** The frame height (px) drawn with INK.hatchPx as it is: a taller frame's hatching grows with it, so 9:16 looks like 16:9. */
+  hatchHeight: 1080,
   /** The free camera's speed (m/s) at the start, its range, and the factor a wheel step changes it by (up faster). */
   speed: 4,
   speedMin: 0.25,

@@ -1,5 +1,5 @@
 import type * as THREE from 'three';
-import { CAPTURE } from '../config';
+import { CAPTURE, INK } from '../config';
 import type { Input } from '../input';
 import { setFrame } from '../view-rect';
 import { Flight } from './flight';
@@ -44,6 +44,8 @@ export class CaptureMode {
   private quality = CAPTURE.qualityStart;
   /** The free camera takes the player's view on its next frame. */
   private fresh = false;
+  /** INK.hatchPx outside a fixed frame. */
+  private hatchPx = INK.hatchPx;
 
   constructor(private view: CaptureView) {}
 
@@ -105,6 +107,9 @@ export class CaptureMode {
 
   private setSize(size: readonly [number, number] | null) {
     if (size === this.size) return;
+    if (!this.size) this.hatchPx = INK.hatchPx;
+    // The view is as tall in degrees in any frame: a taller frame has things bigger in pixels, and its hatching grows with them.
+    INK.hatchPx = this.hatchPx * (size ? size[1] / CAPTURE.hatchHeight : 1);
     this.size = size;
     const { renderer, camera } = this.view;
     if (!size) {
