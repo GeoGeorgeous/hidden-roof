@@ -137,7 +137,11 @@ smoothed up from zero: the first move now sets the speed at once.
 
 ### 7. Crosshair
 
-One crosshair replaces the game's while the can is out, a hairline ring:
+Owner (2026-11-04): the game's own crosshair stays (`.crosshair`, its
+`mix-blend-mode: difference` turns it light on dark and dark on light) and only
+its size follows the line; the branch's element isn't ported. An opacity arc
+is added to it, perhaps a half arc at its side: its shape is decided in module
+4. What the branch's crosshair showed:
 
 - Its size is the line the paint will leave right now (distance, cap, edge,
   hand speed, opacity): out to where the stroke is half as dense as in its
@@ -157,10 +161,23 @@ Two new caps: a soft-edged medium one and a crisp narrow one. The cap's
 softness scales the brush's edge (standard is the reference), so caps feel
 different at any distance.
 
-Owner: both ship as new pickup caps next to skinny, standard, fat and spray
-(six caps, 2026-11-04). Names and places on the maps undecided, asked in
-module 6 of the plan; SOFT and HARD are placeholders (suggested: PINK DOT and
-OUTLINE).
+Owner (2026-11-04): the caps take real caps' names, six in all, thin to wide.
+Ids stay simple: a player reads `CapSpec.name`, saves, maps and stats keep the id.
+
+| Player sees | Id | Real cap | Its line |
+|---|---|---|---|
+| NEEDLE | `needle` (new) | needle cap | 0.4-1.2 cm |
+| SKINNY | `skinny` | skinny cap | 0.5-3 cm |
+| BANANA | `standard` | banana outline | 1-4 cm, clean; the starting cap, in place of HARD |
+| BLUE DOT | `soft` (new) | Blue Dot soft cap | 1-4.5 cm, soft and dusty |
+| NY FAT | `fat` | NY fat | wide, sources differ |
+| SPRAY | `spray` | nearest: Astro Fat, ~12 cm | the game's widest, light |
+
+Widths are shop and guide figures, by brand and distance. A line is never
+thinner than a texel: NEEDLE is about 1 cm at ULTRA, and at LOW (4 cm) little
+different from SKINNY. It stays clean: no spatter. Places of the two new
+pickups on the maps: asked in module 6. Pickup labels (`src/pickups/labels.ts`)
+and each cap's `color` follow the names.
 
 ### 9. Slant
 
@@ -174,9 +191,11 @@ Owner: important, in 1.7.0, protocol bump included (step 2 below is required).
 
 Sandbox conveniences that change the game beyond painting:
 
-- The can never loses pressure. Owner (2026-11-04): most likely dropped for a
-  pressure the player sets with Shift + wheel, and the PSI gauge goes.
-  Shaking itself is decided after the in-game test of plan module 1.
+- The can never loses pressure. Owner (2026-11-04): pressure that runs out goes
+  for one the player sets with Shift + wheel. Shaking stays on RMB as an
+  animation and its sound, doing nothing to the paint, perhaps an idle
+  animation later. Going: drain (`cap.drain`), thinning, sputter, the low
+  pressure warning, the tutorial's line on shaking.
 - All tools, colors and caps unlocked from the start. Owner: a dev
   convenience only (instead of F3 → Unlock all items each time); the game
   keeps pickups as now. Don't ship it.
@@ -332,11 +351,11 @@ owner's in-game test. Paint reaches `next` after 1.6.2 is released.
 | # | Module | Items |
 |---|---|---|
 | 1 | Brush: dabs between frames, build-up, streamline; particles only for show | IDEA-225 |
-| 2 | Opacity: Shift + wheel on the can only, rebindable, both wheel axes; smooth alpha; PSI gauge gone | IDEA-226 |
+| 2 | Opacity: Shift + wheel on the can only, rebindable, both wheel axes; smooth alpha; pressure no longer runs out, the PSI gauge shows the setting until module 4 | IDEA-226 |
 | 3 | Hand speed and distance, a test at 60, 144 and 240 Hz | IDEA-227 |
-| 4 | Crosshair in the HUD, one ray a frame shared with the brush | IDEA-228 |
+| 4 | The game's crosshair sized to the line, an opacity arc, no PSI gauge, one ray a frame shared with the brush | IDEA-228 |
 | 5 | Slant on the wire (protocol 12, 3 bytes, a flag), rounded like an op's other numbers; seams; the load read again | TASK-231 |
-| 6 | Caps SOFT and HARD, every cap tuned | IDEA-229 |
+| 6 | Six caps with real names (NEEDLE and BLUE DOT new), every cap tuned | IDEA-229 |
 | 7 | Puddle runs | TASK-230 |
 | 8 | Dead code, load tests, docs, this doc gone | TASK-232 |
 
@@ -359,13 +378,14 @@ Found in the branch, to fix on the way:
 
 Still open:
 
-- Shaking: after the in-game test of module 1.
-- Cap names and their places on the maps: module 6.
+- The opacity arc's shape: module 4.
+- The new caps' places on the maps: module 6.
 - The spray plume: after module 8.
 
 Decided (2026-11-04): pressure the player sets replaces pressure that runs
-out (most likely); no PSI gauge; opacity on the can only; no red crosshair; no
-softness ring; six caps; puddle runs in 1.7.0; settings in `config.ts` and F3,
+out; shaking stays as an animation only; no PSI gauge; opacity on the can only;
+the game's crosshair stays; no red crosshair; no softness ring; six caps with
+real names; puddle runs in 1.7.0; settings in `config.ts` and F3,
 no Z panel; the owner's screen is 1920x1080 at 60 Hz.
 
 Decided (2026-10-24): smooth alpha stays; unlock-all is dev only; the

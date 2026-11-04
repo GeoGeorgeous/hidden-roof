@@ -58,11 +58,11 @@ Only `N.`, the id and the description are required. The optional parts appear in
 2. [IDEA-225]: Painting Rework: the can as a continuous brush (dabs between frames, build-up when held still, streamline; particles only for show) (docs/ideas/paint-refactoring.md) @1.7.0
 3. [IDEA-226]: Painting Rework: opacity on Shift + wheel, passes add up, smooth alpha (docs/ideas/paint-refactoring.md) @1.7.0
 4. [IDEA-227]: Painting Rework: the can's physics: hand speed and distance (gap, close, far) (docs/ideas/paint-refactoring.md) @1.7.0
-5. [IDEA-228]: Painting Rework: a true-size crosshair (the line's width, an opacity arc, too close) (docs/ideas/paint-refactoring.md) @1.7.0
-6. [IDEA-229]: Painting Rework: SOFT and HARD caps; tune every cap with the brush, against Bombing!! 2 or paintsessions.com (docs/ideas/paint-refactoring.md) @1.7.0
+5. [IDEA-228]: Painting Rework: the game's crosshair at true size (the line's width, an opacity arc) (docs/ideas/paint-refactoring.md) @1.7.0
+6. [IDEA-229]: Painting Rework: six caps named after real ones (NEEDLE and BLUE DOT new, ids stay simple); tune every cap with the brush, against Bombing!! 2 or paintsessions.com (docs/ideas/paint-refactoring.md) @1.7.0
 7. [TASK-230]: Painting Rework: paint runs with the brush: the 1.5.0 runs don't fit it (measured: the can barely runs); puddle runs (by paint volume, no dice), decided for 1.7.0 (docs/ideas/paint-refactoring.md) @1.7.0
 8. [TASK-231]: Painting Rework: network: the slant shape on the wire (protocol bump); measured 2026-11-04, no op per stroke segment unless the load test in the plan's module 5 asks for it (see BL-024) (docs/ideas/paint-refactoring.md) @1.7.0
-9. [TASK-232]: Painting Rework: to production: settings into config.ts and F3, no painting by particles, decide shaking (pressure that runs out most likely goes; unlock-all stays dev only), update golden and multiplayer tests (docs/ideas/paint-refactoring.md) @1.7.0
+9. [TASK-232]: Painting Rework: to production: settings into config.ts and F3, no painting by particles, pressure no longer runs out and shaking is only an animation (unlock-all stays dev only), update golden and multiplayer tests (docs/ideas/paint-refactoring.md) @1.7.0
 10. [?IDEA-166]: Painting Rework: lock the camera while painting (not in the branch) (docs/ideas/paint-refactoring.md)
 
 ## Input
