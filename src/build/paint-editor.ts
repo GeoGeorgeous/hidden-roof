@@ -6,6 +6,7 @@ import { rgbOf } from '../inventory/items';
 import type { Level } from '../level/level';
 import { solidsNear } from '../level/solids';
 import { shared } from '../materials';
+import { faceBox, patchOf } from '../paint-copy';
 import { edge, type PaintImage } from '../paint-image';
 import type { PaintPatch, PaintSurface, PaintSystem } from '../painting';
 import { hasPaint } from '../paint-surface';
@@ -131,7 +132,7 @@ export class PaintEditor {
     const img = this.draw();
     if (typeof img === 'string') return this.say(img);
     const was: PaintPatch[] = [];
-    if (!this.paint.imprint(aim.surface, aim.at, img, aim.right, aim.up, rgbOf(color), (s, box) => was.push(this.paint.patch(s, box)))) return this.say('HINTS GO ON FLAT FACES');
+    if (!this.paint.imprint(aim.surface, aim.at, img, aim.right, aim.up, rgbOf(color), (s, box) => was.push(patchOf(s, box)))) return this.say('HINTS GO ON FLAT FACES');
     this.remember(was);
     this.changed('HINT PAINTED · CTRL+Z UNDOES IT');
   }
@@ -175,7 +176,7 @@ export class PaintEditor {
 
   private wipe(aim: Aim | null) {
     if (!aim || !hasPaint(aim.surface)) return this.say('AIM AT A PAINTED SURFACE');
-    this.remember([this.paint.patch(aim.surface, this.paint.faceBox(aim.surface, aim.at.rect))]);
+    this.remember([patchOf(aim.surface, faceBox(aim.surface, aim.at.rect))]);
     this.paint.wipe(aim.surface, aim.at.rect);
     this.changed('FACE WIPED · CTRL+Z PUTS IT BACK');
   }

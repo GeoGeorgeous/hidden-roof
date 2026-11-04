@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 import { PAINT } from './config';
-import { painted, resampleRect } from './paint-resample';
+import { carriedFaces, copyFaces, faceBox, patchFits, putCrop, putPatch } from './paint-copy';
 import type { FacePoint, Rect, SurfaceGeometry } from './surfaces';
 import { SeamIndex, texelToWorld, turnOnto, worldToTexel, type SeamFace } from './paint-seams';
 import { PaintGpu } from './paint-gpu';
-import { faceKey, hasPaint, rectsOf, type Owned, type PaintPatch, type PaintSurface, type Rgb } from './paint-surface';
+import { hasPaint, rectsOf, type Owned, type PaintPatch, type PaintSurface, type Rgb } from './paint-surface';
 import { PaintLocks } from './paint-locks';
 import { inRing, PaintRaster, type Band, type Box, type Dot } from './paint-raster';
 import type { PaintOp, RollOp, Slant, StampOp } from './paint-ops';
@@ -110,25 +110,11 @@ export class PaintSystem {
    * one that was uncovered starts clean.
    */
   carry(old: readonly PaintSurface[], fresh: readonly PaintSurface[]) {
-    const from = new Map<string, { s: PaintSurface; a: number }>();
-    for (const s of old) if (hasPaint(s)) s.geo.rects.forEach((r, a) => from.set(faceKey(s, r, a), { s, a }));
-    if (!from.size) return;
-    for (const s of fresh) {
-      const faces = s.geo.rects.flatMap((r, b) => {
-        const f = from.get(faceKey(s, r, b));
-        return f ? [{ from: f.s, a: f.a, b }] : [];
-      });
-      if (faces.length) this.adopt(s, faces);
+    for (const { s, faces } of carriedFaces(old, fresh)) {
+      this.ensureTexture(s);
+      copyFaces(s, faces);
+      this.gpu.markDirty(s, 0, 0, s.geo.atlasW - 1, s.geo.atlasH - 1);
     }
-  }
-
-  /** Face `b` of `s` takes face `a` of `from`, resampled when the atlas differs. */
-  private adopt(s: PaintSurface, faces: { from: PaintSurface; a: number; b: number }[]) {
-    const live = faces.filter(({ from, a }) => hasPaint(from) && painted(from.data, from.geo.atlasW, from.geo.rects[a]));
-    if (!live.length) return;
-    this.ensureTexture(s);
-    for (const { from, a, b } of live) resampleRect(from.data!, from.geo.atlasW, from.geo.rects[a], s.data!, s.geo.atlasW, s.geo.rects[b]);
-    this.gpu.markDirty(s, 0, 0, s.geo.atlasW - 1, s.geo.atlasH - 1);
   }
 
   /** Wipe all paint (LOAD replaces it), freeing it: textures are created again on the next hit. */
@@ -181,11 +167,7 @@ export class PaintSystem {
   putFace(s: PaintSurface, rect: number, crop: Uint8Array, w: number, h: number) {
     this.ensureTexture(s);
     const r = s.geo.rects[rect];
-    const atlasW = s.geo.atlasW;
-    if (w === r.w && h === r.h) {
-      const row = (w + 2) * 4;
-      for (let y = 0; y < h + 2; y++) s.data!.set(crop.subarray(y * row, (y + 1) * row), ((r.y - 1 + y) * atlasW + r.x - 1) * 4);
-    } else resampleRect(crop, w + 2, { x: 1, y: 1, w, h }, s.data!, atlasW, r);
+    putCrop(s, r, crop, w, h);
     this.gpu.markDirty(s, r.x - 1, r.y - 1, r.x + r.w, r.y + r.h);
   }
 
@@ -364,47 +346,19 @@ export class PaintSystem {
     return true;
   }
 
-  /** Face `rect` and its ring, as a box. */
-  faceBox(s: PaintSurface, rect: number): Box {
-    const r = s.geo.rects[rect];
-    return [r.x - 1, r.y - 1, r.x + r.w, r.y + r.h];
-  }
-
   /** Wipe one face's paint and its ring (build mode's X): the surface's memory comes back once none is left. */
   wipe(s: PaintSurface, rect: number) {
-    if (hasPaint(s)) this.unpatch({ key: s.key, atlas: [s.geo.atlasW, s.geo.atlasH], rects: rectsOf(s), box: this.faceBox(s, rect), data: null });
-  }
-
-  /** A box of a surface's paint as it is now, to put back with unpatch() (build mode's undo). */
-  patch(s: PaintSurface, box: Box): PaintPatch {
-    const w = s.geo.atlasW;
-    const [x0, y0, x1, y1] = box;
-    let data: Uint8Array | null = null;
-    if (s.data) {
-      data = new Uint8Array((x1 - x0 + 1) * (y1 - y0 + 1) * 4);
-      for (let y = y0; y <= y1; y++) data.set(s.data.subarray((y * w + x0) * 4, (y * w + x1 + 1) * 4), (y - y0) * (x1 - x0 + 1) * 4);
-    }
-    return { key: s.key, atlas: [w, s.geo.atlasH], box, data, rects: rectsOf(s) };
+    if (hasPaint(s)) this.unpatch({ key: s.key, atlas: [s.geo.atlasW, s.geo.atlasH], rects: rectsOf(s), box: faceBox(s, rect), data: null });
   }
 
   /** Put a patch back (none in it: wipe its box), on the live surface with its key; false if it has none, or its atlas or faces changed since. */
-  unpatch({ key, atlas, rects, box, data }: PaintPatch) {
-    const s = this.find(key);
-    if (!s || s.geo.atlasW !== atlas[0] || s.geo.atlasH !== atlas[1]) return false;
-    const now = rectsOf(s);
-    if (now.length !== rects.length || now.some((n, i) => n !== rects[i])) return false;
-    if (!data && !hasPaint(s)) return true;
+  unpatch(patch: PaintPatch) {
+    const s = this.find(patch.key);
+    if (!s || !patchFits(s, patch)) return false;
+    if (!patch.data && !hasPaint(s)) return true;
     this.ensureTexture(s);
-    const w = atlas[0];
-    const [x0, y0, x1, y1] = box;
-    const bw = x1 - x0 + 1;
-    for (let y = y0; y <= y1; y++) {
-      const at = y * w + x0;
-      const i = (y - y0) * bw;
-      if (data) s.data!.set(data.subarray(i * 4, (i + bw) * 4), at * 4);
-      else s.data!.fill(0, at * 4, (at + bw) * 4);
-      s.wet?.fill(0, at, at + bw);
-    }
+    putPatch(s, patch);
+    const [x0, y0, x1, y1] = patch.box;
     this.gpu.markDirty(s, x0, y0, x1, y1);
     this.freeIfClean(s);
     return true;

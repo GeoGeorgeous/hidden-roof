@@ -47,7 +47,7 @@ export function hasPaint<S extends Pick<PaintSurface, 'data'>>(s: S): s is S & {
   return s.data !== null;
 }
 
-/** A box of a surface's paint (PaintSystem.patch): its texels, or null where it had none (restored paint is dry). */
+/** A box of a surface's paint (paint-copy.ts patchOf): its texels, or null where it had none (restored paint is dry). */
 export interface PaintPatch {
   key: string;
   /** The surface's atlas size then: a rebuilt surface of another size can't take it. */
