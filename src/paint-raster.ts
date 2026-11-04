@@ -1,6 +1,7 @@
 import type * as THREE from 'three';
 import { DRIPS, PAINT } from './config';
 import { paintRandom } from './lcg';
+import type { StampOp } from './paint-ops';
 import type { Rgb } from './painting';
 import type { Rect, SurfaceGeometry } from './surfaces';
 
@@ -17,11 +18,16 @@ export interface RasterSurface {
   wet: Float32Array | null;
 }
 
+const TAU = Math.PI * 2;
+
 /** Atlas texels x0..x1, y0..y1, inclusive. */
 export type Box = [x0: number, y0: number, x1: number, y1: number];
 
 /** The part of `box` on face `rect` and its 1-texel ring. */
 export const inRing = (rect: Rect, [x0, y0, x1, y1]: Box): Box => [Math.max(rect.x - 1, x0), Math.max(rect.y - 1, y0), Math.min(rect.x + rect.w, x1), Math.min(rect.y + rect.h, y1)];
+
+/** A dot's size and paint (see PaintSystem.stamp). */
+export type Dot = Pick<StampOp, 'radius' | 'amount' | 'color' | 'softness' | 'square' | 'slant'>;
 
 /** A roller band's size and paint (see PaintSystem.roll). */
 export interface Band {
@@ -94,35 +100,45 @@ export class PaintRaster<S extends RasterSurface> {
     rect: Rect,
     cx: number,
     cy: number,
-    radius: number,
-    amount: number,
-    color: Rgb | null,
-    softness: number,
+    { radius, amount, color, softness, square, slant }: Dot,
     drip: number,
-    square: boolean,
   ) {
     const w = s.geo.atlasW;
     const data = s.data!;
     const r = radius * s.geo.texelsPerMeter;
+    const stretch = slant?.stretch ?? 1;
+    const tail = slant?.tail ?? 0;
+    // The far end's direction: an ellipse's texels are those of a circle, squeezed back along it.
+    const ax = slant ? Math.cos(slant.turn * TAU) : 1;
+    const ay = slant ? Math.sin(slant.turn * TAU) : 0;
     // Under half a texel diagonal the dot could miss every texel center.
     const dot = r >= Math.SQRT1_2;
-    const reach = dot ? r - 0.5 : 0;
+    // The box around the ellipse, not a square of its length: along a diagonal that's about half the texels.
+    const reachX = dot ? (slant ? Math.hypot(r * stretch * ax, r * ay) : r) - 0.5 : 0;
+    const reachY = dot ? (slant ? Math.hypot(r * stretch * ay, r * ax) : r) - 0.5 : 0;
     // Clip to the face rect plus its 1-texel padding so paint never bleeds onto another face.
-    const x0 = Math.max(rect.x - 1, Math.floor(cx - reach));
-    const x1 = Math.min(rect.x + rect.w, Math.floor(cx + reach));
-    const y0 = Math.max(rect.y - 1, Math.floor(cy - reach));
-    const y1 = Math.min(rect.y + rect.h, Math.floor(cy + reach));
+    const x0 = Math.max(rect.x - 1, Math.floor(cx - reachX));
+    const x1 = Math.min(rect.x + rect.w, Math.floor(cx + reachX));
+    const y0 = Math.max(rect.y - 1, Math.floor(cy - reachY));
+    const y1 = Math.min(rect.y + rect.h, Math.floor(cy + reachY));
     const runs = DRIPS.enabled && rect.upright ? drip : 0;
     const r2 = r * r;
     let touched = false;
     for (let y = y0; y <= y1; y++) {
       for (let x = x0; x <= x1; x++) {
-        const dx = x + 0.5 - cx;
-        const dy = y + 0.5 - cy;
+        let dx = x + 0.5 - cx;
+        let dy = y + 0.5 - cy;
+        let fade = 1;
+        if (slant) {
+          const along = dx * ax + dy * ay;
+          dy = dy * ax - dx * ay;
+          dx = along / stretch;
+          if (along > 0) fade = 1 - tail * Math.min(1, dx / r);
+        }
         const d2 = dx * dx + dy * dy;
         if (dot && (square ? Math.abs(dx) > r || Math.abs(dy) > r : d2 > r2)) continue;
         const falloff = dot && !square ? 1 - (d2 / r2) * softness : 1;
-        const amt = amount * falloff;
+        const amt = amount * falloff * fade;
         if (amt <= 0) continue;
         const i = (y * w + x) * 4;
         if (!color) {

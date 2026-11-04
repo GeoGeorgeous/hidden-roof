@@ -1073,6 +1073,13 @@ export const BRUSH = {
   /** Past the gap (m) the opacity fades from here to the can's reach, never below `fadeMin` of it. */
   fadeStart: 0.5,
   fadeMin: 0.75,
+  /** A dab hitting the wall at an angle stretches along the aim, as 1 / cos of the angle, up to `slantMax`; under `slantFrom` it stays round. */
+  slantFrom: 1.02,
+  slantMax: 4,
+  /** How much of its paint a dab along the wall loses toward its far end. */
+  slantTail: 0.7,
+  /** How far stretching thins a dab: 0 = its paint stays as dense, so a line along the aim darkens; 1 = the same paint spread over more wall. */
+  slantThin: 0,
 };
 
 export const PLAYER = {

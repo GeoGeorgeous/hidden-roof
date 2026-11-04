@@ -55,11 +55,10 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## Painting
 
 1. IDEA [BL-074]: Stencils
-2. [IDEA-229]: Painting Rework: six caps named after real ones (NEEDLE and BLUE DOT new, ids stay simple); tune every cap with the brush, against Bombing!! 2 or paintsessions.com (docs/ideas/paint-refactoring.md) @1.7.0
+2. [IDEA-229]: Painting Rework: today's four caps stay as tuned; test caps beside them (NEEDLE, SOFT, HARD and others), the owner keeps the ones chosen (docs/ideas/paint-refactoring.md) @1.7.0
 3. [TASK-230]: Painting Rework: paint runs with the brush: the 1.5.0 runs don't fit it (measured: the can barely runs); the design talked over in the plan's module 7 (the marker's runs are good today; puddle runs are only a candidate) (docs/ideas/paint-refactoring.md) @1.7.0
-4. [TASK-231]: Painting Rework: network: the slant shape on the wire (protocol bump); measured 2026-11-04, no op per stroke segment unless the load test in the plan's module 5 asks for it (see BL-024) (docs/ideas/paint-refactoring.md) @1.7.0
-5. [TASK-232]: Painting Rework: to production: settings into config.ts and F3, no painting by particles, pressure no longer runs out and shaking is only an animation (unlock-all stays dev only), update golden and multiplayer tests (docs/ideas/paint-refactoring.md) @1.7.0
-6. [?IDEA-166]: Painting Rework: lock the camera while painting (not in the branch) (docs/ideas/paint-refactoring.md)
+4. [TASK-232]: Painting Rework: to production: settings into config.ts and F3, no painting by particles, pressure no longer runs out and shaking is only an animation (unlock-all stays dev only), update golden and multiplayer tests (docs/ideas/paint-refactoring.md) @1.7.0
+5. [?IDEA-166]: Painting Rework: lock the camera while painting (not in the branch) (docs/ideas/paint-refactoring.md)
 
 ## Input
 
@@ -157,6 +156,7 @@ Shipped since the last release; the release commit empties this list.
 3. [BUGS-330]: Lightning with the Thunder slider at 0 stopped the game with an error (an exponential ramp to 0): it is silent now
 4. [IDEA-226]: Painting Rework: opacity on Run + the color keys (Shift + wheel), passes add up, smooth alpha; pressure no longer runs out, shaking is only an animation
 5. [IDEA-228]: Painting Rework: the game's crosshair at true size (the line it would leave), the opacity on an arc beside it with its percent; no PSI gauge
+6. [TASK-231]: Painting Rework: a dab at an angle stretches along the aim and fades at the far end, and others see it: protocol 12, 3 bytes a slanted stamp; over seams too; the load read again, no op per stroke segment
 
 ## Discarder
 

@@ -91,6 +91,11 @@ export function paintSections(h: Hooks): Section[] {
         r('spread share', ['BRUSH', 'coneShare'], 0, 1, 0.05),
         r('fade start', ['BRUSH', 'fadeStart'], 0, 0.9, 0.05),
         r('fade: min', ['BRUSH', 'fadeMin'], 0, 1, 0.05),
+        { kind: 'heading', label: 'SLANT' },
+        r('from', ['BRUSH', 'slantFrom'], 1, 2, 0.01),
+        r('most', ['BRUSH', 'slantMax'], 1, 8, 0.1),
+        r('tail', ['BRUSH', 'slantTail'], 0, 1, 0.05),
+        r('thinning', ['BRUSH', 'slantThin'], 0, 1, 0.05),
       ],
     },
     {

@@ -9,7 +9,7 @@ import type { V3 } from '../kit/pieces.ts';
 // bytes of JSON, then the message's `bytes`, if any (a player snapshot, a paint
 // file, paint ops). The others' states and paint ops come to a game in `relay`
 // frames, many in one (relayFrame), so the server's frames grow with the players,
-// not with their square. Paint ops travel packed (op-wire.ts), ~23 bytes a stamp, each
+// not with their square. Paint ops travel packed (op-wire.ts), 23 bytes a stamp (26 at a slant), each
 // number rounded as the painter painted it, so every client paints the very same
 // texels. Nothing is compressed by the socket: the server would deflate every op
 // once per player (with 20 painting, more than a core). Node runs this file as is
@@ -18,7 +18,7 @@ import type { V3 } from '../kit/pieces.ts';
 // through checkToServer.
 
 /** Bumped when a message changes or anything the server runs for a session does (paint, drips, face keys, the save format). host and join carry it and the level's surface-table hash; a mismatch is answered 'version' and the game asks for a reload. */
-export const PROTOCOL = 11;
+export const PROTOCOL = 12;
 export const NAME_MAX = 16;
 /** A player's name: Latin letters and digits only (ASCII), 1 to NAME_MAX of them; the menu checks it before HOST or JOIN, the server refuses any other. */
 export const isName = (x: unknown): x is string => typeof x === 'string' && x.length <= NAME_MAX && /^[A-Za-z0-9]+$/.test(x);

@@ -5,7 +5,8 @@ import * as THREE from 'three';
 import './ts-imports.mjs';
 
 const { BRUSH, CAPS, SPRAY } = await import('../src/config.ts');
-const { dabAt, dabSpacing, lineWidth, stepOpacity } = await import('../src/spray/dab.ts');
+const { dabAt, dabSpacing, lineWidth, slantOf, stepOpacity, thinned } = await import('../src/spray/dab.ts');
+const { PaintRaster } = await import('../src/paint-raster.ts');
 const { SprayStroke } = await import('../src/spray/stroke.ts');
 
 const RATES = [60, 144, 240];
@@ -19,6 +20,73 @@ function pass(cap, distance, speed) {
   let left = 1;
   for (let x = -d.radius; x <= d.radius; x += spacing) left *= 1 - d.amount * (1 - d.softness * (x / d.radius) ** 2);
   return 1 - left;
+}
+
+// A wall of texels, and a painted thing's alpha (0..1) at a texel.
+const TEXELS = 96;
+const WALL = 800;
+const wall = () => ({ geo: { atlasW: WALL, atlasH: WALL, texelsPerMeter: TEXELS }, data: new Uint8Array(WALL * WALL * 4), wet: null });
+const raster = new PaintRaster({ touched() {}, drip() {} });
+const whole = { x: 0, y: 0, w: WALL, h: WALL };
+const alpha = (s, x, y) => s.data[(y * WALL + x) * 4 + 3] / 255;
+const painted = (s) => s.data.filter((v, i) => i % 4 === 3 && v > 0).length;
+const reach = (s, x, y, dx, dy) => {
+  let n = 0;
+  while (alpha(s, x + dx * (n + 1), y + dy * (n + 1)) > 0) n++;
+  return n;
+};
+
+// Slant: a ray at an angle stretches a dab along it as 1 / cos, toward where it goes on to. Only the far end fades.
+{
+  const face = { origin: new THREE.Vector3(), uAxis: new THREE.Vector3(2, 0, 0), vAxis: new THREE.Vector3(0, 3, 0), normal: new THREE.Vector3(0, 0, 1) };
+  const ray = (deg, x, y) => new THREE.Vector3(x * Math.sin((deg * Math.PI) / 180), y * Math.sin((deg * Math.PI) / 180), -Math.cos((deg * Math.PI) / 180));
+  assert.equal(slantOf(face, new THREE.Vector3(0, 0, -1)), undefined, 'head on it is round');
+  assert.equal(slantOf(face, ray(5, 1, 0)), undefined, 'a few degrees off too');
+  assert.equal(slantOf(undefined, ray(60, 1, 0)), undefined, 'a curved face has no plane to lay it in');
+  const s = slantOf(face, ray(60, 1, 0));
+  near(s.stretch, 2, 1e-6, 'at 60 degrees twice as long');
+  near(s.tail, BRUSH.slantTail / 2, 1e-6, 'its tail');
+  assert.ok(Math.abs(s.turn) < 1e-9, 'toward +u');
+  near(slantOf(face, ray(60, 0, -1)).turn, -0.25, 1e-6, 'toward -v');
+  assert.equal(slantOf(face, ray(89.9, 1, 0)).stretch, BRUSH.slantMax, 'along the wall it stops at the most');
+  // Axes of different lengths don't bend it: a face is as dense along both.
+  near(slantOf(face, ray(60, Math.SQRT1_2, Math.SQRT1_2)).turn, 0.125, 1e-6, 'a diagonal stays a diagonal');
+
+  const dot = { radius: 0.2, amount: 0.5, color: [1, 0, 0], softness: 0.5, square: false };
+  const [round, long, tailed, diagonal] = [wall(), wall(), wall(), wall()];
+  raster.dot(round, whole, 400, 400, dot, 0);
+  raster.dot(long, whole, 400, 400, { ...dot, slant: { stretch: 3, turn: 0, tail: 0 } }, 0);
+  raster.dot(tailed, whole, 400, 400, { ...dot, slant: { stretch: 3, turn: 0, tail: 0.8 } }, 0);
+  raster.dot(diagonal, whole, 400, 400, { ...dot, slant: { stretch: 3, turn: 0.125, tail: 0 } }, 0);
+  near(reach(long, 400, 400, 1, 0), reach(round, 400, 400, 1, 0) * 3, 0.06, 'as long as its stretch');
+  assert.equal(reach(long, 400, 400, 0, 1), reach(round, 400, 400, 0, 1), 'as wide as round');
+  near(painted(long), painted(round) * 3, 0.03, 'as many texels as its stretch');
+  near(painted(diagonal), painted(long), 0.03, 'any way round');
+  assert.ok(alpha(diagonal, 440, 440) > 0 && alpha(diagonal, 440, 360) === 0, 'it lies along its turn');
+  assert.equal(alpha(tailed, 355, 400), alpha(long, 355, 400), 'the near end keeps its paint');
+  assert.ok(alpha(long, 355, 400) > 0 && alpha(tailed, 445, 400) < alpha(long, 445, 400) * 0.75, 'the far end loses it');
+
+  // A line of them: along the aim dabs overlap more, so it darkens unless stretching thins them (BRUSH.slantThin).
+  const line = (turn, thin) => {
+    const was = BRUSH.slantThin;
+    BRUSH.slantThin = thin;
+    const d = dab('standard', 3);
+    const slant = { stretch: 2, turn, tail: 0 };
+    const s = wall();
+    for (let x = 100; x < 700; x += dabSpacing(CAPS.standard, 3) * TEXELS) raster.dot(s, whole, x, 400, { ...d, amount: thinned(d.amount, slant), color: [1, 0, 0], square: false, slant }, 0);
+    BRUSH.slantThin = was;
+    return alpha(s, 400, 400);
+  };
+  const flat = (() => {
+    const d = dab('standard', 3);
+    const s = wall();
+    for (let x = 100; x < 700; x += dabSpacing(CAPS.standard, 3) * TEXELS) raster.dot(s, whole, x, 400, { ...d, color: [1, 0, 0], square: false }, 0);
+    return alpha(s, 400, 400);
+  })();
+  near(line(0.25, 0), flat, 0.03, 'not thinned, a line across the aim is as dense');
+  assert.ok(line(0, 0) > flat * 1.3, 'not thinned, a line along the aim darkens');
+  near(line(0, 1), flat, 0.05, 'thinned, a line along the aim is as dense');
+  near(line(0.25, 1), 1 - (1 - flat) ** 0.5, 0.05, 'thinned, a line across the aim is lighter');
 }
 
 // Distance.

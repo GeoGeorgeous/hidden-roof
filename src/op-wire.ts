@@ -1,4 +1,4 @@
-import type { PaintOp } from './paint-ops';
+import type { PaintOp, Slant } from './paint-ops';
 import type { Rgb } from './painting';
 
 // Paint ops on the wire (BL-024): their precision, and their bytes. Every
@@ -24,10 +24,22 @@ const meters = (x: number) => Math.round(clamp(x, 0, MAX_M) * TENTH_MM) / TENTH_
 const signed = (x: number) => Math.round(clamp(x, -1, 1) * I16) / I16;
 const rgb = (c: Rgb): Rgb => [unit(c[0]), unit(c[1]), unit(c[2])];
 
+/** A slant goes in three bytes: its stretch in 1/32 from 1 (to almost 9), its turn in 1/256 of a circle, its tail in 1/255. */
+const STRETCH = 32;
+const TURN = 256;
+const U8 = 255;
+const stretchByte = (x: number) => Math.round(clamp(x - 1, 0, U8 / STRETCH) * STRETCH);
+const turnByte = (x: number) => Math.round(x * TURN) & (TURN - 1);
+const tailByte = (x: number) => Math.round(clamp(x, 0, 1) * U8);
+const slantOf = (stretch: number, turn: number, tail: number): Slant => ({ stretch: 1 + stretch / STRETCH, turn: turn / TURN, tail: tail / U8 });
+
 /** The op with every number as it travels: what the painter paints with too, so all paint the same texels. Rounding again changes nothing. */
 export function rounded<T extends PaintOp>(op: T): T {
   const at = { ...op, u: unit(op.u), v: unit(op.v) };
-  if (at.kind === 'stamp') return { ...at, radius: meters(at.radius), amount: unit(at.amount), softness: unit(at.softness), color: at.color && rgb(at.color) };
+  if (at.kind === 'stamp') {
+    const { slant } = at;
+    return { ...at, radius: meters(at.radius), amount: unit(at.amount), softness: unit(at.softness), color: at.color && rgb(at.color), ...(slant && { slant: slantOf(stretchByte(slant.stretch), turnByte(slant.turn), tailByte(slant.tail)) }) };
+  }
   if (at.kind === 'roll') return { ...at, axis: [signed(at.axis[0]), signed(at.axis[1]), signed(at.axis[2])], halfLength: meters(at.halfLength), halfWidth: meters(at.halfWidth), edge: unit(at.edge), amount: unit(at.amount), color: rgb(at.color) };
   return { ...at, length: meters(at.length), speed: meters(at.speed), rgb: rgb(at.rgb) };
 }
@@ -48,10 +60,12 @@ export class SurfaceIndex {
 const KINDS = ['stamp', 'roll', 'drip'] as const;
 const SQUARE = 4;
 const SCRUB = 8;
+const SLANT = 16;
 /** Per op: kind and flags u8, time u16 (ms after the batch's first), surface u16, rect u16, u u16, v u16. */
 const HEAD = 11;
 const SIZE = { stamp: HEAD + 6 + 6, roll: HEAD + 6 + 8 + 6, drip: HEAD + 4 + 6 } as const;
-const sizeOf = (op: PaintOp) => SIZE[op.kind] - (op.kind === 'stamp' && !op.color ? 6 : 0);
+const SLANT_SIZE = 3;
+const sizeOf = (op: PaintOp) => SIZE[op.kind] - (op.kind === 'stamp' ? (op.color ? 0 : 6) - (op.slant ? SLANT_SIZE : 0) : 0);
 
 /**
  * A batch of ops, made at times `t` (s, the sender's clock): the first time as
@@ -71,7 +85,7 @@ export function encodeOps(t: readonly number[], ops: readonly PaintOp[], surface
   ops.forEach((op, i) => {
     const s = keep[i];
     if (s === undefined) return;
-    const flags = (op.kind === 'stamp' && op.square ? SQUARE : 0) | (op.kind === 'stamp' && !op.color ? SCRUB : 0);
+    const flags = op.kind === 'stamp' ? (op.square ? SQUARE : 0) | (op.color ? 0 : SCRUB) | (op.slant ? SLANT : 0) : 0;
     d.setUint8(o++, KINDS.indexOf(op.kind) | flags);
     u16(Math.round(clamp((t[i] - t0) * 1000, 0, U16)));
     u16(s);
@@ -83,6 +97,7 @@ export function encodeOps(t: readonly number[], ops: readonly PaintOp[], surface
       u16(Math.round(unit(op.amount) * U16));
       u16(Math.round(unit(op.softness) * U16));
       if (op.color) color(op.color);
+      if (op.slant) [stretchByte(op.slant.stretch), turnByte(op.slant.turn), tailByte(op.slant.tail)].forEach((x) => d.setUint8(o++, x));
     } else if (op.kind === 'roll') {
       op.axis.forEach((x) => i16(Math.round(signed(x) * I16)));
       u16(Math.round(meters(op.halfLength) * TENTH_MM));
@@ -113,19 +128,23 @@ export function decodeOps(bytes: Uint8Array, surfaces: SurfaceIndex): { t: numbe
   const un = () => u16() / U16;
   const m = () => u16() / TENTH_MM;
   const color = (): Rgb => [un(), un(), un()];
+  const u8 = () => d.getUint8(o++);
   while (o < bytes.length) {
     if (bytes.length - o < HEAD) return null;
     const flags = d.getUint8(o++);
     const kind = KINDS[flags & 3];
     if (!kind) return null;
     const scrub = kind === 'stamp' && flags & SCRUB;
-    if (bytes.length - o + 1 < SIZE[kind] - (scrub ? 6 : 0)) return null;
+    const slanted = kind === 'stamp' && flags & SLANT;
+    if (bytes.length - o + 1 < SIZE[kind] - (scrub ? 6 : 0) + (slanted ? SLANT_SIZE : 0)) return null;
     t.push(t0 + u16() / 1000);
     const key = surfaces.keys[u16()];
     if (key === undefined) return null;
     const at = { key, rect: u16(), u: un(), v: un() };
-    if (kind === 'stamp') ops.push({ kind, ...at, radius: m(), amount: un(), softness: un(), color: scrub ? null : color(), square: !!(flags & SQUARE) });
-    else if (kind === 'roll') ops.push({ kind, ...at, axis: [i16(), i16(), i16()], halfLength: m(), halfWidth: m(), edge: un(), amount: un(), color: color() });
+    if (kind === 'stamp') {
+      const stamp = { kind, ...at, radius: m(), amount: un(), softness: un(), color: scrub ? null : color(), square: !!(flags & SQUARE) };
+      ops.push(slanted ? { ...stamp, slant: slantOf(u8(), u8(), u8()) } : stamp);
+    } else if (kind === 'roll') ops.push({ kind, ...at, axis: [i16(), i16(), i16()], halfLength: m(), halfWidth: m(), edge: un(), amount: un(), color: color() });
     else {
       const [length, speed] = [m(), m()];
       if (!length || !speed) return null;
