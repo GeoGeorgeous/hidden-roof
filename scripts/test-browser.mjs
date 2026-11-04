@@ -166,14 +166,16 @@ export async function startPlaying(page, url) {
   return { errors, warnings };
 }
 
-/** A port nothing listens on, for a test's own game server. */
-export function freePort() {
-  return new Promise((done) => {
+const given = new Set();
+/** A port nothing listens on, and none this process gave before (a closed port is free again, so two draws can meet), for a test's own game server. */
+export async function freePort() {
+  const port = await new Promise((done) => {
     const s = net.createServer().listen(0, () => {
       const { port } = s.address();
       s.close(() => done(port));
     });
   });
+  return given.has(port) ? freePort() : (given.add(port), port);
 }
 
 /**

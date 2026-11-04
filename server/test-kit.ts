@@ -15,14 +15,17 @@ process.once('exit', () => children.forEach((c) => c.kill()));
 /** `c`, killed when this test ends however it ends: left running, it holds the pipes `npm run check` waits on. */
 export const stopsWithUs = (c: ChildProcess) => (children.add(c), c);
 
-/** A port nothing listens on. */
-export const freePort = () =>
-  new Promise<number>((done) => {
+const given = new Set<number>();
+/** A port nothing listens on, and none this process gave before: a port is free again once closed, so two draws can meet. */
+export async function freePort(): Promise<number> {
+  const port = await new Promise<number>((done) => {
     const s = net.createServer().listen(0, () => {
       const { port } = s.address() as net.AddressInfo;
       s.close(() => done(port));
     });
   });
+  return given.has(port) ? freePort() : (given.add(port), port);
+}
 /** A server on a free port (or the PORT and ADMIN_PORT `env` names), listening; `env` adds to its environment, `args` to node's. `stop` waits for it to exit (it saves first); `out()`: what it logged. */
 export async function start(env: Record<string, string>, args: string[] = []) {
   const [port, adminPort] = [Number(env.PORT) || (await freePort()), Number(env.ADMIN_PORT) || (await freePort())];
