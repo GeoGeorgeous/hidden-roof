@@ -16,5 +16,8 @@ export async function tab() {
   assert.equal(await p.evaluate(() => window.game.net.status.state), 'in', 'the first tab plays on');
   assert.deepEqual([...p.errors, ...errors], []);
   await q.close();
+  // Left, not closed: a closed tab's session would still count as one of this address's (SERVER.sessionsPerIp) for the next phase.
+  await p.evaluate(() => window.game.net.leave());
+  await status(p, 'off');
   await p.close();
 }

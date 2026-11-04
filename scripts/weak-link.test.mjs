@@ -49,7 +49,8 @@ const SCENARIOS = {
     B.proxy.down.rate = B.proxy.up.rate = 0;
     await stroke(B, inFlight);
     await stroke(B, lost, 'down');
-    await sleep(15);
+    // Until its game gives up on the link: it has made the stroke then (a proxy opened a moment before that would be no drop).
+    await state(B, 'reconnecting', 30000).catch(() => r.fail.push("B's game never saw its link go"));
     B.proxy.open();
     await painting.stop();
     await state(B, 'in', 60000).catch(() => r.fail.push('B never got back in'));

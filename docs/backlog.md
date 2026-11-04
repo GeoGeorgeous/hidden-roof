@@ -164,6 +164,7 @@ Shipped since the last release; the release commit empties this list.
 10. [BUGS-311]: A reload that took over 15 s lost the seat (the roof takes up to 14 s on a weak GPU), and alone in a private session that doesn't stay, the session and its paint: SERVER.closedHold is 30 s
 11. [BUGS-312]: A stepladder placed, moved or taken away with the link down: the others never heard (one taken away came back): the game keeps its own through a return and tells the server when it differs from the welcome's
 12. [BUGS-313]: Back as another player (after a server restart, or a seat that ran out), the game kept the old seat's stepladder, seen by no one else and impossible to pick up: it goes with the seat
+13. [TEST-314]: `test:mp` phase `rejoin` (hidden as it joins, a stepladder and paint from while the link was down, a seat gone); weak-link `stall` no longer opens the link just before the game gives up on it, which left the stroke unmade and failed the scenario now and then
 
 ## Discarder
 
