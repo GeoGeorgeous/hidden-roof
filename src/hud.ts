@@ -123,6 +123,14 @@ export class Hud {
     this.crosshair.style.setProperty('--size', `${px}px`);
   }
 
+  /** A flat nib's crosshair, a bar turned as the nib is: as long as setCrosshair's size, and `stretch` times thinner. None: round. */
+  setNib(nib?: { stretch: number; angle: number }) {
+    this.crosshair.classList.toggle('nib', !!nib);
+    if (!nib) return;
+    this.crosshair.style.setProperty('--nib-stretch', `${nib.stretch}`);
+    this.crosshair.style.setProperty('--nib-angle', `${nib.angle}deg`);
+  }
+
   /** Shows the cap name for a few seconds; place it with `placeToolTags`. */
   showCapTag(name: string) {
     this.capTag.textContent = `CAP · ${name}`;

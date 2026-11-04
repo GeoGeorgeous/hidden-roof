@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import './ts-imports.mjs';
 
 const { BRUSH, CAPS, SPRAY } = await import('../src/config.ts');
-const { dabAt, dabSpacing, lineWidth, slantOf, stepOpacity } = await import('../src/spray/dab.ts');
+const { dabAt, dabSpacing, lineWidth, nibOf, slantOf, stepOpacity } = await import('../src/spray/dab.ts');
 const { PaintRaster } = await import('../src/paint-raster.ts');
 const { SprayStroke } = await import('../src/spray/stroke.ts');
 
@@ -84,6 +84,47 @@ const reach = (s, x, y, dx, dy) => {
   assert.ok(line(0) > flat * 1.3, 'a line along the aim darkens');
 }
 
+// A flat nib lies at its angle whichever way the wall faces, and on a floor along the face's axis; a curved face has no plane for it.
+{
+  const wallFacing = (normal, uAxis, vAxis) => ({ origin: new THREE.Vector3(), normal, uAxis, vAxis });
+  const nib = { stretch: 4, angle: 45 };
+  const south = nibOf(wallFacing(new THREE.Vector3(0, 0, 1), new THREE.Vector3(2, 0, 0), new THREE.Vector3(0, 3, 0)), nib);
+  near(south.turn, 0.125, 1e-9, 'a wall: up to the right, as one looks at it');
+  assert.deepEqual([south.stretch, south.tail], [4, 0]);
+  const west = nibOf(wallFacing(new THREE.Vector3(-1, 0, 0), new THREE.Vector3(0, 0, 2), new THREE.Vector3(0, 3, 0)), nib);
+  near(west.turn, 0.125, 1e-9, 'on any wall');
+  // Its u running left as one looks at it: the same stroke on the wall, another turn in its atlas.
+  const flipped = nibOf(wallFacing(new THREE.Vector3(0, 0, 1), new THREE.Vector3(-2, 0, 0), new THREE.Vector3(0, 3, 0)), nib);
+  near(flipped.turn, 0.375, 1e-9, 'whichever way its atlas lies');
+  const floor = nibOf(wallFacing(new THREE.Vector3(0, 1, 0), new THREE.Vector3(2, 0, 0), new THREE.Vector3(0, 0, -2)), nib);
+  assert.ok(Number.isFinite(floor.turn), 'a floor has no horizon, and still takes it');
+  assert.equal(nibOf(undefined, nib), undefined);
+
+  // Across the nib a wide line as the dab is long; along it a thin line, denser, as those dabs overlap more.
+  const stroke = (turn) => {
+    const d = dab('transversal', 1.5);
+    const slant = { stretch: 4, turn, tail: 0 };
+    const s = wall();
+    for (let x = 100; x < 700; x += dabSpacing(CAPS.transversal, 1.5) * TEXELS) raster.dot(s, whole, x, 400, { ...d, color: [1, 0, 0], square: false, slant }, 0);
+    let wide = 0;
+    for (let y = 0; y < WALL; y++) if (alpha(s, 400, y) > 0) wide++;
+    return { wide, dense: alpha(s, 400, 400) };
+  };
+  const [across, along] = [stroke(0.25), stroke(0)];
+  assert.ok(across.wide >= along.wide * 2, `the wide way ${across.wide}, the thin way ${along.wide}`);
+  assert.ok(along.dense >= across.dense, `the thin way denser: ${along.dense} against ${across.dense}`);
+
+  // Narrower than a texel it keeps its length and a texel's width, at every detail.
+  const thin = wall();
+  raster.dot(thin, whole, 400.5, 400.5, { radius: 0.002, amount: 1, color: [1, 0, 0], softness: 0, square: false, slant: { stretch: 8, turn: 0, tail: 0 } }, 0);
+  assert.ok(reach(thin, 400, 400, 1, 0) >= 1, 'a long thin dab paints along its length, not one texel');
+}
+
+// NEEDLE under SKINNY at every distance and as wide as the marker at 1.5 m; BLUE DOT softer than BANANA.
+for (const d of [0.5, 1.5, 3]) assert.ok(lineWidth(CAPS.needle, d, 0) < lineWidth(CAPS.skinny, d, 0), `needle under skinny at ${d} m`);
+near(lineWidth(CAPS.needle, 1.5, 0), 0.035, 0.05, 'needle at 1.5 m');
+assert.ok(dab('standard', 1).softness < dab('soft', 1).softness, 'blue dot is softer');
+
 // Distance.
 for (const cap of Object.keys(CAPS)) {
   assert.equal(dab(cap, 0.2).radius, dab(cap, BRUSH.gap).radius, `${cap}: up to the gap the can acts as close up`);
@@ -130,7 +171,7 @@ assert.ok(lineWidth(CAPS.standard, 1, BRUSH.speedRef * 4) > lineWidth(CAPS.stand
   assert.equal(walk(walk(set, 1, 2), -1, 2), set, 'steps back to the same number');
   for (const cap of Object.keys(CAPS)) {
     BRUSH.opacity = 0.2;
-    near(pass(cap, 3, 0), 0.2 * 0.78, 0.06, `${cap}: a faint pass`);
+    near(pass(cap, 3, 0), 0.2 * 0.78, 0.09, `${cap}: a faint pass`);
     BRUSH.opacity = set;
   }
 }

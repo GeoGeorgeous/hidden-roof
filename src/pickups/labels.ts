@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { COLORS, PICKUP, type CapId, type PaintColor } from '../config';
+import { CAPS, COLORS, PICKUP, type CapId, type PaintColor } from '../config';
 import { parsePickup, type FoundTool } from '../inventory/items';
 import { solidsNear } from '../level/solids';
 import { FONT_FAMILIES, JP_FAMILY } from '../render/ink/jp-font';
@@ -31,10 +31,13 @@ const KANA: Record<Exclude<PaintColor, 'black'> | CapId | FoundTool, string> = {
   purple: 'パープル',
   pink: 'ピンク',
   brown: 'ブラウン',
+  needle: 'ニードル',
   skinny: 'スキニー',
-  standard: 'スタンダード',
-  fat: 'ファット',
-  spray: 'スプレー',
+  standard: 'バナナ',
+  soft: 'ブルードット',
+  transversal: 'トランスバーサル',
+  fat: 'NYファット',
+  spray: 'アストロファット',
   marker: 'マーカー',
   ladder: 'ハシゴ',
   roller: 'ローラー',
@@ -139,7 +142,7 @@ export class PickupLabels {
     const el = Object.assign(document.createElement('div'), { className: `pickup-tag ${shape}` });
     const line = (key: (typeof LINES)[number], text = '') => Object.assign(document.createElement('span'), { className: `l-${key}`, textContent: text });
     const name = Object.assign(document.createElement('div'), { className: 'tag-name' });
-    name.append(line('name', id.toUpperCase()), line('nameKana', KANA[id as keyof typeof KANA]));
+    name.append(line('name', 'cap' in c ? CAPS[c.cap].name : id.toUpperCase()), line('nameKana', KANA[id as keyof typeof KANA]));
     // Paint's name in its color, through the DOM, not a style attribute: a CSP without 'unsafe-inline' allows it.
     if ('color' in c) name.style.color = COLORS[c.color];
     let caption: Tag['caption'] = null;

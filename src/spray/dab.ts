@@ -1,4 +1,4 @@
-import { MathUtils, type Vector3 } from 'three';
+import { MathUtils, Vector3 } from 'three';
 import { BRUSH, SPRAY, type CapSpec } from '../config';
 import type { Slant } from '../paint-ops';
 import type { Rect } from '../surfaces';
@@ -68,6 +68,23 @@ export function slantOf(face: Rect['face'], ray: Vector3): Slant | undefined {
   if (stretch < BRUSH.slantFrom) return undefined;
   const turn = Math.atan2(ray.dot(face.vAxis) / face.vAxis.length(), ray.dot(face.uAxis) / face.uAxis.length()) / (Math.PI * 2);
   return { stretch, turn, tail: BRUSH.slantTail * (1 - cos) };
+}
+
+const UP = new Vector3(0, 1, 0);
+const along = new Vector3();
+const above = new Vector3();
+
+/** How a flat nib lies on `face`: at its angle from the wall's horizon as one looks at the wall, from the face's own axis on a floor or ceiling. None on a curved face. */
+export function nibOf(face: Rect['face'], nib: NonNullable<CapSpec['nib']>): Slant | undefined {
+  if (!face) return undefined;
+  along.crossVectors(UP, face.normal);
+  if (along.lengthSq() < 1e-6) along.copy(face.uAxis);
+  along.normalize();
+  above.crossVectors(face.normal, along);
+  const a = MathUtils.degToRad(nib.angle);
+  along.multiplyScalar(Math.cos(a)).addScaledVector(above, Math.sin(a));
+  const turn = Math.atan2(along.dot(face.vAxis) / face.vAxis.length(), along.dot(face.uAxis) / face.uAxis.length()) / (Math.PI * 2);
+  return { stretch: nib.stretch, turn, tail: 0 };
 }
 
 /** The set opacity a step up (+1) or down (-1), in whole percents, so it comes back to the same numbers. */

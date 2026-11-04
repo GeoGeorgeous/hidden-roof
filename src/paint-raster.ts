@@ -105,8 +105,10 @@ export class PaintRaster<S extends RasterSurface> {
   ) {
     const w = s.geo.atlasW;
     const data = s.data!;
-    const r = radius * s.geo.texelsPerMeter;
-    const stretch = slant?.stretch ?? 1;
+    let r = radius * s.geo.texelsPerMeter;
+    let stretch = slant?.stretch ?? 1;
+    // Narrower than a texel, a long dab would miss texel centers along its length: it keeps its length and is a texel wide.
+    if (r < Math.SQRT1_2 && r * stretch >= Math.SQRT1_2) [r, stretch] = [Math.SQRT1_2, (r * stretch) / Math.SQRT1_2];
     const tail = slant?.tail ?? 0;
     // The far end's direction: an ellipse's texels are those of a circle, squeezed back along it.
     const ax = slant ? Math.cos(slant.turn * TAU) : 1;
