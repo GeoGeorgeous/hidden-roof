@@ -82,9 +82,9 @@ export class CanModel {
     return this.tip.getWorldPosition(out);
   }
 
-  /** A point just right of the can, for the cap tag. */
+  /** A point just right of the cap, for its tag. */
   labelAnchor(out: THREE.Vector3) {
     this.group.updateMatrixWorld();
-    return this.body.localToWorld(out.set(0.07, 0.06, 0));
+    return this.body.localToWorld(out.set(0.07, this.capBase + MODELS.cap.height / 2, 0));
   }
 }

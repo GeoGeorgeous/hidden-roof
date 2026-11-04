@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 334
+The one list of what's left. Counter for new ids: next: 335
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -160,6 +160,7 @@ Shipped since the last release; the release commit empties this list.
 8. [IDEA-332]: Settings → General: Field of view: painting, degrees taken off the view while a tool paints
 9. [IDEA-333]: Settings: Reset all on General, Audio and Graphics, each for its own tab
 10. [IDEA-229]: Painting Rework: seven caps with real names, colors and a dot each (NEEDLE, BLUE DOT, TRANSVERSAL new), on the roof
+11. [IDEA-334]: The cap's tag sits beside the cap, and inverts what's under it, as the crosshair does
 
 ## Discarder
 
