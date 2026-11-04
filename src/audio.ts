@@ -161,11 +161,12 @@ export class Audio {
 
   /** Rolling thunder; distance 0 = close and sharp, 1 = far and soft. */
   thunder(distance: number) {
-    if (!this.ctx) return;
+    const level = AUDIO.thunderGain * (1 - distance * 0.6);
+    // Its slider at 0: an exponential ramp can't reach 0.
+    if (!this.ctx || level <= 0) return;
     const ctx = this.ctx;
     const t0 = ctx.currentTime;
     const dur = 5 + distance * 3;
-    const level = AUDIO.thunderGain * (1 - distance * 0.6);
     const src = ctx.createBufferSource();
     src.buffer = this.noise;
     src.loop = true;
