@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 358
+The one list of what's left. Counter for new ids: next: 362
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -183,6 +183,7 @@ Shipped since the last release; the release commit empties this list.
 28. [TEST-356]: Golden paint plays a fast flick, a second run after a rest and a slanted line over the floor's seams
 29. [TASK-232]: Painting Rework: to production: unlock-all (`ALL_PAINT`) cut
 30. [DOCS-357]: Painting Rework's end: all of paint in `docs/painting.md`, limits in `docs/known-limits.md`, `docs/ideas/` as the code is
+31. [IDEA-361]: The city below is a recording: TRP's night on a Toronto roof (CC0), looped, fetched on the first gesture, fading in; replaces the synthesized rumble (docs/sound.md)
 
 ## Discarder
 

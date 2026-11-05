@@ -64,6 +64,7 @@ Plain `docs/*.md` and the AGENTS.md files are standing context: kept true with t
 - Tasks: `docs/backlog.md`; limits by design: `docs/known-limits.md`
 - How paint works and what to turn for paint runs: `docs/painting.md`
 - Checks, reading a failure, what each test covers: `docs/testing.md`
+- The one recorded sound, its source and how it's cut: `docs/sound.md`
 - Deployment, the VPS, multiplayer hosting, host changes waiting for devops: `docs/deploy.md`
 - The admin API (the contract with the cctv page): `docs/admin-api.md`
 - Releases: `docs/releases/AGENTS.md`; domain terms: `CONTEXT.md`

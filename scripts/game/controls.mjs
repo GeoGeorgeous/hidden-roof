@@ -157,6 +157,14 @@ await check('updates: the releases newest first, the newest marked Latest; each 
   return r.vers[0].endsWith('Latest') && r.vers.at(-1) === '1.0.0' && r.vers.filter((v) => v.endsWith('Latest')).length === 1 && !r.missing.length && r.terms.join() === 'spray can,marker,roller,sponge,stepladder' ? null : JSON.stringify(r);
 });
 
+await check('sound: the city recording arrives after the first gesture and plays', async () => {
+  const r = await page.evaluate(() => {
+    window.game.audio.start();
+    return window.game.audio.city;
+  });
+  return r === true ? null : `city: ${r}`;
+});
+
 await check('sound: lightning with the Thunder slider at 0 is silent, not an error (a ramp to 0 throws)', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;

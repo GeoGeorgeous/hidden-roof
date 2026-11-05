@@ -1,9 +1,10 @@
 import { ATMOS, AUDIO } from './config';
+import { playCity } from './city-sound';
 
-// All sounds are synthesized: filtered noise for hiss/ambience/steps/rain,
-// short resonant noise bursts for the mixing-ball rattle, a low noise rumble
-// for thunder and a buzzing hum for nearby AC fans. Gains follow AUDIO live
-// (update() once per frame).
+// The city below is a recording (city-sound.ts). The rest is synthesized:
+// filtered noise for hiss/steps/rain, short resonant noise bursts for the
+// mixing-ball rattle, a low noise rumble for thunder and a buzzing hum for
+// nearby AC fans. Gains follow AUDIO live (update() once per frame).
 
 
 export class Audio {
@@ -14,7 +15,8 @@ export class Audio {
   private noise!: AudioBuffer;
   private scribbleGain!: GainNode;
   private ambGain!: GainNode;
-  private lfoGain!: GainNode;
+  /** Settles when the city's recording plays (true) or can't (false). */
+  city: Promise<boolean> = Promise.resolve(false);
   private rainGain!: GainNode;
   private rainFilter!: BiquadFilterNode;
   private fanGain!: GainNode;
@@ -61,20 +63,11 @@ export class Audio {
     this.scribbleGain.gain.value = 0;
     scr.connect(bp).connect(this.scribbleGain).connect(this.master);
 
-    // Ambience: distant city rumble + wind.
-    const amb = this.loop();
-    const lp = ctx.createBiquadFilter();
-    lp.type = 'lowpass';
-    lp.frequency.value = 380;
-    const ambGain = (this.ambGain = ctx.createGain());
-    ambGain.gain.value = AUDIO.ambienceGain;
-    const lfo = ctx.createOscillator();
-    lfo.frequency.value = 0.07;
-    const lfoGain = (this.lfoGain = ctx.createGain());
-    lfoGain.gain.value = AUDIO.ambienceGain * 0.5;
-    lfo.connect(lfoGain).connect(ambGain.gain);
-    lfo.start();
-    amb.connect(lp).connect(ambGain).connect(this.master);
+    // Ambience: the city at night, once its recording is here.
+    this.ambGain = ctx.createGain();
+    this.ambGain.gain.value = AUDIO.ambienceGain;
+    this.ambGain.connect(this.master);
+    this.city = playCity(ctx, this.ambGain);
 
     // Rain: a soft wash (bandpassed noise) plus a slow swell, so it breathes.
     const rain = this.loop();
@@ -131,7 +124,6 @@ export class Audio {
     const t = this.ctx.currentTime;
     this.master.gain.setTargetAtTime(AUDIO.masterGain * (paused ? AUDIO.pausedGain : 1), t, 0.1);
     this.ambGain.gain.setTargetAtTime(AUDIO.ambienceGain, t, 0.05);
-    this.lfoGain.gain.setTargetAtTime(AUDIO.ambienceGain * 0.5, t, 0.05);
     const rain = ATMOS.rain ? AUDIO.rainGain * (0.35 + 0.65 * ATMOS.rainDensity) : 0;
     this.rainGain.gain.setTargetAtTime(rain, t, 0.4);
     this.rainFilter.frequency.setTargetAtTime(AUDIO.rainTone, t, 0.1);

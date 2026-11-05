@@ -1661,8 +1661,10 @@ export const AUDIO = {
   /** Share of masterGain while paused (the pause menu is up). */
   pausedGain: 0.3,
   hissGain: 0.22,
-  /** Distant city rumble. */
+  /** The city below (a recording). */
   ambienceGain: 0.145,
+  /** Seconds the city takes to fade in once its recording is here. */
+  ambienceFade: 3,
   footstepGain: 0.25,
   /** Rain bed at full density; scales with ATMOS.rainDensity, silent without rain. */
   rainGain: 0.045,

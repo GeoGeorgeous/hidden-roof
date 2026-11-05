@@ -1,7 +1,7 @@
 import { div, el, pageHead } from './menu-ui';
 
 // The Credits page of the ESC menu: who made the game, what inspired it, and
-// the fonts and code it ships with, each with its license (public/licenses).
+// the sounds, fonts and code it ships with, each with its license (public/licenses).
 
 const TEAM = [
   ['Idea & development', 'GeoGeorgeous & Claude'],
@@ -20,6 +20,10 @@ const SECTIONS: [title: string, entries: Entry[]][] = [
       ['Marc Eckō’s Getting Up: Contents Under Pressure', 'Rooftops and tags', 'Steam ↗', 'https://store.steampowered.com/app/260190/'],
       ['Daisuke Tajima — Beyond the Lines', 'The pen-and-ink city look', 'Book ↗', 'https://www.seigensha.com/books/978-4-86152-902-3/'],
     ],
+  ],
+  [
+    'sound',
+    [['Night city rumble', 'TRP · the city at night, from a roof in Toronto', 'CC0 ↗', 'https://freesound.org/people/TRP/sounds/572530/']],
   ],
   [
     'fonts',
