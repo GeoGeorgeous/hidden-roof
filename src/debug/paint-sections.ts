@@ -10,15 +10,13 @@ import { c, pct, r, t, type Hooks, type Item, type Section } from './tuning';
 const perCap = (items: (cap: (typeof CAP_ORDER)[number]) => Item[]): Item[] =>
   CAP_ORDER.flatMap((cap) => [{ kind: 'heading', label: CAPS[cap].name } as Item, ...items(cap)]);
 
-/** A tool sized by the size keys: their range and its crosshair (size-range.ts), the same rows for each. */
-function cursorItems(tool: 'MARKER' | 'ROLLER' | 'SPONGE', max: number, step: number, perMeter: number): Item[] {
+/** A tool sized by the size keys: their range (size-range.ts), the same rows for each. */
+function cursorItems(tool: 'MARKER' | 'ROLLER' | 'SPONGE', max: number, step: number): Item[] {
   return [
     { kind: 'heading', label: tool },
     r('size keys: min', [tool, 'widthMin'], 0, max, step),
     r('size keys: max', [tool, 'widthMax'], 0, max, step),
     r('size keys: step', [tool, 'widthStep'], step, max / 4, step),
-    r('crosshair', [tool, 'crosshair'], 0, 60, 1),
-    r('crosshair growth', [tool, 'crosshairPerMeter'], 0, perMeter, 5),
   ];
 }
 
@@ -176,6 +174,7 @@ export function paintSections(h: Hooks): Section[] {
       title: 'Cursor',
       items: [
         r('no sized tool', ['CROSSHAIR', 'plain'], 0, 30, 1),
+        r('real width: least', ['CROSSHAIR', 'least'], 1, 10, 1),
         r('out of reach: strength', ['CROSSHAIR', 'far'], 0, 1, 0.05),
         { kind: 'heading', label: 'OPACITY ARC' },
         r('flow: time', ['CROSSHAIR', 'arc', 'flowMs'], 0, 1000, 10),
@@ -183,9 +182,9 @@ export function paintSections(h: Hooks): Section[] {
         r('line', ['CROSSHAIR', 'arc', 'line'], 0.5, 4, 0.1),
         r('line: peak', ['CROSSHAIR', 'arc', 'peak'], 0.5, 8, 0.1),
         r('line: time', ['CROSSHAIR', 'arc', 'lineMs'], 0, 1000, 10),
-        ...cursorItems('MARKER', 0.4, 0.002, 1000),
-        ...cursorItems('ROLLER', 1.2, 0.02, 200),
-        ...cursorItems('SPONGE', 0.8, 0.01, 500),
+        ...cursorItems('MARKER', 0.4, 0.002),
+        ...cursorItems('ROLLER', 1.2, 0.02),
+        ...cursorItems('SPONGE', 0.8, 0.01),
       ],
     },
   ];

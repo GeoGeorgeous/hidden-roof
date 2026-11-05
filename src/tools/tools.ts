@@ -14,7 +14,7 @@ import { MarkerTool } from './marker';
 import { RollerTool } from './roller';
 import { SpongeTool } from './sponge';
 import type { Level } from '../level/level';
-import { sizedCrosshair, stepSize } from './size-range';
+import { stepSize } from './size-range';
 import { ViewSway, type Motion } from './view-sway';
 import type { AvatarAction } from '../avatar/pose';
 import type { Fact } from '../tutorial/types';
@@ -138,7 +138,22 @@ export class Tools {
   /** Crosshair size (px) for the tool in hand (null: none, or build mode). */
   crosshair(tool: Tool | null) {
     if (tool === 'can') return this.spray.linePx;
-    return isSized(tool) ? sizedCrosshair(SIZED[tool], this.inventory.size[tool]) : CROSSHAIR.plain;
+    return this.aimOf(tool)?.px ?? CROSSHAIR.plain;
+  }
+
+  /** The height (px) of a crosshair that's a bar, not a ring: the roller's press. */
+  crosshairBar(tool: Tool | null) {
+    return tool === 'roller' ? this.roller.aim.tallPx : null;
+  }
+
+  private aimOf(tool: Tool | null) {
+    return tool === 'marker' || tool === 'roller' || tool === 'sponge' ? this[tool].aim : null;
+  }
+
+  /** The tool in hand would mark what's under the aim; a crosshair with nothing to say stays as it is. */
+  reaches(tool: Tool | null) {
+    if (tool === 'can') return this.spray.reaches;
+    return this.aimOf(tool)?.reaches ?? true;
   }
 
   /** Screen anchor for the color / cap tags next to the tool in hand, or null with no tool. */
@@ -168,9 +183,10 @@ export class Tools {
   /** The player set the can's opacity; at either end of the range nothing changes. */
   private setOpacity(opacity: number) {
     if (opacity === BRUSH.opacity) return;
+    const percent = Math.round(Math.abs(opacity - BRUSH.opacity) * 100);
     BRUSH.opacity = opacity;
     this.audio.click();
-    this.onFact({ type: 'opacitySet' });
+    this.onFact({ type: 'opacitySet', percent });
   }
 
   private reportChanges(tool: Tool | null) {

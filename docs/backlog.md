@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 362
+The one list of what's left. Counter for new ids: next: 365
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -66,9 +66,8 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## Performance
 
 1. BUGS [BL-034]: Paint pages at ULTRA can reach ~1 GB of GPU memory: measured, 1045 MB is the ceiling (all 49 pages, 72% full); the lossless fix is BL-144 (docs/ideas/performance.md)
-2. [PERF-200]: Reduce Ladder Shadow Update Delay Without Frequent Rebaking @1.7.0
-3. [PERF-322]: The server allocates a new buffer for every state it keeps as a player's last (`p.last`, server/session.ts): one buffer a player would do, as SNAPSHOT_BYTES is fixed
-4. [PERF-340]: A client among 40 players holds 40 fps on a good GPU, 20 on Intel UHD, before and after the Painting Rework: the frame's CPU is the 40 figures (about 100 draw calls); alone on the roof with the can in hand the frame's CPU rose 2.5–3.3 → 4.2–4.9 ms in the rework. Measured 2026-11-05: the aim's ray each frame (module 4) was most of it, and its scan of all 3405 solids most of the ray: PERF-341 took that off. The 5 more draw calls are one new cap pickup in view, at no cost. Still unknown: about 0.7 ms and 1–4 fps lost at 60 Hz on NVIDIA from module 2 on, with no per-frame code found there; not the ray alone, the crosshair, the tags, the pickups or the alpha steps; to read outside WSL
+2. [PERF-322]: The server allocates a new buffer for every state it keeps as a player's last (`p.last`, server/session.ts): one buffer a player would do, as SNAPSHOT_BYTES is fixed
+3. [PERF-340]: A client among 40 players holds 40 fps on a good GPU, 20 on Intel UHD, before and after the Painting Rework: the frame's CPU is the 40 figures (about 100 draw calls); alone on the roof with the can in hand the frame's CPU rose 2.5–3.3 → 4.2–4.9 ms in the rework. Measured 2026-11-05: the aim's ray each frame (module 4) was most of it, and its scan of all 3405 solids most of the ray: PERF-341 took that off. The 5 more draw calls are one new cap pickup in view, at no cost. Still unknown: about 0.7 ms and 1–4 fps lost at 60 Hz on NVIDIA from module 2 on, with no per-frame code found there; not the ray alone, the crosshair, the tags, the pickups or the alpha steps; to read outside WSL
 
 ## Rendering
 
@@ -179,11 +178,16 @@ Shipped since the last release; the release commit empties this list.
 24. [BUGS-352]: A line along a wall seen at an angle got up to 4 times the paint and ran on its first pass, and a stroke stepping onto a wall behind another left a blot: a stroke's spacing and hand speed count the way across the ray now
 25. [DOCS-355]: Painting Rework's review: docs, F3 hints and comments as the code is; limits written down; Reset all's texts in messages.ts, the plume's spreads in config.ts
 26. [BUGS-353]: Wet paint's times were Float32 on a clock that never resets, so thin coats drifted: ASTRO FAT at 3 m ran a third more after 3 hours in a tab, 2.6 times after 30. They count from the last whole hour now, at the same size
-27. [BUGS-354]: A fast stroke's start held more paint at a high frame rate (+22% in NY FAT's first 40 cm at 240 Hz against 60): its first frames set the hand speed by the way over the time so far, +10% now, the rest in `docs/known-limits.md`
+27. [BUGS-354]: A fast stroke's start held more paint at a high frame rate (+22% in NY FAT's first 40 cm at 240 Hz against 60, +38% in NEEDLE's first 30 cm) and less at a low one: its first `BRUSH.speedStart` takes the pace as it is, and a frame past that time the pace the aim had then. NY FAT and ASTRO FAT within 3% from 30 to 360 Hz, thin caps 7%, 60 Hz as it was
 28. [TEST-356]: Golden paint plays a fast flick, a second run after a rest and a slanted line over the floor's seams
 29. [TASK-232]: Painting Rework: to production: unlock-all (`ALL_PAINT`) cut
 30. [DOCS-357]: Painting Rework's end: all of paint in `docs/painting.md`, limits in `docs/known-limits.md`, `docs/ideas/` as the code is
-31. [IDEA-361]: The city below is a recording: TRP's night on a Toronto roof (CC0), looped, fetched on the first gesture, fading in; replaces the synthesized rumble (docs/sound.md)
+31. [IDEA-358]: The crosshair shows the marker's and the sponge's real width at the wall and fades out of their reach, as the can's does, with no arc: one module, `src/tools/aim.ts`, that any tool with a reach can take
+32. [IDEA-360]: The roller's crosshair is a bar, a press of it at its real size, and fades out of its reach, by the same module as the marker's and the sponge's
+33. [TASK-359]: Hints and toasts in one voice, the first person, and a line for each cap the first time it's on the can in hand: a rank `moment` over the hints that wait for the player
+34. [IDEA-363]: Hints and toasts that go by themselves show a ring running down with their time, the hold-Esc ring's look
+35. [IDEA-364]: Every hint has a ring: a hint the player does fills it as far as they got and turns into the status's check for `TUTORIAL.fullHold` (0.6 s), one action at once. Walking, jumping (one jump) and running (5 m) are three hints, the opacity is learnt by 30% of change in all, a ladder counts going down too, the color hint waits for a color change
+36. [IDEA-361]: The city below is a recording: TRP's night on a Toronto roof (CC0), looped, fetched on the first gesture, fading in; replaces the synthesized rumble (docs/sound.md)
 
 ## Discarder
 
@@ -224,3 +228,4 @@ Dropped items, kept for the record; don't work on them.
 33. ~~[TASK-194]: Replace paintable walls that cannot be reached with standard walls. Optimize room on the main floor. (merged into BL-144)~~
 34. ~~[BUGS-198]: With F3 open the compact pause menu is under the pickup tags, nameplates, hotbar and toast (docs/ideas/hud-scale.md) (merged into TASK-203)~~
 35. ~~[BUGS-199]: LOW PRESSURE runs off the right edge in narrow windows (820×560) (docs/ideas/hud-scale.md) (merged into TASK-203)~~
+36. ~~[PERF-200]: Reduce Ladder Shadow Update Delay Without Frequent Rebaking (left as it is: `LIGHTMAP.ladderRest` at 0.3 s saves 0.3 of 1.6–3.7 s and costs 4.4 ms a frame against 0.6 at 2–3 placements a second, `docs/known-limits.md`)~~

@@ -574,9 +574,6 @@ export const MARKER = {
   widthMin: 0,
   widthMax: 0.1,
   widthStep: 0.008,
-  /** Crosshair with the marker in hand (px): `crosshair` plus `crosshairPerMeter` x the nib width, so it follows the size keys. */
-  crosshair: 4,
-  crosshairPerMeter: 200,
   /** The odds its wet paint runs, by the spot (DRIPS.spot; 0..1): a nib covers little area but pumps a lot of paint into it. */
   chance: 0.32,
   strength: 0.95,
@@ -587,10 +584,13 @@ export const MARKER = {
   maxRays: 32,
 };
 
-/** Crosshair (px) with no sized tool in hand: the stepladder, empty hands, build mode. The others set their own. */
+/** The crosshair. The tools that mark show their real size (tools/aim.ts): a ring, or the roller's bar. */
 export const CROSSHAIR = {
+  /** Its size (px) with no such tool in hand: the stepladder, empty hands, build mode. */
   plain: 6,
-  /** Its opacity with the can in hand where the paint wouldn't land (0..1). */
+  /** The least a real width shows as (px), so a thin line far off can still be seen. */
+  least: 3,
+  /** Its opacity where the tool in hand wouldn't reach or mark (0..1). */
   far: 0.35,
   /**
    * The opacity arc answers a change: it flows to the new value in `flowMs`, past it by `bounce` (1 = not past it, the
@@ -748,9 +748,6 @@ export const ROLLER = {
   pressLength: 0.06,
   /** Fraction of each end of the roller that leaves lighter paint. */
   softness: 0.15,
-  /** Crosshair with the roller in hand (px): `crosshair` plus `crosshairPerMeter` x the width (0: the same at every width). */
-  crosshair: 10,
-  crosshairPerMeter: 0,
   /** Opacity per press: a roller lays it on thick. */
   strength: 0.45,
   /** The odds its wet paint runs, by the spot (DRIPS.spot; 0..1): a loaded roller runs easily. */
@@ -776,9 +773,6 @@ export const SPONGE = {
   widthMin: 0.04,
   widthMax: 0.6,
   widthStep: 0.04,
-  /** Crosshair with the sponge in hand (px): `crosshair` plus `crosshairPerMeter` x the patch width, so it follows the size keys. */
-  crosshair: 6,
-  crosshairPerMeter: 100,
   /** How far it scrubs in small circles while cleaning (m), and how fast (turns per s). */
   scrubSize: 0.012,
   scrubSpeed: 5,
@@ -1093,7 +1087,7 @@ export const BRUSH = {
   speedSoft: 0.8,
   /** How fast the hand speed follows the hand (1/s). */
   speedFollow: 15,
-  /** A stroke's first this many seconds of moving set the hand speed at once, whatever the frame rate. */
+  /** A stroke's first this many seconds of moving take the hand's pace unsmoothed, whatever the frames that cut them. */
   speedStart: 1 / 60,
   /** Up to this far from the wall (m) the can acts as close up: the distance model starts past it. */
   gap: 0.6,
@@ -1879,10 +1873,14 @@ export const TUTORIAL = {
   moveDelay: 1.5,
   /** Walking this far (m) is learning to move; one key press isn't. */
   moveMeters: 3,
+  /** Running this far (m) is learning to run. */
+  sprintMeters: 5,
+  /** Changing the opacity this much in all (percent, up and down adding up) is learning it. */
+  opacityPercent: 30,
   /** A hint shows at least this long (s) before it can leave as done, so it doesn't flash. */
   minShown: 2,
-  /** A color hint is learnt after this long on screen (s), whatever the player did. */
-  colorShown: 5,
+  /** A hint done by the player stays this long (s), its ring a check. */
+  fullHold: 0.6,
   /** Spraying this long (s) on a surface is learning the can. */
   spraySeconds: 0.5,
   /** Drawing this far (m) with the marker, or scrubbing with the sponge, is learning it. */
@@ -1890,7 +1888,7 @@ export const TUTORIAL = {
   spongeMeters: 0.5,
   /** Rolling this far (m) is learning the roller. */
   rollerMeters: 1,
-  /** Climbing this far (m) is learning ladders. */
+  /** Climbing this far (m), up or down, is learning ladders. */
   climbMeters: 1.5,
   /** A hint with nothing to do (about the stepladder) is learnt after this long on screen (s). */
   infoSeconds: 6,
