@@ -10,7 +10,7 @@ import { updatesHtml } from '../src/updates-html.ts';
 const dir = 'docs/releases';
 const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 const MAX_PICTURE = 300 * 1024;
-const MAX_TEXT = 3000; // Discord gets it in more than one message (release-notes.ts)
+const MAX_TEXT = 5000; // Discord gets it in more than one message (release-notes.ts)
 
 /** A WebP's canvas size, from its VP8X header (the extended format a browser writes). */
 function webpSize(file) {
