@@ -1,7 +1,7 @@
 import { div, el, pageHead } from './menu-ui';
 
 // The Credits page of the ESC menu: who made the game, what inspired it, and
-// the fonts and code it ships with, each with its license (public/licenses).
+// the sounds, fonts and code it ships with, each with its license (public/licenses).
 
 const TEAM = [
   ['Idea & development', 'GeoGeorgeous & Claude'],
@@ -19,6 +19,16 @@ const SECTIONS: [title: string, entries: Entry[]][] = [
       ['Bombing!!: A Graffiti Sandbox & Bombing!! 2', 'The paint sandbox', 'Steam ↗', 'https://store.steampowered.com/app/1527520/'],
       ['Marc Eckō’s Getting Up: Contents Under Pressure', 'Rooftops and tags', 'Steam ↗', 'https://store.steampowered.com/app/260190/'],
       ['Daisuke Tajima — Beyond the Lines', 'The pen-and-ink city look', 'Book ↗', 'https://www.seigensha.com/books/978-4-86152-902-3/'],
+    ],
+  ],
+  [
+    'sound',
+    [
+      ['Night city rumble', 'TRP · the city at night, from a roof in Toronto', 'CC0 ↗', 'https://freesound.org/people/TRP/sounds/572530/'],
+      ['Heavy rain', 'Kevin Luce (kevp888) · the rain, cut and looped', 'CC BY 4.0', license('heavy-rain')],
+      ['Moscow heavy rain', 'Archos · the far rumble of the rain, from an 11th floor', 'CC0 ↗', 'https://freesound.org/people/Archos/sounds/474562/'],
+      ['Thunder, dry distant rolling', 'TRP · the thunder, from Stratford', 'CC0 ↗', 'https://freesound.org/people/TRP/sounds/717890/'],
+      ['Rain on tin roof', 'stecman · the rain indoors', 'CC0 ↗', 'https://freesound.org/people/stecman/sounds/569313/'],
     ],
   ],
   [
@@ -63,7 +73,7 @@ export function creditsPage() {
     }
   }
   const end = div('credits-end');
-  end.append('Geometry, textures and sounds are all made in code.', el('br'), 'Full license texts ship with the game.');
+  end.append('Geometry, textures and most sounds are made in code; the city and the weather are recordings.', el('br'), 'Full license texts ship with the game.');
   rows.append(end);
   const root = div('page credits-page');
   root.append(pageHead('credits'), rows);
