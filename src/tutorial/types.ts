@@ -7,14 +7,15 @@ import type { Tool } from '../inventory/tool.ts';
 /** What the game tells the tutorial: things that happened. */
 export type Fact =
   | { type: 'moved'; meters: number }
-  | { type: 'sprinted'; seconds: number }
+  | { type: 'sprinted'; meters: number }
   | { type: 'jumped' }
   /** m drawn, rolled or scrubbed, s sprayed on a surface, 1 = a stepladder placed. */
   | { type: 'used'; tool: Tool; amount: number; crouched?: boolean }
   | { type: 'colorCycled' }
   | { type: 'colorPicked' }
   | { type: 'capCycled' }
-  | { type: 'opacitySet' }
+  /** By this many percent, up or down. */
+  | { type: 'opacitySet'; percent: number }
   | { type: 'sized'; tool: Tool }
   | { type: 'climbed'; meters: number }
   /** Any bound action, from Input.justPressed. */
@@ -53,7 +54,7 @@ export type Cond =
   /** Near a ladder or on one. */
   | { near: 'ladder' }
   /** Summed over the facts since the hint was wanted. */
-  | { total: 'moved' | 'sprinted' | 'used' | 'climbed'; tool?: Tool; crouched?: true; atLeast: Amount }
+  | { total: 'moved' | 'sprinted' | 'used' | 'climbed' | 'opacitySet'; tool?: Tool; crouched?: true; atLeast: Amount }
   /** A fact of this type since the hint was wanted. */
   | { event: Fact['type'] }
   /** Visible seconds of play. */
@@ -63,7 +64,7 @@ export type Cond =
 
 /**
  * When a hint is learnt and goes. By time: shown this many visible seconds, whatever the player did. By action: the
- * condition holds. Both: whichever comes first. Neither can clear it before TUTORIAL.minShown.
+ * condition has held TUTORIAL.fullHold. Both: whichever comes first. Neither can clear it before TUTORIAL.minShown.
  */
 type Done = { shown: Amount; action?: Cond } | { shown?: Amount; action: Cond };
 
@@ -89,5 +90,5 @@ export interface HintDef {
 export interface Notes {
   set(note: { key: string; kind: 'hint'; rank: number; lines: string[] }): void;
   clear(key: string): void;
-  timeLeft(key: string, left: number | null): void;
+  ring(key: string, full: number | null, checked: boolean): void;
 }

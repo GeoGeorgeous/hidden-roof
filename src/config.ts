@@ -1871,10 +1871,14 @@ export const TUTORIAL = {
   moveDelay: 1.5,
   /** Walking this far (m) is learning to move; one key press isn't. */
   moveMeters: 3,
+  /** Running this far (m) is learning to run. */
+  sprintMeters: 5,
+  /** Changing the opacity this much in all (percent, up and down adding up) is learning it. */
+  opacityPercent: 30,
   /** A hint shows at least this long (s) before it can leave as done, so it doesn't flash. */
   minShown: 2,
-  /** A color hint is learnt after this long on screen (s), whatever the player did. */
-  colorShown: 5,
+  /** A hint done by the player stays this long (s), its ring a check. */
+  fullHold: 0.6,
   /** Spraying this long (s) on a surface is learning the can. */
   spraySeconds: 0.5,
   /** Drawing this far (m) with the marker, or scrubbing with the sponge, is learning it. */
@@ -1882,7 +1886,7 @@ export const TUTORIAL = {
   spongeMeters: 0.5,
   /** Rolling this far (m) is learning the roller. */
   rollerMeters: 1,
-  /** Climbing this far (m) is learning ladders. */
+  /** Climbing this far (m), up or down, is learning ladders. */
   climbMeters: 1.5,
   /** A hint with nothing to do (about the stepladder) is learnt after this long on screen (s). */
   infoSeconds: 6,

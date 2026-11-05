@@ -183,9 +183,10 @@ export class Tools {
   /** The player set the can's opacity; at either end of the range nothing changes. */
   private setOpacity(opacity: number) {
     if (opacity === BRUSH.opacity) return;
+    const percent = Math.round(Math.abs(opacity - BRUSH.opacity) * 100);
     BRUSH.opacity = opacity;
     this.audio.click();
-    this.onFact({ type: 'opacitySet' });
+    this.onFact({ type: 'opacitySet', percent });
   }
 
   private reportChanges(tool: Tool | null) {
