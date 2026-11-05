@@ -487,6 +487,19 @@ html:not(.game) .about .hero {
   grid-template-columns: repeat(5, 1fr);
   gap: 24px;
 }
+/* The caps: each picture over its name. */
+.about .tools.caps {
+  grid-template-columns: repeat(3, 1fr);
+}
+.about .tools.caps dt {
+  flex-direction: column;
+  align-items: flex-start;
+  letter-spacing: 0.04em;
+}
+/* The picture's empty edge left out, so the cap lines up with its name. */
+.about .caps img {
+  margin: -8px 0 -6px -20px;
+}
 .about :is(.facts, .tools) > div {
   display: flex;
   flex-direction: column;
@@ -567,7 +580,7 @@ html:not(.game) .about .hero {
   max-width: 640px;
   font-size: 15px;
 }
-.about .prose h3 {
+.about :is(.prose, #painting) h3 {
   margin: 18px 0 -6px;
   font: 400 26px / 1.1 var(--display);
   letter-spacing: 0.02em;
@@ -775,7 +788,7 @@ html:not(.game) .about .hero {
   .about .facts {
     grid-template-columns: repeat(2, 1fr);
   }
-  .about .tools {
+  .about :is(.tools, .tools.caps) {
     grid-template-columns: repeat(2, 1fr);
   }
   .about .faq-group {
