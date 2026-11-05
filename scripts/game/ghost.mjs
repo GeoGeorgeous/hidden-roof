@@ -98,6 +98,99 @@ await check('ghost: a recorded walk plays back through a jittery network smoothl
   return ok ? null : JSON.stringify(r);
 });
 
+await check("ghost: capture mode's keys hold it still, speed it up and start it over with no paint left from before, the clean wall has neither ghost nor its paint, and your stepladder isn't doubled", async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { GHOST } = g.config;
+    const hash = () => g.paint.surfaces.filter((s) => s.data).reduce((h, s) => s.data.reduce((h, v) => (h * 31 + v) >>> 0, h), 7);
+    const press = async (code) => {
+      g.input.key(code, true);
+      await window.frames(1);
+      g.input.key(code, false);
+      await window.frames(1);
+    };
+    const ladders = () => [...g.level.props.values()].filter((p) => p.type === 'stepladder').length;
+    g.paint.clear();
+    // Paint from before the recording: what putting it back takes frames for, and what stays on the clean wall.
+    g.paint.stamp(g.paint.surfaces[1], { rect: 0, u: 0.5, v: 0.5 }, 0.1, 1, [0, 0, 1]);
+    const begun = hash();
+    g.player.fly = true;
+    const start = g.player.position.clone();
+    const { x: x0 } = start;
+    // Your stepladder stands, and a 3 s walk paints once, near the end.
+    const before = ladders();
+    g.level.setRuntime(g.session.player, { type: 'stepladder', pos: [start.x + 3, start.y, start.z + 3], rot: 0 });
+    g.ghost.record();
+    let painted = false;
+    await steps((f) => {
+      const t = f / 60;
+      g.player.position.set(x0 + t, start.y, start.z);
+      if (!painted && t > 2.5) {
+        painted = true;
+        g.paint.stamp(g.paint.surfaces[0], { rect: 0, u: 0.5, v: 0.5 }, 0.1, 1, [1, 0, 0]);
+      }
+      return f === 180;
+    });
+    g.ghost.stop();
+    const end = hash();
+    Object.assign(GHOST, { latency: 0, jitter: 0, hiccups: 0 });
+    g.input.setLocked(true);
+    await press('KeyN');
+    await steps(() => document.documentElement.classList.contains('capture-free'));
+    const plate = document.querySelector('.capture-plate').textContent;
+    g.ghost.play();
+    await steps(() => g.ghost.position && g.ghost.position.x > x0 + 0.5);
+    const out = { plate: /ghost speed/.test(plate) && /clean wall/.test(plate), ladders: ladders() - before };
+    // Held still.
+    await press('KeyG');
+    const held = g.ghost.position.x;
+    await window.frames(30);
+    out.held = g.ghost.position.x - held;
+    await press('KeyG');
+    // A few frames' walk at 1x, then at 2x.
+    const pace = async () => {
+      const a = g.ghost.position.x;
+      await window.frames(6);
+      return g.ghost.position.x - a;
+    };
+    const one = await pace();
+    await press('KeyH');
+    out.twice = (await pace()) / one;
+    await press('KeyH');
+    await press('KeyH');
+    // The stroke on its way to the figure's time: starting over drops it at once (landing while a big paint goes back, it would stay), and nothing of this run is left.
+    await steps(() => g.ghost.remote.timeline.waiting > 0);
+    g.ghost.restart();
+    out.dropped = g.ghost.remote.timeline.waiting === 0;
+    await press('KeyJ');
+    await steps(() => g.ghost.position.x < x0 + 1);
+    await steps(() => g.ghost.position.x > x0 + 1);
+    out.restarted = hash() === begun;
+    // Late in the run and then the clean wall: no ghost, no paint, on either side of its load.
+    await steps(() => hash() === end);
+    await press('KeyL');
+    await steps(() => hash() === begun);
+    await window.frames(10);
+    out.clean = { ghost: g.ghost.position, wall: hash() === begun, ladders: ladders() - before };
+    await press('KeyL');
+    await steps(() => g.ghost.position);
+    out.back = !!g.ghost.position;
+    await press('KeyN');
+    g.ghost.stop();
+    out.mine = g.level.runtimeOf(g.session.player) !== undefined;
+    g.level.setRuntime(g.session.player, null);
+    g.input.setLocked(false);
+    Object.assign(GHOST, { latency: 0.08, jitter: 0.04 });
+    g.fixedStep.dt = 0;
+    g.player.fly = false;
+    g.player.position.copy(start);
+    g.paint.clear();
+    return out;
+  });
+  const ok = r.plate && r.ladders === 1 && r.held === 0 && Math.abs(r.twice - 2) < 0.35 && r.dropped && r.restarted && r.clean.ghost === null && r.clean.wall && r.clean.ladders === 0 && r.back && r.mine;
+  return ok ? null : JSON.stringify(r);
+});
+
 await check('city: LOW city detail is the middle of HIGH, tower for tower, roof for roof', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;

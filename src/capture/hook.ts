@@ -19,6 +19,8 @@ function toggle() {
 }
 
 export const capture = {
+  /** What the dev tools add to the free view: each frame their keys, and their lines on the plate. The player build has none. */
+  extra: null as ((input: Input) => string[]) | null,
   /** What the game is filmed from: first person, the free camera, or null: not in capture mode. */
   get shot(): Shot | null {
     return mode?.active ? mode.shot : null;
@@ -38,7 +40,7 @@ export const capture = {
   },
   /** After the player's view is set: capture mode's keys, and its camera. */
   update(dt: number, input: Input, camera: THREE.PerspectiveCamera) {
-    if (mode?.active) mode.update(dt, input, camera);
+    if (mode?.active) mode.update(dt, input, camera, this.extra);
   },
   /** The window changed size: true when capture mode fitted its fixed frame into it (else the window's size is the canvas's). */
   fit() {

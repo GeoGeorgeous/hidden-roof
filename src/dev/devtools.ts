@@ -28,7 +28,9 @@ import { syncSkyline } from '../skyline';
 import { AvatarPreview } from './avatar-preview';
 import { layoutCity } from '../city/layout';
 import { dressTower, wallSigns } from '../city/rooftops';
+import { capture } from '../capture/hook';
 import { Ghost } from './ghost';
+import { ghostKeys } from './ghost-keys';
 import { Profiler } from './profiler';
 import { WetView } from './wet-view';
 import { RunsView } from './runs-view';
@@ -109,6 +111,7 @@ export class DevTools {
     this.build.onLoad = g.openLevel;
     this.figure = new AvatarPreview(g.scene);
     this.ghost = new Ghost(g);
+    capture.extra = (input) => ghostKeys(this.ghost, input);
     this.messages = new MessageTools(g.notify);
     this.profiler = new Profiler(g);
     this.wet = new WetView(g.scene, g.paint, () => g.player.position);

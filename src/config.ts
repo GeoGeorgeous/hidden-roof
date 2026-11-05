@@ -1420,6 +1420,10 @@ export const GHOST = {
   /** How long a hiccup holds up a packet and everything after it (s), as a resend over a reliable link would. */
   hiccupDelay: 0.3,
   followDelay: 2,
+  /** What playing goes through on capture mode's speed key (times as fast). */
+  speeds: [1, 2, 4],
+  /** Its keys in capture mode's free view (dev/ghost-keys.ts), by code: hold it still, the next speed, from the start, the wall as before the recording. */
+  keys: { pause: 'KeyG', speed: 'KeyH', restart: 'KeyJ', clean: 'KeyL' },
 };
 
 /** Settings → Performance test and npm run bench (perf-test.ts, perf-test-page.ts): what it measures, how its tip reads the numbers, how its popup shows them. */

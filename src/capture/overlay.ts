@@ -22,6 +22,8 @@ const at = new THREE.Vector3();
 
 export interface PlateState {
   shot: Shot;
+  /** More lines for the free view, after its own. */
+  lines: string[];
   speed: number;
   smoothing: number;
   size: readonly [number, number] | null;
@@ -50,7 +52,7 @@ export class CaptureOverlay {
     this.place(state.shot === 'free' ? flight.points : [], camera, canvas);
   }
 
-  private text({ shot, speed, smoothing, size, quality, recording, failed }: PlateState, flight: Flight) {
+  private text({ shot, lines: more, speed, smoothing, size, quality, recording, failed }: PlateState, flight: Flight) {
     const seconds = b(flight.seconds);
     const time = recording === null ? '' : new Date(performance.now() - recording).toISOString().slice(14, 19);
     const lines = [
@@ -65,6 +67,7 @@ export class CaptureOverlay {
             flight.flying
               ? msg('capture.flying', { t: b(flight.elapsed.toFixed(1)), seconds, fly: key(K.fly) })
               : msg('capture.fly', { fly: key(K.fly), seconds, shorter: key(K.shorter), longer: key(K.longer) }),
+            ...more,
           ]
         : []),
       msg('capture.frame', { frame: bound('captureSize'), size: b(size ? `${ratio(size)} ${size[0]}×${size[1]}` : msg('capture.window')) }),
