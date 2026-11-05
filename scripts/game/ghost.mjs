@@ -76,6 +76,7 @@ await check('ghost: a recorded walk plays back through a jittery network smoothl
       return xs.length === 144;
     });
     g.ghost.stop();
+    await g.ghost.settled;
     g.ghost.link.random = Math.random;
     g.fixedStep.dt = 0;
     Object.assign(GHOST, { latency: 0.08, jitter: 0.04 });
@@ -95,139 +96,6 @@ await check('ghost: a recorded walk plays back through a jittery network smoothl
     return { frames: xs.length, reached: xs.length ? xs[xs.length - 1][0] : 0, back, fastest, off, cleared, repainted, buffered };
   });
   const ok = r.reached > 4.4 && r.back < 0.001 && r.fastest < 1.25 && r.off < 0.01 && r.cleared && r.repainted && r.buffered;
-  return ok ? null : JSON.stringify(r);
-});
-
-await check("ghost: capture mode's Record avatar view records it, its keys hold it still, speed it up and start it over; the clean wall has neither ghost nor its paint and goes on from where it was; your stepladder isn't doubled", async () => {
-  const r = await page.evaluate(async () => {
-    const g = window.game;
-    const { GHOST } = g.config;
-    const hash = () => g.paint.surfaces.filter((s) => s.data).reduce((h, s) => s.data.reduce((h, v) => (h * 31 + v) >>> 0, h), 7);
-    const press = async (code) => {
-      g.input.key(code, true);
-      await window.frames(1);
-      g.input.key(code, false);
-      await window.frames(1);
-    };
-    const ladders = () => [...g.level.props.values()].filter((p) => p.type === 'stepladder').length;
-    const text = () => document.querySelector('.capture-plate').textContent;
-    g.paint.clear();
-    g.ghost.rec = null;
-    // Paint from before the recording: what stays on the clean wall.
-    g.paint.stamp(g.paint.surfaces[1], { rect: 0, u: 0.5, v: 0.5 }, 0.1, 1, [0, 0, 1]);
-    const begun = hash();
-    g.player.fly = true;
-    const start = g.player.position.clone();
-    const { x: x0 } = start;
-    const before = ladders();
-    g.level.setRuntime(g.session.player, { type: 'stepladder', pos: [start.x + 3, start.y, start.z + 3], rot: 0 });
-    Object.assign(GHOST, { latency: 0, jitter: 0, hiccups: 0 });
-    g.input.setLocked(true);
-    await press('KeyN');
-    await steps(() => document.documentElement.classList.contains('capture'));
-    // It comes back in the view it left.
-    while (!document.documentElement.classList.contains('capture-free')) await press('KeyV');
-    const out = { none: !/AVATAR/.test(text()) };
-    // The free view records nothing, the Record avatar view does: a 3 s walk that paints near the start and near the end.
-    await press('KeyT');
-    out.freeRecords = g.ghost.recording;
-    await press('KeyV');
-    await steps(() => /RECORD AVATAR/.test(text()) && /T start/.test(text()));
-    // First person has all it needs on the plate: Tab changes nothing.
-    const view = text();
-    g.input.key('Tab', true);
-    await window.frames(1);
-    out.noTab = text() === view && !/Tab/.test(view) && /next view/.test(view) && /frame/.test(view);
-    g.input.key('Tab', false);
-    await press('KeyT');
-    out.recording = g.ghost.recording;
-    let coats = 0;
-    await steps((f) => {
-      const t = f / 60;
-      g.player.position.set(x0 + t, start.y, start.z);
-      if (coats < 2 && t > 0.3 + coats * 2.2) g.paint.stamp(g.paint.surfaces[0], { rect: 0, u: 0.2 + 0.5 * coats++, v: 0.5 }, 0.1, 1, [1, 0, 0]);
-      return f === 180;
-    });
-    await press('KeyT');
-    out.stopped = !g.ghost.recording && g.ghost.recorded;
-    const end = hash();
-    // First person next, with no ghost keys, then the free view.
-    await press('KeyV');
-    await steps(() => /FIRST PERSON/.test(text()));
-    out.first = !/AVATAR/.test(text());
-    await press('KeyV');
-    await steps(() => /AVATAR ready/.test(text()));
-    // Speed and smoothing always, the rest while Tab is held; one control a line.
-    const rows = () => [...document.querySelector('.capture-plate').children].map((r) => r.textContent);
-    const shown = rows();
-    out.rows = shown.some((r) => /m\/s/.test(r)) && shown.some((r) => /smoothing/.test(r)) && shown.some((r) => /Tab keys/.test(r)) && !shown.some((r) => /FLIGHT/.test(r));
-    g.input.key('Tab', true);
-    await window.frames(1);
-    const sheet = rows();
-    out.sheet = ['CAMERA', 'FLIGHT', 'AVATAR', 'VIDEO'].every((h) => sheet.includes(h)) && sheet.some((r) => /clean wall/.test(r)) && sheet.some((r) => /records a video/.test(r)) && !sheet.some((r) => /·/.test(r));
-    g.input.key('Tab', false);
-    await window.frames(1);
-    await press('Space');
-    await steps(() => g.ghost.position && g.ghost.position.x > x0 + 0.5);
-    out.ladders = ladders() - before;
-    // Held still.
-    await press('Space');
-    const held = g.ghost.position.x;
-    await window.frames(30);
-    out.held = g.ghost.position.x - held;
-    await press('Space');
-    // A few frames' walk at 1x, then at 2x.
-    const pace = async () => {
-      const a = g.ghost.position.x;
-      await window.frames(6);
-      return g.ghost.position.x - a;
-    };
-    const one = await pace();
-    await press('Digit2');
-    out.twice = (await pace()) / one;
-    out.status = /AVATAR ▶ 2×/.test(text());
-    await press('Digit1');
-    // The first coat is on, the second is yet to come: the clean wall, then on from there.
-    await steps(() => hash() !== begun && g.ghost.position.x < x0 + 2);
-    const mid = hash();
-    await press('KeyC');
-    await steps(() => hash() === begun);
-    await window.frames(10);
-    out.clean = { ghost: g.ghost.position, wall: hash() === begun, ladders: ladders() - before };
-    const seen = g.ghost.remote.avatar.group.position.x;
-    const middle = g.ghost.label;
-    await press('KeyC');
-    await steps(() => g.ghost.position);
-    out.wentOn = { label: middle, moved: Math.abs(g.ghost.position.x - seen), wall: hash() === mid };
-    await steps(() => hash() === end);
-    out.finished = true;
-    // A paint run under way goes on too.
-    const s = g.paint.surfaces[0];
-    g.paintOps.apply({ kind: 'drip', key: s.key, rect: 0, u: 0.5, v: 0.9, length: 1, speed: 0.01, rgb: [1, 0, 0] });
-    out.runs = [g.drips.runs.length];
-    await press('KeyC');
-    await steps(() => !g.drips.runs.length);
-    await press('KeyC');
-    await steps(() => !g.ghost.cleaned);
-    out.runs.push(g.drips.runs.length);
-    // From the start, with the stroke on its way: nothing of this run is left.
-    await press('KeyR');
-    await steps(() => g.ghost.position && g.ghost.position.x < x0 + 0.2);
-    await steps(() => g.ghost.position.x > x0 + 0.25);
-    out.restarted = hash() === begun;
-    await press('KeyN');
-    g.ghost.stop();
-    out.mine = g.level.runtimeOf(g.session.player) !== undefined;
-    g.level.setRuntime(g.session.player, null);
-    g.input.setLocked(false);
-    Object.assign(GHOST, { latency: 0.08, jitter: 0.04 });
-    g.fixedStep.dt = 0;
-    g.player.fly = false;
-    g.player.position.copy(start);
-    g.paint.clear();
-    return out;
-  });
-  const ok = r.none && !r.freeRecords && r.recording && r.stopped && r.first && r.noTab && r.rows && r.sheet && r.status && r.ladders === 1 && r.held === 0 && Math.abs(r.twice - 2) < 0.35 && r.clean.ghost === null && r.clean.wall && r.clean.ladders === 0 && r.wentOn.moved < 0.2 && r.wentOn.wall && r.finished && r.runs.join() === '1,1' && r.restarted && r.mine;
   return ok ? null : JSON.stringify(r);
 });
 

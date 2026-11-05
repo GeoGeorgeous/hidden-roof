@@ -1,6 +1,6 @@
 import type * as THREE from 'three';
 import type { Input } from '../input';
-import type { CaptureMode, CaptureView, Extra, Shot } from './captureMode';
+import type { CaptureDev, CaptureMode, CaptureView, Shot } from './captureMode';
 
 // Capture mode's place in the game loop (main.ts). The mode itself loads on
 // first use, its key or ?capture=1: the game doesn't carry it otherwise, and
@@ -11,7 +11,11 @@ let view: CaptureView | undefined;
 let loading = false;
 
 function toggle() {
-  if (mode) return mode.toggle();
+  if (mode) {
+    mode.toggle();
+    if (!mode.active) capture.dev?.changed(null);
+    return;
+  }
   if (loading || !view) return;
   loading = true;
   const v = view;
@@ -19,8 +23,8 @@ function toggle() {
 }
 
 export const capture = {
-  /** What the dev tools add: a view of their own, each frame their keys, and a plate of their own. The player build has none. */
-  extra: null as Extra | null,
+  /** What the dev tools add. */
+  dev: null as CaptureDev | null,
   /** What the game is filmed from: first person, the free camera, or null: not in capture mode. */
   get shot(): Shot | null {
     return mode?.active ? mode.shot : null;
@@ -40,7 +44,7 @@ export const capture = {
   },
   /** After the player's view is set: capture mode's keys, and its camera. */
   update(dt: number, input: Input, camera: THREE.PerspectiveCamera) {
-    if (mode?.active) mode.update(dt, input, camera, this.extra);
+    if (mode?.active) mode.update(dt, input, camera, this.dev);
   },
   /** The window changed size: true when capture mode fitted its fixed frame into it (else the window's size is the canvas's). */
   fit() {

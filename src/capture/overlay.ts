@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import { CAPTURE } from '../config';
-import { type Action, keyName, label } from '../input';
 import { msg, msgLines } from '../messages';
 import type { Shot } from './captureMode';
 import type { Flight } from './flight';
+import { b, bound, frameName, key } from './plate-text';
 
 // What capture mode shows over the game while filming (style.css .capture-ui):
 // a plate with the keys of the view filmed from and what they're set to, and in
@@ -12,14 +12,6 @@ import type { Flight } from './flight';
 // html.capture is on.
 
 const K = CAPTURE.keys;
-const b = (s: string | number) => `**${s}**`;
-const key = (code: string) => b(keyName(code));
-/** An action's key as bound (Settings → Controls). */
-const bound = (action: Action) => b(label(action));
-const gcd = (a: number, c: number): number => (c ? gcd(c, a % c) : a);
-const ratio = ([w, h]: readonly [number, number]) => `${w / gcd(w, h)}:${h / gcd(w, h)}`;
-/** The frame drawn, as the plate says it. */
-export const frameName = (size: readonly [number, number] | null) => (size ? `${ratio(size)} ${size[0]}×${size[1]}` : msg('capture.window'));
 const at = new THREE.Vector3();
 
 export interface PlateState {
@@ -52,10 +44,11 @@ export class CaptureOverlay {
     this.place(state.shot === 'free' ? flight.points : [], camera, canvas);
   }
 
-  private text({ shot, speed, smoothing, size, quality, recording, failed }: PlateState, custom: string[] | null, flight: Flight) {
+  private text(state: PlateState, custom: string[] | null, flight: Flight) {
+    const { recording, failed } = state;
     const time = recording === null ? '' : new Date(performance.now() - recording).toISOString().slice(14, 19);
     const lines = [
-      ...(custom ?? this.own(shot, speed, smoothing, size, quality, flight)),
+      ...(custom ?? this.own(state, flight)),
       msg(time ? 'capture.recording' : failed ? 'capture.recordFailed' : 'capture.record', { time: b(time), record: bound('captureRecord') }),
     ];
     const text = lines.join('\n');
@@ -72,7 +65,7 @@ export class CaptureOverlay {
   }
 
   /** The player build's lines. */
-  private own(shot: Shot, speed: number, smoothing: number, size: PlateState['size'], quality: number, flight: Flight) {
+  private own({ shot, speed, smoothing, size, quality }: PlateState, flight: Flight) {
     const seconds = b(flight.seconds);
     return [
       msg('capture.title', { exit: bound('capture') }),

@@ -8,7 +8,8 @@ import { CaptureOverlay, type PlateState } from './overlay';
 import { Recorder } from './recorder';
 
 // Capture mode, for filming the game (hook.ts turns it on and off). Two
-// views: first person, the game as played with the HUD but the hints and the
+// views, and with the dev tools a first person of theirs (CaptureDev):
+// first person, the game as played with the HUD but the hints and the
 // hotbar (html.capture, style.css), or the free camera (html.capture-free):
 // nothing of the game's over the view, the game without input (main.ts), the
 // camera flying free (freeCam.ts) or through the points set (flight.ts). In
@@ -20,8 +21,16 @@ import { Recorder } from './recorder';
 const K = CAPTURE.keys;
 /** `record`: first person with the dev tools' keys; the player build goes between the other two. */
 export type Shot = 'player' | 'free' | 'record';
-/** More keys, and the plate's lines in place of its own but for recording a video. */
-export type Extra = (input: Input, plate: PlateState, flight: Flight) => string[];
+
+/** What the dev tools add; the player build has none. */
+export interface CaptureDev {
+  /** Each frame while playing: their keys; a view to go to. */
+  keys(input: Input, shot: Shot): Shot | void;
+  /** The plate's lines, in place of its own but for recording a video. */
+  plate(input: Input, state: PlateState, flight: Flight): string[];
+  /** The view changed, or capture mode was left (null). */
+  changed(shot: Shot | null): void;
+}
 
 export interface CaptureView {
   renderer: THREE.WebGLRenderer;
@@ -63,14 +72,14 @@ export class CaptureMode {
   }
 
   /** Each frame while active, after the player's view is set: the keys, and in the free view its camera instead of the player's (held while paused). */
-  update(dt: number, input: Input, camera: THREE.PerspectiveCamera, extra: Extra | null) {
+  update(dt: number, input: Input, camera: THREE.PerspectiveCamera, dev: CaptureDev | null) {
     const playing = input.locked;
     if (playing && input.justPressed('captureView')) {
-      const shots: Shot[] = extra ? ['free', 'record', 'player'] : ['free', 'player'];
-      this.shot = shots[(shots.indexOf(this.shot) + 1) % shots.length];
-      this.fresh = this.shot === 'free';
-      this.flight.stop();
+      const shots: Shot[] = dev ? ['free', 'record', 'player'] : ['free', 'player'];
+      this.go(shots[(shots.indexOf(this.shot) + 1) % shots.length], dev);
     }
+    const to = playing ? dev?.keys(input, this.shot) : null;
+    if (to) this.go(to, dev);
     const free = this.shot === 'free';
     const root = document.documentElement.classList;
     root.toggle('capture', playing);
@@ -81,7 +90,7 @@ export class CaptureMode {
     if (input.justPressed('captureRecord')) this.recorder.toggle(this.view.renderer.domElement, CAPTURE.qualities[this.quality], this.view.sound());
     if (input.justPressed('captureSize')) this.setSize(CAPTURE.sizes[this.size ? CAPTURE.sizes.indexOf(this.size) + 1 : 0] ?? null);
     const plate = { shot: this.shot, speed: this.cam.speed, smoothing: this.cam.smoothing, size: this.size, quality: this.quality, recording: this.recorder.startedAt, failed: this.recorder.failed };
-    this.overlay.update(plate, extra?.(input, plate, this.flight) ?? null, this.flight, camera, this.view.renderer.domElement);
+    this.overlay.update(plate, dev?.plate(input, plate, this.flight) ?? null, this.flight, camera, this.view.renderer.domElement);
   }
 
   /** The fixed frame fitted into the window, in its middle (again on a resize). */
@@ -91,6 +100,13 @@ export class CaptureMode {
     const r = { width: w * k, height: h * k, left: (innerWidth - w * k) / 2, top: (innerHeight - h * k) / 2 };
     setFrame(r);
     Object.assign(this.view.renderer.domElement.style, { position: 'fixed', width: `${r.width}px`, height: `${r.height}px`, left: `${r.left}px`, top: `${r.top}px` });
+  }
+
+  private go(shot: Shot, dev: CaptureDev | null) {
+    this.shot = shot;
+    this.fresh = shot === 'free';
+    this.flight.stop();
+    dev?.changed(shot);
   }
 
   /** The free camera, or the flight; then its keys, with the camera in place: a point is added where it is now. */

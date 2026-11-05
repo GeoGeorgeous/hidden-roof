@@ -187,6 +187,7 @@ Shipped since the last release; the release commit empties this list.
 33. [TASK-359]: Hints and toasts in one voice, the first person, and a line for each cap the first time it's on the can in hand: a rank `moment` over the hints that wait for the player
 34. [IDEA-363]: Hints and toasts that go by themselves show a ring running down with their time, the hold-Esc ring's look
 35. [IDEA-364]: Every hint has a ring: a hint the player does fills it as far as they got and turns into the status's check for `TUTORIAL.fullHold` (0.6 s), one action at once. Walking, jumping (one jump) and running (5 m) are three hints, the opacity is learnt by 30% of change in all, a ladder counts going down too, the color hint waits for a color change
+36. [IDEA-342]: The ghost from capture mode (dev tools only), to film yourself from outside: V also goes to a Record avatar view, first person where T records a take and, stopping it, goes to the free view; a take too short to be meant keeps the last one. In the free view Space plays and holds it, 1 2 3 set 1x, 2x or 4x (paint runs too), R plays from the start, C shows the clean wall and goes on from where it was; it ends on its last frame. Your wall and stepladder stand aside while it plays and come back when you change view or leave capture mode. Tab shows the keys that work right now
 
 ## Discarder
 

@@ -54,6 +54,40 @@ await check('capture: N films with the free camera (no HUD, the game without inp
   return ok ? null : JSON.stringify(r);
 });
 
+await check("capture: the player build's plate and views: its own lines, V between two views, none of the dev tools' keys", async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const press = async (code) => {
+      g.input.key(code, true);
+      await window.frames(1);
+      g.input.key(code, false);
+      await window.frames(1);
+    };
+    const free = () => document.documentElement.classList.contains('capture-free');
+    const text = () => document.querySelector('.capture-plate').textContent;
+    const dev = g.capture.dev;
+    g.capture.dev = null;
+    g.input.setLocked(true);
+    await press('KeyN');
+    while (!free()) await press('KeyV');
+    const shown = text();
+    await press('KeyV');
+    const first = { free: free(), text: text() };
+    await press('KeyT');
+    await press('KeyV');
+    const out = { shown, first, back: free(), recording: g.ghost.recording };
+    // First person, where the next checks start.
+    await press('KeyV');
+    await press('KeyN');
+    g.capture.dev = dev;
+    g.input.setLocked(false);
+    g.fixedStep.dt = 0;
+    return out;
+  });
+  const ok = /CAPTURE MODE/.test(r.shown) && /Free camera|free camera/i.test(r.shown) && /Frame|frame/.test(r.shown) && !/AVATAR/.test(r.shown) && !r.first.free && /First person/.test(r.first.text) && !/AVATAR/.test(r.first.text) && r.back && !r.recording;
+  return ok ? null : JSON.stringify(r);
+});
+
 await check("capture: a recording the browser refuses says so on the plate, and M tries again", async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;

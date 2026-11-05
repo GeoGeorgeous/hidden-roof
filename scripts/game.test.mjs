@@ -16,5 +16,6 @@ await import('./game/hints.mjs');
 await import('./game/tools.mjs');
 await import('./game/session.mjs');
 await import('./game/ghost.mjs');
+await import('./game/ghost-capture.mjs');
 await import('./game/debug.mjs');
 await finish();

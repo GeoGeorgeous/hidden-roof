@@ -31,11 +31,11 @@ import { dressTower, wallSigns } from '../city/rooftops';
 import { capture } from '../capture/hook';
 import { Ghost } from './ghost';
 import { capturePlate } from './capture-plate';
-import { ghostKeys } from './ghost-keys';
+import { ghostKeys, ghostLeft } from './ghost-keys';
 import { Profiler } from './profiler';
 import { WetView } from './wet-view';
 import { RunsView } from './runs-view';
-import { GHOST, RUNS_VIEW, WET_VIEW } from '../config';
+import { RUNS_VIEW, WET_VIEW } from '../config';
 import type { PaintOps } from '../paint-ops';
 import type { Tools } from '../tools/tools';
 
@@ -114,14 +114,11 @@ export class DevTools {
     this.build.onLoad = g.openLevel;
     this.figure = new AvatarPreview(g.scene);
     this.ghost = new Ghost(g);
-    capture.extra = (input, plate, flight) => {
-      ghostKeys(this.ghost, input, plate.shot);
-      return capturePlate(this.ghost, input, plate, flight);
+    capture.dev = {
+      keys: (input, shot) => ghostKeys(this.ghost, input, shot),
+      plate: (input, state, flight) => capturePlate(this.ghost, input, state, flight),
+      changed: (shot) => ghostLeft(this.ghost, shot),
     };
-    // Held for the free view's keys: not moving the focus, which a Space would press.
-    window.addEventListener('keydown', (e) => {
-      if (e.code === GHOST.keys.help && capture.shot === 'free') e.preventDefault();
-    });
     this.messages = new MessageTools(g.notify);
     this.profiler = new Profiler(g);
     this.wet = new WetView(g.scene, g.paint, () => g.player.position);
@@ -163,7 +160,7 @@ export class DevTools {
       messageHintShown: () => this.messages.hint,
       syncNotify: () => g.notifyView.syncLook(),
       ghostRecord: () => this.ghost.record(),
-      ghostPlay: () => this.ghost.play(),
+      ghostPlay: () => this.ghost.play(true),
       ghostFollow: () => this.ghost.follow(),
       ghostStop: () => this.ghost.stop(),
       ghostState: () => this.ghost.label,
@@ -178,7 +175,7 @@ export class DevTools {
       profileState: () => (this.profiler.recording ? 'RECORDING' : 'off'),
     };
     this.debug = new DebugPanel(hooks, () => g.environment.atmosphere.nightValues);
-    Object.assign(window, { game: { ...g, build: this.build, debug: this.debug, hooks, live, ghost: this.ghost, wetView: this.wet, runsView: this.runs, profiler: this.profiler, cityParts: { layoutCity, dressTower, wallSigns } } });
+    Object.assign(window, { game: { ...g, build: this.build, debug: this.debug, hooks, live, ghost: this.ghost, capture, wetView: this.wet, runsView: this.runs, profiler: this.profiler, cityParts: { layoutCity, dressTower, wallSigns } } });
   }
 
   /** Where the test figures stand besides the session's players (the ghost): a stepladder can't go there. */
