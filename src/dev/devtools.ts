@@ -99,6 +99,8 @@ export class DevTools {
   private resumeOnClose = false;
   /** Paint ops per second: counted over a second at a time. */
   private opsFrom = { count: 0, time: 0 };
+  /** The paint's dice and runs a second, for the last ten. */
+  private tallies: { rolls: number; runs: number }[] = [];
   /** A model changed in F3 since the last frame. */
   private modelsChanged = false;
 
@@ -156,6 +158,10 @@ export class DevTools {
       ghostState: () => this.ghost.label,
       ghostNet: () => this.ghost.net,
       wetBuildUp: () => this.wet.label,
+      runTally: () => {
+        const [first, last] = [this.tallies[0], this.tallies.at(-1)];
+        return first && last ? `${last.rolls - first.rolls} / ${last.runs - first.runs}` : '-';
+      },
       profileToggle: () => this.profiler.toggle(),
       profileProbe: () => this.profiler.runProbe(),
       profileState: () => (this.profiler.recording ? 'RECORDING' : 'off'),
@@ -238,6 +244,8 @@ export class DevTools {
     if (now - this.opsFrom.time >= 1000) {
       live.stats.paintOps = ((g.paint.opCount - this.opsFrom.count) * 1000) / (now - this.opsFrom.time);
       this.opsFrom = { count: g.paint.opCount, time: now };
+      this.tallies.push(g.paint.runTally);
+      if (this.tallies.length > 11) this.tallies.shift();
     }
     const p = g.player;
     live.player = { position: p.position, velocity: p.velocity, state: p.fly ? 'flying' : p.onLadder ? 'on ladder' : p.crouched ? 'crouched' : p.onGround ? 'grounded' : 'airborne' };

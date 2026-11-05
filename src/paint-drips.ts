@@ -6,7 +6,7 @@ import { rounded } from './op-wire';
 import { paintRandom } from './lcg';
 
 // Paint runs. PaintSystem reports texels on vertical faces that get more paint
-// than they can dry, once they're already opaque; a few of them start a run: a one-texel
+// than they can dry, once they're already opaque; a few of them start a run (paint-wet.ts): a one-texel
 // trickle that moves down the face rect (texel -y = world down on upright
 // rects), slows down, and ends in a slightly heavier drop. Runs only write into
 // the paint texture, so they cost nothing once they stop.
@@ -31,19 +31,19 @@ export class PaintDrips {
   tap: ((s: PaintSurface, rect: Rect, x: number, y: number) => void) | null = null;
 
   constructor(private paint: PaintSystem) {
-    paint.onDrip = (s, rect, x, y, rgb) => this.spawn(s, rect, x, y, rgb);
+    paint.onDrip = (s, rect, x, y, rgb, length) => this.spawn(s, rect, x, y, rgb, length);
   }
 
   get count() {
     return this.runs.length;
   }
 
-  /** Heavy paint at texel (x, y) of a face we painted: maybe start a run there. */
-  private spawn(s: PaintSurface, rect: Rect, x: number, y: number, rgb: Rgb) {
+  /** Heavy paint at texel (x, y) of a face we painted: a run starts there, of `share` (0..1) from DRIPS.minLength to maxLength. */
+  private spawn(s: PaintSurface, rect: Rect, x: number, y: number, rgb: Rgb, share: number) {
     if (this.runs.length >= DRIPS.maxActive) return;
     // One run per column at a time, so a hot spot doesn't stack runs.
-    if (this.runs.some((r) => r.s === s && r.x === x && Math.abs(r.y - y) < 4)) return;
-    const length = DRIPS.minLength + paintRandom.drips() * (DRIPS.maxLength - DRIPS.minLength);
+    if (this.runs.some((r) => r.s === s && r.x === x && Math.abs(r.y - y) < DRIPS.apart * s.geo.texelsPerMeter)) return;
+    const length = DRIPS.minLength + share * (DRIPS.maxLength - DRIPS.minLength);
     if (Math.max(rect.y, y - length * s.geo.texelsPerMeter) >= y - 1) return;
     // As its op carries it (op-wire.ts), so every client runs the same run.
     const op = this.paint.record(rounded<DripOp>({ kind: 'drip', key: s.key, rect: s.geo.rects.indexOf(rect), u: (x + 0.5 - rect.x) / rect.w, v: (y + 0.5 - rect.y) / rect.h, length, speed: DRIPS.speed * (0.6 + 0.8 * paintRandom.drips()), rgb }));

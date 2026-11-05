@@ -120,8 +120,8 @@ const level: LevelData = JSON.parse(fs.readFileSync('public/levels/demo.json', '
   const one = wall({ origin: V(0, 0), uAxis: V(4, 0), vAxis: V(0, 2) });
   const two = wall({ origin: V(0, 0), uAxis: V(2, 0), vAxis: V(0, 2) }, { origin: V(2, 2), uAxis: V(0, -2), vAxis: V(2, 0) });
   const slant = { stretch: 4, turn: 0.04, tail: 0.5 };
-  one.paint.stamp(one.s, { rect: 0, u: 0.45, v: 0.5 }, 0.1, 0.8, [1, 0, 0], 0.4, 0, false, slant);
-  two.paint.stamp(two.s, { rect: 0, u: 0.9, v: 0.5 }, 0.1, 0.8, [1, 0, 0], 0.4, 0, false, slant);
+  one.paint.stamp(one.s, { rect: 0, u: 0.45, v: 0.5 }, 0.1, 0.8, [1, 0, 0], 0.4, null, false, slant);
+  two.paint.stamp(two.s, { rect: 0, u: 0.9, v: 0.5 }, 0.1, 0.8, [1, 0, 0], 0.4, null, false, slant);
   const alpha = ({ s }: { s: typeof one.s }, x: number, y: number) => s.data![(y * s.geo.atlasW + x) * 4 + 3];
   const [r1, r2] = [one.s.geo.rects[0], two.s.geo.rects[1]];
   let far = 0;

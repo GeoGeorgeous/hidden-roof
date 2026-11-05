@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { Solids } from '../level/solids';
+import { toolRule } from '../paint-wet';
 import type { Audio } from '../audio';
 import { ROLLER, type PaintColor } from '../config';
 import type { Input } from '../input';
@@ -66,7 +67,7 @@ export class RollerTool {
     let rolled: number | null = null;
     this.stroke.sweep(dt, camera, eye, spec, (hit, surface, at, fresh) => {
       if (!surface) return;
-      this.paint.roll(surface, at, right, width / 2, ROLLER.pressLength / 2, ROLLER.softness, ROLLER.strength, rgbOf(color), fresh ? ROLLER.drips : 0);
+      this.paint.roll(surface, at, right, width / 2, ROLLER.pressLength / 2, ROLLER.softness, ROLLER.strength, rgbOf(color), fresh ? toolRule(ROLLER.chance) : null);
       rolled = (rolled ?? 0) + (this.hasLastHit ? hit.point.distanceTo(this.lastHit) : 0);
       this.lastHit.copy(hit.point);
       this.hasLastHit = true;

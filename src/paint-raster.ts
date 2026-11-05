@@ -1,7 +1,7 @@
 import type * as THREE from 'three';
 import { DRIPS, PAINT } from './config';
 import type { StampOp } from './paint-ops';
-import { WetPaint, type WetSurface } from './paint-wet';
+import { WetPaint, type RunRule, type WetSurface } from './paint-wet';
 import type { Rgb } from './painting';
 import type { Rect, SurfaceGeometry } from './surfaces';
 
@@ -34,7 +34,7 @@ export interface Band {
   edge: number;
   amount: number;
   color: Rgb;
-  drip: number;
+  runs: RunRule | null;
 }
 
 export class PaintRaster<S extends RasterSurface> {
@@ -44,8 +44,8 @@ export class PaintRaster<S extends RasterSurface> {
     private hooks: {
       /** Texels in this rect (inclusive) changed. */
       touched: (s: S, x0: number, y0: number, x1: number, y1: number) => void;
-      /** Heavy paint on a vertical face should start a run here (see paint-drips.ts). */
-      drip: (s: S, rect: Rect, x: number, y: number, rgb: Rgb) => void;
+      /** Heavy paint on a vertical face starts a run here, of `length` (0..1 of DRIPS' lengths; paint-drips.ts). */
+      drip: (s: S, rect: Rect, x: number, y: number, rgb: Rgb, length: number) => void;
     },
   ) {}
 
@@ -72,7 +72,7 @@ export class PaintRaster<S extends RasterSurface> {
     const x1 = Math.min(rect.x + rect.w, Math.floor(cx + ex));
     const y0 = Math.max(rect.y - 1, Math.floor(cy - ey));
     const y1 = Math.min(rect.y + rect.h, Math.floor(cy + ey));
-    const runs = DRIPS.enabled && rect.upright ? b.drip : 0;
+    const runs = DRIPS.enabled && rect.upright && b.runs?.chance ? b.runs : null;
     let touched = false;
     for (let y = y0; y <= y1; y++) {
       for (let x = x0; x <= x1; x++) {
@@ -98,7 +98,7 @@ export class PaintRaster<S extends RasterSurface> {
     cx: number,
     cy: number,
     { radius, amount, color, softness, square, slant }: Dot,
-    drip: number,
+    rule: RunRule | null,
   ) {
     const w = s.geo.atlasW;
     const data = s.data!;
@@ -120,7 +120,7 @@ export class PaintRaster<S extends RasterSurface> {
     const x1 = Math.min(rect.x + rect.w, Math.floor(cx + reachX));
     const y0 = Math.max(rect.y - 1, Math.floor(cy - reachY));
     const y1 = Math.min(rect.y + rect.h, Math.floor(cy + reachY));
-    const runs = DRIPS.enabled && rect.upright ? drip : 0;
+    const runs = DRIPS.enabled && rect.upright && rule?.chance ? rule : null;
     const r2 = r * r;
     let touched = false;
     for (let y = y0; y <= y1; y++) {
@@ -182,11 +182,12 @@ export class PaintRaster<S extends RasterSurface> {
   }
 
   /** `amt` coats more on an opaque texel of `rect`: a run may start there. */
-  private addWet(s: S, rect: Rect, x: number, y: number, amt: number, rate: number) {
-    if (!this.wet.add(s, x, y, amt, rate)) return;
+  private addWet(s: S, rect: Rect, x: number, y: number, amt: number, rule: RunRule) {
+    const length = this.wet.add(s, x, y, amt, rule);
+    if (length === null) return;
     const i = (y * s.geo.atlasW + x) * 4;
     const d = s.data!;
-    this.hooks.drip(s, rect, x, y, [d[i] / 255, d[i + 1] / 255, d[i + 2] / 255]);
+    this.hooks.drip(s, rect, x, y, [d[i] / 255, d[i + 1] / 255, d[i + 2] / 255], length);
   }
 }
 

@@ -511,8 +511,8 @@ export interface CapSpec {
   /** Hiss loudness multiplier and tone (0 = bright, 1 = deep). */
   hissGain: number;
   hissTone: number;
-  /** Paint runs (with DRIPS on), per m² of paint reaching DRIPS.excess. */
-  drips: number;
+  /** The odds its wet paint runs, by the spot (DRIPS.spot; 0..1): a higher one rests less too, so it runs more when held still. */
+  chance: number;
   /** Color of the cap on the can, its pickup and hotbar icon. */
   color: string;
   /** Width of the cap's nozzle (m): it hints at the cap. */
@@ -533,16 +533,16 @@ export const CAP_ORDER: CapId[] = ['needle', 'skinny', 'standard', 'soft', 'fat'
 const PLUME_AS_MADE = { cone: 1, size: 1, grow: 1 };
 export const CAPS: Record<CapId, CapSpec> = {
   /** Thinner than SKINNY, as wide as the default marker at 1.5 m. */
-  needle: { name: 'NEEDLE', spread: 0.008, rate: 1900, dotSize: 0.03, softness: 0.1, hissGain: 0.45, hissTone: 0, drips: 40, color: '#d8322a', nozzle: 0.003, dot: '#f1efe8', tube: 0.02, plume: { ...PLUME_AS_MADE } },
-  skinny: { name: 'SKINNY', spread: 0.01, rate: 1900, dotSize: 0.036, softness: 0.15, hissGain: 0.5, hissTone: 0, drips: 60, color: '#e3cf94', nozzle: 0.004, dot: '#202020', plume: { ...PLUME_AS_MADE } },
-  standard: { name: 'BANANA', spread: 0.03, rate: 1760, dotSize: 0.05, softness: 0.35, hissGain: 0.75, hissTone: 0.4, drips: 120, color: '#f5d33a', nozzle: 0.006, dot: '#202020', plume: { ...PLUME_AS_MADE } },
+  needle: { name: 'NEEDLE', spread: 0.008, rate: 1900, dotSize: 0.03, softness: 0.1, hissGain: 0.45, hissTone: 0, chance: 0.13, color: '#d8322a', nozzle: 0.003, dot: '#f1efe8', tube: 0.02, plume: { ...PLUME_AS_MADE } },
+  skinny: { name: 'SKINNY', spread: 0.01, rate: 1900, dotSize: 0.036, softness: 0.15, hissGain: 0.5, hissTone: 0, chance: 0.19, color: '#e3cf94', nozzle: 0.004, dot: '#202020', plume: { ...PLUME_AS_MADE } },
+  standard: { name: 'BANANA', spread: 0.03, rate: 1760, dotSize: 0.05, softness: 0.35, hissGain: 0.75, hissTone: 0.4, chance: 0.38, color: '#f5d33a', nozzle: 0.006, dot: '#202020', plume: { ...PLUME_AS_MADE } },
   /** BANANA with the softest edge, for fades. */
-  soft: { name: 'BLUE DOT', spread: 0.03, rate: 1760, dotSize: 0.05, softness: 1, hissGain: 0.7, hissTone: 0.6, drips: 70, color: '#aeb2b6', nozzle: 0.006, dot: '#3f8fe0', plume: { ...PLUME_AS_MADE } },
+  soft: { name: 'BLUE DOT', spread: 0.03, rate: 1760, dotSize: 0.05, softness: 1, hissGain: 0.7, hissTone: 0.6, chance: 0.22, color: '#aeb2b6', nozzle: 0.006, dot: '#3f8fe0', plume: { ...PLUME_AS_MADE } },
   // Kept for a flat nib on the marker, a later version. Its numbers are a dab's narrow side: 1.7 cm at 1.5 m, so 7 cm the long way.
-  // transversal: { name: 'TRANSVERSAL', spread: 0.004, rate: 1400, dotSize: 0.014, softness: 0.15, hissGain: 0.7, hissTone: 0.2, drips: 60, color: '#f1efe8', nozzle: 0.012, dot: '#202020', nib: { stretch: 4, angle: 45 }, plume: { ...PLUME_AS_MADE, cone: 3 } },
-  fat: { name: 'NY FAT', spread: 0.04, rate: 650, dotSize: 0.12, softness: 0.15, hissGain: 1, hissTone: 1, drips: 180, color: '#f1efe8', nozzle: 0.01, dot: '#202020', plume: { ...PLUME_AS_MADE } },
+  // transversal: { name: 'TRANSVERSAL', spread: 0.004, rate: 1400, dotSize: 0.014, softness: 0.15, hissGain: 0.7, hissTone: 0.2, chance: 0.19, color: '#f1efe8', nozzle: 0.012, dot: '#202020', nib: { stretch: 4, angle: 45 }, plume: { ...PLUME_AS_MADE, cone: 3 } },
+  fat: { name: 'NY FAT', spread: 0.04, rate: 650, dotSize: 0.12, softness: 0.15, hissGain: 1, hissTone: 1, chance: 0.58, color: '#f1efe8', nozzle: 0.01, dot: '#202020', plume: { ...PLUME_AS_MADE } },
   /** Wide, soft mist for fades and backgrounds: lots of faint, fuzzy dots. */
-  spray: { name: 'ASTRO FAT', spread: 0.1, rate: 1100, dotSize: 0.158, softness: 0.55, hissGain: 0.9, hissTone: 0.8, drips: 50, color: '#c9ccce', nozzle: 0.013, dot: '#202020', plume: { ...PLUME_AS_MADE } },
+  spray: { name: 'ASTRO FAT', spread: 0.1, rate: 1100, dotSize: 0.158, softness: 0.55, hissGain: 0.9, hissTone: 0.8, chance: 0.16, color: '#c9ccce', nozzle: 0.013, dot: '#202020', plume: { ...PLUME_AS_MADE } },
 };
 
 /** Paint colors, in the mouse wheel's cycling order. Black is always owned. Paint never runs out. */
@@ -577,11 +577,8 @@ export const MARKER = {
   /** Crosshair with the marker in hand (px): `crosshair` plus `crosshairPerMeter` x the nib width, so it follows the size keys. */
   crosshair: 4,
   crosshairPerMeter: 200,
-  /**
-   * Paint runs (with DRIPS on) from the marker, per m² of paint reaching DRIPS.excess:
-   * a nib covers little area but pumps a lot of paint into it.
-   */
-  drips: 50,
+  /** The odds its wet paint runs, by the spot (DRIPS.spot; 0..1): a nib covers little area but pumps a lot of paint into it. */
+  chance: 0.32,
   strength: 0.95,
   /** Held still, the nib stamps the same spot every frame: let it add to runs this often (per s), whatever the frame rate. */
   stillRate: 30,
@@ -756,8 +753,8 @@ export const ROLLER = {
   crosshairPerMeter: 0,
   /** Opacity per press: a roller lays it on thick. */
   strength: 0.45,
-  /** Paint runs (with DRIPS on), per m² of paint reaching DRIPS.excess: a loaded roller runs easily. */
-  drips: 60,
+  /** The odds its wet paint runs, by the spot (DRIPS.spot; 0..1): a loaded roller runs easily. */
+  chance: 0.384,
   /** Held still, presses add to runs this often (per s), whatever the frame rate. */
   stillRate: 20,
   /** Moves are filled with presses at most `spacing` x the press length apart at full reach, at most maxRays per frame. */
@@ -891,15 +888,28 @@ export const PLAYER_LIGHT = {
  */
 export const DRIPS = {
   enabled: true,
-  /** Passes of wet paint a texel needs before it may run: paint over opaque paint is wet. How often it then runs is each cap's and tool's `drips` (per m², spread over its texels, so every paint detail runs alike). */
+  /** Passes of wet paint a texel needs before it rolls the dice: paint over opaque paint is wet. Its odds are each cap's and tool's `chance`. */
   passes: 1,
   /** What a pass lays, in coats (a coat: a full-opacity stamp). About this from a meter, by the cap and the hand. */
   passCoats: 6,
   /** How long a pass of wet paint takes to dry (s), less paint sooner. A pass over a dry wall no longer runs; holding the can on one spot still does. */
   dryTime: 3,
+  /** The dice are rolled by the square of wall this wide (m): a thin line and a wide one have the same odds where they're as wet, and every paint detail runs alike. */
+  spot: 0.08,
+  /** How long a spot rests after a run (s), at a chance of 1: at half it rests twice as long. The can's; the marker and roller don't rest. */
+  rest: 2.3,
+  /** Passes a failed roll takes off a texel: the rest stays wet. The can's; the marker's and roller's lose all of it. */
+  miss: 1 / 6,
+  /** A can's spot keeps the paint past what its texels hold; this many passes of it, on average over the spot, is a full one. A full one is `fullOdds` times likelier to run on top of its chance, and its run the longest: `lengthLuck` of a run's length is the dice's, the rest how full its spot is. It dries `keptDry` times slower than a texel's paint, or a thin cap's would dry as it comes. */
+  full: 0.5,
+  fullOdds: 5,
+  lengthLuck: 0.6,
+  keptDry: 4,
   /** Runs moving at the same time, level-wide. */
   maxActive: 65,
-  /** Run length range (m). */
+  /** A run starts this far from another's head at least, in its column (m). */
+  apart: 0.04,
+  /** Run length range (m): the can's by how much paint a spot keeps, the marker's and roller's by chance. */
   minLength: 0.06,
   maxLength: 0.5,
   /** Starting speed (m/s); runs slow down as they go, to `slowest` of it. */

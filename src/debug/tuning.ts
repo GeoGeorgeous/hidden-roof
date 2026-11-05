@@ -148,6 +148,8 @@ export interface Hooks {
   profileState(): string;
   /** Debug: a lightning strike right now. */
   strikeLightning(): void;
+  /** Dice rolled and paint runs started over the last ten seconds, as text. */
+  runTally(): string;
   /** GPU time of a render pass, as text ('n/a' without timer queries). */
   gpu(label: string): string;
 }

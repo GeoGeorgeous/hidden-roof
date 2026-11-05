@@ -6,6 +6,7 @@ import { SeamIndex, texelToWorld, turnOnto, worldToTexel, type SeamFace } from '
 import { PaintGpu } from './paint-gpu';
 import { hasPaint, rectsOf, type Owned, type PaintPatch, type PaintSurface, type Rgb } from './paint-surface';
 import { PaintLocks } from './paint-locks';
+import type { RunRule } from './paint-wet';
 import { inRing, PaintRaster, type Band, type Box, type Dot } from './paint-raster';
 import type { PaintOp, RollOp, Slant, StampOp } from './paint-ops';
 import { rounded } from './op-wire';
@@ -57,19 +58,25 @@ export class PaintSystem {
     this.raster.wet.now += dt;
   }
 
+  /** Dice rolled and runs started so far (paint-wet.ts). */
+  get runTally() {
+    const { rolls, runs } = this.raster.wet;
+    return { rolls, runs };
+  }
+
   /** The paint clock (s): wet paint (PaintSurface.wet) is dry once it is past. */
   get now() {
     return this.raster.wet.now;
   }
 
   /** Called when heavy paint on a vertical face should start a run (see paint-drips.ts). */
-  onDrip: (s: PaintSurface, rect: Rect, x: number, y: number, rgb: Rgb) => void = () => {};
+  onDrip: (s: PaintSurface, rect: Rect, x: number, y: number, rgb: Rgb, length: number) => void = () => {};
   /** Surfaces scrubbed this frame and last, for settle(). */
   private scrubbed = new Set<PaintSurface>();
   private settling = new Set<PaintSurface>();
   private raster = new PaintRaster<PaintSurface>({
     touched: (s, x0, y0, x1, y1) => this.gpu.markDirty(s, x0, y0, x1, y1),
-    drip: (s, rect, x, y, rgb) => this.onDrip(s, rect, x, y, rgb),
+    drip: (s, rect, x, y, rgb, length) => this.onDrip(s, rect, x, y, rgb, length),
   });
 
   /** `texelsPerMeter`: the PAINT DETAIL its surfaces are built at, until one says otherwise (a session's on the server). */
@@ -79,7 +86,7 @@ export class PaintSystem {
 
   /** `group`: where it stands (a level tile): surfaces drawn together share paint pages. */
   register(key: string, mesh: THREE.Mesh, geo: SurfaceGeometry, group: string): PaintSurface {
-    const s: PaintSurface = { key, mesh, geo, slot: null, light: null, data: null, mips: [], wet: null, dirty: [] };
+    const s: PaintSurface = { key, mesh, geo, slot: null, light: null, data: null, mips: [], wet: null, spots: null, dirty: [] };
     this.texelsPerMeter = geo.texelsPerMeter;
     this.gpu.place(s, group);
     this.surfaces.push(s);
@@ -155,8 +162,8 @@ export class PaintSystem {
   private free(s: PaintSurface) {
     if (!hasPaint(s)) return;
     this.gpu.dispose(s);
-    const mine = s as Owned<'data' | 'wet'>;
-    mine.data = mine.wet = null;
+    const mine = s as Owned<'data' | 'wet' | 'spots'>;
+    mine.data = mine.wet = mine.spots = null;
   }
 
   /**
@@ -198,8 +205,8 @@ export class PaintSystem {
    * is the same size at every paint detail; one smaller than a texel paints
    * the texel under it. `amount` 0..1 opacity at the center, `color` sRGB 0..1,
    * `softness` 0 = hard dot .. 1 = fades to nothing at the rim.
-   * `drip`: wet paint on opaque texels of vertical faces may start a run;
-   * the number is how often (runs per m² of paint reaching DRIPS.excess), 0 = never.
+   * `runs`: wet paint on opaque texels of vertical faces may start a run, by
+   * this rule (paint-wet.ts); null: never.
    * `square`: a hard square nib instead of a round dot (`radius` is half its
    * side), its sides along the face's axes, like a pump marker's nib.
    * `color` null scrubs paint off instead (the sponge): `amount` of the paint
@@ -212,14 +219,14 @@ export class PaintSystem {
     amount: number,
     color: Rgb | null,
     softness = 0.5,
-    drip = 0,
+    runs: RunRule | null = null,
     square = false,
     slant?: Slant,
   ) {
     if (!this.live(s) || this.stopped(s, at.rect)) return;
     // Logged before it paints: the runs it starts are logged after it.
     const op = this.record(rounded({ kind: 'stamp', key: s.key, rect: at.rect, u: at.u, v: at.v, radius, amount, color, softness, square, ...(slant && { slant }) }));
-    this.stampOp(s, op, drip);
+    this.stampOp(s, op, runs);
   }
 
   /** Face `rect` of `s` is locked: this player's paint on it is stopped, and not sent. */
@@ -240,19 +247,19 @@ export class PaintSystem {
   replay(s: PaintSurface, op: StampOp | RollOp) {
     if (!this.live(s)) return;
     this.opCount++;
-    if (op.kind === 'stamp') this.stampOp(s, rounded(op), 0);
-    else this.rollOp(s, rounded(op), 0);
+    if (op.kind === 'stamp') this.stampOp(s, rounded(op), null);
+    else this.rollOp(s, rounded(op), null);
   }
 
-  private stampOp(s: PaintSurface, op: StampOp, drip: number) {
+  private stampOp(s: PaintSurface, op: StampOp, runs: RunRule | null) {
     const rect = faceTexel(s, op);
     const { x: cx, y: cy } = atTexel;
     const { slant } = op;
-    this.dot(s, rect, cx, cy, op, drip);
+    this.dot(s, rect, cx, cy, op, runs);
     for (const n of this.pastEdge(s, rect, cx, cy, op.radius * (slant?.stretch ?? 1))) {
       if (!this.live(n.surface)) continue;
       worldToTexel(n.rect, seamPoint, seamTexel);
-      this.dot(n.surface, n.rect, seamTexel.x, seamTexel.y, slant ? { ...op, slant: { ...slant, turn: turnOnto(rect, n.rect, slant.turn) } } : op, drip);
+      this.dot(n.surface, n.rect, seamTexel.x, seamTexel.y, slant ? { ...op, slant: { ...slant, turn: turnOnto(rect, n.rect, slant.turn) } } : op, runs);
     }
   }
 
@@ -262,7 +269,7 @@ export class PaintSystem {
    * `halfWidth` across it, both in meters. The last `edge` fraction of each
    * end gets lighter, the way a roller's ends leave less paint. Faces with no
    * known plane (cylinders) take the band along their texture's u. Carries
-   * across seams like stamp(); `drip` as in stamp().
+   * across seams like stamp(); `runs` as in stamp().
    */
   roll(
     s: PaintSurface,
@@ -273,18 +280,18 @@ export class PaintSystem {
     edge: number,
     amount: number,
     color: Rgb,
-    drip = 0,
+    runs: RunRule | null = null,
   ) {
     if (!this.live(s) || this.stopped(s, at.rect)) return;
     const op = this.record(rounded({ kind: 'roll', key: s.key, rect: at.rect, u: at.u, v: at.v, axis: axis.toArray(), halfLength, halfWidth, edge, amount, color }));
-    this.rollOp(s, op, drip);
+    this.rollOp(s, op, runs);
   }
 
-  private rollOp(s: PaintSurface, op: RollOp, drip: number) {
+  private rollOp(s: PaintSurface, op: RollOp, runs: RunRule | null) {
     const rect = faceTexel(s, op);
     const { x: cx, y: cy } = atTexel;
     const axis = rollAxis.fromArray(op.axis);
-    const band = { halfLength: op.halfLength, halfWidth: op.halfWidth, edge: op.edge, amount: op.amount, color: op.color, drip };
+    const band = { halfLength: op.halfLength, halfWidth: op.halfWidth, edge: op.edge, amount: op.amount, color: op.color, runs };
     this.band(s, rect, cx, cy, axis, band);
     for (const n of this.pastEdge(s, rect, cx, cy, Math.hypot(op.halfLength, op.halfWidth))) {
       if (!this.live(n.surface)) continue;
@@ -311,12 +318,12 @@ export class PaintSystem {
     this.raster.band(s, rect, cx, cy, axis, b);
   }
 
-  private dot(s: PaintSurface, rect: Rect, cx: number, cy: number, dot: Dot, drip: number) {
+  private dot(s: PaintSurface, rect: Rect, cx: number, cy: number, dot: Dot, runs: RunRule | null) {
     // Nothing to scrub off a surface that was never painted; nothing changes a locked face (a seam's spill onto one either).
     if ((!dot.color && !hasPaint(s)) || rect.locked) return;
     this.ensureTexture(s);
     if (!dot.color) this.scrubbed.add(s);
-    this.raster.dot(s, rect, cx, cy, dot, drip);
+    this.raster.dot(s, rect, cx, cy, dot, runs);
   }
 
   /**
