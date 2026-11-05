@@ -80,11 +80,10 @@ function lightColor(kind: LightKind, neon: NeonColor | null) {
 }
 
 /**
- * Smoke source or humming fan in world space (see kit/pieces EmitterPiece), or
- * 'metal': the top of a metal piece, where raindrops ping (added automatically).
+ * Smoke source or humming fan in world space (see kit/pieces EmitterPiece).
  */
 export interface Emitter {
-  kind: 'smoke' | 'fan' | 'metal';
+  kind: 'smoke' | 'fan';
   pos: THREE.Vector3;
   dir: THREE.Vector3;
 }
@@ -179,9 +178,6 @@ export function decorMaterial(m: Mat) {
 
 const NO_FACADE: Facade = [0, 0, 0, 0];
 
-/** Materials that ring when rain hits them. */
-const METALS = new Set<Mat>([M.steel, M.metal, M.galv, M.ac, M.rust]);
-
 const BOX_FACES: BoxFace[] = ['+x', '-x', '+y', '-y', '+z', '-z'];
 
 /**
@@ -250,15 +246,6 @@ export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint =
     e.b.letters = mat.letters ?? null;
     return e.b;
   };
-  // Raindrop pings: one point per metal piece top, at most one per 1 m cell.
-  const metalCells = new Set<string>();
-  const metal = (mat: Mat, top: THREE.Vector3) => {
-    if (!allowPaint || !METALS.has(mat)) return;
-    const key = `${Math.round(top.x)},${Math.round(top.y)},${Math.round(top.z)}`;
-    if (metalCells.has(key)) return;
-    metalCells.add(key);
-    out.emitters.push({ kind: 'metal', pos: top.clone(), dir: new THREE.Vector3() });
-  };
   for (const p of pieces) {
     if (p.k === 'box') {
       const box = new THREE.Box3().setFromPoints([at(p.min), at(p.max)]);
@@ -272,7 +259,6 @@ export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint =
         } else decor(mat, boxSurface(box.min, box.max, skip, false, mat.letters).geometry, p.swing);
       }
       if (p.collide && !p.swing) collide(p.mat, [box]);
-      metal(p.mat, new THREE.Vector3((box.min.x + box.max.x) / 2, box.max.y, (box.min.z + box.max.z) / 2));
     } else if (p.k === 'cyl') {
       const local: V3 = p.axis === 'x' ? [1, 0, 0] : p.axis === 'y' ? [0, 1, 0] : [0, 0, 1];
       const d = rotate(local, r);
@@ -288,13 +274,11 @@ export function expandPieces(pieces: Piece[], pos: V3, rot: number, allowPaint =
       if (allowPaint && !p.swing && cylIsPaintable(p)) addCylinder(painter(p.mat), base, axis, p.len, r1, seg, [true, true], r2);
       else decor(p.mat, cylinderSurface(base, axis, p.len, r1, seg, [true, true], r2, false).geometry, p.swing);
       if (p.collide && !p.swing) collide(p.mat, cylinderColliders(base, axis, p.len, Math.max(r1, r2)));
-      metal(p.mat, axis === 'y' ? base.clone().setY(base.y + p.len) : base.clone().setComponent('xyz'.indexOf(axis), base.getComponent('xyz'.indexOf(axis)) + p.len / 2).setY(base.y + r1));
     } else if (p.k === 'rod') {
       const a = at(p.a);
       const b = at(p.b);
       decor(p.mat, rodGeometry(a, b, p.r), p.swing);
       if (p.collide && !p.swing) collide(p.mat, rodColliders(a, b, p.r));
-      metal(p.mat, a.y > b.y ? a : b);
     } else if (p.k === 'cone') {
       const g = new THREE.ConeGeometry(p.r, p.h, 16, 1, false);
       const c = at(p.base);

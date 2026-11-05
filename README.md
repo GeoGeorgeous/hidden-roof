@@ -19,7 +19,7 @@ Hidden Roof is a first-person graffiti game. You climb onto the rooftops of a ci
 
 ## How it's built
 
-three.js, TypeScript and Vite, with no asset files: geometry, textures and sounds are made in code. The first rule: painting the whole level costs the same per frame as painting nothing.
+three.js, TypeScript and Vite, with almost no asset files: geometry, textures and most sounds are made in code, the city and the weather are recordings. The first rule: painting the whole level costs the same per frame as painting nothing.
 
 - **Paint** is baked into textures shared by many surfaces, at one density everywhere; only the changed part of a texture is uploaded.
 - **Ink:** each pixel's tone picks paper, hatching, cross-hatching or black; pen outlines come from the depth buffer.

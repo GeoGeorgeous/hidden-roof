@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { Interiors } from '../interiors';
 import type { Inventory } from '../inventory/inventory';
 import type { PaintDrips } from '../paint-drips';
 import type { PaintSystem } from '../painting';
@@ -9,9 +10,9 @@ import type { Level } from './level';
 import type { LevelData } from './level-data';
 
 // The level that's open: its name (paint saves and sessions name it), the
-// level as a file (props, pickups, the city's overrides of SKYLINE), and what
-// opening it does: the level built, the city around it, its pickups, the
-// starting kit, the player at its spawn.
+// level as a file (props, pickups, the city's overrides of SKYLINE, its rooms),
+// and what opening it does: the level built, the city around it, its pickups,
+// the starting kit, the player at its spawn.
 
 export class OpenLevel {
   /** The city around it (skyline.ts), built with it. */
@@ -20,7 +21,7 @@ export class OpenLevel {
   private skyline: SkylineSettings = {};
 
   constructor(
-    private w: { scene: THREE.Scene; level: Level; pickups: Pickups; inventory: Inventory; drips: PaintDrips; paint: PaintSystem; player: Player },
+    private w: { scene: THREE.Scene; level: Level; interiors: Interiors; pickups: Pickups; inventory: Inventory; drips: PaintDrips; paint: PaintSystem; player: Player },
     /** From ?level=, or the file opened in build mode, or a session's. */
     public name: string,
   ) {}
@@ -31,11 +32,12 @@ export class OpenLevel {
    * shaders take seconds): no paint, no one's stepladder.
    */
   load(data: LevelData, build = true) {
-    const { level, paint, drips, pickups, inventory, player } = this.w;
+    const { level, paint, drips, pickups, inventory, player, interiors } = this.w;
     drips.clear();
     if (build) level.load(data);
     else (paint.clear(), level.clearRuntime());
     pickups.load(data.pickups as PickupData[] | undefined);
+    interiors.load(data.interiors ?? []);
     inventory.reset();
     this.skyline = (data.skyline as SkylineSettings | undefined) ?? {};
     if (build) this.rebuildCity();
@@ -64,6 +66,7 @@ export class OpenLevel {
 
   /** The level as a file. */
   toJSON(): LevelData {
-    return { ...this.w.level.toJSON(), pickups: this.w.pickups.toJSON(), ...(Object.keys(this.skyline).length ? { skyline: this.skyline } : {}) };
+    const rooms = this.w.interiors.list();
+    return { ...this.w.level.toJSON(), pickups: this.w.pickups.toJSON(), ...(rooms.length ? { interiors: rooms } : {}), ...(Object.keys(this.skyline).length ? { skyline: this.skyline } : {}) };
   }
 }

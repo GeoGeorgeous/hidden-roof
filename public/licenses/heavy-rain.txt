@@ -1,0 +1,9 @@
+Heavy rain
+
+"LS_34173_PH_HeavyRain.wav" by Kevin Luce (kevp888)
+https://freesound.org/people/kevp888/sounds/464041/
+
+Licensed under Creative Commons Attribution 4.0 International (CC BY 4.0)
+https://creativecommons.org/licenses/by/4.0/
+
+Changed for Hidden Roof: 90 seconds of it (0:15 to 1:45) cut out, its end crossfaded into its start so it loops, made 1.5 dB quieter and encoded as Opus, from the preview on Freesound. The creator does not endorse Hidden Roof.

@@ -24,7 +24,7 @@ const TABS = [
   { id: 'paint', title: 'Paint', groups: ['painting', 'brush', 'caps', 'runs', 'quality', 'cursor'] },
   { id: 'render', title: 'Render', groups: ['shaders', 'lighting', 'light-props', 'post'] },
   { id: 'world', title: 'World', groups: ['weather', 'props', 'city'] },
-  { id: 'sound', title: 'Sound', groups: ['mix', 'weather-sound', 'spray-sound', 'props-sound'] },
+  { id: 'sound', title: 'Sound', groups: ['mix', 'weather-sound', 'indoors-sound', 'spray-sound', 'props-sound'] },
   { id: 'ui', title: 'UI', groups: ['hud', 'pause'] },
   { id: 'build', title: 'Build', groups: ['daylight', 'editing', 'picker', 'hints'] },
   { id: 'items', title: 'Items', groups: ['pickups'] },

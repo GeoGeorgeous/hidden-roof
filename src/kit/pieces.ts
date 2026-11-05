@@ -59,7 +59,7 @@ export interface Swing {
  */
 export interface EmitterPiece {
   k: 'emitter';
-  kind: 'smoke' | 'fan' | 'metal';
+  kind: 'smoke' | 'fan';
   pos: V3;
   dir?: V3;
 }
