@@ -181,8 +181,9 @@ export class PaintRaster<S extends RasterSurface> {
     this.hooks.touched(s, x, y, x, y);
   }
 
-  /** `amt` coats more on an opaque texel of `rect`: a run may start there. */
+  /** `amt` coats more on an opaque texel of `rect`: a run may start there, never on the ring around it, which no one sees. */
   private addWet(s: S, rect: Rect, x: number, y: number, amt: number, rule: RunRule) {
+    if (x < rect.x || y < rect.y || x >= rect.x + rect.w || y >= rect.y + rect.h) return;
     const length = this.wet.add(s, rect, x, y, amt, rule);
     if (length === null) return;
     const i = (y * s.geo.atlasW + x) * 4;

@@ -6,6 +6,7 @@ import './ts-imports.mjs';
 const { DRIPS } = await import('../src/config.ts');
 const { paintRandom } = await import('../src/lcg.ts');
 const { WetPaint, canRule, toolRule } = await import('../src/paint-wet.ts');
+const { PaintRaster } = await import('../src/paint-raster.ts');
 
 const surface = (tpm = 96) => ({ geo: { atlasW: 256, atlasH: 256, texelsPerMeter: tpm }, wet: null, spots: null });
 /** A face from the atlas's corner. */
@@ -135,6 +136,19 @@ const dice = (...rolls) => {
   assert.ok(Math.abs(after(1e5) - (0.5 * DRIPS.lengthLuck + 1 - DRIPS.lengthLuck)) < 1e-9, 'a full spot: as long as it gets');
   dice(0, 0.25);
   assert.equal(new WetPaint().add(surface(), FACE, 9, 9, pass * DRIPS.passes, toolRule(SURE)), 0.25, 'the dice say');
+}
+
+// No run starts on the ring around a face: nobody sees it, and a run there would paint nothing.
+{
+  dice(0);
+  const rect = { x: 10, y: 10, w: 8, h: 8, upright: true };
+  const s = { ...surface(), data: new Uint8Array(256 * 256 * 4).fill(255), geo: { atlasW: 256, atlasH: 256, texelsPerMeter: 96, rects: [rect] } };
+  const at = [];
+  const raster = new PaintRaster({ touched() {}, drip: (_s, _rect, x, y) => at.push([x, y]) });
+  raster.dot(s, rect, 14, 14, { radius: 1, amount: 1, color: [1, 0, 0], softness: 0, square: false }, toolRule(SURE));
+  for (let i = 0; i < 6; i++) raster.dot(s, rect, 14, 14, { radius: 1, amount: 1, color: [1, 0, 0], softness: 0, square: false }, toolRule(SURE));
+  assert.ok(at.length > 0, 'runs start on the face');
+  assert.ok(at.every(([x, y]) => x >= 10 && y >= 10 && x < 18 && y < 18), `and only there: ${JSON.stringify(at.find(([x, y]) => x < 10 || y < 10 || x >= 18 || y >= 18))}`);
 }
 
 console.log('paint wet: ok');
