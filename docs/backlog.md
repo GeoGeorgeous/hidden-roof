@@ -80,13 +80,12 @@ Only `N.`, the id and the description are required. The optional parts appear in
 2. IDEA [BL-144]: Cover v2: drop hidden paint faces, make paintable walls nobody can reach plain walls and trim the room on the main floor (TASK-194 merged in), and pack pages fuller, after BL-143; up to 28% less paint memory at ULTRA (BL-034) (docs/ideas/props-and-level.md)
 3. TASK [BL-055]: Group the props better in build mode: decide which prop goes into which category (docs/ideas/props-and-level.md)
 4. [?BUGS-161]: A wall prop overlaps a fence
-5. IDEA [BL-050]: Wire cutting
-6. IDEA [BL-051]: Dynamic wire length
-7. IDEA [BL-052]: Lamps that can be fixed to the floor or the ceiling
-8. IDEA [BL-053]: Lamps that light signs
-9. IDEA [BL-054]: New sign sizes, including big rectangular and square ones
-10. IDEA [BL-075]: Digital billboards
-11. IDEA [BL-106]: Paintable cone roofs on the water tanks (a cone paint mapping) (docs/ideas/props-and-level.md)
+5. IDEA [BL-050]: Wires: cutting them, and their length changes with it (BL-051 merged in)
+6. IDEA [BL-052]: Lamps that can be fixed to the floor or the ceiling
+7. IDEA [BL-053]: Lamps that light signs
+8. IDEA [BL-054]: New sign sizes, including big rectangular and square ones
+9. IDEA [BL-075]: Digital billboards
+10. IDEA [BL-106]: Paintable cone roofs on the water tanks (a cone paint mapping) (docs/ideas/props-and-level.md)
 
 ## Tools
 
@@ -243,3 +242,4 @@ Dropped items, kept for the record; don't work on them.
 36. ~~[PERF-200]: Reduce Ladder Shadow Update Delay Without Frequent Rebaking (left as it is: `LIGHTMAP.ladderRest` at 0.3 s saves 0.3 of 1.6–3.7 s and costs 4.4 ms a frame against 0.6 at 2–3 placements a second, `docs/known-limits.md`)~~
 37. ~~[TASK-366]: Remove the marking of rooms (src/dev/interior-marks.ts, INDOOR_VIEW) once the owner has checked the rooms in the level (kept: the owner wants it in F3 as a dev tool)~~
 38. ~~[?IDEA-166]: Lock the camera while painting: an idea from before the rework, not started, off 1.7.0~~
+39. ~~IDEA [BL-051]: Dynamic wire length (merged into BL-050)~~
