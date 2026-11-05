@@ -32,8 +32,7 @@ import { layoutCity } from '../city/layout';
 import { dressTower, wallSigns } from '../city/rooftops';
 import { capture } from '../capture/hook';
 import { Ghost } from './ghost';
-import { capturePlate } from './capture-plate';
-import { ghostKeys, ghostLeft } from './ghost-keys';
+import { ghostCapture } from './ghost-capture';
 import { Profiler } from './profiler';
 import { WetView } from './wet-view';
 import { RunsView } from './runs-view';
@@ -119,11 +118,7 @@ export class DevTools {
     this.build.onLoad = g.openLevel;
     this.figure = new AvatarPreview(g.scene);
     this.ghost = new Ghost(g);
-    capture.dev = {
-      keys: (input, shot) => ghostKeys(this.ghost, input, shot),
-      plate: (input, state, flight) => capturePlate(this.ghost, input, state, flight),
-      changed: (shot) => ghostLeft(this.ghost, shot),
-    };
+    capture.dev = ghostCapture(this.ghost);
     this.messages = new MessageTools(g.notify);
     this.profiler = new Profiler(g);
     this.wet = new WetView(g.scene, g.paint, () => g.player.position);

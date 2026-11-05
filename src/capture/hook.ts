@@ -11,15 +11,11 @@ let view: CaptureView | undefined;
 let loading = false;
 
 function toggle() {
-  if (mode) {
-    mode.toggle();
-    if (!mode.active) capture.dev?.changed(null);
-    return;
-  }
+  if (mode) return mode.toggle(capture.dev);
   if (loading || !view) return;
   loading = true;
   const v = view;
-  void import('./captureMode').then((m) => (mode = new m.CaptureMode(v)).toggle());
+  void import('./captureMode').then((m) => (mode = new m.CaptureMode(v)).toggle(capture.dev));
 }
 
 export const capture = {

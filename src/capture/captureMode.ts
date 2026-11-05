@@ -4,7 +4,8 @@ import type { Input } from '../input';
 import { setFrame } from '../view-rect';
 import { Flight } from './flight';
 import { FreeCam } from './freeCam';
-import { CaptureOverlay, type PlateState } from './overlay';
+import { CaptureOverlay } from './overlay';
+import { plateLines, type PlateState } from './plate';
 import { Recorder } from './recorder';
 
 // Capture mode, for filming the game (hook.ts turns it on and off). Two
@@ -19,17 +20,21 @@ import { Recorder } from './recorder';
 // menu as ever.
 
 const K = CAPTURE.keys;
-/** `record`: first person with the dev tools' keys; the player build goes between the other two. */
-export type Shot = 'player' | 'free' | 'record';
+/** `dev`: the dev tools' first person; the player build goes between the other two. */
+export type Shot = 'player' | 'free' | 'dev';
 
 /** What the dev tools add; the player build has none. */
 export interface CaptureDev {
+  /** Their view's name on the plate. */
+  viewName: string;
   /** Each frame while playing: their keys; a view to go to. */
   keys(input: Input, shot: Shot): Shot | void;
-  /** The plate's lines, in place of its own but for recording a video. */
-  plate(input: Input, state: PlateState, flight: Flight): string[];
   /** The view changed, or capture mode was left (null). */
   changed(shot: Shot | null): void;
+  /** Their lines on the plate, under the view's name. */
+  status(shot: Shot): string[];
+  /** Their group of keys in the free view's. */
+  help(): string[];
 }
 
 export interface CaptureView {
@@ -61,10 +66,11 @@ export class CaptureMode {
 
   constructor(private view: CaptureView) {}
 
-  toggle() {
+  toggle(dev: CaptureDev | null) {
     this.active = !this.active;
     this.fresh = this.active;
     if (this.active) return;
+    dev?.changed(null);
     this.recorder.stop();
     this.flight.stop();
     this.setSize(null);
@@ -75,7 +81,7 @@ export class CaptureMode {
   update(dt: number, input: Input, camera: THREE.PerspectiveCamera, dev: CaptureDev | null) {
     const playing = input.locked;
     if (playing && input.justPressed('captureView')) {
-      const shots: Shot[] = dev ? ['free', 'record', 'player'] : ['free', 'player'];
+      const shots: Shot[] = dev ? ['free', 'dev', 'player'] : ['free', 'player'];
       this.go(shots[(shots.indexOf(this.shot) + 1) % shots.length], dev);
     }
     const to = playing ? dev?.keys(input, this.shot) : null;
@@ -89,8 +95,8 @@ export class CaptureMode {
     if (input.justPressed('captureQuality')) this.quality = (this.quality + 1) % CAPTURE.qualities.length;
     if (input.justPressed('captureRecord')) this.recorder.toggle(this.view.renderer.domElement, CAPTURE.qualities[this.quality], this.view.sound());
     if (input.justPressed('captureSize')) this.setSize(CAPTURE.sizes[this.size ? CAPTURE.sizes.indexOf(this.size) + 1 : 0] ?? null);
-    const plate = { shot: this.shot, speed: this.cam.speed, smoothing: this.cam.smoothing, size: this.size, quality: this.quality, recording: this.recorder.startedAt, failed: this.recorder.failed };
-    this.overlay.update(plate, dev?.plate(input, plate, this.flight) ?? null, this.flight, camera, this.view.renderer.domElement);
+    const state: PlateState = { shot: this.shot, speed: this.cam.speed, smoothing: this.cam.smoothing, size: this.size, quality: this.quality, recording: this.recorder.startedAt, failed: this.recorder.failed };
+    this.overlay.update(plateLines(state, this.flight, input.isDown(K.help), dev), state.recording !== null, free ? this.flight.points : [], camera, this.view.renderer.domElement);
   }
 
   /** The fixed frame fitted into the window, in its middle (again on a resize). */

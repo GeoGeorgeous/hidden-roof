@@ -1,31 +1,13 @@
 import * as THREE from 'three';
-import { CAPTURE } from '../config';
-import { msg, msgLines } from '../messages';
-import type { Shot } from './captureMode';
 import type { Flight } from './flight';
-import { b, bound, frameName, key } from './plate-text';
 
 // What capture mode shows over the game while filming (style.css .capture-ui):
-// a plate with the keys of the view filmed from and what they're set to, and in
-// the free camera's view a numbered mark on each point of the flight. HTML, so
+// a plate with the keys of the view filmed from and what they're set to
+// (plate.ts), and in the free camera's view a numbered mark on each point of the flight. HTML, so
 // never in the video (recorder.ts films the canvas alone); shown only while
 // html.capture is on.
 
-const K = CAPTURE.keys;
 const at = new THREE.Vector3();
-
-export interface PlateState {
-  shot: Shot;
-  speed: number;
-  smoothing: number;
-  size: readonly [number, number] | null;
-  /** An index into CAPTURE.qualities. */
-  quality: number;
-  /** When the recording started (performance.now() ms), or null. */
-  recording: number | null;
-  /** The last try to record didn't start. */
-  failed: boolean;
-}
 
 export class CaptureOverlay {
   private root = Object.assign(document.createElement('div'), { className: 'capture-ui' });
@@ -38,52 +20,24 @@ export class CaptureOverlay {
     document.body.append(this.root);
   }
 
-  /** The plate (`custom`: lines in place of its own, but for recording a video), and in the free camera's view the points' marks. */
-  update(state: PlateState, custom: string[] | null, flight: Flight, camera: THREE.Camera, canvas: HTMLCanvasElement) {
-    this.text(state, custom, flight);
-    this.place(state.shot === 'free' ? flight.points : [], camera, canvas);
+  /** The plate, its last line in red while a video is recording, and the marks on `points`. */
+  update(lines: string[], recording: boolean, points: Flight['points'], camera: THREE.Camera, canvas: HTMLCanvasElement) {
+    this.text(lines, recording);
+    this.place(points, camera, canvas);
   }
 
-  private text(state: PlateState, custom: string[] | null, flight: Flight) {
-    const { recording, failed } = state;
-    const time = recording === null ? '' : new Date(performance.now() - recording).toISOString().slice(14, 19);
-    const lines = [
-      ...(custom ?? this.own(state, flight)),
-      msg(time ? 'capture.recording' : failed ? 'capture.recordFailed' : 'capture.record', { time: b(time), record: bound('captureRecord') }),
-    ];
+  private text(lines: string[], recording: boolean) {
     const text = lines.join('\n');
     if (text === this.shown) return;
     this.shown = text;
     this.plate.replaceChildren(
       ...lines.map((line, i) => {
         const row = document.createElement('div');
-        row.classList.toggle('recording', !!time && i === lines.length - 1);
+        row.classList.toggle('recording', recording && i === lines.length - 1);
         row.append(...line.split('**').map((part, j) => (j % 2 ? Object.assign(document.createElement('b'), { textContent: part }) : part)));
         return row;
       }),
     );
-  }
-
-  /** The player build's lines. */
-  private own({ shot, speed, smoothing, size, quality }: PlateState, flight: Flight) {
-    const seconds = b(flight.seconds);
-    return [
-      msg('capture.title', { exit: bound('capture') }),
-      msg(shot === 'free' ? 'capture.free' : 'capture.player', { view: bound('captureView') }),
-      ...(shot === 'free'
-        ? [
-            msg('capture.move', { keys: [K.forward, K.left, K.back, K.right].map(key).join(''), down: key(K.down), up: key(K.up) }),
-            msg('capture.speed', { speed: b(speed.toFixed(speed < 1 ? 2 : 1)) }),
-            msg('capture.smoothing', { less: key(K.smoothLess), more: key(K.smoothMore), smoothing: b(smoothing) }),
-            msg('capture.points', { add: key(K.addPoint), remove: key(K.removePoint), n: b(flight.points.length) }),
-            flight.flying
-              ? msg('capture.flying', { t: b(flight.elapsed.toFixed(1)), seconds, fly: key(K.fly) })
-              : msg('capture.fly', { fly: key(K.fly), seconds, shorter: key(K.shorter), longer: key(K.longer) }),
-          ]
-        : []),
-      msg('capture.frame', { frame: bound('captureSize'), size: b(frameName(size)) }),
-      msg('capture.quality', { quality: bound('captureQuality'), name: b(msgLines('capture.qualities')[quality]), mbps: b(CAPTURE.qualities[quality]) }),
-    ];
   }
 
   /** Each point's mark where it is on the canvas. */

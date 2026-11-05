@@ -11,26 +11,28 @@ import type { ToServer } from '../net/protocol';
 import { RemotePlayer } from '../net/remote-player';
 import { Sender } from '../net/sender';
 import { capture, encodeSnapshot } from '../net/snapshot';
-import { savePaint } from '../save/save-paint';
 import { session } from '../session';
 import type { Tools } from '../tools/tools';
 import { GhostWall } from './ghost-wall';
 import { SimLink } from './sim-link';
 
 // F3 -> Ghost: a second player made from your own play, to see how other
-// players will look (net/remote-player.ts) before there's a server.
+// players will look (net/remote-player.ts) before there's a server, and to film
+// yourself from outside (ghost-capture.ts).
 // RECORD keeps what multiplayer sends (net/sender.ts), with its times:
-// snapshots, paint ops, your stepladder. A new take keeps the last one until
-// it stops. PLAY puts the paint back as it was when recording began and plays
-// it all through a pretend network (sim-link.ts, GHOST), into a remote player:
-// the ghost repaints your strokes as it goes, and you watch from anywhere.
+// snapshots, paint ops, your stepladder. A new take keeps the last one until it
+// stops.
+// PLAY puts the paint back as it was when recording began and plays it all
+// through a pretend network (sim-link.ts, GHOST), into a remote player: the
+// ghost repaints your strokes as it goes, and you watch from anywhere. It can
+// hold still or go faster. Your wall and stepladder come back when it stops
+// (ghost-wall.ts).
+// The clean wall is the paint as it began, with no ghost; again, all goes on
+// from where it was.
 // FOLLOW sends you live, GHOST.followDelay behind, without paint (yours is
-// already there). Playing holds still or goes faster, and the clean wall is
-// the paint as it began with no ghost, until everything goes on from where it
-// was: capture mode's keys for filming it (ghost-keys.ts). While it plays the
-// wall and the stepladder are the ghost's; yours come back when it stops
-// (ghost-wall.ts). Dev tools only. It runs on game time (the frames' dt), so
-// the game tests can play it frame by frame.
+// already there).
+// Dev tools only. It runs on game time (the frames' dt), so the game tests can
+// play it frame by frame.
 
 interface GhostContext {
   scene: THREE.Scene;
@@ -59,7 +61,6 @@ interface Recording {
 }
 
 const OWNER = 'ghost';
-const NAME = { name: 'ghost' };
 const NO_SURFACES = new SurfaceIndex([]);
 
 export class Ghost {
@@ -158,14 +159,15 @@ export class Ghost {
   record() {
     this.stop();
     const id = this.starts;
-    void this.wall.settled.then(() => id === this.starts && this.begin());
+    void this.wall.settled.then(() => {
+      if (id === this.starts) this.begin();
+    });
   }
 
   play(loop = false) {
-    if (this.mode === 'recording') this.halt();
-    if (!this.recorded) return;
     this.halt();
-    this.wall.take();
+    if (!this.recorded) return;
+    this.wall.setAside();
     this.mode = 'playing';
     this.looping = loop;
     this.remote = new RemotePlayer(this.g.scene, this.g.level, this.g.paintOps, OWNER, this.g.tools.spray.others);
@@ -182,9 +184,11 @@ export class Ghost {
   /** The wall as it was when recording began and no ghost, all it was doing held back; again, it goes on from there. */
   clean() {
     if (this.wall.loading || this.recording || !this.recorded) return;
-    if (this.cleaned) return this.playing ? this.wall.unclean() : this.stop();
-    this.wall.clean(this.rec!.start);
-    if (this.remote) this.remote.avatar.group.visible = false;
+    if (!this.cleaned) {
+      this.wall.clean(this.rec!.start);
+      if (this.remote) this.remote.avatar.group.visible = false;
+    } else if (this.playing) this.wall.unclean();
+    else this.stop();
   }
 
   follow() {
@@ -258,7 +262,7 @@ export class Ghost {
     const g = this.g;
     this.mode = 'recording';
     this.time = 0;
-    this.take = { start: savePaint(g.paint, NAME), sent: [], ops: 0, length: 0, surfaces: new SurfaceIndex([...g.paint.surfaces].map((s) => s.key)) };
+    this.take = { start: this.wall.save(), sent: [], ops: 0, length: 0, surfaces: new SurfaceIndex([...g.paint.surfaces].map((s) => s.key)) };
     // Refused while a session has the paint log: then only the walk is recorded.
     this.sender.begin();
     this.sender.restart();

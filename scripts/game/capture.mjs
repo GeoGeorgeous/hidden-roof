@@ -84,7 +84,7 @@ await check("capture: the player build's plate and views: its own lines, V betwe
     g.fixedStep.dt = 0;
     return out;
   });
-  const ok = /CAPTURE MODE/.test(r.shown) && /Free camera|free camera/i.test(r.shown) && /Frame|frame/.test(r.shown) && !/AVATAR/.test(r.shown) && !r.first.free && /First person/.test(r.first.text) && !/AVATAR/.test(r.first.text) && r.back && !r.recording;
+  const ok = /FREE CAMERA/.test(r.shown) && /Tab keys/.test(r.shown) && /records a video/.test(r.shown) && !/AVATAR/.test(r.shown) && !r.first.free && /FIRST PERSON/.test(r.first.text) && /next view/.test(r.first.text) && /frame/.test(r.first.text) && !/AVATAR/.test(r.first.text) && r.back && !r.recording;
   return ok ? null : JSON.stringify(r);
 });
 

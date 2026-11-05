@@ -1,4 +1,4 @@
-// Game tests: the ghost from capture mode (src/dev/ghost-keys.ts): its keys and plate, your wall and stepladder kept, takes, the end of playing, paint runs at its speed, and a session.
+// Game tests: the ghost from capture mode (src/dev/ghost-capture.ts): its keys and plate, your wall and stepladder kept, takes, the end of playing, paint runs at its speed, and a session.
 import { page, check } from './harness.mjs';
 
 await page.evaluate(() => {
@@ -189,13 +189,8 @@ await check("ghost: capture mode's Record avatar view records it, its keys hold 
     await press('KeyN');
     await g.ghost.settled;
     out.mine = g.level.runtimeOf(g.session.player) !== undefined;
-    g.level.setRuntime(g.session.player, null);
-    g.input.setLocked(false);
-    Object.assign(GHOST, { latency: 0.08, jitter: 0.04 });
-    g.fixedStep.dt = 0;
-    g.player.fly = false;
+    await window.ghostKit.leave();
     g.player.position.copy(start);
-    g.paint.clear();
     return out;
   });
   const ok = r.none && !r.freeRecords && r.recording && r.stopped && r.first && r.noTab && r.rows && r.sheet && r.status && r.ladders === 1 && r.held === 0 && Math.abs(r.twice - 2) < 0.35 && r.clean.ghost === null && r.clean.wall && r.clean.ladders === 0 && r.wentOn.moved < 0.2 && r.wentOn.wall && r.finished && r.runs.join() === '1,1' && r.restarted && r.mine;

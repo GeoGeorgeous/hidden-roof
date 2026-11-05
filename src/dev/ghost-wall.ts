@@ -53,14 +53,19 @@ export class GhostWall {
     return this.queue;
   }
 
+  /** The paint as it is now. */
+  save() {
+    return savePaint(this.g.paint, NAME);
+  }
+
   /** The player's wall and stepladder put aside, unless they are already. */
-  take() {
+  setAside() {
     if (this.mine) return;
-    this.mine = this.keep(session.player);
+    this.mine = this.snapshot(session.player);
     if (this.mine.ladder) this.g.level.setRuntime(session.player, null);
   }
 
-  /** The player's wall back, the stepladder where it stood unless they placed it again meanwhile. */
+  /** The player's wall back, the stepladder where it stood unless they placed it again meanwhile. Paint made before it's on goes with what it replaces. */
   giveBack() {
     const mine = this.mine;
     if (!mine) return;
@@ -79,8 +84,8 @@ export class GhostWall {
 
   /** The wall at `start`, what the ghost did held back. */
   clean(start: Promise<Uint8Array>) {
-    this.take();
-    this.held = this.keep(this.owner);
+    this.setAside();
+    this.held = this.snapshot(this.owner);
     this.g.level.setRuntime(this.owner, null);
     void this.swap(start);
   }
@@ -120,10 +125,10 @@ export class GhostWall {
     });
   }
 
-  private keep(owner: string): Kept {
-    const { paint, drips, level } = this.g;
+  private snapshot(owner: string): Kept {
+    const { drips, level } = this.g;
     const id = level.runtimeOf(owner);
     const p = id === undefined ? undefined : level.props.get(id);
-    return { paint: savePaint(paint, NAME), runs: [...drips.runs], ladder: p ? { type: p.type, pos: [...p.pos], rot: p.rot } : null };
+    return { paint: this.save(), runs: [...drips.runs], ladder: p ? { type: p.type, pos: [...p.pos], rot: p.rot } : null };
   }
 }
