@@ -12,7 +12,7 @@ import type { Fact, HintDef, Notes, Rank, Snapshot } from './types.ts';
 const TUTORIAL_KEY = 'roofhiddenhaus.tutorial';
 
 /** What the message layer ranks by: higher wins. */
-const RANK: Record<Rank, number> = { tool: 3, context: 2, basic: 1 };
+const RANK: Record<Rank, number> = { moment: 4, tool: 3, context: 2, basic: 1 };
 
 /** Where progress lives: the browser's storage (stored.ts), or a test's. */
 interface Storage {
@@ -42,7 +42,7 @@ export class Tutorial {
   private on = true;
   /** How many hints are not learnt yet. */
   private left = 0;
-  private snap: Snapshot = { tool: null, tools: [], colors: 1, caps: 1, nearLadder: false, onLadder: false };
+  private snap: Snapshot = { tool: null, tools: [], colors: 1, caps: 1, cap: 'standard', nearLadder: false, onLadder: false };
   /** What the message layer has: the hint's id and which of its texts. */
   private shown: { id: string; text: number } | null = null;
   /** A hint was learnt (its id), or the last one was ('done'). */
@@ -128,7 +128,7 @@ export class Tutorial {
       const { def } = s;
       const want = !this.done.has(def.id) && (def.after ?? []).every((id) => this.done.has(id)) && holds(def.show, this.ctx(s));
       if (want && !s.wanted) s.seq = ++this.seq;
-      if (!want && def.rank === 'context') this.forget(s);
+      if (!want && (def.rank === 'context' || def.rank === 'moment')) this.forget(s);
       s.wanted = want;
       if (want) wanted.push(s);
     }

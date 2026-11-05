@@ -18,7 +18,7 @@ function setup(saved = null) {
   const disk = { text: saved };
   const storage = { read: () => disk.text, write: (t) => (disk.text = t) };
   const t = new Tutorial(notes, storage);
-  const snap = { tool: 'can', tools: ['can'], colors: 1, caps: 1, nearLadder: false, onLadder: false };
+  const snap = { tool: 'can', tools: ['can'], colors: 1, caps: 1, cap: 'standard', nearLadder: false, onLadder: false };
   let visible = true;
   const play = (seconds) => {
     for (let i = 0; i < Math.round(seconds * 10); i++) t.update(0.1, visible, snap);
@@ -30,6 +30,33 @@ function setup(saved = null) {
 
 // Text: placeholders become bold key names.
 assert.equal(resolveLine('Press {use} to draw, {sizeDown} / {sizeUp} to change nib', (a) => KEY_NAMES[a]), 'Press **LMB** to draw, **Q** / **E** to change nib');
+
+// A cap says what it's for the first time it's on the can in hand: not at owning it, not with the can away, not for a cap passed by, and past hints that wait for the player.
+{
+  const { snap, play, keys, learnt } = setup('{"v":1,"done":["move","spray"]}');
+  snap.caps = 3;
+  play(1);
+  assert.ok(!keys().includes('hint:cap.needle'), 'owning it says nothing');
+  assert.ok(keys().length > 0, 'another hint waits for the player');
+  snap.cap = 'needle';
+  play(1);
+  assert.deepEqual(keys(), ['hint:cap.needle'], 'over a hint with no time limit');
+  snap.cap = 'skinny';
+  play(TUTORIAL.infoSeconds + 1);
+  assert.ok(!learnt().includes('cap.needle') && learnt().includes('cap.skinny'), 'passed by it isn\'t learnt, shown its time it is');
+  snap.cap = 'needle';
+  snap.tool = 'marker';
+  play(1);
+  assert.ok(!keys().includes('hint:cap.needle'), 'the can away');
+  snap.tool = 'can';
+  play(TUTORIAL.infoSeconds + 1);
+  assert.ok(learnt().includes('cap.needle'));
+  play(1);
+  assert.ok(!keys().includes('hint:cap.needle'), 'once');
+  snap.cap = 'standard';
+  play(1);
+  assert.ok(!keys().some((k) => k.startsWith('hint:cap.')), 'the starting cap has none');
+}
 
 // Move is shown after its delay, and learnt after walking 3 m, not after a key press.
 {
@@ -110,11 +137,11 @@ assert.equal(resolveLine('Press {use} to draw, {sizeDown} / {sizeUp} to change n
   snap.tools = ['can', 'marker'];
   play(0.1);
   assert.deepEqual(keys(), ['hint:tool.marker']);
-  assert.deepEqual(board.get('hint:tool.marker').lines, ['Press {slot2} to take the marker']);
+  assert.deepEqual(board.get('hint:tool.marker').lines, ['I can take the marker with {slot2}']);
   assert.equal(board.get('hint:tool.marker').kind, 'hint');
   snap.tool = 'marker';
   play(0.1);
-  assert.deepEqual(board.get('hint:tool.marker').lines, ['Press {use} to draw, {sizeDown} / {sizeUp} to change nib']);
+  assert.deepEqual(board.get('hint:tool.marker').lines, ['I can draw with {use} and change the nib with {sizeDown} / {sizeUp}']);
   t.fact({ type: 'used', tool: 'marker', amount: 0.7 });
   play(3);
   assert.deepEqual(learnt(), ['tool.marker']);
@@ -125,7 +152,7 @@ assert.equal(resolveLine('Press {use} to draw, {sizeDown} / {sizeUp} to change n
   snap.tool = 'roller';
   snap.tools = ['can', 'roller'];
   play(0.1);
-  assert.deepEqual(board.get('hint:tool.roller').lines, ['Press {use} to roll, {sizeDown} / {sizeUp} to change width']);
+  assert.deepEqual(board.get('hint:tool.roller').lines, ['I can roll with {use} and change its width with {sizeDown} / {sizeUp}']);
 }
 
 // The stepladder's two info hints follow every tool hint's rule: in order, after the ladder hint; with the ladder away they
@@ -136,12 +163,12 @@ assert.equal(resolveLine('Press {use} to draw, {sizeDown} / {sizeUp} to change n
   snap.tool = 'can';
   play(1);
   assert.deepEqual(keys(), ['hint:ladder.move']);
-  assert.deepEqual(board.get('hint:ladder.move').lines, ['Press {slot3} to take the stepladder']);
+  assert.deepEqual(board.get('hint:ladder.move').lines, ['I can take the stepladder with {slot3}']);
   play(TUTORIAL.infoSeconds * 2);
   assert.deepEqual(keys(), ['hint:ladder.move'], 'time on the take step does not count');
   snap.tool = 'ladder';
   play(0.2);
-  assert.deepEqual(board.get('hint:ladder.move').lines, ['Press {use} again to move it: only one stepladder stands at a time']);
+  assert.deepEqual(board.get('hint:ladder.move').lines, ['I can move it with {use}: only one stepladder stands at a time']);
   play(TUTORIAL.infoSeconds - 0.5);
   snap.tool = 'can';
   play(5);
@@ -166,7 +193,7 @@ assert.equal(resolveLine('Press {use} to draw, {sizeDown} / {sizeUp} to change n
   const { t, play, keys, snap, board, learnt } = setup('{"v":1,"done":["move","spray","opacity","tool.sponge"]}');
   snap.tools = ['can', 'sponge'];
   play(0.2);
-  assert.deepEqual(board.get('hint:sponge.crouch').lines, ['Press {slot5} to take the sponge']);
+  assert.deepEqual(board.get('hint:sponge.crouch').lines, ['I can take the sponge with {slot5}']);
   snap.tool = 'sponge';
   play(2.5);
   assert.deepEqual(keys(), ['hint:sponge.crouch']);
@@ -184,10 +211,10 @@ assert.equal(resolveLine('Press {use} to draw, {sizeDown} / {sizeUp} to change n
   const { t, play, keys, snap, board, learnt } = setup('{"v":1,"done":["move","spray"]}');
   snap.tool = null;
   play(0.2);
-  assert.deepEqual(board.get('hint:opacity').lines, ['Press {slot1} to take the can']);
+  assert.deepEqual(board.get('hint:opacity').lines, ['I can take the can with {slot1}']);
   snap.tool = 'can';
   play(0.2);
-  assert.deepEqual(board.get('hint:opacity').lines, ['Hold {sprint} and scroll {prev} / {next} to change opacity']);
+  assert.deepEqual(board.get('hint:opacity').lines, ['I can hold {sprint} and scroll {prev} / {next} to change opacity']);
   play(2.1);
   t.fact({ type: 'opacitySet' });
   play(0.2);

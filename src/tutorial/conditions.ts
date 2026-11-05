@@ -37,6 +37,7 @@ export function holds(c: Cond, x: Ctx): boolean {
   if ('owns' in c) return x.snap.tools.includes(c.owns);
   if ('has' in c) return (c.has === 'colors' ? x.snap.colors : x.snap.caps) >= c.atLeast;
   if ('holding' in c) return x.snap.tool === c.holding;
+  if ('cap' in c) return x.snap.tool === 'can' && x.snap.cap === c.cap;
   if ('pressed' in c) return x.seen.pressed.has(c.pressed);
   if ('near' in c) return x.snap.nearLadder || x.snap.onLadder;
   if ('total' in c) return (x.seen.totals.get(totalKey(c.total, c.tool, c.crouched)) ?? 0) >= amount(c.atLeast);

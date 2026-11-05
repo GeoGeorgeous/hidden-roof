@@ -26,7 +26,7 @@ export class TutorialWire {
   private grounded = false;
   private enabled = true;
   private tools: Tool[] = [];
-  private snap: Snapshot = { tool: null, tools: this.tools, colors: 1, caps: 1, nearLadder: false, onLadder: false };
+  private snap: Snapshot = { tool: null, tools: this.tools, colors: 1, caps: 1, cap: 'standard', nearLadder: false, onLadder: false };
 
   constructor(
     private tutorial: Tutorial,
@@ -69,6 +69,7 @@ export class TutorialWire {
     snap.tool = inventory.tool;
     snap.colors = inventory.colors.length;
     snap.caps = inventory.caps.length;
+    snap.cap = inventory.cap;
     snap.nearLadder = !player.onLadder && this.ladders.some((l) => l.volume.distanceToPoint(middle) <= TUTORIAL.ladderRadius);
     snap.onLadder = player.onLadder;
     return snap;
