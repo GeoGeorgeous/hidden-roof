@@ -140,6 +140,46 @@ const dice = (...rolls) => {
   assert.equal(new WetPaint().add(surface(), FACE, 9, 9, pass * DRIPS.passes, toolRule(SURE)), 0.25, 'the dice say');
 }
 
+// What a spot keeps: spread over it and slower to dry, gone with a run, and it makes the next run likelier and longer.
+{
+  const rule = canRule(0.5);
+  const size = DRIPS.spot * 96;
+  const wet = new WetPaint();
+  const s = surface();
+  dice(0.99);
+  wet.add(s, FACE, 1, 1, pass * DRIPS.passes, rule);
+  const [spot] = s.spots.values();
+  assert.ok(Math.abs(spot.kept - (DRIPS.miss * DRIPS.dryTime * DRIPS.keptDry) / size ** 2) < 1e-6, `what a failed roll keeps: ${spot.kept}`);
+
+  // Full, and then a run: the next one is the dice's alone.
+  for (let i = 0; i < 1e5; i++) wet.add(s, FACE, 1 + (i % 5), 1, pass * DRIPS.passes, rule);
+  dice(0, 0.5);
+  assert.ok(wet.add(s, FACE, 1, 2, pass * DRIPS.passes, rule) > 0.5 * DRIPS.lengthLuck, 'a full spot runs long');
+  assert.equal(spot.kept, wet.now, 'and a run empties it');
+  wet.now += rule.rest;
+  assert.equal(wet.add(s, FACE, 2, 2, pass * DRIPS.passes, rule), 0.5 * DRIPS.lengthLuck, 'so the next is the dice alone');
+
+  // Paint held on a resting spot is kept too.
+  dice(0, 0.5);
+  const rests = surface();
+  const later = new WetPaint();
+  later.add(rests, FACE, 1, 1, pass * DRIPS.passes, rule);
+  for (let i = 0; i < 1e4; i++) later.add(rests, FACE, 1 + (i % 5), 2, pass * DRIPS.passes * 2, rule);
+  later.now += rule.rest;
+  assert.ok(later.add(rests, FACE, 3, 3, pass * DRIPS.passes, rule) > 0.5 * DRIPS.lengthLuck, 'a spot that rested with paint on it runs longer');
+
+  // A roll that fails on an empty spot comes up on a full one.
+  const roll = (rule.chance / size ** 2) * (1 + DRIPS.fullOdds / 2);
+  dice(roll);
+  assert.equal(new WetPaint().add(surface(), FACE, 1, 1, pass * DRIPS.passes, rule), null, 'an empty spot: the odds alone');
+  const full = new WetPaint();
+  const held = surface();
+  dice(0.99);
+  for (let i = 0; i < 1e5; i++) full.add(held, FACE, 1 + (i % 5), 1, pass * DRIPS.passes, rule);
+  dice(roll);
+  assert.ok(ran(full.add(held, FACE, 1, 2, pass * DRIPS.passes, rule)), 'a full spot: fullOdds times likelier');
+}
+
 // Paint put back (a wiped face, an undo) is dry, its spots too: fresh paint runs at once.
 {
   dice(0);

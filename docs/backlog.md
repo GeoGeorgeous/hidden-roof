@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 351
+The one list of what's left. Counter for new ids: next: 352
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -216,3 +216,4 @@ Dropped items, kept for the record; don't work on them.
 60. [BUGS-348]: Wiping or undoing paint in build mode left its spots resting and full: restored paint is dry now, spots too
 61. [BUGS-349]: F3's rolls / runs counted runs the dice decided and the paint then dropped: it counts those that start
 62. [BUGS-350]: A stored opacity out of range was taken as it was (0 sprayed nothing): it comes back within range
+63. [TEST-351]: Tests of what a spot keeps: how it dries, a run empties it, paint held on a resting spot, its odds
