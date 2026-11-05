@@ -36,6 +36,8 @@ await check('capture: N films with the free camera (no HUD, the game without inp
     const hatch = [];
     for (let i = 0; i < 4; i++) (await press('KeyF'), sizes.push(buffer()), hatch.push(Math.round(g.config.INK.hatchPx * 100)));
     await press('KeyF');
+    // Past the dev tools' Record avatar view (the one above) to first person, where the next check starts.
+    await press('KeyV');
     await press('KeyN');
     const after = { cls: document.documentElement.className.includes('capture'), plate: shown('.capture-ui'), buffer: buffer(), hand: g.viewScene.visible };
     g.player.position.copy(start);

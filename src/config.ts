@@ -1422,8 +1422,8 @@ export const GHOST = {
   followDelay: 2,
   /** What playing goes through on capture mode's speed key (times as fast). */
   speeds: [1, 2, 4],
-  /** Its keys in capture mode's free view (dev/ghost-keys.ts), by code: hold it still, the next speed, from the start, the wall as before the recording. */
-  keys: { pause: 'KeyG', speed: 'KeyH', restart: 'KeyJ', clean: 'KeyL' },
+  /** Its keys in capture mode (dev/ghost-keys.ts), by code: record in its Record avatar view (no key of the game's); in the free view hold it still, the next speed, from the start, the wall as before the recording. */
+  keys: { record: 'KeyT', pause: 'KeyG', speed: 'KeyH', restart: 'KeyJ', clean: 'KeyL' },
 };
 
 /** Settings → Performance test and npm run bench (perf-test.ts, perf-test-page.ts): what it measures, how its tip reads the numbers, how its popup shows them. */

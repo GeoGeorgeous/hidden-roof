@@ -1,6 +1,6 @@
 import type * as THREE from 'three';
 import type { Input } from '../input';
-import type { CaptureMode, CaptureView, Shot } from './captureMode';
+import type { CaptureMode, CaptureView, Extra, Shot } from './captureMode';
 
 // Capture mode's place in the game loop (main.ts). The mode itself loads on
 // first use, its key or ?capture=1: the game doesn't carry it otherwise, and
@@ -19,8 +19,8 @@ function toggle() {
 }
 
 export const capture = {
-  /** What the dev tools add to the free view: each frame their keys, and their lines on the plate. The player build has none. */
-  extra: null as ((input: Input) => string[]) | null,
+  /** What the dev tools add: a view of their own, each frame their keys, and their lines on the plate. The player build has none. */
+  extra: null as Extra | null,
   /** What the game is filmed from: first person, the free camera, or null: not in capture mode. */
   get shot(): Shot | null {
     return mode?.active ? mode.shot : null;

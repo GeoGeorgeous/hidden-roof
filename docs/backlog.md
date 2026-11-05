@@ -157,7 +157,7 @@ The API and why it is so: docs/admin-api.md.
 Shipped since the last release; the release commit empties this list.
 
 1. [BUGS-330]: Lightning with the Thunder slider at 0 stopped the game with an error (an exponential ramp to 0): it is silent now
-2. [IDEA-342]: The ghost from capture mode's free view (dev tools only): G holds it still, H plays at 1x, 2x or 4x, J starts it over, L shows the clean wall with no ghost and no paint from the recording; your stepladder stands aside while it plays
+2. [IDEA-342]: The ghost from capture mode (dev tools only): V also goes to a Record avatar view, first person where T records it; in the free view G holds it still, H plays at 1x, 2x or 4x, J plays from the start, L shows the clean wall with no ghost and no paint from the recording, and again goes on from where it was; your stepladder stands aside while it plays
 
 ## Discarder
 

@@ -22,7 +22,7 @@ const at = new THREE.Vector3();
 
 export interface PlateState {
   shot: Shot;
-  /** More lines for the free view, after its own. */
+  /** More lines, after the view's own. */
   lines: string[];
   speed: number;
   smoothing: number;
@@ -57,7 +57,8 @@ export class CaptureOverlay {
     const time = recording === null ? '' : new Date(performance.now() - recording).toISOString().slice(14, 19);
     const lines = [
       msg('capture.title', { exit: bound('capture') }),
-      msg(shot === 'free' ? 'capture.free' : 'capture.player', { view: bound('captureView') }),
+      // The record view's line comes with the dev tools' (dev/ghost-keys.ts).
+      ...(shot === 'record' ? [] : [msg(shot === 'free' ? 'capture.free' : 'capture.player', { view: bound('captureView') })]),
       ...(shot === 'free'
         ? [
             msg('capture.move', { keys: [K.forward, K.left, K.back, K.right].map(key).join(''), down: key(K.down), up: key(K.up) }),
@@ -67,9 +68,9 @@ export class CaptureOverlay {
             flight.flying
               ? msg('capture.flying', { t: b(flight.elapsed.toFixed(1)), seconds, fly: key(K.fly) })
               : msg('capture.fly', { fly: key(K.fly), seconds, shorter: key(K.shorter), longer: key(K.longer) }),
-            ...more,
           ]
         : []),
+      ...more,
       msg('capture.frame', { frame: bound('captureSize'), size: b(size ? `${ratio(size)} ${size[0]}×${size[1]}` : msg('capture.window')) }),
       msg('capture.quality', { quality: bound('captureQuality'), name: b(msgLines('capture.qualities')[quality]), mbps: b(CAPTURE.qualities[quality]) }),
       msg(time ? 'capture.recording' : failed ? 'capture.recordFailed' : 'capture.record', { time: b(time), record: bound('captureRecord') }),

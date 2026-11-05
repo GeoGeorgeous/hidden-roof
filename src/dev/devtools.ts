@@ -111,7 +111,7 @@ export class DevTools {
     this.build.onLoad = g.openLevel;
     this.figure = new AvatarPreview(g.scene);
     this.ghost = new Ghost(g);
-    capture.extra = (input) => ghostKeys(this.ghost, input);
+    capture.extra = (input, shot) => ghostKeys(this.ghost, input, shot);
     this.messages = new MessageTools(g.notify);
     this.profiler = new Profiler(g);
     this.wet = new WetView(g.scene, g.paint, () => g.player.position);

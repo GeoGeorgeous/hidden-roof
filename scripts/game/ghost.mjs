@@ -98,7 +98,7 @@ await check('ghost: a recorded walk plays back through a jittery network smoothl
   return ok ? null : JSON.stringify(r);
 });
 
-await check("ghost: capture mode's keys hold it still, speed it up and start it over with no paint left from before, the clean wall has neither ghost nor its paint, and your stepladder isn't doubled", async () => {
+await check("ghost: capture mode's Record avatar view records it, its keys hold it still, speed it up and start it over; the clean wall has neither ghost nor its paint and goes on from where it was; your stepladder isn't doubled", async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
     const { GHOST } = g.config;
@@ -110,37 +110,50 @@ await check("ghost: capture mode's keys hold it still, speed it up and start it 
       await window.frames(1);
     };
     const ladders = () => [...g.level.props.values()].filter((p) => p.type === 'stepladder').length;
+    const text = () => document.querySelector('.capture-plate').textContent;
     g.paint.clear();
-    // Paint from before the recording: what putting it back takes frames for, and what stays on the clean wall.
+    g.ghost.rec = null;
+    // Paint from before the recording: what stays on the clean wall.
     g.paint.stamp(g.paint.surfaces[1], { rect: 0, u: 0.5, v: 0.5 }, 0.1, 1, [0, 0, 1]);
     const begun = hash();
     g.player.fly = true;
     const start = g.player.position.clone();
     const { x: x0 } = start;
-    // Your stepladder stands, and a 3 s walk paints once, near the end.
     const before = ladders();
     g.level.setRuntime(g.session.player, { type: 'stepladder', pos: [start.x + 3, start.y, start.z + 3], rot: 0 });
-    g.ghost.record();
-    let painted = false;
-    await steps((f) => {
-      const t = f / 60;
-      g.player.position.set(x0 + t, start.y, start.z);
-      if (!painted && t > 2.5) {
-        painted = true;
-        g.paint.stamp(g.paint.surfaces[0], { rect: 0, u: 0.5, v: 0.5 }, 0.1, 1, [1, 0, 0]);
-      }
-      return f === 180;
-    });
-    g.ghost.stop();
-    const end = hash();
     Object.assign(GHOST, { latency: 0, jitter: 0, hiccups: 0 });
     g.input.setLocked(true);
     await press('KeyN');
-    await steps(() => document.documentElement.classList.contains('capture-free'));
-    const plate = document.querySelector('.capture-plate').textContent;
-    g.ghost.play();
+    await steps(() => document.documentElement.classList.contains('capture'));
+    // It comes back in the view it left.
+    while (!document.documentElement.classList.contains('capture-free')) await press('KeyV');
+    const out = { none: !/ghost/i.test(text()) };
+    // The free view records nothing, the Record avatar view does: a 3 s walk that paints near the start and near the end.
+    await press('KeyT');
+    out.freeRecords = g.ghost.recording;
+    await press('KeyV');
+    await steps(() => /Record avatar/.test(text()) && /records the avatar/.test(text()));
+    await press('KeyT');
+    out.recording = g.ghost.recording;
+    let coats = 0;
+    await steps((f) => {
+      const t = f / 60;
+      g.player.position.set(x0 + t, start.y, start.z);
+      if (coats < 2 && t > 0.3 + coats * 2.2) g.paint.stamp(g.paint.surfaces[0], { rect: 0, u: 0.2 + 0.5 * coats++, v: 0.5 }, 0.1, 1, [1, 0, 0]);
+      return f === 180;
+    });
+    await press('KeyT');
+    out.stopped = !g.ghost.recording && g.ghost.recorded;
+    const end = hash();
+    // First person next, with no ghost keys, then the free view.
+    await press('KeyV');
+    await steps(() => /First person/.test(text()));
+    out.first = !/ghost|avatar/i.test(text());
+    await press('KeyV');
+    await steps(() => /ghost speed/.test(text()));
+    await press('KeyJ');
     await steps(() => g.ghost.position && g.ghost.position.x > x0 + 0.5);
-    const out = { plate: /ghost speed/.test(plate) && /clean wall/.test(plate), ladders: ladders() - before };
+    out.ladders = ladders() - before;
     // Held still.
     await press('KeyG');
     const held = g.ghost.position.x;
@@ -158,23 +171,34 @@ await check("ghost: capture mode's keys hold it still, speed it up and start it 
     out.twice = (await pace()) / one;
     await press('KeyH');
     await press('KeyH');
-    // The stroke on its way to the figure's time: starting over drops it at once (landing while a big paint goes back, it would stay), and nothing of this run is left.
-    await steps(() => g.ghost.remote.timeline.waiting > 0);
-    g.ghost.restart();
-    out.dropped = g.ghost.remote.timeline.waiting === 0;
-    await press('KeyJ');
-    await steps(() => g.ghost.position.x < x0 + 1);
-    await steps(() => g.ghost.position.x > x0 + 1);
-    out.restarted = hash() === begun;
-    // Late in the run and then the clean wall: no ghost, no paint, on either side of its load.
-    await steps(() => hash() === end);
+    // The first coat is on, the second is yet to come: the clean wall, then on from there.
+    await steps(() => hash() !== begun && g.ghost.position.x < x0 + 2);
+    const mid = hash();
     await press('KeyL');
     await steps(() => hash() === begun);
     await window.frames(10);
     out.clean = { ghost: g.ghost.position, wall: hash() === begun, ladders: ladders() - before };
+    const seen = g.ghost.remote.avatar.group.position.x;
+    const middle = g.ghost.label;
     await press('KeyL');
     await steps(() => g.ghost.position);
-    out.back = !!g.ghost.position;
+    out.wentOn = { label: middle, moved: Math.abs(g.ghost.position.x - seen), wall: hash() === mid };
+    await steps(() => hash() === end);
+    out.finished = true;
+    // A paint run under way goes on too.
+    const s = g.paint.surfaces[0];
+    g.paintOps.apply({ kind: 'drip', key: s.key, rect: 0, u: 0.5, v: 0.9, length: 1, speed: 0.01, rgb: [1, 0, 0] });
+    out.runs = [g.drips.runs.length];
+    await press('KeyL');
+    await steps(() => !g.drips.runs.length);
+    await press('KeyL');
+    await steps(() => !g.ghost.cleaned);
+    out.runs.push(g.drips.runs.length);
+    // From the start, with the stroke on its way: nothing of this run is left.
+    await press('KeyJ');
+    await steps(() => g.ghost.position && g.ghost.position.x < x0 + 0.2);
+    await steps(() => g.ghost.position.x > x0 + 0.25);
+    out.restarted = hash() === begun;
     await press('KeyN');
     g.ghost.stop();
     out.mine = g.level.runtimeOf(g.session.player) !== undefined;
@@ -187,7 +211,7 @@ await check("ghost: capture mode's keys hold it still, speed it up and start it 
     g.paint.clear();
     return out;
   });
-  const ok = r.plate && r.ladders === 1 && r.held === 0 && Math.abs(r.twice - 2) < 0.35 && r.dropped && r.restarted && r.clean.ghost === null && r.clean.wall && r.clean.ladders === 0 && r.back && r.mine;
+  const ok = r.none && !r.freeRecords && r.recording && r.stopped && r.first && r.ladders === 1 && r.held === 0 && Math.abs(r.twice - 2) < 0.35 && r.clean.ghost === null && r.clean.wall && r.clean.ladders === 0 && r.wentOn.moved < 0.2 && r.wentOn.wall && r.finished && r.runs.join() === '1,1' && r.restarted && r.mine;
   return ok ? null : JSON.stringify(r);
 });
 

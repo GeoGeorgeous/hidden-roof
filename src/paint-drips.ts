@@ -26,7 +26,8 @@ interface Run {
 }
 
 export class PaintDrips {
-  private runs: Run[] = [];
+  /** Running now; the ghost's clean wall (dev/ghost.ts) holds them back. */
+  readonly runs: Run[] = [];
   /** Dev tools only (dev/runs-view.ts): told each texel a run paints, null in play. */
   tap: ((s: PaintSurface, rect: Rect, x: number, y: number) => void) | null = null;
 

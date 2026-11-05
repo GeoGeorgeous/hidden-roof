@@ -25,12 +25,12 @@ import { SimLink } from './sim-link';
 // plays it all on a loop through a pretend network (sim-link.ts, GHOST), into
 // a remote player: the ghost repaints your strokes as it goes, and you watch
 // from anywhere. FOLLOW sends you live, GHOST.followDelay behind, without
-// paint (yours is already there). Playing holds still, goes faster or starts
-// over, and the clean wall is the paint as it began with no ghost: capture
-// mode's keys for filming it (ghost-keys.ts). Your stepladder is in the
-// recording, so while the ghost plays only its own stands. Dev tools only. It
-// runs on game time (the frames' dt), so the game tests can play it frame by
-// frame.
+// paint (yours is already there). Playing holds still or goes faster, and the
+// clean wall is the paint as it began with no ghost, until everything goes on
+// from where it was: capture mode's keys for filming it (ghost-keys.ts). Your
+// stepladder is in the recording, so while the ghost plays only its own stands.
+// Dev tools only. It runs on game time (the frames' dt), so the game tests can
+// play it frame by frame.
 
 interface GhostContext {
   scene: THREE.Scene;
@@ -56,11 +56,19 @@ interface Recording {
   length: number;
 }
 
+/** What the clean wall holds back, to go on from. */
+interface Held {
+  paint: Promise<Uint8Array>;
+  runs: PaintDrips['runs'];
+  /** The ghost's stepladder. */
+  ladder: PropData | null;
+}
+
 const OWNER = 'ghost';
 const NAME = { name: 'ghost' };
 
 export class Ghost {
-  private mode: 'off' | 'recording' | 'playing' | 'following' | 'clean' = 'off';
+  private mode: 'off' | 'recording' | 'playing' | 'following' = 'off';
   private rec: Recording | null = null;
   private remote: RemotePlayer | null = null;
   /** The pretend network; tests seed its randomness (`link.random`). */
@@ -78,6 +86,8 @@ export class Ghost {
   paused = false;
   /** How fast playing goes: an index into GHOST.speeds. */
   private pace = 0;
+  /** The wall is clean. */
+  private held: Held | null = null;
   /** Your stepladder, taken away while the ghost plays or the wall is clean. */
   private ownLadder: PropData | null = null;
   /** What this player sends (a recording's paint ops go through the wire's encoding, like a session's), and the surfaces the ops name. */
@@ -92,8 +102,8 @@ export class Ghost {
     const r = this.rec;
     const took = r ? `${r.length.toFixed(1)} s, ${r.ops} paint ops` : 'nothing recorded';
     if (this.mode === 'recording') return `recording ${this.time.toFixed(1)} s`;
+    if (this.held) return `clean wall (${took})`;
     if (this.mode === 'playing') return `${this.paused ? 'paused' : 'playing'} at ${this.speed}x, ${took}`;
-    if (this.mode === 'clean') return `clean wall (${took})`;
     if (this.mode === 'following') return `following ${GHOST.followDelay} s behind`;
     return `off (${took})`;
   }
@@ -103,8 +113,12 @@ export class Ghost {
     return !!this.rec?.sent.some((s) => s.m.type === 'state');
   }
 
+  get recording() {
+    return this.mode === 'recording';
+  }
+
   get cleaned() {
-    return this.mode === 'clean';
+    return !!this.held;
   }
 
   /** How many times as fast playing goes. */
@@ -149,21 +163,16 @@ export class Ghost {
     this.pace = (this.pace + 1) % GHOST.speeds.length;
   }
 
-  /** Plays from the start, whatever it's doing. */
-  restart() {
-    if (this.mode !== 'playing') return this.play();
-    this.paused = false;
-    void this.loop();
-  }
-
-  /** The wall as it was when recording began and no ghost; again, the ghost plays from the start. */
+  /** The wall as it was when recording began and no ghost, all it was doing held back; again, it goes on from there. */
   clean() {
-    if (this.mode === 'clean') return this.play();
-    if (!this.recorded) return;
-    this.stop();
-    this.mode = 'clean';
+    if (this.loading || this.recording || !this.recorded) return;
+    if (this.held) return void this.unclean(this.held);
+    const { paint, drips, level } = this.g;
+    this.held = { paint: savePaint(paint, NAME), runs: [...drips.runs], ladder: this.ladderOf(OWNER) };
+    level.setRuntime(OWNER, null);
     this.takeOwnLadder();
-    void this.paintBack();
+    if (this.remote) this.remote.avatar.group.visible = false;
+    void this.swapPaint(this.rec!.start);
   }
 
   follow() {
@@ -185,6 +194,7 @@ export class Ghost {
     this.mode = 'off';
     this.loading = false;
     this.paused = false;
+    this.held = null;
     this.loops++;
     this.giveOwnLadder();
   }
@@ -195,6 +205,7 @@ export class Ghost {
   }
 
   update(frame: number) {
+    if (this.held) return;
     const dt = this.mode !== 'playing' ? frame : this.paused ? 0 : frame * this.speed;
     const t = (this.time += dt);
     if (this.mode === 'recording') this.keep(t);
@@ -225,34 +236,49 @@ export class Ghost {
     if (t > rec.length + NET.interpDelay + GHOST.latency + GHOST.jitter + GHOST.hiccupDelay + 0.5) void this.loop();
   }
 
-  /** Paint back as it was when recording began, then play from the start. What was on its way is dropped first: landing now, it would stay on the paint put back. */
+  /** Paint back as it was when recording began, then play from the start. */
   private async loop() {
-    this.loading = true;
+    if (!(await this.swapPaint(this.rec!.start))) return;
+    this.g.level.setRuntime(OWNER, null);
     this.link.clear();
     this.remote?.reset();
-    if (!(await this.paintBack())) return;
-    this.g.level.setRuntime(OWNER, null);
     this.played = 0;
     this.time = 0;
-    this.loading = false;
   }
 
-  /** Puts the paint back; false if a stop or a new start came meanwhile. */
-  private async paintBack() {
+  /** All the clean wall held back, as it was. */
+  private async unclean(held: Held) {
+    if (!(await this.swapPaint(held.paint))) return;
+    this.g.drips.runs.push(...held.runs);
+    if (held.ladder) this.g.level.setRuntime(OWNER, held.ladder);
+    if (this.mode === 'off') this.giveOwnLadder();
+    this.held = null;
+  }
+
+  /** Puts on a paint; false if a stop or a new start came meanwhile. */
+  private async swapPaint(bytes: Promise<Uint8Array>) {
     const id = ++this.loops;
-    const start = await this.rec!.start;
+    this.loading = true;
+    const paint = await bytes;
     if (id !== this.loops) return false;
-    await loadPaint(this.g.paint, this.g.drips, start, NAME);
-    return id === this.loops;
+    await loadPaint(this.g.paint, this.g.drips, paint, NAME);
+    if (id !== this.loops) return false;
+    this.loading = false;
+    return true;
+  }
+
+  private ladderOf(owner: string): PropData | null {
+    const { level } = this.g;
+    const id = level.runtimeOf(owner);
+    const p = id === undefined ? undefined : level.props.get(id);
+    return p ? { type: p.type, pos: [...p.pos], rot: p.rot } : null;
   }
 
   private takeOwnLadder() {
-    const { level } = this.g;
-    const id = level.runtimeOf(session.player);
-    const p = id === undefined ? undefined : level.props.get(id);
-    if (!p) return;
-    this.ownLadder = { type: p.type, pos: [...p.pos], rot: p.rot };
-    level.setRuntime(session.player, null);
+    const ladder = this.ladderOf(session.player);
+    if (!ladder) return;
+    this.ownLadder = ladder;
+    this.g.level.setRuntime(session.player, null);
   }
 
   /** Back where it stood, unless you placed it again meanwhile. */

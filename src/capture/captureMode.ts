@@ -18,7 +18,10 @@ import { Recorder } from './recorder';
 // menu as ever.
 
 const K = CAPTURE.keys;
-export type Shot = 'player' | 'free';
+/** `record`: first person with the dev tools' keys; the player build goes between the other two. */
+export type Shot = 'player' | 'free' | 'record';
+/** More keys, and their lines on the plate. */
+export type Extra = (input: Input, shot: Shot) => string[];
 
 export interface CaptureView {
   renderer: THREE.WebGLRenderer;
@@ -59,11 +62,12 @@ export class CaptureMode {
     document.documentElement.classList.remove('capture', 'capture-free');
   }
 
-  /** Each frame while active, after the player's view is set: the keys, and in the free view its camera instead of the player's (held while paused) and `extra`'s keys. */
-  update(dt: number, input: Input, camera: THREE.PerspectiveCamera, extra: ((input: Input) => string[]) | null) {
+  /** Each frame while active, after the player's view is set: the keys, and in the free view its camera instead of the player's (held while paused). */
+  update(dt: number, input: Input, camera: THREE.PerspectiveCamera, extra: Extra | null) {
     const playing = input.locked;
     if (playing && input.justPressed('captureView')) {
-      this.shot = this.shot === 'free' ? 'player' : 'free';
+      const shots: Shot[] = extra ? ['free', 'record', 'player'] : ['free', 'player'];
+      this.shot = shots[(shots.indexOf(this.shot) + 1) % shots.length];
       this.fresh = this.shot === 'free';
       this.flight.stop();
     }
@@ -76,7 +80,7 @@ export class CaptureMode {
     if (input.justPressed('captureQuality')) this.quality = (this.quality + 1) % CAPTURE.qualities.length;
     if (input.justPressed('captureRecord')) this.recorder.toggle(this.view.renderer.domElement, CAPTURE.qualities[this.quality], this.view.sound());
     if (input.justPressed('captureSize')) this.setSize(CAPTURE.sizes[this.size ? CAPTURE.sizes.indexOf(this.size) + 1 : 0] ?? null);
-    const lines = (free && extra?.(input)) || [];
+    const lines = extra?.(input, this.shot) ?? [];
     this.overlay.update({ shot: this.shot, lines, speed: this.cam.speed, smoothing: this.cam.smoothing, size: this.size, quality: this.quality, recording: this.recorder.startedAt, failed: this.recorder.failed }, this.flight, camera, this.view.renderer.domElement);
   }
 
