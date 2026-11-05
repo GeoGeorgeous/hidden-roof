@@ -345,7 +345,7 @@ function step(time: number) {
   // Paint stopped by a locked face: said once while the toast shows.
   if (paint.locks.takeHit() && !notify.shown().some((n) => n.lines[0] === msg('toast.locked'))) notify.toast(msg('toast.locked'));
   const tool = building ? null : inventory.tool;
-  hud.setCrosshair(tools.crosshair(tool));
+  hud.setCrosshair(tools.crosshair(tool), tools.crosshairBar(tool));
   hud.setReach(tools.reaches(tool));
   hud.setArc(tool === 'can' ? BRUSH.opacity : null);
   const anchor = tools.labelAnchor(tagPos);

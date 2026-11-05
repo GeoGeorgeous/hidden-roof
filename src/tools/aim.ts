@@ -18,8 +18,9 @@ export function crosshairPx(camera: THREE.PerspectiveCamera, width: number, dist
 }
 
 export class ToolAim {
-  /** The crosshair's size (CSS px): at the wall under the aim, or at the tool's reach with none. */
+  /** The crosshair's width and height (CSS px): at the wall under the aim, or at the tool's reach with none. */
   px: number = CROSSHAIR.plain;
+  tallPx: number = CROSSHAIR.plain;
   /** What's under the aim is in reach and takes paint. */
   reaches = false;
   private probe: WallProbe;
@@ -32,11 +33,13 @@ export class ToolAim {
     this.probe = new WallProbe(solids, paint, reach);
   }
 
-  /** `width`: the mark the tool leaves now (m). */
-  update(camera: THREE.PerspectiveCamera, eye: THREE.Vector3, width: number) {
+  /** `width`, `tall`: the mark the tool leaves now (m). */
+  update(camera: THREE.PerspectiveCamera, eye: THREE.Vector3, width: number, tall = width) {
     this.probe.near(eye);
     const hit = this.probe.cast(eye, camera.getWorldDirection(forward));
     this.reaches = this.probe.takes(hit);
-    this.px = crosshairPx(camera, width, hit?.distance ?? this.reach);
+    const distance = hit?.distance ?? this.reach;
+    this.px = crosshairPx(camera, width, distance);
+    this.tallPx = crosshairPx(camera, tall, distance);
   }
 }

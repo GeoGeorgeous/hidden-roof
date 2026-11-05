@@ -12,7 +12,7 @@ import type { Fact, HintDef, Notes, Rank, Snapshot } from './types.ts';
 const TUTORIAL_KEY = 'roofhiddenhaus.tutorial';
 
 /** What the message layer ranks by: higher wins. */
-const RANK: Record<Rank, number> = { tool: 3, context: 2, basic: 1 };
+const RANK: Record<Rank, number> = { moment: 4, tool: 3, context: 2, basic: 1 };
 
 /** Where progress lives: the browser's storage (stored.ts), or a test's. */
 interface Storage {
@@ -42,7 +42,7 @@ export class Tutorial {
   private on = true;
   /** How many hints are not learnt yet. */
   private left = 0;
-  private snap: Snapshot = { tool: null, tools: [], colors: 1, caps: 1, nearLadder: false, onLadder: false };
+  private snap: Snapshot = { tool: null, tools: [], colors: 1, caps: 1, cap: 'standard', nearLadder: false, onLadder: false };
   /** What the message layer has: the hint's id and which of its texts. */
   private shown: { id: string; text: number } | null = null;
   /** A hint was learnt (its id), or the last one was ('done'). */
@@ -128,7 +128,7 @@ export class Tutorial {
       const { def } = s;
       const want = !this.done.has(def.id) && (def.after ?? []).every((id) => this.done.has(id)) && holds(def.show, this.ctx(s));
       if (want && !s.wanted) s.seq = ++this.seq;
-      if (!want && def.rank === 'context') this.forget(s);
+      if (!want && (def.rank === 'context' || def.rank === 'moment')) this.forget(s);
       s.wanted = want;
       if (want) wanted.push(s);
     }
@@ -180,10 +180,15 @@ export class Tutorial {
     }
     const steps = s.def.steps ?? [];
     const text = this.text(s);
-    if (this.shown?.id === s.def.id && this.shown.text === text) return;
-    if (this.shown && this.shown.id !== s.def.id) this.notes.clear(`hint:${this.shown.id}`);
-    this.shown = { id: s.def.id, text };
-    this.notes.set({ key: `hint:${s.def.id}`, kind: 'hint', rank: RANK[s.def.rank], lines: text < steps.length ? steps[text].lines : s.def.lines });
+    const key = `hint:${s.def.id}`;
+    if (this.shown?.id !== s.def.id || this.shown.text !== text) {
+      if (this.shown && this.shown.id !== s.def.id) this.notes.clear(`hint:${this.shown.id}`);
+      this.shown = { id: s.def.id, text };
+      this.notes.set({ key, kind: 'hint', rank: RANK[s.def.rank], lines: text < steps.length ? steps[text].lines : s.def.lines });
+    }
+    // Only a hint that goes by itself has a time, and only the hint itself: its "take it" step waits for the player.
+    const { shown } = s.def.done;
+    this.notes.timeLeft(key, shown !== undefined && text === steps.length ? Math.max(0, 1 - s.shownFor / amount(shown)) : null);
   }
 
   private recount() {

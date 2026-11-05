@@ -165,7 +165,7 @@ await check('crosshair: follows the line it would leave: distance, cap, and with
   return r.near > 8 && r.far > 8 && r.wide > r.far && r.sky > 0 ? null : JSON.stringify(r);
 });
 
-await check('crosshair: the marker and the sponge show their real width at the wall, fade out of reach and carry no arc', async () => {
+await check('crosshair: the marker, the sponge and the roller show their real size at the wall, fade out of reach and carry no arc; the roller\'s is a bar', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
     const { input, inventory: inv, player, tools } = g;
@@ -181,7 +181,7 @@ await check('crosshair: the marker and the sponge show their real width at the w
     const onScreen = (width, d) => (width / (2 * d * Math.tan((camera.fov * Math.PI) / 360))) * window.innerHeight;
     const faded = () => cross.style.opacity === `${g.config.CROSSHAIR.far}`;
     const out = {};
-    for (const [tool, slot, reach] of [['marker', 1, g.config.MARKER.reach], ['sponge', 4, g.config.SPONGE.reach]]) {
+    for (const [tool, slot, reach] of [['marker', 1, g.config.MARKER.reach], ['sponge', 4, g.config.SPONGE.reach], ['roller', 3, g.config.ROLLER.reach]]) {
       inv.select(slot);
       const width = inv.size[tool] || 0.05;
       inv.size[tool] = width;
@@ -193,14 +193,23 @@ await check('crosshair: the marker and the sponge show their real width at the w
       const far = tools.crosshair(tool);
       await stand(reach + 1);
       out[tool] = { near, far, want: onScreen(width, 1), ratio: near / far, arc, nearFaded, out: faded() };
+      if (tool === 'roller') {
+        await stand(1);
+        const box = cross.getBoundingClientRect();
+        Object.assign(out.roller, { tall: tools.crosshairBar('roller'), wantTall: onScreen(g.config.ROLLER.pressLength, 1), wide: box.width, high: box.height, corner: getComputedStyle(cross).borderRadius });
+      }
     }
+    inv.select(1);
+    await stand(1);
+    out.ringAfter = { bar: cross.classList.contains('bar'), corner: getComputedStyle(cross).borderRadius };
     await stand(1);
     g.fixedStep.dt = 0;
     input.setLocked(false);
     return out;
   });
   const fine = ({ near, want, ratio, arc, nearFaded, out }) => Math.abs(near - want) <= 1.5 + want * 0.05 && ratio > 1.2 && !arc && !nearFaded && out;
-  return fine(r.marker) && fine(r.sponge) ? null : JSON.stringify(r);
+  const bar = Math.abs(r.roller.tall - r.roller.wantTall) <= 1.5 + r.roller.wantTall * 0.05 && r.roller.wide > r.roller.high * 2 && r.roller.corner === '3px' && !r.ringAfter.bar && r.ringAfter.corner === '50%';
+  return fine(r.marker) && fine(r.sponge) && fine(r.roller) && bar ? null : JSON.stringify(r);
 });
 
 await check('slant: the can at an angle to a wall lays dabs stretched along the aim, head on round ones', async () => {

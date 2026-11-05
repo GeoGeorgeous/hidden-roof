@@ -1,6 +1,6 @@
 // What the tutorial is told and what a hint is made of. Data only: no DOM, no game imports beyond types.
 
-import type { TUTORIAL } from '../config.ts';
+import type { CapId, TUTORIAL } from '../config.ts';
 import type { Action } from '../input.ts';
 import type { Tool } from '../inventory/tool.ts';
 
@@ -29,6 +29,8 @@ export interface Snapshot {
   tools: readonly Tool[];
   colors: number;
   caps: number;
+  /** On the can. */
+  cap: CapId;
   /** Within TUTORIAL.ladderRadius of a level ladder's climb volume, not on it. */
   nearLadder: boolean;
   onLadder: boolean;
@@ -44,6 +46,8 @@ export type Cond =
   | { has: 'colors' | 'caps'; atLeast: number }
   /** In hand. */
   | { holding: Tool }
+  /** On the can, the can in hand. */
+  | { cap: CapId }
   /** The action went down since the hint was wanted. */
   | { pressed: Action }
   /** Near a ladder or on one. */
@@ -63,12 +67,12 @@ export type Cond =
  */
 type Done = { shown: Amount; action?: Cond } | { shown?: Amount; action: Cond };
 
-export type Rank = 'tool' | 'context' | 'basic';
+export type Rank = 'moment' | 'tool' | 'context' | 'basic';
 
 export interface HintDef {
   /** Stored when learnt: 'move', 'tool.marker'. */
   id: string;
-  /** New tool > context > basic. A context hint leaves, unlearnt, when its `show` stops holding. */
+  /** Moment > new tool > context > basic. A moment is about what's in hand right now. It and a context hint leave, unlearnt, when `show` stops holding. */
   rank: Rank;
   /** Up to 3 lines; `{use}` is the action's key name in bold, resolved at display time (messages.ts resolveLine). */
   lines: string[];
@@ -81,8 +85,9 @@ export interface HintDef {
   after?: string[];
 }
 
-/** The message layer, as far as hints need it (src/notify.ts has these two). */
+/** The message layer, as far as hints need it (src/notify.ts has these). */
 export interface Notes {
   set(note: { key: string; kind: 'hint'; rank: number; lines: string[] }): void;
   clear(key: string): void;
+  timeLeft(key: string, left: number | null): void;
 }

@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 360
+The one list of what's left. Counter for new ids: next: 364
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -97,7 +97,6 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 1. [?TASK-203]: The HUD fits every window: it scales with the window and the DPR (tiny at 4K at 100%, crowded at 820×560), the compact pause menu with F3 open stays above the HUD (BUGS-198 merged in, likely fixed by the `--z-*` layers); both checked on shots first (docs/ideas/hud-scale.md)
 2. [IDEA-204]: Notifications beyond play: the menu, pages, loading and a hidden tab on the same model; screen-reader announcements; more events (away and back, context lost, online, refused pointer lock or clipboard); battery (docs/ideas/notifications.md)
-3. [TASK-359]: Hints and toasts in one voice, the first person, a line for each new cap the first time it's picked up, and check that the opacity hint shows (docs/ideas/hints.md) @1.7.0
 
 ## Avatar
 
@@ -184,6 +183,9 @@ Shipped since the last release; the release commit empties this list.
 29. [TASK-232]: Painting Rework: to production: unlock-all (`ALL_PAINT`) cut
 30. [DOCS-357]: Painting Rework's end: all of paint in `docs/painting.md`, limits in `docs/known-limits.md`, `docs/ideas/` as the code is
 31. [IDEA-358]: The crosshair shows the marker's and the sponge's real width at the wall and fades out of their reach, as the can's does, with no arc: one module, `src/tools/aim.ts`, that any tool with a reach can take
+32. [IDEA-360]: The roller's crosshair is a bar, a press of it at its real size, and fades out of its reach, by the same module as the marker's and the sponge's
+33. [TASK-359]: Hints and toasts in one voice, the first person, and a line for each cap the first time it's on the can in hand: a rank `moment` over the hints that wait for the player
+34. [IDEA-363]: Hints and toasts that go by themselves show a ring running down with their time, the hold-Esc ring's look; hints that wait for the player have none
 
 ## Discarder
 

@@ -2,8 +2,9 @@ import { NOTIFY } from './config';
 import { keysVersion, label } from './input';
 import { el } from './menu-ui';
 import { DialogView } from './dialog-view';
+import { ring } from './esc-hold';
 import { resolveLine } from './messages';
-import type { StatusIcon, Notify } from './notify';
+import type { Note, StatusIcon, Notify } from './notify';
 
 // What notify.ts holds, drawn in play (style.css, "In-game messages"): the hint
 // and the toasts cut in and out; the dark gradient behind a hint, the statuses and the dialog fade.
@@ -22,6 +23,19 @@ function box(className: string, nodes: Node[]) {
   const d = el('div', className);
   d.append(...nodes);
   return d;
+}
+
+/** A ring beside a message's text, emptying as its time runs out (style.css .note-timer). */
+function timer() {
+  const t = el('span', 'note-timer');
+  t.append(ring());
+  return t;
+}
+
+/** A timer as of now: `left` of its time (0..1), or hidden with no set time. */
+function drawTimer(t: HTMLElement, left: number | null | undefined) {
+  t.hidden = left === null || left === undefined;
+  if (!t.hidden) t.style.setProperty('--left', left!.toFixed(2));
 }
 
 /** A status on screen: its element, its text now, and the timer that removes it once faded out. */
@@ -48,6 +62,9 @@ export class NotifyView {
   private hintRaw: readonly string[] = NO_LINES;
   private hintKeys = keysVersion;
   private hintLines: string[] = [];
+  /** The hint's ring, in its box and over it, and the toasts' with their notes. */
+  private hintTimers: HTMLElement[] = [];
+  private toastTimers: { note: Note; timer: HTMLElement }[] = [];
 
   constructor(private notify: Notify) {
     this.dialogView = new DialogView(() => notify.confirm(true), () => notify.confirm(false));
@@ -97,13 +114,21 @@ export class NotifyView {
         this.drawHint(this.hintLines);
       }
     }
+    if (this.notify.version !== this.seen) this.redraw(notes, dialog);
+    const left = notes.find((n) => n.kind === 'hint')?.left;
+    for (const t of this.hintTimers) drawTimer(t, left);
+    for (const { note, timer } of this.toastTimers) drawTimer(timer, note.left);
+  }
+
+  /** What changes only with `Notify.version`. */
+  private redraw(notes: readonly Note[], dialog: Note['dialog']) {
     const lines = this.hintLines;
-    if (this.notify.version === this.seen) return;
     this.seen = this.notify.version;
     this.shade.classList.toggle('on', NOTIFY.shade === 'always' || (NOTIFY.shade === 'auto' && lines.length > 0));
     // The toasts sit above the hint's top line.
     this.bottom.style.setProperty('--hint-lines', String(Math.max(1, lines.length)));
-    this.toasts.replaceChildren(...notes.filter((n) => n.kind === 'toast').map((n) => box('', rich(n.lines[0]))));
+    this.toastTimers = notes.filter((n) => n.kind === 'toast').map((note) => ({ note, timer: timer() }));
+    this.toasts.replaceChildren(...this.toastTimers.map(({ note, timer }) => box('', [timer, ...rich(note.lines[0])])));
     this.dialogView.draw(dialog ?? null, dialog?.grow ? this.statusByKey.get(dialog.grow)?.el : undefined);
     // A dialog takes the place of the status it replaces: that one cuts out.
     this.drawStatuses(notes.filter((n) => n.kind === 'status' && n.key !== dialog?.grow), !!dialog);
@@ -111,8 +136,13 @@ export class NotifyView {
 
   /** One box per line, each as wide as its line. The boxes are opaque in a group at the box's opacity, so where they overlap they don't darken; the text is a group above, at full strength. */
   private drawHint(lines: readonly string[]) {
+    this.hintTimers = [];
     if (!lines.length) return this.hint.replaceChildren();
-    const group = (className: string) => box(className, lines.map((l) => box('', rich(l))));
+    const group = (className: string) => {
+      const t = timer();
+      this.hintTimers.push(t);
+      return box(className, lines.map((l, i) => box('', i ? rich(l) : [t, ...rich(l)])));
+    };
     this.hint.replaceChildren(box('hint-lines', [group('hint-boxes'), group('hint-text')]));
   }
 

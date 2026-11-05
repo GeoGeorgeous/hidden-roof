@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { Solids } from '../level/solids';
 import type { Audio } from '../audio';
-import { BRUSH, CAPS, CROSSHAIR, ROLLER, type PaintColor } from '../config';
+import { BRUSH, CAPS, CROSSHAIR, type PaintColor } from '../config';
 import type { Action, Input } from '../input';
 import { SIZED, type Inventory, type SizedTool } from '../inventory/inventory';
 import { SLOTS, type Tool } from '../inventory/tool';
@@ -138,14 +138,22 @@ export class Tools {
   /** Crosshair size (px) for the tool in hand (null: none, or build mode). */
   crosshair(tool: Tool | null) {
     if (tool === 'can') return this.spray.linePx;
-    if (tool === 'marker' || tool === 'sponge') return this[tool].aim.px;
-    return tool === 'roller' ? ROLLER.crosshair : CROSSHAIR.plain;
+    return this.aimOf(tool)?.px ?? CROSSHAIR.plain;
+  }
+
+  /** The height (px) of a crosshair that's a bar, not a ring: the roller's press. */
+  crosshairBar(tool: Tool | null) {
+    return tool === 'roller' ? this.roller.aim.tallPx : null;
+  }
+
+  private aimOf(tool: Tool | null) {
+    return tool === 'marker' || tool === 'roller' || tool === 'sponge' ? this[tool].aim : null;
   }
 
   /** The tool in hand would mark what's under the aim; a crosshair with nothing to say stays as it is. */
   reaches(tool: Tool | null) {
     if (tool === 'can') return this.spray.reaches;
-    return tool === 'marker' || tool === 'sponge' ? this[tool].aim.reaches : true;
+    return this.aimOf(tool)?.reaches ?? true;
   }
 
   /** Screen anchor for the color / cap tags next to the tool in hand, or null with no tool. */
