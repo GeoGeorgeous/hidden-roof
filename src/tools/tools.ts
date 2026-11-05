@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { Solids } from '../level/solids';
 import type { Audio } from '../audio';
 import { BRUSH, CAPS, CROSSHAIR, type PaintColor } from '../config';
 import type { Action, Input } from '../input';
@@ -58,7 +59,7 @@ export class Tools {
     scene: THREE.Scene,
     viewScene: THREE.Scene,
     paint: PaintSystem,
-    solids: THREE.Mesh[],
+    solids: Solids,
     private audio: Audio,
     private inventory: Inventory,
     level: Level,

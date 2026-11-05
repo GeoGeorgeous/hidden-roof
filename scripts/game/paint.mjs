@@ -228,7 +228,7 @@ await check('tools: the wheel\'s click picks the color of the paint under the cr
     const ray = new g.tools.marker.stroke.raycaster.constructor();
     const wallAt = (yaw) => {
       ray.set(cam.position, { x: -Math.sin(yaw), y: 0, z: -Math.cos(yaw) });
-      return ray.intersectObjects(g.level.solids, false)[0]?.distance ?? Infinity;
+      return ray.intersectObjects(g.level.solids.meshes, false)[0]?.distance ?? Infinity;
     };
     const yaws = [0, 1, 2, 3].map((k) => g.player.yaw + (k * Math.PI) / 2);
     g.player.yaw = yaws.reduce((a, b) => (wallAt(b) < wallAt(a) ? b : a));

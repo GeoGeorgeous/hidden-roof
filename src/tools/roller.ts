@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { Solids } from '../level/solids';
 import type { Audio } from '../audio';
 import { ROLLER, type PaintColor } from '../config';
 import type { Input } from '../input';
@@ -27,7 +28,7 @@ export class RollerTool {
 
   constructor(
     private paint: PaintSystem,
-    solids: THREE.Mesh[],
+    solids: Solids,
     private audio: Audio,
   ) {
     this.stroke = new StrokeSweep(solids, paint);

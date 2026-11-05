@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { Solids } from '../level/solids';
 import { inkify } from '../render/ink/tone';
 import { COLORS, HOLD, MARKER, type PaintColor } from '../config';
 import type { Audio } from '../audio';
@@ -33,7 +34,7 @@ export class MarkerTool {
 
   constructor(
     private paint: PaintSystem,
-    solids: THREE.Mesh[],
+    solids: Solids,
     private audio: Audio,
   ) {
     this.stroke = new StrokeSweep(solids, paint);

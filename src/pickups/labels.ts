@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { CAPS, COLORS, PICKUP, type CapId, type PaintColor } from '../config';
 import { parsePickup, type FoundTool } from '../inventory/items';
-import { solidsNear } from '../level/solids';
+import type { Solids } from '../level/solids';
 import { FONT_FAMILIES, JP_FAMILY } from '../render/ink/jp-font';
 import type { Pickup } from './pickups';
 import { onPage, viewRect } from '../view-rect';
@@ -75,7 +75,7 @@ export class PickupLabels {
 
   constructor(
     private camera: THREE.PerspectiveCamera,
-    private solids: readonly THREE.Mesh[],
+    private solids: Solids,
   ) {
     this.root.className = 'pickup-tags';
     document.querySelector('.layer-world')!.append(this.root);
@@ -180,7 +180,7 @@ export class PickupLabels {
     dir.subVectors(at, cam).normalize();
     this.ray.set(cam, dir);
     this.ray.far = far;
-    solidsNear(this.solids, mid.copy(cam).add(at).multiplyScalar(0.5), far / 2, this.near);
+    this.solids.near(mid.copy(cam).add(at).multiplyScalar(0.5), far / 2, this.near);
     return !this.near.length || !this.ray.intersectObjects(this.near, false).length;
   }
 }
