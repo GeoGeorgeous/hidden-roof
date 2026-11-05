@@ -57,6 +57,8 @@ Only `N.`, the id and the description are required. The optional parts appear in
 1. IDEA [BL-074]: Stencils
 2. [IDEA-336]: Marker: a flat nib, wide across and thin along, for calligraphy: tried on a can cap (TRANSVERSAL), its code kept commented out, each place marked "Kept for a flat nib on the marker, a later version." (grep it)
 3. IDEA [BL-039]: More marker types (rectangular and calligraphy nibs among them, IDEA-233 merged in), placed on the map; a per-tool variant module first, as caps are (docs/ideas/tools.md)
+4. [IDEA-344]: Leaning the can, an experiment on `exp/can-tilt`: RMB held, the mouse leans it, LMB sprays at the lean with one hard edge and a far side fading out, close to the wall; it takes the shake's place, which is gone; stays on its branch until the owner says
+5. [IDEA-346]: Exclusive paints, an experiment on `exp/paint-finishes`: chrome and gold (metal with a drawn horizon), silver, holo, glow, wet frost; bulging edges and an ink line; no new data, a finish is a color no palette mix reaches; stays on its branch until the owner says
 
 ## Input
 
@@ -90,6 +92,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 1. IDEA [BL-062]: Photo mode with Polaroid-like cards for photos
 2. IDEA [BL-061]: A player in the style of an old iPod Classic
+3. [IDEA-345]: Color wheel on Tab, an experiment on `exp/color-wheel`: the whole palette, 161 shades, each found color opening its part, the rest hatched; stays on its branch until the owner says
 
 ## UI
 
