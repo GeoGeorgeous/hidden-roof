@@ -30,11 +30,12 @@ import { layoutCity } from '../city/layout';
 import { dressTower, wallSigns } from '../city/rooftops';
 import { capture } from '../capture/hook';
 import { Ghost } from './ghost';
+import { capturePlate } from './capture-plate';
 import { ghostKeys } from './ghost-keys';
 import { Profiler } from './profiler';
 import { WetView } from './wet-view';
 import { RunsView } from './runs-view';
-import { RUNS_VIEW, WET_VIEW } from '../config';
+import { GHOST, RUNS_VIEW, WET_VIEW } from '../config';
 import type { PaintOps } from '../paint-ops';
 import type { Tools } from '../tools/tools';
 
@@ -113,7 +114,14 @@ export class DevTools {
     this.build.onLoad = g.openLevel;
     this.figure = new AvatarPreview(g.scene);
     this.ghost = new Ghost(g);
-    capture.extra = (input, shot) => ghostKeys(this.ghost, input, shot);
+    capture.extra = (input, plate, flight) => {
+      ghostKeys(this.ghost, input, plate.shot);
+      return capturePlate(this.ghost, input, plate, flight);
+    };
+    // Held for the free view's keys: not moving the focus, which a Space would press.
+    window.addEventListener('keydown', (e) => {
+      if (e.code === GHOST.keys.help && capture.shot === 'free') e.preventDefault();
+    });
     this.messages = new MessageTools(g.notify);
     this.profiler = new Profiler(g);
     this.wet = new WetView(g.scene, g.paint, () => g.player.position);

@@ -19,7 +19,7 @@ function toggle() {
 }
 
 export const capture = {
-  /** What the dev tools add: a view of their own, each frame their keys, and their lines on the plate. The player build has none. */
+  /** What the dev tools add: a view of their own, each frame their keys, and a plate of their own. The player build has none. */
   extra: null as Extra | null,
   /** What the game is filmed from: first person, the free camera, or null: not in capture mode. */
   get shot(): Shot | null {

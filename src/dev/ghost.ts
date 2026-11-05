@@ -85,7 +85,7 @@ export class Ghost {
   /** Playing holds still. */
   paused = false;
   /** How fast playing goes: an index into GHOST.speeds. */
-  private pace = 0;
+  pace = 0;
   /** The wall is clean. */
   private held: Held | null = null;
   /** Your stepladder, taken away while the ghost plays or the wall is clean. */
@@ -115,6 +115,20 @@ export class Ghost {
 
   get recording() {
     return this.mode === 'recording';
+  }
+
+  get playing() {
+    return this.mode === 'playing';
+  }
+
+  /** How far it is into recording or playing (s). */
+  get elapsed() {
+    return this.recording ? this.time : Math.min(this.time, this.length);
+  }
+
+  /** How long the recording is (s). */
+  get length() {
+    return this.rec?.length ?? 0;
   }
 
   get cleaned() {
@@ -156,11 +170,6 @@ export class Ghost {
     this.takeOwnLadder();
     this.remote = new RemotePlayer(this.g.scene, this.g.level, this.g.paintOps, OWNER, this.g.tools.spray.others);
     void this.loop();
-  }
-
-  /** Playing goes at the next of GHOST.speeds. */
-  faster() {
-    this.pace = (this.pace + 1) % GHOST.speeds.length;
   }
 
   /** The wall as it was when recording began and no ghost, all it was doing held back; again, it goes on from there. */

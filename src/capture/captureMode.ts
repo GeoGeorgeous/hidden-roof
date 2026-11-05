@@ -4,7 +4,7 @@ import type { Input } from '../input';
 import { setFrame } from '../view-rect';
 import { Flight } from './flight';
 import { FreeCam } from './freeCam';
-import { CaptureOverlay } from './overlay';
+import { CaptureOverlay, type PlateState } from './overlay';
 import { Recorder } from './recorder';
 
 // Capture mode, for filming the game (hook.ts turns it on and off). Two
@@ -20,8 +20,8 @@ import { Recorder } from './recorder';
 const K = CAPTURE.keys;
 /** `record`: first person with the dev tools' keys; the player build goes between the other two. */
 export type Shot = 'player' | 'free' | 'record';
-/** More keys, and their lines on the plate. */
-export type Extra = (input: Input, shot: Shot) => string[];
+/** More keys, and the plate's lines in place of its own but for recording a video. */
+export type Extra = (input: Input, plate: PlateState, flight: Flight) => string[];
 
 export interface CaptureView {
   renderer: THREE.WebGLRenderer;
@@ -80,8 +80,8 @@ export class CaptureMode {
     if (input.justPressed('captureQuality')) this.quality = (this.quality + 1) % CAPTURE.qualities.length;
     if (input.justPressed('captureRecord')) this.recorder.toggle(this.view.renderer.domElement, CAPTURE.qualities[this.quality], this.view.sound());
     if (input.justPressed('captureSize')) this.setSize(CAPTURE.sizes[this.size ? CAPTURE.sizes.indexOf(this.size) + 1 : 0] ?? null);
-    const lines = extra?.(input, this.shot) ?? [];
-    this.overlay.update({ shot: this.shot, lines, speed: this.cam.speed, smoothing: this.cam.smoothing, size: this.size, quality: this.quality, recording: this.recorder.startedAt, failed: this.recorder.failed }, this.flight, camera, this.view.renderer.domElement);
+    const plate = { shot: this.shot, speed: this.cam.speed, smoothing: this.cam.smoothing, size: this.size, quality: this.quality, recording: this.recorder.startedAt, failed: this.recorder.failed };
+    this.overlay.update(plate, extra?.(input, plate, this.flight) ?? null, this.flight, camera, this.view.renderer.domElement);
   }
 
   /** The fixed frame fitted into the window, in its middle (again on a resize). */

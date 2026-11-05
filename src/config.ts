@@ -1506,10 +1506,10 @@ export const GHOST = {
   /** How long a hiccup holds up a packet and everything after it (s), as a resend over a reliable link would. */
   hiccupDelay: 0.3,
   followDelay: 2,
-  /** What playing goes through on capture mode's speed key (times as fast). */
+  /** How fast it plays on capture mode's digit keys, from 1 (times as fast). */
   speeds: [1, 2, 4],
-  /** Its keys in capture mode (dev/ghost-keys.ts), by code: record in its Record avatar view (no key of the game's); in the free view hold it still, the next speed, from the start, the wall as before the recording. */
-  keys: { record: 'KeyT', pause: 'KeyG', speed: 'KeyH', restart: 'KeyJ', clean: 'KeyL' },
+  /** Its keys in capture mode (dev/ghost-keys.ts), by code, all by the left hand on WASD: record in the Record avatar view (no key of the game's); in the free view play or hold it, from the start, the wall as before the recording, and, held, capture's keys. */
+  keys: { record: 'KeyT', pause: 'Space', restart: 'KeyR', clean: 'KeyC', help: 'Tab' },
 };
 
 /** Settings → Performance test and npm run bench (perf-test.ts, perf-test-page.ts): what it measures, how its tip reads the numbers, how its popup shows them. */

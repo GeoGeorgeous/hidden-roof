@@ -18,12 +18,12 @@ const key = (code: string) => b(keyName(code));
 const bound = (action: Action) => b(label(action));
 const gcd = (a: number, c: number): number => (c ? gcd(c, a % c) : a);
 const ratio = ([w, h]: readonly [number, number]) => `${w / gcd(w, h)}:${h / gcd(w, h)}`;
+/** The frame drawn, as the plate says it. */
+export const frameName = (size: readonly [number, number] | null) => (size ? `${ratio(size)} ${size[0]}×${size[1]}` : msg('capture.window'));
 const at = new THREE.Vector3();
 
 export interface PlateState {
   shot: Shot;
-  /** More lines, after the view's own. */
-  lines: string[];
   speed: number;
   smoothing: number;
   size: readonly [number, number] | null;
@@ -46,33 +46,16 @@ export class CaptureOverlay {
     document.body.append(this.root);
   }
 
-  /** The plate, and in the free camera's view the points' marks. */
-  update(state: PlateState, flight: Flight, camera: THREE.Camera, canvas: HTMLCanvasElement) {
-    this.text(state, flight);
+  /** The plate (`custom`: lines in place of its own, but for recording a video), and in the free camera's view the points' marks. */
+  update(state: PlateState, custom: string[] | null, flight: Flight, camera: THREE.Camera, canvas: HTMLCanvasElement) {
+    this.text(state, custom, flight);
     this.place(state.shot === 'free' ? flight.points : [], camera, canvas);
   }
 
-  private text({ shot, lines: more, speed, smoothing, size, quality, recording, failed }: PlateState, flight: Flight) {
-    const seconds = b(flight.seconds);
+  private text({ shot, speed, smoothing, size, quality, recording, failed }: PlateState, custom: string[] | null, flight: Flight) {
     const time = recording === null ? '' : new Date(performance.now() - recording).toISOString().slice(14, 19);
     const lines = [
-      msg('capture.title', { exit: bound('capture') }),
-      // The record view's line comes with the dev tools' (dev/ghost-keys.ts).
-      ...(shot === 'record' ? [] : [msg(shot === 'free' ? 'capture.free' : 'capture.player', { view: bound('captureView') })]),
-      ...(shot === 'free'
-        ? [
-            msg('capture.move', { keys: [K.forward, K.left, K.back, K.right].map(key).join(''), down: key(K.down), up: key(K.up) }),
-            msg('capture.speed', { speed: b(speed.toFixed(speed < 1 ? 2 : 1)) }),
-            msg('capture.smoothing', { less: key(K.smoothLess), more: key(K.smoothMore), smoothing: b(smoothing) }),
-            msg('capture.points', { add: key(K.addPoint), remove: key(K.removePoint), n: b(flight.points.length) }),
-            flight.flying
-              ? msg('capture.flying', { t: b(flight.elapsed.toFixed(1)), seconds, fly: key(K.fly) })
-              : msg('capture.fly', { fly: key(K.fly), seconds, shorter: key(K.shorter), longer: key(K.longer) }),
-          ]
-        : []),
-      ...more,
-      msg('capture.frame', { frame: bound('captureSize'), size: b(size ? `${ratio(size)} ${size[0]}×${size[1]}` : msg('capture.window')) }),
-      msg('capture.quality', { quality: bound('captureQuality'), name: b(msgLines('capture.qualities')[quality]), mbps: b(CAPTURE.qualities[quality]) }),
+      ...(custom ?? this.own(shot, speed, smoothing, size, quality, flight)),
       msg(time ? 'capture.recording' : failed ? 'capture.recordFailed' : 'capture.record', { time: b(time), record: bound('captureRecord') }),
     ];
     const text = lines.join('\n');
@@ -86,6 +69,28 @@ export class CaptureOverlay {
         return row;
       }),
     );
+  }
+
+  /** The player build's lines. */
+  private own(shot: Shot, speed: number, smoothing: number, size: PlateState['size'], quality: number, flight: Flight) {
+    const seconds = b(flight.seconds);
+    return [
+      msg('capture.title', { exit: bound('capture') }),
+      msg(shot === 'free' ? 'capture.free' : 'capture.player', { view: bound('captureView') }),
+      ...(shot === 'free'
+        ? [
+            msg('capture.move', { keys: [K.forward, K.left, K.back, K.right].map(key).join(''), down: key(K.down), up: key(K.up) }),
+            msg('capture.speed', { speed: b(speed.toFixed(speed < 1 ? 2 : 1)) }),
+            msg('capture.smoothing', { less: key(K.smoothLess), more: key(K.smoothMore), smoothing: b(smoothing) }),
+            msg('capture.points', { add: key(K.addPoint), remove: key(K.removePoint), n: b(flight.points.length) }),
+            flight.flying
+              ? msg('capture.flying', { t: b(flight.elapsed.toFixed(1)), seconds, fly: key(K.fly) })
+              : msg('capture.fly', { fly: key(K.fly), seconds, shorter: key(K.shorter), longer: key(K.longer) }),
+          ]
+        : []),
+      msg('capture.frame', { frame: bound('captureSize'), size: b(frameName(size)) }),
+      msg('capture.quality', { quality: bound('captureQuality'), name: b(msgLines('capture.qualities')[quality]), mbps: b(CAPTURE.qualities[quality]) }),
+    ];
   }
 
   /** Each point's mark where it is on the canvas. */
