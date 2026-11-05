@@ -80,7 +80,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 2. IDEA [BL-144]: Cover v2: drop hidden paint faces, make paintable walls nobody can reach plain walls and trim the room on the main floor (TASK-194 merged in), and pack pages fuller, after BL-143; up to 28% less paint memory at ULTRA (BL-034) (docs/ideas/props-and-level.md)
 3. TASK [BL-055]: Group the props better in build mode: decide which prop goes into which category (docs/ideas/props-and-level.md)
 4. [?BUGS-161]: A wall prop overlaps a fence
-5. IDEA [BL-050]: Wires: cutting them, and their length changes with it (BL-051 merged in)
+5. IDEA [BL-050]: Wires: cutting and dynamic length (BL-051 merged in)
 6. IDEA [BL-052]: Lamps that can be fixed to the floor or the ceiling
 7. IDEA [BL-053]: Lamps that light signs
 8. IDEA [BL-054]: New sign sizes, including big rectangular and square ones
