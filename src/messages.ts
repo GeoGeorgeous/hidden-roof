@@ -52,7 +52,7 @@ export const MESSAGES = {
     left: '**{user}** left',
     /** Dev only (F3, unlock all). */
     unlockedAll: 'I picked up **everything**',
-    interiorsCopied: 'I copied **{n}** marked cells',
+    levelSaved: 'I saved the level with **{n}** marked cells',
     /** Paint met a face an admin locked (paint-locks.ts): once while it shows (main.ts). */
     locked: "I won't spoil this masterpiece",
   },

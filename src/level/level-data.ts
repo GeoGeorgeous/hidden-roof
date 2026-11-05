@@ -31,6 +31,9 @@ export interface PropData {
 /** The newest level format: what the game writes, and the most it reads. */
 export const LEVEL_VERSION = 4;
 
+/** A floor marked as a room (interiors.ts): cell x, floor height, cell z, and how high it reaches when less than a storey. */
+export type InteriorCell = [number, number, number, number?];
+
 export interface LevelData {
   /** 4: props keep their default variant even when it changes later (format 3 files: see kit/index.ts upgraded). */
   version: 2 | 3 | 4;
@@ -38,8 +41,8 @@ export interface LevelData {
   props: PropData[];
   /** It has paint of its own, levels/<name>.rhhpaint (save/level-paint.ts): P in build mode writes both. */
   paint?: boolean;
-  /** Rooms for the sound, marked by hand (interiors.ts): [cell x, floor height, cell z] each. */
-  interiors?: [number, number, number][];
+  /** Rooms for the sound, marked by hand (interiors.ts). */
+  interiors?: InteriorCell[];
   /** Owned by other systems (pickups). */
   [extra: string]: unknown;
 }
@@ -61,6 +64,7 @@ const isProp = (p: unknown) =>
   optional(p.text, (v) => typeof v === 'string') &&
   optional(p.finish, (v) => isObj(v) && Object.values(v).every((x) => typeof x === 'string')) &&
   optional(p.mirror, (v) => typeof v === 'boolean');
+const isInteriorCell = (c: unknown) => Array.isArray(c) && (c.length === 3 || c.length === 4) && c.every(isNum);
 const isPickup = (p: unknown) => isObj(p) && typeof p.kind === 'string' && isV3(p.pos);
 
 /**
@@ -76,6 +80,6 @@ export function levelProblem(d: unknown, maxProps = Infinity): string | null {
   if (!Array.isArray(d.props) || d.props.length > maxProps || !d.props.every(isProp)) return 'BAD PROPS';
   if (!optional(d.pickups, (v) => Array.isArray(v) && v.every(isPickup))) return 'BAD PICKUPS';
   if (!optional(d.paint, (v) => typeof v === 'boolean')) return 'BAD PAINT';
-  if (!optional(d.interiors, (v) => Array.isArray(v) && v.every(isV3))) return 'BAD INTERIORS';
+  if (!optional(d.interiors, (v) => Array.isArray(v) && v.every(isInteriorCell))) return 'BAD INTERIORS';
   return null;
 }

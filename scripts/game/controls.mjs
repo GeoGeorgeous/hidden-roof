@@ -172,6 +172,57 @@ await check('sound: the city recording arrives after the first gesture, the rain
   return r.length === 7 && r.every(Boolean) ? null : `recordings: ${r}`;
 });
 
+await check('rooms: both tools start off; a mark reaches up to what starts over a head, and U takes off only the mark you are on', async () => {
+  const setup = await page.evaluate(() => {
+    const g = window.game;
+    const { x, y, z } = g.player.position;
+    const floor = Math.round(y);
+    const box = (bottom, top) => {
+      const b = g.level.colliders[0].clone();
+      b.min.set(Math.floor(x), floor + bottom, Math.floor(z));
+      b.max.set(Math.floor(x) + 1, floor + top, Math.floor(z) + 1);
+      return b;
+    };
+    window.rooms = { was: g.interiors.list(), count: g.level.colliders.length, floor };
+    g.interiors.load([]);
+    g.level.colliders.push(box(1.79, 1.795), box(2.5, 2.6));
+    g.input.setLocked(true);
+    return { mark: g.config.INDOOR_VIEW.mark, show: g.config.INDOOR_VIEW.show };
+  });
+  const hold = async (key) => {
+    await page.keyboard.down(key);
+    await page.evaluate(() => window.steps((f) => f >= 3));
+    await page.keyboard.up(key);
+  };
+  await hold('KeyI');
+  const off = await page.evaluate(() => window.game.interiors.list().length);
+  await page.evaluate(() => (window.game.config.INDOOR_VIEW.mark = true));
+  await hold('KeyI');
+  const marked = await page.evaluate(() => {
+    const g = window.game;
+    const { x, z } = g.player.position;
+    const { floor } = window.rooms;
+    const list = g.interiors.list();
+    const out = { list, under: g.interiors.has(x, floor + 2.4, z), over: g.interiors.has(x, floor + 2.6, z), below: g.interiors.has(x, floor - 1, z) };
+    g.interiors.set(x, floor + 2.6, z, true);
+    return out;
+  });
+  await hold('KeyU');
+  const r = await page.evaluate(() => {
+    const g = window.game;
+    const { x, z } = g.player.position;
+    const { was, count, floor } = window.rooms;
+    const left = g.interiors.has(x, floor + 2.6, z) && !g.interiors.has(x, floor, z);
+    g.level.colliders.length = count;
+    g.interiors.load(was);
+    g.config.INDOOR_VIEW.mark = false;
+    g.input.setLocked(false);
+    return { left, floor };
+  });
+  const ok = !setup.mark && !setup.show && off === 0 && marked.list.length === 1 && marked.list[0][1] === r.floor && marked.list[0][3] === 2.5 && marked.under && !marked.over && !marked.below && r.left;
+  return ok ? null : JSON.stringify({ setup, off, marked, r });
+});
+
 await check('sound: lightning with the Thunder slider at 0 is silent, not an error (a ramp to 0 throws)', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;

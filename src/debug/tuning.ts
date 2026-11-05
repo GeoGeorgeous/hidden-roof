@@ -98,8 +98,8 @@ export interface Hooks {
   rebuildLights(): void;
   /** How many floors are marked as rooms, for its readout. */
   interiorCount(): string;
-  /** Copy them as JSON. */
-  copyInteriors(): void;
+  /** Download the level with them. */
+  saveLevel(): void;
   /** Rebuild the light props themselves (lens colors, floodlight heads), then their FX. */
   rebuildLightProps(): void;
   /** Redraw the HUD vignette (VIGNETTE changed). */

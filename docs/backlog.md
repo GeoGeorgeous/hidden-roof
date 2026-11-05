@@ -111,7 +111,6 @@ Only `N.`, the id and the description are required. The optional parts appear in
 1. IDEA [BL-063]: License-free background music: drum and bass, jungle @1.8.0
 2. IDEA [BL-148]: Other players' sounds: spray hiss, marker, footsteps, landing as positional voices @1.8.0
 3. [IDEA-343]: The can's hiss follows the hand's speed, the distance and the opacity
-4. [TASK-366]: Remove the marking of rooms (src/dev/interior-marks.ts, INDOOR_VIEW) once the owner has checked the rooms in the level
 
 ## Tests and tooling
 
@@ -232,3 +231,4 @@ Dropped items, kept for the record; don't work on them.
 34. ~~[BUGS-198]: With F3 open the compact pause menu is under the pickup tags, nameplates, hotbar and toast (docs/ideas/hud-scale.md) (merged into TASK-203)~~
 35. ~~[BUGS-199]: LOW PRESSURE runs off the right edge in narrow windows (820×560) (docs/ideas/hud-scale.md) (merged into TASK-203)~~
 36. ~~[PERF-200]: Reduce Ladder Shadow Update Delay Without Frequent Rebaking (left as it is: `LIGHTMAP.ladderRest` at 0.3 s saves 0.3 of 1.6–3.7 s and costs 4.4 ms a frame against 0.6 at 2–3 placements a second, `docs/known-limits.md`)~~
+37. ~~[TASK-366]: Remove the marking of rooms (src/dev/interior-marks.ts, INDOOR_VIEW) once the owner has checked the rooms in the level (kept: the owner wants it in F3 as a dev tool)~~

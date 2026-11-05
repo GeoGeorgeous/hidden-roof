@@ -1,6 +1,7 @@
 import './dev.css';
 import type * as THREE from 'three';
 import { BuildMode } from '../build/buildmode';
+import { downloadLevel } from '../build/io';
 import { DebugPanel } from '../debug/panel';
 import { live, type Hooks } from '../debug/tuning';
 import type { GpuTimer } from '../debug/gpu-timer';
@@ -34,7 +35,7 @@ import { Profiler } from './profiler';
 import { WetView } from './wet-view';
 import { RunsView } from './runs-view';
 import { InteriorMarks } from './interior-marks';
-import { INDOOR_VIEW, RUNS_VIEW, WET_VIEW } from '../config';
+import { RUNS_VIEW, WET_VIEW } from '../config';
 import type { PaintOps } from '../paint-ops';
 import type { Tools } from '../tools/tools';
 
@@ -119,15 +120,16 @@ export class DevTools {
     this.profiler = new Profiler(g);
     this.wet = new WetView(g.scene, g.paint, () => g.player.position);
     this.runs = new RunsView(g.scene, g.drips, g.paint);
-    this.marks = new InteriorMarks(g.scene, g.interiors, () => g.player.position);
+    this.marks = new InteriorMarks(g.scene, g.interiors, g.level.colliders, () => g.player.position);
     if (new URLSearchParams(location.search).has('profile')) this.profiler.start();
     const hooks: Hooks = {
       gpu: (label: string) => g.gpuTimer.read(label),
       strikeLightning: () => g.environment.lightning.strike(),
       rebuildLights: () => g.environment.lightFx.rebuild(g.level.lights),
       interiorCount: () => `${this.marks.count}`,
-      copyInteriors: () => {
-        void navigator.clipboard.writeText(this.marks.json()).then(() => g.notify.toast(msg('toast.interiorsCopied', { n: this.marks.count })));
+      saveLevel: () => {
+        downloadLevel(g.levelData(), `${g.levelName()}.json`);
+        g.notify.toast(msg('toast.levelSaved', { n: this.marks.count }));
       },
       // Props with lights (light props, billboards) are rebuilt for a new lens color or aim; their paint carries over.
       rebuildLightProps: () => g.level.rebuildLit(),
@@ -201,7 +203,7 @@ export class DevTools {
     this.ghost.update(dt);
     this.wet.update(dt, WET_VIEW.enabled);
     this.runs.update(dt, RUNS_VIEW.enabled);
-    this.marks.update(input, INDOOR_VIEW.enabled);
+    this.marks.update(input);
     if (session.multiplayer) {
       this.figure.hide();
       this.ghost.stop();

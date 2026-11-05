@@ -328,7 +328,8 @@ function step(time: number) {
   // Heard from where the view is: the free camera's film has the sounds around it.
   const ears = free ? camera.position : eye;
   audio.setFan(fanLevel(level.emitters, ears));
-  audio.setIndoors(interiors.has(ears.x, ears.y, ears.z));
+  const feet = free ? camera.position : player.position;
+  audio.setIndoors(interiors.has(feet.x, feet.y, feet.z));
   audio.update(paused && !play.panel);
   dev?.lap('audio');
 

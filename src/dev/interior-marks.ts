@@ -3,11 +3,13 @@ import { INDOOR_VIEW, INTERIORS } from '../config';
 import type { Input } from '../input';
 import type { Interiors } from '../interiors';
 
-// Marking what's indoors by hand, for now: hold I to mark the cell of the grid
-// you're on, U to unmark it. A sheet at your feet shows the grid, your cell and
-// what's marked on the floor you stand on. Dev tools only (devtools.ts): one mesh, one small texture, redrawn
-// when you've moved a cell or marked one. It changes the open level's rooms until
-// a reload: copy them (F3 → Sound → Indoors) or save the level from build mode.
+// Marking what's indoors by hand, each with its own switch in F3 → Sound → Indoors.
+// Mark rooms: hold I to mark the cell of the grid you're on, U to take off the mark
+// you're on. A mark reaches up to the first thing over your head in that cell.
+// Show rooms: a sheet at your feet shows the grid, your cell and what's marked where
+// you stand. Dev tools only (devtools.ts): one mesh, one small texture, redrawn when
+// you've moved or marked. It changes the open level's rooms until a reload: SAVE
+// LEVEL there, or P in build mode, gives the level with them.
 
 export class InteriorMarks {
   private cells = INDOOR_VIEW.cells;
@@ -16,7 +18,7 @@ export class InteriorMarks {
   private mesh: THREE.Mesh;
   private drawn = '';
 
-  constructor(scene: THREE.Scene, private interiors: Interiors, private feet: () => THREE.Vector3) {
+  constructor(scene: THREE.Scene, private interiors: Interiors, private colliders: readonly THREE.Box3[], private feet: () => THREE.Vector3) {
     const size = this.cells * INTERIORS.cell;
     this.texture.needsUpdate = true;
     const geometry = new THREE.PlaneGeometry(size, size).rotateX(-Math.PI / 2);
@@ -26,20 +28,13 @@ export class InteriorMarks {
     scene.add(this.mesh);
   }
 
-  /** Every frame: `on` shows it, and takes the keys. */
-  update(input: Input, on: boolean) {
-    this.mesh.visible = on;
-    if (!on) return;
+  /** Every frame. */
+  update(input: Input) {
     const at = this.feet();
     const marking = input.isDown('KeyI');
-    const unmarking = input.isDown('KeyU');
-    if (input.locked && (marking || unmarking)) this.brush(at, marking);
-    this.draw(at);
-  }
-
-  /** What's marked, as JSON for the level. */
-  json() {
-    return JSON.stringify(this.interiors.list());
+    if (INDOOR_VIEW.mark && input.locked && (marking || input.isDown('KeyU'))) this.brush(at, marking);
+    this.mesh.visible = INDOOR_VIEW.show;
+    if (INDOOR_VIEW.show) this.draw(at);
   }
 
   get count() {
@@ -51,9 +46,23 @@ export class InteriorMarks {
     const reach = Math.floor(INDOOR_VIEW.brush / 2);
     for (let i = -reach; i <= reach; i++) {
       for (let j = -reach; j <= reach; j++) {
-        if (this.interiors.set(at.x + i * c, at.y, at.z + j * c, on)) this.drawn = '';
+        const x = at.x + i * c;
+        const z = at.z + j * c;
+        if (this.interiors.set(x, at.y, z, on, this.reach(x, Math.round(at.y), z))) this.drawn = '';
       }
     }
+  }
+
+  /** How high a mark on `floor` reaches at this point: to the first thing in its cell that starts over a head, a storey at most. Walls start lower, a pipe overhead doesn't. */
+  private reach(x: number, floor: number, z: number) {
+    const c = INTERIORS.cell;
+    const x0 = Math.floor(x / c) * c;
+    const z0 = Math.floor(z / c) * c;
+    let top = floor + INTERIORS.height;
+    for (const { min, max } of this.colliders) {
+      if (min.y >= floor + INTERIORS.headroom && min.y < top && max.x > x0 && min.x < x0 + c && max.z > z0 && min.z < z0 + c) top = min.y;
+    }
+    return Math.floor((top - floor) * 100) / 100;
   }
 
   private draw(at: THREE.Vector3) {
@@ -61,8 +70,8 @@ export class InteriorMarks {
     const x = (Math.floor(at.x / c) + 0.5) * c;
     const z = (Math.floor(at.z / c) + 0.5) * c;
     this.mesh.position.set(x, at.y + INDOOR_VIEW.lift, z);
-    const floor = Math.round(at.y);
-    const now = [x, z, floor, INDOOR_VIEW.color, INDOOR_VIEW.opacity, INDOOR_VIEW.cursorOpacity, INDOOR_VIEW.gridOpacity].join();
+    const y = Math.round(at.y * 10) / 10;
+    const now = [x, z, y, INDOOR_VIEW.color, INDOOR_VIEW.opacity, INDOOR_VIEW.cursorOpacity, INDOOR_VIEW.gridOpacity].join();
     if (now === this.drawn) return;
     this.drawn = now;
     const color = new THREE.Color(INDOOR_VIEW.color);
@@ -71,7 +80,7 @@ export class InteriorMarks {
       for (let i = 0; i < this.cells; i++) {
         const k = (j * this.cells + i) * 4;
         // Laid flat, the plane's texture starts at its +z edge.
-        const marked = this.interiors.has(x + (i - half) * c, floor, z + (half - j) * c);
+        const marked = this.interiors.has(x + (i - half) * c, y, z + (half - j) * c);
         const here = i === half && j === half;
         const shade = marked ? INDOOR_VIEW.opacity : here ? INDOOR_VIEW.cursorOpacity : (Math.floor(x / c) + Math.floor(z / c) + i + j) % 2 ? 0 : INDOOR_VIEW.gridOpacity;
         this.data[k] = color.r * 255;

@@ -1,50 +1,53 @@
 import { INTERIORS } from './config';
+import type { InteriorCell } from './level/level-data';
 
 // Where the sound is indoors. The level has no rooms and nothing in its shapes
 // tells one from a canopy, so they're marked by hand, cell by cell on the level's
-// grid: a cell has the floors marked on it, whole meters, and a floor is indoors
-// up to INTERIORS.height over it.
+// grid: a cell has the floors marked on it, whole meters, and each reaches up as
+// far as it was marked to, INTERIORS.height unless something was in the way.
+
+type Mark = { floor: number; height: number };
 
 const cell = (v: number) => Math.floor(v / INTERIORS.cell);
 const key = (cx: number, cz: number) => `${cx},${cz}`;
-const reaches = (floor: number, y: number) => y >= floor && y - floor < INTERIORS.height;
+/** Feet at `y` are on this mark: a step or a low block is still the floor it's on. */
+const reaches = ({ floor, height }: Mark, y: number) => Math.round(y) >= floor && y < floor + height;
 
 export class Interiors {
-  private cells = new Map<string, number[]>();
+  private cells = new Map<string, Mark[]>();
 
-  /** Whether this point is over a marked floor of its cell. */
+  /** Whether feet at this point are over a marked floor of its cell. */
   has(x: number, y: number, z: number) {
-    return !!this.cells.get(key(cell(x), cell(z)))?.some((floor) => reaches(floor, y));
+    return !!this.cells.get(key(cell(x), cell(z)))?.some((mark) => reaches(mark, y));
   }
 
-  /** Marks or unmarks the point's cell, feet at height `y`: a step or a low block is still the floor it's on. Returns whether that changed anything. */
-  set(x: number, y: number, z: number, on: boolean) {
+  /** Marks the point's cell, feet at height `y`, `height` up from the floor they're on, or takes off the mark they're on. Returns whether that changed anything. */
+  set(x: number, y: number, z: number, on: boolean, height: number = INTERIORS.height) {
     const k = key(cell(x), cell(z));
-    const floors = this.cells.get(k) ?? [];
-    const level = Math.round(y);
-    if (floors.some((floor) => reaches(floor, level)) === on) return false;
-    const next = on ? [...floors, level] : floors.filter((floor) => !reaches(floor, level));
+    const marks = this.cells.get(k) ?? [];
+    if (marks.some((mark) => reaches(mark, y)) === on) return false;
+    const next = on ? [...marks, { floor: Math.round(y), height }] : marks.filter((mark) => !reaches(mark, y));
     if (next.length) this.cells.set(k, next);
     else this.cells.delete(k);
     return true;
   }
 
-  /** Every marked floor, as [cell x, floor height, cell z]. */
+  /** Every mark, as the level file has it. */
   list() {
-    const out: [number, number, number][] = [];
-    for (const [k, floors] of this.cells) {
+    const out: InteriorCell[] = [];
+    for (const [k, marks] of this.cells) {
       const [cx, cz] = k.split(',').map(Number);
-      for (const floor of floors) out.push([cx, floor, cz]);
+      for (const { floor, height } of marks) out.push(height === INTERIORS.height ? [cx, floor, cz] : [cx, floor, cz, height]);
     }
     return out;
   }
 
   /** Puts back what `list` gave. */
-  load(list: [number, number, number][]) {
+  load(list: InteriorCell[]) {
     this.cells.clear();
-    for (const [cx, floor, cz] of list) {
+    for (const [cx, floor, cz, height = INTERIORS.height] of list) {
       const k = key(cx, cz);
-      this.cells.set(k, [...(this.cells.get(k) ?? []), floor]);
+      this.cells.set(k, [...(this.cells.get(k) ?? []), { floor, height }]);
     }
   }
 }

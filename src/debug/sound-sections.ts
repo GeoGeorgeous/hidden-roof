@@ -34,10 +34,11 @@ export function soundSections(h: Hooks): Section[] {
       id: 'indoors-sound',
       title: 'Indoors',
       items: [
-        t('mark rooms', ['INDOOR_VIEW', 'enabled']),
+        t('mark rooms', ['INDOOR_VIEW', 'mark']),
+        t('show rooms', ['INDOOR_VIEW', 'show']),
         r('brush', ['INDOOR_VIEW', 'brush'], 1, 9, 2),
         { kind: 'readout', label: 'marked', get: () => h.interiorCount() },
-        { kind: 'action', label: 'COPY ROOMS', run: () => h.copyInteriors() },
+        { kind: 'action', label: 'SAVE LEVEL', run: () => h.saveLevel() },
         r('rain', ['AUDIO', 'indoorRainGain'], 0, 0.5, 0.005),
         r('city left', ['AUDIO', 'indoorCity'], 0, 1, 0.05),
         r('city tone', ['AUDIO', 'indoorTone'], 200, 8000, 50),
