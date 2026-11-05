@@ -55,9 +55,8 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## Painting
 
 1. IDEA [BL-074]: Stencils
-2. [?IDEA-166]: Lock the camera while painting: an idea from before the rework, not started, off 1.7.0
-3. [IDEA-336]: Marker: a flat nib, wide across and thin along, for calligraphy: tried on a can cap (TRANSVERSAL), its code kept commented out, each place marked "Kept for a flat nib on the marker, a later version." (grep it)
-4. IDEA [BL-039]: More marker types (rectangular and calligraphy nibs among them, IDEA-233 merged in), placed on the map; a per-tool variant module first, as caps are (docs/ideas/tools.md)
+2. [IDEA-336]: Marker: a flat nib, wide across and thin along, for calligraphy: tried on a can cap (TRANSVERSAL), its code kept commented out, each place marked "Kept for a flat nib on the marker, a later version." (grep it)
+3. IDEA [BL-039]: More marker types (rectangular and calligraphy nibs among them, IDEA-233 merged in), placed on the map; a per-tool variant module first, as caps are (docs/ideas/tools.md)
 
 ## Input
 
@@ -71,8 +70,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## Rendering
 
-1. IDEA [BL-066]: A camera mode for trailers and cinematics
-2. [RFCT-320]: Capture mode's fixed frames scale the hatching by writing INK.hatchPx, so F3's spacing shows 3.56 in 9:16 and what is set there inside a frame is lost: a scale of its own, apart from the tunable
+1. [RFCT-320]: Capture mode's fixed frames scale the hatching by writing INK.hatchPx, so F3's spacing shows 3.56 in 9:16 and what is set there inside a frame is lost: a scale of its own, apart from the tunable
 
 ## Props and level
 
@@ -198,6 +196,7 @@ Shipped since the last release; the release commit empties this list.
 39. [IDEA-343]: The can's hiss follows the hand: louder with more opacity, closer to a wall and with the hand moving (`HISS`)
 40. [IDEA-342]: The ghost from capture mode (dev tools only), to film yourself from outside: V also goes to a Record avatar view, first person where T records a take and, stopping it, goes to the free view; a take too short to be meant keeps the last one. In the free view Space plays and holds it, 1 2 3 set 1x, 2x or 4x (paint runs too), R plays from the start, C shows the clean wall and goes on from where it was; it ends on its last frame. Your wall and stepladder stand aside while it plays and come back when you change view or leave capture mode. Tab shows the keys that work right now
 41. [IDEA-372]: Capture mode has one plate for players and dev tools: one control a line; in the free view what's going on, speed and smoothing, and Tab holds up the rest in groups, only the keys that work right now
+42. IDEA [BL-066]: A camera mode for trailers and cinematics
 
 ## Discarder
 
@@ -240,3 +239,4 @@ Dropped items, kept for the record; don't work on them.
 35. ~~[BUGS-199]: LOW PRESSURE runs off the right edge in narrow windows (820×560) (docs/ideas/hud-scale.md) (merged into TASK-203)~~
 36. ~~[PERF-200]: Reduce Ladder Shadow Update Delay Without Frequent Rebaking (left as it is: `LIGHTMAP.ladderRest` at 0.3 s saves 0.3 of 1.6–3.7 s and costs 4.4 ms a frame against 0.6 at 2–3 placements a second, `docs/known-limits.md`)~~
 37. ~~[TASK-366]: Remove the marking of rooms (src/dev/interior-marks.ts, INDOOR_VIEW) once the owner has checked the rooms in the level (kept: the owner wants it in F3 as a dev tool)~~
+38. ~~[?IDEA-166]: Lock the camera while painting: an idea from before the rework, not started, off 1.7.0~~
