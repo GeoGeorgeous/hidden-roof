@@ -185,7 +185,7 @@ Shipped since the last release; the release commit empties this list.
 31. [IDEA-358]: The crosshair shows the marker's and the sponge's real width at the wall and fades out of their reach, as the can's does, with no arc: one module, `src/tools/aim.ts`, that any tool with a reach can take
 32. [IDEA-360]: The roller's crosshair is a bar, a press of it at its real size, and fades out of its reach, by the same module as the marker's and the sponge's
 33. [TASK-359]: Hints and toasts in one voice, the first person, and a line for each cap the first time it's on the can in hand: a rank `moment` over the hints that wait for the player
-34. [IDEA-363]: Hints and toasts that go by themselves show a ring running down with their time, the hold-Esc ring's look; hints that wait for the player have none
+34. [IDEA-363]: Hints and toasts that go by themselves show a ring running down with their time, the hold-Esc ring's look
 35. [IDEA-364]: Every hint has a ring: a hint the player does fills it as far as they got and turns into the status's check for `TUTORIAL.fullHold` (0.6 s), one action at once. Walking, jumping (one jump) and running (5 m) are three hints, the opacity is learnt by 30% of change in all, a ladder counts going down too, the color hint waits for a color change
 
 ## Discarder
