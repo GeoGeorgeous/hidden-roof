@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 386
+The one list of what's left. Counter for new ids: next: 387
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -62,7 +62,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## Input
 
-1. BUGS [!BL-010]: Huge mouse jumps snap the camera in Chrome on Windows; the fix is the owner's choice (docs/ideas/mouse-spikes.md) @1.7.1
+1. BUGS [!BL-010]: Huge mouse jumps snap the camera in Chrome on Windows; the fix is the owner's choice (docs/ideas/mouse-spikes.md) @1.7.0
 
 ## Performance
 
@@ -92,7 +92,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 14. [IDEA-378]: One more exhaust square duct that can be attached vertically with no wall to wall duct
 15. [TASK-379]: In HVAC category add 2 subcategory: round wall duct and square wall duct. Instead of Wall Duct and Vertical Wall Duct.
 16. [IDEA-380]: Vertical square wall duct that goes to the wall
-17. [IDEA-385]: Add a wall that goes along a block boundary
+17. [IDEA-386]: Add a wall that goes along a block boundary
 
 ## Tools
 
