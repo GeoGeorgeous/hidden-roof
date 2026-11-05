@@ -2,13 +2,13 @@ import fs from 'node:fs/promises';
 import { dayName, dayOfFile, HOUR, iso } from './days';
 import { answer, type Period, type Span } from './stats-period';
 import { bump } from './tally';
-import { STEPS } from './traffic-count';
+import { BITS, MARKS, STEPS } from './traffic-count';
 import { keptHours } from './traffic-store';
 
 // GET /stats/traffic?period=P (server/admin/stats.ts): the web traffic over the same hours as the other stats, from the
-// reader's hours files (traffic-store.ts). Each visitor counts once over the period, at each step they got to.
+// reader's hours files (traffic-store.ts). Each visitor counts once over the period, at each step they got to and each mark their page sent.
 
-/** The traffic of `f`: views, bots, visitors, the visitors at each step and by the country of their first view in it; with `hours`, each hour's views and visitors too. `dir`: DATA_DIR/traffic (none: no traffic). */
+/** The traffic of `f`: views, bots, visitors, the visitors at each step, with each mark and by the country of their first view in it; with `hours`, each hour's views and visitors too. `dir`: DATA_DIR/traffic (none: no traffic). */
 export async function figures(dir: string | null, f: Span, hours = false) {
   const seen = new Map<string, number>();
   const from = new Map<string, string>();
@@ -26,11 +26,13 @@ export async function figures(dir: string | null, f: Span, hours = false) {
       if (hours) each.set(at, { views: h.views, visitors: [...h.seen.values()].filter((m) => m & 1).length });
     }
   }
-  const steps = Object.fromEntries(STEPS.map((step, i) => [step, [...seen.values()].filter((m) => m & (1 << i)).length])) as Record<(typeof STEPS)[number], number>;
+  /** The visitors who got to each of `bits`. */
+  const reached = <B extends (typeof BITS)[number]>(bits: readonly B[]) => Object.fromEntries(bits.map((bit) => [bit, [...seen.values()].filter((m) => m & (1 << BITS.indexOf(bit))).length])) as Record<B, number>;
+  const steps = reached(STEPS);
   const visitorCountries: Record<string, number> = {};
   for (const c of from.values()) bump(visitorCountries, c);
   const list = hours ? { hours: Array.from({ length: f.end - f.first }, (_, i) => ({ at: iso((f.first + i) * HOUR), ...(each.get(f.first + i) ?? { views: 0, visitors: 0 }) })) } : {};
-  return { views, bots, visitors: steps.view, steps, visitorCountries, ...list };
+  return { views, bots, visitors: steps.view, steps, boot: reached(MARKS), visitorCountries, ...list };
 }
 
 /** The traffic in `period` at `now`, as GET /stats/traffic answers it. `dir`: DATA_DIR/traffic. */

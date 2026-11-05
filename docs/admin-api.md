@@ -204,14 +204,27 @@ pickup code in the game, the starting kit's left out: tools (`marker`), then cap
 ```
 views, bots, visitors,
 steps: { view, script, beacon, socket },  // visitors who got that far
+boot: { game, noMouse, smallWindow, noWebgl, loadFailed, cached },  // visitors whose page said so
 visitorCountries: { CC: visitors },       // each visitor once, by the country of their first view in the period
 hours: [{ at, views, visitors }]          // today and 24h only: each hour, oldest first, visitors distinct within it
 ```
 
+`boot` is what each page load said of itself (`src/boot.ts`), counted like the steps, each visitor once at each word:
+`game` the game was chosen; `noMouse`, `smallWindow` the page about the game shows instead, for want of a mouse or of room;
+`noWebgl`, `loadFailed` the game was chosen and didn't start, without WebGL2 or for a file that didn't load, so these come
+on top of `game`; `cached` the start script came from the browser's cache (`transferSize` 0), whatever was shown.
+Being sets of visitors they overlap: someone on a phone and later on a big window is `noMouse` and `game` if the address and
+browser are the same. `steps.script` stays for the old days: it counts any `/assets/*.js`, so a phone is in and a cached return isn't.
+
+It's a GET of the static file `/mark.txt?m=game&m=cached`, which Caddy serves and logs itself: nothing of it passes through the
+game server, so marks keep counting while that is down, and show when it is back (it only answers this API). Nothing is
+stored on the device, and `?force` sends none. Not counted: a browser with no JavaScript, one that blocks the file, and
+`cached` where `transferSize` isn't reported (it reads as not cached). Days and months before the marks have zeros.
+
 `GET /stats/traffic/days`: the site's days (History: `?from=&to=`, or `?n=N` the last N days), oldest first, a day with no counts left out:
 
 ```
-{ from, to, days: [{ day, views, visitors, bots, pages, sources, campaigns, countries, visitorCountries, steps, botKinds, botPages }] }
+{ from, to, days: [{ day, views, visitors, bots, pages, sources, campaigns, countries, visitorCountries, steps, boot, botKinds, botPages }] }
 ```
 
 `countries` is views by country, `visitorCountries` visitors (each once a day, by their first view's); `botKinds`
@@ -272,7 +285,7 @@ lies about them changes counts, never anything else.
 months whose hours are still kept, come from the hours).
 
 ```
-{ from, to, months: [{ month, views, bots, visitors, visitorCountries, steps, exact }] }
+{ from, to, months: [{ month, views, bots, visitors, visitorCountries, steps, boot, exact }] }
 ```
 
 `visitors` is each visitor once in the month; `exact` is false for a month whose salt changed inside it (before the salt

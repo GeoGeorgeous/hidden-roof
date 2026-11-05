@@ -80,7 +80,7 @@
         var meta = document.querySelector('meta[name="game-files"]');
         var min = JSON.parse(meta.getAttribute('data-min'));
         var small = matchMedia('(pointer: coarse) and (hover: none)').matches || !('requestPointerLock' in Element.prototype) || innerWidth < min.w || innerHeight < min.h;
-        if (small && !/[?&]force\b/.test(location.search)) return;
+        if (small && !new URLSearchParams(location.search).has('force')) return;
         document.documentElement.classList.add('game');
         if (!meta.content) return;
         meta.content.split(' ').forEach(function (href) {

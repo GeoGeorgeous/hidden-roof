@@ -9,7 +9,7 @@ import { pass } from './traffic-log';
 
 // The traffic reader (traffic.ts, traffic-log.ts, traffic-count.ts) on a sample of Caddy's access log, and the admin
 // API's GET /stats/traffic over what it wrote: views, pages and sources in their order, bots by name and page, distinct
-// visitors and their countries, the funnel, resuming from where it was, a rotated log, a line still being written, the day
+// visitors and their countries, the funnel, the marks, resuming from where it was, a rotated log, a line still being written, the day
 // changing, no address or browser name in a file, and the days and periods the API answers. npm run test:server runs it.
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'roof-traffic-'));
@@ -41,6 +41,7 @@ const state = () => JSON.parse(fs.readFileSync(path.join(traffic, 'state.json'),
 const realNow = Date.now;
 const clock = (s: number) => (Date.now = () => s * 1000);
 
+const noBoot = { game: 0, noMouse: 0, smallWindow: 0, noWebgl: 0, loadFailed: 0, cached: 0 };
 const A = '10.1.0.1';
 const B = '10.1.0.2';
 const C = '10.9.0.3';
@@ -67,12 +68,21 @@ append(
   line({ ts: t0 + 12, ip: '10.4.0.1', ua: 'Opera/9', uri: '/assets/index-abc.js', status: 304, type: null }),
   // A beacon that was refused (429) is not a beacon step.
   line({ ts: t0 + 13, ip: '10.4.0.2', ua: 'Opera/9', method: 'POST', uri: '/ws?e', status: 429, type: null }),
+  // Marks (src/boot.ts): each visitor once, whatever the status of a repeat; another word, a 404 or a bot's isn't one.
+  line({ ts: t0 + 14, ip: A, uri: '/mark.txt?m=game&m=cached', type: 'text/plain' }),
+  line({ ts: t0 + 15, ip: A, uri: '/mark.txt?m=loadFailed', type: 'text/plain' }),
+  line({ ts: t0 + 16, ip: A, uri: '/mark.txt?m=game', status: 304, type: null }),
+  line({ ts: t0 + 17, ip: B, ua: CHROME, uri: '/mark.txt?m=noMouse&m=bogus', type: 'text/plain' }),
+  line({ ts: t0 + 18, ip: C, uri: '/mark.txt?m=bogus', type: 'text/plain' }),
+  line({ ts: t0 + 19, ip: C, uri: '/mark.txt?m=noWebgl', status: 404, type: 'text/plain' }),
+  line({ ts: t0 + 20, ip: '10.3.0.2', ua: 'curl/8.0', uri: '/mark.txt?m=smallWindow', type: 'text/plain' }),
   'not json\n',
   JSON.stringify({ ts: t0, request: { client_ip: A } }) + '\n',
 );
 await pass(opts);
 const first = read(names[0]);
 assert.deepEqual([first.views, first.visitors, first.bots, first.pages, first.campaigns, first.countries, first.steps], [4, 3, 1, { '/': 4 }, { spring: 1 }, { DE: 3 }, { view: 3, script: 2, beacon: 1, socket: 1 }]);
+assert.deepEqual(first.boot, { ...noBoot, game: 1, noMouse: 1, loadFailed: 1, cached: 1 });
 assert.deepEqual(first.sources, { discord: 1, 'google.com': 1, direct: 1, newsletter: 1 });
 assert.deepEqual([first.botKinds, first.botPages, first.visitorCountries], [{ googlebot: 1 }, { '/': 1 }, { DE: 2 }], 'a bot by its name and page; a visitor once a day by their first view\'s country (B has two views)');
 const noonHour = JSON.parse(fs.readFileSync(path.join(traffic, `hours-${names[0]}.json`), 'utf8'))[12];
@@ -199,11 +209,11 @@ assert.ok(!fs.existsSync(path.join(traffic, `hours-${oldDay}.json`)), 'old hours
   assert.ok(!fs.existsSync(path.join(traffic2, 'months.json')), 'nothing written inside the month');
   await run('2026-02-01T00:00:10Z', line({ ts: at('2026-02-01T00:00:05Z'), ip: A }));
   assert.notEqual(salt().key, january.key, 'a new salt at the month\'s start');
-  const jan = { views: 4, bots: 1, visitors: 3, visitorCountries: { DE: 2 }, steps: { view: 3, script: 1, beacon: 0, socket: 0 }, exact: false };
+  const jan = { views: 4, bots: 1, visitors: 3, visitorCountries: { DE: 2 }, steps: { view: 3, script: 1, beacon: 0, socket: 0 }, boot: noBoot, exact: false };
   assert.deepEqual(months(), { '2026-01': jan }, 'January written, each visitor once; its salt began on the 10th');
   await run('2026-02-15T12:01:00Z', line({ ts: at('2026-02-15T12:00:00Z'), ip: A }), line({ ts: at('2026-02-15T12:00:01Z'), ip: B, ua }));
   await run('2026-03-01T00:00:10Z', line({ ts: at('2026-03-01T00:00:05Z'), ip: A }));
-  const feb = { views: 3, bots: 0, visitors: 2, visitorCountries: { DE: 2 }, steps: { view: 2, script: 0, beacon: 0, socket: 0 }, exact: true };
+  const feb = { views: 3, bots: 0, visitors: 2, visitorCountries: { DE: 2 }, steps: { view: 2, script: 0, beacon: 0, socket: 0 }, boot: noBoot, exact: true };
   assert.deepEqual(months(), { '2026-01': jan, '2026-02': feb }, 'February: one salt began at its start');
   assert.equal(fs.statSync(path.join(traffic2, 'months.json')).mode & 0o777, 0o644);
   await run('2026-03-01T00:30:00Z');
@@ -211,20 +221,23 @@ assert.ok(!fs.existsSync(path.join(traffic, `hours-${oldDay}.json`)), 'old hours
 
   // GET /stats/traffic/months: from the file for the months ended, live for this one; a month with no hours and no file is left out.
   const get = (query: string) => statsRoute(['traffic', 'months'], new URLSearchParams(query), dir2) as Promise<{ from: string; to: string; months: any[] }>;
-  const march = { month: '2026-03', views: 1, bots: 0, visitors: 1, visitorCountries: { DE: 1 }, steps: { view: 1, script: 0, beacon: 0, socket: 0 }, exact: true };
+  const march = { month: '2026-03', views: 1, bots: 0, visitors: 1, visitorCountries: { DE: 1 }, steps: { view: 1, script: 0, beacon: 0, socket: 0 }, boot: noBoot, exact: true };
   for (const name of fs.readdirSync(traffic2)) if (/^hours-2026-0[12]/.test(name)) fs.rmSync(path.join(traffic2, name));
   const kept = await get('from=2025-12&to=2026-04');
   assert.deepEqual([kept.from, kept.to, kept.months.map((m) => m.month)], ['2025-12', '2026-04', ['2026-01', '2026-02', '2026-03']], 'the months ended from the file, this one live');
   assert.deepEqual(kept.months, [{ month: '2026-01', ...jan }, { month: '2026-02', ...feb }, march], 'March from its hours: its salt began in its first minute');
-  assert.deepEqual(Object.keys(kept.months[0]), ['month', 'views', 'bots', 'visitors', 'visitorCountries', 'steps', 'exact']);
+  assert.deepEqual(Object.keys(kept.months[0]), ['month', 'boot', 'views', 'bots', 'visitors', 'visitorCountries', 'steps', 'exact']);
   assert.equal((await get('')).months.length, 3, 'twelve months by default, to this one');
+  // A month written before the marks has none.
+  fs.writeFileSync(path.join(traffic2, 'months.json'), JSON.stringify({ '2026-01': { views: 1, bots: 0, visitors: 1, visitorCountries: {}, steps: {}, exact: true } }));
+  assert.deepEqual((await get('from=2026-01&to=2026-01')).months[0].boot, noBoot);
   // Months not in the file are counted from their hours if those are kept: its salt is March's, so they are inexact.
   fs.rmSync(path.join(traffic2, 'months.json'));
   for (const name of fs.readdirSync(traffic2)) if (/^(hours-)?2026-0[12]/.test(name)) fs.rmSync(path.join(traffic2, name));
   assert.deepEqual((await get('from=2026-01&to=2026-02')).months, [], 'no file and no counts');
-  fs.writeFileSync(path.join(traffic2, 'hours-2026-02-15.json'), JSON.stringify({ 12: { views: 2, bots: 0, seen: { a: 1, b: 3 }, countries: { a: 'FR' } } }));
+  fs.writeFileSync(path.join(traffic2, 'hours-2026-02-15.json'), JSON.stringify({ 12: { views: 2, bots: 0, seen: { a: 1, b: 3 | (1 << 4) }, countries: { a: 'FR' } } }));
   fs.writeFileSync(path.join(traffic2, '2026-02-15.json'), JSON.stringify({ views: 2, bots: 1 }));
-  assert.deepEqual((await get('from=2026-02&to=2026-02')).months, [{ month: '2026-02', views: 2, bots: 1, visitors: 2, visitorCountries: { FR: 1 }, steps: { view: 2, script: 1, beacon: 0, socket: 0 }, exact: false }]);
+  assert.deepEqual((await get('from=2026-02&to=2026-02')).months, [{ month: '2026-02', views: 2, bots: 1, visitors: 2, visitorCountries: { FR: 1 }, steps: { view: 2, script: 1, beacon: 0, socket: 0 }, boot: { ...noBoot, game: 1 }, exact: false }]);
   assert.deepEqual((await get('from=2020-01&to=2020-02')).months, [], 'long ago, nothing kept');
   await assert.rejects(get('from=2026-03&to=2026-01'), Refused);
   assert.deepEqual(await statsRoute(['traffic', 'months'], new URLSearchParams('from=2026-01&to=2026-02'), null), { from: '2026-01', to: '2026-02', months: [] }, 'without DATA_DIR');
@@ -293,7 +306,7 @@ Date.now = realNow;
 
 // GET /stats/traffic/days: the days with a file, oldest first, the figures an older file lacks as none.
 const stats = (at: string, query = '') => statsRoute(at.split('/'), new URLSearchParams(query), dir) as Promise<Record<string, any>>;
-const dayKeys = ['day', 'views', 'visitors', 'bots', 'pages', 'sources', 'campaigns', 'countries', 'visitorCountries', 'steps', 'botKinds', 'botPages'];
+const dayKeys = ['day', 'views', 'visitors', 'bots', 'pages', 'sources', 'campaigns', 'countries', 'visitorCountries', 'steps', 'boot', 'botKinds', 'botPages'];
 fs.writeFileSync(path.join(traffic, 'not-a-day.json'), '{}');
 // The second day as a file from before these figures was written.
 const { botKinds: _k, botPages: _p, visitorCountries: _v, ...older } = second;
@@ -302,7 +315,7 @@ fs.writeFileSync(path.join(traffic, `${new Date().toISOString().slice(0, 10)}.js
 const all = await stats('traffic/days', 'n=3');
 assert.deepEqual(all.days.map((d: { day: string }) => d.day), names);
 assert.deepEqual(Object.keys(all.days[1]), dayKeys);
-assert.deepEqual([all.days[1].botKinds, all.days[1].botPages, all.days[1].visitorCountries], [{}, {}, {}], 'a day counted before these were has none');
+assert.deepEqual([all.days[1].botKinds, all.days[1].botPages, all.days[1].visitorCountries, all.days[1].boot], [{}, {}, {}, noBoot], 'a day counted before these were has none');
 assert.deepEqual((await stats('traffic/days', 'n=2')).days.map((d: { day: string }) => d.day), [names[1]], 'only the last two days');
 assert.equal((await stats('traffic/days')).days.length, 2, '30 days by default');
 const today1 = new Date().toISOString().slice(0, 10);
@@ -319,17 +332,17 @@ for (const name of fs.readdirSync(traffic)) if (name.startsWith('hours-')) fs.rm
 const [nowHour, nowDay] = [new Date().getUTCHours(), new Date().toISOString().slice(0, 10)];
 const put = (day: string, h: Record<number, object>) => fs.writeFileSync(path.join(traffic, `hours-${day}.json`), JSON.stringify(h));
 const ago = (days: number) => new Date(Date.now() - days * 864e5).toISOString().slice(0, 10);
-// Visitors a to d; a is 1 (a view), b 3 (view, script), c 15 (all four), d 1.
+// Visitors a to d; a is 1 (a view), b 3 (view, script), c 15 (all four), d 1. Past the steps, the marks: 16 game, 32 noMouse, 512 cached.
 // Countries: c and d first seen in FR and DE, a in NL three days ago and in FR today; b never said.
-put(nowDay, { [nowHour]: { views: 5, bots: 1, seen: { a: 1, b: 3 }, countries: { a: 'FR' } } });
-put(ago(3), { 12: { views: 2, bots: 0, seen: { a: 1, c: 15 }, countries: { a: 'NL', c: 'DE' } } });
-put(ago(6), { 12: { views: 1, bots: 2, seen: { c: 1, d: 1 }, countries: { c: 'FR', d: 'DE' } } });
+put(nowDay, { [nowHour]: { views: 5, bots: 1, seen: { a: 1, b: 3 | 16 }, countries: { a: 'FR' } } });
+put(ago(3), { 12: { views: 2, bots: 0, seen: { a: 1, c: 15 | 16 | 512 }, countries: { a: 'NL', c: 'DE' } } });
+put(ago(6), { 12: { views: 1, bots: 2, seen: { c: 1 | 16, d: 1 | 32 }, countries: { c: 'FR', d: 'DE' } } });
 put(ago(40), { 12: { views: 100, bots: 100, seen: { z: 1 } } });
 const hour = (n: number) => new Date(Math.floor(Date.now() / 36e5) * 36e5 - n * 36e5).toISOString();
 const today = await stats('traffic', 'period=today');
 const noSteps = { view: 0, script: 0, beacon: 0, socket: 0 };
 assert.deepEqual([today.period, today.views, today.bots, today.visitors, today.steps], ['today', 5, 1, 2, { view: 2, script: 1, beacon: 0, socket: 0 }]);
-assert.deepEqual(Object.keys(today), ['period', 'from', 'to', 'views', 'bots', 'visitors', 'steps', 'visitorCountries', 'hours', 'before']);
+assert.deepEqual(Object.keys(today), ['period', 'from', 'to', 'views', 'bots', 'visitors', 'steps', 'boot', 'visitorCountries', 'hours', 'before']);
 assert.deepEqual(today.visitorCountries, { FR: 1 });
 assert.deepEqual([today.hours.length, today.hours.at(-1), today.hours[0].at], [nowHour + 1, { at: hour(0), views: 5, visitors: 2 }, `${nowDay}T00:00:00.000Z`], 'every hour of the day, oldest first, the one with traffic last');
 assert.ok(today.hours.slice(0, -1).every((h: { views: number; visitors: number }) => !h.views && !h.visitors), 'hours with none are there, as zeros');
@@ -340,6 +353,7 @@ const day = await stats('traffic', 'period=24h');
 assert.deepEqual([day.hours.length, day.hours.at(-1).views, 'hours' in day.before], [24, 5, false]);
 const week = await stats('traffic', 'period=7d');
 assert.deepEqual([week.views, week.bots, week.visitors, week.steps], [8, 3, 4, { view: 4, script: 2, beacon: 1, socket: 1 }], 'a once over the week, c at every step');
+assert.deepEqual([today.boot, week.boot], [{ ...noBoot, game: 1 }, { ...noBoot, game: 2, noMouse: 1, cached: 1 }], 'c\'s page said game on two days: once over the week');
 assert.deepEqual(week.visitorCountries, { FR: 1, DE: 1, NL: 1 }, 'each visitor once, by the country of their first view in the period');
 assert.equal(week.from, hour(7 * 24 - 1), 'the week starts 168 hours back, this one included');
 assert.ok(Math.abs(Date.parse(week.to) - Date.now()) < 5000);
@@ -365,4 +379,4 @@ assert.deepEqual(((await statsRoute(['traffic', 'days'], new URLSearchParams('n=
 const none = (await statsRoute(['traffic'], new URLSearchParams('period=7d'), null)) as Record<string, any>;
 assert.deepEqual([none.views, none.bots, none.visitors, none.steps, none.before], [0, 0, 0, noSteps, null]);
 fs.rmSync(dir, { recursive: true, force: true });
-console.log('traffic: ok (views, pages, sources in their order, bots by name and page, visitors and their countries by day and by period, the funnel, resuming, a partial line, truncation and rotation, the day changing and ending, a lost state, 304 pages, IPv6, no address or browser kept, the hours and periods with the period before, the days)');
+console.log('traffic: ok (views, pages, sources in their order, bots by name and page, visitors and their countries by day and by period, the funnel, the marks, resuming, a partial line, truncation and rotation, the day changing and ending, a lost state, 304 pages, IPv6, no address or browser kept, the hours and periods with the period before, the days)');

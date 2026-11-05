@@ -1,6 +1,7 @@
 import { SERVER } from '../src/config';
 import { dayAt, DAY, dayName } from './days';
 import { monthName, monthOfDay, monthStart } from './stats-period';
+import { noMarks } from './traffic-count';
 import { figures } from './traffic-period';
 import { readDay, readMonths, readState, writeMonths, type Month } from './traffic-store';
 
@@ -22,7 +23,7 @@ async function counted(dir: string, month: number, since: number): Promise<Month
     bots += day?.bots ?? 0;
   }
   if (!views && !bots && !f.visitors) return null;
-  return { views, bots, visitors: f.visitors, visitorCountries: f.visitorCountries, steps: f.steps, exact: since <= first * DAY + SLACK };
+  return { views, bots, visitors: f.visitors, visitorCountries: f.visitorCountries, steps: f.steps, boot: f.boot, exact: since <= first * DAY + SLACK };
 }
 
 /** The salt that began at `since` (ms) is replaced at `now`: the months it covered that have ended are written to months.json (counts only; one already there stays). `dir`: DATA_DIR/traffic. */
@@ -45,7 +46,7 @@ export async function trafficMonths(dir: string | null, range: { from: number; t
     for (let m = range.from; m <= range.to; m++) {
       // A month not written is counted if all its hours are still kept: this month, or one that began within SERVER.historyDays.
       const counts = kept[monthName(m)] ?? (monthStart(m) >= day - SERVER.historyDays ? await counted(dir, m, since) : null);
-      if (counts) out.push({ month: monthName(m), ...counts });
+      if (counts) out.push({ month: monthName(m), boot: noMarks(), ...counts });
     }
   }
   return { from, to, months: out };

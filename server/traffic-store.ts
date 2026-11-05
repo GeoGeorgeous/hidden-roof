@@ -114,6 +114,8 @@ export interface Month {
   visitors: number;
   visitorCountries: Record<string, number>;
   steps: Record<string, number>;
+  /** None in a month written before the marks. */
+  boot?: Record<string, number>;
   /** One salt covered the month: a visitor is counted once. */
   exact: boolean;
 }
