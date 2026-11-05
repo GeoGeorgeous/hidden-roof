@@ -39,6 +39,7 @@ interface PaintSurfaceFields {
   mips: MipSize[];
   /** When each texel's wet paint is dry (paint-wet.ts WetSurface). */
   wet: Float32Array | null;
+  wetSince: WetSurface['wetSince'];
   /** The spots of wall that ran or keep paint (paint-wet.ts WetSurface). */
   spots: WetSurface['spots'];
   /** Texel rects changed since the last upload (inclusive, paint-gpu.ts: its list, nobody else's). */

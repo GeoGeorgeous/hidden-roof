@@ -10,7 +10,7 @@ const { PaintRaster } = await import('../src/paint-raster.ts');
 const { PaintDrips } = await import('../src/paint-drips.ts');
 const { putPatch } = await import('../src/paint-copy.ts');
 
-const surface = (tpm = 96) => ({ geo: { atlasW: 256, atlasH: 256, texelsPerMeter: tpm }, wet: null, spots: null });
+const surface = (tpm = 96) => ({ geo: { atlasW: 256, atlasH: 256, texelsPerMeter: tpm }, wet: null, wetSince: 0, spots: null });
 /** A face from the atlas's corner. */
 const FACE = { x: 0, y: 0 };
 const pass = DRIPS.passCoats;
@@ -225,6 +225,37 @@ const dice = (...rolls) => {
   assert.equal(drips.count, 3, 'further down or beside it, up to maxActive');
   assert.equal(drips.started, 3, 'those dropped never started');
   DRIPS.maxActive = maxActive;
+}
+
+// However long the clock has run, a thin coat counts as it does at the start: paint still builds up, and the same coats run.
+{
+  dice(0.5);
+  const coatsToRun = (now) => {
+    const wet = new WetPaint();
+    const s = surface();
+    wet.now = now;
+    const rule = toolRule(SURE);
+    for (let coats = 1; ; coats++) {
+      if (ran(wet.add(s, FACE, 1, 1, 0.01, rule))) return coats;
+      wet.now += 1e-6;
+    }
+  };
+  const start = coatsToRun(0);
+  for (const hours of [3, 30, 100, 1000]) assert.ok(Math.abs(coatsToRun(hours * DRIPS.wetSpan + 60) - start) <= start * 0.01, `${hours} h in`);
+}
+
+// A span's end dries a surface: paint lands on it as on a dry wall, and the clock goes on from there.
+{
+  dice(0.5);
+  const wet = new WetPaint();
+  const s = surface();
+  const rule = toolRule(SURE);
+  wet.now = DRIPS.wetSpan - 1;
+  assert.equal(wet.add(s, FACE, 1, 1, pass * DRIPS.passes - 1, rule), null, 'nearly a run');
+  wet.now = DRIPS.wetSpan + 0.001;
+  assert.equal(wet.add(s, FACE, 1, 1, 1, rule), null, 'dry past the span');
+  assert.equal(s.wetSince, DRIPS.wetSpan, 'it counts from the span');
+  assert.ok(ran(wet.add(s, FACE, 1, 1, pass * DRIPS.passes, rule)), 'and runs again');
 }
 
 console.log('paint wet: ok');

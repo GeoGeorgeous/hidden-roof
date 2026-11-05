@@ -33,8 +33,10 @@ interface Spot {
 /** What wet paint needs of a surface. */
 export interface WetSurface {
   geo: { atlasW: number; atlasH: number; texelsPerMeter: number };
-  /** Per texel, the paint clock time (WetPaint.now) at which its wet paint on already-opaque paint is dry (created on first wet paint). */
+  /** Per texel, when its wet paint on already-opaque paint is dry, counted from `wetSince` (created on first wet paint). */
   wet: Float32Array | null;
+  /** The paint clock time (WetPaint.now) `wet` counts from. */
+  wetSince: number;
   /** The spots that ran or keep paint, by their first texel (created on first use). */
   spots: Map<number, Spot> | null;
 }
@@ -56,34 +58,46 @@ export class WetPaint {
 
   /** `amt` coats more on opaque texel (x, y) of `face`. Returns how long a run starting here is (0..1 of DRIPS' lengths); null: none starts. */
   add(s: WetSurface, face: FaceOrigin, x: number, y: number, amt: number, rule: RunRule) {
-    const wet = (s.wet ??= new Float32Array(s.geo.atlasW * s.geo.atlasH));
+    const wet = this.wetOf(s);
+    const since = s.wetSince;
     const k = y * s.geo.atlasW + x;
-    const until = Math.max(wet[k], this.now) + (amt / DRIPS.passCoats) * DRIPS.dryTime;
+    const until = Math.max(wet[k] + since, this.now) + (amt / DRIPS.passCoats) * DRIPS.dryTime;
     const need = DRIPS.passes * DRIPS.dryTime;
     if (until - this.now < need) {
-      wet[k] = until;
+      wet[k] = until - since;
       return null;
     }
     const spot = rule.rest > 0 ? this.spot(s, face, x, y) : null;
     if (spot && this.now < spot.rest) {
-      wet[k] = this.now + need;
-      this.keep(s, spot, until - wet[k]);
+      wet[k] = this.now + need - since;
+      this.keep(s, spot, until - since - wet[k]);
       return null;
     }
     this.rolls++;
     const fill = spot && rule.full ? Math.min(1, Math.max(0, spot.kept - this.now) / (rule.full * DRIPS.dryTime * DRIPS.keptDry)) : 0;
     const size = DRIPS.spot * s.geo.texelsPerMeter;
     if (paintRandom.drips() >= (rule.chance * (1 + fill * DRIPS.fullOdds)) / size ** 2) {
-      wet[k] = Math.max(this.now, until - rule.miss * DRIPS.dryTime);
-      if (spot) this.keep(s, spot, until - wet[k]);
+      wet[k] = Math.max(this.now, until - rule.miss * DRIPS.dryTime) - since;
+      if (spot) this.keep(s, spot, until - since - wet[k]);
       return null;
     }
-    wet[k] = this.now;
+    wet[k] = this.now - since;
     const luck = paintRandom.drips();
     if (!spot) return luck;
     spot.rest = this.now + rule.rest;
     spot.kept = this.now;
     return rule.full ? luck * DRIPS.lengthLuck + fill * (1 - DRIPS.lengthLuck) : luck;
+  }
+
+  /** A surface's wet paint. A Float32 loses a thin coat the further from 0 it counts, so it counts from the last whole DRIPS.wetSpan: paint still wet then is dry. */
+  private wetOf(s: WetSurface) {
+    const wet = (s.wet ??= new Float32Array(s.geo.atlasW * s.geo.atlasH));
+    const since = Math.floor(this.now / DRIPS.wetSpan) * DRIPS.wetSpan;
+    if (s.wetSince !== since) {
+      wet.fill(0);
+      s.wetSince = since;
+    }
+    return wet;
   }
 
   /** The spot of a texel: a face's squares start at its corner, so one never holds two faces, whatever lies beside it in the atlas. */

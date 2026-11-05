@@ -85,7 +85,7 @@ export class PaintSystem {
 
   /** `group`: where it stands (a level tile): surfaces drawn together share paint pages. */
   register(key: string, mesh: THREE.Mesh, geo: SurfaceGeometry, group: string): PaintSurface {
-    const s: PaintSurface = { key, mesh, geo, slot: null, light: null, data: null, mips: [], wet: null, spots: null, dirty: [] };
+    const s: PaintSurface = { key, mesh, geo, slot: null, light: null, data: null, mips: [], wet: null, wetSince: 0, spots: null, dirty: [] };
     this.texelsPerMeter = geo.texelsPerMeter;
     this.gpu.place(s, group);
     this.surfaces.push(s);

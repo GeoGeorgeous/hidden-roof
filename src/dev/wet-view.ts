@@ -56,7 +56,7 @@ export class WetView {
     const { reach, maxPoints, lift } = WET_VIEW;
     const at = this.at();
     const now = this.paint.now;
-    const faces: [Float32Array, number, Rect][] = [];
+    const faces: [Float32Array, number, number, Rect][] = [];
     let texels = 0;
     for (const s of this.paint.surfaces) {
       if (!s.wet) continue;
@@ -64,7 +64,7 @@ export class WetView {
       if (s.geo.geometry.boundingBox!.distanceToPoint(at) > reach) continue;
       for (const r of s.geo.rects) {
         if (!r.upright || !r.face) continue;
-        faces.push([s.wet, s.geo.atlasW, r]);
+        faces.push([s.wet, s.wetSince, s.geo.atlasW, r]);
         texels += r.w * r.h;
       }
     }
@@ -74,12 +74,12 @@ export class WetView {
     const ramp = new THREE.Color();
     let n = 0;
     let most = 0;
-    for (const [wet, w, r] of faces) {
+    for (const [wet, since, w, r] of faces) {
       if (n === maxPoints) break;
       const nm = r.face!.normal;
       for (let y = r.y; y < r.y + r.h; y += stride) {
         for (let x = r.x; x < r.x + r.w; x += stride) {
-          const left = wet[y * w + x] - now;
+          const left = wet[y * w + x] + since - now;
           if (left <= 0) continue;
           if (n === maxPoints) break;
           texelToWorld(r, x + 0.5, y + 0.5, p).addScaledVector(nm, lift).toArray(this.pos, n * 3);

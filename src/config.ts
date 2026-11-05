@@ -894,6 +894,8 @@ export const DRIPS = {
   passCoats: 6,
   /** How long a pass of wet paint takes to dry (s), less paint sooner. A pass over a dry wall no longer runs; holding the can on one spot still does. */
   dryTime: 3,
+  /** Wet paint counts its time from the last whole span of this many seconds, for a clock that runs for days: a span's end dries a surface. */
+  wetSpan: 3600,
   /** The dice are rolled by the square of wall this wide (m): a thin line and a wide one have the same odds where they're as wet, and every paint detail runs alike. */
   spot: 0.08,
   /** How long a spot rests after a run (s), at a chance of 1: at half it rests twice as long. The can's; the marker and roller don't rest. */
