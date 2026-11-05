@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 341
+The one list of what's left. Counter for new ids: next: 342
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -69,7 +69,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 1. BUGS [BL-034]: Paint pages at ULTRA can reach ~1 GB of GPU memory: measured, 1045 MB is the ceiling (all 49 pages, 72% full); the lossless fix is BL-144 (docs/ideas/performance.md)
 2. [PERF-200]: Reduce Ladder Shadow Update Delay Without Frequent Rebaking @1.7.0
 3. [PERF-322]: The server allocates a new buffer for every state it keeps as a player's last (`p.last`, server/session.ts): one buffer a player would do, as SNAPSHOT_BYTES is fixed
-4. [PERF-340]: A client among 40 players holds 40 fps on a good GPU, 20 on Intel UHD, before and after the Painting Rework: the frame's CPU is the 40 figures (about 100 draw calls); alone on the roof with the can in hand the frame's CPU rose 2.5–3.3 → 4.2–4.9 ms in the rework. Measured 2026-11-05: about 0.9 ms is the aim's ray each frame (module 4), four fifths of it `solidsNear` going through all 3405 solids, not the ray; scanning again only after the eye moves 25 cm gave back 0.5–0.6 ms; tried in a throwaway copy, the spheres in one flat array, same result, took 5.7 → 3.7 ms off every caller's scan, fps unchanged. The 5 more draw calls are one new cap pickup in view, at no cost. Still unknown: about 0.7 ms and 1–4 fps lost at 60 Hz on NVIDIA from module 2 on, with no per-frame code found there; not the ray alone, the crosshair, the tags, the pickups or the alpha steps; to read outside WSL
+4. [PERF-340]: A client among 40 players holds 40 fps on a good GPU, 20 on Intel UHD, before and after the Painting Rework: the frame's CPU is the 40 figures (about 100 draw calls); alone on the roof with the can in hand the frame's CPU rose 2.5–3.3 → 4.2–4.9 ms in the rework. Measured 2026-11-05: the aim's ray each frame (module 4) was most of it, and its scan of all 3405 solids most of the ray: PERF-341 took that off. The 5 more draw calls are one new cap pickup in view, at no cost. Still unknown: about 0.7 ms and 1–4 fps lost at 60 Hz on NVIDIA from module 2 on, with no per-frame code found there; not the ray alone, the crosshair, the tags, the pickups or the alpha steps; to read outside WSL
 
 ## Rendering
 
@@ -167,6 +167,7 @@ Shipped since the last release; the release commit empties this list.
 12. [IDEA-335]: Painting Rework: the spray is a plume at the nozzle, each cap's own (cone, specks, haze); the old square points are gone
 13. [IDEA-337]: The can's crosshair fades where the paint wouldn't land, from the ray it already casts; how faint is a row in F3 (Cursor)
 14. [IDEA-339]: The plume follows the opacity set: fewer and fainter specks, as tuned at 65%, for you and for others, in the snapshot's flow byte
+15. [PERF-341]: What rays look through near a point: the solids' spheres in one flat array, about 10 times faster; a roof frame's CPU 5.7 → 3.7 ms in the same conditions, fps unchanged
 
 ## Discarder
 

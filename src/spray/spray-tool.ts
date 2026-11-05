@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { Solids } from '../level/solids';
 import { BRUSH, CAPS, COLORS, SPRAY } from '../config';
 import type { Audio } from '../audio';
 import type { Input } from '../input';
@@ -43,7 +44,7 @@ export class SprayTool {
   constructor(
     scene: THREE.Scene,
     paint: PaintSystem,
-    solids: THREE.Mesh[],
+    solids: Solids,
     private audio: Audio,
   ) {
     const probe = new WallProbe(solids, paint);

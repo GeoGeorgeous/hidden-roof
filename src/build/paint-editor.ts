@@ -4,7 +4,6 @@ import { download } from '../files';
 import type { Input } from '../input';
 import { rgbOf } from '../inventory/items';
 import type { Level } from '../level/level';
-import { solidsNear } from '../level/solids';
 import { shared } from '../materials';
 import { faceBox, patchOf } from '../paint-copy';
 import { edge, type PaintImage } from '../paint-image';
@@ -207,7 +206,7 @@ export class PaintEditor {
     camera.getWorldDirection(this.raycaster.ray.direction);
     this.raycaster.ray.origin.copy(camera.position);
     this.raycaster.far = HINT.reach;
-    const hit = this.raycaster.intersectObjects(solidsNear(this.level.solids, camera.position, HINT.reach, this.near), false)[0];
+    const hit = this.raycaster.intersectObjects(this.level.solids.near(camera.position, HINT.reach, this.near), false)[0];
     const surface = hit && this.paint.get(hit.object);
     if (!surface) return null;
     const at = facePoint(surface.geo, hit.faceIndex!, hit.uv!, { rect: 0, u: 0, v: 0 });

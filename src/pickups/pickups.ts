@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { Solids } from '../level/solids';
 import { PICKUP } from '../config';
 import type { V3 } from '../kit/pieces';
 import type { Inventory } from '../inventory/inventory';
@@ -57,7 +58,7 @@ export class Pickups {
   private labels: PickupLabels;
 
   /** `camera`: what the tags face; they hide behind `solids`. */
-  constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera, solids: readonly THREE.Mesh[]) {
+  constructor(scene: THREE.Scene, camera: THREE.PerspectiveCamera, solids: Solids) {
     scene.add(this.root);
     this.labels = new PickupLabels(camera, solids);
   }

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { Solids } from '../level/solids';
 import type { Audio } from '../audio';
 import { SPONGE } from '../config';
 import type { Input } from '../input';
@@ -20,7 +21,7 @@ export class SpongeTool {
 
   constructor(
     private paint: PaintSystem,
-    solids: THREE.Mesh[],
+    solids: Solids,
     private audio: Audio,
   ) {
     this.stroke = new StrokeSweep(solids, paint);

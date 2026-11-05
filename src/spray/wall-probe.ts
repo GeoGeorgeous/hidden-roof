@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { SPRAY } from '../config';
-import { solidsNear } from '../level/solids';
+import type { Solids } from '../level/solids';
 import type { PaintSurface, PaintSystem } from '../painting';
 import { facePoint, type FacePoint } from '../surfaces';
 import type { Wall, WallHit } from './stroke';
@@ -18,13 +18,13 @@ export class WallProbe implements Wall<WallSpot> {
   private candidates: THREE.Object3D[] = [];
 
   constructor(
-    private solids: THREE.Mesh[],
+    private solids: Solids,
     private paint: PaintSystem,
   ) {}
 
   /** Gathers what rays from about `eye` can hit. */
   near(eye: THREE.Vector3) {
-    solidsNear(this.solids, eye, SPRAY.reach, this.candidates);
+    this.solids.near(eye, SPRAY.reach, this.candidates);
     this.raycaster.far = SPRAY.reach;
   }
 

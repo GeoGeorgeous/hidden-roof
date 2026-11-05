@@ -8,6 +8,7 @@ import type { Ladder } from '../player';
 import type { Finish } from '../kit/finishes';
 import type { V3 } from '../kit/pieces';
 import { DecorBatches } from './batches';
+import { Solids } from './solids';
 import { LEVEL_VERSION, type LevelData, type PropData } from './level-data';
 import { buildProp, disposeProp, solidBoxes, type BuiltProp, type Emitter, type LightAnchor, type PropInstance } from './build-prop';
 import { CoverIndex } from './cover';
@@ -29,7 +30,7 @@ export class Level {
   readonly ladders: Ladder[] = [];
   /** Doorways: a stepladder can't stand in them (inPassage). */
   readonly passages: THREE.Box3[] = [];
-  readonly solids: THREE.Mesh[] = [];
+  readonly solids = new Solids();
   readonly lights: LightAnchor[] = [];
   readonly emitters: Emitter[] = [];
   readonly props = new Map<number, PropInstance>();
@@ -359,18 +360,19 @@ export class Level {
     this.colliders.length = 0;
     this.ladders.length = 0;
     this.passages.length = 0;
-    this.solids.length = 0;
     this.lights.length = 0;
     this.emitters.length = 0;
     const all = [...this.built.values(), ...[...this.joints.values()].map((j) => j.b)];
+    const solids: THREE.Mesh[] = [];
     for (const b of all) {
       this.colliders.push(...b.colliders);
       this.ladders.push(...b.ladders);
       this.passages.push(...b.passages);
-      this.solids.push(...b.solids);
+      solids.push(...b.solids);
       this.lights.push(...b.lights);
       this.emitters.push(...b.emitters);
     }
+    this.solids.set(solids);
     this.batches.markDirty();
     this.allBuilt = all;
     this.onChange(runtime);
