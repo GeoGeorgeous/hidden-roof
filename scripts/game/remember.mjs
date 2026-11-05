@@ -119,3 +119,20 @@ await check('settings: Reset all on General, Audio and Graphics asks, then takes
     await p.close();
   }
 });
+
+await check('settings: a stored opacity out of range comes back within it', async () => {
+  const p = await openPage();
+  try {
+    await p.evaluate(() => localStorage.setItem('roofhiddenhaus.settings', JSON.stringify({ values: { 'BRUSH.opacity': 0 } })));
+    await p.reload();
+    await gameReady(p, 2);
+    const r = await p.evaluate(() => {
+      const { opacity, opacityMin } = window.game.config.BRUSH;
+      localStorage.removeItem('roofhiddenhaus.settings');
+      return { opacity, opacityMin };
+    });
+    return r.opacity === r.opacityMin ? null : JSON.stringify(r);
+  } finally {
+    await p.close();
+  }
+});

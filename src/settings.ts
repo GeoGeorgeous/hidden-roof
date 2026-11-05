@@ -72,6 +72,7 @@ export class Settings {
   ) {
     const s = loadSaved();
     applyValues(REMEMBERED, this.defaults, s.values);
+    BRUSH.opacity = Math.min(Math.max(BRUSH.opacity, BRUSH.opacityMin), BRUSH.opacityMax);
     applyKeys(s.controls);
     const style = INK_STYLES.findIndex((t) => t.name === s.style);
     if (style >= 0) setInkStyle(style);
