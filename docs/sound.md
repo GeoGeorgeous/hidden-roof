@@ -2,13 +2,14 @@
 
 The game's sound is synthesized in `src/audio.ts`, but for the recordings played by `src/recordings.ts`: the city below (the City slider, `AUDIO.ambienceGain`), the rain (Rain, `AUDIO.rainGain`), the far rumble of heavy rain under it, indoors too (Storm, `AUDIO.stormGain`), the rain indoors (Rain indoors, `AUDIO.indoorRainGain`) and thunder (Thunder, `AUDIO.thunderGain`).
 
-- **Loading:** a recording is fetched when first heard: the city on the first gesture, the rain, the storm and thunder with it when it's raining, as it is by default, or the first time it rains, the one indoors the first time you're in a room in the rain, never with the game: each weighs more than the rest of the game. A loop fades in over `AUDIO.recordingFade`. If one can't load or decode, that sound is silent and the game goes on.
+- **Loading:** a recording is fetched when first heard: the city on the first gesture, the rain, the storm and thunder with it when it's raining, as it is by default, or the first time it rains, the one indoors the first time you're in a room in the rain, never with the game: each weighs more than the rest of the game. A loop fades in over `AUDIO.recordingFade`. A dropped request is tried again, `AUDIO.recordingTries` times `AUDIO.recordingRetry` apart. If one still can't load or can't decode, that sound is silent and the game goes on.
 - **The rain's level:** `ATMOS.rainDensity` is set, not weather, so the recordings don't change with it; density only scales their volume.
-- **Thunder:** lightning asks for it after `THUNDER.minDelay` to `maxDelay`, so the flash comes first; one of three rolls, never the same twice running, softer and duller the farther the strike. Rolls are out of the storm's loop, or they'd come with no flash and at the same place each time.
+- **The can's hiss** follows the hand (`src/spray/hiss.ts`, `HISS`): louder with more opacity, closer to a wall and with the hand moving, on top of the cap's own volume.
+- **Thunder:** lightning asks for it after `THUNDER.minDelay` to `maxDelay`, so the flash comes first; one of three rolls, never the same twice running, softer and duller the farther the strike. The rolls are dry, with no rain in them, so they go over the storm's loop with no seam; rolls from the storm's own recording had its rain in them, louder than the loop. The storm's loop has far rolls of its own, with no flash: thunder heard with no lightning seen, far behind the rain.
 - **Rooms:** the level has no rooms, and its shapes don't tell a room from a canopy (a roof over you by the heightmap, and big slabs only, were both tried), so `src/interiors.ts` holds cells marked by hand on the level's grid: `INTERIORS.cell` wide, each with its floors in whole meters (a step up is still the floor it's on), indoors up to `INTERIORS.height`, a storey, over a floor, or less where something starts over a head (`INTERIORS.headroom`) in the cell. The player's feet are what's in a room, the free camera's view when filming. In one the city is duller and quieter (`indoorCity`, `indoorTone`) and the rain changes to the one indoors, over `indoorFade`; the storm stays as it is, thunder is muffled with the city.
 - **Where they live:** in the level file, `interiors`, `[cell x, floor height, cell z]` each, with how high it reaches last when that's less than a storey; they ride along with the level into a session like pickups. Cells don't follow props: move a room in build mode and its cells stay.
 - **Marking them:** dev tools only, both switches off to start, in F3 → Sound → Indoors (`src/dev/interior-marks.ts`). Mark rooms: hold I to mark the cell you're on, U to take off the mark you're on. Show rooms: a sheet at your feet shows the grid, your cell and what's marked where you stand. A mark's height is worked out when it's made, from the colliders, so a pipe over another stays out of the room, and a thing on the floor, under `headroom`, is no ceiling; a low beam cuts a cell short. A mark from before heights is a full storey: U and I on it again. It holds until a reload: SAVE LEVEL downloads the level with them, P in build mode too, and P is the one for a level with its own wall paint.
-- **Memory:** all of it decoded is about 175 MB.
+- **Memory:** all of it decoded is about 203 MB.
 
 ## The city: `src/assets/city-night.ogg`
 
@@ -33,16 +34,26 @@ ffmpeg -i source -filter_complex "[0:a]atrim=15:105,asetpts=PTS-STARTPTS,asplit[
 ffmpeg -i rain-loop.wav -c:a libopus -b:a 96k -vbr on -application audio -map_metadata -1 src/assets/rain-night.ogg
 ```
 
-## The storm and thunder: `src/assets/storm.ogg`, `src/assets/thunder-1.ogg` to `3`
+## The storm: `src/assets/storm.ogg`
 
 - **Source:** [09052019_moscow_heavy_rain_thunders_traffic](https://freesound.org/people/Archos/sounds/474562/) by Archos, CC0, from an 11th floor balcony. Listed in Credits.
-- **The cut:** from Freesound's HQ preview (MP3), not yet the WAV original. Its three rolls of thunder are cut out into files of their own (33 s for 14 s, 57.5 s for 11.5 s, 123.5 s for 15.5 s; in over 1 s, out over 2.5 s, left at their level, so `thunderGain` is what puts them with the storm). The loop is 1 to 32 s, 68 to 122 s and 138 s to the end, crossfaded over 4 s, the end into the start too, raised 9.8 dB to the city's level. 1:36, Opus 96 kbit/s, 1 MB; about 37 MB decoded.
+- **The cut:** from Freesound's HQ preview (MP3), not yet the WAV original. The loop is 1 to 122 s and 138 s to the end, crossfaded over 4 s, the end into the start too: its first two rolls of thunder stay in it, far off under the rain, the third is left out. It's left at its level, its loudest peak being at -0.3 dB, so `stormGain` is what lowers it. 2:16, Opus 96 kbit/s, 1.5 MB; about 52 MB decoded.
 
 ```sh
-ffmpeg -i source -filter_complex "[0:a]atrim=1:32,asetpts=PTS-STARTPTS[a];[0:a]atrim=68:122,asetpts=PTS-STARTPTS[b];[0:a]atrim=138:161.5,asetpts=PTS-STARTPTS[c];[a][b]acrossfade=d=4:c1=qsin:c2=qsin[ab];[ab][c]acrossfade=d=4:c1=qsin:c2=qsin[o]" -map '[o]' -c:a pcm_f32le d1.wav
+ffmpeg -i source -filter_complex "[0:a]atrim=1:122,asetpts=PTS-STARTPTS[a];[0:a]atrim=138:161.5,asetpts=PTS-STARTPTS[c];[a][c]acrossfade=d=4:c1=qsin:c2=qsin[o]" -map '[o]' -c:a pcm_f32le d1.wav
 ffmpeg -i d1.wav -filter_complex "[0:a]asplit[p][q];[p]atrim=4,asetpts=PTS-STARTPTS[body];[q]atrim=0:4,asetpts=PTS-STARTPTS[head];[body][head]acrossfade=d=4:c1=qsin:c2=qsin[o]" -map '[o]' -c:a pcm_f32le d2.wav
-ffmpeg -i d2.wav -af volume=9.8dB -c:a libopus -b:a 96k -vbr on -application audio -map_metadata -1 src/assets/storm.ogg
-ffmpeg -ss 33 -t 14 -i source -af "afade=t=in:d=1,afade=t=out:st=11.5:d=2.5" -c:a libopus -b:a 96k -vbr on -application audio -map_metadata -1 src/assets/thunder-1.ogg
+ffmpeg -i d2.wav -c:a libopus -b:a 96k -vbr on -application audio -map_metadata -1 src/assets/storm.ogg
+```
+
+## The thunder: `src/assets/thunder-1.ogg` to `3`
+
+- **Source:** [230823 Thunder, dry distant rolling](https://freesound.org/people/TRP/sounds/717890/) by TRP, CC0, from Stratford. Listed in Credits.
+- **The cut:** from Freesound's HQ preview (MP3), not yet the original. Three rolls, each brought to a peak of about -3 dB: 0 s for 19 s, 55 s for 13.4 s, 127 s for 20 s, in over 1 s, out over 2.5 s (2 s on the second, cut before an echo at 68.5 s). Opus 96 kbit/s, about 0.2 MB and 5 to 8 MB decoded each.
+
+```sh
+ffmpeg -ss 0 -t 19 -i source -af "volume=2.4dB,afade=t=in:d=1,afade=t=out:st=16.5:d=2.5" -c:a libopus -b:a 96k -vbr on -application audio -map_metadata -1 src/assets/thunder-1.ogg
+ffmpeg -ss 55 -t 13.4 -i source -af "volume=2.3dB,afade=t=in:d=1,afade=t=out:st=11.4:d=2" -c:a libopus -b:a 96k -vbr on -application audio -map_metadata -1 src/assets/thunder-2.ogg
+ffmpeg -ss 127 -t 20 -i source -af "volume=-1.9dB,afade=t=in:d=1,afade=t=out:st=17.5:d=2.5" -c:a libopus -b:a 96k -vbr on -application audio -map_metadata -1 src/assets/thunder-3.ogg
 ```
 
 ## The rain indoors: `src/assets/rain-indoors.ogg`

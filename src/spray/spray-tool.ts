@@ -9,6 +9,7 @@ import type { PaintSystem } from '../painting';
 import { CanModel } from './can-model';
 import { Brush } from './brush';
 import { lineWidth } from './dab';
+import { hissFollows } from './hiss';
 import { SprayParticles, WallMemo } from './particles';
 import { WallProbe } from './wall-probe';
 import { crosshairPx } from '../tools/aim';
@@ -89,19 +90,19 @@ export class SprayTool {
 
     const spraying = lmb && !holding;
     this.flow = spraying ? BRUSH.opacity : 0;
-    this.audio.setHiss(spraying ? cap.hissGain : 0, cap.hissTone);
-
     this.model.update(dt, camera, spraying, spraying, this.shakeT >= 0 ? this.shakeT / SPRAY.shakeDuration : -1);
     camera.getWorldDirection(forward);
     if (spraying) this.emit(dt, camera, eye, inv);
     else this.stop();
-    this.measure(camera, eye, inv);
+    const distance = this.measure(camera, eye, inv);
+    this.audio.setHiss(spraying ? cap.hissGain * hissFollows(BRUSH.opacity, distance, this.brush.speed) : 0, cap.hissTone);
   }
 
-  /** The line on screen: a wall square-on at the aim's distance, or at the can's reach with none. */
+  /** The line on screen: a wall square-on at the aim's distance, or at the can's reach with none. Returns that distance. */
   private measure(camera: THREE.PerspectiveCamera, eye: THREE.Vector3, inv: Inventory) {
     const distance = this.brush.distance({ eye, forward }, this.flow > 0) ?? SPRAY.reach;
     this.linePx = crosshairPx(camera, lineWidth(CAPS[inv.cap], distance, this.brush.speed), distance);
+    return distance;
   }
 
   /** Nothing comes out of the can. */

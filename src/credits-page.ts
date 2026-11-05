@@ -26,7 +26,8 @@ const SECTIONS: [title: string, entries: Entry[]][] = [
     [
       ['Night city rumble', 'TRP · the city at night, from a roof in Toronto', 'CC0 ↗', 'https://freesound.org/people/TRP/sounds/572530/'],
       ['Heavy rain', 'Kevin Luce (kevp888) · the rain, cut and looped', 'CC BY 4.0', license('heavy-rain')],
-      ['Moscow heavy rain', 'Archos · rain, traffic and thunder from an 11th floor', 'CC0 ↗', 'https://freesound.org/people/Archos/sounds/474562/'],
+      ['Moscow heavy rain', 'Archos · the far rumble of the rain, from an 11th floor', 'CC0 ↗', 'https://freesound.org/people/Archos/sounds/474562/'],
+      ['Thunder, dry distant rolling', 'TRP · the thunder, from Stratford', 'CC0 ↗', 'https://freesound.org/people/TRP/sounds/717890/'],
       ['Rain on tin roof', 'stecman · the rain indoors', 'CC0 ↗', 'https://freesound.org/people/stecman/sounds/569313/'],
     ],
   ],

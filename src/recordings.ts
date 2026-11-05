@@ -13,11 +13,25 @@ export const THUNDERS = [
   new URL('./assets/thunder-3.ogg', import.meta.url).href,
 ];
 
-/** A recording, decoded; null if it can't be: that sound is silent then, and the game goes on. */
+/** A file's bytes, asked for again if the request drops; null if it never comes. */
+async function download(file: string) {
+  for (let left = AUDIO.recordingTries; left > 0; left--) {
+    try {
+      const res = await fetch(file);
+      if (res.ok) return await res.arrayBuffer();
+    } catch {
+      // The next try, if there's one.
+    }
+    if (left > 1) await new Promise((done) => setTimeout(done, AUDIO.recordingRetry * 1000));
+  }
+  return null;
+}
+
+/** A recording, decoded; null if it can't be: that sound is silent then, and the game goes on. What a browser can't decode isn't asked for again. */
 export async function loadRecording(ctx: AudioContext, file: string) {
+  const bytes = await download(file);
   try {
-    const res = await fetch(file);
-    return res.ok ? await ctx.decodeAudioData(await res.arrayBuffer()) : null;
+    return bytes && (await ctx.decodeAudioData(bytes));
   } catch {
     return null;
   }

@@ -223,6 +223,37 @@ await check('rooms: both tools start off; a mark reaches up to what starts over 
   return ok ? null : JSON.stringify({ setup, off, marked, r });
 });
 
+await check('sound: a recording whose request drops is asked for again', async () => {
+  const fresh = await openPage();
+  let tries = 0;
+  await fresh.route('**/city-night*', (route) => (++tries === 1 ? route.abort() : route.continue()));
+  const r = await fresh.evaluate(async () => {
+    const g = window.game;
+    g.config.AUDIO.recordingRetry = 0.01;
+    g.config.ATMOS.rain = false;
+    g.audio.start();
+    return Promise.all(g.audio.recordings.values());
+  });
+  await fresh.close();
+  return tries === 2 && r.length === 1 && r[0] ? null : `tries ${tries}, ${r}`;
+});
+
+await check('sound: the hiss is louder with more opacity, closer to a wall and with the hand moving; a still hand is 1', async () => {
+  const r = await page.evaluate(async () => {
+    const file = '/src/spray/hiss.ts';
+    const { hissFollows: h } = await import(file);
+    const { HISS, SPRAY, BRUSH } = window.game.config;
+    return {
+      opacity: h(1, 1, 0) > h(0.2, 1, 0),
+      wall: h(0.6, 0.3, 0) > h(0.6, 3, 0),
+      hand: h(0.6, 1, BRUSH.speedRef) > h(0.6, 1, 0),
+      far: h(0, SPRAY.reach * 2, 0) === HISS.opacityLow * HISS.far,
+      fast: h(1, 0, BRUSH.speedRef * 3) === HISS.opacityHigh * HISS.near * HISS.moving,
+    };
+  });
+  return Object.values(r).every(Boolean) ? null : JSON.stringify(r);
+});
+
 await check('sound: lightning with the Thunder slider at 0 is silent, not an error (a ramp to 0 throws)', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;

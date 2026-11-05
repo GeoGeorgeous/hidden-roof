@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 367
+The one list of what's left. Counter for new ids: next: 372
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -109,8 +109,12 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## Audio
 
 1. IDEA [BL-063]: License-free background music: drum and bass, jungle @1.8.0
-2. IDEA [BL-148]: Other players' sounds: spray hiss, marker, footsteps, landing as positional voices @1.8.0
-3. [IDEA-343]: The can's hiss follows the hand's speed, the distance and the opacity
+2. IDEA [BL-148]: Other players' sounds: spray hiss, marker, footsteps, landing as positional voices, up to 6 nearest, with nothing new on the network and a Players slider in Audio @1.8.0
+3. [IDEA-367]: Recorded footsteps in place of the synthesized ones: 5 to 8 clips and a hard landing, one after another with a random pitch
+4. [IDEA-368]: Asian sirens far off in the city: recordings played now and then, dulled indoors like thunder
+5. [IDEA-369]: Recorded AC fans, if the synthesized hum stops being enough
+6. [TASK-370]: Cut the recordings again from the FLAC/WAV originals, not Freesound's previews (docs/sound.md has the recipes; the rain gains most; heavy-rain.txt says it's from the preview)
+7. [TASK-371]: Check on staging, in Safari 18.4 or later, that the recordings play: Ogg Opus through decodeAudioData
 
 ## Tests and tooling
 
@@ -189,7 +193,8 @@ Shipped since the last release; the release commit empties this list.
 35. [IDEA-364]: Every hint has a ring: a hint the player does fills it as far as they got and turns into the status's check for `TUTORIAL.fullHold` (0.6 s), one action at once. Walking, jumping (one jump) and running (5 m) are three hints, the opacity is learnt by 30% of change in all, a ladder counts going down too, the color hint waits for a color change
 36. [IDEA-361]: The city below is a recording: TRP's night on a Toronto roof (CC0), looped, fetched on the first gesture, fading in; replaces the synthesized rumble (docs/sound.md)
 37. [IDEA-362]: The rain is a recording: Kevin Luce's heavy rain from a porch (CC BY 4.0), fetched with the first rain; replaces the synthesized wash, its tone and the drops on metal, which the recording has in it (docs/sound.md)
-38. [IDEA-365]: Sound in rooms marked by hand: the city dulls, the rain changes to a recording on a tin roof; under it all the far rumble of a storm; thunder is three recorded rolls, after the flash; Storm and Rain indoors sliders, the mix set by ear (docs/sound.md)
+38. [IDEA-365]: Sound in rooms marked by hand: the city dulls, the rain changes to a recording on a tin roof; under it all the far rumble of a storm with rolls of its own, with no flash; thunder is three dry recorded rolls (TRP, CC0), after the flash, its flash now the moon and the sky; a dropped request for a recording is tried again; Storm and Rain indoors sliders, the mix set by ear; in the dev tools rooms are marked and shown each with a switch, a mark reaching up to what's over it, and SAVE LEVEL (docs/sound.md)
+39. [IDEA-343]: The can's hiss follows the hand: louder with more opacity, closer to a wall and with the hand moving (`HISS`)
 
 ## Discarder
 

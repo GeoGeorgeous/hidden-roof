@@ -1670,6 +1670,15 @@ export const SKYLINE = {
 };
 
 /** All gains are live (F3 → Sound). */
+/** How the can's hiss follows the hand, multiplying its volume: by the opacity, 0 to 1; up close to a wall, to nothing within SPRAY.reach; a hand moving at BRUSH.speedRef or faster. */
+export const HISS = {
+  opacityLow: 0.5,
+  opacityHigh: 1.25,
+  near: 1.2,
+  far: 0.8,
+  moving: 1.25,
+};
+
 export const AUDIO = {
   masterGain: 0.49,
   /** Share of masterGain while paused (the pause menu is up). */
@@ -1679,17 +1688,20 @@ export const AUDIO = {
   ambienceGain: 0.152,
   /** Seconds a recording (the city, the rain) takes to fade in once it's here. */
   recordingFade: 3,
+  /** A recording's request is tried this many times, this far apart (s). */
+  recordingTries: 3,
+  recordingRetry: 5,
   footstepGain: 0.25,
   /** Rain (a recording) at full density; scales with ATMOS.rainDensity, silent without rain. */
   rainGain: 0.168,
   /** Under it, the same way, indoors too: the far rumble of heavy rain. */
-  stormGain: 0.204,
+  stormGain: 0.63,
   /** In a marked room (src/interiors.ts): the rain on the roof, the same way; what's left of the city's level, its lowpass (Hz); how fast it all changes (s). */
   indoorRainGain: 0.196,
   indoorCity: 0.6,
   indoorTone: 1000,
   indoorFade: 0.4,
-  thunderGain: 0.5,
+  thunderGain: 0.8,
   /** AC fan hum at the fan; fades out over `fanRange` meters. */
   fanGain: 0.073,
   fanRange: 7,
@@ -1702,10 +1714,10 @@ export const THUNDER = {
   minInterval: 45,
   maxInterval: 150,
   /** Extra ambient / moon intensity at the peak of a flash. */
-  flashAmbient: 5,
-  flashMoon: 6,
+  flashAmbient: 0,
+  flashMoon: 12,
   /** Sky brightening at the peak (0..1). */
-  flashSky: 0.5,
+  flashSky: 1.05,
   /** Delay from flash to thunder, seconds (random in this range: farther strikes are later and softer). */
   minDelay: 1.5,
   maxDelay: 5,
