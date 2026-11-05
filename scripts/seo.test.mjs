@@ -72,9 +72,17 @@ for (const [file, text] of [['index.html <div class="about">', about], ['public/
   const found = mine(text);
   assert.deepEqual([...new Set(found)].sort(), [...project].sort(), `${file}: the project links`);
 }
-// The tools' icons in Painting & Tools are the server list's (src/net/tool-icons.ts), shape for shape.
+// The tools' icons on the page are the server list's (src/net/tool-icons.ts), shape for shape.
 const shapes = read('src/net/tool-icons.ts').match(/const SHAPES[^{]*\{([\s\S]*?)\n\};/)?.[1];
 assert.ok(shapes, 'src/net/tool-icons.ts: no SHAPES');
 for (const [, tool, shape] of shapes.matchAll(/(\w+): '([^']+)'/g)) assert.ok(about.includes(`data-tool="${tool}">${shape}</svg>`), `index.html: the ${tool} icon is src/net/tool-icons.ts's`);
 
-console.log('seo: ok (descriptions, url, structured data, the page about the game, the definition, project links and tool icons agree)');
+// Every cap is on the page, by its name and with its picture (scripts/cap-pictures.mjs).
+const caps = [...read('src/config.ts').matchAll(/^  (\w+): \{ name: '([^']+)', spread/gm)];
+assert.ok(caps.length, 'src/config.ts: no CAPS');
+for (const [, id, name] of caps) {
+  assert.ok(about.includes(`<img src="/about/caps/${id}.webp" width="96" height="96" alt="" loading="lazy" />${name}</dt>`), `index.html: the ${name} cap`);
+  assert.ok(read(`public/about/caps/${id}.webp`).length, `public/about/caps/${id}.webp`);
+}
+
+console.log('seo: ok (descriptions, url, structured data, the page about the game, the definition, project links, tool icons and caps agree)');

@@ -107,7 +107,7 @@
         <span class="mark">Hidden Roof</span>
         <nav aria-label="Page">
           <a href="#about">About</a>
-          <a href="#tools">Tools</a>
+          <a href="#painting">Painting</a>
           <a href="#faq">FAQ</a>
           <a class="play" href="/">Play</a>
         </nav>
@@ -179,16 +179,38 @@
           <section id="painting">
             <p class="label">Painting</p>
             <h2>Spray paint that feels like a real can</h2>
-            <p class="desc">Strokes stay continuous at any hand speed, and passes add up. Build color in layers, fade it out, mist a background.</p>
+            <p class="desc">Strokes lay down continuous lines of paint, not clouds of dots: paint lands instantly under your aim, with no gaps, no matter how fast you move. Passes add up, so you can build color in layers, fade it out, or mist a background.</p>
             <ul class="cols">
-              <li><strong>Distance</strong>: the closer you are to the wall, the narrower and denser your line becomes. As you move back, the line grows wider and softer.</li>
-              <li><strong>Hand speed</strong>: slow strokes are dense and crisp. Fast ones are light and wide.</li>
-              <li><strong>Angle</strong>: spray at an angle and the line stretches along your aim and fades at the far end.</li>
-              <li><strong>Opacity</strong>: hold Run and scroll to set how much paint a pass lays, from 5% to 100%.</li>
-              <li><strong>Caps</strong>: from needle and skinny caps for tags, details, and crisp outlines, to Blue Dot for soft fades, and NY Fat and Astro Fat for fills and big throws.</li>
-              <li><strong>Drips</strong>: hold the can still and the paint pools and runs. The closer the can, the more it runs.</li>
-              <li><strong>Crosshair</strong>: shows the line&rsquo;s width and strength before you paint it.</li>
+              <li><strong>Hand speed</strong>: move fast for lighter, wider, softer lines. Slow down for denser, sharper ones.</li>
+              <li><strong>Distance</strong>: get up close for narrow, crisp lines, or step back for wider, softer ones.</li>
+              <li><strong>Angle</strong>: spray at an angle and paint stretches along your aim, fading towards the far end.</li>
+              <li><strong>Opacity</strong>: hold Run and scroll to set it from 5% to 100%. Each pass builds on the last, so you can work up a fade.</li>
+              <li><strong>Drips</strong>: hold your aim in one spot and paint builds up, darkens, then starts to run. Heavier coverage runs longer, and the marker and the roller can trigger runs too.</li>
+              <li><strong>Streamline</strong>: smooths your lines as the brush trails your aim a little. Set it in Settings → General.</li>
+              <li><strong>Crosshair</strong>: shows the line you&rsquo;re about to leave, adjusting to your cap, distance, hand speed, and opacity, and fades where the paint won&rsquo;t reach.</li>
+              <li><strong>Plume</strong>: every cap has its own soft plume at the nozzle, from a thin jet to a wide cloud. It follows your opacity, and other players see it too.</li>
             </ul>
+            <h3>Caps</h3>
+            <p>Six caps to choose from, each with its own feel, from fine details to big fills. You start with BANANA and find the rest around the roof.</p>
+            <!-- Every cap, its picture from its model (scripts/cap-pictures.mjs; scripts/seo.test.mjs checks they're all here). -->
+            <dl class="tools caps">
+              <div><dt><img src="/about/caps/needle.webp" width="96" height="96" alt="" loading="lazy" />NEEDLE</dt><dd>Ultra-fine lines for sharp details and highlights</dd></div>
+              <div><dt><img src="/about/caps/skinny.webp" width="96" height="96" alt="" loading="lazy" />SKINNY</dt><dd>Clean tags and crisp outlines</dd></div>
+              <div><dt><img src="/about/caps/standard.webp" width="96" height="96" alt="" loading="lazy" />BANANA</dt><dd>A versatile all-rounder for everyday painting</dd></div>
+              <div><dt><img src="/about/caps/soft.webp" width="96" height="96" alt="" loading="lazy" />BLUE DOT</dt><dd>Soft edges for smooth blends and fades</dd></div>
+              <div><dt><img src="/about/caps/fat.webp" width="96" height="96" alt="" loading="lazy" />NY FAT</dt><dd>Wide lines for throw-ups and quick fills</dd></div>
+              <div><dt><img src="/about/caps/spray.webp" width="96" height="96" alt="" loading="lazy" />ASTRO FAT</dt><dd>Massive coverage for big fills and backgrounds</dd></div>
+            </dl>
+            <h3>Tools</h3>
+            <p>You start with a spray can and black paint. Twelve more colors, the caps, and four extra tools are hidden around the roof. Paint never runs out.</p>
+            <!-- Every tool, with its icon from the server list (src/net/tool-icons.ts; scripts/seo.test.mjs checks they're the same). -->
+            <dl class="tools">
+              <div><dt><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="can"><rect x="4.5" y="5.5" width="6" height="8.5" rx="1.5"/><path d="M6 5.5V3.5h3v2"/><path d="M10.5 3.2l2-.8M10.5 4.4l2 .2"/></svg>Spray can</dt><dd>Tags, fills and fades</dd></div>
+              <div><dt><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="marker"><path d="M3 13l.8-2.8 6.6-6.6 2 2-6.6 6.6z"/><path d="M9.2 4.8l2 2"/></svg>Marker</dt><dd>Crisp lines and letters</dd></div>
+              <div><dt><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="roller"><rect x="2.5" y="2.5" width="9" height="3.5" rx="1"/><path d="M11.5 4.2h1.7v3.3H7.5v2"/><path d="M7.5 9.5v4"/></svg>Roller</dt><dd>Large areas, fast</dd></div>
+              <div><dt><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="sponge"><rect x="2" y="6" width="9.5" height="7" rx="2.5"/><circle cx="4.8" cy="8.6" r="0.6" fill="currentColor" stroke="none"/><circle cx="7.6" cy="10.6" r="0.6" fill="currentColor" stroke="none"/><circle cx="8.4" cy="8.2" r="0.5" fill="currentColor" stroke="none"/><path d="M13 2.2c.9 1.2 1.4 2 1.4 2.6a1.4 1.4 0 0 1-2.8 0c0-.6.5-1.4 1.4-2.6z"/></svg>Sponge</dt><dd>Scrapes paint off</dd></div>
+              <div><dt><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="ladder"><path d="M5 2v12M11 2v12M5 5h6M5 8h6M5 11h6"/></svg>Stepladder</dt><dd>Reaches high walls</dd></div>
+            </dl>
           </section>
 
           <section id="gallery">
@@ -230,20 +252,6 @@
                 <figcaption><strong>Marker</strong> Letters around an exit door.</figcaption>
               </figure>
             </div>
-          </section>
-
-          <section id="tools">
-            <p class="label">Painting &amp; Tools</p>
-            <h2>Explore the map &amp; find new tools</h2>
-            <p class="desc">You start with a spray can and black paint. Twelve more colors, the caps, and four extra tools are hidden around the roof. Paint never runs out.</p>
-            <!-- Every tool, with its icon from the server list (src/net/tool-icons.ts; scripts/seo.test.mjs checks they're the same). -->
-            <dl class="tools">
-              <div><dt><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="can"><rect x="4.5" y="5.5" width="6" height="8.5" rx="1.5"/><path d="M6 5.5V3.5h3v2"/><path d="M10.5 3.2l2-.8M10.5 4.4l2 .2"/></svg>Spray can</dt><dd>Tags, fills and fades</dd></div>
-              <div><dt><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="marker"><path d="M3 13l.8-2.8 6.6-6.6 2 2-6.6 6.6z"/><path d="M9.2 4.8l2 2"/></svg>Marker</dt><dd>Crisp lines and letters</dd></div>
-              <div><dt><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="roller"><rect x="2.5" y="2.5" width="9" height="3.5" rx="1"/><path d="M11.5 4.2h1.7v3.3H7.5v2"/><path d="M7.5 9.5v4"/></svg>Roller</dt><dd>Large areas, fast</dd></div>
-              <div><dt><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="sponge"><rect x="2" y="6" width="9.5" height="7" rx="2.5"/><circle cx="4.8" cy="8.6" r="0.6" fill="currentColor" stroke="none"/><circle cx="7.6" cy="10.6" r="0.6" fill="currentColor" stroke="none"/><circle cx="8.4" cy="8.2" r="0.5" fill="currentColor" stroke="none"/><path d="M13 2.2c.9 1.2 1.4 2 1.4 2.6a1.4 1.4 0 0 1-2.8 0c0-.6.5-1.4 1.4-2.6z"/></svg>Sponge</dt><dd>Scrapes paint off</dd></div>
-              <div><dt><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="ladder"><path d="M5 2v12M11 2v12M5 5h6M5 8h6M5 11h6"/></svg>Stepladder</dt><dd>Reaches high walls</dd></div>
-            </dl>
           </section>
 
           <section id="multiplayer">

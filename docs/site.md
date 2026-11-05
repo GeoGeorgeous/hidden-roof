@@ -28,8 +28,9 @@ what's served: `docs/deploy.md`; the release steps that touch the page: `docs/re
   stay in the markup for crawlers. A new question goes in its group.
 - Order: the hero, the fact cards, How to start playing (where it shows), About (the owner's text on what the game is,
   the owner's word to players under P.S.; its "legal walls" is the owner's own, saying the game isn't one), then the
-  rest. Painting & Tools lists every tool with the server list's icon (`src/net/tool-icons.ts`), copied as markup;
-  `scripts/seo.test.mjs` checks they match.
+  rest. Painting has what the can does, then Caps and Tools under their own titles: every cap with its picture
+  (`public/about/caps/*.webp`, from its model by `npm run cap-pictures`, when a cap's look changes), every
+  tool with the server list's icon (`src/net/tool-icons.ts`), copied as markup. `scripts/seo.test.mjs` checks both.
 - The hero's loop (`public/about/roof.mp4`, `roof-portrait.mp4`) starts after the page and its fonts have loaded
   (`src/boot.ts`), so it never competes with them. Filmed from the title view on a real GPU, 1920x1080 and 1080x1920 (the
   canvas only, so no menu). Encode as H.264 High, Level 4.0 or lower (the Level 6.2 files didn't play on an iPhone), 30 fps,
