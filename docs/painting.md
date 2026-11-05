@@ -2,6 +2,8 @@
 
 How paint works and what to turn to change how it feels. Numbers live in `src/config.ts`, never here: read them there, and tune them live in F3 → Paint. Change this file only when a mechanic changes, not when a number does.
 
+The goal: spraying feels like a drawing app and a real can at once. A continuous stroke with no gaps, opacity you can build up in layers, speed and distance that change the line as a real can does, and a crosshair that tells the truth. The owner's bar for this feel is met: keep it.
+
 ## Where things are
 
 | What | Where |
@@ -17,7 +19,7 @@ How paint works and what to turn to change how it feels. Numbers live in `src/co
 
 ## The can's line
 
-Dabs are laid along the aim at a spacing, and at a set rate while held still (`src/spray/stroke.ts`). A dab's width, softness and opacity come from the cap, the distance to the wall and the hand's speed (`dabAt`). Passes add up. Opacity is the player's own setting (`BRUSH.opacity` is its default). Paint lands at once; the plume and particles only show.
+Dabs are laid along the aim at a spacing, and at a set rate while held still (`src/spray/stroke.ts`). A dab's width, softness and opacity come from the cap, the distance to the wall and the hand's speed (`dabAt`). Passes add up. Opacity is the player's own setting (`BRUSH.opacity` is its default): what a pass reaches at the far end of the close range, so closer up it lands denser. Paint lands at once; the plume and particles only show.
 
 ## How a run starts
 
@@ -73,3 +75,20 @@ They use the same code with another rule (`RunRule` in `paint-wet.ts`): `canRule
 - **All runs are as thin** at every cap.
 - **A cap's hand-tuned line numbers** change only when the owner asks.
 - **No objects per run:** runs only write into the paint texture (`AGENTS.md`).
+- **Painting is the game's core:** modular, typed, testable code. What would need a flag, an exception or a special case goes to the owner first.
+- **Particles only show.** The brush paints; painting by particles is gone.
+- **Pressure doesn't run out.** The player sets opacity, on the can only; shaking is just an animation.
+- **The opacity shows on an arc at the crosshair, as set,** not as dense as it lands at this distance. No gauge on the can, no PSI.
+- **The crosshair is real size,** always. A higher opacity reads a little wider: kept.
+- **One stamp op per dab,** with a slant on the wire; no stroke-segment op. The load passes (`docs/known-limits.md`). It's the first thing to look at if traffic becomes the limit.
+
+## Tried and removed
+
+Disliked or noise, so don't bring them back unasked:
+
+- Wet gloss, glow and color bloom on fresh paint.
+- Paint catching the wall's relief.
+- Overspray dust, spatter drops, a spit at press start, a hiss tail after release.
+- Nibs on the can (chisel, needle). Marker nibs are a separate idea (BL-039).
+- A rounded bead at a run's end.
+- A crosshair laid on the wall as an ellipse, or a wall reticle beside the screen's.

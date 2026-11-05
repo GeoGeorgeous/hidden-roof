@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 343
+The one list of what's left. Counter for new ids: next: 344
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -55,8 +55,8 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## Painting
 
 1. IDEA [BL-074]: Stencils
-2. [TASK-232]: Painting Rework: to production: what's left once the runs are in: cut unlock-all (`ALL_PAINT`), delete the plan (docs/ideas/paint-refactoring.md) @1.7.0
-3. [?IDEA-166]: Painting Rework: lock the camera while painting (not in the branch) (docs/ideas/paint-refactoring.md)
+2. [TASK-232]: Painting Rework: to production: what's left: cut unlock-all (`ALL_PAINT`) @1.7.0
+3. [?IDEA-166]: Lock the camera while painting: an idea from before the rework, not started, off 1.7.0
 4. [IDEA-336]: Marker: a flat nib, wide across and thin along, for calligraphy: tried on a can cap (TRANSVERSAL), its code kept commented out, each place marked "Kept for a flat nib on the marker, a later version." (grep it)
 
 ## Input
@@ -112,6 +112,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 1. IDEA [BL-063]: License-free background music: drum and bass, jungle @1.8.0
 2. IDEA [BL-148]: Other players' sounds: spray hiss, marker, footsteps, landing as positional voices @1.8.0
+3. [IDEA-343]: The can's hiss follows the hand's speed, the distance and the opacity
 
 ## Tests and tooling
 
