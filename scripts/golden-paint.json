@@ -1,11 +1,11 @@
 {
   "low": {
-    "hash": "a08855a140b039d2",
+    "hash": "b8d0e7a22cd5fff6",
     "texelsPerMeter": 24,
-    "surfaces": 2,
-    "paintedM2": 1.026,
-    "meanAlpha": 0.7014,
-    "drips": 10,
+    "surfaces": 8,
+    "paintedM2": 5.2188,
+    "meanAlpha": 0.3768,
+    "drips": 14,
     "perRun": {
       "can skinny": 0.0585,
       "can standard": 0.0908,
@@ -19,62 +19,19 @@
       "roller on the wall": 0.3104,
       "roller on the floor": 0.0632,
       "sponge": -0.0957,
-      "sponge widest": -0.0823
-    }
-  },
-  "medium": {
-    "hash": "802980c00d84e4de",
-    "texelsPerMeter": 48,
-    "surfaces": 2,
-    "paintedM2": 0.9831,
-    "meanAlpha": 0.7006,
-    "drips": 15,
-    "perRun": {
-      "can skinny": 0.0348,
-      "can standard": 0.0903,
-      "can fat, held for runs": 0.0239,
-      "can spray": 0.1472,
-      "can needle": 0.0198,
-      "can soft": 0.0434,
-      "marker": 0.0364,
-      "marker thinnest": 0.0152,
-      "marker widest, held for runs": 0.0497,
-      "roller on the wall": 0.3094,
-      "roller on the floor": 0.0632,
-      "sponge": -0.077,
-      "sponge widest": -0.0677
-    }
-  },
-  "ultra": {
-    "hash": "88b4dce586229dd5",
-    "texelsPerMeter": 96,
-    "surfaces": 2,
-    "paintedM2": 1.004,
-    "meanAlpha": 0.6977,
-    "drips": 14,
-    "perRun": {
-      "can skinny": 0.0381,
-      "can standard": 0.0897,
-      "can fat, held for runs": 0.0209,
-      "can spray": 0.1468,
-      "can needle": 0.0212,
-      "can soft": 0.0432,
-      "marker": 0.043,
-      "marker thinnest": 0.007,
-      "marker widest, held for runs": 0.0385,
-      "roller on the wall": 0.33,
-      "roller on the floor": 0.0633,
-      "sponge": -0.0717,
-      "sponge widest": -0.0696
+      "sponge widest": -0.0823,
+      "can fat, a fast flick": 0.1198,
+      "can fat, held past a rest for a second run": 0.0193,
+      "can spray, slanted over the floor": 1.1078
     }
   },
   "high": {
-    "hash": "e0c0c87f21802857",
+    "hash": "98e9d31d816491f9",
     "texelsPerMeter": 72,
-    "surfaces": 2,
-    "paintedM2": 1.0075,
-    "meanAlpha": 0.6939,
-    "drips": 11,
+    "surfaces": 8,
+    "paintedM2": 4.8736,
+    "meanAlpha": 0.3765,
+    "drips": 18,
     "perRun": {
       "can skinny": 0.0401,
       "can standard": 0.0889,
@@ -88,7 +45,62 @@
       "roller on the wall": 0.3275,
       "roller on the floor": 0.0621,
       "sponge": -0.075,
-      "sponge widest": -0.0732
+      "sponge widest": -0.0732,
+      "can fat, a fast flick": 0.1172,
+      "can fat, held past a rest for a second run": 0.009,
+      "can spray, slanted over the floor": 1.0098
+    }
+  },
+  "ultra": {
+    "hash": "ad934cc99204474e",
+    "texelsPerMeter": 96,
+    "surfaces": 8,
+    "paintedM2": 4.8281,
+    "meanAlpha": 0.3771,
+    "drips": 20,
+    "perRun": {
+      "can skinny": 0.0381,
+      "can standard": 0.0897,
+      "can fat, held for runs": 0.0209,
+      "can spray": 0.1468,
+      "can needle": 0.0212,
+      "can soft": 0.0432,
+      "marker": 0.043,
+      "marker thinnest": 0.007,
+      "marker widest, held for runs": 0.0385,
+      "roller on the wall": 0.33,
+      "roller on the floor": 0.0633,
+      "sponge": -0.0717,
+      "sponge widest": -0.0696,
+      "can fat, a fast flick": 0.1176,
+      "can fat, held past a rest for a second run": 0.0042,
+      "can spray, slanted over the floor": 0.9982
+    }
+  },
+  "medium": {
+    "hash": "077c7f5ec57fe08d",
+    "texelsPerMeter": 48,
+    "surfaces": 8,
+    "paintedM2": 4.9457,
+    "meanAlpha": 0.3762,
+    "drips": 21,
+    "perRun": {
+      "can skinny": 0.0348,
+      "can standard": 0.0903,
+      "can fat, held for runs": 0.0239,
+      "can spray": 0.1472,
+      "can needle": 0.0198,
+      "can soft": 0.0434,
+      "marker": 0.0364,
+      "marker thinnest": 0.0152,
+      "marker widest, held for runs": 0.0497,
+      "roller on the wall": 0.3094,
+      "roller on the floor": 0.0632,
+      "sponge": -0.077,
+      "sponge widest": -0.0677,
+      "can fat, a fast flick": 0.1209,
+      "can fat, held past a rest for a second run": 0.015,
+      "can spray, slanted over the floor": 1.0352
     }
   }
 }

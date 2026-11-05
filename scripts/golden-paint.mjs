@@ -47,6 +47,10 @@ const RUNS = [
   { name: 'roller on the floor', slot: 3, color: 'purple', frames: 40, aim: (t) => [-0.3 + 0.6 * t, -1.2] },
   { name: 'sponge', slot: 4, width: 0.18, frames: 90, aim: (t) => [0.4 - 0.5 * t, -0.45 + 0.1 * Math.sin(t * 20)] },
   { name: 'sponge widest', slot: 4, width: 0.6, frames: 40, aim: (t) => [0.25, -0.55 + 0.2 * t] },
+  { name: 'can fat, a fast flick', slot: 0, cap: 'fat', color: 'red', frames: 10, aim: (t) => [0.7 - 1.4 * t, -0.1] },
+  { name: 'can fat, held past a rest for a second run', slot: 0, cap: 'fat', color: 'white', frames: 420, aim: () => [-0.25, -0.3] },
+  // Behind the player: the floor at a slant, over its seams.
+  { name: 'can spray, slanted over the floor', slot: 0, cap: 'spray', color: 'pink', frames: 60, aim: (t) => [Math.PI - 0.7 + 1.4 * t, -0.6] },
 ];
 const GAP = 12; // frames with the button up between runs (tools swap)
 const SETTLE = 240; // frames at the end for runs to finish dripping
