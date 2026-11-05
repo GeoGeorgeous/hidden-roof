@@ -1,4 +1,4 @@
-// Tests of the can's brush in Node (src/spray/dab.ts, src/spray/stroke.ts): what a dab is made of, and a stroke over a fake wall at 60, 144 and 240 Hz.
+// Tests of the can's brush in Node (src/spray/dab.ts, src/spray/stroke.ts): what a dab is made of, and a stroke over a fake wall at 20 to 240 Hz.
 // Usage: npm test (node --experimental-transform-types scripts/brush.test.mjs)
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
@@ -11,6 +11,8 @@ const { plumeLook, plumeStrength } = await import('../src/spray/plume.ts');
 const { SprayStroke } = await import('../src/spray/stroke.ts');
 
 const RATES = [60, 144, 240];
+/** A machine dropping frames, down to where the game's clock stops following (main.ts). */
+const DROPPED = [20, 30, 45];
 const near = (a, b, share, what) => assert.ok(Math.abs(a - b) <= share * Math.abs(b), `${what}: ${a} against ${b}`);
 const dab = (cap, distance, speed = 0) => dabAt(CAPS[cap], distance, speed, { radius: 0, softness: 0, amount: 0 });
 
@@ -205,7 +207,7 @@ for (const hz of RATES) {
 }
 
 // The same stroke paints the same at every rate: moving, slow, held still, on any cap.
-// Under 60 frames a second a slow line owes no backlog: when it stops, the can builds up as if held still all along.
+// A slow line's stop owes no backlog at a low frame rate: the can builds up as if held still all along.
 {
   const r = rig(2);
   const perFrame = dabSpacing(CAPS.standard, 2) * 1.2;
@@ -217,18 +219,21 @@ for (const hz of RATES) {
 
 const strokes = [
   ['slow', 'standard', 1, (t) => t * 0.05, 3],
+  ['a slow line', 'standard', 1, (t) => t * 0.1, 3],
+  ['a steady slow line', 'standard', 1, (t) => t * 0.15, 3],
+  ['a slow line, farther', 'standard', 3, (t) => t * 0.6, 3],
   ['walking pace', 'skinny', 1, (t) => t * 0.4, 2],
   ['steady', 'standard', 1, (t) => t * 1.5, 1],
   ['fast', 'fat', 2, (t) => t * 8, 0.5],
   ['held', 'standard', 1, () => 0, 2],
 ];
 for (const [name, cap, depth, x, seconds] of strokes) {
-  const at = RATES.map((hz) => {
+  const at = [...RATES, ...DROPPED].map((hz) => {
     const r = rig(depth);
     play(r, hz, seconds, depth, cap, x);
     return { count: r.dabs.length, ink: ink(r.dabs) };
   });
-  for (const [i, a] of at.entries()) near(a.ink, at[0].ink, 0.08, `${name}: paint at ${RATES[i]} Hz against 60 Hz`);
+  for (const [i, a] of at.entries()) near(a.ink, at[0].ink, 0.08, `${name}: paint at ${[...RATES, ...DROPPED][i]} Hz against 60 Hz`);
 }
 
 // Held still: the rate set, at the weight set.
@@ -287,4 +292,4 @@ for (const hz of RATES) {
   near(far.dabs.at(-1).x, 2.5, 1e-6, 'and they still reach the spot');
 }
 
-console.log('brush: dabs, strokes at 60, 144 and 240 Hz ok');
+console.log('brush: dabs, strokes at 20 to 240 Hz ok');
