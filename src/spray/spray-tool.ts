@@ -11,6 +11,7 @@ import { Brush } from './brush';
 import { lineWidth } from './dab';
 import { SprayParticles, WallMemo } from './particles';
 import { WallProbe } from './wall-probe';
+import { crosshairPx } from '../tools/aim';
 import { setHex } from '../hex-color';
 
 // Spraying: color and cap come from the inventory, the opacity from the player
@@ -47,7 +48,7 @@ export class SprayTool {
     solids: Solids,
     private audio: Audio,
   ) {
-    const probe = new WallProbe(solids, paint);
+    const probe = new WallProbe(solids, paint, SPRAY.reach);
     this.brush = new Brush(probe, paint);
     this.particles = new SprayParticles(scene, probe);
     this.others = new SprayParticles(scene, probe);
@@ -100,8 +101,7 @@ export class SprayTool {
   /** The line on screen: a wall square-on at the aim's distance, or at the can's reach with none. */
   private measure(camera: THREE.PerspectiveCamera, eye: THREE.Vector3, inv: Inventory) {
     const distance = this.brush.distance({ eye, forward }, this.flow > 0) ?? SPRAY.reach;
-    const view = 2 * distance * Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
-    this.linePx = Math.round((lineWidth(CAPS[inv.cap], distance, this.brush.speed) / view) * window.innerHeight);
+    this.linePx = crosshairPx(camera, lineWidth(CAPS[inv.cap], distance, this.brush.speed), distance);
   }
 
   /** Nothing comes out of the can. */

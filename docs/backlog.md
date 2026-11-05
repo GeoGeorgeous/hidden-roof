@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 358
+The one list of what's left. Counter for new ids: next: 359
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -183,6 +183,7 @@ Shipped since the last release; the release commit empties this list.
 28. [TEST-356]: Golden paint plays a fast flick, a second run after a rest and a slanted line over the floor's seams
 29. [TASK-232]: Painting Rework: to production: unlock-all (`ALL_PAINT`) cut
 30. [DOCS-357]: Painting Rework's end: all of paint in `docs/painting.md`, limits in `docs/known-limits.md`, `docs/ideas/` as the code is
+31. [IDEA-358]: The crosshair shows the marker's and the sponge's real width at the wall and fades out of their reach, as the can's does, with no arc: one module, `src/tools/aim.ts`, that any tool with a reach can take
 
 ## Discarder
 

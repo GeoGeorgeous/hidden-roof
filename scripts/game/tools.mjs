@@ -13,8 +13,10 @@ await check('tools: Q/E change the player\'s nib, roller and patch width, not th
     inv.give('roller');
     inv.size = { marker: config.MARKER.width, roller: config.ROLLER.width, sponge: config.SPONGE.width };
     inv.select(1);
+    await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
     const crosshair = tools.crosshair('marker');
     for (let i = 0; i < 3; i++) await notch(-1);
+    await new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done)));
     const out = { marker: inv.size.marker, grew: tools.crosshair('marker') > crosshair };
     for (let i = 0; i < 30; i++) await notch(1);
     out.min = inv.size.marker;

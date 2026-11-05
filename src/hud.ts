@@ -126,7 +126,7 @@ export class Hud {
     this.crosshair.style.setProperty('--size', `${px}px`);
   }
 
-  /** The crosshair fades where the can's paint wouldn't land. */
+  /** The crosshair fades where the tool in hand wouldn't reach. */
   setReach(reaches: boolean) {
     this.crosshair.style.opacity = reaches ? '' : `${CROSSHAIR.far}`;
   }
