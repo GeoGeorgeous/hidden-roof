@@ -8,22 +8,42 @@ The goal: spraying feels like a drawing app and a real can at once. A continuous
 
 | What | Where |
 |---|---|
-| All tunable numbers | `src/config.ts`: `DRIPS`, `BRUSH`, `CAPS`, `MARKER`, `ROLLER` |
-| The can's line: a dab's size, softness, opacity | `src/spray/dab.ts`, `src/spray/stroke.ts`, `src/spray/brush.ts` |
+| All tunable numbers | `src/config.ts`: `PAINT`, `DRIPS`, `BRUSH`, `CAPS`, `SPRAY`, `CROSSHAIR`, `MARKER`, `ROLLER`, `SPONGE` |
+| The can's line: a dab's size, softness, opacity | `src/spray/dab.ts`, `src/spray/stroke.ts`, `src/spray/brush.ts`; rays: `src/spray/wall-probe.ts` |
+| The can in hand, its plume | `src/spray/spray-tool.ts`, `src/spray/plume.ts`, `src/spray/particles.ts` |
 | Marker, roller | `src/tools/marker.ts`, `src/tools/roller.ts`, sweep shared in `src/tools/stroke.ts` |
-| Laying paint on texels | `src/paint-raster.ts`, driven by `src/painting.ts` |
+| Laying paint on texels | `src/paint-raster.ts`, driven by `src/painting.ts`; past a face's edge: `src/paint-seams.ts` |
+| Paint on the GPU | `src/paint-gpu.ts`, blocks on pages: `src/page-packer.ts` |
 | Wet paint and the dice | `src/paint-wet.ts` |
 | A run moving down a wall | `src/paint-drips.ts` |
-| Paint as data for the network and saves | `src/paint-ops.ts`, `src/op-wire.ts` |
-| F3 rows, tooltips | `src/debug/paint-sections.ts`, `src/debug/hint-text.ts` (rules: `src/debug/AGENTS.md`) |
+| Paint as data for the network and saves | `src/paint-ops.ts`, `src/op-wire.ts`, `src/save/paint-file.ts` |
+| Faces an admin locked | `src/paint-locks.ts` |
+| F3 rows, tooltips, its views | `src/debug/paint-sections.ts`, `src/debug/hint-text.ts` (rules: `src/debug/AGENTS.md`), `src/dev/wet-view.ts`, `src/dev/runs-view.ts` |
+
+## How paint is kept
+
+Paint is baked, never objects (`AGENTS.md`, Performance first). A surface's paintable faces share an atlas on the CPU, made on its first hit, and a block of a shared page on the GPU, made on the first hit on any of the page's surfaces; only what changed is uploaded. A face's edge stops a stamp, so `paint-seams.ts` carries the rest onto the faces in the same plane. Every surface has the same density, PAINT DETAIL (24, 48, 72 or 96 texels/m): it's a player's setting, held at the host's in a session, and paint sizes are in meters, never texels.
+
+What leaves a painter is ops: a stamp, a roll, a drip, each in face fractions and meters (`CONTEXT.md`), so an op paints the same spot at any detail. A stamp is one dab with its 3 bytes of slant (protocol 12). Replays, saves and the server only paint ops: they never roll the dice and never make a run of their own. A save (`.rhhpaint`) is paint by face. Memory by detail: `docs/deploy.md`.
 
 ## The can's line
 
-Dabs are laid along the aim at a spacing, and at a set rate while held still (`src/spray/stroke.ts`). The spacing and the hand's speed count the way across the ray: along a wall at an angle a dab is as much longer as that way is shorter, so a line holds the same paint there, and a wall behind another's edge is no distance, so a stroke stepping onto it leaves no pile of dabs. A dab's width, softness and opacity come from the cap, the distance to the wall and the hand's speed (`dabAt`). Passes add up. Opacity is the player's own setting (`BRUSH.opacity` is its default): what a pass reaches in the far range, up to `BRUSH.closeFlow` times that close up. Paint lands at once; the plume and particles only show.
+Dabs are laid along the aim at a spacing, and at a set rate while held still (`src/spray/stroke.ts`). The spacing and the hand's speed count the way across the ray: along a wall at an angle a dab is as much longer as that way is shorter, so a line holds the same paint there, and a wall behind another's edge is no distance, so a stroke stepping onto it leaves no pile of dabs. A stroke's first `BRUSH.speedStart` of moving sets the speed at once, the way over the time so far, so a stroke doesn't start dense; after it the speed follows the hand at `BRUSH.speedFollow`. A dab's width, softness and opacity come from the cap, the distance to the wall and the hand's speed (`dabAt`). Passes add up. Opacity is the player's own setting, Run + the wheel with the can in hand (`BRUSH.opacity` is its default): what a pass reaches in the far range, up to `BRUSH.closeFlow` times that close up. At an angle a dab stretches along the aim and fades at the far end (`slantOf`). Paint lands at once; the plume and particles only show: each cap has its own plume (`SPRAY.plume`, a cap's `plume`), and it follows the opacity for everyone. Painting has its own settings: a slower mouse, a narrower view and Streamline, how far the brush trails the aim (`BRUSH.streamline`).
+
+The crosshair is as wide as the line would land now, and fades where paint wouldn't reach (`CROSSHAIR`).
+
+| Cap (`CAPS` key) | In the game |
+|---|---|
+| `needle` | NEEDLE |
+| `skinny` | SKINNY |
+| `standard` | BANANA, the one a player starts with |
+| `soft` | BLUE DOT |
+| `fat` | NY FAT |
+| `spray` | ASTRO FAT |
 
 ## How a run starts
 
-1. **Wet paint.** Only paint landing on nearly opaque paint on an upright face counts (`paint-raster.ts`). Each texel keeps one number: when its wet paint is dry. A coat is a full-opacity stamp, and `DRIPS.passCoats` coats make a pass.
+1. **Wet paint.** Only paint landing on nearly opaque paint on an upright face counts (`paint-raster.ts`). Each texel keeps one number: when its wet paint is dry, as a Float32 counted from the last whole `DRIPS.wetSpan`, or a thin coat would be lost on a clock that has run for hours (`docs/known-limits.md`). A coat is a full-opacity stamp, and `DRIPS.passCoats` coats make a pass.
 2. **Build-up.** Past `DRIPS.passes` of wet paint, a texel rolls the dice. Below that nothing can run. Paint dries at `DRIPS.dryTime` seconds a pass, so what counts is paint in a short time, not paint in total.
 3. **The dice.** The odds are the tool's `chance` (0..1 in config, a percent in F3) for a whole spot, a square of `DRIPS.spot` counted from its face's corner, shared out over its texels: thin and wide lines have the same odds where they're as wet, and every paint detail runs alike, but for a dab under a texel at LOW (`docs/known-limits.md`).
 4. **A failed roll (can).** It takes only `DRIPS.miss` off the texel. What it takes goes to the spot's pool.
@@ -81,6 +101,7 @@ They use the same code with another rule (`RunRule` in `paint-wet.ts`): `canRule
 - **The opacity shows on an arc at the crosshair, as set,** not as dense as it lands at this distance. No gauge on the can, no PSI.
 - **The crosshair is real size,** always. A higher opacity reads a little wider: kept.
 - **One stamp op per dab,** with a slant on the wire; no stroke-segment op. The load passes (`docs/known-limits.md`). It's the first thing to look at if traffic becomes the limit.
+- **Wet paint stays 4 bytes a texel.** A Float64 clock would double it (up to +510 MB at ULTRA on a level painted over), and whole ticks in a Uint32 run out after 74 hours: it counts from the hour instead.
 
 ## Tried and removed
 
@@ -89,6 +110,6 @@ Disliked or noise, so don't bring them back unasked:
 - Wet gloss, glow and color bloom on fresh paint.
 - Paint catching the wall's relief.
 - Overspray dust, spatter drops, a spit at press start, a hiss tail after release.
-- Nibs on the can (chisel, needle). Marker nibs are a separate idea (BL-039).
+- A chisel nib on the can. A flat one, tried as the TRANSVERSAL cap, is kept commented out for the marker (IDEA-336, BL-039). NEEDLE is a round cap of its own.
 - A rounded bead at a run's end.
 - A crosshair laid on the wall as an ellipse, or a wall reticle beside the screen's.

@@ -5,9 +5,8 @@ follows is the owner's approved plan for its next part (2026-11-01).
 
 ## 1.9.0: who painted what (IDEA-288) and a timelapse (IDEA-289)
 
-- **When:** after the Painting Rework (TASK-231). A painter makes ~1760 ops a second now (one per particle) and should
-  make ~60 after it (`docs/known-limits.md`). A 15-minute ring for 20 painters is ~720 MB now and ~36 MB
-  then (`hostMemory` 1024 MB).
+- **When:** the Painting Rework (TASK-231) is in: a painter makes 60 to 280 ops a second, not ~1760 (`docs/known-limits.md`).
+  A 15-minute ring for 20 painters, ~720 MB at the old rate, is about 25 to 115 MB (`hostMemory` 1024 MB).
 - **Approved:**
   - The window is ~15 minutes (`config.ts`), in the server's memory only. Paint spoiled within it can be undone;
     older paint can't.

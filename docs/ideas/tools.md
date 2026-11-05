@@ -6,12 +6,12 @@ From the audit of 2026-10-17 (module M6, skipped for 1.4.0). Nothing decided. �
 
 - A tool is the string 'can' | 'marker' | 'ladder' | 'roller' | 'sponge' plus its index in SLOTS (`src/inventory/inventory.ts:8-9`). Five classes, five update signatures; tools.ts dispatches with 25 === checks.
 - Adding a sized color tool touches 18 files plus 2 new, ~40 places plus ~12 F3 tooltips; only 6 fail to compile if forgotten.
-- Update order is part of the contract: the marker silences the shared scribble channel, and the can's particles keep stamping while another tool is out, so the order fixes the op log and replays.
+- Update order is part of the contract: the marker silences the shared scribble channel.
 - Paint ops know nothing about tools: the painting layer is the clean part.
 
 ## Findings
 
-- **F6.4 Update order is an unwritten rule** (arch). The marker writes scribble 0 every frame it isn't drawing, so it must update before the roller and sponge; the can's particles keep stamping while another tool is out. `src/tools/marker.ts:61`; `src/tools/tools.ts:90`; `src/spray/particles.ts:172`. Approaches: (1) document the rule in tools.ts ★ · (2) tools report sound levels, Tools mixes once (later).
+- **F6.4 Update order is an unwritten rule** (arch). The marker writes scribble 0 every frame it isn't drawing, so it must update before the roller and sponge. `src/tools/marker.ts:61`; `src/tools/tools.ts:90`; `src/spray/particles.ts:172`. Approaches: (1) document the rule in tools.ts ★ · (2) tools report sound levels, Tools mixes once (later).
 - **F6.6 Tool names drift** (docs). ladder / stepladder / LADDER and two F3 groups; can / SprayTool / color:* pickups; the action "spray" also covers the marker. `src/tools/ladder-tool.ts:39`; `src/inventory/items.ts:20`; `src/debug/panel.ts:27,35`.
 - **F6.7 A tool registry and a HeldTool interface** (arch, M). The HeldTool seam is real (5 adapters); a ToolDef that swallows poses, HUD, sound and F3 would be a shallow god-record. Caps are the template for marker types: a per-tool variant module is the deep module to build with BL-039. Do it when BL-039 (marker types and nibs) or BL-074 is planned.
 - **F6.8 No color or cap tag when switching from an empty slot** (question). switched is false when prev.tool is null, so no tag shows coming from an empty slot or from build mode. Possibly on purpose. `src/tools/tools.ts:126-127`.

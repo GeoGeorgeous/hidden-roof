@@ -111,7 +111,7 @@ export class Tools {
     }
     const tool = enabled ? inv.tool : null;
     this.reportChanges(tool);
-    // The order is part of the op log: the marker silences the shared scribble channel before the roller and sponge use it, and the can's particles keep stamping while another tool is out.
+    // The marker silences the shared scribble channel before the roller and sponge use it.
     this.spray.update(dt, input, camera, eye, tool === 'can' ? inv : null);
     this.marker.update(dt, input, camera, eye, tool === 'marker', inv.color, inv.size.marker / 2);
     this.ladder.update(input, camera, motion.position, tool === 'ladder');

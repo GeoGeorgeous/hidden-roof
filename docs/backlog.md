@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 356
+The one list of what's left. Counter for new ids: next: 358
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -55,11 +55,8 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## Painting
 
 1. IDEA [BL-074]: Stencils
-2. [TASK-232]: Painting Rework: to production: what's left: cut unlock-all (`ALL_PAINT`) @1.7.0
-3. [?IDEA-166]: Lock the camera while painting: an idea from before the rework, not started, off 1.7.0
-4. [IDEA-336]: Marker: a flat nib, wide across and thin along, for calligraphy: tried on a can cap (TRANSVERSAL), its code kept commented out, each place marked "Kept for a flat nib on the marker, a later version." (grep it)
-5. [?BUGS-353]: Wet paint's times are Float32 on a clock that never resets: thin coats drift, ASTRO FAT at 3 m runs a third more after 3 hours in a tab, 2.6 times after 30. Float64 would fix it for up to +510 MB at ULTRA on a level painted over: look for a way at the same size
-6. [BUGS-354]: The first tenth of a second of a fast stroke holds more paint at a high frame rate (+30% at 240 Hz against 60): the hand speed starts low behind the streamline, the rest of the line is alike
+2. [?IDEA-166]: Lock the camera while painting: an idea from before the rework, not started, off 1.7.0
+3. [IDEA-336]: Marker: a flat nib, wide across and thin along, for calligraphy: tried on a can cap (TRANSVERSAL), its code kept commented out, each place marked "Kept for a flat nib on the marker, a later version." (grep it)
 
 ## Input
 
@@ -99,7 +96,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## UI
 
-1. [?TASK-203]: The HUD fits every window: it scales with the window and the DPR (tiny at 4K at 100%, crowded at 820×560), the compact pause menu with F3 open stays above the HUD (BUGS-198 merged in, likely fixed by the `--z-*` layers); all three checked on shots first (docs/ideas/hud-scale.md)
+1. [?TASK-203]: The HUD fits every window: it scales with the window and the DPR (tiny at 4K at 100%, crowded at 820×560), the compact pause menu with F3 open stays above the HUD (BUGS-198 merged in, likely fixed by the `--z-*` layers); both checked on shots first (docs/ideas/hud-scale.md)
 2. [IDEA-204]: Notifications beyond play: the menu, pages, loading and a hidden tab on the same model; screen-reader announcements; more events (away and back, context lost, online, refused pointer lock or clipboard); battery (docs/ideas/notifications.md)
 
 ## Avatar
@@ -149,7 +146,7 @@ The API and why it is so: docs/admin-api.md.
 
 ## Codebase
 
-1. [RFCT-202]: src/ root files into folders (paint, menu, input, boot, render), style.css split next to its code; paint after the Painting Rework (docs/ideas/src-folders.md) @1.9.0
+1. [RFCT-202]: src/ root files into folders (paint, menu, input, boot, render), style.css split next to its code (docs/ideas/src-folders.md) @1.9.0
 2. [RFCT-323]: server/session.ts, src/net/multiplayer.ts and src/main.ts are past the ~400 lines of AGENTS.md: split by responsibility
 
 ## Done
@@ -172,6 +169,20 @@ Shipped since the last release; the release commit empties this list.
 14. [IDEA-339]: The plume follows the opacity set: fewer and fainter specks, as tuned at 65%, for you and for others, in the snapshot's flow byte
 15. [PERF-341]: What rays look through near a point: the solids' spheres in one flat array, about 10 times faster; a roof frame's CPU 5.7 → 3.7 ms in the same conditions, fps unchanged
 16. [TASK-230]: Paint runs with the brush: past `passes` of wet paint a spot rolls the dice by its cap's `chance`; a failed roll leaves the paint, it pools in the spot and makes a run likelier and longer, and a spot rests after a run: a can held still runs with every cap as a result of the same rule; marker and roller as they were; F3 in passes, chance and rest; `npm run bench:runs`
+17. [BUGS-345]: Under 60 frames a second a slow line of the can lost up to half its paint: the can's dabs of the clock are laid in the same frame, and the strokes are tested from 20 Hz up
+18. [BUGS-346]: A spot of wet paint was counted on the atlas's grid, so one square could hold two faces, up to a meter or more apart in the world: its squares start at their face's corner now
+19. [BUGS-347]: Paint on the ring around a face could start a run nobody sees, in a slot that painted nothing: it no longer rolls
+20. [BUGS-348]: Wiping or undoing paint in build mode left its spots resting and full: restored paint is dry now, spots too
+21. [BUGS-349]: F3's rolls / runs counted runs the dice decided and the paint then dropped: it counts those that start
+22. [BUGS-350]: A stored opacity out of range was taken as it was (0 sprayed nothing): it comes back within range
+23. [TEST-351]: Tests of what a spot keeps: how it dries, a run empties it, paint held on a resting spot, its odds
+24. [BUGS-352]: A line along a wall seen at an angle got up to 4 times the paint and ran on its first pass, and a stroke stepping onto a wall behind another left a blot: a stroke's spacing and hand speed count the way across the ray now
+25. [DOCS-355]: Painting Rework's review: docs, F3 hints and comments as the code is; limits written down; Reset all's texts in messages.ts, the plume's spreads in config.ts
+26. [BUGS-353]: Wet paint's times were Float32 on a clock that never resets, so thin coats drifted: ASTRO FAT at 3 m ran a third more after 3 hours in a tab, 2.6 times after 30. They count from the last whole hour now, at the same size
+27. [BUGS-354]: A fast stroke's start held more paint at a high frame rate (+22% in NY FAT's first 40 cm at 240 Hz against 60): its first frames set the hand speed by the way over the time so far, +10% now, the rest in `docs/known-limits.md`
+28. [TEST-356]: Golden paint plays a fast flick, a second run after a rest and a slanted line over the floor's seams
+29. [TASK-232]: Painting Rework: to production: unlock-all (`ALL_PAINT`) cut
+30. [DOCS-357]: Painting Rework's end: all of paint in `docs/painting.md`, limits in `docs/known-limits.md`, `docs/ideas/` as the code is
 
 ## Discarder
 
@@ -212,12 +223,3 @@ Dropped items, kept for the record; don't work on them.
 33. ~~[TASK-194]: Replace paintable walls that cannot be reached with standard walls. Optimize room on the main floor. (merged into BL-144)~~
 34. ~~[BUGS-198]: With F3 open the compact pause menu is under the pickup tags, nameplates, hotbar and toast (docs/ideas/hud-scale.md) (merged into TASK-203)~~
 35. ~~[BUGS-199]: LOW PRESSURE runs off the right edge in narrow windows (820×560) (docs/ideas/hud-scale.md) (merged into TASK-203)~~
-57. [BUGS-345]: Under 60 frames a second a slow line of the can lost up to half its paint: the can's dabs of the clock are laid in the same frame, and the strokes are tested from 20 Hz up
-58. [BUGS-346]: A spot of wet paint was counted on the atlas's grid, so one square could hold two faces, up to a meter or more apart in the world: its squares start at their face's corner now
-59. [BUGS-347]: Paint on the ring around a face could start a run nobody sees, in a slot that painted nothing: it no longer rolls
-60. [BUGS-348]: Wiping or undoing paint in build mode left its spots resting and full: restored paint is dry now, spots too
-61. [BUGS-349]: F3's rolls / runs counted runs the dice decided and the paint then dropped: it counts those that start
-62. [BUGS-350]: A stored opacity out of range was taken as it was (0 sprayed nothing): it comes back within range
-63. [TEST-351]: Tests of what a spot keeps: how it dries, a run empties it, paint held on a resting spot, its odds
-64. [BUGS-352]: A line along a wall seen at an angle got up to 4 times the paint and ran on its first pass, and a stroke stepping onto a wall behind another left a blot: a stroke's spacing and hand speed count the way across the ray now
-65. [DOCS-355]: Painting Rework's review: docs, F3 hints and comments as the code is; limits written down; Reset all's texts in messages.ts, the plume's spreads in config.ts
