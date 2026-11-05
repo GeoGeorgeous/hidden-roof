@@ -1,4 +1,5 @@
 import { button, div, el } from './menu-ui';
+import { msg } from './messages';
 
 // Reset all, top right of a Settings tab: dimmed when all is at its default,
 // asks before it resets.
@@ -26,10 +27,10 @@ export class ResetCorner {
         if (reset) this.reset();
         this.sync();
       };
-      this.el.replaceChildren(el('span', 'ask', `Reset all ${this.what}?`), button('Reset', () => answer(true), 'confirm'), button('Cancel', () => answer(false), 'cancel'));
+      this.el.replaceChildren(el('span', 'ask', msg('menu.resetAllAsk', { what: this.what })), button(msg('menu.reset'), () => answer(true), 'confirm'), button(msg('lobby.cancel'), () => answer(false), 'cancel'));
       return;
     }
-    const all = button('Reset all', () => {
+    const all = button(msg('menu.resetAll'), () => {
       if (this.isDefault()) return;
       this.asking = true;
       this.sync();

@@ -50,7 +50,7 @@ for (const path of opsPaths) {
   const hash = h.digest('hex').slice(0, 16);
   const ok = hash === rec.hash;
   if (!ok) failed++;
-  // Ops from elsewhere never start runs, so the server keeps RGBA only (no excess counts).
+  // Ops from elsewhere never start runs, so the server keeps RGBA only (no wet paint).
   const full = paint.surfaces.reduce((n, s) => n + s.geo.atlasW * s.geo.atlasH * 4, 0) / 2 ** 20;
   console.log(`${detail.padEnd(6)} ${hash} ${ok ? 'identical to the browser' : `DIFFERS from the browser's ${rec.hash}`} (${paint.surfaces.length} surfaces built in ${built.toFixed(0)} ms, ${rec.log.length} ops in ${played.toFixed(0)} ms, ${full.toFixed(0)} MB when all painted)`);
 }

@@ -136,8 +136,8 @@ export class SprayParticles {
     for (let i = 0; i < n; i++) {
       const s = this.free.pop()!;
       s.pos.copy(e.nozzle);
-      s.vel.copy(aim(e)).multiplyScalar(p.speed * (0.5 + Math.random()));
-      s.life = s.span = p.life * (0.4 + 0.6 * Math.random());
+      s.vel.copy(aim(e)).multiplyScalar(p.speed * within(p.vary.speed));
+      s.life = s.span = p.life * within(p.vary.life);
       s.dist = 0;
       s.limit = limit;
       s.fresh = true;
@@ -145,7 +145,7 @@ export class SprayParticles {
       this.colors[k * 3] = e.display.r;
       this.colors[k * 3 + 1] = e.display.g;
       this.colors[k * 3 + 2] = e.display.b;
-      this.sizes[k] = look.size * (0.4 + 1.2 * Math.random());
+      this.sizes[k] = look.size * within(p.vary.size);
       this.grows[k] = look.grow;
       this.strengths[k] = strength;
       this.live.push(s);
@@ -198,6 +198,8 @@ export class SprayParticles {
     }
   }
 }
+
+const within = ([from, to]: [number, number]) => from + (to - from) * Math.random();
 
 function gauss() {
   return Math.sqrt(-2 * Math.log(1 - Math.random())) * Math.cos(2 * Math.PI * Math.random());

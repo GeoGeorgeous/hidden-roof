@@ -231,6 +231,9 @@ export const MESSAGES = {
 
   /** The menu, its pages, and the screens before play: they keep their own places, and show until the next status or the step is done (a copy's flash: a few seconds). */
   menu: {
+    resetAll: 'Reset all',
+    resetAllAsk: 'Reset all {what}?',
+    reset: 'Reset',
     // ESC menu status line
     pauseIdle: 'Paused',
     pauseStart: 'Click to start',

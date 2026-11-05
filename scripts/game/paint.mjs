@@ -74,7 +74,7 @@ await check('paint runs: paint dries; a coat over a dry coat starts no run, the 
   return r.overDry === 0 && r.overWet > 0 && r.held > 0 ? null : JSON.stringify(r);
 });
 
-await check('paint runs: a can held on one spot runs with every cap, and more with a wide one; marker and roller keep what they did', async () => {
+await check('paint runs: a can held on one spot runs with a thin cap and more with a wide one; marker and roller keep what they did', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
     const { input, inventory: inv, player, config } = g;

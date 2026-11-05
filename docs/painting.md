@@ -19,18 +19,18 @@ The goal: spraying feels like a drawing app and a real can at once. A continuous
 
 ## The can's line
 
-Dabs are laid along the aim at a spacing, and at a set rate while held still (`src/spray/stroke.ts`). The spacing and the hand's speed count the way across the ray: along a wall at an angle a dab is as much longer as that way is shorter, so a line holds the same paint there, and a wall behind another's edge is no distance, so a stroke stepping onto it leaves no pile of dabs. A dab's width, softness and opacity come from the cap, the distance to the wall and the hand's speed (`dabAt`). Passes add up. Opacity is the player's own setting (`BRUSH.opacity` is its default): what a pass reaches at the far end of the close range, so closer up it lands denser. Paint lands at once; the plume and particles only show.
+Dabs are laid along the aim at a spacing, and at a set rate while held still (`src/spray/stroke.ts`). The spacing and the hand's speed count the way across the ray: along a wall at an angle a dab is as much longer as that way is shorter, so a line holds the same paint there, and a wall behind another's edge is no distance, so a stroke stepping onto it leaves no pile of dabs. A dab's width, softness and opacity come from the cap, the distance to the wall and the hand's speed (`dabAt`). Passes add up. Opacity is the player's own setting (`BRUSH.opacity` is its default): what a pass reaches in the far range, up to `BRUSH.closeFlow` times that close up. Paint lands at once; the plume and particles only show.
 
 ## How a run starts
 
 1. **Wet paint.** Only paint landing on nearly opaque paint on an upright face counts (`paint-raster.ts`). Each texel keeps one number: when its wet paint is dry. A coat is a full-opacity stamp, and `DRIPS.passCoats` coats make a pass.
 2. **Build-up.** Past `DRIPS.passes` of wet paint, a texel rolls the dice. Below that nothing can run. Paint dries at `DRIPS.dryTime` seconds a pass, so what counts is paint in a short time, not paint in total.
-3. **The dice.** The odds are the tool's `chance` (0..1 in config, a percent in F3) for a whole spot, a square of `DRIPS.spot`, shared out over its texels: thin and wide lines have the same odds where they're as wet, and every paint detail runs alike.
+3. **The dice.** The odds are the tool's `chance` (0..1 in config, a percent in F3) for a whole spot, a square of `DRIPS.spot` counted from its face's corner, shared out over its texels: thin and wide lines have the same odds where they're as wet, and every paint detail runs alike, but for a dab under a texel at LOW (`docs/known-limits.md`).
 4. **A failed roll (can).** It takes only `DRIPS.miss` off the texel. What it takes goes to the spot's pool.
 5. **Rest (can).** After a run the spot starts none for `DRIPS.rest / chance` seconds, so a higher chance also rests less. Paint that arrives meanwhile goes to the pool.
 6. **The pool (can).** It dries `DRIPS.keptDry` times slower than a texel's paint. How full it is against `DRIPS.full` raises the odds (up to `DRIPS.fullOdds` more) and the run's length. A run empties it.
 7. **Length.** Between `DRIPS.minLength` and `maxLength`. For the can, `DRIPS.lengthLuck` of it is the dice and the rest how full the pool is.
-8. **The run.** The painter's client decides it and sends a drip op; every client runs it from that op (`paint-drips.ts`). It trickles down the face one texel wide, slows down and thins out. New runs are dropped past `DRIPS.maxActive` or within `DRIPS.apart` of another in its column.
+8. **The run.** The painter's client decides it and sends a drip op; every client runs it from that op (`paint-drips.ts`). It trickles down the face one texel wide, slows down and thins out. New runs are dropped past `DRIPS.maxActive` or within `DRIPS.apart` of another in its column: the dice said yes, so the spot still rests and its pool is gone, and F3 doesn't count them.
 
 ## Marker and roller
 
@@ -57,7 +57,7 @@ They use the same code with another rule (`RunRule` in `paint-wet.ts`): `canRule
 | Runs flow too fast or too slow | `DRIPS.speed`, `slowest` | Marker, roller |
 | Runs too faint or too strong | `DRIPS.strength`, `thinnest` | Marker, roller |
 | Runs too close together | `DRIPS.apart`, `DRIPS.spot` | `spot` also changes the odds and the rest's area |
-| Too many on screen at once | `DRIPS.maxActive` | Runs past it never start |
+| Too many on screen at once | `DRIPS.maxActive` | Runs past it never start, but spend their spot's rest and pool |
 | The line itself: width, softness, density | `CAPS.<cap>`, `BRUSH` | Coats per pass, so runs too |
 
 ## Measure a change

@@ -882,8 +882,8 @@ export const PLAYER_LIGHT = {
 /**
  * Paint runs: paint put onto paint that is already opaque is wet until it dries,
  * and on vertical faces a texel with enough wet paint may start a thin run down the wall.
- * Each setting does one job: `excess` how much wet paint makes a texel run, `dryTime` how
- * long it stays wet, and each tool's and cap's `drips` how often a wet texel runs.
+ * Each setting does one job: `passes` how much wet paint makes a texel roll the dice, `dryTime`
+ * how long it stays wet, and each tool's and cap's `chance` how often that starts a run.
  * All baked into the paint texture: no extra objects.
  */
 export const DRIPS = {
@@ -1049,7 +1049,7 @@ export const SPRAY = {
    * (m) and softness at par (BRUSH.softnessRef). `opacity`: all of them, at a can set to `opacityAtPar`; set lower, its
    * specks are fewer and fainter, higher, more and stronger.
    */
-  plume: { count: 3, cone: 1.6, speed: 15, drag: 2, life: 0.35, short: 0.03, size: 0.01, grow: 1.5, dotAtPar: 0.05, opacity: 0.9, opacityAtPar: 0.65 },
+  plume: { count: 3, cone: 1.6, speed: 15, drag: 2, life: 0.35, short: 0.03, size: 0.01, grow: 1.5, dotAtPar: 0.05, opacity: 0.9, opacityAtPar: 0.65, vary: { speed: [0.5, 1.5], life: [0.4, 1], size: [0.4, 1.6] } as Record<'speed' | 'life' | 'size', [number, number]> },
   /** One shake's motion and rattle (s), repeated while RMB is held: only that, it does nothing to the paint. */
   shakeDuration: 0.55,
   /**
@@ -1065,7 +1065,7 @@ export const SPRAY = {
  * and the can's physics shape the line: the same paint per second, so speed and distance change its width, density and edge.
  */
 export const BRUSH = {
-  /** One pass of a stroke reaches about this opacity along its middle; passes add up. The player's own: Run + the color keys, a step at a time within the range, kept in this browser. Others get it as paint, and as how much comes out of the can, for its plume. */
+  /** One pass of a stroke reaches about this opacity along its middle in the far range, more up close; passes add up. The player's own: Run + the color keys, a step at a time within the range, kept in this browser. Others get it as paint, and as how much comes out of the can, for its plume. */
   opacity: 0.65,
   opacityMin: 0.05,
   opacityMax: 1,

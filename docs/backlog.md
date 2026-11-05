@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 353
+The one list of what's left. Counter for new ids: next: 356
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -58,6 +58,8 @@ Only `N.`, the id and the description are required. The optional parts appear in
 2. [TASK-232]: Painting Rework: to production: what's left: cut unlock-all (`ALL_PAINT`) @1.7.0
 3. [?IDEA-166]: Lock the camera while painting: an idea from before the rework, not started, off 1.7.0
 4. [IDEA-336]: Marker: a flat nib, wide across and thin along, for calligraphy: tried on a can cap (TRANSVERSAL), its code kept commented out, each place marked "Kept for a flat nib on the marker, a later version." (grep it)
+5. [?BUGS-353]: Wet paint's times are Float32 on a clock that never resets: thin coats drift, ASTRO FAT at 3 m runs a third more after 3 hours in a tab, 2.6 times after 30. Float64 would fix it for up to +510 MB at ULTRA on a level painted over: look for a way at the same size
+6. [BUGS-354]: The first tenth of a second of a fast stroke holds more paint at a high frame rate (+30% at 240 Hz against 60): the hand speed starts low behind the streamline, the rest of the line is alike
 
 ## Input
 
@@ -218,3 +220,4 @@ Dropped items, kept for the record; don't work on them.
 62. [BUGS-350]: A stored opacity out of range was taken as it was (0 sprayed nothing): it comes back within range
 63. [TEST-351]: Tests of what a spot keeps: how it dries, a run empties it, paint held on a resting spot, its odds
 64. [BUGS-352]: A line along a wall seen at an angle got up to 4 times the paint and ran on its first pass, and a stroke stepping onto a wall behind another left a blot: a stroke's spacing and hand speed count the way across the ray now
+65. [DOCS-355]: Painting Rework's review: docs, F3 hints and comments as the code is; limits written down; Reset all's texts in messages.ts, the plume's spreads in config.ts

@@ -26,7 +26,7 @@ const seamTexel = new THREE.Vector2();
 const atTexel = new THREE.Vector2();
 const NONE: readonly never[] = [];
 
-/** The face rect of a face point; the point's atlas texel coords go into atTexel (reused, so strokes allocate nothing). */
+/** The face rect of a face point; the point's atlas texel coords go into atTexel (reused). */
 function faceTexel(s: PaintSurface, at: FacePoint): Rect {
   const r = s.geo.rects[at.rect];
   atTexel.set(r.x + at.u * r.w, r.y + at.v * r.h);
@@ -45,7 +45,7 @@ export class PaintSystem {
   private seams = new SeamIndex<PaintSurface>();
   /** Textures, uploads and their stats. */
   readonly gpu = new PaintGpu();
-  /** Bumped when all paint is wiped (clear): paint still in flight from before it (spray particles) is dropped. */
+  /** Bumped when all paint is wiped (clear): what was recorded of it (dev/runs-view.ts) is dropped. */
   epoch = 0;
   /** While set, every op this player makes (stamps, rolls, the runs they start) is appended (paint-ops.ts). */
   log: PaintOp[] | null = null;

@@ -88,7 +88,7 @@ export function slantOf(face: Rect['face'], ray: Vector3): Slant | undefined {
 //   return { stretch: nib.stretch, turn, tail: 0 };
 // }
 
-/** The set opacity a step up (+1) or down (-1), in whole percents, so it comes back to the same numbers. */
+/** The set opacity a step up (+1) or down (-1), in whole percents, free of float error. */
 export const stepOpacity = (opacity: number, dir: number) => Math.round(MathUtils.clamp(opacity + dir * BRUSH.opacityStep, BRUSH.opacityMin, BRUSH.opacityMax) * 100) / 100;
 
 /** The opacity one pass of a stroke reaches along its middle: the set one, a little less far away, more close up, and thinned as a hand above BRUSH.speedRef spreads the same paint per second over more line. */
