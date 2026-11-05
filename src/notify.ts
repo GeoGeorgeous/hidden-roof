@@ -32,6 +32,8 @@ export interface Note {
   dialog?: Dialog;
   /** How full its ring is (0..1), read every frame: what's left of a time, or how far the player got. Null or none: no ring. */
   ring?: number | null;
+  /** Its ring turned into a check: the player has done what it asks. */
+  checked?: boolean;
 }
 
 /** What a status's icon is: bars with one lit (a weak link), a red ring (nothing heard), bars cycling (trying again), a check (done, only by `succeed`). */
@@ -96,10 +98,10 @@ export class Notify {
     this.version++;
   }
 
-  /** How full a keyed message's ring is (0..1); null: no ring. Nothing redraws for it: NotifyView reads it every frame. */
-  ring(key: string, full: number | null) {
+  /** How full a keyed message's ring is (0..1), null: no ring; `checked`: it's a check now. Nothing redraws for it: NotifyView reads it every frame. */
+  ring(key: string, full: number | null, checked: boolean) {
     const note = this.notes.find((n) => n.key === key);
-    if (note) note.ring = full;
+    if (note) Object.assign(note, { ring: full, checked });
   }
 
   clear(key: string) {

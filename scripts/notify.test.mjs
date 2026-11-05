@@ -22,7 +22,7 @@ const play = (n, seconds) => n.update(seconds, true);
   assert.ok(Math.abs(toast.ring - 0.5) < 1e-9, 'stopped with play');
   n.set({ key: 'h', kind: 'hint', lines: ['x'] });
   const seen = n.version;
-  n.ring('h', 0.3);
+  n.ring('h', 0.3, false);
   assert.equal(n.version, seen);
   assert.equal(n.shown().find((x) => x.key === 'h').ring, 0.3);
 }

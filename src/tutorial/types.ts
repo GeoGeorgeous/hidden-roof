@@ -90,5 +90,5 @@ export interface HintDef {
 export interface Notes {
   set(note: { key: string; kind: 'hint'; rank: number; lines: string[] }): void;
   clear(key: string): void;
-  ring(key: string, full: number | null): void;
+  ring(key: string, full: number | null, checked: boolean): void;
 }

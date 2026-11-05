@@ -204,7 +204,7 @@ export class Tutorial {
       this.notes.set({ key, kind: 'hint', rank: RANK[s.def.rank], lines: text < steps.length ? steps[text].lines : s.def.lines });
     }
     // Not on a "take it" step: nothing fills or runs out there.
-    this.notes.ring(key, text === steps.length ? this.ring(s) : null);
+    this.notes.ring(key, text === steps.length ? this.ring(s) : null, text === steps.length && this.acted(s));
   }
 
   private recount() {

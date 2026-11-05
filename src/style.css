@@ -2791,6 +2791,17 @@ body.paused .layer-toast {
 .hint-boxes .note-ring {
   visibility: hidden;
 }
+.note-ring .status-icon {
+  display: none;
+  width: 10px;
+  height: 10px;
+}
+.note-ring.done .ring {
+  display: none;
+}
+.note-ring.done .status-icon {
+  display: block;
+}
 .note-ring .ring circle {
   stroke: rgb(255 255 255 / 0.25);
 }

@@ -1877,7 +1877,7 @@ export const TUTORIAL = {
   opacityPercent: 30,
   /** A hint shows at least this long (s) before it can leave as done, so it doesn't flash. */
   minShown: 2,
-  /** A hint done by the player stays this long (s), its ring full, so the player sees it fill. */
+  /** A hint done by the player stays this long (s), its ring a check. */
   fullHold: 0.6,
   /** Spraying this long (s) on a surface is learning the can. */
   spraySeconds: 0.5,

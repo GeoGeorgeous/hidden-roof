@@ -12,10 +12,11 @@ function setup(saved = null) {
   const board = new Map();
   const log = [];
   const rings = new Map();
+  const checks = new Map();
   const notes = {
     set: (n) => (board.set(n.key, n), log.push(`set ${n.key}`)),
     clear: (key) => (board.delete(key), log.push(`clear ${key}`)),
-    ring: (key, full) => rings.set(key, full),
+    ring: (key, full, checked) => (rings.set(key, full), checks.set(key, checked)),
   };
   const disk = { text: saved };
   const storage = { read: () => disk.text, write: (t) => (disk.text = t) };
@@ -27,7 +28,7 @@ function setup(saved = null) {
   };
   const keys = () => [...board.keys()];
   const learnt = () => JSON.parse(disk.text ?? '{"done":[]}').done;
-  return { t, board, log, rings, snap, play, keys, learnt, disk, storage, pause: (v) => (visible = !v) };
+  return { t, board, log, rings, checks, snap, play, keys, learnt, disk, storage, pause: (v) => (visible = !v) };
 }
 
 // Text: placeholders become bold key names.
@@ -62,13 +63,14 @@ assert.equal(resolveLine('Press {use} to draw, {sizeDown} / {sizeUp} to change n
 
 // A hint that goes by itself says how much of its time is left, and stops while it's away; one that waits for the player has no time, nor has a "take it" step.
 {
-  const { snap, play, rings, pause } = setup('{"v":1,"done":["move","jump","sprint","spray"]}');
+  const { snap, play, rings, checks, pause } = setup('{"v":1,"done":["move","jump","sprint","spray"]}');
   play(1);
   assert.equal(rings.get('hint:opacity'), 0, 'one action: empty until it\'s done');
   snap.cap = 'needle';
   play(TUTORIAL.infoSeconds / 2);
   const half = rings.get('hint:cap.needle');
   assert.ok(Math.abs(half - 0.5) < 0.05, `half its time: ${half}`);
+  assert.equal(checks.get('hint:cap.needle'), false, 'time running out is no check');
   pause(true);
   play(1);
   assert.equal(rings.get('hint:cap.needle'), half, 'the clock stops with play');
@@ -76,15 +78,17 @@ assert.equal(resolveLine('Press {use} to draw, {sizeDown} / {sizeUp} to change n
 
 // A hint the player does fills its ring as far as they got, and stays full fullHold, once it has been up minShown.
 {
-  const { t, play, rings, keys, learnt } = setup();
+  const { t, play, rings, checks, keys, learnt } = setup();
   play(TUTORIAL.moveDelay + TUTORIAL.minShown + 0.2);
   assert.equal(rings.get('hint:move'), 0);
+  assert.equal(checks.get('hint:move'), false);
   t.fact({ type: 'moved', meters: TUTORIAL.moveMeters / 2 });
   play(0.1);
   assert.ok(Math.abs(rings.get('hint:move') - 0.5) < 1e-9);
   t.fact({ type: 'moved', meters: TUTORIAL.moveMeters });
   play(TUTORIAL.fullHold - 0.2);
   assert.equal(rings.get('hint:move'), 1);
+  assert.equal(checks.get('hint:move'), true, 'done, it\'s a check');
   assert.deepEqual(keys(), ['hint:move'], 'full, it stays a moment');
   play(0.3);
   assert.deepEqual(learnt(), ['move']);

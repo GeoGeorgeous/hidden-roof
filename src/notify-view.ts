@@ -25,17 +25,19 @@ function box(className: string, nodes: Node[]) {
   return d;
 }
 
-/** A ring beside a message's text: it empties as a time runs out, fills as the player gets there (style.css .note-ring). */
+/** A ring beside a message's text: it empties as a time runs out, fills as the player gets there, and ends as a status's check (style.css .note-ring). */
 function noteRing() {
   const t = el('span', 'note-ring');
-  t.append(ring());
+  t.append(ring(), el('i', 'status-icon'));
   return t;
 }
 
-/** A ring as of now: `full` of it (0..1), or hidden with none. */
-function drawRing(t: HTMLElement, full: number | null | undefined) {
+/** A ring as of now: `full` of it (0..1), or hidden with none; `checked`: its check, which pops in as it's set. */
+function drawRing(t: HTMLElement, full: number | null | undefined, checked = false) {
   t.hidden = full === null || full === undefined;
   if (!t.hidden) t.style.setProperty('--full', full!.toFixed(2));
+  t.classList.toggle('done', checked);
+  t.lastElementChild!.classList.toggle('check', checked);
 }
 
 /** A status on screen: its element, its text now, and the timer that removes it once faded out. */
@@ -115,8 +117,8 @@ export class NotifyView {
       }
     }
     if (this.notify.version !== this.seen) this.redraw(notes, dialog);
-    const full = notes.find((n) => n.kind === 'hint')?.ring;
-    for (const t of this.hintRings) drawRing(t, full);
+    const hint = notes.find((n) => n.kind === 'hint');
+    for (const t of this.hintRings) drawRing(t, hint?.ring, hint?.checked);
     for (const { note, ring } of this.toastRings) drawRing(ring, note.ring);
   }
 
