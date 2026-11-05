@@ -11,9 +11,11 @@ const KEY_NAMES = { use: 'LMB', sizeDown: 'Q', sizeUp: 'E', prev: 'WHEELUP', nex
 function setup(saved = null) {
   const board = new Map();
   const log = [];
+  const times = new Map();
   const notes = {
     set: (n) => (board.set(n.key, n), log.push(`set ${n.key}`)),
     clear: (key) => (board.delete(key), log.push(`clear ${key}`)),
+    timeLeft: (key, left) => times.set(key, left),
   };
   const disk = { text: saved };
   const storage = { read: () => disk.text, write: (t) => (disk.text = t) };
@@ -25,7 +27,7 @@ function setup(saved = null) {
   };
   const keys = () => [...board.keys()];
   const learnt = () => JSON.parse(disk.text ?? '{"done":[]}').done;
-  return { t, board, log, snap, play, keys, learnt, disk, storage, pause: (v) => (visible = !v) };
+  return { t, board, log, times, snap, play, keys, learnt, disk, storage, pause: (v) => (visible = !v) };
 }
 
 // Text: placeholders become bold key names.
@@ -56,6 +58,20 @@ assert.equal(resolveLine('Press {use} to draw, {sizeDown} / {sizeUp} to change n
   snap.cap = 'standard';
   play(1);
   assert.ok(!keys().some((k) => k.startsWith('hint:cap.')), 'the starting cap has none');
+}
+
+// A hint that goes by itself says how much of its time is left, and stops while it's away; one that waits for the player has no time, nor has a "take it" step.
+{
+  const { snap, play, times, pause } = setup('{"v":1,"done":["move","spray"]}');
+  play(1);
+  assert.equal(times.get('hint:opacity'), null, 'it waits for the player');
+  snap.cap = 'needle';
+  play(TUTORIAL.infoSeconds / 2);
+  const half = times.get('hint:cap.needle');
+  assert.ok(Math.abs(half - 0.5) < 0.05, `half its time: ${half}`);
+  pause(true);
+  play(1);
+  assert.equal(times.get('hint:cap.needle'), half, 'the clock stops with play');
 }
 
 // Move is shown after its delay, and learnt after walking 3 m, not after a key press.
@@ -283,7 +299,7 @@ assert.equal(resolveLine('Press {use} to draw, {sizeDown} / {sizeUp} to change n
 }
 // No storage at all: in memory, no errors.
 {
-  const t = new Tutorial({ set() {}, clear() {} });
+  const t = new Tutorial({ set() {}, clear() {}, timeLeft() {} });
   t.update(2, true, { tool: 'can', tools: ['can'], colors: 1, caps: 1, nearLadder: false, onLadder: false });
 }
 

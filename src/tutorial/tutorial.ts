@@ -180,10 +180,15 @@ export class Tutorial {
     }
     const steps = s.def.steps ?? [];
     const text = this.text(s);
-    if (this.shown?.id === s.def.id && this.shown.text === text) return;
-    if (this.shown && this.shown.id !== s.def.id) this.notes.clear(`hint:${this.shown.id}`);
-    this.shown = { id: s.def.id, text };
-    this.notes.set({ key: `hint:${s.def.id}`, kind: 'hint', rank: RANK[s.def.rank], lines: text < steps.length ? steps[text].lines : s.def.lines });
+    const key = `hint:${s.def.id}`;
+    if (this.shown?.id !== s.def.id || this.shown.text !== text) {
+      if (this.shown && this.shown.id !== s.def.id) this.notes.clear(`hint:${this.shown.id}`);
+      this.shown = { id: s.def.id, text };
+      this.notes.set({ key, kind: 'hint', rank: RANK[s.def.rank], lines: text < steps.length ? steps[text].lines : s.def.lines });
+    }
+    // Only a hint that goes by itself has a time, and only the hint itself: its "take it" step waits for the player.
+    const { shown } = s.def.done;
+    this.notes.timeLeft(key, shown !== undefined && text === steps.length ? Math.max(0, 1 - s.shownFor / amount(shown)) : null);
   }
 
   private recount() {

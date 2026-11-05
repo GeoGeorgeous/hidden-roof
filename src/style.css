@@ -496,18 +496,18 @@
   display: none;
 }
 /* The hold's progress: empty, filling over PAUSE_MENU.escHoldMs while Esc is held (.holding; --hold-delay starts it partway), back fast when let go. */
-.overlay .ring {
+.ring {
   display: block;
   width: 10px;
   height: 10px;
   transform: rotate(-90deg);
 }
-.overlay .ring circle {
+.ring circle {
   fill: none;
   stroke: var(--text-4);
   stroke-width: 1.5;
 }
-.overlay .ring .fill {
+.ring .fill {
   stroke: var(--paper);
   stroke-linecap: round;
   stroke-dasharray: 28.3;
@@ -2778,6 +2778,26 @@ body.paused .layer-toast {
 .hint-text {
   position: absolute;
   inset: 0;
+}
+/* A message that goes by itself: a ring emptying as its time runs out. In a hint's box it only holds the room. */
+.note-timer {
+  display: inline-block;
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+.note-timer[hidden] {
+  display: none;
+}
+.hint-boxes .note-timer {
+  visibility: hidden;
+}
+.note-timer .ring circle {
+  stroke: rgb(255 255 255 / 0.25);
+}
+.note-timer .ring .fill {
+  stroke: #fff;
+  stroke-dashoffset: calc(28.3 * (1 - var(--left, 1)));
+  transition: none;
 }
 /* Above the hint's top line (a one-line hint or none: the hint's own height); the boxes overlap by 1px; --hint-lines is set from JS. */
 .toasts {

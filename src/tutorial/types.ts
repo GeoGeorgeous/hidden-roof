@@ -85,8 +85,9 @@ export interface HintDef {
   after?: string[];
 }
 
-/** The message layer, as far as hints need it (src/notify.ts has these two). */
+/** The message layer, as far as hints need it (src/notify.ts has these). */
 export interface Notes {
   set(note: { key: string; kind: 'hint'; rank: number; lines: string[] }): void;
   clear(key: string): void;
+  timeLeft(key: string, left: number | null): void;
 }
