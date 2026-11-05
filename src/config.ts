@@ -1093,7 +1093,7 @@ export const BRUSH = {
   speedSoft: 0.8,
   /** How fast the hand speed follows the hand (1/s). */
   speedFollow: 15,
-  /** A stroke's first this many seconds of moving set the hand speed at once, whatever the frame rate. */
+  /** A stroke's first this many seconds of moving take the hand's pace unsmoothed, whatever the frames that cut them. */
   speedStart: 1 / 60,
   /** Up to this far from the wall (m) the can acts as close up: the distance model starts past it. */
   gap: 0.6,

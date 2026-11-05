@@ -237,14 +237,14 @@ for (const [name, cap, depth, x, seconds] of strokes) {
   for (const [i, a] of at.entries()) near(a.ink, at[0].ink, 0.08, `${name}: paint at ${[...RATES, ...DROPPED][i]} Hz against 60 Hz`);
 }
 
-// A fast line's first meter: it holds about as much paint at any frame rate, though the aim gets going behind the streamline.
-{
-  const first = (hz) => {
+// A fast line's start: it holds about as much paint at any frame rate, though the aim gets going behind the streamline.
+for (const [cap, speed, length, share] of [['fat', 8, 0.4, 0.04], ['spray', 12, 0.5, 0.05], ['skinny', 8, 0.5, 0.08], ['needle', 6, 0.3, 0.13]]) {
+  const start = (hz) => {
     const r = rig(2);
-    play(r, hz, 0.5, 2, 'fat', (t) => t * 8);
-    return ink(r.dabs.filter((d) => d.x < 1));
+    play(r, hz, length / speed + 0.3, 2, cap, (t) => t * speed);
+    return ink(r.dabs.filter((d) => d.x < length));
   };
-  for (const hz of [...RATES, ...DROPPED]) near(first(hz), first(60), 0.08, `the start of a fast line at ${hz} Hz against 60 Hz`);
+  for (const hz of [...RATES, ...DROPPED]) near(start(hz), start(60), share, `the start of a fast ${cap} line at ${hz} Hz against 60 Hz`);
 }
 
 // Held still: the rate set, at the weight set.
