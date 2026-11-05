@@ -183,7 +183,7 @@ export class PaintRaster<S extends RasterSurface> {
 
   /** `amt` coats more on an opaque texel of `rect`: a run may start there. */
   private addWet(s: S, rect: Rect, x: number, y: number, amt: number, rule: RunRule) {
-    const length = this.wet.add(s, x, y, amt, rule);
+    const length = this.wet.add(s, rect, x, y, amt, rule);
     if (length === null) return;
     const i = (y * s.geo.atlasW + x) * 4;
     const d = s.data!;

@@ -19,6 +19,9 @@ export interface RunRule {
   full: number;
 }
 
+/** Where a face starts in its atlas: spots are counted from there. */
+export type FaceOrigin = { x: number; y: number };
+
 /** A square of wall, by the paint clock (WetPaint.now). */
 interface Spot {
   /** It starts no run until then. */
@@ -32,7 +35,7 @@ export interface WetSurface {
   geo: { atlasW: number; atlasH: number; texelsPerMeter: number };
   /** Per texel, the paint clock time (WetPaint.now) at which its wet paint on already-opaque paint is dry (created on first wet paint). */
   wet: Float32Array | null;
-  /** The spots that ran or keep paint, by place (created on first use). */
+  /** The spots that ran or keep paint, by their first texel (created on first use). */
   spots: Map<number, Spot> | null;
 }
 
@@ -49,8 +52,8 @@ export class WetPaint {
   rolls = 0;
   runs = 0;
 
-  /** `amt` coats more on opaque texel (x, y). Returns how long a run starting here is (0..1 of DRIPS' lengths); null: none starts. */
-  add(s: WetSurface, x: number, y: number, amt: number, rule: RunRule) {
+  /** `amt` coats more on opaque texel (x, y) of `face`. Returns how long a run starting here is (0..1 of DRIPS' lengths); null: none starts. */
+  add(s: WetSurface, face: FaceOrigin, x: number, y: number, amt: number, rule: RunRule) {
     const wet = (s.wet ??= new Float32Array(s.geo.atlasW * s.geo.atlasH));
     const k = y * s.geo.atlasW + x;
     const until = Math.max(wet[k], this.now) + (amt / DRIPS.passCoats) * DRIPS.dryTime;
@@ -59,7 +62,7 @@ export class WetPaint {
       wet[k] = until;
       return null;
     }
-    const spot = rule.rest > 0 ? this.spot(s, x, y) : null;
+    const spot = rule.rest > 0 ? this.spot(s, face, x, y) : null;
     if (spot && this.now < spot.rest) {
       wet[k] = this.now + need;
       this.keep(s, spot, until - wet[k]);
@@ -82,10 +85,12 @@ export class WetPaint {
     return rule.full ? luck * DRIPS.lengthLuck + fill * (1 - DRIPS.lengthLuck) : luck;
   }
 
-  private spot(s: WetSurface, x: number, y: number) {
+  /** The spot of a texel: a face's squares start at its corner, so one never holds two faces, whatever lies beside it in the atlas. */
+  private spot(s: WetSurface, face: FaceOrigin, x: number, y: number) {
     const size = DRIPS.spot * s.geo.texelsPerMeter;
     const spots = (s.spots ??= new Map());
-    const key = Math.floor(y / size) * s.geo.atlasW + Math.floor(x / size);
+    const first = (at: number, from: number) => from + Math.floor(Math.floor((at - from) / size) * size);
+    const key = first(y, face.y) * s.geo.atlasW + first(x, face.x);
     let spot = spots.get(key);
     if (!spot) spots.set(key, (spot = { rest: 0, kept: 0 }));
     return spot;
