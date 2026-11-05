@@ -12,6 +12,7 @@ The goal: spraying feels like a drawing app and a real can at once. A continuous
 | The can's line: a dab's size, softness, opacity | `src/spray/dab.ts`, `src/spray/stroke.ts`, `src/spray/brush.ts`; rays: `src/spray/wall-probe.ts` |
 | The can in hand, its plume | `src/spray/spray-tool.ts`, `src/spray/plume.ts`, `src/spray/particles.ts` |
 | Marker, roller | `src/tools/marker.ts`, `src/tools/roller.ts`, sweep shared in `src/tools/stroke.ts` |
+| The crosshair's size and reach, for any tool | `src/tools/aim.ts`; on screen: `src/hud.ts` |
 | Laying paint on texels | `src/paint-raster.ts`, driven by `src/painting.ts`; past a face's edge: `src/paint-seams.ts` |
 | Paint on the GPU | `src/paint-gpu.ts`, blocks on pages: `src/page-packer.ts` |
 | Wet paint and the dice | `src/paint-wet.ts` |
@@ -28,9 +29,9 @@ What leaves a painter is ops: a stamp, a roll, a drip, each in face fractions an
 
 ## The can's line
 
-Dabs are laid along the aim at a spacing, and at a set rate while held still (`src/spray/stroke.ts`). The spacing and the hand's speed count the way across the ray: along a wall at an angle a dab is as much longer as that way is shorter, so a line holds the same paint there, and a wall behind another's edge is no distance, so a stroke stepping onto it leaves no pile of dabs. A stroke's first `BRUSH.speedStart` of moving sets the speed at once, the way over the time so far, so a stroke doesn't start dense; after it the speed follows the hand at `BRUSH.speedFollow`. A dab's width, softness and opacity come from the cap, the distance to the wall and the hand's speed (`dabAt`). Passes add up. Opacity is the player's own setting, Run + the wheel with the can in hand (`BRUSH.opacity` is its default): what a pass reaches in the far range, up to `BRUSH.closeFlow` times that close up. At an angle a dab stretches along the aim and fades at the far end (`slantOf`). Paint lands at once; the plume and particles only show: each cap has its own plume (`SPRAY.plume`, a cap's `plume`), and it follows the opacity for everyone. Painting has its own settings: a slower mouse, a narrower view and Streamline, how far the brush trails the aim (`BRUSH.streamline`).
+Dabs are laid along the aim at a spacing, and at a set rate while held still (`src/spray/stroke.ts`). The spacing and the hand's speed count the way across the ray: along a wall at an angle a dab is as much longer as that way is shorter, so a line holds the same paint there, and a wall behind another's edge is no distance, so a stroke stepping onto it leaves no pile of dabs. A stroke's first `BRUSH.speedStart` of moving takes the pace as it is, and a frame past that time the pace the aim had then, so a stroke doesn't start dense and starts alike at any frame rate; after it the speed follows the hand at `BRUSH.speedFollow`. A dab's width, softness and opacity come from the cap, the distance to the wall and the hand's speed (`dabAt`). Passes add up. Opacity is the player's own setting, Run + the wheel with the can in hand (`BRUSH.opacity` is its default): what a pass reaches in the far range, up to `BRUSH.closeFlow` times that close up. At an angle a dab stretches along the aim and fades at the far end (`slantOf`). Paint lands at once; the plume and particles only show: each cap has its own plume (`SPRAY.plume`, a cap's `plume`), and it follows the opacity for everyone. Painting has its own settings: a slower mouse, a narrower view and Streamline, how far the brush trails the aim (`BRUSH.streamline`).
 
-The crosshair is as wide as the line would land now, and fades where paint wouldn't reach (`CROSSHAIR`).
+The crosshair is as wide as the line would land now, and fades where paint wouldn't reach (`CROSSHAIR`). The marker and the sponge show their real width the same way, each by its own reach, with no arc: `src/tools/aim.ts` holds it, and a tool takes a `ToolAim` and tells it its width each frame. The marker's ring is as wide as its square nib. The roller's stays a set size.
 
 | Cap (`CAPS` key) | In the game |
 |---|---|
@@ -99,7 +100,7 @@ They use the same code with another rule (`RunRule` in `paint-wet.ts`): `canRule
 - **Particles only show.** The brush paints; painting by particles is gone.
 - **Pressure doesn't run out.** The player sets opacity, on the can only; shaking is just an animation.
 - **The opacity shows on an arc at the crosshair, as set,** not as dense as it lands at this distance. No gauge on the can, no PSI.
-- **The crosshair is real size,** always. A higher opacity reads a little wider: kept.
+- **The crosshair is real size,** down to `CROSSHAIR.least`. A higher opacity reads a little wider: kept.
 - **One stamp op per dab,** with a slant on the wire; no stroke-segment op. The load passes (`docs/known-limits.md`). It's the first thing to look at if traffic becomes the limit.
 - **Wet paint stays 4 bytes a texel.** A Float64 clock would double it (up to +510 MB at ULTRA on a level painted over), and whole ticks in a Uint32 run out after 74 hours: it counts from the hour instead.
 

@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 358
+The one list of what's left. Counter for new ids: next: 359
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -179,10 +179,11 @@ Shipped since the last release; the release commit empties this list.
 24. [BUGS-352]: A line along a wall seen at an angle got up to 4 times the paint and ran on its first pass, and a stroke stepping onto a wall behind another left a blot: a stroke's spacing and hand speed count the way across the ray now
 25. [DOCS-355]: Painting Rework's review: docs, F3 hints and comments as the code is; limits written down; Reset all's texts in messages.ts, the plume's spreads in config.ts
 26. [BUGS-353]: Wet paint's times were Float32 on a clock that never resets, so thin coats drifted: ASTRO FAT at 3 m ran a third more after 3 hours in a tab, 2.6 times after 30. They count from the last whole hour now, at the same size
-27. [BUGS-354]: A fast stroke's start held more paint at a high frame rate (+22% in NY FAT's first 40 cm at 240 Hz against 60): its first frames set the hand speed by the way over the time so far, +10% now, the rest in `docs/known-limits.md`
+27. [BUGS-354]: A fast stroke's start held more paint at a high frame rate (+22% in NY FAT's first 40 cm at 240 Hz against 60, +38% in NEEDLE's first 30 cm) and less at a low one: its first `BRUSH.speedStart` takes the pace as it is, and a frame past that time the pace the aim had then. NY FAT and ASTRO FAT within 3% from 30 to 360 Hz, thin caps 7%, 60 Hz as it was
 28. [TEST-356]: Golden paint plays a fast flick, a second run after a rest and a slanted line over the floor's seams
 29. [TASK-232]: Painting Rework: to production: unlock-all (`ALL_PAINT`) cut
 30. [DOCS-357]: Painting Rework's end: all of paint in `docs/painting.md`, limits in `docs/known-limits.md`, `docs/ideas/` as the code is
+31. [IDEA-358]: The crosshair shows the marker's and the sponge's real width at the wall and fades out of their reach, as the can's does, with no arc: one module, `src/tools/aim.ts`, that any tool with a reach can take
 
 ## Discarder
 

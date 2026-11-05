@@ -50,6 +50,9 @@ function across(a: THREE.Vector3, b: THREE.Vector3, eye: THREE.Vector3) {
   return step.addScaledVector(ray, -step.dot(ray)).length();
 }
 
+/** The share of the hand's pace the aim, behind the streamline, has `t` seconds after setting off. */
+const gettingGoing = (t: number) => 1 - Math.exp(-t / BRUSH.streamline);
+
 export class SprayStroke<H extends WallHit> {
   /** How fast the spot moves as the eye sees it (m/s, `across`), smoothed; 0 between strokes. */
   speed = 0;
@@ -61,9 +64,8 @@ export class SprayStroke<H extends WallHit> {
   private spot = new THREE.Vector3();
   private lastDab = new THREE.Vector3();
   private onWall = false;
-  /** How long the stroke has moved (s) and how far, up to BRUSH.speedStart. */
+  /** How long the stroke has moved (s). */
   private startTime = 0;
-  private startWay = 0;
   /** Dabs owed by the clock: the can lays at least BRUSH.buildRate a second, those of the line counting, so slow lines come out alike at any frame rate. */
   private owed = 0;
 
@@ -75,7 +77,7 @@ export class SprayStroke<H extends WallHit> {
   /** The spray stopped: the next one starts fresh. */
   end() {
     this.speed = 0;
-    this.startTime = this.startWay = 0;
+    this.startTime = 0;
     this.onWall = false;
     this.aiming = false;
   }
@@ -114,15 +116,14 @@ export class SprayStroke<H extends WallHit> {
     return this.aim;
   }
 
-  /** A stroke's first move sets the speed at once: smoothed up from 0, every stroke would start dense. It's the way over the time so far, as the aim gets going behind the streamline, or a short frame would start it slower than a long one. */
+  /** A stroke's first BRUSH.speedStart of moving takes the pace as it is, later ones smooth it: smoothed up from 0, every stroke would start dense. A frame running past that time takes the pace the aim had then, so a stroke starts alike at any frame rate. */
   private follow(way: number, dt: number) {
-    if (this.startTime >= BRUSH.speedStart) {
-      this.speed += (way / Math.max(dt, 1e-3) - this.speed) * (1 - Math.exp(-dt * BRUSH.speedFollow));
-    } else if (way > 0 || this.startTime > 0) {
-      this.startTime += dt;
-      this.startWay += way;
-      this.speed = this.startWay / Math.max(this.startTime, 1e-3);
-    }
+    if (way === 0 && this.startTime === 0) return;
+    const pace = way / Math.max(dt, 1e-3);
+    this.startTime += dt;
+    const past = Math.min(this.startTime - BRUSH.speedStart, dt);
+    if (past < dt) this.speed = past > 0 ? (pace * gettingGoing(BRUSH.speedStart)) / gettingGoing(this.startTime) : pace;
+    if (past > 0) this.speed += (pace - this.speed) * (1 - Math.exp(-past * BRUSH.speedFollow));
   }
 
   /** Dabs from the last one toward the spot, `spacing` apart; returns how many. */

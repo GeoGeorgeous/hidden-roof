@@ -1,12 +1,11 @@
 import * as THREE from 'three';
-import { SPRAY } from '../config';
 import type { Solids } from '../level/solids';
 import type { PaintSurface, PaintSystem } from '../painting';
 import { facePoint, type FacePoint } from '../surfaces';
 import type { Wall, WallHit } from './stroke';
 
-// What a can's spray meets, within SPRAY.reach: rays against the solids near
-// the eye, gathered once a frame (near).
+// What a tool meets within its reach: rays against the solids near the eye,
+// gathered once a frame (near).
 
 export interface WallSpot extends WallHit {
   surface: PaintSurface;
@@ -20,12 +19,13 @@ export class WallProbe implements Wall<WallSpot> {
   constructor(
     private solids: Solids,
     private paint: PaintSystem,
+    private reach: number,
   ) {}
 
   /** Gathers what rays from about `eye` can hit. */
   near(eye: THREE.Vector3) {
-    this.solids.near(eye, SPRAY.reach, this.candidates);
-    this.raycaster.far = SPRAY.reach;
+    this.solids.near(eye, this.reach, this.candidates);
+    this.raycaster.far = this.reach;
   }
 
   /** The first solid along the ray. */

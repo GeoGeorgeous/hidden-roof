@@ -8,6 +8,7 @@ import type { Input } from '../input';
 import { rgbOf } from '../inventory/items';
 import { glove, segment, sleeve } from '../spray/hands';
 import type { PaintSystem } from '../painting';
+import { ToolAim } from './aim';
 import { StrokeSweep } from './stroke';
 import { setHex } from '../hex-color';
 import { applyHold } from './hold';
@@ -29,6 +30,8 @@ export class MarkerTool {
   readonly sway = new THREE.Group();
   private tipModel = new THREE.Group();
   private stroke: StrokeSweep;
+  /** What the crosshair shows with the marker in hand. */
+  readonly aim: ToolAim;
   /** The band and the inked nib show the paint color, so they keep it. */
   private look = inkLook(inkify(new THREE.MeshLambertMaterial({ color: COLORS.black }), true));
   private shape: THREE.Group | null = null;
@@ -39,6 +42,7 @@ export class MarkerTool {
     private audio: Audio,
   ) {
     this.stroke = new StrokeSweep(solids, paint);
+    this.aim = new ToolAim(solids, paint, MARKER.reach);
     this.tipModel.add(penGrip());
     this.sway.add(this.tipModel);
     this.model.add(this.sway);
@@ -58,8 +62,9 @@ export class MarkerTool {
   }
 
   /** `nib`: half-width of the square nib (m). */
-  update(dt: number, input: Input, camera: THREE.Camera, eye: THREE.Vector3, active: boolean, color: PaintColor, nib: number) {
+  update(dt: number, input: Input, camera: THREE.PerspectiveCamera, eye: THREE.Vector3, active: boolean, color: PaintColor, nib: number) {
     this.model.visible = active;
+    if (active) this.aim.update(camera, eye, nib * 2);
     setHex((this.look.paint as THREE.MeshLambertMaterial).color, COLORS[color]);
     const drawing = active && input.held('use') && input.locked;
     this.pose(camera, drawing);

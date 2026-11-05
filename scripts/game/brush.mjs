@@ -165,6 +165,44 @@ await check('crosshair: follows the line it would leave: distance, cap, and with
   return r.near > 8 && r.far > 8 && r.wide > r.far && r.sky > 0 ? null : JSON.stringify(r);
 });
 
+await check('crosshair: the marker and the sponge show their real width at the wall, fade out of reach and carry no arc', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { input, inventory: inv, player, tools } = g;
+    const camera = g.scene.children.find((o) => o.isPerspectiveCamera);
+    const cross = document.querySelector('.crosshair');
+    input.setLocked(true);
+    inv.unlockAll();
+    const stand = async (d) => {
+      player.setSpawn(player.position.clone().set(3.4 - d, 0, 2.95), -Math.PI / 2);
+      player.respawn();
+      await steps((f) => ((player.yaw = -Math.PI / 2), (player.pitch = 0), f === 3));
+    };
+    const onScreen = (width, d) => (width / (2 * d * Math.tan((camera.fov * Math.PI) / 360))) * window.innerHeight;
+    const faded = () => cross.style.opacity === `${g.config.CROSSHAIR.far}`;
+    const out = {};
+    for (const [tool, slot, reach] of [['marker', 1, g.config.MARKER.reach], ['sponge', 4, g.config.SPONGE.reach]]) {
+      inv.select(slot);
+      const width = inv.size[tool] || 0.05;
+      inv.size[tool] = width;
+      await stand(1);
+      const near = tools.crosshair(tool);
+      const arc = cross.classList.contains('arc');
+      const nearFaded = faded();
+      await stand(1.4);
+      const far = tools.crosshair(tool);
+      await stand(reach + 1);
+      out[tool] = { near, far, want: onScreen(width, 1), ratio: near / far, arc, nearFaded, out: faded() };
+    }
+    await stand(1);
+    g.fixedStep.dt = 0;
+    input.setLocked(false);
+    return out;
+  });
+  const fine = ({ near, want, ratio, arc, nearFaded, out }) => Math.abs(near - want) <= 1.5 + want * 0.05 && ratio > 1.2 && !arc && !nearFaded && out;
+  return fine(r.marker) && fine(r.sponge) ? null : JSON.stringify(r);
+});
+
 await check('slant: the can at an angle to a wall lays dabs stretched along the aim, head on round ones', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
