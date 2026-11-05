@@ -53,6 +53,7 @@ export function paintSections(h: Hooks): Section[] {
         r('speck size', ['SPRAY', 'plume', 'size'], 0.001, 0.05, 0.001),
         r('grows', ['SPRAY', 'plume', 'grow'], 1, 6, 0.1),
         r('dot at par', ['SPRAY', 'plume', 'dotAtPar'], 0.01, 0.2, 0.01),
+        r('opacity at par', ['SPRAY', 'plume', 'opacityAtPar'], 0.05, 1, 0.05),
         r('opacity', ['SPRAY', 'plume', 'opacity'], 0, 1, 0.05),
         { kind: 'heading', label: 'MARKER' },
         r('reach', ['MARKER', 'reach'], 0.5, 4, 0.1),

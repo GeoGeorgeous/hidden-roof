@@ -59,7 +59,6 @@ Only `N.`, the id and the description are required. The optional parts appear in
 3. [TASK-232]: Painting Rework: to production: what's left once the runs are in: cut unlock-all (`ALL_PAINT`), delete the plan (docs/ideas/paint-refactoring.md) @1.7.0
 4. [?IDEA-166]: Painting Rework: lock the camera while painting (not in the branch) (docs/ideas/paint-refactoring.md)
 5. [IDEA-336]: Marker: a flat nib, wide across and thin along, for calligraphy: tried on a can cap (TRANSVERSAL), its code kept commented out, each place marked "Kept for a flat nib on the marker, a later version." (grep it)
-6. [?IDEA-339]: The plume follows the opacity you set: today it looks the same at 5% and 100%, for you and for others (others would need it in the snapshot)
 
 ## Input
 
@@ -167,6 +166,7 @@ Shipped since the last release; the release commit empties this list.
 11. [IDEA-334]: The cap's and color's tags sit beside the cap and invert what's under them, as the crosshair does; the swatch stays true
 12. [IDEA-335]: Painting Rework: the spray is a plume at the nozzle, each cap's own (cone, specks, haze); the old square points are gone
 13. [IDEA-337]: The can's crosshair fades where the paint wouldn't land, from the ray it already casts; how faint is a row in F3 (Cursor)
+14. [IDEA-339]: The plume follows the opacity set: fewer and fainter specks, as tuned at 65%, for you and for others, in the snapshot's flow byte
 
 ## Discarder
 

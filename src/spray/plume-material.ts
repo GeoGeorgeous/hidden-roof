@@ -9,6 +9,7 @@ const vertex = /* glsl */ `
 attribute float age;
 attribute float size;
 attribute float grow;
+attribute float strength;
 uniform float opacity;
 uniform float scale;
 varying vec3 vColor;
@@ -20,7 +21,7 @@ void main() {
   gl_PointSize = max(px, 1.0);
   vColor = color;
   // Under a pixel: fainter by its area, not bigger.
-  vAlpha = opacity * (1.0 - age) * min(px * px, 1.0);
+  vAlpha = min(opacity * strength, 1.0) * (1.0 - age) * min(px * px, 1.0);
   gl_Position = projectionMatrix * mv;
 }
 `;

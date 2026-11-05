@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { CAPS, COLORS, SPRAY } from '../config';
+import { BRUSH, CAPS, COLORS, SPRAY } from '../config';
 import type { Audio } from '../audio';
 import type { Input } from '../input';
 import type { Inventory } from '../inventory/inventory';
@@ -23,7 +23,7 @@ const nozzle = new THREE.Vector3();
 const display = new THREE.Color();
 
 export class SprayTool {
-  /** 1 while paint comes out of the can, else 0. */
+  /** How much comes out of the can: the set opacity while it sprays, else 0. */
   flow = 0;
   /** The spray is landing on paintable surface (not the sky, not out of reach): as of the last frame that sprayed. */
   landing = false;
@@ -86,8 +86,8 @@ export class SprayTool {
     }
 
     const spraying = lmb && !holding;
-    this.flow = spraying ? 1 : 0;
-    this.audio.setHiss(this.flow * cap.hissGain, cap.hissTone);
+    this.flow = spraying ? BRUSH.opacity : 0;
+    this.audio.setHiss(spraying ? cap.hissGain : 0, cap.hissTone);
 
     this.model.update(dt, camera, spraying, spraying, this.shakeT >= 0 ? this.shakeT / SPRAY.shakeDuration : -1);
     camera.getWorldDirection(forward);
@@ -130,6 +130,6 @@ export class SprayTool {
     right.set(1, 0, 0).applyQuaternion(camera.quaternion);
     up.crossVectors(right, forward);
     setHex(display, COLORS[inv.color]);
-    this.particles.show({ count, eye, nozzle: this.model.nozzleWorld(nozzle), forward, right, up, cap, display, dt, memo: this.wall });
+    this.particles.show({ count, eye, nozzle: this.model.nozzleWorld(nozzle), forward, right, up, cap, flow: this.flow, display, dt, memo: this.wall });
   }
 }
