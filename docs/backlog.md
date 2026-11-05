@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 374
+The one list of what's left. Counter for new ids: next: 384
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -48,7 +48,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## Multiplayer
 
 1. TASK [BL-076]: Run the next public playtest and verify that all bugs from the previous playtest have been fixed (docs/ideas/weak-links.md) @1.7.2
-2. IDEA [?BL-071]: Multiplayer View-Only sessions: past sessions are opened for viewing only (gallary)
+2. IDEA [?BL-071]: Multiplayer View-Only sessions: past sessions are opened for viewing only (gallery)
 3. [IDEA-288]: Admin mode: who painted what, and erasing one player's paint with what it covered back, within the last ~15 minutes (the server's ring of op batches) (docs/ideas/admin-mode.md) @1.9.0
 4. [IDEA-289]: A 15-minute timelapse of a wall's painting, from IDEA-288's ring of op batches; only if it comes nearly free (docs/ideas/admin-mode.md)
 
@@ -58,7 +58,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 2. [IDEA-336]: Marker: a flat nib, wide across and thin along, for calligraphy: tried on a can cap (TRANSVERSAL), its code kept commented out, each place marked "Kept for a flat nib on the marker, a later version." (grep it)
 3. IDEA [BL-039]: More marker types (rectangular and calligraphy nibs among them, IDEA-233 merged in), placed on the map; a per-tool variant module first, as caps are (docs/ideas/tools.md)
 4. [IDEA-344]: Leaning the can, an experiment on `exp/can-tilt`: RMB held, the mouse leans it, LMB sprays at the lean with one hard edge and a far side fading out, close to the wall; it takes the shake's place, which is gone; stays on its branch until the owner says
-5. [IDEA-346]: Exclusive paints, an experiment on `exp/paint-finishes`: chrome and gold (metal with a drawn horizon), silver, holo, glow, wet frost; bulging edges and an ink line; no new data, a finish is a color no palette mix reaches; stays on its branch until the owner says
+5. [IDEA-382]: Exclusive paints, an experiment on `exp/paint-finishes` (its commits say IDEA-346): chrome and gold (metal with a drawn horizon), silver, holo, glow, wet frost; bulging edges and an ink line; no new data, a finish is a color no palette mix reaches; stays on its branch until the owner says
 
 ## Input
 
@@ -86,12 +86,18 @@ Only `N.`, the id and the description are required. The optional parts appear in
 8. IDEA [BL-054]: New sign sizes, including big rectangular and square ones
 9. IDEA [BL-075]: Digital billboards
 10. IDEA [BL-106]: Paintable cone roofs on the water tanks (a cone paint mapping) (docs/ideas/props-and-level.md)
+11. [IDEA-375]: New square duct type to snap vertically to AC Unit Ducted without wall. It should be simillar to wall duct we have now
+12. [IDEA-376]: The corner wall duct run
+13. [TASK-377]: Unite exhaust pipe and vent shaft to one HVAC category (exahust/shaft)
+14. [IDEA-378]: One more exhaust square duct that can be attached vertically with no wall to wall duct
+15. [TASK-379]: In HVAC category add 2 subcategory: round wall duct and square wall duct. Instead of Wall Duct and Vertical Wall Duct.
+16. [IDEA-380]: Vertical square wall duct that goes to the wall
 
 ## Tools
 
 1. IDEA [BL-062]: Photo mode with Polaroid-like cards for photos
 2. IDEA [BL-061]: A player in the style of an old iPod Classic
-3. [IDEA-345]: Color wheel on Tab, an experiment on `exp/color-wheel`: the whole palette, 161 shades, each found color opening its part, the rest hatched; stays on its branch until the owner says
+3. [IDEA-381]: Color wheel on Tab, an experiment on `exp/color-wheel` (its commits say IDEA-345): the whole palette, 161 shades, each found color opening its part, the rest hatched; stays on its branch until the owner says
 
 ## UI
 
@@ -141,6 +147,7 @@ The API and why it is so: docs/admin-api.md.
 1. TASK [BL-067]: Posts on Reddit with technical decription @1.7.2
 2. [TASK-169]: Creating and posting instagram reels @1.7.1
 3. [IDEA-301]: Capture mode, part 2: the flight's points saved as JSON, and game time at 0.1x-8x (the points and the flight themselves are in BL-065) @1.7.1
+4. [TASK-374]: Edit profile on Ko-Fi @1.7.1
 
 ## Auth
 
@@ -196,7 +203,7 @@ Shipped since the last release; the release commit empties this list.
 37. [IDEA-362]: The rain is a recording: Kevin Luce's heavy rain from a porch (CC BY 4.0), fetched with the first rain; replaces the synthesized wash, its tone and the drops on metal, which the recording has in it (docs/sound.md)
 38. [IDEA-365]: Sound in rooms marked by hand: the city dulls, the rain changes to a recording on a tin roof; under it all the far rumble of a storm with rolls of its own, with no flash; thunder is three dry recorded rolls (TRP, CC0), after the flash, its flash now the moon and the sky; a dropped request for a recording is tried again; Storm and Rain indoors sliders, the mix set by ear; in the dev tools rooms are marked and shown each with a switch, a mark reaching up to what's over it, and SAVE LEVEL (docs/sound.md)
 39. [IDEA-343]: The can's hiss follows the hand: louder with more opacity, closer to a wall and with the hand moving (`HISS`)
-40. [IDEA-342]: The ghost from capture mode (dev tools only), to film yourself from outside: V also goes to a Record avatar view, first person where T records a take and, stopping it, goes to the free view; a take too short to be meant keeps the last one. In the free view Space plays and holds it, 1 2 3 set 1x, 2x or 4x (paint runs too), R plays from the start, C shows the clean wall and goes on from where it was; it ends on its last frame. Your wall and stepladder stand aside while it plays and come back when you change view or leave capture mode. Tab shows the keys that work right now
+40. [IDEA-383]: The ghost from capture mode (dev tools only, its commits say IDEA-342), to film yourself from outside: V also goes to a Record avatar view, first person where T records a take and, stopping it, goes to the free view; a take too short to be meant keeps the last one. In the free view Space plays and holds it, 1 2 3 set 1x, 2x or 4x (paint runs too), R plays from the start, C shows the clean wall and goes on from where it was; it ends on its last frame. Your wall and stepladder stand aside while it plays and come back when you change view or leave capture mode. Tab shows the keys that work right now
 41. [IDEA-372]: Capture mode has one plate for players and dev tools: one control a line; in the free view what's going on, speed and smoothing, and Tab holds up the rest in groups, only the keys that work right now
 42. IDEA [BL-066]: A camera mode for trailers and cinematics
 
