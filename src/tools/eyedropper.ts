@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { EYEDROPPER, type PaintColor } from '../config';
 import { rgbOf } from '../inventory/items';
-import { solidsNear } from '../level/solids';
+import type { Solids } from '../level/solids';
 import type { PaintSystem } from '../painting';
 import { hasPaint } from '../paint-surface';
 
@@ -16,7 +16,7 @@ export class Eyedropper {
   private near: THREE.Object3D[] = [];
 
   constructor(
-    private solids: THREE.Mesh[],
+    private solids: Solids,
     private paint: PaintSystem,
   ) {}
 
@@ -24,7 +24,7 @@ export class Eyedropper {
   pick(camera: THREE.Camera, eye: THREE.Vector3, colors: readonly PaintColor[]): PaintColor | null {
     this.raycaster.set(eye, camera.getWorldDirection(dir));
     this.raycaster.far = EYEDROPPER.reach;
-    const hit = this.raycaster.intersectObjects(solidsNear(this.solids, eye, EYEDROPPER.reach, this.near), false)[0];
+    const hit = this.raycaster.intersectObjects(this.solids.near(eye, EYEDROPPER.reach, this.near), false)[0];
     const s = hit && this.paint.get(hit.object);
     if (!s || !hasPaint(s) || !hit.uv) return null;
     const x = Math.min(s.geo.atlasW - 1, Math.floor(hit.uv.x * s.geo.atlasW));

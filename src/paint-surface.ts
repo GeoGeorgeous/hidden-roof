@@ -3,6 +3,7 @@ import type { PaintPage, DirtyRect } from './paint-gpu';
 import type { MipSize } from './paint-mips';
 import type { PageSlot } from './page-packer';
 import type { Box } from './paint-raster';
+import type { WetSurface } from './paint-wet';
 import type { LightSlot } from './render/bake/light-pages';
 import type { Rect, SurfaceGeometry } from './surfaces';
 
@@ -36,8 +37,11 @@ interface PaintSurfaceFields {
   data: Uint8Array | null;
   /** Sizes of the texture's smaller levels for distant views (paint-mips.ts); empty while it has no paint. */
   mips: MipSize[];
-  /** When each texel's wet paint is dry (paint-raster.ts RasterSurface). */
+  /** When each texel's wet paint is dry (paint-wet.ts WetSurface). */
   wet: Float32Array | null;
+  wetSince: WetSurface['wetSince'];
+  /** The spots of wall that ran or keep paint (paint-wet.ts WetSurface). */
+  spots: WetSurface['spots'];
   /** Texel rects changed since the last upload (inclusive, paint-gpu.ts: its list, nobody else's). */
   dirty: DirtyRect[];
 }
@@ -47,7 +51,7 @@ export function hasPaint<S extends Pick<PaintSurface, 'data'>>(s: S): s is S & {
   return s.data !== null;
 }
 
-/** A box of a surface's paint (PaintSystem.patch): its texels, or null where it had none (restored paint is dry). */
+/** A box of a surface's paint (paint-copy.ts patchOf): its texels, or null where it had none (restored paint is dry). */
 export interface PaintPatch {
   key: string;
   /** The surface's atlas size then: a rebuilt surface of another size can't take it. */

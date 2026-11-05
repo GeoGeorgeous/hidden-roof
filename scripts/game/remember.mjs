@@ -67,3 +67,72 @@ await check('settings: every control of General, Controls, Graphics and Audio is
     await p.close();
   }
 });
+
+await check('settings: Reset all on General, Audio and Graphics asks, then takes back that tab alone; dimmed once all is default', async () => {
+  const p = await openPage();
+  try {
+    const before = await snapshot(p);
+    const tabs = ['General', 'Audio', 'Graphics'];
+    await p.evaluate((tabs) => {
+      const g = window.game;
+      for (const tab of tabs) {
+        g.hud.menu.openSettings(tab);
+        for (const r of document.querySelectorAll('.settings-page .setting-row')) {
+          const input = r.querySelector('input');
+          if (input) {
+            const [min, max, step] = [+input.min, +input.max, +input.step];
+            const to = min + Math.round(((max - min) * 0.3) / step) * step;
+            input.value = String(to === +input.value ? max : to);
+            input.dispatchEvent(new Event('input'));
+          } else r.querySelectorAll('.choice button')[1]?.click();
+        }
+      }
+      g.hud.menu.openPage(null);
+    }, tabs);
+    const off = (now, tab) => Object.keys(before.shown).filter((k) => k.startsWith(`${tab}/`) && before.shown[k] !== now.shown[k]);
+    const changed = await snapshot(p);
+    if (tabs.some((tab) => !off(changed, tab).length)) return 'the test changed nothing';
+    for (const [i, tab] of tabs.entries()) {
+      const asked = await p.evaluate((tab) => {
+        const g = window.game;
+        g.hud.menu.openSettings(tab);
+        const corner = () => document.querySelector('.settings-page .page-corner');
+        const by = (text) => [...corner().querySelectorAll('button')].find((b) => b.textContent === text);
+        by('Reset all').click();
+        const question = corner().querySelector('.ask')?.textContent;
+        by('Cancel').click();
+        const kept = !corner().querySelector('.ask');
+        by('Reset all').click();
+        by('Reset').click();
+        const dim = by('Reset all')?.classList.contains('dim');
+        g.hud.menu.openPage(null);
+        return { question, kept, dim };
+      }, tab);
+      if (!asked.question || !asked.kept || !asked.dim) return `${tab}: ${JSON.stringify(asked)}`;
+      const now = await snapshot(p);
+      if (off(now, tab).length) return `${tab} not reset: ${off(now, tab).join()}`;
+      const left = tabs.slice(i + 1).find((other) => off(now, other).length !== off(changed, other).length);
+      if (left) return `${left} was reset by ${tab}`;
+    }
+    return null;
+  } finally {
+    await p.close();
+  }
+});
+
+await check('settings: a stored opacity out of range comes back within it', async () => {
+  const p = await openPage();
+  try {
+    await p.evaluate(() => localStorage.setItem('roofhiddenhaus.settings', JSON.stringify({ values: { 'BRUSH.opacity': 0 } })));
+    await p.reload();
+    await gameReady(p, 2);
+    const r = await p.evaluate(() => {
+      const { opacity, opacityMin } = window.game.config.BRUSH;
+      localStorage.removeItem('roofhiddenhaus.settings');
+      return { opacity, opacityMin };
+    });
+    return r.opacity === r.opacityMin ? null : JSON.stringify(r);
+  } finally {
+    await p.close();
+  }
+});

@@ -55,7 +55,7 @@ Capacity as measured then: CPU is not the limit; one fully painted session ~0.6-
 |---|---|
 | Heartbeat counts any client message; longer wait before reconnect (BL-004, done) | Two clients, one with its downlink throttled (DevTools "Slow 3G" or `tc`): no 1006 from the server while its `state` still arrives; the stall ends in a burst, not a drop. |
 | Acked ops (BL-003, done) | Paint 10 s, cut the client's network for 15 s while painting, restore: all strokes are still there, on both clients and in the server's paint. |
-| Packed ops (BL-024 step 1, done: 28 B a stamp); fewer ops a second (TASK-231) | Golden paint tests identical; bytes per op ~20-30 B; server out for the same painting <= 1/8 of the table above. |
+| Packed ops (BL-024 step 1, done: 28 B a stamp); fewer ops a second (TASK-231, done) | Golden paint tests identical; bytes per op ~20-30 B; server out for the same painting <= 1/8 of the table above. |
 | First upload spread (BL-025, done; BL-085, BL-083) | After a welcome, no frame over ~50 ms in `paint + hud`; heap does not jump. |
 | `gc()` (BL-027: the server runs with `--expose-gc` and collects before refusing a session for memory) | Idle container memory falls to ~50 MiB a minute after the last session closes. In Node 24 the closed session's ~320 MB of dropped ArrayBuffers stay (rss 366 MB) until `gc()` (rss 47 MB); `liveMemory` counts them against HOST_MEMORY. |
 

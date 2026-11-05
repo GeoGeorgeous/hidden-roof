@@ -2,6 +2,8 @@
 // 10x10 grid in currentColor, so they sit at the 11px text size and follow its
 // color. Group icons are named after the group's id.
 
+import { CAPS } from '../config';
+
 const CUBE = '<path d="M5 .5 9 2.8v4.4L5 9.5 1 7.2V2.8zM1 2.8l4 2.3 4-2.3M5 5.1v4.4"/>';
 const HAND = '<path d="M2.5 9.5V4a1 1 0 0 1 2 0V2a1 1 0 0 1 2 0v2.5a1 1 0 0 1 2 0V7a2.5 2.5 0 0 1-2.5 2.5z"/>';
 const CAP = '<path d="M.5 5h2M2.5 3.5h2v3h-2zM5.5 4 9 2M5.5 5h3.5M5.5 6 9 8"/>';
@@ -33,7 +35,7 @@ const ICONS: Record<string, string> = {
   hands: HAND,
   held: CAN,
   painting: CAN,
-  pressure: '<path d="M.8 8a4.2 4.2 0 1 1 8.4 0M5 7.5l2-2.7"/><circle class="f" cx="5" cy="7.5" r=".9"/>',
+  brush: '<path d="M.8 9.2c2.2 0 2.6-1 2.6-2l1.6-1.6 1.4 1.4-1.6 1.6c-1 0-2 .6-4 .6zM5.8 4.8 9 1.6"/>',
   shaders: '<path d="M5 .5 8 5 5 9.5 2 5zM5 5.4v4"/><circle cx="5" cy="4.6" r=".8"/>',
   lighting: MOON,
   hud: FRAME,
@@ -87,11 +89,8 @@ const SECTIONS: [RegExp, string][] = [
   [/^roller/, 'roller'],
   [/^paint runs/, 'runs'],
   [/^paint/, 'paint'],
-  [/^(skinny|standard|fat|spray)$/, 'cap'],
+  [new RegExp(`^(${Object.values(CAPS).map((c) => c.name).join('|')})$`, 'i'), 'cap'],
   [/^frequency/, 'runs'],
-  [/^drain/, 'pressure'],
-  [/^sputter/, 'painting'],
-  [/^shake/, 'pressure'],
   [/^lightning|^thunder/, 'lightning'],
   [/^rain|^drops/, 'weather'],
   [/^sun/, 'daylight'],

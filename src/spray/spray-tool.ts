@@ -1,18 +1,22 @@
 import * as THREE from 'three';
-import { CAPS, COLORS, PRESSURE } from '../config';
+import type { Solids } from '../level/solids';
+import { BRUSH, CAPS, COLORS, SPRAY } from '../config';
 import type { Audio } from '../audio';
 import type { Input } from '../input';
 import type { Inventory } from '../inventory/inventory';
 import { rgbOf } from '../inventory/items';
 import type { PaintSystem } from '../painting';
 import { CanModel } from './can-model';
-import { SprayParticles } from './particles';
+import { Brush } from './brush';
+import { lineWidth } from './dab';
+import { SprayParticles, WallMemo } from './particles';
+import { WallProbe } from './wall-probe';
+import { crosshairPx } from '../tools/aim';
 import { setHex } from '../hex-color';
-import { paintRandom } from '../lcg';
 
-// Spraying: color and cap come from the inventory. Paint never runs out;
-// pressure drains while spraying and is restored by shaking: hold the right
-// mouse button (a press alone gives back only a little).
+// Spraying: color and cap come from the inventory, the opacity from the player
+// (BRUSH.opacity), and nothing runs out. Shaking (the right mouse button) is
+// only its motion and sound.
 
 const forward = new THREE.Vector3();
 const right = new THREE.Vector3();
@@ -21,38 +25,43 @@ const nozzle = new THREE.Vector3();
 const display = new THREE.Color();
 
 export class SprayTool {
-  /** 0..1 flow actually coming out this frame. */
+  /** How much comes out of the can: the set opacity while it sprays, else 0. */
   flow = 0;
   /** The spray is landing on paintable surface (not the sky, not out of reach): as of the last frame that sprayed. */
   landing = false;
+  /** How wide the line would land now, on screen (CSS px): the crosshair's size. */
+  linePx = 0;
   readonly model = new CanModel();
   readonly particles: SprayParticles;
   /** Other players' spray (net/remote-player.ts): seen only, their paint comes as paint ops. */
   readonly others: SprayParticles;
+  private brush: Brush;
+  /** The wall this can's own particles fly to. */
+  private wall = new WallMemo();
   private carry = 0;
   /** Time into the current shake (s); -1 = not shaking. */
   private shakeT = -1;
-  private sputterOn = true;
-  private sputterTimer = 0;
 
   constructor(
     scene: THREE.Scene,
     paint: PaintSystem,
-    solids: THREE.Mesh[],
+    solids: Solids,
     private audio: Audio,
   ) {
-    this.particles = new SprayParticles(scene, paint, solids);
-    this.others = new SprayParticles(scene, paint, solids);
+    const probe = new WallProbe(solids, paint, SPRAY.reach);
+    this.brush = new Brush(probe, paint);
+    this.particles = new SprayParticles(scene, probe);
+    this.others = new SprayParticles(scene, probe);
   }
 
   /** `inv` is null when the can is put away (particles still finish flying). */
-  update(dt: number, input: Input, camera: THREE.Camera, eye: THREE.Vector3, inv: Inventory | null) {
+  update(dt: number, input: Input, camera: THREE.PerspectiveCamera, eye: THREE.Vector3, inv: Inventory | null) {
     this.model.group.visible = !!inv;
     this.particles.update(dt);
     this.others.update(dt);
     if (!inv) {
       this.flow = 0;
-      this.landing = false;
+      this.stop();
       this.shakeT = -1;
       this.audio.setHiss(0, 0);
       return;
@@ -67,27 +76,44 @@ export class SprayTool {
     if (lmb && !holding) this.shakeT = -1;
     if (holding && this.shakeT < 0) {
       this.shakeT = 0;
-      inv.pressure = Math.min(1, inv.pressure + PRESSURE.shakeTap);
       this.audio.rattle();
     }
     if (this.shakeT >= 0) {
-      if (holding) inv.pressure = Math.min(1, inv.pressure + PRESSURE.shakeRate * dt);
       this.shakeT += dt;
       // A shake ends its motion after RMB is let go; held, the next one starts.
-      if (this.shakeT >= PRESSURE.shakeDuration) {
-        this.shakeT = holding ? this.shakeT - PRESSURE.shakeDuration : -1;
+      if (this.shakeT >= SPRAY.shakeDuration) {
+        this.shakeT = holding ? this.shakeT - SPRAY.shakeDuration : -1;
         if (holding) this.audio.rattle();
       }
     }
 
     const spraying = lmb && !holding;
-    this.flow = spraying ? this.computeFlow(dt, inv.pressure) : 0;
-    if (spraying) inv.pressure = Math.max(0, inv.pressure - cap.drain * dt);
-    this.audio.setHiss(this.flow * cap.hissGain, cap.hissTone);
+    this.flow = spraying ? BRUSH.opacity : 0;
+    this.audio.setHiss(spraying ? cap.hissGain : 0, cap.hissTone);
 
-    this.model.update(dt, camera, spraying, this.flow > 0, this.shakeT >= 0 ? this.shakeT / PRESSURE.shakeDuration : -1);
-    if (this.flow > 0) this.emit(dt, camera, eye, inv);
-    else this.landing = false;
+    this.model.update(dt, camera, spraying, spraying, this.shakeT >= 0 ? this.shakeT / SPRAY.shakeDuration : -1);
+    camera.getWorldDirection(forward);
+    if (spraying) this.emit(dt, camera, eye, inv);
+    else this.stop();
+    this.measure(camera, eye, inv);
+  }
+
+  /** The line on screen: a wall square-on at the aim's distance, or at the can's reach with none. */
+  private measure(camera: THREE.PerspectiveCamera, eye: THREE.Vector3, inv: Inventory) {
+    const distance = this.brush.distance({ eye, forward }, this.flow > 0) ?? SPRAY.reach;
+    this.linePx = crosshairPx(camera, lineWidth(CAPS[inv.cap], distance, this.brush.speed), distance);
+  }
+
+  /** Nothing comes out of the can. */
+  private stop() {
+    this.landing = false;
+    this.brush.end();
+    this.wall.age = Infinity;
+  }
+
+  /** Paint would land under the aim. */
+  get reaches() {
+    return this.brush.reaches;
   }
 
   /** Shaking the can (RMB) right now. */
@@ -97,32 +123,14 @@ export class SprayTool {
 
   private emit(dt: number, camera: THREE.Camera, eye: THREE.Vector3, inv: Inventory) {
     const cap = CAPS[inv.cap];
-    this.carry += cap.rate * this.flow * dt;
+    this.landing = this.brush.spray({ eye, forward, cap, dt }, rgbOf(inv.color));
+    this.carry += cap.rate * dt;
     const count = Math.floor(this.carry);
     this.carry -= count;
     if (!count) return;
-    camera.getWorldDirection(forward);
     right.set(1, 0, 0).applyQuaternion(camera.quaternion);
     up.crossVectors(right, forward);
     setHex(display, COLORS[inv.color]);
-    this.landing = this.particles.emit({ count, eye, nozzle: this.model.nozzleWorld(nozzle), forward, right, up, cap, flow: this.flow, rgb: rgbOf(inv.color), display }) > 0;
-  }
-
-  private computeFlow(dt: number, p: number): number {
-    if (p <= 0) return 0;
-    if (p < PRESSURE.sputterThreshold) {
-      this.sputterTimer -= dt;
-      if (this.sputterTimer <= 0) {
-        this.sputterOn = paintRandom.sputter() < PRESSURE.sputterDuty;
-        this.sputterTimer = 0.03 + paintRandom.sputter() * 0.12;
-      }
-      const weak = 0.5 + 0.5 * (p / PRESSURE.sputterThreshold);
-      return this.sputterOn ? PRESSURE.minSteadyFlow * weak : 0;
-    }
-    if (p < PRESSURE.thinThreshold) {
-      const t = (p - PRESSURE.sputterThreshold) / (PRESSURE.thinThreshold - PRESSURE.sputterThreshold);
-      return PRESSURE.minSteadyFlow + (1 - PRESSURE.minSteadyFlow) * t;
-    }
-    return 1;
+    this.particles.show({ count, eye, nozzle: this.model.nozzleWorld(nozzle), forward, right, up, cap, flow: this.flow, display, dt, memo: this.wall });
   }
 }

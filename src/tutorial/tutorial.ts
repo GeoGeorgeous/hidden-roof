@@ -4,7 +4,7 @@
 
 import { TUTORIAL } from '../config.ts';
 import { stored, store } from '../stored.ts';
-import { amount, holds, newSeen, see } from './conditions.ts';
+import { amount, holds, progress, newSeen, see } from './conditions.ts';
 import type { Ctx, Seen } from './conditions.ts';
 import { HINTS } from './hints.ts';
 import type { Fact, HintDef, Notes, Rank, Snapshot } from './types.ts';
@@ -12,7 +12,7 @@ import type { Fact, HintDef, Notes, Rank, Snapshot } from './types.ts';
 const TUTORIAL_KEY = 'roofhiddenhaus.tutorial';
 
 /** What the message layer ranks by: higher wins. */
-const RANK: Record<Rank, number> = { tool: 3, context: 2, basic: 1 };
+const RANK: Record<Rank, number> = { moment: 4, tool: 3, context: 2, basic: 1 };
 
 /** Where progress lives: the browser's storage (stored.ts), or a test's. */
 interface Storage {
@@ -30,6 +30,8 @@ interface State {
   seq: number;
   /** Visible seconds on screen. */
   shownFor: number;
+  /** Seconds on screen with the player's part done. */
+  fullFor: number;
 }
 
 export class Tutorial {
@@ -42,7 +44,7 @@ export class Tutorial {
   private on = true;
   /** How many hints are not learnt yet. */
   private left = 0;
-  private snap: Snapshot = { tool: null, tools: [], lowPressure: false, colors: 1, caps: 1, nearLadder: false, onLadder: false };
+  private snap: Snapshot = { tool: null, tools: [], colors: 1, caps: 1, cap: 'standard', nearLadder: false, onLadder: false };
   /** What the message layer has: the hint's id and which of its texts. */
   private shown: { id: string; text: number } | null = null;
   /** A hint was learnt (its id), or the last one was ('done'). */
@@ -51,7 +53,7 @@ export class Tutorial {
   constructor(notes: Notes, storage: Storage = browserStorage, hints: HintDef[] = HINTS) {
     this.notes = notes;
     this.storage = storage;
-    this.states = hints.map((def) => ({ def, seen: newSeen(), wanted: false, seq: 0, shownFor: 0 }));
+    this.states = hints.map((def) => ({ def, seen: newSeen(), wanted: false, seq: 0, shownFor: 0, fullFor: 0 }));
     this.load();
     this.recount();
   }
@@ -100,7 +102,10 @@ export class Tutorial {
     const wanted = this.refresh();
     const pick = this.pick(wanted);
     // Time on screen counts while the hint itself shows, not its "take it" step.
-    if (pick && this.text(pick) === (pick.def.steps?.length ?? 0)) pick.shownFor += dt;
+    if (pick && this.text(pick) === (pick.def.steps?.length ?? 0)) {
+      pick.shownFor += dt;
+      if (this.acted(pick)) pick.fullFor += dt;
+    }
     let learnt = false;
     for (const s of wanted) {
       if (this.finished(s, s === pick)) {
@@ -128,7 +133,7 @@ export class Tutorial {
       const { def } = s;
       const want = !this.done.has(def.id) && (def.after ?? []).every((id) => this.done.has(id)) && holds(def.show, this.ctx(s));
       if (want && !s.wanted) s.seq = ++this.seq;
-      if (!want && def.rank === 'context') this.forget(s);
+      if (!want && (def.rank === 'context' || def.rank === 'moment')) this.forget(s);
       s.wanted = want;
       if (want) wanted.push(s);
     }
@@ -137,7 +142,7 @@ export class Tutorial {
 
   private forget(s: State) {
     s.seen = newSeen();
-    s.shownFor = 0;
+    s.shownFor = s.fullFor = 0;
     s.wanted = false;
   }
 
@@ -151,16 +156,28 @@ export class Tutorial {
   }
 
   /**
-   * Learnt: by time, once it has been on screen long enough; by action, once the player did it, but not before
-   * minShown on screen, so it doesn't flash. One the player did before ever seeing it is learnt silently.
+   * Learnt: by time, once it has been on screen long enough; by action, once the player did it and its ring has
+   * stayed full fullHold, but not before minShown on screen, so it doesn't flash. One the player did before ever
+   * seeing it is learnt silently.
    */
   private finished(s: State, showing: boolean) {
-    const { done } = s.def;
-    const x = this.ctx(s);
-    const acted = done.action !== undefined && holds(done.action, x);
+    const acted = this.acted(s);
     if (acted && s.shownFor === 0) return true;
     if (!showing || s.shownFor < TUTORIAL.minShown) return false;
-    return acted || (done.shown !== undefined && s.shownFor >= amount(done.shown));
+    const { shown } = s.def.done;
+    return acted ? s.fullFor >= TUTORIAL.fullHold : shown !== undefined && s.shownFor >= amount(shown);
+  }
+
+  private acted(s: State) {
+    const { action } = s.def.done;
+    return action !== undefined && holds(action, this.ctx(s));
+  }
+
+  /** How full a hint's ring is: as far as the player got, else the time it has left. */
+  private ring(s: State) {
+    const { action, shown } = s.def.done;
+    const done = action ? progress(action, this.ctx(s)) : 0;
+    return done > 0 || shown === undefined ? done : Math.max(0, 1 - s.shownFor / amount(shown));
   }
 
   /** Which text a hint shows now: the first step not yet done, or (the number of steps) the hint itself. */
@@ -180,10 +197,14 @@ export class Tutorial {
     }
     const steps = s.def.steps ?? [];
     const text = this.text(s);
-    if (this.shown?.id === s.def.id && this.shown.text === text) return;
-    if (this.shown && this.shown.id !== s.def.id) this.notes.clear(`hint:${this.shown.id}`);
-    this.shown = { id: s.def.id, text };
-    this.notes.set({ key: `hint:${s.def.id}`, kind: 'hint', rank: RANK[s.def.rank], lines: text < steps.length ? steps[text].lines : s.def.lines });
+    const key = `hint:${s.def.id}`;
+    if (this.shown?.id !== s.def.id || this.shown.text !== text) {
+      if (this.shown && this.shown.id !== s.def.id) this.notes.clear(`hint:${this.shown.id}`);
+      this.shown = { id: s.def.id, text };
+      this.notes.set({ key, kind: 'hint', rank: RANK[s.def.rank], lines: text < steps.length ? steps[text].lines : s.def.lines });
+    }
+    // Not on a "take it" step: nothing fills or runs out there.
+    this.notes.ring(key, text === steps.length ? this.ring(s) : null, text === steps.length && this.acted(s));
   }
 
   private recount() {

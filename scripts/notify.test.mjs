@@ -10,6 +10,23 @@ const texts = (n, kind) => n.shown().filter((x) => x.kind === kind).map((x) => (
 const card = (title, rest = {}) => ({ label: 'LABEL', title, text: 'text', button: 'OK', ...rest });
 const play = (n, seconds) => n.update(seconds, true);
 
+// A toast's time runs down with its clock, and a hint's is told, with nothing to redraw.
+{
+  const n = new Notify();
+  n.toast('hi');
+  const [toast] = n.shown();
+  assert.equal(toast.ring, 1);
+  play(n, NOTIFY.toastSeconds / 2);
+  assert.ok(Math.abs(toast.ring - 0.5) < 1e-9);
+  n.update(1, false);
+  assert.ok(Math.abs(toast.ring - 0.5) < 1e-9, 'stopped with play');
+  n.set({ key: 'h', kind: 'hint', lines: ['x'] });
+  const seen = n.version;
+  n.ring('h', 0.3, false);
+  assert.equal(n.version, seen);
+  assert.equal(n.shown().find((x) => x.key === 'h').ring, 0.3);
+}
+
 // A pickup and a join in the same moment are both seen, the first above the second, and both go after their time.
 {
   const n = new Notify();

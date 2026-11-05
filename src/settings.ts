@@ -1,4 +1,4 @@
-import { AUDIO, HUD, INK_STYLES, PAINT, PAINT_DETAIL, PLAYER, RENDER, SKYLINE, SMOKE, TUTORIAL, VOLUMETRICS, WALL_HAND } from './config';
+import { AUDIO, BRUSH, HUD, INK_STYLES, PAINT, PAINT_DETAIL, PLAYER, RENDER, SKYLINE, SMOKE, TUTORIAL, VOLUMETRICS, WALL_HAND } from './config';
 import { exitGameFullscreen } from './fullscreen';
 import { sentence } from './menu-ui';
 import { DEFAULT_STYLE, inkStyle, setInkStyle } from './render/ink/styles';
@@ -9,6 +9,7 @@ import { applyKeys, keyOverrides } from './key-bindings';
 import { applyValues, changedValues, defaultsOf, loadSaved, save, type Remembered } from './settings-store';
 import { currentOs, fasterGpuHow, type GpuInfo } from './gpu-name';
 import type { TestedSettings } from './perf-test';
+import type { SectionReset, SettingRow, SettingSection } from './settings-types';
 
 // Player settings, on the settings page of the pause menu (settings-page.ts):
 // gameplay, controls (controls-tab.ts), graphics and sound. They write the same config values the debug
@@ -52,6 +53,8 @@ export class Settings {
   private locked: PaintDetail | null = null;
   /** The remembered fields' defaults, as they are when Settings starts: after main.ts turned the player build's performance lines off. */
   private defaults = defaultsOf(REMEMBERED);
+  /** The choices of Graphics as config has them, for its Reset all; the rest is set once the saved ones are in. */
+  private base = { pixelScale: RENDER.pixelScale, maxFps: RENDER.maxFps, vol: 'medium' as VolPreset, detail: 'ultra' as PaintDetail };
   /** A setting was changed on the page (`section.row`, lowercase: the beacon counts them). */
   onChange: (key: string) => void = () => {};
   /** The page's rows with their keys, for `chosen`. */
@@ -69,16 +72,19 @@ export class Settings {
   ) {
     const s = loadSaved();
     applyValues(REMEMBERED, this.defaults, s.values);
+    BRUSH.opacity = Math.min(Math.max(BRUSH.opacity, BRUSH.opacityMin), BRUSH.opacityMax);
     applyKeys(s.controls);
     const style = INK_STYLES.findIndex((t) => t.name === s.style);
     if (style >= 0) setInkStyle(style);
     if (s.pixelScale && PIXEL_SCALES.includes(s.pixelScale)) RENDER.pixelScale = s.pixelScale;
     if (s.maxFps !== undefined && FRAME_RATES.includes(s.maxFps)) RENDER.maxFps = s.maxFps;
-    this.vol = s.volumetrics && s.volumetrics in VOL_PRESETS ? (s.volumetrics as VolPreset) : VOL_ORDER.find((k) => VOL_PRESETS[k].enabled === VOLUMETRICS.enabled && VOL_PRESETS[k].downscale === VOLUMETRICS.downscale && VOL_PRESETS[k].steps === VOLUMETRICS.steps) ?? (VOLUMETRICS.enabled ? 'medium' : 'off');
+    this.base.vol = VOL_ORDER.find((k) => VOL_PRESETS[k].enabled === VOLUMETRICS.enabled && VOL_PRESETS[k].downscale === VOLUMETRICS.downscale && VOL_PRESETS[k].steps === VOLUMETRICS.steps) ?? (VOLUMETRICS.enabled ? 'medium' : 'off');
+    this.vol = s.volumetrics && s.volumetrics in VOL_PRESETS ? (s.volumetrics as VolPreset) : this.base.vol;
     Object.assign(VOLUMETRICS, VOL_PRESETS[this.vol]);
     // Unsaved: the choice nearest to config's PAINT.texelsPerMeter.
     const values = DETAIL_ORDER.map((k) => PAINT_DETAIL[k]);
     const preset = DETAIL_ORDER[values.indexOf(nearest(values, PAINT.texelsPerMeter))];
+    this.base.detail = preset;
     this.detail = s.paintDetail && s.paintDetail in PAINT_DETAIL ? (s.paintDetail as PaintDetail) : preset;
     PAINT.texelsPerMeter = PAINT_DETAIL[this.detail];
     this.city = this.builtCity = s.cityDetail && s.cityDetail in CITY_DETAIL ? (s.cityDetail as CityDetail) : 'high';
@@ -88,6 +94,7 @@ export class Settings {
   /** The settings page (pause menu → SETTINGS): one section per tab. Every change is saved. `gpu`: what the game draws with; `runTest`: the performance test; `hints`: the tutorial. */
   sections(gpu: GpuInfo, runTest: () => void, hints: Hints): SettingSection[] {
     const saving = (section: string) => (row: SettingRow): SettingRow => {
+      if (row.kind === 'heading') return row;
       const key = `${section}.${row.label}`.toLowerCase().replace(/[^a-z0-9.]+/g, '-');
       const changed = () => (this.onChange(key), this.save());
       this.listed.set(key, row);
@@ -97,10 +104,10 @@ export class Settings {
       return row;
     };
     return [
-      { title: 'General', rows: gameplayRows(hints).map(saving('gameplay')) },
-      { title: 'Audio', rows: soundRows().map(saving('sound')) },
+      { title: 'General', rows: gameplayRows(hints).map(saving('gameplay')), reset: this.fieldsReset('gameplay', 'general settings', GENERAL_FIELDS) },
+      { title: 'Audio', rows: soundRows().map(saving('sound')), reset: this.fieldsReset('sound', 'audio settings', SOUND_FIELDS) },
       { title: 'Controls', rows: [], tab: new ControlsTab(() => (this.onChange('controls.keys'), this.save())) },
-      { title: 'Graphics', rows: [{ kind: 'action', label: 'Performance test', desc: 'Flies over the roof for a few seconds at your current settings and shows how it ran.', button: 'Run', act: runTest }, ...this.graphicsRows(gpu).map(saving('graphics'))] },
+      { title: 'Graphics', rows: [{ kind: 'action', label: 'Performance test', desc: 'Flies over the roof for a few seconds at your current settings and shows how it ran.', button: 'Run', act: runTest }, ...this.graphicsRows(gpu).map(saving('graphics'))], reset: this.graphicsReset() },
     ];
   }
 
@@ -112,6 +119,51 @@ export class Settings {
       else if (row.kind === 'choice') out[key] = row.value().split('  ')[0].toLowerCase();
     }
     return out;
+  }
+
+  private atDefault(names: readonly string[]) {
+    return REMEMBERED.every((f) => !names.includes(f.name) || f.obj[f.field] === this.defaults.get(f.name));
+  }
+
+  private toDefault(names: readonly string[]) {
+    for (const f of REMEMBERED) if (names.includes(f.name)) f.obj[f.field] = this.defaults.get(f.name) as never;
+  }
+
+  /** Reset all of a tab of remembered fields. */
+  private fieldsReset(section: string, what: string, names: readonly string[]): SectionReset {
+    return {
+      what,
+      isDefault: () => this.atDefault(names),
+      reset: () => {
+        this.toDefault(names);
+        this.onChange(`${section}.reset`);
+        this.save();
+      },
+    };
+  }
+
+  /** Reset all of Graphics. In a session PAINT DETAIL stays the host's; paint and city detail apply on resume, as when they're stepped to. */
+  private graphicsReset(): SectionReset {
+    const { pixelScale, maxFps, vol, detail } = this.base;
+    return {
+      what: 'graphics settings',
+      isDefault: () => this.atDefault(GRAPHICS_FIELDS) && inkStyle() === DEFAULT_STYLE && RENDER.pixelScale === pixelScale && RENDER.maxFps === maxFps && this.vol === vol && (!!this.locked || this.detail === detail) && this.city === 'high',
+      reset: () => {
+        const forced = RENDER.fullscreen;
+        this.toDefault(GRAPHICS_FIELDS);
+        if (forced && !RENDER.fullscreen) void exitGameFullscreen();
+        setInkStyle(DEFAULT_STYLE);
+        RENDER.pixelScale = pixelScale;
+        this.applyResolution();
+        RENDER.maxFps = maxFps;
+        this.vol = vol;
+        Object.assign(VOLUMETRICS, VOL_PRESETS[vol]);
+        if (!this.locked) this.detail = detail;
+        this.city = 'high';
+        this.onChange('graphics.reset');
+        this.save();
+      },
+    };
   }
 
   private graphicsRows(gpu: GpuInfo): SettingRow[] {
@@ -270,7 +322,8 @@ export class Settings {
     PAINT.texelsPerMeter = PAINT_DETAIL[this.detail];
   }
 
-  private save() {
+  /** Remember what play changed (the can's opacity), from outside the page. */
+  save() {
     save({ style: INK_STYLES[inkStyle()]?.name, pixelScale: RENDER.pixelScale, maxFps: RENDER.maxFps, volumetrics: this.vol, paintDetail: this.detail, cityDetail: this.city, values: changedValues(REMEMBERED, this.defaults), controls: keyOverrides() });
   }
 }
@@ -307,42 +360,22 @@ function nearest(list: number[], v: number) {
   return list.reduce((a, b) => (Math.abs(b - v) < Math.abs(a - v) ? b : a));
 }
 
-/**
- * A setting row: a choice stepped through with < and >, a slider (`def`: its
- * default, marked on it), a value to read (info) or a button (action). `desc` is an optional line under it, `note` a callout
- * (recommendations), `cost` how much the setting can change how smoothly the
- * game runs, whatever its value.
- */
-type RowBase = { label: string; desc?: string; note?: string; cost?: Cost };
-export type Cost = 'LOW' | 'MEDIUM' | 'HIGH';
-export type SettingRow =
-  | (RowBase & { kind: 'choice'; value: () => string; step: (d: number) => void; locked?: () => boolean })
-  | (RowBase & { kind: 'info'; value: () => string })
-  | (RowBase & { kind: 'action'; button: string; act: () => void; /** The button says this for a moment after it's pressed. */ done?: string; /** The button can be pressed. */ enabled?: () => boolean })
-  | (RowBase & { kind: 'range'; min: number; max: number; step: number; def: number; get: () => number; set: (v: number) => void; format: (v: number) => string });
-/** A tab that builds its own page (Controls): its rows' column, its footer line and a control top right; `open` readies it each time it shows, `close` when it goes. */
-export interface OwnTab {
-  rows: HTMLElement;
-  foot: HTMLElement;
-  corner: HTMLElement;
-  open(): void;
-  close(): void;
-}
-export interface SettingSection {
-  title: string;
-  rows: SettingRow[];
-  tab?: OwnTab;
-}
+/** What Reset all takes back on General and on Graphics (with the choices kept apart, Settings.graphicsReset); Audio's are its sliders. */
+const GENERAL_FIELDS = ['PLAYER.mouseSensitivity', 'PLAYER.paintSensitivity', 'BRUSH.streamline', 'RENDER.fov', 'RENDER.sprintFovBoost', 'RENDER.paintFovCut', 'TUTORIAL.enabled', 'WALL_HAND.enabled'];
+const GRAPHICS_FIELDS = ['RENDER.fullscreen', 'RENDER.propMotion', 'ATMOS.rain', 'SMOKE.enabled', 'HUD.perf'];
+const SOUND_FIELDS = SOUNDS.map(([, field]) => `AUDIO.${field}`);
 
 /** The gameplay, sound and on/off settings, saved as overrides (settings-store.ts). */
 const REMEMBERED: Remembered[] = [
-  ...(['mouseSensitivity', 'crouchToggle', 'tapToRun'] as const).map((field) => ({ name: `PLAYER.${field}`, obj: PLAYER, field })),
-  ...(['fov', 'sprintFovBoost', 'fullscreen', 'propMotion'] as const).map((field) => ({ name: `RENDER.${field}`, obj: RENDER, field })),
+  ...(['mouseSensitivity', 'paintSensitivity', 'crouchToggle', 'tapToRun'] as const).map((field) => ({ name: `PLAYER.${field}`, obj: PLAYER, field })),
+  ...(['fov', 'sprintFovBoost', 'paintFovCut', 'fullscreen', 'propMotion'] as const).map((field) => ({ name: `RENDER.${field}`, obj: RENDER, field })),
   { name: 'ATMOS.rain', obj: NIGHT, field: 'rain' },
   { name: 'SMOKE.enabled', obj: SMOKE, field: 'enabled' },
   { name: 'HUD.perf', obj: HUD, field: 'perf' },
   { name: 'WALL_HAND.enabled', obj: WALL_HAND, field: 'enabled' },
   { name: 'TUTORIAL.enabled', obj: TUTORIAL, field: 'enabled' },
+  { name: 'BRUSH.opacity', obj: BRUSH, field: 'opacity' },
+  { name: 'BRUSH.streamline', obj: BRUSH, field: 'streamline' },
   ...SOUNDS.map(([, field]) => ({ name: `AUDIO.${field}`, obj: AUDIO, field })),
 ];
 

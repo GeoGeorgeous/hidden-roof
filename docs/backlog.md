@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 343
+The one list of what's left. Counter for new ids: next: 365
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -49,21 +49,15 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 1. TASK [BL-076]: Run the next public playtest and verify that all bugs from the previous playtest have been fixed (docs/ideas/weak-links.md) @1.7.2
 2. IDEA [?BL-071]: Multiplayer View-Only sessions: past sessions are opened for viewing only (gallary)
-3. [IDEA-288]: Admin mode: who painted what, and erasing one player's paint with what it covered back, within the last ~15 minutes (the server's ring of op batches); after the Painting Rework cuts ops/s (TASK-231) (docs/ideas/admin-mode.md) @1.9.0
+3. [IDEA-288]: Admin mode: who painted what, and erasing one player's paint with what it covered back, within the last ~15 minutes (the server's ring of op batches) (docs/ideas/admin-mode.md) @1.9.0
 4. [IDEA-289]: A 15-minute timelapse of a wall's painting, from IDEA-288's ring of op batches; only if it comes nearly free (docs/ideas/admin-mode.md)
 
 ## Painting
 
 1. IDEA [BL-074]: Stencils
-2. [IDEA-225]: Painting Rework: the can as a continuous brush (dabs between frames, build-up when held still, streamline; particles only for show) (docs/ideas/paint-refactoring.md) @1.7.0
-3. [IDEA-226]: Painting Rework: opacity on Shift + wheel, passes add up, smooth alpha (docs/ideas/paint-refactoring.md) @1.7.0
-4. [IDEA-227]: Painting Rework: the can's physics: hand speed and distance (gap, close, far) (docs/ideas/paint-refactoring.md) @1.7.0
-5. [IDEA-228]: Painting Rework: the game's crosshair at true size (the line's width, an opacity arc) (docs/ideas/paint-refactoring.md) @1.7.0
-6. [IDEA-229]: Painting Rework: six caps named after real ones (NEEDLE and BLUE DOT new, ids stay simple); tune every cap with the brush, against Bombing!! 2 or paintsessions.com (docs/ideas/paint-refactoring.md) @1.7.0
-7. [TASK-230]: Painting Rework: paint runs with the brush: the 1.5.0 runs don't fit it (measured: the can barely runs); the design talked over in the plan's module 7 (the marker's runs are good today; puddle runs are only a candidate) (docs/ideas/paint-refactoring.md) @1.7.0
-8. [TASK-231]: Painting Rework: network: the slant shape on the wire (protocol bump); measured 2026-11-04, no op per stroke segment unless the load test in the plan's module 5 asks for it (see BL-024) (docs/ideas/paint-refactoring.md) @1.7.0
-9. [TASK-232]: Painting Rework: to production: settings into config.ts and F3, no painting by particles, pressure no longer runs out and shaking is only an animation (unlock-all stays dev only), update golden and multiplayer tests (docs/ideas/paint-refactoring.md) @1.7.0
-10. [?IDEA-166]: Painting Rework: lock the camera while painting (not in the branch) (docs/ideas/paint-refactoring.md)
+2. [?IDEA-166]: Lock the camera while painting: an idea from before the rework, not started, off 1.7.0
+3. [IDEA-336]: Marker: a flat nib, wide across and thin along, for calligraphy: tried on a can cap (TRANSVERSAL), its code kept commented out, each place marked "Kept for a flat nib on the marker, a later version." (grep it)
+4. IDEA [BL-039]: More marker types (rectangular and calligraphy nibs among them, IDEA-233 merged in), placed on the map; a per-tool variant module first, as caps are (docs/ideas/tools.md)
 
 ## Input
 
@@ -72,8 +66,8 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## Performance
 
 1. BUGS [BL-034]: Paint pages at ULTRA can reach ~1 GB of GPU memory: measured, 1045 MB is the ceiling (all 49 pages, 72% full); the lossless fix is BL-144 (docs/ideas/performance.md)
-2. [PERF-200]: Reduce Ladder Shadow Update Delay Without Frequent Rebaking @1.7.0
-3. [PERF-322]: The server allocates a new buffer for every state it keeps as a player's last (`p.last`, server/session.ts): one buffer a player would do, as SNAPSHOT_BYTES is fixed
+2. [PERF-322]: The server allocates a new buffer for every state it keeps as a player's last (`p.last`, server/session.ts): one buffer a player would do, as SNAPSHOT_BYTES is fixed
+3. [PERF-340]: A client among 40 players holds 40 fps on a good GPU, 20 on Intel UHD, before and after the Painting Rework: the frame's CPU is the 40 figures (about 100 draw calls); alone on the roof with the can in hand the frame's CPU rose 2.5–3.3 → 4.2–4.9 ms in the rework. Measured 2026-11-05: the aim's ray each frame (module 4) was most of it, and its scan of all 3405 solids most of the ray: PERF-341 took that off. The 5 more draw calls are one new cap pickup in view, at no cost. Still unknown: about 0.7 ms and 1–4 fps lost at 60 Hz on NVIDIA from module 2 on, with no per-frame code found there; not the ray alone, the crosshair, the tags, the pickups or the alpha steps; to read outside WSL
 
 ## Rendering
 
@@ -86,14 +80,13 @@ Only `N.`, the id and the description are required. The optional parts appear in
 2. IDEA [BL-144]: Cover v2: drop hidden paint faces, make paintable walls nobody can reach plain walls and trim the room on the main floor (TASK-194 merged in), and pack pages fuller, after BL-143; up to 28% less paint memory at ULTRA (BL-034) (docs/ideas/props-and-level.md)
 3. TASK [BL-055]: Group the props better in build mode: decide which prop goes into which category (docs/ideas/props-and-level.md)
 4. [?BUGS-161]: A wall prop overlaps a fence
-5. IDEA [BL-039]: More marker types (rectangular and calligraphy nibs among them, IDEA-233 merged in), placed on the map; a per-tool variant module first, as caps are (docs/ideas/tools.md) @1.7.0
-6. IDEA [BL-050]: Wire cutting
-7. IDEA [BL-051]: Dynamic wire length
-8. IDEA [BL-052]: Lamps that can be fixed to the floor or the ceiling
-9. IDEA [BL-053]: Lamps that light signs
-10. IDEA [BL-054]: New sign sizes, including big rectangular and square ones
-11. IDEA [BL-075]: Digital billboards
-12. IDEA [BL-106]: Paintable cone roofs on the water tanks (a cone paint mapping) (docs/ideas/props-and-level.md)
+5. IDEA [BL-050]: Wire cutting
+6. IDEA [BL-051]: Dynamic wire length
+7. IDEA [BL-052]: Lamps that can be fixed to the floor or the ceiling
+8. IDEA [BL-053]: Lamps that light signs
+9. IDEA [BL-054]: New sign sizes, including big rectangular and square ones
+10. IDEA [BL-075]: Digital billboards
+11. IDEA [BL-106]: Paintable cone roofs on the water tanks (a cone paint mapping) (docs/ideas/props-and-level.md)
 
 ## Tools
 
@@ -102,7 +95,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 ## UI
 
-1. [?TASK-203]: The HUD fits every window: it scales with the window and the DPR (tiny at 4K at 100%, crowded at 820×560), LOW PRESSURE stays on screen at 820×560 (BUGS-199 merged in), the compact pause menu with F3 open stays above the HUD (BUGS-198 merged in, likely fixed by the `--z-*` layers); all three checked on shots first (docs/ideas/hud-scale.md)
+1. [?TASK-203]: The HUD fits every window: it scales with the window and the DPR (tiny at 4K at 100%, crowded at 820×560), the compact pause menu with F3 open stays above the HUD (BUGS-198 merged in, likely fixed by the `--z-*` layers); both checked on shots first (docs/ideas/hud-scale.md)
 2. [IDEA-204]: Notifications beyond play: the menu, pages, loading and a hidden tab on the same model; screen-reader announcements; more events (away and back, context lost, online, refused pointer lock or clipboard); battery (docs/ideas/notifications.md)
 
 ## Avatar
@@ -117,6 +110,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 1. IDEA [BL-063]: License-free background music: drum and bass, jungle @1.8.0
 2. IDEA [BL-148]: Other players' sounds: spray hiss, marker, footsteps, landing as positional voices @1.8.0
+3. [IDEA-343]: The can's hiss follows the hand's speed, the distance and the opacity
 
 ## Tests and tooling
 
@@ -127,6 +121,8 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## Servers and deploy
 
 1. [TASK-201]: The game on itch.io and CrazyGames, played from roof.hidden.haus in their iframe: itch as an HTML upload whose index.html is that iframe (a link-only page is never indexed), CrazyGames' Basic Launch from our own domain (no SDK); the CSP's `frame-ancestors` (now `'none'`, in `vite.config.ts` and Caddy on the host) opened to itch's and CrazyGames' domains; pointer lock, fullscreen and the window size checked inside both; the AI disclosure answered (docs/ideas/web-portals.md) @1.7.1
+2. [IDEA-338]: The server limits a stamp's reach (radius × stretch) when it takes an op: a modified client's huge slanted stamps search ~80 times the seam cells of a round one
+3. [TASK-342]: With 1.7.0 the admin's statistics start over: no players yet, and paint counts change scale; the owner's decision. All but traffic goes, a step for devops (docs/deploy.md, section 1) @1.7.0
 
 ## CCTV
 
@@ -149,15 +145,48 @@ The API and why it is so: docs/admin-api.md.
 
 ## Codebase
 
-1. [RFCT-202]: src/ root files into folders (paint, menu, input, boot, render), style.css split next to its code; paint after the Painting Rework (docs/ideas/src-folders.md) @1.9.0
+1. [RFCT-202]: src/ root files into folders (paint, menu, input, boot, render), style.css split next to its code (docs/ideas/src-folders.md) @1.9.0
 2. [RFCT-323]: server/session.ts, src/net/multiplayer.ts and src/main.ts are past the ~400 lines of AGENTS.md: split by responsibility
 
 ## Done
 
 Shipped since the last release; the release commit empties this list.
 
-1. [BUGS-330]: Lightning with the Thunder slider at 0 stopped the game with an error (an exponential ramp to 0): it is silent now
-2. [IDEA-342]: The ghost from capture mode (dev tools only): V also goes to a Record avatar view, first person where T records it; in the free view G holds it still, H plays at 1x, 2x or 4x, J plays from the start, L shows the clean wall with no ghost and no paint from the recording, and again goes on from where it was; your stepladder stands aside while it plays
+1. [IDEA-225]: Painting Rework: the can as a continuous brush (dabs between frames, build-up when held still, streamline; particles only for show)
+2. [IDEA-227]: Painting Rework: the can's physics: hand speed and distance (gap, close, far)
+3. [BUGS-330]: Lightning with the Thunder slider at 0 stopped the game with an error (an exponential ramp to 0): it is silent now
+4. [IDEA-226]: Painting Rework: opacity on Run + the color keys (Shift + wheel), passes add up, smooth alpha; pressure no longer runs out, shaking is only an animation
+5. [IDEA-228]: Painting Rework: the game's crosshair at true size (the line it would leave), the opacity on an arc beside it with its percent; no PSI gauge
+6. [TASK-231]: Painting Rework: a dab at an angle stretches along the aim and fades at the far end, and others see it: protocol 12, 3 bytes a slanted stamp; over seams too; the load read again, no op per stroke segment
+7. [IDEA-331]: Settings → General in groups (painting, view, help, left hand); Sensitivity while painting and Streamline for every player
+8. [IDEA-332]: Settings → General: Field of view: painting, degrees taken off the view while a tool paints
+9. [IDEA-333]: Settings: Reset all on General, Audio and Graphics, each for its own tab
+10. [IDEA-229]: Painting Rework: six caps with real names, colors and a dot each (NEEDLE, BLUE DOT new), on the roof
+11. [IDEA-334]: The cap's and color's tags sit beside the cap and invert what's under them, as the crosshair does; the swatch stays true
+12. [IDEA-335]: Painting Rework: the spray is a plume at the nozzle, each cap's own (cone, specks, haze); the old square points are gone
+13. [IDEA-337]: The can's crosshair fades where the paint wouldn't land, from the ray it already casts; how faint is a row in F3 (Cursor)
+14. [IDEA-339]: The plume follows the opacity set: fewer and fainter specks, as tuned at 65%, for you and for others, in the snapshot's flow byte
+15. [PERF-341]: What rays look through near a point: the solids' spheres in one flat array, about 10 times faster; a roof frame's CPU 5.7 → 3.7 ms in the same conditions, fps unchanged
+16. [TASK-230]: Paint runs with the brush: past `passes` of wet paint a spot rolls the dice by its cap's `chance`; a failed roll leaves the paint, it pools in the spot and makes a run likelier and longer, and a spot rests after a run: a can held still runs with every cap as a result of the same rule; marker and roller as they were; F3 in passes, chance and rest; `npm run bench:runs`
+17. [BUGS-345]: Under 60 frames a second a slow line of the can lost up to half its paint: the can's dabs of the clock are laid in the same frame, and the strokes are tested from 20 Hz up
+18. [BUGS-346]: A spot of wet paint was counted on the atlas's grid, so one square could hold two faces, up to a meter or more apart in the world: its squares start at their face's corner now
+19. [BUGS-347]: Paint on the ring around a face could start a run nobody sees, in a slot that painted nothing: it no longer rolls
+20. [BUGS-348]: Wiping or undoing paint in build mode left its spots resting and full: restored paint is dry now, spots too
+21. [BUGS-349]: F3's rolls / runs counted runs the dice decided and the paint then dropped: it counts those that start
+22. [BUGS-350]: A stored opacity out of range was taken as it was (0 sprayed nothing): it comes back within range
+23. [TEST-351]: Tests of what a spot keeps: how it dries, a run empties it, paint held on a resting spot, its odds
+24. [BUGS-352]: A line along a wall seen at an angle got up to 4 times the paint and ran on its first pass, and a stroke stepping onto a wall behind another left a blot: a stroke's spacing and hand speed count the way across the ray now
+25. [DOCS-355]: Painting Rework's review: docs, F3 hints and comments as the code is; limits written down; Reset all's texts in messages.ts, the plume's spreads in config.ts
+26. [BUGS-353]: Wet paint's times were Float32 on a clock that never resets, so thin coats drifted: ASTRO FAT at 3 m ran a third more after 3 hours in a tab, 2.6 times after 30. They count from the last whole hour now, at the same size
+27. [BUGS-354]: A fast stroke's start held more paint at a high frame rate (+22% in NY FAT's first 40 cm at 240 Hz against 60, +38% in NEEDLE's first 30 cm) and less at a low one: its first `BRUSH.speedStart` takes the pace as it is, and a frame past that time the pace the aim had then. NY FAT and ASTRO FAT within 3% from 30 to 360 Hz, thin caps 7%, 60 Hz as it was
+28. [TEST-356]: Golden paint plays a fast flick, a second run after a rest and a slanted line over the floor's seams
+29. [TASK-232]: Painting Rework: to production: unlock-all (`ALL_PAINT`) cut
+30. [DOCS-357]: Painting Rework's end: all of paint in `docs/painting.md`, limits in `docs/known-limits.md`, `docs/ideas/` as the code is
+31. [IDEA-358]: The crosshair shows the marker's and the sponge's real width at the wall and fades out of their reach, as the can's does, with no arc: one module, `src/tools/aim.ts`, that any tool with a reach can take
+32. [IDEA-360]: The roller's crosshair is a bar, a press of it at its real size, and fades out of its reach, by the same module as the marker's and the sponge's
+33. [TASK-359]: Hints and toasts in one voice, the first person, and a line for each cap the first time it's on the can in hand: a rank `moment` over the hints that wait for the player
+34. [IDEA-363]: Hints and toasts that go by themselves show a ring running down with their time, the hold-Esc ring's look
+35. [IDEA-364]: Every hint has a ring: a hint the player does fills it as far as they got and turns into the status's check for `TUTORIAL.fullHold` (0.6 s), one action at once. Walking, jumping (one jump) and running (5 m) are three hints, the opacity is learnt by 30% of change in all, a ladder counts going down too, the color hint waits for a color change
 
 ## Discarder
 
@@ -198,3 +227,4 @@ Dropped items, kept for the record; don't work on them.
 33. ~~[TASK-194]: Replace paintable walls that cannot be reached with standard walls. Optimize room on the main floor. (merged into BL-144)~~
 34. ~~[BUGS-198]: With F3 open the compact pause menu is under the pickup tags, nameplates, hotbar and toast (docs/ideas/hud-scale.md) (merged into TASK-203)~~
 35. ~~[BUGS-199]: LOW PRESSURE runs off the right edge in narrow windows (820×560) (docs/ideas/hud-scale.md) (merged into TASK-203)~~
+36. ~~[PERF-200]: Reduce Ladder Shadow Update Delay Without Frequent Rebaking (left as it is: `LIGHTMAP.ladderRest` at 0.3 s saves 0.3 of 1.6–3.7 s and costs 4.4 ms a frame against 0.6 at 2–3 placements a second, `docs/known-limits.md`)~~

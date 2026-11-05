@@ -10,6 +10,8 @@ export const RENDER = {
   /** Extra FOV (degrees) while sprinting, eased in and out. */
   sprintFovBoost: 10,
   sprintFovEase: 6,
+  /** Degrees of FOV taken off while a tool paints, eased like the sprint's. 0 = none. A player setting. */
+  paintFovCut: 0,
   /** Frame rate limit (frames per second); 0 = none, as fast as the display refreshes. A player setting (FRAME RATE). */
   maxFps: 0,
   /**
@@ -378,9 +380,8 @@ export const HUD = {
   perf: false,
   /** GPU time per frame in it too (timer queries: desktop Chromium; a few queries a frame while shown). */
   perfGpu: false,
-  /** How long the cap and color tags show after a change, and the PSI gauge after the pressure last changed (s). */
+  /** How long the cap and color tags show after a change (s). */
   tagTime: 2.5,
-  gaugeTime: 1.2,
   /** Hotbar slots: size and the gap between them (CSS px), roundness (0 = square, 1 = circle), icon size (share of the slot). */
   slotSize: 30,
   slotGap: 10,
@@ -464,8 +465,10 @@ export const PAINT = {
    */
   coverStep: 0.25,
   coverGap: 0.02,
-  /** Alpha is quantized to this many steps in the shader for a chunky look (0 = off). */
-  alphaSteps: 8,
+  /** Alpha is quantized to this many steps in the shader for a chunky look (0 = off: layers of a set opacity would band). */
+  alphaSteps: 0,
+  /** A coat under this share leaves a texel as it is, else every dab's rim would keep the one 8-bit step a thin coat moves. */
+  faintest: 0.001,
   /** Hard cap on a single surface atlas side, in texels. */
   maxTextureSize: 2048,
   /**
@@ -499,37 +502,47 @@ export interface CapSpec {
   name: string;
   /** Spread: the spray cone's full angle (radians, horizontal on screen). */
   spread: number;
-  /** Particles per second at full flow. */
+  /** Particles shown per second at full flow. */
   rate: number;
-  /** Opacity each particle adds where it lands (0..1). */
-  strength: number;
-  /** Width of each particle's dot, in meters (the same at every paint detail; a dot smaller than a texel paints one texel). */
+  /** A dab's width up close, before BRUSH scales it, in meters (the same at every paint detail; a dab smaller than a texel paints one texel). */
   dotSize: number;
-  /** Edge softness of each dot: 0 = hard edge, 1 = fades to nothing at the rim. */
+  /** A dab's edge, against BRUSH.softnessRef: 0 = hard at any distance, higher = softer. */
   softness: number;
   /** Hiss loudness multiplier and tone (0 = bright, 1 = deep). */
   hissGain: number;
   hissTone: number;
-  /** Crosshair circle diameter on screen, in CSS pixels. */
-  crosshair: number;
-  /** Paint runs (with DRIPS on), per m² of paint reaching DRIPS.excess. */
-  drips: number;
-  /** Pressure lost per second of spraying with this cap (1 = a full can). */
-  drain: number;
+  /** The odds its wet paint runs, by the spot (DRIPS.spot; 0..1): a higher one rests less too, so it runs more when held still. */
+  chance: number;
   /** Color of the cap on the can, its pickup and hotbar icon. */
   color: string;
   /** Width of the cap's nozzle (m): it hints at the cap. */
   nozzle: number;
+  /** Color of its nozzle, the dot a real cap is known by: seen on a pickup and on others' cans, not in your own hand. */
+  dot: string;
+  /** How far the nozzle reaches out as a thin tube (m), a needle cap's. */
+  tube?: number;
+  /** Its plume (spray/plume.ts) scaled: 1 is what its numbers make. */
+  plume: { cone: number; size: number; grow: number };
+  // Kept for a flat nib on the marker, a later version.
+  // /** A flat nib: dabs `stretch` times longer than wide, always at `angle` degrees from the wall's horizon, in place of the wall's slant. */
+  // nib?: { stretch: number; angle: number };
 }
 
-export type CapId = 'skinny' | 'standard' | 'fat' | 'spray';
-export const CAP_ORDER: CapId[] = ['skinny', 'standard', 'fat', 'spray'];
+export type CapId = 'needle' | 'skinny' | 'standard' | 'soft' | 'fat' | 'spray';
+export const CAP_ORDER: CapId[] = ['needle', 'skinny', 'standard', 'soft', 'fat', 'spray'];
+const PLUME_AS_MADE = { cone: 1, size: 1, grow: 1 };
 export const CAPS: Record<CapId, CapSpec> = {
-  skinny: { name: 'SKINNY', spread: 0.01, rate: 1900, strength: 0.9, dotSize: 0.036, softness: 0.15, hissGain: 0.5, hissTone: 0, crosshair: 10, drips: 2, drain: 0.015, color: '#7fb4f2', nozzle: 0.004 },
-  standard: { name: 'STANDARD', spread: 0.03, rate: 1760, strength: 0.75, dotSize: 0.05, softness: 0.35, hissGain: 0.75, hissTone: 0.4, crosshair: 18, drips: 4, drain: 0.03, color: '#f4f4f4', nozzle: 0.006 },
-  fat: { name: 'FAT', spread: 0.04, rate: 650, strength: 0.8, dotSize: 0.12, softness: 0.15, hissGain: 1, hissTone: 1, crosshair: 24, drips: 6, drain: 0.06, color: '#f2a04c', nozzle: 0.01 },
+  /** Thinner than SKINNY, as wide as the default marker at 1.5 m. */
+  needle: { name: 'NEEDLE', spread: 0.008, rate: 1900, dotSize: 0.03, softness: 0.1, hissGain: 0.45, hissTone: 0, chance: 0.13, color: '#d8322a', nozzle: 0.003, dot: '#f1efe8', tube: 0.02, plume: { ...PLUME_AS_MADE } },
+  skinny: { name: 'SKINNY', spread: 0.01, rate: 1900, dotSize: 0.036, softness: 0.15, hissGain: 0.5, hissTone: 0, chance: 0.19, color: '#e3cf94', nozzle: 0.004, dot: '#202020', plume: { ...PLUME_AS_MADE } },
+  standard: { name: 'BANANA', spread: 0.03, rate: 1760, dotSize: 0.05, softness: 0.35, hissGain: 0.75, hissTone: 0.4, chance: 0.38, color: '#f5d33a', nozzle: 0.006, dot: '#202020', plume: { ...PLUME_AS_MADE } },
+  /** BANANA with the softest edge, for fades. */
+  soft: { name: 'BLUE DOT', spread: 0.03, rate: 1760, dotSize: 0.05, softness: 1, hissGain: 0.7, hissTone: 0.6, chance: 0.22, color: '#aeb2b6', nozzle: 0.006, dot: '#3f8fe0', plume: { ...PLUME_AS_MADE } },
+  // Kept for a flat nib on the marker, a later version. Its numbers are a dab's narrow side: 1.7 cm at 1.5 m, so 7 cm the long way.
+  // transversal: { name: 'TRANSVERSAL', spread: 0.004, rate: 1400, dotSize: 0.014, softness: 0.15, hissGain: 0.7, hissTone: 0.2, chance: 0.19, color: '#f1efe8', nozzle: 0.012, dot: '#202020', nib: { stretch: 4, angle: 45 }, plume: { ...PLUME_AS_MADE, cone: 3 } },
+  fat: { name: 'NY FAT', spread: 0.04, rate: 650, dotSize: 0.12, softness: 0.15, hissGain: 1, hissTone: 1, chance: 0.58, color: '#f1efe8', nozzle: 0.01, dot: '#202020', plume: { ...PLUME_AS_MADE } },
   /** Wide, soft mist for fades and backgrounds: lots of faint, fuzzy dots. */
-  spray: { name: 'SPRAY', spread: 0.1, rate: 1100, strength: 0.12, dotSize: 0.158, softness: 0.55, hissGain: 0.9, hissTone: 0.8, crosshair: 32, drips: 50, drain: 0.1, color: '#b98cf2', nozzle: 0.013 },
+  spray: { name: 'ASTRO FAT', spread: 0.1, rate: 1100, dotSize: 0.158, softness: 0.55, hissGain: 0.9, hissTone: 0.8, chance: 0.16, color: '#c9ccce', nozzle: 0.013, dot: '#202020', plume: { ...PLUME_AS_MADE } },
 };
 
 /** Paint colors, in the mouse wheel's cycling order. Black is always owned. Paint never runs out. */
@@ -561,14 +574,8 @@ export const MARKER = {
   widthMin: 0,
   widthMax: 0.1,
   widthStep: 0.008,
-  /** Crosshair with the marker in hand (px): `crosshair` plus `crosshairPerMeter` x the nib width, so it follows the size keys. */
-  crosshair: 4,
-  crosshairPerMeter: 200,
-  /**
-   * Paint runs (with DRIPS on) from the marker, per m² of paint reaching DRIPS.excess:
-   * a nib covers little area but pumps a lot of paint into it.
-   */
-  drips: 50,
+  /** The odds its wet paint runs, by the spot (DRIPS.spot; 0..1): a nib covers little area but pumps a lot of paint into it. */
+  chance: 0.32,
   strength: 0.95,
   /** Held still, the nib stamps the same spot every frame: let it add to runs this often (per s), whatever the frame rate. */
   stillRate: 30,
@@ -577,8 +584,20 @@ export const MARKER = {
   maxRays: 32,
 };
 
-/** Crosshair (px) with no sized tool in hand: the stepladder, empty hands, build mode. The others set their own. */
-export const CROSSHAIR = { plain: 6 };
+/** The crosshair. The tools that mark show their real size (tools/aim.ts): a ring, or the roller's bar. */
+export const CROSSHAIR = {
+  /** Its size (px) with no such tool in hand: the stepladder, empty hands, build mode. */
+  plain: 6,
+  /** The least a real width shows as (px), so a thin line far off can still be seen. */
+  least: 3,
+  /** Its opacity where the tool in hand wouldn't reach or mark (0..1). */
+  far: 0.35,
+  /**
+   * The opacity arc answers a change: it flows to the new value in `flowMs`, past it by `bounce` (1 = not past it, the
+   * easing's overshoot), and its line (px) starts `peak` thick and comes back to `line` in `lineMs`.
+   */
+  arc: { flowMs: 240, bounce: 1.7, line: 1.5, peak: 3, lineMs: 600 },
+};
 
 /** Hotbar circles shown from the start (empty until their tool is found); at least one per tool. */
 export const HOTBAR = { slots: 5 };
@@ -729,13 +748,10 @@ export const ROLLER = {
   pressLength: 0.06,
   /** Fraction of each end of the roller that leaves lighter paint. */
   softness: 0.15,
-  /** Crosshair with the roller in hand (px): `crosshair` plus `crosshairPerMeter` x the width (0: the same at every width). */
-  crosshair: 10,
-  crosshairPerMeter: 0,
   /** Opacity per press: a roller lays it on thick. */
   strength: 0.45,
-  /** Paint runs (with DRIPS on), per m² of paint reaching DRIPS.excess: a loaded roller runs easily. */
-  drips: 60,
+  /** The odds its wet paint runs, by the spot (DRIPS.spot; 0..1): a loaded roller runs easily. */
+  chance: 0.384,
   /** Held still, presses add to runs this often (per s), whatever the frame rate. */
   stillRate: 20,
   /** Moves are filled with presses at most `spacing` x the press length apart at full reach, at most maxRays per frame. */
@@ -757,9 +773,6 @@ export const SPONGE = {
   widthMin: 0.04,
   widthMax: 0.6,
   widthStep: 0.04,
-  /** Crosshair with the sponge in hand (px): `crosshair` plus `crosshairPerMeter` x the patch width, so it follows the size keys. */
-  crosshair: 6,
-  crosshairPerMeter: 100,
   /** How far it scrubs in small circles while cleaning (m), and how fast (turns per s). */
   scrubSize: 0.012,
   scrubSpeed: 5,
@@ -863,25 +876,44 @@ export const PLAYER_LIGHT = {
 /**
  * Paint runs: paint put onto paint that is already opaque is wet until it dries,
  * and on vertical faces a texel with enough wet paint may start a thin run down the wall.
- * Each setting does one job: `excess` how much wet paint makes a texel run, `dryTime` how
- * long it stays wet, and each tool's and cap's `drips` how often a wet texel runs.
+ * Each setting does one job: `passes` how much wet paint makes a texel roll the dice, `dryTime`
+ * how long it stays wet, and each tool's and cap's `chance` how often that starts a run.
  * All baked into the paint texture: no extra objects.
  */
 export const DRIPS = {
   enabled: true,
-  /** Wet paint (in full coats) a texel needs before it may run; the paint that ran is gone. How often it then runs is each cap's and tool's `drips` (per m², spread over its texels, so every paint detail runs alike). */
-  excess: 6,
-  /** How long paint stays wet (s): `excess` coats of wet paint are dry after this long, less paint sooner. A coat over a dry wall no longer runs; holding the can on one spot (hundreds of coats a second) still does. */
+  /** Passes of wet paint a texel needs before it rolls the dice: paint over opaque paint is wet. Its odds are each cap's and tool's `chance`. */
+  passes: 1,
+  /** What a pass lays, in coats (a coat: a full-opacity stamp). About this from a meter, by the cap and the hand. */
+  passCoats: 6,
+  /** How long a pass of wet paint takes to dry (s), less paint sooner. A pass over a dry wall no longer runs; holding the can on one spot still does. */
   dryTime: 3,
+  /** Wet paint counts its time from the last whole span of this many seconds, for a clock that runs for days: a span's end dries a surface. */
+  wetSpan: 3600,
+  /** The dice are rolled by the square of wall this wide (m): a thin line and a wide one have the same odds where they're as wet, and every paint detail runs alike. */
+  spot: 0.08,
+  /** How long a spot rests after a run (s), at a chance of 1: at half it rests twice as long. The can's; the marker and roller don't rest. */
+  rest: 2.3,
+  /** Passes a failed roll takes off a texel: the rest stays wet. The can's; the marker's and roller's lose all of it. */
+  miss: 1 / 6,
+  /** A can's spot keeps the paint past what its texels hold; this many passes of it, on average over the spot, is a full one. A full one is `fullOdds` times likelier to run on top of its chance, and its run the longest: `lengthLuck` of a run's length is the dice's, the rest how full its spot is. It dries `keptDry` times slower than a texel's paint, or a thin cap's would dry as it comes. */
+  full: 0.5,
+  fullOdds: 5,
+  lengthLuck: 0.6,
+  keptDry: 4,
   /** Runs moving at the same time, level-wide. */
   maxActive: 65,
-  /** Run length range (m). */
+  /** A run starts this far from another's head at least, in its column (m). */
+  apart: 0.04,
+  /** Run length range (m): the can's by how much paint a spot keeps, the marker's and roller's by chance. */
   minLength: 0.06,
-  maxLength: 0.5,
-  /** Starting speed (m/s); runs slow down as they go. */
+  maxLength: 0.6,
+  /** Starting speed (m/s); runs slow down as they go, to `slowest` of it. */
   speed: 0.25,
-  /** Opacity the run leaves behind (0..1). */
+  slowest: 0.25,
+  /** Opacity the run leaves behind (0..1), down to `thinnest` of it at its end. */
   strength: 0.85,
+  thinnest: 0.55,
 };
 
 /** F3's wet view (dev/wet-view.ts): points on the paint that is still wet, to tune paint runs by. */
@@ -889,7 +921,7 @@ export const WET_VIEW = {
   enabled: false,
   /** Point size (px). */
   size: 4,
-  /** The ramp of a point's color by its build-up: `cool` for just wet, `color` where it may run (DRIPS.excess). */
+  /** The ramp of a point's color by its build-up: `cool` for just wet, `color` where it may run (DRIPS.passes). */
   cool: '#2a6cff',
   color: '#ff2a1a',
   /** Opacity of a just-wet point; it reaches full where it may run. */
@@ -1005,33 +1037,85 @@ export const MODELS = {
 export const SPRAY = {
   /** Max distance from the eye to the surface: how far paint travels. */
   reach: 4.6,
-  /** Paint strength fades linearly from this distance to `reach`. */
-  falloffStart: 1,
-  particleSpeed: 26,
-  particleSize: 0.035,
   maxParticles: 3000,
   /**
-   * Other players' spray finds its wall with one ray, reused while it still holds: for at most `reuse` seconds,
-   * while the eye moved less than `move` (m) and the aim turned less than `aim` (degrees) since the ray was cast.
-   * 0 casts every frame. Only what is seen: the paint comes as paint ops.
+   * The plume at the nozzle, only to be seen (spray/plume.ts makes each cap's). `count`: specks per one of the cap's
+   * `rate`. `cone`: its angle per the cap's spread and half its dot. `speed` (m/s), `drag` (1/s) and `life` (s): how
+   * they fly. `short`: how far before the wall they stop (m). `size` (m) and `grow`: a speck of a cap of `dotAtPar`
+   * (m) and softness at par (BRUSH.softnessRef). `opacity`: all of them, at a can set to `opacityAtPar`; set lower, its
+   * specks are fewer and fainter, higher, more and stronger.
    */
-  others: { reuse: 0.25, move: 0.05, aim: 1.5 },
+  plume: { count: 3, cone: 1.6, speed: 15, drag: 2, life: 0.35, short: 0.03, size: 0.01, grow: 1.5, dotAtPar: 0.05, opacity: 0.9, opacityAtPar: 0.65, vary: { speed: [0.5, 1.5], life: [0.4, 1], size: [0.4, 1.6] } as Record<'speed' | 'life' | 'size', [number, number]> },
+  /** One shake's motion and rattle (s), repeated while RMB is held: only that, it does nothing to the paint. */
+  shakeDuration: 0.55,
+  /**
+   * A can's particles find their wall with one ray, reused while it still holds: for at most `reuse` seconds,
+   * while the eye moved less than `move` (m) and the aim turned less than `aim` (degrees) since the ray was cast.
+   * 0 casts every frame. Only what is seen: the paint comes from the brush, or as paint ops.
+   */
+  wall: { reuse: 0.25, move: 0.05, aim: 1.5 },
 };
 
-export const PRESSURE = {
-  /** Below this, paint gets thinner. */
-  thinThreshold: 0.5,
-  /** Below this, the can sputters. */
-  sputterThreshold: 0.25,
-  /** Flow at the sputter threshold (flow ramps 1 -> this between the thresholds). */
-  minSteadyFlow: 0.4,
-  /** Fraction of time the can actually fires while sputtering. */
-  sputterDuty: 0.45,
-  /** Shaking the can (hold RMB): pressure restored at once on the press, then per second while held (clamped to 1). */
-  shakeTap: 0.03,
-  shakeRate: 0.5,
-  /** One shake's motion and rattle (s), repeated while RMB is held. */
-  shakeDuration: 0.55,
+/**
+ * The can as a brush (spray/stroke.ts, spray/dab.ts): paint lands at once where the aim meets the wall,
+ * and the can's physics shape the line: the same paint per second, so speed and distance change its width, density and edge.
+ */
+export const BRUSH = {
+  /** One pass of a stroke reaches about this opacity along its middle in the far range, more up close; passes add up. The player's own: Run + the color keys, a step at a time within the range, kept in this browser. Others get it as paint, and as how much comes out of the can, for its plume. */
+  opacity: 0.65,
+  opacityMin: 0.05,
+  opacityMax: 1,
+  opacityStep: 0.1,
+  /** Dabs along a stroke, this share of a dab's width apart. */
+  spacing: 0.1,
+  /** But never closer (m): half a texel at ULTRA, whatever this player's PAINT DETAIL, so a small cap's flick doesn't flood the network. */
+  minSpacing: 0.0052,
+  /** Most dabs in a frame; past it they spread out to keep up with the aim. */
+  maxDabs: 160,
+  /** A spot this much further on (m) in a frame starts the stroke anew. */
+  maxJump: 3,
+  /** How long the brush trails the aim (s), taking the mouse's jitter out of lines. 0 = none. */
+  streamline: 0.02,
+  /** Held still, dabs per second, each with `buildAmount` of a moving dab's paint: the spot darkens and then runs. */
+  buildRate: 60,
+  buildAmount: 0.5,
+  /** The hand speed (m/s as the eye sees it) up to which a line is as set; four times it is as fast as a line changes. */
+  speedRef: 2.4,
+  /** Above it the opacity falls as (speedRef / speed) ^ speedFade, the width grows by up to `speedWiden`, the edge softens by up to `speedSoft`. */
+  speedFade: 0.4,
+  speedWiden: 0.7,
+  speedSoft: 0.8,
+  /** How fast the hand speed follows the hand (1/s). */
+  speedFollow: 15,
+  /** A stroke's first this many seconds of moving take the hand's pace unsmoothed, whatever the frames that cut them. */
+  speedStart: 1 / 60,
+  /** Up to this far from the wall (m) the can acts as close up: the distance model starts past it. */
+  gap: 0.6,
+  /** The nearest the spray acts as if from (m). */
+  minDistance: 0.05,
+  /** Past the gap (m): the close range ends here and the far range is full here. */
+  closeAt: 0.25,
+  farAt: 2.5,
+  /** The cap's dot, scaled: close up and far. */
+  closeSize: 0.55,
+  farSize: 2.2,
+  /** Close up, a stroke holds this much more paint. */
+  closeFlow: 1.8,
+  /** The edge of a cap as soft as `softnessRef`: close up and far. */
+  closeSoft: 0.3,
+  farSoft: 0.95,
+  /** The cap softness the two above are for: other caps scale them. */
+  softnessRef: 0.35,
+  /** Share of the cap's cone a dab takes up. */
+  coneShare: 0.8,
+  /** Past the gap (m) the opacity fades from here to the can's reach, never below `fadeMin` of it. */
+  fadeStart: 0.5,
+  fadeMin: 0.75,
+  /** A dab hitting the wall at an angle stretches along the aim, as 1 / cos of the angle, up to `slantMax`; under `slantFrom` it stays round. */
+  slantFrom: 1.02,
+  slantMax: 4,
+  /** How much of its paint a dab along the wall loses toward its far end. */
+  slantTail: 0.7,
 };
 
 export const PLAYER = {
@@ -1069,6 +1153,8 @@ export const PLAYER = {
   /** A climb carries on this far (m) over a ladder's top, so you step onto the floor it leads to (a stepladder's cap, a roof, over a parapet). */
   climbOver: 0.3,
   mouseSensitivity: 0.0022,
+  /** Mouse sensitivity is scaled by this while a tool paints: slower for steadier lines. */
+  paintSensitivity: 1,
   /** Take the mouse without the OS's pointer acceleration (the pointer lock's `unadjustedMovement`), at the next lock. For finding what makes rare mouse spikes; F3 only. */
   rawMouse: false,
   /** Falling below this height respawns the player. */
@@ -1789,10 +1875,14 @@ export const TUTORIAL = {
   moveDelay: 1.5,
   /** Walking this far (m) is learning to move; one key press isn't. */
   moveMeters: 3,
+  /** Running this far (m) is learning to run. */
+  sprintMeters: 5,
+  /** Changing the opacity this much in all (percent, up and down adding up) is learning it. */
+  opacityPercent: 30,
   /** A hint shows at least this long (s) before it can leave as done, so it doesn't flash. */
   minShown: 2,
-  /** A color hint is learnt after this long on screen (s), whatever the player did. */
-  colorShown: 5,
+  /** A hint done by the player stays this long (s), its ring a check. */
+  fullHold: 0.6,
   /** Spraying this long (s) on a surface is learning the can. */
   spraySeconds: 0.5,
   /** Drawing this far (m) with the marker, or scrubbing with the sponge, is learning it. */
@@ -1800,7 +1890,7 @@ export const TUTORIAL = {
   spongeMeters: 0.5,
   /** Rolling this far (m) is learning the roller. */
   rollerMeters: 1,
-  /** Climbing this far (m) is learning ladders. */
+  /** Climbing this far (m), up or down, is learning ladders. */
   climbMeters: 1.5,
   /** A hint with nothing to do (about the stepladder) is learnt after this long on screen (s). */
   infoSeconds: 6,

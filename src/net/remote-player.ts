@@ -127,10 +127,10 @@ export class RemotePlayer {
     else this.wall.age = Infinity;
   }
 
-  /** Their can's spray, from its nozzle along their look, as much as comes out of it (SprayTool.emit). */
+  /** Their can's spray, from its nozzle along their look (SprayTool.emit). */
   private spray(dt: number, st: Pose) {
     const cap = CAPS[st.cap];
-    this.carry += cap.rate * st.flow * dt;
+    this.carry += cap.rate * dt;
     const count = Math.floor(this.carry);
     this.carry -= count;
     if (!count) return;
@@ -140,7 +140,7 @@ export class RemotePlayer {
     up.crossVectors(right, forward);
     eye.copy(this.position).y += st.crouched ? PLAYER.crouchEyeHeight : PLAYER.eyeHeight;
     setHex(display, COLORS[st.color]);
-    this.particles.show({ count, eye, nozzle: this.avatar.nozzle(nozzle), forward, right, up, cap, display, dt, memo: this.wall });
+    this.particles.show({ count, eye, nozzle: this.avatar.nozzle(nozzle), forward, right, up, cap, flow: st.flow, display, dt, memo: this.wall });
   }
 
   /** Everything they did that waits for their figure, done now. */

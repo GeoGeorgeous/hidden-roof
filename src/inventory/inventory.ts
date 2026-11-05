@@ -5,7 +5,7 @@ import { SLOTS, type Tool } from './tool';
 // Slots (tool.ts): 1 = the spray can (always), 2 = the marker, 3 = the stepladder,
 // 4 = the paint roller, 5 = the sponge (each once found).
 // Colors and caps are permanent unlocks (colors shared by can, marker and roller).
-// Paint never runs out; the can only has pressure.
+// Paint never runs out.
 
 /** Tools the size keys (Q/E) resize (tools/size-range.ts): their config. */
 export const SIZED = { marker: MARKER, roller: ROLLER, sponge: SPONGE } satisfies Partial<Record<Tool, SizeRange>>;
@@ -27,8 +27,6 @@ export class Inventory {
   selected = 0;
   colors: PaintColor[] = [];
   caps: CapId[] = [];
-  /** Can pressure 0..1: drains while spraying, restored by shaking. */
-  pressure = 1;
   /** Marker nib, roller and sponge patch widths (m), set with Q/E; kept across resets. */
   size = startSizes();
   /** Bumped on every change so the HUD can skip redundant DOM updates. */
@@ -50,7 +48,6 @@ export class Inventory {
     this.found.clear();
     this.colors = ['black'];
     this.caps = ['standard'];
-    this.pressure = 1;
     this.colorIndex = 0;
     this.capIndex = 0;
     this.version++;

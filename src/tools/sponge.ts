@@ -1,8 +1,10 @@
 import * as THREE from 'three';
+import type { Solids } from '../level/solids';
 import type { Audio } from '../audio';
 import { SPONGE } from '../config';
 import type { Input } from '../input';
 import type { PaintSystem } from '../painting';
+import { ToolAim } from './aim';
 import { StrokeSweep } from './stroke';
 import { SpongeModel } from './sponge-model';
 
@@ -16,14 +18,17 @@ import { SpongeModel } from './sponge-model';
 export class SpongeTool {
   readonly model = new SpongeModel();
   private stroke: StrokeSweep;
+  /** What the crosshair shows with the sponge in hand. */
+  readonly aim: ToolAim;
   private sounding = false;
 
   constructor(
     private paint: PaintSystem,
-    solids: THREE.Mesh[],
+    solids: Solids,
     private audio: Audio,
   ) {
     this.stroke = new StrokeSweep(solids, paint);
+    this.aim = new ToolAim(solids, paint, SPONGE.reach);
   }
 
   /** The sponge's sway group, for ViewSway. */
@@ -37,7 +42,8 @@ export class SpongeTool {
   }
 
   /** `radius`: the patch it cleans (m). */
-  update(dt: number, input: Input, camera: THREE.Camera, eye: THREE.Vector3, active: boolean, radius: number) {
+  update(dt: number, input: Input, camera: THREE.PerspectiveCamera, eye: THREE.Vector3, active: boolean, radius: number) {
+    if (active) this.aim.update(camera, eye, radius * 2);
     const pressed = active && input.held('use') && input.locked;
     const scrubbing = pressed && this.scrub(dt, camera, eye, radius);
     if (!pressed) this.lift();

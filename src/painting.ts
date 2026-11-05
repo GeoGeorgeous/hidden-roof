@@ -1,13 +1,14 @@
 import * as THREE from 'three';
 import { PAINT } from './config';
-import { painted, resampleRect } from './paint-resample';
+import { carriedFaces, copyFaces, faceBox, patchFits, putCrop, putPatch } from './paint-copy';
 import type { FacePoint, Rect, SurfaceGeometry } from './surfaces';
-import { SeamIndex, texelToWorld, worldToTexel, type SeamFace } from './paint-seams';
+import { SeamIndex, texelToWorld, turnOnto, worldToTexel, type SeamFace } from './paint-seams';
 import { PaintGpu } from './paint-gpu';
-import { faceKey, hasPaint, rectsOf, type Owned, type PaintPatch, type PaintSurface, type Rgb } from './paint-surface';
+import { hasPaint, rectsOf, type Owned, type PaintPatch, type PaintSurface, type Rgb } from './paint-surface';
 import { PaintLocks } from './paint-locks';
-import { inRing, PaintRaster, type Band, type Box } from './paint-raster';
-import type { PaintOp, RollOp, StampOp } from './paint-ops';
+import type { RunRule } from './paint-wet';
+import { inRing, PaintRaster, type Band, type Box, type Dot } from './paint-raster';
+import type { PaintOp, RollOp, Slant, StampOp } from './paint-ops';
 import { rounded } from './op-wire';
 import { imageOnFace, type PaintImage } from './paint-image';
 
@@ -25,7 +26,7 @@ const seamTexel = new THREE.Vector2();
 const atTexel = new THREE.Vector2();
 const NONE: readonly never[] = [];
 
-/** The face rect of a face point; the point's atlas texel coords go into atTexel (reused, so strokes allocate nothing). */
+/** The face rect of a face point; the point's atlas texel coords go into atTexel (reused). */
 function faceTexel(s: PaintSurface, at: FacePoint): Rect {
   const r = s.geo.rects[at.rect];
   atTexel.set(r.x + at.u * r.w, r.y + at.v * r.h);
@@ -44,7 +45,7 @@ export class PaintSystem {
   private seams = new SeamIndex<PaintSurface>();
   /** Textures, uploads and their stats. */
   readonly gpu = new PaintGpu();
-  /** Bumped when all paint is wiped (clear): paint still in flight from before it (spray particles) is dropped. */
+  /** Bumped when all paint is wiped (clear): what was recorded of it (dev/runs-view.ts) is dropped. */
   epoch = 0;
   /** While set, every op this player makes (stamps, rolls, the runs they start) is appended (paint-ops.ts). */
   log: PaintOp[] | null = null;
@@ -52,24 +53,29 @@ export class PaintSystem {
   readonly locks = new PaintLocks((key) => this.byKey.get(key)?.geo.rects);
   /** Ops painted so far (stamps, rolls and runs made here, stamps and rolls replayed): what saves and the network carry (F3). */
   opCount = 0;
-  /** The paint clock moves on by the game's frame time: wet paint dries by it (paint-raster.ts). */
+  /** The paint clock moves on by the game's frame time: wet paint dries by it (paint-wet.ts). */
   tick(dt: number) {
-    this.raster.now += dt;
+    this.raster.wet.now += dt;
+  }
+
+  /** Dice rolled so far (paint-wet.ts). */
+  get rolls() {
+    return this.raster.wet.rolls;
   }
 
   /** The paint clock (s): wet paint (PaintSurface.wet) is dry once it is past. */
   get now() {
-    return this.raster.now;
+    return this.raster.wet.now;
   }
 
   /** Called when heavy paint on a vertical face should start a run (see paint-drips.ts). */
-  onDrip: (s: PaintSurface, rect: Rect, x: number, y: number, rgb: Rgb) => void = () => {};
+  onDrip: (s: PaintSurface, rect: Rect, x: number, y: number, rgb: Rgb, length: number) => void = () => {};
   /** Surfaces scrubbed this frame and last, for settle(). */
   private scrubbed = new Set<PaintSurface>();
   private settling = new Set<PaintSurface>();
   private raster = new PaintRaster<PaintSurface>({
     touched: (s, x0, y0, x1, y1) => this.gpu.markDirty(s, x0, y0, x1, y1),
-    drip: (s, rect, x, y, rgb) => this.onDrip(s, rect, x, y, rgb),
+    drip: (s, rect, x, y, rgb, length) => this.onDrip(s, rect, x, y, rgb, length),
   });
 
   /** `texelsPerMeter`: the PAINT DETAIL its surfaces are built at, until one says otherwise (a session's on the server). */
@@ -79,7 +85,7 @@ export class PaintSystem {
 
   /** `group`: where it stands (a level tile): surfaces drawn together share paint pages. */
   register(key: string, mesh: THREE.Mesh, geo: SurfaceGeometry, group: string): PaintSurface {
-    const s: PaintSurface = { key, mesh, geo, slot: null, light: null, data: null, mips: [], wet: null, dirty: [] };
+    const s: PaintSurface = { key, mesh, geo, slot: null, light: null, data: null, mips: [], wet: null, wetSince: 0, spots: null, dirty: [] };
     this.texelsPerMeter = geo.texelsPerMeter;
     this.gpu.place(s, group);
     this.surfaces.push(s);
@@ -110,25 +116,11 @@ export class PaintSystem {
    * one that was uncovered starts clean.
    */
   carry(old: readonly PaintSurface[], fresh: readonly PaintSurface[]) {
-    const from = new Map<string, { s: PaintSurface; a: number }>();
-    for (const s of old) if (hasPaint(s)) s.geo.rects.forEach((r, a) => from.set(faceKey(s, r, a), { s, a }));
-    if (!from.size) return;
-    for (const s of fresh) {
-      const faces = s.geo.rects.flatMap((r, b) => {
-        const f = from.get(faceKey(s, r, b));
-        return f ? [{ from: f.s, a: f.a, b }] : [];
-      });
-      if (faces.length) this.adopt(s, faces);
+    for (const { s, faces } of carriedFaces(old, fresh)) {
+      this.ensureTexture(s);
+      copyFaces(s, faces);
+      this.gpu.markDirty(s, 0, 0, s.geo.atlasW - 1, s.geo.atlasH - 1);
     }
-  }
-
-  /** Face `b` of `s` takes face `a` of `from`, resampled when the atlas differs. */
-  private adopt(s: PaintSurface, faces: { from: PaintSurface; a: number; b: number }[]) {
-    const live = faces.filter(({ from, a }) => hasPaint(from) && painted(from.data, from.geo.atlasW, from.geo.rects[a]));
-    if (!live.length) return;
-    this.ensureTexture(s);
-    for (const { from, a, b } of live) resampleRect(from.data!, from.geo.atlasW, from.geo.rects[a], s.data!, s.geo.atlasW, s.geo.rects[b]);
-    this.gpu.markDirty(s, 0, 0, s.geo.atlasW - 1, s.geo.atlasH - 1);
   }
 
   /** Wipe all paint (LOAD replaces it), freeing it: textures are created again on the next hit. */
@@ -169,8 +161,8 @@ export class PaintSystem {
   private free(s: PaintSurface) {
     if (!hasPaint(s)) return;
     this.gpu.dispose(s);
-    const mine = s as Owned<'data' | 'wet'>;
-    mine.data = mine.wet = null;
+    const mine = s as Owned<'data' | 'wet' | 'spots'>;
+    mine.data = mine.wet = mine.spots = null;
   }
 
   /**
@@ -181,11 +173,7 @@ export class PaintSystem {
   putFace(s: PaintSurface, rect: number, crop: Uint8Array, w: number, h: number) {
     this.ensureTexture(s);
     const r = s.geo.rects[rect];
-    const atlasW = s.geo.atlasW;
-    if (w === r.w && h === r.h) {
-      const row = (w + 2) * 4;
-      for (let y = 0; y < h + 2; y++) s.data!.set(crop.subarray(y * row, (y + 1) * row), ((r.y - 1 + y) * atlasW + r.x - 1) * 4);
-    } else resampleRect(crop, w + 2, { x: 1, y: 1, w, h }, s.data!, atlasW, r);
+    putCrop(s, r, crop, w, h);
     this.gpu.markDirty(s, r.x - 1, r.y - 1, r.x + r.w, r.y + r.h);
   }
 
@@ -216,8 +204,8 @@ export class PaintSystem {
    * is the same size at every paint detail; one smaller than a texel paints
    * the texel under it. `amount` 0..1 opacity at the center, `color` sRGB 0..1,
    * `softness` 0 = hard dot .. 1 = fades to nothing at the rim.
-   * `drip`: wet paint on opaque texels of vertical faces may start a run;
-   * the number is how often (runs per m² of paint reaching DRIPS.excess), 0 = never.
+   * `runs`: wet paint on opaque texels of vertical faces may start a run, by
+   * this rule (paint-wet.ts); null: never.
    * `square`: a hard square nib instead of a round dot (`radius` is half its
    * side), its sides along the face's axes, like a pump marker's nib.
    * `color` null scrubs paint off instead (the sponge): `amount` of the paint
@@ -230,13 +218,14 @@ export class PaintSystem {
     amount: number,
     color: Rgb | null,
     softness = 0.5,
-    drip = 0,
+    runs: RunRule | null = null,
     square = false,
+    slant?: Slant,
   ) {
     if (!this.live(s) || this.stopped(s, at.rect)) return;
     // Logged before it paints: the runs it starts are logged after it.
-    const op = this.record(rounded({ kind: 'stamp', key: s.key, rect: at.rect, u: at.u, v: at.v, radius, amount, color, softness, square }));
-    this.stampOp(s, op, drip);
+    const op = this.record(rounded({ kind: 'stamp', key: s.key, rect: at.rect, u: at.u, v: at.v, radius, amount, color, softness, square, ...(slant && { slant }) }));
+    this.stampOp(s, op, runs);
   }
 
   /** Face `rect` of `s` is locked: this player's paint on it is stopped, and not sent. */
@@ -257,18 +246,19 @@ export class PaintSystem {
   replay(s: PaintSurface, op: StampOp | RollOp) {
     if (!this.live(s)) return;
     this.opCount++;
-    if (op.kind === 'stamp') this.stampOp(s, rounded(op), 0);
-    else this.rollOp(s, rounded(op), 0);
+    if (op.kind === 'stamp') this.stampOp(s, rounded(op), null);
+    else this.rollOp(s, rounded(op), null);
   }
 
-  private stampOp(s: PaintSurface, op: StampOp, drip: number) {
+  private stampOp(s: PaintSurface, op: StampOp, runs: RunRule | null) {
     const rect = faceTexel(s, op);
     const { x: cx, y: cy } = atTexel;
-    this.dot(s, rect, cx, cy, op.radius, op.amount, op.color, op.softness, drip, op.square);
-    for (const n of this.pastEdge(s, rect, cx, cy, op.radius)) {
+    const { slant } = op;
+    this.dot(s, rect, cx, cy, op, runs);
+    for (const n of this.pastEdge(s, rect, cx, cy, op.radius * (slant?.stretch ?? 1))) {
       if (!this.live(n.surface)) continue;
       worldToTexel(n.rect, seamPoint, seamTexel);
-      this.dot(n.surface, n.rect, seamTexel.x, seamTexel.y, op.radius, op.amount, op.color, op.softness, drip, op.square);
+      this.dot(n.surface, n.rect, seamTexel.x, seamTexel.y, slant ? { ...op, slant: { ...slant, turn: turnOnto(rect, n.rect, slant.turn) } } : op, runs);
     }
   }
 
@@ -278,7 +268,7 @@ export class PaintSystem {
    * `halfWidth` across it, both in meters. The last `edge` fraction of each
    * end gets lighter, the way a roller's ends leave less paint. Faces with no
    * known plane (cylinders) take the band along their texture's u. Carries
-   * across seams like stamp(); `drip` as in stamp().
+   * across seams like stamp(); `runs` as in stamp().
    */
   roll(
     s: PaintSurface,
@@ -289,18 +279,18 @@ export class PaintSystem {
     edge: number,
     amount: number,
     color: Rgb,
-    drip = 0,
+    runs: RunRule | null = null,
   ) {
     if (!this.live(s) || this.stopped(s, at.rect)) return;
     const op = this.record(rounded({ kind: 'roll', key: s.key, rect: at.rect, u: at.u, v: at.v, axis: axis.toArray(), halfLength, halfWidth, edge, amount, color }));
-    this.rollOp(s, op, drip);
+    this.rollOp(s, op, runs);
   }
 
-  private rollOp(s: PaintSurface, op: RollOp, drip: number) {
+  private rollOp(s: PaintSurface, op: RollOp, runs: RunRule | null) {
     const rect = faceTexel(s, op);
     const { x: cx, y: cy } = atTexel;
     const axis = rollAxis.fromArray(op.axis);
-    const band = { halfLength: op.halfLength, halfWidth: op.halfWidth, edge: op.edge, amount: op.amount, color: op.color, drip };
+    const band = { halfLength: op.halfLength, halfWidth: op.halfWidth, edge: op.edge, amount: op.amount, color: op.color, runs };
     this.band(s, rect, cx, cy, axis, band);
     for (const n of this.pastEdge(s, rect, cx, cy, Math.hypot(op.halfLength, op.halfWidth))) {
       if (!this.live(n.surface)) continue;
@@ -327,12 +317,12 @@ export class PaintSystem {
     this.raster.band(s, rect, cx, cy, axis, b);
   }
 
-  private dot(s: PaintSurface, rect: Rect, cx: number, cy: number, radius: number, amount: number, color: Rgb | null, softness: number, drip: number, square: boolean) {
+  private dot(s: PaintSurface, rect: Rect, cx: number, cy: number, dot: Dot, runs: RunRule | null) {
     // Nothing to scrub off a surface that was never painted; nothing changes a locked face (a seam's spill onto one either).
-    if ((!color && !hasPaint(s)) || rect.locked) return;
+    if ((!dot.color && !hasPaint(s)) || rect.locked) return;
     this.ensureTexture(s);
-    if (!color) this.scrubbed.add(s);
-    this.raster.dot(s, rect, cx, cy, radius, amount, color, softness, drip, square);
+    if (!dot.color) this.scrubbed.add(s);
+    this.raster.dot(s, rect, cx, cy, dot, runs);
   }
 
   /**
@@ -362,47 +352,19 @@ export class PaintSystem {
     return true;
   }
 
-  /** Face `rect` and its ring, as a box. */
-  faceBox(s: PaintSurface, rect: number): Box {
-    const r = s.geo.rects[rect];
-    return [r.x - 1, r.y - 1, r.x + r.w, r.y + r.h];
-  }
-
   /** Wipe one face's paint and its ring (build mode's X): the surface's memory comes back once none is left. */
   wipe(s: PaintSurface, rect: number) {
-    if (hasPaint(s)) this.unpatch({ key: s.key, atlas: [s.geo.atlasW, s.geo.atlasH], rects: rectsOf(s), box: this.faceBox(s, rect), data: null });
-  }
-
-  /** A box of a surface's paint as it is now, to put back with unpatch() (build mode's undo). */
-  patch(s: PaintSurface, box: Box): PaintPatch {
-    const w = s.geo.atlasW;
-    const [x0, y0, x1, y1] = box;
-    let data: Uint8Array | null = null;
-    if (s.data) {
-      data = new Uint8Array((x1 - x0 + 1) * (y1 - y0 + 1) * 4);
-      for (let y = y0; y <= y1; y++) data.set(s.data.subarray((y * w + x0) * 4, (y * w + x1 + 1) * 4), (y - y0) * (x1 - x0 + 1) * 4);
-    }
-    return { key: s.key, atlas: [w, s.geo.atlasH], box, data, rects: rectsOf(s) };
+    if (hasPaint(s)) this.unpatch({ key: s.key, atlas: [s.geo.atlasW, s.geo.atlasH], rects: rectsOf(s), box: faceBox(s, rect), data: null });
   }
 
   /** Put a patch back (none in it: wipe its box), on the live surface with its key; false if it has none, or its atlas or faces changed since. */
-  unpatch({ key, atlas, rects, box, data }: PaintPatch) {
-    const s = this.find(key);
-    if (!s || s.geo.atlasW !== atlas[0] || s.geo.atlasH !== atlas[1]) return false;
-    const now = rectsOf(s);
-    if (now.length !== rects.length || now.some((n, i) => n !== rects[i])) return false;
-    if (!data && !hasPaint(s)) return true;
+  unpatch(patch: PaintPatch) {
+    const s = this.find(patch.key);
+    if (!s || !patchFits(s, patch)) return false;
+    if (!patch.data && !hasPaint(s)) return true;
     this.ensureTexture(s);
-    const w = atlas[0];
-    const [x0, y0, x1, y1] = box;
-    const bw = x1 - x0 + 1;
-    for (let y = y0; y <= y1; y++) {
-      const at = y * w + x0;
-      const i = (y - y0) * bw;
-      if (data) s.data!.set(data.subarray(i * 4, (i + bw) * 4), at * 4);
-      else s.data!.fill(0, at * 4, (at + bw) * 4);
-      s.wet?.fill(0, at, at + bw);
-    }
+    putPatch(s, patch);
+    const [x0, y0, x1, y1] = patch.box;
     this.gpu.markDirty(s, x0, y0, x1, y1);
     this.freeIfClean(s);
     return true;

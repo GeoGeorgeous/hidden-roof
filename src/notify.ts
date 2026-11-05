@@ -30,6 +30,10 @@ export interface Note {
   done?: boolean;
   /** A dialog's card. */
   dialog?: Dialog;
+  /** How full its ring is (0..1), read every frame: what's left of a time, or how far the player got. Null or none: no ring. */
+  ring?: number | null;
+  /** Its ring turned into a check: the player has done what it asks. */
+  checked?: boolean;
 }
 
 /** What a status's icon is: bars with one lit (a weak link), a red ring (nothing heard), bars cycling (trying again), a check (done, only by `succeed`). */
@@ -94,6 +98,12 @@ export class Notify {
     this.version++;
   }
 
+  /** How full a keyed message's ring is (0..1), null: no ring; `checked`: it's a check now. Nothing redraws for it: NotifyView reads it every frame. */
+  ring(key: string, full: number | null, checked: boolean) {
+    const note = this.notes.find((n) => n.key === key);
+    if (note) Object.assign(note, { ring: full, checked });
+  }
+
   clear(key: string) {
     const i = this.notes.findIndex((n) => n.key === key);
     if (i < 0) return;
@@ -119,7 +129,7 @@ export class Notify {
   toast(text: string) {
     const same = this.notes.findIndex((n) => n.kind === 'toast' && n.lines[0] === text);
     if (same >= 0) this.notes.splice(same, 1);
-    this.notes.push({ id: ++this.ids, key: '', kind: 'toast', lines: [text], rank: 0, until: this.clock + NOTIFY.toastSeconds });
+    this.notes.push({ id: ++this.ids, key: '', kind: 'toast', lines: [text], rank: 0, until: this.clock + NOTIFY.toastSeconds, ring: 1 });
     const toasts = this.notes.filter((n) => n.kind === 'toast');
     if (toasts.length > NOTIFY.maxToasts) this.notes.splice(this.notes.indexOf(toasts[0]), 1);
     this.version++;
@@ -130,7 +140,10 @@ export class Notify {
     if (!visible) return;
     this.clock += dt;
     let expired = false;
-    for (const n of this.notes) if (n.until && n.until <= this.clock) expired = true;
+    for (const n of this.notes) {
+      if (n.until && n.until <= this.clock) expired = true;
+      if (n.kind === 'toast') n.ring = (n.until - this.clock) / NOTIFY.toastSeconds;
+    }
     if (!expired) return;
     this.notes = this.notes.filter((n) => !n.until || n.until > this.clock);
     this.version++;

@@ -143,7 +143,7 @@ assert.deepEqual([paint.paintSeconds, paint.days.map((d: { paintSeconds: { can: 
 // The beacons: no days.
 const client = await stat('client');
 assert.deepEqual([client.n, 'days' in client, client.before.n, client.errors], [3, false, 0, { count: 0, plays: 0, byMessage: {} }]);
-assert.deepEqual(client.events.pickups, ['marker', 'ladder', 'roller', 'sponge', 'cap.skinny', 'cap.fat', 'cap.spray', ...COLOR_ORDER.filter((c) => c !== 'black').map((c) => `color.${c}`)], 'every pickup, the starting kit\'s left out');
+assert.deepEqual(client.events.pickups, ['marker', 'ladder', 'roller', 'sponge', 'cap.needle', 'cap.skinny', 'cap.soft', 'cap.fat', 'cap.spray', ...COLOR_ORDER.filter((c) => c !== 'black').map((c) => `color.${c}`)], 'every pickup, the starting kit\'s left out');
 
 // A session's paint time: one painter's ops with a tool SERVER.paintGap apart or closer are one run, a longer gap starts
 // another, each tool and painter on its own; drips are no one's. Pickups: the names who found each, the starting kit and

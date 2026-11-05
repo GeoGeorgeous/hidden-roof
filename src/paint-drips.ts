@@ -5,8 +5,8 @@ import type { DripOp } from './paint-ops';
 import { rounded } from './op-wire';
 import { paintRandom } from './lcg';
 
-// Paint runs. PaintSystem reports texels on vertical faces that get more paint
-// than they can dry, once they're already opaque; a few of them start a run: a one-texel
+// Paint runs. PaintSystem reports the texels of vertical faces where wet paint
+// on opaque paint started a run (paint-wet.ts): a one-texel
 // trickle that moves down the face rect (texel -y = world down on upright
 // rects), slows down, and ends in a slightly heavier drop. Runs only write into
 // the paint texture, so they cost nothing once they stop.
@@ -28,26 +28,29 @@ interface Run {
 export class PaintDrips {
   /** Running now; the ghost's clean wall (dev/ghost.ts) holds them back. */
   readonly runs: Run[] = [];
+  /** Runs this player started so far (F3): the dice may say so and `spawn` still drop one. */
+  started = 0;
   /** Dev tools only (dev/runs-view.ts): told each texel a run paints, null in play. */
   tap: ((s: PaintSurface, rect: Rect, x: number, y: number) => void) | null = null;
 
   constructor(private paint: PaintSystem) {
-    paint.onDrip = (s, rect, x, y, rgb) => this.spawn(s, rect, x, y, rgb);
+    paint.onDrip = (s, rect, x, y, rgb, length) => this.spawn(s, rect, x, y, rgb, length);
   }
 
   get count() {
     return this.runs.length;
   }
 
-  /** Heavy paint at texel (x, y) of a face we painted: maybe start a run there. */
-  private spawn(s: PaintSurface, rect: Rect, x: number, y: number, rgb: Rgb) {
+  /** Heavy paint at texel (x, y) of a face we painted: a run starts there, of `share` (0..1) from DRIPS.minLength to maxLength. */
+  private spawn(s: PaintSurface, rect: Rect, x: number, y: number, rgb: Rgb, share: number) {
     if (this.runs.length >= DRIPS.maxActive) return;
     // One run per column at a time, so a hot spot doesn't stack runs.
-    if (this.runs.some((r) => r.s === s && r.x === x && Math.abs(r.y - y) < 4)) return;
-    const length = DRIPS.minLength + paintRandom.drips() * (DRIPS.maxLength - DRIPS.minLength);
+    if (this.runs.some((r) => r.s === s && r.x === x && Math.abs(r.y - y) < DRIPS.apart * s.geo.texelsPerMeter)) return;
+    const length = DRIPS.minLength + share * (DRIPS.maxLength - DRIPS.minLength);
     if (Math.max(rect.y, y - length * s.geo.texelsPerMeter) >= y - 1) return;
     // As its op carries it (op-wire.ts), so every client runs the same run.
     const op = this.paint.record(rounded<DripOp>({ kind: 'drip', key: s.key, rect: s.geo.rects.indexOf(rect), u: (x + 0.5 - rect.x) / rect.w, v: (y + 0.5 - rect.y) / rect.h, length, speed: DRIPS.speed * (0.6 + 0.8 * paintRandom.drips()), rgb }));
+    this.started++;
     this.run(s, op);
   }
 
@@ -72,10 +75,10 @@ export class PaintDrips {
       const left = Math.max(0, (r.y - r.end) / r.length);
       const row0 = Math.floor(r.y);
       // Viscous: slows down as it runs out of paint.
-      r.y -= r.speed * (0.25 + 0.75 * left) * dt;
+      r.y -= r.speed * (DRIPS.slowest + (1 - DRIPS.slowest) * left) * dt;
       const row1 = Math.max(Math.floor(r.y), Math.ceil(r.end));
       // Each row's paint by where it is in the run, not when a frame came: the same on every client.
-      for (let row = row0 - 1; row >= row1; row--) this.lay(r, row, DRIPS.strength * (0.55 + 0.45 * Math.max(0, (row - r.end) / r.length)));
+      for (let row = row0 - 1; row >= row1; row--) this.lay(r, row, DRIPS.strength * (DRIPS.thinnest + (1 - DRIPS.thinnest) * Math.max(0, (row - r.end) / r.length)));
       if (r.y <= r.end + 1) {
         // The drop at the end.
         this.lay(r, row1, DRIPS.strength);

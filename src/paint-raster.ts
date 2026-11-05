@@ -1,6 +1,7 @@
 import type * as THREE from 'three';
-import { DRIPS } from './config';
-import { paintRandom } from './lcg';
+import { DRIPS, PAINT } from './config';
+import type { StampOp } from './paint-ops';
+import { WetPaint, type RunRule, type WetSurface } from './paint-wet';
 import type { Rgb } from './painting';
 import type { Rect, SurfaceGeometry } from './surfaces';
 
@@ -10,18 +11,21 @@ import type { Rect, SurfaceGeometry } from './surfaces';
 // anywhere the paint has to be the same (a server, a test).
 
 /** The CPU side of a paint surface (paint-surface.ts PaintSurface): its paint must exist before anything is drawn. */
-export interface RasterSurface {
+export interface RasterSurface extends WetSurface {
   geo: SurfaceGeometry;
   data: Uint8Array | null;
-  /** Per texel, the paint clock time (PaintRaster.now) at which its wet paint on already-opaque paint is dry (created on first wet paint). */
-  wet: Float32Array | null;
 }
+
+const TAU = Math.PI * 2;
 
 /** Atlas texels x0..x1, y0..y1, inclusive. */
 export type Box = [x0: number, y0: number, x1: number, y1: number];
 
 /** The part of `box` on face `rect` and its 1-texel ring. */
 export const inRing = (rect: Rect, [x0, y0, x1, y1]: Box): Box => [Math.max(rect.x - 1, x0), Math.max(rect.y - 1, y0), Math.min(rect.x + rect.w, x1), Math.min(rect.y + rect.h, y1)];
+
+/** A dot's size and paint (see PaintSystem.stamp). */
+export type Dot = Pick<StampOp, 'radius' | 'amount' | 'color' | 'softness' | 'square' | 'slant'>;
 
 /** A roller band's size and paint (see PaintSystem.roll). */
 export interface Band {
@@ -30,19 +34,18 @@ export interface Band {
   edge: number;
   amount: number;
   color: Rgb;
-  drip: number;
+  runs: RunRule | null;
 }
 
 export class PaintRaster<S extends RasterSurface> {
-  /** The paint clock (s), advanced by the game's frame time (PaintSystem.tick): wet paint dries by it. */
-  now = 0;
+  readonly wet = new WetPaint();
 
   constructor(
     private hooks: {
       /** Texels in this rect (inclusive) changed. */
       touched: (s: S, x0: number, y0: number, x1: number, y1: number) => void;
-      /** Heavy paint on a vertical face should start a run here (see paint-drips.ts). */
-      drip: (s: S, rect: Rect, x: number, y: number, rgb: Rgb) => void;
+      /** Heavy paint on a vertical face starts a run here, of `length` (0..1 of DRIPS' lengths; paint-drips.ts). */
+      drip: (s: S, rect: Rect, x: number, y: number, rgb: Rgb, length: number) => void;
     },
   ) {}
 
@@ -69,7 +72,7 @@ export class PaintRaster<S extends RasterSurface> {
     const x1 = Math.min(rect.x + rect.w, Math.floor(cx + ex));
     const y0 = Math.max(rect.y - 1, Math.floor(cy - ey));
     const y1 = Math.min(rect.y + rect.h, Math.floor(cy + ey));
-    const runs = DRIPS.enabled && rect.upright ? b.drip : 0;
+    const runs = DRIPS.enabled && rect.upright && b.runs?.chance ? b.runs : null;
     let touched = false;
     for (let y = y0; y <= y1; y++) {
       for (let x = x0; x <= x1; x++) {
@@ -94,35 +97,47 @@ export class PaintRaster<S extends RasterSurface> {
     rect: Rect,
     cx: number,
     cy: number,
-    radius: number,
-    amount: number,
-    color: Rgb | null,
-    softness: number,
-    drip: number,
-    square: boolean,
+    { radius, amount, color, softness, square, slant }: Dot,
+    rule: RunRule | null,
   ) {
     const w = s.geo.atlasW;
     const data = s.data!;
-    const r = radius * s.geo.texelsPerMeter;
+    let r = radius * s.geo.texelsPerMeter;
+    let stretch = slant?.stretch ?? 1;
+    // Narrower than a texel, a long dab would miss texel centers along its length: it keeps its length and is a texel wide.
+    if (r < Math.SQRT1_2 && r * stretch >= Math.SQRT1_2) [r, stretch] = [Math.SQRT1_2, (r * stretch) / Math.SQRT1_2];
+    const tail = slant?.tail ?? 0;
+    // The far end's direction: an ellipse's texels are those of a circle, squeezed back along it.
+    const ax = slant ? Math.cos(slant.turn * TAU) : 1;
+    const ay = slant ? Math.sin(slant.turn * TAU) : 0;
     // Under half a texel diagonal the dot could miss every texel center.
     const dot = r >= Math.SQRT1_2;
-    const reach = dot ? r - 0.5 : 0;
+    // The box around the ellipse, not a square of its length: along a diagonal that's about half the texels.
+    const reachX = dot ? (slant ? Math.hypot(r * stretch * ax, r * ay) : r) - 0.5 : 0;
+    const reachY = dot ? (slant ? Math.hypot(r * stretch * ay, r * ax) : r) - 0.5 : 0;
     // Clip to the face rect plus its 1-texel padding so paint never bleeds onto another face.
-    const x0 = Math.max(rect.x - 1, Math.floor(cx - reach));
-    const x1 = Math.min(rect.x + rect.w, Math.floor(cx + reach));
-    const y0 = Math.max(rect.y - 1, Math.floor(cy - reach));
-    const y1 = Math.min(rect.y + rect.h, Math.floor(cy + reach));
-    const runs = DRIPS.enabled && rect.upright ? drip : 0;
+    const x0 = Math.max(rect.x - 1, Math.floor(cx - reachX));
+    const x1 = Math.min(rect.x + rect.w, Math.floor(cx + reachX));
+    const y0 = Math.max(rect.y - 1, Math.floor(cy - reachY));
+    const y1 = Math.min(rect.y + rect.h, Math.floor(cy + reachY));
+    const runs = DRIPS.enabled && rect.upright && rule?.chance ? rule : null;
     const r2 = r * r;
     let touched = false;
     for (let y = y0; y <= y1; y++) {
       for (let x = x0; x <= x1; x++) {
-        const dx = x + 0.5 - cx;
-        const dy = y + 0.5 - cy;
+        let dx = x + 0.5 - cx;
+        let dy = y + 0.5 - cy;
+        let fade = 1;
+        if (slant) {
+          const along = dx * ax + dy * ay;
+          dy = dy * ax - dx * ay;
+          dx = along / stretch;
+          if (along > 0) fade = 1 - tail * Math.min(1, dx / r);
+        }
         const d2 = dx * dx + dy * dy;
         if (dot && (square ? Math.abs(dx) > r || Math.abs(dy) > r : d2 > r2)) continue;
         const falloff = dot && !square ? 1 - (d2 / r2) * softness : 1;
-        const amt = amount * falloff;
+        const amt = amount * falloff * fade;
         if (amt <= 0) continue;
         const i = (y * w + x) * 4;
         if (!color) {
@@ -166,24 +181,14 @@ export class PaintRaster<S extends RasterSurface> {
     this.hooks.touched(s, x, y, x, y);
   }
 
-  /**
-   * `amt` coats more on an opaque texel: wet paint is what is left to dry, and
-   * DRIPS.excess coats of it take DRIPS.dryTime to dry; at DRIPS.excess coats the
-   * texel may run, and the paint that ran is gone.
-   */
-  private addWet(s: S, rect: Rect, x: number, y: number, amt: number, rate: number) {
-    const wet = (s.wet ??= new Float32Array(s.geo.atlasW * s.geo.atlasH));
-    const k = y * s.geo.atlasW + x;
-    const until = Math.max(wet[k], this.now) + (amt / DRIPS.excess) * DRIPS.dryTime;
-    if (until - this.now < DRIPS.dryTime) {
-      wet[k] = until;
-      return;
-    }
-    wet[k] = this.now;
-    if (paintRandom.drips() >= rate / s.geo.texelsPerMeter ** 2) return;
-    const i = k * 4;
+  /** `amt` coats more on an opaque texel of `rect`: a run may start there, never on the ring around it, which no one sees. */
+  private addWet(s: S, rect: Rect, x: number, y: number, amt: number, rule: RunRule) {
+    if (x < rect.x || y < rect.y || x >= rect.x + rect.w || y >= rect.y + rect.h) return;
+    const length = this.wet.add(s, rect, x, y, amt, rule);
+    if (length === null) return;
+    const i = (y * s.geo.atlasW + x) * 4;
     const d = s.data!;
-    this.hooks.drip(s, rect, x, y, [d[i] / 255, d[i + 1] / 255, d[i + 2] / 255]);
+    this.hooks.drip(s, rect, x, y, [d[i] / 255, d[i + 1] / 255, d[i + 2] / 255], length);
   }
 }
 
@@ -203,13 +208,15 @@ function blend(data: Uint8Array, i: number, amt: number, color: Rgb) {
 }
 
 /**
- * Move an 8-bit channel toward `target` by fraction k, always by at least one
- * step, so repeated light coats converge on the new color instead of stalling
- * a few values short because of rounding.
+ * Move an 8-bit channel toward `target` by fraction k, by at least one step, so
+ * repeated light coats converge on the new color instead of stalling a few
+ * values short because of rounding. Under PAINT.faintest there's no coat to
+ * speak of: a step would be a dab's far rim showing as a halo.
  */
 function toward(cur: number, target: number, k: number) {
   const t = Math.round(target);
   if (cur === t) return cur;
   const next = Math.round(cur + (t - cur) * k);
+  if (next === cur && k < PAINT.faintest) return cur;
   return t > cur ? Math.min(t, Math.max(cur + 1, next)) : Math.max(t, Math.min(cur - 1, next));
 }

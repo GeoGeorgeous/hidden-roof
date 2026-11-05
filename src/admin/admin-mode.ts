@@ -4,7 +4,6 @@ import { ADMIN } from '../config';
 import { keyName } from '../input';
 import type { Inventory } from '../inventory/inventory';
 import type { Level } from '../level/level';
-import { solidsNear } from '../level/solids';
 import { msg, type MessageId } from '../messages';
 import type { AdminSession } from '../net/watching';
 import type { Notify } from '../notify';
@@ -113,7 +112,7 @@ export class AdminMode {
     camera.getWorldPosition(this.ray.ray.origin);
     camera.getWorldDirection(this.ray.ray.direction);
     this.ray.far = ADMIN.reach;
-    const hit = this.ray.intersectObjects(solidsNear(level.solids, this.ray.ray.origin, ADMIN.reach, this.near), false)[0];
+    const hit = this.ray.intersectObjects(level.solids.near(this.ray.ray.origin, ADMIN.reach, this.near), false)[0];
     const s = hit && paint.get(hit.object);
     const surface = s && this.a.surfaces.indexOf(s.key);
     if (!s || surface === undefined) return this.say('admin.noFace');

@@ -107,6 +107,8 @@ export function itemSections(h: Hooks): Section[] {
           { kind: 'heading', label: CAPS[cap].name } as Item,
           c('color', ['CAPS', cap, 'color'], () => h.rebuildModels()),
           r('nozzle size', ['CAPS', cap, 'nozzle'], 0.002, 0.02, 0.001, () => h.rebuildModels()),
+          c('dot', ['CAPS', cap, 'dot'], () => h.rebuildModels()),
+          ...(CAPS[cap].tube ? [r('tube', ['CAPS', cap, 'tube'], 0.002, 0.06, 0.002, () => h.rebuildModels())] : []),
         ]),
       ],
     },

@@ -126,9 +126,9 @@ export class Input {
       'wheel',
       (e) => {
         if (!this.locked) return;
-        // Pixels, lines or pages; turning back starts over, so the first notch back steps.
-        const px = e.deltaY * (e.deltaMode === 1 ? WHEEL.linePx : e.deltaMode === 2 ? WHEEL.notchPx : 1);
-        // A sideways event (a swipe's other component) keeps the part of a step so far.
+        // Pixels, lines or pages; turning back starts over, so the first notch back steps. Shift turns the wheel sideways in some browsers.
+        const px = (e.deltaY || (e.shiftKey ? e.deltaX : 0)) * (e.deltaMode === 1 ? WHEEL.linePx : e.deltaMode === 2 ? WHEEL.notchPx : 1);
+        // Any other sideways event (a swipe's other component) keeps the part of a step so far.
         if (!px) return;
         if (Math.sign(px) !== Math.sign(this.wheelPx)) this.wheelPx = 0;
         this.wheelPx += px;

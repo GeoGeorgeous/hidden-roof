@@ -1,10 +1,12 @@
 import * as THREE from 'three';
+import type { Solids } from '../level/solids';
 import type { Audio } from '../audio';
-import { CAPS, CROSSHAIR, type PaintColor } from '../config';
+import { BRUSH, CAPS, CROSSHAIR, type PaintColor } from '../config';
 import type { Action, Input } from '../input';
 import { SIZED, type Inventory, type SizedTool } from '../inventory/inventory';
 import { SLOTS, type Tool } from '../inventory/tool';
 import type { PaintSystem } from '../painting';
+import { stepOpacity } from '../spray/dab';
 import { SprayTool } from '../spray/spray-tool';
 import { LadderTool } from './ladder-tool';
 import { Eyedropper } from './eyedropper';
@@ -12,7 +14,7 @@ import { MarkerTool } from './marker';
 import { RollerTool } from './roller';
 import { SpongeTool } from './sponge';
 import type { Level } from '../level/level';
-import { sizedCrosshair, stepSize } from './size-range';
+import { stepSize } from './size-range';
 import { ViewSway, type Motion } from './view-sway';
 import type { AvatarAction } from '../avatar/pose';
 import type { Fact } from '../tutorial/types';
@@ -48,12 +50,16 @@ export class Tools {
   private last: { tool: Tool | null; color: string; cap: string } | null = null;
   /** What the tool in hand is doing this frame, as others see it (net/snapshot.ts): pressing LMB with it, or shaking the can. */
   action: AvatarAction = null;
+  /** A tool in hand is laying paint or taking it off, as of the last frame. */
+  get painting() {
+    return this.action !== null && this.action !== 'shake';
+  }
 
   constructor(
     scene: THREE.Scene,
     viewScene: THREE.Scene,
     paint: PaintSystem,
-    solids: THREE.Mesh[],
+    solids: Solids,
     private audio: Audio,
     private inventory: Inventory,
     level: Level,
@@ -69,7 +75,7 @@ export class Tools {
   }
 
   /** `enabled` is false in build mode: tools are put away but particles finish flying. */
-  update(dt: number, input: Input, camera: THREE.Camera, eye: THREE.Vector3, motion: Motion & { position: THREE.Vector3; crouched: boolean }, enabled: boolean) {
+  update(dt: number, input: Input, camera: THREE.PerspectiveCamera, eye: THREE.Vector3, motion: Motion & { position: THREE.Vector3; crouched: boolean }, enabled: boolean) {
     const inv = this.inventory;
     this.sway.update(dt, input.mouseDX, input.mouseDY, motion, this.spray.model.sway);
     this.marker.sway.position.copy(this.spray.model.sway.position);
@@ -89,7 +95,9 @@ export class Tools {
       // Held, they keep stepping (the key's auto-repeat), as in build mode.
       const qe = input.step('sizeDown', 'sizeUp');
       const colored = t !== null && COLORED[t];
-      if (wheel && colored && inv.cycleColor(wheel)) (this.audio.click(), this.onFact({ type: 'colorCycled' }));
+      // Run + the color keys set the can's opacity: up (prev) is more. A key holds one action, so this is no action of its own.
+      if (wheel && t === 'can' && input.held('sprint')) this.setOpacity(stepOpacity(BRUSH.opacity, -wheel));
+      else if (wheel && colored && inv.cycleColor(wheel)) (this.audio.click(), this.onFact({ type: 'colorCycled' }));
       if (colored && input.justPressed('pick')) {
         const picked = this.eyedropper.pick(camera, eye, inv.colors);
         if (picked && inv.pickColor(picked)) (this.audio.click(), this.onFact({ type: 'colorPicked' }));
@@ -103,7 +111,7 @@ export class Tools {
     }
     const tool = enabled ? inv.tool : null;
     this.reportChanges(tool);
-    // The order is part of the op log: the marker silences the shared scribble channel before the roller and sponge use it, and the can's particles keep stamping while another tool is out.
+    // The marker silences the shared scribble channel before the roller and sponge use it.
     this.spray.update(dt, input, camera, eye, tool === 'can' ? inv : null);
     this.marker.update(dt, input, camera, eye, tool === 'marker', inv.color, inv.size.marker / 2);
     this.ladder.update(input, camera, motion.position, tool === 'ladder');
@@ -129,8 +137,23 @@ export class Tools {
 
   /** Crosshair size (px) for the tool in hand (null: none, or build mode). */
   crosshair(tool: Tool | null) {
-    if (tool === 'can') return CAPS[this.inventory.cap].crosshair;
-    return isSized(tool) ? sizedCrosshair(SIZED[tool], this.inventory.size[tool]) : CROSSHAIR.plain;
+    if (tool === 'can') return this.spray.linePx;
+    return this.aimOf(tool)?.px ?? CROSSHAIR.plain;
+  }
+
+  /** The height (px) of a crosshair that's a bar, not a ring: the roller's press. */
+  crosshairBar(tool: Tool | null) {
+    return tool === 'roller' ? this.roller.aim.tallPx : null;
+  }
+
+  private aimOf(tool: Tool | null) {
+    return tool === 'marker' || tool === 'roller' || tool === 'sponge' ? this[tool].aim : null;
+  }
+
+  /** The tool in hand would mark what's under the aim; a crosshair with nothing to say stays as it is. */
+  reaches(tool: Tool | null) {
+    if (tool === 'can') return this.spray.reaches;
+    return this.aimOf(tool)?.reaches ?? true;
   }
 
   /** Screen anchor for the color / cap tags next to the tool in hand, or null with no tool. */
@@ -155,6 +178,15 @@ export class Tools {
       if (now > this.drawn[tool]) this.onFact({ type: 'used', tool, amount: now - this.drawn[tool], crouched });
       this.drawn[tool] = now;
     }
+  }
+
+  /** The player set the can's opacity; at either end of the range nothing changes. */
+  private setOpacity(opacity: number) {
+    if (opacity === BRUSH.opacity) return;
+    const percent = Math.round(Math.abs(opacity - BRUSH.opacity) * 100);
+    BRUSH.opacity = opacity;
+    this.audio.click();
+    this.onFact({ type: 'opacitySet', percent });
   }
 
   private reportChanges(tool: Tool | null) {

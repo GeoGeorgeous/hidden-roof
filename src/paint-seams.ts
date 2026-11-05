@@ -100,6 +100,15 @@ export class SeamIndex<S> {
   }
 }
 
+/** A slant's turn on coplanar face `to`, from its turn on `from`: their atlases may lie differently. */
+export function turnOnto(from: Rect, to: Rect, turn: number) {
+  const a = from.face!;
+  const b = to.face!;
+  const angle = turn * Math.PI * 2;
+  tmp.copy(a.uAxis).setLength(Math.cos(angle)).addScaledVector(a.vAxis, Math.sin(angle) / a.vAxis.length());
+  return Math.atan2(tmp.dot(b.vAxis) / b.vAxis.length(), tmp.dot(b.uAxis) / b.uAxis.length()) / (Math.PI * 2);
+}
+
 /** World point of atlas texel coords (cx, cy) on a flat face. */
 export function texelToWorld(rect: Rect, cx: number, cy: number, out: THREE.Vector3) {
   const f = rect.face!;

@@ -2,10 +2,10 @@
 
 ## Structure
 
-- **Tab → group → section → row.** A tab is an area of the game (Player, Paint, Render, World, Sound, UI, Build, Items, Models, Test). A group is one system or object (Movement, Caps, Pressure). A section is one part of it, started by a heading.
+- **Tab → group → section → row.** A tab is an area of the game (Player, Paint, Render, World, Sound, UI, Build, Items, Models, Test). A group is one system or object (Movement, Caps, Paint runs). A section is one part of it, started by a heading.
 - **General first.** Settings for the whole group come first, in a section titled General; a group with one section titles it General too.
 - **Every group is listed in exactly one tab** (`TABS` in `panel.ts`).
-- **Group by effect, not by config object.** Put a setting where you'd look for it by what it changes. Concerns that cut across tools (Cursor, Quality, Paint runs, Pressure) get their own group, with one section per tool or cap.
+- **Group by effect, not by config object.** Put a setting where you'd look for it by what it changes. Concerns that cut across tools (Cursor, Quality, Paint runs) get their own group, with one section per tool or cap.
 - **Same rows for repeated things.** Each cap, tool, light or pickup gets a section with the same name pattern and the same rows in the same order, generated from config with a shared helper.
 - **Feel → quality → looks.** Settings that change how something plays or looks come first. Smoothness-against-cost trade-offs go in a Quality group; purely cosmetic animation goes with its model or held pose; performance stats go in Test.
 - **Readouts:** a readout about an object sits at the top of that object's section (position in Movement); global stats go in Test → Performance.
@@ -21,13 +21,13 @@
 ## Tooltips
 
 - **Every value row has one** (`hints.ts`): what it does in play terms, its unit, which way is more ("higher = …"), and any gotcha ("only shows past 1.5 m"). The panel adds the config.ts value itself.
-- **Keyed by config path,** `*` for instances (`CAPS.*.strength`). Renaming a config key renames its tooltip in the same commit.
+- **Keyed by config path,** `*` for instances (`CAPS.*.dotSize`). Renaming a config key renames its tooltip in the same commit.
 
 ## Values
 
 - **Defaults are config.ts:** every slider shows its default tick, RESET returns to it, and nothing is saved.
 - **Ranges:** the default is inside the range and ideally not at either end; min and max are what's sensible to try; the step matches the precision that matters.
-- **Each instance holds its own absolute value** (each cap's run frequency), not a global value times per-instance multipliers.
+- **A value an instance owns is absolute** (each cap's run frequency). What the game works out from shared rules stays a multiplier on that result, `1` as made (each cap's plume), and its tooltip says so.
 - **Colors:** what is only an ink tone uses a gray slider; real color (paint, caps, lights, signs) uses the color picker.
 - **Changes apply live** through the row's side-effect hook. A rebuild too slow to run on every drag runs when the slider is let go (`onRelease`), with an action button too.
 - **Say when a change shows** if not at once while dragging: tag the row (`when`: LET GO, BAKE, BUILD, RESUME, BAKE OFF); better still, make it show (the pause menu rows preview their sheet) so its tag and tooltip tell you where to look.

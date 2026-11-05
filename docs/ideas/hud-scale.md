@@ -1,14 +1,10 @@
 # HUD scale and the compact menu
 
-Left over from the hints work (checked 2026-10-22 on the roof level, real GPU). One backlog item since 2026-11-02, TASK-203, with BUGS-198 and BUGS-199 merged in; unconfirmed: re-check all three on shots before working on it.
+Left over from the hints work (checked 2026-10-22 on the roof level, real GPU). One backlog item since 2026-11-02, TASK-203, with BUGS-198 merged in (BUGS-199's alert went with the can's pressure); unconfirmed: re-check both on shots before working on it.
 
 ## TASK-203: the HUD scales with the window and the DPR
 
 Everything in the HUD is px. At **3840×2160 with DPR 1** the HUD is a sliver: 11 px text on a 2160 px screen, the hotbar 30 px (`docs/img/tutorial/4k-3840x2160-busy-hud.jpg`). A 4K laptop at DPR 1.5–2 is fine: it's 1920–2560 CSS px. At **820×560** it is crowded (`docs/img/tutorial/min-820x560-busy-hud.jpg`). Ultrawide 3440×1440 is fine: the corners are far out, the tool stack near the center (`docs/img/tutorial/ultrawide-3440x1440-busy-hud.jpg`). No HUD size setting yet.
-
-## LOW PRESSURE off the right edge at 820×560 (was BUGS-199)
-
-The tool stack (`.tool-stack`, `hud.ts`) starts right of center and only grows rightward, so the alert reads "…TO SH" (`docs/img/tutorial/min-820x560-busy-hud.jpg`). It must grow so it stays on screen.
 
 ## The compact pause menu under the HUD (was BUGS-198)
 

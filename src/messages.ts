@@ -12,39 +12,46 @@ import type { Action } from './input.ts';
 // server/: it closes the link with a rejection's code (protocol.ts closeCode) and the game words it (menu.net*).
 
 export const MESSAGES = {
-  /** Subtitles at the bottom center: a control being taught (tutorial/hints.ts picks which, and for how long). Up to 3 lines, each its own entry line. */
+  /** Subtitles at the bottom center: a control being taught (tutorial/hints.ts picks which, and for how long), in the character's words, as what it says in toasts. Up to 3 lines, each its own entry line. */
   hint: {
-    move: ['Press {forward} {left} {back} {right} to move', 'Hold {sprint} to run, press {jump} to jump'],
-    spray: ['Press {use} to spray, {shake} to shake the can'],
-    canTake: ['Press {slot1} to take the can'],
-    markerTake: ['Press {slot2} to take the marker'],
-    marker: ['Press {use} to draw, {sizeDown} / {sizeUp} to change nib'],
-    ladderTake: ['Press {slot3} to take the stepladder'],
-    ladder: ['Press {use} to put it down, {prev} / {next} to turn it'],
-    rollerTake: ['Press {slot4} to take the roller'],
-    roller: ['Press {use} to roll, {sizeDown} / {sizeUp} to change width'],
-    spongeTake: ['Press {slot5} to take the sponge'],
-    sponge: ['Press {use} to scrub paint off, {sizeDown} / {sizeUp} to change size'],
-    cap: ['Press {sizeDown} / {sizeUp} to change the cap'],
-    color: ['Scroll {prev} / {next} to change color'],
-    ladderMove: ['Press {use} again to move it: only one stepladder stands at a time'],
-    ladderShared: ['In a session, other players can climb your stepladder too'],
-    spongeCrouch: ['Hold {crouch} to scrub paint off the floor'],
-    lowPressure: ['Low pressure: hold {shake} to shake the can'],
-    climb: ['Walk into the ladder or hold {jump} to climb', 'Hold {crouch} to stay on it'],
+    move: ['I can walk with {forward} {left} {back} {right}'],
+    jump: ['I can jump with {jump}'],
+    sprint: ['I can hold {sprint} to run'],
+    spray: ['I can spray with {use}'],
+    opacity: ['I can hold {sprint} and scroll {prev} / {next} to change opacity'],
+    canTake: ['I can take the can with {slot1}'],
+    markerTake: ['I can take the marker with {slot2}'],
+    marker: ['I can draw with {use} and change the nib with {sizeDown} / {sizeUp}'],
+    ladderTake: ['I can take the stepladder with {slot3}'],
+    ladder: ['I can put it down with {use} and turn it with {prev} / {next}'],
+    rollerTake: ['I can take the roller with {slot4}'],
+    roller: ['I can roll with {use} and change its width with {sizeDown} / {sizeUp}'],
+    spongeTake: ['I can take the sponge with {slot5}'],
+    sponge: ['I can scrub paint off with {use} and change its size with {sizeDown} / {sizeUp}'],
+    cap: ['I can change the cap with {sizeDown} / {sizeUp}'],
+    capNeedle: ['I can use this cap for sharp details and highlights'],
+    capSkinny: ['I can use this cap for clean tags and crisp outlines'],
+    capSoft: ['This blue dot is soft, perfect for smooth blends'],
+    capFat: ['I can use this cap for fat lines, throw-ups and quick fills'],
+    capSpray: ['I can use this cap for massive fills and backgrounds'],
+    color: ['I can scroll {prev} / {next} to change color'],
+    ladderMove: ['I can move it with {use}: only one stepladder stands at a time'],
+    ladderShared: ['In a session, others can climb my stepladder too'],
+    spongeCrouch: ['I can hold {crouch} to scrub paint off the floor'],
+    climb: ['I can walk into the ladder or hold {jump} to climb', 'I can hold {crouch} to stay on it'],
   },
 
   /** Centered over the hint, NOTIFY.toastSeconds each, stacked: things that happened (pickups and the stepladder in main.ts, joins and leaves in net/net-menu.ts). */
   toast: {
-    pickedUp: 'You picked up **{item}**',
-    alreadyHave: 'You already have **{item}**',
-    ladderBlocked: "The ladder can't stand there",
-    ladderDoorway: 'Not in a doorway',
+    pickedUp: 'I picked up **{item}**',
+    alreadyHave: 'I already have **{item}**',
+    ladderBlocked: "I can't put the ladder here",
+    ladderDoorway: "I can't block a doorway",
     screenshot: 'Screenshot saved',
     joined: '**{user}** joined',
     left: '**{user}** left',
     /** Dev only (F3, unlock all). */
-    unlockedAll: 'You picked up **everything**',
+    unlockedAll: 'I picked up **everything**',
     /** Paint met a face an admin locked (paint-locks.ts): once while it shows (main.ts). */
     locked: "I won't spoil this masterpiece",
   },
@@ -111,9 +118,8 @@ export const MESSAGES = {
     recording: '● REC {time} · {record} stops and saves it',
   },
 
-  /** Play's own HUD text that is not one of the four: the tool-hand alert (hud.ts, while the can is low) and the other players' nameplates (net/nameplates.ts: what each is doing, while true, and how far they are). */
+  /** Play's own HUD text that is not one of the four: the other players' nameplates (net/nameplates.ts: what each is doing, while true, and how far they are). */
   hud: {
-    lowPressure: 'LOW PRESSURE — HOLD [{shake}] TO SHAKE',
     noteAway: 'Away',
     noteMenu: 'In menu',
     noteCapture: 'Capture',
@@ -232,6 +238,9 @@ export const MESSAGES = {
 
   /** The menu, its pages, and the screens before play: they keep their own places, and show until the next status or the step is done (a copy's flash: a few seconds). */
   menu: {
+    resetAll: 'Reset all',
+    resetAllAsk: 'Reset all {what}?',
+    reset: 'Reset',
     // ESC menu status line
     pauseIdle: 'Paused',
     pauseStart: 'Click to start',

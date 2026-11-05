@@ -4,8 +4,8 @@ import { download } from '../files';
 import type { Input } from '../input';
 import { rgbOf } from '../inventory/items';
 import type { Level } from '../level/level';
-import { solidsNear } from '../level/solids';
 import { shared } from '../materials';
+import { faceBox, patchOf } from '../paint-copy';
 import { edge, type PaintImage } from '../paint-image';
 import type { PaintPatch, PaintSurface, PaintSystem } from '../painting';
 import { hasPaint } from '../paint-surface';
@@ -131,7 +131,7 @@ export class PaintEditor {
     const img = this.draw();
     if (typeof img === 'string') return this.say(img);
     const was: PaintPatch[] = [];
-    if (!this.paint.imprint(aim.surface, aim.at, img, aim.right, aim.up, rgbOf(color), (s, box) => was.push(this.paint.patch(s, box)))) return this.say('HINTS GO ON FLAT FACES');
+    if (!this.paint.imprint(aim.surface, aim.at, img, aim.right, aim.up, rgbOf(color), (s, box) => was.push(patchOf(s, box)))) return this.say('HINTS GO ON FLAT FACES');
     this.remember(was);
     this.changed('HINT PAINTED · CTRL+Z UNDOES IT');
   }
@@ -175,7 +175,7 @@ export class PaintEditor {
 
   private wipe(aim: Aim | null) {
     if (!aim || !hasPaint(aim.surface)) return this.say('AIM AT A PAINTED SURFACE');
-    this.remember([this.paint.patch(aim.surface, this.paint.faceBox(aim.surface, aim.at.rect))]);
+    this.remember([patchOf(aim.surface, faceBox(aim.surface, aim.at.rect))]);
     this.paint.wipe(aim.surface, aim.at.rect);
     this.changed('FACE WIPED · CTRL+Z PUTS IT BACK');
   }
@@ -206,7 +206,7 @@ export class PaintEditor {
     camera.getWorldDirection(this.raycaster.ray.direction);
     this.raycaster.ray.origin.copy(camera.position);
     this.raycaster.far = HINT.reach;
-    const hit = this.raycaster.intersectObjects(solidsNear(this.level.solids, camera.position, HINT.reach, this.near), false)[0];
+    const hit = this.raycaster.intersectObjects(this.level.solids.near(camera.position, HINT.reach, this.near), false)[0];
     const surface = hit && this.paint.get(hit.object);
     if (!surface) return null;
     const at = facePoint(surface.geo, hit.faceIndex!, hit.uv!, { rect: 0, u: 0, v: 0 });
