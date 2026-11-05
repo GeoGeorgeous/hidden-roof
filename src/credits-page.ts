@@ -72,7 +72,7 @@ export function creditsPage() {
     }
   }
   const end = div('credits-end');
-  end.append('Geometry, textures and sounds are all made in code.', el('br'), 'Full license texts ship with the game.');
+  end.append('Geometry, textures and most sounds are made in code; the city and the weather are recordings.', el('br'), 'Full license texts ship with the game.');
   rows.append(end);
   const root = div('page credits-page');
   root.append(pageHead('credits'), rows);

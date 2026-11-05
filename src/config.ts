@@ -934,7 +934,6 @@ export const WET_VIEW = {
   lift: 0.004,
 };
 
-/** F3's runs view (dev/runs-view.ts): every texel a paint run painted, in one loud color. */
 /** Rooms for the sound (src/interiors.ts): cells marked by hand on the level's grid. Their size (m), how high a marked floor reaches (m): a storey of it, or less with something in the way, and how far over the floor that something has to start (m): lower, it's a thing on the floor, no ceiling. */
 export const INTERIORS = {
   cell: 1,
@@ -942,7 +941,7 @@ export const INTERIORS = {
   headroom: 1.8,
 };
 
-/** Marking them (dev/interior-marks.ts), for now: the sheet at your feet, its opacity on a marked cell, on the cell you're on and on every other cell of the grid; its cells across (odd: you're on the middle one) and height over your feet (m); the brush's cells across. */
+/** Marking them (dev/interior-marks.ts): the sheet at your feet, its opacity on a marked cell, on the cell you're on and on every other cell of the grid; its cells across (odd: you're on the middle one) and height over your feet (m); the brush's cells across. */
 export const INDOOR_VIEW = {
   mark: false,
   show: false,
@@ -955,6 +954,7 @@ export const INDOOR_VIEW = {
   brush: 1,
 };
 
+/** F3's runs view (dev/runs-view.ts): every texel a paint run painted, in one loud color. */
 export const RUNS_VIEW = {
   enabled: false,
   /** Point size (px) and color. */

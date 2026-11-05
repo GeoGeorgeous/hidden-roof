@@ -14,7 +14,7 @@ Context for the agent that deploys and runs the game on the VPS: read it before 
 
 ## 2. The game (stable)
 
-- three.js + TypeScript + Vite. Purely static: no API, no env secrets, no external services or CDNs, no WASM, Workers or SharedArrayBuffer (so no COOP/COEP headers). Everything is generated in code, no models or textures; the only audio files are the recordings of the city and the rain (`docs/sound.md`).
+- three.js + TypeScript + Vite. Purely static: no API, no env secrets, no external services or CDNs, no WASM, Workers or SharedArrayBuffer (so no COOP/COEP headers). Everything is generated in code, no models or textures; the only audio files are the recordings of the city and the weather (`docs/sound.md`).
 - What's served: the JS/CSS bundle with the recorded sounds (`/assets/*.ogg`), the fonts (`fonts/*.woff2`), the levels (`levels/*.json`), the release pictures (`updates/*.webp`), the licenses (`licenses/*.txt`), `favicon.svg`, the Terms, Privacy and Updates pages (`updates.html`, written by the build from the release notes), and the files crawlers read (`robots.txt`, `sitemap.xml` written by the build, `llms.txt`, `site.webmanifest`, the IndexNow key `<key>.txt`: `docs/site.md`).
 - **Paths are absolute** (`/assets`, `/fonts`), so the game is served from the root of its domain.
 - `?level=name` fetches `/levels/name.json`; the player build ships only `LEVELS.release` (`src/config.ts`). A missing level must be a real 404: **no SPA fallback** (an `index.html` in its place breaks JSON parsing).
