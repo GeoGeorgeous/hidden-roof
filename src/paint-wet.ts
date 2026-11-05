@@ -45,6 +45,9 @@ export const canRule = (chance: number): RunRule => ({ chance, miss: DRIPS.miss,
 /** The marker's and the roller's rule: each roll takes all the paint there, a run's length is the dice's. */
 export const toolRule = (chance: number): RunRule => ({ chance, miss: Infinity, rest: 0, full: 0 });
 
+/** The first texel, along one axis, of the spot of size `size` holding `at`, on a face starting at `from`. */
+const spotStart = (at: number, from: number, size: number) => from + Math.floor(Math.floor((at - from) / size) * size);
+
 export class WetPaint {
   /** The paint clock (s), advanced by the game's frame time (PaintSystem.tick): wet paint dries by it. */
   now = 0;
@@ -87,8 +90,7 @@ export class WetPaint {
   private spot(s: WetSurface, face: FaceOrigin, x: number, y: number) {
     const size = DRIPS.spot * s.geo.texelsPerMeter;
     const spots = (s.spots ??= new Map());
-    const first = (at: number, from: number) => from + Math.floor(Math.floor((at - from) / size) * size);
-    const key = first(y, face.y) * s.geo.atlasW + first(x, face.x);
+    const key = spotStart(y, face.y, size) * s.geo.atlasW + spotStart(x, face.x, size);
     let spot = spots.get(key);
     if (!spot) spots.set(key, (spot = { rest: 0, kept: 0 }));
     return spot;
