@@ -61,7 +61,9 @@ export class SprayStroke<H extends WallHit> {
   private spot = new THREE.Vector3();
   private lastDab = new THREE.Vector3();
   private onWall = false;
-  private moved = false;
+  /** How long the stroke has moved (s) and how far, up to BRUSH.speedStart. */
+  private startTime = 0;
+  private startWay = 0;
   /** Dabs owed by the clock: the can lays at least BRUSH.buildRate a second, those of the line counting, so slow lines come out alike at any frame rate. */
   private owed = 0;
 
@@ -73,7 +75,7 @@ export class SprayStroke<H extends WallHit> {
   /** The spray stopped: the next one starts fresh. */
   end() {
     this.speed = 0;
-    this.moved = false;
+    this.startTime = this.startWay = 0;
     this.onWall = false;
     this.aiming = false;
   }
@@ -88,7 +90,7 @@ export class SprayStroke<H extends WallHit> {
     }
     const moved = across(this.spot, hit.point, f.eye);
     const fresh = !this.onWall || this.spot.distanceTo(hit.point) >= BRUSH.maxJump;
-    this.follow(fresh ? 0 : moved / Math.max(f.dt, 1e-3), f.dt);
+    this.follow(fresh ? 0 : moved, f.dt);
     this.spot.copy(hit.point);
     this.onWall = true;
     const spacing = dabSpacing(f.cap, hit.distance);
@@ -112,10 +114,15 @@ export class SprayStroke<H extends WallHit> {
     return this.aim;
   }
 
-  /** The first move of a stroke sets the speed at once: smoothed up from 0, every stroke would start dense. */
-  private follow(v: number, dt: number) {
-    this.speed = this.moved ? this.speed + (v - this.speed) * (1 - Math.exp(-dt * BRUSH.speedFollow)) : v;
-    if (v > 0) this.moved = true;
+  /** A stroke's first move sets the speed at once: smoothed up from 0, every stroke would start dense. It's the way over the time so far, as the aim gets going behind the streamline, or a short frame would start it slower than a long one. */
+  private follow(way: number, dt: number) {
+    if (this.startTime >= BRUSH.speedStart) {
+      this.speed += (way / Math.max(dt, 1e-3) - this.speed) * (1 - Math.exp(-dt * BRUSH.speedFollow));
+    } else if (way > 0 || this.startTime > 0) {
+      this.startTime += dt;
+      this.startWay += way;
+      this.speed = this.startWay / Math.max(this.startTime, 1e-3);
+    }
   }
 
   /** Dabs from the last one toward the spot, `spacing` apart; returns how many. */

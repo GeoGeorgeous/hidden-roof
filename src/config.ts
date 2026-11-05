@@ -1093,6 +1093,8 @@ export const BRUSH = {
   speedSoft: 0.8,
   /** How fast the hand speed follows the hand (1/s). */
   speedFollow: 15,
+  /** A stroke's first this many seconds of moving set the hand speed at once, whatever the frame rate. */
+  speedStart: 1 / 60,
   /** Up to this far from the wall (m) the can acts as close up: the distance model starts past it. */
   gap: 0.6,
   /** The nearest the spray acts as if from (m). */
