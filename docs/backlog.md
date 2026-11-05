@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 359
+The one list of what's left. Counter for new ids: next: 360
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -66,9 +66,8 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## Performance
 
 1. BUGS [BL-034]: Paint pages at ULTRA can reach ~1 GB of GPU memory: measured, 1045 MB is the ceiling (all 49 pages, 72% full); the lossless fix is BL-144 (docs/ideas/performance.md)
-2. [PERF-200]: Reduce Ladder Shadow Update Delay Without Frequent Rebaking @1.7.0
-3. [PERF-322]: The server allocates a new buffer for every state it keeps as a player's last (`p.last`, server/session.ts): one buffer a player would do, as SNAPSHOT_BYTES is fixed
-4. [PERF-340]: A client among 40 players holds 40 fps on a good GPU, 20 on Intel UHD, before and after the Painting Rework: the frame's CPU is the 40 figures (about 100 draw calls); alone on the roof with the can in hand the frame's CPU rose 2.5–3.3 → 4.2–4.9 ms in the rework. Measured 2026-11-05: the aim's ray each frame (module 4) was most of it, and its scan of all 3405 solids most of the ray: PERF-341 took that off. The 5 more draw calls are one new cap pickup in view, at no cost. Still unknown: about 0.7 ms and 1–4 fps lost at 60 Hz on NVIDIA from module 2 on, with no per-frame code found there; not the ray alone, the crosshair, the tags, the pickups or the alpha steps; to read outside WSL
+2. [PERF-322]: The server allocates a new buffer for every state it keeps as a player's last (`p.last`, server/session.ts): one buffer a player would do, as SNAPSHOT_BYTES is fixed
+3. [PERF-340]: A client among 40 players holds 40 fps on a good GPU, 20 on Intel UHD, before and after the Painting Rework: the frame's CPU is the 40 figures (about 100 draw calls); alone on the roof with the can in hand the frame's CPU rose 2.5–3.3 → 4.2–4.9 ms in the rework. Measured 2026-11-05: the aim's ray each frame (module 4) was most of it, and its scan of all 3405 solids most of the ray: PERF-341 took that off. The 5 more draw calls are one new cap pickup in view, at no cost. Still unknown: about 0.7 ms and 1–4 fps lost at 60 Hz on NVIDIA from module 2 on, with no per-frame code found there; not the ray alone, the crosshair, the tags, the pickups or the alpha steps; to read outside WSL
 
 ## Rendering
 
@@ -98,6 +97,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 1. [?TASK-203]: The HUD fits every window: it scales with the window and the DPR (tiny at 4K at 100%, crowded at 820×560), the compact pause menu with F3 open stays above the HUD (BUGS-198 merged in, likely fixed by the `--z-*` layers); both checked on shots first (docs/ideas/hud-scale.md)
 2. [IDEA-204]: Notifications beyond play: the menu, pages, loading and a hidden tab on the same model; screen-reader announcements; more events (away and back, context lost, online, refused pointer lock or clipboard); battery (docs/ideas/notifications.md)
+3. [TASK-359]: Hints and toasts in one voice, the first person, a line for each new cap the first time it's picked up, and check that the opacity hint shows (docs/ideas/hints.md) @1.7.0
 
 ## Avatar
 
@@ -224,3 +224,4 @@ Dropped items, kept for the record; don't work on them.
 33. ~~[TASK-194]: Replace paintable walls that cannot be reached with standard walls. Optimize room on the main floor. (merged into BL-144)~~
 34. ~~[BUGS-198]: With F3 open the compact pause menu is under the pickup tags, nameplates, hotbar and toast (docs/ideas/hud-scale.md) (merged into TASK-203)~~
 35. ~~[BUGS-199]: LOW PRESSURE runs off the right edge in narrow windows (820×560) (docs/ideas/hud-scale.md) (merged into TASK-203)~~
+36. ~~[PERF-200]: Reduce Ladder Shadow Update Delay Without Frequent Rebaking (left as it is: `LIGHTMAP.ladderRest` at 0.3 s saves 0.3 of 1.6–3.7 s and costs 4.4 ms a frame against 0.6 at 2–3 placements a second, `docs/known-limits.md`)~~
