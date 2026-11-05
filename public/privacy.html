@@ -21,10 +21,10 @@
     </header>
     <main>
       <h1>Privacy Policy</h1>
-      <p class="updated">Last updated November 1, 2026</p>
+      <p class="updated">Last updated November 7, 2026</p>
 
       <div class="intro">
-        <p>Like any website, our server sees your IP address. The game sends us usage statistics, tied to a random device id that we keep only as a pseudonymous hash; multiplayer needs a nickname. No cookies, accounts, third-party analytics, ads or third-party resources, and we never sell data.</p>
+        <p>Like any website, our server sees your IP address. Our main page tells us how it loaded, with no device id. The game sends us usage statistics, tied to a random device id that we keep only as a pseudonymous hash; multiplayer needs a nickname. No cookies, accounts, third-party analytics, ads or third-party resources, and we never sell data.</p>
       </div>
 
       <section>
@@ -38,6 +38,7 @@
           <li><strong>On your device:</strong> the game keeps its own state on your device in localStorage (your settings, last nickname and progress, such as which hints you have already seen), so that the game works and shows you relevant hints, and a random device id with the first and last day you played, until you clear the site&rsquo;s data; while you are in a multiplayer session, its code, a rejoin token and your nickname in sessionStorage, deleted when you leave or close the tab. The device id also lets you take your seat back in a session. <strong>Save</strong> and <strong>Upload</strong> work with files on your device only.</li>
           <li><strong>In multiplayer:</strong> your nickname, the session code, your position, view, tool, color and movement (about 20 times a second), the tools you carry, your paint and stepladder, and, when you host, the level and starting paint. Everyone in the session sees your nickname, avatar and paint. Do not put personal data in them.</li>
           <li><strong>Usage statistics:</strong> about once a minute while the game is open, it sends the device id (as the page loads), the first and last day you played, your browser, system and graphics card, load times, frame rates, settings, errors, what you do in the game (such as tutorial steps, pickups, time playing) and, in multiplayer, your connection&rsquo;s quality. We keep counts by hour and day. The device id and your IP address are kept only as pseudonymous hashes (with a key that changes every month, the old key deleted at once), with the country found from the IP address; in a session, the server also holds the device id in memory for as long as the session lasts.</li>
+          <li><strong>Page load:</strong> each time the main page opens, whether or not you play, it asks our web server for a small file, and that request says what you got: the game, or the page about it because there is no mouse or the window is too small; if the game could not start, why (no WebGL2, or it did not load); and whether the page&rsquo;s script came from your browser&rsquo;s cache. The web server logs it like any request and we count it with the visitor&rsquo;s pseudonymous hash (see below), with no device id and nothing stored on your device.</li>
           <li><strong>On the server:</strong> your IP address with each connection, and the browser&rsquo;s user agent with each request. The web server&rsquo;s access log records the time, IP address, user agent, page and referring site of each request; we count page views and visitors from it, each visitor kept only as a pseudonymous hash of the IP address and user agent, with a key that changes every month, and the country. The game server&rsquo;s log records the time, session code, nickname, IP address and event (joined, left, dropped, turned away, error); a separate list of these events keeps the nickname but no IP address.</li>
         </ul>
       </section>
@@ -46,10 +47,10 @@
         <h2>Why, and on What Legal Basis</h2>
         <ul>
           <li><strong>To run the game you ask for</strong> (Article 6(1)(b) GDPR): settings, session data and multiplayer.</li>
-          <li><strong>Our legitimate interests</strong> (Article 6(1)(f) GDPR): IP addresses and logs to keep the server secure, limit connections per address, block abuse and fix faults; bans, to protect other players and the game from abuse; usage statistics to see how the game is played and runs, and to make it better; and recordings to promote the game (next section).</li>
+          <li><strong>Our legitimate interests</strong> (Article 6(1)(f) GDPR): IP addresses and logs to keep the server secure, limit connections per address, block abuse and fix faults; bans, to protect other players and the game from abuse; usage statistics to see how the site and the game are used and how they run, and to make them better; and recordings to promote the game (next section).</li>
           <li><strong>Legal obligations</strong> (Article 6(1)(c) GDPR): answering lawful requests from authorities.</li>
         </ul>
-        <p>The game sends usage statistics while it is open, and multiplayer cannot work without a nickname and a connection. We make no automated decisions about you.</p>
+        <p>The main page says how it loaded, the game sends usage statistics while it is open, and multiplayer cannot work without a nickname and a connection. We make no automated decisions about you.</p>
       </section>
 
       <section>
@@ -82,7 +83,7 @@
 
       <section>
         <h2>Your Right to Object</h2>
-        <p><strong>You may object at any time to processing based on our legitimate interests (Article 21 GDPR), including the use of your nickname in recordings.</strong> Email us the nickname and, if you can, the recording. We will keep it out of new material and, where we reasonably can, remove it from our own posts. We cannot remove copies that others have made or shared. Usage statistics have no switch in the game. If you object to them, email us: we delete the statistics we can still find (by your IP address, within the month its key lasts) and tell you the result. Clearing the site&rsquo;s data removes the device id and the days you played from your device, but the game makes a new one when you play again.</p>
+        <p><strong>You may object at any time to processing based on our legitimate interests (Article 21 GDPR), including the use of your nickname in recordings.</strong> Email us the nickname and, if you can, the recording. We will keep it out of new material and, where we reasonably can, remove it from our own posts. We cannot remove copies that others have made or shared. Usage statistics and page loads have no switch. If you object to them, email us your IP address and browser: we delete what we can still find (hashes within the month their key lasts, access log lines within their 14 days) and tell you the result. Counts with no hash in them stay. We keep no id, so we cannot recognise your next visit: it is logged and counted again. Clearing the site&rsquo;s data removes the device id and the days you played from your device, but the game makes a new one when you play again.</p>
       </section>
 
       <section>
