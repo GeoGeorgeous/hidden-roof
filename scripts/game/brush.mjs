@@ -208,7 +208,7 @@ await check('crosshair: the marker, the sponge and the roller show their real si
     return out;
   });
   const fine = ({ near, want, ratio, arc, nearFaded, out }) => Math.abs(near - want) <= 1.5 + want * 0.05 && ratio > 1.2 && !arc && !nearFaded && out;
-  const bar = Math.abs(r.roller.tall - r.roller.wantTall) <= 1.5 + r.roller.wantTall * 0.05 && r.roller.wide > r.roller.high * 2 && r.roller.corner === '0px' && !r.ringAfter.bar && r.ringAfter.corner === '50%';
+  const bar = Math.abs(r.roller.tall - r.roller.wantTall) <= 1.5 + r.roller.wantTall * 0.05 && r.roller.wide > r.roller.high * 2 && r.roller.corner === '3px' && !r.ringAfter.bar && r.ringAfter.corner === '50%';
   return fine(r.marker) && fine(r.sponge) && fine(r.roller) && bar ? null : JSON.stringify(r);
 });
 
