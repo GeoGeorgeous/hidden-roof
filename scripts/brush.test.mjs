@@ -7,7 +7,7 @@ import './ts-imports.mjs';
 const { BRUSH, CAPS, SPRAY } = await import('../src/config.ts');
 const { dabAt, dabSpacing, lineWidth, slantOf, stepOpacity } = await import('../src/spray/dab.ts');
 const { PaintRaster } = await import('../src/paint-raster.ts');
-const { plumeLook } = await import('../src/spray/plume.ts');
+const { plumeLook, plumeStrength } = await import('../src/spray/plume.ts');
 const { SprayStroke } = await import('../src/spray/stroke.ts');
 
 const RATES = [60, 144, 240];
@@ -106,6 +106,8 @@ assert.ok(dab('standard', 1).softness < dab('soft', 1).softness, 'blue dot is so
   const order = ['needle', 'skinny', 'standard', 'fat', 'spray'].map(plume);
   order.slice(1).forEach((p, i) => assert.ok(p.cone > order[i].cone && p.size > order[i].size, 'thin to wide'));
   assert.ok(plume('soft').grow > plume('standard').grow && plume('standard').grow > plume('needle').grow, 'the softer the hazier');
+  near(plumeStrength(SPRAY.plume.opacityAtPar), 1, 1e-9, 'at par a plume is as tuned');
+  assert.ok(plumeStrength(BRUSH.opacityMin) < 0.5 && plumeStrength(BRUSH.opacityMin) > 0 && plumeStrength(BRUSH.opacityMax) > 1, 'it follows the opacity set');
 }
 
 // Distance.

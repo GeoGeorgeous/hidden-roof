@@ -259,7 +259,9 @@ fading out before the wall (never past it). One ray at most per frame for the wh
 plume, one draw call. Others' cans show the same plume. The old square points
 are gone. Owner (2026-11-04): it follows the cap: `spray/plume.ts` makes a cap's
 cone, specks and haze from its spread, dot and softness (BANANA's are the
-sandbox's numbers), F3 scales each.
+sandbox's numbers), F3 scales each. Owner (2026-11-05): it follows the opacity set:
+`plumeStrength` scales specks' number and strength alike, as tuned at 65%, and others
+get it in the snapshot's flow byte, so no protocol change.
 
 Tried first and replaced: a mist of specks flying to the wall and hanging
 there a moment. Owner: too few, too fast, and no haze at the brush wanted.

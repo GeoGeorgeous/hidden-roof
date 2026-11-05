@@ -76,7 +76,7 @@ await check('brush: paint lands at once, a fast flick leaves no gaps, and partic
   return r.firstFrame > 0 && r.inAir > 0 && r.afterRelease === 0 && r.widest > 0 && r.widest < r.radius ? null : JSON.stringify(r);
 });
 
-await check('opacity: Run + the color keys set it with the can in hand, the color stays; the paint follows, it stays in this browser, and flow still says only that paint comes out', async () => {
+await check('opacity: Run + the color keys set it with the can in hand, the color stays; the paint follows, it stays in this browser, and flow says how much comes out', async () => {
   const r = await page.evaluate(async () => {
     const g = window.game;
     const { input, inventory: inv, player, config } = g;
@@ -131,7 +131,7 @@ await check('opacity: Run + the color keys set it with the can in hand, the colo
     return { up, down, plain, faint, dense };
   });
   const ok = JSON.stringify([r.up, r.down, r.plain]) === JSON.stringify([[0.75, true, true, '0.75', false, '75%'], [0.55, true, 0.55], [0.55, true]]);
-  return ok && r.faint[0] < r.dense[0] / 2 && r.faint[1] === 1 && r.dense[1] === 1 ? null : JSON.stringify(r);
+  return ok && r.faint[0] < r.dense[0] / 2 && r.faint[1] === 0.15 && r.dense[1] === 0.65 ? null : JSON.stringify(r);
 });
 
 await check('crosshair: follows the line it would leave: distance, cap, and with no wall the can\'s reach', async () => {
@@ -335,13 +335,50 @@ await check('plume: specks leave the nozzle and never pass the wall, and are gon
   return r.flying > 100 && r.past === 0 && r.most > 2.9 && r.after === 0 ? null : JSON.stringify(r);
 });
 
+await check('plume: follows the opacity set, specks fewer and fainter, and looks as tuned at par', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { input, inventory: inv, player, tools, config } = g;
+    const was = config.BRUSH.opacity;
+    const spray = tools.spray.particles;
+    input.setLocked(true);
+    inv.select(0);
+    player.setSpawn(player.position.clone().set(2.2, 0, 2.95), -Math.PI / 2);
+    player.respawn();
+    const plume = async (opacity) => {
+      config.BRUSH.opacity = opacity;
+      let specks = 0;
+      await steps((f) => {
+        player.yaw = -Math.PI / 2;
+        player.pitch = 0;
+        if (f === 0) input.button(0, true);
+        if (f >= 20) specks += spray.count;
+        if (f === 40) input.button(0, false);
+        return f === 80;
+      });
+      return specks;
+    };
+    const out = {};
+    for (const o of [0.05, 0.65, 1]) out[o] = await plume(o);
+    config.BRUSH.opacity = 0.05;
+    await steps((f) => (f === 0 && input.button(0, true), f === 20 && ((out.strength = spray.strengths[0]), input.button(0, false)), f === 60));
+    config.BRUSH.opacity = was;
+    g.paint.clear();
+    g.fixedStep.dt = 0;
+    input.setLocked(false);
+    return out;
+  });
+  const fine = r[0.05] < r[0.65] * 0.4 && r[0.65] < r[1] && Math.abs(r.strength - Math.sqrt(0.05 / 0.65)) < 1e-6;
+  return fine ? null : JSON.stringify(r);
+});
+
 await check('plume: in a crowd every can keeps a plume, however few specks are left', async () => {
   const got = await page.evaluate(async () => {
     const g = window.game;
     const { input, player, tools, config } = g;
     const others = tools.spray.others;
     const at = (x, y, z) => player.position.clone().set(x, y, z);
-    const spot = { eye: at(0, 2, 0), nozzle: at(0, 2, 0), forward: at(1, 0, 0), right: at(0, 0, 1), up: at(0, 1, 0), cap: config.CAPS.standard, display: { r: 1, g: 0, b: 0 }, dt: 1 / 60 };
+    const spot = { eye: at(0, 2, 0), nozzle: at(0, 2, 0), forward: at(1, 0, 0), right: at(0, 0, 1), up: at(0, 1, 0), cap: config.CAPS.standard, flow: config.SPRAY.plume.opacityAtPar, display: { r: 1, g: 0, b: 0 }, dt: 1 / 60 };
     const memos = Array.from({ length: 8 }, () => ({ age: -Infinity, eye: spot.eye, forward: spot.forward, distance: 4 }));
     const got = memos.map(() => 0);
     input.setLocked(true);

@@ -1032,9 +1032,10 @@ export const SPRAY = {
    * The plume at the nozzle, only to be seen (spray/plume.ts makes each cap's). `count`: specks per one of the cap's
    * `rate`. `cone`: its angle per the cap's spread and half its dot. `speed` (m/s), `drag` (1/s) and `life` (s): how
    * they fly. `short`: how far before the wall they stop (m). `size` (m) and `grow`: a speck of a cap of `dotAtPar`
-   * (m) and softness at par (BRUSH.softnessRef). `opacity`: all of them.
+   * (m) and softness at par (BRUSH.softnessRef). `opacity`: all of them, at a can set to `opacityAtPar`; set lower, its
+   * specks are fewer and fainter, higher, more and stronger.
    */
-  plume: { count: 3, cone: 1.6, speed: 15, drag: 2, life: 0.35, short: 0.03, size: 0.01, grow: 1.5, dotAtPar: 0.05, opacity: 0.9 },
+  plume: { count: 3, cone: 1.6, speed: 15, drag: 2, life: 0.35, short: 0.03, size: 0.01, grow: 1.5, dotAtPar: 0.05, opacity: 0.9, opacityAtPar: 0.65 },
   /** One shake's motion and rattle (s), repeated while RMB is held: only that, it does nothing to the paint. */
   shakeDuration: 0.55,
   /**
@@ -1050,7 +1051,7 @@ export const SPRAY = {
  * and the can's physics shape the line: the same paint per second, so speed and distance change its width, density and edge.
  */
 export const BRUSH = {
-  /** One pass of a stroke reaches about this opacity along its middle; passes add up. The player's own: Run + the color keys, a step at a time within the range, kept in this browser and never sent. */
+  /** One pass of a stroke reaches about this opacity along its middle; passes add up. The player's own: Run + the color keys, a step at a time within the range, kept in this browser. Others get it as paint, and as how much comes out of the can, for its plume. */
   opacity: 0.65,
   opacityMin: 0.05,
   opacityMax: 1,

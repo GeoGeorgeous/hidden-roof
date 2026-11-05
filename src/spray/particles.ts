@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { SPRAY, type CapSpec } from '../config';
 import { plumeMaterial, updatePlume } from './plume-material';
-import { plumeLook, type PlumeLook } from './plume';
+import { plumeLook, plumeStrength, type PlumeLook } from './plume';
 import type { WallProbe } from './wall-probe';
 
 // A can's plume, only to be seen: paint comes from the brush (brush.ts), and
@@ -40,6 +40,8 @@ interface ShowParams {
   right: THREE.Vector3;
   up: THREE.Vector3;
   cap: CapSpec;
+  /** How much comes out of the can (SprayTool.flow). */
+  flow: number;
   display: THREE.Color;
   /** The frame it came out over. */
   dt: number;
@@ -70,6 +72,7 @@ export class SprayParticles {
   private ages: Float32Array;
   private sizes: Float32Array;
   private grows: Float32Array;
+  private strengths: Float32Array;
 
   constructor(
     scene: THREE.Scene,
@@ -80,6 +83,7 @@ export class SprayParticles {
     this.ages = new Float32Array(SPRAY.maxParticles);
     this.sizes = new Float32Array(SPRAY.maxParticles);
     this.grows = new Float32Array(SPRAY.maxParticles);
+    this.strengths = new Float32Array(SPRAY.maxParticles);
     const g = new THREE.BufferGeometry();
     const dynamic = (a: Float32Array, n: number) => new THREE.BufferAttribute(a, n).setUsage(THREE.DynamicDrawUsage);
     g.setAttribute('position', dynamic(this.positions, 3));
@@ -87,6 +91,7 @@ export class SprayParticles {
     g.setAttribute('age', dynamic(this.ages, 1));
     g.setAttribute('size', dynamic(this.sizes, 1));
     g.setAttribute('grow', dynamic(this.grows, 1));
+    g.setAttribute('strength', dynamic(this.strengths, 1));
     g.setDrawRange(0, 0);
     const material = plumeMaterial();
     this.points = new THREE.Points(g, material);
@@ -126,7 +131,8 @@ export class SprayParticles {
     const limit = axis.length() - p.short;
     axis.normalize();
     this.showing++;
-    const n = Math.min(Math.floor(e.count * p.count + Math.random()), this.share, this.free.length);
+    const strength = plumeStrength(e.flow);
+    const n = Math.min(Math.floor(e.count * p.count * strength + Math.random()), this.share, this.free.length);
     for (let i = 0; i < n; i++) {
       const s = this.free.pop()!;
       s.pos.copy(e.nozzle);
@@ -141,6 +147,7 @@ export class SprayParticles {
       this.colors[k * 3 + 2] = e.display.b;
       this.sizes[k] = look.size * (0.4 + 1.2 * Math.random());
       this.grows[k] = look.grow;
+      this.strengths[k] = strength;
       this.live.push(s);
     }
   }
@@ -166,6 +173,7 @@ export class SprayParticles {
         for (let c = 0; c < 3; c++) this.colors[n * 3 + c] = this.colors[i * 3 + c];
         this.sizes[n] = this.sizes[i];
         this.grows[n] = this.grows[i];
+        this.strengths[n] = this.strengths[i];
       }
       this.ages[n] = 1 - p.life / p.span;
       list[n] = p;
@@ -182,7 +190,7 @@ export class SprayParticles {
     this.points.visible = n > 0;
     g.setDrawRange(0, n);
     if (!n) return;
-    for (const name of ['position', 'color', 'age', 'size', 'grow']) {
+    for (const name of ['position', 'color', 'age', 'size', 'grow', 'strength']) {
       const a = g.attributes[name] as THREE.BufferAttribute;
       a.clearUpdateRanges();
       a.addUpdateRange(0, n * a.itemSize);
