@@ -7,9 +7,6 @@ import { SLOTS, type Tool } from './tool';
 // Colors and caps are permanent unlocks (colors shared by can, marker and roller).
 // Paint never runs out.
 
-/** TEST ONLY, branch test/paint-rework: every color and cap from the start, in `npm run dev` and outside browser tests. Cut before this branch reaches dev. */
-const ALL_PAINT = !!import.meta.env?.DEV && !navigator.webdriver;
-
 /** Tools the size keys (Q/E) resize (tools/size-range.ts): their config. */
 export const SIZED = { marker: MARKER, roller: ROLLER, sponge: SPONGE } satisfies Partial<Record<Tool, SizeRange>>;
 export type SizedTool = keyof typeof SIZED;
@@ -53,10 +50,6 @@ export class Inventory {
     this.caps = ['standard'];
     this.colorIndex = 0;
     this.capIndex = 0;
-    if (ALL_PAINT) {
-      for (const c of COLOR_ORDER) this.addColor(c);
-      for (const c of CAP_ORDER) this.addCap(c);
-    }
     this.version++;
   }
 
