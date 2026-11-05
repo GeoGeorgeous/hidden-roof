@@ -911,7 +911,7 @@ export const DRIPS = {
   apart: 0.04,
   /** Run length range (m): the can's by how much paint a spot keeps, the marker's and roller's by chance. */
   minLength: 0.06,
-  maxLength: 0.5,
+  maxLength: 0.6,
   /** Starting speed (m/s); runs slow down as they go, to `slowest` of it. */
   speed: 0.25,
   slowest: 0.25,
