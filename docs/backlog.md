@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 384
+The one list of what's left. Counter for new ids: next: 386
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -56,13 +56,13 @@ Only `N.`, the id and the description are required. The optional parts appear in
 
 1. IDEA [BL-074]: Stencils
 2. [IDEA-336]: Marker: a flat nib, wide across and thin along, for calligraphy: tried on a can cap (TRANSVERSAL), its code kept commented out, each place marked "Kept for a flat nib on the marker, a later version." (grep it)
-3. IDEA [BL-039]: More marker types (rectangular and calligraphy nibs among them, IDEA-233 merged in), placed on the map; a per-tool variant module first, as caps are (docs/ideas/tools.md)
+3. IDEA [!BL-039]: More marker types (rectangular and calligraphy nibs among them, IDEA-233 merged in), placed on the map; a per-tool variant module first, as caps are (docs/ideas/tools.md)
 4. [IDEA-344]: Leaning the can, an experiment on `exp/can-tilt`: RMB held, the mouse leans it, LMB sprays at the lean with one hard edge and a far side fading out, close to the wall; it takes the shake's place, which is gone; stays on its branch until the owner says
 5. [IDEA-382]: Exclusive paints, an experiment on `exp/paint-finishes` (its commits say IDEA-346): chrome and gold (metal with a drawn horizon), silver, holo, glow, wet frost; bulging edges and an ink line; no new data, a finish is a color no palette mix reaches; stays on its branch until the owner says
 
 ## Input
 
-1. BUGS [BL-010]: Rare huge mouse jumps snap the camera in Chrome on Windows; the fix is the owner's choice (docs/ideas/mouse-spikes.md) @1.7.1
+1. BUGS [!BL-010]: Huge mouse jumps snap the camera in Chrome on Windows; the fix is the owner's choice (docs/ideas/mouse-spikes.md) @1.7.1
 
 ## Performance
 
@@ -92,6 +92,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 14. [IDEA-378]: One more exhaust square duct that can be attached vertically with no wall to wall duct
 15. [TASK-379]: In HVAC category add 2 subcategory: round wall duct and square wall duct. Instead of Wall Duct and Vertical Wall Duct.
 16. [IDEA-380]: Vertical square wall duct that goes to the wall
+17. [IDEA-385]: Add a wall that goes along a block boundary
 
 ## Tools
 
