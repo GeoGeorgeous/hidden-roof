@@ -86,9 +86,9 @@ Only `N.`, the id and the description are required. The optional parts appear in
 8. IDEA [BL-054]: New sign sizes, including big rectangular and square ones
 9. IDEA [BL-075]: Digital billboards
 10. IDEA [BL-106]: Paintable cone roofs on the water tanks (a cone paint mapping) (docs/ideas/props-and-level.md)
-11. [IDEA-375]: New square duct type to snap vertically to AC Unit Ducted without wall. It should be simillar to wall duct we have now
+11. [IDEA-375]: New square duct type to snap vertically to AC Unit Ducted without wall. It should be similar to wall duct we have now
 12. [IDEA-376]: The corner wall duct run
-13. [TASK-377]: Unite exhaust pipe and vent shaft to one HVAC category (exahust/shaft)
+13. [TASK-377]: Unite exhaust pipe and vent shaft to one HVAC category (exhaust/shaft)
 14. [IDEA-378]: One more exhaust square duct that can be attached vertically with no wall to wall duct
 15. [TASK-379]: In HVAC category add 2 subcategory: round wall duct and square wall duct. Instead of Wall Duct and Vertical Wall Duct.
 16. [IDEA-380]: Vertical square wall duct that goes to the wall
