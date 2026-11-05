@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { againstRay } from '../surfaces';
 import { WALL_HAND } from '../config';
 import { chain, glove, segment, sleeve } from '../spray/hands';
-import { solidsNear } from '../level/solids';
+import type { Solids } from '../level/solids';
 
 // The free left hand is only shown while it touches a wall: hidden otherwise,
 // it comes in from below the view. A fan of level rays from the left shoulder
@@ -42,7 +42,7 @@ export class WallHand {
   private touching = false;
   private t = 0;
 
-  constructor(private solids: THREE.Mesh[]) {
+  constructor(private solids: Solids) {
     // Local frame: palm on the z = 0 plane facing -z (the wall), fingers +y,
     // thumb +x (left hand seen from behind), forearm back toward the viewer.
     const palm = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.09, 0.024), glove);
@@ -111,7 +111,7 @@ export class WallHand {
   /** The most forward wall hit in the fan of level rays from the left shoulder, within `limit`. */
   private findWall(camera: THREE.Camera, limit: number) {
     const W = WALL_HAND;
-    if (!solidsNear(this.solids, shoulder, W.release, this.near).length) return null;
+    if (!this.solids.near(shoulder, W.release, this.near).length) return null;
     camera.getWorldDirection(fwd).setY(0).normalize();
     left.set(fwd.z, 0, -fwd.x);
     this.raycaster.far = limit;

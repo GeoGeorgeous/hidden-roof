@@ -64,7 +64,7 @@ async function bots(plan: Plan): Promise<Report> {
       // A stroke moving across one face, as a can's stamps do.
       const face = faces[(i * 7919 + seq) % faces.length];
       const n = Math.round(plan.ops / NET.sendRate);
-      const ops = Array.from({ length: n }, (_, k) => ({ kind: 'stamp' as const, key: face.key, rect: 0, u: ((seq * n + k) % 100) / 100, v: (i % 10) / 10 + 0.05, radius: 0.15, amount: 1, color: [1, 0, 0] as const, softness: 0.5, square: false }));
+      const ops = Array.from({ length: n }, (_, k) => ({ kind: 'stamp' as const, key: face.key, rect: 0, u: ((seq * n + k) % 100) / 100, v: (i % 10) / 10 + 0.05, radius: 0.15, amount: 1, color: [1, 0, 0] as const, softness: 0.5, square: false, slant: { stretch: 1.3, turn: 0.1, tail: 0.1 } }));
       send(encode({ type: 'ops', seq: ++seq, bytes: encodeOps(ops.map(() => 0), ops, surfaces) }));
     };
     return { ws, welcomed, sent, tick, ping: () => (sent.set(++pings, performance.now()), send(encode({ type: 'ping', t: pings }))) };

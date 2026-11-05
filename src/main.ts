@@ -2,7 +2,7 @@ import './style.css';
 import * as THREE from 'three';
 import * as config from './config';
 import { flyCamera, titleCamera } from './render/title-view';
-import { ATMOS, COLORS, HUD, LEVELS, PLAYER, PRESSURE, RENDER, VOLUMETRICS, WALL_HAND } from './config';
+import { ATMOS, BRUSH, COLORS, HUD, LEVELS, PLAYER, RENDER, VOLUMETRICS, WALL_HAND } from './config';
 import { syncSharedUniforms } from './materials';
 import { syncTrackUniforms } from './render/cctv-track';
 import { LightBaker } from './render/bake/baker';
@@ -124,6 +124,7 @@ const tutorial = new Tutorial(notify);
 const tools = new Tools(scene, viewScene, paint, level.solids, audio, inventory, level);
 tools.onFact = (f) => {
   tutorial.fact(f);
+  if (f.type === 'opacitySet') settings.save();
   if (f.type !== 'used') return;
   if (f.tool === 'ladder') beacon.count('ladder');
   else if (f.tool !== 'sponge') beacon.step('sprayed');
@@ -289,7 +290,7 @@ function step(time: number) {
   const { paused, frozen } = play;
   const yours = paused || notify.blocked || free ? noInput : input;
   tutorialWire.before();
-  if (!frozen) player.update(dt, yours);
+  if (!frozen) player.update(dt, yours, tools.painting);
   if (player.onGround && player.stride - lastStride > PLAYER.footstepStride) {
     lastStride = player.stride;
     audio.footstep();
@@ -299,7 +300,7 @@ function step(time: number) {
   camera.position.copy(eye);
   camera.rotation.set(player.pitch, player.yaw, 0, 'YXZ');
   // FOV widens a little while sprinting.
-  const fovTarget = RENDER.fov + (player.sprinting ? RENDER.sprintFovBoost : 0);
+  const fovTarget = RENDER.fov + (player.sprinting ? RENDER.sprintFovBoost : 0) - (tools.painting ? RENDER.paintFovCut : 0);
   fov += (fovTarget - fov) * (1 - Math.exp(-RENDER.sprintFovEase * dt));
   if (Math.abs(camera.fov - fov) > 0.01) {
     camera.fov = fov;
@@ -345,9 +346,10 @@ function step(time: number) {
   if (paint.locks.takeHit() && !notify.shown().some((n) => n.lines[0] === msg('toast.locked'))) notify.toast(msg('toast.locked'));
   const tool = building ? null : inventory.tool;
   hud.setCrosshair(tools.crosshair(tool));
+  hud.setReach(tool !== 'can' || tools.spray.reaches);
+  hud.setArc(tool === 'can' ? BRUSH.opacity : null);
   const anchor = tools.labelAnchor(tagPos);
-  const pressure = tool === 'can' ? inventory.pressure : null;
-  hud.placeToolTags(anchor ? toScreen(anchor) : null, pressure, pressure !== null && pressure < PRESSURE.sputterThreshold);
+  hud.placeToolTags(anchor ? toScreen(anchor) : null);
   // A lettering atlas grew or started over: the signs ask for their rects again.
   if (textAtlasVersion() !== textAtlasSeen) {
     textAtlasSeen = textAtlasVersion();

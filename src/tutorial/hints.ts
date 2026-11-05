@@ -37,7 +37,7 @@ export const HINTS: HintDef[] = [
   tool('roller', { total: 'used', tool: 'roller', atLeast: 'rollerMeters' }),
   tool('sponge', { total: 'used', tool: 'sponge', atLeast: 'spongeMeters' }),
   forTool('sponge.crouch', 'sponge', { rank: 'tool', lines: msgLines('hint.spongeCrouch'), done: { action: { total: 'used', tool: 'sponge', crouched: true, atLeast: 'spongeMeters' } }, after: ['tool.sponge'] }),
-  forTool('pressure', 'can', { rank: 'context', lines: msgLines('hint.lowPressure'), show: { low: 'pressure' }, done: { action: { pressed: 'shake' } } }),
+  forTool('opacity', 'can', { rank: 'tool', lines: msgLines('hint.opacity'), done: { action: { event: 'opacitySet' } }, after: ['spray'] }),
   forTool('cap', 'can', { rank: 'tool', lines: msgLines('hint.cap'), show: { has: 'caps', atLeast: 2 }, done: { action: { event: 'capCycled' } } }),
   {
     id: 'color',

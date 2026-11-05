@@ -126,7 +126,7 @@ function control(it: Item, edited: () => void, night: Night): Row {
     show = () => {
       const v = getValue(it.path, night) as number;
       input.value = String(v);
-      value.textContent = v.toFixed(digits);
+      value.textContent = it.percent ? `${Math.round(v * 100)}%` : v.toFixed(digits);
     };
     read = () => Number(input.value);
     control = withDefaultTick(input, defaultOf(it.path), it.min, it.max);

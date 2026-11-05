@@ -1,17 +1,14 @@
-import { HUD, VIGNETTE } from './config';
-import { keysVersion, label } from './input';
+import { CROSSHAIR, HUD, VIGNETTE } from './config';
 import { netLines, type NetStats } from './net/diagnostics';
-import { msg } from './messages';
 import { PauseMenu } from './pause-menu';
 
 // Body-cam style HUD: vignette, corner brackets, REC indicator with elapsed
-// time, clock, crosshair, the PSI gauge, cap and color tags beside the tool in
+// time, clock, crosshair, cap and color tags beside the tool in
 // hand, performance numbers, and over it all the ESC menu (pause-menu.ts).
 // Each part is a layer of its own under body (style.css, the --z-* tokens in boot.css).
 // The tool readout lives in inventory/hotbar.ts, the debug panel in debug/panel.ts.
 
-/** The tool stack starts this many CSS px above the cap tag: the low-pressure alert, then the PSI gauge, then the cap tag (style.css .tool-stack). */
-const STACK_TOP = -44;
+const TAGS = '<div class="cap-tag" hidden></div><div class="cap-tag color-tag" hidden></div>';
 
 export class Hud {
   /** The start / pause screen and its pages. */
@@ -23,22 +20,16 @@ export class Hud {
   private perfShown = '';
   private perfAt = 0;
   private vignette: HTMLElement;
-  private stack: HTMLElement;
-  private capTag: HTMLElement;
+  /** The tags that invert, and under them their swatches. */
+  private stacks: HTMLElement[];
+  private capTags: HTMLElement[];
   private capTagUntil = 0;
-  private colorTag: HTMLElement;
+  private colorTags: HTMLElement[];
   private colorTagUntil = 0;
-  private gauge: HTMLElement;
-  private gaugeFill: HTMLElement;
-  private gaugeText: HTMLElement;
-  private alert: HTMLElement;
-  /** What the gauge shows now, so it's rewritten only on change. */
-  private gaugeShown = '';
-  private alertKeys = -1;
-  private gaugeUntil = 0;
-  private gaugeOn = false;
-  private lastPressure = -1;
   private crosshairSize = -1;
+  private arc: number | null = null;
+  private percent: HTMLElement;
+  private percentUntil = 0;
   private start = performance.now();
   private lastSecond = -1;
   /** The parts HUD switches on and off, and which were shown last (rewritten only on change). */
@@ -57,12 +48,7 @@ export class Hud {
     const tools = document.createElement('div');
     tools.className = 'layer layer-tool';
     tools.innerHTML = `
-      <div class="tool-stack" hidden>
-        <div class="cap-tag psi-alert off">${msg('hud.lowPressure', { shake: label('shake') })}</div>
-        <div class="cap-tag psi-gauge"><span>PSI</span><div class="line"><i></i></div><b></b></div>
-        <div class="cap-tag" hidden></div>
-        <div class="cap-tag color-tag" hidden></div>
-      </div>`;
+      <div class="tool-stack swatches" hidden>${TAGS}</div>`;
     const world = document.createElement('div');
     world.className = 'layer layer-world';
     const menu = document.createElement('div');
@@ -74,7 +60,12 @@ export class Hud {
     this.crosshair = document.createElement('div');
     this.crosshair.className = 'crosshair';
     this.crosshair.hidden = true;
-    document.body.append(this.crosshair);
+    this.percent = this.crosshair.appendChild(document.createElement('span'));
+    this.percent.hidden = true;
+    // The tags invert too, so they're a layer of their own as well. A swatch can't, it would show the wrong color: it
+    // stays in the tool layer, at the same place in tags of nothing else.
+    const view = Object.assign(document.createElement('div'), { className: 'tool-stack on-view', hidden: true, innerHTML: TAGS });
+    document.body.append(this.crosshair, view);
     this.vignette = frame.querySelector('.vignette')!;
     this.perf = frame.querySelector('.perf')!;
     this.syncVignette();
@@ -86,13 +77,9 @@ export class Hud {
       ['cam', [frame.querySelector('.rec .dim')!]],
       ['clock', [this.clock]],
     ];
-    this.stack = tools.querySelector('.tool-stack')!;
-    this.capTag = tools.querySelector('.cap-tag:not(.psi-alert, .psi-gauge)')!;
-    this.colorTag = tools.querySelector('.color-tag')!;
-    this.gauge = tools.querySelector('.psi-gauge')!;
-    this.gaugeFill = tools.querySelector('.psi-gauge i')!;
-    this.gaugeText = tools.querySelector('.psi-gauge b')!;
-    this.alert = tools.querySelector('.psi-alert')!;
+    this.stacks = [view, tools.querySelector<HTMLElement>('.tool-stack')!];
+    this.capTags = this.stacks.map((s) => s.querySelector<HTMLElement>('.cap-tag')!);
+    this.colorTags = this.stacks.map((s) => s.querySelector<HTMLElement>('.color-tag')!);
     this.menu = new PauseMenu(menu);
   }
 
@@ -108,6 +95,30 @@ export class Hud {
     return this.menu.cityView;
   }
 
+  /** The arc beside the crosshair: the can's opacity 0..1; null: none. When it changes, the percent shows beside the arc for as long as the arc answers. */
+  setArc(opacity: number | null) {
+    const now = performance.now();
+    if (opacity !== this.arc) {
+      if (opacity !== null && this.arc !== null) {
+        this.percent.textContent = `${Math.round(opacity * 100)}%`;
+        this.percentUntil = now + Math.max(CROSSHAIR.arc.flowMs, CROSSHAIR.arc.lineMs);
+        this.answer(this.arc, opacity);
+      }
+      this.arc = opacity;
+      this.crosshair.classList.toggle('arc', opacity !== null);
+      if (opacity !== null) this.crosshair.style.setProperty('--opacity', `${opacity}`);
+    }
+    this.percent.hidden = opacity === null || now >= this.percentUntil;
+  }
+
+  /** The arc answers a change: it flows to the new value and its line swells, for a moment and off the frame's work (the browser runs it). */
+  private answer(from: number, to: number) {
+    const { flowMs, bounce, line, peak, lineMs } = CROSSHAIR.arc;
+    this.crosshair.style.setProperty('--arc-line', `${line}px`);
+    this.crosshair.animate([{ '--opacity': `${from}` }, { '--opacity': `${to}` }], { duration: flowMs, easing: `cubic-bezier(0.3, ${bounce}, 0.5, 1)` });
+    this.crosshair.animate([{ '--arc-line': `${peak}px` }, { '--arc-line': `${line}px` }], { duration: lineMs, easing: 'ease-out' });
+  }
+
   /** Crosshair circle diameter in CSS pixels. */
   setCrosshair(px: number) {
     if (px === this.crosshairSize) return;
@@ -115,57 +126,49 @@ export class Hud {
     this.crosshair.style.setProperty('--size', `${px}px`);
   }
 
+  /** The crosshair fades where the can's paint wouldn't land. */
+  setReach(reaches: boolean) {
+    this.crosshair.style.opacity = reaches ? '' : `${CROSSHAIR.far}`;
+  }
+
+  // Kept for a flat nib on the marker, a later version.
+  // /** A flat nib's crosshair, a bar turned as the nib is: as long as setCrosshair's size, and `stretch` times thinner. None: round. */
+  // setNib(nib?: { stretch: number; angle: number }) {
+  //   this.crosshair.classList.toggle('nib', !!nib);
+  //   if (!nib) return;
+  //   this.crosshair.style.setProperty('--nib-stretch', `${nib.stretch}`);
+  //   this.crosshair.style.setProperty('--nib-angle', `${nib.angle}deg`);
+  // }
+
   /** Shows the cap name for a few seconds; place it with `placeToolTags`. */
   showCapTag(name: string) {
-    this.capTag.textContent = `CAP · ${name}`;
+    for (const t of this.capTags) t.textContent = `CAP · ${name}`;
     this.capTagUntil = performance.now() + HUD.tagTime * 1000;
   }
 
   /** Shows the paint color (swatch + name) for a few seconds, just below the cap tag. */
   showColorTag(name: string, hex: string) {
     // The swatch's color through the DOM, not a style attribute: a CSP without 'unsafe-inline' allows it.
-    const swatch = Object.assign(document.createElement('i'), { className: 'swatch' });
-    swatch.style.background = hex;
-    this.colorTag.replaceChildren('COLOR · ', swatch, name.toUpperCase());
+    for (const t of this.colorTags) {
+      const swatch = Object.assign(document.createElement('i'), { className: 'swatch' });
+      swatch.style.background = hex;
+      t.replaceChildren('COLOR · ', swatch, name.toUpperCase());
+    }
     this.colorTagUntil = performance.now() + HUD.tagTime * 1000;
   }
 
   /**
    * Screen position (CSS px) next to the tool in hand (can, marker or roller), or null
-   * with no tool. Places the cap and color tags, and above them the PSI gauge
-   * (`pressure` 0..1 with the can in hand, else null): it fades in while the
-   * pressure changes (spraying, shaking) and out a moment after, but stays up
-   * while the pressure is low, with the low-pressure alert above it.
+   * with no tool. Places the cap and color tags.
    */
-  placeToolTags(at: { x: number; y: number } | null, pressure: number | null, low: boolean) {
+  placeToolTags(at: { x: number; y: number } | null) {
     const now = performance.now();
-    if (pressure !== null && pressure !== this.lastPressure && this.lastPressure >= 0) this.gaugeUntil = now + HUD.gaugeTime * 1000;
-    this.lastPressure = pressure ?? -1;
-    const on = !!at && pressure !== null && (low || now < this.gaugeUntil);
-    if (on !== this.gaugeOn) this.gauge.classList.toggle('show', (this.gaugeOn = on));
-    if (on) {
-      const shown = `${Math.round(pressure * 100)}|${low}`;
-      if (shown !== this.gaugeShown) {
-        this.gaugeShown = shown;
-        this.gaugeFill.style.width = `${pressure * 100}%`;
-        this.gaugeText.textContent = `${Math.round(pressure * 100)}%`;
-        this.gauge.classList.toggle('low', low);
-      }
+    for (const s of this.stacks) {
+      s.hidden = !at;
+      if (at) s.style.transform = `translate(${Math.round(at.x)}px, ${Math.round(at.y)}px)`;
     }
-    // Keeps following the can while the gauge fades out.
-    this.stack.hidden = !at;
-    if (at) this.stack.style.transform = `translate(${Math.round(at.x)}px, ${Math.round(at.y + STACK_TOP)}px)`;
-    const alert = !!at && pressure !== null && low;
-    this.alert.classList.toggle('off', !alert);
-    if (alert) {
-      // The shake key may have been rebound (Settings → Controls).
-      if (keysVersion !== this.alertKeys) {
-        this.alertKeys = keysVersion;
-        this.alert.textContent = msg('hud.lowPressure', { shake: label('shake') });
-      }
-    }
-    this.capTag.hidden = now >= this.capTagUntil;
-    this.colorTag.hidden = now >= this.colorTagUntil;
+    for (const t of this.capTags) t.hidden = now >= this.capTagUntil;
+    for (const t of this.colorTags) t.hidden = now >= this.colorTagUntil;
   }
 
   /** The performance readout, bottom left: written a few times a second. `gpuName`: what draws (null: hidden by the browser); `gpu`: ms per frame, null = not measurable, undefined = not shown. */

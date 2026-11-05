@@ -17,6 +17,16 @@ interface At {
   v: number;
 }
 
+/** A stamp landing at an angle: an ellipse along the aim, its paint fading toward the far end. */
+export interface Slant {
+  /** How many times longer than wide (1 up). */
+  stretch: number;
+  /** Which way the far end points in the face's atlas: turns from +x toward +y (0..1). */
+  turn: number;
+  /** How much of its paint is gone at the far end (0..1). */
+  tail: number;
+}
+
 export interface StampOp extends At {
   kind: 'stamp';
   radius: number;
@@ -24,6 +34,8 @@ export interface StampOp extends At {
   color: Rgb | null;
   softness: number;
   square: boolean;
+  /** None: round. */
+  slant?: Slant;
 }
 
 export interface RollOp extends At {

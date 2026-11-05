@@ -142,7 +142,7 @@ refused({ type: 'inventory', data: { tools: Array(33).fill('x'), colors: [], cap
 
 // Paint ops packed (op-wire.ts, BL-024): every op comes out as the painter rounded it (rounded), to the last bit, so
 // everyone paints the same texels; rounded again or packed again it doesn't change; close to what was made; times to
-// the ms. A stamp is 23 bytes.
+// the ms. A stamp is 23 bytes, 26 at a slant.
 const { t: times, ops: [s2, r2, d2] } = decodeOps(encodeOps([1.5, 1.55, 1.6], [stamp, roll, drip], surfaces), surfaces);
 assert.deepEqual([s2, r2, d2], [stamp, roll, drip].map(rounded));
 assert.deepEqual([s2, r2, d2].map(rounded), [s2, r2, d2]);
@@ -152,6 +152,21 @@ assert.ok(times.every((t, i) => Math.abs(t - [1.5, 1.55, 1.6][i]) < 1e-3));
 const scrub = decodeOps(encodeOps([0], [{ ...stamp, color: null, square: true }], surfaces), surfaces).ops[0];
 assert.deepEqual([scrub.color, scrub.square], [null, true]);
 assert.equal(encodeOps([0], [stamp, stamp], surfaces).length - encodeOps([0], [stamp], surfaces).length, 23);
+// A slant travels in three bytes, flagged, rounded like the rest: a turn the wrong way round comes out in 0..1, a stretch past what a byte holds stops there.
+const slanted = { ...stamp, slant: { stretch: 2.013, turn: -0.2, tail: 0.31 } };
+const [s3] = decodeOps(encodeOps([0], [slanted], surfaces), surfaces).ops;
+assert.deepEqual(s3, rounded(slanted));
+assert.deepEqual(rounded(s3), s3);
+assert.deepEqual(decodeOps(encodeOps([0], [s3], surfaces), surfaces).ops, [s3]);
+assert.ok(Math.abs(s3.slant.stretch - 2.013) < 1 / 32 && Math.abs(s3.slant.turn - 0.8) < 1 / 256 && Math.abs(s3.slant.tail - 0.31) < 1 / 255);
+assert.equal(encodeOps([0], [slanted, slanted], surfaces).length - encodeOps([0], [slanted], surfaces).length, 26);
+assert.ok(rounded({ ...stamp, slant: { stretch: 99, turn: 0, tail: 2 } }).slant.stretch < 9 && rounded({ ...stamp, slant: { stretch: 0, turn: 1, tail: 2 } }).slant.stretch === 1);
+assert.deepEqual(rounded({ ...stamp, slant: { stretch: 2, turn: 1, tail: 2 } }).slant, { stretch: 2, turn: 0, tail: 1 });
+assert.ok(!('slant' in rounded(stamp)) && !('slant' in decodeOps(encodeOps([0], [stamp], surfaces), surfaces).ops[0]));
+const scrubbed = { ...slanted, color: null };
+assert.deepEqual(decodeOps(encodeOps([0, 0], [scrubbed, stamp], surfaces), surfaces).ops, [scrubbed, stamp].map(rounded));
+const cut = encodeOps([0], [slanted], surfaces);
+assert.equal(decodeOps(cut.subarray(0, cut.length - 1), surfaces), null);
 // An op on a surface not in the session is left out; bytes that aren't a batch are refused.
 assert.deepEqual(decodeOps(encodeOps([0, 1], [{ ...stamp, key: 'nowhere' }, roll], surfaces), surfaces).t, [1]);
 const packed = encodeOps([0], [drip], surfaces);

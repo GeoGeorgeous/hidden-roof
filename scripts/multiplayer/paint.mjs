@@ -17,6 +17,31 @@ export async function paint(w) {
   await b.waitForTimeout(500);
   assert.equal(await paintHash(b), painted, 'B paints what A painted');
 
+  // A sprays with its can set low: B's plume of A shows as little coming out.
+  await b.evaluate(() => {
+    const others = window.game.tools.spray.others;
+    const real = others.show.bind(others);
+    others.show = (e) => ((window.plumeFlow = e.flow), real(e));
+  });
+  await a.evaluate(() => {
+    const g = window.game;
+    g.config.BRUSH.opacity = 0.25;
+    g.input.setLocked(true);
+    g.inventory.select(0);
+    g.input.button(0, true);
+  });
+  await b.waitForFunction(() => window.plumeFlow > 0, null, { timeout: 15000 }).catch(() => assert.fail('B shows A\'s plume'));
+  assert.ok(Math.abs((await b.evaluate(() => window.plumeFlow)) - 0.25) < 0.01, 'B\'s plume of A follows A\'s opacity');
+  await a.evaluate(() => {
+    const g = window.game;
+    g.input.button(0, false);
+    g.input.setLocked(false);
+    g.config.BRUSH.opacity = 0.65;
+  });
+  await a.waitForTimeout(500);
+  painted = await paintHash(a);
+  await paintReaches(b, painted, 'B has what A sprayed');
+
   // B's game is hidden: A's tag over B says it's away, and what A paints meanwhile is painted at once, not queued until
   // B is shown again (all of a long absence, landing in one frame).
   const noted = (note) => a.waitForFunction((n) => document.querySelector('.nameplate .note')?.dataset.note === n, note, { timeout: 5000 });

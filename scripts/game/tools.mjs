@@ -120,6 +120,25 @@ await check('ladders: one per player, moved with one rebuild; each owner\'s stay
   return r.moved === 2 && r.both === 'a@2,b@4' && r.saved === 0 && r.left === 'b@4' && r.yours === 'local@8' && r.back === 0 ? null : JSON.stringify(r);
 });
 
+await check('solids: rays find a prop where it stands now: placed, moved with as many solids, taken away', async () => {
+  const r = await page.evaluate(() => {
+    const { level, player } = window.game;
+    const here = player.position.clone().set(0, 0, 30);
+    const there = here.clone().setX(6);
+    const ours = (id, p) => level.solids.near(p, 3, []).filter((m) => m.userData.propId === id).length;
+    const before = level.solids.meshes.length;
+    const put = (p) => level.setRuntime('solids', { type: 'stepladder', pos: [p.x, p.y, p.z], rot: 0 }).id;
+    const first = put(here);
+    const placed = [ours(first, here), level.solids.meshes.length];
+    const second = put(there);
+    const moved = [ours(second, here), ours(second, there), level.solids.meshes.length];
+    level.setRuntime('solids', null);
+    return { before, placed, moved, gone: [ours(second, there), level.solids.meshes.length] };
+  });
+  const fine = r.placed[0] > 0 && r.placed[1] > r.before && r.moved[0] === 0 && r.moved[1] > 0 && r.moved[2] === r.placed[1] && r.gone[0] === 0 && r.gone[1] === r.before;
+  return fine ? null : JSON.stringify(r);
+});
+
 await check('ladders: never in an open door\'s way: not in its opening, nor close in front of the wall or behind it; beside it, farther out and at a closed door it stands', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;

@@ -62,6 +62,7 @@ Pick the check by what changed:
 Plain `docs/*.md` and the AGENTS.md files are standing context: kept true with the code, read before working in their area. `docs/ideas/` holds only temporary explanations of backlog items: a doc there goes once no backlog item links it, its lasting limits moved to `docs/known-limits.md` and its decisions to the standing doc they belong to. Never link `docs/ideas/` from code or an AGENTS.md.
 
 - Tasks: `docs/backlog.md`; limits by design: `docs/known-limits.md`
+- How paint works and what to turn for paint runs: `docs/painting.md`
 - Checks, reading a failure, what each test covers: `docs/testing.md`
 - Deployment, the VPS, multiplayer hosting, host changes waiting for devops: `docs/deploy.md`
 - The admin API (the contract with the cctv page): `docs/admin-api.md`

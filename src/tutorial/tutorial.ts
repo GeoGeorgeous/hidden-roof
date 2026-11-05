@@ -42,7 +42,7 @@ export class Tutorial {
   private on = true;
   /** How many hints are not learnt yet. */
   private left = 0;
-  private snap: Snapshot = { tool: null, tools: [], lowPressure: false, colors: 1, caps: 1, nearLadder: false, onLadder: false };
+  private snap: Snapshot = { tool: null, tools: [], colors: 1, caps: 1, nearLadder: false, onLadder: false };
   /** What the message layer has: the hint's id and which of its texts. */
   private shown: { id: string; text: number } | null = null;
   /** A hint was learnt (its id), or the last one was ('done'). */

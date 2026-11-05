@@ -1,4 +1,6 @@
 import * as THREE from 'three';
+import type { Solids } from '../level/solids';
+import { toolRule } from '../paint-wet';
 import { inkify } from '../render/ink/tone';
 import { COLORS, HOLD, MARKER, type PaintColor } from '../config';
 import type { Audio } from '../audio';
@@ -33,7 +35,7 @@ export class MarkerTool {
 
   constructor(
     private paint: PaintSystem,
-    solids: THREE.Mesh[],
+    solids: Solids,
     private audio: Audio,
   ) {
     this.stroke = new StrokeSweep(solids, paint);
@@ -70,7 +72,7 @@ export class MarkerTool {
     let drew = false;
     const { angle } = this.stroke.sweep(dt, camera, eye, this.spec(nib), (_hit, surface, at, fresh) => {
       if (!surface) return;
-      this.paint.stamp(surface, at, nib, MARKER.strength, rgbOf(color), 0, fresh ? MARKER.drips : 0, true);
+      this.paint.stamp(surface, at, nib, MARKER.strength, rgbOf(color), 0, fresh ? toolRule(MARKER.chance) : null, true);
       drew = true;
     });
     this.audio.setScribble(drew ? Math.min(1, 0.15 + angle * 40) : 0);

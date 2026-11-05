@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { BINDINGS, PLAYER, PRESSURE, TUTORIAL } from '../config';
+import { BINDINGS, PLAYER, TUTORIAL } from '../config';
 import type { Action, Input } from '../input';
 import type { Inventory } from '../inventory/inventory';
 import { SLOTS, type Tool } from '../inventory/tool';
@@ -26,7 +26,7 @@ export class TutorialWire {
   private grounded = false;
   private enabled = true;
   private tools: Tool[] = [];
-  private snap: Snapshot = { tool: null, tools: this.tools, lowPressure: false, colors: 1, caps: 1, nearLadder: false, onLadder: false };
+  private snap: Snapshot = { tool: null, tools: this.tools, colors: 1, caps: 1, nearLadder: false, onLadder: false };
 
   constructor(
     private tutorial: Tutorial,
@@ -67,7 +67,6 @@ export class TutorialWire {
     tools.length = 0;
     for (const t of SLOTS) if (inventory.has(t)) tools.push(t);
     snap.tool = inventory.tool;
-    snap.lowPressure = inventory.pressure < PRESSURE.sputterThreshold;
     snap.colors = inventory.colors.length;
     snap.caps = inventory.caps.length;
     snap.nearLadder = !player.onLadder && this.ladders.some((l) => l.volume.distanceToPoint(middle) <= TUTORIAL.ladderRadius);

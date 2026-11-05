@@ -181,6 +181,9 @@ days: [{ day, stamps, paintSeconds }]
 `SERVER.paintGap` (0.5 s) apart are one run, and the run's span counts; a longer gap starts another. Spraying into
 the air or out of reach, or holding a still marker, counts nothing. Hours from before it read as 0.
 
+From 1.7.0 the can sends an op per dab, not per particle: about 5 times fewer `stamps.can` in play, and `colors`, which counts
+ops, leans less on the can. Marker, roller, sponge and `paintSeconds` keep their scale, so a period across 1.7.0 mixes two.
+
 `GET /stats/client`: the game's beacons (solo and in sessions). No `days`.
 
 ```

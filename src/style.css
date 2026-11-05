@@ -86,6 +86,18 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Registered, so the arc's opacity and line can be animated. */
+@property --opacity {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+@property --arc-line {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 1.5px;
+}
+
 /* White, inverting what's under it: white over ink and night, dark over paper, the opposite color over paint. */
 .crosshair {
   --size: 14px;
@@ -101,10 +113,48 @@
   mix-blend-mode: difference;
   z-index: var(--z-aim);
   pointer-events: none;
-  transition: width 0.12s, height 0.12s;
+  transition: width 0.12s, height 0.12s, opacity 0.12s;
+}
+/* Kept for a flat nib on the marker, a later version. A flat nib's crosshair: a bar at its angle in place of the ring, turning alone so the arc and the percent stay put.
+.crosshair.nib {
+  border-color: transparent;
+}
+.crosshair.nib::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: max(3px, calc(100% / var(--nib-stretch)));
+  box-sizing: border-box;
+  border: 1px solid #fff;
+  transform: translateY(-50%) rotate(calc(-1 * var(--nib-angle)));
+}
+*/
+/* The opacity in numbers, right of the arc, a moment after it changes. */
+.crosshair span {
+  position: absolute;
+  left: calc(100% + 11px);
+  top: 50%;
+  transform: translateY(-50%);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+/* The can's opacity: a third of a ring on the crosshair's right, filling from the bottom over a faint track. */
+.crosshair.arc::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  transform: scaleX(-1);
+  background: conic-gradient(from 210deg, #fff calc(var(--opacity) * 120deg), rgb(255 255 255 / 0.3) 0 120deg, transparent 0);
+  mask: radial-gradient(farthest-side, transparent calc(100% - var(--arc-line) - 0.5px), #000 calc(100% - var(--arc-line)));
 }
 
-/* What's beside the tool in hand, top to bottom: low-pressure alert, PSI gauge, cap, color. One stack, placed from JS (hud.ts). */
+/* What's beside the tool in hand, top to bottom: cap, color. One stack, placed from JS (hud.ts). */
 .tool-stack {
   position: absolute;
   left: 0;
@@ -122,11 +172,24 @@
   line-height: 14px;
   white-space: nowrap;
 }
-/* The alert and the gauge keep their rows while off, so the cap tag stays put. */
-.psi-alert.off {
+/* Over the game view, inverting what's under it, as the crosshair does; their swatches stay true, in the tool layer. */
+.tool-stack.on-view {
+  position: fixed;
+  color: #fff;
+  mix-blend-mode: difference;
+  z-index: var(--z-aim);
+  pointer-events: none;
+}
+.tool-stack.on-view .cap-tag {
+  border-left-color: #fff;
+}
+.tool-stack.on-view .swatch {
   visibility: hidden;
 }
-
+.tool-stack.swatches .cap-tag {
+  color: transparent;
+  border-left-color: transparent;
+}
 /*
  * Pickups' tags by their rings (pickups/labels.ts), manga-style, faded in and
  * out: outlined letters with katakana under them, NEW TOOL ending at the ring's
@@ -270,46 +333,6 @@
 }
 .admin-panel.seen > :first-child span {
   color: var(--alert);
-}
-
-/* PSI gauge above the tags, shown while spraying or shaking: label, a horizontal line, the value. */
-.psi-gauge {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-.psi-gauge.show {
-  opacity: 1;
-}
-.psi-gauge span {
-  color: var(--dim);
-}
-.psi-gauge .line {
-  width: 64px;
-  height: 5px;
-  border: var(--line);
-}
-.psi-gauge .line i {
-  display: block;
-  height: 100%;
-  background: var(--ui);
-}
-.psi-gauge.low,
-.psi-gauge.low span {
-  color: var(--alert);
-}
-.psi-gauge.low .line {
-  border-color: var(--alert);
-}
-.psi-gauge.low .line i {
-  background: var(--alert);
-}
-.psi-alert {
-  color: var(--alert);
-  border-color: var(--alert);
-  animation: blink 0.8s steps(2) infinite;
 }
 
 /* --- ESC menu (pause-menu.ts): the start / pause screen, its pages and popups --- */
@@ -825,12 +848,14 @@
   bottom: 76px;
   left: 50%;
   transform: translateX(-50%);
-  /* 640 px of rows, and the thin scrollbar beside them, always there so the rows don't move. */
+  /* 640 px of rows, a gap, and the thin scrollbar beside them: its place always kept so the rows don't move, it shows on hover. */
   width: min(650px, calc(100% - 32px));
+  padding-right: 10px;
   overflow-y: auto;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
-  scrollbar-color: var(--text-4) transparent;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.25s ease;
   mask: linear-gradient(to bottom, transparent 0, #000 16px, #000 calc(100% - 24px), transparent);
 }
 .overlay .setting-row {
@@ -945,13 +970,16 @@
   opacity: 0.45;
   cursor: default;
 }
-/* Settings → Controls (controls-tab.ts): groups of rows, each with two key slots. */
+/* Settings → Controls (controls-tab.ts): groups of rows, each with two key slots. General's groups look the same. */
+.overlay .rows:hover {
+  scrollbar-color: var(--text-4) transparent;
+}
 .overlay .rows.own {
   width: min(680px, calc(100% - 32px));
-  padding-right: 10px;
   padding-bottom: 32px;
 }
-.overlay .controls .group {
+.overlay .controls .group,
+.overlay .rows > .group {
   padding: 30px 0 6px;
   font-family: var(--display);
   font-size: 20px;
@@ -2010,6 +2038,7 @@
 .overlay .mp-page .rows {
   bottom: auto;
   width: min(640px, calc(100% - 32px));
+  padding-right: 0;
   overflow: visible;
   scrollbar-gutter: auto;
   mask: none;
@@ -2602,6 +2631,7 @@
 body.paused .layer-world,
 body.paused .layer-frame > :not(.vignette),
 body.paused .layer-tool,
+body.paused .tool-stack.on-view,
 body.paused .hotbar,
 body.paused .layer-shade,
 body.paused .layer-hint,

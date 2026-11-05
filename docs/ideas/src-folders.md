@@ -24,6 +24,6 @@ The root keeps about 20: `main`, `config`, `messages`, `version`, and small help
 ## Order
 
 1. `menu/`, `input/`, `boot/`, `render/`, and the CSS split.
-2. `paint/` only after the Painting Rework (1.7.0) is merged: `exp/painting-rework` edits five of the `paint-*` files.
+2. `paint/`.
 
 Cost: 2–3 hours and a full check.

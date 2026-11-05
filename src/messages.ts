@@ -15,7 +15,8 @@ export const MESSAGES = {
   /** Subtitles at the bottom center: a control being taught (tutorial/hints.ts picks which, and for how long). Up to 3 lines, each its own entry line. */
   hint: {
     move: ['Press {forward} {left} {back} {right} to move', 'Hold {sprint} to run, press {jump} to jump'],
-    spray: ['Press {use} to spray, {shake} to shake the can'],
+    spray: ['Press {use} to spray'],
+    opacity: ['Hold {sprint} and scroll {prev} / {next} to change opacity'],
     canTake: ['Press {slot1} to take the can'],
     markerTake: ['Press {slot2} to take the marker'],
     marker: ['Press {use} to draw, {sizeDown} / {sizeUp} to change nib'],
@@ -30,7 +31,6 @@ export const MESSAGES = {
     ladderMove: ['Press {use} again to move it: only one stepladder stands at a time'],
     ladderShared: ['In a session, other players can climb your stepladder too'],
     spongeCrouch: ['Hold {crouch} to scrub paint off the floor'],
-    lowPressure: ['Low pressure: hold {shake} to shake the can'],
     climb: ['Walk into the ladder or hold {jump} to climb', 'Hold {crouch} to stay on it'],
   },
 
@@ -111,9 +111,8 @@ export const MESSAGES = {
     recording: '● REC {time} · {record} stops and saves it',
   },
 
-  /** Play's own HUD text that is not one of the four: the tool-hand alert (hud.ts, while the can is low) and the other players' nameplates (net/nameplates.ts: what each is doing, while true, and how far they are). */
+  /** Play's own HUD text that is not one of the four: the other players' nameplates (net/nameplates.ts: what each is doing, while true, and how far they are). */
   hud: {
-    lowPressure: 'LOW PRESSURE — HOLD [{shake}] TO SHAKE',
     noteAway: 'Away',
     noteMenu: 'In menu',
     noteCapture: 'Capture',
@@ -232,6 +231,9 @@ export const MESSAGES = {
 
   /** The menu, its pages, and the screens before play: they keep their own places, and show until the next status or the step is done (a copy's flash: a few seconds). */
   menu: {
+    resetAll: 'Reset all',
+    resetAllAsk: 'Reset all {what}?',
+    reset: 'Reset',
     // ESC menu status line
     pauseIdle: 'Paused',
     pauseStart: 'Click to start',

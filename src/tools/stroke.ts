@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { PaintSurface, PaintSystem } from '../painting';
 import { facePoint, type FacePoint } from '../surfaces';
-import { solidsNear } from '../level/solids';
+import type { Solids } from '../level/solids';
 
 // The stroke under the crosshair, shared by the tools that work a surface at
 // close range (marker, roller, sponge): rays from last frame's eye and aim to
@@ -38,7 +38,7 @@ export class StrokeSweep {
   travel = 0;
 
   constructor(
-    private solids: THREE.Mesh[],
+    private solids: Solids,
     private paint: PaintSystem,
   ) {}
 
@@ -51,7 +51,7 @@ export class StrokeSweep {
    */
   sweep(dt: number, camera: THREE.Camera, eye: THREE.Vector3, spec: StrokeSpec, each: (hit: THREE.Intersection, surface: PaintSurface | undefined, at: FacePoint, fresh: boolean) => void) {
     camera.getWorldDirection(dir);
-    solidsNear(this.solids, eye, spec.reach, this.near);
+    this.solids.near(eye, spec.reach, this.near);
     // A jump farther than the reach (a respawn) starts a new stroke instead of painting a streak to it.
     if (this.prev && this.prevEye.distanceTo(eye) > spec.reach) this.prev = null;
     const from = this.prev ?? dir;
