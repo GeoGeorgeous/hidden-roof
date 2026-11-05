@@ -891,19 +891,23 @@ export const PLAYER_LIGHT = {
  */
 export const DRIPS = {
   enabled: true,
-  /** Wet paint (in full coats) a texel needs before it may run; the paint that ran is gone. How often it then runs is each cap's and tool's `drips` (per m², spread over its texels, so every paint detail runs alike). */
-  excess: 6,
-  /** How long paint stays wet (s): `excess` coats of wet paint are dry after this long, less paint sooner. A coat over a dry wall no longer runs; holding the can on one spot (hundreds of coats a second) still does. */
+  /** Passes of wet paint a texel needs before it may run: paint over opaque paint is wet. How often it then runs is each cap's and tool's `drips` (per m², spread over its texels, so every paint detail runs alike). */
+  passes: 1,
+  /** What a pass lays, in coats (a coat: a full-opacity stamp). About this from a meter, by the cap and the hand. */
+  passCoats: 6,
+  /** How long a pass of wet paint takes to dry (s), less paint sooner. A pass over a dry wall no longer runs; holding the can on one spot still does. */
   dryTime: 3,
   /** Runs moving at the same time, level-wide. */
   maxActive: 65,
   /** Run length range (m). */
   minLength: 0.06,
   maxLength: 0.5,
-  /** Starting speed (m/s); runs slow down as they go. */
+  /** Starting speed (m/s); runs slow down as they go, to `slowest` of it. */
   speed: 0.25,
-  /** Opacity the run leaves behind (0..1). */
+  slowest: 0.25,
+  /** Opacity the run leaves behind (0..1), down to `thinnest` of it at its end. */
   strength: 0.85,
+  thinnest: 0.55,
 };
 
 /** F3's wet view (dev/wet-view.ts): points on the paint that is still wet, to tune paint runs by. */
@@ -911,7 +915,7 @@ export const WET_VIEW = {
   enabled: false,
   /** Point size (px). */
   size: 4,
-  /** The ramp of a point's color by its build-up: `cool` for just wet, `color` where it may run (DRIPS.excess). */
+  /** The ramp of a point's color by its build-up: `cool` for just wet, `color` where it may run (DRIPS.passes). */
   cool: '#2a6cff',
   color: '#ff2a1a',
   /** Opacity of a just-wet point; it reaches full where it may run. */

@@ -52,14 +52,14 @@ export class PaintSystem {
   readonly locks = new PaintLocks((key) => this.byKey.get(key)?.geo.rects);
   /** Ops painted so far (stamps, rolls and runs made here, stamps and rolls replayed): what saves and the network carry (F3). */
   opCount = 0;
-  /** The paint clock moves on by the game's frame time: wet paint dries by it (paint-raster.ts). */
+  /** The paint clock moves on by the game's frame time: wet paint dries by it (paint-wet.ts). */
   tick(dt: number) {
-    this.raster.now += dt;
+    this.raster.wet.now += dt;
   }
 
   /** The paint clock (s): wet paint (PaintSurface.wet) is dry once it is past. */
   get now() {
-    return this.raster.now;
+    return this.raster.wet.now;
   }
 
   /** Called when heavy paint on a vertical face should start a run (see paint-drips.ts). */

@@ -57,7 +57,7 @@ await check('paint runs: paint dries; a coat over a dry coat starts no run, the 
     const dry = () => g.drips.update(30);
     g.paint.clear();
     coats(1, 1); // opaque
-    coats(3, 1); // 3 coats of wet paint, under DRIPS.excess
+    coats(3, 1); // 3 coats of wet paint, under DRIPS.passes
     dry();
     out.overDry = coats(4, 1);
     g.paint.clear();
@@ -97,7 +97,7 @@ await check('wet view (F3): wet paint on an upright face shows as points, dry pa
   return r.wet > 0 && r.dry === 0 ? null : JSON.stringify(r);
 });
 
-await check('wet view (F3): the highest build-up reads coats against the build-up needed', async () => {
+await check('wet view (F3): the highest build-up reads passes against the passes needed', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     const faces = g.paint.surfaces.flatMap((s) => s.geo.rects.map((rect, i) => ({ s, rect: i, size: rect.upright && rect.face ? rect.w * rect.h : 0 })));
@@ -115,17 +115,16 @@ await check('wet view (F3): the highest build-up reads coats against the build-u
       g.wetView.refresh();
       return g.wetView.peak;
     };
-    const out = { needed: DRIPS.excess };
+    const out = { needed: DRIPS.passes };
     coats(1); // opaque
     out.some = coats(2);
-    out.near = coats(Math.ceil(DRIPS.excess) - 3);
+    out.near = coats(3);
     g.paint.clear();
     WET_VIEW.reach = 10;
     g.paint.onDrip = was;
     return out;
   });
-  const last = Math.ceil(r.needed) - 1;
-  return Math.abs(r.some - 2) < 0.1 && r.near > last - 0.1 && r.near < r.needed ? null : JSON.stringify(r);
+  return Math.abs(r.some - 2 / 6) < 0.02 && r.near > 5 / 6 - 0.02 && r.near < r.needed ? null : JSON.stringify(r);
 });
 
 await check('runs view (F3): the texels of a run show in it, switching it on changes no paint and logs no ops, and cleared paint leaves it', async () => {

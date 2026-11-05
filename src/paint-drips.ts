@@ -71,10 +71,10 @@ export class PaintDrips {
       const left = Math.max(0, (r.y - r.end) / r.length);
       const row0 = Math.floor(r.y);
       // Viscous: slows down as it runs out of paint.
-      r.y -= r.speed * (0.25 + 0.75 * left) * dt;
+      r.y -= r.speed * (DRIPS.slowest + (1 - DRIPS.slowest) * left) * dt;
       const row1 = Math.max(Math.floor(r.y), Math.ceil(r.end));
       // Each row's paint by where it is in the run, not when a frame came: the same on every client.
-      for (let row = row0 - 1; row >= row1; row--) this.lay(r, row, DRIPS.strength * (0.55 + 0.45 * Math.max(0, (row - r.end) / r.length)));
+      for (let row = row0 - 1; row >= row1; row--) this.lay(r, row, DRIPS.strength * (DRIPS.thinnest + (1 - DRIPS.thinnest) * Math.max(0, (row - r.end) / r.length)));
       if (r.y <= r.end + 1) {
         // The drop at the end.
         this.lay(r, row1, DRIPS.strength);

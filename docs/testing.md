@@ -34,7 +34,7 @@ How a change is verified (AGENTS.md, Verify), what each test covers, and how the
 
 `npm run study:load [players ...]` (~1 min a count, 20 40 60 80 by default; never in `check`, and on its own: its bots load every core): one public session's load as its players grow (`server/load-study.ts`). Bots join the roof at ULTRA (`PUBLIC_PLAYERS` lifts the limit), send a state 20 times a second, and a share paint (`PAINTERS`, 0.25; `OPS` stamps a second each, 140). It prints the server's CPU and memory, the bots' ping, bytes and frames a player receives by type, and the server's output. Results: `docs/ideas/weak-links.md`.
 
-Tools, not tests: `npm run bench` (below), `npm run shots:avatar` (every avatar pose and a contact sheet in `shots/avatar/`, on the real GPU), `npm run bench:save` (save size and SAVE / LOAD time; run `npm run golden` first), `npm run bench:join` (a join into a painted roof, on the real GPU: download, load, shown, and the joiner's heap; `LEVEL`, `DETAIL`, `SHARES`, `RATE`), `npm run audit` (knip and duplicated code, advisory).
+Tools, not tests: `npm run bench` (below), `npm run shots:avatar` (every avatar pose and a contact sheet in `shots/avatar/`, on the real GPU), `npm run bench:runs` (how often paint runs: strokes, fills and a can held still, every cap, the marker and the roller, to read before and after a change to the brush or to runs), `npm run bench:save` (save size and SAVE / LOAD time; run `npm run golden` first), `npm run bench:join` (a join into a painted roof, on the real GPU: download, load, shown, and the joiner's heap; `LEVEL`, `DETAIL`, `SHARES`, `RATE`), `npm run audit` (knip and duplicated code, advisory).
 
 ## Golden paint: `npm run golden`
 

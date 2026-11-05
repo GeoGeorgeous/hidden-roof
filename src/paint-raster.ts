@@ -1,7 +1,7 @@
 import type * as THREE from 'three';
 import { DRIPS, PAINT } from './config';
-import { paintRandom } from './lcg';
 import type { StampOp } from './paint-ops';
+import { WetPaint, type WetSurface } from './paint-wet';
 import type { Rgb } from './painting';
 import type { Rect, SurfaceGeometry } from './surfaces';
 
@@ -11,11 +11,9 @@ import type { Rect, SurfaceGeometry } from './surfaces';
 // anywhere the paint has to be the same (a server, a test).
 
 /** The CPU side of a paint surface (paint-surface.ts PaintSurface): its paint must exist before anything is drawn. */
-export interface RasterSurface {
+export interface RasterSurface extends WetSurface {
   geo: SurfaceGeometry;
   data: Uint8Array | null;
-  /** Per texel, the paint clock time (PaintRaster.now) at which its wet paint on already-opaque paint is dry (created on first wet paint). */
-  wet: Float32Array | null;
 }
 
 const TAU = Math.PI * 2;
@@ -40,8 +38,7 @@ export interface Band {
 }
 
 export class PaintRaster<S extends RasterSurface> {
-  /** The paint clock (s), advanced by the game's frame time (PaintSystem.tick): wet paint dries by it. */
-  now = 0;
+  readonly wet = new WetPaint();
 
   constructor(
     private hooks: {
@@ -184,22 +181,10 @@ export class PaintRaster<S extends RasterSurface> {
     this.hooks.touched(s, x, y, x, y);
   }
 
-  /**
-   * `amt` coats more on an opaque texel: wet paint is what is left to dry, and
-   * DRIPS.excess coats of it take DRIPS.dryTime to dry; at DRIPS.excess coats the
-   * texel may run, and the paint that ran is gone.
-   */
+  /** `amt` coats more on an opaque texel of `rect`: a run may start there. */
   private addWet(s: S, rect: Rect, x: number, y: number, amt: number, rate: number) {
-    const wet = (s.wet ??= new Float32Array(s.geo.atlasW * s.geo.atlasH));
-    const k = y * s.geo.atlasW + x;
-    const until = Math.max(wet[k], this.now) + (amt / DRIPS.excess) * DRIPS.dryTime;
-    if (until - this.now < DRIPS.dryTime) {
-      wet[k] = until;
-      return;
-    }
-    wet[k] = this.now;
-    if (paintRandom.drips() >= rate / s.geo.texelsPerMeter ** 2) return;
-    const i = k * 4;
+    if (!this.wet.add(s, x, y, amt, rate)) return;
+    const i = (y * s.geo.atlasW + x) * 4;
     const d = s.data!;
     this.hooks.drip(s, rect, x, y, [d[i] / 255, d[i + 1] / 255, d[i + 2] / 255]);
   }
