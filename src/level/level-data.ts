@@ -2,7 +2,7 @@ import type { Finish } from '../kit/finishes';
 import type { V3 } from '../kit/pieces';
 
 // The level as a file (levels/<name>.json, build mode's save, a session's HOST):
-// its props and spawn; pickups and the city's overrides ride along (OpenLevel.toJSON).
+// its props and spawn; pickups, the city's overrides and the rooms ride along (OpenLevel.toJSON).
 // levelProblem checks one, for the game and the server alike. No runtime imports:
 // Node runs this file as is (net/protocol.ts, scripts/protocol.test.mjs).
 
@@ -38,6 +38,8 @@ export interface LevelData {
   props: PropData[];
   /** It has paint of its own, levels/<name>.rhhpaint (save/level-paint.ts): P in build mode writes both. */
   paint?: boolean;
+  /** Rooms for the sound, marked by hand (interiors.ts): [cell x, floor height, cell z] each. */
+  interiors?: [number, number, number][];
   /** Owned by other systems (pickups). */
   [extra: string]: unknown;
 }
@@ -74,5 +76,6 @@ export function levelProblem(d: unknown, maxProps = Infinity): string | null {
   if (!Array.isArray(d.props) || d.props.length > maxProps || !d.props.every(isProp)) return 'BAD PROPS';
   if (!optional(d.pickups, (v) => Array.isArray(v) && v.every(isPickup))) return 'BAD PICKUPS';
   if (!optional(d.paint, (v) => typeof v === 'boolean')) return 'BAD PAINT';
+  if (!optional(d.interiors, (v) => Array.isArray(v) && v.every(isV3))) return 'BAD INTERIORS';
   return null;
 }

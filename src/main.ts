@@ -2,7 +2,7 @@ import './style.css';
 import * as THREE from 'three';
 import * as config from './config';
 import { flyCamera, titleCamera } from './render/title-view';
-import { ATMOS, BRUSH, COLORS, HUD, LEVELS, PLAYER, RENDER, VOLUMETRICS, WALL_HAND } from './config';
+import { BRUSH, COLORS, HUD, LEVELS, PLAYER, RENDER, VOLUMETRICS, WALL_HAND } from './config';
 import { syncSharedUniforms } from './materials';
 import { syncTrackUniforms } from './render/cctv-track';
 import { LightBaker } from './render/bake/baker';
@@ -58,7 +58,8 @@ import { session } from './session';
 import { multiplayerMenu } from './net/net-menu';
 import { adminLink } from './net/admin-link';
 import { seedPaintRandom } from './lcg';
-import { fanLevel, metalDrops } from './emitter-sounds';
+import { fanLevel } from './emitter-sounds';
+import { Interiors } from './interiors';
 import { guarded } from './frame-guard';
 import { smallWindow } from './small-window';
 
@@ -113,6 +114,7 @@ const input = new Input(renderer.domElement);
 /** Nothing pressed: what the player and tools get while paused in a session. */
 const noInput = new Input();
 const audio = new Audio();
+const interiors = new Interiors();
 const hud = new Hud();
 const player = new Player(level.colliders, level.ladders);
 const inventory = new Inventory();
@@ -146,7 +148,7 @@ function applyPixelScale() {
   syncViewSize();
 }
 
-const opened = new OpenLevel({ scene, level, pickups, inventory, drips, paint, player }, new URLSearchParams(location.search).get('level') ?? LEVELS.start);
+const opened = new OpenLevel({ scene, level, interiors, pickups, inventory, drips, paint, player }, new URLSearchParams(location.search).get('level') ?? LEVELS.start);
 
 /** The level is built, lit and painted (loading.ts): until then the game doesn't run. */
 let loaded = false;
@@ -326,7 +328,7 @@ function step(time: number) {
   // Heard from where the view is: the free camera's film has the sounds around it.
   const ears = free ? camera.position : eye;
   audio.setFan(fanLevel(level.emitters, ears));
-  if (ATMOS.rain && !building) metalDrops(audio, level.emitters, environment.heightmap, camera, dt, ears);
+  audio.setIndoors(interiors.has(ears.x, ears.y, ears.z));
   audio.update(paused && !play.panel);
   dev?.lap('audio');
 
@@ -403,5 +405,5 @@ function toScreen(p: THREE.Vector3) {
 
 // Dev tools (build mode, F3, window.game): single player only, and not in the player build (npm run build).
 let dev: DevTools | undefined;
-const game = { city: () => opened.city, applyPixelScale, config, gpu, perfTest, settings, play, environment, audio, drips, baker, player, tools, inventory, hotbar, notify, notifyView, pickups, paint, paintOps, net, paintFile, seedPaintRandom, fixedStep, session, level, renderer, input, hud, scene, viewScene, gpuTimer, PLAYER, loadLevel: (d: LevelData) => opened.load(d), rebuildCity: () => opened.rebuildCity(), levelData: () => opened.toJSON(), levelName: () => opened.name, openLevel: (d: LevelData, n: string) => opened.open(d, n), loaded: () => loaded };
+const game = { city: () => opened.city, applyPixelScale, config, gpu, perfTest, settings, play, environment, audio, interiors, drips, baker, player, tools, inventory, hotbar, notify, notifyView, pickups, paint, paintOps, net, paintFile, seedPaintRandom, fixedStep, session, level, renderer, input, hud, scene, viewScene, gpuTimer, PLAYER, loadLevel: (d: LevelData) => opened.load(d), rebuildCity: () => opened.rebuildCity(), levelData: () => opened.toJSON(), levelName: () => opened.name, openLevel: (d: LevelData, n: string) => opened.open(d, n), loaded: () => loaded };
 if (__DEV_TOOLS__) void import('./dev/devtools').then((m) => (dev = new m.DevTools(game)));

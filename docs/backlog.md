@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 365
+The one list of what's left. Counter for new ids: next: 367
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -111,6 +111,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 1. IDEA [BL-063]: License-free background music: drum and bass, jungle @1.8.0
 2. IDEA [BL-148]: Other players' sounds: spray hiss, marker, footsteps, landing as positional voices @1.8.0
 3. [IDEA-343]: The can's hiss follows the hand's speed, the distance and the opacity
+4. [TASK-366]: Remove the marking of rooms (src/dev/interior-marks.ts, INDOOR_VIEW) once the owner has checked the rooms in the level
 
 ## Tests and tooling
 
@@ -188,6 +189,8 @@ Shipped since the last release; the release commit empties this list.
 34. [IDEA-363]: Hints and toasts that go by themselves show a ring running down with their time, the hold-Esc ring's look
 35. [IDEA-364]: Every hint has a ring: a hint the player does fills it as far as they got and turns into the status's check for `TUTORIAL.fullHold` (0.6 s), one action at once. Walking, jumping (one jump) and running (5 m) are three hints, the opacity is learnt by 30% of change in all, a ladder counts going down too, the color hint waits for a color change
 36. [IDEA-361]: The city below is a recording: TRP's night on a Toronto roof (CC0), looped, fetched on the first gesture, fading in; replaces the synthesized rumble (docs/sound.md)
+37. [IDEA-362]: The rain is a recording: Kevin Luce's heavy rain from a porch (CC BY 4.0), fetched with the first rain; replaces the synthesized wash, its tone and the drops on metal, which the recording has in it (docs/sound.md)
+38. [IDEA-365]: Sound in rooms marked by hand: the city dulls, the rain changes to a recording on a tin roof; under it all the far rumble of a storm; thunder is three recorded rolls, after the flash; Storm and Rain indoors sliders, the mix set by ear (docs/sound.md)
 
 ## Discarder
 

@@ -12,5 +12,5 @@ import { worldSections } from './world-sections';
 // DOM: scripts/f3-paths.test.mjs checks their config paths in Node.
 
 export function allSections(h: Hooks) {
-  return splitSections([...playSections(h), ...paintSections(h), ...renderSections(h), ...worldSections(h), ...soundSections(), ...uiSections(h), ...buildSections(h), ...itemSections(h), ...messageSections(h)]);
+  return splitSections([...playSections(h), ...paintSections(h), ...renderSections(h), ...worldSections(h), ...soundSections(h), ...uiSections(h), ...buildSections(h), ...itemSections(h), ...messageSections(h)]);
 }

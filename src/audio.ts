@@ -1,11 +1,14 @@
 import { ATMOS, AUDIO } from './config';
-import { playCity } from './city-sound';
+import { CITY, RAIN, RAIN_INDOORS, STORM, THUNDERS, loadRecording, playLoop } from './recordings';
 
-// The city below is a recording (city-sound.ts). The rest is synthesized:
-// filtered noise for hiss/steps/rain, short resonant noise bursts for the
-// mixing-ball rattle, a low noise rumble for thunder and a buzzing hum for
-// nearby AC fans. Gains follow AUDIO live (update() once per frame).
+// The city below, the rain and thunder are recordings (recordings.ts), and they
+// change indoors (setIndoors). The rest is synthesized: filtered noise for
+// hiss/steps, short resonant noise bursts for the mixing-ball rattle and a
+// buzzing hum for nearby AC fans. Gains follow AUDIO live (update() once per frame).
 
+
+/** The city's lowpass outdoors (Hz): above all it has. */
+const OPEN_AIR = 20000;
 
 export class Audio {
   private ctx: AudioContext | null = null;
@@ -15,10 +18,15 @@ export class Audio {
   private noise!: AudioBuffer;
   private scribbleGain!: GainNode;
   private ambGain!: GainNode;
-  /** Settles when the city's recording plays (true) or can't (false). */
-  city: Promise<boolean> = Promise.resolve(false);
+  private cityTone!: BiquadFilterNode;
+  /** Each recording asked for, settling when it plays (true) or can't (false). */
+  readonly recordings = new Map<string, Promise<boolean>>();
+  private indoors = false;
+  private thunders: AudioBuffer[] = [];
+  private lastThunder = 0;
   private rainGain!: GainNode;
-  private rainFilter!: BiquadFilterNode;
+  private stormGain!: GainNode;
+  private indoorRainGain!: GainNode;
   private fanGain!: GainNode;
   private fanLevel = 0;
   private recorded: MediaStreamAudioDestinationNode | null = null;
@@ -66,28 +74,22 @@ export class Audio {
     // Ambience: the city at night, once its recording is here.
     this.ambGain = ctx.createGain();
     this.ambGain.gain.value = AUDIO.ambienceGain;
-    this.ambGain.connect(this.master);
-    this.city = playCity(ctx, this.ambGain);
+    this.cityTone = ctx.createBiquadFilter();
+    this.cityTone.type = 'lowpass';
+    this.cityTone.frequency.value = OPEN_AIR;
+    this.ambGain.connect(this.cityTone).connect(this.master);
+    this.play(CITY, this.ambGain);
 
-    // Rain: a soft wash (bandpassed noise) plus a slow swell, so it breathes.
-    const rain = this.loop();
-    const hp2 = ctx.createBiquadFilter();
-    hp2.type = 'highpass';
-    hp2.frequency.value = 500;
-    this.rainFilter = ctx.createBiquadFilter();
-    this.rainFilter.type = 'lowpass';
-    this.rainFilter.frequency.value = AUDIO.rainTone;
-    this.rainGain = ctx.createGain();
-    this.rainGain.gain.value = 0;
-    const swell = ctx.createGain();
-    const sLfo = ctx.createOscillator();
-    sLfo.frequency.value = 0.11;
-    const sDepth = ctx.createGain();
-    sDepth.gain.value = 0.15;
-    swell.gain.value = 0.85;
-    sLfo.connect(sDepth).connect(swell.gain);
-    sLfo.start();
-    rain.connect(hp2).connect(this.rainFilter).connect(swell).connect(this.rainGain).connect(this.master);
+    // Rain: its recordings join the first time it rains (update()).
+    const layer = () => {
+      const g = ctx.createGain();
+      g.gain.value = 0;
+      g.connect(this.master);
+      return g;
+    };
+    this.rainGain = layer();
+    this.stormGain = layer();
+    this.indoorRainGain = layer();
 
     // Fan hum: a low buzz (motor) + band-passed noise (air), level set by distance.
     this.fanGain = ctx.createGain();
@@ -123,11 +125,38 @@ export class Audio {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
     this.master.gain.setTargetAtTime(AUDIO.masterGain * (paused ? AUDIO.pausedGain : 1), t, 0.1);
-    this.ambGain.gain.setTargetAtTime(AUDIO.ambienceGain, t, 0.05);
-    const rain = ATMOS.rain ? AUDIO.rainGain * (0.35 + 0.65 * ATMOS.rainDensity) : 0;
-    this.rainGain.gain.setTargetAtTime(rain, t, 0.4);
-    this.rainFilter.frequency.setTargetAtTime(AUDIO.rainTone, t, 0.1);
+    const fade = AUDIO.indoorFade;
+    this.ambGain.gain.setTargetAtTime(AUDIO.ambienceGain * (this.indoors ? AUDIO.indoorCity : 1), t, fade);
+    this.cityTone.frequency.setTargetAtTime(this.indoors ? AUDIO.indoorTone : OPEN_AIR, t, fade);
+    if (ATMOS.rain) {
+      this.play(RAIN, this.rainGain);
+      this.play(STORM, this.stormGain);
+      for (const file of THUNDERS) this.keep(file);
+      if (this.indoors) this.play(RAIN_INDOORS, this.indoorRainGain);
+    }
+    const rain = ATMOS.rain ? 0.35 + 0.65 * ATMOS.rainDensity : 0;
+    const outside = this.indoors ? 0 : rain;
+    this.rainGain.gain.setTargetAtTime(AUDIO.rainGain * outside, t, fade);
+    this.stormGain.gain.setTargetAtTime(AUDIO.stormGain * rain, t, fade);
+    this.indoorRainGain.gain.setTargetAtTime(this.indoors ? AUDIO.indoorRainGain * rain : 0, t, fade);
     this.fanGain.gain.setTargetAtTime(this.fanLevel * AUDIO.fanGain, t, 0.15);
+  }
+
+  /** A recording, the first time it's asked for. */
+  private play(file: string, out: AudioNode) {
+    if (!this.recordings.has(file)) this.recordings.set(file, playLoop(this.ctx!, file, out));
+  }
+
+  /** A roll of thunder, ready for when lightning asks, the first time it's asked for. */
+  private keep(file: string) {
+    if (this.recordings.has(file)) return;
+    const buffer = loadRecording(this.ctx!, file);
+    this.recordings.set(file, buffer.then((b) => !!b && !!this.thunders.push(b)));
+  }
+
+  /** In a marked room: the city dulls and the rain is heard from inside. */
+  setIndoors(on: boolean) {
+    this.indoors = on;
   }
 
   /** 0..1 loudness of the nearest fan (from its distance). */
@@ -135,50 +164,21 @@ export class Audio {
     this.fanLevel = level;
   }
 
-  /** A raindrop hitting metal: a short resonant tick. pan -1..1 (left..right), level 0..1. */
-  drop(pan: number, level: number) {
-    if (!this.ctx) return;
-    const ctx = this.ctx;
-    const t = ctx.currentTime + Math.random() * 0.03;
-    const p = ctx.createStereoPanner();
-    p.pan.value = Math.max(-1, Math.min(1, pan));
-    p.connect(this.master);
-    const g = AUDIO.metalGain * level * (0.4 + Math.random() * 0.6);
-    // Thin sheet metal rings high; now and then a duller, hollow tonk.
-    const hollow = Math.random() < 0.25;
-    const f = hollow ? 900 + Math.random() * 700 : 3200 + Math.random() * 3800;
-    this.burst(t, hollow ? 0.09 : 0.035 + Math.random() * 0.03, f, hollow ? 9 : 22, g, 'bandpass', p);
-  }
-
-
-  /** Rolling thunder; distance 0 = close and sharp, 1 = far and soft. */
+  /** A roll of thunder, never the same twice running; distance 0 = close and sharp, 1 = far and soft. Indoors it's muffled like the city. */
   thunder(distance: number) {
     const level = AUDIO.thunderGain * (1 - distance * 0.6);
-    // Its slider at 0: an exponential ramp can't reach 0.
-    if (!this.ctx || level <= 0) return;
+    if (!this.ctx || level <= 0 || !this.thunders.length) return;
     const ctx = this.ctx;
-    const t0 = ctx.currentTime;
-    const dur = 5 + distance * 3;
+    this.lastThunder = (this.lastThunder + 1 + Math.floor(Math.random() * (this.thunders.length - 1))) % this.thunders.length;
     const src = ctx.createBufferSource();
-    src.buffer = this.noise;
-    src.loop = true;
+    src.buffer = this.thunders[this.lastThunder];
     const lp = ctx.createBiquadFilter();
     lp.type = 'lowpass';
-    lp.frequency.setValueAtTime(900 - distance * 600, t0);
-    lp.frequency.exponentialRampToValueAtTime(120, t0 + dur);
+    lp.frequency.value = OPEN_AIR * (1 - distance * 0.9);
     const g = ctx.createGain();
-    g.gain.setValueAtTime(0.0001, t0);
-    // A crack (near strikes), then a few rolling swells that die away.
-    g.gain.exponentialRampToValueAtTime(level * (distance < 0.4 ? 1 : 0.5), t0 + 0.05 + distance * 0.4);
-    let t = t0 + 0.4 + distance * 0.4;
-    for (let i = 0; i < 4; i++) {
-      g.gain.exponentialRampToValueAtTime(level * (0.25 + Math.random() * 0.35) * (1 - i * 0.2), t + 0.3);
-      t += 0.5 + Math.random() * 0.9;
-    }
-    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    src.connect(lp).connect(g).connect(this.master);
-    src.start(t0, Math.random() * 1.5);
-    src.stop(t0 + dur + 0.1);
+    g.gain.value = level;
+    src.connect(lp).connect(g).connect(this.cityTone);
+    src.start();
   }
 
   private loop() {
@@ -222,7 +222,7 @@ export class Audio {
     });
   }
 
-  private burst(when: number, dur: number, freq: number, q: number, gain: number, type: BiquadFilterType = 'bandpass', out: AudioNode = this.master) {
+  private burst(when: number, dur: number, freq: number, q: number, gain: number, type: BiquadFilterType = 'bandpass') {
     const ctx = this.ctx!;
     const src = ctx.createBufferSource();
     src.buffer = this.noise;
@@ -234,7 +234,7 @@ export class Audio {
     g.gain.setValueAtTime(0, when);
     g.gain.linearRampToValueAtTime(gain, when + 0.002);
     g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
-    src.connect(f).connect(g).connect(out);
+    src.connect(f).connect(g).connect(this.master);
     src.start(when, Math.random() * 1.5, dur + 0.05);
   }
 

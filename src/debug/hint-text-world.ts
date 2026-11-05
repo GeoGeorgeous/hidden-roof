@@ -3,7 +3,7 @@
 
 export const WORLD_HINTS: Record<string, string> = {
   // Rendering
-  'ATMOS.rain': 'Falling rain (also its sound, lightning and drops on metal).',
+  'ATMOS.rain': 'Falling rain (also its sound and lightning).',
   'ATMOS.rainDensity': 'Fraction of the maximum number of raindrops.',
   'ATMOS.rainSpeed': 'Fall speed of the rain (m/s).',
   'ATMOS.rainColor': 'Color of the raindrop streaks.',
@@ -132,12 +132,15 @@ export const WORLD_HINTS: Record<string, string> = {
   // Sound
   'AUDIO.masterGain': 'Overall volume of every sound.',
   'AUDIO.rainGain': 'Rain sound at full rain density.',
-  'AUDIO.rainTone': 'Brightness of the rain sound (lowpass, Hz). Lower = duller, farther.',
-  'AUDIO.metalGain': 'Loudness of raindrops pinging on metal.',
-  'AUDIO.metalRate': 'Drops per second on each metal piece at full rain density.',
-  'AUDIO.metalRange': 'Drops on metal are heard within this distance (m).',
   'AUDIO.thunderGain': 'Thunder volume.',
   'AUDIO.ambienceGain': 'Volume of the distant city rumble.',
+  'AUDIO.stormGain': 'The far rumble of heavy rain, indoors too.',
+  'AUDIO.indoorRainGain': 'The rain on the roof, heard indoors.',
+  'AUDIO.indoorCity': 'How much of the city is left indoors.',
+  'AUDIO.indoorTone': 'Lowpass on the city indoors (Hz). Lower = more muffled.',
+  'AUDIO.indoorFade': 'How fast the sound changes at a door (s).',
+  'INDOOR_VIEW.enabled': 'Hold I to mark the grid cell you are on as a room, U to unmark it. The sheet at your feet shows the grid, your cell and what is marked on your floor.',
+  'INDOOR_VIEW.brush': 'Cells across that I and U mark at once.',
   'AUDIO.fanGain': 'AC fan hum when standing at the fan.',
   'AUDIO.fanRange': 'The fan hum fades out over this distance (m).',
   'AUDIO.hissGain': 'Volume of the spray can\'s hiss; each cap scales it below.',

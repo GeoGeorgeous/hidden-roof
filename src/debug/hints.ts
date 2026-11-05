@@ -52,6 +52,8 @@ export const LABEL_HINTS: Record<string, string> = {
   state: 'Grounded, airborne, crouched, on ladder or flying (build mode).',
   'UNLOCK ALL': 'Every tool, paint color and cap at once; their pickups go, as if collected. Lasts until a level loads (a page reload, a level opened in build mode).',
   'STRIKE NOW': 'Trigger a lightning strike right now (thunder follows).',
+  marked: 'Grid cells marked as rooms in this level: your edits count, and they last until a reload unless copied.',
+  'COPY ROOMS': 'Copy the marked cells as JSON, to paste into the level file\'s interiors.',
   fps: 'Frames per second, and CPU time per frame.',
   'gpu: scene': 'GPU time of the main scene pass (needs timer queries; desktop Chromium).',
   'gpu: volumetrics': 'GPU time of the volumetric light pass.',

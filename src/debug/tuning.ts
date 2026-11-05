@@ -96,6 +96,10 @@ function parentOf(path: string[], night?: Night): Obj {
 /** The rows' side effects, built by the dev tools before the panel (`new DebugPanel(hooks, atmosNight)`). */
 export interface Hooks {
   rebuildLights(): void;
+  /** How many floors are marked as rooms, for its readout. */
+  interiorCount(): string;
+  /** Copy them as JSON. */
+  copyInteriors(): void;
   /** Rebuild the light props themselves (lens colors, floodlight heads), then their FX. */
   rebuildLightProps(): void;
   /** Redraw the HUD vignette (VIGNETTE changed). */

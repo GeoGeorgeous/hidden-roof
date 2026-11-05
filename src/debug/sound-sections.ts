@@ -1,11 +1,11 @@
 import { CAP_ORDER, CAPS } from '../config';
-import { r, type Item, type Section } from './tuning';
+import { r, t, type Hooks, type Item, type Section } from './tuning';
 
 // F3 panel contents for sound (tuning.ts has the helpers): the mix, the
 // weather, the spray can's hiss (each cap's own), and props.
 
 /** F3 sections for the Sound tab. */
-export function soundSections(): Section[] {
+export function soundSections(h: Hooks): Section[] {
   return [
     {
       id: 'mix',
@@ -22,15 +22,26 @@ export function soundSections(): Section[] {
       items: [
         { kind: 'heading', label: 'RAIN' },
         r('volume', ['AUDIO', 'rainGain'], 0, 0.5, 0.005),
-        r('tone', ['AUDIO', 'rainTone'], 500, 9000, 50),
-        { kind: 'heading', label: 'DROPS ON METAL' },
-        r('volume', ['AUDIO', 'metalGain'], 0, 0.4, 0.005),
-        r('rate', ['AUDIO', 'metalRate'], 0, 10, 0.1),
-        r('reach', ['AUDIO', 'metalRange'], 1, 20, 0.5),
+        { kind: 'heading', label: 'STORM' },
+        r('volume', ['AUDIO', 'stormGain'], 0, 0.5, 0.005),
         { kind: 'heading', label: 'THUNDER' },
         r('volume', ['AUDIO', 'thunderGain'], 0, 1.5, 0.01),
         r('delay: min', ['THUNDER', 'minDelay'], 0, 5, 0.1),
         r('delay: max', ['THUNDER', 'maxDelay'], 0, 10, 0.1),
+      ],
+    },
+    {
+      id: 'indoors-sound',
+      title: 'Indoors',
+      items: [
+        t('mark rooms', ['INDOOR_VIEW', 'enabled']),
+        r('brush', ['INDOOR_VIEW', 'brush'], 1, 9, 2),
+        { kind: 'readout', label: 'marked', get: () => h.interiorCount() },
+        { kind: 'action', label: 'COPY ROOMS', run: () => h.copyInteriors() },
+        r('rain', ['AUDIO', 'indoorRainGain'], 0, 0.5, 0.005),
+        r('city left', ['AUDIO', 'indoorCity'], 0, 1, 0.05),
+        r('city tone', ['AUDIO', 'indoorTone'], 200, 8000, 50),
+        r('change', ['AUDIO', 'indoorFade'], 0.05, 2, 0.05),
       ],
     },
     {

@@ -935,6 +935,24 @@ export const WET_VIEW = {
 };
 
 /** F3's runs view (dev/runs-view.ts): every texel a paint run painted, in one loud color. */
+/** Rooms for the sound (src/interiors.ts): cells marked by hand on the level's grid. Their size (m), and how high a marked floor reaches (m): a storey of it. */
+export const INTERIORS = {
+  cell: 1,
+  height: 4,
+};
+
+/** Marking them (dev/interior-marks.ts), for now: the sheet at your feet, its opacity on a marked cell, on the cell you're on and on every other cell of the grid; its cells across (odd: you're on the middle one) and height over your feet (m); the brush's cells across. */
+export const INDOOR_VIEW = {
+  enabled: false,
+  color: '#ff00c8',
+  opacity: 0.45,
+  cursorOpacity: 0.25,
+  gridOpacity: 0.07,
+  cells: 61,
+  lift: 0.05,
+  brush: 1,
+};
+
 export const RUNS_VIEW = {
   enabled: false,
   /** Point size (px) and color. */
@@ -1651,27 +1669,28 @@ export const SKYLINE = {
 
 /** All gains are live (F3 → Sound). */
 export const AUDIO = {
-  masterGain: 0.7,
+  masterGain: 0.49,
   /** Share of masterGain while paused (the pause menu is up). */
   pausedGain: 0.3,
-  hissGain: 0.22,
+  hissGain: 0.154,
   /** The city below (a recording). */
-  ambienceGain: 0.145,
-  /** Seconds the city takes to fade in once its recording is here. */
-  ambienceFade: 3,
+  ambienceGain: 0.152,
+  /** Seconds a recording (the city, the rain) takes to fade in once it's here. */
+  recordingFade: 3,
   footstepGain: 0.25,
-  /** Rain bed at full density; scales with ATMOS.rainDensity, silent without rain. */
-  rainGain: 0.045,
-  /** Brightness of the rain hiss (lowpass Hz). */
-  rainTone: 3200,
-  thunderGain: 0.47,
+  /** Rain (a recording) at full density; scales with ATMOS.rainDensity, silent without rain. */
+  rainGain: 0.168,
+  /** Under it, the same way, indoors too: the far rumble of heavy rain. */
+  stormGain: 0.204,
+  /** In a marked room (src/interiors.ts): the rain on the roof, the same way; what's left of the city's level, its lowpass (Hz); how fast it all changes (s). */
+  indoorRainGain: 0.196,
+  indoorCity: 0.6,
+  indoorTone: 1000,
+  indoorFade: 0.4,
+  thunderGain: 0.5,
   /** AC fan hum at the fan; fades out over `fanRange` meters. */
-  fanGain: 0.135,
+  fanGain: 0.073,
   fanRange: 7,
-  /** Raindrops pinging on metal tops open to the sky: loudness, pings per second per piece, hearing range (m). */
-  metalGain: 0.07,
-  metalRate: 2.5,
-  metalRange: 6,
 };
 
 /** Lightning + thunder, only while it rains. */
@@ -1686,8 +1705,8 @@ export const THUNDER = {
   /** Sky brightening at the peak (0..1). */
   flashSky: 0.5,
   /** Delay from flash to thunder, seconds (random in this range: farther strikes are later and softer). */
-  minDelay: 0.5,
-  maxDelay: 3,
+  minDelay: 1.5,
+  maxDelay: 5,
 };
 
 /** Smoke / warm air from vents, exhausts and AC units: one GPU-animated particle batch. */
