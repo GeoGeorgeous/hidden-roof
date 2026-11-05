@@ -2779,24 +2779,24 @@ body.paused .layer-toast {
   position: absolute;
   inset: 0;
 }
-/* A message that goes by itself: a ring emptying as its time runs out. In a hint's box it only holds the room. */
-.note-timer {
+/* A ring beside a message: it empties as a time runs out, fills as the player gets there. In a hint's box it only holds the room. */
+.note-ring {
   display: inline-block;
   margin-right: 6px;
   vertical-align: -1px;
 }
-.note-timer[hidden] {
+.note-ring[hidden] {
   display: none;
 }
-.hint-boxes .note-timer {
+.hint-boxes .note-ring {
   visibility: hidden;
 }
-.note-timer .ring circle {
+.note-ring .ring circle {
   stroke: rgb(255 255 255 / 0.25);
 }
-.note-timer .ring .fill {
+.note-ring .ring .fill {
   stroke: #fff;
-  stroke-dashoffset: calc(28.3 * (1 - var(--left, 1)));
+  stroke-dashoffset: calc(28.3 * (1 - var(--full, 1)));
   transition: none;
 }
 /* Above the hint's top line (a one-line hint or none: the hint's own height); the boxes overlap by 1px; --hint-lines is set from JS. */

@@ -15,16 +15,16 @@ const play = (n, seconds) => n.update(seconds, true);
   const n = new Notify();
   n.toast('hi');
   const [toast] = n.shown();
-  assert.equal(toast.left, 1);
+  assert.equal(toast.ring, 1);
   play(n, NOTIFY.toastSeconds / 2);
-  assert.ok(Math.abs(toast.left - 0.5) < 1e-9);
+  assert.ok(Math.abs(toast.ring - 0.5) < 1e-9);
   n.update(1, false);
-  assert.ok(Math.abs(toast.left - 0.5) < 1e-9, 'stopped with play');
+  assert.ok(Math.abs(toast.ring - 0.5) < 1e-9, 'stopped with play');
   n.set({ key: 'h', kind: 'hint', lines: ['x'] });
   const seen = n.version;
-  n.timeLeft('h', 0.3);
+  n.ring('h', 0.3);
   assert.equal(n.version, seen);
-  assert.equal(n.shown().find((x) => x.key === 'h').left, 0.3);
+  assert.equal(n.shown().find((x) => x.key === 'h').ring, 0.3);
 }
 
 // A pickup and a join in the same moment are both seen, the first above the second, and both go after their time.

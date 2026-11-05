@@ -33,6 +33,14 @@ export function see(seen: Seen, f: Fact) {
   for (const key of f.type === 'used' ? [f.type, totalKey(f.type, f.tool), ...(f.crouched ? [totalKey(f.type, f.tool, true)] : [])] : [f.type]) seen.totals.set(key, (seen.totals.get(key) ?? 0) + n);
 }
 
+/** How far along a condition is (0..1): a total by how much of it is there, the rest whole or not at all. */
+export function progress(c: Cond, x: Ctx): number {
+  if ('total' in c) return Math.min(1, (x.seen.totals.get(totalKey(c.total, c.tool, c.crouched)) ?? 0) / amount(c.atLeast));
+  if ('all' in c) return Math.min(...c.all.map((k) => progress(k, x)));
+  if ('any' in c) return Math.max(...c.any.map((k) => progress(k, x)));
+  return holds(c, x) ? 1 : 0;
+}
+
 export function holds(c: Cond, x: Ctx): boolean {
   if ('owns' in c) return x.snap.tools.includes(c.owns);
   if ('has' in c) return (c.has === 'colors' ? x.snap.colors : x.snap.caps) >= c.atLeast;

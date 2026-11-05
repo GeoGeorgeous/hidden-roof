@@ -25,17 +25,17 @@ function box(className: string, nodes: Node[]) {
   return d;
 }
 
-/** A ring beside a message's text, emptying as its time runs out (style.css .note-timer). */
-function timer() {
-  const t = el('span', 'note-timer');
+/** A ring beside a message's text: it empties as a time runs out, fills as the player gets there (style.css .note-ring). */
+function noteRing() {
+  const t = el('span', 'note-ring');
   t.append(ring());
   return t;
 }
 
-/** A timer as of now: `left` of its time (0..1), or hidden with no set time. */
-function drawTimer(t: HTMLElement, left: number | null | undefined) {
-  t.hidden = left === null || left === undefined;
-  if (!t.hidden) t.style.setProperty('--left', left!.toFixed(2));
+/** A ring as of now: `full` of it (0..1), or hidden with none. */
+function drawRing(t: HTMLElement, full: number | null | undefined) {
+  t.hidden = full === null || full === undefined;
+  if (!t.hidden) t.style.setProperty('--full', full!.toFixed(2));
 }
 
 /** A status on screen: its element, its text now, and the timer that removes it once faded out. */
@@ -63,8 +63,8 @@ export class NotifyView {
   private hintKeys = keysVersion;
   private hintLines: string[] = [];
   /** The hint's ring, in its box and over it, and the toasts' with their notes. */
-  private hintTimers: HTMLElement[] = [];
-  private toastTimers: { note: Note; timer: HTMLElement }[] = [];
+  private hintRings: HTMLElement[] = [];
+  private toastRings: { note: Note; ring: HTMLElement }[] = [];
 
   constructor(private notify: Notify) {
     this.dialogView = new DialogView(() => notify.confirm(true), () => notify.confirm(false));
@@ -115,9 +115,9 @@ export class NotifyView {
       }
     }
     if (this.notify.version !== this.seen) this.redraw(notes, dialog);
-    const left = notes.find((n) => n.kind === 'hint')?.left;
-    for (const t of this.hintTimers) drawTimer(t, left);
-    for (const { note, timer } of this.toastTimers) drawTimer(timer, note.left);
+    const full = notes.find((n) => n.kind === 'hint')?.ring;
+    for (const t of this.hintRings) drawRing(t, full);
+    for (const { note, ring } of this.toastRings) drawRing(ring, note.ring);
   }
 
   /** What changes only with `Notify.version`. */
@@ -127,8 +127,8 @@ export class NotifyView {
     this.shade.classList.toggle('on', NOTIFY.shade === 'always' || (NOTIFY.shade === 'auto' && lines.length > 0));
     // The toasts sit above the hint's top line.
     this.bottom.style.setProperty('--hint-lines', String(Math.max(1, lines.length)));
-    this.toastTimers = notes.filter((n) => n.kind === 'toast').map((note) => ({ note, timer: timer() }));
-    this.toasts.replaceChildren(...this.toastTimers.map(({ note, timer }) => box('', [timer, ...rich(note.lines[0])])));
+    this.toastRings = notes.filter((n) => n.kind === 'toast').map((note) => ({ note, ring: noteRing() }));
+    this.toasts.replaceChildren(...this.toastRings.map(({ note, ring }) => box('', [ring, ...rich(note.lines[0])])));
     this.dialogView.draw(dialog ?? null, dialog?.grow ? this.statusByKey.get(dialog.grow)?.el : undefined);
     // A dialog takes the place of the status it replaces: that one cuts out.
     this.drawStatuses(notes.filter((n) => n.kind === 'status' && n.key !== dialog?.grow), !!dialog);
@@ -136,11 +136,11 @@ export class NotifyView {
 
   /** One box per line, each as wide as its line. The boxes are opaque in a group at the box's opacity, so where they overlap they don't darken; the text is a group above, at full strength. */
   private drawHint(lines: readonly string[]) {
-    this.hintTimers = [];
+    this.hintRings = [];
     if (!lines.length) return this.hint.replaceChildren();
     const group = (className: string) => {
-      const t = timer();
-      this.hintTimers.push(t);
+      const t = noteRing();
+      this.hintRings.push(t);
       return box(className, lines.map((l, i) => box('', i ? rich(l) : [t, ...rich(l)])));
     };
     this.hint.replaceChildren(box('hint-lines', [group('hint-boxes'), group('hint-text')]));

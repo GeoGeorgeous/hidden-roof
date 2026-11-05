@@ -1873,6 +1873,8 @@ export const TUTORIAL = {
   moveMeters: 3,
   /** A hint shows at least this long (s) before it can leave as done, so it doesn't flash. */
   minShown: 2,
+  /** A hint done by the player stays this long (s), its ring full, so the player sees it fill. */
+  fullHold: 0.6,
   /** A color hint is learnt after this long on screen (s), whatever the player did. */
   colorShown: 5,
   /** Spraying this long (s) on a surface is learning the can. */

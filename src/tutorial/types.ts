@@ -63,7 +63,7 @@ export type Cond =
 
 /**
  * When a hint is learnt and goes. By time: shown this many visible seconds, whatever the player did. By action: the
- * condition holds. Both: whichever comes first. Neither can clear it before TUTORIAL.minShown.
+ * condition has held TUTORIAL.fullHold. Both: whichever comes first. Neither can clear it before TUTORIAL.minShown.
  */
 type Done = { shown: Amount; action?: Cond } | { shown?: Amount; action: Cond };
 
@@ -89,5 +89,5 @@ export interface HintDef {
 export interface Notes {
   set(note: { key: string; kind: 'hint'; rank: number; lines: string[] }): void;
   clear(key: string): void;
-  timeLeft(key: string, left: number | null): void;
+  ring(key: string, full: number | null): void;
 }
