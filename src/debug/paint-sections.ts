@@ -1,5 +1,5 @@
 import { CAP_ORDER, CAPS } from '../config';
-import { c, r, t, type Hooks, type Item, type Section } from './tuning';
+import { c, pct, r, t, type Hooks, type Item, type Section } from './tuning';
 
 // F3 panel contents for painting (tuning.ts has the helpers): what each tool
 // does (one vocabulary: reach, width, opacity, softness), the caps, paint
@@ -136,9 +136,9 @@ export function paintSections(h: Hooks): Section[] {
         r('opacity', ['DRIPS', 'strength'], 0.1, 1, 0.05),
         r('max at once', ['DRIPS', 'maxActive'], 0, 200, 1),
         { kind: 'heading', label: 'CHANCE PER TOOL' },
-        ...CAP_ORDER.map((cap) => r(`${CAPS[cap].name.toLowerCase()} cap`, ['CAPS', cap, 'chance'], 0, 1, 0.01)),
-        r('marker', ['MARKER', 'chance'], 0, 1, 0.01),
-        r('roller', ['ROLLER', 'chance'], 0, 1, 0.01),
+        ...CAP_ORDER.map((cap) => pct(`${CAPS[cap].name.toLowerCase()} cap`, ['CAPS', cap, 'chance'])),
+        pct('marker', ['MARKER', 'chance']),
+        pct('roller', ['ROLLER', 'chance']),
         // Debug views of wet paint and of runs: what they show, not how paint behaves.
         { kind: 'heading', label: 'VIEWS' },
         { kind: 'readout', label: 'rolls / runs', get: () => h.runTally() },

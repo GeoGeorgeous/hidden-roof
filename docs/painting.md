@@ -23,7 +23,7 @@ Dabs are laid along the aim at a spacing, and at a set rate while held still (`s
 
 1. **Wet paint.** Only paint landing on nearly opaque paint on an upright face counts (`paint-raster.ts`). Each texel keeps one number: when its wet paint is dry. A coat is a full-opacity stamp, and `DRIPS.passCoats` coats make a pass.
 2. **Build-up.** Past `DRIPS.passes` of wet paint, a texel rolls the dice. Below that nothing can run. Paint dries at `DRIPS.dryTime` seconds a pass, so what counts is paint in a short time, not paint in total.
-3. **The dice.** The odds are the tool's `chance` for a whole spot, a square of `DRIPS.spot`, shared out over its texels: thin and wide lines have the same odds where they're as wet, and every paint detail runs alike.
+3. **The dice.** The odds are the tool's `chance` (0..1 in config, a percent in F3) for a whole spot, a square of `DRIPS.spot`, shared out over its texels: thin and wide lines have the same odds where they're as wet, and every paint detail runs alike.
 4. **A failed roll (can).** It takes only `DRIPS.miss` off the texel. What it takes goes to the spot's pool.
 5. **Rest (can).** After a run the spot starts none for `DRIPS.rest / chance` seconds, so a higher chance also rests less. Paint that arrives meanwhile goes to the pool.
 6. **The pool (can).** It dries `DRIPS.keptDry` times slower than a texel's paint. How full it is against `DRIPS.full` raises the odds (up to `DRIPS.fullOdds` more) and the run's length. A run empties it.

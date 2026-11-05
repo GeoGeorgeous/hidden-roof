@@ -19,7 +19,7 @@ export type When = 'release' | 'bake' | 'build' | 'resume' | 'unbaked';
 
 export type Item =
   /** `onRelease`: runs when the slider is let go (and on reset), for work too slow for every tick. */
-  | { kind: 'range'; label: string; path: string[]; min: number; max: number; step: number; onChange?: () => void; onRelease?: () => void; when?: When }
+  | { kind: 'range'; label: string; path: string[]; min: number; max: number; step: number; percent?: boolean; onChange?: () => void; onRelease?: () => void; when?: When }
   | { kind: 'toggle'; label: string; path: string[]; onChange?: () => void; when?: When }
   | { kind: 'color'; label: string; path: string[]; onChange?: () => void; when?: When }
   /** A hex color edited as one shade of gray. */
@@ -161,6 +161,8 @@ export const live = {
 };
 
 export const r = (label: string, path: string[], min: number, max: number, step: number, onChange?: () => void): Item => ({ kind: 'range', label, path, min, max, step, onChange });
+/** A 0..1 value, shown as a percent; config.ts keeps the fraction. */
+export const pct = (label: string, path: string[]): Item => ({ kind: 'range', label, path, min: 0, max: 1, step: 0.01, percent: true });
 export const t = (label: string, path: string[], onChange?: () => void): Item => ({ kind: 'toggle', label, path, onChange });
 export const c = (label: string, path: string[], onChange?: () => void): Item => ({ kind: 'color', label, path, onChange });
 export const gray = (label: string, path: string[], onChange?: () => void): Item => ({ kind: 'gray', label, path, onChange });
