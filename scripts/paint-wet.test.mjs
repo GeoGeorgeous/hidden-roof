@@ -7,6 +7,7 @@ const { DRIPS } = await import('../src/config.ts');
 const { paintRandom } = await import('../src/lcg.ts');
 const { WetPaint, canRule, toolRule } = await import('../src/paint-wet.ts');
 const { PaintRaster } = await import('../src/paint-raster.ts');
+const { putPatch } = await import('../src/paint-copy.ts');
 
 const surface = (tpm = 96) => ({ geo: { atlasW: 256, atlasH: 256, texelsPerMeter: tpm }, wet: null, spots: null });
 /** A face from the atlas's corner. */
@@ -136,6 +137,18 @@ const dice = (...rolls) => {
   assert.ok(Math.abs(after(1e5) - (0.5 * DRIPS.lengthLuck + 1 - DRIPS.lengthLuck)) < 1e-9, 'a full spot: as long as it gets');
   dice(0, 0.25);
   assert.equal(new WetPaint().add(surface(), FACE, 9, 9, pass * DRIPS.passes, toolRule(SURE)), 0.25, 'the dice say');
+}
+
+// Paint put back (a wiped face, an undo) is dry, its spots too: fresh paint runs at once.
+{
+  dice(0);
+  const wet = new WetPaint();
+  const s = { ...surface(), data: new Uint8Array(256 * 256 * 4) };
+  const rule = canRule(0.5);
+  wet.add(s, FACE, 1, 1, pass * DRIPS.passes, rule);
+  assert.equal(wet.add(s, FACE, 2, 1, pass * DRIPS.passes, rule), null, 'its spot rests');
+  putPatch(s, { atlas: [256, 256], box: [0, 0, 15, 15], data: null });
+  assert.ok(ran(wet.add(s, FACE, 2, 1, pass * DRIPS.passes, rule)), 'wiped, it no longer does');
 }
 
 // No run starts on the ring around a face: nobody sees it, and a run there would paint nothing.

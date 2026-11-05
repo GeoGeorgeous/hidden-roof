@@ -79,4 +79,5 @@ export function putPatch(s: PaintSurface, { atlas, box, data }: PaintPatch) {
     else s.data!.fill(0, at * 4, (at + bw) * 4);
     s.wet?.fill(0, at, at + bw);
   }
+  s.spots?.clear();
 }
