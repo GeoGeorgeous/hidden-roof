@@ -28,7 +28,7 @@ what's served: `docs/deploy.md`; the release steps that touch the page: `docs/re
   stay in the markup for crawlers. A new question goes in its group.
 - Order: the hero, the fact cards, How to start playing (where it shows), About (the owner's text on what the game is,
   the owner's word to players under P.S.; its "legal walls" is the owner's own, saying the game isn't one), then the
-  rest. How to play lists every tool with the server list's icon (`src/net/tool-icons.ts`), copied as markup;
+  rest. Painting & Tools lists every tool with the server list's icon (`src/net/tool-icons.ts`), copied as markup;
   `scripts/seo.test.mjs` checks they match.
 - The hero's loop (`public/about/roof.mp4`, `roof-portrait.mp4`) starts after the page and its fonts have loaded
   (`src/boot.ts`), so it never competes with them. Filmed from the title view on a real GPU, 1920x1080 and 1080x1920 (the

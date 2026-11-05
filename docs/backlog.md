@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 384
+The one list of what's left. Counter for new ids: next: 385
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -206,6 +206,7 @@ Shipped since the last release; the release commit empties this list.
 40. [IDEA-383]: The ghost from capture mode (dev tools only, its commits say IDEA-342), to film yourself from outside: V also goes to a Record avatar view, first person where T records a take and, stopping it, goes to the free view; a take too short to be meant keeps the last one. In the free view Space plays and holds it, 1 2 3 set 1x, 2x or 4x (paint runs too), R plays from the start, C shows the clean wall and goes on from where it was; it ends on its last frame. Your wall and stepladder stand aside while it plays and come back when you change view or leave capture mode. Tab shows the keys that work right now
 41. [IDEA-372]: Capture mode has one plate for players and dev tools: one control a line; in the free view what's going on, speed and smoothing, and Tab holds up the rest in groups, only the keys that work right now
 42. IDEA [BL-066]: A camera mode for trailers and cinematics
+43. [TASK-384]: The page about the game: How to play is Painting & Tools, Multiplayer is Solo & Multiplayer with all three modes
 
 ## Discarder
 
