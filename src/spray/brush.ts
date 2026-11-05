@@ -46,7 +46,7 @@ export class Brush implements Canvas<WallSpot> {
     return hit?.distance ?? null;
   }
 
-  /** How fast the hand moves over the wall (m/s). */
+  /** How fast the hand moves as the eye sees it (m/s). */
   get speed() {
     return this.stroke.speed;
   }

@@ -99,7 +99,7 @@ function passOpacity(distance: number, speed: number) {
   return Math.min(0.999, BRUSH.opacity * fade * MathUtils.lerp(BRUSH.closeFlow, 1, farness(distance)) * thin);
 }
 
-/** The dab a can lays into `out`: a wall at `distance`, the hand at `speed` (m/s over the wall). */
+/** The dab a can lays into `out`: a wall at `distance`, the hand at `speed` (m/s as the eye sees it). */
 export function dabAt(cap: CapSpec, distance: number, speed: number, out: Dab) {
   const fast = fastness(speed);
   const width = restWidth(cap, distance);

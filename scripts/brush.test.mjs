@@ -69,7 +69,7 @@ const reach = (s, x, y, dx, dy) => {
   assert.equal(alpha(tailed, 355, 400), alpha(long, 355, 400), 'the near end keeps its paint');
   assert.ok(alpha(long, 355, 400) > 0 && alpha(tailed, 445, 400) < alpha(long, 445, 400) * 0.75, 'the far end loses it');
 
-  // A line of them: across the aim as dense and wider; along it dabs overlap more, so it darkens.
+  // A line of them laid the same distance apart: across the aim as dense and wider; along it dabs overlap more, so it darkens. A stroke lays them further apart there (stroke.ts).
   const line = (turn) => {
     const d = dab('standard', 3);
     const slant = { stretch: 2, turn, tail: 0 };
@@ -197,7 +197,8 @@ for (const hz of RATES) {
   // A fast flick: no gaps.
   const flick = rig(1);
   play(flick, hz, 0.25, 1, 'skinny', (t) => t * 12);
-  const steps = flick.dabs.slice(1).map((d, i) => Math.hypot(d.x - flick.dabs[i].x, d.y - flick.dabs[i].y));
+  // As the eye sees them: on the wall they're further apart the more it's seen at an angle, as the dabs are longer.
+  const steps = flick.dabs.slice(1).map((d, i) => (d.x - flick.dabs[i].x) / Math.hypot(d.x, 1));
   assert.ok(Math.max(...steps) <= dabSpacing(CAPS.skinny, 3.1) * 1.01, `${hz} Hz: dabs a spacing apart, the widest ${Math.max(...steps)}`);
   assert.ok(flick.dabs.at(-1).x > 2.5, `${hz} Hz: the line reaches the aim, ${flick.dabs.at(-1).x}`);
 
@@ -224,7 +225,7 @@ const strokes = [
   ['a slow line, farther', 'standard', 3, (t) => t * 0.6, 3],
   ['walking pace', 'skinny', 1, (t) => t * 0.4, 2],
   ['steady', 'standard', 1, (t) => t * 1.5, 1],
-  ['fast', 'fat', 2, (t) => t * 8, 0.5],
+  ['fast', 'fat', 2, (t) => t * 8 - 4, 1],
   ['held', 'standard', 1, () => 0, 2],
 ];
 for (const [name, cap, depth, x, seconds] of strokes) {
@@ -254,6 +255,38 @@ for (const hz of RATES) {
   near(first, 0.5 * (1 - Math.exp(-1)), 0.3, `${hz} Hz: one time constant after a jump of the aim`);
   play(r, hz, 0.3, 1, 'standard', () => 0.5);
   near(r.dabs.at(-1).x, 0.5, 0.02, `${hz} Hz: caught up`);
+}
+
+// Along a wall seen at an angle a dab is longer, so dabs are as much further apart: as many to a dab's length as head on.
+{
+  const r = rig(1);
+  play(r, 60, 0.375, 1, 'standard', (t) => 2.5 + t * 8);
+  const shares = r.dabs.slice(2).map((d, i) => (d.x - r.dabs[i + 1].x) / Math.hypot(d.x, 1) / dabSpacing(CAPS.standard, Math.hypot(d.x, 1)));
+  assert.ok(shares.length > 10 && shares.every((s) => s > 0.8 && s < 1.2), `a spacing apart as the eye sees it: ${Math.min(...shares)} to ${Math.max(...shares)}`);
+}
+
+// Off a wall's edge onto a wall behind it: no pile of dabs where the two meet, and the hand doesn't seem to fly.
+for (const cap of ['standard', 'needle']) {
+  const dabs = [];
+  const wall = {
+    find(from, along) {
+      const near = -1 / along.z;
+      const distance = (from.x + along.x * near < 0 ? 1 : 3) / -along.z;
+      return { point: from.clone().addScaledVector(along, distance), distance };
+    },
+  };
+  const stroke = new SprayStroke(wall, { lay: (hit) => dabs.push(hit.point.z) });
+  let most = 0;
+  let fastest = 0;
+  for (let i = -30; i < 30; i++) {
+    const before = dabs.length;
+    stroke.update({ eye, forward: new THREE.Vector3(i / 120, 0, -1).normalize(), cap: CAPS[cap], dt: 1 / 60 });
+    most = Math.max(most, dabs.length - before);
+    fastest = Math.max(fastest, stroke.speed);
+  }
+  assert.ok(dabs.some((z) => z === -3), 'the line goes on over the far wall');
+  assert.ok(most <= 8, `${cap}: ${most} dabs in a frame at the step`);
+  assert.ok(fastest < BRUSH.speedRef, `${cap}: ${fastest} m/s at the step`);
 }
 
 // A stroke's ends.

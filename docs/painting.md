@@ -19,7 +19,7 @@ The goal: spraying feels like a drawing app and a real can at once. A continuous
 
 ## The can's line
 
-Dabs are laid along the aim at a spacing, and at a set rate while held still (`src/spray/stroke.ts`). A dab's width, softness and opacity come from the cap, the distance to the wall and the hand's speed (`dabAt`). Passes add up. Opacity is the player's own setting (`BRUSH.opacity` is its default): what a pass reaches at the far end of the close range, so closer up it lands denser. Paint lands at once; the plume and particles only show.
+Dabs are laid along the aim at a spacing, and at a set rate while held still (`src/spray/stroke.ts`). The spacing and the hand's speed count the way across the ray: along a wall at an angle a dab is as much longer as that way is shorter, so a line holds the same paint there, and a wall behind another's edge is no distance, so a stroke stepping onto it leaves no pile of dabs. A dab's width, softness and opacity come from the cap, the distance to the wall and the hand's speed (`dabAt`). Passes add up. Opacity is the player's own setting (`BRUSH.opacity` is its default): what a pass reaches at the far end of the close range, so closer up it lands denser. Paint lands at once; the plume and particles only show.
 
 ## How a run starts
 

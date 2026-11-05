@@ -1083,7 +1083,7 @@ export const BRUSH = {
   /** Held still, dabs per second, each with `buildAmount` of a moving dab's paint: the spot darkens and then runs. */
   buildRate: 60,
   buildAmount: 0.5,
-  /** The hand speed (m/s over the wall) up to which a line is as set; four times it is as fast as a line changes. */
+  /** The hand speed (m/s as the eye sees it) up to which a line is as set; four times it is as fast as a line changes. */
   speedRef: 2.4,
   /** Above it the opacity falls as (speedRef / speed) ^ speedFade, the width grows by up to `speedWiden`, the edge softens by up to `speedSoft`. */
   speedFade: 0.4,

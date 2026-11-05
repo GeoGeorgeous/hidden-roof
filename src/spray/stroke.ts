@@ -4,9 +4,9 @@ import { dabAt, dabSpacing, type Dab } from './dab';
 
 // A stroke of the can: where its dabs go. Each frame the aim (smoothed) meets
 // the wall, and from the stroke's last dab to there dabs are laid a spacing
-// apart, what's left over carried to the next frame, so a line gets as many
-// dabs per meter at any frame rate. Each is cast from the eye on its own, so a
-// fast flick has no gaps and turns corners. Held still, dabs build up at a set
+// apart as the eye sees it (across), what's left over carried to the next frame,
+// so a line gets as many dabs at any frame rate. Each is cast from the eye on its
+// own, so a fast flick has no gaps and turns corners. Held still, dabs build up at a set
 // rate, like an airbrush. It knows the wall and the paint only through `Wall`
 // and `Canvas`, so its logic runs without a browser (scripts/brush.test.mjs).
 
@@ -35,10 +35,23 @@ export interface StrokeFrame {
 
 const step = new THREE.Vector3();
 const along = new THREE.Vector3();
+const ray = new THREE.Vector3();
 const dab: Dab = { radius: 0, softness: 0, amount: 0 };
 
+/**
+ * How far `b` is from `a` as `eye` sees it: the way across the ray between them.
+ * Along a wall seen at an angle a dab is as much longer as this is shorter, so
+ * it's the same share of a dab's length in any direction; a wall behind another's
+ * edge is no way at all.
+ */
+function across(a: THREE.Vector3, b: THREE.Vector3, eye: THREE.Vector3) {
+  ray.addVectors(a, b).multiplyScalar(0.5).sub(eye).normalize();
+  step.subVectors(b, a);
+  return step.addScaledVector(ray, -step.dot(ray)).length();
+}
+
 export class SprayStroke<H extends WallHit> {
-  /** How fast the spot moves over the wall (m/s), smoothed; 0 between strokes. */
+  /** How fast the spot moves as the eye sees it (m/s, `across`), smoothed; 0 between strokes. */
   speed = 0;
   /** How far the wall under the aim was (m) this frame; null: none. */
   distance: number | null = null;
@@ -73,8 +86,8 @@ export class SprayStroke<H extends WallHit> {
       this.onWall = false;
       return false;
     }
-    const moved = this.spot.distanceTo(hit.point);
-    const fresh = !this.onWall || moved >= BRUSH.maxJump;
+    const moved = across(this.spot, hit.point, f.eye);
+    const fresh = !this.onWall || this.spot.distanceTo(hit.point) >= BRUSH.maxJump;
     this.follow(fresh ? 0 : moved / Math.max(f.dt, 1e-3), f.dt);
     this.spot.copy(hit.point);
     this.onWall = true;
@@ -84,7 +97,7 @@ export class SprayStroke<H extends WallHit> {
       this.lastDab.copy(hit.point);
       this.owed = 0;
       this.lay(f, hit, 1);
-    } else if (this.lastDab.distanceTo(hit.point) >= spacing) {
+    } else if (across(this.lastDab, hit.point, f.eye) >= spacing) {
       this.owed = Math.max(this.owed - this.fill(f, spacing), -1);
     }
     for (; this.owed >= 1; this.owed--) this.lay(f, hit, BRUSH.buildAmount);
@@ -107,10 +120,10 @@ export class SprayStroke<H extends WallHit> {
 
   /** Dabs from the last one toward the spot, `spacing` apart; returns how many. */
   private fill(f: StrokeFrame, spacing: number) {
-    const gap = this.lastDab.distanceTo(this.spot);
+    const gap = across(this.lastDab, this.spot, f.eye);
     const n = Math.min(BRUSH.maxDabs, Math.floor(gap / spacing));
     // Past maxDabs they spread out to reach the spot, so a line can't fall behind the aim.
-    step.subVectors(this.spot, this.lastDab).setLength(n === BRUSH.maxDabs ? gap / n : spacing);
+    step.subVectors(this.spot, this.lastDab).multiplyScalar((n === BRUSH.maxDabs ? gap / n : spacing) / gap);
     for (let i = 0; i < n; i++) {
       this.lastDab.add(step);
       const hit = this.wall.find(f.eye, along.subVectors(this.lastDab, f.eye).normalize());
