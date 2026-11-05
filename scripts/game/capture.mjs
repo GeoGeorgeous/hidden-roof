@@ -36,6 +36,8 @@ await check('capture: N films with the free camera (no HUD, the game without inp
     const hatch = [];
     for (let i = 0; i < 4; i++) (await press('KeyF'), sizes.push(buffer()), hatch.push(Math.round(g.config.INK.hatchPx * 100)));
     await press('KeyF');
+    // Past the dev tools' Record avatar view (the one above) to first person, where the next check starts.
+    await press('KeyV');
     await press('KeyN');
     const after = { cls: document.documentElement.className.includes('capture'), plate: shown('.capture-ui'), buffer: buffer(), hand: g.viewScene.visible };
     g.player.position.copy(start);
@@ -49,6 +51,40 @@ await check('capture: N films with the free camera (no HUD, the game without inp
     first.frame && !first.hotbar && !first.hint && first.plate && first.hand && first.marks === 0 && first.walked > 0.5 &&
     sizes.join() === `1920x1080,1080x1920,1080x1080,${windowSize}` && hatch.join() === '200,356,200,200' &&
     !after.cls && !after.plate && after.buffer === windowSize && after.hand;
+  return ok ? null : JSON.stringify(r);
+});
+
+await check("capture: the player build's plate and views: its own lines, V between two views, none of the dev tools' keys", async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const press = async (code) => {
+      g.input.key(code, true);
+      await window.frames(1);
+      g.input.key(code, false);
+      await window.frames(1);
+    };
+    const free = () => document.documentElement.classList.contains('capture-free');
+    const text = () => document.querySelector('.capture-plate').textContent;
+    const dev = g.capture.dev;
+    g.capture.dev = null;
+    g.input.setLocked(true);
+    await press('KeyN');
+    while (!free()) await press('KeyV');
+    const shown = text();
+    await press('KeyV');
+    const first = { free: free(), text: text() };
+    await press('KeyT');
+    await press('KeyV');
+    const out = { shown, first, back: free(), recording: g.ghost.recording };
+    // First person, where the next checks start.
+    await press('KeyV');
+    await press('KeyN');
+    g.capture.dev = dev;
+    g.input.setLocked(false);
+    g.fixedStep.dt = 0;
+    return out;
+  });
+  const ok = /FREE CAMERA/.test(r.shown) && /Tab keys/.test(r.shown) && /records a video/.test(r.shown) && !/AVATAR/.test(r.shown) && !r.first.free && /FIRST PERSON/.test(r.first.text) && /next view/.test(r.first.text) && /frame/.test(r.first.text) && !/AVATAR/.test(r.first.text) && r.back && !r.recording;
   return ok ? null : JSON.stringify(r);
 });
 

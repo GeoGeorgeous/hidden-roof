@@ -30,7 +30,9 @@ import { syncSkyline } from '../skyline';
 import { AvatarPreview } from './avatar-preview';
 import { layoutCity } from '../city/layout';
 import { dressTower, wallSigns } from '../city/rooftops';
+import { capture } from '../capture/hook';
 import { Ghost } from './ghost';
+import { ghostCapture } from './ghost-capture';
 import { Profiler } from './profiler';
 import { WetView } from './wet-view';
 import { RunsView } from './runs-view';
@@ -116,6 +118,7 @@ export class DevTools {
     this.build.onLoad = g.openLevel;
     this.figure = new AvatarPreview(g.scene);
     this.ghost = new Ghost(g);
+    capture.dev = ghostCapture(this.ghost);
     this.messages = new MessageTools(g.notify);
     this.profiler = new Profiler(g);
     this.wet = new WetView(g.scene, g.paint, () => g.player.position);
@@ -163,7 +166,7 @@ export class DevTools {
       messageHintShown: () => this.messages.hint,
       syncNotify: () => g.notifyView.syncLook(),
       ghostRecord: () => this.ghost.record(),
-      ghostPlay: () => this.ghost.play(),
+      ghostPlay: () => this.ghost.play(true),
       ghostFollow: () => this.ghost.follow(),
       ghostStop: () => this.ghost.stop(),
       ghostState: () => this.ghost.label,
@@ -178,7 +181,7 @@ export class DevTools {
       profileState: () => (this.profiler.recording ? 'RECORDING' : 'off'),
     };
     this.debug = new DebugPanel(hooks, () => g.environment.atmosphere.nightValues);
-    Object.assign(window, { game: { ...g, build: this.build, debug: this.debug, hooks, live, ghost: this.ghost, wetView: this.wet, runsView: this.runs, profiler: this.profiler, cityParts: { layoutCity, dressTower, wallSigns } } });
+    Object.assign(window, { game: { ...g, build: this.build, debug: this.debug, hooks, live, ghost: this.ghost, capture, wetView: this.wet, runsView: this.runs, profiler: this.profiler, cityParts: { layoutCity, dressTower, wallSigns } } });
   }
 
   /** Where the test figures stand besides the session's players (the ghost): a stepladder can't go there. */

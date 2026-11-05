@@ -637,7 +637,7 @@ export const BINDINGS = {
   slot4: ['Digit4'],
   slot5: ['Digit5'],
   screenshot: ['KeyK'],
-  /** Capture mode (CAPTURE): on and off; first person or the free camera; start and stop a recording (it downloads when it stops); the next frame size; the next video quality. Not R: game fullscreen locks the keys play binds, and Ctrl+R would go with it. */
+  /** Capture mode (CAPTURE): on and off; first person, the free camera or the dev tools' view; start and stop a recording (it downloads when it stops); the next frame size; the next video quality. Not R: game fullscreen locks the keys play binds, and Ctrl+R would go with it. */
   capture: ['KeyN'],
   captureView: ['KeyV'],
   captureRecord: ['KeyM'],
@@ -664,6 +664,8 @@ export const CAPTURE = {
     fly: 'KeyP',
     shorter: 'Minus',
     longer: 'Equal',
+    /** Held in the free view: the plate shows its keys. */
+    help: 'Tab',
   },
   /** Frames a second asked of the canvas's stream. */
   fps: 60,
@@ -1526,6 +1528,14 @@ export const GHOST = {
   /** How long a hiccup holds up a packet and everything after it (s), as a resend over a reliable link would. */
   hiccupDelay: 0.3,
   followDelay: 2,
+  /** A take shorter than this is a slip of the key: the last one stays (s). */
+  minTake: 0.5,
+  /** How long playing waits after the last of a recording arrives before it ends (s). */
+  tail: 0.5,
+  /** How fast it plays on capture mode's speed keys, from 1 (times as fast). */
+  speeds: [1, 2, 4],
+  /** Its keys in capture mode (dev/ghost-capture.ts), by code, all by the left hand on WASD: record in the Record avatar view (no key of the game's); in the free view play or hold it, from the start, the wall as before the recording, (the digit keys set its speed). */
+  keys: { record: 'KeyT', pause: 'Space', restart: 'KeyR', clean: 'KeyC' },
 };
 
 /** Settings → Performance test and npm run bench (perf-test.ts, perf-test-page.ts): what it measures, how its tip reads the numbers, how its popup shows them. */

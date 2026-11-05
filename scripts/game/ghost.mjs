@@ -76,6 +76,7 @@ await check('ghost: a recorded walk plays back through a jittery network smoothl
       return xs.length === 144;
     });
     g.ghost.stop();
+    await g.ghost.settled;
     g.ghost.link.random = Math.random;
     g.fixedStep.dt = 0;
     Object.assign(GHOST, { latency: 0.08, jitter: 0.04 });

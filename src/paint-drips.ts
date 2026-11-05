@@ -26,7 +26,8 @@ interface Run {
 }
 
 export class PaintDrips {
-  private runs: Run[] = [];
+  /** Running now; the ghost's clean wall (dev/ghost.ts) holds them back. */
+  readonly runs: Run[] = [];
   /** Runs this player started so far (F3): the dice may say so and `spawn` still drop one. */
   started = 0;
   /** Dev tools only (dev/runs-view.ts): told each texel a run paints, null in play. */

@@ -36,7 +36,7 @@ export const LABEL_HINTS: Record<string, string> = {
   PROBE: 'Stand still: turns systems off one at a time (city, props, shadows, lights, half resolution…) and measures what each costs from here, about 45 s. Same as F9; starts profiling if it isn\'t on, and lands in its report.',
   'PLAY (LOOP)': 'Play the recording back as a ghost, over and over, through the fake network below.',
   'FOLLOW ME': 'The ghost copies you live, a few seconds behind (follow: delay), through the fake network.',
-  STOP: 'Stop recording, playing or following.',
+  STOP: 'Stop recording, playing or following. Your paint and stepladder come back as they were before PLAY.',
   preset: 'Sets of paper, ink, sky and cloud colors to switch between live: NM, OM and RL are the pause menu\'s GRAPHICS → STYLE (NEW MANGA, OLD MANGA, RETRO LIGHT; INK_STYLES), 1–4 F3 only (INK_PRESETS). Edits stay with the picked set until reload; COPY gives every set as it shows.',
   REBUILD: 'Build the city again with the settings above (seed, sizes): a moment\'s work.',
   'caption: font': 'Font of a pickup tag\'s NEW TOOL: the HUD\'s mono, the neon signs\' heavy Japanese gothic, or the menu title\'s graffiti. Its Japanese is always in the gothic.',

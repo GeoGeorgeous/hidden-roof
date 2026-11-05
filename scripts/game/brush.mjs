@@ -195,6 +195,8 @@ await check('crosshair: the marker, the sponge and the roller show their real si
       out[tool] = { near, far, want: onScreen(width, 1), ratio: near / far, arc, nearFaded, out: faded() };
       if (tool === 'roller') {
         await stand(1);
+        // Its size eases over 0.12 s of the clock, and these frames take less.
+        cross.getAnimations().forEach((a) => a.finish());
         const box = cross.getBoundingClientRect();
         Object.assign(out.roller, { tall: tools.crosshairBar('roller'), wantTall: onScreen(g.config.ROLLER.pressLength, 1), wide: box.width, high: box.height, corner: getComputedStyle(cross).borderRadius });
       }
