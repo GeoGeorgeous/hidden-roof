@@ -57,6 +57,7 @@ Only `N.`, the id and the description are required. The optional parts appear in
 1. IDEA [BL-074]: Stencils
 2. [?IDEA-166]: Lock the camera while painting: an idea from before the rework, not started, off 1.7.0
 3. [IDEA-336]: Marker: a flat nib, wide across and thin along, for calligraphy: tried on a can cap (TRANSVERSAL), its code kept commented out, each place marked "Kept for a flat nib on the marker, a later version." (grep it)
+4. IDEA [BL-039]: More marker types (rectangular and calligraphy nibs among them, IDEA-233 merged in), placed on the map; a per-tool variant module first, as caps are (docs/ideas/tools.md)
 
 ## Input
 
@@ -80,14 +81,13 @@ Only `N.`, the id and the description are required. The optional parts appear in
 2. IDEA [BL-144]: Cover v2: drop hidden paint faces, make paintable walls nobody can reach plain walls and trim the room on the main floor (TASK-194 merged in), and pack pages fuller, after BL-143; up to 28% less paint memory at ULTRA (BL-034) (docs/ideas/props-and-level.md)
 3. TASK [BL-055]: Group the props better in build mode: decide which prop goes into which category (docs/ideas/props-and-level.md)
 4. [?BUGS-161]: A wall prop overlaps a fence
-5. IDEA [BL-039]: More marker types (rectangular and calligraphy nibs among them, IDEA-233 merged in), placed on the map; a per-tool variant module first, as caps are (docs/ideas/tools.md) @1.7.0
-6. IDEA [BL-050]: Wire cutting
-7. IDEA [BL-051]: Dynamic wire length
-8. IDEA [BL-052]: Lamps that can be fixed to the floor or the ceiling
-9. IDEA [BL-053]: Lamps that light signs
-10. IDEA [BL-054]: New sign sizes, including big rectangular and square ones
-11. IDEA [BL-075]: Digital billboards
-12. IDEA [BL-106]: Paintable cone roofs on the water tanks (a cone paint mapping) (docs/ideas/props-and-level.md)
+5. IDEA [BL-050]: Wire cutting
+6. IDEA [BL-051]: Dynamic wire length
+7. IDEA [BL-052]: Lamps that can be fixed to the floor or the ceiling
+8. IDEA [BL-053]: Lamps that light signs
+9. IDEA [BL-054]: New sign sizes, including big rectangular and square ones
+10. IDEA [BL-075]: Digital billboards
+11. IDEA [BL-106]: Paintable cone roofs on the water tanks (a cone paint mapping) (docs/ideas/props-and-level.md)
 
 ## Tools
 
