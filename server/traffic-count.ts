@@ -10,7 +10,13 @@ import { bump } from './tally';
 // A bot is kept by its name (the User-Agent's word that made it one) and the page it loaded.
 
 export const STEPS = ['view', 'script', 'beacon', 'socket'] as const;
+/** What a page load says of itself (src/boot.ts): what it showed, why the game didn't start, the start script from the browser's cache. */
+export const MARKS = ['game', 'noMouse', 'smallWindow', 'noWebgl', 'loadFailed', 'cached'] as const;
+/** What a visitor got to, a bit each in this order. */
+export const BITS = [...STEPS, ...MARKS] as const;
 type Step = (typeof STEPS)[number];
+type Mark = (typeof MARKS)[number];
+type Bit = (typeof BITS)[number];
 type Counts = Record<string, number>;
 
 /** One UTC day, as GET /traffic answers it (but its date). */
@@ -26,12 +32,14 @@ export interface Day {
   visitorCountries: Counts;
   /** Visitors who got this far. */
   steps: Record<Step, number>;
+  /** Visitors whose page said this. */
+  boot: Record<Mark, number>;
   /** Bot page loads, by the bot's name (lowercase) and by path. */
   botKinds: Counts;
   botPages: Counts;
 }
 
-/** One UTC hour: its views and bots, each visitor seen (a hash) with the steps they got to (a bit each, in STEPS order), and the country of each one's first view in it, if known. */
+/** One UTC hour: its views and bots, each visitor seen (a hash) with what they got to (a bit each, in BITS order), and the country of each one's first view in it, if known. */
 export interface Hour {
   views: number;
   bots: number;
@@ -39,12 +47,12 @@ export interface Hour {
   countries: Map<string, string>;
 }
 
-/** The day being counted: its date, the month's salt, its hours, who has been seen at each step in the day (hashes, from the hours) and its counts. */
+/** The day being counted: its date, the month's salt, its hours, who has been seen at each bit in the day (hashes, from the hours) and its counts. */
 export interface Today {
   name: string;
   salt: MonthSalt;
   hours: Map<number, Hour>;
-  seen: Record<Step, Set<string>>;
+  seen: Record<Bit, Set<string>>;
   day: Day;
 }
 
@@ -66,10 +74,12 @@ const BOT = /bot|crawl|spider|slurp|preview|facebookexternalhit|curl|wget|python
 /** The bot's name: the first word of the User-Agent that makes it a bot (Googlebot/2.1 is googlebot), lowercase. */
 const botName = (agent: string) => (agent.match(/[^\s;()/,]+/g)?.find((w) => BOT.test(w)) ?? 'other').toLowerCase();
 
-export const blank = (): Day => ({ views: 0, visitors: 0, bots: 0, pages: {}, sources: {}, campaigns: {}, countries: {}, visitorCountries: {}, steps: { view: 0, script: 0, beacon: 0, socket: 0 }, botKinds: {}, botPages: {} });
+/** No visitor's page has said anything. */
+export const noMarks = () => Object.fromEntries(MARKS.map((m) => [m, 0])) as Record<Mark, number>;
+export const blank = (): Day => ({ views: 0, visitors: 0, bots: 0, pages: {}, sources: {}, campaigns: {}, countries: {}, visitorCountries: {}, steps: { view: 0, script: 0, beacon: 0, socket: 0 }, boot: noMarks(), botKinds: {}, botPages: {} });
 export const fresh = (name: string, salt: MonthSalt, hours = new Map<number, Hour>()): Today => {
-  const seen = { view: new Set<string>(), script: new Set<string>(), beacon: new Set<string>(), socket: new Set<string>() };
-  for (const h of hours.values()) for (const [id, mask] of h.seen) STEPS.forEach((step, i) => mask & (1 << i) && seen[step].add(id));
+  const seen = Object.fromEntries(BITS.map((bit) => [bit, new Set<string>()])) as Record<Bit, Set<string>>;
+  for (const h of hours.values()) for (const [id, mask] of h.seen) BITS.forEach((bit, i) => mask & (1 << i) && seen[bit].add(id));
   return { name, salt, hours, seen, day: blank() };
 };
 
@@ -143,15 +153,20 @@ export function add(t: Today, h: Hit, hosts: string[], country: (ip: string) => 
         : h.method === 'GET' && url.pathname === '/ws' && h.status === 101
           ? 'socket'
           : null;
-  if (!step) return false;
+  // A mark is a request for this static file, so that it reaches the log with the game's server down; only the words in MARKS count.
+  const marks = !step && h.method === 'GET' && (h.status === 200 || h.status === 304) && url.pathname === '/mark.txt' ? MARKS.filter((m) => url.searchParams.getAll('m').includes(m)) : [];
+  const bits: Bit[] = step ? [step] : marks;
+  if (!bits.length) return false;
   const hour = hourOf(t, h.ts);
   const id = t.salt.id(prefix(h.ip), '\0', h.agent);
   // Past SERVER.trafficHourSeen visitors in an hour the rest are not remembered (their views still count).
   let [first, kept] = [false, false];
   if ((kept = hour.seen.has(id) || hour.seen.size < SERVER.trafficHourSeen)) {
     first = step === 'view' && !t.seen.view.has(id);
-    hour.seen.set(id, (hour.seen.get(id) ?? 0) | (1 << STEPS.indexOf(step)));
-    t.seen[step].add(id);
+    for (const bit of bits) {
+      hour.seen.set(id, (hour.seen.get(id) ?? 0) | (1 << BITS.indexOf(bit)));
+      t.seen[bit].add(id);
+    }
   }
   if (step === 'view') {
     t.day.views++;
@@ -166,6 +181,7 @@ export function add(t: Today, h: Hit, hosts: string[], country: (ip: string) => 
   }
   // A day's file ahead of its hours file (one write of the two failed) never counts down.
   for (const s of STEPS) t.day.steps[s] = Math.max(t.day.steps[s], t.seen[s].size);
+  for (const m of MARKS) t.day.boot[m] = Math.max(t.day.boot[m], t.seen[m].size);
   t.day.visitors = Math.max(t.day.visitors, t.seen.view.size);
   return true;
 }

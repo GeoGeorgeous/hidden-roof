@@ -9,6 +9,7 @@
 // together; this sets the class too, should that script have been blocked. The
 // game starts in one tab only (one-tab.ts). On the page, Play now appears once
 // the window grows big enough; the game made small covers itself (small-window.ts).
+// Each load says what it came to, for the site's traffic (mark).
 
 const force = new URLSearchParams(location.search).has('force');
 const root = document.documentElement;
@@ -43,6 +44,15 @@ function heroLoop() {
   if (document.readyState === 'complete') start();
   else addEventListener('load', start, { once: true });
 }
+
+/** What this load came to, for the site's traffic (server/traffic-count.ts): a request for a static file, in Caddy's log whether or not the game's server is up. Nothing is kept on the device; ?force isn't a visitor. */
+function mark(...marks: string[]) {
+  if (force) return;
+  fetch(`/mark.txt?${marks.map((m) => `m=${m}`).join('&')}`, { cache: 'no-store', keepalive: true }).catch(() => {});
+}
+
+/** This script came from the browser's cache: nothing crossed the network. Unknown is no. */
+const fromCache = () => (performance.getEntriesByName(import.meta.url)[0] as PerformanceResourceTiming | undefined)?.transferSize === 0;
 
 /** The page shows for want of room, not of WebGL: Play now appears once the window is big enough, with a mouse (a reload, as html.game is decided before the first paint). */
 function watchRoom() {
@@ -79,6 +89,7 @@ function sendLink() {
 /** The game didn't start: the page about the game in its place, saying why. */
 function failed() {
   const webgl = !!document.createElement('canvas').getContext('webgl2');
+  mark(webgl ? 'loadFailed' : 'noWebgl');
   root.classList.remove('game');
   const note = document.querySelector<HTMLElement>('.about .failed');
   if (!note) return;
@@ -93,7 +104,9 @@ function failed() {
 
 // Fails when a file of the game doesn't load, or the game can't start (no WebGL: three.js throws).
 sendLink();
-if (force || playable()) {
+const play = force || playable();
+mark(play ? 'game' : pointer() ? 'smallWindow' : 'noMouse', ...(fromCache() ? ['cached'] : []));
+if (play) {
   root.classList.add('game');
   import('./one-tab').then((t) => t.oneTab(() => import('./main'))).catch(failed);
 } else {
