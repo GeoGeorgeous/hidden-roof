@@ -15,7 +15,7 @@ const ACTIONS = Object.keys(BINDINGS) as Action[];
 
 // The tutorial keeps no fact it is told, so the ones sent every frame are one object each, filled in.
 const MOVED = { type: 'moved' as const, meters: 0 };
-const SPRINTED = { type: 'sprinted' as const, seconds: 0 };
+const SPRINTED = { type: 'sprinted' as const, meters: 0 };
 const CLIMBED = { type: 'climbed' as const, meters: 0 };
 const JUMPED: Fact = { type: 'jumped' };
 
@@ -52,9 +52,9 @@ export class TutorialWire {
     this.feetY = player.position.y;
     if (tutorial.teaching) {
       if (moved > 0) tutorial.fact(((MOVED.meters = moved), MOVED));
-      if (player.sprinting) tutorial.fact(((SPRINTED.seconds = dt), SPRINTED));
+      if (player.sprinting && moved > 0) tutorial.fact(((SPRINTED.meters = moved), SPRINTED));
       if (this.grounded && input.justPressed('jump') && player.velocity.y > 0) tutorial.fact(JUMPED);
-      if (player.onLadder && rose > 0) tutorial.fact(((CLIMBED.meters = rose), CLIMBED));
+      if (player.onLadder && rose !== 0) tutorial.fact(((CLIMBED.meters = Math.abs(rose)), CLIMBED));
       for (const action of ACTIONS) if (input.justPressed(action)) tutorial.fact({ type: 'pressed', action });
     }
     if (TUTORIAL.enabled !== this.enabled) tutorial.setEnabled((this.enabled = TUTORIAL.enabled));

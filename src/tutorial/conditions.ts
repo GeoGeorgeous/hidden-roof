@@ -28,7 +28,7 @@ const totalKey = (type: string, tool?: string, crouched?: boolean) => (tool ? `$
 export function see(seen: Seen, f: Fact) {
   seen.events.add(f.type);
   if (f.type === 'pressed') seen.pressed.add(f.action);
-  const n = f.type === 'moved' || f.type === 'climbed' ? f.meters : f.type === 'sprinted' ? f.seconds : f.type === 'used' ? f.amount : 0;
+  const n = f.type === 'moved' || f.type === 'climbed' || f.type === 'sprinted' ? f.meters : f.type === 'used' ? f.amount : f.type === 'opacitySet' ? f.percent : 0;
   if (!n) return;
   for (const key of f.type === 'used' ? [f.type, totalKey(f.type, f.tool), ...(f.crouched ? [totalKey(f.type, f.tool, true)] : [])] : [f.type]) seen.totals.set(key, (seen.totals.get(key) ?? 0) + n);
 }

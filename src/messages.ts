@@ -14,7 +14,9 @@ import type { Action } from './input.ts';
 export const MESSAGES = {
   /** Subtitles at the bottom center: a control being taught (tutorial/hints.ts picks which, and for how long), in the character's words, as what it says in toasts. Up to 3 lines, each its own entry line. */
   hint: {
-    move: ['I can move with {forward} {left} {back} {right}', 'I can run with {sprint} and jump with {jump}'],
+    move: ['I can walk with {forward} {left} {back} {right}'],
+    jump: ['I can jump with {jump}'],
+    sprint: ['I can hold {sprint} to run'],
     spray: ['I can spray with {use}'],
     opacity: ['I can hold {sprint} and scroll {prev} / {next} to change opacity'],
     canTake: ['I can take the can with {slot1}'],

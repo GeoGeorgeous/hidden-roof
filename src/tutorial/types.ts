@@ -7,14 +7,15 @@ import type { Tool } from '../inventory/tool.ts';
 /** What the game tells the tutorial: things that happened. */
 export type Fact =
   | { type: 'moved'; meters: number }
-  | { type: 'sprinted'; seconds: number }
+  | { type: 'sprinted'; meters: number }
   | { type: 'jumped' }
   /** m drawn, rolled or scrubbed, s sprayed on a surface, 1 = a stepladder placed. */
   | { type: 'used'; tool: Tool; amount: number; crouched?: boolean }
   | { type: 'colorCycled' }
   | { type: 'colorPicked' }
   | { type: 'capCycled' }
-  | { type: 'opacitySet' }
+  /** By this many percent, up or down. */
+  | { type: 'opacitySet'; percent: number }
   | { type: 'sized'; tool: Tool }
   | { type: 'climbed'; meters: number }
   /** Any bound action, from Input.justPressed. */
@@ -53,7 +54,7 @@ export type Cond =
   /** Near a ladder or on one. */
   | { near: 'ladder' }
   /** Summed over the facts since the hint was wanted. */
-  | { total: 'moved' | 'sprinted' | 'used' | 'climbed'; tool?: Tool; crouched?: true; atLeast: Amount }
+  | { total: 'moved' | 'sprinted' | 'used' | 'climbed' | 'opacitySet'; tool?: Tool; crouched?: true; atLeast: Amount }
   /** A fact of this type since the hint was wanted. */
   | { event: Fact['type'] }
   /** Visible seconds of play. */

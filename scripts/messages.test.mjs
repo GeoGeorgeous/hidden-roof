@@ -20,7 +20,7 @@ assert.equal(msg('toast.pickedUp'), 'I picked up **{item}**');
 assert.equal(msg('toast.left', { user: 'A', other: 1 }), '**A** left');
 // Action names are not values: they stay for the display to resolve.
 assert.deepEqual(msgLines('hint.climb'), ['I can walk into the ladder or hold {jump} to climb', 'I can hold {crouch} to stay on it']);
-assert.equal(msg('hint.move', { forward: 'W' }), 'I can move with W {left} {back} {right}\nI can run with {sprint} and jump with {jump}');
+assert.equal(msg('hint.move', { forward: 'W' }), 'I can walk with W {left} {back} {right}');
 // Values go in as plain text: no template syntax, no $ patterns, no second pass.
 assert.equal(msg('toast.joined', { user: '{item} $& **x**' }), '**{item} $& **x**** joined');
 // Hints are at most 3 lines.
