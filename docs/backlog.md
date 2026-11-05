@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 360
+The one list of what's left. Counter for new ids: next: 361
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -184,6 +184,7 @@ Shipped since the last release; the release commit empties this list.
 29. [TASK-232]: Painting Rework: to production: unlock-all (`ALL_PAINT`) cut
 30. [DOCS-357]: Painting Rework's end: all of paint in `docs/painting.md`, limits in `docs/known-limits.md`, `docs/ideas/` as the code is
 31. [IDEA-358]: The crosshair shows the marker's and the sponge's real width at the wall and fades out of their reach, as the can's does, with no arc: one module, `src/tools/aim.ts`, that any tool with a reach can take
+32. [IDEA-360]: The roller's crosshair is a bar, a press of it at its real size, and fades out of its reach, by the same module as the marker's and the sponge's
 
 ## Discarder
 

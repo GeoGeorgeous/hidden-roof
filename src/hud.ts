@@ -27,6 +27,7 @@ export class Hud {
   private colorTags: HTMLElement[];
   private colorTagUntil = 0;
   private crosshairSize = -1;
+  private crosshairBar: number | null = null;
   private arc: number | null = null;
   private percent: HTMLElement;
   private percentUntil = 0;
@@ -119,11 +120,16 @@ export class Hud {
     this.crosshair.animate([{ '--arc-line': `${peak}px` }, { '--arc-line': `${line}px` }], { duration: lineMs, easing: 'ease-out' });
   }
 
-  /** Crosshair circle diameter in CSS pixels. */
-  setCrosshair(px: number) {
-    if (px === this.crosshairSize) return;
-    this.crosshairSize = px;
-    this.crosshair.style.setProperty('--size', `${px}px`);
+  /** The crosshair's size in CSS pixels: a ring's diameter, or with `bar`, a bar's width and height. */
+  setCrosshair(px: number, bar: number | null) {
+    if (px !== this.crosshairSize) {
+      this.crosshairSize = px;
+      this.crosshair.style.setProperty('--size', `${px}px`);
+    }
+    if (bar === this.crosshairBar) return;
+    this.crosshairBar = bar;
+    this.crosshair.classList.toggle('bar', bar !== null);
+    if (bar !== null) this.crosshair.style.setProperty('--bar', `${bar}px`);
   }
 
   /** The crosshair fades where the tool in hand wouldn't reach. */

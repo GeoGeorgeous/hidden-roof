@@ -584,7 +584,7 @@ export const MARKER = {
   maxRays: 32,
 };
 
-/** The crosshair. The can, the marker and the sponge show their real width (tools/aim.ts), the roller its own size. */
+/** The crosshair. The tools that mark show their real size (tools/aim.ts): a ring, or the roller's bar. */
 export const CROSSHAIR = {
   /** Its size (px) with no such tool in hand: the stepladder, empty hands, build mode. */
   plain: 6,
@@ -748,8 +748,6 @@ export const ROLLER = {
   pressLength: 0.06,
   /** Fraction of each end of the roller that leaves lighter paint. */
   softness: 0.15,
-  /** Crosshair with the roller in hand (px), the same at every width. */
-  crosshair: 10,
   /** Opacity per press: a roller lays it on thick. */
   strength: 0.45,
   /** The odds its wet paint runs, by the spot (DRIPS.spot; 0..1): a loaded roller runs easily. */

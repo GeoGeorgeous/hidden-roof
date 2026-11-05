@@ -115,6 +115,11 @@
   pointer-events: none;
   transition: width 0.12s, height 0.12s, opacity 0.12s;
 }
+/* The roller's: a press of it, as wide as the roller. */
+.crosshair.bar {
+  height: var(--bar);
+  border-radius: 0;
+}
 /* Kept for a flat nib on the marker, a later version. A flat nib's crosshair: a bar at its angle in place of the ring, turning alone so the arc and the percent stay put.
 .crosshair.nib {
   border-color: transparent;

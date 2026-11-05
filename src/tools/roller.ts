@@ -6,6 +6,7 @@ import { ROLLER, type PaintColor } from '../config';
 import type { Input } from '../input';
 import { rgbOf } from '../inventory/items';
 import type { PaintSystem } from '../painting';
+import { ToolAim } from './aim';
 import { StrokeSweep } from './stroke';
 import { RollerModel } from './roller-model';
 
@@ -23,6 +24,8 @@ const right = new THREE.Vector3();
 export class RollerTool {
   readonly model = new RollerModel();
   private stroke: StrokeSweep;
+  /** What the crosshair shows with the roller in hand: a press, as wide as the roller. */
+  readonly aim: ToolAim;
   private lastHit = new THREE.Vector3();
   private hasLastHit = false;
   private sounding = false;
@@ -33,6 +36,7 @@ export class RollerTool {
     private audio: Audio,
   ) {
     this.stroke = new StrokeSweep(solids, paint);
+    this.aim = new ToolAim(solids, paint, ROLLER.reach);
   }
 
   /** The roller's sway group, for ViewSway. */
@@ -46,7 +50,8 @@ export class RollerTool {
   }
 
   /** `width`: the player's roller width (m). */
-  update(dt: number, input: Input, camera: THREE.Camera, eye: THREE.Vector3, active: boolean, color: PaintColor, width: number) {
+  update(dt: number, input: Input, camera: THREE.PerspectiveCamera, eye: THREE.Vector3, active: boolean, color: PaintColor, width: number) {
+    if (active) this.aim.update(camera, eye, width, ROLLER.pressLength);
     const rolled = active && input.held('use') && input.locked ? this.roll(dt, camera, eye, color, width) : this.lift();
     this.model.update(dt, camera, active, color, width, rolled !== null, rolled ?? 0);
   }
