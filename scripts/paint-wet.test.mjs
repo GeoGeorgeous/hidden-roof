@@ -7,6 +7,7 @@ const { DRIPS } = await import('../src/config.ts');
 const { paintRandom } = await import('../src/lcg.ts');
 const { WetPaint, canRule, toolRule } = await import('../src/paint-wet.ts');
 const { PaintRaster } = await import('../src/paint-raster.ts');
+const { PaintDrips } = await import('../src/paint-drips.ts');
 const { putPatch } = await import('../src/paint-copy.ts');
 
 const surface = (tpm = 96) => ({ geo: { atlasW: 256, atlasH: 256, texelsPerMeter: tpm }, wet: null, spots: null });
@@ -30,7 +31,7 @@ const dice = (...rolls) => {
   assert.equal(wet.add(s, FACE, 1, 1, pass * DRIPS.passes - 1, rule), null, 'under the passes');
   assert.ok(ran(wet.add(s, FACE, 1, 1, 1, rule)), 'at the passes');
   assert.equal(wet.add(s, FACE, 1, 1, 1, rule), null, 'the paint that ran is gone');
-  assert.deepEqual([wet.rolls, wet.runs], [1, 1], 'one roll, one run');
+  assert.equal(wet.rolls, 1, 'one roll');
 }
 
 // Paint dries: the same coats, late, are short of it.
@@ -162,6 +163,28 @@ const dice = (...rolls) => {
   for (let i = 0; i < 6; i++) raster.dot(s, rect, 14, 14, { radius: 1, amount: 1, color: [1, 0, 0], softness: 0, square: false }, toolRule(SURE));
   assert.ok(at.length > 0, 'runs start on the face');
   assert.ok(at.every(([x, y]) => x >= 10 && y >= 10 && x < 18 && y < 18), `and only there: ${JSON.stringify(at.find(([x, y]) => x < 10 || y < 10 || x >= 18 || y >= 18))}`);
+}
+
+// Runs that may start: as many at once as DRIPS.maxActive, none near another in its column, and only those count as started.
+{
+  const rect = { x: 0, y: 0, w: 200, h: 200 };
+  const s = { key: 'wall', mesh: {}, geo: { texelsPerMeter: 96, rects: [rect] } };
+  const paint = { onDrip() {}, record: (op) => op, tick() {}, get: () => s, dab() {} };
+  const drips = new PaintDrips(paint);
+  const start = (x, y) => paint.onDrip(s, rect, x, y, [1, 0, 0], 1);
+  const { maxActive } = DRIPS;
+  const apart = DRIPS.apart * 96;
+  dice(0.5);
+  DRIPS.maxActive = 3;
+  start(10, 150);
+  start(10, 150 - Math.floor(apart / 2));
+  assert.equal(drips.count, 1, 'not near another in its column');
+  start(10, 150 - Math.ceil(apart) - 2);
+  start(11, 150);
+  start(12, 150);
+  assert.equal(drips.count, 3, 'further down or beside it, up to maxActive');
+  assert.equal(drips.started, 3, 'those dropped never started');
+  DRIPS.maxActive = maxActive;
 }
 
 console.log('paint wet: ok');

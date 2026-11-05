@@ -48,9 +48,8 @@ export const toolRule = (chance: number): RunRule => ({ chance, miss: Infinity, 
 export class WetPaint {
   /** The paint clock (s), advanced by the game's frame time (PaintSystem.tick): wet paint dries by it. */
   now = 0;
-  /** Dice rolled and runs started so far (F3). */
+  /** Dice rolled so far (F3). */
   rolls = 0;
-  runs = 0;
 
   /** `amt` coats more on opaque texel (x, y) of `face`. Returns how long a run starting here is (0..1 of DRIPS' lengths); null: none starts. */
   add(s: WetSurface, face: FaceOrigin, x: number, y: number, amt: number, rule: RunRule) {
@@ -76,7 +75,6 @@ export class WetPaint {
       if (spot) this.keep(s, spot, until - wet[k]);
       return null;
     }
-    this.runs++;
     wet[k] = this.now;
     const luck = paintRandom.drips();
     if (!spot) return luck;

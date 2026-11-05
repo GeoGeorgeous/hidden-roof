@@ -27,6 +27,8 @@ interface Run {
 
 export class PaintDrips {
   private runs: Run[] = [];
+  /** Runs this player started so far (F3): the dice may say so and `spawn` still drop one. */
+  started = 0;
   /** Dev tools only (dev/runs-view.ts): told each texel a run paints, null in play. */
   tap: ((s: PaintSurface, rect: Rect, x: number, y: number) => void) | null = null;
 
@@ -47,6 +49,7 @@ export class PaintDrips {
     if (Math.max(rect.y, y - length * s.geo.texelsPerMeter) >= y - 1) return;
     // As its op carries it (op-wire.ts), so every client runs the same run.
     const op = this.paint.record(rounded<DripOp>({ kind: 'drip', key: s.key, rect: s.geo.rects.indexOf(rect), u: (x + 0.5 - rect.x) / rect.w, v: (y + 0.5 - rect.y) / rect.h, length, speed: DRIPS.speed * (0.6 + 0.8 * paintRandom.drips()), rgb }));
+    this.started++;
     this.run(s, op);
   }
 

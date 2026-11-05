@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 349
+The one list of what's left. Counter for new ids: next: 350
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -214,3 +214,4 @@ Dropped items, kept for the record; don't work on them.
 58. [BUGS-346]: A spot of wet paint was counted on the atlas's grid, so one square could hold two faces, up to a meter or more apart in the world: its squares start at their face's corner now
 59. [BUGS-347]: Paint on the ring around a face could start a run nobody sees, in a slot that painted nothing: it no longer rolls
 60. [BUGS-348]: Wiping or undoing paint in build mode left its spots resting and full: restored paint is dry now, spots too
+61. [BUGS-349]: F3's rolls / runs counted runs the dice decided and the paint then dropped: it counts those that start

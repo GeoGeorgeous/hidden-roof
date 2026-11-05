@@ -58,10 +58,9 @@ export class PaintSystem {
     this.raster.wet.now += dt;
   }
 
-  /** Dice rolled and runs started so far (paint-wet.ts). */
-  get runTally() {
-    const { rolls, runs } = this.raster.wet;
-    return { rolls, runs };
+  /** Dice rolled so far (paint-wet.ts). */
+  get rolls() {
+    return this.raster.wet.rolls;
   }
 
   /** The paint clock (s): wet paint (PaintSurface.wet) is dry once it is past. */

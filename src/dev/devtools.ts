@@ -244,7 +244,7 @@ export class DevTools {
     if (now - this.opsFrom.time >= 1000) {
       live.stats.paintOps = ((g.paint.opCount - this.opsFrom.count) * 1000) / (now - this.opsFrom.time);
       this.opsFrom = { count: g.paint.opCount, time: now };
-      this.tallies.push(g.paint.runTally);
+      this.tallies.push({ rolls: g.paint.rolls, runs: g.drips.started });
       if (this.tallies.length > 11) this.tallies.shift();
     }
     const p = g.player;
