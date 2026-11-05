@@ -268,6 +268,8 @@ there a moment. Owner: too few, too fast, and no haze at the brush wanted.
 
 ### 13. Puddle runs (optional, unconfirmed)
 
+Owner (2026-11-05): not taken: runs keep their dice. Without dice every part of a line run over many times runs, 3 to 10 times what the dice give; see module 7.
+
 Owner (2026-11-04): not to be copied as it is; talked over in module 7. On the
 branch runs got more right but are far from ideal; today the marker's are good,
 the can's so-so. What the branch does: paint runs by how much paint landed, not
@@ -434,7 +436,7 @@ only): cut it before the branch reaches `dev`, on the owner's word.
 | 9 | Done on `feat/spray-plume`. Spray plume from the sandbox's, then by the cap (cone, specks, haze); the old square points gone | |
 | 8 | Done on `feat/paint-audit`. Dead code, three reviews, load and client measures against 1.6.2 (`docs/known-limits.md`), docs; found: a slow line's backlog under 60 fps, plumes blanked in a crowd | TASK-232 |
 | | The owner tests and thinks about paint runs | |
-| 7 | Paint runs: the design talked over first, the marker's kept as they are if nothing asks otherwise; then `ALL_PAINT` cut and this doc gone | TASK-230 |
+| 7 | On `feat/paint-runs`, for the owner to try. Paint runs by dice, not puddles: `src/paint-wet.ts`, wet paint past `DRIPS.passes` rolls for its spot by the cap's `chance`, what a failed roll leaves pools in the spot (likelier, longer runs), a spot rests after a run. Marker and roller as they were. Then `ALL_PAINT` cut and this doc gone | TASK-230 |
 
 Order (owner, 2026-11-04): 6, 9, 8, a pause, 7.
 

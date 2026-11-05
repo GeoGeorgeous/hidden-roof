@@ -3,6 +3,7 @@ import type { PaintPage, DirtyRect } from './paint-gpu';
 import type { MipSize } from './paint-mips';
 import type { PageSlot } from './page-packer';
 import type { Box } from './paint-raster';
+import type { WetSurface } from './paint-wet';
 import type { LightSlot } from './render/bake/light-pages';
 import type { Rect, SurfaceGeometry } from './surfaces';
 
@@ -36,8 +37,10 @@ interface PaintSurfaceFields {
   data: Uint8Array | null;
   /** Sizes of the texture's smaller levels for distant views (paint-mips.ts); empty while it has no paint. */
   mips: MipSize[];
-  /** When each texel's wet paint is dry (paint-raster.ts RasterSurface). */
+  /** When each texel's wet paint is dry (paint-wet.ts WetSurface). */
   wet: Float32Array | null;
+  /** The spots of wall that ran or keep paint (paint-wet.ts WetSurface). */
+  spots: WetSurface['spots'];
   /** Texel rects changed since the last upload (inclusive, paint-gpu.ts: its list, nobody else's). */
   dirty: DirtyRect[];
 }

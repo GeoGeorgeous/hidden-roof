@@ -1,5 +1,5 @@
 import { CAP_ORDER, CAPS } from '../config';
-import { c, r, t, type Hooks, type Item, type Section } from './tuning';
+import { c, pct, r, t, type Hooks, type Item, type Section } from './tuning';
 
 // F3 panel contents for painting (tuning.ts has the helpers): what each tool
 // does (one vocabulary: reach, width, opacity, softness), the caps, paint
@@ -126,19 +126,22 @@ export function paintSections(h: Hooks): Section[] {
       title: 'Paint runs',
       items: [
         t('on', ['DRIPS', 'enabled']),
-        r('build-up needed', ['DRIPS', 'excess'], 0.5, 10, 0.1),
+        r('passes', ['DRIPS', 'passes'], 0.1, 5, 0.1),
         r('drying time', ['DRIPS', 'dryTime'], 0.1, 20, 0.1),
+        r('rest', ['DRIPS', 'rest'], 0, 10, 0.1),
+        { kind: 'heading', label: 'LOOK' },
         r('length: min', ['DRIPS', 'minLength'], 0.02, 1, 0.01),
         r('length: max', ['DRIPS', 'maxLength'], 0.02, 1.5, 0.01),
         r('drip speed', ['DRIPS', 'speed'], 0.01, 1, 0.01),
         r('opacity', ['DRIPS', 'strength'], 0.1, 1, 0.05),
         r('max at once', ['DRIPS', 'maxActive'], 0, 200, 1),
-        { kind: 'heading', label: 'FREQUENCY PER TOOL' },
-        ...CAP_ORDER.map((cap) => r(`${CAPS[cap].name.toLowerCase()} cap`, ['CAPS', cap, 'drips'], 0, 400, 1)),
-        r('marker', ['MARKER', 'drips'], 0, 400, 1),
-        r('roller', ['ROLLER', 'drips'], 0, 400, 1),
+        { kind: 'heading', label: 'CHANCE PER TOOL' },
+        ...CAP_ORDER.map((cap) => pct(`${CAPS[cap].name.toLowerCase()} cap`, ['CAPS', cap, 'chance'])),
+        pct('marker', ['MARKER', 'chance']),
+        pct('roller', ['ROLLER', 'chance']),
         // Debug views of wet paint and of runs: what they show, not how paint behaves.
         { kind: 'heading', label: 'VIEWS' },
+        { kind: 'readout', label: 'rolls / runs', get: () => h.runTally() },
         { kind: 'readout', label: 'most build-up', get: () => h.wetBuildUp() },
         t('wet view', ['WET_VIEW', 'enabled']),
         r('wet view: size', ['WET_VIEW', 'size'], 1, 12, 0.5),

@@ -55,10 +55,9 @@ Only `N.`, the id and the description are required. The optional parts appear in
 ## Painting
 
 1. IDEA [BL-074]: Stencils
-2. [TASK-230]: Painting Rework: paint runs with the brush: the 1.5.0 runs don't fit it (measured: the can barely runs); the design talked over in the plan's module 7 (the marker's runs are good today; puddle runs are only a candidate) (docs/ideas/paint-refactoring.md) @1.7.0
-3. [TASK-232]: Painting Rework: to production: what's left once the runs are in: cut unlock-all (`ALL_PAINT`), delete the plan (docs/ideas/paint-refactoring.md) @1.7.0
-4. [?IDEA-166]: Painting Rework: lock the camera while painting (not in the branch) (docs/ideas/paint-refactoring.md)
-5. [IDEA-336]: Marker: a flat nib, wide across and thin along, for calligraphy: tried on a can cap (TRANSVERSAL), its code kept commented out, each place marked "Kept for a flat nib on the marker, a later version." (grep it)
+2. [TASK-232]: Painting Rework: to production: what's left once the runs are in: cut unlock-all (`ALL_PAINT`), delete the plan (docs/ideas/paint-refactoring.md) @1.7.0
+3. [?IDEA-166]: Painting Rework: lock the camera while painting (not in the branch) (docs/ideas/paint-refactoring.md)
+4. [IDEA-336]: Marker: a flat nib, wide across and thin along, for calligraphy: tried on a can cap (TRANSVERSAL), its code kept commented out, each place marked "Kept for a flat nib on the marker, a later version." (grep it)
 
 ## Input
 
@@ -168,6 +167,7 @@ Shipped since the last release; the release commit empties this list.
 13. [IDEA-337]: The can's crosshair fades where the paint wouldn't land, from the ray it already casts; how faint is a row in F3 (Cursor)
 14. [IDEA-339]: The plume follows the opacity set: fewer and fainter specks, as tuned at 65%, for you and for others, in the snapshot's flow byte
 15. [PERF-341]: What rays look through near a point: the solids' spheres in one flat array, about 10 times faster; a roof frame's CPU 5.7 → 3.7 ms in the same conditions, fps unchanged
+16. [TASK-230]: Paint runs with the brush: past `passes` of wet paint a spot rolls the dice by its cap's `chance`; a failed roll leaves the paint, it pools in the spot and makes a run likelier and longer, and a spot rests after a run: a can held still runs with every cap as a result of the same rule; marker and roller as they were; F3 in passes, chance and rest; `npm run bench:runs`
 
 ## Discarder
 

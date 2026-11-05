@@ -46,10 +46,11 @@ await check('paint runs: paint dries; a coat over a dry coat starts no run, the 
     let runs = 0;
     g.paint.onDrip = () => runs++;
     g.config.DRIPS.enabled = true;
-    // A rate this high makes every texel that gets wet enough run: no dice.
+    // Odds this high make every texel that gets wet enough run: no dice.
+    const SURE = { chance: 1e9, miss: Infinity, rest: 0, full: 0 };
     const coats = (n, amount) => {
       runs = 0;
-      for (let i = 0; i < n; i++) g.paint.stamp(s, at, 0.1, amount, [0.9, 0.2, 0.1], 0, 1e9);
+      for (let i = 0; i < n; i++) g.paint.stamp(s, at, 0.1, amount, [0.9, 0.2, 0.1], 0, SURE);
       return runs;
     };
     const out = {};
@@ -57,7 +58,7 @@ await check('paint runs: paint dries; a coat over a dry coat starts no run, the 
     const dry = () => g.drips.update(30);
     g.paint.clear();
     coats(1, 1); // opaque
-    coats(3, 1); // 3 coats of wet paint, under DRIPS.excess
+    coats(3, 1); // 3 coats of wet paint, under DRIPS.passes
     dry();
     out.overDry = coats(4, 1);
     g.paint.clear();
@@ -73,6 +74,46 @@ await check('paint runs: paint dries; a coat over a dry coat starts no run, the 
   return r.overDry === 0 && r.overWet > 0 && r.held > 0 ? null : JSON.stringify(r);
 });
 
+await check('paint runs: a can held on one spot runs with every cap, and more with a wide one; marker and roller keep what they did', async () => {
+  const r = await page.evaluate(async () => {
+    const g = window.game;
+    const { input, inventory: inv, player, config } = g;
+    const was = config.BRUSH.opacity;
+    input.setLocked(true);
+    inv.unlockAll();
+    inv.select(0);
+    config.BRUSH.opacity = 0.65;
+    player.setSpawn(player.position.clone().set(2.4, 0, 2.95), -Math.PI / 2);
+    player.respawn();
+    const record = g.paint.record.bind(g.paint);
+    let runs = 0;
+    g.paint.record = (op) => (op.kind === 'drip' && runs++, record(op));
+    const out = {};
+    for (const cap of ['needle', 'fat']) {
+      for (let n = 0; inv.cap !== cap && n < 20; n++) inv.cycleCap(1);
+      g.paint.clear();
+      g.drips.clear();
+      runs = 0;
+      await steps((f) => {
+        player.yaw = -Math.PI / 2;
+        player.pitch = 0;
+        if (f === 0) input.button(0, true);
+        if (f === 600) input.button(0, false);
+        return f === 602;
+      });
+      out[cap] = runs;
+    }
+    delete g.paint.record;
+    config.BRUSH.opacity = was;
+    g.paint.clear();
+    g.drips.clear();
+    g.fixedStep.dt = 0;
+    input.setLocked(false);
+    return out;
+  });
+  return r.needle >= 1 && r.fat > r.needle ? null : JSON.stringify(r);
+});
+
 await check('wet view (F3): wet paint on an upright face shows as points, dry paint as none', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
@@ -80,10 +121,11 @@ await check('wet view (F3): wet paint on an upright face shows as points, dry pa
     const { s, rect } = faces.reduce((a, b) => (b.size > a.size ? b : a));
     g.config.DRIPS.enabled = true;
     g.config.WET_VIEW.reach = 1e6;
+    const SURE = { chance: 1e9, miss: Infinity, rest: 0, full: 0 };
     const was = g.paint.onDrip;
     g.paint.onDrip = () => {};
     g.paint.clear();
-    for (let i = 0; i < 4; i++) g.paint.stamp(s, { rect, u: 0.5, v: 0.5 }, 0.1, 1, [0.9, 0.2, 0.1], 0, 1e9);
+    for (let i = 0; i < 4; i++) g.paint.stamp(s, { rect, u: 0.5, v: 0.5 }, 0.1, 1, [0.9, 0.2, 0.1], 0, SURE);
     g.wetView.refresh();
     const wet = g.wetView.count;
     g.drips.update(30);
@@ -97,7 +139,7 @@ await check('wet view (F3): wet paint on an upright face shows as points, dry pa
   return r.wet > 0 && r.dry === 0 ? null : JSON.stringify(r);
 });
 
-await check('wet view (F3): the highest build-up reads coats against the build-up needed', async () => {
+await check('wet view (F3): the highest build-up reads passes against the passes needed', async () => {
   const r = await page.evaluate(() => {
     const g = window.game;
     const faces = g.paint.surfaces.flatMap((s) => s.geo.rects.map((rect, i) => ({ s, rect: i, size: rect.upright && rect.face ? rect.w * rect.h : 0 })));
@@ -109,23 +151,23 @@ await check('wet view (F3): the highest build-up reads coats against the build-u
     const was = g.paint.onDrip;
     g.paint.onDrip = () => {};
     g.paint.clear();
+    const SURE = { chance: 1e9, miss: Infinity, rest: 0, full: 0 };
     // A dot wider than the face, so every texel the view samples holds the same build-up.
     const coats = (n) => {
-      for (let i = 0; i < n; i++) g.paint.stamp(s, at, 5, 1, [0.9, 0.2, 0.1], 0, 1e9);
+      for (let i = 0; i < n; i++) g.paint.stamp(s, at, 5, 1, [0.9, 0.2, 0.1], 0, SURE);
       g.wetView.refresh();
       return g.wetView.peak;
     };
-    const out = { needed: DRIPS.excess };
+    const out = { needed: DRIPS.passes };
     coats(1); // opaque
     out.some = coats(2);
-    out.near = coats(Math.ceil(DRIPS.excess) - 3);
+    out.near = coats(3);
     g.paint.clear();
     WET_VIEW.reach = 10;
     g.paint.onDrip = was;
     return out;
   });
-  const last = Math.ceil(r.needed) - 1;
-  return Math.abs(r.some - 2) < 0.1 && r.near > last - 0.1 && r.near < r.needed ? null : JSON.stringify(r);
+  return Math.abs(r.some - 2 / 6) < 0.02 && r.near > 5 / 6 - 0.02 && r.near < r.needed ? null : JSON.stringify(r);
 });
 
 await check('runs view (F3): the texels of a run show in it, switching it on changes no paint and logs no ops, and cleared paint leaves it', async () => {
@@ -136,6 +178,7 @@ await check('runs view (F3): the texels of a run show in it, switching it on cha
     const at = { rect, u: 0.5, v: 0.5 };
     const { DRIPS, RUNS_VIEW } = g.config;
     DRIPS.enabled = true;
+    const SURE = { chance: 1e9, miss: Infinity, rest: 0, full: 0 };
     // The same runs each time: the same dice, the paint clock back at 0, no runs left over.
     const scene = (on) => {
       RUNS_VIEW.enabled = on;
@@ -144,7 +187,7 @@ await check('runs view (F3): the texels of a run show in it, switching it on cha
       g.paint.tick(-g.paint.now);
       g.seedPaintRandom(1);
       const ops = g.paint.opCount;
-      for (let i = 0; i < 12; i++) g.paint.stamp(s, at, 0.2, 1, [0.9, 0.2, 0.1], 0, 1e9);
+      for (let i = 0; i < 12; i++) g.paint.stamp(s, at, 0.2, 1, [0.9, 0.2, 0.1], 0, SURE);
       const runs = g.drips.count;
       for (let i = 0; i < 40; i++) g.drips.update(0.05);
       let hash = 2166136261;

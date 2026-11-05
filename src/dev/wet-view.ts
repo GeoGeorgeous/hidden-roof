@@ -47,7 +47,7 @@ export class WetView {
 
   /** The panel's readout: the most build-up found near you against what makes paint run. */
   get label() {
-    return this.points.visible ? `${this.peak.toFixed(1)} / ${DRIPS.excess.toFixed(1)}` : '-';
+    return this.points.visible ? `${this.peak.toFixed(1)} / ${DRIPS.passes.toFixed(1)}` : '-';
   }
 
   /** The points as the wet paint is now. */
@@ -84,7 +84,7 @@ export class WetView {
           if (n === maxPoints) break;
           texelToWorld(r, x + 0.5, y + 0.5, p).addScaledVector(nm, lift).toArray(this.pos, n * 3);
           // The share of the build-up needed to run: 1 is where it may.
-          const buildUp = Math.min(1, left / DRIPS.dryTime);
+          const buildUp = Math.min(1, left / (DRIPS.passes * DRIPS.dryTime));
           if (buildUp > most) most = buildUp;
           ramp.lerpColors(cool, hot, buildUp);
           const i = n * 4;
@@ -97,7 +97,7 @@ export class WetView {
       }
     }
     this.count = n;
-    this.peak = most * DRIPS.excess;
+    this.peak = most * DRIPS.passes;
     const geo = this.points.geometry;
     geo.setDrawRange(0, n);
     geo.attributes.position.needsUpdate = true;
