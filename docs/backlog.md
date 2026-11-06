@@ -1,6 +1,6 @@
 # Backlog
 
-The one list of what's left. Counter for new ids: next: 395
+The one list of what's left. Counter for new ids: next: 396
 
 <details>
 <summary>Backlog rules (read before editing)</summary>
@@ -215,6 +215,7 @@ Shipped since the last release; the release commit empties this list.
 52. [TASK-393]: Streamline starts at 30 ms, was 20
 53. [CCTV-302]: A player's state `capture` (filming with capture mode's free camera, standing still; `docs/admin-api.md`, a session's players) on the session page beside `menu` and `idle`; reaches the server with PROTOCOL 11 (1.6.2). Done in cctv PR #13 (a Capture tab and label after In menu, a neutral pill; the fake server's ana in capture), merged; no real-server check on record
 54. [CCTV-373]: The traffic funnel shows who can play: each page load says what it came to (game, no mouse, small window, no WebGL, a file that failed, the start script cached) in a request for `/mark.txt`, counted once a visitor as `boot` in `/stats/traffic`, its days and months (`docs/admin-api.md`); the privacy page says so. The cctv page's Audience card is on it (cctv PR #17)
+55. [TASK-395]: CI's check may take 30 minutes, was 20: it takes 12 to over 20 by the runner, and runs were cut off in golden, its last step
 
 ## Discarder
 
