@@ -14,6 +14,24 @@ There are no enemies and no goals: find your tools, paint whatever you like, scr
 - Solo, or multiplayer: pick a session from the server list, a public one (up to 40 players) or a private one by its code (up to 4).
 - Inspired by Bombing!!, Marc Ecko's Getting Up and Daisuke Tajima's Beyond the Lines.
 
+## Painting
+
+- A stroke lays a continuous line of paint under the aim, with no gaps at any hand speed, not a cloud of dots. Passes add up.
+- Distance: up close the line is narrow and crisp; stepping back makes it wider and softer.
+- Hand speed: slow strokes are dense and sharp; fast ones are lighter, wider and softer.
+- Angle: sprayed at an angle, paint stretches along the aim and fades towards the far end.
+- Opacity: hold Run (Shift by default) and scroll, from 5% to 100%, on the can only. The can never loses pressure; shaking it is only an animation.
+- Six caps: NEEDLE (sharp details), SKINNY (tags and outlines), BANANA (the all-rounder every player starts with), BLUE DOT (soft blends and fades), NY FAT (throw-ups and quick fills), ASTRO FAT (big fills and backgrounds). The others are found on the roof.
+- Drips: wet paint that builds up in one place darkens, then runs slowly down the surface. Paint dries in seconds. Heavier coverage runs longer; the marker and the roller can trigger runs too.
+- Crosshair: as wide as the line would land, with the set opacity on an arc; it fades where paint won't reach.
+- Streamline (Settings → General) smooths lines: the brush trails the aim a little. Painting has its own mouse sensitivity and field of view.
+- Marker: a square nib for crisp lines and letters, up to 10 cm wide.
+- Roller: solid bands of paint on a short pole that reaches 5 m, from 20 to 80 cm wide; it rolls up and down, and its paint runs easily.
+- Sponge: scrapes off any paint; one pass fades it, scrubbing cleans it.
+- Stepladder: stands on the floor and reaches high walls; each player has one, and in a session others can climb it.
+- The marker, the roller, the sponge and the stepladder are all found on the roof.
+- Sound: the can's hiss gets louder with more opacity, closer to the wall and with the hand moving, and every cap has its own loudness and tone.
+
 ## Links
 
 - [Play Hidden Roof](https://roof.hidden.haus/): the game

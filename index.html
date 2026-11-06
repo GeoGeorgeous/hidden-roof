@@ -192,25 +192,40 @@
             </ul>
             <h3>Caps</h3>
             <p>Six caps to choose from, each with its own feel, from fine details to big fills. You start with BANANA and find the rest around the roof.</p>
-            <!-- Every cap, its picture from its model (scripts/cap-pictures.mjs; scripts/seo.test.mjs checks they're all here). -->
+            <!-- Every cap, its picture its pickup in the game (scripts/pickup-pictures.mjs; scripts/seo.test.mjs checks they're all here). -->
             <dl class="tools caps">
-              <div><dt><img src="/about/caps/needle.webp" width="96" height="96" alt="" loading="lazy" />NEEDLE</dt><dd>Ultra-fine lines for sharp details and highlights</dd></div>
-              <div><dt><img src="/about/caps/skinny.webp" width="96" height="96" alt="" loading="lazy" />SKINNY</dt><dd>Clean tags and crisp outlines</dd></div>
-              <div><dt><img src="/about/caps/standard.webp" width="96" height="96" alt="" loading="lazy" />BANANA</dt><dd>A versatile all-rounder for everyday painting</dd></div>
-              <div><dt><img src="/about/caps/soft.webp" width="96" height="96" alt="" loading="lazy" />BLUE DOT</dt><dd>Soft edges for smooth blends and fades</dd></div>
-              <div><dt><img src="/about/caps/fat.webp" width="96" height="96" alt="" loading="lazy" />NY FAT</dt><dd>Wide lines for throw-ups and quick fills</dd></div>
-              <div><dt><img src="/about/caps/spray.webp" width="96" height="96" alt="" loading="lazy" />ASTRO FAT</dt><dd>Massive coverage for big fills and backgrounds</dd></div>
+              <div><dt><img src="/about/pickups/needle.webp" width="240" height="160" alt="" loading="lazy" />NEEDLE</dt><dd>Ultra-fine lines for sharp details and highlights</dd></div>
+              <div><dt><img src="/about/pickups/skinny.webp" width="240" height="160" alt="" loading="lazy" />SKINNY</dt><dd>Clean tags and crisp outlines</dd></div>
+              <div><dt><img src="/about/pickups/standard.webp" width="240" height="160" alt="" loading="lazy" />BANANA</dt><dd>A versatile all-rounder for everyday painting</dd></div>
+              <div><dt><img src="/about/pickups/soft.webp" width="240" height="160" alt="" loading="lazy" />BLUE DOT</dt><dd>Soft edges for smooth blends and fades</dd></div>
+              <div><dt><img src="/about/pickups/fat.webp" width="240" height="160" alt="" loading="lazy" />NY FAT</dt><dd>Wide lines for throw-ups and quick fills</dd></div>
+              <div><dt><img src="/about/pickups/spray.webp" width="240" height="160" alt="" loading="lazy" />ASTRO FAT</dt><dd>Massive coverage for big fills and backgrounds</dd></div>
             </dl>
             <h3>Tools</h3>
             <p>You start with a spray can and black paint. Twelve more colors, the caps, and four extra tools are hidden around the roof. Paint never runs out.</p>
-            <!-- Every tool, with its icon from the server list (src/net/tool-icons.ts; scripts/seo.test.mjs checks they're the same). -->
-            <dl class="tools">
-              <div><dt><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="can"><rect x="4.5" y="5.5" width="6" height="8.5" rx="1.5"/><path d="M6 5.5V3.5h3v2"/><path d="M10.5 3.2l2-.8M10.5 4.4l2 .2"/></svg>Spray can</dt><dd>Tags, fills and fades</dd></div>
-              <div><dt><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="marker"><path d="M3 13l.8-2.8 6.6-6.6 2 2-6.6 6.6z"/><path d="M9.2 4.8l2 2"/></svg>Marker</dt><dd>Crisp lines and letters</dd></div>
-              <div><dt><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="roller"><rect x="2.5" y="2.5" width="9" height="3.5" rx="1"/><path d="M11.5 4.2h1.7v3.3H7.5v2"/><path d="M7.5 9.5v4"/></svg>Roller</dt><dd>Large areas, fast</dd></div>
-              <div><dt><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="sponge"><rect x="2" y="6" width="9.5" height="7" rx="2.5"/><circle cx="4.8" cy="8.6" r="0.6" fill="currentColor" stroke="none"/><circle cx="7.6" cy="10.6" r="0.6" fill="currentColor" stroke="none"/><circle cx="8.4" cy="8.2" r="0.5" fill="currentColor" stroke="none"/><path d="M13 2.2c.9 1.2 1.4 2 1.4 2.6a1.4 1.4 0 0 1-2.8 0c0-.6.5-1.4 1.4-2.6z"/></svg>Sponge</dt><dd>Scrapes paint off</dd></div>
-              <div><dt><svg viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" data-tool="ladder"><path d="M5 2v12M11 2v12M5 5h6M5 8h6M5 11h6"/></svg>Stepladder</dt><dd>Reaches high walls</dd></div>
-            </dl>
+            <!-- Every found tool, its picture its pickup in the game (scripts/pickup-pictures.mjs; scripts/seo.test.mjs checks they're all here). -->
+            <div class="kit">
+              <div>
+                <img src="/about/pickups/marker.webp" width="200" height="200" alt="" loading="lazy" />
+                <h4>Marker</h4>
+                <p>A square nib for crisp lines and letters, right where you aim, with none of the can&rsquo;s softness. Q and E change the nib from as thin as it gets to 10 cm. Use it for outlines, small tags, and sharp details over a spray fill.</p>
+              </div>
+              <div>
+                <img src="/about/pickups/roller.webp" width="200" height="200" alt="" loading="lazy" />
+                <h4>Roller</h4>
+                <p>Solid bands of paint, fast, on a short pole that reaches 5 m. Roll up and down for the full width: sideways it only drags along its own length, like a real roller. Q and E set the width from 20 to 80 cm. Use it for backgrounds and big fills, and watch for runs: a loaded roller drips easily.</p>
+              </div>
+              <div>
+                <img src="/about/pickups/sponge.webp" width="200" height="200" alt="" loading="lazy" />
+                <h4>Sponge</h4>
+                <p>Scrapes paint off, whatever laid it. One pass fades the paint, and scrubbing back and forth cleans it. Q and E set its size from 4 to 60 cm, and holding Crouch scrubs the floor. Use it to fix a mistake, clean up an edge, or start over.</p>
+              </div>
+              <div>
+                <img src="/about/pickups/ladder.webp" width="200" height="200" alt="" loading="lazy" />
+                <h4>Stepladder</h4>
+                <p>Puts high walls within reach. Put it down with the left mouse button, turn it with the wheel, then walk into it or hold Jump to climb. You have one, so putting it down again moves it, and in a session others can climb it too.</p>
+              </div>
+            </div>
           </section>
 
           <section id="gallery">
@@ -290,12 +305,22 @@
                 <details><summary>Can I play with a controller?</summary><p>No, you can only play with a keyboard and a mouse.</p></details>
                 <details><summary>How many levels are there?</summary><p>There&rsquo;s just one level: a large rooftop, the same in solo and multiplayer. It gets new walls, windows, signs, and props with each update.</p></details>
                 <details><summary>Can I change the controls?</summary><p>Every key can be rebound in Settings → Controls.</p></details>
-                <details><summary>Is there sound?</summary><p>You&rsquo;ll hear rain, thunder, your footsteps, the whirr of air conditioners, and the hiss of your spray can. Adjust the volume in Settings → Audio.</p></details>
+                <details><summary>Is there sound?</summary><p>Yes. You&rsquo;ll hear real recordings of the city at night from a rooftop, of rain and of thunder, along with your footsteps, the whirr of air conditioners, and the hiss of your spray can. Step into a room and the city gets muffled, while the rain changes to rain on a tin roof. Adjust the volume in Settings → Audio.</p></details>
+                <details><summary>Does the spray can sound change as I paint?</summary><p>Yes. The hiss gets louder with more opacity, closer to the wall, and with your hand moving, and every cap has its own loudness and tone.</p></details>
               </div>
             </div>
             <div class="faq-group">
               <h3>Painting</h3>
               <div>
+                <details><summary>How does painting work in Hidden Roof?</summary><p>Like a brush in a drawing app that behaves like a real can. Each stroke lays a continuous line of paint under your aim, with no gaps at any hand speed, and passes add up. The line depends on your cap, distance, hand speed, angle, and opacity.</p></details>
+                <details><summary>What changes the width and look of a spray line?</summary><p>Your cap, your distance from the wall, and your hand speed. Up close the line is narrow and crisp, and it gets wider and softer as you step back. Slow strokes are dense and sharp, fast ones lighter, wider, and softer. Spray at an angle and the paint stretches along your aim, fading towards the far end.</p></details>
+                <details><summary>What caps are there?</summary><p>Six: NEEDLE for sharp details and highlights, SKINNY for clean tags and crisp outlines, BANANA for everyday painting, BLUE DOT for smooth blends and fades, NY FAT for throw-ups and quick fills, and ASTRO FAT for big fills and backgrounds. You start with BANANA and find the rest around the roof. Q and E switch between them by default.</p></details>
+                <details><summary>How do I change the opacity or pressure of the can?</summary><p>Hold Run (Shift by default) and scroll with the can in hand. It goes from 5% to 100%, and each pass builds on the last, so you can work up a fade.</p></details>
+                <details><summary>Why does my paint drip?</summary><p>Too much wet paint in one place. Hold your aim in one spot or go over fresh paint and it builds up, darkens, then starts to run slowly down the surface. Paint dries in seconds, so what counts is how much you lay in a short time. Heavier coverage runs longer, every cap runs differently, and the marker and the roller can trigger runs too.</p></details>
+                <details><summary>What does the crosshair show?</summary><p>The line you&rsquo;re about to leave. It&rsquo;s as wide as the line would land, adjusting to your cap, distance, hand speed, and opacity, an arc shows the opacity you set, and it fades where the paint won&rsquo;t reach. The marker, the roller, and the sponge show their real size too.</p></details>
+                <details><summary>How do I get steadier lines?</summary><p>Turn up Streamline in Settings → General: the brush trails your aim a little, which takes the jitter out of your lines. The same tab has a lower mouse sensitivity and a narrower field of view just for painting.</p></details>
+                <details><summary>What can I paint with besides the spray can?</summary><p>A marker for crisp lines and letters and a roller for large areas, and a sponge scrapes paint off. You find them around the roof, and Q and E change their width by default.</p></details>
+                <details><summary>Do I need to shake the can?</summary><p>No. The can never loses pressure or sputters, so shaking is just for vibes.</p></details>
                 <details><summary>Does the spray can run out?</summary><p>No, paint never runs out.</p></details>
                 <details><summary>Is it a realistic spray paint simulator?</summary><p>It&rsquo;s a game, but the spray can follows real rules. Distance, hand speed, and the cap you use all affect the line, and the paint drips. It works for practicing letters, fills, and outlines.</p></details>
                 <details><summary>Do I need to be good at drawing?</summary><p>No. Start with a tag or a fat outline and use the sponge to scrape off anything you don&rsquo;t like.</p></details>
