@@ -26,6 +26,7 @@ There are no enemies and no goals: find your tools, paint whatever you like, scr
 - Crosshair: as wide as the line would land, with the set opacity on an arc; it fades where paint won't reach.
 - Streamline (Settings → General) smooths lines: the brush trails the aim a little. Painting has its own mouse sensitivity and field of view.
 - Other tools: a marker, a roller and a sponge that scrapes paint off, all found on the roof.
+- Sound: the can's hiss gets louder with more opacity, closer to the wall and with the hand moving, and every cap has its own loudness and tone.
 
 ## Links
 
